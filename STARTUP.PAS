@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -62,6 +62,8 @@ USES
   Drivers,
   Collect;
 
+Procedure StartupInitUnit;
+
 PROCEDURE FatalError( const S: String );
 
 Const MaxSignLen = 30;
@@ -93,9 +95,9 @@ CONST
     (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:15106;HavVer:true));
                                                     {Configuration for 1.51.06+}
   DSKSign: TSignRec =
-{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#80;SignLen:22;SignVer:15180);
-{$ELSE}      (Sign:'DN OSP Desktop'#26#151#90;SignLen:17;SignVer:15190);{$ENDIF}
-                                                    {Desktop for 1.51.09}
+{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#10;SignLen:22;SignVer:15110);
+{$ELSE}      (Sign:'DN OSP Desktop'#26#151#10;SignLen:17;SignVer:15110);{$ENDIF}
+                                                    {Desktop for 1.51.10}
   Security: Boolean = True;
   ConfigModified: Boolean = Off;
   DateMode: Byte = 0;
@@ -174,6 +176,7 @@ TYPE
 
   TInterfaceData = record
     Options: AWord;
+    DrvInfType: AWord;
   end;
 
   TPanelDefaultsData = record
@@ -200,6 +203,14 @@ TYPE
   end;
 
   TEditorDefaultsData = record
+    GlobalOpt: AWord;
+    Defaults : AWord;
+    NewLine  : AWord;
+    LM, RM, PM,
+    TabSize  : String[3];
+  end;
+
+  TOldEditorDefaultsData2 = record
     EdOpt: AWord;
     EdOpt2:AWord;
     ViOpt: AWord;
@@ -217,6 +228,11 @@ TYPE
     RM,
     PM: String[3];
     NewLine: AWord;
+    TabSize: String[3];
+  end;
+
+  TViewerDefaultsData = record
+    Options: AWord;
     TabSize: String[3];
   end;
 
@@ -308,7 +324,8 @@ procedure InitMaskData;
              ouiTrackEditors +
              ouiTrackViewers +
              ouiTrackDirs +
-             ouiHideMenu
+             ouiHideMenu;
+    DrvInfType: 0
   );
 
   PanelDefaults: TPanelDefaultsData = (
@@ -342,18 +359,17 @@ procedure InitMaskData;
     );
 
   EditorDefaults: TEditorDefaultsData = (
-    EdOpt: ebfBSU +
-           ebfAId +
-           ebfPBl +
-           ebfEMS +
-           ebfXMS +
-           ebfTRp; {-$VOL}
-    EdOpt2:ebfHlt+ebfSmt;
-    ViOpt: 0;
-    LM: '0';
-    RM: '78';
-    PM: '5';
-    NewLine: 0;
+    GlobalOpt: ebfEMS + ebfXMS + ebfPBl;
+    Defaults : ebfBSU + ebfAId + ebfTRp + ebfHlt + ebfSmt;
+    NewLine  : 0;
+    LM       : '0';
+    RM       : '78';
+    PM       : '5';
+    TabSize  : '8'
+  );
+
+  ViewerDefaults: TViewerDefaultsData = (
+    Options: vbfHlt + vbfTRp;
     TabSize: '8'
   );
 
@@ -555,7 +571,7 @@ begin
                         'a[0-9][0-9];r[0-9][0-9];$z[0-9];'+
 {supported archives in order of appearance}
                         'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
-                        'lha;ice;lzh;lim;qrk;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
+                        'lha;ice;lzh;lim;ark;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
                         'zip;zoo;$z;zxz;'+
 {arvid}
                         'avt;tdr;'+
@@ -568,7 +584,7 @@ begin
 
 {raw text}
  New(CustomMask2);  FillChar(CustomMask2^, SizeOf(CustomMask2^), 0);
- CustomMask2^.Filter := '.;asc;dok;txt;ans;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[1-9][1-9]';
+ CustomMask2^.Filter := '.;asc;dok;txt;ans;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][1-9]';
 
 {databases & speadsheets}
  New(CustomMask3);  FillChar(CustomMask3^, SizeOf(CustomMask3^), 0);
@@ -612,6 +628,7 @@ begin
  CustomMask10^.Filter:= 'dll;drv;ifs;flt;add;sys;vxd;386;rtl;ovr;ovl';
 end;
 
+Procedure StartupInitUnit;
 begin
   StartupDir:='';
   SourceDir:='';
@@ -634,14 +651,16 @@ begin
   if SourceDir = '' then SourceDir := StartupDir;
   if SourceDir[Length(SourceDir)] <> '\' then AddStr(SourceDir, '\');
 
-  StartupDir:=lfGetLongFileName(StartupDir);
-  SourceDir:= lfGetLongFileName(SourceDir);
-  TempDir:=   lfGetLongFileName(TempDir);
-  TempFile:=  lfGetLongFileName(TempFile);
+  StartupDir:={$IFNDEF OS2}lfGetLongFileName{$ENDIF}(StartupDir);
+  SourceDir:= {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(SourceDir);
+  TempDir:=   {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(TempDir);
+  TempFile:=  {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(TempFile);
 
 {$IFNDEF NO_OVERLAY}
 {$IFDEF DNPRG}
  SetOverlay;
 {$ENDIF}
 {$ENDIF NO_OVERLAY}
+END;
+
 END.

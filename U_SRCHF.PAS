@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,18 +48,13 @@
 
 unit u_srchf;
 interface
-uses Objects,
-     collect,
-     Gauge,
-     LFN,      {DataCompBoy}
-     Commands, {DataCompBoy}
-     DNApp;    {DataCompBoy}
+uses Dos, LFN, Objects, collect, Gauge, Commands, DNApp;
 
 function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
 
 implementation
 
-uses dos, advance, advance1, advance2, advance3, messages, dnini;
+uses advance, advance1, advance2, advance3, messages, dnini;
 
         {-DataCompBoy-}
 function RecursiveCheck(Name, pPath: String; DoMore: Boolean; Info: PWhileView): string;

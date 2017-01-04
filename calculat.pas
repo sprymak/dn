@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -64,6 +64,27 @@ Const EvalueError: Boolean = False;
 IMPLEMENTATION
 uses Dos, Advance1;
 (*{$IFDEF DPMI}{$L Int10.obp}procedure Exc10Handler; external;{$ENDIF}*)
+
+function Sin (x:CReal):CReal;
+begin
+ if (not EvalueError)
+  then Sin := System.Sin(x)
+  else Sin := 1;
+end;
+
+function Cos (x:CReal):CReal;
+begin
+ if (not EvalueError)
+  then Cos := System.Cos(x)
+  else Cos := 1;
+end;
+
+function ArcTan (x:CReal):CReal;
+begin
+ if (not EvalueError)
+  then ArcTan := System.ArcTan(x)
+  else ArcTan := 1;
+end;
 
 function Sh  (x:CReal):CReal;
 begin
@@ -448,7 +469,7 @@ Procedure RestoreInt75Handler;
 Begin
   SetIntVec($75,Int75Old);
 End;
- {Sergey Abmetko - Unhanled exception bug fix start}
+ {Sergey Abmetko - Unhanled exception bug fix stop}
 {$ENDIF}
 
 function DoEval(start, stop: byte): CReal; forward;
@@ -459,6 +480,7 @@ begin
  New(S);
  S^:=UpStrg(DelSpaces(as));
  VGF:=aVGF;
+ EvalueError:=false;
 {$IFNDEF BIT_32} SetInt75Handler; {$ENDIF}
  Evalue:=DoEval(1, Length(S^));
 {$IFNDEF BIT_32} RestoreInt75Handler; {$ENDIF}
@@ -492,11 +514,13 @@ function DoEval(start, stop: byte): CReal;
     if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;
     continue;
    end;
-   if (s^[i]='>') and (i>start) then
+   if (s^[i]='>') and (i>start) and
+      (((i<stop) and (s^[i+1]<>'>')) or ((i>start+1) and (s^[i-1]<>'>'))) then
     begin DoEval:=Byte(DoEval(start, i-1) >  DoEval(i+1, stop)); exit end;
    if (s^[i]='>') and (i<stop) and (s^[i+1]='=') and (i>1) then
     begin DoEval:=Byte(DoEval(start, i-1) >= DoEval(i+2, stop)); exit end;
-   if (s^[i]='<') and (i>start) then
+   if (s^[i]='<') and (i>start) and
+      (((i<stop) and (s^[i+1]<>'<')) or ((i>start+1) and (s^[i-1]<>'<'))) then
     begin DoEval:=Byte(DoEval(start, i-1) <  DoEval(i+1, stop)); exit end;
    if (s^[i]='<') and (i<stop) and (s^[i+1]='=') and (i>1) then
     begin DoEval:=Byte(DoEval(start, i-1) <= DoEval(i+2, stop)); exit end;
@@ -711,16 +735,16 @@ function DoEval(start, stop: byte): CReal;
   {Proceed level 0... simple value or variable}
   if copy(s^,start,2) = 'PI' then begin DoEval:=Pi; exit end;
 
+  if EvalueError then begin DoEval:=1; exit; end;
+
   if @VGF<>nil then
    If VGF(Copy(s^,start,stop-start+1), value) then
-    begin EvalueError:=False; DoEval:=value; exit end;
+    begin DoEval:=value; exit end;
 
   if s^[Start]='~' then begin LL := 1; inc(Start); end else LL := 0;
-  if GetValue(Copy(s^, Start, stop-start+1), Value)
-   then begin
-         EvalueError:=False;
-         if LL<>0 then DoEval:=not Round(value) else DoEval:=Value;
-        end
-   else begin EvalueError:=True; DoEval:=1 end;
+  if GetValue(Copy(s^, Start, stop-start+1), Value) then
+   if LL<>0 then DoEval:=not Round(value) else DoEval:=Value
+  else begin EvalueError:=True; DoEval:=1 end;
  end;
+
 END.

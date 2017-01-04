@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,7 +49,7 @@ UNIT ArvidAvt;
 
 INTERFACE
 uses Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
-     Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, LfnCol, Dos, Tree,
+     Views, Drivers, Startup,  U_KeyMap, Advance, Dos, Lfn, LfnCol, Tree,
      FilesCol, Advance2, Drives, FlPanel, Memory;
 
 function  AvtCMP(S1, S2: String): Integer;
@@ -1103,8 +1103,8 @@ procedure AvtGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;
     and (AllFiles or IsDir or InFilter(Str, FileMask)) then
     begin
       if Cell.Flags and avtIsDir <> 0 then
-        F:=NewFileRec(Str, Str, 0,                Cell.Time, TAttr, @CurDir) else
-        F:=NewFileRec(Str, Str, Cell.ChildOrSize, Cell.Time, TAttr, @CurDir);
+        F:=NewFileRec(Str, {$IFNDEF OS2}Str,{$ENDIF} 0,                Cell.Time, TAttr, @CurDir) else
+        F:=NewFileRec(Str, {$IFNDEF OS2}Str,{$ENDIF} Cell.ChildOrSize, Cell.Time, TAttr, @CurDir);
       if ShowD then
       begin
         New(F^.DIZ);

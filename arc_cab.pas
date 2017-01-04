@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_CAB; {CAB}
 
 interface
- uses Advance1, Archiver, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Advance1, Archiver, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
 
 type
   PCABArchive = ^TCABArchive;
@@ -71,11 +71,11 @@ type
     reserved3:  LongInt;
     versionMinor: Byte;
     versionMajor: Byte;
-    cFolders:   Word;
-    cFiles:     Word;
-    flags:      Word;
-    setID:      Word;
-    iCabinet:   Word;
+    cFolders:   AWord;
+    cFiles:     AWord;
+    flags:      AWord;
+    setID:      AWord;
+    iCabinet:   AWord;
   end;
 
 
@@ -137,11 +137,11 @@ var
   FH: record
       cbFile:   LongInt;
       uoffFolderStart:  LongInt;
-      iFolder:  Word;
-{     date:     Word;
-      time:     Word; }
+      iFolder:  AWord;
+{     date:     AWord;
+      time:     AWord; }
       DateTime: LongInt;
-      attribs:  Word;
+      attribs:  AWord;
 {     u1  szName[]; }
     end;
   CFHEADER: TCFHEADER;

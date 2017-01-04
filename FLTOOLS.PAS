@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -78,6 +78,9 @@ procedure CM_MakeDir(AFP: Pointer);
 procedure CM_LongCopy(AFP: Pointer);
 procedure CM_Branch(AFP: Pointer);
 procedure CM_ChangeCase(AFP: Pointer);
+{$IFDEF COLUMNSMENU}
+procedure CM_SelectColumn(AFP: Pointer); {JO}
+{$ENDIF}
 
 IMPLEMENTATION
 uses LFN, LFNCol, {DataCompBoy} collect, xtime, dnini,
@@ -698,7 +701,7 @@ begin
        Close(F.F);
       end;
 
-     SetFileAttr(S, K and not Directory);
+     SetFileAttr(S, K and not Directory and not VolumeID);
      if not Single then PF^.Selected := Off;
     end;
   end;
@@ -1048,9 +1051,10 @@ begin
           MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)+^M^C+Cut(S2,20)
                      +GetString(dlFCNoRename2)+Cut(S,20), nil, mfError+mfOKButton)
         else begin
-               PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
                DelLFN(PF^.LFN);
                PF^.LFN := AddLFN(S);
+               {$IFNDEF OS2}
+               PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
                if PF^.Attr and Directory <> 0 then UpStr(PF^.Name)
                    else begin
                           LowStr(PF^.Name);
@@ -1058,10 +1062,13 @@ begin
                         end;
                PF^.Name[9] := ' ';
                Sn:=MakeFileName(PF^.Name);
+               {$ELSE}
+               Sn:=S;
+               {$ENDIF}
                S2:=GetPossibleDizOwner(1);
                if S2 <> '' then begin
                 S2 := GetDizOwner(PF^.Owner^, S2, Off);
-                ReplaceDIZ(S2, Nm, @Sn, nil);
+                ReplaceDIZ(S2, Nm, GetLFN(PF^.LFN), @Sn, nil);
                end;
              end;
       lChDir(SSS);
@@ -1182,6 +1189,7 @@ begin
           MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)+^M^C+S2
                      +GetString(dlFCNoRename2)+S, nil, mfError+mfOKButton)
         else begin
+               {$IFNDEF OS2}
                PF^.Name := Norm12(S);
                if PF^.Attr and Directory <> 0 then UpStr(PF^.Name)
                    else begin
@@ -1189,6 +1197,9 @@ begin
                           if PF^.Attr and SysFile <> 0 then PF^.Name[1] := UpCase(PF^.Name[1]);
                         end;
                PF^.Name[9] := ' ';
+               {$ENDIF}
+               DelLFN(PF^.LFN);
+               PF^.LFN:=AddLFN(S);
                if PF^.DIZ <> nil then UpdateDesc;
              end;
       ChDir(SSS);
@@ -1246,9 +1257,10 @@ begin
           MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)+^M^C+Cut(S2,20)
                      +GetString(dlFCNoRename2)+Cut(S,20), nil, mfError+mfOKButton)
         else begin
-               PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
                DelLFN(PF^.LFN);
                PF^.LFN := AddLFN(S);
+               {$IFNDEF OS2}
+               PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
                if PF^.Attr and Directory <> 0 then UpStr(PF^.Name)
                    else begin
                           LowStr(PF^.Name);
@@ -1256,10 +1268,13 @@ begin
                         end;
                PF^.Name[9] := ' ';
                Sn:=MakeFileName(PF^.Name);
+               {$ELSE}
+               Sn:=S;
+               {$ENDIF}
                S2:=GetPossibleDizOwner(1);
                if S2 <> '' then begin
                 S2 := GetDizOwner(PF^.Owner^, S2, Off);
-                ReplaceDIZ(S2, Nm, @Sn, nil);
+                ReplaceDIZ(S2, Nm, GetLFN(PF^.LFN), @Sn, nil);
                end;
              end;
       lChDir(SSS);
@@ -1477,9 +1492,10 @@ procedure CM_ChangeCase(AFP: Pointer);
              +GetString(dlFCNoRename2)+Cut(S,20), nil, mfError+mfOKButton);
    DoChangeCase := true;
   end else begin
-   PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
    DelLFN(PF^.LFN);
    PF^.LFN := AddLFN(S);
+   {$IFNDEF OS2}
+   PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
    if PF^.Attr and Directory <> 0
     then UpStr(PF^.Name)
     else begin
@@ -1489,10 +1505,13 @@ procedure CM_ChangeCase(AFP: Pointer);
          end;
    PF^.Name[9] := ' ';
    Sn := MakeFileName(PF^.Name);
+   {$ELSE}
+   Sn := S;
+   {$ENDIF}
    S := GetPossibleDizOwner(1);
    if S <> '' then begin
     S := GetDizOwner(PF^.Owner^, S, Off);
-    ReplaceDIZ(S, Nm, @Sn, nil);
+    ReplaceDIZ(S, Nm, GetLFN(PF^.LFN), @Sn, nil);
    end;
    Message(P, evCommand, cmCopyUnselect, PF);
   end;
@@ -1551,5 +1570,181 @@ begin
  Dispose(FC,Done);
 end;
 
+{$IFDEF COLUMNSMENU}
+procedure CM_SelectColumn(AFP: Pointer); {JO}
+ var
+   I,J,K: Byte;
+   NameT: Array [1..10] of String[1];
+   ISFull: Array [1..10] of String[12];
+   Descr: Array [1..10] of String[25];
+   PanelDescr: String;
+   P: PFilePanelRoot absolute AFP;
+   Menu: PMenu;
+   Items: PMenuItem;
+   R: TRect;
+   PV: PView;
+   N, W: Word;
+
+ begin
+
+  case P^.Drive^.DriveType of
+dtDisk,dtLink:
+  begin
+   for I:= 1 to 10 do
+    begin
+      if (ColumnsDefaultsDisk.Params[I].Param and 1 <> 0)
+         then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
+      if (ColumnsDefaultsDisk.Params[I].Param and 63 = 63) or (ColumnsDefaultsDisk.Params[I].Param and 62 = 62)
+         then ISFull[I] := GetString(dlFullInfo) else
+         if (ColumnsDefaultsDisk.Params[I].Param and 16 <> 0) then
+                  ISFull[I] := GetString(dlDescr) else ISFull[I] := '';
+      Descr[I] := '';
+    end;
+    PanelDescr := PanelDescrDrive;
+  end;
+dtFind,dtList:
+  begin
+   for I:= 1 to 10 do
+    begin
+      if (ColumnsDefaultsFind.Params[I].Param and 1 <> 0)
+         then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
+      if (ColumnsDefaultsFind.Params[I].Param and 31 = 31) or (ColumnsDefaultsFind.Params[I].Param and 30 = 30)
+         then ISFull[I] := GetString(dlFullInfo) else
+         if (ColumnsDefaultsFind.Params[I].Param and 16 <> 0) then
+                  ISFull[I] := GetString(dlPath) else ISFull[I] := '';
+      Descr[I] := '';
+    end;
+    PanelDescr := PanelDescrFind;
+  end;
+dtTemp:
+  begin
+   for I:= 1 to 10 do
+    begin
+      if (ColumnsDefaultsTemp.Params[I].Param and 1 <> 0)
+         then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
+      if (ColumnsDefaultsTemp.Params[I].Param and 31 = 31) or (ColumnsDefaultsTemp.Params[I].Param and 30 = 30)
+         then ISFull[I] := GetString(dlFullInfo) else
+         if (ColumnsDefaultsTemp.Params[I].Param and 16 <> 0) then
+                  ISFull[I] := GetString(dlPath) else ISFull[I] := '';
+      Descr[I] := '';
+    end;
+    PanelDescr := PanelDescrTemp;
+  end;
+dtArc:
+  begin
+   for I:= 1 to 10 do
+    begin
+      if (ColumnsDefaultsArch.Params[I].Param and 1 <> 0)
+         then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
+      if (ColumnsDefaultsArch.Params[I].Param and 63 = 63) or (ColumnsDefaultsArch.Params[I].Param and 62 = 62)
+         then ISFull[I] := GetString(dlFullInfo) else ISFull[I] := '';
+      Descr[I] := '';
+    end;
+    PanelDescr := PanelDescrArc;
+  end;
+dtArvid:
+  begin
+   for I:= 1 to 10 do
+    begin
+      if (ColumnsDefaultsArvd.Params[I].Param and 1 <> 0)
+         then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
+      if (ColumnsDefaultsArvd.Params[I].Param and 31 = 31) or (ColumnsDefaultsArvd.Params[I].Param and 30 = 30)
+         then ISFull[I] := GetString(dlFullInfo) else
+         if (ColumnsDefaultsArvd.Params[I].Param and 16 <> 0) then
+                  ISFull[I] := GetString(dlDescr) else ISFull[I] := '';
+      Descr[I] := '';
+    end;
+    PanelDescr := PanelDescrArvid;
+  end;
+  end;
+
+  if PanelDescr <> '' then
+    begin
+      I := 1;
+      J := 1;
+      for K := 1 to Length(PanelDescr) do
+          if (PanelDescr[K] = '#') or (K = Length(PanelDescr)) then
+             begin
+               if I > 10 then continue;
+               if (J = 1) and (PanelDescr[1] <> '#') then
+                 begin
+                  if (K = Length(PanelDescr)) and (PanelDescr[K] <> '#') then
+                    Descr[I] := copy(PanelDescr, J, K-J+1)
+                  else
+                    Descr[I] := copy(PanelDescr, J, K-J);
+                 end
+               else
+                 begin
+                  if (K = Length(PanelDescr)) and (PanelDescr[K] <> '#') then
+                    Descr[I] := copy(PanelDescr, J+1, K-J)
+                  else
+                    Descr[I] := copy(PanelDescr, J+1, K-J-1);
+                 end;
+               if I <= 10 then I := I+1;
+               J := K;
+             end;
+    end;
+
+  Items := nil;
+
+  case P^.Drive^.DriveType of
+dtDisk,dtLink:
+  for I := 10 downto 1 do
+    begin
+      J := 48+I; if J = 58 then J := 48;
+      Items := NewItem('~'+Char(J)+'~ '+ColumnsDefaultsDisk.Params[I].LFNLen+'.'+
+        ColumnsDefaultsDisk.Params[I].EXTLen+' '+NameT[I]+' '+ISFull[I]+Descr[I],'',kbNoKey,16000+I,0,Items);
+    end;
+dtFind,dtList:
+  for I := 10 downto 1 do
+    begin
+      J := 48+I; if J = 58 then J := 48;
+      Items := NewItem('~'+Char(J)+'~ '+ColumnsDefaultsFind.Params[I].LFNLen+'.'+
+        ColumnsDefaultsFind.Params[I].EXTLen+' '+NameT[I]+' '+ISFull[I]+Descr[I],'',kbNoKey,16000+I,0,Items);
+    end;
+dtTemp:
+  for I := 10 downto 1 do
+    begin
+      J := 48+I; if J = 58 then J := 48;
+      Items := NewItem('~'+Char(J)+'~ '+ColumnsDefaultsTemp.Params[I].LFNLen+'.'+
+        ColumnsDefaultsTemp.Params[I].EXTLen+' '+NameT[I]+' '+ISFull[I]+Descr[I],'',kbNoKey,16000+I,0,Items);
+    end;
+dtArc:
+  for I := 10 downto 1 do
+    begin
+      J := 48+I; if J = 58 then J := 48;
+      Items := NewItem('~'+Char(J)+'~ '+ColumnsDefaultsArch.Params[I].LFNLen+'.'+
+        ColumnsDefaultsArch.Params[I].EXTLen+' '+NameT[I]+' '+ISFull[I]+Descr[I],'',kbNoKey,16000+I,0,Items);
+    end;
+dtArvid:
+  for I := 10 downto 1 do
+    begin
+      J := 48+I; if J = 58 then J := 48;
+      Items := NewItem('~'+Char(J)+'~ '+ColumnsDefaultsArvd.Params[I].LFNLen+'.'+
+        ColumnsDefaultsArvd.Params[I].EXTLen+' '+NameT[I]+' '+ISFull[I]+Descr[I],'',kbNoKey,16000+I,0,Items);
+    end;
+  end;
+
+  Menu := NewMenu(Items);
+
+  N := 9;  W := 15;
+  DeskTop^.GetExtent(R);
+  R.A := P^.Origin; P^.Owner^.MakeGlobal(R.A, R.A); Desktop^.MakeLocal(R.A, R.A);
+  if R.A.X < 0 then R.A.X := 0 else if R.A.X + W > R.B.X then R.A.X := R.B.X - W;
+  if R.A.Y < 0 then R.A.Y := 0 else if R.A.Y + N + 2 > R.B.Y then R.A.Y := R.B.Y - N - 2;
+  R.B.X := R.A.X + 100; R.B.Y := R.A.Y + 100; {R.B := R.A;}
+                       PV := New(PMenuBox, Init(R, Menu, nil));
+Menu^.Default := LookUpMenu(PMenuBox(PV)^.Menu, P^.Drive^.Param+16000, dfByCommand);
+                       N := DeskTop^.ExecView(PV);
+                       Dispose(PV, Done);
+                       DisposeMenu(Menu);
+                       if N >= 16001 then
+                         begin
+                           N := N - 16000;
+                           P^.Drive^.GetParam(N);
+                           P^.Owner^.ReDraw;
+                         end;
+ end;  {JO}
+{$ENDIF}
 
 END.

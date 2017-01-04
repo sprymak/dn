@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09/DPMI
+//  Dos Navigator Open Source 1.51.10/DPMI
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -290,6 +290,7 @@ const
  hcUUEncode             = 48025;
  hcView                 = 11021;
  hcViewChoice           = 65511;
+ hcViewerDefaults       = 48100;
  hcViewerFind           = 48047;
  hcViewFile             = 48057;
  hcViewHistory          = 48075;

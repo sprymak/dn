@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -288,8 +288,8 @@ begin
   TObject.Init;
   UseCache := True;
   {$IFNDEF NOEXTRA}
-  NoXMS := not XMSFound or (EditorDefaults.EdOpt and ebfXMS = 0);
-  NoEMS := not EMSFound or (EditorDefaults.EdOpt and ebfEMS = 0);
+  NoXMS := not XMSFound or (EditorDefaults.GlobalOpt and ebfXMS = 0);
+  NoEMS := not EMSFound or (EditorDefaults.GlobalOpt and ebfEMS = 0);
   {$ENDIF}
   CachePos:=0;
   CacheSize:=0;
@@ -672,8 +672,8 @@ end;
 function GetCollector(MaxSize, MaxLines: LongInt): PCollector;
 begin
 {$IFNDEF NOEXTRA}
-   if (XMSFound and (XMSFree > 1) and (EditorDefaults.EdOpt and ebfXMS <> 0)
-     or EMSFound and (EMSFreePages > 1) and (EditorDefaults.EdOpt and ebfEMS <> 0))
+   if (XMSFound and (XMSFree > 1) and (EditorDefaults.GlobalOpt and ebfXMS <> 0)
+     or EMSFound and (EMSFreePages > 1) and (EditorDefaults.GlobalOpt and ebfEMS <> 0))
       and MemOK then
      GetCollector := New(PBlocker, Init(MaxSize)) else
 {$ENDIF}

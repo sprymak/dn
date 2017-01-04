@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,11 +49,9 @@
 unit Tree;
 
 interface
-uses LFN, LFNCol, {DataCompBoy} Collect,
-     Drivers, Objects, Memory, Startup, DOS, DNIni,
-     Dialogs, Views, advance, advance1, advance2, advance3,
-     FilesCol, HideView, DNHelp
-     {$IFNDEF NONBP}, DiskTool {$ENDIF};
+uses DOS, LFN, LFNCol, Collect, Drivers, Objects, Memory, Startup, DNIni,
+     Dialogs, Views, advance, advance1, advance2, advance3, FilesCol,
+     HideView, DNHelp {$IFNDEF NONBP}, DiskTool {$ENDIF};
 
 type
     PTreeWindow = ^TTreeWindow;
@@ -575,7 +573,9 @@ begin
          New(P);
          FillChar(P^, Sizeof(P^), 0);
          P^.LFN := AddLFN(Nm+XT);
+         {$IFNDEF OS2}
          P^.Name := GetName(lfGetShortFileName(lFExpand(Nm+XT)));
+         {$ENDIF}
          P^.NumFiles := 0;
          P^.Size := 0;
          P^.Level := PDirRec(DC^.At(I))^.Level+1;
@@ -1767,7 +1767,7 @@ begin
      repeat Inc(I); if I > LS then Exit until (S[I] = '\') or (I = LS);
      M := Copy(S, 1, I-Byte(S[I] = '\'));
      if M[length(M)]='.' then Dec(M[0]);
-     ClrIO; lFindFirst(M, $3F xor VolumeID, SR);
+     ClrIO; lFindFirst(M, AnyFile, SR); {JO}
      lFindClose(SR);
      if Abort then Exit;
      if DOSError <> 0 then

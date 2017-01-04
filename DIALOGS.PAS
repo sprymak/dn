@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -977,7 +977,7 @@ begin
                            Repeat
                             Data^[I]:=UpCase(Data^[I]);
                             inc(i);
-                           until (Data^[I] in BreakChars);
+                           until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
        kbAltCtrlSqBracketR,
        kbCtrlSqBracketR: if ShiftState and (kbLeftShift+kbRightShift)<>0
@@ -988,7 +988,7 @@ begin
                            Repeat
                             Data^[I]:=LowCase(Data^[I]);
                             inc(i);
-                           until (Data^[I] in BreakChars);
+                           until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
             kbCtrlSlash,
             kbCtrlBSlash:if ShiftState and (kbLeftShift+kbRightShift)<>0

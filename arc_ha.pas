@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,8 @@
 unit Arc_HA; {HA}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos, xTime;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, xTime,
+      lfn;
 
 type
     PHAArchive = ^THAArchive;

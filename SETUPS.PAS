@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -136,6 +136,7 @@ procedure FMDefaults;
 procedure FMSetup;
 procedure DriveInfoSetup;
 procedure SetupEditorDefaults;
+procedure SetupViewerDefaults;
 procedure SystemSetup;
 procedure InterfaceSetup;
 procedure StartupSetup;
@@ -153,7 +154,7 @@ FUNCTION MakeSaversDialog: PDialog;
 {$ENDIF}
 IMPLEMENTATION
 uses Tree, Drives, advance, advance1, advance2, advance3, Messages, DNHelp,
-     Advance6;
+     Advance6, DNIni;
 
 procedure ConfirmSetup;
 var D: Word;
@@ -233,6 +234,9 @@ begin
     if InterfaceData.Options and ouiClock = 0 then
       if Clock^.GetState(sfVisible) then Clock^.Hide;
   end;
+  DriveInfoType := InterfaceData.DrvInfType;
+  SaveDnIniSettings;
+  DoneIniEngine;
 end;
 
 procedure StartupSetup;
@@ -339,10 +343,19 @@ end;
 procedure SetupEditorDefaults;
 begin
   if ExecResource(dlgEditorDefaults, EditorDefaults) = cmOK then begin
-    if StoI(EditorDefaults.TabSize)<2 then EditorDefaults.TabSize:='2'; {-$VOL}
+    if StoI(EditorDefaults.TabSize)<2 then EditorDefaults.TabSize:='2';
     Message(Application, evCommand, cmUpdateConfig, nil);
   end;
 end;
+
+procedure SetupViewerDefaults;
+begin
+  if ExecResource(dlgViewerDefaults, ViewerDefaults) = cmOK then begin
+    if StoI(ViewerDefaults.TabSize)<2 then ViewerDefaults.TabSize:='2';
+    Message(Application, evCommand, cmUpdateConfig, nil);
+  end;
+end;
+
 
 function SetupColumnDefaultsDisk: Boolean;
 Begin
@@ -554,11 +567,15 @@ begin
   Labl := New(PLabel, Init(R, GetString(dlSSA_v_ailableSavers), Control));
   Insert(Labl);
 
-  R.Assign(2,15,18,16);
+  R.Assign(2,15,10,16);
   Control := New(PInputLine, Init(R, 3));
   PInputLine(Control)^.SetValidator(New(PRangeValidator, Init(0, 254)));
   Control^.Options := Control^.Options or ofValidate;
   Insert(Control);
+
+  R.Assign(10,15,18,16);
+  Labl := New(PLabel, Init(R, GetString(dlSSMin), Control));
+  Insert(Labl);
 
   R.Assign(2,14,18,15);
   Labl := New(PLabel, Init(R, GetString(dlSS_T_ime), Control));

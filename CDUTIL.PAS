@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -112,6 +112,7 @@ Unit CdUtil;
               procedure   UpdateTitle ;
               procedure   GetData(var Rec); virtual;
               {procedure   SetData(var Rec); virtual;}
+              function    GetTitle(MaxSize: Integer): TTitleStr; virtual;
             end   ;
 
 
@@ -419,6 +420,8 @@ Unit CdUtil;
 
       end;
 
+  function    TSpad.GetTitle(MaxSize: Integer): TTitleStr;
+  begin GetTitle:=Title^ end;
 
   Constructor TOrder.Init;
       var

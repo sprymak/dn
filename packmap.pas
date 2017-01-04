@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -47,7 +47,7 @@
 {$i-}{$m 8192, 102400, 655360}
 program PackMap;
 
-uses Objects, Collect, Advance1;
+uses Objects, Collect, Advance1, Crt;
 
 function FromHex(S: string): longint;
  var b: byte;
@@ -106,7 +106,7 @@ Function f(var x,y:TSR):Boolean;
   End;
 {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
 Procedure PoglSort; Label 1;
- Const r=SizeOf(TSR); mm=65520 div r; nseg=10; mr=mm*r;
+ Const r=SizeOf(TSR); mm=65520 div r; nseg=16; mr=mm*r;
  Type mas = Array[1..mm] of TSR;
  Var A:Array[1..nseg] of ^mas; c,cc,cr,cw,n,np:longint;
      i,j,k,mk,ni,nw,q,u,v,w,z:word; x:TSR;

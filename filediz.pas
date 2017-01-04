@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,23 +48,24 @@
 
 unit FileDiz;
 interface
-uses filescol, startup, advance1, advance2, advance, objects, lfn, dos,
-     messages, dnapp, commands, drives, advance3;
+uses filescol, objects;
 
 function  GetPossibleDizOwner(N: Integer): String;
 function  GetDIZOwner(const Path, LastOwner: String; Add: Boolean): String;
 function  CalcDPath(P: PDIZ; Owen: PString): String;
-procedure ReplaceDIZ(const DPath, Name: String;
+procedure ReplaceDIZ(const DPath, Name1, Name2: String;
                      ANewName: PString; ANewDescription: PString);
                 {When (ANewName= nil) and (ANewDesc= nil) - erasing a string}
                 {When (ANewName= nil) and (ANewDesc<>nil) - change a description}
                 {When (ANewName<>nil) and (ANewDesc= nil) - change a name}
                 {When (ANewName<>nil) and (ANewDesc<>nil) - change a name & desc}
-procedure DeleteDIZ(const DPath, Name: String); {DataCompBoy}
+procedure DeleteDIZ(const DPath, Name1, Name2: String); {DataCompBoy}
 function  GetDIZ(const DPath: string; var Line: longint; const Name, Name2: String): string; {DataCompBoy}
 procedure SetDescription(PF: PFileRec; DIZOwner: String);
 
 implementation
+uses startup, advance1, advance2, advance, dos, lfn, lfncol,
+     messages, dnapp, commands, drives, advance3;
 
 function GetPossibleDizOwner(N: Integer): String;
   var DIZ: String;
@@ -134,14 +135,14 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
-procedure ReplaceT(P: PTextReader; var F: lText; Del: boolean);
+procedure ReplaceT(P: PTextReader; var F: lText; Del: boolean; Attr: Word);
 var
   I: Integer;
   FName: String;
 begin
   FName := P^.FileName;
   Dispose(P,Done); ClrIO;
-  Close(F.T); ClrIO;
+  Close(F.T); ClrIO; lSetTAttr(F, Attr); ClrIO;
   EraseByName(FName);
   I := IOResult; ClrIO;
   if not Del then begin
@@ -175,7 +176,7 @@ begin
                                              else DIZ := PF^.DIZ^.DIZ^;
   if BigInputBox(GetString(dlEditDesc),GetString(dl_D_escription), DIZ, 255, hsEditDesc) <> cmOK then Exit;
   DelLeft(DIZ);
-  ReplaceDIZ(DIZOwner, MakeFileName(PF^.Name), nil, @DIZ);
+  ReplaceDIZ(DIZOwner, MakeFileName(PF^.Name), GetLFN(PF^.LFN), nil, @DIZ);
   (* if IOResult <> 0 then CantWrite(DIZOwner); *)
   RereadDirectory(PF^.Owner^);
 end;
@@ -183,7 +184,7 @@ end;
 
 
         {-DataCompBoy-}
-procedure ReplaceDIZ(const DPath, Name: String;
+procedure ReplaceDIZ(const DPath, Name1, Name2: String;
             ANewName: PString; ANewDescription: PString);
     {When (ANewName= nil) and (ANewDesc= nil) - erasing a string}
     {When (ANewName= nil) and (ANewDesc<>nil) - change a description}
@@ -198,12 +199,14 @@ var
   S, NewName: string;
   WasFilesInDIZ: Boolean;
   FNd: Boolean;
+  OrigAttr: Word;
 begin
-  NewName:=Name;
+  NewName:=Name1;
   if ANewName<>nil then begin
     NewName:=ANewName^;
   end;
 {$IFNDEF NONBP}DisableAppend;{$ENDIF}
+  OrigAttr:=GetFileAttr(DPath);
   F1 := New(PTextReader, Init(DPath));
   if F1 = nil then begin
     if (ANewDescription<>nil) and
@@ -211,7 +214,8 @@ begin
      ClrIO; lAssignText(F2, DPath); lRewriteText(F2);
      if Abort then begin Close(F2.T); Exit; end;
      if IOResult <> 0 then (* begin CantWrite(DPath); *) Exit; (* end; *)
-     WriteLn(F2.T, AddSpace(NewName,13)+ANewDescription^);
+     if Length(NewName)<=12 then NewName:=AddSpace(NewName,13);
+     WriteLn(F2.T, NewName+ANewDescription^);
     end;
     Close(F2.T);
     Exit;
@@ -233,7 +237,12 @@ begin
      if s[i] in [' ',#9] then dec(i);
      j:=i+1; while (s[j] in [' ',#9]) do inc(j);
 
-     if UpStrg(Copy(S, 1, i))=UpStrg(Name)
+     zz:=false;
+     if UpStrg(Copy(S, 1, i))=UpStrg(Name1) then zz:=true else
+     if UpStrg(Copy(S, 1, i))=UpStrg(Name2) then
+     begin if ANewName=nil then NewName:=Name2; zz:=true end;
+
+     if zz
       then begin
        Fnd:=On;
 
@@ -244,15 +253,17 @@ begin
          repeat
           S := F1^.GetStr;
          until (S[1]<>' ') or F1^.EOF or (IOResult <> 0);
+         if not F1^.EOF then WasFilesInDIZ:=True;
          Writeln(F2.T, S);
          continue;
         end;
 
        Delete(S, 1, j-1);
 
+       if Length(NewName)<=12 then NewName:=AddSpace(NewName,13);
        if ANewDescription<>nil
-        then S:=AddSpace(NewName,12)+' '+ANewDescription^
-        else S:=AddSpace(NewName,12)+' '+S;
+        then S:=NewName+' '+ANewDescription^
+        else S:=NewName+' '+S;
      end;
     end;
     WasFilesInDIZ:=True;
@@ -263,13 +274,13 @@ begin
     then WriteLn(F2.T, AddSpace(NewName,12)+' '+ANewDescription^);
    WasFilesInDIZ:=True;
   end;
-  ReplaceT(F1, F2, (not WasFilesInDIZ) and (FMSetup.Options and fmoKillContainer <> 0));
+  ReplaceT(F1, F2, (not WasFilesInDIZ) and (FMSetup.Options and fmoKillContainer <> 0), OrigAttr);
 end;
         {-DataCompBoy-}
 
-procedure DeleteDIZ(const DPath, Name: String);
+procedure DeleteDIZ(const DPath, Name1, Name2: String);
 begin
-  ReplaceDIZ(DPath, Name, nil, nil);
+  ReplaceDIZ(DPath, Name1, Name2, nil, nil);
 end;
 
 function  GetDIZ(const DPath: string; var Line: longint; const Name, Name2: String): string; {DataCompBoy}

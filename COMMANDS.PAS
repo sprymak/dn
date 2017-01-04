@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -175,24 +175,31 @@ const
   vmPKT       = 102;
   vmMSG       = 103;
 
-  ebfCBF = 1 shl  0;
-  ebfBSU = 1 shl  1;
-  ebfABr = 1 shl  2;
-  ebfAId = 1 shl  3;
-  ebfAwr = 1 shl  4;
-  ebfJwr = 1 shl  5;
-  ebfVBl = 1 shl  6;
-  ebfOfl = 1 shl  7;
-  ebfHLn = 1 shl  8;
-  ebfHCl = 1 shl  9;
-  ebfPBl = 1 shl 10;
-  ebfObl = 1 shl 11;
-  ebfLck = 1 shl 12;
-  ebfEMS = 1 shl 13;
-  ebfXMS = 1 shl 14;
-  ebfTRp = 1 shl 15; {-$VOL} {TabReplace}
-  ebfHlt = 1 shl  0; {Highlight}
-  ebfSmt = 1 shl  1; {SmartTab}
+  ebfCBF = 1 shl  0; {Backup}
+  ebfPBl = 1 shl  1; {Persistent blocks}
+  ebfObl = 1 shl  2; {Overwrite blocks}
+  ebfLck = 1 shl  3; {Lock file}
+  ebfEMS = 1 shl  4; {Use EMS}
+  ebfXMS = 1 shl  5; {Use XMS}
+
+  ebfBSU = 1 shl  0; {Backspace unindents}
+  ebfABr = 1 shl  1; {AutoBrackets}
+  ebfAId = 1 shl  2; {Auto indent}
+  ebfAwr = 1 shl  3; {Autowrap}
+  ebfJwr = 1 shl  4; {Justify on wrap}
+  ebfVBl = 1 shl  5; {Vertical blocks}
+  ebfOfl = 1 shl  6; {Optimal fill}
+  ebfHLn = 1 shl  7; {Highlight line}
+  ebfHCl = 1 shl  8; {Highlight column}
+  ebfTRp = 1 shl  9; {-$VOL} {TabReplace}
+  ebfHlt = 1 shl 10; {Highlight}
+  ebfSmt = 1 shl 11; {SmartTab}
+
+  vbfHex = 1 shl  0; {HEX mode}
+  vbfWrp = 1 shl  1; {Wrap line}
+  vbfWWr = 1 shl  2; {Word wrap}
+  vbfHlt = 1 shl  3; {Syntax highlite}
+  vbfTRp = 1 shl  4; {Tab replace}
 
   ouiClock               = $0001;
   ouiHideMenu            = $0002;
@@ -710,6 +717,7 @@ const
   cmShowFields         = 10805;
   cmShowMemo           = 10806;
   cmEditDBField        = 10807;
+  cmDeleteDBRec        = 10808;
 
   cmNewTable           = 10901;
   cmChangeWidth        = 10904;
@@ -870,6 +878,7 @@ const
   cmMemoryInfo        = 3016;
   cmLoadDesk          = 5434;
   cmSaveDesk          = 5435;
+  cmRetrieveSwp       = 5436; {JO}
  {cmDiskCopy          = 3017;}
   cmSystemDisk        = 3018;
   cmReanimator        = 3019;
@@ -913,6 +922,7 @@ const
   cmColumnDefaultsArvd= 3065; {DataCompBoy}
   cmASCIITable        = 3066;
   cmSystemInfo        = 3067;
+  cmViewerDefaults    = 3068; {DataCompBoy}
 
   cmLoConfigArchiver  = 3101;
 
@@ -1580,11 +1590,7 @@ TYPE
     dlSS_A_dd,
     dlSS_R_emove,
     dlSSA_v_ailableSavers,
-    dlSS_N_ever,
-    dlSS_1_minute,
-    dlSS_2_minutes,
-    dlSS_5_minutes,
-    dlSS1_0_minutes,
+    dlSSMin,     {=Axel=}
     dlSS_T_ime,
     dlSSUse_M_ouse,
     dlCalculator,
@@ -1932,6 +1938,12 @@ TYPE
     dlTeam149,
     dlTeam150,
     dlTeam151,
+    dlTeam152,
+    dlTeam153,
+    dlTeam154,
+    dlTeam155,
+    dlTeam156,
+    dlTeam157,
 
     dlHelp,
     dlOutputTitle,
@@ -2287,7 +2299,43 @@ TYPE
     dlDelMsg,
     dlNotPkt,
     dlReadingPkt,
-    dlLine
+    dlLine,
+    dlAdvancedFormat,
+    dlBootSector1,
+    dlEntries,
+    dlDirEntries,
+    dlSize,
+    dlClusterSize,
+    dlTracks,
+    dlHeads,
+    dlSectors1,
+    dlSectors2,
+    dlStartTr1,
+    dlStartTr2,
+    dlStartTr3,
+    dlInterleave1,
+    dlInterleave2,
+    dlSectorSh1,
+    dlSectorSh2,
+    dlSectorSh3,
+    dlHeadSectSh1,
+    dlHeadSectSh2,
+    dlHeadSectSh3,
+    dlTrackSectSh1,
+    dlTrackSectSh2,
+    dlTrackSectSh3,
+    dlTrack,
+    dlSectorSize1,
+    dlSectorSize2,
+    dlDrivesType,
+    dlDisk,
+    dlDOS,
+    dlNameLong,
+    dlNameShort,
+    dlFullInfo,
+    dlDescr,
+    dlPath,
+    dlAutodetect
   );
 
   TDlgIdx = (
@@ -2335,7 +2383,6 @@ TYPE
     dlgAppendNumber,
     dlgMainMenu,
     dlgStatusLine,
-    dlgEditorDefaults,
     dlgSystemSetup,
     dlgSetupModem,
     dlgSetupTerminal,
@@ -2385,7 +2432,9 @@ TYPE
     dlgSetupColumnsArch,
     dlgSetupColumnsArvd,
     dlgNextSection,
-    dlgNameCase
+    dlgNameCase,
+    dlgEditorDefaults,
+    dlgViewerDefaults
   );
 
 IMPLEMENTATION END.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -52,7 +52,7 @@ interface
 
 uses LFN, {DataCompBoy}
      Objects, Views, Drivers, DNApp, advance, advance1, advance2, advance3,
-     Dialogs, DOS, Messages, Commands, collect;
+     Dialogs, Messages, Commands, collect;
 
  type
       PStringCol =  ^TStringCol;
@@ -112,7 +112,7 @@ procedure PrintFile(const S: String);
 implementation
 
 uses
-  RStrings, Startup, DNHelp;
+  RStrings, Startup, DNHelp, Dos;
 
 procedure TStringCol.FreeItem;
 begin
@@ -346,7 +346,7 @@ end;
 procedure TPrintManager.PrintFile;
 begin
   if List = nil then List := New(PStringCol, Init(10,10));
-  List^.Insert(NewStr(lfGetLongFileName(FileName)));
+  List^.Insert(NewStr({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(FileName)));
   SetRange(List^.Count);
   DrawView;
   if Status <> nil then Status^.DrawView;
@@ -355,7 +355,7 @@ end;
 procedure TPrintManager.InitPrinter;
  var  Hndl: Word;
 begin
-  Hndl := PrintDevice^.Handle;
+  Hndl := FileRec(PrintDevice^.FHandle.F).Handle;
   asm
     MOV  BX, Hndl
     MOV  AX,4400H   { IOCTL, GET DEV ATTR }

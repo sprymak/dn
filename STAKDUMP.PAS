@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -87,6 +87,8 @@ unit StakDump;
   {-Stack dump for real or protected mode}
 
 interface
+
+Procedure StakDumpInitUnit;
 
 procedure DumpStack;
   {-Dump the current stack chain, starting at this routine's return address}
@@ -522,6 +524,7 @@ begin
   end;
 end;
 
+Procedure StakDumpInitUnit;
 begin
   {$IFDEF DPMI}
   {Save the selector of program's main code segment}
@@ -535,4 +538,6 @@ begin
   {Install stack dump exit handler}
   ExitSave := ExitProc;
   ExitProc := @DumpExit;
+END;
+
 end.

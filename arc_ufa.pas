@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,24 +48,16 @@
 unit Arc_UFA; {UFA}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
 
 type
    PUFAArchive = ^TUFAArchive;
    TUFAArchive = object(TARJArchive)
-     FilesNumber:  LongInt;
      constructor Init;
      procedure GetFile; virtual;
      function GetID: Byte; virtual;
      function GetSign: TStr4; virtual;
    end;
-
-type
-  PUFACFHEADER = ^TUFACFHEADER;
-  TUFACFHEADER = record
-             Sign:Array[1..3]of Char;
-             tmp:array[1..5]of char;
-end;
 
 implementation
 { ---------------------- UFA (by Luzin Aleksey)---------------------------}
@@ -81,30 +73,29 @@ begin
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a'));
-  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'm'));
+  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'a'));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd'));
-  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-p'));
+  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-g'));
   Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               't'));
   IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
-  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-ep'));
-  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
+  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
+  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-y'));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
-  Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              '-s'));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
-  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
+  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
-  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m3'));
-  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-m1'));
+  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-mq'));
+  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
-  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-m5'));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, 'l');
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-mx'));
+  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
   if q='0' then Swap := False else Swap := True;
-  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   if q='0' then UseLFN := False else UseLFN := True;
-  FilesNumber := 1;
 end;
 
 function TUFAArchive.GetID;
@@ -121,22 +112,16 @@ Procedure TUFAArchive.GetFile;
 var
   C:   Char;
   S:   string;
-  Tmp  :Word;
+  Tmp  :AWord;
   FH: record
       tmp:array[1..$2A]of char;
       DateTime:LongInt;
       PackSize:LongInt;
       OriginalSize:LongInt;
-      FileNameSize:Word;
+      FileNameSize:AWord;
  End;
 var TTmp:longint;
 begin
-{  if (FilesNumber = 0) then
-    begin
-      FileInfo.Last := 1;
-      Exit;
-    end;}
-  Dec(FilesNumber);
   TTmp:=ArcFile^.GetPos;
   if (TTmp = ArcFile^.GetSize) or (TTmp = 0) then
      begin FileInfo.Last := 1; Exit end;
@@ -152,7 +137,6 @@ begin
          ArcFile^.Read(S[1], FH.FileNameSize); S[0] :=Char(FH.FileNameSize);
        if S = ''  then
        begin FileInfo.Last := 2; Exit; end;
-       inc(FilesNumber);
        FileInfo.Attr := 0;
        FileInfo.USize := FH.OriginalSize;
        FileInfo.PSize := FH.PackSize;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -51,8 +51,16 @@ Interface
  Procedure SetTitle(Text: String);
 
 Implementation
+{$IFDEF WIN32}
+uses Windows;
+Procedure SetTitle(Text: String);
+begin
+ Text:='DN - '+Text+#0;
+ SetConsoleTitle(@Text[1]);
+end;
+{$ELSE}
 {$IFDEF NONBP}Procedure SetTitle(Text: String); begin end;{$ELSE}
- uses Advance {$IFDEF DPMI}, DPMI, DosMem{$ENDIF}, Dos;
+ uses Startup, LFN, Advance {$IFDEF DPMI}, DPMI, DosMem{$ENDIF}, Dos;
 
 const DNTITL: String[3] = 'DN'#0;
 {$IFDEF DPMI}
@@ -124,6 +132,10 @@ begin
 end;
 
 begin
+ LFNInitUnit;
+ StartupInitUnit; {DataCompBoy: TitleSet initialized first, so it can}
+                  {initialize overlay manager                        }
+
 {$IFDEF DPMI}
  DosB:=GetDosMem(30, r.es);
  if r.es=0 then exit;
@@ -190,4 +202,5 @@ begin
  oep:=ExitProc;
  ExitProc:=@exp;
 {$ENDIF NONBP}
+{$ENDIF WIN32}
 end.

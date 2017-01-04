@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,8 +50,8 @@
 unit FilesCol;
 
 interface
- uses LFN, LFNCol, {DataCompBoy} Objects, Memory, DOS, Startup,
- DNHelp, advance, advance1, advance2, advance3, Collect, Drivers;
+ uses DOS, LFN, LFNCol, Objects, Memory, Startup, DNHelp, advance, advance1,
+      advance2, advance3, Collect, Drivers;
 
 type
     PDIZ = ^TDIZ;
@@ -69,13 +69,16 @@ type
      Owner: PString;
      OwnerDisposible: Boolean;
      Diz: PDIZ;
+     {$IFNDEF OS2}
      Name: Str12;
+     {$ENDIF}
      LFN: TLFNIndex; {DataCompBoy}
      Yr: Word;
      TType: Byte;
      Attr: Word;
      Second: Byte;
      Selected: Boolean;
+     UsageCount: byte;{DataCompBoy}
      case Boolean of
        True : (FDate: LongInt);
        False: (Minute, Hour, Day, Month: Byte);
@@ -84,11 +87,11 @@ type
     TMakeListRec = record
      FileName  : String; {DataCompBoy}
      Header    : String;
-     HeaderMode: Word;
+     HeaderMode: AWord;
      Action    : String;
      Footer    : String;
-     FooterMode: Word;
-     Options   : Word;
+     FooterMode: AWord;
+     Options   : AWord;
     end;
 
         {-DataCompBoy-}
@@ -130,7 +133,9 @@ const
 function  SelectDrive(X, Y: Integer; Default: Char; IncludeTemp: Boolean): String;
 function  CopyFileRec(FR: PFileRec): PFileRec; {DataCompBoy}
 function  CreateFileRec(Name: string): PFileRec;
-function  NewFileRec(const LFN, Name: String; Size:TSize; Date: LongInt; Attr: Word; AOwner: PString): PFileRec; {DataCompBoy}
+function  NewFileRec(const LFN{$IFNDEF OS2}, Name{$ENDIF}: String;
+                     Size:TSize; Date: LongInt; Attr: Word;
+                     AOwner: PString): PFileRec; {DataCompBoy}
 procedure DelFileRec(var FR: PFileRec); {DataCompBoy}
 function  LoadFileRec(var s: TStream): PFileRec; {DataCompBoy}
 procedure StoreFileRec(var s: TStream; fr: PFileRec); {DataCompBoy}
@@ -175,7 +180,7 @@ function  CreateFileRec(Name: string): PFileRec;
   new(fr);
   CreateFileRec:=fr;
   fillword(fr^, sizeof(fr^) shr 1, 0);
-  Name:=lfGetLongFileName(lFExpand(Name));
+  Name:={$IFNDEF OS2}lfGetLongFileName{$ENDIF}(lFExpand(Name));
   lFindFirst(Name+'*', AnyFile, lsr);
   Path:=GetPath(Name);
   Name:=GetName(Name);
@@ -183,7 +188,9 @@ function  CreateFileRec(Name: string): PFileRec;
   lFindClose(lsr);
   if DosError=0 then
    begin
+    {$IFNDEF OS2}
     fr^.name:=Norm12(lsr.sr.name);
+    {$ENDIF}
     fr^.LFN:=AddLFN(lsr.FullName);
     fr^.Size:=lsr.FullSize;
     fr^.PSize:=lsr.FullSize;
@@ -210,22 +217,20 @@ function  CreateFileRec(Name: string): PFileRec;
    begin
     fr^.Owner:=NewStr(Path);
     fr^.OwnerDisposible:=true;
+    {$IFNDEF OS2}
     fr^.Name:=Norm12(GetURZ(GetName(lfGetShortFileName(Name))));
+    {$ENDIF}
     fr^.LFN:=AddLFN(GetName(Name));
    end;
+  fr^.UsageCount:=1;
  end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
 function CopyFileRec;
- var P: PFileRec;
 begin
- New(P);
- P^ := FR^;
- P^.LFN := UseLFN(FR^.LFN);
- P^.OwnerDisposible := False;
- if P^.DIZ <> nil then P^.DIZ^.isDisposable := Off;
- CopyFileRec := P;
+ CopyFileRec := FR;
+ Inc(FR^.UsageCount);
 end;
         {-DataCompBoy-}
 
@@ -233,6 +238,8 @@ end;
 procedure DelFileRec(var FR: PFileRec);
 begin
  if FR <> nil then begin
+ Dec(FR^.UsageCount);
+ IF FR^.UsageCount=0 then begin
   if (FR^.DIZ <> nil) and FR^.DIZ^.isDisposable then begin
    DisposeStr(FR^.DIZ^.DIZ);
    Dispose(FR^.DIZ);
@@ -241,7 +248,7 @@ begin
   DelLFN(FR^.LFN);
   Dispose(FR);
   FR:=Nil;
- end;
+ end end;
 end;
         {-DataCompBoy-}
 
@@ -263,6 +270,7 @@ begin
   S.Read(FDate, SizeOf(FDate));
   S.Read(OwnerDisposible, SizeOf(OwnerDisposible));
   if OwnerDisposible then Owner:=S.ReadStr;
+  UsageCount:=1;
  end;
  LoadFileRec:=P;
 end;
@@ -289,10 +297,11 @@ var FR: PFileRec;
     w: longint;
 begin
  FR := LoadFileRec(S);
- if FR <> nil then begin
-  S.Read(W, SizeOf(W));
-  if not FR^.OwnerDisposible then FR^.Owner := Dirs^.At(W);
- end;
+ if FR <> nil then
+  if not FR^.OwnerDisposible then begin
+   S.Read(W, SizeOf(W));
+   FR^.Owner := Dirs^.At(W);
+  end;
  LoadFileRecOwn := FR;
 end;
 
@@ -780,6 +789,7 @@ function NewFileRec;
       T:  TFileRec;
       D: DateTime;
 begin
+  {$IFNDEF OS2}
   if Name[1] <> '.'
    then T.Name:=Norm12(GetUrz(Name))
    else T.Name := '..          ';
@@ -787,6 +797,7 @@ begin
   if Attr and Directory <> 0 then UpStr(T.Name) else LowStr(T.Name);
   if Attr and Hidden <> 0 then T.Name[9] := #177;
   if Attr and SysFile <> 0 then begin T.Name[9] := #178; T.Name[1] := Upcase(T.Name[1]); end;
+  {$ENDIF}
   T.LFN := AddLFN(GetName(LFN));
   T.Size := Size; T.PSize := Size;
   if Date = 0 then
@@ -813,6 +824,7 @@ begin
   T.TType := GetFileType(LFN, T.Attr);
   T.Owner := AOwner;
   T.OwnerDisposible := false;
+  T.UsageCount:=1;
   New(PR);
   PR^ := T;
   NewFileRec := PR;
@@ -867,8 +879,7 @@ begin
 {$ENDIF}
   ClrIO;
   p:=Files^.At(I);
-  with P^ do lFindFirst(MakeNormName(Owner^, GetLFN(LFN)),
-                        $3F xor VolumeID, SR);
+  with P^ do lFindFirst(MakeNormName(Owner^, GetLFN(LFN)), AnyFile, SR); {JO}
   lFindClose(SR);
   if (DosError <> 0) or Abort then Files^.AtFree(i)
   else begin

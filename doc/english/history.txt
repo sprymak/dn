@@ -6,37 +6,283 @@
   [*] A bug fixed and/or functionality improved
 
 
-   Version 1.51.08
+   Version 1.51.10
   ---------------------------------------------------------------------
 
-[*] Now LE-SFX supported
+    >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-[*] New file visualisation mode. In "variable ext" enabled, files without
-    extentions be written in all field
+[-] DN was unable to utilize the long file name services under Windows NT and
+    dosemu (Anton Fedorov)
 
-[-] GZip reading was broken
+[-] DN was extremely unstable under Windows NT. In particular, it was unable
+    to delete a directory; some output strings were erratically duplicated
+    (Anton Fedorov)
 
-[-] Alt-Gray3 & Alt-Gray9 works as Alt-PgDown & Alt-PgUp. Fixed.
+[-] DN did not work in real mode under MS-DOS (Anton Fedorov)
 
-[-] Help, opened while window moving works incorrect
+[-] Access to Novell Netware shared volumes was impossible or erratic
+    (Anton Fedorov)
 
-[-] Now tetris correctly play after DN restarting
+[-] The DPMI version failed to handle file system related errors, such as
+    a physical read or write error (Anton Fedorov)
 
-[-] For prevent crashes, Disk Image Unpacker now skip all LFN records of VFAT
+[-] Fixed handling of file system related errors under OS/2 (Max Vasilyev)
 
-[*] DBF-viewer can delete/restore records.
+[-] Altered the file management mechanism firmly, eliminating a bunch of
+    problems, both effective and potential (Anton Fedorov)
 
-[-] Fixed Windows detection
+[-] Fixed a bug related to changing work directory under MS-DOS (Anton Fedorov)
 
-[-] Fixed defaults of Archivators
+[*] Reverted to quick sort in real mode. This increased both performance and
+    reliability of the real mode version (Anton Fedorov)
 
-[-] Sometimes some keys works incorrectly
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
 
-[-] Fixed viewer crash on large right shifting
+[+] New DN.INI parameter: UseEnterInViewer = long ([Interface] section). When
+    set to 0, pressing Enter in viewer does nothing; when set to 1, Enter
+    closes the viewer windows; and the value of 2 means that Enter should
+    cycle through text, hexadecimal and dump view modes (Jaroslaw Osadtchiy)
 
-[-] In pure dos sometimes Swap doesn't created
+[*] The information set shown in the drive selection menu is now configurable
+    not only by modifying the DriveInfoType DN.INI parameter directly, but
+    using the new options added to the Interface setup dialog window
+    (Jaroslaw Osadtchiy)
 
-[-] Now you can't select block while line drawing
+[-] The DN.INI [Kernel] DoVesaTest parameter did not work (Pawel Ziemian)
+
+[*] Reorganized the editor and viewer options and placed them in separate
+    dialog windows (Anton Fedorov)
+
+[-] Cosmetic changes to the Screensaver setup dialog window (Alexey Nemytov)
+
+[-] Cosmetic changes to the column deafults dialog windows (Mariusz Borkowski)
+
+[-] The AutoWrap and WrapJustify keywords in DN.HGL were erratically swapped
+    by their meanings (Pawel Ziemian, Marcin Gryszkalis)
+
+[-] If there were spaces between the last extension in the list and the
+    opening bracket in DN.EXT, the last extension was never matched
+    (Alexey Feldgendler)
+
+[-] Replaced the incorrect filter U[1-9][1-9] for highlight group 2 with
+    U[0-9][1-9] (Alexey Feldgendler)
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Optimized memory utilization by TEMP, Branch and Find panels
+    (Anton Fedorov)
+
+[-] Restarting DN with a TEMP or Find panel open caused a crash
+    (Anton Fedorov)
+
+[-] After cancelling the Branch panel building, it is now shown empty without
+    any weird effects (Anton Fedorov)
+
+[*] Description files with descriptions linked to long file names are now
+    correctly read and updated. However, new descriptions are still linked to
+    short names (Anton Fedorov)
+
+[-] Fixed updation of the description file with file operations: now the
+    descriptions are correctly updated and deleted when copying, moving and
+    deleting files even if there are several descriptions for a particular
+    file (Jaroslaw Osadtchiy)
+
+[-] After automatically updating the description file like descript.ion,
+    its attributes were reset (Anton Fedorov)
+
+[-] Fixed deletion of descriptions spanning several lines (Jaroslaw Osadtchiy)
+
+[-] Sometimes an attempt to ascend to the parent directory from a subdirectory
+    or an archive could bring up the root directory (Anton Fedorov)
+
+[-] Browsing archives with subdirectories caused a memory leak (Anton Fedorov)
+
+[-] Fixed extraction from archives without extensions (Anton Fedorov)
+
+[-] Fixed launching of files without extensions (Anton Fedorov)
+
+[-] External programs launched from the user menu did not receive lists of
+    files selected in either panel (Anton Fedorov)
+
+[-] Files without extensions whose names were one character long were
+    displayed first when sorting by long extension (Anton Fedorov)
+
+[-] Sorting an empty file list produced a crash (Anton Fedorov)
+
+[-] Ctrl-Left and Ctrl-Right sometimes did not work as expected to change the
+    current drive (Anton Fedorov)
+
+[-] Pressing Ctrl-[ or Ctrl-] could lead to a crash (Anton Fedorov)
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed switching between editing and viewing a text file (Anton Fedorov)
+
+[-] In viewer, scrolling to the top of a text file with single CR or single LF
+    line breaks caused a crash (Anton Fedorov)
+
+[-] Very long lines of text were shown incorrectly in viewer (Anton Fedorov)
+
+[-] The horizontal scroll bar could sometimes be off the editor window it
+    belongs to (Anton Fedorov)
+
+[-] The tab stops in editor were shifted one character (Pawel Ziemian)
+
+[-] The MoveDown editor macro command did not work (Alexey Feldgendler)
+
+[-] The {32-127} and {32-255} character range filters did not work in viewer
+    (Anton Fedorov)
+
+[-] In hexadecimal viewer mode, the last character on each line did not get
+    translated according to the active xlat table (Alexey Nemytov)
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Added support for IS3 SFX archives (Max Vasilyev)
+
+[*] Optimized reading of ARJ archives as well as NE SFX archives
+    (Max Vasilyev)
+
+[*] Improved detection of ARC, QuArk and UFA archives as well as ARJ SFX
+    archives (Max Vasilyev)
+
+[*] Due to the introduction of the Recurse subdirectories per-archiver option,
+    updated the default options for QuArk and UFA archivers (Max Vasilyev)
+
+[-] The extension for QuArk archives was incorrectly specified as QRK
+    (Max Vasilyev)
+
+[-] Broken IS3 and LHA archives as well as certain kinds of broken SFX
+    archives caused DN to crash (Max Vasilyev)
+
+[-] Fixed ACE archiver default options for ACE 2.0 compatibility
+    (Max Vasilyev)
+
+    >>> Database viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Scroll bars are now available in the database viewer (Eugeny Zvyagintzev)
+
+[*] When viewing a database's structure, ordinal numbers are shown with the
+    field names (Anton Fedorov)
+
+[*] After editing a database field, the trailing whitespace is automatically
+    trimmed (Oleg Redut)
+
+[*] Significantly increased the speed of database searching (Anton Fedorov)
+
+[-] Fixed searching a string in all database fields (Eugeny Zvyagintzev)
+
+[-] Fixed editing of date fields in databases (Anton Fedorov)
+
+[-] The database viewer window is now tileable (Eugeny Zvyagintzev)
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] While searching files, the file mask is always shown, even if it is *.*
+    (Pavel Borodin)
+
+[-] Applied a number of cosmetic fixes to the user interface (Pavel Borodin)
+
+[*] Returned sum() and mul() spreadsheet functions (Anton Fedorov)
+
+[-] Fixed russian resources for the spreadsheet editor (Alexey Nemytov)
+
+[-] Cosmetic changes to the menu system and some dialog windows
+    (Jiri Travnicek)
+
+[-] Fixed some typos and punctuation errors in the text of Russian help
+    (Alexey Feldgendler)
+
+[-] The Zoom and Maximize terms for the Window menu in Russian resources did
+    not correspond to their usage in English resources (Alexey Nemytov)
+
+[-] The advanced formatting options dialog window was always shown with all
+    text in English (Jaroslaw Osadtchiy)
+
+[-] An attempt to activate Help while moving a Help window caused a crash
+    (Anton Fedorov)
+
+[-] Fixed the About box (Anton Fedorov, Oleg Redut)
+
+[-] The command line could hide the last line of user program's output
+    (Anton Fedorov)
+
+[-] The title of the audio CD track selection window could be incorrect
+    (Anton Fedorov)
+
+[-] Automatic sorting of phonebook entries could place one or more lines
+    before the ".." entry (Denis Afonin)
+
+[-] Fixed some bugs in Calculator (Anton Fedorov)
+
+[-] When the first day of month was sunday, is was not shown in the Calendar
+    (Jaroslaw Osadtchiy)
+
+[-] Eliminated a potential crash when gathering the System information
+    (Konstantin Kuznetsov)
+
+[-] Fixed reporting of OS/2 version in System information
+    (Mariusz Borkowski, Max Vasilyev)
+
+[-] The DPMI version could crash when spawning a separate OS/2 session
+    (Max Vasilyev)
+
+[-] The real-mode version hanged up after an external screeensaver was
+    terminated (Alexey Nemytov)
+
+[-] Fixed a number of internal bugs (Jiri Travnicek)
+
+[-] Eliminated a potential internal problem influenced by implicit type
+    casting (Alexey Feldgendler)
+
+[-] Several modules were moved from the overlay file to the base executable
+    image because the DN performance with neither extended memory nor disk
+    cache available was unsatisfying (Alexey Feldgendler)
+
+[-] Fixed a number of other bugs, minor and not...
+
+
+   Version 1.51.09
+  ---------------------------------------------------------------------
+
+[*] Added support for LE SFX archives (Max Vasilyev)
+
+[*] The new Floating extension option allows to show names of files without
+    extensions using the full column width (Anton Fedorov, Max Vasilyev)
+
+[-] Fixed reading of GZIP files (Anton Fedorov)
+
+[-] Keypad Alt-3 and Alt-9 worked as Alt-PageDown and Alt-PageUp
+    (Anton Fedorov)
+
+[-] Fixed opening Help while dragging a window (Anton Fedorov)
+
+[-] Fixed the Game after DN restart (Anton Fedorov)
+
+[-] Fixed unpacking of diskette images containing long file name records. At
+    the present moment, these records are ignored, but it is only a temporary
+    measure (Max Vasilyev)
+
+[+] The database viewer allows to delete and recover records
+    (Eugeny Zvyagintzev)
+
+[-] Fixed detection of Windows version (Max Vasilyev)
+
+[-] The ARJ archiver is now considered as supporting long file names. The
+    default options changed according to this (Max Vasilyev)
+
+[-] Some keyboard combinations did not work on first use (Anton Fedorov)
+
+[-] Scrolling the viewer a large amount to right caused a crash
+    (Anton Fedorov)
+
+[-] DN.SWP sometimes was not created though needed under MS-DOS
+    (Anton Fedorov)
+
+[-] Line drawing mode could be combined with selection mode, causing weird
+    behavior (Anton Fedorov)
+
+[-] Fixed a number of other bugs, minor and not...
 
 
    Version 1.51.08
@@ -285,7 +531,7 @@
 
 [-] Long archiver options cound be unexpectedly truncated. (Max Vasilyev)
 
-[*] To prevent crashes, packers and unpackers whose extentions are other than
+[*] To prevent crashes, packers and unpackers whose extensions are other than
     EXE or COM are invoked via the command shell even when swapping was
     disabled (Anton Fedorov)
 

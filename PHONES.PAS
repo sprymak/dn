@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -850,8 +850,9 @@ end;
 
 function TPhoneCollection.Compare;
 begin
+{De@D_M0r0Ze}
  if PPhone(P1)^.Name = PPhone(P2)^.Name then Compare := 0 else
-  if (PPhone(P1)^.Name='..') OR (PPhone(P1)^.Name < PPhone(P2)^.Name) then Compare := -1
+  if (PPhone(P1)^.Name='..') OR ((PPhone(P1)^.Name < PPhone(P2)^.Name) AND (PPhone(P2)^.Name<>'..')) then Compare := -1
                                          else Compare := 1;
 end;
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -165,7 +165,7 @@ begin with AED^ do begin
      if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then Exit;
    end;
    ClrIO; lSetFAttr(F, Archive); if Abort then Exit;
-   if EditorDefaults.EdOpt and ebfCBF <> 0 then
+   if EditorDefaults.GlobalOpt and ebfCBF <> 0 then
     begin
      lFSplit(EditName, Dr, Nm, Xt); ClrIO;
      EraseFile( Dr+Nm+'.BAK' );
@@ -194,6 +194,7 @@ begin with AED^ do begin
    LoadDnIniSettings;
    DoneIniEngine;
    ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
+   InterfaceData.DrvInfType := DriveInfoType;
    ConfigModified:=True;
  end;
 end end;
@@ -270,7 +271,7 @@ begin with AED^ do begin
   EdOpt.HiLite := Macro.InitHighLight ( Nm+Xt, HilitePar, Macros, @EdOpt );
   if EdOpt.HiLite then
     { check if highlighting is not disabled }
-    EdOpt.HiLite := (EditorDefaults.EdOpt2 and ebfHlt) <> 0;
+    EdOpt.HiLite := (EditorDefaults.Defaults and ebfHlt) <> 0;
 {PZ e,nd}
 end end;
         {-DataCompBoy-}
@@ -317,7 +318,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
       {$IFDEF BIT_32}LLL: boolean;{$ENDIF}
   label 1, L2;
  begin with AED^ do begin
-  if (EditorDefaults.EdOpt and ebfTRp)=0 then TabStep:=0
+  if (EditorDefaults.Defaults and ebfTRp)=0 then TabStep:=0
   else begin
     TabStep:=StoI(EditorDefaults.TabSize);
     if TabStep=0 then TabStep:=8;
@@ -369,8 +370,8 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    @@4_l:
     mov ss:[bx+si], al
     inc byte ptr ss:[bx]
-    inc si
     mov ax, si
+    inc si
     mov cx, ts
     div cl
     or  ah, ah
@@ -453,8 +454,8 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    @@4_l:
     mov [ebx+esi], al
     inc byte ptr [ebx]
-    inc esi
     mov eax, esi
+    inc esi
     mov ecx, ts
     div cl
     or  ah, ah
@@ -534,7 +535,7 @@ begin with AED^ do begin
       Exit
     end;
  if (S^.GetSize > MemAvail - $4000) and
-    (EditorDefaults.EdOpt and (ebfEMS+ebfXMS) = 0) then
+    (EditorDefaults.GlobalOpt and (ebfEMS+ebfXMS) = 0) then
  begin
    Application^.OutOfMemory; Dispose(S,Done); FileName := ''; isValid := Off;
    Exit
@@ -573,7 +574,7 @@ begin with AED^ do begin
   end;
  if (LCount > MaxCollectionSize) or
     ((MemAvail-$4000 < 4*(LCount+50)+FFSize) and
-     (EditorDefaults.EdOpt and (ebfXMS+ebfEMS) = 0)) then
+     (EditorDefaults.GlobalOpt and (ebfXMS+ebfEMS) = 0)) then
   begin
     Application^.OutOfMemory;
     FreeMem(B, FBufSize);
@@ -587,7 +588,7 @@ begin with AED^ do begin
  if RetCollector then Lines := GetCollector(LCount*11, LCount+50)
                  else Lines := New(PStdCollector, Init(LCount+50));
  {-$VOL begin}
- if EditorDefaults.EdOpt and ebfTRp = 0 then TabStep:=0
+ if EditorDefaults.Defaults and ebfTRp = 0 then TabStep:=0
  else begin
    TabStep:=StoI(EditorDefaults.TabSize);
    if TabStep = 0 then TabStep := 8;
@@ -655,14 +656,14 @@ end end;
 
 procedure MILockFile(AED: PFileEditor);
 begin with AED^ do begin
-   if EditorDefaults.EdOpt and ebfLck = 0 then Exit;
+   if EditorDefaults.GlobalOpt and ebfLck = 0 then Exit;
    if Locker<>nil then Dispose(Locker,Done);
    Locker := New(PDOSStream, Init(EditName, (stOpenRead and fmDeny) or fmDenyWrite));
 end end;
 
 procedure MIUnLockFile(AED: PFileEditor);
 begin with AED^ do begin
-   if EditorDefaults.EdOpt and ebfLck = 0 then Exit;
+   if EditorDefaults.GlobalOpt and ebfLck = 0 then Exit;
    Dispose(Locker,Done); Locker:=nil;
 end end;
 

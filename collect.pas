@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -62,7 +62,7 @@ const
    {$IFNDEF BIGCOLLECTION}
    MaxCollectionSize = MaxBytes DIV SizeOf(Pointer);
    {$ELSE}
-   NumNodes = 128;
+   NumNodes = {MaxArrayBytes div SizeOf(Pointer)}128;
    MaxCollectionSize = MaxBytes DIV SizeOf(Pointer) * NumNodes;
    {$ENDIF}
   {$ELSE}
@@ -1175,7 +1175,23 @@ begin
   if (IndexSize > 0) then begin
     I:=0;
     while (I < IndexSize) and (S = '') do begin
-      if ((Key - Index^[I].Key) < Index^[I].Count) then
+      {There's a bug in the condition below. It may become True even when
+      the Key searched for can't be found after the current position.
+      Therefore additional condition must be added here.
+          In addition I have modified the original condition to make it more
+      similar to the one in TStrListMaker.Put where the structure being read
+      by this procedure is being generated. To achieve this a simple
+      mathematical rule has been applied:
+                     (A - B < C) is equivalent to (A < B + C).
+      Now, the problem occurs, when Key < (Index^[I].Key + Index^[I].Count),
+      which is the original conditon after rewrite using the above rule, and
+      at the same time Key < Index^[I].Key! When the second condition is true
+      it's impossible to find the key required at the position currently
+      found. Therefore we must make sure, that the second missing condition
+      is *not* true, ie. it's true that Key >= Index^[I].Key. -JITR-}
+      {if ((Key - Index^[I].Key) < Index^[I].Count) then} {-JITR-}
+      if ((Key < (Index^[I].Key + Index^[I].Count)) and   {-JITR-}
+        (Key >= Index^[I].Key)) then
         ReadStr(S, Index^[I].Offset, Key-Index^[I].Key);
       Inc(I);
     end;
@@ -1204,6 +1220,7 @@ end;
 
 procedure TSortedCollection.Sort;
 begin
+ if Count>1 then
 {$IFDEF QSort}
  QSort;
 {$ELSE}
@@ -1405,7 +1422,7 @@ procedure Write(var A; count: word);
 function GetPos: longint; begin GetPos:=Posit end;
 {$ENDIF}
 
- Procedure Merg; Label 1;     {Блок пересыпки в дереве-оглавлении}
+ Procedure Merg; Label 1;
   Begin x:= A[u]^[l[u]]; i:=j+j;
    Repeat If i < pk Then
     If Compare(A[og[i]]^[l[og[i]]], A[og[i+1]]^[l[og[i+1]]])>0 Then i:=i+1;
@@ -1417,7 +1434,7 @@ function GetPos: longint; begin GetPos:=Posit end;
   Begin For k:= 1 to pk do og[k]:=k;
    For k:= pk div 2 downto 1 do
     Begin u:= og[k]; j:=k; Merg End
-  End{блока построения наддерева};
+  End;
  Procedure VnutSort(c,cc:longint);
   Var i,j,u: word; og: Array[1..nseg] of word;
   Procedure Merg; Label 1;
@@ -1427,11 +1444,11 @@ function GetPos: longint; begin GetPos:=Posit end;
      If Compare(A[og[i]]^[1],x)>0 Then og[j]:= og[i] Else Goto 1;
      j:=i; i:=j+j
     Until i > q;  1: og[j]:=u
-   End{блока пересыпки в наддереве};
+   End;
   Procedure AInit; Var k:word;
    Begin For k:= 1 to q do og[k]:=k;
     For k:= q div 2 downto 1 do  Begin u:= og[k]; j:=k; Merg End
-   End{блока построения наддерева};
+   End;
   Procedure Sipka(var A:mas; k,n1:word); Label 1;
    Begin If n1 < 2 Then Exit;
     Repeat x:= A[k]; j:=k; i:=j+j;
@@ -1440,7 +1457,7 @@ function GetPos: longint; begin GetPos:=Posit end;
       If Compare(A[i],x)>0 Then A[j]:= A[i] Else Goto 1; j:=i; i:=j+j
       End;  1: A[j]:=x; k:=k-1
     Until k = 0
-   End{блока пересыпки в сортдеревьях};
+   End;
   Begin cw:=c + (p+1) div 2*(kp*v-v); q:=0; Seek(c);
    Repeat mk:=mm; If cc-c < mm Then mk:= cc-c; q:=q+1; z:=q;
     Read(A[q]^,mk);  c:= c+mk;
@@ -1453,7 +1470,7 @@ function GetPos: longint; begin GetPos:=Posit end;
           Else If q > 1 Then Merg
    Until q = 0;
    For j:=1 to z-1 do Write(A[j]^,mm); Write(A[z]^,mk);
-  End{блока внутренней сортировки части файла};
+  End;
  Procedure Output;
   Begin Seek(cw); Write(A[kp+1]^,s); cw:=cw+s; s:=0 End;
  Procedure Input;
@@ -1491,7 +1508,7 @@ function GetPos: longint; begin GetPos:=Posit end;
      c:= c+p*v1
     Until (c >= np) Or (c < 0); p:=-p; v:= v1; nn:=nn-1
    UNTIL nn < 0; {Truncate(t);} For u:= 1 to kp+1 do FreeMem(A[u],mr)
-  END{блока KPutSort};
+  END;
 {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
 {$ENDIF}{NOT POGLSORT}
 

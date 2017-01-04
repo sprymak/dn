@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -69,7 +69,7 @@ function    UseLFN(ind: TLFNIndex):TLFNIndex;        {Increase name usage}
 function    GetLFN(ind: TLFNIndex): string;          {Return name as String}
 function    GetCFN(ind: TLFNIndex): pchar;           {Return name as PChar}
 function    CmpLFN(LFN1, LFN2: TLFNIndex): integer;  {Compares 2 long names}
-function    CmpLEX(LFN1, LFN2: TLFNIndex): integer;  {Compares 2 long extentions}
+function    CmpLEX(LFN1, LFN2: TLFNIndex): integer;  {Compares 2 long extensions}
 procedure   StoreLFN(var S: TStream; LFN: TLFNIndex);{Store name}
 function    LoadLFN(var S: TStream): TLFNIndex;      {Load name}
 
@@ -142,14 +142,14 @@ type
 {$ENDIF}
 
 {$ELSE !LFNCache}
-
+(*
 type
  ALFNIndex = Record
               Hash: Word;
               S: String;
              End;
  PLFNIndex = ^ALFNIndex;
-
+*)
 {$ENDIF LFNCache}
 
 implementation
@@ -543,7 +543,8 @@ end;
 
 function    GetCFN(ind: TLFNIndex): pchar;
 begin
- if ind<>nil then GetCFN:=@(PLFNIndex(ind)^.s[1]) else GetCFN:=nil
+(* if ind<>nil then GetCFN:=@(PLFNIndex(ind)^.s[1]) else GetCFN:=nil          *)
+ if ind<>nil then GetCFN:=@PString(ind)^[1] else GetCFN:=nil
 end;
 
 procedure   StoreLFN(var S: TStream; LFN: TLFNIndex);
@@ -586,10 +587,26 @@ end;
 function    CmpLEX(LFN1, LFN2: TLFNIndex): integer;
 var S1, S2: string;
     E1, E2: string;
+    B, K: Byte;
 begin
- S1:=UpStrg(GetLFN(LFN1));             S2:=UpStrg(GetLFN(LFN2));
- E1:=GetExt(S1);                       E2:=GetExt(S2);
- S1[0]:=Char(Byte(S1[0])-Byte(E1[0])); S2[0]:=Char(Byte(S2[0])-Byte(E2[0]));
+ S1:=UpStrg(GetLFN(LFN1));
+ For B:=Length(S1) downto 1 do if S1[B]='.' then break;
+ if B > 1 then begin
+  K:=Length(S1)-B+1;
+  Move(S1[B], E1[1], K);
+  E1[0]:=Char(K);
+  S1[0]:=Char(B-1);
+ end else Word(((@E1)^)):=$2E01; {E1:='.'}
+
+ S2:=UpStrg(GetLFN(LFN2));
+ For B:=Length(S2) downto 1 do if S2[B]='.' then break;
+ if B > 1 then begin
+  K:=Length(S2)-B+1;
+  Move(S2[B], E2[1], K);
+  E2[0]:=Char(K);
+  S2[0]:=Char(B-1);
+ end else Word(((@E2)^)):=$2E01; {E2:='.'}
+
  if E1>E2 then CmpLEX:=+1 else
  if E1<E2 then CmpLEX:=-1 else
  if S1>S2 then CmpLEX:=+1 else

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1359,7 +1359,7 @@ end;
 
 {$ELSE VIRTUALPASCAL}
 Uses Windows, Dos, VpSysLow, Drivers, Objects, DnApp, DnIni, Startup,
-     Commands;
+     Commands, VPUtils {$IFDEF OS2}, os2base {$ENDIF};
 
 var
   StrtCurY1: Integer;
@@ -1412,6 +1412,40 @@ begin
   ScreenMode := FixCrtMode(SysTVGetScrMode(nil));
 end;
 
+// Sets the video mode. Mode is one of the constants smCO80, smBW80, or smMono,
+// optionally with smFont8x8 added to select 43- or 50-line mode on an EGA or
+// VGA. SetVideoMode initializes the same variables as InitVideo (except for
+// the StartupMode variable, which isn't affected).
+
+{procedure SetVideoMode(Mode: Word);
+begin
+  SysTVSetScrMode(FixCrtMode(Mode));
+  SetCrtData;
+end;}
+
+procedure SetVideoMode(Mode: Word);
+var {Cols,}Rows {, Cols1, Rows1, Color}: Word;
+begin
+ {GetVideoModeInfo(Cols1,Rows1,Rows);}
+ {didn't introduce a variable for colors}
+ Rows := 0;
+ case Mode of
+  sm80x25: Rows := 25;
+  sm80x30: Rows := 30;
+  sm80x34: Rows := 34;
+  sm80x43: Rows := 43;
+  sm80x50: Rows := 50;
+  sm80x60: Rows := 60;
+ end;
+{if (Cols1 = 80) and (Rows1 = Rows) then Rows :=25;}
+ if Rows <> 0 then
+   begin
+     VPUtils.SetVideoMode(80,Rows);
+     ScreenHeight := Rows;
+     ScreenMode := Mode;
+   end;
+end;
+
 // Initializes Turbo Vision's video manager. Saves the current screen
 // mode in StartupMode, and switches the screen to the mode indicated by
 // ScreenMode. The ScreenWidth, ScreenHeight, HiResScreen, ScreenBuffer,
@@ -1433,20 +1467,25 @@ procedure InitVideo;
    loop @@1
   end;
 {$ENDIF}
-begin
+ begin
   SysTVGetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
-  if StartupMode = $FFFF then
-     StartupMode := SysTVGetScrMode(nil);
-  if StartupMode <> ScreenMode then
-    SysTVSetScrMode(ScreenMode);
+ {if StartupMode = $FFFF then
+     StartupMode := SysTVGetScrMode(nil);}
+   if StartupMode <> ScreenMode then
+    {SysTVSetScrMode(ScreenMode);}
+    SetVideoMode(ScreenMode);
   SetCrtData;
-  {$IFDEF WIN32}{?}{DataCompBoy: how to do this in OS/2 ???}
+                {?}{DataCompBoy: how to do this in OS/2 ???}
+                   {JO: this is not needed under OS/2 because it's  }
+                   {    _impossible_ to capture output from spawned }
+                   {    OS/2 sessions }
   if not ScreenSaved then begin
      if UserScreen <> nil then
        FreeMem ( UserScreen, UserScreenSize );
      UserScreenSize  := ScreenWidth * ScreenHeight * 2;
      UserScreenWidth := ScreenWidth;
      GetMem ( UserScreen, UserScreenSize );
+     {$IFDEF WIN32}
      GetMem ( Bf, UserScreenSize shl 1 );
      s.x:=ScreenWidth;
      s.y:=ScreenHeight;
@@ -1456,9 +1495,13 @@ begin
      ReadConsoleOutput(SysFileStdOut, Bf, s, c, r);
      Rebuf(Bf);
      FreeMem(Bf, UserScreenSize shl 1);
+     {$ENDIF}
+     {$IFDEF OS2}
+     Move ( ScreenBuffer^, UserScreen^, UserScreenSize );  {JO}
+     {$ENDIF}
      ScreenSaved := True;
   end;
-  {$ENDIF}
+  SetBlink(CurrentBlink);
 end;
 
 // Terminates Turbo Vision's video manager by restoring the initial
@@ -1469,22 +1512,11 @@ procedure DoneVideo;
 begin
   if (StartupMode <> $FFFF) and (StartupMode <> ScreenMode) then
     SysTVSetScrMode(StartupMode);
-{  ClearScreen;}
+ {ClearScreen;}
   Move(UserScreen^, ScreenBuffer^, UserScreenSize);
   SysTVShowBuf(0, UserScreenSize);
   SysTVSetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
   FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);
-end;
-
-// Sets the video mode. Mode is one of the constants smCO80, smBW80, or smMono,
-// optionally with smFont8x8 added to select 43- or 50-line mode on an EGA or
-// VGA. SetVideoMode initializes the same variables as InitVideo (except for
-// the StartupMode variable, which isn't affected).
-
-procedure SetVideoMode(Mode: Word);
-begin
-  SysTVSetScrMode(FixCrtMode(Mode));
-  SetCrtData;
 end;
 
 // Clears the screen, moves cursor to the top left corner
@@ -1503,8 +1535,22 @@ Procedure GlowPalette;                               begin end;
 Procedure BlackPalette;                              begin end;
 Procedure Set_palette(color,r,g,b :Byte);            begin end;
 Procedure Get_palette(color :Byte; Var r,g,b :Byte); begin end;
-
+{$IFDEF OS2}
+Procedure SetBlink(Mode : boolean);  {JO}
+var
+  I: VioIntensity;
+begin
+  with I do
+    begin
+      cb := sizeof(VioIntensity);
+      rType := 2;
+      if Mode then fs := 0 else fs := 1;
+    end;
+  VioSetState(I, TVVioHandle);
+end;
+{$ELSE}
 Procedure SetBlink(Mode : boolean);                  begin end;
+{$ENDIF}
 Procedure GetCrtMode;                                begin end;
 
 {$ENDIF}

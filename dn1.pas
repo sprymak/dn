@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -65,9 +65,10 @@ uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
      Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
      UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver,
      U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries,
-     ExtraMem, Menus, VideoMan
+     ExtraMem, Menus, VideoMan, extkbd, stakdump
 {$IFDEF CDPLAYER},CDPlayer{$ENDIF}
 {$IFDEF DPMI}, DPMI {$ENDIF}
+{$IFDEF DiskFormat}, FmtUnit {$ENDIF}
      ;
 
 
@@ -174,6 +175,13 @@ begin
  end;
         {-DataCompBoy-}
 
+{This procedure should make deletion of temporary files more clear.
+It will check for their existence first. -JITR-}
+procedure EraseFileIfExists(const FName: string); {-JITR-}
+begin
+  if ExistFile(FName) then EraseFile(FName);
+end;
+
         {-DataCompBoy-}
 PROCEDURE DoStartup;
 var
@@ -182,8 +190,9 @@ var
   function ReadConfig: LongInt;
   var
     S: TBufStream;
-    CFGVer: Word;
-    ID,L: Word;
+    CFGVer: AWord;
+    ID: AWord;
+    L: AWord;
     p: pointer;
     I: integer;
 
@@ -214,17 +223,20 @@ var
     ReadConfig := -1;
     INIdatapos := -1;
     S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
-    if ( S.Status <> stOK ) or ( S.GetSize = 0 ) then begin S.Done; Exit; end;
+    if ( S.Status <> stOK ) or ( S.GetSize = 0 ) then begin S.Done;
+                {.$IFDEF VIRTUALPASCAL PlaySound(1259, 550); $ENDIF} Exit; end;
     GetVer;
     If (CfgVer=0) or (CfgVer>VersionWord) then begin
      S.Done;
+     {.$IFDEF VIRTUALPASCAL PlaySound(1259, 110); $ENDIF}
      Exit
     end;
     while S.GetPos < S.GetSize do
       begin
         S.Status := stOK;
-        S.Read(ID, SizeOf(Word));
-        S.Read(L, SizeOf(Word));
+        S.Read(ID, SizeOf(AWord));
+        S.Read(L, SizeOf(AWord));
+
         case ID of
           0: Break;
           cfgNewSystemData: SRead(SystemData);
@@ -307,17 +319,54 @@ var
                              end;
                             end;
          cfgEditorDefaults: SRead(EditorDefaults);
+         cfgViewerDefaults: SRead(ViewerDefaults);
+     cfgOldEditorDefaults2: begin
+                             GetMem(p, SizeOf(TOldEditorDefaultsData2));
+                             SRead(p^);
+                             With TOldEditorDefaultsData2(p^) do begin
+                              EditorDefaults.GlobalOpt:=
+                               (EdOpt and 1) + (EdOpt and $7C00) shr 9;
+
+                              EditorDefaults.Defaults:=
+                               (EdOpt and $01FE) shr 1 +
+                               (EdOpt and $8000) shr 6 +
+                               EdOpt2 shl 10;
+
+                              EditorDefaults.LM      := LM;
+                              EditorDefaults.RM      := RM;
+                              EditorDefaults.PM      := PM;
+                              EditorDefaults.NewLine := NewLine;
+                              EditorDefaults.TabSize := TabSize;
+
+                              ViewerDefaults.TabSize := TabSize;
+                              ViewerDefaults.Options := ViOpt +
+                               Byte(EditorDefaults.Defaults and ebfTRp <> 0)*
+                                vbfTRp;
+                             end;
+                             FreeMem(p, SizeOf(TOldEditorDefaultsData2));
+                            end;
       cfgOldEditorDefaults: begin
                              GetMem(p, SizeOf(TOldEditorDefaultsData));
                              SRead(p^);
                              With TOldEditorDefaultsData(p^) do begin
-                              EditorDefaults.EdOpt   := EdOpt;
-                              EditorDefaults.EdOpt2  := ebfHlt+ebfSmt;
-                              EditorDefaults.ViOpt   := ViOpt;
+                              EditorDefaults.GlobalOpt:=
+                               (EdOpt and 1) + (EdOpt and $7C00) shr 9;
+
+                              EditorDefaults.Defaults:=
+                               (EdOpt and $01FE) shr 1 +
+                               (EdOpt and $8000) shr 6 +
+                               ebfHlt+ebfSmt;
+
                               EditorDefaults.LM      := LM;
                               EditorDefaults.RM      := RM;
+                              EditorDefaults.PM      := PM;
                               EditorDefaults.NewLine := NewLine;
                               EditorDefaults.TabSize := TabSize;
+
+                              ViewerDefaults.TabSize := TabSize;
+                              ViewerDefaults.Options := ViOpt +
+                               Byte(EditorDefaults.Defaults and ebfTRp <> 0)*
+                                vbfTRp;
                              end;
                              FreeMem(p, SizeOf(TOldEditorDefaultsData));
                             end;
@@ -520,6 +569,7 @@ var
 
     S.Done;
     Security := SystemData.Options and ossShowHidden = 0;
+    DriveInfoType := InterfaceData.DrvInfType;
   end;
 
   procedure SetOverlay;
@@ -534,7 +584,9 @@ var
       end;
     if SwpDir = '' then SwpDir := TempDir;
     if not (SwpDir[Length(SwpDir)] in ['\','/']) then SwpDir := SwpDir+'\'; ClrIO;
-    if RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+    {if RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');} {-JITR-}
+    if RunFirst then
+      EraseFileIfExists(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');          {-JITR-}
   end;
 
   procedure ReadINI;
@@ -551,6 +603,7 @@ var
           if DnIni.AutoSave then SaveDnIniSettings;
           DoneIniEngine; {-$VIV stop}
           ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
+          InterfaceData.DrvInfType := DriveInfoType;
           UpdateConfig; WriteConfig
       end else begin
           S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
@@ -590,10 +643,18 @@ begin
 
   RunMenu := (StartupData.Load and osuAutoMenu <> 0);
   SetOverlay;
-  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
-  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU');
-  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'.LST');
-  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST');
+  {We should check for deleted files existence before actually deleting
+  them. Probably it would pass without IO checking enabled but why don't
+  do it more correctly?
+    The same has been fixed on other places in this file as well... -JITR-}
+  EraseFileIfExists(SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); {-JITR-}
+  EraseFileIfExists(SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU'); {-JITR-}
+  EraseFileIfExists(SwpDir+'$DN'+ItoS(DNNumber)+'.LST');  {-JITR-}
+  EraseFileIfExists(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {-JITR-}
+  {EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');}       {-JITR-}
+  {EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU');}       {-JITR-}
+  {EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'.LST');}        {-JITR-}
+  {EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST');}       {-JITR-}
   ReadINI;
 
 {$IFDEF SS}Val(SaversData.Time, SkyDelay, Integer(SPos1));{$ENDIF}
@@ -647,6 +708,14 @@ begin
     Halt(203);
  end;
  Randomize;
+
+ Init09Handler;
+ AdvanceInitUnit;
+ StakDumpInitUnit;
+ {$IFDEF DiskFormat}
+ FmtunitInitUnit;
+ {$ENDIF}
+ DriversInitUnit;
 
  LoaderSeg := 0;
  LSliceCnt := -3;
@@ -726,6 +795,8 @@ begin
    MOV  ShiftRec.CurY,DH
    CALL GetCrtMode { DL - ScreenHeight }
    MOV  ShiftRec.ScrH,DL
+   {PZ 2000.07.31 check for VESA when DN's configuration is read }
+   MOV  VideoType,vtUnknown
  end;
 {$ENDIF}
 
@@ -761,7 +832,9 @@ begin
  if RunFirst then
   if (StartupData.Load and osuKillHistory <> 0) then ClearHistories;
 
- if not RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+ {if not RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');} {-JITR-}
+ if not RunFirst then
+   EraseFileIfExists(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');              {-JITR-}
 
  If RunFirst then
    begin

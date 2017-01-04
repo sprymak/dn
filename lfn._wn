@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -83,6 +83,7 @@ begin
     ES := Seg(FindData);
     DI := Ofs(FindData);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then
     begin
@@ -127,6 +128,7 @@ begin
     ES := Seg(FindData);
     DI := Ofs(FindData);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
     else
@@ -231,6 +233,7 @@ begin
     ES    := Seg(GetNameZ);
     DI    := Ofs(GetNameZ);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then S := Name
     else
@@ -289,6 +292,7 @@ begin
     ES    := Seg(GetNameZ);
     DI    := Ofs(GetNameZ);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then S := Name
     else
@@ -347,6 +351,7 @@ begin
     SI    := Ofs(F.FullName);
     DI    := 0;
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
     else
@@ -389,6 +394,7 @@ begin
     DX    := Ofs(F.FullName);
     SI    := 0;
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
@@ -406,6 +412,7 @@ begin
     DX    := Ofs(T.FullName);
     SI    := 0;
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
@@ -441,6 +448,7 @@ begin
     ES    := Seg(NameZ);
     DI    := Ofs(NameZ);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
@@ -462,6 +470,7 @@ begin
     ES    := Seg(NameZ);
     DI    := Ofs(NameZ);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
@@ -522,6 +531,7 @@ begin
     DS    := Seg(F.FullName);
     DX    := Ofs(F.FullName);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
     else
@@ -544,6 +554,7 @@ begin
     DS    := Seg(T.FullName);
     DX    := Ofs(T.FullName);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
     else
@@ -589,6 +600,7 @@ begin
     DS    := Seg(NameZ);
     DX    := Ofs(NameZ);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
@@ -628,6 +640,7 @@ begin
     DS    := Seg(NameZ);
     DX    := Ofs(NameZ);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
@@ -663,6 +676,7 @@ begin
     DS    := Seg(NameZ);
     SI    := Ofs(NameZ);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if (Flags and fCarry <> 0) or (AX=$7100) then NameZ[0] := #0;
 

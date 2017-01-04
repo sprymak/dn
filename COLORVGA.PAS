@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -55,7 +55,7 @@ interface
  Const  LastTTFocus : Byte        = 0;   { Last focused Color }
 
 implementation
-uses Objects, Drivers, Views, Dialogs, commands, Dos, DnApp, Startup,
+uses Objects, Drivers, Views, Dialogs, commands, Dos,  DnApp, Startup,
      advance, advance1, advance2, advance3, collect, Messages, VideoMan;
 
  Const  cmColorSet               = 73;

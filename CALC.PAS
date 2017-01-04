@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,7 +49,7 @@ unit Calc;
 
 interface
 
-uses Advance, LFN, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
+uses Advance, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
      HistList, UniWin, Commands, DNHelp, RStrings, Calculat;
 
 const
@@ -135,7 +135,7 @@ function GetFileName(var FileName: String; Mask, Title, ALabel: String; Buttons:
 
 implementation
 
-uses Memory, Dos, DNApp, DNStdDlg, advance1, advance2,
+uses Memory, DNApp, DNStdDlg, advance1, advance2, Dos, LFN,
      MicroEd2, Histries;
 
 const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
@@ -170,7 +170,7 @@ begin
   if C <> cmCancel then D^.GetFileName(S);
   GetFileName := C;
   Dispose(D,Done);
-  FileName := lfGetLongFileName(S);
+  FileName := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(S);
 end;
         {-DataCompBoy-}
 
@@ -228,7 +228,7 @@ begin
  if AName = '' then AName := 'Untitled.WKZ'
                else if GetFileAttr(AName+#0) and Directory<>0
                      then AName := 'Untitled.WKZ'
-                     else AName := lfGetLongFileName(lFExpand(AName));
+                     else AName := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(lFExpand(AName));
  TWindow.Init(Bounds, Cut(AName,Bounds.B.X-Bounds.A.X-12), 0);
  Options := Options or ofTileable;
  Flags := Flags or wfMaxi;
@@ -349,7 +349,6 @@ procedure TCalcInfo.HandleEvent;
    begin
     DelFC(S1);
     Error:=false;
-    EvalueError:=false;
     CurCalcView:=CalcView;
     R:=Evalue(S1, AGetCellValue);
     S1:='='+S1;
@@ -1050,20 +1049,65 @@ function TCalcView.GetCellValue( S : String; var Value: CReal) : boolean;
  var X: Byte;
      Y, I: Integer;
      P: PCellRec;
+     AFromX, AToX: Byte;
+     AFromY, AToY: Integer;
 
  function IsNeeded(PP: PCellRec): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
  begin
   IsNeeded := (PP^.Row = Y) and (PP^.Col = X)
  end;
 
-begin
- if not GetCellCoord(S, X, Y) then GetCellValue:=false else begin
-  GetCellValue := True;
-  P := Cells^.FirstThat(@IsNeeded);
-  if (P <> nil) and (P^.Options and 3 <> 0)
-   then Value := P^.Value
-   else Value := 0;
+ procedure DoSum(PP: PCellRec); {$IFDEF BIT_16}far;{$ENDIF}
+ begin
+  if (PP^.Row>=AFromY) and (PP^.Row<=AToY) and
+     (PP^.Col>=AFromX) and (PP^.Col<=AToX) then
+   if (PP <> nil) and (PP^.Options and 3 <> 0)
+    then Value := Value + PP^.Value
  end;
+
+ procedure DoMul(PP: PCellRec); {$IFDEF BIT_16}far;{$ENDIF}
+ begin
+  if (PP^.Row>=AFromY) and (PP^.Row<=AToY) and
+     (PP^.Col>=AFromX) and (PP^.Col<=AToX) then
+   if (PP <> nil) and (PP^.Options and 3 <> 0)
+    then Value := Value * PP^.Value
+ end;
+
+begin
+ DelSpaces(S); UpStr(S);
+ if (S[1]='S') and (S[2]='U') and (S[3]='M') and (S[4]='(') and
+    (S[length(s)]=')') and
+    ((CharCount(':', S)=1) or (CharCount(',', S)=1)) then begin
+  Dec(S[0], 5);
+  Move(S[5], S[1], Length(S));
+  I := Pos(':', S); If I=0 then I:=Pos(',', S);
+  if GetCellCoord(System.Copy(S, 1, I-1), AFromX, AFromY) and
+     GetCellCoord(System.Copy(S, I+1,255), AToX, AToY) then begin
+   Value:=0;
+   Cells^.ForEach(@DoSum);
+   GetCellValue:=True;
+  end else GetCellValue:=false
+ end else
+ if (S[1]='M') and (S[2]='U') and (S[3]='L') and (S[4]='(') and
+    (S[length(s)]=')') and
+    ((CharCount(':', S)=1) or (CharCount(',', S)=1)) then begin
+  Dec(S[0], 5);
+  Move(S[5], S[1], Length(S));
+  I := Pos(':', S); If I=0 then I:=Pos(',', S);
+  if GetCellCoord(System.Copy(S, 1, I-1), AFromX, AFromY) and
+     GetCellCoord(System.Copy(S, I+1,255), AToX, AToY) then begin
+   Value:=1;
+   Cells^.ForEach(@DoMul);
+   GetCellValue:=True;
+  end else GetCellValue:=false
+ end else
+  if not GetCellCoord(S, X, Y) then GetCellValue:=false else begin
+   GetCellValue := True;
+   P := Cells^.FirstThat(@IsNeeded);
+   if (P <> nil) and (P^.Options and 3 <> 0)
+    then Value := P^.Value
+    else Value := 0;
+  end;
 end;
 
 procedure TCalcView.CalcError;
@@ -1103,7 +1147,6 @@ var Err: Boolean;
      if ContainCell(S, P^.S) then
       begin
        CurrentCalc.X := P^.Col; CurrentCalc.Y := P^.Row;
-       EvalueError:=false;
        CurCalcView:=@Self;
        P^.Value := Evalue(System.Copy(P^.S, 2, 255), AGetCellValue);
        Modify(P^.Col, P^.Row);
@@ -1156,7 +1199,7 @@ begin
    end;
    New(Cells, Init(10,10)); Exit
   end;
- FName := lfGetLongFileName(lFExpand(FName));
+ FName := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(lFExpand(FName));
  S := New(PBufStream, Init(FName, stOpenRead, 2048));
  DisposeStr(SName); SName := NewStr(FName);
  if Owner<>nil then begin
@@ -1203,7 +1246,7 @@ begin
  PP := @FName;
  if GetFileName(FName, '*.WKZ', GetString(dlSaveFileAs),
      GetString(dlSaveFileAs), fdOKButton{, hsSaveSheetAs, 0}) = cmCancel then Exit;
- FName := lfGetLongFileName(lFExpand(FName));
+ FName := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(lFExpand(FName));
  S := New(PDosStream, Init(FName, stOpen));
  W := S^.Status;
  Dispose(S,Done);
@@ -1483,7 +1526,6 @@ begin
    if P^.Options and coFormula <> 0 then
      begin
       CurrentCalc.X := P^.Col; CurrentCalc.Y := P^.Row;
-      EvalueError:=false;
       Error:=false;
       CurCalcView:=@Self;
       P^.Value := Evalue(System.Copy(P^.S, 2, 255), AGetCellValue);

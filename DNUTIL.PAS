@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -298,19 +298,21 @@ const
      cfgFMSetup             = 56; {DataCompBoy}
      {{{{{{{{{{{{{{{{{{{{{{ = 57; !DO NOT USE!}
      cfgNewSystemData       = 58; {DataCompBoy}
-     cfgEditorDefaults      = 59; {DataCompBoy}
+     cfgOldEditorDefaults2  = 59; {DataCompBoy}
      cfgNewPanelDefaults    = 60; {DataCompBoy}
      cfgSavers              = 61; {DataCompBoy}
      cfgChangeCaseOptions   = 62; {DataCompBoy}
      cfgINIcrc              = 63; {DataCompBoy}
+     cfgEditorDefaults      = 64; {DataCompBoy}
+     cfgViewerDefaults      = 65; {DataCompBoy}
 
      dlAbout = #13#3'Dos Navigator Open Source'#13+
      {$IFDEF LITE}+#3'Light version'+{$ELSE}+#13+{$ENDIF}
      +#13#3'Version %s, %s'+
-     +#13#3#0'http://dn_osp.web.com/'#0+
+     +#13#3#0'http://www.nsk.su/~ovr/'#0+
      {$IFDEF VIRTUALPASCAL}
      +#13+
-     +#13#3'Thanks to fPrint (UK) Ltd for copy of VP'+
+     +#13#3'Thanks to Allan Mertner for copy of VP'+
      +#13#3#0'http://www.vpascal.com'#0#13+
      {$ELSE}
      +#13#13+
@@ -432,10 +434,9 @@ begin
                            if TempDirs = nil then continue;
                            S.Read(Q, SizeOf(Q));
                            If Q >= 0 then begin
-                            TempFiles := New(PFilesCollection, Init(Q, $10));
+                            TempFiles := New(PFilesCollection, Init(Q+1, $10));
                             TempFiles^.SortMode := psmOrdered;
                             TempFiles^.Duplicates := False;
-                            TempFiles^.Owner := @Self;
                             for Q2:=0 to Q do TempFiles^.AtInsert(Q2, LoadFileRecOwn(S, TempDirs));
                            end;
                          end else S.Seek(S.GetPos + L);
@@ -862,6 +863,7 @@ begin
  StoreBlock(cfgSystemColors, SystemColors, SizeOf(SystemColors));
  StoreBlock(cfgNewPanelDefaults, PanelDefaults, SizeOf(PanelDefaults));
  StoreBlock(cfgEditorDefaults, EditorDefaults, SizeOf(EditorDefaults));
+ StoreBlock(cfgViewerDefaults, ViewerDefaults, SizeOf(ViewerDefaults));
  StoreBlock(cfgTetrisRec, TetrisRec, SizeOf(TetrisRec));
  StoreBlock(cfgArcCustomMasks, Startup.Archives^.Filter, SizeOf(Startup.Archives^.Filter));
  MarkP(cfgCustomMasks);
@@ -1288,7 +1290,7 @@ var
    var S: String;
        V: PFileViewer;
   begin
-    W := New(PFileWindow,Init(FileName, RN, EditorDefaults.ViOpt and 1 <> 0));
+    W := New(PFileWindow,Init(FileName, RN, ViewerDefaults.Options and vbfHex <> 0));
     if (W <> nil) and (W^.Valid(cmValid)) then
       begin
         V := PFileViewer(W^.Current); S := V^.VFileName; System.Insert(' ', S, 1); UpStr(S);
@@ -1411,10 +1413,12 @@ begin
      if IsPktFile(FileName) or (Q=vmPKT)
       then begin
       ViewPktFile(FileName);
+      goto ex;
      end else
      if IsMsgFile(FileName) or (Q=vmMSG)
       then begin
       ViewMSGFile(FileName);
+      goto ex;
      end else
      {$ENDIF}
         if ArcViewer(FileName, FreeByte) or Abort then goto ex
@@ -1447,7 +1451,7 @@ begin
  S:=lFExpand(Copy(FileName, I+1, 255));
  FileName[0]:=Chr(I-1);
  FileName:=lFExpand(FileName);
- W := New(PFileWindow,Init(FileName, S, EditorDefaults.ViOpt and 1 <> 0));
+ W := New(PFileWindow,Init(FileName, S, ViewerDefaults.Options and vbfHex <> 0));
  if (W <> nil) and (W^.Valid(cmValid)) then begin
   V := PFileViewer(W^.Current);
   S := V^.VFileName; System.Insert(' ', S, 1); UpStr(S); PS := @S;
@@ -1704,7 +1708,11 @@ PROCEDURE TDNApplication.HandleCommand;
      HFile: PHelpFile;
      HelpStrm: PDosStream;
      T : Tevent ;
-
+{$IFDEF VIRTUALPASCAL} {JO}
+     CC: Word;
+     F: lFile;
+     PJ,Q: String; QQ: integer;
+{$ENDIF}
  procedure OpenWindow(ChDrive: Boolean);
   var S: String;
  begin
@@ -2248,6 +2256,23 @@ PROCEDURE TDNApplication.HandleCommand;
         L.FreeAll;
         L.Done;
     end;
+
+{$IFDEF VIRTUALPASCAL} {JO}
+function GetGLUKName(s: string):string;
+ Begin
+  GetGLUKName:=GetPath(s)+Copy(GetName(s), 1, 12);
+ end;
+
+FUNCTION GetfURZ2(const s: string): string;
+ var a,aa,aaa:string;
+ Begin
+  lFSplit(S, a, aa, aaa);
+  aa:=aa+aaa;
+  GetfURZ2:=a+Copy(aa, 1, 8)+'.'+Copy(aaa, 9, 3);
+ End;
+
+{$ENDIF}
+
 begin
    case Event.Command of
      cmFirstTimePanel: OpenWindow( False );
@@ -2363,7 +2388,11 @@ begin
                   ST := FreeStr;
                   if CheckExit then
                   begin
+                  {$IFNDEF OS2}
                    ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + ST;
+                  {$ELSE}
+                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD ' + ST;
+                  {$ENDIF}
                    ExecString(@ST,'');
                   end;
                 end;
@@ -2422,6 +2451,43 @@ begin
      cmShowOutput: GetUserScreen;
      cmHistoryList: CmdHistory;
      cmLoadDesk: RetrieveDesktop(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK', nil, True);
+{$IFDEF VIRTUALPASCAL} {JO changes begin}
+     cmRetrieveSwp:
+     if PosChar(TempFileSWP[1], '+-=<>|[!') = 0  then
+      begin lAssignFile(F, TempFileSWP); lSetFAttr(F, $20);  lEraseFile(F); end
+      else
+  begin
+        PJ := TempFileSWP;
+        TempFile := Copy(PJ,2,255);
+        QQ := Pos('|', TempFile); Dec(QQ);
+        if QQ>0 then Q:=Copy(TempFile, QQ+2, 255) else Q:='';
+        QQ := QQ and 255; {BP bugfix by piwamoto}
+        If Not ExistFile(TempFile) then TempFile:=GetfURZ(Copy(PJ,2,QQ));
+        If Not ExistFile(TempFile) then TempFile:=GetfURZ2(Copy(PJ,2,QQ));
+        If Not ExistFile(TempFile) then TempFile:=GetGLUKName(Copy(PJ,2,QQ));
+        If Not ExistFile(TempFile) then TempFile:=Copy(PJ,2,QQ);
+        case PJ[1] of
+          '-': CC := cmIntFileView;
+          '=': CC := cmDBFView;
+          '>': CC := cmWKZView;
+          '<': CC := cmTextView;
+          '|': CC := cmHexView;
+          '[': CC := cmReadArchive;
+          '!': CC := cmViewFilter;
+          else CC := cmFileView;
+        end;
+        if CC <> 0 then
+                    begin
+                      if Q<>'' then TempFile:=TempFile+'|'+Q;
+                      Event.What := evCommand;
+                      Event.Command := CC;
+                      Event.InfoPtr := @TempFile;
+                      PutEvent(Event);
+                     end;
+        RunMenu := Off;
+       end;
+{$ENDIF}               {JO changes end}
+
      cmSaveDesk: SaveRealDsk;
      cmExecFile: DoExecFile;
      cmExecString: DoExecString;
@@ -2451,6 +2517,7 @@ begin
      cmDriveInfoSetup: DriveInfoSetup;
      cmExecuteDOScmd: ExecDOSCmd;
      cmEditorDefaults: SetupEditorDefaults;
+     cmViewerDefaults: SetupViewerDefaults;
     {$ifdef cdplayer}
      cmPlayCD: RunPlayer;
     {$endif}

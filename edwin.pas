@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -149,9 +149,9 @@ procedure TEditWindow.ChangeBounds;
 var rr: TRect;
 begin
  inherited ChangeBounds(R);
-{ Intern^.HScroll^.GetBounds(rr); RR.B.X:=R.B.X - 2;
-  Intern^.HScroll^.SetBounds(rr);
-}if not (Intern^.SmartPad or GetState(sfModal)) then
+ Intern^.HScroll^.GetBounds(rr); RR.B.X:=Size.X - 2;
+ Intern^.HScroll^.SetBounds(rr);
+ if not (Intern^.SmartPad or GetState(sfModal)) then
     begin
       GetBounds(TempBounds);
       LastEditDeskSize := Desktop^.Size;

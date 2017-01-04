@@ -54,9 +54,19 @@
 ; *                                                     *
 ; *******************************************************
 
-        TITLE   TFIO
+;SimulateRealModeInt by DataCompBoy,  3.08.2000
+
+        TITLE   S-TFIO
 
         INCLUDE SE.ASH
+
+DATA    SEGMENT BYTE PUBLIC 'DATA'
+         EXTRN  RMR:BYTE  ;.32
+         EXTRN  LowSeg: WORD
+         EXTRN  LowBuf: DWORD
+DATA    ENDS
+
+DGROUP  GROUP   DATA
 
 CODE    SEGMENT BYTE PUBLIC
 
@@ -69,10 +79,26 @@ CODE    SEGMENT BYTE PUBLIC
 
 ; Publics
 
-        PUBLIC  FileOpen
+        PUBLIC  SimFileOpen
 
 ; Standard textfile open procedure
 
+        sEDI EQU 00h
+        sESI EQU 04h
+        sEBP EQU 08h
+        sEBX EQU 10h
+        sEDX EQU 14h
+        sECX EQU 18h
+        sEAX EQU 1Ch
+        sFLG EQU 20h
+        sES  EQU 22h
+        sDS  EQU 24h
+        sFS  EQU 26h
+        sGS  EQU 28h
+        sIP  EQU 2Ah
+        sCS  EQU 2Ch
+        sSP  EQU 2Eh
+        sSS  EQU 30h
 
 DOSFn:
         cmp     [di].fPrivate, 0
@@ -82,36 +108,14 @@ DOSFn:
 @@LFN:
         push    dx cx bx si di
         cmp     ah, dosOpen
-        je      @@Open
+        je      @@DoS
         cmp     ah, dosCreate
-        je      @@Create
+        je      @@DoS
         mov     ax, 1
         stc
         jmp     @@Exit
 
 comment ~
-INT 21h  AH=3C
- INT 21 - DOS 2+ - "CREAT" - CREATE OR TRUNCATE FILE
-         AH = 3Ch
-         CX = file attributes (see #0748)
-         DS:DX -> ASCIZ filename
- Return: CF clear if successful
-             AX = file handle
-         CF set on error
-             AX = error code (03h,04h,05h) (see #1020 at AH=59h/BX=0000h)
-
-INT 21h  AH=3D
- INT 21 - DOS 2+ - "OPEN" - OPEN EXISTING FILE
-         AH = 3Dh
-         AL = access and sharing modes (see #0749)
-         DS:DX -> ASCIZ filename
-         CL = attribute mask of files to look for (server call only)
- Return: CF clear if successful
-             AX = file handle
-         CF set on error
-             AX = error code (01h,02h,03h,04h,05h,0Ch,56h) (see #1020 at AH=59h)
-
-
 INT 21h  AX=716C
  INT 21 - Windows95 - LONG FILENAME - CREATE OR OPEN FILE
          AX = 716Ch
@@ -130,32 +134,89 @@ INT 21h  AX=716C
              AX = error code (see #1020)
                  7100h if function not supported
  See: AX=6C00h,AX=7141h,AX=7156h,AX=71A9h
-
 ~
-@@Create:
-        mov     ax, 716Ch
-        mov     si, dx
-        mov     dx, 12h
-        mov     bx, 64 + 2
-        mov     di, 0
-        int     21h
-        jmp     @@Exit
+@@DoS:
+        cld
+        push    ds
+        push    es
 
-@@Open:
-        xor     ah, ah
-        mov     bx, ax
-        xor     ch, ch
-        mov     ax, 716Ch
+        push    ds
+        pop     es ;ES=DS of Name
+
+        push    ax
+        push    es
+        mov     ax, SEG DGROUP
+        mov     ds, ax
+        mov     es, ax
+     ASSUME DS:DGROUP
+        mov     di, OFFSET RMR
+        mov     cx, 16h
+        xor     ax, ax
+    rep stosw
+        pop     es ;ES=DS of Name
+
+        mov     di, OFFSET RMR
+        mov     ax, 716Ch ;Open
+        mov     ds:[di+sEAX], ax
+        mov     ax, ds:[LOWSEG]
+        mov     ds:[di+sDS], ax ; ESI=0!
+        pop     ax
+        cmp     ah, dosOpen
+        jnz     @@Create
+        mov     ds:[di+sEBX], al
+        mov     cl, 1h
+        mov     ds:[di+sEDX], cl
+        jmp     @@Next
+
+@@Create:
+        mov     al, 64 + 2
+        mov     ds:[di+sEBX], al
+        mov     cl, 12h
+        mov     ds:[di+sEDX], cl
+
+@@Next:
+        push    di
+        xor     al, al
+        mov     di, dx ;{Name}
+        xor     cx, cx
+        dec     cx
+  repne scasb
+        sub     di, dx
+        mov     cx, di ;{cx = name len}
+        push    ds
+        push    es
+
+        push    es
+        les     di, DS:[LOWBUF]
+        pop     ds ;DS = old DS (segment of name...)
+
+        push    si
         mov     si, dx
-        mov     di, 0
-        mov     dx, 1
-        int     21h
+    rep movsb
+        pop     si
+        pop     es
+        pop     ds
+        pop     di
+
+        mov     bx, 21h
+        xor     cx, cx
+        push    ds
+        pop     es
+        mov     ax,0300h
+        int     31h      ;Simulate Real-mode int
+        mov     ax,ds:[DI+sFLG]
+        push    ax
+        popf
+        mov     ax,ds:[DI+sEAX]
+
+        pop     es
+        pop     ds
 
 @@Exit: pop di si bx cx dx
 
         ret
 
-FileOpen:
+SimFileOpen:
 
         MOV     BX,SP
         PUSH    DS

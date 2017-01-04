@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,8 +48,7 @@
 unit UserMenu;
 
 interface
-uses Objects, Views, Scroller, Drivers, FilesCol, LFNCol, Collect,
-       SBlocks;
+uses Objects, Views, Scroller, Drivers, FilesCol, LFNCol, Collect, SBlocks;
 
 var QuickExecExternalStr: string;
 
@@ -80,9 +79,8 @@ type
 const RunFrom2E : Boolean = False;
 
 implementation
-uses LFN, {DataCompBoy}
-     DNApp, advance, advance1, advance2, advance3, Startup, Messages, Menus,
-     Commands, MicroEd, WinClp, DNHelp, DOS, Memory, Dialogs, Tree, RStrings;
+uses DOS, LFN, DNApp, advance, advance1, advance2, advance3, Startup, Messages,
+     Menus, Commands, MicroEd, WinClp, DNHelp, Memory, Dialogs, Tree, RStrings;
 
 type
      PUserMenuItem = ^TUserMenuItem;
@@ -141,6 +139,7 @@ begin
  Options := Options or ofSelectable;
  Grabbing := Off;
  ScrollTo( 0,
+   Byte(CommandLine^.GetState(sfVisible)) +
    Byte(InterfaceData.Options and ouiHideMenu = 0){ +
    Byte(InterfaceData.Options and ouiHideStatus = 0)});
  Delta.Y := VScrollBar^.Value;
@@ -209,6 +208,9 @@ begin
   Replace('##',#3, S);
   Replace('$$',#4, S);
 
+  {$IFDEF OS2} Replace('!','#', S); Replace('$','&', S); {$ENDIF}
+
+  {$IFNDEF OS2}
   if (Pos('!\',S)>0) or (Pos('!:',S)>0) or (Pos('!/',S)>0) then
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
@@ -222,14 +224,15 @@ begin
     Replace('!\', zs+Copy(ts,3,255)+zs, S);
     Replace('!/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
    end;
+  {$ENDIF}
 
   if (Pos('#\',S)>0) or (Pos('#:',S)>0) or (Pos('#/',S)>0) then
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
     if UserParams^.Active^.Name[1]='.'
-    then ts:=MakeNormName(lfGetLongFileName(UserParams^.Active^.Owner^),'')
-    else ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
+    then ts:=MakeNormName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Active^.Owner^),'')
+    else ts:=MakeNormName(GetPath({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(MakeNormName(
      UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('#:', Copy(ts,1,2), S);
@@ -237,6 +240,7 @@ begin
     Replace('#/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
    end;
 
+  {$IFNDEF OS2}
   if (Pos('$\',S)>0) or (Pos('$:',S)>0) or (Pos('$/',S)>0) then
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
@@ -250,14 +254,15 @@ begin
     Replace('$\', zs+Copy(ts,3,255)+zs, S);
     Replace('$/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
    end;
+  {$ENDIF}
 
   if (Pos('&\',S)>0) or (Pos('&:',S)>0) or (Pos('&/',S)>0) then
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
     if UserParams^.Passive^.Name[1]='.'
-    then ts:=MakeNormName(lfGetLongFileName(UserParams^.Passive^.Owner^),'')
-    else ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
+    then ts:=MakeNormName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Passive^.Owner^),'')
+    else ts:=MakeNormName(GetPath({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(MakeNormName(
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('&:', Copy(ts,1,2), S);
@@ -265,7 +270,7 @@ begin
     Replace('&/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
    end;
 
-  if Replace('!%', #5, S) or Replace('#%', #5, S) then
+  if {$IFNDEF OS2}Replace('!%', #5, S) or {$ENDIF}Replace('#%', #5, S) then
    begin
     if (Pos(#5'A', S)>0) or (Pos(#5'a', S)>0) then
      begin
@@ -341,8 +346,12 @@ begin
 
     if (Pos(#5'F', S)>0) or (Pos(#5'f', S)>0) then
      begin
+      {$IFNDEF OS2}
       ts := MakeNormName(lfGetShortFileName(SwpDir),
                          GetName(CalcTmpFName(CalcTmpId, 'flt', True)));
+      {$ELSE}
+      ts := MakeNormName(SwpDir, GetName(CalcTmpFName(CalcTmpId, 'flt', True)));
+      {$ENDIF}
       if TM<>nil then TM^:=ts;
       Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
       Replace(#5'F', ts, S);
@@ -350,7 +359,7 @@ begin
      end;
    end;
 
-  if Replace('$%', #6, S) or Replace('&%', #6, S) then
+  if {$IFNDEF OS2}Replace('$%', #6, S) or {$ENDIF}Replace('&%', #6, S) then
    begin
     if (Pos(#6'A', S)>0) or (Pos(#6'a', S)>0) then
      begin
@@ -425,6 +434,7 @@ begin
      end;
    end;
 
+  {$IFNDEF OS2}
   if (PosChar('!', S)>0) then
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
@@ -448,6 +458,7 @@ begin
     Replace('.$',zs+tz+zs, S);
     Replace('$', zs+fDelRight(Copy(ts, 1, 8))+zs, S);
    end;
+  {$ENDIF}
 
   if (PosChar('#', S)>0) then
    begin
@@ -555,7 +566,7 @@ function ExecUserMenu;
 
 begin
  FillChar(UserParams, SizeOf(UserParams), 0);
- Message(Desktop, evBroadcast, cmGetUserParams, @UserParams);
+ Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams);
  RunFrom2E := Off;
  ExecUserMenu := False;
  TitleStr := '';
@@ -587,7 +598,7 @@ begin
    Exit;
   end;
 1:
- Message(Desktop, evBroadcast, cmGetUserParams, @UserParams); ClrIO;
+ Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams); ClrIO;
  New(P, Init(10, 10)); I := 0; NW := 30;
  while (not F^.EOF) and (IOResult = 0) do
   begin
@@ -654,7 +665,11 @@ begin
          UI := P^.At(I); LL := UI^.Line;
          if I >= P^.Count - 1 then LL := 65535 else LL := PUserMenuItem(P^.At(I+1))^.Line - 1;
          F := New(PTextReader, Init(S));
+         {$IFNDEF OS2}
          lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
+         {$ELSE}
+         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD');
+         {$ENDIF}
          lRewriteText(F1);
          Writeln(F1.T, '@Echo off');
          I := I - 1001;
@@ -971,7 +986,7 @@ begin
        repeat
          ClrIO;
          Inc(I);
-         lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', $3F xor VolumeID, SR);
+         lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', AnyFile, SR); {JO}
          lFindClose(SR);
        until (DOSError <> 0) or (I = 99) or Abort;
        ClrIO;

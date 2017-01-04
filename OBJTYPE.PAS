@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -141,6 +141,7 @@ const
   otDBWindow       =     15549;
   otDBViewer       =     15550;
   otDBIndicator    =     15551;
+  otDBScrollBar    =     15552;
   otFieldListBox   =     15553;
 
 

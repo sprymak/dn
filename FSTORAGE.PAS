@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,8 +49,7 @@
 unit FStorage;
 
 interface
-uses LFN, LFNCol, {DataCompBoy}
-     Objects, advance, advance1, advance2, advance3, DOS, FilesCol;
+uses DOS, LFN, LFNCol, Objects, advance, advance1, advance2, advance3, FilesCol;
 
 type
    TStoredID = (siUndefined, siEmpty, siDirectory, siFile, siFileDir, siEnd);
@@ -390,7 +389,7 @@ begin
         siFile, siFileDir:
                  begin
                   Abort := Off; DosError := 0;
-                  lFindFirst(Dr+SF.LFN, $3F xor VolumeID, SR);
+                  lFindFirst(Dr+SF.LFN, AnyFile, SR); {JO}
                   lFindClose(SR);
                   TotalLength:=TotalLength-SF.Size;
                   if (DosError <> 0) or Abort then

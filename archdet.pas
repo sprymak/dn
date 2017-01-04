@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -67,9 +67,8 @@ function ZIPDetect: Boolean;
   var i: LongInt;
 begin
   ArcFile^.Read(i,4);
-  if i=$30304b50 then ArcFile^.Read(i,4);
   ZIPDetect:=(i=$04034b50);
-  ArcFile^.Seek(ArcFile^.GetPos-SizeOf(i));
+  ArcFile^.Seek(ArcPos);
 end;
 
 function LHADetect: Boolean;
@@ -151,25 +150,15 @@ begin
 end;
 
 function ARJDetect: Boolean;
-var I,J: Word;
-    L: LongInt;
-    S: String;
+ var I: AWord;
 begin
  ArcFile^.Read(I, 2);
 {piwamoto.change.begin}
- if not ((I = $0ea60) or (I = $0abc0)) and (ArcPos > 0) then ArcFile^.Read(I, 2);
- L := ArcFile^.GetPos;
- if i=$0abc0 then
- begin
-  ArcFile^.Seek(L + 4);
-  ArcFile^.Read(I, 2);
-  L := L + 6;
- end;
  ARJDetect:=(I=$0ea60);
  if I=$0ea60
     then begin
           ArcFile^.Read(I,2);
-          ArcFile^.Seek(L + I + 8);     {skip archive comment}
+          ArcFile^.Seek(ArcPos + I + 10); {skip archive comment}
          end
     else ArcFile^.Seek(ArcPos);
 {piwamoto.change.end}
@@ -228,59 +217,28 @@ end;
 Function BSADetect: Boolean;
 var
     M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
 begin
- BSADetect:=False;
  ArcFile^.Read(M, 4);
- if (ArcFile^.Status = stOK) and (M[4] in [#0,#7]) and (Copy(M,2,2) = #0#$AE)
-    then
-     begin
-      BSADetect := True;
-      ArcFile^.Seek(ArcPos);
-      Exit;
-     end;
-  ArcFile^.Seek(ArcPos);
+ BSADetect:=((ArcFile^.Status = stOK) and (M[4] in [#0,#7]) and (Copy(M,2,2) = #0#$AE));
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function BS2Detect: Boolean;
 var
     M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
 begin
- BS2Detect:=False;
  ArcFile^.Read(M, 4);
- if (ArcFile^.Status = stOK) and (M = #$D4#$03'SB')
-    then
-     begin
-      BS2Detect := True;
-      ArcFile^.Seek(ArcPos);
-      Exit;
-     end;
-  ArcFile^.Seek(ArcPos);
+ BS2Detect:=((ArcFile^.Status = stOK) and (M = #$D4#$03'SB'));
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function HYPDetect: boolean;
 var
     M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
 begin
- HYPDetect:=False;
  ArcFile^.Read(M, 4);
- if (ArcFile^.Status = stOK) and
-    ((M = ^Z'HP%') OR (M = ^Z'ST%'))
-    then
-     begin
-      HYPDetect := True;
-      ArcFile^.Seek(ArcPos);
-      Exit;
-     end;
-  ArcFile^.Seek(ArcPos);
+ HYPDetect:=((ArcFile^.Status = stOK) and ((M = ^Z'HP%') OR (M = ^Z'ST%')));
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function LIMDetect: Boolean;
@@ -398,7 +356,7 @@ Function TARDetect: Boolean;
 function TGZDetect: boolean;
 {changed by piwamoto}
 var
-    W: Word;
+    W: AWord;
 begin
  ArcFile^.Read(W, SizeOf(W));
  TGZDetect := (ArcFile^.Status = stOK) and
@@ -423,38 +381,35 @@ end;
 
 function QuArkDetect: boolean;
 var
-  CFHEADER: TQuarkHEADER;
+  ID : LongInt;
 begin
-  QuArkDetect := false;
-  ArcFile^.Read(CFHEADER,SizeOf(TQuarkHEADER));
-  ArcFile^.Seek(ArcPos);
-  if (ArcFile^.Status = stOK) and (CFHEADER.Sign=1049655) then
+  ArcFile^.Read(ID, SizeOf(ID));
+  if (ArcFile^.Status = stOK) and (ID=$100437) then
     begin
-      ArcFile^.Seek(ArcPos+Sizeof(TQuarkHEADER));
+      ArcFile^.Seek(ArcPos + 8);
       QuArkDetect := true;
+    end
+  else
+    begin
+      ArcFile^.Seek(ArcPos);
+      QuArkDetect := false;
     end;
 end;
 
 function UFADetect: boolean;
 var
-  CFHEADER: TUFACFHEADER;
+  ID : Array[1..3]of Char;
 begin
-  UFADetect := false;
-  ArcFile^.Read(CFHEADER,SizeOf(TUFACFHEADER));
-  ArcFile^.Seek(ArcPos);
-  if (ArcFile^.Status = stOK) and (CFHEADER.sign[1] = 'U')
-                             and (CFHEADER.sign[2] = 'F')
-                             and (CFHEADER.sign[3] = 'A') then
-{    if (CFHeader.cbCabinet > sizeof(TCFHeader)) and
-       (CFHeader.coffFiles > sizeof(TCFHeader)) and
-       (CFHeader.coffFiles < LongInt($ffff)) and
-       (CFHeader.versionMajor > 0) and
-       (CFHeader.versionMajor < $20 ) and
-       (CFHeader.cFolders > 0) then }
+  ArcFile^.Read(ID, SizeOf(ID));
+  if (ArcFile^.Status = stOK) and (ID = 'UFA') then
     begin
-{      ArcFile^.Seek(ArcPos+CFHeader.HeadSize+4);}
-      ArcFile^.Seek(SizeOf(TUFACFHEADER));
+      ArcFile^.Seek(ArcPos + 8);
       UFADetect := true;
+    end
+  else
+    begin
+      ArcFile^.Seek(ArcPos);
+      UFADetect := false;
     end;
 end;
 

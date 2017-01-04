@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -867,7 +867,6 @@ var  LastX, LastY: LongInt;
     ChangeLine;
     S:=DelSpaces(Copy(GetLine(Mark.A.Y), Mark.A.X+1, Mark.B.X - Mark.A.X));
     if S <> '' then begin
-     EvalueError := false;
      R:=Evalue(S, nil);
      if not EvalueError then begin
       Str(R:0:20, S);
@@ -1294,8 +1293,8 @@ begin
                     Mark.A.X := 0; Mark.B.X := Length(GetLine(Delta.Y));
                     Sel := Mark; BlockVisible := On;
                     FormatBlock(Event.Command) end;
-     cmViewFile: if Valid(cmClose) then begin
-                  if Desktop<>nil then Desktop^.Lock;
+     cmViewFile: if Valid(cmClose) and (EditName<>'') then begin
+                  {if Desktop<>nil then Desktop^.Lock;}
                   if Application<>nil then begin
                     PDNApplication(Application)^.ViewFile(True, EditName);
                     MessageL(Application, evCommand, cmScrollBarChanged,
@@ -1303,7 +1302,7 @@ begin
                   end;
                   ClearEvent(Event);
                   Message(Owner, evCommand, cmClose, nil);
-                  if Desktop<>nil then Desktop^.UnLock;
+                  {if Desktop<>nil then Desktop^.UnLock;}
                   Exit;
                  end;
 {$IFDEF PRINTMANAGER}

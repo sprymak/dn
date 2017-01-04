@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,8 +48,9 @@
 
 unit DiskInfo;
 interface
-uses LFN, Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings,
-     advance, advance1, advance2, advance3, Collect;
+uses Dos, LFN, Objects, Drivers, Views, Dialogs, HideView, RStrings,
+     advance, advance1, advance2, advance3, Collect
+{JO} {$IFDEF OS2}, VPUtils {$ENDIF};
 
 type
      PDiskInfoRec = ^TDiskInfoRec;
@@ -94,7 +95,7 @@ type
                       var ClusterLen: TSize; var NumFiles: Integer): TSize;
  procedure GetDrInfo(Drv: Byte);
  procedure ReadDiskInfo(const Dr: String; var B: TDiskInfoRec; ShowFlags: Integer);
- function  GetVolumeLabel: Str12;
+ {$IFNDEF OS2} function  GetVolumeLabel: Str12; {$ENDIF}   {JO}
  function Disk_Free(Drive: Byte): TSize;
 
 const
@@ -158,7 +159,7 @@ uses Startup, ExtraMem, DNApp, Commands, DNHelp, Tree, xTime
      {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
-const MaxTeam = 152;
+const MaxTeam = 158;
 
 const
       Logo1 = '          ,     sSSs     s$$s   ' ;
@@ -188,6 +189,7 @@ begin
   GetKeyEvent(E); ESC_Pressed := (E.What = evKeyDown) and (E.KeyCode = kbEsc)
 end;
 
+{$IFNDEF OS2}            {JO}
 function GetVolumeLabel;
 var
   sr: SearchRec;
@@ -201,6 +203,7 @@ begin
   while PosChar('.',VolumeLabel) > 0 do Delete(VolumeLabel,PosChar('.',VolumeLabel),1);
   GetVolumeLabel := VolumeLabel;
 end;
+{$ENDIF}
 
 { Rainbow BEGIN }
 procedure GetSerFileSys(var SerialNo,FileSys:String);
@@ -515,7 +518,11 @@ var S: String; {DataCompBoy}
      F := New(PTextReader, Init(GetPath(S)+FreeStr));
    end;
    if F = nil then Exit;
+   {$IFNDEF OS2}
    Nm := GetName(lfGetShortFileName(S));
+   {$ELSE}
+   Nm := GetName(S);
+   {$ENDIF}
    while (IOResult = 0) and not F^.EOF do
      begin
        FreeStr := F^.GetStr;
@@ -726,7 +733,7 @@ begin
 
     DosError := 0; Abort := Off;
 
-    lFindFirst(MakeNormName(FreeStr, x_x), $3F xor VolumeID, SR);
+    lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
     While (DOSError = 0) and not Abort do
     begin
      if (SR.SR.Name[1] <> '.') then
@@ -931,7 +938,10 @@ begin
       Dispose(F,Done); F:=nil;
     end;
   end;
-  VolumeLabel := GetVolumeLabel;
+  VolumeLabel := GetVolumeLabel{$IFDEF OS2}(GetCurDrive){$ENDIF};  {JO}
+  {$IFDEF OS2}
+  if VolumeLabel = '' then VolumeLabel:=GetString(dlDINone);       {JO}
+  {$ENDIF}
   B.VolumeID := NewStr(GetString(dlDIVolumeID) + Char(Drv+64) + ': ' + VolumeLabel + '~');
   { Rainbow BEGIN }
   GetSerFileSys(SerialNo,FileSys);

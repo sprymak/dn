@@ -159,7 +159,7 @@ netinfo.pas  Net information
 novell.pas   Novell information
 objects.pas  Main objects: TObject, Streams, other.
 objtype.pas  Object types
-overlays.pas Overlay's support
+overlays.pas  Overlay unit
 p5speed.asl  part of CPU/FPU detection library by B-coolWare
 packmap.pas  MAP file packer
 pci.inc      part of CPU/FPU detection library by B-coolWare
@@ -222,3 +222,27 @@ zlib.pas     Part of the 'zlib' compression library
 zutil.pas    Part of the 'zlib' compression library
 drivers2.pas Fail information
 microed2.pas Microed: Read/Write/Store/Load methods
+DOC          Documentation files
+s95tfio.adp  Standard textfile open routine
+lzwc2_32.asm Lempel-Ziv Welch Compression routine
+lzwd2_32.asm Lempel-Ziv Welch Decompression routine
+overems.asm  Reconstruction of BP70 RTL module
+overlay.asm  Reconstruction of BP70 RTL module
+_dnc.bat      Batch to build DN OSP with VP
+vpc.cfg       VPC Config
+bigarray.pas Big Array
+lfnvp.pas     LFN Support for VP
+mapengn.pas  MAP engine
+overlay1.pas Overlay unit with compression support
+packfile.pas File compression tool
+packf_rs.pas Pack file read/seek
+pack_lzw.pas LZW compression
+pktview.pas  Fido PKT viewer
+videoman.pas Video mode manager
+winclpvp.pas  Windows clipboard connection for VP
+drivers._bp  Drivers for BP
+views._bp    Views for BP
+drivers._vp  Drivers for VP
+views._vp    Views for VP
+lfn._wn      General LFN routines
+lfn._ws      DPMI LFN routines

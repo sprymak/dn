@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -51,8 +51,8 @@ unit LinkUtil;
 {$A+}
 
 interface uses
-                     LFN, LFNCol, {DataCompBoy}
-        {$IFDEF DN}  advance, advance1, advance2, advance3, Messages, Dos,{$ENDIF}
+                     Dos, LFN, LFNCol, {DataCompBoy}
+        {$IFDEF DN}  advance, advance1, advance2, advance3, Messages, {$ENDIF}
         {$IFDEF OS2} ObjOS2 {$ELSE} Objects {$ENDIF},
                      LinkTyp, drivers,   collect
           ;
@@ -820,7 +820,7 @@ var
 begin
  {$IFDEF NLSLAVE} SlaveInfo('Invalidate dir '+ADir); {$ENDIF}
   NeedAbort := True;  Abort := False;
-  lFindFirst(ADir, $3E xor VolumeID, SR);
+  lFindFirst(ADir, AnyFile, SR); {JO}
   er := DosError;
   if er = 0 then if SR.SR.Attr and Directory = 0 then er := 18;
   CL_PostError(0, er);
@@ -914,7 +914,7 @@ var
 begin
   if Length(ADir) > 68 then Exit;
   ok := True;
-  NeedAbort := True; lFindFirst(MakeNormName(ADir, x_x), $3E xor VolumeID, SR);
+  NeedAbort := True; lFindFirst(MakeNormName(ADir, x_x), AnyFile, SR); {JO}
   while DosError = 0 do
   begin
     with SR do begin FreeStr := FullName; Att := sr.Attr end;

@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.08
+;/  Dos Navigator Open Source 1.51.10
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -452,7 +452,7 @@ MENU dlgMainMenu
     MenuItem 'E~G~A/VGA sorok', 'Shift-F10', kbShiftF10, cmChangeMode, hcMenuBox,
     MenuItem 'EgyÇni video m¢d ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
     MenuItem 'EgyÇni video m¢d ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
-    MenuItem 'KÇpern~y~ì m¢dv†lt†s', 'Shift-F12 ', kbShiftF12, cmChScreenMode, hcMenuBox,
+    MenuItem 'KÇpern~y~ì m¢dv†lt†s', 'Shift-F12', kbShiftF12, cmChScreenMode, hcMenuBox,
     MenuLine
     MenuItem 'J†~t~Çkok', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
   END
@@ -577,19 +577,20 @@ MENU dlgMainMenu
       MenuItem '~E~gÇr be†ll°t†sa...', '', kbNoKey, cmSetupMouse, hcSubMenuConfig,
       MenuItem 'Komm~u~nik†ci¢...', '', kbNoKey, cmSetupModem, hcSubMenuConfig,
       MenuLine
-      MenuItem '~S~zerkesztì/f†jlnÇzì...', '', kbNoKey, cmEditorDefaults, hcSubMenuConfig,
+      MenuItem '~S~zerkesztì...', '', kbNoKey, cmEditorDefaults, hcSubMenuConfig,
+      MenuItem '~F~†jlnÇzì...', '', kbNoKey, cmViewerDefaults, hcSubMenuConfig,
       MenuItem '~T~ermin†l...', '', kbNoKey, cmTerminalDefaults, hcSubMenuConfig,
      END
     SubMenu '~F~†jlmenedzser', hcOptionsMenu,
       MenuItem '~B~e†ll°t†s...', ' ', kbNoKey, cmFMSetup, hcSubMenuFileMgr,
       MenuItem '~A~lapmenedzser...', '', kbNoKey, cmFMDefaults, hcSubMenuFileMgr,
       MenuItem '~I~nform†ci¢s panel...', '', kbNoKey, cmDriveInfoSetup, hcSubMenuFileMgr
-      SubMenu 'A~l~ap oszlopok...', hcSubMenuFileMgr,
-       MenuItem 'Meghajt¢',  ' ', kbNoKey, cmColumnDefaultsDisk, hcSubMenuFileMgr,
-       MenuItem 'KeresÇs',   ' ', kbNoKey, cmColumnDefaultsFind, hcSubMenuFileMgr,
-       MenuItem '~T~EMP:',  ' ', kbNoKey, cmColumnDefaultsTemp, hcSubMenuFileMgr,
-       MenuItem 'Sñr°tìk',   ' ', kbNoKey, cmColumnDefaultsArch, hcSubMenuFileMgr,
-       MenuItem 'A~R~VID',    ' ', kbNoKey, cmColumnDefaultsArvd, hcSubMenuFileMgr,
+      SubMenu 'A~l~ap oszlopok', hcSubMenuFileMgr,
+       MenuItem 'Meghajt¢...', ' ', kbNoKey, cmColumnDefaultsDisk, hcSubMenuFileMgr,
+       MenuItem 'KeresÇs...',  ' ', kbNoKey, cmColumnDefaultsFind, hcSubMenuFileMgr,
+       MenuItem '~T~EMP:...',  ' ', kbNoKey, cmColumnDefaultsTemp, hcSubMenuFileMgr,
+       MenuItem 'Sñr°tìk...',  ' ', kbNoKey, cmColumnDefaultsArch, hcSubMenuFileMgr,
+       MenuItem 'A~R~VID...',  ' ', kbNoKey, cmColumnDefaultsArvd, hcSubMenuFileMgr,
       END
       MenuItem '~C~soport kiemelÇsek...', ' ', kbNoKey, cmHighlightGroups, hcSubMenuFileMgr,
     END
@@ -1010,6 +1011,9 @@ STATUSLINE
      StatusItem '-~Z~ Zoom', kbAltZ, cmZoom,
      StatusItem '-~X~ KilÇp', kbAltX, cmQuit,
 ;{CTRL}
+;NEW+
+     StatusItem '+~D~ Delete/Restore', kbCtrlD, cmDeleteDBRec,
+;NEW-
      StatusItem '+~F3~ ój Menedzser', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Bez†r', kbCtrlF4, cmClose,
      StatusItem '+~F6~ Sz†mol¢gÇp', kbCtrlF6, cmCalculator,
@@ -1578,7 +1582,7 @@ DIALOG dlgMouseSetup, 39, 13, 'EgÇr be†ll°t†s'
     Button 27, 9, 37, 11, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgInterfaceSetup, 73, 14, 'Poz°ci¢k'
+DIALOG dlgInterfaceSetup, 73, 22, 'Poz°ci¢k'
     HELPCTX hcInterfaceSetup
     CheckBoxes 2, 2, 71, 10, ofPostProcess, ofPreProcess
       ITEM 'M~u~tasd az ¢r†t
@@ -1598,9 +1602,20 @@ DIALOG dlgInterfaceSetup, 73, 14, 'Poz°ci¢k'
       ITEM '~G~îrgetìs†v jelzÇse'
     END
 
-    Button 41, 11, 51, 13, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 51, 11, 61, 13, '~M~Çgsem', cmCancel, ofPostProcess, ofPreProcess
-    Button 61, 11, 71, 13, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
+;NEW+
+    CheckBoxes 2, 11, 58, 17, ofPostProcess, ofPreProcess
+      ITEM 'Show drive type'
+      ITEM 'Show current directory for local drives'
+      ITEM 'Show current directory for CD-ROM'
+      ITEM 'Show current directory for network drives'
+      ITEM 'Include quick access directories into menu'
+      ITEM 'Show number of files on TEMP drive'
+    END
+    Label 3, 10, 'Drive selection menu information type:', ofPostProcess, ofPreProcess
+    Button 28, 18, 38, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 38, 18, 48, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 48, 18, 58, 20, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+;NEW-
 END
 
 DIALOG dlgSetupTerminal, 67, 15, 'Termin†l Opci¢k'
@@ -1697,69 +1712,6 @@ DIALOG dlgSetupModem, 66, 21, 'Kommunik†ci¢s be†ll°t†sok'
     Button 30, 18, 40, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 41, 18, 51, 20, '~M~Çgsem', cmCancel, ofPostProcess, ofPreProcess
     Button 52, 18, 62, 20, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
-END
-
-DIALOG dlgEditorDefaults, 58, 23, 'Szerkesztì/F†jlnÇzì alapbe†ll°t†sok'
-    HELPCTX hcEditorDefaults
-    CheckBoxes 2, 2, 56, 10, ofPostProcess, ofPreProcess
-      ITEM 'KÇsz°ts ba~c~kup f†jlt'
-      ITEM 'BS~-~re ugorj a sor elejÇre'
-      ITEM '~A~uto Z†r¢jel bez†r†s'
-      ITEM 'Auto bekez~d~Çs'
-      ITEM 'Au~t~o sorvÇg'
-      ITEM 'Sorkiz†r†s sor~v~ÇgÇn'
-      ITEM '~F~Åggìleges blokkok'
-      ITEM 'O~p~tim†lis feltîltÇs'
-      ITEM 'So~r~kiemelÇs'
-      ITEM '~O~szlop kiemelÇs'
-      ITEM '~B~lokk megtart†sa'
-      ITEM 'B~l~okk felÅl°r†sa'
-      ITEM 'F†~j~l vÇdelme'
-      ITEM 'Haszn†lj ~E~MS-t'
-      ITEM 'Haszn†lj ~X~MS-t'
-      ITEM 'Tab~u~l†tor jelzÇse'
-    END
-    Label 2, 1, 'Szerkesztì paramÇterek', ofPostProcess, ofPreProcess
-
-    CheckBoxes 2, 11, 56, 12, ofPostProcess, ofPreProcess
-      ITEM 'Sz°nkiemelÇs             '
-      ITEM 'ög~y~es Tabul†tor'
-    END
-
-    CheckBoxes 2, 13, 22, 17, ofPostProcess, ofPreProcess
-      ITEM 'Hexa m¢d'
-      ITEM 'SortîrdelÇs'
-      ITEM 'Sz¢ elv†laszt†s'
-      ITEM 'Sz°nkiemelÇs'
-    END
-    Label 2, 12, 'F†jl~n~Çzì paramÇterek', ofPostProcess, ofPreProcess
-
-    InputLine 50, 12, 56, 14, 3, 0
-    Label 37, 12, 'Bal mar~g~¢', ofPostProcess, ofPreProcess
-
-    InputLine 50, 13, 56, 16, 3, 0
-    Label 37, 13, 'Jobb marg¢', ofPostProcess, ofPreProcess
-
-    InputLine 50, 14, 56, 18, 3, 0
-    Label 37, 14, 'BekezdÇs', ofPostProcess, ofPreProcess
-
-    RadioButtons 15, 18, 56, 19, ofPostProcess, ofPreProcess
-      ITEM 'CR+LF'
-      ITEM 'CR'
-      ITEM 'LF'
-    END
-    Label 2, 18, 'Sorle~z~†r†s', ofPostProcess, ofPreProcess
-
-    InputLine 50, 15, 56, 17, 3, 0
-    Label 37,15, 'Tab~u~l†tor', ofPostProcess, ofPreProcess
-;{Anton This is bracketpairs}
-;    InputLine 37, 18, 56, 19, 15, 0
-;    Label 37,17, 'Je~l~p†rok', ofPostProcess, ofPreProcess
-;{messege end}
-
-    Button 26, 20, 36, 22, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 36, 20, 46, 22, '~M~Çgsem', cmCancel, ofPostProcess, ofPreProcess
-    Button 46, 20, 56, 22, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgAppendNumber, 44, 13, 'ój telefonsz†mok'
@@ -2227,10 +2179,10 @@ DIALOG dlgFileFind, 52, 18, 'F†jlkeresÇs'
     InputLine 1, 1, 1, 1, 1, 0
 END
 
-DIALOG dlgMkDir, 69, 7, 'Kînyvt†r lÇtrehoz†sa'
+DIALOG dlgMkDir, 70, 7, 'Kînyvt†r lÇtrehoz†sa'
     HELPCTX hcMkDir
-    InputLine 2, 2, 64, 3, 255, 0
-    History 64, 2, hsMakeDir, ofPostProcess
+    InputLine 2, 2, 66, 3, 255, 0
+    History 66, 2, hsMakeDir, ofPostProcess
     Label 2, 1, 'Az £j kînyvt†r neve', ofPostProcess, ofPreProcess
 ;$IFDEF UPLOWSTRSINDLG
     Button 2, 4, 12, 6, '~U~pStr', cmYes, ofPostProcess, ofPreProcess
@@ -2241,12 +2193,11 @@ DIALOG dlgMkDir, 69, 7, 'Kînyvt†r lÇtrehoz†sa'
     Button 58, 4, 68, 6, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
 END
 
-
 DIALOG dlgRenFl, 70, 7, 'Gyors f†jl†tnevezÇs'
     HelpCtx hcRenameFile
-    InputLine 15, 2, 66, 3, 255, 0
+    InputLine 2, 2, 66, 3, 255, 0
     History 66, 2, hsRenameFil, ofPostProcess
-    Label 2, 2, '~F~†jl neve...', ofPostProcess, ofPreProcess
+    Label 2, 1, '~F~†jl neve...', ofPostProcess, ofPreProcess
 ;$IFDEF UPLOWSTRSINDLG
     Button 2, 4, 12, 6, '~U~pStr', cmYes, ofPostProcess, ofPreProcess
     Button 12, 4, 22, 6, '~L~owStr', cmNo, ofPostProcess, ofPreProcess
@@ -2364,7 +2315,7 @@ DIALOG dlgDiskParms, 39, 14, 'Oszlopbe†ll°t†sok'
       ITEM '~L~e°r†s'
       ITEM '~N~agy le°r†s'
 ;NEW+
-      ITEM 'Variable extention'
+      ITEM 'Floating extension'
 ;NEW-
     END
     Label 3, 2, 'Mutat', ofPostProcess, ofPreProcess
@@ -2392,7 +2343,7 @@ DIALOG dlgArcParms, 40, 14, 'Sñr°tett †llom†nyok oszlopai'
       ITEM '~S~ñr°tett mÇret'
       ITEM '~A~r†ny'
 ;NEW+
-      ITEM 'Variable extention'
+      ITEM 'Floating extension'
 ;NEW-
     END
     Label 3, 2, 'Mutat', ofPostProcess, ofPreProcess
@@ -2419,7 +2370,7 @@ DIALOG dlgFindParms, 26, 13, 'F†jltal†lati oszlopok'
       ITEM '~I~dì'
       ITEM 'ót~v~onal'
 ;NEW+
-      ITEM 'Variable extention'
+      ITEM 'Floating extension'
 ;NEW-
     END
     Label 3, 2, 'Mutat', ofPostProcess, ofPreProcess
@@ -3341,7 +3292,7 @@ EDITOR COMMANDS
     COMMAND       cmMoveDown,     kbDown,        0,     ^X#0,     #0#0
     COMMAND       cmScrollUp,     0,             0,     ^W#0,     #0#0
     COMMAND       cmScrollDn,     0,             0,     ^Z#0,     #0#0
-    COMMAND       cmMoveUp,       0,             0,     ^E#0,     #0#0
+    COMMAND       cmMoveUp,       kbUp,          0,     ^E#0,     #0#0
     COMMAND       cmPlaceMarker1, kbAlt1,        0,     ^K'1',    #0#0
     COMMAND       cmPlaceMarker2, kbAlt2,        0,     ^K'2',    #0#0
     COMMAND       cmPlaceMarker3, kbAlt3,        0,     ^K'3',    #0#0
@@ -3458,7 +3409,7 @@ DIALOG dlgSrchFailed, 56, 8, 'Negat°v keresÇsi eredmÇny'
 END
 
 ;DataCompBoy
-DIALOG dlgSetupColumnsDisk, 70, 21, 'Oszlop be†ll°t†s - Meghajt¢'
+DIALOG dlgSetupColumnsDisk, 70, 22, 'Oszlop be†ll°t†s - Meghajt¢'
 
     StaticText 2, 2, 17, 3, 'Hossz£ nÇv'
     StaticText 2, 3, 17, 4, 'MÇret'
@@ -3467,7 +3418,7 @@ DIALOG dlgSetupColumnsDisk, 70, 21, 'Oszlop be†ll°t†s - Meghajt¢'
     StaticText 2, 6, 17, 7, 'Le°r†s'
     StaticText 2, 7, 17, 8, 'Teljes le°r†s'
 ;NEW+
-    StaticText 2, 8, 17, 9, 'Variable ext'
+    StaticText 2, 8, 17, 9, 'Floating ext'
 ;NEW-
     StaticText 2, 9, 17,10, 'NÇv oszlop szÇlessÇg'
     StaticText 2,10, 17,11, 'KiterjesztÇs'
@@ -3612,309 +3563,309 @@ DIALOG dlgSetupColumnsDisk, 70, 21, 'Oszlop be†ll°t†s - Meghajt¢'
     END
     Label 36, 12, 'Mutatom a kînyvt†r nevÇt mint: ', ofPostProcess, ofPreProcess
 
+    Button 17, 19, 27, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 19, 39, 21, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 41, 19, 51, 21, '~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupColumnsFind, 70, 21, 'Oszlop be†ll°t†s - Tal†lati panel'
+
+    StaticText 2, 2, 17, 3, 'Hossz£ nÇv'
+    StaticText 2, 3, 17, 4, 'MÇret'
+    StaticText 2, 4, 17, 5, 'D†tum'
+    StaticText 2, 5, 17, 6, 'Idì'
+    StaticText 2, 6, 17, 7, 'ótvonal'
+;NEW+
+    StaticText 2, 7, 17, 8, 'Floating ext'
+;NEW-
+    StaticText 2, 8, 17, 9, 'NÇv oszlop szÇlessÇg'
+    StaticText 2, 9, 17,10, 'KiterjesztÇs'
+
+    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
+
+    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 18, 8, 23, 9, 2, 0
+    InputLine 18, 9, 23,10, 2, 0
+
+    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 23, 8, 28, 9, 2, 0
+    InputLine 23, 9, 28,10, 2, 0
+
+    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 28, 8, 33, 9, 2, 0
+    InputLine 28, 9, 33,10, 2, 0
+
+    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 33, 8, 38, 9, 2, 0
+    InputLine 33, 9, 38,10, 2, 0
+
+    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 38, 8, 43, 9, 2, 0
+    InputLine 38, 9, 43,10, 2, 0
+
+    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 43, 8, 48, 9, 2, 0
+    InputLine 43, 9, 48,10, 2, 0
+
+    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 48, 8, 53, 9, 2, 0
+    InputLine 48, 9, 53,10, 2, 0
+
+    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 53, 8, 58, 9, 2, 0
+    InputLine 53, 9, 58,10, 2, 0
+
+    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 58, 8, 63, 9, 2, 0
+    InputLine 58, 9, 63,10, 2, 0
+
+    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 63, 8, 68, 9, 2, 0
+    InputLine 63, 9, 68,10, 2, 0
+
+    RadioButtons 2, 12, 32, 17, ofPostProcess, ofPreProcess
+      ITEM 'Mutatom'
+      ITEM 'kisbetñs'
+      ITEM 'Mondatszerñ'
+      ITEM 'NAGYBETòS'
+      ITEM 'Kombin†lt'
+    END
+    Label 2, 11, 'Mutatom a f†jl nevÇt mint: ', ofPostProcess, ofPreProcess
+
+    RadioButtons 36, 12, 68, 17, ofPostProcess, ofPreProcess
+      ITEM 'Mutatom'
+      ITEM 'kisbetñs'
+      ITEM 'Mondatszerñ'
+      ITEM 'NAGYBETòS'
+      ITEM 'Kombin†lt'
+    END
+    Label 36, 11, 'Mutatom a kînyvt†r nevÇt mint: ', ofPostProcess, ofPreProcess
+
+    Button 17, 18, 27, 20, 'O~K~',    cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 18, 39, 20, 'KÇsz°t',  cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 41, 18, 51, 20, 'Be†ll°t', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupColumnsTemp, 70, 21, 'Oszlop be†ll°t†s - TEMP'
+
+    StaticText 2, 2, 17, 3, 'Hossz£ nÇv'
+    StaticText 2, 3, 17, 4, 'MÇret'
+    StaticText 2, 4, 17, 5, 'D†tum'
+    StaticText 2, 5, 17, 6, 'Idì'
+    StaticText 2, 6, 17, 7, 'ótvonal'
+;NEW+
+    StaticText 2, 7, 17, 8, 'Floating ext'
+;NEW-
+    StaticText 2, 8, 17, 9, 'NÇv oszlop szÇlessÇg'
+    StaticText 2, 9, 17,10, 'KiterjesztÇs'
+
+    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
+
+    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 18, 8, 23, 9, 2, 0
+    InputLine 18, 9, 23,10, 2, 0
+
+    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 23, 8, 28, 9, 2, 0
+    InputLine 23, 9, 28,10, 2, 0
+
+    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 28, 8, 33, 9, 2, 0
+    InputLine 28, 9, 33,10, 2, 0
+
+    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 33, 8, 38, 9, 2, 0
+    InputLine 33, 9, 38,10, 2, 0
+
+    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 38, 8, 43, 9, 2, 0
+    InputLine 38, 9, 43,10, 2, 0
+
+    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 43, 8, 48, 9, 2, 0
+    InputLine 43, 9, 48,10, 2, 0
+
+    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 48, 8, 53, 9, 2, 0
+    InputLine 48, 9, 53,10, 2, 0
+
+    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 53, 8, 58, 9, 2, 0
+    InputLine 53, 9, 58,10, 2, 0
+
+    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 58, 8, 63, 9, 2, 0
+    InputLine 58, 9, 63,10, 2, 0
+
+    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 63, 8, 68, 9, 2, 0
+    InputLine 63, 9, 68,10, 2, 0
+
+    RadioButtons 2, 12, 32, 17, ofPostProcess, ofPreProcess
+      ITEM 'Mutatom'
+      ITEM 'kisbetñs'
+      ITEM 'Mondatszerñ'
+      ITEM 'NAGYBETòS'
+      ITEM 'Kombin†lt'
+    END
+    Label 2, 11, 'Mutatom a f†jl nevÇt mint: ', ofPostProcess, ofPreProcess
+
+    RadioButtons 36, 12, 68, 17, ofPostProcess, ofPreProcess
+      ITEM 'Mutatom'
+      ITEM 'kisbetñs'
+      ITEM 'Mondatszerñ'
+      ITEM 'NAGYBETòS'
+      ITEM 'Kombin†lt'
+    END
+    Label 36, 11, 'Mutatom a kînyvt†r nevÇt mint: ', ofPostProcess, ofPreProcess
+
     Button 17, 18, 27, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 29, 18, 39, 20, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
     Button 41, 18, 51, 20, '~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgSetupColumnsFind, 70, 20, 'Oszlop be†ll°t†s - Tal†lati panel'
-
-    StaticText 2, 2, 17, 3, 'Hossz£ nÇv'
-    StaticText 2, 3, 17, 4, 'MÇret'
-    StaticText 2, 4, 17, 5, 'D†tum'
-    StaticText 2, 5, 17, 6, 'Idì'
-    StaticText 2, 6, 17, 7, 'ótvonal'
-;NEW+
-    StaticText 2, 7, 17, 8, 'Variable ext'
-;NEW-
-    StaticText 2, 8, 17, 9, 'NÇv oszlop szÇlessÇg'
-    StaticText 2, 9, 17,10, 'KiterjesztÇs'
-
-    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
-
-    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 18, 8, 23, 9, 2, 0
-    InputLine 18, 9, 23,10, 2, 0
-
-    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 23, 8, 28, 9, 2, 0
-    InputLine 23, 9, 28,10, 2, 0
-
-    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 28, 8, 33, 9, 2, 0
-    InputLine 28, 9, 33,10, 2, 0
-
-    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 33, 8, 38, 9, 2, 0
-    InputLine 33, 9, 38,10, 2, 0
-
-    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 38, 8, 43, 9, 2, 0
-    InputLine 38, 9, 43,10, 2, 0
-
-    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 43, 8, 48, 9, 2, 0
-    InputLine 43, 9, 48,10, 2, 0
-
-    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 48, 8, 53, 9, 2, 0
-    InputLine 48, 9, 53,10, 2, 0
-
-    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 53, 8, 58, 9, 2, 0
-    InputLine 53, 9, 58,10, 2, 0
-
-    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 58, 8, 63, 9, 2, 0
-    InputLine 58, 9, 63,10, 2, 0
-
-    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 63, 8, 68, 9, 2, 0
-    InputLine 63, 9, 68,10, 2, 0
-
-    RadioButtons 2, 12, 32, 17, ofPostProcess, ofPreProcess
-      ITEM 'Mutatom'
-      ITEM 'kisbetñs'
-      ITEM 'Mondatszerñ'
-      ITEM 'NAGYBETòS'
-      ITEM 'Kombin†lt'
-    END
-    Label 2, 11, 'Mutatom a f†jl nevÇt mint: ', ofPostProcess, ofPreProcess
-
-    RadioButtons 36, 12, 68, 17, ofPostProcess, ofPreProcess
-      ITEM 'Mutatom'
-      ITEM 'kisbetñs'
-      ITEM 'Mondatszerñ'
-      ITEM 'NAGYBETòS'
-      ITEM 'Kombin†lt'
-    END
-    Label 36, 11, 'Mutatom a kînyvt†r nevÇt mint: ', ofPostProcess, ofPreProcess
-
-    Button 17, 17, 27, 19, 'O~K~',    cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 17, 39, 19, 'KÇsz°t',  cmCancel, bfNormal, ofPostProcess, ofPreProcess
-    Button 41, 17, 51, 19, 'Be†ll°t', cmHelp, bfNormal, ofPostProcess, ofPreProcess
-END
-
-DIALOG dlgSetupColumnsTemp, 70, 20, 'Oszlop be†ll°t†s - TEMP'
-
-    StaticText 2, 2, 17, 3, 'Hossz£ nÇv'
-    StaticText 2, 3, 17, 4, 'MÇret'
-    StaticText 2, 4, 17, 5, 'D†tum'
-    StaticText 2, 5, 17, 6, 'Idì'
-    StaticText 2, 6, 17, 7, 'ótvonal'
-;NEW+
-    StaticText 2, 7, 17, 8, 'Variable ext'
-;NEW-
-    StaticText 2, 8, 17, 9, 'NÇv oszlop szÇlessÇg'
-    StaticText 2, 9, 17,10, 'KiterjesztÇs'
-
-    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
-
-    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 18, 8, 23, 9, 2, 0
-    InputLine 18, 9, 23,10, 2, 0
-
-    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 23, 8, 28, 9, 2, 0
-    InputLine 23, 9, 28,10, 2, 0
-
-    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 28, 8, 33, 9, 2, 0
-    InputLine 28, 9, 33,10, 2, 0
-
-    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 33, 8, 38, 9, 2, 0
-    InputLine 33, 9, 38,10, 2, 0
-
-    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 38, 8, 43, 9, 2, 0
-    InputLine 38, 9, 43,10, 2, 0
-
-    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 43, 8, 48, 9, 2, 0
-    InputLine 43, 9, 48,10, 2, 0
-
-    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 48, 8, 53, 9, 2, 0
-    InputLine 48, 9, 53,10, 2, 0
-
-    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 53, 8, 58, 9, 2, 0
-    InputLine 53, 9, 58,10, 2, 0
-
-    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 58, 8, 63, 9, 2, 0
-    InputLine 58, 9, 63,10, 2, 0
-
-    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 63, 8, 68, 9, 2, 0
-    InputLine 63, 9, 68,10, 2, 0
-
-    RadioButtons 2, 12, 32, 17, ofPostProcess, ofPreProcess
-      ITEM 'Mutatom'
-      ITEM 'kisbetñs'
-      ITEM 'Mondatszerñ'
-      ITEM 'NAGYBETòS'
-      ITEM 'Kombin†lt'
-    END
-    Label 2, 11, 'Mutatom a f†jl nevÇt mint: ', ofPostProcess, ofPreProcess
-
-    RadioButtons 36, 12, 68, 17, ofPostProcess, ofPreProcess
-      ITEM 'Mutatom'
-      ITEM 'kisbetñs'
-      ITEM 'Mondatszerñ'
-      ITEM 'NAGYBETòS'
-      ITEM 'Kombin†lt'
-    END
-    Label 36, 11, 'Mutatom a kînyvt†r nevÇt mint: ', ofPostProcess, ofPreProcess
-
-    Button 17, 17, 27, 19, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 17, 39, 19, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
-    Button 41, 17, 51, 19, '~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
-END
-
 ;dlSetupColumnsArch
-DIALOG dlgSetupColumnsArch, 70, 21, 'Oszlop be†ll°t†s - Sñr°tìk'
+DIALOG dlgSetupColumnsArch, 70, 22, 'Oszlop be†ll°t†s - Sñr°tìk'
 
     StaticText 2, 2, 17, 3, 'Hossz£ nÇv'
     StaticText 2, 3, 17, 4, 'Forr†s mÇret'
@@ -3923,7 +3874,7 @@ DIALOG dlgSetupColumnsArch, 70, 21, 'Oszlop be†ll°t†s - Sñr°tìk'
     StaticText 2, 6, 17, 7, 'Sñr°tett mÇret'
     StaticText 2, 7, 17, 8, 'Ar†ny'
 ;NEW+
-    StaticText 2, 8, 17, 9, 'Variable ext'
+    StaticText 2, 8, 17, 9, 'Floating ext'
 ;NEW-
     StaticText 2, 8, 17, 9, 'NÇv oszlop szÇlessÇg'
     StaticText 2, 9, 17,10, 'KiterjesztÇs'
@@ -4068,12 +4019,12 @@ DIALOG dlgSetupColumnsArch, 70, 21, 'Oszlop be†ll°t†s - Sñr°tìk'
     END
     Label 36, 12, 'Mutatom a kînyvt†r nevÇt mint: ', ofPostProcess, ofPreProcess
 
-    Button 17, 18, 27, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 18, 39, 20, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
-    Button 41, 18, 51, 20, '~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+    Button 17, 19, 27, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 19, 39, 21, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 41, 19, 51, 21, '~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgSetupColumnsArvd, 70, 20, 'Oszlop be†ll°t†s - ARVID'
+DIALOG dlgSetupColumnsArvd, 70, 21, 'Oszlop be†ll°t†s - ARVID'
 
     StaticText 2, 2, 17, 3, 'Hossz£ nÇv'
     StaticText 2, 3, 17, 4, 'MÇret'
@@ -4081,7 +4032,7 @@ DIALOG dlgSetupColumnsArvd, 70, 20, 'Oszlop be†ll°t†s - ARVID'
     StaticText 2, 5, 17, 6, 'Idì'
     StaticText 2, 6, 17, 7, 'Le°r†s'
 ;NEW+
-    StaticText 2, 7, 17, 8, 'Variable ext'
+    StaticText 2, 7, 17, 8, 'Floating ext'
 ;NEW-
     StaticText 2, 8, 17, 9, 'NÇv oszlop szÇlessÇg'
     StaticText 2, 9, 17,10, 'KiterjesztÇs'
@@ -4216,9 +4167,9 @@ DIALOG dlgSetupColumnsArvd, 70, 20, 'Oszlop be†ll°t†s - ARVID'
     END
     Label 36, 11, 'Mutatom a kînyvt†r nevÇt mint: ', ofPostProcess, ofPreProcess
 
-    Button 17, 17, 27, 19, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 17, 39, 19, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
-    Button 41, 17, 51, 19, '~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+    Button 17, 18, 27, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 18, 39, 20, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 41, 18, 51, 20, '~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
 END
 ;DataCompBoy
 
@@ -4247,3 +4198,73 @@ DIALOG dlgNameCase, 40, 12, 'Change names case'
     Button 26, 9, 36, 11,  'Help',  cmHelp,   bfNormal,  ofPostProcess, ofPreProcess
 END
 ;DataCompBoy
+
+;NEW+
+DIALOG dlgEditorDefaults, 60, 22, 'Szerkesztì alapbe†ll°t†sok'
+    HELPCTX hcEditorDefaults
+    CheckBoxes 2, 3, 58, 6
+      ITEM 'KÇsz°ts ba~c~kup f†jlt    '
+      ITEM '~B~lokk megtart†sa        '
+      ITEM 'B~l~okk felÅl°r†sa        '
+      ITEM 'F†~j~l vÇdelme            '
+      ITEM 'Haszn†lj ~E~MS-t          '
+      ITEM 'Haszn†lj ~X~MS-t          '
+    END
+    Label 2, 2, 'Global options:', ofPostProcess, ofPreProcess
+
+    CheckBoxes 2, 8, 58, 14, ofPostProcess, ofPreProcess
+      ITEM 'BS~-~re ugorj a sor elejÇre'
+      ITEM '~A~uto Z†r¢jel bez†r†s     '
+      ITEM 'Auto bekez~d~Çs            '
+      ITEM 'Au~t~o sorvÇg              '
+      ITEM 'Sorkiz†r†s sor~v~ÇgÇn      '
+      ITEM '~F~Åggìleges blokkok       '
+      ITEM 'O~p~tim†lis feltîltÇs      '
+      ITEM 'So~r~kiemelÇs              '
+      ITEM '~O~szlop kiemelÇs          '
+      ITEM 'Tab~u~l†tor jelzÇse        '
+      ITEM 'Sz°nkiemelÇs             '
+      ITEM 'ög~y~es Tabul†tor'         '
+    END
+    Label 2, 7, 'Defaults for new file:', ofPostProcess, ofPreProcess
+
+    RadioButtons 17, 15, 51, 16, ofPostProcess, ofPreProcess
+      ITEM 'CR+LF'
+      ITEM 'CR'
+      ITEM 'LF'
+    END
+    Label 2, 15, 'Sorle~z~†r†s', ofPostProcess, ofPreProcess
+
+    InputLine 18, 16, 23, 17, 3, 0
+    Label 2, 16, 'Bal mar~g~¢', ofPostProcess, ofPreProcess
+
+    InputLine 47, 16, 52, 17, 3, 0
+    Label 32, 16, 'Jobb marg¢', ofPostProcess, ofPreProcess
+
+    InputLine 18, 17, 23, 18, 3, 0
+    Label 2, 17, 'BekezdÇs', ofPostProcess, ofPreProcess
+
+    InputLine 47, 17, 52, 18, 3, 0
+    Label 32, 17, 'Tab~u~l†tor', ofPostProcess, ofPreProcess
+
+    Button 14, 19, 24, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 26, 19, 36, 21, '~M~Çgsem', cmCancel, ofPostProcess, ofPreProcess
+    Button 38, 19, 48, 21, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgViewerDefaults, 32, 13, 'F†jlnÇzì'
+    HELPCTX hcViewerDefaults
+    CheckBoxes 2, 2, 28, 7, ofPostProcess, ofPreProcess
+      ITEM 'Hexa m¢d'
+      ITEM 'SortîrdelÇs'
+      ITEM 'Sz¢ elv†laszt†s'
+      ITEM 'Sz°nkiemelÇs'
+      ITEM 'Tab~u~l†tor jelzÇse'
+    END
+    InputLine 24, 8, 29, 9, 3, 0
+    Label 2, 7, 'Tab~u~l†tor', ofPostProcess, ofPreProcess
+    Button  2, 10, 10, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 10, 10, 20, 12, '~M~Çgsem', cmCancel, ofPostProcess, ofPreProcess
+    Button 20, 10, 30, 12, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
+END
+;NEW-

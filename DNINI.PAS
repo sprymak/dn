@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -84,6 +84,14 @@ const
 {}                                                        { 2 - do not open new}
 {}HistoryErrorBeep         : Boolean = True;                       {DataCompBoy}
 {}PreserveMenuPositions    : Boolean = False;                      {DataCompBoy}
+{$IFDEF COLUMNSMENU}
+{}PanelDescrArvid          : String  = '';                         {JO}
+{}PanelDescrArc            : String  = '';                         {JO}
+{}PanelDescrTemp           : String  = '';                         {JO}
+{}PanelDescrFind           : String  = '';                         {JO}
+{}PanelDescrDrive          : String  = '';                         {JO}
+{$ENDIF}
+{}UseEnterInViewer         : Longint = 0;                          {JO}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type  ; Default value      ;          Comments ;}
 {`.________________________;_________;____________________;___________________'}
@@ -206,6 +214,14 @@ begin
   RegisterVar(CSInterface, 'ReuseEditors',         ikLongInt, @ReuseEditors);
   RegisterVar(CSInterface, 'HistoryErrorBeep',     ikBoolean, @HistoryErrorBeep);
   RegisterVar(CSInterface, 'PreserveMenuPositions',ikBoolean, @PreserveMenuPositions);
+{$IFDEF COLUMNSMENU}
+  RegisterVar(CSInterface, 'PanelDescrArvid',ikString, @PanelDescrArvid);    {JO}
+  RegisterVar(CSInterface, 'PanelDescrArc',ikString, @PanelDescrArc);    {JO}
+  RegisterVar(CSInterface, 'PanelDescrTemp',ikString, @PanelDescrTemp);    {JO}
+  RegisterVar(CSInterface, 'PanelDescrFind',ikString, @PanelDescrFind);    {JO}
+  RegisterVar(CSInterface, 'PanelDescrDrive',ikString, @PanelDescrDrive);    {JO}
+{$ENDIF}
+  RegisterVar(CSInterface, 'UseEnterInViewer',ikLongint, @UseEnterInViewer);    {JO}
   {Clocl}
   RegisterVar(CSClock, 'ShowSeconds',     ikBoolean, @ShowSeconds);
   RegisterVar(CSClock, 'ShowCentury',     ikBoolean, @ShowCentury);
@@ -299,9 +315,9 @@ begin
  WritePrivateProfileString(Group, Parameter, @S[1], @FreeStr[1]);
 end;
 
-procedure LoadDnIniSettings; begin Proceed(Loader); end;
-procedure SaveDnIniSettings; begin Proceed(Saver);  end;
-procedure DoneIniEngine;     begin CloseProfile;    end;
+procedure LoadDnIniSettings; begin Proceed(Loader); CloseProfile; end;
+procedure SaveDnIniSettings; begin Proceed(Saver);  CloseProfile; end;
+procedure DoneIniEngine;     begin CloseProfile; end;
 
         {-DataCompBoy-}
 function ProbeINI(var INItime,INIsize,INIcrc:longint):boolean;

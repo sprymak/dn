@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.09
+;/  Dos Navigator Open Source 1.51.10
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -199,6 +199,7 @@ LOCAL   hiTSC : DWORD
         endp
 
 TSCDisabled   proc DIST
+        mov   al, 4
         _getcr4
         and   eax,4       ; mask out TSD bit
         shr   eax,2       ; and shift it to position 0

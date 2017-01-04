@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -96,6 +96,16 @@ const
   MaxWords = MaxBytes DIV SizeOf(Word);
   MaxPtrs  = MaxBytes DIV SizeOf(Pointer);
 
+{The following constant will be needed to temprary fix a bug in DoStreamError
+in unit ExtraMem. There's probably a better way to fix this but I don't know
+low level objects structure. This is completely inspired (well, copied) from
+original Borland's Objects unit. -JITR-}
+
+{VMT header size}
+
+const
+  VmtHeaderSize = 8; {-JITR-}
+
 type
 
   {$IFDEF BIT_16}
@@ -187,6 +197,16 @@ const
   stSeekError  = -7;              { Stream seek error }
   stOpenError  = -8;              { Stream open error }
 
+{These constants are copied from original Borland's Objects unit as well.
+At this moment only TStream_Error is needed. In case of TStream class structure
+modification (particularly adding/removing virtual method(s)) it's necessaty
+to update these constants! -JITR-}
+
+  TStream_Error = VmtHeaderSize + $04;   {-JITR-}
+  {TStream_Flush = VmtHeaderSize + $08;}
+  {TStream_Read  = VmtHeaderSize + $14;}
+  {TStream_Write = VmtHeaderSize + $20;}
+
 type
 
 { TStreamRec }
@@ -244,13 +264,11 @@ type
     procedure Write(const Buf; Count: Sw_Word); virtual;
     procedure WriteStr(P: PString);
     function  Eof: Boolean; {-$VOL}
-    procedure DoOpen(OpenMode: Word); virtual;
-    procedure Close; virtual;
+    {procedure DoOpen(OpenMode: Word); virtual;}
+    {procedure Close; virtual;}
   end;
 
  FNameStr = String;
- AsciiZ   = Array [0..255] Of Char;
- THandle  = Integer;
 
 { File name string }
 
@@ -260,19 +278,18 @@ type
 
   PDosStream = ^TDosStream;
   TDosStream = object(TStream)
-    Handle: Integer;
-    FName : AsciiZ;
+    PHandle: Integer;
+    FHandle: lFile;
     FMode:  Word;
     constructor Init(FileName: FNameStr; Mode: Word);
-    procedure   Open(FileName: FNameStr; Mode: Word);
     destructor Done; virtual;
     procedure Read(var Buf; Count: Sw_Word); virtual;
-    procedure ReadBlock(var Buf;Count: Sw_Word;var BytesRead: Word); virtual;
+    {procedure ReadBlock(var Buf;Count: Sw_Word;var BytesRead: Word); virtual;}
     procedure Seek(Pos: Longint); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: Sw_Word); virtual;
-    procedure DoOpen (OpenMode: Word); virtual;
-    procedure Close; virtual;
+    {procedure DoOpen (OpenMode: Word); virtual;}
+    {procedure Close; virtual;}
   end;
 
 { TBufStream }
@@ -291,8 +308,8 @@ type
     procedure Seek(Pos: Longint); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: Sw_Word); virtual;
-    procedure DoOpen(OpenMode: Word); virtual;
-    procedure Close; virtual;
+    {procedure DoOpen(OpenMode: Word); virtual;}
+    {procedure Close; virtual;}
   end;
 
 { TMemoryStream }
@@ -360,7 +377,7 @@ const
 
 implementation
 uses
-  Advance {OPSYS},
+  Advance {OPSYS}, Dos{TFileRec},
 {$IFDEF Windows} WinProcs,OMemory,
 {$ELSE}          Memory,            {$ENDIF}
 {$IFDEF StreamDebug} DnApp, {$ENDIF}
@@ -670,7 +687,7 @@ function TStream.Eof: boolean;
 begin
   Eof := GetPos >= GetSize;
 end;
-
+{
 procedure TStream.DoOpen(OpenMode: Word);
 begin
 end;
@@ -678,100 +695,77 @@ end;
 procedure TStream.Close;
 begin
 end;
-
+}
 { TDosStream }
-{$IFDEF VIRTUALPASCAL}{$I FIO._VP}
- {$ELSE}
-  {$IFDEF FPC}{$I FIO._FP}
-   {$ELSE}
-    {$I FIO._BP}
-  {$ENDIF}
-{$ENDIF}
-
 constructor TDosStream.Init(FileName: FNameStr; Mode: Word);
 var
   Success: Integer;
+  i: byte;
+  OM: Word;
 label 1;
 begin
   inherited Init;
   {$IFDEF OS_WINDOWS}
   AnsiToOEM(FileName, FName);
-  {$ELSE}
-  FileName:=FileName+#0;
-  Move(FileName[1], FName, Length(FileName));
   {$ENDIF}
+  ClrIO;
+  lAssignFile(FHandle, FileName);
   FMode:=Mode;
   if (FMode and $000F)=fmPacked then begin
-    Handle:=pOpen(@FName, FMode and $FFF0);
+    i:=Length(FileName);
+    Move(FileName[1], FileName[0], i);
+    FileName[i]:=#0;
+    {PHandle:=pOpen(@FileName, FMode and $FFF0);} {-JITR-}
+    PHandle:=pOpen(@FileName, FMode and $00F0);   {-JITR-}
+    {We want to pass bits 4 to 7 only. But we can't pass Word parameter to
+    Byte argument so the higher byte of the mask must be zero. -JITR-}
     Success:=0;
-    If Handle <> 0
-     then StreamSize:=pFileSize(Handle)
+    If PHandle <> 0
+     then StreamSize:=pFileSize(PHandle)
      else begin
            FMode := FMode and $FFF0;
            goto 1;
           end
   end else
   begin
-1:  Handle:=AFileOpen(FName, FMode);
-    If Handle <> 0 then begin
-      Success:=ASetFilePos(Handle, 0, 2, StreamSize);
-      If Success = 0 then Success:=ASetFilePos(Handle, 0, 0, Position);
+1:  PHandle:=-1;
+    OM:=FileMode;
+    case FMode of
+     stCreate    : begin
+                    FileMode:=fmReadWrite;
+                    lRewriteFile(FHandle, 1);
+                   end;
+     stOpenRead  : begin
+                    FileMode:=fmReadOnly;
+                    lResetFile(FHandle, 1);
+                   end;
+     stOpenWrite : begin
+                    FileMode:=fmWriteOnly;
+                    lRewriteFile(FHandle, 1);
+                   end;
+     stOpen      : begin
+                    FileMode:=fmReadWrite;
+                    lResetFile(FHandle, 1);
+                   end;
+    end;
+    FileMode:=OM;
+    If IOResult = 0 then begin
+      StreamSize:=FileSize(FHandle.F);
+      Success := IOResult;
     end else Success:=103;
   end;
-  if (Handle = 0) or (Success <> 0) then begin
-    if Handle=0 then Handle:=-1;
-    Error(stInitError, Success);
-  end;
-end;
-
-procedure TDosStream.Open(FileName: FNameStr; Mode: Word);
-var
-  Success: Integer;
-label 1;
-begin
-  if (Handle <> -1) then begin
-    if (FMode and $000F)=fmPacked
-     then pClose(Handle)
-     else AFileClose(Handle);
-  end;
-  {$IFDEF OS_WINDOWS}
-  AnsiToOEM(FileName, FName);
-  {$ELSE}
-  FileName:=FileName+#0;
-  Move(FileName[1], FName, Length(FileName));
-  {$ENDIF}
-  FMode:=Mode;
-  if (FMode and $000F)=fmPacked then begin
-    Handle:=pOpen(@FName, FMode and $FFF0);
-    Success:=0;
-    If Handle <> 0
-     then StreamSize:=pFileSize(Handle)
-     else begin
-           FMode := FMode and $FFF0;
-           goto 1;
-          end
-  end else
-  begin
-1:  Handle:=AFileOpen(FName, FMode);
-    If Handle <> 0 then begin
-      Success:=ASetFilePos(Handle, 0, 2, StreamSize);
-      If Success = 0 then Success:=ASetFilePos(Handle, 0, 0, Position);
-    end else Success:=103;
-  end;
-  if (Handle = 0) or (Success <> 0) then begin
-    if Handle=0 then Handle:=-1;
+  if (Success <> 0) then begin
+    if PHandle=0 then PHandle:=-1;
     Error(stInitError, Success);
   end;
 end;
 
 destructor TDosStream.Done;
 begin
-  if (Handle <> -1) then begin
-    if (FMode and $000F)=fmPacked
-     then pClose(Handle)
-     else AFileClose(Handle);
-  end;
-  Handle:=-1;
+  ClrIO;
+  if (PHandle > -1) then pClose(PHandle)
+  else if FileRec(FHandle.F).Mode<>fmClosed then System.Close(FHandle.F);
+  PHandle:=-1;
   inherited Done;
 end;
 
@@ -781,8 +775,10 @@ var
   W, BytesMoved: Sw_Word;
   P: PByteArray;
 begin
+  ClrIO;
   P:=@Buf;
-  If Handle = -1 then Error(stReadError, 103) else
+  If (PHandle = -1) and (FileRec(FHandle.F).Mode=fmClosed)
+   then Error(stReadError, 103) else
   If Position + Count > StreamSize then Error(stReadError, 0)
   else begin
     while (Count > 0) and (Status = stOk) do begin
@@ -790,11 +786,13 @@ begin
       {$IFDEF OS_OS2}
       If (Count > $FFFE) Then W := $FFFE; { Cant read >64K bytes }
       {$ENDIF}
-      if (FMode and $000F)=fmPacked then begin
-        BytesMoved:=pRead(Handle, W, P);
+      if PHandle > -1 then begin
+        BytesMoved:=pRead(PHandle, W, P);
         Success:=IOResult;
-      end else
-        Success:=AFileRead(Handle, P^, W, BytesMoved);
+      end else begin
+        BlockRead(FHandle.F, P^, W, BytesMoved);
+        Success:=IOResult;
+      end;
       if Success = 0 then begin
         Inc(Position, BytesMoved);
         P := Pointer(LongInt(P) + BytesMoved);
@@ -809,27 +807,31 @@ begin
  if Count <> 0 then FillChar(P^, Count, #0); { Error clear buffer }
 end;
 
+(*
 procedure TDosStream.ReadBlock(var Buf;Count: Sw_Word;var BytesRead: Word);
 var
   Success: Integer;
   W, BytesMoved: Sw_Word;
   P: PByteArray;
 begin
+  ClrIO;
   P:=@Buf; Success:=-1; BytesRead:=0;
-  If Handle = -1 then Success:=103;
+  If (PHandle = -1) and (FileRec(FHandle.F).Mode=fmClosed) then Success:=103;
   If (Position + Count > StreamSize) or (Status <> 0) then Success:=0;
   if Success<> -1 then Error(stReadError, Success)
   else begin
     while (Count > 0) and (Status = stOk) do begin
       W:=Count;
-      {$IFDEF OS_OS2}
+      {$IFNDEF OS_OS2}
       If (Count > $FFFE) Then W := $FFFE; { Cant read >64K bytes }
       {$ENDIF}
-      if (FMode and $000F)=fmPacked then begin
-        BytesMoved:=pRead(Handle, W, P);
+      if PHandle > -1 then begin
+        BytesMoved:=pRead(PHandle, W, P);
         Success:=IOResult;
-      end else
-        Success:=AFileRead(Handle, P^, W, BytesMoved);
+      end else begin
+        BlockRead(FHandle.F, P^, W, BytesMoved);
+        Success:=IOResult;
+      end;
       if Success = 0 then begin
         Inc(Position, BytesMoved);
         P := Pointer(LongInt(P) + BytesMoved);
@@ -841,22 +843,25 @@ begin
     end;
  end;
 end;
-
+*)
 
 procedure TDosStream.Seek(Pos: LongInt);
 var
   Success: Integer;
   Li: LongInt;
 begin
+  ClrIO;
   if Status = stOk then begin
     if Pos < 0 then Pos:=0;
-    if Handle = -1
-     then Success:= 03
-     else if (FMode and $000F)=fmPacked then begin
-           Li:=pSeek(Handle, Pos);
-           Success:=0;
-           if IOResult<>0 then Success:=-1;
-          end else Success:=ASetFilePos(Handle, Pos, 0, Li);
+    if PHandle > -1 then begin
+     Li:=pSeek(PHandle, Pos);
+     if IOResult<>0 then Success:=-1 else Success:=0;
+    end else
+    if (FileRec(FHandle.F).Mode<>fmClosed) then begin
+     System.Seek(FHandle.F, Pos);
+     Li:=FilePos(FHandle.F);
+     if IOResult<>0 then Success:=-1 else Success:=0;
+    end else Success := 03;
     if (Success = -1) or (Li <> Pos) then begin
       if (Success = -1)
        then Error(stSeekError, 0)
@@ -869,11 +874,17 @@ procedure TDosStream.Truncate;
 var
   Success: Integer;
 begin
+  ClrIO;
   if Status = stOk then begin
     if ((FMode and $000F)=fmPacked) or
-       ((FMode and $000F)=fmReadOnly)
+       ((FMode and $000F)=fmReadOnly) or
+       (FileRec(FHandle.F).Mode=fmClosed)
      then Success:=103
-     else Success:=ASetFileSize(Handle, Position);
+     else begin
+      System.Seek(FHandle.F, Position);
+      System.Truncate(FHandle.F);
+      Success:=IOResult;
+     end;
     if Success = 0 then StreamSize:=Position
     else Error(stError, Success);
   end;
@@ -886,11 +897,11 @@ var
   W, BytesMoved: Sw_Word;
   P: PByteArray;
 begin
-  if Handle = -1
+  ClrIO;
+  if (PHandle > -1) or (FileRec(FHandle.F).Mode=fmClosed)
    then Error(stWriteError, 103)
    else begin
-    if ((FMode and $000F)=fmPacked) or
-       ((FMode and $000F)=fmReadOnly)
+    if ((FMode and $000F)=fmReadOnly)
      then Error(stError, 103)
      else begin
       P:=@Buf;
@@ -899,7 +910,8 @@ begin
         {$IFNDEF OS_OS2}
         if Count > $FFFF then W:=$FFFF; { Cant read >64K bytes }
         {$ENDIF}
-        Success:=AFileWrite(Handle, P^, W, BytesMoved);
+        BlockWrite(FHandle.F, P^, W, BytesMoved);
+        Success:=IOResult;
         If Success = 0 then begin
           Inc(Position, BytesMoved);
           P:=Pointer(LongInt(P) + BytesMoved);
@@ -914,10 +926,11 @@ begin
     end;
   end;
 end;
-
+(*
 procedure TDosStream.DoOpen (OpenMode: Word);
 label 1;
 begin
+  ClrIO;
   if Status = stOk then begin
     if Handle = -1 then begin
 1:    FMode:=OpenMode;
@@ -941,14 +954,15 @@ end;
 
 procedure TDosStream.Close;
 begin
-  if Handle <> -1 then begin
+  if PHandle <> -1 then begin
     if (FMode and $000F)=fmPacked then
-      pClose(Handle) else
-      AFileClose(Handle);
+      pClose(PHandle) else
+      AFileClose(PHandle);
   end;
   Position:=0;
   Handle:=-1;
 end;
+*)
 
 { TBufStream }
 
@@ -977,14 +991,17 @@ var
   Success: Integer;
   W: Sw_Word;
 begin
+  ClrIO;
   if (LastMode = 2) and (BufPtr <> 0) then begin
-    if Handle = -1 then
-      Error(stError, 103) else
-    if (FMode and $000F)=fmPacked then
-      Error(stError, 103) else
-    begin
+    if (PHandle > -1) or
+       ((FMode and $000F)=fmPacked) or
+       ((FMode and $000F)=fmReadOnly) or
+       (FileRec(FHandle.F).Mode=fmClosed)
+    then Error(stError, 103)
+    else begin
       (* inherited Write(Buffer^, BufPtr); *)
-      Success:=AFileWrite(Handle, Buffer^, BufPtr, W);
+      BlockWrite(FHandle.F, Buffer^, BufPtr, W);
+      Success:=IOResult;
       If (Success <> 0) or (W <> BufPtr) then Error(stError, Success);
     end;
   end;
@@ -998,8 +1015,10 @@ var
   W, Bw: Sw_Word;
   P: PByteArray;
 begin
+  ClrIO;
   P:=@Buf;
-  if Handle = -1 then Error(stReadError, 103) else
+  if (PHandle = -1) and (FileRec(FHandle.F).Mode=fmClosed)
+   then Error(stReadError, 103) else
   If Position + Count > StreamSize then Error(stReadError, 0)
   else begin
     If LastMode = 2 then Flush;
@@ -1008,11 +1027,13 @@ begin
       if BufPtr = BufEnd then begin  { Buffer is empty }
         if Position + BufSize > StreamSize then Bw:=StreamSize - Position
         else Bw:=BufSize;
-        if (FMode and $000F)=fmPacked then begin
-          W:=pRead(Handle, Bw, Buffer);
+        if PHandle > -1 then begin
+          W:=pRead(PHandle, Bw, Buffer);
           Success:=IOResult;
-        end else
-          Success:=AFileRead(Handle, Buffer^, Bw, W);
+        end else begin
+          BlockRead(FHandle.F, Buffer^, Bw, W);
+          Success:=IOResult;
+        end;
         if (Success <> 0) or (Bw <> W) then Error(stReadError, Success)
         else begin
           BufPtr:=0;
@@ -1053,14 +1074,18 @@ var
   W: Sw_Word;
   P: PByteArray;
 begin
-  if Handle = -1 then Error(stWriteError, 103) else
+  ClrIO;
+  if (FileRec(FHandle.F).Mode=fmClosed) or (PHandle > -1) or
+     ((FMode and $000F)=fmReadOnly)
+  then Error(stWriteError, 103) else
   begin
     if LastMode = 1 then Flush;
     LastMode:=2;
     P:=@Buf;
     while (Count > 0) and (Status = stOk) do begin
       if BufPtr = BufSize then begin  { Buffer is full }
-        Success:=AFileWrite(Handle, Buffer^, BufSize, W);
+        BlockWrite(FHandle.F, Buffer^, BufSize, W);
+        Success:=IOResult;
         if (Success <> 0) or (W <> BufSize) then Error(stError, Success);
         BufPtr:=0;
       end;
@@ -1077,7 +1102,7 @@ begin
     end;
   end;
 end;
-
+{
 procedure TBufStream.Close;
 begin
   Flush;
@@ -1092,7 +1117,7 @@ begin
     Inherited DoOpen(OpenMode);
   end;
 end;
-
+}
 { TMemoryStream }
 
 constructor TMemoryStream.Init(ALimit: LongInt; ABlockSize: Word);

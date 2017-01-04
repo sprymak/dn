@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_ZXZ; {ZXZ}
 
 interface
- uses Archiver, Objects, FViewer, Advance, LFNCol, Dos, advance1;
+ uses Archiver, Objects{, FViewer}, Advance, LFNCol, Dos, lfn, advance1;
 
 type
   PZXZArchive = ^TZXZArchive;
@@ -62,9 +62,9 @@ type
 type ZXZHdr = record
       Name       : Array[0..7] of Char;
       Extension  : Array[0..2] of Char;
-      OriginSize : Word;
+      OriginSize : AWord;
       SectorSize : Byte;
-      PackedSize : Word;
+      PackedSize : AWord;
       CRC32      : Longint;
       MethodID   : Byte;
       Flags      : Byte;
@@ -123,7 +123,7 @@ end;
 Procedure TZXZArchive.GetFile;
 var FP  : Longint;
     P   : ZXZHdr;
-    Len : Word;
+    Len : AWord;
     S   : String;
 begin
  ArcFile^.Read(P, SizeOf(P));

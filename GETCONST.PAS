@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -229,10 +229,17 @@ var
             Break;
           end;
         pmWord: If S[ I ] in Digits
-          then W := W * 10 + Ord( S[ I ] ) - Ord( '0' )
+          {To prevent range check error explicit typecast to Word is needed
+          here. -JITR-}
+          {then W := W * 10 + Ord( S[ I ] ) - Ord( '0' )}     {-JITR-}
+          then W := W * 10 + Word(Ord( S[ I ] ) - Ord( '0' )) {-JITR-}
           else Break;
         pmHex: If S[ I ] in Hexs
-          then W := W * 16 + Ord( Upcase( S[ I ] )) - Ord( '0' ) - 7 * Byte( S[ I ] > '9' )
+          {The same here. -JITR-}
+          {then W := W * 16 + Ord( Upcase( S[ I ] )) -
+            Ord( '0' ) - 7 * Byte( S[ I ] > '9' )} {-JITR-}
+          then W := W * 16 + Word(Ord( Upcase( S[ I ] )) -
+            Ord( '0' ) - 7 * Byte( S[ I ] > '9' )) {-JITR-}
           else Break;
         pmAlpha: If S[ I ] in ( Alpha + Digits )
           then V := V + S[ I ]
@@ -424,6 +431,7 @@ begin
     end;
   end;
   Close( F.T );
+  ClrIO;
 end;
         {-DataCompBoy-}
 

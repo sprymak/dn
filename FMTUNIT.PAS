@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,15 +50,17 @@ Unit FmtUnit;
 
 Interface
 
+Procedure FmtUnitInitUnit;
+
 const
-     DetectDrive{: Boolean}= True;
-     SystemDisk {: Boolean}= False;
-     Uncondition{: Boolean}= False;
-     Interleave {: Byte   }= 1;
-     TCylinders {: Byte   }= 80;
-     SecPerT    {: Byte   }= 15;
-     CurDrive   {: Byte   }= 0;
-     FormatMode {: Byte   }= 0;
+     DetectDrive : Boolean = True;
+     SystemDisk  : Boolean = False;
+     Uncondition : Boolean = False;
+     Interleave  : Byte    = 1;
+     TCylinders  : Byte    = 80;
+     SecPerT     : Byte    = 15;
+     CurDrive    : Byte    = 0;
+     FormatMode  : Byte    = 0;
 type
      PArrOfByte  = ^TArrOfByte;
      TArrOfByte  = array[0..65000] of byte;
@@ -414,8 +416,11 @@ asm      call CheckDStep
 @Ex:     mov  IOError,ah
 end;
 
+Procedure FmtUnitInitUnit;
 begin
  if mem[seg0040:$10] and 1>0 then NumOfDrives:=mem[seg0040:$10] shr 6+1
                          else NumOfDrives:=0;
  GetIntVec($1E, Old1E); VolumeLabel:='';
+end;
+
 end.

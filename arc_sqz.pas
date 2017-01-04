@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_SQZ; {SQZ}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
 
 type
     PSQZArchive = ^TSQZArchive;
@@ -125,7 +125,7 @@ end;
 Procedure TSQZArchive.GetFile;
 label 1;
 var
-    HS,i : Word;
+    HS,i : AWord;
     FP   : Longint;
     P    : SQZHdr;
     S    : String;

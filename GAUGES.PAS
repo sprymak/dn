@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -283,7 +283,12 @@ begin
   if ShowSeconds then StdClockWidth:=10 else StdClockWidth:=7;
   GetTime(h,m,s,hund);
   Semi:=hund<50;
-  if (Abs(s - LastTime.sec) >= Refresh) or (Semi<>LastSemi) then
+  {if (Abs(s - LastTime.sec) >= Refresh) or (Semi<>LastSemi) then} {-JITR-}
+  if (Abs(LongInt(s) - Longint(LastTime.sec)) >= Refresh) or       {-JITR-}
+      (Semi<>LastSemi) then
+  {There were some overflows for the expression s - LastTime.sec when
+  LastTime.sec was greater than s; this was fixed with a typecast to the
+  signed type - Longint. -JITR-}
   begin
     GetDate(y,mn,d,hund);
     if ShiftState and 7 <> 0 then

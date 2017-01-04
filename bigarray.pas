@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -137,7 +137,7 @@ const
   coGetMemFailed = -8;
 
 implementation
-Uses
+Uses Drivers2,
   {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
 
 constructor TArray.Init(AMaxCount, AItemSize: Word);
@@ -328,6 +328,7 @@ end;
 procedure TArray.Error(Code, Info: Integer);
 begin
   WriteLn('TArray.Error: Code=',Code,' Info=',Info);
+  DoDump($FF+Code, nil);
 end;
 
 constructor TBigArrayNode.Init(AMaxCount, AItemSize: Word);
@@ -672,7 +673,8 @@ end;
 
 procedure TBigArray.Error(Code: Integer; Info: LongInt);
 begin
-  WriteLn('TArray.Error: Code=',Code,' Info=',Info);
+  WriteLn('TBigArray.Error: Code=',Code,' Info=',Info);
+  DoDump($F0+Code, nil);
 end;
 
 end.

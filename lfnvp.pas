@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -115,10 +115,12 @@ procedure lFindNext(var R: lSearchRec);
 procedure lFindClose(var R: lSearchRec);
 
         { Name retrieval functions }
+{$IFNDEF OS2}
 procedure lGetShortFileName(const Name: String; var ShortName: String);
 function lfGetShortFileName(const Name: String): String;
 procedure lGetLongFileName(const Name: String; var LongName: String);
 function lfGetLongFileName(const Name: String): String;
+{$ENDIF}
 
         { Name correction routine }
 procedure lTrueName(const Name: String; var S: String);
@@ -253,6 +255,7 @@ begin
  DOS.FindClose(R.SR);
 end;
 
+{$IFNDEF OS2}
 procedure lGetShortFileName(const Name: String; var ShortName: String);
 var NZ, NZ2: TNameZ;
 begin
@@ -290,6 +293,7 @@ begin
   lGetLongFileName(Name, s);
  lfGetLongFileName:=s;
 end;
+{$ENDIF}
 
 procedure lTrueName(const Name: String; var S: String);
  begin S:=FExpand(Name); end;

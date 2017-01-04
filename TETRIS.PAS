@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -130,7 +130,7 @@ const Game : PGameView = nil;
 
 {$ifdef dn}
 implementation
-uses xTime,StartUp, DNHelp;
+uses xTime,StartUp, DNHelp{$IFDEF VIRTUALPASCAL},VPUtils{$ENDIF};
 {$endif}
 const
   MaxFig   = 27;
@@ -184,7 +184,11 @@ begin
   9: Delay := 5;
  10: Delay := 4;
  end;
+{$IFNDEF VIRTUALPASCAL}
  LevelDelay := Delay
+{$ELSE}
+ LevelDelay := Delay*200
+{$ENDIF}
 end;
 
 constructor TGameWindow.Init;
@@ -647,7 +651,7 @@ begin
  end;
  if LongInt(LongInt(C)*60 + Word(A))*100 + B > LastT + Delay then
  {$ELSE}
- if GetTimemSec*10 > LastT + Delay
+ if GetTimemSec*10 > LastT + Delay then
  {$ENDIF}
   begin MoveDown; MakeTime end;
 end;

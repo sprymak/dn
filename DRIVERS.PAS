@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -59,6 +59,8 @@ interface
 uses LFN, Objects, xTime, dnini, advance6, Commands
 {$IFNDEF NONBP}, StakDump{$ENDIF}
      ;
+
+Procedure DriversInitUnit;
 
 var
   LSliceTimer: TEventTimer;
@@ -402,23 +404,23 @@ const
 
   CE_LastMsg = 16;
   CE_Idx: array[0..CE_LastMsg] of TStrIdx = (
-    dlCE_WriteProtected,
-    dlCE_CriticalError,
-    dlCE_DiskNotReady,
-    dlCE_CriticalError,
-    dlCE_DataIntegrity,
-    dlCE_CriticalError,
-    dlCE_SeekError,
-    dlCE_UnknownMedia,
-    dlCE_SectorNotFound,
-    dlCE_OutOfPaper,
-    dlCE_WriteFault,
-    dlCE_ReadFault,
-    dlCE_GeneralFailure,
-    dlCE_BadImageOfFAT,
-    dlCE_DeviceError,
-    dlCE_InsertDisk,
-    dlCE_SharingViolation);
+    {00}dlCE_WriteProtected,   {13  Attempt to write on a write-protected diskette}
+    {01}dlCE_CriticalError,    {14  Unknown unit}
+    {02}dlCE_DiskNotReady,     {15  Drive not ready}
+    {03}dlCE_CriticalError,    {16  Unknown command}
+    {04}dlCE_DataIntegrity,    {17  CRC error}
+    {05}dlCE_CriticalError,    {18  Bad request structure length}
+    {06}dlCE_SeekError,        {19  Seek error}
+    {07}dlCE_UnknownMedia,     {1A  Unknown media type}
+    {08}dlCE_SectorNotFound,   {1B  Sector not found}
+    {09}dlCE_OutOfPaper,       {1C  Printer out of paper}
+    {10}dlCE_WriteFault,       {1D  Write fault}
+    {11}dlCE_ReadFault,        {1E  Read fault}
+    {12}dlCE_GeneralFailure,   {1F  General failure}
+    {13}dlCE_BadImageOfFAT,    {?}
+    {14}dlCE_DeviceError,      {?}
+    {15}dlCE_InsertDisk,       {?}
+    {16}dlCE_SharingViolation);{20  Sharing violation}
 
 
 var
@@ -848,6 +850,7 @@ begin
   LSliceCnt := -2;
 end;
 
+Procedure DriversInitUnit;
 {$IFNDEF VIRTUALPASCAL}
 begin
   DetectMouse;
@@ -866,4 +869,6 @@ begin
   CtrlBreakHandler := TVCtrlBreak;
   SysCtrlSetCBreakHandler;
 {$ENDIF}
+end;
+
 end.

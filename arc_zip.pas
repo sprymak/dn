@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_Zip; {ZIP}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos, lfn;
 
 type
  PZIPArchive = ^TZIPArchive;
@@ -62,15 +62,15 @@ type
 type
     TZIPLocalHdr = record
      ID: LongInt;
-     Extract: Word;
-     GeneralPurpose: Word;
-     Method: Word;
+     Extract: AWord;
+     GeneralPurpose: AWord;
+     Method: AWord;
      LastModDate: LongInt;
      CRC32: LongInt;
      CompressedSize: LongInt;
      OriginalSize: LongInt;
-     FNameLength: Word;
-     ExtraField: Word;
+     FNameLength: AWord;
+     ExtraField: AWord;
     end;
 
 implementation
@@ -85,6 +85,7 @@ begin
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
+{$IFNDEF OS2}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'PKZIP.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'PKUNZIP.EXE'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            ''));
@@ -109,6 +110,33 @@ begin
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-exx'));
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
+{$ELSE}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZIP.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNZIP.EXE'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            '-j -C'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-C'));
+  Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                '-S'));
+  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               '-m -S'));
+  Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             '-d'));
+  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-P'));
+  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               '-t -C'));
+  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
+  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-j'));
+  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-q'));
+  RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
+  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
+  Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-r'));
+  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-0'));
+  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-1'));
+  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-3'));
+  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-6'));
+  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-8'));
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-9'));
+  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
+  if q<>'' then ListChar := q[1] else ListChar:=' ';
+{$ENDIF}
+
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
   if q='0' then Swap := False else Swap := True;
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
@@ -127,7 +155,7 @@ end;
 
 Procedure TZIPArchive.GetFile;
 label 1;
-var HS, I: Word;
+var HS, I: AWord;
     FP,FPP: Longint;
     P: TZIPLocalHdr;
     s: String;

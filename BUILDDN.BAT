@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.09
+::  Dos Navigator Open Source 1.51.10
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -45,23 +45,30 @@
 ::
 :://///////////////////////////////////////////////////////////////////////
 @echo off
+:: Set up the paths to your Borland tools or leave blank if they are in PATH
+set binpath=c:\bp\bin\
+set bpcpath=c:\bp\bin\
+path=%bpcpath%
+:: Set up optional executable packing utilities (recommended)
+set real_packer=
+set dpmi_packer=
+set com_packer=
+:: Set to Y to enable compression of the overlay file (decreases performance)
+set PackOverlay=
+
+:: No user-configurable parameters beyond this line
+:://///////////////////////////////////////////////////////////////////////
+set outpath=out
 set _Q_opt=/Q
 set SWPOPT=
 set ASMOPT=exe\*.obj
-set binpath=c:\bp\bin\
-set bpcpath=c:\bp\bin\
-set outpath=out
 set GGT=
 set GGB=
 set GGS=
 set GGD=
 set GGDB=
-set real_packer=upx -9
-set dpmi_packer=
-set com_packer=dcc12
-set PackOverlay=
 if not exist exe\nul mkdir exe >nul
-if not exist out\nul mkdir out >nul
+if not exist %outpath%\nul mkdir %outpath% >nul
 
 rem ------------------------------------------------------------------
 rem BUILDDN [debug] [swapdisk] [dpmi] [help] [resource] [asm] [nobpc]
@@ -118,19 +125,19 @@ if .%1.==.nobpc. goto SkipBPC
 %bpcpath%bpc %SWPOPT% dn /dDN /dDNPRG /GD %_Q_opt% /B %1 %2 %3 %4 %5 %6 %7 %8 %9
 if errorlevel 1 goto Quit
 
-%bpcpath%bpc %SWPOPT% PackMap /GD %_Q_opt% /M %1 %2 %3 %4 %5 %6 %7 %8 %9
+%bpcpath%bpc %SWPOPT% PackMap /GD %_Q_opt% %1 %2 %3 %4 %5 %6 %7 %8 %9
 if errorlevel 1 goto Quit
 Exe\PackMap Exe\dn
 
 if .%lite%.==.off. goto SkipLite
-if NOT .%prg_packer%.==.. %prg_packer% exe\dn.exe
+if NOT ."%prg_packer%".==."". %prg_packer% exe\dn.exe
 ::if errorlevel 1 goto Quit
 :SkipLite
 
 if .%PackOverlay%.==.. goto ovrcopy
-%bpcpath%bpc %SWPOPT% packfile /GD %_Q_opt% /M %1 %2 %3 %4 %5 %6 %7 %8 %9
+%bpcpath%bpc %SWPOPT% packfile /GD %_Q_opt% %1 %2 %3 %4 %5 %6 %7 %8 %9
 if errorlevel 1 goto Quit
-out\packfile exe\dn.ovr exe\dn.ovp
+%outpath%\packfile exe\dn.ovr exe\dn.ovp
 if exist exe\dn.ovp copy exe\dn.ovp %outpath%\dn.ovr >nul
 goto copyanother
 
@@ -161,9 +168,9 @@ bp dn
 goto Quit
 
 :resource
-if not exist exe\rcp.exe %bpcpath%bpc %SWPOPT% RegAll /DRCP /M %_Q_opt%
+if not exist exe\rcp.exe %bpcpath%bpc %SWPOPT% RegAll /DRCP %_Q_opt%
 if errorlevel 1 goto Quit
-if not exist exe\rcp.exe %bpcpath%bpc %SWPOPT% rcp /M %_Q_opt%
+if not exist exe\rcp.exe %bpcpath%bpc %SWPOPT% rcp %_Q_opt%
 if errorlevel 1 goto Quit
 if not exist exe\rcp.exe goto Quit
 shift
@@ -177,7 +184,7 @@ goto Loop
 
 :help
 shift
-%bpcpath%bpc %SWPOPT% tvhc /M %_Q_opt%
+%bpcpath%bpc %SWPOPT% tvhc %_Q_opt%
 if errorlevel 1 goto Quit
 if not exist exe\tvhc.exe goto Quit
 
@@ -199,25 +206,26 @@ goto Loop
 :asm
 shift
 %binpath%tasm /t /x /m3 /zi *.asm,exe\*.obj
-if .%GGD%.==.GGD. tasm /t /x /m3 /zi dn.asm,exe\dn.obj -d_DPMI_
+if .%GGD%.==.GGD. %binpath%tasm /t /x /m3 /zi dn.asm,exe\dn.obj -d_DPMI_
 if errorlevel 1 goto Quit
 %binpath%tasm -t -m3 -q -d__LARGE__ *.asl %ASMOPT%
 if errorlevel 1 goto Quit
 if exist exe\cpuspeed.obp copy exe\cpuspeed.obp exe\*.obj >nul
 if exist exe\p5speed.obp  copy exe\p5speed.obp  exe\*.obj >nul
 if exist exe\cachetst.obp copy exe\cachetst.obp exe\*.obj >nul
-if not .%ASMOPT%.==.exe\*.obj. %binpath%tasm /t /x /m3 /zi *.asm %ASMOPT%
+if not ."%ASMOPT%".==."exe\*.obj". %binpath%tasm /t /x /m3 /zi *.asm %ASMOPT%
 if errorlevel 1 goto Quit
 %binpath%tlink /t /x exe\dn.obj, exe\dn.com
 if errorlevel 1 goto Quit
 if exist exe\dn.obj del exe\dn.obj >nul
-if .%com_packer%.==.. goto copydncom
+if ."%com_packer%".==."". goto copydncom
 %com_packer% exe\dn.com
 echo.
 :copydncom
 copy exe\dn.com %outpath% >nul
 if .%GGD%.==.. goto realcode
 %binpath%tasm -t -m3 -q -d__LARGE__ -d__DPMI__ dpmicode.adp exe\dpmicode.obp
+%binpath%tasm -t -m3 -x -zi -d__DPMI__ -d_DPMI_ s95tfio.adp exe\s95tfio.obp
 if errorlevel 1 goto Quit
 goto Loop
 :realcode
@@ -228,7 +236,7 @@ goto Loop
 
 :cmpver
 shift
-%bpcpath%bpc %SWPOPT% version /M %_Q_opt%
+%bpcpath%bpc %SWPOPT% version %_Q_opt%
 if errorlevel 1 goto Quit
 exe\version exe\version.inc
 if errorlevel 1 goto Quit

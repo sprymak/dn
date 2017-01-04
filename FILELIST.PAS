@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,13 +49,13 @@
 unit FileList;
 
 interface
-  uses Drives, Drivers, Views, Objects, FilesCol, DOS, advance, advance1,
+  uses Drives, Drivers, Views, Objects, FilesCol, DOS, lfn, advance, advance1,
   advance2, advance3, RStrings, LFNCol;
 
 type
        PDesc = ^TDesc;
        TDesc = record
-         Name: String[12];
+         Name: String{$IFNDEF OS2}[12]{$ENDIF};
          DIZ: PString;
        end;
 
@@ -138,8 +138,12 @@ function TListDrive.GetDirectory;
              begin S1 := S1 + S[1]; DelFC(S) end;
            DelLeft(S);
            New(PD);
+           {$IFNDEF OS2}
            PD^.Name := LowStrg(Norm12(S1));
            PD^.Name[9] := ' ';
+           {$ELSE}
+           PD^.Name := S1;
+           {$ENDIF}
            PD^.DIZ := NewStr(S);
            if not Descriptions^.Search(PD, I) then Descriptions^.AtInsert(I, PD)
             else Descriptions^.FreeItem(PD);
@@ -163,11 +167,11 @@ begin
  PFilesCollection(Files)^.SortMode := SortMode;
  DosError := 0; ClrIO; Abort := Off;
  DrNm := MakeNormName(CurDir,x_x);
- lFindFirst(DrNm, $3F xor VolumeID, SR);
+ lFindFirst(DrNm, AnyFile, SR); {JO}
  While (DosError = 0) and not Abort and (IOResult = 0) and (MemAvail > LowMemSize) do
  With SR do
  begin
-  if (SR.Attr and VolumeID = 0) and (SR.Name <> '.') then
+  if {$IFNDEF OS2}(SR.Attr and VolumeID = 0) and{$ENDIF}(SR.Name <> '.') then
    if (SR.Name[1] = '.') or (not Security or (Security and (SR.Attr and Hidden=0))) then
    if AllFiles or (SR.Attr and Directory <> 0) or (InFilter(FullName, FileMask)) then
    begin

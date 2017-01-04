@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_ZOO; {ZOO}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
 
 type
     PZOOArchive = ^TZOOArchive;
@@ -62,11 +62,11 @@ type
 type
      ZOOHdr = record
       ID: LongInt;
-      Info: Word;
+      Info: AWord;
       NextHDR: LongInt;
       CurStart: LongInt;
       Date: LongInt;
-      W: Word;
+      W: AWord;
       OriginSize: LongInt;
       PackedSize: LongInt;
       C: Char;
@@ -133,7 +133,7 @@ begin
 end;
 
 Procedure TZOOArchive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     P    : ZOOHdr;
     Q    : Array [1..40] of Char absolute P;

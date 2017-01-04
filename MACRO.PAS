@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -255,7 +255,7 @@ constructor TEditMacros.Init;
     Add(cmMoveUp              ,'MoveUp');
     Add(cmMoveLeft            ,'MoveLeft');
     Add(cmMoveRight           ,'MoveRight');
-    Add(cmMoveDown            ,'MoveDown ');
+    Add(cmMoveDown            ,'MoveDown');
     Add(cmBlockStart          ,'BlockStart');
     Add(cmBlockEnd            ,'BlockEnd');
     Add(cmMarkWord            ,'MarkWord');
@@ -824,8 +824,8 @@ var
       if EdOptions <> nil then begin
         if Found('H_LINE ') or Found('H_ROW ') then EdOptions^.HiliteLine:=IsOn else
         if Found('H_COLUMN ') then EdOptions^.HiliteColumn:=IsOn else
-        if Found('AUTOWRAP ') then EdOptions^.AutoJustify:=IsOn else
-        if Found('WRAPJUSTIFY ') then EdOptions^.AutoWrap:=IsOn else
+        if Found('WRAPJUSTIFY ') then EdOptions^.AutoJustify:=IsOn else
+        if Found('AUTOWRAP ') then EdOptions^.AutoWrap:=IsOn else
         if Found('LEFTMARGIN ') then MakeValue(EdOptions^.LeftSide) else
         if Found('RIGHTMARGIN ') then MakeValue(EdOptions^.RightSide) else
         if Found('PARAGRAPH ') then MakeValue(EdOptions^.InSide) else

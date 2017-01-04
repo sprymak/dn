@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -54,8 +54,8 @@ UNIT
 INTERFACE
 
 USES
-  LFN, LFNCol, {DataCompBoy} advance, advance1, advance2, advance3, Objects,
-  Views, Drivers, Dos, FilesCol, HideView, Drives, filediz, collect, Arvid;
+  Dos, LFN, LFNCol, {DataCompBoy} advance, advance1, advance2, advance3,
+  Objects, Views, Drivers, FilesCol, HideView, Drives, filediz, collect, Arvid;
 
 TYPE
   PFilePanelRoot = ^TFilePanelRoot;
@@ -404,10 +404,12 @@ begin
            if (UpStrg(GetLFN(P^.LFN)) = UpStrg(GetLFN(PP^.LFN)))
               and (WasLoaded or (UpStrg(P^.Owner^) = UpStrg(PP^.Owner^))) then
              begin
-              TF := PP^;
-              PP^ := P^;
-              P^ := TF;
-              PP^.Selected := TF.Selected;
+              if B then begin
+               TF := PP^;
+               PP^ := P^;
+               P^ := TF;
+               PP^.Selected := TF.Selected;
+              end;
               FC^.AtPut(I,P); {-$VOL}
               Files^.AtPut(J,PP); {-$VOL}
               if PP^.Name[1] = '.' then PP^.Selected := Off;
@@ -511,11 +513,21 @@ procedure TFilePanelRoot.GetUserParams;
   lRewriteText(T); if Abort then Exit;
   if (SelNum=0) then begin
    PF := Files^.At(ScrollBar^.Value);
+   {$IFNDEF OS2}
    WriteLn(T.T, MakeFileName(PF^.Name));
+   {$ELSE}
+   WriteLn(T.T, GetLFN(PF^.LFN));
+   {$ENDIF}
+
   end else
   for I := 1 to Files^.Count do begin
    PF := Files^.At(I-1);
-   if (PF^.Selected) then WriteLn(T.T, MakeFileName(PF^.Name));
+   if (PF^.Selected) then
+   {$IFNDEF OS2}
+                     WriteLn(T.T, MakeFileName(PF^.Name));
+   {$ELSE}
+                     WriteLn(T.T, GetLFN(PF^.LFN));
+   {$ENDIF}
   end;
   Close(T.T);
  end;
@@ -555,6 +567,7 @@ var
  procedure GotoSingle(Name: String);
   var A: LongInt;
  begin
+  while Name[Length(Name)]='.' do dec(Name[0]);
   UpStr(Name);
   A := 0;
   While (A < Files^.Count) and
@@ -851,9 +864,13 @@ var
    if PosChar('.', FreeStr) = 0 then AddStr(FreeStr, '.');
    if (Drive^.DriveType = dtDisk) then
     If (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
-     if (ShiftState and kbAltShift <> 0)
-      then FreeStr := MakeNormName(lfGetLongFileName(PF^.Owner^), FreeStr)
-      else FreeStr := MakeNormName(lfGetShortFileName(PF^.Owner^), FreeStr)
+     {$IFNDEF OS2}
+     if (ShiftState and kbAltShift = 0)
+      then FreeStr := MakeNormName(lfGetShortFileName(PF^.Owner^), FreeStr)
+      else FreeStr := MakeNormName(lfGetLongFileName(PF^.Owner^), FreeStr)
+     {$ELSE}
+     FreeStr := MakeNormName(PF^.Owner^, FreeStr)
+     {$ENDIF}
     else
    else FreeStr := MakeNormName(PF^.Owner^, FreeStr);
    if Sq then
@@ -870,7 +887,7 @@ var
    var SR: lSearchRec;
  begin
    ClrIO;
-   lFindFirst(SS, $3f xor VolumeID, SR);
+   lFindFirst(SS, AnyFile, SR); {JO}
    lFindClose(SR);
    if Abort then Exit;
    if ((DOSError <> 0) or (SR.SR.Attr and Directory = 0)) and
@@ -898,7 +915,11 @@ var
    dum: PFileRec;
  begin
    GetUserParams(dum, PString(Event.InfoPtr)^, False);
+   {$IFNDEF OS2}
    S := MakeFileName(PF^.Name);
+   {$ELSE}
+   S := GetLFN(PF^.LFN);
+   {$ENDIF}
    PString(Event.InfoPtr)^ := S + ' ' + CnvString(Event.InfoPtr);
  end;
 
@@ -924,7 +945,8 @@ var
    S := UpStrg(CnvString(Event.InfoPtr));
    if (S[0] > #3) and (S[Length(S)] = '\') then Dec(S[0]);
    I := Length(S);
-   if (Drive^.DriveType <> dtDisk) or (S = Copy(UpStrg(lfGetLongFileName(DirectoryName)), 1, Length(s)) ) then
+   if (Drive^.DriveType <> dtDisk) or
+      (S = Copy(UpStrg({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(DirectoryName)), 1, Length(s)) ) then
        begin
         Drive^.RereadDirectory(S);
         RereadDir;
@@ -1160,14 +1182,16 @@ var
     if (PF^.Attr and Directory = 0) and
        (PosChar('.', S) = 0) then AddStr(S, '.');
     if Copy(S, 1, 2) = '..'  then
-     if (ShiftState and kbAltShift <> 0)
-      then S := lfGetLongFileName(PF^.Owner^)+'\'
-      else S := lfGetShortFileName(PF^.Owner^)+'\'
+     {$IFNDEF OS2}
+     if (ShiftState and kbAltShift = 0)
+      then S := lfGetShortFileName(PF^.Owner^)+'\'
+      else{$ENDIF} S := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(PF^.Owner^)+'\'
     else
      if ShiftState and 3 <> 0 then
+      {$IFNDEF OS2}
       if (ShiftState and kbAltShift <> 0)
-       then S := MakeNormName(lfGetLongFileName(PF^.Owner^), S)
-       else S := MakeNormName(lfGetShortFileName(PF^.Owner^), S);
+       then S := MakeNormName(lfGetShortFileName(PF^.Owner^), S)
+       else{$ENDIF} S := MakeNormName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(PF^.Owner^), S);
     S:=SquashesName(S);
     Message(CommandLine, evCommand, cmInsertName, @S);
    end;
@@ -1312,9 +1336,15 @@ var
                        Drive^.GetParam((Event.KeyCode shr 8)-(kbCtrl1 shr 8)+1);
                        Owner^.ReDraw;
                       End;
+{$IFDEF COLUMNSMENU}
+          kbAltMinus: Begin                            {JO}
+                       CM_SelectColumn(@Self);
+                      End;                             {JO}
+{$ENDIF}
     kbAltIns: if ShiftState and kbCtrlShift <>0 then _CtrlIns else
               begin
-               if (Drive^.Flags and psShowDescript = 0) and (PF^.DIZ = nil) then
+               if (Drive^.Flags and psShowDescript = 0) and
+                 (FMSetup.Options and fmoAlwaysCopyDesc = 0) and (PF^.DIZ = nil) then
                 begin
                  if (Drive^.DriveType = dtDisk) then
                  begin
@@ -1641,7 +1671,11 @@ begin
                                end;
               cmPanelMakeList: begin
                                  Message(@Self, evCommand, cmInsertDrive,
+   {$IFNDEF OS2}
                                         New(PFindDrive, InitList(MakeNormName(PF^.Owner^,MakeFileName(PF^.Name)))));
+   {$ELSE}
+                                        New(PFindDrive, InitList(MakeNormName(PF^.Owner^,GetLFN(PF^.LFN)))));
+   {$ENDIF}
                                  CE;
                                end;
               cmPanelArcFiles:  begin CM_ArchiveFiles(@Self); CE end;

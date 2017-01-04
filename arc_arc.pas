@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -65,7 +65,7 @@ type
       Name: Array[1..13] of Char;
       PackedSize: LongInt;
       Date: LongInt;
-      CRC: Word;
+      CRC: AWord;
       OriginSize: LongInt;
      end;
 
@@ -120,7 +120,7 @@ begin
 end;
 
 Procedure TARCArchive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     P    : ARCHdr;
     s    : String;

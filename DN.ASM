@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.09
+;/  Dos Navigator Open Source 1.51.10
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -91,11 +91,11 @@ ClearKBD        MACRO
 ;size & speed optimizations by Max Piwamoto
 
                 IFDEF _DPMI_
-DNversionTXT    equ    'Open Source 1.51.09/DPMI'
+DNversionTXT    equ    'Open Source 1.51.10/DPMI'
                 ELSE
-DNversionTXT    equ    'Open Source 1.51.09/DOS'
+DNversionTXT    equ    'Open Source 1.51.10/DOS'
                 ENDIF
-DNversionBIN    equ    15109
+DNversionBIN    equ    15110
 DNversionSIGN   equ    'DN'
 
                 .model tiny
@@ -384,7 +384,7 @@ ENDIF
                 ;mov    ds:CmdLineOffset,offset CmdLine
                 ;mov    ds:[5Ch],cs
 
-; ±±³ Scan ENV for Flag Directory ³±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+; *** Scan ENV for Flag Directory ************************************
 
                 cld
 ;ds=cs

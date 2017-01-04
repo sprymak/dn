@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -504,7 +504,7 @@ procedure TDoubleWindow.HandleCommand;
  begin
   R2.Assign(1,1,2,5);
   S := New(PViewScroll, Init(R2)); S^.Options := S^.Options or ofPostProcess;
-  QView := New(PHFileViewer, Init(R1, nil, '', '', S, True, (EditorDefaults.ViOpt and 1) <> 0));
+  QView := New(PHFileViewer, Init(R1, nil, '', '', S, True, (ViewerDefaults.Options and vbfHex) <> 0));
   if not QView^.Valid(0) then
     begin Dispose(S,Done); Dispose(QView,Done); QView := nil; Exit end
     else begin
@@ -718,9 +718,11 @@ begin
          kbCtrlSqBracketL: begin
                             S := '';
                             Message(LeftView, evCommand, cmGetName, @S);
-                            if (ShiftState and kbAltShift<>0)
-                             then S:=lfGetLongFileName(S)
-                             else S:=lfGetShortFileName(S);
+                            {$IFNDEF OS2}
+                            if (ShiftState and kbAltShift = 0)
+                             then S:=lfGetShortFileName(S)
+                             else S:=lfGetLongFileName(S);
+                            {$ENDIF}
                             if not (S[Length(S)] in ['\','/']) then AddStr(S, '\');
                             S:=SquashesName(S);
                             Message(CommandLine, evCommand, cmInsertName, @S);
@@ -730,9 +732,11 @@ begin
          kbCtrlSqBracketR: begin
                             S := '';
                             Message(RightView, evCommand, cmGetName, @S);
-                            if (ShiftState and kbAltShift<>0)
-                             then S:=lfGetLongFileName(S)
-                             else S:=lfGetShortFileName(S);
+                            {$IFNDEF OS2}
+                            if (ShiftState and kbAltShift = 0)
+                             then S:=lfGetShortFileName(S)
+                             else S:=lfGetLongFileName(S);
+                            {$ENDIF}
                             if not (S[Length(S)] in ['\','/']) then AddStr(S, '\');
                             S:=SquashesName(S);
                             Message(CommandLine, evCommand, cmInsertName, @S);

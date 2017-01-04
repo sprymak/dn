@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -565,7 +565,9 @@ procedure TTerminal.HandleEvent;
    S := GetFileNameDialog(x_x, GetString(dlTermSendFile), GetString(dlFileName),
                         fdOKButton + fdHelpButton, 100);
    if S = '' then Exit;
+   {$IFNDEF OS2}
    S:=lfGetShortFileName(S);
+   {$ENDIF}
    SetProtocol;
    if Protocol = nil then Exit;
    lGetDir(0, ProtocolDirToChange);

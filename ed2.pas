@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -430,7 +430,7 @@ begin
  end;
  Dispose(S,Done);S:=nil;
  if Abort then Exit;
- if EditorDefaults.EdOpt and ebfCBF <> 0 then CreateBackup;
+ if EditorDefaults.GlobalOpt and ebfCBF <> 0 then CreateBackup;
  New(S, Init(Name, stCreate, 4096));
  if Abort or (S = nil) or (S^.Status <> stOK) then
  begin

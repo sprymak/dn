@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -55,6 +55,8 @@ unit LFN;
 interface
 
 uses Dos, DnINI;
+
+Procedure LfnInitUnit;
 
 type
   lAPIType = (lDOS, lWIN95{$IFDEF DPMI}, lSIM95{$ENDIF});  {API currently used}
@@ -164,6 +166,9 @@ procedure lGetDir(D: Byte; var Path: String);
 function lFExpand(const Path: String): String;
 procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 
+
+const AnyFile = Dos.AnyFile and not VolumeID;
+
 implementation
 
 uses advance1,
@@ -177,6 +182,8 @@ uses advance1,
  {$IFDEF DPMI}
  Const LowSeg: Word = 0;
        LowBuf: Pointer = nil;
+ Var
+       RMR: DPMIRegisters;
  {$ENDIF}
 
  Function StrPas(S: Array Of Char): String;
@@ -197,9 +204,6 @@ function LFNDisabled(const Path: String): Boolean;
 var
   Drive: Char;
   Regs: Registers;
-  {$IFDEF DPMI}
-  Rgs: DPMIRegisters;
-  {$ENDIF}
 begin
   LFNDisabled:=true;
   if not CanUseLFN then exit;
@@ -229,17 +233,18 @@ begin
              di    := 0;
              cx    := 0;
              flags := fCarry;
+             asm stc end;
              intr($21, regs);
-             if (Regs.flags and fCarry=0) and (ax<>$7100) then
-              LFNDisabled:=((Regs.Bx and $4000)=0);
+             if (flags and fCarry=0) and (ax<>$7100) then
+              LFNDisabled:=((Bx and $4000)=0);
             end;
            end;
    {$IFDEF DPMI}
    lSIM95: begin
             DriveBuffer[1]:=Drive;
             Move(DriveBuffer, LowBuf^, SizeOf(DriveBuffer));
-            FillWord(Rgs, SizeOf(Rgs) shr 1, 0);
-            with rgs do begin
+            FillWord(RMR, SizeOf(RMR) shr 1, 0);
+            with RMR do begin
              ax    := $71a0;
              ds    := LowSeg;
              dx    := 0;
@@ -247,9 +252,9 @@ begin
              di    := 0;
              cx    := 0;
              flags := fCarry;
-             SimuLateRealModeInt($21, rgs);
-             if (Regs.flags and fCarry=0) and (ax<>$7100) then
-              LFNDisabled:=((Regs.Bx and $4000)=0);
+             SimuLateRealModeInt($21, RMR);
+             if (flags and fCarry=0) and (ax<>$7100) then
+              LFNDisabled:=((Bx and $4000)=0);
             end;
            end;
     {$ENDIF}
@@ -507,6 +512,7 @@ begin
     ES    := Seg(GetNameZ);
     DI    := Ofs(GetNameZ);
     Flags := fCarry;
+    asm stc end;
     Intr($21, Regs);
     if Flags and fCarry <> 0 then S := Name
     else
@@ -517,19 +523,18 @@ begin
   end;
 {$ELSE}
 var
-  Regs: DPMIRegisters;
   NameZ, GetNameZ: ^TNameZ;
 begin
-  FillChar(Regs, SizeOf(Regs), 0);
-  NameZ    := GetDosMem(SizeOf(TNameZ), Regs.DS);
-  GetNameZ := GetDosMem(SizeOf(TNameZ), Regs.ES);
+  FillChar(RMR, SizeOf(RMR), 0);
+  NameZ    := GetDosMem(SizeOf(TNameZ), RMR.DS);
+  GetNameZ := GetDosMem(SizeOf(TNameZ), RMR.ES);
   NameToNameZ(Name, NameZ^);
 
-  with Regs do
+  with RMR do
   begin
     AH    := $60;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    SimulateRealModeInt($21, RMR);
     if Flags and fCarry <> 0 then S := Name
     else
     begin
@@ -601,11 +606,15 @@ end;
 
 {$L W95TFIO.OBJ}
 {$L W95TCTL.OBJ}
-procedure FileRead;  {$IFDEF BIT_16}far;{$ENDIF} external;
-procedure FileWrDev; {$IFDEF BIT_16}far;{$ENDIF} external;
-procedure FileWrite; {$IFDEF BIT_16}far;{$ENDIF} external;
-procedure FileClose; {$IFDEF BIT_16}far;{$ENDIF} external;
-procedure FileOpen;  {$IFDEF BIT_16}far;{$ENDIF} external;
+procedure FileRead;   {$IFDEF BIT_16}far;{$ENDIF} external;
+procedure FileWrDev;  {$IFDEF BIT_16}far;{$ENDIF} external;
+procedure FileWrite;  {$IFDEF BIT_16}far;{$ENDIF} external;
+procedure FileClose;  {$IFDEF BIT_16}far;{$ENDIF} external;
+procedure FileOpen;   {$IFDEF BIT_16}far;{$ENDIF} external;
+{$IFDEF DPMI}
+{$L S95TFIO.OBP}
+procedure SimFileOpen;{$IFDEF BIT_16}far;{$ENDIF} external;
+{$ENDIF}
 
 procedure lAssignText(var T: lText; const Name: String);
 begin
@@ -641,7 +650,7 @@ begin
         T.AssignTextMode := lSIM95;
         Assign(T.T, '');
         TextRec(T.T).Private := 1;
-        TextRec(T.T).OpenFunc := @FileOpen;
+        TextRec(T.T).OpenFunc := @SimFileOpen;
         NameToNameZ(Name, T.FullName);
       end;
     {$ENDIF}
@@ -1071,6 +1080,8 @@ begin
 end;
 {$ENDIF}
 
+const Inited: boolean = false;
+Procedure LfnInitUnit;
 {!!!!!!!!}
 {.$DEFINE LFNAPIDEBUG}
 {!!!!!!!!}
@@ -1078,6 +1089,8 @@ end;
 var L: Text;
 {$ENDIF}
 begin
+ if Inited then exit;
+ Inited := true;
  CheckingApi:=True;
  if CanUseLFN then begin
    if CheckLFNApi(lWIN95) then begin
@@ -1121,4 +1134,6 @@ begin
  Close(L);
  {$ENDIF}
  CheckingApi:=False;
+end;
+
 end.

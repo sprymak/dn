@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -54,37 +54,7 @@ program DN;
 {$ENDIF}
 
 {.$DEFINE GRABPalette}
-uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
-{$IFNDEF NO_OVERLAY}
-     Overlay1, Overlays,
-{$ENDIF NO_OVERLAY}
-     Menus,    FlPanelX, FlPanel,  FileCopy, Filediz,  Filelst,  Eraser,
-     DiskInfo, Advance,  Advance1, Advance2, Advance3, Advance4, highlite,
-     Startup,  Dialogs,  Gauges,   Memory,   DblWnd,   Messages, HistList,
-     FileFind, Commands, Tree,     FViewer,  CmdLine,  FBB,      DNStdDlg,
-     MemInfo,  FilesCol, UserMenu, RStrings, Colors,   Microed,  Editor,
-     Macro,    ArcView,  HelpFile, Validate, ASCIITab, xTime,    Drives,
-     Archiver, Archset,  Archdet,  Setups,   DNUtil,   XDblWnd,  Histries,
-     CCalc,    DnIni,    DrvTypes, Collect,  UFNMatch, Objects,  Views,
-     Scroller, Calculat, ExtraMem, HelpKern
-{$IFDEF DiskFormat}     ,DNFormat ,Format              {$ENDIF}
-{$IFDEF CdPlayer}       ,CdPlayer ,CdUtil              {$ENDIF}
-{$IFDEF SpreadSheet}    ,Calc     ,CellsCol            {$ENDIF}
-{$IFDEF DBView}         ,DBView   ,DBWatch             {$ENDIF}
-{$IFDEF Modem}          ,ModemIO  ,Terminal
-                        ,apTimer  ,apUART    ,apPort
-                   {$IFDEF LINK}  ,NavyLink  {$ENDIF}
-                   {$IFDEF PHONES},uDialer {$ENDIF}    {$ENDIF}
-{$IFDEF Game}           ,Tetris                        {$ENDIF}
-{$IFDEF PrintManager}   ,PrintManager                  {$ENDIF}
-{$IFDEF Calendar}      ,Calendar                       {$ENDIF}{JO}
-{$IFDEF PHONES}        ,Phones                         {$ENDIF}
-{$IFDEF SS}            ,Idlers                         {$ENDIF}
-{$IFDEF CHCOL}         ,ColorSel, ColorVGA             {$ENDIF}
-{$IFDEF NETINFO}       ,Novell                         {$ENDIF}
-{$IFDEF DiskEdit}      ,Fixer                          {$ENDIF}
-{$IFDEF REANIMATOR}    ,Reanimat                       {$ENDIF}
-      ;
+uses DN1;
 
 {$IFNDEF NO_OVERLAY}
 
@@ -164,6 +134,5 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
 {$ENDIF NO_OVERLAY}
 
 BEGIN
- Init09Handler;
  RUN_IT;
 END.

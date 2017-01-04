@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -854,7 +854,9 @@ begin
 1:
     I := -1;
     C3 := GetColor($0302);
-    MoveChar(B, ' ', C3, Size.X);
+    {Passing Word parameter to Byte argument again... -JITR-}
+    {MoveChar(B, ' ', C3, Size.X);}         {-JITR-}
+    MoveChar(B, ' ', C3 and $00FF, Size.X); {-JITR-}
     if Panel^.SelNum = 0 then
     begin
       if ((x_x<>Panel^.FileMask) and ('*'<>Panel^.FileMask)) and
@@ -920,7 +922,9 @@ begin
  if Panel^.PanelFlags and fmiFree <> 0 then
   begin
     C3 := GetColor($0706);
-    MoveChar(B, ' ', C3, Size.X);
+    {Passing Word parameter to Byte argument again... -JITR-}
+    {MoveChar(B, ' ', C3, Size.X);}         {-JITR-}
+    MoveChar(B, ' ', C3 and $00FF, Size.X); {-JITR-}
     I := (Size.X - CStrLen(Panel^.FreeSpace)) div 2; if I < 0 then I := 0;
     MoveCStr(B[I], Panel^.FreeSpace, C3);
     WriteLine(0,Y,Size.X,1,B);

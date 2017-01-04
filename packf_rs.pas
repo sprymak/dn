@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -56,7 +56,8 @@ unit PackF_RS;
 interface
 
 const
-  MaxHandles: Byte = 4;
+  {MaxHandles: Byte = 4;} {-JITR-}
+  MaxHandles = 4;         {-JITR-} {to prevent modification}
 
 function pOpen(Name: PChar; Mode: Byte): Word;
 {$IFNDEF BIT_32}
@@ -138,7 +139,11 @@ const
   MaxRange: Byte = 1;
 
 type
-  TPackHandles = Array[MinRange..MinRange] of TPackedFile;
+  {TPackHandles = Array[MinRange..MinRange] of TPackedFile;} {-JITR-}
+  TPackHandles = Array[MinRange..MaxHandles] of TPackedFile; {-JITR-}
+  {To make the code more correct and prevent possible range check errors
+  (when runtime checking is enabled) when dereferencing Handles^ below,
+  maximum array size must be declared. -JITR-}
 
 const
    Handles: ^TPackHandles = nil;

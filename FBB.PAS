@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,15 +49,13 @@
 UNIT FBB;
 
 interface
-uses Dos, tree;
 
  Function LongCopy(Fn1: String): Boolean; {DataCompBoy}
 
 implementation
-uses LFN, {DataCompBoy}
-     advance, advance1, advance2, advance3, FileCopy, DNApp, Messages, Views,
-     Objects, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
-     HistList, Gauge, StartUp, DNutil, xTime, DiskInfo
+uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
+     Messages, Views, Objects, Dialogs, Commands, Drivers, Memory, FilesCol,
+     RStrings, HistList, Gauge, StartUp, DNutil, xTime, DiskInfo
      {$IFNDEF NONBP},DiskTool{$ENDIF};
 
  type Ar65000 = Array [1..65000] of Byte;
@@ -205,7 +203,7 @@ uses LFN, {DataCompBoy}
   begin
    FreeSpc:=Disk_Free(Byte(d[1])-64);
    DosError:=0; OverWr:=On; Abort := Off;
-   lFindFirst(d+n+'.d??',$3F xor VolumeID,SR);
+   lFindFirst(d+n+'.d??', AnyFile,SR);
    while (DOSError=0) and not (SR.FullName[Length(SR.FullName)] in ['0'..'9'])
    and not (SR.FullName[Length(SR.FullName)-1] in ['0'..'9']) do lFindNext(SR);
    if (DOSError=0) and ((PartSize=0) or (FreeSpc<PartSize)) then
@@ -525,7 +523,7 @@ uses LFN, {DataCompBoy}
     if (pos('*',S)=0) and (pos('?',S)=0) then
      begin
       DosError := 0;
-      lFindFirst(S+'\*.*', $3E xor VolumeID, SR);
+      lFindFirst(S+'\*.*', AnyFile, SR);
       lFindClose(SR);
       if Abort or CopyCancelled then Exit;
       if (DOSError = 0)

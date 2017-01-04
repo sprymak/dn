@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.08
+;/  Dos Navigator Open Source 1.51.10
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -4563,3 +4563,6 @@ only).
 
 .topic PktMsgViewer=48099 ; [C] /DataCompBoy/ 12.07.2000
 .title Pkt Msg Viewer
+
+.topic ViewerDefaults=48100 ; [C] /DataCompBoy/ 11.08.2000
+.title Internal Viewer Defaults

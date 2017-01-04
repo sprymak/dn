@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,7 +49,7 @@ unit FileFind;
 
 interface
 uses Objects, Views, Dialogs, Drivers, Menus, FileCopy, FilesCol, Eraser,
-     Drives, HideView, DOS, Gauge, DiskInfo, FStorage, LFNCol, DNIni,
+     Drives, HideView, DOS, LFN, Gauge, DiskInfo, FStorage, LFNCol, DNIni,
      collect;
 
 type
@@ -171,9 +171,9 @@ type
   procedure CopyToTempDrive(AFiles: PCollection; Own: PView);
 
 implementation
-uses LFN{DataCompBoy}, DNApp, advance, advance1, advance2, advance3, Startup,
-     Memory, Messages, HistList, Commands, RStrings, FlPanel, FViewer, MicroEd,
-     Tree, xTime, DnUtil, u_keymap, {!!}CmdLine, Histries;
+uses DNApp, advance, advance1, advance2, advance3, Startup, Memory, Messages,
+     HistList, Commands, RStrings, FlPanel, FViewer, MicroEd, Tree, xTime,
+     DnUtil, u_keymap, {!!}CmdLine, Histries;
 
 
 const
@@ -383,11 +383,11 @@ function FindFiles;
       PInfo^.Write(3, GetString(dlLookedDirs) + ItoS(TotalNum)); {-$VIV}
     end;
 
-    lFindFirst(Path + Mask, $FF and not VolumeID, SR);
+    lFindFirst(Path + Mask, AnyFile, SR); {JO}
 
     While (DosError = 0) {and not LowMemory} and not CancelSearch and MemOK do
      begin
-      if (SR.SR.Attr and VolumeID = 0) and (SR.SR.Name[1] <> '.') and
+      if {$IFNDEF OS2}(SR.SR.Attr and VolumeID = 0) and {$ENDIF}(SR.SR.Name[1] <> '.') and
        (not Security or (Security and (SR.SR.Attr and Hidden = 0)))
        and (MaskSearch or InFilter(SR.FullName, FindRec.Mask+FindRec.AddChar))
        and ((FindRec.Options and ffoAdvanced = 0) or (SR.SR.Time >= DateAfter)
@@ -398,7 +398,7 @@ function FindFiles;
            then
        begin
         if PDir = nil then PDir := NewStr(Path);
-        P := NewFileRec(SR.FullName, SR.SR.Name, SR.FullSize, SR.SR.Time, SR.SR.Attr, PDir);
+        P := NewFileRec(SR.FullName, {$IFNDEF OS2}SR.SR.Name,{$ENDIF} SR.FullSize, SR.SR.Time, SR.SR.Attr, PDir);
         if Pnl = nil then InitPanel;
         if Pnl <> nil then Message(Pnl, evCommand, cmInsertFile, CopyFileRec(P));
         Files^.AtInsert(Files^.Count, P);
@@ -430,10 +430,10 @@ function FindFiles;
     end;
     if FindRec.Options and 4 <> 4 then goto Skip;
     DosError := 0;
-    lFindFirst(Path + x_x, $FF and not VolumeID, SR);
+    lFindFirst(Path + x_x, AnyFile, SR); {JO}
     While (DosError = 0) and not LowMemory and not CancelSearch do
      begin
-      if (SR.SR.Attr and VolumeID = 0) and (SR.SR.Name[1] <> '.') and
+      if {$IFNDEF OS2}(SR.SR.Attr and VolumeID = 0) and{$ENDIF}(SR.SR.Name[1] <> '.') and
          (SR.SR.Attr and Directory <> 0) then DirCol^.Insert(NewStr(Path + SR.FullName + '\'));
       lFindNext(SR);
      end;
@@ -554,7 +554,7 @@ begin
      if S <> '' then
        begin
          ClrIO;
-         lFindFirst(S, $3F xor VolumeID, SR);
+         lFindFirst(S, AnyFile, SR); {JO}
          if (DOSError = 0) and not Abort then
           begin
             lFSplit(lFExpand(S), Dir, Nm, Xt);
@@ -573,7 +573,7 @@ begin
              begin
                if FC = nil then New(FC, Init($10, $10));
                FC^.AtInsert(FC^.Count, NewFileRec(SR.FullName,
-                                                  SR.SR.Name,
+                                                  {$IFNDEF OS2}SR.SR.Name,{$ENDIF}
                                                   SR.FullSize,
                                                   SR.SR.Time,
                                                   SR.SR.Attr,
@@ -633,7 +633,7 @@ function OpenDirectory(const Dir: String): PDrive;
         D: DateTime;
   begin
      ClrIO;
-     lFindFirst(Dr^+x_x, $3F xor VolumeID, SR);
+     lFindFirst(Dr^+x_x, AnyFile, SR); {JO}
      while not Abort and (DOSError = 0) and MemOk do
        begin
 {$IFDEF CHDIRDEBUG}
@@ -645,7 +645,7 @@ function OpenDirectory(const Dir: String): PDrive;
            if SR.SR.Attr and Directory = 0 then
              begin
                Files^.AtInsert(Files^.Count, NewFileRec(SR.FullName,
-                                                        SR.SR.Name,
+                                                        {$IFNDEF OS2}SR.SR.Name,{$ENDIF}
                                                         SR.FullSize,
                                                         SR.SR.Time,
                                                         SR.SR.Attr,
@@ -678,6 +678,7 @@ begin
   AddDirectory(lFExpand(Dir));
   I := Dirs^.Count-1;
   MemReq := LowMemSize;
+  Abort:=False;
   while (I >= 0) and (not Abort) and (System.MemAvail > MemReq) and MemOk do
     begin
       I := Dirs^.Count-1;
@@ -782,7 +783,7 @@ end;
 
 procedure TFindDrive.NewUpFile;
 begin
-  UpFile := NewFileRec('..','..',0,0,Directory,nil); {DataCompBoy}
+  UpFile := NewFileRec('..',{$IFNDEF OS2}'..',{$ENDIF}0,0,Directory,nil); {DataCompBoy}
 end;
 
 constructor TFindDrive.Load(var S: TStream);
@@ -801,7 +802,7 @@ begin
 
  S.Read(Q, SizeOf(Q));
  If Q >= 0 then begin
-  Files := New(PFilesCollection, Init($10, $10));
+  Files := New(PFilesCollection, Init(Q+1, $10));
   Files^.SortMode := psmOrdered;
   Files^.Duplicates := TypeOf(Self)=TypeOf(TFindDrive);
   Files^.Owner := @Self;
@@ -835,8 +836,8 @@ destructor TFindDrive.Done;
 begin
  DisposeStr(AMask); DisposeStr(AWhat);
  if Files  <> nil then Dispose(Files, Done); Files:=nil;
- if Dirs   <> nil then Dispose(Dirs, Done);  Dirs:=nil;
  if UpFile <> nil then DelFileRec(UpFile);
+ if Dirs   <> nil then Dispose(Dirs, Done);  Dirs:=nil;
  DisposeStr(ListFile);
  inherited Done;
 end;
@@ -924,8 +925,7 @@ LLL:
    P := CopyFileRec(CR);
 
    if AllFiles or
-      (P^.Attr and Directory <> 0) or
-      InFilter(GetLFN(P^.LFN), FileMask)
+      (P^.Attr and Directory <> 0) or InFilter(GetLFN(P^.LFN), FileMask)
     then with AFiles^ do AtInsert(Count, P)
     else begin DelFileRec(P); Continue end;
    TotalLen := TotalLen + P^.Size;
@@ -950,8 +950,8 @@ LLL:
       if AllowPack then
       begin
         I:=Max(AFiles^.Count-100, 0);
-        while I < Files^.Count do Files^.AtFree(I);
         Dispose(AFiles,Done);
+        while I < Files^.Count do Files^.AtFree(I);
         goto LLL;
       end;
     end;
@@ -1130,7 +1130,7 @@ begin
                   Cut(AWhat^,  (SX - Min(((SX div 3) shl 1), Length(AMask^))))
    else
     if (AWhat<>nil) and ((AMask=nil) or (AMask^=x_x))
-     then GetDir := S + Cut(AWhat^, SX)
+     then GetDir := S + Cut('*.*|' + AWhat^, SX)
      else if AMask<>nil then GetDir := S + Cut(AMask^, SX) else GetDir := S + '*.*';
  end;
 end;
@@ -1162,7 +1162,7 @@ procedure CopyToTempDrive;
               TempDirs^.Insert(L);
              end;
    TempFiles^.AtInsert(J, NewFileRec(Nmm,
-                                     MakeFileName(P^.Name),
+                                     {$IFNDEF OS2}MakeFileName(P^.Name),{$ENDIF}
                                      P^.Size,
                                      PackedDate(P),
                                      P^.Attr,
@@ -1210,7 +1210,6 @@ end;
 
 constructor TTempDrive.Init;
   var S: PString;
-      I: LongInt;
 begin
  TObject.Init;
  if num<1 then GetParam(1)
@@ -1226,37 +1225,25 @@ begin
  ListFile := nil;
  System.GetDir(0, FreeStr); ClrIO;
  S := NewStr(FreeStr);
- I := Dirs^.IndexOf(S);
- if I >= 0 then begin DisposeStr(S); S := Dirs^.At(I); end
-           else Dirs^.Insert(S);
  NewUpFile;
  UpFile^.Owner := S; {DataCompBoy}
+ UpFile^.OwnerDisposible:=true;
 end;
 
 constructor TTempDrive.Load(var S: TStream);
- var Q, Q2: LongInt;
 begin
-  TDrive.Load(S);
-  S.Read(DriveType,SizeOf(DriveType));
-  Dirs := PSortedCollection(S.Get);
-  if Dirs = nil then Dirs := New(PStringCollection, Init(10, 10));
-
-  S.Read(Q, SizeOf(Q));
-  if Q >= 0 then begin
-   Files := New(PFilesCollection, Init($10, $10));
-   Files^.SortMode := psmOrdered;
-   Files^.Duplicates := False;
-{  Files^.Owner := @Self;}
-   for Q2:=0 to Q do Files^.AtInsert(Q2, LoadFileRecOwn(S, Dirs));
-  end else begin
-   NewTemp;
-   Files := TempFiles;
-  end;
-
-  TempFiles := Files;
-  TempDirs  := Dirs;
-  NewUpFile;
-  UpFile^.Owner := S.ReadStr;
+ TDrive.Load(S);
+ if TempDirs = nil then TempDirs := New(PStringCollection, Init(10, 10));
+ if TempFiles = nil then NewTemp;
+ isDisposable := On;
+ Dirs  := TempDirs;
+ Files := TempFiles;
+ CurDir := cTEMP_;
+ DriveType := dtTemp;
+ ListFile := nil;
+ NewUpFile;
+ UpFile^.Owner := S.ReadStr;
+ UpFile^.OwnerDisposible:=true;
 end;
 
 procedure TTempDrive.Store;
@@ -1264,14 +1251,6 @@ procedure TTempDrive.Store;
      Q: LongInt;
 begin
   TDrive.Store(S);
-  S.Write(DriveType,SizeOf(DriveType));
-  S.Put(Dirs);
-
-  if Files=nil then Q:=-1
-               else Q:=Files^.Count - 1;
-  S.Write(Q, SizeOf(Q));
-  for I := 0 to Q do StoreFileRecOwn(S, Files^.At(I), Dirs);
-
   S.WriteStr(UpFile^.Owner)
 end;
 
@@ -1301,6 +1280,7 @@ end;
 
 destructor TTempDrive.Done;
 begin
+ if UpFile <> nil then DelFileRec(UpFile);
  TDrive.Done;
 end;
 

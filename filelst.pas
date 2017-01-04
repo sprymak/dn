@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -107,7 +107,7 @@ procedure MakeListFile;
      BB: Boolean;
      FLD, Dr_: String;
      CurPos: integer;
-     UPr: PUserParams;
+     UPr: TUserParams;
 
   function GetNextName(var TheString,TheName:string):boolean;
   var j: boolean;
@@ -144,21 +144,29 @@ procedure MakeListFile;
   { BB means "Is filename occurs in Action?" }
     Replace('!!', #1, D);Replace('##', #2, D);
     Replace('$$', #3, D);Replace('&&', #4, D);
-    if (PosChar('!',D)=0) and (PosChar('#',D)=0) then
+    if {$IFNDEF OS2}(PosChar('!',D)=0) and {$ENDIF}
+       (PosChar('#',D)=0) then
      if (D[Length(D)] in [#8,' ']) or ((Length(D)=1) and (D[1] in ['^',#2]))
       then D:=D+ '!.!'
       else D:=D+' !.!';
+    {$IFDEF OS2}Replace('!', '#', D); Replace('$', '&', D);{$ENDIF}
     If ( S.Options and 2 = 2 ) and
+       {$IFNDEF OS2}
        ( lfGetShortFileName(Sr) <> lfGetShortFileName(Dr) ) and
        ( Pos( '!\', D ) = 0 ) and
        ( Pos( '!/', D ) = 0 ) and
        ( Pos( '!:', D ) = 0 ) and
+       {$ELSE}
+       ( Sr <> Dr ) and
+       {$ENDIF}
        ( Pos( '#\', D ) = 0 ) and
        ( Pos( '#/', D ) = 0 ) and
        ( Pos( '#:', D ) = 0 ) then begin { Need to force insert !:!\ }
+         {$IFNDEF OS2}
          K := Pos( '.!', D );
          If K = 0 then begin
            K := PosChar( '!', D );
+         {$ENDIF}
            If K = 0 then begin
             K := Pos( '.#', D );
             If K = 0 then begin
@@ -170,21 +178,23 @@ procedure MakeListFile;
            end else
            If ( K <> 1 ) and ( D[ K - 1 ] in ['!','#'] ) then Dec( K )
                                                          else goto Fail;
+          {$IFNDEF OS2}
           end else
           If ( K <> 1 ) and ( D[ K - 1 ] in ['!','#'] ) then Dec( K )
                                                         else goto Fail;
+          {$ENDIF}
       Insert( '!:!\', D, K );
     end;
   Fail: { Cannot find place to insert !\ }
     Replace(#1, '!!', D);Replace(#2, '##', D);
     Replace(#3, '$$', D);Replace(#4, '&&', D);
-    D:=MakeString(D, UPr, off, nil);
+    D:=MakeString(D, @UPr, off, nil);
     WriteLn(T.T, D);
   end;
 
 begin
  if Files^.Count = 0 then Exit;
- Message(APP, evBroadcast, cmGetUserParams, UPr);
+ Message(APP, evBroadcast, cmGetUserParams, @UPr);
  FillChar(S, SizeOf(S), 0);
  S.FileName := HistoryStr(hsMakeList, 0);
  if S.FileName = '' then S.FileName := 'DNLIST.BAT';
@@ -276,7 +286,7 @@ AddrError:
          else Exit;
      end;
    end else lRewriteText(T);
- if Abort then Exit;
+ if Abort then begin Close(T.T); Exit; end;
  if IOResult<>0 then
   begin
    MessageBox(GetString(dlFBBNoOpen)+Cut(S.FileName, 40), nil, mfError + mfOKButton);
@@ -307,7 +317,7 @@ AddrError:
  for I := 1 to Files^.Count do
   begin
     P := Files^.At(I-1);
-    UPr^.Active:=P;
+    UPr.Active:=P;
     Message(APP, evCommand, cmCopyUnselect, P);
     BB := False;
     SR := P^.Owner^;

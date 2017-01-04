@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_ACE; {ACE}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, LFN;
 
 type
   PACEArchive = ^TACEArchive;
@@ -60,18 +60,18 @@ type
   end;
 
 type ACEFileHdr = record
-      HeadCRC    : Word;
-      HeadSize   : Word;
+      HeadCRC    : AWord;
+      HeadSize   : AWord;
       HeadType   : Byte;
-      HeadFlags  : Word;
+      HeadFlags  : AWord;
       PackedSize : LongInt;
       OriginSize : LongInt;
       DateTime   : LongInt;
       Attr       : LongInt;
       CRC32      : LongInt;
       TechInfo   : LongInt;
-      Reserved   : Word;
-      NameLen    : Word;
+      Reserved   : AWord;
+      NameLen    : AWord;
      end;
 
 implementation
@@ -84,8 +84,13 @@ begin
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
+{$IFNDEF OS2}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ACE.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ACE.EXE'));
+{$ELSE}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ACE2.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ACE2.EXE'));
+{$ENDIF}
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a'));
@@ -97,7 +102,7 @@ begin
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-ep'));
   ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        '-rr'));
-  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-sfxjr'));
+  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-sfx'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              '-s'));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
@@ -105,7 +110,7 @@ begin
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m2'));
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-m3'));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-m4'));
-  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-m5 -d1024'));
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-m5'));
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');

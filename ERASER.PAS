@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -172,7 +172,7 @@ procedure EraseFiles;
      if Word(Length(FreeStr))+Word(Length(x_x)) > MaxPathLen-1 then
       begin Abort:=true; Break end;
 
-     lFindFirst(MakeNormName(FreeStr, x_x), $FF xor VolumeID, SR);
+     lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
      while DosError=0 do
       begin
        If Abort then break;
@@ -279,10 +279,11 @@ procedure EraseFiles;
     begin
        S := MakeNormName(Dir, x_x);
        DosError:=0;
-       lFindFirst(S ,$FF xor VolumeID, SR);
+       lFindFirst(S, AnyFile, SR);  {JO}
        if (SR.SR.Name[1] = '.') then lFindNext(SR);
        if (SR.SR.Name[1] = '.') then lFindNext(SR);
-       if Abort then begin lFindClose(SR); Exit; end;
+       lFindClose(SR);
+       if Abort then Exit;
        dr := cmOK;
        if (DOSError = 0) and (not DeleteAllFiles) then
         begin
@@ -427,17 +428,15 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
                     (FMSetup.Options and fmoPreserveDesc = 0) then
                  begin
                    InfoWrite(1,GetString(dlDeletingDIZ));
-                   DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name));
-                   DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), GetLFN(PF^.LFN));
+                   DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name), GetLFN(PF^.LFN));
                  end;
                end else MessageBox(GetString(dlErasingNoFile)+S, nil, mfError+mfOKButton);
          end;
         end else begin
                        InfoWrite(1,GetString(dlErasingDir));
                        InfoWrite(2,Cut(S,40));
-                       DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name));
-                       DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), GetLFN(PF^.LFN));
-                       S := lfGetLongFileName(MakeNormName(PF^.Owner^, S));
+                       DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name), GetLFN(PF^.LFN));
+                       S := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(MakeNormName(PF^.Owner^, S));
                        DeleteDirectory(S,0);
                  end
        else Break;

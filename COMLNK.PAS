@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -137,7 +137,7 @@ var CL_LogF : lFile; {DataCompBoy}
 function DropCD: Boolean;
 
 implementation
- uses Objects,Dos, xTime, advance, advance1, advance2, advance3,
+ uses Objects, Dos, xTime, advance, advance1, advance2, advance3,
       ComLnkIO{$IFDEF CL_PACK}, Pack_LZW{$ENDIF};
 
 

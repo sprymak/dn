@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 
 unit CmdLine;
 interface
- uses LFN, ccalc, XDblWnd, UserMenu, Menus,
+ uses ccalc, XDblWnd, UserMenu, Menus,
       {$IFDEF TrashCan}Gauges,{$ENDIF} drivers, Objects, Views;
 
 Type
@@ -96,8 +96,9 @@ const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' '];
 
 
 implementation
- uses Dos, Commands, DNApp, DNStdDlg, Dialogs, advance, advance1, advance2,
-      advance3, Startup, RStrings, xTime, Messages, MicroEd, Histries, FViewer
+ uses Dos, LFN, Commands, DNApp, DNStdDlg, Dialogs, advance, advance1,
+      advance2, advance3, Startup, RStrings, xTime, Messages, MicroEd,
+      Histries, FViewer
 {$IFDEF SS} ,Idlers{$ENDIF}
 {$IFDEF VIRTUALPASCAL}, VpSysLow{$ENDIF}
       ;

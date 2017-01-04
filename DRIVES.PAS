@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,9 +49,8 @@
 unit Drives;
 
 interface
-uses LFN, LFNCol, {DataCompBoy} Dos, Objects, Memory, Views, Drivers, DnIni,
-     FilesCol, DiskInfo, FStorage, advance, advance1, advance2, advance3,
-     collect;
+uses Dos, LFN, LFNCol, Objects, Memory, Views, Drivers, DnIni, FilesCol,
+     DiskInfo, FStorage, advance, advance1, advance2, advance3, collect;
 
 const
      dsActive      = 0 ;
@@ -131,7 +130,9 @@ type
         {-DataCompBoy-}
        PDesc = ^TDesc;
        TDesc = record
-         Name: String[12];
+         {$IFNDEF OS2}
+         Name: Str12;
+         {$ENDIF}
          LFN: TLFNIndex;
          DIZ: PString;
          Line: LongInt;
@@ -142,6 +143,13 @@ type
        TDIZCol = object(TSortedCollection)
          procedure FreeItem(P: Pointer); virtual;
          function Compare(P1, P2: Pointer): Integer; virtual;
+       end;
+
+       TFName = record
+        {$IFNDEF OS2}
+        SFN: Str12;
+        {$ENDIF}
+        LFN: TLFNIndex;
        end;
 
         {-DataCompBoy-}
@@ -158,9 +166,12 @@ end;
 
 function TDIZCol.Compare;
 begin
-  if PDesc(P1)^.Name < PDesc(P2)^.Name then Compare := -1 else
-    if PDesc(P1)^.Name = PDesc(P2)^.Name then Compare := 0 else
-     Compare := 1;
+  {$IFNDEF OS2}
+  if PDesc(P1)^.Name = PDesc(P2)^.Name then Compare := 0
+   else Compare := CmpLFN(PDesc(P1)^.LFN, PDesc(P2)^.LFN);
+  {$ELSE}
+  Compare:=CmpLFN(PDesc(P1)^.LFN, PDesc(P2)^.LFN)
+  {$ENDIF}
 end;
 
         {-DataCompBoy-}
@@ -455,87 +466,21 @@ end;
 
         {-DataCompBoy-}
 procedure TDrive.lChDir;
-var
-  I: Word;
-  S: String;
-
-  function AskRetry(Drive: Char): Boolean;
-  begin
-   ClrIO; NeedAbort:=False;
-   SysErrorFunc(2,Byte(Drive)-65);
-   AskRetry:=not Abort;
-  end;
-
-  function ValidPath(var ATestDir: String; Ask: Boolean): Boolean;
-  var
-    S: String;
-    Drive: Char;
-    OK: Boolean;
-  begin
-    OK:=False;
-    ClrIO;
-    NeedAbort:=True;
-    ATestDir:=lFExpand(ATestDir);
-    if (Length(ATestDir)<>3) and (ADir[Length(ATestDir)] = '\') then
-      Dec(ATestDir[0]);
-    if (Length(ATestDir)>1) and (ATestDir[2]=':') then
-      Drive:=ATestDir[1] else
-      Drive:=Char(GetDrive+64);
-    S:=Drive+':\';
-    repeat
-     ClrIO; NeedAbort:=True;
-     LFN.lChDir(S);
-     I:=IOResult; Abort:=Abort or (I <> 0);
-     if Abort then begin
-       if Ask and AskRetry(Drive) then continue;
-     end else
-       OK:=True;
-     break;
-    until False;
-    if OK then
-    repeat
-     ClrIO; NeedAbort:=True;
-     LFN.lChDir(ATestDir);
-     I:=IOResult; Abort:=Abort or (I <> 0);
-     if Abort then begin
-       S:=GetPath(ATestDir);
-       if (Length(S)<>3) and (S[Length(S)] = '\') then Dec(S[0]);
-       if S<>ATestDir then begin
-         ATestDir:=S;
-         continue;
-       end;
-       OK:=False;
-     end;
-     break;
-    until False;
-    ClrIO; NeedAbort:=False;
-    ValidPath:=OK;
-  end;
-
 begin
-  NeedAbort:=True;
-  if ValidPath(ADir,True) then begin
-    CurDir:=ADir; Exit;
-  end;
-  if ValidPath(CurDir,False) then begin
-    CurDir:=CurDir; Exit;
-  end;
-  ADir:='C:\';
-  if ValidPath(ADir,False) then begin
-    CurDir:=ADir; Exit;
-  end;
-  ADir:='A:\';
-  if ValidPath(ADir,False) then begin
-    CurDir:=ADir; Exit;
-  end;
-  CurDir:='';
+ ClrIO;
+ if (Length(ADir)>3) and (ADir[Length(ADir)] in ['\','/']) then dec(ADir[0]);
+ LFN.lChDir(ADir);
+ if Abort then Exit;
+ LFN.lGetDir(0, ADir);
+ if Abort then Exit;
+ CurDir := ADir;
 end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
 function TDrive.GetDir;
 begin
- GetDir := lfGetLongFileName(CurDir);
+ GetDir := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(CurDir);
 end;
         {-DataCompBoy-}
 
@@ -556,8 +501,8 @@ procedure ReadFileList(
 
 var T: PTextReader;
     S: String;
-    S1: Str12;
-    I: LongInt;
+    Nam: String;
+    I, J: LongInt; zz: boolean;
     CurLine: LongInt;
     PD: PDesc;
 begin
@@ -569,23 +514,31 @@ begin
     begin
       Inc(CurLine);
       S := T^.GetStr;
-      DelLeft(S);
-      S1 := '';
-      if S <> '' then
+      if (S <> '') and not (s[1] in [' ',#9]) then
        begin
-         While (S1[0] < #12) and (S[1] <> ' ') do
-           begin S1 := S1 + S[1]; DelFC(S) end;
-         DelLeft(S);
+         zz:=false;
+         for i:=2 to length(s) do
+          if (s[i] in [' ',#9]) and not zz
+           then break
+           else if s[i]='"' then zz:=not zz;
+         if s[i] in [' ',#9] then dec(i);
+         j:=i+1;
+         while (s[j] in [' ',#9]) do inc(j);
+         if not (S[j] in [' ',#9]) then dec(j);
+         Nam:=DelSquashes(Copy(S, 1, i));
+         Delete(S, 1, j);
+
          New(PD);
-         PD^.Name := LowStrg(Norm12(S1));
-         PD^.LFN := AddLFN(lfGetLongFileName(MakeNormName(CurDir, S1)));
+         {$IFNDEF OS2}
+         PD^.Name := LowStrg(Norm12(GetName(lfGetShortFileName(Nam))));
+         {$ENDIF}
+         PD^.LFN := AddLFN(GetName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(Nam)));
          PD^.Name[9] := ' ';
          PD^.DIZ := NewStr(S);
          PD^.Line := CurLine;
-         if not Descriptions^.Search(PD, I) then
-            Descriptions^.AtInsert(I, PD)
-         else
-            Descriptions^.FreeItem(PD);
+         if not Descriptions^.Search(PD, I)
+          then Descriptions^.AtInsert(I, PD)
+          else Descriptions^.FreeItem(PD);
        end;
     end;
   Dispose(T,Done);
@@ -622,14 +575,15 @@ procedure TossDescriptions(
 var
   I, J: LongInt;
   P: PFileRec;
-  FName: Str12;
+  FName: TFname;
   PD: PDesc;
 begin
  for I := 1 to Files^.Count do
   begin
     P := Files^.At(I-1);
-    FName := P^.Name;
-    if P^.Attr and (Directory+SysFile) <> 0 then LowStr(FName);
+    FName.SFN := P^.Name;
+    FName.LFN := P^.LFN;
+    if P^.Attr and (Directory+SysFile) <> 0 then LowStr(FName.SFN);
     if Descriptions^.Search(@FName, J) then begin
                                         PD := PDesc(Descriptions^.At(J));
                                         New(P^.DIZ);
@@ -676,7 +630,7 @@ begin
 
   NormMask := not PackMask(FileMask, fm, LFNDisabled(CurDir^));
 
-  lFindFirst(MakeNormName(CurDir^,fm), $FF xor VolumeID, SR);
+  lFindFirst(MakeNormName(CurDir^,fm), AnyFile, SR); {JO}
   While (DosError = 0) and not Abort and (IOResult = 0) and MemOK do
   begin
 {$IFDEF CHDIRDEBUG}
@@ -684,7 +638,7 @@ begin
    inc(NumCal);
    if NumCal=4 then NumCal:=0;
 {$ENDIF}
-   if ((SR.SR.Attr and VolumeID = 0) and
+   if ({$IFNDEF OS2}(SR.SR.Attr and VolumeID = 0) and {$ENDIF}
        not ((SR.SR.Name[0] = #1) and (SR.SR.Name[1] = '.'))
       )          and
       ((not Security) or
@@ -700,7 +654,7 @@ begin
        (CurDir^[0] > #3)
       )          then
     begin
-      P := NewFileRec(SR.FullName, SR.SR.Name, SR.FullSize, SR.SR.Time, SR.SR.Attr, CurDir);
+      P := NewFileRec(SR.FullName, {$IFNDEF OS2}SR.SR.Name, {$ENDIF}SR.FullSize, SR.SR.Time, SR.SR.Attr, CurDir);
       if SR.SR.Attr and Directory = 0 then
        begin
         TotalLen := TotalLen + P^.Size;
@@ -730,7 +684,7 @@ begin
       L := GetDirLen(CurDir^); if Abort then L := 0;
       ClrIO;
     end else L := 0;
-    Files^.AtInsert(0, NewFileRec('..','..',L,0,Directory,CurDir));
+    Files^.AtInsert(0, NewFileRec('..',{$IFNDEF OS2}'..'{$ENDIF},L,0,Directory,CurDir));
    end;
   GetFilesColl := Files;
  if (SortMode <> -1) and (Files^.Count>0) then Files^.Sort;
@@ -781,7 +735,7 @@ begin
  Abort := Off;
  ShowD := (Flags and psShowDescript <> 0);
 
- if ShowD then PrepareDIZ(CurDir, DIZOwner, Descriptions);
+ if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) then PrepareDIZ(CurDir, DIZOwner, Descriptions);
 
  Files := GetFilesColl(TotalLen, TFiles, PanelFlags, @CurDir, FileMask, Owner, SortMode);
 
@@ -825,7 +779,7 @@ end;
         {-DataCompBoy-}
 procedure TDrive.GetDown;
  var FR: TFileRec;
-     S,S1: String;
+     S,S1 {$IFDEF OS2} ,S2 {$ENDIF}: String;
 begin
     if P=nil then exit;
     FR := P^; FR.Name[9] := ' ';
@@ -837,7 +791,17 @@ begin
         then S := GetString( dlUpDir )
         else S := GetString( dlSubDir );
     MakeDate(DateMode, FR.Day, FR.Month, FR.Yr, FR.Hour, FR.Minute, S1);
+{$IFNDEF OS2}
     MoveStr(B, MakeFileName(FR.Name), C);
+{$ELSE}
+    S2 := GetLFN(FR.LFN);
+    if Byte(S2[0]) > 14 then
+      begin
+        S2[0] := #14;
+        S2[14] := FMSetup.RestChar[1];
+      end;
+    MoveStr(B,S2,C);
+{$ENDIF}
     MoveStr(TWordArray(B)[22-Length(S)+CountryInfo.TimeFmt],S , C);
     MoveStr(TWordArray(B)[23+CountryInfo.TimeFmt],S1, C);
 end;
@@ -984,7 +948,9 @@ procedure RereadDirectory;
  end;
 
 begin
+ {$IFNDEF OS2}
  Dir:=lfGetLongFileName(Dir);
+ {$ENDIF}
  Desktop^.ForEach(@Action);
 end;
 

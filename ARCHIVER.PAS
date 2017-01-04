@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 
 unit Archiver;
 
-interface uses Views, Objects, DOS, LFNCol, tree, ExtraMem,
+interface uses Views, Objects, DOS, LFN, LFNCol, tree, ExtraMem,
                collect, drivers, profile;
 
 Const DNARC = 'ARCHIVER.INI'#0;
@@ -223,7 +223,7 @@ procedure Check4WinZip;
 
 implementation
 
- uses LFN, DnUtil, advance, advance1, advance2, advance3, DNApp, Commands,
+ uses DnUtil, advance, advance1, advance2, advance3, DNApp, Commands,
       Dialogs, FilesCol, FViewer, StartUp, RStrings, Memory, Messages,
       ArcView, FileCopy, HistList,FStorage, Menus, ArchDet;
 
@@ -406,10 +406,17 @@ begin
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   inherited Init;
+{$IFNDEF OS2}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ.EXE'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -hf2 -v -jycv'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -hf2 -v -jycv'));
+{$ELSE}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ2.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ2.EXE'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -v -jycv'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -v -jycv'));
+{$ENDIF}
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a -a -a1'));
   Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'm -a -a1 -p1'));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd -p1'));
@@ -456,7 +463,7 @@ const
    BACKUP_FLAG       = $20;
    SECURED_FLAG      = $40;
 
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     s    : String;
     C    : Char;
@@ -474,9 +481,9 @@ var HS,i : Word;
              Compressed_Size : LongInt;
              Original_Size   : LongInt;
              Original_CRC    : LongInt;
-             Filespec_Pos    : Word;
-             File_Acs_Mode   : Word;
-             Host_Data       : Word;
+             Filespec_Pos    : AWord;
+             File_Acs_Mode   : AWord;
+             Host_Data       : AWord;
            end;
 
 begin
@@ -641,22 +648,34 @@ procedure MakeArchive;
           then if B then S := S + ' ' + SS else WriteLn(F.T, SS);
 {piwamoto.src.end}
        ClrIO;
-       lFindFirst(MakeNormName(SS, x_x), $FF XOR VolumeID, SR);
+       lFindFirst(MakeNormName(SS, x_x), AnyFile, SR); {JO}
        While (DOSError = 0) and not Abort and (S[0] < #100) do
         begin
+ {$IFNDEF OS2}
          if Arc^.UseLFN
-          then S1:=GetLongRelPath(MakeNormName(SS,SR.FullName))
-          else S1:=GetShortRelPath(MakeNormName(SS,SR.SR.Name));
-         if (SR.SR.Attr and (Directory + VolumeID) = 0) then
+          then
+ {$ENDIF}
+               S1:=GetLongRelPath(MakeNormName(SS,SR.FullName))
+ {$IFNDEF OS2}
+          else S1:=GetShortRelPath(MakeNormName(SS,SR.SR.Name))
+ {$ENDIF}
+ ;
+         if (SR.SR.Attr and (Directory {$IFNDEF OS2} + VolumeID{$ENDIF}) = 0) then   {JO}
            if B then S := S + ' ' + SquashesName(S1)
                 else WriteLn(F.T, S1);
 {piwamoto.src.begin}
          if (SR.SR.Attr and Directory <> 0) and (SR.SR.Name[1] <> '.') and
             (D.Options and 64 <> 0) then
 {piwamoto.src.end}
+ {$IFNDEF OS2}
           if Arc^.UseLFN
-           then PutDir(MakeNormName(SS,SR.FullName))
-           else PutDir(MakeNormName(SS,SR.SR.Name));
+           then
+ {$ENDIF}
+                PutDir(MakeNormName(SS,SR.FullName))
+ {$IFNDEF OS2}
+           else PutDir(MakeNormName(SS,SR.SR.Name))
+ {$ENDIF}
+ ;
          DOSError := 0;
          lFindNext(SR);
         end;
@@ -676,9 +695,15 @@ procedure MakeArchive;
    for I := 0 to Files^.Count - 1 do
     begin
      PF := Files^.At(I);
+ {$IFNDEF OS2}
      if Arc^.UseLFN
-      then S1 := GetLongRelPath(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)))
-      else S1 := GetShortRelPath(MakeNormName(PF^.Owner^, MakeFileName(PF^.Name)));
+      then
+ {$ENDIF}
+           S1 := GetLongRelPath(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)))
+ {$IFNDEF OS2}
+      else S1 := GetShortRelPath(MakeNormName(PF^.Owner^, MakeFileName(PF^.Name)))
+ {$ENDIF}
+ ;
      if PF^.Attr and Directory = 0
       then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1)
 {piwamoto.src.begin}
@@ -884,13 +909,10 @@ var
              end;
    NEhdrRec: record
               NumOfSegments   : Word;    {1c}
-              SegTableOffset  : LongInt; {22}
-              {SegTableOffset:=LongInt(SegTableOffset.from.NE)+MZExeRec.NewExe}
+              SegTableOffset  : Word;    {22}
               ResTableOffset  : Word;    {24}
               ResNamesOffset  : Word;    {26}
-              NonResTableOffs : Longint; {2c}
               AlignShiftCount : Word;    {32}
-              ExecutableType  : Byte;    {36}
               SegmentSize     : Word;
 
               ResourceAlign   : Word;
@@ -923,44 +945,34 @@ begin
          begin {PE}
           ArcFile^.Seek(MZExeRec.NewExe + 6);
           ArcFile^.Read(PEhdrRec.ObjNum, SizeOf(PEhdrRec.ObjNum));
-          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.ObjNum + $0D0); {e0=f8-28}{offset 2 last object}
+          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.ObjNum + $0D0); {offset 2 last object}
           ArcFile^.Read(WinZipID, SizeOf(WinZipID));
           ArcFile^.Seek(ArcFile^.GetPos+8);
           ArcFile^.Read(PEhdrRec.ObjSize, SizeOf(PEhdrRec.ObjSize));
           ArcFile^.Read(ArcPos, SizeOf(ArcPos));
           if WinZipID <> '_winzip_' then ArcPos := ArcPos + PEhdrRec.ObjSize;
-          Check4WinZip;
          end;
         $454e :
          begin {NE}
           ArcFile^.Seek(MZExeRec.NewExe + $1c);
           ArcFile^.Read(NEhdrRec.NumOfSegments, SizeOf(NEhdrRec.NumOfSegments));
           ArcFile^.Seek(MZExeRec.NewExe + $22);
-          ArcFile^.Read(TempWord, SizeOf(TempWord));
-          NEhdrRec.SegTableOffset := LongInt(TempWord) + MZExeRec.NewExe;
-          ArcFile^.Read(NEhdrRec.ResTableOffset, SizeOf(NEhdrRec.ResTableOffset) + SizeOf(NEhdrRec.ResNamesOffset));
-          ArcFile^.Seek(MZExeRec.NewExe + $36);
-          ArcFile^.Read(NEhdrRec.ExecutableType, SizeOf(NEhdrRec.ExecutableType));
-          if NEhdrRec.ExecutableType = 1{OS2} then
-            Exit; {ArcPos=MZ.ArcPos}
-          ArcFile^.Seek(MZExeRec.NewExe + $2c);
-          ArcFile^.Read(NEhdrRec.NonResTableOffs, SizeOf(NEhdrRec.NonResTableOffs));
-          ArcFile^.Seek(NEhdrRec.NonResTableOffs);
-          ArcFile^.Read(WinZipID, SizeOf(WinZipID));
-          WinZipID[0] := '_'; WinZipID[7] := '_';{overwrite nonconstant bytes}
+          ArcFile^.Read(NEhdrRec.SegTableOffset, SizeOf(NEhdrRec.SegTableOffset)
+                                                + SizeOf(NEhdrRec.ResTableOffset)
+                                                + SizeOf(NEhdrRec.ResNamesOffset));
           ArcFile^.Seek(MZExeRec.NewExe + $32);
           ArcFile^.Read(NEhdrRec.AlignShiftCount, SizeOf(NEhdrRec.AlignShiftCount));
           if NEhdrRec.AlignShiftCount = 0 then NEhdrRec.AlignShiftCount := 9;
           if NEhdrRec.ResTableOffset = NEhdrRec.ResNamesOffset then
            begin {no resources present: search 4 last segment}
-            ArcFile^.Seek(NEhdrRec.SegTableOffset + 8*NEhdrRec.NumOfSegments - 8); {last segment}
+            ArcFile^.Seek(LongInt(NEhdrRec.SegTableOffset) + MZExeRec.NewExe + 8*NEhdrRec.NumOfSegments - 8);{last segment}
             ArcFile^.Read(TempWord, SizeOf(TempWord));
             ArcFile^.Read(NEhdrRec.SegmentSize, SizeOf(NEhdrRec.SegmentSize));
             ArcPos := LongInt(TempWord) shl NEhdrRec.AlignShiftCount + NEhdrRec.SegmentSize;
            end
           else
            begin {exe with resources: search 4 last resource}
-            ArcFile^.Seek(LongInt(NEhdrRec.ResTableOffset) + MZExeRec.NewExe);
+            ArcFile^.Seek(MZExeRec.NewExe + NEhdrRec.ResTableOffset);
             ArcFile^.Read(NEhdrRec.ResourceAlign, SizeOf(NEhdrRec.ResourceAlign));
             ArcPos := ArcFile^.GetPos - 8; {-8=compensation}
             NEhdrRec.ResourceTypeNum := 0;
@@ -973,7 +985,6 @@ begin
             ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
             ArcPos := LongInt(NEhdrRec.ResourceOffset + NEhdrRec.ResourceLenght) shl NEhdrRec.ResourceAlign;
            end;
-          if WinZipID = '_WinZip_' then Check4WinZip;
         end;
         $584c :
          begin {LX}
@@ -994,9 +1005,10 @@ begin
           ArcPos := LEhdrRec.DataPagesOffs + (LEhdrRec.PageCount - 1)*LEhdrRec.PageSize + LEhdrRec.LastPageSize;
          end;
         {other EXE types}
-       end;
-      end;
-    end;
+       end;{Cas.e EXEtype}
+      end;{??-EXE}
+    end; {it isn't an EXE}
+   Check4WinZip;
    ArcFile^.Seek(ArcPos);
 end; {SkipSFX}
 
@@ -1010,11 +1022,14 @@ begin
     ArcFile^.Seek(ArcPosID);
     ArcFile^.Read(SfxId, SizeOf(SfxId));
     Inc (ArcPosID);
-   Until ((ArcPosID - ArcPos) = $200) or {200h = DN's internal ArcFile^.Read cache size}
-         (SfxId = 'PK'#3#4) or
-         (SfxId = 'Rar!') or
-         (SfxId = 'MSCF');
-   if (ArcPosID - ArcPos) < $200 then ArcPos := ArcPosID - 1;
+   Until ((ArcPosID - ArcPos) = $1fd) or {1fch = SizeOf(DN's internal ArcFile^.Read cache size) - SizeOf(SfxId)}
+         (ArcFile^.EOF) or
+   {ZIP} (SfxId = 'PK'#3#4) or
+   {RAR} (SfxId = 'Rar!') or
+   {ARJ} ((SfxId[0]=#$60) and (SfxId[1]=#$EA) and (SfxId[3]<#$b)) or
+   {IS3} (SfxId = #$13#$5D#$65#$8C) or
+   {CAB} (SfxId = 'MSCF');
+   if ((ArcPosID - ArcPos) < $1fd) and not (ArcFile^.EOF) then ArcPos := ArcPosID - 1;
 end; {Check4WinZip}
 
 end.

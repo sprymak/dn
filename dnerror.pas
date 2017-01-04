@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -61,7 +61,7 @@ var Err, TS: Text;
     i: integer;
 
 begin
- Writeln(' DNError v2.4 (c) Anton Fedorov aka DataCompBoy 1999-2000');
+ Writeln(' DNError v2.5 (c) Anton Fedorov aka DataCompBoy 1999-2000');
  Assign(Err, 'DN.ERR');
  Reset(Err);
  if IOResult<>0 then begin
@@ -178,6 +178,24 @@ begin
     216 : S:=S + ' General Protection fault ';
     219 : S:=S + ' Resource access error ';
     221 : S:=S + ' Navigator Link error ';
+    $E8 : S:=S + ' TBigArray: GetMem failed ';
+    $E9 : S:=S + ' TBigArray: Stream error ';
+    $EA : S:=S + ' TBigArray: Nil pointer ';
+    $EB : S:=S + ' TBigArray: Count2 out of range ';
+    $EC : S:=S + ' TBigArray: Count1 out of range ';
+    $ED : S:=S + ' TBigArray: Index2 out of range ';
+    $EE : S:=S + ' TBigArray: Index1 out of range ';
+    $EF : S:=S + ' TBigArray: Index out of range ';
+    $F0 : S:=S + ' TBigArray: no error ';
+    $F7 : S:=S + ' TArray: GetMem failed ';
+    $F8 : S:=S + ' TArray: Stream error ';
+    $F9 : S:=S + ' TArray: Nil pointer ';
+    $FA : S:=S + ' TArray: Count2 out of range ';
+    $FB : S:=S + ' TArray: Count1 out of range ';
+    $FC : S:=S + ' TArray: Index2 out of range ';
+    $FD : S:=S + ' TArray: Index1 out of range ';
+    $FE : S:=S + ' TArray: Index out of range ';
+    $FF : S:=S + ' TArray: no error ';
     else  S:=S + ' Unknown error ';
    end;
   end else if FFC='ADDR:' then begin

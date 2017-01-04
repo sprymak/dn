@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,10 +49,8 @@
 unit NavyLink;
 
 interface uses
-  LFN, LFNCol, {DataCompBoy} collect,
-  advance, advance1, advance2, advance3, Dos, Objects, Views, Drives, Drivers,
-  xTime, Gauge, DiskInfo, FilesCol, tree,
-  ComLnk;
+  Dos, LFN, LFNCol, collect, advance, advance1, advance2, advance3, Objects,
+  Views, Drives, Drivers, xTime, Gauge, DiskInfo, FilesCol, tree, ComLnk;
 
 type
     TLinkMode = (lcmUnknown, lcmLinkToLocal, lcmLocalToLink);
@@ -580,7 +578,7 @@ begin
      if xt<>'' then lfn:=nm+'.'+xt else lfn:=nm;
     if d.Attr and Directory = 0 then begin Inc(TFiles); TotalLen := TotalLen+d.Size; end;
 
-    C^.Insert(NewFileRec(lfn, nm+'.'+xt, d.Size, d.Time, d.Attr {$IFDEF DN},CurDir{$ENDIF}));
+    C^.Insert(NewFileRec(lfn, {$IFNDEF OS2}nm+'.'+xt,{$ENDIF} d.Size, d.Time, d.Attr {$IFDEF DN},CurDir{$ENDIF}));
   end;
 
   if TotalInfo <> nil then TotalInfo^ := CalcTotalInfo(C^.Count, TFiles, Ts);
@@ -856,7 +854,9 @@ begin
   SendFile := False;
   if not MayLFN then
    begin
+    {$IFNDEF OS2}
     FName:=lfGetShortFileName(FName);
+    {$ENDIF}
     DestFName:=GetURZ(FName);
    end;
   ClrIO; FileMode := $40; lAssignFile(F, FName); lResetFile(F, 1); if IOResult <> 0 then Exit;
@@ -1038,7 +1038,7 @@ function ValidLocalDir(const ADir: string): Boolean;
 var
   SR: lSearchRec;
 begin
-  lFindFirst(ADir, $3E xor VolumeID, SR);
+  lFindFirst(ADir, AnyFile, SR); {JO}
   ValidLocalDir := (DOSError = 0) and (SR.SR.Attr and Directory <> 0);
   lFindClose(SR);
 end;
@@ -1281,11 +1281,11 @@ var
   SR: lSearchRec;
 begin
   P := New(PFilesCollection, Init(16,16));
-  lFindFirst(ADir, $3E xor VolumeID, SR);
+  lFindFirst(ADir, AnyFile, SR); {JO}
   while DosError = 0 do
   begin
     if SR.SR.Name[1] <> '.' then with SR, P^, SR do
-      AtInsert(Count, NewFileRec(FullName, Name, Size, Time, Attr, AOwner));
+      AtInsert(Count, NewFileRec(FullName, {$IFNDEF OS2}Name,{$ENDIF} Size, Time, Attr, AOwner));
     lFindNext(SR);
   end;
   lFindClose(SR);

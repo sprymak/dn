@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -187,7 +187,7 @@ implementation
 uses LFN, {DataCompBoy}
      Memory, Messages, DNApp, Startup, Dialogs, RStrings,
      {$IFDEF DisAsm} Decoder, {$ENDIF} {piwamoto}
-     Gauge, DNStdDlg, Histries, xTime, Drives, DnUtil;
+     Gauge, DNStdDlg, Histries, xTime, Drives, DnUtil, DNIni;
 
 function MaxAvail: LongInt;
 begin
@@ -724,9 +724,9 @@ begin
   Buf := nil; IsValid := True; Loaded := Off;
   KillAfterUse := TempFile <> '';
   Wrap:=0;
-  if EditorDefaults.ViOpt and 2 <> 0 then Wrap:=1;
-  if EditorDefaults.ViOpt and 4 <> 0 then Wrap:=2;
-  ViewMode := {EditorDefaults.ViOpt and}Byte(Hex);
+  if ViewerDefaults.Options and vbfWrp <> 0 then Wrap:=1;
+  if ViewerDefaults.Options and vbfWWr <> 0 then Wrap:=2;
+  ViewMode := Byte(Hex);
   Fl := AStream;
   if (AFileName = '') and (Fl = nil) then Exit;
   if Fl = nil
@@ -800,7 +800,7 @@ begin
  S.Write(MarkPos, Sizeof(MarkPos));
 end;
 
-procedure XDumpStr(var S: String; var B; Addr: LongInt; Count: Integer; Filter: Byte);
+procedure XDumpStr(var S: String; var B; Addr: LongInt; Count: Integer);
 begin
   S := Hex8(Addr)+' ';
   {$IFNDEF BIT_32}
@@ -810,23 +810,9 @@ begin
     push ds
     lds  di, S
     mov  bx, 10
-    mov  ah, Filter
     jcxz @@3
 @@1:
     mov  al, es:[si]
-    or   ah, ah
-    jz   @@2
-    cmp  al, 32
-    jnc  @@4
-@@5:
-    mov  al, 250
-    jmp  @@2
-@@4:
-    cmp  ah, 1
-    jnz  @@2
-    cmp  al, 128
-    jnc  @@5
-@@2:
     mov  ds:[di+bx], al
     inc  byte ptr ds:[di]
     inc  si
@@ -845,23 +831,9 @@ begin
     mov  ECX, Count
     mov  EDI, S
     mov  EBX, 10
-    mov  AH, Filter
     jcxz @@3
 @@1:
     mov  AL, [ESI]
-    or   AH, AH
-    jz   @@2
-    cmp  AL, 32
-    jnc  @@4
-@@5:
-    mov  AL, 250
-    jmp  @@2
-@@4:
-    cmp  AH, 1
-    jnz  @@2
-    cmp  AL, 128
-    jnc  @@5
-@@2:
     mov  [EDI+EBX], AL
     inc  byte ptr [EDI]
     inc  ESI
@@ -891,155 +863,16 @@ var
 {$IFDEF DisAsm}
   D: XCHGData; {GRM!}
 {$ENDIF}
-(*
-  procedure MoveStr(var B, S; C, Flt: Byte; TSS: word);
-  Var
-   TSt: Integer;
-  begin
-   TSt := StoI(EditorDefaults.TabSize);
-   if TSt = 0 then TSt := 8;
-   {$IFNDEF BIT_32}
-   asm
-    push ds
-    lds  si,B
-    les  di,S
-    mov  cl, es:[di]
-    xor ch,ch
-    jcxz @@Exit
-    xor bx, bx
-    mov ah, C
-  @@1:
-    mov al, es:[di+1]
-    cmp al, 9
-    jne @@3
-    {-$VOL begin}
-    cmp TSS, 0
-    je  @@3
-    {-$VOL end}
-    push CX
-    push AX
-    mov CX, TSt
-    mov AX, BX
-    add AX, CX
-    xor DX, DX
-    idiv CX
-    xor DX, DX
-    imul CX
-    mov CX, AX
-    sub CX, BX
-    pop AX
-    mov al, ' '
-  @@2:
-    mov ds:[si], ax
-    add si,2
-    inc bx
-    loop @@2
-    pop CX
-    jmp @@4
-  @@3:
-    cmp  Flt, 0
-    jz   @@@2
-    cmp  al, 32
-    jnc  @@@4
-  @@@5:
-    mov  al, 250
-    jmp  @@@2
-  @@@4:
-    cmp  Flt, 1
-    jnz  @@@2
-    cmp  al, 128
-    jnc  @@@5
-  @@@2:
-    mov ds:[si], ax
-    add si,2
-    inc bx
-  @@4:
-    inc di
-    loop @@1
-  @@Exit:
-    pop  ds
-   end;
-   {$ELSE BIT_32}
-   asm
-    push ESI
-    push EDI
-    push EBX
-    push EDX
-    push ECX
-    lea  ESI, B
-    lea  EDI, S
-    xor  ECX, ECX
-    mov  CL, [EDI]
-    jcxz @@Exit
-    xor  EBX, EBX
-    mov  AH, C
-  @@1:
-    mov  AL, [EDI+1]
-    cmp  al, 9
-    jne  @@3
-    {-$VOL begin}
-    cmp  TSS, 0
-    je   @@3
-    {-$VOL end}
-    push ECX
-    push EAX
-    mov  ECX, TSt
-    mov  EAX, EBX
-    add  EAX, ECX
-    xor  EDX, EDX
-    idiv ECX
-    xor  EDX, EDX
-    imul ECX
-    mov  ECX, EAX
-    sub  ECX, EBX
-    pop  EAX
-    mov  AL, ' '
-  @@2:
-    mov  [ESI], AX
-    add  ESI,2
-    inc  BX
-    loop @@2
-    pop  CX
-    jmp  @@4
-  @@3:
-    cmp  Flt, 0
-    jz   @@@2
-    cmp  AL, 32
-    jnc  @@@4
-  @@@5:
-    mov  AL, 250
-    jmp  @@@2
-  @@@4:
-    cmp  Flt, 1
-    jnz  @@@2
-    cmp  AL, 128
-    jnc  @@@5
-  @@@2:
-    mov  [ESI], AX
-    add  ESI,2
-    inc  BX
-  @@4:
-    inc  DI
-    loop @@1
-  @@Exit:
-    pop  ECX
-    pop  EDX
-    pop  EBX
-    pop  EDI
-    pop  ESI
-   end;
-   {$ENDIF}
- end;
-*)
+
 var
-  W, W2: Integer;
+  W, W2, W3: Integer;
   WDH: Integer;
 
 begin
   for I := 1 to 8 do CC[I] := GetColor(I);
-  if (EditorDefaults.EdOpt and ebfTRp)=0 then TS:=0
+  if (ViewerDefaults.Options and vbfTRp)=0 then TS:=0
   else begin
-    TS:=StoI(EditorDefaults.TabSize);
+    TS:=StoI(ViewerDefaults.TabSize);
     if TS=0 then TS:=8;
   end;
   if TS>100 then TS:=100;
@@ -1088,18 +921,23 @@ begin
             else SetCursor(12 + HexPos * 3 + Cur.X, Cur.Y);
            ShowCursor;
            for I:=0 to Size.Y - 1 do begin
-            if Size.X+XDelta>255 then begin
-             WDH:=255-XDelta;
-             if WDH<0 then WDH:=0;
-            end else WDH:=Size.X;
-            MoveChar(B[XDelta], ' ', C, WDH);
+            MoveChar(B, ' ', C, Size.X);
             if L + LongInt(HexPos) > FileSize
              then J:=FileSize - L
              else J:=HexPos;
             if J > 0 then begin
              S:=DumpStr(Buf^[W], L, J, Filter);
              W2:=Pos(#179,S);
-             XLatBuf(S[W2+1], Length(S)-W2-1, XLat);
+             XLatBuf(S[W2+1], Length(S)-W2, XLat);
+             {-DataCompBoy & Axel: apply filter-}
+             case Filter of
+              0:   ;
+              1:   for w3:=W2+1 to Length(S) do
+                    if not (Byte(S[w3]) in [32..127]) then S[w3]:=#250;
+              else for w3:=W2+1 to Length(S) do
+                    if not (Byte(S[w3]) in [32..255]) then S[w3]:=#250;
+             end;
+             {-DataCompBoy & Axel: done-}
              if J = HexPos then Drivers.MoveStr(B, S, C)
              else begin
               Drivers.MoveStr(B, Copy(S, 1, J*3+10), C);
@@ -1133,7 +971,7 @@ begin
               Inc(W, J);
               Inc(L, LongInt(J));
             end;
-            WriteLine(0, I, WDH, 1, B[XDelta]);
+            WriteLine(0, I, Size.X, 1, B);
            end;
           end;
   vmDump: begin
@@ -1142,18 +980,23 @@ begin
            HexPos:=((Size.X - 9) div 16)*16; if HexPos < 16 then HexPos:=16;
            W:=BufPos; L:=FilePos + LongInt(BufPos); Src:=0;
            for I:=0 to Size.Y - 1 do begin
-            if Size.X+XDelta>255 then begin
-             WDH:=255-XDelta;
-             if WDH<0 then WDH:=0;
-            end else WDH:=Size.X;
-            MoveChar(B[XDelta], ' ', C, WDH);
+            MoveChar(B, ' ', C, Size.X);
             if L + LongInt(HexPos) > FileSize
              then J:=FileSize - L
              else J:=HexPos;
             if J > 0 then begin
-             XDumpStr(S, Buf^[W], L, J, Filter);
+             XDumpStr(S, Buf^[W], L, J);
              XLatBuf(S[10], Length(S)-9, XLat);
-             Drivers.MoveStr(B, S, C);
+             {-DataCompBoy: apply filter-}
+             case Filter of
+              0:   ;
+              1:   For w2:=10 to Length(S) do
+                    if not (Byte(S[w2]) in [32..127]) then S[w2]:=#250;
+              else For w2:=10 to Length(S) do
+                    if not (Byte(S[w2]) in [32..255]) then S[w2]:=#250;
+             end;
+             {-DataCompBoy: done-}
+             MoveStr(B, S, C);
              if SearchActive then begin
               if (L <= SearchX) and (L+J > SearchX) then begin
                Src:=Min(L+J-SearchX, Length(SearchString.What));
@@ -1168,7 +1011,7 @@ begin
              Inc(W, J);
              Inc(L, LongInt(J));
             end;
-            WriteLine(0, I, WDH, 1, B[XDelta]);
+            WriteLine(0, I, Size.X, 1, B);
            end;
 {$IFNDEF DisAsm}
           end
@@ -1186,11 +1029,7 @@ begin
          SetCursor(Cur.X, Cur.Y);
          ShowCursor;
          for I := 0 to Size.Y - 1 do begin
-          if Size.X+XDelta>255 then begin
-           WDH:=255-XDelta;
-           if WDH<0 then WDH:=0;
-          end else WDH:=Size.X;
-          MoveChar(B[XDelta], ' ', C, WDH);
+          MoveChar(B, ' ', C, Size.X);
           if L < FileSize - 1 then begin
            if Cur.Y=I then HexPos := L - FilePos - BufPos + ((Cur.X-10) div 2);
            D.InstrMaxLen := FileSize - L;
@@ -1199,10 +1038,10 @@ begin
            S:=UpStrg(hex8(L))+': '+D.CodeStr+Strg(' ',29-length(D.CodeStr))+
                                    D.Command+Strg(' ',10-length(D.Command))+
                                    D.Operands;
-           Drivers.MoveStr(B, S, C);
+           MoveStr(B, S, C);
            Inc(L, D.InstrLen);
           end;
-          WriteLine(0, I, WDH, 1, B[XDelta]);
+          WriteLine(0, I, Size.X, 1, B);
          end;
         end
   {GRM!}
@@ -1224,11 +1063,7 @@ begin
            then XDelta:=K - Size.X div 2;
           if XDelta < 0 then XDelta:=0;
          end;
-         if Size.X+XDelta>255 then begin
-          WDH:=255-XDelta;
-          if WDH<0 then WDH:=0;
-         end else WDH:=Size.X;
-         MoveChar(B[XDelta], ' ', C, WDH);
+         MoveChar(B, ' ', C, Size.X);
          if (Lines[I].Pos >=0) then begin
           Move(Buf^[Lines[I].Pos], S[1], Lines[I].Len);
           S[0]:=Char(Lines[I].Len);
@@ -1251,7 +1086,16 @@ begin
 
           if (S<>'') and (S[Length(S)]=#13) then Dec(S[0]);
           XLatBuf(S[1], Length(S), XLat);
-          MoveStr(B, S, C(*, Filter, TS*));
+          {-DataCompBoy: apply filter-}
+          case Filter of
+           0:   ;
+           1:   For w:=1 to Length(S) do
+                 if not (Byte(S[w]) in [32..127]) then S[w]:=#250;
+           else For w:=1 to Length(S) do
+                 if not (Byte(S[w]) in [32..255]) then S[w]:=#250;
+          end;
+          {-DataCompBoy: done-}
+          MoveStr(B, Copy(S, XDelta+1, Size.X), C);
           if Hilite then begin
            Highlites ( Length(S), @S[1], HiLitePar );
            C1                  := C and $F0;                 { Background }
@@ -1273,9 +1117,14 @@ begin
            until (Buf^[M] <> 9) or (K mod TS = 0);
            Inc(M);
           end;
-          MoveColor(B[K], Length(SearchString.What), CC[2]);
+          WDH:=K-XDelta;
+          if WDH<0 then begin
+           K:=Length(SearchString.What)+WDH;
+           WDH:=0
+          end else K:=Length(SearchString.What);
+          MoveColor(B[WDH], K, CC[2]);
          end;
-         WriteLine(0, I, WDH, 1, B[XDelta]);
+         WriteLine(0, I, Size.X, 1, B);
         end;
        end;
   end;
@@ -1312,7 +1161,7 @@ begin
      (FName <> '') and (FName <> ' ') then begin ReadFile:=false; Exit; end;
   Macros := nil;
   {PZ 2000.06.09 }
-  if (EditorDefaults.ViOpt and 8) <> 0 then
+  if (ViewerDefaults.Options and vbfHlt) <> 0 then
     HiLite := Macro.InitHighLight ( VFName, HiLitePar, Macros, nil );
   {PZ end}
   if Fl^.Status <> stOK then begin IsValid := False; ReadFile:=false; Exit end;
@@ -1407,7 +1256,7 @@ begin
  if Wrap>wmNone then MaxX := Size.X else MaxX := 255;
  J := BufPos; I := BufSize - J;
  FillChar(Lines, SizeOf(Lines), 0);
- TSt := StoI(EditorDefaults.TabSize);
+ TSt := StoI(ViewerDefaults.TabSize);
  if TSt = 0 then TSt := 8;
  MaxLines := 200;
  case ViewMode of
@@ -1747,7 +1596,7 @@ DoSave:
                          mfConfirmation+mfYesButton+mfNoButton) <> cmYes)
                    then begin CE; exit end;
                   WriteModify;
-                  if Desktop<>nil then Desktop^.Lock;
+                  {if Desktop<>nil then Desktop^.Lock;}
                   if Application<>nil then begin
                     if FileName<>VFileName then TempFile:='*^&'+FileName;
                     PDNApplication(Application)^.EditFile(True, FileName);
@@ -1755,7 +1604,7 @@ DoSave:
                        GetLineNumberForOffset(FileName,FilePos+BufPos)
                       );
                   end;
-                  if Desktop<>nil then Desktop^.UnLock;
+                  {if Desktop<>nil then Desktop^.UnLock;}
                   CE;
                   if (Owner<>nil) and (TypeOf(Owner^)=TypeOf(TFileWindow))
                   then Message(Owner, evCommand, cmClose, nil);
@@ -1884,7 +1733,7 @@ DoSave:
                            Cur.Y := Size.Y - 1;
                            DrawView; CE;
                           end else Goto 2;
-               kbESC, kbEnter: if not QuickView then begin CE; Message(Application, evCommand, cmClose, nil) end;
+               kbESC: if not QuickView then begin CE; Message(Application, evCommand, cmClose, nil) end;
                kbCtrlLeft: if ViewMode = vmText then
                      begin CE; if XDelta>19 then Dec(XDelta,20) else XDelta:=0; DrawView end
                           else (*if ViewMode <> vmAsm then {GRM!}*)
@@ -2044,6 +1893,10 @@ DoSave:
                        {       if ViewMode = vmHex then SearchX := HexPos;}
                               DrawView; CE
                              end;
+  {JO}         kbEnter: case UseEnterInViewer of
+                      1: if not QuickView then begin CE; Message(Application, evCommand, cmClose, nil) end;
+                      2: Message(Owner, evCommand, cmHexMode, nil);
+                        end
                else
 KBCheck:       if Event.What<>evNothing then begin
                 if (Event.CharCode = #11) and not CtrlK then begin
@@ -2215,7 +2068,7 @@ var
   l : Integer;
   c : Char;
 begin
-  i := 1;
+  i := XDelta+1;
   j := 0;
   l := Length(S);
   while (i <= l) do begin
@@ -2317,13 +2170,13 @@ procedure TFileViewer.CountUp;
       MaxX: Integer;
       TSt: Integer;
  begin
-  TSt := StoI(EditorDefaults.TabSize);
+  TSt := StoI(ViewerDefaults.TabSize);
   if TSt = 0 then TSt := 8;
   if J <= 0 then Exit;
   I := J - 1;
   if Buf^[I] in [$0D, $0A] then begin
    Dec(I);
-   if (Buf^[I] in [$0D, $0A]) and (Buf^[I]<>Buf^[I+1]) then Dec(I);
+   if (I > 0) and (Buf^[I] in [$0D, $0A]) and (Buf^[I]<>Buf^[I+1]) then Dec(I);
    if I <= 0 then begin J := 0; exit end;
   end;
   E := I;

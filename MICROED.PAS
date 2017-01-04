@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -88,8 +88,8 @@ type
     HiLite:       Boolean;
     HiliteLine:   Boolean;
     HiliteColumn: Boolean;
-    AutoJustify:  Boolean; {AUTOWRAP}
-    AutoWrap:     Boolean; {WRAPJUSTIFY}
+    AutoJustify:  Boolean; {WRAPJUSTIFY}
+    AutoWrap:     Boolean; {AUTOWRAP}
     LeftSide:     Word;    {LEFTMARGIN}
     RightSide:    Word;    {RIGHTMARGIN}
     InSide:       Word;    {PARAGRAPH}
@@ -561,21 +561,21 @@ begin
   EventMask := $FFFF;
   IsValid := True;
 
-  EdOpt.HiliteColumn := EditorDefaults.EdOpt  and ebfHCl <> 0;
-  EdOpt.HiliteLine   := EditorDefaults.EdOpt  and ebfHLn <> 0;
-  EdOpt.AutoIndent   := EditorDefaults.EdOpt  and ebfAId <> 0;
-  VertBlock          := EditorDefaults.EdOpt  and ebfVBl <> 0;
-  EdOpt.BackIndent   := EditorDefaults.EdOpt  and ebfBSU <> 0;
-  OptimalFill        := EditorDefaults.EdOpt  and ebfOfl <> 0;
-  EdOpt.AutoJustify  := EditorDefaults.EdOpt  and ebfJwr <> 0;
-  EdOpt.AutoBrackets := EditorDefaults.EdOpt  and ebfAbr <> 0;
-  EdOpt.AutoWrap     := EditorDefaults.EdOpt  and ebfAwr <> 0;
-  TabReplace         := EditorDefaults.EdOpt  and ebfTRp <> 0;
-  EdOpt.SmartTab     := EditorDefaults.EdOpt2 and ebfSmt <> 0;
+  EdOpt.HiliteColumn := EditorDefaults.Defaults and ebfHCl <> 0;
+  EdOpt.HiliteLine   := EditorDefaults.Defaults and ebfHLn <> 0;
+  EdOpt.AutoIndent   := EditorDefaults.Defaults and ebfAId <> 0;
+  VertBlock          := EditorDefaults.Defaults and ebfVBl <> 0;
+  EdOpt.BackIndent   := EditorDefaults.Defaults and ebfBSU <> 0;
+  OptimalFill        := EditorDefaults.Defaults and ebfOfl <> 0;
+  EdOpt.AutoJustify  := EditorDefaults.Defaults and ebfJwr <> 0;
+  EdOpt.AutoBrackets := EditorDefaults.Defaults and ebfAbr <> 0;
+  EdOpt.AutoWrap     := EditorDefaults.Defaults and ebfAwr <> 0;
+  TabReplace         := EditorDefaults.Defaults and ebfTRp <> 0;
+  EdOpt.SmartTab     := EditorDefaults.Defaults and ebfSmt <> 0;
 
   Val(EditorDefaults.RM, EdOpt.RightSide, I); if I <> 0 then EdOpt.RightSide := 76;
-  Val(EditorDefaults.LM, EdOpt.LeftSide, I); if I <> 0 then EdOpt.LeftSide := 0;
-  Val(EditorDefaults.PM, EdOpt.InSide, I); if I <> 0 then EdOpt.InSide := 5;
+  Val(EditorDefaults.LM, EdOpt.LeftSide, I);  if I <> 0 then EdOpt.LeftSide := 0;
+  Val(EditorDefaults.PM, EdOpt.InSide, I);    if I <> 0 then EdOpt.InSide := 5;
   SmartPad := FileName = 'SmartPad';
   ClipBrd := FileName = 'Clipboard'; {-$VOL}
   FillChar(MarkPos, SizeOf(MarkPos), $FF);
@@ -901,7 +901,7 @@ begin
       HistoryAdd(HistoryID, S);
     end;
   Dispose(D,Done);
-  GetFileNameDialog := lfGetLongFileName(S);
+  GetFileNameDialog := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(S);
 end;
         {-DataCompBoy-}
 
@@ -1452,7 +1452,7 @@ procedure TFileEditor.HandleEvent;
  procedure BlockOff;
  begin
   UnMark := On; Marking := Off; ChPosition := Off;
-  if EditorDefaults.EdOpt and ebfPbl <> 0 then Exit;
+  if EditorDefaults.GlobalOpt and ebfPbl <> 0 then Exit;
   Mark.B := Mark.A; BlockVisible := Off;
  end;
 
@@ -1768,7 +1768,7 @@ L1:
   if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
   EnableMarking := Off; Marking := Off;
   ChangeLine;
-  if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
+  if EditorDefaults.GlobalOpt and (ebfPbl+ebfObl)=ebfObl
     then DeleteBlock(On);
   BlockOff;
   InsertBlock(Clipboard, On);
@@ -2150,7 +2150,7 @@ var qwe: byte;
     end;
 
    EnableMarking := Off;
-   if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
+   if EditorDefaults.GlobalOpt and (ebfPbl+ebfObl)=ebfObl
      then DeleteBlock(On);
    LastY := Delta.Y;
    LastX := Delta.X;
@@ -2198,7 +2198,7 @@ var qwe: byte;
  begin
   EnableMarking := Off; Marking := Off;
   ChangeLine;
-  if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
+  if EditorDefaults.GlobalOpt and (ebfPbl+ebfObl)=ebfObl
     then DeleteBlock(On);
   BlockOff;
 
@@ -2822,7 +2822,7 @@ begin
               cmBlockRead: begin ChangeLine; BlockRead; ChangeLine; CE end;
               cmBlockWrite: begin BlockWrite; CE end;
               cmDelChar: begin
-                           if (EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl)
+                           if (EditorDefaults.GlobalOpt and (ebfPbl+ebfObl)=ebfObl)
                              and ValidBlock then DeleteBlock(On) else MakeDel;
                            CED
                          end;

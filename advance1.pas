@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -72,7 +72,7 @@ Function fDelRight(s : string) : string;
 procedure DelLeft (var S: string);
 Function fDelLeft (s : string) : string;
 
-{case function}
+{c.ase function}
 Function  Strg(c:char; Num: Byte) : string;
 
 Function  UpCase(c : Char) : Char;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -190,7 +190,7 @@ function  TEditHistoryCol.IndexOf;
       I: Integer;
 begin
   IndexOf := -1;
-  S := lfGetLongFileName(Copy(CnvString(PEditRecord(P)^.fName), 2, 255)); {DataCompBoy}
+  S := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(Copy(CnvString(PEditRecord(P)^.fName), 2, 255)); {DataCompBoy}
   for I := 0 to Count-1 do
     begin
       if Copy(CnvString(PEditRecord(At(I))^.fName), 2, 255) = S then {-$VOL}
@@ -263,7 +263,7 @@ begin
   if TypeOf((PObject(P)^))=TypeOf(TFileWindow) then
    with PFileViewer(Viewer^.Current)^, R^ do begin
      if VFileName = '' then goto Q;
-     fName     := NewStr(' '+lfGetLongFileName(VFileName)); {DataCompBoy}
+     fName     := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(VFileName)); {DataCompBoy}
      fOrigin   := Viewer^.Origin;
      fSize     := Viewer^.Size;
      fDeskSize := Desktop^.Size;
@@ -285,7 +285,7 @@ begin
 {$IFDEF DBView}{-DataCompBoy-}
   else if TypeOf((PObject(P)^))=TypeOf(TDBWindow) then
    with DBView^, R^ do begin
-     fName     := NewStr(' '+lfGetLongFileName(CnvString(P^.FileName)));
+     fName     := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(CnvString(P^.FileName)));
      fOrigin   := Origin;
      fSize     := Size;
      fDeskSize := Desktop^.Size;
@@ -299,7 +299,7 @@ begin
 {$IFDEF SpreadSheet}
   else if TypeOf((PObject(P)^))=TypeOf(TCalcWindow) then
    with SSView^, R^ do begin
-     fName         := NewStr(' '+lfGetLongFileName(CnvString(CalcView^.SName)));
+     fName         := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(CnvString(CalcView^.SName)));
      fOrigin       := Origin;
      fSize         := Size;
      fDeskSize     := Desktop^.Size;
@@ -337,7 +337,7 @@ begin
   New(R);
 
   with R^ do begin
-   fName     := NewStr(' '+lfGetLongFileName(FileName)); {DataCompBoy}
+   fName     := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(FileName)); {DataCompBoy}
    fViewMode := vmExternal;
   end;
   I := ViewHistory^.IndexOf(R);
@@ -362,7 +362,7 @@ begin
   New(R);
   with PFileEditor(E^.Intern)^, R^ do
     begin
-       fName          := NewStr(' '+lfGetLongFileName(EditName)); {DataCompBoy}
+       fName          := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(EditName)); {DataCompBoy}
        fOrigin        := Owner^.Origin;
        fSize          := Owner^.Size;
        fDeskSize      := Desktop^.Size;
@@ -624,7 +624,9 @@ procedure AddToDirectoryHistory(S: String; DriveType:integer);
 begin
   if InterfaceData.Options and ouiTrackDirs = 0 then Exit;
   if (S = '') or (S[2] <> ':') then Exit;
+  {$IFNDEF OS2}
   S:=lfGetLongFileName(S);
+  {$ENDIF}
   if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
   if (DriveType <> integer(dtList)) and
      (DriveType <> integer(dtFind)) and

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,8 @@
 unit Arc_CHZ; {CHZ}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos, Arc_ZOO;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, Arc_ZOO,
+      lfn;
 
 type
     PCHZArchive = ^TCHZArchive;
@@ -66,8 +67,8 @@ type
       OriginSize: LongInt;
       Data: Array[1..4] of Byte;
       Date: LongInt;
-      QQQ: Word;
-      NameLen: Word;
+      QQQ: AWord;
+      NameLen: AWord;
      end;
 
 
@@ -122,7 +123,7 @@ begin
 end;
 
 Procedure TCHZArchive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     P    : CHZHdr;
     Q    : Array [1..40] of Char absolute P;

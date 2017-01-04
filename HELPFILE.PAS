@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -91,6 +91,7 @@ type
     procedure GotoContext(Context: AWord);
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
+    procedure SetState(aState: word; Enable: boolean); virtual;
     destructor Done; virtual;
   end;
 
@@ -448,6 +449,14 @@ begin
   PString(Event.InfoPtr)^ := Title^;
   ClearEvent(Event);
  end;
+end;
+
+procedure THelpWindow.SetState(aState: word; Enable: boolean);
+begin
+ inherited SetState(aState, Enable);
+ if aState=sfDragging then
+  if Enable then DisableCommands([cmHelp])
+            else EnableCommands([cmHelp])
 end;
 
 destructor THelpWindow.Done;

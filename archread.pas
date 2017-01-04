@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,8 +48,8 @@
 unit ArchRead;
 
 interface
-uses Archiver, fstorage, Advance, dos, arcview, advance1, advance2, messages,
-     dnapp, commands, drivers, lfncol, objects, views;
+uses Archiver, fstorage, Advance, dos, lfn, arcview, advance1, advance2,
+     messages, dnapp, commands, drivers, lfncol, objects, views;
 
 Procedure ReadArcList;
 

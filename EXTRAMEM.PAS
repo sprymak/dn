@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -402,7 +402,21 @@ asm
         PUSH    ES
         PUSH    DI
         MOV     DI,ES:[DI]
-        CALL    DWORD PTR [DI].TStream.Error
+{I absolutely don't understand how could this construction be successfully
+used. The only probable explanation could be absolute EMM386's (or whatever
+memory manager is used during development) ignorance to such program faults.
+But my QEMM386 horribly complains!
+    Anyway it doesn't seem to do what was originally intended. I suspect it
+should call Error method for current TStream (or descendant) instance (to
+which a pointer is stored in ES:DI) but it jumps somewhere out of the
+program code. QEMM reports exceptions and the tracing fails because the
+target is unknown to the integrated BP debugger.
+    I'm using the same method used by Borland in their Objects unit. To make
+the solution more clear and correct I have included appropriate constants
+in the DN's Objects unit.
+    If someone knows better method how to fix this problem, apply it!}
+        {CALL    DWORD PTR [DI].TStream.Error} {-JITR-}
+        CALL    DWORD PTR [DI].TStream_Error   {-JITR-}
         POP     DI
         POP     ES
 end;

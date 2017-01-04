@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -234,7 +234,7 @@ TYPE
 IMPLEMENTATION
 
 USES advance, advance1, advance2, advance3, Messages, Commands, RStrings,
-     DNHelp, DOS, DnApp, Startup, CDUtil, Menus
+     DNHelp, DOS, LFN, DnApp, Startup, CDUtil, Menus
      {$IFDEF DPMI}, Dpmi, DosMem{$ENDIF}
      ;
 {
@@ -595,7 +595,8 @@ PROCEDURE InsertText( From: byte );
             GetDigit( A mod 10, S ); InsertText( 14 );
             GetDigit( B div 10, S ); InsertText( 20 );
             GetDigit( B mod 10, S ); InsertText( 24 );
-            Line[ 2, 9+9 ] := #254;
+            Line[ 2, 9+9 ] := #223;
+            Line[ 3, 9+9 ] := #223;
            end;
          end
         else

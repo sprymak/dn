@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -67,13 +67,11 @@
 *)
 
 procedure lSIM95FindFirst(const Path: String; Attr: Word; var R: lSearchRec);
-var
-  Regs: DPMIRegisters;
 begin
   NameToNameZ(Path, lFindDataRec((LowBuf^)).FullName);
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
 
-  with Regs do
+  with RMR do
   begin
     AX := $714E;
     CX := Attr;
@@ -83,7 +81,8 @@ begin
     ES := LowSeg;
     DI := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then
     begin
       R.FileHandle := $FFFF;
@@ -115,11 +114,9 @@ end;
 *)
 
 procedure lSIM95FindNext(var R: lSearchRec);
-var
-  Regs: DPMIRegisters;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
-  with Regs do
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
+  with RMR do
   begin
     AX := $714F;
     BX := R.FileHandle;
@@ -127,7 +124,8 @@ begin
     ES := LowSeg;
     DI := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
     else
     begin
@@ -155,14 +153,12 @@ end;
 *)
 
 procedure lSIM95FindClose(var R: lSearchRec);
-var
-  Regs: DPMIRegisters;
 begin
-  if R.FileHandle <> $FFFF then with Regs do
+  if R.FileHandle <> $FFFF then with RMR do
   begin
     AX := $71A1;
     BX := R.FileHandle;
-    SimulateRealModeInt($21, Regs);
+    SimulateRealModeInt($21, RMR);
   end;
 end;
 
@@ -215,15 +211,13 @@ end;
 
 procedure lSIM95GetFileNameFunc(const Name: String;
   var S: String; AFunction: Byte);
-var
-  Regs: DPMIRegisters;
 type
   TNameZArr = Array[1..2] of TNameZ;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
   NameToNameZ(Name, TNameZArr((LowBuf^))[1]);
 
-  with Regs do
+  with RMR do
   begin
     AX    := $7160;
     CL    := AFunction;
@@ -231,9 +225,10 @@ begin
     DS    := LowSeg;
     SI    := 0;
     ES    := LowSeg;
-    DI    := SizeOf(TNameZ)+1;
+    DI    := SizeOf(TNameZ);
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then S := Name
     else
     begin
@@ -275,15 +270,13 @@ end;
 *)
 
 procedure SIM95TrueName(const Name: String; var S: String);
-var
-  Regs: DPMIRegisters;
 type
   TNameZArr = Array[1..2] of TNameZ;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
   NameToNameZ(Name, TNameZArr((LowBuf^))[1]);
 
-  with Regs do
+  with RMR do
   begin
     AX    := $7160;
     CL    := 0;
@@ -291,9 +284,10 @@ begin
     DS    := LowSeg;
     SI    := 0;
     ES    := LowSeg;
-    DI    := SizeOf(TNameZ)+1;
+    DI    := SizeOf(TNameZ);
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then S := Name
     else
     begin
@@ -325,10 +319,8 @@ end;
 *)
 
 procedure lSIM95OpenFile(var F: lFile; RecSize: Word; Action: Byte);
-var
-  Regs: DPMIRegisters;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
   if FileRec(F.F).Mode <> fmClosed then Close(F.F);
 
   if F.FullName[0] = #0 then
@@ -336,7 +328,7 @@ begin
     FileRec(F.F).Mode := fmInOut;
     FileRec(F.F).RecSize := RecSize;
   end
-  else with Regs do
+  else with RMR do
   begin
     Move(F.FullName, LowBuf^, SizeOf(F.FullName));
     AX    := $716C;
@@ -347,7 +339,8 @@ begin
     SI    := 0;
     DI    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
     else
     begin
@@ -379,11 +372,9 @@ end;
 *)
 
 procedure lSIM95EraseFile(var F: lFile);
-var
-  Regs: DPMIRegisters;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
-  with Regs do
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
+  with RMR do
   begin
     Move(F.FullName, LowBuf^, SizeOf(F.FullName));
     AX    := $7141;
@@ -391,18 +382,17 @@ begin
     DX    := 0;
     SI    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
   end;
 end;
 
 procedure lSIM95EraseText(var T: lText);
-var
-  Regs: DPMIRegisters;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
-  with Regs do
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
+  with RMR do
   begin
     Move(T.FullName, LowBuf^, SizeOf(T.FullName));
     AX    := $7141;
@@ -410,7 +400,8 @@ begin
     DX    := 0;
     SI    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
   end;
@@ -431,52 +422,50 @@ end;
 *)
 
 procedure lSIM95RenameFile(var F: lFile; const NewName: String);
-var
-  Regs: DPMIRegisters;
 Type TR = Record
            NameZ: TNameZ;
            F: record end;
           end;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
   NameToNameZ(NewName, TR((LowBuf^)).NameZ);
   Move(F.FullName, TR((LowBuf^)).F, SizeOf(F.FullName));
 
-  with Regs do
+  with RMR do
   begin
     AX    := $7156;
     DS    := LowSeg;
-    DX    := SizeOf(TNameZ)+1;
+    DX    := SizeOf(TNameZ);
     ES    := LowSeg;
     DI    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
   end;
 end;
 
 procedure lSIM95RenameText(var T: lText; const NewName: String);
-var
-  Regs: DPMIRegisters;
 Type TR = Record
            NameZ: TNameZ;
            F: record end;
           end;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
   NameToNameZ(NewName, TR((LowBuf^)).NameZ);
   Move(T.FullName, TR((LowBuf^)).F, SizeOf(T.FullName));
 
-  with Regs do
+  with RMR do
   begin
     AX    := $7156;
     DS    := LowSeg;
-    DX    := SizeOf(TNameZ)+1;
+    DX    := SizeOf(TNameZ);
     ES    := LowSeg;
     DI    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
   end;
@@ -521,11 +510,9 @@ end;
 *)
 
 procedure lSIM95FileAttrFunc(var F: lFile; var Attr: Word; Action: Byte);
-var
-  Regs: DPMIRegisters;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
-  with Regs do
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
+  with RMR do
   begin
     Move(F.FullName, LowBuf^, SizeOf(F.FullName));
     AX    := $7143;
@@ -534,7 +521,8 @@ begin
     DS    := LowSeg;
     DX    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
     else
     begin
@@ -545,11 +533,9 @@ begin
 end;
 
 procedure lSIM95TextAttrFunc(var T: lText; var Attr: Word; Action: Byte);
-var
-  Regs: DPMIRegisters;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
-  with Regs do
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
+  with RMR do
   begin
     Move(T.FullName, LowBuf^, SizeOf(T.FullName));
     AX    := $7143;
@@ -558,7 +544,8 @@ begin
     DS    := LowSeg;
     DX    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
     else
     begin
@@ -591,19 +578,18 @@ end;
 *)
 
 procedure lSIM95DirFunc(const Path: String; AFunction: Word);
-var
-  Regs: DPMIRegisters;
 begin
-  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
   NameToNameZ(Path, TNameZ((LowBuf^)));
 
-  with Regs do
+  with RMR do
   begin
     AX    := AFunction;
     DS    := LowSeg;
     DX    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
   end;
@@ -623,25 +609,26 @@ end;
 procedure lSIM95ChDir(const Path: String);
 var
   C: Char;
-  Regs: DPMIRegisters;
 begin
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
   NameToNameZ(Path, TNameZ((LowBuf^)));
 
-  with Regs do
+  with RMR do
   begin
     C := Upcase(TNameZ((LowBuf^))[0]);
     if (C in ['A'..'Z']) and (TNameZ((LowBuf^))[1] = ':') then
     begin
       AH    := $0E;
       DL    := Byte(C) - $41;
-      SimulateRealModeInt($21, Regs);
+      SimulateRealModeInt($21, RMR);
     end;
 
     AX    := $713B;
     DS    := LowSeg;
     DX    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
                                              else InOutRes := 0;
   end;
@@ -664,9 +651,9 @@ end;
 procedure lSIM95GetDir(D: Byte; var Path: String);
 var
   C: Char;
-  Regs: DPMIRegisters;
 begin
-  with Regs do
+  FillWord(RMR, SizeOf(RMR) shr 1, 0);
+  with RMR do
   begin
     C := Char(D + $40);
 
@@ -675,7 +662,8 @@ begin
     DS    := LowSeg;
     SI    := 0;
     Flags := fCarry;
-    SimulateRealModeInt($21, Regs);
+    asm stc end;
+    SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0) or (AX=$7100) then Byte((LowBuf^)) := 0;
 
     Path := Concat(C, ':\', StrPas(TNameZ((LowBuf^))));

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -132,7 +132,7 @@ begin
  end;
  Halt(1);
 {$ELSE}
-  SaveDsk;
+  {SaveDsk;}{JO}
   DoneSysError;
   DoneEvents;
   DoneVideo;
@@ -193,7 +193,7 @@ begin
   First := True;
   Message(Desktop, evBroadcast, cmGetUserParams, @UserParam);
   UserParam.Active:=FileRec;
-  FName:=FileRec^.Name;
+  FName:=MakeFileName(FileRec^.Name);
   LFN  :=GetLFN      (FileRec^.LFN);
   if CharCount('.', LFN)=0 then LFN:=LFN+'.';
   lGetDir(0, ActiveDir);
@@ -217,6 +217,7 @@ begin
       I := PosChar(BgCh, S); if (I = 0) or (S[I+1]=BgCh) then Continue;
       S1 := Copy(S, 1, I-1);
       DelLeft(S1);
+      DelRight(S1);
       if S1[1]<>';' then begin
        D.Filter := S1;
        MakeTMaskData(D);
@@ -279,7 +280,9 @@ function ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStr
      FName, LFN: String;
      Event: TEvent;
      I,J: Integer;
+{$IFNDEF VIRTUALPASCAL}{JO}
      PP: PView;
+{$ENDIF VIRTUALPASCAL}
      Success, CD: Boolean;
      Local: Boolean;
      D: TMaskData;
@@ -292,7 +295,7 @@ begin
  Local := On;
  LFN:=GetLFN(UserParams^.Active^.LFN);
  if CharCount('.', LFN)=0 then LFN:=LFN+'.';
- FName:=UserParams^.Active^.Name;
+ FName:=MakeFileName(UserParams^.Active^.Name);
 
  F := New(PTextReader, Init(ExtFName));
 
@@ -328,20 +331,33 @@ RepeatLocal:
     then TempFile:='!'+S1+'|'+MakeNormName(UserParams^.Active^.Owner^, LFN)
     else if TempFile<>''
           then TempFile:=MakeNormName(UserParams^.Active^.Owner^, LFN);
+{$IFDEF VIRTUALPASCAL}
+   TempFileSWP := TempFile; {JO}
+{$ENDIF VIRTUALPASCAL}
    if Abort then Exit;
    if S[1] = '*' then DelFC(S);
+{$IFNDEF VIRTUALPASCAL}{JO}
    PP := _WriteMsg(' '+GetString(SIdx));
+{$ENDIF VIRTUALPASCAL}
    if not CheckExit then Begin ExecExtFile:=false; Exit; end;
    lGetDir(0, S1);
+   {$IFNDEF OS2}
    if UpStrg(MakeNormName(lfGetLongFileName(UserParams^.Active^.Owner^),'.'))<>
       UpStrg(MakeNormName(S1,'.'))
+   {$ELSE}
+   if UpStrg(MakeNormName(UserParams^.Active^.Owner^,'.'))<>
+      UpStrg(MakeNormName(S1,'.'))
+   {$ENDIF}
     then begin
           DirToChange:=S1;
-          lChDir(lfGetLongFileName(UserParams^.Active^.Owner^));
+          lChDir({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Active^.Owner^));
          end;
    ExecExtFile := On;
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
    ExecString(@S, '');
+{$IFDEF VIRTUALPASCAL}
+   if TempFile <> '' then Message(Application, evCommand, cmRetrieveSwp, nil); {JO}
+{$ENDIF}
 end;
         {-DataCompBoy-}
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_RAR; {RAR}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
 
 type
     PRARArchive = ^TRARArchive;
@@ -62,16 +62,16 @@ type
 type
      MainRARHdr = record
       ID: Array [1..4] of Char;
-      HeadLen: Word;
+      HeadLen: AWord;
       HeadFlags: Byte;
      end;
 
      MainRAR2Hdr = record
-       HeadCRC: Word;
+       HeadCRC: AWord;
        HeadType: Byte;
-       HeadFlags: Word;
-       HeadLen: Word;
-       Reserved1: Word;
+       HeadFlags: AWord;
+       HeadLen: AWord;
+       Reserved1: AWord;
        Reserved2: LongInt;
      end;
 
@@ -87,8 +87,13 @@ begin
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
+{$IFNDEF OS2}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR.EXE'));
+{$ELSE}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RA2.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RA2.EXE'));
+{$ENDIF}
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a'));
@@ -131,22 +136,22 @@ type
      LocRarHdr = record
        PSize: LongInt;
        USize: LongInt;
-       CRC: Word;
-       HdrLen: Word;
+       CRC: AWord;
+       HdrLen: AWord;
        Date: LongInt;
        Attr: Byte;
        Flags: Byte;
        Ver: Byte;
        NameLen: Byte;
        Method: Byte;
-       CommLen: Word;
+       CommLen: AWord;
      end;
 
      LocRar2Hdr = record
-       HeadCRC: Word;
+       HeadCRC: AWord;
        HeadType: Byte;
-       HeadFlags: Word;
-       HeadSize: Word;
+       HeadFlags: AWord;
+       HeadSize: AWord;
        PSize: LongInt;
        USize: LongInt;
        OSVer: Byte;
@@ -154,12 +159,12 @@ type
        Date: LongInt;
        Ver: Byte;
        Method: Byte;
-       NameLen: Word;
+       NameLen: AWord;
        Attr: LongInt;
      end;
 
 Procedure TRARArchive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     P    : LocRARHdr;
     P2   : LocRAR2Hdr;

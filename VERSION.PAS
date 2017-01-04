@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -52,7 +52,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '1.51.09/'+
+  VersionName:string = '1.51.10/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}
                        {$ELSE}        {$IFDEF WIN32}+'W32'
@@ -63,7 +63,7 @@ CONST
                        {$ENDIF}
                        ;
   VersionDate:string = '';
-  VersionWord:word   = 15107;
+  VersionWord:word   = 15110;
 
 var F : lText ;
     Day, Month, Year, DOW: word;
@@ -136,7 +136,7 @@ CONST
   Writeln(F.T,'  Const');
   Writeln(F.T,'     VersionName =''',VersionName,''';');
   Writeln(F.T,'     VersionDate =''',VersionDate,''';');
-  Writeln(F.T,'     VersionWord:Word = $', Hex4(VersionWord), ';');
+  Writeln(F.T,'     VersionWord:AWord = $', Hex4(VersionWord), ';');
 
   Close(F.T);
  end.

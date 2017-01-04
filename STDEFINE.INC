@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -53,7 +53,7 @@
   {$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
 {$DEFINE UUENCODE}
 {$DEFINE UUDECODE}
-{.$DEFINE Modem}
+{.$DEFINE Modem} {For enabling modem features you must have ASyncPro}
 {$DEFINE Link}
 {$DEFINE SpreadSheet}
 {$DEFINE DiskEdit}
@@ -74,6 +74,7 @@
 {.$DEFINE DisAsm}
 {.$DEFINE PKTVIEW}
 {.$DEFINE UPLOWSTRSINDLG}
+{.$DEFINE COLUMNSMENU}
 
 {$IFDEF DPMI}
  {$DEFINE BIGCOLLECTION}
@@ -82,7 +83,7 @@
  {$DEFINE NOEXTRA}
 {$ELSE}
  {.$DEFINE BIGCOLLECTION}
- {.$DEFINE QSort}{$DEFINE POGLSORT}
+ {$DEFINE QSort}{.$DEFINE POGLSORT}
  {$UNDEF NO_OVERLAY}
  {$UNDEF NOEXTRA}
  {$DEFINE OFFS}
@@ -105,6 +106,7 @@
 {$DEFINE MINARCH}
 {$Use32+}
 {$DEFINE POGLSORT}
+{$DEFINE COLUMNSMENU}
   {$ENDIF VIRTUALPASCAL}
 
 {$IFDEF BPIDE}

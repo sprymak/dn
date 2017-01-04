@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,8 +48,8 @@
 
 Unit ArcView;
 
-Interface uses LFN, {DataCompBoy} LFNCol, tree, Dos, Objects, Views, Drivers,
-               FViewer, FlPanel, FilesCol, DiskInfo, DblWnd, HistList, HideView,
+Interface uses Dos, LFN, LFNCol, tree, Objects, Views, Drivers, FViewer,
+               FlPanel, FilesCol, DiskInfo, DblWnd, HistList, HideView,
                RStrings, Drives, Commands, Archiver, FStorage, Histries,
                advance, advance1, advance2, advance3, archdet, collect
                {$IFNDEF MINARCH}, Arc_tgz, gzio{$ENDIF}
@@ -190,8 +190,7 @@ end;
         {-DataCompBoy-}
 constructor TArcDrive.Init;
  var SR: lSearchRec;
-     Nm: String;
-     Xt: String;
+     xt: string;
      I: Integer;
      Q: String;
 begin
@@ -209,9 +208,10 @@ begin
   Q:='\';
  end;
 
- lFSplit(ArcName, FreeStr, Nm, Xt);
- if Xt = '' then AddStr(ArcName, '.');
- lFindFirst(ArcName, $3F xor VolumeID, SR);
+ xt:=GetExt(ArcName);
+ If ((xt='') or (xt='.')) and (ArcName[length(ArcName)]<>'.')
+  then ArcName:=ArcName+'.';
+ lFindFirst(ArcName, AnyFile, SR); {JO}
  if DosError <> 0 then
  begin
    ArcFileName := ArcName;
@@ -241,7 +241,7 @@ begin
  TObject.Init;
  GetParam(1);
  ArcName := lFExpand(AName);
- lFindFirst(ArcName, $3F xor VolumeID, SR);
+ lFindFirst(ArcName, AnyFile, SR); {JO}
  ArcDate := SR.SR.Time;
  lFindClose(SR);
  DriveType := dtArc;
@@ -288,7 +288,7 @@ begin
  DriveType := dtArc;
  lFSplit(ArcName, Dr, Nm, Xt);
  ArcFileName := ArcName;
- lFindFirst(ArcName, $3F xor VolumeID, SR);
+ lFindFirst(ArcName, AnyFile, SR); {JO}
  lFindClose(SR);
  if DosError <> 0 then goto Failure;
  ArcDate := SR.SR.Time;
@@ -364,6 +364,7 @@ begin
  Files := nil;
  ArcPos := 0;
  SkipSFX;
+ If AType <> nil then Dispose(AType, Done); AType:=nil; {DataCompBoy}
  AType := DetectArchive;
  if AType = nil then begin FreeObject(ArcFile); Exit; end;
  New(Files, Init);
@@ -481,27 +482,28 @@ end;
 function TArcDrive.GetDirectory;
  var F: PFileRec;
      FA: PArcFile;
-     I: longInt;
-     si:longint;
+     I: LongInt;
+     si:LongInt;
      Dr: String;
      Nm: String;
      Xt: String;
      DT: DateTime;
      AllFiles: Boolean;
-     AFiles, FF, FD: PFilesCollection;
+     AFiles, FD: PFilesCollection;
      TTL, TPL: TSize;
      _USize, _PSize: TSize;
      FR: TFileRec;
      OW: Pointer;
 
 begin
- While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
- AFiles := New(PFilesCollection, Init(Files^.Files, 10));
- FD := New(PFilesCollection, Init(40, 10));
+ AFiles := New(PFilesCollection, Init($10, $10));
  PFilesCollection(AFiles)^.Owner := Owner;
  PFilesCollection(AFiles)^.SortMode := Sortmode;
+ GetDirectory := AFiles;
+ While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
+ FD := New(PFilesCollection, Init($40, $10));
  FreeSpace := ''; TotalInfo := ''; TTL := 0; TPL := 0;
- GetDirectory := AFiles; AllFiles := (FileMask = x_x) or (FileMask='*');
+ AllFiles := (FileMask = x_x) or (FileMask='*');
  FD^.SortMode := 141;
  FD^.Duplicates := False;
  AFiles^.Duplicates := False;
@@ -517,7 +519,7 @@ begin
         if Files^.CurFile.Name = '' then Continue;
         if Files^.CurFile.Name = '..' then Continue;
         with Files^.CurFile do
-         F := NewFileRec(LFN, GetURZ(Name), _USize, Date, Attr, @CurDir);
+         F := NewFileRec(LFN, {$IFNDEF OS2}GetURZ(Name), {$ENDIF}_USize, Date, Attr, @CurDir);
         F^.PSize := _PSize;
         TTL := TTL + _USize;
         TPL := TPL + _PSize;
@@ -528,10 +530,13 @@ begin
                 Dr[0] := Char(I-1);
                 if Dr = '' then Continue;
                 FillChar(FR, SizeOf(FR), 0);
+                {$IFNDEF OS2}
                 FR.Name := Norm12(GetURZ(Dr)); FR.Name[9] := ' ';
+                {$ENDIF}
                 FR.LFN := AddLFN(Dr);
                 FR.Attr := Directory;
                 I := FD^.IndexOf(@FR);
+                DelLFN(FR.LFN);
                 if I >= 0 then
                  with PFileRec(FD^.At(I))^ do
                   begin
@@ -541,34 +546,30 @@ begin
                     TPL := TPL + _PSize;
                     Continue;
                   end;
-                F := NewFileRec(Dr, GetURZ(Dr), _USize, ArcDate, $80 or Directory, @CurDir);
+                F := NewFileRec(Dr, {$IFNDEF OS2}GetURZ(Dr), {$ENDIF}_USize, ArcDate, $80 or Directory, @CurDir);
                 F^.PSize := _PSize;
                 TTL := TTL + _USize;
                 TPL := TPL + _PSize;
                 if FD^.Search(F,si) then begin DelFileRec(F); continue; end
-                                    else FD^.Insert(F);
+                                    else FD^.AtInsert(si, F);
               end else Continue;
       if AFiles^.Search(F,si) then DelFileRec(F)
-                              else AFiles^.Insert(F);
+                              else AFiles^.AtInsert(si, F);
   end;
  if MaxAvail <= LowMemSize then
  begin
    Application^.OutOfMemory;
  end;
- FF := AFiles;
  FreeSpace := '';
  TotalInfo := CalcTotalInfo(AFiles^.Count, AFiles^.Count, TTL);
 
  if CurDir = '' then OW := @ArcName else OW := @CurDir;
- if TTL > MaxLongInt then F := NewFileRec('..', '..',0, ArcDate, Directory, OW) else
- begin
-   F := NewFileRec('..','..',Round(TTL), ArcDate, Directory, OW);
-   F^.Attr := $8000 or F^.Attr;
- end;
- if TPL < MaxLongInt then F^.PSize := Round(TPL);
- FF^.AtInsert(0, F);
+
+ F := NewFileRec('..',{$IFNDEF OS2}'..'{$ENDIF},Round(TTL), ArcDate, Directory, OW);
+ F^.Attr := $8000 or F^.Attr;
+ F^.PSize := Round(TPL);
+ AFiles^.AtInsert(0, F);
  FD^.DeleteAll; Dispose(FD, Done);
- GetDirectory := FF;
 end;
         {-DataCompBoy-}
 
@@ -599,7 +600,14 @@ begin
     end;
    SS := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
    if SS[1] = '\' then DelFC(SS);
-   S := CnvString(AType^.Extract)+' '+s+lfGetShortFileName(ArcName)+' '+SquashesName(SS)+' ';
+   {$IFNDEF OS2}
+   if ArcName[Length(ArcName)]='.' then
+    S := CnvString(AType^.Extract)+' '+s+lfGetShortFileName(ArcName)+'. '+SquashesName(SS)+' '
+   else
+    S := CnvString(AType^.Extract)+' '+s+lfGetShortFileName(ArcName)+' '+SquashesName(SS)+' ';
+   {$ELSE}
+   S := CnvString(AType^.Extract)+' '+s+SquashesName(ArcName)+' '+SquashesName(SS)+' ';
+   {$ENDIF}
    DelDoubles('  ',S);
    TempFile := C + MakeNormName(TempDir , GetLFN(P^.LFN));
    Q:='|' + GetRealName+':'+MakeNormName(CurDir, GetLFN(P^.LFN));
@@ -619,7 +627,13 @@ begin
      While TempFile[Length(TempFile)] = ' ' do Dec(TempFile[0]);
      Message(Application, evCommand, Command, @TempFile);
    end;
+{$IFDEF VIRTUALPASCAL}
+   TempFileSWP := TempFile; {JO}
+{$ENDIF}
    TempFile:=''; {-$VOL}
+{$IFDEF VIRTUALPASCAL}
+  Message(Application, evCommand, cmRetrieveSwp, nil); {JO}
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -784,7 +798,11 @@ procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
 
 begin
   While ExtrDir[Length(ExtrDir)] = ' ' do Dec(ExtrDir[0]);
+  {$IFNDEF OS2}
   if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(lfGetShortFileName(ArcName), ExtrDir, Nm, Xt);
+  {$ELSE}
+  if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(ArcName, ExtrDir, Nm, Xt);
+  {$ENDIF}
   if not (ExtrDir[Length(ExtrDir)] in ['\','/']) then ExtrDir := ExtrDir + '\';
 
   SS := MakeListFile(AFiles);
@@ -796,7 +814,11 @@ begin
   if (Password = '') and Pswd then
     if ExecResource(dlgSetPassword, Password) <> cmOK then Exit;
   if Password <> '' then S := ' ' + DelSpaces(CnvString(AType^.Garble) + Password) + ' ';
+  {$IFNDEF OS2}
   S := ExtrChar+' '+s+lfGetShortFileName(ArcName)+' '+SS+' ';
+  {$ELSE}
+  S := ExtrChar+' '+s+SquashesName(ArcName)+' '+SS+' ';
+  {$ENDIF}
   lGetDir(0, DirToChange);
   CreateDirInheritance(ExtrDir, On);
   Advance2.lChDir(ExtrDir);
@@ -864,7 +886,11 @@ begin
     if (J <> cmYes) then Exit;
    end;
   SS := MakeListFile(AFiles);
+  {$IFNDEF OS2}
   S := CnvString(AType^.Delete)+' '+lfGetShortFileName(ArcName)+' '+SS;
+  {$ELSE}
+  S := CnvString(AType^.Delete)+' '+SquashesName(ArcName)+' '+SS;
+  {$ENDIF}
   ForceRescan := True;
   Exec(CnvString(AType^.Packer),s);
   ForceRescan := Off;

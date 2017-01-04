@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,7 +50,7 @@ unit DNStdDlg;
 
 interface
 
-uses LFN, LFNCol, Collect, Objects, Drivers, Views, Dialogs, Dos, Memory,
+uses Dos, LFN, LFNCol, Collect, Objects, Drivers, Views, Dialogs, Memory,
      Messages, DNApp;
 
 const
@@ -582,7 +582,11 @@ begin
   DelLFN(ST); ST:=AddLFN(s);
   SR.Attr := 0;
   SR.LFN := ST;
+  {$IFNDEF OS2}
   SR.Name := lfGetShortFileName(S);
+  {$ELSE}
+  SR.Name := lfGetLongFileName(S);
+  {$ENDIF}
   UpStr(SR.Name);
   GetKey := @SR;
 end;
@@ -682,7 +686,11 @@ const
 begin
   DelLFN(ST); ST:=AddLFN(S);
   SR.Attr := Directory;
+  {$IFNDEF OS2}
   SR.Name := lfGetShortFileName(S);
+  {$ELSE}
+  SR.Name := S;
+  {$ENDIF}
   SR.LFN  := ST;
   UpStr(SR.Name);
   GetKey := @SR;
@@ -821,7 +829,9 @@ const
   sFileLine      = ' %-12s %-10s  %sm';
 begin
   { Display path }
-  Path := #0+Cut(lFGetLongFileName(lFExpand(PFileDialog(Owner)^.Directory^))+PFileDialog(Owner)^.WildCard^,Size.X-1)+#0;
+  Path := #0+Cut({$IFNDEF OS2}lFGetLongFileName{$ENDIF}
+                 (lFExpand(PFileDialog(Owner)^.Directory^))+
+                 PFileDialog(Owner)^.WildCard^,Size.X-1)+#0;
   Color := GetColor($01);
   MoveChar(B, ' ', Color, Size.X);
   MoveCStr(B[1], Path, Color);
@@ -1127,7 +1137,9 @@ begin
     end;
   end;
   S:=DelSquashes(S);
+  {$IFNDEF OS2}
   S:=lfGetLongFileName(lfGetLongFileName(GetPath(S))+GetName(S));
+  {$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -1374,7 +1386,9 @@ begin
   if B then D^.SetData(S);
   if Desktop^.ExecView(D) <> cmCancel then D^.GetFileName(S);
   Dispose(D,Done);
+  {$IFNDEF OS2}
   S:=lfGetLongFileName(S);
+  {$ENDIF}
   if S <> '' then
     begin
        S := lFExpand(S);

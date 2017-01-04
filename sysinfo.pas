@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -383,7 +383,9 @@ var
 begin
  Reg.AX := $3306;
  Intr ($21, Reg);
- str(Reg.DL, Build);
+ if (Reg.BX = $1e14{Warp 3.0}) and (Reg.DL < $c0)
+    then Reg.DH := 1 else Reg.DH := 0;
+ str(Reg.DX, Build);
  while length(Build) < 3 do Build := '0' + Build;
  OS2Build := Build;
 end; {OS2Build}
@@ -542,16 +544,17 @@ begin
   if (opSys and opOS2)<>0 then begin
    S := S + 'OS/2 ';
    case EQList of
-    $2d14 : S := S + 'WSeB';
-    $2814 : S := S + 'Merlin';
-    $1e14 : S := S + 'Warp';
-    else    S := S + 'v' +ItoS(WordRec(EQList).Hi div 10) +'.' +ItoS(WordRec(EQList).Hi mod 10);
+    $1e14 : S := S + 'Warp 3 (8.' + OS2Build + ')';
+    $2814 : S := S + 'Warp 4 (9.' + OS2Build + ')';
+    $2d14 : S := S + 'WSeB';  {does anybody know revision codes for WSeB?}
+    else    S := S + ItoS(WordRec(EQList).Lo div 10) + '.' +
+                     ItoS(WordRec(EQList).Hi)
    end;
-   S := S +' ('+ItoS(WordRec(EQList).Hi div 10 + 5) + '.'+ OS2Build + ')';
   end
   else if (opSys and opWNT)=opWNT then S := S + 'Windows NT or Windows 2000'
    else if (opSys and opWin)<>0 then S := S + 'Windows ' + WinVer
-    else S := S + DosVendor + 'DOS '+ ItoS(WordRec(EQList).Lo)+'.'+ ItoS(WordRec(EQList).Hi)
+    else S := S + DosVendor + 'DOS ' + ItoS(WordRec(EQList).Lo) + '.' +
+              ItoS(WordRec(EQList).Hi)
  else S := S + S2;
  R.Assign(27,11+Y,69,14+Y);
  P := New(PStaticText, Init(R, S));

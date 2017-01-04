@@ -3,15 +3,15 @@
             Based on Dos Navigator (C) 1991-1999 RIT Research Labs
 ==============================================================================
 
-    Last revision date: Friday July 21 2000
+    Last revision date: Wednesday August 23 2000
 
                               Table of Contents
 
  1. General issues
  2. Creating patches
- 3. [CHANGED] Programming style
+ 3. Programming style
  4. Applying patches
- 5. [CHANGED] New DN versions distribution
+ 5. New DN versions distribution
  6. Project coordinators
 
                               1. General issues
@@ -79,28 +79,34 @@
     In our project a patch is a result of comparison between two DN source co-
  de directories,  first being the current (base) version of  DN and the second
  being the same version with some kind of modification made.
-    The diff utility is used to create patches.  It was ported from Linux and,
- as available  now, works  in Win32 console mode.  Full description of diff as
- well as its source code is available from the project coordinator.
+    The diff utility  is used to create patches.  It was ported from UNIX and,
+ as available now, works in Win32 console mode and in 32-bit DOS protected mo-
+ de - DPMI (DOS/4GW).  Please make sure  that you have the  diff port  version
+ PORT.2 or higher, since the previous port could behave incorrectly. Full des-
+ cription of diff as well as its source code is available from the project co-
+ ordinator.
     To compare two directories, the following command should be used:
         diff -urN base_version_dir modified_version_dir >file.patch
     It is considered that two subdirectories of the current directory are com-
  pared. The description of the -u, -r and -N options (which can be combined in
  a single option) can be found in the built-in help text:
         diff --help |more
-    All the options are case sensitive (this is the Linux standard).
+    All the options are case sensitive (this is the UNIX standard).
     It is recommended to name patch files as shown:
         dn-base_version-application_subject.patch
     For example:
-        dn-1.51-phonebook-export.patch
+        dn-1-51-phonebook-export.patch
     Modification can span multiple  files, include new (added)  files and text
  files other than pas files (resource definition files, etc).
     It is not recommended to combine in one patch different modifications that
  are not related to each other.
-    Please  note the  patch description  template, which  is recommended to be
+    Please note  the patch  description template,  which is  recommended to be
  used to write patch description files.  The name format recommended for these
  files is:
-        dn-base_version-application_subject.patch.info
+        dn-base_version-application_subject.info
+    Please refrain  from using space  characters as well  as more than one dot
+ character in the names of patch file itself and its description file, as the-
+ se can cause problems under certain operating systems.
     Both files should be packed together with an archiver supporting long file
  names (WinZip is recommended - http://www.winzip.com/),  and the archive sho-
  uld be given a short  name to avoid  various mailing problems.  Such archives
@@ -138,11 +144,11 @@
     When adding a constant to a group of numeric constants (like cmXXXX),  the
  first unoccupied value is  recommended to be used for the new constant rather
  than shifting values for a range of other constants.
-    [NEW] If a feature is  introduced in a patch,  and this feature  is rather
- stand-alone  in the  sence that it  can be easily  removed without  impairing
- other functionality,  this feature should be made optional at compile time by
- surrounding the new code with  conditional compilation directives  and inclu-
- ding a conditional define directive for the new feature in stdefine.inc file.
+    If a feature is introduced  in a patch,  and this feature is rather stand-
+ alone in the sence that it can be easily removed without impairing other fun-
+ ctionality, this feature should be made optional at  compile time by surroun-
+ ding the  new code with  conditional compilation  directives and  including a
+ conditional define directive for the new feature in stdefine.inc file.
     When adding features that are  based on some DOS virtual  machine features
  or services under a particular operating system, a service availability check
  or an  operating system check should be  performed before actually using such
@@ -160,7 +166,8 @@
 
     The patch utility is complementary to diff and is used to apply patches.
     To apply a patch, the following command should be used:
-        patch -l -p1 <file.patch
+        patch -p1 <file.patch
+        (assuming you have the ported patch tool version PORT.2 or higher)
     It is considered that the current directory is the directory with the cur-
  rent DN version (the directory name is not significant).
     The vesion of source code subject to patch application does not have to be
@@ -199,13 +206,13 @@
  (ritlabs.txt).
     When needed, other packages may be released as well,  such as localization
  sets for national languages.
-    [NEW] Beta versions may be  released when  necessary.  A beta version is a
- supplementary release intended solely for beta-testing pruposes,  not for ge-
- neral usage.  A person who is going  to do beta-testing is encouraged to mail
- the  project coordinator and  give information  about which  version would be
- tested, and in what hardware and software environment  (regardless of whether
- he or she did beta-testing of prior versions).  Beta versions are released as
- only one packet being the source code.
+    Beta versions may be released when necessary.  A beta version is a supple-
+ mentary release intended  solely for  beta-testing pruposes,  not for general
+ usage.  A person who  is going to  do beta-testing is  encouraged to mail the
+ project coordinator and give information about which version would be tested,
+ and in  what hardware  and software environment  (regardless of whether he or
+ she did beta-testing  of prior versions).  Beta versions are released as only
+ one packet being the source code.
 
                            6. Project coordinators
 
@@ -214,7 +221,7 @@
         Phone number in Novosibirsk: +7-3832-776581
         2:5000/111.27@fidonet AKA 911:911/0@codernet
         Alexey.Feldgendler@p27.f111.n5000.z2.fidonet.org (no files, please)
-        Send files to: xman@gorwoda.telefun.ru; dnosp@byte.nsk.su
+        Send files to: dnosp@byte.nsk.su
     Second coordinator:
         Mike Lykov
         2:5057/44@fidonet

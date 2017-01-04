@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -51,8 +51,8 @@ Unit PktView;
 {$F+,O+,V-}
 Interface
 
-Uses Objects, Strings, FViewer, Dialogs, Views, Drivers, dnApp,
-     Messages, Dos, collect, Commands, Advance1, Advance, Lfn,
+Uses Objects, Strings, FViewer, Dialogs, Views, Drivers,
+     Messages, Dos, collect, Advance1, Advance, Lfn,
      HideView, Scroller;
 
 type
@@ -158,7 +158,7 @@ const COrigin: word=11;
 
 Implementation
 
-Uses DnHelp, Advance2, U_KeyMap;
+Uses DnHelp, Advance2, U_KeyMap, XTime, Commands, DnApp;
 
 var PktFileName:String;
     PktFromAddr:String;
@@ -174,7 +174,7 @@ Type
           minute       : word;
           second       : word;
           baud         : word;
-          PacketType   : word;  {‚ ®á­®¢­®¬ 0200H}
+          PacketType   : word;  {generally 0200H}
           origNet      : word;
           destNet      : word;
           ProductCode  : char;
@@ -972,56 +972,67 @@ end;
 Function GetPrevMsg(FName:String):String;
 var D,N,E:String;
     Er:integer;
-    Num:Word;
-    Sr:SearchRec;
+    Num:Word; Tm: TEventTimer;
+    Sr:lSearchRec;
+    VM: PView;
 begin
  lFSplit(FName,D,N,E);
  while (N[1]='0') and (N<>'') do system.delete(N,1,1);
  if N='' then N:='0';
- Val(N,Num,Er);
+ Val(N,Num,Er); NewTimer(Tm, 4); VM:=nil;
  if (Er<>0) or (Num=0) then GetPrevMsg:=''
  else begin
        while Num>0 do
         begin
+         If (VM=nil) and TimerExpired(Tm) then
+          vm:=WriteMsg(GetString(dlPleaseStandBy));
          dec(Num);
-         FindFirst(ItoS(Num)+'.msg',AnyFile-VolumeID-Directory,Sr);
+         lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'),AnyFile-Directory,Sr);
+         lFindClose(Sr);
          if DosError=0 then
           begin
-           GetPrevMsg:=Sr.Name;
+           GetPrevMsg:=MakeNormName(D, Sr.FullName);
+           If vm<>nil then Dispose(vm, Done);
            exit;
           end;
         end;
        if (Num=0) then GetPrevMsg:='';
+       If vm<>nil then Dispose(vm, Done);
       end;
 end;
 
 Function GetNextMsg(FName:String):String;
 var D,N,E:String;
     Er:integer;
-    Num:Word;
-    Sr:SearchRec;
+    Num, St:Word; Tm: TEventTimer;
+    Sr:lSearchRec;
+    VM: PView;
 begin
  lFSplit(FName,D,N,E);
  while (N[1]='0') and (N<>'') do system.delete(N,1,1);
  if N='' then N:='0';
- Val(N,Num,Er);
+ Val(N,Num,Er); St:=Num; NewTimer(Tm, 4); VM:=nil;
  if (Er<>0) then GetNextMsg:=''
  else begin
-       while Num<1000 do
+       while Num<St+1000 do
         begin
+         If (VM=nil) and TimerExpired(Tm) then
+          vm:=WriteMsg(GetString(dlPleaseStandBy));
          Inc(Num);
-         FindFirst(ItoS(Num)+'.msg',AnyFile-VolumeID-Directory,Sr);
+         lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'),AnyFile-Directory,Sr);
+         lFindClose(Sr);
          if DosError=0 then
           begin
-           GetNextMsg:=Sr.Name;
+           GetNextMsg:=MakeNormName(D, Sr.FullName);
+           If vm<>nil then Dispose(vm, Done);
            exit;
           end else
            begin
             GetNextMsg:='';
-            exit;
+            continue;
            end;
         end;
-       if (Num>=1000) then GetNextMsg:='';
+       If vm<>nil then Dispose(vm, Done);
      end;
 end;
 
@@ -1083,8 +1094,10 @@ begin
                       exit;
                      end;
  InitSysError;
- writeln(f,'ÄÄÄÄÄÄÄÄÄ['+CenterStr(GetName(CurMsg^),17)
-           +']ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ');
+ writeln(f,#196#196#196#196#196#196#196#196#196'['+CenterStr(GetName(CurMsg^),17)
+           +']'#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196
+           +#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196
+           +#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196);
  writeln(f,'Msg  : Private '+spaces(30)+'Date : '+fv^.date^);
  writeln(f,'From : '+fv^.fromuser^);
  writeln(f,'To   : '+fv^.touser^);
@@ -1185,8 +1198,9 @@ begin
  if S.Status<>stOk then goto l_e;
  with Head do
   begin
-   flag:=TestDiap(Month,0,12);
-   flag:=Flag and TestDiap(day,0,31);
+   flag:=TestDiap(Month,1,12);
+   flag:=Flag and TestDiap(day,1,31);
+   flag:=flag and (OrigNet > 0);
    flag:=Flag and TestDiap(Minute,0,60);
    flag:=Flag and TestDiap(Second,0,60);
    flag:=Flag and TestDiap(Hour,0,60);
@@ -1219,15 +1233,27 @@ begin
  if Assigned(C) then Dispose(C,Done);
 end;
 
+type PLimitStream = ^TLimitStream;
+     TLimitStream = object(TDosStream)
+                     constructor Init(FileName: FNameStr; Mode: Word; Limit: Longint);
+                    end;
+
+constructor TLimitStream.Init(FileName: FNameStr; Mode: Word; Limit: Longint);
+begin
+ inherited Init(FileName, Mode);
+ if Status=stOk then
+  if Limit<StreamSize then StreamSize:=Limit
+end;
+
 Function IsMsgFile(FName:String):boolean;
 label l_e;
-var F:PDosStream;
+var F:PLimitStream;
     L:array[1..5] of Longint;
     i,N:shortint;
     XL: TXlat;
 begin
  NullXLAT(XL);
- F:=New(PDosStream,Init(FName,stOpenRead));
+ New(F,Init(FName,stOpenRead,16384));
  L[1]:=-1;
  L[1]:=SearchFileStr(F,XL,#1'MSGID: ',0,false,false,false,false,True);
  L[2]:=-1;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,7 +49,7 @@ UNIT ArvidTdr;
 
 INTERFACE
 uses Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
-     Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, LfnCol, Dos, Tree,
+     Views, Drivers, Startup,  U_KeyMap, Advance, Dos, Lfn, LfnCol, Tree,
      FilesCol, Advance2, Drives, FlPanel, Memory;
 
 procedure TdrSeekDirectory(AvtDr: PArvidDrive);
@@ -62,6 +62,28 @@ Function  TdrInit(AvtDr: PArvidDrive): boolean;
 Function  TdrLoad(AvtDr: PArvidDrive; var S: TStream): boolean;
 
 IMPLEMENTATION
+
+{$IFDEF OS2}
+FUNCTION  Norm12(const s:string):Str12;
+var R: string[12]; I: Byte; L: Byte absolute S;
+begin
+  {if S[0]=#12 then begin Norm12:=S; Exit end;}
+  System.FillChar(R[1],12,' '); R[0]:=#12;
+  if s[1]='.' then begin Norm12:=AddSpace(s,12); Exit end;
+  R[9]:='.'; i:=PosChar('.',s);
+  if i=0 then i:=succ(l) else move(s[succ(i)],r[10],Min(l-i,3));
+  if i>8 then i:=8 else dec(i);
+  move(s[1],r[1],i);
+  i:=1;
+  while i<=12 do
+    if r[i]='*'
+      then while (i<>9) and (i<=12) do begin
+        r[i]:='?';
+        inc(i)
+      end else inc(i);
+  Norm12:=R
+end;
+{$ENDIF}
 
 procedure TdrSeekDirectory;
 var
@@ -139,7 +161,7 @@ var
     not (ArvidWithDN and Security and (FF.Attr and (Hidden+SysFile) <> 0))
     and (AllFiles or (FF.Attr and Directory <> 0) or InFilter(S, FileMask)) then
         begin
-          F := NewFileRec(MakeFileName(S), S, FF.Size, FF.Time, FF.Attr, @CurDir);
+          F := NewFileRec(MakeFileName(S), {$IFNDEF OS2}MakeFileName(S),{$ENDIF} FF.Size, FF.Time, FF.Attr, @CurDir);
           if ShowD then
           begin
             New(F^.DIZ);

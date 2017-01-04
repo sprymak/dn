@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -561,7 +561,6 @@ begin
   SetBounds(R);
   Owner^.Redraw;
  end;
-  MenuActive:=True;
   if TypeOf(Self) = TypeOf(TMenuBar) then Message(Owner, evCommand, cmMenuOn, @Self);
   AutoSelect := False;
   Result := 0;
@@ -570,6 +569,7 @@ begin
   MouseActive := False;
   Frst := False;
   repeat
+    MenuActive:=True;
     Action := DoNothing;
     GetEvent(E);
     case E.What of

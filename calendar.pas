@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -52,7 +52,7 @@ unit Calendar;
 
 interface
 
-uses Commands, Drivers, Objects, dnApp, Views, Dos, Dialogs, Advance1,
+uses Commands, Drivers, Objects, dnApp, Views, Dos, LFN, Dialogs, Advance1,
      DNHelp, DnIni;
 
 const
@@ -192,7 +192,7 @@ begin
   yr := year mod 100;
   dw := (((26 * month - 2) div 10) + day + yr + (yr div 4) +
     (century div 4) - (2 * century)) mod 7;
-  if dw < 0 then DayOfWeek := dw + 7
+  if dw <= 0 then DayOfWeek := dw + 7
   else DayOfWeek := dw;
 end;
 

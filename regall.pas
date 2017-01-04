@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -89,7 +89,7 @@ const
   {$IFDEF Game}        +3 {$ENDIF}
   {$IFDEF PrintManager}+4 {$ENDIF}
   {$IFDEF CDPlayer}    +2 {$ENDIF}
-  {$IFDEF DBView}      +4 {$ENDIF}
+  {$IFDEF DBView}      +5 {$ENDIF}
   {$IFDEF Calendar}    +2 {$ENDIF}   {JO}
   {$IFDEF TrashCan}    +1 {$ENDIF}
   {$IFDEF NETINFO}     +1 {$ENDIF}
@@ -385,7 +385,11 @@ const
      ,(ObjType: otFieldListBox;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DBView.TFieldListBox){$IFDEF OFFS}^{$ENDIF});
        Load   : @DBView.TFieldListBox.Load;
-       Store  : @DBView.TFieldListBox.Store),
+       Store  : @DBView.TFieldListBox.Store)
+     ,(ObjType: otDBScrollBar;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DBView.TDBScrollBar){$IFDEF OFFS}^{$ENDIF});
+       Load   : @DBView.TDBScrollBar.Load;
+       Store  : @DBView.TDBScrollBar.Store),
 {$ENDIF DBView}
 {$ENDIF !RCP}
       { Dialogs }

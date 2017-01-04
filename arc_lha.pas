@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_LHA; {LHA}
 
 interface
-uses Archiver, Advance1, Objects, LFNCol, Dos, Advance, xTime;
+uses Archiver, Advance1, Objects, LFNCol, Dos, lfn, Advance, xTime;
 
 Type
     PLHAArchive = ^TLHAArchive;
@@ -123,7 +123,7 @@ begin
 end;
 
 Procedure TLHAArchive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     P    : LHAHdr;
     s    : String;
@@ -132,7 +132,8 @@ begin
  ArcFile^.Read(P.Size, SizeOf(P.Size));
  if (P.Size = 0) then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P.SUM, P.Size - SizeOf(P.Size));
- if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
+ if (ArcFile^.Status <> stOK) or (P.MethodID[1]<>'-') or (P.MethodID[2]<>'l')
+    then begin FileInfo.Last:=2;Exit;end;
  FP := ArcFile^.GetPos + 2;
  if P.Level = 2 then
   begin

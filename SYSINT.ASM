@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.09
+;/  Dos Navigator Open Source 1.51.10
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -126,7 +126,7 @@ scPgDnKey       EQU     51H
 kbShiftKey      EQU     03H
 kbCtrlKey       EQU     04H
 kbAltKey        EQU     08H
-;kbNumLock       EQU     20H
+kbNumLock       EQU     20H
 
 ; ROM BIOS workspace
 
@@ -136,8 +136,9 @@ KeyBufTail      EQU     (WORD PTR 1CH)
 KeyBufOrg       EQU     (WORD PTR 80H)
 KeyBufEnd       EQU     (WORD PTR 82H)
 
-PrevAlt         EQU     (BYTE PTR 4F0h) ; user area, we use it for saving
-PrevCtrl        EQU     (BYTE PTR 4F1h)
+PrevAlt         EQU     (BYTE PTR 0F0h) ; user area, we use it for saving
+PrevCtrl        EQU     (BYTE PTR 0F1h)
+                        ; DataCompBoy: User area is _40:F0_, not _40:4F0_!!!
 
 ; DOS function call classes
 
@@ -202,6 +203,7 @@ _DATA           SEGMENT WORD PUBLIC 'DATA'
         EXTRN   SelectorInc   : WORD
         EXTRN   Seg0040       : WORD
         EXTRN   RealModeRegs  : BYTE
+        EXTRN   opSys         : BYTE
 
 ; Temporary selector for Int24Handler
 
@@ -413,8 +415,8 @@ InitSysError:
         MOV     AX,3300H
         INT     21H
         MOV     SaveCtrlBreak,DL
-        MOV     DL,AL
         INC     AL
+        XOR     DL,DL
         INT     21H
     IF DPMIVersion
         MOV     AX,dpmiAllocDesc
@@ -464,6 +466,18 @@ InitSysError:
         CALL    SetProtInt
         MOV     BL,24H
         MOV     DX,OFFSET Int24Handler
+        MOV     CX,CS
+;        CALL    SetRealInt
+        ;Piwamoto+ OS/2 incorrectly handle prot-mode interrupts
+        TEST    [opSys],2  ;opOS2
+        JNZ     @@SkipSetProtInt24
+        CALL    SetProtInt ;DataCompBoy: How this works in TV??? Or not works?
+@@SkipSetProtInt24:
+        ;Piwamoto-
+        ;DataCompBoy: we must handle _both_ - realmode and dpmimode, because
+        ;Windows pass error to dpmi-mode handler, but in DOS - real-mode...
+        MOV     BL,24H
+        MOV     DX,OFFSET RealInt24Handler
         MOV     CX,CS
         CALL    SetRealInt
         MOV     AX,dpmiGetProtInt
@@ -836,6 +850,23 @@ Int21Handler:
 
         PUSHF
         STI
+        CMP     AH,71H
+        JNZ     @@S
+        CMP     AL,36H
+        JB      @@1
+        CMP     AL,57H
+        JA      @@1
+        PUSH    DX
+        PUSH    BX
+        MOV     BL,AL
+        XOR     BH,BH
+        MOV     BL,CS:FuncClassTab[BX-36H]
+        CALL    CS:FuncCheckTab[BX]
+        POP     BX
+        POP     DX
+        JC      @@2
+        JMP     @@1
+@@S:
         CMP     AH,36H
         JB      @@1
         CMP     AH,57H
@@ -970,53 +1001,93 @@ Int23Handler:
 
         IRET
 
+        ;DataCompBoy+
+     IF DPMIVersion
+; Real-mode INT 24H handler, code from Turbo Vision...
+RealInt24Handler:
+       STI                             ;Enable interrupts
+       CALL    RealModeIRET
+       PUSH    DS                      ;Save real mode stack pointer
+       PUSH    SI
+       PUSH    DI                      ;Save RealModeRegs pointer
+       PUSH    ES                      ;Point DS to data segment
+       POP     DS
+       MOV     AL,[DI].realAX.b0       ;Get drive code
+       MOV     DL,[DI].realDI.b0       ;Get error code
+       XOR     DH,DH
+       CMP     DL,9                    ;Printer out of paper?
+       JE      @@1                     ;Yes, @@1
+       TEST    [DI].realAX.b1,80H      ;Disk error?
+       JE      @@2                     ;Yes, @@2
+       MOV     DL,13                   ;Bad memory image of FAT
+       PUSH    DX
+       PUSH    AX
+       MOV     AX,16                   ;Get linear address of segment
+       MUL     [DI].realBP             ;at real mode BP register
+       MOV     CX,DX                   ;Move address to CX:DX
+       MOV     DX,AX
+       MOV     AX,dpmiSetSegBase       ;Set base address of temporary
+       MOV     BX,TempSelector         ;selector
+       INT     DPMI
+       MOV     ES,BX                   ;ES:BX = device header pointer
+       MOV     BX,[DI].realSI
+       TEST    BYTE PTR ES:[BX+5],80H  ;Block device?
+       POP     AX
+       POP     DX
+       JE      @@1                     ;Yes, @@0
+       INC     DX                      ;Device access error
+@@1:   MOV     AL,0FFH                 ;No drive code
+@@2:   PUSH    DX                      ;Push error code
+       PUSH    AX                      ;Push drive code
+       CALL    SysErrorFunc            ;Call system error handler
+       PUSH    DS
+       POP     ES
+       POP     DI
+       POP     SI
+       POP     DS
+       OR      AX,AX                   ;Zero if retry
+       MOV     DX,1                    ;Retry return code
+       JE      @@4                     ;Jump if retry
+       MOV     AH,54H                  ;Dummy function call to get
+       INT     21H                     ;DOS into a stable state
+       CLD
+       LODSW                           ;Pop AX from real mode stack
+       MOV     DL,ES:[DI].realDI.b0    ;Get critical error code
+       ADD     DL,19                   ;Return AX = 19..31
+       MOV     DH,0
+       CMP     AH,39H                  ;DOS 2.0 style function?
+       JAE     @@3                     ;Yes, @@3
+       MOV     DX,0FFFFH               ;Return AX = 0FFFFH
+@@3:   LODSW                           ;Restore other registers
+       MOV     ES:[DI].realBX,AX
+       LODSW
+       MOV     ES:[DI].realCX,AX
+       LODSW
+       MOV     ES:[DI].realDX,AX
+       LODSW
+       MOV     ES:[DI].realSI,AX
+       LODSW
+       MOV     ES:[DI].realDI,AX
+       LODSW
+       MOV     ES:[DI].realBP,AX
+       LODSW
+       MOV     ES:[DI].realDS,AX
+       LODSW
+       MOV     ES:[DI].realES,AX
+       ADD     ES:[DI].realSP,18
+       CALL    RealModeIRET            ;Simulate IRET
+       OR      ES:[DI].realFlags,1     ;Set CF in return flags
+@@4:   MOV     ES:[DI].realAX,DX       ;Store return code
+       IRET
+
+        ENDIF
+        ;DataCompBoy-
+
 ; INT 24H handler
 
 Int24Handler:
 
         STI                             ;Enable interrupts
-    IF DPMIVersion
-        CALL    RealModeIRET            ;Simulate real mode IRET
-        PUSH    ES                      ;Point DS to data segment
-        POP     DS
-        MOV     AL,[DI].realAX.b0       ;Get drive code
-        MOV     DL,[DI].realDI.b0       ;Get error code
-        XOR     DH,DH
-        CMP     DL,9                    ;Printer out of paper?
-        JE      @@0                     ;Yes, @@0
-        TEST    [DI].realAX.b1,80H      ;Disk error?
-        JE      @@1                     ;Yes, @@1
-        MOV     DL,13                   ;Bad memory image of FAT
-        PUSH    DX
-        PUSH    AX
-        MOV     AX,16                   ;Get linear address of segment
-        MUL     [DI].realBP             ;at real mode BP register
-        MOV     CX,DX                   ;Move address to CX:DX
-        MOV     DX,AX
-        MOV     AX,dpmiSetSegBase       ;Set base address of temporary
-        MOV     BX,TempSelector         ;selector
-        INT     DPMI
-        MOV     ES,BX                   ;ES:BX = device header pointer
-        MOV     BX,[DI].realSI
-        TEST    BYTE PTR ES:[BX+5],80H  ;Block device?
-        POP     AX
-        POP     DX
-        JE      @@0                     ;Yes, @@0
-        INC     DX                      ;Device access error
-@@0:    MOV     AL,0FFH                 ;No drive code
-@@1:    PUSH    DI                      ;Save RealModeRegs pointer
-        PUSH    DX                      ;Push error code
-        PUSH    AX                      ;Push drive code
-        CALL    SysErrorFunc            ;Call system error handler
-        POP     DI                      ;Restore RealModeRegs pointer
-        OR      AX,AX                   ;Zero if retry
-        MOV     AL,1                    ;Retry return code
-        JE      @@2                     ;Jump if retry
-        MOV     AL,3                    ;Fail return code
-@@2:    MOV     [DI].realAX.b0,AL       ;Store return code
-        PUSH    DS                      ;Restore ES
-        POP     ES
-    ELSE
         PUSH    ES                      ;Save registers
         PUSH    DS
         PUSH    BP
@@ -1064,7 +1135,6 @@ Int24Handler:
         POP     BP
         POP     DS
         POP     ES
-    ENDIF
         IRET
 
 SYSINT_TEXT     ENDS

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Arc_tgz; {TGZ & TAZ & TAR.GZ}
 
 interface
- uses Archiver, Objects, FViewer, Advance, LFNCol, Dos, advance1, xtime,
+ uses Archiver, Objects{, FViewer}, Advance, LFNCol, Dos, lfn, advance1, xtime,
       gzIO;
 
 type

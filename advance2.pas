@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -71,7 +71,9 @@ function  GetCurDrive: Char;
 procedure SetCurDrive(C: Char);
 
 FUNCTION  GetExt(const s:string):string;
+{$IFNDEF OS2}
 FUNCTION  Norm12(const s:string):Str12;
+{$ENDIF}
        {-DataCompBoy-}
 FUNCTION  DelSquashes(s: string): string;           {removes quotes}
 FUNCTION  GetURZ(const s: string): Str12;           {cuts name to 8.3}
@@ -107,7 +109,7 @@ FUNCTION  InExtFilter(Name: string; const F: TMaskData):Boolean;
                                                     {Name match Filter? }
 
 FUNCTION  InOldMask(Name,Mask: string):Boolean;     {DataCompBoy}
-FUNCTION  InOldFilter(Name,Filter: string):Boolean; {DataCompBoy}
+(*FUNCTION  InOldFilter(Name,Filter: string):Boolean; {DataCompBoy}*)
 FUNCTION  InSpaceMask(Name,Mask: string;ValidSpace: Boolean):Boolean;
 FUNCTION  InSpaceFilter(Name,Filter: string):Boolean;
 {$IFDEF COMBINE_MIXED}
@@ -121,7 +123,9 @@ FUNCTION  GetName(const S: String): String;
 FUNCTION  GetSName(const S: String): String;
 FUNCTION  GetIName(const S: String): String;
 FUNCTION  GetAttrStr(Attr: Word): Str6;
+{$IFNDEF OS2}
 FUNCTION  GetShortRelPath(Path: string): string;
+{$ENDIF}
 FUNCTION  GetLongRelPath(Path: string): string;
        {-DataCompBoy-}
 FUNCTION  MakeFileName(S: string): string;
@@ -177,7 +181,7 @@ destructor TTempFile.Done;
 var
   S: FNameStr;
 begin
-  S:=StrPas(FName);
+  S:=StrPas(FHandle.FullName);
   inherited Done;
   EraseFile(s);
 end;
@@ -488,6 +492,7 @@ begin
 end;
         {-DataCompBoy-}
 
+{$IFNDEF OS2}
 FUNCTION Norm12;
 var R: string[12]; I: Byte; L: Byte absolute S;
 begin
@@ -507,6 +512,7 @@ begin
       end else inc(i);
   Norm12:=R
 end;
+{$ENDIF}
 
         {-DataCompBoy-}
 FUNCTION DelSquashes(s: string): string;
@@ -873,7 +879,7 @@ begin
 end;
         {-DataCompBoy-}
 
-        {-DataCompBoy-}
+(*        {-DataCompBoy-}
 FUNCTION InOldFilter;
 var i:byte; l:byte absolute Filter;
     S: string[13];
@@ -894,7 +900,7 @@ begin
     end
   until l=0; InOldFilter:=Off
 end;
-        {-DataCompBoy-}
+        {-DataCompBoy-}*)
 
 FUNCTION InSpaceMask;
 var i:byte;
@@ -1067,6 +1073,7 @@ begin
  GetAttrStr:=AttrStr;
 end;
 
+{$IFNDEF OS2}
         {-DataCompBoy-}
 FUNCTION GetShortRelPath(Path: string): string;
  var CD: String;
@@ -1082,13 +1089,16 @@ FUNCTION GetShortRelPath(Path: string): string;
   GetShortRelPath:=Path;
  end;
         {-DataCompBoy-}
+{$ENDIF}
 
         {-DataCompBoy-}
 FUNCTION GetLongRelPath(Path: string): string;
  var CD: String;
  begin
   if Path[length(Path)] in ['\','/'] then dec(Path[0]);
+  {$IFNDEF OS2}
   Path:=lfGetLongFileName(Path);
+  {$ENDIF}
   lGetDir(0,CD);
   if CD[length(CD)] in ['\','/'] then dec(CD[0]);
   if UpStrg(copy(Path, 1, length(CD)))=UpStrg(CD)
@@ -1150,7 +1160,7 @@ end;
 function  PathExist(s: string): boolean;
 var lSR: lSearchRec;
 begin
- lFindFirst(MakeNormName(S,'*.*'),AnyFile, lSR);
+ lFindFirst(MakeNormName(S,'*.*'), AnyFile, lSR);
  lFindClose(lSR);
  PathExist:=DosError=0;
 end;

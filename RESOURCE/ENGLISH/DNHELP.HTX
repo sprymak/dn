@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.08
+;/  Dos Navigator Open Source 1.51.10
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -1242,7 +1242,7 @@ which represents the working environment of Navigator:
        {³ title item of this submenu. This command could be also called:_}
        {³ by key combination mentioned in the menu.:_}
        {:_}
-ÛÛðÛÛFileÛÛDiskÛÛUtilitiesÛÛPanelÛÛManagerÛÛOptionsÛÛWindowÛÛÛÛÛÛÛÛÛÛÛ22:29:19
+ÛÛÛÛFileÛÛDiskÛÛUtilitiesÛÛPanelÛÛManagerÛÛOptionsÛÛWindowÛÛÛÛÛÛÛÛÛÛÛ22:29:19
                              ÉÍ[þ]ÍÍÍÍÍÍÍÍ E:\TP\DNHLP ÍÍÍÍÍÍÍÍÍ[]Í»
  C:\DN>arj f dn              º..          ³            ³            
  ARJ 2.30 Copyright (c) 1990-º dn      hlp³            ³            ±
@@ -1935,7 +1935,7 @@ See also: {User Menu:UserMenu}
    >2 ~A~rchive                  ³
      pkzip -mex archive\mail.zip ³ Call archiver
      pkunzip -t archive\mail.zip ³ Check archive
-   >2 ~~ § àå¨¢¨à®¢ âì          ³
+   >2 ~E~xtract                  ³
      pkunzip archive\mail.zip    ³
  >1                              ³ Divider
  >1 ~G~ames                      ³
@@ -1944,7 +1944,7 @@ See also: {User Menu:UserMenu}
 .topic MenuEdit=16550
 .title Edit User Menu
 
- To edit current user menu press a [F2] button.
+ To edit current user menu, press [F2].
 
  To edit local user menu is exist next item of the Main Menu:
   'Options|Local menu definition...'
@@ -1984,9 +1984,9 @@ menu elements of this level.
  {$:_}  - Name of file in passive File Panel
  {&:_}  - Long name of file in passive File Panel w/o squashes
  {.!:_} - Extension of file in active File Panel
- {.#:_} - Long extention of file in active File Panel w/o squashes
+ {.#:_} - Long extension of file in active File Panel w/o squashes
  {.$:_} - Extension of file in passive File Panel
- {.&:_} - Long extention of file in passive File Panel w/o squashes
+ {.&:_} - Long extension of file in passive File Panel w/o squashes
  {!\:_} - Directory of file in active File Panel
  {#\:_} - Long directory name of file in active File Panel w/o squashes
  {$\:_} - Directory of file in passive File Panel
@@ -2411,7 +2411,8 @@ and at Alt-F4 - external one.
   {Mouse          :MouseSetup} - Mouse sensitivity and buttons setup
   {Communications :Communication} - Communication port setup and modem strings
 
-  {Editor/Viewer:EditorDefaults} - Internal Editor/Viewer defaults
+  {Editor:EditorDefaults} - Internal Editor defaults
+  {Viewer:ViewerDefaults} - Internal Viewer defaults
   {Terminal     :Terminal} - Communication Terminal options
 
 .topic SubMenuFileMgr=48011
@@ -2790,7 +2791,7 @@ Programs (.COM, .EXE, .SS) must be in SSAVERS\ subdirectory of user Dos Navigato
 directory.
 
 .topic EditorDefaults=48040
-.title Internal Editor and Viewer Defaults
+.title Internal Editor Defaults
 
 .topic FloppyFormat=48041
 .title Diskette Format
@@ -3268,3 +3269,6 @@ only).
 
 .topic PktMsgViewer=48099 ; [C] /DataCompBoy/ 12.07.2000
 .title Pkt Msg Viewer
+
+.topic ViewerDefaults=48100 ; [C] /DataCompBoy/ 11.08.2000
+.title Internal Viewer Defaults

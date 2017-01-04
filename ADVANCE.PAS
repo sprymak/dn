@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.09
+//  Dos Navigator Open Source 1.51.10
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -58,8 +58,9 @@ USES Dos,{DnIni}
      {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
      Objects, LFN{DataCompBoy}
      {$IFDEF DPMI},Dpmi,DosMem{$ENDIF}
-
      ;
+
+Procedure AdvanceInitUnit;
 
 {$IFDEF DNPRG}
 {$I Version.Inc} {DataCompBoy: DO NOT INCLUDE Version.inc IN OTHER UNITS!}
@@ -267,7 +268,11 @@ const
       N_O_E_M_S  : array[1..5] of char = 'NOEMS';
          cTEMP_  : string[5] = 'TEMP:';
          cLINK_  : string[5] = 'LINK:';
+ {$IFNDEF OS2}
          x_x     : string[3] = '*.*';
+ {$ELSE}
+         x_x     : string[3] = '*';
+ {$ENDIF}
 
 var
     DOS40 : Boolean;
@@ -288,6 +293,9 @@ var
   SourceDir:  String;
   TempDir:    String;
   TempFile:   String;
+{$IFDEF VIRTUALPASCAL}
+  TempFileSWP: String; {JO}
+{$ENDIF}
   LngFile:    String;
   SwpDir:     String;
        {-DataCompBoy-}
@@ -1040,6 +1048,7 @@ end;
 {-DataCompBoy-}
 {$ENDIF}
 
+Procedure AdvanceInitUnit;
 BEGIN
  {$IFNDEF VIRTUALPASCAL}
  asm
@@ -1071,4 +1080,6 @@ BEGIN
               ((Hi(DosVersion) >= 30) or
                ((Hi(DosVersion) >= 10) and (GetEnv('OS2COMSPEC') <> ''))
             )));
+END;
+
 END.
