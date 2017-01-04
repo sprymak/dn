@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn200-viewer-history.patch
+//  dn200-dbf_wkz_hscroll_bar.patch
+//  dn2215-windows_manager_changes_2.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -69,7 +74,11 @@ type
     PCalcWindow = ^TCalcWindow;
     TCalcWindow = object(TUniWindow)
      CalcView: PCalcView;
+     RealName: String;
      constructor Init(Bounds: TRect; AName: String); {DataCompBoy}
+{--- start -------- Eugeny Zvyagintzev ---------}
+     Procedure ChangeBounds(Var R: TRect); Virtual;
+{--- finish -------- Eugeny Zvyagintzev ---------}
      constructor Load(var S: TStream);
      procedure Store(var S: TStream);
      procedure HandleEvent(var Event: TEvent); virtual;
@@ -255,12 +264,25 @@ end;
 constructor TCalcWindow.Init;
  var R: TRect;
      P, P1: PView;
+     I  : Integer;
+     s  : String;
 begin
+{--- start -------- Eugeny Zvyagintzev ---------}
+ I:=PosChar('|', AName);
+ If I > 0 Then
+  begin
+   S:=Copy(AName, 1, I-1);
+   AName:=Copy(AName, I+1, 255);
+  end;
+{--- finish -------- Eugeny Zvyagintzev ---------}
  if AName = '' then AName := 'Untitled.WKZ'
                else if GetFileAttr(AName+#0) and Directory<>0
                      then AName := 'Untitled.WKZ'
                      else AName := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(lFExpand(AName));
- TWindow.Init(Bounds, Cut(AName,Bounds.B.X-Bounds.A.X-12), 0);
+ If I <= 0 Then
+  S:=AName;
+ TWindow.Init(Bounds, Cut(S,Bounds.B.X-Bounds.A.X-12), 0);
+ RealName:=S;
  Options := Options or ofTileable;
  Flags := Flags or wfMaxi;
  if LowMemory then Exit;
@@ -311,6 +333,19 @@ begin
   inherited Load(S);
   GetSubViewPtr(S, CalcView);
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Now horizontal scrollbar can't hide bottom-right resizing corner}
+Procedure TCalcWindow.ChangeBounds;
+Var
+   R1: TRect;
+Begin
+ Inherited ChangeBounds(R);
+ CalcView^.HScroll^.GetBounds(R1);
+ R1.B.X:=Size.X-2;
+ CalcView^.HScroll^.SetBounds(R1);
+End;
+{--- finish -------- Eugeny Zvyagintzev ---------}
 
 procedure TCalcWindow.Store;
 begin
@@ -890,7 +925,8 @@ begin
  TView.HandleEvent(Event);
  case Event.What of
   evCommand: case Event.Command of
-              cmGetName: PString(Event.InfoPtr)^ := 'Speadsheet - '+SName^;
+              cmGetName: PString(Event.InfoPtr)^ := GetString(dlWKZName) + ' - '
+                         + Cut(SName^, 49 - Length(GetString(dlWKZName)));
               cmImportToFile: begin ExportToFile; ClearEvent(Event) end;
               cmSaveSheetAs: begin
                        SaveSheetAs; CE;

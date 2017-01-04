@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn200-screen_grabber_improve.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -902,10 +905,10 @@ begin
         Sh := ShiftState and 3 <> 0;
         if ShiftState and 4 <> 0 then Stp := 8 else Stp := 1;
         case Event.KeyCode of
-          kbPgUp, kbCtrlPgUp:  R.Move(0, -R.A.Y);
-          kbHome, kbCtrlHome:  R.Move(-R.A.X, 0);
-          kbEnd,  kbCtrlEnd:   R.Move(Size.X, 0);
-          kbPgDn, kbCtrlPgDn:  R.Move(0, Size.Y);
+          kbPgUp, kbCtrlPgUp:  if Sh then R.A.Y := 0 else R.Move(0, -R.A.Y);
+          kbHome, kbCtrlHome:  if Sh then R.A.X := 0 else R.Move(-R.A.X, 0);
+          kbEnd,  kbCtrlEnd:   if Sh then R.B.X := Size.X else R.Move(Size.X, 0);
+          kbPgDn, kbCtrlPgDn:  if Sh then R.B.Y := Size.Y else R.Move(0, Size.Y);
           kbRight,kbCtrlRight: if Sh then begin Inc(R.B.X,Stp);R.B.X := Min(R.B.X, Size.X) end else R.Move(Stp,0);
           kbLeft, kbCtrlLeft:  if Sh then
                                begin

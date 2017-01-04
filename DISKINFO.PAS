@@ -165,7 +165,7 @@ uses Startup, ExtraMem, DNApp, Commands, DNHelp, Tree, xTime
      {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
-const MaxTeam = 173;
+const MaxTeam = 175;
 
 const
       Logo1 = '          ,     sSSs     s$$s   ' ;

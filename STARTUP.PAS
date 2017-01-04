@@ -53,6 +53,9 @@
 //  dn16rc1-version_upgrade.patch
 //
 //  2.0.0
+//  dn2215-windows_manager_changes_2.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -303,7 +306,7 @@ CONST
   CustomMask1: PMaskData = nil;
 {raw text}
   CustomMask2: PMaskData = nil;
-{databases & speadsheets}
+{databases & spreadsheets}
   CustomMask3: PMaskData = nil;
 {kill'em!}
   CustomMask4: PMaskData = nil;
@@ -658,7 +661,7 @@ begin
  New(CustomMask2);  FillChar(CustomMask2^, SizeOf(CustomMask2^), 0);
  CustomMask2^.Filter := '.;asc;dok;txt;ans;me;1st;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][0-9]';
 
-{databases & speadsheets}
+{databases & spreadsheets}
  New(CustomMask3);  FillChar(CustomMask3^, SizeOf(CustomMask3^), 0);
  CustomMask3^.Filter := 'dbf;db;wkz;wks;123;wk1;xls;mdb;mde';
 

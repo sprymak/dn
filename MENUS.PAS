@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn16rc1-user_menu_pgdn_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -653,7 +656,7 @@ begin
           kbPgUp:
             if Size.Y <> 1 then
             begin
-             For W := 1 to Size.Y-2 do
+             For W := 0 to Size.Y-2 do
               if Current = Menu^.Items then break
               else begin
                P := Current;
@@ -671,8 +674,8 @@ begin
           kbPgDn:
             if Size.Y <> 1 then
             begin
-             For W := 1 to Size.Y-2 do
-              if (Current = Menu^.Items) and (W>1)
+             For W := 0 to Size.Y-2 do
+              if (Current = Menu^.Items) and (W>0)
                then begin TrackKey(False); break end
                else begin
                      Current := Current^.Next;

@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -134,7 +137,6 @@ Procedure TCHZArchive.GetFile;
 var
     FP   : Longint;
     P    : CHZHdr;
-    S    : String;
     label 1;
 begin
 1:
@@ -146,9 +148,9 @@ begin
  if P.ID[4] = 'D' then
   begin
    ArcFile^.Seek(FP+9);
-   ArcFile^.Read(S[0],1);
-   ArcFile^.Read(S[1],Length(S));
-   CDir := CDir + S+'\';
+   ArcFile^.Read(FileInfo.FName[0],1);
+   ArcFile^.Read(FileInfo.FName[1],Length(FileInfo.FName));
+   CDir := CDir + FileInfo.FName +'\';
    Goto 1;
   end else if P.ID[4] = 'd' then
    begin

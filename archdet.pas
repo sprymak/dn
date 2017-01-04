@@ -52,6 +52,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -92,30 +95,29 @@ end;
 
 Function RARDetect: Boolean;
 var
-    M2: MainRAR2Hdr;
-    K: Array[1..7] of Char absolute M2;
-    M: MainRARHdr absolute M2;
-    L: LongInt;
+ ID: LongInt;
+ M2: MainRAR2Hdr;
 begin
  RAR2 := Off;
  RARDetect:=False;
- L := ArcFile^.GetPos;
- ArcFile^.Read(K, SizeOf(K));
- if (ArcFile^.Status = stOK) and (M.ID = #$52#$45#$7E#$5E)
+ ArcFile^.Read(ID, SizeOf(ID));
+ if (ArcFile^.Status = stOK) and (ID = $5e7e4552{'RE~^'}{RAR until v1.50})
     then
      begin
       RARDetect := True;
-      ArcPos := L + M.HeadLen;
+      ArcFile^.Read(ID, 2);{MainRARHdr.HeadLen: AWord;}
+      ArcPos := ArcPos + ID and $ffff;
      end;
- if (ArcFile^.Status = stOK) and (K = #$52#$61#$72#$21#$1A#$07#$00)
+ if (ArcFile^.Status = stOK) and (ID = $21726152{Rar!}{RAR 1.50+})
     then
      begin
-      RAR2 := On;
+      ArcFile^.Read(ID, 3);{skip 3 bytes}
       ArcFile^.Read(M2, SizeOf(M2));
       if M2.HeadType = $73 then
         begin
           RARDetect := True;
-          ArcPos := ArcFile^.GetPos + M2.HeadLen - SizeOf(M2);
+          RAR2 := On;
+          ArcPos := ArcPos + M2.HeadLen + 7{Rar ID};
         end;
      end;
  ArcFile^.Seek(ArcPos);
@@ -181,7 +183,8 @@ var
 begin
   CABDetect := false;
   ArcFile^.Read(CFHEADER,SizeOf(CFHEADER.signature));
-  if (ArcFile^.Status = stOK) and (CFHEADER.signature = 'MSCF') then begin
+  if (ArcFile^.Status = stOK) and (CFHEADER.signature = $4643534d {'MSCF'})
+   then begin
    ArcFile^.Read(CFHEADER.reserved1, SizeOf(CFHEADER) - SizeOf(CFHEADER.signature));
    if (CFHeader.cbCabinet > sizeof(TCFHeader)) and
       (CFHeader.coffFiles > sizeof(TCFHeader)) and
@@ -219,7 +222,7 @@ end;
 begin
  ArcFile^.Read(P,SizeOf(P));
  ARCDetect := False;
- if (ArcFile^.Status = stOK) and (P.Mark = ^Z) and (P.Version < 20) then More;
+ if (ArcFile^.Status = stOK) and (P.Mark = $1a{^Z}) and (P.Version < 20) then More;
  ArcFile^.Seek(ArcPos);
 end;
 
@@ -449,7 +452,7 @@ var
 begin
  ZOODetect:=False;
  ArcFile^.Read(ID, SizeOf(ID));
- if (ArcFile^.Status = stOK) and (ID = ZOOID) then
+ if (ArcFile^.Status = stOK) and (ID = $FDC4A7DC) then
    begin
     ArcFile^.Read(ArcPos,SizeOf(ArcPos));
     ZOODetect := True;

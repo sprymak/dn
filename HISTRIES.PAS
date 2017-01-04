@@ -52,6 +52,11 @@
 //  dn16rc1-view_and_edit_history_fix.patch
 //
 //  2.0.0
+//  dn200-dbf_wkz-history.patch
+//  dn200-viewer-history.patch
+//  dn200-viewer-history-v2.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -203,7 +208,7 @@ begin
   S := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(Copy(CnvString(PEditRecord(P)^.fName), 2, 255)); {DataCompBoy}
   for I := 0 to Count-1 do
     begin
-      if Copy(CnvString(PEditRecord(At(I))^.fName), 2, 255) = S then {-$VOL}
+      if UpStrg(Copy(CnvString(PEditRecord(At(I))^.fName), 2, 255)) = UpStrg(S) then {-$VOL}
         begin IndexOf := I; Exit end;
     end;
 end;
@@ -295,7 +300,7 @@ begin
 {$IFDEF DBView}{-DataCompBoy-}
   else if TypeOf((PObject(P)^))=TypeOf(TDBWindow) then
    with DBView^, R^ do begin
-     fName     := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(CnvString(P^.FileName)));
+     fName     := NewStr(' '+DBView^.RealName);
      fOrigin   := Origin;
      fSize     := Size;
      fDeskSize := Desktop^.Size;
@@ -716,6 +721,11 @@ procedure ViewHistoryMenu;
   var D: PDialog;
       P: PTHistList;
       I: Integer;
+{--- start -------- Eugeny Zvyagintzev ---------}
+      X: Integer;
+      RealName: String;
+      AxilName: String;
+{--- finish -------- Eugeny Zvyagintzev ---------}
 begin
   if InterfaceData.Options and ouiTrackViewers = 0 then
     begin
@@ -733,8 +743,29 @@ begin
   if I >= 0 then
    begin
     If (PViewRecord(ViewHistory^.At(I))^.fName = nil) then Exit; {Ku :}
-    PDNAppl(Application)^.ViewFile(1, (* X-Man *)
-     Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255));
+{--- start -------- Eugeny Zvyagintzev ---------}
+{We have to check that file is archive}
+    RealName:=Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255);
+    X:=PosChar(':', RealName);
+    If X > 0 Then
+     Begin
+      RealName:=Copy(RealName,X+1,Length(RealName));
+      X:=PosChar(':', RealName);
+      If X > 0 Then
+       Begin
+        AxilName:=Copy(RealName,1,X);
+        RealName:=Copy(RealName,X+1,Length(RealName));
+        X:=PosChar(':', RealName);
+        If X > 0 Then
+         RealName:=AxilName+Copy(RealName,1,X-1)
+        Else
+         RealName:=Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255);
+       End
+      Else
+       RealName:=Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255);
+     End;
+{--- finish -------- Eugeny Zvyagintzev ---------}
+    PDNAppl(Application)^.ViewFile(1, RealName);
    end;
 end;
 

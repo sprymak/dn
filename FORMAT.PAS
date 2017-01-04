@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn200-Format_disk_in_realmode.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -2775,10 +2778,9 @@ procedure   tfmt.CalculateBootFatRoot;
                 ES := BootSseg;
                 BX := 0;
                 {$ELSE}
-                ES := Seg(BootS);
-                BX := Ofs(BootS);
+                ES := Seg(BootS^);
+                BX := Ofs(BootS^);
                 {$ENDIF}
-
                 {$IFDEF DPMI}SimulateRealModeInt{$ELSE}intr{$ENDIF}($13,Regs);
 
                 if Flags and FCarry <> 0 then
@@ -2804,8 +2806,8 @@ procedure   tfmt.CalculateBootFatRoot;
                 ES := BootSseg;
                 BX := 0;
                 {$ELSE}
-                ES := Seg(BootS);
-                BX := Ofs(BootS);
+                ES := Seg(BootS^);
+                BX := Ofs(BootS^);
                 {$ENDIF}
                 {$IFDEF DPMI}SimulateRealModeInt{$ELSE}intr{$ENDIF}($13,Regs);
 

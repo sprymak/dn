@@ -54,6 +54,14 @@
 //  dn16rc1-edit_long_db_field.patch
 //
 //  2.0.0
+//  dn200-delete_file_from_temp_fix-diff161byMV.patch
+//  dn200-dbf_wkz-history.patch
+//  dn200-dbf_wkz_hscroll_bar.patch
+//  dn200-empty_dbf.patch
+//  dn223-dbf_indicator_and_hscrollbar.patch
+//  dn2215-windows_manager_changes_2.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -107,7 +115,7 @@ type
      Delta, Pos: TDBPoint;
      VerticalScrollBar  : PDBScrollBar;
      HorizontalScrollBar: PDBScrollBar;
-     constructor Init(R: TRect; FName: String); {DataCompBoy}
+     constructor Init(R: TRect; FName: String; Var FileIsDBF: Boolean); {DataCompBoy}
      function Valid(Command: Word): Boolean; virtual;
      function GetRecord(N: LongInt): Pointer;
      procedure GetInfo(StrIdx: TStrIdx);
@@ -117,7 +125,7 @@ type
      function GetPalette: PPalette; virtual;
      Constructor Load(var S : Tstream);
      Procedure Store(var S : TStream);
-     function Failed: Boolean;
+     function Failed(Var FileIsDBF: Boolean): Boolean;
     end;
 
     PMemoStream = ^TMemoStream;
@@ -151,7 +159,11 @@ type
     TDBWindow = object(TFileWindow)
        P: PDBViewer;
       P1: PDBIndicator;
-     constructor Init(FName: String);
+     RealName: String;
+{--- start -------- Eugeny Zvyagintzev ---------}
+     constructor Init(FName: String; Var FileIsDBF: Boolean);
+     Procedure ChangeBounds(Var R: TRect); Virtual;
+{--- finish -------- Eugeny Zvyagintzev ---------}
      function GetPalette: PPalette; virtual;
      Constructor Load(var S : Tstream);
      Procedure Store(var S : TStream);
@@ -300,7 +312,7 @@ begin
   SearchString := nil;
   HelpCtx := hcDBView;
   Buf := nil; FileName := NewStr(lFExpand(FName));
-  if Failed then isValid:=false else if isValid then TempFile := '';
+  if Failed(FileIsDBF) then isValid:=false else if isValid then TempFile := '';
 end;
         {-DataCompBoy-}
 
@@ -334,9 +346,8 @@ begin
 end;
 
 
-function TDBViewer.Failed: Boolean;
+function TDBViewer.Failed(Var FileIsDBF: Boolean): Boolean;
 var I : LongInt ;
- var Dir, Name, Ext: String; {JO}
 begin
   Failed := False;
   New(DBFile, Init(CnvString(FileName)));
@@ -350,13 +361,10 @@ begin
 {     DisposeStr(SearchString);
       Dispose(DBFile,Done); DBFile:=nil;
 }     TempFile := '';
-      if KillAfterUse then
-                        begin
-                          lFSplit(CnvString(FileName), Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-                          if Dir = Tempdir then EraseFile(CnvString(FileName)); {во временном каталоге не помешает}
-                        end;
+      if KillAfterUse then EraseTempFile(CnvString(FileName));
 {     DisposeStr(FileName);}
       Failed := True;
+      FileIsDBF:=True;
       Exit;
     end;
     if MaxAvail < I then I := MaxAvail;
@@ -373,32 +381,30 @@ begin
     DBFile^.Seek(0);
     DBFile^.Read(Buf^, NumRec);
   end;
+ FileIsDBF:=IsValid;
 end;
 
 Constructor TDBViewer.Load ;
+Var
+   FileIsDBF: Boolean;
 begin
   inherited Load( S );
   S.Read( KillAfterUse, SizeOf ( KillAfterUse ) );
   SearchString := S.ReadStr;
   FileName := S.ReadStr;
 
-  if Failed then Fail;
+  if Failed(FileIsDBF) then Fail;
 
   S.Read( Delta , SizeOf(Delta));
   S.Read( Pos , SizeOf( Pos ));
 end;
 
 destructor TDBViewer.Done;
- var Dir, Name, Ext: String; {JO}
 begin
  DisposeStr(SearchString);
  if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
  if DBFile <> nil then Dispose(DBFile,Done); DBFile:=nil;
- if KillAfterUse then
-                   begin
-                     lFSplit(CnvString(FileName), Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-                     if Dir = Tempdir then EraseFile(CnvString(FileName)); {во временном каталоге не помешает}
-                   end;
+ if KillAfterUse then EraseTempFile(CnvString(FileName));
  DisposeStr(FileName);
  inherited Done;
 end;
@@ -790,7 +796,6 @@ procedure TDBViewer.HandleEvent;
  var F: lFile; {DataCompBoy}
      P: TPoint;
      RD: Word;
-     Dir, Name, Ext: String; {JO}
 
 begin
  inherited HandleEvent(Event);
@@ -814,12 +819,12 @@ begin
                                           Buf := nil;
                                           dbFile := nil;
                                         end;
-                                      lFSplit(FileName^, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-                                      if Dir = Tempdir then EraseFile( FileName^ ); {во временном каталоге не помешает}
+                                      EraseTempFile(FileName^);
                                       KillAfterUse := False;
                                       if Event.Command = cmClose then GlobalMessage(evCommand, cmPanelReread, nil);
                                     end;
-              cmGetName: PString(Event.InfoPtr)^ := GetString(dlDBViewName) + FileName^;
+              cmGetName: PString(Event.InfoPtr)^ := GetString(dlDBViewName) + ' - '
+                         + Cut(FileName^, 49 - Length(GetString(dlDBViewName)));
               cmShowFields: begin GetInfo(dlDBViewInfo); CE end;
               cmShowMemo: begin ViewMemo; CE end;
               cmSearchFor: begin StartSearch; CE; end;
@@ -988,10 +993,13 @@ procedure TDBIndicator.Draw;
  var B: TDrawBuffer;
      S: String;
      C: Byte;
+     PFR: PFieldRec;
 begin
  if DBViewer^.Delta.Y < 0 then DBViewer^.Delta.Y := 0;
  if Origin.Y <> Owner^.Size.Y - 1 then MoveTo(Origin.X, Owner^.Size.Y - 1);
- S := ItoS(DBViewer^.Delta.Y+1)+'/'+Itos(DBViewer^.DBFile^.NumRec);
+ PFR:=DBViewer^.DBFile^.GetFieldRec(DBViewer^.Delta.X);
+ S := ItoS(DBViewer^.Delta.Y+1)+'/'+Itos(DBViewer^.DBFile^.NumRec)+' ['+PFR^.Who+' '+Itos(PFR^.Len)+','+Itos(PFR^.Dec)+']';
+ S:=Copy(S,1,Owner^.Size.X-4);
  if Byte(S[0]) <> Size.X then begin GrowTo(Byte(S[0]), 1); Exit; end;
  C := Byte(Owner^.GetState(sfActive));
  C := Owner^.GetColor(C+1);
@@ -1001,14 +1009,25 @@ end;
 
 constructor TDBWindow.Init;
  var R  : TRect;
+     I  : Integer;
+     s  : String;
 begin
  DeskTop^.GetExtent(R);
+ I:=PosChar('|', FName);
+ If I > 0 Then
+  begin
+   S:=Copy(FName, 1, I-1);
+   FName:=Copy(FName, I+1, 255);
+  end;
  FName := lFExpand(FName);
- TWindow.Init(R, FName, 0);
+ If I <= 0 Then
+  S:=FName;
+ TWindow.Init(R, S, 0);
+ RealName:=S;
  Options := Options or ofTileable;
  Flags := Flags or wfMaxi;
  GetExtent(R); R.Grow(-1, -1);
- P := New(PDBViewer, Init(R, FName));
+ P := New(PDBViewer, Init(R, FName,FileIsDBF));
  if P = nil then Fail;
  Insert(P);
  if not P^.isValid then begin
@@ -1026,7 +1045,7 @@ begin
  P^.VerticalScrollBar^.ScrollBarType:=sbVertical;
  Insert(P^.VerticalScrollBar);
  GetBounds(R);
- R.A.X:=R.A.X+20;
+ R.A.X:=R.A.X+49;
  R.B.X:=R.B.X-2;
  R.A.Y:=R.B.Y-1;
  P^.HorizontalScrollBar:=New(PDBScrollBar,Init(R));
@@ -1036,13 +1055,26 @@ begin
  P^.HorizontalScrollBar^.ScrollBarType:=sbHorizontal;
  Insert(P^.HorizontalScrollBar);
 { -------- Eugeny Zvyagintzev ---------}
- R.A.X := 10; R.B.X := 20; R.A.Y := Size.Y - 1; R.B.Y := Size.Y;
+ R.A.X := 2; R.B.X := 10; R.A.Y := Size.Y - 1; R.B.Y := Size.Y;
  P1 := New(PDBIndicator, Init(R));
  P1^.DBViewer := P;
  P1^.GrowMode := gfGrowLoY + gfGrowHiX + gfGrowHiY;
  Insert(P1);
  P^.Indicator := P1;
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Now horizontal scrollbar can't hide bottom-right resize corner}
+Procedure TDBWindow.ChangeBounds;
+Var
+   R1: TRect;
+Begin
+ Inherited ChangeBounds(R);
+ P^.HorizontalScrollBar^.GetBounds(R1);
+ R1.B.X:=Size.X-2;
+ P^.HorizontalScrollBar^.SetBounds(R1);
+End;
+{--- finish -------- Eugeny Zvyagintzev ---------}
 
 constructor TDBWindow.Load;
  begin

@@ -52,6 +52,9 @@
 ;/  dn16rc1-version_upgrade.patch
 ;/
 ;/  2.0.0
+;/  dn200-version_autonumbering.patch
+;/
+;/  2.3.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -100,11 +103,6 @@ ClearKBD        MACRO
 
 ;size & speed optimizations by Max Piwamoto
 
-                IFDEF _DPMI_
-DNversionTXT    equ    'Open Source 2.0.0/DPMI'
-                ELSE
-DNversionTXT    equ    'Open Source 2.0.0/DOS'
-                ENDIF
 DNversionBIN    equ    20000
 DNversionSIGN   equ    'DN'
 
@@ -307,7 +305,7 @@ COMSPEC         db     80 dup (0)  ; Temporary comspec here
 
 ; DN.COM leave resident only valable part of DNPath to save memory...
 
-Copyright       db     13,'Dos Navigator ',DNversionTXT,'  Based on DN (C) 1991-99 RIT Labs',0Dh,0AH,'$'
+Copyright       db     13,'Dos Navigator Open Source Project',0Dh,0AH,'$'
 DNfound         db     '(*)',0Dh,0Ah,'$'
 CanNotFound     db     'No path to main file.',0Dh,0Ah,'$'
 CanNotAllocate  db     'Not enough memory.',0Dh,0Ah,'$'

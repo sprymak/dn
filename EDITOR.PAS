@@ -52,6 +52,10 @@
 //  dn16rc1-Editor_search_fix.patch
 //
 //  2.0.0
+//  dn200-Replace_QuickSort_with_ShellSort.patch
+//  dn200-editor_calculate_selected_block.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -814,6 +818,12 @@ var  LastX, LastY: LongInt;
         UC: Boolean;
         Cmpr:function(const L,R:String):Boolean;
 
+{AK155 QuickSort имеет существенный недостаток: при равных
+ключах он может переставлять строки. Поэтому я заменил его на
+метод Шелла, который этого недостака не имеет. По быстродействию
+разницы особой не будет: при числе элементов до 20000 Шелл если
+и проигрывает, то не сильно.}
+(*
    procedure QuickSort(L, R: LongInt);
    var
      I, J: LongInt;
@@ -848,7 +858,53 @@ var  LastX, LastY: LongInt;
        L := I;
      until I >= R;
    end;
+*)
 
+   procedure ShellSort(L, R: LongInt);
+   var
+     i, j, step, n: longint;
+     P1, x: PString;
+   label
+     1;
+
+     function Ln(AI: LongInt): String;
+     begin
+       if TimerExpired(Tmr) then
+       begin
+         UpdateWriteView(Info);
+         Application^.Idle;
+         NewTimer(Tmr, 3);
+       end;
+       Ln := Copy(GetLine(AI), BoundStart, BoundEnd);
+     end;
+   begin
+   n := R-L+1;
+   j := 13; while j < n do j := j*3 + 1;
+   step := j div 3;
+   while step <> 1 do
+     begin
+     step := step div 3;
+     for i := L+step to R do
+       begin
+       s := ln(i);
+       if Cmpr(s, ln(i-step)) then
+         begin
+         x := FileLines^.At(i);
+         j := i-step;
+         repeat
+           P1 := FileLines^.At(j);  {-SBlocks}
+           FileLines^.AtPut(j+step, P1);
+           if j <= L+step-1 then goto 1;
+           j := j-step;
+         until Cmpr(ln(j), s);
+         j := j+step;
+   1:
+         FileLines^.AtPut(j, x);
+         end;
+       end;
+     end;
+   end;
+{/AK155}
 
   begin
     if not VertBlock then
@@ -865,7 +921,10 @@ var  LastX, LastY: LongInt;
     NewTimer(Tmr, 2);
     ChangeLine;
     BoundStart := Mark.A.X+1; BoundEnd := Mark.B.X - Mark.A.X;
-    QuickSort(Mark.A.Y, Mark.B.Y);
+{AK155}
+    ShellSort(Mark.A.Y, Mark.B.Y);
+{    QuickSort(Mark.A.Y, Mark.B.Y);}
+{/AK155}
     if UndoInfo <> nil then UndoInfo^.FreeAll; Inc(UndoTimes); Modified := On;
     Dispose(Info,Done);
     {$IFNDEF DPMI}
@@ -879,7 +938,7 @@ var  LastX, LastY: LongInt;
         J: Integer;
         R1, R2: Extended;
         S: String;
-        R: Real;
+        R: Extended;
   begin
    if not VertBlock then begin
     ChangeLine;
@@ -899,8 +958,7 @@ var  LastX, LastY: LongInt;
     R1 := 0;
     for I := Mark.A.Y to Mark.B.Y do
       begin
-        R2 := 0;
-        Val(DelSpaces(Copy(GetLine(I), BoundStart+1, BoundEnd)), R2, J);
+        R2:=EValue(DelSpaces(Copy(GetLine(I), BoundStart+1, BoundEnd)), Nil);
         R1 := R1 + R2;
       end;
     Str(R1:0:20, S);

@@ -57,6 +57,9 @@
 //  dn16rc1-Save-editor's-parameters.patch
 //
 //  2.0.0
+//  dn200-Editor_and_locked_files_bugfix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -114,7 +117,7 @@ begin with AED^ do begin
       MIUnlockFile(AED);
       FileName := lFExpand(GetPath(FileName))+GetName(lFExpand(FileName));
       S := CheckForOver(FileName);
-      if S = nil then Exit;
+      if S = nil then begin MILockFile(AED); Exit; end;
       EditName := lFExpand(FileName);
       if EditName[Byte(EditName[0])]='.' then Dec(EditName[0]);
       WriteBlock(EditName, S, FileLines, EdOpt.ForcedCrLf, OptimalFill); Dispose(S,Done);
@@ -148,6 +151,7 @@ begin with AED^ do begin
         begin
           isValid := On;
           Message(Owner, evCommand, cmClose, nil);
+          MILockFile(AED);
           Exit;
         end;
       ScrollTo(0,0);
@@ -185,9 +189,10 @@ begin with AED^ do begin
    if (DosError = 0) and (OldAttr and ReadOnly <> 0) then
    begin
      Pointer(L[0]) := @EditName;
-     if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then Exit;
+     if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then
+       begin MILockFile(AED); Exit; end;
    end;
-   ClrIO; lSetFAttr(F, Archive); if Abort then Exit;
+   ClrIO; lSetFAttr(F, Archive); if Abort then begin MILockFile(AED); Exit; end;
    if EditorDefaults.GlobalOpt and ebfCBF <> 0 then
     begin
      lFSplit(EditName, Dr, Nm, Xt); ClrIO;
@@ -195,7 +200,7 @@ begin with AED^ do begin
      lAssignFile(F, EditName); lRenameFile(F, Dr+Nm+'.BAK'); ClrIO;
     end;
    New(S, Init(EditName, stCreate, 4096));
-   if S = nil then Exit;
+   if S = nil then begin MILockFile(AED); Exit; end;
 {Cat: раньше почему-то проверка статуса происходила в этом месте,
       т.е. считалось, что если поток создан успешно, то и записан
       он также успешно, что неверно (например, когда место на диске
@@ -722,6 +727,7 @@ end end;
 procedure MIUnLockFile(AED: PFileEditor);
 begin with AED^ do begin
    if EditorDefaults.GlobalOpt and ebfLck = 0 then Exit;
+   if Locker = nil then exit; { на всякий случай }
    Dispose(Locker,Done); Locker:=nil;
 end end;
 

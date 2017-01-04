@@ -53,6 +53,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn200-delete_file_from_temp_fix-diff161byMV.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -336,12 +339,10 @@ begin
 end;
 
 procedure TArvidDrive.Kill;
- var Dir, Name1, Ext: String; {JO}
 begin
   if not KillAfterUse then Exit;
   if Stream <> nil then Dispose(Stream, Done); Stream := nil;
-  lFSplit(Name^, Dir, Name1, Ext);        {JO: проверочка файла на нахождение}
-  if Dir = Tempdir then EraseFile(Name^); {во временном каталоге не помешает}
+  EraseTempFile(Name^);
 end;
 
 function TArvidDrive.GetDirectory;

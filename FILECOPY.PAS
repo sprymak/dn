@@ -53,6 +53,11 @@
 //  dn16rc1-rename_file_dpmi_lfn.patch
 //
 //  2.0.0
+//  dn200-File_exist_check.patch
+//  dn200-Copy_Files_check_before_read.patch
+//  dn200-files_panel_bugs_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -739,26 +744,31 @@ var  ReadStream:  lfile;
          MsgResult: integer;
 
       procedure TryToReset;
+      var
+        OldAttr: Word;
       begin
-        if CopyMode = cpmOverwrite  then
+{AK155 2-02-2002
+Раньше наличие файла проверялось  при помощи lResetFile, что не
+вполне корректно. На CD RW под RSJ и, кажется, на некоторых сетевых дисках,
+эта операция приводит к созданию файла и ложному запросу о перезаписи
+файла. Более того, при отрицательном ответе созданный файл остается
+(с нулевой длиной). Проверка при помощи lGetFAttr более чистая.
+}
+        if CopyMode <> cpmOverwrite  then
          Begin
-          lRewriteFile(WriteStream,1);
-          Opened := IOResult;
-          if Opened=0 then Created:=True;
-         End
-        else
-         Begin
-          lResetFile(WriteStream,1);
-          Opened:=IOResult;
-          if Opened=0 then
+          ClrIO;
+          lGetFAttr(WriteStream, OldAttr);
+          if (DosError = 0) then
            Begin
+            lResetFile(WriteStream,1);
+            Opened:=IOResult;
             Created:=false;
             Exit;
            End;
-          lRewriteFile(WriteStream,1);
-          Opened:=IOResult;
-          Created:=true;
          End;
+        lRewriteFile(WriteStream,1);
+        Opened:=IOResult;
+        Created:=Opened=0;
       end;
 
       procedure DoSkip;
@@ -917,7 +927,8 @@ const
                   lAssignFile(WriteStream, CnvString(P^.NewName)); ClrIO;
                   FileMode := $42;
 
-                  if (CopyOptions and cpoCheckFree <> 0) and (Disk_Free(Drv) < P^.Size) then
+                  If (Not CopyPrn) And (CopyOptions And cpoCheckFree <> 0)
+                     And (Disk_Free(Drv) < P^.Size) Then
                    begin
                      PS[1] := Pointer(LongInt(Drv+64));
                      PS[2] := P^.OldName;
@@ -1086,12 +1097,14 @@ lbStartWrite:
               ClrIO;
               Dispatch;
               if CopyCancel then Break;
-              if  CopyOptions and cpoVerify <> 0 then SeekPos := FilePos(WriteStream.F);
+              If (CopyOptions And cpoVerify <> 0) And (Not CopyPrn) Then
+               SeekPos := FilePos(WriteStream.F);
               BlockWrite(WriteStream.F, B^, P^.Len, J); IOR := IOResult;
 
               Inc(BytesWrited,P^.Len);  {-NeCoder-}
 
-              if not Abort and (CopyOptions and cpoVerify <> 0)  and (J > 0) then begin
+              If Not Abort And (CopyOptions and cpoVerify <> 0) And
+                 (J > 0) And (Not CopyPrn) Then Begin
                    {$IFDEF OS_DOS}
                    asm
                      mov ah,0dh
@@ -1340,14 +1353,20 @@ lbStartWrite:
         S2 := lFExpand(NName);
         if S1 = S2 then
            begin
-             if CopyOptions and cpoMove = 0 then
-              begin
+{--- start -------- Eugeny Zvyagintzev ---------}
+{This 2 line was commented to allow DN display error message}
+{during _move_ file to itself}
+{Before this comment DN displayed error message only}
+{during _copy_ file to itself}
+{>>             if CopyOptions and cpoMove = 0 then}
+{>>              begin}
+{--- finish -------- Eugeny Zvyagintzev ---------}
                 if CopyQueue^.Count > 0 then MaxWrite; if CopyCancel then Exit;
                 ForceDispatch;
                 MessageBox(^C+GetString(dlFile)+' '+FName + GetString(dlFCItself), nil,
                    mfError + mfOKButton);
                 CopyCancel := On;
-              end;
+{              end;}
              Exit;
            end;
       end;
@@ -1379,9 +1398,14 @@ lbStartWrite:
         end;
       Rd := 0;
       EOF := eoStart or eoCheck * Byte(CopyMode >= cpmAppend);
-      if (CopyMode >= cpmAppend) and (CopyOptions and cpoMove <> 0)  and
-         (S1[1] = S2[1]) then
-        begin
+{--- start -------- Eugeny Zvyagintzev ---------}
+{This 3 line was commented to prevent DN first coping files to buffer}
+{and _then_ check for file already exists}
+{Now DN will first check for file exists}
+{>>      if (CopyMode >= cpmAppend) and (CopyOptions and cpoMove <> 0)  and}
+{>>          (S1[1] = S2[1]) then}
+{>>        begin}
+{--- finish -------- Eugeny Zvyagintzev ---------}
            ClrIO; EOF := eoStart or eoCheck;
            lFindFirst(S2, AnyFile, SR); {JO}
            DE:=DOSError;
@@ -1427,7 +1451,7 @@ lbStartWrite:
                  cpmAppend: EOF := EOF or eoAppend;
                end;
              end;
-        end;
+{        end;}
       if (CopyOptions and cpoMove <> 0) and (EOF and eoAppend = 0) and
          (S1[1] = S2[1]) then
          begin
@@ -1959,8 +1983,9 @@ qqqq:
   Info^.Bottom := GetString(dlFC_Total)+FStr(ToDo)+GetString(dlBytes);
   Info^.DrawView;
   DrvC:=Drv+64;
-  if (CopyOptions and cpoCheckFree<>0) and (ToDoClusCopy>Disk_Free(Drv))
-  and (MessageBox(GetString(erNoDiskSpacePre),@DrvC,mfError+mfYesButton+mfNoButton)<>cmYes)
+  If (Not CopyPrn) And (CopyOptions And cpoCheckFree<>0) And
+     (ToDoClusCopy>Disk_Free(Drv))
+  And (MessageBox(GetString(erNoDiskSpacePre),@DrvC,mfError+mfYesButton+mfNoButton)<>cmYes)
   then CopyCancel:=True;
   if CopyCancel then goto 1;
   MaxRead;

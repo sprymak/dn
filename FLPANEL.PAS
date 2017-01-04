@@ -53,6 +53,9 @@
 //  dn16rc1-Error_cancel_button.patch
 //
 //  2.0.0
+//  dn200-files_panel_bugs_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -847,7 +850,8 @@ begin
     end;
    WriteLine(0,Y,Size.X,1,B);
    Inc(Y);
-   if (Panel^.Drive^.DriveType = dtFind) or (Panel^.Drive^.DriveType = dtTemp) then
+   if (Panel^.Drive^.DriveType = dtFind) or (Panel^.Drive^.DriveType = dtTemp)
+      or (Panel^.Drive^.DriveType = dtList) then
     begin
      MoveChar(B, ' ', C1, Size.X);
      if (Panel^.ScrollBar^.Value < Panel^.Files^.Count) and

@@ -48,10 +48,12 @@
 //  Version history:
 //
 //  1.6.RC1
-//
 //  dn16rc1-window-manager-changes.patch
 //
 //  2.0.0
+//  dn200-files_panel_bugs_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -333,6 +335,10 @@ begin
  if (RType = dtView) or (LType = dtView) then
     Message(@Self, evCommand, cmEnableView, nil);
  IsValid := True;
+ If LPanel^.BadDrv Then
+  Message(LPanel,evCommand,cmReboundPanel,Nil);
+ If RPanel^.BadDrv Then
+  Message(RPanel,evCommand,cmReboundPanel,Nil);
 end;
 
 procedure TDoubleWindow.Store;

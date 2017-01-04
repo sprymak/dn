@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -69,7 +72,7 @@ Type
 
 type
      ARCHdr = record
-      Mark: Char;
+      Mark: Byte;
       Version: Byte;
       Name: Array[1..13] of Char;
       PackedSize: LongInt;
@@ -133,7 +136,8 @@ var i    : AWord;
     P    : ARCHdr;
 begin
  ArcFile^.Read(P,2);
- if (P.Mark = ^Z) and (P.Version <> 0) and (ArcFile^.Status = stOK) then ArcFile^.Read(P.Name,SizeOf(P)-2);
+ if (P.Mark = $1a{^Z}) and (P.Version <> 0) and (ArcFile^.Status = stOK)
+   then ArcFile^.Read(P.Name,SizeOf(P)-2);
  if (P.Version = 0) then begin FileInfo.Last:=1;Exit;end;
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
  i := 1;

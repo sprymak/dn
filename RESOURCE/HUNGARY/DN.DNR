@@ -54,6 +54,15 @@
 ;/  dn16rc1-resource_and_help_fixes_13112001.patch
 ;/
 ;/  2.0.0
+;/  dn200-remove_Machine_Type_and_CPU_flag_info_from_sysinfo.patch
+;/  dn200-resource_fixes_14012002.patch
+;/  dn200-resource_fixes_22012002.patch
+;/  dn227-resource_and_help_fixes_16022002.patch
+;/  dn2215-single_file_copy_and_move_over_menu.patch
+;/  dn2215-windows_manager_changes_2.patch
+;/  dn2215-resource_and_help_fixes_05032002.patch
+;/
+;/  2.3.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -67,6 +76,16 @@ ColorDialog
          ColorItem 'Kijelîlt',              5,
          ColorItem 'Kijelîlt nem elÇrhetì', 6,
          ColorItem 'Kijelîlt kulcsbetñje',  7,
+    ColorGroup 'Help',
+         ColorItem 'Frame passive',        139,
+         ColorItem 'Frame active',         140,
+         ColorItem 'Frame icons',          141,
+         ColorItem 'Scroll bar page',      142,
+         ColorItem 'Scroll bar icons',     143,
+         ColorItem 'Normal text',          144,
+         ColorItem 'Selected text',        163,
+         ColorItem 'Link normal',          145,
+         ColorItem 'Link selected',        146,
     ColorGroup 'Dial¢gusablakok',
          ColorItem 'Keret/h†ttÇr',         33,
          ColorItem 'Keret ikonjai',        34,
@@ -107,14 +126,6 @@ ColorDialog
          ColorItem 'Alap kijelîlÇs',       108,
          ColorItem 'Passz°v kijelîlÇs',    109,
          ColorItem 'Passz°v kijelîlt alap',110,
-    ColorGroup '¿ƒƒNapt†r',
-         ColorItem 'Static text',          205,
-         ColorItem 'EgyÇni 1',             206,
-         ColorItem 'EgyÇni 2',             207,
-         ColorItem 'EgyÇni 3',             208,
-         ColorItem 'EgyÇni 4',             209,
-         ColorItem 'FejlÇc',               210,
-         ColorItem 'Napi inf¢',            211,
     ColorGroup 'F†jlMenedzser',
          ColorItem 'Passz°v keret',        80,
          ColorItem 'Akt°v keret',          81,
@@ -250,6 +261,14 @@ ColorDialog
          ColorItem 'Mezì tÇtelek',         169,
          ColorItem 'Norm†l szîveg',        170,
          ColorItem 'Kurzor',               171,
+    ColorGroup 'Napt†r',
+         ColorItem 'Static text',          205,
+         ColorItem 'EgyÇni 1',             206,
+         ColorItem 'EgyÇni 2',             207,
+         ColorItem 'EgyÇni 3',             208,
+         ColorItem 'EgyÇni 4',             209,
+         ColorItem 'FejlÇc',               210,
+         ColorItem 'Napi inf¢',            211,
 END
 
 DIALOG dlgCountrySetup, 51, 20, 'Orsz†gspecifikus be†ll°t†sok'
@@ -296,7 +315,7 @@ END
 
 MENU dlgEditorMenu
  SubMenu '~F~†jl', hcedFile,
-      MenuItem '~M~egnyit†s...', 'F3', kbShiftF3, cmLoadText, hcedFile,
+      MenuItem '~M~egnyit†s...', 'F3', kbF3, cmLoadText, hcedFile,
       MenuItem 'Megnyit†s ~k~urzorral...', 'Ctrl-Enter', kbCtrlEnter, cmOpenFileAtCursor, hcedFile,
       MenuItem 'M~e~ntÇs', 'F2', kbF2, cmSaveText, hcedFile,
       MenuItem 'Me~n~tÇs m†skÇnt...', 'Shift-F2', kbShiftF2, cmSaveTextAs, hcedFile,
@@ -314,11 +333,11 @@ MENU dlgEditorMenu
       MenuItem '~K~iv†g', 'Shift-Del', kbShiftDel, cmCut, hcedEdit,
       MenuItem '~M~†sol', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcedEdit,
       MenuItem '~B~eilleszt', 'Shift-Ins', kbShiftIns, cmPaste, hcedEdit,
-      MenuItem 'M†~s~ol a ...-ba', ' ', kbNoKey, cmBlockWrite, hcedEdit,
-      MenuItem 'B~e~illeszt a ...-b¢l', ' ', kbNoKey, cmBlockRead, hcedEdit,
+      MenuItem 'M†~s~ol a ...-ba', '', kbNoKey, cmBlockWrite, hcedEdit,
+      MenuItem 'B~e~illeszt a ...-b¢l', '', kbNoKey, cmBlockRead, hcedEdit,
       MenuLine
-      Menuitem 'M†s~o~l Windows v†g¢lapra', 'Ctrl-Q P', kbNokey, cmWindowsCopy, hcedEdit,
-      Menuitem 'M†so~l~ Windows v†g¢lapr¢l', 'Ctrl-Q C', kbNokey, cmWindowsPaste, hcedEdit,
+      MenuItem 'M†s~o~l Windows v†g¢lapra', 'Ctrl-Q P', kbNokey, cmWindowsCopy, hcedEdit,
+      MenuItem 'M†so~l~ Windows v†g¢lapr¢l', 'Ctrl-Q C', kbNokey, cmWindowsPaste, hcedEdit,
       MenuLine
       MenuItem '~T~îrîl', 'Ctrl-Del', kbCtrlDel, cmClear, hcedEdit,
     END
@@ -338,7 +357,7 @@ MENU dlgEditorMenu
       MenuItem '~B~alra', 'Alt-L', kbAltL, cmFLeft, hcedParagraph,
       MenuItem '~K~îzÇpre', 'Alt-C', kbAltC, cmFCenter, hcedParagraph,
       MenuLine
-      MenuItem '~M~arg¢k...', '', kbNoKey, cmSetMargins, hcedOptions,
+      MenuItem '~M~arg¢k...', '', kbNoKey, cmSetMargins, hcedParagraph,
     END
  SubMenu '~B~lokk', hcEditBlockMenu,
       MenuItem 'è~t~helyez', 'Ctrl-K V', kbNoKey, cmMoveBlock, hcEditBlockMenu,
@@ -357,33 +376,33 @@ MENU dlgEditorMenu
  SubMenu '~E~gyebek', hcEditMiscMenu,
       MenuItem '~D~†tum besz£r†s', 'Ctrl-Q D', kbNoKey, cmInsertDate, hcEditMiscMenu,
       MenuItem '~I~dì besz£r†s ', 'Ctrl-Q T', kbNoKey, cmInsertTime, hcEditMiscMenu,
-      Menuitem '~S~or dupl†z†sa', 'F6', kbF6, cmDuplicateLine, 0,
-      MenuItem '~A~SCII T†bla', 'Ctrl-P', kbCtrlP, cmASCIITable, 0,
-      MenuItem '~V~onalrajzol†s', 'F4', kbF4, cmSwitchDrawMode, 0,
-      MenuItem 'K¢d~l~ap v†lt†s', 'F8', kbF8, cmSwitchKeyMapping, 0,
+      MenuItem '~S~or dupl†z†sa', 'F6', kbF6, cmDuplicateLine, hcEditMiscMenu,
+      MenuItem '~A~SCII T†bla', 'Ctrl-P', kbCtrlP, cmASCIITable, hcEditMiscMenu,
+      MenuItem '~V~onalrajzol†s', 'F4', kbF4, cmSwitchDrawMode, hcEditMiscMenu,
+      MenuItem 'K¢d~l~ap v†lt†s', 'F8', kbF8, cmSwitchKeyMapping, hcEditMiscMenu,
      MenuLine
-     SubMenu '~N~AGYBETòK', hcMiscUpper,
-      MenuItem '~S~z¢', 'Ctrl [', kbNoKey, cmUpWord, hcMiscUpper,
-      MenuItem 'S~o~r', 'Ctrl+Shift [', kbNoKey, cmUpString, hcMiscUpper,
+     SubMenu '~N~AGYBETòK', hcEditMiscMenu,
+      MenuItem '~S~z¢', 'Ctrl-[', kbNoKey, cmUpWord, hcMiscUpper,
+      MenuItem 'S~o~r', 'Ctrl-Shift-[', kbNoKey, cmUpString, hcMiscUpper,
       MenuItem '~B~lokk', 'Ctrl-K [', kbNoKey, cmUpcaseBlock, hcMiscUpper,
      END
-     SubMenu 'kis~b~etñk', hcMiscLower,
-      MenuItem '~S~z¢', 'Ctrl ]', kbNoKey, cmLowWord, hcMiscLower,
-      MenuItem 'S~o~r', 'Ctrl+Shift ]', kbNoKey, cmLowString, hcMiscLower,
+     SubMenu 'kis~b~etñk', hcEditMiscMenu,
+      MenuItem '~S~z¢', 'Ctrl-]', kbNoKey, cmLowWord, hcMiscLower,
+      MenuItem 'S~o~r', 'Ctrl-Shift-]', kbNoKey, cmLowString, hcMiscLower,
       MenuItem '~B~lokk', 'Ctrl-K ]', kbNoKey, cmLowcaseBlock, hcMiscLower,
      END
-     SubMenu '~M~ondat Szerñ', hcMiscCapitalize,
-      MenuItem '~S~z¢', 'Ctrl \', kbNoKey, cmCapWord, hcMiscCapitalize,
-      MenuItem 'S~o~r', 'Ctrl+Shift \', kbNoKey, cmCapString, hcMiscCapitalize,
+     SubMenu '~M~ondat Szerñ', hcEditMiscMenu,
+      MenuItem '~S~z¢', 'Ctrl-\', kbNoKey, cmCapWord, hcMiscCapitalize,
+      MenuItem 'S~o~r', 'Ctrl-Shift-\', kbNoKey, cmCapString, hcMiscCapitalize,
       MenuItem '~B~lokk', 'Ctrl-K \', kbNoKey, cmCapitalizeBlock, hcMiscCapitalize,
      END
-     SubMenu 'S~z~îvegform†tum t°pusok', 0,
-      MenuItem '~D~OS     (CrLf)', '', kbNoKey, cmEditCrLfMode, 0,
-      MenuItem '~U~NIX    (Lf)',   '', kbNoKey, cmEditLfMode, 0,
-      MenuItem '~E~gyÇb   (Cr)',   '', kbNoKey, cmEditCrMode, 0,
-      MenuItem 'L~F~+CR', '', kbNoKey, cmEditLfCrMode, 0,
+     SubMenu 'S~z~îvegform†tum t°pusok', hcEditMiscMenu,
+      MenuItem '~D~OS     (CrLf)', '', kbNoKey, cmEditCrLfMode, hcEditMiscMenu,
+      MenuItem '~U~NIX    (Lf)', '', kbNoKey, cmEditLfMode, hcEditMiscMenu,
+      MenuItem '~E~gyÇb   (Cr)', '', kbNoKey, cmEditCrMode, hcEditMiscMenu,
+      MenuItem 'L~F~+CR', '', kbNoKey, cmEditLfCrMode, hcEditMiscMenu,
      END
-     MenuItem 'Kisbe~t~ñ/NAGYBETò v†lt¢', 'Ctrl+/', kbCtrlSlash, cmChangeCharCase, 0,
+     MenuItem 'Kisbe~t~ñ/NAGYBETò v†lt¢', 'Ctrl-/', kbCtrlSlash, cmChangeCharCase, hcEditMiscMenu,
    END
  SubMenu '~O~pci¢k', hcedOptions,
       MenuItem '~B~ackspace visszaigaz°t†s', 'Off', kbNoKey, cmSwitchBack, hcedOptions,
@@ -395,7 +414,7 @@ MENU dlgEditorMenu
       MenuItem '~O~ptim†lis kiltîltÇs', 'Off', kbNoKey, cmSwitchFill, hcedOptions,
       MenuItem 'A~k~tu†lis sor kiemelÇse', 'Off', kbNoKey, cmSwitchHiLine, hcedOptions,
       MenuItem 'Aktu†~l~is oszlop kiemelÇse', 'Off', kbNoKey, cmSwitchHiColumn, hcedOptions,
-      MenuItem 'K~i~emelÇsek',  'Off', kbNoKey, cmSwitchHighLight, hcedOptions,
+      MenuItem 'K~i~emelÇsek', 'Off', kbNoKey, cmSwitchHighLight, hcedOptions,
       MenuItem 'Tab ~c~serÇje sz¢kîzre', 'Off', kbNoKey, cmSwitchTabReplace, hcedOptions,
       MenuItem 'G~y~ors Tabul†tor','Off', kbNoKey, cmSwitchSmartTab, hcedOptions,
      END
@@ -412,12 +431,12 @@ MENU dlgFixerMenu
       MenuItem 'E~x~it (KilÇpÇs)', 'Alt-F3', kbAltF3, cmClose, hcDiskEditor,
     END
  SubMenu '~S~zerkesztÇs', hcDiskEditor,
-      MenuItem '~V~isszavon', 'Alt+BkSp', kbAltBack, cmUndo, hcDiskEditor,
+      MenuItem '~V~isszavon', 'Alt-BkSp', kbAltBack, cmUndo, hcDiskEditor,
       MenuLine
       MenuItem '~M~†sol', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcDiskEditor,
       MenuItem '~B~eilleszt', 'Shift-Ins', kbShiftIns, cmPaste, hcDiskEditor,
-      MenuItem 'M†~s~ol a ...-ba', ' ', kbNoKey, cmFixBlockWrite, hcDiskEditor,
-      MenuItem '~F~eltîlt...', ' ', kbNoKey, cmClear, hcDiskEditor,
+      MenuItem 'M†~s~ol a ...-ba', '', kbNoKey, cmFixBlockWrite, hcDiskEditor,
+      MenuItem '~F~eltîlt...', '', kbNoKey, cmClear, hcDiskEditor,
       MenuLine
       MenuItem '~K~eres...', 'F7', kbF7, cmSearchFor, hcDiskEditor,
       MenuItem '~T~ov†bb keres...', 'Shift-F7', kbShiftF7, cmContinueSearch, hcDiskEditor,
@@ -432,16 +451,16 @@ END
 
 MENU dlgMainMenu
   SubMenu '(placeholder)', hcMenuBox,
-    MenuItem '~M~agamr¢l...', ' ', kbNoKey, cmAbout, hcMenuBox,
-    MenuItem '~K~Çpernyì friss°tÇse', ' ', kbNoKey, cmRefresh, hcMenuBox,
-    MenuItem 'KÇ~p~ernyìvÇdì azonnal', ' ', kbNoKey, cmScreenRest, hcMenuBox,
+    MenuItem '~M~agamr¢l...', '', kbNoKey, cmAbout, hcMenuBox,
+    MenuItem '~K~Çpernyì friss°tÇse', '', kbNoKey, cmRefresh, hcMenuBox,
+    MenuItem 'KÇ~p~ernyìvÇdì azonnal', '', kbNoKey, cmScreenRest, hcMenuBox,
     MenuItem 'A~n~golul? (Change language)','Alt-F12',kbAltF12,cmChLngId,hcMenuBox,
     MenuLine
     MenuItem 'KÇp~e~rnyìrabl¢', 'Shift-Alt-Ins', kbNoKey, cmExecGrabber, hcMenuBox,
     MenuItem '~D~OS h†ttÇr', 'Alt-F5', kbAltF5, cmShowUserScreen, hcMenuBox,
     MenuItem 'E~r~edmÇny ablak', 'Ctrl-O', kbCtrlO, cmShowOutput, hcMenuBox,
     MenuItem '~J~egyzettîmb (TM)', 'Alt-Q', kbAltQ, cmOpenSmartpad, hcMenuBox,
-    MenuItem 'Mut~a~sd a v†g¢lapot', '', kbAltQ, cmOpenClipBoard, hcMenuBox,
+    MenuItem 'Mut~a~sd a v†g¢lapot', '', kbNoKey, cmOpenClipBoard, hcMenuBox,
     MenuItem 'K~u~ka ki/be', '', kbNoKey, cmHideShowTools, hcMenuBox,
     MenuLine
     MenuItem 'E~G~A/VGA sorok', 'Shift-F10', kbShiftF10, cmChangeMode, hcMenuBox,
@@ -455,10 +474,10 @@ MENU dlgMainMenu
 ;New help reference by csablak (hcViewChoice)
     SubMenu '~F~†jlnÇzì', hcViewChoice,
       MenuItem '~M~utat', 'F3', kbF3, cmViewFile, hcViewChoice,
-      MenuItem 'Mint ~s~zîveg', ' ', kbNoKey, cmViewText, hcViewChoice,
-      MenuItem 'Mint ~H~exa', ' ', kbNoKey, cmViewHex, hcViewChoice,
-      MenuItem 'Mint ~a~datb†zis', ' ', kbNoKey, cmViewDBF, hcViewChoice,
-      MenuItem 'Mint ~t~†bl†zatkezelì', ' ', kbNoKey, cmViewWKZ, hcViewChoice,
+      MenuItem 'Mint ~s~zîveg', '', kbNoKey, cmViewText, hcViewChoice,
+      MenuItem 'Mint ~H~exa', '', kbNoKey, cmViewHex, hcViewChoice,
+      MenuItem 'Mint ~a~datb†zis', '', kbNoKey, cmViewDBF, hcViewChoice,
+      MenuItem 'Mint ~t~†bl†zatkezelì', '', kbNoKey, cmViewWKZ, hcViewChoice,
       MenuLine
       MenuItem '~K~Ålsì f†jlnÇzì', 'Alt-F3', kbAltF3, cmIntViewFile, hcViewChoice,
     END
@@ -472,14 +491,18 @@ MENU dlgMainMenu
     MenuItem 'F†jl~k~eresÇs...', 'Alt-F7', kbAltF7, cmFindFile, hcFileMenu,
     MenuItem '~M~†sol†s...', 'F5', kbF5, cmCopyFiles, hcFileMenu,
     MenuItem 'ètnevezÇs~/~èthelyezÇs...', 'F6', kbF6, cmMoveFiles, hcFileMenu,
+    MenuItem 'Tîr~l~Çs', 'F8', kbF8, cmPanelErase, hcFileMenu,
+    SubMenu 'Single file', hcFileMenu,
+      MenuItem 'Copy single file', '', kbNoKey, cmSingleCopy, hcFileMenu,
+      MenuItem 'Rename/Move single file', '', kbNoKey, cmSingleRename, hcFileMenu,
+      MenuItem 'Delete single file','Shift-F8',kbShiftF8, cmSingleDel, hcFileMenu,
+    END
     MenuItem 'F†jlnÇv konver~t~†l†s...', 'Ctrl-Alt-F6', kbCtrlAltF6, cmChangeNameCase, hcFileMenu,
     MenuItem 'Tîmî~r~°tÇs...', 'Shift-F1', kbShiftF1, cmPanelArcFiles, hcFileMenu,
     MenuItem 'K~i~bont†s...', 'Shift-F2', kbShiftF2, cmExtractArchive, hcFileMenu,
     MenuItem 'F†jl~d~arabol†s/îsszevon†s...', 'Shift-F5', kbShiftF5, cmPanelLongCopy, hcFileMenu,
     MenuItem '~N~yomtat†s', 'Ctrl-F9', kbCtrlF9, cmPrintFile, hcFileMenu,
     MenuItem 'ój kîn~y~vt†r lÇtrehoz†sa', 'F7', kbF7, cmPanelMkDir, hcFileMenu,
-    MenuItem 'Tîr~l~Çs', 'F8', kbF8, cmPanelErase, hcFileMenu,
-    MenuItem '~1~ f†jl tîrlÇse','Shift-F8',kbShiftF8, cmSingleDel, hcFileMenu,
     MenuItem 'F†jl ~A~ttrib£tumok...', 'Alt-E', kbAltE, cmSetFAttr, hcFileMenu,
     MenuItem '~U~U-k¢dol†s...', 'Ctrl-F7', kbCtrlF7, cmUUEncodeFile, hcFileMenu,
     MenuItem 'UU~-~Dek¢dol†s...', 'Ctrl-F8', kbCtrlF8, cmUUDecodeFile, hcFileMenu,
@@ -491,9 +514,9 @@ MENU dlgMainMenu
   END
  SubMenu '~D~isk', hcDiskMenu,
     MenuItem '~F~loppy form†z†s...', 'Shift-F7', kbShiftF7, cmFormatDisk, hcDiskMenu,
-    MenuItem '~L~emezc°mke...', ' ', kbNoKey, cmSetVolumeLabel, hcDiskMenu,
+    MenuItem '~L~emezc°mke...', '', kbNoKey, cmSetVolumeLabel, hcDiskMenu,
     MenuItem '~H~elyre†ll°t¢...', 'Shift-F6', kbShiftF6, cmReanimator, hcDiskMenu,
-    MenuItem 'Lemez-~s~zerkesztì', ' ', kbNoKey, cmDiskEdit, hcDiskMenu,
+    MenuItem 'Lemez-~s~zerkesztì', '', kbNoKey, cmDiskEdit, hcDiskMenu,
     MenuLine
     MenuItem 'F~a~-szerkezet', '', kbNoKey, cmCreateTree, hcDiskMenu,
  END
@@ -569,7 +592,7 @@ MENU dlgMainMenu
       MenuLine
       MenuItem '~K~ÇpernyìvÇdìk...', '', kbNoKey, cmSaversSetup, hcSubMenuConfig,
       MenuItem '~N~yomtat¢ be†ll°t†sa...', '', kbNoKey, cmSetupPrinter, hcSubMenuConfig,
-      MenuItem '~O~rsz†g t†mogat†s...', ' ', kbNoKey, cmCountrySetup, hcSubMenuConfig,
+      MenuItem '~O~rsz†g t†mogat†s...', '', kbNoKey, cmCountrySetup, hcSubMenuConfig,
       MenuItem '~E~gÇr be†ll°t†sa...', '', kbNoKey, cmSetupMouse, hcSubMenuConfig,
       MenuItem 'Komm~u~nik†ci¢...', '', kbNoKey, cmSetupModem, hcSubMenuConfig,
       MenuLine
@@ -578,17 +601,17 @@ MENU dlgMainMenu
       MenuItem '~T~ermin†l...', '', kbNoKey, cmTerminalDefaults, hcSubMenuConfig,
      END
     SubMenu '~F~†jlmenedzser', hcOptionsMenu,
-      MenuItem '~B~e†ll°t†s...', ' ', kbNoKey, cmFMSetup, hcSubMenuFileMgr,
+      MenuItem '~B~e†ll°t†s...', '', kbNoKey, cmFMSetup, hcSubMenuFileMgr,
       MenuItem '~A~lapmenedzser...', '', kbNoKey, cmFMDefaults, hcSubMenuFileMgr,
       MenuItem '~I~nform†ci¢s panel...', '', kbNoKey, cmDriveInfoSetup, hcSubMenuFileMgr
       SubMenu 'A~l~ap oszlopok...', hcSubMenuFileMgr,
-       MenuItem '~M~eghajt¢',  ' ', kbNoKey, cmColumnDefaultsDisk, hcSubMenuFileMgr,
-       MenuItem '~T~al†lati panel',   ' ', kbNoKey, cmColumnDefaultsFind, hcSubMenuFileMgr,
-       MenuItem 'T~E~MP:',  ' ', kbNoKey, cmColumnDefaultsTemp, hcSubMenuFileMgr,
-       MenuItem '~S~ñr°tìk',   ' ', kbNoKey, cmColumnDefaultsArch, hcSubMenuFileMgr,
-       MenuItem '~A~RVID',    ' ', kbNoKey, cmColumnDefaultsArvd, hcSubMenuFileMgr,
+       MenuItem '~M~eghajt¢', '', kbNoKey, cmColumnDefaultsDisk, hcSubMenuFileMgr,
+       MenuItem '~T~al†lati panel', '', kbNoKey, cmColumnDefaultsFind, hcSubMenuFileMgr,
+       MenuItem 'T~E~MP:', '', kbNoKey, cmColumnDefaultsTemp, hcSubMenuFileMgr,
+       MenuItem '~S~ñr°tìk', '', kbNoKey, cmColumnDefaultsArch, hcSubMenuFileMgr,
+       MenuItem '~A~RVID', '', kbNoKey, cmColumnDefaultsArvd, hcSubMenuFileMgr,
       END
-      MenuItem 'F†jl~c~soport kiemelÇsek...', ' ', kbNoKey, cmHighlightGroups, hcSubMenuFileMgr,
+      MenuItem 'F†jl~c~soport kiemelÇsek...', '', kbNoKey, cmHighlightGroups, hcSubMenuFileMgr,
     END
    SubMenu '~S~ñr°tìk', hcOptionsMenu
       MenuItem 'Aktu†lis sñr°tì szerkesztÇse...', 'Alt-N', kbAltN, cmSetupArchive, hcArchives,
@@ -621,22 +644,22 @@ MENU dlgMainMenu
       MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev',                  '', kbNoKey, cmConfigZXZ, hcArchives,
      END
     MenuLine
-    MenuItem 'DN.~X~RN szerkesztÇse...', ' ', kbNoKey, cmEditQuickRun, hcOptionsMenu,
-    MenuItem 'DN.~E~XT szerkesztÇse...', ' ', kbNoKey, cmExtFileEdit, hcOptionsMenu,
-    MenuItem 'DN.~H~GL szerkesztÇse...', ' ', kbNoKey, cmEditHGL, hcOptionsMenu,
-    MenuItem 'DN.S~P~F szerkesztÇse...', ' ', kbNoKey, cmEditSPF, hcOptionsMenu,
-    MenuItem 'DN.~I~NI szerkesztÇse...', ' ', kbNoKey, cmEditINI, hcOptionsMenu,
-    MenuItem '~G~lob†lis DN.MNU defin°ci¢k...', ' ', kbNoKey, cmMenuFileEdit, hcOptionsMenu,
-    MenuItem 'He~l~yi DN.MNU defin°ci¢k...', ' ', kbNoKey, cmLocalMenuFileEdit, hcOptionsMenu,
-    MenuItem 'KÅlsì F†~j~lnÇzìk...', ' ', kbNoKey, cmExternalViewers, hcOptionsMenu,
-    MenuItem 'KÅlsì Sze~r~kesztìk...', ' ', kbNoKey, cmExternalEditors, hcOptionsMenu,
+    MenuItem 'DN.~X~RN szerkesztÇse...', '', kbNoKey, cmEditQuickRun, hcOptionsMenu,
+    MenuItem 'DN.~E~XT szerkesztÇse...', '', kbNoKey, cmExtFileEdit, hcOptionsMenu,
+    MenuItem 'DN.~H~GL szerkesztÇse...', '', kbNoKey, cmEditHGL, hcOptionsMenu,
+    MenuItem 'DN.S~P~F szerkesztÇse...', '', kbNoKey, cmEditSPF, hcOptionsMenu,
+    MenuItem 'DN.~I~NI szerkesztÇse...', '', kbNoKey, cmEditINI, hcOptionsMenu,
+    MenuItem '~G~lob†lis DN.MNU defin°ci¢k...', '', kbNoKey, cmMenuFileEdit, hcOptionsMenu,
+    MenuItem 'He~l~yi DN.MNU defin°ci¢k...', '', kbNoKey, cmLocalMenuFileEdit, hcOptionsMenu,
+    MenuItem 'KÅlsì F†~j~lnÇzìk...', '', kbNoKey, cmExternalViewers, hcOptionsMenu,
+    MenuItem 'KÅlsì Sze~r~kesztìk...', '', kbNoKey, cmExternalEditors, hcOptionsMenu,
     MenuLine
-    MenuItem 'Be†ll°t†sok ~m~entÇse', ' ', kbNoKey, cmSaveDesk, hcOptionsMenu,
-    MenuItem 'Be†ll°t†sok ~b~etîltÇse', ' ', kbNoKey, cmLoadDesk, hcOptionsMenu,
+    MenuItem 'Be†ll°t†sok ~m~entÇse', '', kbNoKey, cmSaveDesk, hcOptionsMenu,
+    MenuItem 'Be†ll°t†sok ~b~etîltÇse', '', kbNoKey, cmLoadDesk, hcOptionsMenu,
     MenuLine
-    MenuItem 'S~z~°nezÇs...', ' ', kbNoKey, cmChangeColors, hcOptionsMenu,
-    MenuItem 'Sz°~n~ek mentÇse', ' ', kbNoKey, cmStoreColors, hcOptionsMenu,
-    MenuItem 'Sz°nek be~t~îltÇse', ' ', kbNoKey, cmLoadColors, hcOptionsMenu,
+    MenuItem 'S~z~°nezÇs...', '', kbNoKey, cmChangeColors, hcOptionsMenu,
+    MenuItem 'Sz°~n~ek mentÇse', '', kbNoKey, cmStoreColors, hcOptionsMenu,
+    MenuItem 'Sz°nek be~t~îltÇse', '', kbNoKey, cmLoadColors, hcOptionsMenu,
   END
  SubMenu '~W~indows', hcWindows,
     MenuItem '~M~ozaik elrendezÇs', '', kbNoKey, cmTile, hcWindows,
@@ -648,7 +671,7 @@ MENU dlgMainMenu
     MenuItem 'Ma~x~imaliz†l', 'Ctrl-M, Ctrl-Alt-Z', kbCtrlM, cmMaxi, hcWindows,
     MenuItem '~K~îvetkezì ablak', 'Alt-Tab', kbAltTab, cmNext, hcWindows,
     MenuItem '~E~lìzì ablak', 'Ctrl-Tab', KbCtrlTab, cmPrev, hcWindows,
-    MenuItem 'Kîvetkezì ~h~asonl¢', 'Shift-SzÅrke +', kbShiftGrayPlus,  cmNext2, hcWindows,
+    MenuItem 'Kîvetkezì ~h~asonl¢', 'Shift-SzÅrke +', kbShiftGrayPlus, cmNext2, hcWindows,
     MenuItem 'Elìzì h~a~sonl¢', 'Shift-SzÅrke -', kbShiftGrayMinus, cmPrev2, hcWindows,
     MenuItem 'Kîve~t~kezì eltÇrì', '', kbNoKey, cmNext3, hcWindows,
     MenuItem 'Elìzì eltÇ~r~ì', '', kbNoKey, cmPrev3, hcWindows,
@@ -664,9 +687,9 @@ MENU dlgWkzMenuBar
        MenuItem '~M~egnyit†s...', 'F3', kbF3, cmXEditFile, hcSpreadFileMenu,
        MenuItem 'M~e~ntÇs', 'F2', kbF2, cmSave, hcSpreadFileMenu,
        MenuItem 'Me~n~tÇs m†skÇnt...', 'Shift-F2', kbShiftF2, cmSaveSheetAs, hcSpreadFileMenu,
-       MenuItem 'Men~t~Çs szîvegkÇnt', ' ', kbNoKey, cmImportToFile, hcSpreadFileMenu,
+       MenuItem 'Men~t~Çs szîvegkÇnt', '', kbNoKey, cmImportToFile, hcSpreadFileMenu,
        MenuLine
-       MenuItem '~F~ìmenÅ', 'F10', kbF10, cmMainMenu, hcSpreadSheet,
+       MenuItem '~F~ìmenÅ', 'F10', kbF10, cmMainMenu, hcSpreadFileMenu,
        MenuLine
        MenuItem 'E~x~it (KilÇpÇs)', 'Ctrl-F4', kbESC, cmClose, hcSpreadFileMenu,
      END
@@ -832,7 +855,7 @@ STATUSLINE
      StatusItem '~F4~Kibont', kbF4, cmExtractTo,
      StatusItem '~F5~M†sol', kbF5, cmCopyFiles,
      StatusItem '~F6~Teszt', kbF6, cmArcTest,
-     StatusItem '~F7~Jelsz¢',  kbF7, cmSetPassword,
+     StatusItem '~F7~Jelsz¢', kbF7, cmSetPassword,
      StatusItem '~F8~Tîrîl', kbF8, cmPanelErase,
      StatusItem '~F10~MenÅ', kbF10, cmMenu,
 ;{ALT}
@@ -920,6 +943,7 @@ STATUSLINE
      StatusItem '-Sz~E~rkesztì', kbAltE, cmFileEdit,
      StatusItem '-~J~ Termin†l', kbAltJ, cmTerminal,
      StatusItem '-~X~ KilÇp', kbAltX, cmQuit,
+     StatusItem '+~F7~ Keres vissza', kbAltF7, cmReverseSearch,
 ;{CTRL}
      StatusItem '+~F3~ Menedzser', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Bez†r', kbCtrlF4, cmClose,
@@ -1031,9 +1055,9 @@ STATUSLINE
      StatusItem '~F10~ MenÅ', kbF10, cmMenu,
 ;{ALT}
      StatusItem '-~BkSp~Visszavon', kbAltBack, cmUndo,
-     StatusItem '-~F7~Keres vissza', kbAltF7, cmReverseSearch,
+     StatusItem '-~F7~ Keres vissza', kbAltF7, cmReverseSearch,
      StatusItem '-~J~Sorkiz†rt', kbAltJ, cmFJustify,
-     StatusItem '-~C~KîzÇpre',  kbAltC, cmFCenter,
+     StatusItem '-~C~KîzÇpre', kbAltC, cmFCenter,
      StatusItem '-Ba~L~ra', kbAltL, cmFLeft,
      StatusItem '-Jobb~R~a', kbAltR, cmFRight,
      StatusItem '-~Z~oom', kbAltZ, cmZoom,
@@ -1072,7 +1096,7 @@ STATUSLINE
      StatusItem '~F2~ Ment', kbF2, cmSBBStore,
      StatusItem '~F5~ Lop', kbF10, cmSBBGrab,
      StatusItem '~F7~ Keres', kbF7, cmSearchFor,
-     StatusItem '~F8~ Tîrîl',   kbF8, cmSBBKill,
+     StatusItem '~F8~ Tîrîl', kbF8, cmSBBKill,
      StatusItem '~F10~ MenÅ', kbF10, cmMenu,
 ;{Alt+Ctrl}
 ;     StatusItem '^~X~ ójraind°t†s', kbCtrlAltX, cmRestart,
@@ -1146,7 +1170,7 @@ STATUSLINE
      StatusItem '~F3~ SzÅnet', kbF3, cmStop,
      StatusItem '~F4~ Top 10', kbF4, cmShowHi,
      StatusItem '~F5~ Be†ll°t', kbF5, cmSetup,
-     StatusItem '~+~ Szint',  kbGrayPlus, cmTetrisIncLevel,
+     StatusItem '~+~ Szint', kbGrayPlus, cmTetrisIncLevel,
      StatusItem '~*~ Kîvetkezì', kbGrayAst, cmTetrisPreview,
 ;{ALT}
      StatusItem '-~N~ ój j†tÇk', kbAltN, cmNewGame,
@@ -1367,7 +1391,7 @@ STATUSLINE
 
   StatusDef hcTreeDialog, hcTreeDialog,
 ;{BASE}
-     StatusItem '~F1~ S£g¢',  kbF1, cmHelp,
+     StatusItem '~F1~ S£g¢', kbF1, cmHelp,
      StatusItem '~F7~ ój kînyvt†r', kbF7, cmPanelMkDir,
      StatusItem '~F8~ Kînyvt†r tîrlÇse', kbF8, cmPanelErase,
 ;{ALT}
@@ -2620,8 +2644,8 @@ END
 
 DIALOG dlgWindowManager, 70, 14, 'Ablakmenedzser'
   HELPCTX hcWinMan
-  Button 58,3,68,5,  'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-  Button 58,5,68,7,  '~B~ez†r', cmNo, bfNormal, ofPostProcess, ofPreProcess
+  Button 58,3,68,5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 58,5,68,7, '~B~ez†r', cmNo, bfNormal, ofPostProcess, ofPreProcess
   Button 58,7,68,9, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
   Button 58,11,68,13,'~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
 END
@@ -2718,10 +2742,10 @@ DIALOG dlgOverwriteQuery, 60, 13, 'Megerìs°tÇs'
       ITEM 'Minden f†jlra ÇrvÇnyes'
     END
     Button  3, 10, 16, 12, '~F~elÅl°r', cmYes, bfDefault, ofPostProcess
-    Button 16, 10, 25, 12, '~B~ìv°t',   cmNo, bfNormal, ofPostProcess
+    Button 16, 10, 25, 12, '~B~ìv°t', cmNo, bfNormal, ofPostProcess
     Button 25, 10, 36, 12, 'èt~n~evez', cmOK, bfNormal, ofPostProcess
-    Button 36, 10, 46, 12, '~K~ihagy',  cmSkip, bfNormal, ofPostProcess
-    Button 46, 10, 56, 12, '~M~Çgsem',  cmCancel, bfNormal, ofPostProcess
+    Button 36, 10, 46, 12, '~K~ihagy', cmSkip, bfNormal, ofPostProcess
+    Button 46, 10, 56, 12, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess
 END
 
 DIALOG dlgAdvancedFilter, 36, 15, 'Szñrì'
@@ -3156,33 +3180,6 @@ EDITOR COMMANDS
     COMMAND   cmSwitchDrawMode,   kbF4,          0,     ^Q^M     #0#0
     COMMAND cmSwitchKeyMapping,   kbF8,          0,     #0#0     #0#0
     COMMAND    cmReverseSearch,   kbAltF7,       0,     ^Q^R     #0#0
-END
-
-DIALOG dlgCpuFlagInfo, 60, 23, 'Processzor inform†ci¢k'
-    HELPCTX hcCpuFlagInfo
-    ParamText 2,  1, 50,  2, 'FPU a Chipben                          %s',1
-    ParamText 2,  2, 50,  3, 'Virtu†lis m¢d kiterjesztÇse            %s',1
-    ParamText 2,  3, 50,  4, 'NyomkîvetÇs kiterjesztÇse              %s',1
-    ParamText 2,  4, 50,  5, '4Mb lapoz¢ mÇret t†mogat†s             %s',1
-    ParamText 2,  5, 50,  6, 'IdìbÇlyeg sz†ml†l¢                     %s',1
-    ParamText 2,  6, 50,  7, 'MSRs Pentium kompatibilis processzor   %s',1
-    ParamText 2,  7, 50,  8, 'Fizikai c°mzÇs kiterjesztÇse           %s',1
-    ParamText 2,  8, 50,  9, 'GÇp ellenìrzÇs t†mogat†sa              %s',1
-    ParamText 2,  9, 50, 10, 'CMPXCHG8B t†mogat†s                    %s',1
-    ParamText 2, 10, 50, 11, 'Helyi APIC a Chipben (Intel)           %s',1
-    ParamText 2, 11, 50, 12, 'Gyors rendszerh°v†s t†mogat†sa         %s',1
-    ParamText 2, 12, 50, 13, 'Mem¢riat°pus tartom†nyjegyzÇke         %s',1
-    ParamText 2, 13, 50, 14, 'Glob†lis lapoz†s t†mogat†sa            %s',1
-    ParamText 2, 14, 50, 15, 'GÇpellenìrzÇs felÅgyelete              %s',1
-    ParamText 2, 15, 50, 16, 'CMOV instrukci¢k CPU †ltali t†mogat†sa %s',1
-    ParamText 2, 16, 50, 17, 'Lapjellemzì t†bl†zat                   %s',1
-    ParamText 2, 17, 50, 18, '32-bites lapoz†si mÇret kiterjesztÇse  %s',1
-    ParamText 2, 18, 50, 19, 'Processzor szÇriasz†ma                 %s',1
-    ParamText 2, 19, 50, 20, 'IA MMX t†mogat†s                       %s',1
-    ParamText 2, 20, 50, 21, 'Gyors MentÇs/Helyre†ll°t†s t†mogat†sa  %s',1
-    ParamText 2, 21, 50, 22, 'SIMD †raml†s kiterjesztÇse             %s',1
-    Button 48, 20, 58, 22, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 62, 13, 72, 15, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgFTNInfo, 55, 8, 'FTN Inform†ci¢'
@@ -3924,9 +3921,9 @@ DIALOG dlgNameCase, 40, 12, 'F†jlnÇv konverzi¢'
       ITEM 'NAGY KIT'
     END
     Label 24, 2, '~K~iterjesztÇs', ofPostProcess, ofPreProcess
-    Button  4, 9, 14, 11,  'O~K~',  cmOK,     bfDefault, ofPostProcess, ofPreProcess
-    Button 15, 9, 25, 11, '~M~Çgsem', cmCancel, bfNormal,  ofPostProcess, ofPreProcess
-    Button 26, 9, 36, 11,  '~S~£g¢',  cmHelp,   bfNormal,  ofPostProcess, ofPreProcess
+    Button  4, 9, 14, 11, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 15, 9, 25, 11, '~M~Çgsem', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 26, 9, 36, 11, '~S~£g¢', cmHelp, bfNormal, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgEditorDefaults, 62, 22, 'Szerkesztì alapbe†ll°t†sok'

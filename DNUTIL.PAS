@@ -52,6 +52,11 @@
 //  dn16rc1-pkview_some_dialogs_resources_fix.patch
 //
 //  2.0.0
+//  dn200-dbf_wkz_restore_position.patch
+//  dn200-dbf_wkz-history.patch
+//  dn200-empty_dbf.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -185,6 +190,10 @@ var
   PS: PString;
   q : Integer;
   RN: String;
+  _M: Integer;
+{--- start -------- Eugeny Zvyagintzev ---------}
+  FileIsDBF: Boolean;
+{--- finish -------- Eugeny Zvyagintzev ---------}
 
   function View: Boolean;
   begin
@@ -284,7 +293,28 @@ Ext:  if ((Intern>0) and (SystemData.Options and ossViewer = 0)) and View (* X-M
      XT := UpStrg(GetExt(FileName));
      {$IFDEF DBView}
      if (UpStrg(XT) = '.DBF') or (Q=vmDB) then begin
-      W := New(PDBWindow,Init(FileName));
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Use history if possible}
+      XT := ' '+RN;
+      UpStr(XT);
+      PS := @XT;
+      Q:=-1;
+      if (InterfaceData.Options and ouiTrackViewers <> 0) and
+         (ViewHistory <> nil) then
+       I := ViewHistory^.IndexOf(@PS)
+      else
+       I := -1;
+      if I >= 0 then
+       begin
+        P := ViewHistory^.At(I);
+        Q:=vmDB;
+       End;
+      FileIsDBF:=False;
+      W := New(PDBWindow,Init(RN+'|'+FileName,FileIsDBF));
+{If file is not valid DBF and NOT empty DBF file then use internal viewer}
+      If (W = Nil) And (FileIsDBF = False) Then
+       Goto Int;
+{--- finish -------- Eugeny Zvyagintzev ---------}
       if (Q=vmDB) and (W<>nil) then
        with P^, W^ do begin
          R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
@@ -299,12 +329,39 @@ Ext:  if ((Intern>0) and (SystemData.Options and ossViewer = 0)) and View (* X-M
      {$ENDIF}
      {$IFDEF SpreadSheet}
       if (UpStrg(XT) = '.WKZ') or (Q=vmSpread) then begin
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Use history if possible}
+       XT := ' '+RN;
+       UpStr(XT);
+       PS := @XT;
+       if (InterfaceData.Options and ouiTrackViewers <> 0) and
+          (ViewHistory <> nil) then
+        I := ViewHistory^.IndexOf(@PS)
+       else
+        I := -1;
+       if I >= 0 then
+        begin
+         P := ViewHistory^.At(I);
+         _M:=P^.fViewMode;
+         Q:=vmSpread;
+        End;
+{--- finish -------- Eugeny Zvyagintzev ---------}
        W := New(PCalcWindow,Init(R, FileName));
-       if (Q=vmDB) and (W<>nil) then
+{--- start -------- Eugeny Zvyagintzev ---------}
+{If file is not valid WKZ then use internal viewer.}
+{But CalcWindow will always created.}
+       If W = Nil Then
+        Goto Int;
+{--- finish -------- Eugeny Zvyagintzev ---------}
+       if (Q=vmSpread) and (W<>nil) then
         with P^, W^ do begin
           R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
           AdjustToDesktopSize(R, fDeskSize);
           Locate(R);
+{--- start -------- Eugeny Zvyagintzev ---------}
+{If previous view mode is NOT vmSpread then position will NOT restored}
+         If _M = vmSpread Then
+{--- finish -------- Eugeny Zvyagintzev ---------}
          with PCalcWindow(W)^.CalcView^ do begin
           Delta       := fsDelta;
           Cur         := fsCur;
@@ -505,6 +562,7 @@ PROCEDURE TDNAppl.HandleCommand;
      P: PView;
      ST: String;
      W: Word;
+     FileIsDBF: Boolean;
 
 {$IFDEF VIRTUALPASCAL} {JO}
      CC: Word;
@@ -560,7 +618,7 @@ begin
      cmColumnDefaultsArvd: if SetupColumnDefaultsArvd then begin WriteConfig; Application^.Redraw; end;
      cmHighlightGroups: SetHighlightGroups;
      {$IFDEF DBView}
-        cmDBFView: InsertWindow(New(PDBWindow,Init(CnvString(Event.InfoPtr))));
+        cmDBFView: InsertWindow(New(PDBWindow,Init(CnvString(Event.InfoPtr),FileIsDBF)));
      {$ENDIF}
      {$IFDEF SpreadSheet}
         cmNewTable: LoadSheet('');

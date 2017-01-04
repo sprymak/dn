@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn227-resource_and_help_fixes_14022002.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -467,7 +470,7 @@ Unit CdUtil;
       Insert(Control);
       BOX := PListBox(Control) ;
 
-        R.Assign(4,1,11,2);
+        R.Assign(4,1,12,2);
         Labl := New(PLabel, Init(R, GetString(dlCDTrackButton), Control));
         Insert(Labl);
 

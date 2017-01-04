@@ -221,15 +221,14 @@
                            6. Project coordinators
 
     First coordinator:
-        Alexey Feldgendler
-        Phone number in Novosibirsk: +7-3832-776581
-        2:5000/111.27@fidonet AKA 911:911/0@codernet
-        xman@beep.ru (for mail and files up to 2 megabytes)
+        Max Vasilyev
+        2:5057/33.36@fidonet
+        piwamoto@pisem.net
+        http://dn.traktir.ru/
     Second coordinator:
-        Mike Lykov
-        2:5057/44@fidonet
-        nelescon@samaramail.ru
-        http://dnosp.id.ru/ (the real name is http://www.hippo.ru/~nelescon/)
+        Eugeny Zvyagintzev
+        2:5004/18.60@fidonet
+        dn_osp@pisem.net
     Third coordinator:
         check out our www pages and RU.SHELL.DN Fidonet echo area
 

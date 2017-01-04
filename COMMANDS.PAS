@@ -54,6 +54,10 @@
 //  dn16rc1-Ctrl-N_hotkey_used_for_long-short_names_switching.patch
 //
 //  2.0.0
+//  dn200-remove_Machine_Type_and_CPU_flag_info_from_sysinfo.patch
+//  dn2215-windows_manager_changes_2.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1683,6 +1687,13 @@ TYPE
     dlSI_Tracks,
     dlSI_SectTrack,
     dlSI_NotPresent,
+    dlMHz,
+    dlUnknownDiskDriverType,
+    dlEmulated,
+    dlInternal,
+    dlNone,
+    dlUnknownCPUFPU,
+
     dlDetailButton,
     dlTSRTitle,
     dlMemoryInfo,
@@ -1966,6 +1977,8 @@ TYPE
     dlTeam171,
     dlTeam172,
     dlTeam173,
+    dlTeam174,
+    dlTeam175,
 
     dlHelp,
     dlOutputTitle,
@@ -2017,6 +2030,7 @@ TYPE
     dlUpDir,
     dlSubDir,
     dlWKZ_Empty,
+    dlWKZName,
     dlPM_Print,
     dlArvid_Title,
     dlArvid_Type,
@@ -2226,47 +2240,7 @@ TYPE
     dlAnonymous,  (*X-Man*)
     dlMenuItemOn, (*X-Man*)
     dlMenuItemOff,(*X-Man*)
-    {-DataCompBoy-}
-    dlMachineTypeFF,      {+SYSINFO}
-    dlMachineTypeFE,
-    dlMachineTypeFD,
-    dlMachineTypeFC_1,
-    dlMachineTypeFC_2,
-    dlMachineTypeFC_4,
-    dlMachineTypeFC_5,
-    dlMachineTypeFC_6,
-    dlMachineTypeFC_8,
-    dlMachineTypeFC_0b,
-    dlMachineTypeFC_20,
-    dlMachineTypeFC_42,
-    dlMachineTypeFC_45,
-    dlMachineTypeFC_48,
-    dlMachineTypeFC_4F,
-    dlMachineTypeFC_50,
-    dlMachineTypeFC_51,
-    dlMachineTypeFC_52,
-    dlMachineTypeFC_94,
-    dlMachineTypeFC_else,
-    dlMachineTypeFB86,
-    dlMachineType80,
-    dlMachineTypeFA_1,
-    dlMachineTypeFA_else,
-    dlMachineTypeF9,
-    dlMachineTypeF8_4_9_B,
-    dlMachineTypeF8_else,
-    dlMachineTypeB6,
-    dlMachineType9A,
-    dlMachineType2D,
-    dlMachineTypeE1,
-    dlMachineType30,
-    dlMachineTypeElse,
-    dlMHz,
-    dlUnknownDiskDriverType,
-    dlEmulated,
-    dlInternal,
-    dlNone,
-    dlUnknownCPUFPU,         {-SYSINFO}
-    {-DataCompBoy-}
+
     dlcTitle,    {JO}{+CALENDAR}
     dlcLine,
     dlcJanuary,
@@ -2461,7 +2435,6 @@ TYPE
     dlgEditHistory,
     dlgViewHistory,
     dlgAdvancedCOMSetup,
-    dlgCpuFlagInfo,
     dlgFTNInfo,
     dlgSrchFailed,
     {DataCompBoy}

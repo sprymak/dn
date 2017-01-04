@@ -23,7 +23,7 @@ Dos Navigator Open Source Project Team:
   Sergey Klimov <2:5057/18.61>
   Vladimir Korablin (VK) <2:5025/3.86>
   Laszlo Kormoczi (KaeL) <kael@swi.hu>
-  Alexey Korop (AK155) <2:461/155><korop@online.kharkiv.net>
+  Alexey Korop (AK155) <2:461/155; korop@online.kharkiv.net>
   Sergey Korshunoff (SeYKo) <2:5020/434.5>
   Sergei Koryakin <ksnk@bigfoot.com>
   Alexey Kostkin (Knave) <2:5020/968.67>
@@ -49,15 +49,15 @@ Dos Navigator Open Source Project Team:
   Denis Smirnoff (Necromancer) <denisvs@aol.com>
   Jiri Travnicek (JITR) <jitr@jitr.cjb.net>
   Igor Vagin (Antares19) <2:5020/1507.42>
-  Max Vasilyev (Piwamoto) <2:5057/33.36; piwamoto@chat.ru>
+  Max Vasilyev (Piwamoto) <2:5057/33.36; piwamoto@pisem.net>
   Ilya Vdovin (VIV)
   Kirill Vodonosov (Kirill) <vodonosov@tut.by>
+  Max Vysokikh (Force) <force@nordnet.ru>
   Vladimir Zakharychev (Bobby Z.)
   Ondrej Zary (Rainbow) <rnbw@geocities.com>
   Pawel Ziemian <pawelz@aritech.com.pl>
   Valerij Zubov
-  Eugeny Zvyagintzev <john@omsktyre.com>
-  Marinais <2:5020/2613.5>
+  Eugeny Zvyagintzev <2:5004/18.60; dn_osp@pisem.net>
 
 Dos Navigator II Team:
   Dmitry Dotsenko (AxoNSoft)
@@ -79,5 +79,7 @@ Special thanks to:
   Pavel Protasov <pprot@mail.ru>
   DimiteriY Roubliouph (DR)
   Dmitry Shestakov
+  Marinais <2:5020/2613.5>
+  Leon Kowalski (Noumemon) <artique@mail.ru>
   ...and to all RU.SHELL.DN subscribers
 ==============================================================================

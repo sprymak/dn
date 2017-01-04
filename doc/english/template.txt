@@ -11,11 +11,11 @@
  Applicable to DN version: <starting with 1.51 (=1.51.00), DN Open Source
                            versions increase the number after the second dot>
 
-              Description: <patch description - what is added to DN, what bugs
-                           are fixed, what menu commands, dialogs, hot keys
-                           are added or modified; please do not combine
-                           changes not having much in common in a single
-                           patch>
+              Description:
+[?] Patch description - what is added to DN, what bugs are fixed, what menu
+    commands, dialogs, hot keys are added or modified; please do not combine
+    changes not having much in common in a single patch.
+    Check out history.txt for examples.
 
     Source files modified: <the list of source files updated>
 

@@ -55,6 +55,9 @@
 //  dn16rc1-Editor_search_fix.patch
 //
 //  2.0.0
+//  dn200-editor_replace_all_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1043,7 +1046,7 @@ begin
 end;
 
 label
-  LExit, _LExit;
+  LExit, _LExit, EndReplace;
 
 begin
  SearchActive := On;
@@ -1143,7 +1146,6 @@ begin
                     mfQuery+mfYesButton+mfAllButton+mfNoButton+mfCancelButton);
            if J = cmOK then begin J := cmYes; ReplaceAll := On; Prompt := Off end;
           end;
-         if J = cmCancel then begin Mark := OldMark; _DrawViews; goto LExit; end;
          if J = cmYes then
           begin
            Modified := On;
@@ -1162,11 +1164,13 @@ begin
            D := Delta;
            if (SearchData.What = #0) or Prompt then _DrawViews;
           end;
-         if ReplaceAll then Goto 1
-                       else begin
-                              Mark := OldMark;
-                              _DrawViews; goto LExit;
-                            end;
+         if ReplaceAll then
+           begin  {AK155}
+           if J <> cmCancel then
+             goto 1;
+           Mark := OldMark;
+           goto EndReplace;
+           end;
         end
           else begin Mark := OldMark; LastPos.X := -1; {DrawView; }goto _LExit; end;
       end;
@@ -1184,6 +1188,8 @@ begin
 {      _DrawViews;}
     end;
   UnMark := On;
+
+EndReplace:
   if NumRep > 0 then
     begin
       MessageBox(GetString(dlReplacesMade), @NumRep, mfOkButton+mfInformation);

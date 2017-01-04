@@ -51,18 +51,17 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn200-ZIP_processing_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_Zip; {ZIP}
 
-{.$DEFINE DeadCode}{piwamoto}
-
 interface
  uses Archiver, Advance, Advance1, Objects, LFNCol, Dos
-{$IFDEF DeadCode}
       , FViewer
-{$ENDIF}
       ;
 
 type
@@ -171,42 +170,43 @@ end;
 Procedure TZIPArchive.GetFile;
 var
     P:   TZIPLocalHdr;
-{$IFDEF DeadCode}
     FP, FPP: Longint;
     nxl: TXLat;
 label 1;
-{$ENDIF}
 begin
-{$IFDEF DeadCode}
-   FP := ArcFile^.GetPos;
 1:
-{$ENDIF}
    ArcFile^.Read(P.ID,4);
-{$IFDEF DeadCode}
-   if (P.ID and $FFFF <> $4B50) or (ArcFile^.Status <> stOK) then
-    begin
-      FPP := FP;
-      NullXLAT ( NXL );
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FP, On, Off, Off, Off, Off);
-      if FP > 0 then begin ArcFile^.Seek(FP); Goto 1 end;
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off);
-      if FP > 0 then begin ArcFile^.Seek(FP); Goto 1 end;
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#05#06, FPP, On, Off, Off, Off, Off);
-      FileInfo.Last:=2;Exit;
-    end;
-{$ENDIF}
-   if (P.ID = $06054B50) or (P.ID = $02014b50) then begin FileInfo.Last:=1;Exit;end;
+   if {(P.ID = $06054B50) or }(P.ID = $02014b50) then begin FileInfo.Last:=1;Exit;end;
+   if P.ID = $08074B50 then {skip Spanned/Split block}
+     begin
+      ArcFile^.Read(P.ID,12);
+      Goto 1;
+     end;
    ArcFile^.Read(P.Extract,SizeOf(P)-4);
-   if (ArcFile^.Status <> stOK) or (P.ID and $FFFF <> $4B50) then begin FileInfo.Last:=2;Exit;end;
+   if (ArcFile^.Status <> stOK) or (P.ID <> $04034B50) then begin FileInfo.Last:=2;Exit;end;
    if P.FNameLength > 255 then P.FNameLength := 255;
    ArcFile^.Read(FileInfo.FName[1], P.FNameLength);
    FileInfo.FName[0] := Char(P.FNameLength);
    FileInfo.Last := 0;
    FileInfo.Attr := (P.GeneralPurpose and 1) * Hidden;
+   FileInfo.Date := P.LastModDate;
+   FP := ArcFile^.GetPos + P.ExtraField + P.CompressedSize;
+   if ((P.GeneralPurpose and 8) <> 0) and (P.CompressedSize = 0) then
+     begin
+      FPP := FP;
+      NullXLAT ( NXL );
+      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FPP, On, Off, Off, Off, Off);{local file header signature}
+      if FP < 0 then
+        begin
+         FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off);{central file header signature}
+         if FP < 0 then begin FileInfo.Last:=2;Exit;end;
+        end;
+      ArcFile^.Seek(FP - 8);
+      ArcFile^.Read(P.CompressedSize, 8);
+     end;
    FileInfo.USize := P.OriginalSize;
    FileInfo.PSize := P.CompressedSize;
-   FileInfo.Date := P.LastModDate;
-   ArcFile^.Seek(ArcFile^.GetPos + P.ExtraField + P.CompressedSize);
+   ArcFile^.Seek(FP);
 end;
 
 end.

@@ -51,6 +51,10 @@
 ;/  fixed by piwamoto 2001-10-13
 ;/
 ;/  2.0.0
+;/  dn200-remove_Machine_Type_and_CPU_flag_info_from_sysinfo.patch
+;/  dn227-resource_and_help_fixes_16022002.patch
+;/
+;/  2.3.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -2403,20 +2407,20 @@
 
 .topic edOptions=48024
 .title Sz”vegszerkeszt“ - Opci¢k men
-ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-³ Backspace visszaigaz¡t s   Be ³
-³ Auto Z r¢jel bez r s       Be ³
-³ Auto Bekezd‚s              Be ³
-³ Sort”r‚s                   Be ³
-³ Auto Sorkiz r s            Be ³
-³ Fgg“leges blokk           Ki ³
-³ Optim lis kit”lt‚s         Ki ³
-³ Aktu lis sor kiemel‚se     Be ³
-³ Aktu lis oszlop kiemel‚se  Be ³
-³ Kiemel‚sek                 Be ³
-³ Tab cser‚je sz¢k”zre       Be ³
-³ Gyors Tabul tor            Be ³
-ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³ Backspace visszaigaz¡t s   Be ³
+ ³ Auto Z r¢jel bez r s       Be ³
+ ³ Auto Bekezd‚s              Be ³
+ ³ Sort”r‚s                   Be ³
+ ³ Auto Sorkiz r s            Be ³
+ ³ Fgg“leges blokk           Ki ³
+ ³ Optim lis kit”lt‚s         Ki ³
+ ³ Aktu lis sor kiemel‚se     Be ³
+ ³ Aktu lis oszlop kiemel‚se  Be ³
+ ³ Kiemel‚sek                 Be ³
+ ³ Tab cser‚je sz¢k”zre       Be ³
+ ³ Gyors Tabul tor            Be ³
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
 .topic UUEncode=48025
 .title UU-K¢dol s
@@ -3082,9 +3086,6 @@
 
 .topic ChLngId=48077
 .title Nyelvi modul v ltoztat sa
-
-.topic CPUFlagInfo=48078
-.title R‚szletes processzor inform ci¢k
 
 .topic EditMiscMenu=48079
 .title Sz”vegszerkeszt“: Egyebek men

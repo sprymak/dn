@@ -56,6 +56,9 @@
 //  dn16rc1-vp_noasm_compatible.patch
 //
 //  2.0.0
+//  dn200-files_panel_bugs_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -94,6 +97,7 @@ TYPE
    ForceReading: Boolean;
    DriveState: Word;
    LastCurPos: TPoint;
+   BadDrv: Boolean;
 
    constructor Init(var Bounds: TRect; ADrive: Integer; AScrBar: PMyScrollBar);
    constructor Load(var S: TStream);
@@ -212,6 +216,7 @@ begin
  GetPeerViewPtr(S, InfoView);
  GetPeerViewPtr(S, DriveLine);
  Drive := PDrive(S.Get);
+ BadDrv:=(Drive = Nil);
  if Drive = nil then New(Drive, Init(0, @Self, 0)) else Drive^.Owner:=@Self;
  DeltaX := 0;
  Drive^.RereadDirectory('');
@@ -224,7 +229,7 @@ begin
  S.Read(PanelFlags, 2);
  S.Read(Delta, 2); OldDelta := -1; PosChanged := Off;
  S.Read(ForceReading, 1);
- if Drive<>nil then begin
+ If (Drive <> Nil) And (Not BadDrv) Then Begin
   S.Read(Drive^.LFNLen,    SizeOf(Drive^.LFNLen   ));
   S.Read(Drive^.EXTLen,    SizeOf(Drive^.EXTLen   ));
   S.Read(Drive^.DirFLP,    SizeOf(Drive^.DirFLP   ));
@@ -235,11 +240,16 @@ begin
   S.Read(dumm,SizeOf(Drive^.LFNLen)+SizeOf(Drive^.EXTLen)+
               SizeOf(Drive^.DirFLP)+SizeOf(Drive^.FilFLP)+
               SizeOf(Drive^.Param) +SizeOf(Drive^.Flags));
- Files := PFilesCollection(S.Get);
+
+ If BadDrv Then
+  S.Get
+ Else
+  Files := PFilesCollection(S.Get);
  if (Files <> nil) and (Drive^.DriveType=dtDisk) then
    for I := 0 to Files^.Count-1
      do PFileRec(Files^.At(I))^.Owner := @Drive^.CurDir;
- Loaded := On; MSelect := Off; isValid := True; QuickSearch := Off; ViewEnabled := Off;
+ Loaded := Not BadDrv; MSelect := Off; isValid := True;
+ QuickSearch := Off; ViewEnabled := Off;
  CommandEnabling := On;
 end;
 
@@ -324,7 +334,8 @@ procedure TFilePanelRoot.ChangeBounds;
  var R: TRect;
      I: LongInt;
 begin
- I := Byte(( Drive^.DriveType = dtFind ) or ( Drive^.DriveType = dtTemp ) or ( Drive^.DriveType = dtArc ));
+ I := Byte(( Drive^.DriveType = dtFind ) or ( Drive^.DriveType = dtTemp )
+           or ( Drive^.DriveType = dtArc ) or ( Drive^.DriveType = dtList ));
  I := Byte(FMSetup.Show and fmsDivider <> 0) +
       Byte(PanelFlags and fmiCurrent <> 0)*(1 + I) +
       Byte(PanelFlags and fmiSelected <> 0) +
@@ -380,9 +391,10 @@ procedure TFilePanelRoot.RereadDir;
      BB: Boolean;
      TF: TFileRec;
      WasLoaded, B: Boolean;
-
 begin
  Abort := Off; OldDelta := Delta; PosChanged := Off; WasLoaded := Loaded;
+ If Files = Nil Then
+  New(Files, Init(10, 10));
  if Loaded then begin
   LineLength := Drive^.CalcLength;
   ScrollBar^.SetParams(PFilesCollection(Files)^.Selected, 0, Files^.Count - 1,
@@ -390,9 +402,9 @@ begin
                       ((Size.X+1) div LineLength), 1);
   CurrentDirectory := ActiveDir;
   Loaded := Off;
-  if WasActive and (UpStrg(ActiveDir) <> UpStrg(DirectoryName)) then
+{  if WasActive and (UpStrg(ActiveDir) <> UpStrg(DirectoryName)) then
    begin DirectoryName := ActiveDir; ReadDirectory;
-         ScrollBar^.SetValue(0); Exit end;
+         ScrollBar^.SetValue(0); Exit end;}
  end;
  if (Files = nil) or (Files^.Count = 0) then begin OldDelta := -1; Delta := 0 end;
  ClrIO; Loaded := Off; ChDirName;
@@ -415,7 +427,8 @@ begin
      Inc(I);
    end;
  ReadDirectory;
- B := (Drive^.DriveType <> dtTemp) and (Drive^.DriveType <> dtFind);
+ B := (Drive^.DriveType <> dtTemp) and (Drive^.DriveType <> dtFind) and
+      (Drive^.DriveType <> dtList);
  if (FC^.Count > 0) then
   begin
    SelNum := 0; SelectedLen := 0; PackedLen := 0; BB := Off;
@@ -1563,6 +1576,7 @@ kbCtrlEnter: _CtrlEnter;
                   (Event.KeyCode = kbEnter) and (ShiftState and 3 = 0)
                   and (PF^.Attr and Directory = 0) and (Drive^.DriveType <> dtArc )
                   and (Drive^.DriveType <> dtFind ) and (Drive^.DriveType <> dtArvid )
+                  and (Drive^.DriveType <> dtList )
                   and (ArcViewer(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)), Drive^.Param))
                   then begin CE; Exit; end;
                if (PF <> nil) then
@@ -1903,14 +1917,14 @@ begin
                                 CE;
                               end;
                  cmCopyCollection: if Drive^.DriveType < dtArc then begin
-                                Drive^.CopyFiles(Event.InfoPtr, @Self, ShiftState and 4 = 0);
+                                Drive^.CopyFiles(Event.InfoPtr, @Self, ShiftState and 7 <> 0);
                                 CE;
                               end;
                  cmDropped: if MouseInView(PCopyRec(Event.InfoPtr)^.Where) then
                             begin
                               case Drive^.DriveType of
-                                dtFind :;
-                                else CM_Dropped(@Self, Event.InfoPtr);
+                                dtFind,dtList :;
+                              else CM_Dropped(@Self, Event.InfoPtr);
                               end;
                               CE;
                             end;

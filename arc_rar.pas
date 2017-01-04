@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -70,7 +73,7 @@ type
 
 type
      MainRARHdr = record
-      ID: Array [1..4] of Char;
+      ID: Longint;
       HeadLen: AWord;
       HeadFlags: Byte;
      end;

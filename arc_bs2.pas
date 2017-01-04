@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -75,7 +78,7 @@ type
       Date: LongInt;
       OriginSize: LongInt;
       PackedSize: LongInt;
-      Data: Array[1..4] of Byte;
+      Data: LongInt;
       NameLen: Byte;
      end;
 

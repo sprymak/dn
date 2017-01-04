@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -71,7 +74,7 @@ type
 type
      HAPHdr = record
       C: Char;
-      ID: Array[1..4] of Char;
+      ID: LongInt;
       PackedSize: LongInt;
       Reserved: Array[1..9] of Byte;
       Attr: Byte;
@@ -137,7 +140,7 @@ begin
  ArcFile^.Read(P,1);
  if (ArcFile^.GetPos = ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P.ID,SizeOf(P)-1);
- if (ArcFile^.Status <> stOK) or (P.ID <> #142#104#74#87)
+ if (ArcFile^.Status <> stOK) or (P.ID <> $574a688e{#142#104#74#87})
    then begin FileInfo.Last := 2;Exit;end;
  {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
  FileInfo.Last := 0;

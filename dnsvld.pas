@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn16rc1-load_desktop_size_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -724,6 +727,7 @@ begin
       R.B.X := R.A.X + OldDskSize.X;
       R.B.Y := R.A.Y + OldDskSize.Y;
       Desktop^.ChangeBounds(R);
+      Desktop^.Show;
     end;
     LoadDesktop(S^);
 (*    If OldArchiveName<>NewArchiveName then

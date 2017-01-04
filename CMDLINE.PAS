@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn16rc1-cmdline_improve.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -255,7 +258,7 @@ begin
  C1 := $07; if Overwrite then C2 := $4F else C2 := $70;
  if CurX < 0 then CurX := 0;
  if CurX > Length(Str) then CurX := Length(Str);
- DeltaX := Max(Length(Str)-(Size.X-Length(S^)-1), 0);
+{ DeltaX := Max(Length(Str)-(Size.X-Length(S^)-1), 0);}
  If DeltaX > CurX then DeltaX := CurX;
  if CurX - DeltaX > Size.X - Min(Length(Dir), 50) - 1 then
     DeltaX := CurX - Size.X + Min(Length(Dir), 50) + 1;

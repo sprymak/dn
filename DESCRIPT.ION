@@ -145,7 +145,6 @@ lzwc2.asm    Lempel-Ziv Welch Compression routine
 lzwd2.asm    Lempel-Ziv Welch Decompression routine
 macro.pas    Macro editor & environment editor
 meminfo.pas  Memory information
-meminfo.pas  Memory information
 memory.pas   Memory access
 menus.pas    Menus
 messages.pas Message boxes
@@ -251,3 +250,5 @@ bld_dpmi.bat Run this to build DN/DPMI
 bld_real.bat Run this to build DN/RealMode
 dpmicode.bat Run this to build DN.prg/DPMI
 realcode.bat Run this to build DN.prg/RealMode
+SORT_W32.INC Sorting types for Win32 versions
+sort_dos.inc Sorting types for Dos versions

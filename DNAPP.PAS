@@ -53,6 +53,9 @@
 //  dn16rc1-Remove_Enter(Leave)CriticalSection_from_Timeslicer_diff143byMV.patch
 //
 //  2.0.0
+//  dn200-sleep_after_commandline_update.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -837,6 +840,8 @@ end;
 {$ENDIF}
 
 procedure TProgram.GetEvent(var Event: TEvent);
+const
+  CursorRefreshedFlag : integer = 0; {KV}
 
 function ContainsMouse(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
 begin
@@ -861,6 +866,7 @@ begin
     Move(EventQueue[2], EventQueue[1], SizeOf(Event)*EventsLen);
     NewTimer(IdleSecs, 0);
     SliceAwake;
+    CursorRefreshedFlag:=0; {KV}
   end else
   begin
     EventsLen := 0;
@@ -881,11 +887,15 @@ begin
       begin
         NewTimer(IdleSecs, 0);
         SliceAwake;
+        CursorRefreshedFlag:=0; {KV: если есть событие от клавиатуры или мыши,}
+                                {    а затем событий нет, то после вызова Idle}
+                                {    необходимо обновить CommandLine          }
       end;
     end else
     begin
       NewTimer(IdleSecs, 0);
       SliceAwake;
+      CursorRefreshedFlag:=0;   {KV}
     end;
   end;
 
@@ -908,6 +918,7 @@ begin
         StatusLine^.HandleEvent(Event);
 
   if (IdleWas) and
+     (CursorRefreshedFlag < 5) and  {KV: Первые 5 вызовов Idle обновляем CommandLine}
      (SkyEnabled = 0) and
 {$IFDEF SS}
      (SSaver = nil) and
@@ -930,6 +941,9 @@ begin
     {$ENDIF}
     if ((Hi(A2) = $20) or (Hi(A1) = Size.Y - 1 - Byte( InterfaceData.Options and ouiHideStatus = 0 )))
        then CommandLine^.Update;
+    {KV: переменная CursorRefreshedFlag сделана Integer, а не boolean так как }
+    {    необходимо вызывать CommandLine^.Update как минимум 2 раза           }
+    inc(CursorRefreshedFlag); {KV}
   end;
 end;
 

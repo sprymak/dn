@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -91,9 +94,6 @@ type
       ID: Array[1..5] of Char;
      end;
 {$ENDIF}
-
-const ZOOID = $FDC4A7DC;
-
 
 implementation
 { ----------------------------- ZOO ------------------------------------}
@@ -156,7 +156,7 @@ var
     S    : String;
 begin
  ArcFile^.Read(P, 4);
- if (ArcFile^.Status <> stOK) or (P.ID <> ZOOID) then begin FileInfo.Last:=2;Exit;end;
+ if (ArcFile^.Status <> stOK) or (P.ID <> $FDC4A7DC) then begin FileInfo.Last:=2;Exit;end;
  ArcFile^.Read(P.Info, 2);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
  {if (P.Info = $0002) then begin FileInfo.Last := 1;Exit;end;}

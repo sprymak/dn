@@ -51,6 +51,11 @@
 ::  dn16rc1-Fix_rare_build_error_diff137byMV.patch
 ::
 ::  2.0.0
+::  dn200-version_autonumbering.patch
+::  dn200-builddn_batch_fix.patch
+::  dn200-version_upgrade.patch
+::
+::  2.3.0
 ::
 :://///////////////////////////////////////////////////////////////////////
 @echo off
@@ -87,7 +92,7 @@ if .%1.==.. builddn asm help resource nolite
 
 set prg_packer=%real_packer%
 
-set dn_version=2.0.0
+set dn_version=2.3.0
 set diz_title=Real Mode Binary Package
 
 :Loop
@@ -156,12 +161,16 @@ if exist exe\dn.ovr copy exe\dn.ovr %outpath% >nul
 :copyanother
 copy exe\dn.exe %outpath%\*.PRG >nul
 copy exe\dn.mpp %outpath% >nul
+if not exist doc\whatsnew.* goto CopyDocDir
+copy doc\whatsnew.* %outpath% >nul
+goto SkipBPC
+:CopyDocDir
 if not exist %outpath%\doc\nul mkdir %outpath%\doc >nul
 if not exist %outpath%\doc\english\nul mkdir %outpath%\doc\english >nul
 if not exist %outpath%\doc\russian\nul mkdir %outpath%\doc\russian >nul
-copy doc\russian\*.* %outpath%\doc\russian\*.* >nul
-copy doc\english\*.* %outpath%\doc\english\*.* >nul
-copy doc\*.* %outpath%\doc\*.* >nul
+copy doc\english\*.* %outpath%\doc\english >nul
+copy doc\russian\*.* %outpath%\doc\russian >nul
+copy doc\*.* %outpath%\doc >nul
 echo Dos Navigator Open Source Project >%outpath%\file_id.diz
 echo Version %dn_version% >>%outpath%\file_id.diz
 echo %diz_title% >>%outpath%\file_id.diz

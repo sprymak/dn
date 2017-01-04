@@ -55,6 +55,9 @@
 //  dn16rc1-Archive_total_size_2GB_fix-diff155byMV.patch
 //
 //  2.0.0
+//  dn200-delete_file_from_temp_fix-diff161byMV.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -320,14 +323,9 @@ end;
         {-DataCompBoy-}
 
 procedure TArcDrive.KillUse;
- var Dir, Name, Ext: String; {JO}
 begin
  if Prev <> nil then Prev^.KillUse;
- if KillAfterUse then
-                   begin
-                     lFSplit(ArcName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-                     if Dir = Tempdir then EraseFile(ArcName); {во временном каталоге не помешает}
-                   end;
+ if KillAfterUse then EraseTempFile(ArcName);
 end;
 
 procedure TArcDrive.Store;
@@ -707,7 +705,6 @@ begin
 end;
 
 procedure TArcDrive.ChangeUp;
- var Dir, Name, Ext: String; {JO}
 begin
   if CurDir <> '' then
    begin
@@ -730,11 +727,7 @@ begin
   GlobalMessage(evCommand, cmRereadInfo, nil);
   Prev := nil;
   S := GetName(ArcName);
-  if KillAfterUse then
-                   begin
-                     lFSplit(ArcName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-                     if Dir = Tempdir then EraseFile(ArcName); {во временном каталоге не помешает}
-                   end;
+  if KillAfterUse then EraseTempFile(ArcName);
   Dispose(PDrive(@Self), Done);
 end;
 

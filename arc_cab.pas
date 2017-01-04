@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -72,7 +75,7 @@ type
 type
   PCFHEADER = ^TCFHEADER;
   TCFHEADER = record
-    signature:  array [0..3] of Char;
+    signature:  LongInt;
     reserved1:  LongInt;
     cbCabinet:  LongInt;
     reserved2:  LongInt;
@@ -155,8 +158,7 @@ var
   CFHEADER: TCFHEADER;
 begin
   if (FilesNumber < 0) then begin
-   ArcFile^.Read(CFHEADER,SizeOf(CFHEADER.signature));
-   ArcFile^.Read(CFHEADER.reserved1, SizeOf(CFHEADER) - SizeOf(CFHEADER.signature));
+   ArcFile^.Read(CFHEADER,SizeOf(CFHEADER));
    FilesNumber := CFHeader.cFiles;
    ArcFile^.Seek(ArcPos+CFHeader.coffFiles);
   end;

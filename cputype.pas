@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn200-remove_unused_code_from_binaries-diff163byMV.patch
+//  dn200-sysinfo_Duron_CPU_detection_and_optimisation.patch
+//  dn200-AMD_K7_freq_and_iP4_detection.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -199,7 +204,9 @@ function cpu_Speed : Word;  { returns raw CPU clock in MHz }
 
 function ncpu_Speed : Word;  { returns normalized CPU clock in MHz }
 
+{$IFNDEF DN}
 function fcpu_Speed : Real; { returns floating point CPU clock freq }
+{$ENDIF}
 
 {$IFNDEF Win32}
 function getCacheSize : Word; {$IFNDEF VER60}far;{$ENDIF} { returns L1 cache size in Kb }
@@ -216,12 +223,14 @@ procedure getCPUID( Level : LongInt;
                                          {$IFNDEF VER60}far;{$ENDIF}
                                         {$ENDIF}
 
+{$IFNDEF DN}
 function getCPUSerialNumber : {$IFDEF Win32} ShortString;{$ELSE} String; {$ENDIF}
                               {$IFDEF Windows} export; {$ELSE}
                                {$IFNDEF Win32}
                                 {$IFNDEF VER60} far; {$ENDIF}
                                {$ENDIF}
                               {$ENDIF}
+{$ENDIF}
 
 {$IFDEF Win32}
 function UnderNT : Boolean;
@@ -301,7 +310,7 @@ const
                          $00008AC6, { AMD K5 models 2 and 3 }
                          $00003900, { WinChip C6  !!! needs adjustment }
                          $00007480, { i486SL }
-                         $00003CD2, { AMD K7     !!! needs adjustment }
+                         $00007009, { AMD K7     !!! needs adjustment }
                          $00003CD2, { WinChip 2  !!! needs adjustment }
                          $00003CD2, { Rise mP6   !!! needs adjustment }
                          $00007480, { i376 }
@@ -926,7 +935,8 @@ function cpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
        if Compare12('AuthenticAMD') then
         begin
          cpu := AmdK7;
-         cpu_Type := 'AMD Athlon(tm)';
+         if (cpuid1_.model = 3) then cpu_Type := 'AMD Duron(tm)'
+                                else cpu_Type := 'AMD Athlon(tm)';
          exit;
         end
        else
@@ -1004,7 +1014,7 @@ function cpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
    WinChip3:    cpu_Type := 'IDT/Centaur WinChip 3';
    Rise_mP6:    cpu_Type := 'Rise mP6';
    iP7:         cpu_Type := 'Intel/HP P7 (Merced)';
-   iP8:         cpu_Type := 'Intel P8';
+   iP8:         cpu_Type := 'Intel Pentium 4';
   else
    cpu_Type := {'Unknown CPU'}GetString(dlUnknownCPUFPU)+' CPU';
   end;
@@ -1028,7 +1038,9 @@ function fpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
   case fpu of
    fpuInternal: fpu_Type := {'Internal'} GetString(dlInternal);
    fpuNone:     fpu_Type := {'None'}     GetString(dlNone);
+{$IFNDEF DN}
    i8087:       fpu_Type := 'Intel 8087';
+{$ENDIF}
    i80287:      fpu_Type := 'Intel 80287';
    i80287xl:    fpu_Type := 'Intel 80287XL';
    i80387:      fpu_Type := 'Intel 80387';
@@ -1059,23 +1071,17 @@ type
       fArray       = array [0..MaxFTEntries] of Word;
 
 const
- Clone486Norm :
-  fArray = (33, 40, 50, 66, 75, 80, 100, 120, 133, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+ _486Norm :
+  fArray = (25, 33, 40, 50, 66, 75, 80, 100, 120, 133, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
- CloneP5Norm  :
-  fArray = (75, 90, 100, 120, 133, 150, 166, 185, 200, 233, 266, 300, 333, 350, 366, 380, 400, 0, 0, 0, 0, 0);
+ P5Norm  :
+  fArray = (60, 66, 75, 90, 100, 120, 133, 150, 166, 185, 200, 233, 250, 266, 300, 333, 350, 366, 380, 400, 450, 0);
 
  CloneP6Norm  :
-  fArray = (300, 333, 350, 366, 380, 400, 450, 500, 550, 600, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  fArray = (300, 333, 350, 366, 380, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200);
 
  CyrixNorm    :
   fArray = (80, 100, 110, 120, 125, 133, 150, 166, 185, 200, 225, 233, 250, 300, 333, 0, 0, 0, 0, 0, 0, 0);
-
- i486Norm     :
-  fArray = (25, 33, 40, 50, 66, 75, 80, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
- iP5Norm      :
-  fArray = (60, 66, 75, 90, 100, 120, 133, 150, 166, 185, 200, 233, 266, 300, 0, 0, 0, 0, 0, 0, 0, 0);
 
  iP6Norm      :
   fArray = (133, 150, 167, 185, 200, 220, 240, 266, 300, 333, 350, 366, 400, 433, 450, 466, 500, 533, 550, 600, 633, 650);
@@ -1083,18 +1089,12 @@ const
  WinChipNorm  :
   fArray = (180, 200, 225, 233, 240, 250, 266, 300, 333, 350, 366, 380, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
- RiseNorm     :
-  fArray = (266, 300, 333, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
- Clone486Entries = 10;
- CloneP5Entries  = 17;
- CloneP6Entries  = 10;
+ _486Entries     = 11;
+ P5Entries       = 21;
+ CloneP6Entries  = 20;
  CyrixEntries    = 15;
- i486Entries     = 8;
- iP5Entries      = 13;
  iP6Entries      = 20;
  WinChipEntries  = 13;
- RiseEntries     = 3;
 
 const
 Tolerance    = 4;  { MHz to round down from raw frequency }
@@ -1135,21 +1135,20 @@ begin
  if cpu = $FF then
   cpu_Type;
  case cpu of
-  i486sx, i486dx,
-  i486sl             : ncpu_Speed := NormFreq(cpu_Speed, i486Norm, i486Entries);
-  ibm486slc..Am486,
-  Am486DX            : ncpu_Speed := NormFreq(cpu_Speed, Clone486Norm, Clone486Entries);
-  iPentium, iP54C    : ncpu_Speed := NormFreq(cpu_Speed, iP5Norm, iP5Entries);
+  i486sx..Am486,
+  i486sl,
+  Am486DX            : ncpu_Speed := NormFreq(cpu_Speed, _486Norm, _486Entries);
   CxM1, CxM2         : ncpu_Speed := NormFreq(cpu_Speed, CyrixNorm, CyrixEntries);
+  iPentium, iP54C,
   AmdK5, AmdK5_2,
-  AmdK6              : ncpu_Speed := NormFreq(cpu_Speed, CloneP5Norm, CloneP5Entries);
+  AmdK6              : ncpu_Speed := NormFreq(cpu_Speed, P5Norm, P5Entries);
   AmdK7              : ncpu_Speed := NormFreq(cpu_Speed, CloneP6Norm, CloneP6Entries);
+  Rise_mp6, {266,300,333}
   iPentiumPro, iP7,
   iP8                : ncpu_Speed := NormFreq(cpu_Speed, iP6Norm, iP6Entries);
   WinChipC6,
   WinChip2,
   WinChip3           : ncpu_Speed := NormFreq(cpu_Speed, WinChipNorm, WinChipEntries);
-  Rise_mP6           : ncpu_Speed := NormFreq(cpu_Speed, RiseNorm, RiseEntries);
  else
   ncpu_Speed := cpu_Speed;
  end;
@@ -1166,7 +1165,7 @@ function cpu_Speed : Word;
                distinguishing also occurs here and CPU timings are based on
                detected CPU type. }
   if ((extFlags and efTSCSupport) = efTSCSupport) and not UnderNT
-     and not (cpu in [AmdK5, AmdK6, AmdK5_2, AmdK7])
+     and not (cpu in [AmdK5, AmdK6, AmdK5_2{, AmdK7}])
   then
    begin
 {$IFDEF Win32}
@@ -1205,6 +1204,7 @@ function cpu_Speed : Word;
 {$ENDIF}
  end;
 
+{$IFNDEF DN}
 function fcpu_Speed : Real;
 { the same as cpu_Speed, but uses Real calculations }
 {$IFDEF NewSpeedCalc}
@@ -1263,7 +1263,6 @@ function getCPUSerialNumber : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDI
    end;
  end;
 
-{$IFNDEF DN}
 const
         libVersion  = $0212;
 

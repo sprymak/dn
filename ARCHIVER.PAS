@@ -53,6 +53,12 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn200-RAR_3_0_SFX_detection.patch
+//  dn223-Archivers_Optimization.patch
+//  dn200-NE_SFX_detection.patch
+//  dn2215-dont_change_default_archiver_2.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -606,16 +612,18 @@ end;
 
 function ArchiveFiles;
   var C: TStr4;
-      q: byte;
+      q, deftmp: byte;
 begin
   ArchiveFiles := Off;
   if PosChar(':',S) < 3 then Exit;
   C := UpStrg(Copy(S,1,PosChar(':', S)));
   q:=GetArchiveTagBySign(C);
   if q=arcUNK then exit;
+  deftmp := DefaultArchiver;
   DefaultArchiver := q;
   ArchiveFiles := On;
   MakeArchive(Copy(S, PosChar(':',S)+1, 255), Files, MoveMode, Owner);
+  DefaultArchiver := deftmp;
 end;
 
         {-DataCompBoy-}
@@ -899,12 +907,12 @@ end;
 procedure SkipSFX; {piwamoto}
 var
    TempWord: AWord;
+{used for MZExeRec.RelOffs, MZExeRec.NewExe.Type, NEhdrRec.SegmentOffset}
    WinZipID: Array [0..7] of char;
    MZExeRec: record
-              ExeID:   Array[0..1] of Char;
+              ExeID:   AWord;
               LastB:   AWord;
               TotalP:  AWord;
-              RelOffs: AWord;
               NewExe:  LongInt;
              end;
    PEhdrRec: record
@@ -937,14 +945,15 @@ var
              end;
 begin
    ArcFile^.Read(MZExeRec.ExeID, SizeOf(MZExeRec.ExeID) + SizeOf(MZExeRec.LastB) + SizeOf(MZExeRec.TotalP));
-   if (MZExeRec.ExeID = 'MZ') or (MZExeRec.ExeID = 'ZM') then
+   if (MZExeRec.ExeID = $5a4d{'MZ'}) or (MZExeRec.ExeID = $4d5a{'ZM'}) then
     begin {MZ}
      ArcFile^.Seek($18);
-     ArcFile^.Read(MZExeRec.RelOffs, SizeOf(MZExeRec.RelOffs));
+     ArcFile^.Read(TempWord, SizeOf(TempWord));
      ArcFile^.Seek($3c);
      ArcFile^.Read(MZExeRec.NewExe, SizeOf(MZExeRec.NewExe));
-     ArcPos := LongInt(MZExeRec.TotalP - 1)*512 + MZExeRec.LastB;
-     if (MZExeRec.RelOffs >= $40) and (_Cardinal(MZExeRec.NewExe + $100) < ArcFile^.GetSize) then
+     if MZExeRec.LastB <> 0 then Dec(MZExeRec.TotalP);
+     ArcPos := LongInt(MZExeRec.TotalP)*512 + MZExeRec.LastB;
+     if (TempWord >= $40) and (_Cardinal(MZExeRec.NewExe + $100) < ArcFile^.GetSize) then
       begin
        ArcFile^.Seek(MZExeRec.NewExe);
        ArcFile^.Read(TempWord, SizeOf(TempWord));
@@ -974,7 +983,7 @@ begin
           if NEhdrRec.ResTableOffset = NEhdrRec.ResNamesOffset then
            begin {no resources present: search 4 last segment}
             ArcFile^.Seek(LongInt(NEhdrRec.SegTableOffset) + MZExeRec.NewExe + 8*NEhdrRec.NumOfSegments - 8);{last segment}
-            ArcFile^.Read(TempWord, SizeOf(TempWord));
+            ArcFile^.Read(TempWord, SizeOf(TempWord));{NEhdrRec.SegmentOffset}
             ArcFile^.Read(NEhdrRec.SegmentSize, SizeOf(NEhdrRec.SegmentSize));
             ArcPos := LongInt(TempWord) shl NEhdrRec.AlignShiftCount + NEhdrRec.SegmentSize;
            end
@@ -989,8 +998,11 @@ begin
              ArcFile^.Seek(ArcPos);
              ArcFile^.Read(NEhdrRec.ResourceType, SizeOf(NEhdrRec.ResourceType) + SizeOf(NEhdrRec.ResourceTypeNum));
             Until NEhdrRec.ResourceType = 0;
-            ArcFile^.Seek(ArcPos - 12);
-            ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
+            Repeat {search for non-empty resource}
+             ArcPos := ArcPos - 12;
+             ArcFile^.Seek(ArcPos);
+             ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
+            Until NEhdrRec.ResourceOffset <> 0;
             ArcPos := LongInt(NEhdrRec.ResourceOffset + NEhdrRec.ResourceLenght) shl NEhdrRec.ResourceAlign;
            end;
         end;
@@ -1022,8 +1034,7 @@ end; {SkipSFX}
 
 procedure Check4ArcId; {piwamoto}
 var
-   ArcId : Array [0..3] of Char;
-   ArcPosID : LongInt;
+   ArcId, ArcPosID : LongInt;
 begin
    ArcPosID := ArcPos;
    Repeat
@@ -1032,15 +1043,23 @@ begin
     Inc (ArcPosID);
    Until ((ArcPosID - ArcPos) = $1fd) or {1fch = SizeOf(DN's internal ArcFile^.Read cache size) - SizeOf(ArcId)}
          (ArcFile^.EOF) or
-   {ZIP} (ArcId = 'PK'#3#4) or
-   {RAR} (ArcId = 'Rar!') or
-   {ARJ} ((ArcId[0]=#$60) and (ArcId[1]=#$EA) and (ArcId[3]<#$b)) or
-   {IS3} (ArcId = #$13#$5D#$65#$8C) or
-   {ZOO} (ArcId = #$DC#$A7#$C4#$FD) or
-   {CHZ} (ArcId = 'SChF') or
-   {CHZ} (ArcId = 'SChD') or
-   {CAB} (ArcId = 'MSCF');
+   {ZIP} (ArcId = $04034b50 {'PK'#3#4}) or
+   {RAR} (ArcId = $21726152 {'Rar!'}) or
+   {ARJ} (((ArcId and $ffff) = $ea60) and ((ArcId and $ff000000) < $b000000)) or
+   {IS3} (ArcId = $8c655d13 {#$13#$5D#$65#$8C}) or
+   {ZOO} (ArcId = $fdc4a7dc {#$DC#$A7#$C4#$FD}) or
+   {CHZ} (ArcId = $46684353 {'SChF'}) or
+   {CHZ} (ArcId = $44684353 {'SChD'}) or
+  {COFF} (ArcId = $0003014c {#$4c#$01#$03#$00}) or {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
+   {CAB} (ArcId = $4643534d {'MSCF'});
    if ((ArcPosID - ArcPos) < $1fd) and not (ArcFile^.EOF) then ArcPos := ArcPosID - 1;
+   if ArcId = $0003014c {#$4c#$01#$03#$00} then
+     begin {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
+      ArcFile^.Seek(ArcPos + $68);
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{DataOffset}
+      ArcFile^.Read(ArcID, SizeOf(ArcID));{DataSize}
+      ArcPos := ArcPos + ArcPosID + ArcID;
+     end;
 end; {Check4ArcId}
 
 function _Cardinal(L : LongInt) : Real;

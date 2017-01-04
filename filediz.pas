@@ -51,6 +51,9 @@
 //  dn16rc1-description_for_longname_workaround-diff160byMV.patch
 //
 //  2.0.0
+//  dn200-new_description_creation_fix-diff162byMV.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -224,7 +227,7 @@ begin
      ClrIO; lAssignText(F2, DPath); lRewriteText(F2);
      if Abort then begin Close(F2.T); Exit; end;
      if IOResult <> 0 then (* begin CantWrite(DPath); *) Exit; (* end; *)
-     if Length(NewName)<=12 then NewName:=AddSpace(NewName,13);
+     if Length(NewName)<12 then NewName:=AddSpace(NewName,12);
      WriteLn(F2.T, NewName+' '+ANewDescription^);
     end;
     Close(F2.T);

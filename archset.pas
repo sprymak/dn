@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn200-dont_change_default_archiver.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -177,7 +180,7 @@ begin
  if W = cmOK then D^.GetData(DT);
  Dispose(D, Done);
  if W <> cmOK then goto Ex;
- DefaultArchiver := ArchCommand;
+{ DefaultArchiver := ArchCommand;}
  with Arch^ do
   begin
      Done;

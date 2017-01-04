@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn223-Archivers_Optimization.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -70,11 +73,11 @@ type
 
 type
      HYPHdr = record
-      ID: Array [1..4] of Char;
+      ID: LongInt;
       PackedSize: LongInt;
       OriginSize: LongInt;
       Date: LongInt;
-      Data: Array[1..4] of Byte;
+      Data: LongInt;
       Attr: Byte;
       NameLen: Byte;
      end;
@@ -135,8 +138,9 @@ var
 begin
  if ArcFile^.GetPos = ArcFile^.GetSize then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P, 4);
- if (Copy(P.ID,1,2) = #0#0) then begin FileInfo.Last := 1;Exit;end;
- if (ArcFile^.Status <> stOK) or ((P.ID <> ^Z'HP%') and (P.ID <> ^Z'ST%'))
+ if (P.ID and $ffff = 0) then begin FileInfo.Last := 1;Exit;end;
+ if (ArcFile^.Status <> stOK) or
+    ((P.ID <> $2550481A{^Z'HP%'}) and (P.ID <> $2554531A{^Z'ST%'}))
    then begin FileInfo.Last := 2;Exit;end;
  ArcFile^.Read(P.PackedSize, Sizeof(P)-4);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;

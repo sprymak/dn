@@ -52,6 +52,9 @@
 //  dn16rc1-Bugfix_for_rc1-deleting_temporary_files_safety_fix_patch-diff152byMV.patch
 //
 //  2.0.0
+//  dn200-delete_file_from_temp_fix-diff161byMV.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -458,15 +461,13 @@ begin
 end;
 
 Destructor TPktObj.Done;
- var Dir, Name, Ext: String; {JO}
 begin
  DisposeStr(tu);
  DisposeStr(fu);
  DisposeStr(su);
  DisposeStr(dt);
  if KillAfterUse then begin
-   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
+   EraseTempFile(FileName);
    KillAfterUse:=False;
    TempFile:='';
  end;
@@ -808,15 +809,13 @@ begin
 end;
 
 Destructor TMsgViewer.Done;
-var Dir, Name, Ext: String;
 begin
  DisposeStr(FromUSer);
  DisposeStr(ToUser);
  DisposeStr(Date);
  DisposeStr(Subj);
  if KillAfterUse then begin
-   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
+   EraseTempFile(FileName);
    KillAfterUse:=False;
    TempFile:='';
  end;

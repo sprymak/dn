@@ -12,14 +12,15 @@
   Иван Бородихин (EXCELLENCE) <2:5020/1252.444>
   Павел Бородин (I'am) <2:5025/3.22; realtor@pisem.net>
   Игорь Вагин (Antares19) <2:5020/1507.42>
-  Максим Васильев (Piwamoto) <2:5057/33.36; piwamoto@chat.ru>
+  Максим Васильев (Piwamoto) <2:5057/33.36; piwamoto@pisem.net>
   Кирилл Водоносов (Kirill) <vodonosov@tut.by>
   Илья Вдовин (VIV)
+  Максим Высоких (Force) <force@nordnet.ru>
   Сергей Газизянов (DarkLord) <2:5004/43.50>
   Марчин Грицкалис (dagoon) <dagoon@rs.math.uni.lodz.pl>
   Ондрей Зары (Rainbow) <rnbw@geocities.com>
   Владимир Захарычев (Bobby Z.)
-  Евгений Звягинцев <john@omsktyre.com>
+  Евгений Звягинцев <2:5004/18.60; dn_osp@pisem.net>
   Павел Зиемиан <pawelz@aritech.com.pl>
   Валерий Зубов
   Юрий Каминский
@@ -28,7 +29,7 @@
   Владимир Кораблин (VK) <2:5025/3.86>
   Ласло Кормоци (KaeL) <kael@swi.hu>
   Алексей Козлов (Cat) <2:5030/997.33>
-  Алексей Короп (AK155) <2:461/155><korop@online.kharkiv.net>
+  Алексей Короп (AK155) <2:461/155; korop@online.kharkiv.net>
   Сергей Коршунов (SeYKo) <2:5020/434.5>
   Сергей Корякин <ksnk@bigfoot.com>
   Алексей Косткин (Knave) <2:5020/968.67>
@@ -57,7 +58,6 @@
   Мезароз Цзаба (Gyor) <csablak@freemail.hu>
   Лев Шумский (WildCat) <2:5042/7.45; Wildcat@tsl.ru>
   Денис Шамов <2:5057/40; dshamov@hippo.ru>
-  Marinais <2:5020/2613.5>
 
 Команда Dos Navigator II:
   Дмитрий Доценко (AxoNSoft)
@@ -79,5 +79,7 @@
   Павлу Протасову <pprot@mail.ru>
   Дмитрию Рублеву (DR)
   Дмитрию Шестакову
+  Marinais <2:5020/2613.5>
+  Leon Kowalski (Noumemon) <artique@mail.ru>
   ...и всем подписчикам RU.SHELL.DN
 ==============================================================================

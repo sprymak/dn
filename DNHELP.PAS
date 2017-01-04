@@ -88,7 +88,6 @@ const
  hcCopyDialog           =    30;
  hcCopyFiles            =    29;
  hcCountrySetup         = 16564;
- hcCPUFlagInfo          = 48078;
  hcCustomVideo          = 48059;
  hcDBSearch             = 16576;
  hcDBView               = 48048;

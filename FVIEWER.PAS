@@ -56,6 +56,9 @@
 //  dn16rc1-Bugfix_for_dn16rc1-viewer_backward_search_patch-diff151byMV.patch
 //
 //  2.0.0
+//  dn200-delete_file_from_temp_fix-diff161byMV.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -765,14 +768,12 @@ begin
 end;
 
 destructor TFileViewer.Done;
- var Dir, Name, Ext: String; {JO}
 begin
   EnableCommands([cmUnwrap]);
   if Buf <> nil then FreeMem(Buf, BufSize); Buf:=nil;
   if Fl <> nil then Dispose(Fl,Done); Fl:=nil;
   If not (TottalExit or Exiting) and KillAfterUse Then Begin
-   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
+   EraseTempFile(FileName);
    KillAfterUse:=False;
    RereadDirectory(GetPath(FileName));
   End;

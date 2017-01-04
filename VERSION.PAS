@@ -51,6 +51,11 @@
 //  dn16rc1-version_upgrade.patch
 //
 //  2.0.0
+//  dn200-version_autonumbering.patch
+//  dn200-version_autonumbering_2.patch
+//  dn200-version_upgrade.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -61,7 +66,8 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '2.0.0/'+
+  VersionWord:word   = 20300; {Last changed: Year-2000,Month,Day}
+  VersionName:string = '/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}
                        {$ELSE}        {$IFDEF WIN32}+'W32'
@@ -70,11 +76,9 @@ CONST
                                        {$ELSE}      +'32bit'{$ENDIF}
                                       {$ENDIF}
                        {$ENDIF}
-                       +'/Piwamoto'
+(*                       +'/Piwamoto' {don't use my vendor ID ;)}*)
+{                       +'/Unknown vendor ID'}
                        ;
-  VersionDate:string = '';
-  VersionWord:word   = 20000;
-
 var F : lText ;
     Day, Month, Year, DOW: word;
 
@@ -92,14 +96,12 @@ CONST
   if ParamCount<>1 then halt(1);
   Writeln(' '#254' Creating ', ParamStr(1));
   GetDate(Year, Month, Day, DOW);
-  Str(Year, VersionDate);
-  VersionDate:=DOWs[DOW]+', '+Days[Day]+' '+Months[Month]+' '+VersionDate+' at '+GetDateTime(true);
   lAssignText(F, ParamStr(1));
   ClrIo;
   lRewriteText(F);
   Writeln(F.T,'{/////////////////////////////////////////////////////////////////////////');
   Writeln(F.T,'//');
-  Writeln(F.T,'//  Dos Navigator Open Source'{+' '+VersionName});
+  Writeln(F.T,'//  Dos Navigator Open Source');
   Writeln(F.T,'//  Based on Dos Navigator (C) 1991-99 RIT Research Labs');
   Writeln(F.T,'//');
   Writeln(F.T,'//  This programs is free for commercial and non-commercial use as long as');
@@ -144,9 +146,12 @@ CONST
   Writeln(F.T,'//');
   Writeln(F.T,'//////////////////////////////////////////////////////////////////////////}');
   Writeln(F.T,'  Const');
-  Writeln(F.T,'     VersionName =''',VersionName,''';');
-  Writeln(F.T,'     VersionDate =''',VersionDate,''';');
-  Writeln(F.T,'     VersionWord:AWord = $', Hex4(VersionWord), ';');
+  Writeln(F.T,'   VersionName =''',ItoS(VersionWord div 10000),'.',
+                                   ItoS(VersionWord div 100 mod 100),'.',
+                                   ItoS(VersionWord mod 100),
+                                   VersionName,''';');
+  Writeln(F.T,'   VersionDate =''',DOWs[DOW],', ',Days[Day],' ',Months[Month],' ',ItoS(Year),' at ',GetDateTime(true),''';');
+  Writeln(F.T,'   VersionWord:AWord = ',ItoS(VersionWord),';');
 
   Close(F.T);
  end.

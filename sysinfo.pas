@@ -51,6 +51,9 @@
 //  dn16rc1-Bugfixed_8Gb_HDD_sysinfo.patch
 //
 //  2.0.0
+//  dn200-remove_Machine_Type_and_CPU_flag_info_from_sysinfo.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -74,110 +77,6 @@ USES Dos,      Objects, Views,  DNApp,   Drivers,  Commands, RStrings,
      {$IFDEF DPMI},DPMI,DosMem{$ENDIF}
      ;
 
-Var PCmodel,PCsubModel : byte ;
-
-type PModel = ^TModel;
-     TModel = record
-      Len: Word;
-      Model: Byte;
-      SubModel: Byte;
-      BIOSRevision: Byte;
-     end;
-
-Type TCPUFlagInfo = record
-                      case Item: integer of
-                         0: (longWord: longint);
-                         1: (HiWord,
-                             LoWord: word)
-                    end;
-Var  CPUFlag: TCPUFlagInfo;
-
-procedure GetMType(var S: String);
- var Model, SubModel: Byte;
-     P: PModel;
-begin
- asm
-  mov ah, $C0
-  int 15h
-  mov word ptr P, bx
-  mov word ptr P+2, es
- end;
- Model := P^.Model;
- if P^.Model = 0 then Model := mem[$F000:$FFFE];
- SubModel := P^.SubModel;
-
- PCModel    := P^.Model ;
- PCSubModel := P^.SubModel ;
-
- case Model of
-  $FF: S := GetString(dlMachineTypeFF);
-  $FE: S := GetString(dlMachineTypeFE);
-  $FD: S := GetString(dlMachineTypeFD);
-  $FC: case SubModel of
-       {1: S := GetString(dlMachineTypeFC_1);}
-        2: S := GetString(dlMachineTypeFC_2);
-        4: S := GetString(dlMachineTypeFC_4);
-        5: S := GetString(dlMachineTypeFC_5);
-        6: S := GetString(dlMachineTypeFC_6);
-        8: S := GetString(dlMachineTypeFC_8);
-      $0b: S := GetString(dlMachineTypeFC_0b);
-      $20: S := GetString(dlMachineTypeFC_20);
-      $42: S := GetString(dlMachineTypeFC_42);
-      $45: S := GetString(dlMachineTypeFC_45);
-      $48: S := GetString(dlMachineTypeFC_48);
-      $4F: S := GetString(dlMachineTypeFC_4F);
-      $50: S := GetString(dlMachineTypeFC_50);
-      $51: S := GetString(dlMachineTypeFC_51);
-      $52: S := GetString(dlMachineTypeFC_52);
-      $94: S := GetString(dlMachineTypeFC_94);
-        else S := GetString(dlMachineTypeFC_else);
-       end;
-  $FB,$86: S := GetString(dlMachineTypeFB86);
-  $80: S := GetString(dlMachineType80);
-  $FA: if SubModel = 1 then S := GetString(dlMachineTypeFA_1)
-                       else S := GetString(dlMachineTypeFA_else);
-  $F9: S := GetString(dlMachineTypeF9);
-  $F8: if SubModel in [4,9,$B]
-                            then S := GetString(dlMachineTypeF8_4_9_B)
-                            else S := GetString(dlMachineTypeF8_else);
-  $B6: S := GetString(dlMachineTypeB6);
-  $9A: S := GetString(dlMachineType9A);
-  $2D: S := GetString(dlMachineType2D);
-  $E1: S := GetString(dlMachineTypeE1);
-  $30: S := GetString(dlMachineType30);
-  else S := GetString(dlMachineTypeElse);
- end;
-end;
-
-Procedure GetInfo(var MType, CPU, MHz, Family, Model, Step, CoCPU: String);
-var id : cpuid1Layout;
-begin
-
-  GetMType(MType);
-  CPU    := cpu_Type;
-  MHz    := ItoS(ncpu_Speed) + ' ' + GetString(dlMHz);
-  Family := ItoS((cpuid1 and $0F00) shr 8);
-  Model  := ItoS((cpuid1 and $00F0) shr 4);
-  Step   := ItoS((cpuid1 and $000F));
-  CoCPU  := fpu_Type;
-  CpuFlag.longWord:=0;
-  if (cpuid1 and $0F00) shr 8 >= 5 then
-  asm
-   push dx
-
-   db   $66
-   xor  AX,AX
-   inc  AX
-   db   $0F,$A2         {CPUID}
-   db   $66
-   mov  word ptr CpuFlag.LoWord, DX
-   db   $66
-   shr  DX, 16
-   mov  word ptr CpuFlag.HiWord, DX
-
-   pop  DX
-  end;
-end;
 
         {-DataCompBoy-}
 procedure GetHDDInfo(N: Byte; var S: String); {changed by piwamoto}
@@ -358,79 +257,15 @@ begin
   end;
 end;
 
-Procedure ShowCPUFlagInfo(var CPUFlagInfo: TCPUFlagInfo);
-
-Const cFlag10 = 9;
-      cFlag11 = 11;
-      cFlag20 = 2;
-      cFlag21 = 7;
-      cFlag22 = 9;
-
-var  s: string;
-     D: PDialog;
-     i: integer;
-
-     MM: record
-           S: array[0..20] of longint;
-         end;
-
-     cPresent,
-     cAbsent: string[10];
-
-begin
-
-{  s:=  long2str(CpuFlagInfo.LoWord,8)+chr(13);
-   s:=s+long2str(CpuFlagInfo.HiWord,8)+chr(13);
-
-  s:=Long2Str(CPUFlagInfo.LongWord, 16); }
-
-  cPresent := GetString(dlPresent);
-  cAbsent  := GetString(dlAbsent);
-
-  for i:=0 to cFlag10 do begin
-    if (CpuFlagInfo.LoWord and (1 shl i))>0 then
-      MM.S[i]:=longint(@cPresent)
-    else
-      MM.S[i]:=longint(@cAbsent);
-  end;
-
-  for i:=cFlag11 to 15 do begin
-    if (CpuFlagInfo.LoWord and (1 shl i))>0 then
-      MM.S[i-1]:=longint(@cPresent)
-    else
-      MM.S[i-1]:=longint(@cAbsent);
-  end;
-
-  for i:=0 to cFlag20 do begin
-    if (CpuFlagInfo.HiWord and (1 shl i))>0 then
-      MM.S[i+15]:=longint(@cPresent)
-    else
-      MM.S[i+15]:=longint(@cAbsent);
-  end;
-
-  for i:=cFlag21 to cFlag22 do begin
-{    s:=Long2Str(i,2); }
-    if (CpuFlagInfo.HiWord and (1 shl i))>0 then
-      MM.S[i+11]:=longint(@cPresent)
-    else
-      MM.S[i+11]:=longint(@cAbsent);
-  end;
-
-  D := PDialog(LoadResource(dlgCpuFlagInfo));
-  if D <> nil then begin
-     D^.SetData(MM);
-     DeskTop^.ExecView(D);
-     Dispose(D,Done);
-  end;
-end;
-
 
 procedure SystemInfo;
 var
+    EQList, Y, XMSSize: Word;
+    LL: Array[1..6] of LongInt;
+    id : cpuid1Layout;
     D: PDialog;
     R: TRect;
     P: PView;
-    MType,
     Mhz,
     CPU,
     CoCPU,
@@ -440,13 +275,7 @@ var
     stHD,
     ndHD,
     FDDs: String[80];
-    Btype: String[30];
-    S: String;
-    S2: String;
-    Prc: String[20];
-    EQList, Y, XMSSize: Word;
-    LL: Array[1..10] of LongInt;
-    w: word;
+    S, S2: String;
 
 function DosVendor: string; {piwamoto}
 var
@@ -517,21 +346,25 @@ begin
  D^.Options := D^.Options or ofCentered;
  D^.HelpCtx := hcSystemInfo;
 
- GetInfo(MType, CPU, MHz, Family, Model, Step, CoCPU); {Denis Shamov, 2:5057/40}
-
- LL[1] := LongInt(@MType);
- LL[2] := LongInt(@CPU);
- LL[3] := LongInt(@MHz);
- LL[4] := LongInt(@Family);
- LL[5] := LongInt(@Model);
- LL[6] := LongInt(@Step);
- LL[7] := LongInt(@CoCPU);
+ CPU    := cpu_Type;
+ MHz    := ItoS(ncpu_Speed) + ' ' + GetString(dlMHz);
+ Family := ItoS((cpuid1 and $0F00) shr 8);
+ Model  := ItoS((cpuid1 and $00F0) shr 4);
+ Step   := ItoS((cpuid1 and $000F));
+ CoCPU  := fpu_Type;
+ LL[1]  := LongInt(@CPU);
+ LL[2]  := LongInt(@MHz);
+ LL[3]  := LongInt(@Family);
+ LL[4]  := LongInt(@Model);
+ LL[5]  := LongInt(@Step);
+ LL[6]  := LongInt(@CoCPU);
 
  FormatStr(S, GetString(dlSI_Main), LL);
  R.Assign(3,2,69,7);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
+
  S := GetString(dlSI_MainBoard);
  R.Assign(4,1,6+Length(S),2);
  P := New(PLabel, Init(R, S,P));
@@ -634,7 +467,7 @@ begin
                      ItoS(WordRec(EQList).Hi)
    end;
   end
-  else if (opSys and opWNT)=opWNT then S := S + 'Windows NT or Windows 2000'
+  else if (opSys and opWNT)=opWNT then S := S + 'Windows NT/2000/XP'
    else if (opSys and opWin)<>0 then S := S + 'Windows ' + WinVer
     else S := S + DosVendor + 'DOS ' + ItoS(WordRec(EQList).Lo) + '.' +
               ItoS(WordRec(EQList).Hi)
@@ -644,7 +477,7 @@ begin
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
  S := GetString(dlSI_Ports);
- R.Assign(29,10+Y,31+Length(S),11+Y);
+ R.Assign(28,10+Y,30+Length(S),11+Y);
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 
@@ -653,17 +486,7 @@ begin
  P^.Options := P^.Options or ofCenterX;
  D^.Insert(P);
 
- { Added by Excelence }
- if CPUFlag.longWord<>0 then
- begin
-   D^.InsertBefore(New(PButton, Init(R, GetString(dlDetailButton), cmYes, bfNormal)), P);
-   D^.FocusNext(False);
-   repeat
-    w:=DeskTop^.ExecView(D);
-    if w=cmYes then ShowCPUFlagInfo(CPUFlag);
-   until (w<>cmYes);
- end else w:=DeskTop^.ExecView(D);
-
+ DeskTop^.ExecView(D);
  Dispose(D,Done);
 end;
 

@@ -56,6 +56,10 @@
 //  dn16rc1-Copy_with_drag_n_drop-diff153byMV.patch
 //
 //  2.0.0
+//  dn200-files_panel_bugs_fix.patch
+//  dn200-single_file_archiving_use_long_name.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -778,7 +782,7 @@ procedure CM_SetShowParms;
 begin
  Old := P^.Drive^.Flags;
  case P^.Drive^.DriveType of
-   dtFind, dtTemp: Idx := dlgFindParms;
+   dtFind, dtList, dtTemp: Idx := dlgFindParms;
    dtArc: Idx := dlgArcParms;
    else Idx := dlgDiskParms;
  end;
@@ -841,9 +845,18 @@ begin
   if P^.Drive^.DriveType >= dtArc then Exit;
   PC := GetSelection(P, Off);
   if PC = nil then Exit;
-  if PC^.Count = 1
-   then S := Copy(PFileRec(PC^.At(0))^.Name, 1, 8)
-   else S := Copy(GetName(P^.DirectoryName),1,255*Byte(P^.Drive^.DriveType=dtDisk));
+{--- start -------- Eugeny Zvyagintzev ---------}
+  if PC^.Count = 1 then
+   If (P^.Drive^.Flags and psShowLongName > 0) Then
+    S:=GetSName(GetLfn(PFileRec(PC^.At(0))^.LFN))
+   Else
+    S:=Copy(GetSName(PFileRec(PC^.At(0))^.Name), 1, 8)
+  Else
+   If (P^.Drive^.Flags and psShowLongName > 0) Then
+    S:=Copy(GetSName(GetName(P^.DirectoryName)),1,255*Byte(P^.Drive^.DriveType=dtDisk))
+   Else
+    S:=GetSName(GetName(lfGetShortFileName(P^.DirectoryName)));
+{--- finish -------- Eugeny Zvyagintzev ---------}
   DelRight(S);
   MakeArchive(S, PC, Off, P);
   PC^.DeleteAll;
@@ -855,7 +868,7 @@ procedure CM_Print;
   var N: Integer;
       P: PFilePanelRoot absolute AFP;
 begin
-  if (P^.Drive^.DriveType  in [ dtDisk, dtFind, dtTemp ] ) then
+  if (P^.Drive^.DriveType  in [ dtDisk, dtFind, dtList, dtTemp ] ) then
      PrintFiles(GetSelection(P, False), P);
 end;
 {$ENDIF}
@@ -936,6 +949,7 @@ begin
  Mover^.Free;
  C^.FC := FC; Desktop^.MakeGlobal(R.A, R.A); C^.Where := R.A;
  Message(Desktop^.FirstThat(@ContainsMouse), evBroadcast, cmDropped, C);
+ FC^.DeleteAll;
  Dispose(FC,Done);
 end;
 

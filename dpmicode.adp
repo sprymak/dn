@@ -259,11 +259,11 @@ IFNDEF  __32bit__
         .8086
 ENDIF
 
-        db      13,10
-        db      'TMi0SDGL Revision 2 CPU/FPU Detection Library  Version 2.13',13,10
-        db      'Copyright(c) 1996-99 by B-coolWare.     Written by Bobby Z.',13,10
-        db      13,10
-        db      'Simply the best...',13,10
+;        db      13,10
+;        db      'TMi0SDGL Revision 2 CPU/FPU Detection Library  Version 2.13',13,10
+;        db      'Copyright(c) 1996-99 by B-coolWare.     Written by Bobby Z.',13,10
+;        db      13,10
+;        db      'Simply the best...',13,10
 
 check386:
         mov     ax,7000h

@@ -226,15 +226,14 @@
                            6. Координаторы проекта
 
     Первый координатор:
-        Алексей Фельдгендлер (Alexey Feldgendler)
-        Телефон в Новосибирске: +7-3832-776581
-        2:5000/111.27@fidonet AKA 911:911/0@codernet
-        xman@beep.ru (для писем и файлов размером до 2 мегабайт)
+        Максим Васильев (Max Vasilyev)
+        2:5057/33.36@fidonet
+        piwamoto@pisem.net
+        http://dn.traktir.ru/
     Второй координатор:
-        Майк Лыков (Mike Lykov)
-        2:5057/44@fidonet
-        nelescon@samaramail.ru
-        http://dnosp.id.ru/ (псевдоним для http://www.hippo.ru/~nelescon/)
+        Евгений Звягинцев (Eugeny Zvyagintzev)
+        2:5004/18.60@fidonet
+        dn_osp@pisem.net
     Третий координатор:
         смотрите на наших www сайтах и в эхоконференции RU.SHELL.DN
 

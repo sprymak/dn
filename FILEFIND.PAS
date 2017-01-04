@@ -52,6 +52,10 @@
 //  dn16rc1-pkview_some_dialogs_resources_fix.patch
 //
 //  2.0.0
+//  dn200-files_count_in_FindFiles_panel.patch
+//  dn200-files_panel_bugs_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -818,7 +822,6 @@ begin
   Files := New(PFilesCollection, Init(Q+1, $10));
   Files^.SortMode := psmOrdered;
   Files^.Duplicates := TypeOf(Self)=TypeOf(TFindDrive);
-  Files^.Owner := @Self;
   for Q2:=0 to Q do Files^.AtInsert(Q2, LoadFileRecOwn(S, Dirs));
  end;
 
@@ -974,9 +977,9 @@ LLL:
    if (OOM) or (not MemOK) then NoMemory := True;
  end;
 
- if DriveType <> dtTemp then AFiles^.AtInsert(0, CopyFileRec(UpFile));
-
  TotalInfo := CalcTotalInfo(AFiles^.Count, AFiles^.Count, TotalLen);
+
+ if DriveType <> dtTemp then AFiles^.AtInsert(0, CopyFileRec(UpFile));
 
  GetDirectory := AFiles;
 {$IFDEF CHDIRDEBUG}

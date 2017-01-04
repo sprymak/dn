@@ -54,6 +54,9 @@
 //  dn16rc1-piwcal22.patch
 //
 //  2.0.0
+//  dn200-dnini_string_parametrs_fix.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -601,7 +604,7 @@ var
 begin
   if (SaveVar <> nil) and (SaveVar <> PVar) then
     Exit;
-  s := IniVarToStr ( Kind, Size, PVar ) + #0;
+  s := IniVarToStr ( Kind, Size, PVar );
   { This code is provided only to not cut longer string if only a part }
   { was read in Loader procedure.                                      }
   if ((Kind = ikStr) and (Length(s) = (Size-1)))
@@ -610,18 +613,19 @@ begin
     GetPrivateProfileString (
       Group,
       Parameter,
-      @s[1],
-      @b,
+      @b[255],   { default = empty string (null-terminated) }
+      @b[0],
       255,
       @FreeStr[1]
     );
     if StrLComp ( @b, @s[1], Length(s) ) = 0 then
       Exit;
   end;
+  StrPCopy ( b, s );
   WritePrivateProfileString (
     Group,
     Parameter,
-    @s[1],
+    @b[0],
     @FreeStr[1]
   );
 end;

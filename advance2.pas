@@ -55,6 +55,9 @@
 //  dn16rc1-W2K_compatibility_fix-diff156byMV.patch
 //
 //  2.0.0
+//  dn200-delete_file_from_temp_fix-diff161byMV.patch
+//
+//  2.3.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -76,6 +79,7 @@ function  IsDriveCDROM(Drive : Char) : Boolean;
 procedure lChDir(S: string); {DataCompBoy}
 procedure EraseByName(const FName: String); {DataCompBoy}
 Procedure EraseFile(const N: String); {DataCompBoy}
+procedure EraseTempFile(S: String); {piwamoto}{JO}
 Function  ValidDrive(dr : char) : Boolean;
 Function  GetDrive : byte;
 Procedure SetDrive(a : byte);
@@ -363,6 +367,11 @@ begin
    {$ENDIF}
   end;
   ClrIO;
+end;
+
+procedure EraseTempFile; {JO: проверочка файла на нахождение во временном каталоге не помешает}
+begin
+ if UpStrg(GetPath(S)) = UpStrg(Tempdir) then EraseFile(S);
 end;
 
 function ValidDrive(dr : char) : Boolean;
