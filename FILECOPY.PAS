@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -78,8 +78,9 @@ function  CopyDialog(var CopyDir: String; var Mask: String; {DataCompBoy}
                      FromTemp: Byte; Owner: PView; Link: Boolean): Boolean;
 
 implementation
-uses DNApp, Startup, ExtraMem, Memory, Messages, HistList, Commands,
+uses DNApp, Startup, Memory, Messages, HistList, Commands,
      xTime, Validate,
+    {$IFNDEF NOEXTRA}ExtraMem,{$ENDIF}
     {$IFDEF MODEM}{$IFDEF LINK}NavyLink,{$ENDIF}{$ENDIF}
     {$IFNDEF NONBP} DiskTool,{$ENDIF}
     {$IFDEF VIRTUALPASCAL} Crt, {$ENDIF}
@@ -277,7 +278,7 @@ const
       eoCheck  = $10;
 
   MemStream: PMemoryStream = nil;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
   EMSStream: PEMSStream = nil;
   NoUseEMS: Boolean = Off;
   XMSStream: PXMSStream = nil;
@@ -408,7 +409,7 @@ end;
 
 procedure TLine.PrepareToWrite;
 begin
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
   if (XMSStream <> nil) or (EMSStream <> nil) then begin Len := 0; Exit; end;
   if MemStream = nil then
     begin
@@ -1155,7 +1156,7 @@ lbStartWrite:
      FreeDisk := -1;
      CopyQueue^.FreeAll;
      if MemStream <> nil then MemStream^.Seek(0);
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
      if EMSStream <> nil then EMSStream^.Seek(0);
      if XMSStream <> nil then XMSStream^.Seek(0);
 {$ENDIF}
@@ -1557,7 +1558,7 @@ lbStartWrite:
          Dispose(MemStream,Done);
          MemStream:=nil;
       end;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
     if EMSStream <> nil then
       begin
          EMSStream^.Seek(0);
@@ -1913,7 +1914,7 @@ qqqq:
   MakeDirectories;
   if CopyCancel then Goto 1;
   MemStream := nil;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
   EMSStream := nil; NoUseEMS := Off;
   XMSStream := nil; NoUseXMS := Off;
 {$ENDIF}

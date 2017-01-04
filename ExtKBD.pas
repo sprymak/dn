@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -62,164 +62,18 @@ procedure Int09Handler(Flags, CS, IP, AX, BX, CX, DX, SI, DI, DS, ES, BP : Word)
 interrupt;
 var j: byte;
     b: boolean;
-label O;
 begin
  b := false;
- j := Port[$60];
  if ShowKeyCode and 2>0 then
   begin
+   j := Port[$60];
    MemW[segB800:0]:=$0700 + HexChars[j shr $4];
    MemW[segB800:2]:=$0700 + HexChars[j and $f];
   end;
- {Ctrl-<1..0>}
- if (Mem[seg0040:$17] and (1+2+4+8) = 4) and (j in [$02..$0B]) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$D000+(J-1) shl 8;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- else
- {Ctrl-Alt-<Z/X>}
- if (Mem[seg0040:$17] and (1+2+4+8) = 4+8) and (j in [$2C,$2D]) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=J shl 8 + J and $0F;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Ctrl-Shift-Tilde}
- else
- if (Mem[seg0040:$17] and (1+2+4+8) = 1+4) and (j = $29) then
-  begin
-   b := true;
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$0FE00;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Ctrl-Alt-Brackets}
- else
- if (Mem[seg0040:$17] and (1+2+4+8) = 4+8) and (j in [$1B,$1A]) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=j shl 8+j;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Release Down}
- else
- if (j = $D0) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$D000;
-   goto O;
-  end
- {Release Up}
- else
- if (j = $C8) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$C800;
-   Goto O;
-  end
- {Alt-Semicolon}
- else
- if (Mem[seg0040:$17] and (1+2+4+8) = 8) and (j = $27) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$2700;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Alt-Shift-Backspace}
- else
- if (Mem[seg0040:$17] and (4+8) = 8) and
-    (Mem[seg0040:$17] and (1+2) <> 0) and (j = $0E) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$9700;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Alt-Ctrl-F[1-10]}
- else
- if (Mem[seg0040:$17] and (1+2+4+8) = 4+8) and (j in [$3B..$44]) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$F100+(J-$3B) shl 8;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Alt-Ctrl-F[11-12]}
- else
- if (Mem[seg0040:$17] and (1+2+4+8) = 4+8) and (j in [$57,$58]) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$FB00+(J-$57) shl 8;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Alt-Shift-[1-9]}
- else
- if (Mem[seg0040:$17] and (4+8) = 4) and
-    (Mem[seg0040:$17] and (1+2) <> 0) and
-    (j in [$02..$0B]) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$E100+(J-$02) shl 8;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Shift-Gray+-}
- else
- if (Mem[seg0040:$17] and (4+8) = 0) and
-    (Mem[seg0040:$17] and (1+2) <> 0) and
-    (j in [$4E,$4A]) then
-  begin
-   dec(MemW[seg0040:$1A], 2);
-   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=(J or $80) shl 8;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
-  end
- {Nothing special}
- else
-O:asm
-   pushf
-   call [Old09Handler]
-  end;
+ asm
+  pushf
+  call [Old09Handler]
+ end;
  if b then DoDump(0, nil);
 end;
         {-DataCompBoy-}

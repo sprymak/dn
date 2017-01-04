@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1994,11 +1994,8 @@ PROCEDURE TDNApplication.HandleCommand;
   if not CheckExit then begin ClearEvent(Event); Exit end;
   if TryRunOS2(@S) then Exit;
   Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
-  SaveDsk;
-  Exiting:=True;
-  Application^.Done;
-  DosWrite(#13 + ActiveDir+'>' + S +#13#10);
-  ExecString(@S);
+  ExecString(@S, #13 + ActiveDir+'>' + S);
+  S:='';CommandLine^.SetData(S);CommandLine^.DrawView;
  end;
 
  procedure ExecDOSCmd;
@@ -2010,14 +2007,8 @@ PROCEDURE TDNApplication.HandleCommand;
    lFSplit(CnvString(CurFileActive), FreeStr, Nm, Xt);
    if InExtFilter(CnvString(CurFileActive), Executables) then ST := Nm+Xt+' ';
    if InputBox(GetString(dlExecDOScmdHdr), GetString(dlExecDOScmdLine), ST, 128, hsExecDOSCmd) <> cmOK then Exit;
-    if not TryRunOS2(@ST) and CheckExit then
-                      begin
-                        SaveDsk;
-                        Exiting:=True;
-                        Done;
-                        WriteLn(#13#10 + ActiveDir+'>' + ST +#13#10);
-                        ExecString(@St);
-                      end;
+    if not TryRunOS2(@ST) and CheckExit
+     then ExecString(@St, #13#10 + ActiveDir+'>' + ST);
    DisposeStr(CurFileActive); CurFileActive := nil;
    DisposeStr(CurFilePassive); CurFilePassive := nil;
  end;
@@ -2163,13 +2154,8 @@ PROCEDURE TDNApplication.HandleCommand;
 
     procedure DoExecString;
     begin
-      if not TryRunOS2(PString(Event.InfoPtr)) and CheckExit then
-                      begin
-                        SaveDsk;
-                        Exiting:=True;
-                        Done;
-                        ExecString(PString(Event.InfoPtr));
-                      end;
+      if not TryRunOS2(PString(Event.InfoPtr)) and CheckExit
+       then ExecString(PString(Event.InfoPtr), '');
       CE;
     end;
 
@@ -2256,10 +2242,7 @@ PROCEDURE TDNApplication.HandleCommand;
                 ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
                 ConfigModified:=True;
                 StringCache^.FreeAll;
-                SaveDsk;
-                Exiting:=true;
-                Done;
-                ExecString(@NullStr);
+                ExecString(@NullStr,'');
             end;
         end;
         L.FreeAll;
@@ -2380,11 +2363,8 @@ begin
                   ST := FreeStr;
                   if CheckExit then
                   begin
-                   SaveDsk;
-                   Exiting:=True;
-                   Application^.Done;
                    ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + ST;
-                   ExecString(@ST);
+                   ExecString(@ST,'');
                   end;
                 end;
 {$IFNDEF MINARCH}
@@ -2426,10 +2406,7 @@ begin
                  then begin ClearEvent(Event); Exit end
                  else begin
                   StringCache^.FreeAll;
-                  SaveDsk;
-                  Exiting:=true;
-                  Done;
-                  ExecString(@NullStr);
+                  ExecString(@NullStr,'');
                  end;
       {-DataCompBoy-}
      cmCreatePanel: OpenWindow(True);
@@ -2552,7 +2529,10 @@ begin
                      else HelpWnd := PHelpWindow(ValidView(New(PHelpWindow,Init(HFile, Word(Event.InfoWord)))));
                     if HelpWnd<>nil then begin
                      if ((DeskTop^.Current<>nil)
-                         and (Desktop^.Current^.GetState(sfModal))
+                         and (
+                          (Desktop^.Current^.GetState(sfModal)) or
+                          (Desktop^.Current^.GetState(sfDragging))
+                         )
                         ) or MenuActive
                       then ExecView(HelpWnd)
                       else begin

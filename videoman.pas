@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1358,7 +1358,8 @@ end;
 {$ENDIF}
 
 {$ELSE VIRTUALPASCAL}
-Uses Dos, VpSysLow, Drivers, Objects, DnApp, DnIni, Startup, Commands;
+Uses Windows, Dos, VpSysLow, Drivers, Objects, DnApp, DnIni, Startup,
+     Commands;
 
 var
   StrtCurY1: Integer;
@@ -1418,6 +1419,20 @@ end;
 // automatically by TApplication.Init.
 
 procedure InitVideo;
+{$IFDEF WIN32}var s, c: TCOORD; r: TSMALLRECT;
+                  Bf: Pointer;
+
+  procedure Rebuf(Bf: pointer); assembler; {$USES ESI, EDI, ECX}
+  asm
+   mov esi,Bf
+   mov edi,UserScreen
+   mov ecx,UserScreenSize
+@@1:
+   lodsw
+   stosb
+   loop @@1
+  end;
+{$ENDIF}
 begin
   SysTVGetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
   if StartupMode = $FFFF then
@@ -1425,6 +1440,25 @@ begin
   if StartupMode <> ScreenMode then
     SysTVSetScrMode(ScreenMode);
   SetCrtData;
+  {$IFDEF WIN32}{?}{DataCompBoy: how to do this in OS/2 ???}
+  if not ScreenSaved then begin
+     if UserScreen <> nil then
+       FreeMem ( UserScreen, UserScreenSize );
+     UserScreenSize  := ScreenWidth * ScreenHeight * 2;
+     UserScreenWidth := ScreenWidth;
+     GetMem ( UserScreen, UserScreenSize );
+     GetMem ( Bf, UserScreenSize shl 1 );
+     s.x:=ScreenWidth;
+     s.y:=ScreenHeight;
+     c.x:=0;
+     c.y:=0;
+     r.left:=0; r.right:=screenwidth; r.top:=0; r.bottom:=screenheight;
+     ReadConsoleOutput(SysFileStdOut, Bf, s, c, r);
+     Rebuf(Bf);
+     FreeMem(Bf, UserScreenSize shl 1);
+     ScreenSaved := True;
+  end;
+  {$ENDIF}
 end;
 
 // Terminates Turbo Vision's video manager by restoring the initial
@@ -1435,7 +1469,9 @@ procedure DoneVideo;
 begin
   if (StartupMode <> $FFFF) and (StartupMode <> ScreenMode) then
     SysTVSetScrMode(StartupMode);
-  ClearScreen;
+{  ClearScreen;}
+  Move(UserScreen^, ScreenBuffer^, UserScreenSize);
+  SysTVShowBuf(0, UserScreenSize);
   SysTVSetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
   FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);
 end;

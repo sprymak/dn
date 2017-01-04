@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -115,13 +115,13 @@ implementation
     pop  ds
  @@1:
   end;
-  {$ELSE BIT_32}{&Frame-}{$USES ESI, EBX, ECX}
+  {$ELSE BIT_32}{&Frame-}{$USES ESI, EBX, ECX, EDI}
   asm
     cmp  Len, 0
     jle  @@1
     mov  ECX, Len
-    lea  ESI, B
-    lea  EBX, XTable
+    mov  ESI, B
+    mov  EBX, XTable
     xor  EAX, EAX
     cld
  @@Loop:

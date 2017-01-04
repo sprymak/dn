@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -363,14 +363,14 @@ begin
  GetRecord := nil;
  if N < 0 then N := 0;
  if N >= DBFile^.NumRec then Exit;
- if (N < StartRec) or (N >= StartRec + NumRec) then
+{ if (N < StartRec) or (N >= StartRec + NumRec) then
   begin
    StartRec := N - (NumRec div 2);
-   if StartRec < 0 then StartRec := 0;
-   DBFile^.Seek(StartRec);
+   if StartRec < 0 then StartRec := 0;}
+   DBFile^.Seek(N{StartRec});
    DBFile^.Read(Buf^, NumRec);
-  end;
- GetRecord := @PByteArray(Buf)^[(N - StartRec)*DBFile^.RecLen];
+{  end;}
+ GetRecord := @PByteArray(Buf)^[0{(N - StartRec)*DBFile^.RecLen}];
 end;
 
 function TDBViewer.Valid;
@@ -588,6 +588,36 @@ procedure TDBViewer.HandleEvent;
   end
  end;
 
+{ -------- Eugeny Zvyagintzev ---------}
+
+ Procedure DeleteRecord;
+  Var
+     DelFlag: Byte;
+     p      : PByteArray;
+  Begin
+   Repeat
+    Case DBFile^.WriteMode Of
+     0 : Begin
+          DBFile^.BaseFile.Done;
+          DBFile^.OpenMode(stOpen);
+          Inc(DBFile^.WriteMode);
+          If DBFile^.BaseFile.Status = stOK Then Inc(DBFile^.WriteMode) Else DBFile^.OpenMode(stOpenRead);
+         End;
+     1 : Begin ErrMsg(dlDBCantEdit); Exit End;
+     2 : Break;
+    End;
+   Until False;
+   P := GetRecord(Delta.Y);
+   If p^[0] = $2A Then
+    DelFlag:=$20
+   Else
+    DelFlag:=$2A;
+   DBFile^.Seek(Delta.Y);
+   DBFile^.BaseFile.Write(DelFlag,SizeOf(DelFlag));
+  End;
+
+{ -------- Eugeny Zvyagintzev ---------}
+
  procedure EditField;
    var P: PChar;
        PFR: PFieldRec;
@@ -740,6 +770,7 @@ begin
               kbPgDn: begin Inc(Delta.Y, Size.Y - 2); CED end;
               kbCtrlPgUp: begin Delta.Y := 0; CED end;
               kbCtrlPgDn: begin Delta.Y := DBFile^.NumRec - 1; CED end;
+              kbCtrlD: begin DeleteRecord; CED; end;
               kbESC: begin Message(Owner, evCommand, cmClose, nil); CE end;
              end;
   evMouseDown: begin

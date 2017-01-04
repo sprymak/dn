@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.08
+::  Dos Navigator Open Source 1.51.09
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -81,7 +81,10 @@ exe\rcp
 
 
 Echo        Compiling DN.EXE
-vpc dn /m /dDN /dDNPRG /q
-if %1.==debug. copy *.* exe\*.*
+vpc dn /m /dDN;DNPRG /q
+if not %1.==debug. goto ex
+copy *.* exe\*.*
+cd exe
+vp
 
 :ex

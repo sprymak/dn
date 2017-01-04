@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -53,29 +53,38 @@ uses UserMenu, Startup, Objects, FilesCol, Commands
      ;
 
 procedure SaveDsk;
-procedure ExecString(S: PString);
+procedure ExecString(S: PString; WS: String);
 function  SearchExt(FileRec: PFileRec; var HS: String): Boolean; {DataCompBoy}
 function  ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean; {DataCompBoy}
 procedure ExecFile(const FileName: string); {DataCompBoy}
 
 implementation
 uses DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3, FlPanelX,
-     CmdLine, Views, Advance2, Drivers, Advance4;
+     CmdLine, Views, Advance2, Drivers, Advance4
+{$IFDEF VIRTUALPASCAL}
+     ,Videoman, Memory
+{$ENDIF}
+     ;
 
 procedure SaveDsk;
 begin
  ClrIO;
- if (OpSys <> opDos) and not (TottalExit) then
+ if ((OpSys <> opDos) or (StartupData.Unload and osuAutosave = 0))
+    and not (TottalExit) then
   PDNApplication(Application)^.SaveDesktop(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
 end;
 
 
         {-DataCompBoy-}
-procedure ExecString(S: PString);
+procedure ExecString(S: PString; WS: String);
  var F1: lText;
      I: Integer;
      M: String;
      DT: DateTime;
+ {$IFDEF VIRTUALPASCAL}
+     SM: Word;
+     EV: TEvent;
+ {$ENDIF}
  label 1;
 begin
  M:=S^;
@@ -99,6 +108,10 @@ begin
 1:
  M := ' '+M+#13; Dec(M[0]);
 {$IFNDEF VIRTUALPASCAL}
+ SaveDsk;
+ Exiting:=True;
+ Application^.Done;
+ if WS<>'' then Writeln(WS);
  if (LoaderSeg <> 0) then Move(M, mem[LoaderSeg:CommandOfs], Length(M)+2);
  if (SystemData.Options and ossFastExec <> 0) or RunFrom2E
  then asm
@@ -119,7 +132,42 @@ begin
  end;
  Halt(1);
 {$ELSE}
- Exec(GetEnv('COMSPEC'),'/c '+S^);
+  SaveDsk;
+  DoneSysError;
+  DoneEvents;
+  DoneVideo;
+  FreeMem(UserScreen, UserScreenSize);
+  UserScreen := nil;
+  ScreenSaved := Off;
+  DoneDOSMem;
+  DoneMemory;
+  {$IFDEF OS_DOS}asm cld; mov eax,3; int $10; end;{$ENDIF}
+  SwapVectors;
+  if TimerMark then DDTimer := Get100s
+               else DDTimer := 0;
+  if WS<>'' then Writeln(WS);
+  DOS.Exec(GetEnv('COMSPEC'),'/c '+S^);
+  if TimerMark then begin
+   DDTimer := Get100s-DDTimer;
+   ev.what:=evCommand;
+   ev.command:=cmShowTimeInfo;
+   ev.infoptr:=nil;
+   Application^.PutEvent(ev);
+  end;
+  I := DosError; ClrIO;
+  SwapVectors;
+  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {DataCompBoy}
+  InitDOSMem;
+  InitMemory;
+  InitVideo;
+{  SetVideoMode(ScreenMode); SM := ScreenMode;}
+{  SetBlink(On);    }
+{  ScreenMode := SM;}
+  InitEvents;
+  InitSysError;
+  Application^.Redraw;
+  GlobalMessage(evCommand, cmPanelReread, nil);
+  GlobalMessage(evCommand, cmRereadInfo, nil);
 {$ENDIF}
 end;
         {-DataCompBoy-}
@@ -293,10 +341,7 @@ RepeatLocal:
          end;
    ExecExtFile := On;
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
-   SaveDsk;
-   Exiting:=true;
-   Application^.Done;
-   ExecString(@S);
+   ExecString(@S, '');
 end;
         {-DataCompBoy-}
 
@@ -327,11 +372,8 @@ procedure ExecFile(const FileName: string);
        Message(CommandLine, evKeyDown, kbDown, nil);
        Exit;
      end;
-    SaveDsk;
-    Exiting:=True;
-    Application^.Done;
-    if B then begin WriteLn(#13#10, ActiveDir+'>', M); M := M + #13 end;
-    ExecString(@M);
+    if B then ExecString(@M, #13#10 + ActiveDir + '>' + M)
+     else ExecString(@M, '');
  end;
 
 label ex;

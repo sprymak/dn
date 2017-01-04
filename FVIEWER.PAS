@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -841,9 +841,9 @@ begin
     push EDI
     push EBX
     push ECX
-    lea  ESI, B
+    mov  ESI, B
     mov  ECX, Count
-    lea  EDI, S
+    mov  EDI, S
     mov  EBX, 10
     mov  AH, Filter
     jcxz @@3
@@ -891,7 +891,7 @@ var
 {$IFDEF DisAsm}
   D: XCHGData; {GRM!}
 {$ENDIF}
-
+(*
   procedure MoveStr(var B, S; C, Flt: Byte; TSS: word);
   Var
    TSt: Integer;
@@ -1030,9 +1030,10 @@ var
    end;
    {$ENDIF}
  end;
-
+*)
 var
   W, W2: Integer;
+  WDH: Integer;
 
 begin
   for I := 1 to 8 do CC[I] := GetColor(I);
@@ -1087,7 +1088,11 @@ begin
             else SetCursor(12 + HexPos * 3 + Cur.X, Cur.Y);
            ShowCursor;
            for I:=0 to Size.Y - 1 do begin
-            MoveChar(B[XDelta], ' ', C, Size.X);
+            if Size.X+XDelta>255 then begin
+             WDH:=255-XDelta;
+             if WDH<0 then WDH:=0;
+            end else WDH:=Size.X;
+            MoveChar(B[XDelta], ' ', C, WDH);
             if L + LongInt(HexPos) > FileSize
              then J:=FileSize - L
              else J:=HexPos;
@@ -1128,7 +1133,7 @@ begin
               Inc(W, J);
               Inc(L, LongInt(J));
             end;
-            WriteLine(0, I, Size.X, 1, B[XDelta]);
+            WriteLine(0, I, WDH, 1, B[XDelta]);
            end;
           end;
   vmDump: begin
@@ -1137,7 +1142,11 @@ begin
            HexPos:=((Size.X - 9) div 16)*16; if HexPos < 16 then HexPos:=16;
            W:=BufPos; L:=FilePos + LongInt(BufPos); Src:=0;
            for I:=0 to Size.Y - 1 do begin
-            MoveChar(B[XDelta], ' ', C, Size.X);
+            if Size.X+XDelta>255 then begin
+             WDH:=255-XDelta;
+             if WDH<0 then WDH:=0;
+            end else WDH:=Size.X;
+            MoveChar(B[XDelta], ' ', C, WDH);
             if L + LongInt(HexPos) > FileSize
              then J:=FileSize - L
              else J:=HexPos;
@@ -1159,7 +1168,7 @@ begin
              Inc(W, J);
              Inc(L, LongInt(J));
             end;
-            WriteLine(0, I, Size.X, 1, B[XDelta]);
+            WriteLine(0, I, WDH, 1, B[XDelta]);
            end;
 {$IFNDEF DisAsm}
           end
@@ -1177,7 +1186,11 @@ begin
          SetCursor(Cur.X, Cur.Y);
          ShowCursor;
          for I := 0 to Size.Y - 1 do begin
-          MoveChar(B[XDelta], ' ', C, Size.X);
+          if Size.X+XDelta>255 then begin
+           WDH:=255-XDelta;
+           if WDH<0 then WDH:=0;
+          end else WDH:=Size.X;
+          MoveChar(B[XDelta], ' ', C, WDH);
           if L < FileSize - 1 then begin
            if Cur.Y=I then HexPos := L - FilePos - BufPos + ((Cur.X-10) div 2);
            D.InstrMaxLen := FileSize - L;
@@ -1189,7 +1202,7 @@ begin
            Drivers.MoveStr(B, S, C);
            Inc(L, D.InstrLen);
           end;
-          WriteLine(0, I, Size.X, 1, B[XDelta]);
+          WriteLine(0, I, WDH, 1, B[XDelta]);
          end;
         end
   {GRM!}
@@ -1211,7 +1224,11 @@ begin
            then XDelta:=K - Size.X div 2;
           if XDelta < 0 then XDelta:=0;
          end;
-         MoveChar(B[XDelta], ' ', C, Size.X);
+         if Size.X+XDelta>255 then begin
+          WDH:=255-XDelta;
+          if WDH<0 then WDH:=0;
+         end else WDH:=Size.X;
+         MoveChar(B[XDelta], ' ', C, WDH);
          if (Lines[I].Pos >=0) then begin
           Move(Buf^[Lines[I].Pos], S[1], Lines[I].Len);
           S[0]:=Char(Lines[I].Len);
@@ -1234,7 +1251,7 @@ begin
 
           if (S<>'') and (S[Length(S)]=#13) then Dec(S[0]);
           XLatBuf(S[1], Length(S), XLat);
-          MoveStr(B, S, C, Filter, TS);
+          MoveStr(B, S, C(*, Filter, TS*));
           if Hilite then begin
            Highlites ( Length(S), @S[1], HiLitePar );
            C1                  := C and $F0;                 { Background }
@@ -1258,7 +1275,7 @@ begin
           end;
           MoveColor(B[K], Length(SearchString.What), CC[2]);
          end;
-         WriteLine(0, I, Size.X, 1, B[XDelta]);
+         WriteLine(0, I, WDH, 1, B[XDelta]);
         end;
        end;
   end;

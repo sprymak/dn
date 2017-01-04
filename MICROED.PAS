@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -112,7 +112,7 @@ type
     ClipBrd: Boolean; {-$VOL}
     OptMenu: PMenu;
     Mark,Sel: TRect;
-    Pos, LastPos,BlockPos: TPoint;
+    Pos, LastPos{,BlockPos}: TPoint;
     MarkPos: TPosArray;
     LastLine: LongInt;
     DrawMode: Integer;
@@ -1266,7 +1266,7 @@ var
   X1, X2: LongInt;
   LPos: Integer;
   Ch: Char;
-var B: Array[0..500] of Word;
+var B: TDrawBuffer;
 
 
   procedure DrawBlock;
@@ -1727,7 +1727,7 @@ L1:
 
  procedure BMarking;
  begin
-  if not EnableMarking then Exit;
+  if not EnableMarking or (DrawMode>0) then Exit;
   if (ShiftState and 3 <> 0) and not MouseMark then
   begin
    if not Marking then begin Sel.A := LastPos; Sel.B := Delta end

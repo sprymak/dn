@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.08
+;/  Dos Navigator Open Source 1.51.09
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -91,11 +91,11 @@ ClearKBD        MACRO
 ;size & speed optimizations by Max Piwamoto
 
                 IFDEF _DPMI_
-DNversionTXT    equ    'Open Source 1.51.08/DPMI'
+DNversionTXT    equ    'Open Source 1.51.09/DPMI'
                 ELSE
-DNversionTXT    equ    'Open Source 1.51.08/DOS'
+DNversionTXT    equ    'Open Source 1.51.09/DOS'
                 ENDIF
-DNversionBIN    equ    15108
+DNversionBIN    equ    15109
 DNversionSIGN   equ    'DN'
 
                 .model tiny

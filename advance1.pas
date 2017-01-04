@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -195,7 +195,7 @@ procedure Hex8Lo(L:longInt;var HexLo);
  asm
         cld
         xor     dx,dx
-        lea     edi,[HexLo]
+        mov     edi,[HexLo]
         lea     ebx,[LoHexChar]
         mov     dx,[word ptr L+2]
         call    @@OutWord
@@ -1466,7 +1466,7 @@ begin
   jc    @@32
   add   ah,7
 @@32:
-  mov   [ebx+6], eax
+  mov   [ebx+6], ax
   mov   ax,' :'
   mov   [ebx+8], ax
   add   bx, 10
@@ -1517,7 +1517,7 @@ begin
   jc    @@42
   add   ah,7
 @@42:
-  mov   [ebx], eax
+  mov   [ebx], ax
   mov   al, ' '
   mov   [ebx+2], al
   add   ebx, 3

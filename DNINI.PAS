@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -326,7 +326,7 @@ begin
         if S>0 then begin
          GetMem(B, S);
          F.Read(B^, S);
-         INIcrc := GetCrc(B^, S);
+         INIcrc := GetCrc(0, B^, S);
          FreeMem(B, S);
         end;
         F.Done;}

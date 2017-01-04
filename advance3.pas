@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -70,7 +70,7 @@ uses advance, dnini, dos, xTime, objects, ExtraMem;
  procedure DisableAppend;
 {$ENDIF}
  function  GetEnv(S: string): string;
- Function  GetCrc( var Buf ; BufSize : word ) : Longint ;
+ Function  GetCrc(StartCrc: longint; var Buf; BufSize: word): Longint ;
 
 {$IFDEF OS_DOS}
 var AppendInstalled: Boolean;
@@ -317,19 +317,19 @@ begin
 end;
 {$ENDIF}
 
-Function GetCrc( var Buf ; BufSize : word ) : Longint ;
+Function GetCrc(StartCrc: longint; var Buf; BufSize: word): Longint ;
 type
   AA = array[1..$F000] of byte ;
 var CNT : word;
     CRC : Longint;
  begin
     if crc_table_empty then MakeCRCTable;
-    CRC := 0;
-    GetCrc := 0;
+    CRC := StartCrc;
+    GetCrc := StartCrc;
      if BufSize = 0 then Exit;
        for CNT :=1 to BufSize do
        CRC := UpdateCrc32(AA(Buf)[CNT] , Crc);
-    GetCrc := CRC ;
+    GetCrc := CRC;
  end;
 
 

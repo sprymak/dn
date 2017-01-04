@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -413,15 +413,17 @@ const
   cfFmtOs2Warning    = $0100;
 
 { Column data items }
-  psShowLongName = $0001;
-  psShowSize     = $0002;
-  psShowDate     = $0004;
-  psShowTime     = $0008;
-  psShowDir      = $0010;
-  psShowDescript = $0010;
-  psShowPacked   = $0010;
-  psShowRatio    = $0020;
-  psShowLongDesc = $0020;
+  psShowLongName     = $0001;
+  psShowSize         = $0002;
+  psShowDate         = $0004;
+  psShowTime         = $0008;
+  psShowDir          = $0010;
+  psShowDescript     = $0010;
+  psShowPacked       = $0010;
+  psShowRatio        = $0020;
+  psShowLongDesc     = $0020;
+  psVariableExtDA    = $0040; {For Drive and Archives}
+  psVariableExtSTA   = $0020; {For Search, Temp, Arvid}
 
 { Terminal emulation }
   emTTY     = 0;
@@ -920,7 +922,6 @@ const
   cmConfigLHA         = 3114;
   cmConfigRAR         = 3117;
   cmConfigZIP         = 3123;
-{$IFNDEF MINARCH}
   cmConfigAIN         = 3102;
   cmConfigARC         = 3103;
   cmConfigBS2         = 3105;
@@ -940,7 +941,6 @@ const
   cmConfigUFA         = 3122;
   cmConfigZOO         = 3124;
   cmConfigZXZ         = 3125;
-{$ENDIF}
   cmHiConfigArchiver  = 3125;
   cmUpdateArcFile     = 3200;
 

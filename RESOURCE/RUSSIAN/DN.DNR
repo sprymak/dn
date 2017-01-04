@@ -1110,15 +1110,18 @@ DIALOG dlgDiskError, 43, 10, 'Дисковая ошибка'
     Button 17, 7, 27, 9, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgDiskParms, 41, 13, 'Установки колонок'
+DIALOG dlgDiskParms, 41, 14, 'Установки колонок'
     HELPCTX hcSetupDiskColumns
-    CheckBoxes 3, 3, 27, 9, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 27,10, ofPostProcess, ofPreProcess
       ITEM '~Д~линное имя'
       ITEM '~Р~азмер'
       ITEM '~Д~ату'
       ITEM '~В~ремя'
       ITEM '~О~писание'
       ITEM '~П~олное описание'
+;NEW+
+      ITEM 'Плавающее рас~ш~ирение'
+;NEW-
     END
     Label 3, 2, 'Показывать', ofPostProcess, ofPreProcess
     InputLine 33, 3, 37, 4, 2, 0
@@ -1127,19 +1130,23 @@ DIALOG dlgDiskParms, 41, 13, 'Установки колонок'
     Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
     Button 28, 5, 39,  7, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
     Button 28, 7, 39,  9, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 19, 10, 29, 12, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 10, 39, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button  9, 11, 19, 13, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 19, 11, 29, 13, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 29, 11, 39, 13, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgArcParms, 41, 13, 'Установки колонок'
+DIALOG dlgArcParms, 41, 14, 'Установки колонок'
     HELPCTX hcSetupArcColumns
-    CheckBoxes 3, 3, 27, 9, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 27,10, ofPostProcess, ofPreProcess
       ITEM '~Д~линное имя'
       ITEM '~И~сходный размер'
       ITEM '~Д~ату'
       ITEM '~В~ремя'
       ITEM '~У~пакованный размер'
       ITEM '~О~тношение'
+;NEW+
+      ITEM 'Плавающее рас~ш~ирение'
+;NEW-
     END
     Label 3, 2, 'Показывать', ofPostProcess, ofPreProcess
     InputLine 33, 3, 37, 4, 2, 0
@@ -1148,8 +1155,9 @@ DIALOG dlgArcParms, 41, 13, 'Установки колонок'
     Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
     Button 28, 5, 39,  7, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
     Button 28, 7, 39,  9, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 19, 10, 29, 12, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 10, 39, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button  9, 11, 19, 13, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 19, 11, 29, 13, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 29, 11, 39, 13, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgFindParms, 41, 13, 'Установки колонок'
@@ -1160,6 +1168,9 @@ DIALOG dlgFindParms, 41, 13, 'Установки колонок'
       ITEM '~Д~ата'
       ITEM '~В~ремя'
       ITEM '~П~уть'
+;NEW+
+      ITEM 'Плавающее рас~ш~ирение'
+;NEW-
     END
     Label 3, 2, 'Показывать', ofPostProcess, ofPreProcess
     InputLine 33, 3, 37, 4, 2, 0
@@ -1168,8 +1179,9 @@ DIALOG dlgFindParms, 41, 13, 'Установки колонок'
     Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
     Button 28, 5, 39,  7, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
     Button 28, 7, 39,  9, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 19, 10, 29, 12, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 10, 39, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button  9, 10, 19, 12, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 19, 10, 29, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 29, 10, 39, 12, 'Помо~щ~ь', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgFileAttr, 46, 14, 'Атрибуты файла'
@@ -1330,9 +1342,9 @@ DIALOG dlgSetupArc, 62, 22, 'Установки архиватора'
     InputLine 24, 9, 30, 10, 20, 0
     Label 1, 9, 'Защита от повреждения', ofPostProcess, ofPreProcess
     InputLine 53, 9, 59, 10, 20, 0
-    Label 40, 9, 'Непрер~ы~вный', ofPostProcess, ofPreProcess
+    Label 35, 9, 'Автономны~й~ (SFX)', ofPostProcess, ofPreProcess
     InputLine 24, 10, 30, 11, 20, 0
-    Label 6, 10, 'Автономны~й~ (SFX)', ofPostProcess, ofPreProcess
+    Label 11, 10, 'Непрер~ы~вный', ofPostProcess, ofPreProcess
     InputLine 53, 10, 59, 11, 20, 0
     Label 30, 10, 'Включая поддиректории', ofPostProcess, ofPreProcess
     StaticText 3, 11, 21, 12, 'Тип компpессии:'
@@ -3085,7 +3097,7 @@ END
 ;DataCompBoy
 
 ;DataCompBoy
-DIALOG dlgSetupColumnsDisk, 70, 18, 'Установки колонок - Диск'
+DIALOG dlgSetupColumnsDisk, 70, 19, 'Установки колонок - Диск'
 
     StaticText 2, 2, 17, 3, 'Длинное имя'
     StaticText 2, 3, 17, 4, 'Размеp'
@@ -3093,6 +3105,167 @@ DIALOG dlgSetupColumnsDisk, 70, 18, 'Установки колонок - Диск'
     StaticText 2, 5, 17, 6, 'Вpемя'
     StaticText 2, 6, 17, 7, 'Описание'
     StaticText 2, 7, 17, 8, 'Полное описание'
+;NEW+
+    StaticText 2, 8, 17, 9, 'Плавающее расш'
+;NEW-
+    StaticText 2, 9, 17,10, 'Под имя'
+    StaticText 2,10, 17,11, 'Под pасшиpение'
+
+    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
+
+    CheckBoxes 18, 2, 23, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 18, 9, 23,10, 2, 0
+    InputLine 18,10, 23,11, 2, 0
+
+    CheckBoxes 23, 2, 28, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 23, 9, 28,10, 2, 0
+    InputLine 23,10, 28,11, 2, 0
+
+    CheckBoxes 28, 2, 33, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 28, 9, 33,10, 2, 0
+    InputLine 28,10, 33,11, 2, 0
+
+    CheckBoxes 33, 2, 38, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 33, 9, 38,10, 2, 0
+    InputLine 33,10, 38,11, 2, 0
+
+    CheckBoxes 38, 2, 43, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 38, 9, 43,10, 2, 0
+    InputLine 38,10, 43,11, 2, 0
+
+    CheckBoxes 43, 2, 48, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 43, 9, 48,10, 2, 0
+    InputLine 43,10, 48,11, 2, 0
+
+    CheckBoxes 48, 2, 53, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 48, 9, 53,10, 2, 0
+    InputLine 48,10, 53,11, 2, 0
+
+    CheckBoxes 53, 2, 58, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 53, 9, 58,10, 2, 0
+    InputLine 53,10, 58,11, 2, 0
+
+    CheckBoxes 58, 2, 63, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 58, 9, 63,10, 2, 0
+    InputLine 58,10, 63,11, 2, 0
+
+    CheckBoxes 63, 2, 68, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 63, 9, 68,10, 2, 0
+    InputLine 63,10, 68,11, 2, 0
+
+    RadioButtons 2, 13, 68, 14, ofPostProcess, ofPreProcess
+      ITEM 'КаК еСтЬ'
+      ITEM 'малые'
+      ITEM 'С большой'
+      ITEM 'БОЛЬШИЕ'
+      ITEM 'Смешано'
+    END
+    Label 2, 12, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+
+    RadioButtons 2, 15, 68, 16, ofPostProcess, ofPreProcess
+      ITEM 'КаК еСтЬ'
+      ITEM 'малые'
+      ITEM 'С большой'
+      ITEM 'БОЛЬШИЕ'
+      ITEM 'Смешано'
+    END
+    Label 2, 14, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+
+    Button 17, 16, 27, 18, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 16, 39, 18, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 41, 16, 51, 18, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupColumnsFind, 70, 18, 'Установки колонок - Поиск'
+
+    StaticText 2, 2, 17, 3, 'Длинное имя'
+    StaticText 2, 3, 17, 4, 'Размеp'
+    StaticText 2, 4, 17, 5, 'Дата'
+    StaticText 2, 5, 17, 6, 'Вpемя'
+    StaticText 2, 6, 17, 7, 'Пyть'
+;NEW+
+    StaticText 2, 7, 17, 8, 'Плавающее расш'
+;NEW-
     StaticText 2, 8, 17, 9, 'Под имя'
     StaticText 2, 9, 17,10, 'Под pасшиpение'
 
@@ -3229,285 +3402,157 @@ DIALOG dlgSetupColumnsDisk, 70, 18, 'Установки колонок - Диск'
     Button 17, 15, 27, 17, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 29, 15, 39, 17, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
     Button 41, 15, 51, 17, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
-
-;    SelectBack
 END
 
-DIALOG dlgSetupColumnsFind, 70, 17, 'Установки колонок - Поиск'
+DIALOG dlgSetupColumnsTemp, 70, 18, 'Установки колонок - TEMP'
 
     StaticText 2, 2, 17, 3, 'Длинное имя'
     StaticText 2, 3, 17, 4, 'Размеp'
     StaticText 2, 4, 17, 5, 'Дата'
     StaticText 2, 5, 17, 6, 'Вpемя'
     StaticText 2, 6, 17, 7, 'Пyть'
-    StaticText 2, 7, 17, 8, 'Под имя'
-    StaticText 2, 8, 17, 9, 'Под pасшиpение'
+;NEW+
+    StaticText 2, 7, 17, 8, 'Плавающее расш'
+;NEW-
+    StaticText 2, 8, 17, 9, 'Под имя'
+    StaticText 2, 9, 17,10, 'Под pасшиpение'
 
     StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
 
-    CheckBoxes 18, 2, 23, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 18, 7, 23, 8, 2, 0
     InputLine 18, 8, 23, 9, 2, 0
+    InputLine 18, 9, 23,10, 2, 0
 
-    CheckBoxes 23, 2, 28, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 23, 7, 28, 8, 2, 0
     InputLine 23, 8, 28, 9, 2, 0
+    InputLine 23, 9, 28,10, 2, 0
 
-    CheckBoxes 28, 2, 33, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 28, 7, 33, 8, 2, 0
     InputLine 28, 8, 33, 9, 2, 0
+    InputLine 28, 9, 33,10, 2, 0
 
-    CheckBoxes 33, 2, 38, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 33, 7, 38, 8, 2, 0
     InputLine 33, 8, 38, 9, 2, 0
+    InputLine 33, 9, 38,10, 2, 0
 
-    CheckBoxes 38, 2, 43, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 38, 7, 43, 8, 2, 0
     InputLine 38, 8, 43, 9, 2, 0
+    InputLine 38, 9, 43,10, 2, 0
 
-    CheckBoxes 43, 2, 48, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 43, 7, 48, 8, 2, 0
     InputLine 43, 8, 48, 9, 2, 0
+    InputLine 43, 9, 48,10, 2, 0
 
-    CheckBoxes 48, 2, 53, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 48, 7, 53, 8, 2, 0
     InputLine 48, 8, 53, 9, 2, 0
+    InputLine 48, 9, 53,10, 2, 0
 
-    CheckBoxes 53, 2, 58, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 53, 7, 58, 8, 2, 0
     InputLine 53, 8, 58, 9, 2, 0
+    InputLine 53, 9, 58,10, 2, 0
 
-    CheckBoxes 58, 2, 63, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 58, 7, 63, 8, 2, 0
     InputLine 58, 8, 63, 9, 2, 0
+    InputLine 58, 9, 63,10, 2, 0
 
-    CheckBoxes 63, 2, 68, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 63, 7, 68, 8, 2, 0
     InputLine 63, 8, 68, 9, 2, 0
+    InputLine 63, 9, 68,10, 2, 0
 
-    RadioButtons 2, 11, 68, 12, ofPostProcess, ofPreProcess
+    RadioButtons 2, 12, 68, 13, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
       ITEM 'малые'
       ITEM 'С большой'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 10, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+    Label 2, 11, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
 
-    RadioButtons 2, 13, 68, 14, ofPostProcess, ofPreProcess
+    RadioButtons 2, 14, 68, 15, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
       ITEM 'малые'
       ITEM 'С большой'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 12, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+    Label 2, 13, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
 
-    Button 17, 14, 27, 16, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 14, 39, 16, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
-    Button 41, 14, 51, 16, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
-
-;    SelectBack
+    Button 17, 15, 27, 17, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 15, 39, 17, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 41, 15, 51, 17, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgSetupColumnsTemp, 70, 17, 'Установки колонок - TEMP'
-
-    StaticText 2, 2, 17, 3, 'Длинное имя'
-    StaticText 2, 3, 17, 4, 'Размеp'
-    StaticText 2, 4, 17, 5, 'Дата'
-    StaticText 2, 5, 17, 6, 'Вpемя'
-    StaticText 2, 6, 17, 7, 'Пyть'
-    StaticText 2, 7, 17, 8, 'Под имя'
-    StaticText 2, 8, 17, 9, 'Под pасшиpение'
-
-    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
-
-    CheckBoxes 18, 2, 23, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 18, 7, 23, 8, 2, 0
-    InputLine 18, 8, 23, 9, 2, 0
-
-    CheckBoxes 23, 2, 28, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 23, 7, 28, 8, 2, 0
-    InputLine 23, 8, 28, 9, 2, 0
-
-    CheckBoxes 28, 2, 33, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 28, 7, 33, 8, 2, 0
-    InputLine 28, 8, 33, 9, 2, 0
-
-    CheckBoxes 33, 2, 38, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 33, 7, 38, 8, 2, 0
-    InputLine 33, 8, 38, 9, 2, 0
-
-    CheckBoxes 38, 2, 43, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 38, 7, 43, 8, 2, 0
-    InputLine 38, 8, 43, 9, 2, 0
-
-    CheckBoxes 43, 2, 48, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 43, 7, 48, 8, 2, 0
-    InputLine 43, 8, 48, 9, 2, 0
-
-    CheckBoxes 48, 2, 53, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 48, 7, 53, 8, 2, 0
-    InputLine 48, 8, 53, 9, 2, 0
-
-    CheckBoxes 53, 2, 58, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 53, 7, 58, 8, 2, 0
-    InputLine 53, 8, 58, 9, 2, 0
-
-    CheckBoxes 58, 2, 63, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 58, 7, 63, 8, 2, 0
-    InputLine 58, 8, 63, 9, 2, 0
-
-    CheckBoxes 63, 2, 68, 7, ofPostProcess, ofPreProcess
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-      ITEM ''
-    END
-    InputLine 63, 7, 68, 8, 2, 0
-    InputLine 63, 8, 68, 9, 2, 0
-
-    RadioButtons 2, 11, 68, 12, ofPostProcess, ofPreProcess
-      ITEM 'КаК еСтЬ'
-      ITEM 'малые'
-      ITEM 'С большой'
-      ITEM 'БОЛЬШИЕ'
-      ITEM 'Смешано'
-    END
-    Label 2, 10, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
-
-    RadioButtons 2, 13, 68, 14, ofPostProcess, ofPreProcess
-      ITEM 'КаК еСтЬ'
-      ITEM 'малые'
-      ITEM 'С большой'
-      ITEM 'БОЛЬШИЕ'
-      ITEM 'Смешано'
-    END
-    Label 2, 12, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
-
-    Button 17, 14, 27, 16, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 14, 39, 16, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
-    Button 41, 14, 51, 16, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
-
-;    SelectBack
-END
-
-DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
+DIALOG dlgSetupColumnsArch, 70, 19, 'Установки колонок - Аpхив'
 
     StaticText 2, 2, 17, 3, 'Длинное имя'
     StaticText 2, 3, 17, 4, 'Исходный pазмеp'
@@ -3515,12 +3560,16 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
     StaticText 2, 5, 17, 6, 'Вpемя'
     StaticText 2, 6, 17, 7, 'Сжатый pазмеp'
     StaticText 2, 7, 17, 8, 'Отношение'
-    StaticText 2, 8, 17, 9, 'Под имя'
-    StaticText 2, 9, 17,10, 'Под pасшиpение'
+;NEW+
+    StaticText 2, 8, 17, 9, 'Плавающее расш'
+;NEW-
+    StaticText 2, 9, 17,10, 'Под имя'
+    StaticText 2,10, 17,11, 'Под pасшиpение'
 
     StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
 
-    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 18, 2, 23, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3528,10 +3577,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 18, 8, 23, 9, 2, 0
     InputLine 18, 9, 23,10, 2, 0
+    InputLine 18,10, 23,11, 2, 0
 
-    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 23, 2, 28, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3539,10 +3589,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 23, 8, 28, 9, 2, 0
     InputLine 23, 9, 28,10, 2, 0
+    InputLine 23,10, 28,11, 2, 0
 
-    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 28, 2, 33, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3550,10 +3601,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 28, 8, 33, 9, 2, 0
     InputLine 28, 9, 33,10, 2, 0
+    InputLine 28,10, 33,11, 2, 0
 
-    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 33, 2, 38, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3561,10 +3613,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 33, 8, 38, 9, 2, 0
     InputLine 33, 9, 38,10, 2, 0
+    InputLine 33,10, 38,11, 2, 0
 
-    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 38, 2, 43, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3572,10 +3625,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 38, 8, 43, 9, 2, 0
     InputLine 38, 9, 43,10, 2, 0
+    InputLine 38,10, 43,11, 2, 0
 
-    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 43, 2, 48, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3583,10 +3637,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 43, 8, 48, 9, 2, 0
     InputLine 43, 9, 48,10, 2, 0
+    InputLine 43,10, 48,11, 2, 0
 
-    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 48, 2, 53, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3594,10 +3649,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 48, 8, 53, 9, 2, 0
     InputLine 48, 9, 53,10, 2, 0
+    InputLine 48,10, 53,11, 2, 0
 
-    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 53, 2, 58, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3605,10 +3661,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 53, 8, 58, 9, 2, 0
     InputLine 53, 9, 58,10, 2, 0
+    InputLine 53,10, 58,11, 2, 0
 
-    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 58, 2, 63, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3616,10 +3673,11 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 58, 8, 63, 9, 2, 0
     InputLine 58, 9, 63,10, 2, 0
+    InputLine 58,10, 63,11, 2, 0
 
-    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 63, 2, 68, 9, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
@@ -3627,32 +3685,30 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM ''
       ITEM ''
     END
-    InputLine 63, 8, 68, 9, 2, 0
     InputLine 63, 9, 68,10, 2, 0
+    InputLine 63,10, 68,11, 2, 0
 
-    RadioButtons 2, 12, 68, 13, ofPostProcess, ofPreProcess
+    RadioButtons 2, 13, 68, 14, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
       ITEM 'малые'
       ITEM 'С большой'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 11, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+    Label 2, 12, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
 
-    RadioButtons 2, 14, 68, 15, ofPostProcess, ofPreProcess
+    RadioButtons 2, 15, 68, 16, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
       ITEM 'малые'
       ITEM 'С большой'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 13, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+    Label 2, 14, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
 
-    Button 17, 15, 27, 17, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 15, 39, 17, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
-    Button 41, 15, 51, 17, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
-
-;    SelectBack
+    Button 17, 16, 27, 18, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 16, 39, 18, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 41, 16, 51, 18, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetupColumnsArvd, 70, 17, 'Установки колонок - ARVID'
@@ -3662,134 +3718,145 @@ DIALOG dlgSetupColumnsArvd, 70, 17, 'Установки колонок - ARVID'
     StaticText 2, 4, 17, 5, 'Дата'
     StaticText 2, 5, 17, 6, 'Вpемя'
     StaticText 2, 6, 17, 7, 'Описание'
-    StaticText 2, 7, 17, 8, 'Под имя'
-    StaticText 2, 8, 17, 9, 'Под pасшиpение'
+;NEW+
+    StaticText 2, 7, 17, 8, 'Плавающее расш'
+;NEW-
+    StaticText 2, 8, 17, 9, 'Под имя'
+    StaticText 2, 9, 17,10, 'Под pасшиpение'
 
     StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
 
-    CheckBoxes 18, 2, 23, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 18, 7, 23, 8, 2, 0
     InputLine 18, 8, 23, 9, 2, 0
+    InputLine 18, 9, 23,10, 2, 0
 
-    CheckBoxes 23, 2, 28, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 23, 7, 28, 8, 2, 0
     InputLine 23, 8, 28, 9, 2, 0
+    InputLine 23, 9, 28,10, 2, 0
 
-    CheckBoxes 28, 2, 33, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 28, 7, 33, 8, 2, 0
     InputLine 28, 8, 33, 9, 2, 0
+    InputLine 28, 9, 33,10, 2, 0
 
-    CheckBoxes 33, 2, 38, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 33, 7, 38, 8, 2, 0
     InputLine 33, 8, 38, 9, 2, 0
+    InputLine 33, 9, 38,10, 2, 0
 
-    CheckBoxes 38, 2, 43, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 38, 7, 43, 8, 2, 0
     InputLine 38, 8, 43, 9, 2, 0
+    InputLine 38, 9, 43,10, 2, 0
 
-    CheckBoxes 43, 2, 48, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 43, 7, 48, 8, 2, 0
     InputLine 43, 8, 48, 9, 2, 0
+    InputLine 43, 9, 48,10, 2, 0
 
-    CheckBoxes 48, 2, 53, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 48, 7, 53, 8, 2, 0
     InputLine 48, 8, 53, 9, 2, 0
+    InputLine 48, 9, 53,10, 2, 0
 
-    CheckBoxes 53, 2, 58, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 53, 7, 58, 8, 2, 0
     InputLine 53, 8, 58, 9, 2, 0
+    InputLine 53, 9, 58,10, 2, 0
 
-    CheckBoxes 58, 2, 63, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 58, 7, 63, 8, 2, 0
     InputLine 58, 8, 63, 9, 2, 0
+    InputLine 58, 9, 63,10, 2, 0
 
-    CheckBoxes 63, 2, 68, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
+      ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
       ITEM ''
     END
-    InputLine 63, 7, 68, 8, 2, 0
     InputLine 63, 8, 68, 9, 2, 0
+    InputLine 63, 9, 68,10, 2, 0
 
-    RadioButtons 2, 11, 68, 12, ofPostProcess, ofPreProcess
+    RadioButtons 2, 12, 68, 13, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
       ITEM 'малые'
       ITEM 'С большой'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 10, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+    Label 2, 11, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
 
-    RadioButtons 2, 13, 68, 14, ofPostProcess, ofPreProcess
+    RadioButtons 2, 14, 68, 15, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
       ITEM 'малые'
       ITEM 'С большой'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 12, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+    Label 2, 13, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
 
-    Button 17, 14, 27, 16, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 14, 39, 16, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
-    Button 41, 14, 51, 16, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
-
-;    SelectBack
+    Button 17, 15, 27, 17, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 15, 39, 17, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 41, 15, 51, 17, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
 END
 ;DataCompBoy
 

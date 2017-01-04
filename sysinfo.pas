@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -396,11 +396,9 @@ begin
  Reg.AX := $1600;
  Intr ($2f, Reg);
  case Reg.AX of
-  $0004 : Build := '95';
-  $0104 : Build := '95 OSR 1';
-  $0204 : Build := '95 OSR 2';
-  $0304 : Build := '95 OSR 2.1'; {tested}
-  $0a04 : Build := '98';         {tested}
+  $0004 : Build := '95'; {OSR1=4.00.950B & OSR2=4.00.1111 returns same code}
+  $0304 : Build := '95 OSR 2.1'; {4.00.1212}
+  $0a04 : Build := '98';         {4.10.1998}
  else
   Build := ItoS(LongInt(Reg.AL)) + '.';
   if Reg.AH < 10 then Build := Build + '0' + ItoS(LongInt(Reg.AH))

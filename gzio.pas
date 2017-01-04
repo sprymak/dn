@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -67,7 +67,7 @@ uses
   dos,
   LFN,{DataCompBoy}
   {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF}, zutil, zlib,
-  crc, {$IFNDEF NO_DEFLATE}zdeflate,{$ENDIF} zinflate;
+  advance3,{$IFNDEF NO_DEFLATE}zdeflate,{$ENDIF} zinflate;
 
 type gz_streamp = ^gz_stream;
      gz_stream = record
@@ -207,7 +207,7 @@ begin
   s^.z_eof := false;
   s^.inbuf := Z_NULL;
   s^.outbuf := Z_NULL;
-  s^.crc := crc32(0, Z_NULL, 0);
+  s^.crc := 0;
 (*  s^.msg := '';*)
   s^.opened := false;
   s^.transparent := false;
@@ -656,7 +656,7 @@ begin
         inc (crclen);   { Hack because Pascal cannot substract pointers }
       end;
       { Check CRC and original size }
-      s^.crc := crc32(s^.crc, start, crclen);
+      s^.crc := getcrc(s^.crc, start^, crclen);
       start := s^.stream.next_out;
 
       filecrc := getLong (s);
@@ -674,7 +674,7 @@ begin
             inflateReset (s^.stream);
             s^.stream.total_in := total_in;
             s^.stream.total_out := total_out;
-            s^.crc := crc32 (0, Z_NULL, 0);
+            s^.crc := 0;
           end;
       end; {IF-THEN-ELSE}
     end;
@@ -689,7 +689,7 @@ begin
     dec (next_out);
     inc (crclen);   { Hack because Pascal cannot substract pointers }
   end;
-  s^.crc := crc32 (s^.crc, start, crclen);
+  s^.crc := getcrc (s^.crc, start^, crclen);
 
   gzread := int(len - s^.stream.avail_out);
 
@@ -800,7 +800,7 @@ begin
 
     end; {WHILE}
 
-    s^.crc := crc32(s^.crc, buf, len);
+    s^.crc := getcrc(s^.crc, buf^, len);
     gzwrite := int(len - s^.stream.avail_in);
 
 end;

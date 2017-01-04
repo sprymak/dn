@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.08
+::  Dos Navigator Open Source 1.51.09
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -58,7 +58,7 @@ set GGD=
 set GGDB=
 set real_packer=upx -9
 set dpmi_packer=
-set com_packer=upx -9
+set com_packer=dcc12
 set PackOverlay=
 if not exist exe\nul mkdir exe >nul
 if not exist out\nul mkdir out >nul
@@ -198,15 +198,15 @@ goto Loop
 
 :asm
 shift
-%binpath%tasm /t /x /m /zi *.asm,exe\*.obj
-if .%GGD%.==.GGD. tasm /t /x /m /zi dn.asm,exe\dn.obj -d_DPMI_
+%binpath%tasm /t /x /m3 /zi *.asm,exe\*.obj
+if .%GGD%.==.GGD. tasm /t /x /m3 /zi dn.asm,exe\dn.obj -d_DPMI_
 if errorlevel 1 goto Quit
-%binpath%tasm -t -m -q -d__LARGE__ *.asl %ASMOPT%
+%binpath%tasm -t -m3 -q -d__LARGE__ *.asl %ASMOPT%
 if errorlevel 1 goto Quit
 if exist exe\cpuspeed.obp copy exe\cpuspeed.obp exe\*.obj >nul
 if exist exe\p5speed.obp  copy exe\p5speed.obp  exe\*.obj >nul
 if exist exe\cachetst.obp copy exe\cachetst.obp exe\*.obj >nul
-if not .%ASMOPT%.==.exe\*.obj. %binpath%tasm /t /x /m /zi *.asm %ASMOPT%
+if not .%ASMOPT%.==.exe\*.obj. %binpath%tasm /t /x /m3 /zi *.asm %ASMOPT%
 if errorlevel 1 goto Quit
 %binpath%tlink /t /x exe\dn.obj, exe\dn.com
 if errorlevel 1 goto Quit
@@ -217,11 +217,11 @@ echo.
 :copydncom
 copy exe\dn.com %outpath% >nul
 if .%GGD%.==.. goto realcode
-%binpath%tasm -t -m -q -d__LARGE__ -d__DPMI__ dpmicode.adp exe\dpmicode.obp
+%binpath%tasm -t -m3 -q -d__LARGE__ -d__DPMI__ dpmicode.adp exe\dpmicode.obp
 if errorlevel 1 goto Quit
 goto Loop
 :realcode
-%binpath%tasm -t -m -q -d__LARGE__ realcode.arl exe\realcode.obj
+%binpath%tasm -t -m3 -q -d__LARGE__ realcode.arl exe\realcode.obj
 if errorlevel 1 goto Quit
 :loop
 goto Loop

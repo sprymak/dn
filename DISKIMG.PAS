@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -98,6 +98,7 @@ var
 
   VolumeLabel : string[13];
   fPos        : LongInt;
+  SearchVolume: boolean; {piwamoto}
 
 procedure fSeek(Pos: LongInt);
 begin
@@ -225,12 +226,17 @@ begin
     Move(DR.Name[0], Nm[1], 8);
     Move(DR.Name[8], Nm[10], 3);
     Nm := MakeFileName(Nm);
-    if DR.Attr and VolumeID <> 0 then
-    begin
-      Replace(' ','_',Nm);
-      VolumeLabel := Nm+'\';
-      Continue;
-    end;
+    if DR.Attr and (VolumeID+SysFile+Hidden+ReadOnly) = VolumeID then {LFN bugfix by piwamoto}
+     if SearchVolume then
+      begin
+       Replace(' ','_',Nm);
+       Replace('.','_',Nm);
+       VolumeLabel := Nm+'\';
+       Break;
+      end
+      else Continue;
+    if SearchVolume then Continue;
+    if DR.Attr and VolumeID <> 0 then Continue; {i'll skip VFAT names}
     if DR.Attr and Directory <> 0 then
     begin
       if Nm[1]<>'.' then ProcessDir(Dir+Nm+'\', Fat2Sec(DR.Clus));
@@ -253,7 +259,7 @@ end;
 
 
 begin
-  VolumeLabel := ''; fPos := 0;
+  VolumeLabel := ''; fPos := 0; SearchVolume := True;
   if F^.Status <> stOK then Exit;
   GetMem(BRec, 4096);
   fRead(BRec^, 4096);
@@ -284,7 +290,12 @@ begin
 
   GetMem(FAT, FatSize);
   fRead(FAT^, FatSize);
-  if F^.Status = stOK then ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);
+  if F^.Status = stOK then
+    begin {piwamoto}
+      ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);
+      SearchVolume := False;
+      ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);
+    end;
   FreeMem(FAT, FatSize);
 
 end;

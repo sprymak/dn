@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.08
+;/  Dos Navigator Open Source 1.51.09
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -69,36 +69,64 @@ w2              EQU     (WORD PTR 2)
 
 ; Keyboard scan codes
 
+scF1            EQU     3BH
+scF2            EQU     3CH
+scF3            EQU     3DH
+scF4            EQU     3EH
+scF5            EQU     3FH
+scF6            EQU     40H
+scF7            EQU     41H
+scF8            EQU     42H
+scF9            EQU     43H
+scFA            EQU     44H
+scFB            EQU     57H
+scFC            EQU     58H
+sc1             EQU     02H
+sc2             EQU     03H
+sc3             EQU     04H
+sc4             EQU     05H
+sc5             EQU     06H
+sc6             EQU     07H
+sc7             EQU     08H
+sc8             EQU     09H
+sc9             EQU     0AH
+sc0             EQU     0BH
+scZ             EQU     2CH
+scX             EQU     2DH
+scTilde         EQU     29H
+scDownUp        EQU    0D0H
+scUpUp          EQU    0C8H
 scSpaceKey      EQU     39H
 scInsKey        EQU     52H
 scDelKey        EQU     53H
 scBackKey       EQU     0EH
-scUpArrow       EQU     48h
-scDownArrow     EQU     50h
-scLeftArrow     EQU     4Bh
-scRightArrow    EQU     4Dh
-scTab           EQU     0Fh
-scEsc           EQU     01h
-scEnter         EQU     1Ch
-scGrayPlus      EQU     4Eh
-scGrayMinus     EQU     4Ah
-scGrayAst       EQU     37h
-scSlash         EQU     35h
-scLSqBraket     EQU     1Ah
-scRSqBraket     EQU     1Bh
-scSemicolon     EQU     27h
-scQuote         EQU     28h
-scLAngle        EQU     33h
-scRAngle        EQU     34h
-scPgUpKey       EQU     49h
-scPgDnKey       EQU     51h
+scBackUp        EQU     8EH
+scUpArrow       EQU     48H
+scDownArrow     EQU     50H
+scLeftArrow     EQU     4BH
+scRightArrow    EQU     4DH
+scTab           EQU     0FH
+scEsc           EQU     01H
+scEnter         EQU     1CH
+scGrayPlus      EQU     4EH
+scGrayMinus     EQU     4AH
+scGrayAst       EQU     37H
+scSlash         EQU     35H
+scLSqBraket     EQU     1AH
+scRSqBraket     EQU     1BH
+scSemicolon     EQU     27H
+scQuote         EQU     28H
+scLAngle        EQU     33H
+scRAngle        EQU     34H
+scPgUpKey       EQU     49H
+scPgDnKey       EQU     51H
 
 ; Keyboard shift flags
 
 kbShiftKey      EQU     03H
 kbCtrlKey       EQU     04H
 kbAltKey        EQU     08H
-kbNumLock       EQU     20H
+;kbNumLock       EQU     20H
 
 ; ROM BIOS workspace
 
@@ -208,96 +236,126 @@ SaveInt24       DD      0       ;Saved INT 24H vector
 
 KeyConvertTab   LABEL   BYTE
 
-;        DB      scLSqBraket, kbAltKey
-;        DW      1A00h
-;        DB      scRSqBraket, kbAltKey
-;        DW      1B00h
-;        DB      scSemicolon, kbAltKey
-;        DW      2700h
-;        DB      scQuote, kbAltKey
-;        DW      2800h
-;        DB      scLAngle, kbAltKey
-;        DW      3300h
-;        DB      scRAngle, kbAltKey
-;        DW      3400h
-        DB      scSpaceKey,kbAltKey
+        DB      sc1,            kbCtrlKey
+        DW     0D100h
+        DB      sc2,            kbCtrlKey
+        DW     0D200h
+        DB      sc3,            kbCtrlKey
+        DW     0D300h
+        DB      sc4,            kbCtrlKey
+        DW     0D400h
+        DB      sc5,            kbCtrlKey
+        DW     0D500h
+        DB      sc6,            kbCtrlKey
+        DW     0D600h
+        DB      sc7,            kbCtrlKey
+        DW     0D700h
+        DB      sc8,            kbCtrlKey
+        DW     0D800h
+        DB      sc9,            kbCtrlKey
+        DW     0D900h
+        DB      sc0,            kbCtrlKey
+        DW     0DA00h
+        DB      scZ,            kbCtrlKey+kbAltKey
+        DW      2C0Ch
+        DB      scX,            kbCtrlKey+kbAltKey
+        DW      2D0Dh
+        DB      scTilde,        kbCtrlKey+         kbShiftKey
+        DW     0FE00h
+        DB      scLSqBraket,    kbCtrlKey+kbAltKey
+        DW      1A1Ah
+        DB      scRSqBraket,    kbCtrlKey+kbAltKey
+        DW      1B1Bh
+        DB      scDownUp,       0
+        DW     0D000h
+        DB      scUpUp,         0
+        DW     0C800h
+        DB      scSemicolon,              kbAltKey
+        DW      2700h
+        DB      scBackKey,                kbAltKey+kbShiftKey
+        DW      9700h
+        DB      scBackUp,       0
+        DW     0FD00h
+        DB      scBackKey,                kbAltKey
+        DW      0E00H
+        DB      scF1,           kbCtrlKey+kbAltKey
+        DW     0F100h
+        DB      scF2,           kbCtrlKey+kbAltKey
+        DW     0F200h
+        DB      scF3,           kbCtrlKey+kbAltKey
+        DW     0F300h
+        DB      scF4,           kbCtrlKey+kbAltKey
+        DW     0F400h
+        DB      scF5,           kbCtrlKey+kbAltKey
+        DW     0F500h
+        DB      scF6,           kbCtrlKey+kbAltKey
+        DW     0F600h
+        DB      scF7,           kbCtrlKey+kbAltKey
+        DW     0F700h
+        DB      scF8,           kbCtrlKey+kbAltKey
+        DW     0F800h
+        DB      scF9,           kbCtrlKey+kbAltKey
+        DW     0F900h
+        DB      scFA,           kbCtrlKey+kbAltKey
+        DW     0FA00h
+        DB      scFB,           kbCtrlKey+kbAltKey
+        DW     0FB00h
+        DB      scFC,           kbCtrlKey+kbAltKey
+        DW     0FC00h
+        DB      sc1,            kbCtrlKey+         kbShiftKey
+        DW     0E100h
+        DB      sc2,            kbCtrlKey+         kbShiftKey
+        DW     0E200h
+        DB      sc3,            kbCtrlKey+         kbShiftKey
+        DW     0E300h
+        DB      sc4,            kbCtrlKey+         kbShiftKey
+        DW     0E400h
+        DB      sc5,            kbCtrlKey+         kbShiftKey
+        DW     0E500h
+        DB      sc6,            kbCtrlKey+         kbShiftKey
+        DW     0E600h
+        DB      sc7,            kbCtrlKey+         kbShiftKey
+        DW     0E700h
+        DB      sc8,            kbCtrlKey+         kbShiftKey
+        DW     0E800h
+        DB      sc9,            kbCtrlKey+         kbShiftKey
+        DW     0E900h
+        DB      scGrayPlus,                        kbShiftKey
+        DW     0CE00h
+        DB      scGrayMinus,                       kbShiftKey
+        DW     0CA00h
+        DB      scSpaceKey,               kbAltKey
         DW      0C200H
-        DB      scInsKey,kbShiftKey
+        DB      scInsKey,                 kbAltKey+kbShiftKey
         DW      0C300H
-        DB      scDelKey,kbShiftKey
+        DB      scInsKey,                          kbShiftKey
+        DW      0C300H
+        DB      scDelKey,                          kbShiftKey
         DW      0C400H
-        DB      scEnter,0
-        DW      1C0DH
-        DB      scEnter,kbCtrlKey
+        DB      scEnter,        kbCtrlKey
         DW      1C0AH
-        DB      scEnter,kbAltKey
-        DW      01C00H
-        DB      scSlash, kbAltKey
+        DB      scEnter,                  kbAltKey
+        DW      1C00H
+        DB      scEnter,        kbCtrlKey+kbAltKey
+        DW      1C0AH
+        DB      scEnter,        kbCtrlKey+kbAltKey+kbShiftKey
+        DW      1C0AH
+        DB      scEnter,        kbCtrlKey         +kbShiftKey
+        DW      1C0AH
+        DB      scEnter,        0
+        DW      1C0DH
+        DB      scSlash,                  kbAltKey
         DW      0A400h
-        DB      scSlash, kbCtrlKey
+        DB      scSlash,        kbCtrlKey
         DW      09500h
-
-        DB      scInsKey, kbAltKey
+        DB      scInsKey,                 kbAltKey
         DW      0A200h
-
-        DB      scDelKey, kbAltKey
+        DB      scDelKey,                 kbAltKey
         DW      0A300h
-
-        DB      scLeftArrow, kbAltKey
+        DB      scLeftArrow,              kbAltKey
         DW      9B00h
-
-        DB      scRightArrow, kbAltKey
+        DB      scRightArrow,             kbAltKey
         DW      9D00h
-
-        DB      scPgUpKey, kbAltKey
-        DW      9900h
-
-        DB      scPgDnKey, kbAltKey
-        DW      0A100h
-
-
-;        DB      scGrayMinus, kbCtrlKey
-;        DW      8E00h
-
-;        DB      scInsKey,kbCtrlKey
-;        DW      0400H
-;        DB      scDelKey,kbAltKey
-;        DW      05FFh
-;        DB      scDelKey,kbCtrlKey
-;        DW      0600H
-;        DB      scBackKey,kbAltKey
-;        DW      0800H
-;        DB      scInsKey,kbAltKey
-;        DW      0900H
-;        DB      scUpArrow,kbCtrlKey
-;        DW      4800H
-;        DB      scDownArrow,kbCtrlKey
-;        DW      5000H
-;        DB      scTab,kbCtrlKey
-;        DW      0C00H
-;        DB      scTab,kbAltKey
-;        DW      0D00H
-;        DB      scEsc,kbCtrlKey
-;        DW      0E00H
-;        DB      scLeftArrow,kbAltKey
-;        DW      02FFH
-;        DB      scRightArrow,kbAltKey
-;        DW      03FFH
-;        DB      scENTER,kbAltKey
-;        DW      04FFH
-;        DB      scGrayPlus, kbCtrlKey
-;        DW      012Bh
-;        DB      scGrayPlus, kbAltKey
-;        DW      4EFFh
-;        DB      scGrayMinus, kbAltKey
-;        DW      4AFFh
-;        DB      scGrayAst, kbCtrlKey
-;        DW      012Ah
-;        DB      scPgUpKey, kbAltKey
-;        DW      49FFh
-;        DB      scPgDnKey, kbAltKey
-;        DW      51FFh
-
 KeyConvertCnt   EQU     ($-KeyConvertTab)/4
 
 ; DOS function call class table
@@ -655,7 +713,7 @@ Int09Handler:
         MOV     DS,AX
     ENDIF
 
-        and     byte ptr ds:[18h],7Fh   ; AutoInsert
+        AND     Byte Ptr DS:[18h],7Fh   ; AutoInsert
 
         MOV     DI,DS:KeyBufTail
         MOV     BX,DS:KeyBufHead
@@ -664,10 +722,12 @@ Int09Handler:
         PUSHF
         CALL    SaveInt09
         TEST    AL,80H
-        JNE     @@9
+        JE      @@@
+        JMP     @@9
 
-        MOV     DS:PrevAlt,0
+@@@:    MOV     DS:PrevAlt,0
         MOV     DS:PrevCtrl,0
+
         TEST    AH, 07h
         JNZ     @@11
         CMP     AL,38H
@@ -683,14 +743,33 @@ Int09Handler:
 @@0:    MOV     SI,OFFSET CS:KeyConvertTab
         MOV     CX,KeyConvertCnt
         JCXZ    @@8
+        PUSH    BX
+        AND     AH,0Fh ; DataCompBoy: for comparing use only lower part of
+                       ; ShiftState, to prevent NumLock comparing
 @@1:    CMP     AL,CS:[SI]
         JNE     @@2
-        TEST    AH,CS:[SI+1]
-        JNE     @@3
+        MOV     BL,CS:[SI+1]
+        OR      BL,BL
+        JZ      @@3
+        CMP     AH,BL
+        JZ      @@3
+        TEST    BL,kbShiftKey
+        JZ      @@2
+        MOV     BH,BL
+        AND     BH,0FEh
+        CMP     AH,BH
+        JZ      @@3
+        AND     BL,0FDh
+        CMP     AH,BL
+        JZ      @@3
+;       TEST    AH,CS:[SI+1]
+;       JNZ     @@3
 @@2:    ADD     SI,4
         LOOP    @@1
+        POP     BX
         JMP     SHORT @@8
-@@3:    MOV     DS:KeyBufTail,DI
+@@3:    POP     BX
+@@3_:   MOV     DS:KeyBufTail,DI
         MOV     DS:KeyBufHead,BX
         MOV     AX,DI
         INC     AX
@@ -716,13 +795,14 @@ Int09Handler:
         CMP     DS:PrevAlt,0
         JE      @@8
         MOV     SI,offset CS:AltCode-2
-        JMP     @@3
+        JMP     @@3_
 @@10:   CMP     AL,1Dh or 80h
-        JNE     @@8
+        JNE     @@0
         CMP     byte ptr DS:PrevCtrl,0
         JE      @@8
         MOV     SI,offset CS:CtrlCode-2
-        JMP     @@3
+        JMP     @@3_
+
 
 AltCode  DW      03800h
 CtrlCode DW      01D00h

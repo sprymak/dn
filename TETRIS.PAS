@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -378,14 +378,6 @@ begin
  RegisterToBackground(@Self);
 end;
 
-FUNCTION CLen(s:string):byte;
-var i,l: byte;
-begin
-  l:=0;
-  for i:=1 to length(s) do if s[i]<>'~' then inc(l);
-  CLen:=l
-end;
-
 procedure TGameView.ShowScores;
 var
   D: PDialog;
@@ -404,7 +396,7 @@ begin
     If Score > 0 then begin
       S := Name;
       if I = HighLight then S := '~' + S + '~';
-      S := S + Strg('.', 30 - CLen( S ));
+      S := S + Strg('.', 30 - CStrLen( S ));
       S := S + ' ' + SStr( StLv, 5, '.' ) + ' ' +
                      SStr( EndLv, 5, '.' ) + ' ' +
                      SStr( Score, 10, '.' );
@@ -426,6 +418,7 @@ begin
  GetPeerViewPtr(S, Info);
  S.Read(Glass, SizeOf(Self) - SizeOf(TView) - SizeOf(PView));
  Game := @Self;
+ RegisterToBackground(@Self);
 end;
 
 procedure TGameView.Store(var S: TStream);

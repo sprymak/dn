@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -782,33 +782,6 @@ begin
   UnpackLI := True;
 end;
 
-  function Calc_CRC(const Buffer; Len : Word; Crc32TableOfs : Word): LongInt; assembler;
-    asm
-      MOV     CX,Len                  {CX = Len}
-      JCXZ    @@ucDone                {nothing to do if Len = 0}
-
-      LES     SI,Buffer               {DS:SI => Buffer}
-      XOR     AX,AX
-      CWD
-  @@ucNext:
-      MOV     BL,AL                   {BL = AL}
-      MOV     AL,[ES:SI]
-      INC     SI
-      XOR     BL,AL                   {XOR BL with AL}
-      XOR     BH,BH                   {use result as index into DWORD table}
-      SHL     BX,1
-      SHL     BX,1
-      MOV     AL,AH                   {shift DX:AX left 8 bits}
-      MOV     AH,DL
-      MOV     DL,DH
-      XOR     DH,DH
-      ADD     BX,Crc32TableOfs
-      XOR     AX,[BX]                 {XOR with CRC table entry}
-      XOR     DX,[BX+2]
-      LOOP    @@ucNext                {repeat}
-  @@ucDone:
-  end;
-
 function CL_QueueFree;
 begin
   CL_QueueFree := (DeltaSent < Delta) and (Lnk^.ComState = csOK) and (BufdOut < BufSz);
@@ -826,7 +799,7 @@ begin
   WrHdrNfo('+ Sent ',Blk.Hdr);
   {$ENDIF}
   with Blk do Hdr.ChkSum := ByteSum(Hdr.Typ, TransBlkHdrSz-SizeOf(Hdr.ChkSum));
-  PackLI(GetCrc(Blk,TS),Pfx.CRC32);
+  PackLI(GetCrc(0,Blk,TS),Pfx.CRC32);
   Pfx.Prefix := CBlkPrefix;
   Move(Pfx, Lnk^.TmpBuf^[0], TransPrfxSz);
   O := TransPrfxSz;
@@ -1846,7 +1819,7 @@ begin
                Inc(z.CollPos);
                if z.CollPos = InSize then
                begin
-                 if GetCrc(CollBlk^, z.CollPos + TransBlkHdrSz) <> InCRC
+                 if GetCrc(0, CollBlk^, z.CollPos + TransBlkHdrSz) <> InCRC
                    then
                    Drop
                    else

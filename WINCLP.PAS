@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -51,8 +51,6 @@ interface
 
  Uses Objects , advance, advance1, advance2, advance3, collect ;
 
- procedure PackClipStr(var S: string); {-$VOL begin}
-
  Function SetWinClip( PC : PLineCollection ):boolean;
  Function GetWinClip( Var PCL : PLineCollection; NeedStream: boolean ):boolean;
  Function GetWinClipSize : boolean ;
@@ -65,9 +63,7 @@ interface
 
 Implementation
 uses MicroEd, DNini
-{$IFNDEF NONBP}
 {$IFDEF DPMI}, Dpmi, DosMem{$ENDIF}
-{$ENDIF}
 ;
 
 function MaxAvail: LongInt;
@@ -96,7 +92,6 @@ end; {procedure PackClipStr}          {-$VOL end}
 
 
  Function OpenClip : boolean ;
-   {$IFNDEF NONBP}
    assembler ;
    asm    mov  ax,1701h
           int  2fh
@@ -104,11 +99,8 @@ end; {procedure PackClipStr}          {-$VOL end}
           jz   @@1
           mov  ax,1
    @@1:   end;
-   {$ELSE}Begin end;
-   {$ENDIF}
 
  Function CloseClip : boolean ;
-   {$IFNDEF NONBP}
    assembler ;
    asm    mov  ax,1708h
           int  2fh
@@ -116,11 +108,8 @@ end; {procedure PackClipStr}          {-$VOL end}
           jz   @@1
           mov  ax,1
    @@1:   end;
-   {$ELSE}Begin end;
-   {$ENDIF}
 
  Function SetClip(var Buf; Size : word ) : boolean ;
-{$IFNDEF NONBP}
 {$IFNDEF DPMI}
    assembler ;
    asm
@@ -150,23 +139,17 @@ end; {procedure PackClipStr}          {-$VOL end}
     FreeDosMem(P);
     SetClip:=Reg.AX<>0;
    end;
-{$ENDIF}
-{$ELSE NONBP} begin end;
-{$ENDIF NONBP}
+{$ENDIF DPMI}
 
  Function GetClipSize : longint ;
-   {$IFNDEF NONBP}
    assembler ;
    asm
           mov  dx, 7  { CF_OEMTEXT }
           mov  ax,1704h
           int  2fh
    end;
-   {$ELSE NONBP} begin end;
-   {$ENDIF NONBP}
 
  Function EmptyClip : boolean ;
-   {$IFNDEF NONBP}
    assembler ;
    asm
           mov  ax,1702h
@@ -175,27 +158,16 @@ end; {procedure PackClipStr}          {-$VOL end}
           jz   @@1
           mov  ax,1
    @@1:   end;
-   {$ELSE}Begin end;
-   {$ENDIF}
 
  Function CompactClip( Size : longint  ) : longint ; assembler ;
-{$IFDEF NONBP}
-   asm
-          mov  esi,Size
-          mov  cx,si
-          shr  esi,16
-          mov  ax,1709h
-          int  2fh
-{$ELSE}
    asm
           mov  cx,Size.word
           mov  si,[Size+2].word
           mov  ax,1709h
           int  2fh
-{$ENDIF}
    end;
+
  Function GetClip(var Buf; Size: LongInt ) : boolean ;
-{$IFNDEF NONBP}
 {$IFNDEF DPMI}
    assembler ;
    asm
@@ -223,9 +195,7 @@ end; {procedure PackClipStr}          {-$VOL end}
     FreeDosMem(P);
     GetClip:=Reg.AX<>0;
    end;
-{$ENDIF}
-{$ELSE NONBP}begin end;
-{$ENDIF NONBP}
+{$ENDIF DPMI}
 
  Type
      DA  =  array [0..$FFF0] of byte ;

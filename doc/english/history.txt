@@ -9,6 +9,39 @@
    Version 1.51.08
   ---------------------------------------------------------------------
 
+[*] Now LE-SFX supported
+
+[*] New file visualisation mode. In "variable ext" enabled, files without
+    extentions be written in all field
+
+[-] GZip reading was broken
+
+[-] Alt-Gray3 & Alt-Gray9 works as Alt-PgDown & Alt-PgUp. Fixed.
+
+[-] Help, opened while window moving works incorrect
+
+[-] Now tetris correctly play after DN restarting
+
+[-] For prevent crashes, Disk Image Unpacker now skip all LFN records of VFAT
+
+[*] DBF-viewer can delete/restore records.
+
+[-] Fixed Windows detection
+
+[-] Fixed defaults of Archivators
+
+[-] Sometimes some keys works incorrectly
+
+[-] Fixed viewer crash on large right shifting
+
+[-] In pure dos sometimes Swap doesn't created
+
+[-] Now you can't select block while line drawing
+
+
+   Version 1.51.08
+  ---------------------------------------------------------------------
+
     >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
 
 [*] Added PAT, NFO, UUE, UU[1-9] and U[1-9][1-9] extensions to highlight

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -160,7 +160,7 @@ function CompareFiles(const N1, N2: String): Boolean;
 implementation
 uses advance1, advance3, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
      Commands, dnapp, memory
-{$IFDEF VIRTUALPASCAL}, VpSysLow, VPUtils {$ENDIF}
+{$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
 constructor TTempFile.Init(const AExt: String; ABufSize: SW_Word);
@@ -300,7 +300,7 @@ begin
   end;
 {$ELSE}
 begin
- IsDriveCDROM := GetDriveType(Drive) = dtCDRom;
+ IsDriveCDROM := SysGetDriveType(Drive) = dtCDRom;
 {$ENDIF}
 end;
 
@@ -409,7 +409,7 @@ FUNCTION GetDrive : byte;
 assembler; asm mov ah,$19; int 21h; end;
 {$ELSE}
 var S: String;
-begin GetDir(0, S); GetDrive := Byte(S[0])-Byte('A'); end;
+begin GetDir(0, S); GetDrive := Byte(S[1])-Byte('A'); end;
 {$ENDIF}
 
 PROCEDURE SetDrive(a : byte);

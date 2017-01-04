@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -408,8 +408,8 @@ begin
   inherited Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ.EXE'));
-  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -v -jycv'));
-  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -v -jycv'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -hf2 -v -jycv'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -hf2 -v -jycv'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a -a -a1'));
   Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'm -a -a1 -p1'));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd -p1'));
@@ -789,7 +789,7 @@ procedure UnarchiveFiles;
       S: String;
       DT: Record S: String; W: Word; Psw: String[30]; end;
       ExtrDir: String;
-      ExtrChar: String[20];
+      ExtrChar: String[40];
       Dr: String;
       Nm: String;
       Xt: String;
@@ -899,6 +899,12 @@ var
               ResourceOffset  : Word;
               ResourceLenght  : Word;
              end;
+   LEhdrRec: record
+              PageCount       : Longint; {14}
+              PageSize        : Longint; {28}
+              LastPageSize    : Longint; {2c}
+              DataPagesOffs   : Longint; {80}
+             end;
 begin
    ArcFile^.Read(MZExeRec.ExeID, SizeOf(MZExeRec.ExeID) + SizeOf(MZExeRec.LastB) + SizeOf(MZExeRec.TotalP));
    if (MZExeRec.ExeID = 'MZ') or (MZExeRec.ExeID = 'ZM') then
@@ -976,6 +982,16 @@ begin
           ArcFile^.Seek(LXhdrRec.NonResTableOffs);
           ArcFile^.Read(LXhdrRec.TableLenght, SizeOf(LXhdrRec.TableLenght));
           ArcPos := LXhdrRec.NonResTableOffs + LXhdrRec.TableLenght + 4; {4=1+3}
+         end;
+        $454c :
+         begin {LE}
+          ArcFile^.Seek(MZExeRec.NewExe + $14);
+          ArcFile^.Read(LEhdrRec.PageCount, SizeOf(LEhdrRec.PageCount));
+          ArcFile^.Seek(MZExeRec.NewExe + $28);
+          ArcFile^.Read(LEhdrRec.PageSize, SizeOf(LEhdrRec.PageSize) + SizeOf(LEhdrRec.LastPageSize));
+          ArcFile^.Seek(MZExeRec.NewExe + $80);
+          ArcFile^.Read(LEhdrRec.DataPagesOffs, SizeOf(LEhdrRec.DataPagesOffs));
+          ArcPos := LEhdrRec.DataPagesOffs + (LEhdrRec.PageCount - 1)*LEhdrRec.PageSize + LEhdrRec.LastPageSize;
          end;
         {other EXE types}
        end;

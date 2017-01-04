@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,7 +50,7 @@
 unit FilesCol;
 
 interface
- uses LFN, LFNCol, {DataCompBoy} drvtypes, Objects, Memory, DOS, Startup,
+ uses LFN, LFNCol, {DataCompBoy} Objects, Memory, DOS, Startup,
  DNHelp, advance, advance1, advance2, advance3, Collect, Drivers;
 
 type
@@ -149,6 +149,7 @@ uses DNApp, Menus, Views, FlPanel, Drives,
      {$IFDEF MODEM}{$IFDEF LINK},NavyLink{$ENDIF}{$ENDIF}
      {$IFDEF NETINFO}, Novell{$ENDIF}
      {$IFNDEF NONBP}, DiskTool{$ENDIF}
+     {$IFDEF VIRTUALPASCAL}, VpSysLow{$ELSE}, DrvTypes{$ENDIF}
      , DnIni
 
 ;
@@ -636,6 +637,20 @@ begin
       DriveNum := Byte(C)-64;
       if DriveInfoType and ditMediaType <> 0 then
        begin
+        {$IFDEF VIRTUALPASCAL}
+        case SysGetDriveType(C) of
+         dtFloppy    : FullS := FullS + 'Floppy    ';
+         dtHDFAT     : FullS := FullS + 'HDD, FAT  ';
+         dtHDHPFS    : FullS := FullS + 'HDD, HPFS ';
+         dtInvalid   : FullS := FullS + 'Invalid   ';
+         dtNovellNet : FullS := FullS + 'Novell    ';
+         dtCDROM     : FullS := FullS + 'CD-ROM    ';
+         dtLAN       : FullS := FullS + 'Lan Server';
+         dtHDNTFS    : FullS := FullS + 'HDD, NTFS ';
+         dtTVFS      : FullS := FullS + 'TVFS virt ';
+         dtHDExt2    : FullS := FullS + 'HDD,ext2fs';
+        end;
+        {$ELSE}
         case getDriveType(DriveNum) of
          dtError     : FullS := FullS + sdtError     ;
          dtFixed     : FullS := FullS + sdtFixed     ;
@@ -651,6 +666,7 @@ begin
          dtDiskreet  : FullS := FullS + sdtDiskreet  ;
          dtSuperStor : FullS := FullS + sdtSuperStor ;
         end;
+        {$ENDIF}
        end;
       {$IFDEF NETINFO}
       Get_drive_connection_id(DriveNum, Server_num);

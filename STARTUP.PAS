@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -94,8 +94,8 @@ CONST
                                                     {Configuration for 1.51.06+}
   DSKSign: TSignRec =
 {$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#80;SignLen:22;SignVer:15180);
-{$ELSE}      (Sign:'DN OSP Desktop'#26#151#80;SignLen:17;SignVer:15180);{$ENDIF}
-                                                    {Desktop for 1.51.08}
+{$ELSE}      (Sign:'DN OSP Desktop'#26#151#90;SignLen:17;SignVer:15190);{$ENDIF}
+                                                    {Desktop for 1.51.09}
   Security: Boolean = True;
   ConfigModified: Boolean = Off;
   DateMode: Byte = 0;

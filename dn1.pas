@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.09
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -168,7 +168,7 @@ begin
     mfWarning+mfYesButton+mfNoButton)=cmYes then begin
         for i:=0 to OldFilesCount-1 do for j:=0 to 2
         do if j in OldFileSearchDirs[i] then EraseFile(Dirs[j]+OldFiles[i]);
-        SaveDsk; Exiting:=true; Application^.Done; ExecString(@NullStr)
+        ExecString(@NullStr,'')
     end else MessageBox(GetString(dlOldFilesNoWarn),nil,
     mfInformation+mfOkButton);
  end;
@@ -704,6 +704,7 @@ begin
  R.AH:=1; R.BL:=0; R.CX:=$0607;
  SimulateRealmodeInt($10, R);
 {$ENDIF}
+{$IFDEF VIRTUALPASCAL} RunFirst:=true; {$ENDIF}
 
 {$ENDIF}
  if DDTimer > 0 then DDTimer := Get100s-DDTimer;
