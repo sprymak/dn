@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -88,9 +91,11 @@ uses DN1;
   {$O Arc_hpk}  {$O Arc_TAR}  {$O Arc_ZXZ}  {$O Arc_QRK}  {$O Arc_UFA}
   {$O Arc_IS3}  {$O Arc_SQZ}  {$O Arc_HAP}  {$O Arc_ZOO}  {$O Arc_CHZ}
   {$O Arc_UC2}  {$O Arc_AIN}  {$O Arc_TGZ}  {$O Archread}
+(* we do NOT need GZip compression inside
   {$O GZIO}     {$O ZUtil}    {$O ZInflate} {$O ZLib}
   {$O ADler}    {$O InfBlock} {$O InfCodes} {$O InfFast}
   {$O InfTrees} {$O InfUtil}  {$IFNDEF NO_DEFLATE}{$O Trees}{$ENDIF}
+*)
 {$ENDIF !MINARCH}
   {$O ASCIITab} {$O DNStdDlg} {$O SBlocks}  {$O FBB}      {$O Tree}
   {$O Messages} {$O Colors}   {$O UserMenu} {$O HelpFile} {$O Validate}

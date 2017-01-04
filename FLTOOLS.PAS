@@ -60,6 +60,10 @@
 //  dn200-single_file_archiving_use_long_name.patch
 //
 //  2.3.0
+//  dn230-CtrlK_toggle_paths_on_panels.patch
+//  dn230-ctrl-y_switch_on_panel_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -814,7 +818,6 @@ begin
   else Exit;
  end;
  P^.DeltaX := 0;
- P^.Drive^.Flags := P^.Drive^.Flags;
  if ((P^.Drive^.DriveType = dtDisk) or (P^.Drive^.DriveType = dtArvid))
      and ((P^.Drive^.Flags xor Old) and (psShowDescript+psShowLongDesc) <> 0) then P^.RereadDir;
  DrawViews(P);
@@ -880,9 +883,18 @@ begin
     dtDisk,
     dtArvid: begin
                P^.Drive^.Flags := P^.Drive^.Flags xor psShowDescript;
-               P^.Drive^.Flags := P^.Drive^.Flags;
                P^.DeltaX := 0;
                P^.RereadDir;
+               DrawViews(P);
+             end;
+    dtFind,
+    dtList,
+    dtTemp: begin
+               P^.Drive^.Flags := P^.Drive^.Flags xor psShowDir;
+(*
+               P^.DeltaX := 0;
+               P^.RereadDir;
+*)
                DrawViews(P);
              end;
   end;
@@ -894,7 +906,6 @@ var P: PFilePanelRoot absolute AFP;
 begin
 {$IFNDEF OS2}
   P^.Drive^.Flags := P^.Drive^.Flags xor psShowLongName;
-  P^.Drive^.Flags := P^.Drive^.Flags;
 {$ELSE}
   P^.Drive^.ShowLogNames := not P^.Drive^.ShowLogNames;
 {$ENDIF}
@@ -908,8 +919,14 @@ procedure CM_ToggleShowMode;
 var P: PFilePanelRoot absolute AFP;
 begin
   P^.DeltaX := 0;
-  if P^.Drive^.Param <> 2 then P^.Drive^.GetParam(2)
-                         else P^.Drive^.GetParam(P^.Drive^.OldParam);
+  if P^.Drive^.Param <> 2 then
+      begin
+        P^.Drive^.OldParam := P^.Drive^.Param;
+        P^.Drive^.GetParam(2)
+      end
+    else
+      if P^.Drive^.OldParam <> 2 then P^.Drive^.GetParam(P^.Drive^.OldParam) else
+        P^.Drive^.GetParam(1);
   P^.RereadDir;
   DrawViews(P);
 end;

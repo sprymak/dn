@@ -55,6 +55,10 @@
 //  dn200-delete_file_from_temp_fix-diff161byMV.patch
 //
 //  2.3.0
+//  dn230-remove_STRINGS_TPU_dependence.patch
+//  dn247-text_and_file_find_improve.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -64,7 +68,8 @@ Unit PktView;
 {$F+,O+,V-}
 Interface
 
-Uses Objects, Strings, FViewer, Dialogs, Views, Drivers,
+Uses Objects, FViewer, Dialogs, Views, Drivers,
+     {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
      Messages, Dos, collect, Advance1, Advance, Lfn,
      HideView, Scroller;
 
@@ -1270,15 +1275,15 @@ begin
  NullXLAT(XL);
  New(F,Init(FName,stOpenRead,16384));
  L[1]:=-1;
- L[1]:=SearchFileStr(F,XL,#1'MSGID: ',0,false,false,false,false,True);
+ L[1]:=SearchFileStr(F,XL,#1'MSGID: ',0,false,false,false,false,True,Nil);
  L[2]:=-1;
- L[2]:=SearchFileStr(F,XL,#1'FMPT ',0,false,false,false,false,True);
+ L[2]:=SearchFileStr(F,XL,#1'FMPT ',0,false,false,false,false,True,Nil);
  L[3]:=-1;
- L[3]:=SearchFileStr(F,XL,#1'INTL ',0,false,false,false,false,True);
+ L[3]:=SearchFileStr(F,XL,#1'INTL ',0,false,false,false,false,True,Nil);
  L[4]:=-1;
- L[4]:=SearchFileStr(F,XL,#1'TOPT ',0,false,false,false,false,True);
+ L[4]:=SearchFileStr(F,XL,#1'TOPT ',0,false,false,false,false,True,Nil);
  L[5]:=-1;
- L[5]:=SearchFileStr(F,XL,#1'PID: ',0,false,false,false,false,True);
+ L[5]:=SearchFileStr(F,XL,#1'PID: ',0,false,false,false,false,True,Nil);
  Dispose(F,Done);
  N:=0;
  for i:=1 to 5 do if L[i]>0 then inc(N);

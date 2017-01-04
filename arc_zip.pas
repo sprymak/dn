@@ -54,15 +54,17 @@
 //  dn200-ZIP_processing_fix.patch
 //
 //  2.3.0
+//  dn247-text_and_file_find_improve.patch
+//  dn247-read_ZIP_central_directory.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_Zip; {ZIP}
 
 interface
- uses Archiver, Advance, Advance1, Objects, LFNCol, Dos
-      , FViewer
-      ;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos;
 
 type
  PZIPArchive = ^TZIPArchive;
@@ -87,8 +89,30 @@ type
      ExtraField: AWord;
     end;
 
+    TZIPCentralFileRec = record
+     ID: Longint;
+     VersionMade : AWord;
+     Version2Extr : AWord;
+     GeneralPurpose: AWord;
+     Method : AWord;
+     LastModDate : LongInt;
+     CRC32 : LongInt;
+     CompressedSize: LongInt;
+     OriginalSize: LongInt;
+     FNameLength : AWord;
+     ExtraField : AWord;
+     FileCommLength : AWord;
+     DiskNumStart : AWord;
+     InternalFAttr : AWord;
+     ExternalFAttr : LongInt;
+     OffsetLocHeader : LongInt;
+    end;
+
+var
+  CentralDirRecPresent: Boolean;
+
 implementation
-uses U_Keymap;
+uses U_Keymap, FViewer;
 
 { ----------------------------- ZIP ------------------------------------}
 
@@ -170,13 +194,34 @@ end;
 Procedure TZIPArchive.GetFile;
 var
     P:   TZIPLocalHdr;
+    HCF: TZIPCentralFileRec;
     FP, FPP: Longint;
     nxl: TXLat;
 label 1;
 begin
-1:
+ if CentralDirRecPresent then
+  begin
+   ArcFile^.Read(HCF.ID, SizeOf(HCF.ID));
+   if (ArcFile^.Status <> stOK) or (HCF.ID and $FFFF <> $4B50) then
+     begin FileInfo.Last:=2; Exit; end;
+   if (HCF.ID = $06054B50) or (HCF.ID = $06064B50) then
+     begin FileInfo.Last:=1; Exit; end;
+   ArcFile^.Read(HCF.VersionMade, SizeOf(HCF) - SizeOf(HCF.ID));
+   if HCF.FNameLength > 255 then HCF.FNameLength := 255;
+   FileInfo.FName[0] := Char(HCF.FNameLength);
+   ArcFile^.Read(FileInfo.FName[1], HCF.FNameLength);
+   FileInfo.Last := 0;
+   FileInfo.Attr := (HCF.GeneralPurpose and 1) * Hidden;
+   FileInfo.Date := HCF.LastModDate;
+   FileInfo.USize := HCF.OriginalSize;
+   FileInfo.PSize := HCF.CompressedSize;
+   ArcFile^.Seek(ArcFile^.GetPos + HCF.ExtraField + HCF.FileCommLength);
+  end
+ else {CentralDirRecPresent}
+  begin
+ 1:
    ArcFile^.Read(P.ID,4);
-   if {(P.ID = $06054B50) or }(P.ID = $02014b50) then begin FileInfo.Last:=1;Exit;end;
+   if P.ID = $02014b50 then begin FileInfo.Last:=1;Exit;end;
    if P.ID = $08074B50 then {skip Spanned/Split block}
      begin
       ArcFile^.Read(P.ID,12);
@@ -195,10 +240,10 @@ begin
      begin
       FPP := FP;
       NullXLAT ( NXL );
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FPP, On, Off, Off, Off, Off);{local file header signature}
+      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FPP, On, Off, Off, Off, Off,Nil);{local file header signature}
       if FP < 0 then
         begin
-         FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off);{central file header signature}
+         FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off,Nil);{central file header signature}
          if FP < 0 then begin FileInfo.Last:=2;Exit;end;
         end;
       ArcFile^.Seek(FP - 8);
@@ -207,6 +252,6 @@ begin
    FileInfo.USize := P.OriginalSize;
    FileInfo.PSize := P.CompressedSize;
    ArcFile^.Seek(FP);
-end;
-
+  end;
+ end;
 end.

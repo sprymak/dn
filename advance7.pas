@@ -51,6 +51,9 @@
 //  dn16rc1-Could_not_open_resource_file_after_clean_install_diff142byMV.patch
 //
 //  2.0.0
+//  dn230-save_ActiveLanguage_at_1st_start.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -104,15 +107,20 @@ var S:string;
 begin
     S:=ActiveLanguage;
     if not ValidLngId(S,False) then S:=GetEnv('DNLNG');
+    if not ValidLngId(S,False) then S:='English';
     if not ValidLngId(S,False) then
       begin
        lFindFirst(StartupDir+'*.LNG',AnyFile - Directory,SR);
        S := SR.FullName;
-       S[0]:=Char(Byte(S[0])-4);
+       if S <> '' then S[0]:=Char(Byte(S[0])-4);
        lFindClose(SR);
       end;
-    if not ValidLngId(S,False) then S:='English';
-    LngId:=S
+    if not ValidLngId(ActiveLanguage, False) then
+      begin
+        ActiveLanguage := S;
+        SaveDnIniSettings ( @ActiveLanguage );
+      end;
+    LngId:=S;
 end;
 
 end.

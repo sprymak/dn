@@ -58,6 +58,14 @@
 //  dn2215-windows_manager_changes_2.patch
 //
 //  2.3.0
+//  dn230-file_find_terminate_more_quick_and_smart.patch
+//  dn2323-resource_fixes_05042002.patch
+//  dn269_invalid_dbf_header_detection.patch
+//  dn269-remove_IOmega_detection.patch
+//  dn2624-wkz_import_and_export.patch
+//  dn2628-calculator_error_messages_improve.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -746,12 +754,16 @@ const
   cmReplaceCell        = 10913;
   cmSearchAgain        = 10914;
   cmGotoError          = 10916;
-  cmImportToFile       = 10917;
-  cmImportToClip       = 10918;
+{ cmImportToFile       = 10917;} {JOHN_SW}
+{ cmImportToClip       = 10918;} {JOHN_SW}
   cmSaveSheetAs        = 10919;
   cmToggleDescriptions = 10920;
   cmToggleShowMode     = 10921;
   cmToggleLongNames    = 10922;
+  cmExportToCsv        = 10925; {KV}
+  cmExportToDbf        = 10926; {KV}
+  cmImportFromCsv      = 10928; {KV}
+  cmImportFromDbf      = 10929; {KV}
 
   cmExtract            = 11000;
   cmSetPassword        = 11001;
@@ -1208,13 +1220,13 @@ TYPE
   TStrIdx = (
     dlAltTable,
     erInvalidFormula,
-    erInvalidCell,
-    erInvalidValue,
-    erInvalidFunction,
+    {erInvalidCell,}
+    {erInvalidValue,}
+    {erInvalidFunction,}
     erRecurseTooDeep,
     erDeepDependence,
     erInvalidFileFormat,
-    erInvalidIF,
+    {erInvalidIF,}
     erGotoInvalidNumber,
     erCantReadDesktop,
     erDesktopError,
@@ -1246,42 +1258,8 @@ TYPE
     dlSaveFileAsName,
     dlFileExist,
     dlCanNotWrite,
-    dlValuteDialog,
-    dlValuteDlgName,
-    dlValuteDlgSymbol,
-    dlValuteDlgSForward,
-    dlValuteDlgSComma,
     dlOptions,
-    dlCellDialog,
-    dlCellAsIs,
-    dlCellDec,
-    dlCellBool,
-    dlCellCurrency,
-    dlCellDisplay,
-    dlCellJLeft,
-    dlCellJRight,
-    dlCellJCenter,
-    dlCellJustify,
-    dlCellCurrencyName,
-    dlCellDecimals,
-    dlCellWidth,
-    dlCellExponent,
-    dlCellNothing,
-    dlCellProtect,
-    dlCellComma,
-    dlCellPercent,
-    dlGotoCellNum,
-    dlGotoCellName,
-    dlFindCellTitle,
-    dlFindCellPattern,
-    dlFindCellSensitive,
-    dlFindCellWhole,
-    dlFindCellSearchAs,
     dlFindCellString,
-    dlFindCellValue,
-    dlReplaceTitle,
-    dlReplacePattern,
-    dlReplacePrompt,
     dlYesButton,
     dlOKButton,
     dlNoButton,
@@ -1421,6 +1399,7 @@ TYPE
     dlFileFind,
     dlTempDrive,
     dlNoFilesFound,
+    dlNoFileFound,
     dlFilesFound,
     dlChangeDir,
     dlSetAttr,
@@ -2343,12 +2322,38 @@ TYPE
     sdtStacker,
     sdtRAMDrive,
     sdtDublDisk,
-    sdtBernoully,
     sdtDiskreet,
     sdtSuperStor,
 {X-Man <<<}
     dlIniDataReadError, {PZ}
-    dlIniDataTooLong    {PZ}
+    dlIniDataTooLong,   {PZ}
+    dlInvalidDBFHeader, {JOHN_SW}
+    dlInvalidRecNumber, {JOHN_SW}
+    dlInvalidRecSize,   {JOHN_SW}
+    dlWkzQuerySeparatorTitle, {KV}
+    dlWkzQuerySeparatorLabel, {KV}
+    dlWkzWarningClear, {KV}
+    { Flash >>> }
+    clToo_Large_Number,
+    clArgument_Missing,
+    clSyntax_Error,
+    clUnknown_Function,
+    clLeft_Bracket_Missing,
+    clRight_Bracket_Missing,
+    clOperation_Expected,
+    clUnknown_Symbol,
+    clTwo_Operations,
+    clComma_Missing,
+    clToo_Many_Commas,
+    clIncorrect_Usage,
+    clDivision_By_Zero,
+    clLOG_Wrong_Base,
+    clPower_Wrong_Index,
+    clRoot_Wrong_Index,
+    clWrong_Argument,
+    clPower_Wrong_Argument,
+    clIncorrect_Form
+    { Flash <<< }
   );
 
   TDlgIdx = (
@@ -2437,6 +2442,7 @@ TYPE
     dlgAdvancedCOMSetup,
     dlgFTNInfo,
     dlgSrchFailed,
+    dlgCancelSearchFiles,
     {DataCompBoy}
     dlgSetupColumnsDisk,
     dlgSetupColumnsFind,
@@ -2446,7 +2452,8 @@ TYPE
     dlgNextSection,
     dlgNameCase,
     dlgEditorDefaults,
-    dlgViewerDefaults
+    dlgViewerDefaults,
+    dlgSetExportCsvFormat {KV}
   );
 
 IMPLEMENTATION END.

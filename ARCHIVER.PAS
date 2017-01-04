@@ -59,6 +59,10 @@
 //  dn2215-dont_change_default_archiver_2.patch
 //
 //  2.3.0
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//  dn269-NE_SFX_detection-jo20620b.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -227,6 +231,7 @@ var   FileInfo   : TFInfo;
 
 const
     ArcFileName: String = ''; {DataCompBoy}
+    VArcFileName: String = ''; {JO's idea moved from DN/2 by piwamoto}
     PReader: PView = nil;
 
 Function  ArchiveFiles(const S: String; Files: PCollection; MoveMode: Boolean; Owner: Pointer): Boolean;
@@ -997,12 +1002,12 @@ begin
              ArcPos := ArcPos + NEhdrRec.ResourceTypeNum*12 + 8;
              ArcFile^.Seek(ArcPos);
              ArcFile^.Read(NEhdrRec.ResourceType, SizeOf(NEhdrRec.ResourceType) + SizeOf(NEhdrRec.ResourceTypeNum));
-            Until NEhdrRec.ResourceType = 0;
+            Until (NEhdrRec.ResourceType = 0) or (ArcFile^.Status <> stOK);
             Repeat {search for non-empty resource}
              ArcPos := ArcPos - 12;
              ArcFile^.Seek(ArcPos);
              ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
-            Until NEhdrRec.ResourceOffset <> 0;
+            Until (NEhdrRec.ResourceOffset <> 0) or (ArcFile^.Status <> stOK);
             ArcPos := LongInt(NEhdrRec.ResourceOffset + NEhdrRec.ResourceLenght) shl NEhdrRec.ResourceAlign;
            end;
         end;

@@ -57,6 +57,9 @@
 //  dn200-dnini_string_parametrs_fix.patch
 //
 //  2.3.0
+//  dn230-remove_useless_CapitalCodePageName_option.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -158,7 +161,6 @@ const
 {}ShowBookmarks            : Boolean    = True;
 {}FastBookmark             : Boolean    = True;
 {}DefCodePage              : string[9]  = 'Dos';
-{}CapitalCodePageName      : Boolean    = False;
 {}FastSearchDeep           : Longint    = 0;
 {}WinManagerPosToEdit      : Boolean    = True;
 {}AutoBracketPairs         : string     = '()[]{}<>';
@@ -402,7 +404,6 @@ begin
   RV(CSEditor,    'ShowBookmarks',        ikBool, SizeOf(ShowBookmarks),        @ShowBookmarks);
   RV(CSEditor,    'FastBookmark',         ikBool, SizeOf(FastBookmark),         @FastBookmark);
   RV(CSEditor,    'DefCodePage',          ikStr,  SizeOf(DefCodePage),          @DefCodePage);
-  RV(CSEditor,    'CapitalCodePageName',  ikBool, SizeOf(CapitalCodePageName),  @CapitalCodePageName);
   RV(CSEditor,    'FastSearchDeep',       ikSInt, SizeOf(FastSearchDeep),       @FastSearchDeep);
   RV(CSEditor,    'WinManagerPosToEdit',  ikBool, SizeOf(WinManagerPosToEdit),  @WinManagerPosToEdit);
   RV(CSEditor,    'AutoBracketPairs',     ikStr,  SizeOf(AutoBracketPairs),     @AutoBracketPairs);

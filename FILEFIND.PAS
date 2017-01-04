@@ -56,6 +56,11 @@
 //  dn200-files_panel_bugs_fix.patch
 //
 //  2.3.0
+//  dn230-file_find_terminate_more_quick_and_smart.patch
+//  dn247-text_and_file_find_improve.patch
+//  dn2628_reading_file_list_with_LFN_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -363,17 +368,37 @@ function FindFiles;
 
  function SearchF: Boolean;
    var S: TBUFStream;
+       i: Longint;
  begin
-   PInfo^.Write(2, Cut( Path+SR.FullName, 50 ));
    Inc(TotalNum); {-$VIV}
-   PInfo^.Write(3, GetString(dlLookedFiles) + ItoS(TotalNum)); {-$VIV}
+   if PInfo <> nil then
+    begin
+     PInfo^.Write(2, Cut( Path+SR.FullName, 50 ));
+     PInfo^.Write(3, GetString(dlLookedFiles) + ItoS(TotalNum)); {-$VIV}
+    end;
    S.Init(Path+SR.FullName, stOpenRead, $4000);
-   SearchF := (S.Status = stOK) and
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Now DN will terminate File Find process more quick}
+{when performing text search in files}
+   If S.Status = stOK Then
+    i:=FViewer.SearchFileStr(@S, XL, FindRec.What, 0,
+                             FindRec.Options and ffoCaseSens <> 0,
+                             Off,
+                             FindRec.Options and ffoWholeWords <> 0, Off,
+                             FindRec.Options and ffoAllCP <> 0,PInfo)
+   Else
+    i:=-1;
+
+   CancelSearch:=(i = -2);
+   SearchF:=(i >= 0 );
+
+   {SearchF := (S.Status = stOK) and
               ( FViewer.SearchFileStr(@S, XL, FindRec.What, 0,
-                                          FindRec.Options and ffoCaseSens <> 0, {-$VIV 14.05.99}
-                                          Off,
+                                          FindRec.Options and ffoCaseSens <> 0,} {-$VIV 14.05.99}
+                                          {Off,
                                           FindRec.Options and ffoWholeWords <> 0, Off,
-                                          FindRec.Options and ffoAllCP <> 0) >= 0 ); {-$VIV 14.05.99}
+                                          FindRec.Options and ffoAllCP <> 0) >= 0 );} {-$VIV 14.05.99}
+{--- finish -------- Eugeny Zvyagintzev ---------}
    S.Done;
  end;
 
@@ -395,7 +420,8 @@ function FindFiles;
     if (FindRec.What = '') then
     begin
       Inc(TotalNum); {-$VIV}
-      PInfo^.Write(3, GetString(dlLookedDirs) + ItoS(TotalNum)); {-$VIV}
+      if PInfo <> nil then
+       PInfo^.Write(3, GetString(dlLookedDirs) + ItoS(TotalNum)); {-$VIV}
     end;
 
     lFindFirst(Path + Mask, AnyFile, SR); {JO}
@@ -559,10 +585,12 @@ begin
      UpdateWriteView(WW);
      S := F^.GetStr;
      DelLeft(S);
+     DelRight(S); {JOHN_SW}
      I := Pos(':\', S);
      if I > 1 then Delete(S, 1, I-2);
-     I := PosChar(' ',S);
-     if I > 0 then S[0] := Char(I-1);
+     {Commented by JOHN_SW}
+     {I := PosChar(' ',S);
+     if I > 0 then S[0] := Char(I-1);}
      UpStr(S);
      if S <> '' then
        begin

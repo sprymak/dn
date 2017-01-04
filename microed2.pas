@@ -60,6 +60,9 @@
 //  dn200-Editor_and_locked_files_bugfix.patch
 //
 //  2.3.0
+//  dn230-save_smartpad_edit_history.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -213,8 +216,10 @@ begin with AED^ do begin
       CantWrite(EditName);
       Dispose(S,Done);
       MILockFile(AED);
-      if not(SmartPad or ClipBrd) then
-        FileChanged(EditName);
+{--- start -------- Eugeny Zvyagintzev ---------}
+      {if not(SmartPad or ClipBrd) then}
+      FileChanged(EditName);
+{--- finish -------- Eugeny Zvyagintzev ---------}
       Exit;
      end;
 {/Cat}
@@ -227,7 +232,10 @@ begin with AED^ do begin
  Modified := Off;
  JustSaved := On; LastSaveUndoTimes := UndoTimes; {piwamoto}
  Owner^.Redraw;
- if not(SmartPad or ClipBrd) then FileChanged(EditName);
+{--- start -------- Eugeny Zvyagintzev ---------}
+ {if not(SmartPad or ClipBrd) then}
+{--- finish -------- Eugeny Zvyagintzev ---------}
+ FileChanged(EditName);
  if UpStrg(EditName)=UpStrg(MakeNormName(SourceDir, 'DN.INI')) then begin
    LoadDnIniSettings;
    DoneIniEngine;

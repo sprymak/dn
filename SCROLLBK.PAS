@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2510-resource_and_help_fixes_20020516.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -355,7 +358,7 @@ end;
 constructor TScrollBackWindow.Init;
  var R: TRect;
 begin
-  inherited Init(Bounds, 'Scrollback Buffer', 0);
+  inherited Init(Bounds, GetString(dlScrollBack), 0);
   GetExtent(R); R.Grow(-1,-1);
   Insert(New(PScrollBack, Init(R, StandardScrollBar(sbHorizontal+sbHandleKeyboard),
                                   StandardScrollBar(sbVertical+sbHandleKeyboard))));

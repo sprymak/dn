@@ -47,7 +47,7 @@
 ;/
 ;/  Version history:
 ;/  hungary CWI help file source 2001-09-28 by csablak
-;/  e-mail: csablak@freemail.hu
+;/  e-mail: csablak at freemail.hu
 ;/  fixed by piwamoto 2001-10-13
 ;/
 ;/  2.0.0
@@ -55,6 +55,16 @@
 ;/  dn227-resource_and_help_fixes_16022002.patch
 ;/
 ;/  2.3.0
+;/  dn230-file_find_terminate_more_quick_and_smart.patch
+;/  dn247-hungarian_fix.patch
+;/  dn247-resource_and_help_fixes_20042002.patch
+;/  dn247-resource_and_help_fixes_20020504.patch
+;/  dn2510-resource_and_help_fixes_20020516.patch
+;/  dn269_show_help_during_copy_files.patch
+;/  dn269-resource_and_help_fixes_20020621.patch
+;/  mask_e-mails.patch
+;/
+;/  2.7.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -94,7 +104,7 @@
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´Û
  ³ {A Navig torr¢l ‚s a szerz“kr“l    :CommonInfo} ³Û
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´Û
- ³ {ltal nos  ttekint‚s              :FeaturesOverView} ³Û
+ ³ {ltal nos  ttekint‚s              :FeaturesOverview} ³Û
  ³ {Kulcsgomb  ttekint‚s              :HotOverview} ³Û
  ³ {A multitaszkr¢l                   :Interface} ³Û
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´Û
@@ -106,7 +116,7 @@
  ³ {F jl le¡r sok                     :FilesBBS} ³Û
  ³ {Felhaszn l¢i men                 :UserMenu} ³Û
  ³ {Point-and-shoot oper ci¢k         :ExtFile} ³Û
- ³ {CD lej tsz¢                       :CdPlayer} ³Û
+ ³ {CD lej tsz¢                       :CDPlayer} ³Û
  ³ {OS/2 t mogat s                    :OS2Support} ³Û
  ³ {Navig tor Link                    :NavyLink} ³Û
  ³ {Termin l                          :Terminal} ³Û
@@ -127,11 +137,11 @@
     [ALT-Z]    Teljesÿm‚ret/Eredeti m‚ret.
       ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
       ³Ezt a magyar nyelv– S£g¢t M‚sz ros Csaba k‚sz¡tette.º
-      ³           E-mail c¡m: {csablak@freemail.hu:_}          º
+      ³         E-mail c¡m: {csablak at freemail.hu:_}         º
       ÀÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
-    De  ez£ton mondok k”sz”netet Kiffer Ferencnek, ‚s KAEL-nek, aki
-  n‚h ny hib ra felh¡vta a figyelmemet. s egy-k‚t dolog az “ szem-
-  sz”gkb“l n‚zve van jelen a s£g¢ban.
+     De ez£ton mondok k”sz”netet Kiffer Ferencnek, ‚s KAEL-nek, aki
+  n‚h ny hib ra felh¡vta a figyelmemet. Egy-k‚t dolog az “ szemsz”-
+  gkb“l n‚zve van jelen a s£g¢ban.
 
   A r‚szletekr“l az {šdv”z”l a DOS Navig tor!:Index}-ban olvashatsz.
 
@@ -149,7 +159,7 @@
    ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
    ³ WWW:     http://www.ritlabs.com/dn/   ³
    ³ FTP:     ftp://ftp.ritlabs.com/pub/dn/³
-   ³ e-mail:  dn@ritlabs.com               ³
+   ³ e-mail:  dn at ritlabs.com            ³
    ³ FidoNet: 2:469/77  Stefan Tanurkov    ³
    ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
     M ra  m r  szabadd   tett‚k  a  DN  forr sk¢dj t,  ‚s  t”bben is
@@ -166,15 +176,15 @@
  {F jl-lista k‚sz¡t‚s:MakeListFile},
  {F jldarabol s:SplitFiles},
  {F jlkeres‚s:FileFind},
- {F jlm–veletek:Files}
+ {F jlm–veletek:Files},
  {Gyors futtat s:QuickRun},
  {Jegyzett”mb:Notes},
- {J t‚kok:Game}
+ {J t‚kok:Game},
  {Kiterjeszt‚sre val¢ reag l s:ExtFile}, [ENTER], [SHIFT-ENTER], [ALT-ENTER]
- {Kedvencek:QuickDirs}
+ {Kedvencek:QuickDirs},
  {K‚perny“v‚d“k:Savers},
  {K”zvetlen Lemez-Hozz f‚r‚s:DirectDiskAccess},
- {Napt r:Calendar}
+ {Napt r:Calendar},
  {Sz”vegszerkeszt‚s:Editor},
  {Sz mol¢g‚p:Calculator},
  {S–r¡t“k:ArchiveFiles},
@@ -192,50 +202,49 @@
 
 .topic HotOverview=7
 .title Kulcsgomb  ttekint‚s
+       ---          Shift                Ctrl           Alt
 
-      ---           SHIFT             CTRL              ALT
+ F1    {S£g¢        :HelpOnHelp} {S–r¡t‚s             :ArchiveFiles} {Bal pan ki/be :_} {Bal meghajt¢  :SelectDriveExtended}
+ F2    {Felh. men  :UserMenu} {Kibont s            :Extract} {Jobb pan ki/be:_} {Jobb meghajt¢ :SelectDriveExtended}
+ F3    {F jln‚z“    :View} {Telefonk”nyv        :Phone} {—j Menedzser  :_} {Kls“ n‚z“    :ExtViewers}
+ F4    {Szerkeszt“  :Editor} {—j f jl szerk.      :Editor} {Ablak bez r sa:_} {Kls“ szerk.  :ExtEditors}
+ F5    {M sol s     :CopyFiles} {Egy f jl m sol sa   :_} {Ablak mozgat s:_} {Dos h tt‚r    :_}
+ F6    {tnev/thely:RenameMove} {Egy f jl  thelyez‚se:_} {Sz mol¢g‚p    :Calculator} {Helyben  tnev.:_}
+ F7    {—j k”nyvt r :MkDir} {Form z s            :Format} {UU k¢dol s    :UUEncode} {F jl keres‚s  :FileFind}
+ F8    {T”rl‚s      :DeleteFiles} {Egy f jl t”rl‚se    :_} {UU dek¢dol s  :UUDecode} {Parancslista  :CmdHistory}
+ F9    {K”v. ablak  :_} {El“z“ ablak         :_} {Nyomtat s     :PrintManager} {J t‚kok       :Game}
+ F10   {F“ men     :MainMenu} {Ega sorok           :CustomVideo} {Video m¢d 1   :CustomVideo} {Video m¢d 2   :CustomVideo}
+ F11                {T bl zatkezel“      :Spreadsheet} {CD lej tsz¢   :CDPlayer} {Link          :NavyLink}
+ F12                {Vide¢ m¢d v lt.     :CustomVideo} {Napt r        :Calendar} {Nyelv v ltoztat sa:ChLngId}
 
- F1   {S£g¢:HelpOnHelp}          {S–r¡t‚s:ArchiveFiles}           {Bal panel ki/be:_}   {Bal meghajt¢:SelectDriveExtended}
- F2   {Felh. men:UserMenu}    {Kibont s:Extract}          {Jobb panel ki/be:_}  {Jobb meghajt¢:SelectDriveExtended}
- F3   {F jln‚z“:View}      {Telefonk”nyv:Phone}      —j Menedzser      {Kls“ n‚z“:ExtViewers}
- F4   {Szerkeszt“:Editor}    {—j f jl szerk.:Editor}    Ablak bez r sa    {Kls“ szerk.:ExtEditors}
- F5   {M sol s:CopyFiles}       {Darabol s:SplitFiles}         Ablak mozgat sa   {Dos h tt‚r:_}
- F6   {tnev/thely:RenameMove}  {Helyre ll¡t¢:Reanimator}      {Sz mol¢g‚p:Calculator}        {Helyben  tnev.:_}
- F7   {—j k”nyvt r:MkDir}   {Form z s:Format}          {UU k¢dol s:UUEncode}        {F jl keres‚s:FileFind}
- F8   {T”rl‚s:DeleteFiles}        {Egy f jl t”rl‚se:DeleteFiles}  {UU dek¢dol s:UUDecode}      {Parancslista:CmdHistory}
- F9   K”v. ablak    El“z“ ablak       {Nyomtat s:PrintManager}         {J t‚kok:Game}
- F10  {F“ men:MainMenu}       {Ega sorok:CustomVideo}         {Video m¢d 1:CustomVideo}       {Video m¢d 2:CustomVideo}
- F11                {T bl zatkezel“:Spreadsheet}    {CD lej tsz¢:CDPlayer}       {Link:NavyLink}
- F12                                  {Napt r:Calendar}
+       Alt                           Ctrl
 
-      ALT                   CTRL
-
- A    {K‚zi t rcs z s:ManualDial}
- B    {Rendez‚s:SortBy}              {ASCII t bla:AsciiChart}
- C    {Meghajt¢ v laszt s:SelectDriveExtended}    {K”nyvt rak ”sszehasonl¡t sa:CompareDirs}
- D    {Lemez men:Diskmenu}
- E    {Attrib£tumok:FileAttr}          {Az el“z“ parancs:_}
- F    {F jl men:FileMenu}
- G    {K”nyvt rm‚ret:_}
- H                          {K”nyvt rak ”sszevon sa:_}
- I    {Info panel:DiskInfo}
- J    {Termin l:Terminal}
- K    {Oszlop be ll¡t s:ColumnsSetup}      Le¡r s megjelen¡t‚se (n‚v, le¡r s)
- L    {F jl-lista k‚sz¡t‚s:MakeListFile}   {Inform ci¢s panel:DiskInfo}
- M    {Menedzser men:ManagerCommands}
- N    {S–r¡t“k be ll¡t sa:ArcSetup}
- O    {Opci¢k men:OptionsMenu}           {Eredm‚ny ablak:_}
- P    {Panel men:PanelMenu}            {Inakt¡v panel ki/be:_}
- Q    {Jegyzett”mb (TM):Notes}      {Kukkant¢:_}
- R    {—jra olvas:_}            {tolvas:_}
- S    {Panel be ll¡t s:PanelSetup}
- T    {Gyors k”nyvt rv lt s:TreeDialog}  {Fa-szerkezet:DirTree}
- U    {Utilities men:UtilMenu}        {Panelcsere:_}
- V    {F jl-lista olvas sa:_}   {Parancssor fell¡r/besz£r:_} (v lt¢)
- W    {Window men:Windows}
- X    {Kil‚p‚s:_}
- Y    {Mem¢ria inform ci¢:MemoryInfo}    Full kijelz‚s (n‚v, m‚ret, d tum, id“)
- Z    {Ablak nagy¡t s/kicsiny¡t‚s:WorkingWindow}
+ A     {K‚zi t rcs z s               :ManualDial} {F jl attrib£tum v ltoztat sa :FileAttr}
+ B     {Rendez‚s                     :SortBy} {ASCII t bla                  :AsciiChart}
+ C     {Meghajt¢ v laszt s           :SelectDriveExtended} {K”nyvt rak ”sszehasonl¡t sa  :CompareDirs}
+ D     {Lemez men                   :Diskmenu}
+ E     {Attrib£tumok                 :FilesAttr} {Az el“z“ parancs             :_}
+ F     {F jl men                    :FileMenu}
+ G     {K”nyvt rm‚ret                :_}
+ H                                   {K”nyvt rak ”sszevon sa:_}
+ I     {Info panel                   :DiskInfo}
+ J     {Termin l                     :Terminal}
+ K     {Oszlop be ll¡t s             :ColumnsSetup} {Le¡r s megjelen¡t‚se         :_}
+ L     {F jl-lista k‚sz¡t‚s          :MakeListFile} {Inform ci¢s panel            :DiskInfo}
+ M     {Menedzser men               :ManagerCommands} {Maximaliz l s                :_}
+ N     {S–r¡t“k be ll¡t sa           :ArcSetup}
+ O     {Opci¢k men                  :OptionsMenu} {Eredm‚ny ablak               :_}
+ P     {Panel men                   :PanelMenu} {Inakt¡v panel ki/be          :_}
+ Q     {Jegyzett”mb (TM)             :Notes} {Kukkant¢                     :_}
+ R     {—jra olvas                   :_} {tolvas                      :_}
+ S     {Panel be ll¡t s              :PanelSetup}
+ T     {Gyors k”nyvt rv lt s         :TreeDialog} {Fa-szerkezet                 :DirTree}
+ U     {Utilities men               :UtilMenu} {Panelcsere                   :_}
+ V     {F jl-lista olvas sa          :_} {Parancssor fell¡r/besz£r    :_}
+ W     {Window men                  :Windows}
+ X     {Kil‚p‚s                      :_}
+ Y     {Mem¢ria inform ci¢           :MemoryInfo} {Full kijelz‚s                :_}
+ Z     {Ablak nagy¡t s/kicsiny¡t‚s   :WorkingWindow}
 
  L sd m‚g:{Egy‚b billenty–parancsok:OtherKeyCommands},
           {A kulcs gombok kinyomtat sa:PrintKeyButtons}.
@@ -263,7 +272,7 @@
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ {Magamr¢l...                        :AboutDialog} ³
  ³ K‚perny“ friss¡t‚se                 ³
- ³ {K‚perny“v‚d“ azonnal                :Savers} ³
+ ³ {K‚perny“v‚d“ azonnal               :Savers} ³
  ³ {Angolul? (Change language)  Alt-F12:ChLngId} ³
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
  ³ {K‚perny“rabl¢         Shift-Alt-Ins:ScreenGrabber} ³
@@ -288,29 +297,29 @@
 
 .topic FileMenu=12
 .title F jl men
- ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
- ³ {F jln‚z“                            :ViewChoice} ³
- ³ {Sz”vegszerkeszt“                    :EditorChoice} ³
- ³ {Keres‚s...                     Alt-F7:FileFind} ³
- ³ {M sol s...                         F5:CopyFiles} ³
- ³ {tnevez‚s/thelyez‚s...            F6:RenameMove} ³
- ³ {T”m”r¡t‚s...                 Shift-F1:ArchiveFiles} ³
- ³ {Kibont s...                  Shift-F2:Extract} ³
- ³ {F jldarabol s/”sszevon s...  Shift-F5:SplitFiles} ³
- ³ {Nyomtat s                     Ctrl-F9:PrintManager} ³
- ³ {—j k”nyvt r l‚trehoz sa            F7:MkDir} ³
- ³ {T”rl‚s                             F8:DeleteFiles} ³
- ³ {F jl Attrib£tumok...            Alt-E:FileAttr} ³
- ³ {UU-k¢dol s...                 Ctrl-F7:UUEncode} ³
- ³ {UU-Dek¢dol s...               Ctrl-F8:UUDecode} ³
- ³ {Image form tum kibont sa       Ctrl-I:UnpackDiskImg} ³
- ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
- ³ {1 f jl t”rl‚se              Shift-Del:DeleteFiles} ³
- ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
- ³ {Parancs v‚grehajt s                  :ExternalCommands} ³
- ³ —jraind¡t s                           ³
- ³ Exit  (Kil‚p‚s)                 Alt-X ³
- ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³ {F jln‚z“                               :ViewChoice} ³
+ ³ {Sz”vegszerkeszt“                       :EditorChoice} ³
+ ³ {Keres‚s...                        Alt-F7:FileFind} ³
+ ³ {M sol s...                            F5:CopyFiles} ³
+ ³ {tnevez‚s/thelyez‚s...               F6:RenameMove} ³
+ ³ {T”m”r¡t‚s...                    Shift-F1:ArchiveFiles} ³
+ ³ {Kibont s...                     Shift-F2:Extract} ³
+ ³ {F jldarabol s/”sszevon s...  Ctrl-Alt-F5:SplitFiles} ³
+ ³ {Nyomtat s                        Ctrl-F9:PrintManager} ³
+ ³ {—j k”nyvt r l‚trehoz sa               F7:MkDir} ³
+ ³ {T”rl‚s                                F8:DeleteFiles} ³
+ ³ {F jl Attrib£tumok...               Alt-E:FileAttr} ³
+ ³ {UU-k¢dol s...                    Ctrl-F7:UUEncode} ³
+ ³ {UU-Dek¢dol s...                  Ctrl-F8:UUDecode} ³
+ ³ {Image form tum kibont sa          Ctrl-I:UnpackDiskImg} ³
+ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+ ³ {1 f jl t”rl‚se                 Shift-Del:DeleteFiles} ³
+ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+ ³ {Parancs v‚grehajt s                     :ExternalCommands} ³
+ ³ —jraind¡t s                              ³
+ ³ Exit  (Kil‚p‚s)                    Alt-X ³
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
 .topic RenameMove=13
 .title tnevez‚s/thelyez‚s
@@ -328,7 +337,7 @@
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ {Floppy form z s...  Shift-F7:FloppyFormat} ³
  ³ {Lemezc¡mke...               :VolLabel} ³
- ³ {Helyre ll¡t¢...     Shift-F6:Reanimator} ³
+ ³ {Helyre ll¡t¢...  Ctrl-Alt-F8:Reanimator} ³
  ³ {Lemez-szerkeszt“            :DiskEditor} ³
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
  ³ {Fa-szerkezet                :DirTree} ³
@@ -350,7 +359,7 @@
  ³ {Termin l                Alt-J:Terminal} ³
  ³ {Navig tor Link        Alt-F11:NavyLink} ³
  ³ {K‚zi t rcs z s          Alt-A:ManualDial} ³
- ³ Vonaalbont s            Alt-H ³ Lev laszt a modemr“l
+ ³ Vonalbont s             Alt-H ³ Lev laszt a modemr“l
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
  ³ {DOS k”rnyezet szerkeszt‚se   :EnvEditor} ³
  ³ {Felhaszn l¢i men          F2:UserMenu} ³
@@ -435,7 +444,7 @@
  ³ {DN.EXT szerkeszt‚se...          :ExtFile} ³
  ³ {DN.HGL szerkeszt‚se...          :EditorHilite} ³
  ³ DN.SPF szerkeszt‚se...           ³
- ³ DN.INI szerkeszt‚se...           ³
+ ³ {DN.INI szerkeszt‚se...          :IniFile} ³
  ³ {Glob lis DN.MNU defin¡ci¢k...   :UserMenu} ³
  ³ {Helyi DN.MNU defin¡ci¢k...      :UserMenu} ³
  ³ {Kls“ f jln‚z“k...              :ExtViewers} ³
@@ -534,8 +543,8 @@
  ³ V¡zes‚s elrendez‚s                  ³
  ³ Mindent bez r                       ³
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
- ³ {M‚retez/mozgat              Ctrl-F5:Dragging} ³
- ³ Zoom                          Alt-Z ³
+ ³ {M‚retez‚s/mozgat s          Ctrl-F5:Dragging} ³
+ ³ Zoomol s                      Alt-Z ³
  ³ Maximaliz l              Ctrl-Alt-Z ³
  ³ K”vetkez“ ablak             Alt-Tab ³
  ³ El“z“ ablak                Ctrl-Tab ³
@@ -751,6 +760,9 @@
     Az  egybem sol s  a kijel”l‚s sorrendj‚ben t”rt‚nik, ez‚rt l‚gy
   k”rltekint“ az ilyen m–veletekn‚l.
 
+.topic CopyInProgress=32
+.title Copying files in progress
+
 .topic Editor=1102
 .title Sz”vegszerkeszt“
    ş   A  Navig tor  saj t  sz”vegszer- ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
@@ -947,7 +959,7 @@
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ {Floppy form z s...  Shift-F7:FloppyFormat} ³
  ³ {Lemezc¡mke...               :VolLabel} ³
- ³ {Helyre ll¡t¢...     Shift-F6:Reanimator} ³
+ ³ {Helyre ll¡t¢...  Ctrl-Alt-F8:Reanimator} ³
  ³ {Lemez-szerkeszt“            :DiskEditor} ³
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
  ³ {Fa-szerkezet                :DirTree} ³
@@ -1312,6 +1324,15 @@
 
  {FIGYELEM!!! •VATOSAN BNJUNK VELE, MERT MINDENT T™NKRETEHETšNK!!!:_}
 
+.topic DiskAreaMenu=49001
+.title Disk Editor: Area Menu
+
+.topic DiskEditMenu=49002
+.title Disk Editor: Edit Menu
+
+.topic DiskViewMenu=49003
+.title Disk Editor: View Menu
+
 .topic Communication=11012
 .title Kommunik ci¢
     A  modem  konfigur ci¢s  dial¢gus  doboz ban   ll¡thatjuk  be a
@@ -1354,7 +1375,7 @@
 .title Tov bbi PORT be ll¡t sok
 
 .topic Archives=11014
-.title A T mogatott s–r¡t“k
+.title T mogatott s–r¡t“k
 
     ACE, AIN, ARC, ARJ, BS2, BSA, CAB, CHZ, HA, HAP, HPK, HYP, IS3,
   LHA, LIM, QRK, RAR, SQZ, TAR, TGZ, UC2, UFA, ZIP, ZOO, ZXZ
@@ -1669,10 +1690,10 @@
   MEGJEGYZS: Csak sz”veget tud ellopni.
 
 .topic SelectDrive=21000
-.title Meghajt¢ kiv laszt s
+.title Meghajt¢ v laszt s
 
 .topic SelectDriveExtended=21001
-.title Meghajt¢ kiv laszt s
+.title Meghajt¢ v laszt s
     Meghajt¢t  t”bbf‚le k‚ppen v lthatunk a Dos Navig torban. Mivel
   kompatibilis  j¢n‚h ny  kulcsgombja  a Symantec Norton Commander-
   ‚vel, ¡gy tal n nem lesz £jdons g, hogy m–k”dik az:
@@ -1915,7 +1936,7 @@
     Mivel  a  webhely  v ltozik,  az aktu lis  llapotokr¢l mindig a
   dnosp.txt-ben t j‚koz¢dhatunk.
 
-.topic CDplayer=16555
+.topic CDPlayer=16555
 .title CD Lej tsz¢
      A  Dos  Navig tor zenei  ÚÄ[ş]ÄÄÄÄ UdvarosÿDorottya ÄÄÄÄ[]Ä¿
   CD lemezek lej tsz s ra is  ³ÚÄÄÄÄTrackÄÄÄÄÄÄÄÄDiskÿTimeÄÄÄÄÄÄ¿³Û
@@ -1947,9 +1968,9 @@
  ³  ßßßß  ßßß  ßßßßßßßßß  ßßß  ßßßß ³Û ³   ßßßß
  ³ °°°*°°°Ü °°°°°°ş°°°°°°Ü °°°°°°Ü ³Û ³   °*°Ü  pillanat  llj
  ³  ßßßßßßß  ßßßßßßßßßßßßß  ßßßßßßß ³Û ³    ßßß
- ³ °{Be ll¡t:CdPlayerOptions}°Ü °°°Id“°°°Ü °°°M¢d°°°Ü ³Û ³   °ş°Ü  Stop
+ ³ °{Be ll¡t:CDPlayerOptions}°Ü °°°Id“°°°Ü °°°M¢d°°°Ü ³Û ³   °ş°Ü  Stop
  ³  ßßßßßßßßß  ßßßßßßßßß  ßßßßßßßßß ³Û ³    ßßß
- ³ °°Mixer°°Ü °{Sorban!:CdDir}°Ü °{Dalc¡m:CdPlayerTitle}°Ü ³Û ³   °°Ü  Kidob
+ ³ °°Mixer°°Ü °{Sorban!:CdDir}°Ü °{Dalc¡m:CDPlayerTitle}°Ü ³Û ³   °°Ü  Kidob
  ³  ßßßßßßßßß  ßßßßßßßßß  ßßßßßßßßß ³Û ³   ßßßß
  ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ ³
 
@@ -1960,10 +1981,10 @@
  Sorban  - Lej tsz s a felhaszn l¢  ltal megadott sorrendben.
  Dalc¡m  - A CD lemez c¡me, ‚s a tartalm nak le¡r sa.
 
-.topic CDplayerOptions=16556
+.topic CDPlayerOptions=16556
 .title CD lej tsz¢ be ll¡t sa
 
-.topic CDplayerTitle=16557
+.topic CDPlayerTitle=16557
 .title CD-k dalc¡mei
     Ha  r kattintunk  a  {Dalc¡m:_}  gombra, akkor megjelenik egy ehhez
   hasonl¢   bra,  amely m‚g nincs kit”ltve. Ha kit”ltjk a mez“ket,
@@ -3168,46 +3189,45 @@
  ³ Megnyit s...             F3 ³
  ³ Ment‚s                   F2 ³
  ³ Ment‚s m sk‚nt...  Shift-F2 ³
- ³ Ment‚s sz”vegk‚nt           ³
+ ³ Ment‚s sz”vegk‚nt  Shift-F3 ³
  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
  ³ F“men                  F10 ³
- ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
  ³ Exit (Kil‚p‚s)      Ctrl-F4 ³
  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
 .topic SpreadTableMenu=48087
 .title T bl zatkezel“ - T bl zat men
- ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
- ³ {Cella form tum...:SetCellFormat} ³ Kl”nb”z“ be ll¡t sok lehets‚gesek
- ³ Oszlop m‚retez‚s  ³
- ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
- ³ Sor besz£r sa     ³
- ³ Oszlop besz£r sa  ³
- ³ Sor t”rl‚se       ³
- ³ Oszlop t”rl‚se    ³
- ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³ {Cella form tum...:SetCellFormat}  Alt-O ³ Kl”nb”z“ be ll¡t sok lehets‚gesek
+ ³ Oszlop m‚retez‚se  Alt-W ³
+ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+ ³ Sor besz£r sa      Alt-I ³
+ ³ Oszlop besz£r sa   Alt-C ³
+ ³ Sor t”rl‚se        Alt-L ³
+ ³ Oszlop t”rl‚se     Alt-D ³
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
 .topic SpreadEditMenu=48088
 .title T bl zatkezel“ - Szerkeszt men
- ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
- ³ Visszavon   Alt-BkSp ³ Visszavonja az utols¢ parancsot
- ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
- ³ Kiv g      Shift-Del ³ A kijel”l‚st kiv gja ‚s a v g¢lapra teszi
- ³ M sol       Ctrl-Ins ³ A kijel”l‚st v g¢lapra m solja
- ³ Beilleszt  Shift-Ins ³ A kijel”l‚st beilleszti a kurzorhoz
- ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
- ³ T”r”l       Ctrl-Del ³ A kijel”l‚st let”rli
- ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³ Visszavon s   Alt-BkSp ³ Visszavonja az utols¢ parancsot
+ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+ ³ Kiv g s...   Shift-Del ³ A kijel”l‚st kiv gja ‚s a v g¢lapra teszi
+ ³ M sol s       Ctrl-Ins ³ A kijel”l‚st v g¢lapra m solja
+ ³ Beilleszt‚s  Shift-Ins ³ A kijel”l‚st beilleszti a kurzorhoz
+ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+ ³ T”rl‚s        Ctrl-Del ³ A kijel”l‚st let”rli
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
 .topic SpreadSearchMenu=48089
 .title T bl zatkezel“ - Keres men
- ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
- ³ {Keres...          :FindCell} ³
- ³ {Cser‚l...         :ReplaceCell} ³
- ³ —jra keres         ³
- ³ Ugorj a cell ra... ³ Megadott cell ra ugrik
- ³ Ugorj a hib ra     ³ Az utols¢ el“fordul¢ hib ra ugrik
- ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³ {Keres‚s...:FindCell}          F7 ³
+ ³ {Cser‚l‚s...:ReplaceCell}    Ctrl-F7 ³
+ ³ —jra keres‚s  Shift-F7 ³
+ ³ Ugr s a cell ra...  F6 ³ Megadott cell ra ugrik
+ ³ Ugr s a hib ra         ³ Az utols¢ el“fordul¢ hib ra ugrik
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
 .topic FTNInfo=48090
 .title FTN File Attach Feature
@@ -3217,7 +3237,7 @@ using a Binkley-style outbound. To use this feature, the following information
 should be appended to the Files with descriptions field in the File Manager
 Setup dialog:
 
-;/fido=<address>,<outbound>
+{;/fido=<address>,<outbound>:_}
 
 Here <address> is your FTN address in your primary zone, written in 3D or 4D
 form, and the <outbound> is your primary zone outbound directory specification.
@@ -3236,6 +3256,12 @@ only).
 
 .topic SrchFailed=48091
 .title Eredm‚nytelen keres‚s
+
+.topic IniFile=48092
+.title Dos Navigator Configuration (DN.INI)
+
+.topic CancelSF=49000
+.title Keres‚s folytat sa?
 
 .topic ChangeNameCase=48093
 .title F jln‚v konvert l sa
@@ -3263,12 +3289,11 @@ only).
 
 
 
-
 ; **********************
 ; Just hungary specified
 ; **********************
 
-.topic SpecKeyCommands
+.topic SpecKeyCommands=48500
 .title Speci lisÿbillenty–-kombin ci¢k
     ALT-/:  Parancs v‚grehajt si idej‚nek m‚r‚se. A kombin ci¢ ut n
   a  prompt kapcsos z r¢jelek k”z‚ kerl, az ezut n kiadott parancs
@@ -3306,7 +3331,7 @@ only).
   º                  - egy‚b esetekben az aktu lis f jl megn‚z‚se.º
   ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
-.topic OtherKeyCommands
+.topic OtherKeyCommands=48501
 .title Egy‚b billenty–parancsok
  ÚÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ ESC       ³ DOS k‚perny“
@@ -3366,7 +3391,7 @@ only).
  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
  {Speci lisÿbillenty–-kombin ci¢k:SpecKeyCommands}
 
-.topic XlatTables
+.topic XlatTables=48502
 .title A konvert l¢ t bl k
     Mi  is  az  XLAT  t la?  Egyfajta  konvert l¢t bla.  Vagyis  ha
   valamely    llom nyt   megn‚znk   a  bels“  f jln‚z“vel,  ‚s  az
@@ -3388,7 +3413,7 @@ only).
   ok‚.  Meg¡rjuk  a  levelet,   tkonvert ljuk, azt n olvassa el aki
   tudja. Pl. {U¢¡ ca”pit ua, xp ¡jtct:_}.
 
-.topic EditorChoice
+.topic EditorChoice=48503
 .title Szerkeszt“k v laszt si lehet“s‚ge
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ F jln‚z“                             ³
@@ -3400,7 +3425,7 @@ only).
  ³ ³ —j f jl szerkeszt‚se...  Shift-F4 ³ ³
  ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ ³
 
-.topic ViewChoice
+.topic ViewChoice=48504
 .title F jln‚z“k v laszt si lehet“s‚ge
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
  ³±F jln‚z“±±±±±±±±±±±±±±±±±±±±
@@ -3414,13 +3439,13 @@ only).
  ³ ³ Kls“ f jln‚z“  Alt-F3 ³
  ³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-.topic Trashcan
+.topic Trashcan=48505
 .title Kuka
  ÑÑØÑÑ    Ide eg‚rrel tehetjk be a t”r”lni k¡v nt f jlokat, k”nyv-
  Trash    t rakat. Ha kett“t kattintunk r , akkor kivehetjk bel“le
  ÀÁÁÁÙ    a v‚letlenl beletett dolgokat.
 
-.topic OutputWindow
+.topic OutputWindow=48506
 .title Eredm‚nyablak
     Itt a Dos h tteret tal ljuk. Ha most egy [ALT-Z]-t tnk, akkor
   ablakba  is tehetjk, ‚s m‚g g”rgetni is lehet.
@@ -3428,7 +3453,7 @@ only).
   £jabb  [CTRL-O]  megnyom sa  eset‚n szint‚n full k‚perny“s lesz a
   kijelz‚s.
 
-.topic ExternalCommands
+.topic ExternalCommands=48507
 .title Kls“ parancs‚rtelmez“
     Ide   be¡rhatunk   olyan  parancsokat,  amelyeknek  k ros  ha a
   Navig tor  parancs‚rtelmez“je v‚gzi a futtat s t. Pl. A p rbesz‚d
@@ -3440,11 +3465,11 @@ only).
   z r¢jeless‚  v ltozik,  ‚s a futtat s v‚gezt‚vel ki¡rja az eltelt
   id“t.
 
-.topic CDDir
+.topic CDDir=48508
 .title Cd tartalom
     Itt  el“sz”r  egy  res  ablak  tal lhat¢.  Ha  a  {B“v¡t:_} gombra
   kattintunk, akkor kit”lt“dnek a s vok, a zenesz mok c¡meivel.
-    Felt‚ve, ha el“z“leg kit”lt”ttk {“ket:CdPlayerTitle}.
+    Felt‚ve, ha el“z“leg kit”lt”ttk {“ket:CDPlayerTitle}.
     Be ll¡thatjuk,  hogy  milyen  sorrendben j tsza le a lej tsz¢ a
   lemezen l‚v“ sz mokat.
  ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ S vok ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
@@ -3465,7 +3490,7 @@ only).
  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ÛÛ
    ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 
-.topic TheComments
+.topic TheComments=48509
 .title A kommentekr“l
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ COMMENT <S1><space><S2>,...,[<Sn*2-1><space><Sn*2>] ³
@@ -3521,7 +3546,7 @@ only).
  º 64 - nincs kiemelve az id‚z“jelek k”z‚ tett sz”veg º
  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
-.topic HighMacros
+.topic HighMacros=48510
 .title Makr¢k
     A  felhaszn l¢   ltal defini lt makr¢kat a [CTRL-J], n (n=1..9)
   seg¡ts‚g‚vel  lehet  megh¡vni.  A  makr¢kat  a  DN.HGL-ben  lehet
@@ -3655,13 +3680,13 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  CapBlock        - Az aktu lis blokkot Mondatszer–en K‚sz¡ti
  SwitchSave      - Kapcsol¢ ment‚s
 
-.topic HglExample
+.topic HglExample=48511
 .title Makr¢p‚ld k
     M‚gsincs  itt  p‚lda, mert megv ltozott a dn.hgl szerkezete, ‚s
   az  aktu lis  dolgok mindig az aktu lis dn.hgl-ben vannak le¡rva,
   melyet a DN k”nyvt rban tal lunk meg.
 
-.topic EditorSurprise
+.topic EditorSurprise=48512
 .title Meglepi
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
     Van  h rom  kicsi,  de nagyon hasznos szolg ltat sa a Navig tor
@@ -3697,13 +3722,13 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
   a {Blokk|™sszegez:_}-zel be is sz£rhatjuk a k¡v nt helyre.
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 
-.topic Notes
+.topic Notes=48513
 .title Jegyzett”mb (TM)
     Az  aktu lis  d tumhoz  ‚s  id“h”z  f–zhetnk  hozz   r”vid kis
   megjegyz‚seket.  Ezeket  {smartpad.dn:_}  n‚ven  teszi el a Navig tor
   f“k”nyvt r ba. Az £j be¡r sokat hozz f–zi a r‚giekhez.
 
-.topic MakeListMethod1
+.topic MakeListMethod1=48514
 .title F jl-lista k‚sz¡t‚s M¢dszer1
     -  Gyors  megold s  a  le¡r sok  szerkeszt‚s‚re, ha az aktu lis
   panelunkat  tv ltjuk (Le¡r s - description) form tum£ra.
@@ -3724,7 +3749,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
   L sd m‚g:{F jl-lista k‚sz¡t‚s M¢dszer2:MakeListMethod2},
            {A F jl-list kr¢l:MakeListFile}
 
-.topic MakeListMethod2
+.topic MakeListMethod2=48515
 .title F jl-lista k‚sz¡t‚s M¢dszer2
  - Nyissuk meg azt a k”nyvt rat amelyikr“l list t akarunk k‚sz¡teni.
 
@@ -3750,7 +3775,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  L sd m‚g:{F jl-lista k‚sz¡t‚s M¢dszer1:MakeListMethod1},
           {A F jl-list kr¢l:MakeListFile}
 
-.topic PrintKeyButtons
+.topic PrintKeyButtons=48516
 .title Kulcsgombok kinyomtat sa
  L‚p‚sr“lÿl‚p‚sre
 
@@ -3763,7 +3788,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  ş Most mindent l tsz.
  ş J”het a [PRINTÿSCREEN].
 
-.topic WorkingWindow
+.topic WorkingWindow=48517
 .title Munkaablak
  {Ezÿegyÿmunkaablak.:_}                             a lekicsiny¡tett
        ÚÄ Ablakmozgat s ÄÄÄÄÄÄÄÄ¿              ablakot  teljesen
@@ -3787,7 +3812,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
  L sd m‚g:{Ablakt¡pusok:WindowsType}.
 
-.topic TerminalWorks
+.topic TerminalWorks=48518
 .title Termin l m–veletek
   [F2]        - Sz”veges f jl kld‚se a termin lba.
   [F3]        - Jegyz“k”nyv megnyit sa.
@@ -3812,7 +3837,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
 
  L sd m‚g:{Kommunik ci¢:Communication}.
 
-.topic SpreadEditWindow
+.topic SpreadEditWindow=48519
 .title A t bl zatkezel“ ablaka
  ÉÍ[3]ÍÍÍÍÍ D:\CSABA\MUNKA\BENZIN.WKZ ÍÍÍÍÍÍ[]Í»
  º  {F jl:SpreadFileMenu}  {Szerkeszt:SpreadEditMenu}  {Keres:SpreadSearchMenu}  {T bl zat:SpreadTableMenu}                              
@@ -3831,7 +3856,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  º   10 ³                                       
  ÈÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÄÙ
 
-.topic KeyButtons
+.topic KeyButtons=48520
 .title ltal nos kulcs gombok
  —jra olvassa a k”nyvt rat, vagy meghajt¢t ..... CTRL-R, ALT-R
  Felcser‚li a paneleket ........................ CTRL-U
@@ -3848,13 +3873,13 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  K”nyvt rjelz“k elhelyez‚se................ CTRL-SHIFT-ALT-sz m (1..9)
  Kedvencek....................................... ALT-sz m (1..9)
 
-.topic MarkGroup
+.topic MarkGroup=48521
 .title Csoportok Kiv laszt sa
  K”nyvt rak, f jlcsoportok ‚s kiemelt
  (Highlight) csoportok kiv laszt s ra szolg l . CTRL +
  A fenti kijel”l‚s visszavon sa ............... CTRL -
 
-.topic MarkInvert
+.topic MarkInvert=48522
 .title A Kiv laszt s Invert l sa
  A kiv lasztott f jlok invert l sa ............ SZšRKE *
 
@@ -3863,7 +3888,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
 
  ltal nos invert l s (k”nyvt rak is) ......... CTRL-SZšRKE *
 
-.topic MarkExt1
+.topic MarkExt1=48523
 .title Kiv laszt s kiterjeszt‚s szerint m sk‚ppen
  Minden olyan kiterjeszt‚s– f jlt kijel”l, mint
  amilyenen a kurzor s v ‚ppen  ll ............. CTRL-SHIFT +
@@ -3879,7 +3904,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  jelenti ...................................... ALT-SHIFT +
  A fenti kijel”l‚s visszavon sa ............... ALT-SHIFT -
 
-.topic MarkExt
+.topic MarkExt=48524
 .title Egy f jl kiv laszt sa kiterjeszt‚s szerint
  f jl kiv laszt s (csak f jlok) ............... SZšRKE +
  kiv laszt s visszavon sa (k”nyvt rak is) ..... SZšRKE -
@@ -3892,7 +3917,7 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  Minden kiv laszt st visszavon,
  kiv‚ve a maszkban be ll¡tottak‚t.
 
-.topic History
+.topic History=48525
 .title M£ltt rol¢
     Itt, a m r egyszer megnyitott dolgokat h¡vhatjuk el“ egyszer–b-
   ben.

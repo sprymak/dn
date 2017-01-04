@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2628-format_disk_help_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1898,7 +1901,8 @@ begin
     P :=  Nil ;
     P := BuildFormatDialog ;
     if P = Nil then Exit ;
-    R := Application^.ExecuteDialog(P,@FormatDialogData) ;
+    P^.SetData(FormatDialogData) ;  { Flash }
+    R := Desktop^.ExecView(P) ;     { Flash }
     DisposeFormatDialogData;
     case R of
        CMok  :  begin
@@ -1911,7 +1915,8 @@ begin
         else {if Registered and rfArchives <> 0 then}
              begin
                 P := BuildAdvFormatDialog ;
-                R := Application^.ExecuteDialog(P,@AdvFormatDialogData) ;
+                P^.SetData(AdvFormatDialogData) ;  { Flash }
+                R := Desktop^.ExecView(P) ;        { Flash }
                 if R = CmOk then
                   begin
                     FmtUserDefined := True;

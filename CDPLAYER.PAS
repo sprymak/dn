@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn269-cdplayer_options_help_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1692,7 +1695,8 @@ begin
   P2 := CDparams[ 2 ];
   P3 := CDmixer ;
 
-  if Application^.ExecuteDialog( PDialog( LoadResource( dlgCDOptions )), @PRM ) = cmOk then begin
+{  if Application^.ExecuteDialog( PDialog( LoadResource( dlgCDOptions )), @PRM ) = cmOk then begin } { Disabled by Flash }
+  if ExecResource( dlgCdOptions, PRM ) = cmOk then begin { Added by Flash }
    CDmixer := P3;
    CDparams[ 1 ] := P1;
     if P2 <> CDparams[ 2 ]  then begin

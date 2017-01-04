@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2510_find_files_progress_window_close_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -422,7 +425,7 @@ end;
 
 function TWhileView.Valid;
 begin
-  if (C <> cmQuit) then Valid := inherited Valid(C)
+  if (C <> cmQuit) and (C <> cmClose) then Valid := inherited Valid(C)
                    else Valid := Off;
 end;
 

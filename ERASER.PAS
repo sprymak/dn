@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn16rc1-erase_read_only_folders.patch
+//  dn247_erase_read_only_folders.patch
+//  dn269-make_del_dir_on_network_resource.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -198,7 +203,8 @@ procedure EraseFiles;
           then begin Abort:=true; break; end;
          ClrIO;
          lAssignFile(F, MakeNormName(FreeStr, SR.FullName));
-         lSetFAttr(F, 0);
+         if (SR.SR.Attr and ReadOnly)<>0 then
+          lSetFAttr(F,0);
          lEraseFile(F);
          if IOResult<>0 then begin Abort:=true; break; end;
         end;
@@ -219,8 +225,10 @@ procedure EraseFiles;
    If not Abort then
     while TD^.Count>0 do
      begin
+      lAssignFile(F,PString(TD^.At(0))^);
+      lSetFAttr(F, 0);
       ClrIO;
-      lRmDir(PString(tD^.At(0))^);
+      lRmDir(PString(TD^.At(0))^);
       if IOResult<>0 then
        begin DOSDelDir:=False; FreeStr:=PString(tD^.At(0))^; break; end;
       TD^.AtFree(0);
@@ -338,7 +346,6 @@ procedure EraseFiles;
 
   var Fls: PCollection;
       Flush: Boolean;
-  label LLL;
 
 begin
   if not ValidErase(Files) then Exit;
@@ -417,14 +424,10 @@ begin
         if J = cmYes then
          begin
                S := MakeNormName(PF^.Owner^, S);
-               lAssignFile(F, S); ClrIO;
+               lAssignFile(F, S);
                if PF^.Attr and ReadOnly <> 0 then
-               begin
-LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
-               end else
-               begin
-                 lEraseFile(F); if IOResult <> 0 then goto LLL;
-               end;
+                lSetFAttr(F, 0);
+               lEraseFile(F);
                if IOResult <> 0 then
                  begin
                    S := lFExpand(S);
@@ -534,6 +537,8 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
         GlobalMessage(evCommand, cmRereadTree, @S);
         RereadDirectory(S);
       end;
+  if '\' in DrivesSet {piwamoto: reread \\server\share}
+    then GlobalMessage(evCommand, cmPanelReread, nil);
   GlobalMessage(evCommand, cmRereadInfo, nil);
   if Flush then
   begin

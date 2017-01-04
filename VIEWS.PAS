@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2522-big_help_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -913,10 +916,7 @@ begin
 end;
 
 procedure TView.EndModal(Command: Word);
-var
-  P: PView;
 begin
-  P := TopView;
   if TopView <> nil then TopView^.EndModal(Command);
 end;
 

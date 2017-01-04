@@ -59,6 +59,12 @@
 //  dn200-delete_file_from_temp_fix-diff161byMV.patch
 //
 //  2.3.0
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//  dn230-file_find_terminate_more_quick_and_smart.patch
+//  dn247-text_and_file_find_improve.patch
+//  dn2510_file_viewer_change_xlt_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -69,7 +75,7 @@ interface
 
 uses Objects, Views, Dos, Drivers, HideView, Commands, DNHelp, advance,
      advance1, advance2, advance3, highlite, U_KeyMap, microed,
-     collect, macro, Advance6;
+     Gauge, collect, macro, Advance6;
 
 type
 
@@ -200,14 +206,14 @@ const
 function SearchFileStr(F: PStream; var Xlat: TXLAT;
                        const What: String; Pos: LongInt;
                        CaseSensitive, Display, WholeWords, Back,
-                       AllCP: Boolean): LongInt;
+                       AllCP: Boolean; SF_In_Progress: PWhileView): LongInt;
 
 implementation
 
 uses LFN, {DataCompBoy}
      Memory, Messages, DNApp, Startup, Dialogs, RStrings,
      {$IFDEF DisAsm} Decoder, {$ENDIF} {piwamoto}
-     Gauge, DNStdDlg, Histries, xTime, Drives, DnUtil, DNIni;
+     DNStdDlg, Histries, xTime, Drives, DnUtil, DNIni;
 
 function MaxAvail: LongInt;
 begin
@@ -229,6 +235,32 @@ function SearchFileStr;
      Tmr: TEventTimer;
      Inserted: Boolean;
      W: String;
+     SkipFile: Boolean;
+
+{--- start -------- Eugeny Zvyagintzev ---- 28-03-2002 -----}
+Procedure DispEvents;
+Var Event: TEvent;
+    tmp: String;
+Begin
+ If SF_In_Progress = Nil Then Exit;
+ tmp:='';
+ Application^.GetEvent(Event);
+ If (Event.What = evCommand) And (Event.Command = cmCancel) And
+    (Event.InfoPtr = SF_In_Progress^.But) Then
+  Begin
+   SF_In_Progress^.ClearEvent(Event);
+   Case ExecResource(dlgCancelSearchFiles,tmp) Of
+    cmYes: CancelSearch:=True;
+    cmNo: SkipFile:=True;
+   End;
+  End;
+ If (Event.What <> evNothing) And
+    Not ((Event.What = evCommand) And (Event.Command = cmQuit)) Then
+  Application^.HandleEvent(Event);
+End;
+
+{--- finish -------- Eugeny Zvyagintzev ---------}
+
 begin
  Info := nil;
  SearchFileStr := -1; Count := 0; ClrIO;
@@ -246,8 +278,15 @@ begin
    Info^.Top := GetString(dlSearching) + '"' + Cut(SearchString.What, 40) + '"';
    NewTimer(Tmr, 2); Inserted := False;
   end;
- GetMem(Buf, BufLen); I := Pos; BPos := 0; CancelSearch := Off;
+ GetMem(Buf, BufLen); I := Pos; BPos := 0; CancelSearch := Off; SkipFile:=Off;
  repeat
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Now DN will terminate File Find process more quick}
+{when performing text search in files}
+   DispEvents;
+   If (CancelSearch) Or (SkipFile) Then
+    Break;
+{--- finish -------- Eugeny Zvyagintzev ---------}
    if Back then
      begin
        NextPos := I - BufLen + BPos;
@@ -322,6 +361,7 @@ begin
  until  Back and ((I <= 0) or CancelSearch) or
         not Back and ((I >= L) or (T <= 0) or CancelSearch or (F^.GetPos >= F^.GetSize));
  if CancelSearch then SearchFileStr := -2;
+ If SkipFile Then SearchFileStr:=-1;
  FreeMem(Buf, BufLen); F^.Seek(OldPos);
 LExit: if Info<>nil then Dispose(Info,Done); Info:=nil;
 end;
@@ -1201,7 +1241,7 @@ begin
   Buf := MemAlloc(BufSize);
   if SB <> nil then PViewScroll(SB)^.MaxV := FileSize;
   Seek(0); XDelta := 0;
-  If VFileName<>FileName then begin
+  if (UpStrg(VFileName) <> UpStrg(FileName)) then begin
    KillAfterUse:=true;
    Filtr:=true;
   end else Filtr:=off;
@@ -1493,7 +1533,7 @@ procedure TFileViewer.HandleEvent;
                            SearchString.What, SearchX,
                            SearchString.Opts and 1 <> 0, On,
                            SearchString.Opts and 2 <> 0, ((SearchString.Dir and 1) = 1) xor Reverse,
-                           SearchString.Opts and 4 <> 0);
+                           SearchString.Opts and 4 <> 0,Nil);
 
   if SearchX >= 0 then
    begin
@@ -1530,7 +1570,7 @@ procedure TFileViewer.HandleEvent;
   var D: PDialog;
       SR: TViewSearch;
       R: TRect;
-      P: PView;
+      {P: PView;}
       PP: PInputLine;
       I: Integer;
 
@@ -1554,9 +1594,12 @@ procedure TFileViewer.HandleEvent;
    var FN: String;
        More: Boolean;
        None: Boolean;
+       OldFN: String; {JOHN_SW}
  begin
    CE;
-   FN := CnvString(XlatFile); if FN <> '' then FN := FN + '.xlt';
+   FN := CnvString(XlatFile);
+   OldFN:=FN; {JOHN_SW}
+   if FN <> '' then FN := FN + '.xlt';
    DisposeStr(XlatFile); XlatFile:=nil;
    More := True;
    None := UseXlat;
@@ -1573,7 +1616,8 @@ procedure TFileViewer.HandleEvent;
                                         GetString(dlOpenFileName),
                                         fdOKButton + fdHelpButton,
                                         hsOpenXLT);
-   if FN <> '' then SetXlatFile(FN, On);
+   if FN <> '' then SetXlatFile(FN, On)
+   else if UseXlat then SetXlatFile(OldFN, On); {JOHN_SW}
  end; {JO}
 
  procedure NextXLat;

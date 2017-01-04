@@ -61,6 +61,18 @@
 ;/  dn2215-windows_manager_changes_2.patch
 ;/
 ;/  2.3.0
+;/  dn230-resource_and_help_fixes_22032002.patch
+;/  dn230-file_find_terminate_more_quick_and_smart.patch
+;/  dn247-resource_and_help_fixes_14042002.patch
+;/  dn247-resource_and_help_fixes_20042002.patch
+;/  dn247-resource_and_help_fixes_20020504.patch
+;/  dn2510-resource_and_help_fixes_20020516.patch
+;/  dn230-remove_useless_CapitalCodePageName_option.patch
+;/  dn269_show_help_during_copy_files.patch
+;/  dn269-resource_and_help_fixes_20020621.patch
+;/  mask_e-mails.patch
+;/
+;/  2.7.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -94,29 +106,29 @@ Sorry, no help available for this context.
  You can also move a window by dragging its
  title bar.
 
- See {Help Index:Index}
+ See also {"Help Index":Index}
 
 .topic Index=2
-      ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
-   ⁄ƒƒ¥ Welcome to DOS Navigator! €ƒƒ
-   ≥  ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€  €
-   ≥                                 €
-   ≥ {About Navigator and its authors:CommonInfo} €
-   ≥ {Navigator Windows:NavigatorsWindows}               €
-   ≥ ÕÕÕÕÕÕÕÕ Interface ÕÕÕÕÕÕÕÕÕÕÕÕ €
-   ≥ {Hotkey Overview:HotOverview}                 €
-   ≥ {Interface overview:Interface}              €
-   ≥ {Main menu:MainMenu}                       €
-   ≥ {Customizing your system:OptionsMenu}         €
-   ≥ ÕÕÕÕÕÕÕÕ Utilities ÕÕÕÕÕÕÕÕÕÕÕÕ €
-   ≥ {Working with files:Files}              €
-   ≥ {Working with disks:DiskOperations}              €
-   ≥ {Working with archives:Archives}           €
-   ≥ {Working with file descriptions:FilesBBS}  €
-   ≥ {User Menu:UserMenu}                       €
-   ≥ {Point-and-shoot operations:ExtFile}      €
-   ≥ {OS/2 support:OS2Support}                    €
-   ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
+    ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
+ ⁄ƒƒ¥ Welcome to DOS Navigator! €ƒƒ
+ ≥  ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€  €
+ ≥                                 €
+ ≥{ About Navigator and its authors :CommonInfo}€
+ ≥{ Navigator Windows               :NavigatorsWindows}€
+ ≥ ÕÕÕÕÕÕÕÕ Interface ÕÕÕÕÕÕÕÕÕÕÕÕ €
+ ≥{ Hotkey Overview                 :HotOverview}€
+ ≥{ Interface overview              :Interface}€
+ ≥{ Main menu                       :MainMenu}€
+ ≥{ Customizing your system         :OptionsMenu}€
+ ≥ ÕÕÕÕÕÕÕÕ Utilities ÕÕÕÕÕÕÕÕÕÕÕÕ €
+ ≥{ Working with files              :Files}€
+ ≥{ Working with disks              :DiskOperations}€
+ ≥{ Working with archives           :Archives}€
+ ≥{ Working with file descriptions  :FilesBBS}€
+ ≥{ User Menu                       :UserMenu}€
+ ≥{ Point-and-shoot operations      :ExtFile}€
+ ≥{ OS/2 support                    :OS2Support}€
+ ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
 
 .topic HelpOnHelp=3
 .title Using Help
@@ -141,7 +153,7 @@ The later include {copying:CopyFiles}, {moving:CopyFiles}, {editing:Editor}
 and {viewing:View} files, {formatting floppies:Format}, {recovering deleted files:Reanimator},
 {directly editing data in disk sectors:DiskEditor}, {personal phone book:Phone},
 {modem:Terminal} and {COM-link:NavyLink} functions, {spreadsheeting:SpreadSheet},
-managing {archives:Archives}, {audio CD player:CDplayer}, and more.
+managing {archives:Archives}, {audio CD player:CDPlayer}, and more.
 
 These functions' power and convenience in conjunction with a variety of
 {options:Configuration} allow Navigator to make your DOS sessions highly
@@ -157,8 +169,14 @@ dnosp.txt, which can be found in the standard shipping package.
 Feel free to send your comments and suggestions to the RU.SHELL.DN Fidonet
 echo area or to these addresses:
 
- Fidonet   2:5000/111.27 Alexey Feldgendler
-           2:5057/44     Mike Lykov
+ Max Vasilyev
+ 2:5057/33.36@fidonet
+ piwamoto at pisem.net
+ http://dn.traktir.ru/
+
+ Eugeny Zvyagintzev
+ 2:5004/18.60@fidonet
+ dn_osp at pisem.net
 
  The Basic Dos Navigator is copyrighted by {RITLABS srl:_}.
 (Moldova. Kishinev. Shtefan chel Mare st 180, office 101)
@@ -187,48 +205,51 @@ echo area or to these addresses:
 
 .topic HotOverview=7
 .title Hotkey Overview
-        ---        Shift       Ctrl          Alt
+       ---            Shift          Ctrl           Alt
 
-  F1    {Help       :Index}{Archive     :ArchiveFiles}{Panl1 on/off  :_}{Select Panl1  :SelectDriveExtended}
-  F2    {User Menu  :UserMenu}{Extract     :Extract}{Panl2 on/off  :_}{Select Panl2  :SelectDriveExtended}
-  F3    {View       :View}{Phonebook   :Phone}{New manager   :ManagerCommands}{Altern View   :View}
-  F4    {Edit       :Editor}{Open        :_}{Close window  :WindowsFeature}{Altern Edit   :Editor}
-  F5    {Copy       :CopyFiles}{Split       :SplitFiles}{Move window   :WindowsFeature}{User screen   :_}
-  F6    {Move       :RenameMove}{Reanimator  :Reanimator}{Calculator    :Calculator}{Enter command :_}
-  F7    {Mkdir      :MkDir}{Format      :Format}{UU Encode     :UUEncode}{Find file     :FileFind}
-  F8    {Delete     :DeleteFiles}{Single Del  :_}{UU Decode     :UUDecode}{Cmd history   :CmdHistory}
-  F9    {Next Wnd   :WindowsFeature}{Prev Wnd    :WindowsFeature}{Print         :PrintManager}{Game          :Game}
-  F10   {Main Menu  :MainMenu}{Ega Lines   :_}{VideoMode 1   :_}{VideoMode 2   :_}
-  F11              {Sprdsheet   :SpreadSheet}{CD player     :CDPlayer}{Link          :NavyLink}
+ F1    {Help          :Index} {Archive       :ArchiveFiles} {Panel1 on/off :_} {Select Panel1 :SelectDriveExtended}
+ F2    {User Menu     :UserMenu} {Extract       :Extract} {Panel2 on/off :_} {Select Panel2 :SelectDriveExtended}
+ F3    {View          :View} {Phonebook     :Phone} {New manager   :ManagerCommands} {Altern View   :View}
+ F4    {Edit          :Editor} {Open          :_} {Close window  :WindowsFeature} {Altern Edit   :Editor}
+ F5    {Copy          :CopyFiles} {Single copy   :_} {Move window   :WindowsFeature} {User screen   :_}
+ F6    {Move          :RenameMove} {Single move   :_} {Calculator    :Calculator} {Enter command :_}
+ F7    {Mkdir         :MkDir} {Format        :Format} {UU Encode     :UUEncode} {Find file     :FileFind}
+ F8    {Delete        :DeleteFiles} {Single Del    :_} {UU Decode     :UUDecode} {Cmd history   :CmdHistory}
+ F9    {Next Window   :WindowsFeature} {Prev Window   :WindowsFeature} {Print         :PrintManager} {Game          :Game}
+ F10   {Main Menu     :MainMenu} {Ega Lines     :_} {VideoMode 1   :_} {VideoMode 2   :_}
+ F11                  {Spreadsheet   :SpreadSheet} {CD player     :CDPlayer} {Link          :NavyLink}
+ F12                  {Chg Scr Mode  :CustomVideo} {Calendar      :Calendar} {Chg language  :ChLngId}
 
-         Alt                        Ctrl
+       Alt                           Ctrl
 
-  A      {Manual Dial     :ManualDial}
-  B      {Sort Method     :SortBy}           {ASCII Table          :AsciiChart}
-  C      {Select Drive    :SelectDriveExtended}           {Compare Directories  :CompareDirs}
-  D      {Disk Menu       :DiskMenu}
-  E      {Attributes      :FileAttr}
-  F      {File Menu       :FileMenu}
-  G      {Dir Size        :_}
-  H                                 {Dir Branch           :_}
-  I      {Info Panel      :DiskInfo}
-  J      {Terminal        :Terminal}
-  K      {Columns Setup   :ColumnsSetup}           {Toggle Descriptions  :_}
-  L      {Make List File  :MakeListFile}           {Info Panel           :DiskInfo}
-  M      {Manager Menu    :ManagerCommands}
-  N      {Archiver Setup  :ArcSetup}
-  O      {Options Menu    :OptionsMenu}           {Output screen        :_}
-  P      {Panel Menu      :PanelMenu}           {Inactive Panl On/Off :_}
-  Q      {SmartPad        :Editor}           {Quick view           :_}
-  R      {Re-read Panel   :_}           {Re-read              :_}
-  S      {Panel Options   :PanelSetup}
-  T      {ChangeDir Tree  :TreeDialog}           {Tree Panel           :DirTree}
-  U      {Utilities Menu  :UtilMenu}           {Change Panels        :_}
-  V      {Read List File  :_}           {Com.Line Overstr/Ins :_}
-  W      {Window Menu     :Windows}
-  X      {Exit            :_}
-  Y      {Memory Info     :MemoryInfo}           {Toggle Full Mode     :_}
-  Z      {Zoom Window     :WindowsFeature}
+ A     {Manual Dial                  :ManualDial} {Single file attributes       :FileAttr}
+ B     {Sort Method                  :SortBy} {ASCII Table                  :AsciiChart}
+ C     {Select Drive                 :SelectDriveExtended} {Compare Directories          :CompareDirs}
+ D     {Disk Menu                    :DiskMenu}
+ E     {Files Attributes             :FilesAttr}
+ F     {File Menu                    :FileMenu}
+ G     {Dir Size                     :_}
+ H                                   {Dir Branch                   :_}
+ I     {Info Panel                   :DiskInfo}
+ J     {Terminal                     :Terminal}
+ K     {Columns Setup                :ColumnsSetup} {Toggle Descriptions          :_}
+ L     {Make List File               :MakeListFile} {Info Panel                   :DiskInfo}
+ M     {Manager Menu                 :ManagerCommands} {Maximize window              :_}
+ N     {Archiver Setup               :ArcSetup}
+ O     {Options Menu                 :OptionsMenu} {Output screen                :_}
+ P     {Panel Menu                   :PanelMenu} {Inactive Panl On/Off         :_}
+ Q     {SmartPad                     :Editor} {Quick view                   :_}
+ R     {Re-read Panel                :_} {Re-read                      :_}
+ S     {Panel Options                :PanelSetup}
+ T     {ChangeDir Tree               :TreeDialog} {Tree Panel                   :DirTree}
+ U     {Utilities Menu               :UtilMenu} {Change Panels                :_}
+ V     {Read List File               :_} {Com.Line Overstr/Ins         :_}
+ W     {Window Menu                  :Windows}
+ X     {Exit                         :_}
+ Y     {Memory Info                  :MemoryInfo} {Toggle Full Mode             :_}
+ Z     {Zoom Window                  :WindowsFeature}
+
+ See also {"File panel Hot keys":PanelHotKeys}
 
 .topic EditorFeature=8
 .title Text Editor
@@ -440,23 +461,23 @@ commands which will be executed when the batch is called.
  {Load palette:_} - Read DN color palette from file.
 
 .topic NavigatorsWindows=19
-               ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
-   ⁄ƒƒƒƒƒƒƒƒƒƒƒ¥Navigator windows€ƒƒƒƒƒƒƒƒƒƒ
-   ≥           ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€          €
-   ≥                                        €
-   ≥ {Working with a lot of windows:Windows}          €
-   ≥  ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ  €
-   ≥ {File Manager:FileManager}                           €
-   ≥ {Viewing text and binary files:View}          €
-   ≥ {Text editor:Editor}                            €
-   ≥ {Disk editor:DiskEditor}                            €
-   ≥ {Directory tree:DirTree}                         €
-   ≥ {SpreadSheet:SpreadSheet}                            €
-   ≥ {Calculator:Calculator}                             €
-   ≥ {Terminal:Terminal}                               €
-   ≥ {Files reanimator:Reanimator}                       €
-   ≥ {Telephone book:Phone}                         €
-   ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
+         ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
+ ⁄ƒƒƒƒƒƒƒ¥Navigator windows€ƒƒƒƒƒƒƒ
+ ≥       ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€       €
+ ≥                                 €
+ ≥{ Working with a lot of windows   :Windows}€
+ ≥ ÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕ €
+ ≥{ File Manager                    :FileManager}€
+ ≥{ Viewing text and binary files   :View}€
+ ≥{ Text editor                     :Editor}€
+ ≥{ Disk editor                     :DiskEditor}€
+ ≥{ Directory tree                  :DirTree}€
+ ≥{ SpreadSheet                     :SpreadSheet}€
+ ≥{ Calculator                      :Calculator}€
+ ≥{ Terminal                        :Terminal}€
+ ≥{ Files reanimator                :Reanimator}€
+ ≥{ Telephone book                  :Phone}€
+ ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
 
 ; ≥ View a database file                       €
 
@@ -498,7 +519,7 @@ It looks like this:
     by using a mouse. This way, you can change the size of the
     panels. You can also use the keys Alt -  and Alt - .
 
-See also { "File Manager Commands":ManagerCommands}
+ See also {"File Manager Commands":ManagerCommands}
 
 .topic ManagerCommands=21
 .title File Manager Commands
@@ -703,7 +724,7 @@ current part of the file will be written to this disk.
 .title Combine multiple splitted volumes to file
 You may select a destination directory
 
- See also {Split file:SplitFiles}.
+ See also {"Split file":SplitFiles}.
 
 .topic SplitDialog=28
 .title Split-file dialog box
@@ -808,6 +829,9 @@ existing file will be overwritten, if a group of files is copied.)
 
  See also {"Copying of files":CopyFiles}
 
+.topic CopyInProgress=32
+.title Copying files in progress
+
 .topic Editor=1102
 .title Text editor
 Navigator's internal text-editor is intended for already existing
@@ -851,7 +875,7 @@ The editor window looks like this:
         ≥  ¿ Number of current column
         ¿ Number of current line
 
-  See also:{"Types of windows":WindowsType}
+ See also {"Types of windows":WindowsType}
 
 .topic EditorCommands=10001
          ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
@@ -1251,7 +1275,7 @@ other functions (for example, viewing Memo field in Database viewer).
 File Manager, File Viewer and File Editor windows are examples of working
 windows.
 
-See also:{"Types of windows":WindowsType}
+ See also {"Types of windows":WindowsType}
 
 .topic DirTree=11007
 .title Directory tree
@@ -1283,7 +1307,7 @@ To open all directories - {gray +:_}
 
 To close all directories - {gray -:_}
 
-See also:{"Types of windows":WindowsType}
+ See also {"Types of windows":WindowsType}
 
 .topic Reanimator=11008
 .title Reanimation of erased files
@@ -1315,7 +1339,7 @@ The reanimator window appears as follows:
  {Change Disk Ÿ      Show the        Restore File    ≥          Help:_}
                     {contents of the file            ≥:_}{Cancel the action:_}
 
-See also:{"Types of windows":WindowsType}
+ See also {"Types of windows":WindowsType}
 
 .topic Format=11009
 .title Formatting of disks
@@ -1353,7 +1377,7 @@ Once formatting has started, it is possible to switch to an other window
 to perform other work while in the background, formatting of the disk will
 take place.
 
-See also:{"Types of windows":WindowsType}
+ See also {"Types of windows":WindowsType}
 
 .topic VolLabel=11010
 .title Volume Label
@@ -1380,38 +1404,50 @@ With the Disk Editor you can edit the structure of a disk directly.
 NB: The disk editor is only active if the option {Direct disk access:DirectDiskAccess}
 is turned on!
 
-  !!! WARNING !!!
-  If you don't know anything about the structure of a disk,
-  you should be VERY careful with the disk editor!
-  With the disk editor you can severely damage your data,
-  or even make a complete disk in-accessible!
+ !!! WARNING !!!
+If you don't know anything about the structure of a disk,
+you should be VERY careful with the disk editor!
+With the disk editor you can severely damage your data,
+or even make a complete disk in-accessible!
 
-You can work with the following logical disk structures (in menu{Area:_}):
+.topic DiskAreaMenu=49001
+.title Disk Editor: Area Menu
+You can work with the following logical disk structures (in
+menu {Area:_}):
 
-     {File:_}- Files
-     {Directory:_}- Directory
-     {Drive:_}- Change disk
-     {Cluster:_}- Clusters
-     {Sector:_}- Sectors
+ {File...:_} - files.
+ {Directory...:_} - directory.
+ {Drive...:_} - change disk.
+ {Cluster...:_} - clusters.
+ {Sector...:_} - sectors.
 
+ {Main menu:_} - a way to activate the Main Navigator Menu.
+ {Exit:_} - exit from the Disk Editor.
+
+.topic DiskEditMenu=49002
+.title Disk Editor: Edit Menu
+It is possible to perform the following editing operations (in menu
+{Edit:_}):
+
+ {Undo:_} - undo last operation(s).
+
+ {Copy:_} - copy.
+ {Paste over:_} - replace with contents of clipboard.
+ {Copy to...:_} - copy to.
+ {Fill...:_} - fill are with specific string.
+
+ {Search for...:_} - search for a specific string.
+ {Continue search...:_} - continue searching.
+
+.topic DiskViewMenu=49003
+.title Disk Editor: View Menu
 In menu {View:_} it is possible to choose the desired display form and
 edit form:
 
-     {As Hex:_}- hexadecimal dump
-     {As Dir:_}- directories
-     {As Text:_}- text format
-     {As FAT:_}- file allocation table
-
-It is possible to perform the following editing operations
-(in menu {Edit:_}):
-
-     {Undo            :_}- undo last operation(s)
-     {Copy            :_}- copy
-     {Paste over      :_}- replace with contents of clipboard
-     {Copy to         :_}- copy to
-     {Fill            :_}- fill are with specific string
-     {Search for      :_}- search for a specific string
-     {Continue search :_}- continue searching
+ {As Hex:_} - hexadecimal dump.
+ {As Dir:_} - directories.
+ {As Text:_} - text format.
+ {As FAT:_} - file allocation table.
 
 .topic Communication=11012
 .title Communication
@@ -1477,8 +1513,8 @@ and its name, allocated files will be archived, for example:
       Copy 10 selected files to:
       ARJ:archive
 
-Are possible descriptors:ACE, AIN, ARC, ARJ, BS2, BSA, CAB, CHZ, HA, HAP, HPK,
-HYP, IS3, LHA, LIM, QUARK, RAR, SQZ, TAR, UC2, UFA, ZIP, ZOO, ZXZ)
+Are possible descriptors: ACE, AIN, ARC, ARJ, BS2, BSA, CAB, CHZ, HA, HAP,
+HPK, HYP, IS3, LHA, LIM, QRK, RAR, SQZ, TAR, UC2, UFA, ZIP, ZOO, ZXZ.
 
 .topic SpreadSheet=11015
 .title SpreadSheet
@@ -1617,9 +1653,8 @@ possible:
   F7 - {Search:_} -  Search for words or sequences of hexadecimal codes.
               To continue the search press Shift-F7.
 
-  See also:
-    {Types of windows                       :WindowsType}
-    {Viewing and editing files on extensions:ViewFile}
+ See also {"Types of windows":WindowsType}
+          {"Viewing and editing files on extensions":ViewFile}
 
 .topic Highlight=11022
 .title Highlight groups
@@ -1783,18 +1818,17 @@ and second the name of a file-list of files marked in this panel.
         ˛ It is possible to start edit User Menu after call to it.
 
  See also {"Format of user menu file":MenuFormat}
-
-  and {Example of User Menu:MenuExample}.
+          {"Example of User Menu":MenuExample}.
 
 .topic LUserMenu=16546
 .title Local User Menu
-See also: {User Menu:UserMenu}
+ See also {"User Menu":UserMenu}
 
 .topic GUserMenu=16547
 .title Global User Menu
-See also: {User Menu:UserMenu}
+ See also {"User Menu":UserMenu}
 
-.topic MenuTips=16548
+.topic MenuTÈps=16548
 .title Menu Tips
 
 .topic MenuExample=16549
@@ -1856,36 +1890,55 @@ For creating the next menu level it is necessary to increase the number
 of the level of this item with 1 in comparison with the previous and all
 menu elements of this level.
 
- See also {Menu macros:ExtMacros}
-  and {Example of User Menu:MenuExample}.
+ See also {"Menu macros":ExtMacros}
+          {"Example of User Menu":MenuExample}.
 
 .topic ExtMacros=16552
 .title Menu macros
- {!:_}  - Name of file in active File Panel
- {#:_}  - Long name of file in active File Panel w/o squashes
- {$:_}  - Name of file in passive File Panel
- {&:_}  - Long name of file in passive File Panel w/o squashes
- {.!:_} - Extension of file in active File Panel
- {.#:_} - Long extension of file in active File Panel w/o squashes
- {.$:_} - Extension of file in passive File Panel
- {.&:_} - Long extension of file in passive File Panel w/o squashes
- {!\:_} - Directory of file in active File Panel
- {#\:_} - Long directory name of file in active File Panel w/o squashes
- {$\:_} - Directory of file in passive File Panel
- {#\:_} - Long directory name of file in passive File Panel w/o squashes
- {!/:_} - Directory of file in active File Panel (without \)
- {#/:_} - Long directory name of file in active File Panel w/o squashes and \
- {$/:_} - Directory of file in passive File Panel (without \)
- {&/:_} - Long directory name of file in passive File Panel w/o squashes and \
- {!:::_} - Drive of file in active File Panel
- {#:::_} - Drive of file in active File Panel
- {$:::_} - Drive of file in passive File Panel
- {&:::_} - Drive of file in passive File Panel
- {%1:_} - Name of list of selected files in active file panel
- {%2:_} - Name of list of selected files in passive file panel
-
- {%3:_}...{%9:_} - User parameters
- (Is used for input a user values in input box)
+  Active/
+  Passive    Description
+   panel
+ ÕÕÕÕÕÕÕÕÕÕ—ÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕ
+ {!:_}    {$:_}    ≥ Name of file
+ {#:_}    {&:_}    ≥ Long name of file
+           ≥
+ {.!:_}   {.$:_}   ≥ Extension of file
+ {.#:_}   {.&:_}   ≥ Long extension of file
+           ≥
+ {!\:_}   {$\:_}   ≥ Directory of file
+ {#\:_}   {&\:_}   ≥ Long directory name of file
+           ≥
+ {!/:_}   {$/:_}   ≥ Directory of file (without \)
+ {#/:_}   {&/:_}   ≥ Long directory name of file (without \)
+           ≥
+ {!:::_}   {$:::_}   ≥ Drive of file
+ {#:::_}   {&:::_}   ≥
+           ≥
+ {!%A:_}  {$%A:_}  ≥ File attributes: RHSVDA, minus signs in place of absent
+ {#%A:_}  {&%A:_}  ≥ attributes
+           ≥
+ {!%C:_}  {$%C:_}  ≥ Compressed size or the real size outside an archive
+ {#%C:_}  {&%C:_}  ≥
+           ≥
+ {!%D:_}  {$%D:_}  ≥ Last modification date according to the current date
+ {#%D:_}  {&%D:_}  ≥ format
+           ≥
+ {!%R:_}  {$%R:_}  ≥ Compression ratio (with the percent sign), "100%"
+ {#%R:_}  {&%R:_}  ≥ outside an archive
+           ≥
+ {!%S:_}  {$%S:_}  ≥ File size (uncompressed size in archives), an empty
+ {#%S:_}  {&%S:_}  ≥ string for directories
+           ≥
+ {!%T:_}  {$%T:_}  ≥ Last modification time according to the current time
+ {#%T:_}  {&%T:_}  ≥ format
+           ≥
+ {!%Z:_}  {$%Z:_}  ≥ The first line of file description, without heading
+ {#%Z:_}  {&%Z:_}  ≥ and trailing spaces, or an empty string
+           ≥
+ {%1:_}   {%2:_}   ≥ Name of list of selected files
+           ≥
+ {%3:_}...{%9:_}   ≥ User parameters
+           ≥ (Is used for input a user values in input box)
 
   {Hints:_}: ˛ Empty line after Menu Item header means Menu
            separator in Menu box.
@@ -1903,15 +1956,15 @@ menu elements of this level.
  This is information about authors of {Dos Navigator:CommonInfo}.
  Use up and down arrows to scroll the list.
 
-.topic CDplayer=16555
+.topic CDPlayer=16555
 .title CD Player
  By default CD player is started in minimized state:
 
     …[{˛:_}]ÕÕÕÕÕÕ Celtic Guitar ÕÕÕÕÕÕ[{:_}]Õª
     ∫⁄ƒƒƒƒTrackƒƒƒƒƒƒƒƒ{Track Time:_}ƒƒƒƒƒø∫
-    ∫≥  {‹‹‹ ‹‹‹:_}      ‹‹‹   ‹ ‹ ‹‹‹   {A:CDplayerOptions}≥∫
-    ∫≥  {€ € ‹‹€:_}      € € ﬂ €‹€   €   {I:CDplayerOptions}≥∫
-    ∫≥  {€‹€ €‹‹:_}      €‹€ ﬂ   €   €   {J:CDplayerOptions}≥∫
+    ∫≥  {‹‹‹ ‹‹‹:_}      ‹‹‹   ‹ ‹ ‹‹‹   {A:CDPlayerOptions}≥∫
+    ∫≥  {€ € ‹‹€:_}      € € ﬂ €‹€   €   {I:CDPlayerOptions}≥∫
+    ∫≥  {€‹€ €‹‹:_}      €‹€ ﬂ   €   €   {J:CDPlayerOptions}≥∫
     ∫¿{ƒTwo Irish Balladsƒƒƒƒƒƒƒƒƒƒƒƒƒƒ:_}Ÿ∫
     »Õ{  :_}ÕÕ{ < :_}ÕÕÕÕÕ{  :_}ÕÕÕÕÕ{ > :_}ÕÕ{  :_}ÕÕº
 
@@ -1922,7 +1975,7 @@ have to zoom the CD Player.
    Mouse button click in these areas
  ˛ Time mode indicator
      - switches mode of time indication
- ˛ {Play modes indicator (ANJ):CDplayerOptions}
+ ˛ {Play modes indicator (ANJ):CDPlayerOptions}
      - switches current play <Mode>
  ˛ Big digits
      - choose a Track to play from a pane
@@ -1939,9 +1992,9 @@ have to zoom the CD Player.
                ∫  ﬂﬂﬂﬂ  ﬂﬂﬂ  ﬂﬂﬂﬂﬂﬂﬂﬂﬂ  ﬂﬂﬂ  ﬂﬂﬂﬂ ∫
                ∫    *   ‹       ˛      ‹       ‹ ∫
                ∫  ﬂﬂﬂﬂﬂﬂﬂ  ﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂ  ﬂﬂﬂﬂﬂﬂﬂ ∫
-               ∫  {  Set   :CDplayerOptions}‹   Time   ‹   Mode   ‹ ∫
+               ∫  {  Set   :CDPlayerOptions}‹   Time   ‹   Mode   ‹ ∫
                ∫  ﬂﬂﬂﬂﬂﬂﬂﬂﬂ  ﬂﬂﬂﬂﬂﬂﬂﬂﬂ  ﬂﬂﬂﬂﬂﬂﬂﬂﬂ ∫
-               ∫    Mix   ‹   Order  ‹  { Title  :CDplayerTitle}‹ ∫
+               ∫    Mix   ‹   Order  ‹  { Title  :CDPlayerTitle}‹ ∫
                ∫  ﬂﬂﬂﬂﬂﬂﬂﬂﬂ  ﬂﬂﬂﬂﬂﬂﬂﬂﬂ  ﬂﬂﬂﬂﬂﬂﬂﬂﬂ ∫
                »ÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕº
 
@@ -1964,7 +2017,7 @@ have to zoom the CD Player.
     {  :_}‹  Eject
     ﬂﬂﬂﬂ
 
-<{Set:CDplayerOptions}>
+<{Set:CDPlayerOptions}>
    - CD Player's options
 <{Time:_}>
    - Time indication mode switcher (Track\Disk-Left\Time)
@@ -1974,11 +2027,11 @@ have to zoom the CD Player.
    - Run external sound 'Mixer'
 <{Order:_}>
    - User defined order of playing.
-<{Title:CDplayerTitle}>
+<{Title:CDPlayerTitle}>
    - Description of CD title and tracks
      (The Note: {<Order>:_} and {<Title>:_} buttons is allowed only for REGISTERED users)
 
-.topic CDplayerOptions=16556
+.topic CDPlayerOptions=16556
 .title CD Player Options
  Options                     Play Mode
   [X] New disk auto play      ( ) Normal
@@ -1989,7 +2042,7 @@ have to zoom the CD Player.
 
  External Mixer
 
-.topic CDplayerTitle=16557
+.topic CDPlayerTitle=16557
 .title CD description format
  TITLE:JEAN-MICHEL JARRE "COLLECTION"
  01:REVOLUTIONS;               "Revolutions" '88
@@ -2333,73 +2386,80 @@ To store a current directory in Quick directories list press
 
 .topic edFile=48020
 .title Text Editor: File Menu
-   {Open...     :_}  Load a new file in the active Editor window
-   {Save        :_}  Save changes in the current file
-   {Save as...  :_}  Save the current file using another name
-   {Save all    :_}  Save changes in all files being currently
-                 edited
-   {Print       :_}  Print entire file being edited using
-                 using {Print Manager:PrintManager}
-   {Print block :_}  Print selected text
-   {Main menu   :_}  A way to activate the Main Navigator Menu
-   {Exit        :_}  Close the Editor window
+ {Open...:_} - load a new file in the active Editor window.
+ {Open file at cursor...:_} - open file at cursor.
+ {Save:_} - save changes in the current file.
+ {Save as...:_} - save the current file using another name.
+ {Save all...:_}- save changes in all files being currently edited.
+
+ {Print:_} - print entire file being edited using  using {Print Manager:PrintManager}.
+ {Print block:_} - print selected text.
+
+ {Main menu:_} - a way to activate the Main Navigator Menu.
+ {Exit:_} - close the Editor window.
 
 .topic edEdit=48021
 .title Text Editor: Edit Menu
- {Undo       :_}  Undo the last editor operation
- {Cut        :_}  Put the selected text into Clipboard
-              and remove it from the text
- {Copy       :_}  Put the selected text into Clipboard
- {Paste      :_}  Insert the contents of Clipboard in the
-              text
- {Copy to    :_}  Store the selected text in a disk file
- {Paste from :_}  Insert text from a file in the text
- {Clear      :_}  Remove the selected text
+ {Undo:_} - undo the last editor operation.
+ {Redo:_}
+
+ {Cut:_} - put the selected text into Clipboard and remove it from the
+    text.
+ {Copy:_} - put the selected text into Clipboard.
+ {Paste:_} - insert the contents of Clipboard in the text.
+ {Copy to...:_} - store the selected text in a disk file.
+ {Paste from...:_} - insert text from a file in the text.
+
+ {Copy on Windows clipboard:_}
+ {Copy from Windows clipboard:_}
+
+ {Clear:_} - remove the selected text.
 
 .topic edSearch=48022
 .title Text Editor: Search Menu
- {Find              :_}  Locate a string in the text
- {Replace           :_}  Locate a string in the text and replace
-                     with another string
- {Search again      :_}  Repeat last search or replace
- {Reversed search   :_}  Repeat last search or replace in the
-                     opposite direction
- {Go to line number :_}  Put the edit cursor to desired line number
+ {Find...:_} - locate a string in the text.
+ {Replace...:_} - locate a string in the text and replace with another
+    string.
+ {Search again:_} - repeat last search or replace
+ {Reversed search:_} - repeat last search or replace in the opposite
+    direction.
+ {Go to line number...:_} - put the edit cursor to desired line number.
+ {Goto block begin:_}
+ {Goto block end:_}
 
 .topic edParagraph=48023
 .title Text Editor: Paragraph Menu
 {Paragraph:_} menu is designed for operations with the selected text
 as a paragraph:
 
- {Justify        :_}  Justify the paragraph on both margins
-                  inserting space characters where it's
-                  necessary, paragraph margin is used for
-                  the first line
- {Right          :_}  Justify the paragraph by its right
-                  margin, left and paragraph margin are
-                  not used
- {Left           :_}  Justify the paragraph by its left
-                  margin, right and paragraph margin are
-                  not used
- {Center         :_}  Centrify each line of the paragraph
-                  between its left and right margins
-                  paragraph margin is not used
- {Margins...     :_}  Set margin values for the current
-                  Editor
+ {Justify:_} - justify the paragraph on both margins inserting space
+    characters where it's necessary, paragraph margin is used for the
+    first line.
+ {Right:_} - justify the paragraph by its right  margin, left and
+    paragraph margin are not used.
+ {Left:_} - justify the paragraph by its left margin, right and paragraph
+    margin are not used.
+ {Center:_} - centrify each line of the paragraph between its left and
+    right margins paragraph margin is not used.
+
+ {Margins...:_} - set margin values for the current Editor.
 
 .topic edOptions=48024
 .title Text Editor: Options Menu
 This is a menu with on/off toggles.
 
- {Auto wrap mode           :_}
- {Justify on wrap          :_}
- {Auto indent mode         :_}
- {Vertical blocks          :_}
- {Backspace unindents      :_}
- {Syntax highlight         :_}
- {Current line highlight   :_}
- {Current column highlight :_}
- {AutoBrackets             :_}
+ {Backspace indents:_}
+ {AutoBrackets:_}
+ {Autoindent:_}
+ {Auto wrap:_}
+ {Justify on wrap:_}
+ {Vertical blocks:_}
+ {Optimal fill:_}
+ {Current line highlight:_}
+ {Current column highlight:_}
+ {Syntax highlight:_}
+ {Tab Replace:_}
+ {Smart Tab:_}
 
 .topic UUEncode=48025
 .title UU Encode
@@ -2446,9 +2506,10 @@ Decoding binary files, received by E-Mail
 .title Make List File
 Enter name of file to put selected filenames.
 
-To point a place of file name in command you can use {macros:ExtMacros}
-{!:_}, {!.!:_}, {!\!.!:_}. By default a file name placed after the {action:_}
-command.
+To point a place of file name in command you can use {macros:ExtMacros}.
+By default a file name placed after the {action:_} command.
+
+ See also {"FTN File Attach Feature":FTNInfo}
 
 .topic AdvancedFilter=48029
 .title Advanced Filter
@@ -2480,7 +2541,7 @@ You can specify a special program to view file accordingly to its extension.
 Options|Viewers...
 For Example:  {gif::chow !.!+:_}
 
-See also list of all {macros:ExtMacros}.
+ See also {"macros":ExtMacros}.
 
 .topic ExtEditors=48033
 .title External Editors
@@ -2489,7 +2550,7 @@ You can specify a special program to edit file accordingly to its extension.
 Options|Viewers...
 For Example:  {gif::chow !.!+:_}
 
-See also list of all {macros:ExtMacros}.
+ See also {"macros":ExtMacros}.
 
 Order of using keys [F4] and [Alt-F4] is depends from a
 'Run Internal Editor' in Options|Configuration|Editor/Viewer...
@@ -2507,6 +2568,7 @@ The <{Full:_}> button is turned ON all of these fields
 
 You can specify a special settings for a different panels. The default
 settings({New Manager:_}) is defined in {Options|File Manager|Column defaults...:_}
+
 .topic DrivesSetup=48035
 .title Drives Setup
 To speed up some disk operation and enable the {Reanimator:Reanimator} and the
@@ -2675,7 +2737,7 @@ The format of record in this file is such:
 Here ??? - particular extension
      Command_name - name of program for viewing or editing
 
-See Also: {Internal text-viewer:View}
+ See Also: {"Internal text-viewer":View}
 
 .topic Wildcards=48058
 .title DOS Wildcards and Filters
@@ -2805,8 +2867,8 @@ given in "Files with descriptions" line of File Panel Defaults dialog box.
    ≥     ¿ƒƒƒƒƒƒƒƒƒƒƒƒƒ Number of data bits
    ¿ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ BPS
 
-  See also: {Link Panel:LinkPanel}
-            {Navigator Link:NavyLink}
+ See also {"Link Panel":LinkPanel}
+          {"Navigator Link":NavyLink}
 
 .topic NavyLink=48063
 .title Navigator Link
@@ -2840,9 +2902,9 @@ Link allows to transfer text files and directory data twice faster on the
 same line. The compression works more efficient than modems' internal
 compression methods.
 
-  See also: {Link Status Window:LinkStatusWnd}
-            {Link Panel:LinkPanel}
-            {Serial Port Interface:SerialInterface}
+ See also {"Link Status Window":LinkStatusWnd}
+          {"Link Panel":LinkPanel}
+          {"Serial Port Interface":SerialInterface}
 
 .topic SerialInterface=48064
 .title Serial Port Interface
@@ -2899,9 +2961,9 @@ compression methods.
                   ⁄ƒ≈ƒŸ
    DTR       4 ﬁƒƒŸ ¿ƒƒƒƒ› 20
 
-  See also: {Link Status Window:LinkStatusWnd}
-            {Link Panel:LinkPanel}
-            {Navigator Link:NavyLink}
+ See also {"Link Status Window":LinkStatusWnd}
+          {"Link Panel":LinkPanel}
+          {"Navigator Link":NavyLink}
 
 .topic UnpackDiskImg=48065
 .title Unpack Diskette Images
@@ -2946,18 +3008,17 @@ compression methods.
 .title Text Editor: Misc Menu
 {Misc:_} menu is designed for quick access to some miscellaneous operations:
 
- {Insert date    :_}  Insert current date in the cursor
-                  position
- {Insert time    :_}  Insert current time in the cursor
-                  position
- {Duplicate line :_}  Insert the copy of the current line
- {ASCII Table    :_}  Use ASCII character map to choose
-                  a symbol to type
- {Line Drawing   :_}  Toggle Line Draw mode.
+ {Insert date:_} - insert current date in the cursor position.
+ {Insert time:_} - insert current time in the cursor position.
+ {Duplicate line:_} - insert the copy of the current line.
+ {ASCII Table:_} - use ASCII character map to choose a symbol to type.
+ {Line Drawing:_} - toggle Line Draw mode.
+ {Key mapping:_}
 
- {Uppercase, Lowercase:_} and {Capitalize:_} submenus are
- for converting words, lines and blocks to an appropriate
- case.
+ {Uppercase:_}, {Lowercase:_} and {Capitalize:_} submenus are for converting
+    words, lines and blocks to an appropriate case.
+ {Line breaks:_}
+ {Change char case:_}
 
 .topic MiscUpper=48080
 .title MiscUpper
@@ -3109,71 +3170,66 @@ and the week number is the same for whole row of seven days.
 
 .topic EditBlockMenu=48085
 .title Text Editor: Block Menu
-{Block:_} menu is designed for operations with selected text
+{Block:_} menu is designed for operations with selected text:
 
- {Move          :_}  Move the selected text to the current
-                 cursor position (persistent blocks
-                 only)
- {Copy          :_}  Copy the selected text to the current
-                 cursor position (persistent blocks
-                 only)
- {Indent        :_}  Shift the selected text to the right
-                 for one position
- {Unindent      :_}  Shift the selected text to the left
-                 for one position
- {Uppercase     :_}  Convert all the words in the selected
-                 text to the upper case
- {Lowercase     :_}  Convert all the words in the selected
-                 text to the lower case
- {Capitalize    :_}  Capitalize all the words in the selected
-                 text
- {Sort          :_}  Sort all the lines of vertical block
-                 in alphabetical order (the selected text is
-                 used for comparsion)
- {Calculate sum :_}  Calculate the sum of the numbers in
-                 the vertical block and put it into Clipboard
+ {Move:_} - move the selected text to the current cursor position
+    (persistent blocks only).
+ {Copy:_} - copy the selected text to the current cursor position
+    (persistent blocks only).
+ {Indent:_} - shift the selected text to the right for one position.
+ {Unindent:_} - shift the selected text to the left for one position.
+
+ {Uppercase:_} - convert all the words in the selected text to the upper
+    case.
+ {Lowercase:_} - convert all the words in the selected text to the lower
+    case.
+ {Capitalize:_} - capitalize all the words in the selected text.
+
+ {Reverse sort:_}
+ {Sort:_} - sort all the lines of vertical block in alphabetical order
+    (the selected text is used for comparsion).
+ {Calculate sum:_} - calculate the sum of the numbers in the vertical
+    block and put it into Clipboard.
+ {Rus/Eng Convert Line:_}
 
 .topic SpreadFileMenu=48086
 .title SpreadSheet: File Menu
-Menu {File:_}
+ {New:_} - create a new table.
+ {Open...:_} - open an existing table.
+ {Save:_} - save the current table.
+ {Save as...:_} - save current table under another name.
+ {Save text:_} - export to text file.
 
- New -        Create a new table
- Open -       Open an existing table
- Save -       Save the current table
- Save as -    Save current table under another name
- Save text -  Export to text file
- Exit -       Exit from the spreadsheet editor
+ {Main menu:_} - a way to activate the Main Navigator Menu.
+ {Exit:_} - exit from the spreadsheet editor.
 
 .topic SpreadTableMenu=48087
 .title SpreadSheet: Table Menu
-Menu {Table:_}
+ {Cell format:_} - change format of a field.
+ {Column width...:_} - change width of column.
 
- Cell format -       Change format of a field
- Column width -      Change width of column
- Insert row -        Insert a row
- Insert column -     Insert a column
- Delete row -        Remove a row
- Delete column -     Remove a column
+ {Insert row:_} - insert a row.
+ {Insert column:_} - insert a column.
+ {Delete row:_} - remove a row.
+ {Delete column:_} - remove a column.
 
 .topic SpreadEditMenu=48088
 .title SpreadSheet: Edit Menu
-Menu {Edit:_}
+ {Undo:_} - undo of operations.
 
- Undo -   Undo of operations
- Cut -    To move the block in Clipboard
- Copy -   To copy the block in Clipboard
- Paste -  To copy the block from Clipboard
- Clear -  To exclude the block
+ {Cut...:_} - to move the block in Clipboard.
+ {Copy:_} - to copy the block in Clipboard.
+ {Paste:_} - to copy the block from Clipboard.
+
+ {Clear:_} - to exclude the block.
 
 .topic SpreadSearchMenu=48089
 .title SpreadSheet: Search Menu
-Menu {Search:_}
-
- Find -              Find field on significance
- Replace -           Find and replace
- Search again -      To continue the search/replacement
- Go to cell number - proceed on mentioned field
- Go to last error  - proceed on field with error
+ {Find...:_} - find field on significance.
+ {Replace...:_} - find and replace.
+ {Search again:_} - to continue the search/replacement.
+ {Go to cell number...:_} - proceed on mentioned field.
+ {Go to last error:_} - proceed on field with error.
 
 .topic FTNInfo=48090
 .title FTN File Attach Feature
@@ -3182,7 +3238,7 @@ using a Binkley-style outbound. To use this feature, the following information
 should be appended to the Files with descriptions field in the File Manager
 Setup dialog:
 
-;/fido=<address>,<outbound>
+{;/fido=<address>,<outbound>:_}
 
 Here <address> is your FTN address in your primary zone, written in 3D or 4D
 form, and the <outbound> is your primary zone outbound directory specification.
@@ -3201,6 +3257,10 @@ only).
 
 .topic SrchFailed=48091
 .title Search Failed
+
+.topic CancelSF=49000
+.title Stop search
+You may skip search text in current proccessing file
 
 .topic IniFile=48092
 .title Dos Navigator Configuration (DN.INI)
@@ -3437,10 +3497,6 @@ an unlimited search through a file (wait too long), you are
 recommended to set the maximal search depth (ca 300 lines).
  (default: 0, ie. unlimited search)
 
-{CapitalCodePageName = bool:_} - Displaying the current codepage in
-the editor in Capitalize mode (for Chip).
- (default: 0)
-
 {DefCodePage = str:_} - Specifying a codepage for new files. Accepts
 values Dos, Win, Koi and Auto ƒ automatic detection of the codepage
 for a file newly opened in the editor (not present in the editing
@@ -3471,7 +3527,7 @@ draws double one. In the double line drawing mode do vice versa.
 {Koi8rKeyMap = bool:_} - When 0, the switching through DOS/WIN/KOI by
 F8 in the editor is disabled and only switching DOS/WIN works.
  Note: This parameter has no influence on the autodetection when
-opening a file in the editor and the viewer.
+opening a file in the editor.
  (default: 1)
 
 {UnlimitUnindent = bool:_} - When 0, a block is shifted left by

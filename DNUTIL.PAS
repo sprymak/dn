@@ -57,6 +57,12 @@
 //  dn200-empty_dbf.patch
 //
 //  2.3.0
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//  dn2522_manual_save_desktop.patch
+//  dn2522-big_help_fix.patch
+//  dn2628_use_viewer_history_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -64,7 +70,7 @@
 unit DNUtil;
 
 interface
-uses Gauges, DnApp, xTime, Views, Drivers, Objects, Tree;
+uses Gauges, DnApp, xTime, Views, Drivers, Objects,helpfile,Tree;
 
 const
   RunMenu: Boolean = False;
@@ -88,7 +94,6 @@ type
         Pk1,Pk2,Pk3,Pk4 : PView ;
 
         procedure ViewFile(Intern: integer; FileName: String); {DataCompBoy} (* X-Man *)
-        procedure ViewFilter(FileName: String); {DataCompBoy}
         procedure EditFile(Intern: Boolean; FileName: String); {DataCompBoy}
         procedure OutOfMemory; virtual;
         procedure EventError(var Event: TEvent); virtual;
@@ -111,7 +116,7 @@ uses Advance2, Commands, Idlers, Startup, Messages, FilesCol, Histries, Dnexec,
      FViewer, Advance1, Dos, LFN, Advance, DnIni, Arcview,
      Microed, EdWin, DnUtil2, usermenu, dnsvld, colors, archread,
      asciitab, ccalc, filefind, videoman, archset, archiver, dnhelp, diskinfo,
-     helpfile,Setups
+     HelpKern, advance7, Setups,menus
      {$IFDEF DiskFormat},DnFormat{$ENDIF}
      {$IFDEF SpreadSheet},Calc{$ENDIF}
      {$IFDEF DBView},DbView{$ENDIF}
@@ -255,6 +260,7 @@ var
 
 label ex, int, ext; (* X-Man *)
 begin
+   Q:=-1; {JOHN_SW}
    I:=PosChar('|', FileName);
    If I>0 then begin
     RN:=Copy(FileName, I+1, 255);
@@ -385,7 +391,7 @@ Ext:  if ((Intern>0) and (SystemData.Options and ossViewer = 0)) and View (* X-M
       goto ex;
      end else
      {$ENDIF}
-        if ArcViewer(FileName, FreeByte) or Abort then goto ex
+        if ArcViewer(FileName, RN, FreeByte) or Abort then goto ex
          else if View then goto ex
           else goto Int;
     end else if Intern=2 then goto Ext else (* X-Man *)
@@ -394,74 +400,6 @@ Int:InternalView;
    StoreViewInfo(W);
    InsertWindow(W);
 ex: DelFileRec(fr);
-end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-procedure TDNAppl.ViewFilter;
-var
-  W : PWindow;
-  R : TRect;
-  up: tUserParams;
-  P : PViewRecord;
-  S: String;
-  V: PFileViewer;
-  PS: PString;
-  I: longint;
-
-begin
- I:=PosChar('|', FileName);
- if I=0 then exit;
- S:=lFExpand(Copy(FileName, I+1, 255));
- FileName[0]:=Chr(I-1);
- FileName:=lFExpand(FileName);
- W := New(PFileWindow,Init(FileName, S, ViewerDefaults.Options and vbfHex <> 0));
- if (W <> nil) and (W^.Valid(cmValid)) then begin
-  V := PFileViewer(W^.Current);
-  S := V^.VFileName; System.Insert(' ', S, 1); UpStr(S); PS := @S;
-  if (InterfaceData.Options and ouiTrackViewers <> 0) and (ViewHistory <> nil)
-   then I := ViewHistory^.IndexOf(@PS) else I := -1;
-  If I>=0 then
-   if (PViewRecord(ViewHistory^.At(I))^.fViewMode and not vmInternal)>3
-    then I:=-1;
-  if I >= 0 then begin
-   P := ViewHistory^.At(I);
-   R.Assign(P^.fOrigin.X, P^.fOrigin.Y,
-            P^.fOrigin.X + P^.fSize.X,
-            P^.fOrigin.Y + P^.fSize.Y);
-   AdjustToDesktopSize(R, P^.fDeskSize);
-   W^.Locate(R);
-   with V^, P^ do begin
-    if fPos+fBufPos > FileSize then begin
-     fPos := 0;
-     fBufPos := 0;
-    end;
-    Seek(fPos);
-    BufPos     := fBufPos;
-    if XLatFile<>nil then DisposeStr(XLatFile);
-    XLatFile   := NewStr(fXlatFile);
-    ViewMode   := fViewMode and not vmInternal;
-    Filter     := fFilter;
-    HexEdit    := fHexEdit;
-    Wrap       := fWrap;
-    XDelta     := fXDelta;
-    HexPos     := fHexPos;
-    Cur        := fCur;
-    UseXLat    := fUseXLat;
-    KeyMap     := fKeyMap;
-    if UseXLat
-     then SetXlatFile(XLatFile^, True)
-     else SetXlatFile('', True);
-    MarkPos   := fMarks;
-    Loaded    := true;
-    MakeLines;
-   end;
-  end;
- end;
- if (W <> nil) and W^.Valid(0) then begin
-  StoreViewInfo(W);
-  InsertWindow(W);
- end else Dispose(W,Done);
 end;
         {-DataCompBoy-}
 
@@ -559,10 +497,14 @@ end;
 PROCEDURE TDNAppl.HandleCommand;
 
  var R: TRect;
-     P: PView;
+     P,P1: PView;
      ST: String;
      W: Word;
      FileIsDBF: Boolean;
+
+     HFile: PHelpFile;
+     HelpStrm: PDosStream;
+     OldCtx  : Word;
 
 {$IFDEF VIRTUALPASCAL} {JO}
      CC: Word;
@@ -731,7 +673,7 @@ begin
      cmClearDesktop: GlobalMessage(evCommand, cmClose, nil);
      cmFileView: ViewFile(2, CnvString(Event.InfoPtr)); (* X-Man *)
      cmFileEdit: EditFile(True, CnvString(Event.InfoPtr));
-     cmViewFilter: ViewFilter(CnvString(Event.InfoPtr));
+     cmViewFilter: ViewFile(2, CnvString(Event.InfoPtr));{piwamoto}
      cmIntFileView: ViewFile(0, CnvString(Event.InfoPtr)); (* X-Man *)
      cmIntFileEdit: EditFile(False, CnvString(Event.InfoPtr));
      cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.XRN');
@@ -799,7 +741,13 @@ begin
         RunMenu := False;
        end;
 {$ENDIF}               {JO changes end}
-     cmSaveDesk: SaveRealDsk;
+{--- start -------- Eugeny Zvyagintzev ---- 02-06-2002 ----}
+     cmSaveDesk: begin
+                  ManualSave:=True;
+                  SaveRealDsk;
+                  ManualSave:=False;
+                 end;
+{--- finish -------- Eugeny Zvyagintzev ---- 02-06-2002 ----}
      cmExecFile: begin DoExecFile(Event.InfoPtr); CE end;
      cmExecString: begin DoExecString(Event.InfoPtr); CE end;
      cmExecCommandLine: if ExecCommandLine then CE;
@@ -853,8 +801,82 @@ begin
                     ClearEvent(Event);
                   end;
                 end;
-        cmHelp: begin OpenHelp(0); CE end;
-        cmHelp2: begin OpenHelp(Event.InfoWord); CE end;
+{--- start -------- Eugeny Zvyagintzev ---- 06-06-2002 -----}
+{Now DN will show help window more correctly}
+        cmHelp,cmHelp2: Begin
+                 ClearEvent(Event);
+
+                 if (not HelpInUse) or (HelpWnd=nil) then
+                 begin
+                  HelpInUse := True;
+                  HelpStrm := New(PDosStream,
+                                  Init(SourceDir+HelpLngId + '.HLP', stOpenRead{stOpenPacked})
+                                 );
+                  if HelpStrm^.Status <> stOk then
+                    begin
+                      Dispose(HelpStrm,Done);
+                      HelpStrm := New(PDosStream,
+                                      Init(StartupDir+HelpLngId + '.HLP', stOpenRead{stOpenPacked})
+                                     );
+                    end;
+                  HFile := New(PHelpFile, Init(HelpStrm));
+                  if HelpStrm^.Status <> stOk then
+                  begin
+                    Msg(erCantOpenHelp, nil, mfError + mfOkButton);
+                    Dispose(HFile,Done);
+                    HFile:=nil;
+                    HelpStrm:=nil;
+                  end
+                  else
+                  begin
+                   if Event.Command=cmHelp
+                    then HelpWnd := PHelpWindow(ValidView(New(PHelpWindow,Init(HFile, GetHelpCtx))))
+                    else HelpWnd := PHelpWindow(ValidView(New(PHelpWindow,Init(HFile, Word(Event.InfoWord)))));
+                   if HelpWnd<>nil then begin
+                    if ((DeskTop^.Current<>nil)
+                        and (
+                         (Desktop^.Current^.GetState(sfModal)) or
+                         (Desktop^.Current^.GetState(sfDragging))
+                        )
+                       ) or MenuActive
+                     then ExecView(HelpWnd)
+                     else begin
+                           HelpWnd^.SetState(sfModal, false);
+                           HelpWnd^.Options := HelpWnd^.Options or ofTileable or ofTopSelect;
+                           Application^.InsertWindow(HelpWnd);
+                           Exit;
+                          end;
+                   end;
+                  end;
+                  HelpWnd^.Free;
+                  HelpInUse := False;
+                 end else begin
+                  OldCtx:=HelpWnd^.HelpView^.Indexes[HelpWnd^.HelpView^.NumTopics].Index;
+
+                  if Event.Command=cmHelp
+                   then HelpWnd^.GotoContext(Word(GetHelpCtx))
+                   else HelpWnd^.GotoContext(Word(Event.InfoWord));
+                  if Event.Command=cmHelp2 then HelpWnd^.GotoContext(Word(Event.InfoWord));
+                  if ((DeskTop^.Current<>nil)
+                      and (Desktop^.Current^.GetState(sfModal))
+                     ) or MenuActive
+                   then begin
+                         HelpWnd^.SetState(sfModal, true);
+                         P:=HelpWnd^.Next;
+                         P1:=DeskTop^.Current;
+                         Desktop^.Delete(HelpWnd);
+                         ExecView(HelpWnd);
+                         HelpWnd^.GotoContext(OldCtx);
+                         {HelpWnd^.SetState(sfVisible,False);}
+                         Desktop^.InsertBefore(HelpWnd, P);
+                         Desktop^.SetCurrent(P1, EnterSelect);
+                         {HelpWnd^.Free;
+                         Desktop^.SetCurrent(P1, EnterSelect);}
+                        end
+                   else HelpWnd^.Focus;
+                 end;
+                end;
+{--- finish -------- Eugeny Zvyagintzev ---- 06-06-2002 -----}
         cmTree: begin ExecTree; CE end;
         cmClearData: begin
                        FillChar(FreeStr, SizeOf(FreeStr), 0);

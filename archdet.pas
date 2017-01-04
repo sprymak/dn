@@ -55,6 +55,13 @@
 //  dn223-Archivers_Optimization.patch
 //
 //  2.3.0
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//  dn247-read_ZIP_central_directory.patch
+//  dn269-bugfixed_ZIP_detection.patch
+//  dn269-GZip_detection.patch
+//  dn269-rar3-hp-fix-jo20624a.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -76,11 +83,43 @@ function GetArchiveByTag (ID: Byte): PARJArchive;
 
 implementation
 
+uses FViewer, U_Keymap;
+
 function ZIPDetect: Boolean;
-  var i: LongInt;
+var
+ ID, FP: LongInt;
+    nxl: TXLat;
 begin
-  ArcFile^.Read(i,4);
-  ZIPDetect:=(i=$04034b50);
+  ZIPDetect := False;
+  CentralDirRecPresent := False;
+  ArcFile^.Read(ID, SizeOf(ID));
+{somewhat lame code: check for span archive}
+{todo: look VC 4.99a8}
+  ArcFile^.Seek(ArcFile^.GetSize - 22);
+  ArcFile^.Read(FP, SizeOf(FP));
+  if (ID = $04034b50) or ((FP = $06054b50) and (ArcFile^.GetPos > 4)) then
+  begin
+    ZIPDetect := True;
+    NullXLAT (NXL);
+    FP := ArcFile^.GetPos;
+    repeat
+     FP := SearchFileStr(@ArcFile^, NXL, 'PK', FP, Off{piwamoto:we need it OFF}, Off, Off, On, Off, Nil);
+     ArcFile^.Seek(FP);
+     ArcFile^.Read(ID, SizeOf(ID));
+    until (FP < 0) or
+          (ArcFile^.GetSize - FP > $10016) or {bug: it wouldn't work with files without 'pk' string}
+          (ID = $02014B50) or
+          (ID = $04034B50) or
+          (ID = $06054B50) or
+          (ID = $06064B50) or
+          (ArcFile^.Status <> stOK);
+    if (ID = $06054B50) or (ID = $06064B50) then
+      begin {central directory found}
+        CentralDirRecPresent := True;
+        ArcFile^.Seek(FP + 16 + 32*Byte(ID = $06064B50));{offset of start of central directory}
+        ArcFile^.Read(ArcPos, 4);
+      end;
+  end;
   ArcFile^.Seek(ArcPos);
 end;
 
@@ -118,6 +157,8 @@ begin
           RARDetect := True;
           RAR2 := On;
           ArcPos := ArcPos + M2.HeadLen + 7{Rar ID};
+          if M2.HeadFlags and $80 <> 0 {headers are encrypted} then
+             ArcPos := ArcFile^.GetSize;
         end;
      end;
  ArcFile^.Seek(ArcPos);
@@ -352,8 +393,9 @@ var
 begin
  ArcFile^.Read(W, SizeOf(W));
  TGZDetect := (ArcFile^.Status = stOK) and
-              (W = $8b1f) and
-              (InFilter(ArcFileName, '*.TAR;*.TAZ;*.TGZ;*.GZ;*.Z'));
+              ((W = $8b1f) or (W = $9d1f))
+{              and (InFilter(ArcFileName, '*.TAR;*.TAZ;*.TGZ;*.GZ;*.Z'))}
+              ;
  ArcFile^.Seek(ArcPos);
 end;
 

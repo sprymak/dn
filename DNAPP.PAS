@@ -56,6 +56,10 @@
 //  dn200-sleep_after_commandline_update.patch
 //
 //  2.3.0
+//  dn200-adjust_window_size_to_desktop.patch
+//  dn247-text_and_file_find_improve.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -354,9 +358,9 @@ begin
   if OldDeskSize.Y = 0 then OldDeskSize.Y := Desktop^.Size.Y;
   if Desktop^.Size.Equals(OldDeskSize) then Exit;
   KX := Desktop^.Size.X/OldDeskSize.X;
-  R.A.X := Trunc(R.A.X*KX); R.B.X := Trunc(R.B.X*KX);
+  R.A.X := Round(R.A.X*KX); R.B.X := Round(R.B.X*KX);
   KY := Desktop^.Size.Y/OldDeskSize.Y;
-  R.A.Y := Trunc(R.A.Y*KY); R.B.Y := Trunc(R.B.Y*KY);
+  R.A.Y := Round(R.A.Y*KY); R.B.Y := Round(R.B.Y*KY);
   if R.Empty or (R.A.X >= Desktop^.Size.X) or (R.B.X < 0)
              or (R.A.Y >= Desktop^.Size.Y) or (R.B.Y < 0)
              or (R.B.X - R.A.X < MinWinSize.X)
@@ -980,9 +984,6 @@ begin
 end;
 
 procedure TProgram.Idle;
- var P: PView;
-     E: TEvent;
-     A1, A2: Word;
 begin
   if StatusLine <> nil then StatusLine^.Update;
   if CommandSetChanged then

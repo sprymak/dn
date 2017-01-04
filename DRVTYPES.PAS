@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn230-change_drive.patch
+//  dn269-remove_IOmega_detection.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -79,9 +83,8 @@ const
   dtStacker    = $07; { Stacker                    }
   dtRAMDrive   = $08; { RAM                        }
   dtDublDisk   = $09; { Vertisoft DoubleDisk 2.6+  }
-  dtBernoully  = $0A; { IOmega Bernoully           }
-  dtDiskreet   = $0B; { Norton Diskreet            }
-  dtSuperStor  = $0C; { SuperStor                  }
+  dtDiskreet   = $0A; { Norton Diskreet            }
+  dtSuperStor  = $0B; { SuperStor                  }
 
 function getDriveType(Drive : Byte) : Byte;
 
@@ -184,18 +187,12 @@ asm
        int     2Fh
 {$ENDIF}
 (* X-Man <<< *)
-        or      al,al
-        je      @@2
-        cmp     al,1
-        je      @@2
-@@1:
-        sub     al,al
-        jmp     @@4
-@@2:
+        cmp     ax,$101
+        ja      @@DSKReetNotFound
         lds     dx,DrvName
         mov     ax,3D02h
         int     21h
-        jc      @@1
+        jc      @@DSKReetNotFound
         mov     bx,ax
         mov     ax,seg [Packet]
         mov     ds,ax
@@ -223,13 +220,16 @@ asm
         mov     si,offset [Packet.Size]
         lodsw
         or      ax,ax
-        jnz     @@3
+        jnz     @@DSKReetFound
         lodsw
         or      ax,ax
-        jz      @@1
-@@3:
+        jz      @@DSKReetNotFound
+@@DSKReetFound:
         mov     al,True
-@@4:
+        jmp     @@Exit
+@@DSKReetNotFound:
+        mov     al,False
+@@Exit:
         pop     ds
 end; { checkDiskreet }
 
@@ -554,7 +554,7 @@ asm
         int     21h
         jc      @@5
        test    al,al
-       jz      @@check_Bernoulli
+       jz      @@Removable
 (* X-Man >>> *)
 {$IFDEF DPMI}
        push    es
@@ -648,33 +648,13 @@ asm
 (* X-Man <<< *)
        mov     bl,dtRAMDrive
        jc      @@Done
-       jmp     @@fixed
-@@check_Bernoulli:
-       cmp     Drive,2
-       jbe     @@6
-       push    ds
-       mov     ah,1Ch
-       mov     dl,Drive
-       int     21h
-       cmp     byte ptr ds:[bx],0FDh
-       pop     ds
-       jnz     @@6
-       push    ds
-       mov     ah,32h
-       mov     dl,Drive
-       int     21h
-       cmp     byte ptr ds:[bx+0Bh],2
-       pop     ds
-       jz      @@6
-       mov     bl,dtBernoully
-       jmp     @@Done
 @@fixed:
         mov     bl,dtFixed
         jmp     @@Done
 @@5:
        sub     bl,bl
        jmp     @@Done
-@@6:
+@@Removable:
        mov     bl,dtRemovable
 @@Done:
        mov     al,bl

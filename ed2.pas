@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn230-remove_useless_CapitalCodePageName_option.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -282,18 +285,11 @@ begin
   if P^.EdOpt.ForcedCrLf = cfCRLF then S:=S+Ch2+'CrLf'       else
   if P^.EdOpt.ForcedCrLf = cfLFCR then S:=S+Ch2+'LfCr'       else
                                  S:=S+Ch2+'::::';
-  if CapitalCodePageName then
-   case P^.KeyMap of   {-$VIV--}
-     kmAscii: S := S+Ch2+'Dos'+Ch2;
-     kmAnsi:  S := S+Ch2+'Win'+Ch2;
-     kmKoi8r: S := S+Ch2+'Koi'+Ch2;
-   end
-  else
-   case P^.KeyMap of   {-$VIV--}
+  case P^.KeyMap of   {-$VIV--}
      kmAscii: S := S+Ch2+'DOS'+Ch2;
      kmAnsi:  S := S+Ch2+'WIN'+Ch2;
      kmKoi8r: S := S+Ch2+'KOI'+Ch2;
-   end;
+  end;
   if FastBookmark then
   begin
     S := S + Ch2+'<';    {-$VIV 20.05.99--}

@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2510-resource_and_help_fixes_20020516.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -923,6 +926,9 @@ begin
                                 end;
                                 ViewMode := 2; DrawView; CE end;
               {cmFATMode: begin ViewMode := 3; DrawView; CE end;}
+              cmMainMenu: begin
+                           Message(DNApp.MenuBar, evCommand, cmMenu, nil); CE;
+                          end;
              end;
   evKeyDown: case Event.KeyCode of
                kbESC: begin CE; Message(Application, evCommand, cmClose, nil); end;
@@ -1439,14 +1445,15 @@ constructor TFixerWindow.Init;
      P: PView;
      PV: PDiskFixer;
      UpMenu: PMenu;
-     MenuBar: PMenuBar;
+     MenuBar: PView;
 begin
  Desktop^.GetExtent(R);
  inherited Init(R, GetString(dlDiskFixer), 0);
  GetExtent(R); R.Grow(-1, -1); R.B.Y := R.A.Y + 1;
- MenuBar := PMenuBar(LoadResource(dlgFixerMenu));
+ MenuBar := PView(LoadResource(dlgFixerMenu));
  if MenuBar = nil then Fail;
  MenuBar^.Locate(R);
+ MenuBar^.GrowMode := gfGrowHiX;
  Insert(MenuBar);
 
  GetExtent(R); R.Grow(-1, -1); Inc(R.A.Y);

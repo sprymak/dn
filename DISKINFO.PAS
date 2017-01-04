@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn269-diskinfo.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -99,10 +102,9 @@ type
 
  function CountDirLen(const Dir: String; Recurse: Boolean; {DataCompBoy}
                       var ClusterLen: TSize; var NumFiles: Integer): TSize;
- procedure GetDrInfo(Drv: Byte);
+ function GetDrInfo(Drive: String): TSize;{piwamoto}
  procedure ReadDiskInfo(const Dr: String; var B: TDiskInfoRec; ShowFlags: Integer);
  {$IFNDEF OS2} function  GetVolumeLabel: Str12; {$ENDIF}   {JO}
- function Disk_Free(Drive: Byte): TSize;
 
 const
        CDiskInfo     = #23#24;
@@ -775,104 +777,82 @@ begin
 end;
         {-DataCompBoy-}
 
-        {-DataCompBoy-}
+function GetDrInfo(Drive: String): TSize;{piwamoto}
 {$IFNDEF VIRTUALPASCAL}
-const DriveConstant: array[0..3] of Char = ('?',':','\',#0);
-      SizeOfDriveData: Word = SizeOf(DriveData);
-procedure GetSpace(Drive : Char);
-assembler;
-asm
-  pusha
-
-  push ES
-  push DI
-  mov CX, SizeOfDriveData
-  shr CX, 1
-  mov AX, SEG DriveData
-  mov ES, AX
-  mov DI, OFFSET DriveData
-  mov AX, 0
-  cld
-@@REP:
-  rep stosw
-{i286 REP bug fix begin}
-  jcxz  @@next
-  loop  @@REP
-@@NEXT:
-{i286 REP bug fix end}
-  pop DI
-  pop ES
-
-  mov AH,$36
-  mov DL,Drive
-  sub DL,64
-  int $21
-  push AX
-  mov AX, SEG DriveData
-  mov ES, AX
-  mov SI, OFFSET DriveData
-  pop AX
-  mov ES:[SI+004h], AX {sectors per cluster}
-  mov ES:[SI+008h], CX {Bytes per sector}
-  mov ES:[SI+00Ch], BX {avail clusters}
-  mov ES:[SI+010h], DX {total clusters}
-
-  mov CX, SizeOfDriveData
-  mov AX, SEG DriveConstant
-  mov DS, AX
-  mov DI, OFFSET DriveConstant
-  mov DX, DI
-  mov AL, Drive
-  mov byte ptr DS:[DI], AL
-  mov AX, SEG DriveData
-  mov ES, AX
-  mov DI, OFFSET DriveData
-  mov AX, 7303h
-  int 21h
-  popa
-end;
+var
+{$IFDEF DPMI}
+  Reg: DPMIRegisters;
+  Pdata, Pdrive: Pointer;
+{$ELSE}
+  Reg: Registers;
 {$ENDIF}
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-procedure GetDrInfo(Drv: Byte);
- var Dr : Char;
 begin
- if Drv = 0 then Dr := GetCurDrive else Dr := Char(Drv+64);
- {$IFNDEF VIRTUALPASCAL}
- GetSpace(Dr);
- BytesPerCluster:=DriveData.SectorsPerCluster;
- BytesPerCluster:=BytesPerCluster*DriveData.BytesPerSector;
- FreeSpc:=BytesPerCluster;
- FreeSpc:=FreeSpc*DriveData.AvailClusters;
- TotalSpc:=BytesPerCluster;
- TotalSpc:=TotalSpc*DriveData.TotalClusters;
- {$ELSE}
- BytesPerCluster:=0;{?}
- FreeSpc :=SysDiskFreeLong(Drv);
- TotalSpc:=SysDiskSizeLong(Drv);
- {$ENDIF}
-end;
-        {-DataCompBoy-}
-
-function Disk_Free(Drive: Byte): TSize;
+  if (Drive[length(Drive)] = '\') and (Drive[length(Drive) - 1] <> ':')
+    then Dec(Drive[0]);
+  Drive := Drive + #0;
+  FillChar(DriveData, SizeOf(DriveData), 0);
+  FillChar(Reg, SizeOf(Reg), 0);
+  Reg.AX := $7303;
+  Reg.CX := SizeOf(DriveData);
+{$IFDEF DPMI}
+  Pdrive := GetDosMem(SizeOf(Drive), Reg.DS);
+  Move(Drive, Pdrive^, SizeOf(Drive));
+  Reg.DX := 1;
+  Pdata := GetDosMem(SizeOf(DriveData), Reg.ES);
+  Move(DriveData, Pdata^, SizeOf(DriveData));
+{  Reg.DI := 0;}{cleaned by fillchar}
+  SimulateRealModeInt($21, Reg);
+  Move(Pdata^, DriveData, SizeOf(DriveData));
+  FreeDosMem(Pdata);
+  FreeDosMem(Pdrive);
+{$ELSE}
+  Reg.DS := Seg(Drive);
+  Reg.DX := Ofs(Drive)+1;
+  Reg.ES := Seg(DriveData);
+  Reg.DI := Ofs(DriveData);
+  Intr($21, Reg);
+{$ENDIF}
+  if (DriveData.RecSize = 0) and (Copy(Drive, 1, 2) <> '\\') then
+    begin
+      FillChar(Reg, SizeOf(Reg), 0);
+      Reg.AH := $36;
+      Reg.DL := Byte(UpCase(Drive[1]))-64;
+      {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($21, Reg);
+      DriveData.SectorsPerCluster := Reg.AX;
+      DriveData.BytesPerSector := Reg.CX;
+      DriveData.AvailClusters := Reg.BX;
+      DriveData.TotalClusters := Reg.DX;
+    end;
+  BytesPerCluster:=DriveData.SectorsPerCluster;
+  BytesPerCluster:=BytesPerCluster*DriveData.BytesPerSector;
+  FreeSpc:=BytesPerCluster;
+  FreeSpc:=FreeSpc*DriveData.AvailClusters;
+  TotalSpc:=BytesPerCluster;
+  TotalSpc:=TotalSpc*DriveData.TotalClusters;
+{$ELSE}
+var
+  Dr : Byte;
 begin
-  GetDrInfo(Drive);
-  Disk_Free := FreeSpc;
+  Dr := Byte(UpCase(Drive[1]))-64;{piwamoto}{old style detection}{has BUGS !!!}
+  BytesPerCluster:=0;{?}
+  FreeSpc :=SysDiskFreeLong(Dr);
+  TotalSpc:=SysDiskSizeLong(Dr);
+{$ENDIF}
+  GetDrInfo := FreeSpc;
 end;
 
         {-DataCompBoy-}
 procedure ReadDiskInfo;
- var  VolumeLabel: String[12];
-      SerialNo: String[9]; { Rainbow }
-      FileSys: String[8]; { Rainbow }
-      L: Byte absolute VolumeLabel;
-      S: String;
-      S1, S2: String[30];
-      Drv: Byte;
+ var
       F: PTextReader;
       DirLen: TSize;
       NumFiles: Integer;
+      VolumeLabel: String[12];
+      L: Byte absolute VolumeLabel;
+      SerialNo: String[9]; { Rainbow }
+      FileSys: String[8]; { Rainbow }
+      S1, S2: String[30];
+      S: String;
 begin
   ClrIO;
   if Dr = '' then GetDir(0, S)
@@ -883,9 +863,9 @@ begin
 
   B.Title := NewStr(GetString(dlDICurDir)+':');
   B.Dir := NewStr(S);
-  Drv := Byte(S[1])-64;
 
-  GetDrInfo(Drv);if Abort then Exit;
+  GetDrInfo(S);
+  if Abort then Exit;
   BytesPerCluster:=DriveData.BytesPerSector;
   BytesPerCluster:=BytesPerCluster*DriveData.SectorsPerCluster;
 
@@ -894,6 +874,22 @@ begin
 
   B.Total := NewStr('~'+FStr(TotalSpc)+GetString(dlDITotalDisk)+Copy(S,1,2)+'~');
   B.Free := NewStr('~'+FStr(FreeSpc)+GetString(dlDIFreeDisk)+Copy(S,1,2)+'~');
+
+{piwamoto: \\server\share hasn't VolumeLabel, SerialNo, FileSys info}
+{valid only for mapped drives}
+  if S[1] <> '\' then
+  begin
+    VolumeLabel := GetVolumeLabel{$IFDEF OS2}(GetCurDrive){$ENDIF};  {JO}
+    {$IFDEF OS2}
+    if VolumeLabel = '' then VolumeLabel:=GetString(dlDINone);       {JO}
+    {$ENDIF}
+    B.VolumeID := NewStr(GetString(dlDIVolumeID) + S[1] + ': ' + VolumeLabel + '~');
+    { Rainbow BEGIN }
+    GetSerFileSys(SerialNo,FileSys);
+    B.SerialNo := NewStr(GetString(dlDISerialNo) + S[1] + ': ' + SerialNo + '~');
+    B.FileSys := NewStr(GetString(dlDIFileSys) + S[1] + ': ' + FileSys + '~');
+    { Rainbow END }
+  end;
 
   if NumFiles = 0 then B.Files := NewStr(GetString(dlDINoFiles))
    else
@@ -944,16 +940,6 @@ begin
       Dispose(F,Done); F:=nil;
     end;
   end;
-  VolumeLabel := GetVolumeLabel{$IFDEF OS2}(GetCurDrive){$ENDIF};  {JO}
-  {$IFDEF OS2}
-  if VolumeLabel = '' then VolumeLabel:=GetString(dlDINone);       {JO}
-  {$ENDIF}
-  B.VolumeID := NewStr(GetString(dlDIVolumeID) + Char(Drv+64) + ': ' + VolumeLabel + '~');
-  { Rainbow BEGIN }
-  GetSerFileSys(SerialNo,FileSys);
-  B.SerialNo := NewStr(GetString(dlDISerialNo) + Char(Drv+64) + ': ' + SerialNo + '~');
-  B.FileSys := NewStr(GetString(dlDIFileSys) + Char(Drv+64) + ': ' + FileSys + '~');
-  { Rainbow END }
 end;
         {-DataCompBoy-}
 

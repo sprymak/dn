@@ -59,6 +59,16 @@
 //  dn200-files_panel_bugs_fix.patch
 //
 //  2.3.0
+//  dn230-file_panel_left_right_moving_fix.patch
+//  dn230-files_panel_bugs_fix.patch
+//  dn230-esc_works_when_cmdline_disabled.patch
+//  dn230-files_panel_bugs_fix_1.patch
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//  dn230-ctrl_ins_fix_incorrect_filename_case.patch
+//  dn2522_manual_save_desktop.patch
+//  dn230_force_mouse_scroll.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -147,6 +157,7 @@ uses
   {$IFDEF MODEM}{$IFDEF LINK}, NavyLink{$ENDIF}{$ENDIF}
 {$IFDEF UUENCODE},UUCode{$ELSE}
 {$IFDEF UUDECODE},UUCode{$ENDIF}{$ENDIF}
+  , flpanel
   ;
 
 procedure TFilePanelRoot.IncDrawDisabled;
@@ -215,8 +226,13 @@ begin
  GetPeerViewPtr(S, DirView);
  GetPeerViewPtr(S, InfoView);
  GetPeerViewPtr(S, DriveLine);
+
+{--- start -------- Eugeny Zvyagintzev ---- 27-03-2002 ----}
+ Drives.DriveLoadingError:=False;
  Drive := PDrive(S.Get);
- BadDrv:=(Drive = Nil);
+ BadDrv:=Drives.DriveLoadingError;
+{--- finish -------- Eugeny Zvyagintzev ---------}
+
  if Drive = nil then New(Drive, Init(0, @Self, 0)) else Drive^.Owner:=@Self;
  DeltaX := 0;
  Drive^.RereadDirectory('');
@@ -276,6 +292,7 @@ begin
     or (StartupData.UnLoad and osuPreserveDir <> 0)
     or (word((@DirectoryName[1])^)=$2F2F{//})
     or (word((@DirectoryName[1])^)=$5C5C{\\})
+    or (ManualSave) {John_SW}
    then S.Put(Drive) else S.Put(nil);
  S.Write(FileMask, 1 + Length(FileMask));
  S.Write(SortMode, 1);
@@ -899,9 +916,9 @@ var
  function MakeFName(Idx: LongInt; Mode: Boolean; Sq: Boolean): String;
  begin
    PF := Files^.At(Idx);
-   if (ShiftState and kbAltShift <> 0)
-    then FreeStr := GetLFN(PF^.LFN)
-    else FreeStr := MakeFileName(PF^.Name);
+   FreeStr := GetLFN(PF^.LFN);
+   if ShiftState and kbAltShift = 0
+     then FreeStr := GetName(lfGetShortFileName(FreeStr));
    if PosChar('.', FreeStr) = 0 then AddStr(FreeStr, '.');
    if (Drive^.DriveType = dtDisk) then
     If (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
@@ -1124,7 +1141,7 @@ var
        Message(@Self, evCommand, cmChangeDirectory, @Q)
       end else begin
        Dr:=nil;
-       Dr:=New(PArcDrive,Init(S, Drive^.innum));
+       Dr:=New(PArcDrive,Init(S, S, Drive^.innum));
        if Dr=nil then Dr:=New(PArvidDrive,Init(S, Drive^.innum));
        if Dr=nil then exit;
        Message(@Self, evCommand, cmInsertDrive, Dr);
@@ -1510,7 +1527,7 @@ kbCtrlDel: if Files^.Count > 0 then
             end;
 kbCtrlIns,kbShiftIns: if ShiftState and kbCtrlShift<>0 then _CtrlIns;
 kbCtrlEnter: _CtrlEnter;
-    kbLeft: if (Size.X > LineLength) then
+    kbLeft: if (Size.X + 2 > LineLength) then
              if (Delta>0) or
                 (ScrollBar^.Value >
                  Size.Y - Byte(FMSetup.Show and fmsColumnTitles<>0)) then begin
@@ -1529,7 +1546,7 @@ kbCtrlEnter: _CtrlEnter;
                   if InfoView <> nil then InfoView^.DrawView;
                   CE;
                  end;
-    kbRight: if Size.X > LineLength then begin
+    kbRight: if Size.X + 2 > LineLength then begin
               aaa := Delta;
               Owner^.Lock;
               ScrollBar^.SetValue(ScrollBar^.Value + Size.Y - Byte(FMSetup.Show and fmsColumnTitles <> 0));
@@ -1577,7 +1594,9 @@ kbCtrlEnter: _CtrlEnter;
                   and (PF^.Attr and Directory = 0) and (Drive^.DriveType <> dtArc )
                   and (Drive^.DriveType <> dtFind ) and (Drive^.DriveType <> dtArvid )
                   and (Drive^.DriveType <> dtList )
-                  and (ArcViewer(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)), Drive^.Param))
+                  and (ArcViewer(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)),
+                                 MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)),
+                                 Drive^.Param))
                   then begin CE; Exit; end;
                if (PF <> nil) then
                if (PF^.Attr and Directory <> 0) then
@@ -1621,6 +1640,11 @@ kbCtrlEnter: _CtrlEnter;
     kbGrayPlus: begin SelectFiles(@Self, On, ShiftState and 3 <> 0); CE end;
     kbGrayMinus: begin SelectFiles(@Self, Off, ShiftState and 3 <> 0); CE end;
     kbAltUp, kbAltDown: FindNextSelFile( Event.KeyCode = kbAltDown ); {-$VIV}
+{--- start -------- Eugeny Zvyagintzev ---------}
+    kbEsc: if (InterfaceData.Options and ouiHideCmdline <> 0) and
+              (InterfaceData.Options and ouiEsc <> 0) then
+            Message(Application, evCommand, cmShowUserScreen, nil);
+{--- finish -------- Eugeny Zvyagintzev ---------}
     else if ShowKeyCode and 1>0 then
           begin
            l:=Event.KeyCode;
@@ -1967,6 +1991,7 @@ begin
                       SelectFlag := not PF^.Selected;
                      end;
                     repeat
+                     PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
                      Message(Owner, evKeyDown, kbUp, nil)
                     until not MouseEvent(Event, evMouseMove + evMouseAuto);
                     RepeatDelay := LastRDelay; CE; MSelect := Off;

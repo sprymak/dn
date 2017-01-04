@@ -133,8 +133,10 @@ const
      dlAbout = #13#3'Dos Navigator Open Source'#13+
      {$IFDEF LITE}+#3'Light version'+{$ELSE}+#13+{$ENDIF}
      +#13#3'Version %s, %s'+
-     +#13#3#0'http://www.nsk.su/~dnosp/'#0+
-     +#13#3#0'http://dn.traktir.ru'#0+
+     +#13#3#0'http://www.dnosp.ru'#0+
+     +#13#3#0'http://dnosp.fatal.ru'#0+
+{     +#13#3#0'http://dn.traktir.ru'#0+}
+     +#13#3#0'http://www.sama.ru/~piwamoto/'#0+
      +#13#13+
      +#13#3'Based on Dos Navigator'+
      +#13#3'Copyright (C) 1991-99 RIT Research Labs'#13#13;

@@ -52,6 +52,10 @@
 //  dn16rc1-vp_noasm_compatible.patch
 //
 //  2.0.0
+//  dn200-very_large_file_edit.patch
+//  dn230-temp_folder_absent_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -102,6 +106,10 @@ begin
   if TempDir = '' then TempDir := GetEnv('TMP');
   if TempDir = '' then TempDir := SourceDir;
   if (TempDir <> '') and (not (TempDir[Byte(TempDir[0])] in ['\','/'])) then TempDir := TempDir + '\';
+{--- start -------- Eugeny Zvyagintzev ---- 02-05-2002 ----}
+  if (TempDir <> SourceDir) and (not PathExist(TempDir)) then
+   TempDir:=SourceDir;
+{--- finish -------- Eugeny Zvyagintzev --------}
 end;
         {-DataCompBoy-}
 
@@ -735,6 +743,15 @@ begin
     WriteLn(      'Please check if 400K memory is available');
     Halt(203);
  end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 25-03-2002 -----}
+{Now DN will be able to edit vary large file.}
+{But up to 30-40Mb and in DPMI mode only :( }
+{$IFDEF DPMI}
+ HeapBlock:=65000;
+{$ENDIF}
+{--- finish -------- Eugeny Zvyagintzev ---------}
+
  Randomize;
 
  Init09Handler;
@@ -910,5 +927,6 @@ GrabPalette;
  TottalExit := On;
  MyApplication.Done;
 end;
+
 
 END.

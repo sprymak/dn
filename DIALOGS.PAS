@@ -51,6 +51,9 @@
 //  dn15112-history_button.patch
 //
 //  2.0.0
+//  dn2522_change_text_case_in_dialogs_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -999,13 +1002,24 @@ begin
                             inc(i);
                            until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
-            kbCtrlSlash,
-            kbCtrlBSlash:if ShiftState and (kbLeftShift+kbRightShift)<>0
+{--- start -------- Eugeny Zvyagintzev ---- 02-06-2002 -----}
+            kbCtrlSlash : Begin
+                           If Data^[CurPos+1] = UpCase(Data^[CurPos+1]) Then
+                            Data^[CurPos+1]:=LowCase(Data^[CurPos+1])
+                           Else
+                            Data^[CurPos+1]:=UpCase(Data^[CurPos+1]);
+                           Inc(CurPos);
+                           If CurPos > Length(Data^) Then
+                            CurPos:=Length(Data^);
+                          End;
+{--- finish -------- Eugeny Zvyagintzev ---- 02-06-2002 -----}
+            kbCtrlBSlash: if ShiftState and (kbLeftShift+kbRightShift)<>0
                           then CapStr(Data^)
                           else begin
                            I:=CurPos;
                            While (not (Data^[I] in BreakChars)) and (I>1) do Dec(i);
                            if (Data^[I] in BreakChars) then inc(I);
+                           if i = 0 then i:=1; {John_SW}
                            Data^[I]:=UpCase(Data^[I]); inc(I);
                            Repeat
                             Data^[I]:=LowCase(Data^[I]);

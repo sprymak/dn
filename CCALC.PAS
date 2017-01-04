@@ -52,6 +52,11 @@
 //  dn16rc1-vp_noasm_compatible.patch
 //
 //  2.0.0
+//  dn269-calculator_bugs_fix.patch
+//  dn2628-calculator_bugs_fix.patch
+//  dn2628-calculator_error_messages_improve.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -181,9 +186,10 @@ begin
                   Owner^.GetData(D);
                   case D.N of
                     0: begin
-                         Str(Value:0:20, D.S);
-                         While D.S[Length(D.S)] = '0' do Dec(D.S[0]);
+                         if Abs(Value)>=1E+14 then Str(Value, D.S) else Str(Value:0:20, D.S); { Flash }
+                         if Pos('E',D.S)=0 then While D.S[Length(D.S)] = '0' do Dec(D.S[0]);  { Flash }
                          if D.S[Length(D.S)] = '.' then Dec(D.S[0]);
+                         DelSpace(D.S);                                                       { Flash }
                        end;
                     1: if Abs(Value) < 4294967295.0 then GetNValue(CTrunc(Value), 4, D.S) else Exit;
                     2: if Abs(Value) < 4294967295.0 then GetNValue(CTrunc(Value), 1, D.S) else Exit;
@@ -221,12 +227,38 @@ begin
         MoveChar(B, ' ', C, Size.X);
         WriteLine(0,0,Size.X,2,B);
         WriteLine(0,3,Size.X,2,B);
-        S:=GetString(dlMsgError);
+
+        { Flash >>> }
+        case ErrCode of
+        Too_Large_Number        : S:=GetString(clToo_Large_Number);
+        Argument_Missing        : S:=GetString(clArgument_Missing);
+        Syntax_Error            : S:=GetString(clSyntax_Error);
+        Unknown_Function        : S:=GetString(clUnknown_Function);
+        Left_Bracket_Missing    : S:=GetString(clLeft_Bracket_Missing);
+        Right_Bracket_Missing   : S:=GetString(clRight_Bracket_Missing);
+        Operation_Expected      : S:=GetString(clOperation_Expected);
+        Unknown_Symbol          : S:=GetString(clUnknown_Symbol);
+        Two_Operations          : S:=GetString(clTwo_Operations);
+        Comma_Missing           : S:=GetString(clComma_Missing);
+        Too_Many_Commas         : S:=GetString(clToo_Many_Commas);
+        Incorrect_Usage         : S:=GetString(clIncorrect_Usage)+ErrString;
+        Division_By_Zero        : S:=GetString(clDivision_By_Zero);
+        LOG_Wrong_Base          : S:=GetString(clLOG_Wrong_Base);
+        Power_Wrong_Index       : S:=GetString(clPower_Wrong_Index);
+        Root_Wrong_Index        : S:=GetString(clRoot_Wrong_Index);
+        Wrong_Argument          : S:=GetString(clWrong_Argument)+ErrString;
+        Power_Wrong_Argument    : S:=GetString(clPower_Wrong_Argument);
+        Incorrect_Form          : S:=GetString(clIncorrect_Form)+ErrString;
+        else S:=GetString(dlMsgError)
+        end;
+        { Flash <<< }
+
         MoveStr(B[(Size.X - Byte(S[0])) div 2], S, C);
         WriteLine(0,2,Size.X,1,B);
      end else
      begin
-       Str(Value:0:20, S);
+       if Abs(Value)>=1E+14 then Str(Value, S)        { Flash }
+                            else Str(Value:0:20, S);  { Flash }
        if PosChar('E', S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
        if S[Length(S)] = '.' then Dec(S[0]);
        Wrt(0);
@@ -310,9 +342,10 @@ begin
    if SetSelf then begin
     GetData(S);
     HistoryAdd(hsCalcLine, S);
-    Str(R:0:20, S);
-    While S[Length(S)] = '0' do Dec(S[0]);
+    if Abs(R)>=1E+14 then Str(R, S) else Str(R:0:20, S);          { Flash }
+    if Pos('E', S)=0 then While S[Length(S)] = '0' do Dec(S[0]);  { Flash }
     if S[Length(S)] = '.' then Dec(S[0]);
+    DelSpace(S);                                                  { Flash }
     SetData(S);
     Message(@Self, evKeyDown, kbEnd, nil);
     SelStart:=0;

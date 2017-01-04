@@ -58,6 +58,12 @@
 //  dn200-editor_replace_all_fix.patch
 //
 //  2.3.0
+//  dn230-save_smartpad_edit_history.patch
+//  dn230-editor_replace_all_fix.patch
+//  dn247-text_and_file_find_improve.patch
+//  dn2421-text_replace_improve.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -171,7 +177,7 @@ type
     procedure SetState(AState: Word; Enable: Boolean); virtual;
     function  ValidBlock: Boolean;
     procedure CalcMenu;
-    function  Search(StartX, StartY: AWord): Boolean;
+    function  Search(StartX, StartY: LongInt): Boolean;
     procedure InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
     procedure ModifyLine(Index : LongInt; S : String; DelSpaces: Boolean);
     procedure SetLimits;
@@ -992,12 +998,14 @@ function TFileEditor.Valid(Command: Word): Boolean;
 begin
   Valid := On; V := On;
   if Command = cmValid then Valid := isValid;
-  if (SmartPad or ClipBrd) then
+{--- start -------- Eugeny Zvyagintzev ---------}
+  {if (SmartPad or ClipBrd) then
    begin
      if Modified then Message(@Self, evCommand, cmSaveText, nil);
      PEditWindow(Owner)^.ModalEnd := True;
      Exit;
-   end;
+   end;}
+{--- finish -------- Eugeny Zvyagintzev ---------}
   if ((Command = cmClose) or (Command = cmQuit)) then
     begin
       if Modified then
@@ -1012,7 +1020,7 @@ begin
           V := not ((I = cmCancel) or (I = cmYes) and Modified);
          end;
       Valid := V;
-      if V and not(SmartPad or ClipBrd)and (Owner <> nil) then StoreEditInfo(Owner);
+      if V {and not(SmartPad or ClipBrd)}and (Owner <> nil) then StoreEditInfo(Owner);
     end;
 end;
 
@@ -1037,6 +1045,12 @@ function TFileEditor.Search;
      OldCache: Boolean;
      Tmr: TEventTimer;
      AllCP: Boolean; {-$VIV 14.05.99}
+{--- start -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
+{Now DN will display Search Progress Window}
+     Info: PWhileView;
+     CancelSearch: Boolean;
+     R: Trect;
+{--- finish -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
 
 procedure _DrawViews;
 begin
@@ -1054,6 +1068,7 @@ begin
 { OldCache := PBlocker(FileLines)^.UseCache;}
  Marking := Off;
  OldMark := Mark;
+ Info:=Nil;
  if (SearchData.Scope = 1) and not (BlockVisible and ValidBlock) then goto LExit;
  Search := Off; F := On;
  Prompt := (SearchData.What <> #0) and (SearchData.Options and 4 <> 0);
@@ -1063,11 +1078,31 @@ begin
  UnMark := Off;
  NumRep := 0;
  Dir := 1 - 2 * SearchData.Dir;
+
+{--- start -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
+ R.Assign(1,1,30,9);
+ New(Info, Init(R));
+ Info^.Top := GetString(dlSearching) + '"' + Cut(W, 40) + '"';
+ Desktop^.Insert(Info);
+ CancelSearch:=False;
+{--- finish -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
+
  while (Dir > 0) and (D.Y < FileLines^.Count) or
        (Dir < 0) and (D.Y >= 0) do
     begin
 1:   S1 := GetLine(D.Y); TrX := Length(S1); S := S1;
 {     PBlocker(FileLines)^.UseCache := True;}
+{--- start -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
+     if TimerExpired(Tmr) then
+     begin
+       Info^.Write(1, StrGrd(FileLines^.Count, D.Y, 30, False));
+       Info^.Write(2, ZtoS(Percent(FileLines^.Count,D.Y))+'%');
+       DispatchEvents(Info,CancelSearch);
+       If CancelSearch Then
+        Break;
+       NewTimer(Tmr, 1);
+     end;
+{--- finish -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
      if (Dir < 0) then
        begin
         if (D.X > Length(S1)) then D.X := Length(S1);
@@ -1119,11 +1154,6 @@ begin
        Delta := D;
        HScroll^.Value := D.X; {HScroll^.DrawView;}
        VScroll^.Value := D.Y;
-       if TimerExpired(Tmr) then
-       begin
-         VScroll^.DrawView;
-         NewTimer(Tmr, 1);
-       end;
        if (D.Y - Pos.Y > Size.Y) then Pos.Y := D.Y - Size.Y div 2
          else if (D.Y < Pos.Y) then Pos.Y := Max(0, D.Y-5);
        if (D.X - Pos.X > Size.X - 10) then Pos.X := D.X - Size.X div 2
@@ -1142,8 +1172,10 @@ begin
               (T.A.Y <= (Desktop^.Size.Y{+12}) div 2) then T.A.Y := (Desktop^.Size.Y+4) div 2
                    else T.A.Y := (Desktop^.Size.Y-18) div 2;
            T.B.Y := T.A.Y + 8;
+           If Info <> Nil Then Info^.SetState(sfVisible,False);
            J := MessageBoxRect(T, GetString(dlQueryReplace), nil,
                     mfQuery+mfYesButton+mfAllButton+mfNoButton+mfCancelButton);
+           If Info <> Nil Then Info^.SetState(sfVisible,True);
            if J = cmOK then begin J := cmYes; ReplaceAll := On; Prompt := Off end;
           end;
          if J = cmYes then
@@ -1170,14 +1202,16 @@ begin
              goto 1;
            Mark := OldMark;
            goto EndReplace;
-           end;
+           end
+         else begin Mark := OldMark; goto LExit; end;
         end
           else begin Mark := OldMark; LastPos.X := -1; {DrawView; }goto _LExit; end;
       end;
      if Dir > 0 then begin D.X := 0; Inc(D.Y); end
                 else begin D.X := 255; Dec(D.Y); end;
   end;
-  if F then
+  if Info<>nil then Dispose(Info,Done); Info:=nil;
+  if F And (Not CancelSearch) then
     begin
       SearchActive := Off;
       MessageBox(GetString(dlDBViewSearchNot), nil, mfError+mfOKButton);
@@ -1200,6 +1234,7 @@ LExit:
  _DrawViews;
 _LExit:
 { PBlocker(FileLines)^.UseCache := OldCache;}
+ if Info<>nil then Dispose(Info,Done); Info:=nil;
  SearchActive := Off;
 end;
 
@@ -3166,6 +3201,14 @@ procedure OpenSmartpad;
          end;
      end;
 
+
+{--- start -------- Eugeny Zvyagintzev ---------}
+Var
+  PS: PString;
+  V: PFileEditor;
+  I: Integer;
+  P: PEditRecord;
+{--- finish -------- Eugeny Zvyagintzev ---------}
 begin
   SmartWindow := SmartWindowPtr^; {Cat}
 
@@ -3188,6 +3231,46 @@ begin
       Exit;
     end;
   New(SmartWindow, Init(R, 'SmartPad'));
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Now DN will save and load SmartPad edit history}
+  V:=SmartWindow^.Intern;
+  FreeStr:=V^.EditName; System.Insert(' ', FreeStr, 1); UpStr(FreeStr);
+  PS := @FreeStr;
+  if (InterfaceData.Options and ouiTrackEditors <> 0) and (EditHistory <> nil)
+      then I := EditHistory^.IndexOf(@PS) else I := -1;
+  if I >= 0 then
+    begin
+     P:=EditHistory^.At(I);
+     R.Assign(P^.fOrigin.X, P^.fOrigin.Y, P^.fOrigin.X + P^.fSize.X, P^.fOrigin.Y + P^.fSize.Y);
+     AdjustToDesktopSize(R, P^.fDeskSize);
+     SmartWindow^.Locate(R);
+     With V^, P^ Do
+      Begin
+       MarkPos                := fMarks;
+       Mark.A                 := fBlockStart;
+       Mark.B                 := fBlockEnd;
+       ScrollTo(fDelta.X, fDelta.Y);
+       Pos                    := fPos;
+       BlockVisible           := fBlockVisible;
+       VertBlock              := fVerticalBlock;
+       EdOpt.HiLite           := fHighlight;
+       EdOpt.HiliteColumn     := fHiliteColumn;
+       EdOpt.HiliteLine       := fHiliteLine;
+       EdOpt.AutoIndent       := fAutoIndent;
+       EdOpt.AutoJustify      := fAutoJustify;
+       EdOpt.AutoBrackets     := fAutoBrackets;
+       EdOpt.LeftSide         := fLeftSide;
+       EdOpt.RightSide        := fRightSide;
+       EdOpt.InSide           := fInSide;
+       InsertMode             := fInsMode;
+       KeyMap                 := fKeyMap; {-$VIV}
+       WorkString := GetLine(fDelta.Y); {-$VIV 11.05.99}
+      End;
+   End
+  Else
+   StoreEditInfo(SmartWindow);
+{--- finish -------- Eugeny Zvyagintzev ---------}
+
   InsertInfo;
   if (PV <> Application) then
      begin

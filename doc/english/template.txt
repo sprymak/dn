@@ -23,7 +23,7 @@
 
   Affected DN language(s): <the list of resource languages affected or an
                            asterisk if the patch is language independent (such
-                           as an achive support logic patch)>
+                           as an archive support logic patch)>
 
   Tools required to apply: <utilities along with the minimum versions required
                            to apply the patch; this is the patch utility in

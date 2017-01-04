@@ -6,6 +6,214 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 2.7.0
+  ---------------------------------------------------------------------
+
+    >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed problem with detection of free space, creation and deletion of
+    directories on network drives (Max Vasilyev).
+
+[-] IOmega Bernoully detection removed because it needed to read the disk for
+    proper detection (Max Vasilyev).
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] New <Ctrl-A> hotkey added to call current file properties dialog
+    (Pavel Borodin).
+
+[+] Hotkeys <Shift-F5>/<Shift-F6> now invokes commands to copy/move
+    current file. Hotkey for "Split/Combine" functions assigned to
+    <Ctrl-Alt-F5> and "Reanimator" hotkey assigned to <Ctrl-Alt-F8>
+    (Pavel Borodin).
+
+[*] Useless "CapitalCodePageName" option removed from DN.INI (Max Vasilyev).
+
+[-] DOS ("User") screen did not show by pressing <Esc> if "command line"
+    option was disabled in file manager (Eugeny Zvyagintzev).
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Now DN correctly adjusts viewer & editor windows sizes in accordance
+    to current desktop size (Eugeny Zvyagintzev).
+
+[-] Fixed bug (first appeared in DN 2.3.0 release) which had resulted
+    on loss of current file position on file panel (Eugeny Zvyagintzev).
+
+[-] Navigation in file panel with <Left> and <Right> buttons did not work
+    when column width was equal to (or one char less than) current panel
+    width (Pavel Borodin).
+
+[-] Now DN does not ask for overwrite file confirmation if
+    "Accept choice for all files" was selected and "Rename" button pressed
+    (Eugeny Zvyagintzev).
+
+[+] Now DN saves "SmartPad" edit history (Eugeny Zvyagintzev).
+
+[*] Now DN correctly deletes folders marked as "Read-Only"
+    (Eugeny Zvyagintzev).
+
+[*] When viewed with external filter, and after filtering, a file is also
+    processed by internal DN viewer and external viewers specified in DN.VWR.
+    External filtering feature works as "F3 View" now (Max Vasilyev).
+
+[+] "File Find" process (with text string search) can be terminated at any
+    moment; and current file can be skipped as well (Eugeny Zvyagintzev).
+
+[-] Filenames got invalid name case after copying with <Ctrl-Ins>
+    (Max Vasilyev).
+
+[-] DN did not switch to next or previous window (by pressing <F9> or
+    <Shift-F9>) during "Find File" process, if current DN language
+    was Russian (Eugeny Zvyagintzev).
+
+[+] Now hotkeys <Ctrl-K> and <Alt-;> toggle show of current file path
+    in file manager panels (Pavel Borodin, Max Vasilyev).
+
+[*] Now DN displays correct number of files moved with mouse
+    (drag-and-drop) from "total info" panel (Eugeny Zvyagintzev).
+
+[+] If specified TEMP directories do not exist at DN startup, DN uses own
+    directory for temporary files (Eugeny Zvyagintzev).
+
+[-] Switch-over between current and full column display modes
+    (by pressing <Ctrl-Y>) in "FIND" or "TEMP" file panels now works
+    correctly (Pavel Borodin).
+
+[*] Now "Find Files" window can not be closed through DN Windows Manager
+    (Eugeny Zvyagintzev).
+
+[-] Folding/unfolding of Directory Tree branches with mouse clicks did not
+    work (Jaroslaw Osadtchiy).
+
+[*] Now DN saves current directory for both active and inactive panels
+    through menu "Save Desktop" (Eugeny Zvyagintzev).
+
+[-] Now DN correctly shows maximized File Panel shadow (Eugeny Zvyagintzev).
+
+[*] In scrolling file panel with mouse (except selected block), cursor now
+    jumps to first filename in file list of next page (Alexey Korop).
+
+[+] Directory History now works correctly with "\\server\share"
+    (Max Vasilyev).
+
+[-] If Directory History contained only 2 records (where upper record in
+    the list is always current and indelible) then deletion of second record
+    caused cursor to freeze in the list (without shifting to remaining
+    record) (Sergey Biryukov).
+
+[-] Fixed incorrect operation of copying and moving directory if target was
+    directory name with dot at the end (Sergey Biryukov).
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Now "Text to Find" operation in editor can be terminated at any moment
+    (Eugeny Zvyagintzev).
+
+[-] Sum of selected block was not calculated correctly if selection contained
+    empty lines (Eugeny Zvyagintzev).
+
+    >>> Database viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] History of viewing DBF files is saved correctly now (Eugeny Zvyagintzev).
+
+[*] Text search option in viewing WKZ and DBF files is the same as in DN
+    text file editor and viewer (Eugeny Zvyagintzev).
+
+[+] <Alt-W> hotkey now changes current column width in WKZ editor
+    (Pavel Borodin).
+
+[-] DN crashed in attempt to re-open DBF file if number of fields of DBF
+    file had been changed (by another program) since the last access to this
+    file within DN, and with the last field active (Eugeny Zvyagintzev).
+
+[-] Long fields are shown correctly in viewing DBF files (Eugeny
+    Zvyagintzev).
+
+[-] DN crashed in attempt to view DBF file with a field of 255 chars long
+    erroneously taken for "memo" field (Eugeny Zvyagintzev).
+
+[-] DN crashed at startup if DN had been closed before with DBF file opened
+    for viewing (Eugeny Zvyagintzev).
+
+[-] DN crashed when overflow occurred during WKZ cell calculations
+    (Eugeny Zvyagintzev).
+
+[*] Correct performance of command "Go to cell number [...]" in WKZ editor
+    (Eugeny Zvyagintzev).
+
+[*] Detection of damaged DBF file header (Eugeny Zvyagintzev).
+
+[+] Now DN can import comma-separated value (CSV) and dBase (DBF) files in
+    WKZ editor (Kirill Vodonosov, Eugeny Zvyagintzev, Max Vasilyev).
+
+[+] Now DN can export files from WKZ editor to comma-separated value (CSV)
+    and dBase (DBF) files (Kirill Vodonosov, Eugeny Zvyagintzev, Max
+    Vasilyev).
+
+[-] DN crashed in attempt to open any file via WKZ editor (Eugeny
+    Zvyagintzev).
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Operations with GZip archives are now done with external utilities.
+    It's not necessary to have TAR archive inside GZip (Max Vasilyev).
+
+[+] Reading Speed of ZIP archives is considerably increased (Max Vasilyev,
+    Jaroslaw Osadtchiy).
+
+[+] Now DN can work with multiple ZIP archive volumes. Last diskette
+    (volume) of this archive should be accessible for correct DN operation
+    (Max Vasilyev).
+
+[-] DN froze in attempt to view RAR 3.0 archives with encrypted headers.
+    Now DN shows RAR 3.0 archives with encrypted headers as empty archives
+    (Max Vasilyev, Jaroslaw Osadtchiy).
+
+[-] Few corrections in ZIP and GZ archive detection (Max Vasilyev).
+
+    >>> Calculator <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Fixed the following errors:
+    a) incorrect calculations of 10^31, 10^34 ¨ 10^35 in "DEC";
+    b) incorrect calculations of 10 with number degree more than 40 and
+       aliqout 10;
+    c) changing number to exponent view added blank space at beggining;
+
+    Lower limit for automatic conversion of decimal number to exponent view
+    now changed (Sergey Biryukov).
+
+[+] More flexible mechanism of error processing implemented in calculator.
+    Input expression syntax is analyzed before calculation; any error
+    detected in calculations invokes an appropriate error message
+    (Sergey Biryukov).
+
+[-] Fixed functions DIV, MOD, COSEC, ARCCOTAN, ARCCOSEC and operations
+    <=, >=, <>, !=. Power function works more correctly (Sergey Biryukov).
+
+    >>> Terminal <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed incorrect hotkeys in Terminal buffer operations (Pavel Borodin).
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Double pressing of <F10> in Disk Editor moves active cursor bar to main
+    menu (Pavel Borodin, Eugeny Zvyagintzev).
+
+[*] "Help" system works correctly now (Eugeny Zvyagintzev).
+
+[-] "Help" window shows correctly during file copying (Eugeny Zvyagintzev).
+
+[-] "Help" windows for CD player options and Floppy Formatter shows correctly
+    (Sergey Biryukov).
+
+[-] "Help" was not accessible at first startup with non-English resources
+    (Max Vasilyev).
+
+[*] Now <Ctrl-/> and <Ctrl-\> keys combinations work in Dialogs the same
+    way as in File Editor (Eugeny Zvyagintzev).
+
+
    Version 2.3.0
   ---------------------------------------------------------------------
 
@@ -169,14 +377,12 @@
     is now restored (Alexey Nemytov).
 
 
-
    Version 2.0.0
   ---------------------------------------------------------------------
 
 [!] Fixed occasional files deleting, hanging at file operations, 'missing'
     files in file panels, improved Novell Netware compatibility. Changes
     information added to the source codes.
-
 
     >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -213,7 +419,6 @@
     for files columns options dialogs. Added Ctrl-M hotkey for zooming
     window. Added IniFile topic, describing DN.INI structure, to English help
     files. (Pavel Borodin, Max Vasilyev).
-
 
     >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -276,7 +481,6 @@
 [-] Fixed copying catalogs descriptions containing a point in their
     names (Max Vasilyev).
 
-
     >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 [-] Fixed back search in view (Marcin Meinardi).
@@ -294,11 +498,9 @@
 [-] Fixed functioning of Undo/Redo after saving a file in the editor
     (Max Vasilyev).
 
-
     >>> Database viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 [-] Fixed databases identification (Max Vasilyev).
-
 
     >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -308,12 +510,10 @@
 
 [-] Fixed archive reading process indication (Max Vasilyev).
 
-
     >>> System Information <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 [*] Changed detecting hard disks of large sizes (more than 8 Gb)
     (Max Morozov, Max Vasilyev).
-
 
     >>> Calculator <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -328,7 +528,6 @@
     like -0xF8000001 (Max Morozov).
 
 [-] Fixed executing functions OR and XOR (Max Morozov).
-
 
     >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -348,7 +547,6 @@
 [-] Fixed hanging and occasional creating files in some computers
     (Marcin Meinardi).
 
-
     >>> Source codes usage features <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 [*] {$DEFINE COMBINE_MIXED} moved from the source codes to the panel options
@@ -363,7 +561,6 @@
 
 [!] Changes information added to the source codes.
     It is filled by the COORDINATOR only!
-
 
 
    Version 1.6.RC1 (Release Candidate 1)
@@ -2905,9 +3102,6 @@ Appendix: Dos Navigator startup options (DN.INI)
                               files (Dos, Win or Koi)
                               default: Dos
 
- CapitalCodePageName = bool - show the codepage names capitalized (for Chip)
-                              default: 0
-
  FastSearchDeep = long      - searching complementary begin/end, etc can fail
                               when comments contain these keywords. It is
                               recommended to set a limit for the nesting depth
@@ -2950,12 +3144,6 @@ Appendix: Dos Navigator startup options (DN.INI)
                              default: 4096
 
 ===========================================================================
-°°±²º The Dos Navigator: history since v1.30  º²²²±±±±±±±°°°°°°°°°°°°°°°°
-
-  [ş] Important note
-  [+] New feature
-  [-] Bug fix
-  [*] Bug fix and/or improvement
 
 
    Version 1.51
@@ -2964,21 +3152,16 @@ Appendix: Dos Navigator startup options (DN.INI)
 [ş] Dos Navigator is now FREEWARE.
 
 
-
    Version 1.50 Build 002: changes since Build 000
   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-
 
 [-] Fixed a bug with UUEncode, that could corrupt the configuration file.
 
 [-] Fixed a bug with adding dummy empty lines to the end of descripytion files.
 
 
-
-
    Version 1.50: changes since 1.42
   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-
 
    Global
     ßßßßßß
@@ -2988,8 +3171,6 @@ Appendix: Dos Navigator startup options (DN.INI)
 
 [!] Code is optimized for 286+ CPU, so now works slightly faster, but is not
       able to run on 8086-based computers.
-
-
 
    New HotKeys
     ßßßßßßßßßßß
@@ -3010,8 +3191,6 @@ Appendix: Dos Navigator startup options (DN.INI)
 
 [*] Quick Dirs came back in Tree Panel.
 
-
-
    UU Decode / Encode
     ßßßßßßßßßßßßßßßßßß
 
@@ -3024,8 +3203,6 @@ Appendix: Dos Navigator startup options (DN.INI)
 [-] Prefix 'table' is now processing without troubles.
 
 [-] Fixed bug with encoding on large sections (>700 lines)
-
-
 
    Viewer
     ßßßßßß
@@ -3057,8 +3234,6 @@ Appendix: Dos Navigator startup options (DN.INI)
 [-] Bug in when wrapping lines with Tabs.
 
 [-] Fixed percent calculation while searching substrings.
-
-
 
    Editor
     ßßßßßß
@@ -3100,7 +3275,6 @@ Appendix: Dos Navigator startup options (DN.INI)
        Center  ³ Ctrl-B ‘
     (Ctrl-B called ASCII table before)
 
-
    Archives
     ßßßßßßßß
 
@@ -3139,9 +3313,6 @@ Appendix: Dos Navigator startup options (DN.INI)
       archive date ('..' entry) became undefined.
 
 [-] Fixed percent calculation of large files in archive viewer.
-
-
-
 
    File Manager / Panels & Drives
     ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
@@ -3218,7 +3389,6 @@ Appendix: Dos Navigator startup options (DN.INI)
 
 [-] Was unable to call Copy/Move and some other dialogs just after making list
     file.
-
 
    Miscellaneous
     ßßßßßßßßßßßßß
@@ -3344,8 +3514,6 @@ Appendix: Dos Navigator startup options (DN.INI)
 
 [-] Fixed displaying of tilda character in file name of copy dialog boxes.
 
-
-
    Navigator Link
     ßßßßßßßßßßßßßß
 
@@ -3374,7 +3542,6 @@ Appendix: Dos Navigator startup options (DN.INI)
         Link allows to transfer text files and directory data twice faster
         on the same line. The compression works more efficient than modems'
         internal compression methods.
-
 
 
    Version 1.42: changes since 1.41
@@ -3436,6 +3603,7 @@ Appendix: Dos Navigator startup options (DN.INI)
   Spreadsheet
   ~~~~~~~~~~~
   [-] Bug with formulas ajustment after a deleting/inserting operation
+
 
    Version 1.41: changes since 1.40
   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
@@ -3559,9 +3727,9 @@ Appendix: Dos Navigator startup options (DN.INI)
       the data to another location
 
 
-
   Version 1.39 (4 October '95 ) - difference between version 1.38 Beta
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
   [ş] Registration procedure was optimized.
 
  Copy
@@ -3661,7 +3829,6 @@ Appendix: Dos Navigator startup options (DN.INI)
   [+] Ability to choose different help file language in DN Install
   [+] There is a new option in System Setup to clear keyboard buffer upon
       program start.
-
   [+] There is a option to disable global VGA palette usage in System Setup.
 
   [*] Configuration menu was changed.
@@ -3676,8 +3843,10 @@ Appendix: Dos Navigator startup options (DN.INI)
   [-] Comment lines will not be copied from DN.XRN into  *.bat
   [-] Bug in VGA-Palette ( problem with TSENG video BIOS )
 
+
   Version 1.37 Shareware (13 July 1995) - changes since 1.35
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
   [ş] Demo keys are not supported any more
   [ş] Support for .TDR files - directories of Arvid streamer
   [ş] UU Encode\Decode files opportunity is added
@@ -3731,7 +3900,6 @@ Appendix: Dos Navigator startup options (DN.INI)
   [-] CapsLock status was not restored after using [CapsLock+Character] for
       incremental search
   [-] Dragging a name of the file using Drag-and-drop to the self is ignored
-
   [-] The situation of divider of the right and left panel of the manager
       was not saved at change of a video mode
   [-] The incremental search in file panel does not corresponded with a
@@ -3751,7 +3919,6 @@ Appendix: Dos Navigator startup options (DN.INI)
       in newly created  config.sys on floppy disk.
   [+] Phone book - new functions: <Sort> <Search> <Import> <Dupe>
 
-
   [*] In the Phone book the items in the groups are now organized
       by a principle of directories and files. Pressing [Enter] on item
       results in automatic start of a Call-back
@@ -3763,13 +3930,11 @@ Appendix: Dos Navigator startup options (DN.INI)
 
   [-] Number of bugs in calculator corrected; New logical functions and
       functions of the relations introduced.
-
   [-] TrashCan will not hide under File Managers.
   [-] Trashcan was not saved in .DSK
   [-] Phone field in the Phone Book had maximal length of 20, so one could not
       fit some long international numbers. Now phone field has length of 100
       characters.
-
 
  Text Editor
  ~~~~~~~~~~~
@@ -3838,7 +4003,6 @@ Appendix: Dos Navigator startup options (DN.INI)
 
   [*] There were corrected many of color setup. Now the colors of many
        interface elements can being set up in Options|Colors...
-
   [*] Option 'Enable blinking' added to colors setup
   [*] All external palettes are stored in directory called COLORS\
 
@@ -3890,7 +4054,6 @@ Appendix: Dos Navigator startup options (DN.INI)
   [*] New Install utility
   [*] 'Disable XMS usage' and 'Disable EMS usage' in System setup
   [*] Many options, dialog boxes and menu are ordered...
-
   [*] DOS Command separator in Command line was changed. Now in side of
        ";" is used "||"
   [*] All external ScreenSavers should be stored in directory called  SSAVERS\
@@ -3910,35 +4073,34 @@ Appendix: Dos Navigator startup options (DN.INI)
 
   Version 1.35 Shareware (1 February 1995) - changes since 1.33
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
 A lot of bugs have been fixed it is just wasting of time to describe all of
 them, only major changes here:
 
  General
  ~~~~~~~
- [+] Install utility
- [+] Possibility to load overlays into XMS/EMS memory (optionally)
- [+] CD-ROM player.
- [+] DOS environment viewer/editor.
- [+] DOS NAVIGATOR checks on loading if it is already loaded and
-     then shows warning message.
- [*] Now DN.COM creates flag file in startup directory ( or in DNSWP
-     directory ) to prevent overwriting swap file by DN from different
-     sessions under multitasking.
- [+] FILES value automatically expands if FILES < 20
- [+] Clearing keyboard buffer upon startup and exiting from externals.
- [+] -Mask in Filter excludes specified files e.g. : *.*;-*.bak
-     N.B. If you want to use -FileSpec in filter, you have to specify
-     filter from which FileSpec will be excluded (for example, *.*)
- [+] Possibility to hide Command Line (for XTree-like interface).
- [+] Batch-file launching from the Command Line has been improved:
-
-     you can use %1 parameter for name of the current file from the
-     currently active File Panel.
- [+] Added 'Preserve directory' option in Startup for forced changing
-     directory to last active directory in active File Panel.
+  [+] Install utility
+  [+] Possibility to load overlays into XMS/EMS memory (optionally)
+  [+] CD-ROM player.
+  [+] DOS environment viewer/editor.
+  [+] DOS NAVIGATOR checks on loading if it is already loaded and
+      then shows warning message.
+  [*] Now DN.COM creates flag file in startup directory ( or in DNSWP
+      directory ) to prevent overwriting swap file by DN from different
+      sessions under multitasking.
+  [+] FILES value automatically expands if FILES < 20
+  [+] Clearing keyboard buffer upon startup and exiting from externals.
+  [+] -Mask in Filter excludes specified files e.g. : *.*;-*.bak
+      N.B. If you want to use -FileSpec in filter, you have to specify
+      filter from which FileSpec will be excluded (for example, *.*)
+  [+] Possibility to hide Command Line (for XTree-like interface).
+  [+] Batch-file launching from the Command Line has been improved:
+      you can use %1 parameter for name of the current file from the
+      currently active File Panel.
+  [+] Added 'Preserve directory' option in Startup for forced changing
+      directory to last active directory in active File Panel.
 
  File Copy
-
  ~~~~~~~~~
   [*] We hope all terrible bugs have been removed here.
   [+] 'Beep after complete operation' for Copy if the operation time was
@@ -3947,29 +4109,29 @@ them, only major changes here:
 
  Editor
  ~~~~~~
- [+] Persistent blocks.
- [+] AutoBrackets function
- [+] Overwrite Blocks mode (for non-persistent blocks only)
- [+] Extra highlight options on specific extensions (See HighLit.DOC)
- [+] Editor macros for different filespec. (See HighLit.DOC)
- [+] Mark single word           - Ctrl+K T
-         Copy block             - Ctrl+K C
-         Move block             - Ctrl+K V
-         Delete block           - Ctrl+K Y
-         Hide/display block     - Ctrl+K H
-         Print block            - Ctrl+K P
-         Move to begin of block - Ctrl+Q B
-         Move to end of block   - Ctrl+Q K
-         Exit to menu bar       - Ctrl+K Q
-         Mark line              - Ctrl+K L
+  [+] Persistent blocks.
+  [+] AutoBrackets function
+  [+] Overwrite Blocks mode (for non-persistent blocks only)
+  [+] Extra highlight options on specific extensions (See HighLit.DOC)
+  [+] Editor macros for different filespec. (See HighLit.DOC)
+  [+] Mark single word           - Ctrl+K T
+          Copy block             - Ctrl+K C
+          Move block             - Ctrl+K V
+          Delete block           - Ctrl+K Y
+          Hide/display block     - Ctrl+K H
+          Print block            - Ctrl+K P
+          Move to begin of block - Ctrl+Q B
+          Move to end of block   - Ctrl+Q K
+          Exit to menu bar       - Ctrl+K Q
+          Mark line              - Ctrl+K L
 
  Internal Viewer
  ~~~~~~~~~~~~~~~
- [+]  Dump mode (like in XTree)
- [+]  Zero, ASCII and Extended ASCII Filters (Switching by F6)
- [+]  Grid for HEX mode
- [+]  Go to address command
- [-]  Bugs with cursor positioning in search (HEX mode)
+  [+] Dump mode (like in XTree)
+  [+] Zero, ASCII and Extended ASCII Filters (Switching by F6)
+  [+] Grid for HEX mode
+  [+] Go to address command
+  [-] Bugs with cursor positioning in search (HEX mode)
 
  File Manager
  ~~~~~~~~~~~~
@@ -4003,8 +4165,10 @@ them, only major changes here:
   [+] Use ]] for specifying ] symbol in DOS command (inside command block),
       }} for }, )) for )
 
+
   Version 1.33 Shareware (31 october 1994) - changes since 1.32
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
 1. Copy/Move algorithm has been totally changed.
 2. Added possibility to Rename files with matching names when File Copy.
 3. Added Recurse directories options in the Copy Dialog Box to store
@@ -4030,8 +4194,10 @@ them, only major changes here:
 19. Fixed bug with '$' sign in the command line.
 20. File Search by file contents has been fixed.
 
+
   Version 1.32 Shareware (4 August 1994) - changes since 1.31
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
 1. HPFS conflicts with Direct Disk Access bug - fixed
 2. Added internal Screen Grabber to place grabbed images into Clipboard
    of SmartPad(TM). Instead of having all those loose bits of paper
@@ -4047,8 +4213,10 @@ them, only major changes here:
    screen into String History or into SmartPad(TM) Clipboard.
 8. Added FOSSIL support in terminal - see Communications Dialog.
 
+
   Version 1.31 Shareware (June 22, 1994) - changes since 1.30
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
 1. Added "Quick directory change" function. It is possible to change
    directory to another (which is used frequently) by pressing Alt-n,
    where n is digit (1-9). Use Alt+Shift+0 to get "Quick change" list.
@@ -4082,6 +4250,7 @@ them, only major changes here:
 
   Version 1.30 Shareware (June 1, 1994) - changes since 1.25
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
 1. Calculator was changed. Copy button allows to copy result of evaluation in Clipboard according to
   'Copy as'.
    For hexadecimal, octal, and binary numbers you can use all possible
@@ -4125,7 +4294,6 @@ them, only major changes here:
           $/ - Directory of file in passive File Panel (without backslash)
           !: - Drive of file in active File Panel
           $: - Drive of file in passive File Panel
-
 
           You can use these macros in Menu item names.
 

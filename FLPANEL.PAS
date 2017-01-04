@@ -56,6 +56,10 @@
 //  dn200-files_panel_bugs_fix.patch
 //
 //  2.3.0
+//  dn230-drag_from_total_info_fix.patch
+//  dn230_force_mouse_scroll.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -110,6 +114,9 @@ type
 
     PSpecScroll = ^TSpecScroll;
     TSpecScroll = object(TMyScrollBar)
+     ForceScroll: boolean;{AK155}
+     Panel: PFilePanel;   {AK155}
+     function ScrollStep(Part: LongInt): LongInt; virtual;{AK155}
      procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -160,6 +167,39 @@ uses LFN, DnUtil, DNApp, advance, advance1, advance2, advance3, Startup,
 const
     chTempDrive = '*';
 
+{  ------- TSpecScroll Скроллбар файловой панели }
+{ AК155 23-06-2002
+ Это опредление шага отличается от стандартного тем, что мышиный
+шаг (флажок ForceScroll) на 1 вверх или вниз приводит не к
+мучительному перебору всех файлов в панели, а к скачку на шаг
+выше первого файла или на шаг ниже последнего файла панели. }
+function TSpecScroll.ScrollStep(Part: LongInt): LongInt;
+var Step: LongInt;
+begin
+  if Part and 2 = 0 then
+    begin
+    if not ForceScroll then
+      begin
+      Step := ArStep;
+      if Part and 1 = 0 then Step := -ArStep;
+      end
+    else
+      begin
+      if (Part and 1 = 0) then
+        Step := (Panel^.Delta - Value - ArStep)
+      else
+        Step := (Panel^.Delta + PgStep - Value)
+      end;
+    end
+  else
+    begin
+    Step := PgStep;
+    if Part and 1 = 0 then Step := -PgStep;
+    end;
+  ForceScroll := false;
+  ScrollStep := Step;
+end;
+
 procedure TSpecScroll.HandleEvent;
 begin
  if (Event.What = evKeyDown) and
@@ -170,6 +210,8 @@ begin
       (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)
      )))
      then Exit;
+ if (Event.What = evMouseDown) then
+    ForceScroll := true; {AK155}
  inherited HandleEvent(Event);
 end;
 
@@ -757,7 +799,7 @@ procedure TInfoView.HandleEvent;
     if PF^.Name[1] <> '.' then FC^.Insert(CopyFileRec(PF)); {DataCompBoy}
    end;
   MakeGlobal(P, P);
-  DragMover(@P, ItoS(Panel^.Files^.Count)+' '+GetString(dlDIFiles), FC, @C);
+  DragMover(@P, ItoS(FC^.Count)+' '+GetString(dlDIFiles), FC, @C);
   CE;
  end;
 
@@ -785,6 +827,8 @@ begin
                 end;
                RepeatDelay := 0;
                repeat
+                with Panel^ do
+                  PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
                 Message(Owner, evKeyDown, kbDown, nil);
                until not MouseEvent(Event, evMouseMove + evMouseAuto);
                RepeatDelay := 2; Panel^.MSelect := Off;

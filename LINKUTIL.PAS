@@ -51,6 +51,9 @@
 //  dn16rc1-advanced_filter_fix_2.patch
 //
 //  2.0.0
+//  dn269-diskinfo.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -651,10 +654,10 @@ begin
   CL_PackStr(E,AXt,3);
 end;
 
-procedure ChkDrvInfo(C: Byte);
+procedure ChkDrvInfo(Drive: String);{piwamoto}
 begin
   NeedAbort := True;  Abort := False;
-  GetDrInfo(C);
+  GetDrInfo(Drive);
   NeedAbort := False;
   if Abort then begin TotalSpc := -1; FreeSpc := -1 end;
 end;
@@ -680,7 +683,7 @@ begin
   pf := Rec.PanelFlags; sm := Rec.SortMode;
   if pf = -1 then pf := 0;
 
-  ChkDrvInfo(Byte(ADir[1])-64);
+  ChkDrvInfo(ADir);
 
   if Abort then
   begin
@@ -783,15 +786,13 @@ end;
 
 procedure ReadDirNfo(const ADir: string; var ANfo: TCL_DirNfo);
 var
-  Drv: Byte;
-  S: string;
   DirLn: TSize;
   NumFls: Integer;
+  S: string;
 begin
   ClrIO;
   if ADir = '' then lGetDir(0, S) else S := ADir; {DataCompBoy}
-  Drv := Byte(S[1])-64;
-  ChkDrvInfo(Drv);
+  ChkDrvInfo(S);
   DirLn := 0; NumFls := 0;
   if not Abort then CountDirLen(S, False, DirLn, NumFls);
   with ANfo do

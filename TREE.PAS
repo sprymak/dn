@@ -52,6 +52,10 @@
 //  dn16rc1-tree_view_cosmetical_changes.patch
 //
 //  2.0.0
+//  dn230-jo20515a.patch
+//  dn269-make_del_dir_on_network_resource.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1296,7 +1300,7 @@ begin
                         if Parital then ExpandBranches;
                         CE;
                        end;
-                kbGrayPlus,kbGrayMinus:
+                kbSpace,kbGrayPlus,kbGrayMinus:
                      begin
                        QuickSearch := Off;
                        if Parital then
@@ -1769,9 +1773,20 @@ begin
   ClrIO;
   S := lFExpand(S);
   if Abort then Exit;
-  I := PosChar(':',S);
-  if I = 0 then Exit;
-  Inc(I);
+{piwamoto.2002.06.19}
+  if Copy(S, 1, 2) = '\\'
+  then begin
+    M := Copy(S, 3, length(S)-2);
+    J := PosChar('\',M);{skip server name}
+    if J = 0 then Exit;
+    M := Copy(M, J+1, length(M) - J);
+    I := PosChar('\',M) + J + 2;{skip share name}
+  end
+  else begin
+    I := PosChar(':',S) + 1;
+    if I = 1 then Exit;
+  end;
+{/piwamoto.2002.06.19}
   while I < LS do
    begin
      J := I;

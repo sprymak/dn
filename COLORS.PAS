@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2510_find_files_progress_window_close_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -213,6 +216,10 @@ begin
           goto 1
         end
       end
+      else begin
+       PView(DT.P^.At(DT.N))^.Select;
+       goto 1;
+      end;
     end;
     if R.A.X = cmOK then PView(DT.P^.At(DT.N))^.Select;
   end;

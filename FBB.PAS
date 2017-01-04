@@ -51,6 +51,9 @@
 //  dn16rc1-resource_big_fix.patch
 //
 //  2.0.0
+//  dn269-diskinfo.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -210,7 +213,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
    var SR : lSearchRec;
        lF  : lFile;
   begin
-   FreeSpc:=Disk_Free(Byte(d[1])-64);
+   FreeSpc:=GetDrInfo(d);
    DosError:=0; OverWr:=On; Abort := Off;
    lFindFirst(d+n+'.d??', AnyFile,SR);
    while (DOSError=0) and not (SR.FullName[Length(SR.FullName)] in ['0'..'9'])
@@ -247,19 +250,19 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
     begin
      SetFTime(F2.F, OldDate);
      Close(F2.F);ClrIO;
-     FreeSpc:=Disk_Free(Byte(d[1])-64);
+     FreeSpc:=GetDrInfo(d);
      If (PartSize=0) or (FreeSpc<PartSize) then RequireDisk;
     end;
     lFSplit(Fn2,d,n,x);
     Fn2:=d+n+'.d'+SStr(Count,2,'0');
    Until OverWr or Abort or CopyCancelled;
    if Abort or CopyCancelled then Exit;
-   FreeSpc:=Disk_Free(Byte(d[1])-64);
+   FreeSpc:=GetDrInfo(d);
    While (FreeSpc<512) do
     begin
      i:=MessageBox(GetString(dlFBBDiskFull1),nil,mfWarning + mfOKButton + mfCancelButton);
      NewTimer(Timer, 0);
-     FreeSpc:=Disk_Free(Byte(d[1])-64);
+     FreeSpc:=GetDrInfo(d);
      if i<>cmOK then
        begin
         Abort:=On;

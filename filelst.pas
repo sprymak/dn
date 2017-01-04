@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2628_creating_file_list_improve.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -62,7 +65,7 @@ function  ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boole
 implementation
 uses Startup, Lfn, Messages, objects, filescol, advance2, advance1, usermenu,
      advance, histlist, commands, dnapp, dnutil, tree, views, drivers, drives
-     {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF};
+     {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}, FlPanelx;
 
 function ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;
   var I,J: Integer;
@@ -147,6 +150,13 @@ procedure MakeListFile;
   label Fail;
     var Drr: Boolean;
   begin
+{--- start -------- Eugeny Zvyagintzev ---- 12-07-2002 -----}
+    If (S.Options and cmlUseLFN) = cmlUseLFN Then
+     Begin
+      Replace('!', '#', D);
+      Replace('$', '&', D);
+     End;
+{--- finish -------- Eugeny Zvyagintzev ---- 12-07-2002 -----}
   { BB means "Is filename occurs in Action?" }
     Replace('!!', #1, D);Replace('##', #2, D);
     Replace('$$', #3, D);Replace('&&', #4, D);
@@ -156,7 +166,7 @@ procedure MakeListFile;
       then D:=D+ '!.!'
       else D:=D+' !.!';
     {$IFDEF OS2}Replace('!', '#', D); Replace('$', '&', D);{$ENDIF}
-    If ( S.Options and 2 = 2 ) and
+    If ( S.Options and cmlAutoDetermine = cmlAutoDetermine ) and
        {$IFNDEF OS2}
        ( lfGetShortFileName(Sr) <> lfGetShortFileName(Dr) ) and
        ( Pos( '!\', D ) = 0 ) and
@@ -220,6 +230,10 @@ begin
    if BB then S.Options := S.Options or cmlPathNames
          else S.Options := S.Options and not cmlPathNames;
  end;
+{--- start -------- Eugeny Zvyagintzev ---- 12-07-2002 -----}
+ If (PFilePanelRoot(APP)^.Drive^.Flags and psShowLongName > 0) Then
+  S.Options:=S.Options Or cmlUseLFN;
+{--- finish -------- Eugeny Zvyagintzev ---- 12-07-2002 -----}
  if (ExecResource(dlgMakeList, S) <> cmOK) then Exit;
  MakeListFileOptions := S.Options;
  while S.Action[Length(S.Action)] = ' ' do Dec(S.Action[0]);
@@ -341,7 +355,8 @@ AddrError:
             Delete(SS, 1, J);
           end;
       end else
-    If (S.Options and cmlPathNames <> 0) or (S.Options and 2 <> 0) and (SR <> FLD)
+    If (S.Options and cmlPathNames <> 0) or
+       (S.Options and cmlAutoDetermine <> 0) and (SR <> FLD)
       then MakeStr( '!:!\!.!' )
       else MakeStr('!.!');
   end;

@@ -53,6 +53,9 @@
 //  dn16rc1-vp_noasm_compatible.patch
 //
 //  2.0.0
+//  dn269_invalid_dbf_header_detection.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -101,6 +104,8 @@ type
 
 implementation
 
+uses messages,commands,dnapp;
+
 procedure TFieldCollection.FreeItem;
 begin
  Dispose(PFieldRec(P));
@@ -132,6 +137,13 @@ end;
 
 constructor TDBFile.Init;
 
+{--- start -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
+type
+  TParams = record
+    InHeader: Longint;
+    Actually: Longint;
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
 type
     TFldLenRec = record { Kirill }
       case integer of
@@ -151,6 +163,7 @@ var FBuf: FRec;
     S: String;
     FieldLen : AWord;
     FieldDec : byte;
+    Par : TParams;    {JOHN_SW}
 begin
  inherited Init;
  BaseName := lFExpand(FileName); {DataCompBoy}
@@ -197,9 +210,24 @@ begin
       begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
    with FBuf do Fields^.Insert(NewField(S, Who, FieldLen, FieldDec, RL - FieldLen));
   end;
+{--- start -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
+{Check for correct header}
  if RL <> RecLen then
-   begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
-
+  begin
+   Par.InHeader:=RecLen;
+   Par.Actually:=RL;
+   MessageBox(GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecSize),
+              @Par,mfError+mfOkButton);
+  end;
+ if NumRec <> ((BaseFile.GetSize-HeaderLen) Div RL) then
+  begin
+   Par.InHeader:=NumRec;
+   Par.Actually:=(BaseFile.GetSize-HeaderLen) Div RL;
+   MessageBox(GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecNumber),
+              @Par,mfError+mfOkButton);
+   NumRec:=(BaseFile.GetSize-HeaderLen) Div RL
+  end;
+{--- finish -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
  Loc := 0;
  BaseFile.Seek(HeaderLen);
 end;

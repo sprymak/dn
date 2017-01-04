@@ -54,6 +54,11 @@
 //  dn200-files_panel_bugs_fix.patch
 //
 //  2.3.0
+//  dn2510_file_panel_resizing_fix_and_improve.patch
+//  dn230-maximized_file_panel_shadow_draw_fix.patch
+//  dn230_force_mouse_scroll.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -133,32 +138,7 @@ uses DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
 {$IFDEF NETINFO}, NetInfo {-$VIV}{$ENDIF}
 {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}
      ;
-{
-constructor TCloseBox.Init;
-begin
-  inherited Init(R);
-  Command := ACommand;
-end;
 
-procedure TCloseBox.Draw;
- var B: TDrawBuffer;
-begin
-  if Owner^.GetState(sfSelected+sfActive) then
-    if Size.X > 0 then GrowTo(0,1) else Exit
-    else if Size.X = 0 then GrowTo(0,3);
-  MoveChar(B, ' ', Owner^.GetColor(1), Size.X);
-  MoveCStr(B, '[~'#254'~]', Owner^.GetColor($0302));
-  WriteLine(0,0,Size.X,Size.Y,B);
-end;
-
-procedure TCloseBox.HandleEvent;
-begin
-  inherited HnadleEvent(Event);
-  if Event.What = evMouseDown then
-    Message(Owner, evCommand, cm
-end;
-
-}
 constructor TDoubleWindow.Init;
  var P: PFilePanel;
      P1: PInfoView;
@@ -198,6 +178,7 @@ begin
  B := R; B.A.X := B.B.X; Inc(B.B.X); Inc(B.A.Y); Dec(B.B.Y, 3);
  New(PV, Init(B));
  New(P, Init(R, LDrive, PV));
+ PV^.Panel := P;
  if Abort then begin Dispose(P,Done); Dispose(PV,Done); Exit end;
 
  New(P1, Init(R)); P1^.Panel := P; P^.InfoView := P1;
@@ -233,6 +214,7 @@ begin
  New(PS, Init(RR));
 
  New(P, Init(R, RDrive, PS));
+ PS^.Panel := P;
  if Abort then begin Dispose(P,Done); Dispose(PS,Done); Exit end;
 
  New(P1, Init(R)); P1^.Panel := P; P^.InfoView := P1;
@@ -316,7 +298,9 @@ begin
  S.Read(OldBounds, sizeof(OldBounds)*2+sizeof(LType)+sizeof(RType));
  GetSubViewPtr(S, Separator);
  GetSubViewPtr(S, LeftView);
+ PSpecScroll(PFilePanel(LeftView)^.ScrollBar)^.Panel := PFilePanel(LeftView);
  GetSubViewPtr(S, RightView);
+ PSpecScroll(PFilePanel(RightView)^.ScrollBar)^.Panel := PFilePanel(RightView);
  GetSubViewPtr(S, LPanel);
  GetSubViewPtr(S, RPanel);
  GetSubViewPtr(S, Info);
@@ -414,7 +398,7 @@ procedure TDoubleWindow.HandleCommand;
        I := ((10 * (Size.X * Sp^.OldX)) div K) div 10
      else I := 0;
     Dec(R.A.X, I);
-    Lock; LeftView^.ShowView; Redraw; ChangeBounds(R); UnLock;
+    Lock; LeftView^.ShowView; Redraw; Locate(R); UnLock;
     Owner^.Redraw;
    end
  end;
@@ -434,7 +418,7 @@ procedure TDoubleWindow.HandleCommand;
        I := ((Size.X * 10 * (Sp^.OldW - Sp^.OldX)) div Sp^.OldX) div 10
       else I := 1;
     Inc(R.B.X, I);
-    Lock; RightView^.ShowView; Redraw; ChangeBounds(R); UnLock;
+    Lock; RightView^.ShowView; Redraw; Locate(R); UnLock;
     Owner^.Redraw;
    end
  end;
@@ -786,7 +770,8 @@ begin
                end;
   evCommand: case Event.Command of
 
-              cmSwitchOther: begin CE; if LSelected then SwitchRight else SwitchLeft end;
+              cmSwitchOther: If Not PanelZoomed Then
+                             begin CE; if LSelected then SwitchRight else SwitchLeft end;
 
               cmGetDirInfo: begin
                               if LSelected then
@@ -812,6 +797,7 @@ begin
                          ChangeBounds(OldBounds);
                          PanelZoomed:=True;
                          Unlock;
+                         Owner^.Redraw;
                         end else
                         if PanelZoomed then begin
                          CE; Lock;
@@ -863,19 +849,22 @@ begin
                                if LSelected then RPanel^.HandleEvent(Event)
                                             else LPanel^.HandleEvent(Event);
                               end;
-              cmDiskInfo: begin
+              cmDiskInfo: If Not PanelZoomed Then
+                          begin
                             SwitchView(dtInfo); CE;
                             if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                                          else Message(RightView, evCommand, cmLViewFile, nil);
                            end;
 {$IFDEF NETINFO}
-              cmNetInfo: begin {-$VIV start}
+              cmNetInfo: If Not PanelZoomed Then
+                         begin {-$VIV start}
                             SwitchView(dtNetInfo); CE;
                             if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                                          else Message(RightView, evCommand, cmLViewFile, nil);
                            end;{-$VIV end}
 {$ENDIF}
-              cmLoadViewFile: begin
+              cmLoadViewFile: If Not PanelZoomed Then
+                              begin
                                if (QView <> nil) and ((LType = dtView) or (RType = dtView))
                                  then QView^.HandleEvent(Event) else
                                   if (Info <> nil) and Info^.GetState(sfVisible) then
@@ -911,11 +900,13 @@ begin
               cmChangeLeft: begin ChangeDrvLeft; CE end;
               cmChangeRight: begin ChangeDrvRight; CE end;
               cmDirTree: begin SwitchView(dtTree); CE end;
-              cmQuickView: begin SwitchView(dtView);
+              cmQuickView: If Not PanelZoomed Then
+                            begin SwitchView(dtView);
                                if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                                             else Message(RightView, evCommand, cmLViewFile, nil);
                                CE end;
-              cmSwapPanels: begin
+              cmSwapPanels: If Not PanelZoomed Then
+                            begin
                              Lock;
                              if not RVisible then
                               Message(@Self, evCommand, cmHideRight, nil) else

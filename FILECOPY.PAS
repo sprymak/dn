@@ -58,6 +58,12 @@
 //  dn200-files_panel_bugs_fix.patch
 //
 //  2.3.0
+//  dn230-accept_all_for_rename_file_when_exist.patch
+//  dn269-diskinfo.patch
+//  dn269_show_help_during_copy_files.patch
+//  dn2628-rename_and_copy_dir_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -95,7 +101,7 @@ function  CopyDialog(var CopyDir: String; var Mask: String; {DataCompBoy}
 
 implementation
 uses DNApp, Startup, Memory, Messages, HistList, Commands,
-     xTime, Validate,
+     xTime, Validate, dnhelp,
     {$IFNDEF NOEXTRA}ExtraMem,{$ENDIF}
     {$IFDEF MODEM}{$IFDEF LINK}NavyLink,{$ENDIF}{$ENDIF}
     {$IFNDEF NONBP} DiskTool,{$ENDIF}
@@ -110,6 +116,7 @@ const
       cpmAskOver   = 2;
       cpmSkipAll   = 3;
       cpmRefresh   = 4;
+      cpmRename    = 5;
 
       cpoCheckFree = $01;
       cpoVerify    = $02;
@@ -575,17 +582,16 @@ var  ReadStream:  lfile;
      Info: PWhileView;
      SoftMode: Boolean;
      R: TRect;
-     Drv, InhR: Byte;
+     InhR: Byte;
      ReD: set of Char;
      C: Char;
-     SS: string[1];
      Timer: TEventTimer;
      CD_Drives: set of Char;
      AdvCopy, Use40: Boolean;
      _Tmr: TEventTimer;
      IOR: Integer;
-     SSS: string;
      BytesWrited: Longint; {-NeCoder-}
+     Drv, SSS: string;
 
    function GetPercent(N: TSize): Str12;
    var
@@ -607,9 +613,30 @@ var  ReadStream:  lfile;
    var
      GrdClick: Boolean;
 
+{--- start -------- Eugeny Zvyagintzev ---- 06-06-2002 -----}
+{Uncomment Application and delete Info variables to copy files in background}
+   Procedure DispEvents(var CancelParam: Boolean);
+   Var Event: TEvent;
+       tmp: String;
+   Begin
+    If Info = Nil Then Exit;
+    tmp:='';
+    {Application}Info^.GetEvent(Event);
+    If (Event.What = evCommand) And (Event.Command = cmCancel) And
+       (Event.InfoPtr = Info^.But) Then
+     Begin
+      Info^.ClearEvent(Event);
+      CancelParam:=(MessageBox(GetString(dlQueryAbort), nil, mfYesNoConfirm) = cmYes);
+     End;
+    If (Event.What <> evNothing) And
+       Not ((Event.What = evCommand) And (Event.Command = cmQuit)) Then
+     {Application}Info^.HandleEvent(Event);
+   End;
+{--- finish -------- Eugeny Zvyagintzev ---- 06-06-2002 -----}
+
    procedure Dispatch;
      var C: Boolean;
-    procedure DE; begin GrdClick := True; DispatchEvents(Info, C) end;
+    procedure DE; begin GrdClick := True; DispEvents(C) end;
 
    begin
      C := Off;
@@ -617,7 +644,7 @@ var  ReadStream:  lfile;
      if TimerExpired(_Tmr) then
      begin
        DE;
-       CopyCancel := (C or CtrlBreakHit) and (MessageBox(GetString(dlQueryAbort), nil, mfYesNoConfirm) = cmYes);
+       CopyCancel := (C or CtrlBreakHit);
        CtrlBreakHit := Off;
        NewTimer(_Tmr, 1);
      end;
@@ -714,6 +741,7 @@ var  ReadStream:  lfile;
         if (AcceptAll and 1 = 1) then
          case I of
            cmYes: CopyMode := cpmOverwrite;
+           cmOk: CopyMode := cpmRename;
            cmSkip: CopyMode := cpmSkipAll;
            cmNo: CopyMode := cpmAppend;
          end;
@@ -928,9 +956,9 @@ const
                   FileMode := $42;
 
                   If (Not CopyPrn) And (CopyOptions And cpoCheckFree <> 0)
-                     And (Disk_Free(Drv) < P^.Size) Then
+                     And (GetDrInfo(Drv) < P^.Size) Then
                    begin
-                     PS[1] := Pointer(LongInt(Drv+64));
+                     PS[1] := Pointer(LongInt(Drv[1]));
                      PS[2] := P^.OldName;
                      lAssignFile(WriteStream, '');
                      ForceDispatch;
@@ -977,6 +1005,25 @@ lbStartCheck:
                             case CopyMode of
                               cpmOverwrite: Goto DoRewrite;
                               cpmAppend: Goto DoAppend;
+{--- start -------- Eugeny Zvyagintzev ---------}
+{No DN will not ask for overwrite file if Accept All was choosen}
+                              cpmRename: Begin
+
+                                          S1:=CnvString(P^.NewName);
+                                          J:=InputBox(GetString(dlFCRename), GetString(dlFCRenameNew),
+                                                    S1, 255, 0);
+                                          If (J <> cmOK) Or (S1 = '') Then
+                                            Begin
+                                             DoSkip;
+                                             If Not SkipRequested Then Goto 1;
+                                             Break;
+                                            End;
+                                          DisposeStr(P^.NewName);
+                                          P^.NewName := NewStr(S1);
+                                          NewTimer(Timer, 0);
+                                          Goto 2;
+                                         End;
+{--- finish -------- Eugeny Zvyagintzev ---------}
                               cpmSkipAll: begin
                                              Info^.Write(2, GetString(dlFC_Exists));
                                              Close(WriteStream.f);
@@ -1148,7 +1195,7 @@ lbStartWrite:
                 ForceDispatch;
                 if (CopyPrn) or
                    (IOR = 5) or
-                   (Disk_Free(Drv) > P^.Size)
+                   (GetDrInfo(Drv) > P^.Size)
                  then NoWrite else ErrMsg(dlFBBDiskFull2);
                 Break;
               end;
@@ -1319,7 +1366,7 @@ lbStartWrite:
           Info^.Lines^.AtReplace(I, A[I]);
      end;
 
-   label NoRename;
+   label NoRename,NoRename1;
 
    function ReadCount: string;
    begin
@@ -1435,6 +1482,18 @@ lbStartWrite:
                                      end;
                                cmNo: EOF := EOF or eoAppend;
                              end;
+{--- start -------- Eugeny Zvyagintzev ---------}
+{No DN will not ask for overwrite file if Accept All was choosen}
+                 cpmRename: NoRename1:
+                             Begin
+                              ClrIO; Close(ReadStream.F);
+                              ClrIO; Close(WriteStream.F); ClrIO;
+                              If InputBox(GetString(dlFCRename), GetString(dlFCRenameNew),
+                                   NName, 255, 0) <> cmOK Then Goto NoRename1;
+                              NewTimer(Timer, 0);
+                              Goto 1;
+                             End;
+{--- finish -------- Eugeny Zvyagintzev ---------}
                  cpmRefresh: if Dtt <= SR.SR.Time then
                                begin
                                  Info^.Write(1, GetString(dlFC_Reading)+Cut(FName, 40));
@@ -1789,9 +1848,10 @@ lbStartWrite:
       S := CopyDir;
       Inhr := CreateDirInheritance(S, On);
       if Inhr = 0 then Inhr := Length(S);
-      Drv := Byte(S[1])-64; ReD := [S[1]];
-    end;
-    GetDrInfo(Drv);
+      Drv := S;
+      ReD := [S[1]];
+    end else Drv := '';
+    if Drv <> '' then GetDrInfo(Drv);{piwamoto}
     for I := 0 to Files^.Count - 1 do
       begin
         P := Files^.At(I);
@@ -1912,8 +1972,6 @@ lbStartWrite:
 
 var
   Flush: Boolean;
-  DrvC: integer;
-  DriveChar: String[1];
 
    { ***************** }
    { *** FilesCopy *** }
@@ -1963,6 +2021,9 @@ qqqq:
   New(Info, Init(R));
   if CopyOptions and cpoMove <> 0 then Info^.Top := GetString(dlFCMove)
                                   else Info^.Top := GetString(dlFCCopy);
+  Info^.Options := Info^.Options or ofSelectable or ofCentered; {JOHN_SW}
+  Info^.HelpCtx:=hcCopyInProgress;                              {JOHN_SW}
+  Info^.SetState(sfModal,True);                                 {JOHN_SW}
   Desktop^.Insert(Info);
   Files^.ForEach(@DoReset);
   if (SystemData.Options and ossRemoveCD_RO <> 0) and CDRomInstalled then
@@ -1982,10 +2043,9 @@ qqqq:
   New(CopyQueue, Init(250, 100));
   Info^.Bottom := GetString(dlFC_Total)+FStr(ToDo)+GetString(dlBytes);
   Info^.DrawView;
-  DrvC:=Drv+64;
   If (Not CopyPrn) And (CopyOptions And cpoCheckFree<>0) And
-     (ToDoClusCopy>Disk_Free(Drv))
-  And (MessageBox(GetString(erNoDiskSpacePre),@DrvC,mfError+mfYesButton+mfNoButton)<>cmYes)
+     (ToDoClusCopy>GetDrInfo(Drv))
+  And (MessageBox(GetString(erNoDiskSpacePre),@Byte(Drv[1]),mfError+mfYesButton+mfNoButton)<>cmYes)
   then CopyCancel:=True;
   if CopyCancel then goto 1;
   MaxRead;
@@ -2148,6 +2208,7 @@ begin
 
    D^.GetData(DT);
    S := DT.S3; CopyMode := DT.WW; CopyOpt := DT.WW1;
+   if (S[Length(S)] = '.') and (Copy(S,Length(S)-1,2) <> '..') then Dec(S[0]); { Flash }
    ccCopyMode := DT.WW; ccCopyOpt := DT.WW1;
    Dispose(D,Done);
    lFSplit(S, CopyDir, Nm, Xt);

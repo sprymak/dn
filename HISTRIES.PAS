@@ -57,6 +57,10 @@
 //  dn200-viewer-history-v2.patch
 //
 //  2.3.0
+//  dn230-dbf_wkz_save_history_fix.patch
+//  dn2628-del_dir_from_history_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -300,6 +304,7 @@ begin
 {$IFDEF DBView}{-DataCompBoy-}
   else if TypeOf((PObject(P)^))=TypeOf(TDBWindow) then
    with DBView^, R^ do begin
+     if DBView^.RealName = '' then Goto Q;
      fName     := NewStr(' '+DBView^.RealName);
      fOrigin   := Origin;
      fSize     := Size;
@@ -314,6 +319,7 @@ begin
 {$IFDEF SpreadSheet}
   else if TypeOf((PObject(P)^))=TypeOf(TCalcWindow) then
    with SSView^, R^ do begin
+     if SSView^.RealName = '' then Goto Q;
      fName         := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(CnvString(CalcView^.SName)));
      fOrigin       := Origin;
      fSize         := Size;
@@ -614,6 +620,7 @@ begin
              if CommandHistory and (Focused <= CurString) and (CurString > 0) then Dec(CurString);
              List^.AtFree(Focused);
              SetRange(List^.Count);
+             if (List^.Count = 1) and (Focused > 0) then Focused:=0; { Flash }
              DrawView;
            end;
    end;

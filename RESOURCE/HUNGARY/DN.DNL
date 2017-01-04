@@ -48,7 +48,7 @@
 ;/  Version history:
 ;/
 ;/  hungary message source CWI2 2001-09-22 by csablak
-;/  e-mail:csablak@freemail.hu
+;/  e-mail:csablak at freemail.hu
 ;/  fixed by piwamoto 2001-10-13
 ;/
 ;/  2.0.0
@@ -56,6 +56,17 @@
 ;/  dn2215-windows_manager_changes_2.patch
 ;/
 ;/  2.3.0
+;/  dn2323-resource_fixes_05042002.patch
+;/  dn247-hungarian_fix.patch
+;/  dn269_invalid_dbf_header_detection.patch
+;/  dn269-resource_and_help_fixes_20020621.patch
+;/  dn269-remove_IOmega_detection.patch
+;/  dn2624-wkz_import_and_export.patch
+;/  dn2628-calculator_error_messages_improve.patch
+;/  dn2628-resource_fixes_20020706.patch
+;/  mask_e-mails.patch
+;/
+;/  2.7.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -64,13 +75,13 @@ dlAltTable                 'QWERTYUIOP'#0#0#0#0'ASDFGHJKL'#0#0#0#0#0'ZXCVBNM'
 erInvalidOvrSize           ^C'A bet”lt‚si pufferm‚retnek 64 ‚s 200 Kb jt'^M+
                            ^C'k”z‚ kell esnie.'
 erInvalidFormula,          ^M^C'rv‚nytelen k‚plet.'
-erInvalidCell,             ^M^C'rv‚nytelen sz m a cell ban.'
-erInvalidValue,            ^M^C'rv‚nytelen ‚rt‚k.'
-erInvalidFunction,         ^M^C'rv‚nytelen funkci¢.'
+;erInvalidCell,             ^M^C'rv‚nytelen sz m a cell ban.'
+;erInvalidValue,            ^M^C'rv‚nytelen ‚rt‚k.'
+;erInvalidFunction,         ^M^C'rv‚nytelen funkci¢.'
 erRecurseTooDeep,          ^M^C'K”rk”r”s hivatkoz s.'
 erDeepDependence,          ^M^C'T£l komplik lt fggv‚ny.'
 erInvalidFileFormat,       ^M^C'rv‚nytelen f jlform tum.'
-erInvalidIF,               ^M^C'rv‚nytelen IF (HA) bevitel.'
+;erInvalidIF,               ^M^C'rv‚nytelen IF (HA) bevitel.'
 erGotoInvalidNumber,       ^M^C'rv‚nytelen cellasz m.'
 erCantReadDesktop,         ^C'Olvas si hiba: desktop f jl.'
 erDesktopError,            ^C'Megnyit si hiba: desktop f jl.'
@@ -106,42 +117,8 @@ dlSaveFileAs,              'Ment‚s m sk‚nt'
 dlSaveFileAsName,          'Men~t~‚s m sk‚nt'
 dlFileExist,               ^C'A(z) %s f jl m r l‚tezik.'^M^C'Fell¡rjam?'
 dlCanNotWrite,             ^C'A(z) %s f jlt nem tudom ¡rni.'^M^C'
-dlValuteDialog,            '—j p‚nznem'
-dlValuteDlgName,           'N‚~v~'
-dlValuteDlgSymbol,         'S~z~imb¢lum'
-dlValuteDlgSForward,       'Szimb¢lum e~l~“re'
-dlValuteDlgSComma,         'V~e~ssz“'
 dlOptions,                 'Opci¢k'
-dlCellDialog,              'Cella/Blokk form tum'
-dlCellAsIs,                '~A~hogy van'
-dlCellDec,                 '~T~izedes'
-dlCellBool,                '~L~ogikai'
-dlCellCurrency,            'P‚~n~znem'
-dlCellDisplay,             'Form tum'
-dlCellJLeft,               '~B~alra'
-dlCellJRight,              '~J~obbra'
-dlCellJCenter,             'K”z‚p~r~e'
-dlCellJustify,             'Sorkiz rt'
-dlCellCurrencyName,        'P‚~n~znem'
-dlCellDecimals,            'Tiz~e~desek'
-dlCellWidth,               '~O~szlop m‚retez‚se'
-dlCellExponent,            'E~x~ponenci lis'
-dlCellNothing,             'N~i~ncs kijelz‚s'
-dlCellProtect,             '~V~‚delem'
-dlCellComma,               'Vessz“'
-dlCellPercent,             'Sz zal‚k'
-dlGotoCellNum,             'Ugorj a cell ra'
-dlGotoCellName,            'rd be a cellasz mot'
-dlFindCellTitle,           'Keres‚s t bl zatkezel“ben'
-dlFindCellPattern,         'Minta'
-dlFindCellSensitive,       'Bet–‚rz‚kenys‚g'
-dlFindCellWhole,           'Csak teljes sz¢t'
-dlFindCellSearchAs,        'Keresem mint'
 dlFindCellString,          'Sz”veget'
-dlFindCellValue,           'rt‚ket'
-dlReplaceTitle,            'Cser‚l‚s t bl zatkezel“ben'
-dlReplacePattern,          'Cser‚lem a'
-dlReplacePrompt,           'Nem kell meger“s¡t‚s cser‚l‚skor'
 dlYesButton,               '~I~gen'
 dlOKButton,                'O~K~'
 dlNoButton,                '~N~em'
@@ -293,6 +270,7 @@ dlTotal,                   '™sszes: ~'
 dlFileFind,                'F jltal lat'
 dlTempDrive,               'TEMP meghajt¢'
 dlNoFilesFound,            'Nincs ilyen f jl'
+dlNoFileFound,             'File not found: '
 dlFilesFound,              '  f jlt tal ltam'
 dlChangeDir,               'K”nyvt rv lt s'
 dlSetAttr,                 ' Attrib£tumok '
@@ -351,7 +329,7 @@ dlASCIIChart,              'ASCII t bla'
 dlWorksheet,               ^C'T bl zat: '
 dlNotSaved,                ^M^C'Megv ltozott. Elmentsem most?'
 dlExportTitle,             'Export lom a f jlt'
-dlExportLabel,             '~E~xport lom a'
+dlExportLabel,             '~E~xport lom ide'
 dlRunButton,               'Futtat'
 dlDropButton,              'Vidd'
 dlKillButton,              'Gyilkol'
@@ -389,7 +367,7 @@ dlSeptember,               'Sze'
 dlOctober,                 'Okt'
 dlNovember,                'Nov'
 dlDecember,                'Dec'
-dlCluster,                 'Cluster'
+dlCluster,                 'Csoport'
 dlSector,                  'Szektor'
 dl1st,                     '1.'
 dl2nd,                     '2.'
@@ -400,10 +378,10 @@ dlReservedSector,          'Fenntartott szektor'
 dlDiskFixer,               'Lemez-szerkeszt“'
 dlFixerFill,               'Felt”lt‚s'
 dlCopyTo,                  'M solom a blokkot'
-dlNumberClusters,          'Clusterek sz ma  '
-dlStartingCluster,         'Kezd“ Cluster    '
-dlValidClusters,           ^C'rv‚nyes cluster sz mok '^M^C'2 - '
-dlClusterRange,            'Cluster v laszt s'
+dlNumberClusters,          'Csoportok sz ma  '
+dlStartingCluster,         'Kezd“ Csoport    '
+dlValidClusters,           ^C'rv‚nyes Csoport sz mok '^M^C'2 - '
+dlClusterRange,            'Csoport v laszt s'
 dlNumberSectors,           'Szektorok sz ma  '
 dlStartingSector,          'Kezd“ Szektor    '
 dlValidSectors,            ^C'rv‚nyes szektorsz mok '^M^C'0 - '
@@ -424,7 +402,7 @@ dlQueryReplace,            ^C'Cser‚l‚s ism‚tl‚se?'
 dlEditTitle,               'Szerkeszt‚s'
 dlReanimateTitle,          'Helyre ll¡t s'
 dlReanimateView,           'Mutatom helyre ll¡t s el“tt'
-dlReanimateHead,           'N‚v              M‚ret   Attr.  D tum  Id“   Cluster Progn¢zis'
+dlReanimateHead,           'N‚v              M‚ret   Attr.  D tum  Id“   Csoport Progn¢zis'
 dlReanimateScan,           'Keresem a k”nyvt rakat...'
 dlReanimateDirectory,      'K™NYVTR'
 dlReanimateRecovered,      'RENDBEN'
@@ -436,7 +414,7 @@ dlReanimateWrite,          ^M^C'Szerencs‚d! A DOS csak az els“ karaktert t”r”lte
                            ^C'az £j els“ karaktert.'^M^M+
                            ^C' %s'^M^M^C'rv‚nytelen karakter'^M^C'%s'
 dlCantReanimate,           ^C'Nem tudom helyre ll¡tani ezt a f jlt,'^M+
-                           ^C'mert az els“ clustert'^M+
+                           ^C'mert az els“ Csoportot'^M+
                            ^C'm r fell¡rtad.'
 dlCantReanimateDirectory,  ^C'Nem tudom helyre ll¡tani ezt a k”nyvt rat,'^M^C'mert tele van szem‚ttel'^M^C'a FAT t bl d.'
 dlReanimateNone,           'Nincs'
@@ -473,7 +451,7 @@ dlArcPacking,              ^M^M^C'S–r¡t‚s...'
 dlArcUnpacking,            ^M^M^C'Kibont s...'
 dlLoadingViewer,           ^M^M^C'T”lt”m a f jln‚z“t...'
 dlLoadingEditor,           ^M^M^C'T”lt”m a szerkeszt“t...'
-dlErrorsOccurred,          ^C'Valami hiba t”rt‚nt!'^M+
+dlErrorsOccurred,          ^C'Ooops! Valami hiba t”rt‚nt!'^M+
                            ^C'"ll¡tsd le az arch¡v l st",'^M+
                            ^C'‚s j tszd £jra SAM. :-)'
 dlSelectDirectory          'K”nyvt r kiv laszt sa'
@@ -519,7 +497,7 @@ dlFmtDiskFormatted         ^C'Lemez a(z) %c: meghajt¢ban'^M^M^C' Lemezc¡mke : %s
                            ^C'    %10s b jt szabad terlet '^M^M+
                            ^C'Sz‚riasz m : %x'^M^M+
                            ^C'Form zol m sik lemezt?'
-dlFmtNonDos                ^C'Nem DOS - form z s.'^M^C'DOS alatt ez a lemez'^M+
+dlFmtNonDos                ^C'Nem DOS-form z s.'^M^C'DOS alatt ez a lemez'^M+
                            ^C'seg‚dprogram n‚lkl,'^M^C'nem olvashat¢.'^M
 dlFmtQuickFormat           ^C'Ezt a lemezt nem tudom '^M^C'Gyorsform zni!'
 dlFmtTrack0Bad             ^C'A 0. s v hib s!'^M^M+
@@ -562,7 +540,7 @@ dlFC_To                    ''
 dlFC_Reading               ' Olvasom: '
 dlFC_WasRead               '-ot olvastam...'
 dlFCCheckingDirs           'Ellen“rz”m a k”nyvt rakat...'
-dlFC_Older                 '™reg f jl - fell¡rva'
+dlFC_Older                 '™reg f jl(ok) - fell¡rva'
 dlFC_Exists                ' L‚tez“k  - kihagyva'
 dlQueryCancelSearch        ^C'Keres‚s megszak¡tva?'
 dlReadingList              ^M^M^C'Olvasom a list t...'
@@ -670,7 +648,7 @@ dlPDeleteQeury2            ^C'a nyomtat s-vez‚rl“b“l?'
 dlCantPrint                ^C'A nyomtat s-vez‚rl“ nem ‚rz‚keli'^M+
                            ^C'a nyomtat¢t. - Ellen“rizd a k belt.'^M+
                            ^C'Nyomtat s felfggesztve.'
-dlCantPrintFile            ^C'Nem tudom nyomtatni ezt a f jlt.'^M^C
+dlCantPrintFile            ^C'Nem tudom nyomtatni ezt a dolgot.'^M^C
 dlTermProtocol             'Protokoll: '
 dlTermProtocolFile         'F jl   : '
 dlTermProtocolRece         'tvett : '
@@ -746,7 +724,7 @@ dlCloseCD                  ^C'Bez rod a CD-lej tsz¢t?'
 dlHelp                     'S£g¢'
 dlOutputTitle              'Eredm‚ny ablak'
 dlWKZ_Empty                'šres'
-dlWKZName                  'Spreadsheet'
+dlWKZName                  'T bl zat neve'
 dlPM_Print                 ^C'Kinyomtatod ezt a '
 dlOverflow                 'T£lcsordul s'
 dlEditHistory              'Szerkeszt“k list ja'
@@ -794,7 +772,7 @@ dlleDuplicateSection       'Kett“s szakasz'
 dlleOfFile                 '  f jl'
 dlleIsAbsent               'hi nyz¢'
 dlleAreAbsent              'hi nyz¢k'
-dlleUnexpEND               'Nem v rt "END" '
+dlleUnexpEND               'Nem v rt "VGE" '
 dlleNoTerm                 'A f jl nincs befejezve.'
 dlleFailedFinal            'Hi nyos dek¢dol s'
 dlElapsedTime              'Eltelt id“: '
@@ -893,20 +871,20 @@ dlTeam004  ^Z'Denis Afonin (De@D_M0r0Ze)'
 dlTeam005  ^Z'Pavel Anufrikov'
 dlTeam006  ^Z'Vitaly Astaforkin (Gimly)'
 dlTeam007  ^Z'Michael Averbukh'
-dlTeam008  ^Z'Mariusz Borkowski'
-dlTeam009  ^Z'Ivan Borodikhin (EXCELLENCE)'
-dlTeam010  ^Z'Pavel Borodin (I''am)'
-dlTeam011  ^Z'Anton Fedorov (DataCompBoy)'
-dlTeam012  ^Z'Alexey Feldgendler (X-Man)'
-dlTeam013  ^Z'Vladimir Fonarev (VOL)'
-dlTeam014  ^Z'Alexey Froloff (Sir Raorn)'
-dlTeam015  ^Z'Sergey Gazizyanov (DarkLord)'
-dlTeam016  ^Z'Marcin Gryszkalis (dagoon)'
-dlTeam017  ^Z'Yuriy Kaminskiy'
-dlTeam018  ^Z'Vladimir Katkov (Chemical)'
-dlTeam019  ^Z'Sergey Klimov'
-dlTeam020  ^Z'Vladimir Korablin (VK)'
-dlTeam021  ^Z'Laszlo Kormoczi (KaeL)'
+dlTeam008  ^Z'Sergey Biryukov (Flash)'
+dlTeam009  ^Z'Mariusz Borkowski'
+dlTeam010  ^Z'Ivan Borodikhin (EXCELLENCE)'
+dlTeam011  ^Z'Pavel Borodin (I''am)'
+dlTeam012  ^Z'Anton Fedorov (DataCompBoy)'
+dlTeam013  ^Z'Alexey Feldgendler (X-Man)'
+dlTeam014  ^Z'Vladimir Fonarev (VOL)'
+dlTeam015  ^Z'Alexey Froloff (Sir Raorn)'
+dlTeam016  ^Z'Sergey Gazizyanov (DarkLord)'
+dlTeam017  ^Z'Marcin Gryszkalis (dagoon)'
+dlTeam018  ^Z'Yuriy Kaminskiy'
+dlTeam019  ^Z'Vladimir Katkov (Chemical)'
+dlTeam020  ^Z'Sergey Klimov'
+dlTeam021  ^Z'Vladimir Korablin (VK)'
 dlTeam022  ^Z'Alexey Korop (AK155)'
 dlTeam023  ^Z'Sergey Korshunoff (SeYKo)'
 dlTeam024  ^Z'Sergei Koryakin'
@@ -914,58 +892,58 @@ dlTeam025  ^Z'Alexey Kostkin (Knave)'
 dlTeam026  ^Z'Aleksej Kozlov (Cat)'
 dlTeam027  ^Z'Konstantin Kuznetsov (Dead Ded)'
 dlTeam028  ^Z'Aleksey Luzin'
-dlTeam029  ^Z'Ilya Maryasov (IVM)'
-dlTeam030  ^Z'Marcin Meinardi'
-dlTeam031  ^Z'Michael Mercuryev (Mercury)'
-dlTeam032  ^Z'Max Morozov'
-dlTeam033  ^Z'Alexey Nemytov (Axel)'
-dlTeam034  ^Z'Andy Neverowsky'
-dlTeam035  ^Z'Anton Novosyolov (ForeverYoung)'
-dlTeam036  ^Z'Vadim Ochkin'
-dlTeam037  ^Z'Stanislav Olkhovik (NeCoder)'
-dlTeam038  ^Z'Jaroslaw Osadtchiy (JO)'
-dlTeam039  ^Z'Vladimir Piven'
-dlTeam040  ^Z'Sergey Radkevitch'
-dlTeam041  ^Z'Oleg Redut'
-dlTeam042  ^Z'Denis Shamov'
-dlTeam043  ^Z'Lev Shumskii (WildCat)'
-dlTeam044  ^Z'Pawel Skolimowski (PaSkol)'
-dlTeam045  ^Z'Denis Smirnoff (Necromancer)'
-dlTeam046  ^Z'Jiri Travnicek (JITR)'
-dlTeam047  ^Z'Igor Vagin (Antares19)'
-dlTeam048  ^Z'Max Vasilyev (Piwamoto)'
-dlTeam049  ^Z'Ilya Vdovin (VIV)'
-dlTeam050  ^Z'Kirill Vodonosov (Kirill)'
-dlTeam051  ^Z'Max Vysokikh (Force)'
-dlTeam052  ^Z'Vladimir Zakharychev (Bobby Z.)'
-dlTeam053  ^Z'Ondrej Zary (Rainbow)'
-dlTeam054  ^Z'Pawel Ziemian'
-dlTeam055  ^Z'Valerij Zubov'
-dlTeam056  ^Z'Eugeny Zvyagintzev'
-dlTeam057  ^Z''
-dlTeam058  ^Z'~Magyar ford¡t s:~'
-dlTeam059  ^Z'M‚sz ros Csaba (csablak)'
-dlTeam060  ^Z'Laszlo Kormoczi (KaeL)'
-dlTeam061  ^Z''
-dlTeam062  ^Z'~Project kordin torok:~'
-dlTeam063  ^Z'Max Vasilyev (Piwamoto)'
-dlTeam064  ^Z'Eugeny Zvyagintzev'
-dlTeam065  ^Z''
-dlTeam066  ^Z'~Kl”n k”sz”net:~'
-dlTeam067  ^Z'Mariusz Borkowskii'
-dlTeam068  ^Z'Dimon Demkin (0xeL)'
-dlTeam069  ^Z'Dmitry Glukhov (GD)'
-dlTeam070  ^Z'Joergen Ibsen'
-dlTeam071  ^Z'Andrzej Kowalczyk (Kolec)'
-dlTeam072  ^Z'Antony Mashihin (Antony)'
-dlTeam073  ^Z'Uliana Matarikina'
-dlTeam074  ^Z'Igor Novoselov'
-dlTeam075  ^Z'Denis Petrov'
-dlTeam076  ^Z'Pavel Protasov'
-dlTeam077  ^Z'DimiteriY Roubliouph (DR)'
-dlTeam078  ^Z'Dmitry Shestakov'
-dlTeam079  ^Z'Marinais'
-dlTeam080  ^Z'Leon Kowalski (Noumemon)'
+dlTeam029  ^Z'Mike Lykov'
+dlTeam030  ^Z'Ilya Maryasov (IVM)'
+dlTeam031  ^Z'Marcin Meinardi'
+dlTeam032  ^Z'Michael Mercuryev (Mercury)'
+dlTeam033  ^Z'Max Morozov'
+dlTeam034  ^Z'Alexey Nemytov (Axel)'
+dlTeam035  ^Z'Andy Neverowsky'
+dlTeam036  ^Z'Anton Novosyolov (ForeverYoung)'
+dlTeam037  ^Z'Vadim Ochkin'
+dlTeam038  ^Z'Stanislav Olkhovik (NeCoder)'
+dlTeam039  ^Z'Jaroslaw Osadtchiy (JO)'
+dlTeam040  ^Z'Vladimir Piven'
+dlTeam041  ^Z'Sergey Radkevitch'
+dlTeam042  ^Z'Oleg Redut'
+dlTeam043  ^Z'Denis Shamov'
+dlTeam044  ^Z'Lev Shumskii (WildCat)'
+dlTeam045  ^Z'Pawel Skolimowski (PaSkol)'
+dlTeam046  ^Z'Denis Smirnoff (Necromancer)'
+dlTeam047  ^Z'Jiri Travnicek (JITR)'
+dlTeam048  ^Z'Igor Vagin (Antares19)'
+dlTeam049  ^Z'Max Vasilyev (Piwamoto)'
+dlTeam050  ^Z'Ilya Vdovin (VIV)'
+dlTeam051  ^Z'Kirill Vodonosov (Kirill)'
+dlTeam052  ^Z'Max Vysokikh (Force)'
+dlTeam053  ^Z'Vladimir Zakharychev (Bobby Z.)'
+dlTeam054  ^Z'Ondrej Zary (Rainbow)'
+dlTeam055  ^Z'Pawel Ziemian'
+dlTeam056  ^Z'Valerij Zubov'
+dlTeam057  ^Z'Eugeny Zvyagintzev (John_SW)'
+dlTeam058  ^Z''
+dlTeam059  ^Z'~Magyar ford¡t s:~'
+dlTeam060  ^Z'M‚sz ros Csaba (csablak)'
+dlTeam061  ^Z'Laszlo Kormoczi (KaeL)'
+dlTeam062  ^Z''
+dlTeam063  ^Z'~Project kordin torok:~'
+dlTeam064  ^Z'Max Vasilyev (Piwamoto)'
+dlTeam065  ^Z'Eugeny Zvyagintzev (John_SW)'
+dlTeam066  ^Z''
+dlTeam067  ^Z'~Kl”n k”sz”net:~'
+dlTeam068  ^Z'Mariusz Borkowskii'
+dlTeam069  ^Z'Dimon Demkin (0xeL)'
+dlTeam070  ^Z'Dmitry Glukhov (GD)'
+dlTeam071  ^Z'Joergen Ibsen'
+dlTeam072  ^Z'Andrzej Kowalczyk (Kolec)'
+dlTeam073  ^Z'Antony Mashihin (Antony)'
+dlTeam074  ^Z'Uliana Matarikina'
+dlTeam075  ^Z'Igor Novoselov'
+dlTeam076  ^Z'Denis Petrov'
+dlTeam077  ^Z'Pavel Protasov'
+dlTeam078  ^Z'DimiteriY Roubliouph (DR)'
+dlTeam079  ^Z'Dmitry Shestakov'
+dlTeam080  ^Z'Marinais'
 dlTeam081  ^Z'~...‚s minden RU.SHELL.DN listatagnak~'
 dlTeam082  ^Z''
 dlTeam083  ^Z'~Dos Navigator II csapat:~'
@@ -1097,6 +1075,7 @@ dlSPF23 '; *c:\bp\rtl\;c:\my\units'
 dlSPF24 '; i:\vex\atl\'
 dlSPF25 ';------------------------------------------------------------- (c) Viv''99 -'
 dlSPFht 'A keres“ f jlhoz konfigur lni kell a DN.SPF f jlt.'
+
 dlOldFiles              ^C'Ezeket a f jlokat ne haszn ld,'^M+
                         ^C'mert az £j verzi¢j£ DN-n‚l'^M+
                         ^C'helytelen m–k”d‚shez vezet!'^M^M+
@@ -1174,8 +1153,8 @@ dlDelMsg                'šzenet t”rl‚se '
 dlNotPkt                'Ez nem FIDO PKT f jl!'
 dlReadingPkt            'PKT-f jl olvas sa'
 dlLine                  'ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ'
-dlNameLong              'L'
-dlNameShort             'S'
+dlNameLong              'H'
+dlNameShort             'R'
 dlFullInfo              'Inform ci¢ '
 dlDescr                 'Le¡r s '
 dlPath                  '—tvonal '
@@ -1184,7 +1163,7 @@ dlBootSector1           'Boot Szektor'
 dlEntries               'Bejegyz‚s'
 dlDirEntries            'K”nyvt r bejegyz‚s'
 dlSize                  'M‚ret'
-dlClusterSize           '  Cluster M‚ret'
+dlClusterSize           '  Csoport M‚ret'
 dlTracks                ' S vok'
 dlHeads                 ' Fejek'
 dlSectors1              'Szektorok'
@@ -1220,8 +1199,41 @@ sdtSUBST      = 'SUBST     ';
 sdtStacker    = 'Stacker   ';
 sdtRAMDrive   = 'RAM       ';
 sdtDublDisk   = 'DoubleDisk';
-sdtBernoully  = 'Bernoully ';
 sdtDiskreet   = 'Diskreet  ';
 sdtSuperStor  = 'SuperStor ';
 dlIniDataReadError     'Szintaktikus hiba a DN.INI-ben, [%s] szakasz, %s param‚ter'
 dlIniDataTooLong       'T£l sok %d karakter a DN.INI-ben. [%s] szakasz, %s param‚ter'
+
+;Flash >>>
+clToo_Large_Number        = 'Too large number';
+clArgument_Missing        = 'Function argument is missing';
+clSyntax_Error            = 'Syntax error';
+clUnknown_Function        = 'Expression has unknown function';
+clLeft_Bracket_Missing    = 'Left bracket is missing';
+clRight_Bracket_Missing   = 'Right bracket is missing';
+clOperation_Expected      = 'Operation sign is missing';
+clUnknown_Symbol          = 'Expression contains bad symbol';
+clTwo_Operations          = 'Two operations one after another';
+clComma_Missing           = 'Comma is missing';
+clToo_Many_Commas         = 'Too many commas';
+clIncorrect_Usage         = 'Incorrect usage of function ';
+clDivision_By_Zero        = 'Division by zero';
+clLOG_Wrong_Base          = 'Bad base of logarithm';
+clPower_Wrong_Index       = 'Bad power index';
+clRoot_Wrong_Index        = 'Bad root index';
+clWrong_Argument          = 'Bad argument of function ';
+clPower_Wrong_Argument    = 'Error raising to the power';
+clIncorrect_Form          = 'Cannot convert to ';
+;Flash <<<
+
+;JOHN_SW begin
+dlInvalidDBFHeader,  ^C'Header is corrupted!'^M
+dlInvalidRecNumber,  ^M^C'Records number in header: %d'^M^C'Actually records number : %d'
+dlInvalidRecSize,    ^M^C'Record''s size in header: %d'^M^C'Actually record''s size : %d'
+;JOHN_SW end
+
+;KV+
+dlWkzQuerySeparatorTitle 'Column separator'
+dlWkzQuerySeparatorLabel '~S~eparator'
+dlWkzWarningClear ^C'All data in the current spreadsheet will be removed.'^M^C'Continue?'
+;KV-

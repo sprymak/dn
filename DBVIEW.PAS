@@ -62,6 +62,12 @@
 //  dn2215-windows_manager_changes_2.patch
 //
 //  2.3.0
+//  dn247-text_and_file_find_improve.patch
+//  dn230-dbf_history_improve.patch
+//  dn230-dbf_view_long_field_improve.patch
+//  dn230-dbf_viewer_scrollbars_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -159,6 +165,8 @@ type
     TDBWindow = object(TFileWindow)
        P: PDBViewer;
       P1: PDBIndicator;
+      VSB: PDBScrollBar;
+      HSB: PDBScrollBar;
      RealName: String;
 {--- start -------- Eugeny Zvyagintzev ---------}
      constructor Init(FName: String; Var FileIsDBF: Boolean);
@@ -498,9 +506,9 @@ procedure TDBViewer.HandleEvent;
  begin
   P := GetRecord(Delta.Y); if P = nil then Exit;
   PFR := DBFile^.GetFieldRec(Delta.X); if PFR = nil then Exit;
+  if (PFR^.Who <> 'M') then Exit;
   Move(P^[PFR^.Pos], S[1], PFR^.Len); S[0] := Char(PFR^.Len);
   Val(DelSpaces(S), L, I);
-  if (PFR^.Who <> 'M') or (L = 0) then Exit;
   lFSplit(FileName^, Dr, Nm, Xt);
   if (XT[0] = #4) and (UpStrg(XT) <> '.DBF') then XT[4] := 'T' else XT := '.FPT';
   MemoStream := New(PDosStream, Init(Dr+Nm+XT, stOpenRead));
@@ -604,22 +612,22 @@ procedure TDBViewer.HandleEvent;
                          else begin U := 0; D := dbFile^.NumFields - 1 end;
   if SearchRec.Scope = 0 then J := Delta.X
                          else if SearchRec.Direction = 1 then J := D else J := U;
-  R.Assign(1,1,30,10);
+  R.Assign(1,1,30,9);
   New(V, Init(R));
   V^.Top := GetString(dlSearching) + '"' + Cut(SearchRec.S, 40) + '"' ;
   V^.Write(1, GetString(dlPercentComplete));
   Desktop^.Insert(V);
   Abort:=False;
-  NewTimer(T, 9);
+  NewTimer(T, 1);
   while (I < DBFile^.NumRec) and (SearchRec.Direction <> 1) or
         (SearchRec.Direction = 1) and (I >= 0) do
    begin
     if TimerExpired(T) then begin
      DispatchEvents(V, Abort);
      if Abort then break;
-     V^.Write(2, Copy(Strg(#219, (I*25) div DBFile^.NumRec)+Strg(#177, 25), 1, 25));
-     V^.Write(3, ItoS(I)+'/'+ItoS(DBFile^.NumRec));
-     NewTimer(T, 9);
+     V^.Write(1, StrGrd(DBFile^.NumRec, I, 30, False));
+     V^.Write(2, ZtoS(Percent(DBFile^.NumRec,I))+'%');
+     NewTimer(T, 1);
     end;
     P := GetRecord(I);
     while ((J <= D) and (SearchRec.Direction <> 1)) or
@@ -645,7 +653,7 @@ procedure TDBViewer.HandleEvent;
                            else if SearchRec.Direction = 1 then J := D else J := U;
    end;
   V^.Free;
-  ErrMsg(dlDBViewSearchNot);
+  if not Abort then ErrMsg(dlDBViewSearchNot);
  end;
 
  procedure StartSearch;
@@ -885,9 +893,8 @@ procedure TDBViewer.Draw;
      C1, C2 ,C3: Word;
      C: Byte;
      I, J, K, NFN: Integer;
-     {$IFDEF NONBP}
-     FldLen : AWord; { Kirill }
-     {$ENDIF}
+     FldLen : Word; { Kirill }
+     FldPart: Byte;
      Idx: LongInt;
      PFR: PFieldRec;
      P: PByteArray;
@@ -899,6 +906,7 @@ begin
  if Pos.Y > Delta.Y then Pos.Y := Delta.Y;
  if Pos.Y + Size.Y - 2 < Delta.Y then Pos.Y := Delta.Y - Size.Y + 2;
  if Pos.Y < 0 then Pos.Y := 0;
+ if Delta.X > DBFile^.NumFields-1 then Delta.X := DBFile^.NumFields-1;
  if Pos.X > Delta.X then Pos.X := Delta.X;
  if Indicator <> nil then Indicator^.Draw;
 { -------- Eugeny Zvyagintzev ---------}
@@ -910,21 +918,23 @@ begin
  repeat
   MoveChar(B, ' ', C1, Size.X);
   J := Pos.X; NFN := 0; I := 1;
+  FldPart:=0;
   While (I < Size.X) and (J < DBFile^.NumFields) do
    begin
     PFR := DBFile^.GetFieldRec(J);
     FN[NFN] := PFR;
     if PFR <> nil then
      begin
-      K:=PFR^.Ln; if K > Size.X then K:=Size.X; { Kirill }
+      K:=PFR^.Ln; if K > Size.X-I then K:=Size.X-I; { Kirill }
       MoveStr(B[I], CenterStr(PFR^.Name, {PFR^.Ln} K), C1);
       Inc(I, PFR^.Ln+1);
      end;
-    if I < Size.X then Inc(NFN);
+    if I < Size.X then Inc(NFN) Else FldPart:=1;
     Inc(J);
    end;
   if (Delta.X > Pos.X + NFN - 1) and (Pos.X <> Delta.X) then Inc(Pos.X) else Break;
  until False;
+
  WriteLine(0,0, Size.X, 1, B);
  for K := 1 to Size.Y - 1 do
   begin
@@ -932,10 +942,11 @@ begin
    if DBFile^.NumRec > 0 then begin
     J := Delta.X; I := 1; Idx := Pos.Y+LongInt(K)-1;
     P := GetRecord(Idx);
-    if (NFN = 0) and (P <> nil) then NFN := 1;
+    {if (NFN = 0) and (P <> nil) then NFN := 1;}
     if P <> nil then B[0].C := Char(P^[0]);
     if P <> nil then
-    for J := 0 to NFN - 1 do
+
+    for J := 0 to NFN+FldPart - 1 do
      begin
       PFR := FN[J];
       if (Delta.Y = Idx) and (Pos.X + J = Delta.X) then C := C3 else C := C2;
@@ -954,35 +965,13 @@ begin
         MoveStr(B[I], DateToHuman(S), C);
         Inc(I, PFR^.Ln + 1);
       end else
-      {$IFDEF NONBP}
       begin { Kirill }
         FldLen:=PFR^.Len;
-        if FldLen > 255 then FldLen:=255;
+        if FldLen > Size.X-I then FldLen:=Size.X-I;
         Move(P^[PFR^.Pos], S[1], FldLen); S[0] := Char(FldLen);
         MoveStr(B[I], S, C);
         Inc(I, PFR^.Ln + 1);
       end;
-      {$ELSE}
-      asm
-       les di, PFR
-       mov cx, es:[di].FieldRec.Len
-       mov dx, es:[di].FieldRec.Ln
-       mov bx, es:[di].FieldRec.Pos
-       lea si, B
-       add si, I
-       add si, I
-       les di, P
-       mov ah, byte ptr C
- @@1:  mov al, es:[bx][di]
-       mov ss:[si], ax
-       inc si
-       inc si
-       inc di
-       loop @@1
-       inc dx
-       add I, dx
-      end;
-      {$ENDIF}
      end;
     end;
    WriteLine(0,K,Size.X,1,B);
@@ -996,6 +985,7 @@ procedure TDBIndicator.Draw;
      PFR: PFieldRec;
 begin
  if DBViewer^.Delta.Y < 0 then DBViewer^.Delta.Y := 0;
+ if DBViewer^.Delta.X > DBViewer^.DBFile^.NumFields-1 then DBViewer^.Delta.X := DBViewer^.DBFile^.NumFields-1;
  if Origin.Y <> Owner^.Size.Y - 1 then MoveTo(Origin.X, Owner^.Size.Y - 1);
  PFR:=DBViewer^.DBFile^.GetFieldRec(DBViewer^.Delta.X);
  S := ItoS(DBViewer^.Delta.Y+1)+'/'+Itos(DBViewer^.DBFile^.NumRec)+' ['+PFR^.Who+' '+Itos(PFR^.Len)+','+Itos(PFR^.Dec)+']';
@@ -1037,23 +1027,25 @@ begin
 { -------- Eugeny Zvyagintzev ---------}
  R.A.X:=R.B.X;
  R.B.X:=R.B.X+1;
- P^.VerticalScrollBar:=New(PDBScrollBar,Init(R));
- P^.VerticalScrollBar^.Max:=P^.DBFile^.NumRec-1;
- P^.VerticalScrollBar^.GrowMode:=gfGrowLoX + gfGrowHiX + gfGrowHiY;
- P^.VerticalScrollBar^.DBViewer:=P;
- P^.VerticalScrollBar^.SetStep(Size.Y-4,1);
- P^.VerticalScrollBar^.ScrollBarType:=sbVertical;
- Insert(P^.VerticalScrollBar);
+ VSB:=New(PDBScrollBar,Init(R));
+ VSB^.Max:=P^.DBFile^.NumRec-1;
+ VSB^.GrowMode:=gfGrowLoX + gfGrowHiX + gfGrowHiY;
+ VSB^.DBViewer:=P;
+ VSB^.SetStep(Size.Y-4,1);
+ VSB^.ScrollBarType:=sbVertical;
+ Insert(VSB);
+ P^.VerticalScrollBar:=VSB;
  GetBounds(R);
  R.A.X:=R.A.X+49;
  R.B.X:=R.B.X-2;
  R.A.Y:=R.B.Y-1;
- P^.HorizontalScrollBar:=New(PDBScrollBar,Init(R));
- P^.HorizontalScrollBar^.Max:=P^.DBFile^.NumFields-1;
- P^.HorizontalScrollBar^.GrowMode:=gfGrowLoY + gfGrowHiX + gfGrowHiY;
- P^.HorizontalScrollBar^.DBViewer:=P;
- P^.HorizontalScrollBar^.ScrollBarType:=sbHorizontal;
- Insert(P^.HorizontalScrollBar);
+ HSB:=New(PDBScrollBar,Init(R));
+ HSB^.Max:=P^.DBFile^.NumFields-1;
+ HSB^.GrowMode:=gfGrowLoY + gfGrowHiX + gfGrowHiY;
+ HSB^.DBViewer:=P;
+ HSB^.ScrollBarType:=sbHorizontal;
+ Insert(HSB);
+ P^.HorizontalScrollBar:=HSB;
 { -------- Eugeny Zvyagintzev ---------}
  R.A.X := 2; R.B.X := 10; R.A.Y := Size.Y - 1; R.B.Y := Size.Y;
  P1 := New(PDBIndicator, Init(R));
@@ -1083,6 +1075,15 @@ constructor TDBWindow.Load;
    GetSubViewPtr( S, P1 );
    P1^.DBViewer := P;
    P^.Indicator := P1;
+   GetSubViewPtr( S, VSB );
+   VSB^.DBViewer := P;
+   VSB^.ScrollBarType:=sbVertical;
+   P^.VerticalScrollBar:=VSB;
+   GetSubViewPtr( S, HSB );
+   HSB^.DBViewer := P;
+   HSB^.ScrollBarType:=sbHorizontal;
+   P^.HorizontalScrollBar:=HSB;
+
    Redraw ;
  end;
 
@@ -1091,6 +1092,8 @@ Procedure TDBWindow.Store;
    inherited Store( S );
      PutSubViewPtr( S, P );
      PutSubViewPtr( S, P1 );
+     PutSubViewPtr( S, VSB );
+     PutSubViewPtr( S, HSB );
    end;
 
 Destructor TDBWindow.Done;

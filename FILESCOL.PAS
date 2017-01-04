@@ -54,6 +54,11 @@
 //  dn16rc1-workaround_for_QSort_bugs.patch
 //
 //  2.0.0
+//  dn200-change_drive_menu_small_fix.patch
+//  dn269-remove_IOmega_detection.patch
+//  dn2628_creating_file_list_improve.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -137,6 +142,7 @@ type
 const
       cmlPathNames     = 1;
       cmlAutoDetermine = 2;
+      cmlUseLFN        = 4; {JOHN_SW}
 
       hfmAuto          = 0;
       hfmInsertText    = 1;
@@ -656,7 +662,7 @@ begin
   C := ' ';
   for DriveNum := 8 downto 0 do
     if DirsToChange[DriveNum] <> nil then begin
-      FreeStr:='  ~'+Itos(DriveNum+1)+':~ '+ CutH(DirsToChange[DriveNum]^,24);
+      FreeStr:='  ~'+Itos(DriveNum+1)+':~ '+ CutH(DirsToChange[DriveNum]^,25);
       Items := NewItem(FreeStr, 'Alt-'+Itos(DriveNum+1), kbAlt1,
                        cmQuickChange1 + DriveNum, hcNoContext, Items);
       MaxL:=Max(CStrLen(FreeStr), MaxL);
@@ -737,12 +743,12 @@ begin
          dtStacker   : FullS := FullS + GetString(sdtStacker);
          dtRAMDrive  : FullS := FullS + GetString(sdtRAMDrive);
          dtDublDisk  : FullS := FullS + GetString(sdtDublDisk);
-         dtBernoully : FullS := FullS + GetString(sdtBernoully);
          dtDiskreet  : FullS := FullS + GetString(sdtDiskreet);
          dtSuperStor : FullS := FullS + GetString(sdtSuperStor);
 {X-Man <<<}
         end;
         {$ENDIF}
+        FullS := FullS + ' ';
        end;
       {$IFDEF NETINFO}
       Get_drive_connection_id(DriveNum, Server_num);

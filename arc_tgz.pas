@@ -51,67 +51,25 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_tgz; {TGZ & TAZ & TAR.GZ}
 
 interface
- uses Archiver, Advance, Advance1, Objects, LFNCol, Dos, xTime, gzIO;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos, xTime, Advance2;
 
 type
     PTGZArchive = ^TTGZArchive;
     TTGZArchive = object(TARJArchive)
-        gzf: gzFile;
         constructor Init;
-        destructor Done; virtual;
         procedure GetFile; virtual;
         function GetID: Byte; virtual;
         function GetSign: TStr4; virtual;
     end;
-
-const MaxTName = 100;
-      Txt_Word = 8;
-      Txt_Long = 12;
-      BLKSIZE  = 512;
-
-type
-     TARHdr = record
-       FName: Array[1..MaxTName] of Char;
-       Mode:  Array[1..TXT_WORD] of Char;
-       uid:   Array[1..TXT_WORD] of Char;
-       gid:   Array[1..TXT_WORD] of Char;
-       size:  Array[1..TXT_LONG] of Char;
-       mtime: Array[1..TXT_LONG] of Char;
-       chksum: Array[1..TXT_WORD] of Char;
-       filetype: Char;
-       linkname: Array[1..MAXTNAME] of Char;
-       case Byte of
-        0: (
-            (* old-fashion data & padding *)
-             comment: Array[1..BLKSIZE-MAXTNAME-8-8-8-12-12-8-1-MAXTNAME-12-12] of Char;
-             srcsum: Array[1..TXT_LONG] of Char;
-             srclen: Array[1..TXT_LONG] of Char;
-          );
-        1: (
-             (* System V extensions *)
-             extent: Array[1..4] of Char;
-             allext: Array[1..4] of Char;
-             total: Array[1..TXT_LONG] of Char;
-            );
-         2: (
-            (* P1003 & GNU extensions *)
-             magic: Array[1..8] of Char;
-             uname: Array[1..32] of Char;
-             gname: Array[1..32] of Char;
-             devmajor: Array[1..TXT_WORD] of Char;
-             devminor: Array[1..TXT_WORD] of Char;
-             (* the following fields are added gnu and NOT standard *)
-             atime: Array[1..12] of Char;
-             ctime: Array[1..12] of Char;
-             offset: Array[1..12] of Char;
-            );
-     end;
 
 implementation
 { ----------------------------- TAR ------------------------------------}
@@ -120,20 +78,23 @@ constructor TTGZArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  TObject.Init;
-  FreeObject(ArcFile);
-  gzf := gzOpen(ArcFileName, 'r');
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'TAR.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'TAR.EXE'));
-  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'xfz'));
-  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'xfz'));
-  Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'cvzf'));
-  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'cvzf'));
-  Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'df'));
+  TObject.Init;
+{$IFNDEF OS2}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             ''));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNTGZ.EXE'));
+{$ELSE}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             ''));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNTGZOS2.EXE'));
+{$ENDIF}
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            '-d'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-d'));
+  Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                ''));
+  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               ''));
+  Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             ''));
   Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             ''));
-  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               'tzf'));
+  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               '-t'));
   IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
   ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
@@ -155,12 +116,6 @@ begin
   if q='0' then UseLFN := False else UseLFN := True;
 end;
 
-destructor TTGZArchive.Done;
-begin
- gzClose(gzf);
- inherited Done;
-end;
-
 function TTGZArchive.GetID;
 begin
   GetID := arcTGZ;
@@ -172,24 +127,37 @@ begin
 end;
 
 Procedure TTGZArchive.GetFile;
-  var
-      Buffer: Array [0..BlkSize - 1] of Char;
-      Hdr: TARHdr absolute Buffer;
-      DT: DateTime;
-      qq: longint;
+var
+    Time: Longint;
+    DT:   DateTime;
+    Flag: Byte;
+    C:    Char;
 begin
-  if gzEOF(gzf) then begin FileInfo.Last := 1; Exit end;
-  qq:=gzRead(gzf, @Buffer, BlkSize);
-  if qq<>BlkSize then begin FileInfo.Last := 2; Exit end;
-  FileInfo.Last := 0;
-  FileInfo.FName := Hdr.FName + #0;
-  Byte(FileInfo.FName[0]) := PosChar(#0, FileInfo.FName)-1;
-  if FileInfo.FName = '' then begin FileInfo.Last := 1; Exit end;
-  FileInfo.USize := FromOct(Hdr.Size);
-  FileInfo.PSize := FileInfo.USize;
-  GetUNIXDate(FromOct(Hdr.mTime), DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
-  PackTime(DT, FileInfo.Date);
-  gzSeek(gzf, ((FileInfo.PSize + BlkSize - 1) div BlkSize) * BlkSize, SEEK_CUR);
+ ArcFile^.Read(Time, SizeOf(Time));
+ if ArcFile^.EOF then begin FileInfo.Last := 1; Exit; end;
+ Flag := Time shr 24;
+ ArcFile^.Read(Time, SizeOf(Time));
+ GetUNIXDate(Time, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
+ PackTime(DT, FileInfo.Date);
+ FileInfo.FName := '';
+ if Flag and 8 = 0 then FileInfo.FName := GetSName(VArcFileName)
+   else begin
+    if Flag and 4 = 0 then Time := 10{skip 10 bytes}
+      else begin
+       ArcFile^.Read(Time, SizeOf(Time));
+       Time := Time shr 16 + 12;
+      end;
+    ArcFile^.Seek(ArcPos + Time);
+    repeat
+     ArcFile^.Read(C, 1);
+     if C <> #0 then FileInfo.FName := FileInfo.FName + C else Break;
+    until ArcFile^.Status <> stOK;
+   end;
+ FileInfo.PSize := ArcFile^.GetSize;
+ ArcFile^.Seek(FileInfo.PSize - 4);
+ ArcFile^.Read(FileInfo.USize, SizeOf(FileInfo.USize));
+ FileInfo.Attr := 0;
+ FileInfo.Last := 0;
 end;
 
 end.

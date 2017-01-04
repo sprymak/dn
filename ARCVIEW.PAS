@@ -58,6 +58,10 @@
 //  dn200-delete_file_from_temp_fix-diff161byMV.patch
 //
 //  2.3.0
+//  dn230-files_panel_bugs_fix_1.patch
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -68,20 +72,20 @@ Interface uses Dos, LFN, LFNCol, tree, Objects, Views, Drivers, FViewer,
                FlPanel, FilesCol, DiskInfo, DblWnd, HistList, HideView,
                RStrings, Drives, Commands, Archiver, FStorage, Histries,
                advance, advance1, advance2, advance3, archdet, collect
-               {$IFNDEF MINARCH}, Arc_tgz, gzio{$ENDIF}
                ;
 type
     PArcDrive = ^TArcDrive;
     TArcDrive = object(TDrive)
      ArcName:     String; {DataCompBoy}
+     VArcName:    String; {JO's idea moved from DN/2 by piwamoto}
      AType:       PARJArchive;
      Files:       PDirStorage;
      KillAfterUse:Boolean;
      ArcDate:     LongInt;
      ForceRescan: Boolean;
      Password:    String;
-     constructor Init(const AName: String; viewmode: byte);
-     constructor InitCol(PC: PDirStorage; const AName: String);
+     constructor Init(const AName, VAName: String; viewmode: byte);
+     constructor InitCol(PC: PDirStorage; const AName, VAName: String);
      constructor Load(var S: TStream);
      procedure   Store(var S: TStream); virtual;
      procedure   RereadDirectory(S: String); virtual; {DataCompBoy}
@@ -118,7 +122,7 @@ type
      procedure   StdMsg4;
     end;
 
-    function ArcViewer(AName : String; num: byte): Boolean; {DataCompBoy}
+    function ArcViewer(AName, VAName : String; num: byte): Boolean; {DataCompBoy}
     procedure StdMsg(MsgNo: Byte);
 
 const
@@ -216,6 +220,17 @@ begin
  if viewmode<1 then GetParam(1)
                else GetParam(viewmode);
  innum:=viewmode;
+
+ I:=PosChar(':', Copy(VAName,3,255))+2;
+ If I>2 then begin
+  Q := Copy(VAName, I+1, 255);
+  if Q[Length(Q)] in ['\','/'] then Dec(Q[0]);
+  VArcName := lFExpand(Copy(VAName,1,I-1));
+ end else begin
+  VArcName := lFExpand(VAName);
+  Q:='\';
+ end;
+
  I:=PosChar(':', Copy(AName,3,255))+2;
  If I>2 then begin
   Q := Copy(AName, I+1, 255);
@@ -233,6 +248,7 @@ begin
  if DosError <> 0 then
  begin
    ArcFileName := ArcName;
+   VArcFileName := VArcName;
    StdMsg4;
    lFindClose(SR);
    Fail
@@ -269,6 +285,7 @@ begin
   New(ArcFile,Init(ArcName, stOpenRead, 512))
  else ArcFile:=nil;
  ArcFileName := ArcName;
+ VArcFileName := VArcName;
  if (ArcFile=nil) or (ArcFile^.Status <> stOK) then begin
    StdMsg(4);
    Dispose(ArcFile, Done); ArcFile:=nil;
@@ -290,15 +307,15 @@ label
   Failure;
 begin
  inherited Load(S);
- S.Read(ArcName[0],1);
- S.Read(ArcName[1],Length(ArcName));
+ S.Read(ArcName[0],1);S.Read(ArcName[1],Length(ArcName));
+ S.Read(VArcName[0],1);S.Read(VArcName[1],Length(VArcName));
  S.Read(KillAfterUse, 1);
- S.Read(Password[0],1);
- S.Read(Password[1],Length(Password));
+ S.Read(Password[0],1);S.Read(Password[1],Length(Password));
  Files := PDirStorage(S.Get);
  ForceRescan := Off;
  DriveType := dtArc;
  ArcFileName := ArcName;
+ VArcFileName := VArcName;
  lFindFirst(ArcName, AnyFile, SR); {JO}
  if DosError <> 0 then goto Failure;
  lFindClose(SR);
@@ -311,6 +328,7 @@ Failure:
    StdMsg(4);
    if Files <> nil then Dispose(Files, Done); Files:=nil;
    S.Read(ForceRescan, 1);
+   Drives.DriveLoadingError:=True;
    Fail;
  end;
  ArcPos := 0;
@@ -332,6 +350,7 @@ procedure TArcDrive.Store;
 begin
  inherited Store(S);
  S.Write(ArcName[0],1 + Length(ArcName));
+ S.Write(VArcName[0],1 + Length(VArcName));
  S.Write(KillAfterUse, 1);
  S.Write(Password[0],1 + Length(Password));
  S.Put(Files);
@@ -351,7 +370,6 @@ var PF : PArcFile;
     P  : PWhileView;
     R  : TRect;
     Ln : LongInt;
-    PLn: LongInt;
     Cancel: Boolean;
     T: TEventTimer;
     olf: String;
@@ -359,6 +377,7 @@ begin
  ReadArchive:=Off;
  New(ArcFile,Init(ArcName, stOpenRead, 512));
  ArcFileName := ArcName;
+ VArcFileName := VArcName;
  if (ArcFile=nil) or (ArcFile^.Status <> stOK) then
   begin
     Dispose(ArcFile, Done); ArcFile:=nil;
@@ -376,13 +395,7 @@ begin
  if Files = nil then Exit; P := nil;
  R.Assign(1,1,30,10);
  {P := WriteMsg(GetString(dlArcReadArc));}
- If ArcFile<>nil then LN := ArcFile^.GetSize + 1 else begin
-  LN:=0;
-  {$IFNDEF MINARCH}
-  If TypeOf(AType^)=TypeOf(TTGZArchive)
-   then PLn:=FileSize(PTGZArchive(AType)^.gzf^.gzFile.F) + 1;
-  {$ENDIF}
- end;
+ LN := ArcFile^.GetSize + 1;
  Cancel := Off; PReader := nil;
  Inc(SkyEnabled);
  NewTimer(T, 3);
@@ -398,13 +411,7 @@ begin
           P^.Write(1, GetString(dlPercentComplete));
           Desktop^.Insert(P);
         end;
-      If LN<>0 then
-       P^.Write(2, Copy(Strg(#219,25 div (LN div (ArcFile^.GetPos+1)))+Strg(#177, 25), 1, 25))
-      {$IFNDEF MINARCH}
-      else if PLn<>0 then
-       P^.Write(2, Copy(Strg(#219,25 div (PLn div (FilePos(PTGZArchive(AType)^.gzf^.gzFile.F)+1)))+Strg(#177, 25), 1, 25))
-      {$ENDIF}
-      ;
+      P^.Write(2, Copy(Strg(#219,25 div (LN div (ArcFile^.GetPos+1)))+Strg(#177, 25), 1, 25));
       P^.Write(3, ItoS(Files^.Files)+GetString(dlFilesFound));
       NewTimer(T, 3);
     end;
@@ -484,7 +491,7 @@ function TArcDrive.GetDir;
 begin
  While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
  if (Length(CurDir)>0) and (not (CurDir[1] in ['\','/'])) then CurDir := '\' + CurDir;
- lFSplit(ArcName, Dr, Nm, Xt);
+ lFSplit(VArcName, Dr, Nm, Xt);
  GetDir := AType^.GetSign+Copy(Dr,1,2)+Nm+Xt+CurDir;
 end;
         {-DataCompBoy-}
@@ -616,14 +623,15 @@ begin
    TempFile := C + MakeNormName(TempDir , GetLFN(P^.LFN));
    Q:='|' + GetRealName+':'+MakeNormName(CurDir, GetLFN(P^.LFN));
    if C in ['<','-','|','+'] then TempFile := TempFile + Q;
-   S2:=Copy(TempFile,2,255); ExecOK:=True;
+   S2:=Copy(TempFile,2,255); {ExecOK:=True;}
    if not ExistFile(S2) or (PackedDate(P)<>FileTime(S2)) then
    begin
     lGetDir(0, DirToChange);
     Advance2.lChDir(TempDir);
-    ExecOK := Exec(CnvString(AType^.unPacker),s);
+    {ExecOK :=} Exec(CnvString(AType^.unPacker),s);
     Advance2.lChDir(DirToChange); DirToChange := '';
    end;
+(* {JO: убрал, т.к. без этого всё работает, а с этим куском - глючит просмотр в архивах с фильтром}
    if ExecOK then
    begin
      TempFile := MakeNormName(TempDir, GetLFN(P^.LFN));
@@ -631,6 +639,7 @@ begin
      While TempFile[Length(TempFile)] = ' ' do Dec(TempFile[0]);
      Message(Application, evCommand, Command, @TempFile);
    end;
+*)
 {$IFDEF VIRTUALPASCAL}
    TempFileSWP := TempFile; {JO}
 {$ENDIF}
@@ -720,13 +729,13 @@ begin
      {Prev^.Owner := Owner;}
    end;
   PFilePanel(Owner)^.Drive := Prev;
-  if TypeOf(Prev^)=TypeOf(TDrive) then Prev^.lChDir(GetPath(ArcName));
+  if TypeOf(Prev^)=TypeOf(TDrive) then Prev^.lChDir(GetPath(VArcName)); {???}
   if (Prev^.DriveType = dtDisk) and
      (PView(Owner)^.GetState(sfSelected+sfActive)) then
       ActivePanel := Owner;
   GlobalMessage(evCommand, cmRereadInfo, nil);
   Prev := nil;
-  S := GetName(ArcName);
+  S := GetName(VArcName); {???}
   if KillAfterUse then EraseTempFile(ArcName);
   Dispose(PDrive(@Self), Done);
 end;
@@ -820,9 +829,9 @@ procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
 begin
   While ExtrDir[Length(ExtrDir)] = ' ' do Dec(ExtrDir[0]);
   {$IFNDEF OS2}
-  if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(lfGetShortFileName(ArcName), ExtrDir, Nm, Xt);
+  if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(lfGetShortFileName(VArcName), ExtrDir, Nm, Xt);
   {$ELSE}
-  if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(ArcName, ExtrDir, Nm, Xt);
+  if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(VArcName, ExtrDir, Nm, Xt);
   {$ENDIF}
   if not (ExtrDir[Length(ExtrDir)] in ['\','/']) then ExtrDir := ExtrDir + '\';
   repeat   {JO}
@@ -1189,7 +1198,7 @@ function ArcViewer;
      Xt: String;
 begin
  ArcViewer := False;
- P := New(PArcDrive, Init(AName, num));
+ P := New(PArcDrive, Init(AName, VAname, num));
  if Abort then Exit;
  if P = nil then
    begin

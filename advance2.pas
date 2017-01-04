@@ -58,6 +58,9 @@
 //  dn200-delete_file_from_temp_fix-diff161byMV.patch
 //
 //  2.3.0
+//  dn269-make_del_dir_on_network_resource.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1467,8 +1470,7 @@ end;
 function  lFExpand(const S: string): string;
 var DD: String;
 begin
-  if (length(s)<2) or
-     ((S[2]<>':') and not (S[1] in ['\', '/']) and not (S[2] in ['\', '/']))
+  if (length(S) < 2) or ((S[2] <> ':') and (Copy(S, 1, 2) <> '\\')){piwamoto}
   then begin
     DD:=GetCurrentDir;
     if (DD[1]='\') then begin

@@ -55,6 +55,10 @@
 //  dn16rc1-Ctrl-N_hotkey_used_for_long-short_names_switching.patch
 //
 //  2.0.0
+//  dn230-files_panel_bugs_fix_1.patch
+//  dn269-diskinfo.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -134,6 +138,8 @@ const
   TempDirs: PSortedCollection = nil;
   TempFiles: PFilesCollection = nil;
 
+  DriveLoadingError: Boolean = False;
+
 implementation
 uses Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
      Dialogs, FileFind, FlPanelX, filediz, CmdLine{!!};
@@ -186,14 +192,10 @@ begin
   {$ENDIF}
 end;
 
-        {-DataCompBoy-}
-procedure TDrive.GetFreeSpace;
- var FreeSpc: TSize;
+procedure TDrive.GetFreeSpace;{piwamoto}
 begin
- FreeSpc := Disk_Free(Byte(CurDir[1])-64);
- S := '~'+FStr(FreeSpc)+GetString(dlDIFreeDisk)+Copy(CurDir, 1, 2);
+ S := '~'+FStr(GetDrInfo(CurDir))+GetString(dlDIFreeDisk)+Copy(CurDir, 1, 2);
 end;
-        {-DataCompBoy-}
 
         {-DataCompBoy-}
 procedure TDrive.GetParam;

@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn230-remove_GZip_compression_and_change_external_filter_view.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -253,7 +256,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
     GlobalMessage(evCommand, cmRereadDir, @TempDir);
     if PC^.Files = 0 then Dispose(PC, Done) else
      begin
-       New(Drv, InitCol(PC, ArcFileName));
+       New(Drv, InitCol(PC, ArcFileName, VArcFileName));
        if Message(Application, evBroadcast, cmFindForced, Drv) = nil then
        if Message(Application, evCommand, cmInsertDrive, Drv) = nil then
           begin

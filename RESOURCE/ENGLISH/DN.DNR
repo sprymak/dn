@@ -77,6 +77,19 @@
 ;/  dn2215-resource_and_help_fixes_05032002.patch
 ;/
 ;/  2.3.0
+;/  dn230-resource_and_help_fixes_22032002.patch
+;/  dn230-file_find_terminate_more_quick_and_smart.patch
+;/  dn247-resource_and_help_fixes_14042002.patch
+;/  dn247-resource_and_help_fixes_20042002.patch
+;/  dn247-resource_and_help_fixes_20020504.patch
+;/  dn2510-resource_and_help_fixes_20020516.patch
+;/  dn269_show_help_during_copy_files.patch
+;/  dn269-resource_and_help_fixes_20020621.patch
+;/  dn2624-wkz_import_and_export.patch
+;/  dn2628-resource_fixes_20020706.patch
+;/  dn2628_creating_file_list_improve.patch
+;/
+;/  2.7.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -119,6 +132,7 @@ ColorDialog
          ColorItem 'Button shadow',     46,
          ColorItem 'Cluster normal',    47,
          ColorItem 'Cluster selected',  48,
+;         ColorItem 'Cluster disabled',  62,
          ColorItem 'Cluster shortcut',  49,
          ColorItem 'Input normal',      50,
          ColorItem 'Input selected',    51,
@@ -319,8 +333,8 @@ DIALOG dlgCountrySetup, 51, 20, 'Country information'
     Label 21, 10, 'Cu~r~rency format', ofPostProcess, ofPreProcess
     UpperTable 11, 14, 48, 16
     Label 3, 13, 'U~p~percase table', ofPostProcess, ofPreProcess
-    Label 2, 14, 'Normal ', ofPostProcess, ofPreProcess
-    Label 2, 15, 'Upper ', ofPostProcess, ofPreProcess
+    Label 2, 14, 'Normal', ofPostProcess, ofPreProcess
+    Label 2, 15, 'Upper', ofPostProcess, ofPreProcess
     Button  2, 17, 12, 19, 'DO~S~', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
     Button 14, 17, 24, 19, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 26, 17, 36, 19, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -343,7 +357,7 @@ MENU dlgEditorMenu
     END
  SubMenu '~E~dit', hcedEdit,
       MenuItem '~U~ndo', 'Alt-BkSp', kbAltBack, cmUndo, hcedEdit,
-      MenuItem '~R~edo', 'Alt-~', kbAltTilde, cmRedo, hcedEdit,
+      MenuItem '~R~edo', 'Alt-Shift-BkSp', kbAltShiftBack, cmRedo, hcedEdit,
       MenuLine
       MenuItem 'Cu~t~', 'Shift-Del', kbShiftDel, cmCut, hcedEdit,
       MenuItem '~C~opy', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcedEdit,
@@ -361,11 +375,10 @@ MENU dlgEditorMenu
       MenuItem '~R~eplace...', 'Ctrl-F7', kbCtrlF7, cmReplace, hcedSearch,
       MenuItem '~S~earch again', 'Shift-F7', kbShiftF7, cmContSearch, hcedSearch,
       MenuItem 'Re~v~ersed search', 'Alt-F7', kbAltF7, cmReverseSearch, hcedSearch,
+      Menuline
       MenuItem '~G~o to line number...', 'Alt-G', kbAltG, cmGotoLineNumber, hcedSearch,
-;{csablak}
       MenuItem 'Goto ~b~lock begin','Ctrl-Q B', kbNoKey, cmMoveBlockStart, hcedSearch,
       MenuItem 'Goto b~l~ock end','Ctrl-Q K', kbNoKey, cmMoveBlockEnd, hcedSearch,
-;{csablak end}
     END
  SubMenu '~P~aragraph', hcedParagraph,
       MenuItem '~J~ustify', 'Alt-J', kbAltJ, cmFJustify, hcedParagraph,
@@ -438,31 +451,32 @@ MENU dlgEditorMenu
 END
 
 MENU dlgFixerMenu
-  SubMenu '~A~rea', hcDiskEditor,
-      MenuItem '~F~ile...', 'Alt-F', kbAltF, cmFixFile, hcDiskEditor,
-      MenuItem 'Di~r~ectory...', 'Alt-R', kbAltR, cmFixDir, hcDiskEditor,
-      MenuItem '~D~rive...', 'Alt-D', kbAltD, cmFixDrive, hcDiskEditor,
-      MenuItem '~C~luster...', 'Alt-C', kbAltC, cmFixCluster, hcDiskEditor,
-      MenuItem '~S~ector...', 'Alt-S', kbAltS, cmFixSector, hcDiskEditor,
+  SubMenu '~A~rea', hcDiskAreaMenu,
+      MenuItem '~F~ile...', 'Alt-F', kbAltF, cmFixFile, hcDiskAreaMenu,
+      MenuItem 'Di~r~ectory...', 'Alt-R', kbAltR, cmFixDir, hcDiskAreaMenu,
+      MenuItem '~D~rive...', 'Alt-D', kbAltD, cmFixDrive, hcDiskAreaMenu,
+      MenuItem '~C~luster...', 'Alt-C', kbAltC, cmFixCluster, hcDiskAreaMenu,
+      MenuItem '~S~ector...', 'Alt-S', kbAltS, cmFixSector, hcDiskAreaMenu,
       MenuLine
-      MenuItem 'E~x~it', 'Alt-F3', kbAltF3, cmClose, hcDiskEditor,
+      MenuItem '~M~ain menu', 'F10', kbF10, cmMainMenu, hcDiskAreaMenu,
+      MenuItem 'E~x~it', 'Ctrl-F4', kbCtrlF4, cmClose, hcDiskAreaMenu,
     END
- SubMenu '~E~dit', hcDiskEditor,
-      MenuItem '~U~ndo', 'Alt-BkSp', kbAltBack, cmUndo, hcDiskEditor,
+ SubMenu '~E~dit', hcDiskEditMenu,
+      MenuItem '~U~ndo', 'Alt-BkSp', kbAltBack, cmUndo, hcDiskEditMenu,
       MenuLine
-      MenuItem '~C~opy', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcDiskEditor,
-      MenuItem '~P~aste over', 'Shift-Ins', kbShiftIns, cmPaste, hcDiskEditor,
-      MenuItem 'C~o~py to...', '', kbNoKey, cmFixBlockWrite, hcDiskEditor,
-      MenuItem '~F~ill...', '', kbNoKey, cmClear, hcDiskEditor,
+      MenuItem '~C~opy', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcDiskEditMenu,
+      MenuItem '~P~aste over', 'Shift-Ins', kbShiftIns, cmPaste, hcDiskEditMenu,
+      MenuItem 'C~o~py to...', '', kbNoKey, cmFixBlockWrite, hcDiskEditMenu,
+      MenuItem '~F~ill...', '', kbNoKey, cmClear, hcDiskEditMenu,
       MenuLine
-      MenuItem '~S~earch for...', 'F7', kbF7, cmSearchFor, hcDiskEditor,
-      MenuItem 'Co~n~tinue search...', 'Shift-F7', kbShiftF7, cmContinueSearch, hcDiskEditor,
+      MenuItem '~S~earch for...', 'F7', kbF7, cmSearchFor, hcDiskEditMenu,
+      MenuItem 'Co~n~tinue search...', 'Shift-F7', kbShiftF7, cmContinueSearch, hcDiskEditMenu,
     END
- SubMenu '~V~iew', hcDiskEditor,
-      MenuItem 'As ~H~ex', 'F2', kbF2, cmHexMode, hcDiskEditor,
-      MenuItem 'As ~D~ir', 'F3', kbF3, cmDirMode, hcDiskEditor,
-      MenuItem 'As ~T~ext', 'F4', kbF4, cmTextMode, hcDiskEditor,
-      MenuItem 'As ~F~AT', 'F5', kbF5, cmFATMode, hcDiskEditor,
+ SubMenu '~V~iew', hcDiskViewMenu,
+      MenuItem 'As ~H~ex', 'F2', kbF2, cmHexMode, hcDiskViewMenu,
+      MenuItem 'As ~D~ir', 'F3', kbF3, cmDirMode, hcDiskViewMenu,
+      MenuItem 'As ~T~ext', 'F4', kbF4, cmTextMode, hcDiskViewMenu,
+      MenuItem 'As ~F~AT', 'F5', kbF5, cmFATMode, hcDiskViewMenu,
     END
 END
 
@@ -471,19 +485,19 @@ MENU dlgMainMenu
     MenuItem '~A~bout...', '', kbNoKey, cmAbout, hcMenuBox,
     MenuItem '~R~efresh display', '', kbNoKey, cmRefresh, hcMenuBox,
     MenuItem '~S~creen rest', '', kbNoKey, cmScreenRest, hcMenuBox,
-    MenuItem '~C~hange language','Alt-F12',kbAltF12,cmChLngId,hcMenuBox,
+    MenuItem 'Change ~l~anguage','Alt-F12',kbAltF12,cmChLngId,hcMenuBox,
     MenuLine
     MenuItem 'Screen gra~b~ber', 'Shift-Alt-Ins', kbNoKey, cmExecGrabber, hcMenuBox,
     MenuItem '~U~ser screen', 'Alt-F5', kbAltF5, cmShowUserScreen, hcMenuBox,
     MenuItem '~O~utput window', 'Ctrl-O', kbCtrlO, cmShowOutput, hcMenuBox,
     MenuItem 'S~m~artPad (TM)', 'Alt-Q', kbAltQ, cmOpenSmartpad, hcMenuBox,
-    MenuItem 'Show C~l~ipboard', '', kbNoKey, cmOpenClipBoard, hcMenuBox,
+    MenuItem 'Show ~C~lipboard', '', kbNoKey, cmOpenClipBoard, hcMenuBox,
     MenuItem '~T~rashcan on/off', '', kbNoKey, cmHideShowTools, hcMenuBox,
     MenuLine
     MenuItem '~E~GA/VGA lines', 'Shift-F10', kbShiftF10, cmChangeMode, hcMenuBox,
     MenuItem 'Custom video mode ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
     MenuItem 'Custom video mode ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
-    MenuItem 'C~h~ange Screen  Mode', 'Shift-F12', kbShiftF12, cmChScreenMode, hcMenuBox,
+    MenuItem 'C~h~ange Screen Mode', 'Shift-F12', kbShiftF12, cmChScreenMode, hcMenuBox,
     MenuLine
     MenuItem '~G~ame', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
   END
@@ -508,17 +522,18 @@ MENU dlgMainMenu
     MenuItem '~R~ename/Move...', 'F6', kbF6, cmMoveFiles, hcFileMenu,
     MenuItem '~D~elete', 'F8', kbF8, cmPanelErase, hcFileMenu,
     SubMenu 'S~i~ngle file', hcFileMenu,
-      MenuItem '~C~opy single file', '', kbNoKey, cmSingleCopy, hcFileMenu,
-      MenuItem '~R~ename/Move single file', '', kbNoKey, cmSingleRename, hcFileMenu,
+      MenuItem '~C~opy single file...', 'Shift-F5', kbShiftF5, cmSingleCopy, hcFileMenu,
+      MenuItem '~R~ename single file...', 'Shift-F6', kbShiftF6, cmSingleRename, hcFileMenu,
       MenuItem '~D~elete single file','Shift-F8',kbShiftF8, cmSingleDel, hcFileMenu,
+      MenuItem 'Single file ~a~ttributes', 'Ctrl-A', kbCtrlA, cmSingleAttr, hcFileMenu,
     END
     MenuItem 'C~h~ange name case...', 'Ctrl-Alt-F6', kbCtrlAltF6, cmChangeNameCase, hcFileMenu,
     MenuItem 'Cop~y~ to archive...', 'Shift-F1', kbShiftF1, cmPanelArcFiles, hcFileMenu,
     MenuItem 'Ex~t~ract archive...', 'Shift-F2', kbShiftF2, cmExtractArchive, hcFileMenu,
-    MenuItem '~S~plit/combine...', 'Shift-F5', kbShiftF5, cmPanelLongCopy, hcFileMenu,
+    MenuItem '~S~plit/Combine...', 'Ctrl-Alt-F5', kbCtrlAltF5, cmPanelLongCopy, hcFileMenu,
     MenuItem '~P~rint', 'Ctrl-F9', kbCtrlF9, cmPrintFile, hcFileMenu,
     MenuItem '~M~ake directory', 'F7', kbF7, cmPanelMkDir, hcFileMenu,
-    MenuItem 'File ~A~ttributes...', 'Alt-E', kbAltE, cmSetFAttr, hcFileMenu,
+    MenuItem 'Files ~A~ttributes...', 'Alt-E', kbAltE, cmSetFAttr, hcFileMenu,
     MenuItem 'UU E~n~code...', 'Ctrl-F7', kbCtrlF7, cmUUEncodeFile, hcFileMenu,
     MenuItem '~U~U Decode...', 'Ctrl-F8', kbCtrlF8, cmUUDecodeFile, hcFileMenu,
     MenuItem 'Unpack diskette images','Ctrl-I',kbCtrlI, cmUnpDiskImg, hcFileMenu,
@@ -530,7 +545,7 @@ MENU dlgMainMenu
  SubMenu '~D~isk', hcDiskMenu,
     MenuItem '~F~ormat disk...', 'Shift-F7', kbShiftF7, cmFormatDisk, hcDiskMenu,
     MenuItem '~V~olume label...', '', kbNoKey, cmSetVolumeLabel, hcDiskMenu,
-    MenuItem '~R~eanimator...', 'Shift-F6', kbShiftF6, cmReanimator, hcDiskMenu,
+    MenuItem '~R~eanimator...', 'Ctrl-Alt-F8', kbCtrlAltF8, cmReanimator, hcDiskMenu,
     MenuItem 'Disk ~e~ditor', '', kbNoKey, cmDiskEdit, hcDiskMenu,
     MenuLine
     MenuItem '~D~irectory tree', '', kbNoKey, cmCreateTree, hcDiskMenu,
@@ -583,8 +598,7 @@ MENU dlgMainMenu
  SubMenu '~M~anager', hcManagerCommands,
     MenuItem '~N~ew', 'Ctrl-F3', kbCtrlF3, cmCreatePanel, hcManagerCommands,
     MenuItem '~D~irectory tree', 'Ctrl-T', kbCtrlT, cmDirTree, hcManagerCommands,
-    MenuItem '~I~nfo', 'Ctrl-L', kbCtrlL, cmDiskInfo, hcManagerCommands,
-;{-$VIV}
+    MenuItem '~I~nfo', 'Alt-I, Ctrl-L', kbCtrlL, cmDiskInfo, hcManagerCommands,
     MenuItem 'N~e~t info', 'Ctrl-Alt-N', kbCtrlAltN, cmNetInfo, hcManagerCommands,
     MenuItem '~Q~uick view', 'Ctrl-Q', kbCtrlQ, cmQuickView, hcManagerCommands,
     MenuLine
@@ -649,7 +663,7 @@ MENU dlgMainMenu
       MenuItem '~R~AR - RAR (C) E. Roshal',                             '', kbNoKey, cmConfigRAR, hcArchives,
       MenuItem '~S~QZ - SQZ (C) J.I.Hammarberg',                        '', kbNoKey, cmConfigSQZ, hcArchives,
       MenuItem '~T~AR - Tape ARchiver for *NIX',                        '', kbNoKey, cmConfigTAR, hcArchives,
-      MenuItem 'T~G~Z - Tape ARchiver for *NIX/GZip compressor',        '', kbNoKey, cmConfigTGZ, hcArchives,
+      MenuItem 'T~G~Z - GZip compressor',                               '', kbNoKey, cmConfigTGZ, hcArchives,
       MenuItem '~U~C2 - Ultra Compressor II (C) Ad Infinitum Programs', '', kbNoKey, cmConfigUC2, hcArchives,
       MenuItem 'U~F~A - UFA (C) Igor Pavlov',                           '', kbNoKey, cmConfigUFA, hcArchives,
       MenuItem '~Z~IP - PKZIP (C) PKWARE Inc.',                         '', kbNoKey, cmConfigZIP, hcArchives,
@@ -660,7 +674,6 @@ MENU dlgMainMenu
     MenuItem '~Q~uick run file edit...', '', kbNoKey, cmEditQuickRun, hcOptionsMenu,
     MenuItem 'E~x~tension file edit...', '', kbNoKey, cmExtFileEdit, hcOptionsMenu,
     MenuItem '~H~ighlight file edit...', '', kbNoKey, cmEditHGL, hcOptionsMenu,
-;{-$VIV 19.05.00}
     MenuItem 'Search ~p~ath file (SPF) edit...', '', kbNoKey, cmEditSPF, hcOptionsMenu,
     MenuItem '~I~ni file edit...', '', kbNoKey, cmEditINI, hcOptionsMenu,
     MenuItem '~G~lobal menu definition...', '', kbNoKey, cmMenuFileEdit, hcOptionsMenu,
@@ -701,11 +714,17 @@ MENU dlgWkzMenuBar
        MenuItem '~O~pen...', 'F3', kbF3, cmXEditFile, hcSpreadFileMenu,
        MenuItem '~S~ave', 'F2', kbF2, cmSave, hcSpreadFileMenu,
        MenuItem 'Save ~a~s...', 'Shift-F2', kbShiftF2, cmSaveSheetAs, hcSpreadFileMenu,
-       MenuItem 'Save ~t~ext', 'Shift-F3', kbShiftF3, cmImportToFile, hcSpreadFileMenu,
+       SubMenu '~I~mport', hcSpreadFileMenu,
+         MenuItem 'Comma Separated Value (~C~SV)', '', kbNoKey, cmImportFromCsv, hcSpreadFileMenu,
+         MenuItem 'dBase III (~D~BF)', '', kbNoKey, cmImportFromDbf, hcSpreadFileMenu,
+       END
+       SubMenu '~E~xport', hcSpreadFileMenu,
+         MenuItem 'Comma Separated Value (~C~SV)', '', kbNoKey, cmExportToCsv, hcSpreadFileMenu,
+         MenuItem 'dBase III (~D~BF)', '', kbNoKey, cmExportToDbf, hcSpreadFileMenu,
+       END
        MenuLine
        MenuItem '~M~ain menu', 'F10', kbF10, cmMainMenu, hcSpreadFileMenu,
-       MenuLine
-       MenuItem '~E~xit', 'Ctrl-F4', kbESC, cmClose, hcSpreadFileMenu,
+       MenuItem 'E~x~it', 'Ctrl-F4', kbCtrlF4, cmClose, hcSpreadFileMenu,
      END
   SubMenu '~E~dit', hcSpreadEditMenu,
        MenuItem '~U~ndo', 'Alt-BkSp', kbAltBack, cmUndo, hcSpreadEditMenu,
@@ -725,7 +744,7 @@ MENU dlgWkzMenuBar
      END
   SubMenu '~T~able', hcSpreadTableMenu,
        MenuItem 'Cell f~o~rmat', 'Alt-O', kbAltO, cmChangeFormat, hcSpreadTableMenu,
-       MenuItem 'Column ~w~idth...', '', kbNoKey, cmChangeWidth, hcSpreadTableMenu,
+       MenuItem 'Column ~w~idth...', 'Alt-W', kbAltW, cmChangeWidth, hcSpreadTableMenu,
        MenuLine
        MenuItem '~I~nsert row', 'Alt-I', kbAltI, cmInsertLine, hcSpreadTableMenu,
        MenuItem 'Insert ~c~olumn', 'Alt-C', kbAltC, cmInsertColumn, hcSpreadTableMenu,
@@ -738,20 +757,20 @@ STATUSLINE
   StatusDef 1, 1,
 ;{BASE}
       StatusItem '~F1~ Help', kbF1, cmHelp,
-      StatusItem '~'#26'~ Moving', kbNoKey, cmNO,
+      StatusItem '~'#26'~ Moving', kbNoKey, cmNO,
       StatusItem '~ÄÙ~ Done', kbNoKey, cmNo,
       StatusItem '~Esc~ Cancel', kbNoKey, cmNo,
 ;{SHIFT}
-      StatusItem ':~'#26'~ Resize', kbNoKey, cmNo,
+      StatusItem ':~'#26'~ Resize', kbNoKey, cmNo,
 
   StatusDef hcEnvEditor, hcEnvEditor,
-;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~Ins~ Append', kbIns, cmAddVariable,
      StatusItem '~Del~ Delete', kbDel, cmDelVariable,
      StatusItem '~F6~ Rename', kbF6, cmRenVariable,
+;{CTRL}
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 
   StatusDef hcHelp, hcHelp,
 ;{BASE}
@@ -759,17 +778,16 @@ STATUSLINE
       StatusItem '~Tab~ Next topic', kbNoKey, cmYes,
       StatusItem '~ENTER~ Open',kbNoKey, cmOk,
       StatusItem '~Esc~ Cancel', kbNoKey, cmClose,
-;{csablak}
       StatusItem '~Back with mouse~', kbNoKey, cmNo,
-;{SHIFT}
-      StatusItem ':~F1~ Index', kbShiftF1, cmCancel,
-      StatusItem ':~Tab~ Previous topic', kbNoKey, cmSave,
 ;{ALT}
       StatusItem '-~F1~ Go back', kbNoKey, cmNo,
       StatusItem '-~Z~oom', kbAltZ, cmZoom,
 ;{CTRL}
-      StatusItem '+~F5~ Resize', kbCtrlF5, cmResize,
-;{Alt-Ctrl}
+      StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
+;{SHIFT}
+      StatusItem ':~F1~ Index', kbShiftF1, cmCancel,
+      StatusItem ':~Tab~ Previous topic', kbNoKey, cmSave,
+;{ALT-CTRL}
       StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;{NO SHOW}
       StatusItem '', kbF9, cmNext,
@@ -797,14 +815,6 @@ STATUSLINE
      StatusItem '-~R~e-read', kbAltR, cmForceRescan,
      StatusItem '-~;~ Desc', kbAltSemicolon, cmToggleDescriptions,
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
-;{SHIFT}
-     StatusItem ':~F1~ Arc', kbShiftF1, cmPanelArcFiles,
-     StatusItem ':~F2~ Ext', kbShiftF2, cmExtractArchive,
-     StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
-     StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F5~ Split/Combine', kbShiftF5, cmPanelLongCopy,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
-     StatusItem ':~F8~ Del', kbShiftF8, cmSingleDel,
 ;{CTRL}
      StatusItem '+~F3~ New manager', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
@@ -812,15 +822,24 @@ STATUSLINE
      StatusItem '+~K~ Desc', kbCtrlK, cmToggleDescriptions,
      StatusItem '+~L~ Info', kbCtrlL, cmDiskInfo,
      StatusItem '+LF~N~', kbCtrlN, cmToggleLongNames,
-;{-$VIV}
      StatusItem '+~T~ree', kbCtrlT, cmDirTree,
      StatusItem '+~Q~ Preview', kbCtrlQ, cmQuickView,
      StatusItem '+~Y~ Show', kbCtrlY, cmToggleShowMode,
-;{Alt-Ctrl}
+;{SHIFT}
+     StatusItem ':~F1~ Arc', kbShiftF1, cmPanelArcFiles,
+     StatusItem ':~F2~ Ext', kbShiftF2, cmExtractArchive,
+     StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
+     StatusItem ':~F5~ Copy', kbShiftF5, cmSingleCopy,
+     StatusItem ':~F6~ Ren', kbShiftF6, cmSingleRename,
+     StatusItem ':~F8~ Del', kbShiftF8, cmSingleDel,
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
      StatusItem '^~N~etInfo', kbCtrlAltN, cmNetInfo,
-     StatusItem '^~F6~ Change names case', kbCtrlAltF6, cmChangeNameCase,
+     StatusItem '^~F5~ Split/Combine', kbCtrlAltF5, cmPanelLongCopy,
+     StatusItem '^~F6~ Change case', kbCtrlAltF6, cmChangeNameCase,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbAltI, cmDiskInfo,
      StatusItem '', kbF9, cmNext,
@@ -847,16 +866,15 @@ STATUSLINE
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
      StatusItem '+~L~ Info', kbCtrlL, cmDiskInfo,
      StatusItem '+LF~N~', kbCtrlN, cmToggleLongNames,
-;{-$VIV}
      StatusItem '+~Y~ Show', kbCtrlY, cmToggleShowMode,
 ;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F8~ Del', kbShiftF8, cmSingleDel,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
      StatusItem '^~N~etInfo', kbCtrlAltN, cmNetInfo,
-     StatusItem '^~F6~ Change names case', kbCtrlAltF6, cmChangeNameCase,
+     StatusItem '^~F6~ Change case', kbCtrlAltF6, cmChangeNameCase,
 ;{NO SHOW}
      StatusItem '', kbAltI, cmDiskInfo,
      StatusItem '', kbF9, cmNext,
@@ -894,13 +912,13 @@ STATUSLINE
 ;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F8~ Erase', kbShiftF8, cmSingleDel,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
      StatusItem '^~N~etInfo', kbCtrlAltN, cmNetInfo,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbAltI, cmDiskInfo,
      StatusItem '', kbF9, cmNext,
@@ -916,6 +934,10 @@ STATUSLINE
      StatusItem '~F7~ MkDir', kbF7, cmPanelMkDir,
      StatusItem '~F8~ Del', kbF8, cmPanelErase,
      StatusItem '~F10~ Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-Memor~y~ info', kbAltY, cmMemoryInfo,
+     StatusItem '-~Z~oom', kbAltZ, cmZoom,
+     StatusItem '-~X~ Quit', kbAltX, cmQuit,
 ;{CTRL}
      StatusItem '+~F3~ New manager', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
@@ -925,17 +947,12 @@ STATUSLINE
 ;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{ALT}
-     StatusItem '-Memor~y~ info', kbAltY, cmMemoryInfo,
-     StatusItem '-~Z~oom', kbAltZ, cmZoom,
-     StatusItem '-~X~ Quit', kbAltX, cmQuit,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
-     StatusItem '^~F6~ Case', kbCtrlAltF6, cmChangeNameCase,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
@@ -975,7 +992,7 @@ STATUSLINE
      StatusItem ':~F6~ XLat', kbShiftF6, cmLoadXlatTable,
      StatusItem ':~F7~ Cont. search', kbShiftF7, cmContinueSearch,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
 ;{NO SHOW}
@@ -1012,18 +1029,18 @@ STATUSLINE
      StatusItem ':~F2~ Store', kbShiftF2, cmSave,
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Continue search', kbShiftF7, cmContinueSearch,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbCtrlL, cmContinueSearch,
      StatusItem '', kbCtrlEnter, cmContinueSearch,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
+     StatusItem '', kbAltF3, cmClose,
 
   StatusDef hcDBView, hcDBView,
 ;{BASE}
@@ -1034,9 +1051,7 @@ STATUSLINE
      StatusItem '~F7~ Search', kbF7, cmSearchFor,
      StatusItem '~F10~ Menu', kbF10, cmMenu,
 ;{ALT}
-;NEW+
      StatusItem '-~F7~ Back search', kbAltF7, cmBackSearch,
-;NEW-
      StatusItem '-Memor~y~ info', kbAltY, cmMemoryInfo,
      StatusItem '-~Z~oom', kbAltZ, cmZoom,
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
@@ -1048,12 +1063,12 @@ STATUSLINE
 ;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Continue search', kbShiftF7, cmContinueSearch,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbCtrlL, cmContinueSearch,
      StatusItem '', kbF9, cmNext,
@@ -1080,7 +1095,6 @@ STATUSLINE
      StatusItem '-~R~ight', kbAltR, cmFRight,
      StatusItem '-~Z~oom', kbAltZ, cmZoom,
      StatusItem '-~Tilde~ Redo', kbAltTilde, cmRedo,
-     StatusItem '', kbAltShiftBack, cmRedo,
      StatusItem '-~V~ View', kbAltV, cmViewFile,
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
 ;{CTRL}
@@ -1097,14 +1111,13 @@ STATUSLINE
      StatusItem ':~F7~ Cont. search', kbShiftF7, cmContSearch,
      StatusItem ':~F8~ Print block', kbShiftF8, cmPrintBlock,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
 ;{NO SHOW}
-     StatusItem '', kbCtrlAltZ, cmMaxi,
+     StatusItem '', kbAltShiftBack, cmRedo,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
-;{-$VOL}
      StatusItem '', kbCtrlS, cmSaveText,
      StatusItem '', kbCtrlF5, cmResize,
      StatusItem '', kbCtrlM, cmMaxi,
@@ -1113,7 +1126,7 @@ STATUSLINE
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~F2~ Save', kbF2, cmSBBStore,
-     StatusItem '~F5~ Grab', kbF10, cmSBBGrab,
+     StatusItem '~F5~ Grab', kbF5, cmSBBGrab,
      StatusItem '~F7~ Search', kbF7, cmSearchFor,
      StatusItem '~F8~ Kill', kbF8, cmSBBKill,
      StatusItem '~F10~ Menu', kbF10, cmMenu,
@@ -1149,12 +1162,12 @@ STATUSLINE
      StatusItem ':~Ins~ Paste', kbShiftIns, cmOpen,
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
@@ -1165,9 +1178,8 @@ STATUSLINE
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~Del~ Delete', kbDel, cmNo,
-;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
+;{CTRL}
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 
   StatusDef hcPhone, hcPhone,
 ;{BASE}
@@ -1176,9 +1188,8 @@ STATUSLINE
      StatusItem '~Del~ Delete', kbDel, cmDeletePhone,
      StatusItem '~F4~ Edit', kbF4, cmEditPhone,
      StatusItem '~F5~ Dial', kbF5, cmDialPhone,
-;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
+;{CTRL}
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 
   StatusDef hcTetris, hcPentix,
 ;{BASE}
@@ -1198,20 +1209,21 @@ STATUSLINE
 ;{CTRL}
      StatusItem '+~F3~ New manager', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
      StatusItem '+~F12~ Calendar', kbCtrlF12, cmCalendar,
 ;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
+     StatusItem '', kbF10, cmMenu,
      StatusItem '', kbShiftF9, cmPrev,
-     StatusItem '', kbESC, cmClose,
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
+     StatusItem '', kbEsc, cmClose,
 
   StatusDef hcReanimator, hcReanimator,
 ;{BASE}
@@ -1220,12 +1232,12 @@ STATUSLINE
      StatusItem '~F5~ Reanimate', kbF5, cmReanimateFile,
 ;{ALT}
      StatusItem '-~C~ Change drive', kbAltC, cmRChDrive,
+;{CTRL}
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 ;{NO SHOW}
      StatusItem '', kbSpace, cmMarkFile,
      StatusItem '', kbGrayPlus, cmMarkFiles,
      StatusItem '', kbGrayMinus, cmUnMarkFiles,
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
 
   StatusDef hcSpreadSheet, hcSpreadSheet,
 ;{BASE}
@@ -1243,28 +1255,27 @@ STATUSLINE
      StatusItem '-De~l~ row', kbAltL, cmDeleteLine,
      StatusItem '-~D~el column', kbAltD, cmDeleteColumn,
      StatusItem '-Cell f~o~rmat', kbAltO, cmChangeFormat,
-     StatusItem '-Memor~y~ info', kbAltY, cmMemoryInfo,
-     StatusItem '-~X~ Quit', kbAltX, cmQuit,
+     StatusItem '-Column ~w~idth', kbAltW, cmChangeWidth,
 ;{CTRL}
      StatusItem '+~F3~ New manager', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
      StatusItem '+~F12~ Calendar', kbCtrlF12, cmCalendar,
 ;{SHIFT}
-     StatusItem ':~F2~ Save as', kbShiftF2, cmSaveTextAs,
-     StatusItem ':~F3~ Export', kbShiftF3, cmImportToFile,
+     StatusItem ':~F2~ Save as', kbShiftF2, cmSaveSheetAs,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Cont. search', kbShiftF7, cmSearchAgain,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
-     StatusItem '', kbCtrlF5, cmResize,
      StatusItem '', kbCtrlM, cmMaxi,
+     StatusItem '', kbEsc, cmClose,
 
    StatusDef hcDiskInfo, hcDiskInfo,
 ;{BASE}
@@ -1277,42 +1288,42 @@ STATUSLINE
 ;{CTRL}
      StatusItem '+~F3~ New manager', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
      StatusItem '+~F12~ Calendar', kbCtrlF12, cmCalendar,
 ;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
-     StatusItem '', kbCtrlF5, cmResize,
      StatusItem '', kbCtrlM, cmMaxi,
 
    StatusDef hcNetInfo, hcNetInfo,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~F10~ Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~X~ Quit', kbAltX, cmQuit,
 ;{CTRL}
      StatusItem '+~F3~ New manager', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
 ;{SHIFT}
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{ALT}
-     StatusItem '-~X~ Quit', kbAltX, cmQuit,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
-     StatusItem '', kbCtrlF5, cmResize,
      StatusItem '', kbCtrlM, cmMaxi,
 
    StatusDef hcDesktop, hcDesktop,
@@ -1325,49 +1336,42 @@ STATUSLINE
 ;{CTRL}
      StatusItem '+~F3~ New manager', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
      StatusItem '+~F12~ Calendar', kbCtrlF12, cmCalendar,
 ;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-     StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
-;{Alt-Ctrl}
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
 
   StatusDef hcLUserMenu, hcLUserMenu,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~F2~ Global menu', kbF2, cmGlobalUserMenu,
      StatusItem '~F4~ Edit', kbF4, cmLocalMenuFileEdit,
-;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
 
   StatusDef hcGUserMenu, hcGUserMenu,
+;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~F2~ Local menu', kbF2, cmUserMenu,
      StatusItem '~F4~ Edit', kbF4, cmMenuFileEdit,
-;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
 
   StatusDef hcAboutDialog, hcAboutDialog,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
-;{csablak}
      StatusItem '~Click here for DOS Navigator (C) Team', kbNoKey, cmGetTeam,
 ;{ALT}
      StatusItem '-~I~ - View DOS Navigator (C) Team', kbAltI, cmGetTeam,
+;{CTRL}
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 ;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
      StatusItem '', kbCtrlF4, cmClose,
 
   StatusDef hcTeam, hcTeam,
@@ -1379,11 +1383,17 @@ STATUSLINE
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~F10~ Tree', kbF10, cmTree,
 ;{CTRL}
-     StatusItem '+~F5~ Resize', kbCtrlF5, cmResize,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 ;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
      StatusItem '', kbCtrlF4, cmClose,
+
+  StatusDef hcCopyInProgress, hcCopyInProgress,
+;{BASE}
+     StatusItem '~F1~ Help', kbF1, cmHelp,
+;     StatusItem '~F10~ Menu', kbF10, cmMenu,
+;{NO SHOW}
+;     StatusItem '', kbF9, cmNext,
+;     StatusItem '', kbShiftF9, cmPrev,
 
   StatusDef hcCDplayer, hcCDplayer,
 ;{BASE}
@@ -1399,14 +1409,14 @@ STATUSLINE
      StatusItem '~Z~oom', kbShortCut, cdZoom,
 ;{ALT}
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
-;{Alt-Ctrl}
+;{CTRL}
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbF10, cmMenu,
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
 
   StatusDef hcTreeDialog, hcTreeDialog,
 ;{BASE}
@@ -1416,9 +1426,9 @@ STATUSLINE
 ;{ALT}
      StatusItem '-~C~ Change drive', kbAltC, cmChangeDrive,
      StatusItem '-~R~ Re-read', kbAltR, cmForceRescan,
+;{CTRL}
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 ;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
      StatusItem '', kbCtrlF4, cmClose,
 
   StatusDef hcLinkStatusWnd, hcLinkStatusWnd
@@ -1426,15 +1436,14 @@ STATUSLINE
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~F2~ Setup', kbF2, cmSetupModem,
      StatusItem '~F10~ Menu', kbF10, cmMenu,
-;{Alt-Ctrl}
+;{CTRL}
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;{NO SHOW}
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
 
-;{JO}{PZ}
   StatusDef hcCalendar, hcCalendar,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
@@ -1443,41 +1452,40 @@ STATUSLINE
      StatusItem '~'#26'~ Next day',KbNoKey, 0,
      StatusItem '~'#24'~ Prev week', KbNoKey, 0,
      StatusItem '~'#25'~ Next week',KbNoKey, 0,
-;{CTRL}
-     StatusItem '+~Left~ Previous month', KbNoKey, 0,
-     StatusItem '+~Right~ Next month',KbNoKey, 0,
 ;{ALT}
      StatusItem '-~Left~ Previous year', KbNoKey, 0,
      StatusItem '-~Right~ Next year',KbNoKey, 0,
-;{Alt-Ctrl}
+;{CTRL}
+     StatusItem '+~Left~ Previous month', KbNoKey, 0,
+     StatusItem '+~Right~ Next month',KbNoKey, 0,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
+;{ALT-CTRL}
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;{NO SHOW}
      StatusItem '', kbEsc, cmClose,
      StatusItem '', kbCtrlF4, cmClose,
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
      StatusItem '', kbF10, cmMenu,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
-;{JO}{PZ}
 
   StatusDef hcDialer, hcDialer,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
+     StatusItem '~F10~ Menu', kbF10, cmMenu,
+;{CTRL}
+     StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 ;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
-     StatusItem '', kbCtrlF4, cmClose,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 
   StatusDef 0, $FFFF,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
+;{CTRL}
+     StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
 ;{NO SHOW}
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbCtrlM, cmMaxi,
-     StatusItem '', kbCtrlF4, cmClose,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 END
@@ -1514,10 +1522,10 @@ DIALOG dlgAdvanceSearch, 55, 15, 'Advanced search'
     InputLine 25, 8, 39, 9, 12, 0
     Label 2, 8, 'Size is ~l~ess than', ofPostProcess, ofPreProcess
     CheckBoxes 2, 11, 39, 13, ofPostProcess, ofPreProcess
-      ITEM 'A~r~chive'
-      ITEM 'S~y~stem'
+      ITEM 'Archiv~e~'
+      ITEM '~S~ystem'
       ITEM 'H~i~dden'
-      ITEM 'R~e~ad-only'
+      ITEM '~R~ead-Only'
     END
     Label 2, 10, 'Attributes', ofPostProcess, ofPreProcess
     Button 40, 2, 53,  4, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
@@ -1548,10 +1556,10 @@ DIALOG dlgArchiveFiles, 64, 21, 'Archive files'
     CheckBoxes 40, 4, 61, 11, ofPostProcess, ofPreProcess
       ITEM 'Store path~n~ames'
       ITEM 'Mo~v~e files'
-      ITEM 'Force mode'
-      ITEM '~S~olid'
-      ITEM 'Recovery record'
-      ITEM 'Self-extracting'
+      ITEM 'Force ~m~ode'
+      ITEM 'S~o~lid'
+      ITEM 'Recover~y~ record'
+      ITEM 'Self-extractin~g~'
       ITEM 'Recurse S~u~bDirs'
     END
     RadioButtons 3, 8, 31, 17, ofPostProcess, ofPreProcess
@@ -1583,14 +1591,14 @@ DIALOG dlgArchiveFiles, 64, 21, 'Archive files'
     END
     Label 3, 7, 'Archive type', ofPostProcess, ofPreProcess
     RadioButtons 33, 13, 61, 16, ofPostProcess, ofPreProcess
-      ITEM 'St~o~re'
+      ITEM '~S~tore'
       ITEM 'Fastest'
-      ITEM 'Fast'
-      ITEM 'Nor~m~al'
+      ITEM '~F~ast'
+      ITEM 'No~r~mal'
       ITEM 'Good'
       ITEM 'Ma~x~imum'
     END
-    Label 33, 12, 'Compression', ofPostProcess, ofPreProcess
+    Label 33, 12, 'Compression type', ofPostProcess, ofPreProcess
     Button 22, 18, 32, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 32, 18, 42, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
     Button 42, 18, 52, 20, '~T~ree', cmTree, ofPostProcess, ofPreProcess
@@ -1613,7 +1621,6 @@ DIALOG dlgMouseSetup, 39, 13, 'Mouse Setup'
     Button 27, 7, 37, 9, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-;{-$VIV}
 DIALOG dlgInterfaceSetup, 63, 20, 'Interface'
     HELPCTX hcInterfaceSetup
     CheckBoxes 2, 3, 61, 10, ofPostProcess, ofPreProcess
@@ -1665,7 +1672,7 @@ DIALOG dlgSetupTerminal, 56, 15, 'Terminal Options'
       ITEM 'I~n~sert mode'
       ITEM '~C~heck CD while transfer'
       ITEM 'Connect ~S~ound'
-      ITEM 'Co~n~trols in capture'
+      ITEM 'Controls in capt~u~re'
     END
     Label 24, 2, 'Options', ofPostProcess, ofPreProcess
     Button 24, 12, 34, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
@@ -1705,7 +1712,7 @@ DIALOG dlgSetupModem, 66, 21, 'Communication Setup'
     Label 49, 2, '~P~ort layout'
     InputLine 27, 8, 31, 9, 2, 0
     Label 20, 8, 'IRQ:', ofPostProcess, ofPreProcess
-    Label 3, 8, 'Custom layout: ', ofPostProcess, ofPreProcess
+    Label 3, 8, 'Custom layout:', ofPostProcess, ofPreProcess
     InputLine 42, 8, 47, 9, 3, 0
     Label 35, 8, 'Port:', ofPostProcess, ofPreProcess
 
@@ -2043,7 +2050,6 @@ DIALOG dlgEditorFormat, 39, 11, 'Format Margins'
     Button 27, 8, 37, 10, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-;{-$VIV 14.05.99}
 DIALOG dlgEditorFind, 58, 17, 'Find'
     HELPCTX hcEditorFind
     CheckBoxes 2, 6, 28, 9, ofPostProcess, ofPreProcess
@@ -2122,7 +2128,6 @@ DIALOG dlgEditorReplace, 58, 19, 'Replace'
     SelectBack
 END
 
-;{-$VIV 14.05.99}
 DIALOG dlgFileFind, 52, 18, 'Find File'
     HELPCTX hcFileFind
     InputLine 16, 2, 47, 3, 255, 0
@@ -2132,7 +2137,7 @@ DIALOG dlgFileFind, 52, 18, 'Find File'
     Label 2, 4, '~T~ext to find', ofPostProcess, ofPreProcess
     History 47, 4, hsFindText, ofPostProcess
     HexLine 16, 5, 47, 6
-    Label 2, 5, '  ~H~ex string', ofPostProcess, ofPreProcess
+    Label 2, 5, '  He~x~ string', ofPostProcess, ofPreProcess
     CheckBoxes 2, 7, 49, 10, ofPostProcess, ofPreProcess
       ITEM 'Adva~n~ced search'
       ITEM '~C~ase sensitive'
@@ -2228,13 +2233,13 @@ DIALOG dlgCopyDialog, 59, 16, 'Copy'
     Button 47, 13, 57, 15, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgMakeList, 69, 20, 'Make List File'
+DIALOG dlgMakeList, 69, 21, 'Make List File'
     HELPCTX hcMakeListFile
     Label 2, 4, 'ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ'
     InputLine 14, 2, 64, 3, 255, hsMakeList
     Label 2, 2, '~F~ile name', ofPostProcess, ofPreProcess
     InputLine 14, 6, 64, 7, 255, hsMakeListHeader
-    Label 2, 6, '~H~eader', ofPostProcess, ofPreProcess
+    Label 2, 6, 'Hea~d~er', ofPostProcess, ofPreProcess
     RadioButtons 14, 7, 64, 8, ofPostProcess, ofPreProcess
       ITEM 'Au~t~o'
       ITEM 'I~n~sert text'
@@ -2249,13 +2254,14 @@ DIALOG dlgMakeList, 69, 20, 'Make List File'
       ITEM 'Insert te~x~t'
       ITEM 'Insert f~i~les'
     END
-    CheckBoxes 2, 14, 67, 16, ofPostProcess, ofPreProcess
+    CheckBoxes 2, 14, 67, 17, ofPostProcess, ofPreProcess
       ITEM '~S~tore path names to list file'
       ITEM 'A~u~todetermine necessity of path names'
+      ITEM 'Use ~l~ong file names'
     END
-    Button 37, 17, 47, 19, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 47, 17, 57, 19, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 57, 17, 67, 19, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+    Button 37, 18, 47, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 47, 18, 57, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 57, 18, 67, 20, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgDiskError, 43, 10, 'Disk Error'
@@ -2345,16 +2351,16 @@ DIALOG dlgFileAttr, 43, 14, 'File Attributes'
     Button 31, 11, 41, 13, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
     CheckBoxes 4, 3, 25, 9, ofFramed, ofPostProcess, ofPreProcess
       ITEM '~R~ead-Only'
-      ITEM '~H~idden'
+      ITEM 'H~i~dden'
       ITEM '~S~ystem'
       ITEM '~V~olume/Exec-only'
-      ITEM '~D~irectory'
-      ITEM '~A~rchive'
+      ITEM 'Director~y~'
+      ITEM 'Archiv~e~'
     END
     selectback
 END
 
-DIALOG dlgFilesAttr, 49, 14, 'File Attributes'
+DIALOG dlgFilesAttr, 49, 14, 'Files Attributes'
     HELPCTX hcFilesAttr
     InputLine 33, 3, 47, 4, 8, 0
     Label 33, 2, '~T~ime (H:M:S)', ofPostProcess, ofPreProcess
@@ -2365,20 +2371,20 @@ DIALOG dlgFilesAttr, 49, 14, 'File Attributes'
     Button 37, 11, 47, 13, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
     CheckBoxes 3, 3, 8, 9, ofFramed, ofPostProcess, ofPreProcess
       ITEM '~R~ead-Only'
-      ITEM '~H~idden'
+      ITEM 'H~i~dden'
       ITEM '~S~ystem'
       ITEM '~V~olume/Exec-only'
-      ITEM '~D~irectory'
-      ITEM '~A~rchive'
+      ITEM 'Director~y~'
+      ITEM 'Archiv~e~'
     END
     Label 3, 2, 'Set', ofPostProcess, ofPreProcess
     CheckBoxes 9, 3, 31, 9, ofFramed, ofPostProcess, ofPreProcess
       ITEM '~R~ead-Only'
-      ITEM '~H~idden'
+      ITEM 'H~i~dden'
       ITEM '~S~ystem'
       ITEM '~V~olume/Exec-only'
-      ITEM '~D~irectory'
-      ITEM '~A~rchive'
+      ITEM 'Director~y~'
+      ITEM 'Archiv~e~'
     END
     Label 9, 2, 'Clear', ofPostProcess, ofPreProcess
     selectback
@@ -2471,52 +2477,52 @@ END
 DIALOG dlgSetupArc, 56, 22, 'Archiver Setup'
     HELPCTX hcArcSetup
     InputLine 11, 2, 25, 3, 255, 0
-    Label 3, 2, '~P~acker', ofPostProcess, ofPreProcess
+    Label 3, 2,  '~P~acker', ofPostProcess, ofPreProcess
     InputLine 39, 2, 53, 3, 255, 0
-    Label 29, 2, '~U~npacker', ofPostProcess, ofPreProcess
+    Label 29, 2, 'U~n~packer', ofPostProcess, ofPreProcess
     InputLine 18, 4, 24, 5, 20, 0
-    Label 3, 4, '~E~xtract files', ofPostProcess, ofPreProcess
+    Label 3, 4,  '~E~xtract files', ofPostProcess, ofPreProcess
     InputLine 47, 4, 53, 5, 20, 0
     Label 26, 4, 'E~x~tract w/pathnames', ofPostProcess, ofPreProcess
     InputLine 18, 5, 24, 6, 20, 0
-    Label 7, 5, '~A~dd files', ofPostProcess, ofPreProcess
+    Label 7, 5,  '~A~dd files', ofPostProcess, ofPreProcess
     InputLine 47, 5, 53, 6, 20, 0
-    Label 35, 5, '~M~ove files', ofPostProcess, ofPreProcess
+    Label 35, 5, 'Mo~v~e files', ofPostProcess, ofPreProcess
     InputLine 18, 6, 24, 7, 20, 0
-    Label 4, 6, '~D~elete files', ofPostProcess, ofPreProcess
+    Label 4, 6,  '~D~elete files', ofPostProcess, ofPreProcess
     InputLine 47, 6, 53, 7, 20, 0
     Label 35, 6, '~T~est files', ofPostProcess, ofPreProcess
     InputLine 18, 7, 24, 8, 20, 0
-    Label 6, 7, 'For~c~e mode', ofPostProcess, ofPreProcess
+    Label 6, 7,  'Force ~m~ode', ofPostProcess, ofPreProcess
     InputLine 47, 7, 53, 8, 20, 0
     Label 32, 7, '~I~nclude paths', ofPostProcess, ofPreProcess
     InputLine 18, 8, 24, 9, 20, 0
-    Label 8, 8, 'Pass~w~ord', ofPostProcess, ofPreProcess
+    Label 8, 8,  'Pass~w~ord', ofPostProcess, ofPreProcess
     InputLine 47, 8, 53, 9, 20, 0
     Label 32, 8, 'Exc~l~ude paths', ofPostProcess, ofPreProcess
     InputLine 18, 9, 24, 10, 20, 0
-    Label 1, 9, 'Reco~v~ery record', ofPostProcess, ofPreProcess
+    Label 1, 9,  'Recover~y~ record', ofPostProcess, ofPreProcess
     InputLine 47, 9, 53, 10, 20, 0
-    Label 30, 9, 'Self-extracti~n~g', ofPostProcess, ofPreProcess
+    Label 30, 9, 'Self-extractin~g~', ofPostProcess, ofPreProcess
     InputLine 18, 10, 24, 11, 20, 0
     Label 11, 10, 'S~o~lid', ofPostProcess, ofPreProcess
     InputLine 47, 10, 53, 11, 20, 0
-    Label 30, 10, 'Recurse SubDirs', ofPostProcess, ofPreProcess
+    Label 30, 10, 'Recurse S~u~bDirs', ofPostProcess, ofPreProcess
     StaticText 4, 11, 21, 12, 'Compression type:'
     InputLine 12, 12, 18, 13, 20, 0
-    Label 5, 12, 'Sto~r~e', ofPostProcess, ofPreProcess
+    Label 5, 12, 'Store', ofPostProcess, ofPreProcess
     InputLine 28, 12, 34, 13, 20, 0
     Label 19, 12, 'Fastest', ofPostProcess, ofPreProcess
     InputLine 47, 12, 53, 13, 20, 0
-    Label 41, 12, '~F~ast', ofPostProcess, ofPreProcess
+    Label 41, 12, 'Fast', ofPostProcess, ofPreProcess
     InputLine 12, 13, 18, 14, 20, 0
-    Label 4, 13, '~N~ormal', ofPostProcess, ofPreProcess
+    Label 4, 13, 'Normal', ofPostProcess, ofPreProcess
     InputLine 28, 13, 34, 14, 20, 0
-    Label 22, 13, '~G~ood', ofPostProcess, ofPreProcess
+    Label 22, 13, 'Good', ofPostProcess, ofPreProcess
     InputLine 47, 13, 53, 14, 20, 0
-    Label 38, 13, '~M~aximal', ofPostProcess, ofPreProcess
+    Label 38, 13, 'Maximal', ofPostProcess, ofPreProcess
     InputLine 15, 15, 18, 16, 1, 0
-    Label 4, 15, 'List c~h~ar', ofPostProcess, ofPreProcess
+    Label 4, 15, 'List cha~r~', ofPostProcess, ofPreProcess
     CheckBoxes 23, 15, 53, 16, ofPostProcess, ofPreProcess
       ITEM '~S~wap when unpack/del/test'
     END
@@ -2898,20 +2904,20 @@ END
 DIALOG dlgFMSetup, 57, 22, 'File Manager Setup'
     HELPCTX hcFileMgrSetup
     CheckBoxes 2, 2, 35, 16, ofPostProcess, ofPreProcess
-      ITEM 'Auto c~h~ange directory '
+      ITEM 'Auto change director~y~ '
       ITEM 'Drag~-~and~-~drop from columns'
-      ITEM '~B~eep after copy'
+      ITEM 'Beep a~f~ter copy'
       ITEM '~E~NTER opens archive'
       ITEM '~S~PACE toggles selection'
       ITEM '~D~EL erases file(s)
       ITEM 'Use ~/~'#26' keys'
       ITEM '~A~lt difference'
       ITEM '~C~trl difference'
-      ITEM 'ÀÄ Alternative logic'
-      ITEM 'BS - go to ~u~pper directory'
-      ITEM 'Do not kill descriptions'
-      ITEM 'Kill description containers'
-      ITEM 'Always copy descriptions'
+      ITEM 'ÀÄ Alternati~v~e logic'
+      ITEM '~B~S - go to upper directory'
+      ITEM 'Do n~o~t kill descriptions'
+      ITEM 'Kill descri~p~tion containers'
+      ITEM 'Al~w~ays copy descriptions'
     END
     Label 2, 1, 'Behavior', ofPostProcess, ofPreProcess
     CheckBoxes 36, 3, 55, 7, ofPostProcess, ofPreProcess
@@ -2934,7 +2940,7 @@ DIALOG dlgFMSetup, 57, 22, 'File Manager Setup'
     Label 36, 14, 'C~u~t character:', ofPostProcess, ofPreProcess
 
     InputLine 2, 17, 55, 18, 250, 0
-    Label 2, 16, 'Files ~w~ith descriptions', ofPostProcess, ofPreProcess
+    Label 2, 16, 'Files with descriptions', ofPostProcess, ofPreProcess
 
     Button 25, 19, 35, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 35, 19, 45, 21, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -2969,38 +2975,38 @@ END
 DIALOG dlgStartupSetup, 60, 21, 'Startup'
     HELPCTX hcOptionsStartup
     CheckBoxes 2, 2, 58, 5, ofPostProcess, ofPreProcess
-      ITEM 'Auto run ~U~ser Menu  '
-      ITEM '~R~estore screen mode '
-      ITEM 'Clear ~H~istory       '
-      ITEM 'Load overlays to ~X~MS'
-      ITEM 'Load overlays to ~E~MS'
-      ITEM '~F~orce VGA palette   '
+      ITEM 'Auto run ~U~ser Menu    '
+      ITEM '~R~estore screen mode   '
+      ITEM 'Clear His~t~ory         '
+      ITEM 'Load overlays to ~X~MS  '
+      ITEM 'Load overlays to ~E~MS  '
+      ITEM '~F~orce VGA palette     '
     END
     Label 2, 1, 'Startup options', ofPostProcess, ofPreProcess
 
     CheckBoxes 2, 6, 58, 9, ofPostProcess, ofPreProcess
-      ITEM '~I~nactivity hour exit'
-      ITEM 'Autosave ~D~esktop    '
-      ITEM 'Enable ~b~linking     '
-      ITEM '~P~reserve directory  '
-      ITEM 'Restore ~V~GA palette '
+      ITEM '~I~nactivity hour exit  '
+      ITEM 'Autosave ~d~esktop      '
+      ITEM 'Enable ~b~linking       '
+      ITEM '~P~reserve directory    '
+      ITEM 'Restore ~V~GA palette   '
     END
     Label 2, 5, 'Shutdown options', ofPostProcess, ofPreProcess
 
     CheckBoxes 2, 10, 58, 12, ofPostProcess, ofPreProcess
-      ITEM 'DOS Idle (Int28)      '
-      ITEM 'Sleep when inactive   '
-      ITEM 'DPMI Idle (Int2F)     '
-      ITEM 'DESQ Idle (Int15)     '
+      ITEM 'DOS Idle (Int2~8~)      '
+      ITEM 'Sleep ~w~hen inactive   '
+      ITEM 'DPMI Idle (Int~2~F)     '
+      ITEM 'DESQ Idle (Int1~5~)     '
     END
     Label 2, 9, 'Timeslicing options', ofPostProcess, ofPreProcess
 
     CheckBoxes 2, 13, 58, 16, ofPostProcess, ofPreProcess
-      ITEM 'Release slice once'
-      ITEM 'Release while readfile'
-      ITEM 'Release while copy    '
-      ITEM 'Release while readarch'
-      ITEM 'Release while search  '
+      ITEM 'Release slice o~n~ce    '
+      ITEM 'Release while re~a~dfile'
+      ITEM 'Release while cop~y~    '
+      ITEM 'Release while readar~c~h'
+      ITEM 'Release while ~s~earch  '
     END
     Label 2, 12, 'Additional', ofPostProcess, ofPreProcess
 
@@ -3043,14 +3049,14 @@ DIALOG dlgSystemSetup, 72, 21, 'System Setup'
     CheckBoxes 2, 2, 69, 7, ofPostProcess, ofPreProcess
       ITEM 'Internal ~e~ditor'
       ITEM 'Internal ~v~iewer'
-      ITEM '~U~se system clipboard'
-      ITEM '~S~how hidden files'
+      ITEM 'Use system c~l~ipboard'
+      ITEM 'Show h~i~dden files'
       ITEM '"~F~ast" command execution'
-      ITEM 'D~i~sable XMS/EMS usage'
+      ITEM 'Disable XMS/EMS ~u~sage'
       ITEM 'OS~-~dependent Disk Access'
       ITEM '~C~lear R/O flag from CDRom'
       ITEM 'A~d~vanced copy'
-      ITEM 'F~l~ush disk buffers'
+      ITEM 'Flush disk ~b~uffers'
     END
     Label 2, 1, '~O~ptions', ofPostProcess, ofPreProcess
 
@@ -3064,26 +3070,26 @@ DIALOG dlgSystemSetup, 72, 21, 'System Setup'
 
     Scrollbar 6, 14, 7, 19
     ListBox 2, 14, 6, 19, 1
-    Label 1, 13, '~D~rives', ofPostProcess, ofPreProcess
+    Label 1, 13, 'D~r~ives', ofPostProcess, ofPreProcess
 
     DriveCheckBoxes 8, 14, 38, 19, ofPostProcess, ofPreProcess
       ITEM 'Direct ~a~ccess'
-      ITEM 'Store t~r~ee information'
+      ITEM 'Store tree infor~m~ation'
       ITEM 'Verify disk ~w~rites'
-      ITEM 'Don''t use ~l~ong file names'
+      ITEM 'Do~n~''t use long file names'
       ITEM 'Check free s~p~ace'
     END
     Label 8, 13, 'Current drive options', ofPostProcess, ofPreProcess
 ;$IFDEF LFNCache
     RadioButtons 39, 14, 56, 17, ofPostProcess, ofPreProcess
-      ITEM '~E~MS-XMS-LOW'
-      ITEM '~X~MS-EMS-LOW'
-      ITEM '~L~OW'
+      ITEM 'EMS-XMS-LOW'
+      ITEM 'XMS-EMS-LOW'
+      ITEM 'LOW'
     END
     Label 39, 13, 'LFN container', ofPostProcess, ofPreProcess
 
     InputLine 57, 15, 67, 16, 3, 0
-    Label 57, 13, 'Name cac~h~e', ofPostProcess, ofPreProcess
+    Label 57, 13, 'Name cache', ofPostProcess, ofPreProcess
     Label 56, 14, 'in low memory', ofPostProcess, ofPreProcess
     Label 67, 15, '%', ofPostProcess, ofPreProcess
 ;$ENDIF
@@ -4053,7 +4059,7 @@ END
 DIALOG dlgEditorDefaults, 60, 22, 'Editor Defaults'
     HELPCTX hcEditorDefaults
     CheckBoxes 2, 3, 58, 6
-      ITEM '~C~reate backup files     '
+      ITEM 'Create ~b~ackup files     '
       ITEM '~P~ersistent blocks       '
       ITEM '~O~verwrite blocks        '
       ITEM 'Lock ~f~ile               '
@@ -4063,18 +4069,18 @@ DIALOG dlgEditorDefaults, 60, 22, 'Editor Defaults'
     Label 2, 2, 'Global options:', ofPostProcess, ofPreProcess
 
     CheckBoxes 2, 8, 58, 14, ofPostProcess, ofPreProcess
-      ITEM '~B~ackspace unindents     '
+      ITEM 'Backspace unin~d~ents     '
       ITEM 'Au~t~oBrackets            '
-      ITEM '~A~utoindent              '
-      ITEM 'A~u~towrap                '
+      ITEM 'A~u~toindent              '
+      ITEM 'Auto~w~rap                '
       ITEM '~J~ustify on wrap         '
       ITEM '~V~ertical blocks         '
       ITEM 'Opti~m~al fill            '
-      ITEM '~H~ighlight line          '
-      ITEM 'H~i~ghlight column        '
-      ITEM 'Tab Replace             '
-      ITEM 'Syntax highlight        '
-      ITEM 'SmartTab                '
+      ITEM 'H~i~ghlight line          '
+      ITEM 'Highlight ~c~olumn        '
+      ITEM 'T~a~b Replace             '
+      ITEM 'S~y~ntax highlight        '
+      ITEM '~S~martTab                '
     END
     Label 2, 7, 'Defaults for new file:', ofPostProcess, ofPreProcess
 
@@ -4118,3 +4124,33 @@ DIALOG dlgViewerDefaults, 34, 13, 'Viewer'
     Button 12, 10, 22, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
     Button 22, 10, 32, 12, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
+
+;{--- start -------- Eugeny Zvyagintzev ---- 28-03-2002 ----}
+DIALOG dlgCancelSearchFiles, 42, 7, 'Confirm'
+    HELPCTX hcCancelSF
+    StaticText  14, 2, 41, 3, 'Cancel search?'
+    Button  4, 4, 14, 6, '~Y~es', cmYes, bfDefault, ofPostProcess, ofPreProcess
+    Button 14, 4, 27, 6, '~S~kip file', cmNo, ofPostProcess, ofPreProcess
+    Button 27, 4, 37, 6, '~N~o', cmCancel, ofPostProcess, ofPreProcess
+END
+;{--- finish -------- Eugeny Zvyagintzev --------}
+
+;KV
+DIALOG dlgSetExportCsvFormat, 46, 16, 'CSV Export Format'
+    HELPCTX hcSpreadSheet
+    InputLine 25, 2, 28, 3, 1, 0, ofFramed
+    Label 2, 2, '~C~olumn separator:', ofPostProcess, ofPreProcess
+    RadioButtons 2, 5, 44, 7, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'As is (number value)'
+      ITEM 'Formatted string value'
+    END
+    Label 3, 4, '~N~umber format:', ofPostProcess, ofPreProcess
+    RadioButtons 2, 9, 44, 11, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'As string'
+      ITEM 'As calculated value'
+    END
+    Label 3, 8, '~F~ormula format:', ofPostProcess, ofPreProcess
+    Button 11, 13, 21, 15, 'Ž~Š~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 25, 13, 35, 15, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+END
+;KV

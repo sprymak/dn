@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2522_manual_save_desktop.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -184,6 +187,7 @@ const
   StartupMode: Word = $FFFF;
   SkyEnabled: Integer = 0;
   TottalExit: Boolean = False; { Set it only when leaving your program }
+  ManualSave: Boolean = False; { Set it only when manual save desktop John_SW}
   Exiting: Boolean = False;    { Set it when temporary leaving your program }
 
   MouseVisible   : Boolean = True;

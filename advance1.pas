@@ -54,6 +54,9 @@
 //  dn16rc1-vp_noasm_compatible.patch
 //
 //  2.0.0
+//  dn200-change_drive_menu_small_fix.patch
+//
+//  2.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -843,7 +846,7 @@ begin
     LV:=0;
     while ((CountryInfo.ThouSep[0]=#0) and (X>=exp((9+CountryInfo.TimeFmt)*ln(10))))
     or ((CountryInfo.ThouSep[0]>#0) and (X>=exp((7+CountryInfo.TimeFmt)*ln(10))))
-    or (IsMax and (X>=exp(5*ln(10)))) do begin (* X-Man *)
+    or (IsMax and (X>=10E+5)) do begin (* X-Man *)
         Inc(LV);
         X:=X/1024
     end;
