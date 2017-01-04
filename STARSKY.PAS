@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 unit qStarSky;
 
 interface
@@ -147,7 +147,7 @@ begin
   for i:=1 to nw do w[i]^.NextMove;
   Delay(SkyDelay*100);
   Application^.GetEvent(Event);
-  asm int 28h end;
+  {$IFDEF OS_DOS}asm int 28h end;{$ENDIF}
  until (Event.What and (evMouse or evKeyDown) <> 0) or (ShiftState <> ks1);
  for i:=1 to nw do Dispose(w[i],Done);
 end;
@@ -247,7 +247,7 @@ begin
   WriteStr(Ball.X, Ball.Y, #1);
   Delay(50);
   Application^.GetEvent(Event);
-  asm int 28h end;
+  {$IFDEF OS_DOS}asm int 28h end;{$ENDIF}
  until (Event.What and (evMouse or evKeyDown) <> 0) or (ShiftState <> ks1);
 end;
 
@@ -327,7 +327,7 @@ var
        end;
    Delay(30);
    Application^.GetEvent(Event);
-   asm int 28h end;
+   {$IFDEF OS_DOS}asm int 28h end;{$ENDIF}
   until (Event.What and (evMouse or evKeyDown) <> 0) or (mem[seg0040:$17] <> ks1);
   SkyVisible := Off;
  end;
@@ -335,6 +335,7 @@ var
 begin
  if SkyEnabled > 0 then Exit;
  SMode := SkyMode; if SMode = 3 then SMode := Random(12) mod 3;
+ {$IFDEF OS_DOS}
  asm
   mov ah, 3
   xor bx, bx
@@ -344,8 +345,15 @@ begin
   mov ah, 1
   int 10h
  end;
- if SMode = 2 then begin StartSky(1); Application^.Redraw;
-                    asm mov ah,1; mov cx, OldShape; xor bx, bx; int 10h; end; Exit; end;
+ {$ENDIF}
+ if SMode = 2 then begin
+  StartSky(1);
+  Application^.Redraw;
+  {$IFDEF OS_DOS}
+  asm mov ah,1; mov cx, OldShape; xor bx, bx; int 10h; end;
+  {$ENDIF}
+  Exit;
+ end;
  {SaveCursor;SetCursor($2020);}ks1:=mem[seg0040:$17];ks2:=mem[seg0040:$18];
  Ad := Seg(ScreenBuffer^); Os := Ofs(ScreenBuffer^);
  nl:=0; ScrBuf := MemAlloc(ScreenWidth*ScreenHeight*2);
@@ -377,8 +385,10 @@ begin
 
  {RestoreCursor;}
  ShowMouse;
+ {$IFDEF OS_DOS}
  asm mov ah,1; mov cx, OldShape; xor bx, bx; int 10h; end;
  memw[seg0040:$1a]:=memw[seg0040:$1c]; SkyVisible := Off;
+ {$ENDIF}
 end;
 
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -399,8 +399,6 @@ const   StdTracks : array [1..5] of byte = (40,80,80,80,80);
 
               function    drvtype(drv:byte) : byte;
 
-function FileExists(FileName: String): Boolean;
-
 {$IFnDEF FMTDBG}
    implementation uses xTime;
 {$ENDIF}
@@ -482,21 +480,6 @@ var
      lAssignFile(ToF, Fto ); { Open output file }
      lSetFattr(ToF,FATTR);
    end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-function FileExists(FileName: String): Boolean;
-{ Boolean function that returns True if the file exists;otherwise,
- it returns False. Closes the file if it exists. }
-   var
-    F: lfile;
-   begin
-    lAssignFile(F, FileName);
-    FileMode := 0;  { Set file access to read only }
-    lResetFile(F,1);
-    Close(F.F);
-    FileExists := (IOResult = 0) and (FileName <> '');
-   end;  { FileExists }
         {-DataCompBoy-}
 
 procedure GetAbsSector(relSector:Word; BootS : BootSector;
@@ -1689,7 +1672,7 @@ end;
                 {===========}
 
 
-        { Setup Standart types for Cluster Size & Root Entries }
+        { Setup Standard types for Cluster Size & Root Entries }
 
         if Heads = 1  then
              begin
@@ -1707,7 +1690,7 @@ end;
                    Csize := 2;
                    rSize := 112;
              end;
-       { All standart types will sets correctly }
+       { All standard types will sets correctly }
 
 
 
@@ -2097,7 +2080,7 @@ var I,J,K,NextSector,SHFT : integer;
 
         case HI(IO_Error)
             of
-               0 :  { Standart Code }
+               0 :  { Standard Code }
                     Exit ;
 
               $1 :  { Format Erorrs }
@@ -2459,7 +2442,6 @@ Function Tfmt.Cluster(Sector: Word):Word;
 
 procedure nullcluster( cluster:word ; var FAT );assembler;
       asm
-{$IFNDEF FPC}
                 push    es
                 les     di, FAT
 
@@ -2481,7 +2463,6 @@ procedure nullcluster( cluster:word ; var FAT );assembler;
                 and     word ptr ES:[DI+BX],AX
 @@done:
                 pop     es
-{$ENDIF}
       end;
 
 {
@@ -2493,7 +2474,6 @@ var P:pbArray;
 }
 procedure markcluster( cluster:word ; var FAT );assembler;
       asm
-{$IFNDEF FPC}
                 push    es
                 les     di, FAT
 
@@ -2516,12 +2496,10 @@ procedure markcluster( cluster:word ; var FAT );assembler;
                 or      word ptr ES:[DI],AX
 @@done:
                 pop     es
-{$ENDIF}
       end;
 
 function  getcluster ( cluster:word ; var FAT ):word;assembler;
      asm
-{$IFNDEF FPC}
                 push    es
                 les     di, FAT
 
@@ -2546,7 +2524,6 @@ function  getcluster ( cluster:word ; var FAT ):word;assembler;
                 mov     ax,dx
 @@done:
                 pop     es
-{$ENDIF}
  end;
 
 
@@ -2991,7 +2968,7 @@ var S : string ;
          if opsys=opOS2 then S := 'C:\COMMAND.COM';
          Name := GetName(S);
          Path := GetPath(S);
-       If Not FileExists(Path+Name) then Exit ;
+       If Not ExistFile(Path+Name) then Exit ;
 
         lAssignFile(f, Path + Name );
         lResetFile(f,1);
@@ -3000,8 +2977,8 @@ var S : string ;
 
        end;
 
-       S1 := FileExists('C:\'+IOSYS) ;
-       S2 := FileExists('C:\'+IOSYS1);
+       S1 := ExistFile('C:\'+IOSYS) ;
+       S2 := ExistFile('C:\'+IOSYS1);
 
        If Not (  S1 or S2 )  then Exit ;
 
@@ -3010,7 +2987,7 @@ var S : string ;
         if S1 then Name := IOSYS
               else Name := IOSYS1;
                    Path := 'C:\';
-        {If Not FileExists(Path+Name) then Exit ; }
+        {If Not ExistFile(Path+Name) then Exit ; }
 
         lAssignFile(f, Path + Name );
         lResetFile(f,1);
@@ -3025,7 +3002,7 @@ var S : string ;
         if S1 then Name := MDOS
               else Name := MDOS1;
                    Path := 'C:\';
-       If Not FileExists(Path+Name) then Exit ;
+       If Not ExistFile(Path+Name) then Exit ;
 
         lAssignFile(f, Path + Name );
         lResetFile(f,1);

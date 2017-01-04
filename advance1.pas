@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -102,7 +102,8 @@ Function  Hex8(a : LongInt) : Str8;
 Function  HexChar(a : byte) : char;
 FUNCTION  Replace(const Pattern, ReplaceString: string; var S: string): Boolean;
 FUNCTION fReplace(const SubFrom, SubTo: String; S: string): String;
-FUNCTION  PosChar(C: Char; S: string): Byte;
+FUNCTION  PosChar(C: Char; const S: string): Byte;
+FUNCTION  CharCount(C: Char; const S: string): Byte; {DataCompBoy}
 function  FormatTimeStr(H, M, SS: Word): string; {DataCompBoy}
 procedure MakeCurrency(R: Real; var S: string);
 function  GetDateTime(Time: Boolean): string;
@@ -125,8 +126,6 @@ Function  SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
 Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV 14.05.99}
 Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV ::}
 
-procedure FormatStr(var Result: String; const Format: String; var Params);
-procedure PrintStr(const S: String);
 procedure CompressString(var S: String);
 
 implementation
@@ -156,9 +155,11 @@ begin
   if AMax = 0 then Percent := 0 else Percent := (ACur*100) / AMax;
 end;
 
-procedure Hex8Lo(L:longInt;var HexLo);assembler;
+procedure Hex8Lo(L:longInt;var HexLo);
 {$IFNDEF NOASM}
-asm
+ assembler;
+ {$IFNDEF BIT_32}
+ asm
         cld
         les     di,[HexLo]
         lea     bx,[LoHexChar]
@@ -168,7 +169,7 @@ asm
         call    @@OutWord
         jmp     @@LEnd
 
-@@OutWord:      {DX-word}
+ @@OutWord:      {DX-word}
         mov     ax,dx
         mov     cl,12
         shr     ax,cl
@@ -188,7 +189,43 @@ asm
         xlat
         stosb
         retn
-@@LEnd:
+ @@LEnd:
+ end;
+ {$ELSE BIT_32}{$USES EDI, EBX, EDX, ECX}{&Frame-}
+ asm
+        cld
+        xor     dx,dx
+        lea     edi,[HexLo]
+        lea     ebx,[LoHexChar]
+        mov     dx,[word ptr L+2]
+        call    @@OutWord
+        mov     dx,[word ptr L+0]
+        call    @@OutWord
+        jmp     @@LEnd
+
+ @@OutWord:      {DX-word}
+        mov     ax,dx
+        mov     cl,12
+        shr     ax,cl
+        xlat
+        stosb
+        mov     al,dh
+        and     al,0Fh
+        xlat
+        stosb
+        mov     al,dl
+        mov     cl,4
+        shr     al,cl
+        xlat
+        stosb
+        mov     al,dl
+        and     al,0Fh
+        xlat
+        stosb
+        retn
+ @@LEnd:
+ end;
+ {$ENDIF}
 {$ELSE}
 type ChArr: array[1..4] of char;
 begin
@@ -196,13 +233,14 @@ begin
  ChArr(HexLo)[2]:=LoHexChar[L and $00FF0000 shr 16];
  ChArr(HexLo)[3]:=LoHexChar[L and $0000FF00 shr 08];
  ChArr(HexLo)[4]:=LoHexChar[L and $000000FF];
-{$ENDIF}
 end;
+{$ENDIF}
 
 Procedure AddStr(var S ; C : char);
 {$IFNDEF NOASM}
-assembler ;
-asm
+ assembler ;
+ {$IFNDEF BIT_32}
+ asm
    cld
    les Di,S
    inc ES:DI.byte
@@ -211,11 +249,24 @@ asm
    add DI,AX
    mov al,C
    Stosb
+ end;
+ {$ELSE}{&Frame-}{$USES EDI}
+ asm
+   cld
+   mov edi,S
+   inc byte ptr [EDI]
+   xor eax,eax
+   mov al,[EDI]
+   add EDI,EAX
+   mov al,C
+   Stosb
+ end;
+ {$ENDIF}
 {$ELSE}
 begin
  String(S):=String(S)+C;
-{$ENDIF}
 end;
+{$ENDIF}
 
 procedure DelFC(var s:string);
 var
@@ -232,8 +283,9 @@ end;
 
 FUNCTION AddSpace(const s:string; N:byte):string;
 {$IFNDEF NOASM}
-assembler;
-asm
+ assembler;
+ {$IFNDEF BIT_32}
+ asm
    cld
    push  ds
    lds   si, s
@@ -253,12 +305,40 @@ asm
    rep   stosb
    jmp   @LEnd
 
-@JustCopy:
+ @JustCopy:
    stosb
    mov  cl, al
    rep movsb
-@LEnd:
+ @LEnd:
    pop  ds
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, ECX}
+ asm
+   cld
+   mov   esi, s
+   mov   edi, @Result
+   lodsb
+   mov   ah, N
+   xor   ecx, ecx
+   cmp   al, ah
+   jae   @JustCopy
+   mov   [edi], ah
+   inc   edi
+   mov   cl, al
+   rep   movsb
+   sub   ah, al
+   mov   al, ' '
+   mov   cl, ah
+   rep   stosb
+   jmp   @LEnd
+
+ @JustCopy:
+   stosb
+   mov  cl, al
+   rep movsb
+ @LEnd:
+ end;
+ {$ENDIF}
 {$ELSE}
 var s2: string;
 begin
@@ -268,8 +348,8 @@ begin
   s2[0]:=char(n);
  end;
  AddSpace:=s2;
-{$ENDIF}
 end;
+{$ENDIF}
 
 FUNCTION PredSpace;
 begin
@@ -282,8 +362,9 @@ end;
 
 procedure DelSpace;
 {$IFNDEF NOASM}
-assembler;
-asm
+ assembler;
+ {$IFNDEF BIT_32}
+ asm
   les bx, S
   xor ch, ch
   mov cl, es:[bx]
@@ -292,7 +373,7 @@ asm
   mov  si, 1
   xor  al, al
   mov  es:[bx], al
-@@2:
+ @@2:
   mov  al, es:[bx][di]
   cmp  al, ' '
   jz   @@3
@@ -301,10 +382,36 @@ asm
   mov  es:[bx][si], al
   inc  byte ptr es:[bx]
   inc  si
-@@3:
+ @@3:
   inc  di
   loop @@2
-@@1:
+ @@1:
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES EBX, EDI, ESI, ECX}
+ asm
+  mov  ebx, S
+  xor  ecx, ecx
+  mov  cl, [ebx]
+  jcxz @@1
+  mov  edi, 1
+  mov  esi, 1
+  xor  al, al
+  mov  [ebx], al
+ @@2:
+  mov  al, [ebx+edi]
+  cmp  al, ' '
+  jz   @@3
+  cmp  al, 9
+  jz   @@3
+  mov  [ebx+esi], al
+  inc  byte ptr [ebx]
+  inc  esi
+ @@3:
+  inc  edi
+  loop @@2
+ @@1:
+ end;
+ {$ENDIF}
 {$ELSE}
 var a, b, j: byte;
 begin
@@ -313,8 +420,8 @@ begin
  j:= length(s); s[0]:=#0;
  for a:=1 to j do
   if not (s[a] in [' ',#9]) then begin s[b]:=s[a]; inc(s[0]); inc(b); end;
-{$ENDIF}
 end;
+{$ENDIF}
 
 Function DelSpaces;
 begin
@@ -324,36 +431,133 @@ end;
 
 Procedure DelRight;
 {$IFNDEF NOASM}
-assembler ;
-asm
-     les Di,S
-     mov bl,ES:DI.byte
-     sub bh,bh
-     or  BX,BX
-     jz  @@3
- @@1:
-     mov al, ES:[DI+BX]
-     cmp al, ' '
-     je  @@D
-     cmp al, 9
-     jne @@2
- @@D:
-     dec BX
-     jnz @@1
- @@2:
-     mov ES:DI.byte,bl
- @@3:
+ assembler ;
+ {$IFNDEF BIT_32}
+ asm
+     mov  dx, ds
+     lds  si, S
+     mov  di, si
+     xor  ax, ax
+     mov  al, byte ptr ds:si
+     inc  al
+     add  si, ax
+ @@SearchNoSpace:
+     dec  si
+     cmp  si, di
+     je   @@Exit
+     mov  al, DS:[SI]
+     cmp  al, ' '
+     je   @@SearchNoSpace
+     cmp  al, 9
+     je   @@SearchNoSpace
+ @@Exit:
+     mov ax, si
+     sub ax, di
+     mov byte ptr ds:di, al
+ @@Exit2:
+     mov ds, dx
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI}
+ asm
+     mov  esi, S
+     mov  edi, S
+     xor  eax, eax
+     mov  al, byte ptr [esi]
+     inc  al
+     add  esi, eax
+ @@SearchNoSpace:
+     dec  esi
+     cmp  esi, edi
+     je   @@Exit
+     mov  al, [ESI]
+     cmp  al, ' '
+     je   @@SearchNoSpace
+     cmp  al, 9
+     je   @@SearchNoSpace
+ @@Exit:
+     mov eax, esi
+     sub eax, edi
+     mov byte ptr [edi], al
+ @@Exit2:
+ end;
+ {$ENDIF}
 {$ELSE}
 var q: byte absolute S;
 begin
  for q:=q downto 1 do if S[q]<>' ' then break;
-{$ENDIF}
 end;
+{$ENDIF}
 
 Function fDelRight(s : string) : string;
 begin DelRight(S); fDelRight:=s end;
 
 procedure DelLeft(var S: string);
+{$IFNDEF NOASM}
+ assembler;
+ {$IFNDEF BIT_32}
+ asm
+               mov     dx, ds
+               lds     si, S  {From}
+               mov     di, si
+               mov     ax, ds
+               mov     es, ax {To}
+               mov     cl, byte ptr ds:[si]
+               inc     cl
+               inc     di
+ @@SearhNoSpace:
+               inc     si
+               dec     cl
+               jz      @@DoMove
+               mov     al, ds:[si]
+               cmp     al, ' '
+               je      @@SearhNoSpace
+               cmp     al, 9
+               je      @@SearhNoSpace
+
+ @@DoMove:      cmp     si, di
+               je      @@Exit
+               mov     byte ptr ds:[di-1], cl
+               or      cl, cl
+               jz      @@Exit
+               xor     ch, ch
+{               shr     cl, 1}
+{               rep     movsw}
+               rep     movsb
+ @@Exit:
+               mov     ds, dx
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, ECX}
+ asm
+               cld
+               mov     esi, S  {From}
+               mov     edi, S
+               xor     ecx, ecx
+               mov     cl, byte ptr [esi]
+               inc     cl
+               inc     edi
+ @@SearhNoSpace:
+               inc     esi
+               dec     cl
+               jz      @@DoMove
+               mov     al, [esi]
+               cmp     al, ' '
+               je      @@SearhNoSpace
+               cmp     al, 9
+               je      @@SearhNoSpace
+
+ @@DoMove:     cmp     esi, edi
+               je      @@Exit
+               mov     byte ptr [edi-1], cl
+               or      cl, cl
+               jz      @@Exit
+               xor     ch, ch
+{               shr     cl, 1}
+{               rep     movsw}
+               rep     movsb
+ @@Exit:
+ end;
+ {$ENDIF}
+{$ELSE}
 var
   I: Byte;
   SL: byte absolute S;
@@ -365,14 +569,16 @@ begin
     Move(S[I], S[1], SL);
   end;
 end;
+{$ENDIF}
 
 Function fDelLeft(s : string) : string;
 begin DelLeft(S); fDelLeft:=s end;
 
-Function Strg;
+Function Strg(c:char; Num: Byte) : string;
 {$IFNDEF NOASM}
-assembler;
-asm
+ assembler;
+ {$IFNDEF BIT_32}
+ asm
   les  di, @Result
   mov  al, Num
   stosb
@@ -380,14 +586,27 @@ asm
   mov  cl, al
   mov  al, c
   rep  stosb
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES EDI, ECX}
+ asm
+  mov  edi, @Result
+  xor  eax, eax
+  mov  al, Num
+  stosb
+  xor  ecx, ecx
+  mov  cl, al
+  mov  al, c
+  rep  stosb
+ end;
+ {$ENDIF}
 {$ELSE}
 var S: string;
 begin
  fillchar(s[1], num, c);
  s[0]:=char(num);
  Strg:=s;
-{$ENDIF}
 end;
+{$ENDIF}
 
 
 Function LowCase(c : Char) : Char;
@@ -496,6 +715,7 @@ begin
       s1:='';
       {$IFNDEF NOASM}
       C := CountryInfo.ThouSep[1];
+      {$IFNDEF BIT_32}
       asm
        lea si, s
        lea di, s1
@@ -530,17 +750,70 @@ begin
        inc byte ptr ss:[bx]
        jmp @@2
       @@3:
+      end;
+      {$ELSE BIT_32}
+      asm
+       push esi
+       push edi
+       push ebx
+       push ecx
+       push edx
+       lea esi, s
+       lea edi, s1
+       mov ebx, edi
+       xor eax, eax
+       mov al, [esi]
+       mov ecx, 3
+       div cl
+       mov byte ptr [ebx], 0
+       mov cl, [esi]
+       mov dl, ah
+       Mov al, C
+       or  dl, dl
+       jnz @@1
+       mov dl, 3
+      @@1:
+       or  cl, cl
+       jz  @@3
+      @@2:
+       mov ah, [esi+1]
+       mov byte ptr [edi+1], ah
+       inc byte ptr [ebx]
+       inc edi
+       inc esi
+       dec cl
+       jz  @@3
+       dec dl
+       jnz @@2
+       mov dl, 3
+       mov byte ptr [edi+1], al
+       inc edi
+       inc byte ptr [ebx]
+       jmp @@2
+      @@3:
+       pop edx
+       pop ecx
+       pop ebx
+       pop edi
+       pop esi
+      end;
+      {$ENDIF BITs}
       {$ELSE}
       for i:=length(s) downto 1 do begin
        s1:=s[i]+s1;
        if (i>1) and ((byte(s[0])-i+1) mod 3=0) then s1:=CountryInfo.ThouSep[1]+s1;
-      {$ENDIF}
       end;
+      {$ENDIF}
    end else S1 := S;
  if Length(S1)>12 then
  begin
-   Dec(s1l,3);
-   s1[s1l] := 'K';
+   S1 := FStr(A / 1024);
+   if S1[s1l]='K'
+    then S1[s1l]:='M'
+    else begin
+     inc(s1l);
+     s1[s1l] := 'K';
+    end;
  end;
  if a=MaxLongInt then
   FStr:='>='+s1 else FStr:=s1;
@@ -589,22 +862,22 @@ end;
 Function HexChar(a : byte) : char;
 {$IFNDEF NOASM}
 assembler;
-label Loc1;
 asm
-   mov al,a
-   and al,0Fh
-   add al,'0'
-   cmp al,58
-   jc  Loc1
-   add al,7
-Loc1:
+  mov al,a
+  and al,0Fh
+  add al,'0'
+  cmp al,58
+  jc  @@Loc1
+  add al,7
+@@Loc1:
+end;
 {$ELSE}
 begin
  a:=a and 15;
  if a<10 then HexChar:=Char(Ord('0')+a)
   else HexChar:=Char(Ord('A')+a-10);
-{$ENDIF}
 end;
+{$ENDIF}
 
 function Replace;
  var I, J, K: Integer;
@@ -638,30 +911,106 @@ end;
 
 FUNCTION  PosChar;
 {$IFNDEF NOASM}
-assembler;
-asm
-  les di,S
-  xor ch,ch
-  mov cl,byte ptr es:[di]
-  mov bx,cx
-  inc di
-  cld
-  mov al,C
-  repne scasb
-  jnz @S
-  sub bx,cx
-  mov al,bl
-  jmp @Q
-@S:xor al,al
-@Q:
+ assembler;
+ {$IFNDEF BIT_32}
+ asm
+    les di, S
+    xor ch, ch
+    mov cl, byte ptr es:[di]
+    mov bx, cx
+    inc di
+    cld
+    mov al, C
+    repne scasb
+    jnz @S
+    sub bx, cx
+    mov al, bl
+    jmp @Q
+ @S:xor al, al
+ @Q:
+ end;
+ {$ELSE}{&Frame-}{$USES EDI, EBX, ECX}
+ asm
+    mov edi, S
+    xor ecx, ecx
+    mov cl, byte ptr [edi]
+    mov ebx, ecx
+    inc edi
+    cld
+    mov al, C
+    repne scasb
+    jnz @S
+    sub ebx, ecx
+    mov al, bl
+    jmp @Q
+ @S:xor al, al
+ @Q:
+ end;
+ {$ENDIF}
 {$ELSE}
 var i: byte;
 begin
- i:=1;
  for i:=1 to length(s) do if s[i]=c then break;
  if s[i]<>c then PosChar:=0 else PosChar:=i;
-{$ENDIF}
 end;
+{$ENDIF}
+
+FUNCTION  CharCount(C: Char; const S: string): Byte; {DataCompBoy}
+{$IFNDEF NOASM}
+ assembler;
+ {$IFNDEF BIT_32}
+ asm
+  mov dx, ds
+  lds si, S
+  xor bh, bh
+  mov bl, byte ptr ds:[si]
+  xor cx, cx
+  or  bl, bl
+  jz  @@Ex
+  inc si
+  mov ah, C
+ @@NextChar:
+  dec bx
+  jz  @@Ex
+  mov al, byte ptr ds:[si+bx]
+  cmp al, ah
+  jne @@NextChar
+  inc cx
+  jmp @@NextChar
+ @@Ex:
+  mov ax, cx
+  mov ds, dx
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES ESI, EBX, ECX}
+ asm
+  lea esi, S
+  xor ebx, ebx
+  mov bl, byte ptr [esi]
+  xor ecx, ecx
+  or  bl, bl
+  jz  @@Ex
+  inc esi
+  mov ah, C
+ @@NextChar:
+  dec ebx
+  jz  @@Ex
+  mov al, byte ptr [esi+ebx]
+  cmp al, ah
+  jne @@NextChar
+  inc cx
+  jmp @@NextChar
+ @@Ex:
+  mov eax, ecx
+ end;
+ {$ENDIF}
+{$ELSE}
+var i, j: byte;
+begin
+ j:=1;
+ for i:=1 to length(s) do if s[i]=c then inc(j);
+ CharCount:=j;
+end;
+{$ENDIF}
 
 function GetDateTime(Time: Boolean): string;
  var S: string[30];
@@ -753,15 +1102,15 @@ begin
 end;
 
 procedure DelDoubles;
-var t:byte;
+var t, ls, p :byte;
     j:boolean;
-    ls:byte;
 begin
- t:=1; ls:=length(ST);
+ t:=1; ls:=length(ST); j:=True;
  while t+ls<=length(Source) do
   begin
    if Source[t]='"' then j:=not j;
-   if (Pos(ST,Source)=1) and (not j) then Delete(Source,1,1) else inc(t);
+   if J then p := Pos(ST,Source);
+   if J and (p<>0) then Delete(Source,p,1) else inc(t);
   end;
 end;
 
@@ -774,8 +1123,9 @@ procedure MakeDateFull; {-$VOL modified}
 
  procedure GetDig(R: Byte; var S);
  {$IFNDEF NOASM}
- assembler;
- asm
+  assembler;
+  {$IFNDEF BIT_32}
+  asm
    les bx, S
    mov al, R
    xor ah,ah
@@ -788,11 +1138,28 @@ procedure MakeDateFull; {-$VOL modified}
    mov al, '0'
   @@1:
    mov es:[bx], ax
+  end;
+  {$ELSE BIT_32}{&Frame-}{$USES EBX, ECX}
+  asm
+   mov ebx, S
+   xor eax,eax
+   mov al, R
+   mov ecx, 10
+   div cl
+   add al, 48
+   add ah, 48
+   cmp al, 48
+   jnz  @@1
+   mov al, '0'
+  @@1:
+   mov [ebx], ax
+  end;
+  {$ENDIF}
  {$ELSE}
  begin
   Word(S):=word(((R div 10)+ord('0')) + ((R mod 10)+ord('0')) shl 8);
- {$ENDIF}
  end;
+ {$ENDIF}
 
 begin
   if YFull then GetDig(Year div 100, S[16]);
@@ -841,18 +1208,37 @@ procedure MakeCase(CaseSensitive: Boolean);
 begin
  if Byte(CaseSensitive) <> LastCase then
  if CaseSensitive then
+  {$IFNDEF BIT_32}
   asm
    lea bx, Tran
    add bx, 255
    mov cx, 256
-@@1:
+ @@1:
    mov ax, cx
    dec ax
    mov ds:[bx], al
    dec bx
    loop @@1
-  end else Move(UpCaseArray, Tran, 256);
-  LastCase := Byte(CaseSensitive);
+  end
+  {$ELSE}(*{&Frame-}{$USES EBX}*)
+  asm
+   push ebx
+   push ecx
+   lea ebx, Tran
+   add ebx, 255
+   mov ecx, 256
+ @@1:
+   mov eax, ecx
+   dec eax
+   mov [ebx], al
+   dec ebx
+   loop @@1
+   pop ecx
+   pop ebx
+  end
+  {$ENDIF}
+ else Move(UpCaseArray, Tran, 256);
+ LastCase := Byte(CaseSensitive);
 end;
 
 function DumpStr;
@@ -862,6 +1248,7 @@ begin
  DumpStr := '';
  if Count <= 0 then Exit;
  S[0] := Char(Count*4+12);
+ {$IFNDEF BIT_32}
  asm
   les   di, B
   lea   bx, S
@@ -997,6 +1384,155 @@ begin
   inc   di
   loop  @@2
  end;
+ {$ELSE BIT_32}
+ asm
+  push  edi
+  push  ebx
+  push  esi
+  push  edx
+  push  ecx
+  mov   edi, B
+  lea   ebx, S
+  inc   ebx
+  mov   ecx, Count
+  mov   al, byte ptr Addr+3
+  mov   edx, ecx
+  mov   ah, al
+  mov   ecx, 4
+  shr   al, cl
+  mov   ecx, edx
+  and   ah,0Fh
+  add   al,'0'
+  cmp   al,58
+  jc    @@01
+  add   al,7
+@@01:
+  add   ah,'0'
+  cmp   ah,58
+  jc    @@02
+  add   ah,7
+@@02:
+  mov   [ebx], ax
+  mov   al, byte ptr Addr+2
+  mov   edx, ecx
+  mov   ah, al
+  mov   ecx, 4
+  shr   al, cl
+  mov   ecx, edx
+  and   ah,0Fh
+  add   al,'0'
+  cmp   al,58
+  jc    @@11
+  add   al,7
+@@11:
+  add   ah,'0'
+  cmp   ah,58
+  jc    @@12
+  add   ah,7
+@@12:
+  mov   [ebx+2], eax
+  mov   al, byte ptr Addr+1
+  mov   edx, ecx
+  mov   ah, al
+  mov   ecx, 4
+  shr   al, cl
+  mov   ecx, edx
+  and   ah,0Fh
+  add   al,'0'
+  cmp   al,58
+  jc    @@21
+  add   al,7
+@@21:
+  add   ah,'0'
+  cmp   ah,58
+  jc    @@22
+  add   ah,7
+@@22:
+  mov   [ebx+4], eax
+  mov   al, byte ptr Addr
+  mov   edx, ecx
+  mov   ah, al
+  mov   ecx, 4
+  shr   al, cl
+  mov   ecx, edx
+  and   ah,0Fh
+  add   al,'0'
+  cmp   al,58
+  jc    @@31
+  add   al,7
+@@31:
+  add   ah,'0'
+  cmp   ah,58
+  jc    @@32
+  add   ah,7
+@@32:
+  mov   [ebx+6], eax
+  mov   ax,' :'
+  mov   [ebx+8], ax
+  add   bx, 10
+  mov   esi, ebx
+  add   esi, ecx
+  add   esi, ecx
+  add   esi, ecx
+  mov   ax, 0b320h
+  mov   [esi], ax
+  add   esi, 2
+@@2:
+  mov   al, [edi]
+  mov   dl, al
+
+    cmp  Filter, 0
+    jz   @@@2
+    cmp  dl, 32
+    jnc  @@@4
+@@@5:
+    mov  dl, 250
+    jmp  @@@2
+@@@4:
+    cmp  Filter, 1
+    jnz  @@@2
+    cmp  dl, 128
+    jnc  @@@5
+@@@2:
+
+
+  or    al, al
+  jnz   @@3
+  mov   dl, '.'
+@@3:
+  mov   [esi], dl
+  mov   edx, ecx
+  mov   ah, al
+  mov   ecx, 4
+  shr   al, cl
+  mov   ecx, edx
+  and   ah,0Fh
+  add   al,'0'
+  cmp   al,58
+  jc    @@41
+  add   al,7
+@@41:
+  add   ah,'0'
+  cmp   ah,58
+  jc    @@42
+  add   ah,7
+@@42:
+  mov   [ebx], eax
+  mov   al, ' '
+  mov   [ebx+2], al
+  add   ebx, 3
+  inc   esi
+  inc   edi
+  loop  @@2
+  pop   ecx
+  pop   edx
+  pop   esi
+  pop   ebx
+  pop   edi
+ end;
+ {$ENDIF BIT_32}
+  DumpStr := S;
+end;
 {$ELSE}
 var
   S: String;
@@ -1037,9 +1573,9 @@ begin
     Inc(j);
     S[i + 13 + Count*3] := Char(l);
   end;
-{$ENDIF}
   DumpStr := S;
 end;
+{$ENDIF}
 
 function SearchFor;
  var D: array[Char] of Word;
@@ -1052,6 +1588,7 @@ begin
  SearchFor := 0;
  if S = '' then Exit;
  MakeCase(CaseSensitive);
+ {$IFNDEF BIT_32}
  asm
   lea di, D
   mov ax, ss
@@ -1090,6 +1627,54 @@ begin
   pop si
   loop @@@1
  end;
+ {$ELSE BIT_32}
+ asm
+  push edi
+  push esi
+  push ebx
+  push edx
+  push ecx
+  lea edi, D
+  mov ecx, 256
+  lea ebx, S
+  xor eax, eax
+  mov al, [ebx]
+  cld
+  rep stosw
+  mov edx, eax
+  mov ecx, eax
+  lea ebx, Tran
+  lea esi, S
+@@@2:
+  inc esi
+  mov al, [esi]
+  push ebx
+  add ebx, eax
+  mov al, [ebx]
+  pop ebx
+  mov [esi], al
+  loop @@@2
+  mov ecx, edx
+  lea esi, D
+  lea ebx, S
+@@@1:
+  inc ebx
+  dec edx
+  xor eax, eax
+  mov al, [ebx]
+  add eax, eax
+  push esi
+  add esi, eax
+  mov [esi], edx
+  pop esi
+  loop @@@1
+  pop ecx
+  pop edx
+  pop ebx
+  pop esi
+  pop edi
+ end;
+ {$ENDIF BIT_32}
  M := Length(S) - 1;
  for I := 1 to Length(S) do S[I] := Tran[S[I]];
  while M < L do
@@ -1253,41 +1838,10 @@ begin
   if P = nil then CnvString:='' else CnvString:=P^;
 end;
 
-{ String formatting routines }
-{$IFNDEF DPMI}
- {$L FORMAT.OBJ}
-{$ELSE}
- {$L FORMAT.OBP}
-{$ENDIF}
-
-procedure Format_Str(var Result: String; const Format: String; var Params);
-  {$IFDEF BIT_16}far;{$ENDIF} external;
-
-procedure FormatStr;
-begin
-  if @Params = nil then
-    Result:=Format else
-    Format_Str(Result, Format, Params);
-end;
-
-procedure PrintStr(const S: String); assembler;
-asm
-    PUSH    DS
-    LDS     SI,S
-    CLD
-    LODSB
-    XOR     AH,AH
-    XCHG    AX,CX
-    MOV     AH,40H
-    MOV     BX,1
-    MOV     DX,SI
-    INT     21H
-    POP     DS
-end;
-
 procedure CompressString(var S: String);
 begin
   DelRight(S);
+  {$IFNDEF BIT_32}
   asm
      les bx, S
      mov cl, es:[bx]
@@ -1329,6 +1883,57 @@ begin
      jmp @@1
    @@Ex:
   end;
+  {$ELSE BIT_32}
+  asm
+     push ebx
+     push edi
+     push esi
+     push ecx
+     mov ebx, S
+     xor ecx, ecx
+     mov cl, [ebx]
+     inc ebx
+     jcxz @@Ex
+     xor edi, edi
+     xor esi, esi
+     mov byte ptr [ebx-1], ch
+   @@1:
+     mov ah, 8
+     xor edx, edx
+   @@2:
+     mov al, [ebx+esi]
+     mov [ebx+edi], al
+     inc esi
+     cmp esi, ecx
+     ja  @@Ex
+     inc edi
+     inc byte ptr [ebx-1]
+     cmp al, ' '
+     jne @@3
+     inc dl
+     jmp @@4
+    @@3:
+     xor Dl, dl
+    @@4:
+     dec ah
+     jnz @@2
+     or  dl, dl
+     jz @@5
+     dec dl
+     jz @@5
+     sub edi, edx
+     sub byte ptr [ebx-1], dl
+     mov al, 9
+     mov [ebx+edi-1], al
+    @@5:
+     jmp @@1
+   @@Ex:
+     pop ecx
+     pop esi
+     pop edi
+     pop ebx
+  end;
+  {$ENDIF}
 end;
 
 end.

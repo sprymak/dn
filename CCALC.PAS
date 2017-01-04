@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,7 +50,7 @@ UNIT CCalc;
 
 interface
 
-uses advance, advance1, advance2, advance3, calculator, RStrings, DNApp,
+uses advance, advance1, advance2, advance3, calculat, RStrings, DNApp,
      Dialogs, Views, Objects, Drivers, Commands, HistList, DNHelp;
 
 type
@@ -167,7 +167,6 @@ procedure TIndicator.Draw;
   end;
 
   procedure WrtN(N, A: Integer);
-   var L: LongInt;
   begin
     GetNValue(LL, A, S);
     Wrt(N);
@@ -186,7 +185,7 @@ begin
      end else
      begin
        Str(Value:0:20, S);
-       While S[Length(S)] = '0' do Dec(S[0]);
+       if PosChar('E', S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
        if S[Length(S)] = '.' then Dec(S[0]);
        Wrt(0);
        if Abs(Value) > $7FFFFFFF then
@@ -292,6 +291,7 @@ procedure InsertCalc;
       Control, Labl, Histry: PView;
     begin
        Dlg := PDialog( LoadResource( dlgCalculator )); R.Move(10, 5);
+       Dlg^.Number := GetNum;
 
        R.Assign(2,3,Dlg^.Size.X-6,4);
        Control := New(PCalcLine, Init(R, 250));

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -55,7 +55,7 @@ uses Objects, Views, Drivers, Dos, Eraser, FilesCol, HideView, Drives,
 type
     PSeparator=^TSeparator;
     TSeparator = object(THideView)
-     OldX, OldW: Integer;
+     OldX, OldW: AInt;
      constructor Init(R: TRect; AH: Integer);
      procedure HandleEvent(var Event: TEvent); virtual;
      procedure Draw; virtual;
@@ -69,7 +69,7 @@ type
      procedure SetState(AState: Word; Enable: Boolean); virtual;
      procedure HandleEvent(var Event: TEvent); virtual;
      function  GetPalette: PPalette; virtual;
-     procedure GetFull(var B; P: PFileRec; C, CW: Word); virtual; {DataCompBoy}
+     procedure GetFull(var B; P: PFileRec; C, CW: AWord); virtual; {DataCompBoy}
      procedure DrawTop(var B); virtual;
     end;
 
@@ -104,7 +104,7 @@ type
       Panel: PFilePanel;
       DriveLine: String[29];
       ViewLine:  String[60];
-      CharDelta: Integer;
+      CharDelta: AInt;
       constructor Init(var R: TRect; APanel: PFilePanel);
       procedure MakeDriveLine;
       function GetPalette: PPalette; virtual;
@@ -150,7 +150,7 @@ procedure TSpecScroll.HandleEvent;
 begin
  if (Event.What = evKeyDown) and
     ((Event.CharCode in [^E,^S,^D,^X]) or
-     (Event.CharCode = #0) and ((mem[seg0040:$17] and 3 <> 0) xor
+     (Event.CharCode = #0) and ((ShiftState and 3 <> 0) xor
      (FMSetup.Options and fmoUseArrows = 0) and
      ((Event.KeyCode = kbRight) or (Event.KeyCode = kbLeft) or
       (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)
@@ -367,9 +367,9 @@ begin
  GetPalette := @S;
 end;
 
-var Idx, CurPos, I, J: Integer;
+var Idx, CurPos, I, J: LongInt;
     C, C1, C2, C3, C4, C5, C6, C7: Byte;
-    B: Array[0..300] of Word;
+    B: Array[0..300] of AWord;
     B1: Array[0..200] of record C: Char; A: Byte; end absolute B;
 
 procedure TFilePanel.GetFull;
@@ -509,10 +509,10 @@ end;
 procedure TFilePanel.Draw;
  label 1;
  var P: PFileRec;
-     CW: Word;
-     CS: Word;
-     PgS: Word;
-     S,S1: String;
+     CW: AWord;
+     CS: AWord;
+     PgS: AWord;
+     S, S1: String;
      HLC: Array[0..ttCust10] of Byte; {JO}
      PB: ^Byte;
      TagC: Char;
@@ -520,7 +520,7 @@ procedure TFilePanel.Draw;
  procedure DrawAtIdx;
   var P: PFileRec;
       CC: Byte;
-      JJ: Integer;
+      JJ: LongInt;
  begin
    JJ := J*LineLength;
    if (Files <> nil) and (Idx < Files^.Count) then
@@ -708,7 +708,7 @@ procedure TInfoView.HandleEvent;
  end;
 
  procedure DragSelected;
-  var I: Integer;
+  var I: LongInt;
       PF: PFileRec; {DataCompBoy}
  begin
   if Panel^.SelNum = 0 then Exit;
@@ -724,7 +724,7 @@ procedure TInfoView.HandleEvent;
  end;
 
  procedure DragTotals;
-  var I: Integer;
+  var I: LongInt;
       PF: PFileRec; {DataCompBoy}
  begin
   New(FC, Init(Panel^.SelNum, 100));
@@ -783,13 +783,13 @@ end;
         {-DataCompBoy-}
 procedure TInfoView.Draw;
  label 1;
- var B: Array [0..600] of Word;
+ var B: TDrawBuffer;
      B1: Array[0..127] of record C: Char; A: Byte; end absolute B;
-     I: Integer;
+     I: LongInt;
      C1, C2, C3: Word;
      PF, PPF: PFileRec;
      S, S1, S2, S3: String;
-     Y: Integer;
+     Y: LongInt;
 
  var FR: TFileRec;
      P: PFileRec;
@@ -830,7 +830,8 @@ begin
    if (Panel^.Drive^.DriveType = dtFind) or (Panel^.Drive^.DriveType = dtTemp) then
     begin
      MoveChar(B, ' ', C1, Size.X);
-     if Panel^.ScrollBar^.Value < Panel^.Files^.Count then MoveStr(B, PF^.Owner^, C1);
+     if (Panel^.ScrollBar^.Value < Panel^.Files^.Count) and
+        (PF^.Owner <> nil) then MoveStr(B, PF^.Owner^, C1);
      WriteLine(0,Y,Size.X,1,B);
      Inc(Y);
     end else
@@ -960,12 +961,13 @@ end;
 procedure TTopView.Draw;
  var C: Word;
      B: TDrawBuffer;
-     I: Integer;
+     I: LongInt;
      S: String;
      R: TRect;
 begin
  C := GetColor(1); if not Panel^.GetState(sfSelected) then C := GetColor(2);
- MoveChar(B, ' ', C, Size.X); {S := Panel^.DirectoryName;
+ MoveChar(B, ' ', C, Size.X);
+ {S := Panel^.DirectoryName;
  if Length(S) > Panel^.Size.X - 10  then
   begin
    Delete(S, PosChar(':', S) + 2, Length(S) - Panel^.Size.X + 13);
@@ -988,21 +990,15 @@ end;
 
 procedure TTopView.HandleEvent;
  var S: String;
-     I: Integer;
+     I: LongInt;
      P: TPoint;
 begin
  inherited HandleEvent(Event);
  case Event.What of
   evMouseDown: begin
                 MakeLocal(Event.Where, P);
-                S := Panel^.DirectoryName;
-                {if Length(S) > Size.X then
-                 begin
-                  Delete(S, 4, Length(S) - Size.X + 3);
-                  Insert('...', S, 4);
-                 end;}
+                S:=Cut(Panel^.DirectoryName,Panel^.Size.X-10);
                 if Length(S) > Size.X then I := 0 else I := PosChar(':', S);
-                { := (Size.X - Length(S)) div 2}
                 repeat until not MouseEvent(Event, evMouseAuto + evMouseMove);
                 ClearEvent(Event);
                 if (P.X <= I)
@@ -1089,21 +1085,20 @@ end;
 PROCEDURE TFilePanel.HandleEvent;
 var
   PF: PFileRec;
-  CurPos: Integer;
+  CurPos: LongInt;
   PPC: PCollection;
   MPos: TPoint;
   LastRDelay: Word;
-  I, J: Integer;
+  I, J: LongInt;
   PDr: PDrive;
 
  procedure CE;begin ClearEvent(Event) end;
  procedure CED;begin ClearEvent(Event); DrawView end;
 
-(*DataCompBoy
  procedure CM_CopyUnselect;
   label 1;
   var PF: PFileRec;
-      I, OSM: Integer;
+      I, OSM: LongInt;
  begin
   if (Files^.Count = 0) or (Event.InfoPtr = nil) then Exit;
   OSM := PFilesCollection(Files)^.SortMode;
@@ -1127,28 +1122,10 @@ var
   DrawView;
   if InfoView <> nil then InfoView^.DrawView;
  end;
-DataCompBoy*)
-
- procedure CM_CopyUnselect;
-  var PF: PFileRec;
-      I: Integer;
- begin
-  if (Files^.Count = 0) or (Event.InfoPtr = nil) then Exit;
-  PF := Event.InfoPtr;
-  with PF^ do
-   if Selected then begin
-    Selected := Off;
-    SelectedLen := SelectedLen - Size;
-    PackedLen := PackedLen - PSize;
-    Dec(SelNum)
-   end;
-  DrawView;
-  if InfoView <> nil then InfoView^.DrawView;
- end;
 
  function MaskSearch(B: Byte): boolean;
  var
-   I: Integer;
+   I: LongInt;
  begin
    MaskSearch := true;
    I := CurPos + B; If I >= Files^.Count then I := 0;
@@ -1181,22 +1158,38 @@ DataCompBoy*)
 
 begin
  inherited HandleEvent(Event);
+ if Event.What = evNothing then Exit;
  CurPos := ScrollBar^.Value;
- if Files^.Count > CurPos then PF := Files^.At(CurPos) else PF := nil;
+ if Files<>nil
+  then if Files^.Count > CurPos
+       then PF := Files^.At(CurPos)
+       else PF := nil
+  else PF := nil;
  I := ShiftState;
  if (Event.What = evKeyDown) and (I and 3 <> 0) and
     ((Event.KeyCode = kbCtrlRight) or (Event.KeyCode = kbCtrlLeft) or
      ((Event.KeyCode = kbBack) and not QuickSearch))
       then begin CommandHandle(Event); Exit; end;
  if (Event.What = evKeyDown) and (CommandLine <> nil) then
-  if ((I and 3 <> 0) and ((Event.KeyCode = kbDown) or (Event.KeyCode = kbUp)
-     or ((Event.KeyCode = kbCtrlIns) and (CmdLine.Str<>'')) or (Event.KeyCode = kbGrayAst) )) or
-    ((Event.ScanCode < (kbAlt1 shr 8)) or (Event.ScanCode > (kbAlt9 shr 8))) and
-     (Event.CharCode = #0) and (CmdLine.Str <> '') and
-     ((I and 3 <> 0) xor (FMSetup.Options and fmoUseArrows = 0) and
+  if ((I and (kbRightShift+kbLeftShift) <> 0) and
+      ((Event.KeyCode = kbDown) or
+       (Event.KeyCode = kbUp) or
+       ((Event.KeyCode = kbCtrlIns) and (CmdLine.Str<>'')) or
+       (Event.KeyCode = kbGrayAst)
+      )
+     ) or
+     (((Event.ScanCode < (kbAlt1 shr 8)) or
+       (Event.ScanCode > (kbAlt9 shr 8))
+      ) and
+      (Event.CharCode = #0) and
+      (CmdLine.Str <> '') and
+      (((I and 3 <> 0) xor (FMSetup.Options and fmoUseArrows = 0)) and
        ((Event.KeyCode = kbRight) or (Event.KeyCode = kbLeft) or
-        (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)))
-      then CommandLine^.HandleEvent(Event);
+        (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)
+       )
+      )
+     )
+     then CommandLine^.HandleEvent(Event);
  if Event.What = evNothing then Exit;
  I := ShiftState2;
  case Event.What of
@@ -1215,7 +1208,7 @@ begin
               cmRecountDirs: begin
                                if Files <> nil then files^.ForEach(@DoMakeDirs); CED;
                              end;
-{$IFNDEF FPC} 0..100:;{$ENDIF}
+              0..3,5..100:;
                 else CommandHandle(Event);
              end;
   evKeyDown: if ((Event.KeyCode = kbDoubleAlt) and (FMSetup.Quick = pqsAlt)) or
@@ -1242,8 +1235,10 @@ begin
                    if QuickSearch then
                     begin
                      if (FMSetup.Quick = pqsCaps) and (I and kbCapsState <> 0) then begin
+                        {$IFNDEF NONBP}
                         Mem[Seg0040:$17] := ShiftState and not kbCapsState;
                         ShiftState := Mem[Seg0040:$17];
+                        {$ENDIF}
                      end;
                      if not MaskSearch(0) then DoQuickSearch(SearchParam, kbBack);
                     end;
@@ -1306,11 +1301,13 @@ GotoKB:
                      }
                      kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); DrawView end;
                      kbEnd: begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
-                     kbUp, kbDown, kbCtrlUp, kbCtrlDown
+                     kbUp, kbDown, kbCtrlUp, kbCtrlDown, kbUpUp, kbDownUp
                           : begin
+                               CtrlWas := ShiftState and kbCtrlShift <> 0;
                                if Event.KeyCode = kbCtrlUp   then Event.KeyCode := kbUp;
                                if Event.KeyCode = kbCtrlDown then Event.KeyCode := kbDown;
-                               CtrlWas := ShiftState and kbCtrlShift <> 0;
+                               if (Event.KeyCode = kbDownUp)
+                               or (Event.KeyCode = kbUpUp)  then begin CE; exit end;
                             end;
                      kbIns,kbSpace: if CurPos < Files^.Count then
                             begin

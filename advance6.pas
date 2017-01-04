@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,6 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
 {$I STDEFINE.INC}
 unit advance6;
 
@@ -52,6 +51,7 @@ interface
 uses Objects;
 
 procedure InitUpcase;
+procedure MakeCRCTable;
 function  GetLineNumberForOffset(const FName: String; Offset: LongInt): LongInt;
 function  GetOffsetForLineNumber(const FName: String; LineNm: LongInt): LongInt;
 procedure ResourceAccessError;
@@ -121,8 +121,10 @@ begin
    if q^[bp]=10 then inc(ln);
    inc(bp); inc(fp);
   until (bp>=bl) or (ln>=LineNm);
- until ln>=LineNm;
- GetOffsetForLineNumber:=fp;
+ until (ln>=LineNm) or EOF(F.F);
+ if ln >= LineNm
+  then GetOffsetForLineNumber:=fp
+  else GetOffsetForLineNumber:=-1;
  close(f.f);
  freemem(q, 4096);
 end;
@@ -140,5 +142,38 @@ begin
   if P <> 0 then HotKey := UpCaseArray[S[P+1]]
   else HotKey := #0;
 end;
+
+procedure MakeCRCTable;
+var
+ c    : Longint;
+ n,k  : integer;
+ poly : Longint; { polynomial exclusive-or pattern }
+
+const
+ { terms of polynomial defining this crc (except x^32): }
+ p: array [0..13] of Byte = (0,1,2,4,5,7,8,10,11,12,16,22,23,26);
+
+begin
+  New(Crc_Table);
+  { make exclusive-or pattern from polynomial ($EDB88320) }
+  poly := 0;
+  for n := 0 to (sizeof(p) div sizeof(Byte))-1 do
+    poly := poly or (Longint(1) shl (31 - p[n]));
+
+  for n := 0 to 255 do
+  begin
+    c := n;
+    for k := 0 to 7 do
+    begin
+      if (c and 1) <> 0 then
+        c := poly xor (c shr 1)
+      else
+        c := (c shr 1);
+    end;
+    crc_table^[n] := c;
+  end;
+  Crc_table_empty := FALSE;
+end;
+
 
 end.

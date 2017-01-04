@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -95,9 +95,8 @@ type
 implementation
 
   procedure XlatBuf(var B; Len: Integer; var XTable);
-{$IFDEF FPC}begin end;
-{$Else}
   assembler;
+  {$IFNDEF BIT_32}
   asm
     cmp Len, 0
     jle @@1
@@ -116,8 +115,24 @@ implementation
     pop  ds
  @@1:
   end;
-{$ENDIF}
-
+  {$ELSE BIT_32}{&Frame-}{$USES ESI, EBX, ECX}
+  asm
+    cmp  Len, 0
+    jle  @@1
+    mov  ECX, Len
+    lea  ESI, B
+    lea  EBX, XTable
+    xor  EAX, EAX
+    cld
+ @@Loop:
+    lodsb
+    mov  EDI, EAX
+    mov  AL, [EBX+EDI]
+    mov  [ESI-1], AL
+    loop @@Loop
+ @@1:
+  end;
+  {$ENDIF}
 
 {(c) SeYKo}
 constructor TCodePageDetector.Init;
@@ -201,6 +216,7 @@ type
  end;
  {$ELSE  !NOASM}
  assembler;
+ {$IFNDEF BIT_32}
  asm
          MOV     CX,Len
          JCXZ    @@2
@@ -215,6 +231,20 @@ type
          MOV     DS,DX
  @@2:
  end;
+ {$ELSE BIT_32}{&Frame-}{$USES EDI, EBX}
+ asm
+         MOV     ECX,Len
+         JCXZ    @@2
+         LEA     EDI,Buf
+         LEA     EBX,ConvertTable
+ @@1:
+         MOV     AL,[EDI]
+         XLAT
+         STOSB
+         LOOP    @@1
+ @@2:
+ end;
+ {$ENDIF BIT}
  {$ENDIF !NOASM}
 
  procedure CharsConvertBuf ( var Buf; Len : Word; const AllChars : string );

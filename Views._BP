@@ -1,0 +1,652 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source 1.51.08
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//
+//  This programs is free for commercial and non-commercial use as long as
+//  the following conditions are aheared to.
+//
+//  Copyright remains RIT Research Labs, and as such any Copyright notices
+//  in the code are not to be removed. If this package is used in a
+//  product, RIT Research Labs should be given attribution as the RIT Research
+//  Labs of the parts of the library used. This can be in the form of a textual
+//  message at program startup or in documentation (online or textual)
+//  provided with the package.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are
+//  met:
+//
+//  1. Redistributions of source code must retain the copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     "Based on Dos Navigator by RIT Research Labs."
+//
+//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//  The licence and distribution terms for any publically available
+//  version or derivative of this code cannot be changed. i.e. this code
+//  cannot simply be copied and put under another distribution licence
+//  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////}
+
+{ Convert color into attribute                          }
+{ In    AL = Color                                      }
+{ Out   AL = Attribute                                  }
+
+procedure MapColor;
+near; assembler;
+const
+  Self = 6;
+  vmtHeaderSize = 8;
+  TView_GetPalette = vmtHeaderSize + $2C;
+asm
+        OR      AL,AL
+        JE      @@3
+        LES     DI,[BP].Self
+@@1:    PUSH    ES
+        PUSH    DI
+        PUSH    AX
+        PUSH    ES
+        PUSH    DI
+        MOV     DI,ES:[DI]
+        CALL    DWORD PTR [DI].TView_GetPalette
+        MOV     BX,AX
+        MOV     ES,DX
+        OR      AX,DX
+        POP     AX
+        POP     DI
+        POP     DX
+        JE      @@2
+        CMP     AL,ES:[BX]
+        JA      @@3
+        SEGES   XLAT
+        OR      AL,AL
+        JE      @@3
+@@2:    MOV     ES,DX
+        LES     DI,ES:[DI].TView.Owner
+        MOV     SI,ES
+        OR      SI,DI
+        JNE     @@1
+        JMP     @@4
+@@3:    MOV     AL,ErrorAttr
+@@4:
+end;
+
+{ Convert color pair into attribute pair                }
+{ In    AX = Color pair                                 }
+{ Out   AX = Attribute pair                             }
+
+procedure MapCPair;
+near; assembler;
+asm
+        OR      AH,AH
+        JE      @@1
+        XCHG    AL,AH
+        CALL    MapColor
+        XCHG    AL,AH
+@@1:    CALL    MapColor
+end;
+
+{ Write to view                                         }
+{ In    AX    = Y coordinate                            }
+{       BX    = X coordinate                            }
+{       CX    = Count                                   }
+{       ES:DI = Buffer Pointer                          }
+
+procedure WriteView;
+near; assembler;
+const
+  Self   =   6;
+  Target =  -4;
+  Buffer =  -8;
+  BufOfs = -10;
+asm
+        MOV     [BP].BufOfs,BX
+        MOV     [BP].Buffer[0],DI
+        MOV     [BP].Buffer[2],ES
+        ADD     CX,BX
+        XOR     DX,DX
+        LES     DI,[BP].Self
+        OR      AX,AX
+        JL      @@3
+        CMP     AX,ES:[DI].TView.Size.Y.Word[0]
+        JGE     @@3
+        OR      BX,BX
+        JGE     @@1
+        XOR     BX,BX
+@@1:    CMP     CX,ES:[DI].TView.Size.X.Word[0]
+        JLE     @@2
+        MOV     CX,ES:[DI].TView.Size.X.Word[0]
+@@2:    CMP     BX,CX
+        JL      @@10
+@@3:    RET
+@@10:   TEST    ES:[DI].TView.State,sfVisible
+        JE      @@3
+        CMP     ES:[DI].TView.Owner.Word[2],0
+        JE      @@3
+        MOV     [BP].Target[0],DI
+        MOV     [BP].Target[2],ES
+        ADD     AX,ES:[DI].TView.Origin.Y.Word[0]
+        MOV     SI,ES:[DI].TView.Origin.X.Word[0]
+        ADD     BX,SI
+        ADD     CX,SI
+        ADD     [BP].BufOfs,SI
+        LES     DI,ES:[DI].TView.Owner
+        CMP     AX,ES:[DI].TGroup.Clip.A.Y.Word[0]
+        JL      @@3
+        CMP     AX,ES:[DI].TGroup.Clip.B.Y.Word[0]
+        JGE     @@3
+        CMP     BX,ES:[DI].TGroup.Clip.A.X.Word[0]
+        JGE     @@11
+        MOV     BX,ES:[DI].TGroup.Clip.A.X.Word[0]
+@@11:   CMP     CX,ES:[DI].TGroup.Clip.B.X.Word[0]
+        JLE     @@12
+        MOV     CX,ES:[DI].TGroup.Clip.B.X.Word[0]
+@@12:   CMP     BX,CX
+        JGE     @@3
+        LES     DI,ES:[DI].TGroup.Last
+@@20:   LES     DI,ES:[DI].TView.Next
+        CMP     DI,[BP].Target[0]
+        JNE     @@21
+        MOV     SI,ES
+        CMP     SI,[BP].Target[2]
+        JNE     @@21
+        JMP     @@40
+@@21:   TEST    ES:[DI].TView.State,sfVisible
+        JE      @@20
+        MOV     SI,ES:[DI].TView.Origin.Y.Word[0]
+        CMP     AX,SI
+        JL      @@20
+        ADD     SI,ES:[DI].TView.Size.Y.Word[0]
+        CMP     AX,SI
+        JL      @@23
+        TEST    ES:[DI].TView.State,sfShadow
+        JE      @@20
+        ADD     SI,ShadowSize.Y.Word[0]
+        CMP     AX,SI
+        JGE     @@20
+        MOV     SI,ES:[DI].TView.Origin.X.Word[0]
+        ADD     SI,ShadowSize.X.Word[0]
+        CMP     BX,SI
+        JGE     @@22
+        CMP     CX,SI
+        JLE     @@20
+        CALL    @@30
+@@22:   ADD     SI,ES:[DI].TView.Size.X.Word[0]
+        JMP     @@26
+@@23:   MOV     SI,ES:[DI].TView.Origin.X.Word[0]
+        CMP     BX,SI
+        JGE     @@24
+        CMP     CX,SI
+        JLE     @@20
+        CALL    @@30
+@@24:   ADD     SI,ES:[DI].TView.Size.X.Word[0]
+        CMP     BX,SI
+        JGE     @@25
+        CMP     CX,SI
+        JLE     @@31
+        MOV     BX,SI
+@@25:   TEST    ES:[DI].TView.State,sfShadow
+        JE      @@20
+        PUSH    SI
+        MOV     SI,ES:[DI].TView.Origin.Y.Word[0]
+        ADD     SI,ShadowSize.Y.Word[0]
+        CMP     AX,SI
+        POP     SI
+        JL      @@27
+        ADD     SI,ShadowSize.X.Word[0]
+@@26:   CMP     BX,SI
+        JGE     @@27
+        INC     DX
+        CMP     CX,SI
+        JLE     @@27
+        CALL    @@30
+        DEC     DX
+@@27:   JMP     @@20
+@@30:   PUSH    [BP].Target.Word[2]
+        PUSH    [BP].Target.Word[0]
+        PUSH    [BP].BufOfs.Word[0]
+        PUSH    ES
+        PUSH    DI
+        PUSH    SI
+        PUSH    DX
+        PUSH    CX
+        PUSH    AX
+        MOV     CX,SI
+        CALL    @@20
+        POP     AX
+        POP     CX
+        POP     DX
+        POP     SI
+        POP     DI
+        POP     ES
+        POP     [BP].BufOfs.Word[0]
+        POP     [BP].Target.Word[0]
+        POP     [BP].Target.Word[2]
+        MOV     BX,SI
+@@31:   RET
+@@40:   LES     DI,ES:[DI].TView.Owner
+        MOV     SI,ES:[DI].TGroup.Buffer.Word[2]
+        OR      SI,SI
+        JE      @@44
+        CMP     SI,ScreenBuffer.Word[2]
+        JE      @@41
+        CALL    @@50
+        JMP     @@44
+@@41:   CLI
+{DataCompBoy
+        CMP     GraphMouse, 0
+        JNE     @@43
+DataCompBoy}
+        CMP     AX,MouseWhere.Y.Word[0]
+        JNE     @@42
+        CMP     BX,MouseWhere.X.Word[0]
+        JA      @@42
+        CMP     CX,MouseWhere.X.Word[0]
+        JA      @@43
+@@42:   MOV     MouseIntFlag,0
+        STI
+        CALL    @@50
+        CMP     MouseIntFlag,0
+        JE      @@44
+@@43:   STI
+        CALL    HideMouse
+        CALL    @@50
+        CALL    ShowMouse
+@@44:   CMP     ES:[DI].TGroup.LockFlag,0
+        JNE     @@31
+        JMP     @@10
+@@50:   PUSH    ES
+        PUSH    DS
+        PUSH    DI
+        PUSH    CX
+        PUSH    AX
+        MUL     ES:[DI].TView.Size.X.Byte[0]
+        ADD     AX,BX
+        SHL     AX,1
+        ADD     AX,ES:[DI].TGroup.Buffer.Word[0]
+        MOV     DI,AX
+        MOV     ES,SI
+        XOR     AL,AL
+        CMP     SI,ScreenBuffer.Word[2]
+        JNE     @@51
+        MOV     AL,CheckSnow
+@@51:   MOV     AH,ShadowAttr
+        SUB     CX,BX
+        MOV     SI,BX
+        SUB     SI,[BP].BufOfs
+        SHL     SI,1
+        ADD     SI,[BP].Buffer.Word[0]
+        MOV     DS,[BP].Buffer.Word[2]
+        CLD
+        OR      AL,AL
+        JNE     @@60
+        OR      DX,DX
+        JNE     @@52
+        REP     MOVSW
+        JMP     @@70
+@@52:   LODSB
+        INC     SI
+        STOSW
+        LOOP    @@52
+        JMP     @@70
+@@60:   PUSH    DX
+        PUSH    BX
+        OR      DX,DX
+        MOV     DX,03DAH
+        JNE     @@65
+@@61:   LODSW
+        MOV     BX,AX
+@@62:   IN      AL,DX
+        TEST    AL,1
+        JNE     @@62
+        CLI
+@@63:   IN      AL,DX
+        TEST    AL,1
+        JE      @@63
+        MOV     AX,BX
+        STOSW
+        STI
+        LOOP    @@61
+        JMP     @@68
+@@65:   LODSB
+        MOV     BL,AL
+        INC     SI
+@@66:   IN      AL,DX
+        TEST    AL,1
+        JNE     @@66
+        CLI
+@@67:   IN      AL,DX
+        TEST    AL,1
+        JE      @@67
+        MOV     AL,BL
+        STOSW
+        STI
+        LOOP    @@65
+@@68:   POP     BX
+        POP     DX
+@@70:   MOV     SI,ES
+        POP     AX
+        POP     CX
+        POP     DI
+        POP     DS
+        POP     ES
+        RET
+end;
+
+function TView.Exposed: Boolean;
+assembler;
+var
+  Target: Pointer;
+asm
+        LES     DI,Self
+        TEST    ES:[DI].TView.State,sfExposed
+        JE      @@2
+        XOR     AX,AX
+        CMP     AX,ES:[DI].TView.Size.X.Word[0]
+        JGE     @@2
+        CMP     AX,ES:[DI].TView.Size.Y.Word[0]
+        JGE     @@2
+@@1:    XOR     BX,BX
+        MOV     CX,ES:[DI].TView.Size.X.Word[0]
+        PUSH    AX
+        CALL    @@11
+        POP     AX
+        JNC     @@3
+        LES     DI,Self
+        INC     AX
+        CMP     AX,ES:[DI].TView.Size.Y.Word[0]
+        JL      @@1
+@@2:    MOV     AL,0
+        JMP     @@30
+@@3:    MOV     AL,1
+        JMP     @@30
+@@8:    STC
+@@9:    RETN
+@@10:   LES     DI,ES:[DI].TView.Owner
+        CMP     ES:[DI].TGroup.Buffer.Word[2],0
+        JNE     @@9
+@@11:   MOV     Target.Word[0],DI
+        MOV     Target.Word[2],ES
+        ADD     AX,ES:[DI].TView.Origin.Y.Word[0]
+        MOV     SI,ES:[DI].TView.Origin.X.Word[0]
+        ADD     BX,SI
+        ADD     CX,SI
+        LES     DI,ES:[DI].TView.Owner
+        MOV     SI,ES
+        OR      SI,DI
+        JE      @@9
+        CMP     AX,ES:[DI].TGroup.Clip.A.Y.Word[0]
+        JL      @@8
+        CMP     AX,ES:[DI].TGroup.Clip.B.Y.Word[0]
+        JGE     @@8
+        CMP     BX,ES:[DI].TGroup.Clip.A.X.Word[0]
+        JGE     @@12
+        MOV     BX,ES:[DI].TGroup.Clip.A.X.Word[0]
+@@12:   CMP     CX,ES:[DI].TGroup.Clip.B.X.Word[0]
+        JLE     @@13
+        MOV     CX,ES:[DI].TGroup.Clip.B.X.Word[0]
+@@13:   CMP     BX,CX
+        JGE     @@8
+        LES     DI,ES:[DI].TGroup.Last
+@@20:   LES     DI,ES:[DI].TView.Next
+        CMP     DI,Target.Word[0]
+        JNE     @@21
+        MOV     SI,ES
+        CMP     SI,Target.Word[2]
+        JE      @@10
+@@21:   TEST    ES:[DI].TView.State,sfVisible
+        JE      @@20
+        MOV     SI,ES:[DI].TView.Origin.Y.Word[0]
+        CMP     AX,SI
+        JL      @@20
+        ADD     SI,ES:[DI].TView.Size.Y.Word[0]
+        CMP     AX,SI
+        JGE     @@20
+        MOV     SI,ES:[DI].TView.Origin.X.Word[0]
+        CMP     BX,SI
+        JL      @@22
+        ADD     SI,ES:[DI].TView.Size.X.Word[0]
+        CMP     BX,SI
+        JGE     @@20
+        MOV     BX,SI
+        CMP     BX,CX
+        JL      @@20
+        STC
+        RETN
+@@22:   CMP     CX,SI
+        JLE     @@20
+        ADD     SI,ES:[DI].TView.Size.X.Word[0]
+        CMP     CX,SI
+        JG      @@23
+        MOV     CX,ES:[DI].TView.Origin.X.Word[0]
+        JMP     @@20
+@@23:   PUSH    Target.Word[2]
+        PUSH    Target.Word[0]
+        PUSH    ES
+        PUSH    DI
+        PUSH    SI
+        PUSH    CX
+        PUSH    AX
+        MOV     CX,ES:[DI].TView.Origin.X.Word[0]
+        CALL    @@20
+        POP     AX
+        POP     CX
+        POP     BX
+        POP     DI
+        POP     ES
+        POP     Target.Word[0]
+        POP     Target.Word[2]
+        JC      @@20
+        RETN
+@@30:
+end;
+
+function TView.GetColor(Color: Word): Word;
+assembler;
+asm
+        MOV     AX,Color
+        CALL    MapCPair
+end;
+
+procedure TView.ResetCursor;
+assembler;
+asm
+        LES     DI,Self
+        MOV     AX,ES:[DI].TView.State
+        NOT     AX
+        TEST    AX,sfVisible+sfCursorVis+sfFocused
+        JNE     @@4
+        MOV     AX,ES:[DI].TView.Cursor.Y.Word[0]
+        MOV     DX,ES:[DI].TView.Cursor.X.Word[0]
+@@1:    OR      AX,AX
+        JL      @@4
+        CMP     AX,ES:[DI].TView.Size.Y.Word[0]
+        JGE     @@4
+        OR      DX,DX
+        JL      @@4
+        CMP     DX,ES:[DI].TView.Size.X.Word[0]
+        JGE     @@4
+        ADD     AX,ES:[DI].TView.Origin.Y.Word[0]
+        ADD     DX,ES:[DI].TView.Origin.X.Word[0]
+        MOV     CX,DI
+        MOV     BX,ES
+        LES     DI,ES:[DI].TView.Owner
+        MOV     SI,ES
+        OR      SI,DI
+        JE      @@5
+        TEST    ES:[DI].TView.State,sfVisible
+        JE      @@4
+        LES     DI,ES:[DI].TGroup.Last
+@@2:    LES     DI,ES:[DI].TView.Next
+        CMP     CX,DI
+        JNE     @@3
+        MOV     SI,ES
+        CMP     BX,SI
+        JNE     @@3
+        LES     DI,ES:[DI].TView.Owner
+        JMP     @@1
+@@3:    TEST    ES:[DI].TView.State,sfVisible
+        JE      @@2
+        MOV     SI,ES:[DI].TView.Origin.Y.Word[0]
+        CMP     AX,SI
+        JL      @@2
+        ADD     SI,ES:[DI].TView.Size.Y.Word[0]
+        CMP     AX,SI
+        JGE     @@2
+        MOV     SI,ES:[DI].TView.Origin.X.Word[0]
+        CMP     DX,SI
+        JL      @@2
+        ADD     SI,ES:[DI].TView.Size.X.Word[0]
+        CMP     DX,SI
+        JGE     @@2
+@@4:    MOV     CX,2000H
+        JMP     @@6
+@@5:    MOV     DH,AL
+        XOR     BH,BH
+        MOV     AH,2
+        INT     10H
+        MOV     CX,CursorLines
+        LES     DI,Self
+        TEST    ES:[DI].TView.State,sfCursorIns
+        JE      @@6
+        MOV     CH,0
+        OR      CL,CL
+        JNE     @@6
+        MOV     CL,7
+@@6:    MOV     AH,1
+        INT     10H
+end;
+
+procedure TView.WriteBuf(X, Y, W, H: Integer; var Buf);
+assembler;
+var
+  Target: Pointer; {Variables used by WriteView}
+  Buffer: Pointer;
+  Offset: Word;
+asm
+        CMP     H,0
+        JLE     @@2
+@@1:    MOV     AX,Y
+        MOV     BX,X
+        MOV     CX,W
+        LES     DI,Buf
+        CALL    WriteView
+        MOV     AX,W
+        SHL     AX,1
+        ADD     Buf[0].Word[0],AX
+        INC     Y
+        DEC     H
+        JNE     @@1
+@@2:
+end;
+
+procedure TView.WriteChar(X, Y: Integer; C: Char; Color: Byte;
+  Count: Integer);
+assembler;
+var
+  Target: Pointer; {Variables used by WriteView}
+  Buffer: Pointer;
+  Offset: Word;
+asm
+        MOV     AL,Color
+        CALL    MapColor
+        MOV     AH,AL
+        MOV     AL,C
+        MOV     CX,Count
+        OR      CX,CX
+        JLE     @@2
+        CMP     CX,256
+        JLE     @@1
+        MOV     CX,256
+@@1:    MOV     DI,CX
+        SHL     DI,1
+        SUB     SP,DI
+        MOV     DI,SP
+        PUSH    SS
+        POP     ES
+        MOV     DX,CX
+        CLD
+        REP     STOSW
+        MOV     CX,DX
+        MOV     DI,SP
+        MOV     AX,Y
+        MOV     BX,X
+        CALL    WriteView
+@@2:
+end;
+
+procedure TView.WriteLine(X, Y, W, H: Integer; var Buf);
+assembler;
+var
+  Target: Pointer; {Variables used by WriteView}
+  Buffer: Pointer;
+  Offset: Word;
+asm
+        CMP     H,0
+        JLE     @@2
+@@1:    MOV     AX,Y
+        MOV     BX,X
+        MOV     CX,W
+        LES     DI,Buf
+        CALL    WriteView
+        INC     Y
+        DEC     H
+        JNE     @@1
+@@2:
+end;
+
+procedure TView.WriteStr(X, Y: Integer; Str: String; Color: Byte);
+assembler;
+var
+  Target: Pointer; {Variables used by WriteView}
+  Buffer: Pointer;
+  Offset: Word;
+asm
+        MOV     AL,Color
+        CALL    MapColor
+        MOV     AH,AL
+        MOV     BX,DS
+        LDS     SI,Str
+        CLD
+        LODSB
+        MOV     CL,AL
+        XOR     CH,CH
+        JCXZ    @@3
+        MOV     DI,CX
+        SHL     DI,1
+        SUB     SP,DI
+        MOV     DI,SP
+        PUSH    SS
+        POP     ES
+        MOV     DX,CX
+@@1:    LODSB
+        STOSW
+        LOOP    @@1
+        MOV     DS,BX
+        MOV     CX,DX
+        MOV     DI,SP
+        MOV     AX,Y
+        MOV     BX,X
+        CALL    WriteView
+        JMP     @@2
+@@3:    MOV     DS,BX
+@@2:
+end;
+

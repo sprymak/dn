@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -63,11 +63,8 @@ uses LFN, Collect,   SBlocks, Objects, Views, Scroller, Drivers, Dos, Memory,
 type
     PTerminalWindow = ^TTerminalWindow;
     TTerminalWindow = object(TWindow)
-      Zooming: Boolean;
       constructor Init;
-      procedure Zoom; virtual;
-      procedure SizeLimits(var Min, Max: TPoint); virtual;
-      procedure CalcBounds(var Bounds: TRect; Delta: TPoint); virtual;
+      procedure Maxi; virtual;
     function  ReactOnCmd: Boolean; virtual;
     end;
 
@@ -130,6 +127,8 @@ const
 const Protocol: AbstractProtocolPtr = nil;
       CommandsHistory: PCollection = nil;
 
+ procedure OpenTerminal;
+
 implementation
 
 uses RStrings, Startup, Microed, Gauge, ScrollBk,
@@ -181,14 +180,15 @@ constructor TTerminalWindow.Init;
      PT: PTerminal;
 begin
  if InitModem = moInitFail then Fail;
- Desktop^.GetExtent(R); R.Grow(1,1);
- HelpCtx := hcTerminal;
+ Desktop^.GetExtent(R);
  inherited Init(R, GetString(dlTerminalTitle), 0);
+ HelpCtx := hcTerminal;
+ Flags := Flags or wfMaxi;
 
  GetExtent(R);
  R.Grow(-1,-1); Dec(R.B.Y);
  PT := New(PTerminal, Init(R, StandardScrollBar(sbHorizontal + sbHandleKeyBoard),
-                               StandardScrollBar(sbVertical + sbHandleKeyBoard)));
+                              StandardScrollBar(sbVertical + sbHandleKeyBoard)));
  Insert(PT);
  GetExtent(R);
  R.Grow(-1,-1); R.A.Y := R.B.Y - 1;
@@ -197,44 +197,23 @@ begin
  Insert(P);
 end;
 
-procedure TTerminalWindow.Zoom;
+procedure TTerminalWindow.Maxi;
 var
   R: TRect;
   Max, Min: TPoint;
 begin
-  Zooming := True;
-  SizeLimits(Min, Max);
-  if not Size.Equals(Max) then
-  begin
-    GetBounds(ZoomRect);
-    R.Assign(0,0,0,0);  Dec(R.A.X); Dec(R.A.Y);
-    R.B := Max;         Inc(R.B.X);
-    Locate(R);
-  end else Locate(ZoomRect);
-  Zooming := False;
-end;
-
-procedure TTerminalWindow.SizeLimits(var Min, Max: TPoint);
-begin
-   Min.Assign(0, 0);
-   Min := MinWinSize;
-   if Owner <> nil then
-        begin
-           Max.X := Owner^.Size.X+2;
-           Max.Y := Owner^.Size.Y+2;
-        end else begin
-                  Max.X:=High(Max.X);
-                  Max.Y:=High(Max.Y);
-                 end;
-end;
-
-procedure TTerminalWindow.CalcBounds;
-  var OldSz: TPoint;
-begin
-  OldSz := Size;
-  inherited CalcBounds(Bounds, Delta);
-  Bounds.B.X := Bounds.A.X + OldSz.X+Delta.X;
-  Bounds.B.Y := Bounds.A.Y + OldSz.Y+Delta.Y;
+  if MaxiRect.A.X<High(MaxiRect.A.X) then begin
+   Locate(MaxiRect);
+   MaxiRect.A.X:=High(MaxiRect.A.X);
+  end else begin
+   GetBounds(MaxiRect);
+   SizeLimits(Min, Max);
+   R.A.Assign(0,0);
+   R.B := Max;
+   Dec(R.A.X); Inc(R.B.X);
+   Dec(R.A.Y); Inc(R.B.Y);
+   Locate(R);
+  end;
 end;
 
 function TTerminalWindow.ReactOnCmd; begin ReactOnCmd := On end;
@@ -267,7 +246,7 @@ begin
 end;
 
 constructor TTerminal.Load;
- var I,J: Word;
+ var I,J: AWord;
      RR: TRect;
 begin
  inherited Load(S);
@@ -317,7 +296,7 @@ end;
 
 procedure TTerminal.Draw;
  var I,J,K: Integer;
-     B: Array[0..200] of Word;
+     B: TDrawBuffer;
      Blk,BlkM: Boolean;
 begin
  Blk := CutRect.A.X <> CutRect.B.X;
@@ -349,6 +328,7 @@ begin
      begin
        J := CutRect.A.X;
        K := CutRect.B.X - J;
+       {$IFNDEF BIT_32}
        asm
          mov cx, K
          lea bx, B
@@ -362,6 +342,21 @@ begin
          add bx, 2
          loop @@1
        end;
+       {$ELSE BIT_32}
+       asm
+         mov ecx, K
+         lea ebx, B
+         add ebx, J
+         add ebx, J
+        @@1:
+         mov ax, word ptr [ebx]
+         xor ah, $7F
+         and ah, $7F
+         mov word ptr [ebx], ax
+         add ebx, 2
+         loop @@1
+       end;
+       {$ENDIF}
      end;
    WriteLine(0, I, Size.X, 1, B[Delta.X]);
   end;
@@ -666,6 +661,7 @@ procedure PutCursor(x,y:byte);
    begin
     Dec(x);
     Dec(y);
+    {$IFDEF OS_DOS}
     asm
       mov ah,02h
       mov bh,0h
@@ -673,6 +669,9 @@ procedure PutCursor(x,y:byte);
       mov dl,x
       int 10h
     end;
+    {$ELSE}
+    GotoXY(X, Y);
+    {$ENDIF}
    end;
 
 function GetMouseChar(x,y:integer):char;
@@ -680,6 +679,7 @@ var
 T:TPoint;
 C:char;
 begin
+{$IFNDEF OS_DOS}
 T:=CurPos;
 hidecursor;
 PutCursor(x+1,y+1);
@@ -692,6 +692,7 @@ PutCursor(x+1,y+1);
 GetMouseChar:=C;
 Showcursor;
 CurPos:=T;
+{$ENDIF}
 end;
 
 procedure MouseToPort;
@@ -1684,5 +1685,15 @@ begin
   if COMPort <> nil then
      COMPort^.PutString(S);
 end;
+
+ procedure OpenTerminal;
+ begin
+  if Term <> nil
+   then Term^.Select
+   else begin
+    Application^.InsertWindow(New(PTerminalWindow, Init));
+    PWindow(Term^.Owner)^.Maxi;
+   end;
+ end;
 
 end.

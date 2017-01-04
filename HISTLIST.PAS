@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -85,8 +85,8 @@ procedure ClearHistory;
 procedure InitHistory;
 procedure DoneHistory;
 
-procedure StoreHistory(var S: TStream);
 {DataCompBoy
+procedure StoreHistory(var S: TStream);
 procedure LoadHistory(var S: TStream);
 }
 var
@@ -103,8 +103,9 @@ uses Memory;
 
 procedure AdvanceStringPointer;
 {$IFNDEF NOASM}
-near; assembler;
-asm
+ {$IFNDEF BIT_32}
+ near; assembler;
+ asm
         PUSH    DS
         MOV     CX,HistoryUsed
         MOV     BL,CurId
@@ -115,20 +116,46 @@ asm
         JZ      @@3
         CLD
         JMP     @@2
-@@1:    LODSW
+ @@1:   LODSW
         CMP     AH,BL { BL = CurId }
         JE      @@3
-@@2:    LODSB
+ @@2:   LODSB
         XOR     AH,AH
         ADD     SI,AX
         CMP     SI,CX { CX = HistoryUsed }
         JB      @@1
         XOR     SI,SI
         MOV     DX,SI
-@@3:    POP     DS
+ @@3:   POP     DS
         MOV     CurString.Word[0],SI
         MOV     CurString.Word[2],DX
-{$ELSE}
+ end;
+ {$ELSE BIT_32}{$USES ESI, EDX, EBX, ECX} {$FRAME-}
+ assembler;
+ asm
+        MOV     ECX,HistoryUsed
+        MOV     BL, CurId
+        MOV     ESI,CurString
+        XOR     EAX, EAX
+        MOV     EDX,[HistoryBlock]
+        OR      EDX,ESI
+        JZ      @@3
+        CLD
+        JMP     @@2
+ @@1:   LODSW
+        CMP     AH,BL { BL = CurId }
+        JE      @@3
+ @@2:   LODSB
+        XOR     AH, AH
+        ADD     ESI,EAX
+        CMP     ESI,ECX { ECX = HistoryUsed }
+        JB      @@1
+        XOR     ESI,ESI
+        MOV     EDX,ESI
+ @@3:   MOV     CurString,ESI
+ end;
+ {$ENDIF}
+{$ELSE NOASM}
 begin
   If HistoryBlock=nil then exit;
   repeat
@@ -141,15 +168,16 @@ begin
   if CurPos>=0
    then CurString:=@(HistoryBlock^[CurPos])
    else CurString:=nil;
-{$ENDIF}
 end;
+{$ENDIF}
 
 { Deletes the current string from the table }
 
 procedure DeleteString;
 {$IFNDEF NOASM}
-near; assembler;
-asm
+ {$IFNDEF BIT_32}
+ near; assembler;
+ asm
         PUSH    DS
         MOV     CX,HistoryUsed
         CLD
@@ -167,6 +195,25 @@ asm
         REP     MOVSB
         POP     DS
         MOV     HistoryUsed,DI
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, ECX}
+ assembler;
+ asm
+        MOV     ECX,HistoryUsed
+        CLD
+        MOV     EDI,CurString
+        MOV     ESI,EDI
+        DEC     EDI
+        DEC     EDI
+        XOR     EAX,EAX
+        MOV     AL, BYTE PTR [ESI]
+        INC     EAX
+        ADD     ESI,EAX
+        SUB     ECX,ESI
+        REP     MOVSB
+        MOV     HistoryUsed,EDI
+ end;
+ {$ENDIF}
 {$ELSE}
 var q: word;
 begin
@@ -177,15 +224,16 @@ begin
  end;
  move(HistoryBlock^[Q], HistoryBlock^[CurPos], HistoryUsed-Q);
  HistoryUsed:=Q;
-{$ENDIF}
 end;
+{$ENDIF}
 
 { Insert a string into the table }
 
 procedure InsertString(Id: Byte; const Str: String);
 {$IFNDEF NOASM}
-near; assembler;
-asm
+ {$IFNDEF BIT_32}
+ near; assembler;
+ asm
         PUSH    DS
         STD
 
@@ -201,7 +249,7 @@ asm
         XOR     BH,BH
         POP     DS
         PUSH    DS
-@@1:    MOV     AX,DI
+ @@1:   MOV     AX,DI
         ADD     AX,BX
         SUB     AX,DX { DX = HistoryBlock.Word[0] }
         CMP     AX,HistorySize
@@ -216,7 +264,7 @@ asm
         JMP     @@1
 
         { Move the table down the size of the string }
-@@2:    MOV     SI,DI
+ @@2:   MOV     SI,DI
         ADD     DI,BX
         MOV     HistoryUsed,DI
         PUSH    ES
@@ -240,6 +288,59 @@ asm
         REP     MOVSB
 
         POP     DS
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES EDX, EDI, ESI, EBX, ECX}
+ assembler;
+ asm
+        STD
+
+        { Position EDI to the end the buffer  }
+        {          EDX to beginning of buffer }
+        MOV     EDX,HistoryBlock
+        MOV     EDI,HistoryUsed
+        MOV     ESI,Str
+        XOR     EBX,EBX
+        MOV     BL,[ESI]
+        INC     EBX
+        INC     EBX
+        INC     EBX
+ @@1:   MOV     EAX,EDI
+        ADD     EAX,EBX
+        SUB     EAX,EDX { EDX = HistoryBlock }
+        CMP     EAX,HistorySize
+        JB      @@2
+
+        { Drop the last string off the end of the list }
+        DEC     EDI
+        XOR     AL,AL
+        MOV     ECX,0FFFFH
+        REPNE   SCASB
+        INC     EDI
+        JMP     @@1
+
+        { Move the table down the size of the string }
+ @@2:   MOV     ESI,EDI
+        ADD     EDI,EBX
+        MOV     HistoryUsed,EDI
+        MOV     ECX,ESI
+        SUB     ECX,EDX { EDX = HistoryBlock }
+        REP     MOVSB
+
+        { Copy the string into the position }
+        CLD
+        MOV     EDI,EDX { EDX = HistoryBlock.Word[0] }
+        INC     EDI
+        XOR     AX,AX
+        MOV     AH,Id
+        STOSW
+        MOV     ESI,Str
+        LODSB
+        STOSB
+        XOR     ECX,ECX
+        MOV     CL,AL
+        REP     MOVSB
+ end;
+ {$ENDIF}
 {$ELSE}
 var q: word;
 begin
@@ -257,8 +358,8 @@ begin
  HistoryBlock^[Q+1]:=Id;
  Move(Str, HistoryBlock^[Q+2], Length(Str)+1);
  HistoryUsed:=HistoryUsed+length(Str)+3;
-{$ENDIF}
 end;
+{$ENDIF}
 
 procedure StartId(Id: Byte); {$IFDEF BIT_16}near;{$ENDIF}
 begin
@@ -351,9 +452,14 @@ procedure ClearHistory;
 begin
   FillChar(HistoryBlock^, HistorySize, 0);
   PChar(HistoryBlock)^ := #0;
+{$IFNDEF BIT_32}
   HistoryUsed := PtrRec(HistoryBlock).Ofs + 1;
+{$ELSE}
+  HistoryUsed := Word(HistoryBlock)+1;
+{$ENDIF}
 end;
 
+{DataCompBoy
 procedure StoreHistory(var S: TStream);
 var
   Size: Word;
@@ -362,7 +468,7 @@ begin
   S.Write(Size, SizeOf(Word));
   S.Write(HistoryBlock^, Size);
 end;
-{DataCompBoy
+
 procedure LoadHistory(var S: TStream);
 var
   Size, I: Word;

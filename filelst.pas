@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,14 +48,15 @@
 unit filelst;
 
 interface
-uses Startup, Lfn, Messages, objects, filescol, advance2, advance1, usermenu,
-     advance, histlist, commands, dnapp, dnutil, tree, views, drivers, drives,
-     collect;
+uses collect;
 
 procedure MakeListFile(APP: Pointer; Files: PCollection);
 function  ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;
 
 implementation
+uses Startup, Lfn, Messages, objects, filescol, advance2, advance1, usermenu,
+     advance, histlist, commands, dnapp, dnutil, tree, views, drivers, drives
+     {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF};
 
 function ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;
   var I,J: Integer;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -91,6 +91,8 @@ interface
 procedure DumpStack;
   {-Dump the current stack chain, starting at this routine's return address}
 
+procedure TraceStack(StartAddr : Pointer);
+
 procedure OpenOutput(FName : String);
   {-Create and open an alternate file for output reporting}
 
@@ -102,6 +104,11 @@ procedure CloseOutput;
 
 procedure WriteOutput(S : String);
   {-Write a string to the output file}
+
+{$IFDEF DPMI}
+function FindPhysAddr(LogAddr : Pointer) : Pointer;
+  {-Return the selector:offset address for given logical segment:offset}
+{$ENDIF}
 
 {========================================================================}
 

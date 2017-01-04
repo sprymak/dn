@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -136,8 +136,9 @@ var CL_LogF : lFile; {DataCompBoy}
 
 function DropCD: Boolean;
 
-implementation uses Objects,Dos, xTime, advance, advance1, advance2, advance3,
-                    ComLnkIO;
+implementation
+ uses Objects,Dos, xTime, advance, advance1, advance2, advance3,
+      ComLnkIO{$IFDEF CL_PACK}, Pack_LZW{$ENDIF};
 
 
 const
@@ -235,7 +236,7 @@ type
   PTransBlock    = ^TTransBlock;
   TTransBlock    = packed record { Outbound Block Header }
     Hdr     : TTransBlockHeader;
-    Buf     : array[0..0] of Byte;
+    Buf     : array[0..2] of Byte;
   end;
 
 const
@@ -459,58 +460,6 @@ begin
 end;
 
 {$ENDIF}
-
-{$IFDEF CL_PACK}
-
-var
-  LZWbuf : Pointer;
-
-  le76, le77 : byte;
-  InputOffs, InputSeg, OutPutOffs, OutPutSeg, Temp_offs, Temp_seg,
-  le6A, le6C, le6E, le70, le72, le74, le78,
-  le7A_0, le7A_2, le7A_4, le7A_6,
-  le82a, le82b, OutPutOffs2 : word;
-
-  CodeTable, PrefixTable, SymbolTable, CodeBuffer: LongInt;
-
-  MaxCode, RunCode, RunningBits,
-  CurCode, OldCode, CurBuffShift,
-  TempSeg, Temp, DataSize: Word;
-
-
-procedure LZWCompr; external;   {$L lzwc2}
-procedure LZWDecompr; external; {$L lzwd2}
-
-function LZW_Decompress(var Source,Dest): word; assembler;
-asm
-        mov     ax, word ptr LZWbuf[0]
-        mov     bx, word ptr LZWbuf[2]
-        mov     cx, word ptr Source[0]
-        mov     dx, word ptr Source[2]
-        mov     si, word ptr Dest[0]
-        mov     di, word ptr Dest[2]
-        call    LZWDecompr
-end;
-
-function LZW_Compress(var Source,Dest; Size:word): word; assembler;
-asm
-        mov     ax, Size
-        mov     DataSize, ax
-        mov     ax, word ptr LZWbuf[0]
-        mov     bx, word ptr LZWbuf[2]
-        mov     cx, word ptr Source[0]
-        mov     dx, word ptr Source[2]
-        mov     si, word ptr Dest[0]
-        mov     di, word ptr Dest[2]
-        call    LZWCompr
-end;
-
-const
-        LZWCprBufSize  = 22*1024;
-        LZWDcprBufSize = 18*1024;
-{$ENDIF}
-
-
 
 procedure InsertOutQ(P: PTransBlock);
 begin
@@ -860,11 +809,6 @@ end;
   @@ucDone:
   end;
 
-function CalcCRC(const Buffer; Len : Word): LongInt;
-begin
-  CalcCRC := Calc_CRC(Buffer, Len, CL_GetCRC32ofs);
-end;
-
 function CL_QueueFree;
 begin
   CL_QueueFree := (DeltaSent < Delta) and (Lnk^.ComState = csOK) and (BufdOut < BufSz);
@@ -882,7 +826,7 @@ begin
   WrHdrNfo('+ Sent ',Blk.Hdr);
   {$ENDIF}
   with Blk do Hdr.ChkSum := ByteSum(Hdr.Typ, TransBlkHdrSz-SizeOf(Hdr.ChkSum));
-  PackLI(CalcCRC(Blk,TS),Pfx.CRC32);
+  PackLI(GetCrc(Blk,TS),Pfx.CRC32);
   Pfx.Prefix := CBlkPrefix;
   Move(Pfx, Lnk^.TmpBuf^[0], TransPrfxSz);
   O := TransPrfxSz;
@@ -1059,15 +1003,13 @@ begin
    {$IFDEF CL_PACK}
     if (Test8086>=2) and (ASize>10) then
     begin
-      ns := (ASize * 8) div 5+10;
+      ns := ASize;
       if (ns < $FF00) and (ns + LZWCprBufSize < MemAvail) then
       begin
         GetMem(pp, ns);
         cs := ASize;
-        GetMem(LZWbuf,LZWCprBufSize);
-        cs := LZW_Compress(P^, pp^[1], cs);
-        FreeMem(LZWbuf, LZWCprBufSize);
-        ss := cs; ss := (ss * 7) div 5;
+        LZW_Init; cs:=LZW_Compress(P^, pp^[1], cs); LZW_Done;
+        ss := cs;
         if ss<ASize then
         begin
           pp^[0] := ASize;
@@ -1100,9 +1042,9 @@ begin
   begin
     s := Word(Addr(B^.Buf[0])^);
     N := NewTrans(s, Addr(H)); N^.Hdr.TotSize := s;
-    GetMem(LZWbuf, LZWDcprBufSize);
-    if LZW_Decompress(PWordArray(Addr(B^.Buf))^[1], N^.Buf) <> s then Halt_;
-    FreeMem(LZWbuf, LZWDcprBufSize);
+    LZW_Init;
+    if LZW_Decompress(B^.Buf[2], N^.Buf) <> s then Halt_;
+    LZW_Done;
     N^.Hdr.Typ := (H.Typ and bt_NotSpc) or bt_Data;
     FreeTrans(B); B := N;
   end;
@@ -1904,7 +1846,7 @@ begin
                Inc(z.CollPos);
                if z.CollPos = InSize then
                begin
-                 if CalcCRC(CollBlk^, z.CollPos + TransBlkHdrSz) <> InCRC
+                 if GetCrc(CollBlk^, z.CollPos + TransBlkHdrSz) <> InCRC
                    then
                    Drop
                    else
@@ -2049,4 +1991,3 @@ begin with Lnk^ do begin
 end end;
 
 end.
-

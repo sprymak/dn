@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -55,16 +55,16 @@ Type
 
   PStrListMaker = ^TStrListMaker;
   TStrListMaker = object(TObject)
-    constructor Init(AStrSize, AIndexSize: Word);
+    constructor Init(AStrSize, AIndexSize: AWord);
     destructor Done; virtual;
-    procedure Put(Key: Word; S: String);
+    procedure Put(Key: AWord; S: String);
     procedure Store(var S: TStream);
   private
-    StrPos: Word;
-    StrSize: Word;
+    StrPos: AWord;
+    StrSize: AWord;
     Strings: PByteArray;
-    IndexPos: Word;
-    IndexSize: Word;
+    IndexPos: AWord;
+    IndexSize: AWord;
     Index: PStrIndex;
     Cur: TStrIndexRec;
     procedure CloseCurrent;
@@ -73,7 +73,7 @@ Type
 const
   RStrListMaker: TStreamRec = (
     ObjType: otStrListMaker;
-    VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(TStrListMaker){$IFNDEF DPMI}^{$ENDIF});
+    VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(TStrListMaker){$IFDEF OFFS}^{$ENDIF});
     Load: nil;
     Store: @TStrListMaker.Store);
 
@@ -81,7 +81,7 @@ IMPLEMENTATION
 
 { TStrListMaker }
 
-constructor TStrListMaker.Init(AStrSize, AIndexSize: Word);
+constructor TStrListMaker.Init(AStrSize, AIndexSize: AWord);
 begin
   inherited Init;
   StrSize:=AStrSize;
@@ -106,7 +106,7 @@ begin
   end;
 end;
 
-procedure TStrListMaker.Put(Key: Word; S: String);
+procedure TStrListMaker.Put(Key: AWord; S: String);
 begin
   if (Cur.Count = 16) or (Key <> Cur.Key + Cur.Count) then CloseCurrent;
   if Cur.Count = 0 then
@@ -122,9 +122,9 @@ end;
 procedure TStrListMaker.Store(var S: TStream);
 begin
   CloseCurrent;
-  S.Write(StrPos, SizeOf(Word));
+  S.Write(StrPos, SizeOf(StrPos));
   S.Write(Strings^, StrPos);
-  S.Write(IndexPos, SizeOf(Word));
+  S.Write(IndexPos, SizeOf(IndexPos));
   S.Write(Index^, IndexPos * SizeOf(TStrIndexRec));
 end;
 

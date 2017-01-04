@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -184,9 +184,18 @@ type
        procedure HandleEvent(var Event: TEvent);virtual;
      end;
 
+     PColorPoint = ^TColorPoint;
+     TColorPoint = object(TView)
+       Color: Byte;
+       constructor Init (var ABounds: TRect; AColor: Byte);
+       constructor Load (var S: TStream);
+       procedure   Store(var S: TStream); virtual;
+       procedure   Draw; virtual;
+     end;
+
 Implementation
 
-uses advance, advance1, advance2, advance3, Commands;
+uses advance, advance1, advance2, advance3, Commands, dnapp;
 
 function TInpLine.GetPalette;
  const S: Array [0..1] of String[Length(CInputLine)] =
@@ -862,6 +871,41 @@ begin
        DrawView;
      end;
   if CurPos = 8 then begin Inc(CurPos, Dir); DrawView end;
+end;
+
+{     TColorPoint = object(TView)
+{       Color: Word;
+{       constructor Init (var ABounds: TRect; AColor: Word);
+{       constructor Load (var S: TStream);
+{       procedure   Store(var S: TStream);
+{       procedure   Draw; virtual;
+{     end;                                                                     }
+
+constructor TColorPoint.Init (var ABounds: TRect; AColor: Byte);
+begin
+ ABounds.B.X := ABounds.A.X+1;
+ ABounds.B.Y := ABounds.A.Y+1;
+ Inherited Init(ABounds);
+ Color := AColor;
+end;
+
+constructor TColorPoint.Load (var S: TStream);
+begin
+ Inherited Load(S);
+ S.Read(Color, SizeOf(Color));
+end;
+
+procedure   TColorPoint.Store(var S: TStream);
+begin
+ Inherited Store(S);
+ S.Write(Color, SizeOf(Color));
+end;
+
+procedure   TColorPoint.Draw;
+var B: Word;
+begin
+ B := Application^.GetColor(Color) shl 8 + $00FE{*};
+ WriteLine(0, 0, 1, 1, B);
 end;
 
 end.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,8 +48,7 @@
 
 unit Colors;
 interface
-uses Objects,  DNApp, Dialogs, Drivers, Views, Memory, Collect,
-     Commands, DNStdDlg, advance, advance1, advance2, advance3, DNHelp;
+uses Dialogs, Collect;
 
  {$IFDEF CHCOL}procedure ChangeColors;{$ENDIF}
  procedure WindowManager;
@@ -59,7 +58,7 @@ type
 
      PWindowList = ^TWindowList;
      TWindowList = object(TListBox)
-      function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+      function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
      end;
 
      PWindowCol = ^TWindowCol;
@@ -69,36 +68,37 @@ type
 
 
 implementation
-uses Messages, RStrings, Drives, Startup, DnIni; {-$VIV}
+uses Messages, RStrings, Drives, Startup, DnIni, VideoMan, Objects, DNApp,
+     Drivers, Views, Memory, Commands, DNStdDlg, advance, DNHelp, Advance2;
 
 procedure SetHighlightGroups;
  var D: Record S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11: String[250]; end;
 begin
  With D do
   begin
-    S1  := CustomMask1;
-    S2  := CustomMask2;
-    S3  := CustomMask3;
-    S4  := CustomMask4;
-    S5  := CustomMask5;
-{JO}S6  := CustomMask6;
-    S7  := CustomMask7;
-    S8  := CustomMask8;
-    S9  := CustomMask9;
-{JO}S10 := CustomMask10;
-    S11 := Archives;
+    with CustomMask1^  do begin S1  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask2^  do begin S2  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask3^  do begin S3  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask4^  do begin S4  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask5^  do begin S5  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask6^  do begin S6  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask7^  do begin S7  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask8^  do begin S8  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask9^  do begin S9  := Copy(Filter, 2, Length(Filter)-2) end;
+    with CustomMask10^ do begin S10 := Copy(Filter, 2, Length(Filter)-2) end;
+    with Archives^     do begin S11 := Copy(Filter, 2, Length(Filter)-2) end;
     if ExecResource(dlgHighlightGroups, D) <> cmOK then Exit;
-    While S1[Length(S1)]   in [' ', ';'] do Dec(S1[0]);  CustomMask1 := S1;
-    While S2[Length(S2)]   in [' ', ';'] do Dec(S2[0]);  CustomMask2 := S2;
-    While S3[Length(S3)]   in [' ', ';'] do Dec(S3[0]);  CustomMask3 := S3;
-    While S4[Length(S4)]   in [' ', ';'] do Dec(S4[0]);  CustomMask4 := S4;
-    While S5[Length(S5)]   in [' ', ';'] do Dec(S5[0]);  CustomMask5 := S5;
-{JO}While S6[Length(S6)]   in [' ', ';'] do Dec(S6[0]);  CustomMask6 := S6;
-    While S7[Length(S7)]   in [' ', ';'] do Dec(S7[0]);  CustomMask7 := S7;
-    While S8[Length(S8)]   in [' ', ';'] do Dec(S8[0]);  CustomMask8 := S8;
-    While S9[Length(S9)]   in [' ', ';'] do Dec(S9[0]);  CustomMask9 := S9;
-{JO}While S10[Length(S10)] in [' ', ';'] do Dec(S10[0]); CustomMask10:= S10;
-    While S11[Length(S11)] in [' ', ';'] do Dec(S11[0]); Archives    := S11;
+    While S1[Length(S1)]   in [' ', ';'] do Dec(S1[0]);  CustomMask1^.Filter := S1;  MakeTMaskData(CustomMask1 ^);
+    While S2[Length(S2)]   in [' ', ';'] do Dec(S2[0]);  CustomMask2^.Filter := S2;  MakeTMaskData(CustomMask2 ^);
+    While S3[Length(S3)]   in [' ', ';'] do Dec(S3[0]);  CustomMask3^.Filter := S3;  MakeTMaskData(CustomMask3 ^);
+    While S4[Length(S4)]   in [' ', ';'] do Dec(S4[0]);  CustomMask4^.Filter := S4;  MakeTMaskData(CustomMask4 ^);
+    While S5[Length(S5)]   in [' ', ';'] do Dec(S5[0]);  CustomMask5^.Filter := S5;  MakeTMaskData(CustomMask5 ^);
+{JO}While S6[Length(S6)]   in [' ', ';'] do Dec(S6[0]);  CustomMask6^.Filter := S6;  MakeTMaskData(CustomMask6 ^);
+    While S7[Length(S7)]   in [' ', ';'] do Dec(S7[0]);  CustomMask7^.Filter := S7;  MakeTMaskData(CustomMask7 ^);
+    While S8[Length(S8)]   in [' ', ';'] do Dec(S8[0]);  CustomMask8^.Filter := S8;  MakeTMaskData(CustomMask8 ^);
+    While S9[Length(S9)]   in [' ', ';'] do Dec(S9[0]);  CustomMask9^.Filter := S9;  MakeTMaskData(CustomMask9 ^);
+{JO}While S10[Length(S10)] in [' ', ';'] do Dec(S10[0]); CustomMask10^.Filter:= S10; MakeTMaskData(CustomMask10^);
+    While S11[Length(S11)] in [' ', ';'] do Dec(S11[0]); Archives^.Filter    := S11; MakeTMaskData(Archives    ^);
   end;
  Message(Application, evCommand, cmUpdateConfig, nil);
  GlobalMessage(evCommand, cmPanelReread, nil);

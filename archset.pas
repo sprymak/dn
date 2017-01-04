@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -99,6 +99,7 @@ procedure SetupArchive;
           RecovRec : String[20]; {Inputline}
           SelfExtr : String[20]; {Inputline}
           Solid    : String[20]; {Inputline}
+          Recurse  : String[20]; {Inputline}
           StoreC   : String[20]; {Inputline}
           FastestC : String[20]; {Inputline}
           FastC    : String[20]; {Inputline}
@@ -148,6 +149,7 @@ begin
     DT.RecovRec := CnvString(RecoveryRec);
     DT.SelfExtr := CnvString(SelfExtract);
     DT.Solid    := CnvString(Solid);
+    DT.Recurse  := CnvString(RecurseSubDirs);
     DT.StoreC   := CnvString(StoreCompression);
     DT.FastestC := CnvString(FastestCompression);
     DT.FastC    := CnvString(FastCompression);
@@ -185,6 +187,7 @@ begin
      RecoveryRec        := NewStr(DT.RecovRec);
      SelfExtract        := NewStr(DT.SelfExtr);
      Solid              := NewStr(DT.Solid);
+     RecurseSubDirs     := NewStr(DT.Recurse);
      StoreCompression   := NewStr(DT.StoreC);
      FastestCompression := NewStr(DT.FastestC);
      FastCompression    := NewStr(DT.FastC);

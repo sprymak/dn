@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,8 +50,8 @@ unit LFNCol;
 interface
 
 uses Hash, Advance1, Advance2, Objects,
-     {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF}
-     {$IFDEF LFNCache}, extramemory, Collect, startup
+     {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF}
+     {$IFDEF LFNCache}, ExtraMem, Collect, startup
      {$ELSE} {$ENDIF}
      ;
 
@@ -482,11 +482,11 @@ end;
 procedure InitLFNCol;
 begin
  if (MFNs<>nil)
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
     or (EFNs<>nil)
 {$ENDIF}
   then exit;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
  case SystemData.LFNContainer of
   0: if EMSFound and (EMSFreePages>$100)
       then begin New(EFNs, Init); MFNs:=nil end
@@ -502,9 +502,9 @@ begin
         else begin New(MFNs, Init($40, $40)); EFNs:=nil end;
   else begin New(MFNs, Init($40, $40)); EFNs:=nil end;
  end;
-{$ELSE}
+{$ELSE NOEXTRA}
  New(MFNs, Init($40, $40));
-{$ENDIF}
+{$ENDIF NOEXTRA}
  EP:=ExitProc; ExitProc:=@EXP;
 end;
 
@@ -585,9 +585,13 @@ end;
 
 function    CmpLEX(LFN1, LFN2: TLFNIndex): integer;
 var S1, S2: string;
+    E1, E2: string;
 begin
- S1:=GetExt(GetLFN(LFN1)); S2:=GetExt(GetLFN(LFN2));
- UpStr(S1);                UpStr(S2);
+ S1:=UpStrg(GetLFN(LFN1));             S2:=UpStrg(GetLFN(LFN2));
+ E1:=GetExt(S1);                       E2:=GetExt(S2);
+ S1[0]:=Char(Byte(S1[0])-Byte(E1[0])); S2[0]:=Char(Byte(S2[0])-Byte(E2[0]));
+ if E1>E2 then CmpLEX:=+1 else
+ if E1<E2 then CmpLEX:=-1 else
  if S1>S2 then CmpLEX:=+1 else
  if S1<S2 then CmpLEX:=-1 else
                CmpLEX:=0;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,6 @@
 
 unit Advance4; {OS/2 support}
 interface
-uses advance, lfn, advance1, advance3, drivers;
 
 type SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed, stPMSession,
                     stVDMFullScreen, stWinFullScreen, stWinWindow, stVDMWindow);
@@ -59,6 +58,9 @@ procedure RunOS2Command(Command: string; Bckg: Boolean; Session: SessionType);
 
 
 implementation
+uses advance, lfn, advance1, advance3, drivers
+     {$IFDEF VIRTUALPASCAL}, dos{$ENDIF}
+     ;
 { ------------------------------------ OS/2 API --------------------------- }
 
 procedure StartOS2Session(DataLen: Word; Session: Sessiontype; Background: Boolean;

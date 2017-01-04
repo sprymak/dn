@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -182,8 +182,9 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
          S := F^.GetStr;
          ID := Copy(S, 9, 2);
          I := PosChar('%', S);
-        Until ((ID = ': ') and (I > 50)) or (IOResult <> 0);
-        I := PosChar(',', S); if (I < 12) or (IOResult <> 0) then Goto 2;
+        Until ((ID = ': ') and (I > 50)) or (F^.EOF);
+        I := PosChar(',', S);
+        if (I < 12) or (F^.EOF) then Goto 2;
         ID := Copy(S, 11, I-11);
         Val(ID,J,I);
         for I:=1 to 4 do S := F^.GetStr;

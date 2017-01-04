@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -54,6 +54,7 @@ var
   ErrorFCode: Byte;
 
 function  ExistFile(const FName : String) : Boolean; {DataCompBoy}
+function  ExistDir(const DName: string): Boolean; { VK }
 function  FileTime(FileA: String): LongInt;
 function  FileNewer(FileA, FileB : String) : Boolean;
 function  CalcTmpFName(Id: LongInt; const AExt: String; ANew: Boolean): String; {DataCompBoy}
@@ -72,18 +73,46 @@ procedure SetCurDrive(C: Char);
 FUNCTION  GetExt(const s:string):string;
 FUNCTION  Norm12(const s:string):Str12;
        {-DataCompBoy-}
-FUNCTION  DelSquashes(s: string): string; {removes quotes}
-FUNCTION  GetURZ(const s: string): Str12; {cuts name to 8.3}
-FUNCTION  GetfURZ(const s: string):String;{cuts name and path to 8.3}
-FUNCTION  SquashesName(const s:string):string;{quotes name if needed}
-FUNCTION  InMask(Name, Mask: string):Boolean; {does Name match Mask? }
-FUNCTION  InFilter(Name, Filter: string):Boolean; {does Name match Filter? }
-FUNCTION  InExtFilter(Name, Filter: string):Boolean; {does extension of name Name match Filter}
+FUNCTION  DelSquashes(s: string): string;           {removes quotes}
+FUNCTION  GetURZ(const s: string): Str12;           {cuts name to 8.3}
+FUNCTION  GetfURZ(const s: string):String;          {cuts name and path to 8.3}
+FUNCTION  SquashesName(const s:string):string;      {quotes name if needed}
+FUNCTION  InMask(Name, Mask: string):Boolean;       {does Name match Mask? }
+FUNCTION  InFilter(Name, Filter: string):Boolean;   {does Name match Filter? }
+FUNCTION  InExtMask(Name, Mask: string):Boolean;    {does Ext match Mask? }
+
+type TMaskPos = record
+                 CurPos: Byte;
+                 InSq: boolean;
+                end;
+     PMasksPos = ^TMasksPos;
+     TMasksPos = array[0..255] of TMaskPos;
+     TMasksData = Record
+                   Num: Byte;
+                  case boolean of
+                   true: (P: pointer;);
+                   false:(A: Array[1..2] of TMaskPos;);
+                  end;
+     TMasksDataArr = array[32..255] of TMasksData;
+     PMaskData = ^TMaskData;
+     TMaskData = record
+                  Filter: String;
+                  MP: TMasksDataArr;
+                 end;
+
+PROCEDURE MakeTMaskData(var MD: TMaskData);         {Fills TMaskData members}
+                                                    {for work of InExtFilter}
+FUNCTION  InExtFilter(Name: string; const F: TMaskData):Boolean;
+                                                    {does extension of  }
+                                                    {Name match Filter? }
+
 FUNCTION  InOldMask(Name,Mask: string):Boolean;     {DataCompBoy}
 FUNCTION  InOldFilter(Name,Filter: string):Boolean; {DataCompBoy}
 FUNCTION  InSpaceMask(Name,Mask: string;ValidSpace: Boolean):Boolean;
 FUNCTION  InSpaceFilter(Name,Filter: string):Boolean;
+{$IFDEF COMBINE_MIXED}
 function  IsMixedCase(const Name: string): boolean; {JO}
+{$ENDIF}
 
 FUNCTION  IsDir(const s: string): boolean; {is this a directory? }
 function  MkName(const Nm, Mask: String): String;{modifies name to fit Mask}
@@ -97,13 +126,13 @@ FUNCTION  GetLongRelPath(Path: string): string;
        {-DataCompBoy-}
 FUNCTION  MakeFileName(S: string): string;
 FUNCTION  MakeNormName(const S, S1: string): string; {DataCompBoy}
-function  FileNameOf(var F: File): string;
 function  GetFileAttr(const S: String): Word;
 function  SetFileAttr(const S: String; Attr: Word):Word;
 function  CorrectFile(const N: String): Boolean;
 function  PathExist(s: string): boolean; {Is path exist}
 function  GetNormPath(s: string): string; {Get correct path}
 
+{-DataCompBoy-}
 type TQuickSearchData = record
       Mask: string;
       NumExt: Word;
@@ -114,6 +143,8 @@ procedure InitQuickSearch(var QS: TQuickSearchData);
 procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
 function  GetCursorPos(const QS: TQuickSearchData; const Name: String;
                        Size, ExtSize, Delta: word): word;
+procedure FileChanged (const Name: String);
+{-DataCompBoy-}
 
 type
    PTempFile = ^TTempFile;
@@ -122,9 +153,15 @@ type
      destructor  Done; virtual;
    end;
 
+function  PackMask(const Mask: string; var PM: String; LFNDis: boolean): boolean; {DataCompBoy}
+
+function CompareFiles(const N1, N2: String): Boolean;
 
 implementation
-uses advance1, advance3, {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF}, Commands;
+uses advance1, advance3, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
+     Commands, dnapp, memory
+{$IFDEF VIRTUALPASCAL}, VpSysLow, VPUtils {$ENDIF}
+     ;
 
 constructor TTempFile.Init(const AExt: String; ABufSize: SW_Word);
 var
@@ -168,6 +205,22 @@ begin
  end;
 end;
         {-DataCompBoy-}
+
+{ VK/ }
+function  ExistDir(const DName: string): Boolean; {based on ExistFile}
+var
+ Dirinfo:lsearchrec;
+begin
+ If DName[Length(DName)]='\'
+  then lFindFirst(Copy(DName, 1, Length(DName)-1),Directory,DirInfo)
+  else lFindFirst(DName,Directory,DirInfo);
+ if DosError=0 then existdir:=True
+ else begin
+  Existdir:=False;
+  ErrorFCode:=DosError;
+ end;
+end;
+{ /VK }
 
 function FileTime(FileA: String): LongInt;
 var
@@ -234,6 +287,7 @@ begin
 end;
 
 function IsDriveCDROM(Drive : Char) : Boolean;
+{$IFNDEF VIRTUALPASCAL}
 var
   R : Registers;
 begin
@@ -244,6 +298,10 @@ begin
     Intr($2F, R);
     IsDriveCDRom := (AX <> 0) and (BX = $ADAD);
   end;
+{$ELSE}
+begin
+ IsDriveCDROM := GetDriveType(Drive) = dtCDRom;
+{$ENDIF}
 end;
 
         {-DataCompBoy-}
@@ -278,15 +336,25 @@ begin
           lSetFAttr(F, Archive);
           lEraseFile(F);
         end;
+   {$IFNDEF NONBP}
    19 : asm;
           mov  ah,0dh { Reset Disks }
           int  21h
         end;
+   {$ENDIF}
   end;
   ClrIO;
 end;
 
 function ValidDrive(dr : char) : Boolean;
+{$IFDEF VIRTUALPASCAL}
+var
+  DriveNum, LogDrvMap: Longint;
+begin                   { LogDrvMap: Bit 0: 'A:', Bit 1: 'B:', etc }
+  LogDrvMap := SysGetValidDrives;
+  ValidDrive := ((1 shl (Ord(Dr) - Ord('A'))) and LogDrvMap) <> 0;
+end;
+{$ELSE}
 var s,s1 : string[40];
     B,B1: Byte;
     r: registers;
@@ -305,6 +373,7 @@ begin
  SetDrive(B);
  if Byte(dr)-65 <> b1 then Exit;
  s:=dr+':\QQP.OBJ'#0;
+{$IFDEF NOASM}
  r.ax:=$2900;
  r.ds:=seg(s);
  r.si:=ofs(s[1]);
@@ -312,7 +381,8 @@ begin
  r.di:=ofs(s1);
  intr($21,r);
  if r.ax<>$ff then ValidDrive:=true else ValidDrive:=false;
-{ asm
+{$ELSE}
+ asm
     lea  di,s1
     push ss
     pop  es
@@ -329,11 +399,26 @@ begin
     xor  al,al
 @LocEx:
     mov  [bp-1],al
- end;}
+ end;
+{$ENDIF}
 end;
+{$ENDIF}
 
-FUNCTION GetDrive : byte; assembler; asm mov ah,$19; int 21h; end;
-PROCEDURE SetDrive(a : byte); assembler; asm mov ah,$0E; mov dl,a; int $21; end;
+FUNCTION GetDrive : byte;
+{$IFNDEF VIRTUALPASCAL}
+assembler; asm mov ah,$19; int 21h; end;
+{$ELSE}
+var S: String;
+begin GetDir(0, S); GetDrive := Byte(S[0])-Byte('A'); end;
+{$ENDIF}
+
+PROCEDURE SetDrive(a : byte);
+{$IFNDEF VIRTUALPASCAL}
+assembler; asm mov ah,$0E; mov dl,a; int $21; end;
+{$ELSE}
+var S: String;
+begin GetDir(0, S); ChDir(S); end;
+{$ENDIF}
 
 procedure GetMask(var m : string);
  var q : string[12];
@@ -368,21 +453,31 @@ begin
  m:=LowStrg(q);
 end;
 
-function GetCurDrive; assembler;
+function GetCurDrive;
+{$IFNDEF VIRTUALPASCAL}
+assembler;
 asm
  mov ah, 19h
  int 21h
  xor ah, ah
  add al, 65
 end;
+{$ELSE}
+begin GetCurDrive := Char(GetDrive+65) end;
+{$ENDIF}
 
-procedure SetCurDrive; assembler;
+procedure SetCurDrive;
+{$IFNDEF VIRTUALPASCAL}
+assembler;
 asm
  mov ah, 0Eh
  mov dl, C
  sub dl, 65
  int 21h
 end;
+{$ELSE}
+begin SetDrive(Byte(C)-65) end;
+{$ENDIF}
 
         {-DataCompBoy-}
 FUNCTION GetExt;
@@ -491,9 +586,9 @@ begin
     repeat
      dec(i);
      if Filter[i]='"' then j:=not j;
-    until (i=1) or ((Filter[i] in [',',';']) and not j);
-    if Filter[i] in [',',';'] then S := Copy(Filter,i+1,255)
-                              else S := Copy(Filter,i,255);
+    until (i=1) or ((Filter[i] in [';',',']) and not j);
+    if Filter[i] in [';',','] then S := Copy(Filter,i+1,255)
+                              else S := Filter;
     B := S[1] <> '-'; k:=i-1;
     InFilter := B;
     if not B then DelFC(S);
@@ -505,34 +600,262 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
-FUNCTION InExtFilter;
-var i: byte; k: byte absolute Filter;
-    S: string;
-    B: Boolean;
-    j:boolean;
+FUNCTION  InExtMask(Name, Mask: string):Boolean;
+var mp, np, i, e: byte;
+    sq,sq2: boolean;
+    nt: boolean;
+label R;
 begin
-  DelLeft(Filter);
-  if Filter[1]=';' then begin InExtFilter:=Off; exit end;
-  InExtFilter:=On;
-  while k>0 do
-   begin
-    i:=k+1;
-    j:=Off;
-    repeat
-     dec(i);
-     if Filter[i]='"' then j:=not j;
-    until (i=1) or ((Filter[i] in [',',';']) and not j);
-    if Filter[i] in [',',';'] then S := Copy(Filter,i+1,255)
-                              else S := Copy(Filter,i,255);
-    B := S[1] <> '-'; k:=i-1;
-    InExtFilter := B;
-    if not B then DelFC(S);
-    DelLeft(S); DelRight(S);
-    if DelSquashes(s)='.'
-     then if PosChar('.', Name)=0 then exit else
-     else if (S <> '') and InMask(Name, '*.'+S) then Exit;
+ if Boolean(PosChar('*',Mask))
+ then InExtMask := InMask(Name, '*'+Mask)
+ else begin
+  InExtMask:=false;
+  sq:=false;
+  mp:=length(Mask); np:=length(Name);
+  while (np>0) and (mp>0) do begin
+   if Mask[mp]='"' then sq:=not sq
+   else if not sq and (Mask[mp]=']') then begin
+    sq2:=sq;
+    for i:=mp downto 1 do
+     if Mask[i]='"' then sq2:=not sq2 else
+     if not sq2 and (Mask[i]='[') then break;
+    if Mask[i]<>'[' then break;
+    e:=mp-1;
+    mp:=i;
+    inc(i);
+    nt := Mask[i]='^';
+    if nt then inc(i);
+    for i:=i to e do
+     if Mask[i+1]<>'-' then
+      if nt xor (UpCaseArray[Mask[i]]=UpCaseArray[Name[np]])
+       then exit
+       else begin dec(np); goto R end
+     else begin
+      if nt xor ((UpCaseArray[Name[np]] >= UpCaseArray[Mask[i]]) and
+                 (UpCaseArray[Name[np]] <= UpCaseArray[Mask[i+2]]))
+       then begin dec(np); goto R end
+       else exit;
+      inc(i, 2);
+     end;
+   end
+   else if (Mask[mp]<>'?') and (UpCaseArray[Mask[mp]]<>UpCaseArray[Name[np]]) then exit
+   else dec(np);
+R: dec(mp);
+  end;
+  InExtMask:=true;
+ end
+end;
+        {-DataCompBoy-}
+
+procedure MakeTMaskData(var MD: TMaskData);
+var i, j, l, e, k, o, NumMP: byte;
+    Dina1: array[0..255] of record
+                             CurPos: Byte;
+                             Meta: Boolean;
+                            end;
+    InSq: Boolean;
+    InS: Boolean;
+    Pss: array[1..255] of TMaskPos;
+label Ok, Ne;
+begin with MD do begin
+  for I:=32 to 255 do with MP[I] do if Num>4 then FreeMem(P, Num);
+  FillChar(MP, SizeOf(MP), 0);
+
+  if Filter = '' then exit;
+  if Filter[1] in [' ',#9] then DelLeft(Filter);
+  if not (Filter[1] in [';',',']) then begin
+   Inc(Filter[0]);
+   move(Filter[1], Filter[2], Byte(Filter[0]));
+   Filter[1] := ';';
+  end;
+  If not (Filter[Length(Filter)] in [';',',']) then begin
+   Inc(Filter[0]);
+   Filter[Length(Filter)]:=';';
+  end;
+
+  InSq := false;
+  Dina1[0].CurPos:=0;
+  NumMP := 0;
+
+  for i:=length(Filter) downto 2 do
+   if (Filter[i] in [';', ',']) and not InSq then
+    if not (Filter[i-1] in [';', ',']) then begin
+     Inc(NumMP);
+     Dina1[NumMP].CurPos := i-1;
+     Dina1[NumMP].Meta := False;
+    end else
+   else
+   if (Filter[i] = '"') then InSq:=not InSq
+   else
+   if (Filter[i] = '*') then Dina1[NumMP].Meta := True;
+
+  For j := 32 to 255 do if UpCaseArray[Char(j)]=Char(j) then begin
+   l := 0;
+   if j <> Byte('*') then begin
+    For I := 1 to NumMP do if not Dina1[I].Meta then begin
+     E := Dina1[I].CurPos;
+     if Filter[e] = '"'
+      then begin InSq:=true; dec(e); end
+      else InSq := False;
+
+     if (Filter[e] = ']') and not InSq then begin
+      Dec(e);
+      InS := False;
+      For K:=e downto 1 do
+       if (Filter[k] = '[') and not InS
+        then break
+        else if Filter[k] = '"' then InS := not InS;
+      O:=K-1;
+      inc(k);
+      if Filter[k] = '^' then begin InS := true; inc(k) end else InS := false;
+      for k:=k to e do
+       if Filter[k+1] = '-' then
+        if InS xor ((UpCaseArray[Char(J)] >= UpCaseArray[Filter[k]]) and
+                    (UpCaseArray[Char(J)] <= UpCaseArray[Filter[k+2]]))
+         then goto Ok
+         else inc(k,2)
+       else
+        if InS xor (UpCaseArray[Char(J)] = UpCaseArray[Filter[k]])
+         then goto Ok;
+      Goto Ne;
+     end;
+
+     if (UpCaseArray[Filter[e]] = UpCaseArray[Char(j)]) or
+        (Filter[e]='.') or (Filter[e]='?') then begin
+      if Filter[e]<>'.' then Dec(e);
+      O := e;
+Ok:   Inc(l);
+      Pss[l].CurPos:=o;
+      Pss[l].InSq:=InSq;
+     end;
+Ne: end;
+   end else
+    For I := 1 to NumMP do
+     if Dina1[I].Meta then begin
+      Inc(l);
+      Pss[l].CurPos:=Dina1[I].CurPos;
+     end;
+   if l<=2 then begin
+    move(Pss[1], MP[j].A[1], l*SizeOf(TMaskPos));
+    MP[j].Num := L;
+   end else begin
+    GetMem(MP[j].P, l*SizeOf(TMaskPos));
+    move(Pss[1], MP[j].P^, l*SizeOf(TMaskPos));
+    MP[j].Num := L;
    end;
- InExtFilter:=Off;
+  end;
+end end;
+
+        {-DataCompBoy-}
+FUNCTION InExtFilter;
+var i, j, l, e: byte;
+    Dina1, Dina2: TMasksPos;
+    Num1, Num2: Byte;
+    InSq: Boolean;
+label Try2, q;
+begin
+  if Byte(Name[Length(Name)]) < 32 then begin InExtFilter:=false; exit end;
+  Num1:=F.MP[Byte(UpCaseArray[Name[Length(Name)]])].Num;
+  if Num1=0 then goto q;
+  Dina1[0].CurPos := 1;
+  if Num1<=2 then
+   move(F.MP[Byte(UpCaseArray[Name[Length(Name)]])].A,
+        Dina1[1],
+        Num1*SizeOf(TMaskPos))
+  else
+   move(PMasksPos(F.MP[Byte(UpCaseArray[Name[Length(Name)]])].P)^,
+        Dina1[1],
+        Num1*SizeOf(TMaskPos));
+  InExtFilter := True;
+  j:=Length(Name) - 1;
+  while Num1>0 do begin
+   Num2 := 0;
+   for i:=1 to Num1 do
+Try2: begin
+    if F.Filter[Dina1[i].CurPos] = '"' then begin
+     Dina1[i].InSq:=not Dina1[i].InSq;
+     Dec(Dina1[i].CurPos);
+     Goto Try2
+    end else
+    if (F.Filter[Dina1[i].CurPos] in [';', ',']) and
+       not Dina1[i].InSq then begin
+     if Name[j]='.' then exit;
+    end else
+    if (F.Filter[Dina1[i].CurPos] = '-') and
+       (F.Filter[Dina1[i].CurPos-1] in [';', ',']) and
+       not Dina1[i].InSq then begin
+     if Name[j]='.' then begin
+      InExtFilter:=false;
+      exit;
+     end
+    end else
+    if (F.Filter[Dina1[i].CurPos] = '.') and
+       (F.Filter[Dina1[i].CurPos-1] in [';', ',']) and
+       not Dina1[i].InSq then begin
+     if (PosChar('.', Name)=0) then exit;
+    end else
+    if (F.Filter[Dina1[i].CurPos] = ']') and
+       not Dina1[i].InSq then begin
+     InSq := Dina1[i].InSq;
+     for l := Dina1[i].CurPos-1 downto 1 do
+      if F.Filter[l] = '"' then InSq:=not InSq else
+      if not InSq and (F.Filter[l]='[') then break else
+      if F.Filter[l] = ';' then break;
+     if F.Filter[l] <> '[' then Continue;
+     e := Dina1[i].CurPos-1;
+     inc(Num2);
+     Dina2[Num2].CurPos := l-1;
+     Dina2[Num2].InSq := Dina1[i].InSq;
+     inc(l);
+     InSq := F.Filter[l] = '^';
+     if InSq then inc(l);
+     for l:=l to e do
+      if F.Filter[l+1] <> '-' then
+       if Dina2[Num2].InSq xor (UpCaseArray[F.Filter[l]]=UpCaseArray[Name[j]])
+        then begin dec(Num2); break end
+        else break
+      else begin
+       if Dina2[Num2].InSq xor
+          ((UpCaseArray[Name[j]] >= UpCaseArray[F.Filter[l]]) and
+           (UpCaseArray[Name[j]] <= UpCaseArray[F.Filter[l+2]])
+          )
+        then break
+        else begin dec(Num2); break end;
+       inc(l, 2);
+      end;
+    end else
+    if (F.Filter[Dina1[i].CurPos]='?') or
+       (UpCaseArray[F.Filter[Dina1[i].CurPos]]=UpCaseArray[Name[j]]) then begin
+     inc(Num2);
+     Dina2[Num2].CurPos := Dina1[i].CurPos - 1;
+     Dina2[Num2].InSq := Dina1[i].InSq;
+    end;
+   end;
+   Num1:=Num2;
+   move(Dina2[1], Dina1[1], Num1*SizeOf(TMaskPos));
+   Dec(j);
+  end;
+q:if F.MP[Byte('*')].Num<>0
+   then
+    if F.MP[Byte('*')].Num <= 2 then
+     for I:=1 to F.MP[Byte('*')].Num do begin
+      for J:=F.MP[Byte('*')].A[I].CurPos downto 1 do
+       if F.Filter[J]=';' then break;
+      if F.Filter[J]=';' then inc(J);
+      if InMask(Name, '*.' + Copy(F.Filter, J,
+                                  F.MP[Byte('*')].A[I].CurPos - J + 1))
+       then exit;
+     end
+    else
+     for I:=1 to F.MP[Byte('*')].Num do begin
+      for J:=PMasksPos(F.MP[Byte('*')].P)^[I].CurPos downto 1 do
+       if F.Filter[J]=';' then break;
+      if F.Filter[J]=';' then inc(J);
+      if InMask(Name, '*.' + Copy(F.Filter, J,
+                                  PMasksPos(F.MP[Byte('*')].P)^[I].CurPos - J))
+       then exit;
+     end;
+  InExtFilter := false
 end;
         {-DataCompBoy-}
 
@@ -606,15 +929,21 @@ begin
   until l=0; InSpaceFilter:=Off
 end;
 
-{JO}
+
+{$IFDEF COMBINE_MIXED}{JO}{piwamoto}
 function IsMixedCase(const Name: String): Boolean;
+var
+ MixedDir, MixedName, MixedExt : string;
 begin
- if (UpStrg(Name) = Name) or (LowStrg(Name) = Name) then
+ lFsplit(Name, MixedDir, MixedName, MixedExt);
+ if ((UpStrg(MixedName) = MixedName) or (LowStrg(MixedName) = MixedName)) and
+    ((UpStrg(MixedExt) = MixedExt) or (LowStrg(MixedExt) = MixedExt))
+ then
    IsMixedCase := False
  else
    IsMixedCase := True;
 end;
-{JO}
+{JO}{piwamoto}{$ENDIF}
 
         {-DataCompBoy-}
 function IsDir(const S: String): Boolean;
@@ -747,7 +1076,8 @@ FUNCTION GetShortRelPath(Path: string): string;
   lGetDir(0,CD);
   if CD[length(CD)] in ['\','/'] then dec(CD[0]);
   CD:=lfGetShortFileName(CD);
-  if copy(Path, 1, length(CD))=CD then delete(Path, 1, length(CD));
+  if UpStrg(copy(Path, 1, length(CD)))=UpStrg(CD)
+   then Delete(Path, 1, length(CD));
   if Path[1] in ['\','/'] then DelFC(Path);
   GetShortRelPath:=Path;
  end;
@@ -761,7 +1091,8 @@ FUNCTION GetLongRelPath(Path: string): string;
   Path:=lfGetLongFileName(Path);
   lGetDir(0,CD);
   if CD[length(CD)] in ['\','/'] then dec(CD[0]);
-  if copy(Path, 1, length(CD))=CD then delete(Path, 1, length(CD));
+  if UpStrg(copy(Path, 1, length(CD)))=UpStrg(CD)
+   then delete(Path, 1, length(CD));
   if Path[1] in ['\','/'] then DelFC(Path);
   GetLongRelPath:=Path;
  end;
@@ -794,17 +1125,6 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
-function FileNameOf(var F: File): string;
-var
-  S: string;
-begin
-  S := FileRec(F).Name;
-  S[0] := Char(Pos(#0, S)-1);
-  FileNameOf := S;
-end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
 function SetFileAttr(const S: String; Attr: Word) : Word;
 var F:lfile;
 begin
@@ -819,6 +1139,7 @@ function GetFileAttr(const S: String): Word;
 var F:lfile;
     Attr:Word;
 begin
+ Attr := 0;
  lAssignFile(F, s);
  lGetFAttr(F, Attr);
  GetFileAttr:=Attr;
@@ -859,19 +1180,35 @@ procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
 begin
  if Key=kbBack then if QS.Mask<>'*' then
                      if QS.Mask[Length(QS.Mask)-1] <> '.' then begin
-                      Dec(QS.Mask[0]); QS.Mask[Length(QS.Mask)]:='*';
+                      if QS.Mask[Length(QS.Mask)-1] = '"'
+                       then Dec(QS.Mask[0],3)
+                       else Dec(QS.Mask[0]);
+                      QS.Mask[Length(QS.Mask)]:='*';
                       Dec(QS.ExtD);
                      end else begin
                       Dec(QS.Mask[0],2); QS.Mask[Length(QS.Mask)]:='*';
                       Dec(QS.NumExt);
                       QS.ExtD:=0;
                       For Key:=Length(QS.Mask)-1 downto 1 do
-                       if QS.Mask[Key]='.' then break else Inc(QS.ExtD);
+                       if QS.Mask[Key]='.'
+                        then break
+                        else if QS.Mask[Key]<>'"' then Inc(QS.ExtD);
                      end
                     else
  else
   case Char(Lo(Key)) of
    '*': ;
+   '[',
+   ']': begin
+         QS.Mask[Length(QS.Mask)]:='"';
+         Inc(QS.Mask[0]);
+         QS.Mask[Length(QS.Mask)]:=Char(Lo(Key));
+         Inc(QS.Mask[0]);
+         QS.Mask[Length(QS.Mask)]:='"';
+         Inc(QS.Mask[0]);
+         QS.Mask[Length(QS.Mask)]:='*';
+         Inc(QS.ExtD);
+        end;
    '.': begin
          Inc(QS.NumExt);
          Inc(QS.Mask[0]);
@@ -913,5 +1250,137 @@ begin
          else GetCursorPos:=Min(Size-ExtSize, D);
        end;
 end;
+
+{-DataCompBoy-}
+function  PackMask(const Mask: string; var PM: String; LFNDis: boolean): boolean;
+ label mc, fc;
+ var k, k2, k3: byte;
+ begin
+  if (Mask = x_x) or (Mask='*') then begin
+   PM:=x_x;
+   PackMask:=off;
+  end else begin
+   PackMask:=on;
+   {!}
+   if (PosChar(';', Mask)=0) and (PosChar('[', Mask)=0) then begin
+    if LFNDis then begin
+     {Check for correct DOS mask}
+     if (CharCount('.', Mask)<2) and
+        (CharCount('*', Mask)<3) then begin
+      k:=PosChar('.', Mask);
+      if k=0 then k:=Byte(Mask[0]);
+      k2:=PosChar('*', Mask);
+      if k2>0 then k3:=PosChar('*', Copy(Mask, k2+1, 255)) else k3:=0;
+      if k3>0 then inc(k3, k2);
+      if ((k2=0) or
+          (k2=Byte(Mask[0])) or
+          (k2=k-1)
+         ) and
+         ((k3=0) or
+          (k3=Byte(Mask[0]))
+         ) then begin
+                 PM := Mask;
+                 PackMask := off;
+                end
+           else goto mc;
+     end else begin
+mc:   {Place mask comressing here, but do not touch NormMask variable}
+      goto fc; {Here is temporary code}
+     end;
+    end else begin
+     PM := Mask;
+     PackMask := off;
+    end;
+   end else begin
+fc: {Place filter comressing here, but do not touch NormMask variable}
+    PM:=x_x;
+   end;
+  end;
+ end;
+{-DataCompBoy-}
+
+        {-DataCompBoy-}
+procedure FileChanged(const Name: String);
+ var Dr: String;
+     Nm: String;
+     Xt: String;
+begin
+ lFSplit(Name, Dr, Nm, Xt); Abort := Off;
+ GlobalMessage(evCommand, cmRereadDir, @Dr);
+ GlobalMessage(evCommand, cmRereadInfo, nil);
+ GlobalMessage(evCommand, cmRereadTree, @Dr);
+end;
+        {-DataCompBoy-}
+
+function CompareFiles(const N1, N2: String): Boolean;
+  label Finish;
+  const BufSize = 2048;
+  var S1, S2: TDOSStream;
+      B1, B2: Pointer;
+      B: Boolean;
+      I: LongInt;
+begin
+  CompareFiles := Off;
+  B := Off;
+  B1 := nil; B2 := nil;
+  S1.Init(N1, stOpenRead);
+  if S1.Status <> stOK then begin S1.Done; Exit end;
+  S2.Init(N2, stOpenRead);
+  if (S2.Status <> stOK) or (S1.GetSize <> S2.GetSize) then Goto Finish;
+  B1 := MemAlloc(BufSize); if B1 = nil then Goto Finish;
+  B2 := MemAlloc(BufSize); if B2 = nil then Goto Finish;
+  I := BufSize;
+  CompareFiles := On;
+  while (S1.Status = stOK) and (S2.Status = stOK) and (I > 0) and not B do
+    begin
+      I := BufSize;
+      if S1.GetSize - S1.GetPos < I then I := S1.GetSize - S1.GetPos;
+      if I = 0 then Break;
+      S1.Read(B1^, I);
+      S2.Read(B2^, I);
+      {$IFNDEF BIT_32}
+      asm
+        push ds
+        les  di, B1
+        lds  si, B2
+        cld
+        mov  cx, word ptr I
+        rep  cmpsb
+        pop  ds
+        jz   @1
+        xor  al, al
+        mov  @Result, al
+        inc  al
+        mov  B, al
+       @1:
+      end;
+      {$ELSE BIT_32}
+      asm
+        push esi
+        push edi
+        mov  edi, B1
+        mov  esi, B2
+        cld
+        mov  ecx, I
+        rep  cmpsb
+        jz   @1
+        xor  al, al
+        mov  @Result, al
+        inc  al
+        mov  B, al
+       @1:
+        pop  edi
+        pop  esi
+      end;
+      {$ENDIF}
+    end;
+  if not B then CompareFiles := (S1.Status = stOK) and (S2.Status = stOK);
+Finish:
+  if B1 <> nil then FreeMem(B1, BufSize);
+  if B2 <> nil then FreeMem(B2, BufSize);
+  S1.Done;
+  S2.Done;
+end;
+
 
 end.

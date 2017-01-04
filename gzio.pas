@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -66,7 +66,7 @@ interface
 uses
   dos,
   LFN,{DataCompBoy}
-  {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF}, zutil, zlib,
+  {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF}, zutil, zlib,
   crc, {$IFNDEF NO_DEFLATE}zdeflate,{$ENDIF} zinflate;
 
 type gz_streamp = ^gz_stream;
@@ -274,7 +274,7 @@ begin
     lResetFile (s^.gzfile,1);
   s^.opened:=true;
   {$else}
-  if (not FileExists(path)) and (s^.mode='w') then
+  if (not ExistFile(path)) and (s^.mode='w') then
     ReWrite (s^.gzfile,1)
   else
     Reset (s^.gzfile,1);

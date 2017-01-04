@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -77,10 +77,10 @@ type
   TMenuItem = record
     Next: PMenuItem;
     Name: PString;
-    Command: Word;
+    Command: AWord;
     Disabled: Boolean;
-    KeyCode: Word;
-    HelpCtx: Word;
+    KeyCode: AWord;
+    HelpCtx: AWord;
     case Integer of
       0: (Param: PString);
       1: (SubMenu: PMenu);
@@ -179,8 +179,8 @@ type
   TStatusItem = record
     Next: PStatusItem;
     Text: PString;
-    KeyCode: Word;
-    Command: Word;
+    KeyCode: AWord;
+    Command: AWord;
   end;
 
 { TStatusDef }
@@ -188,7 +188,7 @@ type
   PStatusDef = ^TStatusDef;
   TStatusDef = record
     Next: PStatusDef;
-    Min, Max: Word;
+    Min, Max: AWord;
     Items: PStatusItem;
   end;
 
@@ -235,16 +235,20 @@ procedure DisposeMenu(Menu: PMenu);
 
 { TStatusLine routines }
 
-function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem;
-  ANext: PStatusDef): PStatusDef;
+function NewStatusDef(AMin, AMax: AWord; AItems: PStatusItem;
+                      ANext: PStatusDef): PStatusDef;
 function NewStatusKey(const AText: String; AKeyCode: Word; ACommand: Word;
-  ANext: PStatusItem): PStatusItem;
+                      ANext: PStatusItem): PStatusItem;
 
 const
   dfByCommand = $000;
   dfByPosition = $100;
 
-function LookUpMenu(Menu: PMenu; idCheckItem: Word; Flags: Word): PMenuItem;
+function LookUpMenu(Menu: PMenu; idCheckItem: AWord; Flags: AWord): PMenuItem;
+function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): AWord;
+
+procedure StoreMenuDefaults(Menu: PMenu; var S: TStream);
+procedure LoadMenuDefaults(Menu: PMenu; var S: TStream);
 
 Const MenuActive: Boolean = false;
 
@@ -281,7 +285,7 @@ function NewLine(Next: PMenuItem): PMenuItem;
 var
   P: PMenuItem;
 begin
-  New(P);
+  New(P); FillChar(P^, SizeOf(P^), 0);
   P^.Next := Next;
   P^.Name := nil;
   P^.HelpCtx := hcNoContext;
@@ -299,6 +303,7 @@ begin
     P^.Next := Next;
     P^.Name := NewStr(Name);
     P^.Command := 0;
+    P^.KeyCode := 0;
     P^.Disabled := False;
     P^.HelpCtx := AHelpCtx;
     P^.SubMenu := SubMenu;
@@ -347,6 +352,8 @@ end;
 
 constructor TMenuView.Init(var Bounds: TRect);
 begin
+  Bounds.B.X := Bounds.A.X;
+  Bounds.B.Y := Bounds.A.Y;
   TView.Init(Bounds);
   EventMask := EventMask or evBroadcast;
 end;
@@ -372,7 +379,7 @@ begin
     with Item^ do
     begin
       Name := S.ReadStr;
-      S.Read(Command, SizeOf(Word) * 3 + SizeOf(Boolean));
+      S.Read(Command, SizeOf(AWord) * 3 + SizeOf(Boolean));
       if (Name <> nil) then
         if Command = 0 then SubMenu := DoLoadMenu
         else Param := S.ReadStr;
@@ -403,6 +410,7 @@ var
   E: TEvent;
   MouseActive: Boolean;
   MouseWalk: Boolean;
+  Going: Boolean;
 
 procedure TrackKey(FindNext: Boolean); forward;
 
@@ -413,10 +421,24 @@ var
 label q;
 begin
   MakeLocal(E.Where, Mouse);
-  if TypeOf(Self)<>TypeOf(TMenuBar) then begin
-   if Mouse.Y=0 then TrackKey(False) else
-   if Mouse.Y=Size.Y-1 then TrackKey(True) else
-    goto q;
+  if Size.Y>1 then begin
+   if Mouse.Y=0 then begin
+    if not Going then begin
+     Going := true;
+     TrackKey(False);
+    end else begin
+     TrackKey(False);
+     if (Current<>nil) and (Current^.Next = nil) then TrackKey(true);
+    end
+   end else if Mouse.Y>=Size.Y-1 then begin
+    if not Going then begin
+     Going := true;
+     TrackKey(True);
+    end else begin
+     TrackKey(True);
+     if Current = Menu^.Items then TrackKey(False);
+    end
+   end else goto q;
    AutoSelect := false;
    Action := DoNothing;
    MouseWalk:=true;
@@ -515,9 +537,17 @@ begin
     end;
   end;
   GetBounds(R);
-  R.B.X := R.A.X + W;
-  R.B.Y := R.A.Y + H;
   Owner^.GetExtent(R2);
+  if Options and ofCenterX <> 0 then begin
+   R.A.X := (R2.B.X - R2.A.X - W) div 2;
+  end;
+  R.B.X := R.A.X + W;
+
+  if Options and ofCenterY <> 0 then begin
+   R.A.Y := (R2.B.Y - R2.A.Y - H) div 2;
+  end;
+  R.B.Y := R.A.Y + H;
+
   if R.B.Y > R2.B.Y then begin
    R.A.Y := R2.B.Y-H;
    If R.A.Y < 0 then R.A.Y:=0;
@@ -529,7 +559,7 @@ begin
    R.B.X := R2.B.X;
   end;
   SetBounds(R);
-  Owner^.ReDraw;
+  Owner^.Redraw;
  end;
   MenuActive:=True;
   if TypeOf(Self) = TypeOf(TMenuBar) then Message(Owner, evCommand, cmMenuOn, @Self);
@@ -565,7 +595,7 @@ begin
                               if Current = nil then Current := Menu^.Items;
                               Action := DoNothing;
                              end;
-         end;
+         end else Going := false;
       evMouseMove:
         if (E.Buttons <> 0) then
         begin
@@ -581,11 +611,29 @@ begin
             MouseInMenus then Action := DoReturn;
         end;
       evKeyDown:
+        case E.KeyCode of
+         kbDownUp, kbUpUp: if Going then Going:=false;
+         else
         case CtrlToArrow(E.KeyCode) of
           kbUp, kbDown:
-            if Size.Y <> 1 then
-              TrackKey(CtrlToArrow(E.KeyCode) = kbDown) else
-              if E.KeyCode = kbDown then AutoSelect := True;
+            if Size.Y <> 1 then begin
+              if CtrlToArrow(E.KeyCode) = kbDown then
+               if not Going then begin
+                Going := true;
+                TrackKey(True);
+               end else begin
+                TrackKey(True);
+                if Current = Menu^.Items then TrackKey(False);
+               end
+              else
+               if not Going then begin
+                Going := true;
+                TrackKey(False);
+               end else begin
+                TrackKey(False);
+                if Current^.Next = nil then TrackKey(true);
+               end;
+            end else if E.KeyCode = kbDown then AutoSelect := True;
           kbLeft, kbRight:
             if ParentMenu = nil then
               TrackKey(CtrlToArrow(E.KeyCode) = kbRight) else
@@ -595,6 +643,40 @@ begin
             begin
               Current := Menu^.Items;
               if E.KeyCode = kbEnd then TrackKey(False);
+            end;
+          kbPgUp:
+            if Size.Y <> 1 then
+            begin
+             For W := 1 to Size.Y-2 do
+              if Current = Menu^.Items then break
+              else begin
+               P := Current;
+               Current := Menu^.Items;
+               repeat
+                Current := Current^.Next;
+                if Current = nil then Current := Menu^.Items;
+               until Current^.Next = P;
+              end;
+             while Current^.Name = nil do begin
+              Current := Current^.Next;
+              if Current = nil then Current := Menu^.Items;
+             end;
+            end;
+          kbPgDn:
+            if Size.Y <> 1 then
+            begin
+             For W := 1 to Size.Y-2 do
+              if (Current = Menu^.Items) and (W>1)
+               then begin TrackKey(False); break end
+               else begin
+                     Current := Current^.Next;
+                     if Current = nil then Current := Menu^.Items;
+                    end;
+             if Current = nil then Current := Menu^.Items;
+             while Current^.Name = nil do begin
+              Current := Current^.Next;
+              if Current = nil then Current := Menu^.Items;
+             end;
             end;
           kbEnter:
             begin
@@ -640,7 +722,7 @@ begin
             end else
               if (ParentMenu <> Target) or (ParentMenu^.Current <> P) then
                 Action := DoReturn;
-        end;
+        end end;
       evCommand:
         if (E.Command = cmMenu) or (E.Command = cmMainMenu) then
         begin
@@ -654,7 +736,7 @@ begin
           {if ParentMenu <> nil then Action := DoReturn;}
         end else
           Action := DoReturn;
-    end;
+     end;
     if ItemShown <> Current then
     begin
       ItemShown := Current;
@@ -873,7 +955,7 @@ begin
     begin
       S.Write(Tok, 1);
       S.WriteStr(Name);
-      S.Write(Command, SizeOf(Word) * 3 + SizeOf(Boolean));
+      S.Write(Command, SizeOf(AWord) * 3 + SizeOf(Boolean));
       if (Name <> nil) then
         if Command = 0 then DoStoreMenu(SubMenu)
         else S.WriteStr(Param);
@@ -1138,20 +1220,20 @@ constructor TStatusLine.Load(var S: TStream);
 
 function DoLoadStatusItems: PStatusItem;
 var
-  Count: Integer;
+  Count: AInt;
   Cur, First: PStatusItem;
   Last: ^PStatusItem;
 begin
   Cur := nil;
   Last := @First;
-  S.Read(Count, SizeOf(Integer));
+  S.Read(Count, SizeOf(AInt));
   while Count > 0 do
   begin
     New(Cur);
     Last^ := Cur;
     Last := @Cur^.Next;
     Cur^.Text := S.ReadStr;
-    S.Read(Cur^.KeyCode, SizeOf(Word) * 2);
+    S.Read(Cur^.KeyCode, SizeOf(AWord) * 2);
     Dec(Count);
   end;
   Last^ := nil;
@@ -1160,19 +1242,19 @@ end;
 
 function DoLoadStatusDefs: PStatusDef;
 var
-  AMin: Word;
+  AMin: AWord;
   Cur, First: PStatusDef;
   Last: ^PStatusDef;
-  Count: Integer;
+  Count: AInt;
 begin
   Last := @First;
-  S.Read(Count, SizeOf(Integer));
+  S.Read(Count, SizeOf(AInt));
   while Count > 0 do
   begin
     New(Cur);
     Last^ := Cur;
     Last := @Cur^.Next;
-    S.Read(Cur^.Min, 2 * SizeOf(Word));
+    S.Read(Cur^.Min, 2 * SizeOf(AWord));
     Cur^.Items := DoLoadStatusItems;
     Dec(Count);
   end;
@@ -1236,13 +1318,14 @@ begin
   MoveChar(B, ' ', Byte(CNormal), Size.X);
   T := Items;
   I := 0;
-  if OldKbdState and 8 <> 0 then FirstChar := '-' else
-   if OldKbdState and 4 <> 0 then FirstChar := '+' else
-    if OldKbdState and 3 <> 0 then FirstChar := ':' else
+  if OldKbdState and 12 =12 then FirstChar := '^' else
+   if OldKbdState and 8 <> 0 then FirstChar := '-' else
+    if OldKbdState and 4 <> 0 then FirstChar := '+' else
+     if OldKbdState and 3 <> 0 then FirstChar := ':' else
       FirstChar := ' ';
   while T <> nil do
   begin
-    if (T^.Text <> nil) and ((FirstChar = ' ') and not (T^.Text^[1] in [':','+','-'])
+    if (T^.Text <> nil) and ((FirstChar = ' ') and not (T^.Text^[1] in [':','+','-','^'])
       or (T^.Text^[1] = FirstChar)) then
     begin
       L := CStrLen(T^.Text^) - Byte(FirstChar <> ' ');
@@ -1310,13 +1393,14 @@ begin
   if Mouse.Y <> 0 then Exit;
   I := 0;
   T := Items;
- if OldKbdState and 8 <> 0 then FirstChar := '-' else
-   if OldKbdState and 4 <> 0 then FirstChar := '+' else
-    if OldKbdState and 3 <> 0 then FirstChar := ':' else
+  if OldKbdState and 12 =12 then FirstChar := '^' else
+   if OldKbdState and 8 <> 0 then FirstChar := '-' else
+     if OldKbdState and 4 <> 0 then FirstChar := '+' else
+      if OldKbdState and 3 <> 0 then FirstChar := ':' else
      FirstChar := ' ';
   while T <> nil do
   begin
-    if (T^.Text <> nil) and ((FirstChar = ' ') and not (T^.Text^[1] in [':','+','-'])
+    if (T^.Text <> nil) and ((FirstChar = ' ') and not (T^.Text^[1] in [':','+','-','^'])
       or (T^.Text^[1] = FirstChar)) then
     begin
       K := I + CStrLen(T^.Text^) - Byte(FirstChar <> ' ') + 2;
@@ -1390,7 +1474,7 @@ procedure TStatusLine.Store(var S: TStream);
 procedure DoStoreStatusItems(Cur: PStatusItem);
 var
   T: PStatusItem;
-  Count: Integer;
+  Count: AInt;
 begin
   Count := 0;
   T := Cur;
@@ -1399,18 +1483,18 @@ begin
     Inc(Count);
     T := T^.Next
   end;
-  S.Write(Count, SizeOf(Integer));
+  S.Write(Count, SizeOf(AInt));
   while Cur <> nil do
   begin
     S.WriteStr(Cur^.Text);
-    S.Write(Cur^.KeyCode, SizeOf(Word) * 2);
+    S.Write(Cur^.KeyCode, SizeOf(AWord) * 2);
     Cur := Cur^.Next;
   end;
 end;
 
 procedure DoStoreStatusDefs(Cur: PStatusDef);
 var
-  Count: Integer;
+  Count: AInt;
   T: PStatusDef;
 begin
   Count := 0;
@@ -1420,12 +1504,12 @@ begin
     Inc(Count);
     T := T^.Next
   end;
-  S.Write(Count, SizeOf(Integer));
+  S.Write(Count, SizeOf(AInt));
   while Cur <> nil do
   begin
     with Cur^ do
     begin
-      S.Write(Min, SizeOf(Word) * 2);
+      S.Write(Min, SizeOf(AWord) * 2);
       DoStoreStatusItems(Items);
     end;
     Cur := Cur^.Next;
@@ -1456,7 +1540,7 @@ begin
   end;
 end;
 
-function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem;
+function NewStatusDef(AMin, AMax: AWord; AItems: PStatusItem;
   ANext:PStatusDef): PStatusDef;
 var
   T: PStatusDef;
@@ -1485,7 +1569,7 @@ begin
   NewStatusKey := T;
 end;
 
-function LookUpMenu(Menu: PMenu; idCheckItem: Word; Flags: Word): PMenuItem;
+function LookUpMenu(Menu: PMenu; idCheckItem: AWord; Flags: AWord): PMenuItem;
 var
   Item, LookedUp: PMenuItem;
   i: Integer;
@@ -1515,6 +1599,62 @@ begin
       until (Item = nil) or (LookedUp <> nil);
       LookUpMenu := LookedUp
     end
+  end
+end;
+
+function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): AWord;
+var
+  Item: PMenuItem;
+  i: word;
+begin
+  MenuIndexOf := 0;
+  If Menu <> nil then
+  with Menu^ do begin
+    Item := Items;
+    I := 1;
+    while (Item <> idCheckItem) and (Item <> nil) do begin
+     Inc(i);
+     Item := Item^.Next;
+    end;
+    if Item = nil then MenuIndexOf := 0 else MenuIndexOf := i;
+  end
+end;
+
+procedure StoreMenuDefaults(Menu: PMenu; var S: TStream);
+var
+  Item: PMenuItem;
+  i: AWord;
+begin
+  If Menu <> nil then
+  with Menu^ do begin
+    I := MenuIndexOf(Menu, Default);
+    S.Write(I, SizeOf(I));
+    Item := Items;
+    If Item <> nil then
+     repeat
+      If (Item^.Command = 0) and (Item^.SubMenu <> nil) and (Item^.Name <> nil)
+       then StoreMenuDefaults(Item^.SubMenu, S);
+      Item := Item^.Next;
+     until (Item = nil);
+  end
+end;
+
+procedure LoadMenuDefaults(Menu: PMenu; var S: TStream);
+var
+  Item: PMenuItem;
+  i: AWord;
+begin
+  If Menu <> nil then
+  with Menu^ do begin
+    S.Read(I, SizeOf(I));
+    Default := LookUpMenu(Menu, I, dfByPosition);
+    Item := Items;
+    If Item <> nil then
+     repeat
+      If (Item^.Command = 0) and (Item^.SubMenu <> nil) and (Item^.Name <> nil)
+       then LoadMenuDefaults(Item^.SubMenu, S);
+      Item := Item^.Next;
+     until (Item = nil);
   end
 end;
 

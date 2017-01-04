@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -132,6 +132,7 @@ begin
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
@@ -144,7 +145,6 @@ begin
   if q='0' then Swap := False else Swap := True;
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
   if q='0' then UseLFN := False else UseLFN := True;
-  PutTempBefore := 2;
 end;
 
 destructor TTGZArchive.Done;

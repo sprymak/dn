@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -107,10 +107,10 @@ type
 
     TDiskDriver = object
      FAT           : ^FATRec;
-     BADmark,EOFmark,Entry,DirClu
+     BADmark,EOFmark,Entry,DirClu,LastEl
                    : word;
      FATSize       : LongInt;
-     FAT12         : Boolean;
+     FATType       : (Fat12, Fat16);
      Drive         : Byte;
      SectLen       : word;
      SectPerClust  : byte;
@@ -152,20 +152,19 @@ type
 
  var BiosError: Byte;
 
-    function  CompareFiles(const N1, N2: String): Boolean;
     procedure SectorRead(Drive : Byte;q : pointer;t : LongInt; l : word);
     procedure SectorWrite(Drive : Byte;q : pointer;t : LongInt; l : word);
 {DataCompBoy
     procedure DiskOn(Drv : Byte);
     procedure DiskOff;
 }
-{$IFNDEF FPC}
     function  StrEq(Var a,b;Count : Word) : Boolean;
-{$ENDIF}
     function  CheckDisk(C : Char) : Boolean;
 
 implementation
-uses Startup, Messages, Memory, DNApp, RStrings, Commands;
+uses
+     {$IFDEF DPMI} Dpmi, DosMem, {$ENDIF}
+     Startup, Messages, Memory, DNApp, RStrings, Commands;
 
  type SecRec = record
        Num   : LongInt;
@@ -191,14 +190,14 @@ begin
  end;
 end;
 
+{$IFNDEF DPMI}
 procedure SectorRead;
-{$IFNDEF FPC}
  label Rep;
  var Prm : SecRec;
      ppr : pointer;
 begin
 Rep:
-if not DOS40 then
+  if not DOS40 then
   asm
        push  ds
        mov   al,Drive
@@ -214,8 +213,7 @@ if not DOS40 then
        jnc   @LocEx
        mov   BiosError,ah
 @LocEx:
-  end
-  else
+  end else
   begin
    Prm.Num:=t;
    Prm.Count:=l;
@@ -243,12 +241,9 @@ if not DOS40 then
    Abort := SysErrorFunc(XlatError(BiosError), Drive) = 3;
    if not Abort then Goto Rep;
   end;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 procedure SectorWrite;
-{$IFNDEF FPC}
  label Rep;
  var Prm : SecRec;
      ppr : pointer;
@@ -303,12 +298,108 @@ Rep:
   mov ah,0dh
   int 21h
  end;
-{$ELSE} begin
-{$ENDIF}
+end;
+{$ELSE}
+
+procedure SectorRead(Drive: Byte; Q: Pointer; T: LongInt; L: Word);
+var
+  R: DPMIRegisters;
+  P: Pointer;
+  P2: ^SecRec;
+  S, S2: Word;
+label
+  Rep;
+begin
+  P:=GetDosMem(L*512,S); if P=nil then begin Abort:=True; Exit; end;
+  if DOS40 then begin
+    P2:=GetDosMem(SizeOf(P2^),S2);
+    if P2=nil then begin
+      FreeDosMem(P); Abort:=True; Exit;
+    end;
+  end;
+  Rep:
+  FillChar(R, SizeOf(R), #0);
+  if not DOS40 then begin
+    R.AL:=Drive;
+    R.CX:=L;
+    R.DX:=LongRec(T).Lo;
+    R.DS:=S; R.BX:=0;
+    if SimulateRealModeInt($25, R) <> 0 then
+      BiosError:=R.AH;
+  end else
+  begin
+    P2^.Num:=T;
+    P2^.Count:=L;
+    P2^.Buf:=Ptr(S,0);
+    R.AL:=Drive;
+    R.CX:=$FFFF;
+    R.DS:=S2; R.BX:=0;
+    if SimulateRealModeInt($25, R) <> 0 then
+      BiosError:=R.AH;
+  end;
+  Abort:=Off;
+  if BiosError > 0 then
+  begin
+   Abort:=SysErrorFunc(XlatError(BiosError), Drive) = 3;
+   if not Abort then Goto Rep;
+  end;
+  Move(P^,Q^,L*512); FreeDosMem(P);
+  if DOS40 then FreeDosMem(P2);
 end;
 
+procedure SectorWrite(Drive: Byte; Q: pointer; T: LongInt; L: word);
+var
+  R: DPMIRegisters;
+  P: Pointer;
+  P2: ^SecRec;
+  S, S2: Word;
+label
+  Rep;
+begin
+  P:=GetDosMem(L*512,S); if P=nil then begin Abort:=True; Exit; end;
+  if DOS40 then begin
+    P2:=GetDosMem(SizeOf(P2^),S2);
+    if P2=nil then begin
+      FreeDosMem(P); Abort:=True; Exit;
+    end;
+  end;
+  Move(Q^,P^,L*512);
+  Rep:
+  FillChar(R, SizeOf(R), #0);
+  if not DOS40 then begin
+    R.AL:=Drive;
+    R.CX:=L;
+    R.DX:=LongRec(T).Lo;
+    R.DS:=S; R.BX:=0;
+    if SimulateRealModeInt($26, R) <> 0 then
+      BiosError:=R.AH;
+  end else
+  begin
+    P2^.Num:=T;
+    P2^.Count:=L;
+    P2^.Buf:=Ptr(S,0);
+    R.AL:=Drive;
+    R.CX:=$FFFF;
+    R.DS:=S2; R.BX:=0;
+    if SimulateRealModeInt($26, R) <> 0 then
+      BiosError:=R.AH;
+  end;
+  Abort:=Off;
+  if BiosError > 0 then
+  begin
+   Abort:=SysErrorFunc(XlatError(BiosError), Drive) = 3;
+   if not Abort then Goto Rep;
+  end;
+  asm
+   mov ah,0dh (* reset disk *)
+   int 21h
+  end;
+  FreeDosMem(P);
+  if DOS40 then FreeDosMem(P2);
+end;
+{$ENDIF}
+
 constructor TDiskDriver.Init;
-{$IFNDEF FPC}
 var S: string;
     BRec: PBootRec;
     P: PDiskDriver;
@@ -320,38 +411,29 @@ begin
   lGetDir(Drv, s); Drv := Byte(S[1]) - 64;
   RemoteDrive := False;
   C := S[1];
+{piwamoto.change.begin}
+  if SystemData.Drives[C] and ossDirectAccess = 0 then Fail;
   asm
    mov ax, 4409H
    xor bh,bh
    mov bl,C
    sub bl,64
    int 21H
-   test dx, 1000H
-   jz  @NonRemote
-   mov RemoteDrive, 1
- @NonRemote:
-   test dx, 8000H
+   test dh, 10h
+   jnz @Remote
+   test dh, 80h
    jz  @BlockDevice
+ @Remote:
    mov RemoteDrive, 1
  @BlockDevice:
   end;
 
-  if Abort or RemoteDrive or ( SystemData.Drives[ S[1] ] and ossDirectAccess = 0 ) then Fail;
+  if Abort or RemoteDrive then Fail;
 
   if SystemData.Options and ossCheckDDA <> 0 then
     begin
-      Removable := On;
-      asm
-        mov ax, $160A
-        push bp
-        int 2Fh
-        pop  bp
-        or   al, al
-        jnz  @@1
-        mov  Removable, 0
-       @@1:
-      end;
-      if Removable then Removable := Lo(DosVersion) < 10;
+      if opSys and not opDos = 0 then Removable := on else Removable := off;
+{piwamoto.change.end}
       if not Removable then
         begin
           asm
@@ -387,10 +469,22 @@ begin
   if TotalSect <> 0 then NumSectors := TotalSect;
   TotalClu := LongInt(NumSectors - FirstClust + 1) div SectPerClust;
 
-  FAT12 := {LongInt(NumSectors) <= LongInt(20740);} TotalClu < 4087;
+  if TotalClu < 4087
+   then FATType := FAT12
+   else FATType := FAT16;
 
-  if FAT12 then begin EOFmark := $FF8; BADmark := $FF7; end
-           else begin EOFmark := $FFF8; BADmark := $FFF7; end;
+  case FatType of
+   FAT12: begin
+           EOFmark := $FF8;
+           BADmark := $FF7;
+           LastEl  := $FF0;
+          end;
+   FAT16: begin
+           EOFmark := $FFF8;
+           BADmark := $FFF7;
+           LastEl  := $FFF0;
+          end;
+  end;
 
   FATModified := Off;
   if FATRead then
@@ -399,9 +493,6 @@ begin
      if (FATSectNum=0) or (FAT=nil) then Fail;
      if Abort and (FAT <> nil) then begin FreeFAT; Fail; end;
     end;
-
-{$ELSE} begin
-{$ENDIF}
 end;
 
 procedure FreeMem(var p : Pointer;Size : Word);
@@ -411,7 +502,6 @@ begin
  p:=Nil;
 end;
 
-{$IFNDEF FPC}
 function StrEq(Var a,b;Count : Word) : Boolean;
  var f : Boolean;
 begin
@@ -435,22 +525,17 @@ begin
  end;
  StrEq:=f;
 end;
-{$ENDIF}
 
 
 procedure TDiskDriver.SeekFAT;
-{$IFNDEF FPC}
 begin
  WriteFAT;
  if N < 0 then N := 0; if N >= SectPerFAT then N := SectPerFAT - 1;
  FATSect := N;
  ReadFAT;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 function TDiskDriver.GetPath(s : string) : word;
-{$IFNDEF FPC}
 var
     ts,vs : string[12];
     cl,i  : word;
@@ -480,7 +565,8 @@ begin
              end;
           Inc(i);
         end;
-  if not Made then if GetFat(cl)<$F000*Byte(not FAT12)+$FF0 then
+  if not Made then
+   if GetFat(cl)<LastEl then
      begin
       cl:=GetFAT(cl);
       GoTo 1;
@@ -506,97 +592,82 @@ begin
         end;
   FreeMem(Pointer(QQP),QSize);
   GetPath:=cl;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 function TDiskDriver.GetFAT(N : Word) : Word;
-{$IFNDEF FPC}
  var d: Word;
      DD: LongInt;
 begin
- GetFAT:=$F000*Byte(not FAT12)+$FFF;
+ GetFAT:=LastEl+$F;
  if (FAT=Nil) or (N<2) or (n>TotalClu+2) then Exit;
- if FAT12 then
-  begin
-   d:=(n*3) shr 1;
-   if (D div SectLen < FATSect) or (D div SectLen >= FATSect+FATCurSectNum)
-      then SeekFAT(D div SectLen);
-   D := D - FATSect*SectLen;
-   d:=FAT^[d]+FAT^[d+1] shl 8;
-   if N and 1=0 then d:=d and $FFF
-                else d:=d shr 4;
-  end
-  else
-  begin
-   DD := LongInt(N)*2 div LongInt(SectLen);
-   if (DD < FATSect) or (DD >= FATSect+FATCurSectNum) then SeekFAT(DD);
-   DD := LongInt(N)*2 - LongInt(FATSect)*LongInt(SectLen);
-   d:=FAT^[DD]+FAT^[DD+1] shl 8;
-  end;
+ case FATType of
+  FAT12: begin
+          d:=(n*3) shr 1;
+          if (D div SectLen < FATSect) or
+             (D div SectLen >= FATSect+FATCurSectNum)
+           then SeekFAT(D div SectLen);
+          D := D - FATSect*SectLen;
+          D := FAT^[d]+FAT^[d+1] shl 8;
+          if N and 1=0
+           then d:=d and $FFF
+           else d:=d shr 4;
+         end;
+  FAT16: begin
+          DD := LongInt(N)*2 div LongInt(SectLen);
+          if (DD < FATSect) or (DD >= FATSect+FATCurSectNum) then SeekFAT(DD);
+          DD := LongInt(N)*2 - LongInt(FATSect)*LongInt(SectLen);
+          d:=FAT^[DD]+FAT^[DD+1] shl 8;
+         end;
+ end;
  GetFAT:=d;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 procedure TDiskDriver.SetFAT(N,Value : Word);
-{$IFNDEF FPC}
  var d,v : Word;
      DD: LongInt;
 begin
  if (N<2) or (n>TotalClu+2) or (FAT=Nil) then Exit;
- if FAT12 then
-  begin
-   d:=(n*3) shr 1;
-   if (D div SectLen < FATSect) or (D div SectLen >= FATSect+FATCurSectNum)
-      then SeekFAT(D div SectLen);
-   D := D - FATSect*SectLen;
-   v:=FAT^[d]+FAT^[d+1] shl 8;
-   FATModified := On;
-   if N and 1=0 then
-                 begin
-                  v:=(v and $F000) or (Value and $FFF);
-                  Move(v,FAT^[d],2);
-                 end
-                else
-                 begin
-                  v:=(v and 15) or (Value shl 4);
-                  Move(v,FAT^[d],2);
-                 end;
-  end
-  else
-  begin
-   DD := LongInt(N)*2 div LongInt(SectLen);
-   if (DD < FATSect) or (DD >= FATSect+FATCurSectNum) then SeekFAT(DD);
-   DD := LongInt(N)*2 - LongInt(FATSect)*LongInt(SectLen);
-   FATModified := On;
-   FAT^[DD]:=Value and 255;
-   FAT^[DD+1]:=Value shr 8;
-  end;
-{$ELSE} begin
-{$ENDIF}
+ Case FATType of
+  FAT12: begin
+          d:=(n*3) shr 1;
+          if (D div SectLen < FATSect) or
+             (D div SectLen >= FATSect+FATCurSectNum)
+           then SeekFAT(D div SectLen);
+          D := D - FATSect*SectLen;
+          V := FAT^[d]+FAT^[d+1] shl 8;
+          FATModified := On;
+          if N and 1=0 then begin
+           v:=(v and $F000) or (Value and $FFF);
+           Move(v,FAT^[d],2);
+          end else begin
+           v:=(v and 15) or (Value shl 4);
+           Move(v,FAT^[d],2);
+          end;
+         end;
+  FAT16: begin
+          DD := LongInt(N)*2 div LongInt(SectLen);
+          if (DD < FATSect) or (DD >= FATSect+FATCurSectNum) then SeekFAT(DD);
+          DD := LongInt(N)*2 - LongInt(FATSect)*LongInt(SectLen);
+          FATModified := On;
+          FAT^[DD]:=Value and 255;
+          FAT^[DD+1]:=Value shr 8;
+         end;
+ end;
 end;
 
 procedure TDiskDriver.ClusterRead(var Buf;N : word);
-{$IFNDEF FPC}
  var p : Pointer;
 begin
  p:=@Buf;SectorRead(Drive,p,MadeSec(n),MadeLen(n));
-{$ELSE} begin
-{$ENDIF}
 end;
 
 procedure TDiskDriver.ClusterWrite(var Buf;N : Word);
-{$IFNDEF FPC}
  var p : Pointer;
 begin
  p:=@Buf;SectorWrite(Drive,p,MadeSec(n),MadeLen(n));
-{$ELSE} begin
-{$ENDIF}
 end;
 
 function TDiskDriver.ChainLen(N : Word):Word;
-{$IFNDEF FPC}
  var Next : Word;
      Len  : Word;
 begin
@@ -613,41 +684,29 @@ begin
       Inc(Len);
     end;
  ChainLen:=Len;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 function TDiskDriver.MadeSec(t : LongInt) : LongInt;
-{$IFNDEF FPC}
  var MS: LongInt;
 begin
   if t>=2 then MS:=LongInt(FirstClust+(t-2)*LongInt(SectPerClust))
           else MS:=LongInt(LongInt(SectPerFat)*LongInt(FatCopies)+Reserved);
   MadeSec := MS;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 function TDiskDriver.MadeLen;
-{$IFNDEF FPC}
 begin
   if t>=2 then MadeLen:=SectPerClust
           else MadeLen:=(RootEntries*32) div SectLen;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 function TDiskDriver.MadeClust(t : word) : word;
-{$IFNDEF FPC}
 begin
   if t>=FirstClust then MadeClust:=(t-FirstClust) div SectPerClust+2
                    else MadeClust:=0;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 procedure TDiskDriver.ReadFAT;
-{$IFNDEF FPC}
  var N: Word;
 begin
  Abort := On;
@@ -664,12 +723,9 @@ begin
  SectorRead(Drive,FAT,Reserved+FATSect,FATSectNum);
  FATModified := Off;
  Abort := Off;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 procedure TDiskDriver.WriteFAT;
-{$IFNDEF FPC}
  var I: Byte;
      N: Word;
 begin
@@ -681,26 +737,18 @@ begin
   end;
  NeedAbort := Off;
  FATModified := Off;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 procedure TDiskDriver.FreeFAT;
-{$IFNDEF FPC}
 begin
  WriteFAT;
  FreeMem(Pointer(FAT),FATSectNum*SectLen);
  FAT:=Nil;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 destructor TDiskDriver.Done;
-{$IFNDEF FPC}
 begin
  FreeFAT;
-{$ELSE} begin
-{$ENDIF}
 end;
 
 {DataCompBoy
@@ -719,7 +767,6 @@ end;
 }
 
 procedure TDiskDriver.SetVLabel;
-{$IFNDEF FPC}
   label   Ex;
   var i   : Integer;
       QQP : ^DirPtr;
@@ -769,17 +816,12 @@ begin
  ClusterWrite(QQP^,0);
 Ex:
  System.FreeMem(QQP,RootEntries*32);
-{$ELSE} begin
-{$ENDIF}
 end;
 
 function TDiskDriver.ClusterSize;
-{$IFNDEF FPC}
 begin
  if Cluster = 0 then ClusterSize := ROOTEntries * 32
                 else ClusterSize := SectLen * SectPerClust
-{$ELSE} begin
-{$ENDIF}
 end;
 
 
@@ -789,6 +831,8 @@ end;
  begin
    ClrIO;
    CheckDisk := Off;
+{piwamoto.change.begin}
+   if SystemData.Drives[C] and ossDirectAccess = 0 then Exit;
    RemoteDrive := Off;
    asm
     mov ax, 4409H
@@ -796,32 +840,21 @@ end;
     mov bl, C
     sub bl, 64
     int 21H
-    test dx, 1000H
-    jz  @NonRemote
-    mov RemoteDrive, 1
-  @NonRemote:
-    test dx, 8000H
+    test dh, 10h
+    jnz @Remote
+    test dh, 80h
     jz  @BlockDevice
+  @Remote:
     mov RemoteDrive, 1
   @BlockDevice:
    end;
 
-   if Abort or RemoteDrive or ( SystemData.Drives[C] and ossDirectAccess = 0 ) then Exit;
+   if Abort or RemoteDrive then Exit;
 
    if SystemData.Options and ossCheckDDA <> 0 then
      begin
-       Removable := On;
-       asm
-         mov ax, $160A
-         push bp
-         int 2Fh
-         pop  bp
-         or   al, al
-         jnz  @@1
-         mov  Removable, 0
-        @@1:
-       end;
-       if Removable then Removable := Lo(DosVersion) < 10;
+       if opSys and not opDos = 0 then Removable := on else Removable := off;
+{piwamoto.change.end}
        if not Removable then
          begin
            asm
@@ -841,56 +874,5 @@ end;
      end;
     CheckDisk := On;
  end;
-
-function CompareFiles(const N1, N2: String): Boolean;
-  label Finish;
-  const BufSize = 2048;
-  var S1, S2: TDOSStream;
-      B1, B2: Pointer;
-      B: Boolean;
-      I: LongInt;
-begin
-  CompareFiles := Off;
-  B1 := nil; B2 := nil;
-  S1.Init(N1, stOpenRead);
-  if S1.Status <> stOK then begin S1.Done; Exit end;
-  S2.Init(N2, stOpenRead);
-  if (S2.Status <> stOK) or (S1.GetSize <> S2.GetSize) then Goto Finish;
-  B1 := MemAlloc(BufSize); if B1 = nil then Goto Finish;
-  B2 := MemAlloc(BufSize); if B2 = nil then Goto Finish;
-  I := BufSize;
-  CompareFiles := On;
-  while (S1.Status = stOK) and (S2.Status = stOK) and (I > 0) do
-    begin
-      I := BufSize;
-      if S1.GetSize - S1.GetPos < I then I := S1.GetSize - S1.GetPos;
-      if I = 0 then Break;
-      S1.Read(B1^, I);
-      S2.Read(B2^, I);
-      asm
-        push ds
-        les  di, B1
-        lds  si, B2
-        cld
-        mov  cx, word ptr I
-        rep  cmpsb
-        pop  ds
-        jz   @1
-        xor  ax, ax
-        mov  @Result, al
-        jmp  Finish
-       @1:
-      end;
-    end;
-  CompareFiles := (S1.Status = stOK) and (S2.Status = stOK);
-Finish:
-  if B1 <> nil then FreeMem(B1, BufSize);
-  if B2 <> nil then FreeMem(B2, BufSize);
-  S1.Done;
-  S2.Done;
-end;
-
-
-
 
 end.

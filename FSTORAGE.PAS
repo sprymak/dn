@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -120,7 +120,7 @@ type
 
 
 implementation
-uses extramemory, DNApp, StartUp;
+uses ExtraMem, DNApp, StartUp;
 
 procedure __Error;
 begin
@@ -188,7 +188,7 @@ begin
   Stream := nil;
   Last := True; CurPos := -1;
   case SwapLevel of
-{$IFNDEF DPMI} {DataCompBoy: for DPMI no XMS and EMS needed}
+{$IFNDEF NOEXTRA} {DataCompBoy: for DPMI no XMS and EMS needed}
     slXMS: if XMSFound then
            begin
              Stream := New(PXMSStream, Init(X, X));
@@ -199,7 +199,7 @@ begin
              Stream := New(PEMSStream, Init(E, E));
              if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
            end;
-{$ENDIF}
+{$ENDIF NOEXTRA}
     slCnv: begin
              Stream := New(PMemoryStream, Init(M, 2048));
              if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;

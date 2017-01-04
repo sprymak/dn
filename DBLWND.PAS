@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,7 +49,7 @@
 unit DblWnd;
 
 interface
- uses LFN, {DataCompBoy}messages,
+ uses LFN,
       Views, Objects, Drivers, FlPanel, HideView, Tree, FViewer;
 
 type
@@ -63,7 +63,7 @@ type
 }
 
     PDoubleWindow = ^TDoubleWindow;
-    TDoubleWindow = object(TStdWindow)
+    TDoubleWindow = object({TStd}TWindow)
      isValid: Boolean;
      LeftView, RightView: PHideView;
      RDrive, LDrive: Byte;
@@ -76,8 +76,9 @@ type
      LTree: PHTreeView;
      QView: PFileViewer;
      OldBounds: TRect;
+     OldPanelBounds: TRect;
      PanelZoomed: boolean;
-     LType, RType: Integer;
+     LType, RType: AInt;
      constructor Init(Bounds: TRect; ANumber, ADrive: Integer);
      procedure InitLeftView(R: TRect);
      procedure InitRightView(R: TRect);
@@ -116,10 +117,9 @@ const dtInfo  = 1;
 
 implementation
 uses DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
-     advance3, Startup, DNApp, RStrings
-{$IFDEF NETINFO}
-     , NetInfo {-$VIV}
-{$ENDIF}
+     advance3, Startup, DNApp, RStrings, {DataCompBoy}messages
+{$IFDEF NETINFO}, NetInfo {-$VIV}{$ENDIF}
+{$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}
      ;
 {
 constructor TCloseBox.Init;
@@ -301,7 +301,7 @@ constructor TDoubleWindow.Load;
  var B: Boolean;
 begin
  inherited Load(S);
- S.Read(OldBounds, sizeof(OldBounds)+2*sizeof(Integer));
+ S.Read(OldBounds, sizeof(OldBounds)*2+sizeof(LType)+sizeof(RType));
  GetSubViewPtr(S, Separator);
  GetSubViewPtr(S, LeftView);
  GetSubViewPtr(S, RightView);
@@ -329,7 +329,7 @@ procedure TDoubleWindow.Store;
  var B: Boolean;
 begin
  inherited Store(S);
- S.Write(OldBounds, sizeof(OldBounds)+sizeof(LType)+sizeof(RType));
+ S.Write(OldBounds, sizeof(OldBounds)*2+sizeof(LType)+sizeof(RType));
  PutSubViewPtr(S, Separator);
  PutSubViewPtr(S, LeftView);
  PutSubViewPtr(S, RightView);
@@ -608,7 +608,7 @@ procedure TDoubleWindow.HandleCommand;
 procedure CE; begin ClearEvent(Event) end;
 
 var AP, PP: PFilePanel;
-
+    D: Word;
 begin
  if RightView<>nil
   then RVisible := RightView^.GetState(sfVisible)
@@ -625,9 +625,9 @@ begin
   evKeyDown: case Event.KeyCode of
               kbCtrlLeft,
               kbCtrlRight:
-                     if FMSetup.Options and fmoCtrlDifference <> 0 then
-                      if FMSetup.Options and fmoAlternCtrlDiff <> 0 then
-                       begin
+                     if (FMSetup.Options and fmoCtrlDifference <> 0) then
+                      if (LVisible and RVisible) then
+                       if FMSetup.Options and fmoAlternCtrlDiff <> 0 then begin
                         if LSelected then
                          if (ShiftState2 and 1 <> 0)
                           then RightView^.HandleEvent(Event)
@@ -636,10 +636,9 @@ begin
                          if (ShiftState2 and 1 <> 0)
                           then LeftView^.HandleEvent(Event)
                           else RightView^.HandleEvent(Event);
-                        Exit;
-                       end
-                      else
-                       begin
+                         Exit;
+                        end
+                       else begin
                         if LVisible and (ShiftState2 and 1 <> 0)
                          then LeftView^.HandleEvent(Event)
                          else RightView^.HandleEvent(Event);
@@ -667,7 +666,22 @@ begin
                            end;
 }
               kbAltLeft: if RVisible and LVisible then begin
-                          if Sp^.OldX > 0 then Dec(Sp^.OldX);
+                          D := 1;
+                          if ShiftState and (kbLeftShift+kbRightShift) <> 0 then begin
+                           if LSelected then
+                            if LType=dtPanel
+                             then AP := LPanel
+                             else AP := RPanel
+                           else
+                            if RType=dtPanel
+                             then AP := RPanel
+                             else AP := LPanel
+                           ;
+                           if AP^.LineLength < AP^.Size.X
+                            then D:=AP^.LineLength
+                            else D:=10
+                          end;
+                          if Sp^.OldX > D-1 then Dec(Sp^.OldX, D);
                           Sp^.OldW := Size.X;
                           R.A := Origin;
                           R.B.X := Origin.X + Size.X;
@@ -677,8 +691,23 @@ begin
                          end;
 
              kbAltRight: if RVisible and LVisible then begin
+                          D := 1;
+                          if ShiftState and (kbLeftShift+kbRightShift) <> 0 then begin
+                           if LSelected then
+                            if LType=dtPanel
+                             then AP := LPanel
+                             else AP := RPanel
+                           else
+                            if RType=dtPanel
+                             then AP := RPanel
+                             else AP := LPanel
+                           ;
+                           if AP^.LineLength < AP^.Size.X
+                            then D:=AP^.LineLength
+                            else D:=10
+                          end;
                           Sp^.OldW := Size.X;
-                          if Sp^.OldX < Sp^.OldW - 1 then Inc(Sp^.OldX);
+                          if Sp^.OldX < Sp^.OldW - D then Inc(Sp^.OldX,D);
                           R.A := Origin;
                           R.B.X := Origin.X + Size.X;
                           R.B.Y := Origin.Y + Size.Y;
@@ -712,14 +741,14 @@ begin
              end;
   evBroadcast: case Event.Command of
                 cmLookForPanels: ClearEvent( Event );
-                cmGetUserParams: begin
+                cmGetUserParams,cmGetUserParamsWL:
+                                 begin
                                    if LSelected then begin PP := RPanel; AP := LPanel end
                                                 else begin PP := LPanel; AP := RPanel end;
-                                   with PUserParams(Event.InfoPtr)^ do
-                                      begin
-                                        AP^.GetUserParams(Active, ActiveList);
-                                        PP^.GetUserParams(Passive, PassiveList);
-                                      end;
+                                   with PUserParams(Event.InfoPtr)^ do begin
+                                    AP^.GetUserParams(Active, ActiveList, Event.Command=cmGetUserParamsWL);
+                                    PP^.GetUserParams(Passive, PassiveList, Event.Command=cmGetUserParamsWL);
+                                   end;
                                    CE;
                                  end;
                 cmChangeDirectory: Begin
@@ -755,16 +784,25 @@ begin
                          if not LSelected and (RType = dtView) then SwitchLeft;
                       end;
   {Knave 11.09.99 --------------- begin 1}
-  {DataCompBoy} cmMaxi: if RVisible and LVisible then begin CE;
-                      if LSelected then SwitchRight else SwitchLeft;
-                      Message(@Self,evCommand,cmZoom,@Self);
-                      PanelZoomed:=True;
-                  end else if PanelZoomed then begin CE;
-                      PanelZoomed:=False;
-                      if (Size.X=Desktop^.Size.X) and (Size.Y=Desktop^.Size.Y)
-                      then Message(@Self,evCommand,cmZoom,@Self);
-                      if LSelected then SwitchRight else SwitchLeft;
-                  end;
+  {DataCompBoy} cmMaxi: if RVisible and LVisible then begin
+                         CE; Lock;
+                         if LSelected
+                          then SwitchRight
+                          else SwitchLeft;
+                         GetBounds(OldPanelBounds);
+                         ChangeBounds(OldBounds);
+                         PanelZoomed:=True;
+                         Unlock;
+                        end else
+                        if PanelZoomed then begin
+                         CE; Lock;
+                         ChangeBounds(OldPanelBounds);
+                         PanelZoomed:=False;
+                         if LSelected
+                          then SwitchRight
+                          else SwitchLeft;
+                         Unlock;
+                        end;
   {Knave 11.09.99 --------------- end 1}
               cmGetName: begin PString(Event.InfoPtr)^ := GetString(dlFileManager);
               PString(Event.InfoPtr)^:=PString(Event.InfoPtr)^+Cut(LPanel^.DirectoryName,

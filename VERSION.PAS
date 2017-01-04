@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,22 +43,27 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 Uses LFN, {DataCompBoy}
      Dos,
      advance1, advance;
 
-{$I STDEFINE.INC}
 
 CONST
-  VersionName:string = '1.51.05/DOS';
+  VersionName:string = '1.51.08/'+
+                       {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
+                                      {$ELSE}       +'DOS'  {$ENDIF}
+                       {$ELSE}        {$IFDEF WIN32}+'W32'
+                                      {$ELSE}
+                                       {$IFDEF OS2} +'OS2'
+                                       {$ELSE}      +'32bit'{$ENDIF}
+                                      {$ENDIF}
+                       {$ENDIF}
+                       ;
   VersionDate:string = '';
-  VersionWord:word   = 15105;
+  VersionWord:word   = 15107;
 
 var F : lText ;
     Day, Month, Year, DOW: word;
@@ -74,11 +79,12 @@ CONST
     '21','22','23','24','25','26','27','28','29','30','31');
 
  begin
-  Writeln(' ■ Creating ', 'VERSION.INC');
+  if ParamCount<>1 then halt(1);
+  Writeln(' '#254' Creating ', ParamStr(1));
   GetDate(Year, Month, Day, DOW);
   Str(Year, VersionDate);
   VersionDate:=DOWs[DOW]+', '+Days[Day]+' '+Months[Month]+' '+VersionDate+' at '+GetDateTime(true);
-  lAssignText(F, 'VERSION.INC');
+  lAssignText(F, ParamStr(1));
   ClrIo;
   lRewriteText(F);
   Writeln(F.T,'{/////////////////////////////////////////////////////////////////////////');
@@ -130,7 +136,7 @@ CONST
   Writeln(F.T,'  Const');
   Writeln(F.T,'     VersionName =''',VersionName,''';');
   Writeln(F.T,'     VersionDate =''',VersionDate,''';');
-  Writeln(F.T,'     VersionWord = $', Hex4(VersionWord), ';');
+  Writeln(F.T,'     VersionWord:Word = $', Hex4(VersionWord), ';');
 
   Close(F.T);
  end.

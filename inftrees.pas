@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -814,6 +814,5 @@ begin
   td := fixed_td;
   inflate_trees_fixed := Z_OK;
 end; { inflate_trees_fixed }
-
 
 end.

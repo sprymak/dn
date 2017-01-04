@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -52,7 +52,7 @@ interface
 
 uses Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, LFN,
      RStrings, Commands, xTime, Messages, Collect, Advance7, Startup
-{$IFNDEF FPC},StakDump{$ENDIF}
+{$IFNDEF NONBP},StakDump{$ENDIF}
      ;
 
 const
@@ -220,6 +220,9 @@ type
   TProgram = object(TGroup)
     IdleSecs: TEventTimer;
     FullSpeed: boolean;
+    {$IFDEF WIN32}
+    {CS: CRITICAL_SECTION;}
+    {$ENDIF}
     constructor Init;
     destructor Done; virtual;
     function CanMoveFocus: Boolean;
@@ -311,11 +314,10 @@ type
 
 implementation
 
-uses Dos, DNHelp, advance, advance1, advance2, advance3,
-     extramemory, UserMenu, MicroEd, FViewer, DblWnd, CmdLine
-{$IFDEF SS}
-     ,Idlers
-{$ENDIF}
+uses Dos, DNHelp, advance, advance1, advance2, VideoMan,
+     ExtraMem, UserMenu, MicroEd, FViewer, DblWnd, CmdLine
+{$IFDEF SS},Idlers{$ENDIF}
+{$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
 var
@@ -551,9 +553,10 @@ begin
 end;
 
 function ISqr(X: Integer): Integer; assembler;
+{$IFNDEF BIT_32}
 asm
         MOV     CX,X
-        MOV     BX,0
+        XOR     BX,BX
 @@1:    INC     BX
         MOV     AX,BX
         IMUL    AX
@@ -562,6 +565,19 @@ asm
         MOV     AX,BX
         DEC     AX
 end;
+{$ELSE BIT_32}{&Frame-}{$USES EBX, ECX}
+asm
+        MOV     ECX,X
+        XOR     EBX,EBX
+@@1:    INC     EBX
+        MOV     EAX,EBX
+        IMUL    EAX
+        CMP     EAX,ECX
+        JLE     @@1
+        MOV     EAX,EBX
+        DEC     EAX
+end;
+{$ENDIF}
 
 procedure MostEqualDivisors(N: Integer; var X, Y: Integer; FavorY: Boolean);
 var
@@ -819,10 +835,13 @@ end;
 var
     P: Procedure;
     R: TRect;
-    A1, A2: Word;
+    A1, A2: {$IFNDEF VIRTUALPASCAL}Word{$ELSE}SmallWord{$ENDIF};
 label 11;
 begin
 11:
+  {$IFDEF VIRTUALPASCAL}
+  ShiftState:=SysTVGetShiftState;
+  {$ENDIF}
   if EventsLen > 0 then
   begin
     Event := EventQueue[1];
@@ -886,6 +905,9 @@ begin
      (CommandLine^.GetState(sfVisible)) then
   begin
     IdleWas := False;
+    {$IFDEF VIRTUALPASCAL}
+    SysGetCurPos(A1, A2);
+    {$ELSE}
     asm
      mov ah,3
      xor bx,bx
@@ -893,6 +915,7 @@ begin
      mov A1, dx
      mov A2, cx
     end;
+    {$ENDIF}
     if ((Hi(A2) = $20) or (Hi(A1) = Size.Y - 1 - Byte( InterfaceData.Options and ouiHideStatus = 0 )))
        then CommandLine^.Update;
   end;
@@ -964,14 +987,14 @@ end;
 
 procedure TProgram.InitScreen;
 begin
-  if Lo(ScreenMode) <> smMono then
+  if ScreenMode <> smMono then
   begin
     if ScreenWidth div ScreenHeight < 2 then
       ShadowSize.X := 1 else
       ShadowSize.X := 2;
     ShadowSize.Y := 1;
     ShowMarkers := False;
-    if Lo(ScreenMode) = smBW80 then
+    if ScreenMode = smBW80 then
       AppPalette := apBlackWhite else
       AppPalette := apColor;
   end else
@@ -1088,20 +1111,28 @@ end;
 
 Procedure TProgram.BFSpeed; {DataCompBoy}
 begin
+ {$IFDEF WIN32}
+ {EnterCriticalSection(CS);}
+ {$ELSE}
  if OpSys and (opWNT+opWIN) <> 0 then asm
   mov AX, 1681h
   int 21h
  end;
+ {$ENDIF}
  FullSpeed:=True;
 end;
 
 Procedure TProgram.EFSpeed; {DataCompBoy}
 begin
- FullSpeed:=False;
+ {$IFDEF WIN32}
+ {LeaveCriticalSection(CS);}
+ {$ELSE}
  if OpSys and (opWNT+opWIN) <> 0 then asm
   mov AX, 1682h
   int 21h
  end;
+ {$ENDIF}
+ FullSpeed:=False;
 end;
 
 { TApplication }
@@ -1136,6 +1167,7 @@ begin
  GetExtent(R);
  PV := New(PBackground, Init(R, ' '));
  if CommandLine <> nil then CommandLine^.SetState(sfDisabled, On);
+ {$IFDEF OS_DOS}
  asm
     mov cx, $2020
     xor bx, bx
@@ -1144,11 +1176,14 @@ begin
     int 10h
     pop  bp
  end;
+ {$ENDIF}
  Insert(PV);
- SetPalette(vga_default);
+ if (StartupData.Load and osuResetPalette <> 0) and VGASystem
+  then SetPalette(vga_default);
  WhenShow;
  if CommandLine <> nil then CommandLine^.SetState(sfDisabled, Off);
- SetPalette(vga_palette);
+ if (StartupData.Load and osuResetPalette <> 0) and VGASystem
+  then SetPalette(vga_palette);
  PV^.Free;
 
  (*
@@ -1229,12 +1264,15 @@ begin
  if Resource <> nil then Exit;
  S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
  if S[Byte(S[0])] <> '\' then S := S + '\';
- ResourceStream := New(PBufStream, Init(S + LngId + '.DLG', stOpenRead, 1024));
- if ResourceStream^.Status <> stOK then
-   begin
-     Dispose(ResourceStream,Done);
-     ResourceStream := New(PBufStream, Init(StartupDir + LngId + '.DLG', stOpenRead, 1024));
-   end;
+ ResourceStream := New(PBufStream,
+                       Init(S + LngId + '.DLG', stOpenPacked, 1024)
+                      );
+ if ResourceStream^.Status <> stOK then begin
+  Dispose(ResourceStream,Done);
+  ResourceStream := New(PBufStream,
+                        Init(StartupDir + LngId + '.DLG', stOpenPacked, 1024)
+                       );
+ end;
  if ResourceStream^.Status <> stOK then ResourceFail(LngId + '.DLG');
  New(Resource, Init(ResourceStream));
 end;
@@ -1413,16 +1451,18 @@ begin
    S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
    if S[Byte(S[0])] <> '\' then S := S + '\';
 
-   PS := New(PBufStream, Init(S + LngId + '.lng', stOpenRead, 4096));
+   PS := New(PBufStream,
+             Init(S + LngId + '.LNG', stOpenPacked, 4096)
+            );
    if PS^.Status <> stOK then
      begin
        Dispose(PS,Done);
-       PS := New(PBufStream, Init(StartupDir + LngId + '.lng', stOpenRead, 4096));
+       PS := New(PBufStream, Init(StartupDir + LngId + '.LNG', stOpenRead, 4096));
      end;
-   if PS^.Status <> stOK then ResourceFail(LngId + '.lng');
+   if PS^.Status <> stOK then ResourceFail(LngId + '.LNG');
 
    XS := nil;
-   {$IFNDEF DPMI} {DataCompBoy: In DPMI EMS and XMS no needed}
+   {$IFNDEF NOEXTRA} {DataCompBoy: In DPMI EMS and XMS no needed}
    if XMSFound then
      begin
        XS := New(PXMSStream, Init(PS^.GetSize, PS^.GetSize));
@@ -1469,7 +1509,7 @@ begin
 
    PS^.Seek(0);
    LStringList := PStringList(PS^.Get);
-   if (PS^.Status <> stOK) or (LStringList = nil) then ResourceFail('reading '+LngId + '.lng');
+   if (PS^.Status <> stOK) or (LStringList = nil) then ResourceFail('reading '+LngId + '.LNG');
 
 end;
 
@@ -1555,7 +1595,7 @@ begin
   if I = -1 then
   begin
     if LStringList = nil then InitLngStream;
-    S := LStringList^.Get( Integer( Index ));
+    S := LStringList^.Get( Word( Index ));
     P := NewCacheRec(S, Index);
     if StringCache^.Count = CacheSize then StringCache^.AtFree(CacheSize-1);
     StringCache^.AtInsert(0, P);

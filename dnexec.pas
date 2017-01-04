@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,11 +44,13 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 unit DNExec;
 
 interface
-uses UserMenu, Startup, Objects, FilesCol, Commands;
+uses UserMenu, Startup, Objects, FilesCol, Commands
+     {$IFDEF DPMI}, DPMI {$ENDIF}
+     ;
 
 procedure SaveDsk;
 procedure ExecString(S: PString);
@@ -63,7 +65,7 @@ uses DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3, FlPanelX,
 procedure SaveDsk;
 begin
  ClrIO;
- if StartupData.Unload and osuAutosave = 0 then
+ if (OpSys <> opDos) and not (TottalExit) then
   PDNApplication(Application)^.SaveDesktop(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
 end;
 
@@ -78,7 +80,7 @@ procedure ExecString(S: PString);
 begin
  M:=S^;
  DelRight(M);
- if not Chk4Dos and (Pos('||', M) <> 0) then
+ if {$IFDEF OS_DOS}not Chk4Dos and {$ENDIF}(Pos('||', M) <> 0) then
   begin
     lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
     lRewriteText(F1); if IOResult <> 0 then begin Close(F1.T); Exit; end;
@@ -96,28 +98,29 @@ begin
   end else M := MakeCMDParams(M, CnvString(CurFileActive), CnvString(CurFilePassive));
 1:
  M := ' '+M+#13; Dec(M[0]);
-{$IFDEF BIT_16}
+{$IFNDEF VIRTUALPASCAL}
  if (LoaderSeg <> 0) then Move(M, mem[LoaderSeg:CommandOfs], Length(M)+2);
-{$ELSE}
- Move(M, Ptr(LoaderSeg,CommandOfs)^, Length(M)+2);
-{$ENDIF}
- if (SystemData.Options and ossFastExec <> 0) or RunFrom2E then asm
-                                               mov ax, 9903h
-                                               mov cl, 1
-                                               int 2Fh
-                                            end;
+ if (SystemData.Options and ossFastExec <> 0) or RunFrom2E
+ then asm
+  mov ax, 9903h
+  mov cl, 1
+  int 2Fh
+ end;
  if TimerMark then DDTimer := Get100s
               else DDTimer := 0;
  asm
     mov ax, 9904h
-    mov  dx, word ptr DDTimer
-    mov  cx, word ptr DDTimer+2
+    mov dx, word ptr DDTimer
+    mov cx, word ptr DDTimer+2
     int 2Fh
     mov ax, 9902h
     mov cl, 1
     int 2Fh
  end;
  Halt(1);
+{$ELSE}
+ Exec(GetEnv('COMSPEC'),'/c '+S^);
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -134,14 +137,17 @@ var
   Local    : Boolean;
   FName,LFN: string;
   UserParam: TUserParams;
+  D        : TMaskData;
 label RL;
 
 begin
+  fillchar(D, sizeof(d), 0);
   First := True;
   Message(Desktop, evBroadcast, cmGetUserParams, @UserParam);
   UserParam.Active:=FileRec;
   FName:=FileRec^.Name;
   LFN  :=GetLFN      (FileRec^.LFN);
+  if CharCount('.', LFN)=0 then LFN:=LFN+'.';
   lGetDir(0, ActiveDir);
   SearchExt:=False;
   Local := On;
@@ -162,8 +168,11 @@ begin
      begin
       I := PosChar(BgCh, S); if (I = 0) or (S[I+1]=BgCh) then Continue;
       S1 := Copy(S, 1, I-1);
-      if InExtFilter(FName, S1) or InExtFilter(LFN, S1) then
-       begin
+      DelLeft(S1);
+      if S1[1]<>';' then begin
+       D.Filter := S1;
+       MakeTMaskData(D);
+       if InExtFilter(FName, D) or InExtFilter(LFN, D) then begin
         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
         lRewriteText(F1); if IOResult <> 0 then begin Dispose(F,Done); exit; end;
         Writeln(F1.T, '@echo off');
@@ -199,8 +208,10 @@ begin
         AllRight := On;
        end;
       end;
-   end;
+     end;
+  end;
   Dispose(F,Done);
+  D.Filter:=''; MakeTMaskData(D);
   if not EF and not Abort and Local then Goto RL;
   if EF and (BgCh = '[') then
    begin
@@ -223,13 +234,16 @@ function ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStr
      PP: PView;
      Success, CD: Boolean;
      Local: Boolean;
+     D: TMaskData;
  label 1,1111, RepeatLocal;
 
 begin
+ FillChar(D, sizeof(D), 0);
  ExecExtFile := Off;
  FileMode := $40;
  Local := On;
  LFN:=GetLFN(UserParams^.Active^.LFN);
+ if CharCount('.', LFN)=0 then LFN:=LFN+'.';
  FName:=UserParams^.Active^.Name;
 
  F := New(PTextReader, Init(ExtFName));
@@ -245,12 +259,14 @@ RepeatLocal:
    begin
       S := F^.GetStr;
       DelLeft(S);
-      S1:=Copy(S, 1, pred(PosChar(':', S)));
-      if S1='' then continue;
-      if InExtFilter(FName, S1) or InExtFilter(LFN, S1) then goto 1111;
+      S1:=fDelLeft(Copy(S, 1, pred(PosChar(':', S))));
+      if (S1='') or (S1[1]=';') then continue;
+      D.Filter := S1; MakeTMaskData(D);
+      if InExtFilter(FName, D) or InExtFilter(LFN, D) then goto 1111;
    end;
    ExecExtFile := Off;
    Dispose(F, Done);
+   D.Filter := ''; MakeTMaskData(D);
    if Local then Goto RepeatLocal;
    Exit;
 1111:
@@ -323,6 +339,7 @@ begin
  fr:= CreateFileRec(FileName);
  S := MakeFileName(fr^.Name);
  L := GetLFN(fr^.LFN);
+ if CharCount('.', L)=0 then L:=L+'.';
  FreeStr := '';
  M := '';
  if (ShiftState and (3 or kbAltShift) <> 0) or

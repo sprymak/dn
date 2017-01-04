@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -55,7 +55,7 @@ uses advance, advance1, advance2, advance3, Objects, DNApp, Views, Drivers,
 
 const boundsASCII: TPoint = (X:0;Y:0);
       charASCII: Char = #04;
-      AsciiTableCommandBase: Word = 910;
+      AsciiTableCommandBase: AWord = 910;
 
 type
   PTable = ^TTable;
@@ -216,7 +216,7 @@ end;
 procedure TReport.Draw;
 var
   Ch: LongInt;
-  Buf: Array[0..50] of word;
+  Buf: TDrawBuffer;
   TempStr: string;
 begin
   If ASCIIChar>0 then

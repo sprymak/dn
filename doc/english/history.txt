@@ -6,6 +6,394 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 1.51.08
+  ---------------------------------------------------------------------
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Added PAT, NFO, UUE, UU[1-9] and U[1-9][1-9] extensions to highlight
+    group 2 (text), WMA extension to group 7 (audio) and REG extension to
+    group 8 (configuration) (Anton Fedorov)
+
+[*] The Highlight group dialog window now contains an example of each group's
+    color (Anton Fedorov)
+
+[*] Exit confirmation is now the last item in the Confirmations dialog window
+    (Anton Fedorov)
+
+[-] Fixed handling of screensaver delay values (Anton Fedorov)
+
+[-] Fixed comment handling bug related to extension configuration files
+    (Anton Fedorov)
+
+[-] Mouse sensitivity was not restored after restarting (Anton Fedorov)
+
+[*] Removed StoreVideoMode2 DN.INI parameter (Pawel Ziemian)
+
+[+] New DN.INI parameter: StoreVideoMode = long ([Kernel] section). 0 means
+    not to store video modes selected from the mode selection menu anywhere,
+    1 means to store them as video mode 1, and 2 means to store them as video
+    mode 2 (Pawel Ziemian)
+
+[+] New DN.INI parameter: DoVESATest = bool ([Kernel] section). When on, VESA
+    132 characters wide modes are available, but Windows can do annoying
+    switches to full-screen mode (Pawel Ziemian)
+
+[*] DN specific video modes are now encoded with numbers that do not conflict
+    with VESA mode numbers. The current assignment requires to add up the two
+    numbers, the first being 128 for the horizontal dimension of 40
+    characters, 144 for 80 and 160 for 94, and the second being 0 for the
+    vertical dimension of 12 characters, 1 for 14, 2 for 25, 3 for 30, 4 for
+    34, 5 for 43, 6 for 50 and 7 for 60 (Pawel Ziemian)
+
+[*] Changed the defaults for alternative video modes: 80x30 for Alt-F10 and
+    132x25 for Ctrl-F10 (Anton Fedorov)
+
+[*] Changed some default options according to wishes of the majority of users
+    (Max Vasilyev)
+
+[*] There is an option now to show volume serial number and file system
+    information in the Information panel (Ondrej Zary)
+
+[+] New DN.INI parameter PreserveMenuPositions = bool ([Interface] section).
+    When enabled, the current positions in all menus persist DN restart
+    (Anton Fedorov)
+
+[-] HistoryErrorBeep DN.INI parameter was ignored for input line histories
+    (Anton Fedorov)
+
+[*] While QuickRenameInDialog DN.INI parameter determines which method of
+    quick renaming shoud be used for Alt-F6, Alt-Shift-F6 invokes the other
+    method (Anton Fedorov)
+
+[*] Changed column defaults for modes 3 and 4 (Max Vasilyev)
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Returned the Combined case its original meaning (Anton Fedorov)
+
+[-] Ctrl-Shift-Arrows had unexpected effect on the command line
+    (Anton Fedorov)
+
+[*] Several internal optimizations caused a valuable decrease of directory
+    scan time. The same technology now applies to Branch panel (Anton Fedorov)
+
+[-] Sometimes the command line could enter the OS/2 session spawn mode under
+    operating systems other than OS/2 (Anton Fedorov)
+
+[-] Ctrl-Arrows with only one panel visible now always change the drive it
+    displays. In prior versions it was possible to change the drive for the
+    invisible panel (Anton Fedorov)
+
+[-] Returned TEMP panel summary shown in the Information panel (Anton Fedorov)
+
+[-] It was impossible to edit a file's description when none of the
+    description files was present (Anton Fedorov)
+
+[-] Fixed an old bug: when moving a file to a directory where the same-named
+    file exists and the overwrite prompt was shown, the Rename option did not
+    work (Anton Fedorov)
+
+[-] Fixed extensions containing closing brace in quotes in the file highlight
+    groups (Anton Fedorov)
+
+[-] Fixed a bug related to sorting files by long extension (Anton Fedorov)
+
+[-] When deleting files with multi-line descriptions, only the first line of
+    description was deleted (Max Vasilyev)
+
+[-] Moving left and right in File Panels could cause weird scrolling
+    (Anton Fedorov)
+
+[-] Quick search failed to find files whose name contains square brackets
+    (Anton Fedorov)
+
+[-] Fixed drag-and-drop copy operation (Anton Fedorov)
+
+[*] Alt-Shift-Left and Right arrows move the vertical line between panels
+    by large amount (Anton Fedorov)
+
+[-] The total number of files shown at the bottom of panels was one larger
+    than their true number (Anton Fedorov)
+
+[-] Recombination of split files failed to work properly when invoked upon
+    any section other than first (Anton Fedorov)
+
+[-] In file split dialog, the input line contained the last history entry
+    instead of the default destination directory (Anton Fedorov)
+
+[-] Fixed a bug that caused a crash under DPMI and incorrect sort results
+    under DOS (Anton Fedorov)
+
+[-] Fixed summary information displayed for a very large number of files
+    (Anton Fedorov)
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] A single zero-code character was the default replace string in editor,
+    instead of an empty string (Anton Fedorov)
+
+[*] Once pressed Ctrl-Enter in editor, the user can interrupt the search
+    process with Esc (Anton Fedorov)
+
+[-] Sligtly fixed the Ctrl-Enter search logic in editor (Anton Fedorov)
+
+[-] Fixed the scrolling speed control logic in viewer (Anton Fedorov)
+
+[*] Files not mentioned in DN.HGL are not subject to syntax highlighting
+    (Pawel Ziemian)
+
+[-] The DBF search status window was missing the quotation character after
+    the search string (Anton Fedorov)
+
+[-] Due to an internal bug, some editor commands could be missing
+    (Pawel Ziemian)
+
+[*] Syntax highlight improvements: added a new general option flag (value 128)
+    (GENERALFLAGS keyword) that allows to recognize floats with missing
+    integer part and a new string flag (STRINGFLAGS keyword) (value 128) that
+    restricts control character sequences highlighting to caret-letter pairs
+    with a non-alphabetic character being the next (this solves some problems
+    with Pascal syntax) (Pawel Ziemian)
+
+[*] Removed the disassembler, at least temporary (Max Vasilyev)
+
+[-] When replacing all occurrences of search pattern in editor, the replace
+    summary was incorrect (Max Vasilyev)
+
+[-] Scrolling up in the viewer sometimes produced weird results
+    (Anton Fedorov)
+
+[-] It was imposible to interrupt searching in DBF viewer (Anton Fedorov)
+
+[-] After editing a file passed through an external filter, an empty entry was
+    added to the editing history (Anton Fedorov)
+
+[-] Comments on the current line did not get highlighted in editor
+    (Anton Fedorov)
+
+[-] Printing from the editor was broken (Anton Fedorov)
+
+[-] Editor performed very slowly in real mode (Anton Fedorov)
+
+[*] The List panel's title is now shown with appropriate prefix (Anton Fedorov)
+
+[*] Shift-F6 in viewer does not reset the current xlat table anymore. Instead,
+    a menu of available xlat tables is opened. Pressing Backspace in this menu
+    removes any active xlat table, and pressing Spacebar presents a dialog
+    window for advanced selection of XLT files (Anton Fedorov)
+
+[-] The Goto command in Spreadsheet Editor was broken (Anton Fedorov)
+
+[*] Introduced Goto command in viewer similar to the one in editor
+    (Anton Fedorov)
+
+[*] Alt-F7 performs backward search in DBF viewer (Anton Fedorov)
+
+[*] Added SmartTab option to the local editor menu (Anton Fedorov)
+
+[*] Empty databases are recorded to view history (Anton Fedorov)
+
+[-] DN crashed on DBF file with a field's length of zero created by some
+    database tools (Anton Fedorov)
+
+[-] The editor window frame was colored incorrectly when inactive
+    (Anton Fedorov)
+
+[-] The default setting for Tab Replace was ignored (Anton Fedorov)
+
+[-] Horisontal Scroll bar could have incorrect size after resizing the
+    editor window (Anton Fedorov)
+
+[-] Fixed wrong attributes having been set on the created by editor files
+    (Anton Fedorov)
+
+[*] When printing the selected block from the editor, the page is not ejected
+    (Anton Fedorov)
+
+    >>> Search <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Searching failed when the file was less than twice the length of the
+    search string (Anton Fedorov)
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed handling of AIN and UC2 archives (Max Vasilyev)
+
+[-] After exitting an archive selected from the directory history, DN
+    returned to the last directory that was active. Now it jumps to the
+    directory containing the archive (Anton Fedorov)
+
+[-] Fixed a bug related to archiving subdirectories (Anton Fedorov)
+
+[-] When running AIN and UC2 archivers, blinking was enabled (Max Vasilyev)
+
+[-] Invalid AIN archives could sometimes hang DN (Max Vasilyev)
+
+[-] Fixed and optimized detection of AIN, GZip, LHA and UC2 archives, as well
+    as ARJ 2.72 SFX archives (Max Vasilyev)
+
+[-] Fixed TDR handling by means of rolling back to DN 1.51 code with no
+    functionality degradation (Anton Fedorov)
+
+[+] Added new per-archiver option: Recurse Subdirectories. By default enabled
+    for those archivers that do recursive scanning only for *.* wildcard. Not
+    set for archivers, that always do recursive scanning and for those that,
+    when archiving a single file, would put into the archive all files from
+    subdirectories having that name. (Max Vasilyev)
+
+[*] Improved default options for most archivers (Max Vasilyev)
+
+[*] Improved detection of SFX archives (Max Vasilyev)
+
+[-] Fixed reading of small LHA archives (Max Vasilyev)
+
+[*] Fixed HPACK invocation (Max Vasilyev)
+
+[-] Long archiver options cound be unexpectedly truncated. (Max Vasilyev)
+
+[*] To prevent crashes, packers and unpackers whose extentions are other than
+    EXE or COM are invoked via the command shell even when swapping was
+    disabled (Anton Fedorov)
+
+    >>> System Information <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] More DOS vendors, Windows earlier than 95 and OS/2 earlier than Warp 3
+    are now correctly reported by System information (Mariusz Borkowski)
+
+[-] CPU speed detection code hanged the DPMI session under pure DOS
+    (Max Vasilyev)
+
+[-] Fixed resources for system information (Max Vasilyev)
+
+[-] Fixed detection of OS/2 and some Windows versions (Max Vasilyev)
+
+[-] Fixed reporting of more than 64 megabytes RAM (Max Vasilyev)
+
+[-] Fixed occasional detection of four LPT ports (Max Vasilyev)
+
+    >>> Cosmetic <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] A minor cosmetic fix to Russian after-formatting dialog window
+    (Anton Fedorov)
+
+[*] The status bar now reflects available keyboard commands while holding
+    down Ctrl and Alt together (Anton Fedorov)
+
+[-] The user menu was sometimes shown off the right place (Anton Fedorov)
+
+[-] Fixed the phonebook. The sections now get sorted each time after loading,
+    and, when renamed, are automatically reordered (Anton Fedorov)
+
+[-] Fixed the internal timing code, thanks to Pavel Borodin (Anton Fedorov)
+
+[-] Fixed minor typos in Engligh resources (Mariusz Borkowski)
+
+[-] Highlight was missing for OK and Help buttons in dialog windows
+    (Pavel Borodin)
+
+[*] T key in CD player now works for Time, not for Title (available via L
+    key). R key now works for Track list (JITRsoftware)
+
+[-] Fixed a cosmetic bug in the CD Track list dialog window (JITRsoftware)
+
+[*] Tetris, Print manager, Calendar and Calculator windows now have ordinal
+    numbers like other windows (Anton Fedorov)
+
+[*] Windows 9x console window title strings that are too long are now
+    correctly shortened (Max Vasilyev)
+
+[*] F9 and Shift-F9 are now functional in the Dialer window (Anton Fedorov)
+
+[*] PgUp and PgDn keys work in menus (Anton Fedorov)
+
+[*] Right after opening the directory history, the second entry becomes
+    selected automatically (Anton Fedorov)
+
+[*] When holding an arrow key in a menu or scrolling it with the mouse
+    button, scrolling stops at the beginning or at the end and does not
+    continue until the key or the mouse button is released (Anton Fedorov)
+
+[*] In the event of run time error, DN requests for its description
+    (Anton Fedorov)
+
+[*] Reorganized the Panel Defaults dialog window in Russian resources
+    (Anton Fedorov)
+
+    >>> Programs executing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] The DPMI version incorrectly reported itself as DOS version at startup
+    (Anton Fedorov)
+
+[-] DN.SWP sometimes did not get deleted (Anton Fedorov)
+
+[-] Fixed a crash when DN environment variable contained a nonexistent path
+    (Vladimir Korablin)
+
+[*] Temporary list files now have unque names. This prevents conflicts between
+    several copies of DN running simultaneously (Anton Fedorov)
+
+[-] External programs launched with Quick Run feature cound not access the
+    list of selected files (Anton Fedorov)
+
+[*] When used in multitasking environment, several instances of DN store
+    their current desktop information in separate temporary files to prevent
+    unwanted interference (Anton Fedorov)
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] The screen manager is rewritten to allow usage of more extended text
+    modes (40, 80, 94 by 12, 14, ..., 60) and to eliminate problems with VESA
+    text modes under DPMI (Pawel Ziemian)
+
+[-] Due to an internal bug, DN was neither usable nor compileable under
+    non-Windows 9x environment with LFN API available (Max Vasilyev)
+
+[-] An internal fix was done on syntax highlighting (Pawel Ziemian)
+
+[-] DPMI version crashed with a user menu where the first entry was empty
+    (Anton Fedorov)
+
+[-] Tetris crashed after playing (Anton Fedorov)
+
+[-] When Color Dialog was opened after loading palette from a file, a General
+    Protection Fault was generated (Pawel Ziemian)
+
+[-] Fixed mitliple bugs related to VGA palettes (Anton Fedorov)
+
+[-] DN crased when help file is missing (Anton Fedorov)
+
+[-] Printing was impossible in DPMI version (Anton Fedorov)
+
+[-] Internal fixes for Direct disk access (Max Vasilyev, Anton Fedorov)
+
+[-] Reanimator and Disk editor did not worken in DPMI version
+    (Sergey Korshunoff)
+
+[-] Erasing files with Direct disk access was broken (Anton Fedorov)
+
+[-] It was impossible to calculate arcsine and arccosine values of 1 and -1
+    (Anton Fedorov)
+
+[-] Unary minus operator was missing in the Calculator (Anton Fedorov)
+
+[-] Trailing zeroes were incorrectly trimmed from exponent part of decimal
+    numbers (Anton Fedorov)
+
+[*] Tweaked window sizing logic. Alt-Z now toggles between the maximum (with
+    fully visible borders) and the prior size, and Ctrl-Alt-Z switches the
+    extra-large (with invisible side borders) and the prior size. This is
+    true for the editor, viewer and terminal windows. The file manager window
+    was also subject to modification: Ctrl-Alt-Z now only enlarges the current
+    panel to the size of the whole file manager window, not zooming the latter to
+    the screen extent and leaving this task up to Alt-Z. This influenced a
+    change of DN.DSK desktop file format (Anton Fedorov)
+
+[-] Fixed numerous bugs in Navigator Link (Anton Fedorov)
+
+[-] Fixed a number of other bugs, minor and not...
+
+
    Version 1.51.07
   ---------------------------------------------------------------------
 
@@ -30,7 +418,7 @@
 
     >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-[+] Filename case conversion feature: press Ctrl-Alt-F6 to get a dislog window
+[+] Filename case conversion feature: press Ctrl-Alt-F6 to get a dialog window
     with samples (Anton Fedorov)
 
 [*] Changed the default settings for file highlighting groups. Audio and video
@@ -1104,7 +1492,7 @@
     is now scrolled
 
 [*] The first submenu of the main menu (the System Menu) is now shown as the
-    "" (#4) because of the previously used character (#240) sometimes
+    "." (#4) because of the previously used character (#240) sometimes
     appearing as a cyryllic letter. There is an option to specify any other
     character instead
 

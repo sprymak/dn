@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -46,13 +46,15 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit Reanimator;
+unit Reanimat;
 
 interface
 
-uses DNApp, Dialogs, Objects, Views, Drivers, DiskTool, Dos, advance, advance1,
-     advance2, advance3, Memory, FViewer, Commands, FilesCol, Drives, RStrings,
-     Messages, DNHelp, DNStdDlg,Tree, collect, lfn;
+uses DNApp, Dialogs, Objects, Views, Drivers, Dos, advance, advance1, advance2,
+     advance3, Memory, FViewer, Commands, FilesCol, Drives, RStrings, Messages,
+     DNHelp, DNStdDlg,Tree, collect, lfn
+     {$IFNDEF NONBP}, DiskTool{$ENDIF}
+     ;
 
 type
      PReaData = ^TReaData;
@@ -93,7 +95,7 @@ type
       procedure HandleEvent(var Event: TEvent); virtual;
       procedure GetDirData;
       function Valid(Command: Word): Boolean; virtual;
-      function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+      function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
       function GetKey(var S: String): Pointer; virtual;
      end;
 
@@ -352,6 +354,7 @@ procedure TReanimator.HandleEvent;
       I: Word;
       OldPos: Word;
       PP: Array[1..2] of Pointer;
+      SaveCurrent: PView;
  begin
   OldPos := Focused;
   R.Assign(1,1,40,14);
@@ -382,7 +385,11 @@ procedure TReanimator.HandleEvent;
   PV := New(PIView, Init(R));
   W^.Insert(PV);
 
+  SaveCurrent:=Desktop^.Current;
+  W^.Options:=W^.Options and not ofSelectable;
+  W^.SetState(sfModal, True);
   Desktop^.Insert(W);
+  Desktop^.SetCurrent(W, EnterSelect);
   repeat
    KeyEvent(Event);
    Event.CharCode := UpCase(Event.CharCode);
@@ -407,8 +414,9 @@ procedure TReanimator.HandleEvent;
           begin
            Cl := GetCol;
            for I := 0 to Cl^.MaxSize do
-            if I < Cl^.MaxSize then Drv^.SetFAT(Cl^.GetData(I),Cl^.GetData(I+1))
-                               else Drv^.SetFAT(Cl^.GetData(I), $FFF+$F000*Byte(not Drv^.FAT12));
+            if I < Cl^.MaxSize
+             then Drv^.SetFAT(Cl^.GetData(I), Cl^.GetData(I+1))
+             else Drv^.SetFAT(Cl^.GetData(I), $F+Drv^.LastEl);
            Drv^.WriteFAT;
            Dispose(Cl,Done); Cl:=nil;
            InfoPane^.FirstCall := On;
@@ -417,9 +425,9 @@ procedure TReanimator.HandleEvent;
         end else FreeMem(Dir,Drv^.ClusterSize(P^.Dir));
       end;
     end;
+  DeskTop^.SetCurrent(SaveCurrent, LeaveSelect);
   Desktop^.Delete(W);
-  Dispose(W,Done);
-  Owner^.SetState(sfActive, True);
+  Dispose(W, Done);
   ClearEvent(Event);
   SetRange(List^.Count);
   FocusItem(OldPos);
@@ -785,7 +793,6 @@ begin
  RereadDrives := [];
  Desktop^.ExecView(D);
  S := 'A:\';
-{$IFNDEF FPC}
  for S[1] := 'A' to 'Z' do
   if S[1] in RereadDrives then
    begin
@@ -793,7 +800,6 @@ begin
     GlobalMessage(evCommand, cmRereadInfo, nil);
     GlobalMessage(evCommand, cmRereadTree, @S);
    end;
-{$ELSE}
  for B := Ord('A') to Ord('Z') do
   if Char(B) in RereadDrives then
    begin
@@ -802,7 +808,6 @@ begin
     GlobalMessage(evCommand, cmRereadInfo, nil);
     GlobalMessage(evCommand, cmRereadTree, @S);
    end;
-{$ENDIF}
 
  Dispose(D,Done);
 

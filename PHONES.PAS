@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -101,7 +101,7 @@ type
       Info: PDStringView;
       destructor Done; virtual;
       procedure HandleEvent(var Event: TEvent); virtual;
-      function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+      function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
       function GetKey(var S: String): Pointer; virtual;
       procedure SetList(Alpha: Boolean);
 {      procedure SetState(AState: Word; Enable: Boolean); virtual;}
@@ -234,7 +234,7 @@ begin
    if (Focused=0) then DisableCommands([cmDialPhone, cmImportPhones])
                   else EnableCommands([cmDialPhone, cmImportPhones])
 end;
- }
+}
 procedure TPhoneBox.SetList;
   var PC: PPhoneCollection;
       S: TBufStream;
@@ -349,11 +349,15 @@ procedure TPhoneBox.HandleEvent;
             PH^.Memo1 := NewStr(DT.Memo1);
             DisposeStr(PH^.Memo2);
             PH^.Memo2 := NewStr(DT.Memo2);
+            C^.AtDelete(Focused);
+            PSortedCollection(C)^.Search(PH, Focused);
+            C^.AtInsert(Focused, PH);
           end;
   Owner^.Lock; NewList(C); FocusItem(R.A.X); Owner^.UnLock;
   Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
   Phones := C;
-  Stream.Put(C);
+  if Phones^.Count>16380 then Stream.Put(Phones)
+                         else PPhoneCollection(Phones)^.ShortStore(Stream);
   Stream.Done;
  end;
 
@@ -505,6 +509,7 @@ procedure TPhoneBox.HandleEvent;
          DrawView;
          Exit;
        end;
+      PSortedCollection(List)^.Sort;
       if (PPhone(List^.At(0))^.Name<>'..') and (List^.Count>0) then
        begin
         P:=New(PPhone, Init(' ','..',GetString(dlPhonesUpDir),''));
@@ -793,8 +798,9 @@ end;
 
 constructor TPhoneCollection.Load;
 begin
- inherited Load(S);
+ if not inherited Load(S) then fail;
  Duplicates := On;
+ Sort;
 end;
 
 const VObjType:word=otPhone;
@@ -839,6 +845,7 @@ begin
    if q=otPhoneDir then AtInsert(I, New(PPhoneDir, Load(S))) else break;
   end;
   S.Read(Duplicates, SizeOf(Boolean));
+  Sort;
 end;
 
 function TPhoneCollection.Compare;
@@ -917,7 +924,7 @@ end;
 
 
 constructor TPhoneDir.Load;
-var Q: Word;
+var Q: Longint;
 begin
  S.Read(Name[0],1);
  S.Read(Name[1], Byte(Name[0]));

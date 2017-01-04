@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,13 +48,7 @@
 
 unit Overlays;
 interface
-uses LFN, {DataCompBoy}
-     Objects,
-{$IFDEF PackOverlay}
-     DnOverl; {DataCompBoy}
-{$ELSE}
-     Overlay;
-{$ENDIF}
+uses Objects;
 
 procedure OvrInitStream(S : PStream);
 { Copies overlay segment code to S as new segments are loaded,
@@ -78,7 +72,9 @@ function OvrLoadAll : Boolean;
 procedure InitOverlay(FileName: String);
 
 implementation
-uses extramemory, advance, advance1, advance2, advance3, Startup, Commands;
+uses LFN, {DataCompBoy}
+     ExtraMem, advance, advance1, advance2, advance3, Startup, Commands,
+     Overlay1;
 
   { ****** Overlay stream code ****** }
 
@@ -281,33 +277,26 @@ const
 
 procedure InitOverlay(FileName: String);
   var S: PStream;
-      LM,LL: LongInt;
       I : longint ;
+      LL : LongInt;
       ST : string[8] ;
 begin
-{  if FindParam('/NCF')=0 then
-  if SystemFiles < 25 then
-      begin
-        Writeln(' Not enough files. Set at least FILES=25 in CONFIG.SYS');
-        Halt(250);
-      end;
-}
   ClrIo;
   FileName:=lfGetShortFileName(FileName); {DataCompBoy}
   S := New(PDosStream, Init(FileName, stOpenRead));
-  if S^.Status <> stOK then
-    begin
-      Writeln('Could not initialize Overlays');
-      Halt(1);
-    end;
+  if S^.Status <> stOK then begin
+   Writeln('Could not initialize Overlays ('+FileName+')');
+   Halt(1);
+  end;
   LL := S^.GetSize;
   Dispose(S,Done);
-  ovrInit(FileName);
 
   I := FindParam('/BUF:');
   if I > 0 then StartupData.OvrSize := Max( 64, StoI( Copy( ParamStr( I ), 6, 255 )));
 
-  ovrSetBuf( StartupData.OvrSize * LongInt( 1024 ));
+  OvrFileMode:=$40;
+  OvrSetBuf( StartupData.OvrSize * LongInt( 1024 ));
+  OvrInit(FileName);
 
   if (FindParam('/NOXMS') = 0) then
    begin

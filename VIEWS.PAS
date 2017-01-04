@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
-//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Views;
 
@@ -59,8 +56,7 @@ unit Views;
 
 interface
 
-uses LFN, TitleSet, {DataCompBoy}
-     Objects, Drivers, Memory, xTime, ObjType;
+uses Collect, Objects, Drivers, Memory, xTime, Commands;
 
 const
 
@@ -146,68 +142,17 @@ const
   wfGrow  = $02;
   wfClose = $04;
   wfZoom  = $08;
+  wfMaxi  = $10;
 
 { TWindow number constants }
 
-  wnNoNumber = 0;
+  wnNoNumber = 255;
 
 { TWindow palette entries }
 
   wpBlueWindow = 0;
   wpCyanWindow = 1;
   wpGrayWindow = 2;
-
-{ Standard command codes }
-
-  cmValid   = 0;
-  cmQuit    = 1;
-  cmError   = 2;
-  cmMenu    = 3;
-  cmClose   = 4;
-  cmZoom    = 5;
-  cmResize  = 6;
-  cmNext    = 7;
-  cmPrev    = 8;
-  cmHelp    = 9;
-  cmHelp2   = $DCB;
-
-{ Application command codes }
-
-  cmCut     = 20;
-  cmCopy    = 21;
-  cmPaste   = 22;
-  cmUndo    = 23;
-  cmClear   = 24;
-  cmTile    = 25;
-  cmCascade = 26;
-
-{ TDialog standard commands }
-
-  cmOK      = 10;
-  cmCancel  = 11;
-  cmYes     = 12;
-  cmNo      = 13;
-  cmDefault = 14;
-  cmSkip    = 15;
-
-{ Standard messages }
-
-  cmReceivedFocus     = 50;
-  cmReleasedFocus     = 51;
-  cmCommandSetChanged = 52;
-
-{ TScrollBar messages }
-
-  cmScrollBarChanged  = 53;
-  cmScrollBarClicked  = 54;
-
-{ TWindow select messages }
-
-  cmSelectWindowNum   = 55;
-
-{ TListViewer messages }
-
-  cmListItemSelected  = 56;
 
 { Color palettes }
 
@@ -238,7 +183,7 @@ type
 
 { TDrawBuffer, buffer used by draw methods }
 
-  TDrawBuffer = array[0..MaxViewWidth - 1] of Word;
+  TDrawBuffer = array[0..MaxViewWidth - 1] of AWord;
 
 { TView object Pointer }
 
@@ -258,85 +203,85 @@ type
     Cursor: TPoint;
     GrowMode: Byte;
     DragMode: Byte;
-    HelpCtx: Word;
-    State: Word;
-    Options: Word;
-    EventMask: Word;
+    HelpCtx: AWord;
+    State: AWord;
+    Options: AWord;
+    EventMask: AWord;
     UpTmr: TEventTimer;
     UpdTicks: LongInt;
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
-    destructor Done; virtual;
-    procedure Awaken; virtual;
-    procedure BlockCursor;
-    procedure CalcBounds(var Bounds: TRect; Delta: TPoint); virtual;
-    procedure ChangeBounds(var Bounds: TRect); virtual;
-    procedure ClearEvent(var Event: TEvent);
-    function CommandEnabled(Command: Word): Boolean;
-    function DataSize: Word; virtual;
-    procedure DisableCommands(Commands: TCommandSet);
-    procedure DragView(Event: TEvent; Mode: Byte;
-      var Limits: TRect; MinSize, MaxSize: TPoint);
-    procedure Draw; virtual;
-    procedure DrawView;
-    procedure EnableCommands(Commands: TCommandSet);
-    procedure EndModal(Command: Word); virtual;
-    function EventAvail: Boolean;
-    function Execute: Word; virtual;
-    function Exposed: Boolean;
-    function Focus: Boolean;
-    procedure GetBounds(var Bounds: TRect);
-    procedure GetClipRect(var Clip: TRect);
-    function GetColor(Color: Word): Word;
-    procedure GetCommands(var Commands: TCommandSet);
-    procedure GetData(var Rec); virtual;
-    procedure GetEvent(var Event: TEvent); virtual;
-    procedure GetExtent(var Extent: TRect);
-    function GetHelpCtx: Word; virtual;
-    function GetPalette: PPalette; virtual;
-    procedure GetPeerViewPtr(var S: TStream; var P);
-    function GetState(AState: Word): Boolean;
-    procedure GrowTo(X, Y: Integer);
-    procedure HandleEvent(var Event: TEvent); virtual;
-    procedure Hide;
-    procedure HideCursor;
-    procedure KeyEvent(var Event: TEvent);
-    procedure Locate(var Bounds: TRect);
-    procedure MakeFirst;
-    procedure MakeGlobal(Source: TPoint; var Dest: TPoint);
-    procedure MakeLocal(Source: TPoint; var Dest: TPoint);
-    function MouseEvent(var Event: TEvent; Mask: Word): Boolean;
-    function MouseInView(Mouse: TPoint): Boolean;
-    procedure MoveTo(X, Y: Integer);
-    function NextView: PView;
-    procedure NormalCursor;
-    function Prev: PView;
-    function PrevView: PView;
-    procedure PutEvent(var Event: TEvent); virtual;
-    procedure PutInFrontOf(Target: PView);
-    procedure PutPeerViewPtr(var S: TStream; P: PView);
-    procedure Select;
-    procedure SetBounds(var Bounds: TRect);
-    procedure SetCommands(Commands: TCommandSet);
+    destructor  Done; virtual;
+    procedure   Awaken; virtual;
+    procedure   BlockCursor;
+    procedure   CalcBounds(var Bounds: TRect; Delta: TPoint); virtual;
+    procedure   ChangeBounds(var Bounds: TRect); virtual;
+    procedure   ClearEvent(var Event: TEvent);
+    function    CommandEnabled(Command: Word): Boolean;
+    function    DataSize: Word; virtual;
+    procedure   DisableCommands(Commands: TCommandSet);
+    procedure   DragView(Event: TEvent; Mode: Byte; var Limits: TRect;
+                         MinSize, MaxSize: TPoint);
+    procedure   Draw; virtual;
+    procedure   DrawView;
+    procedure   EnableCommands(Commands: TCommandSet);
+    procedure   EndModal(Command: Word); virtual;
+    function    EventAvail: Boolean;
+    function    Execute: Word; virtual;
+    function    Exposed: Boolean;
+    function    Focus: Boolean;
+    procedure   GetBounds(var Bounds: TRect);
+    procedure   GetClipRect(var Clip: TRect);
+    function    GetColor(Color: Word): Word;
+    procedure   GetCommands(var Commands: TCommandSet);
+    procedure   GetData(var Rec); virtual;
+    procedure   GetEvent(var Event: TEvent); virtual;
+    procedure   GetExtent(var Extent: TRect);
+    function    GetHelpCtx: Word; virtual;
+    function    GetPalette: PPalette; virtual;
+    procedure   GetPeerViewPtr(var S: TStream; var P);
+    function    GetState(AState: Word): Boolean;
+    procedure   GrowTo(X, Y: LongInt);
+    procedure   HandleEvent(var Event: TEvent); virtual;
+    procedure   Hide;
+    procedure   HideCursor;
+    procedure   KeyEvent(var Event: TEvent);
+    procedure   Locate(var Bounds: TRect);
+    procedure   MakeFirst;
+    procedure   MakeGlobal(Source: TPoint; var Dest: TPoint);
+    procedure   MakeLocal(Source: TPoint; var Dest: TPoint);
+    function    MouseEvent(var Event: TEvent; Mask: Word): Boolean;
+    function    MouseInView(Mouse: TPoint): Boolean;
+    procedure   MoveTo(X, Y: LongInt);
+    function    NextView: PView;
+    procedure   NormalCursor;
+    function    Prev: PView;
+    function    PrevView: PView;
+    procedure   PutEvent(var Event: TEvent); virtual;
+    procedure   PutInFrontOf(Target: PView);
+    procedure   PutPeerViewPtr(var S: TStream; P: PView);
+    procedure   Select;
+    procedure   SetBounds(var Bounds: TRect);
+    procedure   SetCommands(Commands: TCommandSet);
 {DataCompBoy
-    procedure SetCmdState(Commands: TCommandSet; Enable: Boolean);
+    procedure   SetCmdState(Commands: TCommandSet; Enable: Boolean);
 }
-    procedure SetCursor(X, Y: Integer);
-    procedure SetData(var Rec); virtual;
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
-    procedure Show;
-    procedure ShowCursor;
-    procedure SizeLimits(var Min, Max: TPoint); virtual;
-    procedure Store(var S: TStream);
-    function TopView: PView;
-    function Valid(Command: Word): Boolean; virtual;
-    procedure WriteBuf(X, Y, W, H: Integer; var Buf);
-    procedure WriteChar(X, Y: Integer; C: Char; Color: Byte;
-      Count: Integer);
-    procedure WriteLine(X, Y, W, H: Integer; var Buf);
-    procedure WriteStr(X, Y: Integer; Str: String; Color: Byte);
-    procedure Update; virtual;
-    function MenuEnabled(Command: Word): Boolean; {-$VOL}
+    procedure   SetCursor(X, Y: LongInt);
+    procedure   SetData(var Rec); virtual;
+    procedure   SetState(AState: Word; Enable: Boolean); virtual;
+    procedure   Show;
+    procedure   ShowCursor;
+    procedure   SizeLimits(var Min, Max: TPoint); virtual;
+    procedure   Store(var S: TStream);
+    function    TopView: PView;
+    function    Valid(Command: Word): Boolean; virtual;
+    procedure   WriteBuf(X, Y, W, H: Integer; var Buf);
+    procedure   WriteChar(X, Y: Integer; C: Char; Color: Byte;
+                          Count: Integer);
+    procedure   WriteLine(X, Y, W, H: Integer; var Buf);
+    procedure   WriteStr(X, Y: Integer; Str: String; Color: Byte);
+    procedure   Update; virtual;
+    function    MenuEnabled(Command: Word): Boolean; {-$VOL}
   private
     procedure DrawCursor;
     procedure DrawHide(LastView: PView);
@@ -348,7 +293,7 @@ type
 
 { TFrame types }
 
-  TTitleStr = string[80];
+  TTitleStr = string;
 
 { TFrame object }
 
@@ -362,12 +307,12 @@ type
   PFrame = ^TFrame;
   TFrame = object(TView)
     constructor Init(var Bounds: TRect);
-    procedure Draw; virtual;
-    function GetPalette: PPalette; virtual;
-    procedure HandleEvent(var Event: TEvent); virtual;
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure   Draw; virtual;
+    function    GetPalette: PPalette; virtual;
+    procedure   HandleEvent(var Event: TEvent); virtual;
+    procedure   SetState(AState: Word; Enable: Boolean); virtual;
   private
-    procedure FrameLine(var FrameBuf; Y, N: Integer; Color: Byte);
+    procedure   FrameLine(var FrameBuf; Y, N: Integer; Color: Byte);
   end;
 
 { ScrollBar characters }
@@ -383,41 +328,41 @@ type
 
   PScrollBar = ^TScrollBar;
   TScrollBar = object(TView)
-    Value: Integer;
-    Min: Integer;
-    Max: Integer;
-    PgStep: Integer;
-    ArStep: Integer;
+    Value:  LongInt;
+    Min:    LongInt;
+    Max:    LongInt;
+    PgStep: LongInt;
+    ArStep: LongInt;
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
-    procedure Draw; virtual;
-    function GetPalette: PPalette; virtual;
-    procedure HandleEvent(var Event: TEvent); virtual;
-    procedure ScrollDraw; virtual;
-    function ScrollStep(Part: Integer): Integer; virtual;
-    procedure SetParams(AValue, AMin, AMax, APgStep, AArStep: Integer);
-    procedure SetRange(AMin, AMax: Integer);
-    procedure SetStep(APgStep, AArStep: Integer);
-    procedure SetValue(AValue: Integer);
-    procedure Store(var S: TStream);
+    procedure   Draw; virtual;
+    function    GetPalette: PPalette; virtual;
+    procedure   HandleEvent(var Event: TEvent); virtual;
+    procedure   ScrollDraw; virtual;
+    function    ScrollStep(Part: LongInt): LongInt; virtual;
+    procedure   SetParams(AValue, AMin, AMax, APgStep, AArStep: LongInt);
+    procedure   SetRange(AMin, AMax: LongInt);
+    procedure   SetStep(APgStep, AArStep: LongInt);
+    procedure   SetValue(AValue: LongInt);
+    procedure   Store(var S: TStream);
   private
     Chars: TScrollChars;
-    procedure DrawPos(Pos: Integer);
-    function GetPos: Integer;
-    function GetSize: Integer;
+    procedure   DrawPos(Pos: LongInt);
+    function    GetPos: LongInt;
+    function    GetSize: LongInt;
   end;
 
  PMyScrollBar=^TMyScrollBar;
  TMyScrollBar = object(TScrollBar)
     procedure Draw; virtual;
-    private
-    procedure DrawPos(Pos: Integer);
+ private
+    procedure DrawPos(Pos: LongInt);
  end;
 
 { Video buffer }
 
   PVideoBuf = ^TVideoBuf;
-  TVideoBuf = array[0..3999] of Word;
+  TVideoBuf = array[0..3999] of AWord;
 
 { Selection modes }
 
@@ -433,50 +378,51 @@ type
     Clip: TRect;
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
-    destructor Done; virtual;
-    procedure Awaken; virtual;
-    procedure ChangeBounds(var Bounds: TRect); virtual;
-    function DataSize: Word; virtual;
-    procedure Delete(P: PView);
-    procedure Draw; virtual;
-    procedure EndModal(Command: Word); virtual;
-    procedure EventError(var Event: TEvent); virtual;
-    function ExecView(P: PView): Word;
-    function Execute: Word; virtual;
-    function First: PView;
-    function FirstThat(P: Pointer): PView;
-    function FocusNext(Forwards: Boolean): Boolean;
-    procedure ForEach(P: Pointer);
-    procedure GetData(var Rec); virtual;
-    function GetHelpCtx: Word; virtual;
-    procedure GetSubViewPtr(var S: TStream; var P);
-    procedure HandleEvent(var Event: TEvent); virtual;
-    procedure Insert(P: PView);
-    procedure InsertBefore(P, Target: PView);
-    procedure Lock;
-    procedure PutSubViewPtr(var S: TStream; P: PView);
-    procedure Redraw; virtual;
-    procedure SelectNext(Forwards: Boolean);
-    procedure SetData(var Rec); virtual;
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
-    procedure Store(var S: TStream);
-    procedure Unlock;
-    function Valid(Command: Word): Boolean; virtual;
-    procedure FreeBuffer;
-    procedure GetBuffer;
-    procedure InsertView(P, Target: PView);
-    procedure SetCurrent(P: PView; Mode: SelectMode);
+    destructor  Done; virtual;
+    procedure   Awaken; virtual;
+    procedure   ChangeBounds(var Bounds: TRect); virtual;
+    function    DataSize: Word; virtual;
+    procedure   Delete(P: PView);
+    procedure   Draw; virtual;
+    procedure   EndModal(Command: Word); virtual;
+    procedure   EventError(var Event: TEvent); virtual;
+    function    ExecView(P: PView): Word;
+    function    Execute: Word; virtual;
+    function    First: PView;
+    function    FirstThat(P: Pointer): PView;
+    function    LastThat(P: Pointer): PView;
+    function    FocusNext(Forwards: Boolean): Boolean;
+    procedure   ForEach(P: Pointer);
+    procedure   GetData(var Rec); virtual;
+    function    GetHelpCtx: Word; virtual;
+    procedure   GetSubViewPtr(var S: TStream; var P);
+    procedure   HandleEvent(var Event: TEvent); virtual;
+    procedure   Insert(P: PView);
+    procedure   InsertBefore(P, Target: PView);
+    procedure   Lock;
+    procedure   PutSubViewPtr(var S: TStream; P: PView);
+    procedure   Redraw; virtual;
+    procedure   SelectNext(Forwards: Boolean);
+    procedure   SetData(var Rec); virtual;
+    procedure   SetState(AState: Word; Enable: Boolean); virtual;
+    procedure   Store(var S: TStream);
+    procedure   Unlock;
+    function    Valid(Command: Word): Boolean; virtual;
+    procedure   FreeBuffer;
+    procedure   GetBuffer;
+    procedure   InsertView(P, Target: PView);
+    procedure   SetCurrent(P: PView; Mode: SelectMode);
   private
     LockFlag: Byte;
     EndState: Word;
-    function At(Index: Integer): PView;
-    procedure DrawSubViews(P, Bottom: PView);
-    function FirstMatch(AState: Word; AOptions: Word): PView;
-    function FindNext(Forwards: Boolean): PView;
-    function IndexOf(P: PView): Integer;
-    procedure RemoveView(P: PView);
-    procedure ResetCurrent;
-    procedure ResetCursor; virtual;
+    function    At(Index: LongInt): PView;
+    procedure   DrawSubViews(P, Bottom: PView);
+    function    FirstMatch(AState: Word; AOptions: Word): PView;
+    function    FindNext(Forwards: Boolean): PView;
+    function    IndexOf(P: PView): LongInt;
+    procedure   RemoveView(P: PView);
+    procedure   ResetCurrent;
+    procedure   ResetCursor; virtual;
   end;
 
 { TWindow object }
@@ -495,31 +441,33 @@ type
   TWindow = object(TGroup)
     Flags: Byte;
     ZoomRect: TRect;
-    Number: Integer;
-    Palette: Integer;
+    MaxiRect: TRect;
+    Number: AInt;
+    Palette: AInt;
     Frame: PFrame;
     Title: PString;
     constructor Init(var Bounds: TRect; const ATitle: TTitleStr; ANumber: Integer);
     constructor Load(var S: TStream);
-    destructor Done; virtual;
-    procedure Close; virtual;
-    function GetPalette: PPalette; virtual;
-    function GetTitle(MaxSize: Integer): TTitleStr; virtual;
-    procedure HandleEvent(var Event: TEvent); virtual;
-    procedure InitFrame; virtual;
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
-    procedure SizeLimits(var Min, Max: TPoint); virtual;
-    function StandardScrollBar(AOptions: Word): PScrollBar;
-    procedure Store(var S: TStream);
-    procedure Zoom; virtual;
-    function  ReactOnCmd: Boolean; virtual;
-    procedure Draw; virtual; {DataCompBoy}
+    destructor  Done; virtual;
+    procedure   Close; virtual;
+    function    GetPalette: PPalette; virtual;
+    function    GetTitle(MaxSize: Integer): TTitleStr; virtual;
+    procedure   HandleEvent(var Event: TEvent); virtual;
+    procedure   InitFrame; virtual;
+    procedure   SetState(AState: Word; Enable: Boolean); virtual;
+    procedure   SizeLimits(var Min, Max: TPoint); virtual;
+    function    StandardScrollBar(AOptions: Word): PScrollBar;
+    procedure   Store(var S: TStream);
+    procedure   Zoom; virtual;
+    procedure   Maxi; virtual;
+    function    ReactOnCmd: Boolean; virtual;
+    procedure   Draw; virtual; {DataCompBoy}
   end;
 
 { Message dispatch function }
 
-function Message(Receiver: PView; What, Command: Word;
-  InfoPtr: Pointer): Pointer;
+function Message(Receiver: PView; What, Command: Word; InfoPtr: Pointer): Pointer;
+function MessageL(Receiver: PView; What, Command: Word; InfoLng: LongInt): Pointer;
 
 { Views registration procedure }
 
@@ -527,8 +475,8 @@ const
 
 { Event masks }
 
-  PositionalEvents: Word = evMouse;
-  FocusedEvents: Word = evKeyboard + evCommand;
+  PositionalEvents = evMouse;
+  FocusedEvents = evKeyboard + evCommand;
 
 { Minimum window size }
 
@@ -537,7 +485,7 @@ const
 { Shadow definitions }
 
   ShadowSize: TPoint = (X: 2; Y: 1);
-  ShadowAttr: Byte = $08;
+  ShadowAttr = $08;
 
 { Markers control }
 
@@ -545,57 +493,7 @@ const
 
 { MapColor error return value }
 
-  ErrorAttr: Byte = $CF;
-
-{ Stream Registration Records }
-
-const
-  RView: TStreamRec = (
-     ObjType: otView;
-     VmtLink: Ofs(TypeOf(TView)^);
-     Load:    @TView.Load;
-     Store:   @TView.Store
-  );
-
-const
-  RFrame: TStreamRec = (
-     ObjType: otFrame;
-     VmtLink: Ofs(TypeOf(TFrame)^);
-     Load:    @TFrame.Load;
-     Store:   @TFrame.Store
-  );
-
-const
-  RScrollBar: TStreamRec = (
-     ObjType: otScrollBar;
-     VmtLink: Ofs(TypeOf(TScrollBar)^);
-     Load:    @TScrollBar.Load;
-     Store:   @TScrollBar.Store
-  );
-
-const
-  RMyScrollBar: TStreamRec = (
-     ObjType: otMyScrollBar;
-     VmtLink: Ofs(TypeOf(TMyScrollBar)^);
-     Load:    @TMyScrollBar.Load;
-     Store:   @TMyScrollBar.Store
-  );
-
-const
-  RGroup: TStreamRec = (
-     ObjType: otGroup;
-     VmtLink: Ofs(TypeOf(TGroup)^);
-     Load:    @TGroup.Load;
-     Store:   @TGroup.Store
-  );
-
-const
-  RWindow: TStreamRec = (
-     ObjType: otWindow;
-     VmtLink: Ofs(TypeOf(TWindow)^);
-     Load:    @TWindow.Load;
-     Store:   @TWindow.Store
-  );
+  ErrorAttr = $CF;
 
 { Characters used for drawing selected and default items in  }
 { monochrome color sets                                      }
@@ -613,15 +511,47 @@ const
 { Current command set. All but window commands are active by default }
 
   CurCommandSet: TCommandSet =
-    [0..255] - [cmZoom, cmClose, cmResize, cmNext, cmPrev];
+    [0..255] - [cmZoom, cmClose, cmResize, cmNext, cmPrev, cmMaxi];
 
 procedure RegisterToPrior(P: PView);
 procedure RegisterToBackground(P: PView);
 procedure Deregister(P: PView);
 procedure UpdateAll(All: Boolean);
 
+function GetNum: aint;
+
 implementation
-uses Commands, Startup, DNapp, advance, advance1, advance2, advance3, DNIni;
+uses Startup, DNapp, advance, advance1, advance2, advance3, DNIni,
+     LFN, TitleSet, {DataCompBoy} CallSpcb, VideoMan
+     {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
+     ;
+
+Const Numbers: AWord = 0;
+function GetNum: aint; assembler;
+asm
+ push cx
+ push bx
+ mov ax, Numbers
+ xor cx, cx
+ shr ax, 1
+@@1:
+ inc cx
+ shr ax, 1
+ jc  @@1
+ cmp cx, 10
+ jb  @@ex
+ xor cx, cx
+@@ex:
+ push cx
+ mov ax, 1
+ shl ax, cl
+ mov bx, Numbers
+ or  bx, ax
+ mov Numbers, bx
+ pop ax
+ pop bx
+ pop cx
+end;
 
 type
   PFixupList = ^TFixupList;
@@ -632,303 +562,23 @@ const
   FixupList: PFixupList = nil;
   TheTopView: PView = nil;
 
-{ Convert color into attribute                          }
-{ In    AL = Color                                      }
-{ Out   AL = Attribute                                  }
-
-procedure MapColor; near; assembler;
-const
-  Self = 6;
-  TView_GetPalette = vmtHeaderSize + $2C;
-asm
-        OR      AL,AL
-        JE      @@3
-        LES     DI,[BP].Self
-@@1:    PUSH    ES
-        PUSH    DI
-        PUSH    AX
-        PUSH    ES
-        PUSH    DI
-        MOV     DI,ES:[DI]
-        CALL    DWORD PTR [DI].TView_GetPalette
-        MOV     BX,AX
-        MOV     ES,DX
-        OR      AX,DX
-        POP     AX
-        POP     DI
-        POP     DX
-        JE      @@2
-        CMP     AL,ES:[BX]
-        JA      @@3
-        SEGES   XLAT
-        OR      AL,AL
-        JE      @@3
-@@2:    MOV     ES,DX
-        LES     DI,ES:[DI].TView.Owner
-        MOV     SI,ES
-        OR      SI,DI
-        JNE     @@1
-        JMP     @@4
-@@3:    MOV     AL,ErrorAttr
-@@4:
+{$IFDEF VIRTUALPASCAL}{$I Views._VP}
+ {$ELSE}
+  {$IFDEF FPC}{$I Views._FP}
+   {$ELSE}
+    {$I Views._BP}
+  {$ENDIF}
+{$ENDIF}
+procedure TPointInc(var A:TPoint; B:TPoint);
+begin
+  inc(A.X,B.X);
+  inc(A.Y,B.Y);
 end;
 
-{ Convert color pair into attribute pair                }
-{ In    AX = Color pair                                 }
-{ Out   AX = Attribute pair                             }
-
-procedure MapCPair; near; assembler;
-asm
-        OR      AH,AH
-        JE      @@1
-        XCHG    AL,AH
-        CALL    MapColor
-        XCHG    AL,AH
-@@1:    CALL    MapColor
-end;
-
-{ Write to view                                         }
-{ In    AX    = Y coordinate                            }
-{       BX    = X coordinate                            }
-{       CX    = Count                                   }
-{       ES:DI = Buffer Pointer                          }
-
-procedure WriteView; near; assembler;
-const
-  Self   =   6;
-  Target =  -4;
-  Buffer =  -8;
-  BufOfs = -10;
-asm
-        MOV     [BP].BufOfs,BX
-        MOV     [BP].Buffer[0],DI
-        MOV     [BP].Buffer[2],ES
-        ADD     CX,BX
-        XOR     DX,DX
-        LES     DI,[BP].Self
-        OR      AX,AX
-        JL      @@3
-        CMP     AX,ES:[DI].TView.Size.Y
-        JGE     @@3
-        OR      BX,BX
-        JGE     @@1
-        XOR     BX,BX
-@@1:    CMP     CX,ES:[DI].TView.Size.X
-        JLE     @@2
-        MOV     CX,ES:[DI].TView.Size.X
-@@2:    CMP     BX,CX
-        JL      @@10
-@@3:    RET
-@@10:   TEST    ES:[DI].TView.State,sfVisible
-        JE      @@3
-        CMP     ES:[DI].TView.Owner.Word[2],0
-        JE      @@3
-        MOV     [BP].Target[0],DI
-        MOV     [BP].Target[2],ES
-        ADD     AX,ES:[DI].TView.Origin.Y
-        MOV     SI,ES:[DI].TView.Origin.X
-        ADD     BX,SI
-        ADD     CX,SI
-        ADD     [BP].BufOfs,SI
-        LES     DI,ES:[DI].TView.Owner
-        CMP     AX,ES:[DI].TGroup.Clip.A.Y
-        JL      @@3
-        CMP     AX,ES:[DI].TGroup.Clip.B.Y
-        JGE     @@3
-        CMP     BX,ES:[DI].TGroup.Clip.A.X
-        JGE     @@11
-        MOV     BX,ES:[DI].TGroup.Clip.A.X
-@@11:   CMP     CX,ES:[DI].TGroup.Clip.B.X
-        JLE     @@12
-        MOV     CX,ES:[DI].TGroup.Clip.B.X
-@@12:   CMP     BX,CX
-        JGE     @@3
-        LES     DI,ES:[DI].TGroup.Last
-@@20:   LES     DI,ES:[DI].TView.Next
-        CMP     DI,[BP].Target[0]
-        JNE     @@21
-        MOV     SI,ES
-        CMP     SI,[BP].Target[2]
-        JNE     @@21
-        JMP     @@40
-@@21:   TEST    ES:[DI].TView.State,sfVisible
-        JE      @@20
-        MOV     SI,ES:[DI].TView.Origin.Y
-        CMP     AX,SI
-        JL      @@20
-        ADD     SI,ES:[DI].TView.Size.Y
-        CMP     AX,SI
-        JL      @@23
-        TEST    ES:[DI].TView.State,sfShadow
-        JE      @@20
-        ADD     SI,ShadowSize.Y
-        CMP     AX,SI
-        JGE     @@20
-        MOV     SI,ES:[DI].TView.Origin.X
-        ADD     SI,ShadowSize.X
-        CMP     BX,SI
-        JGE     @@22
-        CMP     CX,SI
-        JLE     @@20
-        CALL    @@30
-@@22:   ADD     SI,ES:[DI].TView.Size.X
-        JMP     @@26
-@@23:   MOV     SI,ES:[DI].TView.Origin.X
-        CMP     BX,SI
-        JGE     @@24
-        CMP     CX,SI
-        JLE     @@20
-        CALL    @@30
-@@24:   ADD     SI,ES:[DI].TView.Size.X
-        CMP     BX,SI
-        JGE     @@25
-        CMP     CX,SI
-        JLE     @@31
-        MOV     BX,SI
-@@25:   TEST    ES:[DI].TView.State,sfShadow
-        JE      @@20
-        PUSH    SI
-        MOV     SI,ES:[DI].TView.Origin.Y
-        ADD     SI,ShadowSize.Y
-        CMP     AX,SI
-        POP     SI
-        JL      @@27
-        ADD     SI,ShadowSize.X
-@@26:   CMP     BX,SI
-        JGE     @@27
-        INC     DX
-        CMP     CX,SI
-        JLE     @@27
-        CALL    @@30
-        DEC     DX
-@@27:   JMP     @@20
-@@30:   PUSH    [BP].Target.Word[2]
-        PUSH    [BP].Target.Word[0]
-        PUSH    [BP].BufOfs.Word[0]
-        PUSH    ES
-        PUSH    DI
-        PUSH    SI
-        PUSH    DX
-        PUSH    CX
-        PUSH    AX
-        MOV     CX,SI
-        CALL    @@20
-        POP     AX
-        POP     CX
-        POP     DX
-        POP     SI
-        POP     DI
-        POP     ES
-        POP     [BP].BufOfs.Word[0]
-        POP     [BP].Target.Word[0]
-        POP     [BP].Target.Word[2]
-        MOV     BX,SI
-@@31:   RET
-@@40:   LES     DI,ES:[DI].TView.Owner
-        MOV     SI,ES:[DI].TGroup.Buffer.Word[2]
-        OR      SI,SI
-        JE      @@44
-        CMP     SI,ScreenBuffer.Word[2]
-        JE      @@41
-        CALL    @@50
-        JMP     @@44
-@@41:   CLI
-        CMP     GraphMouse, 0
-        JNE     @@43
-        CMP     AX,MouseWhere.Y
-        JNE     @@42
-        CMP     BX,MouseWhere.X
-        JA      @@42
-        CMP     CX,MouseWhere.X
-        JA      @@43
-@@42:   MOV     MouseIntFlag,0
-        STI
-        CALL    @@50
-        CMP     MouseIntFlag,0
-        JE      @@44
-@@43:   STI
-        CALL    HideMouse
-        CALL    @@50
-        CALL    ShowMouse
-@@44:   CMP     ES:[DI].TGroup.LockFlag,0
-        JNE     @@31
-        JMP     @@10
-@@50:   PUSH    ES
-        PUSH    DS
-        PUSH    DI
-        PUSH    CX
-        PUSH    AX
-        MUL     ES:[DI].TView.Size.X.Byte[0]
-        ADD     AX,BX
-        SHL     AX,1
-        ADD     AX,ES:[DI].TGroup.Buffer.Word[0]
-        MOV     DI,AX
-        MOV     ES,SI
-        XOR     AL,AL
-        CMP     SI,ScreenBuffer.Word[2]
-        JNE     @@51
-        MOV     AL,CheckSnow
-@@51:   MOV     AH,ShadowAttr
-        SUB     CX,BX
-        MOV     SI,BX
-        SUB     SI,[BP].BufOfs
-        SHL     SI,1
-        ADD     SI,[BP].Buffer.Word[0]
-        MOV     DS,[BP].Buffer.Word[2]
-        CLD
-        OR      AL,AL
-        JNE     @@60
-        OR      DX,DX
-        JNE     @@52
-        REP     MOVSW
-        JMP     @@70
-@@52:   LODSB
-        INC     SI
-        STOSW
-        LOOP    @@52
-        JMP     @@70
-@@60:   PUSH    DX
-        PUSH    BX
-        OR      DX,DX
-        MOV     DX,03DAH
-        JNE     @@65
-@@61:   LODSW
-        MOV     BX,AX
-@@62:   IN      AL,DX
-        TEST    AL,1
-        JNE     @@62
-        CLI
-@@63:   IN      AL,DX
-        TEST    AL,1
-        JE      @@63
-        MOV     AX,BX
-        STOSW
-        STI
-        LOOP    @@61
-        JMP     @@68
-@@65:   LODSB
-        MOV     BL,AL
-        INC     SI
-@@66:   IN      AL,DX
-        TEST    AL,1
-        JNE     @@66
-        CLI
-@@67:   IN      AL,DX
-        TEST    AL,1
-        JE      @@67
-        MOV     AL,BL
-        STOSW
-        STI
-        LOOP    @@65
-@@68:   POP     BX
-        POP     DX
-@@70:   MOV     SI,ES
-        POP     AX
-        POP     CX
-        POP     DI
-        POP     DS
-        POP     ES
-        RET
+procedure TPointDec(var A:TPoint; B:TPoint);
+begin
+  dec(A.X,B.X);
+  dec(A.Y,B.Y);
 end;
 
 { TView }
@@ -950,7 +600,7 @@ begin
   S.Read(Origin,
     SizeOf(TPoint) * 3 +
     SizeOf(Byte) * 2 +
-    SizeOf(Word) * 4);
+    SizeOf(AWord) * 4);
 end;
 
 destructor TView.Done;
@@ -971,16 +621,16 @@ end;
 
 procedure TView.CalcBounds(var Bounds: TRect; Delta: TPoint);
 var
-  S, D: Integer;
+  S, D: LongInt;
   Min, Max: TPoint;
 
-procedure Grow(var I: Integer);
+procedure Grow(var I: LongInt);
 begin
   if GrowMode and gfGrowRel = 0 then Inc(I, D) else
     I := (I * S + (S - D) shr 1) div (S - D);
 end;
 
-function Range(Val, Min, Max: Integer): Integer;
+function Range(Val, Min, Max: LongInt): LongInt;
 begin
   if Val < Min then Range := Min else
     if Val > Max then Range := Max else
@@ -1019,14 +669,57 @@ end;
 
 function TView.MenuEnabled(Command: Word): Boolean; {-$VOL}
 begin
-  if (Command=cmGame) then MenuEnabled:=EnableGame else
-  MenuEnabled:=(Command > 255)or(Command in CurCommandSet);
+  if ((Command=cmGame){$IFDEF GAME} and not EnableGame) {$ELSE})      {$ENDIF}
+{$IFNDEF TrashCan} or (Command=cmHideShowTools)                       {$ENDIF}
+{$IFNDEF UUENCODE} or (Command=cmUUEncodeFile)                        {$ENDIF}
+{$IFNDEF UUDECODE} or (Command=cmUUDecodeFile)                        {$ENDIF}
+{$IFNDEF CALENDAR} or (Command=cmCalendar)                            {$ENDIF}
+{$IFNDEF CDPlayer} or (Command=cmPlayCD)                              {$ENDIF}
+{$IFNDEF PHONES}   or (Command in PhonesCommands)
+                   or (Command=cmPhoneBook)
+                   or (Command=cmDialPhone)
+                   or (Command=cmUndial)                              {$ENDIF}
+{$IFNDEF MODEM}    or (Command=cmSendInitModem)
+                   or (Command=cmSendModemBreak)
+                   or (Command=cmSetupModem)
+                   or (Command=cmHangUp)
+                   or (Command=cmAdvancePortSetup)
+                   or (Command=cmTerminal)
+     {$IFDEF LINK} or (Command=cmNavyLink)
+                   or (Command=cmNavyLinkSetup) {$ENDIF}
+                                                                      {$ENDIF}
+{$IFDEF MINARCH}   or (Command=cmReadArchive)
+                   or ((Command>=cmLoConfigArchiver) and
+                       (Command<=cmHiConfigArchiver) and
+                       (Command<>cmConfigACE) and
+                       (Command<>cmConfigARJ) and
+                       (Command<>cmConfigCAB) and
+                       (Command<>cmConfigHA ) and
+                       (Command<>cmConfigLHA) and
+                       (Command<>cmConfigRAR) and
+                       (Command<>cmConfigZIP))                        {$ENDIF}
+{$IFNDEF SS}       or (Command=cmSaversSetup)
+                   or (Command=cmScreenRest)                          {$ENDIF}
+{$IFNDEF CHCOL}    or (Command=cmChangeColors)                        {$ENDIF}
+{$IFNDEF PrintManager}
+                   or (Command=cmSinglePrint)
+                   or (Command=cmPrintFile)
+                   or (Command=cmSetupPrinter)
+                   or (Command=cmFilePrint)
+                   or (Command=cmBlockPrint)
+                   or (Command=cmPanelPrint)
+                   or (Command=cmPrintBlock)                          {$ENDIF}
+{$IFNDEF NETINFO}  or (Command=cmGetNetInfo)
+                   or (Command=cmNetInfo)                             {$ENDIF}
+{$IFNDEF SYSINFO}  or (Command=cmSystemInfo)                          {$ENDIF}
+{$IFNDEF MEMINFO}  or (Command=cmMemoryInfo)                          {$ENDIF}
+   then MenuEnabled:=False else
+  MenuEnabled:=(Command > 255) or (Command in CurCommandSet);
 end; {-$VOL}
 
 function TView.CommandEnabled(Command: Word): Boolean;
 begin
-  if (Command=cmGame) then CommandEnabled:=EnableGame else
-  CommandEnabled := (Command > 255) or (Command in CurCommandSet) or (Command=cmRedo);
+  CommandEnabled := MenuEnabled(Command) or (Command=cmRedo);
 end;
 
 function TView.DataSize: Word;
@@ -1046,12 +739,12 @@ var
   P, S: TPoint;
   SaveBounds: TRect;
 
-function Min(I, J: Integer): Integer;
+function Min(I, J: LongInt): LongInt;
 begin
   if I < J then Min := I else Min := J;
 end;
 
-function Max(I, J: Integer): Integer;
+function Max(I, J: LongInt): LongInt;
 begin
   if I > J then Max := I else Max := J;
 end;
@@ -1072,7 +765,7 @@ begin
   Locate(R);
 end;
 
-procedure Change(DX, DY: Integer);
+procedure Change(DX, DY: LongInt);
 begin
   if (Mode and dmDragMove <> 0) and (ShiftState and $03 = 0) then
   begin
@@ -1213,138 +906,17 @@ begin
   EventAvail := Event.What <> evNothing;
 end;
 
-procedure TView.GetBounds(var Bounds: TRect); assembler;
-asm
-        PUSH    DS
-        LDS     SI,Self
-        ADD     SI,OFFSET TView.Origin
-        LES     DI,Bounds
-        CLD
-        LODSW                           {Origin.X}
-        MOV     CX,AX
-        STOSW
-        LODSW                           {Origin.Y}
-        MOV     DX,AX
-        STOSW
-        LODSW                           {Size.X}
-        ADD     AX,CX
-        STOSW
-        LODSW                           {Size.Y}
-        ADD     AX,DX
-        STOSW
-        POP     DS
+procedure TView.GetBounds(var Bounds: TRect);
+begin
+  Bounds.A.X := Origin.X;
+  Bounds.A.Y := Origin.Y;
+  Bounds.B.X := Origin.X + Size.X;
+  Bounds.B.Y := Origin.Y + Size.Y;
 end;
 
 function TView.Execute: Word;
 begin
   Execute := cmCancel;
-end;
-
-function TView.Exposed: Boolean; assembler;
-var
-  Target: Pointer;
-asm
-        LES     DI,Self
-        TEST    ES:[DI].TView.State,sfExposed
-        JE      @@2
-        XOR     AX,AX
-        CMP     AX,ES:[DI].TView.Size.X
-        JGE     @@2
-        CMP     AX,ES:[DI].TView.Size.Y
-        JGE     @@2
-@@1:    XOR     BX,BX
-        MOV     CX,ES:[DI].TView.Size.X
-        PUSH    AX
-        CALL    @@11
-        POP     AX
-        JNC     @@3
-        LES     DI,Self
-        INC     AX
-        CMP     AX,ES:[DI].TView.Size.Y
-        JL      @@1
-@@2:    MOV     AL,0
-        JMP     @@30
-@@3:    MOV     AL,1
-        JMP     @@30
-@@8:    STC
-@@9:    RETN
-@@10:   LES     DI,ES:[DI].TView.Owner
-        CMP     ES:[DI].TGroup.Buffer.Word[2],0
-        JNE     @@9
-@@11:   MOV     Target.Word[0],DI
-        MOV     Target.Word[2],ES
-        ADD     AX,ES:[DI].TView.Origin.Y
-        MOV     SI,ES:[DI].TView.Origin.X
-        ADD     BX,SI
-        ADD     CX,SI
-        LES     DI,ES:[DI].TView.Owner
-        MOV     SI,ES
-        OR      SI,DI
-        JE      @@9
-        CMP     AX,ES:[DI].TGroup.Clip.A.Y
-        JL      @@8
-        CMP     AX,ES:[DI].TGroup.Clip.B.Y
-        JGE     @@8
-        CMP     BX,ES:[DI].TGroup.Clip.A.X
-        JGE     @@12
-        MOV     BX,ES:[DI].TGroup.Clip.A.X
-@@12:   CMP     CX,ES:[DI].TGroup.Clip.B.X
-        JLE     @@13
-        MOV     CX,ES:[DI].TGroup.Clip.B.X
-@@13:   CMP     BX,CX
-        JGE     @@8
-        LES     DI,ES:[DI].TGroup.Last
-@@20:   LES     DI,ES:[DI].TView.Next
-        CMP     DI,Target.Word[0]
-        JNE     @@21
-        MOV     SI,ES
-        CMP     SI,Target.Word[2]
-        JE      @@10
-@@21:   TEST    ES:[DI].TView.State,sfVisible
-        JE      @@20
-        MOV     SI,ES:[DI].TView.Origin.Y
-        CMP     AX,SI
-        JL      @@20
-        ADD     SI,ES:[DI].TView.Size.Y
-        CMP     AX,SI
-        JGE     @@20
-        MOV     SI,ES:[DI].TView.Origin.X
-        CMP     BX,SI
-        JL      @@22
-        ADD     SI,ES:[DI].TView.Size.X
-        CMP     BX,SI
-        JGE     @@20
-        MOV     BX,SI
-        CMP     BX,CX
-        JL      @@20
-        STC
-        RETN
-@@22:   CMP     CX,SI
-        JLE     @@20
-        ADD     SI,ES:[DI].TView.Size.X
-        CMP     CX,SI
-        JG      @@23
-        MOV     CX,ES:[DI].TView.Origin.X
-        JMP     @@20
-@@23:   PUSH    Target.Word[2]
-        PUSH    Target.Word[0]
-        PUSH    ES
-        PUSH    DI
-        PUSH    SI
-        PUSH    CX
-        PUSH    AX
-        MOV     CX,ES:[DI].TView.Origin.X
-        CALL    @@20
-        POP     AX
-        POP     CX
-        POP     BX
-        POP     DI
-        POP     ES
-        POP     Target.Word[0]
-        POP     Target.Word[2]
-        JC      @@20
-        RETN
-@@30:
 end;
 
 function TView.Focus: Boolean;
@@ -1376,12 +948,6 @@ begin
   Clip.Move(-Origin.X, -Origin.Y);
 end;
 
-function TView.GetColor(Color: Word): Word; assembler;
-asm
-        MOV     AX,Color
-        CALL    MapCPair
-end;
-
 procedure TView.GetCommands(var Commands: TCommandSet);
 begin
   Commands := CurCommandSet;
@@ -1396,19 +962,12 @@ begin
   if Owner <> nil then Owner^.GetEvent(Event);
 end;
 
-procedure TView.GetExtent(var Extent: TRect); assembler;
-asm
-        PUSH    DS
-        LDS     SI,Self
-        ADD     SI,OFFSET TView.Size
-        LES     DI,Extent
-        CLD
-        XOR     AX,AX
-        STOSW
-        STOSW
-        MOVSW
-        MOVSW
-        POP     DS
+procedure TView.GetExtent(var Extent: TRect);
+begin
+  Extent.A.X:=0;
+  Extent.A.Y:=0;
+  Extent.B.X:=Size.X;
+  Extent.B.Y:=Size.Y;
 end;
 
 function TView.GetHelpCtx: Word;
@@ -1425,9 +984,9 @@ end;
 
 procedure TView.GetPeerViewPtr(var S: TStream; var P);
 var
-  Index: Integer;
+  Index: LongInt;
 begin
-  S.Read(Index, SizeOf(Word));
+  S.Read(Index, SizeOf(Index));
   if (Index = 0) or (OwnerGroup = nil) then Pointer(P) := nil
   else
   begin
@@ -1441,7 +1000,7 @@ begin
   GetState := State and AState = AState;
 end;
 
-procedure TView.GrowTo(X, Y: Integer);
+procedure TView.GrowTo(X, Y: LongInt);
 var
   R: TRect;
 begin
@@ -1478,7 +1037,7 @@ var
   R: TRect;
   Min, Max: TPoint;
 
-function Range(Val, Min, Max: Integer): Integer;
+function Range(Val, Min, Max: LongInt): LongInt;
 begin
   if Val < Min then Range := Min else
     if Val > Max then Range := Max else
@@ -1487,8 +1046,12 @@ end;
 
 begin
   SizeLimits(Min, Max);
-  Bounds.B.X := Bounds.A.X + Range(Bounds.B.X - Bounds.A.X, Min.X, Max.X);
-  Bounds.B.Y := Bounds.A.Y + Range(Bounds.B.Y - Bounds.A.Y, Min.Y, Max.Y);
+  If not ((Bounds.A.X=-1) and (Bounds.B.X=Max.X+1)) then
+   Bounds.B.X := Bounds.A.X + Range(Bounds.B.X - Bounds.A.X, Min.X, Max.X);
+
+  If not ((Bounds.A.Y=-1) and (Bounds.B.Y=Max.Y+1)) then
+   Bounds.B.Y := Bounds.A.Y + Range(Bounds.B.Y - Bounds.A.Y, Min.Y, Max.Y);
+
   GetBounds(R);
   if not Bounds.Equals(R) then
   begin
@@ -1508,49 +1071,34 @@ end;
 
 procedure TView.MakeFirst;
 begin
-  PutInFrontOf(Owner^.First);
+  If (@Self<>nil) and (Owner<>nil) and (Owner^.First<>nil) then PutInFrontOf(Owner^.First);
 end;
 
-procedure TView.MakeGlobal(Source: TPoint; var Dest: TPoint); assembler;
-asm
-        LES     DI,Self
-        XOR     AX,AX
-        MOV     DX,AX
-@@1:    ADD     AX,ES:[DI].TView.Origin.X
-        ADD     DX,ES:[DI].TView.Origin.Y
-        LES     DI,ES:[DI].TView.Owner
-        MOV     SI,ES
-        OR      SI,DI
-        JNE     @@1
-        ADD     AX,Source.X
-        ADD     DX,Source.Y
-        LES     DI,Dest
-        CLD
-        STOSW
-        XCHG    AX,DX
-        STOSW
+procedure TView.MakeGlobal(Source: TPoint; var Dest: TPoint);
+var
+  cur:PView;
+begin
+  cur:=@Self; Dest:=Source;
+  TPointInc(Dest,Origin);
+  while cur^.Owner<>Nil do
+   begin
+     cur:=cur^.Owner;
+     TPointInc(Dest,cur^.Origin);
+   end;
 end;
 
-procedure TView.MakeLocal(Source: TPoint; var Dest: TPoint); assembler;
-asm
-        LES     DI,Self
-        XOR     AX,AX
-        MOV     DX,AX
-@@1:    ADD     AX,ES:[DI].TView.Origin.X
-        ADD     DX,ES:[DI].TView.Origin.Y
-        LES     DI,ES:[DI].TView.Owner
-        MOV     SI,ES
-        OR      SI,DI
-        JNE     @@1
-        NEG     AX
-        NEG     DX
-        ADD     AX,Source.X
-        ADD     DX,Source.Y
-        LES     DI,Dest
-        CLD
-        STOSW
-        XCHG    AX,DX
-        STOSW
+
+procedure TView.MakeLocal(Source: TPoint; var Dest: TPoint);
+var
+  cur:PView;
+begin
+  cur:=@Self; Dest:=Source;
+  TPointDec(Dest,Origin);
+  while cur^.Owner<>Nil do
+   begin
+     cur:=cur^.Owner;
+     TPointDec(Dest,cur^.Origin);
+   end;
 end;
 
 function TView.MouseEvent(var Event: TEvent; Mask: Word): Boolean;
@@ -1579,7 +1127,7 @@ begin
   MouseInView := Extent.Contains(Mouse);
 end;
 
-procedure TView.MoveTo(X, Y: Integer);
+procedure TView.MoveTo(X, Y: LongInt);
 var
   R: TRect;
 begin
@@ -1597,19 +1145,14 @@ begin
   SetState(sfCursorIns, False);
 end;
 
-function TView.Prev: PView; assembler;
-asm
-        LES     DI,Self
-        MOV     CX,DI
-        MOV     BX,ES
-@@1:    MOV     AX,DI
-        MOV     DX,ES
-        LES     DI,ES:[DI].TView.Next
-        CMP     DI,CX
-        JNE     @@1
-        MOV     SI,ES
-        CMP     SI,BX
-        JNE     @@1
+function TView.Prev: PView;
+var
+  P: PView;
+begin
+  P := @Self;
+  while (P <> nil) and (P^.Next <> @Self) do
+    P := P^.Next;
+  Prev := P;
 end;
 
 function TView.PrevView: PView;
@@ -1653,79 +1196,11 @@ end;
 
 procedure TView.PutPeerViewPtr(var S: TStream; P: PView);
 var
-  Index: Integer;
+  Index: LongInt;
 begin
   if (P = nil) or (OwnerGroup = nil) then Index := 0
   else Index := OwnerGroup^.IndexOf(P);
-  S.Write(Index, SizeOf(Word));
-end;
-
-procedure TView.ResetCursor; assembler;
-asm
-        LES     DI,Self
-        MOV     AX,ES:[DI].TView.State
-        NOT     AX
-        TEST    AX,sfVisible+sfCursorVis+sfFocused
-        JNE     @@4
-        MOV     AX,ES:[DI].TView.Cursor.Y
-        MOV     DX,ES:[DI].TView.Cursor.X
-@@1:    OR      AX,AX
-        JL      @@4
-        CMP     AX,ES:[DI].TView.Size.Y
-        JGE     @@4
-        OR      DX,DX
-        JL      @@4
-        CMP     DX,ES:[DI].TView.Size.X
-        JGE     @@4
-        ADD     AX,ES:[DI].TView.Origin.Y
-        ADD     DX,ES:[DI].TView.Origin.X
-        MOV     CX,DI
-        MOV     BX,ES
-        LES     DI,ES:[DI].TView.Owner
-        MOV     SI,ES
-        OR      SI,DI
-        JE      @@5
-        TEST    ES:[DI].TView.State,sfVisible
-        JE      @@4
-        LES     DI,ES:[DI].TGroup.Last
-@@2:    LES     DI,ES:[DI].TView.Next
-        CMP     CX,DI
-        JNE     @@3
-        MOV     SI,ES
-        CMP     BX,SI
-        JNE     @@3
-        LES     DI,ES:[DI].TView.Owner
-        JMP     @@1
-@@3:    TEST    ES:[DI].TView.State,sfVisible
-        JE      @@2
-        MOV     SI,ES:[DI].TView.Origin.Y
-        CMP     AX,SI
-        JL      @@2
-        ADD     SI,ES:[DI].TView.Size.Y
-        CMP     AX,SI
-        JGE     @@2
-        MOV     SI,ES:[DI].TView.Origin.X
-        CMP     DX,SI
-        JL      @@2
-        ADD     SI,ES:[DI].TView.Size.X
-        CMP     DX,SI
-        JGE     @@2
-@@4:    MOV     CX,2000H
-        JMP     @@6
-@@5:    MOV     DH,AL
-        XOR     BH,BH
-        MOV     AH,2
-        INT     10H
-        MOV     CX,CursorLines
-        LES     DI,Self
-        TEST    ES:[DI].TView.State,sfCursorIns
-        JE      @@6
-        MOV     CH,0
-        OR      CL,CL
-        JNE     @@6
-        MOV     CL,7
-@@6:    MOV     AH,1
-        INT     10H
+  S.Write(Index, SizeOf(Index));
 end;
 
 procedure TView.Select;
@@ -1735,22 +1210,11 @@ begin
       if Owner <> nil then Owner^.SetCurrent(@Self, NormalSelect);
 end;
 
-procedure TView.SetBounds(var Bounds: TRect); assembler;
-asm
-        PUSH    DS
-        LES     DI,Self
-        LDS     SI,Bounds
-        MOV     AX,[SI].TRect.A.X
-        MOV     ES:[DI].Origin.X,AX
-        MOV     AX,[SI].TRect.A.Y
-        MOV     ES:[DI].Origin.Y,AX
-        MOV     AX,[SI].TRect.B.X
-        SUB     AX,[SI].TRect.A.X
-        MOV     ES:[DI].Size.X,AX
-        MOV     AX,[SI].TRect.B.Y
-        SUB     AX,[SI].TRect.A.Y
-        MOV     ES:[DI].Size.Y,AX
-        POP     DS
+procedure TView.SetBounds(var Bounds: TRect);
+begin
+  origin:=bounds.a;
+  size:=bounds.b;
+  TPointDec(size,origin);
 end;
 
 {DataCompBoy
@@ -1766,7 +1230,7 @@ begin
   CurCommandSet := Commands;
 end;
 
-procedure TView.SetCursor(X, Y: Integer);
+procedure TView.SetCursor(X, Y: LongInt);
 begin
   Cursor.X := X;
   Cursor.Y := Y;
@@ -1820,10 +1284,13 @@ end;
 
 procedure TView.SizeLimits(var Min, Max: TPoint);
 begin
-  Longint(Min) := 0;
-  if Owner <> nil then
-    Max := Owner^.Size else
-    Longint(Max) := $7FFF7FFF;
+  Min.X := 0; Min.Y:=0;
+  if Owner <> nil
+   then Max := Owner^.Size
+   else begin
+     Max.X := High(Max.X);
+     Max.Y := High(Max.Y);
+   end;
 end;
 
 procedure TView.Store(var S: TStream);
@@ -1835,7 +1302,7 @@ begin
   S.Write(Origin,
     SizeOf(TPoint) * 3 +
     SizeOf(Byte) * 2 +
-    SizeOf(Word) * 4);
+    SizeOf(AWord) * 4);
   State := SaveState;
 end;
 
@@ -1857,118 +1324,6 @@ begin
   Valid := True;
 end;
 
-procedure TView.WriteBuf(X, Y, W, H: Integer; var Buf); assembler;
-var
-  Target: Pointer; {Variables used by WriteView}
-  Buffer: Pointer;
-  Offset: Word;
-asm
-        CMP     H,0
-        JLE     @@2
-@@1:    MOV     AX,Y
-        MOV     BX,X
-        MOV     CX,W
-        LES     DI,Buf
-        CALL    WriteView
-        MOV     AX,W
-        SHL     AX,1
-        ADD     WORD PTR Buf[0],AX
-        INC     Y
-        DEC     H
-        JNE     @@1
-@@2:
-end;
-
-procedure TView.WriteChar(X, Y: Integer; C: Char; Color: Byte;
-  Count: Integer); assembler;
-var
-  Target: Pointer; {Variables used by WriteView}
-  Buffer: Pointer;
-  Offset: Word;
-asm
-        MOV     AL,Color
-        CALL    MapColor
-        MOV     AH,AL
-        MOV     AL,C
-        MOV     CX,Count
-        OR      CX,CX
-        JLE     @@2
-        CMP     CX,256
-        JLE     @@1
-        MOV     CX,256
-@@1:    MOV     DI,CX
-        SHL     DI,1
-        SUB     SP,DI
-        MOV     DI,SP
-        PUSH    SS
-        POP     ES
-        MOV     DX,CX
-        CLD
-        REP     STOSW
-        MOV     CX,DX
-        MOV     DI,SP
-        MOV     AX,Y
-        MOV     BX,X
-        CALL    WriteView
-@@2:
-end;
-
-procedure TView.WriteLine(X, Y, W, H: Integer; var Buf); assembler;
-var
-  Target: Pointer; {Variables used by WriteView}
-  Buffer: Pointer;
-  Offset: Word;
-asm
-        CMP     H,0
-        JLE     @@2
-@@1:    MOV     AX,Y
-        MOV     BX,X
-        MOV     CX,W
-        LES     DI,Buf
-        CALL    WriteView
-        INC     Y
-        DEC     H
-        JNE     @@1
-@@2:
-end;
-
-procedure TView.WriteStr(X, Y: Integer; Str: String; Color: Byte); assembler;
-var
-  Target: Pointer; {Variables used by WriteView}
-  Buffer: Pointer;
-  Offset: Word;
-asm
-        MOV     AL,Color
-        CALL    MapColor
-        MOV     AH,AL
-        MOV     BX,DS
-        LDS     SI,Str
-        CLD
-        LODSB
-        MOV     CL,AL
-        XOR     CH,CH
-        JCXZ    @@3
-        MOV     DI,CX
-        SHL     DI,1
-        SUB     SP,DI
-        MOV     DI,SP
-        PUSH    SS
-        POP     ES
-        MOV     DX,CX
-@@1:    LODSB
-        STOSW
-        LOOP    @@1
-        MOV     DS,BX
-        MOV     CX,DX
-        MOV     DI,SP
-        MOV     AX,Y
-        MOV     BX,X
-        CALL    WriteView
-        JMP     @@2
-@@3:    MOV     DS,BX
-@@2:
-end;
-
 { TFrame }
 
 constructor TFrame.Init(var Bounds: TRect);
@@ -1979,89 +1334,58 @@ begin
 end;
 
 procedure TFrame.FrameLine(var FrameBuf; Y, N: Integer;
-  Color: Byte); assembler;
+  Color: Byte);
 const
   InitFrame: array[0..17] of Byte =
     ($06, $0A, $0C, $05, $00, $05, $03, $0A, $09,
      $16, $1A, $1C, $15, $00, $15, $13, $1A, $19);
   FrameChars: array[0..31] of Char =
-    '   À ³ÚÃ ÙÄÁ¿´ÂÅ   È ºÉÇ ¼ÍÏ»¶Ñ ';
+    #32#32#32#192#32#179#218#195#32#217#196#193#191#180#194#197#32#32#32#200#32#186#201#199#32#188#205#207#187#182#209#32;
 var
   FrameMask: array[0..MaxViewWidth-1] of Byte;
-asm
-        LES     BX,Self
-        MOV     DX,ES:[BX].TFrame.Size.X
-        MOV     CX,DX
-        DEC     CX
-        DEC     CX
-        MOV     SI,OFFSET InitFrame
-        ADD     SI,N
-        LEA     DI,FrameMask
-        PUSH    SS
-        POP     ES
-        CLD
-        MOVSB
-        LODSB
-        REP     STOSB
-        MOVSB
-        LES     BX,Self
-        LES     BX,ES:[BX].TFrame.Owner
-        LES     BX,ES:[BX].TGroup.Last
-        DEC     DX
-@1:     LES     BX,ES:[BX].TView.Next
-        CMP     BX,WORD PTR Self[0]
-        JNE     @2
-        MOV     AX,ES
-        CMP     AX,WORD PTR Self[2]
-        JE      @10
-@2:     TEST    ES:[BX].TView.Options,ofFramed
-        JE      @1
-        TEST    ES:[BX].TView.State,sfVisible
-        JE      @1
-        MOV     AX,Y
-        SUB     AX,ES:[BX].TView.Origin.Y
-        JL      @3
-        CMP     AX,ES:[BX].TView.Size.Y
-        JG      @1
-        MOV     AX,0005H
-        JL      @4
-        MOV     AX,0A03H
-        JMP     @4
-@3:     INC     AX
-        JNE     @1
-        MOV     AX,0A06H
-@4:     MOV     SI,ES:[BX].TView.Origin.X
-        MOV     DI,ES:[BX].TView.Size.X
-        ADD     DI,SI
-        CMP     SI,1
-        JG      @5
-        MOV     SI,1
-@5:     CMP     DI,DX
-        JL      @6
-        MOV     DI,DX
-@6:     CMP     SI,DI
-        JGE     @1
-        OR      BYTE PTR FrameMask[SI-1],AL
-        XOR     AL,AH
-        OR      BYTE PTR FrameMask[DI],AL
-        OR      AH,AH
-        JE      @1
-        MOV     CX,DI
-        SUB     CX,SI
-@8:     OR      BYTE PTR FrameMask[SI],AH
-        INC     SI
-        LOOP    @8
-        JMP     @1
-@10:    INC     DX
-        MOV     AH,Color
-        MOV     BX,OFFSET FrameChars
-        MOV     CX,DX
-        LEA     SI,FrameMask
-        LES     DI,FrameBuf
-@11:    SEGSS   LODSB
-        XLAT
-        STOSW
-        LOOP    @11
+  ColorMask : word;
+  i,j,k     : LongInt;
+  CurrView  : PView;
+begin
+  FrameMask[0]:=InitFrame[n];
+  FillChar(FrameMask[1],Size.X-2,InitFrame[n+1]);
+  FrameMask[Size.X-1]:=InitFrame[n+2];
+  CurrView:=Owner^.Last^.Next;
+  while (CurrView<>@Self) do
+  begin
+     if ((CurrView^.Options and ofFramed)<>0) and
+        ((CurrView^.State and sfVisible)<>0)
+     then begin
+       i:=Y-CurrView^.Origin.Y;
+       if i>CurrView^.Size.Y then i:=0     else
+       if i=CurrView^.Size.Y then i:=$0a03 else
+       if i>=0               then i:=$0005 else
+       if i<-1               then i:=0     else
+                                  i:=$0a06;
+       if I<>0 then begin
+         k:=CurrView^.Origin.X; if k<1 then k:=1;
+         j:=k+CurrView^.Size.X; if j>Size.X then j:=Size.X;
+         if k<j then
+         begin
+           FrameMask[k-1]:=FrameMask[k-1] or lo(i);
+           FrameMask[j]:=FrameMask[j] or (lo(i) xor hi(i)) ;
+           if hi(i)<>0 then
+           begin
+             dec(j,k);
+             repeat
+               FrameMask[k]:=FrameMask[k] or hi(i);
+               inc(k);
+               dec(j);
+             until j=0;
+           end;
+         end;
+       end;
+     end;
+     CurrView:=CurrView^.Next;
+  end;
+  ColorMask:=Color shl 8;
+  for i:=0 to Size.X-1 do
+    TVideoBuf(FrameBuf)[i]:=ord(FrameChars[FrameMask[i]]) or ColorMask;
 end;
 
 procedure TFrame.Draw;
@@ -2094,14 +1418,6 @@ begin
   L := Width - 10;
   if PWindow(Owner)^.Flags and (wfClose+wfZoom) <> 0 then Dec(L,6);
   FrameLine(B, 0, F, Byte(CFrame));
-  if (PWindow(Owner)^.Number <> wnNoNumber) and
-     (PWindow(Owner)^.Number < 10) then
-  begin
-    Dec(L,4);
-    if PWindow(Owner)^.Flags and wfZoom <> 0 then I := 7
-    else I := 3;
-    WordRec(B[Width - I]).Lo := PWindow(Owner)^.Number + $30;
-  end;
   if Owner <> nil then Title := PWindow(Owner)^.GetTitle(L)
   else Title := '';
   if Title <> '' then
@@ -2117,15 +1433,17 @@ begin
   if State and sfActive <> 0 then
   begin
     if PWindow(Owner)^.Flags and wfClose <> 0 then
-      MoveCStr(B[2], '[~þ~]', CFrame);
+     MoveCStr(B[2], '[~'#254'~]', CFrame);
     if PWindow(Owner)^.Flags and wfZoom <> 0 then
     begin
       MoveCStr(B[Width - 5], '[~'#24'~]', CFrame);
       Owner^.SizeLimits(Min, Max);
-      if Longint(Owner^.Size) = Longint(Max) then
+      if Owner^.Size.Equals(Max) then
         WordRec(B[Width - 4]).Lo := 18;
     end;
   end;
+  if (PWindow(Owner)^.Number in [1..9])
+   then WordRec(B[3]).Lo := PWindow(Owner)^.Number + $30;
   WriteLine(0, 0, Size.X, 1, B);
   for I := 1 to Size.Y - 2 do
   begin
@@ -2135,7 +1453,7 @@ begin
   FrameLine(B, Size.Y - 1, F + 6, Byte(CFrame));
   if State and sfActive <> 0 then
     if PWindow(Owner)^.Flags and wfGrow <> 0 then
-      MoveCStr(B[Width - 2], '~ÄÙ~', CFrame);
+      MoveCStr(B[Width - 2], '~'#196#217'~', CFrame);
   WriteLine(0, Size.Y - 1, Size.X, 1, B);
 end;
 
@@ -2233,7 +1551,7 @@ end;
 constructor TScrollBar.Load(var S: TStream);
 begin
   TView.Load(S);
-  S.Read(Value, SizeOf(Integer) * 5 + SizeOf(TScrollChars));
+  S.Read(Value, SizeOf(LongInt) * 5 + SizeOf(TScrollChars));
 end;
 
 procedure TScrollBar.Draw;
@@ -2247,14 +1565,15 @@ begin
   if ShowScrollBar then DrawPos(GetPos) else
   begin
   Chrs:=Chars;
-  Chars:='ººººº';
+  Chars:=#186#186#186#186#186;
   DrawPos(GetPos);
   Chars:=Chrs;
   end;
 end;
-procedure TMyScrollBar.DrawPos(Pos: Integer);
+
+procedure TMyScrollBar.DrawPos(Pos: LongInt);
 var
-  S: Integer;
+  S: LongInt;
   B: TDrawBuffer;
   col1,col2,col3:byte;
 begin
@@ -2281,9 +1600,9 @@ begin
   WriteBuf(0, 0, Size.X, Size.Y, B);
  end;
 
-procedure TScrollBar.DrawPos(Pos: Integer);
+procedure TScrollBar.DrawPos(Pos: LongInt);
 var
-  S: Integer;
+  S: LongInt;
   B: TDrawBuffer;
 begin
   S := GetSize - 1;
@@ -2306,9 +1625,9 @@ begin
   GetPalette := @P;
 end;
 
-function TScrollBar.GetPos: Integer;
+function TScrollBar.GetPos: LongInt;
 var
-  R: Integer;
+  R: LongInt;
 begin
   R := Max - Min;
   if R = 0 then
@@ -2316,9 +1635,9 @@ begin
     GetPos := LongDiv(LongMul(Value - Min, GetSize - 3) + R shr 1, R) + 1;
 end;
 
-function TScrollBar.GetSize: Integer;
+function TScrollBar.GetSize: LongInt;
 var
-  S: Integer;
+  S: LongInt;
 begin
   if Size.X = 1 then S := Size.Y else S := Size.X;
   if S < 3 then GetSize := 3 else GetSize := S;
@@ -2327,13 +1646,13 @@ end;
 procedure TScrollBar.HandleEvent(var Event: TEvent);
 var
   Tracking: Boolean;
-  I, P, S, ClickPart: Integer;
+  I, P, S, ClickPart: LongInt;
   Mouse: TPoint;
   Extent: TRect;
 
-function GetPartCode: Integer;
+function GetPartCode: LongInt;
 var
-  Mark, Part: Integer;
+  Mark, Part: LongInt;
 begin
   Part := -1;
   if Extent.Contains(Mouse) then
@@ -2439,18 +1758,17 @@ begin
   Message(Owner, evBroadcast, cmScrollBarChanged, @Self);
 end;
 
-function TScrollBar.ScrollStep(Part: Integer): Integer;
-var
-  Step: Integer;
+function TScrollBar.ScrollStep(Part: LongInt): LongInt;
+var Step: LongInt;
 begin
   if Part and 2 = 0 then Step := ArStep else Step := PgStep;
-  if Part and 1 = 0 then ScrollStep := -Step else ScrollStep := Step;
+  if Part and 1 = 0 then ScrollStep := -Step  else ScrollStep := Step;
 end;
 
 procedure TScrollBar.SetParams(AValue, AMin, AMax, APgStep,
-  AArStep: Integer);
+  AArStep: LongInt);
 var
-  SValue: Integer;
+  SValue: LongInt;
 begin
   if AMax < AMin then AMax := AMin;
   if AValue < AMin then AValue := AMin;
@@ -2468,17 +1786,17 @@ begin
   ArStep := AArStep;
 end;
 
-procedure TScrollBar.SetRange(AMin, AMax: Integer);
+procedure TScrollBar.SetRange(AMin, AMax: LongInt);
 begin
   SetParams(Value, AMin, AMax, PgStep, ArStep);
 end;
 
-procedure TScrollBar.SetStep(APgStep, AArStep: Integer);
+procedure TScrollBar.SetStep(APgStep, AArStep: LongInt);
 begin
   SetParams(Value, Min, Max, APgStep, AArStep);
 end;
 
-procedure TScrollBar.SetValue(AValue: Integer);
+procedure TScrollBar.SetValue(AValue: LongInt);
 begin
   SetParams(AValue, Min, Max, PgStep, ArStep);
 end;
@@ -2486,7 +1804,7 @@ end;
 procedure TScrollBar.Store(var S: TStream);
 begin
   TView.Store(S);
-  S.Write(Value, SizeOf(Integer) * 5 + SizeOf(TScrollChars));
+  S.Write(Value, SizeOf(LongInt) * 5 + SizeOf(TScrollChars));
 end;
 
 { TGroup }
@@ -2502,9 +1820,9 @@ end;
 constructor TGroup.Load(var S: TStream);
 var
   FixupSave: PFixupList;
-  Count, I: Integer;
+  Count,I: LongInt;
   P, Q: ^Pointer;
-  V: PView;
+  V, Cur: PView;
   OwnerSave: PGroup;
 begin
   TView.Load(S);
@@ -2512,26 +1830,15 @@ begin
   OwnerSave := OwnerGroup;
   OwnerGroup := @Self;
   FixupSave := FixupList;
-  S.Read(Count, SizeOf(Word));
-  asm
-        MOV     CX,Count
-        SHL     CX,1
-        SHL     CX,1
-        SUB     SP,CX
-        MOV     FixupList.Word[0],SP
-        MOV     FixupList.Word[2],SS
-        MOV     DI,SP
-        PUSH    SS
-        POP     ES
-        XOR     AL,AL
-        CLD
-        REP     STOSB
-  end;
+  S.Read(Count, SizeOf(Count));
+  GetMem(FixupList, Count * SizeOf(Pointer));
+  FillChar(FixupList^, Count*SizeOf(Pointer), 0);
   for I := 1 to Count do
   begin
     V := PView(S.Get);
     if V <> nil then InsertView(V, nil);
   end;
+  GetSubViewPtr(S, Cur);
   V := Last;
   for I := 1 to Count do
   begin
@@ -2544,10 +1851,10 @@ begin
       Q^ := V;
     end;
   end;
+  SetCurrent(Cur, NormalSelect);
+  FreeMem(FixupList, Count * SizeOf(Pointer));
   OwnerGroup := OwnerSave;
   FixupList := FixupSave;
-  GetSubViewPtr(S, V);
-  SetCurrent(V, NormalSelect);
   if OwnerGroup = nil then Awaken;
 end;
 
@@ -2565,7 +1872,7 @@ begin
     until P = Last;
     repeat
       T := P^.Prev;
-      Dispose(P, Done);
+      Dispose(P,Done);
       P := T;
     until Last = nil;
   end;
@@ -2573,20 +1880,23 @@ begin
   TView.Done;
 end;
 
-function TGroup.At(Index: Integer): PView; assembler;
-asm
-        LES     DI,Self
-        LES     DI,ES:[DI].TGroup.Last
-        MOV     CX,Index
-@@1:    LES     DI,ES:[DI].TView.Next
-        LOOP    @@1
-        MOV     AX,DI
-        MOV     DX,ES
+function TGroup.At(Index: LongInt): PView;
+var
+  temp : PView;
+begin
+  temp := last;
+  while Index>0 do
+   begin
+     dec(Index);
+     temp:=temp^.Next;
+   end;
+  At:=temp;
 end;
+
 
 procedure TGroup.Awaken;
 
-  procedure DoAwaken(P: PView); far;
+  procedure DoAwaken(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     P^.Awaken;
   end;
@@ -2599,7 +1909,7 @@ procedure TGroup.ChangeBounds(var Bounds: TRect);
 var
   D: TPoint;
 
-procedure DoCalcChange(P: PView); far;
+procedure DoCalcChange(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 var
   R: TRect;
 begin
@@ -2610,7 +1920,7 @@ end;
 begin
   D.X := Bounds.B.X - Bounds.A.X - Size.X;
   D.Y := Bounds.B.Y - Bounds.A.Y - Size.Y;
-  if Longint(D) = 0 then
+  if D.EqualsXY(0,0) then
   begin
     SetBounds(Bounds);
     DrawView;
@@ -2630,7 +1940,7 @@ function TGroup.DataSize: Word;
 var
   T: Word;
 
-procedure AddSubviewDataSize(P: PView); far;
+procedure AddSubviewDataSize(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 begin
   Inc(T, P^.DataSize);
 end;
@@ -2756,7 +2066,7 @@ end;
 
 function TGroup.FirstMatch(AState: Word; AOptions: Word): PView;
 
-function Matches(P: PView): Boolean; far;
+function Matches(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
 begin
   Matches := (P^.State and AState = AState) and
     (P^.Options and AOptions = AOptions);
@@ -2766,39 +2076,43 @@ begin
   FirstMatch := FirstThat(@Matches);
 end;
 
-function TGroup.FirstThat(P: Pointer): PView; assembler;
+function TGroup.FirstThat(P: Pointer): PView;
 var
-  ALast: Pointer;
-asm
-        LES     DI,Self
-        LES     DI,ES:[DI].TGroup.Last
-        MOV     AX,ES
-        OR      AX,DI
-        JE      @@3
-        MOV     WORD PTR ALast[2],ES
-        MOV     WORD PTR ALast[0],DI
-@@1:    LES     DI,ES:[DI].TView.Next
-        PUSH    ES
-        PUSH    DI
-        PUSH    ES
-        PUSH    DI
-        PUSH    WORD PTR [BP]
-        CALL    P
-        POP     DI
-        POP     ES
-        OR      AL,AL
-        JNE     @@2
-        CMP     DI,WORD PTR ALast[0]
-        JNE     @@1
-        MOV     AX,ES
-        CMP     AX,WORD PTR ALast[2]
-        JNE     @@1
-        XOR     DI,DI
-        MOV     ES,DI
-@@2:    MOV     SP,BP
-@@3:    MOV     AX,DI
-        MOV     DX,ES
+  Tp : PView;
+begin
+  if (Last<>nil) then
+  begin
+    Tp := Last;
+    repeat
+      Tp := Tp^.Next;
+      if Byte(Longint(CallPointerMethodLocal(P,PreviousFramePointer,@self,Tp)))<>0 then
+      begin
+        FirstThat := Tp;
+        Exit;
+      end;
+    until (Tp=Last);
+    FirstThat := nil;
+  end
+  else
+    FirstThat := nil;
 end;
+
+function TGroup.LastThat(P: Pointer): PView;
+var
+  Tp : PView;
+begin
+  LastThat := nil;
+  if (Last<>nil) then
+  begin
+    Tp := Last;
+    repeat
+      Tp := Tp^.Next;
+      if Byte(Longint(CallPointerMethodLocal(P,PreviousFramePointer,@self,Tp)))<>0 then
+        LastThat := Tp;
+    until (Tp=Last);
+  end;
+end;
+
 
 function TGroup.FindNext(Forwards: Boolean): PView;
 var
@@ -2825,35 +2139,25 @@ begin
   if P <> nil then FocusNext := P^.Focus;
 end;
 
-procedure TGroup.ForEach(P: Pointer); assembler;
+procedure TGroup.ForEach(P: Pointer);
 var
-  ALast: Pointer;
-asm
-        LES     DI,Self
-        LES     DI,ES:[DI].TGroup.Last
-        MOV     AX,ES
-        OR      AX,DI
-        JE      @@4
-        MOV     WORD PTR ALast[2],ES
-        MOV     WORD PTR ALast[0],DI
-        LES     DI,ES:[DI].TView.Next
-@@1:    CMP     DI,WORD PTR ALast[0]
-        JNE     @@2
-        MOV     AX,ES
-        CMP     AX,WORD PTR ALast[2]
-        JE      @@3
-@@2:    PUSH    WORD PTR ES:[DI].TView.Next[2]
-        PUSH    WORD PTR ES:[DI].TView.Next[0]
-        PUSH    ES
-        PUSH    DI
-        PUSH    WORD PTR [BP]
-        CALL    P
-        POP     DI
-        POP     ES
-        JMP     @@1
-@@3:    PUSH    WORD PTR [BP]
-        CALL    P
-@@4:
+  Tp,Hp,L0 : PView;
+{ Vars Hp and L0 are necessary to hold original pointers in case   }
+{ when some view closes himself as a result of broadcast message ! }
+begin
+  if (Last<>nil) then
+  begin
+     Tp:=Last;
+     Hp:=Tp^.Next;
+     L0:=Last;
+     repeat
+       Tp:=Hp;
+       if tp=nil then
+        exit;
+       Hp:=Tp^.Next;
+       CallPointerMethodLocal(P,PreviousFramePointer,@self,Tp);
+     until (Tp=L0);
+  end;
 end;
 
 procedure TGroup.FreeBuffer;
@@ -2865,29 +2169,22 @@ end;
 { Allocate a group buffer if the group is exposed, buffered, and
   its area is less than 32768 bytes }
 
-procedure TGroup.GetBuffer; assembler;
-asm
-        LES     DI,Self
-        TEST    ES:[DI].State,sfExposed
-        JZ      @@1
-        TEST    ES:[DI].Options,ofBuffered
-        JZ      @@1
-        MOV     AX,ES:[DI].Buffer.Word[0]
-        OR      AX,ES:[DI].Buffer.Word[2]
-        JNZ     @@1
-        MOV     AX,ES:[DI].TView.Size.X
-        MUL     ES:[DI].TView.Size.Y
-        JO      @@1
-        SHL     AX,1
-        JC      @@1
-        JS      @@1
-        LEA     DI,[DI].TView.Buffer
-        PUSH    ES
-        PUSH    DI
-        PUSH    AX
-        CALL    NewCache
-@@1:
+procedure TGroup.GetBuffer;
+begin
+  if ((State and sfExposed)<>0) and
+     ((Options and ofBuffered)<>0) and
+     (Buffer=nil)
+  then begin
+    NewCache(Pointer(Buffer),(Size.X * Size.Y) shl 1);
+    if Buffer<>nil then
+    begin
+      Inc(LockFlag);
+      Redraw;
+      Dec(LockFlag);
+    end;
+  end;
 end;
+
 
 procedure TGroup.GetData(var Rec);
 type
@@ -2928,10 +2225,10 @@ begin
   else
     Pointer(P) := nil;
 end;
-
+(*
 procedure TGroup.HandleEvent(var Event: TEvent);
 
-procedure DoHandleEvent(P: PView); far;
+procedure DoHandleEvent(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 begin
   if (P = nil) or ((P^.State and sfDisabled <> 0)
     and (Event.What and (PositionalEvents or FocusedEvents) <> 0)) then Exit;
@@ -2942,7 +2239,7 @@ begin
   if Event.What and P^.EventMask <> 0 then P^.HandleEvent(Event);
 end;
 
-function ContainsMouse(P: PView): Boolean; far;
+function ContainsMouse(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
 begin
   ContainsMouse := (P^.State and sfVisible <> 0) and
     P^.MouseInView(Event.Where);
@@ -2955,7 +2252,7 @@ begin
     Phase := phPreProcess;
     ForEach(@DoHandleEvent);
     Phase := phFocused;
-    DoHandleEvent(Current);
+    if Current<>nil then DoHandleEvent(Current);
     Phase := phPostProcess;
     ForEach(@DoHandleEvent);
   end else
@@ -2966,30 +2263,73 @@ begin
       ForEach(@DoHandleEvent);
   end;
 end;
+*)
+procedure TGroup.HandleEvent(var Event: TEvent);
 
-function TGroup.IndexOf(P: PView): Integer; assembler;
-asm
-        LES     DI,Self
-        LES     DI,ES:[DI].TGroup.Last
-        MOV     AX,ES
-        OR      AX,DI
-        JE      @@3
-        MOV     CX,DI
-        MOV     BX,ES
-        XOR     AX,AX
-@@1:    INC     AX
-        LES     DI,ES:[DI].TView.Next
-        MOV     DX,ES
-        CMP     DI,P.Word[0]
-        JNE     @@2
-        CMP     DX,P.Word[2]
-        JE      @@3
-@@2:    CMP     DI,CX
-        JNE     @@1
-        CMP     DX,BX
-        JNE     @@1
-        XOR     AX,AX
-@@3:
+  { CN fix: we call FirstThat instead ForEach }
+  function DoHandleEvent(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
+  begin
+    DoHandleEvent := False;
+    if (P = nil) or ((P^.State and sfDisabled <> 0) and
+       (Event.What and (PositionalEvents or FocusedEvents) <> 0)) then Exit;
+    case Phase of
+      phPreProcess: if P^.Options and ofPreProcess = 0 then Exit;
+      phPostProcess: if P^.Options and ofPostProcess = 0 then Exit;
+    end;
+    if (Event.What <> evMouseMove) and
+       (Event.What and P^.EventMask = 0) then Exit;
+    P^.HandleEvent(Event);
+    DoHandleEvent := Event.What = evNothing;
+  end;
+
+  function ContainsMouse(P: PView): Boolean;{$IFDEF BIT_16}far;{$ENDIF}
+  begin
+    ContainsMouse:=(P^.State and sfVisible <> 0) and
+      P^.MouseInView(Event.Where);
+  end;
+
+var
+  NV: PView;
+begin
+  if Event.What and EventMask = 0 then Exit; { Fixed 05.22.95 }
+  TView.HandleEvent(Event);
+  if Event.What and FocusedEvents <> 0 then
+  begin
+    Phase := phPreProcess;
+    FirstThat(@DoHandleEvent);
+    if Event.What = evNothing then Exit;
+    Phase := phFocused;
+    DoHandleEvent(Current);
+    if Event.What = evNothing then Exit;
+    Phase := phPostProcess;
+    FirstThat(@DoHandleEvent);
+  end else
+  begin
+    Phase := phFocused;
+    if (Event.What and PositionalEvents <> 0) then
+      DoHandleEvent(FirstThat(@ContainsMouse)) else
+      FirstThat(@DoHandleEvent);
+  end;
+end;
+
+
+function TGroup.IndexOf(P: PView): longint;
+var
+  temp : PView;
+  index : longint;
+begin
+  index:=0;
+  if Last<>Nil then
+   begin
+     temp:=Last;
+     repeat
+       inc(index);
+       temp:=temp^.Next;
+     until (temp=P) or (temp=Last);
+     if temp<>p then
+      index:=0;
+   end;
+  IndexOf:=index;
 end;
 
 procedure TGroup.Insert(P: PView);
@@ -3055,54 +2395,22 @@ begin
   DrawSubViews(First, nil);
 end;
 
-procedure TGroup.RemoveView(P: PView); assembler;
-asm
-        PUSH    DS
-        LDS     SI,Self
-        LES     DI,P
-        LDS     SI,DS:[SI].TGroup.Last
-        PUSH    BP
-        MOV     AX,DS
-        OR      AX,SI
-        JE      @@7
-        MOV     AX,SI
-        MOV     DX,DS
-        MOV     BP,ES
-@@1:    MOV     BX,WORD PTR DS:[SI].TView.Next[0]
-        MOV     CX,WORD PTR DS:[SI].TView.Next[2]
-        CMP     CX,BP
-        JE      @@5
-@@2:    CMP     CX,DX
-        JE      @@4
-@@3:    MOV     SI,BX
-        MOV     DS,CX
-        JMP     @@1
-@@4:    CMP     BX,AX
-        JNE     @@3
-        JMP     @@7
-@@5:    CMP     BX,DI
-        JNE     @@2
-        MOV     BX,WORD PTR ES:[DI].TView.Next[0]
-        MOV     CX,WORD PTR ES:[DI].TView.Next[2]
-        MOV     DS:WORD PTR [SI].TView.Next[0],BX
-        MOV     DS:WORD PTR [SI].TView.Next[2],CX
-        CMP     DX,BP
-        JNE     @@7
-        CMP     AX,DI
-        JNE     @@7
-        CMP     CX,BP
-        JNE     @@6
-        CMP     BX,DI
-        JNE     @@6
-        XOR     SI,SI
-        MOV     DS,SI
-@@6:    POP     BP
-        PUSH    BP
-        LES     DI,Self
-        MOV     WORD PTR ES:[DI].TView.Last[0],SI
-        MOV     WORD PTR ES:[DI].TView.Last[2],DS
-@@7:    POP     BP
-        POP     DS
+procedure TGroup.RemoveView(P: PView);
+var
+  cur:PView;
+begin
+  if Last<>Nil then begin
+    cur:=Last;
+    while true do begin
+      if p=cur^.Next then begin
+        cur^.Next:=P^.Next;
+        if Last=P then
+          begin if cur^.Next=P then Last:=Nil else Last:=cur; break end;
+      end;
+      if cur^.next=Last then break;
+      cur:=cur^.Next;
+    end;
+  end
 end;
 
 procedure TGroup.ResetCurrent;
@@ -3170,12 +2478,12 @@ end;
 
 procedure TGroup.SetState(AState: Word; Enable: Boolean);
 
-procedure DoSetState(P: PView); far;
+procedure DoSetState(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 begin
   P^.SetState(AState, Enable);
 end;
 
-procedure DoExpose(P: PView); far;
+procedure DoExpose(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 begin
   if P^.State and sfVisible <> 0 then P^.SetState(sfExposed, Enable);
 end;
@@ -3201,10 +2509,10 @@ end;
 
 procedure TGroup.Store(var S: TStream);
 var
-  Count: Integer;
+  Count: LongInt;
   OwnerSave: PGroup;
 
-procedure DoPut(P: PView); far;
+procedure DoPut(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 begin
   S.Put(P);
 end;
@@ -3214,7 +2522,7 @@ begin
   OwnerSave := OwnerGroup;
   OwnerGroup := @Self;
   Count := IndexOf(Last);
-  S.Write(Count, SizeOf(Word));
+  S.Write(Count, SizeOf(Count));
   ForEach(@DoPut);
   PutSubViewPtr(S, Current);
   OwnerGroup := OwnerSave;
@@ -3231,7 +2539,7 @@ end;
 
 function TGroup.Valid(Command: Word): Boolean;
 
-function IsInvalid(P: PView): Boolean; far;
+function IsInvalid(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
 begin
   IsInvalid := not P^.Valid(Command);
 end;
@@ -3258,26 +2566,29 @@ begin
   GrowMode := gfGrowAll + gfGrowRel;
   Flags := wfMove + wfGrow + wfClose + wfZoom;
   Title := NewStr(ATitle);
-  Number := ANumber;
+  if ANumber<>wnNoNumber then Number := GetNum else Number := 0;
   Palette := wpBlueWindow;
   InitFrame;
   if Frame <> nil then Insert(Frame);
   GetBounds(ZoomRect);
+  MaxiRect.A.X:=High(MaxiRect.A.X);
 end;
 
 constructor TWindow.Load(var S: TStream);
 var
-  FrameIdent: Word;
+  FrameIdent: AWord;
 begin
   TGroup.Load(S);
-  S.Read(Flags, SizeOf(Byte) + SizeOf(TRect) + 2 * SizeOf(Integer));
+  S.Read(Flags, SizeOf(Byte) + SizeOf(TRect)*2 + 2 * SizeOf(AInt));
+  if Number in [1..9] then Numbers := Numbers or (1 shl Number);
   GetSubViewPtr(S, Frame);
   Title := S.ReadStr;
 end;
 
 destructor TWindow.Done;
 begin
-  TGroup.Done;
+  if Number in [1..9] then Numbers := Numbers and not (1 shl Number);
+  inherited Done;
   DisposeStr(Title);
 end;
 
@@ -3301,7 +2612,10 @@ end;
 
 function TWindow.GetTitle(MaxSize: Integer): TTitleStr;
 begin
-  if Title <> nil then GetTitle := Title^
+  if Title <> nil
+  then if Length(Title^)>MaxSize
+        then GetTitle := Cut(Title^,MaxSize)
+        else GetTitle := Title^
   else GetTitle := '';
 end;
 
@@ -3341,6 +2655,13 @@ begin
           ((Event.InfoPtr = nil) or (Event.InfoPtr = @Self)) then
         begin
           Zoom;
+          ClearEvent(Event);
+        end;
+      cmMaxi:
+        if (Flags and wfMaxi <> 0) and
+          ((Event.InfoPtr = nil) or (Event.InfoPtr = @Self)) then
+        begin
+          Maxi;
           ClearEvent(Event);
         end;
     end
@@ -3384,7 +2705,7 @@ begin
   if AState = sfSelected then
   begin
     SetState(sfActive, Enable);
-    if GetState(sfActive) then if Title<>nil then SetTitle(Title^);
+    if GetState(sfActive) then if Title<>nil then SetTitle(GetTitle(255));
     WindowCommands := [cmNext, cmPrev, cmTile, cmCascade, cmClearDesktop, cmWindowManager];
     if Flags and wfGrow + wfMove <> 0 then
       WindowCommands := WindowCommands + [cmResize];
@@ -3392,6 +2713,8 @@ begin
       WindowCommands := WindowCommands + [cmClose];
     if Flags and wfZoom <> 0 then
       WindowCommands := WindowCommands + [cmZoom];
+    if Flags and wfMaxi <> 0 then
+      WindowCommands := WindowCommands + [cmMaxi];
     if Enable then EnableCommands(WindowCommands)
     else DisableCommands(WindowCommands);
   end;
@@ -3423,7 +2746,7 @@ end;
 procedure TWindow.Store(var S: TStream);
 begin
   TGroup.Store(S);
-  S.Write(Flags, SizeOf(Byte) + SizeOf(TRect) + 2 * SizeOf(Integer));
+  S.Write(Flags, SizeOf(Byte) + SizeOf(TRect)*2 + 2 * SizeOf(AInt));
   PutSubViewPtr(S, Frame);
   S.WriteStr(Title);
 end;
@@ -3434,25 +2757,43 @@ var
   Max, Min: TPoint;
 begin
   SizeLimits(Min, Max);
-  if Longint(Size) <> Longint(Max) then
-  begin
-    GetBounds(ZoomRect);
-    Longint(R.A) := 0;
-    R.B := Max;
-    Locate(R);
-  end else Locate(ZoomRect);
+  if MaxiRect.A.X<High(MaxiRect.A.X) then Locate(MaxiRect)
+  else if not Size.Equals(Max) then begin
+        GetBounds(ZoomRect);
+        R.A.Assign(0,0);
+        R.B := Max;
+        Locate(R);
+       end else Locate(ZoomRect);
+  MaxiRect.A.X:=High(MaxiRect.A.X);
+end;
+
+procedure TWindow.Maxi;
+var
+  R: TRect;
+  Max, Min: TPoint;
+begin
+  if MaxiRect.A.X<High(MaxiRect.A.X) then begin
+   Locate(MaxiRect);
+   MaxiRect.A.X:=High(MaxiRect.A.X);
+  end else begin
+   GetBounds(MaxiRect);
+   SizeLimits(Min, Max);
+   R.A.Assign(0,0);
+   R.B := Max;
+   Dec(R.A.X); Inc(R.B.X);
+   Locate(R);
+  end;
 end;
 
 procedure TWindow.Draw;
 begin
- if GetState(sfActive) then if Title<>nil then SetTitle(Title^);
+ if GetState(sfActive) then if Title<>nil then SetTitle(GetTitle(255));
  inherited Draw;
 end;
 
 { Message dispatch function }
 
-function Message(Receiver: PView; What, Command: Word;
-  InfoPtr: Pointer): Pointer;
+function Message(Receiver: PView; What, Command: Word; InfoPtr: Pointer): Pointer;
 var
   Event: TEvent;
 begin
@@ -3464,6 +2805,21 @@ begin
     Event.InfoPtr := InfoPtr;
     Receiver^.HandleEvent(Event);
     if Event.What = evNothing then Message := Event.InfoPtr;
+  end;
+end;
+
+function MessageL(Receiver: PView; What, Command: Word; InfoLng: LongInt): Pointer;
+var
+  Event: TEvent;
+begin
+  MessageL := nil;
+  if Receiver <> nil then
+  begin
+    Event.What := What;
+    Event.Command := Command;
+    Event.InfoLong := InfoLng;
+    Receiver^.HandleEvent(Event);
+    if Event.What = evNothing then MessageL := Event.InfoPtr;
   end;
 end;
 
@@ -3488,22 +2844,41 @@ begin
 end;
 
 procedure Deregister(P: PView);
-  var I: Integer;
+  var I: LongInt;
 begin
-  I := 0;
-  if UpdateViews <> nil then
-    while I < UpdateViews^.Count do
-       if P = UpdateViews^.At(I) then UpdateViews^.AtDelete(I) else Inc(I);
-  I := 0;
-  if UpdatePrior <> nil then
-    while I < UpdatePrior^.Count do
-       if P = UpdatePrior^.At(I) then UpdatePrior^.AtDelete(I) else Inc(I);
+  if UpdateViews <> nil then with UpdateViews^ do begin
+    I := 0;
+    while I < Count do
+     if P = At(I)
+      then AtDelete(I)
+      else Inc(I);
+    If Count = 0 then begin
+     Dispose(UpdateViews, Done);
+     UpdateViews := nil;
+    end;
+  end;
+  if UpdatePrior <> nil then with UpdatePrior^ do begin
+    I := 0;
+    while I < Count do
+     if P = At(I)
+      then AtDelete(I)
+      else Inc(I);
+    If Count = 0 then begin
+     Dispose(UpdatePrior, Done);
+     UpdatePrior := nil;
+    end;
+  end;
 end;
 
 procedure UpdateAll;
-  procedure DoUpdate(P: PView); far;
-  begin if (P <> nil) and ((P^.UpdTicks=0) or TimerExpired(P^.UpTmr)) then
-         begin P^.Update; NewTimer(P^.UpTmr, P^.UpdTicks); end; end;
+  procedure DoUpdate(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
+  begin
+   if (P <> nil) and ((P^.UpdTicks=0) or TimerExpired(P^.UpTmr))
+    then begin
+     P^.Update;
+     NewTimer(P^.UpTmr, P^.UpdTicks);
+    end;
+  end;
 begin
   if UpdateViews <> nil then UpdateViews^.ForEach(@DoUpdate);
   if All and (UpdatePrior <> nil) and (UpdatePrior^.Count > 0) then

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 Unit Crc;
 
 {
@@ -196,21 +196,21 @@ begin
     while (len >= 8) do
     begin
       {DO8(buf)}
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
 
       Dec(len, 8);
@@ -218,7 +218,7 @@ begin
     if (len <> 0) then
     repeat
       {DO1(buf)}
-      crc := crc_table[(int(crc) xor buf^) and $ff] xor (crc shr 8);
+      crc := crc_table^[(int(crc) xor buf^) and $ff] xor (crc shr 8);
       inc(buf);
 
       Dec(len);

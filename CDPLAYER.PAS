@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -57,7 +57,7 @@ USES xTime, Dialogs, Drivers, Objects, Views, Collect;
 CONST
   CDplace: TPoint = ( X:0; Y:0 );
   CDsize: TPoint = ( X:0; Y:0 );
-  CDparams: array[ 1..3 ] of word = ( 3, 0, 0 );
+  CDparams: array[ 1..3 ] of AWord = ( 3, 0, 0 );
   CDmixer : String= '';
 
   CD_Player: PView = nil;
@@ -127,7 +127,7 @@ TYPE
      AMin,
      Asec,
      Afrm: byte;
-     Stat: word;
+     Stat: aword;
    end;
 
   _UpcCode = record
@@ -152,7 +152,7 @@ TYPE
   PCdPlayer = ^TCdPlayer;
   TCdPlayer = Object( TDialog )
     DiskOk: boolean;
-    CdDisk: integer;
+    CdDisk: AInt;
     LowTrack,
     HighTrack: byte;
     DiskMin,
@@ -237,68 +237,10 @@ USES advance, advance1, advance2, advance3, Messages, Commands, RStrings,
      DNHelp, DOS, DnApp, Startup, CDUtil, Menus
      {$IFDEF DPMI}, Dpmi, DosMem{$ENDIF}
      ;
-
+{
 CONST
-  cdDrive: integer = -1;
-
-var
-  Crc32TableOfs : Word;
-
-function UpdateCrc32(CurByte : Byte; CurCrc : LongInt) : LongInt;
-  {-Returns an updated crc32}
-
-  (* Model for inline code below
-  UpdateCrc32 := Crc_Table[Byte(CurCrc xor LongInt(CurByte))] xor
-                 ((CurCrc shr 8) and $00FFFFFF);
-  *)
-
-Inline(
-                         {;Get args -- DX:BX = CurCrc, CX = CurByte;}
-  $5B/                   {        POP     BX}
-  $5A/                   {        POP     DX}
-  $59/                   {        POP     CX}
-  $52/                   {        PUSH    DX}
-  $53/                   {        PUSH    BX      ;Save original CurCrc}
-                         {;CX:AX := Get Crc_Table[CurCrc xor CurByte];}
-  $31/$CB/               {        XOR     BX,CX   ;DX:BX = CurCrc xor CurByte}
-  $30/$FF/               {        XOR     BH,BH   ;Byte(DX:BX)}
-  $D1/$E3/               {        SHL     BX,1    ;LongInt index}
-  $D1/$E3/               {        SHL     BX,1}
-  $03/$1E/>CRC32TABLEOFS/{        ADD     BX,[>Crc32TableOfs]}
-  $8B/$07/               {        MOV     AX,[BX]}
-  $8B/$4F/$02/           {        MOV     CX,[BX+2]}
-                         {;DX:BX := (CurCrc shr 8) and $00FFFFFF;}
-  $5B/                   {        POP     BX      ;Get original CurCrc}
-  $5A/                   {        POP     DX}
-  $51/                   {        PUSH    CX      ;Save CX}
-  $B9/$08/$00/           {        MOV     CX,8    ;Shift 8 bits}
-  $D1/$EA/               {C1:     SHR     DX,1    ;Hi reg into carry}
-  $D1/$DB/               {        RCR     BX,1    ;Carry into lo reg}
-  $E2/$FA/               {        LOOP    C1      ; for 8 bits}
-  $81/$E2/$FF/$00/       {        AND     DX,$00FF}
-                         {;DX:AX := ES:AX xor DX:BX (sets function result)}
-  $59/                   {        POP     CX}
-  $31/$D8/               {        XOR     AX,BX}
-  $89/$CB/               {        MOV     BX,CX}
-  $31/$DA);              {        XOR     DX,BX}
-
-
-Function GetCrc( var Buf ; BufSize : word ) : Longint ;
-type
-  AA = array[1..$F000] of byte ;
-var CNT : word;
-    CRC : Longint;
- begin
-    Crc32TableOfs := Ofs(Crc_Table);
-    CRC := 0;
-    GetCrc := 0;
-     if BufSize = 0 then Exit;
-       for CNT :=1 to BufSize do
-       CRC := UpdateCrc32(AA(Buf)[CNT] , Crc );
-    GetCrc := CRC ;
- end;
-
-
+  cdDrive: aint = -1;
+}
 
 FUNCTION CD_GetFirstDrive( var firstDrive: Integer ): integer;
 {$IFNDEF DPMI}
@@ -340,7 +282,7 @@ begin
 {$IFNDEF DPMI}
   Buf := System.Addr( reqHdr[ 20 ] );
   move( Buf, reqHdr[ 14 ], sizeOf( Buf ));
-  
+
   asm
     les bx, reqHdr
     mov cx, drv
@@ -667,7 +609,7 @@ PROCEDURE InsertText( From: byte );
       end;
 PROCEDURE TCounter.Draw;
   var C, I: byte;
-      T: TdrawBuffer;
+      T: TDrawBuffer;
       begin
       C  := GetColor( 1 );
       for I := 0 to Pred( Size.Y ) do
@@ -699,6 +641,7 @@ begin
     {R.Assign( 1, 4, 35, 9 );  }   { 34 7 59 12 }
     {R.Assign( 1, 4, 60, 14 ); }
   inherited Init( R, GetString( dlCDPlayer ));
+  Number := GetNum;
   {Options := Options or ofCentered;}
   Flags := Flags or wfZoom;
 
@@ -1286,7 +1229,7 @@ begin
      if (Status in [play,paused])
      then Tdscr := CnvString(Descr^.At( Qchannel.TNO-LowTrack ))
      else Tdscr := '';
-      if Descr^.Count=0 then Tdscr := '';
+      if (Descr=nil) or (Descr^.Count=0) then Tdscr := '';
      if Pos(';',Tdscr)>0 then system.Delete(Tdscr,Pos(';',Tdscr),255);
      ParmD := Longint( @TrkDescr );
      if TrkDescr<>Tdscr then
@@ -1978,9 +1921,10 @@ begin
       'Z': Zoom;
       '0'..'9'  :  _Song( byte(Event.CharCode) - byte ('0')) ;
       'O': SelectOrder ;
-      'T': begin  GetDescription;
+      {'T': begin  GetDescription;
                   EditDescr(@Self);
-           end;
+           end;}                         {disabled by JITRsoftware}
+      'R': SelectTrack; {added by JITRsoftware}
       else
        Case Event.KeyCode of
         KbUp:    _Next;

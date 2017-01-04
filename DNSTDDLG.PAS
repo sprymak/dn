@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -134,8 +134,8 @@ type
       AScrollBar: PScrollBar);
     destructor Done; virtual;
     function DataSize: Word; virtual;
-    procedure FocusItem(Item: Integer); virtual;
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+    procedure FocusItem(Item: LongInt); virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     function GetKey(var S: String): Pointer; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure ReadDirectory(AWildCard: String);
@@ -146,7 +146,7 @@ type
   { TDirectoryList }
   PDirectoryList = ^TDirectoryList;
   TDirectoryList = object(TFileList)
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     function GetKey(var S: String): Pointer; virtual;
     procedure ReadDirectory(AWildCard: String);
   end;
@@ -225,8 +225,8 @@ const
   CInfoPane = #30;
 
 function GetFileNameDialog(Mask, Title, Name: String; Buttons, HistoryID: Word): String; {DataCompBoy}
-function GetFileNameMenu (Path, Mask: String; PutNumbers: Boolean; var More: Boolean): String; {JO}
-{DataCompBoy: Mask now an standart DN filter, like "*.Ops;-Pas.*;p*.d"}
+function GetFileNameMenu (Path, Mask, Default: String; PutNumbers: Boolean; var More, None: Boolean): String; {JO}
+{DataCompBoy: Mask now an standard DN filter, like "*.Ops;-Pas.*;p*.d"}
 
 implementation
 
@@ -260,10 +260,11 @@ var
   Ext: String;
 
 { Contains returns true if S1 contains any characters in S2 }
-function Contains(S1, S2: String): Boolean;
+function Contains({$IFDEF BIT_32}const{$ENDIF} S1, S2: String): Boolean;
 {$IFNDEF NOASM}
 near; assembler;
-asm
+{$IFNDEF BIT_32}
+ asm
         PUSH    DS
         CLD
         LDS     SI,S1
@@ -276,7 +277,7 @@ asm
         JZ      @@2
         MOV     AL,ES:[DI]
         XCHG    AX,CX
-@@1:    PUSH    CX
+ @@1:   PUSH    CX
         MOV     DI,DX
         LODSB
         REPNE   SCASB
@@ -284,18 +285,46 @@ asm
         JE      @@3
         DEC     BX
         JNZ     @@1
-@@2:    XOR     AL,AL
+ @@2:   XOR     AL,AL
         JMP     @@4
-@@3:    MOV     AL,1
-@@4:    POP     DS
+ @@3:   MOV     AL,1
+ @@4:   POP     DS
+ end;
+ {$ELSE BIT_32}{$Frame-}{$USES ESI, EDI, EDX, EBX, ECX}
+ asm
+        CLD
+        MOV     ESI,S1
+        MOV     EDI,S2
+        MOV     EDX,EDI
+        XOR     EAX,EAX
+        LODSB
+        MOV     EBX,EAX
+        OR      EBX,EBX
+        JZ      @@2
+        MOV     AL,[EDI]
+        XCHG    EAX,ECX
+ @@1:   PUSH    ECX
+        MOV     EDI,EDX
+        LODSB
+        REPNE   SCASB
+        POP     ECX
+        JE      @@3
+        DEC     EBX
+        JNZ     @@1
+ @@2:   XOR     AL,AL
+        JMP     @@4
+ @@3:   MOV     AL,1
+ @@4:
+ end;
+ {$ENDIF}
 {$ELSE}
 var q: integer;
 begin
  Contains:=true;
  for q:=1 to length(S2) do if PosChar(S2[q], S1)>0 then exit;
  Contains:=false;
-{$ENDIF}
 end;
+{$ENDIF}
 
 begin
   ValidFileName := True;
@@ -538,7 +567,7 @@ begin
   DataSize := 0;
 end;
 
-procedure TFileList.FocusItem(Item: Integer);
+procedure TFileList.FocusItem(Item: LongInt);
 begin
   TSortedListBox.FocusItem(Item);
   Message(Owner, evBroadcast, cmFileFocused, List^.At(Item));
@@ -560,7 +589,7 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
-function TFileList.GetText(Item: Integer; MaxLen: Integer): String;
+function TFileList.GetText(Item: LongInt; MaxLen: Integer): String;
 var
   SR: PSearchRec;
 begin
@@ -661,7 +690,7 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
-function TDirectoryList.GetText(Item: Integer; MaxLen: Integer): String;
+function TDirectoryList.GetText(Item: LongInt; MaxLen: Integer): String;
 var
   SR: PSearchRec;
 begin
@@ -971,9 +1000,6 @@ end;
 
         {-DataCompBoy-}
 constructor TFileDialog.Load(var S: TStream);
-var
-  ACurDir: String;
-  ViewId: Word;
 begin
   TDialog.Load(S);
   WildCard := S.ReadStr;
@@ -1038,7 +1064,8 @@ begin
 end;
 
 function NoWildChars(S: String): String; assembler;
-asm
+{$IFNDEF BIT_32}
+ asm
         PUSH    DS
         LDS     SI,S
         XOR     AX,AX
@@ -1046,20 +1073,42 @@ asm
         XCHG    AX,CX
         LES     DI,@Result
         INC     DI
-@@1:    LODSB
+ @@1:   LODSB
         CMP     AL,'?'
         JE      @@2
         CMP     AL,'*'
         JE      @@2
         STOSB
-@@2:    LOOP    @@1
+ @@2:   LOOP    @@1
         XCHG    AX,DI
         MOV     DI,WORD PTR @Result
         SUB     AX,DI
         DEC     AX
         STOSB
         POP     DS
-end;
+ end;
+{$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, ECX}
+ asm
+        LEA     ESI,S
+        XOR     EAX,EAX
+        LODSB
+        XCHG    EAX,ECX
+        MOV     EDI,@Result
+        INC     EDI
+ @@1:   LODSB
+        CMP     AL,'?'
+        JE      @@2
+        CMP     AL,'*'
+        JE      @@2
+        STOSB
+ @@2:   LOOP    @@1
+        XCHG    EAX,EDI
+        MOV     EDI,@Result
+        SUB     EAX,EDI
+        DEC     EAX
+        STOSB
+ end;
+{$ENDIF}
 
 begin
   S := FileName^.Data^; ClrIO;
@@ -1334,12 +1383,17 @@ begin
   GetFileNameDialog := S
 end;
 
-function GetFileNameMenu (Path, Mask: String; PutNumbers: Boolean; var More: Boolean): String; {JO}
+function GetFileNameMenu (Path, Mask, Default: String; PutNumbers: Boolean; var More, None: Boolean): String; {JO}
 
-    var S:string; SS:string; {L:TStringCollection;} L:TLineCollection; SR:lSearchRec;
-        Current,Default:PMenuItem; Menu:PMenu; CurIdx,i:integer;
-        HMB:PMenuBox; R:TRect; V:PView;
-        W: Word;
+ var S:string;
+     L:TLineCollection;
+     SR:lSearchRec;
+     Current, Def: PMenuItem;
+     Menu: PMenu;
+     HMB:PMenuBox;
+     CurIdx, i:integer;
+     R: TRect;
+     W: Word;
 
         function LngMixCase(P:string):string;
         var i:integer;
@@ -1351,27 +1405,24 @@ function GetFileNameMenu (Path, Mask: String; PutNumbers: Boolean; var More: Boo
         end;
 
     begin
-        GetFileNameMenu := '';
+        UpStr(Default);
         L.Init(5,5);
         lFindFirst(MakeNormName(Path, '*.*'), AnyFile,SR);
         while DosError=0 do begin
             if ((SR.SR.Attr and Directory)=0) and (SR.FullSize>0) and
                 (InFilter(SR.FullName,Mask) or InFilter(SR.SR.Name,Mask))
              then begin
-                SS[0]:=#0;
-{               while SR.FullName[Byte(SS[0])+1]<>'.'}
-{               do SS:=SS+SR.FullName[Byte(SS[0])+1];}
-                SS:=SR.FullName;
-                SS:=LngMixCase(SS);
-                L.Insert(NewStr(SS))
+                S[0]:=#0;
+                S:=SR.FullName;
+                S:=LngMixCase(S);
+                L.Insert(NewStr(S))
             end;
             lFindNext(SR)
         end;
         lFindClose(SR);
-        if More then L.Insert(NewStr(GetString(dlMore)));
-        CurIdx:=0;
+        Def := nil;
+        Current := nil;
         if L.Count>0 then begin
-            Current:=nil;
             for i:=L.Count-1 downto 0 do
               begin
                 if PutNumbers then
@@ -1384,34 +1435,40 @@ function GetFileNameMenu (Path, Mask: String; PutNumbers: Boolean; var More: Boo
                 else S:='';
                 Current:=NewItem(S+CutH(PString(L.At(i))^,40),'',kbNoKey,
                 cmSelectMenuCommands+i,hcNoContext,Current);
-                if i=CurIdx then Default:=Current
+                if UpStrg(PString(L.At(i))^)=Default then Def:=Current
               end;
-            Menu:=NewMenu(Current);
-            Menu^.Default:=Default;
-            Application^.GetExtent(R);
-            R.A.X:=((R.A.X+R.B.X) div 2)-8;
-            R.B.X:=R.A.X+16;
-            R.A.Y:=((R.A.Y+R.B.Y-L.Count) div 2)-1;
-            R.B.Y:=R.A.Y+L.Count+2;
-            if R.A.Y<Application^.Origin.Y+1 then R.A.Y:=Application^.Origin.Y+1;
-            if R.B.Y>Application^.Origin.Y+Application^.Size.Y-1
-            then R.B.Y:=Application^.Origin.Y+Application^.Size.Y-1;
-            New(HMB,Init(R,Menu,nil));
-            W:=Application^.ExecView(HMB);
-            If W<>cmCancel then CurIdx:=W-cmSelectMenuCommands else CurIdx:=-1;
-            Dispose(HMB,Done);
-            DisposeMenu(Menu);
-            More := False;
-            if (CurIdx>=0) then
-                    if PString(L.At(CurIdx))^ = GetString(dlMore) then
-                       begin
-                         More := True;
-                       end
-                    else
-                       begin
-                         GetFileNameMenu := MakeNormName(Path, PString(L.At(CurIdx))^);
-                         More := False;
-                       end;
+        end;
+        if More then Current:=NewItem('  '+GetString(dlMore), '', kbSpace,
+                                      MoreCommand, hcNoContext, Current);
+        if None then Current:=NewItem('~'#27'~ '+GetString(dlNone), '', kbBack,
+                                      NoneCommand, hcNoContext, Current);
+        Menu:=NewMenu(Current);
+        if Def<>nil then Menu^.Default:=Def;
+        Application^.GetExtent(R);
+        R.A.X:=((R.A.X+R.B.X) div 2)-8;
+        R.B.X:=R.A.X+16;
+        R.A.Y:=((R.A.Y+R.B.Y-L.Count) div 2)-1;
+        R.B.Y:=R.A.Y+L.Count+2;
+        if R.A.Y<Application^.Origin.Y+1 then R.A.Y:=Application^.Origin.Y+1;
+        if R.B.Y>Application^.Origin.Y+Application^.Size.Y-1
+        then R.B.Y:=Application^.Origin.Y+Application^.Size.Y-1;
+        New(HMB,Init(R,Menu,nil));
+        W:=Application^.ExecView(HMB);
+        Dispose(HMB,Done);
+        DisposeMenu(Menu);
+        More := False;
+        None := False;
+        GetFileNameMenu := '';
+        case W of
+         cmCancel: ;
+         cmClose:  ;
+         NoneCommand: None := True;
+         MoreCommand: More := True;
+         else begin
+               CurIdx:=W-cmSelectMenuCommands;
+               if (CurIdx>=0) and (CurIdx<L.Count) then
+                GetFileNameMenu := MakeNormName(Path, PString(L.At(CurIdx))^);
+              end;
         end;
         L.FreeAll;
         L.Done;

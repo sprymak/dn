@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -56,13 +56,15 @@ UNIT Drivers2;
 
 INTERFACE
 
-procedure DoDump(Er: byte; ErrAdd: Longint);
+procedure DoDump(Er: byte; ErrAdd: Pointer);
 
 IMPLEMENTATION
-Uses Dos, Advance, LFN, StakDump, Advance1, Drivers;
+Uses Dos, Advance, LFN, {$IFNDEF NONBP}StakDump, {$ENDIF}Advance1, Drivers
+     {$IFDEF VIRTUALPASCAL}, SysUtils{$ENDIF}
+     ;
 
 {$S-}
-procedure DoDump(Er: byte; ErrAdd: Longint);
+procedure DoDump(Er: byte; ErrAdd: Pointer);
 {$IFNDEF DNPRG}begin{$ELSE}
 type PByteArray = ^TByteArray;
      TByteArray = array [0..65528] of byte;
@@ -70,11 +72,18 @@ var
   C,AC,PP,FH : Word;
   {!!!!!}
   PPP: TByteArray absolute FreeStr;
+  PhysAddr : pointer;
 
   I : Byte;
   PExit, ActiveButton: Byte;
 
-  Function StoreBuffer(var Buf; Size:word ; FH : word ):word;assembler;
+  Function StoreBuffer(var Buf; Size:word ; FH : word ):word;
+    {$IFDEF VIRTUALPASCAL}
+  begin
+   StoreBuffer := FileWrite(FH, Buf, Size);
+  end;
+    {$ELSE}
+    assembler;
     asm
        mov  bx,FH
        push ds
@@ -89,15 +98,20 @@ var
          @@1:
        pop  ds
     end;
-
+    {$ENDIF}
 
 begin
     { Create Report File. DRIVERS.PAS contains full dupe of this routine }
 
     I := Byte(SourceDir[0]);
-    SourceDir := SourceDir + 'DN.ERR'#0;
+    SourceDir := SourceDir + 'DN.ERR'{$IFNDEF VIRTUALPASCAL}+#0{$ENDIF};
 
-    FH := $FFFF ;
+    {$IFDEF VIRTUALPASCAL}
+    FH := FileOpen(SourceDir, fmOpenWrite);
+    if FH<0 then FH := FileCreate(SourceDir);
+    if FH>=0 then FileSeek(FH, 0, 2);
+    {$ELSE}
+    FH := Word(-1) ;
  asm
     push ds
     push bp
@@ -126,40 +140,55 @@ begin
     pop bp
     pop ds
  end;
+   {$ENDIF}
 
- if FH<>$FFFF then
+ if FH<>Word(-1) then
    begin
+     {$IFNDEF NONBP}
      AssignOutput(FH);
+     {$ENDIF}
      FreeStr :=
           ^M^J +
        '----<'+ GetDateTime(false) +' '+ GetDateTime(true)+'>'^M^J +
        'VER :' + VersionName  + ^M^J +
        'DATE:' + VersionDate  + ^M^J +
        'ERR :' + Hex2(Er)     + ^M^J +
-       'ADDR:' + Hex8(ErrAdd) + ^M^J ;
+       'ADDR:' + Hex8(LongInt(ErrAdd)) + ^M^J ;
      StoreBuffer( FreeStr[1] , length(FreeStr), FH );
 
      FreeStr :=
+       {$IFNDEF NONBP}
        'PSP :' + Hex4( PrefixSeg ) + ^M^J +
+       {$ENDIF}
        'CS  :' + Hex4(CSeg) + ^M^J +
        'DS  :' + Hex4(DSeg) + ^M^J +
        'SS  :' + Hex4(SSeg) + ^M^J +
        'SP  :' + Hex4(SPtr) + ^M^J +
        'MEMm:' + Hex8(MaxAvail) + ^M^J +
        'MEMa:' + Hex8(MemAvail) + ^M^J +
-{$IFNDEF DPMI}
+{$IFNDEF DPMI}{$IFNDEF NONBP}
        'hOrg:' + Hex8(Longint(HeapOrg)) + ^M^J +
        'hEnd:' + Hex8(Longint(HeapEnd)) + ^M^J +
        'hPtr:' + Hex8(Longint(HeapPtr)) + ^M^J +
        'hLim:' + Hex4( StackLimit ) + ^M^J +
-{$ENDIF}
+{$ENDIF}{$ENDIF}
        '';
      StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-{$IFNDEF FPC}
+{$IFNDEF NONBP}
      FreeStr :=
        'STCK:' + ^M^J;
      StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-     DumpStack;
+(*   if ErrAdd<>nil
+      then begin
+            {$IFDEF DPMI}
+            PhysAddr := FindPhysAddr(ErrAdd);
+            {$ELSE}
+            PhysAddr := Ptr(OS(ErrAdd).S+PrefixSeg+$10, OS(ErrAdd).O);
+            {$ENDIF}
+            if PhysAddr <> nil then
+             TraceStack(PhysAddr)
+           end
+      else *)DumpStack;
 {$ENDIF}
      FreeStr :=
        'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;
@@ -177,11 +206,15 @@ begin
           if StoreBuffer(PPP,         ScreenWidth,      FH) <> 0 then Break;
           if StoreBuffer(TempFile[1], Length(TempFile), FH) <> 0 then Break;
       end; { for lines }
+     {$IFDEF VIRTUALPASCAL}
+     FileClose(FH);
+     {$ELSE}
      asm
        mov  ah,3Eh     { close file }
        mov  bx,FH
        int  21h
      end
+     {$ENDIF}
    end; { file write ok }
 
   SourceDir[0] := Char(I);

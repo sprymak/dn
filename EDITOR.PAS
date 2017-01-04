@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -60,7 +60,7 @@ type
 implementation
 uses advance, advance1, advance2, advance3, DOS, Dialogs, DNApp, RStrings,
      SBlocks, Memory, Gauge, Startup, WinClp, Messages, Commands, Macro,
-     EdWin, xTime, DnIni, DNUtil, Advance6, calculator;
+     EdWin, xTime, DnIni, DNUtil, Advance6, calculat;
 
 type
      PSortCollection = ^TSortCollection;
@@ -140,7 +140,8 @@ var  LastX, LastY: LongInt;
    SearchData.Line := S;
    if AutoScopeDetect then {-$VIV 19.05.99--}
      SearchData.Scope := Word(Marking and ((Mark.A.X <> Mark.B.X) or (Mark.A.Y <> Mark.B.Y)));
-   if not Replace then SearchData.What := #0;
+   if not Replace then SearchData.What := #0
+                  else SearchData.What[0] := #0;
    if Replace then
      Y := ExecResource(dlgEditorReplace, SearchData)
    else begin
@@ -741,8 +742,10 @@ var  LastX, LastY: LongInt;
      DispatchEvents(P, Cancel);
      if Cancel or Abort then Goto 1;
     end;
-   M := #12;
-   S.Write(M[1], 1);
+   if not Block then begin
+    M := #12;
+    S.Write(M[1], 1);
+   end;
    S.Done;
    Message(Application, evCommand, cmFilePrint, @FName);
   1:
@@ -836,8 +839,10 @@ var  LastX, LastY: LongInt;
        Exit;
      end;
     if Reverse then Cmpr:=Bigger else Cmpr:=Less;
+    {$IFNDEF DPMI}
     UC := PBlocker(FileLines)^.UseCache;
     PBlocker(FileLines)^.UseCache := False;
+    {$ENDIF}
     Info := WriteMsg(GetString(dlPleaseStandBy));
     NewTimer(Tmr, 2);
     ChangeLine;
@@ -845,7 +850,9 @@ var  LastX, LastY: LongInt;
     QuickSort(Mark.A.Y, Mark.B.Y);
     if UndoInfo <> nil then UndoInfo^.FreeAll; Inc(UndoTimes); Modified := On;
     Dispose(Info,Done);
+    {$IFNDEF DPMI}
     PBlocker(FileLines)^.UseCache := UC;
+    {$ENDIF}
   end;
 
   procedure CalcBlock;
@@ -1299,7 +1306,7 @@ begin
                   if Desktop<>nil then Desktop^.UnLock;
                   Exit;
                  end;
-{$IFDEF PRINTMANAGE}
+{$IFDEF PRINTMANAGER}
      cmPrintBlock: Print(On);
      cmPrintFile: Print(Off);
 {$ENDIF}

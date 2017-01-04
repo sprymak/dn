@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -102,7 +102,9 @@ begin
  P^.Name := Name;
  while Name[Length(Name)] = ' ' do System.Dec(Name[0]);
  P^.Who := Who;
- P^.Len := Len;
+ if Len=0
+  then P^.Len := 1
+  else P^.Len := Len;
  P^.Dec := Dec;
  P^.Pos := Pos;
  NewField := P;

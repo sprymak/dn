@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -72,20 +72,17 @@ function GetPossibleDizOwner(N: Integer): String;
 begin
   GetPossibleDizOwner := '';
   DIZ := FMSetup.DIZ;
-  while (N > 0) and (Diz <> '') do
-    begin
-     I := PosChar(';', DIZ); if I = 0 then I := Length(DIZ)+1;
-     if CorrectFile(Copy(DIZ,1,I-1)) then
-        begin
-          Dec(N);
-          if N = 0 then
-           begin
-             GetPossibleDizOwner := Copy(DIZ,1,I-1);
-             Exit;
-           end;
-        end;
-     Delete(DIZ, 1, I);
+  while (N > 0) and (Diz <> '') do begin
+   I := PosChar(';', DIZ); if I = 0 then I := Length(DIZ)+1;
+   if CorrectFile(Copy(DIZ,1,I-1)) then begin
+    Dec(N);
+    if N = 0 then begin
+     GetPossibleDizOwner := Copy(DIZ,1,I-1);
+     Exit;
     end;
+   end;
+   Delete(DIZ, 1, I);
+  end;
 end;
 
  {-DataCompBoy: Descriptions remain with short names!!!-}
@@ -165,19 +162,17 @@ var
   DIZ: String;
 begin
   if (PF = nil) then Exit;
-  if DIZOwner = '' then
-  begin
-    Diz:=GetPossibleDizOwner(1);
-    if DIZ = '' then
-    begin
-      MessageBox(GetString(dlNoPossibleName), nil, mfError); Exit;
-    end;
-    DIZOwner:=DIZ;
-  end else
-    DIZOwner:=GetName(DizOwner);
+  if DIZOwner = '' then begin
+   Diz:=GetPossibleDizOwner(1);
+   if DIZ = '' then begin
+    MessageBox(GetString(dlNoPossibleName), nil, mfError);
+    Exit;
+   end;
+   DIZOwner:=DIZ;
+  end else DIZOwner:=GetName(DizOwner);
   DIZOwner := GetDizOwner(PF^.Owner^, DIZOwner, Off);
   if (PF^.DIZ = nil) or (PF^.DIZ^.DIZ = nil) then DIZ := ''
-                                               else DIZ := PF^.DIZ^.DIZ^;
+                                             else DIZ := PF^.DIZ^.DIZ^;
   if BigInputBox(GetString(dlEditDesc),GetString(dl_D_escription), DIZ, 255, hsEditDesc) <> cmOK then Exit;
   DelLeft(DIZ);
   ReplaceDIZ(DIZOwner, MakeFileName(PF^.Name), nil, @DIZ);
@@ -208,14 +203,13 @@ begin
   if ANewName<>nil then begin
     NewName:=ANewName^;
   end;
-  DisableAppend;
+{$IFNDEF NONBP}DisableAppend;{$ENDIF}
   F1 := New(PTextReader, Init(DPath));
   if F1 = nil then begin
     if (ANewDescription<>nil) and
-       (ANewDescription^<>'') and
-       (ANewName<>nil) then begin
+       (ANewDescription^<>'') then begin
      ClrIO; lAssignText(F2, DPath); lRewriteText(F2);
-     if Abort then Exit;
+     if Abort then begin Close(F2.T); Exit; end;
      if IOResult <> 0 then (* begin CantWrite(DPath); *) Exit; (* end; *)
      WriteLn(F2.T, AddSpace(NewName,13)+ANewDescription^);
     end;
@@ -223,7 +217,8 @@ begin
     Exit;
   end;
   lAssignText(F2, GetPath(DPath) + '$DN'+ItoS(DNNumber)+'$.DIZ');
-  DisableAppend; lRewriteText(F2);
+  {$IFNDEF NONBP}DisableAppend;{$ENDIF}
+  lRewriteText(F2);
   if IOResult <> 0 then begin Dispose(F1,Done); Exit; end;
   Fnd := Off; WasFilesInDIZ:=off;
   repeat
@@ -245,7 +240,13 @@ begin
        if ((ANewDescription=nil) or (ANewDescription^='')) and
           (ANewName=nil) and
           (FMSetup.Options and fmoPreserveDesc = 0)
-        then continue;
+        then begin {delete multiline description}{piwamoto}
+         repeat
+          S := F1^.GetStr;
+         until (S[1]<>' ') or F1^.EOF or (IOResult <> 0);
+         Writeln(F2.T, S);
+         continue;
+        end;
 
        Delete(S, 1, j-1);
 
@@ -280,7 +281,7 @@ var
 begin
  GetDIZ:='';
  Line:=0;
- DisableAppend;
+ {$IFNDEF NONBP}DisableAppend;{$ENDIF}
  F1 := New(PTextReader, Init(DPath));
  if F1 = nil then exit;
  repeat

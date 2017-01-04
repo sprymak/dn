@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -82,19 +82,20 @@ begin
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'HYPER.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'HYPER.EXE'));
-  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            '-xo'));
-  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-xo'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            '-x'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-x'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                '-a'));
   Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               '-m'));
-  Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             '-D'));
+  Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             '-d'));
   Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             ''));
   Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               ''));
-  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       '-r'));
+  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       '-p'));
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
   ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-r'));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
@@ -107,7 +108,6 @@ begin
   if q='0' then Swap := False else Swap := True;
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
   if q='0' then UseLFN := False else UseLFN := True;
-  PutTempBefore := 2;
 end;
 
 function THYPArchive.GetID;

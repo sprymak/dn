@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 unit EXTKbd;
 
 interface
@@ -51,6 +52,8 @@ interface
 Procedure Init09Handler;
 
 implementation
+{$IFNDEF NONBP}
+
 uses DOS, DnIni, Drivers2;
         {-DataCompBoy-}
 const HexChars: array[0..15] of byte=(48, 49, 50, 51, 52, 53, 54, 55, 56 ,57, 65, 66, 67, 68, 69, 70);
@@ -59,6 +62,7 @@ procedure Int09Handler(Flags, CS, IP, AX, BX, CX, DX, SI, DI, DS, ES, BP : Word)
 interrupt;
 var j: byte;
     b: boolean;
+label O;
 begin
  b := false;
  j := Port[$60];
@@ -115,17 +119,23 @@ begin
    Port[$61]:=j;
    Port[$20]:=$20;
   end
- {Release BackSpace}
+ {Release Down}
  else
- if (j = $8E) then
+ if (j = $D0) then
   begin
    dec(MemW[seg0040:$1A], 2);
    if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
-   MemW[seg0040:MemW[seg0040:$1A]]:=$FD00;
-   j:=Port[$61];
-   Port[$61]:=j or $80;
-   Port[$61]:=j;
-   Port[$20]:=$20;
+   MemW[seg0040:MemW[seg0040:$1A]]:=$D000;
+   goto O;
+  end
+ {Release Up}
+ else
+ if (j = $C8) then
+  begin
+   dec(MemW[seg0040:$1A], 2);
+   if MemW[seg0040:$1A]<=$1D then MemW[seg0040:$1A]:=$1E;
+   MemW[seg0040:MemW[seg0040:$1A]]:=$C800;
+   Goto O;
   end
  {Alt-Semicolon}
  else
@@ -206,11 +216,11 @@ begin
   end
  {Nothing special}
  else
-  asm
+O:asm
    pushf
    call [Old09Handler]
   end;
- if b then DoDump(0, 0);
+ if b then DoDump(0, nil);
 end;
         {-DataCompBoy-}
 
@@ -228,5 +238,10 @@ begin
  GetIntVec($09, Old09Handler);
  SetIntVec($09,@Int09Handler);
 end;
+{$ELSE NONBP}
+Procedure Init09Handler;
+begin
+end;
+{$ENDIF}
 
 end.

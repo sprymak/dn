@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -67,6 +67,7 @@ uses Dn1;
 
 (*{$I  runcmd.inc}*)
 
+{$IFDEF OS_DOS}
      {Gimly}
 procedure PostQuitMessage;
 var Event: TEvent;
@@ -77,7 +78,7 @@ begin
  if w95locked then
    MyApplication.HandleEvent(Event);
 end;
-
+{$ENDIF}
 
 procedure MyApp.GetEvent;
  var W: Word;
@@ -90,7 +91,9 @@ const
      CurrentMacro: PKeyMacros = nil;
 
 begin
+ {$IFDEF OS_DOS}
  if (not w95locked) and w95QuitCheck then PostQuitMessage; {Gimly}
+ {$ENDIF}
 
  inherited GetEvent(Event);
  if MacroPlaying and ((Event.What = evKeyDown) or (Event.What = evNothing)) then
@@ -282,10 +285,12 @@ begin
                  UpView(MenuBar);
      cmMenuOff: if (Event.InfoPtr = MenuBar) then
                  UpView(Desktop);
+     {$IFNDEF NONBP}
      cmEnvEdit: begin
                  S:={$IFDEF DPMI}RSeg{$ENDIF}(PWordArray(Ptr(LoaderSeg, 0))^[$2C div 2]);
                  EditDosEvironment(Ptr(S, 0));
                 end;
+     {$ENDIF}
      else
       HandleCommand(Event);
    end;

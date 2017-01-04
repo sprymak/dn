@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.07/DOS
+::  Dos Navigator Open Source 1.51.08
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -56,9 +56,9 @@ set GGB=
 set GGS=
 set GGD=
 set GGDB=
-set real_packer=upx -9q
+set real_packer=upx -9
 set dpmi_packer=
-set com_packer=upx -9q
+set com_packer=upx -9
 set PackOverlay=
 if not exist exe\nul mkdir exe >nul
 if not exist out\nul mkdir out >nul
@@ -70,12 +70,9 @@ rem ------------------------------------------------------------------
 rem ctty con
 if .%1.==.. builddn asm help resource nolite
 
-if .%PackOverlay%.==.. echo {} >exe\overlay.inc
-if NOT .%PackOverlay%.==.. echo {$DEFINE PackOverlay} >exe\overlay.inc
-
 set prg_packer=%real_packer%
 
-set diz_title=(Real mode binary package)
+set diz_title=   (Real mode binary package)
 
 :Loop
 if .%0.==.nolite.   set GGT=GGT
@@ -106,12 +103,13 @@ if .%0.==.swapdisk. goto Loop
 if .%1.==.dpmi. set SWPOPT=%SWPOPT% /cp
 if .%1.==.dpmi. set ASMOPT=exe\*.obp -d_DPMI_ -d__DPMI__
 if .%1.==.dpmi. set prg_packer=%dpmi_packer%
-if .%1.==.dpmi. set diz_title=(DPMI binary package)
+if .%1.==.dpmi. set diz_title=    (DPMI binary package)
 if .%1.==.dpmi. shift
 if .%GGD%.==.GGD. goto GGD
 if .%0.==.dpmi. goto Loop
 :GGD
 if .%GGDB%.==.GGDB. goto GGDB
+if .%1.==.debug. shift
 if .%0.==.debug. goto Loop
 :GGDB
 
@@ -130,9 +128,10 @@ if NOT .%prg_packer%.==.. %prg_packer% exe\dn.exe
 :SkipLite
 
 if .%PackOverlay%.==.. goto ovrcopy
-gzip exe\dn.ovr
-if exist exe\dn.ovz copy exe\dn.ovz %outpath%\dn.ovr >nul
-if exist exe\dn.ogz copy exe\dn.ogz %outpath%\dn.ovr >nul
+%bpcpath%bpc %SWPOPT% packfile /GD %_Q_opt% /M %1 %2 %3 %4 %5 %6 %7 %8 %9
+if errorlevel 1 goto Quit
+out\packfile exe\dn.ovr exe\dn.ovp
+if exist exe\dn.ovp copy exe\dn.ovp %outpath%\dn.ovr >nul
 goto copyanother
 
 :ovrcopy
@@ -155,7 +154,7 @@ copy file_id.diz %outpath% >nul
 echo %diz_title% >>%outpath%\file_id.diz
 :SkipBPC
 
-if not %GGDB%.==.GGDB. goto Quit
+if not .%GGDB%.==.GGDB. goto Quit
 copy *.* exe\*.* >nul
 cd exe
 bp dn
@@ -200,6 +199,7 @@ goto Loop
 :asm
 shift
 %binpath%tasm /t /x /m /zi *.asm,exe\*.obj
+if .%GGD%.==.GGD. tasm /t /x /m /zi dn.asm,exe\dn.obj -d_DPMI_
 if errorlevel 1 goto Quit
 %binpath%tasm -t -m -q -d__LARGE__ *.asl %ASMOPT%
 if errorlevel 1 goto Quit

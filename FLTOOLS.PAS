@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -89,7 +89,7 @@ uses LFN, LFNCol, {DataCompBoy} collect, xtime, dnini,
 type
     PSelectList = ^TSelectList;
     TSelectList = object(TListBox)
-       function IsSelected(I: Integer): Boolean; virtual;
+       function IsSelected(I: LongInt): Boolean; virtual;
        procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -99,7 +99,7 @@ begin
   if P^.InfoView <> nil then P^.InfoView^.DrawView;
 end;
 
-function TSelectList.IsSelected(I: Integer): Boolean;
+function TSelectList.IsSelected(I: LongInt): Boolean;
 begin
   IsSelected := (List <> nil) and (Copy(CnvString(List^.At(I)),1,1)= #251); {-$VIV}
 end;
@@ -217,8 +217,7 @@ function GetMaskSelection: String;
       d := P^.Drive;
       if TypeOf(d^) = TypeOf(TFindDrive) then PFindDrive(d)^.AllowPack := False;
       fc := PFilesCollection(
-        d^.GetDirectory(
-        P^.SortMode, P^.PanelFlags, x_x, fs, ti));
+        d^.GetDirectory(P^.SortMode, P^.PanelFlags, x_x, fs, ti));
       if TypeOf(d^) = TypeOf(TFindDrive) then PFindDrive(d)^.AllowPack := True;
       if (fc <> nil) and (not d^.NoMemory) then fc^.ForEach(@DoInsert);
       Dispose(fc,Done);
@@ -906,11 +905,10 @@ begin
  if (PFileRec(P^.Files^.At(CurPos))^.Selected) or
     (typeof(P^) <> typeof(TFilePanel))
   then FC := GetSelection(P, Off)
-    else if PFileRec(P^.Files^.At(CurPos))^.Name[1] <> '.' then
-         begin
-          New(FC, Init(10,10));
-          FC^.Insert(P^.Files^.At(CurPos));
-         end else Exit;
+  else if PFileRec(P^.Files^.At(CurPos))^.Name[1] <> '.' then begin
+        New(FC, Init(10,10));
+        FC^.Insert(P^.Files^.At(CurPos));
+       end else Exit;
  for I := 1 to FC^.Count do FC^.AtPut(I-1, CopyFileRec(FC^.At(I-1)));
  if FC^.Count = 1
   then if P^.Drive^.Flags and psShowLongName >0
@@ -1091,6 +1089,7 @@ procedure CM_RenameSingleS;
       P: PFilePanelRoot absolute AFP;
       Event: PEvent absolute PEV;
       ScrollBarValue: Integer;
+      {$IFDEF BIT_32}FFFF: File;{$ENDIF}
 
   procedure UpdateDesc;
     var F, F1: lText;
@@ -1138,7 +1137,8 @@ begin
   R.Move(P^.LastCurPos.X, P^.LastCurPos.Y);
   R.Move(P^.Origin.X, 0);
   S := MakeFileName(PF^.Name); S2 := S;
-  New(PIF, Init(R, 12)); PIF^.DrawShift := 0; P^.Owner^.Insert(PIF); S := PF^.Name; S[9] := '.';
+  New(PIF, Init(R, 12)); PIF^.DrawShift := 0; P^.Owner^.Insert(PIF);
+  S := PF^.Name; S[9] := '.';
   PIF^.SetData(S); PIF^.State := PIF^.State xor sfCursorIns;
   PIF^.SetValidator(New(PFilterValidator, Init([#32..#255]-
                                               ['+','|','>','<',']','[','*','?'])));
@@ -1149,6 +1149,7 @@ begin
     begin
       GetDir(0, SSS);
       ChDir(PF^.Owner^);
+      {$IFNDEF BIT_32}
       FillChar(N1, SizeOf(N1), 0);
       FillChar(N2, SizeOf(N2), 0);
       Move(S[1], N2, Length(S));
@@ -1172,6 +1173,11 @@ begin
        pop  bp
        pop  ds
       end;
+      {$ELSE}
+      Assign(FFFF, S2);
+      Rename(FFFF, S);
+      DOSE := DosError;
+      {$ENDIF}
       if DOSE <> 0 then
           MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)+^M^C+S2
                      +GetString(dlFCNoRename2)+S, nil, mfError+mfOKButton)
@@ -1534,7 +1540,7 @@ begin
  R.Assign(0, 0, 20, 7);
  New(Info, Init(R));
  Info^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, 255));
- Application^.Insert(Info);
+ DeskTop^.Insert(Info);
  NewTimer(TT, 18);
  Abort := off;
  FC^.FirstThat(@DoChangeCase);

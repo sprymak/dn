@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,11 +44,12 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit XDblWnd;
 
 interface
-uses DblWnd, Drivers, Views, Objects, ObjType;
+uses DblWnd, Drivers, Views, Objects;
 
 type
 
@@ -59,16 +60,8 @@ type
          procedure HandleEvent(var Event: TEvent); virtual;
       end;
 
-const
-     RDoubleWindow: TStreamRec = (
-       ObjType: otDoubleWindow;
-       VmtLink: Ofs(TypeOf(TXDoubleWindow)^);
-       Load: @TXDoubleWindow.Load;
-       Store: @TXDoubleWindow.Store);
-
-
 implementation
-uses Commands, advance, advance1, advance2, advance3, DNApp;
+uses Commands, advance, advance1, advance2, advance3, DNApp, DNUtil;
 
 function TXDoubleWindow.GetPalette;
  const S: String[Length(CDoubleWindow)] = CDoubleWindow;
@@ -78,8 +71,6 @@ end;
 
 
 procedure TXDoubleWindow.SetState(AState: Word; Enable: Boolean);
-var
-  WindowCommands: TCommandSet;
 begin
   inherited SetState(AState, Enable);
   if (AState and sfDragging <> 0) or
@@ -87,9 +78,19 @@ begin
   if AState = sfSelected then
   begin
     SetState(sfActive, Enable);
+{$IFDEF TrashCan}
+    TrashCan^.Hide;
+{$ENDIF}
     if Enable then EnableCommands(DblWndCommands)
               else DisableCommands(DblWndCommands);
-  end;
+  end
+{$IFDEF TrashCan}
+   else
+   if TrashCan^.ImVisible then begin
+    TrashCan^.Show;
+    TrashCan^.MakeFirst;
+   end;
+{$ENDIF}
 end;
 
 
@@ -98,9 +99,16 @@ procedure TXDoubleWindow.HandleEvent;
       LVisible, RVisible, LSelected: Boolean;
       EV: TEvent;
 begin
-  RVisible := RightView^.GetState(sfVisible);
-  LVisible := LeftView^.GetState(sfVisible);
-  LSelected := LeftView^.GetState(sfSelected);
+  if RightView<>nil
+   then RVisible := RightView^.GetState(sfVisible)
+   else RVisible := false;
+  if LeftView<>nil then begin
+   LVisible := LeftView^.GetState(sfVisible);
+   LSelected := LeftView^.GetState(sfSelected);
+  end else begin
+   LVisible := false;
+   LSelected := false;
+  end;
   CE := On;
   case Event.What of
    evKeyDown: case Event.KeyCode of
@@ -117,17 +125,26 @@ begin
                 begin HandleCommand(Event); CE := Off; end;
               end;
    evBroadcast: case Event.Command of
-                  cmLookForPanels,
-                  cmGetUserParams: begin HandleCommand(Event); CE := Off end;
-                cmChangeDirectory: begin HandleCommand(Event); CE := Off end;
-                      cmChangeDrv: begin HandleCommand(Event); CE := Off end;
+                  cmLookForPanels, cmGetUserParams, cmGetUserParamsWL,
+                cmChangeDirectory, cmChangeDrv,
+                   cmIsRightPanel: begin HandleCommand(Event); CE := Off end;
                 end;
    evCommand: case Event.Command of
-                cmChangeDirectory: begin
-                                  if LSelected then RightView^.HandleEvent(Event)
-                                               else LeftView^.HandleEvent(Event);
-                                  Exit;
-                                 end;
+                cmChangeDirectory:
+                  begin
+                    if LTree = nil then
+                    begin
+                    if LSelected then
+                      LeftView^.HandleEvent(Event) else
+                      RightView^.HandleEvent(Event);
+                    end else
+                    begin
+                    if not LSelected then
+                      LeftView^.HandleEvent(Event) else
+                      RightView^.HandleEvent(Event);
+                    End;
+                    Exit;
+                  end;
                 cmChangeTree: if LTree <> nil then LTree^.HandleEvent(Event);
                 cmRereadInfo: begin
                                if LeftView <> nil then LeftView^.HandleEvent(Event);
@@ -154,15 +171,14 @@ begin
                             end;
                cmGetDirInfo,
                cmZoom,
+               cmMaxi,
                cmGetName,
                cmPostHideRight,
                cmPostHideLeft,
                cmChangeInactive,
-               cmGetDirName,
                cmPanelCompare,
                cmDiskInfo,
-               cmNetInfo, {-$VIV}
-               cmChangeDirectory,
+{$IFDEF NETINFO} cmNetInfo, {-$VIV} {$ENDIF}
                cmLoadViewFile,
                cmGLoadViewFile,
                cmEnableView,
@@ -185,7 +201,5 @@ begin
    if (Event.What <> evNothing) and CE then
       inherited HandleEvent(Event);
 end;
-
-
 
 end.

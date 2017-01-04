@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -46,7 +46,11 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
+{$IFNDEF NONBP}
 {$M 65520, 0, 655360}
+{$ELSE}
+{$M 131040}
+{$ENDIF}
 PROGRAM RCP;
 
 {                                     }
@@ -67,8 +71,8 @@ PROGRAM RCP;
 USES
   LFN, Collect, Drivers, Dos, Objects, advance, advance1, advance2, advance3,
   RStrings, GetConst, Menus, Commands, Setups, DNHelp, Views, DNApp, Startup,
-  Dialogs, Validate, IniFiles, Scroller, extramemory, ListMakr, ObjType,
-{$IFDEF CHCOL} ColorSel, {$ENDIF} RegAll, DefColl;
+  Dialogs, Validate, IniFiles, Scroller, ExtraMem, ListMakr, ObjType,
+{$IFDEF CHCOL} ColorSel, {$ENDIF} RegAll, DefColl, swe;
 
 
 CONST
@@ -156,7 +160,7 @@ end;
 
 const RStringList : TStreamRec =
       (ObjType: otStringList;
-       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(Collect.TStringList){$IFNDEF DPMI}^{$ENDIF});
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Collect.TStringList){$IFDEF OFFS}^{$ENDIF});
        Load   : @Collect.TStringList.Load;
        Store  : nil);
 
@@ -272,7 +276,7 @@ begin
   ReRegisterType( RStringList );
   DLStream.Init( OutLngFileName, stOpenRead, 512 );
   LStringList := PStringList( DLStream.Get );
-  If LStringList = NIL then begin
+  If (LStringList = NIL) and Enable then begin
     DLStream.Done;
     EraseFile( OutLngFileName );
     Error( 'Error reading file ' + OutLngFileName );
@@ -282,7 +286,7 @@ end;
 
 type
   TEditCommand = record
-    C,C1,C2: Word;
+    C,C1,C2: AWord;
     CC1, CC2: Array[1..2] of Char;
   end;
 
@@ -328,6 +332,7 @@ CONST
   idCommand      =  'COMMAND ';
   idEditorCommands = 'EDITOR COMMANDS';
   idDriveCheckBox  = 'DRIVECHECKBOXES ';
+  idColorPoint   =  'COLORPOINT ';
 
   TheRF: PIdxMaker = nil;
 
@@ -338,7 +343,7 @@ VAR
   PI: PColorItem;
   {$ENDIF}
   I: LongInt;
-  NumCommands: Integer;
+  NumCommands: AInt;
 
 const
   MaxCommands = 200;
@@ -355,7 +360,7 @@ type
 const
       REditSaver: TStreamRec = (
        ObjType: 12335;
-       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(TEditSaver){$IFNDEF DPMI}^{$ENDIF});
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(TEditSaver){$IFDEF OFFS}^{$ENDIF});
        Load: @TEditSaver.Load;
        Store: @TEditSaver.Store);
 
@@ -736,6 +741,7 @@ var
     T.Init(0, FreeStr);
     if not DLGs^.Search(@T, J) then Error('Unknown Resource ID - ' + T.Name);
     ID := TDlgIdx(PLngWord(DLGs^.At(J))^.L);
+    FillChar(R, SizeOf(R), 0);
     New(D, Init(R, CompileMenu(S)));
     StoreResource(D, ID);
     Dispose(D,Done);
@@ -918,6 +924,17 @@ var
        D^.Insert(PV);
     end;
 
+    procedure MakeColorPoint;
+      var P: PColorPoint;
+    begin
+      R.A.X := GetID(Token(S, I)); R.B.X := R.A.X + 1;
+      R.A.Y := GetID(Token(S, I)); R.B.X := R.A.X + 1;
+      New(P, Init(R, GetID(Token(S, I))));
+      D^.Insert(P);
+      while I < Length(S) do
+             P^.Options := P^.Options or GetID(Token(S, I));
+    end;
+
     var ID: TDlgIdx;
         T: TLngWord;
 
@@ -976,6 +993,7 @@ var
              if IsThis(idRadioButtons) then MakeRadioButtons else
              if IsThis(idButton) then MakeButton else
              if IsThis(idHistory) then MakeHistory else
+             if IsThis(idColorPoint) then MakeColorPoint else
              if IsThis(idEND) then Break else
              if (S <> '') and (S[1] <> ';') then
                Error('Unknown identifier in line '+ItoS(Line));
@@ -1134,7 +1152,7 @@ begin
 end;
 
 BEGIN
-  WriteLn( #13'Resource Compiler for DN OSP 1.51.05a+  Version 1.07' );
+  WriteLn( #13'Resource Compiler for DN OSP 1.51.07a+  Version 1.08' );
   WriteLn(    'Copyright(C) 1994,95 RIT Research Labs');
   WriteLn(    'Copyright(C) 1995 AxoN(R)Soft');
 
@@ -1179,15 +1197,17 @@ BEGIN
   repeat
     Lng := GetWord( LList, 1 );
     If Lng <> '' then begin
-      LngFileName := INI.Get( Lng, 'LngInput' );
-      If LngFileName = '' then Error( 'No LNG input file defined for language "' + Lng +'".' );
-      OutLngFileName := INI.Get( Lng, 'LngOutput' );
-      If OutLngFileName = '' then Error( 'No LNG output file defined for language "' + Lng +'".' );
+      if UpStrg( INI.Get( Lng, 'ProcessDLs' )) = 'YES' then begin
+       LngFileName := INI.Get( Lng, 'LngInput' );
+       If LngFileName = '' then Error( 'No LNG input file defined for language "' + Lng +'".' );
+       OutLngFileName := INI.Get( Lng, 'LngOutput' );
+       If OutLngFileName = '' then Error( 'No LNG output file defined for language "' + Lng +'".' );
+       ProcessDLs( True );
+      end else ProcessDLs( False );
       DlgFileName := INI.Get( Lng, 'DlgInput' );
       If DlgFileName = '' then Error( 'No DLG input file defined for language "' + Lng +'".' );
       OutDlgFileName := INI.Get( Lng, 'DlgOutput' );
       If OutDlgFileName = '' then Error( 'No DLG output file defined for language "' + Lng +'".' );
-      ProcessDLs( UpStrg( INI.Get( Lng, 'ProcessDLs' )) = 'YES' );
       ProcessDLGs;
       If LStringList <> NIL then
       begin

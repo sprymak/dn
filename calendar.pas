@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -62,7 +62,7 @@ const
 type
  PCalendarView = ^TCalendarView;
  TCalendarView = object(TView)
-   Year, Month, Days: Word;
+   Year, Month, Days: AWord;
    CurYear, CurMonth, CurDay : Word;
    constructor Init(Bounds: TRect);
    constructor Load(var S: TStream);
@@ -95,6 +95,7 @@ begin
   R.Assign(1, 1, 30, 11); {JO}
 
   inherited Init(R, GetString(dlcTitle));
+  Number := GetNum;
 
   Flags := Flags and not (wfZoom + wfGrow);    { Not resizeable }
 
@@ -168,7 +169,7 @@ end;
 
 constructor TCalendarView.Load(var S: TStream);
 var
-  H: Word;
+  H: AWord;
 begin
   inherited Load(S);
   GetDate(CurYear, CurMonth, CurDay, H);
@@ -201,7 +202,7 @@ const
 var
   i, j, DayOf, CurDays: Integer;
   S, D: String;
-  B: array[0..Width] of Word;
+  B: TDrawBuffer;
   Color, BoldColor, SpecialColor: Byte;
 
 function Num2Str(I: Integer): String;

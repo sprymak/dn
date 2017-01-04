@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -45,9 +45,8 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-
 UNIT
-  ExtraMemory;
+  ExtraMem;
 
 INTERFACE uses Objects;
 
@@ -59,7 +58,7 @@ CONST
   EMSSize:       Word    = 0;
   EMSBlockSize:  Word    = $C000;
 
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
 { EMS stream state variables }
 
   EmsCurHandle: Word = $FFFF;
@@ -78,7 +77,7 @@ type
 
   PXMSStream = ^TXMSStream;
   TXMSStream =
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
     object(TStream)
       Handle : Word;              { XMS handle }
       BlocksUsed : Word;          { Number of 1K blocks used. Always allocates
@@ -97,7 +96,7 @@ type
 
       procedure NewBlock;         { Internal method to allocate a block }
       procedure FreeBlock;        { Internal method to free one block }
-{$ELSE}{DPMI}
+{$ELSE}{NOEXTRA}
     object(TMemoryStream)
 {$ENDIF}
     end;
@@ -106,7 +105,7 @@ type
 
   PEmsStream = ^TEmsStream;
   TEmsStream =
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
   object(TStream)
     Handle: Word;
     PageCount: Word;
@@ -119,12 +118,12 @@ type
     procedure Seek(Pos: Longint); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: Word); virtual;
-{$ELSE}{DPMI}
+{$ELSE}{NOEXTRA}
   object(TMemoryStream)
 {$ENDIF}
   end;
 
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
 function xms_MemAvail : Longint;
   { Returns total of available XMS bytes. }
 function xms_MaxAvail : Longint;
@@ -133,8 +132,10 @@ function xms_MaxAvail : Longint;
 
 IMPLEMENTATION uses Commands, Startup{$IFDEF DPMI}, Dpmi{$ENDIF};
 
+function ExistUMBmem: Boolean;
+{$IFDEF VIRTUALPASCAL} Begin ExistUMBmem:=False end; {$ELSE}
 {$IFNDEF DPMI}
-function ExistUMBmem: Boolean; assembler;
+assembler;
 { Attempts to allocate an impossibly large UMB.  On failure ax     }
 { contains 0, bl indicates UMB's unimplemented if $80, or $bx      }
 { on other error.  No provision made for success here. Impossible  }
@@ -156,7 +157,6 @@ asm
 @exit:
 end;
 {$ELSE}
-function ExistUMBmem: Boolean;
 var
   R: DPMIRegisters;
 begin
@@ -170,10 +170,11 @@ begin
   CallFarRealModeProc(0,nil,R);
   if R.BL>$AD then ExistUMBmem:=True;
 end;
-{$ENDIF}
+{$ENDIF} {$ENDIF VP}
 
 
 function EMSPresent: Boolean;
+{$IFDEF VIRTUALPASCAL} Begin EMSPresent:=False end; {$ELSE}
 {$IFNDEF DPMI}
 assembler;
 asm
@@ -218,6 +219,7 @@ asm
 @Exit:
  xor ah, ah
  mov al, byte ptr @Res
+end;
 {$ELSE}
 var
   F : file;
@@ -245,16 +247,19 @@ begin
     EMSSize:=R.DX*16;
     break;
   end;
-{$ENDIF}
 end;
+{$ENDIF}
+{$ENDIF VP}
 
 function EMSFreePages: Word;
+{$IFDEF VIRTUALPASCAL} Begin EMSFreePages:=0 end; {$ELSE}
 {$IFNDEF DPMI}
 assembler;
 asm
  mov ax, 4200h
  int 67h
  mov ax, bx
+end;
 {$ELSE}
 var
   R:  DPMIRegisters;
@@ -265,11 +270,12 @@ begin
   R.AX:=$4200;
   SimulateRealModeInt($67,R);
   EMSFreePages:=R.BX;
-{$ENDIF}
 end;
-
+{$ENDIF}
+{$ENDIF VP}
 
 procedure DetectXMS;
+{$IFDEF VIRTUALPASCAL} Begin end; {$ELSE}
 {$IFNDEF DPMI}
 assembler;
 asm
@@ -292,6 +298,7 @@ asm
      mov     al, 1
      mov     XMSFound, al
 @@1:
+end;
 {$ELSE}
 var
   R: DPMIRegisters;
@@ -338,11 +345,14 @@ begin
   R.CS:=PtrRec(XMSControl).Seg;
   CallFarRealModeProc(0,nil,R);
   xms_IOsts:=0;
-{$ENDIF}
 end;
+{$ENDIF}
+{$ENDIF VP}
 
+function XMSFree: Word;
+{$IFDEF VIRTUALPASCAL} Begin XMSFree:=0 end; {$ELSE}
 {$IFNDEF DPMI}
-function XMSFree: Word; assembler;
+assembler;
 asm
      xor ax, ax
      cmp XMSFound, True
@@ -359,7 +369,6 @@ asm
 @@exit:
 end;
 {$ELSE}
-function XMSFree: Word;
 var
   R: DPMIRegisters;
 begin
@@ -375,8 +384,9 @@ begin
     XMSFree:=R.DX;
 end;
 {$ENDIF}
+{$ENDIF VP}
 
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
 { Stream error handler                                  }
 { In    AX    = Error info                              }
 {       DX    = Error code                              }
@@ -1068,11 +1078,11 @@ asm
 @@7:
 end;
 
-{$ENDIF}{DPMI}
+{$ENDIF}{NOEXTRA}
 
 procedure InitExtraMem;
 BEGIN
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
  if SystemData.Options and ossDisableXMS <> 0 then
  begin
    EMSFound := False; XMSFound := False
@@ -1089,7 +1099,7 @@ BEGIN
     end;
    DetectXMS;
  end;
-{$ELSE}
+{$ELSE NOEXTRA}
  EMSFound := EMSPresent;
  DetectXMS;
 {$ENDIF}

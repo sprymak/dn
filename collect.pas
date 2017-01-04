@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -63,8 +63,7 @@ const
    MaxCollectionSize = MaxBytes DIV SizeOf(Pointer);
    {$ELSE}
    NumNodes = 128;
-   PartSize = MaxBytes DIV SizeOf(Pointer);
-   MaxCollectionSize = PartSize * NumNodes;
+   MaxCollectionSize = MaxBytes DIV SizeOf(Pointer) * NumNodes;
    {$ENDIF}
   {$ELSE}
   MaxCollectionSize = $7FFF0000;
@@ -145,7 +144,11 @@ type
     procedure QSort;
     procedure QuickSort(L, R: LongInt);
 {$ELSE}
+ {$IFDEF POGLSORT}
     procedure PoglSort;
+ {$ELSE}
+    procedure KPutSort;
+ {$ENDIF}
 {$ENDIF}
   end;
 
@@ -224,7 +227,7 @@ type
 { TStringList object }
 
   TStrIndexRec = record
-    Key, Count, Offset: Word;
+    Key, Count, Offset: AWord;
   end;
 
   PStrIndex = ^TStrIndex;
@@ -234,13 +237,13 @@ type
   TStringList = object(TObject)
     constructor Load(var S: TStream);
     destructor Done; virtual;
-    function Get(Key: Word): String;
+    function Get(Key: AWord): String;
   private
     Stream: PStream;
     BasePos: Longint;
-    IndexSize: Word;
+    IndexSize: AWord;
     Index: PStrIndex;
-    procedure ReadStr(var S: String; Offset, Skip: Word);
+    procedure ReadStr(var S: String; Offset, Skip: AWord);
   end;
 
         {-DataCompBoy-}
@@ -255,9 +258,8 @@ uses
   Advance1 {DisposeStr},
   {$IFDEF Windows} WinProcs, OMemory,
   {$ELSE}          Memory,            {$ENDIF}
-  {$IFNDEF FPC}BStrings,{$ELSE}Strings,{$ENDIF}
-  {$IFDEF  FPC}CallSpec,{$ELSE}callspcb,{$ENDIF}
-  extramemory;
+  {$IFNDEF NONBP}BStrings,{$ELSE}Strings,{$ENDIF}
+  CallSpcb, ExtraMem;
 
 {$IFDEF Windows} {$DEFINE NewExeFormat} {$ENDIF}
 {$IFDEF DPMI}    {$DEFINE NewExeFormat} {$ENDIF}
@@ -299,7 +301,8 @@ begin
     At:=Nil;
   end else
     {$IFDEF BIGCOLLECTION}
-     At:=Pointer( (Items^.At(Index)^) );
+     Items^.AtGet(Index, 1, @Index);
+     At:=Pointer(Index);
     {$ELSE}
      At:=Items^[Index];
     {$ENDIF}
@@ -382,10 +385,8 @@ begin
  end else begin
   if ALimit < Count then ALimit := Count;
   if ALimit > MaxCollectionSize then ALimit := MaxCollectionSize;
-  if Items = nil then begin
-   New(Items, Init(SizeOf(Pointer), NumNodes));
-   Limit := NumNodes * PartSize;
-  end;
+  Limit := ALimit;
+  if Items = nil then New(Items, Init(SizeOf(Pointer), NumNodes));
  end;
   {$ENDIF}
 end;
@@ -601,8 +602,14 @@ end;
 procedure TCollection.ForEach (Action: Pointer);
 var
   I: LongInt;
+  C: Longint;
 begin
-  for I:=0 to Count-1 do CallPointerLocal(Action,PreviousFramePointer,At(I));
+  C := Count;
+  I := 0;
+  while I < Count do begin
+   CallPointerLocal(Action,PreviousFramePointer,At(I));
+   if C = Count then inc(I) else C := Count;
+  end;
 end;
 
 procedure TCollection.Free(Item: Pointer);
@@ -736,24 +743,24 @@ function TSortedCollection.Search
 var
   L, H, I, C: LongInt;
 begin
-  Search:=False;
-  L:=0;
-  H:=Count - 1;
-  while L <= H do
-  begin
-    I:=(L + H) shr 1;
-    C:=Compare(KeyOf(At(I)), Key);
-    if C < 0 then L:=I + 1 else
-    begin
-      H:=I - 1;
-      if C = 0 then
-      begin
-        Search:=True;
-        if not Duplicates then L:=I;
-      end;
+ Search:=False;
+ L:=0;
+ H:=Count - 1;
+ while L <= H do begin
+  I:=(L + H) shr 1;
+  C:=Compare(KeyOf(At(I)), Key);
+  if C < 0
+   then L:=I + 1
+   else begin
+    if C = 0 then begin
+     Search:=True;
+     if not Duplicates then L:=I;
+     Break;
     end;
-  end;
-  Index:=L;
+    H:=I - 1;
+   end;
+ end;
+ Index:=L;
 end;
 
 procedure TSortedCollection.Store(var S: TStream);
@@ -1142,14 +1149,14 @@ end;
 
 constructor TStringList.Load(var S: TStream);
 var
-  Size: Word;
+  Size: AWord;
 begin
   TObject.Init;
   Stream:=@S;
-  S.Read(Size, SizeOf(Word));
+  S.Read(Size, SizeOf(Size));
   BasePos:=S.GetPos;
   S.Seek(BasePos + Size);
-  S.Read(IndexSize, SizeOf(Integer));
+  S.Read(IndexSize, SizeOf(IndexSize));
   GetMem(Index, IndexSize * SizeOf(TStrIndexRec));
   S.Read(Index^, IndexSize * SizeOf(TStrIndexRec));
 end;
@@ -1159,9 +1166,9 @@ begin
   FreeMem(Index, IndexSize * SizeOf(TStrIndexRec));
 end;
 
-function TStringList.Get(Key: Word): String;
+function TStringList.Get(Key: AWord): String;
 var
-  I: Word;
+  I: AWord;
   S: String;
 begin
   S:='';
@@ -1176,7 +1183,7 @@ begin
   Get:=S;
 end;
 
-procedure TStringList.ReadStr(var S: String; Offset, Skip: Word);
+procedure TStringList.ReadStr(var S: String; Offset, Skip: AWord);
 var
   B: Byte;
 begin
@@ -1200,7 +1207,11 @@ begin
 {$IFDEF QSort}
  QSort;
 {$ELSE}
- PoglSort;
+ {$IFDEF POGLSORT}
+  PoglSort;
+ {$ELSE}
+  KPutSort;
+ {$ENDIF}
 {$ENDIF}
 end;
 
@@ -1238,20 +1249,22 @@ end;
 
 {$ELSE}{Not QSort}
 
+{$IFDEF POGLSORT}
+
 {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
 procedure TSortedCollection.PoglSort;
 type TSR = pointer; Label 1;
- Const r=SizeOf(TSR); mm=65520 div r; nseg=10; mr=mm*r;
+ Const r=SizeOf(TSR); mm=65520 div r; nseg=20; mr=mm*r;
  Type mas = Array[1..mm] of TSR;
  Var A:Array[1..nseg] of ^mas; c,cc,cr,cw,n,np:longint;
-     i,j,k,mk,ni,nw,q,u,v,w,z:word; x:TSR;
+     i,j,k,mk,ni,nw,q,u,v,w,z:longint; x:TSR;
 
 {$IFDEF COLLECTION_IN_STREAM}
 function GetSize: longint; begin GetSize:=CStream^.GetSize end;
 procedure Seek(Pos: longint);begin CStream^.Seek(Pos*r) end;
 procedure Read(var A; count: word);begin CStream^.Read(A, count*r) end;
 procedure Write(var A; count: word);begin CStream^.Write(A, count*r) end;
-function GetPos: longint; begin GetPos:=CStream^.GetSize end;
+function GetPos: longint; begin GetPos:=CStream^.GetPos end;
 {$ELSE}
 var Posit: longint;
 function  GetSize: longint; begin GetSize:=Count*r; end;
@@ -1348,6 +1361,139 @@ function GetPos: longint; begin GetPos:=Posit*r end;
   FreeMem(A[w], nw*r); For u:= w-1 downto 1 do FreeMem(A[u], mr)
 END;
 {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+
+{$ELSE}{Not PoglSort}
+
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+Procedure TSortedCollection.KputSort;
+ type TSR = pointer; Label 1;
+ Const r=SizeOf(TSR); mm=65520 div r; nseg=9; mr=mm*r;
+ Type mas = Array[1..mm] of TSR;
+ Var A:Array[1..nseg] of ^mas; kp,nk,pe,pk,q,u,w,z:byte;
+     c,cc,cw,dc,n,np,mp,v,v1,ww:longint;  i,j,k,mk,ni,s:word;
+     kb,og,l: Array[1..nseg] of word; p,nn:integer; x:TSR;
+     cr,kk: Array[1..nseg] of longint;
+
+{$IFDEF COLLECTION_IN_STREAM}
+function GetSize: longint; begin GetSize:=CStream^.GetSize/r end;
+procedure Seek(Pos: longint);begin CStream^.Seek(Pos*r) end;
+procedure Read(var A; count: word);begin CStream^.Read(A, count*r) end;
+procedure Write(var A; count: word);begin CStream^.Write(A, count*r) end;
+function GetPos: longint; begin GetPos:=CStream^.GetPos/r end;
+{$ELSE}
+var Posit: longint;
+function  GetSize: longint; begin GetSize:=Count; end;
+procedure Seek(Pos: longint);begin Posit:=Pos end;
+procedure Read(var A; count: word);
+ begin
+  {$IFDEF BIGCOLLECTION}
+  Items^.AtGet(Posit, count, @A);
+  {$ELSE}
+  move(Items^[Posit], A, count*r);
+  {$ENDIF}
+  inc(Posit, count);
+ end;
+procedure Write(var A; count: word);
+ begin
+  {$IFDEF BIGCOLLECTION}
+  Items^.AtReplace(Posit, count, @A);
+  {$ELSE}
+  move(A, Items^[Posit], count*r);
+  {$ENDIF}
+  inc(Posit, count);
+ end;
+function GetPos: longint; begin GetPos:=Posit end;
+{$ENDIF}
+
+ Procedure Merg; Label 1;     {Блок пересыпки в дереве-оглавлении}
+  Begin x:= A[u]^[l[u]]; i:=j+j;
+   Repeat If i < pk Then
+    If Compare(A[og[i]]^[l[og[i]]], A[og[i+1]]^[l[og[i+1]]])>0 Then i:=i+1;
+    If Compare(x,A[og[i]]^[l[og[i]]])>0 Then og[j]:= og[i]
+    Else Goto 1;   j:=i; i:=j+j
+   Until i > pk;     1: og[j]:= u
+  End;
+ Procedure AInit; Var k:word;
+  Begin For k:= 1 to pk do og[k]:=k;
+   For k:= pk div 2 downto 1 do
+    Begin u:= og[k]; j:=k; Merg End
+  End{блока построения наддерева};
+ Procedure VnutSort(c,cc:longint);
+  Var i,j,u: word; og: Array[1..nseg] of word;
+  Procedure Merg; Label 1;
+   Begin x:= A[u]^[1]; i:=j+j;
+    Repeat If i < q Then
+     If Compare(A[og[i+1]]^[1], A[og[i]]^[1])>0 Then i:=i+1;
+     If Compare(A[og[i]]^[1],x)>0 Then og[j]:= og[i] Else Goto 1;
+     j:=i; i:=j+j
+    Until i > q;  1: og[j]:=u
+   End{блока пересыпки в наддереве};
+  Procedure AInit; Var k:word;
+   Begin For k:= 1 to q do og[k]:=k;
+    For k:= q div 2 downto 1 do  Begin u:= og[k]; j:=k; Merg End
+   End{блока построения наддерева};
+  Procedure Sipka(var A:mas; k,n1:word); Label 1;
+   Begin If n1 < 2 Then Exit;
+    Repeat x:= A[k]; j:=k; i:=j+j;
+     While i <= n1 do
+      Begin If i < n1 Then If Compare(A[i+1], A[i])>0 Then i:=i+1;
+      If Compare(A[i],x)>0 Then A[j]:= A[i] Else Goto 1; j:=i; i:=j+j
+      End;  1: A[j]:=x; k:=k-1
+    Until k = 0
+   End{блока пересыпки в сортдеревьях};
+  Begin cw:=c + (p+1) div 2*(kp*v-v); q:=0; Seek(c);
+   Repeat mk:=mm; If cc-c < mm Then mk:= cc-c; q:=q+1; z:=q;
+    Read(A[q]^,mk);  c:= c+mk;
+    Sipka(A[q]^,mk div 2, mk)
+   Until c = cc; Seek(cw); AInit; np:= mk;
+   Repeat  u:=og[1];
+    x:=A[q]^[np]; A[q]^[np]:=A[u]^[1]; A[u]^[1]:=x;
+    np:=np-1; If u=q Then ni:=np Else ni:=mm; Sipka(A[u]^,1,ni);
+    j:=1; If np = 0 Then Begin np:=mm; q:=q-1; AInit End
+          Else If q > 1 Then Merg
+   Until q = 0;
+   For j:=1 to z-1 do Write(A[j]^,mm); Write(A[z]^,mk);
+  End{блока внутренней сортировки части файла};
+ Procedure Output;
+  Begin Seek(cw); Write(A[kp+1]^,s); cw:=cw+s; s:=0 End;
+ Procedure Input;
+  Begin  If kk[u] > mm Then kb[u]:= mm Else kb[u]:= kk[u];
+   Seek(cr[u]); Read(A[u]^,kb[u]); kk[u]:= kk[u]-kb[u];
+   cr[u]:=cr[u]+kb[u]; l[u]:=1
+  End;
+ BEGIN   Seek(0); n:= GetSize; w:=0; np:=0;
+   While (MaxAvail >= mr) And (w < nseg) do
+    Begin  w:=w+1; np:=np+mm; GetMem(A[w], mr) End;
+   kp:=w-1; p:=1; v1:=(n+1) div 2; nn:= 0; v:=np;
+   While v1 > np do
+    Begin p:=-p; nn:= nn+1; ww:=v1; v1:=(v1+kp-1) div kp End; nk:=1;
+   If nn > 0 Then Repeat nk:= nk+1; v:= (ww+nk-1) div nk Until v < np;
+   c:= n - n mod v; cc:=n;
+   Repeat If cc > c Then VnutSort(c,cc); cc:=c; c:=c-v Until c < 0;
+   ww:= v*(kp-1); dc:=ww;
+   REPEAT   If nn = 1 Then kp:=nk;   If nn = 0 Then kp:= 2;
+    v1:= kp*v; c:=ww; np:= n+c;
+    If p < 0 Then Begin c:= n - n mod v1; np:=n;
+                        dc:=(kp-1)*v1; If nn=1 Then dc:= v1 End;
+    Repeat pk:=0; cw:= c - p*dc; ww:= cw;
+    For u:=1 to kp do
+    If c + v*(u-1) < np Then
+         Begin pk:=pk+1; cr[u]:= c + v*(u-1);
+         If cr[u]+v < np Then kk[u]:=v Else kk[u]:=np-cr[u]; Input
+         End;                s:=0; AInit;
+    If c < np Then
+     Repeat j:=1; u:=og[1]; s:=s+1; A[kp+1]^[s]:= A[u]^[l[u]];
+     If s = mm Then Output;   l[u]:= l[u]+1;
+     If l[u] > kb[u] Then  If kk[u] > 0 Then Input
+                Else Begin og[1]:= og[pk]; pk:= pk-1; u:=og[1] End;
+     If pk > 1 Then Merg
+     Until pk=0; If s > 0 Then Output;
+     c:= c+p*v1
+    Until (c >= np) Or (c < 0); p:=-p; v:= v1; nn:=nn-1
+   UNTIL nn < 0; {Truncate(t);} For u:= 1 to kp+1 do FreeMem(A[u],mr)
+  END{блока KPutSort};
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+{$ENDIF}{NOT POGLSORT}
 
 {$ENDIF}{NOT QSort}
 

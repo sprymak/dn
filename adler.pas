@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 Unit Adler;
 
 {
@@ -158,4 +158,3 @@ end;
 #define DO16(buf)   DO8(buf,0); DO8(buf,8);
 }
 end.
-

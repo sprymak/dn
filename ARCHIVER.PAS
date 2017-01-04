@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 
 unit Archiver;
 
-interface uses Views, Objects, DOS, LFNCol, tree, extramemory,
+interface uses Views, Objects, DOS, LFNCol, tree, ExtraMem,
                collect, drivers, profile;
 
 Const DNARC = 'ARCHIVER.INI'#0;
@@ -62,7 +62,7 @@ type
                   LFN    : TLFNIndex; {DataCompBoy}
                   FName  : PString;
                   Select : boolean;
-                  Attr   : Word;
+                  Attr   : AWord;
                   USize,PSize,
                   Date   : Longint;
                  end;
@@ -96,6 +96,7 @@ type
         RecoveryRec,
         SelfExtract,
         Solid,
+        RecurseSubDirs,
         StoreCompression,
         FastestCompression,
         FastCompression,
@@ -105,7 +106,6 @@ type
         ListChar: Char;
         Swap: Boolean;
         UseLFN: Boolean;
-        PutTempBefore: Byte;
         constructor Load(var S: TStream);
         procedure Store(var S: TStream);
         procedure Save;
@@ -128,8 +128,8 @@ type
     PUserSaver = ^TUserSaver;
     TUserSaver = object(TView)
       Screen: Pointer;
-      SSize, SWidth: Integer;
-      CShape, CPos: Word;
+      SSize, SWidth: AInt;
+      CShape, CPos: AWord;
       CheckIO: Boolean;
       isValid: Boolean;
       constructor Init(ACheck: Boolean);
@@ -186,6 +186,7 @@ const
     PRecoveryRec:PChar =        'RecoveryRecord';
     PSelfExtract:PChar =        'SFX';
     PSolid:PChar =              'Solid';
+    PRecurseSubDirs:PChar =     'RecurseSubDirs';
     PStoreCompression:PChar =   'StoreCompression';
     PFastestCompression:PChar = 'FastestCompression';
     PFastCompression:PChar =    'FastCompression';
@@ -196,8 +197,8 @@ const
     PSwap:PChar =               'Swap';
     PUseLFN:PChar =             'UseLFN';
 
-    DefaultArchiver: Word = arcARJ;
-    DefaultArcMode:  Word = 261;
+    DefaultArchiver: AWord = arcARJ;
+    DefaultArcMode:  AWord = 256*(64+1)+5;
     ExtractWithPathNames: boolean=true;
 (*
     OldArchiveName: String = '';
@@ -226,9 +227,6 @@ implementation
       Dialogs, FilesCol, FViewer, StartUp, RStrings, Memory, Messages,
       ArcView, FileCopy, HistList,FStorage, Menus, ArchDet;
 
- Const ArcTagLen = 25;
-       ArcTag: String[25] = 'DN OSP Acrhivers data'#26#01#51#04;
-
 
 { ------------------------------- Collections ----------------------------- }
 
@@ -254,7 +252,7 @@ Procedure TFileInfo.PutItem;
 begin
  StoreLFN(S, PArcFile(Item)^.LFN);
  S.WriteStr(PArcFile(Item)^.FName);
- S.Write(PArcFile(Item)^.Select, 1*2+3*4);
+ S.Write(PArcFile(Item)^.Select, SizeOf(Boolean)+SizeOf(AWord)+3*SizeOf(Longint));
 end;
 
 function TFileInfo.GetItem;
@@ -263,7 +261,7 @@ begin
  New(P);
  P^.LFN:=LoadLFN(S);
  P^.FName := S.ReadStr;
- S.Read(P^.Select, 1*2+3*4);
+ S.Read(P^.Select, SizeOf(Boolean)+SizeOf(AWord)+3*SizeOf(Longint));
  GetItem := P;
 end;
 
@@ -286,6 +284,7 @@ begin
   RecoveryRec       := S.ReadStr;
   SelfExtract       := S.ReadStr;
   Solid             := S.ReadStr;
+  RecurseSubDirs    := S.ReadStr;
   StoreCompression  := S.ReadStr;
   FastestCompression:= S.ReadStr;
   FastCompression   := S.ReadStr;
@@ -314,6 +313,7 @@ begin
   S.WriteStr(RecoveryRec);
   S.WriteStr(SelfExtract);
   S.WriteStr(Solid);
+  S.WriteStr(RecurseSubDirs);
   S.WriteStr(StoreCompression);
   S.WriteStr(FastestCompression);
   S.WriteStr(FastCompression);
@@ -345,6 +345,7 @@ begin
  WritePrivateProfileString(@Sign[1], PFastCompression, StoS(FastCompression), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PFastestCompression, StoS(FastestCompression), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PStoreCompression, StoS(StoreCompression), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PRecurseSubDirs, StoS(RecurseSubDirs), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PSolid, StoS(Solid), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PRecoveryRec, StoS(RecoveryRec), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PSelfExtract, StoS(SelfExtract), @FreeStr[1]);
@@ -386,6 +387,7 @@ begin
   DisposeStr(RecoveryRec);
   DisposeStr(SelfExtract);
   DisposeStr(Solid);
+  DisposeStr(RecurseSubDirs);
   DisposeStr(StoreCompression);
   DisposeStr(FastestCompression);
   DisposeStr(FastCompression);
@@ -406,19 +408,20 @@ begin
   inherited Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ.EXE'));
-  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1'));
-  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -v -jycv'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -v -jycv'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a -a -a1'));
   Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'm -a -a1 -p1'));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd -p1'));
-  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               ''));
+  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               't -v -jycv'));
   Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-g'));
   IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-e'));
   ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-y'));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
-  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
+  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-je1'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-m4'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m3'));
@@ -429,9 +432,8 @@ begin
   if q<>'' then ListChar := q[1] else ListChar:=' ';
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
   if q='0' then Swap := False else Swap := True;
-  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   if q='0' then UseLFN := False else UseLFN := True;
-  PutTempBefore := 0;
 end;
 
 function TARJArchive.GetID;
@@ -550,7 +552,7 @@ constructor TUserSaver.Load;
 begin
   inherited Load(S);
   DataSaver:=@Self;
-  S.Read(SSize, 4*SizeOf(Integer)+SizeOf(Boolean));
+  S.Read(SSize, 4*SizeOf(AInt)+SizeOf(Boolean));
   if UserScreen <> nil then FreeMem(UserScreen, UserScreenSize);
   UserScreenSize := SSize;
   UserScreenWidth := SWidth;
@@ -561,6 +563,7 @@ begin
   Screen := nil;
   isValid := False;
   I := 0;
+  {$IFNDEF NONBP}
   if CheckIO then
     asm
       mov ax, $9900
@@ -570,6 +573,7 @@ begin
       mov I, cl
     @@1:
     end;
+  {$ENDIF}
   if I <> 0 then Msg(dlErrorsOccurred, nil, mfWarning+mfOKButton);
 end;
 
@@ -582,7 +586,7 @@ end;
 procedure TUserSaver.Store;
 begin
   inherited Store(S);
-  S.Write(SSize, 4*SizeOf(Integer)+SizeOf(Boolean));
+  S.Write(SSize, 4*SizeOf(AInt)+SizeOf(Boolean));
   S.Write(Screen^, SSize);
 end;
 
@@ -632,7 +636,10 @@ procedure MakeArchive;
          SR: lSearchRec;
     begin
        ClrIO;
-       if B then S := S + ' ' + SS else WriteLn(F.T, SS);
+{piwamoto.src.begin}
+       if not ((PF^.Attr and Directory <> 0) and (D.Options and 1 = 0))
+          then if B then S := S + ' ' + SS else WriteLn(F.T, SS);
+{piwamoto.src.end}
        ClrIO;
        lFindFirst(MakeNormName(SS, x_x), $FF XOR VolumeID, SR);
        While (DOSError = 0) and not Abort and (S[0] < #100) do
@@ -643,7 +650,10 @@ procedure MakeArchive;
          if (SR.SR.Attr and (Directory + VolumeID) = 0) then
            if B then S := S + ' ' + SquashesName(S1)
                 else WriteLn(F.T, S1);
-         if (SR.SR.Attr and Directory <> 0) and (SR.SR.Name[1] <> '.') then
+{piwamoto.src.begin}
+         if (SR.SR.Attr and Directory <> 0) and (SR.SR.Name[1] <> '.') and
+            (D.Options and 64 <> 0) then
+{piwamoto.src.end}
           if Arc^.UseLFN
            then PutDir(MakeNormName(SS,SR.FullName))
            else PutDir(MakeNormName(SS,SR.SR.Name));
@@ -657,7 +667,7 @@ procedure MakeArchive;
    B := Arc^.ListChar = ' ';
    if B then S := '' else
     begin
-     S := SwpDir + '$$$DN$$$.LST';
+     S := SwpDir + '$DN'+ItoS(DNNumber)+'$.LST';
      lAssignText(F, S); ClrIO;
      lRewriteText(F);
      B := IOResult <> 0;
@@ -671,12 +681,9 @@ procedure MakeArchive;
       else S1 := GetShortRelPath(MakeNormName(PF^.Owner^, MakeFileName(PF^.Name)));
      if PF^.Attr and Directory = 0
       then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1)
-      else if (CnvString(Arc^.IncludePaths)='') and (D.Options and 1 <> 0)
-            then PutDir(S1)
-            else
-             if D.Options and 1 <> 0 then
-              if B then S := S + ' ' + SquashesName(S1+'\*.*')
-                   else WriteLn(F.T, S1+'\*.*');
+{piwamoto.src.begin}
+      else if B then S := S + ' ' + SquashesName(S1+'\*.*') else PutDir(S1);
+{piwamoto.src.end}
      MakeListFile := S;
      if S[0] > #100 then Exit;
     end;
@@ -731,6 +738,7 @@ begin
                          else C := CnvString(Arc^.Add);
   if D.Options and 1 = 0 then C := C + AddString(Arc^.ExcludePaths)
                          else C := C + AddString(Arc^.IncludePaths);
+  if D.Options and 64 <> 0 then C := C + AddString(Arc^.RecurseSubDirs);
 
   if D.Password <> '' then C := C + ' '+CnvString(Arc^.Garble)+D.Password;
   if D.Options and 4 <> 0 then C := C + AddString(Arc^.ForceMode);
@@ -781,7 +789,7 @@ procedure UnarchiveFiles;
       S: String;
       DT: Record S: String; W: Word; Psw: String[30]; end;
       ExtrDir: String;
-      ExtrChar: String[10];
+      ExtrChar: String[20];
       Dr: String;
       Nm: String;
       Xt: String;
@@ -858,7 +866,7 @@ end;
 procedure SkipSFX; {piwamoto}
 var
    TempWord: Word;
-   SfxLen:   Longint;
+   WinZipID: Array [0..7] of char;
    MZExeRec: record
               ExeID:   Array[0..1] of Char;
               LastB:   Word;
@@ -869,7 +877,6 @@ var
    PEhdrRec: record
               ObjNum:  Word;
               ObjSize: Longint;
-              ObjOffs: Longint;
              end;
    LXhdrRec: record
               NonResTableOffs : Longint;
@@ -885,7 +892,6 @@ var
               AlignShiftCount : Word;    {32}
               ExecutableType  : Byte;    {36}
               SegmentSize     : Word;
-              NonResTableName : Array [0..5] of char;
 
               ResourceAlign   : Word;
               ResourceType    : Word;
@@ -895,15 +901,14 @@ var
              end;
 begin
    ArcFile^.Read(MZExeRec.ExeID, SizeOf(MZExeRec.ExeID) + SizeOf(MZExeRec.LastB) + SizeOf(MZExeRec.TotalP));
-   ArcFile^.Seek($18);
-   ArcFile^.Read(MZExeRec.RelOffs, SizeOf(MZExeRec.RelOffs));
-   ArcFile^.Seek($3c);
-   ArcFile^.Read(MZExeRec.NewExe, SizeOf(MZExeRec.NewExe));
    if (MZExeRec.ExeID = 'MZ') or (MZExeRec.ExeID = 'ZM') then
     begin {MZ}
-     ArcPos := LongInt(MZExeRec.TotalP)*512 - 512 + MZExeRec.LastB;
-     SfxLen := ArcFile^.GetSize;
-     if (MZExeRec.RelOffs >= $40) and (MZExeRec.NewExe < SfxLen-$100) then
+     ArcFile^.Seek($18);
+     ArcFile^.Read(MZExeRec.RelOffs, SizeOf(MZExeRec.RelOffs));
+     ArcFile^.Seek($3c);
+     ArcFile^.Read(MZExeRec.NewExe, SizeOf(MZExeRec.NewExe));
+     ArcPos := LongInt(MZExeRec.TotalP - 1)*512 + MZExeRec.LastB;
+     if (MZExeRec.RelOffs >= $40) and (MZExeRec.NewExe < (ArcFile^.GetSize - $100)) then
       begin
        ArcFile^.Seek(MZExeRec.NewExe);
        ArcFile^.Read(TempWord, SizeOf(TempWord));
@@ -912,17 +917,13 @@ begin
          begin {PE}
           ArcFile^.Seek(MZExeRec.NewExe + 6);
           ArcFile^.Read(PEhdrRec.ObjNum, SizeOf(PEhdrRec.ObjNum));
-          if PEhdrRec.ObjNum > 3 then
-           begin {check for PE-winzip}
-            ArcFile^.Seek(MZExeRec.NewExe + $184); {184=offset to ObjOffs for object#4}
-            ArcFile^.Read(PEhdrRec.ObjOffs, SizeOf(PEhdrRec.ObjOffs));
-            ArcPos := PEhdrRec.ObjOffs - $5A0; {NMC.min=2c0, NMC.max=500}
-            Check4WinZip;
-            if ArcPos <> 0 then Exit;
-           end;
-          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.ObjNum + $0E0); {e0=f8-28+10}
-          ArcFile^.Read(PEhdrRec.ObjSize, SizeOf(PEhdrRec.ObjSize) + SizeOf(PEhdrRec.ObjOffs));
-          ArcPos := PEhdrRec.ObjOffs + PEhdrRec.ObjSize;
+          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.ObjNum + $0D0); {e0=f8-28}{offset 2 last object}
+          ArcFile^.Read(WinZipID, SizeOf(WinZipID));
+          ArcFile^.Seek(ArcFile^.GetPos+8);
+          ArcFile^.Read(PEhdrRec.ObjSize, SizeOf(PEhdrRec.ObjSize));
+          ArcFile^.Read(ArcPos, SizeOf(ArcPos));
+          if WinZipID <> '_winzip_' then ArcPos := ArcPos + PEhdrRec.ObjSize;
+          Check4WinZip;
          end;
         $454e :
          begin {NE}
@@ -932,35 +933,27 @@ begin
           ArcFile^.Read(TempWord, SizeOf(TempWord));
           NEhdrRec.SegTableOffset := LongInt(TempWord) + MZExeRec.NewExe;
           ArcFile^.Read(NEhdrRec.ResTableOffset, SizeOf(NEhdrRec.ResTableOffset) + SizeOf(NEhdrRec.ResNamesOffset));
-          ArcFile^.Seek(MZExeRec.NewExe + $2c);
-          ArcFile^.Read(NEhdrRec.NonResTableOffs, SizeOf(NEhdrRec.NonResTableOffs));
-          ArcFile^.Seek(NEhdrRec.NonResTableOffs + 1);
-          ArcFile^.Read(NEhdrRec.NonResTableName, SizeOf(NEhdrRec.NonResTableName));
-          ArcFile^.Seek(MZExeRec.NewExe + $32);
-          ArcFile^.Read(NEhdrRec.AlignShiftCount, SizeOf(NEhdrRec.AlignShiftCount));
           ArcFile^.Seek(MZExeRec.NewExe + $36);
           ArcFile^.Read(NEhdrRec.ExecutableType, SizeOf(NEhdrRec.ExecutableType));
-          if NEhdrRec.AlignShiftCount = 0 then NEhdrRec.AlignShiftCount := 9;
           if NEhdrRec.ExecutableType = 1{OS2} then
-             Exit; {ArcPos=MZ.ArcPos}
-          if (NEhdrRec.NonResTableName = 'WinZip') and (NEhdrRec.NumOfSegments >= 3) then
-           begin {NE-WinZip}
-            ArcFile^.Seek(NEhdrRec.SegTableOffset + $10); {3rd segment}
-            ArcFile^.Read(TempWord, SizeOf(TempWord));
-            ArcFile^.Read(NEhdrRec.SegmentSize, SizeOf(NEhdrRec.SegmentSize));
-            ArcPos := LongInt(TempWord) shl NEhdrRec.AlignShiftCount + NEhdrRec.SegmentSize - $330;
-            Check4WinZip;
-            if ArcPos <> 0 then Exit;
-           end;
+            Exit; {ArcPos=MZ.ArcPos}
+          ArcFile^.Seek(MZExeRec.NewExe + $2c);
+          ArcFile^.Read(NEhdrRec.NonResTableOffs, SizeOf(NEhdrRec.NonResTableOffs));
+          ArcFile^.Seek(NEhdrRec.NonResTableOffs);
+          ArcFile^.Read(WinZipID, SizeOf(WinZipID));
+          WinZipID[0] := '_'; WinZipID[7] := '_';{overwrite nonconstant bytes}
+          ArcFile^.Seek(MZExeRec.NewExe + $32);
+          ArcFile^.Read(NEhdrRec.AlignShiftCount, SizeOf(NEhdrRec.AlignShiftCount));
+          if NEhdrRec.AlignShiftCount = 0 then NEhdrRec.AlignShiftCount := 9;
           if NEhdrRec.ResTableOffset = NEhdrRec.ResNamesOffset then
-           begin {no resources present: ARJ/2, InfoZIP/2, etc...}
+           begin {no resources present: search 4 last segment}
             ArcFile^.Seek(NEhdrRec.SegTableOffset + 8*NEhdrRec.NumOfSegments - 8); {last segment}
             ArcFile^.Read(TempWord, SizeOf(TempWord));
             ArcFile^.Read(NEhdrRec.SegmentSize, SizeOf(NEhdrRec.SegmentSize));
             ArcPos := LongInt(TempWord) shl NEhdrRec.AlignShiftCount + NEhdrRec.SegmentSize;
            end
           else
-           begin {exe with resources: InfoZIP, EasyZIP, etc...}
+           begin {exe with resources: search 4 last resource}
             ArcFile^.Seek(LongInt(NEhdrRec.ResTableOffset) + MZExeRec.NewExe);
             ArcFile^.Read(NEhdrRec.ResourceAlign, SizeOf(NEhdrRec.ResourceAlign));
             ArcPos := ArcFile^.GetPos - 8; {-8=compensation}
@@ -968,14 +961,13 @@ begin
             Repeat {search for last resource}
              ArcPos := ArcPos + NEhdrRec.ResourceTypeNum*12 + 8;
              ArcFile^.Seek(ArcPos);
-             TempWord := NEhdrRec.ResourceTypeNum;
              ArcFile^.Read(NEhdrRec.ResourceType, SizeOf(NEhdrRec.ResourceType) + SizeOf(NEhdrRec.ResourceTypeNum));
             Until NEhdrRec.ResourceType = 0;
-            ArcPos := ArcPos - 12;
-            ArcFile^.Seek(ArcPos);
+            ArcFile^.Seek(ArcPos - 12);
             ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
             ArcPos := LongInt(NEhdrRec.ResourceOffset + NEhdrRec.ResourceLenght) shl NEhdrRec.ResourceAlign;
            end;
+          if WinZipID = '_WinZip_' then Check4WinZip;
         end;
         $584c :
          begin {LX}
@@ -988,24 +980,25 @@ begin
         {other EXE types}
        end;
       end;
-    end else ArcFile^.Seek(ArcPos);
-
+    end;
+   ArcFile^.Seek(ArcPos);
 end; {SkipSFX}
 
 procedure Check4WinZip; {piwamoto}
 var
-   WinZipSfxId: Array [0..2] of Char;
-   WZSearchEnd: Longint;
+   SfxId : Array [0..3] of Char;
+   ArcPosID : LongInt;
 begin
-   WZSearchEnd:=ArcPos + $400 - SizeOf(WinZipSfxId); {400h = 2*DN's internal ArcFile^.Read cache size}
+   ArcPosID := ArcPos;
    Repeat
-    ArcFile^.Seek(ArcPos);
-    ArcFile^.Read(WinZipSfxId, SizeOf(WinZipSfxId));
-    ArcPos := ArcPos + 1;
-   Until (ArcPos > WZSearchEnd) or (WinZipSfxId = 'NMC');
-   ArcFile^.Seek(ArcPos + 11);
-   ArcPos := 0;
-   if WinZipSfxId = 'NMC' then ArcFile^.Read(ArcPos, SizeOf(ArcPos));
+    ArcFile^.Seek(ArcPosID);
+    ArcFile^.Read(SfxId, SizeOf(SfxId));
+    Inc (ArcPosID);
+   Until ((ArcPosID - ArcPos) = $200) or {200h = DN's internal ArcFile^.Read cache size}
+         (SfxId = 'PK'#3#4) or
+         (SfxId = 'Rar!') or
+         (SfxId = 'MSCF');
+   if (ArcPosID - ArcPos) < $200 then ArcPos := ArcPosID - 1;
 end; {Check4WinZip}
 
 end.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 { --------------------------------------------------------------------------- }
 { CPUTYPE.PAS   Turbo Pascal TMi0SDGL 2 interface unit.         Version 2.12  }
 {                                                                             }
@@ -990,7 +990,7 @@ function cpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
    iP7:         cpu_Type := 'Intel/HP P7 (Merced)';
    iP8:         cpu_Type := 'Intel P8';
   else
-   cpu_Type := 'Unknown CPU';
+   cpu_Type := {'Unknown CPU'}GetString(dlUnknownCPUFPU)+' CPU';
   end;
 
  end;
@@ -1006,12 +1006,12 @@ function fpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
    fpu := fpuInternal;
   if (extFlags and efEmulatedFPU) <> 0 then
    begin
-    fpu_Type := 'Emulated (386+)';
+    fpu_Type := {'Emulated (386+)'}      GetString(dlEmulated);
     exit;
    end;
   case fpu of
-   fpuInternal: fpu_Type := {'Internal'} GetString(dlSI_BuiltIn);
-   fpuNone:     fpu_Type := {'None'}     GetString(dlSI_None);
+   fpuInternal: fpu_Type := {'Internal'} GetString(dlInternal);
+   fpuNone:     fpu_Type := {'None'}     GetString(dlNone);
    i8087:       fpu_Type := 'Intel 8087';
    i80287:      fpu_Type := 'Intel 80287';
    i80287xl:    fpu_Type := 'Intel 80287XL';
@@ -1032,7 +1032,7 @@ function fpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
    Nx587:       fpu_Type := 'NexGen Nx587';
    i387SLMobile:fpu_Type := 'Intel i387SL Mobile';
   else
-   fpu_Type := 'Unknown FPU';
+   fpu_Type := {'Unknown FPU'}GetString(dlUnknownCPUFPU)+' FPU';
   end;
  end;
 
@@ -1160,8 +1160,12 @@ function cpu_Speed : Word;
     except
     end;
 {$ELSE}
-    if ((opSys and opOS2)=opOS2) or not TSCDisabled then
-     begin
+ {$IFNDEF DPMI}
+    if ((opSys and opOS2)=opOS2) or not TSCDisabled
+ {$ELSE}{piwamoto: dos+rtm+TSCDisabled=GPF on mov eax,cr4}
+    if ((opSys and opOS2)=opOS2) or ((opSys and not opDOS)=0) or not TSCDisabled
+ {$ENDIF}
+     then begin
       cpu_Speed := getPentiumSpeed;
       exit;
      end;

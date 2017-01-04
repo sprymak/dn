@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 UNIT Commands;
 
 INTERFACE
@@ -120,7 +120,7 @@ CONST
   kbCtrlShift7 = $E700; kbCtrlShift8 = $E800; kbCtrlShift9 = $E900;
   kbCtrl1=$D100; kbCtrl2=$D200; kbCtrl3=$D300; kbCtrl4=$D400; kbCtrl5=$D500;
   kbCtrl6=$D600; kbCtrl7=$D700; kbCtrl8=$D800; kbCtrl9=$D900; kbCtrl0=$DA00;
-  kbCtrlShiftTilde = $0FE00;    kbBackUp=$FD00;
+  kbCtrlShiftTilde = $0FE00;    kbBackUp=$FD00; kbDownUp=$D000; kbUpUp=$C800;
   kbAltCtrlSqBracketL=$1A1A;    kbAltCtrlSqBracketR=$1B1B;
   kbCtrlSqBracketL=$1A1B;       kbCtrlSqBracketR=$1B1D;
   kbAltMore=$3400;              kbAltLess=$3300;
@@ -168,8 +168,12 @@ const
   vmHex       =   1;
   vmDump      =   2;
   vmAsm       =   3;
+  vmInternal  =  16;
+  vmExternal  =  32;
   vmDB        = 100;
   vmSpread    = 101;
+  vmPKT       = 102;
+  vmMSG       = 103;
 
   ebfCBF = 1 shl  0;
   ebfBSU = 1 shl  1;
@@ -337,6 +341,7 @@ const
   psmTime      = 5;
   psmType      = 6;
   psmUnsorted  = 7;
+  psmOrdered   = 30;
 
 { QuickSearch key }
   pqsAlt  = 0;
@@ -393,6 +398,8 @@ const
   fdiEMSFree         = $0100;
   fdiXMSFree         = $0200;
   fdiDIZ             = $0400;
+  fdiSerialNo        = $0800; { Rainbow }
+  fdiFileSys         = $1000; { Rainbow }
 
 { Confirmations }
   cfSingleErase      = $0001;
@@ -601,6 +608,7 @@ const
   cmNext3              = 12196;
   cmPrev3              = 12197;
   cmGotoLineNumber2    = 12198;
+  cmSwitchSmartTab     = 12199;
   cmPlaceMarker1       = 14001;
   cmPlaceMarker2       = 14002;
   cmPlaceMarker3       = 14003;
@@ -619,6 +627,7 @@ const
   cmGoToMarker7        = 14017;
   cmGoToMarker8        = 14018;
   cmGoToMarker9        = 14019;
+  cmBackSearch         = 14020;
 
   cmCopyUnselect       = 10001;
   cmRereadDir          = 10004;
@@ -762,6 +771,7 @@ const
   cmTreeChanged        = 11040;
   cmCloseFormat        = 11041;
   cmCloseLinked        = 11042;
+  cmGetUserParamsWL    = 11043;
 
   cmQuickChange1       = 11100;
   cmQuickChange2       = 11101;
@@ -1075,7 +1085,7 @@ const
   cmWindowManager     = 195;
   cmClearDeskTop      = 196;
   cmUnWrap            = 197;
-  cmGotoCell          = 198;
+  cmGotoCell          = 508;
 
 { Sort commands }
   cmSortName          = 13001;
@@ -1090,7 +1100,7 @@ const
 
 { DblWnd Commands }
 
-  DblWndCommands = [200..219];
+  DblWndCommands = [cmMaxi,200..219];
 
   cmDirTree           = 200;
   cmQuickView         = 201;
@@ -1120,7 +1130,9 @@ const
 
 
   cmSelectMenuCommands= 30000;
-
+  MoreCommand         = 30998;
+  NoneCommand         = 30999;
+  cmSwitch            = 31000;
 
 { Help Contexts }
 
@@ -1317,6 +1329,8 @@ TYPE
     dlDITotalDisk,
     dlDIFreeDisk,
     dlDIVolumeID,
+    dlDISerialNo, { Rainbow }
+    dlDIFileSys, { Rainbow }
     dlDIMemoryTotal,
     dlDIMemoryForUser,
     dlDIMemoryForDN,
@@ -1634,7 +1648,7 @@ TYPE
     dlFC_Exists,
     dlQueryCancelSearch,
     dlReadingList,
-    dlListDriveTop,
+    {dlListDriveTop,}
     dlFillQuery,
     dlSystemInfo,
     dlSI_Ports,
@@ -1763,8 +1777,6 @@ TYPE
     dlFmtVolumeL,
     dlFmtFTypeLabel,
     dlFmtTitle,
-    dlSI_BuiltIn,
-    dlSI_None,
 
     dlTeamHint,
 
@@ -1916,6 +1928,10 @@ TYPE
     dlTeam145,
     dlTeam146,
     dlTeam147,
+    dlTeam148,
+    dlTeam149,
+    dlTeam150,
+    dlTeam151,
 
     dlHelp,
     dlOutputTitle,
@@ -2216,7 +2232,7 @@ TYPE
     dlEmulated,
     dlInternal,
     dlNone,
-    dlUnknownFPU,         {-SYSINFO}
+    dlUnknownCPUFPU,         {-SYSINFO}
     {-DataCompBoy-}
     dlcTitle,    {JO}{+CALENDAR}
     dlcLine,
@@ -2242,6 +2258,7 @@ TYPE
     dlFilDir,
     dlDirectories,
     dlFindPanel,
+    dlListPanel, {-DataCompBoy-}
     dlEmpty,
     dlFileSearch,
     dlKillBuffer,
@@ -2255,7 +2272,22 @@ TYPE
     dlCopyToClipboard,
     dlSaveAsASCII,
     dlSaveAsANSI,
-    dlSaveAsAvatar
+    dlSaveAsAvatar,
+    dlPktView,
+    dlPktHeader,
+    dlPktFile,
+    dlPktMsg,
+    dlViewMsg,
+    dlSaveMsg,
+    dlMsgFile,
+    dlErrorWriting,
+    dlNetMailView,
+    dlLastMsg,
+    dlFirstMsg,
+    dlDelMsg,
+    dlNotPkt,
+    dlReadingPkt,
+    dlLine
   );
 
   TDlgIdx = (

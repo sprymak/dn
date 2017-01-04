@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -69,8 +69,6 @@ procedure CL_ClearTimer(var Timer: TCL_Timer);
 function  CL_TimerExpired(const Timer: TCL_Timer): Boolean;
 function  CL_TimerInstalled(const Timer: TCL_Timer): Boolean;
 
-function  CL_GetCRC32ofs: Word;
-
 {$IFDEF NLSLAVE}
 var
     _Speed: LongInt;
@@ -95,12 +93,6 @@ implementation uses
         {$ENDIF} ;
 
 {$IFDEF OS2} {$I OS2IO.INC} {$ENDIF}
-
-function  CL_GetCRC32ofs: Word;
-begin
-   CL_GetCRC32ofs := {$IFDEF OS2} Ofs(CRC_Table)
-   {$ELSE} CRC32TableOfs {$ENDIF};
-end;
 
 function CL_OutBuffFree;
 

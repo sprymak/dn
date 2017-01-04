@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,24 +49,25 @@
 
 program DN;
 
+{$IFNDEF NONBP}
 {$M 40000,0,655350}
-{$DEFINE DN}
+{$ENDIF}
+
 {.$DEFINE GRABPalette}
 uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
-{$IFNDEF DPMI}
-{$IFDEF PackOverlay}     DnOverl,  {$ELSE}   Overlay,  {$ENDIF}  Overlays,
-{$ENDIF}{DPMI}
+{$IFNDEF NO_OVERLAY}
+     Overlay1, Overlays,
+{$ENDIF NO_OVERLAY}
      Menus,    FlPanelX, FlPanel,  FileCopy, Filediz,  Filelst,  Eraser,
      DiskInfo, Advance,  Advance1, Advance2, Advance3, Advance4, highlite,
      Startup,  Dialogs,  Gauges,   Memory,   DblWnd,   Messages, HistList,
      FileFind, Commands, Tree,     FViewer,  CmdLine,  FBB,      DNStdDlg,
      MemInfo,  FilesCol, UserMenu, RStrings, Colors,   Microed,  Editor,
-     Macro,    DNFormat, Format,   Fixer,    ArcView,  HelpFile, Validate,
-     ASCIITab, xTime,    Drives,   Archiver, Archset,  Archdet,  Setups,
-     DNUtil,   XDblWnd,  Histries, CCalc,    DnIni,    DrvTypes, Collect,
-     UFNMatch, Objects,  Views,    Scroller, Calculator,
-     HelpKernel,         Reanimator,         extramemory
-{$IFDEF FPC}  ,CallSpec  {$ELSE}  ,Callspcb            {$ENDIF}
+     Macro,    ArcView,  HelpFile, Validate, ASCIITab, xTime,    Drives,
+     Archiver, Archset,  Archdet,  Setups,   DNUtil,   XDblWnd,  Histries,
+     CCalc,    DnIni,    DrvTypes, Collect,  UFNMatch, Objects,  Views,
+     Scroller, Calculat, ExtraMem, HelpKern
+{$IFDEF DiskFormat}     ,DNFormat ,Format              {$ENDIF}
 {$IFDEF CdPlayer}       ,CdPlayer ,CdUtil              {$ENDIF}
 {$IFDEF SpreadSheet}    ,Calc     ,CellsCol            {$ENDIF}
 {$IFDEF DBView}         ,DBView   ,DBWatch             {$ENDIF}
@@ -81,9 +82,11 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
 {$IFDEF SS}            ,Idlers                         {$ENDIF}
 {$IFDEF CHCOL}         ,ColorSel, ColorVGA             {$ENDIF}
 {$IFDEF NETINFO}       ,Novell                         {$ENDIF}
+{$IFDEF DiskEdit}      ,Fixer                          {$ENDIF}
+{$IFDEF REANIMATOR}    ,Reanimat                       {$ENDIF}
       ;
 
-{$IFNDEF DPMI}
+{$IFNDEF NO_OVERLAY}
 
   {!$O DNApp} {!$O Drivers} {!$O Overlays} {!$O Startup}
   {$O DN1}
@@ -92,39 +95,37 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
   {$O RStrings} {$O UniWin} {$O FlPanelX} {$O FlPanel} {$O XDBlWnd}
   {$O FStorage} {$O Menus}  {$O Drives}   {$O DblWnd}  {$O CmdLine}
   {$O Gauge}    {$O Gauges} {$O CallSpcB}
- {$IFNDEF PackOverlay}{$O BStrings}{$ENDIF}
 {$ENDIF}
 
 {$IFDEF FULLOVR2}
-  {$O UFNMATCH} {$O XTIME}  {$O Collect}
+  {$O UFNMATCH} {$O XTIME}
 {$ENDIF}
 
   {$O Profile}  {$O U_SRCHF}  {$O HistList} {$O Histries} {$O FlTools}
   {$O Scroller} {$O DiskTool} {$O HideView} {$O Setups}   {$O FViewer}
-  {$O Macro}    {$O MicroEd}  {$O FileCopy} {$O FileDiz}  {$O FileLst}
-  {$O Decoder}  {$O DiskInfo} {$O Eraser}   {$O FileFind} {$O Dialogs}
-  {$O DNUtil}   {$O DNFormat} {$O Format}   {$O CCalc}    {$O ArcView}
-  {$O Archiver} {$O Archset}  {$O Archdet}  {$O Arc_Zip}  {$O Arc_LHA}
-  {$O Arc_RAR}  {$O Arc_ACE}  {$O Arc_HA}   {$O Arc_CAB}
+  {$O Macro}    {$O FileCopy} {$O FileDiz}  {$O FileLst}  {$O CCalc}
+  {$O DiskInfo} {$O Eraser}   {$O FileFind} {$O Dialogs}  {$O DNUtil}
+  {$O ArcView}  {$O Archiver} {$O Archset}  {$O Archdet}  {$O Arc_Zip}
+  {$O Arc_LHA}  {$O Arc_RAR}  {$O Arc_ACE}  {$O Arc_HA}   {$O Arc_CAB}
 {$IFNDEF MINARCH}
   {$O Arc_arc}  {$O Arc_bsa}  {$O Arc_bs2}  {$O Arc_hyp}  {$O Arc_lim}
   {$O Arc_hpk}  {$O Arc_TAR}  {$O Arc_ZXZ}  {$O Arc_QRK}  {$O Arc_UFA}
   {$O Arc_IS3}  {$O Arc_SQZ}  {$O Arc_HAP}  {$O Arc_ZOO}  {$O Arc_CHZ}
   {$O Arc_UC2}  {$O Arc_AIN}  {$O Arc_TGZ}  {$O Archread}
-{$IFNDEF PackOverlay}
   {$O GZIO}     {$O ZUtil}    {$O ZInflate} {$O ZLib}
   {$O ADler}    {$O InfBlock} {$O InfCodes} {$O InfFast}
   {$O InfTrees} {$O InfUtil}  {$IFNDEF NO_DEFLATE}{$O Trees}{$ENDIF}
-{$ENDIF !PackOverlay}
 {$ENDIF !MINARCH}
   {$O ASCIITab} {$O DNStdDlg} {$O SBlocks}  {$O FBB}      {$O Tree}
   {$O Messages} {$O Colors}   {$O UserMenu} {$O HelpFile} {$O Validate}
   {$O Arvid}    {$O ArvidAvt} {$O ArvidTdr} {$O Advance6} {$O WinClp}
   {$O DiskImg}  {$O DRVTYPES} {$O DNIni}    {$O FindObj}  {$O DNEXEC}
-  {$O advance4} {$O Editor}   {$O Ed2}      {$O EdWin}    {$O RegAll}
-  {$O U_KeyMap} {$O advance7} {$O HelpKernel}             {$O Reanimator}
-  {$O calculator}
+  {$O advance4} {$O RegAll}   {$O advance7}
+  {$O calculat} {$O HelpKern}
 
+{$IFDEF DiskFormat}           {$O DNFormat} {$O Format}   {$ENDIF}
+{$IFDEF MicroedOvr}{$O Editor}   {$O MicroEd}  {!$O U_KeyMap}
+                   {$O Ed2}      {$O EdWin}    {$O MicroEd2}  {$ENDIF}
 {$IFDEF ADVANCEOVR}{$O advance1} {$O advance2} {$O advance3}
                    {$O highlite}                              {$ENDIF}
 {$IFDEF SYSINFO}   {$O SysInfo}  {$O CpuType}                 {$ENDIF}
@@ -144,6 +145,7 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
     {$IFDEF LINK}  {$O NavyLink} {$O LinkUtil}
                    {$O ComLnk}                 {$ENDIF}       {$ENDIF}
 {$IFDEF VIEWSOVR}  {$O VIEWS}                                 {$ENDIF}
+{$IFDEF CollectOVR}{$O Collect}                               {$ENDIF}
 {$IFDEF Calendar}  {$O Calendar}                              {$ENDIF} {JO}
 {$IFDEF UUENCODE}  {$O UUCode}  {$ELSE}
 {$IFDEF UUDECODE}  {$O UUCode}  {$ENDIF}                      {$ENDIF}
@@ -152,10 +154,14 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
 {$IFDEF SS}        {$O Idlers}                                {$ENDIF}
 {$IFDEF CHCOL}     {$O ColorSel} {$O ColorVGA}                {$ENDIF}
 {$IFDEF NETINFO}   {$O Novell}                                {$ENDIF}
+{$IFDEF DisAsm}    {$O Decoder}                               {$ENDIF}
+{$IFDEF VIDEOOVR}  {$O VideoMan}                              {$ENDIF}
+{$IFDEF PKTVIEW}   {$O PKTVIEW}                               {$ENDIF}
+{$IFDEF REANIMATOR}{$O Reanimat}                              {$ENDIF}
 
 {$IFDEF MODEM} {$O StrView}{$ELSE}{$IFDEF PHONES}{$O StrView} {$ENDIF}{$ENDIF}
 
-{$ENDIF}{DPMI}
+{$ENDIF NO_OVERLAY}
 
 BEGIN
  Init09Handler;

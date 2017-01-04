@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,7 +50,7 @@ unit HelpFile;
 
 interface
 
-uses Objects, Drivers, Views, Scroller, HelpKernel;
+uses Objects, Drivers, Views, Scroller, HelpKern;
 
 const
   CHelpColor      = #$37#$3F#$3A#$13#$13#$30#$3E#$1E#$3F;
@@ -68,14 +68,14 @@ type
   THelpViewer = object(TScroller)
     HFile: PHelpFile;
     Topic: PHelpTopic;
-    Selected: Integer;
+    Selected: AInt;
     Pos: TPoint;
-    NumTopics: Integer;
+    NumTopics: AInt;
     Indexes: Array [1..MaxUndo] of THelpParameters;
     constructor Init(var Bounds: TRect; AHScrollBar,
-      AVScrollBar: PScrollBar; AHelpFile: PHelpFile; Context: Word);
+      AVScrollBar: PScrollBar; AHelpFile: PHelpFile; Context: AWord);
     destructor Done; virtual;
-    procedure GotoContext(Context: Word);
+    procedure GotoContext(Context: AWord);
     procedure ChangeBounds(var Bounds: TRect); virtual;
     procedure Draw; virtual;
     function GetPalette: PPalette; virtual;
@@ -87,8 +87,8 @@ type
   PHelpWindow = ^THelpWindow;
   THelpWindow = object(TWindow)
     HelpView: PHelpViewer;
-    constructor Init(HFile: PHelpFile; Context: Word);
-    procedure GotoContext(Context: Word);
+    constructor Init(HFile: PHelpFile; Context: AWord);
+    procedure GotoContext(Context: AWord);
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     destructor Done; virtual;
@@ -100,7 +100,7 @@ uses DNApp, Commands, DNHelp, RStrings, DnUtil;
 { THelpViewer }
 
 constructor THelpViewer.Init(var Bounds: TRect; AHScrollBar,
-  AVScrollBar: PScrollBar; AHelpFile: PHelpFile; Context: Word);
+  AVScrollBar: PScrollBar; AHelpFile: PHelpFile; Context: AWord);
 begin
   inherited Init(Bounds, AHScrollBar, AVScrollBar);
   HelpCtx := hcHelp;
@@ -128,7 +128,7 @@ begin
   Dispose(Topic,Done); HFile:=nil;
 end;
 
-procedure THelpViewer.GotoContext(Context: Word);
+procedure THelpViewer.GotoContext(Context: AWord);
 begin
   If Context >= $FFF0 then Exit;
   if NumTopics = MaxUndo then Move(Indexes[2], Indexes[1], (MaxUndo - 1)*SizeOf(THelpParameters))
@@ -167,16 +167,16 @@ procedure THelpViewer.Draw;
 var
   B: TDrawBuffer;
   Line: String;
-  I, J, L: Integer;
-  KeyCount: Integer;
-  Normal, Keyword, SelKeyword, HiLite, C: Byte;
+  I, J, L: AInt;
+  KeyCount: AInt;
+  Normal, KeyAWord, SelKeyAWord, HiLite, C: Byte;
   KeyPoint: TPoint;
   KeyLength: Byte;
-  KeyRef: Word;
+  KeyRef: AWord;
 begin
   Normal := GetColor(1);
-  Keyword := GetColor(2);
-  SelKeyword := GetColor(3);
+  KeyAWord := GetColor(2);
+  SelKeyAWord := GetColor(3);
   HiLite := GetColor(4);
   KeyCount := 0;
   KeyPoint.X := 0;
@@ -217,8 +217,8 @@ begin
         then C := HiLite
         else
       if KeyCount = Selected
-        then C := SelKeyword
-        else C := Keyword;
+        then C := SelKeyAWord
+        else C := KeyAWord;
       for J := 0 to L-1 do
         WordRec(B[KeyPoint.X - Pos.X + J]).Hi := C;
       Inc(KeyCount);
@@ -241,8 +241,8 @@ procedure THelpViewer.HandleEvent(var Event: TEvent);
 var
   KeyPoint, Mouse: TPoint;
   KeyLength: Byte;
-  KeyRef: Word;
-  KeyCount: Integer;
+  KeyRef: AWord;
+  KeyCount: AInt;
 
 procedure MakeSelectVisible;
 var
@@ -253,7 +253,7 @@ begin
   ScrollTo(KeyPoint.X, KeyPoint.Y-1);
 end;
 
-procedure SwitchToTopic(KeyRef: Word);
+procedure SwitchToTopic(KeyRef: AWord);
 begin
   If KeyRef >= $FFF0 then Exit;
   if NumTopics = MaxUndo then Move(Indexes[2], Indexes[1], (MaxUndo - 1)*SizeOf(THelpParameters))
@@ -407,7 +407,7 @@ end;
 
 { THelpWindow }
 
-constructor THelpWindow.Init(HFile: PHelpFile; Context: Word);
+constructor THelpWindow.Init(HFile: PHelpFile; Context: AWord);
 var
   R: TRect;
 begin
@@ -428,7 +428,7 @@ begin
   GetPalette := @P;
 end;
 
-procedure THelpWindow.GotoContext(Context: Word);
+procedure THelpWindow.GotoContext(Context: AWord);
 begin
  HelpView^.GotoContext(Context);
 end;

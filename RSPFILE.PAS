@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 unit RSPFile;
 
 interface
@@ -94,7 +95,8 @@ Const MinPFile = 4;
       PFiles: Array[MinPFile..MaxPFile] of gzFile = (nil);
 
 function StrPas(Str: PChar): String; assembler;
-asm
+{$IFNDEF BIT_32}
+ asm
         PUSH    DS
         CLD
         LES     DI,Str
@@ -109,7 +111,23 @@ asm
         STOSB
         REP     MOVSB
         POP     DS
-end;
+ end;
+{$ELSE BIT_32}{$USES EDI,ESI,ECX}
+ asm
+        CLD
+        LEA     EDI,Str
+        MOV     ECX,0FFFFFFFFH
+        XOR     AL,AL
+        REPNE   SCASB
+        NOT     ECX
+        DEC     ECX
+        LEA     ESI,Str
+        MOV     EDI,@Result
+        MOV     AL,CL
+        STOSB
+        REP     MOVSB
+ end;
+{$ENDIF}
 
 Function POpen;
 var I: Word;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DPMI
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -95,6 +95,7 @@ const
  hcDBView               = 48048;
  hcDeleteFiles          =    25;
  hcDesktop              = 48050;
+ hcDialer               = 48095;
  hcDialogButton         = 48054;
  hcDialogCase           = 48055;
  hcDialogHistory        = 48053;
@@ -185,6 +186,7 @@ const
  hcJelolInvert          = 65532;
  hcKulcsGombok          = 65530;
  hcKulsoParancs         = 65514;
+ hcLineViewer           = 48097;
  hcLinkPanel            =  1101;
  hcLinkStatusWnd        = 48062;
  hcLUserMenu            = 16546;
@@ -208,6 +210,7 @@ const
  hcMkDir                = 48017;
  hcMouseSetup           = 16567;
  hcMovementCommands     = 10003;
+ hcMsgViewer            = 48098;
  hcNavigatorsWindows    =    19;
  hcNavyLink             = 48063;
  hcNetInfo              = 16560;
@@ -226,6 +229,8 @@ const
  hcPath                 = 48094;
  hcPentix               = 16544;
  hcPhone                = 11020;
+ hcPktListDialog        = 48096;
+ hcPktMsgViewer         = 48099;
  hcPrinterSetup         = 16574;
  hcPrintKulcsGombok     = 65524;
  hcPrintManager         = 16562;

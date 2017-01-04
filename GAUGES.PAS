@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -73,8 +73,8 @@ type
 
   PKeyMacros = ^TKeyMacros;
   TKeyMacros = object(TObject)
-   Limit: Integer;
-   Count: Integer;
+   Limit: AInt;
+   Count: AInt;
    Keys: PWordArray;
    constructor Init;
    constructor Load(var S: TStream);
@@ -107,7 +107,7 @@ type
     LastTime: DateTime;
     LastSemi: boolean;
     TimeStr: string[16];   {-SSK (old version: string[12])}
-    OldXCoord: integer;    {-SSK}
+    OldXCoord: aint;       {-SSK}
     OldShowSeconds: boolean;
     Utimer: TEventTimer;
     constructor Init(var Bounds: TRect);
@@ -123,6 +123,7 @@ procedure PrintFiles(Files: PCollection; Own: PView);
 
 implementation
 uses Memory, Tree, Messages, DNApp, advance, advance1, advance2, advance3,
+     {$IFDEF VIRTUALPASCAL}SysUtils, {$ENDIF}
      FilesCol, RStrings, Startup, DnIni; {-$VIV}
 
 constructor TKeyMacros.Init;
@@ -142,16 +143,16 @@ end;
 
 constructor TKeyMacros.Load;
 begin
- S.Read(Limit, SizeOf(Word) * 2);
- Keys := MemAlloc(SizeOf(Word) * Limit);
+ S.Read(Limit, SizeOf(AWord) * 2);
+ Keys := MemAlloc(SizeOf(AWord) * Limit);
  if Keys = nil then Fail;
- S.Read(Keys^, SizeOf(Word) * Count);
+ S.Read(Keys^, SizeOf(AWord) * Count);
 end;
 
 procedure TKeyMacros.Store;
 begin
- S.Write(Limit, SizeOf(Word) * 2);
- S.Write(Keys^, SizeOf(Word) * Count);
+ S.Write(Limit, SizeOf(Limit) * 2);
+ S.Write(Keys^, SizeOf(AWord) * Count);
 end;
 
 procedure TKeyMacros.PutKey;
@@ -214,7 +215,7 @@ begin
 end;
 
 constructor TClockView.Init(var Bounds: TRect);
-  var s,hund: word;
+  var s, hund: word;
 begin
   TView.Init(Bounds);
   FillChar(LastTime, SizeOf(LastTime), #$FF);
@@ -225,7 +226,7 @@ begin
   EventMask:= evMouse or evMessage ;
   Options:=Options or ofTopSelect;
   GrowMode := gfGrowHiX;
-  GetTime(LastHour,LastMin , s , hund );
+  GetTime(LastHour, LastMin, s, hund);
   LastSemi:=hund<50;
   RegisterToBackground(@Self);
   if ShowSeconds then UpdTicks := 18 else UpdTicks := 9;
@@ -293,11 +294,15 @@ begin
               if ShowCentury then TimeStr:=Copy(SS,1,10)+' '
               else TimeStr:=Copy(SS,1,8)+' ';
               if ShowDayOfWeek then begin
+                  {$IFNDEF VIRTUALPASCAL}
                   asm {-SSK}
                       mov ah, 02Ah
                       int 21h
                       mov DayWeek, al
                   end;
+                  {$ELSE}
+                  DayWeek := DayOfWeek(Date)-1;
+                  {$ENDIF}
                   if (Length(DaysOfWeek)<>14) and (Length(DaysOfWeek)<>21)
                   then TimeStr:=' '+Copy(GetString(stDaysWeek),1+DayWeek*2,2)
                   +' '+TimeStr else TimeStr:=' '+Copy(DaysOfWeek,1+DayWeek*
@@ -492,4 +497,3 @@ end;
         {-DataCompBoy-}
 
 end.
-

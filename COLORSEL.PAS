@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -148,8 +148,8 @@ type
       AGroups: PColorGroup);
     constructor Load(var S: TStream);
     destructor Done; virtual;
-    procedure FocusItem(Item: Integer); virtual;
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+    procedure FocusItem(Item: LongInt); virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Store(var S: TStream);
     procedure SetGroupIndex(GroupNum, ItemNum: Byte);
@@ -165,8 +165,8 @@ type
     Items: PColorItem;
     constructor Init(var Bounds: TRect; AScrollBar: PScrollBar;
       AItems: PColorItem);
-    procedure FocusItem(Item: Integer); virtual;
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+    procedure FocusItem(Item: LongInt); virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
   end;
 
@@ -219,7 +219,7 @@ function DialogColorItems(const Next: PColorItem): PColorItem;
 function WindowColorItems(const Next: PColorItem): PColorItem;
 
 implementation
-uses Startup, DNApp, RStrings, Commands, DNUTIL;
+uses Startup, DNApp, RStrings, Commands, DNUTIL, VideoMan;
 
 type ColorArray = array[0..4] of Byte;
 
@@ -583,9 +583,10 @@ function ReadItems: PColorItem;
 var
   Itms:  PColorItem;
   CurItm: ^PColorItem;
-  Count, I: Integer;
+  Count: AInt;
+  I: Integer;
 begin
-  S.Read(Count, SizeOf(Integer));
+  S.Read(Count, SizeOf(AInt));
   Itms := nil;
   CurItm := @Itms;
   for I := 1 to Count do
@@ -606,9 +607,9 @@ function ReadGroups: PColorGroup;
 var
   Grps:  PColorGroup;
   CurGrp: ^PColorGroup;
-  Count, I: Integer;
+  Count, I: AInt;
 begin
-  S.Read(Count, SizeOf(Integer));
+  S.Read(Count, SizeOf(AInt));
   Grps := nil;
   CurGrp := @Grps;
   for I := 1 to Count do
@@ -664,11 +665,12 @@ begin
   FreeGroups(Groups);
 end;
 
-procedure TColorGroupList.FocusItem(Item: Integer);
+procedure TColorGroupList.FocusItem(Item: LongInt);
 var
   CurGroup: PColorGroup;
 begin
   TListViewer.FocusItem(Item);
+  Item     := Focused; {PZ 2000.06.10}
   CurGroup := Groups;
   while Item > 0 do
   begin
@@ -678,7 +680,7 @@ begin
   Message(Owner, evBroadcast, cmNewColorItem, CurGroup);
 end;
 
-function TColorGroupList.GetText(Item: Integer; MaxLen: Integer): String;
+function TColorGroupList.GetText(Item: LongInt; MaxLen: Integer): String;
 var
   CurGroup: PColorGroup;
   I: Integer;
@@ -697,7 +699,7 @@ procedure TColorGroupList.Store(var S: TStream);
 procedure WriteItems(Items: PColorItem);
 var
   CurItm: PColorItem;
-  Count: Integer;
+  Count: AInt;
 begin
   Count := 0;
   CurItm := Items;
@@ -706,7 +708,7 @@ begin
     CurItm := CurItm^.Next;
     Inc(Count);
   end;
-  S.Write(Count, SizeOf(Integer));
+  S.Write(Count, SizeOf(AInt));
   CurItm := Items;
   while CurItm <> nil do
   begin
@@ -824,11 +826,12 @@ begin
   SetRange(I);
 end;
 
-procedure TColorItemList.FocusItem(Item: Integer);
+procedure TColorItemList.FocusItem(Item: LongInt);
 var
   CurItem: PColorItem;
 begin
   TListViewer.FocusItem(Item);
+  Item := Focused; {PZ 2000.06.10}
   MessageL(Owner, evBroadcast, cmSaveColorIndex, Item);
   CurItem := Items;
   while Item > 0 do
@@ -840,7 +843,7 @@ begin
    MessageL(Owner, evBroadcast, cmNewColorIndex, CurItem^.Index);
 end;
 
-function TColorItemList.GetText(Item: Integer; MaxLen: Integer): String;
+function TColorItemList.GetText(Item: LongInt; MaxLen: Integer): String;
 var
   CurItem: PColorItem;
 begin
@@ -1064,7 +1067,6 @@ end;
 constructor TColorDialog.Load(var S: TStream);
 var
   Len: Byte;
-  var
   R: TRect;
   P: PView;
 
@@ -1260,7 +1262,7 @@ begin
 
   SetIndexes(ColorIndexes);
 {  Display^.SetColor(Byte(Pal[Groups^.GetGroupIndex(GroupIndex)]));}
-  Groups^.FocusItem(GroupIndex);
+{  Groups^.FocusItem(GroupIndex); } {PZ 2000.06.10}
   SwitchTypeSelector;
 end;
 
@@ -1445,4 +1447,3 @@ begin
 end;
 
 end.
-

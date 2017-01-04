@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -119,7 +119,7 @@ type
 
     PFieldListBox = ^TFieldListBox;
     TFieldListBox = object(TListBox)
-     function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+     function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     end;
 
     PDBWindow = ^TDBWindow;
@@ -140,7 +140,7 @@ type
 {$ifndef db}
 implementation
 uses Advance, Advance1, Advance2, Advance3, Startup, DNHelp, DNApp, Messages,
-     Histries, Gauge;
+     Histries, Gauge, xTime;
 {$endif}
 
 function MaxAvail: LongInt;
@@ -251,8 +251,7 @@ begin
   SearchString := nil;
   HelpCtx := hcDBView;
   Buf := nil; FileName := NewStr(lFExpand(FName));
-  if Failed then Fail;
-  if isValid then TempFile := '';
+  if Failed then isValid:=false else if isValid then TempFile := '';
 end;
         {-DataCompBoy-}
 
@@ -298,11 +297,11 @@ begin
     if DBFile^.NumRec = 0 then
     begin
       GetInfo(dlDBEmptyStruc);
-      DisposeStr(SearchString);
+{     DisposeStr(SearchString);
       Dispose(DBFile,Done); DBFile:=nil;
-      TempFile := '';
+}     TempFile := '';
       if KillAfterUse then EraseFile(CnvString(FileName));
-      DisposeStr(FileName);
+{     DisposeStr(FileName);}
       Failed := True;
       Exit;
     end;
@@ -340,6 +339,7 @@ begin
  DisposeStr(SearchString);
  if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
  if DBFile <> nil then Dispose(DBFile,Done); DBFile:=nil;
+ if KillAfterUse then EraseFile(CnvString(FileName));
  DisposeStr(FileName);
  inherited Done;
 end;
@@ -530,6 +530,7 @@ procedure TDBViewer.HandleEvent;
       P: PByteArray;
       V: PWhileView;
       R: TRect;
+      T: TEventTimer;
  begin
   SS := SearchRec.S;
   if SearchRec.Opt and 1 = 0 then UpStr(SS);
@@ -538,13 +539,15 @@ procedure TDBViewer.HandleEvent;
                          else begin U := 0; D := dbFile^.NumFields - 1 end;
   R.Assign(1,1,30,10);
   New(V, Init(R));
-  V^.Top := GetString(dlSearching) + '"' + Cut(SearchRec.S, 40) ;
+  V^.Top := GetString(dlSearching) + '"' + Cut(SearchRec.S, 40) + '"' ;
   V^.Write(1, GetString(dlPercentComplete));
   Desktop^.Insert(V);
   Abort:=False;
+  NewTimer(T, 9);
   while (I < DBFile^.NumRec) and (SearchRec.Direction <> 1) or
         (SearchRec.Direction = 1) and (I >= 0) do
    begin
+    DispatchEvents(V, Abort);
     if Abort then break;
     V^.Write(2, Copy(Strg(#219, (I*25) div DBFile^.NumRec)+Strg(#177, 25), 1, 25));
     V^.Write(3, ItoS(I)+'/'+ItoS(DBFile^.NumRec));
@@ -699,6 +702,7 @@ begin
                                           dbFile := nil;
                                         end;
                                       EraseFile( FileName^ );
+                                      KillAfterUse := False;
                                       if Event.Command = cmClose then GlobalMessage(evCommand, cmPanelReread, nil);
                                     end;
               cmGetName: PString(Event.InfoPtr)^ := GetString(dlDBViewName) + FileName^;
@@ -706,6 +710,19 @@ begin
               cmShowMemo: begin ViewMemo; CE end;
               cmSearchFor: begin StartSearch; CE; end;
               cmContinueSearch: begin ContSearch(1-2*Integer(SearchRec.Direction = 1)); CE; end;
+              cmBackSearch: begin
+                             if SearchRec.Direction = 1 then begin
+                              SearchRec.Direction := 0;
+                              ContSearch(1);
+                              SearchRec.Direction := 1;
+                             end else begin
+                              RD := SearchRec.Direction;
+                              SearchRec.Direction := 1;
+                              ContSearch(-1);
+                              SearchRec.Direction := RD;
+                             end;
+                             CE;
+                            end;
               cmEditDBField: begin EditField; CED end;
              end;
   evKeyDown: case Event.KeyCode of
@@ -781,51 +798,52 @@ begin
  for K := 1 to Size.Y - 1 do
   begin
    MoveChar(B, ' ', C2, Size.X);
-   J := Delta.X; I := 1; Idx := Pos.Y+LongInt(K)-1;
-   P := GetRecord(Idx);
-   if (NFN = 0) and (P <> nil) then NFN := 1;
-   if P <> nil then B[0].C := Char(P^[0]);
-   if P <> nil then
-   for J := 0 to NFN - 1 do
-    begin
-     PFR := FN[J];
-     if (Delta.Y = Idx) and (Pos.X + J = Delta.X) then C := C3 else C := C2;
-     if PFR <> nil then
-     if PFR^.Who = 'M' then
+   if DBFile^.NumRec > 0 then begin
+    J := Delta.X; I := 1; Idx := Pos.Y+LongInt(K)-1;
+    P := GetRecord(Idx);
+    if (NFN = 0) and (P <> nil) then NFN := 1;
+    if P <> nil then B[0].C := Char(P^[0]);
+    if P <> nil then
+    for J := 0 to NFN - 1 do
      begin
-      Move(P^[PFR^.Pos], S[1], PFR^.Len);
-      S[0] := Char(PFR^.Len);
-      if StoI(S) > 0 then S := '  Memo  ' else S := '  memo  ';
-      MoveStr(B[I], S, C);
-      Inc(I, PFR^.Ln + 1);
-     end else
-     if PFR^.Who = 'D' then
-     begin
-       Move(P^[PFR^.Pos], S[1], PFR^.Len); S[0] := Char(PFR^.Len);
-       MoveStr(B[I], DateToHuman(S), C);
+      PFR := FN[J];
+      if (Delta.Y = Idx) and (Pos.X + J = Delta.X) then C := C3 else C := C2;
+      if PFR <> nil then
+      if PFR^.Who = 'M' then
+      begin
+       Move(P^[PFR^.Pos], S[1], PFR^.Len);
+       S[0] := Char(PFR^.Len);
+       if StoI(S) > 0 then S := '  Memo  ' else S := '  memo  ';
+       MoveStr(B[I], S, C);
        Inc(I, PFR^.Ln + 1);
-     end else
-     asm
-      les di, PFR
-      mov cx, es:[di].FieldRec.Len
-      mov dx, es:[di].FieldRec.Ln
-      mov bx, es:[di].FieldRec.Pos
-      lea si, B
-      add si, I
-      add si, I
-      les di, P
-      mov ah, byte ptr C
-@@1:  mov al, es:[bx][di]
-      mov ss:[si], ax
-      inc si
-      inc si
-      inc di
-      loop @@1
-      inc dx
-      add I, dx
+      end else
+      if PFR^.Who = 'D' then
+      begin
+        Move(P^[PFR^.Pos], S[1], PFR^.Len); S[0] := Char(PFR^.Len);
+        MoveStr(B[I], DateToHuman(S), C);
+        Inc(I, PFR^.Ln + 1);
+      end else
+      asm
+       les di, PFR
+       mov cx, es:[di].FieldRec.Len
+       mov dx, es:[di].FieldRec.Ln
+       mov bx, es:[di].FieldRec.Pos
+       lea si, B
+       add si, I
+       add si, I
+       les di, P
+       mov ah, byte ptr C
+ @@1:  mov al, es:[bx][di]
+       mov ss:[si], ax
+       inc si
+       inc si
+       inc di
+       loop @@1
+       inc dx
+       add I, dx
+      end;
      end;
     end;
-
    WriteLine(0,K,Size.X,1,B);
   end;
 end;
@@ -851,10 +869,15 @@ begin
  DeskTop^.GetExtent(R);
  FName := lFExpand(FName);
  TWindow.Init(R, FName, 0);
+ Flags := Flags or wfMaxi;
  GetExtent(R); R.Grow(-1, -1);
  P := New(PDBViewer, Init(R, FName));
  if P = nil then Fail;
  Insert(P);
+ if not P^.isValid then begin
+  Done;
+  Fail;
+ end;
  R.A.X := 10; R.B.X := 20; R.A.Y := Size.Y - 1; R.B.Y := Size.Y;
  P1 := New(PDBIndicator, Init(R));
  P1^.DBViewer := P;
@@ -929,4 +952,3 @@ begin
  MyApp.Done;
 {$endif}
 end.
-

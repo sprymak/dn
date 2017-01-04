@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -79,7 +79,7 @@ type
     VFileName: String; {DataCompBoy}
     Buf: PByteArray;
     Fl: PStream;
-    XDelta, ViewMode, HexPos: Integer;
+    XDelta, ViewMode, HexPos: AInt;
     SearchActive: Boolean;
     SearchX: LongInt;
     SB: PView;
@@ -88,9 +88,9 @@ type
     FilePos, FileSize, NumLines: LongInt;
     Cur: TPoint;
     Info: PView;
-    BufPos: Word;
+    BufPos: AWord;
     BufSize, MaxLines: LongInt;
-    BufLines: Integer;
+    BufLines: AInt;
     KillAfterUse, IsValid, QuickView, Loaded, HexEdit, BufModified: Boolean;
     Filter: Byte;
     XLAT: TXLAT;
@@ -100,8 +100,8 @@ type
     MarkPos: TPosArray;
     CtrlK: Boolean;
     CtrlQ: Boolean;
+    HiLite : Boolean;           {PZ 2000.06.09}
     HiLitePar: THighliteParams;
-    EdOpt: TEditOptions;
     constructor Init(var Bounds: TRect; AStream: PStream;
                      const AFileName, AVFileName: String;
                      ASB: PView; Quick, Hex: Boolean); {DataCompBoy}
@@ -151,13 +151,11 @@ type
   end;
 
   PFileWindow = ^TFileWindow;
-  TFileWindow = object(TStdWindow)
+  TFileWindow = object({TStd}TWindow)
     constructor Init(const FileName, VFileName: String; Hex: Boolean); {DataCompBoy}
     function    GetPalette: PPalette; virtual;
     function    ReactOnCmd: Boolean; virtual;
-    procedure   Zoom; virtual;
     procedure   ChangeBounds(var Bounds: TRect); virtual;
-    procedure   SizeLimits(var Min, Max: TPoint); virtual;
   end;
 
 const
@@ -187,7 +185,8 @@ function SearchFileStr(F: PStream; var Xlat: TXLAT;
 implementation
 
 uses LFN, {DataCompBoy}
-     Memory, Messages, DNApp, Startup, Dialogs, RStrings, Decoder,
+     Memory, Messages, DNApp, Startup, Dialogs, RStrings,
+     {$IFDEF DisAsm} Decoder, {$ENDIF} {piwamoto}
      Gauge, DNStdDlg, Histries, xTime, Drives, DnUtil;
 
 function MaxAvail: LongInt;
@@ -218,7 +217,7 @@ begin
  BufLen := $7000;
  if LongInt(BufLen) > L then  BufLen := L;
  if BufLen > MaxAvail then BufLen := MaxAvail;
- if BufLen < Length(What)*2 then begin F^.Seek(OldPos); goto LExit; end;
+ if BufLen < Length(What) then begin F^.Seek(OldPos); goto LExit; end;
  StPos := 0;
  if Display then
   begin
@@ -666,8 +665,8 @@ begin
 end;
 
 procedure TViewScroll.Draw;
- var B: Array[0..128] of record C: Char; B: Byte; end;
-     B1: TDrawBuffer Absolute B;
+ var B1: TDrawBuffer;
+     B: Array[0..128] of record C: Char; B: Byte; end Absolute B1;
      C1, C2: Byte;
 begin
  C1 := GetColor(1); C2 := GetColor(2);
@@ -740,7 +739,7 @@ end;
 
 destructor TFileViewer.Done;
 begin
-  EnableCommands([cmGotoCell,cmUnwrap]);
+  EnableCommands([cmUnwrap]);
   if Buf <> nil then FreeMem(Buf, BufSize); Buf:=nil;
   if Fl <> nil then Dispose(Fl,Done); Fl:=nil;
   If not (TottalExit or Exiting) and KillAfterUse Then Begin
@@ -803,8 +802,8 @@ end;
 
 procedure XDumpStr(var S: String; var B; Addr: LongInt; Count: Integer; Filter: Byte);
 begin
-{$IFNDEF FPC}
   S := Hex8(Addr)+' ';
+  {$IFNDEF BIT_32}
   asm
     les  si, B
     mov  cx, Count
@@ -836,13 +835,51 @@ begin
 @@3:
     pop  ds
   end;
-{$ENDIF}
+  {$ELSE BIT_32}
+  asm
+    push ESI
+    push EDI
+    push EBX
+    push ECX
+    lea  ESI, B
+    mov  ECX, Count
+    lea  EDI, S
+    mov  EBX, 10
+    mov  AH, Filter
+    jcxz @@3
+@@1:
+    mov  AL, [ESI]
+    or   AH, AH
+    jz   @@2
+    cmp  AL, 32
+    jnc  @@4
+@@5:
+    mov  AL, 250
+    jmp  @@2
+@@4:
+    cmp  AH, 1
+    jnz  @@2
+    cmp  AL, 128
+    jnc  @@5
+@@2:
+    mov  [EDI+EBX], AL
+    inc  byte ptr [EDI]
+    inc  ESI
+    inc  EBX
+    loop @@1
+@@3:
+    pop  ECX
+    pop  EBX
+    pop  EDI
+    pop  ESI
+  end;
+  {$ENDIF}
 end;
 
 
 procedure TFileViewer.Draw;
 var
-  B: Array[0..256*9] of Word;
+  B: TDrawBuffer;
   C: Byte;
   I, J, K, M, Src: Integer;
   L: LongInt;
@@ -851,16 +888,17 @@ var
   C1: Byte;
   HP : string[6];
   CC: Array[1..8] of Byte;
+{$IFDEF DisAsm}
   D: XCHGData; {GRM!}
+{$ENDIF}
 
   procedure MoveStr(var B, S; C, Flt: Byte; TSS: word);
-{$IFDEF FPC} begin end;
-{$ELSE}
   Var
    TSt: Integer;
   begin
    TSt := StoI(EditorDefaults.TabSize);
    if TSt = 0 then TSt := 8;
+   {$IFNDEF BIT_32}
    asm
     push ds
     lds  si,B
@@ -868,7 +906,7 @@ var
     mov  cl, es:[di]
     xor ch,ch
     jcxz @@Exit
-    mov bx, 0
+    xor bx, bx
     mov ah, C
   @@1:
     mov al, es:[di+1]
@@ -921,8 +959,77 @@ var
   @@Exit:
     pop  ds
    end;
+   {$ELSE BIT_32}
+   asm
+    push ESI
+    push EDI
+    push EBX
+    push EDX
+    push ECX
+    lea  ESI, B
+    lea  EDI, S
+    xor  ECX, ECX
+    mov  CL, [EDI]
+    jcxz @@Exit
+    xor  EBX, EBX
+    mov  AH, C
+  @@1:
+    mov  AL, [EDI+1]
+    cmp  al, 9
+    jne  @@3
+    {-$VOL begin}
+    cmp  TSS, 0
+    je   @@3
+    {-$VOL end}
+    push ECX
+    push EAX
+    mov  ECX, TSt
+    mov  EAX, EBX
+    add  EAX, ECX
+    xor  EDX, EDX
+    idiv ECX
+    xor  EDX, EDX
+    imul ECX
+    mov  ECX, EAX
+    sub  ECX, EBX
+    pop  EAX
+    mov  AL, ' '
+  @@2:
+    mov  [ESI], AX
+    add  ESI,2
+    inc  BX
+    loop @@2
+    pop  CX
+    jmp  @@4
+  @@3:
+    cmp  Flt, 0
+    jz   @@@2
+    cmp  AL, 32
+    jnc  @@@4
+  @@@5:
+    mov  AL, 250
+    jmp  @@@2
+  @@@4:
+    cmp  Flt, 1
+    jnz  @@@2
+    cmp  AL, 128
+    jnc  @@@5
+  @@@2:
+    mov  [ESI], AX
+    add  ESI,2
+    inc  BX
+  @@4:
+    inc  DI
+    loop @@1
+  @@Exit:
+    pop  ECX
+    pop  EDX
+    pop  EBX
+    pop  EDI
+    pop  ESI
+   end;
+   {$ENDIF}
  end;
-{$ENDIF}
 
 var
   W, W2: Integer;
@@ -954,7 +1061,6 @@ begin
   end;
   Case ViewMode of
    vmHex: begin
-           EnableCommands([cmGotoCell]);
            DisableCommands([cmUnwrap]);
            HexPos:=(Size.X - 12) div 4; if HexPos <= 0 then HexPos:=1;
            XDelta:=0;
@@ -1026,7 +1132,6 @@ begin
            end;
           end;
   vmDump: begin
-           EnableCommands([cmGotoCell]);
            DisableCommands([cmUnwrap]);
            HideCursor;
            HexPos:=((Size.X - 9) div 16)*16; if HexPos < 16 then HexPos:=16;
@@ -1056,10 +1161,12 @@ begin
             end;
             WriteLine(0, I, Size.X, 1, B[XDelta]);
            end;
+{$IFNDEF DisAsm}
+          end
+{$ELSE}
           end;
    {GRM!}
  vmAsm: begin
-         EnableCommands([cmGotoCell]);
          DisableCommands([cmUnwrap]);
          XDelta := 0;
          L := FilePos + LongInt(BufPos);
@@ -1086,8 +1193,8 @@ begin
          end;
         end
   {GRM!}
+{$ENDIF}{DisAsm}
   else begin
-        DisableCommands([cmGotoCell]);
         EnableCommands([cmUnwrap]);
         for I:=0 to Size.Y - 1 do begin
          HideCursor;
@@ -1128,7 +1235,7 @@ begin
           if (S<>'') and (S[Length(S)]=#13) then Dec(S[0]);
           XLatBuf(S[1], Length(S), XLat);
           MoveStr(B, S, C, Filter, TS);
-          if EdOpt.Hilite then begin
+          if Hilite then begin
            Highlites ( Length(S), @S[1], HiLitePar );
            C1                  := C and $F0;                 { Background }
            HP[0]               := #6;                        { Attr. size }
@@ -1186,8 +1293,11 @@ begin
    end;
   if (not ExistFile(FName) or isDir(FName)) and
      (FName <> '') and (FName <> ' ') then begin ReadFile:=false; Exit; end;
-  Macros:=nil; Macro.InitHighLight(VFName, HiLitePar, EdOpt, Macros, nil);
-  EdOpt.HiLite:=EditorDefaults.ViOpt and 8<>0;
+  Macros := nil;
+  {PZ 2000.06.09 }
+  if (EditorDefaults.ViOpt and 8) <> 0 then
+    HiLite := Macro.InitHighLight ( VFName, HiLitePar, Macros, nil );
+  {PZ end}
   if Fl^.Status <> stOK then begin IsValid := False; ReadFile:=false; Exit end;
   FileSize := FL^.GetSize; FilePos := 0; I := 1; NumLines := 1;
   if FileSize < 0 then FileSize := 0;
@@ -1272,7 +1382,9 @@ procedure TFileViewer.MakeLines;
  var I, J, K, D: LongInt;
      MaxX: longInt;
      TSt: Integer;
+{$IFDEF DisAsm}
      X: XchgData; {GRM!}
+{$ENDIF}
 begin
  if Buf = nil then Exit;
  if Wrap>wmNone then MaxX := Size.X else MaxX := 255;
@@ -1286,6 +1398,9 @@ begin
       I := BufPos;
       for K := 0 to MaxLines do
        begin Lines[K].Pos := I; Lines[K].Len := HexPos; Inc(I, HexPos); end;
+{$IFNDEF DisAsm}
+     end
+{$ELSE}
      end;
   {GRM!}
   vmAsm: begin
@@ -1301,6 +1416,7 @@ begin
         end;
      end
   {GRM!}
+{$ENDIF}
   else for K := 0 to MaxLines do begin {-DataCompBoy-}
         if J>=BufSize then begin
          Lines[K].Pos := -1;
@@ -1310,15 +1426,15 @@ begin
         {Search for e.nd of line}
         I:=0;
         D:=0;
-        while (I<MaxX-D) and (J+I<BufSize) do begin
-         if Buf^[J+I]=9 then inc(D, TSt)
-          else
-           if (Buf^[J+I] in [$0D, $0A]) then begin
-            if (J+I<BufSize-1) and (Buf^[J+I+1] in [$0D,$0A]) and
-               (Buf^[J+I+1] <> Buf^[J+I]) then Inc(J);
-            Inc(J);
-            break;
-           end;
+        while (I<=MaxX-D) and (J+I<BufSize) do begin
+         if (Buf^[J+I] in [$0D, $0A]) then begin
+          if (J+I<BufSize-1) and (Buf^[J+I+1] in [$0D,$0A]) and
+             (Buf^[J+I+1] <> Buf^[J+I]) then Inc(J);
+          Inc(J);
+          break;
+         end else
+         if (I>=MaxX-D) then break else
+         if Buf^[J+I]=9 then inc(D, TSt);
          inc(I);
         end;
          {Search for e.nd of word-wrapped line}
@@ -1326,8 +1442,11 @@ begin
          D := I;
          While (I > 1) and not (Char(Buf^[Lines[K].Pos+I-1]) in BreakChars)
           do dec(I);
-         If I <= 1 then I := D;
+         If I <= 1
+          then I := D
+          else J := Lines[K].Pos;
         end;
+
         Lines[K].Len:=I;
         Inc(J, I);
        end; {-DataCompBoy-}
@@ -1435,11 +1554,13 @@ procedure TFileViewer.HandleEvent;
            Cur.Y := 0;
            while Lines[Cur.Y+1].Pos >= 0 do Inc(Cur.Y);
           end;
+{$IFDEF DisAsm}
    vmAsm: begin{GRM!}
            Cur.Y := 0;
            Cur.X := 10;
            while Lines[Cur.Y+1].Pos >= 0 do Inc(Cur.Y);
           end; {GRM!}
+{$ENDIF}
   end;
   DrawView;
   if Cur.X and 1 <> 0 then
@@ -1481,7 +1602,9 @@ procedure TFileViewer.HandleEvent;
       end else
       begin
         BufPos := SearchX - FilePos;
+{$IFDEF DisAsm}
         if ViewMode<>vmAsm then {GRM!}
+{$ENDIF}
          while (BufPos <> 0) and
           (JJ <> (FilePos + BufPos) mod HexPos) do Dec(BufPos);
       end;
@@ -1518,23 +1641,26 @@ procedure TFileViewer.HandleEvent;
  procedure LoadXlatTable;  {JO}
    var FN: String;
        More: Boolean;
+       None: Boolean;
  begin
    CE;
+   FN := CnvString(XlatFile); if FN <> '' then FN := FN + '.xlt';
    DisposeStr(XlatFile); XlatFile:=nil;
-   if UseXlat then
-          begin
-             KeyMap:=kmAscii;
-             SetXlatFile('', On);
-             UseXlat := Off;
-             {DrawView;}
-             Exit
-          end;
    More := True;
-   FN := GetFileNameMenu(SourceDir+'XLT\','*.XLT', On, More);
-   if More then
-     FN := GetFileNameDialog(SourceDir+'XLT\*.XLT', GetString(dlSelectXLT),
-                                      GetString(dlOpenFileName),
-                              fdOKButton + fdHelpButton, hsOpenXLT);
+   None := UseXlat;
+   FN := GetFileNameMenu(SourceDir+'XLT\','*.XLT', FN, On, More, None);
+   if None then begin
+    KeyMap:=kmAscii;
+    SetXlatFile('', On);
+    UseXlat := Off;
+    {DrawView;}
+    Exit;
+   end;
+   if More then FN := GetFileNameDialog(SourceDir+'XLT\*.XLT',
+                                        GetString(dlSelectXLT),
+                                        GetString(dlOpenFileName),
+                                        fdOKButton + fdHelpButton,
+                                        hsOpenXLT);
    if FN <> '' then SetXlatFile(FN, On);
  end; {JO}
 
@@ -1597,14 +1723,12 @@ DoSave:
                                 end;
                end;
   evCommand: case Event.Command of
-              cmFileEdit:
+              cmFileEdit: if DelSpaces(FileName)<>'' then
                 begin
-                  if Filtr then begin
-                   case MessageBox(GetString(dlViewFilter), nil,
-                         mfConfirmation+mfYesButton+mfNoButton) of
-                    cmNo: begin CE; exit end;
-                   end;
-                  end;
+                  if Filtr and
+                     (MessageBox(GetString(dlViewFilter), nil,
+                         mfConfirmation+mfYesButton+mfNoButton) <> cmYes)
+                   then begin CE; exit end;
                   WriteModify;
                   if Desktop<>nil then Desktop^.Lock;
                   if Application<>nil then begin
@@ -1649,19 +1773,28 @@ DoSave:
                   CE;
                 end;
               cmGotoCell: begin
-                            CE;
-                            if ViewMode = vmText then Exit; FreeStr := '';
+                           CE;
+                           FreeStr := '';
+                           if ViewMode = vmText then begin
+                            if ExecResource(dlgGotoLine, FreeStr) <> cmOk then Exit;
+                            Val(FreeStr, LLR, I);
+                            if I <> 0 then exit;
+                            LLR := GetOffsetForLineNumber(FileName, LLR);
+                            if LLR < 0 then exit;
+                            Seek(LLR);
+                            MakeLines;
+                            DrawView;
+                           end else begin
                             if ExecResource(dlgGotoAddress, FreeStr) <> cmOK then Exit;
                             Val('$'+FreeStr, LLR, I);
-                            if I = 0 then
-                              begin
-                                LFR := LLR;
-                                Cur.Assign(0,0);
-                                while ((LFR mod HexPos) <> ((BufPos+FilePos) mod HexPos)) and (LFR > 0) do
-                                  begin Dec(LFR); Inc(Cur.X,2); end;
-                                Seek(LFR); MakeLines;
-                                DrawView;
-                              end;
+                            if I <> 0 then exit;
+                            LFR := LLR;
+                            Cur.Assign(0,0);
+                            while ((LFR mod HexPos) <> ((BufPos+FilePos) mod HexPos)) and (LFR > 0) do
+                             begin Dec(LFR); Inc(Cur.X,2); end;
+                            Seek(LFR); MakeLines;
+                            DrawView;
+                           end;
                           end;
               cmLoadXlatTable: LoadXlatTable;
               cmAddFilter: begin Filter := (Filter+1) mod 3; DrawView; CE end;
@@ -1689,7 +1822,9 @@ DoSave:
                            case ViewMode of
                              vmText: begin ViewMode := vmHex; HexEdit := On; end;
                              vmHex : begin ViewMode := vmDump; end;
+{$IFDEF DisAsm}
                              vmDump: begin ViewMode := vmAsm; HexEdit := On; MakeLines; Cur.X:=10; end; {GRM!}
+{$ENDIF}
                               else begin ViewMode := vmText; MakeLines end;
                            end;
                            if ViewMode <> vmDump then
@@ -1802,6 +1937,7 @@ DoSave:
                                  DrawView;
                                  CE;
                                 end;
+{$IFDEF DisAsm}
                         vmAsm:  if Cur.Y = Size.Y-1 then begin
                                  CE;
                                  CountDown(1)
@@ -1812,6 +1948,7 @@ DoSave:
                                   DrawView;
                                   CE;
                                  end;
+{$ENDIF}
                        end;{GRM!}
                kbPgDn: begin CE; CountDown(Size.Y-1) end;
                kbSpace: if ViewMode in [vmText, vmDump]
@@ -1828,6 +1965,7 @@ DoSave:
                                  DrawView;
                                  CE;
                                 end;
+{$IFDEF DisAsm}
                         vmAsm:  if Cur.Y = 0 then begin
                                  CE;
                                  CountUp(1)
@@ -1837,6 +1975,7 @@ DoSave:
                                  DrawView;
                                  CE;
                                 end;
+{$ENDIF}
                         end; {GRM!}
                kbPgUp: begin
                           CE;
@@ -1846,6 +1985,7 @@ DoSave:
                        end;
                kbLeft: if ViewMode = vmText then begin CE; if XDelta>0 then Dec(XDelta); DrawView end
                         else
+{$IFDEF DisAsm}
                           {GRM!}
                           if ViewMode=vmAsm then
                             begin
@@ -1859,6 +1999,7 @@ DoSave:
                             end
                           else
                           {GRM!}
+{$ENDIF}
                              begin
                               if Cur.X > 0 then Dec(Cur.X)
                                  else begin Cur.X := HexPos*(Byte(HexEdit)+1) - 1; Dec(Cur.Y) end;
@@ -1868,6 +2009,7 @@ DoSave:
                              end;
                kbRight: if ViewMode = vmText then begin CE; if XDelta<255*8-Size.X then Inc(XDelta); DrawView end
                         else
+{$IFDEF DisAsm}
                           {GRM!}
                           if ViewMode=vmAsm then
                             begin
@@ -1878,6 +2020,7 @@ DoSave:
                             end
                           else
                           {GRM!}
+{$ENDIF}
                              begin
                               if Cur.X < HexPos*(Byte(HexEdit)+1)-1 then Inc(Cur.X)
                                          else begin Cur.X := 0; Inc(Cur.Y) end;
@@ -1939,8 +2082,11 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                 if (Event.CharCode>=#32) and not NoEdit then begin
                  {GRM!}
                  if ((ViewMode = vmHex) and (Buf <> nil) and
-                     (Cur.X div (Byte(HexEdit)+1)+Cur.Y*HexPos+BufPos < BufSize)) or
-                     (ViewMode = vmAsm) then begin
+                     (Cur.X div (Byte(HexEdit)+1)+Cur.Y*HexPos+BufPos < BufSize))
+{$IFDEF DisAsm}
+                     or (ViewMode = vmAsm)
+{$ENDIF}
+                     then begin
                  {GRM!}
                   if Filtr then begin
                    case MessageBox(GetString(dlViewFilter), nil,
@@ -1952,7 +2098,7 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                             PWindow(Owner)^.Title:=NewStr(GetString(dlViewFile));
                             PWindow(Owner)^.ReDraw;
                            end;
-                    cmNo:  begin CE; exit end;
+                    else   begin CE; exit end;
                    end;
                   end;
                   if HexEdit then begin
@@ -1984,20 +2130,24 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                end;
              end;
   evMouseDown: begin
-                LR := RepeatDelay; RepeatDelay := 0;
+                LR := RepeatDelay;
+                LLR := AutoRepeat;
                 repeat
                  MakeLocal(Event.Where, P);
                  I := Abs((Size.Y shr 1)-P.Y);
-                 if I = 0 then RepeatDelay := 0 else begin
-                  RepeatDelay := Round(18 - (I / (Size.Y shr 1)) * 18);
-                  if MouseInView(Event.Where) then
+                 if I = 0 then RepeatDelay := 0 else
+                  if MouseInView(Event.Where) then begin
+                   RepeatDelay := 6 - Round((I / (Size.Y shr 1)) * 6);
+                   AutoRepeat := RepeatDelay;
                    if P.X < Size.X div 4 then Message(@Self, evKeyDown, kbLeft, nil) else
                     if P.X >= (Size.X*3) div 4 then Message(@Self, evKeyDown, kbRight, nil) else
                      if P.Y < Size.Y div 2 then Message(@Self, evKeyDown, kbUp, nil) else
                       Message(@Self, evKeyDown, kbDown, nil)
-                 end;
+                  end else RepeatDelay := 0;
                 until not MouseEvent(Event, evMouseMove+evMouseAuto);
-                RepeatDelay := LR; CE
+                RepeatDelay := LR;
+                AutoRepeat := LLR;
+                CE
                end;
  end;
 end;
@@ -2021,7 +2171,7 @@ begin
     S.Init(Dr+Nm+Xt, stOpenRead);
     if (S.Status = stOK) and (S.GetSize >= 2) then
     begin
-      J:=Min(256, S.GetSize div 2);
+      J:=Min(256, S.GetSize shr 1);
       S.Read(Table, J * 2);
       NullXLAT(XLAT);
       for I:=1 to J do XLat[Table[I].A]:=Table[I].B;
@@ -2064,14 +2214,18 @@ begin
 end;
 
 procedure TFileViewer.CountDown;
+{$IFDEF DisAsm}
 var D: XchgData; {GRM!}
+{$ENDIF}
 begin
  if Buf = nil then Exit;
  {GRM!}
  if ((Lines[Size.Y-1].Pos < 0) and (ViewMode = vmText)) or
     ((FilePos + LongInt(BufPos) + LongInt(HexPos)*LongInt(Size.Y) > FileSize) and
-     (ViewMode in [vmHex,vmDump])) or
-    ((Lines[Size.Y].Pos < 0) and (ViewMode = vmAsm))
+     (ViewMode in [vmHex,vmDump]))
+{$IFDEF DisAsm}
+    or ((Lines[Size.Y].Pos < 0) and (ViewMode = vmAsm))
+{$ENDIF}
     then Exit;
  {GRM!}
  if (Lines[Size.Y-1].Pos < 0) and (ViewMode = vmText) or
@@ -2089,6 +2243,7 @@ begin
            MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
            Exit;
           end;
+{$IFDEF DisAsm}
   vmAsm: begin {GRM!}
           D.MemBuff:=Buf;
           while (ANumber > 0) do begin
@@ -2108,6 +2263,7 @@ begin
           Message(SB, evCommand, cmChangeValue, Pointer(FilePos+BufPos));
           Exit;
          end; {GRM!}
+{$ENDIF DisAsm}
  end;
  repeat
   BufPos := Lines[ANumber].Pos;
@@ -2120,7 +2276,9 @@ begin
   end else MakeLines;
  if (Lines[Size.Y-1].Pos = - 1) and (FilePos+BufSize < FileSize) then
     Seek(FilePos+Lines[0].Pos);
+{$IFDEF DisAsm}
  if ViewMode=vmAsm then Cur.X:=10; {GRM!}
+{$ENDIF}
  DrawView;
  MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
 end;
@@ -2130,52 +2288,61 @@ procedure TFileViewer.CountUp;
      FP: LongInt;
      OBP: Word;
      a : Word;
+{$IFDEF DisAsm}
      D: XchgData; {GRM!}
+{$ENDIF}
 
  label 1;
 
  procedure ScrollUp;
-  var I: Word;
+  var I, D, K, E: Longint;
       P: Pointer;
       MaxX: Integer;
+      TSt: Integer;
  begin
+  TSt := StoI(EditorDefaults.TabSize);
+  if TSt = 0 then TSt := 8;
   if J <= 0 then Exit;
-  I := J; P := Buf;
-  if Wrap>wmNone then MaxX := Size.X - 1 else MaxX := 254;
-{$IFNDEF FPC}
-  asm
-   les di, P
-   add di, word ptr I
-   mov cx, MaxX
-   mov bl, 10
-   dec di
-   dec word ptr I
-   js  @Exit
-   mov al, es:[di]
-   dec di
-   dec word ptr I
-   js  @Exit
-   cmp al, bl
-   je  @@@
-   cmp al, 13
-   jne @@2
-@@@:
-   cmp es:[di], bl
-   je  @Exit
-   jmp @@2
-@@1:
-   mov al, es:[di]
-   cmp al, bl
-   jz  @Exit
-@@2:
-   dec di
-   dec word ptr I
-   js  @Exit
-   loop @@1
-@Exit:
+  I := J - 1;
+  if Buf^[I] in [$0D, $0A] then begin
+   Dec(I);
+   if (Buf^[I] in [$0D, $0A]) and (Buf^[I]<>Buf^[I+1]) then Dec(I);
+   if I <= 0 then begin J := 0; exit end;
   end;
-{$ENDIF}
-  J := I + 1;
+  E := I;
+  while I >= 0 do if Buf^[I] in [$0D, $0A] then break else dec(I);
+  begin
+    J := I + 1;
+    if Wrap>wmNone then MaxX := Size.X else MaxX := 255;
+    while true do begin
+        K := J;
+        {Search for e.nd of line}
+        I:=0;
+        D:=0;
+        while (I<MaxX-D) and (J+I<BufSize) do begin
+         if Buf^[J+I]=9 then inc(D, TSt)
+          else
+           if (Buf^[J+I] in [$0D, $0A]) then begin
+            if (J+I<BufSize-1) and (Buf^[J+I+1] in [$0D,$0A]) and
+               (Buf^[J+I+1] <> Buf^[J+I]) then Inc(J);
+            Inc(J);
+            break;
+           end;
+         inc(I);
+        end;
+         {Search for e.nd of word-wrapped line}
+        if (Wrap=wmWords) and (I>=MaxX-D) then begin
+         D := I;
+         While (I > 1) and not (Char(Buf^[K+I-1]) in BreakChars)
+          do dec(I);
+         If I <= 1 then I := D
+          else J := K;
+        end;
+        Inc(J, I);
+        If J > E then break;
+    end;
+    J := K;
+   end;
  end;
 
 begin
@@ -2183,18 +2350,22 @@ begin
  if BufPos > 65000 then begin BufPos := 0; MakeLines; end;
 1:
  J := BufPos; if (J < 0) and (FilePos <= 0) then Exit;
+{$IFDEF DisAsm}
  D.MemBuff:=Buf; {GRM!}
  D.Offset:=BufPos; {GRM!}
+{$ENDIF}
  for I := 1 to ANumber do begin
   {GRM!}
   case ViewMode of
    vmText: ScrollUp;
    vmHex,
    vmDump: Dec(J, HexPos);
+{$IFDEF DisAsm}
    vmAsm: begin
            ScanUp(D);
            Dec(J, D.InstrLen);
           end;
+{$ENDIF}
   end;
   {GRM!}
   if J <= 0 then if FilePos = 0 then
@@ -2222,15 +2393,14 @@ begin
   Lines[0].Pos := J;
   a := 0;
   while (j+a<Lines[1].Pos) and not (Buf^[J+A] in [10]) do Inc(a);
-  if a > $FF then
-  asm
-   nop
-  end;
+  {if a > $FF then asm nop end;}
   Lines[0].Len := a;
   if MaxLines < 200 then Inc(MaxLines);
  end;
  if Wrap>wmNone then MakeLines;
- if ViewMode=3 then Cur.X:=10; {GRM!}
+{$IFDEF DisAsm}
+ if ViewMode=vmAsm then Cur.X:=10; {GRM!}
+{$ENDIF}
  DrawView;
  MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
 end;
@@ -2254,7 +2424,8 @@ begin
     then begin Desktop^.GetExtent(LastViewerBounds); LastViewerDeskSize := Desktop^.Size; end;
   R := LastViewerBounds; AdjustToDesktopSize(R, LastViewerDeskSize);
   TWindow.Init(R, VFileName, 0);
-  Options := Options or ofTileable;
+  Flags := Flags or wfMaxi;
+  Options := Options or ofTileAble;
   GetExtent(R);
   R.Grow(-1, -1);
   R.A.X := R.B.X; Inc(R.B.X);
@@ -2279,37 +2450,6 @@ begin
        GetBounds(LastViewerBounds);
        LastViewerDeskSize := Desktop^.Size;
     end;
-end;
-
-procedure TFileWindow.SizeLimits(var Min, Max: TPoint);
-begin
-  Min.Assign(0,0);
-  if Owner <> nil then
-        begin
-           Max.X := Owner^.Size.X+2;
-           Max.Y := Owner^.Size.Y;
-        end else begin
-                  Max.X:=High(Max.X);
-                  Max.Y:=High(Max.Y);
-                 end;
-  Min.X := MinWinSize.X;
-  Min.Y := MinWinSize.Y;
-end;
-
-procedure TFileWindow.Zoom;
-var
-  R: TRect;
-  Max, Min: TPoint;
-begin
-  SizeLimits(Min, Max);
-  Dec(Max.X,2);
-  R.A.Assign(0,0);
-  R.B := Max;
-  if Size.Equals(Max) then begin
-      Dec(R.A.X);
-      Inc(R.B.X)
-  end;
-  Locate(R)
 end;
 
 function TFileWindow.ReactOnCmd;

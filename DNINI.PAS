@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -52,7 +52,7 @@
 
 unit dnini;
 interface
-uses {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF};
+uses {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
 
 
 type TBlockMarker=record end;
@@ -61,6 +61,7 @@ const
 
   INIstoredsize:longint = 0;
   INIstoredtime:longint = 0;
+  INIstoredcrc :longint = 0;{DataCompBoy}
 
   { DO NOT CHANGE THIS LINE } iniparamblock_START:TBlockMarker=();
   { ------------------------------ PLACE ALL INI VARIABLES BELOW }
@@ -82,6 +83,7 @@ const
 {}ReuseEditors             : Longint = 0;                 { 1 - prompt for open}
 {}                                                        { 2 - do not open new}
 {}HistoryErrorBeep         : Boolean = True;                       {DataCompBoy}
+{}PreserveMenuPositions    : Boolean = False;                      {DataCompBoy}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type  ; Default value      ;          Comments ;}
 {`.________________________;_________;____________________;___________________'}
@@ -117,8 +119,9 @@ const
 {}ShowKeyCode              : Longint = 0;
 {}CopyLimit                : LongInt = 8192;             {DataCompBoy}{piwamoto}
 {}HandleChDirCommand       : Boolean = True;                       {DataCompBoy}
-{}StoreVideoMode2          : Boolean = False;                      {DataCompBoy}
+{}StoreVideoMode           : Longint = 0;                      {PZ}{DataCompBoy}
 {}SmartWindowsBoxClose     : Boolean = False;                      {DataCompBoy}
+{}DoVESATest               : Boolean = False;                      {DataCompBoy}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type  ; Default value      ;          Comments ;}
 {`.________________________;_________;____________________;___________________'}
@@ -165,10 +168,10 @@ procedure LoadDnIniSettings;
 procedure SaveDnIniSettings;
 procedure DoneIniEngine;
 
-function ProbeINI(var INItime,INIsize:longint):boolean;
+function ProbeINI(var INItime,INIsize,INIcrc:longint):boolean;
 
 implementation
-uses dos, LFN, profile, advance, advance1;
+uses dos, LFN, profile, advance, advance1, advance3, objects;
 
 type
   TIniItemKind = (ikBoolean, ikString, ikLongint, ikChar);
@@ -202,6 +205,7 @@ begin
   RegisterVar(CSInterface, 'ReuseViewers',         ikLongInt, @ReuseViewers);
   RegisterVar(CSInterface, 'ReuseEditors',         ikLongInt, @ReuseEditors);
   RegisterVar(CSInterface, 'HistoryErrorBeep',     ikBoolean, @HistoryErrorBeep);
+  RegisterVar(CSInterface, 'PreserveMenuPositions',ikBoolean, @PreserveMenuPositions);
   {Clocl}
   RegisterVar(CSClock, 'ShowSeconds',     ikBoolean, @ShowSeconds);
   RegisterVar(CSClock, 'ShowCentury',     ikBoolean, @ShowCentury);
@@ -222,8 +226,9 @@ begin
   RegisterVar(CSKernel, 'ShowKeyCode',           ikLongInt, @ShowKeyCode);
   RegisterVar(CSKernel, 'CopyLimit',             ikLongInt, @CopyLimit);
   RegisterVar(CSKernel, 'HandleChDirCommand',    ikBoolean, @HandleChDirCommand); {DataCompBoy}
-  RegisterVar(CSKernel, 'StoreVideoMode2',       ikBoolean, @StoreVideoMode2); {DataCompBoy}
+  RegisterVar(CSKernel, 'StoreVideoMode',        ikLongint, @StoreVideoMode); {PZ}{DataCompBoy}
   RegisterVar(CSKernel, 'SmartWindowsBoxClose',  ikBoolean, @SmartWindowsBoxClose); {DataCompBoy}
+  RegisterVar(CSKernel, 'DoVESATest',            ikBoolean, @DoVESATest); {DataCompBoy}
   {Editor}
   RegisterVar(CSEditor, 'UnlimitUnindent',     ikBoolean, @UnlimitUnindent);
   RegisterVar(CSEditor, 'Koi8rKeyMap',         ikBoolean, @Koi8rKeyMap);
@@ -299,17 +304,32 @@ procedure SaveDnIniSettings; begin Proceed(Saver);  end;
 procedure DoneIniEngine;     begin CloseProfile;    end;
 
         {-DataCompBoy-}
-function ProbeINI(var INItime,INIsize:longint):boolean;
+function ProbeINI(var INItime,INIsize,INIcrc:longint):boolean;
 var SR:lSearchRec;
+    {F: TDosStream;}
+    {B: PByteArray;}
+    Pos: Longint;
+    S: Word;
 begin
     INItime:=0;
     INIsize:=0;
+    INIcrc :=0;
     lFindFirst(SourceDir+'DN.INI',AnyFile,SR);
     lFindClose(SR);
     if (DosError=0) and ((SR.SR.Attr and Directory)=0) then begin
         ProbeINI:=True;
         INItime:=SR.SR.Time;
-        INIsize:=SR.SR.Size
+        INIsize:=SR.SR.Size;
+        INIcrc :=0;
+        {F.Init(SourceDir+'DN.INI', stOpenRead);
+        S := Min(INIsize, 32767);
+        if S>0 then begin
+         GetMem(B, S);
+         F.Read(B^, S);
+         INIcrc := GetCrc(B^, S);
+         FreeMem(B, S);
+        end;
+        F.Done;}
     end else ProbeINI:=False
 end;
         {-DataCompBoy-}

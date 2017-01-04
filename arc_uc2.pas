@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -71,34 +71,34 @@ begin
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'UC2.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UC2.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'UC.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UC.EXE'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'E'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'ES'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'A'));
-  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'M'));
+  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'AM'));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'D'));
   Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             ''));
   Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               'T'));
-  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       '-S'));
+  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
   ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-F'));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-TF'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-TF'));
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-TN'));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-TT'));
-  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-TST'));
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-TT'));
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
   if q='0' then Swap := False else Swap := True;
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
   if q='0' then UseLFN := False else UseLFN := True;
-  PutTempBefore := 2;
 end;
 
 function TUC2Archive.GetID;
@@ -121,7 +121,7 @@ begin
   if UserScreen <> nil then InsertUserSaver(Off);
   TempFile := '[UC2:'+MakeNormName(TempDir,'!!!DN!!!.TMP')+']'+ArcFileName;
   LocateCursor(0,0);
-  StartupData.Unload := StartupData.Unload or osuBlinking;
+  StartupData.Unload := StartupData.Unload and not osuBlinking;
   {P^.Free;}
   Message(Application, evCommand, cmExecString, @S);
   FileInfo.Last := 1;

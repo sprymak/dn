@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -79,8 +79,8 @@ type
 
      PFindBox = ^TFindBox;
      TFindBox = object(TListBox)
-        function GetText(Item: Integer; MaxLen: Integer): String; virtual;
-        function IsSelected(Item: Integer): Boolean; virtual;
+        function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+        function IsSelected(Item: LongInt): Boolean; virtual;
      end;
 
 const

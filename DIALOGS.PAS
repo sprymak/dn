@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -172,15 +172,15 @@ type
   PInputLine = ^TInputLine;
   TInputLine = object(TView)
     Data: PString;
-    MaxLen: Integer;
-    CurPos: Integer;
-    FirstPos: Integer;
-    SelStart: Integer;
-    SelEnd: Integer;
+    MaxLen: AInt;
+    CurPos: AInt;
+    FirstPos: AInt;
+    SelStart: AInt;
+    SelEnd: AInt;
     Validator: PValidator;
     DrawShift: Byte;
     CtrlK: Boolean;
-    constructor Init(var Bounds: TRect; AMaxLen: Integer);
+    constructor Init(var Bounds: TRect; AMaxLen: AInt);
     constructor Load(var S: TStream);
     destructor Done; virtual;
     function DataSize: Word; virtual;
@@ -225,7 +225,7 @@ type
   PButton = ^TButton;
   TButton = object(TView)
     Title: PString;
-    Command: Word;
+    Command: AWord;
     Flags: Byte;
     AmDefault: Boolean;
     constructor Init(var Bounds: TRect; const ATitle: TTitleStr; ACommand: Word;
@@ -254,7 +254,7 @@ type
   PCluster = ^TCluster;
   TCluster = object(TView)
     Value: LongInt;
-    Sel: Integer;
+    Sel: AInt;
     EnableMask: LongInt;
     Strings: TStringCollection;
     constructor Init(var Bounds: TRect; AStrings: PSItem);
@@ -326,7 +326,7 @@ type
   PMultiCheckBoxes = ^TMultiCheckBoxes;
   TMultiCheckBoxes = object(TCluster)
     SelRange: Byte;
-    Flags: Word;
+    Flags: AWord;
     States: PString;
     constructor Init(var Bounds: TRect; AStrings: PSItem;
       ASelRange: Byte; AFlags: Word; const AStates: String);
@@ -358,7 +358,7 @@ type
     constructor Load(var S: TStream);
     function DataSize: Word; virtual;
     procedure GetData(var Rec); virtual;
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure NewList(AList: PCollection); virtual;
     procedure SetData(var Rec); virtual;
     procedure Store(var S: TStream);
@@ -388,10 +388,10 @@ type
 
   PParamText = ^TParamText;
   TParamText = object(TStaticText)
-    ParamCount: Integer;
+    ParamCount: AInt;
     ParamList: Pointer;
     constructor Init(var Bounds: TRect; const AText: String;
-      AParamCount: Integer);
+      AParamCount: AInt);
     constructor Load(var S: TStream);
     function DataSize: Word; virtual;
     procedure GetText(var S: String); virtual;
@@ -430,12 +430,12 @@ type
 
   PHistoryViewer = ^THistoryViewer;
   THistoryViewer = object(TListViewer)
-    HistoryId: Word;
-    SearchPos: word;
+    HistoryId: AWord;
+    SearchPos: AWord;
     constructor Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar;
-      AHistoryId: Word);
+      AHistoryId: AWord);
     function GetPalette: PPalette; virtual;
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     function HistoryWidth: Integer;
   end;
@@ -454,10 +454,10 @@ type
   PHistoryWindow = ^THistoryWindow;
   THistoryWindow = object(TWindow)
     Viewer: PListViewer;
-    constructor Init(var Bounds: TRect; HistoryId: Word);
+    constructor Init(var Bounds: TRect; HistoryId: AWord);
     function GetPalette: PPalette; virtual;
     function GetSelection: String; virtual;
-    procedure InitViewer(HistoryId: Word); virtual;
+    procedure InitViewer(HistoryId: AWord); virtual;
   end;
 
 { THistory }
@@ -469,8 +469,8 @@ type
   PHistory = ^THistory;
   THistory = object(TView)
     Link: PInputLine;
-    HistoryId: Word;
-    constructor Init(var Bounds: TRect; ALink: PInputLine; AHistoryId: Word);
+    HistoryId: AWord;
+    constructor Init(var Bounds: TRect; ALink: PInputLine; AHistoryId: AWord);
     constructor Load(var S: TStream);
     procedure Draw; virtual;
     function GetPalette: PPalette; virtual;
@@ -487,7 +487,9 @@ function NewSItem(const Str: String; ANext: PSItem): PSItem;
 implementation
 
 uses AsciiTab, HistList, advance, advance1, advance2, advance3, Commands,
-     Startup, xTime, FlPanelX, dnapp;
+     Startup, xTime, FlPanelX, dnapp
+     {$IFDEF VIRTUALPASCAL}, Crt{$ENDIF}
+     ;
 
 const
 
@@ -603,20 +605,13 @@ inline(
    $93);    {xchg  ax,bx}
        {@@1:            }
 {$ELSE}
-inline; assembler;
-asm
- pop   ax
- pop   bx
- cmp   ax,bx
- jg    @@1
- xchg  ax,bx
-@@1:
-end;
+inline;
+begin if A>B then Max:=A else Max:=B; end;
 {$ENDIF}
 
 { TInputLine }
 
-constructor TInputLine.Init(var Bounds: TRect; AMaxLen: Integer);
+constructor TInputLine.Init(var Bounds: TRect; AMaxLen: AInt);
 begin
   TView.Init(Bounds);
   State := State or sfCursorVis;
@@ -635,7 +630,7 @@ constructor TInputLine.Load(var S: TStream);
 begin
   TView.Load(S);
   DrawShift := 1;
-  S.Read(MaxLen, SizeOf(Integer) * 5);
+  S.Read(MaxLen, SizeOf(AInt) * 5);
   GetMem(Data, MaxLen + 1);
   S.Read(Data^[0], 1);
   S.Read(Data^[1], Length(Data^));
@@ -1173,7 +1168,7 @@ end;
 procedure TInputLine.Store(var S: TStream);
 begin
   TView.Store(S);
-  S.Write(MaxLen, SizeOf(Integer) * 5);
+  S.Write(MaxLen, SizeOf(AInt) * 5);
   S.WriteStr(Data);
   S.Put(Validator);
 end;
@@ -1213,7 +1208,7 @@ constructor TButton.Load(var S: TStream);
 begin
   TView.Load(S);
   Title := S.ReadStr;
-  S.Read(Command, SizeOf(Word) + SizeOf(Byte) + SizeOf(Boolean));
+  S.Read(Command, SizeOf(AWord) + SizeOf(Byte) + SizeOf(Boolean));
   if not CommandEnabled(Command) then State := State or sfDisabled
   else State := State and not sfDisabled;
 end;
@@ -1454,7 +1449,7 @@ procedure TButton.Store(var S: TStream);
 begin
   TView.Store(S);
   S.WriteStr(Title);
-  S.Write(Command, SizeOf(Word) + SizeOf(Byte) + SizeOf(Boolean));
+  S.Write(Command, SizeOf(AWord) + SizeOf(Byte) + SizeOf(Boolean));
 end;
 
 { TCluster }
@@ -1494,12 +1489,12 @@ begin
   TView.Load(S);
   if (Options and ofVersion) >= ofVersion20 then
   begin
-    S.Read(Value, SizeOf(Longint) * 2 + SizeOf(Integer));
+    S.Read(Value, SizeOf(Longint) * 2 + SizeOf(AInt));
   end
   else
   begin
-    S.Read(Value, SizeOf(Word));
-    S.Read(Sel, SizeOf(Integer));
+    S.Read(Value, SizeOf(AWord));
+    S.Read(Sel, SizeOf(AInt));
     EnableMask := $FFFFFFFF;
     Options := Options or ofVersion20;
   end;
@@ -1798,7 +1793,7 @@ end;
 procedure TCluster.Store(var S: TStream);
 begin
   TView.Store(S);
-  S.Write(Value, SizeOf(Longint) * 2 + SizeOf(Integer));
+  S.Write(Value, SizeOf(Value)+SizeOf(Sel)+SizeOf(EnableMask));
   Strings.Store(S);
 end;
 
@@ -1914,7 +1909,7 @@ constructor TMultiCheckBoxes.Load(var S: TStream);
 begin
   TCluster.Load(S);
   S.Read(SelRange, SizeOf(Byte));
-  S.Read(Flags, SizeOf(Word));
+  S.Read(Flags, SizeOf(AWord));
   States := S.ReadStr;
 end;
 
@@ -1972,7 +1967,7 @@ procedure TMultiCheckBoxes.Store(var S: TStream);
 begin
   TCluster.Store(S);
   S.Write(SelRange, SizeOf(Byte));
-  S.Write(Flags, SizeOf(Word));
+  S.Write(Flags, SizeOf(AWord));
   S.WriteStr(States);
 end;
 
@@ -2011,7 +2006,7 @@ begin
   TListBoxRec(Rec).Selection := Focused;
 end;
 
-function TListBox.GetText(Item: Integer; MaxLen: Integer): String;
+function TListBox.GetText(Item: LongInt; MaxLen: Integer): String;
 begin
   if List <> nil then GetText := PString(List^.At(Item))^
   else GetText := '';
@@ -2129,7 +2124,7 @@ end;
 { TParamText }
 
 constructor TParamText.Init(var Bounds: TRect; const AText: String;
-  AParamCount: Integer);
+  AParamCount: AInt);
 begin
   TStaticText.Init(Bounds, AText);
   ParamCount := AParamCount;
@@ -2138,7 +2133,7 @@ end;
 constructor TParamText.Load(var S: TStream);
 begin
   TStaticText.Load(S);
-  S.Read(ParamCount, SizeOf(Integer));
+  S.Read(ParamCount, SizeOf(AInt));
 end;
 
 function TParamText.DataSize: Word;
@@ -2161,7 +2156,7 @@ end;
 procedure TParamText.Store(var S: TStream);
 begin
   TStaticText.Store(S);
-  S.Write(ParamCount, SizeOf(Integer));
+  S.Write(ParamCount, SizeOf(AInt));
 end;
 
 { TLabel }
@@ -2225,7 +2220,7 @@ begin
   if Event.What = evMouseDown then FocusLink
   else if Event.What = evKeyDown then
   begin
-    C := HotKey(Text^);
+    if Text<>nil then C := HotKey(Text^) else C := #0;
     if (C <> #0) and (
        (GetAltCode(C) = Event.KeyCode) or (
          (Owner^.Phase = phPostProcess) and (
@@ -2253,7 +2248,7 @@ end;
 { THistoryViewer }
 
 constructor THistoryViewer.Init(var Bounds: TRect; AHScrollBar,
-  AVScrollBar: PScrollBar; AHistoryId: Word);
+  AVScrollBar: PScrollBar; AHistoryId: AWord);
 begin
   TListViewer.Init(Bounds, 1, AHScrollBar, AVScrollBar);
   HistoryId := AHistoryId;
@@ -2269,7 +2264,7 @@ const
 begin
   GetPalette := @P;
 end;
-function THistoryViewer.GetText(Item: Integer; MaxLen: Integer): String;
+function THistoryViewer.GetText(Item: LongInt; MaxLen: Integer): String;
  var C: Char;
 begin
   FreeStr := HistoryStr(HistoryID, Item);
@@ -2367,7 +2362,13 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
        FreeStr := HistoryStr(HistoryID, Focused);
        if (CurString <> nil) and (CurString^[Length(CurString^)] = '+') then
          begin
-           Sound(500); DelayTics(2); NoSound;
+           if HistoryErrorBeep then begin
+            {$IFDEF VIRTUALPASCAL}
+            PlaySound(500,110);
+            {$ELSE}
+            Sound(500); DelayTics(2); NoSound;
+            {$ENDIF}
+           end;
            {NoDelMark;}
            Exit;
          end;
@@ -2423,7 +2424,7 @@ end;
 
 { THistoryWindow }
 
-constructor THistoryWindow.Init(var Bounds: TRect; HistoryId: Word);
+constructor THistoryWindow.Init(var Bounds: TRect; HistoryId: AWord);
 begin
   TWindow.Init(Bounds, '', wnNoNumber);
   Flags := wfClose;
@@ -2442,7 +2443,7 @@ begin
   GetSelection := Copy(Viewer^.GetText(Viewer^.Focused,255), 2, 255);
 end;
 
-procedure THistoryWindow.InitViewer(HistoryId: Word);
+procedure THistoryWindow.InitViewer(HistoryId: AWord);
 var
   R: TRect;
 begin
@@ -2458,7 +2459,7 @@ end;
 { THistory }
 
 constructor THistory.Init(var Bounds: TRect; ALink: PInputLine;
-  AHistoryId: Word);
+  AHistoryId: AWord);
 begin
   TView.Init(Bounds);
   Options := Options or ofPostProcess;
@@ -2471,7 +2472,7 @@ constructor THistory.Load(var S: TStream);
 begin
   TView.Load(S);
   GetPeerViewPtr(S, Link);
-  S.Read(HistoryId, SizeOf(Word));
+  S.Read(HistoryId, SizeOf(AWord));
 end;
 
 procedure THistory.Draw;
@@ -2572,7 +2573,7 @@ procedure THistory.Store(var S: TStream);
 begin
   TView.Store(S);
   PutPeerViewPtr(S, Link);
-  S.Write(HistoryId, SizeOf(Word));
+  S.Write(HistoryId, SizeOf(AWord));
 end;
 
 constructor THexLine.Init;
@@ -2703,4 +2704,3 @@ begin
 end;
 
 end.
-

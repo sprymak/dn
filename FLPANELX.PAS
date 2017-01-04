@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -62,14 +62,14 @@ TYPE
   TFilePanelRoot = object(THideView)
    isValid, MSelect, SelectFlag, Loaded, ChangeLocked: Boolean;
    InfoView, DirView, DriveLine: PHideView;
-   Delta, OldDelta, OldPos, DeltaX: Integer;
+   Delta, OldDelta, OldPos, DeltaX: LongInt;
    Files: PFilesCollection;
    SortMode: Byte;
    DirectoryName, OldDirectory: String;
    FileMask: String;
    SearchParam: TQuickSearchData; {DataCompBoy}
    ScrollBar: PMyScrollBar;
-   DrawDisableLvl, SelNum, LineLength: Integer;
+   DrawDisableLvl, SelNum, LineLength: LongInt;
    SelectedLen, PackedLen: TSize;
    WasActive, PosChanged, CommandEnabling,
    QuickSearch, ViewEnabled: Boolean;
@@ -92,7 +92,7 @@ TYPE
    procedure CommandHandle(var Event: TEvent);
    procedure ChangeBounds(var Bounds: TRect); virtual;
    function  Valid(Command: Word): Boolean; virtual;
-   procedure GetUserParams(var FileRec: PFileRec; var List: String);
+   procedure GetUserParams(var FileRec: PFileRec; var List: String; BuildList: boolean);
    procedure ReadDirectory;
    procedure RereadDir;
    procedure SetDirName; virtual;
@@ -188,7 +188,7 @@ begin
 end;
 
 constructor TFilePanelRoot.Load;
- var I: Integer;
+ var I: LongInt;
      dumm: array[1..20] of byte;
 begin
  inherited Load(S);
@@ -297,7 +297,7 @@ end;
 
 procedure TFilePanelRoot.ChangeBounds;
  var R: TRect;
-     I: Integer;
+     I: LongInt;
 begin
  I := Byte(( Drive^.DriveType = dtFind ) or ( Drive^.DriveType = dtTemp ) or ( Drive^.DriveType = dtArc ));
  I := Byte(FMSetup.Show and fmsDivider <> 0) +
@@ -332,7 +332,7 @@ end;
 
 procedure TFilePanelRoot.SendLocated;
  var S: String;
-     R: Integer;
+     R: LongInt;
 begin
  if (Files^.Count = 0) or (Drive^.DriveType = dtArc) or
     (State and sfVisible = 0) then Exit;
@@ -349,7 +349,7 @@ end;
         {-DataCompBoy-}
 procedure TFilePanelRoot.RereadDir;
  var P,PP,CurP: PFileRec;
-     I, J, Pos: Integer;
+     I, J, Pos: LongInt;
      FC {,FCC}: PFilesCollection;
      NewDir: String;
      BB: Boolean;
@@ -505,16 +505,18 @@ procedure TFilePanelRoot.GetUserParams;
 
  procedure MakeTempList;
   var T: lText;
-      I: Integer;
+      I: LongInt;
  begin
   lAssignText(T, List); ClrIO;
   lRewriteText(T); if Abort then Exit;
-  for I := 1 to Files^.Count do
-   begin
-    PF := Files^.At(I-1);
-    if (PF^.Selected) or (I-1=ScrollBar^.Value) and (SelNum=0) then
-       WriteLn(T.T, MakeFileName(PF^.Name));
-   end;
+  if (SelNum=0) then begin
+   PF := Files^.At(ScrollBar^.Value);
+   WriteLn(T.T, MakeFileName(PF^.Name));
+  end else
+  for I := 1 to Files^.Count do begin
+   PF := Files^.At(I-1);
+   if (PF^.Selected) then WriteLn(T.T, MakeFileName(PF^.Name));
+  end;
   Close(T.T);
  end;
 
@@ -522,9 +524,11 @@ begin
   FileRec := nil; List := '';
   if not GetState(sfVisible) or (Files = nil) or (Files^.Count = 0) then Exit;
   FileRec := Files^.At(ScrollBar^.Value);
-  if GetState(sfSelected) then S := '$' else S := '';
-  List := SwpDir+'$$$dn$$'+S+'.lst';
-  MakeTempList;
+  if BuildList then begin
+   if GetState(sfSelected) then S := '$' else S := '';
+   List := SwpDir+'$dn'+ItoS(DNNumber)+S+'.lst';
+   MakeTempList;
+  end else List := '';
 end;
         {-DataCompBoy-}
 
@@ -532,7 +536,7 @@ end;
 PROCEDURE TFilePanelRoot.CommandHandle;
 var
   PF: PFileRec;
-  CurPos: Integer;
+  CurPos: LongInt;
   MPos: TPoint;
   LastRDelay: Word;
 
@@ -549,7 +553,7 @@ var
  end;
 
  procedure GotoSingle(Name: String);
-  var A: Integer;
+  var A: LongInt;
  begin
   UpStr(Name);
   A := 0;
@@ -581,7 +585,7 @@ var
       Nm: String;
       Xt: String;
       Name: String;
-      A: Integer;
+      A: LongInt;
  begin
   if ChangeLocked then Exit;
   lFSplit(FileName, Dr, Nm, Xt);
@@ -622,6 +626,7 @@ var
   CE; if CurPos >= Files^.Count then Exit;
   P := Files^.At(CurPos);
   if P^.Attr and Directory <> 0 then Exit;
+  {$IFNDEF BIT_32}
   asm
    mov ax,Command
    cmp ax,cmIntEditFile
@@ -643,11 +648,34 @@ var
 @@0:
    mov Command, ax
   end;
+  {$ELSE BIT_32}{&Frame-}
+  asm
+   mov eax,Command
+   cmp eax,cmIntEditFile
+   jnz @@1
+   mov eax,cmIntFileEdit;
+   jmp @@0
+@@1:
+   cmp eax,cmIntViewFile
+   jnz @@2
+   mov eax,cmIntFileView;
+   jmp @@0
+@@2:
+   cmp eax,cmEditFile
+   jnz @@3
+   mov eax,cmFileEdit;
+   jmp @@0
+@@3:
+   mov eax,cmFileView;
+@@0:
+   mov Command, eax
+  end;
+  {$ENDIF}
   Drive^.UseFile(P, Command);
  end;
 
  procedure Recount;
-  var I: Integer;
+  var I: LongInt;
       PF: PFileRec;
  begin
   SelectedLen := 0; PackedLen := 0; SelNum := 0;
@@ -752,7 +780,7 @@ var
   Recount; Owner^.Redraw;
  end;
 
- procedure SelectExt(S: Boolean; G1, G2: Integer; Invert: Boolean);
+ procedure SelectExt(S: Boolean; G1, G2: LongInt; Invert: Boolean);
   var SS: String;
       a: boolean;
 
@@ -814,7 +842,7 @@ var
     ReplaceDrive := On;
  end;
 
- function MakeFName(Idx: Integer; Mode: Boolean; Sq: Boolean): String;
+ function MakeFName(Idx: LongInt; Mode: Boolean; Sq: Boolean): String;
  begin
    PF := Files^.At(Idx);
    if (ShiftState and kbAltShift <> 0)
@@ -869,7 +897,7 @@ var
    S: string;
    dum: PFileRec;
  begin
-   GetUserParams(dum, PString(Event.InfoPtr)^);
+   GetUserParams(dum, PString(Event.InfoPtr)^, False);
    S := MakeFileName(PF^.Name);
    PString(Event.InfoPtr)^ := S + ' ' + CnvString(Event.InfoPtr);
  end;
@@ -891,7 +919,7 @@ var
  procedure _DoRereadDir;
  var
    S: string;
-   I: Integer;
+   I: LongInt;
  begin
    S := UpStrg(CnvString(Event.InfoPtr));
    if (S[0] > #3) and (S[Length(S)] = '\') then Dec(S[0]);
@@ -944,7 +972,7 @@ var
    {$IFDEF LINK}
    if S[1] = '+' then
    begin
-     Event.InfoPtr := NewLinkDrive(s[2]);
+     Event.InfoPtr := NewLinkDrive(s[2],@Self, Drive^.Param);
      InsertDrive; Exit;
    end else
    {$ENDIF}
@@ -986,7 +1014,7 @@ var
    {$IFDEF LINK}
    else if S[1] = '+' then
    begin
-     Event.InfoPtr := NewLinkDrive(S[2]);
+     Event.InfoPtr := NewLinkDrive(S[2],@Self, Drive^.Param);
      InsertDrive; Exit;
    end
    {$ENDIF};
@@ -1028,7 +1056,10 @@ var
      end else
      if S[Length(S)]='\'
       then Message(@Self, evCommand, cmChangeDirectory, @S)
-      else Message(@Self, evCommand, cmInsertDrive, New(PFindDrive,InitList(S)))
+      else begin
+            FreeByte := Drive^.innum;
+            Message(@Self, evCommand, cmInsertDrive, New(PFindDrive,InitList(S)))
+           end;
    end;
  end;
 
@@ -1092,7 +1123,7 @@ var
  procedure _CtrlIns;
  var
    S: string;
-   I: Integer;
+   I: LongInt;
    b: boolean;
  begin
    S := ''; CE;
@@ -1146,8 +1177,9 @@ var
  var
    S: string;
  begin
-   if OS2exec and (Drive^.DriveType = dtDisk) and InExtFilter(MakeFileName(PF^.Name), Executables)
-      and (ShiftState and (kbCtrlShift or 3) <> 0) then
+   if OS2exec and (Drive^.DriveType = dtDisk) and
+      InExtFilter(MakeFileName(PF^.Name), Executables) and
+      (ShiftState and (kbCtrlShift or 3) <> 0) then
    begin
      PShootState := ShiftState;
      S := MakeFileName(PF^.Name);
@@ -1231,9 +1263,9 @@ var
  end;
 
  procedure FindNextSelFile(pNext: Boolean); {-$VIV,VOL 19.05.99---}
- var I: Integer;
+ var I: LongInt;
 
-    function CheckIt(I: Integer): Boolean;
+    function CheckIt(I: LongInt): Boolean;
     begin
       CheckIt := False;
       if PFileRec(Files^.At(I))^.Selected then
@@ -1252,7 +1284,7 @@ var
 
  procedure _CheckKB;
  var
-   I: Integer;
+   I: LongInt;
    aaa: word;
    bbb, ccc: byte;
    l: longint;
@@ -1337,7 +1369,7 @@ var
                  _CtrlPgUp;
                  Exit;
                end;
-    kbUp, kbDown: begin
+    kbUp, kbDown, kbUpUp, kbDownUp: begin
                      CtrlWas := ShiftState and kbCtrlShift <> 0;
                    end;
     kbCtrlR: begin Message(@Self, evCommand, cmForceRescan, nil); CE end;
@@ -1377,42 +1409,40 @@ kbCtrlDel: if Files^.Count > 0 then
             end;
 kbCtrlIns,kbShiftIns: if ShiftState and kbCtrlShift<>0 then _CtrlIns;
 kbCtrlEnter: _CtrlEnter;
-    kbLeft: begin
-              if Size.X > LineLength then
-               begin
-                if ScrollBar^.Value - Delta < Size.Y - Byte(FMSetup.Show and fmsColumnTitles<>0) then
-                 Dec(Delta, Size.Y - Byte(FMSetup.Show and fmsColumnTitles<>0));
-                ScrollBar^.SetValue(ScrollBar^.Value - Size.Y + Byte(FMSetup.Show and fmsColumnTitles<> 0));
-                CE;
-               end
-               else if DeltaX > 0 then
-                    begin
-                     Dec(DeltaX);
-                     DrawView;
-                     if InfoView <> nil then InfoView^.DrawView;
-                     CE;
-                    end;
-             end;
-    kbRight: begin
-              if Size.X > LineLength then
-               begin
-                aaa := Delta;
-                Owner^.Lock;
-                ScrollBar^.SetValue(ScrollBar^.Value + Size.Y - Byte(FMSetup.Show and fmsColumnTitles <> 0));
-                if aaa<>delta then
-                 Delta := aaa + Size.Y -
-                          Byte(FMSetup.Show and fmsColumnTitles<>0);
-                CED;
-                Owner^.Unlock;
-               end
-               else if DeltaX < LineLength - Size.X - 1 then
-                    begin
-                     Inc(DeltaX);
-                     DrawView;
-                     if InfoView <> nil then InfoView^.DrawView;
-                     CE;
-                    end;
-             end;
+    kbLeft: if (Size.X > LineLength) then
+             if (Delta>0) or
+                (ScrollBar^.Value >
+                 Size.Y - Byte(FMSetup.Show and fmsColumnTitles<>0)) then begin
+              if ScrollBar^.Value - Delta < Size.Y - Byte(FMSetup.Show and fmsColumnTitles<>0)
+               then Dec(Delta, Size.Y - Byte(FMSetup.Show and fmsColumnTitles<>0));
+              ScrollBar^.SetValue(ScrollBar^.Value - Size.Y + Byte(FMSetup.Show and fmsColumnTitles<> 0));
+              CE;
+             end else begin
+              if ScrollBar^.Value > 0 then
+              ScrollBar^.SetValue(0);
+              CE;
+             end
+            else if DeltaX > 0 then begin
+                  Dec(DeltaX);
+                  DrawView;
+                  if InfoView <> nil then InfoView^.DrawView;
+                  CE;
+                 end;
+    kbRight: if Size.X > LineLength then begin
+              aaa := Delta;
+              Owner^.Lock;
+              ScrollBar^.SetValue(ScrollBar^.Value + Size.Y - Byte(FMSetup.Show and fmsColumnTitles <> 0));
+              if aaa<>delta then
+               Delta := aaa + Size.Y -
+                        Byte(FMSetup.Show and fmsColumnTitles<>0);
+               CED;
+               Owner^.Unlock;
+              end else if DeltaX < LineLength - Size.X - 1 then begin
+                        Inc(DeltaX);
+                        DrawView;
+                        if InfoView <> nil then InfoView^.DrawView;
+                        CE;
+                       end;
     kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); Owner^.ReDraw end;
     kbEnd:  begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
     kbAltEnter: if _AltEnter then Exit else
@@ -1511,7 +1541,7 @@ end;
 
  procedure _TagUntag;
  var
-   I: Integer;
+   I: LongInt;
  begin
    if (PF <> nil) and (PF^.Selected xor (Event.Command = cmSingleTag))
     then I := kbIns else I := kbDown;
@@ -1594,8 +1624,9 @@ begin
               cmToggleDescriptions: begin CM_ToggleDescriptions(@Self); CE end;
               cmToggleShowMode: begin CM_ToggleShowMode(@Self); CE end;
               cmFastRename: begin
-                             if QuickRenameInDialog then
-                              CM_RenameSingleDialog(@Self, @Event)
+                             if QuickRenameInDialog xor
+                                (ShiftState and (kbLeftShift+kbRightShift)<>0)
+                              then CM_RenameSingleDialog(@Self, @Event)
                              else
                               if Drive^.Flags and psShowLongName>0
                                then CM_RenameSingleL(@Self, @Event)

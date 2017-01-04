@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.05/DOS
+;/  Dos Navigator Open Source 1.51.08
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -220,9 +220,9 @@
 
 .topic MainMenu=9
 .title F“men
- ğ  File  Disk  Utilities  Panel  Manager  Options  Window
+   File  Disk  Utilities  Panel  Manager  Options  Window
 
- {ğ ..........:MenuBox} - Kl”nb”z“ p¢tl¢lagos fggv‚nyek, ‚s n‚zetek.
+ { ..........:MenuBox} - Kl”nb”z“ p¢tl¢lagos fggv‚nyek, ‚s n‚zetek.
  {File .......:FileMenu} - F jlkezel‚s, f jl m–veletek.
  {Disk .......:DiskMenu} - Lemezm–veletek.
  {Utilities ..:UtilMenu} - A Navig tor szolg ltat sai.
@@ -232,7 +232,7 @@
  {Window .....:Windows} - Ablakok.
 
 .topic MenuBox=10
-.title Men ğ
+.title Men 
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ {Magamr¢l...                 :AboutDialog} ³
  ³ K‚perny“ friss¡t‚se          ³
@@ -1137,7 +1137,7 @@
    {³          ³                                ³:_}
    {³          ³:_}     EzÿegyÿDOSÿh tt‚rÿ{Ä¿       ³:_}
    {          ³                        ³       ³:_}
- ±±ğ±±File±±Di{³:_}k±±Utilities±±Panel±±Man{³:_}ger±±Op{³:_}ions±±Window±±±±±±22:29:19
+ ±±±±File±±Di{³:_}k±±Utilities±±Panel±±Man{³:_}ger±±Op{³:_}ions±±Window±±±±±±22:29:19
  ÚÄÄÄ D:\C ÚÄÄ{:_}ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿{³:_}cÚÄÄÄÄÄ{:_}ÄÄÄÄÄ D:\CSABA\MUNKA ÄÄÄÄÄÄÄ¿
  ³  File   ³ Format disk...  Shift-F7 ³{³:_} ³    Name    ³ Description         ³
  ³    A1³  ³ Volume label...          ³{³:_} ³..          ³                     ³
@@ -1215,7 +1215,7 @@
     Ehhez  term‚szetesen  t”bb  dolog  be ll¡t sa szks‚geltetik.
     Az   {Options|Configuration|Systemÿsetup...:_}   menben   be  kell
   kapcsolni a K”zvetlenÿLemezÿHozz f‚r‚st.
-    Illetve a kuk t a {ğ|Trashcanÿon/off:_}-n l.
+    Illetve a kuk t a {|Trashcanÿon/off:_}-n l.
     A  Reanim tor seg¡ts‚g‚vel a t”r”lt f jlokat sz”veg, dump, ill.
  hexadecim lis  form ban  is  meg  tudjuk jelen¡teni. Hasonl¢k‚ppen
  mint a Norton Utility Unerase programj val.
@@ -1925,7 +1925,7 @@
 
 .topic AboutDialog=16553
 .title Magamr¢l...
-    Ha  megh¡vjuk  az:  {ğ|About...:_}  parancsot,  akkor  egy ablakban
+    Ha  megh¡vjuk  az:  {|About...:_}  parancsot,  akkor  egy ablakban
   inform ci¢ jelenik meg a Dos Navig torr¢l.
 
     Ez  az ablak tartalmazza a program verzi¢ sz m t, a regisztr lt
@@ -2042,7 +2042,7 @@
  º D:\DN\RCP\HELP±±±±±±±ÄÙ±±±±±±±±   ßßßßßßßßß ºÛ       { ³:_}
  È ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ       { ³:_}
  {ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ÿÿÿÿÿÿÿÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ:_}
- {³:_}ğ  File  Disk {:_}Utiliti{:_}s  Panel  Manager
+ {³:_}  File  Disk {:_}Utiliti{:_}s  Panel  Manager
  {³:_}ÚÄ[ş]ÄÄÄÄÄÄÄÄ D:\DN\COLORS ÄÄÄÄÄÄÄÄÄÄÄÄ¿
  {³:_}³    Name    ³    Name    ³    Name    
  {³:_}
@@ -2740,7 +2740,7 @@
   list ba tehetjk, ha a {"Store path names":_} opci¢t bekapcsoljuk.
     De nem ‚rdemes, ha a Descript.ion-t olvasni is szeretn‚nk.
 
- KTFLEKPPEN ALKALMAZHAT•:
+ KTFLEKPPEN ALKALMAZHAT•:
 
     -  HA az Action (parancsv‚grehajt s) sort resen hagyjuk, akkor
   az    ALT+V,   {Panel|Readÿfileÿlist:_}-t   haszn lva   a   panelen a
@@ -3020,7 +3020,6 @@
 .topic SystemSetup=48037
 .title Rendszer be ll¡t s
  ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Rendszer be ll¡t s ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
- º                                                                       ºÛ
  º ÚOpci¢kÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ ºÛ
  º ³ [X] Bels“ szerkeszt“             [ ] Ne haszn ld az XMS/EMS-t     ³ ºÛ
  º ³ [X] Bels“ f jln‚z“               [ ] OS-fgg“ lemez hozz f‚r‚s    ³ ºÛ
@@ -3028,7 +3027,8 @@
  º ³ [ ] Mutasd a rejtett f jlokat    [X] Fejlettebb m sol s           ³ ºÛ
  º ³ [ ] Gyors parancsfuttat s        [X] Puffer r¡t‚s                ³ ºÛ
  º ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ ºÛ
- º  Video M¢d 1  ±±256±±±±±±±±±   Video M¢d 2  ±±265±±±±±±±±±±±±±±       ºÛ
+ º LFN Container  (*) EMS-XMS-LOW  ( ) XMS-EMS-LOW  ( ) LOW              ºÛ
+ º  Video M¢d 1  ±±147±±±±±±±±±   Video M¢d 2  ±±163±±±±±±±±±±±±±±       ºÛ
  º                                                                       ºÛ
  º ÚMeghajt¢kÄÄÄÄÄÄ¿             ÚAktu lis meghajt¢ be ll¡t saÄÄÄ¿       ºÛ
  º ³ A:                         ³[X] K”zvetlen hozz f‚r‚s       ³       ºÛ
@@ -3041,6 +3041,24 @@
  º ³ H:                          °°OK°°Ü °M‚gsem°Ü °°S£g¢°°Ü          ºÛ
  º ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ               ßßßßßßßß  ßßßßßßßß  ßßßßßßßß          ºÛ
  ÈÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+
+Attention! Changes of LFN container will used after restart.
+
+ How to coding video mode:
+$<N><N>
+ where 1st <N>:
+  8 - modes 40 x ??
+  9 - modes 80 x ??
+  A - modes 94 x ??
+ 2nd <N>:
+  0 - ?? x 12
+  1 - ?? x 14
+  2 - ?? x 25
+  3 - ?? x 30
+  4 - ?? x 34
+  5 - ?? x 43
+  6 - ?? x 50
+  7 - ?? x 60
 
 .topic OptionsStartup=48038
 .title Indul si poz¡ci¢k
@@ -3704,7 +3722,7 @@ L sd m‚g: {K‚perny“v‚d“kÿbe ll¡t sa:ScreenSaversSetup}
  º   10 ³Kiter¡tett m‚ret t j‚koztat¢ jelleggel:                  
  ÈÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍş±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±ÄÙ
 
-.topic SpreadFileMenu=48083
+.topic SpreadFileMenu=48086
 .title T bl zatkezel“  - F jl men
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ —j t bl zat              F4 ³ —j T bl zatot k‚sz¡t
@@ -3716,7 +3734,7 @@ L sd m‚g: {K‚perny“v‚d“kÿbe ll¡t sa:ScreenSaversSetup}
  ³ Exit                Ctrl-F4 ³ Kil‚p‚s
  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-.topic SpreadEditMenu=48085
+.topic SpreadEditMenu=48088
 .title T bl zatkezel“ - Szerkeszt men
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ Visszavon   Alt-BkSp ³ Visszavonja az utols¢ parancsot
@@ -3728,7 +3746,7 @@ L sd m‚g: {K‚perny“v‚d“kÿbe ll¡t sa:ScreenSaversSetup}
  ³ T”r”l       Ctrl-Del ³ A kijel”l‚st let”rli
  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-.topic SpreadSearchMenu=48086
+.topic SpreadSearchMenu=48089
 .title T bl zatkezel“ - Keres men
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ {Keres...:FindCell}           ³
@@ -3738,7 +3756,7 @@ L sd m‚g: {K‚perny“v‚d“kÿbe ll¡t sa:ScreenSaversSetup}
  ³ Ugorj a hib ra     ³ Az utols¢ el“fordul¢ hib ra ugrik
  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-.topic SpreadTableMenu=48084
+.topic SpreadTableMenu=48087
 .title T bl zatkezel“ - T bl zat men
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ {Cella form tum...:SetCellFormat} ³ Kl”nb”z“ be ll¡t sok lehets‚gesek
@@ -4205,7 +4223,7 @@ L sd m‚g: {K‚perny“v‚d“kÿbe ll¡t sa:ScreenSaversSetup}
  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ÛÛ
    ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 
-.topic EditBlockMenu=47991
+.topic EditBlockMenu=48085
 .title Sz”vegszerkeszt“: Block men
  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
  ³ thelyez             Ctrl-K V ³
@@ -4438,7 +4456,7 @@ L sd m‚g: {K‚perny“v‚d“kÿbe ll¡t sa:ScreenSaversSetup}
  ALT-PGDN       : Az el“z“leg megtekintett f jlok list ja
  ALT-PGUP       : Az el“z“leg szerkesztett f jlok list ja
  {Speci lis billenty– parancsok:SpecBillentyu}
-  
+
 .topic SpecBillentyu=65505
 .title Speci lisÿbillenty–-kombin ci¢k
     ALT-/:  Parancs v‚grehajt si idej‚nek m‚r‚se. A kombin ci¢ ut n
@@ -4491,3 +4509,57 @@ L sd m‚g: {K‚perny“v‚d“kÿbe ll¡t sa:ScreenSaversSetup}
  This is information about authors of {Dos Navigator:CommonInfo}.
 Use up and down arrows to scroll the list.
 
+.topic RenameFile=48083
+.title Quick rename file
+
+.topic Calendar=48084
+.title Calendar
+
+.topic FTNInfo=48090
+.title FTN File Attach Feature
+
+DN has the ability to attach files to be sent with FTN networking software
+using a Binkley-style outbound. To use this feature, the following information
+should be appended to the Files with descriptions field in the File Manager
+Setup dialog:
+
+;/fido=<address>,<outbound>
+
+Here <address> is your FTN address in your primary zone, written in 3D or 4D
+form, and the <outbound> is your primary zone outbound directory specification.
+Outbound directories for secondary zones are created and used with Portal Of
+Power style names (with hexadecimal zone numbers as extensions). Outbound
+subdirectories for points are handled correctly.
+
+After that, for attaching select one or more files and press Alt-L for the Make
+List File dialog. Enter either "%", "+", or "/" followed by the 3D or 4D
+destination address instead of the list file name. "%" means Normal flavor, "+"
+means Crash, and "/" is for Hold. Leave the Action field empty for the normal
+send mode, enter ###:#\#.# there for the file to be tuncated after sending
+(substitute ##!:!\!.! if your FTN software does not support long file names) or
+enter ^#:#\#.# to have the file killed after sending (^!:!\!.! for short names
+only).
+
+.topic SrchFailed=48091
+.title Search Failed
+
+.topic ChangeNameCase=48093 ; [C] /DataCompBoy/ 22-05-2000
+.title Changing file names case
+
+.topic Path=48094 ; [C] /DataCompBoy/  3-06-2000
+.title Select path
+
+.topic Dialer=48095 ; [C] /DataCompBoy/  5.07.2000
+.title Dialer
+
+.topic PktListDialog=48096 ; [C] /DataCompBoy/ 12.07.2000
+.title Pkt List Dialog
+
+.topic LineViewer=48097 ; [C] /DataCompBoy/ 12.07.2000
+.title Line Viewer
+
+.topic MsgViewer=48098 ; [C] /DataCompBoy/ 12.07.2000
+.title Msg Viewer
+
+.topic PktMsgViewer=48099 ; [C] /DataCompBoy/ 12.07.2000
+.title Pkt Msg Viewer

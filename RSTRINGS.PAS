@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -66,7 +66,7 @@ Type
   TIdxResource = object( TObject )
     Stream: PStream;
     Index: PIndexArray;
-    Count: Integer;
+    Count: AInt;
     constructor Init( AStream: PStream );
     destructor Done; virtual;
     function Get( Key: TDlgIdx ): PObject;
@@ -77,7 +77,7 @@ Type
     Stream: PStream;
     TempStream: PBufStream;
     Index: PIndexArray;
-    Count: Integer;
+    Count: AInt;
     constructor Init( AStream: PStream );
     destructor Done; virtual;
     procedure Put( Item: PObject; Key: TDlgIdx );
@@ -109,10 +109,8 @@ FUNCTION TIdxResource.Get;
 procedure Chk; begin if Stream^.Status <> stOK then ResourceAccessError end;
 
 begin
-  Chk;
-  Stream^.Seek( Index^[ Integer( Key ) ] );
-  Chk;
-  Get := Stream^.Get;
+  Chk; Stream^.Seek( Index^[ Integer( Key ) ] );
+  Chk; Get := Stream^.Get;
   Chk;
 end;
 

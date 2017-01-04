@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -47,14 +47,12 @@
 {$I STDEFINE.INC}
 Unit TitleSet;
 Interface
- uses Dos;
 
  Procedure SetTitle(Text: String);
 
 Implementation
-{$IFDEF DPMI}
- uses DPMI, DosMem;
-{$ENDIF}
+{$IFDEF NONBP}Procedure SetTitle(Text: String); begin end;{$ELSE}
+ uses Advance {$IFDEF DPMI}, DPMI, DosMem{$ENDIF}, Dos;
 
 const DNTITL: String[3] = 'DN'#0;
 {$IFDEF DPMI}
@@ -67,7 +65,7 @@ var r: registers;
  Procedure SetTitle(Text: String);
   begin
       {Setting Win9x application title}
-   Text:=Copy(Text,1,79)+#0;
+   Text:=Advance.FormatLongName(Text,79,0,flnUseCutChar,nfmNull,nil)+#0;
    r.ax:=$168E;
    r.dx:=$0000;
 {$IFDEF DPMI}
@@ -191,4 +189,5 @@ begin
 
  oep:=ExitProc;
  ExitProc:=@exp;
+{$ENDIF NONBP}
 end.

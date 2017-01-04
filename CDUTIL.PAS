@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -438,7 +438,8 @@ Unit CdUtil;
       if AHeight > R.B.Y-R.A.Y-6 then Y2:= R.B.Y-R.A.Y-6
                                  else Y2:= AHeight;
 
-      R.Assign(0,0,68,Y2+7); {12}
+      {R.Assign(0,0,68,Y2+7)}; {12} {disabled by JITRsoftware}
+      R.Assign(0,0,68,Y2+6); {12}   {added by JITRsoftware}
 
         { box -4 butt -3+2 }
 

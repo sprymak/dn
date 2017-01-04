@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -90,7 +90,7 @@ type
 
     PLinkDrive = ^TLinkDrive;
     TLinkDrive = object(TDrive)
-       constructor Init(D: Char);
+       constructor Init(D: Char; AOwner: Pointer; num: byte);
        procedure lChDir(ADir: String); virtual; {DataCompBoy}
        function GetDir: String; virtual;       {DataCompBoy}
        function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
@@ -118,7 +118,7 @@ procedure CopyFromLinkDrive(AFiles: PCollection; AOwner: PView; const RealDest: 
 
 procedure CL_GetLinkDrives(var CSet: TCharSet);
 
-function NewLinkDrive(C: Char): PDrive;
+function NewLinkDrive(C: Char; AOwner: Pointer; num: byte): PDrive;
 
 implementation
 uses
@@ -130,7 +130,7 @@ uses
 
 function NewLinkDrive;
 begin
-  NewLinkDrive := New(PLinkDrive, Init(C));
+  NewLinkDrive := New(PLinkDrive, Init(C, AOwner, num));
 end;
 
         {-DataCompBoy-}
@@ -906,6 +906,11 @@ end end;
 constructor TLinkDrive.Init;
 begin
   TObject.Init;
+
+  Owner := AOwner;
+  if num < 1 then GetParam(1)
+             else GetParam(num);
+  innum:=num;
   {HelpCtx := hcLinkPanel;}
   Curdir := D + ':\';
   DriveType := dtLink;
@@ -1442,5 +1447,4 @@ begin
    Message(Application, evCommand, Command, @TempFile);
 end;
         {-DataCompBoy-}
-
 end.

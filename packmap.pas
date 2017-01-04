@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -47,7 +47,7 @@
 {$i-}{$m 8192, 102400, 655360}
 program PackMap;
 
-uses Objects,Collect,Advance1;
+uses Objects, Collect, Advance1;
 
 function FromHex(S: string): longint;
  var b: byte;
@@ -104,6 +104,7 @@ Function f(var x,y:TSR):Boolean;
    if x.StrtAddrSeg<y.StrtAddrSeg then f:=false else
    if x.StrtAddrOfs>y.StrtAddrOfs then f:=true;
   End;
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
 Procedure PoglSort; Label 1;
  Const r=SizeOf(TSR); mm=65520 div r; nseg=10; mr=mm*r;
  Type mas = Array[1..mm] of TSR;
@@ -304,7 +305,7 @@ ReadLines:
    writeln(#13,i:5,': ',s);
    FileNames.AtInsert(FileNames.Count, NewStr('!unknown!'));
    with clr do begin
-    FileInd:=FileNames.Count-1;
+    FileInd:=FileNames.Count;
     LineNum:=0;
     StrtAddrSeg:=$FFFF;
     StrtAddrOfs:=$FFFF;

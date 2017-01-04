@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -61,7 +61,7 @@ IMPLEMENTATION
 
 {$IFDEF SYSINFO}
 USES Dos,      Objects, Views,  DNApp,   Drivers,  Commands, RStrings,
-     Messages, Dialogs, DNHelp, Collect, Advance1, Advance3, extramemory;
+     Messages, Dialogs, DNHelp, Collect, Advance1, Advance3, ExtraMem;
 
 Var PCmodel,PCsubModel : byte ;
 
@@ -332,7 +332,7 @@ begin
   D := PDialog(LoadResource(dlgCpuFlagInfo));
   if D <> nil then begin
      D^.SetData(MM);
-     Application^.ExecView(D);
+     DeskTop^.ExecView(D);
      Dispose(D,Done);
   end;
 end;
@@ -368,9 +368,11 @@ begin
  Reg.AX := $3000;
  Intr ($21, Reg);
  case Reg.BH of
-  $ff : DosVendor := 'MS-';
   $00 : DosVendor := 'PC-';
- else DosVendor := '';
+  $66 : DosVendor := 'PTS-';
+  $fd : DosVendor := 'Free';
+  $ff : DosVendor := 'MS-';
+  else  DosVendor := '';
  end;
 end; {DosVendor}
 
@@ -393,19 +395,17 @@ var
 begin
  Reg.AX := $1600;
  Intr ($2f, Reg);
- if Reg.AL = 4 then
-   case Reg.AH of
-    $00 : Build := '95';
-    $01 : Build := '95 OSR 1';
-    $02 : Build := '95 OSR 2';
-    $03 : Build := '95 OSR 2.1'; {tested}
-    $0a : Build := '98';         {tested}
-   end else
-   begin
-    Build := Build + ItoS(LongInt(Reg.AL)) +'.';
-    if Reg.AH < 10 then Build := Build + '0' + ItoS(LongInt(Reg.AH))
-       else Build := Build + ItoS(LongInt(Reg.AH));
-   end;
+ case Reg.AX of
+  $0004 : Build := '95';
+  $0104 : Build := '95 OSR 1';
+  $0204 : Build := '95 OSR 2';
+  $0304 : Build := '95 OSR 2.1'; {tested}
+  $0a04 : Build := '98';         {tested}
+ else
+  Build := ItoS(LongInt(Reg.AL)) + '.';
+  if Reg.AH < 10 then Build := Build + '0' + ItoS(LongInt(Reg.AH))
+   else Build := Build + ItoS(LongInt(Reg.AH));
+ end;
  WinVer := Build;
 end;
 
@@ -424,10 +424,6 @@ begin
 end;
 
 begin
- asm
-  int 11h
-  mov EQList, ax
- end;
  R.Assign(1,1,73,22);
  New(D, Init(R, GetString(dlSystemInfo)));
  D^.Options := D^.Options or ofCentered;
@@ -474,7 +470,26 @@ begin
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 
+{new memory detection scheme by piwamoto}
+ XMSSize := 0;
+ EQList  := 0;
  asm
+  mov   ax,$0e801
+  int   $15
+  jc    @@ReadMemFromCMOS
+  cmp   ax,$3c00
+  ja    @@ReadMemFromCMOS
+  push  ax
+  or    ax,bx
+  pop   ax
+  jnz   @@AXBXvalid
+  mov   ax,cx
+  mov   bx,dx
+ @@AXBXvalid:
+  mov   EQList,bx
+  jmp   @@ExitMemDet
+
+ @@ReadMemFromCMOS:
   mov al, $18
   mov dx, $70
   out dx, al
@@ -486,16 +501,12 @@ begin
   out dx, al
   inc dx
   in  al, dx
+ @@ExitMemDet:
   mov XMSSize, ax
  end;
- S := GetString(dlSI_TotalMem) + ItoS(LongInt(XMSSize)+1024) + 'K'^M;
-(*{$IFNDEF DPMI}*)
+ S := GetString(dlSI_TotalMem) + ItoS(LongInt(EQList)*64 + XMSSize + 1024) + 'K'^M;
  if XMSFound then S := S + GetString(dlSI_Extended) + ItoS(XMSFree) + 'K'^M;
  if EMSFound then S := S + GetString(dlSI_Expanded) + ItoS(EMSSize) + 'K';
-(*{$ELSE}
- S := S + GetString(dlSI_MemAvail) + ItoS(MemAvail shr 10) + 'K'^M;
- S := S + GetString(dlSI_MaxAvail) + ItoS(MaxAvail shr 10) + 'K';
-{$ENDIF}*)
  R.Assign(3,11+Y,25,14+Y);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
@@ -505,6 +516,11 @@ begin
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 
+ asm
+  xor ax, ax
+  int 11h
+  mov EQList, ax
+ end;
  S := GetString(dlSI_COM);
  if EQList and $0E00 <> 0 then S := S + ItoS((EQList and $0E00) shr 9) else S := S + GetString( dlSI_NotPresent );
  S := S + GetString(dlSI_Lpt);
@@ -512,7 +528,7 @@ begin
  EQList := (EQList and $C000) shr 14;
  if ((opSys and (opWin or opOS2))=opWin) and (EQList = 3) then
   begin
-   EQList := 5;
+   inc (EQList);
    repeat
     dec (EQList);
    until (EQList = 0) or (memw[seg0040:$06+EQList*2] <> 0);
@@ -525,13 +541,19 @@ begin
  EQList := DOSVersion;
  S2 := DosEMUver;
  if S2 = '' then
-  if (opSys and opOS2)=opOS2 then
-   if EQList=$2D14 then S:=S + 'OS/2 WSeB' else
-    S := S + 'OS/2 ' +ItoS(WordRec(EQList).Hi div 10) +'.' +ItoS(WordRec(EQList).Hi mod 10)
-     +' ('+ItoS(WordRec(EQList).Hi div 10 + 5) + '.'+ OS2Build + ')'
-   else if (opSys and opWNT)=opWNT then S := S + 'Windows NT'
-    else if (opSys and opWin)=opWin then S := S + 'Windows ' + WinVer
-     else S := S + DosVendor + 'DOS '+ ItoS(WordRec(EQList).Lo)+'.'+ ItoS(WordRec(EQList).Hi)
+  if (opSys and opOS2)<>0 then begin
+   S := S + 'OS/2 ';
+   case EQList of
+    $2d14 : S := S + 'WSeB';
+    $2814 : S := S + 'Merlin';
+    $1e14 : S := S + 'Warp';
+    else    S := S + 'v' +ItoS(WordRec(EQList).Hi div 10) +'.' +ItoS(WordRec(EQList).Hi mod 10);
+   end;
+   S := S +' ('+ItoS(WordRec(EQList).Hi div 10 + 5) + '.'+ OS2Build + ')';
+  end
+  else if (opSys and opWNT)=opWNT then S := S + 'Windows NT or Windows 2000'
+   else if (opSys and opWin)<>0 then S := S + 'Windows ' + WinVer
+    else S := S + DosVendor + 'DOS '+ ItoS(WordRec(EQList).Lo)+'.'+ ItoS(WordRec(EQList).Hi)
  else S := S + S2;
  R.Assign(27,11+Y,69,14+Y);
  P := New(PStaticText, Init(R, S));

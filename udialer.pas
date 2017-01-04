@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -55,7 +55,7 @@ uses Dialogs, Views, Dnapp, StrView, xTime, Drivers, Objects, Phones,
 Type
      PDialBox = ^TDialBox;
      TDialBox = object(TListBox)
-        function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+        function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
 {        destructor Done; virtual;}
      end;
 
@@ -90,7 +90,7 @@ const
 
 implementation
 
-uses Terminal;
+uses Terminal, DnHelp;
 
 function TDialBox.GetText;
  var S: String;
@@ -115,6 +115,8 @@ constructor TAutoDialer.Init;
 begin
   R.Assign(0,1,54,12);
   inherited Init(R, GetString(dlAutoDialer));
+  HelpCtx := hcDialer;
+  Number := GetNum;
 
   {Options := Options or ofCentered;}
   if (InitModem = moInitFail) or (COMPort = nil) then Fail;
@@ -384,15 +386,22 @@ procedure TAutoDialer.Update;
       begin
         for I := 1 to 5 do
           begin
+            {$IFDEF VIRTUALPASCAL}
+            PlaySound(1000, 55);
+            PlaySound(500, 55);
+            {$ELSE}
             Sound(1000);
             DelayTics(1);
             Sound(500);
             DelayTics(1);
+            {$ENDIF}
           end;
         NoSound;
-        Sound(200);
-        DelayTics(1);
-        NoSound;
+        {$IFDEF VIRTUALPASCAL}
+        PlaySound(200, 55);
+        {$ELSE}
+        Sound(200);DelayTics(1);NoSound;
+        {$ENDIF}
       end;
   end;
 

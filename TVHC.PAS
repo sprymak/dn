@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -130,11 +130,9 @@ program TVHC;
 {$M 8192,8192,655360}
 
 uses LFN, {DataCompBoy}
-     Drivers, Objects, Dos, {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF},
-     HelpKernel, advance, advance1, advance2, advance3, collect, ObjType
-{$IFNDEF FPC}
-     , StakDump
-{$ENDIF}
+     Drivers, Objects, Dos, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
+     HelpKern, advance, advance1, advance2, advance3, collect, ObjType
+{$IFNDEF NONBP}, StakDump{$ENDIF}
      ;
 {$I Version.Inc}
 
@@ -142,13 +140,13 @@ uses LFN, {DataCompBoy}
 
 const HlpT : array [1..2] of TStreamRec = (
       (ObjType: otHelpTopic;
-       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(HelpKernel.THelpTopic){$IFNDEF DPMI}^{$ENDIF});
-       Load:    @HelpKernel.THelpTopic.Load;
-       Store:   @HelpKernel.THelpTopic.Store),
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(HelpKern.THelpTopic){$IFDEF OFFS}^{$ENDIF});
+       Load:    @HelpKern.THelpTopic.Load;
+       Store:   @HelpKern.THelpTopic.Store),
       (ObjType: otHelpIndex;
-       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(HelpKernel.THelpIndex){$IFNDEF DPMI}^{$ENDIF});
-       Load:    @HelpKernel.THelpIndex.Load;
-       Store:   @HelpKernel.THelpIndex.Store)
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(HelpKern.THelpIndex){$IFDEF OFFS}^{$ENDIF});
+       Load:    @HelpKern.THelpIndex.Load;
+       Store:   @HelpKern.THelpIndex.Store)
       );
 
 {======================= File Management ===============================}
@@ -218,7 +216,7 @@ end;
         {-DataCompBoy-} {!Russian support!}{letter #241 (yo) NOT supported!}
 function UpStr(Str: String): String;
 var
-  I: Integer;
+  I: AInt;
 begin
   for I := 1 to Length(Str) do
    Case Str[i] of
@@ -275,7 +273,7 @@ end;
 const
   Line: String = '';
   LineInBuffer: Boolean = False;
-  Count: Integer = 0;
+  Count: AInt = 0;
 
 function GetLine(var S: TStream): String;
 label 1;
@@ -371,7 +369,7 @@ end;
 type
   TBuiltInContext = record
     Text: PChar;
-    Number: Word;
+    Number: AWord;
   end;
 
 { A list of all the help contexts defined in APP }
@@ -401,9 +399,9 @@ const
     (Text: 'Zoom';      Number: $FF24)
     );
 
-function IsBuiltInContext(Text: String; var Number: Word): Boolean;
+function IsBuiltInContext(Text: String; var Number: AWord): Boolean;
 var
-  Hi, Lo, Mid, Cmp: Integer;
+  Hi, Lo, Mid, Cmp: AInt;
 begin
   { Convert Text into a #0 terminted PChar }
   Inc(Text[0]);
@@ -442,7 +440,7 @@ type
   TReference = record
     Topic: PString;
     case Resolved: Boolean of
-      True:  (Value: Word);
+      True:  (Value: AWord);
       False: (FixUpList: PFixUp);
   end;
 
@@ -538,7 +536,7 @@ end;
 
 procedure RecordReference(var Topic: String; var S: TStream);
 var
-  I: Integer;
+  I: AInt;
   Ref: PReference;
   FixUp: PFixUp;
 begin
@@ -562,9 +560,8 @@ end;
 {  handles forward references.                                          }
 {-----------------------------------------------------------------------}
 
-procedure ResolveReference(var Topic: String; Value: Word; var S: TStream);
+procedure ResolveReference(var Topic: String; Value: AWord; var S: TStream);
 var
-  I: Integer;
   Ref: PReference;
 
 procedure DoFixUps(P: PFixUp);
@@ -601,9 +598,9 @@ end;
 {   Extract the next word from the given line at offset I.              }
 {-----------------------------------------------------------------------}
 
-function GetWord(var Line: String; var I: Integer): String;
+function GetWord(var Line: String; var I: AInt): String;
 var
-  J: Integer;
+  J: AInt;
 const
   {DataCompBoy} {!Russian support!}{letter #241 (yo) NOT supported!}
   WordChars = [#65..#90,#97..#122,#128..#175,#224..#239,#48..#57,#95];
@@ -638,13 +635,13 @@ type
   PTopicDefinition = ^TTopicDefinition;
   TTopicDefinition = object(TObject)
     Topic: PString;
-    Value: Word;
+    Value: AWord;
     Next: PTopicDefinition;
-    constructor Init(var ATopic: String; AValue: Word);
+    constructor Init(var ATopic: String; AValue: AWord);
     destructor Done; virtual;
   end;
 
-constructor TTopicDefinition.Init(var ATopic: String; AValue: Word);
+constructor TTopicDefinition.Init(var ATopic: String; AValue: AWord);
 begin
   Topic := NewStr(ATopic);
   Value := AValue;
@@ -657,15 +654,16 @@ begin
   if Next <> nil then Dispose(Next,Done);
 end;
 
-function TopicDefinition(var Line: String; var I: Integer): PTopicDefinition;
+function TopicDefinition(var Line: String; var I: AInt): PTopicDefinition;
 var
-  J,K: Integer;
+  J: AInt;
+  K: Integer;
   TopicDef: PTopicDefinition;
-  Value: Word;
+  Value: AWord;
   Topic, W: String;
-  HelpNumber: Word;
+  HelpNumber: AWord;
 const
-  HelpCounter: Word = 2; {1 is hcDragging}
+  HelpCounter: AWord = 2; {1 is hcDragging}
 begin
   Topic := GetWord(Line, I);
   if Topic = '' then
@@ -703,10 +701,10 @@ end;
 {  Extracts a list of topic definitions from the given line at I.       }
 {-----------------------------------------------------------------------}
 
-function TopicDefinitionList(var Line: String; var I: Integer):
+function TopicDefinitionList(var Line: String; var I: AInt):
   PTopicDefinition;
 var
-  J: Integer;
+  J: AInt;
   W: String;
   TopicList, P: PTopicDefinition;
 begin
@@ -738,7 +736,7 @@ const
 
 function TopicHeader(var Line: String): PTopicDefinition;
 var
-  I,J: Integer;
+  I,J: AInt;
   W: String;
   TopicDef: PTopicDefinition;
 
@@ -769,7 +767,7 @@ type
   PCrossRefNode = ^TCrossRefNode;
   TCrossRefNode = record
     Topic: PString;
-    Offset: Integer;
+    Offset: AInt;
     Length: Byte;
     Next: PCrossRefNode;
   end;
@@ -777,16 +775,17 @@ const
   BufferSize = 4096;
 var
   Buffer: array[0..BufferSize-1] of Byte;
-  Ofs: Integer;
+  Ofs: AInt;
 
 function ReadParagraph(var TextFile: TStream; var XRefs: PCrossRefNode;
- var Offset: Integer): PParagraph;
+ var Offset: AInt): PParagraph;
 var
   Line: String;
   State: (Undefined, Wrapping, NotWrapping);
   P: PParagraph;
 
 procedure CopyToBuffer(var Line: String; Wrapping: Boolean); assembler;
+{$IFNDEF BIT_32}
 asm
         PUSH    DS
         CLD
@@ -809,6 +808,30 @@ asm
         POP     DS
         INC     Ofs
 end;
+{$ELSE} {$USES esi,edi,ecx} {$FRAME-}
+  asm
+    cld
+    xor     eax,eax
+    mov     edi,OFFSET Buffer
+    mov      ax,Ofs
+    add     edi,eax
+    mov     esi,Line
+    xor     eax,eax
+    lodsb
+    add     Ofs,ax
+    xchg    eax,ecx
+    rep     movsb
+    xor     al,al
+    test    Wrapping,1
+    je      @@1
+    mov     al,' '-13
+  @@1:
+    add     al,13
+  @@2:
+    stosb
+    inc     Ofs
+end;
+{$ENDIF}
 
 procedure AddToBuffer(var Line: String; Wrapping: Boolean);
 begin
@@ -818,13 +841,13 @@ end;
 
 procedure ScanForCrossRefs(var Line: String);
 var
-  I, BegPos, EndPos, Alias: Integer;
+  I, BegPos, EndPos, Alias: AInt;
 const
   BegXRef = '{';
   EndXRef = '}';
   AliasCh = ':';
 
-procedure AddXRef(XRef: String; Offset: Integer; Length: Byte);
+procedure AddXRef(XRef: String; Offset: AInt; Length: Byte);
 var
   P: PCrossRefNode;
   PP: ^PCrossRefNode;
@@ -840,10 +863,10 @@ begin
   PP^ := P;
 end;
 
-procedure ReplaceSpacesWithFF(var Line: String; Start: Integer;
+procedure ReplaceSpacesWithFF(var Line: String; Start: AInt;
   Length: Byte);
 var
-  I: Integer;
+  I: AInt;
 begin
   for I := Start to Start + Length do
     if Line[I] = ' ' then Line[I] := #$FF;
@@ -949,7 +972,7 @@ begin
 end;
 
 FUNCTION RemoveLeadSpaces( const S: String ): String;
-var I: Integer;
+var I: AInt;
 begin
   I := 1;
   While ( I <= Length( S )) and ( S[ I ] = ' ' ) do Inc( I );
@@ -1014,7 +1037,7 @@ end;
 var
   XRefs: PCrossRefNode;
 
-procedure HandleCrossRefs(var S: TStream; XRefValue: Integer);
+procedure HandleCrossRefs(var S: TStream; XRefValue: AInt);
 {$IFDEF BIT_16}far;{$ENDIF}
 var
   P: PCrossRefNode;
@@ -1034,7 +1057,7 @@ var
   P: PParagraph;
   Topic: PHelpTopic;
   TopicDef: PTopicDefinition;
-  I, J, Offset: Integer;
+  I, J, Offset: AInt;
   Ref: TCrossRef;
   RefNode: PCrossRefNode;
 
@@ -1048,9 +1071,9 @@ begin
   UnGetLine(Line);
 end;
 
-function XRefCount: Integer;
+function XRefCount: AInt;
 var
-  I: Integer;
+  I: AInt;
   P: PCrossRefNode;
 begin
   I := 0;
@@ -1153,7 +1176,7 @@ const
   Header2: array[1..Length(HeaderText2)] of Char = HeaderText2;
   Footer: array[1..Length(FooterText)] of Char = FooterText;
 var
-  I, Count: Integer;
+  I, Count: AInt;
   Dir:  String; {DataCompBoy}
   Name: String; {DataCompBoy}
   Ext:  String; {DataCompBoy}
@@ -1162,7 +1185,7 @@ var
 procedure DoWriteSymbol(P: PReference); {$IFDEF BIT_16}far;{$ENDIF}
 var
   L: array[0..1] of LongInt;
-  I: Word;
+  I: AWord;
 begin
   if (P^.Resolved) then
   begin

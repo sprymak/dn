@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -93,12 +93,13 @@ begin
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd'));
   Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               't'));
   Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-p'));
-  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       '-r'));
+  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-ep'));
   ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        '-rr'));
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-sfxjr'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              '-s'));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-m1'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m2'));
@@ -109,9 +110,8 @@ begin
   if q<>'' then ListChar := q[1] else ListChar:=' ';
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
   if q='0' then Swap := False else Swap := True;
-  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   if q='0' then UseLFN := False else UseLFN := True;
-  PutTempBefore := 2;
 end;
 
 function TACEArchive.GetID;

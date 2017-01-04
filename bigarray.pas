@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 unit BigArray;
 (* Autor -- SeYKo, 1 Mach 2000 *)
 
@@ -60,8 +60,8 @@ type
   TArray = object(TObject)
     constructor Init(AMaxCount, AItemSize: Word);
     destructor  Done; virtual;
-    procedure Load(var S: TStream);
-    procedure Store(var S: TStream);
+{    procedure Load(var S: TStream); }
+{    procedure Store(var S: TStream);}
     function  Count:    Word;
     function  MaxCount: Word;
     function  ItemSize: Word;
@@ -138,7 +138,7 @@ const
 
 implementation
 Uses
-  {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF};
+  {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
 
 constructor TArray.Init(AMaxCount, AItemSize: Word);
 var
@@ -167,7 +167,7 @@ begin
   end;
 end;
 
-procedure TArray.Load(var S: TStream);
+{procedure TArray.Load(var S: TStream);
 var
   tMaxCount, tItemSize, tCurCount, tUpIndex: Word;
   S_OLD, S_NEW: LongInt;
@@ -203,16 +203,16 @@ begin
   UpIndex  :=tUpIndex;
   S.Read(Items^, S_NEW);
   UpItems:=Items+(_MaxCount-(CurCount-UpIndex))*_ItemSize;
-end;
+end;}
 
-procedure TArray.Store(var S: TStream);
+{procedure TArray.Store(var S: TStream);
 begin
   S.Write(_MaxCount, Sizeof(_MaxCount));
   S.Write(_ItemSize, Sizeof(_ItemSize));
   S.Write(CurCount, Sizeof(CurCount));
   S.Write(UpIndex, Sizeof(UpIndex));
   S.Write(Items^, _MaxCount * _ItemSize);
-end;
+end;}
 
 function TArray.Count: Word;
 begin
@@ -327,7 +327,7 @@ end;
 
 procedure TArray.Error(Code, Info: Integer);
 begin
- {WriteLn('TArray.Error: Code=',Code,' Info=',Info);}
+  WriteLn('TArray.Error: Code=',Code,' Info=',Info);
 end;
 
 constructor TBigArrayNode.Init(AMaxCount, AItemSize: Word);
@@ -356,7 +356,7 @@ end;
 destructor TBigArray.Done;
 begin
   if CurCount<>0 then DeleteTo(0,0,CurCount,nil);
-  If CurNode<>nil then Dispose(CurNode, Done);
+  FreeObject(CurNode);
   _MaxCount:=0; CurCount:=0; CurIndex:=0;
   inherited Done;
 end;
@@ -435,7 +435,7 @@ begin
       Item:=PChar(Item)+tCount*CurNode^.ItemSize;
       Dec(ACount,tCount);
     end;
-    Inc(Index,CurNode^.Count);
+    Inc(Index,tCount);
   end;
 end;
 
@@ -463,14 +463,14 @@ begin
           CurNode^.Next^.Prev:=CurNode^.Prev;
           if CurNode^.Prev<>nil then CurNode^.Prev^.Next:=CurNode^.Next;
           CurNode:=CurNode^.Next;
-          if tNode<>nil then Dispose(tNode, Done); tNode:=nil;
+          FreeObject(tNode);
         end else
         if CurNode^.Prev<>nil then begin
           Dec(_MaxCount,CurNode^._MaxCount); tNode:=CurNode;
           CurNode^.Prev^.Next:=CurNode^.Next;
           if CurNode^.Next<>nil then CurNode^.Next^.Prev:=CurNode^.Prev;
           CurNode:=CurNode^.Prev; Dec(CurIndex,CurNode^.Count);
-          if tNode<>nil then Dispose(tNode, Done); tNode:=nil;
+          FreeObject(tNode);
         end;
       end else
       if (CurNode^.Next <> nil) then
@@ -483,7 +483,7 @@ begin
           CurNode^.Next:=tNode^.Next;
           if tNode^.Next<>nil then tNode^.Next^.Prev:=CurNode;
           Dec(_MaxCount,tNode^._MaxCount);
-          if tNode<>nil then Dispose(tNode, Done); tNode:=nil;
+          FreeObject(tNode);
         end;
         Inc(Index,tCount);
       end else
@@ -559,7 +559,7 @@ begin
     CurNode^.Next:=tNode^.Next;
     if tNode^.Next<>nil then tNode^.Next^.Prev:=CurNode;
     Dec(_MaxCount,tNode^._MaxCount);
-    if tNode<>nil then Dispose(tNode, Done); tNode:=nil;
+    FreeObject(tNode);
   end;
 end;
 
@@ -578,7 +578,7 @@ begin
       Item:=PChar(Item)+tCount*CurNode^.ItemSize;
       Dec(ACount,tCount);
     end;
-    Inc(Index,CurNode^.Count);
+    Inc(Index,tCount);
   end;
 end;
 
@@ -672,7 +672,7 @@ end;
 
 procedure TBigArray.Error(Code: Integer; Info: LongInt);
 begin
- {WriteLn('TArray.Error: Code=',Code,' Info=',Info);}
+  WriteLn('TArray.Error: Code=',Code,' Info=',Info);
 end;
 
 end.

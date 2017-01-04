@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -116,7 +116,7 @@ const
 implementation
 
 uses
-  DOS, DNApp, advance, advance1, advance2, advance3, Memory, Startup, Commands;
+  DOS, DNApp, advance, advance1, Memory, Startup, Commands, VideoMan;
 
 const
   StarChars : Array [0..5] of Char = (#32,#250,#249,#7,#4,#15);
@@ -283,7 +283,7 @@ procedure TProjector.Draw;
             ((L:-1;R:0),(L:-1;R:0),(L:1;R:1),(L:2;R:2),(L:3;R:3),(L:3;R:3),(L:2;R:2),(L:1;R:1)),
             ((L:-1;R:0),(L:-1;R:0),(L:1;R:0),(L:2;R:1),(L:3;R:2),(L:2;R:1),(L:1;R:0),(L:-1;R:0))
             );
- var B: Array[-20..220] of Word;
+ var B: Array[-20..220] of AWord;
      I,K,L: Integer;
      W: Word;
 begin
@@ -445,6 +445,7 @@ begin
   HideMouse;
   if ButtonCount > 0 then
   if MouseVisible then
+      {$IFNDEF VIRTUALPASCAL}
       asm
         mov ax, 4
         mov cx, MX
@@ -452,7 +453,11 @@ begin
         push bp
         int 33h
         pop bp
-       end else
+      end
+      {$ELSE}
+      HideMouse
+      {$ENDIF}
+      else
        begin
          MouseX := MX; MouseY := MY;
        end;
@@ -466,6 +471,5 @@ begin
       Application^.PutEvent(Event);
     end;
 end;
-
 
 end.

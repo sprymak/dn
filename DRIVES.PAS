@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -66,9 +66,9 @@ type
    CurDir: String;          {DataCompBoy}
    DIZOwner: String;        {DataCompBoy}
    NoMemory: Boolean;
-   Flags: Word;
+   Flags: AWord;
    LFNLen: byte; EXTLen: byte;
-   DirFLP, FilFLP: word;
+   DirFLP, FilFLP: Aword;
    Param: byte; innum: byte;
    SizeX: LongInt;
    constructor Init(ADrive: Byte; AOwner: Pointer; num: byte);
@@ -121,11 +121,11 @@ function GetFilesColl(
 
 const
   TempDirs: PSortedCollection = nil;
-  TempFiles: PDirStorage = nil;
+  TempFiles: PFilesCollection = nil;
 
 implementation
 uses Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
-     Dialogs, FileFind, FlPanelX, filediz;
+     Dialogs, FileFind, FlPanelX, filediz, CmdLine{!!};
 
 type
         {-DataCompBoy-}
@@ -168,7 +168,7 @@ procedure TDrive.GetFreeSpace;
  var FreeSpc: TSize;
 begin
  FreeSpc := Disk_Free(Byte(CurDir[1])-64);
- S := '~'+Fstr(FreeSpc)+GetString(dlDIFreeDisk)+Copy(CurDir, 1, 2);
+ S := '~'+FStr(FreeSpc)+GetString(dlDIFreeDisk)+Copy(CurDir, 1, 2);
 end;
         {-DataCompBoy-}
 
@@ -319,16 +319,22 @@ begin
     if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
     if P^.Attr and Directory <>0 then if DirFLP<>65535
                                        then OPT:=OPT or DirFLP
-                                       else {if (Length(GetSName(S))<=8) and}
-                                            {   (Length(GetExt(S))<=4)      }
+                                       else {$IFNDEF COMBINE_MIXED}
+                                            if (Length(GetSName(S))<=8) and
+                                               (Length(GetExt(S))<=4)
+                                            {$ELSE}
                                             if (not IsMixedCase(S)) {JO}
+                                            {$ENDIF}
                                              then OPT:=OPT or flnUpCase
                                              else
                                  else if FilFLP<>65535
                                        then OPT:=OPT or FilFLP
-                                       else {if (Length(GetSName(S))<=8) and}
-                                            {   (Length(GetExt(S))<=4)      }
+                                       else {$IFNDEF COMBINE_MIXED}
+                                            if (Length(GetSName(S))<=8) and
+                                               (Length(GetExt(S))<=4)
+                                            {$ELSE}
                                             if (not IsMixedCase(S)) {JO}
+                                            {$ENDIF}
                                              then OPT:=OPT or flnLowCase
                                              else ;
     S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
@@ -529,7 +535,7 @@ end;
 procedure TDrive.UseFile;
  var S: String;
 begin
- S := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
+ if P^.Owner<>nil then S := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
  Message(Application, evCommand, Command, @S);
 end;
         {-DataCompBoy-}
@@ -635,11 +641,13 @@ function GetFilesColl;
 var
   Files: PFilesCollection;
   SR: lSearchRec;
-  AllFiles: Boolean;
+  NormMask: Boolean;
   P: PFileRec;
   L: TSize;
   q: Longint;
+  fm: string;
 {$IFDEF CHDIRDEBUG}
+  ev: TEvent;
  const NumCal: word = 0;
        States:Array[0..3] of char = '|/-\';
        PanelState: PChar = Ptr($B800, 0);
@@ -650,12 +658,17 @@ begin
 {$ELSE}
 begin
 {$ENDIF}
-  TFiles:=1;
-  AllFiles := (FileMask = x_x) or (FileMask='*');
+  {$IFDEF CHDIRTIMER}
+  if ShiftState and (kbLeftShift+kbRightShift) <> 0 then DDTimer:=Get100s;
+  {$ENDIF}
+  TFiles:=0;
   Files := New(PFilesCollection, Init($10, $20));
   PFilesCollection(Files)^.Owner := Owner;
   PFilesCollection(Files)^.SortMode := SortMode;
-  lFindFirst(MakeNormName(CurDir^,x_x), $FF xor VolumeID, SR);
+
+  NormMask := not PackMask(FileMask, fm, LFNDisabled(CurDir^));
+
+  lFindFirst(MakeNormName(CurDir^,fm), $FF xor VolumeID, SR);
   While (DosError = 0) and not Abort and (IOResult = 0) and MemOK do
   begin
 {$IFDEF CHDIRDEBUG}
@@ -663,12 +676,21 @@ begin
    inc(NumCal);
    if NumCal=4 then NumCal:=0;
 {$ENDIF}
-   if (SR.SR.Attr and VolumeID = 0) and not ((SR.SR.Name[0] = #1) and (SR.SR.Name[1] = '.')) then
-    if (not Security or (Security and (SR.SR.Attr and Hidden=0))) or (SR.SR.Name[1] = '.') then
-    if AllFiles or (SR.SR.Attr and Directory <> 0) or (InFilter(SR.FullName, FileMask)) then
-    if (SR.SR.Attr and Directory = 0) or
+   if ((SR.SR.Attr and VolumeID = 0) and
+       not ((SR.SR.Name[0] = #1) and (SR.SR.Name[1] = '.'))
+      )          and
+      ((not Security) or
+       (SR.SR.Attr and Hidden=0) or
+       (SR.SR.Name[1] = '.')
+      )          and
+      (NormMask or
+       (SR.SR.Attr and Directory <> 0) or
+       (InFilter(SR.FullName, FileMask))
+      )          and
+      ((SR.SR.Attr and Directory = 0) or
        (SR.SR.Name[1] <> '.') or
-       (CurDir^[0] > #3) then
+       (CurDir^[0] > #3)
+      )          then
     begin
       P := NewFileRec(SR.FullName, SR.SR.Name, SR.FullSize, SR.SR.Time, SR.SR.Attr, CurDir);
       if SR.SR.Attr and Directory = 0 then
@@ -706,6 +728,15 @@ begin
  if (SortMode <> -1) and (Files^.Count>0) then Files^.Sort;
 {$IFDEF CHDIRDEBUG}
  PanelState^:=StartChar;
+{$ENDIF}
+{$IFDEF CHDIRTIMER}
+ if ShiftState and (kbLeftShift+kbRightShift) <> 0 then begin
+  DDTimer:=Get100s-DDTimer;
+  ev.what:=evCommand;
+  ev.command:=cmShowTimeInfo;
+  ev.infoptr:=nil;
+  Application^.PutEvent(ev);
+ end;
 {$ENDIF}
 end;
         {-DataCompBoy-}
@@ -926,10 +957,10 @@ begin
   else begin
         S := GetString(dlTotal);
         if B = 1 then S := S+'1~ '+GetString(dlDIFile)
-                            else S := S+ItoS(B)+'~ '+GetString(dlDIFiles);
+                 else S := S+ItoS(B)+'~ '+GetString(dlDIFiles);
         S := S + GetString(dlDIWith) + '~';
         if C = 1 then S := S + '1~ '+GetString(dlDIByte)
-                        else S := S + FStr(C)+'~ '+GetString(dlDIBytes);
+                 else S := S + FStr(C)+'~ '+GetString(dlDIBytes);
        end;
  CalcTotalInfo := S;
 end;

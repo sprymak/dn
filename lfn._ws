@@ -1,0 +1,684 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source 1.51.08
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//
+//  This programs is free for commercial and non-commercial use as long as
+//  the following conditions are aheared to.
+//
+//  Copyright remains RIT Research Labs, and as such any Copyright notices
+//  in the code are not to be removed. If this package is used in a
+//  product, RIT Research Labs should be given attribution as the RIT Research
+//  Labs of the parts of the library used. This can be in the form of a textual
+//  message at program startup or in documentation (online or textual)
+//  provided with the package.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are
+//  met:
+//
+//  1. Redistributions of source code must retain the copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     "Based on Dos Navigator by RIT Research Labs."
+//
+//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//  The licence and distribution terms for any publically available
+//  version or derivative of this code cannot be changed. i.e. this code
+//  cannot simply be copied and put under another distribution licence
+//  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////}
+{(c) Anton Fedorov aka DataCompBoy 19.07.2000 04:04:29}
+(*
+ INT 21h  AX=714E
+ INT 21 - Windows95 - LONG FILENAME - FIND FIRST MATCHING FILE
+         AX = 714Eh
+         CL = allowable-attributes mask (bits 0 and 5 ignored)
+         CH = required-attributes mask
+         SI = date/time format
+         DS:DX -> ASCIZ filespec (both "*" and "*.*" match any filename)
+         ES:DI -> FindData record
+ Return: CF clear if successful
+             AX = filefind handle (needed to continue search)
+             CX = Unicode conversion flags
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+ Notes:  this function is only available when IFSMgr is running,
+         not under bare MS-DOS 7
+         the application should close the filefind handle
+         with AX=71A1h as soon as it has completed its search
+*)
+
+procedure lSIM95FindFirst(const Path: String; Attr: Word; var R: lSearchRec);
+var
+  Regs: DPMIRegisters;
+begin
+  NameToNameZ(Path, lFindDataRec((LowBuf^)).FullName);
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+
+  with Regs do
+  begin
+    AX := $714E;
+    CX := Attr;
+    SI := 1;
+    DS := LowSeg;
+    DX := Ofs(lFindDataRec((LowBuf^)).FullName)-Ofs((LowBuf^));
+    ES := LowSeg;
+    DI := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then
+    begin
+      R.FileHandle := $FFFF;
+      DosError := AX;
+    end
+    else
+    begin
+      R.FileHandle := AX;
+      FindDataToSearchRec(lFindDataRec((LowBuf^)), R);
+      DosError := 0;
+    end;
+  end;
+end;
+
+(*
+ INT 21h  AX=714F
+ INT 21 - Windows95 - LONG FILENAME - FIND NEXT MATCHING FILE
+         AX = 714Fh
+         BX = filefind handle (from AX=714Eh)
+         SI = date/time format
+         ES:DI -> buffer for FindData record
+ Return: CF clear if successful
+             CX = Unicode conversion flags
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+ Note:   this function is only available when IFSMgr is running,
+         not under bare MS-DOS 7
+*)
+
+procedure lSIM95FindNext(var R: lSearchRec);
+var
+  Regs: DPMIRegisters;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  with Regs do
+  begin
+    AX := $714F;
+    BX := R.FileHandle;
+    SI := 1;
+    ES := LowSeg;
+    DI := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
+    else
+    begin
+      FindDataToSearchRec(lFindDataRec((LowBuf^)), R);
+      DosError := 0;
+    end;
+  end;
+end;
+
+(*
+ INT 21h  AX=71A1
+ INT 21 - Windows95 - LONG FILENAME - "FindClose" -
+          TERMINATE DIRECTORY SEARCH
+         AX = 71A1h
+         BX = filefind handle (from AX=714Eh)
+ Return: CF clear if successful
+         CF set on error
+            AX = error code
+                 7100h if function not supported
+ Notes:  this function must be called after starting a search
+         with AX=714Eh, to indicate that the search handle
+         returned by that function will no longer be used
+         this function is only available when IFSMgr is running,
+         not under bare MS-DOS 7
+*)
+
+procedure lSIM95FindClose(var R: lSearchRec);
+var
+  Regs: DPMIRegisters;
+begin
+  if R.FileHandle <> $FFFF then with Regs do
+  begin
+    AX := $71A1;
+    BX := R.FileHandle;
+    SimulateRealModeInt($21, Regs);
+  end;
+end;
+
+(*
+ INT 21h  AX=7160 CL=01
+ INT 21 - Windows95 - LONG FILENAME - GET SHORT (8.3) FILENAME FOR FILE
+         AX = 7160h
+         CL = 01h
+         CH = SUBST expansion flag
+             00h return a path containing true path
+                 for a SUBSTed drive letter
+             80h return a path containing the SUBSTed drive letter
+         DS:SI -> ASCIZ long filename or path
+         ES:DI -> 67-byte buffer for short filename
+ Return: CF set on error
+             AX = error code
+                 02h invalid component in directory path
+                     or drive letter only
+                 03h malformed path or invalid drive letter
+             ES:DI buffer unchanged
+         CF clear if successful
+             ES:DI buffer filled with equivalent short filename
+                   (full path, even if relative path given,
+                    and all uppercase)
+ Note:   this call returns the short name for any
+         long-filename portions of the provided pathname or filename
+*)
+
+(*
+ INT 21h  AX=7160 CL=02
+ INT 21 - Windows95 - LONG FILENAME - GET CANONICAL LONG FILENAME OR PATH
+         AX = 7160h
+         CL = 02h
+         CH = SUBST expansion flag
+             00h return a path containing true path
+                 for a SUBSTed drive letter
+             80h return a path containing the SUBSTed drive letter
+         DS:SI -> ASCIZ short filename or path
+         ES:DI -> 261-byte buffer for canonicalized long name
+ Return: CF set on error
+             AX = error code
+                 02h invalid component in directory path
+                     or drive letter only
+                 03h malformed path or invalid drive letter
+             ES:DI buffer unchanged
+         CF clear if successful
+             ES:DI buffer filled with qualified long name
+                   (can contain lowercase letters)
+*)
+
+procedure lSIM95GetFileNameFunc(const Name: String;
+  var S: String; AFunction: Byte);
+var
+  Regs: DPMIRegisters;
+type
+  TNameZArr = Array[1..2] of TNameZ;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  NameToNameZ(Name, TNameZArr((LowBuf^))[1]);
+
+  with Regs do
+  begin
+    AX    := $7160;
+    CL    := AFunction;
+    CH    := $80;
+    DS    := LowSeg;
+    SI    := 0;
+    ES    := LowSeg;
+    DI    := SizeOf(TNameZ)+1;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then S := Name
+    else
+    begin
+      S := StrPas(TNameZArr((LowBuf^))[2]);
+      CheckColonAndSlash(Name, S);
+    end;
+  end;
+end;
+
+(*
+ INT 21h  AX=7160 CL=00
+ INT 21 - Windows95 - LONG FILENAME - "TRUENAME" - CANONICALIZE PATH
+         AX = 7160h
+         CL = 00h
+         CH = SUBST expansion flag
+             00h return a path containing true path
+                 for a SUBSTed drive letter
+             80h return a path containing the SUBSTed drive letter
+         DS:SI -> ASCIZ filename or path (either long name or short name)
+         ES:DI -> 261-byte buffer for canonicalized name
+ Return: CF set on error
+             AX = error code
+                 02h invalid component in directory path
+                     or drive letter only
+                 03h malformed path or invalid drive letter
+             ES:DI buffer unchanged
+         CF clear if successful
+             ES:DI buffer filled with fully qualified name
+             AX destroyed
+ Desc:   determine the canonical name of the specified
+         filename or path, corresponding to the undocumented
+         TRUENAME command in COMMAND.COM
+ Note:   if a complete path is given, the result will be
+         a short-form complete path; otherwise, the given
+         relative path is appended to the short-form
+         current directory name, '.'/'..'/'...'/etc. are resolved,
+         and the final result uppercased without converting
+         any remaining long-form names to short-form
+*)
+
+procedure SIM95TrueName(const Name: String; var S: String);
+var
+  Regs: DPMIRegisters;
+type
+  TNameZArr = Array[1..2] of TNameZ;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  NameToNameZ(Name, TNameZArr((LowBuf^))[1]);
+
+  with Regs do
+  begin
+    AX    := $7160;
+    CL    := 0;
+    CH    := $00;
+    DS    := LowSeg;
+    SI    := 0;
+    ES    := LowSeg;
+    DI    := SizeOf(TNameZ)+1;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then S := Name
+    else
+    begin
+      S := StrPas(TNameZArr((LowBuf^))[2]);
+      CheckColonAndSlash(Name, S);
+    end;
+  end;
+end;
+
+(*
+ INT 21h  AX=716C
+ INT 21 - Windows95 - LONG FILENAME - CREATE OR OPEN FILE
+         AX = 716Ch
+         BX = access mode and sharing flags
+         CX = attributes
+         DX = action
+         DS:SI -> ASCIZ filename
+         DI = alias hint
+              (number to append to short filename for disambiguation)
+ Return: CF clear if successful
+             AX = file handle
+             CX = action taken
+                 0001h file opened
+                 0002h file created
+                 0003h file replaced
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+*)
+
+procedure lSIM95OpenFile(var F: lFile; RecSize: Word; Action: Byte);
+var
+  Regs: DPMIRegisters;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  if FileRec(F.F).Mode <> fmClosed then Close(F.F);
+
+  if F.FullName[0] = #0 then
+  begin
+    FileRec(F.F).Mode := fmInOut;
+    FileRec(F.F).RecSize := RecSize;
+  end
+  else with Regs do
+  begin
+    Move(F.FullName, LowBuf^, SizeOf(F.FullName));
+    AX    := $716C;
+    BX    := FileMode;
+    CX    := 0;
+    DX    := Action;
+    DS    := LowSeg;
+    SI    := 0;
+    DI    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+    else
+    begin
+      FileRec(F.F).Mode:=fmInOut;
+      FileRec(F.F).Handle := AX;
+      FileRec(F.F).RecSize := RecSize;
+      InOutRes := 0;
+    end;
+  end;
+end;
+
+(*
+ INT 21h  AX=7141
+ INT 21 - Windows95 - LONG FILENAME - DELETE FILE
+         AX = 7141h
+         DS:DX -> ASCIZ long name of file to delete
+         SI = wildcard and attributes flag
+                 0000h wildcards are not allowed,
+                   and search attributes are ignored
+                 0001h wildcards are allowed,
+                   and only files with matching
+                   names and attributes are deleted
+         CL = search attributes
+         CH = must-match attributes
+ Return: CF clear if successful
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+*)
+
+procedure lSIM95EraseFile(var F: lFile);
+var
+  Regs: DPMIRegisters;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  with Regs do
+  begin
+    Move(F.FullName, LowBuf^, SizeOf(F.FullName));
+    AX    := $7141;
+    DS    := LowSeg;
+    DX    := 0;
+    SI    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+                                             else InOutRes := 0;
+  end;
+end;
+
+procedure lSIM95EraseText(var T: lText);
+var
+  Regs: DPMIRegisters;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  with Regs do
+  begin
+    Move(T.FullName, LowBuf^, SizeOf(T.FullName));
+    AX    := $7141;
+    DS    := LowSeg;
+    DX    := 0;
+    SI    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+                                             else InOutRes := 0;
+  end;
+end;
+
+(*
+ INT 21h  AX=7156
+ INT 21 - Windows95 - LONG FILENAME - RENAME FILE
+         AX = 7156h
+         DS:DX -> ASCIZ old file or directory name (long names allowed)
+         ES:DI -> ASCIZ new name (long names allowed)
+ Return: CF clear if successful
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+ Note:   the file may be renamed into a different directory,
+         but not across disks
+*)
+
+procedure lSIM95RenameFile(var F: lFile; const NewName: String);
+var
+  Regs: DPMIRegisters;
+Type TR = Record
+           NameZ: TNameZ;
+           F: record end;
+          end;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  NameToNameZ(NewName, TR((LowBuf^)).NameZ);
+  Move(F.FullName, TR((LowBuf^)).F, SizeOf(F.FullName));
+
+  with Regs do
+  begin
+    AX    := $7156;
+    DS    := LowSeg;
+    DX    := SizeOf(TNameZ)+1;
+    ES    := LowSeg;
+    DI    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+                                             else InOutRes := 0;
+  end;
+end;
+
+procedure lSIM95RenameText(var T: lText; const NewName: String);
+var
+  Regs: DPMIRegisters;
+Type TR = Record
+           NameZ: TNameZ;
+           F: record end;
+          end;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  NameToNameZ(NewName, TR((LowBuf^)).NameZ);
+  Move(T.FullName, TR((LowBuf^)).F, SizeOf(T.FullName));
+
+  with Regs do
+  begin
+    AX    := $7156;
+    DS    := LowSeg;
+    DX    := SizeOf(TNameZ)+1;
+    ES    := LowSeg;
+    DI    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+                                             else InOutRes := 0;
+  end;
+end;
+
+(*
+ INT 21h  AX=7143
+ INT 21 - Windows95 - LONG FILENAME - EXTENDED GET/SET FILE ATTRIBUTES
+         AX = 7143h
+         DS:DX -> ASCIZ filename
+         BL = action
+             00h retrieve attributes
+                 Return: CX = file attributes
+             01h set attributes
+                 CX = attributes
+             02h get physical size of compressed file
+                 Return: DX:AX = actual disk usage of file, in bytes
+             03h set last write date/time
+                 DI = new last-write date
+                 CX = new last-write time
+             04h get last write date/time
+                 Return: CX = last write time
+                         DI = last write date
+             05h set last access date
+                 DI = new last-access date
+             06h get last access date
+                 Return: DI = last access date
+             07h set creation date/time
+                 DI = new creation date
+                 CX = new creation time
+                 SI = hundredths
+                   (10-millisecond units past time in CX, 0-199)
+             08h get creation date/time
+                 Return: CX = creation time
+                         DI = creation date
+                         SI = hundredths
+                           (10-millisecond units past time in CX)
+ Return: CF clear if successful
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+*)
+
+procedure lSIM95FileAttrFunc(var F: lFile; var Attr: Word; Action: Byte);
+var
+  Regs: DPMIRegisters;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  with Regs do
+  begin
+    Move(F.FullName, LowBuf^, SizeOf(F.FullName));
+    AX    := $7143;
+    BL    := Action;
+    if Action = faSetAttr then CX := Attr;
+    DS    := LowSeg;
+    DX    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
+    else
+    begin
+      if Action = faGetAttr then Attr := CX;
+      DosError := 0;
+    end;
+  end;
+end;
+
+procedure lSIM95TextAttrFunc(var T: lText; var Attr: Word; Action: Byte);
+var
+  Regs: DPMIRegisters;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  with Regs do
+  begin
+    Move(T.FullName, LowBuf^, SizeOf(T.FullName));
+    AX    := $7143;
+    BL    := Action;
+    if Action = faSetAttr then CX := Attr;
+    DS    := LowSeg;
+    DX    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
+    else
+    begin
+      if Action = faGetAttr then Attr := CX;
+      DosError := 0;
+    end;
+  end;
+end;
+
+(*
+ INT 21h  AX=7139
+ INT 21 - Windows95 - LONG FILENAME - MAKE DIRECTORY
+         AX = 7139h
+         DS:DX -> ASCIZ long directory name (including path)
+ Return: CF clear if successful
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+*)
+
+(*
+ INT 21h  AX=713A
+ INT 21 - Windows95 - LONG FILENAME - REMOVE DIRECTORY
+         AX = 713Ah
+         DS:DX -> ASCIZ long name of directory to remove
+ Return: CF clear if successful
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+*)
+
+procedure lSIM95DirFunc(const Path: String; AFunction: Word);
+var
+  Regs: DPMIRegisters;
+begin
+  FillWord(Regs, SizeOf(Regs) shr 1, 0);
+  NameToNameZ(Path, TNameZ((LowBuf^)));
+
+  with Regs do
+  begin
+    AX    := AFunction;
+    DS    := LowSeg;
+    DX    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+                                             else InOutRes := 0;
+  end;
+end;
+
+(*
+ INT 21h  AX=713B
+ INT 21 - Windows95 - LONG FILENAME - CHANGE DIRECTORY
+         AX = 713Bh
+         DS:DX -> ASCIZ long name of directory to make current
+ Return: CF clear if successful
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+*)
+
+procedure lSIM95ChDir(const Path: String);
+var
+  C: Char;
+  Regs: DPMIRegisters;
+begin
+  NameToNameZ(Path, TNameZ((LowBuf^)));
+
+  with Regs do
+  begin
+    C := Upcase(TNameZ((LowBuf^))[0]);
+    if (C in ['A'..'Z']) and (TNameZ((LowBuf^))[1] = ':') then
+    begin
+      AH    := $0E;
+      DL    := Byte(C) - $41;
+      SimulateRealModeInt($21, Regs);
+    end;
+
+    AX    := $713B;
+    DS    := LowSeg;
+    DX    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+                                             else InOutRes := 0;
+  end;
+end;
+
+(*
+ INT 21h  AX=7147
+ INT 21 - Windows95 - LONG FILENAME - GET CURRENT DIRECTORY
+         AX = 7147h
+         DL = drive number (00h = current, 01h = A:, etc.)
+         DS:SI -> buffer for ASCIZ directory name
+ Return: CF clear if successful
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+ Notes:  the returned pathname does not include
+         the drive letter, colon, or leading backslash
+*)
+
+procedure lSIM95GetDir(D: Byte; var Path: String);
+var
+  C: Char;
+  Regs: DPMIRegisters;
+begin
+  with Regs do
+  begin
+    C := Char(D + $40);
+
+    AX    := $7147;
+    DL    := D;
+    DS    := LowSeg;
+    SI    := 0;
+    Flags := fCarry;
+    SimulateRealModeInt($21, Regs);
+    if (Flags and fCarry <> 0) or (AX=$7100) then Byte((LowBuf^)) := 0;
+
+    Path := Concat(C, ':\', StrPas(TNameZ((LowBuf^))));
+  end;
+end;
+

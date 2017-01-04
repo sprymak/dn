@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 (***********************************************************************)
 (*                                                                     *)
@@ -87,49 +88,39 @@ function ElapsedTimeInSecs(ET : TEventTimer) : LongInt;
 
 procedure DelayTics(Tics : LongInt);
 
-implementation uses Dos;
+procedure GetUNIXDate(Julian: LongInt; var Year, Month, Day, Hour, Min, Sec: Word);
+
+{$IFNDEF NONBP}
+ {$IFDEF DPMI}
+ var BiosTics : ^LongInt;
+ {$ELSE}
+ Const BiosTics : ^LongInt = Ptr($40,$6C);
+ {$ENDIF}
+{$ENDIF}
+
+implementation
+uses Dos{$IFDEF VIRTUALPASCAL},VPUtils{$ENDIF};
 type
   DayType = (Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday);
 
-
-
 const
   {Set to 1/1/1970 00:00 GMT}
-  StartDate : DateTimeRec = (D:25567;T:0);
-  GmtHourOffset : Integer = 0;   {Default no GMT adjustments}
+  StartDate     : DateTimeRec = (D:25567;T:0);
+  GmtHourOffset : Integer     = 0;                {Default no GMT adjustments}
+  Threshold2000 : Integer     = 1900;
 
-  MinYear  = 1900;
-  MaxYear  = 2078;
-  MinDate  = $0000;        {= 01/01/1900}
-  MaxDate  = $FF62;        {= 12/31/2078}
-  Date1900 = $0000;        {= 01/01/1900}
-  Date1980 = $7223;        {= 01/01/1980}
-  Date2000 = $8EAC;        {= 01/01/2000}
-  BadDate  = $FFFF;
-
-  Threshold2000 : Integer = 1900;
-
-  MinTime = 0;               {= 00:00:00 am}
-  MaxTime = 86399;           {= 23:59:59 pm}
-  BadTime = $FFFFFFFF;
-  First2Months = 58;         {1900 was not a leap year}
-  FirstDayOfWeek = Monday;   {01/01/1900 was a Monday}
-
-  SecondsInDay = 86400;      {number of seconds in a day}
-  SecondsInHour = 3600;      {number of seconds in an hour}
-  SecondsInMinute = 60;      {number of seconds in a minute}
-  HoursInDay = 24;           {number of hours in a day}
-  MinutesInHour = 60;        {number of minutes in an hour}
-
-  TicsFreq = 1675;
-  SecsFreq = 92;
-
-  TicsPerDay = 1573040;      {Assumes 18.20648 tics/sec}
-
-var
-  BiosTics : LongInt absolute $40:$6C;
-
-
+  MinYear         = 1900;
+  MaxYear         = 2078;
+  BadDate         = $FFFF;
+  BadTime         = $FFFFFFFF;
+  First2Months    = 58;                             {1900 was not a leap year}
+  SecondsInDay    = 86400;                        {number of seconds in a day}
+  SecondsInHour   = 3600;                       {number of seconds in an hour}
+  SecondsInMinute = 60;                        {number of seconds in a minute}
+  HoursInDay      = 24;                             {number of hours in a day}
+  TicsPerDay      = 1573040;                       {Assumes 18.20648 tics/sec}
+  TicsFreq        = 1675;
+  SecsFreq        = 92;
 
   function IsLeapYear(Year : Integer) : Boolean;
     {-Return True if Year is a leap year}
@@ -346,7 +337,7 @@ var
     xIncDateTime(StartDate, DTR, 0, YMTime);
 
     {Add the GMT hour offset}
-    xIncDateTime(DTR, DTR, 0, 3600 * GmtHourOffset);
+    xIncDateTime(DTR, DTR, 0, SecondsInHour * GmtHourOffset);
 
     {Convert to DT format}
     with DT do begin
@@ -377,7 +368,11 @@ begin
     Tics := TicsPerDay;
 
   with ET do begin
-    StartTics := BiosTics;
+    {$IFNDEF NONBP}
+    StartTics := BiosTics^;
+    {$ELSE}
+    StartTics := GetTimemSec div 55;
+    {$ENDIF}
     ExpireTics := StartTics + Tics;
   end;
 end;
@@ -396,7 +391,11 @@ var
 begin
   with ET do begin
     {Get current tics; assume timer has expired}
-    CurTics := BiosTics;
+    {$IFNDEF NONBP}
+    CurTics := BiosTics^;
+    {$ELSE}
+    CurTics := GetTimemSec div 55;
+    {$ENDIF}
     TimerExpired := True;
 
     {Check normal expiration}
@@ -417,7 +416,11 @@ var
   CurTics : LongInt;
 begin
   with ET do begin
-    CurTics := BiosTics;
+    {$IFNDEF NONBP}
+    CurTics := BiosTics^;
+    {$ELSE}
+    CurTics := GetTimemSec div 55;
+    {$ENDIF}
     if CurTics >= StartTics then
       {No midnight wrap yet}
       ElapsedTime := CurTics - StartTics
@@ -473,11 +476,31 @@ end;
     end;
 
     {Subtract GMT hour offset}
-    xIncDateTime(DTR, DTR, 0, -(3600 * GmtHourOffset));
+    xIncDateTime(DTR, DTR, 0, -(SecondsInHour * GmtHourOffset));
 
     {Diff between date/time stamp and 1/1/1970 (in seconds)}
     DateTimeDiff(DTR, StartDate, DiffDays, DiffSecs);
     xPackToYMTimeStamp := DiffSecs + (DiffDays * SecondsInDay);
   end;
 
+procedure GetUNIXDate(Julian: LongInt; var Year, Month, Day, Hour, Min, Sec: Word);
+  var
+    L : LongInt;
+    DT: DateTime;
+begin
+  L := xYMTimeStampToPack(Julian);
+  UnpackTime(L, DT);
+  Year := DT.Year;
+  Month := DT.Month;
+  Day := DT.Day;
+  Hour := DT.Hour;
+  Min := DT.Min;
+  Sec := DT.Sec;
+end;
+
+
+{$IFDEF DPMI}
+begin
+ BiosTics:=Ptr(seg0040, $6C);
+{$ENDIF}
 end.

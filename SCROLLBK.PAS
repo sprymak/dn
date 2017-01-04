@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 unit ScrollBk;
 
 interface
@@ -93,7 +93,7 @@ procedure DeallocateScrollbk ;
 implementation
 uses advance, advance1, advance2, advance3, Memory, Terminal, Commands,
      RStrings, DNHelp, HistList, Messages, DNStdDlg, DNApp, MicroEd, Menus,
-     ExtraMemory;
+     ExtraMem;
 
 
 const  BackStream: PStream = nil;
@@ -113,7 +113,7 @@ begin
   BackStream := nil; SBackEnd := 0;
 
   Size := 16384;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
   if XMSFound and (XMSFree >= Size shr 10) then
     begin
       BackStream := New(PXMSStream, Init(Size, Size));
@@ -135,7 +135,7 @@ begin
            EmsCurHandle := $FFFF;
         end else Exit
     end;
-{$ENDIF};
+{$ENDIF NOEXTRA};
   Size := Min(Size, MaxAvail - 16384);
 
   BackStream := New(PMemoryStream, Init(Size, 2048));
@@ -146,7 +146,7 @@ end;
 
 Procedure  DeallocateScrollBk ;
    begin
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
      EMSCurPage  := $FFFF;
      EmsCurHandle := $FFFF;
 {$ENDIF}
@@ -155,7 +155,7 @@ Procedure  DeallocateScrollBk ;
          Dispose(BackStream, Done);
          BackStream := nil;
        end;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
      EMSCurPage  := $FFFF;
      EmsCurHandle := $FFFF;
 {$ENDIF}
@@ -419,8 +419,8 @@ begin
 end;
 
 constructor TScrollBack.Load;
-  var W,I: Word;
-      B: Array [0..200] of Word;
+  var W,I: AWord;
+      B: TDrawBuffer;
 begin
   inherited Load(S);
   if ScrollbackBuffer <> nil then
@@ -438,16 +438,16 @@ begin
 end;
 
 procedure TScrollBack.Store;
-  var W,I: Word;
+  var W,I: AWord;
 
   procedure DoWrite(P: PScrollRec); far;
-    var B: Array [0..200] of Word;
-        I: Word;
+    var B: TDrawBuffer;
+        I: AWord;
   begin
     I := P^.Len;
     P^.Read(B, 0, I);
     S.Write(I, SizeOf(I));
-    S.Write(B, I*SizeOf(Word));
+    S.Write(B, I*SizeOf(AWord));
   end;
 
 begin

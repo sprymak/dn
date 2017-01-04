@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -97,26 +97,26 @@ TYPE
   TListViewer = object(TView)
     HScrollBar: PScrollBar;
     VScrollBar: PScrollBar;
-    NumCols: Integer;
-    TopItem: Integer;
-    Focused: Integer;
-    Range: Integer;
-    constructor Init(var Bounds: TRect; ANumCols: Word;
+    NumCols: LongInt;
+    TopItem: LongInt;
+    Focused: LongInt;
+    Range: LongInt;
+    constructor Init(var Bounds: TRect; ANumCols: LongInt;
       AHScrollBar, AVScrollBar: PScrollBar);
     constructor Load(var S: TStream);
     procedure ChangeBounds(var Bounds: TRect); virtual;
     procedure Draw; virtual;
-    procedure FocusItem(Item: Integer); virtual;
+    procedure FocusItem(Item: LongInt); virtual;
     function GetPalette: PPalette; virtual;
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
-    function IsSelected(Item: Integer): Boolean; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function IsSelected(Item: LongInt): Boolean; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure SelectItem(Item: Integer); virtual;
-    procedure SetRange(ARange: Integer);
+    procedure SelectItem(Item: LongInt); virtual;
+    procedure SetRange(ARange: LongInt);
     procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Store(var S: TStream);
   private
-    procedure FocusItemNum(Item: Integer); virtual;
+    procedure FocusItemNum(Item: LongInt); virtual;
   end;
 
 IMPLEMENTATION
@@ -246,10 +246,10 @@ end;
 
 { TListViewer }
 
-constructor TListViewer.Init(var Bounds: TRect; ANumCols: Word;
+constructor TListViewer.Init(var Bounds: TRect; ANumCols: LongInt;
   AHScrollBar, AVScrollBar: PScrollBar);
 var
-  ArStep, PgStep: Integer;
+  ArStep, PgStep: LongInt;
 begin
   TView.Init(Bounds);
   Options := Options or (ofFirstClick + ofSelectable);
@@ -280,7 +280,7 @@ begin
   TView.Load(S);
   GetPeerViewPtr(S, HScrollBar);
   GetPeerViewPtr(S, VScrollBar);
-  S.Read(NumCols, SizeOf(Word) * 4);
+  S.Read(NumCols, SizeOf(LongInt) * 4);
 end;
 
 procedure TListViewer.ChangeBounds(var Bounds: TRect);
@@ -294,9 +294,9 @@ end;
 
 procedure TListViewer.Draw;
 var
-  I, J, Item: Integer;
+  I, J, Item: LongInt;
   NormalColor, SelectedColor, FocusedColor, Color: Word;
-  ColWidth, CurCol, Indent: Integer;
+  ColWidth, CurCol, Indent: LongInt;
   B: TDrawBuffer;
   Text: String;
   SCOff: Byte;
@@ -355,7 +355,7 @@ begin
   end;
 end;
 
-procedure TListViewer.FocusItem(Item: Integer);
+procedure TListViewer.FocusItem(Item: LongInt);
 begin
   if VScrollBar <> nil then VScrollBar^.SetValue(Item);
   Item := VScrollBar^.Value;
@@ -368,7 +368,7 @@ begin
     else TopItem := Item - Item mod Size.Y - (Size.Y*(NumCols - 1));
 end;
 
-procedure TListViewer.FocusItemNum(Item: Integer);
+procedure TListViewer.FocusItemNum(Item: LongInt);
 begin
   if Item < 0 then Item := 0
   else if (Item >= Range) and (Range > 0) then Item := Range-1;
@@ -382,12 +382,12 @@ begin
   GetPalette := @P;
 end;
 
-function TListViewer.GetText(Item: Integer; MaxLen: Integer): String;
+function TListViewer.GetText(Item: LongInt; MaxLen: Integer): String;
 begin
   Abstract;
 end;
 
-function TListViewer.IsSelected(Item: Integer): Boolean;
+function TListViewer.IsSelected(Item: LongInt): Boolean;
 begin
   IsSelected := Item = Focused;
 end;
@@ -398,8 +398,8 @@ const
 var
   Mouse: TPoint;
   ColWidth: Word;
-  OldItem, NewItem: Integer;
-  Count: Word;
+  OldItem, NewItem: LongInt;
+  Count: LongInt;
 begin
   TView.HandleEvent(Event);
   if Event.What = evMouseDown then
@@ -506,12 +506,12 @@ begin
       end;
 end;
 
-procedure TListViewer.SelectItem(Item: Integer);
+procedure TListViewer.SelectItem(Item: LongInt);
 begin
   Message(Owner, evBroadcast, cmListItemSelected, @Self);
 end;
 
-procedure TListViewer.SetRange(ARange: Integer);
+procedure TListViewer.SetRange(ARange: LongInt);
 begin
   Range := ARange;
   if VScrollBar <> nil then
@@ -546,7 +546,7 @@ begin
   TView.Store(S);
   PutPeerViewPtr(S, HScrollBar);
   PutPeerViewPtr(S, VScrollBar);
-  S.Write(NumCols, SizeOf(Word) * 4);
+  S.Write(NumCols, SizeOf(LongInt) * 4);
 end;
 
 END.

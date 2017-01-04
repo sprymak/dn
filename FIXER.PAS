@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,10 +50,11 @@ unit Fixer;
 
 interface
 
-uses Objects, Views, Drivers, Dos, Memory, Menus, Messages, DiskTool, HideView,
-     advance, advance1, advance2, advance3, Dialogs, Commands, DNApp, DNStdDlg,
-     FViewer, RStrings, SWE, Tree, FilesCol, Validate, UniWin, DNHelp,
-     collect;
+uses Objects, Views, Drivers, Dos, Memory, Menus, Messages, HideView, advance,
+     advance1, advance2, advance3, Dialogs, Commands, DNApp, DNStdDlg, FViewer,
+     RStrings, SWE, Tree, FilesCol, Validate, UniWin, DNHelp, collect
+     {$IFNDEF NONBP}, DiskTool{$ENDIF}
+     ;
 
 type
     PDiskStream = ^TDiskStream;
@@ -103,7 +104,7 @@ type
 
     PCharBox = ^TCharBox;
     TCharBox = object(TListBox)
-     function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+     function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     end;
 
 implementation
@@ -808,6 +809,7 @@ procedure TDiskFixer.HandleEvent;
 
 begin
  TView.HandleEvent(Event);
+ if Event.What = evNothing then exit;
  if Clipboard <> nil then EnableCommands([cmPaste]) else DisableCommands([cmPaste]);
  if BlockStart <> BlockEnd then EnableCommands([cmCopy, cmFixBlockWrite, cmClear])
                            else DisableCommands([cmCopy, cmFixBlockWrite, cmClear]);
@@ -815,10 +817,19 @@ begin
   1: begin HexPos := (Size.X - 12) div 4; if HexPos <= 0 then HexPos := 1; end;
   2: HexPos := 32;
   3: begin
-      if PDiskStream(Fl)^.Drv^.FAT12 then W := 3 else W := 4;
-      W := W * ((Size.X - 3) div (2*8));
-      if W = 0 then if PDiskStream(Fl)^.Drv^.FAT12 then W := 3 else W := 4;
-      HexPos := W;
+      if Fl<>nil then begin
+       case PDiskStream(Fl)^.Drv^.FATType of
+        FAT12: W := 3;
+        FAT16: W := 4;
+       end;
+       W := W * ((Size.X - 3) div (2*8));
+       if W = 0 then
+        case PDiskStream(Fl)^.Drv^.FATType of
+         FAT12: W := 3;
+         FAT16: W := 4;
+        end;
+       HexPos := W;
+      end;
      end;
   else HexPos := 255;
  end;
@@ -908,7 +919,7 @@ begin
               {cmFATMode: begin ViewMode := 3; DrawView; CE end;}
              end;
   evKeyDown: case Event.KeyCode of
-               kbESC: begin Message(Application, evCommand, cmClose, nil); CE end;
+               kbESC: begin CE; Message(Application, evCommand, cmClose, nil); end;
                kbEnter: begin
                          BlockOff;
                          case ViewMode of
@@ -970,9 +981,16 @@ begin
                                                  else XPos := ((XPos div 32)-1)*32 + 14;
                                     end;
                           3: begin
-                              if PDiskStream(Fl)^.Drv^.FAT12 then
-                               if (XPos mod 3 = 0) then Dec(XPos, 2) else Dec(XPos) else Dec(XPos, 2);
-                               if XPos < 0 then begin Inc(XPos, HexPos); CountUp(1); end;
+                              case PDiskStream(Fl)^.Drv^.FATType of
+                               FAT12: if (XPos mod 3 = 0)
+                                       then Dec(XPos, 2)
+                                       else Dec(XPos);
+                               FAT16: Dec(XPos, 2);
+                              end;
+                              if XPos < 0 then begin
+                               Inc(XPos, HexPos);
+                               CountUp(1);
+                              end;
                              end;
                          end;
                          CheckMark;
@@ -995,10 +1013,16 @@ begin
                                        if XPos + 32 > LastChars then Dec(XPos, 32);
                                     end;
                           3: begin
-                              if PDiskStream(Fl)^.Drv^.FAT12 then
-                               if XPos mod 3 = 0 then Inc(XPos) else Inc(XPos,2) else Inc(XPos, 2);
-                               if XPos >= Size.Y * HexPos then
-                                begin Dec(XPos, HexPos); CountDown(1); end;
+                              case PDiskStream(Fl)^.Drv^.FATType of
+                               FAT12: if XPos mod 3 = 0
+                                       then Inc(XPos)
+                                       else Inc(XPos,2);
+                               FAT16: else Inc(XPos, 2);
+                              end;
+                              if XPos >= Size.Y * HexPos then begin
+                               Dec(XPos, HexPos);
+                               CountDown(1);
+                              end;
                              end;
                          end;
                          CheckMark;
@@ -1035,23 +1059,27 @@ begin
                            'E', 'e': begin
                                       BufModified := On;
                                       W := $FFFF;
-                                      if PDiskStream(Fl)^.Drv^.FAT12 then
-                                       begin
-                                        W := W and $FFF;
-                                        if XPos mod 3 <> 0 then W := W shl 4 or (Buf^[BufPos+XPos] and $F)
-                                                           else W := W or (Buf^[BufPos+XPos+1] and $F0) shl 8;
-                                        Move(W, Buf^[BufPos+XPos], 2);
-                                        end
-                                       else Move(W, Buf^[BufPos+XPos], 2);
-                                       CE; DrawView;
+                                      case PDiskStream(Fl)^.Drv^.FATType of
+                                       FAT12: begin
+                                               W := W and $FFF;
+                                               if XPos mod 3 <> 0
+                                                then W := W shl 4 or (Buf^[BufPos+XPos] and $F)
+                                                else W := W or (Buf^[BufPos+XPos+1] and $F0) shl 8;
+                                               Move(W, Buf^[BufPos+XPos], 2);
+                                              end;
+                                       FAT16: Move(W, Buf^[BufPos+XPos], 2);
+                                      end;
+                                      CE; DrawView;
                                 end;
                            '0'..'9': begin
                                       PL := New(PInputWord, Init(LastR, 0, 65535));
                                       W := BufPos + XPos;
-                                      if PDiskStream(Fl)^.Drv^.FAT12 then
-                                       if XPos mod 3 <> 0 then W := (Buf^[W]+Buf^[W+1] shl 8) shr 4
-                                                          else W := (Buf^[W]+Buf^[W+1] shl 8) and $FFF
-                                       else W := Buf^[W] + Buf^[W+1] shl 8;
+                                      case PDiskStream(Fl)^.Drv^.FATType of
+                                       FAT12: if XPos mod 3 <> 0
+                                               then W := (Buf^[W]+Buf^[W+1] shl 8) shr 4
+                                               else W := (Buf^[W]+Buf^[W+1] shl 8) and $FFF;
+                                       FAT16: W := Buf^[W] + Buf^[W+1] shl 8;
+                                      end;
                                       {PL^.SetData(W);}
                                       PutEvent(Event);
                                       I := Owner^.ExecView(PL);
@@ -1060,16 +1088,21 @@ begin
                                       CE;
                                       if I = cmCancel then Exit;
                                       BufModified := On;
-                                      if PDiskStream(Fl)^.Drv^.FAT12 then
-                                       begin
-                                        W := W and $FFF;
-                                        if XPos mod 3 <> 0 then W := W shl 4 or (Buf^[BufPos+XPos] and $F)
-                                                           else W := W or (Buf^[BufPos+XPos+1] and $F0) shl 8;
-                                        Move(W, Buf^[BufPos+XPos], 2);
-                                        end
-                                       else Move(W, Buf^[BufPos+XPos], 2);
-                                      if I <> cmOK then
-                                       begin Event.What := evKeyDown; Event.KeyCode := I; PutEvent(Event); end;
+                                      Case PDiskStream(Fl)^.Drv^.FATType of
+                                       FAT12: begin
+                                               W := W and $FFF;
+                                               if XPos mod 3 <> 0
+                                                then W := W shl 4 or (Buf^[BufPos+XPos] and $F)
+                                                else W := W or (Buf^[BufPos+XPos+1] and $F0) shl 8;
+                                               Move(W, Buf^[BufPos+XPos], 2);
+                                              end;
+                                       FAT16: Move(W, Buf^[BufPos+XPos], 2);
+                                      end;
+                                      if I <> cmOK then begin
+                                       Event.What := evKeyDown;
+                                       Event.KeyCode := I;
+                                       PutEvent(Event);
+                                      end;
                                       DrawView;
                                      end;
                           end;
@@ -1097,12 +1130,13 @@ begin
                 CE
                end;
  end;
- inherited HandleEvent(Event);
+ if Event.What <> evNothing then
+   inherited HandleEvent(Event);
 end;
 
 procedure TDiskFixer.Draw;
 var
-  B: Array[0..255*9] of Word;
+  B: TDrawBuffer;
   C, C2, C3, C4: Byte;
   I, J, K, M: Integer;
   L: LongInt;
@@ -1110,7 +1144,6 @@ var
 
 procedure MoveStr(var B, S; C: Byte);
 begin
-{$IFNDEF FPC}
  asm
   push ds
   lds  si,B
@@ -1143,7 +1176,6 @@ begin
 @@Exit:
   pop  ds
  end;
-{$ENDIF}
 end;
 
 var W: Integer;
@@ -1269,67 +1301,79 @@ procedure DrawFAT;
      Entered: Boolean;
 begin
  BlockEnd := BlockStart;
- While (FilePos + BufPos + XPos + 1 >= FileSize) do
-  if PDiskStream(Fl)^.Drv^.FAT12 then
-   if XPos > 0 then if (XPos mod 3 = 0) then Dec(XPos, 2) else Dec(XPos) else Break
-    else if XPos > 0 then Dec(XPos, 2) else Break;
- if PDiskStream(Fl)^.Drv^.FAT12 then
-   begin
-    if FilePos + Longint(BufPos) + LongInt(XPos) < 3 then
-     begin if FilePos > 0 then Seek(0); XPos := 3 - BufPos; end;
-   end else
-    if FilePos + Longint(BufPos) + LongInt(XPos) < 4 then
-     begin if FilePos > 0 then Seek(0); XPos := 4 - BufPos; end;
+ case PDiskStream(Fl)^.Drv^.FATType of
+  FAT12: begin
+          While (FilePos + BufPos + XPos + 1 >= FileSize) do
+           if XPos > 0
+            then if (XPos mod 3 = 0)
+                  then Dec(XPos, 2)
+                  else Dec(XPos)
+            else Break;
+          if FilePos + Longint(BufPos) + LongInt(XPos) < 3 then begin
+           if FilePos > 0 then Seek(0);
+           XPos := 3 - BufPos;
+          end;
+         end;
+  FAT16: Begin
+          While (FilePos + BufPos + XPos + 1 >= FileSize) do
+           if XPos > 0 then Dec(XPos, 2) else Break;
+          if FilePos + Longint(BufPos) + LongInt(XPos) < 4 then begin
+           if FilePos > 0 then Seek(0);
+           XPos := 4 - BufPos;
+          end;
+         end;
+ end;
  XDelta := 0; K := BufPos; Entered := Off;
- for J := 0 to Size.Y - 1 do
-  begin
-   MoveChar(B, ' ', C, 200);
-   S := '';
-   if LongInt(K) + FilePos < FileSize then
-   if PDiskStream(Fl)^.Drv^.FAT12 then
-    for I := 1 to HexPos div 3 do
-      begin
-       CL2 := K+(I-1)*3;
-       if LongInt(CL2) + FilePos < FileSize - 2 then
-        begin
-         CL1 := Buf^[CL2]+(Buf^[CL2+1] and 15) shl 8;
-         CL2 := (Buf^[CL2+1]+Buf^[CL2+2] shl 8) shr 4;
-         if CL1 >= PDiskStream(Fl)^.Drv^.EOFMark then S := S + '   <EOF>'
-                                                 else S := S + SStr(CL1, 8, ' ');
-         if CL2 >= PDiskStream(Fl)^.Drv^.EOFMark then S := S + '   <EOF>'
-                                                 else S := S + SStr(CL2, 8, ' ');
-        end;
-      end else
-    for I := 1 to HexPos div 4 do
-      begin
-       CL2 := K+(I-1)*4;
-       if LongInt(CL2) + FilePos < FileSize - 3 then
-        begin
-         CL1 := Buf^[CL2]+Buf^[CL2+1] shl 8;
-         CL2 := Buf^[CL2+2]+Buf^[CL2+3] shl 8;
-         if CL1 >= PDiskStream(Fl)^.Drv^.EOFMark then S := S + '   <EOF>'
-          else
-           if CL1 = PDiskStream(Fl)^.Drv^.BADMark then S := S + '   <BAD>'
-                                                 else S := S + SStr(CL1, 8, ' ');
-         if CL2 >= PDiskStream(Fl)^.Drv^.EOFMark then S := S + '   <EOF>'
-          else
-           if CL1 = PDiskStream(Fl)^.Drv^.BADMark then S := S + '   <BAD>'
-                                                 else S := S + SStr(CL2, 8, ' ');
-        end;
-      end;
-   if FilePos+K = 0 then S := '     FAT ID     '+Copy(S, 17, 255);
-   Inc(K, HexPos);
-   Drivers.MoveStr(B[1], S, C);
-   if (XPos div HexPos) = J then
-    begin
-     if PDiskStream(Fl)^.Drv^.FAT12 then I := (2*((XPos mod HexPos)) div 3 + Byte(XPos mod 3 <> 0))*8+4
-                               else I := (XPos mod HexPos) * 4 + 4;
-     LastR.Assign(I-1+Origin.X, J+Origin.Y, I+6+Origin.X, J+1+Origin.Y);
-     MoveColor(B[I], 5, C4); Entered := On;
-    end;
-   WriteLine(0, J, Size.X, 1, B[XDelta]);
+ for J := 0 to Size.Y - 1 do begin
+  MoveChar(B, ' ', C, 200);
+  S := '';
+  if LongInt(K) + FilePos < FileSize then
+  Case PDiskStream(Fl)^.Drv^.FATType of
+    FAT12: for I := 1 to HexPos div 3 do begin
+            CL2 := K+(I-1)*3;
+            if LongInt(CL2) + FilePos < FileSize - 2 then begin
+             CL1 := Buf^[CL2]+(Buf^[CL2+1] and 15) shl 8;
+             CL2 := (Buf^[CL2+1]+Buf^[CL2+2] shl 8) shr 4;
+             if CL1 >= PDiskStream(Fl)^.Drv^.EOFMark
+              then S := S + '   <EOF>'
+              else S := S + SStr(CL1, 8, ' ');
+             if CL2 >= PDiskStream(Fl)^.Drv^.EOFMark
+              then S := S + '   <EOF>'
+              else S := S + SStr(CL2, 8, ' ');
+            end;
+           end;
+    FAT16: for I := 1 to HexPos div 4 do begin
+            CL2 := K+(I-1)*4;
+            if LongInt(CL2) + FilePos < FileSize - 3 then begin
+             CL1 := Buf^[CL2]+Buf^[CL2+1] shl 8;
+             CL2 := Buf^[CL2+2]+Buf^[CL2+3] shl 8;
+             if CL1 >= PDiskStream(Fl)^.Drv^.EOFMark
+              then S := S + '   <EOF>'
+              else if CL1 = PDiskStream(Fl)^.Drv^.BADMark
+                    then S := S + '   <BAD>'
+                    else S := S + SStr(CL1, 8, ' ');
+             if CL2 >= PDiskStream(Fl)^.Drv^.EOFMark
+              then S := S + '   <EOF>'
+              else if CL2 = PDiskStream(Fl)^.Drv^.BADMark
+                    then S := S + '   <BAD>'
+                    else S := S + SStr(CL2, 8, ' ');
+            end;
+           end;
   end;
-  LastChars := Size.Y * HexPos;
+  if FilePos+K = 0 then S := '     FAT ID     '+Copy(S, 17, 255);
+  Inc(K, HexPos);
+  Drivers.MoveStr(B[1], S, C);
+  if (XPos div HexPos) = J then begin
+   case PDiskStream(Fl)^.Drv^.FATType of
+    FAT12: I := (2*((XPos mod HexPos)) div 3 + Byte(XPos mod 3 <> 0))*8+4;
+    FAT16: I := (XPos mod HexPos) * 4 + 4;
+   end;
+   LastR.Assign(I-1+Origin.X, J+Origin.Y, I+6+Origin.X, J+1+Origin.Y);
+   MoveColor(B[I], 5, C4); Entered := On;
+  end;
+  WriteLine(0, J, Size.X, 1, B[XDelta]);
+ end;
+ LastChars := Size.Y * HexPos;
 end;
 
 begin
@@ -1347,14 +1391,23 @@ begin
        HexPos := 32;
       end;
    3: begin
-       if PDiskStream(Fl)^.Drv^.FAT12 then I := 3 else I := 4;
+       case PDiskStream(Fl)^.Drv^.FATType of
+        FAT12: I := 3;
+        FAT16: I := 4;
+       end;
        I := I * ((Size.X - 3) div (2*8));
-       if I = 0 then if PDiskStream(Fl)^.Drv^.FAT12 then I := 3 else I := 4;
+       if I = 0 then
+        case PDiskStream(Fl)^.Drv^.FATType of
+         FAT12: I := 3;
+         FAT16: I := 4;
+        end;
        HexPos := I;
-       if PDiskStream(Fl)^.Drv^.FAT12 then
-          while ((LongInt(BufPos) + FilePos) mod 3 <> 0) and (BufPos > 0) do Dec(BufPos)
-        else
-          while ((LongInt(BufPos) + FilePos) mod 4 <> 0) and (BufPos > 0) do Dec(BufPos);
+       case PDiskStream(Fl)^.Drv^.FATType of
+        FAT12: while ((LongInt(BufPos) + FilePos) mod 3 <> 0) and (BufPos > 0)
+                do Dec(BufPos);
+        FAT16: while ((LongInt(BufPos) + FilePos) mod 4 <> 0) and (BufPos > 0)
+                do Dec(BufPos);
+       end;
       end;
    else HexPos := 255;
   end;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -56,17 +56,17 @@ uses
 type
    TTdrHeader = record
       FileTableOfs: LongInt;
-      DirTableOfs: LongInt;
-      PosTableOfs: LongInt;
+      DirTableOfs:  LongInt;
+      PosTableOfs:  LongInt;
 
       FileTableLen: LongInt;
-      DirTableLen: LongInt;
-      PosTableLen: LongInt;
+      DirTableLen:  LongInt;
+      PosTableLen:  LongInt;
 
-      TapeFmt: Word;
-      TapeID: Word;
-      TapeLen: Word;
-      RecordLen: Word;
+      TapeFmt:      AWord;
+      TapeID:       AWord;
+      TapeLen:      AWord;
+      RecordLen:    AWord;
       NewRecordSector: LongInt;
 
       DescTableOfs: LongInt;
@@ -83,26 +83,26 @@ type
       Attr: Byte;
       StartSector: LongInt;
       Description: LongInt;
-      Res: Word;
+      Res: AWord;
       Time: LongInt;
-      Cluster: Word;
+      Cluster: AWord;
       Size: LongInt;
    end;
 
    TTdrDirCell = record
-      Level: Word;
+      Level: AWord;
       Name: Array[1..11] of Char;
       Attr: Byte;
       StartSector: LongInt;
       Description: LongInt;
-      Res: Word;
+      Res: AWord;
       Time: LongInt;
-      Cluster: Word;
+      Cluster: AWord;
       Size: LongInt;
 
-      Files: Word;
-      LastFile: Word;
-      NumFiles: Word;
+      Files: AWord;
+      LastFile: AWord;
+      NumFiles: AWord;
 
    end;
 
@@ -122,12 +122,12 @@ Type
 
    TAvtMediaCell = record
       NextMediaCell:           LongInt;
-       TapeFmt:                 Word;            {16,32}
-       TapeLen:                 Word;
-       TapeID:                  LongInt;
-       Undefined1:              LongInt;
-       Undefined2:              LongInt;
-       Undefined3:              LongInt;
+      TapeFmt:                 AWord;            {16,32}
+      TapeLen:                 AWord;
+      TapeID:                  LongInt;
+      Undefined1:              LongInt;
+      Undefined2:              LongInt;
+      Undefined3:              LongInt;
       FirstSectorNum:          LongInt;
       Sectors:                 LongInt;
       PositionTable:           LongInt;
@@ -140,8 +140,8 @@ Type
       ChildOrSize:   LongInt;
       Time:          LongInt;
       StartSector:   LongInt;
-      Flags:         Word;
-      Attr:          Word;
+      Flags:         AWord;
+      Attr:          AWord;
       case Char of
         0: (Name0: Array[1..16] of Char);
         1: (Name1: Array[1..12] of Char; Next1: LongInt);
@@ -175,16 +175,16 @@ type
       CurFile: LongInt;
       CurDirPos: LongInt;
       PosTableOfs: LongInt;
-      CurFileNum: Word;
-      CurLevel: Word;
+      CurFileNum: AWord;
+      CurLevel: AWord;
       CurDate: LongInt;
       KillAfterUse: Boolean;
       FileType: TAvdType;
       D: TTdrHeader;
       AVT: TAvtHeader;
-      TapeFmt: word;
-      TapeTotalTime: word;
-      TapeRecordedTime: word;
+      TapeFmt: AWord;
+      TapeTotalTime: AWord;
+      TapeRecordedTime: AWord;
       TotFiles: LongInt;      {in directory}
       TotLen: LongInt;
       CurDirCellPos: LongInt; {this for AVT: location of directory cell.
@@ -307,7 +307,7 @@ begin
   DriveType:=dtArvid;
   KillAfterUse:=TempFile <> '';
   TempFile:='';
-  if I>0 then CurDir:=Q else CurDir:='\';
+  if I>2 then CurDir:=Q else CurDir:='\';
   SeekDirectory;
   if ArvidDrives = nil then New(ArvidDrives, Init($100, $100));
   ArvidDrives^.Insert(@Self);
@@ -325,7 +325,7 @@ end;
 procedure TArvidDrive.Kill;
 begin
   if not KillAfterUse then Exit;
-  if Stream <> nil then Dispose(Stream, Done); Stream:=nil;
+  if Stream <> nil then Dispose(Stream, Done); Stream := nil;
   EraseFile(Name^);
 end;
 
@@ -338,18 +338,24 @@ var
   TAttr: Word;
 begin
   New(FC, Init($80, $40));
-  FC^.SortMode:=SortMode;
-  GetDirectory:=FC;
-  ShowD:=(Flags and psShowDescript <> 0);
+  FC^.SortMode := SortMode;
+
   if ArvidWithDN then GetFreeSpace(FreeSpace);
-  TotalInfo:=''; TotFiles:=0; TotLen:=0;
-  AllFiles:=(FileMask = x_x) or (FileMask='*');
+  TotalInfo := ''; TotFiles := 0; TotLen := 0;
+
+  GetDirectory := FC;
+  ShowD := (Flags and psShowDescript <> 0);
+  AllFiles := (FileMask = x_x) or (FileMask='*');
+
   case FileType of
     avdTdr: TdrGetDirectory(@Self, CurDirPos, FC, ShowD, FileMask);
     avdAvt: AvtGetDirectory(@Self, CurDirPos, FC, ShowD, FileMask);
   end;
-  if CurDir = '' then P:=Name else P:=@CurDir;
+
+  if CurDir = '' then P := Name else P := @CurDir;
+
   if ArvidWithDN then TotalInfo:=CalcTotalInfo(FC^.Count, TotFiles, TotLen);
+
   FC^.AtInsert(0, NewFileRec('..', '..', 0, CurDate, Directory, P));
 end;
 
@@ -372,13 +378,12 @@ procedure TArvidDrive.lChDir;
 begin
  if ADir = #0 then Exit;
  lFSplit(ADir, Dr, Nm, Xt);
- if Xt = '..' then
- begin
-   if Dr <> '' then CurDir:=Dr;
+ if (Nm = '.') and (Xt = '.') then begin
+   if Dr <> '' then CurDir := Dr;
    if CurDir[1] <> '\' then Insert('\', CurDir, 1);
    repeat Dec(CurDir[0]) until (CurDir = '') or (CurDir[Length(CurDir)] = '\');
    if CurDir <> '' then Dec(CurDir[0]);
- end else CurDir:=ADir;
+ end else CurDir := ADir;
  SeekDirectory;
  While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
  AddToDirectoryHistory(Name^+':'+CurDir,Integer(DriveType));
@@ -386,32 +391,35 @@ end;
 
 function TArvidDrive.GetDir;
  var Dr: String;
-     Nm,M: String;
+     Nm: String;
      Xt: String;
 begin
  lFSplit(Name^, Dr, Nm, Xt);
- if FileType = avdTdr then
-   GetDir:= 'TDR:'+Nm+'\'+CurDir else
-   GetDir:= 'AVT:'+Nm+'\'+CurDir;
+ if FileType = avdTdr
+  then GetDir:= 'TDR:'+Nm+'\'+CurDir
+  else GetDir:= 'AVT:'+Nm+'\'+CurDir;
 end;
 
 constructor TArvidDrive.Load;
-label 1;
+  label 1;
 begin
   TObject.Init;
   inherited Load(S);
-  DriveType:=dtArvid;
+  DriveType := dtArvid;
   S.Read(KillAfterUse, 1);
-  Name:=S.ReadStr;
-  Stream:=New(PBufStream, Init(Name^, stOpen, 2048));
+  Name := S.ReadStr;
+  Stream := New(PBufStream, Init(Name^, stOpen, 2048));
   if Stream^.Status <> stOK then
     begin
-    1:
-      Dispose(Stream,Done);Stream:=nil; Fail;
+1:
+      Dispose(Stream, Done);
+      Stream:=nil;
+      Done;
+      Fail;
     end;
   FileType := avdAvt;
   Stream^.Read(AVT, SizeOf(AVT));
-  if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil; Fail end;
+  if Stream^.Status <> stOK then begin Dispose(Stream,Done); Done; Fail end;
   if AVT.Signature <> 'AVTP'
    then if not TdrLoad(@Self, S) then goto 1
    else if not AvtLoad(@Self, S) then goto 1;
@@ -431,12 +439,13 @@ end;
 procedure TArvidDrive.RereadDirectory;
 begin
   if Prev <> nil then Prev^.RereadDirectory(S);
-  Dispose(Stream,Done);
-  Stream:=New(PBufStream, Init(Name^, stOpen, 2048));
-  Stream^.Seek(0);
-  if FileType = avdAvt then Stream^.Read(AVT, SizeOf(AVT))
-                       else Stream^.Read(D, SizeOf(D));
-  SeekDirectory;
+  if FileType = avdAvt then begin
+   Dispose(Stream,Done);
+   Stream:=New(PBufStream, Init(Name^, stOpen, 2048));
+   Stream^.Seek(0);
+   Stream^.Read(AVT, SizeOf(AVT));
+   SeekDirectory;
+  end;
 end;
 
 procedure TArvidDrive.KillUse;
@@ -643,33 +652,31 @@ end;
 
 procedure TArvidDrive.ChangeUp;
 begin
-  if CurDir <> '' then
-  begin
-     S:=GetName(CurDir);
-     lChDir('..');
-     Exit
+  if CurDir <> '' then begin
+   S := GetName(CurDir);
+   lChDir('..');
+   Exit
   end;
   if Owner = nil then Exit;
-  if Prev = nil then
-  begin
-     New(Prev, Init(0, Owner, Flags));
-     if Prev = nil then Exit;
+  if Prev = nil then begin
+   New(Prev, Init(0, Owner, Flags));
+   if Prev = nil then Exit;
   end;
-  PFilePanel(Owner)^.Drive:=Prev;
+  PFilePanel(Owner)^.Drive := Prev;
   Prev^.lChDir(Prev^.CurDir);
   if (Prev^.DriveType = dtDisk) and
      (PView(Owner)^.GetState(sfSelected+sfActive)) then
-      ActivePanel:=Owner;
+      ActivePanel := Owner;
   GlobalMessage(evCommand, cmRereadInfo, nil);
-  Prev:=nil;
-  S:=GetName(Name^);
+  Prev := nil;
+  S := GetName(Name^);
   Kill;
   Dispose(PDrive(@Self), Done);
 end;
 
 procedure TArvidDrive.ChangeRoot;
 begin
-  CurDir:='';
+  CurDir := '';
   SeekDirectory;
 end;
 
@@ -686,7 +693,11 @@ begin
       32:  M:=325;
       else M:=325;
   end;
-  L[1]:=Max(0, (LongInt(TapeTotalTime) - TapeRecordedTime) div 60); L[2]:=(L[1] * 60 * M) div 1024;
+
+  if FileType = avdTdr
+   then L[1] := Max(0, (LongInt(D.TapeLen) - D.RecordLen) div 60)
+   else L[1] := Max(0, (LongInt(TapeTotalTime) - TapeRecordedTime) div 60);
+  L[2] := (L[1] * 60 * M) div 1024;
   FormatStr(S, GetString(dlArvid_TimeLeft), L);
 end;
 
@@ -706,9 +717,10 @@ procedure TArvidDrive.GetDirInfo;
       S1, S2: String;
       A: TAvtMediaCell;
 begin
-  B.Title:=NewStr( GetString( dlArvid_Title ));
-  FreeStr:=GetName(Name^); FreeStr[0]:=Char(PosChar('.', FreeStr)-1);
-  B.Dir:=NewStr(FreeStr);
+  B.Title := NewStr( GetString( dlArvid_Title ));
+  FreeStr := GetName(Name^); FreeStr[0] := Char(PosChar('.', FreeStr)-1);
+  B.Dir := NewStr(FreeStr);
+
   case TapeFmt of
       0:   begin S:=000; B.VolumeID:=NewStr(GetString(dlArvid_Type)+GetString(dlArvidNoReal)) end;
       2:   begin S:=100; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~100~ Kb/s, CRC-16') end;
@@ -718,21 +730,38 @@ begin
       32:  begin S:=325; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~325..500~ Kb/s') end;
       else begin S:=325; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~325..500~ Kb/s') end;
   end;
-  Sz:=TotLen div 1024;
-  Nf:=TotFiles;
-  L[1]:=LongInt(TapeTotalTime) div 60; L[2]:=(TapeTotalTime * S) div 1024;
-  FormatStr(FreeStr, GetString(dlArvid_TimeUsed), L);
-  B.Total:=NewStr( FreeStr );
-  L[1]:=Max(0, (LongInt(TapeTotalTime) - TapeRecordedTime) div 60); L[2]:=(L[1] * 60 * S) div 1024;
-  FormatStr(FreeStr, GetString(dlArvid_TimeLeft), L);
-  B.Free :=NewStr( FreeStr );
-  if NF = 0 then B.Files:=NewStr(GetString(dlDINoFiles))
+
+  if FileType = avdTDR then begin
+   Sz := D.RecordLen * S;
+   Nf := D.FileTableLen div SizeOf(TTdrFileCell);
+  end else begin
+   Sz:=TotLen div 1024;
+   Nf:=TotFiles;
+  end;
+
+  if NF = 0 then B.Files := NewStr(GetString(dlDINoFiles))
    else
     begin
-     if NF = 1 then S1:=GetString(dlDIFile) else S1:=GetString(dlDIFiles);
-     S2:=GetString(dlDIBytes);
-     B.Files:=NewStr('~'+FStr(NF)+'~ '+S1+GetString(dlDIWith)+'~'+FStr(Sz)+'~K '+S2);
+     if NF = 1 then S1 := GetString(dlDIFile) else S1 := GetString(dlDIFiles);
+     S2 := GetString(dlDIBytes);
+     B.Files := NewStr('~'+FStr(NF)+'~ '+S1+GetString(dlDIWith)+'~'+FStr(Sz)+'~K '+S2);
     end;
+
+  if FileType = avdTDR then begin
+   L[1] := LongInt(TapeTotalTime) div 60; L[2] := (TapeTotalTime * S) div 1024;
+   FormatStr(FreeStr, GetString(dlArvid_TimeUsed), L);
+   B.Total := NewStr( FreeStr );
+   L[1] := Max(0, (LongInt(TapeTotalTime) - TapeRecordedTime) div 60); L[2] := (L[1] * 60 * S) div 1024;
+   FormatStr(FreeStr, GetString(dlArvid_TimeLeft), L);
+   B.Free  := NewStr( FreeStr );
+  end else begin
+   L[1] := LongInt(D.TapeLen) div 60; L[2] := (D.TapeLen * S) div 1024;
+   FormatStr(FreeStr, GetString(dlArvid_TimeUsed), L);
+   B.Total := NewStr( FreeStr );
+   L[1] := Max(0, (LongInt(D.TapeLen) - D.RecordLen) div 60); L[2] := (L[1] * 60 * S) div 1024;
+   FormatStr(FreeStr, GetString(dlArvid_TimeLeft), L);
+   B.Free  := NewStr( FreeStr );
+  end;
 end;
 
 procedure TArvidDrive.EditDescription;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -45,35 +45,131 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 
+{/$DEFINE LFNCache}
+  {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$ENDIF}
+  {$IFDEF FPC}{$DEFINE NONBP}{$ENDIF}
+
+
+  {$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
 {$DEFINE UUENCODE}
 {$DEFINE UUDECODE}
 {$DEFINE Modem}
+{$DEFINE Link}
 {$DEFINE SpreadSheet}
 {$DEFINE DiskEdit}
 {$DEFINE DiskFormat}
+{$DEFINE Reanimator}
 {$DEFINE DBView}
 {$DEFINE PrintManager}
 {$DEFINE Game}
 {$DEFINE CdPlayer}
+{$DEFINE Calendar}
+{$DEFINE SYSINFO}
+{$DEFINE MEMINFO}
+{$DEFINE TrashCan}
+{$DEFINE NETINFO}
+{$DEFINE PHONES}
+{$DEFINE SS}
+{$DEFINE CHCOL}
+{.$DEFINE DisAsm}
+{.$DEFINE PKTVIEW}
+{.$DEFINE UPLOWSTRSINDLG}
+
+{$IFDEF DPMI}
+ {$DEFINE BIGCOLLECTION}
+ {.$DEFINE QSort}{$DEFINE POGLSORT}
+ {$DEFINE NO_OVERLAY}
+ {$DEFINE NOEXTRA}
+{$ELSE}
+ {.$DEFINE BIGCOLLECTION}
+ {.$DEFINE QSort}{$DEFINE POGLSORT}
+ {$UNDEF NO_OVERLAY}
+ {$UNDEF NOEXTRA}
+ {$DEFINE OFFS}
+{$ENDIF}
+
+{$DEFINE BIT_16}
+{$DEFINE OS_DOS}
+
+{.$DEFINE StreamDebug}
+{$DEFINE SORTDEBUG}
+{$DEFINE CHDIRDEBUG}
+{.$DEFINE CHDIRTIMER}
+
+  {$ELSE !VIRTUALPASCAL}
+{$DEFINE NO_OVERLAY}
+{$DEFINE NOEXTRA}
+{$DEFINE BIT_32}
+{$DEFINE FILE_32}
+{$DEFINE Win32}
+{$DEFINE MINARCH}
+{$Use32+}
+{$DEFINE POGLSORT}
+  {$ENDIF VIRTUALPASCAL}
+
+{$IFDEF BPIDE}
+{$UNDEF CHCOL}
+{$UNDEF SYSINFO}
+{$UNDEF MEMINFO}
+{$UNDEF UUENCODE}
+{$UNDEF UUDECODE}
+{$UNDEF Modem}
+{$UNDEF Link}
+{$UNDEF DisAsm}
+{$ENDIF}
 
 {.$DEFINE LITE}
 
 {$IFDEF LITE}
-  {$UNDEF Modem}
-  {$UNDEF SpreadSheet}
-  {$UNDEF DiskEdit}
-  {$UNDEF DiskFormat}
-  {$UNDEF DBView}
-  {$UNDEF PrintManager}
-  {$UNDEF Game}
+ {$UNDEF TrashCan}
+ {$UNDEF Game}
+ {$UNDEF UUENCODE}
+ {$UNDEF UUDECODE}
+ {$UNDEF Calendar}
+ {$UNDEF CdPlayer}
+ {$UNDEF NETINFO}
+ {$UNDEF PHONES}
+ {$UNDEF SS}
+ {$UNDEF PrintManager}
+ {$UNDEF CHCOL}
+ {$UNDEF SpreadSheet}
+ {$UNDEF DBView}
+ {$UNDEF Link}
+ {$UNDEF DisAsm}
+ {$DEFINE MINARCH}
 {$ENDIF}
 
+{.$DEFINE BANK}
+
+{$IFDEF BANK}
+  {$UNDEF Modem}
+  {$UNDEF DiskEdit}
+  {$UNDEF DBView}
+  {$UNDEF DisAsm}
+{$ENDIF}
+
+{.$DEFINE COMBINE_MIXED}
+
 {$DEFINE FULLOVR}
+{$DEFINE FULLOVR2}
 {$DEFINE VIEWSOVR}
+{.$DEFINE ADVANCEOVR}
+{$DEFINE CollectOVR}
+{$DEFINE MicroedOvr}
+{$DEFINE VIDEOOVR}
 
 { Only TPW uses "WObjects"; BP 7 calls the same unit "Objects" }
-{$ifdef windows}
-  {$ifndef ver70}
-    {$define wobjects}
-  {$endif}
-{$endif}
+{$IFDEF windows}
+  {$IFNDEF ver70}
+    {$DEFINE wobjects}
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF Modem}
+  {$IFDEF DN}
+    {$DEFINE CL_MASTER}
+  {$ENDIF}
+  {$IFDEF NLCLIENT}
+    {$DEFINE CL_MASTER}
+  {$ENDIF}
+{$ENDIF}

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -53,7 +53,9 @@ interface uses FilesCol, tree;
 procedure UnpackDiskImages(AOwner: Pointer; Files: PFilesCollection);
 
 implementation
-
+{$IFDEF NONBP}
+procedure UnpackDiskImages(AOwner: Pointer; Files: PFilesCollection);begin end;
+{$ELSE}
 uses Dos, LFN, Messages, Views, Commands, Objects, DnApp, Drivers,
      advance, advance1, advance2, advance3, FileCopy, DiskTool, Gauge, xTime;
 
@@ -348,4 +350,5 @@ begin
   Files^.DeleteAll; Dispose(Files,Done); Files:=nil;
 end;
 
+{$ENDIF}
 end.

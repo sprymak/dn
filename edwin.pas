@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,8 +49,7 @@
 unit EdWin;
 
 interface
-uses UniWin, MicroEd, Menus, Ed2, Objects, DnApp, Commands, dnHelp, Views,
-     Startup, Advance1, fViewer, drivers, editor, Advance;
+uses Objects, MicroEd, Menus, Ed2, UniWin;
 
 type
   { TEditWindow }
@@ -68,12 +67,12 @@ type
     procedure ChangeBounds(var R: TRect); virtual;
     procedure Store(var S: TStream);
     function Execute: Word; virtual;
-    procedure Zoom; virtual;
-    procedure SizeLimits(var Min, Max: TPoint); virtual;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
   end;
 
 implementation
+uses MicroEd2, DnApp, Commands, dnHelp, Views,
+     Startup, Advance1, fViewer, drivers, editor, Advance;
 
 type
        PEditSaver = ^TEditSaver;
@@ -85,7 +84,7 @@ type
 const
       REditSaver: TStreamRec = (
        ObjType: 12335;
-       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(TEditSaver){$IFNDEF DPMI}^{$ENDIF});
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(TEditSaver){$IFDEF OFFS}^{$ENDIF});
        Load: @TEditSaver.Load;
        Store: @TEditSaver.Store);
 
@@ -150,9 +149,9 @@ procedure TEditWindow.ChangeBounds;
 var rr: TRect;
 begin
  inherited ChangeBounds(R);
- Intern^.HScroll^.GetBounds(rr); RR.B.X:=R.B.X - 2;
- Intern^.HScroll^.SetBounds(rr);
- if not (Intern^.SmartPad or GetState(sfModal)) then
+{ Intern^.HScroll^.GetBounds(rr); RR.B.X:=R.B.X - 2;
+  Intern^.HScroll^.SetBounds(rr);
+}if not (Intern^.SmartPad or GetState(sfModal)) then
     begin
       GetBounds(TempBounds);
       LastEditDeskSize := Desktop^.Size;
@@ -178,34 +177,6 @@ begin
 { PutSubViewPtr(S, MenuBar);} (*X-Man*)
 end;
 
-procedure TEditWindow.SizeLimits(var Min, Max: TPoint);
-begin
-  Min.Assign(0,0);
-  if Owner <> nil then
-        begin
-           Max.X := Owner^.Size.X+2;
-           Max.Y := Owner^.Size.Y;
-        end else begin Max.X := High(Max.X); Max.Y:=High(Max.Y); end;
-  Min.X := MinWinSize.X;
-  Min.Y := MinWinSize.Y;
-end;
-
-procedure TEditWindow.Zoom;
-var
-    R: TRect;
-    Max, Min: TPoint;
-begin
-    SizeLimits(Min, Max);
-    Dec(Max.X,2);
-    R.A.Assign(0, 0);
-    R.B := Max;
-    if Size.Equals(Max) then begin
-        Dec(R.A.X);
-        Inc(R.B.X)
-    end;
-    Locate(R)
-end;
-
 { TEditWindow }
 constructor TEditWindow.Init;
 var
@@ -215,6 +186,7 @@ begin
   inherited Init(R, '', 0);
   LoadCommands;
   Options := Options or ofTileable;
+  Flags := Flags or wfMaxi;
 
   GetExtent(R);
   R.Grow(-1, -1);
@@ -241,7 +213,7 @@ begin
   PFileEditor(Intern)^.OptMenu := Pointer(Pi);
 
   Insert(Intern);
-  Intern^.LoadFile(FileName);
+  MILoadFile(Intern, FileName);
   if not Intern^.IsValid then
   begin
      Done;

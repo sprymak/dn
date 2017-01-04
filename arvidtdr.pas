@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -71,25 +71,23 @@ var
       S: String;
       SS: String[12];
 begin with AvtDr^ do begin
-  Stream^.Status:=stOK;
+  Stream^.Status := stOK;
   Stream^.Seek(D.DirTableOfs);
   Stream^.Read(DD, SizeOf(DD));
-  CurDirPos:=Stream^.GetPos;
-  S:=CurDir; CurLevel:=0; CurDir:=''; Lv:=1;
+  CurDirPos := Stream^.GetPos;
+  S := CurDir; CurLevel := 0; CurDir := ''; Lv := 1;
   if S[1] = '\' then DelFC(S);
   while S <> '' do
     begin
-      SS:='';
+      SS := '';
       while (S[1] <> '\') and (S <> '') do
         begin
           AddStr(SS, S[1]);
           DelFC(S);
           if SS[0] = #12 then Break;
         end;
-      if SS[0] = #12 then while (S[1] <> '\') and (S <> '') do
-        DelFC(S);
       DelFC(S);
-      SS:=Norm12(SS); UpStr(SS);
+      SS := Norm12(SS); UpStr(SS);
       Delete(SS, 9, 1);
       repeat
         Stream^.Read(DD, SizeOf(DD));
@@ -98,18 +96,20 @@ begin with AvtDr^ do begin
       Insert('.', SS, 9);
       if (CurDir[Length(CurDir)] <> '\') and
          (CurDir <> '') then AddStr(CurDir, '\');
-      CurDir:=CurDir + MakeFileName(SS);
-      CurDirPos:=Stream^.GetPos;
-      CurLevel:=Lv;
+      CurDir := CurDir + MakeFileName(SS);
+      CurDirPos := Stream^.GetPos;
+      CurLevel := Lv;
       Inc(Lv);
     end;
 
-  CurDate:=DD.Time;
-  CurFile:=DD.Files;
-  CurFileNum:=DD.NumFiles;
+  CurDate := DD.Time;
+  CurFile := DD.Files;
+  CurFileNum := DD.NumFiles;
 end end;
 
-procedure TdrGetDirectory;
+procedure TdrGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;
+                          var FC: PFilesCollection; var ShowD: Boolean;
+                          const FileMask: string);
 var
   FF: TTdrFileCell;
   DD: TTdrDirCell;
@@ -121,62 +121,78 @@ var
   var
     S: Str12;
   begin with AvtDr^ do begin
-    S:=FF.Name;
+    S := FF.Name;
     Insert('.', S, 9);
+    if (s[01] in [#0..#31]) or
+       (s[02] in [#0..#31]) or
+       (s[03] in [#0..#31]) or
+       (s[04] in [#0..#31]) or
+       (s[05] in [#0..#31]) or
+       (s[06] in [#0..#31]) or
+       (s[07] in [#0..#31]) or
+       (s[08] in [#0..#31]) or
+       (s[09] in [#0..#31]) or
+       (s[10] in [#0..#31]) or
+       (s[11] in [#0..#31]) or
+       (s[12] in [#0..#31]) then exit;
     if
     not (ArvidWithDN and Security and (FF.Attr and (Hidden+SysFile) <> 0))
     and (AllFiles or (FF.Attr and Directory <> 0) or InFilter(S, FileMask)) then
         begin
-          F:=NewFileRec(MakeFileName(S), S, FF.Size, FF.Time, FF.Attr, @CurDir);
+          F := NewFileRec(MakeFileName(S), S, FF.Size, FF.Time, FF.Attr, @CurDir);
           if ShowD then
           begin
             New(F^.DIZ);
-            F^.DIZ^.Owner:=nil;
-            F^.DIZ^.isDisposable:=On;
-            F^.DIZ^.Line:=SeekPos;
+            F^.DIZ^.Owner := nil;
+            F^.DIZ^.isDisposable := On;
+            F^.DIZ^.Line := SeekPos;
             if FF.Description <> 0 then
               begin
-                 J:=Stream^.GetPos;
+                 J := Stream^.GetPos;
                  Stream^.Seek(D.DescTableOfs+FF.Description-1);
                  Stream^.Read(FreeStr, 2);
                  Stream^.Read(FreeStr[1], Length(FreeStr));
                  Stream^.Seek(J);
-                 F^.DIZ^.DIZ:=NewStr(FreeStr);
-              end else F^.DIZ^.DIZ:=nil;
-          end else F^.Diz:=nil;
+                 F^.DIZ^.DIZ := NewStr(FreeStr);
+              end else F^.DIZ^.DIZ := nil;
+          end else F^.Diz := nil;
+
           if FF.Attr and Directory = 0 then
             begin
               Inc(TotFiles);
-              TotLen:=TotLen + FF.Size;
+              TotLen := TotLen + FF.Size;
             end;
-          F^.PSize:=SeekPos;
+
           FC^.Insert(F);
         end;
   end end;
 
 begin with AvtDr^ do begin
-  AllFiles:=(FileMask=x_x) or (FileMask='*');
+  AllFiles := (FileMask=x_x) or (FileMask='*');
   Stream^.Seek(CurDirPos);
   repeat
-    SeekPos:=Stream^.GetPos+2;
+    SeekPos := Stream^.GetPos+2;
     Stream^.Read(DD, SizeOf(DD));
     if DD.Level = CurLevel+1 then
       begin
         Move(DD.Name, FF, SizeOf(FF));
-        FF.Attr:=FF.Attr or Directory;
+        FF.Attr := FF.Attr or Directory;
         AddFile;
       end;
   until (DD.Level = 0) or (DD.Level <= CurLevel);
-  Stream^.Status:=stOK;
+
+  Stream^.Status := stOK;
   Stream^.Seek(D.FileTableOfs + CurFile*SizeOf(TTdrFileCell));
+
   FC^.SetLimit(FC^.Count + CurFileNum);
-  for I:=1 to CurFileNum do
+
+  for I := 1 to CurFileNum do
     begin
-      if Stream^.Status<>stOk then break;
-      SeekPos:=Stream^.GetPos;
+      SeekPos := Stream^.GetPos;
       Stream^.Read(FF, SizeOf(FF));
       AddFile;
     end;
+
 end end;
 
 procedure TdrEditDescription;
@@ -266,31 +282,20 @@ end end;
 
 Function TdrInit;
 var J: Word;
-label 1;
 begin with AvtDr^ do begin
-  TdrInit:=True;
+  TdrInit := false;
   FileType := avdTdr;
   Stream^.Seek(0);
   Stream^.Read(D, SizeOf(D));
-  if D.PosTableLen <> 4656 then begin
-1:  MessageBox(GetString(erInvalidFileFormat), nil, mfError + mfOKButton);
-    Dispose(Stream,Done); Stream:=nil; TdrInit:=false; exit;
-  end;
-  if D.FileTableOfs <> sizeof(TTdrHeader) then Goto 1;
-  if D.DirTableOfs <> (D.FileTableOfs+D.FileTableLen) then Goto 1;
-  if D.DescTableOfs < (D.DirTableOfs+D.DirTableLen) then Goto 1;
-  if D.PosTableOfs <> ((D.DescTableOfs+D.DescTableLen+511) div 512 * 512)
-    then Goto 1;
-  if D.TapeLen < D.RecordLen then Goto 1;
-  if D.FileTableLen <> (D.FileTableLen div sizeof(TTdrFileCell)
-    * sizeof(TTdrFileCell)) then Goto 1;
+  if Stream^.Status <> stOK then exit;
   TapeFmt:=D.TapeFmt;
   TapeTotalTime:=D.TapeLen;
   PosTableOfs:=D.PosTableOfs;
   Stream^.Seek(D.PosTableOfs);
   Stream^.Read(J, SizeOf(J));
-  if Stream^.Status <> stOK then Goto 1;
+  if Stream^.Status <> stOK then exit;
   TapeRecordedTime:=J*8;
+  TdrInit:=True;
 end end;
 
 Function TdrLoad;
@@ -300,22 +305,14 @@ begin with AvtDr^ do begin
   FileType := avdTdr;
   Stream^.Seek(0);
   Stream^.Read(D, SizeOf(D));
-  if D.PosTableLen <> 4656 then Exit;
-  if D.FileTableOfs <> sizeof(TTdrHeader) then Exit;
-  if D.DirTableOfs <> (D.FileTableOfs+D.FileTableLen) then Exit;
-  if D.DescTableOfs < (D.DirTableOfs+D.DirTableLen) then Exit;
-  if D.PosTableOfs <> ((D.DescTableOfs+D.DescTableLen+511) div 512 * 512)
-    then Exit;
-  if D.TapeLen < D.RecordLen then Exit;
-  if D.FileTableLen <> (D.FileTableLen div sizeof(TTdrFileCell)
-    * sizeof(TTdrFileCell)) then Exit;
-  TapeFmt:=D.TapeFmt;
+  if Stream^.Status <> stOK then Exit;
   TapeTotalTime:=D.TapeLen;
   PosTableOfs:=D.PosTableOfs;
   Stream^.Seek(D.PosTableOfs);
   Stream^.Read(J, SizeOf(J));
   if Stream^.Status <> stOK then Exit;
   TapeRecordedTime:=J*8;
+  TapeFmt:=D.TapeFmt;
   TdrLoad:=True;
 end end;
 

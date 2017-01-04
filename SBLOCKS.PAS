@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -45,11 +45,10 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-
 unit SBlocks;
 
 interface
-uses ExtraMemory, advance, advance1, advance2, advance3, Objects, Dos, Memory,
+uses ExtraMem, advance, advance1, advance2, advance3, Objects, Dos, Memory,
      collect;
 
 const
@@ -103,12 +102,12 @@ type
     PBlocker = ^TBlocker;
     TBlocker = object(TCollector)
        Blocks: Array [0..29] of PNumBlock;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
        XMSStream: PXMSStream;
        EMSStream: PEMSStream;
 {$ENDIF}
        MemStream: PMemoryStream;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
        NoXMS: Boolean;
        NoEMS: Boolean;
 {$ENDIF}
@@ -288,7 +287,7 @@ constructor TBlocker.Init(Index: LongInt);
 begin
   TObject.Init;
   UseCache := True;
-  {$IFNDEF DPMI}
+  {$IFNDEF NOEXTRA}
   NoXMS := not XMSFound or (EditorDefaults.EdOpt and ebfXMS = 0);
   NoEMS := not EMSFound or (EditorDefaults.EdOpt and ebfEMS = 0);
   {$ENDIF}
@@ -421,7 +420,7 @@ end;
 
 procedure TBlocker.ReadBlock;
 begin
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
   if B.Pos < 2000000 then
     begin
       XMSStream^.Status := 0;
@@ -443,7 +442,7 @@ begin
 end;
 
 procedure TBlocker.WriteBlock;
-  label {$IFNDEF DPMI}0, 1, 2, {$ENDIF}3, 4;
+  label {$IFNDEF NOEXTRA}0, 1, 2, {$ENDIF}3, 4;
   var I: LongInt;
       BB: Boolean;
       L: LongInt;
@@ -466,7 +465,7 @@ begin
              end;
          end;
        }
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
 0:
        if not NoXMS then
          begin
@@ -539,7 +538,7 @@ begin
     end else
     begin
 4:
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
      if B.Pos < 2000000 then
        begin
          XMSStream^.Status := 0;
@@ -660,7 +659,7 @@ begin
   FlushCache(On);
   for I := 0 to 29 do
     if Blocks[I] <> nil then FreeMem(Blocks[I], SizeOf(TNumBlock));
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
   if XMSStream <> nil then Dispose(XMSStream,Done); XMSStream := nil;
   if EMSStream <> nil then Dispose(EMSStream,Done); EMSStream := nil;
   EMSCurHandle := $FFFF;
@@ -672,7 +671,7 @@ end;
 
 function GetCollector(MaxSize, MaxLines: LongInt): PCollector;
 begin
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
    if (XMSFound and (XMSFree > 1) and (EditorDefaults.EdOpt and ebfXMS <> 0)
      or EMSFound and (EMSFreePages > 1) and (EditorDefaults.EdOpt and ebfEMS <> 0))
       and MemOK then
@@ -681,6 +680,4 @@ begin
         GetCollector := New(PStdCollector, Init(MaxLines))
 end;
 
-
 end.
-

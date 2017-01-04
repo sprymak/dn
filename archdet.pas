@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -77,8 +77,7 @@ var
     P: LHAHdr;
 begin
  ArcFile^.Read(P, SizeOf(P) - SizeOf(P.Name));
- LHADetect:=False;
- if (Pos(P.MethodID, '-lh0--lh1--lh2--lh3--lh4--lh5--lh6--lh7--lzs--lz5--lz4--lhd-')+4) mod 5 = 0 then LHADetect:=True;
+ LHADetect:=((Pos(P.MethodID,'-lh0--lh1--lh2--lh3--lh4--lh5--lh6--lh7--lzs--lz5--lz4--lhd-')+4) mod 5 = 0);
  ArcFile^.Seek(ArcPos);
 end;
 
@@ -157,27 +156,23 @@ var I,J: Word;
     S: String;
 begin
  ArcFile^.Read(I, 2);
- if (I <> 60000) and (ArcPos > 0) then ArcFile^.Read(I, 2);
- L := ArcFile^.GetPos;
 {piwamoto.change.begin}
- if i<>60000 then
+ if not ((I = $0ea60) or (I = $0abc0)) and (ArcPos > 0) then ArcFile^.Read(I, 2);
+ L := ArcFile^.GetPos;
+ if i=$0abc0 then
  begin
-  ArcFile^.Seek(L + 2);
+  ArcFile^.Seek(L + 4);
   ArcFile^.Read(I, 2);
-  L := L + 4;
+  L := L + 6;
  end;
-{piwamoto.change.end}
- ARJDetect:=(I=60000);
- if i=60000
+ ARJDetect:=(I=$0ea60);
+ if I=$0ea60
     then begin
-      {** here must be comment reading **}
           ArcFile^.Read(I,2);
-          ArcFile^.Seek(L + I + 8);
+          ArcFile^.Seek(L + I + 8);     {skip archive comment}
          end
-    else
-      begin
-        ArcFile^.Seek(ArcPos);
-      end;
+    else ArcFile^.Seek(ArcPos);
+{piwamoto.change.end}
 end;
 
 function CABDetect: Boolean;
@@ -231,7 +226,6 @@ begin
 end;
 
 Function BSADetect: Boolean;
-label 1;
 var
     M: Array[1..4] of Char;
     C: Char;
@@ -247,11 +241,10 @@ begin
       ArcFile^.Seek(ArcPos);
       Exit;
      end;
-1:ArcFile^.Seek(ArcPos);
+  ArcFile^.Seek(ArcPos);
 end;
 
 Function BS2Detect: Boolean;
-label 1;
 var
     M: Array[1..4] of Char;
     C: Char;
@@ -267,11 +260,10 @@ begin
       ArcFile^.Seek(ArcPos);
       Exit;
      end;
-1:ArcFile^.Seek(ArcPos);
+  ArcFile^.Seek(ArcPos);
 end;
 
 Function HYPDetect: boolean;
-label 1;
 var
     M: Array[1..4] of Char;
     C: Char;
@@ -288,11 +280,10 @@ begin
       ArcFile^.Seek(ArcPos);
       Exit;
      end;
-1:ArcFile^.Seek(ArcPos);
+  ArcFile^.Seek(ArcPos);
 end;
 
 Function LIMDetect: Boolean;
-label 1;
 var
     M: Array[1..8] of Char;
     C: Char;
@@ -313,11 +304,10 @@ begin
         Exit;
        end;
      end;
-1:ArcFile^.Seek(ArcPos);
+  ArcFile^.Seek(ArcPos);
 end;
 
 Function HPKDetect: Boolean;
-label 1;
 var
     M: Array[1..4] of Char;
     C: Char;
@@ -373,7 +363,7 @@ begin
         Exit;
        end;
      end;
-1:ArcFile^.Seek(ArcPos);
+  ArcFile^.Seek(ArcPos);
 end;
 
 Function TARDetect: Boolean;
@@ -406,8 +396,15 @@ Function TARDetect: Boolean;
  end;
 
 function TGZDetect: boolean;
+{changed by piwamoto}
+var
+    W: Word;
 begin
- TGZDetect:=InFilter(ArcFileName, '*.TAZ;*.TGZ;*.TAR.GZ');
+ ArcFile^.Read(W, SizeOf(W));
+ TGZDetect := (ArcFile^.Status = stOK) and
+              (W = $8b1f) and
+              (InFilter(ArcFileName, '*.TAZ;*.TGZ;*.GZ;*.Z;*.RPM'));
+ ArcFile^.Seek(ArcPos);
 end;
 
 function ZXZDetect: boolean;
@@ -555,10 +552,8 @@ begin
 end;
 
 Function UC2Detect: Boolean;
-label 1;
 var
     M: Array[1..4] of Char;
-    B: Boolean;
 begin
  UC2Detect:=False;
  ArcFile^.Read(M, 4);
@@ -567,7 +562,7 @@ begin
         UC2Detect:= True;
         Exit;
      end;
-1:ArcFile^.Seek(ArcPos);
+  ArcFile^.Seek(ArcPos);
 end;
 
 Function AINDetect: Boolean;
@@ -576,13 +571,18 @@ var
     AinSum, ChkSum : Word;
     I : Integer;
 begin
+ AINdetect:=False;
  ArcFile^.Read(AinHdr, SizeOf(AinHdr));
  ArcFile^.Read(AinSum, SizeOf(AinSum));
+ if (ArcFile^.Status = stOK) and
+    ((AinHdr[14] + 256*AinHdr[15] + 65536*AinHdr[16] + 16777216*AinHdr[17]) < ArcFile^.GetSize)
+   then begin
+     ChkSum := 0;
+     for I:=0 to 21 do ChkSum := ChkSum + AinHdr[I];
+     ChkSum := ChkSum xor $5555;
+     AINDetect:=(ChkSum=AinSum);
+   end;
  ArcFile^.Seek(ArcPos);
- ChkSum := 0;
- for I:=0 to 21 do ChkSum := ChkSum + mem[Seg(AinHdr):Ofs(AinHdr)+I];
- ChkSum := ChkSum xor $5555;
- AINDetect:=(ChkSum=AinSum);
 end;
 {$ENDIF}
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -99,6 +99,7 @@ implementation
  uses Dos, Commands, DNApp, DNStdDlg, Dialogs, advance, advance1, advance2,
       advance3, Startup, RStrings, xTime, Messages, MicroEd, Histries, FViewer
 {$IFDEF SS} ,Idlers{$ENDIF}
+{$IFDEF VIRTUALPASCAL}, VpSysLow{$ENDIF}
       ;
 
 
@@ -173,17 +174,21 @@ end;
 
 procedure TCommandLine.Update;
  var P: TPoint;
-     A1,A2: Integer;
+     A1,A2: {$IFNDEF VIRTUALPASCAL}Integer{$ELSE}SmallWord{$ENDIF};
      BB: Boolean;
 begin
  if GetState(sfDisabled) then Exit;
- asm
+  {$IFNDEF VIRTUALPASCAL}
+  asm
    mov ah,3
    xor bx,bx
    int 10h
    mov A1, dx
    mov A2, cx
   end;
+  {$ELSE}
+  SysGetCurPos(A1, A2);
+  {$ENDIF}
   if
 {$IFDEF SS} (SSaver <> nil) or {$ENDIF}
     (Size.X = 0) or (Size.Y = 0) or
@@ -197,6 +202,7 @@ begin
   P.Y := 0;
   MakeGlobal(P, P);
   BB := not Overwrite  xor (InterfaceData.Options and ouiBlockInsertCursor <> 0);
+  {$IFNDEF VIRTUALPASCAL}
   asm
         MOV     CX,CursorLines
         LES     DI,Self
@@ -214,6 +220,12 @@ begin
         MOV     DH, BYTE PTR P.Y
         INT     10H
   end;
+  {$ELSE}
+  if BB
+   then SysTVSetCurType(hi(CursorLines), lo(CursorLines), true)
+   else SysTVSetCurType(0, 7, true);
+  SysTVSetCurPos(P.X, P.Y);
+  {$ENDIF}
 end;
 
 procedure TCommandLine.SetState;
@@ -340,10 +352,10 @@ begin
                   case Event.KeyCode of
                    kbAltSlash: begin
                                  if ShiftState and 3 <> 0 then Dec(LineType)
-                                                            else Inc(LineType);
+                                                          else Inc(LineType);
                                  if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
                                    if ShiftState and 3 <> 0 then Dec(LineType)
-                                                              else Inc(LineType);
+                                                            else Inc(LineType);
                                  if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
                                    if ShiftState and 3 <> 0 then Dec(LineType)
                                                               else Inc(LineType);
@@ -372,6 +384,7 @@ begin
                            end;
                    kbBackUp: StrCleared:=false;
                    kbUp, kbCtrlE: begin
+                                  if (Event.KeyCode=kbUp) and (ShiftState and kbCtrlShift<>0) then exit;
                                   if StrModified then
                                    begin
                                     AddCommand(Str);
@@ -384,6 +397,7 @@ begin
                                   CE2;
                                 end;
                    kbDown, kbCtrlX: begin
+                                  if (Event.KeyCode=kbDown) and (ShiftState and kbCtrlShift<>0) then exit;
                                     if StrModified then
                                      begin
                                        AddCommand(Str);

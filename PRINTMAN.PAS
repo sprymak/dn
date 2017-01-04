@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -78,16 +78,16 @@ uses LFN, {DataCompBoy}
         PrintDevice: PDOSStream;
         constructor Init(var Bounds: TRect; AStatus: PView; AScrollBar: PScrollBar);
         constructor Load(var S: TStream);
-        procedure Store(var S: TStream);
-        function PrintBuffer(Num: Word): Boolean;
-        procedure HandleEvent(var Event: TEvent); virtual;
-        procedure PrintFile(const FileName: String);
-        function SetDestination: Boolean;
-        function GetStatus: Byte;
-        procedure InitPrinter;
-        function Valid(C: Word): Boolean; virtual;
-        procedure Update; virtual;
-        destructor Done; virtual;
+        procedure   Store(var S: TStream);
+        function    PrintBuffer(Num: Word): Boolean;
+        procedure   HandleEvent(var Event: TEvent); virtual;
+        procedure   PrintFile(const FileName: String);
+        function    SetDestination: Boolean;
+        function    GetStatus: Byte;
+        procedure   InitPrinter;
+        function    Valid(C: Word): Boolean; virtual;
+        procedure   Update; virtual;
+        destructor  Done; virtual;
       end;
 
       PPrintStatus = ^TPrintStatus;
@@ -107,6 +107,7 @@ const Printer: PPrintManager = nil;
       MaxBufCount = 128;
 
 procedure SetupPrinter;
+procedure PrintFile(const S: String);
 
 implementation
 
@@ -133,6 +134,7 @@ constructor TPMWindow.Init;
      S: PView;
 begin
  Inherited Init(R, GetString(dlPManagerTitle));
+ Number := GetNum;
  R.Assign(Size.X - 13,1,Size.X - 12, Size.Y - 4);
  P := New(PScrollBar, Init(R));
  Insert(P);
@@ -234,13 +236,12 @@ begin
  end;
  OldP := PrintDevice;
  PrintDevice := New(PDOSStream, Init(S, stCreate));
- if PrintDevice^.Status <> stOK then
-  begin
-    PrintDevice := OldP;
-    MessageBox(GetString(dlPrintNoInit), nil, mfError + mfOKButton);
-    PrintDevice^.Status := 0;
-    Exit;
-  end;
+ if PrintDevice^.Status <> stOK then begin
+  PrintDevice := OldP;
+  MessageBox(GetString(dlPrintNoInit), nil, mfError + mfOKButton);
+  PrintDevice^.Status := 0;
+  Exit;
+ end;
  if OldP <> nil then Dispose(OldP,Done); OldP:=nil;
  DisposeStr(OutName);
  OutName := NewStr(S);
@@ -252,7 +253,6 @@ end;
 constructor TPrintManager.Load;
 begin
    inherited Load(S);
-   Printer := @Self;
    GetPeerViewPtr(S, Status);
    OutName := S.ReadStr;
    S.Read(Paused, 1);
@@ -261,17 +261,18 @@ begin
    BufSize := MaxBufCount;
    GetMem(Buffer, BufSize);
    isValid := True;
-   if PrintDevice^.Status <> stOK then
-    begin
-      isValid := False;
-      MessageBox(GetString(dlPrintNoInit), nil, mfError + mfOKButton);
-      PrintDevice^.Status := 0;
-      Exit;
-    end;
+   if PrintDevice^.Status <> stOK then begin
+    isValid := False;
+    MessageBox(GetString(dlPrintNoInit), nil, mfError + mfOKButton);
+    PrintDevice^.Status := 0;
+    Exit;
+   end;
    PrintStream := New(PBufStream, Init(PString(List^.At(0))^, stOpenRead, $400));
    FileLen := PrintStream^.GetSize;
    PrintStream^.Seek(FilePos);
    {PrintStream := nil;}
+   Printer := @Self;
+   RegisterToBackground(@Self);
 end;
 
 procedure TPrintManager.Store;
@@ -285,11 +286,11 @@ end;
 
 destructor TPrintManager.Done;
 begin
+  Printer := nil;
   if PrintStream <> nil then Dispose(PrintStream,Done); PrintStream:=nil;
   if PrintDevice <> nil then Dispose(PrintDevice,Done); PrintDevice:=nil;
   if Buffer <> nil then FreeMem(Buffer, BufSize); Buffer:=nil;
   DisposeStr(OutName);
-  Printer := nil;
   inherited Done;
 end;
 
@@ -357,7 +358,7 @@ begin
   Hndl := PrintDevice^.Handle;
   asm
     MOV  BX, Hndl
-    MOV  AX,4400H   { IOCTL, GET DEV ATTR}
+    MOV  AX,4400H   { IOCTL, GET DEV ATTR }
     INT  21H
     JC   @@100
     {MOV  [OLD_PRINTER_ATTR],AL}
@@ -429,9 +430,9 @@ procedure TPrintManager.Update;
   if (PrintStream^.Status <> stOK) then
      MessageBox(GetString(dlCantPrintFile) + S, nil,
              mfError + mfOKButton);
-  Dispose(PrintStream,Done); PrintStream:=nil;
+  Dispose(PrintStream,Done);
   PrintStream := nil;
-  if InMask(GetName(S), '$DN????$.PRN') then EraseFile(S); {DataCompBoy}
+  if InMask(GetName(S), '$DN????$.PRN') then EraseFile(S);
   List^.AtFree(0);
   SetRange(List^.Count);
   FocusItem(Focused-1);
@@ -442,52 +443,44 @@ procedure TPrintManager.Update;
 
 begin
   if (List = nil) or Paused or (LockUpdate <> 0) then Exit;
-  if (PrintStream = nil) then
-   begin
-     if (List = nil) or (List^.Count < 1) then
-      begin
-       if not Owner^.GetState(sfDragging) then Owner^.Free;
-       Exit;
-      end;
-     PrintStream := New(PBufStream, Init(PString(List^.At(0))^, stOpenRead, $400));
-     FileLen := 0; FilePos := 0;
-     if PrintStream^.Status <> stOK then WriteError else
-     begin
-        FileLen := PrintStream^.GetSize;
-        if RPrinterSetup.InitPrinter = '' then
-         begin
-           BufCount := MaxBufCount;
-           if  BufCount > FileLen then BufCount := FileLen;
-           PrintStream^.Read(Buffer^, BufCount);
-         end else
-         begin
-           BufCount := Length(RPrinterSetup.InitPrinter);
-           Move(RPrinterSetup.InitPrinter[1], Buffer^, BufCount);
-         end;
-     end;
-   end else
-   begin
-     if PrintBuffer(BufCount) then
-      begin
-       FilePos := PrintStream^.GetPos;
-       if (FilePos >= FileLen) or (PrintStream^.Status <> stOK) then
-        begin
-          if RPrinterSetup.AfterFile <> '' then
-           begin
-             BufCount := Length(RPrinterSetup.AfterFile);
-             Move(RPrinterSetup.AfterFile[1], Buffer^, BufCount);
-             repeat until PrintBuffer(BufCount);
-             if not Paused then WriteError;
-           end else if not Paused then WriteError;
-        end else
-        begin
-          BufCount := MaxBufCount;
-          if BufCount + FilePos > FileLen then BufCount := FileLen - FilePos;
-          PrintStream^.Read(Buffer^, BufCount);
-        end;
-      end;
+  if (PrintStream = nil) then begin
+   if (List = nil) or (List^.Count < 1) then begin
+    if not Owner^.GetState(sfDragging) then Owner^.Free;
+    Exit;
    end;
-   if Status <> nil then Status^.DrawView;
+   PrintStream := New(PBufStream, Init(PString(List^.At(0))^, stOpenRead, $400));
+   FileLen := 0; FilePos := 0;
+   if PrintStream^.Status <> stOK
+    then WriteError
+    else begin
+     FileLen := PrintStream^.GetSize;
+     if RPrinterSetup.InitPrinter = '' then begin
+      BufCount := MaxBufCount;
+      if  BufCount > FileLen then BufCount := FileLen;
+      PrintStream^.Read(Buffer^, BufCount);
+     end else begin
+      BufCount := Length(RPrinterSetup.InitPrinter);
+      Move(RPrinterSetup.InitPrinter[1], Buffer^, BufCount);
+     end;
+    end;
+  end else begin
+   if PrintBuffer(BufCount) then begin
+    FilePos := PrintStream^.GetPos;
+    if (FilePos >= FileLen) or (PrintStream^.Status <> stOK) then begin
+     if RPrinterSetup.AfterFile <> '' then begin
+      BufCount := Length(RPrinterSetup.AfterFile);
+      Move(RPrinterSetup.AfterFile[1], Buffer^, BufCount);
+      repeat until PrintBuffer(BufCount);
+      if not Paused then WriteError;
+     end else if not Paused then WriteError;
+    end else begin
+     BufCount := MaxBufCount;
+     if BufCount + FilePos > FileLen then BufCount := FileLen - FilePos;
+     PrintStream^.Read(Buffer^, BufCount);
+    end;
+   end;
+  end;
+  if Status <> nil then Status^.DrawView;
 end;
 
 procedure SetupPrinter;
@@ -500,5 +493,22 @@ begin
      Printer^.SetDestination;
 end;
 
-end.
+ procedure PrintFile(const S: String);
+  var W: PView;
+      R: TRect;
+ begin
+   R.Assign(0,0,50,9);
+   if Printer = nil then
+    begin
+     W := Application^.ValidView(New(PPMWindow, Init(R)));
+     if W <> nil then
+      begin
+       W^.Hide;
+       Desktop^.InsertView(W, DeskTop^.Last);
+       W^.Show;
+      end;
+    end;
+   if Printer <> nil then Printer^.PrintFile(S);
+ end;
 
+end.

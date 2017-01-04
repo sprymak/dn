@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,12 +44,12 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 Unit WinClp ;
-
 interface
 
- Uses Objects , advance, advance1, advance2, advance3 ;
+ Uses Objects , advance, advance1, advance2, advance3, collect ;
 
  procedure PackClipStr(var S: string); {-$VOL begin}
 
@@ -64,7 +64,11 @@ interface
 
 
 Implementation
-uses MicroEd, DNini;
+uses MicroEd, DNini
+{$IFNDEF NONBP}
+{$IFDEF DPMI}, Dpmi, DosMem{$ENDIF}
+{$ENDIF}
+;
 
 function MaxAvail: LongInt;
 begin
@@ -91,23 +95,34 @@ end; {procedure PackClipStr}          {-$VOL end}
  end;
 
 
- Function OpenClip : boolean ; assembler ;
+ Function OpenClip : boolean ;
+   {$IFNDEF NONBP}
+   assembler ;
    asm    mov  ax,1701h
           int  2fh
           or   ax,ax
           jz   @@1
           mov  ax,1
    @@1:   end;
+   {$ELSE}Begin end;
+   {$ENDIF}
 
- Function CloseClip : boolean ; assembler ;
+ Function CloseClip : boolean ;
+   {$IFNDEF NONBP}
+   assembler ;
    asm    mov  ax,1708h
           int  2fh
           or   ax,ax
           jz   @@1
           mov  ax,1
    @@1:   end;
+   {$ELSE}Begin end;
+   {$ENDIF}
 
- Function SetClip(var Buf; Size : word ) : boolean ; assembler ;
+ Function SetClip(var Buf; Size : word ) : boolean ;
+{$IFNDEF NONBP}
+{$IFNDEF DPMI}
+   assembler ;
    asm
           les  bx,Buf
           mov  cx,size
@@ -119,14 +134,40 @@ end; {procedure PackClipStr}          {-$VOL end}
           jz   @@1
           mov  ax,1
    @@1:   end;
+{$ELSE}
+   var Reg: DPMIRegisters;
+       P: Pointer;
+   begin
+    Reg.AX:=$1703;
+    Reg.CX:=Size;
+    Reg.DX:=7; { CF_OEMTEXT }
+    Reg.SI:=0;
+    P:=GetDosMem(Size, Reg.ES);
+    if P=nil then exit;
+    Move(Buf, P^, Size);
+    Reg.BX:=0;
+    SimulateRealModeInt($2F,Reg);
+    FreeDosMem(P);
+    SetClip:=Reg.AX<>0;
+   end;
+{$ENDIF}
+{$ELSE NONBP} begin end;
+{$ENDIF NONBP}
 
- Function GetClipSize : longint ; assembler ;
+ Function GetClipSize : longint ;
+   {$IFNDEF NONBP}
+   assembler ;
    asm
           mov  dx, 7  { CF_OEMTEXT }
           mov  ax,1704h
           int  2fh
    end;
- Function EmptyClip : boolean ; assembler ;
+   {$ELSE NONBP} begin end;
+   {$ENDIF NONBP}
+
+ Function EmptyClip : boolean ;
+   {$IFNDEF NONBP}
+   assembler ;
    asm
           mov  ax,1702h
           int  2fh
@@ -134,14 +175,29 @@ end; {procedure PackClipStr}          {-$VOL end}
           jz   @@1
           mov  ax,1
    @@1:   end;
+   {$ELSE}Begin end;
+   {$ENDIF}
+
  Function CompactClip( Size : longint  ) : longint ; assembler ;
+{$IFDEF NONBP}
+   asm
+          mov  esi,Size
+          mov  cx,si
+          shr  esi,16
+          mov  ax,1709h
+          int  2fh
+{$ELSE}
    asm
           mov  cx,Size.word
           mov  si,[Size+2].word
           mov  ax,1709h
           int  2fh
+{$ENDIF}
    end;
- Function GetClip(var Buf ) : boolean ; assembler ;
+ Function GetClip(var Buf; Size: LongInt ) : boolean ;
+{$IFNDEF NONBP}
+{$IFNDEF DPMI}
+   assembler ;
    asm
           les  bx,Buf
           mov  dx, 7  { CF_OEMTEXT }
@@ -151,6 +207,25 @@ end; {procedure PackClipStr}          {-$VOL end}
           jz   @@1
           mov  ax,1
    @@1:   end;
+{$ELSE}
+   var Reg: DPMIRegisters;
+       P: Pointer;
+   begin
+    Reg.AX:=$1705;
+    Reg.DX:=7; { CF_OEMTEXT }
+    P:=GetDosMem(Size, Reg.ES);
+    if P=nil then exit;
+    Reg.BX:=0;
+    SimulateRealModeInt($2F,Reg);
+    if Size>65528
+     then Move(P^, Buf, 65528)
+     else Move(P^, Buf, Size);
+    FreeDosMem(P);
+    GetClip:=Reg.AX<>0;
+   end;
+{$ENDIF}
+{$ELSE NONBP}begin end;
+{$ENDIF NONBP}
 
  Type
      DA  =  array [0..$FFF0] of byte ;
@@ -161,7 +236,7 @@ end; {procedure PackClipStr}          {-$VOL end}
      Buf : PDA;
      BufPos : Word ;
     TmStr : String ;
-   Function CopyLine( Line : PString ):boolean; far;
+   Function CopyLine( Line : PString ):boolean; {$IFDEF BIT_16}far;{$ENDIF}
     var L: byte absolute TmStr;
     begin
       CopyLine := False ;
@@ -209,7 +284,8 @@ end; {procedure PackClipStr}          {-$VOL end}
      if Size > $EF00 then begin CloseClip; Exit; end;
      if (Size + $800) > (MaxAvail div 2) then begin CloseClip; Exit; end;
      GetMem(Buf,Size);
-     if not GetClip(Buf^) then begin FreeMem(Buf,Size); CloseClip; Exit; end;
+     if not GetClip(Buf^,Size) then
+      begin FreeMem(Buf,Size); CloseClip; Exit; end;
      if PCL = nil then New(PCL,Init(10,10)); {-$VOL}
      New(PC,Init(10,10));
      BufPos := 0 ; SZ := Size;
@@ -252,9 +328,11 @@ end; {procedure PackClipStr}          {-$VOL end}
            Insert( NewStr( CnvString( PC^.At(I) ) ) );
            Inc(I);
          end;
+       if ClipBoardStream<>nil then
+        ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-1, 0));
        CopyLines2Stream( PCL, ClipBoardStream );
      end;
-     FreeObject(PCL);
+     Dispose(PCL,Done);
      PCL := PC;
      {-$VOL end}
      GetWinClip := PCL^.Count>0;
@@ -271,25 +349,11 @@ end; {procedure PackClipStr}          {-$VOL end}
     end;
 
  procedure PackLinesStream( var PCS: PStream ); {-$VOL begin}
-{  var P: PCollection;
-       I, C2: longint;
-       PS1, PS2: PString;}
   var
    ps: PString;
    sp: longint;
    MS: PStream;
  begin
-{ P := nil;
-  CopyStream2Lines( PCS, P );
-  FreeObject( PCS );
-  C2 := P^.Count div 2;
-  with P^ do
-    for I := 0 to C2 do begin
-      PS1 := At(I); PS2 := At(Count - I - 1);
-      AtPut(I, PS2); AtPut(Count - I - 1, PS1);
-    end;
-  CopyLines2Stream( P, PCS );
-  FreeObject( P );}
   sp:=PCS^.GetSize-CBSize;
   PCS^.Seek(0);
   while PCS^.GetPos<sp do
@@ -305,7 +369,7 @@ end; {procedure PackClipStr}          {-$VOL end}
     ms^.WriteStr(ps);
     disposestr(ps);
    end;
-  dispose(PCS, done);
+  Dispose(PCS,Done);
   PCS:=ms;
  end; {-$VOL end}
 
@@ -317,18 +381,22 @@ end; {procedure PackClipStr}          {-$VOL end}
    if PCS = nil then PCS := GetMeMemoStream;
    if PCS = nil then Exit;
    for i := 0 to P^.Count - 1 do PCS^.WriteStr( P^.At(i) );
+   PCS^.WriteStr(nil);
    if (PCS^.GetSize > CBSize) and (P^.Count > 1) then PackLinesStream( PCS );
  end; {-$VOL end}
 
  procedure CopyStream2Lines( PCS: PStream; var PC: PCollection); {-$VOL begin}
+ var PS: PString;
  begin
    if PCS = nil then Exit;
-   if PC = nil then PC := New(PLineCollection, Init(100,5)); if PC = nil then Exit;
+   if PC = nil then PC := New(PLineCollection, Init(50,5));
+   if PC = nil then Exit;
    PCS^.Seek(0);
-   while not PCS^.Eof do begin
-     PC^.AtInsert( 0, PCS^.ReadStr );
-     if (PCS^.GetPos > CBSize) and (PC^.Count > 1) then
-       PC^.AtFree(PC^.Count - 1);
+   PS:=PCS^.ReadStr;
+   while (PS<>nil) and not PCS^.EOF do begin
+     PC^.AtInsert( 0, PS );
+     if (PCS^.GetPos > CBSize) and (PC^.Count > 1) then PC^.AtFree(0);
+     PS:=PCS^.ReadStr;
    end;
    PC^.Pack;
  end; {-$VOL end}

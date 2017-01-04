@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -123,8 +123,9 @@ type
                   { 2 - broken arc  }
                  end;
 
-Implementation uses Menus,DnApp,Messages,Dialogs,Gauge,FileCopy,
-                    Memory,Startup, Arvid, xTime;
+Implementation
+ uses Menus, DnApp, Messages, Dialogs, Gauge, FileCopy, Memory, Startup,
+      Arvid, xTime, VideoMan;
 
 const
   LowMemSize = $4000;  {Local setting}
@@ -652,13 +653,16 @@ begin
   ScreenSaved := Off;
   DoneDOSMem;
   DoneMemory;
-  asm cld; mov ax,3; int $10; end;
+  {$IFDEF OS_DOS}asm cld; mov ax,3; int $10; end;{$ENDIF}
   S := GetEnv('PATH');
   S := FSearch(Prg,S);
   SwapVectors;
-  DOS.Exec(S,Cmd); DE := DosError; ClrIO;
+  if InFilter(S, '*.EXE;*.COM')
+   then DOS.Exec(S,Cmd)
+   else DOS.Exec(GetEnv('COMSPEC'),'/c '+S+' '+Cmd);
+  DE := DosError; ClrIO;
   SwapVectors;
-  EraseFile(SwpDir+'$$$DN$$$.LST'); {DataCompBoy}
+  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {DataCompBoy}
   InitDOSMem;
   InitMemory;
   SetVideoMode(ScreenMode); SM := ScreenMode;
@@ -696,7 +700,7 @@ begin
      {Prev^.Owner := Owner;}
    end;
   PFilePanel(Owner)^.Drive := Prev;
-  Prev^.lChDir(Prev^.CurDir);
+  if TypeOf(Prev^)=TypeOf(TDrive) then Prev^.lChDir(GetPath(ArcName));
   if (Prev^.DriveType = dtDisk) and
      (PView(Owner)^.GetState(sfSelected+sfActive)) then
       ActivePanel := Owner;
@@ -740,7 +744,7 @@ begin
  B := AType^.ListChar = ' ';
  if B then S := '' else
   begin
-   S := SwpDir + '$$$DN$$$.LST';
+   S := SwpDir + '$DN'+ItoS(DNNumber)+'$.LST';
    lAssignText(F, S); ClrIO;
    lRewriteText(F);
    B := IOResult <> 0;
@@ -926,16 +930,22 @@ begin
     if P^.Attr and Hidden    <>0 then NFM:=nfmHidden;
     if P^.Attr and Directory <>0 then if DirFLP<>65535
                                        then OPT:=OPT or DirFLP
-                                       else {if (Length(GetSName(S))<=8) and}
-                                            {   (Length(GetExt(S))<=4)      }
+                                       else {$IFNDEF COMBINE_MIXED}
+                                            if (Length(GetSName(S))<=8) and
+                                               (Length(GetExt(S))<=4)
+                                            {$ELSE}
                                             if (not IsMixedCase(S)) {JO}
+                                            {$ENDIF}
                                              then OPT:=OPT or flnUpCase
                                              else
                                  else if FilFLP<>65535
                                        then OPT:=OPT or FilFLP
-                                       else {if (Length(GetSName(S))<=8) and}
-                                            {   (Length(GetExt(S))<=4)      }
+                                       else {$IFNDEF COMBINE_MIXED}
+                                            if (Length(GetSName(S))<=8) and
+                                               (Length(GetExt(S))<=4)
+                                            {$ELSE}
                                             if (not IsMixedCase(S)) {JO}
+                                            {$ENDIF}
                                              then OPT:=OPT or flnLowCase
                                              else ;
     S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
@@ -965,7 +975,7 @@ begin
   TWordArray(B)[X-1]:=SC;
   MakeDate(DateMode, P^.Day, P^.Month, P^.Yr, P^.Hour, P^.Minute, S1);
   if (P^.Size > 0) or (P^.Attr and Directory = 0)
-    then S := FileSizeStr( P^.Size )
+    then S := FileSizeStr( P^.Size ){!}
     else if P^.Name[1]= '.'
       then S := GetString( dlUpDir )
       else S := GetString( dlSubDir );

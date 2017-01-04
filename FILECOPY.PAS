@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -78,9 +78,11 @@ function  CopyDialog(var CopyDir: String; var Mask: String; {DataCompBoy}
                      FromTemp: Byte; Owner: PView; Link: Boolean): Boolean;
 
 implementation
-uses DNApp, Startup, extramemory, Memory, Messages, HistList, Commands,
-     DiskTool, xTime, Validate,
+uses DNApp, Startup, ExtraMem, Memory, Messages, HistList, Commands,
+     xTime, Validate,
     {$IFDEF MODEM}{$IFDEF LINK}NavyLink,{$ENDIF}{$ENDIF}
+    {$IFNDEF NONBP} DiskTool,{$ENDIF}
+    {$IFDEF VIRTUALPASCAL} Crt, {$ENDIF}
      Gauge, FileFind,
      DNUtil, RStrings, Tree, Archiver, Drives, DiskInfo;
 
@@ -199,14 +201,23 @@ begin
   DelayTics(1);
   for C := 'A' to 'D' do
     begin
+       {$IFDEF VIRTUALPASCAL}
+       PlaySound(1259, 55);
+       PlaySound(1400, 55);
+       {$ELSE}
        Sound(1259);
        DelayTics(1);
        Sound(1400);
        DelayTics(1);
+       {$ENDIF}
     end;
+   {$IFNDEF VIRTUALPASCAL}
    Sound(1259);
    DelayTics(2);
    NoSound;
+   {$ELSE}
+   PlaySound(1259, 110);
+   {$ENDIF}
 end;
 
         {-DataCompBoy-}
@@ -298,7 +309,7 @@ type
     destructor Done; virtual;
   end;
 
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
   PEMSLine = ^TEMSLine;
   TEMSLine = object(TLine)
     procedure PrepareToWrite; virtual;
@@ -430,7 +441,7 @@ begin
 end;
 
 
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
 
 { TEMSLine }
 
@@ -509,11 +520,12 @@ begin
   Stream := XMSStream;
 end;
 
-{$ENDIF}
+{$ENDIF NOEXTRA}
 
 { ----------------------------- File Copy ------------------------------ }
 
 function CDRomInstalled : Boolean;
+{$IFNDEF VIRTUALPASCAL}
 var
   R : Registers;
 begin
@@ -523,6 +535,9 @@ begin
     Intr($2F, R);
     CDRomInstalled := (BX <> 0);
   end;
+{$ELSE}
+begin CDRomInstalled := True
+{$ENDIF}
 end;
 
         {-DataCompBoy-}
@@ -617,9 +632,11 @@ var  ReadStream:  lfile;
     end;
 
    procedure RemoveFromTemp(P: PFileRec);
-     var I: Integer;
+     var I: LongInt;
    begin
-     if (P <> nil) and (TempFiles <> nil) then TempFiles^.DeleteFile(P);
+     I := 0;
+     if (P <> nil) and (TempFiles <> nil) and TempFiles^.Search(P, I)
+      then TempFiles^.AtFree(I);
    end;
 
 
@@ -648,8 +665,6 @@ var  ReadStream:  lfile;
     If Length( L1 ) < Length( L2 )
       then L1 := PredSpace( L1, Length( L2 ))
       else L2 := PredSpace( L2, Length( L1 ));
-    R.Assign(1,1,60,14);
-    { New(D, Init(R, GetString(dlWarning))); }
     D := PDialog( LoadResource( dlgOverwriteQuery ));
     D^.GetExtent(R); R.Grow(-1, -1); Inc(R.A.Y);
     D^.Options := D^.Options or ofCentered;
@@ -820,7 +835,7 @@ const
    begin
      if (ExAttr and (ReadOnly+SysFile+Hidden) <> 0) then
      begin
-       DisableAppend;
+       {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
        lSetFAttr(WriteStream, Archive); ClrIO;
      end;
    end;
@@ -895,7 +910,7 @@ const
 
                   if P^.EOF and eoCheck <> 0 then
                     begin
-                       DisableAppend;
+                       {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                        if Dos40 and Use40 then
                          begin
                            TryToReset;
@@ -985,7 +1000,7 @@ lbStartCheck:
                   if P^.EOF and eoAppend <> 0 then
                     begin
 DoAppend:
-                      DisableAppend;
+                      {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                       FileMode := $42;
                       lResetFile(WriteStream, 1);
                       J := IOResult;
@@ -999,13 +1014,13 @@ DoAppend:
                               if ExAttr = $FFFF then
                               begin
                                 ClrIO;
-                                DisableAppend;
+                                {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                                 lGetFAttr(WriteStream, ExAttr);
                                 if DosError = 0 then TrySetArch
                               end else TrySetArch;
                               if CheckI24Abort then Break ;
                               ExAttr := ExAttr or $FE00;
-                              DisableAppend;
+                              {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                               lResetFile(WriteStream, 1);
                               if IOResult = 0 then Seek(WriteStream.F, FileSize(WriteStream.F));
                             end;
@@ -1014,7 +1029,7 @@ DoAppend:
                           begin
 DoRewrite:
                              ClrIo;
-                             DisableAppend;
+                             {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                              lRewriteFile(WriteStream, 1);
                              if CheckI24Abort then Break ;
                              if (InOutRes = 5) then
@@ -1022,12 +1037,12 @@ DoRewrite:
                                 ClrIO;
                                 if ExAttr = $FFFF then
                                 begin
-                                  DisableAppend;
+                                  {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                                   lGetFAttr(WriteStream, ExAttr);
                                   if DosError = 0 then TrySetArch;
                                 end else TrySetArch;
                                 if CheckI24Abort then Break ;
-                                DisableAppend;
+                                {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                                 lRewriteFile(WriteStream, 1);
                              end;
                           end;
@@ -1048,10 +1063,12 @@ lbStartWrite:
               BlockWrite(WriteStream.F, B^, P^.Len, J); IOR := IOResult;
 
               if not Abort and (CopyOptions and cpoVerify <> 0)  and (J > 0) then begin
+                   {$IFDEF OS_DOS}
                    asm
                      mov ah,0dh
                      int 21h
                    end;
+                   {$ENDIF}
 
                    BufCRC := GetCrc( B^ , P^.Len );
 
@@ -1102,7 +1119,7 @@ lbStartWrite:
                   end;
                   WriteProgress; WPWas := False;
                   Close(WriteStream.F);
-                  DisableAppend;
+                  {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                   case ExAttr shr 8 of
                     $FF : { Set Source Attribute, if Necessary }
                       if P^.Attr <> Archive then
@@ -1122,7 +1139,7 @@ lbStartWrite:
                         (CopyOptions and cpoDesc <> 0)
                       then begin
                         Info^.Write(6, GetString(dlExportingDIZ));
-                        ImportDIZ(PFileRec(P^.Owner)^.Name,
+                        ImportDIZ(MakeFileName(PFileRec(P^.Owner)^.Name),
                           GetName(P^.NewName^),
                           PFileRec(P^.Owner)^.DIZ, PFileRec(P^.Owner)^.Owner);
                       end;
@@ -1186,15 +1203,28 @@ lbStartWrite:
       var
           F: lFile;
           W: Word;
+          SR: lSearchRec;
      begin
       DOSErrorCode := 0;
-       RnFl(S1, S2); lAssignFile(f, S2);
-       if DOSErrorCode = 5 then
-         begin ClrIO; lSetFAttr(F, Archive); ClrIO; lEraseFile(F); RnFl(S1,S2); end;
+       RnFl(S1, S2);
        if DOSErrorCode = 5 then
          begin
-           lAssignFile(F, S1); lGetFAttr(F, W); lSetFAttr(F, Archive); ClrIO;
-           RnFl(S1, S2); lSetFAttr(F, W); ClrIO;
+          lAssignFile(f, S2);
+          ClrIO;
+          lSetFAttr(F, Archive);
+          ClrIO;
+          lEraseFile(F);
+          RnFl(S1,S2);
+         end;
+       if DOSErrorCode = 5 then
+         begin
+           lAssignFile(F, S1);
+           lGetFAttr(F, W);
+           lSetFAttr(F, Archive);
+           ClrIO;
+           RnFl(S1, S2);
+           lSetFAttr(F, W);
+           ClrIO;
          end;
        if not (DOSErrorCode in [0,18]) then
         begin
@@ -1226,7 +1256,7 @@ lbStartWrite:
             (CopyOptions and cpoDesc <> 0) then
           begin
              Info^.Write(6, GetString(dlExportingDIZ));
-             ImportDIZ(PFileRec(Own)^.Name,
+             ImportDIZ(MakeFileName(PFileRec(Own)^.Name),
                GetName(NName),
                PFileRec(Own)^.DIZ, PFileRec(Own)^.Owner);
           end;
@@ -1294,7 +1324,7 @@ lbStartWrite:
       if S1[1] in CD_Drives then Attr := Attr and not ReadOnly;
 
       FileMode := $40;
-      DisableAppend;
+      {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
       lResetFile(ReadStream, 1); ReadPos := 0;
 
       if Abort then
@@ -1321,6 +1351,7 @@ lbStartWrite:
         begin
            ClrIO; EOF := eoStart or eoCheck;
            lFindFirst(S2, $3F xor VolumeID, SR);
+           lFindClose(SR);
            if DOSError = 0 then
              begin
                EOF := eoStart;
@@ -1337,6 +1368,8 @@ lbStartWrite:
                              case Overwrite(NName, SR.FullSize, Ln, SR.SR.Time, Dtt) of
                                cmSkip: begin Close(ReadStream.F); Exit; end;
                                cmOK: begin
+                                       ClrIO; Close(ReadStream.F);
+                                       ClrIO; Close(WriteStream.F);
                                        if InputBox(GetString(dlFCRename), GetString(dlFCRenameNew),
                                             NName, 255, 0) <> cmOK then goto NoRename;
                                        NewTimer(Timer, 0);
@@ -1387,7 +1420,7 @@ lbStartWrite:
         WW := Round(Ln - Rd);
         if WW > BSize then WW := BSize;
         P := nil;
-{$IFNDEF DPMI}
+{$IFNDEF NOEXTRA}
         if AdvCopy then
         begin
           P := New(PXMSLine, Init( WW,  Own, FName, NName, Ln, Dtt, Attr, EOF));
@@ -1852,7 +1885,7 @@ begin
    GlobalMessage(evCommand, cmPanelReread,  @CopyDir);
   end else begin
 qqqq:
-  AppendCheck;
+  {$IFNDEF NONBP}AppendCheck;{$ENDIF}
   Dirs := nil;
   AdvCopy := (not CopyPrn) and (SystemData.Options and ossAdvCopy <> 0);
   Use40 := Dos40 and AdvCopy;
@@ -1914,6 +1947,7 @@ qqqq:
     Info^.Write(5, GetString(dlFlushingBuffers)+'...');
   end else Dispose(Info,Done);
 
+  {$IFDEF OS_DOS}
   if AppendInstalled then
     asm
       mov ax, $B708
@@ -1922,6 +1956,7 @@ qqqq:
       int  $2F
       pop  bp
     end;
+  {$ENDIF}
   if Dirs <> nil then Dispose(Dirs,Done); Dirs:=nil;
   if CopyOptions and cpoMove <> 0 then __Remove;
   for C := 'A' to 'Z' do
@@ -1935,10 +1970,12 @@ qqqq:
   Message(Owner, evCommand, cmRecountDirs, nil);
   if Flush then
   begin
+    {$IFDEF OS_DOS}
     asm
       mov ah,0dh
       int 21h
     end;
+    {$ENDIF}
     Dispose(Info,Done);
   end;
   end;

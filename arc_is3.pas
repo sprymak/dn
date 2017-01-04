@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -98,25 +98,25 @@ begin
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             '-r'));
   Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             ''));
   Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               '-dt -i'));
-  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       '-i'));
+  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
   ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
-  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
-  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
-  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
-  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-sm'));
-  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-sl'));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-i'));
+  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-sn'));
+  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-sl'));
+  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-sm'));
+  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-sh'));
+  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-sh'));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-sh'));
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
   if q='0' then Swap := False else Swap := True;
-  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   if q='0' then UseLFN := False else UseLFN := True;
-  PutTempBefore := 2;
   FoldersOffs:=-1;
 end;
 

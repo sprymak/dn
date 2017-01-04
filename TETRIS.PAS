@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -194,6 +194,7 @@ constructor TGameWindow.Init;
 begin
  R.Assign(1, 1, 30+shi*2, 4+Vis);
  Inherited Init(R, GetString(dlGameTitle));
+ Number := GetNum;
  HelpCtx := hcTetris + Byte( TetrisRec.S = 1 );
  Options := Options or ofCentered;
  R.Assign(2,2,2+Shi*2,2+Vis);
@@ -312,7 +313,7 @@ Constructor TGameView.Init;
  var I, J: Integer;
      S: TDOSStream;
      C: Word;
-     B: Array[0..512] of Word;
+     B: Array[0..1024] of Byte;
 begin
  Randomize;
  inherited Init(R);
@@ -334,6 +335,7 @@ begin
  if S.Status = stOK then S.Read(B, sizeof(HiScores));
  S.Done;
  I := SizeOf(HiScores);
+ {$IFNDEF BIT_32}
  asm
    lea bx, B
    mov cx, I
@@ -344,6 +346,18 @@ begin
    inc bx
    loop @@1
  end;
+ {$ELSE BIT_32}
+ asm
+   lea ebx, B
+   mov ecx, I
+ @@1:
+   mov dl, cl
+   xor dl, $AA
+   xor [ebx], dl
+   inc ebx
+   loop @@1
+ end;
+ {$ENDIF}
  Move(B, HiScores, SizeOf(HiScores));
  for I := 1 to 20 do
  if not (HiScores[I].StLv in [1..10]) then
@@ -503,6 +517,7 @@ function TGameView.MoveDown;
   S.Init(SourceDir+'dn.tet',stCreate); {DataCompBoy}
   Move(HiScores, B, SizeOf(HiScores));
   J := SizeOf(HiScores);
+  {$IFNDEF BIT_32}
   asm
     lea bx, B
     mov cx, J
@@ -513,6 +528,18 @@ function TGameView.MoveDown;
     inc bx
     loop @@1
   end;
+  {$ELSE}
+  asm
+    lea ebx, B
+    mov ecx, J
+  @@1:
+    mov dl, cl
+    xor dl, $AA
+    xor [ebx], dl
+    inc ebx
+    loop @@1
+  end;
+  {$ENDIF}
   S.Write(B, SizeOf(HiScores));
   S.Done;
   ShowScores(I);
@@ -572,7 +599,7 @@ begin
 end;
 
 procedure TGameView.Draw;
- var B: Array [0..230] of Word;
+ var B: TDrawBuffer;
      I, J, K: Integer;
 begin
  if not ChPos then
@@ -599,6 +626,7 @@ procedure TGameView.MakeTime;
  var A, B, C: Byte;
 begin
  if Stop then Exit;
+ {$IFDEF OS_DOS}
  asm
   mov ah, 2Ch
   int 21h
@@ -607,12 +635,16 @@ begin
   mov C, CL
  end;
  LastT := LongInt (A + LongInt(C)*60) * 100 + B;
+ {$ELSE}
+ LastT := GetTimemSec*10;
+ {$ENDIF}
 end;
 
 procedure TGameView.Update;
  var A, B, C: Byte;
 begin
  if Stop then Exit;
+ {$IFDEF OS_DOS}
  asm
   mov ah, 2Ch
   int 21h
@@ -621,6 +653,9 @@ begin
   mov C, CL
  end;
  if LongInt(LongInt(C)*60 + Word(A))*100 + B > LastT + Delay then
+ {$ELSE}
+ if GetTimemSec*10 > LastT + Delay
+ {$ENDIF}
   begin MoveDown; MakeTime end;
 end;
 

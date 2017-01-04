@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,7 +50,7 @@ unit Macro;
 
 interface
 uses advance, advance1, advance2, advance3, Objects, Views, collect,
-     microed, highlite, {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF};
+     microed, highlite, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
 
 type
      PEditMacros = ^TEditMacros;
@@ -97,11 +97,11 @@ type
 
 
 procedure EditDOSEvironment(Env: PByteArray);
-procedure InitHighLight(const FName: String;
-            var HiLitePar: THighliteParams;
-            var EdOpt: TEditOptions;
-            var Macros: PCollection;
-            PEdOptions: PEditOptions);
+function  InitHighLight
+          ( const FName     : string;
+            var   HiLitePar : THighliteParams;
+                  Macros    : PCollection;
+                  EdOptions : PEditOptions) : Boolean;
 
 implementation
 uses Messages, Drivers, Dialogs, Commands, DNHelp, DNApp,
@@ -454,8 +454,8 @@ type
      TVarList = object(TListBox)
        Line: PInputLine;
        PrevFocused: Integer;
-       procedure FocusItem(Item: Integer); virtual;
-       function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+       procedure FocusItem(Item: LongInt); virtual;
+       function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
        procedure HandleEvent(var Event: TEvent); virtual;
      end;
 
@@ -683,15 +683,45 @@ begin
   Dispose( PC, Done );
 end;
 
-procedure InitHighLight(const FName: String;
-            var HiLitePar: THighliteParams;
-            var EdOpt: TEditOptions;
-            var Macros: PCollection;
-            PEdOptions: PEditOptions);
+(*****************************************************************
+ *
+ * FUNCTION:    InitHighLight
+ *
+ * PURPOSE:     This function initializes highlight parameters and
+ *              editor options defined in DN.HGL file.
+ *
+ * INPUTS:      FName     - Source file openend with viewer of
+ *                          editor.
+ *              HiLitePar - Buffer for parameters used during
+ *                          coloring text.
+ *              Macros    - A collection for editor macros.
+ *                          Can be nil for viewers.
+ *              EdOptions - Pointer to buffer for additional editor
+ *                          options. Can be nil for viewers.
+ *
+ * OUTPUTS:     HiLitePar - Buffer with highlighting data.
+ *              Macros    - With new macros.
+ *              EdOptions - With updated options.
+ *
+ * RETURNS:     FALSE - When file is not defined in DN.HGL or
+ *                      if there is a definition 'HIGHLIGHT OFF'.
+ *              TRUE  - Elsewhere.
+ *
+ * NOTES:
+ *
+ * HISTORY:     2000.06.09 - PZ - Changed interface.
+ *
+ *****************************************************************)
+
+function  InitHighLight
+          ( const FName     : string;
+            var   HiLitePar : THighliteParams;
+                  Macros    : PCollection;
+                  EdOptions : PEditOptions ) : Boolean;
 var
-  F: PTextReader;
-  I: Integer;
-  CaseStr : string;   {PZ - 2000.04.11}
+  F       : PTextReader;
+  I       : Integer;
+  CaseStr : string; {PZ - 2000.04.11}
 
   function Found(const S: String): Boolean;
   begin
@@ -748,7 +778,8 @@ var
   procedure MakeDefaults;
   var
     j : Integer;
-  begin while not F^.EOF do begin
+  begin
+    while not F^.EOF do begin
       CaseStr:=fDelLeft(fDelRight(F^.GetStr));
       FreeStr:=UpStrg(CaseStr);
       if (FreeStr = '') or (FreeStr[1] = ';') then continue;
@@ -788,38 +819,46 @@ var
       if Found('BINNUMFLAGS ') then MakeValue ( HiLitePar.BinFlags ) else
       if Found('STRINGFLAGS ') then MakeValue ( HiLitePar.StrFlags ) else
 {PZ - end }
-      if Found('HIGHLIGHT ') then Edopt.HiLite := IsOn else
-      if Found('H_LINE ') or Found('H_ROW ') then EdOpt.HiliteLine:=IsOn else
-      if Found('H_COLUMN ') then EdOpt.HiliteColumn:=IsOn else
-      if Found('AUTOWRAP ') then EdOpt.AutoJustify:=IsOn else
-      if Found('WRAPJUSTIFY ') then EdOpt.AutoWrap:=IsOn else
-      if Found('LEFTMARGIN ') then MakeValue(EdOpt.LeftSide) else
-      if Found('RIGHTMARGIN ') then MakeValue(EdOpt.RightSide) else
-      if Found('PARAGRAPH ') then MakeValue(EdOpt.InSide) else
-      if Found('FORCECRLF ') then EdOpt.ForcedCrLf:=cfCRLF else
-      if Found('FORCECR ') then EdOpt.ForcedCrLf:=cfCR else
-      if Found('FORCELF ') then EdOpt.ForcedCrLf:=cfLF
-  end end;
+{PZ - 2000.06.09 - begin }
+      if Found('HIGHLIGHT ') then InitHighLight := IsOn else
+      if EdOptions <> nil then begin
+        if Found('H_LINE ') or Found('H_ROW ') then EdOptions^.HiliteLine:=IsOn else
+        if Found('H_COLUMN ') then EdOptions^.HiliteColumn:=IsOn else
+        if Found('AUTOWRAP ') then EdOptions^.AutoJustify:=IsOn else
+        if Found('WRAPJUSTIFY ') then EdOptions^.AutoWrap:=IsOn else
+        if Found('LEFTMARGIN ') then MakeValue(EdOptions^.LeftSide) else
+        if Found('RIGHTMARGIN ') then MakeValue(EdOptions^.RightSide) else
+        if Found('PARAGRAPH ') then MakeValue(EdOptions^.InSide) else
+        if Found('FORCECRLF ') then EdOptions^.ForcedCrLf:=cfCRLF else
+        if Found('FORCECR ') then EdOptions^.ForcedCrLf:=cfCR else
+        if Found('FORCELF ') then EdOptions^.ForcedCrLf:=cfLF
+      end
+{PZ - end }
+    end
+  end;
 
 begin
-  if Macros<>nil then Macros^.FreeAll;
-  if PEdOptions<>nil then
-   PEdOptions^.HiLite:=EditorDefaults.EdOpt2 and ebfHlt <> 0;
-  FillChar(HiLitePar,SizeOf(HiLitePar),0);
-  F:=New(PTextReader, Init(SourceDir+'DN.HGL'));
-  if F = nil then Exit;
-  while not F^.EOF do
-  begin
+  if Macros<>nil then
+    Macros^.FreeAll;
+  InitHighLight := False;   {PZ 2000.06.09 Default is No Highlight }
+  FillChar ( HiLitePar, SizeOf(HiLitePar), 0 );
+  F := New ( PTextReader, Init(SourceDir+'DN.HGL') );
+  if F = nil then
+    Exit;
+  while not F^.EOF do begin
     FreeStr:=UpStrg(fDelLeft(fDelRight(F^.GetStr)));
     if (FreeStr = '') or (FreeStr[1] = ';') then continue;
     if Found('FILES ') and InFilter(FName, FreeStr) then
     begin
+      InitHighLight := True;   {PZ 2000.06.09 Default is ON if file is defined }
       MakeDefaults;
       FixHighliteParams ( HiLitePar ); {PZ - 2000.04.11}
       Break;
     end else
-    if Found('DEFAULT') then
+    if Found('DEFAULT') then begin
+      InitHighLight := True;   {PZ 2000.06.09 Default is ON if default is defined }
       MakeDefaults;
+    end;
   end;
   Dispose(F, Done);
 end;

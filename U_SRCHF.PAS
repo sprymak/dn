@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,31 +50,37 @@ unit u_srchf;
 interface
 uses Objects,
      collect,
+     Gauge,
      LFN,      {DataCompBoy}
      Commands, {DataCompBoy}
      DNApp;    {DataCompBoy}
 
-function FindFileWithSPF(pFileName: String): String;
+function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
 
 implementation
 
-uses dos, advance, advance1, advance2, advance3, messages, format, dnini;
+uses dos, advance, advance1, advance2, advance3, messages, dnini;
 
         {-DataCompBoy-}
-function RecursiveCheck(Name, pPath: String; DoMore: Boolean): string;
+function RecursiveCheck(Name, pPath: String; DoMore: Boolean; Info: PWhileView): string;
 var SR: lSearchRec;
     SC: TStringCollection;
 label q;
 begin
+  If Abort then exit;
+  DispatchEvents(Info, Abort);
+  If Abort then exit;
   SC.Init($10, $10);
   RecursiveCheck:='';
   SC.AtInsert(0, NewStr(pPath));
 
   Repeat
+   DispatchEvents(Info, Abort);
+   if Abort then goto q;
    pPath:=CnvString(SC.At(0));
    SC.AtFree(0);
 
-   if FileExists(MakeNormName(pPath, Name)) then begin
+   if ExistFile(MakeNormName(pPath, Name)) then begin
     RecursiveCheck:=MakeNormName(pPath, Name);
     lFindClose(SR);
     goto q;
@@ -83,12 +89,14 @@ begin
    lFindFirst(MakeNormName(pPath, x_x), AnyFile, SR);
    while DOSError = 0 do
    begin
+     DispatchEvents(Info, Abort);
+     If Abort then begin lFindClose(SR); goto q end;
      if (SR.SR.Name <> '.') and (SR.SR.Name <> '..') and
         (SR.SR.Attr and Directory <> 0) then
      begin
        if DoMore
         then SC.Insert(NewStr(MakeNormName(pPath, SR.FullName)))
-        else if FileExists(MakeNormName(MakeNormName(pPath, SR.FullName), Name)) then begin
+        else if ExistFile(MakeNormName(MakeNormName(pPath, SR.FullName), Name)) then begin
               RecursiveCheck:=MakeNormName(MakeNormName(pPath, SR.FullName), Name);
               lFindClose(SR);
               goto q;
@@ -103,18 +111,22 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
-function FindFileWithSPF(pFileName: String): String;
+function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
 var F: lText;
     S, S2: String;
     IsSec, Found, InSq: Boolean;
     P, I: Integer;
+    D: TMaskData;
+label ex;
 begin
+  fillchar(D, SizeOf(D), 0);
   FindFileWithSPF := '';
-  if FileExists(pFileName) then
+  if ExistFile(pFileName) then
   begin
     FindFileWithSPF := pFileName;
     Exit;
   end;
+  if CharCount('.', pFileName)=0 then pFileName:=pFileName+'.';
   lAssignText(F, SourceDir + 'DN.SPF');
   lResetText(F);
   if IOResult <> 0 then
@@ -156,6 +168,7 @@ begin
   Found := False;
   while (not EOF(F.T)) and (not Found) do
   begin
+    If Abort then goto ex;
     Readln(F.T, S); S := fDelLeft(fDelRight(S));
     if (S = '') or (Copy(S, 1, 1) = ';') then Continue;
     if (S[1] = '[') then
@@ -163,7 +176,8 @@ begin
       IsSec := False;
       P := Pos(']', S);
       if P > 0 then S := Copy(S, 2, P - 2) else Delete(S, 1, 1);
-      IsSec:=InExtFilter(pFileName, S);
+      D.Filter := S; MakeTMaskData(D);
+      IsSec:=InExtFilter(pFileName, D);
     end else
     if IsSec then begin
       DelLeft(S);
@@ -173,11 +187,12 @@ begin
        if ((i>length(s)) and (P<length(s))) or
           ((S[i] in [';',',']) and (not InSq)) then begin
         S2:=Copy(S, P, I-P);
-        if S2[1]='*' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, 255), True) else
-         if S2[1]='+' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, 255), False) else
-          if FileExists(MakeNormName(Copy(S2, 2, 255), pFileName))
+        if S2[1]='*' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, 255), True, Info) else
+         if S2[1]='+' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, 255), False, Info) else
+          if ExistFile(MakeNormName(Copy(S2, 2, 255), pFileName))
            then S2:=MakeNormName(Copy(S2, 2, 255), pFileName)
            else S2:='';
+        if Abort then goto ex;
         P:=I+1;
         If S2<>'' then begin
          FindFileWithSPF:=S2;
@@ -187,7 +202,9 @@ begin
         if S[i]='"' then InSq:=not InSq;
     end;
   end;
+ex:
   Close(F.T);
+  D.Filter := ''; MakeTMaskData(D);
 end;
         {-DataCompBoy-}
 

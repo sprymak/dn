@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I Stdefine.inc}
 (*
    This unit provides compiler-independent mechanisms to call special
    functions, i.e. local functions/procedures, constructors, methods,
@@ -56,7 +57,11 @@ unit CallSpcB;
 interface
 
 type
+{$IFNDEF BIT_32}
    FramePointer = Word;
+{$ELSE BIT_32}
+   FramePointer = Pointer;
+{$ENDIF}
 
 function CurrentFramePointer: FramePointer;
 function PreviousFramePointer: FramePointer;
@@ -115,77 +120,128 @@ begin
   CallPointerMethod := PointerMethod(Method)(Param1, Obj)
 end;
 
+                              {$IFNDEF BIT_32}
 
 function CallVoidLocal(Func: Pointer; Frame: FramePointer): Pointer;
 assembler;
 asm
 {$IFDEF Windows}
-        MOV     AX,[Frame]
-        AND     AL,0FEH
-        PUSH    AX
+ MOV     AX,[Frame]
+ AND     AL,0FEH
+ PUSH    AX
 {$ELSE}
-        push    [Frame]
+ push    [Frame]
 {$ENDIF}
-        call    dword ptr Func
+ call    dword ptr Func
 end;
-
 
 function CallPointerLocal(Func: Pointer; Frame: FramePointer;
   Param1: Pointer): Pointer; assembler;
 asm
-        mov     ax, word ptr Param1
-        mov     dx, word ptr Param1+2
-        push    dx
-        push    ax
+ mov     ax, word ptr Param1
+ mov     dx, word ptr Param1+2
+ push    dx
+ push    ax
 {$IFDEF Windows}
-        MOV     AX,[Frame]
-        AND     AL,0FEH
-        PUSH    AX
+ MOV     AX,[Frame]
+ AND     AL,0FEH
+ PUSH    AX
 {$ELSE}
-        push    [Frame]
+ push    [Frame]
 {$ENDIF}
-        call    dword ptr Func
+ call    dword ptr Func
 end;
 
 function CallVoidMethodLocal(Func: Pointer; Frame: FramePointer;
   Obj: Pointer): Pointer; assembler;
 asm
 {$IFDEF Windows}
-        MOV     AX,[Frame]
-        AND     AL,0FEH
-        PUSH    AX
+ MOV     AX,[Frame]
+ AND     AL,0FEH
+ PUSH    AX
 {$ELSE}
-        push    [Frame]
+ push    [Frame]
 {$ENDIF}
-        call    dword ptr Func
+ call    dword ptr Func
 end;
 
 function CallPointerMethodLocal(Func: Pointer; Frame: FramePointer;
   Obj: Pointer; Param1: Pointer): Pointer; assembler;
 asm
-        mov     ax, word ptr Param1
-        mov     dx, word ptr Param1+2
-        push    dx
-        push    ax
+ mov     ax, word ptr Param1
+ mov     dx, word ptr Param1+2
+ push    dx
+ push    ax
 {$IFDEF Windows}
-        MOV     AX,[Frame]
-        AND     AL,0FEH
-        PUSH    AX
+ MOV     AX,[Frame]
+ AND     AL,0FEH
+ PUSH    AX
 {$ELSE}
-        push    [Frame]
+ push    [Frame]
 {$ENDIF}
-        call    dword ptr Func
+ call    dword ptr Func
 end;
 
-function CurrentFramePointer: FramePointer; assembler;
+function CurrentFramePointer: FramePointer; assembler; asm mov  ax, bp  end;
+
+function PreviousFramePointer: FramePointer; assembler; asm mov  ax, ss:[bp] end;
+
+                                {$ELSE BIT_32}
+
+function CallVoidLocal(Func: pointer; Frame: FramePointer): pointer;
+assembler;{$USES NONE}
 asm
-        mov     ax, bp
+  push Frame
+  call Func
+  pop  ebp
 end;
 
-function PreviousFramePointer: FramePointer; assembler;
+
+function CallPointerLocal(Func: pointer; Frame: FramePointer; Param1: pointer): pointer;
+assembler;{$USES NONE}
 asm
-        mov     ax, ss:[bp]
+  push Frame
+  push Param1
+  call Func
+  pop  ebp
 end;
+
+
+function CallVoidMethodLocal(Func: pointer; Frame: FramePointer; Obj: pointer): pointer;
+assembler;{$USES NONE}
+asm
+  push Frame       ;{Set frame of func           }
+  mov  Frame, esi  ;{Save value of ESI           }
+  mov  esi, Obj    ;{Mov to ESI pointer to object}
+  call Func        ;{Call method                 }
+  mov  esi, Frame  ;{Restore ESI                 }
+  pop  ebp         ;{remove frame from stack     }
+end;
+
+
+function CallPointerMethodLocal(Func: pointer; Frame: FramePointer; Obj: pointer; Param1: pointer): pointer;
+assembler;{$USES NONE}
+asm
+  push Frame       ;{Set frame of func           }
+  mov  Frame, esi  ;{Save value of ESI           }
+  mov  esi, Obj    ;{Mov to ESI pointer to object}
+  push Param1      ;{Save parameter              }
+  call Func        ;{Call method                 }
+  mov  esi, Frame  ;{Restore ESI                 }
+  pop  ebp         ;{remove frame from stack     }
+end;
+
+
+function CurrentFramePointer: FramePointer;assembler;{&Frame-}{$Uses none}
+asm
+    mov eax, ebp
+end;
+
+
+function PreviousFramePointer: FramePointer;assembler;{&Frame-}{$Uses none}
+asm
+    mov eax, [EBP]
+end;
+                                {$ENDIF BITS}
 
 end.
-

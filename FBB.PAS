@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -56,8 +56,9 @@ uses Dos, tree;
 implementation
 uses LFN, {DataCompBoy}
      advance, advance1, advance2, advance3, FileCopy, DNApp, Messages, Views,
-     Objects, Dialogs, Commands, Drivers, Memory, FilesCol, DiskTool, RStrings,
-     HistList, Gauge, StartUp, DNutil, xTime, DiskInfo;
+     Objects, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
+     HistList, Gauge, StartUp, DNutil, xTime, DiskInfo
+     {$IFNDEF NONBP},DiskTool{$ENDIF};
 
  type Ar65000 = Array [1..65000] of Byte;
       ArPtr = ^Ar65000;
@@ -300,10 +301,12 @@ uses LFN, {DataCompBoy}
        else BlockWrite(F2.f,Bf[i].Buf^[Bf[i].NW+1], Word(wr), NumW);
       if DiskVerify then
         begin
+           {$IFDEF OS_DOS}
            asm
              mov ah,0dh
              int 21h
            end;
+           {$ENDIF}
            Seek(F2.f, LastPos);
            if PartSize<>0
             then BlockRead(F2.f,Bf[i].Buf^[Bf[i].NW+1],Min(wr, PartSize-PartWrt),NumW)
@@ -458,11 +461,11 @@ uses LFN, {DataCompBoy}
     D^.Insert( New( PLabel, Init( R, '~'+LowStrg(aa+aaa)+'~'+
                GetString(dlSplit_To), PLabel(P)^.Link)));
     S := '';
+    HistoryAdd(hsFBBCopy, lFExpand(a));
     GlobalMessage(evCommand, cmPushFirstName, @S);
     GlobalMessageL(evCommand, cmPushName, hsFBBCopy);
     if S[2] <> ':' then S := '';
-    if S = '' then S := HistoryStr(hsFBBCopy, 1);
-    if S = '' then S := GetPath(lFExpand(Fn1));
+    if S = '' then S := HistoryStr(hsFBBCopy, 0);
     DTA.S := S;
 {    DTA.W := 0; }
     DTA.SPLSiz  := '';
@@ -592,14 +595,14 @@ uses LFN, {DataCompBoy}
            end;
 
     if Tuda then Count:=1;
-    if Tuda and (x[4]<>'1') and (x[3]<>'0') then
+    if Tuda and ((x[4]<>'1') or (x[3]<>'0')) then
      begin
-      Close(F1.f); ClrIO;
       x[3] := '0'; x[4] := '1'; Fn1 := d+n+x;
-      lAssignFile(F1, Fn1);
       repeat
-       close(F1.f);
-       RequireDisk;
+       close(F1.f); ClrIO;
+       Count := 1;
+       RequirePath;
+       lAssignFile(F1, Fn1);
        if Abort then begin LongCopy := Off; Exit; end;
        FileMode := 0;
        lResetFile(F1,1);

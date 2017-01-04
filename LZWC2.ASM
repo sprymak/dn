@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.07/DOS
+;/  Dos Navigator Open Source 1.51.08
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -67,6 +67,7 @@ extrn OutPutOffs     : word
 extrn OutPutSeg      : word
 extrn Temp           : word
 extrn DataSize       : word
+extrn DataSize2      : word
 extrn OutPutOffs2    : word
 extrn CodeTable      : dword
 extrn PrefixTable    : dword
@@ -156,8 +157,8 @@ cSymbolTable     equ     4020h
 
 ;Compress - compresses data using Lempel-Ziv Welch method.
 ;        BX:AX - Pointer to temporary buffer (21K min.)
-;        DX:CX - Pointer to compressed data.
-;        DI:SI - Pointer to buffer to decompress.
+;        DX:CX - Pointer to uncompressed data.
+;        DI:SI - Pointer to buffer to compress.
 ; Exit:  AX - size of compressed data.
 
 proc            LZWCompr  near
@@ -206,7 +207,13 @@ proc            LZWCompress near
                _ComprCode
                _GetByte
                 mov     [OldCode],ax
-NextByte:      _GetByte
+NextByte:
+                mov     ax,[OutPutOffs]
+                sub     ax,[OutPutOffs2]
+                cmp     ax,[DataSize2]
+                jge     PackFail
+
+               _GetByte
                 mov     [CurCode],ax
                 mov     cl,5
                 shl     ax,cl
@@ -299,6 +306,12 @@ LZWComprEnd:    mov     ax,[OldCode]
                 mov     ax,EOICode
                _ComprCode
                _ResetCodeBuffer
+                ret
+PackFail:
+                xor ax, ax
+                mov [OutPutOffs], ax
+                inc ax
+                mov [OutPutOffs2], ax
                 ret
 endp            LZWCompress
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -192,7 +192,7 @@ begin
          end;
        MakeLocal(Event.Where, T);
        Event.What := evCommand;
-      {==0000000:000=[000]=(x)=CrLf=DOS==<1........>}
+      {==0000000:000=[000]=(-)=CrLf=DOS==<1........>}
       {000000000011111111112222222222333333333344444}
       {012345678901234567890123456789012345678901234}
        P:=PFileEditor(PEditWindow(Owner)^.Intern);
@@ -236,13 +236,13 @@ procedure TInfoLine.Draw;
      Ch2: Char;
      Color: Byte;
      qwe: byte;
-     B: Array[0..200] of Word;
+     B: TDrawBuffer;
 begin
  P := PFileEditor(PEditWindow(Owner)^.Intern);
  if Owner^.GetState(sfDragging) or not Owner^.GetState(sfActive) then begin
   if Owner^.GetState(sfDragging)
    then Color:=PWindow(Owner)^.Frame^.GetColor(5)
-   else Color:=PWindow(Owner)^.Frame^.GetColor(4);
+   else Color:=PWindow(Owner)^.Frame^.GetColor(2);
   Ch2:=#196;
  end else begin
   Color:=PWindow(Owner)^.Frame^.GetColor(3);
@@ -308,7 +308,7 @@ procedure TBookmarkLine.Draw;
      I: Integer;
      Mrk: Char;
      Ch: Char;
-     B: Array[0..20] of Word;
+     B: Array[0..20] of AWord;
 
  function IsMarker(pLine: Longint): Char;
  var I: Byte;
@@ -332,7 +332,7 @@ begin
  if Owner^.GetState(sfDragging) or not Owner^.GetState(sfActive) then begin
   if Owner^.GetState(sfDragging)
    then Col:=PWindow(Owner)^.Frame^.GetColor(5)
-   else Col:=PWindow(Owner)^.Frame^.GetColor(4);
+   else Col:=PWindow(Owner)^.Frame^.GetColor(2);
   Ch:=#179;
  end else begin
   Col:=PWindow(Owner)^.Frame^.GetColor(3);
@@ -455,7 +455,6 @@ procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF;
    PP := @SST;
    TSt := StoI(EditorDefaults.TabSize);
    if TSt = 0 then TSt := 8;
-{$IFNDEF FPC}
    asm
       les bx, PP
       mov cl, es:[bx]
@@ -497,7 +496,6 @@ procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF;
       jmp @@1
     @@Ex:
    end;
-{$ENDIF}
   end;
 
   var PP: PView;

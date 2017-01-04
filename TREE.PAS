@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -46,19 +46,18 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-{$DEFINE DN}
-
 unit Tree;
 
 interface
 uses LFN, LFNCol, {DataCompBoy} Collect,
-     Drivers, Objects, DiskTool, Memory, Startup, DOS, DNIni,
+     Drivers, Objects, Memory, Startup, DOS, DNIni,
      Dialogs, Views, advance, advance1, advance2, advance3,
-     FilesCol, HideView, DNHelp;
+     FilesCol, HideView, DNHelp
+     {$IFNDEF NONBP}, DiskTool {$ENDIF};
 
 type
     PTreeWindow = ^TTreeWindow;
-    TTreeWindow = object(TStdWindow)
+    TTreeWindow = object({TStd}TWindow)
      constructor Init(var Bounds: TRect);
      function GetPalette: PPalette; virtual;
      procedure HandleEvent(var Event: TEvent); virtual;
@@ -220,7 +219,9 @@ end;
 }
 procedure ReadTree(C: Char; CountLen: Boolean);
 label Rep, DRep;
-var Drv: PDiskDriver;
+var {$IFDEF DiskEdit}
+    Drv: PDiskDriver;
+    {$ENDIF}
     P: PDirRec;
     DCEntry: Integer;
     Idx: Integer;
@@ -229,7 +230,9 @@ var Drv: PDiskDriver;
     DSize: Word;
     Dr: Array [1..255] of Integer;
     DC: PDirCollection;
+    {$IFDEF DiskEdit}
     Dir: ^DirPtr;
+    {$ENDIF}
     Tmr: TEventTimer;
 
  procedure ChkESC;
@@ -241,6 +244,8 @@ var Drv: PDiskDriver;
      Abort := ESC_Pressed;
    end;
  end;
+
+ {$IFDEF DiskEdit}
       {-DataCompBoy-}
  procedure ReadDirectory(PD: PDirRec);
   var
@@ -288,6 +293,7 @@ var Drv: PDiskDriver;
         (Cl >= Drv^.EOFMark) or (Cl = Drv^.BADMark) or (Cl=0);
  end;
         {-DataCompBoy-}
+ {$ENDIF}
 
         {-DataCompBoy-}
  procedure DOSReadDirectory(PD: PDirRec);
@@ -301,17 +307,17 @@ var Drv: PDiskDriver;
   Lv := PD^.Level;
   PD^.Size := 0; P := PD;
   if LFNPresent then S := MakeNormName(GetLFN(PD^.LFN),'')
-               else S := MakeNormName(PD^.Name,'');
+                else S := MakeNormName(PD^.Name,'');
   repeat
    while (I > 0) and (P^.Level <= PDirRec(DC^.At(I))^.Level) do Dec(I);
    if DC^.IndexOf(PD) <> I then
     begin
      P := DC^.At(I);
      If LFNPresent then S := MakeNormName(GetLFN(P^.LFN),S)
-                  else S := MakeNormName(P^.Name,S);
+                   else S := MakeNormName(P^.Name,S);
     end;
   until I = 0;
-  DOSError := 0;
+  ClrIO;
   if Abort then exit;
   I := DC^.IndexOf(PD);
   lFindFirst(S+x_x, $3F xor VolumeID, SR);
@@ -377,7 +383,9 @@ begin
  P^.Attr := 0;
  DC^.Insert(P);
  Abort := Off; RemoteDrive := Off;
- if ( SystemData.Drives[ C ] and ossDirectAccess = 0 ) or not CheckDisk(C) then
+ {$IFDEF DiskEdit}
+ if not CheckDisk(C) then
+ {$ENDIF}
   begin
    Info := WriteMsg(GetString(dlScanningDirs));
     DrvTrees[C].C := DC; DrvTrees[C].Len := On;
@@ -401,6 +409,7 @@ begin
      Exit;
    end;
   end
+  {$IFDEF DiskEdit}
   else
   begin
     New(Drv, Init(Byte(C)-64, True));
@@ -450,7 +459,8 @@ begin
     begin
       DrvTrees[C].C := nil; TreeError := On; Exit;
     end;
-  end;
+  end
+  {$ENDIF};
  for I := 1 to DC^.Count do
   begin
    P := DC^.At(I-1); Lv := I;
@@ -664,10 +674,14 @@ procedure MakeDirectory;
      B: Byte;
      I: Integer;
      j: boolean;
+     W: Word;
 begin
  CreatedDir := '';
  if LowMemory then Exit; S := '';
- if ExecResource(dlgMkDir, S) <> cmOK then Exit;
+ W := ExecResource(dlgMkDir, S);
+ if W = cmYes then UpStr(S) else
+ if W = cmNo  then LowStr(S) else
+ if W <> cmOK then Exit;
  DelRight(S);
  if not LFNPresent then DelLeft(S);
 
@@ -778,9 +792,9 @@ begin
   L1 := Tree^.CurPtr^.NumFiles;
   L2 := Tree^.CurPtr^.Size;
   if L1 <> 1 then Down := ItoS(L1) + GetString(dlTreeFilesWith)
-               else Down := GetString(dlTree1FileWith);
+             else Down := GetString(dlTree1FileWith);
   if L2 <> 1 then Down := Down + FStr(L2)+' '+GetString(dlDIBytes)
-               else Down := Down + ' 1' + GetString(dlDIByte);
+             else Down := Down + ' 1' + GetString(dlDIByte);
  end;
 end;
 
@@ -1421,7 +1435,7 @@ procedure TTreeView.Draw;
      I, J, K, CurPos, Idx: Integer;
      C: Char;
      S, Q: String;
-     B: Array[0..199] of Word;
+     B: TDrawBuffer;
      C1, C2, C3, C4, CC: Byte;
      P: PDirRec;
 begin
@@ -1522,8 +1536,7 @@ end;
 
 procedure TTreeView.ReadTree;
 label Rep;
-var Drv: PDiskDriver;
-    P: PDirRec;
+var P: PDirRec;
     DCEntry: Integer;
     Idx: Integer;
     D, S: String; {DataCompBoy}

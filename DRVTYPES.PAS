@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 { --------------------------------------------------------------------------- }
 { DRVTYPES.PAS  Drive Type Decetion.                              Version 1.0 }
 {                                                                             }
@@ -95,14 +96,14 @@ function getDriveType(Drive : Byte) : Byte;
 function countValidDrives : Byte;
 
 implementation
-{$IFDEF FPC}
+{$IFDEF NONBP}
 function getDriveType(Drive : Byte) : Byte;
 begin getDriveType:=dtError end;
 
 function countValidDrives : Byte;
 begin countValidDrives:=0 end;
 
-{$ELSE FPC}
+{$ELSE NONBP}
 
 function checkStacker( Drive : Byte ) : Boolean; assembler;
 

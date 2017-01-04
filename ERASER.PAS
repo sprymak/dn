@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -57,8 +57,9 @@ uses Objects, LFNCol, filediz, Collect;
 
 implementation
 uses Dos, LFN{DataCompBoy}, FilesCol, Commands, advance, advance1, advance2,
-     advance3, Startup, DiskTool, Messages, xTime, Drivers, Tree, Memory,
-     DNApp, Gauge, Views, RStrings, Dialogs, Drives, FileCopy;
+     advance3, Startup, Messages, xTime, Drivers, Tree, Memory,
+     DNApp, Gauge, Views, RStrings, Dialogs, Drives, FileCopy
+     {$IFNDEF NONBP},DiskTool{$ENDIF};
 
         {-DataCompBoy-}
 function ValidErase;
@@ -101,9 +102,11 @@ procedure EraseFiles;
       F: lFile;
       DOSMode, DirEnd, DirModified: Boolean;
       PF: PFileRec;
+      {$IFDEF DiskEdit}
       Drv: PDiskDriver;
-      DirCluster, DirSize, EndM: Word;
+      DirCluster, DirSize: Word;
       Dir: ^DirPtr;
+      {$ENDIF}
       DrivesSet: Set of Char;
       DeleteAllFiles: Boolean;
 
@@ -134,17 +137,19 @@ procedure EraseFiles;
     Over := I; if I = cmOK then Over := cmYes;
   end;
 
+  {$IFDEF DiskEdit}
   procedure EraseChain(Cl: Word);
    var Next, CCL: Word;
   begin
    if CL < 2 then Exit;
-   CCL := Cl; if Drv^.FAT12 then ENDM := $FF0 else ENDM := $FFF0;
+   CCL := Cl;
    repeat
     Next := Drv^.GetFAT(CCL);
     if (CCL >= 2) then Drv^.SetFAT(CCL, 0);
     CCL := Next;
-   until (CCL < 2) or (CCL >= ENDM);
+   until (CCL < 2) or (CCL >= Drv^.LastEl);
   end;
+  {$ENDIF}
 
   function DOSDelDir: Boolean;
    var
@@ -218,6 +223,7 @@ procedure EraseFiles;
    Dispose(TD,Done);
   end;
 
+  {$IFDEF DiskEdit}
   var  nxt,fs : Word;
        w      : String;
 
@@ -259,6 +265,7 @@ procedure EraseFiles;
     if not DirEnd and (CL >= 2) and (cl <= Drv^.TotalClu + 1) then
      begin DirCL := CL; GoTo 1; end;
    end;
+   {$ENDIF}
 
   function DeleteDirectory(Dir: String; Cluster: Word): Boolean;
    var S: String;
@@ -290,8 +297,10 @@ procedure EraseFiles;
         end;
        if not (dr in [cmYes, cmOK]) then Exit;
     end;
+    {$IFDEF DiskEdit}
     if DOSMode then
        begin
+    {$ENDIF}
          FreeStr:=Dir;
          j123qwe:=not DOSDelDir;
          if j123qwe then
@@ -300,9 +309,12 @@ procedure EraseFiles;
               Abort := On;
            end;
          PInfo^.DrawView;
+       {$IFDEF DiskEdit}
        end else begin DirDel(Cluster); Drv^.WriteFAT; end;
+       {$ENDIF}
     CreateDirectory(Dir, On);
     DeleteDirectory := On;
+    {$IFDEF DiskEdit}
     if not DosMode then
     begin
       asm
@@ -311,6 +323,7 @@ procedure EraseFiles;
       end;
       Drv^.ReadFAT;
     end;
+    {$ENDIF}
   end;
 
   var Fls: PCollection;
@@ -324,8 +337,13 @@ begin
   R.Assign(1,1,26,9);
   New(PInfo, Init(R));
   PInfo^.Top := GetString(dlErase);
+  {$IFDEF DiskEdit}
   DOSMode := LFNPresent; {DataCompBoy}
+  {$ELSE}
+  DOSMode := True;
+  {$ENDIF}
 
+  {$IFDEF DiskEdit}
   if not DOSMode then
    begin
     PF := Files^.At(0); S := PF^.Owner^;
@@ -333,10 +351,12 @@ begin
       if PFileRec(Files^.At(I))^.Owner^ <> S then
        begin DOSMode := On; Break end;
    end;
+  {$ENDIF}
 
   EraseCancel := Off; Abort := Off;
   NewTimer(Tmr, 0); CalcCancel;
 
+  {$IFDEF DiskEdit}
   if not DOSMode then
    begin
     if (S[0] > #3) and (S[Length(S)] = '\') then Dec(S[0]);
@@ -362,13 +382,15 @@ begin
          end;
     end;
    end;
-
+  {$ENDIF}
   if Abort then begin Dispose(PInfo,Done); Exit end;
   Inc(SkyEnabled);
   Desktop^.Insert(PInfo);
 
+  {$IFDEF DiskEdit}
   if DOSMode then
    begin
+  {$ENDIF}
     for I := 1 to Files^.Count do
      begin
       PF := Files^.At(I-1);
@@ -420,6 +442,7 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
                  end
        else Break;
      end;
+  {$IFDEF DiskEdit}
   end else
   begin
    DirEnd := Off;
@@ -434,12 +457,8 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
        for J := 1 to Files^.Count do
         begin
          if Abort then Break;
-         PF := Files^.At(J-1); S := UpStrg(MakeFileName(PF^.Name)); Delete(S, 9, 1);
-{$IFNDEF FPC}
+         PF := Files^.At(J-1); S := UpStrg(PF^.Name); Delete(S, 9, 1);
          if StrEq(S[1], Dir^[I].Name, 11) then
-{$ELSE}
-         if S=Dir^[I].Name then
-{$ENDIF}
           begin
            {Files^.AtDelete(J-1);}
            S := MakeFileName(PF^.Name);
@@ -474,18 +493,19 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
         end;
       end;
       if DirModified and not Abort then Drv^.ClusterWrite(Dir^, DirCluster);
-      if Drv^.FAT12 then ENDM := $FF0 else ENDM := $FFF0;
       DirEnd := (DirCluster = 0) or DirEnd or Abort;
       if not DirEnd then
        begin
         DirCluster := Drv^.GetFAT(DirCluster);
-        if (DirCluster >= EndM) then DirEnd := On else Drv^.ClusterRead(Dir^, DirCluster);
+        if (DirCluster >= Drv^.LastEl)
+         then DirEnd := On
+         else Drv^.ClusterRead(Dir^, DirCluster);
        end;
     end;
    Dispose(Drv,Done);
    FreeMem(Dir, DirSize);
   end;
-
+  {$ENDIF}
   DrivesSet := [];
 
   Flush := (SystemData.Options and ossFlushDsk <> 0);
@@ -509,10 +529,12 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
   GlobalMessage(evCommand, cmRereadInfo, nil);
   if Flush then
   begin
+    {$IFNDEF NONBP}
     asm
      mov ah, 0dh
      int 21h
     end;
+    {$ENDIF}
     Dispose(PInfo,Done);
   end;
   Dec(SkyEnabled);
@@ -520,6 +542,7 @@ end;
         {-DataCompBoy-}
 
 procedure SetVLabel;
+{$IFDEF DiskEdit}
  var Drv: PDiskDriver;
      S, S1: String;
      SR: SearchRec;
@@ -542,6 +565,9 @@ begin
     Dispose(Drv,Done);
     GlobalMessage(evCommand, cmRereadInfo, nil);
   end
+{$ELSE}
+begin
+{$ENDIF}
 end;
 
 END.

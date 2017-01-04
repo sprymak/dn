@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -83,32 +83,32 @@ begin
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'CHARC.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'CHARC.EXE'));
-  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            '-e -y'));
-  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-e -y'));
-  Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                '-a -t'));
-  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               '-a -t -m'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            '-E'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-E'));
+  Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                '-A -T'));
+  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               '-A -T -M'));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             '-D'));
   Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             ''));
-  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               'eN'));
+  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               ''));
   IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
-  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-e'));
-  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-y'));
+  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
+  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-Y'));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
-  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-s'));
+  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-S'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
-  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
-  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-m4'));
-  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m3'));
-  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-m1'));
-  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-jm1 -jh65535'));
-  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-jm -jh65535'));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
+  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
+  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
+  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
+  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   ''));
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
   if q='0' then Swap := False else Swap := True;
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
   if q='0' then UseLFN := False else UseLFN := True;
-  PutTempBefore := 2;
 end;
 
 function TCHZArchive.GetID;

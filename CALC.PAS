@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,7 +50,7 @@ unit Calc;
 interface
 
 uses Advance, LFN, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
-     HistList, UniWin, Commands, DNHelp, RStrings, Calculator;
+     HistList, UniWin, Commands, DNHelp, RStrings, Calculat;
 
 const
      CellClipboard : PCellCollection = nil;
@@ -125,8 +125,8 @@ type
     TInfoView = object(TView)
       InfoStr: String;
       InfoAttr: Byte;
-      constructor Load(var S: TStream);
-      procedure Store(var S: TStream);
+      {constructor Load(var S: TStream);}
+      {procedure Store(var S: TStream); }
       procedure SetInfo(S: String; Attr: Byte);
       procedure Draw; virtual;
     end;
@@ -136,7 +136,7 @@ function GetFileName(var FileName: String; Mask, Title, ALabel: String; Buttons:
 implementation
 
 uses Memory, Dos, DNApp, DNStdDlg, advance1, advance2,
-     MicroEd, Histries;
+     MicroEd2, Histries;
 
 const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
                     (S:''; CellOptions:0; TxtOptions:0);
@@ -177,47 +177,22 @@ end;
 function ContainCell(Cell, Formula: String): Boolean;
  const Signs = ['#','+','-','=','*','&','^','(',')','<','>', ';', ' ',
                 '%','[',']','{','}','!','|','/','\',',','?'];
- var S1,S2: String;
-     C1,C2: String[5];
-     SheetName: String[8];
-     X, X1, X2: Byte;
-     Y, Y1, Y2: Integer;
-     I, J: Integer;
+ var I: Integer;
 begin
  ContainCell := False;
- repeat I := PosChar('@', Formula); if I > 0 then Delete(Formula, I, 1); until I = 0;
- I := 1; C1 := ''; C2 := ''; SheetName := ''{GetSheetName(Cell)};
- While (I <= Length(Cell)) and (Cell[I] <= 'Z') and (Cell[I] >= 'A') do
-  begin C1 := C1 + Cell[I]; Inc(I) end;
- C2 := Copy(Cell, I, 5); Cell := SheetName + C1 + C2;
- if not GetCellCoord(Cell, X, Y) then Exit;
- I := 1;
- repeat
-  While (I <= Length(Formula)) and (Formula[I] in Signs) do Inc(I);
-  S1 := '';
-  While (I <= Length(Formula)) and not (Formula[I] in Signs) do
-   begin S1 := S1 + Formula[I]; Inc(I) end;
-  if (S1[1] = Cell[1]) and (S1 = Cell) then begin ContainCell := True; Exit end;
-  J := Pos(':', S1);
-  if J > 0 then
-   begin
-    S2 := Copy(S1, J + 1, 5);
-    S1[0] := Char(J-1);
-    if not GetCellCoord(S1, X1, Y1) then Exit;
-    if not GetCellCoord(S2, X2, Y2) then Exit;
-    if X1 > X2 then
-     asm mov AL, X1; mov AH, X2; mov X1, AH; mov X2, AL end;
-    if Y1 > Y2 then
-     asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
-    if (X1 <= X) and (X <= X2) and (Y1 <= Y) and (Y <= Y2) then
-     begin ContainCell := True; Exit end;
-   end;
- until I >= Length(Formula)
+ UpStr(Formula);
+ Repeat
+  I := Pos(Cell, Formula);
+  if (I > 1) and (Formula[I-1] in Signs) and (Formula[I+Length(Cell)] in Signs)
+   then begin ContainCell := true; exit end;
+  Dec(Formula[0], I);
+  Move(Formula[I], Formula[1], Byte(Formula[0]));
+ Until I = 0;
 end;
 
 
 {-------------------------       TInfoView       -------------------------}
-
+{
 constructor TInfoView.Load;
 begin
   inherited Load(S);
@@ -227,7 +202,7 @@ procedure TInfoView.Store;
 begin
   inherited Store(S);
 end;
-
+}
 procedure TInfoView.SetInfo;
 begin
  InfoStr := Copy(S, 1, Size.X);
@@ -256,6 +231,7 @@ begin
                      else AName := lfGetLongFileName(lFExpand(AName));
  TWindow.Init(Bounds, Cut(AName,Bounds.B.X-Bounds.A.X-12), 0);
  Options := Options or ofTileable;
+ Flags := Flags or wfMaxi;
  if LowMemory then Exit;
 
  R.A.X := 1; R.A.Y := 5; R.B.X := 7; R.B.Y := Size.Y-1;
@@ -390,12 +366,14 @@ procedure TCalcInfo.HandleEvent;
       Value := R;
       if (Options and 3) = 0 then
        begin
-        Options := coValue or coDec;
+        Options := coValue or coDec or coFormula;
         Decimals := 2;
-       end else Options := (Options and $FFFC) or coValue;
+       end else Options := (Options and $FFFC) or coValue or coFormula;
       if ((Options shr 4) and 7) = 0 then
-       begin Options := Options or coDec;
-             Decimals := 2 end;
+       begin
+        Options := Options or coDec or coFormula;
+        Decimals := 2
+       end;
      end;
     ModifyCell(Delta.X + Cur.X, Delta.Y + Cur.Y);
     EndEdit := not ReError;
@@ -550,7 +528,7 @@ procedure TCalcView.Draw;
  const Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
  var
-     B, B1: Array[0..511] of Word;
+     B, B1: TDrawBuffer;
      BC: Array [0..127] of record C: Char; A: Byte; end Absolute B;
      I, J, K, L: Integer;
      C1, C2, C3: Byte;
@@ -963,6 +941,9 @@ begin
                                end;
                               CE;
                              end;
+              cmMainMenu: begin
+                           Message(DNApp.MenuBar, evCommand, cmMenu, nil); CE;
+                          end;
              end;
   evKeyDown: case Event.KeyCode of
               kbDoubleAlt: CE;

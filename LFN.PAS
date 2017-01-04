@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,16 +44,20 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-unit LFN;
+{$I STDEFINE.INC}
 
 {This unit based on LFN.PAS unit from "Connect"}
+{w95api error handlers fixed by piwamoto}
+{lSIM95 api by DataCompBoy 19.07.2000 04:04:29}
+
+unit LFN;
 
 interface
 
 uses Dos, DnINI;
 
 type
-  lAPIType = (lDOS, lWIN95);  {API currently used}
+  lAPIType = (lDOS, lWIN95{$IFDEF DPMI}, lSIM95{$ENDIF});  {API currently used}
 
   TSize = Comp; {64 bit integer type for file sizes}
 
@@ -122,8 +126,6 @@ procedure lGetShortFileName(const Name: String; var ShortName: String);
 function lfGetShortFileName(const Name: String): String;
 procedure lGetLongFileName(const Name: String; var LongName: String);
 function lfGetLongFileName(const Name: String): String;
-procedure lGetFileNameForChangedAPI(FromAPI: lAPIType;
-  const Name: String; var NewName: String);
 
         { Name correction routine }
 procedure lTrueName(const Name: String; var S: String);
@@ -168,9 +170,14 @@ uses advance1,
      Startup,
      Commands
      {$IFDEF DPMI}
-     ,Dpmi, DosMem
+     ,Dpmi, DosMem, Advance
      {$ENDIF}
      ;
+
+ {$IFDEF DPMI}
+ Const LowSeg: Word = 0;
+       LowBuf: Pointer = nil;
+ {$ENDIF}
 
  Function StrPas(S: Array Of Char): String;
   var ss: string;
@@ -190,6 +197,9 @@ function LFNDisabled(const Path: String): Boolean;
 var
   Drive: Char;
   Regs: Registers;
+  {$IFDEF DPMI}
+  Rgs: DPMIRegisters;
+  {$ENDIF}
 begin
   LFNDisabled:=true;
   if not CanUseLFN then exit;
@@ -208,21 +218,41 @@ begin
          if SystemData.Drives[Drive] and ossNoLFN <> 0 then exit;
         end;
   case lAPI of
-   lDOS: LFNDisabled:=false;
+   lDOS: LFNDisabled:=true;
    lWIN95: begin
             DriveBuffer[1]:=Drive;
             with regs do begin
-             ax:=$71a0;
-             ds:=seg(DriveBuffer);
-             dx:=ofs(DriveBuffer);
-             es:=0;
-             di:=0;
-             cx:=0;
+             ax    := $71a0;
+             ds    := seg(DriveBuffer);
+             dx    := ofs(DriveBuffer);
+             es    := 0;
+             di    := 0;
+             cx    := 0;
+             flags := fCarry;
              intr($21, regs);
-             if Regs.flags and fCarry=0 then
+             if (Regs.flags and fCarry=0) and (ax<>$7100) then
               LFNDisabled:=((Regs.Bx and $4000)=0);
             end;
            end;
+   {$IFDEF DPMI}
+   lSIM95: begin
+            DriveBuffer[1]:=Drive;
+            Move(DriveBuffer, LowBuf^, SizeOf(DriveBuffer));
+            FillWord(Rgs, SizeOf(Rgs) shr 1, 0);
+            with rgs do begin
+             ax    := $71a0;
+             ds    := LowSeg;
+             dx    := 0;
+             es    := 0;
+             di    := 0;
+             cx    := 0;
+             flags := fCarry;
+             SimuLateRealModeInt($21, rgs);
+             if (Regs.flags and fCarry=0) and (ax<>$7100) then
+              LFNDisabled:=((Regs.Bx and $4000)=0);
+            end;
+           end;
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -310,130 +340,8 @@ begin
   R.FullSize:=R.FullSize*FindData.HiSize + FindData.LoSize;
 end;
 
-(*
- INT 21h  AX=714E
- INT 21 - Windows95 - LONG FILENAME - FIND FIRST MATCHING FILE
-         AX = 714Eh
-         CL = allowable-attributes mask (bits 0 and 5 ignored)
-         CH = required-attributes mask
-         SI = date/time format
-         DS:DX -> ASCIZ filespec (both "*" and "*.*" match any filename)
-         ES:DI -> FindData record
- Return: CF clear if successful
-             AX = filefind handle (needed to continue search)
-             CX = Unicode conversion flags
-         CF set on error
-             AX = error code
-                 7100h if function not supported
- Notes:  this function is only available when IFSMgr is running,
-         not under bare MS-DOS 7
-         the application should close the filefind handle
-         with AX=71A1h as soon as it has completed its search
-*)
-
-procedure lWIN95FindFirst(const Path: String; Attr: Word; var R: lSearchRec);
-var
-  Regs: Registers;
-  FindData: lFindDataRec;
-begin
-  NameToNameZ(Path, FindData.FullName);
-
-  with Regs do
-  begin
-    AX := $714E;
-    CX := Attr;
-    SI := 1;
-    DS := Seg(FindData.FullName);
-    DX := Ofs(FindData.FullName);
-    ES := Seg(FindData);
-    DI := Ofs(FindData);
-    asm
-     stc
-    end;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then
-    begin
-      R.FileHandle := $FFFF;
-      DosError := AX;
-    end
-    else
-    begin
-      R.FileHandle := AX;
-      FindDataToSearchRec(FindData, R);
-      DosError := 0;
-    end;
-  end;
-end;
-
-(*
- INT 21h  AX=714F
- INT 21 - Windows95 - LONG FILENAME - FIND NEXT MATCHING FILE
-         AX = 714Fh
-         BX = filefind handle (from AX=714Eh)
-         SI = date/time format
-         ES:DI -> buffer for FindData record
- Return: CF clear if successful
-             CX = Unicode conversion flags
-         CF set on error
-             AX = error code
-                 7100h if function not supported
- Note:   this function is only available when IFSMgr is running,
-         not under bare MS-DOS 7
-*)
-
-procedure lWIN95FindNext(var R: lSearchRec);
-var
-  Regs: Registers;
-  FindData: lFindDataRec;
-begin
-  with Regs do
-  begin
-    AX := $714F;
-    BX := R.FileHandle;
-    SI := 1;
-    ES := Seg(FindData);
-    DI := Ofs(FindData);
-    asm
-     stc
-    end;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then DosError := AX
-    else
-    begin
-      FindDataToSearchRec(FindData, R);
-      DosError := 0;
-    end;
-  end;
-end;
-
-(*
- INT 21h  AX=71A1
- INT 21 - Windows95 - LONG FILENAME - "FindClose" -
-          TERMINATE DIRECTORY SEARCH
-         AX = 71A1h
-         BX = filefind handle (from AX=714Eh)
- Return: CF clear if successful
-         CF set on error
-            AX = error code
-                 7100h if function not supported
- Notes:  this function must be called after starting a search
-         with AX=714Eh, to indicate that the search handle
-         returned by that function will no longer be used
-         this function is only available when IFSMgr is running,
-         not under bare MS-DOS 7
-*)
-
-procedure lWIN95FindClose(var R: lSearchRec);
-var
-  Regs: Registers;
-begin
-  if R.FileHandle <> $FFFF then with Regs do
-  begin
-    AX := $71A1;
-    BX := R.FileHandle;
-    Intr($21, Regs);
-  end;
-end;
+{$I LFN._WN}
+{$IFDEF DPMI}{$I LFN._WS}{$ENDIF}
 
 procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 begin
@@ -460,6 +368,21 @@ begin
         R.FindFirstMode := lWIN95;
         lWIN95FindFirst(Path, Attr, R);
       end;
+    {$IFDEF DPMI}
+    lSIM95:
+      if LFNDisabled(Path) then
+      begin
+        R.FindFirstMode := lDOS;
+        FindFirst(Path, Attr, R.SR);
+        R.FullName := R.SR.Name;
+        R.FullSize := R.SR.Size;
+      end
+      else
+      begin
+        R.FindFirstMode := lSIM95;
+        lSIM95FindFirst(Path, Attr, R);
+      end;
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -475,6 +398,9 @@ begin
            R.FullSize := R.SR.Size;
          End;
     lWIN95: lWIN95FindNext(R);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95FindNext(R);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -484,81 +410,10 @@ begin
   case R.FindFirstMode of
     lDOS: {In DOS no FindClose function...};
     lWIN95: lWIN95FindClose(R);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95FindClose(R);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-(*
- INT 21h  AX=7160 CL=01
- INT 21 - Windows95 - LONG FILENAME - GET SHORT (8.3) FILENAME FOR FILE
-         AX = 7160h
-         CL = 01h
-         CH = SUBST expansion flag
-             00h return a path containing true path
-                 for a SUBSTed drive letter
-             80h return a path containing the SUBSTed drive letter
-         DS:SI -> ASCIZ long filename or path
-         ES:DI -> 67-byte buffer for short filename
- Return: CF set on error
-             AX = error code
-                 02h invalid component in directory path
-                     or drive letter only
-                 03h malformed path or invalid drive letter
-             ES:DI buffer unchanged
-         CF clear if successful
-             ES:DI buffer filled with equivalent short filename
-                   (full path, even if relative path given,
-                    and all uppercase)
- Note:   this call returns the short name for any
-         long-filename portions of the provided pathname or filename
-*)
-
-(*
- INT 21h  AX=7160 CL=02
- INT 21 - Windows95 - LONG FILENAME - GET CANONICAL LONG FILENAME OR PATH
-         AX = 7160h
-         CL = 02h
-         CH = SUBST expansion flag
-             00h return a path containing true path
-                 for a SUBSTed drive letter
-             80h return a path containing the SUBSTed drive letter
-         DS:SI -> ASCIZ short filename or path
-         ES:DI -> 261-byte buffer for canonicalized long name
- Return: CF set on error
-             AX = error code
-                 02h invalid component in directory path
-                     or drive letter only
-                 03h malformed path or invalid drive letter
-             ES:DI buffer unchanged
-         CF clear if successful
-             ES:DI buffer filled with qualified long name
-                   (can contain lowercase letters)
-*)
-
-procedure lWIN95GetFileNameFunc(const Name: String;
-  var S: String; AFunction: Byte);
-var
-  Regs: Registers;
-  NameZ, GetNameZ: TNameZ;
-begin
-  NameToNameZ(Name, NameZ);
-
-  with Regs do
-  begin
-    AX := $7160;
-    CL := AFunction;
-    CH := $80;
-    DS := Seg(NameZ);
-    SI := Ofs(NameZ);
-    ES := Seg(GetNameZ);
-    DI := Ofs(GetNameZ);
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then S := Name
-    else
-    begin
-      S := StrPas(GetNameZ);
-      CheckColonAndSlash(Name, S);
-    end;
   end;
 end;
 
@@ -569,6 +424,11 @@ begin
     lWIN95:
       if LFNDisabled(Name) then ShortName := Name
       else lWIN95GetFileNameFunc(Name, ShortName, 1);
+    {$IFDEF DPMI}
+    lSIM95:
+      if LFNDisabled(Name) then ShortName := Name
+      else lSIM95GetFileNameFunc(Name, ShortName, 1);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -587,6 +447,11 @@ begin
     lWIN95:
       if LFNDisabled(Name) then LongName := Name
       else lWIN95GetFileNameFunc(Name, LongName, 2);
+    {$IFDEF DPMI}
+    lSIM95:
+      if LFNDisabled(Name) then LongName := Name
+      else lSIM95GetFileNameFunc(Name, LongName, 2);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -596,18 +461,6 @@ function lfGetLongFileName(const Name: String): String;
 begin
   lGetLongFileName(Name, s);
  lfGetLongFileName:=s;
-end;
-
-procedure lGetFileNameForChangedAPI(FromAPI: lAPIType;
-  const Name: String; var NewName: String);
-var
-  SaveAPI: lAPIType;
-begin
-  SaveAPI := lAPI;
-  if lAPI = lDOS then lAPI := FromAPI;
-  if FromAPI = lDOS then lGetLongFileName(Name, NewName)
-  else lGetShortFileName(Name, NewName);
-  lAPI := SaveAPI;
 end;
 
 (*
@@ -648,11 +501,12 @@ begin
 
   with Regs do
   begin
-    AH := $60;
-    DS := Seg(NameZ);
-    SI := Ofs(NameZ);
-    ES := Seg(GetNameZ);
-    DI := Ofs(GetNameZ);
+    AH    := $60;
+    DS    := Seg(NameZ);
+    SI    := Ofs(NameZ);
+    ES    := Seg(GetNameZ);
+    DI    := Ofs(GetNameZ);
+    Flags := fCarry;
     Intr($21, Regs);
     if Flags and fCarry <> 0 then S := Name
     else
@@ -673,7 +527,8 @@ begin
 
   with Regs do
   begin
-    AH := $60;
+    AH    := $60;
+    Flags := fCarry;
     SimulateRealModeInt($21, Regs);
     if Flags and fCarry <> 0 then S := Name
     else
@@ -688,66 +543,6 @@ begin
 {$ENDIF}
 end;
 
-(*
- INT 21h  AX=7160 CL=00
- INT 21 - Windows95 - LONG FILENAME - "TRUENAME" - CANONICALIZE PATH
-         AX = 7160h
-         CL = 00h
-         CH = SUBST expansion flag
-             00h return a path containing true path
-                 for a SUBSTed drive letter
-             80h return a path containing the SUBSTed drive letter
-         DS:SI -> ASCIZ filename or path (either long name or short name)
-         ES:DI -> 261-byte buffer for canonicalized name
- Return: CF set on error
-             AX = error code
-                 02h invalid component in directory path
-                     or drive letter only
-                 03h malformed path or invalid drive letter
-             ES:DI buffer unchanged
-         CF clear if successful
-             ES:DI buffer filled with fully qualified name
-             AX destroyed
- Desc:   determine the canonical name of the specified
-         filename or path, corresponding to the undocumented
-         TRUENAME command in COMMAND.COM
- Note:   if a complete path is given, the result will be
-         a short-form complete path; otherwise, the given
-         relative path is appended to the short-form
-         current directory name, '.'/'..'/'...'/etc. are resolved,
-         and the final result uppercased without converting
-         any remaining long-form names to short-form
-*)
-
-procedure WIN95TrueName(const Name: String; var S: String);
-var
-  Regs: Registers;
-  NameZ, GetNameZ: TNameZ;
-begin
-  NameToNameZ(Name, NameZ);
-
-  with Regs do
-  begin
-    AX := $7160;
-    CL := 0;
-    CH := $00;
-    DS := Seg(NameZ);
-    SI := Ofs(NameZ);
-    ES := Seg(GetNameZ);
-    DI := Ofs(GetNameZ);
-    asm
-     stc
-    end;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then S := Name
-    else
-    begin
-      S := StrPas(GetNameZ);
-      CheckColonAndSlash(Name, S);
-    end;
-  end;
-end;
-
 procedure lTrueName(const Name: String; var S: String);
 begin
   case lAPI of
@@ -755,6 +550,11 @@ begin
     lWIN95:
       if LFNDisabled(Name) then DOSTrueName(Name, S)
       else WIN95TrueName(Name, S);
+    {$IFDEF DPMI}
+    lSIM95:
+      if LFNDisabled(Name) then DOSTrueName(Name, S)
+      else SIM95TrueName(Name, S);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -767,8 +567,7 @@ begin
         F.AssignFileMode := lDOS;
         Assign(F.F, Name);
       end;
-    { Other APIs will be added later }
-    else
+    lWIN95:
      if LFNDisabled(Name) then
       begin
         F.AssignFileMode := lDOS;
@@ -781,16 +580,32 @@ begin
         FileRec(F.F).Mode := fmClosed;
         NameToNameZ(Name, F.FullName);
       end;
+    {$IFDEF DPMI}
+    lSIM95:
+     if LFNDisabled(Name) then
+      begin
+        F.AssignFileMode := lDOS;
+        Assign(F.F, Name);
+      end
+     else
+      begin
+        F.AssignFileMode := lSIM95;
+        FileRec(F.F).Handle := 0;
+        FileRec(F.F).Mode := fmClosed;
+        NameToNameZ(Name, F.FullName);
+      end;
+    {$ENDIF}
+    { Other APIs will be added later }
   end;
 end;
 
 {$L W95TFIO.OBJ}
 {$L W95TCTL.OBJ}
-procedure FileRead; {$IFDEF BIT_16}far;{$ENDIF} external;
+procedure FileRead;  {$IFDEF BIT_16}far;{$ENDIF} external;
 procedure FileWrDev; {$IFDEF BIT_16}far;{$ENDIF} external;
 procedure FileWrite; {$IFDEF BIT_16}far;{$ENDIF} external;
 procedure FileClose; {$IFDEF BIT_16}far;{$ENDIF} external;
-procedure FileOpen; {$IFDEF BIT_16}far;{$ENDIF} external;
+procedure FileOpen;  {$IFDEF BIT_16}far;{$ENDIF} external;
 
 procedure lAssignText(var T: lText; const Name: String);
 begin
@@ -800,8 +615,7 @@ begin
         T.AssignTextMode := lDOS;
         Assign(T.T, Name);
       end;
-    { Other APIs will be added later }
-    else
+    lWIN95:
      if LFNDisabled(Name) then
       begin
         T.AssignTextMode := lDOS;
@@ -815,65 +629,23 @@ begin
         TextRec(T.T).OpenFunc := @FileOpen;
         NameToNameZ(Name, T.FullName);
       end;
-  end;
-end;
-
-(*
- INT 21h  AX=716C
- INT 21 - Windows95 - LONG FILENAME - CREATE OR OPEN FILE
-         AX = 716Ch
-         BX = access mode and sharing flags
-         CX = attributes
-         DX = action
-         DS:SI -> ASCIZ filename
-         DI = alias hint
-              (number to append to short filename for disambiguation)
- Return: CF clear if successful
-             AX = file handle
-             CX = action taken
-                 0001h file opened
-                 0002h file created
-                 0003h file replaced
-         CF set on error
-             AX = error code
-                 7100h if function not supported
-*)
-
-const
-  faOpen = 1;
-  faTruncate = 2;
-  faCreate = $10;
-  faRewrite = faTruncate + faCreate;
-
-procedure lWIN95OpenFile(var F: lFile; RecSize: Word; Action: Byte);
-var
-  Regs: Registers;
-begin
-  if FileRec(F.F).Mode <> fmClosed then Close(F.F);
-
-  if F.FullName[0] = #0 then
-  begin
-    FileRec(F.F).Mode := fmInOut;
-    FileRec(F.F).RecSize := RecSize;
-  end
-  else with Regs do
-  begin
-    AX := $716C;
-    BX := FileMode;
-    CX := 0;
-    DX := Action;
-    DS := Seg(F.FullName);
-    SI := Ofs(F.FullName);
-    DI := 0;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then InOutRes := AX
-    else
-    begin
-      FileRec(F.F).Mode:=fmInOut;
-      FileRec(F.F).Handle := AX;
-      FileRec(F.F).RecSize := RecSize;
-      InOutRes := 0;
-    end;
+    {$IFDEF DPMI}
+    lSIM95:
+     if LFNDisabled(Name) then
+      begin
+        T.AssignTextMode := lDOS;
+        Assign(T.T, Name);
+      end
+     else
+      begin
+        T.AssignTextMode := lSIM95;
+        Assign(T.T, '');
+        TextRec(T.T).Private := 1;
+        TextRec(T.T).OpenFunc := @FileOpen;
+        NameToNameZ(Name, T.FullName);
+      end;
+    {$ENDIF}
+    { Other APIs will be added later }
   end;
 end;
 
@@ -882,6 +654,9 @@ begin
   case F.AssignFileMode of
     lDOS: Reset(F.F, RecSize);
     lWIN95: lWIN95OpenFile(F, RecSize, faOpen);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95OpenFile(F, RecSize, faOpen);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -891,16 +666,21 @@ begin
   case F.AssignTextMode of
     lDOS: Reset(F.T);
     lWIN95: Reset(F.T);
+    {$IFDEF DPMI}
+    lSIM95: Reset(F.T);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
 
 procedure lAppendText(var T: lText);
-var r: registers;
 begin
   case T.AssignTextMode of
     lDOS: Append(T.T);
     lWIN95: Append(T.T);
+    {$IFDEF DPMI}
+    lSIM95: Append(T.T);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -933,6 +713,9 @@ begin
   case F.AssignFileMode of
     lDOS: Rewrite(F.F, RecSize);
     lWIN95: lWIN95OpenFile(F, RecSize, faRewrite);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95OpenFile(F, RecSize, faRewrite);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
   FileMode:=OldMode;
@@ -946,44 +729,12 @@ begin
   case F.AssignTextMode of
     lDOS: Rewrite(F.T);
     lWIN95: Rewrite(F.T);
+    {$IFDEF DPMI}
+    lSIM95: Rewrite(F.T);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
   FileMode:=OldMode;
-end;
-
-(*
- INT 21h  AX=7141
- INT 21 - Windows95 - LONG FILENAME - DELETE FILE
-         AX = 7141h
-         DS:DX -> ASCIZ long name of file to delete
-         SI = wildcard and attributes flag
-                 0000h wildcards are not allowed,
-                   and search attributes are ignored
-                 0001h wildcards are allowed,
-                   and only files with matching
-                   names and attributes are deleted
-         CL = search attributes
-         CH = must-match attributes
- Return: CF clear if successful
-         CF set on error
-             AX = error code
-                 7100h if function not supported
-*)
-
-procedure lWIN95EraseFile(var F: lFile);
-var
-  Regs: Registers;
-begin
-  with Regs do
-  begin
-    AX := $7141;
-    DS := Seg(F.FullName);
-    DX := Ofs(F.FullName);
-    SI := 0;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then InOutRes := AX
-                             else InOutRes := 0;
-  end;
 end;
 
 procedure lEraseFile(var F: lFile);
@@ -991,23 +742,10 @@ begin
   case F.AssignFileMode of
     lDOS: Erase(F.F);
     lWIN95: lWIN95EraseFile(F);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95EraseFile(F);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-procedure lWIN95EraseText(var T: lText);
-var
-  Regs: Registers;
-begin
-  with Regs do
-  begin
-    AX := $7141;
-    DS := Seg(T.FullName);
-    DX := Ofs(T.FullName);
-    SI := 0;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then InOutRes := AX
-                             else InOutRes := 0;
   end;
 end;
 
@@ -1016,41 +754,10 @@ begin
   case T.AssignTextMode of
     lDOS: Erase(T.T);
     lWIN95: lWIN95EraseText(T);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95EraseText(T);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-(*
- INT 21h  AX=7156
- INT 21 - Windows95 - LONG FILENAME - RENAME FILE
-         AX = 7156h
-         DS:DX -> ASCIZ old file or directory name (long names allowed)
-         ES:DI -> ASCIZ new name (long names allowed)
- Return: CF clear if successful
-         CF set on error
-             AX = error code
-                 7100h if function not supported
- Note:   the file may be renamed into a different directory,
-         but not across disks
-*)
-
-procedure lWIN95RenameFile(var F: lFile; const NewName: String);
-var
-  Regs: Registers;
-  NameZ: TNameZ;
-begin
-  NameToNameZ(NewName, NameZ);
-
-  with Regs do
-  begin
-    AX := $7156;
-    DS := Seg(F.FullName);
-    DX := Ofs(F.FullName);
-    ES := Seg(NameZ);
-    DI := Ofs(NameZ);
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then InOutRes := AX
-                             else InOutRes := 0;
   end;
 end;
 
@@ -1059,27 +766,10 @@ begin
   case F.AssignFileMode of
     lDOS: Rename(F.F, NewName);
     lWIN95: lWIN95RenameFile(F, NewName);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95RenameFile(F, NewName);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-procedure lWIN95RenameText(var T: lText; const NewName: String);
-var
-  Regs: Registers;
-  NameZ: TNameZ;
-begin
-  NameToNameZ(NewName, NameZ);
-
-  with Regs do
-  begin
-    AX := $7156;
-    DS := Seg(T.FullName);
-    DX := Ofs(T.FullName);
-    ES := Seg(NameZ);
-    DI := Ofs(NameZ);
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then InOutRes := AX
-                             else InOutRes := 0;
   end;
 end;
 
@@ -1088,70 +778,10 @@ begin
   case T.AssignTextMode of
     lDOS: Rename(T.T, NewName);
     lWIN95: lWIN95RenameText(T, NewName);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95RenameText(T, NewName);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-(*
- INT 21h  AX=7143
- INT 21 - Windows95 - LONG FILENAME - EXTENDED GET/SET FILE ATTRIBUTES
-         AX = 7143h
-         DS:DX -> ASCIZ filename
-         BL = action
-             00h retrieve attributes
-                 Return: CX = file attributes
-             01h set attributes
-                 CX = attributes
-             02h get physical size of compressed file
-                 Return: DX:AX = actual disk usage of file, in bytes
-             03h set last write date/time
-                 DI = new last-write date
-                 CX = new last-write time
-             04h get last write date/time
-                 Return: CX = last write time
-                         DI = last write date
-             05h set last access date
-                 DI = new last-access date
-             06h get last access date
-                 Return: DI = last access date
-             07h set creation date/time
-                 DI = new creation date
-                 CX = new creation time
-                 SI = hundredths
-                   (10-millisecond units past time in CX, 0-199)
-             08h get creation date/time
-                 Return: CX = creation time
-                         DI = creation date
-                         SI = hundredths
-                           (10-millisecond units past time in CX)
- Return: CF clear if successful
-         CF set on error
-             AX = error code
-                 7100h if function not supported
-*)
-
-const
-  faGetAttr = 0;
-  faSetAttr = 1;
-
-procedure lWIN95FileAttrFunc(var F: lFile; var Attr: Word; Action: Byte);
-var
-  Regs: Registers;
-begin
-  with Regs do
-  begin
-    AX := $7143;
-    BL := Action;
-    if Action = faSetAttr then CX := Attr;
-    DS := Seg(F.FullName);
-    DX := Ofs(F.FullName);
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then DosError := AX
-    else
-    begin
-      if Action = faGetAttr then Attr := CX;
-      DosError := 0;
-    end;
   end;
 end;
 
@@ -1160,6 +790,9 @@ begin
   case F.AssignFileMode of
     lDOS: GetFAttr(F.F, Attr);
     lWIN95: lWIN95FileAttrFunc(F, Attr, faGetAttr);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95FileAttrFunc(F, Attr, faGetAttr);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -1169,28 +802,10 @@ begin
   case F.AssignFileMode of
     lDOS: SetFAttr(F.F, Attr);
     lWIN95: lWIN95FileAttrFunc(F, Attr, faSetAttr);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95FileAttrFunc(F, Attr, faSetAttr);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-procedure lWIN95TextAttrFunc(var T: lText; var Attr: Word; Action: Byte);
-var
-  Regs: Registers;
-begin
-  with Regs do
-  begin
-    AX := $7143;
-    BL := Action;
-    if Action = faSetAttr then CX := Attr;
-    DS := Seg(T.FullName);
-    DX := Ofs(T.FullName);
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then DosError := AX
-    else
-    begin
-      if Action = faGetAttr then Attr := CX;
-      DosError := 0;
-    end;
   end;
 end;
 
@@ -1199,6 +814,9 @@ begin
   case T.AssignTextMode of
     lDOS: GetFAttr(T.T, Attr);
     lWIN95: lWIN95TextAttrFunc(T, Attr, faGetAttr);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95TextAttrFunc(T, Attr, faGetAttr);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -1208,50 +826,10 @@ begin
   case T.AssignTextMode of
     lDOS: SetFAttr(T.T, Attr);
     lWIN95: lWIN95TextAttrFunc(T, Attr, faSetAttr);
+    {$IFDEF DPMI}
+    lSIM95: lSIM95TextAttrFunc(T, Attr, faSetAttr);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-(*
- INT 21h  AX=7139
- INT 21 - Windows95 - LONG FILENAME - MAKE DIRECTORY
-         AX = 7139h
-         DS:DX -> ASCIZ long directory name (including path)
- Return: CF clear if successful
-         CF set on error
-             AX = error code
-                 7100h if function not supported
-*)
-
-(*
- INT 21h  AX=713A
- INT 21 - Windows95 - LONG FILENAME - REMOVE DIRECTORY
-         AX = 713Ah
-         DS:DX -> ASCIZ long name of directory to remove
- Return: CF clear if successful
-         CF set on error
-             AX = error code
-                 7100h if function not supported
-*)
-
-procedure lWIN95DirFunc(const Path: String; AFunction: Word);
-var
-  Regs: Registers;
-  NameZ: TNameZ;
-begin
-  NameToNameZ(Path, NameZ);
-
-  with Regs do
-  begin
-    AX := AFunction;
-    DS := Seg(NameZ);
-    DX := Ofs(NameZ);
-    asm
-     stc
-    end;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then InOutRes := AX
-                             else InOutRes := 0;
   end;
 end;
 
@@ -1262,6 +840,11 @@ begin
     lWIN95:
       if LFNDisabled(Path) then MkDir(Path)
       else lWIN95DirFunc(Path, $7139);
+    {$IFDEF DPMI}
+    lSIM95:
+      if LFNDisabled(Path) then MkDir(Path)
+      else lSIM95DirFunc(Path, $7139);
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -1273,48 +856,12 @@ begin
     lWIN95:
       if LFNDisabled(Path) then RmDir(Path)
       else lWIN95DirFunc(Path, $713A);
+    {$IFDEF DPMI}
+    lSIM95:
+      if LFNDisabled(Path) then RmDir(Path)
+      else lSIM95DirFunc(Path, $713A);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-(*
- INT 21h  AX=713B
- INT 21 - Windows95 - LONG FILENAME - CHANGE DIRECTORY
-         AX = 713Bh
-         DS:DX -> ASCIZ long name of directory to make current
- Return: CF clear if successful
-         CF set on error
-             AX = error code
-                 7100h if function not supported
-*)
-
-procedure lWIN95ChDir(const Path: String);
-var
-  C: Char;
-  Regs: Registers;
-  NameZ: TNameZ;
-begin
-  NameToNameZ(Path, NameZ);
-
-  with Regs do
-  begin
-    C := Upcase(NameZ[0]);
-    if (C in ['A'..'Z']) and (NameZ[1] = ':') then
-    begin
-      AH := $0E;
-      DL := Byte(C) - $41;
-      Intr($21, Regs);
-    end;
-
-    AX := $713B;
-    DS := Seg(NameZ);
-    DX := Ofs(NameZ);
-    asm
-     stc
-    end;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then InOutRes := AX
-                             else InOutRes := 0;
   end;
 end;
 
@@ -1325,45 +872,12 @@ begin
     lWIN95:
       if LFNDisabled(Path) then ChDir(Path)
       else lWIN95ChDir(Path);
+    {$IFDEF DPMI}
+    lSIM95:
+      if LFNDisabled(Path) then ChDir(Path)
+      else lSIM95ChDir(Path);
+    {$ENDIF}
     { Other APIs will be added later }
-  end;
-end;
-
-(*
- INT 21h  AX=7147
- INT 21 - Windows95 - LONG FILENAME - GET CURRENT DIRECTORY
-         AX = 7147h
-         DL = drive number (00h = current, 01h = A:, etc.)
-         DS:SI -> buffer for ASCIZ directory name
- Return: CF clear if successful
-         CF set on error
-             AX = error code
-                 7100h if function not supported
- Notes:  the returned pathname does not include
-         the drive letter, colon, or leading backslash
-*)
-
-procedure lWIN95GetDir(D: Byte; var Path: String);
-var
-  C: Char;
-  Regs: Registers;
-  NameZ: TNameZ;
-begin
-  with Regs do
-  begin
-    C := Char(D + $40);
-
-    AX := $7147;
-    DL := D;
-    DS := Seg(NameZ);
-    SI := Ofs(NameZ);
-    asm
-      stc
-    end;
-    Intr($21, Regs);
-    if Flags and fCarry <> 0 then NameZ[0] := #0;
-
-    Path := Concat(C, ':\', StrPas(NameZ));
   end;
 end;
 
@@ -1388,6 +902,23 @@ begin
         end;
         lWIN95GetDir(D, Path);
       end;
+    {$IFDEF DPMI}
+    lSIM95:
+      begin
+        if D = 0 then with Regs do
+        begin
+          AH := $19;
+          Intr($21, Regs);
+          D := AL + 1;
+        end;
+        if LFNDisabled(Char(D + $40) + ':') then
+        begin
+          GetDir(D, Path);
+          Exit;
+        end;
+        lSIM95GetDir(D, Path);
+      end;
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -1401,6 +932,7 @@ end;
 function LFNFExpand(Path: String): String; external {EXPN};
 
 function lFExpand(const Path: String): String;
+{$IFDEF DPMI}var S: String;{$ENDIF}
 begin
   case lAPI of
     lDOS: lFExpand := FExpand(Path);
@@ -1408,6 +940,15 @@ begin
       if LFNDisabled(Path) then lFExpand := FExpand(Path)
       else if Copy(Path, 1, 2)='\\' then lFExpand :=Path
                                     else lFExpand := LFNFExpand(Path);
+    {$IFDEF DPMI}
+    lSIM95:
+      if LFNDisabled(Path) then lFExpand := FExpand(Path)
+      else if Copy(Path, 1, 2)='\\' then lFExpand :=Path
+                                    else begin
+       SIM95TrueName(Path, S);
+       lFExpand := S;
+      end;
+    {$ENDIF}
     { Other APIs will be added later }
   end;
 end;
@@ -1469,7 +1010,7 @@ function CheckLFNApi(Api: lAPIType): Boolean;
   lAPI:=Api;
   lFindFirst(ParamStr(0), AnyFile, lsr);
   lFindClose(lsr);
-  CheckLFNApi:=(DosError=0000);
+  CheckLFNApi := (DosError=0000);
   lAPI:=SaveApi;
  end;
 
@@ -1483,7 +1024,8 @@ begin
           S := FileRec(lF.F).Name;
           S[0] := Char(Pos(#0, S)-1);
          End;
-   lWIN95: Begin
+   lWIN95{$IFDEF DPMI}, lSIM95{$ENDIF}
+         : Begin
             k:=0;
             s:='';
             repeat
@@ -1505,7 +1047,8 @@ begin
           S := TextRec(lT.T).Name;
           S[0] := Char(Pos(#0, S)-1);
          End;
-   lWIN95: Begin
+   lWIN95{$IFDEF DPMI}, lSIM95{$ENDIF}
+         : Begin
             k:=0;
             s:='';
             repeat
@@ -1517,6 +1060,23 @@ begin
   lTextNameOf := S;
 end;
 
+{$IFDEF DPMI}
+var OldEx: Pointer;
+procedure ExitLFN;
+begin
+ ExitProc := OldEx;
+ FreeDosMem(LowBuf);
+ LowBuf := nil;
+ LowSeg := 0;
+end;
+{$ENDIF}
+
+{!!!!!!!!}
+{.$DEFINE LFNAPIDEBUG}
+{!!!!!!!!}
+{$IFDEF LFNAPIDEBUG}
+var L: Text;
+{$ENDIF}
 begin
  CheckingApi:=True;
  if CanUseLFN then begin
@@ -1526,8 +1086,39 @@ begin
                                 LFNPresent:=true;
                                 IllegalChars:='<>|:';
                                 IllegalCharSet:=['<','>','|',':'];
-                               end;
+                               end
+   {$IFDEF DPMI}
+   else begin
+    LowBuf:=GetDosMem(65520, LowSeg);
+    if CheckLFNApi(lSIM95) then begin
+                                 lAPI:=lSIM95;
+                                 MaxPathLen:=255;
+                                 LFNPresent:=true;
+                                 IllegalChars:='<>|:';
+                                 IllegalCharSet:=['<','>','|',':'];
+                                 OldEx := ExitProc;
+                                 ExitProc := @ExitLFN;
+                                end
+    else begin
+     FreeDosMem(LowBuf);
+     LowBuf := nil;
+    end;
+   end;
+   {$ENDIF}
   end;
   {check for other API's will added later}
+ {$IFDEF LFNAPIDEBUG}
+ Assign(L, 'LFNDEBUG.LOG');
+ Append(L); if IOResult<>0 then Rewrite(L);
+ case lAPI of
+    lDOS: Writeln(L, 'lDOS');
+  lWIN95: Writeln(L, 'lWIN95');
+  {$IFDEF DPMI}
+  lSIM95: Writeln(L, 'lSIM95');
+  {$ENDIF}
+  else    Writeln(L, '!ELSE!');
+ end;
+ Close(L);
+ {$ENDIF}
  CheckingApi:=False;
 end.

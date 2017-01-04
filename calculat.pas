@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,8 +44,9 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
-UNIT Calculator;
+{$I STDEFINE.INC}
+{(c) Anton Fedorov aka DataCompBoy, 2000}
+UNIT Calculat;
 
 INTERFACE
 
@@ -62,6 +63,7 @@ Const EvalueError: Boolean = False;
 
 IMPLEMENTATION
 uses Dos, Advance1;
+(*{$IFDEF DPMI}{$L Int10.obp}procedure Exc10Handler; external;{$ENDIF}*)
 
 function Sh  (x:CReal):CReal;
 begin
@@ -196,14 +198,20 @@ function ArcSin (x:CReal):CReal;
 begin
  if (not EvalueError) and (x <> 1)
   then ArcSin := ArcTan ( x / sqrt (1-sqr (x)))
-  else begin EvalueError := True; ArcSin:=1 end;
+  else if (not EvalueError) and ((x = 1) or (x = -1))
+        then ArcSin := (pi/2)*x
+        else begin EvalueError := True; ArcSin:=1 end;
 end;
 
 function ArcCos (x:CReal):CReal;
 begin
- if (not EvalueError) and (x <> 1)
+ if (not EvalueError) and (x <> 1) and (x<>-1)
   then ArcCos := ArcCoTan ( x / sqrt (1-sqr (x)))
-  else begin EvalueError := True; ArcCos:=1 end;
+  else if (not EvalueError) and (x = 1)
+        then ArcCos := 0
+        else if (not EvalueError) and (x = -1)
+              then ArcCos := pi
+              else begin EvalueError := True; ArcCos:=1 end;
 end;
 
 function ArcSec (x:CReal):CReal;
@@ -412,22 +420,36 @@ Var S: ^String;
     VGF: VarGetFunc;
     FreeByte: byte;
 
- procedure QWE; interrupt;
- begin
-  asm
-{  INT     3}
-   XOR     AL,AL                   {Clear BUSY latch}
-   OUT     0F0H,AL
-   MOV     AL,20H                  {E.nd-of-interrupt}
-   OUT     0A0H,AL
-   OUT     20H,AL
-  end;
-  EvalueError:=true;
-  asm
-   FCLEX
-{   FINIT}
-  end;
- end;
+{$IFNDEF BIT_32}
+ {Sergey Abmetko - Unhanled exception bug fix start}
+Procedure       Int75Handler;Interrupt;
+Begin
+  Asm
+  (* FPU *)
+    mov     al,00h
+    out     0F0h,al
+  (* PICs *)
+    mov     al,20h
+    out     20h,al
+    out     0A0h,al
+  End;
+  EvalueError := true;
+End;
+
+Var Int75Old:Pointer;
+
+Procedure SetInt75Handler;
+Begin
+  GetIntVec($75,Int75Old);
+  SetIntVec($75,Addr(Int75Handler));
+End;
+
+Procedure RestoreInt75Handler;
+Begin
+  SetIntVec($75,Int75Old);
+End;
+ {Sergey Abmetko - Unhanled exception bug fix start}
+{$ENDIF}
 
 function DoEval(start, stop: byte): CReal; forward;
 
@@ -437,14 +459,9 @@ begin
  New(S);
  S^:=UpStrg(DelSpaces(as));
  VGF:=aVGF;
-
- GetIntVec($75, o);
- SetIntVec($75, @QWE);
-
+{$IFNDEF BIT_32} SetInt75Handler; {$ENDIF}
  Evalue:=DoEval(1, Length(S^));
-
- SetIntVec($75, o);
-
+{$IFNDEF BIT_32} RestoreInt75Handler; {$ENDIF}
  Dispose(S);
 end;
 
@@ -511,6 +528,8 @@ function DoEval(start, stop: byte): CReal;
     begin DoEval:=DoEval(start, i-1) + DoEval(i+1, stop); exit end;
    if (s^[i]='-') and (i>start) and not (s^[i-1] in CmdSign) then
     begin DoEval:=DoEval(start, i-1) - DoEval(i+1, stop); exit end;
+   if (s^[i]='-') and (i=start) and not (s^[i-1] in CmdSign) then
+    begin DoEval:= - DoEval(i+1, stop); exit end;
    if (s^[i]='o') and (i<stop) and (s^[i+1]='r') and (i>1) then
     begin DoEval:=Round(DoEval(start, i-1)) or Round(DoEval(i+2, stop)); exit end;
    if (s^[i]='|') and (i<stop) and (s^[i+1]='|') and (i>1) then
@@ -704,5 +723,4 @@ function DoEval(start, stop: byte): CReal;
         end
    else begin EvalueError:=True; DoEval:=1 end;
  end;
-
 END.

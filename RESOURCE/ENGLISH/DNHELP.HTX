@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.05/DOS
+;/  Dos Navigator Open Source 1.51.08
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -113,7 +113,7 @@ Sorry, no help available for this context.
  └─────┘ another, then press Enter to choose
         that item.
 
- ┌─[Ё)─┐ With the mouse, you can click Help
+ ┌─────┐ With the mouse, you can click Help
  │Mouse│ keyword to choose that item.
  └─────┘
 
@@ -229,7 +229,7 @@ echo area or to these addresses:
 .topic MainMenu=9
 .title Main menu
 
-  {Ё:MenuBox}         - From this menu is possible to call some
+  {:MenuBox}         - From this menu is possible to call some
   additional functions and to view information about Navigator version.
   {File:FileMenu}      - Menu with file operations.
   {Disk:DiskMenu}      - Here you find some utilities to work with
@@ -241,7 +241,7 @@ echo area or to these addresses:
   {Window:Windows}    - Working with windows.
 
 .topic MenuBox=10
-.title Menu Ё
+.title Menu 
 
 {About...:_} - Information about the current version of DN: the name of
 the program, the version-number, date of creation of current version,
@@ -750,7 +750,7 @@ current part of the file will be written to this disk.
                                                         │
      Check this box to save long file names in created ─┘
      columes. Volumes created with this option cannot
-     be recombined in pre-1.51.05/DOS versions of DN
+     be recombined in pre-1.51.05a/DOS versions of DN
 
 .topic CopyFiles=29
 .title Copying/moving of files
@@ -1530,9 +1530,8 @@ and its name, allocated files will be archived, for example:
       Copy 10 selected files to:
       ARJ:archive
 
-Are possible descriptors:ARC, ARJ, BSA, BS2, CHZ, HA, HAP, HYP, HPK, LHA,
-LIM, RAR, SQZ, TAR, UC2, ZIP, ZOO)
-
+Are possible descriptors:ACE, AIN, ARC, ARJ, BS2, BSA, CAB, CHZ, HA, HAP, HPK,
+HYP, IS3, LHA, LIM, QUARK, RAR, SQZ, TAR, UC2, UFA, ZIP, ZOO, ZXZ)
 
 .topic SpreadSheet=11015
 .title SpreadSheet
@@ -2729,6 +2728,7 @@ These are global options for all drives
 .topic SystemSetup=48037
 .title System Setup
 
+Attention! Changes of LFN container will used after restart.
 
 .topic OptionsStartup=48038
 .title Startup Options
@@ -2749,24 +2749,39 @@ completion of programs. Faster, but is present the conflicts if DOS
 Navigator was run from BAT-file and for it start of some files is present
 yet.
 
-{Custom video mode 1/2:CustomVideo} - Decimal number of video mode for menu {Ё:MenuBox}.
+{Custom video mode 1/2:CustomVideo} - Decimal or hexadecimal number
+of video mode.
 
-{Разделение времени:_} - паpаметpы отдачи тиков для
-многозадачных опеpационных систем.
- {DOS  Idle (Int28):_} - вызывать Int 28 в моменты бездействия
- {DPMI Idle (Int2F):_} - вызывать Int 2F
- {DESQ Idle (Int15):_} - вызывать Int 15
- {Спать во время бездействия:_} - во вpемя бездействия спать
+ How to coding video mode:
+$<N><N>
+ where 1st <N>:
+  8 - modes 40 x ??
+  9 - modes 80 x ??
+  A - modes 94 x ??
+ 2nd <N>:
+  0 - ?? x 12
+  1 - ?? x 14
+  2 - ?? x 25
+  3 - ?? x 30
+  4 - ?? x 34
+  5 - ?? x 43
+  6 - ?? x 50
+  7 - ?? x 60
 
- Рекоммендyется пеpвые 3 паpаметpа деpжать включенными
+{Timeslicing options:_}  - time slicing options for multitasking environments.
+ {DOS  Idle (Int28):_}   - call Int 28 when idle
+ {DPMI Idle (Int2F):_}   - call Int 2F
+ {DESQ Idle (Int15):_}   - call Int 15
+ {Sleep when inactive:_} - sleep when idle
 
-Флаг {Отдавать тики только pаз:_} означает, что надо вызвать
-только один метод отдачи тиков: тот, что необходим в данный момент.
-Рекоммендyется yстановить.
+ It is recommended to always set the first 3 options on.
 
-Флаги {Отдавать пpи откpытии файла:_}, {Отдавать пpи копиpовании:_},
-{Отдавать пpи чтении аpхива:_} отвечают за pазделение вpемени
-пpи соответствyющих действиях. Рекоммендyется их включить.
+The {Release slice once:_} option means that only the one method of time
+slicing that is necessary at the moment is to be called. Recomended.
+
+The {Release while readfile:_}, {Release while copy:_},
+{Release while readarch:_} {Release while search:_} options control time
+slicing while performing the respective actions. Recommended.
 
 .topic Savers=48039
 .title Screen Savers
@@ -2931,17 +2946,17 @@ greater than 256. For VESA SVGA codes are 109 or 110, for example.
 NB: OS/2 is a registered trademark of IBM Corp.
 
 DOS Navigator can start OS/2 applications when it works under OS/2 version
-2.10 or later. To get this possibility you should:
+2.10 or later.
 
-  1) Set OS2COMSPEC environment variable to full name
-     of OS/2 command interpreter
-     (e.g. put Set OS2COMSPEC = C:\OS2\CMD.EXE
-      in DOS session autoexec.bat)
+To get this possibility under OS/2 version 2.1x you should set OS2COMSPEC
+environment variable to full name of OS/2 command interpreter
+(e.g. put
+    SET OS2COMSPEC = C:\OS2\CMD.EXE
+ in DOS session autoexec.bat)
+Under OS/2 Warp 3 or later it's only necessary if location of OS/2 command
+interpreter is different than <bootdrive>:\os2\cmd.exe
 
-  2) Set "OS/2 support" option in Startup dialog box.
-  3) Restart Navigator.
-
-There are three ways to run OS/2 applications:
+ There are three ways to run OS/2 applications:
 
    ■ From DOS command line:
 
@@ -2962,11 +2977,11 @@ There are three ways to run OS/2 applications:
          sessions. Be sure that parameters for DOS
          sessions are acceptable for your applications.
 
- {Hints:_}: ■ if Files Highlight and OS/2 support options
-          are enabled OS/2 batch files (*.CMD) are shown
-          as executable files. You can start it as usual
-          .EXE files by pressing Enter. If you'll press
-          Shift-Enter, batch will be started in background.
+ {Hints:_}: ■ if Files Highlight option is enabled
+          OS/2 batch files (*.CMD) are shown as executable
+          files. You can start it as usual .EXE files by
+          pressing Enter. If you'll press Shift-Enter,
+          batch will be started in background.
 
 .topic FilesBBS=48061
 .title 4DOS/Files.BBS support
@@ -3151,21 +3166,6 @@ compression methods.
 .topic CPUFlagInfo=48078
 .title Information of CPU Features
 
-.topic EditBlockMenu=47991
-.title Edit->Block Menu
-
-.topic SpreadFileMenu=48083
-.title SpreadFileMenu
-
-.topic SpreadTableMenu=48084
-.title SpreadTableMenu
-
-.topic SpreadEditMenu=48085
-.title SpreadEditMenu
-
-.topic SpreadSearchMenu=48086
-.title SpreadSearchMenu
-
 .topic EditMiscMenu=48079
 .title Edit->Misc Menu
 
@@ -3177,3 +3177,94 @@ compression methods.
 
 .topic MiscCapitalize=48082
 .title MiscCapitalize
+
+.topic RenameFile=48083
+.title Quick rename file
+
+.topic Calendar=48084
+.title Calendar
+Calendar window looks like this:
+
+  ╔═[■]════ Calendar ═════════╗
+  ║April, 2000             ║
+  ║Mo  Tu  We  Th  Fr  Sa  Su ║
+  ║                     1   2 ║
+  ║ 3   4   5   6   7   8   9 ║
+  ║10  11  12  13  14  15  16 ║
+  ║17  18  19  20  21  22  23 ║
+  ║24  25  26  27  28  29  30 ║
+  ║                           ║
+  ╚═══════════════════════════╝
+
+ Use cursor keys "Up" and "Down", or left mouse button click on
+"" and "" symbols (in line with the month name) to jump to next or
+previous month.
+ Use Ctrl in combination with cursor keys "Up" and "Down", or right
+mouse button click on "" and "" symbols to jump to next or previous
+year.
+ Space bar or any mouse button click on "" symbol will return you to
+current date.
+
+.topic EditBlockMenu=48085
+.title Edit->Block Menu
+
+.topic SpreadFileMenu=48086
+.title SpreadFileMenu
+
+.topic SpreadTableMenu=48087
+.title SpreadTableMenu
+
+.topic SpreadEditMenu=48088
+.title SpreadEditMenu
+
+.topic SpreadSearchMenu=48089
+.title SpreadSearchMenu
+
+.topic FTNInfo=48090
+.title FTN File Attach Feature
+
+DN has the ability to attach files to be sent with FTN networking software
+using a Binkley-style outbound. To use this feature, the following information
+should be appended to the Files with descriptions field in the File Manager
+Setup dialog:
+
+;/fido=<address>,<outbound>
+
+Here <address> is your FTN address in your primary zone, written in 3D or 4D
+form, and the <outbound> is your primary zone outbound directory specification.
+Outbound directories for secondary zones are created and used with Portal Of
+Power style names (with hexadecimal zone numbers as extensions). Outbound
+subdirectories for points are handled correctly.
+
+After that, for attaching select one or more files and press Alt-L for the Make
+List File dialog. Enter either "%", "+", or "/" followed by the 3D or 4D
+destination address instead of the list file name. "%" means Normal flavor, "+"
+means Crash, and "/" is for Hold. Leave the Action field empty for the normal
+send mode, enter ###:#\#.# there for the file to be tuncated after sending
+(substitute ##!:!\!.! if your FTN software does not support long file names) or
+enter ^#:#\#.# to have the file killed after sending (^!:!\!.! for short names
+only).
+
+.topic SrchFailed=48091
+.title Search Failed
+
+.topic ChangeNameCase=48093 ; [C] /DataCompBoy/ 22-05-2000
+.title Changing file names case
+
+.topic Path=48094 ; [C] /DataCompBoy/  3-06-2000
+.title Select path
+
+.topic Dialer=48095 ; [C] /DataCompBoy/  5.07.2000
+.title Dialer
+
+.topic PktListDialog=48096 ; [C] /DataCompBoy/ 12.07.2000
+.title Pkt List Dialog
+
+.topic LineViewer=48097 ; [C] /DataCompBoy/ 12.07.2000
+.title Line Viewer
+
+.topic MsgViewer=48098 ; [C] /DataCompBoy/ 12.07.2000
+.title Msg Viewer
+
+.topic PktMsgViewer=48099 ; [C] /DataCompBoy/ 12.07.2000
+.title Pkt Msg Viewer

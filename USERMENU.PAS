@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -528,7 +528,7 @@ function ExecUserMenu;
    P2 := nil;
    if UI^.Text <> nil then P1 := NewItem(UI^.Text^, '', CheckFKeys(UI^.Text^), 1000 + I,
                                  hcLUserMenu+Byte(DoGlobal), nil)
-                     else P1 := NewItem('Empty line', '', CheckFKeys(UI^.Text^), 1000 + I,
+                      else P1 := NewItem('Empty line', '', kbNoKey, 1000 + I,
                                  hcLUserMenu+Byte(DoGlobal), nil);
    DoSubMenu := P1;
    while (I < P^.Count-1) do
@@ -539,9 +539,10 @@ function ExecUserMenu;
      if PU^.Level < UI^.Level then begin Dec(I); Exit; end;
      if PU^.Level > UI^.Level then begin P1^.SubMenu := NewMenu(DoSubMenu(False)); P1^.Command := 0; end
       else begin
-             if PU^.Text <> nil then
-                 P1^.Next := NewItem(PU^.Text^, '', CheckFKeys(PU^.Text^), 1000 + I,
-                                 hcLUserMenu+Byte(DoGlobal), nil) else P1^.Next := NewLine(nil);
+             if PU^.Text <> nil
+              then P1^.Next := NewItem(PU^.Text^, '', CheckFKeys(PU^.Text^),
+                                   1000 + I, hcLUserMenu+Byte(DoGlobal), nil)
+              else P1^.Next := NewLine(nil);
              if Main then inc(NI);
              P1 := P1^.Next;
            end;
@@ -604,9 +605,9 @@ begin
        New(UI);
        S := MakeString(S, @UserParams, on, nil);
        UI^.Text := NewStr(S);
-       if CStrLen(S) > NW then NW := CStrLen(S);
-       UI^.Line := I;
        UI^.Level := StoI(S1);
+       if (CStrLen(S) > NW) and (UI^.Level=1) then NW := CStrLen(S);
+       UI^.Line := I;
        UI^.RunFrom2E := RF2E;
        P^.Insert(UI);
       end;
@@ -623,7 +624,7 @@ begin
      if SItems = nil then Break;
      Menu := NewMenu(SItems);
      Application^.GetExtent(R);
-     R.A.X:=0; R.B.X:=NW+8;
+     R.A.X:=0; R.B.X:=NW;
      R.B.Y:=Min(R.B.Y, NI);
      PV := New(PMenuBox, Init(R, Menu, nil));
      PV^.Options := PV^.Options or ofCentered;
@@ -778,9 +779,8 @@ procedure TGrabber.Draw;
      I: Integer;
 
       procedure Invert(var B; K: integer);
-{$IFDEF FPC} begin end;
-{$ELSE}
        assembler;
+       {$IFNDEF BIT_32}
        asm
          mov cx, K
          les bx, B
@@ -795,7 +795,22 @@ procedure TGrabber.Draw;
          add bx, 2
          loop @@1
        end;
-{$ENDIF}
+       {$ELSE}{&Frame-}{$USES EBX, ECX}
+       asm
+         mov ECX, K
+         lea EBX, B
+        @@1:
+         mov AX, word ptr [EBX]
+         xor AH, $7F
+         and AH, $7F
+         jnz @@2
+         mov AH, 7
+       @@2:
+         mov word ptr [EBX], AX
+         add EBX, 2
+         loop @@1
+       end;
+       {$ENDIF}
 begin
   with R do
    begin
@@ -978,7 +993,7 @@ begin
     end;
 
   TitleStr := ''; DefStr := ''; EnterParms := Off;
-  Message(Desktop, evBroadcast, cmGetUserParams, @UserParams); ClrIO;
+  Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams); ClrIO;
   while not F^.EOF do
    begin
      S := F^.GetStr;

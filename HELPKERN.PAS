@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -47,7 +47,7 @@
 {$I STDEFINE.INC}
 
 UNIT
-  HelpKernel;
+  HelpKern;
 
 { Used by TVHC and HELPFILE }
 
@@ -59,7 +59,7 @@ USES
 type
 
   THelpParameters = Record
-                      Index: Word;
+                      Index: AWord;
                       CursorXY,
                       DeltaXY: TPoint;
                      end;
@@ -69,21 +69,21 @@ type
   TParagraph = record
     Next: PParagraph;
     Wrap: Boolean;
-    Size: Word;
+    Size: AWord;
     Text: record end;
   end;
 
 { THelpTopic }
 
   TCrossRef = record
-    Ref: Word;
-    Offset: Integer;
+    Ref: AWord;
+    Offset: AInt;
     Length: Byte;
   end;
 
   PCrossRefs = ^TCrossRefs;
   TCrossRefs = array[1..10000] of TCrossRef;
-  TCrossRefHandler = procedure (var S: TStream; XRefValue: Integer);
+  TCrossRefHandler = procedure (var S: TStream; XRefValue: AInt);
 
   PHelpTopic = ^THelpTopic;
   THelpTopic = object(TObject)
@@ -94,24 +94,24 @@ type
     procedure AddCrossRef(Ref: TCrossRef);
 }
     procedure AddParagraph(P: PParagraph);
-    procedure GetCrossRef(I: Integer; var Loc: TPoint; var Length: Byte;
-      var Ref: Word);
-    function GetLine(Line: Integer): String;
-    function GetNumCrossRefs: Integer;
-    function NumLines: Integer;
-    procedure SetCrossRef(I: Integer; var Ref: TCrossRef);
-    procedure SetNumCrossRefs(I: Integer);
-    procedure SetWidth(AWidth: Integer);
+    procedure GetCrossRef(I: AInt; var Loc: TPoint; var Length: Byte;
+      var Ref: AWord);
+    function GetLine(Line: AInt): String;
+    function GetNumCrossRefs: AInt;
+    function NumLines: AInt;
+    procedure SetCrossRef(I: AInt; var Ref: TCrossRef);
+    procedure SetNumCrossRefs(I: AInt);
+    procedure SetWidth(AWidth: AInt);
     procedure Store(var S: TStream);
   private
     Paragraphs: PParagraph;
-    NumRefs: Integer;
+    NumRefs: AInt;
     CrossRefs: PCrossRefs;
-    Width: Integer;
-    LastOffset: Integer;
-    LastLine: Integer;
+    Width: AInt;
+    LastOffset: AInt;
+    LastLine: AInt;
     LastParagraph: PParagraph;
-    function WrapText(var Text; Size: Integer; var Offset: Integer;
+    function WrapText(var Text; Size: AInt; var Offset: AInt;
       Wrap: Boolean): String;
   end;
 
@@ -121,22 +121,22 @@ type
   TIndexArray = array[0..16380] of LongInt;
 
   PContextArray = ^TContextArray;
-  TContextArray = array[0..16380] of Word;
+  TContextArray = array[0..16380] of AWord;
 
   PHelpIndex = ^THelpIndex;
   THelpIndex = object(TObject)
     constructor Init;
     constructor Load(var S: TStream);
     destructor Done; virtual;
-    function Position(I: Word): Longint;
-    procedure Add(I: Word; Val: Longint);
+    function Position(I: AWord): Longint;
+    procedure Add(I: AWord; Val: Longint);
     procedure Store(var S: TStream);
   private
-    Size: Word;
-    Used: Word;
+    Size: AWord;
+    Used: AWord;
     Contexts: PContextArray;
     Index: PIndexArray;
-    function Find(I: Word): Word;
+    function Find(I: AWord): AWord;
   end;
 
 { THelpFile }
@@ -147,16 +147,16 @@ type
     Modified: Boolean;
     constructor Init(S: PStream);
     destructor Done; virtual;
-    function GetTopic(I: Word): PHelpTopic;
+    function GetTopic(I: AWord): PHelpTopic;
     function InvalidTopic: PHelpTopic;
-    procedure RecordPositionInIndex(I: Integer);
+    procedure RecordPositionInIndex(I: AInt);
     procedure PutTopic(Topic: PHelpTopic);
   private
     Index: PHelpIndex;
     IndexPos: LongInt;
   end;
 
-procedure NotAssigned(var S: TStream; Value: Integer);
+procedure NotAssigned(var S: TStream; Value: AInt);
 
 const
   CrossRefHandler: TCrossRefHandler = NotAssigned;
@@ -168,14 +168,14 @@ IMPLEMENTATION
 constructor THelpTopic.Init;
 begin
   inherited Init;
-  LastLine := MaxInt;
+  LastLine := High(LastLine);
 end;
 
 constructor THelpTopic.Load(var S: TStream);
 
 procedure ReadParagraphs;
 var
-  I, Size: Integer;
+  I, Size: AInt;
   PP: ^PParagraph;
 begin
   S.Read(I, SizeOf(I));
@@ -195,7 +195,7 @@ end;
 
 procedure ReadCrossRefs;
 begin
-  S.Read(NumRefs, SizeOf(Integer));
+  S.Read(NumRefs, SizeOf(AInt));
   GetMem(CrossRefs, SizeOf(TCrossRef) * NumRefs);
   S.Read(CrossRefs^, SizeOf(TCrossRef) * NumRefs);
 end;
@@ -204,7 +204,7 @@ begin
   ReadParagraphs;
   ReadCrossRefs;
   Width := 0;
-  LastLine := MaxInt;
+  LastLine := High(LastLine);
 end;
 
 destructor THelpTopic.Done;
@@ -253,12 +253,12 @@ begin
   P^.Next := nil;
 end;
 
-procedure THelpTopic.GetCrossRef(I: Integer; var Loc: TPoint;
-  var Length: Byte; var Ref: Word);
+procedure THelpTopic.GetCrossRef(I: AInt; var Loc: TPoint;
+  var Length: Byte; var Ref: AWord);
 var
-  OldOffset, CurOffset, Offset, ParaOffset: Integer;
+  OldOffset, CurOffset, Offset, ParaOffset: AInt;
   P: PParagraph;
-  Line: Integer;
+  Line: AInt;
 begin
   ParaOffset := 0;
   CurOffset := 0;
@@ -284,9 +284,9 @@ begin
   Ref := CrossRefs^[I].Ref;
 end;
 
-function THelpTopic.GetLine(Line: Integer): String;
+function THelpTopic.GetLine(Line: AInt): String;
 var
-  Offset, I: Integer;
+  Offset, I: AInt;
   P: PParagraph;
 begin
   if LastLine < Line then
@@ -323,14 +323,14 @@ begin
   GetLine := '';
 end;
 
-function THelpTopic.GetNumCrossRefs: Integer;
+function THelpTopic.GetNumCrossRefs: AInt;
 begin
   GetNumCrossRefs := NumRefs;
 end;
 
-function THelpTopic.NumLines: Integer;
+function THelpTopic.NumLines: AInt;
 var
-  Offset, Lines: Integer;
+  Offset, Lines: AInt;
   P: PParagraph;
 begin
   Offset := 0;
@@ -349,12 +349,12 @@ begin
   NumLines := Lines;
 end;
 
-procedure THelpTopic.SetCrossRef(I: Integer; var Ref: TCrossRef);
+procedure THelpTopic.SetCrossRef(I: AInt; var Ref: TCrossRef);
 begin
   if I <= NumRefs then CrossRefs^[I] := Ref;
 end;
 
-procedure THelpTopic.SetNumCrossRefs(I: Integer);
+procedure THelpTopic.SetNumCrossRefs(I: AInt);
 var
   P: PCrossRefs;
 begin
@@ -370,7 +370,7 @@ begin
   NumRefs := I;
 end;
 
-procedure THelpTopic.SetWidth(AWidth: Integer);
+procedure THelpTopic.SetWidth(AWidth: AInt);
 begin
   Width := AWidth;
 end;
@@ -379,7 +379,7 @@ procedure THelpTopic.Store(var S: TStream);
 
 procedure WriteParagraphs;
 var
-  I: Integer;
+  I: AInt;
   P: PParagraph;
 begin
   P := Paragraphs;
@@ -393,8 +393,8 @@ begin
   P := Paragraphs;
   while P <> nil do
   begin
-    S.Write(P^.Size, SizeOf(Integer));
-    S.Write(P^.Wrap, SizeOf(Boolean));
+    S.Write(P^.Size, SizeOf(P^.Size));
+    S.Write(P^.Wrap, SizeOf(P^.Wrap));
     S.Write(P^.Text, P^.Size);
     P := P^.Next;
   end;
@@ -402,16 +402,17 @@ end;
 
 procedure WriteCrossRefs;
 var
-  I: Integer;
+  I: AInt;
 begin
-  S.Write(NumRefs, SizeOf(Integer));
+  S.Write(NumRefs, SizeOf(NumRefs));
   if @CrossRefHandler = @NotAssigned then
     S.Write(CrossRefs^, SizeOf(TCrossRef) * NumRefs)
   else
     for I := 1 to NumRefs do
     begin
       CrossRefHandler(S, CrossRefs^[I].Ref);
-      S.Write(CrossRefs^[I].Offset, SizeOf(Integer) + SizeOf(Byte));
+      with CrossRefs^[I] do
+       S.Write(Offset, SizeOf(Offset) + SizeOf(Length));
     end;
 end;
 
@@ -420,21 +421,22 @@ begin
   WriteCrossRefs;
 end;
 
-function THelpTopic.WrapText(var Text; Size: Integer;
-  var Offset: Integer; Wrap: Boolean): String;
+function THelpTopic.WrapText(var Text; Size: AInt;
+  var Offset: AInt; Wrap: Boolean): String;
 type
   PCArray = ^CArray;
   CArray = array[0..32767] of Char;
 var
   Line: String;
-  I, P: Integer;
+  I, P: AInt;
 
 function IsBlank(Ch: Char): Boolean;
 begin
   IsBlank := (Ch = ' ') or (Ch = #13) or (Ch = #10);
 end;
 
-function Scan(var P; Size: Integer; Offs: Integer; C: Char): Integer; assembler;
+function Scan(var P; Size: AInt; Offs: AInt; C: Char): AInt; assembler;
+{$IFNDEF BIT_32}
 asm
         CLD
         LES     DI,P
@@ -446,9 +448,32 @@ asm
         NEG     CX
         XCHG    AX,CX
 end;
+{$ELSE} {$USES esi,edi,ecx} {&FRAME-}
+asm
+        cld
+        xor     eax,eax
+        mov     edi,P
+        mov      ax,Offs
+        add     edi,eax
+        mov      ax,Size
+        mov     edx,eax
+        sub     edx,&Offset
+        test    dh,dh
+        jz      @@1
+        mov     edx,256
+      @@1:
+        mov     ecx,edx
+        mov     al,C
+        repne   scasb
+        sub     ecx,edx
+        neg     ecx
+        xchg    eax,ecx
+end;
+{$ENDIF}
 
-procedure TextToLine(var Text; Offs, Length: Integer; var Line: String);
+procedure TextToLine(var Text; Offs, Length: AInt; var Line: String);
   assembler;
+{$IFNDEF BIT_32}
 asm
         CLD
         PUSH    DS
@@ -461,6 +486,20 @@ asm
         REP     MOVSB
         POP     DS
 end;
+{$ELSE} {$USES esi,edi,ecx} {&FRAME-}
+asm
+        cld
+        xor     eax,eax
+        mov     esi,Text
+        mov      ax,Offs
+        add     esi,eax
+        mov     edi,Line
+        mov      ax,Length
+        stosb
+        xchg    eax,ecx
+        rep     movsb
+end;
+{$ENDIF}
 
 begin
   I := Scan(Text, Size-Offset, Offset, #13);
@@ -519,9 +558,9 @@ begin
   inherited Done;
 end;
 
-function THelpIndex.Find(I: Word): Word;
+function THelpIndex.Find(I: AWord): AWord;
 var
-  Hi, Lo, Pos: Integer;
+  Hi, Lo, Pos: AInt;
 begin
   Lo := 0;
   Hi := Used - 1;
@@ -540,20 +579,20 @@ begin
   Find := Lo;
 end;
 
-function THelpIndex.Position(I: Word): Longint;
+function THelpIndex.Position(I: AWord): Longint;
 begin
   Position := Index^[Find(I)];
 end;
 
-procedure THelpIndex.Add(I: Word; Val: Longint);
+procedure THelpIndex.Add(I: AWord; Val: Longint);
 const
   Delta = 10;
 var
   P: PIndexArray;
-  NewSize: Integer;
-  Pos: Integer;
+  NewSize: AInt;
+  Pos: AInt;
 
-  function Grow(P: Pointer; OldSize, NewSize, ElemSize: Integer): Pointer;
+  function Grow(P: Pointer; OldSize, NewSize, ElemSize: AInt): Pointer;
   var
     NewP: PByteArray;
   begin
@@ -650,7 +689,7 @@ begin
   Dispose(Index,Done);  Index :=nil;
 end;
 
-function THelpFile.GetTopic(I: Word): PHelpTopic;
+function THelpFile.GetTopic(I: AWord): PHelpTopic;
 var
   Pos: Longint;
 begin
@@ -681,7 +720,7 @@ begin
   InvalidTopic := Topic;
 end;
 
-procedure THelpFile.RecordPositionInIndex(I: Integer);
+procedure THelpFile.RecordPositionInIndex(I: AInt);
 begin
   Index^.Add(I, IndexPos);
   Modified := True;
@@ -695,7 +734,7 @@ begin
   Modified := True;
 end;
 
-procedure NotAssigned(var S: TStream; Value: Integer);
+procedure NotAssigned(var S: TStream; Value: AInt);
 begin
 end;
 

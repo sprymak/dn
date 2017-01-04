@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -53,7 +53,8 @@
 unit Objects;
 
 interface
-uses LFN;
+uses {$IFDEF VIRTUALPASCAL}SysUtils,{$ENDIF}
+     LFN;
 
 { Common defines }
 
@@ -97,15 +98,6 @@ const
 
 type
 
-  PByteArray = ^TByteArray;
-  TByteArray = Array[0..MaxBytes-1] of byte;
-
-  PWordArray = ^TWordArray;
-  TWordArray = Array[0..MaxWords-1] of word;
-
-  PPointerArray = ^TPointerArray;
-  TPointerArray = Array [0..MaxPtrs-1] of pointer;
-
   {$IFDEF BIT_16}
   Sw_Word    = Word;
   Sw_Integer = Integer;
@@ -118,25 +110,70 @@ type
     Sw_Integer = LongInt;
     {$ENDIF}
   {$ENDIF}
+   AInt = {$IFNDEF BIT_32}Integer{$ELSE BIT_32}SmallInt{$ENDIF};
+   AWord= {$IFNDEF BIT_32}Word{$ELSE BIT_32}SmallWord{$ENDIF};
+
+  PByteArray = ^TByteArray;
+  TByteArray = Array[0..MaxBytes-1] of byte;
+
+  PWordArray = ^TWordArray;
+  TWordArray = Array[0..MaxWords-1] of Aword;
+
+  PPointerArray = ^TPointerArray;
+  TPointerArray = Array [0..MaxPtrs-1] of pointer;
 
 const
 
 { TStream access modes }
 
-  stCreate    = $3C00;           { Create new file }
+ {$IFNDEF VIRTUALPASCAL}
+  stCreate    = $3C02;           { Create new file }
   stOpenRead  = $3D40;           { Read access only }
   stOpenWrite = $3D41;           { Write access only }
   stOpen      = $3D42;           { Read and write access }
+  stOpenPacked= $3D23;           { Read access only, packed files too }
 
 { File share mode constants }
 
-  fmClean     = $FF00;
+  fmClean     = $FF00;           { Mask to clean low byte of file mode constatns }
+
+  fmOpenMode  = $FFF0;           { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
+  fmReadOnly  = $0000;           { Open read-only file }
+  fmWriteOnly = $0001;           { Open file for write only }
+  fmReadWrite = $0002;           { Open file as for read, as for write }
+  fmPacked    = $0003;           { Open a packed file, if can }
+
   fmDeny      = $FF0F;           { Mask to apply fmDenyXXX }
   fmDenyAll   = $0010;           { Exclusive file use }
   fmDenyWrite = $0020;           { Deny write access }
   fmDenyRead  = $0030;           { Deny read access }
   fmDenyNone  = $0040;           { Deny no access }
   fmDenyChild = $0080;           { Don't give right's to child }
+
+ {$ELSE VP}
+  stCreate    = $DCB0;           { Create new file }
+  stOpenRead  = fmOpenRead;      { Read access only }
+  stOpenWrite = fmOpenWrite;     { Write access only }
+  stOpen      = fmOpenReadWrite; { Read and write access }
+  stOpenPacked= fmOpenReadWrite+1;{Read access only, packed files too }
+
+{ File share mode constants }
+  fmClean     = $FF00;           { Mask to clean low byte of file mode constatns }
+
+  fmOpenMode  = $FFFF;           { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
+  fmReadOnly  = fmOpenRead;      { Open read-only file }
+  fmWriteOnly = fmOpenWrite;     { Open file for write only }
+  fmReadWrite = fmOpenReadWrite; { Open file as for read, as for write }
+  fmPacked    = fmOpenReadWrite+1;{Open a packed file, if can }
+
+  fmDeny      = $FFFF;           { Mask to apply fmDenyXXX }
+  fmDenyAll   = fmShareExclusive;{ Exclusive file use }
+  fmDenyWrite = fmShareDenyWrite;{ Deny write access }
+  fmDenyRead  = fmShareDenyRead; { Deny read access }
+  fmDenyNone  = fmShareDenyNone; { Deny no access }
+  fmDenyChild = fmShareDenyNone; { Don't give right's to child }
+
+ {$ENDIF}
 
 { TStream error codes }
 
@@ -156,7 +193,7 @@ type
 
   PStreamRec = ^TStreamRec;
   TStreamRec = record
-    ObjType: Word;
+    ObjType: AWord;
   {$IFDEF VER70}{$IFNDEF DPMI}
     VmtLink: Word;
   {$ELSE} VmtLink: Pointer;{$ENDIF}
@@ -225,6 +262,7 @@ type
   TDosStream = object(TStream)
     Handle: Integer;
     FName : AsciiZ;
+    FMode:  Word;
     constructor Init(FileName: FNameStr; Mode: Word);
     procedure   Open(FileName: FNameStr; Mode: Word);
     destructor Done; virtual;
@@ -326,9 +364,10 @@ uses
 {$IFDEF Windows} WinProcs,OMemory,
 {$ELSE}          Memory,            {$ENDIF}
 {$IFDEF StreamDebug} DnApp, {$ENDIF}
-  {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF},
+  {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
   {$IFDEF  FPC}CallSpec{$ELSE}Callspcb{$ENDIF},
-  extramemory;
+  {$IFDEF WIN32}Windows,{$ENDIF}
+  PackF_RS, ExtraMem;
 
 procedure Abstract;
 begin
@@ -460,8 +499,8 @@ end;
 
 function TStream.Get: PObject;
 var
-  Magic: Word;
-  ObjType: Word;
+  Magic: AWord;
+  ObjType: AWord;
   P: PStreamRec;
   O: PObject;
 begin
@@ -510,8 +549,8 @@ end;
 procedure TStream.Put(P: PObject);
 var
   Q: PStreamRec;
-  Magic: Word;
-  ObjType: Word;
+  Magic: AWord;
+  ObjType: AWord;
   {$IFDEF BIT_16}
   VmtPtr: ^Word;     Link: Word;    {$ELSE}
   VmtPtr: ^LongInt;  Link: LongInt; {$ENDIF}
@@ -641,154 +680,18 @@ begin
 end;
 
 { TDosStream }
-FUNCTION FileClose (Handle: Word): Boolean;
-ASSEMBLER;
-ASM
-   MOV BX, Handle;                                    { DOS file handle }
-   MOV AH, $3E;                                       { Close function }
-   PUSH BP;                                           { Store register }
-   INT $21;                                           { Close the file }
-   POP BP;                                            { Reload register }
-   MOV AL, True;                                      { Preset true }
-   JNC @@Exit1;                                       { Return success }
-   MOV AL, False;                                     { Return failure }
- @@Exit1:
-END;
-
-FUNCTION FileOpen (Var FileName: AsciiZ; Mode: Word): Word;
-ASSEMBLER;
-ASM
-   MOV AX, Mode;                                      { Mode to open file }
-   MOV BL, lAPI
-   AND BL, lWin95
-   OR  BL, BL
-   JNZ @@Win95Lfn
-   XOR CX, CX;                                        { No attributes set }
-   PUSH DS;                                           { Save segment }
-   LDS DX, FileName;                                  { Filename to open }
-   PUSH BP;                                           { Store register }
-   INT $21;                                           { Open/create file }
-   POP BP;                                            { Restore register }
-   POP DS;                                            { Restore segment }
-   JNC @@Exit2;                                       { Check for error }
-   XOR AX, AX;                                        { Open fail return 0 }
-   JMP @@Exit2
-@@Win95Lfn:
-   XOR CX, CX;                                        { No attributes set }
-   PUSH DS;                                           { Save segment }
-   mov bl, al                                         { Mode }
-   xor bh, bh
-   LDS DX, FileName;                                  { Filename to open }
-   mov si, dx
-   mov di, 0
-   cmp ah, 3ch
-   mov dx, 1                                          { Open }
-   jne @@Open95
-   mov dx, 12h                                        { Create }
-   mov bx, 2
-@@Open95:
-   mov ax, 716Ch
-   PUSH BP;                                           { Store register }
-   INT $21;                                           { Open/create file }
-   POP BP;                                            { Restore register }
-   POP DS;                                            { Restore segment }
-   JNC @@Exit2;                                       { Check for error }
-   XOR AX, AX;                                        { Open fail return 0 }
-   JMP @@Exit2
-@@Exit2:
-END;
-
-FUNCTION FileRead(Handle: Word; Var Buf; Count: Sw_Word;
-                  Var Actual: Sw_Word): Word;
-ASSEMBLER;
-ASM
-   XOR AX, AX;                                        { Zero register }
-   LES DI, Actual;                                    { Actual var address }
-   MOV ES:[DI], AX;                                   { Zero actual var }
-   PUSH DS;                                           { Save segment }
-   LDS DX, Buf;                                       { Data destination }
-   MOV CX, Count;                                     { Amount to read }
-   MOV BX, Handle;                                    { Load file handle }
-   MOV AX, $3F00;                                     { Load function id }
-   PUSH BP;                                           { Store register }
-   INT $21;                                           { Read from file }
-   POP BP;                                            { Reload register }
-   POP DS;                                            { Restore segment }
-   JC @@Exit4;                                        { Check for error }
-   LES DI, Actual;                                    { Actual var address }
-   MOV ES:[DI], AX;                                   { Update bytes moved }
-   XOR AX, AX;                                        { Return success }
-@@Exit4:
-END;
-
-FUNCTION FileWrite (Handle: Word; Var Buf; Count: Sw_Word;
-                    Var Actual: Sw_Word): Word;
-ASSEMBLER;
-ASM
-   XOR AX, AX;                                        { Zero register }
-   LES DI, Actual;                                    { Actual var address }
-   MOV ES:[DI], AX;                                   { Zero actual var }
-   PUSH DS;                                           { Save segment }
-   LDS DX, Buf;                                       { Data source buffer }
-   MOV CX, Count;                                     { Amount to write }
-   MOV BX, Handle;                                    { Load file handle }
-   MOV AX, $4000;                                     { Load function id }
-   PUSH BP;                                           { Store register }
-   INT $21;                                           { Write to file }
-   POP BP;                                            { Reload register }
-   POP DS;                                            { Restore segment }
-   JC @@Exit5;                                        { Check for error }
-   LES DI, Actual;                                    { Actual var address }
-   MOV ES:[DI], AX;                                   { Update bytes moved }
-   XOR AX, AX;                                        { Write successful }
-@@Exit5:
-END;
-
-FUNCTION SetFileSize (Handle: Word; FileSize: LongInt): Word;
-ASSEMBLER;
-ASM
-   MOV DX, FileSize.Word[0];                          { Load file position }
-   MOV CX, FileSize.Word[2];
-   MOV BX, Handle;                                    { Load file handle }
-   MOV AX, $4200;                                     { Load function id }
-   PUSH BP;                                           { Store register }
-   INT $21;                                           { Position the file }
-   POP BP;                                            { Reload register }
-   JC @@Exit3;                                        { Exit if error }
-   XOR CX, CX;                                        { Force truncation }
-   MOV BX, Handle;                                    { File handle }
-   MOV AX, $4000;                                     { Load function id }
-   PUSH BP;                                           { Store register }
-   INT $21;                                           { Truncate file }
-   POP BP;                                            { Reload register }
-   JC @@Exit3;                                        { Exit if error }
-   XOR AX, AX;                                        { Return successful }
-@@Exit3:
-END;
-
-FUNCTION SetFilePos (Handle: Word; Pos: LongInt; MoveType: Word;
-                     Var Actual: LongInt): Word;
-ASSEMBLER;
-ASM
-   MOV AX, MoveType;                                  { Load move type }
-   MOV AH, $42;                                       { Load function id }
-   MOV DX, Pos.Word[0];                               { Load file position }
-   MOV CX, Pos.Word[2];
-   MOV BX, Handle;                                    { Load file handle }
-   PUSH BP;                                           { Store register }
-   INT $21;                                           { Position the file }
-   POP BP;                                            { Reload register }
-   JC @@Exit6;
-   LES DI, Actual;                                    { Actual var addr }
-   MOV ES:[DI], AX;
-   MOV ES:[DI+2], DX;                                 { Update actual }
-   XOR AX, AX;                                        { Set was successful }
-@@Exit6:
-END;
+{$IFDEF VIRTUALPASCAL}{$I FIO._VP}
+ {$ELSE}
+  {$IFDEF FPC}{$I FIO._FP}
+   {$ELSE}
+    {$I FIO._BP}
+  {$ENDIF}
+{$ENDIF}
 
 constructor TDosStream.Init(FileName: FNameStr; Mode: Word);
 var
   Success: Integer;
+label 1;
 begin
   inherited Init;
   {$IFDEF OS_WINDOWS}
@@ -797,11 +700,24 @@ begin
   FileName:=FileName+#0;
   Move(FileName[1], FName, Length(FileName));
   {$ENDIF}
-  Handle:=FileOpen(FName, Mode);
-  If Handle <> 0 then begin
-    Success:=SetFilePos(Handle, 0, 2, StreamSize);
-    If Success = 0 then Success:=SetFilePos(Handle, 0, 0, Position);
-  end else Success:=103;
+  FMode:=Mode;
+  if (FMode and $000F)=fmPacked then begin
+    Handle:=pOpen(@FName, FMode and $FFF0);
+    Success:=0;
+    If Handle <> 0
+     then StreamSize:=pFileSize(Handle)
+     else begin
+           FMode := FMode and $FFF0;
+           goto 1;
+          end
+  end else
+  begin
+1:  Handle:=AFileOpen(FName, FMode);
+    If Handle <> 0 then begin
+      Success:=ASetFilePos(Handle, 0, 2, StreamSize);
+      If Success = 0 then Success:=ASetFilePos(Handle, 0, 0, Position);
+    end else Success:=103;
+  end;
   if (Handle = 0) or (Success <> 0) then begin
     if Handle=0 then Handle:=-1;
     Error(stInitError, Success);
@@ -811,19 +727,37 @@ end;
 procedure TDosStream.Open(FileName: FNameStr; Mode: Word);
 var
   Success: Integer;
+label 1;
 begin
-  if (Handle <> -1) then FileClose(Handle);
+  if (Handle <> -1) then begin
+    if (FMode and $000F)=fmPacked
+     then pClose(Handle)
+     else AFileClose(Handle);
+  end;
   {$IFDEF OS_WINDOWS}
   AnsiToOEM(FileName, FName);
   {$ELSE}
   FileName:=FileName+#0;
   Move(FileName[1], FName, Length(FileName));
   {$ENDIF}
-  Handle:=FileOpen(FName, Mode);
-  If Handle <> 0 then begin
-    Success:=SetFilePos(Handle, 0, 2, StreamSize);
-    If Success = 0 then Success:=SetFilePos(Handle, 0, 0, Position);
-  end else Success:=103;
+  FMode:=Mode;
+  if (FMode and $000F)=fmPacked then begin
+    Handle:=pOpen(@FName, FMode and $FFF0);
+    Success:=0;
+    If Handle <> 0
+     then StreamSize:=pFileSize(Handle)
+     else begin
+           FMode := FMode and $FFF0;
+           goto 1;
+          end
+  end else
+  begin
+1:  Handle:=AFileOpen(FName, FMode);
+    If Handle <> 0 then begin
+      Success:=ASetFilePos(Handle, 0, 2, StreamSize);
+      If Success = 0 then Success:=ASetFilePos(Handle, 0, 0, Position);
+    end else Success:=103;
+  end;
   if (Handle = 0) or (Success <> 0) then begin
     if Handle=0 then Handle:=-1;
     Error(stInitError, Success);
@@ -832,7 +766,11 @@ end;
 
 destructor TDosStream.Done;
 begin
-  if (Handle <> -1) then FileClose(Handle);
+  if (Handle <> -1) then begin
+    if (FMode and $000F)=fmPacked
+     then pClose(Handle)
+     else AFileClose(Handle);
+  end;
   Handle:=-1;
   inherited Done;
 end;
@@ -852,7 +790,11 @@ begin
       {$IFDEF OS_OS2}
       If (Count > $FFFE) Then W := $FFFE; { Cant read >64K bytes }
       {$ENDIF}
-      Success:=FileRead(Handle, P^, W, BytesMoved);
+      if (FMode and $000F)=fmPacked then begin
+        BytesMoved:=pRead(Handle, W, P);
+        Success:=IOResult;
+      end else
+        Success:=AFileRead(Handle, P^, W, BytesMoved);
       if Success = 0 then begin
         Inc(Position, BytesMoved);
         P := Pointer(LongInt(P) + BytesMoved);
@@ -883,7 +825,11 @@ begin
       {$IFDEF OS_OS2}
       If (Count > $FFFE) Then W := $FFFE; { Cant read >64K bytes }
       {$ENDIF}
-      Success:=FileRead(Handle, P^, W, BytesMoved);
+      if (FMode and $000F)=fmPacked then begin
+        BytesMoved:=pRead(Handle, W, P);
+        Success:=IOResult;
+      end else
+        Success:=AFileRead(Handle, P^, W, BytesMoved);
       if Success = 0 then begin
         Inc(Position, BytesMoved);
         P := Pointer(LongInt(P) + BytesMoved);
@@ -904,13 +850,18 @@ var
 begin
   if Status = stOk then begin
     if Pos < 0 then Pos:=0;
-    if Handle = -1 then Success:= 03 else
-      Success:=SetFilePos(Handle, Pos, 0, Li);
+    if Handle = -1
+     then Success:= 03
+     else if (FMode and $000F)=fmPacked then begin
+           Li:=pSeek(Handle, Pos);
+           Success:=0;
+           if IOResult<>0 then Success:=-1;
+          end else Success:=ASetFilePos(Handle, Pos, 0, Li);
     if (Success = -1) or (Li <> Pos) then begin
-      if (Success = -1) then Error(stSeekError, 0)
-      else Error(stSeekError, Success);
-    end else
-      Position:=Li;
+      if (Success = -1)
+       then Error(stSeekError, 0)
+       else Error(stSeekError, Success);
+    end else Position:=Li;
   end;
 end;
 
@@ -919,7 +870,10 @@ var
   Success: Integer;
 begin
   if Status = stOk then begin
-    Success:=SetFileSize(Handle, Position);
+    if ((FMode and $000F)=fmPacked) or
+       ((FMode and $000F)=fmReadOnly)
+     then Success:=103
+     else Success:=ASetFileSize(Handle, Position);
     if Success = 0 then StreamSize:=Position
     else Error(stError, Success);
   end;
@@ -932,34 +886,50 @@ var
   W, BytesMoved: Sw_Word;
   P: PByteArray;
 begin
-   if Handle = -1 then Error(stWriteError, 103) else
-   begin
-     P:=@Buf;
-     while (Count > 0) and (Status = stOk) do begin
-       W:=Count;
-       {$IFNDEF OS_OS2}
-       if Count > $FFFF then W:=$FFFF; { Cant read >64K bytes }
-       {$ENDIF}
-       Success:=FileWrite(Handle, P^, W, BytesMoved);
-       If Success = 0 then begin
-         Inc(Position, BytesMoved);
-         P:=Pointer(LongInt(P) + BytesMoved);
-         Dec(Count, BytesMoved);
-         If (Position > StreamSize) then StreamSize:=Position;
-       end;
-       if Success <> 0 then begin
-         Error(stWriteError, Success);
-         break;
-       end;
-     end;
-   end;
+  if Handle = -1
+   then Error(stWriteError, 103)
+   else begin
+    if ((FMode and $000F)=fmPacked) or
+       ((FMode and $000F)=fmReadOnly)
+     then Error(stError, 103)
+     else begin
+      P:=@Buf;
+      while (Count > 0) and (Status = stOk) do begin
+        W:=Count;
+        {$IFNDEF OS_OS2}
+        if Count > $FFFF then W:=$FFFF; { Cant read >64K bytes }
+        {$ENDIF}
+        Success:=AFileWrite(Handle, P^, W, BytesMoved);
+        If Success = 0 then begin
+          Inc(Position, BytesMoved);
+          P:=Pointer(LongInt(P) + BytesMoved);
+          Dec(Count, BytesMoved);
+          If (Position > StreamSize) then StreamSize:=Position;
+        end;
+        if Success <> 0 then begin
+          Error(stWriteError, Success);
+          break;
+        end;
+      end;
+    end;
+  end;
 end;
 
 procedure TDosStream.DoOpen (OpenMode: Word);
+label 1;
 begin
   if Status = stOk then begin
     if Handle = -1 then begin
-      Handle:=FileOpen(FName, OpenMode);
+1:    FMode:=OpenMode;
+      if (FMode and $000F)=fmPacked
+       then begin
+             Handle:=pOpen(@FName, FMode and $FFF0);
+             if Handle = 0 then begin
+              FMode := FMode and $FFF0;
+              goto 1;
+             end;
+            end
+       else Handle:=AFileOpen(FName, FMode);
       Position:=0;
       if Handle=0 then begin
         Handle:=-1;
@@ -971,7 +941,11 @@ end;
 
 procedure TDosStream.Close;
 begin
-  if Handle <> -1 then FileClose(Handle);
+  if Handle <> -1 then begin
+    if (FMode and $000F)=fmPacked then
+      pClose(Handle) else
+      AFileClose(Handle);
+  end;
   Position:=0;
   Handle:=-1;
 end;
@@ -1004,9 +978,15 @@ var
   W: Sw_Word;
 begin
   if (LastMode = 2) and (BufPtr <> 0) then begin
-    if Handle = -1 then Success:=103 else
-      Success:=FileWrite(Handle, Buffer^, BufPtr, W);
-    If (Success <> 0) or (W <> BufPtr) then Error(stError, Success);
+    if Handle = -1 then
+      Error(stError, 103) else
+    if (FMode and $000F)=fmPacked then
+      Error(stError, 103) else
+    begin
+      (* inherited Write(Buffer^, BufPtr); *)
+      Success:=AFileWrite(Handle, Buffer^, BufPtr, W);
+      If (Success <> 0) or (W <> BufPtr) then Error(stError, Success);
+    end;
   end;
   BufPtr:=0;
   BufEnd:=0;
@@ -1028,7 +1008,11 @@ begin
       if BufPtr = BufEnd then begin  { Buffer is empty }
         if Position + BufSize > StreamSize then Bw:=StreamSize - Position
         else Bw:=BufSize;
-        Success:=FileRead(Handle, Buffer^, Bw, W);
+        if (FMode and $000F)=fmPacked then begin
+          W:=pRead(Handle, Bw, Buffer);
+          Success:=IOResult;
+        end else
+          Success:=AFileRead(Handle, Buffer^, Bw, W);
         if (Success <> 0) or (Bw <> W) then Error(stReadError, Success)
         else begin
           BufPtr:=0;
@@ -1076,7 +1060,7 @@ begin
     P:=@Buf;
     while (Count > 0) and (Status = stOk) do begin
       if BufPtr = BufSize then begin  { Buffer is full }
-        Success:=FileWrite(Handle, Buffer^, BufSize, W);
+        Success:=AFileWrite(Handle, Buffer^, BufSize, W);
         if (Success <> 0) or (W <> BufSize) then Error(stError, Success);
         BufPtr:=0;
       end;
@@ -1259,7 +1243,7 @@ var
 begin
   S:=nil;
   {$IFDEF OS_DOS}
-  {$IFNDEF DPMI}
+  {$IFNDEF NOEXTRA}
   if (OPSYS=opDOS) then begin
     if (S=nil) and EMSFound then S:=New(PEMSStream,Init(0,0));
     if (S=nil) and XMSFound then S:=New(PXMSStream,Init(0,0));
@@ -1267,7 +1251,7 @@ begin
     if (S=nil) and XMSFound then S:=New(PXMSStream,Init(0,0));
     if (S=nil) and EMSFound then S:=New(PEMSStream,Init(0,0));
   end;
-  {$ENDIF DPMI}
+  {$ENDIF NOEXTRA}
   {$ELSE}
   if S=nil then S:=New(PMemoryStream,Init(2048,2048));
   {$ELSE}

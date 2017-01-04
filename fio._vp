@@ -1,0 +1,100 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source 1.51.08
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//
+//  This programs is free for commercial and non-commercial use as long as
+//  the following conditions are aheared to.
+//
+//  Copyright remains RIT Research Labs, and as such any Copyright notices
+//  in the code are not to be removed. If this package is used in a
+//  product, RIT Research Labs should be given attribution as the RIT Research
+//  Labs of the parts of the library used. This can be in the form of a textual
+//  message at program startup or in documentation (online or textual)
+//  provided with the package.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are
+//  met:
+//
+//  1. Redistributions of source code must retain the copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     "Based on Dos Navigator by RIT Research Labs."
+//
+//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//  The licence and distribution terms for any publically available
+//  version or derivative of this code cannot be changed. i.e. this code
+//  cannot simply be copied and put under another distribution licence
+//  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////}
+
+FUNCTION AFileClose (Handle: Word): Boolean;
+BEGIN
+ SysUtils.FileClose(Handle);
+ AFileClose := Handle>-1;
+END;
+
+FUNCTION AFileOpen (Var FileName: AsciiZ; Mode: Word): Word;
+BEGIN
+ if Mode=stCreate
+  then AFileOpen := SysUtils.FileCreate(StrPas(FileName))
+  else AFileOpen := SysUtils.FileOpen(StrPas(FileName), Mode);
+END;
+
+FUNCTION AFileRead(Handle: Word; Var Buf; Count: Sw_Word;
+                   Var Actual: Sw_Word): Word;
+BEGIN
+ Actual := SysUtils.FileRead(Handle, Buf, Count);
+ If Actual < 0 then begin
+  AFileRead := 1;
+  Actual := 0;
+ end else AFileRead := 0;
+END;
+
+FUNCTION AFileWrite (Handle: Word; Var Buf; Count: Sw_Word;
+                     Var Actual: Sw_Word): Word;
+BEGIN
+ Actual := SysUtils.FileWrite(Handle, Buf, Count);
+ If Actual < 0 then begin
+  AFileWrite := 1;
+  Actual := 0;
+ end else AFileWrite := 0;
+END;
+
+FUNCTION ASetFilePos (Handle: Word; Pos: LongInt; MoveType: Word;
+                      Var Actual: LongInt): Word;
+BEGIN
+ Actual := FileSeek(Handle, Pos, MoveType);
+ If Actual<0 then begin
+  Actual := 0;
+  ASetFilePos := 1;
+ end else ASetFilePos := 0;
+END;
+
+FUNCTION ASetFileSize (Handle: Word; FileSize: LongInt): Word;
+BEGIN
+ if ASetFilePos(Handle, FileSize, 0, FileSize)<>0
+  then ASetFileSize := 1
+  else begin
+   SetEndOfFile(Handle);
+   ASetFileSize := 0;
+  end;
+END;
+

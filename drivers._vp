@@ -1,0 +1,815 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source 1.51.08
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//
+//  This programs is free for commercial and non-commercial use as long as
+//  the following conditions are aheared to.
+//
+//  Copyright remains RIT Research Labs, and as such any Copyright notices
+//  in the code are not to be removed. If this package is used in a
+//  product, RIT Research Labs should be given attribution as the RIT Research
+//  Labs of the parts of the library used. This can be in the form of a textual
+//  message at program startup or in documentation (online or textual)
+//  provided with the package.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are
+//  met:
+//
+//  1. Redistributions of source code must retain the copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     "Based on Dos Navigator by RIT Research Labs."
+//
+//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//  The licence and distribution terms for any publically available
+//  version or derivative of this code cannot be changed. i.e. this code
+//  cannot simply be copied and put under another distribution licence
+//  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////}
+
+{$IFDEF DNPRG}
+Procedure FatalError ;
+
+var
+  C,AC : SmallWord;
+  B : array[0..42] of SmallWord;
+  SysBuf: PByteArray;
+  I : Byte;
+  t : text;
+
+function GetCoord(X, Y: LongInt): SmallWord;
+begin
+ GetCoord := ((ScreenHeight-8) div 2+Y)*(ScreenWidth*2)+
+             ((ScreenWidth-40) div 2+X)*2;
+end;
+
+
+procedure NewLine;
+var CO : SmallWord ;
+  begin
+
+   MoveChar(B, ' ', Byte(C), 42 );
+
+   if  I in [0,8] then
+      MoveChar(B, #205, Byte(C), 42)
+       else
+         begin
+           MoveChar(B,     #186, Byte(C), 1);
+           MoveChar(B[41], #186, Byte(C), 1);
+         end;
+
+   if  I = 0 then
+        begin
+         MoveChar(B, #201, Byte(C), 1);
+         MoveChar(B[41], #187, Byte(C), 1);
+        end;
+
+         CO := C;
+
+   if  I = 8 then
+        begin
+         MoveChar(B,     #200, Byte(C), 1);
+         MoveChar(B[41], #188, Byte(C), 1);
+        end;
+
+   if I = 7 then CO := AC;
+
+    if FreeStr<>'' then
+         MoveStr(B[ ( 42 - Length(FreeStr)) div 2], FreeStr , Byte(CO));
+    CO := GetCoord(0,I);
+    Move(B, SysBuf^[CO], 84);
+    if I > 0 then
+     begin
+       SysBuf^[GetCoord(42,I)+1] := 8;
+       SysBuf^[GetCoord(43,I)+1] := 8;
+     end;
+
+    SysTVShowBuf(CO, CO+ScreenWidth*2);
+  end;
+
+begin
+ SysTvClrScr;
+ SysTvShowBuf(0, ScreenWidth*ScreenHeight);
+ SysBuf := SysTVGetSrcBuf;
+
+ { Create Report File }
+ DoDump(ExitCode, Pointer(ErrAdd));
+
+  { Display Error Box }
+  if Lo(ScreenMode) = smMono then
+    begin C := SysMonoAttr; AC := $0F07 end else
+    begin C := SysColorAttr; AC := SysColorButtonAttr end;
+
+   I := 0 ;
+     for I:=0 to 8
+      do
+       begin
+        case I of
+             0 : FreeStr := ' Fatal Error ';
+             2 : FreeStr := 'Exception 0' + Hex2(ExitCode)
+                            + 'h at address '+Hex8(ErrAdd);
+             5 : FreeStr := 'Report to RU.SHELL.DN';
+             6 : FreeStr := '( file DN.ERR )';
+            else FreeStr := '';
+        end;
+      NewLine;
+    end;
+
+  GotoXY(0, 20);
+  Writeln; Writeln('Enter description of problem:');
+  Readln(FreeStr);
+  SourceDir := SourceDir + 'DN.ERR';
+  Assign(T, SourceDir);
+  Append(T);
+  Writeln(T, 'DESC:'+FreeStr);
+  Close(T);
+end;
+{$ENDIF}
+
+
+
+// Detects mouse driver, moves mouse pointer to the top left corner
+
+procedure DetectMouse;
+begin
+  ButtonCount := SysTVDetectMouse;
+end;
+
+// Shows mouse pointer
+
+procedure ShowMouse;
+begin
+  SysTVShowMouse;
+end;
+
+// Hides mouse pointer
+
+procedure HideMouse;
+begin
+  SysTVHideMouse;
+end;
+
+// Initializes Turbo Vision's event manager by setting event mask and
+// showing the mouse. Called automatically by TApplication.Init.
+
+procedure InitEvents;
+begin
+  if ButtonCount <> 0 then
+  begin
+    DownButtons := 0;
+    LastDouble := False;
+    LastButtons := 0;       // Assume that no button is pressed
+    SysTVInitMouse(MouseWhere.X, MouseWhere.Y);
+    MouseEvents := True;
+  end;
+end;
+
+// Terminates Turbo Vision's event manager and hides the mouse. Called
+// automatically by TApplication.Done.
+
+procedure DoneEvents;
+begin
+  if ButtonCount <> 0 then
+  begin
+    SysTVDoneMouse(False);
+    MouseEvents := False;
+  end;
+end;
+
+// Checks whether a mouse event is available by polling the mouse event
+// queue maintained by OS/2. If a mouse event has occurred, Event.What
+// is set to evMouseDown, evMouseUp,evMouseMove, or evMouseAuto;
+// Event.Buttons is set to mbLeftButton or mbRightButton;
+// Event.Double is set to True or False;
+// Event.Where is set to the mouse position in global coordinates.
+// If no mouse events are available, Event.What is set to evNothing.
+// GetMouseEvent is called by TProgram.GetEvent.
+
+procedure GetMouseEvent(var Event: TEvent);
+var
+  SysMouseEvent: TSysMouseEvent;
+  CurTicks: Word;
+  B: Byte;
+
+procedure StoreEvent(MouWhat: Word);
+begin
+  LastButtons := MouseButtons;
+  MouseWhere.X := SysMouseEvent.smePos.X;
+  MouseWhere.Y := SysMouseEvent.smePos.Y;
+  with Event do
+  begin
+    What := MouWhat;
+    Buttons := MouseButtons;
+    Double  := LastDouble;
+    Where.X := SysMouseEvent.smePos.X;
+    Where.Y := SysMouseEvent.smePos.Y;
+  end;
+end;
+
+// GetMouseEvent body
+
+begin
+  if not MouseEvents then
+    Event.What := evNothing
+  else
+    begin
+      if not SysTVGetMouseEvent(SysMouseEvent) then
+        begin
+          MouseButtons := LastButtons;
+          SysMouseEvent.smeTime := SysSysMsCount;
+          SysMouseEvent.smePos.X := MouseWhere.X;
+          SysMouseEvent.smePos.Y := MouseWhere.Y;
+        end
+      else
+        begin
+          if MouseReverse then
+          begin
+            B := 0;
+            if (SysMouseEvent.smeButtons and $0001) <> 0 then
+              Inc(B, $0002);
+            if (SysMouseEvent.smeButtons and $0002) <> 0 then
+              Inc(B, $0001);
+            SysMouseEvent.smeButtons := B;
+          end;
+          MouseButtons := SysMouseEvent.smeButtons;
+        end;
+      // ms -> ticks: 1 DOS timer tick = 55ms
+      CurTicks  := SysMouseEvent.smeTime div 55;
+      // Process mouse event
+      if (LastButtons <> 0) and (MouseButtons = 0) then
+        StoreEvent(evMouseUp) // button is released
+      else
+        if LastButtons = MouseButtons then
+          begin
+            if (SysMouseEvent.smePos.Y <> MouseWhere.Y) or (SysMouseEvent.smePos.X <> MouseWhere.X) then
+              StoreEvent(evMouseMove)
+            else
+              if (MouseButtons <> 0) and ((CurTicks - AutoTicks) >= AutoDelay) then
+                begin
+                  AutoTicks := CurTicks;
+                  AutoDelay := 1;
+                  StoreEvent(evMouseAuto);
+                end
+              else
+                StoreEvent(evNothing);
+          end
+        else // CurButton <> 0, LastButton = 0
+          begin
+            LastDouble := False;
+            if (MouseButtons = DownButtons) and (SysMouseEvent.smePos.Y = DownWhere.Y) and (SysMouseEvent.smePos.X = DownWhere.X)
+              and ((CurTicks - DownTicks) < DoubleDelay) then
+                LastDouble := True;
+            DownButtons := MouseButtons;
+            DownWhere.Y := SysMouseEvent.smePos.Y;
+            DownWhere.X := SysMouseEvent.smePos.X;
+            DownTicks   := CurTicks;
+            AutoTicks   := CurTicks;
+            AutoDelay   := RepeatDelay;
+            StoreEvent(evMouseDown);
+          end;
+    end;
+end;
+
+procedure InitKeyboard;
+begin
+  SysTVKbdInit;
+end;
+
+procedure UpdateMouseWhere;
+begin
+  SysTVUpdateMouseWhere(MouseWhere.X, MouseWhere.Y);
+end;
+
+// Checks whether a keyboard event is available. If a key has been
+// pressed, Event.What is set to evKeyDown and Event.KeyCode is set to
+// the scan code of the key. Otherwise, Event.What is set to evNothing.
+// GetKeyEvent is called by TProgram.GetEvent.
+
+procedure GetKeyEvent(var Event: TEvent);
+var
+  I: Integer;
+  SysKeyEvent: TSysKeyEvent;
+// Keyboard scan codes
+const
+  scSpace    = $39;  scIns      = $52;  scDel      = $53;
+  scBack     = $0E;  scUp       = $48;  scDown     = $50;
+  scLeft     = $4B;  scRight    = $4D;  scHome     = $47;
+  scEnd      = $4F;  scPgUp     = $49;  scPgDn     = $51;
+  scCtrlIns  = $92;  scCtrlDel  = $93;  scCtrlUp   = $8D;
+  scCtrlDown = $91;  kbShift    = kbLeftShift + kbRightShift;
+  scZ        = $2C;
+type
+  KeyTransEntry = record
+    Scan:  Byte;
+    Shift: Byte;
+    Code:  SmallWord;
+  end;
+
+const
+  KeyTranslateTable : array [1..16] of KeyTransEntry =
+    (( Scan: scSpace   ; Shift: $08 ; Code: kbAltSpace    ), // Alt-Space
+     ( Scan: scIns     ; Shift: $04 ; Code: kbCtrlIns     ), // Ctrl-Ins
+     ( Scan: scCtrlIns ; Shift: $04 ; Code: kbCtrlIns     ), // Ctrl-Ins
+     ( Scan: scIns     ; Shift: $01 ; Code: kbShiftIns    ), // Shift-Ins
+     ( Scan: scIns     ; Shift: $02 ; Code: kbShiftIns    ), // Shift-Ins
+     ( Scan: scIns     ; Shift: $03 ; Code: kbShiftIns    ), // Shift-Ins
+     ( Scan: scDel     ; Shift: $04 ; Code: kbCtrlDel     ), // Ctrl-Del
+     ( Scan: scCtrlDel ; Shift: $04 ; Code: kbCtrlDel     ), // Ctrl-Del
+     ( Scan: scDel     ; Shift: $01 ; Code: kbShiftDel    ), // Shift-Del
+     ( Scan: scDel     ; Shift: $02 ; Code: kbShiftDel    ), // Shift-Del
+     ( Scan: scDel     ; Shift: $03 ; Code: kbShiftDel    ), // Shift-Del
+     ( Scan: scBack    ; Shift: $09 ; Code: kbAltShiftBack), // Alt-Shift-Backspace
+     ( Scan: scBack    ; Shift: $0A ; Code: kbAltShiftBack), // Alt-Shift-Backspace
+     ( Scan: scBack    ; Shift: $0B ; Code: kbAltShiftBack), // Alt-Shift-Backspace
+     ( Scan: scBack    ; Shift: $08 ; Code: kbAltBack     ), // Alt-Backspace
+     ( Scan: scZ       ; Shift: $0C ; Code: kbCtrlAltZ    )  // Ctrl-Alt-Z
+    );
+begin
+  with Event do
+    if not SysTVGetKeyEvent(SysKeyEvent) then begin
+      ShiftState := SysTVGetShiftState;
+      What := evNothing
+    end else
+      begin
+        What       := evKeyDown;
+        KeyCode    := SysKeyEvent.skeKeyCode;
+        ShiftState := SysKeyEvent.skeShiftState;
+        for I := Low(KeyTranslateTable) to High(KeyTranslateTable) do
+          with KeyTranslateTable[I] do
+          begin
+            if (Scan = ScanCode) and ((Shift and ShiftState) = Shift) then
+            begin
+              KeyCode := Code;
+              Break;
+            end;
+          end;
+        if (CharCode = #$E0) and (ScanCode in
+          [scUp,scDown,scLeft,scRight,scIns,scDel,scHome,scEnd,scPgUp,scPgDn,
+          Hi(kbCtrlHome), Hi(kbCtrlEnd)  , Hi(kbCtrlPgUp), Hi(kbCtrlPgDn),
+          Hi(kbCtrlLeft), Hi(kbCtrlRight),    scCtrlUp,       scCtrlDown]) then
+            CharCode := #0;      // Grey Keys
+        if KeyCode = $E00D then  // Grey Enter
+          KeyCode := kbEnter;
+      end;
+end;
+
+// Returns a byte containing the current Shift key state, as reported by
+// the system. The return value contains a combination of the kbXXXX constants
+// for shift states.
+
+function GetShiftState: Byte;
+var
+  Handled: Boolean;
+  Result : Byte;
+begin
+  Handled := False;
+{  if @GetShiftStateHandler <> nil then
+    Handled := GetShiftStateHandler(Result);
+  if not Handled then}
+    Result := SysTVGetShiftState;
+  GetShiftState := Result;
+end;
+
+{--------------------------------------------------}
+
+// Ctrl-Break handler
+
+function TVCtrlBreak: Boolean;
+begin
+  CtrlBreakHit := True;
+  Abort := True;
+end;
+
+
+{--------------------------------------------------}
+
+// A generalized string formatting routine. Given a string in Format
+// that includes format specifiers and a list of parameters in Params,
+// FormatStr produces a formatted output string in Result.
+// Format specifiers are of the form %[-][nnn]X, where
+//   % indicates the beginning of a format specifier
+//  [-] is an optional minus sign (-) indicating the parameter is to be
+//      left-justified (by default, parameters are right-justified)
+// [nnn] is an optional, decimal-number width specifier in the range
+//      0..255 (0 indicates no width specified, and non-zero means to
+//      display in a field of nnn characters)
+//   X  is a format character:
+//   's' means the parameter is a pointer to a string.
+//   'd' means the parameter is a Longint to be displayed in decimal.
+//   'c' means the low byte of the parameter is a character.
+//   'x' means the parameter is a Longint to be displayed in hexadecimal.
+//   '#' sets the parameter index to nnn.
+
+procedure FormatStr(var Result: String; const Format: String; var Params);
+  assembler; {&USES ebx,esi,edi} {&FRAME+}
+var
+  ParOfs: Longint;
+  Filler,Justify: Byte;
+  Buffer: array [1..12] of Byte;
+const
+  HexDigits: array [0..15] of Char = '0123456789ABCDEF';
+
+// Convert next parameter to string
+// EXPECTS:     al    = Conversion character
+// RETURNS:     esi   = Pointer to string
+//              ecx   = String length
+
+procedure Convert; {&USES None} {&FRAME-}
+asm
+                mov     edx,eax
+                mov     esi,Params
+                lodsd
+                mov     Params,esi
+                xor     ecx,ecx
+                lea     esi,Buffer[TYPE Buffer]
+                and     dl,0DFh         // UpCase(ConversionChar)
+                cmp     dl,'C'
+                je      @@ConvertChar
+                cmp     dl,'S'
+                je      @@ConvertStr
+                cmp     dl,'D'
+                je      @@ConvertDec
+                cmp     dl,'X'
+                jne     @@Done
+// ConvertHex
+              @@1:
+                mov     edx,eax
+                and     edx,0Fh
+                mov     dl,HexDigits.Byte[edx]
+                dec     esi
+                inc     ecx
+                mov     [esi],dl
+                shr     eax,4
+                jnz     @@1
+                jmp     @@Done
+@@ConvertDec:
+                push    esi
+                mov     ebx,eax
+                mov     ecx,10
+                test    eax,eax
+                jns     @@2
+                neg     eax
+              @@2:
+                xor     edx,edx
+                dec     esi
+                div     ecx
+                add     dl,'0'
+                mov     [esi],dl
+                test    eax,eax
+                jnz     @@2
+                pop     ecx
+                sub     ecx,esi
+                test    ebx,ebx
+                jns     @@Done
+                mov     al,'-'
+@@ConvertChar:
+                inc     ecx
+                dec     esi
+                mov     [esi],al
+                jmp     @@Done
+@@ConvertStr:
+                test    eax,eax
+                jz      @@Done
+                mov     esi,eax
+                lodsb
+                mov     cl,al
+              @@Done:
+end;
+
+// FormatStr body
+
+asm
+                mov     eax,Params
+                mov     ParOfs,eax
+                xor     eax,eax
+                mov     esi,Format
+                mov     edi,Result
+                inc     edi
+                cld
+                lodsb
+                mov     ecx,eax
+                mov     ebx,255
+              @@1:
+                dec     ecx
+                js      @@End
+                lodsb
+                cmp     al,'%'
+                je      @@3
+                dec     ebx
+                js      @@End
+              @@2:
+                stosb
+                jmp     @@1
+              @@3:
+                dec     ecx
+                js      @@End
+                lodsb
+                cmp     al,'%'
+                je      @@2
+                mov     Justify,0       // Justify (0:right, 1:left)
+                mov     Filler,' '
+                xor     edx,edx         // edx = Field width (0:no width)
+                cmp     al,'0'
+                jne     @@4
+                mov     Filler,al
+              @@4:
+                cmp     al,'-'
+                jne     @@5
+                inc     Justify
+                dec     ecx
+                js      @@End
+                lodsb
+              @@5:
+                cmp     al,'0'
+                jb      @@6
+                cmp     al,'9'
+                ja      @@6
+                sub     al,'0'
+                xchg    eax,edx
+                mov     ah,10
+                mul     ah
+                add     al,dl
+                xchg    eax,edx
+                dec     ecx
+                js      @@End
+                lodsb
+                jmp     @@5
+              @@6:
+                cmp     al,'#'
+                jne     @@10
+                shl     edx,2
+                add     edx,ParOfs
+                mov     Params,edx
+                jmp     @@1
+              @@End:
+                mov     eax,Result
+                mov     ecx,edi
+                sub     ecx,eax
+                dec     ecx
+                mov     [eax],cl
+                jmp     @@Done
+              @@10:
+                push    esi
+                push    ecx
+                push    edx
+                push    ebx
+                Call    Convert
+                pop     ebx
+                pop     edx
+                test    edx,edx
+                jz      @@12
+                sub     edx,ecx
+                jae     @@12
+                cmp     Justify,0
+                jnz     @@11
+                sub     esi,edx
+              @@11:
+                add     ecx,edx
+                xor     edx,edx
+              @@12:
+                cmp     Justify,0
+                jz      @@14
+                cmp     ecx,ebx
+                jbe     @@13
+                mov     ecx,ebx
+              @@13:
+                sub     ebx,ecx
+                rep     movsb           // Copy formated parm (left-justified)
+              @@14:
+                xchg    ecx,edx
+                mov     al,Filler
+                cmp     ecx,ebx
+                jbe     @@15
+                mov     ecx,ebx
+              @@15:
+                sub     ebx,ecx
+                rep     stosb           // Fill unused space
+                xchg    ecx,edx
+                cmp     ecx,ebx
+                jbe     @@16
+                mov     ecx,ebx
+              @@16:
+                sub     ebx,ecx
+                rep     movsb           // Copy formated parm (right-justified)
+                pop     ecx
+                pop     esi
+                jmp     @@1
+              @@Done:
+end;
+
+// Prints the string on the screen
+
+procedure PrintStr(const S: String);
+var
+  Count: Longint;
+begin
+  SysFileWrite(SysFileStdOut, S[1], Length(S), Count);
+end;
+
+// Buffer move routines
+
+// Moves text and video attributes into a buffer. Count bytes are moved
+// from Source into the low bytes of corresponding words in Dest. The
+// high bytes of the words in Dest are set to Attr, or remain unchanged
+// if Attr is zero.
+
+procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: Word); {&USES esi,edi} {&FRAME-}
+asm
+                mov     ecx,Count
+                jecxz   @@4
+                mov     edi,Dest
+                mov     esi,Source
+                mov     ah,Attr
+                cld
+                test    ah,ah
+                jz      @@3
+              @@1:
+                lodsb
+                stosw
+                loop    @@1
+                jmp     @@4
+              @@2:
+                inc     edi
+              @@3:
+                movsb
+                loop    @@2
+              @@4:
+end;
+
+procedure MoveColor(var Buf; Num, Attr: Byte);assembler;
+asm
+   lea    EBX,Buf
+   xor    ECX,ECX
+   mov    CL,Num
+   or     CL,CL
+   jz     @End
+   mov    AL,Attr
+@Rep:
+   mov    [EBX+1],al
+   add    bx,2
+   loop   @Rep
+@End:
+end;
+
+// Moves characters into a buffer. The low bytes of the first Count
+// words of Dest are set to C, or remain unchanged if C = #0. The high
+// bytes of the words are set to Attr, or remain unchanged if Attr is
+// zero.
+
+procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: Word); {&USES edi} {&FRAME-}
+asm
+                mov     ecx,Count
+                jecxz   @@4
+                mov     edi,Dest
+                mov     al,C
+                mov     ah,Attr
+                cld
+                test    al,al
+                jz      @@1
+                test    ah,ah
+                jz      @@3
+                mov     edx,eax
+                shl     eax,16
+                mov     ax,dx
+                shr     ecx,1
+                rep     stosd
+                adc     ecx,ecx
+                rep     stosw
+                jmp     @@4
+              @@1:
+                mov     al,ah
+              @@2:
+                inc     edi
+              @@3:
+                stosb
+                loop    @@2
+              @@4:
+end;
+
+// Moves a two-colored string into a buffer. The characters in Str are
+// moved into the low bytes of corresponding words in Dest. The high
+// bytes of the words are set to Lo(Attr) or Hi(Attr). Tilde characters
+// (~) in the string toggle between the two attribute bytes passed in
+// the Attr word.
+
+procedure MoveCStr(var Dest; const Str: String; Attrs: Word); {&USES esi,edi} {&FRAME-}
+asm
+                xor     ecx,ecx
+                mov     esi,Str
+                cld
+                lodsb
+                mov     cl,al
+                jecxz   @@3
+                mov     edi,Dest
+                mov     edx,Attrs
+                mov     ah,dl
+              @@1:
+                lodsb
+                cmp     al,'~'
+                je      @@2
+                stosw
+                loop    @@1
+                jmp     @@3
+              @@2:
+                xchg    ah,dh
+                loop    @@1
+              @@3:
+end;
+
+// Moves a string into a buffer. The characters in Str are moved into
+// the low bytes of corresponding words in Dest. The high bytes of the
+// words are set to Attr, or remain unchanged if Attr is zero.
+
+procedure MoveStr(var Dest; const Str: String; Attr: Byte); {&USES esi,edi} {&FRAME-}
+asm
+                xor     ecx,ecx
+                mov     esi,Str
+                cld
+                lodsb
+                mov     cl,al
+                jecxz   @@4
+                mov     edi,Dest
+                mov     ah,Attr
+                test    ah,ah
+                jz      @@3
+              @@1:
+                lodsb
+                stosw
+                loop    @@1
+                jmp     @@4
+              @@2:
+                inc     edi
+              @@3:
+                movsb
+                loop    @@2
+              @@4:
+end;
+
+// Returns the length of string S, where S is a control string using
+// tilde characters ('~') to designate shortcut characters. The tildes
+// are excluded from the length of the string, as they will not appear
+// on the screen.
+
+function CStrLen(const S: String): Integer; {&USES edi} {&FRAME-}
+asm
+                xor     ecx,ecx
+                mov     edi,S
+                mov     cl,[edi]
+                inc     edi
+                mov     edx,ecx
+                jecxz   @@2
+                mov     al,'~'
+                cld
+              @@1:
+                repne   scasb
+                jne     @@2
+                dec     edx
+                test    esp,esp
+                jmp     @@1
+              @@2:
+                mov     eax,edx
+end;
+
+
+// Drivers unit initialization and shutdown
+
+var
+  SaveExit: Pointer;
+
+procedure ExitDrivers;
+begin
+  ExitProc := SaveExit;
+  DoneSysError;
+  DoneEvents;
+  SysTVDoneMouse(True);
+  {$IFDEF DNPRG}
+  if ErrorAddr <> nil then begin
+   ErrAdd := Longint(ErrorAddr);
+   ErrorAddr := Nil;
+   {FatalError;}{?}
+  end;
+  {$ENDIF}
+end;
+
+procedure SetMouseSpeed(XS, YS: Byte);begin end; {?}
+procedure InitSysError; begin end; {?}
+procedure DoneSysError; begin end; {?}
+

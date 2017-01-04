@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,18 +50,13 @@ Unit  ColorVGA;
 
 interface
 
-uses Objects, Drivers, Views, Dialogs, commands, Dos, DnApp, Startup,
-     advance, advance1, advance2, advance3, collect;
-
  Procedure VGAColorRegister;    { dialog }
 
  Const  LastTTFocus : Byte        = 0;   { Last focused Color }
 
 implementation
-
-
- uses   Messages ;
-{var Pal : vga_pal ;}
+uses Objects, Drivers, Views, Dialogs, commands, Dos, DnApp, Startup,
+     advance, advance1, advance2, advance3, collect, Messages, VideoMan;
 
  Const  cmColorSet               = 73;
         cmColorMouseSelection    = 74;
@@ -446,7 +441,5 @@ var
   end;
 
  end;
-
-
 
 end.

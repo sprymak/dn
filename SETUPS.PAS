@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -93,11 +93,6 @@ TYPE
     procedure Press( Item: Integer ); virtual;
   end;
 
-  PMouseDialog =^TMouseDialog;
-  TMouseDialog = Object( TDialog )
-    constructor Init;
-  end;
-
   PMouseBar =^TMouseBar;
   TMouseBar = Object( TScrollBar )
     constructor Init( var Bounds: TRect );
@@ -161,8 +156,16 @@ uses Tree, Drives, advance, advance1, advance2, advance3, Messages, DNHelp,
      Advance6;
 
 procedure ConfirmSetup;
+var D: Word;
 begin
-  If ExecResource( dlgConfirmations, Confirms ) <> cmOK then Exit;
+  Confirms := Confirms and $7F +
+             (Confirms and cfFmtOs2Warning) shr 1 +
+             (Confirms and cfExitConfirm)   shl 1;
+  D:= ExecResource( dlgConfirmations, Confirms );
+  Confirms := Confirms and $7F +
+             (Confirms and cfFmtOs2Warning) shr 1 +
+             (Confirms and cfExitConfirm)   shl 1;
+  If D <> cmOK then Exit;
   ConfigModified := On;
 end;
 
@@ -319,8 +322,16 @@ begin
 end;
 
 procedure DriveInfoSetup;
+var W: Word;
 begin
+  Startup.DriveInfoData := Startup.DriveInfoData and $001F +
+                           Startup.DriveInfoData and $07E0 shl 2 +
+                           Startup.DriveInfoData and $1800 shr 6;
+
   if ExecResource(dlgDriveInfoSetup, Startup.DriveInfoData) <> cmOK then Exit;
+  Startup.DriveInfoData := Startup.DriveInfoData and $001F +
+                           Startup.DriveInfoData and $FF80 shr 2 +
+                           Startup.DriveInfoData and $0060 shl 6;
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmReboundPanel, nil);
 end;
@@ -427,41 +438,6 @@ end;
 
 
 {----------------------------------------------------------------------------}
-function MakeStartupDialog : PDialog;
-var
-  Dlg : PDialog;
-  R : TRect;
-  Control, Labl, Histry : PView;
-begin
-  R.Assign(5,0,34,13);
-  New(Dlg, Init(R, 'Startup'));
-  With Dlg^ do begin
-    Options := Options or ofCentered;
-
-    R.Assign(2,2,27,8);
-    Control := New(PCheckboxes, Init(R,
-      NewSItem('Autosave ~D~esktop',
-      NewSItem('Auto run ~U~ser Menu',
-      NewSItem('Disable ~b~linking',
-      NewSItem('~R~estore screen mode',
-      NewSItem('~K~ill History',
-      NewSItem('OS/~2~ support',
-      Nil))))))));
-    Insert(Control);
-
-    R.Assign(4,9,14,11);
-    Control := New(PButton, Init(R, 'O~K~', cmOK, bfDefault));
-    Insert(Control);
-
-    R.Assign(15,9,25,11);
-    Control := New(PButton, Init(R, 'Cancel', cmCancel, bfNormal));
-    Insert(Control);
-
-    SelectNext(False);
-  end;
-  MakeStartupDialog := Dlg;
-end;
-
 {                                 Mouse Setup
 {----------------------------------------------------------------------------}
 CONSTRUCTOR TMouseBar.Init;
@@ -486,124 +462,6 @@ begin Integer( Rec ) := Value end;
 PROCEDURE TMouseBar.HandleEvent;
 begin
   inherited HandleEvent( Event );
-end;
-
-CONSTRUCTOR TMouseDialog.Init;
-var
-  R: TRect;
-  Control, Labl: PView;
-begin
-  R.Assign(0,0,39,13);
-  inherited Init( R, 'Mouse Setup' );
-  Options := Options or ofCentered;
-
-  R.Assign(3,HSenseY,26,HSenseY + 1);
-  Control := New( PMouseBar, Init( R ));
-  Insert(Control);
-
-  R.Assign(3,2,26,3);
-  Labl := New(PLabel, Init(R, '~X~-Sensitivity', Control));
-  Insert(Labl);
-
-  R.Assign(3,HSenseY + 3,26,HSenseY + 4);
-  Control := New(PMouseBar, Init(R));
-  Insert(Control);
-
-  R.Assign(3,5,24,6);
-  Labl := New(PLabel, Init(R, '~Y~-sensitivity', Control));
-  Insert(Labl);
-
-  R.Assign(3,9,26,11);
-  Control := New(PCheckboxes, Init(R,
-    NewSItem('~R~everse buttons',
-    NewSItem('~S~tandard cursor',Nil))));
-  Insert(Control);
-
-  R.Assign(3,8,12,9);
-  Labl := New(PLabel, Init(R, '~O~ptions', Control));
-  Insert(Labl);
-
-  R.Assign(27,3,37,5);
-  Control := New(PButton, Init(R, 'O~K~', cmOK, bfDefault));
-  Insert(Control);
-
-  R.Assign(27,5,37,7);
-  Control := New(PButton, Init(R, 'Cancel', cmCancel, bfNormal));
-  Insert(Control);
-
-  R.Assign(27,9,37,11);
-  Control := New(PButton, Init(R, '~H~elp', cmHelp, bfNormal));
-  Insert(Control);
-
-  SelectNext(False);
-end;
-
-function MakeMouseDialog: PDialog;
-begin
-  MakeMouseDialog := New( PMouseDialog, Init );
-end;
-
-{                               Interface Setup
-{----------------------------------------------------------------------------}
-function MakeInterfaceDialog : PDialog;
-var
-  Dlg : PDialog;
-  R : TRect;
-  Control, Labl, Histry : PView;
-begin
-  R.Assign(0,0,46,17);
-  New(Dlg, Init(R, 'Interface Setup'));
-  With Dlg^ do begin
-    Options := Options or ofCentered;
-    R.Assign(3,3,33,7);
-    Control := New(PCheckboxes, Init(R,
-      NewSItem('~C~lock',
-      NewSItem('Hide ~m~enu bar',
-      NewSItem('Hide ~s~tatus line',
-      NewSItem('~E~SC for user screen',
-{     NewSItem('~Q~uiet archive processing',}
-      Nil))))));
-    Insert(Control);
-
-    R.Assign(3,2,11,3);
-    Labl := New(PLabel, Init(R, '~O~ptions', Control));
-    Insert(Labl);
-
-    R.Assign(3,09,33,11);
-    Control := New(PRadioButtons, Init(R,
-      NewSItem('Alt-Tab and Ctrl-Tab',
-      NewSItem('F9 and Shift-F9',Nil))));
-    Insert(Control);
-
-    R.Assign(3,8,21,09);
-    Labl := New(PLabel, Init(R, '~W~indows switching', Control));
-    Insert(Labl);
-
-    R.Assign(3,13,33,15);
-    Control := New(PRadioButtons, Init(R,
-      NewSItem('~F~ile Panel',
-      NewSItem('Command ~l~ine',Nil))));
-    Insert(Control);
-
-    R.Assign(3,12,20,13);
-    Labl := New(PLabel, Init(R, '/'#26' ~a~rrows usage', Control));
-    Insert(Labl);
-
-    R.Assign(34,3,44,5);
-    Control := New(PButton, Init(R, 'O~K~', cmOK, bfDefault));
-    Insert(Control);
-
-    R.Assign(34,5,44,7);
-    Control := New(PButton, Init(R, 'Cancel', cmCancel, bfNormal));
-    Insert(Control);
-
-    R.Assign(34,13,44,15);
-    Control := New(PButton, Init(R, '~H~elp', cmHelp, bfNormal));
-    Insert(Control);
-
-    SelectNext(False);
-  end;
-  MakeInterfaceDialog := Dlg;
 end;
 
 {$IFDEF SS}
@@ -832,6 +690,7 @@ end;
 
 procedure TUpperTable.HandleEvent;
   procedure CE; begin ClearEvent(Event); DrawView; end;
+    {$IFNDEF NONBP}
   {PZ - 2000.03.26 - begin}
   procedure LoadDosCountryInfo;
   var
@@ -849,6 +708,7 @@ procedure TUpperTable.HandleEvent;
     end;
   end;
   {PZ - end}
+    {$ENDIF}
 begin
   inherited HandleEvent(Event);
   case Event.What of
@@ -861,11 +721,13 @@ begin
                           Message(@Self, evKeyDown, kbRight, nil); CE
                         end;
                end;
+    {$IFNDEF NONBP}
     {PZ - 2000.03.26 - begin}
     evBroadcast: case Event.Command of
                    cmYes: LoadDosCountryInfo;
                  end;
     {PZ - end}
+    {$ENDIF}
   end;
 end;
 

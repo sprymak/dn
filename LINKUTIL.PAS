@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -407,6 +407,7 @@ begin
     Inc(F.CurPos, L);
     if gms=0 then begin gms := L; GetMem(P, gms) end;
     fBlockRead(P^, L);
+    {$IFDEF CL_LOG}CL_WLog(' ~   Post block '+ItoS(L));{$ENDIF}
     CL_PostBlock(P, L, b_dFileBlk);
   end;
   if gms>0 then FreeMem(P, gms);

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -60,6 +60,8 @@ type
        Free: PString;
        Total: PString;
        VolumeID: PString;
+       SerialNo: PString; { Rainbow }
+       FileSys: PString; { Rainbow }
        DirInfo: PCollection;
        Limit: TPoint;
        InfoFile: Byte;
@@ -71,6 +73,7 @@ type
       FreeSpace, TotalSpace, DirLen: LongInt;
       FreeMemory, TotalMemory: LongInt;
       VolumeLabel: String[12];
+      SerialNo: String[9]; { Rainbow }
       NumFiles: Integer;
       Info: TDiskInfoRec;
       Delta: TPoint;
@@ -126,6 +129,7 @@ type
        destructor Done; virtual;
      end;
 
+var SerFileSys:Boolean; { Rainbow }
 const TeamView: PTeamView = nil;
 function GetRndBytes(B, Rnd: LongInt): LongInt;
 
@@ -149,9 +153,12 @@ var
         {-DataCompBoy-}
 
 implementation
-uses Startup, extramemory, DNApp, Commands, DNHelp, Tree, xTime;
+uses Startup, ExtraMem, DNApp, Commands, DNHelp, Tree, xTime
+     {$IFDEF DPMI}, Dpmi, Dosmem {$ENDIF}
+     {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
+     ;
 
-const MaxTeam = 148;
+const MaxTeam = 152;
 
 const
       Logo1 = '          ,     sSSs     s$$s   ' ;
@@ -194,6 +201,79 @@ begin
   while PosChar('.',VolumeLabel) > 0 do Delete(VolumeLabel,PosChar('.',VolumeLabel),1);
   GetVolumeLabel := VolumeLabel;
 end;
+
+{ Rainbow BEGIN }
+procedure GetSerFileSys(var SerialNo,FileSys:String);
+{$IFNDEF VIRTUALPASCAL}
+Type TDiskInfo=Record
+      Nothing:Word;
+      SerialNo:LongInt;
+      _Label:Array[1..11] of Char;
+      FileSystem:Array[1..8] of char;
+     end;
+var DWord:Array[1..2] of Word;
+    R:{$IFDEF DPMI}DPMIRegisters{$ELSE}Registers{$ENDIF};
+    A:Byte;
+    DiskInfo: ^TDiskInfo;
+
+  function Word2Hex(I:Word):String;
+  const Values:Array[0..15] of Char='0123456789ABCDEF';
+  var S,S1:String;
+      A:Byte;
+  begin
+    S:='';
+    S1:='';
+    repeat
+      S:=S+Values[I mod 16];
+      I:=I div 16;
+    until I=0;
+    for A:=3 downto Length(S) do S1:=S1+'0';
+    for A:=Length(S) downto 1 do S1:=S1+S[A];
+    Word2Hex:=S1;
+  end;
+
+begin
+  FillChar(R,SizeOf(R),0);
+  {$IFDEF DPMI}
+  DiskInfo := GetDosMem(SizeOf(DiskInfo^), R.DS);
+  R.DX:=0;
+  {$ELSE}
+  New(DiskInfo);
+  R.DS:=Seg(DiskInfo^);
+  R.DX:=Ofs(DiskInfo^);
+  {$ENDIF}
+  FillChar(DiskInfo^,SizeOf(DiskInfo^),0);
+  R.AH:=$69;
+  R.AL:=$0;
+  R.BX:=$0;
+  R.Flags:=R.Flags or fCarry;
+  {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($21,R);
+  if R.Flags and fCarry=0 then
+   begin
+     SerFileSys:=True;
+     Move(DiskInfo^.SerialNo,DWord,4);
+     SerialNo:=Word2Hex(DWord[2])+'-'+Word2Hex(DWord[1]);
+     FileSys:='';
+     A:=1;
+     while DiskInfo^.FileSystem[A]>#47 do
+      begin
+        FileSys:=FileSys+DiskInfo^.FileSystem[A];
+        Inc(A);
+      end;
+   end
+  else SerFileSys:=False;
+  {$IFDEF DPMI}
+  FreeDosMem(DiskInfo);
+  {$ELSE}
+  Dispose(DiskInfo);
+  {$ENDIF}
+end;
+{ Rainbow END }
+{$ELSE VIRTUALPASCAL}
+begin
+ SerFileSys:=False;
+end;
+{$ENDIF}
 
 function GetRndBytes(B, Rnd: LongInt): LongInt;
 begin
@@ -338,6 +418,8 @@ begin
   if Free     <> nil then DisposeStr (Free);
   if Total    <> nil then DisposeStr (Total);
   if VolumeID <> nil then DisposeStr (VolumeID);
+  if SerialNo <> nil then DisposeStr (SerialNo); { Rainbow }
+  if FileSys  <> nil then DisposeStr (FileSys); { Rainbow }
   if DirInfo  <> nil then Dispose    (DirInfo,Done);
  end;
  fillchar(Info, sizeof(Info), 0);
@@ -389,12 +471,16 @@ procedure TDiskInfo.ReadData;
      MemBlocks, I: Word;
 begin
  Abort:=Off;
+ {$IFNDEF OS_DOS}
+ TotalMemory := MemAvail;
+ {$ELSE}
  asm
   int $12
   mov word ptr memBlocks,ax
  end;
  TotalMemory := Longint(LongInt(MemBlocks) shl 10);
-{$IFNDEF FPC}
+ {$ENDIF}
+{$IFNDEF NONBP}
  FreeMemory := TotalMemory-Longint(PrefixSeg) shl 4;
 {$ENDIF}
  DispInfo(Info);
@@ -558,8 +644,15 @@ begin
      XWrt(Info.Total, fdiVolumeSize);
      XWrt(Info.Free, fdiVolumeFree);
      XWrt(Info.VolumeID, fdiVolumeLabel);
-     Wrt('');
    end;
+ { Rainbow BEGIN }
+ if SerFileSys then
+  begin
+    XWrt(Info.SerialNo, fdiSerialNo);
+    XWrt(Info.FileSys, fdiFileSys);
+  end;
+ Wrt('');
+ { Rainbow END }
  if DriveInfoData and fdiLowMemory <> 0 then
    Wrt('~'+FStr(TotalMemory shr 10)+GetString(dlDIMemoryTotal));
  if DriveInfoData and fdiAvailLowMemory <> 0 then
@@ -670,11 +763,10 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
+{$IFNDEF VIRTUALPASCAL}
 const DriveConstant: array[0..3] of Char = ('?',':','\',#0);
       SizeOfDriveData: Word = SizeOf(DriveData);
 procedure GetSpace(Drive : Char);
-{$IFDEF FPC} begin end;
-{$ELSE}
 assembler;
 asm
   pusha
@@ -734,6 +826,7 @@ procedure GetDrInfo(Drv: Byte);
  var Dr : Char;
 begin
  if Drv = 0 then Dr := GetCurDrive else Dr := Char(Drv+64);
+ {$IFNDEF VIRTUALPASCAL}
  GetSpace(Dr);
  BytesPerCluster:=DriveData.SectorsPerCluster;
  BytesPerCluster:=BytesPerCluster*DriveData.BytesPerSector;
@@ -741,6 +834,11 @@ begin
  FreeSpc:=FreeSpc*DriveData.AvailClusters;
  TotalSpc:=BytesPerCluster;
  TotalSpc:=TotalSpc*DriveData.TotalClusters;
+ {$ELSE}
+ BytesPerCluster:=0;
+ FreeSpc :=SysDiskFreeLong(Drv);
+ TotalSpc:=SysDiskSizeLong(Drv);
+ {$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -753,6 +851,8 @@ end;
         {-DataCompBoy-}
 procedure ReadDiskInfo;
  var  VolumeLabel: String[12];
+      SerialNo: String[9]; { Rainbow }
+      FileSys: String[8]; { Rainbow }
       L: Byte absolute VolumeLabel;
       S: String;
       S1, S2: String[30];
@@ -833,6 +933,11 @@ begin
   end;
   VolumeLabel := GetVolumeLabel;
   B.VolumeID := NewStr(GetString(dlDIVolumeID) + Char(Drv+64) + ': ' + VolumeLabel + '~');
+  { Rainbow BEGIN }
+  GetSerFileSys(SerialNo,FileSys);
+  B.SerialNo := NewStr(GetString(dlDISerialNo) + Char(Drv+64) + ': ' + SerialNo + '~');
+  B.FileSys := NewStr(GetString(dlDIFileSys) + Char(Drv+64) + ': ' + FileSys + '~');
+  { Rainbow END }
 end;
         {-DataCompBoy-}
 

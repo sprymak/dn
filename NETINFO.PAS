@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -74,7 +74,7 @@ const
     CNetInfo     = #23#24;
 
 implementation
-uses Startup, extramemory, DNApp, Commands, DNHelp, Tree, xTime, DnIni;
+uses Startup, ExtraMem, DNApp, Commands, DNHelp, Tree, xTime, DnIni;
 
 constructor TNetInfo.Load;
 begin

@@ -1,4 +1,3 @@
-DOC          Documentation
 RESOURCE     Resource source for DN OSP
 adler.pas    Part of the 'zlib' compression library
 advance.pas  Advanced procedures: startup
@@ -41,7 +40,7 @@ arvid.pas    Access to ARVID tapes
 arvidavt.pas Support for AVT format
 arvidtdr.pas Support for TDR format
 asciitab.pas ASCII table
-bigarray.pas Big Array
+bigarr.pas   Big Array
 bld_dpmi.bat Run this to build for DPMI mode
 bpc.cfg      BPC Config
 bstrings.pas Strings access
@@ -87,9 +86,6 @@ dnexec.pas   Execution functions
 dnformat.pas Format Disk
 dnhelp.pas   Help constants
 dnini.pas    Ini Configuration
-dnovems.asm  EMS Overlay support
-dnoverl.asm  Overlay manager implementation
-dnoverl.pas  Overlay manager interface
 dnstddlg.pas DN Standard dialogs
 dnutil.pas   DN Utilites: About & other
 dosmem.pas   Real-Mode memory allocation
@@ -224,3 +220,5 @@ zdeflate.pas Part of the 'zlib' compression library
 zinflate.pas Part of the 'zlib' compression library
 zlib.pas     Part of the 'zlib' compression library
 zutil.pas    Part of the 'zlib' compression library
+drivers2.pas Fail information
+microed2.pas Microed: Read/Write/Store/Load methods

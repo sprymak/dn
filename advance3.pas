@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,31 +48,59 @@
 
 unit Advance3; {Misc stuff}
 interface
-uses advance, dnini, dos, xTime, objects, extramemory;
+uses advance, dnini, dos, xTime, objects, ExtraMem;
 
  procedure LowPrec(var A, B: TSize);
  function  Get100s: LongInt;
+
+{$IFNDEF VIRTUALPASCAL}
  Procedure Sound ( Hz : word );
  Procedure Nosound;
+{$ENDIF}
 
  function  GetSTime: LongInt;
- Procedure SetBlink(Mode : boolean);
 
  Function  XRandom(N: Integer): Integer; { Rnd -N..N }
  Procedure DosWrite( S: string );
 {DataCompBoy Function  KeyPressed: Boolean;}
  Function  FindParam(const S: string): Integer;
+{$IFDEF OS_DOS}
  Function  Chk4Dos: Boolean;
- function  GetEnv(S: string): string;
- procedure DisableAppend;
  procedure AppendCheck;
+ procedure DisableAppend;
+{$ENDIF}
+ function  GetEnv(S: string): string;
+ Function  GetCrc( var Buf ; BufSize : word ) : Longint ;
 
-
+{$IFDEF OS_DOS}
 var AppendInstalled: Boolean;
     AppendState: Word;
+{$ENDIF}
 
 implementation
-uses advance1, advance2;
+uses advance1, advance2, advance6;
+
+{$IFDEF OS_DOS}
+procedure AppendCheck;
+ begin
+  AppendInstalled := Off;
+  if Dos40 then
+    asm
+      mov  ax, $B700
+      push bp
+      int  $2F
+      pop  bp
+      or   al, al
+      jz   @@1
+      inc  AppendInstalled
+      mov  ax, $B706
+      push bp
+      int  $2F
+      pop  bp
+      mov  AppendState, BX
+@@1:
+    end;
+ end;
 
 procedure DisableAppend;
 begin
@@ -81,13 +109,12 @@ begin
      mov ax, $B707
      mov bx, AppendState
      and bx, $FFFE
-     push  bp
-     int $2F
-     pop bp
+     push bp
+     int  $2F
+     pop  bp
    end
 end;
-
-
+{$ENDIF}
 
 procedure LowPrec(var A, B: TSize);
 begin
@@ -107,6 +134,7 @@ begin
              LongInt(HH)*360000+LongInt(DD)*8640000;
 end;
 
+{$IFNDEF VIRTUALPASCAL}
 Procedure Sound ( Hz : word );assembler;
      asm
         mov     ax,Hz
@@ -135,6 +163,7 @@ Procedure Sound ( Hz : word );assembler;
         and     al,11111100b
         out     061h,al
      end;
+{$ENDIF}
 
 function GetSTime: LongInt;
   var H, M, S, SS: Word;
@@ -143,28 +172,13 @@ begin
   GetSTime := SS + LongInt(S)*100 + LongInt(M)*6000 + LongInt(H)*360000;
 end;
 
-Procedure SetBlink(Mode : boolean);
-var r: registers;
-begin
- r.ax:=$1003;
- r.bl:=ord(Mode);
- intr($10, r);
-end;
-{assembler;
-asm
-      MOV  AX,1003H
-      MOV  BL,Mode
-      push bp
-      INT  10h
-      pop  bp
-end;}
-
 FUNCTION XRandom;
 begin
   XRandom:=N div 2 - Random(N)
 end;
 
 PROCEDURE DosWrite;
+{$IFDEF NOASM}
 var r: registers;
     i: byte;
 begin
@@ -175,7 +189,9 @@ begin
   intr($21, r);
  end;
 end;
-{assembler;
+{$ELSE}
+{$IFNDEF VIRTUALPASCAL}
+assembler;
 asm
   les  di,S
   xor  cx,cx
@@ -194,7 +210,13 @@ asm
   pop  es
   loop @loop
 @empty:
-end;}
+end;
+{$ELSE}
+begin
+ Writeln(S);
+end;
+{$ENDIF}
+{$ENDIF}
 
 {DataCompBoy
 function KeyPressed: Boolean; assembler;
@@ -221,6 +243,7 @@ end;
      if S[1] = '/' then FindParam := FindParam('-'+Copy(S, 2, 255));
   end;
 
+{$IFDEF OS_DOS}
 function Chk4Dos: Boolean; assembler;
   asm
     xor bh, bh
@@ -235,7 +258,7 @@ function Chk4Dos: Boolean; assembler;
  @1:
     mov ax, bx
   end;
-
+{$ENDIF}
 
 function GetEnv(S: string): string;
 begin
@@ -243,25 +266,71 @@ begin
   GetEnv := S;
 end;
 
-procedure AppendCheck;
+        {-DataCompBoy-}
+function UpdateCrc32(CurByte : Byte;
+                     CurCrc : LongInt) : LongInt;
+  {-Returns an updated crc32}
+
+  (* Model for inline code below
+  UpdateCrc32 := Crc_Table^[Byte(CurCrc xor LongInt(CurByte))] xor
+                 ((CurCrc shr 8) and $00FFFFFF);
+  *)
+{$IFNDEF VIRTUALPASCAL}
+Inline(
+  $8C/$DE/               {        MOV     SI, DS }
+  $C5/$3E/>Crc_Table/    {        LDS     DI, Crc_Table }
+                         {;Get args -- DX:BX = CurCrc, CX = CurByte;}
+  $5B/                   {        POP     BX}
+  $5A/                   {        POP     DX}
+  $59/                   {        POP     CX}
+  $52/                   {        PUSH    DX}
+  $53/                   {        PUSH    BX      ;Save original CurCrc}
+                         {;CX:AX := Get Crc_Table[CurCrc xor CurByte];}
+  $31/$CB/               {        XOR     BX, CX  ;DX:BX = CurCrc xor CurByte}
+  $30/$FF/               {        XOR     BH, BH  ;Byte(DX:BX)}
+  $D1/$E3/               {        SHL     BX, 1   ;LongInt index}
+  $D1/$E3/               {        SHL     BX, 1}
+  $03/$DF/               {        ADD     BX, DI}
+  $8B/$07/               {        MOV     AX, [BX]}
+  $8B/$4F/$02/           {        MOV     CX, [BX+2]}
+                         {;DX:BX := (CurCrc shr 8) and $00FFFFFF;}
+  $5B/                   {        POP     BX      ;Get original CurCrc}
+  $5A/                   {        POP     DX}
+  $51/                   {        PUSH    CX      ;Save CX}
+  $B9/$08/$00/           {        MOV     CX, 8   ;Shift 8 bits}
+  $D1/$EA/               {C1:     SHR     DX, 1   ;Hi reg into carry}
+  $D1/$DB/               {        RCR     BX, 1   ;Carry into lo reg}
+  $E2/$FA/               {        LOOP    C1      ; for 8 bits}
+  $81/$E2/$FF/$00/       {        AND     DX,$00FF}
+                         {;DX:AX := ES:AX xor DX:BX (sets function result)}
+  $59/                   {        POP     CX}
+  $31/$D8/               {        XOR     AX, BX}
+  $89/$CB/               {        MOV     BX, CX}
+  $31/$DA/               {        XOR     DX, BX}
+  $8E/$DE);              {        MOV     DS, SI}
+        {-DataCompBoy-}
+{$ELSE}
+Inline;
+begin
+  UpdateCrc32 := Crc_Table^[Byte(CurCrc xor LongInt(CurByte))] xor
+                 ((CurCrc shr 8) and $00FFFFFF);
+end;
+{$ENDIF}
+
+Function GetCrc( var Buf ; BufSize : word ) : Longint ;
+type
+  AA = array[1..$F000] of byte ;
+var CNT : word;
+    CRC : Longint;
  begin
-  AppendInstalled := Off;
-  if Dos40 then
-    asm
-      mov  ax, $B700
-      push bp
-      int  $2F
-      pop  bp
-      or   al, al
-      jz   @@1
-      inc  AppendInstalled
-      mov  ax, $B706
-      push bp
-      int  $2F
-      pop  bp
-      mov  AppendState, BX
-@@1:
-    end;
+    if crc_table_empty then MakeCRCTable;
+    CRC := 0;
+    GetCrc := 0;
+     if BufSize = 0 then Exit;
+       for CNT :=1 to BufSize do
+       CRC := UpdateCrc32(AA(Buf)[CNT] , Crc);
+    GetCrc := CRC ;
  end;
+
 
 end.

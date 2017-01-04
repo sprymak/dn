@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -220,7 +220,7 @@ Const
      ((1,5),(1,8),(1,10),(6,11),(6,12));  { Type range for drives }
 
    FlStdType : array [1..5] of byte =
-     (3,5,8,4,6);                    { Standart format for drives }
+     (3,5,8,4,6);                    { Standard format for drives }
 
 
    AStdDrives = 5;
@@ -812,7 +812,7 @@ Procedure   TFormatter.SetData;
 
                    end
 
-              else {  Standart types }
+              else {  Standard types }
                begin
 
             S3 := FLMode[fMode];   {   Get Format Mode  }
@@ -825,7 +825,7 @@ Procedure   TFormatter.SetData;
 
             StdFormatRecord := D ;
 
-                end ;  {  Standart types }
+                end ;  {  Standard types }
 
 
             Boots^.Tsect := Sectors;
@@ -1048,7 +1048,7 @@ var
     end;
 
 
-Function GetDriveCapacity;   {  Builds Collection Drive standart formats }
+Function GetDriveCapacity;   {  Builds Collection Drive standard formats }
 var I  : Byte;
     S  : PString;
     P  : PMediaCollection;
@@ -1119,7 +1119,7 @@ var I  : integer;
    end;
 
 
-Function BuildDrivesCollection;  { Standart Drives Collection }
+Function BuildDrivesCollection;  { Standard Drives Collection }
 var I  : integer;
     S  : PString;
     P  : PMediaCollection;
@@ -1832,6 +1832,3 @@ Again:
     end;
 
 end.
-
-
-

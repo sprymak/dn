@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Validate;
 
@@ -55,7 +56,7 @@ unit Validate;
 
 interface
 
-uses Objects, ObjType, advance, advance1, advance2, advance3;
+uses Objects, advance, advance1, advance2, advance3;
 
 const
 
@@ -80,7 +81,7 @@ type
   PValidator = ^TValidator;
   TValidator = object(TObject)
     Status: Word;
-    Options: Word;
+    Options: AWord;
     constructor Init;
     constructor Load(var S: TStream);
     procedure Error; virtual;
@@ -126,29 +127,10 @@ type
       Flag: TVTransfer): Word; virtual;
   end;
 
-{ Stream registration records }
-
-const
-  RFilterValidator: TStreamRec = (
-    ObjType: otFilterValidator;
-    VmtLink: Ofs(TypeOf(TFilterValidator)^);
-    Load: @TFilterValidator.Load;
-    Store: @TFilterValidator.Store
-  );
-
-const
-  RRangeValidator: TStreamRec = (
-    ObjType: otRangeValidator;
-    VmtLink: Ofs(TypeOf(TRangeValidator)^);
-    Load: @TRangeValidator.Load;
-    Store: @TRangeValidator.Store
-  );
-
-
 implementation
 
 {$IFDEF Windows}
-uses WinTypes, WinProcs, Strings;
+uses WinTypes, WinProcs, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
 {$ELSE}
 uses RStrings, Commands, DNApp, Messages;
 {$ENDIF}
@@ -925,7 +907,7 @@ end;
 
 procedure TStringLookupValidator.NewStringList(AStrings: PStringCollection);
 begin
-  if Strings <> nil then Dispose(Strings, Done);
+  if Strings <> nil then Dispose(Strings,Done);
   Strings := AStrings;
 end;
 

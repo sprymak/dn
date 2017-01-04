@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 unit Profile;
 
 { unit Profile, Version 1.01.001, Copyright 1994,1997 by Matthias K"oppe
@@ -81,7 +81,7 @@ procedure CloseProfile;
 
 implementation
 
-uses {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF}, Objects;
+uses {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF}, Objects;
 
 { The most expensive operation with buffered streams is seeking --
   especially seeking relatively since both GetPos and Seek call the

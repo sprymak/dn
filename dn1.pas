@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -64,10 +64,10 @@ IMPLEMENTATION
 uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
      Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
      UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver,
-     U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries
+     U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries,
+     ExtraMem, Menus, VideoMan
 {$IFDEF CDPLAYER},CDPlayer{$ENDIF}
-{$IFDEF DPMI}, Extramemory
-             , DPMI {$ENDIF}
+{$IFDEF DPMI}, DPMI {$ENDIF}
      ;
 
 
@@ -277,7 +277,11 @@ var
                              FreeMem(p, SizeOf(TOldStartupData));
                             end;
          cfgNewStartupData: SRead(StartupData);
-              cfgMouseData: SRead(MouseData);
+              cfgMouseData: begin
+                             SRead(MouseData);
+                             XSens := MouseData.HSense;
+                             YSens := MouseData.VSense;
+                            end;
           cfgShowScrollBar: SRead(ShowScrollBar);
           cfgInterfaceData: SRead(InterfaceData);
 {$IFDEF SS}
@@ -322,52 +326,109 @@ var
 {$IFDEF PrintManager}
            cfgPrinterSetup: S.Read(RPrinterSetup, SizeOf(RPrinterSetup));
 {$ENDIF}
-         cfgArcCustomMasks: S.Read(Startup.Archives, SizeOf(Startup.Archives));
-         cfgArcCustomMasks: Begin
-                             S.Read(Startup.Archives, SizeOf(Startup.Archives));
-                             Replace(#0,';',Startup.Archives);
-                             DelFC(Startup.Archives);
-                             Dec(Startup.Archives[0]);
-                             Archives:=';a[0-9];r[0-9]';
+         cfgArcCustomMasks: begin
+                             S.Read(Startup.Archives^.Filter,
+                                    SizeOf(Startup.Archives^.Filter));
                             end;
+
          cfgOldCustomMasks: begin
-                              S.Read(CustomMask1, SizeOf(CustomMask1));
-                              Replace(#0,';',CustomMask1); DelFC(CustomMask1); Dec(CustomMask1[0]);
-                              S.Read(CustomMask2, SizeOf(CustomMask2));
-                              Replace(#0,';',CustomMask2); DelFC(CustomMask2); Dec(CustomMask2[0]);
-                              S.Read(CustomMask3, SizeOf(CustomMask3));
-                              Replace(#0,';',CustomMask3); DelFC(CustomMask3); Dec(CustomMask3[0]);
-                              S.Read(CustomMask4, SizeOf(CustomMask4));
-                              Replace(#0,';',CustomMask4); DelFC(CustomMask4); Dec(CustomMask4[0]);
-                              S.Read(CustomMask5, SizeOf(CustomMask5));
-                              Replace(#0,';',CustomMask5); DelFC(CustomMask5); Dec(CustomMask5[0]);
+                              S.Read(CustomMask1^.Filter,
+                                     SizeOf(CustomMask1^.Filter));
+                              Replace(#0,';',CustomMask1^.Filter);
+                              DelFC(CustomMask1^.Filter);
+                              Dec(CustomMask1^.Filter[0]);
+
+                              S.Read(CustomMask2^.Filter,
+                                     SizeOf(CustomMask2^.Filter));
+                              Replace(#0,';',CustomMask2^.Filter);
+                              DelFC(CustomMask2^.Filter);
+                              Dec(CustomMask2^.Filter[0]);
+
+                              S.Read(CustomMask3^.Filter,
+                                     SizeOf(CustomMask3^.Filter));
+                              Replace(#0,';',CustomMask3^.Filter);
+                              DelFC(CustomMask3^.Filter);
+                              Dec(CustomMask3^.Filter[0]);
+
+                              S.Read(CustomMask4^.Filter,
+                                     SizeOf(CustomMask4^.Filter));
+                              Replace(#0,';',CustomMask4^.Filter);
+                              DelFC(CustomMask4^.Filter);
+                              Dec(CustomMask4^.Filter[0]);
+
+                              S.Read(CustomMask5^.Filter,
+                                     SizeOf(CustomMask5^.Filter));
+                              Replace(#0,';',CustomMask5^.Filter);
+                              DelFC(CustomMask5^.Filter);
+                              Dec(CustomMask5^.Filter[0]);
                             end;
+
         cfgOldCustomMasks2: begin
-                              S.Read(CustomMask6, SizeOf(CustomMask1)); {JO}
-                              Replace(#0,';',CustomMask6); DelFC(CustomMask6); Dec(CustomMask6[0]);
-                              S.Read(CustomMask7, SizeOf(CustomMask1));
-                              Replace(#0,';',CustomMask7); DelFC(CustomMask7); Dec(CustomMask7[0]);
-                              S.Read(CustomMask8, SizeOf(CustomMask1));
-                              Replace(#0,';',CustomMask8); DelFC(CustomMask8); Dec(CustomMask8[0]);
-                              S.Read(CustomMask9, SizeOf(CustomMask1));
-                              Replace(#0,';',CustomMask9); DelFC(CustomMask9); Dec(CustomMask9[0]);
-                              S.Read(CustomMask10, SizeOf(CustomMask1));{JO}
-                              Replace(#0,';',CustomMask10); DelFC(CustomMask10); Dec(CustomMask10[0]);
+                              S.Read(CustomMask6^.Filter,
+                                     SizeOf(CustomMask6^.Filter)); {JO}
+                              Replace(#0,';',CustomMask6^.Filter);
+                              DelFC(CustomMask6^.Filter);
+                              Dec(CustomMask6^.Filter[0]);
+
+                              S.Read(CustomMask7^.Filter,
+                                     SizeOf(CustomMask7^.Filter));
+                              Replace(#0,';',CustomMask7^.Filter);
+                              DelFC(CustomMask7^.Filter);
+                              Dec(CustomMask7^.Filter[0]);
+
+                              S.Read(CustomMask8^.Filter,
+                                     SizeOf(CustomMask8^.Filter));
+                              Replace(#0,';',CustomMask8^.Filter);
+                              DelFC(CustomMask8^.Filter);
+                              Dec(CustomMask8^.Filter[0]);
+
+                              S.Read(CustomMask9^.Filter,
+                                     SizeOf(CustomMask9^.Filter));
+                              Replace(#0,';',CustomMask9^.Filter);
+                              DelFC(CustomMask9^.Filter);
+                              Dec(CustomMask9^.Filter[0]);
+
+                              S.Read(CustomMask10^.Filter,
+                                     SizeOf(CustomMask10^.Filter));{JO}
+                              Replace(#0,';',CustomMask10^.Filter);
+                              DelFC(CustomMask10^.Filter);
+                              Dec(CustomMask10^.Filter[0]);
                             end;
+
             cfgCustomMasks: begin
-                              S.Read(CustomMask1, SizeOf(CustomMask1));
-                              S.Read(CustomMask2, SizeOf(CustomMask2));
-                              S.Read(CustomMask3, SizeOf(CustomMask3));
-                              S.Read(CustomMask4, SizeOf(CustomMask4));
-                              S.Read(CustomMask5, SizeOf(CustomMask5));
+                              S.Read(CustomMask1^.Filter,
+                                     SizeOf(CustomMask1^.Filter));
+
+                              S.Read(CustomMask2^.Filter,
+                                     SizeOf(CustomMask2^.Filter));
+
+                              S.Read(CustomMask3^.Filter,
+                                     SizeOf(CustomMask3^.Filter));
+
+                              S.Read(CustomMask4^.Filter,
+                                     SizeOf(CustomMask4^.Filter));
+
+                              S.Read(CustomMask5^.Filter,
+                                     SizeOf(CustomMask5^.Filter));
                             end;
+
            cfgCustomMasks2: begin
-                              S.Read(CustomMask6, SizeOf(CustomMask1)); {JO}
-                              S.Read(CustomMask7, SizeOf(CustomMask1));
-                              S.Read(CustomMask8, SizeOf(CustomMask1));
-                              S.Read(CustomMask9, SizeOf(CustomMask1));
-                              S.Read(CustomMask10, SizeOf(CustomMask1));{JO}
+                              S.Read(CustomMask6^.Filter,
+                                     SizeOf(CustomMask6^.Filter)); {JO}
+
+                              S.Read(CustomMask7^.Filter,
+                                     SizeOf(CustomMask7^.Filter));
+
+                              S.Read(CustomMask8^.Filter,
+                                     SizeOf(CustomMask8^.Filter));
+
+                              S.Read(CustomMask9^.Filter,
+                                     SizeOf(CustomMask9^.Filter));
+
+                              S.Read(CustomMask10^.Filter,
+                                     SizeOf(CustomMask10^.Filter));{JO}
                             end;
+
     cfgColumnsDefaultsDisk: S.Read(ColumnsDefaultsDisk,SizeOf(ColumnsDefaultsDisk));
     cfgColumnsDefaultsFind: S.Read(ColumnsDefaultsFind,SizeOf(ColumnsDefaultsFind));
     cfgColumnsDefaultsTemp: S.Read(ColumnsDefaultsTemp,SizeOf(ColumnsDefaultsTemp));
@@ -391,7 +452,7 @@ var
                             end;
                cfgConfirms: begin
                              S.Read(Confirms, SizeOf(Confirms));
-                             if CfgVer<>VersionWord then
+                             if CfgVer<$15106 then
                               Confirms:=Confirms or cfFmtOs2Warning;
                             end;
                 cfgUUEData: SRead(UUDecodeOptions);
@@ -429,8 +490,9 @@ var
                             end;
              cfgVGApalette: begin
                               SRead(VGA_Palette);
-                              if (StartupData.Load and osuResetPalette <> 0) and VGASystem then
-                                  SetPalette(VGA_Palette);
+                              if (StartupData.Load and osuResetPalette <> 0)
+                                 and VGASystem
+                               then SetPalette(VGA_Palette);
                             end;
         cfgDefaultArchiver: SRead(DefaultArchiver);
     cfgDefaultArchiverMode: SRead(DefaultArcMode);
@@ -438,6 +500,7 @@ var
 {$IFDEF SS}
                  cfgSavers: SaversData.Selected.List := PTextCollection(S.Get);
 {$ENDIF}
+                {cfgINIcrc:  SRead(INIstoredcrc);}
                 cfgINIdata: begin
                                 if L-sizeof(INIstoredtime)-sizeof(INIstoredsize)
                                 =Ofs(iniparamblock_END)-Ofs(iniparamblock_START)
@@ -475,16 +538,19 @@ var
   end;
 
   procedure ReadINI;
-  var INIavailtime,INIavailsize:longint;
+  var INIavailtime,INIavailsize,INIavailcrc:longint;
       S:TBufStream;
   begin
-      if (not ProbeINI(INIavailtime,INIavailsize)) or (INIdatapos<0) or
-      (INIavailtime>INIstoredtime) or (INIavailsize<>INIstoredsize) then begin
+      if (not ProbeINI(INIavailtime,INIavailsize,INIavailcrc)) or
+         (INIdatapos<0) or
+         (INIavailtime<>INIstoredtime) or
+         (INIavailsize<>INIstoredsize) {or
+         (INIavailcrc <>INIstoredcrc )} then begin
           {-$VIV start}
           LoadDnIniSettings;
           if DnIni.AutoSave then SaveDnIniSettings;
           DoneIniEngine; {-$VIV stop}
-          ProbeINI(INIstoredtime,INIstoredsize);
+          ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
           UpdateConfig; WriteConfig
       end else begin
           S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
@@ -495,21 +561,42 @@ var
   end;
 
 begin
+  InitMaskData;
 (*  RegisterType( RTextCollection );*)
   IgnoreOldFiles:=False;
-  SavePos := ReadConfig;
 
-  if SavePos >= 0 then UpdateConfig else InvalidateTempDir;
+  SavePos := ReadConfig;
+  UpdateConfig;
+
   MouseVisible := MouseData.Options and omsCursor <> 0;
-  if OS2exec or (OpSys and opWNT<>0) then Executables := Executables + ';cmd';
-  if Chk4Dos then Executables := Executables + ';btm';
+  if OS2exec or (OpSys and opWNT<>0)
+   then Executables.Filter := Executables.Filter + ';cmd';
+  {$IFDEF OS_DOS}
+  if Chk4Dos
+   then Executables.Filter := Executables.Filter + ';btm';
+  {$ENDIF}
+  MakeTMaskData(Executables);
+  MakeTMaskData(CustomMask1^);
+  MakeTMaskData(CustomMask2^);
+  MakeTMaskData(CustomMask3^);
+  MakeTMaskData(CustomMask4^);
+  MakeTMaskData(CustomMask5^);
+  MakeTMaskData(CustomMask6^);
+  MakeTMaskData(CustomMask7^);
+  MakeTMaskData(CustomMask8^);
+  MakeTMaskData(CustomMask9^);
+  MakeTMaskData(CustomMask10^);
+  MakeTMaskData(Archives^);
+
   RunMenu := (StartupData.Load and osuAutoMenu <> 0);
   SetOverlay;
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU');
-  EraseFile(SwpDir+'$$$DN$$.LST');
-  EraseFile(SwpDir+'$$$DN$$$.LST');
+  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'.LST');
+  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST');
   ReadINI;
+
+{$IFDEF SS}Val(SaversData.Time, SkyDelay, Integer(SPos1));{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -532,7 +619,11 @@ begin
 end;
 {$ENDIF}
 
-procedure CrLf; assembler;
+procedure CrLf;
+{$IFNDEF OS_DOS}
+begin Writeln; end;
+{$ELSE}
+assembler;
 asm
   MOV  DL,0DH
   MOV  AH,2
@@ -541,6 +632,7 @@ asm
   MOV  AH,2
   INT  21H
 end;
+{$ENDIF}
 
 procedure RUN_IT;
 var
@@ -558,6 +650,9 @@ begin
 
  LoaderSeg := 0;
  LSliceCnt := -3;
+
+{$IFNDEF NONBP}
+
 {$IFNDEF DPMI}
  asm
   mov  AX, $9900
@@ -593,7 +688,7 @@ begin
  FillChar(R, SizeOf(R), 0);
  R.AX:=$9900;
  SimulateRealmodeInt($2F, R);
- If R.BX=$444E{DN} then begin
+ If R.BX=$444E{'DN'} then begin
   DNNumber:=R.AL;
   RunFirst:=Boolean(R.AH);
   R.AX:=$9901; R.ES:=0;
@@ -603,23 +698,19 @@ begin
   R.AX:=$9905;
   R.DX:=0; R.CX:=0;
   SimulateRealmodeInt($2F, R);
-  DDTimer:=R.DX;
-  DDTimer:=DDTimer shl 8 + R.CX;
+  DDTimer:=R.CX;
+  DDTimer:=DDTimer shl 16 + R.DX;
  end else DDTimer := 0;
  R.AH:=1; R.BL:=0; R.CX:=$0607;
  SimulateRealmodeInt($10, R);
 {$ENDIF}
 
+{$ENDIF}
  if DDTimer > 0 then DDTimer := Get100s-DDTimer;
 
  TempBounds.Assign(0,0,0,0);
 
- {$IFDEF DPMI}
- InitExtraMem;
- {$ENDIF}
- RegisterAll;
- DoStartUp;
-
+{$IFNDEF NONBP}
  asm
    MOV  AH, 03 { Get cursor position }
    MOV  BX, 0  { DL - X }
@@ -635,10 +726,18 @@ begin
    CALL GetCrtMode { DL - ScreenHeight }
    MOV  ShiftRec.ScrH,DL
  end;
+{$ENDIF}
+
+ {$IFDEF DPMI}
+ InitExtraMem;
+ {$ENDIF}
+ RegisterAll;
+ DoStartUp;
 
  with ShiftRec do begin
    If ( CurY = ScrH ) and ( InterfaceData.Options and ouiHideStatus = 0 ) then begin
      CrLf;
+     {$IFNDEF NONBP}
      asm
        XOR  DX,DX
        MOV  DH,ShiftRec.CurY
@@ -647,20 +746,19 @@ begin
        XOR  BX,BX
        INT  10H
      end
+     {$ENDIF}
    end
  end;
 
  SetBlink(CurrentBlink);
 
- NoSound;
- if (FadeDelay >0) and RunFirst then BlackPalette;{Knave}
+ {$IFNDEF VIRTUALPASCAL}NoSound;{$ENDIF}
+ if (FadeDelay > 0) and RunFirst then BlackPalette;{Knave}
  InitLFNCol;
  MyApplication.Init;
 
  if RunFirst then
-   begin
-     if (StartupData.Load and osuKillHistory <> 0) then ClearHistories;
-   end;
+  if (StartupData.Load and osuKillHistory <> 0) then ClearHistories;
 
  if not RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
 
@@ -693,7 +791,9 @@ GrabPalette;
   Clock^.MakeFirst;
   Unlock;
  end;
+ {$IFDEF OS_DOS}
  w95QuitInit; {Gimly}
+ {$ENDIF}
  MyApplication.Run;
  GlobalMessage(evCommand, cmKillUsed, nil);
  TottalExit := On;

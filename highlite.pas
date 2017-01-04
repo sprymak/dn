@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.07/DOS
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,7 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 (*****************************************************************
  *
  * SOURCE FILE: highlite.pas
@@ -77,12 +77,13 @@
  *              1.08  2000.05.02 PZ     Fixed bugs.
  *              1.09  2000.05.12 PZ     Improved capacity for
  *                                      keywords.
+ *              1.10  2000.06.10 PZ     Better strings and float
+ *                                      handling.
+ *              1.11  2000.07.16 DCB    Make unit 32-bit compatable
  *
  *****************************************************************)
 
 unit Highlite;
-
-{ $DEFINE NOASM}
 
 interface
 
@@ -97,6 +98,7 @@ const
   ho0xPrefixHex       = $10;  {   0x####  C-Style }
   hoDollarPrefixHex   = $20;  {    $####  Pascal }
   hoFloatNumbers      = $40;  {    #.#e#  C or Pascal }
+  hoAllowShortFloat   = $80;  {     .#e#  (option) C }
 
 {Number flags}
 
@@ -115,6 +117,7 @@ const
   hoOctalCharacter    = $10;  { octal_numberC represents a character }
   hoNoSQuotedStrings  = $20;  { Do not highlight single quoted strings }
   hoNoDQuotedStrings  = $40;  { Do not highlight double quoted strings }
+  hoStrictCtrlChar    = $80;  { Do not highlight ^char followed by 'A..Z' }
 
 type
 
@@ -284,26 +287,47 @@ const
   end;
   {$ELSE}
   assembler;
-  asm
+   {$IFNDEF BIT_32}
+   asm
         MOV     DX,DS
         CLD
         XOR     AH,AH
         MOV     CX,Len
         LDS     SI,S
         JCXZ    @@3
-  @@1:
+   @@1:
         LODSB
         CMP     AL,9
         JE      @@2
         CMP     AL,' '
         JNE     @@3
-  @@2:
+   @@2:
         LOOP    @@1
         INC     AH
-  @@3:
+   @@3:
         XCHG    AL,AH
         MOV     DS,DX
-  end;
+   end;
+   {$ELSE BIT_32}{&Frame-}{$USES ESI, ECX}
+   asm
+        CLD
+        XOR     EAX,EAX
+        MOV     ECX,Len
+        LEA     ESI,S
+        JCXZ    @@3
+   @@1:
+        LODSB
+        CMP     AL,9
+        JE      @@2
+        CMP     AL,' '
+        JNE     @@3
+   @@2:
+        LOOP    @@1
+        INC     AH
+   @@3:
+        XCHG    AL,AH
+   end;
+   {$ENDIF}
   {$ENDIF}
 
   function CheckStartComment ( Len : Integer; S : PChar; T : PChar ) : Boolean;
@@ -336,15 +360,16 @@ const
   end;
   {$ELSE}
   assembler;
-  asm
+   {$IFNDEF BIT_32}
+   asm
         PUSH    DS
         CLD
         LDS     SI,T
         LES     DI,S
         MOV     CX,Len
-  @@0:
+   @@0:
         XOR     BX,BX
-  @@1:
+   @@1:
         LODSB
         OR      BX,BX
         JE      @@3
@@ -352,25 +377,60 @@ const
         JE      @@2
         CMP     AL,','
         JNE     @@3
-  @@2:
+   @@2:
         MOV     AL,1
         JMP     @@5
-  @@3:
+   @@3:
         CMP     BX,CX
         JAE     @@4
         CMP     AL,ES:[DI+BX]
         JNE     @@4
         INC     BX
         JMP     @@1
-  @@4:
+   @@4:
         LODSB
         CMP     AL,','
         JE      @@0
         OR      AL,AL
         JNE     @@4
-  @@5:
+   @@5:
         POP     DS
-  end;
+   end;
+   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EBX, ECX}
+   asm
+        CLD
+        LEA     ESI,T
+        LEA     EDI,S
+        MOV     ECX,Len
+   @@0:
+        XOR     EBX,EBX
+   @@1:
+        LODSB
+        OR      EBX,EBX
+        JE      @@3
+        CMP     AL,0
+        JE      @@2
+        CMP     AL,','
+        JNE     @@3
+   @@2:
+        MOV     AL,1
+        JMP     @@5
+   @@3:
+        CMP     EBX,ECX
+        JAE     @@4
+        CMP     AL,[EDI+EBX]
+        JNE     @@4
+        INC     EBX
+        JMP     @@1
+   @@4:
+        LODSB
+        CMP     AL,','
+        JE      @@0
+        OR      AL,AL
+        JNE     @@4
+   @@5:
+   end;
+   {$ENDIF}
   {$ENDIF}
 
   function CheckPattern ( I : Integer; Len : Integer; S : PChar; const P : string; CaseSensitive : Boolean ) : Boolean;
@@ -396,7 +456,8 @@ const
   end;
   {$ELSE}
   assembler;
-  asm
+   {$IFNDEF BIT_32}
+   asm
         PUSH    DS
         CLD
         XOR     AH,AH
@@ -408,7 +469,7 @@ const
         MOV     BX,Len
         ADD     BX,DI
         ADD     DI,I
-  @@1:
+   @@1:
         CMP     DI,BX
         JA      @@4
         LODSB
@@ -423,15 +484,51 @@ const
         ADD     AL,' '
         CMP     ES:[DI],AL
         JNE     @@4
-  @@2:
+   @@2:
         INC     DI
         LOOP    @@1
-  @@3:
+   @@3:
         INC     AH
-  @@4:
+   @@4:
         XCHG    AL,AH
         POP     DS
-  end;
+   end;
+   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EBX, ECX}
+   asm
+        CLD
+        XOR     EAX,EAX
+        LEA     ESI,P
+        LODSB
+        MOV     ECX,EAX
+        JCXZ    @@3
+        LEA     EDI,S
+        MOV     EBX,Len
+        ADD     EBX,EDI
+        ADD     EDI,I
+   @@1:
+        CMP     EDI,EBX
+        JA      @@4
+        LODSB
+        CMP     [EDI],AL
+        JE      @@2
+        CMP     CaseSensitive,AH
+        JNE     @@4
+        CMP     AL,'A'
+        JB      @@4
+        CMP     AL,'Z'
+        JA      @@4
+        ADD     AL,' '
+        CMP     [EDI],AL
+        JNE     @@4
+   @@2:
+        INC     EDI
+        LOOP    @@1
+   @@3:
+        INC     AH
+   @@4:
+        XCHG    AL,AH
+   end;
+   {$ENDIF}
   {$ENDIF}
 
   function ParseChars ( I : Integer; const Prefix : string; const Allowed : TCharSet; const Suffix : string ) : Integer;
@@ -512,6 +609,8 @@ const
       j          := i;
       while (j < Len) and (S[j] in DecDigits) do
         Inc ( j );
+      if (i = j) and ((Params.GenFlags and hoAllowShortFloat) = 0) then
+        Exit;
       max := j - i;
       k   := j;
       if S[j] = '.' then
@@ -640,7 +739,8 @@ const
           Inc ( k );
       end else if ((hoCtrlCharacter and opts) <> 0) and (S[j] = '^') then begin
         k := j+1;
-        if (k < Len) and (S[k] >= '@') and (S[k] <= '_') then
+        if (k < Len) and (UpCase(S[k]) in ['@'..'_'])
+        and (((opts and hoStrictCtrlChar) = 0) or ((k+1) = Len) or not (UpCase(S[k+1]) in ['A'..'Z'])) then
           k := 2
         else
           k := 0;
@@ -712,7 +812,8 @@ const
   end;
   {$ELSE}
   assembler;
-  asm
+   {$IFNDEF BIT_32}
+   asm
         PUSH    DS
         CLD
         XOR     AH,AH
@@ -723,26 +824,26 @@ const
         ADD     DI,I            { k }
         MOV     CX,DI           { I }
         JMP     @@1
-  @@0:
+   @@0:
         LODSB
-        OR      AL,AL           { end of comments list }
+        OR      AL,AL           { e.nd of comments list }
         JE      @@4
         CMP     AL,','          { next comment }
         JNE     @@0
         MOV     DI,CX           { back to start }
-  @@1:                          { repeat }
+   @@1:                         { repeat }
         LODSB
         CMP     DI,CX
         JBE     @@3             { nothing is found }
-        OR      AL,AL           { end of comments list }
+        OR      AL,AL           { e.nd of comments list }
         JE      @@2f
         CMP     AL,','
-        JE      @@2f            { end of line comment }
+        JE      @@2f            { e.nd of line comment }
         CMP     AL,13
         JNE     @@3
         MOV     BX,DI
         MOV     I,SI
-  @@2:
+   @@2:
         LODSB
         OR      AL,AL
         JE      @@2_2
@@ -754,24 +855,24 @@ const
         JNE     @@2_1
         INC     DI
         JMP     @@2
-  @@2_1:
+   @@2_1:
         INC     BX
         MOV     SI,I
         MOV     DI,BX
         JMP     @@2
-  @@2_2:
+   @@2_2:
         CMP     DI,I
         JBE     @@2f
         SUB     DI,CX
         MOV     AX,DI
         JMP     @@4
-  @@2f:
+   @@2f:
         MOV     AX,DX
         SUB     AX,CX
         INC     AX
         JMP     @@4
-  @@3:
-        OR      AL,AL           { end of comments list }
+   @@3:
+        OR      AL,AL           { e.nd of comments list }
         JE      @@4
         CMP     DI,DX
         JA      @@0
@@ -779,9 +880,79 @@ const
         JNE     @@0
         INC     DI
         JMP     @@1
-  @@4:
+   @@4:
         POP     DS
-  end;
+   end;
+   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EDX, ECX}
+   asm
+        CLD
+        XOR     EAX,EAX
+        LEA     ESI,T
+        LEA     EDI,S
+        MOV     EDX,Len
+        ADD     EDX,EDI         { j }
+        ADD     EDI,I           { k }
+        MOV     ECX,EDI         { I }
+        JMP     @@1
+   @@0:
+        LODSB
+        OR      AL,AL           { e.nd of comments list }
+        JE      @@4
+        CMP     AL,','          { next comment }
+        JNE     @@0
+        MOV     EDI,ECX         { back to start }
+   @@1:                         { repeat }
+        LODSB
+        CMP     EDI,ECX
+        JBE     @@3             { nothing is found }
+        OR      AL,AL           { e.nd of comments list }
+        JE      @@2f
+        CMP     AL,','
+        JE      @@2f            { e.nd of line comment }
+        CMP     AL,13
+        JNE     @@3
+        MOV     EBX,EDI
+        MOV     I,ESI
+   @@2:
+        LODSB
+        OR      AL,AL
+        JE      @@2_2
+        CMP     AL,','
+        JE      @@2_2
+        CMP     EDI,EDX
+        JA      @@2_2
+        CMP     AL,[EDI]
+        JNE     @@2_1
+        INC     EDI
+        JMP     @@2
+   @@2_1:
+        INC     EBX
+        MOV     ESI,I
+        MOV     EDI,EBX
+        JMP     @@2
+   @@2_2:
+        CMP     EDI,I
+        JBE     @@2f
+        SUB     EDI,ECX
+        MOV     EAX,EDI
+        JMP     @@4
+   @@2f:
+        MOV     EAX,EDX
+        SUB     EAX,ECX
+        INC     EAX
+        JMP     @@4
+   @@3:
+        OR      AL,AL           { e.nd of comments list }
+        JE      @@4
+        CMP     EDI,EDX
+        JA      @@0
+        CMP     AL,[EDI]
+        JNE     @@0
+        INC     EDI
+        JMP     @@1
+   @@4:
+   end;
+   {$ENDIF}
   {$ENDIF}
 
   function CheckKeyword ( I : Integer; Len : Integer; S : PChar; Keywords : PChar ) : Integer;
@@ -821,7 +992,8 @@ const
   end;
   {$ELSE}
   assembler;
-  asm
+   {$IFNDEF BIT_32}
+   asm
         PUSH    DS
         CLD
         XOR     AH,AH
@@ -833,15 +1005,15 @@ const
         MOV     CX,DI           { I }
         MOV     BX,DI           { j }
         JMP     @@2
-  @@0:                          { skip keyword }
+   @@0:                         { skip keyword }
         LODSB
         OR      AL,AL
         JE      @@5
         CMP     AL,','          { next keyword }
         JNE     @@0
-  @@1:                          { back to start }
+   @@1:                         { back to start }
         MOV     DI,CX
-  @@2:                          { repeat }
+   @@2:                         { repeat }
         LODSB
         OR      AL,AL
         JZ      @@3
@@ -853,18 +1025,62 @@ const
         JNE     @@0
         INC     DI
         JMP     @@2
-  @@3:
+   @@3:
         CMP     DI,BX
         JBE     @@4
         MOV     BX,DI           { get new longer keyword }
-  @@4:
+   @@4:
         OR      AL,AL
         JNE     @@1
-  @@5:
+   @@5:
         MOV     AX,BX
         SUB     AX,CX
         POP     DS
-  end;
+   end;
+   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EDX, EBX, ECX}
+   asm
+        CLD
+        XOR     EAX,EAX
+        LEA     ESI,Keywords
+        LEA     EDI,S
+        MOV     EDX,Len
+        ADD     EDX,EDI         { Length(S) }
+        ADD     EDI,I           { k }
+        MOV     ECX,EDI         { I }
+        MOV     EBX,EDI         { j }
+        JMP     @@2
+   @@0:                         { skip keyword }
+        LODSB
+        OR      AL,AL
+        JE      @@5
+        CMP     AL,','          { next keyword }
+        JNE     @@0
+   @@1:                         { back to start }
+        MOV     EDI,ECX
+   @@2:                         { repeat }
+        LODSB
+        OR      AL,AL
+        JZ      @@3
+        CMP     AL,','
+        JE      @@3
+        CMP     EDI,EDX
+        JA      @@0
+        CMP     AL,[EDI]
+        JNE     @@0
+        INC     EDI
+        JMP     @@2
+   @@3:
+        CMP     EDI,EBX
+        JBE     @@4
+        MOV     EBX,EDI         { get new longer keyword }
+   @@4:
+        OR      AL,AL
+        JNE     @@1
+   @@5:
+        MOV     EAX,EBX
+        SUB     EAX,ECX
+   end;
+   {$ENDIF}
   {$ENDIF}
 
 var
@@ -877,6 +1093,7 @@ var
   d     : Char;
   b     : Boolean;
   rules : THiliteRules;
+  bc    : set of Char;
 begin
   GetHighliteRules ( Params, rules );
   if (Params.GenFlags and hoCaseSensitive) = 0 then begin
@@ -888,11 +1105,18 @@ begin
   end else if CheckStartComment ( Len, S, rules[hrCommentStarts] ) then begin
     FillChar ( S^, Len, hhComment );
   end else begin
+    bc := BreakChars;
+    if (Params.GenFlags and hoNoStrings) = 0 then begin
+      if (Params.StrFlags and hoNoSQuotedStrings) = 0 then
+        Include ( bc, '''' );
+      if (Params.StrFlags and hoNoDQuotedStrings) = 0 then
+        Include ( bc, '"' );
+    end;
     b := True;
     i := 0;
     while i < Len do begin
       max := 1;
-      if S[i] in BreakChars then
+      if S[i] in bc then
         c := hhSymbol
       else
         c := hhNothing;
@@ -916,14 +1140,7 @@ begin
           k := j;
           d := hhKeyword2;
         end;
-        if (Params.GenFlags and hoNoStrings) = 0 then begin
-          j := CheckString ( i );
-          if j >= k then begin
-            k := j;
-            d := hhString;
-          end;
-        end;
-        if ((i+k) >= Len) or (S[i+k] in BreakChars) or (S[i+k-1] in BreakChars) then begin
+        if ((i+k) >= Len) or (S[i+k] in bc) or (S[i+k-1] in bc) then begin
           max := k;
           c   := d;
         end;
@@ -934,6 +1151,14 @@ begin
         max := j;
         c   := hhComment;
         b   := True;
+      end;
+      if (Params.GenFlags and hoNoStrings) = 0 then begin
+        j := CheckString ( i );
+        if j >= max then begin
+          max := j;
+          c   := hhString;
+          b   := True;
+        end;
       end;
       if c = hhSymbol then begin
         b := True;
