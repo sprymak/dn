@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -140,8 +140,21 @@ begin
  if BaseFile.Status <> stOk then begin BaseFile.Done;Fail;end;
  BaseFile.Read(Date, 32);
  if BaseFile.Status <> stOk then begin BaseFile.Done;Fail;end;
- NumFields := (HeaderLen div 32) - 1;
- if NumFields = 0 then begin BaseFile.Done;Fail;end;
+{piwamoto.src.begin}{bugfixed .DBF detection}
+ NumFields := -1;
+ repeat
+   BaseFile.Read(FBuf, 32);
+   Inc (NumFields);
+ until (FBuf.Name[0] < #32) or
+       (BaseFile.Status <> stOk) or
+       (HeaderLen + 32 < BaseFile.GetPos);
+ if (NumFields < 1) or
+    (FBuf.Name[0] <> #13) or
+    (BaseFile.Status <> stOk) or
+    (HeaderLen + 32 < BaseFile.GetPos)
+   then begin BaseFile.Done;Fail;end;
+ BaseFile.Seek(32);
+{piwamoto.src.end}
  Fields := New(PFieldCollection, Init(NumFields, NumFields));
  RL := 1;
  for I := 1 to NumFields do

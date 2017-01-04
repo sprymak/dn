@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -542,7 +542,7 @@ begin
    case EQList of
     $1e14 : S := S + 'Warp 3 (8.' + OS2Build + ')';
     $2814 : S := S + 'Warp 4 (9.' + OS2Build + ')';
-    $2d14 : S := S + 'WSeB';  {does anybody know revision codes for WSeB?}
+    $2d14 : S := S + 'WSeB (14.' + OS2Build + ')'; {tested by piwamoto}
     else    S := S + ItoS(WordRec(EQList).Lo div 10) + '.' +
                      ItoS(WordRec(EQList).Hi)
    end;

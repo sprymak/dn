@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -52,7 +52,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '1.51.12/'+
+  VersionName:string = '1.6.RC1/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}
                        {$ELSE}        {$IFDEF WIN32}+'W32'
@@ -63,7 +63,7 @@ CONST
                        {$ENDIF}
                        ;
   VersionDate:string = '';
-  VersionWord:word   = 15112;
+  VersionWord:word   = 15991;
 
 var F : lText ;
     Day, Month, Year, DOW: word;

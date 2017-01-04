@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -309,6 +309,13 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    if (B^[k]=$0A) then begin
     inc(OA); inc(LCount)
    end;
+  (* X-Man >>> *) with AED^ do begin
+  MaxCount:=Max(Max(ODOA,OAOD),Max(OD,OA));
+  if MaxCount=ODOA then EdOpt.ForcedCRLF:=cfCRLF else
+  if MaxCount=OD then EdOpt.ForcedCRLF:=cfCR else
+  if MaxCount=OA then EdOpt.ForcedCRLF:=cfLF else
+  EdOpt.ForcedCRLF:=cfLFCR;
+  (* X-Man <<< *) end;
  end;
 
  procedure SearchLines;
@@ -635,8 +642,12 @@ begin with AED^ do begin
          isValid := Off;
          Exit
        end;
-     if (((B^[J]=13) and (B^[J-1]<>10)) or ((B^[J]=10) and (B^[J-1]<>13))) and
-        (S^.GetPos < S^.GetSize) then begin Dec(J); S^.Seek(S^.GetPos-1); end;
+     if (((EdOpt.ForcedCRLF = cfCRLF) and (B^[J]=13)) or
+         ((EdOpt.ForcedCRLF = cfLFCR) and (B^[J]=10)))
+        and (S^.GetPos < S^.GetSize) then begin
+       Dec(J);
+       S^.Seek(S^.GetPos-1);
+     end;
      SearchLines;
      I := S^.GetPos;
      if FFSize - I > FBufSize then J := FBufSize
@@ -652,13 +663,6 @@ begin with AED^ do begin
   if UpStrg(DefCodePage) = 'AUTO'then begin
    KeyMap:=CodePageDetector.DetectedCodePage;
   end else KeyMap:=kmAscii;
-  (* X-Man >>> *)
-  MaxCount:=Max(Max(ODOA,OAOD),Max(OD,OA));
-  if MaxCount=ODOA then EdOpt.ForcedCRLF:=cfCRLF else
-  if MaxCount=OD then EdOpt.ForcedCRLF:=cfCR else
-  if MaxCount=OA then EdOpt.ForcedCRLF:=cfLF else
-  EdOpt.ForcedCRLF:=cfLFCR;
-  (* X-Man <<< *)
   if RetCollector then MIReadBlock := Lines
                 else begin
                        MIReadBlock := PStdCollector(Lines)^.Collection;

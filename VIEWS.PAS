@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -675,7 +675,14 @@ begin
 {$IFNDEF UUDECODE} or (Command=cmUUDecodeFile)                        {$ENDIF}
 {$IFNDEF CALENDAR} or (Command=cmCalendar)                            {$ENDIF}
 {$IFNDEF CDPlayer} or (Command=cmPlayCD)                              {$ENDIF}
-{$IFNDEF PHONES}   or (Command in PhonesCommands)
+{$IFNDEF PHONES}   or (Command=cmPhoneBookMode)
+                   or (Command=cmImportPhones)
+                   or (Command=cmSearchPhone)
+                   or (Command=cmHideInactive)
+                   or (Command=cmCopyPhone)
+                   or (Command=cmInsertPhone)
+                   or (Command=cmDeletePhone)
+                   or (Command=cmEditPhone)
                    or (Command=cmPhoneBook)
                    or (Command=cmDialPhone)
                    or (Command=cmUndial)                              {$ENDIF}
@@ -685,9 +692,9 @@ begin
                    or (Command=cmHangUp)
                    or (Command=cmAdvancePortSetup)
                    or (Command=cmTerminal)
-     {$IFDEF LINK} or (Command=cmNavyLink)
-                   or (Command=cmNavyLinkSetup) {$ENDIF}
-                                                                      {$ENDIF}
+                   or (Command=cmTerminalDefaults)                    {$ENDIF}
+{$IFNDEF Link}     or (Command=cmNavyLink)
+                   or (Command=cmNavyLinkSetup)                       {$ENDIF}
 {$IFDEF MINARCH}   or (Command=cmReadArchive)
                    or ((Command>=cmLoConfigArchiver) and
                        (Command<=cmHiConfigArchiver) and
@@ -713,6 +720,16 @@ begin
                    or (Command=cmNetInfo)                             {$ENDIF}
 {$IFNDEF SYSINFO}  or (Command=cmSystemInfo)                          {$ENDIF}
 {$IFNDEF MEMINFO}  or (Command=cmMemoryInfo)                          {$ENDIF}
+{$IFNDEF DiskEdit} or (Command=cmSetVolumeLabel)
+                   or (Command=cmDiskEdit)                            {$ENDIF}
+{$IFNDEF Reanimator}
+                   or (Command=cmReanimator)                          {$ENDIF}
+{$IFNDEF DiskFormat}
+                   or (Command=cmFormatDisk)                          {$ENDIF}
+{$IFNDEF SpreadSheet}
+                   or (Command=cmViewWKZ)
+                   or (Command=cmSheetLoad)                           {$ENDIF}
+{$IFNDEF DBView}   or (Command=cmViewDBF)                             {$ENDIF}
    then MenuEnabled:=False else
   MenuEnabled:=(Command > 255) or (Command in CurCommandSet);
 end; {-$VOL}

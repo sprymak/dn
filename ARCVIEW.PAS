@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -129,6 +129,8 @@ Implementation
 
 const
   LowMemSize = $4000;  {Local setting}
+  Uncompleted: Boolean = False; {JO}
+  StopPoint:   Integer = 0; {JO}
 
 function MaxAvail: LongInt;
 begin
@@ -767,7 +769,7 @@ begin
    B := IOResult <> 0;
    if B then S := '' else S := AType^.ListChar + S;
   end;
- for I := 0 to PC^.Count - 1 do
+ for I := StopPoint to PC^.Count - 1 do
   begin
    PF := PC^.At(I);
    S1 := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
@@ -776,8 +778,19 @@ begin
       then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1)
       else PutDir('\'+S1+'\');
    MakeListFile := S;
-   if S[0] > #100 then Exit;
+{$IFDEF OS_DOS}
+   if S[0] > #70 then
+{$ELSE}
+   if S[0] > #200 then
+{$ENDIF}
+     begin
+       StopPoint := I+1;
+       if StopPoint < (PC^.Count - 1) then Uncompleted := True
+         else Uncompleted := False;
+       Exit;
+     end;
   end;
+ Uncompleted := False;
  MakeListFile := S;
  if not B then Close(F.T);
 end;
@@ -796,6 +809,10 @@ procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
  procedure UnSelect(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
  begin
   Message(Owner, evCommand, cmCopyUnselect, P);
+ end;
+
+ procedure IsPswd(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF} {JO}
+ begin
   Pswd := Pswd or (P^.Attr and Hidden <> 0);
  end;
 
@@ -807,26 +824,29 @@ begin
   if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(ArcName, ExtrDir, Nm, Xt);
   {$ENDIF}
   if not (ExtrDir[Length(ExtrDir)] in ['\','/']) then ExtrDir := ExtrDir + '\';
-
-  SS := MakeListFile(AFiles);
-  S := ' '; Pswd := Off;
-  AFiles^.ForEach(@Unselect);
-  ExtrChar := CnvString(AType^.ExtractWP);
-  if Options and 1 = 0 then ExtrChar := CnvString(AType^.Extract);
-  if Options and 2 <> 0 then ExtrChar := CnvString(AType^.Test);
-  if (Password = '') and Pswd then
-    if ExecResource(dlgSetPassword, Password) <> cmOK then Exit;
-  if Password <> '' then S := ' ' + DelSpaces(CnvString(AType^.Garble) + Password) + ' ';
-  {$IFNDEF OS2}
-  S := ExtrChar+' '+s+lfGetShortFileName(ArcName)+' '+SS+' ';
-  {$ELSE}
-  S := ExtrChar+' '+s+SquashesName(ArcName)+' '+SS+' ';
-  {$ENDIF}
-  lGetDir(0, DirToChange);
-  CreateDirInheritance(ExtrDir, On);
-  Advance2.lChDir(ExtrDir);
-  DelDoubles('  ', S);
-  Exec(CnvString(AType^.unPacker),s);
+  repeat   {JO}
+    SS := MakeListFile(AFiles);
+    S := ' '; Pswd := Off;
+    AFiles^.ForEach(@IsPswd);
+    if not Uncompleted then AFiles^.ForEach(@Unselect);
+    ExtrChar := CnvString(AType^.ExtractWP);
+    if Options and 1 = 0 then ExtrChar := CnvString(AType^.Extract);
+    if Options and 2 <> 0 then ExtrChar := CnvString(AType^.Test);
+    if (Password = '') and Pswd then
+      if ExecResource(dlgSetPassword, Password) <> cmOK then Exit;
+    if Password <> '' then S := ' ' + DelSpaces(CnvString(AType^.Garble) + Password) + ' ';
+    {$IFNDEF OS2}
+    S := ExtrChar+' '+s+lfGetShortFileName(ArcName)+' '+SS+' ';
+    {$ELSE}
+    S := ExtrChar+' '+s+SquashesName(ArcName)+' '+SS+' ';
+    {$ENDIF}
+    lGetDir(0, DirToChange);
+    CreateDirInheritance(ExtrDir, On);
+    Advance2.lChDir(ExtrDir);
+    DelDoubles('  ', S);
+    Exec(CnvString(AType^.unPacker),s);
+  until not Uncompleted; {JO}
+  StopPoint := 0; {JO}
   Advance2.lChDir(DirToChange); DirToChange := '';
 end;
         {-DataCompBoy-}
@@ -955,8 +975,13 @@ begin
      then OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes
      else OPT:=flnHardExtArea or flnAutoHideDot or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes;
     if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT or flnSelected;
-    if P^.Attr and SysFile   <>0 then NFM:=nfmSystem;
-    if P^.Attr and Hidden    <>0 then NFM:=nfmHidden;
+
+    case P^.Attr and (Hidden+SysFile) of               {Pavel Anufrikov -> }
+     Hidden  :        NFM:=nfmHidden;
+     SysFile :        NFM:=nfmSystem;
+     Hidden+SysFile : NFM:=nfmHiddenSystem;
+    end{case};                                         { <- Pavel Anufrikov}
+
     if P^.Attr and Directory <>0 then if DirFLP<>65535
                                        then OPT:=OPT or DirFLP
                                        else {$IFNDEF COMBINE_MIXED}
@@ -985,8 +1010,15 @@ begin
     NFM:=nfmNull;
     OPT:=flnHardExtArea or flnAutoHideDot or flnPadRight or flnHighlight or flnHandleTildes;
     if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT+flnSelected;
-    if P^.Attr and SysFile<>0 then begin NFM:=nfmSystem; OPT:=OPT or flnCapitalCase end;
-    if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
+
+    case P^.Attr and (Hidden+SysFile) of               {Pavel Anufrikov -> }
+     Hidden  :        NFM:=nfmHidden;
+     SysFile :        NFM:=nfmSystem;
+     Hidden+SysFile : NFM:=nfmHiddenSystem;
+    end{case};                                         { <- Pavel Anufrikov}
+    if P^.Attr and SysFile<>0 then OPT:=OPT or flnCapitalCase;
+
+
     if P^.Attr and Directory <>0 then OPT:=OPT or flnUpCase
                                  else OPT:=OPT or flnLowCase;
     S:=FormatLongName(MakeFileName(P^.Name), 12, 3, OPT, NFM, nil);

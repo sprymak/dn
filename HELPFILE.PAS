@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -181,6 +181,7 @@ var
   KeyPoint: TPoint;
   KeyLength: Byte;
   KeyRef: AWord;
+  Q: Byte;
 begin
   Normal := GetColor(1);
   KeyAWord := GetColor(2);
@@ -234,6 +235,8 @@ begin
         Topic^.GetCrossRef(KeyCount, KeyPoint, KeyLength, KeyRef)
       else KeyPoint.Y := 0;
     end;
+    for Q := 0 to (MaxViewWidth - 1) do          {JO}
+      if Lo(B[Q]) = $FF then B[Q] := B[Q]-$DF;   {JO}
     WriteLine(0, I-1, Size.X, 1, B);
   end;
 end;

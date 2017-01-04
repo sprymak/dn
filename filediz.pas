@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -254,8 +254,7 @@ begin
          repeat
           S := F1^.GetStr;
          until (S[1]<>' ') or F1^.EOF or (IOResult <> 0);
-         if not F1^.EOF then WasFilesInDIZ:=True;
-         Writeln(F2.T, S);
+         if not F1^.EOF then begin WasFilesInDIZ:=True; Writeln(F2.T, S); end;
          continue;
         end;
 
@@ -263,8 +262,8 @@ begin
 
        if Length(NewName)<=12 then NewName:=AddSpace(NewName,13);
        if ANewDescription<>nil
-        then S:=NewName+' '+ANewDescription^
-        else S:=NewName+' '+S;
+        then S:=NewName + ANewDescription^
+        else S:=NewName + S;
      end;
     end;
     WasFilesInDIZ:=True;
@@ -272,7 +271,7 @@ begin
   until F1^.EOF or (IOResult <> 0);
   if not Fnd then begin
    if ANewDescription<>nil
-    then WriteLn(F2.T, AddSpace(NewName,12)+' '+ANewDescription^);
+    then WriteLn(F2.T, AddSpace(NewName,13) + ANewDescription^);
    WasFilesInDIZ:=True;
   end;
   ReplaceT(F1, F2, (not WasFilesInDIZ) and (FMSetup.Options and fmoKillContainer <> 0), OrigAttr);

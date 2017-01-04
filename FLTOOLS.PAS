@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -391,7 +391,8 @@ begin
       then PF^.Selected := Select;
    if PF^.Name[1] = '.' then PF^.Selected := Off;
 {JO}
-   if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) and (FMSetup.DIZ <> '') then
+   if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) and (FMSetup.DIZ <> '')
+    and (P^.Drive^.DriveType < dtArc) then
      begin
       K := 1;
       for J := 1 to Length(FMSetup.DIZ) do
@@ -444,7 +445,8 @@ begin
    if Dr or (PF^.Attr and Directory = 0) then PF^.Selected := not PF^.Selected;
    if PF^.Name[1] = '.' then PF^.Selected := Off;
 {JO}
-   if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) and (FMSetup.DIZ <> '') then
+   if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) and (FMSetup.DIZ <> '')
+    and (P^.Drive^.DriveType < dtArc) then
      begin
       K := 1;
       for J := 1 to Length(FMSetup.DIZ) do

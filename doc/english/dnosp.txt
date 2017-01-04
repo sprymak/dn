@@ -3,7 +3,7 @@
             Based on Dos Navigator (C) 1991-1999 RIT Research Labs
 ==============================================================================
 
-    Last revision date: Wednesday November 22 2000
+    Last revision date: Tuesday February 20 2001
 
                               Table of Contents
 
@@ -225,8 +225,7 @@
         Alexey Feldgendler
         Phone number in Novosibirsk: +7-3832-776581
         2:5000/111.27@fidonet AKA 911:911/0@codernet
-        Alexey.Feldgendler@p27.f111.n5000.z2.fidonet.org (no files, please)
-        Send files to: dnosp@byte.nsk.su
+        xman@beep.ru (for mail and files up to 2 megabytes)
     Second coordinator:
         Mike Lykov
         2:5057/44@fidonet

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -997,6 +997,11 @@ begin
    '?': if fp<=byte(aa^[0]) then os^:=os^+aa^[fp];
    '*': begin
          os^:=os^+copy(aa^, fp, 255)+copy(bb^,i+1,255);
+          if pos('*', os^)<>0 then                        {Pavel Anufrikov -> }
+           begin
+            insert(copy(aaa^,2,255),os^,pos('*', os^));
+            aaa^:='';
+           end;                                           { <- Pavel Anufrikov}
          while pos('?', os^)<>0 do delete(os^, pos('?', os^), 1);
          while pos('*', os^)<>0 do delete(os^, pos('*', os^), 1);
          break;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -84,6 +84,7 @@ uses DNApp, Startup, Memory, Messages, HistList, Commands,
     {$IFDEF MODEM}{$IFDEF LINK}NavyLink,{$ENDIF}{$ENDIF}
     {$IFNDEF NONBP} DiskTool,{$ENDIF}
     {$IFDEF VIRTUALPASCAL} Crt, {$ENDIF}
+    {$IFDEF DPMI} DPMI, {$ENDIF}
      Gauge, FileFind,
      DNUtil, RStrings, Tree, Archiver, Drives, DiskInfo;
 
@@ -426,9 +427,10 @@ begin
   if MemStream = nil then
     begin
      Pos:=(MaxAvail div 10) * 9;
-     if CopyLimit>0 then
-      if CopyLimit shl 10 < Pos then
-       Pos:=CopyLimit shl 10;
+     if (CopyLimit > 0) and
+        (Pos > CopyLimit shl 10) and
+        ((opSys and opDos)<>opDos)
+      then Pos:=CopyLimit shl 10;
      New(MemStream, Init(Pos, 32768));
     end;
   Pos := Stream^.GetPos;
@@ -528,12 +530,12 @@ end;
 function CDRomInstalled : Boolean;
 {$IFNDEF VIRTUALPASCAL}
 var
-  R : Registers;
+  R : {$IFDEF DPMI}DPMIRegisters{$ELSE}Registers{$ENDIF};
 begin
-  FillChar(R, SizeOf(R), 0);
   with R do begin
     AX := $1500;
-    Intr($2F, R);
+    BX := $0000;
+    {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($2F, R);
     CDRomInstalled := (BX <> 0);
   end;
 {$ELSE}

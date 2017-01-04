@@ -83,7 +83,7 @@ Display=0
 
 [Parameters]
 RunParams=
-PrimaryFile=C:\Bp\PROGRAM\FMANAGER\DN15112\exe\dn.pas
+PrimaryFile=C:\Bp\PROGRAM\FMANAGER\DN16RC1\exe\dn.pas
 TargetPlatform=1
 
 [Mouse]

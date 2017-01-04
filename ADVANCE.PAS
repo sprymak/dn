@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -67,10 +67,10 @@ Procedure AdvanceInitUnit;
                               {simple add in USES Advance}
 {$ENDIF}
 
-type TNameFormatMode=(nfmNull,nfmSelected,nfmCut,nfmHidden,nfmSystem);
+type TNameFormatMode=(nfmNull,nfmSelected,nfmCut,nfmHidden,nfmSystem,nfmHiddenSystem);
 
 const
-    NameFormatChar:array [TNameFormatMode] of char=(#46,#251,#16,#177,#178);
+    NameFormatChar:array [TNameFormatMode] of char=(#46,#251,#16,#176,#177,#178);
 
     flnPreferName   = 1;
     flnHardExtArea  = 2;

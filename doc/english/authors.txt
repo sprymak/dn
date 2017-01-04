@@ -5,14 +5,15 @@ Dos Navigator Open Source Project Team:
   Sergey Abmetko <2:450/86.380>
   Mark Adler
   Denis Afonin (De@D_M0r0Ze) <2:5015/133.37; root@afonin.i-connect.ru>
+  Pavel Anufrikov <apaex@mail.ru>
   Vitaly Astaforkin (Gimly) <gymly@mail.ru>
   Michael Averbukh <aml@sandy.ru>
   Mariusz Borkowski <mborkows@elka.pw.edu.pl>
-  Pavel Borodin (I'am) <2:5025/3.22>
+  Pavel Borodin (I'am) <2:5025/3.22; realtor@pisem.net>
   Ivan Borodikhin (EXCELLENCE) <2:5020/1252.444>
   Mesaros Csaba (Gyor) <csablak@freemail.hu>
   Anton Fedorov (DataCompBoy) <2:5000/111.33; datacompboy@mail.ru>
-  Alexey Feldgendler (X-Man) <2:5000/111.27; xman@gorwoda.telefun.ru>
+  Alexey Feldgendler (X-Man) <2:5000/111.27; xman@beep.ru>
   Vladimir Fonarev (VOL) <2:5020/1252.7>
   Alexey Froloff (Sir Raorn) <2:5020/1437.4>
   Sergey Gazizyanov (DarkLord) <2:5004/43.50>

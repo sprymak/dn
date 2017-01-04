@@ -6,6 +6,87 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 1.6.RC1 (Release Candidate 1)
+  ---------------------------------------------------------------------
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Files containing descriptions (descript.ion, file_id.diz) are no more
+    excluded from the group selection in Archive, Navigator Link and Arvid
+    panels (Jaroslaw Osadtchiy)
+
+[*] Files with both Hidden and System attributes set are now marked with a
+    hash character different from those for files with Hidden attribute alone
+    and System attribute alone (Pavel Anufrikov)
+
+[-] Destination wildcards containing two '*' signs were handled incorreclty
+    when copying, moving and renaming (Pavel Anufrikov)
+
+[-] Panel column setup was reset each time when drive was changed with
+    Ctrl-Left/Right (Eugeny Zvyagintzev)
+
+[-] Drive Not Ready error message was shown twice when changing drive with
+    Ctrl-Left/Right (Max Vasilyev)
+
+[-] Fixed directory change logic (Max Vasilyev)
+
+[-] Fixed detection of TDR storage catalogues (Max Vasilyev)
+
+[-] Fixed incorrect initialization of Arvid drives (Max Vasilyev)
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] After editing a file with more than 65535 lines, DN became unstable
+    (Anton Fedorov)
+
+[-] When opening a file in Editor, stray empty lines still could appear,
+    though in rare cases (Anton Fedorov)
+
+[-] Fixed Indent and Unindent commands having been accidentally swapped in the
+    Russian resources for the Editor menu (Alexey Feldgendler)
+
+[-] Recalculation of some expressions in the Spreadsheet was broken
+    (Anton Fedorov)
+
+[-] Fixed detection of databases (Max Vasilyev)
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Archivers that do not take the list of files to extract from a list file
+    are now invoked multiple times if necessary, so that all the desired files
+    are extracted (Jaroslaw Osadtchiy)
+
+[-] Fixed detection of ARJ archives (Max Vasilyev)
+
+[-] Fixed reading of TAR and TGZ archives (Max Vasilyev)
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Extended the set of characters after which a space is not automatically
+    added when pressing Ctrl-Enter to insert the current file's name into
+    the command line. Now this set includes the at-sign '@' (Pavel Borodin)
+
+[-] A number of fixes announced in DN OSP 1.51.12 were actually missing in the
+    release. Now synchronized (Alexey Feldgendler)
+
+[-] Fixed the behavior of memory-saving configurations with disabled features.
+    Such DN configurations are not publicly distributed and one can only make
+    them from the source code (Pavel Borodin)
+
+[-] Wrong Help article was shown for the File Manager Setup dialog in Russian
+    resources (Pavel Borodin)
+
+[-] Cosmetic fixes to some dialog windows in Russian resources (Pavel Borodin)
+
+[-] Fixed some Russian letters appearing in place of English letters with
+    similar appearance in Russian resources, and vice versa (Pavel Borodin)
+
+[-] Fixed a number of typos thoughout the Russian history.txt file
+    (Alexey Feldgendler)
+
+[-] Fixed a number of other bugs, minor and not...
+
+
    Version 1.51.12
   ---------------------------------------------------------------------
 

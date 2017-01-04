@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -195,7 +195,7 @@ type
       function GetDir: String; virtual;
       function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
                             var FreeSpace, TotalInfo: String ): PCollection; virtual;
-      constructor Load(var S: TStream);
+{      constructor Load(var S: TStream);}
       procedure Store(var S: TStream); virtual;
       procedure RereadDirectory(S: String); virtual;
       procedure KillUse; virtual;
@@ -301,8 +301,8 @@ begin
   Stream^.Read(AVT, SizeOf(AVT));
   if Stream^.Status <> stOK then begin Dispose(Stream,Done); Fail end;
   if AVT.Signature <> 'AVTP'
-   then if not TdrInit(@Self) then fail else
-   else if not AvtInit(@Self) then fail;
+   then if not TdrInit(@Self) then begin Dispose(Stream,Done); Fail end else
+   else if not AvtInit(@Self) then begin Dispose(Stream,Done); Fail end;
   Name:=NewStr(lFExpand(AName));
   DriveType:=dtArvid;
   KillAfterUse:=TempFile <> '';
@@ -400,6 +400,7 @@ begin
   else GetDir:= 'AVT:'+Nm+'\'+CurDir;
 end;
 
+{
 constructor TArvidDrive.Load;
   label 1;
 begin
@@ -428,6 +429,7 @@ begin
   if ArvidDrives = nil then New(ArvidDrives, Init($100, $100));
   ArvidDrives^.Insert(@Self);
 end;
+}
 
 procedure TArvidDrive.Store;
 begin

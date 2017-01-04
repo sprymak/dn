@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -177,13 +177,38 @@ end;
 function ContainCell(Cell, Formula: String): Boolean;
  const Signs = ['#','+','-','=','*','&','^','(',')','<','>', ';', ' ',
                 '%','[',']','{','}','!','|','/','\',',','?'];
- var I: Integer;
+ var I, J: Integer;
+     FR, T: String;
+     FRX, CX, TX: byte;
+     FRY, CY, TY: integer;
 begin
  ContainCell := False;
  UpStr(Formula);
+ repeat
+  I := Pos('SUM', Formula);
+  if I=0 then I := Pos('MUL', Formula);
+  if I>0 then begin
+    for J:=I+2 to Length(Formula) do if Formula[J]='(' then break;
+    FR:='';
+    for J:=J+1 to Length(Formula) do
+      if Formula[J]=':' then break else
+      if Formula[J]<>' ' then FR:=FR+Formula[J];
+    T:='';
+    for J:=J+1 to Length(Formula) do
+      if Formula[J]=')' then break else
+      if Formula[J]<>' ' then T:=T+Formula[J];
+    GetCellCoord(Cell, CX, CY);
+    GetCellCoord(FR, FRX, FRY);
+    GetCellCoord(T, TX, TY);
+    if (CX>=FRX) and (CX<=TX) and (CY>=FRY) and (CY<=TY)
+      then begin ContainCell := true; exit end;
+    Delete(Formula, I, J-I);
+  end;
+ until I=0;
  Repeat
   I := Pos(Cell, Formula);
-  if (I > 1) and (Formula[I-1] in Signs) and (Formula[I+Length(Cell)] in Signs)
+  if (I > 1) and (Formula[I-1] in Signs) and
+     ((I+Length(Cell)>Length(Formula)) or (Formula[I+Length(Cell)] in Signs))
    then begin ContainCell := true; exit end;
   Dec(Formula[0], I);
   Move(Formula[I], Formula[1], Byte(Formula[0]));
@@ -667,8 +692,9 @@ begin
            S := P^.S;
            case P^.Options and 3 of
             coText: WriteStr(0, 0, '   T  ', 2);
-            coValue: WriteStr(0, 0, '   V  ', 2);
+            coValue: WriteStr(0, 0, '  V   ', 2);
             coFormula: WriteStr(0, 0, '   F  ', 2);
+            coValue or coFormula: WriteStr(0, 0, '  VF  ', 2);
            end;
           end else
            begin

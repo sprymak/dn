@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -799,8 +799,14 @@ begin
    else T.Name := '..          ';
   T.Name[9] := ' ';
   if Attr and Directory <> 0 then UpStr(T.Name) else LowStr(T.Name);
-  if Attr and Hidden <> 0 then T.Name[9] := #177;
-  if Attr and SysFile <> 0 then begin T.Name[9] := #178; T.Name[1] := Upcase(T.Name[1]); end;
+
+  case Attr and (Hidden+SysFile) of                  {Pavel Anufrikov -> }
+   Hidden  :        T.Name[9] := NameFormatChar[nfmHidden];
+   SysFile :        T.Name[9] := NameFormatChar[nfmSystem];
+   Hidden+SysFile : T.Name[9] := NameFormatChar[nfmHiddenSystem];
+  end{case};                                         { <- Pavel Anufrikov}
+   if Attr and SysFile <> 0 then T.Name[1] := Upcase(T.Name[1]);
+
   {$ENDIF}
   T.LFN := AddLFN(GetName(LFN));
   T.Size := Size; T.PSize := Size;

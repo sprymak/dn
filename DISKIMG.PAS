@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -99,6 +99,7 @@ var
   VolumeLabel : string[13];
   fPos        : LongInt;
   SearchVolume: boolean; {piwamoto}
+  DSKoffset   : AWord; {piwamoto}
 
 procedure fSeek(Pos: LongInt);
 begin
@@ -155,7 +156,7 @@ begin
     CheckCancel;
     if Cancel then Break;
     if F^.Status <> stOK then Exit;
-    fSeek(Fat2Sec(Clus)*SectLen);
+    fSeek(Fat2Sec(Clus)*SectLen+DSKoffset);
     if F^.Status <> stOK then Exit;
     A := Min(Len, BytesPerClu); Dec(Len, A);
     fRead(CpyBuf^, A);  if F^.Status <> stOK then Exit;
@@ -208,7 +209,7 @@ var
 
 
 begin
-  fSeek(LongInt(Ofst)*SectLen);
+  fSeek(LongInt(Ofst)*SectLen+DSKoffset);
   if (F^.Status <> stOK) then Exit;
   GetMem(_Dir,RootEntries*32);
   fRead(_Dir^,RootEntries*32);
@@ -259,10 +260,19 @@ end;
 
 
 begin
-  VolumeLabel := ''; fPos := 0; SearchVolume := True;
+  VolumeLabel := ''; fPos := 0; SearchVolume := True; DSKoffset := 0; 
   if F^.Status <> stOK then Exit;
   GetMem(BRec, 4096);
   fRead(BRec^, 4096);
+  if (BRec^.Jmp[0] = $49) and (BRec^.Jmp[1] = $4D) then {.DDI support by piwamoto}
+     begin
+       case Brec^.OEM[7] of
+        #3 : DSKoffset := $1200;
+        #4 : DSKoffset := $2400;
+       end;
+       fSeek(DSKoffset);
+       fRead(BRec^, 4096);
+     end;
   SectPerFAT  := BRec^.SecFAT;
   SectLen     := BRec^.ByteSec;
   FatCopies   := BRec^.FATCps;
@@ -285,7 +295,7 @@ begin
   TotalClu := LongInt(NumSectors - FirstClust + 1) div SectPerClust;
   if FATSize > $8000 then Exit;
 
-  fSeek(Reserved*SectLen);
+  fSeek(Reserved*SectLen+DSKoffset);
   if F^.Status <> stOK then Exit;
 
   GetMem(FAT, FatSize);

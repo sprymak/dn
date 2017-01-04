@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -620,7 +620,10 @@ var
      Dispose(Drive,Done);
      New(Drive, Init(Byte(Upcase(Dr[1]))-64, @Self, Drive^.Param));
     end;
-  DirectoryName := GetNormPath(Dr); IncDrawDisabled; OldDirectory := Dr;
+  if Drive^.DriveType <> dtDisk {fixed by piwamoto}
+    then DirectoryName := Dr else DirectoryName := GetNormPath(Dr);
+  IncDrawDisabled;
+  OldDirectory := Dr;
   DeltaX := 0;
   Drive^.lChDir(DirectoryName);
   Drive^.SizeX := Size.X;
@@ -917,7 +920,7 @@ var
      ChDir(SS);
    end else begin
      if Drive^.DriveType <> dtDisk then
-       else if not ReplaceDrive(SS[1]) then Exit;
+       if not ReplaceDrive(SS[1]) then Exit;
      SS := MakeNormName(SS,'.'); OldDelta := -1;
      GotoFile(SS);
    end;
@@ -1063,9 +1066,12 @@ var
    {$ENDIF};
    {$ENDIF};
    lGetDir(Byte(S[1])-64, S);
-   S:=GetNormPath(S);
-   If (S[Length(S)]='\') and (S[Length(S)-1]<>':') then Dec(S[0]);
-   DoChange(S);
+   if not Abort then
+   begin
+     S:=GetNormPath(S);
+     If (S[Length(S)]='\') and (S[Length(S)-1]<>':') then Dec(S[0]);
+     DoChange(S);
+   end;
  end;
 
  procedure _DoDirHistory;

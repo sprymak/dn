@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -163,13 +163,12 @@ begin
   GetSign := sigTGZ;
 end;
 
-function FromOct(S: String): LongInt;
+function FromOct(S: String): LongInt; {fixed by piwamoto}
  var I,L: LongInt;
-     A: Real;
 begin
   L := 0;
-  for I := 0 to Length(S)-1 do
-      Inc(L, (Byte(S[Length(S)-I])-48) shl (I * 3));
+  for I := 1 to Length(S) do
+     if S[I] in['0'..'9'] then L := L shl 3 + Byte(S[I]) - 48;
   FromOct := L;
 end;
 
@@ -178,11 +177,8 @@ Procedure TTGZArchive.GetFile;
       Buffer: Array [0..BlkSize - 1] of Char;
       Hdr: TARHdr absolute Buffer;
       DT: DateTime;
-      I: Integer;
-      L: LongInt;
       qq: longint;
 begin
-  L := gzTell(gzf);
   if gzEOF(gzf) then begin FileInfo.Last := 1; Exit end;
   qq:=gzRead(gzf, @Buffer, BlkSize);
   if qq<>BlkSize then begin FileInfo.Last := 2; Exit end;
@@ -193,15 +189,11 @@ begin
   if Copy(S,1,2) = '.\' then System.Delete(S,1,2);
   FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
   FileInfo.FName := S; {DataCompBoy}
-  S := Hdr.Size;
-  FileInfo.USize := FromOct(DelSpaces(S));
+  FileInfo.USize := FromOct(Hdr.Size);
   FileInfo.PSize := FileInfo.USize;
-  S := Hdr.mTime;
-  GetUNIXDate(FromOct(DelSpaces(S)), DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
+  GetUNIXDate(FromOct(Hdr.mTime), DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
   PackTime(DT, FileInfo.Date);
-  L := (FileInfo.PSize div LongInt(BlkSize)) + Byte(FileInfo.PSize mod LongInt(BlkSize) <> 0);
-  L := L * BlkSize;
-  gzSeek(gzf, L, SEEK_CUR);
+  gzSeek(gzf, ((FileInfo.PSize + BlkSize - 1) div BlkSize) * BlkSize, SEEK_CUR);
 end;
 
 end.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -215,8 +215,13 @@ begin
       end;
     if P^.Name[1] <> '.' then Inc(TotalLen, P^.Size);
     P^.Owner := @CurDir;
-    if P^.Attr and Hidden <> 0 then P^.Name[9] := #177;
-    if P^.Attr and SysFile <> 0 then P^.Name[9] := #178;
+
+    case P^.Attr and (Hidden+SysFile) of                {Pavel Anufrikov -> }
+     Hidden  :        P^.Name[9] := NameFormatChar[nfmHidden];
+     SysFile :        P^.Name[9] := NameFormatChar[nfmSystem];
+     Hidden+SysFile : P^.Name[9] := NameFormatChar[nfmHiddenSystem];
+    end{case};                                          { <- Pavel Anufrikov}
+
     if Hilite then P^.TType := GetFileType(FullName, P^.Attr) else P^.TType := 0;
     Files^.Insert(P);
    end;

@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.12
+::  Dos Navigator Open Source 1.6.RC1
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -49,7 +49,7 @@
 set binpath=c:\bp\bin\
 set bpcpath=c:\bp\bin\
 :: Set up optional executable packing utilities (recommended)
-set real_packer=c:\bp\bin\upx
+set real_packer=
 set dpmi_packer=
 set com_packer=
 :: Set to Y to enable compression of the overlay file (decreases performance)
@@ -57,8 +57,7 @@ set PackOverlay=
 
 :: No user-configurable parameters beyond this line
 :://///////////////////////////////////////////////////////////////////////
-set outpath=dn15112r
-if .%1.==.dpmi. set outpath=dn15112d
+set outpath=out
 set _Q_opt=/Q
 set SWPOPT=
 set ASMOPT=exe\*.obj
@@ -79,7 +78,7 @@ if .%1.==.. builddn asm help resource nolite
 
 set prg_packer=%real_packer%
 
-set dn_version=1.51.12
+set dn_version=1.6.RC1
 set diz_title=Real Mode Binary Package
 
 :Loop

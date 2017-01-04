@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -149,19 +149,23 @@ begin
     else ArcFile^.Seek(ArcPos);
 end;
 
-function ARJDetect: Boolean;
- var I: AWord;
+function ARJDetect: Boolean; {fixed by piwamoto}
+ var ID, CommentLen: AWord;
 begin
- ArcFile^.Read(I, 2);
-{piwamoto.change.begin}
- ARJDetect:=(I=$0ea60);
- if I=$0ea60
-    then begin
-          ArcFile^.Read(I,2);
-          ArcFile^.Seek(ArcPos + I + 10); {skip archive comment}
-         end
-    else ArcFile^.Seek(ArcPos);
-{piwamoto.change.end}
+ ARJDetect := False;
+ ArcFile^.Read(ID, 2);
+ if ID = $0ea60 then
+  begin
+   ArcFile^.Read(CommentLen, 2);
+   ArcFile^.Seek(ArcPos + CommentLen + 10); {skip archive comment}
+   ArcFile^.Read(ID, 2);
+   if (ID = $0ea60) and (ArcFile^.Status = stOK) then
+    begin
+     ArcPos := ArcPos + CommentLen + 10;
+     ARJDetect := True;
+    end;
+  end;
+ ArcFile^.Seek(ArcPos);
 end;
 
 function CABDetect: Boolean;
@@ -325,17 +329,16 @@ begin
 end;
 
 Function TARDetect: Boolean;
- {piwamoto.change.begin}
   var P: TARHdr;
       SumTar, SumCalc: LongInt;
       i : integer;
 
-   function FromOct(S: String): LongInt;
+   function FromOct(S: String): LongInt; {fixed by piwamoto}
     var I,L: LongInt;
    begin
      L := 0;
-     for I := 0 to Length(S)-1 do
-         Inc(L, (Byte(S[Length(S)-I])-48) shl (I * 3));
+     for I := 1 to Length(S) do
+       if S[I] in['0'..'9'] then L := L shl 3 + Byte(S[I]) - 48;
      FromOct := L;
    end;
 
@@ -343,13 +346,11 @@ Function TARDetect: Boolean;
   TARDetect:=False;
   if ArcFile^.GetSize < SizeOf(P) then Exit;
   ArcFile^.Read(P, SizeOf(P));
-  for i:=1 to TXT_WORD do if (P.chksum[i] < '0') or (P.chksum[i] > '9') then P.chksum[i] := ' ';
-  SumTar := FromOct(DelSpaces(P.chksum));
+  SumTar := FromOct(P.chksum);
   P.chksum := '        '; {8 spaces}
   SumCalc := 0;
   for i:=0 to BLKSIZE-1 do SumCalc := SumCalc + mem[Seg(P.FName):Ofs(P.FName)+i];
   TARDetect := (SumTar = SumCalc);
- {piwamoto.change.end}
   ArcFile^.Seek(ArcPos);
  end;
 

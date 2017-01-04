@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -193,6 +193,8 @@ begin
          FileInfo.Attr := Byte(P2.HeadFlags and $04 <> 0) * Hidden;
          if P2.NameLen > 255 then P2.NameLen := 255;
          ArcFile^.Read(S[1], P2.NameLen); S[0] :=Char(P2.NameLen);
+         if P2.HeadFlags and $200 <> 0 then S[0] := Char(PosChar(#0, S) - 1);
+            {piwamoto: skip unicode names from winrar2.80beta1+ archives}
          repeat
            Ps := System.Pos('.\', S);
            if Ps = 0 then Break;

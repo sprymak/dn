@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -336,8 +336,13 @@ begin
     end else
 NE:  OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes;
     if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT+flnSelected;
-    if P^.Attr and SysFile<>0 then NFM:=nfmSystem;
-    if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
+
+   case P^.Attr and (Hidden+SysFile) of               {Pavel Anufrikov -> }
+    Hidden  :        NFM:=nfmHidden;
+    SysFile :        NFM:=nfmSystem;
+    Hidden+SysFile : NFM:=nfmHiddenSystem;
+   end{case};                                         { <- Pavel Anufrikov}
+
     if P^.Attr and Directory <>0 then if DirFLP<>65535
                                        then OPT:=OPT or DirFLP
                                        else {$IFNDEF COMBINE_MIXED}
@@ -366,8 +371,14 @@ NE:  OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHa
     NFM:=nfmNull;
     OPT:=flnHardExtArea or flnAutoHideDot or flnPadRight or flnHighlight or flnHandleTildes;
     if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT+flnSelected;
-    if P^.Attr and SysFile<>0 then begin NFM:=nfmSystem; OPT:=OPT or flnCapitalCase end;
-    if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
+
+    case P^.Attr and (Hidden+SysFile) of               {Pavel Anufrikov -> }
+     Hidden  :        NFM:=nfmHidden;
+     SysFile :        NFM:=nfmSystem;
+     Hidden+SysFile : NFM:=nfmHiddenSystem;
+    end{case};                                         { <- Pavel Anufrikov}
+    if P^.Attr and SysFile<>0 then OPT:=OPT or flnCapitalCase;
+
     if P^.Attr and Directory <>0 then OPT:=OPT or flnUpCase
                                  else OPT:=OPT or flnLowCase;
     S:=FormatLongName(MakeFileName(P^.Name), 12, 3, OPT, NFM, nil);

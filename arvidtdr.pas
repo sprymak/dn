@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.12
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -59,7 +59,7 @@ procedure TdrGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;
 procedure TdrEditDescription(AvtDr: PArvidDrive; var S, Nam: String; var PF: PFileRec);
 procedure TdrCalcTotal(AvtDr: PArvidDrive; const Offset: LongInt; var LL: TSize);
 Function  TdrInit(AvtDr: PArvidDrive): boolean;
-Function  TdrLoad(AvtDr: PArvidDrive; var S: TStream): boolean;
+{Function  TdrLoad(AvtDr: PArvidDrive; var S: TStream): boolean;}
 
 IMPLEMENTATION
 
@@ -315,11 +315,12 @@ begin with AvtDr^ do begin
   PosTableOfs:=D.PosTableOfs;
   Stream^.Seek(D.PosTableOfs);
   Stream^.Read(J, SizeOf(J));
-  if Stream^.Status <> stOK then exit;
+{  if Stream^.Status <> stOK then exit;}{commented by piwamoto}
   TapeRecordedTime:=J*8;
   TdrInit:=True;
 end end;
 
+{
 Function TdrLoad;
 var J: Word;
 begin with AvtDr^ do begin
@@ -337,5 +338,6 @@ begin with AvtDr^ do begin
   TapeFmt:=D.TapeFmt;
   TdrLoad:=True;
 end end;
+}
 
 END.
