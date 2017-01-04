@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,15 +43,13 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit u_srchf;
 interface
 uses Objects,
+     collect,
      LFN,      {DataCompBoy}
      Commands, {DataCompBoy}
      DNApp;    {DataCompBoy}
@@ -82,7 +80,7 @@ begin
     goto q;
    end;
 
-   lFindFirst(MakeNormName(pPath, '*.*'), AnyFile, SR);
+   lFindFirst(MakeNormName(pPath, x_x), AnyFile, SR);
    while DOSError = 0 do
    begin
      if (SR.SR.Name <> '.') and (SR.SR.Name <> '..') and
@@ -175,10 +173,10 @@ begin
        if ((i>length(s)) and (P<length(s))) or
           ((S[i] in [';',',']) and (not InSq)) then begin
         S2:=Copy(S, P, I-P);
-        if S2[1]='*' then S2:=RecursiveCheck(pFileName, DelSquashes(Copy(S2, 2, 255)), True) else
-         if S2[1]='+' then S2:=RecursiveCheck(pFileName, DelSquashes(Copy(S2, 2, 255)), False) else
-          if FileExists(MakeNormName(DelSquashes(Copy(S2, 2, 255)), pFileName))
-           then S2:=MakeNormName(DelSquashes(Copy(S2, 2, 255)), pFileName)
+        if S2[1]='*' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, 255), True) else
+         if S2[1]='+' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, 255), False) else
+          if FileExists(MakeNormName(Copy(S2, 2, 255), pFileName))
+           then S2:=MakeNormName(Copy(S2, 2, 255), pFileName)
            else S2:='';
         P:=I+1;
         If S2<>'' then begin

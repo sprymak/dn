@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Idlers;
 
@@ -101,7 +102,7 @@ type
   TClockSaver = Object( TSSaver )
     X, Y, DX, DY, DDY: Integer;
     Dest: TDestination;
-    Rest: Byte;
+    Rest, Clr: Byte;       {JO}
     dH, dM, dS, dSS: Word;
     constructor Init;
     procedure Update; virtual;
@@ -118,10 +119,8 @@ uses
   DOS, DNApp, advance, advance1, advance2, advance3, Memory, Startup, Commands;
 
 const
-  StarChars : Array [0..5] of Char = (' ','ú','ù','','','');
+  StarChars : Array [0..5] of Char = (#32,#250,#249,#7,#4,#15);
   MColors: Array [0..3] of Byte = (1, 3, 9, 11);
-var
-  Ticks: Word absolute $40:$6C;
 
 procedure TSSaver.Update;
 begin
@@ -130,9 +129,10 @@ end;
 function TSSaver.Execute;
   var Event: TEvent;
       W: Word;
+      WW: Word;
       T: TEventTimer;
 begin
-  W := memw[$40:$17];
+  W := ShiftState shl 8 + ShiftState2;
   NewTimerSecs(T, 3600);
   repeat
     GetEvent(Event);
@@ -140,7 +140,8 @@ begin
     HideCursor;
     Application^.Idle;
     if StartupData.Unload and osuInactivityExit = 0 then NewTimerSecs(T, 3600);
-  until (Event.What <> evNothing) or (memw[$40:$17] <> W) or TimerExpired(T);
+    WW := ShiftState shl 8 + ShiftState2;
+  until (Event.What <> evNothing) or (WW <> W) or TimerExpired(T);
   if TimerExpired(T) then Execute := cmCancel else Execute := cmOK;
 end;
 
@@ -252,7 +253,7 @@ begin
    WriteBuf(X div StarSkyMult,Y div StarSkyMult,1,1,W);
    NewTimer(Next, (CommonDelay + Speed) * 18 div 100);
   end;
-  if not StdMouse then HideMouse;
+  if not MouseVisible then HideMouse;
 end;
 
 constructor TProjector.Init;
@@ -282,24 +283,23 @@ procedure TProjector.Draw;
             ((L:-1;R:0),(L:-1;R:0),(L:1;R:1),(L:2;R:2),(L:3;R:3),(L:3;R:3),(L:2;R:2),(L:1;R:1)),
             ((L:-1;R:0),(L:-1;R:0),(L:1;R:0),(L:2;R:1),(L:3;R:2),(L:2;R:1),(L:1;R:0),(L:-1;R:0))
             );
- var B: Array[-20..200] of Word;
+ var B: Array[-20..220] of Word;
      I,K,L: Integer;
      W: Word;
 begin
  if ScreenHeight*2 > ScreenWidth then K := 1 else K := 2;
- for I := 0 to Size.X do
-  begin
-   MoveChar(B[0], ' ', $07, Size.X);
-   L := I - Center.Y;
-   if (L >= -3) and (L <= 4) and (RR[Radius][L].L >= 0) then
-    begin
-      Move(PWordArray(Screen)^[I*ScreenWidth + 1 + Center.X
-                               - RR[Radius][L].L*K], B[1 + Center.X
-                               - RR[Radius][L].L*K],
-                               (RR[Radius][L].L + RR[Radius][L].R)*2*K);
-    end;
-   WriteLine(0,I,Size.X,1,B[0]);
-  end;
+ for I := 0 to Size.Y-1 do begin
+  MoveChar(B[0], ' ', $07, Size.X);
+  L := I - Center.Y;
+  if (L >= -3) and (L <= 4) and (RR[Radius][L].L >= 0) then
+   begin
+     Move(PWordArray(Screen)^
+           [I*ScreenWidth + 1 + Center.X - RR[Radius][L].L*K],
+          B[1 + Center.X - RR[Radius][L].L*K],
+          (RR[Radius][L].L + RR[Radius][L].R)*2*K);
+   end;
+  WriteLine(0,I,Size.X,1,B[0]);
+ end;
 end;
 
 procedure TProjector.Update;
@@ -344,7 +344,7 @@ begin
   NextU := Sec100 + 15 + Sec*100 + LongInt(Min)*10000 + LongInt(Hour)*1000000;
   if (Center.X <= Radius) or (Center.Y <= Radius) or
      (Center.X >= (Size.X - Radius)) or (Center.Y >= (Size.Y - Radius)) then DDX := 0;
-  if not StdMouse then HideMouse;
+  if not MouseVisible then HideMouse;
 end;
 
 CONSTRUCTOR TClockSaver.Init;
@@ -357,6 +357,7 @@ begin
   DX := 1 - Random(3);
   DY := 1 - Random(3);
   DDY := 3 + Random(10);
+  Clr := $09;            {JO}
   SetBlink( ON );
   Update;
 end;
@@ -366,14 +367,14 @@ var
   B, BB: TDrawBuffer;
   I: Integer;
 begin
-  MoveChar( BB, ' ', 7, Size.X );
+  MoveChar( BB, ' ', $07, Size.X );
   For I := 0 to Size.Y - 1 do
     If I <> Y
       then WriteLine( 0, I, Size.X, 1, BB )
       else begin
         Move( BB, B, Size.X * 2 );
-        MoveStr( B[ X ], SStr( dH, 2, '0' ) + ':' + SStr( dM, 2, '0' ), 7 );
-        WordRec( B[ X + 2 ] ).Hi := $87;
+        MoveStr( B[ X ], SStr( dH, 2, '0' ) + ':' + SStr( dM, 2, '0' ), Clr ); {JO}
+        WordRec( B[ X + 2 ] ).Hi := Clr + $80; {JO}
         WriteLine( 0, I, Size.X, 1, B );
       end
 end;
@@ -404,12 +405,13 @@ begin
         DX := 1 - Random(3);
         DY := 1 - Random(3);
         DDY := 3 + Random(10);
+        if Clr <  $0E then Clr := Clr + 1 else Clr := $09;   {JO}
       end;
-    MoveStr( B[ 0 ], SStr( dH, 2, '0' ) + ':' + SStr( dM, 2, '0' ), 7 );
-    WordRec( B[ 2 ] ).Hi := $87;
+    MoveStr( B[ 0 ], SStr( dH, 2, '0' ) + ':' + SStr( dM, 2, '0' ), Clr ); {JO}
+    WordRec( B[ 2 ] ).Hi := Clr + $80; {JO}
     WriteLine( X, Y, 5, 1, B );
   end;
-  if not StdMouse then HideMouse;
+  if not MouseVisible then HideMouse;
 end;
 
 DESTRUCTOR TClockSaver.Done;
@@ -431,9 +433,9 @@ begin
   DoneDOSMem;
   SwapVectors;
   DoneMemory;
-  DoneSysError;
+{  DoneSysError;} {X-Man}
   Exec(SourceDir + 'SSAVERS\' + FN, '');
-  InitSysError;
+{  InitSysError;} {X-Man}
   SetVideoMode(ScreenMode); SM := ScreenMode;
   SwapVectors;
   InitDOSMem;
@@ -442,7 +444,7 @@ begin
   InitEvents;
   HideMouse;
   if ButtonCount > 0 then
-  if StdMouse then
+  if MouseVisible then
       asm
         mov ax, 4
         mov cx, MX

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,16 +44,14 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT DISKTOOL;
 
 interface
 
-uses LFN, {DataCompBoy}
-     advance, advance1, advance2, advance3, Dos, Objects;
-
-const On = True;
-      Off = False;
+uses LFN, {DataCompBoy}   advance, advance1, advance2, advance3, Dos,
+     Objects, Drivers;
 
 type
       FATRec = Array [0..64000] of Byte;
@@ -159,15 +157,15 @@ type
     procedure SectorWrite(Drive : Byte;q : pointer;t : LongInt; l : word);
 {DataCompBoy
     procedure DiskOn(Drv : Byte);
-}
-    function  StrEq(Var a,b;Count : Word) : Boolean;
-{DataCompBoy
     procedure DiskOff;
 }
+{$IFNDEF FPC}
+    function  StrEq(Var a,b;Count : Word) : Boolean;
+{$ENDIF}
     function  CheckDisk(C : Char) : Boolean;
 
 implementation
-uses Startup, Messages, Drivers, Memory, DNApp, RStrings, Commands;
+uses Startup, Messages, Memory, DNApp, RStrings, Commands;
 
  type SecRec = record
        Num   : LongInt;
@@ -194,6 +192,7 @@ begin
 end;
 
 procedure SectorRead;
+{$IFNDEF FPC}
  label Rep;
  var Prm : SecRec;
      ppr : pointer;
@@ -244,9 +243,12 @@ if not DOS40 then
    Abort := SysErrorFunc(XlatError(BiosError), Drive) = 3;
    if not Abort then Goto Rep;
   end;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 procedure SectorWrite;
+{$IFNDEF FPC}
  label Rep;
  var Prm : SecRec;
      ppr : pointer;
@@ -301,9 +303,12 @@ Rep:
   mov ah,0dh
   int 21h
  end;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 constructor TDiskDriver.Init;
+{$IFNDEF FPC}
 var S: string;
     BRec: PBootRec;
     P: PDiskDriver;
@@ -394,6 +399,9 @@ begin
      if (FATSectNum=0) or (FAT=nil) then Fail;
      if Abort and (FAT <> nil) then begin FreeFAT; Fail; end;
     end;
+
+{$ELSE} begin
+{$ENDIF}
 end;
 
 procedure FreeMem(var p : Pointer;Size : Word);
@@ -403,6 +411,7 @@ begin
  p:=Nil;
 end;
 
+{$IFNDEF FPC}
 function StrEq(Var a,b;Count : Word) : Boolean;
  var f : Boolean;
 begin
@@ -426,16 +435,22 @@ begin
  end;
  StrEq:=f;
 end;
+{$ENDIF}
+
 
 procedure TDiskDriver.SeekFAT;
+{$IFNDEF FPC}
 begin
  WriteFAT;
  if N < 0 then N := 0; if N >= SectPerFAT then N := SectPerFAT - 1;
  FATSect := N;
  ReadFAT;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 function TDiskDriver.GetPath(s : string) : word;
+{$IFNDEF FPC}
 var
     ts,vs : string[12];
     cl,i  : word;
@@ -491,9 +506,12 @@ begin
         end;
   FreeMem(Pointer(QQP),QSize);
   GetPath:=cl;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 function TDiskDriver.GetFAT(N : Word) : Word;
+{$IFNDEF FPC}
  var d: Word;
      DD: LongInt;
 begin
@@ -517,9 +535,12 @@ begin
    d:=FAT^[DD]+FAT^[DD+1] shl 8;
   end;
  GetFAT:=d;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 procedure TDiskDriver.SetFAT(N,Value : Word);
+{$IFNDEF FPC}
  var d,v : Word;
      DD: LongInt;
 begin
@@ -552,21 +573,30 @@ begin
    FAT^[DD]:=Value and 255;
    FAT^[DD+1]:=Value shr 8;
   end;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 procedure TDiskDriver.ClusterRead(var Buf;N : word);
+{$IFNDEF FPC}
  var p : Pointer;
 begin
  p:=@Buf;SectorRead(Drive,p,MadeSec(n),MadeLen(n));
+{$ELSE} begin
+{$ENDIF}
 end;
 
 procedure TDiskDriver.ClusterWrite(var Buf;N : Word);
+{$IFNDEF FPC}
  var p : Pointer;
 begin
  p:=@Buf;SectorWrite(Drive,p,MadeSec(n),MadeLen(n));
+{$ELSE} begin
+{$ENDIF}
 end;
 
 function TDiskDriver.ChainLen(N : Word):Word;
+{$IFNDEF FPC}
  var Next : Word;
      Len  : Word;
 begin
@@ -583,29 +613,41 @@ begin
       Inc(Len);
     end;
  ChainLen:=Len;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 function TDiskDriver.MadeSec(t : LongInt) : LongInt;
+{$IFNDEF FPC}
  var MS: LongInt;
 begin
   if t>=2 then MS:=LongInt(FirstClust+(t-2)*LongInt(SectPerClust))
           else MS:=LongInt(LongInt(SectPerFat)*LongInt(FatCopies)+Reserved);
   MadeSec := MS;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 function TDiskDriver.MadeLen;
+{$IFNDEF FPC}
 begin
   if t>=2 then MadeLen:=SectPerClust
           else MadeLen:=(RootEntries*32) div SectLen;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 function TDiskDriver.MadeClust(t : word) : word;
+{$IFNDEF FPC}
 begin
   if t>=FirstClust then MadeClust:=(t-FirstClust) div SectPerClust+2
                    else MadeClust:=0;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 procedure TDiskDriver.ReadFAT;
+{$IFNDEF FPC}
  var N: Word;
 begin
  Abort := On;
@@ -622,9 +664,12 @@ begin
  SectorRead(Drive,FAT,Reserved+FATSect,FATSectNum);
  FATModified := Off;
  Abort := Off;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 procedure TDiskDriver.WriteFAT;
+{$IFNDEF FPC}
  var I: Byte;
      N: Word;
 begin
@@ -636,18 +681,26 @@ begin
   end;
  NeedAbort := Off;
  FATModified := Off;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 procedure TDiskDriver.FreeFAT;
+{$IFNDEF FPC}
 begin
  WriteFAT;
  FreeMem(Pointer(FAT),FATSectNum*SectLen);
  FAT:=Nil;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 destructor TDiskDriver.Done;
+{$IFNDEF FPC}
 begin
  FreeFAT;
+{$ELSE} begin
+{$ENDIF}
 end;
 
 {DataCompBoy
@@ -655,7 +708,7 @@ procedure DiskOn;
 begin
  if not DiskOperation then Exit;
  Port[$3F2]:=($08 shl Drv) or $0C or (Drv-1);
- mem[0:$440]:=$FF;
+ mem[seg00040:$40]:=$FF;
 end;
 }
 {DataCompBoy
@@ -666,6 +719,7 @@ end;
 }
 
 procedure TDiskDriver.SetVLabel;
+{$IFNDEF FPC}
   label   Ex;
   var i   : Integer;
       QQP : ^DirPtr;
@@ -715,12 +769,17 @@ begin
  ClusterWrite(QQP^,0);
 Ex:
  System.FreeMem(QQP,RootEntries*32);
+{$ELSE} begin
+{$ENDIF}
 end;
 
 function TDiskDriver.ClusterSize;
+{$IFNDEF FPC}
 begin
  if Cluster = 0 then ClusterSize := ROOTEntries * 32
                 else ClusterSize := SectLen * SectPerClust
+{$ELSE} begin
+{$ENDIF}
 end;
 
 

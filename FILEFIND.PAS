@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,16 +43,14 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 unit FileFind;
 
 interface
 uses Objects, Views, Dialogs, Drivers, Menus, FileCopy, FilesCol, Eraser,
-     Drives, HideView, DOS, Gauge, DiskInfo, FStorage, ObjType, LFNCol;
+     Drives, HideView, DOS, Gauge, DiskInfo, FStorage, LFNCol, DNIni,
+     collect;
 
 type
     TFindRec = record
@@ -60,7 +58,7 @@ type
      What: String;
      Options: Word;
      Where: Word;
-     AddChar: String[1];
+     AddChar: String[3];
     end;
 
     PListItem  = ^TListItem;
@@ -82,9 +80,9 @@ const
      CFileFinder = #6#7#8#9;
      CFindInfo   = #10#11#12#13;
 
-     ffSeFnd    = $01; {Файл найден}                {-$VOL}
-     ffSeD2Lng  = $02; {Переполнение строки поиска} {-$VOL}
-     ffSeNotFnd = $FE; {Файл не найден}             {-$VOL}
+     ffSeFnd    = $01; {Found a file}           {-$VOL}
+     ffSeD2Lng  = $02; {Search string overflow} {-$VOL}
+     ffSeNotFnd = $FE; {No files found}         {-$VOL}
 
      ffoAdvanced    = 1;
      ffoCaseSens    = 2;
@@ -127,6 +125,7 @@ type
    ListFile: PString;
    UpFile: PFileRec; {DataCompBoy}
    AllowPack: Boolean;
+   AMask, AWhat: PString;
    constructor Load(var S: TStream);
    procedure Store(var S: TStream); virtual;
    procedure NewUpFile;
@@ -138,6 +137,7 @@ type
    procedure CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
    function Disposable: Boolean; virtual;
    function GetRealName: String; virtual;
+   function GetDir: string; virtual;
    procedure MakeDir; virtual;
    destructor Done; virtual;
    procedure GetFull(var B; P:PFileRec; C, SC:Word); virtual; {DataCompBoy}
@@ -170,24 +170,10 @@ type
 
   procedure CopyToTempDrive(AFiles: PCollection; Own: PView);
 
-const
-      RFindDrive: TStreamRec = (
-       ObjType: otFindDrive;
-       VmtLink: Ofs(TypeOf(TFindDrive)^);
-       Load: @TFindDrive.Load;
-       Store: @TFindDrive.Store);
-
-      RTempDrive: TStreamRec = (
-       ObjType: otTempDrive;
-       VmtLink: Ofs(TypeOf(TTempDrive)^);
-       Load: @TTempDrive.Load;
-       Store: @TTempDrive.Store);
-
-
 implementation
 uses LFN{DataCompBoy}, DNApp, advance, advance1, advance2, advance3, Startup,
      Memory, Messages, HistList, Commands, RStrings, FlPanel, FViewer, MicroEd,
-     Tree, xTime, DnUtil; {-$VIV}
+     Tree, xTime, DnUtil, u_keymap;
 
 
 const
@@ -207,48 +193,38 @@ function ReadingListMsg: PView; begin ReadingListMsg := WriteMsg(GetString(dlRea
 
         {-DataCompBoy-}
 procedure FindFile;
- var R: TRect;
-     D: PDialog;
-     P1, P2: PView;
-     FN: String;
-     Dr: String;
-     Nm: String;
-     Xt: String;
-     PInfo: PWhileView;
+ var PInfo: PWhileView;
      Files: PDirStorage;
      Directories: PCollection;
-     C: Char;
-     CancelSearch: Boolean;
-     AMask: String;
-     Event: TEvent;
      BB: byte; {-$VOL}
-     II,I,J: Word;
+     R: TRect;
 begin
  FindRec.AddChar:='';
- II := ExecResource(dlgFileFind, FindRec);
- if II = cmCancel then Exit;
+
+ if ExecResource(dlgFileFind, FindRec) = cmCancel then Exit;
  ConfigModified := On;
  DelLeft(FindRec.Mask); DelRight(FindRec.Mask);
  if FindRec.Mask = '' then FindRec.Mask := x_x;
  if (Pos('*', FindRec.Mask)=0) and
     (Pos('.', FindRec.Mask)=0) and
     (Pos(';', FindRec.Mask)=0) and
-    (Pos('?', FindRec.Mask)=0) then FindRec.AddChar := '*'
+    (Pos('?', FindRec.Mask)=0) then FindRec.AddChar := '*.*'
                                else FindRec.AddChar := '';
- AMask := FindRec.Mask+FindRec.AddChar;
  New(Files, Init);
  Directories := New(PStringCollection, Init(30,30));
- R.Assign(1, 1, 25, 10); Inc(SkyEnabled);
- New(PInfo, Init(R)); PInfo^.Options := PInfo^.Options or ofSelectable;
- PInfo^.Top := GetString(dlDBViewSearch)+Cut(FindRec.Mask, 50);
+ R.Assign(1, 1, 40, 10); Inc(SkyEnabled);
+ New(PInfo, Init(R)); PInfo^.Options := PInfo^.Options or ofSelectable or ofCentered;
+ if FindRec.What=''
+  then PInfo^.Top := GetString(dlDBViewSearch)+Cut(FindRec.Mask, 50)
+  else PInfo^.Top := GetString(dlDBViewSearch)+Cut(FindRec.Mask, 30)+' | '+Cut(FindRec.What, 17);
  PInfo^.Bottom := GetString(dlNoFilesFound);
  PInfo^.Write(1, GetString(dlDBViewSearchingIn));
  Desktop^.Insert(PInfo);
- if StartupData.Slice2 and osuReleaseFind = 0 then Application^.FullSpeed:=True;
+ if StartupData.Slice2 and osuReleaseFind = 0 then Application^.BFSpeed;
  BB := FindFiles(Files, Directories, FindRec, PInfo);
- if StartupData.Slice2 and osuReleaseFind = 0 then Application^.FullSpeed:=False;
+ if StartupData.Slice2 and osuReleaseFind = 0 then Application^.EFSpeed;
  Desktop^.Delete(PInfo); Dec(SkyEnabled);
- Dispose(PInfo, Done);
+ Dispose(PInfo,Done);
  if (BB and ffSeD2Lng) <> 0 then MessageBox( GetString(dlSE_Dir2Long), nil, mfWarning + mfOkButton);
  if (BB and ffSeNotFnd) = BB then MessageBox(^C+GetString(dlNoFilesFound), nil, mfError + mfOkButton);
 end;
@@ -297,17 +273,20 @@ begin
   Delete(S, 1, I+Length(CountryInfo.DateSep)-1);
   case CountryInfo.DateFmt of
     0: begin
-         DT.Year := Stoi(S); if DT.Year < 100 then Inc(DT.Year, 1900);
+         DT.Year := Stoi(S); if DT.Year < 80 then Inc(DT.Year, 2000)
+                     else if DT.Year < 100 then Inc(DT.Year, 1900);
          DT.Day := Stoi(S2); if DT.Day > 31 then Exit;
          DT.Month := Stoi(S1); if DT.Month > 12 then Exit;
        end;
     1: begin
-         DT.Year := Stoi(S); if DT.Year < 100 then Inc(DT.Year, 1900);
+         DT.Year := Stoi(S); if DT.Year < 80 then Inc(DT.Year, 2000)
+                             else if DT.Year < 100 then Inc(DT.Year, 1900);
          DT.Day := Stoi(S1); if DT.Day > 31 then Exit;
          DT.Month := Stoi(S2); if DT.Month > 12 then Exit;
        end;
     2: begin
-         DT.Year := Stoi(S1); if DT.Year < 100 then Inc(DT.Year, 1900);
+         DT.Year := Stoi(S1); if DT.Year < 80 then Inc(DT.Year, 2000)
+                             else if DT.Year < 100 then Inc(DT.Year, 1900);
          DT.Day := Stoi(S); if DT.Day > 31 then Exit;
          DT.Month := Stoi(S2); if DT.Month > 12 then Exit;
        end;
@@ -365,6 +344,7 @@ function FindFiles;
       I: Byte;
       D: DateTime;
       DirCol: PDirCol;
+      XL: TXLat;
 
  function SearchF: Boolean;
    var S: TBUFStream;
@@ -374,7 +354,7 @@ function FindFiles;
    PInfo^.Write(3, GetString(dlLookedFiles) + ItoS(TotalNum)); {-$VIV}
    S.Init(Path+SR.FullName, stOpenRead, $4000);
    SearchF := (S.Status = stOK) and
-              ( FViewer.SearchFileStr(@S, FindRec.What, 0,
+              ( FViewer.SearchFileStr(@S, XL, FindRec.What, 0,
                                           FindRec.Options and ffoCaseSens <> 0, {-$VIV 14.05.99}
                                           Off,
                                           FindRec.Options and ffoWholeWords <> 0, Off,
@@ -383,6 +363,7 @@ function FindFiles;
  end;
 
  begin
+  NullXLAT(XL);
   if (length(Path) + length(Mask)) > (MaxPathLen) then {-$VOL} {DataCompBoy}
     begin FFResult := FFResult or ffSeD2Lng; Exit; end;
   if CancelSearch or not MemOK then Exit;
@@ -463,7 +444,7 @@ Skip:
     DosError := 0;
     if PInfo <> nil then PInfo^.DrawView;
    end;
-  Dispose(DirCol, done);
+  Dispose(DirCol,Done); DirCol:=nil;
  end;
 
 function SlowDrive(C: Char): Boolean;
@@ -507,10 +488,12 @@ begin
      Mask := FindRec.Mask+FindRec.AddChar;
      if PosChar('.', FindRec.Mask) = 0 then Replace(' ', '*', Mask);
    end else Mask := x_x;
- New(Drv, Init('Find: ' + FindRec.Mask, Directories, Files, FreeByte));
+ New(Drv, Init(GetString(dlFindPanel) + FindRec.Mask, Directories, Files, FreeByte));
+ if FindRec.What<>'' then Drv^.AWhat:=NewStr(FindRec.What);
+ Drv^.AMask := NewStr(FindRec.Mask);
  Drv^.isDisposable := Off;
  Pnl := nil;
- {FN := DelSpaces(FExpand(FindRec.Mask));
+ {FN := DelSpaces(lFExpand(FindRec.Mask));
  lFSplit(FN, Dr, Nm, Xt);}
  lGetDir(0, FN);
  if FN[Length(FN)] <> '\' then FN := FN + '\';
@@ -527,14 +510,14 @@ begin
   begin
     if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := Off;
     Drv^.isDisposable := On;
-    Dispose(PFilePanel(Pnl)^.Files, Done);
+    Dispose(PFilePanel(Pnl)^.Files,Done);
     PFilePanel(Pnl)^.Files := New(PFilesCollection, Init($100,$80));
     Application^.Redraw;
     Message(Pnl, evCommand, cmPanelReread, nil);
   end;
  if (Files^.Files = 0) or (Pnl = nil) then
   begin
-   Dispose(Drv, Done);
+   Dispose(Drv,Done); Drv:=nil;
    FFResult := FFResult and ffSeNotFnd; {-$VOL}
   end;
  FindFiles := FFResult;
@@ -602,12 +585,12 @@ begin
        end;
    end;
 
-  Dispose(F, Done);
+  Dispose(F,Done);
   WW^.Free;
   if (FC = nil) or (FC^.Files = 0) or (DC = nil) or (DC^.Count = 0) then
     begin
-      if FC <> nil then Dispose(FC, Done);
-      if DC <> nil then Dispose(DC, Done);
+      if FC <> nil then Dispose(FC,Done);
+      if DC <> nil then Dispose(DC,Done);
       MessageBox(^C+GetString(dlNoFilesFound), nil, mfError+mfOKButton);
       Exit
     end;
@@ -648,11 +631,6 @@ function OpenDirectory(const Dir: String): PDrive;
                Files^.AddFile(Dr^+SR.FullName, Dr^+SR.SR.Name, SR.FullSize, SR.FullSize, SR.SR.Time, SR.SR.Attr);
                Inc(MemReq, SizeOf(TFileRec));
                Inc(MemReq, Length(Dr^+SR.FullName)+1);
-               {if Files^.Count = 2000 then
-                begin
-                  MessageBox(GetString(dlFindCantKeep), nil, mfError + mfOKButton);
-                  Exit;
-                end;}
              end else
              if SR.SR.Name[1] <> '.' then AddDirectory(Dr^+SR.FullName);
          lFindNext(SR);
@@ -667,7 +645,7 @@ begin
   PI := ReadingListMsg;
   New(Files, Init);
 
-  AddDirectory(FExpand(Dir));
+  AddDirectory(lFExpand(Dir));
   I := Dirs^.Count-1;
   MemReq := LowMemSize;
   while (I >= 0) and (not Abort) and (System.MemAvail > MemReq) do
@@ -773,6 +751,8 @@ begin
  AllowPack := True;
  isDisposable := On;
  S.Read(DriveType,SizeOf(DriveType));
+ AMask:=S.ReadStr;
+ AWhat:=S.ReadStr;
  Dirs := PSortedCollection(S.Get);
  S.Read(I, SizeOf(I)); if I < 0 then I := 0;
  if Dirs = nil then Fail;
@@ -789,6 +769,8 @@ procedure TFindDrive.Store(var S: TStream);
 begin
   inherited Store(S);
   S.Write(DriveType,SizeOf(DriveType));
+  S.WriteStr(AMask);
+  S.WriteStr(AWhat);
   S.Put(Dirs);
   I := Dirs^.IndexOf(UpFile^.Owner);
   S.Write(I, SizeOf(I));
@@ -798,8 +780,9 @@ end;
 
 destructor TFindDrive.Done;
 begin
- if Files <> nil then Dispose(Files, Done);
- if Dirs <> nil then Dispose(Dirs, Done);
+ DisposeStr(AMask); DisposeStr(AWhat);
+ if Files  <> nil then Dispose(Files,Done); Files:=nil;
+ if Dirs   <> nil then Dispose(Dirs,Done);  Dirs:=nil;
  if UpFile <> nil then DelFileRec(UpFile);
  DisposeStr(ListFile);
  inherited Done;
@@ -820,7 +803,7 @@ function TFindDrive.GetDirectory;
      SR: lSearchRec;
      P: PFileRec;
      D: DateTime;
-     I: Integer;
+     I: LongInt;
      DrNm: String;
      AllFiles: Boolean;
      FreeSpc, TotalLen: TSize;
@@ -841,14 +824,15 @@ LLL:
 
  OOM := False;
  DOSError := 0;
- Abort := Off; AllFiles := FileMask = x_x; ClrIO; FreeSpc := 0;
+ Abort := Off; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO;
+ FreeSpc := 0;
  FreeSpace := ''; TotalInfo := ''; TotalLen := 0;
 
  Files^.ResetPointer('');
 
  AFiles := New(PFilesCollection, Init($10, $10));
  PFilesCollection(AFiles)^.Owner := Owner;
- AFiles^.Duplicates := True;
+ AFiles^.Duplicates := TypeOf(Self)=TypeOf(TFindDrive);
 
  PFilesCollection(AFiles)^.SortMode := SortMode; S := ''; PD := nil;
  ClrIO;
@@ -894,11 +878,11 @@ LLL:
       if AllowPack then
       begin
         Files^.Truncate(Max((AFiles^.Count-100), 0));
-        Dispose(AFiles, Done);
+        Dispose(AFiles,Done);
         goto LLL;
       end;
     end;
-    AFiles^.QSort;
+    AFiles^.Sort;
  end else
  begin
    if (OOM) or (not MemOK) then NoMemory := True;
@@ -939,7 +923,7 @@ begin
  if Flags and psShowDir      <> 0 then
   begin
    Q := GetString(dlTopPath);
-   S := S + Q + Strg(' ', 80-Length(Q)) + '~│~';
+   S := S + Q + Strg(' ', 80-Length(Q)) + '~'#179'~';
   end;
 end;
 
@@ -1037,13 +1021,33 @@ begin
  ForceWriteShow(PV);
  if Prev <> nil then Prev^.RereadDirectory(S);
  Files^.DosReread;
- Dispose(PV, Done);
+ Dispose(PV,Done);
 end;
 
 
 function TFindDrive.GetRealName;
 begin
  GetRealName := '';
+end;
+
+function TFindDrive.GetDir: string;
+var S: String;
+    SX: LongInt;
+begin
+ if (Pos(GetString( dlBranch ), CurDir) = 1) or (CurDir=cTEMP_)
+  then GetDir:=CurDir
+ else begin
+  S:=GetString(dlFindPanel);
+  SX:=SizeX - Length(S) - 12;
+  if (AMask<>nil) and (AWhat<>nil) and (AMask^<>x_x)
+   then GetDir := S +
+                  Cut(AMask^, ((SX div 3) shl 1)) + '|' +
+                  Cut(AWhat^,  (SX - Min(((SX div 3) shl 1), Length(AMask^))))
+   else
+    if (AWhat<>nil) and ((AMask=nil) or (AMask^=x_x))
+     then GetDir := S + Cut(AWhat^, SX)
+     else if AMask<>nil then GetDir := S + Cut(AMask^, SX) else GetDir := S + '*.*';
+ end;
 end;
 
 procedure NewTemp;
@@ -1058,7 +1062,7 @@ procedure CopyToTempDrive;
      PF: PFileRec;
      Info: PView;
 
- procedure AddRec(P: PFileRec); far;
+ procedure AddRec(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
    var Dr: String;
        Nmm: String;
        DT: DateTime;
@@ -1079,7 +1083,7 @@ begin
  if TempFiles = nil then NewTemp;
  Info := WriteMsg(GetString(dlPleaseStandBy));
  AFiles^.ForEach(@AddRec);
- Dispose(Info, Done);
+ Dispose(Info,Done);
  Drives.RereadDirectory(cTEMP_);
 end;
         {-DataCompBoy-}
@@ -1166,7 +1170,7 @@ procedure TTempDrive.EraseFiles;
  var I: Integer;
 
         {-DataCompBoy-}
- procedure Erase(P: PFileRec); far;
+ procedure Erase(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
  begin
    Files^.DeleteFile(P);
  end;
@@ -1209,7 +1213,11 @@ end;
         {-DataCompBoy-}
 
 procedure TTempDrive.CopyFiles;
+var B: Boolean;
 begin
+ if ReflectCopyDirection
+  then RevertBar:=Message(DeskTop, evBroadCast, cmIsRightPanel, Own) <> Nil
+  else RevertBar:=false;
  FileCopy.CopyFiles(AFiles, Own, MoveMode, 1);
 end;
 
@@ -1223,7 +1231,7 @@ procedure TFindDrive.GetDirInfo;
       S1,S2: String[40];
 
         {-DataCompBoy-}
-  procedure DoCount(P: PFileRec); far;
+  procedure DoCount(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     if (P <> nil) and (P^.Attr and Directory = 0) then
       begin
@@ -1255,7 +1263,7 @@ procedure TTempDrive.GetDirInfo;
       S1,S2: String[40];
 
         {-DataCompBoy-}
-  procedure DoCount(P: PFileRec); far;
+  procedure DoCount(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     if (P <> nil) and (P^.Attr and Directory = 0) then
       begin

@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.05/DOS
+::  Dos Navigator Open Source 1.51.07/DOS
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -45,12 +45,6 @@
 ::
 :://///////////////////////////////////////////////////////////////////////
 @echo off
-deltree /y exe
-deltree /y out
-if exist *.obj           del *.obj
-if exist *.obp           del *.obp
-if exist version.inc     del version.inc
-if exist Map\*.tpu       del Map\*.tpu
-if exist Map\PackMap.map del Map\PackMap.map
-if exist Map\PackMap.exe del Map\PackMap.exe
-if exist overlay.def     del overlay.def
+if exist exe\nul deltree /y exe >nul
+if exist out\nul deltree /y out >nul
+if exist *.tmp del *.tmp >nul

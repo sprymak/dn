@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,13 +44,14 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Colors;
 interface
-uses Objects, {ColorSel,} DNApp, Dialogs, Drivers, Views, Memory,
+uses Objects,  DNApp, Dialogs, Drivers, Views, Memory, Collect,
      Commands, DNStdDlg, advance, advance1, advance2, advance3, DNHelp;
 
- procedure ChangeColors;
+ {$IFDEF CHCOL}procedure ChangeColors;{$ENDIF}
  procedure WindowManager;
  procedure SetHighlightGroups;
 
@@ -68,44 +69,52 @@ type
 
 
 implementation
-uses Messages, RStrings, Drives, Startup,
-     DnIni; {-$VIV}
+uses Messages, RStrings, Drives, Startup, DnIni; {-$VIV}
 
 procedure SetHighlightGroups;
- var D: Record S1, S2, S3, S4, S5, S6: String[250]; end;
+ var D: Record S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11: String[250]; end;
 begin
  With D do
   begin
-    S1 := CustomMask1; Replace(#0, ';', S1); DelFC(S1); Dec(S1[0]);
-    S2 := CustomMask2; Replace(#0, ';', S2); DelFC(S2); Dec(S2[0]);
-    S3 := CustomMask3; Replace(#0, ';', S3); DelFC(S3); Dec(S3[0]);
-    S4 := CustomMask4; Replace(#0, ';', S4); DelFC(S4); Dec(S4[0]);
-    S5 := CustomMask5; Replace(#0, ';', S5); DelFC(S5); Dec(S5[0]);
-    S6 := Archives;    Replace(#0, ';', S6); DelFC(S6); Dec(S6[0]);
+    S1  := CustomMask1;
+    S2  := CustomMask2;
+    S3  := CustomMask3;
+    S4  := CustomMask4;
+    S5  := CustomMask5;
+{JO}S6  := CustomMask6;
+    S7  := CustomMask7;
+    S8  := CustomMask8;
+    S9  := CustomMask9;
+{JO}S10 := CustomMask10;
+    S11 := Archives;
     if ExecResource(dlgHighlightGroups, D) <> cmOK then Exit;
-    LowStr(S1); LowStr(S2); LowStr(S3); LowStr(S4); LowStr(S5); LowStr(S6);
-    While S1[Length(S1)] in [' ', ';'] do Dec(S1[0]); Replace(';', #0,S1); CustomMask1 := #0+DelSpaces(S1)+#0;
-    While S2[Length(S2)] in [' ', ';'] do Dec(S2[0]); Replace(';', #0,S2); CustomMask2 := #0+DelSpaces(S2)+#0;
-    While S3[Length(S3)] in [' ', ';'] do Dec(S3[0]); Replace(';', #0,S3); CustomMask3 := #0+DelSpaces(S3)+#0;
-    While S4[Length(S4)] in [' ', ';'] do Dec(S4[0]); Replace(';', #0,S4); CustomMask4 := #0+DelSpaces(S4)+#0;
-    While S5[Length(S5)] in [' ', ';'] do Dec(S5[0]); Replace(';', #0,S5); CustomMask5 := #0+DelSpaces(S5)+#0;
-    While S6[Length(S6)] in [' ', ';'] do Dec(S6[0]); Replace(';', #0,S6); Archives    := #0+DelSpaces(S6)+#0;
+    While S1[Length(S1)]   in [' ', ';'] do Dec(S1[0]);  CustomMask1 := S1;
+    While S2[Length(S2)]   in [' ', ';'] do Dec(S2[0]);  CustomMask2 := S2;
+    While S3[Length(S3)]   in [' ', ';'] do Dec(S3[0]);  CustomMask3 := S3;
+    While S4[Length(S4)]   in [' ', ';'] do Dec(S4[0]);  CustomMask4 := S4;
+    While S5[Length(S5)]   in [' ', ';'] do Dec(S5[0]);  CustomMask5 := S5;
+{JO}While S6[Length(S6)]   in [' ', ';'] do Dec(S6[0]);  CustomMask6 := S6;
+    While S7[Length(S7)]   in [' ', ';'] do Dec(S7[0]);  CustomMask7 := S7;
+    While S8[Length(S8)]   in [' ', ';'] do Dec(S8[0]);  CustomMask8 := S8;
+    While S9[Length(S9)]   in [' ', ';'] do Dec(S9[0]);  CustomMask9 := S9;
+{JO}While S10[Length(S10)] in [' ', ';'] do Dec(S10[0]); CustomMask10:= S10;
+    While S11[Length(S11)] in [' ', ';'] do Dec(S11[0]); Archives    := S11;
   end;
  Message(Application, evCommand, cmUpdateConfig, nil);
  GlobalMessage(evCommand, cmPanelReread, nil);
 end;
 
+{$IFDEF CHCOL}
 procedure ChangeColors;
- var D: PDialog;
 begin
-  D := PDialog(LoadResource(dlgColors));
-  if Application^.ExecuteDialog(D, Application^.GetPalette) <> cmCancel then
+  if ExecResource(dlgColors, Application^.GetPalette^) <> cmCancel then
   begin
     DoneMemory;                 { Dispose all group buffers }
     Application^.ReDraw;        { Redraw application with new palette }
   end;
   if VGASystem then GetPalette(VGA_Palette);
 end;
+{$ENDIF}
 
 procedure TWindowCol.FreeItem;
 begin
@@ -118,7 +127,9 @@ begin
  P := List^.At(Item);
  S := GetString(dlUnknownWindowType);
  Message(P, evCommand, cmGetName, @S);
- GetText := S;
+ if PWindow(P)^.Number in [1..9]
+  then GetText := Char($30+PWindow(P)^.Number) + ' ' + S
+  else GetText := '  ' + S;
 end;
 
 procedure WindowManager;
@@ -131,7 +142,7 @@ procedure WindowManager;
      DT: record P: PCollection; N: Word; end;
      I, Num: Integer;
 
-  procedure InsView(P: PView); far;
+  procedure InsView(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     if P = nil then Exit;
     S := '';
@@ -144,7 +155,7 @@ procedure WindowManager;
 begin
   New(PC, Init(10,10));
   Desktop^.ForEach(@InsView);
-  if PC^.Count = 0 then begin Dispose(PC, Done); Exit end;
+  if PC^.Count = 0 then begin Dispose(PC,Done); Exit end;
 
   D := PDialog( LoadResource( dlgWindowManager ));
 
@@ -161,10 +172,10 @@ begin
   else                  PListBox(PV)^.Focused:=0;
   Num := 0; {-$VIV 28.05.99--}
   if (WinManagerPosToEdit) and (PC^.Count > 0) and
-     (Pos('Edit -', PWindowList(PV)^.GetText(0,255)) > 0)
+     (Pos(GetString(dlEditTitle)+' -', PWindowList(PV)^.GetText(0,255)) > 0)
   then
     for I := 1 to PC^.Count - 1 do
-      if (Pos('Edit -', PWindowList(PV)^.GetText(I,255)) > 0) then
+      if (Pos(GetString(dlEditTitle)+' -', PWindowList(PV)^.GetText(I,255)) > 0) then
       begin
         Num := I;
         Break;
@@ -199,8 +210,8 @@ begin
     end;
     if R.A.X = cmOK then PView(DT.P^.At(DT.N))^.Select;
   end;
-  Dispose(D, Done);
-  Dispose(PC, Done);
+  Dispose(D,Done);
+  Dispose(PC,Done);
 end;
 
 end.

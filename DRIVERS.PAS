@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
+{$S-}
 unit Drivers;
 
 {-----------------------------------------------------}
@@ -58,10 +56,11 @@ unit Drivers;
 
 interface
 
-uses LFN, StakDump, {DataCompBoy}
-     Objects, xTime, dnini;
-
-{$I Version.INC}
+uses LFN, Objects, xTime, dnini, advance6, Commands
+{$IFNDEF FPC}
+     , StakDump
+{$ENDIF}
+     ;
 
 var
   LSliceTimer: TEventTimer;
@@ -73,24 +72,6 @@ procedure SliceAwake;
 { ******** EVENT MANAGER ******** }
 
 const
-
-{ Event codes }
-
-  evMouseDown = $0001;
-  evMouseUp   = $0002;
-  evMouseMove = $0004;
-  evMouseAuto = $0008;
-  evKeyDown   = $0010;
-  evCommand   = $0100;
-  evBroadcast = $0200;
-
-{ Event masks }
-
-  evNothing   = $0000;
-  evMouse     = $000F;
-  evKeyboard  = $0010;
-  evMessage   = $FF00;
-
   AltCodes1: array[$10..$34] of Char =
     'QWERTYUIOP'#0#0#0#0'ASDFGHJKL'#0#0#0#0#0'ZXCVBNM'#0#0;
 
@@ -100,6 +81,9 @@ const
   mbRightButton = $02;
 
   ShowScrollBar:Boolean=True;
+
+  ShiftState:  Byte = 0;
+  ShiftState2: Byte = 0;
 
 type
 
@@ -136,24 +120,26 @@ type
 { Initialized variables }
 Const
 
-  ButtonCount: Byte = 0;
-  MouseEvents: Boolean = False;
+  ButtonCount : Byte = 0;
+  MouseEvents : Boolean = False;
   MouseReverse: Boolean = False;
   MouseButtons: Byte = 0;
-  DoubleDelay: Word = 8;
-  RepeatDelay: Word = 8;
-  UserScreen: Pointer = nil;
-  GraphMouse: Boolean = False;
-  MouseMouse: Boolean = True;
-  CharHeight: Byte = 16;
-  ScreenSaved: Boolean = False;
-  DESQDetected: Boolean = False;
-  NeedAbort: Boolean = False;
-  StdMouse: Boolean = False; { Is engine really using standard mouse }
-  XSens: Byte = 11;
-  YSens: Byte = 11;
-  CLSAct: Boolean = True;
-  CurrentBlink : Boolean = False;
+  DoubleDelay : Word = 8;
+  RepeatDelay : Word = 8;
+  UserScreen  : Pointer = nil;
+{DataCompBoy
+  GraphMouse  : Boolean = False;
+  MouseMouse  : Boolean = True;
+DataCompBoy}
+  CharHeight  : Byte = 16;
+  ScreenSaved : Boolean = False;
+  NeedAbort   : Boolean = False;
+  StdMouse    : Boolean = False; { Is engine really using standard mouse }
+  XSens       : Byte = 11;
+  YSens       : Byte = 11;
+  CLSAct      : Boolean = True;
+  CurrentBlink: Boolean = False;
+  MouseWhere  : TPoint = (X: 0; Y:0);
 
 var
 
@@ -161,7 +147,6 @@ var
   OldBlink: Boolean;
 
   MouseIntFlag: Byte;
-  MouseWhere: TPoint;
   UserScreenSize: Word;
   UserScreenWidth: Word;
   MouseX, MouseY,
@@ -219,6 +204,7 @@ const
   smFont8x8 = $0100;
   smSVGALo: Word = $100; { - $109}
   smSVGAHi: Word = $10A;
+  VESA_Found: ShortInt = -1;
 
 const
 
@@ -227,6 +213,9 @@ const
   StartupMode: Word = $FFFF;
   SkyEnabled: Integer = 0;
   TottalExit: Boolean = False; { Set it only when leaving your program }
+  Exiting: Boolean = False;    { Set it when temporary leaving your program }
+
+  MouseVisible   : Boolean = True;
 
 var
 
@@ -323,15 +312,16 @@ function CStrLen(const S: String): Integer;
 
 implementation
 uses
+  Drivers2,
   Dos,
   advance,
   advance1,
   advance2,
   advance3,
-  Commands,
   Views,
   Startup,
   DnApp,
+  DnUtil,
   FlPanelX;
 
 const
@@ -351,7 +341,6 @@ const
 
       LastMouseMouse : Boolean = False;
       EGAVGA         : Boolean = False;
-      MouseVisible   : Boolean = True;
 
 { ******** EVENT MANAGER ******** }
 
@@ -372,8 +361,10 @@ var
   LastButtons: Byte;
   DownButtons: Byte;
   LastDouble: Boolean;
-  LastWhere: TPoint;
-  DownWhere: TPoint;
+const
+  LastWhere: TPoint = (X:0; Y:0);
+  DownWhere: TPoint = (X:0; Y:0);
+Var
   DownTicks: Word;
   AutoTicks: Word;
   AutoDelay: Word;
@@ -382,7 +373,6 @@ var
   EventQTail: Word;
   EventQueue: array[0..EventQSize - 1] of TEvent;
   EventQLast: record end;
-  VESA_Found: ShortInt;
 
 var
   Ticks: Word absolute $40:$6C;
@@ -430,7 +420,11 @@ asm
         STOSW
         XCHG    AX,CX
         STOSW
+        XOR     AX,AX
+        STOSW
         XCHG    AX,DX
+        STOSW
+        XOR     AX,AX
         STOSW
 end;
 
@@ -440,16 +434,21 @@ end;
 {       DX = Y coordinate }
 {       DI = Timer ticks }
 
-procedure GetMouseState; near; assembler;
+procedure GetMouseState;near; assembler;
 asm
         CLI
         CMP     EventCount,0
         JNE     @@1
         MOV     BL,MouseButtons
-        MOV     CX,MouseWhere.Word[0]
-        MOV     DX,MouseWhere.Word[2]
+{$IFNDEF FPC}
+        MOV     CX,MouseWhere.X.Word[0]
+        MOV     DX,MouseWhere.Y.Word[0]
+{$ELSE}
+        MOV     ECX,MouseWhere.X
+        MOV     EDX,MouseWhere.Y
+{$ENDIF}
         MOV     ES,Seg0040
-        MOV     DI,ES:Ticks
+        MOV     DI,ES:[6Ch]
         JMP     @@3
 @@1:    MOV     SI,EventQHead
         CLD
@@ -564,9 +563,15 @@ asm
         OR      BL,BL
         JE      @@5
         MOV     BL,AL
-@@1:    CMP     CX,LastWhere.X
+{$IFNDEF FPC}
+@@1:    CMP     CX,LastWhere.X.Word[0]
         JNE     @@6
-        CMP     DX,LastWhere.Y
+        CMP     DX,LastWhere.Y.Word[0]
+{$ELSE}
+@@1:    CMP     ECX,LastWhere.X
+        JNE     @@6
+        CMP     EDX,LastWhere.Y
+{$ENDIF}
         JNE     @@6
         CMP     RepeatDelay, 0
         JE      @@6
@@ -584,9 +589,15 @@ asm
 @@3:    MOV     BH,0
         CMP     BL,DownButtons
         JNE     @@4
-        CMP     CX,DownWhere.X
+{$IFNDEF FPC}
+        CMP     CX,DownWhere.X.Word[0]
         JNE     @@4
-        CMP     DX,DownWhere.Y
+        CMP     DX,DownWhere.Y.Word[0]
+{$ELSE}
+        CMP     ECX,DownWhere.X
+        JNE     @@4
+        CMP     EDX,DownWhere.Y
+{$ENDIF}
         JNE     @@4
         MOV     AX,DI
         SUB     AX,DownTicks
@@ -594,8 +605,13 @@ asm
         JAE     @@4
         MOV     BH,1
 @@4:    MOV     DownButtons,BL
-        MOV     DownWhere.X,CX
-        MOV     DownWhere.Y,DX
+{$IFNDEF FPC}
+        MOV     DownWhere.X.Word[0],CX
+        MOV     DownWhere.Y.Word[0],DX
+{$ELSE}
+        MOV     DownWhere.X,ECX
+        MOV     DownWhere.Y,EDX
+{$ENDIF}
         MOV     DownTicks,DI
         MOV     AutoTicks,DI
         MOV     AX,RepeatDelay
@@ -611,8 +627,13 @@ asm
         MOV     AX,evMouseAuto
 @@8:    MOV     LastButtons,BL
         MOV     LastDouble,BH
+{$IFNDEF FPC}
+        MOV     LastWhere.X.Word[0],CX
+        MOV     LastWhere.Y.Word[0],DX
+{$ELSE}
         MOV     LastWhere.X,CX
         MOV     LastWhere.Y,DX
+{$ENDIF}
 @@9:    CALL    StoreEvent
 end;
 
@@ -650,9 +671,11 @@ end;
 
 procedure GetKeyEvent;
 begin
+  ShiftState:=mem[Seg0040:$17];
+  ShiftState2:=mem[Seg0040:$18];
   _GetKeyEvent(Event);
   if Event.What = evNothing then Exit;
-  if (Event.KeyCode = kbCtrlTab) and (mem[$40:$17] and 3 <> 0) then Event.KeyCode := kbAltTab;
+  if (Event.KeyCode = kbCtrlTab) and (ShiftState and 3 <> 0) then Event.KeyCode := kbAltTab;
   if (Event.CharCode = #$e0) and
      (Event.ScanCode in [$52,$92,$A2,
                          $47,$77,$97,
@@ -844,9 +867,15 @@ asm
         CMP     AL,smMono
         JNE     @@1
         MOV     BL,30H
+{$IFDEF FPC}
+@@1:    AND     ES:[10h],0CFH
+        OR      ES:[10h],BL
+        AND     ES:[87h],0FEH
+{$ELSE}
 @@1:    AND     ES:Equipment.Byte,0CFH
         OR      ES:Equipment.Byte,BL
         AND     ES:CrtInfo,0FEH
+{$ENDIF}
         PUSH    AX
         OR      AL, AL
         JNZ     @@@1
@@ -871,7 +900,11 @@ asm
         CALL    VideoInt
         CMP     DL,42
         JNE     @@2
+{$IFDEF FPC}
+                                 OR ES:[10h],1
+{$ELSE}
         OR      ES:CrtInfo,1
+{$ENDIF}
         MOV     AH,1
         MOV     CX,600H
         CALL    VideoInt
@@ -975,31 +1008,8 @@ asm
         MOV     BX,SegB000
 @@2:    MOV     CheckSnow,CL
         XOR     AX,AX
-        MOV     ScreenBuffer.Word[0],AX
-        MOV     ScreenBuffer.Word[2],BX
-
-        {$ifndef DPMI}
-        { Check for DESQ View or compatible }
-
-        MOV     AX, $1022
-        XOR     BX, BX
-        INT     15H
-        OR      BX, BX
-        JZ      @@@1
-        MOV     AH, 1
-        MOV     DESQDetected, AH
-        MOV     BX, ScreenBuffer.Word[2]
-        MOV     ES, BX
-        XOR     DI, DI
-        MOV     AH, $FE
-        INT     10H
-        MOV     ScreenBuffer.Word[0],DI
-        MOV     BX, ES
-        MOV     ScreenBuffer.Word[2],BX
-        {$endif}
-@@@1:
-
-        { end check }
+        MOV     word ptr   ScreenBuffer,AX
+        MOV     word ptr ScreenBuffer+2,BX
 
         MOV     AH,3
         MOV     BH,0
@@ -1102,8 +1112,8 @@ begin
    if not ScreenSaved then
     begin
      if UserScreen <> nil then FreeMem(UserScreen, UserScreenSize);
-     UserScreenSize := {memw[$40:$4C];} ScreenWidth * ScreenHeight * 2;
-     UserScreenWidth := memw[$40:$4A];
+     UserScreenSize := {memw[seg0040:$4C];} ScreenWidth * ScreenHeight * 2;
+     UserScreenWidth := memw[seg0040:$4A];
      GetMem(UserScreen, UserScreenSize);
      Move(ScreenBuffer^, UserScreen^, UserScreenSize);
      ScreenSaved := True;
@@ -1134,7 +1144,7 @@ var
     rep  stosw
   end;
 begin
- If FadeDelay > 0 then FadePalette; {Knave}
+ If (FadeDelay > 0) and TottalExit then FadePalette; {Knave}
   if (ScreenSaved) and (UserScreen <> nil) then begin
     J := UserScreenWidth; if J > ScreenWidth then J := ScreenWidth;
     if WordRec(OldCursorPos).Hi > ScreenHeight - 1 then WordRec(OldCursorPos).Hi := ScreenHeight - 1;
@@ -1436,7 +1446,7 @@ procedure Get_palette(color:byte; var r,g,b:byte); Assembler;
   stosb
  end;
 
-Procedure FadePalette; {Плавно уходим в черное}
+Procedure FadePalette;
 var i,j,r,g,b:byte;
 begin
   for i:=0 to 63 do begin
@@ -1451,13 +1461,13 @@ begin
   end;
 end;
 
-Procedure BlackPalette; {Мгновенно в черное}
+Procedure BlackPalette;
 var j:byte;
 begin
 for j:=0 to 15 do Set_palette(SL[j],0,0,0);
 end;
 
-Procedure GlowPalette; {Плавно выходим из черного}
+Procedure GlowPalette;
 var i,j,r,g,b:byte;
 begin
  for i:=0 to 63 do begin
@@ -1575,18 +1585,20 @@ procedure InitSysError; external;
 procedure DoneSysError; external;
 
 {$V-}
-procedure SwapStatusLine(var Buffer; ShadowAttr: Byte); near; assembler;
+procedure SwapStatusLine(var Buffer; ShadowAttr: Byte);
+{$IFNDEF FPC}
+near; assembler;
 asm     cld
-        mov     cl,ScreenWidth.Byte
+        mov     cl,byte ptr ScreenWidth
         xor     ch,ch
-        mov     al,ScreenHeight.Byte
+        mov     al,byte ptr ScreenHeight
         sub     al,6
         shr     al,1
         mul     cl
         shl     ax,1
         les     di,ScreenBuffer
         add     di,ax
-        mov     al,ScreenWidth.Byte
+        mov     al,byte ptr ScreenWidth
         mov     dl,al
         mov     dh,0
         shl     dx,1
@@ -1632,6 +1644,8 @@ asm     cld
         add     si,2
         loop    @@4
         pop     ds
+{$ELSE}begin
+{$ENDIF}
 end;
 
 function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
@@ -1644,7 +1658,7 @@ var
   Event: TEvent;
   PExit, ActiveButton: Byte;
 
-function GetCoord(X, Y: Integer): Word;
+function GetCoord(X, Y: LongInt): Word;
 begin
  GetCoord := ((ScreenHeight-6) div 2+Y)*(ScreenWidth*2)+((ScreenWidth-40) div 2+X)*2;
 end;
@@ -1659,8 +1673,8 @@ begin
  MoveCStr(PByteArray(ScreenBuffer)^[X], P^, Byte(State)*AC+Byte(not State)*C);
 end;
 
-function MPos(P: TPoint): Integer;
-  var X, I, N: Integer;
+function MPos(P: TPoint): LongInt;
+  var X, I, N: LongInt;
 begin
  MPos := -1; N := NumButtons[ErrorCode];
  X := P.X - ((ScreenWidth-40) div 2);
@@ -1671,7 +1685,7 @@ begin
 end;
 
 procedure ControlMousePos(P: TPoint);
-  var I,J: Integer;
+  var I,J: LongInt;
 begin
   J := MPos(P);
   if (J < 0) or (J = ActiveButton) then Exit;
@@ -1718,16 +1732,16 @@ if Abort then
     begin C := SysColorAttr; AC := SysColorButtonAttr end;
   GetMem(B, 42*7*2); GetMem(SW, 42*7*2);
   MoveChar(B^, ' ', Byte(C), 42*6);
-  MoveChar(B^, '═', Byte(C), 40);
-  MoveChar(B^, '╔', Byte(C), 1);
-  MoveChar(B^[39], '╗', Byte(C), 1);
-  MoveChar(B^[42*5], '═', Byte(C), 40);
-  MoveChar(B^[42*5], '╚', Byte(C), 1);
-  MoveChar(B^[42*5+39], '╝', Byte(C), 1);
+  MoveChar(B^, #205, Byte(C), 40);
+  MoveChar(B^, #201, Byte(C), 1);
+  MoveChar(B^[39], #187, Byte(C), 1);
+  MoveChar(B^[42*5], #205, Byte(C), 40);
+  MoveChar(B^[42*5], #200, Byte(C), 1);
+  MoveChar(B^[42*5+39], #188, Byte(C), 1);
   for i:=1 to 4 do
       begin
-       MoveChar(B^[42*i], '║', Byte(C), 1);
-       MoveChar(B^[42*i+39], '║', Byte(C), 1);
+       MoveChar(B^[42*i], #186, Byte(C), 1);
+       MoveChar(B^[42*i+39], #186, Byte(C), 1);
       end;
   MoveStr(B^[(40-Length(ErrWndTitle^))div 2], ' '+ErrWndTitle^+' ', Byte(C));
   if (ErrorCode < 0) or (ErrorCode > CE_LastMsg) then ErrorCode := 12;
@@ -1874,7 +1888,8 @@ end;
 
 {$L FORMAT.OBJ}
 
-procedure Format_Str(var Result: String; const Format: String; var Params); far; external;
+procedure Format_Str(var Result: String; const Format: String; var Params);
+{$IFDEF BIT_16}far;{$ENDIF} external;
 
 procedure FormatStr;
 begin
@@ -2027,29 +2042,23 @@ end;
 
 { Drivers unit initialization and shutdown }
 
-const
-  AltFlag : Boolean = False;
+{const}
+{  AltFlag : Boolean = False;}
 var
   SaveExit: Pointer;
-  Old09   : Pointer;
-  Vect09  : Pointer absolute $0000:$0024;
   ErrAdd  : Longint ;
+{ Old09   : Pointer;}
+{ Vect09  : Pointer absolute $0000:$0024;}
 
+{$IFDEF DNPRG}
 Procedure FatalError ;
 
 var
-  C,AC,PP,FH : Word;
-  P : Pointer;
+  C,AC : Word;
   B : array[0..42] of Word;
-  TT: Text;
-  {!!!!!}
-  PPP: TByteArray absolute FreeStr;
-
   I : Byte;
-  Event: TEvent;
-  PExit, ActiveButton: Byte;
 
-function GetCoord(X, Y: Integer): Word;
+function GetCoord(X, Y: LongInt): Word;
 begin
  GetCoord := ((ScreenHeight-8) div 2+Y)*(ScreenWidth*2)+((ScreenWidth-40) div 2+X)*2;
 end;
@@ -2063,25 +2072,25 @@ var CO : word ;
   MoveChar(B, ' ', Byte(C), 42 );
 
    if  I in [0,8] then
-      MoveChar(B, '═', Byte(C), 42)
+      MoveChar(B, #205, Byte(C), 42)
        else
          begin
-           MoveChar(B,     '║', Byte(C), 1);
-           MoveChar(B[41], '║', Byte(C), 1);
+           MoveChar(B,     #186, Byte(C), 1);
+           MoveChar(B[41], #186, Byte(C), 1);
          end;
 
    if  I = 0 then
         begin
-         MoveChar(B, '╔', Byte(C), 1);
-         MoveChar(B[41], '╗', Byte(C), 1);
+         MoveChar(B, #201, Byte(C), 1);
+         MoveChar(B[41], #187, Byte(C), 1);
         end;
 
          CO := C;
 
    if  I = 8 then
         begin
-         MoveChar(B,     '╚', Byte(C), 1);
-         MoveChar(B[41], '╝', Byte(C), 1);
+         MoveChar(B,     #200, Byte(C), 1);
+         MoveChar(B[41], #188, Byte(C), 1);
         end;
 
    if I = 7 then CO := AC;
@@ -2098,26 +2107,9 @@ var CO : word ;
 
   end;
 
-
-  Function StoreBuffer(var Buf; Size:word ; FH : word ):word;assembler;
-    asm
-       mov  bx,FH
-       push ds
-        mov cx,Size
-          mov  ah,40h
-          sub  al,al
-          lds  dx,Buf
-          int  21h
-          mov  ax,0
-          jnc  @@1
-          inc  ax
-         @@1:
-       pop  ds
-    end;
-
-
 begin
- asm    MOV     AH,3
+ asm    int     3      {for easy debug}
+        MOV     AH,3
         MOV     BH,0
         CALL    VideoInt
         PUSH    CX
@@ -2126,114 +2118,8 @@ begin
         CALL    VideoInt
  end;
 
-    { Create Report File. DNAPP.PAS contains full dupe of this routine }
-
-    SourceDir := lfGetShortFileName(SourceDir); {DataCompBoy}
-    I := length(SourceDir);
-    SourceDir := SourceDir + 'DN.ERR'#0;
-
-    FH := $FFFF ;
-{$IFDEF DPMI}
-    Assign(TT, SourceDir);
-    Append(TT);
-    If IOResult<>0 then Rewrite(TT);
-    If IOResult=0  then begin
-     FH:=TextRec(TT).Handle;
- asm
-    push ds
-    push bp
-    mov  bx, FH
-{$ELSE}
- asm
-    push ds
-    push bp
-
-    mov ax,6C00h { extended dos 4+ open  }
-    mov si,offset SourceDir
-    inc si
-    mov cx,0
-    mov dx,11h   { if exist open, if not create and open }
-    mov bx,7042h { 42 file mode ; do not use int 24 , write
-                   w/o buffering }
-    int 21h
-    jnc @@1
-    jmp @@99     { other error - exit }
-@@1:
-    mov bx,ax
-{$ENDIF}
-    mov ax,4202H { lseek to end of file }
-    sub dx,dx
-    sub cx,cx
-    int 21h
-    jnc @@2
-    jmp @@99      { other error - exit }
-@@2:
-    mov FH,bx    { save handle        }
-@@99:
-    pop bp
-    pop ds
-    end;
-{$IFDEF DPMI}
-  end;
-{$ENDIF}
-
- if FH<>$FFFF then
-   begin
-     AssignOutput(FH);
-     FreeStr :=
-          ^M^J +
-       '----<' + GetDateTime(false) +' '+ GetDateTime(true) +'>'^M^J +
-       'VER :' + VersionName + ^M^J +
-       'DATE:' + VersionDate + ^M^J +
-       'ERR :' + Hex2(ExitCode) + ^M^J +
-       'ADDR:' + Hex8(ErrAdd) + ^M^J ;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-
-     FreeStr :=
-       'PSP :' + Hex4( PrefixSeg ) + ^M^J +
-       'CS  :' + Hex4(CSeg) + ^M^J +
-       'DS  :' + Hex4(DSeg) + ^M^J +
-       'SS  :' + Hex4(SSeg) + ^M^J +
-       'SP  :' + Hex4(SPtr) + ^M^J +
-       'MEMm:' + Hex8(MaxAvail) + ^M^J +
-       'MEMa:' + Hex8(MemAvail) + ^M^J +
-{$IFNDEF DPMI}
-       'hOrg:' + Hex8(Longint(HeapOrg)) + ^M^J +
-       'hEnd:' + Hex8(Longint(HeapEnd)) + ^M^J +
-       'hPtr:' + Hex8(Longint(HeapPtr)) + ^M^J +
-       'hLim:' + Hex4( StackLimit ) + ^M^J +
-{$ENDIF}
-       '';
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-     FreeStr :=
-       'STCK:' + ^M^J;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-     DumpStack;
-     FreeStr :=
-       'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-
-     for C:=0 to Pred(ScreenHeight) do
-      begin
-          TempFile:='';
-          PP := (ScreenWidth*C) shl 1;
-          for AC := 0 to Pred(ScreenWidth) do Begin
-           PPP[AC] :=  PByteArray(ScreenBuffer)^[PP+AC*2];
-           TempFile:=TempFile+Hex2(PByteArray(ScreenBuffer)^[PP+AC*2+1]);
-          End;
-          TempFile := TempFile+#13#10 ;
-          if StoreBuffer(PPP,         ScreenWidth,      FH) <> 0 then Break;
-          if StoreBuffer(TempFile[1], Length(TempFile), FH) <> 0 then Break;
-      end; { for lines }
-     asm
-       mov  ah,3Eh     { close file }
-       mov  bx,FH
-       int  21h
-     end
-   end; { file write ok }
-
-  SourceDir[0] := Char(I);
-
+ { Create Report File }
+ DoDump(ExitCode, ErrAdd);
 
   { Display Error Box }
   if Lo(ScreenMode) = smMono then
@@ -2254,42 +2140,20 @@ begin
              5 : FreeStr := '( file DN.ERR )';
              7 : FreeStr := '[ Press a key to exit now ]';
             else FreeStr := '';
-        end; { case }
+        end;
       NewLine;
-    end; { begin }
+    end;
   for I := 0 to 41 do
     PByteArray(ScreenBuffer)^[GetCoord(I+2,9)+1] := 8; { shadow }
 
-
- {
- for I := 1 to 3 do
- for C := 1 to 3 do
-  begin
-    sound(1000);
-    if I=2 then Delay(400)
-           else Delay(200);
-    Nosound;
-    Delay(100);
-  end;
- }
-  {repeat}
-   PExit := 0;
    asm
      sub ax,ax
      int 16h
    end;
-   {
-   GetKeyEvent(Event);
-   if Event.What = evKeyDown then Break ;
-    asm
-       Int 28h
-    end;
-  until false;
-  }
 end;
+{$ENDIF}
 
-
-procedure ExitDrivers; far;
+procedure ExitDrivers; {$IFDEF BIT_16}far;{$ENDIF}
 begin
   DoneSysError;
   DoneEvents;
@@ -2299,9 +2163,11 @@ begin
       {$endif}*)
       if ErrorAddr <> Nil then
           begin
+{$IFDEF DNPRG}
            ErrAdd := Longint(ErrorAddr);
            ErrorAddr := Nil;
            FatalError;
+{$ENDIF}
            DoneVideo;
           end;
 end;
@@ -2338,8 +2204,8 @@ asm
     mul  cx
     add  bx, ax
 end;
-{DataCompBoy
-procedure HideGraphCursor; far; assembler;
+(*DataCompBoy
+procedure HideGraphCursor; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
     cmp OldMouseX, 0
     js  @@1
@@ -2380,7 +2246,7 @@ asm
     add  si, si
 @@1:
 end;
-}
+*)
 procedure PrepareCharGen; assembler;
 asm
  mov dx, $3C4
@@ -2412,8 +2278,8 @@ asm
  mov ax, $0004
  out dx, ax
 end;
-{DataCompBoy
-procedure ShowGraphCursor; far;
+(*DataCompBoy
+procedure ShowGraphCursor; {$IFDEF BIT_16}far;{$ENDIF}
  var GraphBlock: Array[0..5,0..15] of Byte;
      I: Integer;
 begin
@@ -2554,8 +2420,8 @@ begin
 @@3:
  end;
 end;
-}
-procedure HideTextCursor; far; assembler;
+*)
+procedure HideTextCursor; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
     cmp OldMouseX, 0
     jl  @@1
@@ -2568,19 +2434,19 @@ asm
 @@1:
 end;
 
-procedure ShowStdCursor; far; assembler;
+procedure ShowStdCursor; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
    mov ax, 1
    int 33h
 end;
-{DataCompBoy
-procedure HideStdCursor; far; assembler;
+(*DataCompBoy
+procedure HideStdCursor; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
    mov ax, 2
    int 33h
 end;
-}
-procedure ShowTextCursor; far; assembler;
+*)
+procedure ShowTextCursor; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
    call HideTextCursor
    cli
@@ -2599,10 +2465,14 @@ asm
 end;
 
 
-procedure MouseInt; far; assembler;
+procedure MouseInt; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
+{$IFNDEF FPC}
         MOV     SI,SEG @DATA
         MOV     DS,SI
+{$ELSE}
+        LDS     SI,@DATA
+{$ENDIF}
         MOV     SI,CX
         MOV     CL,3
         MOV     MouseX,SI
@@ -2610,14 +2480,19 @@ asm
         SHR     SI,CL
         SHR     DX,CL
         MOV     MouseButtons,BL
-        MOV     MouseWhere.X,SI
-        MOV     MouseWhere.Y,DX
+{$IFNDEF FPC}
+        MOV     MouseWhere.X.Word[0],SI
+        MOV     MouseWhere.Y.Word[0],DX
+{$ELSE}
+        MOV     MouseWhere.X,ESI
+        MOV     MouseWhere.Y,EDX
+{$ENDIF}
         TEST    AX,11110B
         JE      @@2
         CMP     EventCount,EventQSize
         JE      @@2
         MOV     ES,Seg0040
-        MOV     AX,ES:Ticks
+        MOV     AX,ES:[6Ch]
         MOV     DI,EventQTail
         PUSH    DS
         POP     ES
@@ -2637,13 +2512,17 @@ asm
 @@2:    MOV     MouseIntFlag,1
 end;
 
-procedure MouseHandler; far; assembler;
+procedure MouseHandler; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
         PUSHF
         PUSH    AX
         CLI
+{$IFNDEF FPC}
         MOV     SI,SEG @Data
         MOV     DS,SI
+{$ELSE}
+        LDS     SI,@Data
+{$ENDIF}
 
         MOV     MouseButtons, BL
         mov   ax, 0Bh
@@ -2697,15 +2576,20 @@ asm
         SHR     DX,CL
         XOR     BH, BH
         MOV     BL, MouseButtons
-        MOV     MouseWhere.X,SI
-        MOV     MouseWhere.Y,DX
+{$IFNDEF FPC}
+        MOV     MouseWhere.X.Word[0],SI
+        MOV     MouseWhere.Y.Word[0],DX
+{$ELSE}
+        MOV     MouseWhere.X,ESI
+        MOV     MouseWhere.Y,EDX
+{$ENDIF}
         POP     AX
         TEST    AX,11110B
         JE      @@2
         CMP     EventCount,EventQSize
         JE      @@2
         MOV     ES,Seg0040
-        MOV     AX,ES:Ticks
+        MOV     AX,ES:[6Ch]
         MOV     DI,EventQTail
         PUSH    DS
         POP     ES
@@ -2727,7 +2611,7 @@ asm
         POPF
 end;
 
-procedure StdMouseHide; far; assembler;
+procedure StdMouseHide; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
    cmp MouseButtons, 0
    je  @@1
@@ -2738,7 +2622,7 @@ asm
  @@1:
 end;
 
-procedure StdMouseShow; far; assembler;
+procedure StdMouseShow; {$IFDEF BIT_16}far;{$ENDIF} assembler;
 asm
    cmp MouseButtons, 0
    je  @@1
@@ -2753,14 +2637,14 @@ procedure InstallMouseHandler(MouseHandler, ShowProc, HideProc: Pointer);
  var p : Pointer;
      I : Integer;
 begin
- CharHeight := mem[$40:$85];
+ CharHeight := mem[seg0040:$85];
  (*
  {$ifndef DPMI}
  if EGAVGA then
   begin
    PrepareCharGen;
    for I := 0 to 5 do
-    Move(mem[$A000:32*StdMouseBlock[I]], SaveFont[I], 16);
+    Move(mem[segA000:32*StdMouseBlock[I]], SaveFont[I], 16);
    DoneCharGen;
   end;
  {$endif}
@@ -2800,7 +2684,7 @@ begin
   begin
    PrepareCharGen;
    for I := 0 to 5 do
-    Move(SaveFont[I], mem[$A000:32*StdMouseBlock[I]], 16);
+    Move(SaveFont[I], mem[segA000:32*StdMouseBlock[I]], 16);
    DoneCharGen;
   end;
  { $endif}
@@ -2817,7 +2701,7 @@ asm
         MOV     DownButtons,AL
         MOV     LastDouble,AL
         MOV     EventCount,AX
-        MOV     AX,OFFSET DS:EventQueue
+        MOV     AX,OFFSET EventQueue
         MOV     EventQHead,AX
         MOV     EventQTail,AX
         MOV     AX,3
@@ -2826,15 +2710,24 @@ asm
         MOV     CL,3
         SHR     AX,CL
         SHR     DX,CL
+{$IFNDEF FPC}
         MOV     MouseButtons,BL
-        MOV     MouseWhere.X,AX
-        MOV     MouseWhere.Y,DX
+        MOV     MouseWhere.X.Word[0],AX
+        MOV     MouseWhere.Y.Word[0],DX
         MOV     LastButtons,BL
-        MOV     LastWhere.X,AX
-        MOV     LastWhere.Y,DX
+        MOV     LastWhere.X.Word[0],AX
+        MOV     LastWhere.Y.Word[0],DX
+{$ELSE}
+        MOV     MouseButtons,BL
+        MOV     MouseWhere.X,EAX
+        MOV     MouseWhere.Y,EDX
+        MOV     LastButtons,BL
+        MOV     LastWhere.X,EAX
+        MOV     LastWhere.Y,EDX
+{$ENDIF}
         MOV     AX,12
         MOV     CX,0FFFFH
-        MOV     DX,OFFSET CS:MouseInt
+        MOV     DX,OFFSET MouseInt
         PUSH    CS
         POP     ES
         INT     33H
@@ -2853,15 +2746,15 @@ begin
   StdMouse := ( MouseData.Options and omsCursor <> 0 ){ or ( ScreenWidth = 80 )};
   if StdMouse then begin
     if (ScreenWidth > 80) then begin
-      I := mem[$40:$49];
-      mem[$40:$49] := 3;
+      I := mem[Seg0040:$49];
+      mem[Seg0040:$49] := 3;
       asm
         push bp
         xor  ax, ax
         int  33h
         pop  bp
       end;
-      mem[$40:$49] := I;
+      mem[Seg0040:$49] := I;
     end;
     StdInitEvents;
     Goto 1
@@ -2871,7 +2764,7 @@ begin
          MOV     DownButtons,AL
          MOV     LastDouble,AL
          MOV     EventCount,AX
-         MOV     AX,OFFSET DS:EventQueue
+         MOV     AX,OFFSET EventQueue
          MOV     EventQHead,AX
          MOV     EventQTail,AX
          MOV     AX,3
@@ -2882,12 +2775,21 @@ begin
          MOV     CL,3
          SHR     AX,CL
          SHR     DX,CL
+{$IFNDEF FPC}
          MOV     MouseButtons,BL
-         MOV     MouseWhere.X,AX
-         MOV     MouseWhere.Y,DX
+         MOV     MouseWhere.X.Word[0],AX
+         MOV     MouseWhere.Y.Word[0],DX
          MOV     LastButtons,BL
-         MOV     LastWhere.X,AX
-         MOV     LastWhere.Y,DX
+         MOV     LastWhere.X.Word[0],AX
+         MOV     LastWhere.Y.Word[0],DX
+{$ELSE}
+         MOV     MouseButtons,BL
+         MOV     MouseWhere.X,EAX
+         MOV     MouseWhere.Y,EDX
+         MOV     LastButtons,BL
+         MOV     LastWhere.X,EAX
+         MOV     LastWhere.Y,EDX
+{$ENDIF}
          MOV     MouseEvents,1
   @@1:
   end;
@@ -2992,7 +2894,6 @@ begin
   end;
 
   ErrWndTitle := NewStr(GetString(dlCE_ErrWndTitle));
-
   InitSysError;
 end;
 
@@ -3014,7 +2915,7 @@ begin
  end;
   DetectMouse;
   Vesa_Found := -1;
-  CharHeight := Mem[$40:$85];
+  CharHeight := Mem[seg0040:$85];
   SaveExit := ExitProc;
   ExitProc := @ExitDrivers;
 end.

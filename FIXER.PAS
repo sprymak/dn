@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Fixer;
 
@@ -51,15 +52,9 @@ interface
 
 uses Objects, Views, Drivers, Dos, Memory, Menus, Messages, DiskTool, HideView,
      advance, advance1, advance2, advance3, Dialogs, Commands, DNApp, DNStdDlg,
-     FViewer, RStrings, SWE, Tree, FilesCol, Validate, UniWin, DNHelp;
+     FViewer, RStrings, SWE, Tree, FilesCol, Validate, UniWin, DNHelp,
+     collect;
 
-{
-type
-    TMyApp = object(TApplication)
-     procedure HandleEvent(var Event: TEvent); virtual;
-     procedure InitStatusLine; virtual;
-    end;
-}
 type
     PDiskStream = ^TDiskStream;
     TDiskStream = object(TStream)
@@ -74,7 +69,7 @@ type
      function GetSize: Longint; virtual;
      procedure Read(var Buf; Count: Word); virtual;
      procedure Seek(Pos: Longint); virtual;
-     procedure Write(var Buf; Count: Word); virtual;
+     procedure Write(const Buf; Count: Word); virtual;
      function GetPosInfo(Pos: LongInt): String;
      procedure SetMode(AMode: Byte; AStart, ANumber: LongInt);
      destructor Done; virtual;
@@ -164,7 +159,7 @@ end;
 
 destructor TDiskStream.Done;
 begin
- if Drv <> nil then Dispose(Drv, Done);
+ if Drv <> nil then Dispose(Drv,Done); Drv:=nil;
  inherited Done;
 end;
 
@@ -238,7 +233,7 @@ begin
  Inc(FilePos, Count);
 end;
 
-procedure TDiskStream.Write(var Buf; Count: Word);
+procedure TDiskStream.Write(const Buf; Count: Word);
  var Cl, Pos, M, T, I, J,
      L: LongInt;
      Buffer: PByteArray;
@@ -372,7 +367,7 @@ constructor TDiskFixer.Init;
  var P: PDiskStream;
 begin
  New(P, Init(0));
- inherited Init(R, P, '', nil, False, On);
+ inherited Init(R, P, '', '', nil, False, On);
  ViewMode := 2; HexEdit := True;
  HelpCtx := hcDiskEditor;
 end;
@@ -386,8 +381,8 @@ begin
  if Buf = nil then Exit;
  if ViewMode = 0 then begin inherited MakeLines; Exit end;
  P1 := Buf; P2 := @Lines; I := BufSize - J; J := BufPos;
- MaxLines := 200;
  I := BufPos;
+ MaxLines := 200;
  for K := 0 to MaxLines do
     begin Lines[K].Pos := I; Lines[K].Len := HexPos; Inc(I, HexPos); end;
 end;
@@ -409,7 +404,7 @@ begin
      Seek(FilePos+LongInt(BufPos));
    while (ANumber > 0) do begin Inc(BufPos, HexPos); Dec(ANumber) end;
    DrawView;
-   Message(SB, evCommand, cmChangeValue, Pointer(FilePos+BufPos));
+   MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
    Exit;
   end;
 end;
@@ -517,7 +512,7 @@ procedure TDiskFixer.HandleEvent;
         PutEvent(Event);
        end;
      end;
-    Dispose(PL, Done);
+    Dispose(PL,Done);
  end;
 
  procedure BlockOff; begin BlockStart := FilePos+BufPos+XPos; BlockEnd := BlockStart; end;
@@ -535,7 +530,7 @@ procedure TDiskFixer.HandleEvent;
   if N = PDiskStream(Fl)^.Drv^.Drive+1 then Exit;
   P := Fl;
   Fl := New(PDiskStream, Init(N));
-  if (Fl = nil) or (PDiskStream(Fl)^.Drv = nil) then begin Fl := P; ChDrive := Off end else Dispose(P, Done);
+  if (Fl = nil) or (PDiskStream(Fl)^.Drv = nil) then begin Fl := P; ChDrive := Off end else Dispose(P,Done);
  end;
 
  procedure FixFile;
@@ -651,7 +646,7 @@ procedure TDiskFixer.HandleEvent;
 
   D^.SelectNext(False);
   I := Desktop^.ExecView(D);
-  D^.GetData(DR); Dispose(D, Done);
+  D^.GetData(DR); Dispose(D,Done);
   if I <> cmOK then Exit;
 
   PDiskStream(Fl)^.SetMode(0, StoI(DR.S1), StoI(DR.S2));
@@ -706,7 +701,7 @@ procedure TDiskFixer.HandleEvent;
 
   D^.SelectNext(False);
   I := Desktop^.ExecView(D);
-  D^.GetData(DR); Dispose(D, Done);
+  D^.GetData(DR); Dispose(D,Done);
   if I <> cmOK then Exit;
 
   PDiskStream(Fl)^.SetMode(1, StoI(DR.S1), StoI(DR.S2));
@@ -753,7 +748,7 @@ procedure TDiskFixer.HandleEvent;
 
   I := Desktop^.ExecView(D);
   D^.GetData(DT);
-  Dispose(D, Done);
+  Dispose(D,Done);
   if I <> cmOK then Exit;
   if MessageBox(GetString(dlFillQuery), nil, mfWarning + mfYesButton + mfNoButton)
      <> cmYes then Exit;
@@ -792,12 +787,12 @@ procedure TDiskFixer.HandleEvent;
   P := New(PBufStream, Init(S, stOpen, 5000));
   if P^.Status <> stOK then
    begin
-    Dispose(P, Done);
+    Dispose(P,Done);
     P := New(PBufStream, Init(S, stCreate, 5000));
     if P^.Status <> stOK then
      begin
       ErrMsg(dlCanNotWrite);
-      Dispose(P, Done);
+      Dispose(P,Done);
       Exit;
      end;
    end else
@@ -807,7 +802,7 @@ procedure TDiskFixer.HandleEvent;
    end;
   Fl^.Seek(BS);
   P^.CopyFrom(Fl^, Abs(BE-BS+1));
-  Dispose(P, Done);
+  Dispose(P,Done);
  end;
 
 
@@ -830,7 +825,7 @@ begin
  if Loaded then
   begin
    if SB <> nil then PViewScroll(SB)^.MaxV := FileSize;
-   Message(SB, evCommand, cmChangeValue, Pointer(FilePos+BufPos));
+   MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
    Loaded := Off;
   end;
  W := BufPos+(XPos div 32)*32;
@@ -906,7 +901,7 @@ begin
                                  11: XPos := W+9;
                                  22..25: XPos := W+3;
                                  26..27: XPos := W+2;
-                                 26..29: XPos := W+8;
+                                 28..29: XPos := W+8;
                                   else XPos := W;
                                 end;
                                 ViewMode := 2; DrawView; CE end;
@@ -1061,7 +1056,7 @@ begin
                                       PutEvent(Event);
                                       I := Owner^.ExecView(PL);
                                       PL^.GetData(W);
-                                      Dispose(PL, Done);
+                                      Dispose(PL,Done);
                                       CE;
                                       if I = cmCancel then Exit;
                                       BufModified := On;
@@ -1115,6 +1110,7 @@ var
 
 procedure MoveStr(var B, S; C: Byte);
 begin
+{$IFNDEF FPC}
  asm
   push ds
   lds  si,B
@@ -1147,6 +1143,7 @@ begin
 @@Exit:
   pop  ds
  end;
+{$ENDIF}
 end;
 
 var W: Integer;

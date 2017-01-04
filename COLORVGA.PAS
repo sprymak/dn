@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,14 +44,14 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 Unit  ColorVGA;
 
 interface
 
 uses Objects, Drivers, Views, Dialogs, commands, Dos, DnApp, Startup,
-     advance, advance1, advance2, advance3 ;
-
+     advance, advance1, advance2, advance3, collect;
 
  Procedure VGAColorRegister;    { dialog }
 
@@ -60,7 +60,7 @@ uses Objects, Drivers, Views, Dialogs, commands, Dos, DnApp, Startup,
 implementation
 
 
- uses   {Colorsel,} Messages ;
+ uses   Messages ;
 {var Pal : vga_pal ;}
 
  Const  cmColorSet               = 73;
@@ -75,7 +75,7 @@ implementation
 
   PColorView = ^TColorView;
   TColorView = Object( TView )
-   Color2Display : byte ;
+    Color2Display : Byte ;
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
    end;
@@ -121,8 +121,7 @@ begin
           end
           else
            Color2Display := OldColor;
-          Message(Owner, evBroadcast, cmColorMouseSelection,
-                   Pointer(Color2Display));
+          MessageL(Owner, evBroadcast, cmColorMouseSelection, Color2Display);
           DrawView;
   {        ClearEvent(Event);}
         until not MouseEvent(Event, evMouseMove);
@@ -179,7 +178,6 @@ end;
      R : TRect;
      Control, Labl, Histry : PView;
      i : integer;
-     F: Text;
      S: String;
   begin
 

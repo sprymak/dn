@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit HideView;
 
@@ -61,8 +62,8 @@ type  PHideView = ^THideView;
       TStdWindow = object(TWindow)
        constructor Init(var R: TRect; ATitle: TTitleStr; ANumber: Integer);
        procedure HandleEvent(var Event: TEvent); virtual;
-{DataCompBoy       procedure ExecWindowMenu; virtual;}
-       function  GetWindowMenu(var N, W: Word): PMenu; virtual;
+{DataCompBoy       procedure ExecWindowMenu; virtual;
+       function  GetWindowMenu(var N, W: Word): PMenu; virtual;}
       end;
 
 implementation
@@ -84,6 +85,7 @@ begin
  }
 end;
 
+{DataCompBoy
 function TStdWindow.GetWindowMenu;
 begin
  GetWindowMenu := NewMenu(
@@ -95,7 +97,6 @@ begin
                      nil))))));
  N := 5; W := 15;
 end;
-{DataCompBoy
 procedure TStdWindow.ExecWindowMenu;
  var Menu: PMenu;
      N, W: Word;
@@ -110,7 +111,7 @@ begin
  R.B.X := R.A.X + W; R.B.Y := R.A.Y + N + 2;
  P := New(PMenuBox, Init(R, Menu, nil));
  N := DeskTop^.ExecView(P);
- Dispose(P, Done);
+ Dispose(P,Done);
  DisposeMenu(Menu);
  if N <> cmCancel then Message(@Self, evCommand, N, nil);
 end;

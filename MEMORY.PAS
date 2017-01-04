@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,14 +44,13 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
+{$I STDEFINE.INC}
 unit Memory;
 
 {-----------------------------------------------------}
 { This module is based on Turbo Vision Memry Unit     }
 { Copyright (c) 1990 by Borland International         }
 {-----------------------------------------------------}
-
 
 interface
 
@@ -64,24 +63,16 @@ procedure InitMemory;
 procedure DoneMemory;
 procedure InitDosMem;
 procedure DoneDosMem;
-function LowMemory: Boolean;
-function MemAlloc(Size: Word): Pointer;
-function MemAllocSeg(Size: Word): Pointer;
+function  LowMemory: Boolean;
+function  MemAlloc(Size: Word): Pointer;
+function  MemAllocSeg(Size: Word): Pointer;
 procedure NewCache(var P: Pointer; Size: Word);
 procedure DisposeCache(P: Pointer);
-procedure NewBuffer(var P: Pointer; Size: Word);
-procedure DisposeBuffer(P: Pointer);
-function GetBufferSize(P: Pointer): Word;
-function SetBufferSize(P: Pointer; Size: Word): Boolean;
 
 {$IFNDEF DPMI}
-
-{DataCompBoy
 procedure GetBufMem(var P: Pointer; Size: Word);
 procedure FreeBufMem(P: Pointer);
-}
 procedure SetMemTop(MemTop: Pointer);
-
 {$ENDIF}
 
 implementation
@@ -97,6 +88,9 @@ type
   PCache = ^TCache;
   TCache = record
     Next: PCache;
+{$IFNDEF BIT_16}
+    Size: Word;
+{$ENDIF}
     Master: ^Pointer;
     Data: record end;
   end;
@@ -107,6 +101,7 @@ const
   SafetyPoolSize: Word = 8192;
   DisablePool: Boolean = False;
 
+{$IFDEF BIT_16}
 function MemAllocateBlock(HeapHandle, Size, Attributes: Word;
   EventProc: Pointer; var Selector: Word): Integer; far;
 external 'RTM' index $0005;
@@ -119,39 +114,40 @@ external 'RTM' index $0007;
 
 function MemGetBlockSize(Selector: Word; var Size: Longint): Integer; far;
 external 'RTM' index $0014;
+{$ENDIF}
 
 function FreeCache: Boolean;
 begin
-  FreeCache := False;
+  FreeCache:=False;
   if CacheList <> nil then
   begin
     DisposeCache(CacheList^.Next^.Master^);
-    FreeCache := True;
+    FreeCache:=True;
   end;
 end;
 
 function FreeSafetyPool: Boolean;
 begin
-  FreeSafetyPool := False;
+  FreeSafetyPool:=False;
   if SafetyPool <> nil then
   begin
     FreeMem(SafetyPool, SafetyPoolSize);
-    SafetyPool := nil;
-    FreeSafetyPool := True;
+    SafetyPool:=nil;
+    FreeSafetyPool:=True;
   end;
 end;
 
-function HeapNotify(Size: Word): Integer; far;
+function HeapNotify(Size: Word): Integer; {$IFDEF BIT_16}far;{$ENDIF}
 begin
-  if FreeCache then HeapNotify := 2 else
-    if DisablePool then HeapNotify := 1 else
-      if FreeSafetyPool then HeapNotify := 2 else HeapNotify := 0;
+  if FreeCache then HeapNotify:=2 else
+    if DisablePool then HeapNotify:=1 else
+      if FreeSafetyPool then HeapNotify:=2 else HeapNotify:=0;
 end;
 
 procedure InitMemory;
 begin
-  HeapError := @HeapNotify;
-  SafetyPoolSize := LowMemSize * 16;
+  HeapError:=@HeapNotify;
+  SafetyPoolSize:=LowMemSize * 8;
   LowMemory;
 end;
 
@@ -171,11 +167,11 @@ end;
 
 function LowMemory: Boolean;
 begin
-  LowMemory := False;
+  LowMemory:=False;
   if SafetyPool = nil then
   begin
-    SafetyPool := MemAlloc(SafetyPoolSize);
-    if SafetyPool = nil then LowMemory := True;
+    SafetyPool:=MemAlloc(SafetyPoolSize);
+    if SafetyPool = nil then LowMemory:=True;
   end;
 end;
 
@@ -183,88 +179,86 @@ function MemAlloc(Size: Word): Pointer;
 var
   P: Pointer;
 begin
-  DisablePool := True;
+  DisablePool:=True;
   GetMem(P, Size);
-  DisablePool := False;
-  MemAlloc := P;
+  DisablePool:=False;
+  MemAlloc:=P;
 end;
 
 function MemAllocSeg(Size: Word): Pointer;
+{$IFDEF BIT_16}
 var
   Selector: Word;
 begin
-  Selector := 0;
+  Selector:=0;
   if Size <> 0 then
     repeat
       if MemAllocateBlock(0, Size, 2, nil, Selector) <> 0 then
-        Selector := 0;
+        Selector:=0;
     until (Selector <> 0) or not FreeCache;
-  MemAllocSeg := Ptr(Selector, 0);
+  MemAllocSeg:=Ptr(Selector, 0);
 end;
+{$ELSE}
+var P: Pointer;
+begin
+ P:=nil;
+ GetMem(P,Size);
+ MemAllocSeg:=P;
+end;
+{$ENDIF}
 
 procedure NewCache(var P: Pointer; Size: Word);
 var
   Cache: PCache;
 begin
   Inc(Size, SizeOf(TCache));
-  PtrRec(Cache).Ofs := 0;
+{$IFDEF BIT_16}
+  PtrRec(Cache).Ofs:=0;
   if MemAllocateBlock(0, Size, 4, nil, PtrRec(Cache).Seg) <> 0 then
-    PtrRec(Cache).Seg := 0;
+    PtrRec(Cache).Seg:=0;
+{$ELSE}
+  Cache:=nil;
+  GetMem(Cache, Size);
+{$ENDIF}
   if Cache <> nil then
   begin
-    if CacheList = nil then Cache^.Next := Cache else
+{$IFNDEF BIT_16}
+    Cache^.Size:=Size;
+{$ENDIF}
+    if CacheList = nil then Cache^.Next:=Cache else
     begin
-      Cache^.Next := CacheList^.Next;
-      CacheList^.Next := Cache;
+      Cache^.Next:=CacheList^.Next;
+      CacheList^.Next:=Cache;
     end;
-    CacheList := Cache;
-    Cache^.Master := @P;
+    CacheList:=Cache;
+    Cache^.Master:=@P;
     Inc(PtrRec(Cache).Ofs, SizeOf(TCache));
   end;
-  P := Cache;
+  P:=Cache;
 end;
 
 procedure DisposeCache(P: Pointer);
 var
   Cache, C: PCache;
 begin
-  PtrRec(Cache).Ofs := PtrRec(P).Ofs - SizeOf(TCache);
-  PtrRec(Cache).Seg := PtrRec(P).Seg;
-  C := CacheList;
-  while (C^.Next <> Cache) and (C^.Next <> CacheList) do C := C^.Next;
+  PtrRec(Cache).Ofs:=PtrRec(P).Ofs - SizeOf(TCache);
+  PtrRec(Cache).Seg:=PtrRec(P).Seg;
+  C:=CacheList;
+  while (C^.Next <> Cache) and (C^.Next <> CacheList) do C:=C^.Next;
   if C^.Next = Cache then
   begin
-    if C = Cache then CacheList := nil else
+    if C = Cache then CacheList:=nil else
     begin
-      if CacheList = Cache then CacheList := C;
-      C^.Next := Cache^.Next;
+      if CacheList = Cache then CacheList:=C;
+      C^.Next:=Cache^.Next;
     end;
-    Cache^.Master^ := nil;
+    Cache^.Master^:=nil;
+{$IFDEF BIT_16}
     MemFreeBlock(PtrRec(Cache).Seg);
+{$ELSE}
+    FreeMem(Cache, Cache^.Size);
+{$ENDIF}
   end;
-end;
-
-procedure NewBuffer(var P: Pointer; Size: Word);
-begin
-  P := MemAllocSeg(Size);
-end;
-
-procedure DisposeBuffer(P: Pointer);
-begin
-  MemFreeBlock(PtrRec(P).Seg);
-end;
-
-function GetBufferSize(P: Pointer): Word;
-var
-  Size: Longint;
-begin
-  if MemGetBlockSize(PtrRec(P).Seg, Size) <> 0 then Size := 0;
-  GetBufferSize := Size;
-end;
-
-function SetBufferSize(P: Pointer; Size: Word): Boolean;
-begin
-  SetBufferSize := MemResizeBlock(PtrRec(P).Seg, Size) = 0;
 end;
 
 {$ELSE}
@@ -291,7 +285,8 @@ const
   BufHeapEnd: Word = 0;
   SafetyPoolSize = 5120;
 
-function HeapNotify(Size: Word): Integer; far; assembler;
+function HeapNotify(Size: Word): Integer; {$IFDEF BIT_16}far;{$ENDIF}
+{$IFNDEF NOASM} assembler;
 asm
         CMP     Size,0
         JNE     @@3
@@ -309,6 +304,17 @@ asm
         JMP     @@1
 @@3:    MOV     AX,HeapResult
 end;
+{$ELSE}
+begin
+  if Size=0 then
+   repeat
+    if (PtrRec(HeapPtr).Seg> PtrRec(CachePtr).Seg) or
+       (PtrRec(HeapPtr).Ofs>=PtrRec(CachePtr).Ofs) then break;
+    DisposeCache(nil);
+   until false;
+  HeapNotify:=HeapResult;
+end;
+{$ENDIF}
 
 procedure FreeCacheMem;
 begin
@@ -319,16 +325,16 @@ procedure InitMemory;
 var
   HeapSize: Word;
 begin
-  HeapError := @HeapNotify;
+  HeapError:=@HeapNotify;
   if BufHeapPtr = 0 then
   begin
-    HeapSize := PtrRec(HeapEnd).Seg - PtrRec(HeapOrg).Seg;
-    if HeapSize > MaxHeapSize then HeapSize := MaxHeapSize;
-    BufHeapEnd := PtrRec(HeapEnd).Seg;
-    PtrRec(HeapEnd).Seg := PtrRec(HeapOrg).Seg + HeapSize;
-    BufHeapPtr := PtrRec(HeapEnd).Seg;
+    HeapSize:=PtrRec(HeapEnd).Seg - PtrRec(HeapOrg).Seg;
+    if HeapSize > MaxHeapSize then HeapSize:=MaxHeapSize;
+    BufHeapEnd:=PtrRec(HeapEnd).Seg;
+    PtrRec(HeapEnd).Seg:=PtrRec(HeapOrg).Seg + HeapSize;
+    BufHeapPtr:=PtrRec(HeapEnd).Seg;
   end;
-  CachePtr := HeapEnd;
+  CachePtr:=HeapEnd;
 end;
 
 procedure DoneMemory;
@@ -345,57 +351,35 @@ procedure DoneDosMem;
 var
   MemTop: Pointer;
 begin
-  MemTop := Ptr(BufHeapPtr, 0);
+  MemTop:=Ptr(BufHeapPtr, 0);
   if BufHeapPtr = PtrRec(HeapEnd).Seg then
   begin
     FreeCacheMem;
-    MemTop := HeapPtr;
+    MemTop:=HeapPtr;
   end;
   SetMemTop(MemTop);
 end;
 
 function LowMemory: Boolean;
 begin
-  LowMemory := MaxAvail < SafetyPoolSize
+  LowMemory:=MaxAvail < SafetyPoolSize
 end;
 
 function MemAlloc(Size: Word): Pointer;
 var
   P: Pointer;
 begin
-  HeapResult := 1;
+  HeapResult:=1;
   GetMem(P, Size);
-  HeapResult := 0;
+  HeapResult:=0;
   if (P <> nil) and LowMemory then
   begin
     FreeMem(P, Size);
-    P := nil;
+    P:=nil;
   end;
-  MemAlloc := P;
+  MemAlloc:=P;
 end;
 
-function MemAllocSeg(Size: Word): Pointer;
-var
-  P, T: Pointer;
-begin
-  Size := (Size + 7) and $FFF8;
-  P := MemAlloc(Size + 8);
-  if P <> nil then
-  begin
-    if PtrRec(P).Ofs = 0 then
-    begin
-      PtrRec(T).Ofs := Size and 15;
-      PtrRec(T).Seg := PtrRec(P).Seg + Size shr 4;
-    end else
-    begin
-      T := P;
-      PtrRec(P).Ofs := 0;
-      Inc(PtrRec(P).Seg);
-    end;
-    FreeMem(T, 8);
-  end;
-  MemAllocSeg := P;
-end;
 
 procedure NewCache(var P: Pointer; Size: Word); assembler;
 asm
@@ -533,14 +517,14 @@ end;
 
 function GetBufSize(P: PBuffer): Word;
 begin
-  GetBufSize := (P^.Size + 15) shr 4 + 1;
+  GetBufSize:=(P^.Size + 15) shr 4 + 1;
 end;
 
 procedure SetBufSize(P: PBuffer; NewSize: Word);
 var
   CurSize: Word;
 begin
-  CurSize := GetBufSize(P);
+  CurSize:=GetBufSize(P);
   MoveSeg(PtrRec(P).Seg + CurSize, PtrRec(P).Seg + NewSize,
     BufHeapPtr - PtrRec(P).Seg - CurSize);
   Inc(BufHeapPtr, NewSize - CurSize);
@@ -552,59 +536,39 @@ begin
   end;
 end;
 
-procedure NewBuffer(var P: Pointer; Size: Word);
-var
-  BufSize: Word;
-  Buffer: PBuffer;
-begin
-  BufSize := (Size + 15) shr 4 + 1;
-  if BufHeapPtr + BufSize > BufHeapEnd then P := nil else
-  begin
-    Buffer := Ptr(BufHeapPtr, 0);
-    Buffer^.Size := Size;
-    Buffer^.Master := @PtrRec(P).Seg;
-    P := Ptr(BufHeapPtr + 1, 0);
-    Inc(BufHeapPtr, BufSize);
-  end;
-end;
-
-procedure DisposeBuffer(P: Pointer);
-begin
-  Dec(PtrRec(P).Seg);
-  SetBufSize(P, 0);
-end;
-
-function GetBufferSize(P: Pointer): Word;
-begin
-  Dec(PtrRec(P).Seg);
-  GetBufferSize := PBuffer(P)^.Size;
-end;
-
-function SetBufferSize(P: Pointer; Size: Word): Boolean;
-var
-  NewSize: Word;
-begin
-  Dec(PtrRec(P).Seg);
-  NewSize := (Size + 15) shr 4 + 1;
-  SetBufferSize := False;
-  if BufHeapPtr + NewSize - GetBufSize(P) <= BufHeapEnd then
-  begin
-    SetBufSize(P, NewSize);
-    PBuffer(P)^.Size := Size;
-    SetBufferSize := True;
-  end;
-end;
-
-{DataCompBoy
 procedure GetBufMem(var P: Pointer; Size: Word);
 begin
   NewCache(P, Size);
 end;
+
 procedure FreeBufMem(P: Pointer);
 begin
   DisposeCache(P);
 end;
-}
+
+function MemAllocSeg(Size: Word): Pointer;
+var
+  P, T: Pointer;
+begin
+  Size:=(Size + 7) and $FFF8;
+  P:=MemAlloc(Size + 8);
+  if P <> nil then
+  begin
+    if PtrRec(P).Ofs = 0 then
+    begin
+      PtrRec(T).Ofs:=Size and 15;
+      PtrRec(T).Seg:=PtrRec(P).Seg + Size shr 4;
+    end else
+    begin
+      T:=P;
+      PtrRec(P).Ofs:=0;
+      Inc(PtrRec(P).Seg);
+    end;
+    FreeMem(T, 8);
+  end;
+  MemAllocSeg:=P;
+end;
+
 procedure SetMemTop(MemTop: Pointer); assembler;
 asm
         MOV     BX,MemTop.Word[0]

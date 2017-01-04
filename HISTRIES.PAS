@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,40 +43,51 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Histries;
 
 interface
-uses LFN, {DataCompBoy}
-     Drivers, Objects, Views, MicroEd, ObjType, Drives, advance, advance1,
-     advance2, advance3, U_KeyMap; {-$VIV 14.05.99}
+uses LFN, Collect, Drivers, Objects, Views, EdWin, Drives, advance, advance1,
+     advance2, advance3, U_KeyMap, microed
+{$IFDEF DBView},DBView{$ENDIF} {$IFDEF SpreadSheet},Calc{$ENDIF}
+     ;
 
 type
      PViewRecord = ^TViewRecord;
      TViewRecord = record
-       fName: PString;
-       fOrigin: TPoint;
-       fSize: TPoint;
-       fDeskSize: TPoint;
-       fViewMode: Integer;
-       fPos: LongInt;
-       fBufPos: Word;
-       fXlatFile: String[8];
-       fFilter: Byte;
-       fHexEdit: Boolean;
-       fWrap: Boolean;
-       fXDelta: Integer;
-       fHexPos: Integer;
-       fCur: TPoint;
-       fUseXlat: Boolean;
-       fKeyMap: TKeyMap;
-       fMarks: TPosArray;
-     end;
+       fName     : PString;
+       fOrigin   : TPoint;
+       fSize     : TPoint;
+       fDeskSize : TPoint;
+       fViewMode : Integer;
+      case byte of
+       0:(fPos          : LongInt;
+          fBufPos       : Word;
+          fXlatFile     : String[8];
+          fFilter       : Byte;
+          fHexEdit      : Boolean;
+          fWrap         : Byte; {DataCompBoy}
+          fXDelta       : Integer;
+          fHexPos       : Integer;
+          fCur          : TPoint;
+          fUseXlat      : Boolean;
+          fKeyMap       : TKeyMap;
+          fMarks        : TPosArray);
+{$IFDEF DBView}
+       1:(fdDelta       : TDBPoint;
+          fdPos         : TDBPoint);
+{$ENDIF}
+{$IFDEF SpreadSheet}
+       2:(fsDelta       : TPoint;
+          fsCur         : TPoint;
+          fsMark        : TPoint;
+          fsCurrentCalc : TPoint;
+          fsSearchPos   : TPoint;
+          fsErrorCell   : TPoint);
+{$ENDIF}
+    end;
 
      PEditRecord = ^TEditRecord;
      TEditRecord = record
@@ -91,7 +102,7 @@ type
        fBlockEnd: TPoint;
        fBlockVisible: Boolean;
        fVerticalBlock: Boolean;
-       fHighlight: Byte;
+       fHighlight: Boolean;
        fHiliteColumn: Boolean;
        fHiliteLine: Boolean;
        fAutoIndent: Boolean;
@@ -106,7 +117,7 @@ type
 
      PEditHistoryCol = ^TEditHistoryCol;
      TEditHistoryCol = object(TCollection)
-        function  IndexOf(P: Pointer): Integer; virtual;
+        function  IndexOf(P: Pointer): LongInt; virtual;
         procedure PutItem(var S: TStream; P: Pointer); virtual;
         function  GetItem(var S: TStream): Pointer; virtual;
         procedure FreeItem(P: Pointer); virtual;
@@ -133,6 +144,9 @@ procedure StoreEditInfo(P: Pointer);
 procedure StoreViewInfo(P: Pointer);
 procedure AddCommand(const LastCommand: String);
 function  GetCommand(Idx: Integer): String;
+procedure LoadHistories;
+procedure SaveHistories;
+procedure ClearHistories;
 
 
 const
@@ -144,28 +158,19 @@ const
       EditHistory: PCollection = nil;
       ViewHistory: PCollection = nil;
 
-      REditHistoryCol: TStreamRec = (
-      ObjType: otEditHistoryCol;
-      VmtLink: Ofs( TypeOf( TEditHistoryCol)^ );
-      Load: @TEditHistoryCol.Load;
-      Store: @TEditHistoryCol.Store );
-
-      RViewHistoryCol: TStreamRec = (
-      ObjType: otViewHistoryCol;
-      VmtLink: Ofs( TypeOf( TViewHistoryCol)^ );
-      Load: @TViewHistoryCol.Load;
-      Store: @TViewHistoryCol.Store );
-
 implementation
- uses Dos, Commands, DNApp, DNStdDlg, Dialogs,
-      Startup, RStrings, xTime, Messages, Idlers, DNUtil,
+ uses Dos, Commands, DNApp, DNStdDlg, Dialogs, HistList,
+      Startup, RStrings, xTime, Messages, DNUtil, DnIni,
+{$IFDEF SS}
+      Idlers,
+{$ENDIF}
       FViewer, CmdLine;
 
 procedure FreeLastUnmarked(C: PCollection);
 
  var I: Integer;
 
-  function IsThat(P: PEditRecord): Boolean; far;
+  function IsThat(P: PEditRecord): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     Dec(I);
     IsThat := (P^.fName^[1] = ' ');
@@ -239,38 +244,81 @@ end;
 
 procedure StoreViewInfo(P: Pointer);
   var Viewer: PFileWindow absolute P;
+      {$IFDEF DBView}
+      DBView: PDBWindow   absolute P;
+      {$ENDIF}
+      {$IFDEF SpreadSheet}
+      SSView: PCalcWindow absolute P;
+      {$ENDIF}
       R: PViewRecord;
       I: Integer;
 begin
-  if InterfaceData.Options and ouiTrackViewers = 0 then Exit;
+  if (InterfaceData.Options and ouiTrackViewers = 0) or (P=nil) then Exit;
   if ViewHistory = nil then ViewHistory := New(PViewHistoryCol, Init(30, 30));
   New(R);
-  with PFileViewer(Viewer^.Current)^, R^ do
-    begin
-       fName     := NewStr(' '+lfGetLongFileName(FileName)); {DataCompBoy}
-       fOrigin   := Viewer^.Origin;
-       fSize     := Viewer^.Size;
-       fDeskSize := Desktop^.Size;
-       fViewMode := ViewMode;
-       fPos      := FilePos;
-       fBufPos   := BufPos;
-       fXlatFile := XlatFile^;
-       fFilter   := Filter;
-       fHexEdit  := HexEdit;
-       fWrap     := Wrap;
-       fXDelta   := XDelta;
-       fHexPos   := HexPos;
-       fCur      := Cur;
-       fUseXLat  := UseXLat;
-       fKeyMap   := KeyMap;
-       fMarks    := MarkPos;
+
+  if TypeOf((PObject(P)^))=TypeOf(TFileWindow) then
+   with PFileViewer(Viewer^.Current)^, R^ do begin
+     fName     := NewStr(' '+lfGetLongFileName(VFileName)); {DataCompBoy}
+     fOrigin   := Viewer^.Origin;
+     fSize     := Viewer^.Size;
+     fDeskSize := Desktop^.Size;
+     fViewMode := ViewMode;
+     fPos      := FilePos;
+     fBufPos   := BufPos;
+     fXlatFile := CnvString(XlatFile);
+     fFilter   := Filter;
+     fHexEdit  := HexEdit;
+     fWrap     := Wrap;
+     fXDelta   := XDelta;
+     fHexPos   := HexPos;
+     fCur      := Cur;
+     fUseXLat  := UseXLat;
+     fKeyMap   := KeyMap;
+     fMarks    := MarkPos;
+   end
+{$IFDEF DBView}{-DataCompBoy-}
+  else if TypeOf((PObject(P)^))=TypeOf(TDBWindow) then
+   with DBView^, R^ do begin
+     fName     := NewStr(' '+lfGetLongFileName(CnvString(P^.FileName)));
+     fOrigin   := Origin;
+     fSize     := Size;
+     fDeskSize := Desktop^.Size;
+     fViewMode := vmDB;
+    with P^ do begin
+     fdDelta   := Delta;
+     fdPos     := Pos;
     end;
-  I := ViewHistory^.IndexOf(R);
-  if I >= 0 then begin
-                   R^.fName^[1] := PViewRecord(ViewHistory^.At(I))^.fName^[1];
-                   ViewHistory^.AtFree(I);
-                 end;
-  ViewHistory^.AtInsert(0, R);
+   end
+{$ENDIF}
+{$IFDEF SpreadSheet}
+  else if TypeOf((PObject(P)^))=TypeOf(TCalcWindow) then
+   with SSView^, R^ do begin
+     fName         := NewStr(' '+lfGetLongFileName(CnvString(CalcView^.SName)));
+     fOrigin       := Origin;
+     fSize         := Size;
+     fDeskSize     := Desktop^.Size;
+     fViewMode     := vmSpread;
+    with CalcView^ do begin
+     fsDelta       := Delta;
+     fsCur         := Cur;
+     fsMark        := Mark;
+     fsCurrentCalc := CurrentCalc;
+     fsSearchPos   := SearchPos;
+     fsErrorCell   := ErrorCell;
+    end;
+   end
+{$ENDIF}
+  else begin Dispose(R); R:=nil end;
+              {-DataCompBoy-}
+  if R<> nil then begin
+   I := ViewHistory^.IndexOf(R);
+   if I >= 0 then begin
+                    R^.fName^[1] := PViewRecord(ViewHistory^.At(I))^.fName^[1];
+                    ViewHistory^.AtFree(I);
+                  end;
+   ViewHistory^.AtInsert(0, R);
+  end;
   if ViewHistory^.Count > MaxEditHistorySize then FreeLastUnmarked(ViewHistory);
 end;
 
@@ -297,15 +345,15 @@ begin
        fDelta         := Delta;
        fBlockVisible  := BlockVisible;
        fVerticalBlock := VertBlock;
-       fHighlight     := Hilite;
-       fHiliteColumn  := HiliteColumn;
-       fHiliteLine    := HiliteLine;
-       fAutoIndent    := AutoIndent;
-       fAutoJustify   := AutoJustify;
-       fAutoBrackets  := AutoBrackets;
-       fLeftSide      := LeftSide;
-       fRightSide     := RightSide;
-       fInSide        := InSide;
+       fHighlight     := EdOpt.Hilite;
+       fHiliteColumn  := EdOpt.HiliteColumn;
+       fHiliteLine    := EdOpt.HiliteLine;
+       fAutoIndent    := EdOpt.AutoIndent;
+       fAutoJustify   := EdOpt.AutoJustify;
+       fAutoBrackets  := EdOpt.AutoBrackets;
+       fLeftSide      := EdOpt.LeftSide;
+       fRightSide     := EdOpt.RightSide;
+       fInSide        := EdOpt.InSide;
        fInsMode       := InsertMode;
        fKeyMap        := KeyMap; {-$VIV}
     end;
@@ -356,7 +404,7 @@ end;
 {DataCompBoy
 procedure InitCommands;
 begin
- if CmdStrings <> nil then Dispose(CmdStrings, Done);
+ if CmdStrings <> nil then Dispose(CmdStrings,Done);
  CmdStrings := New(PLineCollection, Init(40, 10));
  StrModified := False;
  CurString := 0;
@@ -377,7 +425,7 @@ begin
         M^.AtInsert(0, CmdStrings^.At(CmdStrings^.Count-1));
         CmdStrings^.AtDelete(CmdStrings^.Count-1);
       end;
-     Dispose(CmdStrings, Done);
+     Dispose(CmdStrings,Done);
      CmdStrings := M;
    end;
  S.Put(CmdStrings);
@@ -394,7 +442,7 @@ begin
  EditHistory := PCollection(S.Get);
  ViewHistory := PCollection(S.Get);
 
- CurString := CmdStrings^.Count;
+ if CmdStrings<>nil then CurString := CmdStrings^.Count else CurString:=0;
  StrModified := False;
  if CommandLine <> nil then CommandLine^.DrawView;
  Str := '';
@@ -436,7 +484,7 @@ end;
 function TTHistList.GetText;
 begin
   FreeStr := Cut(CnvString(ItemStr(Item)), Size.X);
-  if FreeStr[1] = '+' then FreeStr[1] := '■'
+  if FreeStr[1] = '+' then FreeStr[1] := #254
                       else FreeStr[1] := ' ';
   GetText := FreeStr;
 end;
@@ -505,7 +553,14 @@ begin
              ClearEvent(Event);
              if Focused >= List^.Count then Exit;
              if Copy(CnvString(ItemStr(Focused)),1,1) = '+' then
-               begin Sound(500); DelayTics(2); NoSound; Exit; end;
+               begin
+                If HistoryErrorBeep then begin
+                 Sound(500);
+                 DelayTics(2);
+                 NoSound;
+                end;
+                Exit;
+               end;
              if CommandHistory and (Focused <= CurString) and (CurString > 0) then Dec(CurString);
              List^.AtFree(Focused);
              SetRange(List^.Count);
@@ -525,13 +580,13 @@ procedure AddToDirectoryHistory(S: String; DriveType:integer);
   var I: Integer;
       P: PString;
 
-  function IsThat(P: PString): Boolean; far;
+  function IsThat(P: PString): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     Inc(I);
     IsThat := S = Copy(P^, 2, 255);
   end;
 
-  function IsThis(P: PString): Boolean; far;
+  function IsThis(P: PString): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     IsThis := P^[1] = ' ';
   end;
@@ -541,11 +596,16 @@ begin
   if (S = '') or (S[2] <> ':') then Exit;
   S:=lfGetLongFileName(S);
   if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
-  if (DriveType <> integer(dtList))
-  and (DriveType <> integer(dtFind)) then begin
+  if (DriveType <> integer(dtList)) and
+     (DriveType <> integer(dtFind)) and
+     (DriveType <> integer(dtArvid)) and
+     (DriveType <> integer(dtArc))
+  then begin
       if S[Length(S)] <> '\' then AddStr(S, '\')
   end else begin
-      if S[Length(S)] = '\' then Dec(S[0])
+   if S[Length(S)] in ['\','/'] then Dec(S[0]);
+   if (DriveType = integer(dtArvid)) or
+      (DriveType = integer(dtArc)) then AddStr(S,'\');
   end;
   I := -1; P := DirHistory^.FirstThat(@IsThat);
   if P <> nil then DirHistory^.AtDelete(I)
@@ -582,19 +642,25 @@ procedure EditHistoryMenu;
       P: PTHistList;
       I: Integer;
 begin
-  if InterfaceData.Options and ouiTrackEditors = 0 then
-    begin
-      Msg(dlSetEditHistory, nil, mfError+mfOKButton);
-      Exit;
-    end;
+  if InterfaceData.Options and ouiTrackEditors = 0 then begin
+    Msg(dlSetEditHistory, nil, mfError+mfOKButton);
+    exit;
+  end;
   if EditHistory = nil then EditHistory := New(PEditHistoryCol, Init(30, 30));
-  if EditHistory^.Count = 0 then Exit;
+{  if EditHistory^.Count = 0 then Exit;}
   D := GetDialog(dlgEditHistory, Pointer(P));
   P^.NewList(EditHistory);
   P^.EVHistory := On;
   if Desktop^.ExecView(D) = cmOK then I := P^.Focused else I := -1;
-  Dispose(D, Done);
-  if I >= 0 then PDNApplication(Application)^.EditFile(On, Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, 255));
+  Dispose(D,Done);
+  if EditHistory^.Count = 0 then Exit; {Proverka, esli udalyali, zarazy:}
+  if (I >= 0) then
+    begin
+     If (PViewRecord(EditHistory^.At(I))^.fName = nil) then Exit;
+     {A eto tak, na vsyakiy sluchay proverka, esli eto ne DPMI :}
+     PDNApplication(Application)^.EditFile(Off,
+       Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, 255));
+    end;
 end;
 
 procedure ViewHistoryMenu;
@@ -608,13 +674,19 @@ begin
       Exit;
     end;
   if ViewHistory = nil then ViewHistory := New(PViewHistoryCol, Init(30, 30));
-  if ViewHistory^.Count = 0 then Exit;
+{  if ViewHistory^.Count = 0 then Exit;}
   D := GetDialog(dlgViewHistory, Pointer(P));
   P^.NewList(ViewHistory);
   P^.EVHistory := On;
   if Desktop^.ExecView(D) = cmOK then I := P^.Focused else I := -1;
-  Dispose(D, Done);
-  if I >= 0 then PDNApplication(Application)^.ViewFile(Off, Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255));
+  Dispose(D,Done);
+  if ViewHistory^.Count = 0 then Exit; {Proverim, esli udalyali, pa**y}
+  if I >= 0 then
+   begin
+    If (PViewRecord(ViewHistory^.At(I))^.fName = nil) then Exit; {Ku :}
+    PDNApplication(Application)^.ViewFile(On,
+     Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255));
+   end;
 end;
 
 function DirHistoryMenu: String;
@@ -635,7 +707,7 @@ begin
     end;
 
   if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
-  if DirHistory^.Count = 0 then Exit;
+{  if DirHistory^.Count = 0 then Exit;}
 
   D := GetDialog(dlgDirectoryHistory, Pointer(P));
 
@@ -644,7 +716,7 @@ begin
   I := Desktop^.ExecView(D);
 
   DT.I := PListBox(P)^.Focused;
-  Dispose(D, Done);
+  Dispose(D,Done);
   if I = cmOK then DirHistoryMenu := Copy(CnvString(DirHistory^.At(DT.I)),2,255);
 end;
 
@@ -671,7 +743,7 @@ begin
   I := Desktop^.ExecView(D);
 
   DT.I := PListBox(P)^.Focused;
-  Dispose(D, Done);
+  Dispose(D,Done);
 
   if I = cmCancel then Exit;
   Message(CommandLine, evKeyDown, kbDown, nil);
@@ -681,6 +753,108 @@ begin
   CommandLine^.DrawView;
   Message(CommandLine, evKeyDown, kbEnd, nil);
   if I <> cmYes then Message(CommandLine, evKeyDown, kbEnter, nil);
+end;
+
+const
+      HistoryFileSign = 'DN OSP History file'#13#10#26#1#51#05;
+
+        {-DataCompBoy-}
+procedure LoadHistories;
+  var S: TBufStream;
+      W: Word;
+begin
+    S.Init(SourceDir+'DN'+GetEnv('DNDSK')+'.HIS', stOpenRead, 2048);
+    if S.Status = stOK then
+      begin
+        S.Read(FreeStr[1], Length(HistoryFileSign));
+        FreeStr[0] := Char(Length(HistoryFileSign));
+        if FreeStr = HistoryFileSign then
+          begin
+             S.Read(HistoryUsed, sizeof(Word));
+             if HistorySize < HistoryUsed + 256 then
+               begin
+                  DoneHistory; W := HistoryUsed;
+                  HistorySize := HistoryUsed + 256;
+                  InitHistory;
+                  HistoryUsed := W;
+               end;
+             S.Read(HistoryBlock^, HistoryUsed);
+             LoadCommands(S);
+          end
+        else MessageBox('Can''t load histories!', nil, mfOkButton);
+      end;
+    S.Done;
+end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
+procedure SaveHistories;
+  var S: TBufStream;
+begin
+  S.Init(SourceDir+'DN'+GetEnv('DNDSK')+'.HIS', stCreate, 2048);
+  if S.Status = stOK then
+    begin
+      FreeStr := HistoryFileSign;
+      S.Write(FreeStr[1], Length(HistoryFileSign));
+      S.Write(HistoryUsed, sizeof(Word));
+      S.Write(HistoryBlock^, HistoryUsed);
+      SaveCommands(S);
+    end;
+  S.Done;
+end;
+        {-DataCompBoy-}
+
+procedure ClearHistories;
+  var I, J, K: Integer;
+      B: PChar;
+
+  procedure ClearStrCollection(C: PCollection);
+  begin
+    if C = nil then Exit;
+    C^.Pack;
+    I := 0;
+    while I < C^.Count do
+      begin
+        FreeStr := CnvString(C^.At(I));
+        if FreeStr[1] = ' ' then C^.AtFree(I)
+                            else Inc(I);
+      end;
+  end;
+
+  procedure ClearCollection(C: PCollection);
+  begin
+    if C = nil then Exit;
+    C^.Pack;
+    I := 0;
+    while I < C^.Count do
+      begin
+        FreeStr := CnvString(PEditRecord(C^.At(I))^.fName);
+        if FreeStr[1] = ' ' then C^.AtFree(I)
+                            else Inc(I);
+      end;
+  end;
+
+begin
+  B := PChar(HistoryBlock);
+  I := 1;
+  while I < HistoryUsed do
+    begin
+      if B[I+1] = #0 then Break;
+      Move(B[I+2], FreeStr, Byte(B[I+2])+1);
+      J := I + Byte(B[I+2])+3;
+      if FreeStr[Length(FreeStr)] <> ' ' then I := J
+       else
+         begin
+           Move(B[J], B[I], HistoryUsed - J + 1);
+           Dec(HistoryUsed, J - I);
+         end;
+    end;
+  if HistoryUsed < 4 then HistoryUsed := 0;
+  I := 0;
+  ClearStrCollection(CmdStrings);
+  ClearStrCollection(DirHistory);
+  ClearCollection(EditHistory);
+  ClearCollection(ViewHistory);
 end;
 
 end.

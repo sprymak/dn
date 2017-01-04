@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,27 +43,24 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit LinkUtil;
 
 {$A+}
 
-{$I LINK.INC} interface uses
+interface uses
                      LFN, LFNCol, {DataCompBoy}
         {$IFDEF DN}  advance, advance1, advance2, advance3, Messages, Dos,{$ENDIF}
         {$IFDEF OS2} ObjOS2 {$ELSE} Objects {$ENDIF},
-                     LinkTyp
+                     LinkTyp, drivers,   collect
           ;
 
 function  CL_UnpackStr(const AP; l: Byte): string;
 
 {$IFDEF DN}
-procedure CL_UnpackDriveSet(L: LongInt; var D: CharSet);
+procedure CL_UnpackDriveSet(L: LongInt; var D: TCharSet);
 {$ENDIF}
 
 procedure CL_RequestRemoteDrives;
@@ -216,7 +213,6 @@ implementation uses
                      DnApp,
                      Commands,
                      Startup,
-                     Drivers,
                      FileCopy,
                      Tree,
                      FilesCol,
@@ -534,8 +530,8 @@ procedure CL_DoneLink;
 begin
   CL_DoneComLink;
   {$IFDEF CL_LOG}{$IFNDEF HARD_LOG}Close(CL_LogF.F);{$ENDIF}{$ENDIF} {DataCompBoy}
-  Dispose(CL_InCmd, Done);
-  Dispose(CL_InData, Done);
+  Dispose(CL_InCmd,Done); CL_InCmd :=nil;
+  Dispose(CL_InData,Done);CL_InData:=nil;
 end;
 
 function CL_CollectInData;
@@ -726,7 +722,7 @@ begin
      end;
   end;
 
-  FreeObject(Files);
+  Dispose(Files,Done); Files:=nil;
 
   CL_PostBlock(T,KK,b_Dir);
   Dispose(T);
@@ -917,7 +913,7 @@ var
 begin
   if Length(ADir) > 68 then Exit;
   ok := True;
-  NeedAbort := True; lFindFirst(MakeNormName(ADir, '*.*'), $3E xor VolumeID, SR);
+  NeedAbort := True; lFindFirst(MakeNormName(ADir, x_x), $3E xor VolumeID, SR);
   while DosError = 0 do
   begin
     with SR do begin FreeStr := FullName; Att := sr.Attr end;

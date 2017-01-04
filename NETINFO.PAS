@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,11 +44,12 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit NetInfo;
 interface
 uses Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings, advance,
-     advance1, advance2, advance3, ObjType, Novell;
+     advance1, advance2, advance3, Novell;
 
 type
      PNetInfoRec = ^TNetInfoRec;
@@ -70,16 +71,10 @@ type
      end;
 
 const
-      RNetInfo: TStreamRec = (
-       ObjType: otNetInfo;
-       VmtLink: Ofs(TypeOf(TNetInfo)^);
-       Load: @TNetInfo.Load;
-       Store: @TNetInfo.Store);
-
-       CNetInfo     = #23#24;
+    CNetInfo     = #23#24;
 
 implementation
-uses Startup, ExtraMemory, DNApp, Commands, DNHelp, Tree, xTime, DnIni;
+uses Startup, extramemory, DNApp, Commands, DNHelp, Tree, xTime, DnIni;
 
 constructor TNetInfo.Load;
 begin
@@ -161,7 +156,7 @@ end;
 begin
  C := (GetColor(1) shl 8) or (GetColor(2) and 255); Y:=0; CC:=False;
  Wrt(GetString(dlNetInfo));
- Wrt('ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ');
+ Wrt(#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196);
  cc := true;
  for count := 1 to 5 do
  begin
@@ -172,18 +167,18 @@ begin
     GetServerInfo;
     GetStation(Station, retcode);
     GetConnectionInfo(Station, UserName, hex_id, conntype, datetime, retcode);
-    Wrt('Ú' + GetString(dlServer) + ' ~' + server + '~ ' +
-              ItoS(ServerInfo.NetwareVers)+'.'+ItoS(ServerInfo.NetwareSubV));
+    Wrt(#218 + GetString(dlServer) + ' ~' + server + '~ ' +
+              ItoS(AServerInfo^.NetwareVers)+'.'+ItoS(AServerInfo^.NetwareSubV));
     if (not NoLevelsInfo) then
-      Wrt('ÃSFT level ' + ItoS(ServerInfo.SFT_Level) + ' TTS level ' + ItoS(ServerInfo.TTS_Level));
-    Wrt('Ã' + GetString(dlConnections) + ': Max ' + SStr(ServerInfo.Connections_max, 3,' ')
-                   + ' Use ' + SStr(ServerInfo.Connections_in_use, 3,' ')
-                   + ' Peak ' + SStr(ServerInfo.peak_Connections_used, 3,' '));
-    Wrt('ÀUser ' + UserName + ' Connect '+SStr(Station, 3,' ')+ ' Logged '+datetime);
+      Wrt(#195'SFT level ' + ItoS(AServerInfo^.SFT_Level) + ' TTS level ' + ItoS(AServerInfo^.TTS_Level));
+    Wrt(#195 + GetString(dlConnections) + ': Max ' + SStr(AServerInfo^.Connections_max, 3,' ')
+                   + ' Use ' + SStr(AServerInfo^.Connections_in_use, 3,' ')
+                   + ' Peak ' + SStr(AServerInfo^.peak_Connections_used, 3,' '));
+    Wrt(#192'User ' + UserName + ' Connect '+SStr(Station, 3,' ')+ ' Logged '+datetime);
    end;
  end;
  cc := false;
- Wrt('ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ');
+ Wrt(#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196);
 
  MoveChar(B, ' ', C, Size.X);
  if Y <= Size.Y - 1 then WriteLine(0, Y, Size.X, Size.Y - Y + 1, B);

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,18 +43,14 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit DBWatch;
 
 interface
 
-uses LFN, {DataCompBoy}
-     Objects, Dos, advance, advance1, advance2, advance3;
+uses LFN, collect, Objects, Dos, advance, advance1, advance2, advance3;
 
 type
      PFieldRec = ^Fieldrec;
@@ -105,12 +101,14 @@ begin
  New(P);
  P^.Name := Name;
  while Name[Length(Name)] = ' ' do System.Dec(Name[0]);
- if Length(Name) > Len then P^.Ln := Length(Name) else P^.Ln := Len;
  P^.Who := Who;
  P^.Len := Len;
  P^.Dec := Dec;
  P^.Pos := Pos;
  NewField := P;
+ If P^.Who='D'
+  then If Length(Name) > 10  then P^.Ln := Length(Name) else P^.Ln := 10
+  else If Length(Name) > Len then P^.Ln := Length(Name) else P^.Ln := Len;
 end;
 
 procedure TDBFile.OpenMode(Mode: Word);
@@ -156,11 +154,11 @@ begin
     end;
    S[0] := Char(J);
    if (J = 0) or (BaseFile.Status <> stOk) then
-      begin Dispose(Fields, Done);BaseFile.Done;Fail;end;
+      begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
    with FBuf do Fields^.Insert(NewField(S, Who, Len, Dec, RL - Len));
   end;
  if RL <> RecLen then
-   begin Dispose(Fields, Done);BaseFile.Done;Fail;end;
+   begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
  Loc := 0;
  BaseFile.Seek(HeaderLen);
 end;
@@ -216,7 +214,7 @@ end;
 
 destructor TDBFile.Done;
 begin
- Dispose(Fields, Done);
+ Dispose(Fields,Done); Fields:=nil;
  BaseFile.Done;
 end;
 

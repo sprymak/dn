@@ -1,3 +1,50 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source 1.51.07/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//
+//  This programs is free for commercial and non-commercial use as long as
+//  the following conditions are aheared to.
+//
+//  Copyright remains RIT Research Labs, and as such any Copyright notices
+//  in the code are not to be removed. If this package is used in a
+//  product, RIT Research Labs should be given attribution as the RIT Research
+//  Labs of the parts of the library used. This can be in the form of a textual
+//  message at program startup or in documentation (online or textual)
+//  provided with the package.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are
+//  met:
+//
+//  1. Redistributions of source code must retain the copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     "Based on Dos Navigator by RIT Research Labs."
+//
+//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//  The licence and distribution terms for any publically available
+//  version or derivative of this code cannot be changed. i.e. this code
+//  cannot simply be copied and put under another distribution licence
+//  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////}
+
 unit BigArray;
 (* Autor -- SeYKo, 1 Mach 2000 *)
 
@@ -91,7 +138,7 @@ const
 
 implementation
 Uses
-  Strings {StrMove}, MemChk {GetMemM};
+  {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF};
 
 constructor TArray.Init(AMaxCount, AItemSize: Word);
 var
@@ -104,7 +151,7 @@ begin
   then begin
     Error(coIndexError,-1); Fail;
   end;
-  GetMemM(Items, S); if Items=nil then Fail;
+  GetMem(Items, S); if Items=nil then Fail;
   _MaxCount:=AMaxCount; _ItemSize:=AItemSize;
   { CurCount:=0; UpIndex:=0; }
   UpItems:=Items + (_MaxCount-(CurCount-UpIndex))*_ItemSize;
@@ -113,7 +160,7 @@ end;
 destructor TArray.Done;
 begin
   if (Items<>nil) then begin
-    FreeMemM(Items, _MaxCount * _ItemSize); { Items:=nil; }
+    FreeMem(Items, _MaxCount * _ItemSize); { Items:=nil; }
     UpItems:=nil;
     _MaxCount:=0; CurCount:=0;
     _ItemSize:=0; UpIndex:=0;
@@ -140,8 +187,8 @@ begin
     Exit;
   end;
   if (S_OLD <> S_NEW) or (Items=nil) then begin
-    if (Items<>nil) then FreeMemM(Items, S_OLD);
-    GetMemM(Items, S_NEW);
+    if (Items<>nil) then FreeMem(Items, S_OLD);
+    GetMem(Items, S_NEW);
     if Items=nil then begin
       Error(coGetMemFailed, 0);
       _MaxCount:=0; _ItemSize:=0;
@@ -280,7 +327,7 @@ end;
 
 procedure TArray.Error(Code, Info: Integer);
 begin
-  WriteLn('TArray.Error: Code=',Code,' Info=',Info);
+ {WriteLn('TArray.Error: Code=',Code,' Info=',Info);}
 end;
 
 constructor TBigArrayNode.Init(AMaxCount, AItemSize: Word);
@@ -309,7 +356,7 @@ end;
 destructor TBigArray.Done;
 begin
   if CurCount<>0 then DeleteTo(0,0,CurCount,nil);
-  FreeObject(CurNode);
+  If CurNode<>nil then Dispose(CurNode, Done);
   _MaxCount:=0; CurCount:=0; CurIndex:=0;
   inherited Done;
 end;
@@ -416,14 +463,14 @@ begin
           CurNode^.Next^.Prev:=CurNode^.Prev;
           if CurNode^.Prev<>nil then CurNode^.Prev^.Next:=CurNode^.Next;
           CurNode:=CurNode^.Next;
-          FreeObject(tNode);
+          if tNode<>nil then Dispose(tNode, Done); tNode:=nil;
         end else
         if CurNode^.Prev<>nil then begin
           Dec(_MaxCount,CurNode^._MaxCount); tNode:=CurNode;
           CurNode^.Prev^.Next:=CurNode^.Next;
           if CurNode^.Next<>nil then CurNode^.Next^.Prev:=CurNode^.Prev;
           CurNode:=CurNode^.Prev; Dec(CurIndex,CurNode^.Count);
-          FreeObject(tNode);
+          if tNode<>nil then Dispose(tNode, Done); tNode:=nil;
         end;
       end else
       if (CurNode^.Next <> nil) then
@@ -436,7 +483,7 @@ begin
           CurNode^.Next:=tNode^.Next;
           if tNode^.Next<>nil then tNode^.Next^.Prev:=CurNode;
           Dec(_MaxCount,tNode^._MaxCount);
-          FreeObject(tNode);
+          if tNode<>nil then Dispose(tNode, Done); tNode:=nil;
         end;
         Inc(Index,tCount);
       end else
@@ -512,7 +559,7 @@ begin
     CurNode^.Next:=tNode^.Next;
     if tNode^.Next<>nil then tNode^.Next^.Prev:=CurNode;
     Dec(_MaxCount,tNode^._MaxCount);
-    FreeObject(tNode);
+    if tNode<>nil then Dispose(tNode, Done); tNode:=nil;
   end;
 end;
 
@@ -625,7 +672,7 @@ end;
 
 procedure TBigArray.Error(Code: Integer; Info: LongInt);
 begin
-  WriteLn('TArray.Error: Code=',Code,' Info=',Info);
+ {WriteLn('TArray.Error: Code=',Code,' Info=',Info);}
 end;
 
 end.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -98,7 +98,7 @@ CONST
   kbAltPgDn   = $A100;  kbF11        = $8500; kbF12        = $8600;
   kbShiftF11  = $8700;  kbShiftF12   = $8800; kbAltHome    = $9900;
   kbCtrlF11   = $8900;  kbCtrlF12    = $8A00; kbAltEnd     = $9F00;
-  kbAltF11    = $8B00;  kbAltF12     = $8C00; kbCtrlBSlsh  = $2B1C;
+  kbAltF11    = $8B00;  kbAltF12     = $8C00; kbCtrlBSlash = $2B1C;
   kbCtrlUp    = $8D00;  kbCtrlDown   = $9100; kbCtrlSTab   = kbAltTab;
 
   kbCtrlA = $1E01;  kbCtrlB = $3002;  kbCtrlC = $2E03;  kbCtrlD = $2004;
@@ -111,22 +111,65 @@ CONST
 
         {-DataCompBoy-}
   kbCtrlAltX = $2D0D; kbCtrlAltZ = $2C0C;
+  kbCtrlAltF1 = $F100; kbCtrlAltF2 = $F200; kbCtrlAltF3 = $F300;
+  kbCtrlAltF4 = $F400; kbCtrlAltF5 = $F500; kbCtrlAltF6 = $F600;
+  kbCtrlAltF7 = $F700; kbCtrlAltF8 = $F800; kbCtrlAltF9 = $F900;
+  kbCtrlAltF10= $FA00; kbCtrlAltF11= $FB00; kbCtrlAltF12= $FC00;
+  kbCtrlShift1 = $E100; kbCtrlShift2 = $E200; kbCtrlShift3 = $E300;
+  kbCtrlShift4 = $E400; kbCtrlShift5 = $E500; kbCtrlShift6 = $E600;
+  kbCtrlShift7 = $E700; kbCtrlShift8 = $E800; kbCtrlShift9 = $E900;
   kbCtrl1=$D100; kbCtrl2=$D200; kbCtrl3=$D300; kbCtrl4=$D400; kbCtrl5=$D500;
   kbCtrl6=$D600; kbCtrl7=$D700; kbCtrl8=$D800; kbCtrl9=$D900; kbCtrl0=$DA00;
-  kbCtrlShiftTilde = $0FE00;
+  kbCtrlShiftTilde = $0FE00;    kbBackUp=$FD00;
+  kbAltCtrlSqBracketL=$1A1A;    kbAltCtrlSqBracketR=$1B1B;
+  kbCtrlSqBracketL=$1A1B;       kbCtrlSqBracketR=$1B1D;
+  kbAltMore=$3400;              kbAltLess=$3300;
+  kbAltShiftBack=$9700;
+  kbShiftGrayPlus=$CE00;        kbShiftGrayMinus=$CA00;
         {-DataCompBoy-}
 
   kbAltQuote = $2800;
+  kbAltSemicolon = $2700; {JO}
 
-{ FileMode constants }
-  fmReadOnly  =   0;
-  fmWriteOnly =   1;
-  fmReadWrite =   2;
-  fmDenyAll   = $10;
-  fmDenyWrite = $20;
-  fmDenyRead  = $30;
-  fmDenyNone  = $40;
-  fmNoInherit = $80;
+const
+
+{ Event codes }
+
+  evMouseDown = $0001;
+  evMouseUp   = $0002;
+  evMouseMove = $0004;
+  evMouseAuto = $0008;
+  evKeyDown   = $0010;
+  evCommand   = $0100;
+  evBroadcast = $0200;
+
+{ Event masks }
+
+  evNothing   = $0000;
+  evMouse     = $000F;
+  evKeyboard  = $0010;
+  evMessage   = $FF00;
+
+
+const
+  kbRightShift  = $0001;
+  kbLeftShift   = $0002;
+  kbCtrlShift   = $0004;
+  kbAltShift    = $0008;
+  kbScrollState = $0010;
+  kbNumState    = $0020;
+  kbCapsState   = $0040;
+  kbInsState    = $0080;
+
+  kbAnyShift    = $000F;
+
+{ ViewMode constants }
+  vmText      =   0;
+  vmHex       =   1;
+  vmDump      =   2;
+  vmAsm       =   3;
+  vmDB        = 100;
+  vmSpread    = 101;
 
   ebfCBF = 1 shl  0;
   ebfBSU = 1 shl  1;
@@ -144,7 +187,8 @@ CONST
   ebfEMS = 1 shl 13;
   ebfXMS = 1 shl 14;
   ebfTRp = 1 shl 15; {-$VOL} {TabReplace}
-
+  ebfHlt = 1 shl  0; {Highlight}
+  ebfSmt = 1 shl  1; {SmartTab}
 
   ouiClock               = $0001;
   ouiHideMenu            = $0002;
@@ -199,10 +243,11 @@ CONST
   ossAdvCopy     = $100;
   ossFlushDsk    = $200;
 
-  ossDirectAccess   = 1;
-  ossTree           = 2;
-  ossVerify         = 4;
-  ossNoLFN          = 8; {DataCompBoy}
+  ossDirectAccess   =$01;
+  ossTree           =$02;
+  ossVerify         =$04;
+  ossNoLFN          =$08; {DataCompBoy}
+  ossCheckFreeSpace =$10; {DataCompBoy}
 
   cdnHideCmdLine    = $0001;  { DN Misc Information }
 
@@ -211,6 +256,12 @@ CONST
   ditLocalDir       = $02;
   ditCDdir          = $04;
   ditNetDir         = $08;
+  ditIncludeQick    = $10;
+  ditIncludeTempInfo= $20;
+
+  dfMDY             = 00;
+  dfDMY             = 01;
+  dfYMD             = 02;
         {-DataCompBoy-}
 
 { Editor History }
@@ -261,6 +312,9 @@ CONST
   hsMakeListFooter  = 151;
   hsFmtVolumeL      = 152;
   hsAddOptions      = 153;
+  hsRenameFil       = 154;
+  hsFBBCopySize     = 155;
+  hsFBBCopyNum      = 156;
 
 {UU Encode options}
 
@@ -276,11 +330,13 @@ CONST
 
 { Panel sort mode }
   psmName      = 0;
-  psmExtension = 1;
-  psmSize      = 2;
-  psmTime      = 3;
-  psmType      = 4;
-  psmUnsorted  = 5;
+  psmLongName  = 1;
+  psmExtension = 2;
+  psmLongExt   = 3;
+  psmSize      = 4;
+  psmTime      = 5;
+  psmType      = 6;
+  psmUnsorted  = 7;
 
 { QuickSearch key }
   pqsAlt  = 0;
@@ -313,9 +369,11 @@ CONST
   fmoUseArrows       = $0040;
   fmoAltDifference   = $0080;
   fmoCtrlDifference  = $0100;
-  fmoBackGoesBack    = $0200;
-  fmoPreserveDesc    = $0400;
-  fmoKillContainer   = $0800;
+  fmoAlternCtrlDiff  = $0200;
+  fmoBackGoesBack    = $0400;
+  fmoPreserveDesc    = $0800;
+  fmoKillContainer   = $1000;
+  fmoAlwaysCopyDesc  = $2000;
 
 { New manager panel types }
   fdoDriveDrive      = 0;
@@ -345,6 +403,7 @@ CONST
   cfExitCDconfirm    = $0020;
   cfMouseConfirm     = $0040;
   cfExitConfirm      = $0080;
+  cfFmtOs2Warning    = $0100;
 
 { Column data items }
   psShowLongName = $0001;
@@ -382,257 +441,344 @@ CONST
   ttCust3        = 6;
   ttCust4        = 7;
   ttCust5        = 8;
+  ttCust6        = 9;  {JO}
+  ttCust7        = 10;
+  ttCust8        = 11;
+  ttCust9        = 12;
+  ttCust10       = 13; {JO}
 
+{Phones}
+  cmHold    = 11304;
+  cmUnhold  = 11005;
 
-  cmSaveText      = 12101;
-  cmLoadText      = 12102;
-  cmSaveTextAs    = 12103;
-  cmSwitchBlock   = 12104;
-  cmSwitchIndent  = 12105;
-  cmSwitchFill    = 12106;
-  cmSwitchBack    = 12107;
-  cmSwitchSave    = 12108;
+{ Standard command codes }
 
-  cmWordLeft      = 12110;
-  cmWordRight     = 12111;
-  cmDelWordRight  = 12112;
-  cmDelWordLeft   = 12113;
-  cmScrollUp      = 12114;
-  cmScrollDn      = 12115;
-  cmCenter        = 12116;
-  cmStartSearch   = 12117;
-  cmContSearch    = 12118;
-  cmDelBackChar   = 12119;
-  cmDelChar       = 12120;
-  cmSwitchIns     = 12121;
-  cmPgUp          = 12122;
-  cmPgDn          = 12123;
-  cmMoveUp        = 12124;
-  cmMoveLeft      = 12125;
-  cmMoveRight     = 12126;
-  cmMoveDown      = 12127;
-  cmBlockStart    = 12128;
-  cmBlockEnd      = 12129;
-  cmMarkWord      = 12130;
-  cmMarkLine      = 12131;
-  cmTab           = 12135;
-  cmPlaceMarker   = 12136;
-  cmGoToMarker    = 12137;
-  cmSpecChar      = 12138;
-  cmReplace       = 12139;
-  cmEnd           = 12140;
-  cmEnter         = 12141;
-  cmInsLine       = 12142;
-  cmLJustify      = 12147;
-  cmLCenter       = 12148;
-  cmLLeft         = 12149;
-  cmLRight        = 12150;
-  cmDeltoEOLN     = 12151;
-  cmSetMargins    = 12152;
-  cmCtrlHome      = 12153;
-  cmCtrlEnd       = 12154;
-  cmSwitchHighLight = 12155;
-  cmGotoLineNumber  = 12156;
-  cmSwitchWrap      = 12157;
-  cmSwitchHiLine    = 12158;
-  cmSwitchHiColumn  = 12159;
-  cmUpString        = 12160;
-  cmLowString       = 12161;
-  cmCapString       = 12162;
-  cmInsertTime      = 12166;
-  cmInsertDate      = 12167;
-  cmMoveBlockStart  = 12168;
-  cmMoveBlockEnd    = 12169;
-  cmInsertOn        = 12170;
-  cmInsertOff       = 12171;
-  cmIndentOn        = 12172;
-  cmIndentOff       = 12173;
-  cmSelectMacro     = 12174;
-  cmPlayMacro       = 12175;
-  cmSwitchBrackets  = 12176;
-  cmBracketPair     = 12177;
-  cmUpWord          = 12178;
-  cmLowWord         = 12179;
-  cmCapWord         = 12180;
-  cmSwitchDrawMode  = 12181;
-  cmLoadXlatTable   = 12182;
-  cmAdvancePortSetup= 12183;
-  cmNavyLinkSetup   = 12184;
-  cmSwitchKeyMapping = 12185; {-$VIV}
-  cmOpenFileAtCursor = 12186; {-$VIV}
-  cmEditSPF          = 12187; {-$VIV}
-  cmEditINI          = 12188; {-$VIV}
-  cmChangeCharCase   = 12189;
-  cmSwitchTabReplace = 12190; {-$VOL}
-  cmEditCrLfMode    = 12191;
-  cmEditLfMode      = 12192;
-  cmEditCrMode      = 12193;
-  cmNext2           = 12194;
-  cmPrev2           = 12195;
-  cmNext3           = 12196;
-  cmPrev3           = 12197;
-  cmGotoLineNumber2 = 12198;
+  cmValid   = 0;
+  cmQuit    = 1;
+  cmError   = 2;
+  cmMenu    = 3;
+  cmClose   = 4;
+  cmZoom    = 5;
+  cmMaxi    = 45;
+  cmMinimize= 46;
+  cmResize  = 6;
+  cmNext    = 7;
+  cmPrev    = 8;
+  cmHelp    = 9;
+  cmHelp2   = $DCB;
 
-  cmCopyUnselect = 10001;
-  cmRereadDir    = 10004;
-  cmRereadInfo   = 10005;
-  cmPushName     = 10006;
-  cmRereadTree   = 10007;
-  cmTree         = 10009;
-  cmFileView     = 10011;
-  cmFileEdit     = 10013;
-  cmInsertBlock  = 10014;
-  cmEnableView   = 10016;
-  cmDisableView  = 10017;
-  cmDisableSky   = 10018;
-  cmChangeDrv    = 10019;
-  cmInsertDrive  = 10021;
-  cmMenuOn       = 10022;
-  cmMenuOff      = 10023;
-  cmExecGrabber  = 10024;
-  cmCloseDialer  = 10025;
+{ Application command codes }
 
-  cmFindEdit     = 10101;
-  cmFindView     = 10102;
-  cmFindPrint    = 10103;
-  cmFindSortBy   = 10104;
-  cmFindMakeList = 10105;
-  cmFindGotoFile = 10106;
+  cmCut     = 20;
+  cmCopy    = 21;
+  cmPaste   = 22;
+  cmUndo    = 23;
+  cmRedo    = 30; {-$VOL}
+  cmClear   = 24;
+  cmTile    = 25;
+  cmCascade = 26;
 
-  cmPanelXSelect    = 10203;
-  cmPanelXUnselect  = 10204;
-  cmPanelCompare    = 10211;
-  cmPushFirstName   = 10214;
-  cmPushFullName    = 10215;
+{ TDialog standard commands }
 
-  cmInsertName      = 10301;
-  cmInfoPresent     = 10302;
-  cmGetDirName      = 10303;
-  cmLocalReread     = 10304;
-  cmDlgNotFound     = 10305;
+  cmOK      = 10;
+  cmCancel  = 11;
+  cmYes     = 12;
+  cmNo      = 13;
+  cmDefault = 14;
+  cmSkip    = 15;
+  cmTest    = 16;
 
-  cmPrepareToDelete = 10401;
-  cmChangeDirectory = 10402;
-  cmChangeTree      = 10403;
-  cmLoadViewFile    = 10404;
-  cmGLoadViewFile   = 10405;
-  cmLViewFile       = 10406;
-  cmIntFileView     = 10410;
-  cmIntFileEdit     = 10411;
+{ Dialog broadcast commands }
 
-  cmExecCommandLine = 10500;
-  cmExecFile        = 10501;
-  cmDropped         = 10502;
-  cmFindCalculator  = 10503;
-  cmFindTree        = 10504;
-  cmFindTempDrive   = 10505;
-  cmTempDrive       = 10506;
-  cmCopyToTemp      = 10508;
+  cmRecordHistory = 60;
 
-  cmSystemSetup     = 10600;
-  cmChangeColors    = 10601;
-  cmExtFileEdit     = 10602;
-  cmMenuFileEdit    = 10603;
-  cmExternalViewers = 10604;
-  cmExternalEditors = 10605;
-  cmScreenRest      = 10606;
-  cmHexMode         = 10607;
-  cmSearchFor       = 10608;
-  cmContinueSearch  = 10609;
-  cmStartup         = 10610;
-  cmInterfaceSetup  = 10611;
-  cmSaversSetup     = 10612;
-  cmChScreenMode    = 10613;
+{ Standard messages }
 
-  cmSSortName   = 10801;
-  cmSSortExt    = 10802;
-  cmSSortSize   = 10803;
-  cmSSortTime   = 10804;
-  cmSSortUnSort = 10800;
-  cmShowFields  = 10805;
-  cmShowMemo    = 10806;
-  cmEditDBField = 10807;
+  cmFind              = 47;
+  cmSelectAll         = 48; {+CN}
+  cmIncSearch         = 49;
 
-  cmNewTable        = 10901;
-  cmChangeWidth     = 10904;
-  cmSheetLoad       = 10905;
-  cmChangeFormat    = 10906;
-  cmInsertLine      = 10907;
-  cmDeleteLine      = 10908;
-  cmInsertColumn    = 10909;
-  cmDeleteColumn    = 10910;
-  cmRecalc          = 10911;
-  cmFindCell        = 10912;
-  cmReplaceCell     = 10913;
-  cmSearchAgain     = 10914;
-  cmGotoError       = 10916;
-  cmImportToFile    = 10917;
-  cmImportToClip    = 10918;
-  cmSaveSheetAs     = 10919;
+  cmReceivedFocus     = 50;
+  cmReleasedFocus     = 51;
+  cmCommandSetChanged = 52;
+
+{ TScrollBar messages }
+
+  cmScrollBarChanged  = 53;
+  cmScrollBarClicked  = 54;
+
+{ TWindow select messages }
+
+  cmSelectWindowNum   = 55;
+
+{ TListViewer messages }
+
+  cmListItemSelected  = 56;
+
+  cmSaveText           = 12101;
+  cmLoadText           = 12102;
+  cmSaveTextAs         = 12103;
+  cmSwitchBlock        = 12104;
+  cmSwitchIndent       = 12105;
+  cmSwitchFill         = 12106;
+  cmSwitchBack         = 12107;
+  cmSwitchSave         = 12108;
+
+  cmWordLeft           = 12110;
+  cmWordRight          = 12111;
+  cmDelWordRight       = 12112;
+  cmDelWordLeft        = 12113;
+  cmScrollUp           = 12114;
+  cmScrollDn           = 12115;
+  cmCenter             = 12116;
+  cmStartSearch        = 12117;
+  cmContSearch         = 12118;
+  cmDelBackChar        = 12119;
+  cmDelChar            = 12120;
+  cmSwitchIns          = 12121;
+  cmPgUp               = 12122;
+  cmPgDn               = 12123;
+  cmMoveUp             = 12124;
+  cmMoveLeft           = 12125;
+  cmMoveRight          = 12126;
+  cmMoveDown           = 12127;
+  cmBlockStart         = 12128;
+  cmBlockEnd           = 12129;
+  cmMarkWord           = 12130;
+  cmMarkLine           = 12131;
+  cmTab                = 12135;
+  cmSpecChar           = 12138;
+  cmReplace            = 12139;
+  cmEnd                = 12140;
+  cmEnter              = 12141;
+  cmInsLine            = 12142;
+  cmLJustify           = 12147;
+  cmLCenter            = 12148;
+  cmLLeft              = 12149;
+  cmLRight             = 12150;
+  cmDeltoEOLN          = 12151;
+  cmSetMargins         = 12152;
+  cmCtrlHome           = 12153;
+  cmCtrlEnd            = 12154;
+  cmSwitchHighLight    = 12155;
+  cmGotoLineNumber     = 12156;
+  cmSwitchWrap         = 12157;
+  cmSwitchHiLine       = 12158;
+  cmSwitchHiColumn     = 12159;
+  cmUpString           = 12160;
+  cmLowString          = 12161;
+  cmCapString          = 12162;
+  cmInsertTime         = 12166;
+  cmInsertDate         = 12167;
+  cmMoveBlockStart     = 12168;
+  cmMoveBlockEnd       = 12169;
+  cmInsertOn           = 12170;
+  cmInsertOff          = 12171;
+  cmIndentOn           = 12172;
+  cmIndentOff          = 12173;
+  cmSelectMacro        = 12174;
+  cmPlayMacro          = 12175;
+  cmSwitchBrackets     = 12176;
+  cmBracketPair        = 12177;
+  cmUpWord             = 12178;
+  cmLowWord            = 12179;
+  cmCapWord            = 12180;
+  cmSwitchDrawMode     = 12181;
+  cmLoadXlatTable      = 12182;
+  cmAdvancePortSetup   = 12183;
+  cmNavyLinkSetup      = 12184;
+  cmSwitchKeyMapping   = 12185;{-$VIV}
+  cmOpenFileAtCursor   = 12186;{-$VIV}
+  cmEditSPF            = 12187;{-$VIV}
+  cmEditINI            = 12188;{-$VIV}
+  cmChangeCharCase     = 12189;
+  cmSwitchTabReplace   = 12190;{-$VOL}
+  cmEditCrLfMode       = 12191;
+  cmEditLfMode         = 12192;
+  cmEditCrMode         = 12193;
+  cmNext2              = 12194;
+  cmPrev2              = 12195;
+  cmNext3              = 12196;
+  cmPrev3              = 12197;
+  cmGotoLineNumber2    = 12198;
+  cmPlaceMarker1       = 14001;
+  cmPlaceMarker2       = 14002;
+  cmPlaceMarker3       = 14003;
+  cmPlaceMarker4       = 14004;
+  cmPlaceMarker5       = 14005;
+  cmPlaceMarker6       = 14006;
+  cmPlaceMarker7       = 14007;
+  cmPlaceMarker8       = 14008;
+  cmPlaceMarker9       = 14009;
+  cmGoToMarker1        = 14011;
+  cmGoToMarker2        = 14012;
+  cmGoToMarker3        = 14013;
+  cmGoToMarker4        = 14014;
+  cmGoToMarker5        = 14015;
+  cmGoToMarker6        = 14016;
+  cmGoToMarker7        = 14017;
+  cmGoToMarker8        = 14018;
+  cmGoToMarker9        = 14019;
+
+  cmCopyUnselect       = 10001;
+  cmRereadDir          = 10004;
+  cmRereadInfo         = 10005;
+  cmPushName           = 10006;
+  cmRereadTree         = 10007;
+  cmTree               = 10009;
+  cmFileView           = 10011;
+  cmFileEdit           = 10013;
+  cmInsertBlock        = 10014;
+  cmEnableView         = 10016;
+  cmDisableView        = 10017;
+  cmDisableSky         = 10018;
+  cmChangeDrv          = 10019;
+  cmInsertDrive        = 10021;
+  cmMenuOn             = 10022;
+  cmMenuOff            = 10023;
+  cmExecGrabber        = 10024;
+  cmCloseDialer        = 10025;
+
+  cmFindEdit           = 10101;
+  cmFindView           = 10102;
+  cmFindPrint          = 10103;
+  cmFindSortBy         = 10104;
+  cmFindMakeList       = 10105;
+  cmFindGotoFile       = 10106;
+
+  cmPanelXSelect       = 10203;
+  cmPanelXUnselect     = 10204;
+  cmPanelCompare       = 10211;
+  cmPushFirstName      = 10214;
+  cmPushFullName       = 10215;
+
+  cmInsertName         = 10301;
+  cmInfoPresent        = 10302;
+  cmGetDirName         = 10303;
+  cmLocalReread        = 10304;
+  cmDlgNotFound        = 10305;
+
+  cmPrepareToDelete    = 10401;
+  cmChangeDirectory    = 10402;
+  cmChangeTree         = 10403;
+  cmLoadViewFile       = 10404;
+  cmGLoadViewFile      = 10405;
+  cmLViewFile          = 10406;
+  cmIntFileView        = 10410;
+  cmIntFileEdit        = 10411;
+
+  cmExecCommandLine    = 10500;
+  cmExecFile           = 10501;
+  cmDropped            = 10502;
+  cmFindCalculator     = 10503;
+  cmFindTree           = 10504;
+  cmFindTempDrive      = 10505;
+  cmTempDrive          = 10506;
+  cmCopyToTemp         = 10508;
+
+  cmSystemSetup        = 10600;
+  cmChangeColors       = 10601;
+  cmExtFileEdit        = 10602;
+  cmMenuFileEdit       = 10603;
+  cmExternalViewers    = 10604;
+  cmExternalEditors    = 10605;
+  cmScreenRest         = 10606;
+  cmHexMode            = 10607;
+  cmSearchFor          = 10608;
+  cmContinueSearch     = 10609;
+  cmStartup            = 10610;
+  cmInterfaceSetup     = 10611;
+  cmSaversSetup        = 10612;
+  cmChScreenMode       = 10613;
+
+  cmSSortName          = 10801;
+  cmSSortExt           = 10802;
+  cmSSortSize          = 10803;
+  cmSSortTime          = 10804;
+  cmSSortUnSort        = 10800;
+  cmShowFields         = 10805;
+  cmShowMemo           = 10806;
+  cmEditDBField        = 10807;
+
+  cmNewTable           = 10901;
+  cmChangeWidth        = 10904;
+  cmSheetLoad          = 10905;
+  cmChangeFormat       = 10906;
+  cmInsertLine         = 10907;
+  cmDeleteLine         = 10908;
+  cmInsertColumn       = 10909;
+  cmDeleteColumn       = 10910;
+  cmRecalc             = 10911;
+  cmFindCell           = 10912;
+  cmReplaceCell        = 10913;
+  cmSearchAgain        = 10914;
+  cmGotoError          = 10916;
+  cmImportToFile       = 10917;
+  cmImportToClip       = 10918;
+  cmSaveSheetAs        = 10919;
   cmToggleDescriptions = 10920;
   cmToggleShowMode     = 10921;
 
-  cmExtract         = 11000;
-  cmSetPassword     = 11001;
-  cmArcDelete       = 11002;
-  cmArcView         = 11003;
-  cmArcTest         = 11004;
-  cmTermWrite       = 11005;
-  cmTermLog         = 11006;
-  cmTermVisible     = 11007;
-  cmExtractTo       = 11008;
-  cmFullView        = 11009;
-  cmArchiveFiles    = 11010;
-  cmExecString      = 11011;
-  cmReceiveFile     = 11012;
-  cmSendFile        = 11013;
-  cmGetFileName     = 11014;
-  cmShowOutput      = 11015;
-  cmUnArchive       = 11016;
-  cmCheckArchive    = 11017;
-  cmInsertFile      = 11018;
-  cmMarkFiles       = 11019;
-  cmUnMarkFiles     = 11020;
-  cmMarkFile        = 11021;
-  cmRChDrive        = 11022;
-  cmRViewFile       = 11023;
-  cmReanimateFile   = 11024;
-  cmNewGame         = 11025;
-  cmEraseGroup      = 11026;
-  cmPutInClipboard  = 11027;
-  cmGetFromClipboard= 11028;
-  cmReboundPanel    = 11029;
-  cmCopyCollection  = 11030;
-  cmSendInitModem   = 11031;
-  cmSendModemBreak  = 11032;
-  cmReadArchive     = 11033;
-  cmRereadForced    = 11034;
-  cmMakeForced      = 11035;
-  cmFindForced      = 11036;
-  cmTouchFile       = 11037;
-  cmDoSendLocated   = 11038;
-  cmGetUserParams   = 11039;
-  cmTreeChanged     = 11040;
-  cmCloseFormat     = 11041;
-  cmCloseLinked     = 11042;
+  cmExtract            = 11000;
+  cmSetPassword        = 11001;
+  cmArcDelete          = 11002;
+  cmArcView            = 11003;
+  cmArcTest            = 11004;
+  cmTermWrite          = 11005;
+  cmTermLog            = 11006;
+  cmTermVisible        = 11007;
+  cmExtractTo          = 11008;
+  cmFullView           = 11009;
+  cmArchiveFiles       = 11010;
+  cmExecString         = 11011;
+  cmReceiveFile        = 11012;
+  cmSendFile           = 11013;
+  cmGetFileName        = 11014;
+  cmShowOutput         = 11015;
+  cmUnArchive          = 11016;
+  cmCheckArchive       = 11017;
+  cmInsertFile         = 11018;
+  cmMarkFiles          = 11019;
+  cmUnMarkFiles        = 11020;
+  cmMarkFile           = 11021;
+  cmRChDrive           = 11022;
+  cmRViewFile          = 11023;
+  cmReanimateFile      = 11024;
+  cmNewGame            = 11025;
+  cmEraseGroup         = 11026;
+  cmPutInClipboard     = 11027;
+  cmGetFromClipboard   = 11028;
+  cmReboundPanel       = 11029;
+  cmCopyCollection     = 11030;
+  cmSendInitModem      = 11031;
+  cmSendModemBreak     = 11032;
+  cmReadArchive        = 11033;
+  cmRereadForced       = 11034;
+  cmMakeForced         = 11035;
+  cmFindForced         = 11036;
+  cmTouchFile          = 11037;
+  cmDoSendLocated      = 11038;
+  cmGetUserParams      = 11039;
+  cmTreeChanged        = 11040;
+  cmCloseFormat        = 11041;
+  cmCloseLinked        = 11042;
 
-  cmQuickChange1    = 11100;
-  cmQuickChange2    = 11101;
-  cmQuickChange3    = 11102;
-  cmQuickChange4    = 11103;
-  cmQuickChange5    = 11104;
-  cmQuickChange6    = 11105;
-  cmQuickChange7    = 11106;
-  cmQuickChange8    = 11107;
-  cmQuickChange9    = 11108;
+  cmQuickChange1       = 11100;
+  cmQuickChange2       = 11101;
+  cmQuickChange3       = 11102;
+  cmQuickChange4       = 11103;
+  cmQuickChange5       = 11104;
+  cmQuickChange6       = 11105;
+  cmQuickChange7       = 11106;
+  cmQuickChange8       = 11107;
+  cmQuickChange9       = 11108;
+
+  cmUpdateHexViews     = 11111;
 
   {  Additional Commands   }
-  cmRunAmin         = 11202;
-  cmNothing         = 11203;
-
-  cmAddVariable     = 11205;
-  cmRenVariable     = 11206;
-  cmDelVariable     = 11207;
+  cmAddVariable        = 11205;
+  cmRenVariable        = 11206;
+  cmDelVariable        = 11207;
 
   cmSetup              = 19001;
   cmStop               = 19002;
@@ -658,6 +804,10 @@ CONST
   cmReleaseFile        = 19024;
   cmFastRename         = 19025;
   cmGetNetInfo         = 19026; {-$VIV}
+  cmViewFilter         = 19027;
+
+  cmMemInfo            =   100;
+
 
 
   { Terminal/ScrollBack }
@@ -666,58 +816,58 @@ CONST
   cmSBBStore           = 19116;
   cmSBBGrab            = 19117;
 
-  cdPlay   = 19900 ;
-  cdStop   = 19901 ;
-  cdNext   = 19902 ;
-  cdPrev   = 19903 ;
-  cdEject  = 19904 ;
-  cdPause  = 19905 ;
-  cdFFwd   = 19906 ;
-  cdFRew   = 19907 ;
-  cdSetup  = 19908 ;
-  cdDisplay= 19909 ;
-  cdZoom   = 19910 ;
-  cdMode   = 19911 ;
-  cdOrder  = 19912 ;
-  cdTitle  = 19913 ;
-  cdMix    = 19914 ;
-  cdSong   = 19915 ;
+  cdPlay              = 19900 ;
+  cdStop              = 19901 ;
+  cdNext              = 19902 ;
+  cdPrev              = 19903 ;
+  cdEject             = 19904 ;
+  cdPause             = 19905 ;
+  cdFFwd              = 19906 ;
+  cdFRew              = 19907 ;
+  cdSetup             = 19908 ;
+  cdDisplay           = 19909 ;
+  cdZoom              = 19910 ;
+  cdMode              = 19911 ;
+  cdOrder             = 19912 ;
+  cdTitle             = 19913 ;
+  cdMix               = 19914 ;
+  cdSong              = 19915 ;
 
-  cmTextMode = 1002;
-  cmDirMode = 1003;
-  cmFATMode = 1004;
-  cmFixFile = 1005;
-  cmFixDir  = 1006;
-  cmFixDrive = 1007;
-  cmFixCluster = 1008;
-  cmFixSector = 1009;
-  cmFixBlockWrite = 240;
+  cmTextMode          = 1002;
+  cmDirMode           = 1003;
+  cmFATMode           = 1004;
+  cmFixFile           = 1005;
+  cmFixDir            = 1006;
+  cmFixDrive          = 1007;
+  cmFixCluster        = 1008;
+  cmFixSector         = 1009;
+  cmFixBlockWrite     = 240;
 
-  cmOpenFile    = 3001;
-  cmOpenWindow  = 3002;
-  cmChangeMode  = 3003;
-  cmFindFile    = 3004;
-  cmCreatePanel = 3006;
-  cmCreateTree  = 3007;
-  cmAbout       = 3008;
-  cmRefresh     = 3009;
-  cmXViewFile   = 3011;
-  cmShowUserScreen = 3012;
-  cmFormatDisk  = 3013;
-  cmXEditFile   = 3015;
-  cmMemoryInfo  = 3016;
-  cmLoadDesk    = 5434;
-  cmSaveDesk    = 5435;
- {cmDiskCopy    = 3017;}
-  cmSystemDisk  = 3018;
-  cmReanimator  = 3019;
-  cmDiskEdit    = 3020;
-  cmSetVolumeLabel = 3021;
-  cmCalculator  =  3022;
-  cmHideShowTools  =  3023;
-  cmChangeUserMode1 = 3024;
-  cmChangeUserMode2 = 3025;
-  cmUserMenu        = 3026;
+  cmOpenFile          = 3001;
+  cmOpenWindow        = 3002;
+  cmChangeMode        = 3003;
+  cmFindFile          = 3004;
+  cmCreatePanel       = 3006;
+  cmCreateTree        = 3007;
+  cmAbout             = 3008;
+  cmRefresh           = 3009;
+  cmXViewFile         = 3011;
+  cmShowUserScreen    = 3012;
+  cmFormatDisk        = 3013;
+  cmXEditFile         = 3015;
+  cmMemoryInfo        = 3016;
+  cmLoadDesk          = 5434;
+  cmSaveDesk          = 5435;
+ {cmDiskCopy          = 3017;}
+  cmSystemDisk        = 3018;
+  cmReanimator        = 3019;
+  cmDiskEdit          = 3020;
+  cmSetVolumeLabel    = 3021;
+  cmCalculator        = 3022;
+  cmHideShowTools     = 3023;
+  cmChangeUserMode1   = 3024;
+  cmChangeUserMode2   = 3025;
+  cmUserMenu          = 3026;
   cmLocalMenuFileEdit = 3027;
   cmGetName           = 3028;
   cmPhoneBook         = 3030;
@@ -727,12 +877,9 @@ CONST
   cmSetupModem        = 3034;
   cmTerminal          = 3035;
   cmUndial            = 3036;
-  cmDemoVersion       = 3037;
   cmTotalReread       = 3038;
-  cmSystemInfo        = 3039;
   cmHideWindows       = 3040;
   cmHistoryList       = 3041;
-  cmASCIITable        = 3042;
   cmGame              = 3043;
   cmKillUsed          = 3044;
   cmFMDefaults        = 3045;
@@ -746,42 +893,46 @@ CONST
   cmFilePrint         = 3056;
   cmNavyLink          = 3057;
   cmColumnDefaultsDisk= 3058; {DataCompBoy}
-  cmRunDemo           = 3059;
   cmEditQuickRun      = 3060;
   cmRestart           = 3061; {DataCompBoy}
   cmColumnDefaultsFind= 3062; {DataCompBoy}
   cmColumnDefaultsTemp= 3063; {DataCompBoy}
   cmColumnDefaultsArch= 3064; {DataCompBoy}
   cmColumnDefaultsArvd= 3065; {DataCompBoy}
+  cmASCIITable        = 3066;
+  cmSystemInfo        = 3067;
 
   cmLoConfigArchiver  = 3101;
 
   cmConfigACE         = 3101;
+  cmConfigARJ         = 3104;
+  cmConfigHA          = 3109;
+  cmConfigLHA         = 3114;
+  cmConfigRAR         = 3117;
+  cmConfigZIP         = 3123;
+{$IFNDEF MINARCH}
   cmConfigAIN         = 3102;
   cmConfigARC         = 3103;
-  cmConfigARJ         = 3104;
   cmConfigBS2         = 3105;
   cmConfigBSA         = 3106;
   cmConfigCAB         = 3107;
   cmConfigCHZ         = 3108;
-  cmConfigHA          = 3109;
   cmConfigHAP         = 3110;
   cmConfigHPK         = 3111;
   cmConfigHYP         = 3112;
-  cmConfigLHA         = 3113;
-  cmConfigLIM         = 3114;
-  cmConfigQUARK       = 3115;
-  cmConfigRAR         = 3116;
-  cmConfigSQZ         = 3117;
-  cmConfigTAR         = 3118;
-  cmConfigUC2         = 3119;
-  cmConfigUFA         = 3120;
-  cmConfigZIP         = 3121;
-  cmConfigZOO         = 3122;
-  cmConfigZXZ         = 3123;
-
-  cmHiConfigArchiver  = 3123;
-
+  cmConfigIS3         = 3113;
+  cmConfigLIM         = 3115;
+  cmConfigQUARK       = 3116;
+  cmConfigSQZ         = 3118;
+  cmConfigTAR         = 3119;
+  cmConfigTGZ         = 3120;
+  cmConfigUC2         = 3121;
+  cmConfigUFA         = 3122;
+  cmConfigZOO         = 3124;
+  cmConfigZXZ         = 3125;
+{$ENDIF}
+  cmHiConfigArchiver  = 3125;
+  cmUpdateArcFile     = 3200;
 
   cmForceRescan       = 3217;
   cmGlobalUserMenu    = 3220;
@@ -792,13 +943,6 @@ CONST
   cmSetupConfirmation = 3225;
   cmTerminalDefaults  = 3226;
   cmGetTeam           = 3227;
-  cmRegisterGer       = 3228;
-  cmRegisterGB        = 3229;
-  cmRegisterMol       = 3231;
-  cmRegisterNL        = 3232;
-  cmRegisterRus       = 3233;
-  cmRegisterCCGermany = 3234;
-  cmRegisterCCGB      = 3235;
   cmOpenSmartpad      = 3236;
   cmTetrisPreview     = 3237;
   cmTetrisIncLevel    = 3238;
@@ -813,9 +957,10 @@ CONST
   cmHideCmdLine       = 3248;
   cmRecountDirs       = 3249;
   cmChLngId           = 3250;
+  cmIsRightPanel      = 3251;
 
-  cmLookForPanels     = 3550; { Есть ли панели? }
-  cmFirstTimePanel    = 3551; { Открыть панель, если ни одной нет }
+  cmLookForPanels     = 3550; { Are there any panels? }
+  cmFirstTimePanel    = 3551; { Open a panel if none exist }
   cmReverseSearch     = 3552;
   cmEditHistory       = 3553;
   cmViewHistory       = 3554;
@@ -824,91 +969,59 @@ CONST
 
   cmShowTimeInfo      = 3556; {DataCompBoy}
 
-  cmTextView      = 22189;
-  cmHexView       = 22190;
-  cmDBFView       = 22191;
-  cmWKZView       = 22192;
+  cmTextView          = 22189;
+  cmHexView           = 22190;
+  cmDBFView           = 22191;
+  cmWKZView           = 22192;
 
-  cmSetValue      = 10000;
-  cmSetError      = 10001;
-  cmCalcValue     = 10002;
-  cmCopyClip      = 10003;
+  cmSetValue          = 10000;
+  cmSetError          = 10001;
+  cmCalcValue         = 10002;
+  cmCopyClip          = 10003;
 
-  cmGetPtr1       = 23000;
-  cmGetPtr2       = 23001;
+  cmGetPtr1           = 23000;
+  cmGetPtr2           = 23001;
 
-  { R - Commands  }
+  { R - Commands      }
 
-  cmRFormat       = 24000;
-  cmNewStrColl    = 24001;
-  cmGetCmpNfo     = 24418;
-  cmRSearchAdvance= 24123;
+  cmRFormat           = 24000;
+  cmNewStrColl        = 24001;
+  cmGetCmpNfo         = 24418;
+  cmRSearchAdvance    = 24123;
 
-{ Standard command codes }
-
-  cmValid   = 0;
-  cmQuit    = 1;
-  cmError   = 2;
-  cmMenu    = 3;
-  cmClose   = 4;
-  cmZoom    = 5;
-  cmResize  = 6;
-  cmNext    = 7;
-  cmPrev    = 8;
-  cmHelp    = 9;
-  cmHelp2   = $DCB;
-
-{ TDialog standard commands }
-
-  cmOK      = 10;
-  cmCancel  = 11;
-  cmYes     = 12;
-  cmNo      = 13;
-  cmDefault = 14;
-  cmSkip    = 15;
-  cmTest    = 16;
-
-{ Application command codes }
-
-  cmCut     = 20;
-  cmCopy    = 21;
-  cmPaste   = 22;
-  cmUndo    = 23;
-  cmRedo    = 30; {-$VOL}
-  cmClear   = 24;
-  cmTile    = 25;
-  cmCascade = 26;
+  cmCalendar          = 27000;
 
 { Open/Save commands }
 
-  cmOpen      = 27;
-  cmSave      = 28;
-  cmSaveAll   = 29;
+  cmOpen              = 27;
+  cmSave              = 28;
+  cmSaveAll           = 29;
 
 
 { Editor Commands }
 
-  cmBlockRead     = 120;
-  cmBlockWrite    = 121;
-  cmBlockPrint    = 122;
+  cmBlockRead         = 120;
+  cmBlockWrite        = 121;
+  cmBlockPrint        = 122;
 
-  cmFJustify      = 123;
-  cmFCenter       = 124;
-  cmFLeft         = 125;
-  cmFRight        = 126;
+  cmFJustify          = 123;
+  cmFCenter           = 124;
+  cmFLeft             = 125;
+  cmFRight            = 126;
 
-  cmSortBlock       = 127;
-  cmCalcBlock       = 128;
-  cmCopyBlock       = 129;
-  cmMoveBlock       = 130;
-  cmHideBlock       = 131;
-  cmUpcaseBlock     = 132;
-  cmLowcaseBlock    = 133;
-  cmCapitalizeBlock = 134;
-  cmIndentBlock     = 135;
-  cmUnIndentBlock   = 136;
-  cmRusEngConv      = 137; {-$VIV 20.05.99--}
-
+  cmSortBlock         = 127;
+  cmCalcBlock         = 128;
+  cmCopyBlock         = 129;
+  cmMoveBlock         = 130;
+  cmHideBlock         = 131;
+  cmUpcaseBlock       = 132;
+  cmLowcaseBlock      = 133;
+  cmCapitalizeBlock   = 134;
+  cmIndentBlock       = 135;
+  cmUnIndentBlock     = 136;
+  cmRusEngConv        = 137; {-$VIV 20.05.99--}
+  cmChangeCaseBlock   = 138;
+  cmRevSortBlock      = 139;
 
 { Panel Commands }
 
@@ -949,50 +1062,64 @@ CONST
   cmSingleDel         = 183;
   cmAdvFilter         = 184;
   cmDirBranch         = 186;
-
+  cmChangeNameCase    = 187;
 
 { ??? Commands }
 
-  cmViewText      = 189;
-  cmViewHex       = 190;
-  cmViewDBF       = 191;
-  cmViewWKZ       = 192;
-  cmPrintBlock    = 193;
-  cmDialPhone     = 194;
-  cmWindowManager = 195;
-  cmClearDeskTop  = 196;
-  cmUnWrap        = 197;
-  cmGotoCell      = 198;
+  cmViewText          = 189;
+  cmViewHex           = 190;
+  cmViewDBF           = 191;
+  cmViewWKZ           = 192;
+  cmPrintBlock        = 193;
+  cmDialPhone         = 194;
+  cmWindowManager     = 195;
+  cmClearDeskTop      = 196;
+  cmUnWrap            = 197;
+  cmGotoCell          = 198;
+
+{ Sort commands }
+  cmSortName          = 13001;
+  cmSortLongName      = 13002;
+  cmSortExt           = 13003;
+  cmSortLongExt       = 13004;
+  cmSortSize          = 13005;
+  cmSortDate          = 13006;
+  cmSortType          = 13030;
+  cmSortUnsorted      = 13000;
 
 
 { DblWnd Commands }
 
   DblWndCommands = [200..219];
 
-  cmDirTree       = 200;
-  cmQuickView     = 201;
-  cmSwapPanels    = 202;
-  cmHideLeft      = 203;
-  cmHideRight     = 204;
-  cmChangeLeft    = 205;
-  cmChangeRight   = 206;
-  cmDiskInfo      = 207;
-  cmSwitchOther   = 208;
-  cmNetInfo       = 209; {-$VIV}
+  cmDirTree           = 200;
+  cmQuickView         = 201;
+  cmSwapPanels        = 202;
+  cmHideLeft          = 203;
+  cmHideRight         = 204;
+  cmChangeLeft        = 205;
+  cmChangeRight       = 206;
+  cmDiskInfo          = 207;
+  cmSwitchOther       = 208;
+  cmNetInfo           = 209; {-$VIV}
 
 
 { Phonebook Commands }
 
-  cmPhoneBookMode = 221;
-  cmImportPhones  = 222;
-  cmSearchPhone   = 223;
-  cmHideInactive  = 224;
-  cmCopyPhone     = 225;
-  cmInsertPhone   = 226;
-  cmDeletePhone   = 227;
-  cmEditPhone     = 228;
-  cmPalVGA        = 229;
+  PhonesCommands      = [221..228];
+  cmPhoneBookMode     = 221;
+  cmImportPhones      = 222;
+  cmSearchPhone       = 223;
+  cmHideInactive      = 224;
+  cmCopyPhone         = 225;
+  cmInsertPhone       = 226;
+  cmDeletePhone       = 227;
+  cmEditPhone         = 228;
 
+  cmPalVGA            = 229;
+
+
+  cmSelectMenuCommands= 30000;
 
 
 { Help Contexts }
@@ -1038,6 +1165,15 @@ CONST
   ofVersion10   = $0000;
   ofVersion20   = $1000;
 
+  {Wrap constants} {DataCompBoy}
+  wmNone        = 0;
+  wmWidth       = 1;
+  wmWords       = 2;
+
+Type
+  TCRLF = (cfNone, cfCRLF, cfCR, cfLF);
+
+
 TYPE
   TStrIdx = (
     dlAltTable,
@@ -1073,7 +1209,6 @@ TYPE
     eruuIncorrectTerm,
     dlUUDecoding,
 
-    dlHexLabel,
     dlPromptForQDir,
     dlOpenFile,
     dlOpenFileName,
@@ -1258,12 +1393,13 @@ TYPE
     dlChangeDir,
     dlSetAttr,
     dlSortName,
+    dlSortLongName,
     dlSortExt,
+    dlSortLongExt,
     dlSortType,
     dlSortDate,
     dlSortSize,
     dlSortUnsorted,
-    dlPanelSortHotkeys,
     dlViewQuery,
     dlViewSearchFor,
     dlViewCase,
@@ -1372,7 +1508,7 @@ TYPE
     dlS2ndFAT,
     dlRootDirectory,
     dlUnusedDirEntry,
-    dlSearchProgress,
+    dlSearching,
     dlPasteFromTitle,
     dlPasteFromLabel,
     dlQueryModified,
@@ -1497,7 +1633,6 @@ TYPE
     dlFC_Older,
     dlFC_Exists,
     dlQueryCancelSearch,
-    dlFindCantKeep,
     dlReadingList,
     dlListDriveTop,
     dlFillQuery,
@@ -1509,9 +1644,11 @@ TYPE
     dlSI_Memory,
     dlSI_Main,
     dlSI_MainBoard,
-    dlSI_Conventional,
+    dlSI_TotalMem,
     dlSI_Expanded,
     dlSI_Extended,
+    dlSI_MemAvail,
+    dlSI_MaxAvail,
     dlSI_DiskDrivers,
     dlSI_1stHard,
     dlSI_2ndHard,
@@ -1758,6 +1895,27 @@ TYPE
     dlTeam124,
     dlTeam125,
     dlTeam126,
+    dlTeam127,
+    dlTeam128,
+    dlTeam129,
+    dlTeam130,
+    dlTeam131,
+    dlTeam132,
+    dlTeam133,
+    dlTeam134,
+    dlTeam135,
+    dlTeam136,
+    dlTeam137,
+    dlTeam138,
+    dlTeam139,
+    dlTeam140,
+    dlTeam141,
+    dlTeam142,
+    dlTeam143,
+    dlTeam144,
+    dlTeam145,
+    dlTeam146,
+    dlTeam147,
 
     dlHelp,
     dlOutputTitle,
@@ -1816,19 +1974,19 @@ TYPE
     dlArvid_TimeUsed,
     dlArvid_TimeLeft,
     dlArvid_TapeDir,
-    dlUUEncode,
-    dlUUEncoding,
-    dlUUDecode,
+    dlUUDecode,             {+UUDecode}
     dlUUDecodingto,
-    dlUUencodeSFN,
-    dlUUencodeOS,
-    dlUUencodeCreated,
-    dlUUencodeTime,
-    dlUUencodeSize,
-    dlUUencodeSections,
-    dlUUencodeLines,
     dlUUDecodeFiles,
-    dlUUDecodeErrors,
+    dlUUDecodeErrors,       {-UUDecode}
+    dlUUEncode,             {+UUEncode}
+    dlUUEncoding,
+    dlUUEncodeSFN,
+    dlUUEncodeOS,
+    dlUUEncodeCreated,
+    dlUUEncodeTime,
+    dlUUEncodeSize,
+    dlUUEncodeSections,
+    dlUUEncodeLines,        {-UUEncode}
     dlFileIsSmall,
     dlMaxFiles,
 
@@ -1907,7 +2065,7 @@ TYPE
     dlSetEditHistory,
     dlSetViewHistory,
 
-    dlLinkTitle,
+    dlLinkTitle,          {+LINK}
     dlLinkStarted,
     dlLinkClose,
     dlLinkErrors,
@@ -1926,10 +2084,9 @@ TYPE
     dlLinkErase,
     dlLinkRemoteDirInfo,
     dlLinkSend,
-    dlLinkRcv,
+    dlLinkRcv,            {-LINK}
 
     dlBytesOf,
-    dlNoFTNset,
     dlExecDOScmdHdr,
     dlExecDOScmdLine,
     dlPnlDescription,
@@ -2007,34 +2164,7 @@ TYPE
     dlSPF24,
     dlSPF25,
     dlSPFht,
-        {-DataCompBoy-}
-    dlSetupSPF,
-        {-DataCompBoy-}
     dlCopied,
-    dlSetupColumnsDisk,
-    dlSetupColumnsFind,
-    dlSetupColumnsTemp,
-    dlSetupColumnsArch,
-    dlSetupColumnsArvd,
-    dlSetupColumnsLongName,
-    dlSetupColumnsSize,
-    dlSetupColumnsSourceSize,
-    dlSetupColumnsDate,
-    dlSetupColumnsTime,
-    dlSetupColumnsPackedSize,
-    dlSetupColumnsPath,
-    dlSetupColumnsDescription,
-    dlSetupColumnsRatio,
-    dlSetupColumnsFullDescription,
-    dlSetupColumnsForName,
-    dlSetupColumnsForExtention,
-    dlSetupColumnsAsIs,
-    dlSetupColumnsLower,
-    dlSetupColumnsFromUpper,
-    dlSetupColumnsUpper,
-    dlSetupColumnsCombine,
-    dlSetupColumnsFilsCase,
-    dlSetupColumnsDirsCase,
     dlTestButton,
         {-DataCompBoy-}
     dlArvidNeedDisk,
@@ -2046,7 +2176,86 @@ TYPE
 
     dlAnonymous,  (*X-Man*)
     dlMenuItemOn, (*X-Man*)
-    dlMenuItemOff (*X-Man*)
+    dlMenuItemOff,(*X-Man*)
+    {-DataCompBoy-}
+    dlMachineTypeFF,      {+SYSINFO}
+    dlMachineTypeFE,
+    dlMachineTypeFD,
+    dlMachineTypeFC_1,
+    dlMachineTypeFC_2,
+    dlMachineTypeFC_4,
+    dlMachineTypeFC_5,
+    dlMachineTypeFC_6,
+    dlMachineTypeFC_8,
+    dlMachineTypeFC_0b,
+    dlMachineTypeFC_20,
+    dlMachineTypeFC_42,
+    dlMachineTypeFC_45,
+    dlMachineTypeFC_48,
+    dlMachineTypeFC_4F,
+    dlMachineTypeFC_50,
+    dlMachineTypeFC_51,
+    dlMachineTypeFC_52,
+    dlMachineTypeFC_94,
+    dlMachineTypeFC_else,
+    dlMachineTypeFB86,
+    dlMachineType80,
+    dlMachineTypeFA_1,
+    dlMachineTypeFA_else,
+    dlMachineTypeF9,
+    dlMachineTypeF8_4_9_B,
+    dlMachineTypeF8_else,
+    dlMachineTypeB6,
+    dlMachineType9A,
+    dlMachineType2D,
+    dlMachineTypeE1,
+    dlMachineType30,
+    dlMachineTypeElse,
+    dlMHz,
+    dlUnknownDiskDriverType,
+    dlEmulated,
+    dlInternal,
+    dlNone,
+    dlUnknownFPU,         {-SYSINFO}
+    {-DataCompBoy-}
+    dlcTitle,    {JO}{+CALENDAR}
+    dlcLine,
+    dlcJanuary,
+    dlcFebruary,
+    dlcMarch,
+    dlcApril,
+    dlcMay,
+    dlcJune,
+    dlcJuly,
+    dlcAugust,
+    dlcSeptember,
+    dlcOctober,
+    dlcNovember,
+    dlcDecember, {JO}{-CALENDAR}
+
+    dlOpenNewWindow,
+    dlMore, {JO}
+    dlFindText,
+    dlViewFilter,
+
+    dlTrashCaption, {X-Man}
+    dlFilDir,
+    dlDirectories,
+    dlFindPanel,
+    dlEmpty,
+    dlFileSearch,
+    dlKillBuffer,
+    dlSaveScrollback,
+    dlScrollbackSaved,
+    dlWriteASCII,
+    dlWriteAvatar,
+    dlWriteAnsi,
+    dlCopyToTerminal,
+    dlCopyToHistory,
+    dlCopyToClipboard,
+    dlSaveAsASCII,
+    dlSaveAsANSI,
+    dlSaveAsAvatar
   );
 
   TDlgIdx = (
@@ -2069,6 +2278,7 @@ TYPE
     dlgDiskError,
     dlgMakeList,
     dlgCopyDialog,
+    dlgRenFl,
     dlgRenameDialog,
     dlgMkDir,
     dlgFileFind,
@@ -2123,8 +2333,8 @@ TYPE
     dlgTetrisTop10,
     dlgPentixTop10,
     dlgAdvancedFilter,
-    dlgUUDecode,
-    dlgUUEncode,
+    dlgUUDecode, {UUDECODE}
+    dlgUUEncode, {UUECNODE}
     dlgOverwriteQuery,
     dlgViewerFind,
     dlgArvidFileFind,
@@ -2133,7 +2343,17 @@ TYPE
     dlgEditHistory,
     dlgViewHistory,
     dlgAdvancedCOMSetup,
-    dlgCpuFlagInfo
+    dlgCpuFlagInfo,
+    dlgFTNInfo,
+    dlgSrchFailed,
+    {DataCompBoy}
+    dlgSetupColumnsDisk,
+    dlgSetupColumnsFind,
+    dlgSetupColumnsTemp,
+    dlgSetupColumnsArch,
+    dlgSetupColumnsArvd,
+    dlgNextSection,
+    dlgNameCase
   );
 
 IMPLEMENTATION END.

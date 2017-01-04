@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,14 +43,9 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
-{$I DN.DEF}
 
 UNIT
   FLPanelX;
@@ -60,7 +55,7 @@ INTERFACE
 
 USES
   LFN, LFNCol, {DataCompBoy} advance, advance1, advance2, advance3, Objects,
-  Views, Drivers, Dos, FilesCol, HideView, Drives;
+  Views, Drivers, Dos, FilesCol, HideView, Drives, filediz, collect, Arvid;
 
 TYPE
   PFilePanelRoot = ^TFilePanelRoot;
@@ -72,7 +67,7 @@ TYPE
    SortMode: Byte;
    DirectoryName, OldDirectory: String;
    FileMask: String;
-   SearchMask: String; {DataCompBoy}
+   SearchParam: TQuickSearchData; {DataCompBoy}
    ScrollBar: PMyScrollBar;
    DrawDisableLvl, SelNum, LineLength: Integer;
    SelectedLen, PackedLen: TSize;
@@ -80,7 +75,6 @@ TYPE
    QuickSearch, ViewEnabled: Boolean;
    TotalInfo, FreeSpace: String[50];
    PanelFlags: Word;
-   SearchX: Integer;
    LastDriveFlags: Word;
    Drive: PDrive;
    ForceReading: Boolean;
@@ -129,18 +123,13 @@ VAR
 IMPLEMENTATION
 
 uses
-{$IFDEF DEBUG} DEBUG, {$ENDIF}
   Messages, DnApp, DnHelp, Startup, Commands, Histries, HistList, FlTools,
-  FileFind,
-
-  {$IFDEF MODEM}
-  NavyLink,
-  {$ENDIF}
-
-  CmdLine, ArcView, Archiver, UUcode, DiskImg, DiskInfo,
-  FileCopy, DnUtil,
-
-  dnini; {-$VIV}
+  FileFind, CmdLine, ArcView, Archiver, DiskImg, DiskInfo, FileCopy, DnUtil,
+  dnini {-$VIV}
+  {$IFDEF MODEM}{$IFDEF LINK}, NavyLink{$ENDIF}{$ENDIF}
+{$IFDEF UUENCODE},UUCode{$ELSE}
+{$IFDEF UUDECODE},UUCode{$ENDIF}{$ENDIF}
+  ;
 
 procedure TFilePanelRoot.IncDrawDisabled;
 begin
@@ -189,8 +178,8 @@ begin
  {Drive^.Owner := @Self;}
  FileMask := x_x; Files := nil;
 
- if PanelDefaults.Sort < 4 then SortMode := PanelDefaults.Sort + 1 else
- if PanelDefaults.Sort = 4 then SortMode := 30
+ if PanelDefaults.Sort < 6 then SortMode := PanelDefaults.Sort + 1 else
+ if PanelDefaults.Sort = 6 then SortMode := 30
                            else SortMode := 0;
  IncDrawDisabled; MSelect := Off;
  QuickSearch := Off; ViewEnabled := Off;
@@ -212,19 +201,22 @@ begin
  if Drive = nil then New(Drive, Init(0, @Self, 0)) else Drive^.Owner:=@Self;
  DeltaX := 0;
  Drive^.RereadDirectory('');
- if Drive <> nil then DirectoryName := Drive^.GetDir;
+ if Drive <> nil then begin
+  Drive^.SizeX := Size.X;
+  DirectoryName := Drive^.GetDir;
+ end;
  S.Read(FileMask[0], 1); S.Read(FileMask[1], Length(FileMask));
  S.Read(SortMode, 1);
  S.Read(PanelFlags, 2);
  S.Read(Delta, 2); OldDelta := -1; PosChanged := Off;
  S.Read(ForceReading, 1);
  if Drive<>nil then begin
-  S.Read(Drive^.LFNLen, SizeOf(Drive^.LFNLen));
-  S.Read(Drive^.EXTLen, SizeOf(Drive^.EXTLen));
-  S.Read(Drive^.DirFLP, SizeOf(Drive^.DirFLP));
-  S.Read(Drive^.FilFLP, SizeOf(Drive^.FilFLP));
-  S.Read(Drive^.Param,  SizeOf(Drive^.Param ));
-  S.Read(Drive^.Flags,  SizeOf(Drive^.Flags ));
+  S.Read(Drive^.LFNLen,    SizeOf(Drive^.LFNLen   ));
+  S.Read(Drive^.EXTLen,    SizeOf(Drive^.EXTLen   ));
+  S.Read(Drive^.DirFLP,    SizeOf(Drive^.DirFLP   ));
+  S.Read(Drive^.FilFLP,    SizeOf(Drive^.FilFLP   ));
+  S.Read(Drive^.Param,     SizeOf(Drive^.Param    ));
+  S.Read(Drive^.Flags,     SizeOf(Drive^.Flags    ));
  end else
   S.Read(dumm,SizeOf(Drive^.LFNLen)+SizeOf(Drive^.EXTLen)+
               SizeOf(Drive^.DirFLP)+SizeOf(Drive^.FilFLP)+
@@ -261,12 +253,12 @@ begin
  S.Write(PanelFlags, 2);
  S.Write(Delta, 2);
  S.Write(ForceReading, 1);
- S.Write(Drive^.LFNLen, SizeOf(Drive^.LFNLen));
- S.Write(Drive^.EXTLen, SizeOf(Drive^.EXTLen));
- S.Write(Drive^.DirFLP, SizeOf(Drive^.DirFLP));
- S.Write(Drive^.FilFLP, SizeOf(Drive^.FilFLP));
- S.Write(Drive^.Param,  SizeOf(Drive^.Param ));
- S.Write(Drive^.Flags,  SizeOf(Drive^.Flags ));
+ S.Write(Drive^.LFNLen,    SizeOf(Drive^.LFNLen   ));
+ S.Write(Drive^.EXTLen,    SizeOf(Drive^.EXTLen   ));
+ S.Write(Drive^.DirFLP,    SizeOf(Drive^.DirFLP   ));
+ S.Write(Drive^.FilFLP,    SizeOf(Drive^.FilFLP   ));
+ S.Write(Drive^.Param,     SizeOf(Drive^.Param    ));
+ S.Write(Drive^.Flags,     SizeOf(Drive^.Flags    ));
  PFilesCollection(Files)^.Selected := ScrollBar^.Value;
  S.Put(Files);
 end;
@@ -280,8 +272,8 @@ end;
 destructor TFilePanelRoot.Done;
  var P: PDrive;
 begin
- if Files <> nil then Dispose(Files, Done);
- if Drive <> nil then Dispose(Drive, Done);
+ if Files <> nil then Dispose(Files,Done); Files:=nil;
+ if Drive <> nil then Dispose(Drive,Done); Drive:=nil;
  inherited Done;
 end;
 
@@ -331,7 +323,11 @@ begin
             if DriveLine^.GetState(sfVisible) then DriveLine^.Hide;
    end;
  if ScrollBar <> nil then
-  begin R :=Bounds; R.A.X := R.B.X; Inc(R.B.X); ScrollBar^.SetBounds(R) end
+  begin R :=Bounds; R.A.X := R.B.X; Inc(R.B.X); ScrollBar^.SetBounds(R) end;
+ If Drive <> nil then begin
+  Drive^.SizeX := Size.X;
+  DirectoryName := Drive^.GetDir;
+ end;
 end;
 
 procedure TFilePanelRoot.SendLocated;
@@ -340,7 +336,8 @@ procedure TFilePanelRoot.SendLocated;
 begin
  if (Files^.Count = 0) or (Drive^.DriveType = dtArc) or
     (State and sfVisible = 0) then Exit;
- R := ScrollBar^.Value; if R >= Files^.Count then Exit;
+ R := ScrollBar^.Value;
+ if R >= Files^.Count then Exit;
  if not ViewEnabled and (Drive^.Flags and psShowLongDesc = 0) then Exit;
  S := MakeNormName(PFileRec(Files^.At(R))^.Owner^,
                    GetLFN(PFileRec(Files^.At(R))^.LFN));
@@ -374,9 +371,9 @@ begin
  end;
  if (Files = nil) or (Files^.Count = 0) then begin OldDelta := -1; Delta := 0 end;
  ClrIO; Loaded := Off; ChDirName;
- if Abort then begin Dispose(Files, Done); New(Files, Init(10, 10)); Abort := Off; Exit; end;
+ if Abort then begin Dispose(Files,Done); New(Files, Init(10, 10)); Abort := Off; Exit; end;
  NewDir := Drive^.GetRealDir;
- if Abort then begin Dispose(Files, Done); New(Files, Init(10, 10)); Abort := Off; Exit; end;
+ if Abort then begin Dispose(Files,Done); New(Files, Init(10, 10)); Abort := Off; Exit; end;
  if GetState(sfFocused) then CurrentDirectory := DirectoryName;
  if Files^.Count = 0 then
   begin  DirectoryName := NewDir; ReadDirectory; ChDirName; Exit end;
@@ -434,7 +431,7 @@ begin
       end;
     end;
   end else Pos := 0;
- Dispose(FC, Done);
+ Dispose(FC,Done);
  ScrollBar^.SetValue(Pos);
  DecDrawDisabled;
  DirectoryName := NewDir;
@@ -473,7 +470,7 @@ begin
  PosChanged := Off; Loaded := Off;
  Abort := Off; ClrIO;
  FreeSpace := ''; TotalInfo := '';
- if Files <> nil then Dispose(Files, Done);
+ if Files <> nil then Dispose(Files,Done);
  Files := PFilesCollection(Drive^.GetDirectory(SortMode, PanelFlags, FileMask, FreeSpace, TotalInfo));
  if Files = nil then Files := New(PFilesCollection, Init($10,$10));
  PFilesCollection(Files)^.Owner := @Self;
@@ -483,8 +480,10 @@ begin
 
  if DriveState and dsInvalid > 0 then Exit ;
 
- if Drive^.DriveType = dtDisk then DirectoryName := Drive^.GetRealDir;
-   DirectoryName := Drive^.GetDir;
+ Drive^.SizeX := Size.X;
+ if Drive^.DriveType = dtDisk
+  then DirectoryName := Drive^.GetRealDir
+  else DirectoryName := Drive^.GetDir;
  if GetState(sfSelected) then Message(Owner, evCommand, cmChangeTree, @DirectoryName);
 
  ScrollBar^.SetParams(ScrollBar^.Value, 0, Files^.Count - 1, (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
@@ -552,7 +551,7 @@ var
  procedure GotoSingle(Name: String);
   var A: Integer;
  begin
-  Name := UpStrg(Name);
+  UpStr(Name);
   A := 0;
   While (A < Files^.Count) and
         (UpStrg(GetLFN(PFileRec(Files^.At(A))^.LFN)) <> Name) do Inc(A);
@@ -590,19 +589,17 @@ var
   if (Dr[Length(Dr)] = '\') and ((Dr[2] <> ':') or (Dr[0] > #3)) then Dec(Dr[0]);
   if (Dr[2] = ':') and not(Drive^.DriveType in [dtDisk,dtLink,dtArc]) then
     begin
-     Dispose(Drive, Done);
+     Dispose(Drive,Done);
      New(Drive, Init(Byte(Upcase(Dr[1]))-64, @Self, Drive^.Param));
     end;
-  DirectoryName := Dr; IncDrawDisabled; OldDirectory := Dr;
+  DirectoryName := GetNormPath(Dr); IncDrawDisabled; OldDirectory := Dr;
   DeltaX := 0;
-{ MessageBox('FileName      = '''+FileName+''''#13+
-             'Dr            = '''+Dr+''''#13+
-             'Nm            = '''+Nm+''''#13+
-             'Xt            = '''+Xt+''''#13+
-             'DirectoryName = '''+DirectoryName+'''', nil, 0);}
-  Drive^.lChDir(DirectoryName); DirectoryName := Drive^.GetDir;
+  Drive^.lChDir(DirectoryName);
+  Drive^.SizeX := Size.X;
+  DirectoryName := Drive^.GetDir;
   OldDelta := -1; Delta := 0;
-  ReadDirectory; AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
+  ReadDirectory;
+  AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
   DecDrawDisabled;
   if (Nm = '') and (Xt='') then Name := '..'
                            else Name := Nm+Xt;
@@ -673,13 +670,13 @@ var
       BB: TRect;
  begin
   R.Sort := SortMode;
-  if R.Sort = 0 then R.Sort := 5 else
-    if R.Sort = 30 then R.Sort := 4 else Dec(R.Sort);
+  if R.Sort = 0 then R.Sort := 7 else
+    if R.Sort = 30 then R.Sort := 6 else Dec(R.Sort);
   R.Show := PanelFlags;
   R.S := FileMask;
   if ExecResource(dlgPanelSetup, R) <> cmOK then Exit;
-  if R.Sort = 5 then R.Sort := 0 else
-   if R.Sort = 4 then R.Sort := 30 else Inc(R.Sort);
+  if R.Sort = 7 then R.Sort := 0 else
+   if R.Sort = 6 then R.Sort := 30 else Inc(R.Sort);
 
   if (ActivePanel = @Self) and (Drive^.DriveType = dtDisk)
     then CurrentDirectory := DirectoryName;
@@ -692,7 +689,7 @@ var
 
  procedure CountLen;
 
-  procedure DoCount(P: PFileRec); far;
+  procedure DoCount(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     if (P^.Attr and Directory <> 0) and (P^.Selected) and (not Abort) then Drive^.GetDirLength(P);
   end;
@@ -714,9 +711,7 @@ var
   if (PDrive(Event.InfoPtr)^.DriveType = dtTemp) and
      (Drive^.DriveType = dtTemp) then begin CE; Exit end;
   if PDrive(Event.InfoPtr)^.DriveType in [dtDisk, dtLink] then
-    begin
-      if Drive <> nil then Dispose(Drive, Done); Drive := nil;
-    end;
+      begin if Drive <> nil then Dispose(Drive,Done); Drive:=nil end;
   PDrive(Event.InfoPtr)^.Prev := Drive;
   Drive := Event.InfoPtr;
   if (Drive^.DriveType = dtArc) or (Drive^.DriveType = dtArvid) then Drive^.lChDir(#0);
@@ -737,11 +732,11 @@ var
  end;
 
  procedure SelecType(S: Boolean);
-  procedure Sel(P: PFileRec); far;
+  procedure Sel(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
   begin
    if (P^.TType = PF^.TType) and (P^.Name[1] <> '.') then P^.Selected := S;
   end;
- procedure SelAll(P: PFileRec); far;
+ procedure SelAll(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
  begin
   P^.Selected:=S;
  end;
@@ -761,7 +756,7 @@ var
   var SS: String;
       a: boolean;
 
-  procedure Sel(P: PFileRec); far;
+  procedure Sel(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
   begin
    if a then
     begin
@@ -794,7 +789,7 @@ var
    if FC <> nil then
     begin
       FC^.DeleteAll;
-      Dispose(FC, Done);
+      Dispose(FC,Done);
     end;
  end;
 
@@ -805,12 +800,13 @@ var
     ReplaceDrive := Off;
     New(PDr, Init(Byte(C)-64, @Self, Drive^.Param));
     if Abort then
-     begin Dispose(PDr, Done); Exit; end;
-    Dispose(Drive, Done);
+     begin Dispose(PDr,Done); Exit; end;
+    Dispose(Drive,Done);
     Drive := PDr;
     DeltaX := 0;
     {if WasFull then Drive^.Flags := Drive^.GetFullFlags
                else Drive^.Flags := 0;}
+    Drive^.SizeX := Size.X;
     DirectoryName := Drive^.GetDir;
     if GetState(sfActive+sfSelected) then
        SetState(sfActive+sfSelected, On);
@@ -861,13 +857,13 @@ var
    GotoFile(SS);
    Rebound;
  end;
-{DataCompBoy
- procedure DoExcept(P: PFileRec); far;
+(*DataCompBoy
+ procedure DoExcept(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
  begin
    if (P <> nil) and (P^.Attr and Directory = 0) then
     if not InFilter(GetLFN(P^.LFN), FileMask) then P^.Size := -100;
  end;
-}
+*)
  procedure _GetFName;
  var
    S: string;
@@ -875,7 +871,7 @@ var
  begin
    GetUserParams(dum, PString(Event.InfoPtr)^);
    S := MakeFileName(PF^.Name);
-   PString(Event.InfoPtr)^ := S + ' ' + PString(Event.InfoPtr)^;
+   PString(Event.InfoPtr)^ := S + ' ' + CnvString(Event.InfoPtr);
  end;
 
  procedure _DoPush(a: Boolean);
@@ -897,7 +893,7 @@ var
    S: string;
    I: Integer;
  begin
-   S := UpStrg(PString(Event.InfoPtr)^);
+   S := UpStrg(CnvString(Event.InfoPtr));
    if (S[0] > #3) and (S[Length(S)] = '\') then Dec(S[0]);
    I := Length(S);
    if (Drive^.DriveType <> dtDisk) or (S = Copy(UpStrg(lfGetLongFileName(DirectoryName)), 1, Length(s)) ) then
@@ -945,15 +941,18 @@ var
      InsertDrive; Exit;
    end else
    {$IFDEF MODEM}
+   {$IFDEF LINK}
    if S[1] = '+' then
    begin
      Event.InfoPtr := NewLinkDrive(s[2]);
      InsertDrive; Exit;
    end else
    {$ENDIF}
+   {$ENDIF}
    if S <> '' then
     begin
      ClrIO;
+     Abort:=False;
      if Drive^.DriveType <> dtDisk then
       begin
        if not ReplaceDrive(S[1]) then Exit;
@@ -962,6 +961,7 @@ var
         Drive^.lChDir(S);
         if Abort then
          begin  ClrIO; SetDirName; LFN.lChDir(CurrentDirectory); Exit; end;
+        Drive^.SizeX := Size.X;
         S := Drive^.GetDir;
       end;
      IncDrawDisabled; DirectoryName := S; ReadDirectory;
@@ -976,36 +976,60 @@ var
    S: string;
  begin
    if ChangeLocked then Exit;
-   S := PString(Event.InfoPtr)^; CE;
+   S := CnvString(Event.InfoPtr); CE;
    if S = cTEMP_ then
    begin
     Event.InfoPtr := New(PTempDrive, Init(Drive^.Param));
     InsertDrive; Exit;
    end
    {$IFDEF MODEM}
+   {$IFDEF LINK}
    else if S[1] = '+' then
    begin
      Event.InfoPtr := NewLinkDrive(S[2]);
      InsertDrive; Exit;
    end
    {$ENDIF};
-   lGetDir(Byte(S[1])-64, S); if Abort then Exit;
+   {$ENDIF};
+   lGetDir(Byte(S[1])-64, S);
+   S:=GetNormPath(S);
+   If (S[Length(S)]='\') and (S[Length(S)-1]<>':') then Dec(S[0]);
    DoChange(S);
  end;
 
  procedure _DoDirHistory;
  var
    S: string;
+   Q: string;
+   Dr: PDrive;
  begin
+   CE;
    S := DirHistoryMenu;
    if S <> '' then
    begin
      if Drive^.DriveType <> dtDisk then ReplaceDrive(S[1]);
+     FreeByte:=PosChar(':', Copy(S, 3, 255))+2;
+     if FreeByte>2 then begin
+      Q:=Copy(S, 1, FreeByte-1);
+      if ((Drive^.DriveType = dtArc) and
+         (UpStrg(PArcDrive(Drive)^.ArcName)=UpStrg(Q)))
+         or
+         ((Drive^.DriveType = dtArvid) and
+         (UpStrg(PArvidDrive(Drive)^.Name^)=UpStrg(Q))) then begin
+       Q:=Copy(S, FreeByte+1, 255);
+       Message(@Self, evCommand, cmChangeDirectory, @Q)
+      end else begin
+       Dr:=nil;
+       Dr:=New(PArcDrive,Init(S, Drive^.innum));
+       if Dr=nil then Dr:=New(PArvidDrive,Init(S, Drive^.innum));
+       if Dr=nil then exit;
+       Message(@Self, evCommand, cmInsertDrive, Dr);
+      end
+     end else
      if S[Length(S)]='\'
-     then Message(@Self, evCommand, cmChangeDirectory, @S)
-     else Message(@Self, evCommand, cmInsertDrive, New(PFindDrive,InitList(S)))
+      then Message(@Self, evCommand, cmChangeDirectory, @S)
+      else Message(@Self, evCommand, cmInsertDrive, New(PFindDrive,InitList(S)))
    end;
-   CE;
  end;
 
  procedure _CloseLinked;
@@ -1056,6 +1080,7 @@ var
                                else S := DirectoryName[1]+':';
      DirectoryName := S;
      Message(@Self, evCommand, cmChangeDrv, @S);
+     Drive^.SizeX := Size.X;
      DirectoryName := Drive^.GetDir;
      DriveLine^.DrawView;
      Abort := Off;
@@ -1084,6 +1109,7 @@ var
     Message(Application, evCommand, cmPutInClipboard, @S);
  end;
 
+ function _AltEnter: boolean; forward;
  procedure _CtrlEnter;
  var
    S: string;
@@ -1092,6 +1118,9 @@ var
    CE;
    if Files^.Count = 0 then Exit;
    PF := Files^.At(CurPos);
+   if (ShiftState and
+      (kbAltShift+kbCtrlShift+kbLeftShift+kbRightShift)=kbAltShift+kbCtrlShift
+      ) and OS2exec then begin _AltEnter; exit end;
    if (PF <> nil) then
    begin
     if (ShiftState and kbAltShift <> 0)
@@ -1117,7 +1146,7 @@ var
  var
    S: string;
  begin
-   if OS210 and (Drive^.DriveType = dtDisk) and (Pos(UpStrg(#0+LowStrg(Copy(PF^.Name,10,3))+#0), Executables) > 0)
+   if OS2exec and (Drive^.DriveType = dtDisk) and InExtFilter(MakeFileName(PF^.Name), Executables)
       and (ShiftState and (kbCtrlShift or 3) <> 0) then
    begin
      PShootState := ShiftState;
@@ -1144,7 +1173,7 @@ var
       if Drive^.DriveType = dtDisk then S := MakeFileName(PF^.Name)
         else
              begin CE; Exit; end;
-      if OS210 and (Copy(PF^.Name,10,3) = 'cmd') then
+      if OS2exec and (Copy(PF^.Name,10,3) = 'cmd') then
        begin
           S := 'call "'+S+'"';
           if ShiftState and 3 <> 0 then S := '<'+S else S := '>'+S;
@@ -1190,7 +1219,7 @@ var
           Message(Owner, evCommand, cmChangeInactive, @S);
           Exit;
         end;
-      Dispose(Drive, Done);
+      Dispose(Drive,Done);
       New(Drive, Init(Byte(S[1])-64, @Self, Drive^.Param));
       {Drive^.Owner := @Self;}
       DeltaX := 0;
@@ -1286,14 +1315,14 @@ var
                    PFilesCollection(Files)^.SortMode:=SortMode;
                    PF:=Files^.At(CurPos);
                    Drive^.EditDescription(PF);
-                   Dispose(Files, Done);
+                   Dispose(Files,Done);
                    Drive^.Flags:=Drive^.Flags and not psShowDescript;
                    Files:=PFilesCollection(Drive^.GetDirectory(SortMode,
                           PanelFlags, FileMask, FreeSpace, TotalInfo));
                    for I:=0 to Files^.Count-1 do
                     PFileRec(Files^.At(I))^.Selected:=
                      PFileRec(FC^.At(I))^.Selected;
-                   Dispose(FC, Done);
+                   Dispose(FC,Done);
                    DecDrawDisabled;
                    DrawView;
                   end;
@@ -1302,7 +1331,8 @@ var
                 CE;
               end;
     kbBack: if (FMSetup.Options and fmoBackGoesBack <> 0) and
-               ((ShiftState and 3 <> 0) or (CmdLine.Str = '')) then
+               ((ShiftState and 3 <> 0) or ((CmdLine.Str = '') and
+                (not CmdLine.StrCleared) and (not QuickSearch))) then
                begin
                  _CtrlPgUp;
                  Exit;
@@ -1319,7 +1349,7 @@ var
          if ShiftState and 3 = 0 then SelecType(Event.KeyCode = kbCtrlGPlus)
                                    else SelectExt(Event.KeyCode = kbCtrlGPlus, 10, 3, Off); CE
        end;
-    kbCtrlBSlsh: begin
+    kbCtrlBSlash:begin
                  Drive^.ChangeRoot;
                  ReadDirectory;
                  AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
@@ -1366,12 +1396,14 @@ kbCtrlEnter: _CtrlEnter;
     kbRight: begin
               if Size.X > LineLength then
                begin
-                if ScrollBar^.Value - Delta >=
-                   (Size.X div LineLength) *
-                   (Size.Y - Byte(FMSetup.Show and fmsColumnTitles<>0)) then
-                 Inc(Delta, Size.Y - Byte(FMSetup.Show and fmsColumnTitles<>0));
+                aaa := Delta;
+                Owner^.Lock;
                 ScrollBar^.SetValue(ScrollBar^.Value + Size.Y - Byte(FMSetup.Show and fmsColumnTitles <> 0));
-                CE;
+                if aaa<>delta then
+                 Delta := aaa + Size.Y -
+                          Byte(FMSetup.Show and fmsColumnTitles<>0);
+                CED;
+                Owner^.Unlock;
                end
                else if DeltaX < LineLength - Size.X - 1 then
                     begin
@@ -1497,8 +1529,9 @@ end;
        PDr := Drive;
        Drive := Drive^.Prev;
        PDr^.Prev := nil;
-       Dispose(PDr, Done);
+       Dispose(PDr,Done);
        DeltaX := 0;
+       Drive^.SizeX := Size.X;
        DirectoryName := Drive^.GetDir;
        ReadDirectory;
        AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
@@ -1518,7 +1551,7 @@ end;
    Drive := Event.InfoPtr;
    Drive^.Prev := PDr^.Prev;
    PDr^.Prev := nil;
-   Dispose(PDr, Done);
+   Dispose(PDr,Done);
    RereadDir;
    CE;
  end;
@@ -1536,7 +1569,7 @@ end;
    then Exit;
    UuDecode(FC);
    FC^.DeleteAll;
-   Dispose(FC, Done);
+   Dispose(FC,Done);
  end;
  {$ENDIF}
 
@@ -1545,19 +1578,29 @@ var
   I: LongInt;
   PSDEL: byte;
 begin
- WasFull := Drive^.GetFullFlags = Drive^.Flags;
- CurPos := ScrollBar^.Value;
- if Files^.Count > CurPos then PF := Files^.At(CurPos) else PF := nil;
- {I := mem[$40:$18];}
+ if Drive<>nil
+  then WasFull := Drive^.GetFullFlags = Drive^.Flags
+  else WasFull := false;
+ if ScrollBar<>nil
+  then CurPos := ScrollBar^.Value
+  else CurPos := 0;
+ if Files<>nil
+  then if Files^.Count > CurPos
+        then PF := Files^.At(CurPos)
+        else PF := nil
+  else PF := nil;
  case Event.What of
   evCommand: case Event.Command of
               cmToggleDescriptions: begin CM_ToggleDescriptions(@Self); CE end;
               cmToggleShowMode: begin CM_ToggleShowMode(@Self); CE end;
               cmFastRename: begin
-                             if Drive^.Flags and psShowLongName>0
-                              then CM_RenameSingleL(@Self, @Event)
-                              else CM_RenameSingleS(@Self, @Event);
-                             CE
+                             if QuickRenameInDialog then
+                              CM_RenameSingleDialog(@Self, @Event)
+                             else
+                              if Drive^.Flags and psShowLongName>0
+                               then CM_RenameSingleL(@Self, @Event)
+                               else CM_RenameSingleS(@Self, @Event);
+                              CE
                             end;
               cmSingleTag, cmSingleUnTag : _TagUntag;
               cmQuickChange1..cmQuickChange9:
@@ -1580,7 +1623,9 @@ begin
                                    CE
                                 end;
               cmReboundPanel: Rebound;
+{$IFDEF PRINTMANAGER}
               cmPrintFile: begin CM_Print(@Self); CE end;
+{$ENDIF}
               cmSetPassword, cmExtractTo,
               cmArcTest, cmRereadForced,
               cmMakeForced
@@ -1590,7 +1635,7 @@ begin
                              (PanelFlags and fmiDirLen <> 0) and
                              (Char(Event.InfoPtr^) = DirectoryName[1])
                               then Char(Event.InfoPtr^) := #0;
-              cmInsertFile: begin
+              cmInsertFile: if Files<>nil then begin
                              Files^.AtInsert(Files^.Count, Event.InfoPtr);
                              ScrollBar^.SetParams(ScrollBar^.Value, 0, Files^.Count - 1,
                                                   (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0)) *
@@ -1600,7 +1645,8 @@ begin
                             end;
               cmViewText, cmViewHex, cmViewDBF, cmViewWKZ:
                begin
-                 if Files^.Count >= CurPos then Drive^.UseFile(Files^.At(CurPos), 22000 + Event.Command);
+                 if Files<>nil then
+                  if Files^.Count >= CurPos then Drive^.UseFile(Files^.At(CurPos), 22000 + Event.Command);
                  CE;
                end;
               cmInsertDrive: if Event.InfoPtr <> nil then InsertDrive else CE;
@@ -1629,7 +1675,7 @@ begin
                             if (PF <> nil) then
                               if (PF^.Attr and Directory <> 0) then
                                   Message(@Self, evKeyDown, kbCtrlPgDn, nil) else
-                                  if (Pos(#0+LowStrg(Copy(PF^.Name,10,3))+#0, Executables) > 0) then
+                                  if InExtFilter(MakeFileName(PF^.Name), Executables) then
                                       Message(@Self, evKeyDown, kbEnter, nil) else
                                       ViewFile(cmViewFile);
                             CE;
@@ -1686,12 +1732,14 @@ begin
                           CE;
                         end;
 {$ENDIF}
-                 cmUnpDiskImg:
-                         begin
-                           if (Drive^.DriveType < dtArc) then
-                             UnpackDiskImages(@Self, GetSelection(@Self, False));
-                           CE;
-                         end;
+           cmChangeNameCase: if (PF <> nil) and (Drive^.DriveType < dtArc)
+                              then CM_ChangeCase(@Self);
+               cmUnpDiskImg: begin
+                              if (Drive^.DriveType < dtArc) then
+                               UnpackDiskImages(@Self,
+                                                GetSelection(@Self, False));
+                              CE;
+                             end;
               cmChangeDirectory: begin ChDir(PString(Event.InfoPtr)^); CE; end;
               cmChangeDir: begin
                             FreeStr := CM_ChangeDirectory(@Self);
@@ -1744,16 +1792,18 @@ begin
                  cmScrollBarChanged: if ScrollBar = Event.InfoPtr then begin
                                       if MSelect then
                                         begin
-                                         CE; if Files^.Count = 0 then Exit;
-                                         PF := Files^.At(ScrollBar^.Value);
-                                         if (PF^.Name[1] <> '.') and (PF^.Selected xor SelectFlag) then
-                                          begin
-                                           PF^.Selected := SelectFlag;
-                                           if SelectFlag then begin Inc(SelNum); SelectedLen := SelectedLen + PF^.Size;
-                                                                    PackedLen := PackedLen + PF^.PSize end
-                                                         else begin Dec(SelNum); SelectedLen := SelectedLen - PF^.Size;
-                                                                    PackedLen := PackedLen - PF^.PSize end;
-                                          end;
+                                         if Files<>nil then begin
+                                          CE; if Files^.Count = 0 then Exit;
+                                          PF := Files^.At(ScrollBar^.Value);
+                                          if (PF^.Name[1] <> '.') and (PF^.Selected xor SelectFlag) then
+                                           begin
+                                            PF^.Selected := SelectFlag;
+                                            if SelectFlag then begin Inc(SelNum); SelectedLen := SelectedLen + PF^.Size;
+                                                                     PackedLen := PackedLen + PF^.PSize end
+                                                          else begin Dec(SelNum); SelectedLen := SelectedLen - PF^.Size;
+                                                                     PackedLen := PackedLen - PF^.PSize end;
+                                           end;
+                                         end;
                                         end;
                                       PosChanged := On;
                                       if InfoView <> nil then InfoView^.DrawView;

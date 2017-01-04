@@ -1,4 +1,4 @@
-DN.DNL       Output phrases (.LNG)
-DN.DNR       Dialogs        (.DLG)
-DNHELP.HTX   Help           (.HLP)
-DESCRIPT.ION Descriptions
+dn.dnl       Localized strings (.LNG)
+dn.dnr       Dialogs and menus (.DLG)
+dnhelp.htx   Help (.HLP)
+descript.ion File descriptions

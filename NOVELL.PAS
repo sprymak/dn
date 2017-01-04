@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -86,29 +86,26 @@ mods February 1 1991, Ross Lazarus (rml@extro.ucc.su.AU.OZ)
 Seems to work fine on a Netware 3.00 and on 3.01 servers -
 }
 
-{$O+}
-
 INTERFACE
 
-{$IFDEF WINDOWS}
-Uses WinDos;
-{$ENDIF WINDOWS}
 
-{$IFNDEF WINDOWS}
-Uses Dos;
+Uses
+{$IFDEF WINDOWS}
+     WinDos;
+{$ELSE !WINDOWS}
+     Dos;
 {$ENDIF WINDOWS}
 
 Const
   Months : Array [1..12] of String[3] = ('JAN','FEB','MAR','APR','MAY','JUN',
                                          'JUL','AUG','SEP','OCT','NOV','DEC');
 
-  HEXDIGITS : Array [0..15] of char = '0123456789ABCDEF';
+{  HEXDIGITS : Array [0..15] of char = '0123456789ABCDEF';}
 
 Type    byte4 = array [1..4] of byte;
 
         byte6 = array [1..6] of byte;
 
-VAR
 
 {----------------------------------------------------------------------}
 {  The following values can be pulled from an user written application }
@@ -116,8 +113,8 @@ VAR
 {  The programmer would first call   GetServerInfo.                    }
 {  Then he could   writeln(serverinfo.name)   to print the server name }
 {----------------------------------------------------------------------}
-
-      ServerInfo    : Record
+Type PServerInfo = ^TServerInfo;
+     TServerInfo = Record
                      ReturnLength    : Integer;
                      Server          : Packed Array [1..48] of Byte;
                      NetwareVers     : Byte;
@@ -143,6 +140,8 @@ VAR
                Max_connected_volumes : integer;
                                 name : string;
                    End;
+
+CONST AServerInfo: PServerInfo = nil;
 
 procedure GetConnectionInfo(var LogicalStationNo: integer;
                             var name,hex_id:string;
@@ -352,7 +351,7 @@ procedure purge_erased_files(var retcode:integer);
 *)
 IMPLEMENTATION
 
-{$IFDEF DN} uses advance, advance1, advance2, advance3; {$ENDIF}
+uses advance, advance1, advance2, advance3;
 
 const
      zero = '0';
@@ -414,14 +413,14 @@ Begin
   MsDos(Regs);
   retcode := regs.al;
   name := '';
-  hex_id := hexdigits[replybuffer.uniqueid1[1] shr 4];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[1] and $0F];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[2] shr 4];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[2] and $0F];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[1] shr 4];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[1] and $0F];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[2] shr 4];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[2] and $0F];
+  hex_id := HexStr[replybuffer.uniqueid1[1] shr 4];
+  hex_id := hex_id + HexStr[replybuffer.uniqueid1[1] and $0F];
+  hex_id := hex_id + HexStr[replybuffer.uniqueid1[2] shr 4];
+  hex_id := hex_id + HexStr[replybuffer.uniqueid1[2] and $0F];
+  hex_id := hex_id + HexStr[replybuffer.uniqueid2[1] shr 4];
+  hex_id := hex_id + HexStr[replybuffer.uniqueid2[1] and $0F];
+  hex_id := hex_id + HexStr[replybuffer.uniqueid2[2] shr 4];
+  hex_id := hex_id + HexStr[replybuffer.uniqueid2[2] and $0F];
   { Now we chop off leading zeros }
     while ( (hex_id[1]='0') and (length(hex_id) > 1) )
              do hex_id := copy(hex_id,2,length(hex_id));
@@ -460,20 +459,22 @@ Var
   I              : Integer;
 
 Begin
+  If AServerInfo<>nil then Dispose(AServerInfo); AServerInfo := nil;
+  New(AServerInfo);
   With RequestBuffer Do Begin
     PacketLength := 1;
     FunctionVal := 17;  { 17 = Get Server Info }
   End;
-  ServerInfo.ReturnLength := 128;
+  AServerInfo^.ReturnLength := 128;
   With Regs Do Begin
     Ah := $e3;
     Ds := Seg(RequestBuffer);
     Si := Ofs(RequestBuffer);
-    Es := Seg(ServerInfo);
-    Di := Ofs(ServerInfo);
+    Es := Seg(AServerInfo^);
+    Di := Ofs(AServerInfo^);
   End;
   MsDos(Regs);
-  With serverinfo do
+  With AServerInfo^ do
   begin
    connections_max := connectionmax[1]*256 + connectionmax[2];
    connections_in_use := connectionuse[1]*256 + connectionuse[2];
@@ -1115,14 +1116,14 @@ begin
   hex_id := '';
   if retcode = 0 then
   begin
-   hex_id := hexdigits[replybuffer.uniqueid1[1] shr 4];
-   hex_id := hex_id + hexdigits[replybuffer.uniqueid1[1] and $0F];
-   hex_id := hex_id + hexdigits[replybuffer.uniqueid1[2] shr 4];
-   hex_id := hex_id + hexdigits[replybuffer.uniqueid1[2] and $0F];
-   hex_id := hex_id + hexdigits[replybuffer.uniqueid2[1] shr 4];
-   hex_id := hex_id + hexdigits[replybuffer.uniqueid2[1] and $0F];
-   hex_id := hex_id + hexdigits[replybuffer.uniqueid2[2] shr 4];
-   hex_id := hex_id + hexdigits[replybuffer.uniqueid2[2] and $0F];
+   hex_id := HexStr[replybuffer.uniqueid1[1] shr 4];
+   hex_id := hex_id + HexStr[replybuffer.uniqueid1[1] and $0F];
+   hex_id := hex_id + HexStr[replybuffer.uniqueid1[2] shr 4];
+   hex_id := hex_id + HexStr[replybuffer.uniqueid1[2] and $0F];
+   hex_id := hex_id + HexStr[replybuffer.uniqueid2[1] shr 4];
+   hex_id := hex_id + HexStr[replybuffer.uniqueid2[1] and $0F];
+   hex_id := hex_id + HexStr[replybuffer.uniqueid2[2] shr 4];
+   hex_id := hex_id + HexStr[replybuffer.uniqueid2[2] and $0F];
    { Now we chop off leading zeros }
    while hex_id[1] = '0' do hex_id := copy(hex_id,2,length(hex_id));
   end;
@@ -1212,8 +1213,8 @@ begin
    ret_code := 1;
    for count1:= 1 to length(username) do
        username[count1]:=upcase(username[count1]); { Convert to upper case }
-   getserverinfo;
-   for count1:= 1 to serverinfo.connections_max do
+   GetServerInfo;
+   for count1:= 1 to AServerInfo^.connections_max do
    begin
      stationid := count1;
      getuser( stationid, userid, retcode);
@@ -1234,8 +1235,8 @@ procedure GetServerName(var servername : string; var retcode : integer);
 { was kept to maintain compatibility with the older  novell unit. }
 {-----------------------------------------------------------------}
 begin
-  getserverinfo;
-  servername := serverinfo.name;
+  GetServerInfo;
+  servername := AServerInfo^.name;
   retcode := 0;
   end;
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 Unit CdUtil;
 
@@ -62,13 +59,15 @@ Unit CdUtil;
          DnApp,
          FileCopy,
          StartUp,
-         Microed,
+         EdWin,
          Commands,
          LFN, {DataCompBoy}
          advance,
          advance1,
          advance2,
-         advance3;
+         advance3,
+         Collect,
+         Tree;
 
     type
 
@@ -188,15 +187,15 @@ Unit CdUtil;
           begin
            if Pos(Char(T),ASel)=0 then
              C^.Insert(NewStr(
-                     SStr( I ,3,' ' ) + ' │ ' +
+                     SStr( I ,3,' ' ) + ' '#179' ' +
                    + SStr( Tlen[T].Lmin,2,' ' ) + ':' +
-                   + SStr( Tlen[T].Lsec,2,'0' ) + ' │ ' +
+                   + SStr( Tlen[T].Lsec,2,'0' ) + ' '#179' ' +
                    CnvString(Descr^.At(I-1))
              )) else
              C^.Insert(NewStr(
-                  '*' + SStr( I ,2,' ' ) + ' │ ' +
+                  '*' + SStr( I ,2,' ' ) + ' '#179' ' +
                    + SStr( Tlen[T].Lmin,2,' ' ) + ':' +
-                   + SStr( Tlen[T].Lsec,2,'0' ) + ' │ ' +
+                   + SStr( Tlen[T].Lsec,2,'0' ) + ' '#179' ' +
                    CnvString(Descr^.At(I-1))
              ))
 
@@ -204,9 +203,9 @@ Unit CdUtil;
           end
          else
           C^.Insert(NewStr(
-                 SStr( T ,3,' ' ) + ' │ ' +
+                 SStr( T ,3,' ' ) + ' '#179' ' +
                + SStr( Tlen[T].Lmin,2,' ' ) + ':' +
-               + SStr( Tlen[T].Lsec,2,'0' ) + ' │ ' +
+               + SStr( Tlen[T].Lsec,2,'0' ) + ' '#179' ' +
                CnvString(Descr^.At(T-LowTrack))
          ))
         end;
@@ -224,9 +223,9 @@ Unit CdUtil;
           with PCdPlayer( CD_Player )^ do
            begin
             I := FirstTrack+Item;
-            S := SStr( Item+1,2,' '      ) + ' │ ' +
+            S := SStr( Item+1,2,' '      ) + ' '#179' ' +
                + SStr( Tlen[I].Lmin,2,' ' ) + ':' +
-               + SStr( Tlen[I].Lsec,2,'0' ) + ' │ ' +
+               + SStr( Tlen[I].Lsec,2,'0' ) + ' '#179' ' +
                CnvString(Decr^.At(I));
            end;
         GetText := S;
@@ -261,14 +260,14 @@ Unit CdUtil;
       KeyLines := 4 ;
       R.Assign(16,4,54,16);
 
-      Inherited Init( R  , GetString(dlCDPlayTrack)+' (1..'+ itos(ASongs) +') ■■' ) ;
+      Inherited Init( R  , GetString(dlCDPlayTrack)+' (1..'+ itos(ASongs) +') '#254#254 ) ;
         Options := Options or ofCentered ;
 
       Songs := ASongs ;
 
 
-      Ent[1] := '■';
-      Ent[2] := '■';
+      Ent[1] := #254;
+      Ent[2] := #254;
       EntPos := 1;
 
 
@@ -380,15 +379,10 @@ Unit CdUtil;
 
          case p of
           99  : begin
-                   Ent[1] := '■';
-                   Ent[2] := '■';
+                   Ent[1] := #254;
+                   Ent[2] := #254;
                  EntPos := 1 ;
                 end;
-            {
-          99  : begin
-
-                end;
-            }
             else
               begin
                 if P > 9 then
@@ -406,8 +400,8 @@ Unit CdUtil;
              if CheckEnter
               then EndModal( cmOk )
               else begin
-                    Ent[1] := '■';
-                    Ent[2] := '■';
+                    Ent[1] := #254;
+                    Ent[2] := #254;
                     EntPos := 1 ;
                     UpdateTitle ;
                    end;
@@ -522,7 +516,7 @@ Unit CdUtil;
 
   Destructor TOrder.Done ;
    begin
-     Dispose(List,Done);
+     Dispose(List,Done); List:=nil;
      Inherited Done ;
    end;
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,22 +43,17 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Drives;
 
 interface
-uses LFN, LFNCol, {DataCompBoy}
-     Dos, Objects, Memory, Views, Drivers, FilesCol, DiskInfo,
-     FStorage, advance, advance1, advance2, advance3, ObjType;
+uses LFN, LFNCol, {DataCompBoy} Dos, Objects, Memory, Views, Drivers, DnIni,
+     FilesCol, DiskInfo, FStorage, advance, advance1, advance2, advance3,
+     collect;
 
 const
-     FBoxDir: String = ''; {DataCompBoy}
-
      dsActive      = 0 ;
      dsInvalid     = 1 ;
 
@@ -75,6 +70,7 @@ type
    LFNLen: byte; EXTLen: byte;
    DirFLP, FilFLP: word;
    Param: byte; innum: byte;
+   SizeX: LongInt;
    constructor Init(ADrive: Byte; AOwner: Pointer; num: byte);
    constructor Load(var S: TStream);
    procedure Store(var S: TStream); virtual;
@@ -127,15 +123,9 @@ const
   TempDirs: PSortedCollection = nil;
   TempFiles: PDirStorage = nil;
 
-  RDrive: TStreamRec = (
-    ObjType: otDrive;
-    VmtLink: Ofs(TypeOf(TDrive)^);
-    Load: @TDrive.Load;
-    Store: @TDrive.Store);
-
 implementation
-uses Startup, Tree, DNApp, RStrings, FileCopy, Eraser,
-     FlPanel, Commands, Dialogs, FileFind, FlPanelX;
+uses Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
+     Dialogs, FileFind, FlPanelX, filediz;
 
 type
         {-DataCompBoy-}
@@ -258,7 +248,7 @@ end;
 
 destructor TDrive.Done;
 begin
- if Prev <> nil then Dispose(Prev, Done);
+ if Prev <> nil then Dispose(Prev,Done);
  inherited Done;
 end;
 
@@ -324,41 +314,45 @@ begin
     if EXTLen=0
      then OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes
      else OPT:=flnHardExtArea or flnAutoHideDot or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes;
-    if P^.Selected then OPT:=OPT+flnSelected;
+    if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT+flnSelected;
     if P^.Attr and SysFile<>0 then NFM:=nfmSystem;
     if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
     if P^.Attr and Directory <>0 then if DirFLP<>65535
                                        then OPT:=OPT or DirFLP
-                                       else if (Length(GetSName(S))<=8) and
-                                               (Length(GetExt(S))<=4)
+                                       else {if (Length(GetSName(S))<=8) and}
+                                            {   (Length(GetExt(S))<=4)      }
+                                            if (not IsMixedCase(S)) {JO}
                                              then OPT:=OPT or flnUpCase
                                              else
                                  else if FilFLP<>65535
                                        then OPT:=OPT or FilFLP
-                                       else if (Length(GetSName(S))<=8) and
-                                               (Length(GetExt(S))<=4)
+                                       else {if (Length(GetSName(S))<=8) and}
+                                            {   (Length(GetExt(S))<=4)      }
+                                            if (not IsMixedCase(S)) {JO}
                                              then OPT:=OPT or flnLowCase
                                              else ;
     S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
+    if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
    end
   else
    begin
     NFM:=nfmNull;
     OPT:=flnHardExtArea or flnAutoHideDot or flnPadRight or flnHighlight or flnHandleTildes;
-    if P^.Selected then OPT:=OPT+flnSelected;
+    if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT+flnSelected;
     if P^.Attr and SysFile<>0 then begin NFM:=nfmSystem; OPT:=OPT or flnCapitalCase end;
     if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
     if P^.Attr and Directory <>0 then OPT:=OPT or flnUpCase
                                  else OPT:=OPT or flnLowCase;
     S:=FormatLongName(MakeFileName(P^.Name), 12, 3, OPT, NFM, nil);
+    if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
    end;
   X:=LFNLen;
   MoveCStr(TWordArray(B), S, C);
 {{{{{{{{{{{{}
-  if P^.Selected then begin
-                       C:=C shr 8;
-                       SC:=SC and $00FF + C shl 8;
-                      end;
+  if P^.Selected and PView(Owner)^.GetState(sfFocused) then begin
+   C:=C shr 8;
+   SC:=SC and $00FF + C shl 8;
+  end;
   Inc(X);
   TWordArray(B)[X-1]:=SC;
   if (P^.Size > 0) or (P^.Attr and Directory = 0) or (P^.Attr and $8000 <> 0)
@@ -428,24 +422,99 @@ begin
 end;
 
 procedure TDrive.CopyFiles;
+var B: Boolean;
 begin
+ if ReflectCopyDirection
+  then RevertBar:=Message(DeskTop, evBroadCast, cmIsRightPanel, Own) <> Nil
+  else RevertBar:=false;
  if Disposable then FileCopy.CopyFiles(Files, Own, MoveMode, 2*Byte(TypeOf(Self)=TypeOf(TFindDrive)));
 end;
 
 procedure TDrive.CopyFilesInto;
+var B: Boolean;
 begin
+ if ReflectCopyDirection
+  then RevertBar:=(Message(DeskTop, evBroadCast, cmIsRightPanel, Own) <> Nil)
+  else RevertBar:=false;
  FileCopy.CopyFiles(Files, Own, MoveMode, 0);
 end;
 
         {-DataCompBoy-}
 procedure TDrive.lChDir;
+var
+  I: Word;
+  S: String;
+
+  function AskRetry(Drive: Char): Boolean;
+  begin
+   ClrIO; NeedAbort:=False;
+   SysErrorFunc(2,Byte(Drive)-65);
+   AskRetry:=not Abort;
+  end;
+
+  function ValidPath(var ATestDir: String; Ask: Boolean): Boolean;
+  var
+    S: String;
+    Drive: Char;
+    OK: Boolean;
+  begin
+    OK:=False;
+    ClrIO;
+    NeedAbort:=True;
+    ATestDir:=lFExpand(ATestDir);
+    if (Length(ATestDir)<>3) and (ADir[Length(ATestDir)] = '\') then
+      Dec(ATestDir[0]);
+    if (Length(ATestDir)>1) and (ATestDir[2]=':') then
+      Drive:=ATestDir[1] else
+      Drive:=Char(GetDrive+64);
+    S:=Drive+':\';
+    repeat
+     ClrIO; NeedAbort:=True;
+     LFN.lChDir(S);
+     I:=IOResult; Abort:=Abort or (I <> 0);
+     if Abort then begin
+       if Ask and AskRetry(Drive) then continue;
+     end else
+       OK:=True;
+     break;
+    until False;
+    if OK then
+    repeat
+     ClrIO; NeedAbort:=True;
+     LFN.lChDir(ATestDir);
+     I:=IOResult; Abort:=Abort or (I <> 0);
+     if Abort then begin
+       S:=GetPath(ATestDir);
+       if (Length(S)<>3) and (S[Length(S)] = '\') then Dec(S[0]);
+       if S<>ATestDir then begin
+         ATestDir:=S;
+         continue;
+       end;
+       OK:=False;
+     end;
+     break;
+    until False;
+    ClrIO; NeedAbort:=False;
+    ValidPath:=OK;
+  end;
+
 begin
- ClrIO;
- Advance2.lChDir(ADir);
- if Abort then Exit;
- lGetDir(0, ADir);
- if Abort then Exit;
- CurDir := ADir;
+  NeedAbort:=True;
+  if ValidPath(ADir,True) then begin
+    CurDir:=ADir; Exit;
+  end;
+  if ValidPath(CurDir,False) then begin
+    CurDir:=CurDir; Exit;
+  end;
+  ADir:='C:\';
+  if ValidPath(ADir,False) then begin
+    CurDir:=ADir; Exit;
+  end;
+  ADir:='A:\';
+  if ValidPath(ADir,False) then begin
+    CurDir:=ADir; Exit;
+  end;
+  CurDir:='';
 end;
         {-DataCompBoy-}
 
@@ -474,7 +543,7 @@ procedure ReadFileList(
 var T: PTextReader;
     S: String;
     S1: Str12;
-    I: Integer;
+    I: LongInt;
     CurLine: LongInt;
     PD: PDesc;
 begin
@@ -505,7 +574,7 @@ begin
             Descriptions^.FreeItem(PD);
        end;
     end;
-  Dispose(T, Done);
+  Dispose(T,Done);
 end;
         {-DataCompBoy-}
 
@@ -537,7 +606,7 @@ procedure TossDescriptions(
     Files: PFilesCollection;
     Descriptions: PDIZCol);
 var
-  I, J: Integer;
+  I, J: LongInt;
   P: PFileRec;
   FName: Str12;
   PD: PDesc;
@@ -569,21 +638,37 @@ var
   AllFiles: Boolean;
   P: PFileRec;
   L: TSize;
+  q: Longint;
+{$IFDEF CHDIRDEBUG}
+ const NumCal: word = 0;
+       States:Array[0..3] of char = '|/-\';
+       PanelState: PChar = Ptr($B800, 0);
+       StartChar: Char = ' ';
 begin
+ PanelState:=Ptr(SegB800,0);
+ StartChar:=PanelState^;
+{$ELSE}
+begin
+{$ENDIF}
   TFiles:=1;
-  AllFiles := FileMask = x_x;
+  AllFiles := (FileMask = x_x) or (FileMask='*');
   Files := New(PFilesCollection, Init($10, $20));
   PFilesCollection(Files)^.Owner := Owner;
   PFilesCollection(Files)^.SortMode := SortMode;
   lFindFirst(MakeNormName(CurDir^,x_x), $FF xor VolumeID, SR);
   While (DosError = 0) and not Abort and (IOResult = 0) and MemOK do
   begin
-   if (SR.SR.Attr and VolumeID = 0) and (SR.SR.Name <> '.') then
-    if (SR.SR.Name[1] = '.') or (not Security or (Security and (SR.SR.Attr and Hidden=0))) then
+{$IFDEF CHDIRDEBUG}
+   PanelState^:=States[NumCal];
+   inc(NumCal);
+   if NumCal=4 then NumCal:=0;
+{$ENDIF}
+   if (SR.SR.Attr and VolumeID = 0) and not ((SR.SR.Name[0] = #1) and (SR.SR.Name[1] = '.')) then
+    if (not Security or (Security and (SR.SR.Attr and Hidden=0))) or (SR.SR.Name[1] = '.') then
     if AllFiles or (SR.SR.Attr and Directory <> 0) or (InFilter(SR.FullName, FileMask)) then
     if (SR.SR.Attr and Directory = 0) or
        (SR.SR.Name[1] <> '.') or
-       (Length(CurDir^) > 3) then
+       (CurDir^[0] > #3) then
     begin
       P := NewFileRec(SR.FullName, SR.SR.Name, SR.FullSize, SR.SR.Time, SR.SR.Attr, CurDir);
       if SR.SR.Attr and Directory = 0 then
@@ -600,23 +685,28 @@ begin
             ClrIO;
           end;
         end;
-      if SortMode = -1 then with Files^ do AtInsert(Count, P)
-       else Files^.Insert(P);
+       with Files^ do AtInsert(Count, P)
     end;
    DosError := 0;
    lFindNext(SR);
   end;
   lFindClose(SR);
-  if (Length(CurDir^) > 3) and ((Files^.Count=0) or (MakeFileName(PFileRec(Files^.At(0))^.Name) <> '..')) then
-  begin
+  if (Length(CurDir^) > 3) then
+   if ((Files^.Count=0) or
+      (PFileRec(Files^.At(0))^.Name[1] <> '.')) then
+   begin
     if PanelFlags and fmiDirLen <> 0 then
     begin
       L := GetDirLen(CurDir^); if Abort then L := 0;
       ClrIO;
     end else L := 0;
     Files^.AtInsert(0, NewFileRec('..','..',L,0,Directory,CurDir));
-  end;
+   end;
   GetFilesColl := Files;
+ if (SortMode <> -1) and (Files^.Count>0) then Files^.Sort;
+{$IFDEF CHDIRDEBUG}
+ PanelState^:=StartChar;
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -665,7 +755,7 @@ begin
  if Descriptions <> nil then
  begin
    TossDescriptions(@DizOwner, Files, Descriptions);
-   FreeObject(Descriptions)
+   Dispose(Descriptions,Done)
  end;
  GetDirectory := Files;
 end;
@@ -752,7 +842,7 @@ begin
              D^.SetData(MM);
              Application^.ExecView(D);
              D^.GetData(MM);
-             Dispose(D, Done);
+             Dispose(D,Done);
             end;
            UpStr(MM.S);
            if ValidDrive(MM.S[1]) then
@@ -781,7 +871,7 @@ begin
               D^.SetData(MM);
               Application^.ExecView(D);
               D^.GetData(MM);
-              Dispose(D, Done);
+              Dispose(D,Done);
              end;
             UpStr(MM.S);
             if ValidDrive(MM.S[1]) then
@@ -847,7 +937,7 @@ end;
 procedure RereadDirectory;
  var Event: TEvent;
 
- procedure Action(View: PView); far;
+ procedure Action(View: PView); {$IFDEF BIT_16}far;{$ENDIF}
  begin
   Event.What := evCommand; Event.Command := cmRereadDir;
   Event.InfoPtr := @Dir;

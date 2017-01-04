@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,22 +43,22 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 {$F+}
 
 unit Terminal;
 
 interface
 
-uses LFN, {DataCompBoy}
-     Objects, Views, Scroller, Drivers, Dos, Memory, Menus, Messages,
-     advance, advance1, advance2, advance3, Commands, DNApp, OOCOM,
-     DNStdDlg, apPort, DNHelp, OOZModem, OOXModem, OOYModem, OOKermit,
-     OOAbsPcl, Dialogs, xTime, ObjType;
+uses LFN, Collect,   SBlocks, Objects, Views, Scroller, Drivers, Dos, Memory,
+     Menus, Messages, advance, advance1, advance2, advance3, Commands, DNApp,
+     OOCOM, DNStdDlg, apPort, DNHelp, OOZModem, OOXModem, OOYModem, OOKermit,
+     OOAbsPcl, Dialogs, xTime
+     {$IFDEF PHONES}
+     ,uDialer
+     {$ENDIF}
+     ;
 
 type
     PTerminalWindow = ^TTerminalWindow;
@@ -118,6 +118,7 @@ type
      procedure Draw; virtual;
     end;
 
+
 const Term: PTerminal = nil;
       ModemActive: Boolean = False;
 
@@ -126,30 +127,12 @@ const
      AvatarStr: String = '';
      LastCommand: String = '';
 
-      RTerminalWindow: TStreamRec = (
-       ObjType: otTerminalWindow;
-       VmtLink: Ofs(TypeOf(TTerminalWindow)^);
-       Load: @TTerminalWindow.Load;
-       Store: @TTerminalWindow.Store);
-
-      RTerminal: TStreamRec = (
-       ObjType: otTerminal;
-       VmtLink: Ofs(TypeOf(TTerminal)^);
-       Load: @TTerminal.Load;
-       Store: @TTerminal.Store);
-
-      RPortInfo: TStreamRec = (
-       ObjType: otPortInfo;
-       VmtLink: Ofs(TypeOf(TPortInfo)^);
-       Load: @TPortInfo.Load;
-       Store: @TPortInfo.Store);
-
 const Protocol: AbstractProtocolPtr = nil;
       CommandsHistory: PCollection = nil;
 
 implementation
 
-uses Phones, RStrings, Startup, Microed, Gauge, ScrollBk,
+uses RStrings, Startup, Microed, Gauge, ScrollBk,
      WinClp, ModemIO, FileCopy;
 
 constructor TPortInfo.Init;
@@ -221,10 +204,10 @@ var
 begin
   Zooming := True;
   SizeLimits(Min, Max);
-  if Longint(Size) <> Longint(Max) then
+  if not Size.Equals(Max) then
   begin
     GetBounds(ZoomRect);
-    Longint(R.A) := 0;  Dec(R.A.X); Dec(R.A.Y);
+    R.Assign(0,0,0,0);  Dec(R.A.X); Dec(R.A.Y);
     R.B := Max;         Inc(R.B.X);
     Locate(R);
   end else Locate(ZoomRect);
@@ -233,13 +216,16 @@ end;
 
 procedure TTerminalWindow.SizeLimits(var Min, Max: TPoint);
 begin
-   Longint(Min) := 0;
+   Min.Assign(0, 0);
    Min := MinWinSize;
    if Owner <> nil then
         begin
            Max.X := Owner^.Size.X+2;
            Max.Y := Owner^.Size.Y+2;
-        end else Longint(Max) := $7FFF7FFF;
+        end else begin
+                  Max.X:=High(Max.X);
+                  Max.Y:=High(Max.Y);
+                 end;
 end;
 
 procedure TTerminalWindow.CalcBounds;
@@ -259,7 +245,7 @@ begin
  inherited Init(R, AHScroll, AVScroll);
  BufSize.X := ScreenWidth; BufSize.Y := ScreenHeight;
  ScrollTop := 0; ScrollBot := BufSize.Y-1;
- LongInt(CurPos) := 0;
+ CurPos.Assign(0,0);
  Emulator := TerminalDefaults.Emulation;
  TOptions := TerminalDefaults.Options;
  Buffer := MemAlloc(BufSize.X*BufSize.Y*2);
@@ -299,9 +285,9 @@ begin
  AvatarStr := '';
  GetBounds(RR); ChangeBounds(RR);
  isValid := isValid and (InitModem <> moInitFail) and (COMPort <> nil);
- if Dialer <> nil then Deregister(Dialer);
+ {$IFDEF PHONES}if Dialer <> nil then Deregister(Dialer);{$ENDIF}
  RegisterToPrior(@Self);
- if Dialer <> nil then RegisterToPrior(Dialer);
+ {$IFDEF PHONES}if Dialer <> nil then RegisterToPrior(Dialer);{$ENDIF}
  Emulator := TerminalDefaults.Emulation;
  TOptions := TerminalDefaults.Options;
 end;
@@ -309,7 +295,7 @@ end;
 destructor TTerminal.Done;
 begin
  if Buffer <> nil then FreeMem(Buffer, BufSize.X*BufSize.Y*2);
- if Log <> nil then Dispose(Log, Done);
+ if Log <> nil then Dispose(Log,Done); Log:=nil;
  Term := nil;
  inherited Done;
 end;
@@ -390,7 +376,7 @@ end;
  var
        XChkTimer: TEventTimer;
 
- function AbortXfer: Boolean; far;
+ function AbortXfer: Boolean; {$IFDEF BIT_16}far;{$ENDIF}
   var Event: TEvent;
  begin
   if (Info = nil) or (COMPort = nil) then begin AbortXfer := On; Exit end;
@@ -415,7 +401,7 @@ end;
   AbortXfer := XferAborted;
  end;
 
- procedure ShowReceInfo(AP : AbstractProtocolPtr; Starting, Ending : Boolean); far;
+ procedure ShowReceInfo(AP : AbstractProtocolPtr; Starting, Ending : Boolean); {$IFDEF BIT_16}far;{$ENDIF}
   var Event: TEvent;
       I, J, K: LongInt;
  begin
@@ -439,7 +425,7 @@ end;
   until False;
  end;
 
- procedure ShowSendInfo(AP : AbstractProtocolPtr; Starting, Ending : Boolean); far;
+ procedure ShowSendInfo(AP : AbstractProtocolPtr; Starting, Ending : Boolean); {$IFDEF BIT_16}far;{$ENDIF}
   var Event: TEvent;
       I, J, K: LongInt;
  begin
@@ -526,7 +512,7 @@ procedure TTerminal.HandleEvent;
     begin
       S := GetFileNameDialog(x_x, GetString(dlTermReceXmodem), GetString(dlFileName),
                           fdOKButton + fdHelpButton, 100);
-     if S = '' then begin Dispose(Protocol, Done); Protocol := nil; Exit; end;
+     if S = '' then begin Dispose(Protocol,Done); Protocol:=nil; Exit; end;
      lFSplit(lFExpand(S), Dr, Nm, Xt);
      Protocol^.SetDestinationDirectory(SystemData.Temp);
      Protocol^.SetReceiveFileName(GetURZ(Nm+Xt));
@@ -559,7 +545,7 @@ procedure TTerminal.HandleEvent;
      lRenameFile(j, ProtocolFileRenameTo);
     end;
    XferAborted := Off;
-   Dispose(Protocol, Done);
+   Dispose(Protocol,Done);
    II := Info;
    Info := nil;
    II^.Free;
@@ -608,7 +594,7 @@ procedure TTerminal.HandleEvent;
    II := Info;
    Info := nil;
    II^.Free;
-   Dispose(Protocol, Done);
+   Dispose(Protocol,Done);
    XferAborted := Off;
    Protocol := nil;
    COMPort^.SetAbortFunc(PA);
@@ -663,14 +649,14 @@ procedure TTerminal.HandleEvent;
  begin
   S := GetFileNameDialog(x_x, GetString(dlTermSetLog), GetString(dlFileName),
                           fdOKButton + fdHelpButton, 100);
-  if Log <> nil then Dispose(Log, Done);
+  if Log <> nil then Dispose(Log,Done);
   Log := New(PBufStream, Init(S, stOpen, 1024));
   if Log = nil then Exit;
   if Log^.Status <> stOK then
    begin
-    Dispose(Log, Done);
+    Dispose(Log,Done);
     Log := New(PBufStream, Init(S, stCreate, 1024));
-    if Log^.Status <> stOK then begin Dispose(Log, Done); Log := nil; end;
+    if Log^.Status <> stOK then begin Dispose(Log,Done); Log := nil; end;
    end else Log^.Seek(Log^.GetSize);
  end;
 
@@ -801,8 +787,8 @@ end;
   D^.SelectNext(False);
   I := Desktop^.ExecView(D);
   D^.GetData(DT);
-  Dispose(D, Done);
-  Dispose(PC, Done);
+  Dispose(D,Done);
+  Dispose(PC,Done);
   if I = cmCancel then Exit;
   if I = cmNo then begin CommandsHistory^.FreeAll; Exit end;
 
@@ -870,7 +856,7 @@ Rep:
                 end;
              end;
        1001: begin
-               if Clipboard <> nil then Dispose(Clipboard, Done);
+               if Clipboard <> nil then Dispose(Clipboard,Done);
                Clipboard := New(PLineCollection, Init(CutRect.B.Y-CutRect.A.Y, 10));
                for W := CutRect.A.Y to CutRect.B.Y - 1 do
                 begin
@@ -879,6 +865,8 @@ Rep:
                   Clipboard^.Insert(NewStr(S));
                 end;
                if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
+               if ClipBoardStream<>nil
+                then ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-1,0));
                CopyLines2Stream(Clipboard, ClipBoardStream);
              end;
      end;
@@ -918,7 +906,7 @@ begin
               cmOpen: begin
                        if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
                        if Clipboard <> nil then begin
-                          for I := 0 to Clipboard^.Count - 1 do begin
+                          for I:=0 to Clipboard^.Count - 1 do begin
                             SendString(CnvString(Clipboard^.At(I)));
                             if I < Clipboard^.Count - 1 then SendString(#13#10);
                           end;
@@ -1027,7 +1015,7 @@ begin
   Protocol^.ProtocolReceive;
   XferAborted := Off;
   NewTimer(XChkTimer, 18*2);
-  Dispose(Protocol, Done);
+  Dispose(Protocol,Done);
   II := Info;
   Info := nil;
   II^.Free;
@@ -1087,7 +1075,8 @@ procedure TTerminal.PutChar;
 
  procedure ClearScreen;
  begin
-   ScrollUp(BufSize.Y); LongInt(CurPos) := 0;
+   ScrollUp(BufSize.Y);
+   CurPos.Assign(0,0);
    DrawView;
  end;
 
@@ -1529,10 +1518,6 @@ procedure TTerminal.PutChar;
                                  else CE := Off;
      'Z': SendModem(#27'/Z');
 
-(*
-     '=': ShiftState := Mem[$40:$17] and not $20;
-     '>': Mem[$40:$17] := Mem[$40:$17] or $20;
-*)
      '<': Emulator := emVT102;
      ']': ; { PrintScreen }
      '^': ; { Printer On }
@@ -1568,10 +1553,6 @@ procedure TTerminal.PutChar;
      'Y': if Length(ANSIStr) > 3 then LocateCursor(Byte(ANSIStr[4])+CurPos.Y,Byte(ANSIStr[3])+CurPos.X)
                                  else CE := Off;
      'Z': ;
-(*
-     '=': ShiftState := Mem[$40:$17] and not $20;
-     '>': Mem[$40:$17] := Mem[$40:$17] or $20;
-*)
      '<': ;
      ']': ; { PrintScreen }
      '^': ; { Printer On }
@@ -1639,7 +1620,7 @@ begin
  while COMPort^.CharReady and (II < 100) do
   begin
    COMPort^.GetChar(C);
-   if ModemAnswer[0] > #254 then Delete(ModemAnswer, 1, 50);
+   if ModemAnswer[0] > #79 then Delete(ModemAnswer, 1, 10);
    AddStr(ModemAnswer, C);
    if (C = '0') and (TOptions and toAutoZModem <> 0) and
       (Copy(ModemAnswer, Length(ModemAnswer) - Length(S) + 1, Length(S)) = S)
@@ -1663,7 +1644,7 @@ begin
       if COMPort^.CheckDeltaDCD then B := DCDMask;
       if COMPort^.CheckDeltaCTS then B := B or CTSMask;
       if COMPort^.CheckDeltaDSR then B := B or DSRMask;
-      if B <> 0 then Message(Owner, evBroadcast, cmOK, Pointer(B));
+      if B <> 0 then MessageL(Owner, evBroadcast, cmOK, B);
       NewTimer(UpdTimer, 18);
     end;
 end;
@@ -1703,6 +1684,5 @@ begin
   if COMPort <> nil then
      COMPort^.PutString(S);
 end;
-
 
 end.

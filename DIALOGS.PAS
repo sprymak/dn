@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Dialogs;
 
@@ -59,8 +56,8 @@ unit Dialogs;
 
 interface
 
-uses LFN, {DataCompBoy} DnIni,
-     Objects, Drivers, Views, Scroller, Validate, ObjType;
+uses LFN, {DataCompBoy} DnIni, Collect, Objects, Drivers, Views, advance6,
+     Scroller, Validate, U_keymap;
 
 const
 
@@ -182,6 +179,7 @@ type
     SelEnd: Integer;
     Validator: PValidator;
     DrawShift: Byte;
+    CtrlK: Boolean;
     constructor Init(var Bounds: TRect; AMaxLen: Integer);
     constructor Load(var S: TStream);
     destructor Done; virtual;
@@ -206,8 +204,10 @@ type
    DeltaX, CurX: Integer;
    Sec: Boolean;
    constructor Init(R: TRect; AInputLine: PInputLine);
-   procedure HandleEvent(var Event: TEvent); virtual;
-   procedure Draw; virtual;
+   constructor Load(var S: TStream);
+   procedure   Store(var S: TStream);
+   procedure   HandleEvent(var Event: TEvent); virtual;
+   procedure   Draw; virtual;
   end;
 
 { TButton object }
@@ -484,110 +484,6 @@ type
 
 function NewSItem(const Str: String; ANext: PSItem): PSItem;
 
-{ Stream Registration Records }
-
-const
-  RDialog: TStreamRec = (
-     ObjType: otDialog;
-     VmtLink: Ofs(TypeOf(TDialog)^);
-     Load:    @TDialog.Load;
-     Store:   @TDialog.Store
-  );
-
-const
-  RInputLine: TStreamRec = (
-     ObjType: otInputLine;
-     VmtLink: Ofs(TypeOf(TInputLine)^);
-     Load:    @TInputLine.Load;
-     Store:   @TInputLine.Store
-  );
-
-const
-  RButton: TStreamRec = (
-     ObjType: otButton;
-     VmtLink: Ofs(TypeOf(TButton)^);
-     Load:    @TButton.Load;
-     Store:   @TButton.Store
-  );
-
-const
-  RCluster: TStreamRec = (
-     ObjType: otCluster;
-     VmtLink: Ofs(TypeOf(TCluster)^);
-     Load:    @TCluster.Load;
-     Store:   @TCluster.Store
-  );
-
-const
-  RRadioButtons: TStreamRec = (
-     ObjType: otRadioButtons;
-     VmtLink: Ofs(TypeOf(TRadioButtons)^);
-     Load:    @TRadioButtons.Load;
-     Store:   @TRadioButtons.Store
-  );
-
-const
-  RCheckBoxes: TStreamRec = (
-     ObjType: otCheckBoxes;
-     VmtLink: Ofs(TypeOf(TCheckBoxes)^);
-     Load:    @TCheckBoxes.Load;
-     Store:   @TCheckBoxes.Store
-  );
-
-const
-  RMultiCheckBoxes: TStreamRec = (
-     ObjType: otMultiCheckBoxes;
-     VmtLink: Ofs(TypeOf(TMultiCheckBoxes)^);
-     Load:    @TMultiCheckBoxes.Load;
-     Store:   @TMultiCheckBoxes.Store
-  );
-
-const
-  RListBox: TStreamRec = (
-     ObjType: otListBox;
-     VmtLink: Ofs(TypeOf(TListBox)^);
-     Load:    @TListBox.Load;
-     Store:   @TListBox.Store
-  );
-
-const
-  RStaticText: TStreamRec = (
-     ObjType: otStaticText;
-     VmtLink: Ofs(TypeOf(TStaticText)^);
-     Load:    @TStaticText.Load;
-     Store:   @TStaticText.Store
-  );
-
-const
-  RLabel: TStreamRec = (
-     ObjType: otLabel;
-     VmtLink: Ofs(TypeOf(TLabel)^);
-     Load:    @TLabel.Load;
-     Store:   @TLabel.Store
-  );
-
-const
-  RHistory: TStreamRec = (
-     ObjType: otHistory;
-     VmtLink: Ofs(TypeOf(THistory)^);
-     Load:    @THistory.Load;
-     Store:   @THistory.Store
-  );
-
-const
-  RParamText: TStreamRec = (
-     ObjType: otParamText;
-     VmtLink: Ofs(TypeOf(TParamText)^);
-     Load:    @TParamText.Load;
-     Store:   @TParamText.Store
-  );
-
-const
-
-{ Dialog broadcast commands }
-
-  cmRecordHistory = 60;
-
 implementation
 
 uses AsciiTab, HistList, advance, advance1, advance2, advance3, Commands,
@@ -698,6 +594,7 @@ begin
 end;
 
 function Max(A, B: Integer): Integer;
+{$IFDEF BIT_16}
 inline(
    $58/     {pop   ax   }
    $5B/     {pop   bx   }
@@ -705,6 +602,17 @@ inline(
    $7F/$01/ {jg    @@1  }
    $93);    {xchg  ax,bx}
        {@@1:            }
+{$ELSE}
+inline; assembler;
+asm
+ pop   ax
+ pop   bx
+ cmp   ax,bx
+ jg    @@1
+ xchg  ax,bx
+@@1:
+end;
+{$ENDIF}
 
 { TInputLine }
 
@@ -720,6 +628,7 @@ begin
   Data^ := '';
   MaxLen := AMaxLen;
   DrawShift := 1;
+  CtrlK := False;
 end;
 
 constructor TInputLine.Load(var S: TStream);
@@ -779,7 +688,7 @@ begin
   MoveChar(B, ' ', Color, Size.X);
   S := Copy(Data^, FirstPos + 1, Size.X - 2 * DrawShift);
   MoveStr(B[DrawShift], S, Color);
-  if Options and ofSecurity <> 0 then MoveChar(B[DrawShift], '■', Color, Length(S));
+  if Options and ofSecurity <> 0 then MoveChar(B[DrawShift], #254, Color, Length(S));
   if DrawShift > 0 then
     begin
       if CanScroll(1) then MoveChar(B[Size.X - 1], #16, GetColor(4), 1)
@@ -863,7 +772,7 @@ begin
     Delete(Data^, SelStart + 1, SelEnd - SelStart);
     CurPos := SelStart;
   end;
- Message(Owner, evBroadcast, 11111, nil);
+ Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
 end;
 
 procedure AdjustSelectBlock;
@@ -901,6 +810,7 @@ begin
     SelStart := OldSelStart;
     SelEnd := OldSelEnd;
   end;
+ Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
 end;
 
 function CheckValid(NoAutoFill: Boolean): Boolean;
@@ -943,6 +853,7 @@ Procedure InsChar(c: char);
     end;
     CheckValid(False);
   end;
+  Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
  end;
 
 procedure ASCIITable;
@@ -972,8 +883,8 @@ procedure ASCIITable;
   while GetCH do ;
 {  Desktop^.UnLock;}
   boundsASCII:=P^.Origin;
-  Dispose(P, Done);
-  CR^.Select;
+  Dispose(P,Done);
+  If CR<>nil then CR^.Select;
  end;
 
 begin
@@ -1025,7 +936,78 @@ begin
           end
           else
             ExtendBlock := False;
+          if CtrlK then begin
+           case Event.KeyCode of
+            kbCtrlSqBracketL: begin
+                if SelStart<SelEnd then
+                For I:=SelStart+1 to SelEnd do Data^[I]:=UpCase(Data^[I]);
+                if CurPos = SelEnd then Anchor := SelStart
+                else Anchor := SelEnd;
+                ExtendBlock:=True
+            end;
+            kbCtrlSqBracketR: begin
+                if SelStart<SelEnd then
+                For I:=SelStart+1 to SelEnd do Data^[I]:=LowCase(Data^[I]);
+                if CurPos = SelEnd then Anchor := SelStart
+                else Anchor := SelEnd;
+                ExtendBlock:=True
+            end;
+            kbCtrlSlash,
+            kbCtrlBSlash: begin
+                S := CapStrg(Copy(Data^, SelStart+1, SelEnd-SelStart));
+                Delete(Data^, SelStart+1, SelEnd-SelStart);
+                Insert(S, Data^, SelStart+1);
+                if CurPos = SelEnd then Anchor := SelStart
+                else Anchor := SelEnd;
+                ExtendBlock:=True
+            end;
+           end;
+           CtrlK:=false;
+          end else
           case Event.KeyCode of
+               kbCtrlK: CtrlK:=True;
+               kbAltF12: begin
+                          OldData:=RusEngConv(Copy(Data^, SelStart+1, SelEnd-SelStart));
+                          Data^:=Copy(Data^, 1, SelStart)+OldData+Copy(Data^, SelEnd+1, 255);
+                          if CurPos = SelEnd then Anchor := SelStart
+                          else Anchor := SelEnd;
+                          ExtendBlock:=True
+                         end;
+       kbAltCtrlSqBracketL,
+       kbCtrlSqBracketL: if ShiftState and (kbLeftShift+kbRightShift)<>0
+                          then UpStr(Data^)
+                          else begin
+                           I:=CurPos;
+                           While (not (Data^[I] in BreakChars)) and (I>1) do Dec(i);
+                           Repeat
+                            Data^[I]:=UpCase(Data^[I]);
+                            inc(i);
+                           until (Data^[I] in BreakChars);
+                          end;
+       kbAltCtrlSqBracketR,
+       kbCtrlSqBracketR: if ShiftState and (kbLeftShift+kbRightShift)<>0
+                          then LowStr(Data^)
+                          else begin
+                           I:=CurPos;
+                           While (not (Data^[I] in BreakChars)) and (I>1) do Dec(i);
+                           Repeat
+                            Data^[I]:=LowCase(Data^[I]);
+                            inc(i);
+                           until (Data^[I] in BreakChars);
+                          end;
+            kbCtrlSlash,
+            kbCtrlBSlash:if ShiftState and (kbLeftShift+kbRightShift)<>0
+                          then CapStr(Data^)
+                          else begin
+                           I:=CurPos;
+                           While (not (Data^[I] in BreakChars)) and (I>1) do Dec(i);
+                           if (Data^[I] in BreakChars) then inc(I);
+                           Data^[I]:=UpCase(Data^[I]); inc(I);
+                           Repeat
+                            Data^[I]:=LowCase(Data^[I]);
+                            inc(i);
+                           until (Data^[I] in BreakChars) or (I>Length(Data^));
+                          end;
             kbCtrlBack: if CurPos > 0 then begin
                          if (Data^[CurPos] in BreakChars) then
                           repeat
@@ -1062,7 +1044,9 @@ begin
                   begin
                     S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
                     if S <> '' then Message(Owner^.Owner^.Owner, evCommand, cmPutInClipboard, @S);
-                    DeleteSelect; SelEnd := SelStart; DrawView; ClearEvent(Event); Exit;
+                    DeleteSelect; SelEnd := SelStart; DrawView; ClearEvent(Event);
+                    Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+                    Exit;
                   end;
             kbShiftIns:
                   begin
@@ -1075,6 +1059,7 @@ begin
                     Insert(S, OldData, CurPos + 1);
                     Data^ := Copy(OldData, 1, MaxLen);
                     DrawView;
+                    Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
                     Exit;
                   end;
             kbAlt1..kbAlt9:
@@ -1137,17 +1122,13 @@ begin
             end
 
           end;
-          if ExtendBlock then
-            AdjustSelectBlock
-          else
-          begin
-            SelStart := CurPos;
-            SelEnd := CurPos;
-          end;
+          If Not CtrlK then
+           if ExtendBlock then AdjustSelectBlock
+           else begin SelStart := CurPos; SelEnd := CurPos; end;
           if FirstPos > CurPos then FirstPos := CurPos;
           I := CurPos - Size.X + 2 * DrawShift;
           if FirstPos < I then FirstPos := I;
-          Message(Owner, evBroadcast, 11111, nil);
+          Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
           DrawView;
           ClearEvent(Event);
         end;
@@ -1171,7 +1152,7 @@ begin
   if (Validator = nil) or
     (Validator^.Transfer(Data^, @Rec, vtSetData) = 0) then
     Move(Rec, Data^[0], DataSize);
-  Message(Owner, evBroadcast, 11111, nil);
+  Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
   SelectAll(True);
 end;
 
@@ -1300,9 +1281,9 @@ begin
       if ShowMarkers then Ch := ' ' else
       begin
         if Y = 0 then
-          WordRec(B[S]).Lo := Byte('▄') else
-          WordRec(B[S]).Lo := Byte('█');
-        Ch := '▀';
+          WordRec(B[S]).Lo := Byte(#220) else
+          WordRec(B[S]).Lo := Byte(#219);
+        Ch := #223;
       end;
       I := 1;
     end;
@@ -1532,7 +1513,9 @@ begin
   TView.Done;
 end;
 
-function TCluster.ButtonState(Item: Integer): Boolean; assembler;
+function TCluster.ButtonState(Item: Integer): Boolean;
+{$IFDEF BIT_16}
+assembler;
 asm
         XOR     AL,AL
         MOV     CX,Item
@@ -1551,6 +1534,14 @@ asm
         JZ      @@3
         MOV     AL,1
 @@3:
+{$ELSE}
+var q: longint;
+begin
+ ButtonState:=false;
+ If Item>31 then exit;
+ q:=1 shl Item;
+ ButtonState:=(EnableMask and q<>0);
+{$ENDIF}
 end;
 
 function TCluster.DataSize: Word;
@@ -1582,7 +1573,7 @@ begin
       if Cur < Strings.Count then
       begin
         Col := Column(Cur);
-        if (Col + CStrLen(PString(Strings.At(Cur))^) + 5 <
+        if (Col + CStrLen(CnvString(Strings.At(Cur))) + 5 <
           Sizeof(TDrawBuffer) div SizeOf(Word)) and (Col < Size.X) then
         begin
           if not ButtonState(Cur) then
@@ -1593,7 +1584,7 @@ begin
           MoveChar(B[Col], ' ', Byte(Color), Size.X - Col);
           MoveStr(B[Col], Icon, Byte(Color));
           WordRec(B[Col+2]).Lo := Byte(Marker[MultiMark(Cur) + 1]);
-          MoveCStr(B[Col+5], PString(Strings.At(Cur))^, Color);
+          MoveCStr(B[Col+5], CnvString(Strings.At(Cur)), Color);
           if ShowMarkers and (State and sfSelected <> 0) and (Cur = Sel) then
           begin
             WordRec(B[Col]).Lo := Byte(SpecialChars[0]);
@@ -1732,7 +1723,7 @@ begin
       begin
         for I := 0 to Strings.Count-1 do
         begin
-          C := HotKey(PString(Strings.At(I))^);
+          C := HotKey(CnvString(Strings.At(I)));
           if (C <> #0) and (
              (GetAltCode(C) = Event.KeyCode) or (
                (Owner^.Phase = phPostProcess) and (
@@ -1765,35 +1756,13 @@ begin
   end;
 end;
 
-procedure TCluster.SetButtonState(AMask: Longint; Enable: Boolean); assembler;
-asm
-        LES     DI,Self
-        MOV     AX,AMask.Word[0]
-        MOV     DX,AMask.Word[2]
-        TEST    Enable,0FFH
-        JNZ     @@1
-        NOT     AX
-        NOT     DX
-        AND     ES:[DI].TCluster.EnableMask.Word[0],AX
-        AND     ES:[DI].TCluster.EnableMask.Word[2],DX
-        JMP     @@2
-@@1:    OR      ES:[DI].TCluster.EnableMask.Word[0],AX
-        OR      ES:[DI].TCluster.EnableMask.Word[2],DX
-@@2:    MOV     CX,ES:[DI].Strings.TCollection.Count
-        CMP     CX,31
-        JA      @@6
-        MOV     BX,ES:[DI].TCluster.Options
-        AND     BX,not ofSelectable
-        MOV     AX,ES:[DI].TCluster.EnableMask.Word[0]
-        MOV     DX,ES:[DI].TCluster.EnableMask.Word[2]
-@@3:    SHR     DX,1
-        RCR     AX,1
-        JC      @@4
-        LOOP    @@3
-        JMP     @@5
-@@4:    OR      BX,ofSelectable
-@@5:    MOV     ES:[DI].TCluster.Options,BX
-@@6:
+procedure TCluster.SetButtonState(AMask: Longint; Enable: Boolean);
+begin
+  if Enable then
+    EnableMask := EnableMask or AMask else
+    EnableMask := EnableMask and (not AMask);
+  if EnableMask = 0 then
+    Options := Options and (not ofSelectable);
 end;
 
 procedure TCluster.SetData(var Rec);
@@ -1850,7 +1819,7 @@ begin
         Width := 0;
       end;
       if I < Strings.Count then
-        L := CStrLen(PString(Strings.At(I))^);
+        L := CStrLen(CnvString(Strings.At(I)));
       if L > Width then Width := L;
     end;
     Column := Col;
@@ -2050,7 +2019,7 @@ end;
 
 procedure TListBox.NewList(AList: PCollection);
 begin
-  if List <> nil then Dispose(List, Done);
+  if List <> nil then Dispose(List,Done);
   List := AList;
   if AList <> nil then SetRange(AList^.Count)
   else SetRange(0);
@@ -2306,7 +2275,7 @@ begin
   FreeStr := HistoryStr(HistoryID, Item);
   FreeStr := CnvString(HistList.CurString);
   C := ' ';
-  if FreeStr[Length(FreeStr)] = '+' then C := '■';
+  if FreeStr[Length(FreeStr)] = '+' then C := #254;
   Insert(C, FreeStr, 1);
   GetText := Copy(FreeStr, 1, Length(FreeStr)-1);
 end;
@@ -2555,7 +2524,7 @@ begin
         Link^.SelectAll(True);
         Link^.DrawView;
       end;
-      Dispose(HistoryWindow, Done);
+      Dispose(HistoryWindow,Done);
     end;
     ClearEvent(Event);
   end
@@ -2574,18 +2543,11 @@ begin
   Owner^.GetExtent(O);
   Link^.GetBounds(R);
   if (O.B.Y-R.B.Y) > 4 then
-   {Если у нас в "запасе" до нижнего края рамки владельца больше 4 строк,
-    то рисуем окно истории сдвинув от линка на одну строку вниз и вправо,
-    иначе отображаем по старому :(}
   begin
    Inc(R.A.X); Inc(R.B.Y); Inc(R.B.Y,7); Inc(R.A.Y,1);
    Inc(R.B.X,2);
    R.Intersect(O);
    if (R.B.Y >= O.B.Y) then Dec(R.B.Y,1);
-   {Если наш размер (после InterSect) равен или больше (на всякий случай)
-   размера владельца, то уменьшаем наш V-size на 1, чтобы рамка окна истории
-   не перекрывала нижнюю рамку владельца}
-
    P:=New(PHistoryWindow, Init(R,HistoryID));
    P^.HelpCtx:=Link^.HelpCtx;
    InitHistoryWindow:=P
@@ -2622,6 +2584,18 @@ begin
  InputLine := AInputLine;
 end;
 
+constructor THexLine.Load(var S: TStream);
+begin
+ Inherited Load(S);
+ GetPeerViewPtr(S, InputLine);
+end;
+
+procedure   THexLine.Store(var S: TStream);
+begin
+ Inherited Store(S);
+ PutPeerViewPtr(S, InputLine);
+end;
+
 procedure THexLine.HandleEvent;
  procedure CE; begin ClearEvent(Event); end;
  procedure CED; begin CE; DrawView; InputLine^.DrawView end;
@@ -2631,9 +2605,8 @@ procedure THexLine.HandleEvent;
 begin
  inherited HandleEvent(Event);
  case Event.What of
-  evBroadcast: case Event.Command of
-                11111: CED;
-               end;
+  evBroadcast: If (Event.Command=cmUpdateHexViews) and
+                  (Event.InfoPtr=InputLine) then CED;
   evKeyDown: case Event.KeyCode of
               kbBack:begin
                        if CurX >= 0 then
@@ -2706,7 +2679,7 @@ begin
  if CurX <> InputLine^.CurPos then
    if InputLine^.GetState(sfSelected) then
       begin CurX := InputLine^.CurPos; Sec := False end;
- if DeltaX >= Byte(InputLine^.Data^[0]) then DeltaX := Integer(InputLine^.Data^[0]) - 1;
+ if DeltaX >= Byte(InputLine^.Data^[0]) then DeltaX := Integer(Byte(InputLine^.Data^[0])) - 1;
  if DeltaX < 0 then DeltaX := 0;
  if CurX < DeltaX then DeltaX := CurX;
  if 3*(CurX - DeltaX) > Size.X - 2 then DeltaX := CurX - (Size.X-2) div 3;
@@ -2722,6 +2695,10 @@ begin
  S := Copy(DumpStr(S[1], 0, 16, 0), 11, Length(S)*3);
  SetCursor(1 + 3 * (CurX - DeltaX) + Byte(Sec), 0); ShowCursor;
  MoveStr(B[1], Copy(S, 1, Size.X - 2), C);
+{-DataCompBoy: This is a temporary code!}
+ MoveChar(B[Size.X - 1], #32, InputLine^.GetColor(4), 1);
+ MoveChar(B[0], #32, InputLine^.GetColor(4), 1);
+{-DataCompBoy}
  WriteLine(0, 0, Size.X, Size.Y, B);
 end;
 

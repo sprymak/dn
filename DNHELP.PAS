@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DPMI
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -67,10 +67,12 @@ const
  hcAsciiChart           = 16595;
  hcBlockCommands        = 10002;
  hcCalculator           = 11016;
+ hcCalendar             = 48084;
  hcCdPlayer             = 16555;
  hcCdPlayerOptions      = 16556;
  hcCdPlayerTitle        = 16557;
  hcCdTartalom           = 65515;
+ hcChangeNameCase       = 48093;
  hcChLngId              = 48077;
  hcClipboard            = 11023;
  hcCmdHistory           = 16586;
@@ -112,7 +114,7 @@ const
  hcDrivesSetup          = 48035;
  hcedEdit               = 48021;
  hcedFile               = 48020;
- hcEditBlockMenu        = 47991;
+ hcEditBlockMenu        = 48085;
  hcEditHistory          = 48074;
  hcEditMiscMenu         = 48079;
  hcEditor               =  1102;
@@ -156,6 +158,7 @@ const
  hcFloppyFormat         = 48041;
  hcFormat               = 11009;
  hcFormatMargins        = 48070;
+ hcFTNInfo              = 48090;
  hcGame                 = 21005;
  hcGameSetup            = 16575;
  hcGotoAddress          = 16578;
@@ -220,6 +223,7 @@ const
  hcPanelMenu            =    16;
  hcPanelSetup           = 11001;
  hcPanelWide            = 11000;
+ hcPath                 = 48094;
  hcPentix               = 16544;
  hcPhone                = 11020;
  hcPrinterSetup         = 16574;
@@ -230,6 +234,7 @@ const
  hcQuickRun             =    17;
  hcReanimator           = 11008;
  hcReenterPassword      = 16565;
+ hcRenameFile           = 48083;
  hcRenameMove           =    13;
  hcReplaceCell          = 48066;
  hcSavers               = 48039;
@@ -251,12 +256,13 @@ const
  hcSpecBillentyu        = 65505;
  hcSplitDialog          =    28;
  hcSplitFiles           =    26;
- hcSpreadEditMenu       = 48085;
+ hcSpreadEditMenu       = 48088;
  hcSpreadEditWindow     = 65529;
- hcSpreadFileMenu       = 48083;
- hcSpreadSearchMenu     = 48086;
+ hcSpreadFileMenu       = 48086;
+ hcSpreadSearchMenu     = 48089;
  hcSpreadSheet          = 11015;
- hcSpreadTableMenu      = 48084;
+ hcSpreadTableMenu      = 48087;
+ hcSrchFailed           = 48091;
  hcSubMenuConfig        = 48010;
  hcSubMenuFileMgr       = 48011;
  hcSystemInfo           = 16592;

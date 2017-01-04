@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit PrintManager;
 
@@ -55,7 +52,7 @@ interface
 
 uses LFN, {DataCompBoy}
      Objects, Views, Drivers, DNApp, advance, advance1, advance2, advance3,
-     Dialogs, DOS, Messages, Commands, ObjType;
+     Dialogs, DOS, Messages, Commands, collect;
 
  type
       PStringCol =  ^TStringCol;
@@ -108,30 +105,6 @@ uses LFN, {DataCompBoy}
 
 const Printer: PPrintManager = nil;
       MaxBufCount = 128;
-
-      RStringCol: TStreamRec = (
-       ObjType: otStringCol;
-       VmtLink: Ofs(TypeOf(TStringCol)^);
-       Load: @TStringCol.Load;
-       Store: @TStringCol.Store);
-
-      RPrintManager: TStreamRec = (
-       ObjType: otPrintManager;
-       VmtLink: Ofs(TypeOf(TPrintManager)^);
-       Load: @TPrintManager.Load;
-       Store: @TPrintManager.Store);
-
-      RPrintStatus: TStreamRec = (
-       ObjType: otPrintStatus;
-       VmtLink: Ofs(TypeOf(TPrintStatus)^);
-       Load: @TPrintStatus.Load;
-       Store: @TPrintStatus.Store);
-
-      RPMWindow: TStreamRec = (
-       ObjType: otPMWindow;
-       VmtLink: Ofs(TypeOf(TPMWindow)^);
-       Load: @TPMWindow.Load;
-       Store: @TPMWindow.Store);
 
 procedure SetupPrinter;
 
@@ -268,7 +241,7 @@ begin
     PrintDevice^.Status := 0;
     Exit;
   end;
- if OldP <> nil then Dispose(OldP, Done);
+ if OldP <> nil then Dispose(OldP,Done); OldP:=nil;
  DisposeStr(OutName);
  OutName := NewStr(S);
  InitPrinter;
@@ -312,9 +285,9 @@ end;
 
 destructor TPrintManager.Done;
 begin
-  if PrintStream <> nil then Dispose(PrintStream, Done);
-  if PrintDevice <> nil then Dispose(PrintDevice, Done);
-  if Buffer <> nil then FreeMem(Buffer, BufSize);
+  if PrintStream <> nil then Dispose(PrintStream,Done); PrintStream:=nil;
+  if PrintDevice <> nil then Dispose(PrintDevice,Done); PrintDevice:=nil;
+  if Buffer <> nil then FreeMem(Buffer, BufSize); Buffer:=nil;
   DisposeStr(OutName);
   Printer := nil;
   inherited Done;
@@ -351,7 +324,7 @@ begin
                         then begin
                                if (Focused = 0) and (PrintStream <> nil) then
                                 begin
-                                  Dispose(PrintStream, Done);
+                                  Dispose(PrintStream,Done); PrintStream:=nil;
                                   InitPrinter;
                                   PrintStream := nil;
                                   Buffer^[0] := 12;
@@ -456,7 +429,7 @@ procedure TPrintManager.Update;
   if (PrintStream^.Status <> stOK) then
      MessageBox(GetString(dlCantPrintFile) + S, nil,
              mfError + mfOKButton);
-  Dispose(PrintStream, Done);
+  Dispose(PrintStream,Done); PrintStream:=nil;
   PrintStream := nil;
   if InMask(GetName(S), '$DN????$.PRN') then EraseFile(S); {DataCompBoy}
   List^.AtFree(0);
@@ -517,17 +490,6 @@ begin
    if Status <> nil then Status^.DrawView;
 end;
 
-{
-type TMyApp = object(TApplication)
-      procedure Idle; virtual;
-     end;
-
-procedure TMyApp.Idle;
-begin
- inherited Idle;
- if Printer <> nil then Printer^.Update;
-end;
-}
 procedure SetupPrinter;
  var LastDest: Word;
 begin
@@ -538,17 +500,5 @@ begin
      Printer^.SetDestination;
 end;
 
-{var App: TMyApp;
-    R: TRect;
-
-begin
-  App.Init;
-  SetupPrinter;
-  R.Assign(0,0,50,9);
-  App.InsertWindow(New(PPMWindow, Init(R)));
-  for R.A.X := 1 to ParamCount do
-    Printer^.PrintFile(ParamStr(R.A.X));
-  App.Run;
-  App.Done;}
 end.
 

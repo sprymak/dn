@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,21 +43,16 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
-{$I DN.DEF}
 
 unit FileCopy;
 
 interface
-uses LFN, LFNCol, TitleSet, UserMenu, {DataCompBoy}
+uses LFN, LFNCol, TitleSet, UserMenu, {DataCompBoy} collect,
      advance, advance1, advance2, advance3, Objects, Views, Dialogs, Drivers,
-     FilesCol, Dos, DnIni;
+     FilesCol, Dos, DnIni, filediz, ArvidAvt;
 
 type
     PCopyRec = ^TCopyRec;
@@ -69,39 +64,25 @@ type
 
 const
      SkipCopyDialog: Boolean = Off;
-     CopyDirName:   String = ''; {DataCompBoy}
+     CopyDirName:    String  =  '';{DataCompBoy}
+     RevertBar:      boolean = Off;{DataCompBoy}
 
-function  GetFileAttr(const S: String): Word;
-function  SetFileAttr(const S: String; Attr: Word):Word;
 procedure CopyFiles(Files: PCollection; Owner: PView; MoveMode: Boolean; FromTemp: Byte);
 function  SelectDialog(Select: Boolean; var St: String; var XORSelect: Boolean): Boolean;
-procedure MakeListFile(APP: Pointer; Files: PCollection);
-function  CreateDirInheritance(var S: String; Confirm: Boolean): Byte;
 procedure BeepAfterCopy;
 
-function  GetPossibleDizOwner(N: Integer): String;
-function  GetDIZOwner(const Path, LastOwner: String; Add: Boolean): String;
-function  CalcDPath(P: PDIZ; Owen: PString): String;
-procedure ReplaceDIZ(const DPath, Name: String;
-                     ANewName: PString; ANewDescription: PString);
-procedure DeleteDIZ(const DPath, Name: String); {DataCompBoy}
-function  GetDIZ(const DPath: string; var Line: longint; const Name, Name2: String): string; {DataCompBoy}
-procedure SetDescription(PF: PFileRec; DIZOwner: String);
-
-function  CopyDialog( var CopyDir: String; var Mask: String; {DataCompBoy}
+function  CopyDialog(var CopyDir: String; var Mask: String; {DataCompBoy}
                      var CopyOpt: Word; var CopyMode: Word;
                      var CopyPrn: Boolean; {var Inheread: Byte;}
                      MoveMode: Boolean; Files: PCollection;
                      FromTemp: Byte; Owner: PView; Link: Boolean): Boolean;
 
 implementation
-uses DNApp, Startup, ExtraMemory, Memory, Messages, HistList, Commands,
+uses DNApp, Startup, extramemory, Memory, Messages, HistList, Commands,
      DiskTool, xTime, Validate,
-    {$IFDEF MODEM}
-     NavyLink,
-    {$ENDIF}
+    {$IFDEF MODEM}{$IFDEF LINK}NavyLink,{$ENDIF}{$ENDIF}
      Gauge, FileFind,
-     DNUtil, RStrings, Tree, Archiver, Drives, DiskInfo, Arvid;
+     DNUtil, RStrings, Tree, Archiver, Drives, DiskInfo;
 
 const
       cpmOverwrite = 0;
@@ -121,9 +102,7 @@ const
 
       NoCopyLFN: Boolean = True;
 
-var   AppendInstalled: Boolean;
-      AppendState: Word;
-      SeekPos: LongInt;
+var   SeekPos: LongInt;
 
 type
       PDir = ^TDir;
@@ -172,160 +151,9 @@ begin
   ClrIO;
   lFindFirst(A, $FF, SR);
   ATime := SR.SR.Time;
-  ASize := SR.FullSize;
+  ASize := SR.Fullsize;
   AAttr := SR.SR.Attr;
   lFindClose(SR);
-end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-function SetFileAttr(const S: String; Attr: Word) : Word;
-var F:lfile;
-begin
- lAssignFile(F, s);
- lSetFAttr(F, Attr);
- SetFileAttr:=DosError;
-end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-function GetFileAttr(const S: String): Word;
-var F:lfile;
-    Attr:Word;
-begin
- lAssignFile(F, s);
- lGetFAttr(F, Attr);
- GetFileAttr:= Attr;
-end;
-        {-DataCompBoy-}
-
-
-function CorrectFile(const N: String): Boolean;
-   var I: Integer;
-begin
-   CorrectFile := Off;
-   for I := 1 to Length(N) do
-       if N[I] in [#0..#31,'>','/','\',':','>','<','|'] then Exit; {DataCompBoy}
-   CorrectFile := On;
-end;
-
-function GetPossibleDizOwner(N: Integer): String;
-  var DIZ: String;
-      I: Integer;
-begin
-  GetPossibleDizOwner := '';
-  DIZ := FMSetup.DIZ;
-  while (N > 0) and (Diz <> '') do
-    begin
-     I := PosChar(';', DIZ); if I = 0 then I := Length(DIZ)+1;
-     if CorrectFile(Copy(DIZ,1,I-1)) then
-        begin
-          Dec(N);
-          if N = 0 then
-           begin
-             GetPossibleDizOwner := Copy(DIZ,1,I-1);
-             Exit;
-           end;
-        end;
-     Delete(DIZ, 1, I);
-    end;
-end;
-
- {-DataCompBoy: Дескpипшены остаются по шоpтнаймy!!!-}
-        {-DataCompBoy-}
-function GetDIZOwner;
-  var SR: lSearchRec;
-      I: Integer;
-      lAdd: Boolean;
-
-  procedure Prepare;
-    var F: lFile;
-        C: Char;
-        I,J: Word;
-  begin
-     if lAdd then Exit;
-     lAssignFile(F, MakeNormName(Path, SR.FullName)); ClrIO;
-     FileMode := $42;
-     lResetFile(F, 1);
-     if IOResult <> 0 then Exit;
-     System.Seek(F.F, FileSize(F.F)-1);
-     BlockRead(F.F, C, 1, J);
-     if (IOResult = 0) and (C <> #13) and (C <> #10) then
-       begin
-         C := #13; BlockWrite(F.F, C, 1, J);
-         C := #10; BlockWrite(F.F, C, 1, J);
-       end;
-     ClrIO; Close(F.F); ClrIO;
-  end;
-
-begin
-  lAdd := Add; SR.SR.Name := LastOwner; SR.FullName := LastOwner; Add := False;
-  I := 1;
-  if LastOwner = '' then GetDIZOwner := '' else
-    begin
-      GetDIZOwner := MakeNormName(Path, LastOwner);
-      lFindFirst(MakeNormName(Path, LastOwner), Archive+ReadOnly+Hidden+SysFile, SR);
-      lFindClose(SR);
-      if DOSError = 0 then begin Prepare; Exit; end;
-      I := 1;
-    end;
-  repeat
-    SR.FullName := GetPossibleDizOwner(I); Inc(I);
-    if SR.FullName = '' then Exit;
-    lFindFirst(MakeNormName(Path, SR.FullName), Archive+ReadOnly+Hidden+SysFile, SR);
-    lFindClose(SR);
-    if DOSError = 0 then begin Prepare; GetDIZOwner := MakeNormName(Path, SR.FullName); Exit end;
-  until False;
-end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-procedure ReplaceT(P: PTextReader; var F: lText; Del: boolean);
-var
-  I: Integer;
-  FName: String;
-begin
-  FName := P^.FileName;
-  Dispose(P,Done); ClrIO;
-  Close(F.T); ClrIO;
-  EraseByName(FName);
-  I := IOResult; ClrIO;
-  if not Del then begin
-   lRenameText(F, FName);
-   if (IOResult <> 0) then
-   begin
-     if (I<>0) then Erase(F.T);
-     CantWrite(FName);
-   end;
-  end else lEraseText(F);
-  ClrIO;
-end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-procedure SetDescription(PF: PFileRec; DIZOwner: String);
-var
-  DIZ: String;
-begin
-  if (PF = nil) then Exit;
-  if DIZOwner = '' then
-  begin
-    Diz:=GetPossibleDizOwner(1);
-    if DIZ = '' then
-    begin
-      MessageBox(GetString(dlNoPossibleName), nil, mfError); Exit;
-    end;
-    DIZOwner:=DIZ;
-  end else
-    DIZOwner:=GetName(DizOwner);
-  DIZOwner := GetDizOwner(PF^.Owner^, DIZOwner, Off);
-  if (PF^.DIZ = nil) or (PF^.DIZ^.DIZ = nil) then DIZ := ''
-                                               else DIZ := PF^.DIZ^.DIZ^;
-  if BigInputBox(GetString(dlEditDesc),GetString(dl_D_escription), DIZ, 255, hsEditDesc) <> cmOK then Exit;
-  DelLeft(DIZ);
-  ReplaceDIZ(DIZOwner, MakeFileName(PF^.Name), nil, @DIZ);
-  (* if IOResult <> 0 then CantWrite(DIZOwner); *)
-  RereadDirectory(PF^.Owner^);
 end;
         {-DataCompBoy-}
 
@@ -381,273 +209,25 @@ begin
    NoSound;
 end;
 
-procedure MakeListFile;
- label AddrError;
- var I, J, K: Integer;
-     D, Dr, SR, Sn: String;
-     P: PFileRec;
-     S: TMakeListRec;
-     T,HF: lText;
-     Nm: String;
-     Xt: String;
-     FidoMode: Boolean;
-     SS: String;
-     PP: PString;
-     ZZ, NN, ND, PT: Word;
-     BB: Boolean;
-     FLD, Dr_: String;
-     CurPos: integer;
-     UPr: PUserParams;
-
-  function GetNextName(var TheString,TheName:string):boolean;
-  var j: boolean;
-  begin
-      while (CurPos<=Length(TheString)) and (TheString[CurPos] in [';',' '])
-      do Inc(CurPos);
-      TheName:='';
-      j:=false;
-      while (CurPos<=Length(TheString)) and ((TheString[CurPos]<>';') or j) do begin
-          If TheString[CurPos]='"' then j:=not j;
-          TheName:=TheName+TheString[CurPos];
-          Inc(CurPos)
-      end;
-      while TheName[Length(TheName)]=' ' do Dec(TheName[0]);
-      TheName:=DelSquashes(TheName);
-      GetNextName:=TheName<>''
-  end;
-
-  function SomeFilesExist(var NameList:string):boolean;
-  var TheName:string;
-  begin
-      SomeFilesExist:=False;
-      CurPos:=1;
-      while GetNextName(NameList,TheName) do if ExistFile(TheName)
-      then begin
-          SomeFilesExist:=True;
-          Exit
-      end
-  end;
-
-  procedure MakeStr(D: String);
-  label Fail;
-    var Drr: Boolean;
-  begin
-  { BB means "Is filename occurs in Action?" }
-    Replace('!!', #1, D);Replace('##', #2, D);
-    Replace('$$', #3, D);Replace('&&', #4, D);
-    if (PosChar('!',D)=0) and (PosChar('#',D)=0) then D:=D+' !.!';
-    If ( S.Options and 2 = 2 ) and
-       ( lfGetShortFileName(Sr) <> lfGetShortFileName(Dr) ) and
-       ( Pos( '!\', D ) = 0 ) and
-       ( Pos( '!/', D ) = 0 ) and
-       ( Pos( '!:', D ) = 0 ) and
-       ( Pos( '#\', D ) = 0 ) and
-       ( Pos( '#/', D ) = 0 ) and
-       ( Pos( '#:', D ) = 0 ) then begin { Need to force insert !\ }
-         K := Pos( '.!', D );
-         If K = 0 then begin
-           K := PosChar( '!', D );
-           If K = 0 then begin
-            K := Pos( '.#', D );
-            If K = 0 then begin
-             K := PosChar( '#', D );
-             If K = 0 then goto Fail;
-            end else
-            If ( K <> 1 ) and ( D[ K - 1 ] in ['!','#'] ) then Dec( K )
-                                                          else goto Fail;
-           end else
-           If ( K <> 1 ) and ( D[ K - 1 ] in ['!','#'] ) then Dec( K )
-                                                         else goto Fail;
-          end else
-          If ( K <> 1 ) and ( D[ K - 1 ] in ['!','#'] ) then Dec( K )
-                                                        else goto Fail;
-      Insert( '!:!\', D, K );
-    end;
-  Fail: { Cannot find place to insert !\ }
-    Replace(#1, '!!', D);Replace(#2, '##', D);
-    Replace(#3, '$$', D);Replace(#4, '&&', D);
-    D:=MakeString(D, UPr, off);
-    WriteLn(T.T, D);
-  end;
-
-begin
- if Files^.Count = 0 then Exit;
- FillChar(S, SizeOf(S), 0);
- S.FileName := HistoryStr(hsMakeList, 0);
- if S.FileName = '' then S.FileName := 'DNLIST.BAT';
- S.Action := HistoryStr(hsExecDOSCmd, 0);
- S.Header := ''; S.HeaderMode:=hfmAuto;
- S.Footer := ''; S.FooterMode:=hfmAuto;
- S.Options := MakeListFileOptions;
- if S.Options and cmlPathNames <> 0 then
- begin
-   BB := Off;
-   for I := 1 to Files^.Count - 1 do
-   begin
-     BB := BB or (PFileRec(Files^.At(I-1))^.Owner <> PFileRec(Files^.At(I))^.Owner);
-     if BB then Break;
-   end;
-   if BB then S.Options := S.Options or cmlPathNames
-         else S.Options := S.Options and not cmlPathNames;
- end;
- if (ExecResource(dlgMakeList, S) <> cmOK) then Exit;
- MakeListFileOptions := S.Options;
- while S.Action[Length(S.Action)] = ' ' do Dec(S.Action[0]);
- while S.Header[Length(S.Header)] = ' ' do Dec(S.Header[0]);
- while S.Footer[Length(S.Footer)] = ' ' do Dec(S.Footer[0]);
- if S.Action <> '' then S.Action := S.Action + ' '; FileMode := 2;
- Abort := Off;
- if S.FileName[1] in ['+', '%', '/'] then
-   begin
-     FidoMode := True;
-     SS := FMSetup.DIZ;
-     I := SearchFor('/FIDO=', SS[1], Length(SS), Off);
-     if I = 1 then
-       begin
-AddrError:
-          Msg(dlNoFTNset, nil, mfError+mfOKButton);
-          Exit;
-       end;
-     Delete(SS, 1, I+5);
-     I := PosChar(';', SS); if I = 0 then I := Length(SS)+1; SS[0] := Char(I-1);
-     I := PosChar(',', SS); if I = 0 then Goto AddrError;
-     ParseAddress(Copy(SS, 1, I-1), ZZ, NN, ND, PT); K := ZZ;
-     ParseAddress(Copy(S.FileName, 2, 255), ZZ, NN, ND, PT);
-     Delete(SS, 1, I); if SS[Length(SS)] = '\' then Dec(SS[0]);
-     lFSplit(SS, Dr, Nm, Xt);
-     if K <> ZZ then Xt := '.'+Copy(Hex4(ZZ), 2, 3);
-     SS := Dr+Nm+Xt;
-     if PT = 0 then Nm := Hex4(NN)+Hex4(ND)
-        else begin
-               SS := MakeNormName(SS , Hex4(NN) + Hex4(ND) + '.PNT\');
-               Nm := Hex8(PT);
-             end;
-     Xt := '.hlo';
-     case S.FileName[1] of
-       '+': Xt[2] := 'c';
-       '%': Xt[2] := 'f';
-     end;
-     SS := MakeNormName(SS, Nm + Xt);
-     S.FileName := SS;
-     S.Options := S.Options or cmlPathNames;
-   end else FidoMode:=False;
- D := lFExpand(S.FileName); lFSplit(D, Dr, Nm, Xt); ClrIO;
- FLD := Dr;
- CreateDirInheritance(Dr, Off);
- if Abort then Exit;
- lAssignText(T, D); ClrIO;
- lResetText(T);
- if IOResult = 0 then
-   begin
-     Close(T.T);
-     PP := @SS; SS := Cut(D, 40);
-     if FidoMode then I := cmOK
-                 else I := MessageBox(GetString(dlED_OverQuery)
-                                      , @PP, mfYesButton+mfCancelButton+mfAppendButton+mfWarning);
-     case I of
-       cmOK: lAppendText(T);
-       cmYes: lRewriteText(T);
-         else Exit;
-     end;
-   end else lRewriteText(T);
- if Abort then Exit;
- if IOResult<>0 then
-  begin
-   MessageBox(GetString(dlFBBNoOpen)+Cut(S.FileName, 40), nil, mfError + mfOKButton);
-   Exit;
-  end;
- if (S.Header<>'') and not FidoMode then begin
-     if (S.HeaderMode=hfmInsertText) or
-     ((S.HeaderMode=hfmAuto) and not SomeFilesExist(S.Header))
-     then WriteLn(T.T,S.Header) else begin
-         CurPos:=1;
-         while GetNextName(S.Header,SS) do begin
-             lAssignText(HF,SS); ClrIO;
-             lResetText(HF);
-             if (IOResult<>0) and (S.HeaderMode=hfmInsertFiles) then begin
-                 MessageBox(GetString(dlFBBNoOpen)+Cut(SS,40),
-                 nil, mfError + mfOKButton);
-             end;
-             while (IOResult=0) and not EOF(HF.T) do begin
-                 ReadLn(HF.T,SS);
-                 WriteLn(T.T,SS);
-             end;
-             Close(HF.T)
-         end;
-         ClrIO;
-     end;
- end;
- Message(Desktop, evBroadcast, cmGetUserParams, @UPr);
- for I := 1 to Files^.Count do
-  begin
-    P := Files^.At(I-1);
-    UPr^.Active:=P;
-    Message(APP, evCommand, cmCopyUnselect, P);
-    BB := False;
-    SR := P^.Owner^;
-    Replace('!', #0, SR);
-    if SR[Byte(Sr[0])] <> '\' then SR := SR +'\';
-    SS := S.Action;
-    if SS <> '' then
-      begin
-        Replace(';;', #1, SS);
-        while SS <> '' do
-          begin
-            J := PosChar(';', SS);
-            if J = 0 then J := Length(SS)+1;
-            MakeStr(fReplace(#1, ';', Copy(SS, 1, J-1)));
-            Delete(SS, 1, J);
-          end;
-      end else
-    If (S.Options and cmlPathNames <> 0) or (S.Options and 2 <> 0) and (SR <> FLD)
-      then MakeStr( '!:!\!.!' )
-      else MakeStr('!.!');
-  end;
- if (S.Footer<>'') and not FidoMode then begin
-     if (S.FooterMode=hfmInsertText) or
-     ((S.FooterMode=hfmAuto) and not SomeFilesExist(S.Footer))
-     then WriteLn(T.T,S.Footer) else begin
-         CurPos:=1;
-         while GetNextName(S.Footer,SS) do begin
-             lAssignText(HF,SS); ClrIO;
-             lResetText(HF);
-             if (IOResult<>0) and (S.FooterMode=hfmInsertFiles) then begin
-                 MessageBox(GetString(dlFBBNoOpen)+cut(SS,40),
-                 nil, mfError + mfOKButton);
-             end;
-             while (IOResult=0) and not EOF(HF.T) do begin
-                 ReadLn(HF.T,SS);
-                 WriteLn(T.T,SS);
-             end;
-             Close(HF.T)
-         end;
-         ClrIO;
-     end;
- end;
- Close(T.T);
- RereadDirectory(Dr);
- GlobalMessage(evCommand, cmRereadInfo, nil);
- GlobalMessage(evCommand, cmRereadTree, @Dr);
-end;
-        {-DataCompBoy-}
-
         {-DataCompBoy-}
 function SelectDialog;
 var
   I: Integer;
-  XorSel: Boolean;
-  S: String;
+  P: record
+   S: String;
+   XorSel: Boolean;
+  end;
   Idx: TDlgIdx;
   D: PDialog;
   V, V1: PView;
   R: TRect;
 
-  function FindLine(P: PView): Boolean; far;
+  function FindLine(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     FindLine := (P <> nil) and (P^.DataSize > 5);
   end;
 
-begin
+begin with P do begin
   XORSel := XORSelect;
   SelectDialog := False;
   if LowMemory then Exit;
@@ -659,63 +239,15 @@ begin
   V := D^.FirstThat(@FindLine);
   if V <> nil then PInputLine(V)^.SetValidator(New(PFilterValidator,
                                                Init([#32..#255]-
-                                                    ['+','|','>','<'])));
+                                                    ['|','>','<'])));
   D^.SetData(S);
-  if Desktop^.ExecView(D) = cmCancel then begin Dispose(D, Done); HistoryAdd(hsSelectBox, S); Exit; end;
+  if Desktop^.ExecView(D) = cmCancel then begin Dispose(D,Done); HistoryAdd(hsSelectBox, S); Exit; end;
   SelectDialog := True;
   D^.GetData(S);
-  Dispose(D, Done);
+  Dispose(D,Done);
   St := S;
   XORSelect := XORSel;
-end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-function CreateDirInheritance;
- var I, J: Integer;
-     SR: lSearchRec;
-     LS: Byte absolute S;
-     M: String;
-     BB: Boolean;
-begin
-  CreateDirInheritance := 0; BB := On;
-  ClrIO;
-  S := lFExpand(S);
-  if Abort then Exit;
-  I := PosChar(':',S);
-  if I = 0 then Exit;
-  Inc(I);
-  while I < LS do
-   begin
-     J := I;
-     repeat Inc(I); if I > LS then Exit until (S[I] = '\') or (I = LS);
-     M := Copy(S, 1, I-Byte(S[I] = '\'));
-     if M[length(M)]='.' then Dec(M[0]);
-     ClrIO; lFindFirst(M, $3F xor VolumeID, SR);
-     lFindClose(SR);
-     if Abort then Exit;
-     if DOSError <> 0 then
-      begin
-        if BB and (S[I] = '\') then
-          begin CreateDirInheritance := J-1; BB := Off end;
-        if Confirm and ( Confirms and cfCreateSubDir <> 0) then
-           begin
-             if (S[0] > #3) and (S[Length(S)] = '\') then Dec(S[0]);
-             if S[length(S)]='.' then Dec(S[0]);
-             if (MessageBox(GetString(dlQueryCreateDir)+Cut(S, 40)+' ?', nil, mfYesNoConfirm) <> cmYes)
-                 then Exit;
-            end;
-        ClrIO;
-        lMkDir(M);
-        if Abort or (IOResult <> 0) then
-         begin
-           MessageBox(GetString(dlFCNoCreateDir) + S, nil, mfError + mfOKButton);
-           Exit;
-         end;
-        CreateDirectory(M, Off);
-      end;
-   end;
-end;
+end end;
         {-DataCompBoy-}
 
 type
@@ -734,13 +266,16 @@ const
       eoCheck  = $10;
 
   MemStream: PMemoryStream = nil;
+{$IFNDEF DPMI}
   EMSStream: PEMSStream = nil;
   NoUseEMS: Boolean = Off;
   XMSStream: PXMSStream = nil;
   NoUseXMS: Boolean = Off;
+{$ENDIF}
 
 var
    ToDo,ToDoCopy,ToDoClusCopy: TSize;
+   ToDoClusCopyTemp: TSize;
 
 type
   PLine = ^TLine;
@@ -763,6 +298,7 @@ type
     destructor Done; virtual;
   end;
 
+{$IFNDEF DPMI}
   PEMSLine = ^TEMSLine;
   TEMSLine = object(TLine)
     procedure PrepareToWrite; virtual;
@@ -774,6 +310,7 @@ type
     procedure PrepareToWrite; virtual;
     function Stream: PStream; virtual;
   end;
+{$ENDIF}
 
   PDirName = ^TDirName;
   TDirName = object(TObject)
@@ -783,8 +320,8 @@ type
     Own: Pointer;
     Attr: Byte;
     constructor Init(const AOld, ANew: String; ACopy: Boolean; AnOwn: Pointer; AnAttr: Byte);
-    function Old: String;
-    function New: String;
+    function DOld: String;
+    function DNew: String;
     destructor Done; virtual;
   end;
 
@@ -800,14 +337,14 @@ begin
   Attr := AnAttr;
 end;
 
-function TDirName.New;
+function TDirName.DNew;
 begin
-  if NewName = nil then New := '' else New := NewName^;
+  if NewName = nil then DNew := '' else DNew := NewName^;
 end;
 
-function TDirName.Old;
+function TDirName.DOld;
 begin
-  if OldName = nil then Old := '' else Old := OldName^;
+  if OldName = nil then DOld := '' else DOld := OldName^;
 end;
 
 destructor TDirName.Done;
@@ -860,6 +397,7 @@ end;
 
 procedure TLine.PrepareToWrite;
 begin
+{$IFNDEF DPMI}
   if (XMSStream <> nil) or (EMSStream <> nil) then begin Len := 0; Exit; end;
   if MemStream = nil then
     begin
@@ -872,6 +410,18 @@ begin
     end;
   Pos := Stream^.GetPos;
   if Pos + Len > Stream^.GetSize then Len := Stream^.GetSize - Pos;
+{$ELSE}
+  if MemStream = nil then
+    begin
+     Pos:=(MaxAvail div 10) * 9;
+     if CopyLimit>0 then
+      if CopyLimit shl 10 < Pos then
+       Pos:=CopyLimit shl 10;
+     New(MemStream, Init(Pos, 32768));
+    end;
+  Pos := Stream^.GetPos;
+  if Pos + Len > Stream^.GetSize then Len := Stream^.GetSize - Pos;
+{$ENDIF}
 end;
 
 function TLine.Stream: PStream;
@@ -879,6 +429,8 @@ begin
   Stream := MemStream;
 end;
 
+
+{$IFNDEF DPMI}
 
 { TEMSLine }
 
@@ -891,8 +443,10 @@ begin
       if Pos < 32 then begin NoUseEMS := True; Len := 0; Exit end;
 {-DataCompBoy-}
 {piwamoto.change.begin}
-      if (Pos > (CopyLimit div 16)) and ((ops<>opDos) and (CopyLimit>0)) then Pos := CopyLimit div 16;
-{     if Pos > 2048 then Pos := 2048;}
+      if (Pos > (CopyLimit div 16)) and
+         (((opSys and opDos)<>opDos) and (CopyLimit>0))
+       then Pos := CopyLimit div 16;
+      if Pos > 128 then Pos := 128; {Don't remove it! It's a bugfix!}
 {piwamoto.change.end}
 {-DataCompBoy-}
       Pos := (Pos-1) * LongInt(16384);
@@ -900,8 +454,8 @@ begin
       New(EMSStream, Init(Pos, Pos));
       if EMSStream^.Status <> stOK then
         begin
-          Dispose(EMSStream, Done);
-          EMSStream := nil;
+          Dispose(EMSStream,Done);
+          EMSStream:=nil;
           Len := 0;
           NoUseEMS := On;
           Exit;
@@ -928,8 +482,10 @@ begin
       if Pos < 512 then begin NoUseXMS := On; Len := 0; Exit; end;
 {-DataCompBoy-}
 {piwamoto.change.begin}
-      if (Pos > CopyLimit) and ((ops<>opDos) and (CopyLimit>0)) then Pos := CopyLimit;
-{     if Pos > 32768 then Pos := 32768;}
+      if (Pos > CopyLimit) and
+         (((opSys and opDos)<>opDos) and (CopyLimit>0))
+       then Pos := CopyLimit;
+      if Pos > 32768 then Pos := 32768; {Don't remove it! It's a bugfix!}
 {piwamoto.change.end}
 {-DataCompBoy-}
       Pos := LongInt(Pos-1) shl 10;
@@ -937,8 +493,8 @@ begin
       New(XMSStream, Init(Pos, Pos));
       if XMSStream^.Status <> stOK then
         begin
-          Dispose(XMSStream, Done);
-          XMSStream := nil;
+          Dispose(XMSStream,Done);
+          XMSStream:=nil;
           NoUseXMS := On;
           Len := 0;
           Exit;
@@ -953,6 +509,8 @@ begin
   Stream := XMSStream;
 end;
 
+{$ENDIF}
+
 { ----------------------------- File Copy ------------------------------ }
 
 function CDRomInstalled : Boolean;
@@ -966,167 +524,6 @@ begin
     CDRomInstalled := (BX <> 0);
   end;
 end;
-
-procedure DisableAppend;
-begin
- if AppendInstalled then
-   asm
-     mov ax, $B707
-     mov bx, AppendState
-     and bx, $FFFE
-     push  bp
-     int $2F
-     pop bp
-   end
-end;
-
-        {-DataCompBoy-}
-procedure ReplaceDIZ(const DPath, Name: String;
-            ANewName: PString; ANewDescription: PString);
-var
-  F1: PTextReader;
-  F2: lText;
-  I, j: Integer;
-  zz: boolean;
-  NM: Str12;
-  S, NewName: string;
-  WasFilesInDIZ: Boolean;
-  FNd: Boolean;
-begin
-  NewName:=Name;
-  if ANewName<>nil then begin
-    NewName:=ANewName^;
-  end;
-  DisableAppend;
-  F1 := New(PTextReader, Init(DPath));
-  if F1 = nil then begin
-    if (ANewDescription<>nil) and (ANewDescription^<>'') then begin
-     ClrIO; lAssignText(F2, DPath); lRewriteText(F2);
-     if Abort then Exit;
-     if IOResult <> 0 then (* begin CantWrite(DPath); *) Exit; (* end; *)
-     WriteLn(F2.T, AddSpace(NewName,13)+ANewDescription^);
-    end;
-    Close(F2.T);
-    Exit;
-  end;
-  lAssignText(F2, GetPath(DPath) + '$DN'+ItoS(DNNumber)+'$.DIZ');
-  DisableAppend; lRewriteText(F2);
-  if IOResult <> 0 then begin Dispose(F1, Done); Exit; end;
-  Fnd := Off; WasFilesInDIZ:=off;
-  repeat
-    S := F1^.GetStr;
-    if s='' then continue;
-    if not (s[1] in [' ',#9]) then begin
-     zz:=false;
-     for i:=1 to length(s) do
-      if (s[i] in [' ',#9]) and not zz
-       then break
-       else if s[i]='"' then zz:=not zz;
-     if s[i] in [' ',#9] then dec(i);
-     j:=i+1; while (s[j] in [' ',#9]) do inc(j);
-
-     if UpStrg(Copy(S, 1, i))=UpStrg(Name)
-      then begin
-       Fnd:=On;
-
-       if ((ANewDescription=nil) or (ANewDescription^='')) and
-          (UpStrg(Name)=UpStrg(NewName))
-          and (FMSetup.Options and fmoPreserveDesc = 0) then continue;
-
-       Delete(S, 1, j-1);
-       Insert(AddSpace(NewName,12)+' ', S, 1);
-
-       zz:=false;
-       for i:=1 to length(s) do
-        if (s[i] in [' ',#9]) and not zz
-         then break
-         else if s[i]='"' then zz:=not zz;
-       if s[i] in [' ',#9] then dec(i);
-       j:=i+1; while (s[j] in [' ',#9]) do inc(j);
-
-       if ANewDescription<>nil then begin
-        S[0]:=Char(j-1);
-        if S[Length(S)] in [' ',#9] then S:=S+ANewDescription^
-                                    else S:=S+' '+ANewDescription^;
-       end;
-     end;
-    end;
-    WasFilesInDIZ:=True;
-    Writeln(F2.T, S);
-  until F1^.EOF or (IOResult <> 0);
-  if not Fnd then begin
-   if ANewDescription<>nil
-    then WriteLn(F2.T, AddSpace(NewName,12)+' '+ANewDescription^)
-    else WriteLn(F2.T, AddSpace(NewName,12));
-   WasFilesInDIZ:=True;
-  end;
-  ReplaceT(F1, F2, (not WasFilesInDIZ) and (FMSetup.Options and fmoKillContainer <> 0));
-end;
-        {-DataCompBoy-}
-
-procedure DeleteDIZ(const DPath, Name: String);
-begin
-  ReplaceDIZ(DPath, Name, nil, nil);
-end;
-
-function  GetDIZ(const DPath: string; var Line: longint; const Name, Name2: String): string; {DataCompBoy}
-var
-  F1: PTextReader;
-  S: string;
-  zz: boolean;
-  i,j: integer;
-begin
- GetDIZ:='';
- Line:=0;
- DisableAppend;
- F1 := New(PTextReader, Init(DPath));
- if F1 = nil then exit;
- repeat
-  S := F1^.GetStr;
-  Inc(Line);
-  if s='' then continue;
-  if not (s[1] in [' ',#9]) then begin
-   zz:=false;
-   for i:=1 to length(s) do
-    if (s[i] in [' ',#9]) and not zz
-     then break
-      else if s[i]='"' then zz:=not zz;
-    if s[i] in [' ',#9] then dec(i);
-    j:=i+1; while (s[j] in [' ',#9]) do inc(j);
-
-    if (UpStrg(Copy(S, 1, i))=UpStrg(Name)) or (UpStrg(Copy(S, 1, i))=UpStrg(Name2))
-     then begin
-      Delete(S, 1, j-1);
-      While S[1] in [' ', #9] do DelFC(S);
-      GetDIZ:=S;
-      Break;
-     End;
-    end;
- until F1^.EOF or (IOResult <> 0);
- Dispose(F1,Done);
-end;
-        {-DataCompBoy-}
-function CalcDPath(P: PDIZ; Owen: PString): String;
-var
-  I: Integer;
-  DPath: String;
-  SR: lSearchRec;
-begin
-  if (P = nil) or (P^.Owner = nil) then
-  begin
-    for I := 1 to 128 do
-    begin
-      DPath := GetPossibleDizOwner(I);
-      if DPath = '' then Exit;
-      DPath := MakeNormName(CnvString(Owen), DPath);
-      lFindFirst(DPath, Archive+ReadOnly+Hidden, SR);
-      if DOSError = 0 then Break;
-    end;
-  end else DPath := P^.Owner^;
-  CalcDPath := DPath;
-  lFindClose(SR);
-end;
-        {-DataCompBoy-}
 
         {-DataCompBoy-}
 procedure FilesCopy(Files: PCollection; Owner: PView;
@@ -1168,37 +565,8 @@ var  ReadStream:  lfile;
    end;
 
    function MkName(const Nm: String): String;
-    var aa,aaa: string;
-        bb,bbb: string;
-        os: string;
-        i:byte;
    begin
-    lFSplit(Nm,  os, aa, aaa);
-    lFSplit(Mask,os, bb, bbb);
-    os:='';
-    for i:=1 to length(bb) do
-     case bb[i] of
-      '?': os:=os+aa[i];
-      '*': begin
-            os:=os+copy(aa, i, 255)+copy(bb,i+1,255);
-            while pos('?', os)<>0 do delete(os, pos('?', os), 1);
-            while pos('*', os)<>0 do delete(os, pos('*', os), 1);
-            break;
-           end;
-      else os:=os+bb[i];
-     end;
-    for i:=1 to length(bbb) do
-     case bbb[i] of
-      '?': os:=os+aaa[i];
-      '*': begin
-            os:=os+copy(aaa, i, 255)+copy(bbb,i+1,255);
-            while pos('?', os)<>0 do delete(os, pos('?', os), 1);
-            while pos('*', os)<>0 do delete(os, pos('*', os), 1);
-            break;
-           end;
-      else os:=os+bbb[i];
-     end;
-    MkName:=os;
+    MkName:=Advance2.MkName(Nm, Mask);
    end;
 
    var
@@ -1317,7 +685,7 @@ var  ReadStream:  lfile;
         OverWrite := I;
       end else Overwrite := cmSkip;
 
-    Dispose(D, Done);
+    Dispose(D,Done);
 
     CopyCancel := I = cmCancel;
    end;
@@ -1461,7 +829,7 @@ const
 
    procedure WriteProgress;
    begin
-     Info^.Write(6, StrGrd(P^.Size, Wrote, Info^.Size.X - 6));
+     Info^.Write(6, StrGrd(P^.Size, Wrote, Info^.Size.X - 6, RevertBar));
      Info^.Write(7, WriteCount);
    end;
 
@@ -1509,7 +877,7 @@ const
 
                   if (CopyOptions and cpoCheckFree <> 0) and (Disk_Free(Drv) < P^.Size) then
                    begin
-                     Byte(PS[1]) := Drv+64;
+                     PS[1] := Pointer(LongInt(Drv+64));
                      PS[2] := P^.OldName;
                      lAssignFile(WriteStream, '');
                      ForceDispatch;
@@ -1770,8 +1138,10 @@ lbStartWrite:
      FreeDisk := -1;
      CopyQueue^.FreeAll;
      if MemStream <> nil then MemStream^.Seek(0);
+{$IFNDEF DPMI}
      if EMSStream <> nil then EMSStream^.Seek(0);
      if XMSStream <> nil then XMSStream^.Seek(0);
+{$ENDIF}
    end;
 
    procedure MakeBuffer;
@@ -1818,16 +1188,15 @@ lbStartWrite:
           W: Word;
      begin
       DOSErrorCode := 0;
-      If ExistFile(S2) then
-       begin
-        lAssignFile(F, S2);
-        lSetFAttr(F, Archive);
-        lEraseFile(F);
-       end;
-      lAssignFile(F, S1); lGetFAttr(F, W); ClrIO;
-      RnFl(S1, S2);
-      lSetFAttr(F, W); ClrIO;
-      if not (DOSErrorCode in [0,18]) then
+       RnFl(S1, S2); lAssignFile(f, S2);
+       if DOSErrorCode = 5 then
+         begin ClrIO; lSetFAttr(F, Archive); ClrIO; lEraseFile(F); RnFl(S1,S2); end;
+       if DOSErrorCode = 5 then
+         begin
+           lAssignFile(F, S1); lGetFAttr(F, W); lSetFAttr(F, Archive); ClrIO;
+           RnFl(S1, S2); lSetFAttr(F, W); ClrIO;
+         end;
+       if not (DOSErrorCode in [0,18]) then
         begin
           ForceDispatch;
           MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)+^M^C+Cut(S1,40)
@@ -1884,7 +1253,7 @@ lbStartWrite:
 
    procedure ReadProgress;
    begin
-     Info^.Write(2, StrGrd(Ln, ReadPos, Info^.Size.X - 6));
+     Info^.Write(2, StrGrd(Ln, ReadPos, Info^.Size.X - 6, RevertBar));
      Info^.Write(3, ReadCount);
    end;
 
@@ -2018,13 +1387,13 @@ lbStartWrite:
         WW := Round(Ln - Rd);
         if WW > BSize then WW := BSize;
         P := nil;
-
+{$IFNDEF DPMI}
         if AdvCopy then
         begin
           P := New(PXMSLine, Init( WW,  Own, FName, NName, Ln, Dtt, Attr, EOF));
           if P = nil then P := New(PEMSLine, Init( WW,  Own, FName, NName, Ln, Dtt, Attr, EOF));
         end;
-
+{$ENDIF}
         if P = nil then P := New(PLine, Init( WW,  Own, FName, NName, Ln, Dtt, Attr, EOF));
         if P = nil then
           begin
@@ -2127,9 +1496,9 @@ lbStartWrite:
          P: PFileRec;
          S: String;
 
-     procedure DoCopyDirectory(P: PDirName); far;
+     procedure DoCopyDirectory(P: PDirName); {$IFDEF BIT_16}far;{$ENDIF}
      begin
-       if P^.CopyIt then CopyDirectory(P^.Old, P^.New, P^.Own);
+       if P^.CopyIt then CopyDirectory(P^.DOld, P^.DNew, P^.Own);
      end;
 
    begin
@@ -2153,24 +1522,22 @@ lbStartWrite:
          MemStream^.Seek(0);
          MemStream^.Read(SSS,1);
          Dispose(MemStream,Done);
-         MemStream := nil;
+         MemStream:=nil;
       end;
+{$IFNDEF DPMI}
     if EMSStream <> nil then
       begin
          EMSStream^.Seek(0);
          EMSStream^.Read(SSS,1);
-         EMSCurHandle := $FFFF;
-         EMSCurPage := $FFFF;
          Dispose(EMSStream,Done);
-         EMSStream := nil;
-         EMSCurHandle := $FFFF;
-         EMSCurPage := $FFFF;
+         EMSStream:=nil;
       end;
     if XMSStream <> nil then
       begin
          Dispose(XMSStream,Done);
-         XMSStream := nil;
+         XMSStream:=nil;
       end;
+{$ENDIF}
   end;
 
   procedure MakeDirectories;
@@ -2296,9 +1663,13 @@ lbStartWrite:
               if (UpCase(Source[1])<>UpCase(Dest[1])) or (CopyOptions and cpoMove=0)
               then begin ToDoCopy:=ToDoCopy+SR.FullSize;
                          if BytesPerCluster=0 then BytesPerCluster:=1;
-                         if SR.FullSize>0 then
-                          ToDoClusCopy:=ToDoClusCopy+
-                            (((SR.FullSize-1) / BytesPerCluster)+1)*BytesPerCluster;
+                         if SR.FullSize>0 then begin
+                          ToDoClusCopyTemp:=SR.FullSize / BytesPerCluster;
+                          ToDoClusCopy:=ToDoClusCopy +
+                            (Round(ToDoClusCopyTemp) +
+                             Byte(Round(ToDoClusCopyTemp)-ToDoClusCopyTemp<>0)
+                            ) * BytesPerCluster;
+                         end;
                    end;
           end;
           ClrIO;
@@ -2310,7 +1681,7 @@ lbStartWrite:
 
     label 1;
 
-    function NoCheck(P: PDirName): Boolean; far;
+    function NoCheck(P: PDirName): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
     begin
       Inc(FrPos);
       NoCheck := not P^.Check;
@@ -2326,7 +1697,6 @@ lbStartWrite:
       Inhr := CreateDirInheritance(S, On);
       if Inhr = 0 then Inhr := Length(S);
       Drv := Byte(S[1])-64; ReD := [S[1]];
-      if SystemData.Drives[S[1]] and ossVerify <> 0 then CopyOptions := CopyOptions or cpoVerify;
     end;
     GetDrInfo(Drv);
     for I := 0 to Files^.Count - 1 do
@@ -2349,9 +1719,13 @@ lbStartWrite:
              if (CopyDir[1]<>P^.Owner^[1]) or (CopyOptions and cpoMove=0)
              then begin ToDoCopy:=ToDoCopy+P^.Size;
                         If BytesPerCluster=0 then BytesPerCluster:=1;
-                        if P^.Size>0 then
-                         ToDoClusCopy:=ToDoClusCopy+
-                           (((P^.Size-1) / BytesPerCluster)+1)*BytesPerCluster;
+                        if P^.Size>0 then begin
+                          ToDoClusCopyTemp:=P^.Size / BytesPerCluster;
+                          ToDoClusCopy:=ToDoClusCopy +
+                            (Round(ToDoClusCopyTemp) +
+                             Byte(Round(ToDoClusCopyTemp)-ToDoClusCopyTemp<>0)
+                            ) * BytesPerCluster;
+                        end;
                   end;
          end;
         if CopyCancel then Break;
@@ -2360,7 +1734,7 @@ lbStartWrite:
       FrPos := -1;
       PD := Dirs^.FirstThat(@NoCheck);
       if PD = nil then Break;
-      CopyF(PD^.New, PD^.Old, PD^.CopyIt, PD^.Attr and $3FFF);
+      CopyF(PD^.DNew, PD^.DOld, PD^.CopyIt, PD^.Attr and $3FFF);
       PD^.Check := On;
     until False;
     Info^.Write(5, '');
@@ -2370,9 +1744,9 @@ lbStartWrite:
  var
    RRC: PStringCollection;
 
- procedure DoRemove(P: PFileRec); far;
+ procedure DoRemove(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
 
-   procedure MakeMark(P: PFileRec); far;
+   procedure MakeMark(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
    begin
      if (Copy(P^.Owner^,1,Length(SSS))=SSS) then
           P^.Attr := P^.Attr or $4000;
@@ -2399,7 +1773,7 @@ lbStartWrite:
       end;
  end;
 
- procedure DoReread(P: PString); far;
+ procedure DoReread(P: PString); {$IFDEF BIT_16}far;{$ENDIF}
  begin
    RereadDirectory(P^);
  end;
@@ -2408,11 +1782,11 @@ lbStartWrite:
    RRC := New(PStringCollection, Init($10, $8));
    Files^.ForEach(@DoRemove);
    RRC^.ForEach(@DoReread);
-   FreeObject(RRC);
+   Dispose(RRC,Done);
  end;
 
 
- procedure DoReset(P: PFileRec); far;
+ procedure DoReset(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
  var s, s2: string;
      i: integer;
      Line: Longint;
@@ -2457,6 +1831,9 @@ begin
      (PFileRec(Files^.At(0))^.Attr and Directory<>0) and
      (UpStrg(CopyDir[1])=
       UpStrg(Copy(CnvString(PFileRec(Files^.At(0))^.Owner),1,1))
+     ) and
+     (UpStrg(MakeNormName(CopyDir,''))<>
+      UpStrg(MakeNormName(CnvString(PFileRec(Files^.At(0))^.Owner),''))
      ) then begin
    lAssignFile( ReadStream,
                 MakeNormName(
@@ -2466,25 +1843,16 @@ begin
               );
    ClrIO;
    if NoCopyLFN
-    then
-     lRenameFile( ReadStream,
-                  MakeNormName(
-                   CopyDir,
-                   MkName(MakeFileName(PFileRec(Files^.At(0))^.Name))
-                  )
-                )
-    else
-     lRenameFile( ReadStream,
-                  MakeNormName(
-                   CopyDir,
-                   MkName(GetLFN(PFileRec(Files^.At(0))^.LFN))
-                  )
-                );
-    If IOResult<>0 then goto qqqq;
-    GlobalMessage(evCommand, cmPanelReread,  PFileRec(Files^.At(0))^.Owner);
-    GlobalMessage(evCommand, cmPanelReread,  @CopyDir);
+    then SSS:=MkName(MakeFileName(PFileRec(Files^.At(0))^.Name))
+    else SSS:=MkName(GetLFN(PFileRec(Files^.At(0))^.LFN));
+   SSS:=MakeNormName(CopyDir,SSS);
+   lRenameFile( ReadStream, SSS );
+   If IOResult<>0 then goto qqqq;
+   GlobalMessage(evCommand, cmPanelReread,  PFileRec(Files^.At(0))^.Owner);
+   GlobalMessage(evCommand, cmPanelReread,  @CopyDir);
   end else begin
 qqqq:
+  AppendCheck;
   Dirs := nil;
   AdvCopy := (not CopyPrn) and (SystemData.Options and ossAdvCopy <> 0);
   Use40 := Dos40 and AdvCopy;
@@ -2496,23 +1864,6 @@ qqqq:
   CopyCancel := Off;
   ReD := [];
   CD_Drives := [];
-  AppendInstalled := Off;
-  if Dos40 then
-    asm
-      mov  ax, $B700
-      push bp
-      int  $2F
-      pop  bp
-      or   al, al
-      jz   @@1
-      inc  AppendInstalled
-      mov  ax, $B706
-      push bp
-      int  $2F
-      pop  bp
-      mov  AppendState, BX
-@@1:
-    end;
   ToRead := 0; ToWrite := 0; ToDo := 0; ToDoCopy := 0; ToDoClusCopy := 0;
   R.Assign(0,0,40,13);
   New(Info, Init(R));
@@ -2522,15 +1873,17 @@ qqqq:
   Files^.ForEach(@DoReset);
   if (SystemData.Options and ossRemoveCD_RO <> 0) and CDRomInstalled then
     begin
-       for SSS[1] := 'A' to 'Z' do
-        if (SSS[1] in CD_Drives) and not IsDriveCDROM(SSS[1]) then
-           CD_Drives := CD_Drives - [SSS[1]];
+       for C := 'A' to 'Z' do
+        if (c in CD_Drives) and not IsDriveCDROM(c) then
+           CD_Drives := CD_Drives - [c];
     end else CD_Drives := [];
   MakeDirectories;
   if CopyCancel then Goto 1;
   MemStream := nil;
+{$IFNDEF DPMI}
   EMSStream := nil; NoUseEMS := Off;
   XMSStream := nil; NoUseXMS := Off;
+{$ENDIF}
   B := nil;
   New(CopyQueue, Init(250, 100));
   Info^.Bottom := GetString(dlFC_Total)+FStr(ToDo)+GetString(dlBytes);
@@ -2550,8 +1903,8 @@ qqqq:
       if IOResult = 0 then lEraseFile(WriteStream);
     end else if (FMSetup.Options and fmoBeep <> 0) and
                 (ElapsedTimeInSecs(Timer) > 30) then BeepAfterCopy;
-  if B <> nil then FreeMem(B, BSize);
-  Dispose(CopyQueue, Done);
+  if B <> nil then FreeMem(B, BSize); B:=nil;
+  Dispose(CopyQueue,Done); CopyQueue:=nil;
   DoneStreams;
 1:
   Flush := (SystemData.Options and ossFlushDsk <> 0);
@@ -2559,7 +1912,7 @@ qqqq:
   begin
     Info^.ClearInterior;
     Info^.Write(5, GetString(dlFlushingBuffers)+'...');
-  end else FreeObject(Info);
+  end else Dispose(Info,Done);
 
   if AppendInstalled then
     asm
@@ -2569,7 +1922,7 @@ qqqq:
       int  $2F
       pop  bp
     end;
-  if Dirs <> nil then Dispose(Dirs, Done);
+  if Dirs <> nil then Dispose(Dirs,Done); Dirs:=nil;
   if CopyOptions and cpoMove <> 0 then __Remove;
   for C := 'A' to 'Z' do
     if C in ReD then
@@ -2586,7 +1939,7 @@ qqqq:
       mov ah,0dh
       int 21h
     end;
-    FreeObject(Info);
+    Dispose(Info,Done);
   end;
   end;
 end;
@@ -2615,6 +1968,13 @@ function CopyDialog;
     Idx: TDlgIdx;
     I: Integer;
     SSS: string;
+    C: char;
+
+    IDDQD: record fl, dr: longint; end;
+
+  procedure DoCalc(P: PFileRec); {$IFDEF BIT16}far;{$ENDIF}
+  begin with IDDQD do if P^.Attr and Directory <> 0 then inc(dr) else inc(fl) end;
+
 begin
    CopyDialog := Off;
    If MoveMode
@@ -2623,6 +1983,7 @@ begin
    DT.WW := ccCopyMode; DT.WW1 := ccCopyOpt;
    DT.WW1 := DT.WW1 and not cpoMove;
    if MoveMode and (FromTemp <> 1) then DT.WW1 := DT.WW1 or cpoMove;
+   if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) then DT.WW1 := DT.WW1 or cpoDesc; {JO}
    if LowMemory then Exit;
    D := PDialog(Application^.ValidView(PView(LoadResource(Idx))));
    if D = nil then Exit;
@@ -2636,7 +1997,13 @@ begin
      if MoveMode then DT.S3 := S1;
      if PF^.Attr and Directory = 0 then S1 := GetString(dlDIFile)+' '+S1
      else S1 := GetString(dlDirectory)+' '+S1;
-    end else S1 := ItoS(Files^.Count)+' '#0+GetString(dlDIFiles) + #0;
+    end else begin
+     IDDQD.Dr := 0; IDDQD.Fl := 0;
+     Files^.ForEach(@DoCalc);
+     if IDDQD.Dr = 0 then S1 := ItoS(IDDQD.Fl) + ' ' + #0 + GetString(dlDIFiles) + #0 else
+     if IDDQD.Fl = 0 then S1 := ItoS(IDDQD.Dr) + ' ' + #0 + GetString(dlDirectories) + #0 else
+      FormatStr(S1, GetString(dlFilDir), IDDQD);
+    end;
    if MoveMode then S := S+S1+GetString(dlFCMove2)
    else S := S+S1+GetString(dlFCCopy2);
    P1 := New(PLabel, Init(R, S, D^.Current));
@@ -2644,35 +2011,47 @@ begin
 
    if MoveMode and (Files^.Count = 1)
      then DT.S3 := GetLFN(PFileRec(Files^.At(0))^.LFN)
-     else GlobalMessage(evCommand, cmPushName, Pointer(hsFileCopyName));
+     else GlobalMessageL(evCommand, cmPushName, hsFileCopyName);
    S4 := '';
    if Owner <> nil then Message(Owner^.Owner, evCommand, cmPushFirstName, @S4);
    if CopyDirName <> '' then S4 := CopyDirName;
    CopyDirName := '';
-   if S4 <> '' then
-    begin
+   if S4 <> '' then begin
       if (Files^.Count = 1) and (S4[2] = ':') and (S4[0] > #2) and
          (PFileRec(Files^.At(0))^.Attr and Directory = 0)
           then if LFNDisabled(S4)
                 then S4 := MakeNormName(S4, MakeFileName(PFileRec(Files^.At(0))^.Name))
                 else S4 := MakeNormName(S4, GetLFN(PFileRec(Files^.At(0))^.LFN));
-         HistoryAdd(hsFileCopyName,GetName(S4));
-      DT.S3 := S4;
-    end;
+      HistoryAdd(hsFileCopyName,GetName(S4));
+   end else if (Files^.Count = 1) then begin
+    if LFNDisabled(S4)
+     then S4 := MakeFileName(PFileRec(Files^.At(0))^.Name)
+     else S4 := GetLFN(PFileRec(Files^.At(0))^.LFN);
+     HistoryAdd(hsFileCopyName, S4);
+   end;
+   DT.S3 := S4;
+   with DT do begin
+    if DT.S3[2]=':' then C:=S3[1] else C:=GetCurDrive;
+    if SystemData.Drives[C] and ossVerify <> 0
+     then WW1 := WW1 or cpoVerify
+     else WW1 := WW1 and not cpoVerify;
+    if SystemData.Drives[C] and ossCheckFreeSpace <> 0
+     then WW1 := WW1 or cpoCheckFree
+     else WW1 := WW1 and not cpoCheckFree;
+   end;
    D^.SetData(DT);
 
    if not SkipCopyDialog then
     if Desktop^.ExecView(D) = cmCancel then
-     begin Dispose(D, Done); Exit end;
+     begin Dispose(D,Done); Exit end;
 
    SkipCopyDialog := Off;
 
    D^.GetData(DT);
-   DT.S3:=DelSquashes(DT.S3);
    S := DT.S3; CopyMode := DT.WW; CopyOpt := DT.WW1;
    S := DT.S3;
    ccCopyMode := DT.WW; ccCopyOpt := DT.WW1;
-   Dispose(D, Done);
+   Dispose(D,Done);
    lFSplit(S, CopyDir, Nm, Xt);
    if S = '' then Exit;
    if not Link then
@@ -2685,6 +2064,7 @@ begin
            Exit;
          end;
         {$IFDEF MODEM}
+        {$IFDEF LINK}
         if UpStrg(Copy(S, 1, PosChar(':', S))) = cLINK_ then
            begin
              Mask := Nm+Xt;
@@ -2694,6 +2074,7 @@ begin
              CopyToLinkDrive(Files, Owner, CopyDir, Mask);
              Exit;
            end;
+       {$ENDIF}
        {$ENDIF}
       end;
    SSS := lFExpand(S); if Abort then Exit;
@@ -2759,9 +2140,9 @@ begin
        if CopyOpt and cpoDirEmpty <> 0 then CopyDir := '';
      end;
    Inc(SkyEnabled);
-   if StartupData.Slice2 and osuReleaseCopy = 0 then Application^.FullSpeed:=True;
+   if StartupData.Slice2 and osuReleaseCopy = 0 then Application^.BFSpeed;
    FilesCopy(Files, Owner, CopyDir, Mask, CopyMode, CopyOpt, CopyPrn);
-   if StartupData.Slice2 and osuReleaseCopy = 0 then Application^.FullSpeed:=False;
+   if StartupData.Slice2 and osuReleaseCopy = 0 then Application^.EFSpeed;
    Dec(SkyEnabled);
 end;
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,15 +44,13 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit FileList;
 
 interface
   uses Drives, Drivers, Views, Objects, FilesCol, DOS, advance, advance1,
   advance2, advance3, RStrings, LFNCol;
-
-  const DIZFilter: String = 'files.bbs;*.diz';
-
 
 type
        PDesc = ^TDesc;
@@ -101,7 +99,7 @@ end;
 
 destructor TListDrive.Done;
 begin
-  if Descriptions <> nil then Dispose(Descriptions, Done);
+  if Descriptions <> nil then Dispose(Descriptions,Done); Description:=False;
   inherited Done;
 end;
 
@@ -120,7 +118,7 @@ function TListDrive.GetDirectory;
      PD: PDesc;
 
   procedure ReadList;
-   var T: Text;
+   var T: lText;
        S: String;
        S1: String[12];
        I: Integer;
@@ -152,11 +150,11 @@ function TListDrive.GetDirectory;
 
 begin
  DriveType := drListDrive;
- if Descriptions <> nil then Dispose(Descriptions, Done);
+ if Descriptions <> nil then Dispose(Descriptions,Done);
  Descriptions := nil;
  Hilite := PFilePanel(Owner)^.PanelFlags and pfHiliteFiles <> 0;
  DOSError := 0;
- Abort := Off; AllFiles := FileMask = x_x; ClrIO; FreeSpc := 0;
+ Abort := Off; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO; FreeSpc := 0;
  FreeSpace := ''; TotalInfo := ''; TotalLen := 0;
  Files := New(PFilesCollection, Init(10, 20));
  PFilesCollection(Files)^.Owner := Owner;
@@ -194,7 +192,7 @@ begin
     P^.Selected := Off;
     if SR.Attr and Directory = 0 then
      begin
-      if (Descriptions = nil) and InFilter(FullName, DIZFilter) then
+      if (Descriptions = nil) and InFilter(FullName, FMSetup.DIZ) then
        begin
          Descriptions := New(PDIZCol, Init(10,10));
          ReadList;
@@ -213,9 +211,9 @@ begin
       end;
     if P^.Name[1] <> '.' then Inc(TotalLen, P^.Size);
     P^.Owner := @CurDir;
-    if P^.Attr and Hidden <> 0 then P^.Name[9] := '±';
-    if P^.Attr and SysFile <> 0 then P^.Name[9] := '²';
-    if Hilite then P^.TType := GetFileType(P^.Name, P^.Attr) else P^.TType := 0;
+    if P^.Attr and Hidden <> 0 then P^.Name[9] := #177;
+    if P^.Attr and SysFile <> 0 then P^.Name[9] := #178;
+    if Hilite then P^.TType := GetFileType(FullName, P^.Attr) else P^.TType := 0;
     Files^.Insert(P);
    end;
   DosError := 0;

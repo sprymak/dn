@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit HelpFile;
 
@@ -74,6 +75,7 @@ type
     constructor Init(var Bounds: TRect; AHScrollBar,
       AVScrollBar: PScrollBar; AHelpFile: PHelpFile; Context: Word);
     destructor Done; virtual;
+    procedure GotoContext(Context: Word);
     procedure ChangeBounds(var Bounds: TRect); virtual;
     procedure Draw; virtual;
     function GetPalette: PPalette; virtual;
@@ -84,12 +86,16 @@ type
 
   PHelpWindow = ^THelpWindow;
   THelpWindow = object(TWindow)
+    HelpView: PHelpViewer;
     constructor Init(HFile: PHelpFile; Context: Word);
+    procedure GotoContext(Context: Word);
     function GetPalette: PPalette; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    destructor Done; virtual;
   end;
 
 implementation
-uses DNApp, Commands, DNHelp, RStrings;
+uses DNApp, Commands, DNHelp, RStrings, DnUtil;
 
 { THelpViewer }
 
@@ -118,8 +124,36 @@ end;
 destructor THelpViewer.Done;
 begin
   inherited Done;
-  Dispose(HFile, Done);
-  Dispose(Topic, Done);
+  Dispose(HFile,Done); HFile:=nil;
+  Dispose(Topic,Done); HFile:=nil;
+end;
+
+procedure THelpViewer.GotoContext(Context: Word);
+begin
+  If Context >= $FFF0 then Exit;
+  if NumTopics = MaxUndo then Move(Indexes[2], Indexes[1], (MaxUndo - 1)*SizeOf(THelpParameters))
+                         else Inc(NumTopics);
+  With Indexes[NumTopics] do
+   begin
+    Index := Context;
+    CursorXY.X := 0;
+    CursorXY.Y:=  0;
+    DeltaXY.X := 0;
+    DeltaXY.Y := 0;
+   end;
+  With Indexes[NumTopics-1] do
+   begin
+    CursorXY:=Pos;
+    DeltaXY:=Delta;
+   end;
+
+  if Topic <> nil then Dispose(Topic,Done);
+  Topic := HFile^.GetTopic(Context);
+  Topic^.SetWidth(Size.X);
+  ScrollTo(0, 0);
+  SetLimit(78+Size.X{Limit.X}, Topic^.NumLines+Size.Y);
+  Selected := 1;
+  DrawView;
 end;
 
 procedure THelpViewer.ChangeBounds(var Bounds: TRect);
@@ -238,7 +272,7 @@ begin
     DeltaXY:=Delta;
    end;
 
-  if Topic <> nil then Dispose(Topic, Done);
+  if Topic <> nil then Dispose(Topic,Done);
   Topic := HFile^.GetTopic(KeyRef);
   Topic^.SetWidth(Size.X);
   ScrollTo(0, 0);
@@ -251,7 +285,7 @@ procedure PrevTopic;
 begin
  if NumTopics = 1 then Exit;
  Dec(NumTopics);
- if Topic <> nil then Dispose(Topic, Done);
+ if Topic <> nil then Dispose(Topic,Done);
  KeyCount := Indexes[NumTopics].Index;
  Topic := HFile^.GetTopic(KeyCount);
  Topic^.SetWidth(Size.X);
@@ -283,7 +317,7 @@ begin
                    until (KeyCount >= Topic^.GetNumCrossRefs) or (KeyPoint.Y > Delta.Y) or
                          (KeyPoint.Y = Delta.Y) and (KeyPoint.X >= Delta.X);
                    if (KeyPoint.Y > Delta.Y) or (KeyPoint.Y = Delta.Y) and (KeyPoint.X >= Delta.X) then Break;
-                   LongInt(Delta) := 0;
+                   Delta.Assign(0,0);
                   until False;
                   ScrollTo(KeyPoint.X, KeyPoint.Y-1);
                   Selected := KeyCount;
@@ -345,11 +379,10 @@ begin
       end;
     evCommand:
      Case Event.Command of
-      cmClose: if (Owner^.State and sfModal <> 0) then
-        begin
-          EndModal(cmClose);
-          ClearEvent(Event);
-        end;
+      cmClose: if (Owner^.State and sfModal <> 0) then begin
+                ClearEvent(Event);
+                EndModal(cmClose);
+               end;
       cmNo: PrevTopic;
       cmOk: begin
                 Event.What := evKeyDown;
@@ -379,12 +412,13 @@ var
   R: TRect;
 begin
   R.Assign(0, 0, 72, 20);
-  TWindow.Init(R, GetString( dlHelp ), wnNoNumber);
+  inherited Init(R, GetString( dlHelp ), 0);
   Options := Options or ofCentered;
   R.Grow(-2,-1);
-  Insert(New(PHelpViewer, Init(R,
-    StandardScrollBar(sbHorizontal + sbHandleKeyboard),
-    StandardScrollBar(sbVertical + sbHandleKeyboard), HFile, Context)));
+  HelpView:=New(PHelpViewer, Init(R,
+     StandardScrollBar(sbHorizontal + sbHandleKeyboard),
+     StandardScrollBar(sbVertical + sbHandleKeyboard), HFile, Context));
+  Insert(HelpView);
 end;
 
 function THelpWindow.GetPalette: PPalette;
@@ -392,6 +426,34 @@ const
   P: String[Length(CHelpWindow)] = CHelpWindow;
 begin
   GetPalette := @P;
+end;
+
+procedure THelpWindow.GotoContext(Context: Word);
+begin
+ HelpView^.GotoContext(Context);
+end;
+
+procedure THelpWindow.HandleEvent;
+begin
+ inherited HandleEvent(Event);
+ if (Event.What=evCommand) and
+    (Event.Command=cmClose) then
+  begin
+   ClearEvent(Event);
+   EndModal(cmClose);
+   Free;
+  end;
+ if (Event.What=evCommand) and
+    (Event.Command=cmGetName) then begin
+  PString(Event.InfoPtr)^ := Title^;
+  ClearEvent(Event);
+ end;
+end;
+
+destructor THelpWindow.Done;
+begin
+  if HelpWnd=@Self then begin HelpWnd:=nil; HelpInUse:=false end;
+  inherited Done;
 end;
 
 end.

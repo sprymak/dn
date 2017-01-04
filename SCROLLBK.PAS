@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit ScrollBk;
 
 interface
-uses Objects, Drivers, Views, Scroller, ObjType;
+uses Objects, Drivers, Views, Scroller, ObjType, Collect;
 
 const
       ScrollBackBuffer: PCollection = nil;
@@ -59,7 +59,7 @@ type
       TScrollRec = object(TObject)
         Len: Word;
         Start: LongInt;
-        constructor Init(var B; ALen: Integer);
+        constructor Init(var B; ALen: Word);
         procedure Read(var B; Ofs, ALen: Word);
       end;
 
@@ -90,23 +90,6 @@ procedure SaveAnsi(St: PStream; var B; Len: Integer; var Attr: Byte);
 procedure SaveAvatar(St: PStream; var B; Len: Integer; var Attr: Byte);
 procedure DeallocateScrollbk ;
 
-
-const
-      RScrollBackWindow: TStreamRec = (
-       ObjType: otScrollBackWindow;
-       VmtLink: Ofs(TypeOf(TScrollBackWindow)^);
-       Load: @TScrollBackWindow.Load;
-       Store: @TScrollBackWindow.Store);
-
-      RScrollBack: TStreamRec = (
-       ObjType: otScrollBack;
-       VmtLink: Ofs(TypeOf(TScrollBack)^);
-       Load: @TScrollBack.Load;
-       Store: @TScrollBack.Store);
-
-
-
-
 implementation
 uses advance, advance1, advance2, advance3, Memory, Terminal, Commands,
      RStrings, DNHelp, HistList, Messages, DNStdDlg, DNApp, MicroEd, Menus,
@@ -130,11 +113,10 @@ begin
   BackStream := nil; SBackEnd := 0;
 
   Size := 16384;
-
+{$IFNDEF DPMI}
   if XMSFound and (XMSFree >= Size shr 10) then
     begin
       BackStream := New(PXMSStream, Init(Size, Size));
-      PXMSStream(BackStream)^.Size := 0;
       if BackStream^.Status <> stOK then
         begin Dispose(BackStream, Done); BackStream := nil end
       else Exit;
@@ -145,7 +127,6 @@ begin
       EMSCurPage  := $FFFF;
       EmsCurHandle := $FFFF;
       BackStream := New(PEMSStream, Init(Size, Size));
-      PEMSStream(BackStream)^.Size := 0;
       if BackStream^.Status <> stOK then
         begin
            Dispose(BackStream, Done);
@@ -154,11 +135,10 @@ begin
            EmsCurHandle := $FFFF;
         end else Exit
     end;
-
+{$ENDIF};
   Size := Min(Size, MaxAvail - 16384);
 
   BackStream := New(PMemoryStream, Init(Size, 2048));
-  PMemoryStream(BackStream)^.Size := 0;
   if BackStream^.Status <> stOK then
      begin Dispose(BackStream, Done); BackStream := nil end
 end;
@@ -166,15 +146,19 @@ end;
 
 Procedure  DeallocateScrollBk ;
    begin
+{$IFNDEF DPMI}
      EMSCurPage  := $FFFF;
      EmsCurHandle := $FFFF;
+{$ENDIF}
      if BackStream <> nil then
        begin
          Dispose(BackStream, Done);
          BackStream := nil;
        end;
+{$IFNDEF DPMI}
      EMSCurPage  := $FFFF;
      EmsCurHandle := $FFFF;
+{$ENDIF}
    end;
 
 
@@ -377,24 +361,23 @@ var
   Max, Min: TPoint;
 begin
   SizeLimits(Min, Max);
-  if Longint(Size) <> Longint(Max) then
+  if not Size.Equals(Max) then
   begin
     GetBounds(ZoomRect);
-    Longint(R.A) := 0;  Dec(R.A.X); Dec(R.A.Y);
-    R.B := Max;         Inc(R.B.X);
+    R.A.Assign(-1,-1);
+    R.B := Max;Inc(R.B.X);
     Locate(R);
   end else Locate(ZoomRect);
 end;
 
 procedure TScrollBackWindow.SizeLimits(var Min, Max: TPoint);
 begin
-   Longint(Min) := 0;
    Min := MinWinSize;
    if Owner <> nil then
         begin
            Max.X := Owner^.Size.X+2;
            Max.Y := Owner^.Size.Y+2;
-        end else Longint(Max) := $7FFF7FFF;
+        end else Max.Assign(High(Max.X), High(Max.Y))
 end;
 
 function TScrollBackWindow.ReactOnCmd;
@@ -598,7 +581,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
 }
   procedure KillBuffer;
   begin
-    if MessageBox(^C'Kill entire buffer?', nil, mfYesNoConfirm) <> cmYes then Exit;
+    if MessageBox(DnApp.GetString(dlKillBuffer), nil, mfYesNoConfirm) <> cmYes then Exit;
     ScrollBackBuffer^.FreeAll;
     SetLimit(ScreenWidth, ScreenHeight);
     DrawView;
@@ -614,7 +597,9 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
   begin
     M := S;
     if S = '' then S := HistoryStr(hsViewFind, 0);
-    if InputBox('Find Text', '~T~ext', S, 255, hsViewFind) <> cmOK then Exit;
+    if InputBox(DNApp.GetString(dlFindText),
+                DNApp.GetString(dlDBViewTextSearch),
+                S, 80, hsViewFind) <> cmOK then Exit;
     if S = '' then Exit;
     if (M <> S) or (Delta.Y <> LastPos) then LastPos := Delta.Y else Inc(LastPos);
     UpStr(S);
@@ -642,10 +627,10 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
         I: Integer;
         P: Pointer;
   begin
-    St := StoreFile(x_x, 'Save Scrollback Buffer',On);
+    St := StoreFile(x_x, DNApp.GetString(dlSaveScrollback),On);
     if St = nil then Exit;
     S := Strg('*', Limit.X)+#13#10; St^.Write(S[1], Length(S));
-    S := Strg(' ',20) + 'Scrollback buffer saved '+GetDateTime(Off)+' '+GetDateTime(On) + #13#10;
+    S := Strg(' ',20) + DNApp.GetString(dlScrollbackSaved)+GetDateTime(Off)+' '+GetDateTime(On) + #13#10;
     St^.Write(S[1], Length(S));
     S := Strg('*', Limit.X) + #13#10; St^.Write(S[1], Length(S));
     for I := 0 to Limit.Y-1 do
@@ -666,7 +651,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
        var St: PStream;
            I: Integer;
      begin
-       St := StoreFile('*.ASC', 'Write to ASCII File',On);
+       St := StoreFile('*.ASC', DNApp.GetString(dlWriteASCII),On);
        if St = nil then Exit;
        for I := CutRect.A.Y to CutRect.B.Y-1 do
          begin
@@ -683,8 +668,8 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
            I,X: Integer;
            P: Pointer;
      begin
-       if AVT then St := StoreFile('*.AVT', 'Write to Avatar File',On)
-              else St := StoreFile('*.ANS', 'Write to ANSI File',On);
+       if AVT then St := StoreFile('*.AVT', DNApp.GetString(dlWriteAvatar),On)
+              else St := StoreFile('*.ANS', DNApp.GetString(dlWriteAnsi),On);
        if St = nil then Exit;
        A := 0; X := CutRect.A.X;
        for I := CutRect.A.Y to CutRect.B.Y-1 do
@@ -705,13 +690,13 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
     MakeGlobal(R.A, R.A); R.B.X := R.A.X+40; R.B.Y := R.A.Y + 10;
     W := Application^.ExecView(New(PMenuBox, Init(R,
              NewMenu(
-                NewItem('Copy to ~T~erminal', '', kbNoKey, 1000, hcNoContext,
-                NewItem('Copy to ~H~istory', '', kbNoKey, 1001, hcNoContext,
-                NewItem('Copy to ~C~lipboard', '', kbNoKey, 1002, hcNoContext,
+                NewItem(DNApp.GetString(dlCopyToTerminal ),'', kbNoKey, 1000, hcNoContext,
+                NewItem(DNApp.GetString(dlCopyToHistory  ),'', kbNoKey, 1001, hcNoContext,
+                NewItem(DNApp.GetString(dlCopyToClipboard),'', kbNoKey, 1002, hcNoContext,
                 NewLine(
-                NewItem('Save as A~S~CII', '', kbNoKey, 1003, hcNoContext,
-                NewItem('Save as ~A~NSI', '',  kbNoKey, 1004, hcNoContext,
-                NewItem('Save as A~v~atar', '', kbNoKey, 1005, hcNoContext,
+                NewItem(DNApp.GetString(dlSaveAsASCII    ),'', kbNoKey, 1003, hcNoContext,
+                NewItem(DNApp.GetString(dlSaveAsANSI     ),'',  kbNoKey, 1004, hcNoContext,
+                NewItem(DNApp.GetString(dlSaveAsAvatar   ),'', kbNoKey, 1005, hcNoContext,
                     nil)))))))),
              nil)));
     if W < 1000 then Exit;

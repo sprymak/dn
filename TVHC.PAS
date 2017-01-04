@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-// Включена поддеpжка pyсского языка в кодиpовке cp866 в качестве констант
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 {-----------------------------------------------------}
 { Turbo Vision Help Compiler Unit                     }
 { Copyright (c) 1990 by Borland International         }
@@ -134,8 +130,26 @@ program TVHC;
 {$M 8192,8192,655360}
 
 uses LFN, {DataCompBoy}
-     Drivers, Objects, Dos, Strings, HelpKernel, advance, advance1, advance2,
-     advance3;
+     Drivers, Objects, Dos, {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF},
+     HelpKernel, advance, advance1, advance2, advance3, collect, ObjType
+{$IFNDEF FPC}
+     , StakDump
+{$ENDIF}
+     ;
+{$I Version.Inc}
+
+{=======================================================================}
+
+const HlpT : array [1..2] of TStreamRec = (
+      (ObjType: otHelpTopic;
+       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(HelpKernel.THelpTopic){$IFNDEF DPMI}^{$ENDIF});
+       Load:    @HelpKernel.THelpTopic.Load;
+       Store:   @HelpKernel.THelpTopic.Store),
+      (ObjType: otHelpIndex;
+       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(HelpKernel.THelpIndex){$IFNDEF DPMI}^{$ENDIF});
+       Load:    @HelpKernel.THelpIndex.Load;
+       Store:   @HelpKernel.THelpIndex.Store)
+      );
 
 {======================= File Management ===============================}
 
@@ -201,15 +215,15 @@ end;
 {  Returns a string with Str uppercased.                                }
 {-----------------------------------------------------------------------}
 
-        {-DataCompBoy-} {!Russian support!}{letter "ё" (yo) NOT supported!}
+        {-DataCompBoy-} {!Russian support!}{letter #241 (yo) NOT supported!}
 function UpStr(Str: String): String;
 var
   I: Integer;
 begin
   for I := 1 to Length(Str) do
    Case Str[i] of
-    'a'..'z','а'..'п': Str[i]:=Char(Byte(Str[i])-$20);
-    'р'..'я': Str[i]:=Char(Byte(Str[i])-$50);
+    #97..#122,#160..#175: Str[i]:=Char(Byte(Str[i])-$20);
+    #224..#239: Str[i]:=Char(Byte(Str[i])-$50);
    end;
   UpStr := Str;
 end;
@@ -487,7 +501,7 @@ end;
 function TRefTable.GetReference(var Topic: String): PReference;
 var
   Ref: PReference;
-  I: Integer;
+  I: LongInt;
 begin
   if Search(@Topic, I) then
     Ref := At(I)
@@ -591,8 +605,8 @@ function GetWord(var Line: String; var I: Integer): String;
 var
   J: Integer;
 const
-  {DataCompBoy} {!Russian support!}{letter "ё" (yo) NOT supported!}
-  WordChars = ['A'..'Z','a'..'z','А'..'Я','а'..'п','р'..'я','0'..'9','_'];
+  {DataCompBoy} {!Russian support!}{letter #241 (yo) NOT supported!}
+  WordChars = [#65..#90,#97..#122,#128..#175,#224..#239,#48..#57,#95];
 
 procedure SkipWhite;
 begin
@@ -640,7 +654,7 @@ end;
 destructor TTopicDefinition.Done;
 begin
   DisposeStr(Topic);
-  if Next <> nil then Dispose(Next, Done);
+  if Next <> nil then Dispose(Next,Done);
 end;
 
 function TopicDefinition(var Line: String; var I: Integer): PTopicDefinition;
@@ -703,7 +717,7 @@ begin
     P := TopicDefinition(Line, I);
     if P = nil then
     begin
-      if TopicList <> nil then Dispose(TopicList, Done);
+      if TopicList <> nil then Dispose(TopicList,Done); TopicList:=nil;
       TopicDefinitionList := nil;
       Exit;
     end;
@@ -959,11 +973,11 @@ begin
 
   If Pos( '.TITLE', RemoveLeadSpaces( UpStr( Line ))) = 1 then begin
     Line := RemoveLeadSpaces( Copy( RemoveLeadSpaces( Line ), 7, 255 ));
-    FreeStr := '┌' + Strg('─', Length( Line ) + 2 );
+    FreeStr := #218 + Strg(#196, Length( Line ) + 2 );
     AddToBuffer( FreeStr, OFF );
-    FreeStr := '│ ' + Line + ' █';
+    FreeStr := #179#32 + Line + #32#219;
     AddToBuffer( FreeStr, OFF );
-    FreeStr := '└' + Strg( '▄', Length( Line ) + 2 ) + '█';
+    FreeStr := #192 + Strg( #220, Length( Line ) + 2 ) + #219;
     AddToBuffer( FreeStr, OFF );
     FreeStr := '';
     AddToBuffer( FreeStr, OFF );
@@ -1000,7 +1014,8 @@ end;
 var
   XRefs: PCrossRefNode;
 
-procedure HandleCrossRefs(var S: TStream; XRefValue: Integer); far;
+procedure HandleCrossRefs(var S: TStream; XRefValue: Integer);
+{$IFDEF BIT_16}far;{$ENDIF}
 var
   P: PCrossRefNode;
 begin
@@ -1107,8 +1122,8 @@ begin
   CrossRefHandler := HandleCrossRefs;
   HelpFile.PutTopic(Topic);
 
-  if Topic <> nil then Dispose(Topic, Done);
-  if TopicDef <> nil then Dispose(TopicDef, Done);
+  if Topic <> nil then Dispose(Topic,Done); Topic := nil;
+  if TopicDef <> nil then Dispose(TopicDef,Done); TopicDef := nil;
   DisposeXRefs(XRefs);
 
   SkipBlankLines(TextFile);
@@ -1144,7 +1159,7 @@ var
   Ext:  String; {DataCompBoy}
   Line: String;
 
-procedure DoWriteSymbol(P: PReference); far;
+procedure DoWriteSymbol(P: PReference); {$IFDEF BIT_16}far;{$ENDIF}
 var
   L: array[0..1] of LongInt;
   I: Word;
@@ -1195,7 +1210,7 @@ var
   HelpName,
   SymbName: String; {DataCompBoy}
 
-procedure ExitClean; far;
+procedure ExitClean; {$IFDEF BIT_16}far;{$ENDIF}
 begin
   { Print a message if an out of memory error encountered }
   if ExitCode = 201 then
@@ -1238,7 +1253,8 @@ begin
 
   ExitProc := @ExitClean;
 
-  RegisterHelpFile;
+  RegisterType(HlpT[1]);
+  RegisterType(HlpT[2]);
 
   TextStrm.Init(TextName, stOpenRead, $8000);
   SymbStrm.Init(SymbName, stCreate,   $8000);

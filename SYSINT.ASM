@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.05/DOS
+;/  Dos Navigator Open Source 1.51.07/DOS
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -108,6 +108,9 @@ KeyBufTail      EQU     (WORD PTR 1CH)
 KeyBufOrg       EQU     (WORD PTR 80H)
 KeyBufEnd       EQU     (WORD PTR 82H)
 
+PrevAlt         EQU     (BYTE PTR 4F0h) ; user area, we use it for saving
+PrevCtrl        EQU     (BYTE PTR 4F1h)
+
 ; DOS function call classes
 
 cNothing        EQU     0       ;No check needed
@@ -125,7 +128,8 @@ DPMI            EQU     31H
 
 dpmiAllocDesc   EQU     0000H           ;Allocate descriptor
 dpmiFreeDesc    EQU     0001H           ;Free descriptor
-dpmiSetSegBase  EQU     0008H           ;Set segment base address
+dpmiSetSegBase  EQU     0007H           ;Set segment base address
+dpmiSetSegSize  EQU     0008H           ;Set segment size
 dpmiGetRealInt  EQU     0200H           ;Get real mode interrupt vector
 dpmiSetRealInt  EQU     0201H           ;Set real mode interrupt vector
 dpmiGetProtInt  EQU     0204H           ;Get protected mode interrupt vector
@@ -351,14 +355,19 @@ InitSysError:
         MOV     AX,3300H
         INT     21H
         MOV     SaveCtrlBreak,DL
-        MOV     AX,3301H
-        MOV     DL,0
+        MOV     DL,AL
+        INC     AL
         INT     21H
     IF DPMIVersion
         MOV     AX,dpmiAllocDesc
         MOV     CX,1
         INT     DPMI
         MOV     TempSelector,AX
+        MOV     BX,AX          ; Why this step is removed in original DN?
+        XOR     CX,CX
+        MOV     DX,0FFFFH
+        MOV     AX,dpmiSetSegSize
+        INT     DPMI
         MOV     AX,CS
         ADD     AX,SelectorInc
         MOV     ES,AX
@@ -656,19 +665,21 @@ Int09Handler:
         CALL    SaveInt09
         TEST    AL,80H
         JNE     @@9
-        MOV     CS:PrevAlt,0
-        MOV     CS:PrevCtrl,0
+
+        MOV     DS:PrevAlt,0
+        MOV     DS:PrevCtrl,0
         TEST    AH, 07h
         JNZ     @@11
         CMP     AL,38H
         JNE     @@11
-        MOV     CS:PrevAlt,1
+        MOV     DS:PrevAlt,1
         JMP     @@0
 @@11:   TEST    AH, 0Bh
         JNZ     @@0
         CMP     AL,1DH
         JNE     @@0
-        MOV     CS:PrevCtrl,1
+        MOV     DS:PrevCtrl,1
+
 @@0:    MOV     SI,OFFSET CS:KeyConvertTab
         MOV     CX,KeyConvertCnt
         JCXZ    @@8
@@ -699,22 +710,21 @@ Int09Handler:
         POP     DI
         POP     DS
         IRET
+
 @@9:    CMP     AL,38h or 80h
         JNE     @@10
-        CMP     CS:PrevAlt,0
+        CMP     DS:PrevAlt,0
         JE      @@8
-        MOV     SI,offset AltCode-2
+        MOV     SI,offset CS:AltCode-2
         JMP     @@3
 @@10:   CMP     AL,1Dh or 80h
         JNE     @@8
-        CMP     CS:PrevCtrl,0
+        CMP     byte ptr DS:PrevCtrl,0
         JE      @@8
-        MOV     SI,offset CtrlCode-2
+        MOV     SI,offset CS:CtrlCode-2
         JMP     @@3
 
-PrevAlt  DB      0       ; Previous key was ALT
 AltCode  DW      03800h
-PrevCtrl DB      0       ; Previous key was Ctrl
 CtrlCode DW      01D00h
 
 ; INT 1BH handler
@@ -723,15 +733,15 @@ Int1BHandler:
 
     IF DPMIVersion
         CALL    RealModeIRET
-        MOV     DS,ES:Seg0040
-        AND     BYTE PTR DS:[71H],7FH
+;       MOV     DS,ES:Seg0040
+;       AND     BYTE PTR DS:[71H],7FH
         MOV     ES:CtrlBreakHit,1
     ELSE
         PUSH    DS
         PUSH    AX
-        XOR     AX,AX
-        MOV     DS,AX
-        AND     BYTE PTR DS:[471H],7FH
+;       XOR     AX,AX
+;       MOV     DS,AX
+;       AND     BYTE PTR DS:[471H],7FH
         MOV     AX,SEG DGROUP
         MOV     DS,AX
         MOV     CtrlBreakHit,1

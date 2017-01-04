@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT
   HelpKernel;
@@ -53,7 +54,7 @@ UNIT
 INTERFACE
 
 USES
-  Objects, ObjType;
+  Objects;
 
 type
 
@@ -154,24 +155,6 @@ type
     Index: PHelpIndex;
     IndexPos: LongInt;
   end;
-
-const
-  RHelpTopic: TStreamRec = (
-     ObjType: otHelpTopic;
-     VmtLink: Ofs(TypeOf(THelpTopic)^);
-     Load:    @THelpTopic.Load;
-     Store:   @THelpTopic.Store
-  );
-
-const
-  RHelpIndex: TStreamRec = (
-     ObjType: otHelpIndex;
-     VmtLink: Ofs(TypeOf(THelpIndex)^);
-     Load:    @THelpIndex.Load;
-     Store:   @THelpIndex.Store
-  );
-
-procedure RegisterHelpFile;
 
 procedure NotAssigned(var S: TStream; Value: Integer);
 
@@ -451,26 +434,26 @@ begin
   IsBlank := (Ch = ' ') or (Ch = #13) or (Ch = #10);
 end;
 
-function Scan(var P; Offset: Integer; C: Char): Integer; assembler;
+function Scan(var P; Size: Integer; Offs: Integer; C: Char): Integer; assembler;
 asm
         CLD
         LES     DI,P
-        ADD     DI,&Offset
-        MOV     CX,256
+        ADD     DI,Offs
+        MOV     CX,Size
         MOV     AL, C
         REPNE   SCASB
-        SUB     CX,256
+        SUB     CX,Size
         NEG     CX
         XCHG    AX,CX
 end;
 
-procedure TextToLine(var Text; Offset, Length: Integer; var Line: String);
+procedure TextToLine(var Text; Offs, Length: Integer; var Line: String);
   assembler;
 asm
         CLD
         PUSH    DS
         LDS     SI,Text
-        ADD     SI,&Offset
+        ADD     SI,Offs
         LES     DI,Line
         MOV     AX,Length
         STOSB
@@ -480,7 +463,7 @@ asm
 end;
 
 begin
-  I := Scan(Text, Offset, #13);
+  I := Scan(Text, Size-Offset, Offset, #13);
   if I + Offset > Size then I := Size - Offset;
   if (I >= Width) and Wrap then
   begin
@@ -663,8 +646,8 @@ begin
     Stream^.Write(Size, SizeOf(Size));
     Stream^.Write(IndexPos, SizeOf(IndexPos));
   end;
-  Dispose(Stream, Done);
-  Dispose(Index, Done);
+  Dispose(Stream,Done); Stream:=nil;
+  Dispose(Index,Done);  Index :=nil;
 end;
 
 function THelpFile.GetTopic(I: Word): PHelpTopic;
@@ -710,12 +693,6 @@ begin
   Stream^.Put(Topic);
   IndexPos := Stream^.GetPos;
   Modified := True;
-end;
-
-procedure RegisterHelpFile;
-begin
-  RegisterType(RHelpTopic);
-  RegisterType(RHelpIndex);
 end;
 
 procedure NotAssigned(var S: TStream; Value: Integer);

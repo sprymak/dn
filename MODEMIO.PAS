@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 Unit ModemIO;
 
@@ -75,7 +76,7 @@ type  ModemString   = String[32];
 
 const
       HangUpTime    : Word = 5;
-  {°±²Û Max time to wait a character from modem, sec Û²±°}
+  {**** Max time to wait a character from modem, sec ****}
       WaitAnswer    = 1;
       COMport       : AbstractPortPtr = nil;
 
@@ -90,7 +91,7 @@ const
         Redial:'10'
         );
 
-  {°±²Û Modem answers Û²±°}
+  {**** Modem answers ****}
       maOK          : Str15 = 'OK';
       maCONNECT     : Str15 = 'CONNECT';
       maBUSY        : Str15 = 'BUSY';
@@ -103,13 +104,13 @@ const
        AdvModemData: TAdvModemData =
          (Data:0; Stop:0; Parity: NoParity; Byte_0: 0; HFlow: 1; SFlow: 0);
 
-  {°±²Û Modem errors Û²±°}
+  {**** Modem errors ****}
       moOk          = 0;
-      moAlreadyUsed = 1;             {°±²Û COMport variable already used Û²±°}
-      moInitFail    = 2;             {°±²Û  No UART or hardware failure  Û²±°}
-      ModemAnswer   : String = '';
+      moAlreadyUsed = 1;             {**** COMport variable already used ****}
+      moInitFail    = 2;             {****  No UART or hardware failure  ****}
+      ModemAnswer   : String[80] = '';
 var   StartTime     : Word;
-      ModemChar     : Char;       {°±²Û Last character readed from modem Û²±°}
+      ModemChar     : Char;         {**** Last character read from modem ****}
 
       Procedure HangUp;
 {DataCompBoy
@@ -137,7 +138,7 @@ begin
  if COMport^.CharReady
     then begin
           COMport^.GetChar(ModemChar);
-          if ModemAnswer[0]>#254 then Delete(ModemAnswer,1,50);
+          if ModemAnswer[0]>#79 then Delete(ModemAnswer,1,10);
           ModemAnswer:=ModemAnswer+ModemChar;
           ReadModem:=True;
          end
@@ -160,13 +161,13 @@ end;
 
 Procedure InitTimeOut(Max : Word);
 begin
- StartTime:=memw[0:$46C];
+ StartTime:=memw[seg0040:$6C];
  MaxTime:=Max*18;
 end;
 
 Function TimeOut : Boolean;
 begin
- TimeOut:=(memw[0:$46C]-StartTime)>MaxTime;
+ TimeOut:=(memw[seg0040:$6C]-StartTime)>MaxTime;
 end;
 
 const ReadSetup: Boolean = False;
@@ -234,7 +235,7 @@ begin
  ModemSetup := DT;
  if (CP <> nil) then
   begin
-    Dispose(CP, Done);
+    Dispose(CP,Done);
     {if (InitModem = moInitFail) then DT := ODT;}
     InitModem;
   end;
@@ -357,8 +358,7 @@ end;
 {DataCompBoy
 Procedure ModemDone;
 begin
- if COMport=NIL then Exit;
- Dispose(COMport,Done);
+ if COMport<>NIL then Dispose(COMport,Done); COMport:=nil;
 end;
 }
 Procedure HangUp;
@@ -372,7 +372,7 @@ begin
  DelayTics(2);
  ComPort^.SetModem(On, On);
  ModemWrite(ModemSetup.Escape);
- i:=memw[$40:$6C];While (memw[$40:$6C]-i)<36 do ;
+ i:=memw[seg0040:$6C];While (memw[seg0040:$6C]-i)<36 do ;
  ModemWrite(ModemSetup.OnHook);
  {COMPort^.FlushAllBufs;}
  While ComPort^.CharReady do ComPort^.GetChar(C);

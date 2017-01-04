@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,19 +43,12 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
-{$o+}
 UNIT DN1;
 
 INTERFACE
-uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
-     Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
-     UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver;
 
 Procedure InvalidateTempDir;
 Procedure UpdateConfig;
@@ -65,8 +58,18 @@ Procedure DoStartup;
 procedure GrabPalette;
 {$ENDIF}
 
+procedure RUN_IT;
+
 IMPLEMENTATION
-{$I RunCmd.Inc}
+uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
+     Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
+     UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver,
+     U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries
+{$IFDEF CDPLAYER},CDPlayer{$ENDIF}
+{$IFDEF DPMI}, Extramemory
+             , DPMI {$ENDIF}
+     ;
+
 
         {-DataCompBoy-}
 procedure InvalidateTempDir;
@@ -103,7 +106,7 @@ begin
   if smSVGAHi = 0 then smSVGAHi := StartupMode;
   SystemData.Mode1 := ItoS(smSVGALo);
   SystemData.Mode2 := ItoS(smSVGAHi);
-  Val(SaversData.Time, SkyDelay, TempInteger);   {DataCompBoy}
+{$IFDEF SS}Val(SaversData.Time, SkyDelay, TempInteger);{$ENDIF}
   If SkyDelay=0 then SkyDelay:=255; {DataCompBoy}
 
   {TempDir := SystemData.Temp;}
@@ -117,7 +120,6 @@ begin
    end;
 
   SetBlink(CurrentBlink);
-  UpcaseInit := Off;
 end;
 
 
@@ -166,7 +168,7 @@ begin
     mfWarning+mfYesButton+mfNoButton)=cmYes then begin
         for i:=0 to OldFilesCount-1 do for j:=0 to 2
         do if j in OldFileSearchDirs[i] then EraseFile(Dirs[j]+OldFiles[i]);
-        SaveDsk; Application^.Done; ExecString(@NullStr)
+        SaveDsk; Exiting:=true; Application^.Done; ExecString(@NullStr)
     end else MessageBox(GetString(dlOldFilesNoWarn),nil,
     mfInformation+mfOkButton);
  end;
@@ -183,6 +185,7 @@ var
     CFGVer: Word;
     ID,L: Word;
     p: pointer;
+    I: integer;
 
     procedure SRead(var Buf);
     begin
@@ -199,18 +202,24 @@ var
        S.Seek( 0 );
        S.Read( Chk[1], ConfigSigns[i].SignLen );
        Chk[ 0 ] := Char( ConfigSigns[i].SignLen );
-       if Chk=ConfigSigns[i].Sign then
-        begin CfgVer:=ConfigSigns[i].SignVer; Break; End;
+       if Chk=ConfigSigns[i].Sign then begin
+        CfgVer:=ConfigSigns[i].SignVer;
+        if ConfigSigns[i].HavVer then S.Read(CFGVer, SizeOf(VersionWord));
+        Break;
+       End;
       end;
     end;
 
   begin
     ReadConfig := -1;
-    SPos1 := -1;
     INIdatapos := -1;
     S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
     if ( S.Status <> stOK ) or ( S.GetSize = 0 ) then begin S.Done; Exit; end;
-    GetVer; If CfgVer=0 then begin S.Done; Exit end;
+    GetVer;
+    If (CfgVer=0) or (CfgVer>VersionWord) then begin
+     S.Done;
+     Exit
+    end;
     while S.GetPos < S.GetSize do
       begin
         S.Status := stOK;
@@ -219,7 +228,20 @@ var
         case ID of
           0: Break;
           cfgNewSystemData: SRead(SystemData);
-             cfgSystemData: Begin
+         cfgOld2SystemData: Begin
+                             GetMem(p, SizeOf(TOld2SystemData));
+                             SRead(p^);
+                             With TOld2SystemData(p^) do begin
+                              SystemData.Options := Options;
+                              SystemData.Mode1   := Mode1;
+                              SystemData.Mode2   := Mode2;
+                              SystemData.Temp    := Temp;
+                              SystemData.LFNContainer := LFNContainer;
+                              move(Drives, SystemData.Drives, sizeof(Drives));
+                             end;
+                             FreeMem(p, SizeOf(TOld2SystemData));
+                            End;
+          cfgOldSystemData: Begin
                              GetMem(p, SizeOf(TOldSystemData));
                              SRead(p^);
                              With TOldSystemData(p^) do begin
@@ -230,6 +252,18 @@ var
                               move(Drives, SystemData.Drives, sizeof(Drives));
                              end;
                              FreeMem(p, SizeOf(TOldSystemData));
+                            End;
+             cfgSystemData: Begin
+                             GetMem(p, SizeOf(TOld1SystemData));
+                             SRead(p^);
+                             With TOld1SystemData(p^) do begin
+                              SystemData.Options := Options;
+                              SystemData.Mode1   := Mode1;
+                              SystemData.Mode2   := Mode2;
+                              SystemData.Temp    := Temp;
+                              move(Drives, SystemData.Drives, sizeof(Drives));
+                             end;
+                             FreeMem(p, SizeOf(TOld1SystemData));
                             End;
             cfgStartupData: Begin
                              GetMem(p, SizeOf(TOldStartupData));
@@ -246,6 +280,7 @@ var
               cfgMouseData: SRead(MouseData);
           cfgShowScrollBar: SRead(ShowScrollBar);
           cfgInterfaceData: SRead(InterfaceData);
+{$IFDEF SS}
           cfgNewSaversData: S.Read(SaversData.Time, SizeOf(SaversData)-SizeOf(SaversData.Selected)*2);
              cfgSaversData: Begin
                              GetMem(p, SizeOf(TOldSaversData));
@@ -256,19 +291,82 @@ var
                               SaversData._:=_;
                              end;
                             End;
+{$ENDIF}
            cfgSystemColors: S.Read(SystemColors, SizeOf(SystemColors));
-          cfgPanelDefaults: SRead(PanelDefaults);
+       cfgNewPanelDefaults: SRead(PanelDefaults);
+          cfgPanelDefaults: begin
+                             SRead(PanelDefaults);
+                             Case PanelDefaults.Sort of
+                              0: ;
+                              1: inc(PanelDefaults.Sort);
+                              else Inc(PanelDefaults.Sort, 2);
+                             end;
+                            end;
          cfgEditorDefaults: SRead(EditorDefaults);
+      cfgOldEditorDefaults: begin
+                             GetMem(p, SizeOf(TOldEditorDefaultsData));
+                             SRead(p^);
+                             With TOldEditorDefaultsData(p^) do begin
+                              EditorDefaults.EdOpt   := EdOpt;
+                              EditorDefaults.EdOpt2  := ebfHlt+ebfSmt;
+                              EditorDefaults.ViOpt   := ViOpt;
+                              EditorDefaults.LM      := LM;
+                              EditorDefaults.RM      := RM;
+                              EditorDefaults.NewLine := NewLine;
+                              EditorDefaults.TabSize := TabSize;
+                             end;
+                             FreeMem(p, SizeOf(TOldEditorDefaultsData));
+                            end;
            cfgFFindOptions: SRead(FileFind.FindRec.Options);
               cfgTetrisRec: S.Read(TetrisRec, SizeOf(TetrisRec));
+{$IFDEF PrintManager}
            cfgPrinterSetup: S.Read(RPrinterSetup, SizeOf(RPrinterSetup));
+{$ENDIF}
          cfgArcCustomMasks: S.Read(Startup.Archives, SizeOf(Startup.Archives));
+         cfgArcCustomMasks: Begin
+                             S.Read(Startup.Archives, SizeOf(Startup.Archives));
+                             Replace(#0,';',Startup.Archives);
+                             DelFC(Startup.Archives);
+                             Dec(Startup.Archives[0]);
+                             Archives:=';a[0-9];r[0-9]';
+                            end;
+         cfgOldCustomMasks: begin
+                              S.Read(CustomMask1, SizeOf(CustomMask1));
+                              Replace(#0,';',CustomMask1); DelFC(CustomMask1); Dec(CustomMask1[0]);
+                              S.Read(CustomMask2, SizeOf(CustomMask2));
+                              Replace(#0,';',CustomMask2); DelFC(CustomMask2); Dec(CustomMask2[0]);
+                              S.Read(CustomMask3, SizeOf(CustomMask3));
+                              Replace(#0,';',CustomMask3); DelFC(CustomMask3); Dec(CustomMask3[0]);
+                              S.Read(CustomMask4, SizeOf(CustomMask4));
+                              Replace(#0,';',CustomMask4); DelFC(CustomMask4); Dec(CustomMask4[0]);
+                              S.Read(CustomMask5, SizeOf(CustomMask5));
+                              Replace(#0,';',CustomMask5); DelFC(CustomMask5); Dec(CustomMask5[0]);
+                            end;
+        cfgOldCustomMasks2: begin
+                              S.Read(CustomMask6, SizeOf(CustomMask1)); {JO}
+                              Replace(#0,';',CustomMask6); DelFC(CustomMask6); Dec(CustomMask6[0]);
+                              S.Read(CustomMask7, SizeOf(CustomMask1));
+                              Replace(#0,';',CustomMask7); DelFC(CustomMask7); Dec(CustomMask7[0]);
+                              S.Read(CustomMask8, SizeOf(CustomMask1));
+                              Replace(#0,';',CustomMask8); DelFC(CustomMask8); Dec(CustomMask8[0]);
+                              S.Read(CustomMask9, SizeOf(CustomMask1));
+                              Replace(#0,';',CustomMask9); DelFC(CustomMask9); Dec(CustomMask9[0]);
+                              S.Read(CustomMask10, SizeOf(CustomMask1));{JO}
+                              Replace(#0,';',CustomMask10); DelFC(CustomMask10); Dec(CustomMask10[0]);
+                            end;
             cfgCustomMasks: begin
                               S.Read(CustomMask1, SizeOf(CustomMask1));
                               S.Read(CustomMask2, SizeOf(CustomMask2));
                               S.Read(CustomMask3, SizeOf(CustomMask3));
                               S.Read(CustomMask4, SizeOf(CustomMask4));
                               S.Read(CustomMask5, SizeOf(CustomMask5));
+                            end;
+           cfgCustomMasks2: begin
+                              S.Read(CustomMask6, SizeOf(CustomMask1)); {JO}
+                              S.Read(CustomMask7, SizeOf(CustomMask1));
+                              S.Read(CustomMask8, SizeOf(CustomMask1));
+                              S.Read(CustomMask9, SizeOf(CustomMask1));
+                              S.Read(CustomMask10, SizeOf(CustomMask1));{JO}
                             end;
     cfgColumnsDefaultsDisk: S.Read(ColumnsDefaultsDisk,SizeOf(ColumnsDefaultsDisk));
     cfgColumnsDefaultsFind: S.Read(ColumnsDefaultsFind,SizeOf(ColumnsDefaultsFind));
@@ -287,17 +385,26 @@ var
                               end;
                             end;
           cfgDriveInfoData: SRead(DriveInfoData);
-            cfgCountryInfo: S.Read(CountryInfo, SizeOf(CountryInfo));
-               cfgConfirms: S.Read(Confirms, SizeOf(Confirms));
+            cfgCountryInfo: begin
+                             S.Read(CountryInfo, SizeOf(CountryInfo));
+                             InitUpcase;
+                            end;
+               cfgConfirms: begin
+                             S.Read(Confirms, SizeOf(Confirms));
+                             if CfgVer<>VersionWord then
+                              Confirms:=Confirms or cfFmtOs2Warning;
+                            end;
                 cfgUUEData: SRead(UUDecodeOptions);
            cfgMakeListFile: SRead(MakeListFileOptions);
            cfgTermDefaults: S.Read(TerminalDefaults, SizeOf(TerminalDefaults));
-                cfgFMSetup: begin
+             cfgOldFMSetup: begin
                              GetMem(p, SizeOf(TOldFMSetup));
                              S.Read(P^, SizeOf(TOldFMSetup));
                              with TOldFMSetup((P^)) do
                               begin
-                               Startup.FMSetup.Options:=Options;
+                               Startup.FMSetup.Options:=
+                                Options and $001FF +
+                                Options and $0FE00 shl 1;
                                Startup.FMSetup.Show:=Show;
                                Startup.FMSetup.Quick:=Quick;
                                Startup.FMSetup.TagChar:=TagChar;
@@ -305,7 +412,14 @@ var
                               end;
                              FreeMem(p, SizeOf(TOldFMSetup));
                             end;
-             cfgNewFMSetup: S.Read(Startup.FMSetup, SizeOf(Startup.FMSetup));
+             cfgNewFMSetup: begin
+                             S.Read(Startup.FMSetup, SizeOf(Startup.FMSetup));
+                             With Startup.FMSetup do
+                              Options:=
+                                Options and $001FF +
+                                Options and $0FE00 shl 1;
+                            end;
+                cfgFMSetup: S.Read(Startup.FMSetup, SizeOf(Startup.FMSetup));
 {$IFDEF CDPLAYER}
                cfgCDParams: SRead(CDPlace);
 {$ENDIF}
@@ -315,12 +429,15 @@ var
                             end;
              cfgVGApalette: begin
                               SRead(VGA_Palette);
-                      {Knave} if FadeDelay >0 then BlackPalette else
                               if (StartupData.Load and osuResetPalette <> 0) and VGASystem then
                                   SetPalette(VGA_Palette);
                             end;
-           cfgDirsToChange: begin SPos1 := S.GetPos; S.Seek(S.GetPos+L); end;
-                 cfgSavers: begin ReadConfig := S.GetPos; S.Seek(S.GetPos+L); end;
+        cfgDefaultArchiver: SRead(DefaultArchiver);
+    cfgDefaultArchiverMode: SRead(DefaultArcMode);
+           cfgDirsToChange: for I := 0 to 8 do DirsToChange[I]:=S.ReadStr;
+{$IFDEF SS}
+                 cfgSavers: SaversData.Selected.List := PTextCollection(S.Get);
+{$ENDIF}
                 cfgINIdata: begin
                                 if L-sizeof(INIstoredtime)-sizeof(INIstoredsize)
                                 =Ofs(iniparamblock_END)-Ofs(iniparamblock_START)
@@ -329,64 +446,23 @@ var
                                     S.Read(INIstoredsize,sizeof(INIstoredsize));
                                     INIdatapos:=S.GetPos;
                                     S.Seek(S.GetPos+L-sizeof(INIstoredtime)-sizeof(INIstoredsize))
-                                end else S.Seek(S.GetPos+L)
+                                end else S.Seek(S.GetPos+L);
                             end;
          cfgExtractOptions: SRead(ExtractWithPathNames);
+      cfgChangeCaseOptions: SRead(ChangeNamesCaseOptions);
          cfgIgnoreOldFiles: IgnoreOldFiles:=True;
             else S.Seek(S.GetPos+L);
         end;
       end;
 
     S.Done;
-  end;
-
-  procedure ReadSavers( Pos: LongInt );
-  var
-    S: TBufStream;
-    I: Integer;
-    CFGVer: Word;
-    Chk: String;
-
-   Procedure GetVer;
-    var i: byte;
-    begin
-     CfgVer:=0;
-     For i:=NumSupportedConfigs downto 1 do
-      begin
-       S.Seek( 0 );
-       S.Read( Chk[1], ConfigSigns[i].SignLen );
-       Chk[ 0 ] := Char( ConfigSigns[i].SignLen );
-       if Chk=ConfigSigns[i].Sign then
-        begin CfgVer:=ConfigSigns[i].SignVer; Break; End;
-      end;
-    end;
-
-  begin
-    I := FindParam('/C');
-    if I = 0 then Chk := SourceDir + 'DN' + GetEnv('DNCFG') + '.CFG'
-      else begin
-             Chk := Copy(ParamStr(I), 3, 255);
-             if PosChar('\', Chk) = 0 then Insert(SourceDir, Chk, 1);
-           end;
-    S.Init(Chk, stOpenRead, 16384);
-    if ( S.Status <> stOK ) or ( S.GetSize = 0 ) then begin S.Done; Exit; end;
-    GetVer; If CfgVer=0 then begin S.Done; Exit end;
-    S.Seek( SavePos );
-    If S.Status = 0 then SaversData.Selected.List := PTextCollection(S.Get);
-    if SPos1 > 0 then
-      begin
-        S.Seek(SPos1);
-        for I := 0 to 8 do
-           DirsToChange[I] := S.ReadStr;
-      end;
-    S.Done;
+    Security := SystemData.Options and ossShowHidden = 0;
   end;
 
   procedure SetOverlay;
   var S: String;
       I: LongInt;
   begin
-{    InitExtraMem; }
     SwpDir := GetEnv('DNSWP');
     if SwpDir = '' then
       begin
@@ -404,7 +480,7 @@ var
   begin
       if (not ProbeINI(INIavailtime,INIavailsize)) or (INIdatapos<0) or
       (INIavailtime>INIstoredtime) or (INIavailsize<>INIstoredsize) then begin
-          InitIniEngine; {-$VIV start}
+          {-$VIV start}
           LoadDnIniSettings;
           if DnIni.AutoSave then SaveDnIniSettings;
           DoneIniEngine; {-$VIV stop}
@@ -419,21 +495,20 @@ var
   end;
 
 begin
-  RegisterType( RTextCollection );
+(*  RegisterType( RTextCollection );*)
   IgnoreOldFiles:=False;
   SavePos := ReadConfig;
 
   if SavePos >= 0 then UpdateConfig else InvalidateTempDir;
-  StdMouse := MouseData.Options and omsCursor <> 0;
-  if OS210 then Executables := Executables + 'cmd'#0;
-  if Chk4Dos then Executables := Executables + 'btm'#0;
+  MouseVisible := MouseData.Options and omsCursor <> 0;
+  if OS2exec or (OpSys and opWNT<>0) then Executables := Executables + ';cmd';
+  if Chk4Dos then Executables := Executables + ';btm';
   RunMenu := (StartupData.Load and osuAutoMenu <> 0);
   SetOverlay;
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU');
   EraseFile(SwpDir+'$$$DN$$.LST');
   EraseFile(SwpDir+'$$$DN$$$.LST');
-  If SavePos >= 0 then ReadSavers( SavePos );
   ReadINI;
 end;
         {-DataCompBoy-}
@@ -456,5 +531,173 @@ begin
   Close(F);
 end;
 {$ENDIF}
+
+procedure CrLf; assembler;
+asm
+  MOV  DL,0DH
+  MOV  AH,2
+  INT  21H
+  MOV  DL,0AH
+  MOV  AH,2
+  INT  21H
+end;
+
+procedure RUN_IT;
+var
+  ShiftRec: record ScrH, CurY: Byte end absolute FreeStr; { just to reduce DS }
+
+var Ev: TEvent;
+{$IFDEF DPMI} R: DPMIRegisters; {$ENDIF}
+begin
+ if memAvail < 100000 then begin
+    WriteLn(#10#13'Not enough memory for Navigator.');
+    WriteLn(      'Please check if 400K memory is available');
+    Halt(203);
+ end;
+ Randomize;
+
+ LoaderSeg := 0;
+ LSliceCnt := -3;
+{$IFNDEF DPMI}
+ asm
+  mov  AX, $9900
+  int  2Fh
+  cmp  BX, 'DN'
+  jne  @@1
+  mov  DNNumber, AL
+  mov  RunFirst, AH
+  xor  AX, AX
+  mov  ES, AX
+  mov  AX, $9901
+  int  2Fh
+  mov  CommandOfs, BX
+  mov  AX, ES
+  mov  LoaderSeg, AX
+ @@1:
+  mov  AH,1
+  xor  BL, BL
+  mov  CX, $0607
+  push BP
+  int  10h
+  pop  BP
+  mov  AX, $9905
+  xor  DX, DX
+  xor  CX, CX
+  push BP
+  int  2Fh
+  mov  word ptr DDTimer, DX
+  mov  word ptr DDTimer+2, CX
+  pop  BP
+ end;
+{$ELSE}
+ FillChar(R, SizeOf(R), 0);
+ R.AX:=$9900;
+ SimulateRealmodeInt($2F, R);
+ If R.BX=$444E{DN} then begin
+  DNNumber:=R.AL;
+  RunFirst:=Boolean(R.AH);
+  R.AX:=$9901; R.ES:=0;
+  SimulateRealmodeInt($2F, R);
+  CommandOfs:=R.BX;
+  LoaderSeg:=RSeg(R.ES);
+  R.AX:=$9905;
+  R.DX:=0; R.CX:=0;
+  SimulateRealmodeInt($2F, R);
+  DDTimer:=R.DX;
+  DDTimer:=DDTimer shl 8 + R.CX;
+ end else DDTimer := 0;
+ R.AH:=1; R.BL:=0; R.CX:=$0607;
+ SimulateRealmodeInt($10, R);
+{$ENDIF}
+
+ if DDTimer > 0 then DDTimer := Get100s-DDTimer;
+
+ TempBounds.Assign(0,0,0,0);
+
+ {$IFDEF DPMI}
+ InitExtraMem;
+ {$ENDIF}
+ RegisterAll;
+ DoStartUp;
+
+ asm
+   MOV  AH, 03 { Get cursor position }
+   MOV  BX, 0  { DL - X }
+   INT  10H    { DH - Y }
+   OR   DL,DL
+   JE   @Pass
+   CALL CrLf   { if WhereX <> 0 then WriteLn }
+   MOV  AH, 03
+   MOV  BX, 0
+   INT  10H
+ @Pass:
+   MOV  ShiftRec.CurY,DH
+   CALL GetCrtMode { DL - ScreenHeight }
+   MOV  ShiftRec.ScrH,DL
+ end;
+
+ with ShiftRec do begin
+   If ( CurY = ScrH ) and ( InterfaceData.Options and ouiHideStatus = 0 ) then begin
+     CrLf;
+     asm
+       XOR  DX,DX
+       MOV  DH,ShiftRec.CurY
+       DEC  DH
+       MOV  AH,2
+       XOR  BX,BX
+       INT  10H
+     end
+   end
+ end;
+
+ SetBlink(CurrentBlink);
+
+ NoSound;
+ if (FadeDelay >0) and RunFirst then BlackPalette;{Knave}
+ InitLFNCol;
+ MyApplication.Init;
+
+ if RunFirst then
+   begin
+     if (StartupData.Load and osuKillHistory <> 0) then ClearHistories;
+   end;
+
+ if not RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+
+ If RunFirst then
+   begin
+    if (Message( @MyApplication, evBroadcast, cmLookForPanels, NIL ) = NIL)
+       then Message( @MyApplication, evCommand, cmFirstTimePanel, NIL );
+
+    FreeStr[1] := Char(FindParam('/P'));
+    if (FreeStr[1] > #0) then LoadPalFromFile(Copy(ParamStr(Byte(FreeStr[1])), 3, 255));
+   end;
+
+ if (FadeDelay >0) and RunFirst then GlowPalette;{Knave}
+
+{$IFDEF GRABPalette}
+GrabPalette;
+{$ENDIF}
+ if DDTimer > 0 then
+  begin
+   Ev.What := evCommand;
+   Ev.Command := cmShowTimeInfo;
+   MyApplication.PutEvent(Ev);
+  end;
+
+ if not IgnoreOldFiles then CheckForOldFiles;
+ with MyApplication do begin
+  Lock;
+  MenuBar^.MakeFirst;
+  Desktop^.MakeFirst;
+  Clock^.MakeFirst;
+  Unlock;
+ end;
+ w95QuitInit; {Gimly}
+ MyApplication.Run;
+ GlobalMessage(evCommand, cmKillUsed, nil);
+ TottalExit := On;
+ MyApplication.Done;
+end;
 
 END.

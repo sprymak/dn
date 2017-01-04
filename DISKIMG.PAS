@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,10 +44,11 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit DiskImg;
 
-interface uses FilesCol;
+interface uses FilesCol, tree;
 
 procedure UnpackDiskImages(AOwner: Pointer; Files: PFilesCollection);
 
@@ -134,7 +135,7 @@ var
 procedure Try;
 begin
   B := New(PBufStream, Init(FName, stCreate, $8000));
-  if B^.Status <> stOK then FreeObject(B);
+  if B^.Status <> stOK then begin Dispose(B,Done); B:=nil; end;
 end;
 
 var
@@ -191,7 +192,7 @@ begin
   GetMem(CpyBuf, BytesPerClu);
   Cpy;
   FreeMem(CpyBuf, BytesPerClu);
-  FreeObject(B);
+  Dispose(B,Done); B:=nil;
   if Error then EraseFile(FName) else SetFData;
 end;
 
@@ -294,7 +295,7 @@ begin
   F := New(PBufStream, Init(FName, stOpenRead, $8000));
   DoIt;
   Error := Error or (F^.Status <> stOK);
-  FreeObject(F);
+  Dispose(F,Done); F:=nil;
   if Error then MessageBox(GetString(dlImageError)+' '+Cut(FName,40), nil, mfError+mfOkButton);
   UnpackImage := not (Error or Cancel);
 end;
@@ -330,7 +331,7 @@ begin
     if AOwner <> nil then Message(AOwner, evCommand, cmCopyUnselect, PF);
   end;
 
-  FreeObject(PInfo);
+  Dispose(PInfo,Done); PInfo:=nil;
   RereadGlobal(ADestPath);
 end;
 
@@ -344,7 +345,7 @@ begin
   Message(Application, evCommand, cmPushFullName, @DestPath);
   if InputBox(GetString(dlUnpackImages),GetString(dlTargetDir),DestPath, 255, 0) {DataCompBoy}
     = cmOK then DoIt(AOwner, Files, DestPath);
-  Files^.DeleteAll; FreeObject(Files);
+  Files^.DeleteAll; Dispose(Files,Done); Files:=nil;
 end;
 
 end.

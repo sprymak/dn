@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,20 +44,21 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 Unit FmtUnit;
 
 Interface
 
 const
-     DetectDrive : Boolean = True;
-     SystemDisk  : Boolean = False;
-     Uncondition : Boolean = False;
-     Interleave  : Byte    = 1;
-     TCylinders  : Byte    = 80;
-     SecPerT     : Byte    = 15;
-     CurDrive    : Byte    = 0;
-     FormatMode  : Byte    = 0;
+     DetectDrive{: Boolean}= True;
+     SystemDisk {: Boolean}= False;
+     Uncondition{: Boolean}= False;
+     Interleave {: Byte   }= 1;
+     TCylinders {: Byte   }= 80;
+     SecPerT    {: Byte   }= 15;
+     CurDrive   {: Byte   }= 0;
+     FormatMode {: Byte   }= 0;
 type
      PArrOfByte  = ^TArrOfByte;
      TArrOfByte  = array[0..65000] of byte;
@@ -242,7 +243,7 @@ end;
 Procedure SetDrive(MediaByte,Parm : Byte);
 begin
  asm mov ah,17;mov dl,CurDrive;mov al,Parm; int $13;end;
- mem[0:$490+CurDrive]:=MediaByte;
+ mem[seg0040:$90+CurDrive]:=MediaByte;
 end;
 
 Function PrepareFormat : Boolean;
@@ -414,7 +415,7 @@ asm      call CheckDStep
 end;
 
 begin
- if mem[$40:$10] and 1>0 then NumOfDrives:=mem[$40:$10] shr 6+1
+ if mem[seg0040:$10] and 1>0 then NumOfDrives:=mem[seg0040:$10] shr 6+1
                          else NumOfDrives:=0;
  GetIntVec($1E, Old1E); VolumeLabel:='';
 end.

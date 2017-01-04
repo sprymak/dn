@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,21 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit ComLnk;
 
 {$DEFINE CL_PACK}
 
-{$I LINK.INC} interface
+interface
 
 {$A+}
 
-USES LFN; {-DataCompBoy-}
+USES LFN, collect; {-DataCompBoy-}
 
 VAR
     MayLFN    : Boolean; {DataCompBoy}
@@ -358,7 +355,7 @@ function DeltaSent: LongInt;
 var
   MinId: LongInt;
 
-procedure CalcMinId(P: PTransBlock); far;
+procedure CalcMinId(P: PTransBlock); {$IFDEF BIT_16}far;{$ENDIF}
 begin with P^.Hdr do begin
   if (Typ and bt_TypMask) <> bt_Spec then if MinId > Id then MinId := Id;
 end end;
@@ -434,7 +431,8 @@ end;
 
 procedure ShowColl(const s: string; P: PCollection);
 
-procedure ShowIt(P: PTransBlock); far; begin WrHdrNfo(s, P^.Hdr) end;
+procedure ShowIt(P: PTransBlock); {$IFDEF BIT_16}far;{$ENDIF}
+begin WrHdrNfo(s, P^.Hdr) end;
 
 begin
   P^.ForEach(@ShowIt);
@@ -600,7 +598,7 @@ end;
 
 function SpecExist(AType: TCL_BlockType): Boolean;
 
-function IsThis(P: PTransBlock): Boolean; far;
+function IsThis(P: PTransBlock): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
 begin
   IsThis := P^.Hdr.Typ = AType;
 end;
@@ -701,7 +699,8 @@ begin
 end;
 
 function TSortedCL_Coll.Volume: LongInt;
-var V: LongInt; procedure AddVol(Blk: PTransBlock); far; begin Inc(V, DataBufSz(Blk^.Hdr)) end;
+var V: LongInt; procedure AddVol(Blk: PTransBlock); {$IFDEF BIT_16}far;{$ENDIF}
+                begin Inc(V, DataBufSz(Blk^.Hdr)) end;
 begin V := 0; ForEach(@AddVol); Volume := V; end;
 
 function CmpTransHdr(const Hdr1, Hdr2: TTransBlockHeader): Integer;
@@ -1594,7 +1593,7 @@ begin
   end;
 end;
 
-procedure DoSubOK(P: PTransBlock); far;
+procedure DoSubOK(P: PTransBlock); {$IFDEF BIT_16}far;{$ENDIF}
 var H: TTransBlockHeader;
 begin
   H := P^.Hdr; with H do
@@ -1605,7 +1604,7 @@ begin
   end;
 end;
 
-procedure DoFull(P: PTransBlock); far;
+procedure DoFull(P: PTransBlock); {$IFDEF BIT_16}far;{$ENDIF}
 var H: TTransBlockHeader;
 begin
   H := P^.Hdr; with H do AnswerFullResend(RqBegin, RqEnd);
@@ -1750,7 +1749,7 @@ end;
 
 function Uniq(const Blk: TTransBlock): Boolean;
 var
-  Dummy: Integer;
+  Dummy: LongInt;
   uq: Boolean;
   NC: LongInt;
   BI: LongInt;
@@ -1806,7 +1805,7 @@ begin
   WaitNewBlk;
 end;
 
-procedure Collect;
+procedure Collectz;
 const
   ClSize = $1000;
 var
@@ -1983,15 +1982,15 @@ procedure CL_DoneComLink;
 begin
   with Lnk^ do
   begin
-    Dispose(InDirty, Done);
-    Dispose(InClean, Done);
-    Dispose(InSpec, Done);
-    Dispose(OutQueue, Done);
-    Dispose(OutSent, Done);
-    Dispose(OutSpec, Done);
+    Dispose(InDirty,  Done); InDirty  :=nil;
+    Dispose(InClean,  Done); InClean  :=nil;
+    Dispose(InSpec,   Done); InSpec   :=nil;
+    Dispose(OutQueue, Done); OutQueue :=nil;
+    Dispose(OutSent,  Done); OutSent  :=nil;
+    Dispose(OutSpec,  Done); OutSpec  :=nil;
 
-    FreeMem(CollBlk, CollBlkAm);
-    FreeMem(TmpBuf, TmpBufAm);
+    FreeMem(CollBlk, CollBlkAm); CollBlk:=Nil;
+    FreeMem(TmpBuf, TmpBufAm); TmpBuf:=nil;
 
     CL_DoneCOM(Port);
   end;
@@ -2004,7 +2003,7 @@ function NumInSrejs: Integer;
 var
   n: Integer;
 
-procedure CalcSRejs(P: PTransBlock); far;
+procedure CalcSRejs(P: PTransBlock); {$IFDEF BIT_16}far;{$ENDIF}
 begin
   if P^.Hdr.Typ = b_SRej0 then Inc(n);
 end;
@@ -2022,7 +2021,7 @@ var
   P    : PByteArray;
 begin
   {$IFDEF CL_LOG}CL_Statux;{$ENDIF}
-  Collect;
+  Collectz;
   if (NumInSrejs = 0) or (Lnk^.OutQueue^.Count = 0) then ProcessSpecIn;
   FlushQueue;
   P := nil; Size := 0;

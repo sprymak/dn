@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,22 +43,19 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit CmdLine;
 interface
- uses LFN, {DataCompBoy} ccalc, XDblWnd, UserMenu, Gauges,
-      Objects, Views, Drivers;
+ uses LFN, ccalc, XDblWnd, UserMenu, Menus,
+      {$IFDEF TrashCan}Gauges,{$ENDIF} drivers, Objects, Views;
 
 Type
      PCommandLine = ^TCommandLine;
      TCommandLine = object(TView)
       Dir: String;
-      DeltaX, CurX: Integer;
+      DeltaX, CurX: LongInt;
       Overwrite: Boolean;
       LineType: (ltNormal, ltOS2Fullscreen, ltOS2Window, ltTimer);
       constructor Init(R: TRect);
@@ -90,17 +87,19 @@ const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' '];
       StrModified: Boolean = False;
       DDTimer: LongInt = 0;
       TimerMark: Boolean = False;
-      CurString: Integer = 0;
+      CurString: LongInt = 0;
       CmdDisabled: Boolean = False;
 {     CanProcess:  Boolean = True;}
       HideCommandLine: Boolean = False;
       Str: String = '';
+      StrCleared: boolean = False;
 
 
 implementation
  uses Dos, Commands, DNApp, DNStdDlg, Dialogs, advance, advance1, advance2,
-      advance3, Startup, RStrings, xTime, Messages, Idlers, MicroEd, Histries,
-      FViewer;
+      advance3, Startup, RStrings, xTime, Messages, MicroEd, Histries, FViewer
+{$IFDEF SS} ,Idlers{$ENDIF}
+      ;
 
 
 constructor TCommandLine.Init;
@@ -143,7 +142,7 @@ begin
         D^.SetData(MM);
         Application^.ExecView(D);
         D^.GetData(MM);
-        Dispose(D, Done);
+        Dispose(D,Done);
        end;
       UpStr(MM.S);
       if ValidDrive(MM.S[1]) then
@@ -185,12 +184,16 @@ begin
    mov A1, dx
    mov A2, cx
   end;
-  if (SSaver <> nil) or (Size.X = 0) or (Size.Y = 0) or
+  if
+{$IFDEF SS} (SSaver <> nil) or {$ENDIF}
+    (Size.X = 0) or (Size.Y = 0) or
     (Desktop^.GetState(sfActive) and
     (Desktop^.Current <> nil) and
-    (Desktop^.Current^.GetState(sfCursorVis) or Desktop^.Current^.GetState(sfModal)))
+    (Desktop^.Current^.GetState(sfCursorVis) or
+     Desktop^.Current^.GetState(sfModal))) or
+    MenuActive
       then Exit;
-  P.X := CurX + Min(Length(Dir), 49) - DeltaX;
+  P.X := CurX + Min(Length(Dir), 50) - DeltaX;
   P.Y := 0;
   MakeGlobal(P, P);
   BB := not Overwrite  xor (InterfaceData.Options and ouiBlockInsertCursor <> 0);
@@ -207,8 +210,8 @@ begin
         INT     10H
         MOV     AH, 2
         XOR     BX, BX
-        MOV     DL, BYTE PTR P
-        MOV     DH, BYTE PTR P+2
+        MOV     DL, BYTE PTR P.X
+        MOV     DH, BYTE PTR P.Y
         INT     10H
   end;
 end;
@@ -233,17 +236,16 @@ begin
  C1 := $07; if Overwrite then C2 := $4F else C2 := $70;
  if CurX < 0 then CurX := 0;
  if CurX > Length(Str) then CurX := Length(Str);
- if CurX < DeltaX then DeltaX := CurX;
- if CurX - DeltaX > Size.X - Length(Dir) - 1 then
-    DeltaX := CurX - Size.X + Length(Dir) + 1;
+ DeltaX := Max(Length(Str)-(Size.X-Length(S^)-1), 0);
+ If DeltaX > CurX then DeltaX := CurX;
+ if CurX - DeltaX > Size.X - Min(Length(Dir), 50) - 1 then
+    DeltaX := CurX - Size.X + Min(Length(Dir), 50) + 1;
  MoveChar(B, ' ', C1, Size.X);
  MoveStr(B, S^, C3);
- MoveStr(B[Length(S^)], Copy(Str, DeltaX + 1, Size.X - Length(Dir) - 1 ), C1);
- ShowCursor;
+ MoveStr(B[Length(S^)], Copy(Str, DeltaX + 1, Size.X - Length(S^)), C1);
+ if not MenuActive then ShowCursor else HideCursor;
  if Overwrite xor (InterfaceData.Options and ouiBlockInsertCursor <> 0) then BlockCursor
                                                                         else NormalCursor;
- {SetCursor(CurX - DeltaX + Length(Dir),0);
- {if not GetState(sfFocused) then B[CurX - DeltaX + Length(Dir)].A := C2;}
  Update;
  WriteLine(0, 0, Size.X, Size.Y, B);
  Dispose(S)
@@ -267,7 +269,8 @@ procedure TCommandLine.HandleEvent;
      Changed: Boolean;
 begin
  inherited HandleEvent(Event);
- if (Calc<>nil) and (DeskTop^.Current=Calc) then exit;
+ if (CCalc.Calc<>nil) and (Desktop^.Current<>nil) and
+    (DeskTop^.Current=CCalc.Calc) then exit;
  S := Str; Changed := False;
  case Event.What of
   evMouseDown, evMouseAuto: begin
@@ -276,15 +279,16 @@ begin
                    Message(Application, evCommand, cmHistoryList, nil); CE
                  end;
                 MakeLocal(Event.Where, P);
-                if P.X >= Length(Cut(Dir, 50)) then
+                if P.X >= Min(Length(Dir), 50) then
                   if Event.Buttons and mbRightButton <> 0 then
                    begin
-                     if P.X < (Size.X - Length(Dir)) div 2 then Message(@Self, evKeyDown, kbLeft, nil)
-                                                           else Message(@Self, evKeyDown, kbRight, nil);
+                     if P.X < (Size.X - Min(Length(Dir), 50)) div 2
+                      then Message(@Self, evKeyDown, kbLeft, nil)
+                      else Message(@Self, evKeyDown, kbRight, nil);
                      CE2;
                    end else
                    begin
-                     CurX := DeltaX + P.X - Length(Cut(Dir, 50));
+                     CurX := DeltaX + P.X - Min(Length(Dir), 50);
                      CE2
                    end;
                end;
@@ -307,10 +311,10 @@ begin
                                   Message(@Self, evKeyDown, kbUp, nil);
                                  end;
              end;
-  evKeyDown: if (DeskTop^.Current=nil) or
-                (TypeOf((DeskTop^.Current^))=TypeOf(TXDoubleWindow)) or
-                (TypeOf((DeskTop^.Current^))=TypeOf(TUserWindow)) or
-                (TypeOf((DeskTop^.Current^))=TypeOf(TTrashCan))
+  evKeyDown: if (DeskTop^.Current=nil)
+                or (TypeOf((DeskTop^.Current^))=TypeOf(TXDoubleWindow))
+                or (TypeOf((DeskTop^.Current^))=TypeOf(TUserWindow))
+{$IFDEF TrashCan}or (TypeOf((DeskTop^.Current^))=TypeOf(TTrashCan)){$ENDIF}
              then begin
                 if InterfaceData.Options and ouiHideCmdline = 0 then
                 case Event.CharCode of
@@ -337,10 +341,10 @@ begin
                    kbAltSlash: begin
                                  if ShiftState and 3 <> 0 then Dec(LineType)
                                                             else Inc(LineType);
-                                 if not OS210 and (LineType in [ltOS2Window,ltOS2FullScreen]) then
+                                 if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
                                    if ShiftState and 3 <> 0 then Dec(LineType)
                                                               else Inc(LineType);
-                                 if not OS210 and (LineType in [ltOS2Window,ltOS2FullScreen]) then
+                                 if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
                                    if ShiftState and 3 <> 0 then Dec(LineType)
                                                               else Inc(LineType);
                                  if LineType > ltTimer then LineType := ltNormal;
@@ -358,7 +362,15 @@ begin
                    kbESC: begin if (Str = '') and ( InterfaceData.Options and ouiEsc <> 0 )
                                             then Message(Application, evCommand, cmShowUserScreen, nil)
                                             else Str := ''; CurX := 0; DeltaX := 0; CE2 end;
-                   kbBack: begin if CurX > 0 then begin Delete(Str, CurX, 1); Dec(CurX); end; CE2 end;
+                   kbBack: begin
+                            if CurX > 0 then begin
+                             Delete(Str, CurX, 1);
+                             Dec(CurX);
+                             if CurX=0 then StrCleared:=true;
+                             CE2
+                            end;
+                           end;
+                   kbBackUp: StrCleared:=false;
                    kbUp, kbCtrlE: begin
                                   if StrModified then
                                    begin

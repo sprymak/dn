@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit ColorSel;
 
@@ -54,8 +55,8 @@ unit ColorSel;
 
 interface
 
-uses Objects, Drivers, Views, Dialogs, Scroller,  ColorVGA,
-     Messages, Memory, ObjType, advance, advance1, advance2, advance3;
+uses Objects, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
+     advance, advance1, advance2, advance3, drivers;
 
 const
   cmColorForegroundChanged = 71;
@@ -117,7 +118,7 @@ type
   { T_BWSelector }
   P_BWSelector = ^T_BWSelector;
   T_BWSelector = object(TMonoSelector)
-    SelType: TColorSel;               {Is't a selector of Foreground color ?}
+    SelType: TColorSel;               {Is't a selector of Foreground color ? }
     constructor Init (var Bounds: TRect; ASelType: TColorSel; AStrings: PSItem);
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure NewColor;  virtual;
@@ -217,64 +218,6 @@ function MenuColorItems(const Next: PColorItem): PColorItem;
 function DialogColorItems(const Next: PColorItem): PColorItem;
 function WindowColorItems(const Next: PColorItem): PColorItem;
 
-{ Stream registration records }
-
-const
-  RColorSelector: TStreamRec = (
-     ObjType: otColorSelector;
-     VmtLink: Ofs(TypeOf(TColorSelector)^);
-     Load:    @TColorSelector.Load;
-     Store:   @TColorSelector.Store
-  );
-
-const
-  RMonoSelector: TStreamRec = (
-     ObjType: otMonoSelector;
-     VmtLink: Ofs(TypeOf(TMonoSelector)^);
-     Load:    @TMonoSelector.Load;
-     Store:   @TMonoSelector.Store
-  );
-
-const
-  RColorDisplay: TStreamRec = (
-     ObjType: otColorDisplay;
-     VmtLink: Ofs(TypeOf(TColorDisplay)^);
-     Load:    @TColorDisplay.Load;
-     Store:   @TColorDisplay.Store
-  );
-
-const
-  RColorGroupList: TStreamRec = (
-     ObjType: otColorGroupList;
-     VmtLink: Ofs(TypeOf(TColorGroupList)^);
-     Load:    @TColorGroupList.Load;
-     Store:   @TColorGroupList.Store
-  );
-
-const
-  RColorItemList: TStreamRec = (
-     ObjType: otColorItemList;
-     VmtLink: Ofs(TypeOf(TColorItemList)^);
-     Load:    @TColorItemList.Load;
-     Store:   @TColorItemList.Store
-  );
-
-const
-  RColorDialog: TStreamRec = (
-     ObjType: otColorDialog;
-     VmtLink: Ofs(TypeOf(TColorDialog)^);
-     Load:    @TColorDialog.Load;
-     Store:   @TColorDialog.Store
-  );
-
-const
-  R_BWSelector: TStreamRec = (
-     ObjType: otR_BWSelector;
-     VmtLink: Ofs(TypeOf(T_BWSelector)^);
-     Load:    @T_BWSelector.Load;
-     Store:   @T_BWSelector.Store
-  );
-
 implementation
 uses Startup, DNApp, RStrings, Commands, DNUTIL;
 
@@ -345,7 +288,7 @@ const
 var
   MaxCol: Byte;
   Mouse: TPoint;
-  OldColor: Byte;
+  OldColor: LongInt;
 
 procedure ColorChanged;
 var
@@ -354,7 +297,7 @@ begin
   if SelType = csForeground then
     Msg := cmColorForegroundChanged else
     Msg := cmColorBackgroundChanged;
-  Message(Owner, evBroadcast, Msg, Pointer(Color));
+  MessageL(Owner, evBroadcast, Msg, Color);
 end;
 
 begin
@@ -434,10 +377,10 @@ constructor TMonoSelector.Init(var Bounds: TRect; AStrings: PSItem);
 begin
   Options := Options or (ofSelectable + ofFirstClick + ofFramed);
   Inherited Init(Bounds, AStrings);
-   { NewSItem('Нормально',
-    NewSItem('Ярко',
-    NewSItem('Подчеркнуто',
-    NewSItem('Инверсно', nil)))));}
+   { NewSItem('Normal',
+    NewSItem('Bright',
+    NewSItem('Underlined',
+    NewSItem('Reverse', nil)))));}
  { HelpCtx:=hcMonoList;}
   EventMask := EventMask or evBroadcast;
 end;
@@ -476,10 +419,8 @@ end;
 
 procedure TMonoSelector.NewColor;
 begin
-  Message(Owner, evBroadcast, cmColorForegroundChanged,
-    Pointer(Value and $0F));
-  Message(Owner, evBroadcast, cmColorBackgroundChanged,
-    Pointer((Value shr 4) and $0F));
+  MessageL(Owner, evBroadcast, cmColorForegroundChanged, Value and $0F);
+  MessageL(Owner, evBroadcast, cmColorBackgroundChanged, (Value shr 4) and $0F);
 end;
 
 procedure TMonoSelector.Press(Item: Integer);
@@ -544,12 +485,9 @@ end;
 
 procedure T_BWSelector.NewColor;
 begin
-  if SelType=csForeground  then
-    Message(Owner, evBroadcast, cmColorForegroundChanged,
-      Pointer(Value and $0F))
-   else
-    Message(Owner, evBroadcast, cmColorBackgroundChanged,
-     Pointer(Value and $0F));
+  if SelType=csForeground
+   then MessageL(Owner, evBroadcast, cmColorForegroundChanged, Value and $0F)
+   else MessageL(Owner, evBroadcast, cmColorBackgroundChanged, Value and $0F);
 end;
 
 
@@ -611,7 +549,7 @@ end;
 procedure TColorDisplay.SetColor(var AColor: Byte);
 begin
   Color := @AColor;
-  Message(Owner, evBroadcast, cmColorSet, Pointer(Color^));
+  MessageL(Owner, evBroadcast, cmColorSet, Color^);
   DrawView;
 end;
 
@@ -891,14 +829,15 @@ var
   CurItem: PColorItem;
 begin
   TListViewer.FocusItem(Item);
-  Message(Owner, evBroadcast, cmSaveColorIndex, Pointer(Item));
+  MessageL(Owner, evBroadcast, cmSaveColorIndex, Item);
   CurItem := Items;
   while Item > 0 do
   begin
-    CurItem := CurItem^.Next;
+    If CurItem<>nil then CurItem := CurItem^.Next;
     Dec(Item);
   end;
-  Message(Owner, evBroadcast, cmNewColorIndex, Pointer(CurItem^.Index));
+  If CurItem<>nil then
+   MessageL(Owner, evBroadcast, cmNewColorIndex, CurItem^.Index);
 end;
 
 function TColorItemList.GetText(Item: Integer; MaxLen: Integer): String;
@@ -1068,7 +1007,7 @@ begin
   Display := New(PColorDisplay, Init(R, NewStr(' '+FreeStr)));
   Insert(Display);
 
-  if (AGroups <> nil) and (AGroups^.Items <> nil) then
+  if (Display <> nil) and (AGroups <> nil) and (AGroups^.Items <> nil) then
     Display^.SetColor(Byte(Pal[AGroups^.Items^.Index]));
 
   IX := GroupWidth + ItemsWidth - 39;
@@ -1487,8 +1426,7 @@ begin
     ColorItem('List selected',     Offset + 27,
     ColorItem('List divider',      Offset + 28,
 
-    ColorItem('Information panel', Offset + 29,
-    Next)))))))))))))))))))))))))))))));
+    Next))))))))))))))))))))))))))))));
 end;
 
 function WindowColorItems;

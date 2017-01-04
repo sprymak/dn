@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,20 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 unit UserMenu;
 
 interface
-uses Objects, Views, Scroller, Drivers, ObjType, FilesCol, LFNCol;
+uses Objects, Views, Scroller, Drivers, FilesCol, LFNCol, Collect,
+       SBlocks;
+
+var QuickExecExternalStr: string;
 
 function QuickExecExternal(N: Integer): Boolean;
 function ExecUserMenu(DoGlobal: Boolean): Boolean;
 procedure ScreenGrabber(ShowMessage: Boolean);
-function MakeString(S: String; UserParams: PUserParams; HandleTildes: boolean): String;
+function MakeString(S: String; UserParams: PUserParams;
+                    HandleTildes: boolean; TM: PString): String;
 
 type
      PUserView = ^TUserView;
@@ -77,20 +78,6 @@ type
      end;
 
 const RunFrom2E : Boolean = False;
-
-
-const
-      RUserWindow: TStreamRec = (
-       ObjType: otUserWindow;
-       VmtLink: Ofs(TypeOf(TUserWindow)^);
-       Load: @TUserWindow.Load;
-       Store: @TUserWindow.Store);
-
-      RUserView: TStreamRec = (
-       ObjType: otUserView;
-       VmtLink: Ofs(TypeOf(TUserView)^);
-       Load: @TUserView.Load;
-       Store: @TUserView.Store);
 
 implementation
 uses LFN, {DataCompBoy}
@@ -211,7 +198,7 @@ begin
 end;
 
         {-DataCompBoy-}
-function MakeString(S: String; UserParams: PUserParams; HandleTildes: boolean): String;
+function MakeString(S: String; UserParams: PUserParams; HandleTildes: boolean; TM: PString): String;
 var ts: string;
     tz: string;
     zs: string[1];
@@ -224,8 +211,12 @@ begin
 
   if (Pos('!\',S)>0) or (Pos('!:',S)>0) or (Pos('!/',S)>0) then
    begin
-    ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
-     UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
+    if UserParams^.Active = nil then ts := '' {KSNK}
+    else
+    if UserParams^.Active^.Name[1]='.'
+    then ts:=MakeNormName(lfGetShortFileName(UserParams^.Active^.Owner^),'')
+    else ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
+      UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('!:', Copy(ts,1,2), S);
     Replace('!\', zs+Copy(ts,3,255)+zs, S);
@@ -234,7 +225,11 @@ begin
 
   if (Pos('#\',S)>0) or (Pos('#:',S)>0) or (Pos('#/',S)>0) then
    begin
-    ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
+    if UserParams^.Active = nil then ts := '' {KSNK}
+    else
+    if UserParams^.Active^.Name[1]='.'
+    then ts:=MakeNormName(lfGetLongFileName(UserParams^.Active^.Owner^),'')
+    else ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
      UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('#:', Copy(ts,1,2), S);
@@ -244,7 +239,11 @@ begin
 
   if (Pos('$\',S)>0) or (Pos('$:',S)>0) or (Pos('$/',S)>0) then
    begin
-    ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
+    if UserParams^.Passive = nil then ts := '' {KSNK}
+    else
+    if UserParams^.Passive^.Name[1]='.'
+    then ts:=MakeNormName(lfGetShortFileName(UserParams^.Passive^.Owner^),'')
+    else ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('$:', Copy(ts,1,2), S);
@@ -254,7 +253,11 @@ begin
 
   if (Pos('&\',S)>0) or (Pos('&:',S)>0) or (Pos('&/',S)>0) then
    begin
-    ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
+    if UserParams^.Passive = nil then ts := '' {KSNK}
+    else
+    if UserParams^.Passive^.Name[1]='.'
+    then ts:=MakeNormName(lfGetLongFileName(UserParams^.Passive^.Owner^),'')
+    else ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('&:', Copy(ts,1,2), S);
@@ -266,6 +269,8 @@ begin
    begin
     if (Pos(#5'A', S)>0) or (Pos(#5'a', S)>0) then
      begin
+      if UserParams^.Active = nil then ts := '' {KSNK}
+      else
       ts:=GetAttrStr(UserParams^.Active^.Attr);
       Replace(#5'A', ts, S);
       Replace(#5'a', ts, S);
@@ -273,6 +278,8 @@ begin
 
     if (Pos(#5'C', S)>0) or (Pos(#5'c', S)>0) then
      begin
+      if UserParams^.Active = nil then ts := '' {KSNK}
+      else
       if UserParams^.Active^.Attr and Directory<>0
        then ts:=''
        else ts:=ZtoS(UserParams^.Active^.PSize);
@@ -282,6 +289,8 @@ begin
 
     if (Pos(#5'D', S)>0) or (Pos(#5'd', S)>0) then
      begin
+      if UserParams^.Active = nil then ts := '' {KSNK}
+      else
       with UserParams^.Active^ do
        MakeDateFull(CountryInfo.DateFmt,Day,Month,Yr,Hour,Minute,ts,True);
       ts[0] := #10;
@@ -291,6 +300,8 @@ begin
 
     if (Pos(#5'R', S)>0) or (Pos(#5'r', S)>0) then
      begin
+      if UserParams^.Active = nil then ts := '' {KSNK}
+      else
       ts:=ItoS(round(((UserParams^.Active^.PSize/UserParams^.Active^.Size)*100)+0.5))+'%';
       Replace(#5'R', ts, S);
       Replace(#5'r', ts, S);
@@ -298,6 +309,8 @@ begin
 
     if (Pos(#5'S', S)>0) or (Pos(#5's', S)>0) then
      begin
+      if UserParams^.Active = nil then ts := '' {KSNK}
+      else
       if UserParams^.Active^.Attr and Directory<>0
        then ts:=''
        else ts:=ZtoS(UserParams^.Active^.Size);
@@ -307,6 +320,8 @@ begin
 
     if (Pos(#5'T', S)>0) or (Pos(#5't', S)>0) then
      begin
+      if UserParams^.Active = nil then ts := '' {KSNK}
+      else
       with UserParams^.Active^ do
        ts:=FormatTimeStr(Hour, Minute, Second);
       Replace(#5'T', ts, S);
@@ -315,11 +330,23 @@ begin
 
     if (Pos(#5'Z', S)>0) or (Pos(#5'z', S)>0) then
      begin
+      if UserParams^.Active = nil then ts := '' {KSNK}
+      else
       if (UserParams^.Active^.DIZ<>nil) and (UserParams^.Active^.DIZ^.DIZ<>nil)
        then ts:=UserParams^.Active^.DIZ^.DIZ^ else ts:='';
       Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
       Replace(#5'Z', ts, S);
       Replace(#5'z', ts, S);
+     end;
+
+    if (Pos(#5'F', S)>0) or (Pos(#5'f', S)>0) then
+     begin
+      ts := MakeNormName(lfGetShortFileName(SwpDir),
+                         GetName(CalcTmpFName(CalcTmpId, 'flt', True)));
+      if TM<>nil then TM^:=ts;
+      Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+      Replace(#5'F', ts, S);
+      Replace(#5'f', ts, S);
      end;
    end;
 
@@ -327,6 +354,8 @@ begin
    begin
     if (Pos(#6'A', S)>0) or (Pos(#6'a', S)>0) then
      begin
+      if UserParams^.Passive = nil then ts := '' {KSNK}
+      else
       ts:=GetAttrStr(UserParams^.Passive^.Attr);
       Replace(#6'A', ts, S);
       Replace(#6'a', ts, S);
@@ -334,6 +363,8 @@ begin
 
     if (Pos(#6'C', S)>0) or (Pos(#6'c', S)>0) then
      begin
+      if UserParams^.Passive = nil then ts := '' {KSNK}
+      else
       if UserParams^.Passive^.Attr and Directory<>0
        then ts:=''
        else ts:=ZtoS(UserParams^.Passive^.PSize);
@@ -343,6 +374,8 @@ begin
 
     if (Pos(#6'D', S)>0) or (Pos(#6'd', S)>0) then
      begin
+      if UserParams^.Passive = nil then ts := '' {KSNK}
+      else
       with UserParams^.Passive^ do
        MakeDateFull(CountryInfo.DateFmt,Day,Month,Yr,Hour,Minute,ts,True);
       ts[0] := #10;
@@ -352,6 +385,8 @@ begin
 
     if (Pos(#6'R', S)>0) or (Pos(#6'r', S)>0) then
      begin
+      if UserParams^.Passive = nil then ts := '' {KSNK}
+      else
       ts:=ItoS(round(((UserParams^.Passive^.PSize/UserParams^.Passive^.Size)*100)+0.5))+'%';
       Replace(#6'R', ts, S);
       Replace(#6'r', ts, S);
@@ -359,6 +394,8 @@ begin
 
     if (Pos(#6'S', S)>0) or (Pos(#6's', S)>0) then
      begin
+      if UserParams^.Passive = nil then ts := '' {KSNK}
+      else
       if UserParams^.Passive^.Attr and Directory<>0
        then ts:=''
        else ts:=ZtoS(UserParams^.Passive^.Size);
@@ -368,6 +405,8 @@ begin
 
     if (Pos(#6'T', S)>0) or (Pos(#6't', S)>0) then
      begin
+      if UserParams^.Passive = nil then ts := '' {KSNK}
+      else
       with UserParams^.Passive^ do
        ts:=FormatTimeStr(Hour, Minute, Second);
       Replace(#6'T', ts, S);
@@ -376,6 +415,8 @@ begin
 
     if (Pos(#6'Z', S)>0) or (Pos(#6'z', S)>0) then
      begin
+      if UserParams^.Passive = nil then ts := '' {KSNK}
+      else
       if (UserParams^.Passive^.DIZ<>nil) and (UserParams^.Passive^.DIZ^.DIZ<>nil)
        then ts:=UserParams^.Passive^.DIZ^.DIZ^ else ts:='';
       Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
@@ -386,6 +427,8 @@ begin
 
   if (PosChar('!', S)>0) then
    begin
+    if UserParams^.Active = nil then ts := '' {KSNK}
+    else
     ts:=UserParams^.Active^.Name;
     ts[9]:='.';
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
@@ -396,6 +439,8 @@ begin
 
   if (PosChar('$', S)>0) then
    begin
+    if UserParams^.Passive = nil then ts := '' {KSNK}
+    else
     ts:=UserParams^.Passive^.Name;
     ts[9]:='.';
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
@@ -406,6 +451,8 @@ begin
 
   if (PosChar('#', S)>0) then
    begin
+    if UserParams^.Active = nil then ts := '' {KSNK}
+    else
     ts:=GetLFN(UserParams^.Active^.LFN);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     tz:=GetExt(ts); if tz='.' then tz:='';
@@ -415,6 +462,8 @@ begin
 
   if (PosChar('&', S)>0) then
    begin
+    if UserParams^.Passive = nil then ts := '' {KSNK}
+    else
     ts:=GetLFN(UserParams^.Passive^.LFN);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     tz:=GetExt(ts); if tz='.' then tz:='';
@@ -466,7 +515,7 @@ function ExecUserMenu;
 
  var MenuLast: PMenuItem;
 
- function DoSubMenu: PMenuItem;
+ function DoSubMenu(Main: boolean): PMenuItem;
    var P1, P2: PMenuItem;
        UI,PU: PUSerMenuItem;
        KB: Word;
@@ -488,11 +537,12 @@ function ExecUserMenu;
      PU := P^.At(I);
      MenuLast := P1;
      if PU^.Level < UI^.Level then begin Dec(I); Exit; end;
-     if PU^.Level > UI^.Level then begin P1^.SubMenu := NewMenu(DoSubMenu); P1^.Command := 0; end
+     if PU^.Level > UI^.Level then begin P1^.SubMenu := NewMenu(DoSubMenu(False)); P1^.Command := 0; end
       else begin
              if PU^.Text <> nil then
                  P1^.Next := NewItem(PU^.Text^, '', CheckFKeys(PU^.Text^), 1000 + I,
                                  hcLUserMenu+Byte(DoGlobal), nil) else P1^.Next := NewLine(nil);
+             if Main then inc(NI);
              P1 := P1^.Next;
            end;
      MenuLast := P1;
@@ -552,9 +602,9 @@ begin
      if (StoI(S1) > 0) then
       begin
        New(UI);
-       S := MakeString(S, @UserParams, on);
+       S := MakeString(S, @UserParams, on, nil);
        UI^.Text := NewStr(S);
-       if Length(S) > NW then NW := Length(S);
+       if CStrLen(S) > NW then NW := CStrLen(S);
        UI^.Line := I;
        UI^.Level := StoI(S1);
        UI^.RunFrom2E := RF2E;
@@ -563,20 +613,22 @@ begin
     end;
   end;
  S := F^.FileName;
- Dispose(F, Done);
+ Dispose(F,Done);
  if P^.Count > 0 then
   begin
    StartPos := -1;
    repeat
-     I := 0; OItems := nil; SItems := nil; NI := 2;
-     SItems := DoSubMenu;
+     I := 0; OItems := nil; SItems := nil; NI := 3;
+     SItems := DoSubMenu(On);
      if SItems = nil then Break;
      Menu := NewMenu(SItems);
-     R.Assign(0,0,NW+8,NI);
+     Application^.GetExtent(R);
+     R.A.X:=0; R.B.X:=NW+8;
+     R.B.Y:=Min(R.B.Y, NI);
      PV := New(PMenuBox, Init(R, Menu, nil));
      PV^.Options := PV^.Options or ofCentered;
-     I := DeskTop^.ExecView(PV);
-     Dispose(PV, Done);
+     I := Application^.ExecView(PV);
+     Dispose(PV,Done);
      DisposeMenu(Menu);
      if I < 1000 then
       begin
@@ -620,7 +672,7 @@ begin
                      DelFC(S);
                      if (S <> '') and (S[1] = '=') then
                       begin DelFC(S);
-{Knave 29.08.99}      S := MakeString(S, @UserParams, off);
+{Knave 29.08.99}      S := MakeString(S, @UserParams, off, nil);
                       DefStr := S;
                       end
                       else
@@ -631,17 +683,17 @@ begin
                      Continue;
                     end;
               EnterParms := EnterParms or (Pos('%3', S) > 0);
-              WriteLn(F1.T, MakeString(S, @UserParams, off));
+              WriteLn(F1.T, MakeString(S, @UserParams, off, nil));
               RunFrom2E := UI^.RunFrom2E;
             end;
          end;
          Close(F1.T);
-         Dispose(F, Done);
+         Dispose(F,Done);
          Break;
         end;
    until False;
   end;
- Dispose(P, Done);
+ Dispose(P,Done);
  FreeStr := DefStr;
  if TitleStr = '' then TitleStr := GetString(dlMenuParamLabel);
  if EnterParms then
@@ -652,6 +704,7 @@ begin
    if PassiveList = '' then PassiveList := '-';
    FreeStr := ActiveList + ' ' + PassiveList + ' ' + FreeStr;
   end;
+ EraseFile(SwpDir+'$dn'+ItoS(DNNumber)+'$.mnu');
 end;
         {-DataCompBoy-}
 
@@ -689,7 +742,7 @@ begin
   B := MsgActive; MsgActive := Off;
   P := New(PGrabber, Init);
   Application^.ExecView(P);
-  Dispose(P, Done);
+  Dispose(P,Done);
   Here := Off;
   MsgActive := B;
 end;
@@ -724,7 +777,10 @@ procedure TGrabber.Draw;
  var B: TDrawBuffer;
      I: Integer;
 
-      procedure Invert(var B; K: integer); assembler;
+      procedure Invert(var B; K: integer);
+{$IFDEF FPC} begin end;
+{$ELSE}
+       assembler;
        asm
          mov cx, K
          les bx, B
@@ -739,6 +795,7 @@ procedure TGrabber.Draw;
          add bx, 2
          loop @@1
        end;
+{$ENDIF}
 begin
   with R do
    begin
@@ -777,21 +834,28 @@ procedure TGrabber.HandleEvent;
   procedure CED; begin ClearEvent(Event); DrawView end;
 
   procedure MakeClip;
-    var I, J: Integer;
-        S: String;
+  var
+    I, J: Integer;
+    S: String;
+    C: Char;
   begin
-    if Clipboard <> nil then Dispose(Clipboard, Done);
+    if Clipboard <> nil then Dispose(Clipboard,Done);
     Clipboard := New(PLineCollection, Init(R.B.Y - R.A.Y,10));
-    for I := R.A.Y to R.B.Y-1 do
-     begin
-       S := '';
-       for J := R.A.X to R.B.X-1 do S := S+Char(WordRec(Screen^[I*Size.X+J]).Lo);
-       Clipboard^.Insert(NewStr(S));
-     end;
+    for I:=R.A.Y to R.B.Y-1 do
+    begin
+      S:='';
+      for J:=R.A.X to R.B.X-1 do begin
+        C:=Char(WordRec(Screen^[I*Size.X+J]).Lo);
+        if C=#0 then C:=' ';
+        S:=S+C;
+      end;
+      Clipboard^.Insert(NewStr(S));
+    end;
     if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
+    if ClipBoardStream<>nil
+     then ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-1, 0));
     CopyLines2Stream(Clipboard, ClipBoardStream);
-  end;
-
+   end;
 
 begin
   B := On;
@@ -880,7 +944,7 @@ begin
           if StoI(DelSpaces(Copy(TitleStr, 2+Byte(OS2<>#0), 255))) = N then Goto 1;
         end;
     end;
-  Dispose(F, Done);
+  Dispose(F,Done);
   if Local then Goto RL;
   Exit;
 1:
@@ -903,7 +967,7 @@ begin
   lAssignText(F1, FreeStr); ClrIO;
   lRewriteText(F1);
 
-  if IOResult <> 0 then begin Dispose(F, Done); Exit end;
+  if IOResult <> 0 then begin Dispose(F,Done); Exit end;
   WriteLn(F1.T, '@Echo off');
 
   if OS2 <> #0 then
@@ -915,7 +979,6 @@ begin
 
   TitleStr := ''; DefStr := ''; EnterParms := Off;
   Message(Desktop, evBroadcast, cmGetUserParams, @UserParams); ClrIO;
-  WriteLn(F1.T, '@Echo off');
   while not F^.EOF do
    begin
      S := F^.GetStr;
@@ -930,7 +993,7 @@ begin
              DelFC(S);
              if (S <> '') and (S[1] = '=') then
                       begin DelFC(S);
-{Knave 29.08.99}      S := MakeString(S, @UserParams, off);
+{Knave 29.08.99}      S := MakeString(S, @UserParams, off, nil);
                       DefStr := S;
                       end
               else
@@ -941,7 +1004,7 @@ begin
              Continue;
             end;
          EnterParms := EnterParms or (Pos('%3', S) > 0);
-         WriteLn(F1.T, MakeString(S, @UserParams, off));
+         WriteLn(F1.T, MakeString(S, @UserParams, off, nil));
        end;
 
 with UserParams do
@@ -952,7 +1015,7 @@ with UserParams do
 
   Write(F1.T, '@DEL ', FreeStr);
   Close(F1.T);
-  Dispose(F, Done);
+  Dispose(F,Done);
 
   if OS2<>#0 then S := Os2 + 'call ' + FreeStr
              else S :=FreeStr ;
@@ -965,7 +1028,7 @@ with UserParams do
    begin
     if ActiveList = '' then ActiveList := '-';
     if PassiveList = '' then PassiveList := '-';
-    FreeStr := S + ' ' + ActiveList + ' ' + PassiveList + ' ' + DefStr;
+    QuickExecExternalStr := S + ' ' + ActiveList + ' ' + PassiveList + ' ' + DefStr;
    end;
 
 end;

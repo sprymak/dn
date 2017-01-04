@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,16 +43,13 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT ERASER;
 
 interface
-uses Objects, LFNCol;
+uses Objects, LFNCol, filediz, Collect;
 
  procedure EraseFiles(Files: PCollection);
  procedure SetVLabel;
@@ -100,6 +97,7 @@ procedure EraseFiles;
       Tmr: TEventTimer;
       I, J: Integer;
       S, Dr : string;
+      ch: char;
       F: lFile;
       DOSMode, DirEnd, DirModified: Boolean;
       PF: PFileRec;
@@ -205,7 +203,7 @@ procedure EraseFiles;
       end else Break;
     end;
    DC^.FreeAll;
-   Dispose(DC, Done);
+   Dispose(DC,Done);
    DOSDelDir:=not Abort;
    If not Abort then
     while TD^.Count>0 do
@@ -217,7 +215,7 @@ procedure EraseFiles;
       TD^.AtFree(0);
      end;
    TD^.FreeAll;
-   Dispose(TD, Done);
+   Dispose(TD,Done);
   end;
 
   var  nxt,fs : Word;
@@ -348,24 +346,24 @@ begin
       begin
        DirCluster := Drv^.GetPath(S);
        DirSize := Max(Drv^.ClusterSize(DirCluster), Drv^.ClusterSize(2));
-       if DirCluster = $FFFF then begin Dispose(Drv, Done); DOSMode := On; end
+       if DirCluster = $FFFF then begin Dispose(Drv,Done); DOSMode := On; end
         else
          begin
           Drv^.FreeFAT; Dir := MemAlloc(DirSize);
           Drv^.SeekFAT(0);
           if (Drv^.FAT = nil) or Abort then
            begin Abort := Off; FreeMem(Dir, DirSize);
-                 Dispose(Drv, Done); DOSMode := On; end else
+                 Dispose(Drv,Done); DOSMode := On; end else
            begin
             Drv^.ClusterRead(Dir^, DirCluster);
             if Abort then begin Abort := Off; FreeMem(Dir, DirSize);
-                                Dispose(Drv, Done); DOSMode := On; end
+                                Dispose(Drv,Done); DOSMode := On; end
            end;
          end;
     end;
    end;
 
-  if Abort then begin Dispose(PInfo, Done); Exit end;
+  if Abort then begin Dispose(PInfo,Done); Exit end;
   Inc(SkyEnabled);
   Desktop^.Insert(PInfo);
 
@@ -437,7 +435,11 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
         begin
          if Abort then Break;
          PF := Files^.At(J-1); S := UpStrg(MakeFileName(PF^.Name)); Delete(S, 9, 1);
+{$IFNDEF FPC}
          if StrEq(S[1], Dir^[I].Name, 11) then
+{$ELSE}
+         if S=Dir^[I].Name then
+{$ENDIF}
           begin
            {Files^.AtDelete(J-1);}
            S := MakeFileName(PF^.Name);
@@ -480,7 +482,7 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
         if (DirCluster >= EndM) then DirEnd := On else Drv^.ClusterRead(Dir^, DirCluster);
        end;
     end;
-   Dispose(Drv, Done);
+   Dispose(Drv,Done);
    FreeMem(Dir, DirSize);
   end;
 
@@ -492,14 +494,15 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
   begin
     PInfo^.ClearInterior;
     InfoWrite(1, GetString(dlFlushingBuffers));
-  end else FreeObject(PInfo);
+  end else Dispose(PInfo,Done);
 
   for I := 0 to Files^.Count-1 do
       DrivesSet := [UpCase(PFileRec(Files^.At(I))^.Owner^[1])] + DrivesSet;
   S := 'A:\';
-  for S[1] := 'A' to 'Z' do
-    if S[1] in DrivesSet then
+  for ch := 'A' to 'Z' do
+    if ch in DrivesSet then
       begin
+        S[1]:=ch;
         GlobalMessage(evCommand, cmRereadTree, @S);
         RereadDirectory(S);
       end;
@@ -510,7 +513,7 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
      mov ah, 0dh
      int 21h
     end;
-    FreeObject(PInfo);
+    Dispose(PInfo,Done);
   end;
   Dec(SkyEnabled);
 end;
@@ -536,7 +539,7 @@ begin
     New(Drv, Init(Byte(S1[1])-64, False));
     if Drv = nil then Exit;
     Drv^.SetVLabel(S);
-    Dispose(Drv, Done);
+    Dispose(Drv,Done);
     GlobalMessage(evCommand, cmRereadInfo, nil);
   end
 end;

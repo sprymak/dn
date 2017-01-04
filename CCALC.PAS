@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,18 +44,16 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT CCalc;
 
 interface
 
-uses advance, advance1, advance2, advance3, Par, RStrings, DNApp, Dialogs,
-     Views, Objects, Drivers, Commands, HistList, DNHelp, ObjType;
+uses advance, advance1, advance2, advance3, calculator, RStrings, DNApp,
+     Dialogs, Views, Objects, Drivers, Commands, HistList, DNHelp;
 
 type
-     Real  =  Extended;
-     PReal = ^Real;
-
      PCalcLine = ^TCalcLine;
      TCalcLine = object(TInputLine)
         ResultSelected: Boolean;
@@ -68,27 +66,13 @@ type
 
      PIndicator = ^TIndicator;
      TIndicator = object(TView)
-       Error: Boolean;
-       Value: Real;
+       CalcError: Boolean;
+       Value: CReal;
        constructor Init(var R: TRect);
        procedure HandleEvent(var Event: TEvent); virtual;
        procedure Draw; virtual;
        function GetPalette: PPalette; virtual;
      end;
-
-const
-      RCalcLine: TStreamRec = (
-       ObjType: otCalcLine;
-       VmtLink: Ofs(TypeOf(TCalcLine)^);
-       Load: @TCalcLine.Load;
-       Store: @TCalcLine.Store);
-
-      RIndicator: TStreamRec = (
-       ObjType: otIndicator;
-       VmtLink: Ofs(TypeOf(TIndicator)^);
-       Load: @TIndicator.Load;
-       Store: @TIndicator.Store);
-
 
 procedure InsertCalc;
 
@@ -96,274 +80,11 @@ Const Calc: PView = nil;
 
 implementation
 
-var Error: Boolean;
-
-procedure CalcError(NError: TStrIdx);
-begin
-  Error := True;
-end;
-
-function GetCellValue(S: String): Real;
- var C: Char;
-     L: LongInt;
-     B: Byte absolute S;
-
- procedure GetValue(N: Integer);
-  var I: Integer;
-      C: Char;
-      K,M: LongInt;
- begin
-   L := 0; M := 1;
-   for I := 0 to B-1 do
-    begin
-      C := S[B-I];
-      if (C>='0') and (C<='9') then K := Byte(C)-48 else
-        if (C>='A') and (C<='F') then K := Byte(C)-55 else
-          begin Error := On; Exit; end;
-      if K > N - 1 then begin Error := On; Exit; end;
-      L := L + K * M;
-      M := M * N;
-    end;
- end;
-
-begin
- UpStr(S);
- if S = 'PI' then
-   begin GetCellValue := PI; Exit end;
- if (S[1] = '@') and (B > 2) and (S[2] in ['H','B','O']) then
-   begin
-      C := UpCase(S[2]); Delete(S, 1, 2);
-      case C of
-        'H': GetValue(16);
-        'B': GetValue(2);
-        'O': GetValue(8);
-      end;
-      GetCellValue := L;
-   end else Error := True;
-end;
-
-Function CalcFormulaTree(P: FPtr) : Real;
-
-   Function GetFuncValue(P: FPtr) : Real;
-    var I: Integer;
-        R, R1, R2: Real;
-        S: String;
-   begin
-    S := UpCaseStr(P^.Name); GetFuncValue := 0;
-    if S = 'IF' then
-     begin
-      if (P^.ParamsNum < 2) or (P^.ParamsNum > 3) then
-       begin CalcError(erInvalidIF); Exit; end;
-      R := 0; R1 := CalcFormulaTree(P^.Params^[1]); if Error then Exit;
-      if (P^.ParamsNum = 2) then begin if R1 <> 0 then R := CalcFormulaTree(P^.Params^[2]) end
-       else if R1 <> 0 then R := CalcFormulaTree(P^.Params^[2])
-                       else R := CalcFormulaTree(P^.Params^[3]);
-      GetFuncValue := R; Exit
-     end;
-    if P^.ParamsNum = 1 then
-     begin
-      R := CalcFormulaTree(P^.Params^[1]);
-      if not Error then
-      begin
-        If S='RAD' then begin GetFuncValue:=(R*180)/PI; Exit end;
-        If S='GRAD' then begin GetFuncValue:=(R*PI)/180; Exit end;
-        If S='COS' then begin GetFuncValue:=Cos(R); Exit end;
-        If S='SIN' then begin GetFuncValue:=Sin(R); Exit end;
-        If S='SQR' then begin GetFuncValue:=R * R; Exit end;
-
-        IF ((S='ASIN') or (S='ARCSIN')) then
-         begin
-          if (R=1) then begin GetFuncValue:=PI/2; Exit; end;
-          if (1-Sqr(R)>0) then GetFuncValue:=ArcTan(R/Sqrt(1-Sqr(R)))
-          else Error := On; Exit end;
-        IF ((S='ACOS') or (S='ARCCOS')) then
-         begin
-          if (R=0) then begin GetFuncValue:=PI/2; Exit; end;
-          if ((R<>0) and (1-Sqr(R)>=0)) then GetFuncValue:=ArcTan(Sqrt(1-Sqr(R))/R)
-          else Error := On; Exit end;
-
-        IF (S='SEC') then
-         begin if (Cos(R)<>0) then GetFuncValue:=1/Cos(R) else Error := On; Exit end;
-        IF (S='COSEC') then
-         begin if (Sin(R)<>0) then GetFuncValue:=1/Sin(R) else Error := On; Exit end;
-
-        IF (S='FACT') then
-         begin
-          If (R < 0) then begin Error := On; Exit; end;
-          If (R = 0) then begin GetFuncValue := 1; Exit; end;
-          If (R < 32) then
-           begin
-            R2 := 1;
-            for I := 1 to trunc(R) do
-             R2 := R2 * I;
-            GetFuncValue := R2;
-           end
-         else Error := On; Exit end;
-
-        If (S='SQRT') then
-         begin if (R >= 0) then GetFuncValue:=Sqrt(R) else Error := On; Exit end;
-        If (S='LN') then
-         begin if (R > 0) then GetFuncValue:=Ln(R) else Error := On; Exit end;
-        If (S='LG') then
-         begin if (R > 0) then GetFuncValue:=Ln(R)/Ln(10) else Error := On; Exit end;
-        If ((S='TAN') or (S='TG')) then
-         begin if (cos(R) <> 0) then GetFuncValue:=Sin(R)/Cos(R) else Error := On; Exit end;
-        If S='ARCTAN' then begin GetFuncValue:=ArcTan(R); Exit end;
-        If (S='EXP') then
-        begin
-          if (Abs(R) < 88.0) then GetFuncValue:=Exp(R) else Error := On;
-          Exit;
-        end;
-        If (S='CTAN') or (S='CTG') or (S='COTAN') then
-         begin if (Sin(R) <> 0) then GetFuncValue:=Cos(R)/Sin(R) else Error := On; Exit end;
-        If S='SIGN' then
-         begin if R = 0 then GetFuncValue:=0 else
-               if R < 0 then GetFuncValue := -1
-                        else GetFuncValue := 1; Exit end;
-       end;
-      end else
-     if P^.ParamsNum = 2 then
-      begin
-       R := CalcFormulaTree(P^.Params^[1]);
-       R1 := CalcFormulaTree(P^.Params^[2]);
-       if not Error then
-       begin
-        If (S='LOG') then
-         begin if ((R1 > 0) and (R <> 1) and (R > 0))
-            then GetFuncValue:=Ln(R1)/Ln(R) else Error := On; Exit end;
-       end;
-      end;
-
-    CalcError(erInvalidFunction);
-   end;
-
-
- var   R,R1 : Real;
-       J, Y1, Y2: Integer;
-       X1, X2: Byte;
-       BB: Boolean;
-
- procedure FormulaError;
- begin
-  {CalcError(erInvalidFormula)}
-   Error := True;
- end;
-
-begin
- CalcFormulaTree:=0; if Error then Exit;
- if p=Nil then Exit;
- if (p^.Tp=opFunc)
-    then begin
-          R:=GetFuncValue(P);
-          CalcFormulaTree := R;
-          Exit;
-         end;
- if (p^.Tp=opValue) then
-  begin
-   Val(p^.Name,R,J);
-   if J>0 then CalcError(erInvalidValue);
-   CalcFormulaTree:=R; Exit;
-  end;
-  if (p^.Tp=opCell) then
-   begin
-    R := GetCellValue(p^.Name);
-    CalcFormulaTree := R; Exit;
-   end;
-  if (p^.Tp=opSign) then
-   begin
-    if (p^.Name[0] > #2) or (p^.Name = #0) {or (p^.Right = nil) or
-       (not (p^.Name[1] in UnarySigns) and (p^.Left =nil))}  then
-     begin FormulaError; Exit end;
-    if P^.Right = nil then
-      begin
-       CalcFormulaTree := CalcFormulaTree(p^.Left);
-       Exit;
-     end;
-    R:=CalcFormulaTree(p^.Left);
-    R1:=CalcFormulaTree(p^.Right);
-    if Error then Exit;
-    if p^.Name[0] = #1 then
-    begin
-     Case p^.Name[1] of
-      '+' : R:=R+R1;
-      '-' : R:=R-R1;
-      '*' : if (Abs(R) > 1) then
-                if (1e38/Abs(R) < Abs(R1)) then FormulaError else R:=R*R1
-              else
-                if (Abs(R1) > 1) and (1e38/Abs(R1) < Abs(R)) then FormulaError else R:=R*R1;
-      '|' : if (Abs(R) <= $7FFFFFFF) and (Abs(R1) <= $7FFFFFFF) then
-              R := Trunc(R) or Trunc(R1) else FormulaError;
-      '&' : if (Abs(R) <= $7FFFFFFF) and (Abs(R1) <= $7FFFFFFF) then
-              R := Trunc(R) and Trunc(R1) else FormulaError;
-      '%' : if (Abs(R) <= $7FFFFFFF) and (Abs(R1) <= $7FFFFFFF) and (Trunc(R1) <> 0) then
-              R := Trunc(R) mod Trunc(R1) else FormulaError;
-      '\' : if (Abs(R) <= $7FFFFFFF) and (Abs(R1) <= $7FFFFFFF) then
-              R := Trunc(R) xor Trunc(R1) else FormulaError;
-      '~' : if (Abs(R1) <= $7FFFFFFF) then
-              R := not Integer(Trunc(R1)) else FormulaError;
-      '/' : if R1<>0 then R:=R/R1 else Error := On;
-      '^' : if (R<>0) then
-              begin
-               BB := (Frac(R)=0) and (Frac(R1)=0);
-               if (R=1) or(R1 = 0) then R:=1 else
-                  begin
-                   if Abs(R1) > 1e9 then begin Error := On; Exit; end;
-                   J := Trunc(Round(R1));
-                   if R>0 then Y1:=1 else Y1:=-1;
-                   R:=Abs(R);
-                   if (Ln(R)<(70/Abs(R1))) then {if R1 < 0 then R:=Exp(-ln(R)*R1)
-                                                     else} R:=Exp(ln(R)*abs(R1))
-                                      else Error := On;
-                   if Odd(J) then R := R*Y1;
-                  end;
-                if BB then
-                  if Abs(Frac(R)) < 0.5 then
-                    begin
-                       R := Int(R);
-                    end else
-                    begin
-                      if R < 0 then R := Int(R)-1
-                               else R := Int(R)+1;
-                    end;
-                if (R1 < 0) and (R <> 0) then R := 1/R else
-                if (R1 < 0) and (R = 0) then Error := On;
-              end else Error := On;
-      '>' : R := Byte(R>R1);
-      '<' : R := Byte(R<R1);
-      '=' : R := Byte(R=R1);
-       else FormulaError;
-     end;
-    end else
-     Case p^.Name[1] of
-      '=': case p^.Name[2] of
-            '=': R := Byte(R=R1);
-            '>': R := Byte(R>=R1);
-            '<': R := Byte(R<=R1);
-             else FormulaError;
-           end;
-      '&': if p^.Name[2] = '&' then R := Byte((R<>0) and (R1<>0)) else FormulaError;
-      '|': if p^.Name[2] = '|' then R := Byte((R<>0) or (R1<>0)) else FormulaError;
-      '^': if p^.Name[2] = '^' then R := Byte((R<>0) xor (R1<>0)) else FormulaError;
-      '>': if p^.Name[2] = '<' then R := Byte(R<>R1) else
-            if p^.Name[2] = '=' then R := Byte(R>=R1) else
-              if (p^.Name[2] = '>') and (Abs(R) <= $7FFFFFFF) and (Abs(R1) < $7FFFFFFF)
-               then R := Trunc(R) shr Trunc(R1) else FormulaError;
-      '<': if p^.Name[2] = '>' then R := Byte(R<>R1) else
-            if p^.Name[2] = '=' then R := Byte(R<=R1) else
-             if (p^.Name[2] = '<') and (Abs(R) <= $7FFFFFFF) and (Abs(R1) < $7FFFFFFF)
-               then R := Trunc(R) shl Trunc(R1) else FormulaError;
-       else FormulaError;
-     end;
-    CalcFormulaTree:=R;
-   end;
-
-end;
-
 constructor TIndicator.Init;
 begin
   inherited Init(R);
   EventMask := evBroadcast;
-  Error := Off;
+  CalcError := Off;
   Value := 0;
 end;
 
@@ -398,12 +119,12 @@ begin
   if (Event.What = evBroadcast) then
     case Event.Command of
        cmSetValue: begin
-                     Error := Off;
-                     Value := PReal(Event.InfoPtr)^;
+                     CalcError := Off;
+                     Value := PCReal(Event.InfoPtr)^;
                      CE
                    end;
        cmSetError: begin
-                     Error := On;
+                     CalcError := On;
                      CE
                    end;
        cmCancel: begin
@@ -454,7 +175,7 @@ procedure TIndicator.Draw;
 
 begin
    C := GetColor(1);
-   if Error then
+   if CalcError then
      begin
         MoveChar(B, ' ', C, Size.X);
         WriteLine(0,0,Size.X,2,B);
@@ -533,9 +254,7 @@ begin
 end;
 
 procedure TCalcLine.SetValues;
- var P: Pointer;
-     R: Real;
-     T: FPtr;
+ var R: CReal;
      S: String;
 begin
   ResultSelected:=False;
@@ -543,30 +262,25 @@ begin
   DelSpace(S);
   if S = '' then
    begin R := 0; Message(Owner, evBroadcast, cmSetValue, @R); Exit end;
-  Mark(P);
-  T := GetFormula(S);
-  if ErrOcc then begin Message(Owner, evBroadcast, cmSetError, nil); Release(P); Exit end;
-  Error := Off;
-  R := CalcFormulaTree(T);
-  Release(P);
-  if Error then Message(Owner, evBroadcast, cmSetError, nil)
-           else begin
-                  Message(Owner, evBroadcast, cmSetValue, @R);
-                  if SetSelf then
-                   begin
-                     GetData(S);
-                     HistoryAdd(hsCalcLine, S);
-                     Str(R:0:20, S);
-                     While S[Length(S)] = '0' do Dec(S[0]);
-                     if S[Length(S)] = '.' then Dec(S[0]);
-                     SetData(S);
-                     Message(@Self, evKeyDown, kbEnd, nil);
-                     SelStart:=0;
-                     SelEnd:=Length(Data^);
-                     DrawView;
-                     ResultSelected:=True;
-                   end;
-                end;
+  EvalueError := False;
+  R := Evalue(S, nil);
+  if EvalueError then Message(Owner, evBroadcast, cmSetError, nil)
+  else begin
+   Message(Owner, evBroadcast, cmSetValue, @R);
+   if SetSelf then begin
+    GetData(S);
+    HistoryAdd(hsCalcLine, S);
+    Str(R:0:20, S);
+    While S[Length(S)] = '0' do Dec(S[0]);
+    if S[Length(S)] = '.' then Dec(S[0]);
+    SetData(S);
+    Message(@Self, evKeyDown, kbEnd, nil);
+    SelStart:=0;
+    SelEnd:=Length(Data^);
+    DrawView;
+    ResultSelected:=True;
+   end;
+  end;
 end;
 
 procedure InsertCalc;

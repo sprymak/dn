@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,10 +44,11 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit ComLnkIO;
 
-{$I LINK.INC} interface
+interface
 
 const
   TCL_TimerSz = 8;
@@ -97,7 +98,7 @@ implementation uses
 
 function  CL_GetCRC32ofs: Word;
 begin
-   CL_GetCRC32ofs := {$IFDEF OS2} Ofs(CRC32Table)
+   CL_GetCRC32ofs := {$IFDEF OS2} Ofs(CRC_Table)
    {$ELSE} CRC32TableOfs {$ENDIF};
 end;
 
@@ -338,7 +339,7 @@ begin
 end;
 {$ELSE}
 begin
-  Dispose(AbstractPortPtr(APort), Done);
+  Dispose(AbstractPortPtr(APort),Done);
 end;
 {$ENDIF}
 

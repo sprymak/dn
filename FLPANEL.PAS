@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,17 +43,14 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
-//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit FlPanel;
 
 interface
-uses Objects, Views, Drivers, Dos, Eraser, FilesCol, HideView,
-     Drives, FLPanelX, DNHelp, ObjType, LFNCol, TitleSet;
+uses Objects, Views, Drivers, Dos, Eraser, FilesCol, HideView, Drives,
+     FLPanelX, DNHelp, LFNCol, TitleSet, collect;
 
 type
     PSeparator=^TSeparator;
@@ -106,6 +103,8 @@ type
     TDriveLine = object(THideView)
       Panel: PFilePanel;
       DriveLine: String[29];
+      ViewLine:  String[60];
+      CharDelta: Integer;
       constructor Init(var R: TRect; APanel: PFilePanel);
       procedure MakeDriveLine;
       function GetPalette: PPalette; virtual;
@@ -116,43 +115,7 @@ type
     end;
 
 const
-      RFilePanel: TStreamRec = (
-       ObjType: otFilePanel;
-       VmtLink: Ofs(TypeOf(TFilePanel)^);
-       Load: @TFilePanel.Load;
-       Store: @TFilePanel.Store);
-
-      RInfoView: TStreamRec = (
-       ObjType: otFlPInfoView;
-       VmtLink: Ofs(TypeOf(TInfoView)^);
-       Load: @TInfoView.Load;
-       Store: @TInfoView.Store);
-
-      RTopView: TStreamRec = (
-       ObjType: otTopView;
-       VmtLink: Ofs(TypeOf(TTopView)^);
-       Load: @TTopView.Load;
-       Store: @TTopView.Store);
-
-      RSeparator: TStreamRec = (
-       ObjType: otSeparator;
-       VmtLink: Ofs(TypeOf(TSeparator)^);
-       Load: @TSeparator.Load;
-       Store: @TSeparator.Store);
-
-      RSpecScroll: TStreamRec = (
-       ObjType: otSpecScroll;
-       VmtLink: Ofs(TypeOf(TSpecScroll)^);
-       Load: @TSpecScroll.Load;
-       Store: @TSpecScroll.Store);
-
-      RDriveLine: TStreamRec = (
-       ObjType: otDriveLine;
-       VmtLink: Ofs(TypeOf(TDriveLine)^);
-       Load: @TDriveLine.Load;
-       Store: @TDriveLine.Store);
-
-       CPanel = #6#7#8#9#10#32#33#34#35#36#37#38#39#40;
+       CPanel = #6#7#8#9#10#32#33#34#35#36#37#38#39#40#44#45#46#47#48; {JO}
        CTopView = #11#12;
        CInfoView  = #25#26#27#28#29#30#31;
        CDriveLine = #41#42#43;
@@ -167,11 +130,18 @@ VAR
 
 implementation
 
-uses LFN, {DataCompBoy}
-     DNApp, advance, advance1, advance2, advance3, Startup, Memory, FileCopy,
-     Messages, Menus, DiskInfo, Dialogs, Commands, HistList, Tree, FBB,
-     RStrings, UUCode, ArcView, CmdLine, Histries, Archiver, Gauges, Gauge,
-     FileFind, FlTools, DnIni;
+uses LFN, DnUtil, DNApp, advance, advance1, advance2, advance3, Startup,
+     Memory, FileCopy, Messages, Menus, DiskInfo, Dialogs, Commands,
+     HistList, Tree, FBB, RStrings, ArcView, CmdLine, Histries, Archiver,
+     Gauges, Gauge, FileFind, FlTools, DnIni, XDblWnd
+{$IFDEF UUENCODE}
+  ,UUCode
+{$ELSE}
+{$IFDEF  UUDECODE}
+  ,UUCode
+{$ENDIF}
+{$ENDIF}
+     ;
 
 const
     chTempDrive = '*';
@@ -180,7 +150,7 @@ procedure TSpecScroll.HandleEvent;
 begin
  if (Event.What = evKeyDown) and
     ((Event.CharCode in [^E,^S,^D,^X]) or
-     (Event.CharCode = #0) and ((mem[0:$417] and 3 <> 0) xor
+     (Event.CharCode = #0) and ((mem[seg0040:$17] and 3 <> 0) xor
      (FMSetup.Options and fmoUseArrows = 0) and
      ((Event.KeyCode = kbRight) or (Event.KeyCode = kbLeft) or
       (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)
@@ -195,12 +165,14 @@ begin
   Panel := APanel;
   EventMask := evMouse or evBroadcast;
   MakeDriveLine;
+  CharDelta := 1;
 end;
 
 constructor TDriveLine.Load(var S: TStream);
 begin
   inherited Load(S);
   MakeDriveLine;
+  CharDelta := 1;
   GetPeerViewPtr(S, Panel);
 end;
 
@@ -222,7 +194,6 @@ end;
 
 procedure TDriveLine.Draw;
   var B: TDrawBuffer;
-      S: String;
       M: Byte absolute DriveLine;
       I: Integer;
 begin
@@ -230,55 +201,53 @@ begin
   if (Panel^.Size.X >= I) then
    begin
      if (Size.X <> I) then begin GrowTo(I, 1); Exit; end;
-     S := '';
+     ViewLine := '';
      for I := 1 to Length(DriveLine) do
-        S := S + ' ' + DriveLine[I];
-     S := '['+ S + ' ]';
+        ViewLine := ViewLine + ' ' + DriveLine[I];
+     ViewLine := '[' + ViewLine + ' ]';
    end else
     begin
       I := 2+M;
-      if (Size.X <> I) then begin GrowTo(I, 1); Exit; end;
-      S := '['+DriveLine + ']';
+      if Panel^.Size.X-2 >= I then
+       if (Size.X <> I)
+        then begin GrowTo(I, 1); Exit; end
+        else ViewLine := '['+DriveLine + ']'
+      else
+       if Panel^.Size.X <> Size.X+2
+        then begin GrowTo(Panel^.Size.X-2, 1); CharDelta:=1; Exit; end
+        else begin
+              ViewLine := Copy(DriveLine, CharDelta, Size.X-2);
+              if Length(ViewLine) < Size.X-2 then
+               ViewLine := ViewLine + Copy(DriveLine, 1, Size.X-2-Length(ViewLine));
+              ViewLine := '{' + ViewLine + '}';
+             end;
     end;
   if (Panel^.DirectoryName[2] = ':') or (Panel^.Drive^.DriveType = dtTemp) then
     begin
-      if (Panel^.Drive^.DriveType = dtTemp) and (Panel^.DirectoryName = cTEMP_) then I := PosChar(chTempDrive, S)
-        else I := PosChar(Panel^.DirectoryName[1], S);
-      if I > 0 then
-       begin
-         System.Insert('~', S, I + 1);
-         System.Insert('~', S, I);
-       end else
-       begin
-         MakeDriveLine;
-         Draw; Exit;
-       end;
-    end;
-  MoveCStr(B, S, GetColor($0301));
+     if (Panel^.Drive^.DriveType = dtTemp) and (Panel^.DirectoryName = cTEMP_)
+      then I := PosChar(chTempDrive, ViewLine)
+      else I := PosChar(Panel^.DirectoryName[1], ViewLine);
+     if I > 0
+      then MoveCStr(B, Copy(ViewLine, 1, I-1)+'~'+
+                       ViewLine[I]+'~'+Copy(ViewLine, I+1, 255),
+                    GetColor($0301))
+      else begin
+       if (Panel^.Drive^.DriveType = dtTemp) and (Panel^.DirectoryName = cTEMP_)
+        then I := PosChar(chTempDrive, DriveLine)
+        else I := PosChar(Panel^.DirectoryName[1], DriveLine);
+       if I = 0 then begin
+        MakeDriveLine;
+        Draw; Exit;
+       end else MoveCStr(B, ViewLine, GetColor($0301))
+      end;
+    end else MoveCStr(B, ViewLine, GetColor($0301));
   WordRec(B[0]).Hi := GetColor(2);
   WordRec(B[Size.X-1]).Hi := GetColor(2);
   WriteLine(0,0,Size.X,1,B);
 end;
 
 procedure TDriveLine.HandleEvent;
-  var S: String;
-      M: Byte absolute DriveLine;
-      I: Integer;
-      P: TPoint;
-
- procedure MakeDLine;
-   var I: Integer;
- begin
-    I := M*2+3;
-    if (Panel^.Size.X >= I) then
-      begin
-        S := '';
-        for I := 1 to M do
-           S := S + ' ' + DriveLine[I];
-        S := '['+ S + ' ]';
-      end else S := '['+DriveLine + ']';
- end;
-
+  var P: TPoint;
 begin
   inherited HandleEvent(Event);
   case Event.What of
@@ -287,37 +256,98 @@ begin
                                 begin
                                   Event.What := evNothing;
                                   ClrIO;
-                                  MakeDLine;
                                   MakeLocal(PCopyRec(Event.InfoPtr)^.Where, P);
-                                  case S[P.X+1] of
-                                    chTempDrive: S := cTEMP_;
-                                    'A'..'Z': S := S[P.X+1]+':';
+                                  if ViewLine[P.X+1]=' ' then dec(P.X);
+                                  case ViewLine[P.X+1] of
+                                    chTempDrive: CopyDirName := cTEMP_;
+                                    'A'..'Z': CopyDirName := ViewLine[P.X+1]+':';
                                     else Exit;
                                   end;
-                                  CopyDirName := S;
                                   SkipCopyDialog := Confirms and cfMouseConfirm = 0;
-                                  Message(PCopyRec(Event.InfoPtr)^.Owner, evBroadcast, cmCopyCollection,
+                                  if ReflectCopyDirection
+                                   then RevertBar:=(Message(DeskTop, evBroadCast, cmIsRightPanel, Panel) <> Nil)
+                                   else RevertBar:=false;
+                                  Message(PCopyRec(Event.InfoPtr)^.Owner,
+                                          evBroadcast, cmCopyCollection,
                                           PCopyRec(Event.InfoPtr)^.FC);
                                   SkipCopyDialog := Off;
                                 end;
                  end;
     evMouseDown: begin
                    ClrIO;
-                   MakeDLine;
                    MakeLocal(Event.Where, P);
-                   case S[P.X+1] of
-                     chTempDrive: begin
-                                    S := cTEMP_;
-                                    Message(Panel, evCommand, cmChangeDrv, @S);
-                                  end;
-                     'A'..'Z': begin
-                                 S := S[P.X+1]+':';
-                                 Message(Panel, evCommand, cmChangeDrv, @S);
-                               end;
-                     '[': Message(Owner, evCommand, cmHideLeft, nil);
-                     ']': Message(Owner, evCommand, cmHideRight, nil);
+                   if ViewLine[P.X+1]=' ' then dec(P.X);
+                   if Event.Double then begin
+                    case ViewLine[P.X+1] of
+                      chTempDrive: begin
+                                     FreeStr := cTEMP_;
+                                     Message(Panel, evCommand, cmChangeDirectory, @FreeStr);
+                                   end;
+                      'A'..'Z': begin
+                                 FreeStr := ViewLine[P.X+1]+':\';
+                                  Message(Panel, evCommand, cmChangeDirectory, @FreeStr);
+                                end;
+                      '[': Message(Owner, evCommand, cmHideLeft, nil);
+                      ']': Message(Owner, evCommand, cmHideRight, nil);
+                      '}': begin
+                            Inc(CharDelta);
+                            if CharDelta > Length(DriveLine)
+                             then CharDelta := 1;
+                            DrawView;
+                           end;
+                      '{': begin
+                            Dec(CharDelta);
+                            if CharDelta < 1
+                             then CharDelta := Length(DriveLine);
+                            DrawView;
+                           end;
+                    end;
+                   end else
+                   if ViewLine[P.X+1]=Panel^.DirectoryName[1]
+                    then Message(Panel, evCommand, cmRereadDir, @Panel^.DirectoryName)
+                    else
+                     case ViewLine[P.X+1] of
+                       chTempDrive: begin
+                                     FreeStr := cTEMP_;
+                                     Message(Panel, evCommand, cmChangeDrv, @FreeStr);
+                                    end;
+                       'A'..'Z': begin
+                                   FreeStr := ViewLine[P.X+1]+':';
+                                   Message(Panel, evCommand, cmChangeDrv, @FreeStr);
+                                 end;
+                       '[': Message(Owner, evCommand, cmHideLeft, nil);
+                       ']': Message(Owner, evCommand, cmHideRight, nil);
+                       '}': begin
+                             Inc(CharDelta);
+                             if CharDelta > Length(DriveLine)
+                              then CharDelta := 1;
+                             DrawView;
+                            end;
+                       '{': begin
+                             Dec(CharDelta);
+                             if CharDelta < 1
+                              then CharDelta := Length(DriveLine);
+                             DrawView;
+                            end;
+                     end;
+                   While MouseEvent(Event, evMouseMove + evMouseAuto) do begin
+                    MakeLocal(Event.Where, P);
+                    if ViewLine[P.X+1]=' ' then dec(P.X);
+                    case ViewLine[P.X+1] of
+                     '}': begin
+                           Inc(CharDelta);
+                           if CharDelta > Length(DriveLine)
+                            then CharDelta := 1;
+                           DrawView;
+                          end;
+                     '{': begin
+                           Dec(CharDelta);
+                           if CharDelta < 1
+                            then CharDelta := Length(DriveLine);
+                           DrawView;
+                          end;
+                    end
                    end;
-                   While MouseEvent(Event, evMouseMove + evMouseAuto) do;
                    ClearEvent(Event);
                  end;
   end;
@@ -330,7 +360,7 @@ begin
 end;
 
 {                                 TFilePanel
-{ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
+{----------------------------------------------------------------------------}
 function TFilePanel.GetPalette;
  const S: String[Length(CPanel)] = CPanel;
 begin
@@ -467,7 +497,7 @@ begin
     PosChanged := OFF;
     DrawView;
   end;
-  if GetState(sfSelected+sfActive) then
+  if GetState(sfFocused) then
    begin
     SetTitle(DirectoryName);
     FreeByte:=Drive^.Param;
@@ -483,7 +513,7 @@ procedure TFilePanel.Draw;
      CS: Word;
      PgS: Word;
      S,S1: String;
-     HLC: Array[0..ttCust5] of Byte;
+     HLC: Array[0..ttCust10] of Byte; {JO}
      PB: ^Byte;
      TagC: Char;
 
@@ -502,7 +532,17 @@ procedure TFilePanel.Draw;
        If p^.Selected then begin C:=C5; CC:=C5 end else C:=C4
       else if P^.Selected then begin C:=CC; CC:=C3 end else C:=CC;
       if QuickSearch then if (Idx = CurPos) then
-        begin SetCursor(JJ+SearchX, I); ShowCursor; NormalCursor end;
+        begin
+         if Drive^.Flags and psShowLongName <> 0
+          then SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
+                                         Drive^.LFNLen, Drive^.EXTLen, 0) - 1,
+                         I)
+          else SetCursor(JJ+GetCursorPos(SearchParam, MakeFileName(P^.Name),
+                                         Drive^.LFNLen, Drive^.EXTLen, 0) - 1,
+                         I);
+         ShowCursor;
+         NormalCursor
+        end;
       MoveChar(B[JJ], ' ', C, LineLength);
       if Idx=CurPos then GetFull(B[JJ], P,  C shl 8+C, CS and $00FF + C shl 8)
                     else GetFull(B[JJ], P, CC shl 8+C, CS);
@@ -545,10 +585,10 @@ begin
  C5 := C3;
  HLC[0] := C1;
  if FMSetup.TagChar <> '' then TagC := FMSetup.TagChar[1]
-                          else TagC := 'û';
+                          else TagC := #251;
  if PanelFlags and fmiHiliteFiles <> 0 then
-      for I := 1 to ttCust5 do HLC[I] := GetColor(6+I)
-    else for I := 1 to ttCust5 do HLC[I] := C1;
+      for I := 1 to ttCust10 do HLC[I] := GetColor(6+I) {JO}
+    else for I := 1 to ttCust10 do HLC[I] := C1;        {JO}
  CS := 179+C2 shl 8;
  CW :=  32+C2 shl 8;
  PgS := (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))*((Size.X+1) div LineLength);
@@ -618,12 +658,12 @@ begin
     end;
    WriteLine(0, I, Size.X, 1, B[DeltaX]);
   end;
-  if GetState(sfSelected+sfActive) then SetTitle(DirectoryName);
+  if GetState(sfFocused) then SetTitle(DirectoryName);
 end;
         {-DataCompBoy-}
 
 {                                 TInfoView
-{ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
+{----------------------------------------------------------------------------}
 constructor TInfoView.Init;
 begin
  inherited Init(R);
@@ -752,6 +792,7 @@ procedure TInfoView.Draw;
      Y: Integer;
 
  var FR: TFileRec;
+     P: PFileRec;
 
 begin
  if Panel^.DrawDisableLvl > 0 then Exit;
@@ -763,13 +804,13 @@ begin
  if FMSetup.Show and fmsDivider <> 0 then
  begin
   Y := 1;
-  MoveChar(B, 'Ä', C2, Size.X+Panel^.DeltaX);
-  I := 0; C2 := (C2 shl 8) or Byte('Á');
+  MoveChar(B, #196, C2, Size.X+Panel^.DeltaX);
+  I := 0; C2 := (C2 shl 8) or 193;
   While I < Size.X+Panel^.DeltaX do
    begin
     Panel^.Drive^.GetEmpty(B[I], C2);
     Inc(I, Panel^.LineLength);
-    If I = Size.X+Panel^.DeltaX then B[I-1]:=(C2 and $FF00)+Byte('Ä');
+    If I = Size.X+Panel^.DeltaX then B[I-1]:=(C2 and $FF00)+196;
    end;
   WriteLine(0,0,Size.X,1,B[Panel^.DeltaX]);
  end;
@@ -797,10 +838,11 @@ begin
      begin
       MoveChar(B, ' ', C1, Size.X);
       C3 := GetColor($0302);
-      if PF^.Size = 0 then S := '100%' else S := ZtoS(Percent(PF^.Size, PF^.PSize))+'%';
-      if Panel^.ScrollBar^.Value < Panel^.Files^.Count then
-         MoveCStr(B, GetString(dlArcPSize) + ' ' + AddSpace(FStr(PF^.PSize),14) +
+      if Panel^.ScrollBar^.Value < Panel^.Files^.Count then begin
+       if PF^.Size = 0 then S := '100%' else S := ZtoS(Percent(PF^.Size, PF^.PSize))+'%';
+       MoveCStr(B, GetString(dlArcPSize) + ' ' + AddSpace(FStr(PF^.PSize),14) +
                   GetString(dlArcRatio) + S, C3);
+      end;
       WriteLine(0,Y,Size.X,1,B);
       Inc(Y);
      end;
@@ -809,29 +851,43 @@ begin
  if Panel^.PanelFlags and fmiSelected <> 0 then
   begin
 1:
+    I := -1;
     C3 := GetColor($0302);
     MoveChar(B, ' ', C3, Size.X);
     if Panel^.SelNum = 0 then
     begin
-      if (x_x<>Panel^.FileMask) and (ShowFileMask) then {-$VIV 19.05.99--}
+      if ((x_x<>Panel^.FileMask) and ('*'<>Panel^.FileMask)) and
+         (ShowFileMask) then {-$VIV 19.05.99--}
       begin
         S := fReplace('*.', '', Panel^.FileMask);
         S := fReplace(' ', '', S);
         if Copy(S, 1, 1) = ';' then Delete(S, 1, 1);
         S := GetString(dlFileMask) + S;
       end else
+      if (Panel^.QuickSearch) and (ShowFileMask) then begin
+        S := Panel^.SearchParam.Mask;
+        Dec(S[0]);
+        S1 := GetString(dlFileSearch);
+        if Length(S)+Length(S1)>Size.X
+         then S := S1 + #17 + '~' + Copy(S, Length(S) - Size.X - Length(S1) - 1, 255) + '~'
+         else S := S1 + '~' + S + '~';
+        I := 0;
+      end else
       begin
         S := GetString(dlNoFilesSelected);
-        if ShowLongName then
-        begin
-          S2 := MakeFileName(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.Name);
-          if S2 <> '..' then
-          begin
-            S3 := GetLFN(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.LFN); {DataCompBoy}
-            if (UpStrg(S2) <> UpStrg(S3)) and (Panel^.Files^.Count > 0)
-            then S := FormatLongName(GetName(S3),Size.X,0,
-            flnPreferName+flnHighlight+flnHandleTildes+flnUseCutChar,
-            nfmNull,nil);
+        if ShowLongName and (Panel^.ScrollBar^.Value < Panel^.Files^.Count)
+        then begin
+          P:=PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value));
+          if P<>nil then begin
+           S2 := MakeFileName(P^.Name);
+           if S2 <> '..' then
+           begin
+             S3 := GetLFN(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.LFN); {DataCompBoy}
+             if (UpStrg(S2) <> UpStrg(S3)) and (Panel^.Files^.Count > 0)
+             then S := FormatLongName(GetName(S3),Size.X,0,
+             flnPreferName+flnHighlight+flnHandleTildes+flnUseCutChar,
+             nfmNull,nil);
+           end;
           end;
         end;
       end;
@@ -843,7 +899,8 @@ begin
             S := '~'+FStr(Panel^.SelectedLen)+'('+FStr(Panel^.PackedLen)+')'+GetString(dlBytesIn)+
                 +ItoS(Panel^.SelNum)+'~'+ GetString(dlSelectedfiles);
           end;
-    I := (Size.X - CStrLen(S)) div 2; if I < 0 then I := 0;
+    if I < 0 then I := (Size.X - CStrLen(S)) div 2;
+    if I < 0 then I := 0;
     MoveCStr(B[I], S, C3);
     WriteLine(0,Y,Size.X,1,B);
     Inc(Y);
@@ -851,7 +908,7 @@ begin
 
  if Panel^.PanelFlags and fmiTotals <> 0 then
   begin
-    C3 := GetColor($504);
+    C3 := GetColor($0504);
     MoveChar(B, ' ', C3, Size.X);
     I := (Size.X - CStrLen(Panel^.TotalInfo)) div 2; if I < 0 then I := 0;
     MoveCStr(B[I], Panel^.TotalInfo, C3);
@@ -861,7 +918,7 @@ begin
 
  if Panel^.PanelFlags and fmiFree <> 0 then
   begin
-    C3 := GetColor($706);
+    C3 := GetColor($0706);
     MoveChar(B, ' ', C3, Size.X);
     I := (Size.X - CStrLen(Panel^.FreeSpace)) div 2; if I < 0 then I := 0;
     MoveCStr(B[I], Panel^.FreeSpace, C3);
@@ -1016,13 +1073,13 @@ begin
  if Owner^.GetState(sfDragging) then C := Owner^.GetColor(3);
  B[0].B := C; B[Size.Y-1].B := C;
  if Owner^.GetState(sfActive) and not Owner^.GetState(sfDragging) then
-  begin B[0].C := '»'; Ch := 'º'; B[Size.Y-1].C := '¼'; end
-   else begin B[0].C := '¿'; Ch := '³'; B[Size.Y-1].C := 'Ù'; end;
+  begin B[0].C := #187; Ch := #186; B[Size.Y-1].C := #188; end
+   else begin B[0].C := #191; Ch := #179; B[Size.Y-1].C := #217; end;
  MoveChar(B[1], Ch, C, Size.Y-2);
  WriteBuf(0,0,1,Size.Y,B);
  if Owner^.GetState(sfActive) and not Owner^.GetState(sfDragging) then
-  begin B[0].C := 'É'; B[Size.Y-1].C := 'È'; end
-   else begin B[0].C := 'Ú'; B[Size.Y-1].C := 'À'; end;
+  begin B[0].C := #201; B[Size.Y-1].C := #200; end
+   else begin B[0].C := #218; B[Size.Y-1].C := #192; end;
  WriteBuf(1,0,1,Size.Y,B);
 end;
 
@@ -1038,11 +1095,11 @@ var
   LastRDelay: Word;
   I, J: Integer;
   PDr: PDrive;
-  DotSearchMask: String;
 
  procedure CE;begin ClearEvent(Event) end;
  procedure CED;begin ClearEvent(Event); DrawView end;
 
+(*DataCompBoy
  procedure CM_CopyUnselect;
   label 1;
   var PF: PFileRec;
@@ -1070,32 +1127,51 @@ var
   DrawView;
   if InfoView <> nil then InfoView^.DrawView;
  end;
+DataCompBoy*)
 
- procedure MaskSearch(B: Byte);
+ procedure CM_CopyUnselect;
+  var PF: PFileRec;
+      I: Integer;
+ begin
+  if (Files^.Count = 0) or (Event.InfoPtr = nil) then Exit;
+  PF := Event.InfoPtr;
+  with PF^ do
+   if Selected then begin
+    Selected := Off;
+    SelectedLen := SelectedLen - Size;
+    PackedLen := PackedLen - PSize;
+    Dec(SelNum)
+   end;
+  DrawView;
+  if InfoView <> nil then InfoView^.DrawView;
+ end;
+
+ function MaskSearch(B: Byte): boolean;
  var
    I: Integer;
  begin
+   MaskSearch := true;
    I := CurPos + B; If I >= Files^.Count then I := 0;
-   repeat
-     If InOldMask( PFileRec( Files^.At( I ))^.Name, SearchMask ) then begin
-       ScrollBar^.SetValue( I );
-       If SearchX = 8 then Inc( SearchX );
-       Exit;
+   if Drive^.Flags and psShowLongName <> 0 then
+    repeat
+     If InMask(GetLFN(PFileRec(Files^.At(I))^.LFN), SearchParam.Mask) then begin
+      ScrollBar^.SetValue( I );
+      Exit;
      end;
      Inc( I ); If I >= Files^.Count then I := 0;
-   until I = CurPos;
-   If not InOldMask( PFileRec( Files^.At( CurPos ))^.Name, SearchMask )
-     then begin
-         If SearchX > 0 then repeat
-             If SearchX = 9 then Dec( SearchX );
-             SearchMask[ SearchX ] := '?';
-             Dec( SearchX );
-         until ( SearchX = 0 ) or ( SearchX = 9 )
-         or ( SearchMask[ SearchX ] <> ' ' );
-     end
+    until I = CurPos
+   else
+    repeat
+     If InMask(MakeFileName(PFileRec(Files^.At(I))^.Name), SearchParam.Mask) then begin
+      ScrollBar^.SetValue( I );
+      Exit;
+     end;
+     Inc( I ); If I >= Files^.Count then I := 0;
+    until I = CurPos;
+   MaskSearch := false;
  end;
 
- procedure DoMakeDirs(P: PFileRec); far;
+ procedure DoMakeDirs(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
  begin
    if (PF^.Attr and Directory <> 0) and (PF^.Size < 0) then
       begin PF^.Size := 0; PF^.Attr := PF^.Attr and $3F end;
@@ -1109,11 +1185,12 @@ begin
  if Files^.Count > CurPos then PF := Files^.At(CurPos) else PF := nil;
  I := ShiftState;
  if (Event.What = evKeyDown) and (I and 3 <> 0) and
-    ((Event.KeyCode = kbCtrlRight) or (Event.KeyCode = kbCtrlLeft) or (Event.KeyCode = kbBack))
+    ((Event.KeyCode = kbCtrlRight) or (Event.KeyCode = kbCtrlLeft) or
+     ((Event.KeyCode = kbBack) and not QuickSearch))
       then begin CommandHandle(Event); Exit; end;
  if (Event.What = evKeyDown) and (CommandLine <> nil) then
   if ((I and 3 <> 0) and ((Event.KeyCode = kbDown) or (Event.KeyCode = kbUp)
-         or ((Event.KeyCode = kbCtrlIns) and (CmdLine.Str<>'')) or (Event.KeyCode = kbGrayAst) )) or
+     or ((Event.KeyCode = kbCtrlIns) and (CmdLine.Str<>'')) or (Event.KeyCode = kbGrayAst) )) or
     ((Event.ScanCode < (kbAlt1 shr 8)) or (Event.ScanCode > (kbAlt9 shr 8))) and
      (Event.CharCode = #0) and (CmdLine.Str <> '') and
      ((I and 3 <> 0) xor (FMSetup.Options and fmoUseArrows = 0) and
@@ -1121,7 +1198,7 @@ begin
         (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)))
       then CommandLine^.HandleEvent(Event);
  if Event.What = evNothing then Exit;
- I := mem[$40:$18];
+ I := ShiftState2;
  case Event.What of
   evCommand: case Event.Command of
               cmDoSendLocated: SendLocated;
@@ -1138,126 +1215,60 @@ begin
               cmRecountDirs: begin
                                if Files <> nil then files^.ForEach(@DoMakeDirs); CED;
                              end;
-             (*
-              cmQuickChange1..cmQuickChange9,
-              cmPanelMakeList,
-              cmPanelArchiveFiles,
-              cmExtractArchive,
-              cmReboundPanel,
-              cmPrintFile,
-              cmSetPassword,
-              cmExtractTo,
-              cmArcTest,
-              cmRereadForced,
-              cmMakeForced,
-              cmEraseGroup,
-              cmFindTree,
-              cmInsertFile,
-              cmViewText,
-              cmViewHex,
-              cmViewDBF,
-              cmViewWKZ,
-              cmInsertDrive,
-              cmEditFile,
-              cmIntViewFile,
-              cmIntEditFile,
-              cmViewFile,
-              cmCountLen,
-              cmSingleDel,
-              cmGetFileName,
-              cmTempCopyFiles,
-              cmSortBy,
-              cmPanelSetup,
-              cmSetupColumns,
-              cmTouchFile,
-              cmCompareDir,
-              cmPushFirstName,
-              cmPanelCompare,
-              cmPanelSelect,
-              cmPanelUnselect,
-              cmPanelXSelect,
-              cmPanelXUnselect,
-              cmCopyFiles,
-              cmMoveFiles,
-              cmSingleCopy,
-              cmSingleRename,
-              cmPanelInvertSel,
-              cmPanelErase,
-              cmPanelMkDir,
-              cmRereadDir,
-              cmTotalReread,
-              cmForceRescan,
-              cmPanelReread,
-              cmPushName,
-              cmMakeList,
-              cmChangeDrive,
-              cmChangeDrv,
-              cmDirBranch,
-              cmUUDecodeFile,
-              cmUUEncodeFile,
-              cmChangeDirectory,
-              cmChangeDir,
-              cmGetDirInfo,
-              cmGetDirName,
-              cmSetFAttr,
-              cmPanelLongCopy,
-              cmEnableView,
-              cmDisableView,
-              cmLViewFile,
-              cmFindGotoFile,
-              cmAdvancedFilter:*)
-              0..100:;
+{$IFNDEF FPC} 0..100:;{$ENDIF}
                 else CommandHandle(Event);
              end;
-  evKeyDown: if (Event.KeyCode = kbDoubleAlt) and (FMSetup.Quick = pqsAlt) or
-                (Event.KeyCode = kbDoubleCtrl) and (FMSetup.Quick = pqsCtrl) or
-                (Event.CharCode >= #33) and (Event.CharCode <= #254) and (Event.CharCode <> '\')
-                 and ((FMSetup.Quick = pqsCaps) and (I and $40 <> 0) or
-                      (Event.CharCode >= #33) and (Event.CharCode <= #254)
-                      and (ShiftState and 3 <> 0) and (ShiftState and 4 = 0)
-                      and (not CommandLine^.GetState(sfVisible)
-                           and (InterfaceData.Options and ouiHideCmdLine <> 0))) then
+  evKeyDown: if ((Event.KeyCode = kbDoubleAlt) and (FMSetup.Quick = pqsAlt)) or
+                ((Event.KeyCode = kbDoubleCtrl) and (FMSetup.Quick = pqsCtrl)) or
+                ((Event.CharCode >= #32) and (Event.CharCode <= #254) and
+                 (Event.CharCode <> '\') and (FMSetup.Quick = pqsCaps) and
+                 (I and $40 <> 0)) or
+                ((Event.CharCode >= #32) and (Event.CharCode <= #254) and
+                 (ShiftState and 3 <> 0) and (ShiftState and 4 = 0) and
+                 (not CommandLine^.GetState(sfVisible)) and
+                 (InterfaceData.Options and ouiHideCmdLine <> 0)) then
                begin
                 CtrlWas := Off;
-                SearchMask := '????????.???';
+                InitQuickSearch(SearchParam);
                 QuickSearch := not QuickSearch;
-                SearchX := 0;
-                if (Event.CharCode >= #33) and (Event.CharCode <= #254) then
+                if (Event.CharCode >= #32) and (Event.CharCode <= #254) then
                  begin
                    if not ((ShiftState and 3 <> 0) and ( not CommandLine^.GetState(sfVisible))) then
                     begin
-                      Mem[$40:$18] := I and $BF;
+                      ShiftState2 := I and $BF;
                       ShiftState := ShiftState and kbCapsState;
                     end else ShiftState := ShiftState and $FC;
-                   SearchMask[1] := Event.CharCode;
-                   SearchX := 1;
+                   DoQuickSearch(SearchParam, Event.KeyCode);
                    if QuickSearch then
                     begin
-                     if (FMSetup.Quick = pqsCaps) and (I and kbCapsState <> 0) then
-                        ShiftState := ShiftState and not kbCapsState;
-                     MaskSearch(0);
+                     if (FMSetup.Quick = pqsCaps) and (I and kbCapsState <> 0) then begin
+                        Mem[Seg0040:$17] := ShiftState and not kbCapsState;
+                        ShiftState := Mem[Seg0040:$17];
+                     end;
+                     if not MaskSearch(0) then DoQuickSearch(SearchParam, kbBack);
                     end;
                  end;
                 DrawView; CE;
                end
-             else if QuickSearch and ((Event.CharCode > #32) or
+             else if QuickSearch and ((Event.CharCode > #31) or
                                       (Event.CharCode = #27) or
                                       (Event.CharCode = #10) or
-                                      (Event.CharCode = #8) or
+                                      (Event.KeyCode = kbBack) or
+                                      (Event.KeyCode = kbBackUp) or
                                       (Event.KeyCode = kbIns)) then
                    begin
                     CtrlWas := Off;
                     if (Event.KeyCode = kbGrayPlus) or (Event.KeyCode = kbGrayMinus) or
-                       (Event.KeyCode = kbGrayAst) or (Event.KeyCode = kbIns) then Goto GotoKb;
+                       (Event.KeyCode = kbGrayAst) or (Event.KeyCode = kbIns) or
+                       (Event.KeyCode = kbBackUp) then Goto GotoKb;
                     case Event.CharCode of
-                     #27: begin QuickSearch := Off; CED; Exit end;
-                     #8: If SearchX > 0 then repeat
-                           If SearchX = 9 then Dec( SearchX );
-                           SearchMask[ SearchX ] := '?';
-                           Dec( SearchX );
-                         until ( SearchX = 0 ) or
-                               ( SearchX = 9 ) or
-                               ( SearchMask[ SearchX ] <> ' ' );
+                     #27: begin
+                           QuickSearch := Off;
+                           InitQuickSearch(SearchParam);
+                           InfoView^.DrawView;
+                           CED;
+                           Exit
+                          end;
                      #10: MaskSearch(1);
                      '\': begin
                            Event.What := evCommand;
@@ -1265,39 +1276,21 @@ begin
                            Event.InfoPtr := nil;
                            PutEvent(Event);
                            Event.What := evKeyDown;
-                           for I := 1 to SearchX do
+                           for I := 1 to Length(SearchParam.Mask) do
+                            if SearchParam.Mask[I]<>'*' then
                             begin
-                              Event.CharCode := SearchMask[I];
+                              Event.CharCode := SearchParam.Mask[I];
                               PutEvent(Event);
                             end;
                            CE; QuickSearch := Off; Exit;
                           end;
-                     '.': If SearchX < 9 then begin
-                            DotSearchMask := SearchMask;
-                            repeat
-                              Inc( SearchX );
-                              If DotSearchMask[ SearchX ] = '?' then
-                                DotSearchMask[ SearchX ] := ' ';
-                            until SearchX = 9;
-                            I := CurPos;
-                            repeat
-                              If InOldMask( PFileRec( Files^.At( I ))^.Name, DotSearchMask ) then begin
-                                SearchMask := DotSearchMask;
-                                ScrollBar^.SetValue( I );
-                                Break;
-                              end else begin
-                                Inc( I );
-                                If I >= Files^.Count then I := 0;
-                              end;
-                            until I = CurPos;
-                          end;
                      else
                       begin
-                       if SearchX < 12 then Inc(SearchX, 1+Byte(SearchX = 8));
-                       SearchMask[SearchX] := LowCase(Event.CharCode);
-                       MaskSearch(0);
+                       DoQuickSearch(SearchParam, Event.KeyCode);
+                       if not MaskSearch(0) then DoQuickSearch(SearchParam, kbBack);
                       end;
                      end;
+                    InfoView^.DrawView;
                     CED;
                    end else
                    begin
@@ -1342,28 +1335,6 @@ GotoKB:
                                 ConfigModified:=True;
                                 Message(Application, evCommand, cmUpdateConfig, nil)
                             end
-                     (*
-                     kbAltIns,
-                     kbGrayPlus,
-                     kbGrayMinus,
-                     kbGrayAst, kbCtrlGAst,
-                     kbAlt1..kbAlt9,
-                     kbCtrl1..kbCtrl9,
-                     kbAltEnter,
-                     $1312,
-                     $2B1C,
-                     kbCtrlGPlus,
-                     kbCtrlGMinus,
-                     kbCtrlRight,
-                     kbCtrlLeft,
-                     kbCtrlDel,
-                     kbCtrlIns,
-                     kbCtrlEnter,
-                     kbLeft,
-                     kbRight,
-                     kbEnter,
-                     kbCtrlPgUp,
-                     kbCtrlPgDn:*)
                        else CommandHandle(Event);
                     end;
              end;
@@ -1378,16 +1349,19 @@ GotoKB:
                  cmScrollBarChanged: if ScrollBar = Event.InfoPtr then begin
                                       if MSelect then
                                         begin
-                                         CE; if Files^.Count = 0 then Exit;
-                                         PF := Files^.At(ScrollBar^.Value);
-                                         if (PF^.Name[1] <> '.') and (PF^.Selected xor SelectFlag) then
-                                          begin
-                                           PF^.Selected := SelectFlag;
-                                           if SelectFlag then begin Inc(SelNum); SelectedLen := SelectedLen + PF^.Size;
-                                                                    PackedLen := PackedLen + PF^.PSize end
-                                                         else begin Dec(SelNum); SelectedLen := SelectedLen - PF^.Size;
-                                                                    PackedLen := PackedLen - PF^.PSize end;
-                                          end;
+                                         CE;
+                                         if Files<>nil then begin
+                                          if Files^.Count = 0 then Exit;
+                                          PF := Files^.At(ScrollBar^.Value);
+                                          if (PF^.Name[1] <> '.') and (PF^.Selected xor SelectFlag) then
+                                           begin
+                                            PF^.Selected := SelectFlag;
+                                            if SelectFlag then begin Inc(SelNum); SelectedLen := SelectedLen + PF^.Size;
+                                                                     PackedLen := PackedLen + PF^.PSize end
+                                                          else begin Dec(SelNum); SelectedLen := SelectedLen - PF^.Size;
+                                                                     PackedLen := PackedLen - PF^.PSize end;
+                                           end;
+                                         end;
                                         end;
                                       PosChanged := On;
                                       if InfoView <> nil then InfoView^.DrawView;

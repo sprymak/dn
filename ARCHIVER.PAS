@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,20 +43,19 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Archiver;
 
-interface uses Views, Objects, DOS, ObjType, LFNCol;
+interface uses Views, Objects, DOS, LFNCol, tree, extramemory,
+               collect, drivers, profile;
 
-Const NumSupportedArchs = 23;
+Const DNARC = 'ARCHIVER.INI'#0;
 
 type
      TStr4 = String[4];
+     TStr5 = String[5];
 
     PArcFile   = ^TArcFile;
     TArcFile   = Record
@@ -94,229 +93,29 @@ type
         IncludePaths,
         ExcludePaths,
         ForceMode,
-        NormalCompression,
+        RecoveryRec,
+        SelfExtract,
+        Solid,
+        StoreCompression,
+        FastestCompression,
         FastCompression,
+        NormalCompression,
+        GoodCompression,
         UltraCompression: PString;
         ListChar: Char;
         Swap: Boolean;
+        UseLFN: Boolean;
         PutTempBefore: Byte;
         constructor Load(var S: TStream);
         procedure Store(var S: TStream);
+        procedure Save;
+        function GetVal(const Sign, AFile, Name, Default: PChar): String;
         constructor Init;
-        function Detect: Boolean; virtual;
         procedure GetFile; virtual;
         function GetID: Byte; virtual;
         function GetSign: TStr4; virtual;
+        destructor Done; virtual;
      end;
-
-    PZIPArchive = ^TZIPArchive;
-    TZIPArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PLHAArchive = ^TLHAArchive;
-    TLHAArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PARCArchive = ^TARCArchive;
-    TARCArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PBSAArchive = ^TBSAArchive;
-    TBSAArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PBS2Archive = ^TBS2Archive;
-    TBS2Archive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PSQZArchive = ^TSQZArchive;
-    TSQZArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PLIMArchive = ^TLIMArchive;
-    TLIMArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PCHZArchive = ^TCHZArchive;
-    TCHZArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PHYPArchive = ^THYPArchive;
-    THYPArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PHAPArchive = ^THAPArchive;
-    THAPArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PHAArchive = ^THAArchive;
-    THAArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PUC2Archive = ^TUC2Archive;
-    TUC2Archive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PZOOArchive = ^TZOOArchive;
-    TZOOArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PHPKArchive = ^THPKArchive;
-    THPKArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PRARArchive = ^TRARArchive;
-    TRARArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-    PTARArchive = ^TTARArchive;
-    TTARArchive = object(TARJArchive)
-        constructor Init;
-        function Detect: Boolean; virtual;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
-    end;
-
-  PCABArchive = ^TCABArchive;
-  TCABArchive = object(TARJArchive)
-    FilesNumber:  LongInt;
-    constructor Init;
-    function Detect: Boolean; virtual;
-    procedure GetFile; virtual;
-    function GetID: Byte; virtual;
-    function GetSign: TStr4; virtual;
-  end;
-
-  PZXZArchive = ^TZXZArchive;
-  TZXZArchive = object(TARJArchive)
-    FilesNumber:  LongInt;
-    constructor Init;
-    function Detect: Boolean; virtual;
-    procedure GetFile; virtual;
-    function GetID: Byte; virtual;
-    function GetSign: TStr4; virtual;
-  end;
-
-  PAINArchive = ^TAINArchive;
-  TAINArchive = object(TARJArchive)
-    FilesNumber:  LongInt;
-    constructor Init;
-    function Detect: Boolean; virtual;
-    procedure GetFile; virtual;
-    function GetID: Byte; virtual;
-    function GetSign: TStr4; virtual;
-  end;
-
-  PACEArchive = ^TACEArchive;
-  TACEArchive = object(TARJArchive)
-    FilesNumber:  LongInt;
-    constructor Init;
-    function Detect: Boolean; virtual;
-    procedure GetFile; virtual;
-    function GetID: Byte; virtual;
-    function GetSign: TStr4; virtual;
-  end;
-
-   PUFAArchive = ^TUFAArchive;
-   TUFAArchive = object(TARJArchive)
-     FilesNumber:  LongInt;
-     constructor Init;
-     function Detect: Boolean; virtual;
-     procedure GetFile; virtual;
-     function GetID: Byte; virtual;
-     function GetSign: TStr4; virtual;
-   end;
-
-   PQuArkArchive = ^TQuArkArchive;
-   TQuArkArchive = object(TARJArchive)
-     FilesNumber:  LongInt;
-     constructor Init;
-    function Detect: Boolean; virtual;
-     procedure GetFile; virtual;
-     function GetID: Byte; virtual;
-    function GetSign: TStr4; virtual;
-   end;
-
-    PArchiveCollection = ^TArchiveCollection;
-    TArchiveCollection = object(TSortedCollection)
-      function Compare(P1, P2: Pointer): Integer; virtual;
-    end;
 
     PFileInfo    = ^TFileInfo;
     TFileInfo    = object(TSortedCollection)
@@ -341,196 +140,77 @@ type
     end;
 
 const
-    CurrentArchive: PARJArchive = nil;
-    Archives: PSortedCollection = nil;
+    arcACE  = 0;  sigACE  {: TStr4} = 'ACE:';
+    arcARJ  = 3;  sigARJ  {: TStr4} = 'ARJ:';
+    arcCAB  = 6;  sigCAB  {: TStr4} = 'CAB:';
+    arcHA   = 8;  sigHA   {: TStr4} = 'HA:';
+    arcLHA  = 13; sigLHA  {: TStr4} = 'LHA:';
+    arcRAR  = 16; sigRAR  {: TStr4} = 'RAR:';
+    arcZIP  = 22; sigZIP  {: TStr4} = 'ZIP:';
+{$IFNDEF MINARCH}         {       }
+    arcAIN  = 1;  sigAIN  {: TStr4} = 'AIN:';
+    arcARC  = 2;  sigARC  {: TStr4} = 'ARC:';
+    arcBS2  = 4;  sigBS2  {: TStr4} = 'BS2:';
+    arcBSA  = 5;  sigBSA  {: TStr4} = 'BSA:';
+    arcCHZ  = 7;  sigCHZ  {: TStr4} = 'CHZ:';
+    arcHAP  = 9;  sigHAP  {: TStr4} = 'HAP:';
+    arcHPK  = 10; sigHPK  {: TStr4} = 'HPK:';
+    arcHYP  = 11; sigHYP  {: TStr4} = 'HYP:';
+    arcIS3  = 12; sigIS3  {: TStr4} = 'IS3:';
+    arcLIM  = 14; sigLIM  {: TStr4} = 'LIM:';
+    arcQUARK= 15; sigQUARK{: TStr4} = 'QRK:';
+    arcSQZ  = 17; sigSQZ  {: TStr4} = 'SQZ:';
+    arcTAR  = 18; sigTAR  {: TStr4} = 'TAR:';
+    arcTGZ  = 19; sigTGZ  {: TStr4} = 'TGZ:';
+    arcUC2  = 20; sigUC2  {: TStr4} = 'UC2:';
+    arcUFA  = 21; sigUFA  {: TStr4} = 'UFA:';
+    arcZOO  = 23; sigZOO  {: TStr4} = 'ZOO:';
+    arcZXZ  = 24; sigZXZ  {: TStr4} = 'ZXZ:';
+{$ENDIF}
+    arcUNK  =255; {UNKNOWN Archiver}
 
-    arcACE  = 0;
-    arcAIN  = 1;
-    arcARC  = 2;
-    arcARJ  = 3;
-    arcBS2  = 4;
-    arcBSA  = 5;
-    arcCAB  = 6;
-    arcCHZ  = 7;
-    arcHA   = 8;
-    arcHAP  = 9;
-    arcHPK  = 10;
-    arcHYP  = 11;
-    arcLHA  = 12;
-    arcLIM  = 13;
-    arcQUARK= 14;
-    arcRAR  = 15;
-    arcSQZ  = 16;
-    arcTAR  = 17;
-    arcUC2  = 18;
-    arcUFA  = 19;
-    arcZIP  = 20;
-    arcZOO  = 21;
-    arcZXZ  = 22;
+    NumSupportedArchs = 25;
+
+    PPacker:PChar =             'Packer';
+    PUnPacker:PChar =           'Unpacker';
+    PExtract:PChar =            'Extract';
+    PExtractWP:PChar =          'ExtractWithPathnames';
+    PAdd:PChar =                'Add';
+    PMove:PChar =               'Move';
+    PDelete:PChar =             'Delete';
+    PGarble:PChar =             'Garble';
+    PTest:PChar =               'Test';
+    PIncludePaths:PChar =       'IncludePaths';
+    PExcludePaths:PChar =       'ExcludePaths';
+    PForceMode:PChar =          'ForceMode';
+    PRecoveryRec:PChar =        'RecoveryRecord';
+    PSelfExtract:PChar =        'SFX';
+    PSolid:PChar =              'Solid';
+    PStoreCompression:PChar =   'StoreCompression';
+    PFastestCompression:PChar = 'FastestCompression';
+    PFastCompression:PChar =    'FastCompression';
+    PNormalCompression:PChar =  'NormalCompression';
+    PGoodCompression:PChar =    'GoodCompression';
+    PUltraCompression:PChar =   'BestCompression';
+    PListChar:PChar =           'ListChar';
+    PSwap:PChar =               'Swap';
+    PUseLFN:PChar =             'UseLFN';
 
     DefaultArchiver: Word = arcARJ;
-    DefaultArcMode: Word = 256;
+    DefaultArcMode:  Word = 261;
     ExtractWithPathNames: boolean=true;
-
+(*
     OldArchiveName: String = '';
     NewArchiveName: String = '';
-
-var ArcFile    : TBufStream;
-    FileInfo   : TFInfo;
-    ArcPos     : LongInt;
+*)
+const ArcFile    : PBufStream = nil;
+var   FileInfo   : TFInfo;
+      ArcPos     : LongInt;
 
 const
     ArcFileName: String = ''; {DataCompBoy}
     PReader: PView = nil;
 
-      RARJArchiver: TStreamRec = (
-       ObjType: otARJArchiver;
-       VmtLink: Ofs(TypeOf(TARJArchive)^);
-       Load: @TARJArchive.Load;
-       Store: @TARJArchive.Store);
-
-      RZIPArchiver: TStreamRec = (
-       ObjType: otZIPArchiver;
-       VmtLink: Ofs(TypeOf(TZIPArchive)^);
-       Load: @TZIPArchive.Load;
-       Store: @TZIPArchive.Store);
-
-      RARCArchiver: TStreamRec = (
-       ObjType: otARCArchiver;
-       VmtLink: Ofs(TypeOf(TARCArchive)^);
-       Load: @TARCArchive.Load;
-       Store: @TARCArchive.Store);
-
-      RHYPArchiver: TStreamRec = (
-       ObjType: otHYPArchiver;
-       VmtLink: Ofs(TypeOf(THYPArchive)^);
-       Load: @THYPArchive.Load;
-       Store: @THYPArchive.Store);
-
-      RRARArchiver: TStreamRec = (
-       ObjType: otRARArchiver;
-       VmtLink: Ofs(TypeOf(TRARArchive)^);
-       Load: @TRARArchive.Load;
-       Store: @TRARArchive.Store);
-
-      RHAPArchiver: TStreamRec = (
-       ObjType: otHAPArchiver;
-       VmtLink: Ofs(TypeOf(THAPArchive)^);
-       Load: @THAPArchive.Load;
-       Store: @THAPArchive.Store);
-
-      RHAArchiver: TStreamRec = (
-       ObjType: otHAArchiver;
-       VmtLink: Ofs(TypeOf(THAArchive)^);
-       Load: @THAArchive.Load;
-       Store: @THAArchive.Store);
-
-      RSQZArchiver: TStreamRec = (
-       ObjType: otSQZArchiver;
-       VmtLink: Ofs(TypeOf(TSQZArchive)^);
-       Load: @TSQZArchive.Load;
-       Store: @TSQZArchive.Store);
-
-      RBSAArchiver: TStreamRec = (
-       ObjType: otBSAArchiver;
-       VmtLink: Ofs(TypeOf(TBSAArchive)^);
-       Load: @TBSAArchive.Load;
-       Store: @TBSAArchive.Store);
-
-      RBS2Archiver: TStreamRec = (
-       ObjType: otBS2Archiver;
-       VmtLink: Ofs(TypeOf(TBS2Archive)^);
-       Load: @TBS2Archive.Load;
-       Store: @TBS2Archive.Store);
-
-      RCHZArchiver: TStreamRec = (
-       ObjType: otCHZArchiver;
-       VmtLink: Ofs(TypeOf(TCHZArchive)^);
-       Load: @TCHZArchive.Load;
-       Store: @TCHZArchive.Store);
-
-      RLHAArchiver: TStreamRec = (
-       ObjType: otLHAArchiver;
-       VmtLink: Ofs(TypeOf(TLHAArchive)^);
-       Load: @TLHAArchive.Load;
-       Store: @TLHAArchive.Store);
-
-      RZOOArchiver: TStreamRec = (
-       ObjType: otZOOArchiver;
-       VmtLink: Ofs(TypeOf(TZOOArchive)^);
-       Load: @TZOOArchive.Load;
-       Store: @TZOOArchive.Store);
-
-      RUC2Archiver: TStreamRec = (
-       ObjType: otUC2Archiver;
-       VmtLink: Ofs(TypeOf(TUC2Archive)^);
-       Load: @TUC2Archive.Load;
-       Store: @TUC2Archive.Store);
-
-      RLIMArchiver: TStreamRec = (
-       ObjType: otLIMArchiver;
-       VmtLink: Ofs(TypeOf(TLIMArchive)^);
-       Load: @TLIMArchive.Load;
-       Store: @TLIMArchive.Store);
-
-      RHPKArchiver: TStreamRec = (
-       ObjType: otHPKArchiver;
-       VmtLink: Ofs(TypeOf(THPKArchive)^);
-       Load: @THPKArchive.Load;
-       Store: @THPKArchive.Store);
-
-      RTARArchiver: TStreamRec = (
-       ObjType: otTARArchiver;
-       VmtLink: Ofs(TypeOf(TTARArchive)^);
-       Load: @TTARArchive.Load;
-       Store: @TTARArchive.Store);
-
-      RCABArchiver: TStreamRec = (
-       ObjType: otCABArchiver;
-       VmtLink: Ofs(TypeOf(TCABArchive)^);
-       Load: @TCABArchive.Load;
-       Store: @TCABArchive.Store);
-
-      RZXZArchiver: TStreamRec = (
-       ObjType: otZXZArchiver;
-       VmtLink: Ofs(TypeOf(TZXZArchive)^);
-       Load: @TZXZArchive.Load;
-       Store: @TZXZArchive.Store);
-
-      RAINArchiver: TStreamRec = (
-       ObjType: otAINArchiver;
-       VmtLink: Ofs(TypeOf(TAINArchive)^);
-       Load: @TAINArchive.Load;
-       Store: @TAINArchive.Store);
-
-      RACEArchiver: TStreamRec = (
-       ObjType: otACEArchiver;
-       VmtLink: Ofs(TypeOf(TACEArchive)^);
-       Load: @TACEArchive.Load;
-       Store: @TACEArchive.Store);
-
-      RQuArkArchiver: TStreamRec = (
-       ObjType: otQuArkArchiver;
-       VmtLink: Ofs(TypeOf(TQuArkArchive)^);
-       Load: @TQuArkArchive.Load;
-       Store: @TQuArkArchive.Store);
-
-      RUFAArchiver: TStreamRec = (
-       ObjType: otUFAArchiver;
-       VmtLink: Ofs(TypeOf(TUFAArchive)^);
-       Load: @TUFAArchive.Load;
-       Store: @TUFAArchive.Store);
-
-      RArchiveCollection: TStreamRec = (
-       ObjType: otArchiveCollection;
-       VmtLink: Ofs(TypeOf(TArchiveCollection)^);
-       Load: @TArchiveCollection.Load;
-       Store: @TArchiveCollection.Store);
-
-procedure LoadArchiveSet;
-Function  DetectArchive: PArjArchive;
-Procedure ReadArcList;
-Procedure SetupArchive(ArchCommand: Word);
 Function  ArchiveFiles(const S: String; Files: PCollection; MoveMode: Boolean; Owner: Pointer): Boolean;
 procedure MakeArchive(S: String; Files: PCollection; MoveMode: Boolean; Owner: Pointer);
 procedure UnarchiveFiles(const FName: String);
@@ -538,27 +218,19 @@ procedure InsertUserSaver(ACheck: Boolean);
 procedure SkipSFX;
 procedure Check4WinZip;
 
+ const CDir: String = '';
+
 implementation
 
- uses LFN, {DataCompBoy}
-      advance, advance1, advance2, advance3, DNApp, Drivers, Commands,
+ uses LFN, DnUtil, advance, advance1, advance2, advance3, DNApp, Commands,
       Dialogs, FilesCol, FViewer, StartUp, RStrings, Memory, Messages,
-      ArcView, FileCopy, HistList,FStorage, Menus;
+      ArcView, FileCopy, HistList,FStorage, Menus, ArchDet;
 
  Const ArcTagLen = 25;
        ArcTag: String[25] = 'DN OSP Acrhivers data'#26#01#51#04;
 
 
- const CDir: String = '';
-
 { ------------------------------- Collections ----------------------------- }
-
-function TArchiveCollection.Compare;
-begin
-  if PARJArchive(P1)^.GetID < PARJArchive(P2)^.GetID then Compare := -1 else
-    if PARJArchive(P1)^.GetID > PARJArchive(P2)^.GetID then Compare := 1 else
-      Compare := 0;
-end;
 
 Procedure TFileInfo.FreeItem;
 begin
@@ -599,24 +271,30 @@ end;
 
 constructor TARJArchive.Load;
 begin
-  Packer    := S.ReadStr;
-  UnPacker  := S.ReadStr;
-  Extract   := S.ReadStr;
-  ExtractWP := S.ReadStr;
-  Add       := S.ReadStr;
-  Move      := S.ReadStr;
-  Delete    := S.ReadStr;
-  Garble    := S.ReadStr;
-  Test      := S.ReadStr;
+  Packer            := S.ReadStr;
+  UnPacker          := S.ReadStr;
+  Extract           := S.ReadStr;
+  ExtractWP         := S.ReadStr;
+  Add               := S.ReadStr;
+  Move              := S.ReadStr;
+  Delete            := S.ReadStr;
+  Garble            := S.ReadStr;
+  Test              := S.ReadStr;
   IncludePaths      := S.ReadStr;
   ExcludePaths      := S.ReadStr;
   ForceMode         := S.ReadStr;
-  NormalCompression := S.ReadStr;
+  RecoveryRec       := S.ReadStr;
+  SelfExtract       := S.ReadStr;
+  Solid             := S.ReadStr;
+  StoreCompression  := S.ReadStr;
+  FastestCompression:= S.ReadStr;
   FastCompression   := S.ReadStr;
+  NormalCompression := S.ReadStr;
+  GoodCompression   := S.ReadStr;
   UltraCompression  := S.ReadStr;
-  PutTempBefore := 3;
   S.Read(ListChar, SizeOf(ListChar) +
-                   SizeOf(Swap));
+                   SizeOf(Swap) +
+                   SizeOf(UseLFN));
 end;
 
 procedure TARJArchive.Store;
@@ -633,35 +311,127 @@ begin
   S.WriteStr(IncludePaths);
   S.WriteStr(ExcludePaths);
   S.WriteStr(ForceMode);
-  S.WriteStr(NormalCompression);
+  S.WriteStr(RecoveryRec);
+  S.WriteStr(SelfExtract);
+  S.WriteStr(Solid);
+  S.WriteStr(StoreCompression);
+  S.WriteStr(FastestCompression);
   S.WriteStr(FastCompression);
+  S.WriteStr(NormalCompression);
+  S.WriteStr(GoodCompression);
   S.WriteStr(UltraCompression);
   S.Write(ListChar, SizeOf(ListChar) +
-                    SizeOf(Swap));
+                    SizeOf(Swap) +
+                    SizeOf(UseLFN));
+end;
+
+procedure TARJArchive.Save;
+var Sign: TStr5;
+    q: string;
+ function StoS(P: PString): PChar;
+ begin if p<>nil then q:=P^+#0 else q:=#0; StoS:=@q[1]; end;
+begin
+ FreeStr:=SourceDir + DNARC;
+ Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+ if UseLFN then q:='1'#0 else q:='0'#0;
+ WritePrivateProfileString(@Sign[1], PUseLFN, @q[1], @FreeStr[1]);
+ if Swap then q:='1'#0 else q:='0'#0;
+ WritePrivateProfileString(@Sign[1], PSwap, @q[1], @FreeStr[1]);
+ q:=ListChar+#0;
+ WritePrivateProfileString(@Sign[1], PListChar, @q[1], @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PUltraCompression, StoS(UltraCompression), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PGoodCompression, StoS(GoodCompression), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PNormalCompression, StoS(NormalCompression), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PFastCompression, StoS(FastCompression), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PFastestCompression, StoS(FastestCompression), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PStoreCompression, StoS(StoreCompression), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PSolid, StoS(Solid), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PRecoveryRec, StoS(RecoveryRec), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PSelfExtract, StoS(SelfExtract), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PForceMode, StoS(ForceMode), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PExcludePaths, StoS(ExcludePaths), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PIncludePaths, StoS(IncludePaths), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PTest, StoS(Test), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PDelete, StoS(Delete), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PGarble, StoS(Garble), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PMove, StoS(Move), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PAdd, StoS(Add), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PExtractWP, StoS(ExtractWP), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PExtract, StoS(Extract), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PUnPacker, StoS(UnPacker), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PPacker, StoS(Packer), @FreeStr[1]);
+end;
+
+function TARJArchive.GetVal(const Sign, AFile, Name, Default: PChar): String;
+var S: String;
+begin
+ S[0] := Char(GetPrivateProfileString(Sign, Name, Default, @S[1], 255, AFile));
+ GetVal:=S;
+end;
+
+destructor TARJArchive.Done;
+begin
+  DisposeStr(Packer);
+  DisposeStr(UnPacker);
+  DisposeStr(Extract);
+  DisposeStr(ExtractWP);
+  DisposeStr(Add);
+  DisposeStr(Move);
+  DisposeStr(Delete);
+  DisposeStr(Garble);
+  DisposeStr(Test);
+  DisposeStr(IncludePaths);
+  DisposeStr(ExcludePaths);
+  DisposeStr(ForceMode);
+  DisposeStr(RecoveryRec);
+  DisposeStr(SelfExtract);
+  DisposeStr(Solid);
+  DisposeStr(StoreCompression);
+  DisposeStr(FastestCompression);
+  DisposeStr(FastCompression);
+  DisposeStr(NormalCompression);
+  DisposeStr(GoodCompression);
+  DisposeStr(UltraCompression);
+{ inherited Done;}
 end;
 
 { ----------------------------- ARJ ------------------------------------}
 
 constructor TARJArchive.Init;
+var Sign: TStr5;
+    q: String;
 begin
+  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  FreeStr := SourceDir + DNARC;
   inherited Init;
-  Packer    := NewStr('ARJ.EXE');
-  UnPacker  := NewStr('ARJ.EXE');
-  Extract   := NewStr('e -p1');
-  ExtractWP := NewStr('x -p1');
-  Add       := NewStr('a -a -a1');
-  Move      := NewStr('m -a -a1 -p1');
-  Delete    := NewStr('d -p1');
-  Garble    := NewStr('-g');
-  IncludePaths      := NewStr('');
-  ExcludePaths      := NewStr('-e');
-  ForceMode         := NewStr('-y');
-  NormalCompression := NewStr('-m1');
-  FastCompression   := NewStr('-m3');
-  UltraCompression  := NewStr('-jm -jh65535');
-  ListChar  := '!';
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ.EXE'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1'));
+  Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a -a -a1'));
+  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'm -a -a1 -p1'));
+  Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd -p1'));
+  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               ''));
+  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-g'));
+  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
+  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-e'));
+  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-y'));
+  RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
+  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
+  Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
+  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-m4'));
+  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m3'));
+  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-m1'));
+  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-jm1 -jh65535'));
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-jm -jh65535'));
+  q := GetVal(@Sign[1], @FreeStr[1], PListChar, '!');
+  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
+  if q='0' then Swap := False else Swap := True;
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+  if q='0' then UseLFN := False else UseLFN := True;
   PutTempBefore := 0;
-  Swap := True;
 end;
 
 function TARJArchive.GetID;
@@ -671,36 +441,7 @@ end;
 
 function TARJArchive.GetSign;
 begin
-  GetSign := 'ARJ:';
-end;
-
-function TARJArchive.Detect;
-var I,J: Word;
-    L: LongInt;
-    S: String;
-begin
- ArcFile.Read(I, 2);
- if (I <> 60000) and (ArcPos > 0) then ArcFile.Read(I, 2);
- L := ArcFile.GetPos;
-{piwamoto.change.begin}
- if i<>60000 then
- begin
-  ArcFile.Seek(L + 2);
-  ArcFile.Read(I, 2);
-  L := L + 4;
- end;
-{piwamoto.change.end}
- Detect:=(I=60000);
- if i=60000
-    then begin
-      {** here must be comment reading **}
-          ArcFile.Read(I,2);
-          ArcFile.Seek(L + I + 8);
-         end
-    else
-      begin
-        ArcFile.Seek(ArcPos);
-      end;
+  GetSign := sigARJ;
 end;
 
 procedure TARJArchive.GetFile;
@@ -737,13 +478,13 @@ var HS,i : Word;
            end;
 
 begin
-   ArcFile.Read(i,2);
-   if (i<>60000) or (ArcFile.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-   ArcFile.Read(HS,2);
+   ArcFile^.Read(i,2);
+   if (i<>60000) or (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
+   ArcFile^.Read(HS,2);
    if (HS=0) then begin FileInfo.Last:=1;Exit;end;
-   FP := ArcFile.GetPos;
+   FP := ArcFile^.GetPos;
 
-   ArcFile.Read(h, SizeOf(h));
+   ArcFile^.Read(h, SizeOf(h));
 
    with FileInfo do
    begin
@@ -758,2364 +499,28 @@ begin
 
    if h.ARJ_Flags and EXTFILE_FLAG<>0 then
    begin
-     ArcFile.Read(Extr, 4);
+     ArcFile^.Read(Extr, 4);
      if Extr<>0 then with FileInfo do Attr := Attr or SysFile;
    end else Extr := 0;
 
    S := '';
 {piwamoto.change.begin}
-   ArcFile.Seek(FP + LongInt(h.First_Hdr_Size));
-   repeat ArcFile.Read(C,1); if C <> #0 then S := S + C else Break
-   until ArcFile.Status <> stOK;
+   ArcFile^.Seek(FP + LongInt(h.First_Hdr_Size));
+   repeat ArcFile^.Read(C,1); if C <> #0 then S := S + C else Break
+   until ArcFile^.Status <> stOK;
    While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
-   if (ArcFile.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
+   if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
    if Fileinfo.Attr and Directory <> 0 then S := S + '\';
 {piwamoto.change.end}
    FileInfo.LFN   := AddLFN(S); {DataCompBoy}
    FileInfo.FName := S; {DataCompBoy}
    FileInfo.Last := 0;
-   ArcFile.Seek(FP+HS+4);
+   ArcFile^.Seek(FP+HS+4);
    Repeat
-    ArcFile.Read(i,2);
-    if i>0 then ArcFile.Seek(ArcFile.GetPos+i+4);
-   Until (i=0) or (ArcFile.Status <> stOK);
-   ArcFile.Seek(ArcFile.GetPos+Fileinfo.PSize);
-end;
-
-{ ----------------------------- ZIP ------------------------------------}
-
-constructor TZIPArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('PKZIP.EXE');
-  UnPacker  := NewStr('PKUNZIP.EXE');
-  Extract   := NewStr(' ');
-  ExtractWP := NewStr('-d');
-  Add       := NewStr(' ');
-  Move      := NewStr('-m');
-  Delete    := NewStr('-d');
-  Garble    := NewStr('-s');
-  Test      := NewStr('-t');
-  IncludePaths      := NewStr('-P');
-  ExcludePaths      := NewStr('-p');
-  ForceMode         := NewStr('');
-  NormalCompression := NewStr('-en');
-  FastCompression   := NewStr('-ef');
-  UltraCompression  := NewStr('-ex');
-  ListChar  := '@';
-  PutTempBefore := 1;
-  Swap := True;
-end;
-
-function TZIPArchive.GetID;
-begin
-  GetID := arcZIP;
-end;
-
-function TZIPArchive.GetSign;
-begin
-  GetSign := 'ZIP:';
-end;
-
-function TZIPArchive.Detect;
-  var i: LongInt;
-begin
-  ArcFile.Read(i,4);
-  Detect:=(i=$04034b50);
-  ArcFile.Seek(ArcPos);
-end;
-
-type
-    TZIPLocalHdr = record
-     ID: LongInt;
-     Extract: Word;
-     GeneralPurpose: Word;
-     Method: Word;
-     LastModDate: LongInt;
-     CRC32: LongInt;
-     CompressedSize: LongInt;
-     OriginalSize: LongInt;
-     FNameLength: Word;
-     ExtraField: Word;
-    end;
-
-Procedure TZIPArchive.GetFile;
-label 1;
-var HS, I: Word;
-    FP,FPP: Longint;
-    P: TZIPLocalHdr;
-    s: String;
-begin
-   FP := ArcFile.GetPos;
-1:
-   ArcFile.Read(P.ID,4);
-   if (P.ID and $FFFF <> $4B50) or (ArcFile.Status <> stOK) then
-    begin
-      FPP := FP;
-      FP := SearchFileStr(@ArcFile, 'PK'#03#04, FP, On, Off, Off, Off, Off);
-      if FP > 0 then begin ArcFile.Seek(FP); Goto 1 end;
-      FP := SearchFileStr(@ArcFile, 'PK'#01#02, FPP, On, Off, Off, Off, Off);
-      if FP > 0 then begin ArcFile.Seek(FP); Goto 1 end;
-      FP := SearchFileStr(@ArcFile, 'PK'#05#06, FPP, On, Off, Off, Off, Off);
-      FileInfo.Last:=2;Exit;
-    end;
-   if (P.ID = $06054B50) or (P.ID = $02014b50) then begin FileInfo.Last:=1;Exit;end;
-   ArcFile.Read(P.Extract,SizeOf(P)-4);
-   if (ArcFile.Status <> stOK) or (P.FNameLength > 255) then
-    begin FileInfo.Last:=2;Exit;end;
-   ArcFile.Read(S[1], P.FNameLength); S[0] := Char(P.FNameLength);
-   While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
-   FileInfo.LFN := AddLFN(s);   {DataCompBoy}
-   FileInfo.FName := S; {DataCompBoy}
-   FileInfo.Last := 0;
-   FileInfo.Attr := (P.GeneralPurpose and 1) * Hidden;
-   FileInfo.USize := P.OriginalSize;
-   FileInfo.PSize := P.CompressedSize;
-   FileInfo.Date := P.LastModDate;
-   ArcFile.Seek(ArcFile.GetPos + P.ExtraField + P.CompressedSize);
-end;
-
-{ ----------------------------- LHA ------------------------------------}
-
-constructor TLHAArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('LHA.EXE');
-  UnPacker  := NewStr('LHA.EXE');
-  Extract   := NewStr('e -a');
-  ExtractWP := NewStr('x -a');
-  Add       := NewStr('a -a');
-  Move      := NewStr('m -a');
-  Delete    := NewStr('d -a');
-  Garble    := NewStr('');
-  Test      := NewStr('t');
-  IncludePaths      := NewStr('-d');
-  ExcludePaths      := NewStr('');
-  ForceMode         := NewStr('-m');
-  NormalCompression := NewStr('');
-  FastCompression   := NewStr('-z');
-  UltraCompression  := NewStr('');
-  ListChar  := '@';
-  PutTempBefore := 0;
-  Swap := True;
-end;
-
-function TLHAArchive.GetID;
-begin
-  GetID := arcLHA;
-end;
-
-function TLHAArchive.GetSign;
-begin
-  GetSign := 'LHA:';
-end;
-
-type LHAHdr = record
-      Size: Byte;
-      SUM: Byte;
-      MethodID: Array[1..5] of Char;
-      PackedSize: LongInt;
-      OriginSize: LongInt;
-      Date: LongInt;
-      Attr: Byte;
-      Level: Byte;
-      Name: Array[0..255] of Char;
-     end;
-
-function TLHAArchive.Detect;
-var
-    P: LHAHdr;
-begin
- ArcFile.Read(P, SizeOf(P) - SizeOf(P.Name));
- Detect:=False;
- if (Pos(P.MethodID, '-lh0--lh1--lh2--lh3--lh4--lh5--lh6--lh7--lzs--lz5--lz4--lhd-')+4) mod 5 = 0 then Detect:=True;
- ArcFile.Seek(ArcPos);
-end;
-
-Procedure TLHAArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : LHAHdr;
-    s    : String;
-    DT   : DateTime;
-begin
- ArcFile.Read(P.Size, SizeOf(P.Size));
- if (P.Size = 0) then begin FileInfo.Last:=1;Exit;end;
- ArcFile.Read(P.SUM, P.Size - SizeOf(P.Size));
- if (ArcFile.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- FP := ArcFile.GetPos + 2;
- if P.Level = 2 then
-  begin
-   P.Name[0]:=Chr(Byte(P.Name[3])-3);
-   System.Move(P.Name[6], P.Name[1], Byte(P.Name[0]));
-   FP:=FP-2;
-   GetUNIXDate(P.Date, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
-   PackTime(DT, P.Date);
-   ArcFile.Seek(FP + Byte(P.Name[0]) + $1b - P.Size);
-  end;
-  ArcFile.Read(HS, 2);
-  System.Move(P.Name, S, Byte(P.Name[0])+1);
-  Replace('/', '\', S);
-  FileInfo.FName := S; FileInfo.Last := 0;
-  FileInfo.Attr := P.Attr and not Hidden;
-  FileInfo.USize := P.OriginSize;
-  FileInfo.PSize := P.PackedSize;
-  FileInfo.Date := P.Date;
-  if (HS <> 0) and (P.Level <> 0) then
-    begin
-      HS := HS - 2;
-      ArcFile.Read(P.Name, Min(255, HS));
-      if (P.Name[0] = #2) then                                                    begin
-         I := 1; S := '';
-         while (I < Min(255,HS)) and (P.Name[I] > #31) do
-           begin AddStr(S, P.Name[I]); Inc(I) end;
-         Replace(#255, '\', S);
-         Replace('/', '\', S);
-         System.Insert(S, FileInfo.FName, 1);
-      end;
-   end;
- FileInfo.LFN := AddLFN(FileInfo.FName);
- ArcFile.Seek(FP + P.PackedSize);
-end;
-
-{ ----------------------------- ARC ------------------------------------}
-
-constructor TARCArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('PAK.EXE');
-  UnPacker  := NewStr('PAK.EXE');
-  Extract   := NewStr('E');
-  ExtractWP := NewStr('E /WA');
-  Add       := NewStr('A');
-  Move      := NewStr('A /M');
-  Delete    := NewStr('D');
-  Garble    := NewStr('/G');
-  Test      := NewStr('T');
-  ListChar  := '@';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TARCArchive.GetID;
-begin
-  GetID := arcARC;
-end;
-
-function TARCArchive.GetSign;
-begin
-  GetSign := 'ARC:';
-end;
-
-type
-     ARCHdr = record
-      Mark: Char;
-      Version: Byte;
-      Name: Array[1..13] of Char;
-      PackedSize: LongInt;
-      Date: LongInt;
-      CRC: Word;
-      OriginSize: LongInt;
-     end;
-
-function TARCArchive.Detect;
-var P: ARCHdr;
-
-procedure More;
-var i: byte;
-    c: char;
-begin
-  i := 0;
-  while i<13 do
-  begin
-    Inc(i);
-    c := P.Name[i];
-    if c = #0 then Break;
-    if c <#32 then Exit;
-  end;
-  if i <= 2 then Exit;
-  if P.PackedSize<0 then Exit;
-  if P.OriginSize<0 then Exit;
-  Detect := True;
-end;
-
-begin
- ArcFile.Read(P,SizeOf(P));
- Detect := False;
- if (ArcFile.Status = stOK) and (P.Mark = ^Z) and (P.Version < 20) then More;
- ArcFile.Seek(ArcPos);
-end;
-
-Procedure TARCArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : ARCHdr;
-    s    : String;
-begin
- ArcFile.Read(P,2);
- if (P.Mark = ^Z) and (P.Version <> 0) and (ArcFile.Status = stOK) then ArcFile.Read(P.Name,SizeOf(P)-2);
- if (P.Version = 0) then begin FileInfo.Last:=1;Exit;end;
- if (ArcFile.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- i := 1; S := ' ';
- While (I < 14) and (P.Name[I] <> #0) do
-  begin S := S + P.Name[I]; Inc(I); end;
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
- FileInfo.FName := S; {DataCompBoy}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date := (P.Date shr 16) or (P.Date shl 16);
- ArcFile.Seek(ArcFile.GetPos + P.PackedSize);
-end;
-
-{ ----------------------------- HA ------------------------------------}
-
-constructor THAArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('HA.EXE');
-  UnPacker  := NewStr('HA.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('x');
-  Add       := NewStr('a');
-  Move      := NewStr('am');
-  Delete    := NewStr('d');
-  Garble    := NewStr(' ');
-  Test      := NewStr('t');
-  IncludePaths      := NewStr('');
-  ExcludePaths      := NewStr('+e');
-  ForceMode         := NewStr('');
-  NormalCompression := NewStr('+1');
-  FastCompression   := NewStr('+0');
-  UltraCompression  := NewStr('+2');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function THAArchive.GetID;
-begin
-  GetID := arcHA;
-end;
-
-function THAArchive.GetSign;
-begin
-  GetSign := 'HA:';
-end;
-
-type
-     HAHdr = record
-      Method: Byte;
-      PackedSize: LongInt;
-      OriginSize: LongInt;
-      CRC: LongInt;
-      Date: LongInt;
-     end;
-
-Function THAArchive.Detect;
-var
-    S: Array[1..2] of Char;
-    P: HAHdr;
-begin
- ArcFile.Read(S, 2);
- Detect:=False;
- if (ArcFile.Status = stOK) and (S = 'HA')
-    then begin
-          Detect:=True;
-          ArcFile.Seek(ArcPos+4);
-         end
-    else ArcFile.Seek(ArcPos);
-end;
-
-Procedure THAArchive.GetFile;
-var
-    FP   : Longint;
-    P    : HAHdr;
-    S    : String;
-    C    : Char;
-    DT   : DateTime;
-begin
- ArcFile.Read(P,SizeOf(P));
- if (ArcFile.Status <> stOK) then begin FileInfo.Last:=1;Exit;end;
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- GetUNIXDate(P.Date - 14400, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
- PackTime(DT, FileInfo.Date);
- S[0] := #0;
- repeat ArcFile.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 77);
- repeat ArcFile.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 78);
- if Length(S) > 79 then begin FileInfo.Last := 2; Exit; end;
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- if P.Method and $0f = $0e then S:=S+'\';
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
- FileInfo.FName := S; {DataCompBoy}
- S[0] := #2;
- ArcFile.Read(S[0], 1); ArcFile.Read(S[1], byte(S[0]));
- FP := ArcFile.GetPos + P.PackedSize;
- if (FP > ArcFile.GetSize) or (ArcFile.Status <> stOK) then begin FileInfo.Last := 2; Exit; end;
- ArcFile.Seek(FP);
-end;
-
-
-{ ----------------------------- SQZ ------------------------------------}
-
-constructor TSQZArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('SQZ.EXE');
-  UnPacker  := NewStr('SQZ.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('x');
-  Add       := NewStr('a');
-  Move      := NewStr('a');
-  Delete    := NewStr('d');
-  Garble    := NewStr(' ');
-  Test      := NewStr('t');
-  IncludePaths      := NewStr('');
-  ExcludePaths      := NewStr('');
-  ForceMode         := NewStr('');
-  NormalCompression := NewStr('');
-  FastCompression   := NewStr('');
-  UltraCompression  := NewStr('');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TSQZArchive.GetID;
-begin
-  GetID := arcSQZ;
-end;
-
-function TSQZArchive.GetSign;
-begin
-  GetSign := 'SQZ:';
-end;
-
-type
-     SQZHdr = record
-      Size: Byte;
-      SUM: Byte;
-      Method: Byte;
-      PackedSize: LongInt;
-      OriginSize: LongInt;
-      Date: LongInt;
-      Attr: Byte;
-      CRC: LongInt;
-      Name: Array[0..127] of Char;
-     end;
-
-function TSQZArchive.Detect: Boolean;
-var
-    S: Array[0..4] of Char;
-begin
- ArcFile.Read(S, 5);
- Detect := False;
- if (ArcFile.Status = stOK) and (S = 'HLSQZ')
-    then begin
-          Detect := True;
-          ArcFile.Seek(ArcPos+8);
-         end
-    else ArcFile.Seek(ArcPos);
-end;
-
-Procedure TSQZArchive.GetFile;
-label 1;
-var
-    HS,i : Word;
-    FP   : Longint;
-    P    : SQZHdr;
-    S    : String;
-    C    : Char;
-begin
-1:
- ArcFile.Read(P,1);
- if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2; Exit; end;
- if (P.Size = 0) then begin FileInfo.Last := 1; Exit;end;
- if P.Size < $19 then
-  begin
-   ArcFile.Read(I, 2);
-   ArcFile.Seek(ArcFile.GetPos + I);
-   Goto 1;
-  end;
- ArcFile.Read(P.SUM, P.Size + 1);
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := P.Attr and not Hidden;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date := P.Date;
- i := 1;
- S[0] := Char(P.Size - 18); System.Move(P.Name, S[1], P.Size - 18);
- if Length(S) > 79 then begin FileInfo.Last := 2; Exit; end;
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
- FileInfo.FName := S; {DataCompBoy}
- ArcFile.Seek(ArcFile.GetPos + P.PackedSize);
-end;
-
-
-{ ----------------------------- HAP ------------------------------------}
-
-constructor THAPArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('HAP3.EXE');
-  UnPacker  := NewStr('PAH3.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('x');
-  Add       := NewStr('a');
-  Move      := NewStr('a');
-  Delete    := NewStr('d');
-  Garble    := NewStr(' ');
-  Test      := NewStr('t');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function THAPArchive.GetID;
-begin
-  GetID := arcHAP;
-end;
-
-function THAPArchive.GetSign;
-begin
-  GetSign := 'HAP:';
-end;
-
-type
-     HAPHdr = record
-      C: Char;
-      ID: Array[1..4] of Char;
-      PackedSize: LongInt;
-      Reserved: Array[1..9] of Byte;
-      Attr: Byte;
-      Date: LongInt;
-      OriginSize: LongInt;
-     end;
-
-Function THAPArchive.Detect: Boolean;
-var
-    S: Array[1..4] of Char;
-    P: HAHdr;
-begin
- ArcFile.Read(S, 4);
- Detect:=False;
- if (ArcFile.Status = stOK) and (S = 'С3HF')
-    then begin Detect:=True; ArcFile.Seek(ArcPos+14) end
-    else ArcFile.Seek(ArcPos);
-end;
-
-Procedure THAPArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : HAPHdr;
-    S    : String;
-    C    : Char;
-begin
- ArcFile.Read(P,1);
- if (ArcFile.GetPos = ArcFile.GetSize)
-   then begin FileInfo.Last := 1;Exit;end;
- ArcFile.Read(P.ID,SizeOf(P)-1);
- if (ArcFile.Status <> stOK) or (P.ID <> 'ОhJW')
-   then begin FileInfo.Last := 2;Exit;end;
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := P.Attr and not Hidden;;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date := P.Date;
- i := 1;
- S[0] := #0;
- repeat ArcFile.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 77);
- repeat ArcFile.Read(C, 1); until (C in [#$15,#$16]) or (ArcFile.Status <> stOK);
- if (ArcFile.Status <> stOK) or (Length(S) > 79) then
-  begin FileInfo.Last := 2; Exit; end;
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
- FileInfo.FName := S; {DataCompBoy}
- ArcFile.Seek(ArcFile.GetPos + P.PackedSize-1);
-end;
-
-
-{ ----------------------------- ZOO ------------------------------------}
-
-constructor TZOOArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('ZOO.EXE');
-  UnPacker  := NewStr('ZOO.EXE');
-  Extract   := NewStr('eo');
-  ExtractWP := NewStr('xo');
-  Add       := NewStr('a');
-  Move      := NewStr('aE');
-  Delete    := NewStr('D');
-  Garble    := NewStr(' ');
-  Test      := NewStr('eN');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TZOOArchive.GetID;
-begin
-  GetID := arcZOO;
-end;
-
-function TZOOArchive.GetSign;
-begin
-  GetSign := 'ZOO:';
-end;
-
-type
-     ZOOHdr = record
-      ID: LongInt;
-      Info: Word;
-      NextHDR: LongInt;
-      CurStart: LongInt;
-      Date: LongInt;
-      W: Word;
-      OriginSize: LongInt;
-      PackedSize: LongInt;
-      C: Char;
-      Reserved: Array[1..9] of Byte;
-     end;
-
-     ZOOPHdr = record
-      Date: LongInt;
-      Reserved: Array[1..16] of Byte;
-      ID: Array[1..5] of Char;
-     end;
-
-const ZOOID = $FDC4A7DC;
-
-Function TZOOArchive.Detect;
-label 1;
-var
-    S: Array[1..3] of Char;
-    C: Char;
-    L: LongInt;
-begin
- ArcFile.Read(S, 3);
- Detect:=False;
- if (ArcFile.Status = stOK) and (S = 'ZOO')
-    then
-     begin
-      L := 0;
-      repeat Inc(L); ArcFile.Read(C, 1) until (C = ^Z) or (L = 1024);
-      ArcFile.Read(L,2);
-      ArcFile.Read(L,4);
-      if L <> ZOOID then Goto 1;
-      Detect := True;
-      ArcFile.Read(L,4);
-      ArcFile.Seek(L);
-      Exit;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-Procedure TZOOArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : ZOOHdr;
-    Q    : Array [1..40] of Char absolute P;
-    P1   : ZOOPHdr;
-    S    : String;
-    C    : Char;
-begin
-{ if (ArcFile.GetPos = ArcFile.GetSize)
-   then begin FileInfo.Last := 1;Exit;end;}
- ArcFile.Read(P, 4);
- if (ArcFile.Status <> stOK) or (P.ID <> ZOOID)
-  then begin FileInfo.Last := 2;Exit;end;
- ArcFile.Read(P.Info, 2);
- if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
- {if (P.Info = $0002) then begin FileInfo.Last := 1;Exit;end;}
- ArcFile.Read(P.NextHDR, SizeOf(P)-6);
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date  := (P.Date shl 16) or (P.Date shr 16);
- i := 1;
- S[0] := #0;
- repeat ArcFile.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 77);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
- FileInfo.FName := S; {DataCompBoy}
- if S = '' then begin FileInfo.Last := 1;Exit;end;
- ArcFile.Seek(P.NextHdr);
-end;
-
-
-{ ----------------------------- CHZ ------------------------------------}
-
-constructor TCHZArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('CHARC.EXE');
-  UnPacker  := NewStr('CHARC.EXE');
-  Extract   := NewStr('-e -y');
-  ExtractWP := NewStr('-e -y');
-  Add       := NewStr('-a -t');
-  Move      := NewStr('-a -t -m');
-  Delete    := NewStr('-D');
-  Garble    := NewStr(' ');
-  Test      := NewStr('eN');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TCHZArchive.GetID;
-begin
-  GetID := arcCHZ;
-end;
-
-function TCHZArchive.GetSign;
-begin
-  GetSign := 'CHZ:';
-end;
-
-type
-     CHZHdr = record
-      ID: Array [1..4] of Char;
-      PackedSize: LongInt;
-      OriginSize: LongInt;
-      Data: Array[1..4] of Byte;
-      Date: LongInt;
-      QQQ: Word;
-      NameLen: Word;
-     end;
-
-Function TCHZArchive.Detect: Boolean;
-label 1;
-var
-    M: Array[1..3] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
-begin
- Detect:=False;
- if ArcPos > 0 then
-   begin
-    S[0] := #128;
-    ArcFile.Read(S[1],128);
-    L := Pos('SChF', S);
-    if L = 0 then L := Pos('SChD', S);
-    if L = 0 then Goto 1;
-    Inc(ArcPos, L-1);
-    ArcFile.Seek(ArcPos);
-   end;
- ArcFile.Read(M, 3);
- if (ArcFile.Status = stOK) and (M = 'SCh')
-    then
-     begin
-      Detect := True;
-      CDir := '';
-      ArcFile.Seek(ArcPos);
-      Exit;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-Procedure TCHZArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : CHZHdr;
-    Q    : Array [1..40] of Char absolute P;
-    P1   : ZOOPHdr;
-    S    : String;
-    C    : Char;
-    label 1;
-begin
-1:
- FP := ArcFile.GetPos;
- if FP = ArcFile.GetSize then begin FileInfo.Last := 1; Exit;end;
- ArcFile.Read(P, 4);
- if (ArcFile.Status <> stOK) or (Copy(P.ID,1,3) <> 'SCh')
-  then begin FileInfo.Last := 2;Exit;end;
- if P.ID[4] = 'D' then
-  begin
-   ArcFile.Seek(FP+4+5);
-   ArcFile.Read(S[0],1);
-   ArcFile.Read(S[1],Length(S));
-   CDir := CDir + S+'\';
-   Goto 1;
-  end else if P.ID[4] = 'd' then
-   begin
-    if CDir <> '' then
-     begin
-      Dec(CDir[0]);
-      while (CDir <> '') and (CDir[Byte(CDir[0])] <> '\') do Dec(CDir[0]);
-     end;
-    Goto 1;
-   end;
- ArcFile.Read(P.PackedSize, Sizeof(P)-4);
- if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1;
- S[0] := Char(P.NameLen);
- ArcFile.Read(S[1], P.NameLen and 255);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(CDir+S);    {DataCompBoy}
- FileInfo.FName := CDir + S; {DataCompBoy}
- ArcFile.Seek(FP + P.PackedSize);
-end;
-
-
-{ ----------------------------- BSA ------------------------------------}
-
-constructor TBSAArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('BSARC.EXE');
-  UnPacker  := NewStr('BSARC.EXE');
-  Extract   := NewStr('-xy');
-  ExtractWP := NewStr('-xy');
-  Add       := NewStr('-ar');
-  Move      := NewStr('-am');
-  Delete    := NewStr('-D');
-  Garble    := NewStr('-xg');
-  Test      := NewStr('-t');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TBSAArchive.GetID;
-begin
-  GetID := arcBSA;
-end;
-
-function TBSAArchive.GetSign;
-begin
-  GetSign := 'BSA:';
-end;
-
-type
-     BSAHdr = record
-      ID: Array [1..4] of Char;
-      PackedSize: LongInt;
-      OriginSize: LongInt;
-      Date: LongInt;
-      Data: Array[1..6] of Byte;
-      NameLen: Byte;
-     end;
-
-Function TBSAArchive.Detect: Boolean;
-label 1;
-var
-    M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
-begin
- Detect:=False;
- ArcFile.Read(M, 4);
- if (ArcFile.Status = stOK) and (M[4] in [#0,#7]) and (Copy(M,2,2) = #0#$AE)
-    then
-     begin
-      Detect := True;
-      ArcFile.Seek(ArcPos);
-      Exit;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-Procedure TBSAArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : BSAHdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
-    C    : Char;
-    label 1;
-begin
-1:
- if ArcFile.GetPos = ArcFile.GetSize then begin FileInfo.Last := 1; Exit;end;
- ArcFile.Read(P, 4);
- if (Copy(P.ID,1,2) = #0#0)
-  then begin FileInfo.Last := 1;Exit;end;
- if (ArcFile.Status <> stOK) or not ((P.ID[4] in [#0,#7]) and (Copy(P.ID,2,2) = #0#$AE))
-  then begin FileInfo.Last := 2;Exit;end;
- ArcFile.Read(P.PackedSize, Sizeof(P)-4);
- if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1;
- S[0] := Char(P.NameLen);
- ArcFile.Read(S[1], P.NameLen and 255);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(CDir+S);    {DataCompBoy}
- FileInfo.FName := CDir + S; {DataCompBoy}
- FP := ArcFile.GetPos;
- ArcFile.Seek(FP + P.PackedSize + 1);
-end;
-
-
-{ ----------------------------- BS2 ------------------------------------}
-
-constructor TBS2Archive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('BS2.EXE');
-  UnPacker  := NewStr('BS2.EXE');
-  Extract   := NewStr('-xy');
-  ExtractWP := NewStr('-xy');
-  Add       := NewStr('-ar');
-  Move      := NewStr('-am');
-  Delete    := NewStr('-D');
-  Garble    := NewStr('-xg');
-  Test      := NewStr('-t');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TBS2Archive.GetID;
-begin
-  GetID := arcBS2;
-end;
-
-function TBS2Archive.GetSign;
-begin
-  GetSign := 'BS2:';
-end;
-
-type
-     BSA2Hdr = record
-      Unknown: Array [1..12] of Char;
-      ID: Array [1..4] of Char;
-      Date: LongInt;
-      OriginSize: LongInt;
-      PackedSize: LongInt;
-      Data: Array[1..4] of Byte;
-      NameLen: Byte;
-     end;
-
-Function TBS2Archive.Detect: Boolean;
-label 1;
-var
-    M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
-begin
- Detect:=False;
- ArcFile.Read(M, 4);
- if (ArcFile.Status = stOK) and (M = #$D4#$03'SB')
-    then
-     begin
-      Detect := True;
-      ArcFile.Seek(ArcPos);
-      Exit;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-Procedure TBS2Archive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : BSA2Hdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
-    C    : Char;
-    label 1;
-begin
-1:
- ArcFile.Read(P, 6);
-{ if (Copy(P.ID,1,2) = #0#0)
-  then begin FileInfo.Last := 1;Exit;end;}
- if (ArcFile.Status <> stOK)  then begin FileInfo.Last := 2;Exit;end;
- FP := ArcFile.GetPos;
- if FP = ArcFile.GetSize then
-  begin FileInfo.Last := 1; Exit;end;
- ArcFile.Read(P.Unknown[7], Sizeof(P)-6);
- if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1;
- S[0] := Char(P.NameLen);
- ArcFile.Read(S[1], P.NameLen and 255);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(CDir+S);    {DataCompBoy}
- FileInfo.FName := CDir + S; {DataCompBoy}
- FP := ArcFile.GetPos;
- ArcFile.Seek(FP + P.PackedSize);
-end;
-
-
-{ ----------------------------- HYP ------------------------------------}
-
-constructor THYPArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('HYPER.EXE');
-  UnPacker  := NewStr('HYPER.EXE');
-  Extract   := NewStr('-xo');
-  ExtractWP := NewStr('-xo');
-  Add       := NewStr('-a');
-  Move      := NewStr('-m');
-  Delete    := NewStr('-D');
-  Garble    := NewStr(' ');
-  Test      := NewStr(' ');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function THYPArchive.GetID;
-begin
-  GetID := arcHYP;
-end;
-
-function THYPArchive.GetSign;
-begin
-  GetSign := 'HYP:';
-end;
-
-type
-     HYPHdr = record
-      ID: Array [1..4] of Char;
-      PackedSize: LongInt;
-      OriginSize: LongInt;
-      Date: LongInt;
-      Data: Array[1..4] of Byte;
-      Attr: Byte;
-      NameLen: Byte;
-     end;
-
-Function THYPArchive.Detect;
-label 1;
-var
-    M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
-begin
- Detect:=False;
- ArcFile.Read(M, 4);
- if (ArcFile.Status = stOK) and
-    ((M = ^Z'HP%') OR (M = ^Z'ST%'))
-    then
-     begin
-      Detect := True;
-      ArcFile.Seek(ArcPos);
-      Exit;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-Procedure THYPArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : HYPHdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
-    C    : Char;
-    label 1;
-begin
-1:
- FP := ArcFile.GetPos;
- if FP = ArcFile.GetSize then begin FileInfo.Last := 1; Exit;end;
- ArcFile.Read(P, 4);
- if (Copy(P.ID,1,2) = #0#0)
-  then begin FileInfo.Last := 1;Exit;end;
- if (ArcFile.Status <> stOK) or ((P.ID <> ^Z'HP%') and (P.ID <> ^Z'ST%'))
-  then begin FileInfo.Last := 2;Exit;end;
- ArcFile.Read(P.PackedSize, Sizeof(P)-4);
- if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1;
- S[0] := Char(P.NameLen);
- ArcFile.Read(S[1], P.NameLen and 255);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
- FileInfo.FName := S; {DataCompBoy}
- FP := ArcFile.GetPos;
- ArcFile.Seek(FP + P.PackedSize);
-end;
-
-
-{ ----------------------------- LIM ------------------------------------}
-
-constructor TLIMArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('LIMIT.EXE');
-  UnPacker  := NewStr('LIMIT.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('e -p');
-  Add       := NewStr('a');
-  Move      := NewStr('a');
-  Delete    := NewStr('Del');
-  Garble    := NewStr(' ');
-  Test      := NewStr('t');
-  IncludePaths      := NewStr('');
-  ExcludePaths      := NewStr('');
-  ForceMode         := NewStr('');
-  NormalCompression := NewStr('-m1');
-  FastCompression   := NewStr('-ms');
-  UltraCompression  := NewStr('-mx');
-  ListChar  := '@';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TLIMArchive.GetID;
-begin
-  GetID := arcLIM;
-end;
-
-function TLIMArchive.GetSign;
-begin
-  GetSign := 'LIM:';
-end;
-
-type
-     LIMHdr = record
-      ID: Array [1..2] of Char;
-      Method: Byte;
-      ThreeZeros: Array [1..3] of Byte;
-      Date: LongInt;
-      ThreeSym: Array [1..3] of Byte;
-      OriginSize: LongInt;
-      PackedSize: LongInt;
-      Data: Array[1..4] of Byte;
-     end;
-
-Function TLIMArchive.Detect: Boolean;
-label 1;
-var
-    M: Array[1..8] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
-begin
- Detect:=False;
- ArcFile.Read(M, 8);
- if (ArcFile.Status = stOK) and (Copy(M,1,5) = 'LM'#26#8#0)
-    then
-     begin
-      ArcFile.Read(M, 7);
-      if Copy(M, 6, 2) = '#ё' then
-       begin
-        Detect := True;
-        CDir := '';
-        ArcFile.Seek(ArcPos+13);
-        Exit;
-       end;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-Procedure TLIMArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : LIMHdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
-    C    : Char;
-    label 1;
-begin
-1:
- ArcFile.Read(P, 4);
- if (ArcFile.Status = stOK) and (P.ID = #$13#$F8) and (P.Method = 5)
-  then begin FileInfo.Last := 1;Exit;end;
- if (ArcFile.Status = stOK) and (P.ID = #$80#$D1)
-  then
-   begin
-    FileInfo.Last := 0;
-    i := 1; S := ''; C := #1;
-    While (I < 80) and (C <> #0) and not Abort and (ArcFile.Status = stOK) do
-     begin ArcFile.Read(C, 1); if C <> #0 then S := S + C; Inc(I); end;
-     CDir := S;
-    Goto 1;
-   end;
- if (ArcFile.Status <> stOK) or (P.ID <> '#ё')
-  then begin FileInfo.Last := 2;Exit;end;
- ArcFile.Read(P.ThreeZeros[2], Sizeof(P)-4);
- if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1; S := '';
- C := #1;
- While (I < 80) and (C <> #0) and not Abort and (ArcFile.Status = stOK) do
-  begin ArcFile.Read(C, 1); if C <> #0 then S := S + C; Inc(I); end;
-  While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(CDir+'\'+S);      {DataCompBoy}
- FileInfo.FName := CDir + '\' + S; {DataCompBoy}
- if P.ThreeZeros[3] and Directory <> 0 then Goto 1;
- FP := ArcFile.GetPos;
- ArcFile.Seek(FP + P.PackedSize);
-end;
-
-
-{ ----------------------------- HPK ------------------------------------}
-
-constructor THPKArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('HPACK.EXE');
-  UnPacker  := NewStr('HPACK.EXE');
-  Extract   := NewStr('X');
-  ExtractWP := NewStr('X');
-  Add       := NewStr('A');
-  Move      := NewStr('A');
-  Delete    := NewStr('D');
-  Garble    := NewStr('-C');
-  Test      := NewStr('T');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function THPKArchive.GetID;
-begin
-  GetID := arcHPK;
-end;
-
-function THPKArchive.GetSign;
-begin
-  GetSign := 'HPK:';
-end;
-
-type
-     PHPKRec = ^THPKRec;
-     THPKRec = record
-      PSize, USize: LongInt;
-      Date: LongInt;
-      Name: PString;
-     end;
-
-     PHPKCollection = ^THPKCollection;
-     THPKCollection = object(TCollection)
-      procedure FreeItem(P: Pointer); virtual;
-     end;
-
-var HPKCol : PHPKCollection;
-
-procedure THPKCollection.FreeItem(P: Pointer);
-begin
- if P <> nil then
-  begin DisposeStr(PHPKRec(P)^.Name); Dispose(PHPKRec(P)); end;
-end;
-
-Function THPKArchive.Detect: Boolean;
-label 1;
-var
-    M: Array[1..4] of Char;
-    C: Char;
-    L,J,I: LongInt;
-    W: Word;
-    B: Byte;
-    S: String;
-    P: Record NumFiles, Margin: LongInt; I,n,f: Byte; S: Array[1..4] of Char; end;
-    R: PHPKRec;
-
-  function GetLong(Num4: Boolean): LongInt;
-   var A: LongInt;
-       R: Record A1, A2, A3, A4: Byte end;
-  begin
-   ArcFile.Read(R, 2 + 2*Byte(Num4));
-   if Num4 then A := LongInt(R.A1) shl 24 + LongInt(R.A2) shl 16 +
-                     LongInt(R.A3) shl 8 + LongInt(R.A4)
-           else A := R.A1 * 256 + R.A2;
-   GetLong := A;
-  end;
-
-begin
- Detect:=False;
- ArcFile.Read(M, 4);
- if (ArcFile.Status = stOK) and (M = 'HPAK')
-    then
-     begin
-      ArcFile.Seek(ArcFile.GetSize - SizeOf(P));
-      P.NumFiles := GetLong(On);
-      P.Margin := GetLong(On);
-      ArcFile.Read(P.I,7);
-      if P.S = 'HPAK' then
-       begin
-        ArcFile.Seek(ArcFile.GetSize - SizeOf(P) - P.Margin);
-        Detect := True;
-        New(HPKCol, Init(P.NumFiles,10));
-        for I := 1 to P.NumFiles do
-         begin
-          New(R); R^.Name := nil;
-          ArcFile.Read(W,2);
-          if W and $10 <> 0 then ArcFile.Read(J,2);
-          R^.Date := GetLong(On);
-          R^.USize := GetLong(W and $0080 <> 0);
-          R^.PSize := GetLong(W and $0040 <> 0);
-          HPKCol^.Insert(R);
-         end;
-        for I := 0 to P.NumFiles - 1 do
-         begin
-          S := '';
-          repeat ArcFile.Read(C, 1); if C <> #0 then S := S + C until C = #0;
-          PHPKRec(HPKCol^.At(I))^.Name := NewStr(S);
-         end;
-        Exit;
-       end;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-Procedure THPKArchive.GetFile;
-var HS,i : Word;
-    DT: DateTime;
-    R: PHPKRec;
-begin
- if HPKCol^.Count = 0 then begin FileInfo.Last := 1; Dispose(HPKCol, Done); Exit; end;
- FileInfo.USize := PHPKRec(HPKCol^.At(0))^.USize;
- FileInfo.PSize := PHPKRec(HPKCol^.At(0))^.PSize;
- GetUNIXDate(PHPKRec(HPKCol^.At(0))^.Date, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
- PackTime(DT, FileInfo.Date);
- if PHPKRec(HPKCol^.At(0))^.Name <> nil                 {DataCompBoy}
-  then FileInfo.FName := PHPKRec(HPKCol^.At(0))^.Name^  {DataCompBoy}
-  else FileInfo.FName := '';                            {DataCompBoy}
- FileInfo.LFN  := AddLFN(FileInfo.FName);          {DataCompBoy}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- HPKCol^.AtFree(0);
-end;
-
-
-{ ----------------------------- RAR ------------------------------------}
-
-constructor TRARArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('RAR.EXE');
-  UnPacker  := NewStr('RAR.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('x');
-  Add       := NewStr('a -r0');
-  Move      := NewStr('m -r0');
-  Delete    := NewStr('d');
-  Garble    := NewStr('-p');
-  Test      := NewStr('t');
-  IncludePaths := NewStr('');
-  ExcludePaths := NewStr('-ep');
-  ForceMode         := NewStr('');
-  NormalCompression := NewStr('-m3');
-  FastCompression   := NewStr('-m1');
-  UltraCompression  := NewStr('-m5');
-  ListChar  := '@';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TRARArchive.GetID;
-begin
-  GetID := arcRAR;
-end;
-
-function TRARArchive.GetSign;
-begin
-  GetSign := 'RAR:';
-end;
-
-type
-     MainRARHdr = record
-      ID: Array [1..4] of Char;
-      HeadLen: Word;
-      HeadFlags: Byte;
-     end;
-
-     MainRAR2Hdr = record
-       HeadCRC: Word;
-       HeadType: Byte;
-       HeadFlags: Word;
-       HeadLen: Word;
-       Reserved1: Word;
-       Reserved2: LongInt;
-     end;
-
-
-var RAR2: Boolean;
-
-Function TRARArchive.Detect: Boolean;
-label 1;
-var
-    M2: MainRAR2Hdr;
-    K: Array[1..7] of Char absolute M2;
-    M: MainRARHdr absolute M2;
-    C: Char;
-    L: LongInt;
-    S: String;
-begin
- RAR2 := Off;
- Detect:=False;
- L := ArcFile.GetPos;
- ArcFile.Read(K, SizeOf(K));
- if (ArcFile.Status = stOK) and (M.ID = #$52#$45#$7E#$5E)
-    then
-     begin
-      Detect := True;
-      ArcFile.Seek(L + M.HeadLen);
-      Exit;
-     end;
- if (ArcFile.Status = stOK) and (K = #$52#$61#$72#$21#$1A#$07#$00)
-    then
-     begin
-      RAR2 := On;
-      ArcFile.Read(M2, SizeOf(M2));
-      if M2.HeadType <> $73 then Goto 1;
-      ArcFile.Seek(ArcFile.GetPos + M2.HeadLen - SizeOf(M2));
-      Detect := True;
-      Exit;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-type
-     LocRarHdr = record
-       PSize: LongInt;
-       USize: LongInt;
-       CRC: Word;
-       HdrLen: Word;
-       Date: LongInt;
-       Attr: Byte;
-       Flags: Byte;
-       Ver: Byte;
-       NameLen: Byte;
-       Method: Byte;
-       CommLen: Word;
-     end;
-
-     LocRar2Hdr = record
-       HeadCRC: Word;
-       HeadType: Byte;
-       HeadFlags: Word;
-       HeadSize: Word;
-       PSize: LongInt;
-       USize: LongInt;
-       OSVer: Byte;
-       CRC: LongInt;
-       Date: LongInt;
-       Ver: Byte;
-       Method: Byte;
-       NameLen: Word;
-       Attr: LongInt;
-     end;
-
-Procedure TRARArchive.GetFile;
-var HS,i : Word;
-    FP   : Longint;
-    P    : LocRARHdr;
-    P2   : LocRAR2Hdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
-    C    : Char;
-    Ps   : Integer;
-    IsDir: Boolean;
-    label 1;
-begin
-1: if (ArcFile.GetPos = ArcFile.GetSize) or (ArcFile.GetPos = 0) then
-     begin FileInfo.Last := 1; Exit end;
-   if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
-   if RAR2 then begin
-      FP := ArcFile.GetPos;
-      ArcFile.Read(P2, 7);
-      if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
-      if P2.HeadType = $74 then
-       begin
-         ArcFile.Read(P2.PSize, SizeOf(P2)-7);
-         if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
-         FileInfo.Last := 0;
-         FileInfo.Date := P2.Date;
-         FileInfo.PSize := P2.PSize;
-         FileInfo.USize := P2.USize;
-         FileInfo.Attr := Byte(P2.HeadFlags and $04 <> 0) * Hidden;
-         if P2.NameLen > 255 then P2.NameLen := 255;
-         ArcFile.Read(S[1], P2.NameLen); S[0] :=Char(P2.NameLen);
-         repeat
-           Ps := System.Pos('.\', S);
-           if Ps = 0 then Break;
-           System.Delete(S, Ps, 1);
-         until False;
-         if P2.OSVer=3 then (* Unix *) IsDir:=(P2.Attr and $4000 <> 0)
-         else                          IsDir:=(P2.Attr and Directory <> 0);
-         if IsDir then S:=S + '\';
-         FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-         FileInfo.FName := S; {DataCompBoy}
-         if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
-         ArcFile.Seek(FP+P2.HeadSize+P2.PSize);
-         Exit;
-       end;
-      if P2.HeadSize = 0 then P2.HeadSize := 7;
-      if P2.HeadFlags and $8000 <> 0 then begin ArcFile.Read(FP, 4); Arcfile.Seek(Arcfile.GetPos-4) end
-         else FP := 0;
-      ArcFile.Seek(ArcFile.GetPos + FP + P2.HeadSize - 7);
-      Goto 1;
-    end else begin
-      ArcFile.Read(P, SizeOf(P)-2);
-      if (ArcFile.Status <> stOK) or (P.NameLen = 0) then begin FileInfo.Last := 2;Exit;end;
-      FileInfo.Last := 0;
-      FileInfo.Date := P.Date;
-      FileInfo.PSize := P.PSize;
-      FileInfo.USize := P.USize;
-      FileInfo.Attr := Byte(P.Flags and $04 <> 0) * Hidden;
-      if P.Flags and $08 <> 0 then
-       begin
-        {ArcFile.Read(P, P.CommLen);}
-        ArcFile.Seek(ArcFile.GetPos + P.CommLen);
-        if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit; end;
-       end;
-      Arcfile.Read(S[1], P.NameLen);
-      if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit; end;
-      S[0] := Char(P.NameLen);
-      FileInfo.LFN  := AddLFN(S);     {DataCompBoy}
-      if P.Attr and Directory <> 0         {DataCompBoy}
-       then FileInfo.FName := S+'\'        {DataCompBoy}
-       else FileInfo.FName := S;           {DataCompBoy}
-      FP := ArcFile.GetPos;
-      ArcFile.Seek(FP + P.PSize);
-   end;
-end;
-
-
-{ ----------------------------- TAR ------------------------------------}
-
-constructor TTARArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('TAR.EXE');
-  UnPacker  := NewStr('TAR.EXE');
-  Extract   := NewStr('xf');
-  ExtractWP := NewStr('xf');
-  Add       := NewStr('cvf');
-  Move      := NewStr('cvf');
-  Delete    := NewStr('df');
-  Garble    := NewStr(' ');
-  Test      := NewStr('tf');
-  ListChar  := ' ';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TTARArchive.GetID;
-begin
-  GetID := arcTAR;
-end;
-
-function TTARArchive.GetSign;
-begin
-  GetSign := 'TAR:';
-end;
-
-const MaxTName = 100;
-      Txt_Word = 8;
-      Txt_Long = 12;
-      BLKSIZE  = 512;
-
-type
-     TARHdr = record
-       FName: Array[1..MaxTName] of Char;
-       Mode:  Array[1..TXT_WORD] of Char;
-       uid:   Array[1..TXT_WORD] of Char;
-       gid:   Array[1..TXT_WORD] of Char;
-       size:  Array[1..TXT_LONG] of Char;
-       mtime: Array[1..TXT_LONG] of Char;
-       chksum: Array[1..TXT_WORD] of Char;
-       filetype: Char;
-       linkname: Array[1..MAXTNAME] of Char;
-       case Byte of
-        0: (
-            (* old-fashion data & padding *)
-             comment: Array[1..BLKSIZE-MAXTNAME-8-8-8-12-12-8-1-MAXTNAME-12-12] of Char;
-             srcsum: Array[1..TXT_LONG] of Char;
-             srclen: Array[1..TXT_LONG] of Char;
-          );
-        1: (
-             (* System V extensions *)
-             extent: Array[1..4] of Char;
-             allext: Array[1..4] of Char;
-             total: Array[1..TXT_LONG] of Char;
-            );
-         2: (
-            (* P1003 & GNU extensions *)
-             magic: Array[1..8] of Char;
-             uname: Array[1..32] of Char;
-             gname: Array[1..32] of Char;
-             devmajor: Array[1..TXT_WORD] of Char;
-             devminor: Array[1..TXT_WORD] of Char;
-             (* the following fields are added gnu and NOT standard *)
-             atime: Array[1..12] of Char;
-             ctime: Array[1..12] of Char;
-             offset: Array[1..12] of Char;
-            );
-     end;
-
- Function TTARArchive.Detect: Boolean;
- {piwamoto.change.begin}
-  var P: TARHdr;
-      SumTar, SumCalc: LongInt;
-      i : integer;
-
-   function FromOct(S: String): LongInt;
-    var I,L: LongInt;
-   begin
-     L := 0;
-     for I := 0 to Length(S)-1 do
-         Inc(L, (Byte(S[Length(S)-I])-48) shl (I * 3));
-     FromOct := L;
-   end;
-
- begin
-  Detect:=False;
-  if ArcFile.GetSize < SizeOf(P) then Exit;
-  ArcFile.Read(P, SizeOf(P));
-  for i:=1 to TXT_WORD do if (P.chksum[i] < '0') or (P.chksum[i] > '9') then P.chksum[i] := ' ';
-  SumTar := FromOct(DelSpaces(P.chksum));
-  P.chksum := '        '; {8 spaces}
-  SumCalc := 0;
-  for i:=0 to BLKSIZE-1 do SumCalc := SumCalc + mem[Seg(P.FName):Ofs(P.FName)+i];
-  Detect := (SumTar = SumCalc);
- {piwamoto.change.end}
-  ArcFile.Seek(ArcPos);
- end;
-
-function FromOct(S: String): LongInt;
- var I,L: LongInt;
-     A: Real;
-begin
-  L := 0;
-  for I := 0 to Length(S)-1 do
-      Inc(L, (Byte(S[Length(S)-I])-48) shl (I * 3));
-  FromOct := L;
-end;
-
-Procedure TTARArchive.GetFile;
-  var S: String;
-      Buffer: Array [0..BlkSize - 1] of Char;
-      Hdr: TARHdr absolute Buffer;
-      DT: DateTime;
-      I: Integer;
-      L: LongInt;
-begin
-  L := ArcFile.GetPos;
-  if ArcFile.GetPos = ArcFile.GetSize then
-     begin FileInfo.Last := 1; Exit end;
-  ArcFile.Read(Buffer, BlkSize);
-  if ArcFile.Status <> stOK then
-     begin FileInfo.Last := 2; Exit end;
-  FileInfo.Last := 0;
-  S := Hdr.FName + #0; Byte(S[0]) := PosChar(#0, S)-1;
-  if S = '' then begin FileInfo.Last := 1; Exit end;
-  Replace('/', '\', S);
-  if Copy(S,1,2) = '.\' then System.Delete(S,1,2);
-  FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-  FileInfo.FName := S; {DataCompBoy}
-  S := Hdr.Size;
-  FileInfo.USize := FromOct(DelSpaces(S));
-  FileInfo.PSize := FileInfo.USize;
-  S := Hdr.mTime;
-  GetUNIXDate(FromOct(DelSpaces(S)), DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
-  PackTime(DT, FileInfo.Date);
-  L := (FileInfo.PSize div LongInt(BlkSize)) + Byte(FileInfo.PSize mod LongInt(BlkSize) <> 0);
-  L := L * BlkSize;
-  ArcFile.Seek(ArcFile.GetPos + L);
-end;
-
-
-{ ----------------------------- UC2 ------------------------------------}
-
-constructor TUC2Archive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('UC.EXE');
-  UnPacker  := NewStr('UC.EXE');
-  Extract   := NewStr('E');
-  ExtractWP := NewStr('ES');
-  Add       := NewStr('A');
-  Move      := NewStr('M');
-  Delete    := NewStr('D');
-  Garble    := NewStr('');
-  Test      := NewStr('T');
-  IncludePaths      := NewStr('-S');
-  ExcludePaths      := NewStr('');
-  ForceMode         := NewStr('-F');
-  NormalCompression := NewStr('-TN');
-  FastCompression   := NewStr('-TF');
-  UltraCompression  := NewStr('-TST');
-  ListChar  := '@';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TUC2Archive.GetID;
-begin
-  GetID := arcUC2;
-end;
-
-function TUC2Archive.GetSign;
-begin
-  GetSign := 'UC2:';
-end;
-
-Function TUC2Archive.Detect: Boolean;
-label 1;
-var
-    M: Array[1..4] of Char;
-    B: Boolean;
-    F: Text;
-begin
- Detect:=False;
- ArcFile.Read(M, 4);
- if (ArcFile.Status = stOK) and (M = 'UC2'#26) then
-     begin
-        Detect:= True;
-        Exit;
-     end;
-1:ArcFile.Seek(ArcPos);
-end;
-
-Procedure TUC2Archive.GetFile;
- var S: String;
-     P: PView;
-begin
-  S := UNPACKER^+' ~D '+ArcFileName+' >'+MakeNormName(TempDir,'!!!DN!!!.TMP');
-  if PReader <> nil then PReader^.Free;
-  P := WriteMsg(' '+GetString(dlPleaseStandBy));
-  if UserScreen <> nil then InsertUserSaver(Off);
-  TempFile := '[UC2:'+MakeNormName(TempDir,'!!!DN!!!.TMP')+']'+ArcFileName;
-  LocateCursor(0,0);
-  StartupData.Unload := StartupData.Unload or osuBlinking;
-  {P^.Free;}
-  Message(Application, evCommand, cmExecString, @S);
-  FileInfo.Last := 1;
-end;
-
-{ ---------------------- CAB (by Neverowsky A.)---------------------------}
-
-type
-  PCFHEADER = ^TCFHEADER;
-  TCFHEADER = record
-    signature:  array [0..3] of Char;
-    reserved1:  LongInt;
-    cbCabinet:  LongInt;
-    reserved2:  LongInt;
-    coffFiles:  LongInt;
-    reserved3:  LongInt;
-    versionMinor: Byte;
-    versionMajor: Byte;
-    cFolders:   Word;
-    cFiles:     Word;
-    flags:      Word;
-    setID:      Word;
-    iCabinet:   Word;
-  end;
-
-constructor TCABArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('');
-  UnPacker  := NewStr('EXTRACT.EXE');
-  Extract   := NewStr('/A /L .\');
-  ExtractWP := NewStr(' ');
-  Add       := NewStr(' ');
-  Move      := NewStr(' ');
-  Delete    := NewStr(' ');
-  Garble    := NewStr(' ');
-  Test      := NewStr(' ');
-  IncludePaths      := NewStr(' ');
-  ExcludePaths      := NewStr(' ');
-  ForceMode         := NewStr(' ');
-  NormalCompression := NewStr(' ');
-  FastCompression   := NewStr(' ');
-  UltraCompression  := NewStr(' ');
-  ListChar  := ' ';
-  PutTempBefore := 1;
-  Swap := True;
-  FilesNumber := 0;
-end;
-
-function TCABArchive.GetID;
-begin
-  GetID := arcCAB;
-end;
-
-function TCABArchive.GetSign;
-begin
-  GetSign := 'CAB:';
-end;
-
-function TCABArchive.Detect;
-var
-  CFHEADER: TCFHEADER;
-begin
-  Detect := false;
-{piwamoto.change.begin}
-  ArcFile.Read(CFHEADER,SizeOf(CFHEADER.signature));
-  if (ArcFile.Status <> stOK) or (CFHEADER.signature <> 'MSCF') then begin ArcFile.Seek(ArcPos); Exit; end;
-  ArcFile.Read(CFHEADER.reserved1, SizeOf(CFHEADER) - SizeOf(CFHEADER.signature));
-  if (CFHeader.cbCabinet > sizeof(TCFHeader)) and
-     (CFHeader.coffFiles > sizeof(TCFHeader)) and
-     (CFHeader.coffFiles < LongInt($ffff)) and
-     (CFHeader.versionMajor > 0) and
-     (CFHeader.versionMajor < $20 ) and
-     (CFHeader.cFolders > 0) then
-   begin
-     FilesNumber := CFHeader.cFiles;
-     ArcFile.Seek(ArcPos+CFHeader.coffFiles);
-     Detect := true;
-   end;
-{piwamoto.change.end}
-end;
-
-Procedure TCABArchive.GetFile;
-var
-  C:    Char;
-  S:    string;
-  FH: record
-      cbFile:   LongInt;
-      uoffFolderStart:  LongInt;
-      iFolder:  Word;
-{     date:     Word;
-      time:     Word; }
-      DateTime: LongInt;
-      attribs:  Word;
-{     u1  szName[]; }
-    end;
-
-begin
-  if (FilesNumber = 0) then begin FileInfo.Last := 1; Exit; end;
-  Dec(FilesNumber);
-  ArcFile.Read(FH, SizeOf(FH));
-  if (ArcFile.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-
-  S[0] := #0;
-  repeat
-    ArcFile.Read(C, 1);
-    if C <> #0 then S := S + C;
-  until (C = #0) or (Length(S) > 100);
-  if (Length(S) > 100) or (S = '') then begin FileInfo.Last := 2; Exit; end;
-
-  FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-  FileInfo.FName := S; {DataCompBoy}
-  FileInfo.Attr := FH.attribs and not Hidden;
-  FileInfo.USize := FH.cbFile;
-  FileInfo.PSize := FH.cbFile;
-  FileInfo.Date := (FH.datetime shr 16) or (FH.DateTime shl 16);
-  FileInfo.Last := 0;
-end;
-
-{ ------------------------------ ZXZip aka $Z ----------------------------- }
-
-constructor TZXZArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('ZXZIP386.EXE');
-  UnPacker  := NewStr('ZXUNZIP.EXE');
-  Extract   := NewStr('');
-  ExtractWP := NewStr('');
-  Add       := NewStr('-start8224');
-  Move      := NewStr('');
-  Delete    := NewStr('');
-  Garble    := NewStr('');
-  Test      := NewStr('-t');
-  IncludePaths      := NewStr('');
-  ExcludePaths      := NewStr('');
-  ForceMode         := NewStr('');
-  NormalCompression := NewStr('');
-  FastCompression   := NewStr('');
-  UltraCompression  := NewStr('');
-  ListChar  := ' ';
-  PutTempBefore := 1;
-  Swap := True;
-end;
-
-function TZXZArchive.GetID;
-begin
-  GetID := arcZXZ;
-end;
-
-function TZXZArchive.GetSign;
-begin
-  GetSign := 'ZXZ:';
-end;
-
-type ZXZHdr = record
-      Name       : Array[0..7] of Char;
-      Extension  : Array[0..2] of Char;
-      OriginSize : Word;
-      SectorSize : Byte;
-      PackedSize : Word;
-      CRC32      : Longint;
-      MethodID   : Byte;
-      Flags      : Byte;
-     end;
-
-function TZXZArchive.Detect;
-var
-    P: ZXZHdr;
-    W: Word;
-begin
- ArcFile.Read(P.Name, SizeOf(P.Name) + SizeOf(P.Extension) + SizeOf(P.OriginSize));
- ArcFile.Read(W, SizeOf(W));
- Detect:=False;
- ArcFile.Seek(ArcPos);
- if not ( (P.Extension = 'ZIP') and (W-P.OriginSize<=255) and (W and $0ff = 0) ) then Exit;
- Detect:=True;
- ArcFile.Seek(ArcPos+$11);
-end;
-
-Procedure TZXZArchive.GetFile;
-var FP  : Longint;
-    P   : ZXZHdr;
-    Len : Word;
-    S   : String;
-begin
- ArcFile.Read(P, SizeOf(P));
- if (P.Name[0]<#32) or
-    (P.PackedSize>P.SectorSize*256) or
-    (P.MethodID>3) or
-    (P.SectorSize=0) or
-    (P.OriginSize=0)
-    then begin
-  FileInfo.Last:=1;
-  Exit;
- end;
- if (ArcFile.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- FP := ArcFile.GetPos;
- S := P.Name;
- DelRight(S);
- if (P.Extension[0]<>'B') and
-    (P.Extension[1]>=#32) and (P.Extension[1]<=#127) and
-    (P.Extension[2]>=#32) and (P.Extension[2]<=#127)
-  then S := S + '.' + P.Extension else S := S + '.' + P.Extension[0];
- DelRight(S);
- FileInfo.FName := S;
- FileInfo.LFN  := AddLFN(S); {DataCompBoy}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- if (P.OriginSize and $ff) = 0 then Len:=0 else Len:=256;
- Len:=Trunc((Len+P.OriginSize)/256);
- if Len<>P.SectorSize then Len:=P.SectorSize*256
-  else
-   begin
-    Len:=P.OriginSize;
-    if P.Extension[0]='B' then Len:=4+Ord(P.Extension[1])+Ord(P.Extension[2])*256;
-   end;
- FileInfo.USize := LongInt(Len);
- FileInfo.PSize := LongInt(P.PackedSize);
- FileInfo.Date := 0;
- ArcFile.Seek(FP + P.PackedSize);
-end;
-
-{ ------------------------------- AIN ------------------------------------- }
-
-constructor TAINArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('AIN.EXE');
-  UnPacker  := NewStr('AIN.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('x');
-  Add       := NewStr('a');
-  Move      := NewStr('m');
-  Delete    := NewStr('d');
-  Garble    := NewStr('-g');
-  Test      := NewStr('t');
-  IncludePaths      := NewStr('');
-  ExcludePaths      := NewStr('');
-  ForceMode         := NewStr('-y');
-  NormalCompression := NewStr('-m2');
-  FastCompression   := NewStr('-m4');
-  UltraCompression  := NewStr('-m1');
-  ListChar  := '@';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TAINArchive.GetID;
-begin
-  GetID := arcAIN;
-end;
-
-function TAINArchive.GetSign;
-begin
-  GetSign := 'AIN:';
-end;
-
-Function TAINArchive.Detect: Boolean;
-var
-    AinHdr : Array[0..21] of Byte;
-    AinSum, ChkSum : Word;
-    I : Integer;
-begin
- ArcFile.Read(AinHdr, SizeOf(AinHdr));
- ArcFile.Read(AinSum, SizeOf(AinSum));
- ArcFile.Seek(ArcPos);
- ChkSum := 0;
- for I:=0 to 21 do ChkSum := ChkSum + mem[Seg(AinHdr):Ofs(AinHdr)+I];
- ChkSum := ChkSum xor $5555;
- Detect:=(ChkSum=AinSum);
-end;
-
-Procedure TAINArchive.GetFile;
- var S: String;
-     P: PView;
-begin
-  S := UNPACKER^+' v '+ArcFileName+' >'+MakeNormName(TempDir,'!!!DN!!!.TMP');
-  if PReader <> nil then PReader^.Free;
-  P := WriteMsg(' '+GetString(dlPleaseStandBy));
-  if UserScreen <> nil then InsertUserSaver(Off);
-  TempFile := '[AIN:'+MakeNormName(TempDir,'!!!DN!!!.TMP')+']'+ArcFileName;
-  LocateCursor(0,0);
-  StartupData.Unload := StartupData.Unload or osuBlinking;
-  {P^.Free;}
-  Message(Application, evCommand, cmExecString, @S);
-end;
-
-{ ---------------------------------- ACE --------------------------------- }
-
-constructor TACEArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('ACE.EXE');
-  UnPacker  := NewStr('ACE.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('x');
-  Add       := NewStr('a');
-  Move      := NewStr('m');
-  Delete    := NewStr('d');
-  Garble    := NewStr('-p');
-  Test      := NewStr('t');
-  IncludePaths      := NewStr('-r');
-  ExcludePaths      := NewStr('-ep');
-  ForceMode         := NewStr('');
-  NormalCompression := NewStr('-m3');
-  FastCompression   := NewStr('-m0');
-  UltraCompression  := NewStr('-m5 -d1024');
-  ListChar  := '@';
-  PutTempBefore := 2;
-  Swap := True;
-end;
-
-function TACEArchive.GetID;
-begin
-  GetID := arcACE;
-end;
-
-function TACEArchive.GetSign;
-begin
-  GetSign := 'ACE:';
-end;
-
-type ACEFileHdr = record
-      HeadCRC    : Word;
-      HeadSize   : Word;
-      HeadType   : Byte;
-      HeadFlags  : Word;
-      PackedSize : LongInt;
-      OriginSize : LongInt;
-      DateTime   : LongInt;
-      Attr       : LongInt;
-      CRC32      : LongInt;
-      TechInfo   : LongInt;
-      Reserved   : Word;
-      NameLen    : Word;
-     end;
-
-function TACEArchive.Detect;
-var
-    ACESign: Array [0..6] of Char;
-    P: ACEFileHdr;
-begin
- Detect:=False;
- ArcFile.Read(P, 7);
- ArcFile.Read(ACESign, SizeOf(ACESign));
- if (ACESign='**ACE**') and (P.HeadType=0) then
-  begin
-   Detect:=True;
-   ArcFile.Seek(ArcPos+P.HeadSize+4);
-  end
-  else ArcFile.Seek(ArcPos);
-end;
-
-Procedure TACEArchive.GetFile;
-var FP  : Longint;
-    P   : ACEFileHdr;
-    S   : String;
-    C   : Char;
-    I   : Integer;
-begin
- FP := ArcFile.GetPos;
- if (FP = ArcFile.GetSize) then begin FileInfo.Last:=1;Exit;end;
- ArcFile.Read(P, SizeOf(P));
- if (ArcFile.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- if P.HeadType=1 then
-  begin
-   I := P.NameLen;
-   S := '';
-   repeat
-    ArcFile.Read(C,1);
-    I := I - 1;
-    S := S + C;
-   until I=0;
-   if P.Attr and Directory <> 0 then S := S + '\';
-   FileInfo.FName := S; FileInfo.Last := 0;
-   FileInfo.LFN   := AddLFN(S); {DataCompBoy}
-   FileInfo.USize := P.OriginSize;
-   FileInfo.PSize := P.PackedSize;
-   FileInfo.Date := P.DateTime;
-   FileInfo.Attr := Byte(P.Attr and not Hidden);
-   if (P.HeadFlags and $4000)<>0 then FileInfo.Attr := FileInfo.Attr or Hidden;
-  end;
- ArcFile.Seek(FP + P.HeadSize + P.PackedSize + 4);
-end;
-
-{ --------------------- Quark (by Luzin Aleksey) -------------------------}
-type
-  PQuarkHEADER = ^TQuarkHEADER;
-  TQuarkHEADER = record
-         Sign:Longint;
-         Tmp:LongInt;
-end;
-constructor TQuArkArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('QuArk.EXE');
-  UnPacker  := NewStr('QuArk.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('x');
-  Add       := NewStr('a');
-  Move      := NewStr('m');
-  Delete    := NewStr('d');
-  Garble    := NewStr('-p');
-  Test      := NewStr('t');
-  IncludePaths      := NewStr('-r');
-  ExcludePaths      := NewStr('-ep');
-  ForceMode         := NewStr(' ');
-  NormalCompression := NewStr('-m1');
-  FastCompression   := NewStr('-m3');
-  UltraCompression  := NewStr('-m5');
-  ListChar  := '@';
-  PutTempBefore := 1;
-  Swap := True;
-  FilesNumber := 0;
-end;
-
-function TQuarkArchive.GetID;
-begin
-  GetID := arcQuark;
-end;
-
-function TQuarkArchive.GetSign;
-begin
-  GetSign := 'QRK:';
-end;
-
-function TQuArkArchive.Detect;
-var
-  CFHEADER: TQuarkHEADER;
-begin
-  Detect := false;
-  ArcFile.Read(CFHEADER,SizeOf(TQuarkHEADER));
-  ArcFile.Seek(ArcPos);
-  if (ArcFile.Status = stOK) and (CFHEADER.Sign=1049655) then
-    begin
-      FilesNumber :=1;
-      ArcFile.Seek(ArcPos+Sizeof(TQuarkHEADER));
-      Detect := true;
-    end;
-end;
-
-Procedure TQuArkArchive.GetFile;
-var
-  C:   Char;
-  S:   string;
-  Tmp  :Word;
-  FH: record
-  Tmp:Array[1..3]of char;
-  LengthOfName:Byte;
-  End;
-  FH1:Record
-  Attr:Word;
-  DateTime:LongInt;
-  RealSize:LongInt;
-  PackSize:LongInt;
-  Crc:Word;
-  TPC:Byte;
-  end;
-var TTmp:longint;
-begin
-  Dec(FilesNumber);
-  TTmp:=ArcFile.GetPos;
-  if (TTmp = ArcFile.GetSize) or (TTmp = 0) then
-     begin FileInfo.Last := 1; Exit end;
-   if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
-   ArcFile.Read(FH, SizeOf(FH));
-   if (ArcFile.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-   S[0] := #0;
-   Tmp:=0;
-   if FH.LengthOfName > 250 then FH.LengthOfName := 250;
-   ArcFile.Read(S[1], FH.LengthOfName); S[0] :=Char(FH.LengthOfName);
-   if S = ''  then
-       begin FileInfo.Last := 2; Exit; end;
-   ArcFile.Read(FH1, SizeOf(FH1));
-   inc(FilesNumber);
-   FileInfo.Attr := FH1.Attr;
-   FileInfo.USize := FH1.RealSize;
-   FileInfo.PSize := FH1.PackSize;
-   FileInfo.Date := FH1.DateTime;
-   if (FileInfo.Attr and Directory <> 0)and(S[Length(S)]<>'\') then S := S + '\';
-   FileInfo.FName := S;
-   FileInfo.LFN := AddLFN(S);
-   TTmp:=ArcFile.GetPos;
-   ArcFile.Seek(TTmp+FH1.PackSize);
-   FileInfo.Last := 0;
-end;
-
-{ ---------------------- UFA (by Luzin Aleksey)---------------------------}
-type
-  PUFACFHEADER = ^TUFACFHEADER;
-  TUFACFHEADER = record
-             Sign:Array[1..3]of Char;
-             tmp:array[1..5]of char;
-end;
-constructor TUFAArchive.Init;
-begin
-  TObject.Init;
-  Packer    := NewStr('UFA.EXE');
-  UnPacker  := NewStr('UFA.EXE');
-  Extract   := NewStr('e');
-  ExtractWP := NewStr('x');
-  Add       := NewStr('a');
-  Move      := NewStr('m');
-  Delete    := NewStr('d');
-  Garble    := NewStr('-p');
-  Test      := NewStr('t');
-  IncludePaths      := NewStr('-r');
-  ExcludePaths      := NewStr('-ep');
-  ForceMode         := NewStr(' ');
-  NormalCompression := NewStr('-m1');
-  FastCompression   := NewStr('-m3');
-  UltraCompression  := NewStr('-m5');
-  ListChar  := 'l';
-  PutTempBefore := 1;
-  Swap := True;
-  FilesNumber := 0;
-end;
-
-function TUFAArchive.GetID;
-begin
-  GetID := arcUFA;
-end;
-
-function TUFAArchive.GetSign;
-begin
-  GetSign := 'UFA:';
-end;
-
-function TUFAArchive.Detect;
-var
-  CFHEADER: TUFACFHEADER;
-begin
-  Detect := false;
-  ArcFile.Read(CFHEADER,SizeOf(TUFACFHEADER));
-  ArcFile.Seek(ArcPos);
-  if (ArcFile.Status = stOK) and (CFHEADER.sign[1] = 'U')
-                             and (CFHEADER.sign[2] = 'F')
-                             and (CFHEADER.sign[3] = 'A') then
-{    if (CFHeader.cbCabinet > sizeof(TCFHeader)) and
-       (CFHeader.coffFiles > sizeof(TCFHeader)) and
-       (CFHeader.coffFiles < LongInt($ffff)) and
-       (CFHeader.versionMajor > 0) and
-       (CFHeader.versionMajor < $20 ) and
-       (CFHeader.cFolders > 0) then }
-    begin
-      FilesNumber :=1;
-{      ArcFile.Seek(ArcPos+CFHeader.HeadSize+4);}
-      ArcFile.Seek(SizeOf(TUFACFHEADER));
-      Detect := true;
-    end;
-end;
-
-Procedure TUFAArchive.GetFile;
-var
-  C:   Char;
-  S:   string;
-  Tmp  :Word;
-  FH: record
-      tmp:array[1..$2A]of char;
-      DateTime:LongInt;
-      PackSize:LongInt;
-      OriginalSize:LongInt;
-      FileNameSize:Word;
- End;
-var TTmp:longint;
-begin
-{  if (FilesNumber = 0) then
-    begin
-      FileInfo.Last := 1;
-      Exit;
-    end;}
-  Dec(FilesNumber);
-  TTmp:=ArcFile.GetPos;
-  if (TTmp = ArcFile.GetSize) or (TTmp = 0) then
-     begin FileInfo.Last := 1; Exit end;
-   if (ArcFile.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
-  ArcFile.Read(FH, SizeOf(FH));
-  if (ArcFile.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-{  ArcFile.Seek(TTmp+FH.HeadSize+4-FH.FileNameSize);}
-  S[0] := #0;
-  Tmp:=0;
-         if FH.FileNameSize > 512 then begin FileInfo.Last := 2;Exit;end;
-         if FH.FileNameSize > 250 then FH.FileNameSize := 250;
-
-         ArcFile.Read(S[1], FH.FileNameSize); S[0] :=Char(FH.FileNameSize);
-       if S = ''  then
-       begin FileInfo.Last := 2; Exit; end;
-       inc(FilesNumber);
-       FileInfo.Attr := 0;
-       FileInfo.USize := FH.OriginalSize;
-       FileInfo.PSize := FH.PackSize;
-       FileInfo.Date := FH.DateTime;
-       FileInfo.FName := S;
-       FileInfo.LFN  := AddLFN(S);
-       TTmp:=ArcFile.GetPos;
-       ArcFile.Seek(TTmp+FH.PackSize);
-       FileInfo.Last := 0;
+    ArcFile^.Read(i,2);
+    if i>0 then ArcFile^.Seek(ArcFile^.GetPos+i+4);
+   Until (i=0) or (ArcFile^.Status <> stOK);
+   ArcFile^.Seek(ArcFile^.GetPos+Fileinfo.PSize);
 end;
 
 { ------------------------------------------------------------------------- }
@@ -3144,8 +549,9 @@ constructor TUserSaver.Load;
  var I: Byte;
 begin
   inherited Load(S);
+  DataSaver:=@Self;
   S.Read(SSize, 4*SizeOf(Integer)+SizeOf(Boolean));
-  if UserScreen = nil then FreeMem(UserScreen, UserScreenSize);
+  if UserScreen <> nil then FreeMem(UserScreen, UserScreenSize);
   UserScreenSize := SSize;
   UserScreenWidth := SWidth;
   UserScreen := MemAlloc(SSize);
@@ -3180,433 +586,19 @@ begin
   S.Write(Screen^, SSize);
 end;
 
-procedure UpdateARH;
-var
-  St: TBufStream;
-begin
-  St.Init( SourceDir + 'DN.ARH', stCreate, 2048);
-  St.Put(Archives);
-  St.Write(DefaultArchiver, 2);
-  St.Write(DefaultArcMode, 2);
-  St.Done;
-end;
-
-procedure LoadArchiveSet;
- var S: TBufStream;
-     R: Set of Byte;
-     Added: Boolean;
-
-  function NotFindArc(ID: Integer): Boolean;
-   var I: Integer;
-  begin
-    NotFindArc := Off;
-    for I := 0 to Archives^.Count - 1 do
-        if PARJArchive(Archives^.At(I))^.GetID = ID then Exit;
-    Added := On;
-    NotFindArc := On;
-  end;
-
-begin
- if Archives = nil then
-  begin
-   S.Init( SourceDir + 'DN.ARH', stOpen, 2048);
-   if S.Status = stOK then
-   begin
-     Archives := PSortedCollection(S.Get);
-     S.Read(DefaultArchiver, 2);
-     S.Read(DefaultArcMode, 2);
-   end;
-   S.Done;
-   if (Archives<>nil) and (Archives^.Count<>NumSupportedArchs) then
-    begin
-     Dispose(Archives, Done); Archives:=nil;
-     MessageBox('Can''t read DN.ARH.', nil, mfError+mfOkButton);
-    end;
-   if Archives <> nil then CurrentArchive := Archives^.At(0);
-  end else Exit;
-  if Archives = nil then
-   begin
-      Archives := New(PArchiveCollection, Init(10,10));
-      Archives^.Insert(New(PACEArchive,   Init));
-      Archives^.Insert(New(PAINArchive,   Init));
-      Archives^.Insert(New(PARCArchive,   Init));
-      Archives^.Insert(New(PARJArchive,   Init));
-      Archives^.Insert(New(PBS2Archive,   Init));
-      Archives^.Insert(New(PBSAArchive,   Init));
-      Archives^.Insert(New(PCABArchive,   Init));
-      Archives^.Insert(New(PCHZArchive,   Init));
-      Archives^.Insert(New(PHAArchive,    Init));
-      Archives^.Insert(New(PHAPArchive,   Init));
-      Archives^.Insert(New(PHPKArchive,   Init));
-      Archives^.Insert(New(PHYPArchive,   Init));
-      Archives^.Insert(New(PLHAArchive,   Init));
-      Archives^.Insert(New(PLIMArchive,   Init));
-      Archives^.Insert(New(PQuarkArchive, Init));
-      Archives^.Insert(New(PRARArchive,   Init));
-      Archives^.Insert(New(PSQZArchive,   Init));
-      Archives^.Insert(New(PTARArchive,   Init));
-      Archives^.Insert(New(PUC2Archive,   Init));
-      Archives^.Insert(New(PUFAArchive,   Init));
-      Archives^.Insert(New(PZIPArchive,   Init));
-      Archives^.Insert(New(PZOOArchive,   Init));
-      Archives^.Insert(New(PZXZArchive,   Init));
-      CurrentArchive := Archives^.At(0);
-      DefaultArchiver:=arcARJ;
-   end
-end;
-
-function DetectArchive;
-  function FindArc(P: PARJArchive): Boolean; far;
-  begin
-    FindArc := P^.Detect;
-  end;
-begin
- LoadArchiveSet;
- ArcFile.Seek(ArcPos);
- DetectArchive := nil;
- if Archives <> nil then DetectArchive := Archives^.FirstThat(@FindArc);
-end;
-
-
 function ArchiveFiles;
-
-  var Arc: PARJArchive;
-      AID: Word;
-      I: Integer;
-      C: String[10];
-
-  function FindNeed(P: PARJArchive): Boolean; far;
-  begin
-    FindNeed := P^.GetSign = C;
-  end;
-
+  var C: TStr4;
+      q: byte;
 begin
   ArchiveFiles := Off;
   if PosChar(':',S) < 3 then Exit;
-  LoadArchiveSet; if Archives = nil then Exit;
   C := UpStrg(Copy(S,1,PosChar(':', S)));
-  Arc := Archives^.FirstThat(@FindNeed);
-  if Arc = nil then Exit;
-  DefaultArchiver := Arc^.GetID;
+  q:=GetArchiveTagBySign(C);
+  if q=arcUNK then exit;
+  DefaultArchiver := q;
   ArchiveFiles := On;
   MakeArchive(Copy(S, PosChar(':',S)+1, 255), Files, MoveMode, Owner);
 end;
-
-procedure SetupArchive;
- var D: PDialog;
-     P: PView;
-     R: TRect;
-     Arch: PARJArchive;
-     W: Word;
-
-    DT: record
-          Pack : String; {Inputline}
-          Unpack : String; {Inputline}
-          Extract: String[20]; {Inputline}
-          ExWP : String[20]; {Inputline}
-          Add : String[20]; {Inputline}
-          Move : String[20]; {Inputline}
-          Delete : String[20]; {Inputline}
-          Test : String[20]; {Inputline}
-          Force : String[20]; {Inputline}
-          IncludeP : String[20]; {Inputline}
-          Password : String[20]; {Inputline}
-          ExcludeP : String[20]; {Inputline}
-          NormC : String[20]; {Inputline}
-          FastC : String[20]; {Inputline}
-          MaxC : String[20]; {Inputline}
-          List: String[1];
-          Options : Word; {Checkbox}
-        end;
-
-  function FindArchive(id: Integer): PARJArchive;
-    function Find(P: PARJArchive): Boolean; far;
-    begin
-      Find := P^.GetID = id;
-    end;
-  begin
-    FindArchive := Archives^.FirstThat(@Find);
-  end;
-
-  function ArcName(ArcN: Byte): string;
-
-    var mi: PMenuItem;
-
-    procedure Scroll(Count: Byte);
-    var i: Byte; begin for i := 1 to Count do mi := mi^.Next end;
-
-    var s: string;
-        b: Byte;
-  begin
-    ArcN:=ArcN+2;
-    mi := MenuBar^.Menu^.Items; Scroll(6);
-    mi := mi^.SubMenu^.Items; Scroll(2);
-    mi := mi^.SubMenu^.Items; Scroll(ArcN);
-    s := mi^.Name^;
-    repeat b := PosChar('~', s); if b=0 then Break else Delete(s, b, 1) until False;
-    b := PosChar('-', s); if b>0 then Delete(s, 1, b+1);
-    ArcName := s;
-  end;
-
-  procedure CndRpl;
-  var s: string;
-  begin
-   s := ArcName(ArchCommand);
-   if Length(s)+Length(D^.Title^)+10 < D^.Size.X then s := D^.Title^+' - '+s;
-   ReplaceP(D^.Title, s);
-  end;
-
-begin
- LoadArchiveSet;
- If ArchCommand >= cmLoConfigArchiver then Dec(ArchCommand, cmLoConfigArchiver);
- Arch := FindArchive(ArchCommand);
- if Arch = nil then Exit;
- with Arch^ do
-  begin
-    DT.Pack := CnvString(Packer);
-    DT.Unpack := CnvString(Unpacker);
-    DT.Extract := CnvString(Extract);
-    DT.ExWP := CnvString(ExtractWP);
-    DT.Add := CnvString(Add);
-    DT.Move := CnvString(Move);
-    DT.Test := CnvString(Test);
-    DT.Delete := CnvString(Delete);
-    DT.Password := CnvString(Garble);
-    DT.Force := CnvString(ForceMode);
-    DT.IncludeP := CnvString(IncludePaths);
-    DT.ExcludeP := CnvString(ExcludePaths);
-    DT.NormC := CnvString(NormalCompression);
-    DT.FastC := CnvString(FastCompression);
-    DT.MaxC := CnvString(UltraCompression);
-    DT.List := ListChar;
-    DT.Options := Byte(Swap);
-  end;
- D := PDialog(Application^.ValidView(PDialog(LoadResource(dlgSetupArc))));
- if D = nil then Exit;
- D^.SetData(DT);
- CndRpl;
- W := Desktop^.ExecView(D);
- if W = cmOK then D^.GetData(DT);
- FreeObject(D);
- if W <> cmOK then Exit;
- with Arch^ do
-  begin
-     DefaultArchiver := ArchCommand;
-     Packer := NewStr(DT.Pack);
-     Unpacker := NewStr(DT.Unpack);
-     Extract := NewStr(DT.Extract);
-     ExtractWP := NewStr(DT.ExWP);
-     Add := NewStr(DT.Add);
-     Move := NewStr(DT.Move);
-     Test := NewStr(DT.Test);
-     Delete := NewStr(DT.Delete);
-     Garble := NewStr(DT.Password);
-     ForceMode := NewStr(DT.Force);
-     IncludePaths := NewStr(DT.IncludeP);
-     ExcludePaths := NewStr(DT.ExcludeP);
-     NormalCompression := NewStr(DT.NormC);
-     FastCompression := NewStr(DT.FastC);
-     UltraCompression := NewStr(DT.MaxC);
-     if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';
-     Swap := (DT.Options and 1)<>0;
-  end;
-  UpdateARH;
-end;
-
-        {-DataCompBoy-}
-procedure ReadArcList; {changed & AIN added by piwamoto}
-  const
-    FuckName = 'U$~RESLT.OK';
-  var S,CurDir,ID: String;
-      P:   PArcFile;
-      PC:  PDirStorage;
-      F:   PTextReader;
-      DT:  DateTime;
-      I,J: Integer;
-      Drv: PArcDrive;
-  label 1,2;
- begin
-  S := TempFile; ID := Copy(S,1,4); Delete(S, 1, 4);
-  I := PosChar(']', S); ArcFileName := Copy(S, I+1, 255);
-  S[0] := Char(I-1); ClrIO;
-  TempFile := '';
-  if (Pos(ID, 'UC2:AIN:')+3) mod 4 = 0 then
-   begin
-    if ID = 'UC2:' then
-      begin
-         if not ExistFile(FuckName) then
-         begin
-           MessageBox(GetString(dlArcMsg6),NIL,mfOkButton or mfError);
-           Exit;
-         end;
-        EraseFile(FuckName);
-        GetDir(0, CurDir);
-        GlobalMessage(evCommand, cmRereadDir, @CurDir);
-        F := New(PTextReader, Init(S));
-        if F = nil then Exit;
-        P := nil;
-        New(PC, Init);
-        While not F^.EOF do
-         begin
-           S := F^.GetStr;
-           DelLeft(S); DelRight(S);
-           ID := Copy(S, 1, 4);
-           if ID = 'LIST' then
-             begin
-               I := PosChar('[', S); if I = 0 then Continue;
-               Delete(S, 1, I); I := PosChar(']',S);
-               if I < 2 then Continue;
-               S[0] := Char(I-1);
-               CurDir := S;
-             end else
-              if (ID = 'FILE') or (ID = 'DIR') then
-               begin
-                 if P <> nil then
-                   begin
-                     PackTime(DT, P^.Date);
-                     PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-                     DelLFN(P^.LFN); DisposeStr(P^.FName); Dispose(P);
-                   end;
-                 New(P);
-                 P^.FName := nil;
-                 if ID = 'DIR' then
-                  begin
-                   P^.Attr := Directory;
-                   P^.PSize := 0;
-                   P^.USize := 0
-                  end
-                 else P^.Attr := 0;
-               end else
-                if ID = 'END' then
-                   begin
-                    if P <> nil then
-                      begin
-                        PackTime(DT, P^.Date);
-                        PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-                        DelLFN(P^.LFN); DisposeStr(P^.FName); Dispose(P);
-                      end;
-                    Break
-                   end else
-                begin
-                  I := PosChar('=', S);
-                  if I = 0 then Goto 1;
-                  Delete(S, 1, I);
-                  if Id = 'NAME' then
-                   begin
-                     I := PosChar('[', S); if I = 0 then Continue;
-                     Delete(S, 1, I); I := PosChar(']',S);
-                     if I < 2 then Continue;
-                     S[0] := Char(I-1);
-                     if P^.Attr = Directory then S := S + '\';
-                     P^.Attr := 0;
-                     P^.FName := NewStr(CurDir + S);
-                     P^.LFN := AddLFN(P^.FName^);
-                   end else
-                  if Id = 'DATE' then
-                   begin
-                     DT.Month := StoI(Copy(S,1,2));
-                     DT.Day := StoI(Copy(S,4,2));
-                     DT.Year := StoI(Copy(S,7,4));
-                   end else
-                  if Id = 'TIME' then
-                   begin
-                     DT.Hour := StoI(Copy(S,1,2));
-                     DT.Min := StoI(Copy(S,4,2));
-                     DT.Sec := StoI(Copy(S,7,4));
-                   end else
-                  if Id = 'ATTR' then
-                   begin
-                   end else
-                  if Id = 'SIZE' then
-                   begin
-                     P^.USize := StoI(S);
-                     P^.PSize := StoI(S);
-                   end else
-                  if Id = 'VERS' then
-                     begin
-                     end;
-                end;
-         end;
-      1:
-      ID:='UC2:';
-      end;
-    if ID = 'AIN:' then
-      begin
-        F := New(PTextReader, Init(S));
-        if F = nil then Exit;
-        P := nil;
-        New(PC, Init);
-        Repeat
-         S := F^.GetStr;
-         ID := Copy(S, 9, 2);
-         I := PosChar('%', S);
-        Until ((ID = ': ') and (I > 50)) or (IOResult <> 0);
-        I := PosChar(',', S); if (I < 12) or (IOResult <> 0) then Goto 2;
-        ID := Copy(S, 11, I-11);
-        Val(ID,J,I);
-        for I:=1 to 4 do S := F^.GetStr;
-        While (J<>0) and (not F^.EOF) do
-         begin
-           S := F^.GetStr;
-           DelLeft(S);DelRight(S);
-           New(P);
-           P^.Attr := 0;
-           I := PosChar(' ', S);
-           if I=0 then
-             begin
-              P^.FName := NewStr('\'+S);
-              P^.LFN   := AddLFN(P^.FName^);
-              S := F^.GetStr;
-              DelLeft(S);DelRight(S);
-             end
-           else
-             begin
-              P^.FName := NewStr('\'+Copy(S, 1, I-1));
-              P^.LFN   := AddLFN(P^.FName^);
-              Delete (S, 1, I);
-              DelLeft(S);
-             end;
-           I := PosChar(' ', S);
-           P^.USize := StoI(Copy(S,1,I-1));
-           P^.PSize := StoI(Copy(S,1,I-1));
-           Delete (S, 1, I);
-           DelLeft(S);
-           DT.Month := StoI(Copy(S,1,2));
-           DT.Day := StoI(Copy(S,4,2));
-           I := StoI('19'+Copy(S,7,2));
-           if I < 1980 then I := I + 100;
-           DT.Year := I;
-           I := PosChar(' ', S);
-           Delete (S, 1, I);
-           DelLeft(S);
-           DT.Hour := StoI(Copy(S,1,2));
-           DT.Min := StoI(Copy(S,4,2));
-           DT.Sec := StoI(Copy(S,7,2));
-           PackTime(DT, P^.Date);
-           PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-           DelLFN(P^.LFN); DisposeStr(P^.FName); Dispose(P);
-           J:=J-1;
-         end;
-      2:
-      ID:='AIN:';
-      end;
-   {next archive}
-
-    S := F^.FileName;
-    Dispose(F, Done);
-    EraseFile(S);
-    GlobalMessage(evCommand, cmRereadDir, @TempDir);
-    if PC^.Files = 0 then Dispose(PC, Done) else
-     begin
-       New(Drv, InitCol(PC, ArcFileName));
-       if Message(Application, evBroadcast, cmFindForced, Drv) = nil then
-       if Message(Application, evCommand, cmInsertDrive, Drv) = nil then
-          begin
-          end;
-     end;
-   end;
-end;
-        {-DataCompBoy-}
 
         {-DataCompBoy-}
 procedure MakeArchive;
@@ -3627,12 +619,6 @@ procedure MakeArchive;
      end;
 
 
-
-  function FindID(P: PARJArchive): Boolean; far;
-  begin
-    FindID := P^.GetID = AID;
-  end;
-
   function MakeListFile: String;
    var F: lText;
        PF: PFileRec;
@@ -3651,12 +637,16 @@ procedure MakeArchive;
        lFindFirst(MakeNormName(SS, x_x), $FF XOR VolumeID, SR);
        While (DOSError = 0) and not Abort and (S[0] < #100) do
         begin
-         S1:=GetShortRelPath(MakeNormName(SS,SR.SR.Name));
+         if Arc^.UseLFN
+          then S1:=GetLongRelPath(MakeNormName(SS,SR.FullName))
+          else S1:=GetShortRelPath(MakeNormName(SS,SR.SR.Name));
          if (SR.SR.Attr and (Directory + VolumeID) = 0) then
            if B then S := S + ' ' + SquashesName(S1)
                 else WriteLn(F.T, S1);
          if (SR.SR.Attr and Directory <> 0) and (SR.SR.Name[1] <> '.') then
-           PutDir(MakeNormName(SS,SR.SR.Name));
+          if Arc^.UseLFN
+           then PutDir(MakeNormName(SS,SR.FullName))
+           else PutDir(MakeNormName(SS,SR.SR.Name));
          DOSError := 0;
          lFindNext(SR);
         end;
@@ -3676,15 +666,17 @@ procedure MakeArchive;
    for I := 0 to Files^.Count - 1 do
     begin
      PF := Files^.At(I);
-     S1 := GetShortRelPath(MakeNormName(PF^.Owner^, MakeFileName(PF^.Name)));
+     if Arc^.UseLFN
+      then S1 := GetLongRelPath(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)))
+      else S1 := GetShortRelPath(MakeNormName(PF^.Owner^, MakeFileName(PF^.Name)));
      if PF^.Attr and Directory = 0
       then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1)
       else if (CnvString(Arc^.IncludePaths)='') and (D.Options and 1 <> 0)
             then PutDir(S1)
             else
              if D.Options and 1 <> 0 then
-              if B then S := S + ' ' + SquashesName(S1)
-                   else WriteLn(F.T, S1);
+              if B then S := S + ' ' + SquashesName(S1+'\*.*')
+                   else WriteLn(F.T, S1+'\*.*');
      MakeListFile := S;
      if S[0] > #100 then Exit;
     end;
@@ -3692,7 +684,7 @@ procedure MakeArchive;
    if not B then Close(F.T);
   end;
 
-  procedure Unselect(PF: PFileRec); far;
+  procedure Unselect(PF: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     Message(Owner, evCommand, cmCopyUnselect, PF);
   end;
@@ -3708,8 +700,8 @@ procedure MakeArchive;
     end;
   end;
 
+label Ex;
 begin
-  LoadArchiveSet;
   FillChar(D, SizeOf(D), 0);
   D.Name := S;
   D.Archiver := DefaultArchiver;
@@ -3724,29 +716,35 @@ begin
      begin
        DefaultArchiver := D.Archiver;
        DefaultArcMode := AID;
-       UpdateARH;
+       Message(Application, evCommand, cmUpdateConfig, nil);
      end;
     S := '';
   until (D.Password = '') or
         ((ExecResource(dlgReenterPassword, S) = cmOK) and (S = D.Password));
   AID := D.Archiver;
-  Arc := Archives^.FirstThat(@FindID);
+  Arc := GetArchiveByTag(AID);
   if Arc = nil then Exit;
   lGetDir(0, CurDir);
-  if Abort then Exit;
+  if Abort then goto Ex;
   if CurDir[Length(CurDir)] <> '\' then CurDir := CurDir + '\';
   if D.Options and 2 = 2 then C := CnvString(Arc^.Move)
                          else C := CnvString(Arc^.Add);
   if D.Options and 1 = 0 then C := C + AddString(Arc^.ExcludePaths)
                          else C := C + AddString(Arc^.IncludePaths);
-  if D.Options and 3 <> 0 then C := C + AddString(Arc^.ForceMode);
-  if D.Mode = 0 then C := C + AddString(Arc^.NormalCompression) else
-  if D.Mode = 1 then C := C + AddString(Arc^.FastCompression) else
-  if D.Mode = 2 then C := C + AddString(Arc^.UltraCompression);
 
   if D.Password <> '' then C := C + ' '+CnvString(Arc^.Garble)+D.Password;
+  if D.Options and 4 <> 0 then C := C + AddString(Arc^.ForceMode);
+  if D.Options and 8 <> 0 then C := C + AddString(Arc^.Solid);
+  if D.Options and 16 <> 0 then C := C + AddString(Arc^.RecoveryRec);
+  if D.Options and 32 <> 0 then C := C + AddString(Arc^.SelfExtract);
+  if D.Mode = 0 then C := C + AddString(Arc^.StoreCompression) else
+  if D.Mode = 1 then C := C + AddString(Arc^.FastestCompression) else
+  if D.Mode = 2 then C := C + AddString(Arc^.FastCompression) else
+  if D.Mode = 3 then C := C + AddString(Arc^.NormalCompression) else
+  if D.Mode = 4 then C := C + AddString(Arc^.GoodCompression) else
+  if D.Mode = 5 then C := C + AddString(Arc^.UltraCompression);
 
-  If LFNPresent then
+{ If LFNPresent then
    begin
     NewArchiveName:=D.Name;
     If ExistFile(NewArchiveName)
@@ -3763,14 +761,17 @@ begin
    begin
     NewArchiveName:=D.Name;
     OldArchiveName:=D.Name;
-   end;
+   end;}
 
-  S := C + ' ' + D.Add + ' ' + OldArchiveName + ' ' + MakeListFile;
+{  S := C + ' ' + D.Add + ' ' + OldArchiveName + ' ' + MakeListFile;}
+  S := C + ' ' + D.Add + ' ' + SquashesName(D.Name) + ' ' + MakeListFile;
   S := CnvString(Arc^.Packer) + ' ' + S;
   DelDoubles('  ', S);
   GlobalMessage(evCommand, cmMakeForced, nil);
   if Owner <> nil then Files^.ForEach(@Unselect);
   Message(Application, evCommand, cmExecString, @S);
+Ex:
+  Dispose(Arc, Done);
 end;
         {-DataCompBoy-}
 
@@ -3784,20 +785,20 @@ procedure UnarchiveFiles;
       Dr: String;
       Nm: String;
       Xt: String;
-
+label ex;
 begin
    lFSplit(FName, Dr, Nm, Xt);
    ArcFileName := FName;
-   ArcFile.Init(FName, stOpenRead, 512);
-   if ArcFile.Status <> stOK then
+   New(ArcFile,Init(FName, stOpenRead, 512));
+   if (ArcFile=nil) or (ArcFile^.Status <> stOK) then
     begin
       if TempFile <> '' then TempFile := '';
-      StdMsg(4); ArcFile.Done; Abort := On; Exit;
+      StdMsg(4); FreeObject(ArcFile); Abort := On; Exit;
     end;
    ArcPos := 0;
-   if XT = '.EXE' then SkipSFX;
+   SkipSFX;
    AType := DetectArchive;
-   ArcFile.Done;
+   FreeObject(ArcFile);
    if AType = nil then Exit;
    ExtrDir := '';
    DT.S := '';
@@ -3807,12 +808,12 @@ begin
    Message(Application, evCommand, cmPushFullName, @DT.S);
    if CopyDirName <> '' then DT.S := CopyDirName;
    if DT.S = cTEMP_ then DT.S := '';
-   if DT.S = '' then GlobalMessage(evCommand, cmPushName, Pointer(hsExtract));
+   if DT.S = '' then GlobalMessageL(evCommand, cmPushName, hsExtract);
    if DT.S = '' then DT.S := HistoryStr(hsExtract, 0);
    if DT.S = cTEMP_ then DT.S := '';
    if (DT.S[0] > #3) and (DT.S[Length(DT.S)] <> '\') then DT.S := DT.S + '\';
    CopyDirName := '';
-   if ExecResource( dlgExtract, DT) <> cmOK then Exit;
+   if ExecResource( dlgExtract, DT) <> cmOK then goto Ex;
 {
    if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
    ExtractWithPathNames:=(DT.W and 1) <> 0;
@@ -3835,6 +836,9 @@ begin
 
    {Password := DT.Psw;
    ExtractFiles(AFiles, ExtrDir, Own, DT.W);}
+
+Ex:
+   FreeObject(AType);
 end;
         {-DataCompBoy-}
 
@@ -3872,79 +876,119 @@ var
               TableLenght : Byte;
              end;
    NEhdrRec: record
-              NumOfSegments :   Word;
-              SegTableOffset :  LongInt;
-              NonResTableOffs : Longint;
-              AlignShiftCount : Word;
+              NumOfSegments   : Word;    {1c}
+              SegTableOffset  : LongInt; {22}
+              {SegTableOffset:=LongInt(SegTableOffset.from.NE)+MZExeRec.NewExe}
+              ResTableOffset  : Word;    {24}
+              ResNamesOffset  : Word;    {26}
+              NonResTableOffs : Longint; {2c}
+              AlignShiftCount : Word;    {32}
+              ExecutableType  : Byte;    {36}
               SegmentSize     : Word;
               NonResTableName : Array [0..5] of char;
+
+              ResourceAlign   : Word;
+              ResourceType    : Word;
+              ResourceTypeNum : Word;
+              ResourceOffset  : Word;
+              ResourceLenght  : Word;
              end;
 begin
-   ArcFile.Read(MZExeRec.ExeID, SizeOf(MZExeRec.ExeID) + SizeOf(MZExeRec.LastB) + SizeOf(MZExeRec.TotalP));
-   ArcFile.Seek($18);
-   ArcFile.Read(MZExeRec.RelOffs, SizeOf(MZExeRec.RelOffs));
-   ArcFile.Seek($3c);
-   ArcFile.Read(MZExeRec.NewExe, SizeOf(MZExeRec.NewExe));
+   ArcFile^.Read(MZExeRec.ExeID, SizeOf(MZExeRec.ExeID) + SizeOf(MZExeRec.LastB) + SizeOf(MZExeRec.TotalP));
+   ArcFile^.Seek($18);
+   ArcFile^.Read(MZExeRec.RelOffs, SizeOf(MZExeRec.RelOffs));
+   ArcFile^.Seek($3c);
+   ArcFile^.Read(MZExeRec.NewExe, SizeOf(MZExeRec.NewExe));
    if (MZExeRec.ExeID = 'MZ') or (MZExeRec.ExeID = 'ZM') then
     begin {MZ}
      ArcPos := LongInt(MZExeRec.TotalP)*512 - 512 + MZExeRec.LastB;
-     SfxLen := ArcFile.GetSize;
+     SfxLen := ArcFile^.GetSize;
      if (MZExeRec.RelOffs >= $40) and (MZExeRec.NewExe < SfxLen-$100) then
       begin
-       ArcFile.Seek(MZExeRec.NewExe);
-       ArcFile.Read(TempWord, SizeOf(TempWord));
+       ArcFile^.Seek(MZExeRec.NewExe);
+       ArcFile^.Read(TempWord, SizeOf(TempWord));
        Case TempWord of
         $4550 :
          begin {PE}
-          ArcFile.Seek(MZExeRec.NewExe + 6);
-          ArcFile.Read(PEhdrRec.ObjNum, SizeOf(PEhdrRec.ObjNum));
-          if PEhdrRec.ObjNum > 2 then
+          ArcFile^.Seek(MZExeRec.NewExe + 6);
+          ArcFile^.Read(PEhdrRec.ObjNum, SizeOf(PEhdrRec.ObjNum));
+          if PEhdrRec.ObjNum > 3 then
            begin {check for PE-winzip}
-            ArcFile.Seek(MZExeRec.NewExe + $15c); {15c=offset to ObjOffs for object#3}
-            ArcFile.Read(PEhdrRec.ObjOffs, SizeOf(PEhdrRec.ObjOffs));
-            ArcPos := PEhdrRec.ObjOffs + $860;
+            ArcFile^.Seek(MZExeRec.NewExe + $184); {184=offset to ObjOffs for object#4}
+            ArcFile^.Read(PEhdrRec.ObjOffs, SizeOf(PEhdrRec.ObjOffs));
+            ArcPos := PEhdrRec.ObjOffs - $5A0; {NMC.min=2c0, NMC.max=500}
             Check4WinZip;
+            if ArcPos <> 0 then Exit;
            end;
-          if (ArcPos <> 0) and (PEhdrRec.ObjNum >= 3) then Exit;
-          ArcFile.Seek(MZExeRec.NewExe + $28*PEhdrRec.ObjNum + $0E0); {e0=f8-28+10}
-          ArcFile.Read(PEhdrRec.ObjSize, SizeOf(PEhdrRec.ObjSize) + SizeOf(PEhdrRec.ObjOffs));
+          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.ObjNum + $0E0); {e0=f8-28+10}
+          ArcFile^.Read(PEhdrRec.ObjSize, SizeOf(PEhdrRec.ObjSize) + SizeOf(PEhdrRec.ObjOffs));
           ArcPos := PEhdrRec.ObjOffs + PEhdrRec.ObjSize;
          end;
         $454e :
          begin {NE}
-          ArcFile.Seek(MZExeRec.NewExe + $1c);
-          ArcFile.Read(NEhdrRec.NumOfSegments, SizeOf(NEhdrRec.NumOfSegments));
-          ArcFile.Seek(MZExeRec.NewExe + $22);
-          ArcFile.Read(TempWord, SizeOf(TempWord));
-          NEhdrRec.SegTableOffset := LongInt(TempWord);
-          ArcFile.Seek(MZExeRec.NewExe + $2c);
-          ArcFile.Read(NEhdrRec.NonResTableOffs, SizeOf(NEhdrRec.NonResTableOffs));
-          ArcFile.Seek(NEhdrRec.NonResTableOffs + 1);
-          ArcFile.Read(NEhdrRec.NonResTableName, SizeOf(NEhdrRec.NonResTableName));
-          ArcFile.Seek(MZExeRec.NewExe + $32);
-          ArcFile.Read(NEhdrRec.AlignShiftCount, SizeOf(NEhdrRec.AlignShiftCount));
+          ArcFile^.Seek(MZExeRec.NewExe + $1c);
+          ArcFile^.Read(NEhdrRec.NumOfSegments, SizeOf(NEhdrRec.NumOfSegments));
+          ArcFile^.Seek(MZExeRec.NewExe + $22);
+          ArcFile^.Read(TempWord, SizeOf(TempWord));
+          NEhdrRec.SegTableOffset := LongInt(TempWord) + MZExeRec.NewExe;
+          ArcFile^.Read(NEhdrRec.ResTableOffset, SizeOf(NEhdrRec.ResTableOffset) + SizeOf(NEhdrRec.ResNamesOffset));
+          ArcFile^.Seek(MZExeRec.NewExe + $2c);
+          ArcFile^.Read(NEhdrRec.NonResTableOffs, SizeOf(NEhdrRec.NonResTableOffs));
+          ArcFile^.Seek(NEhdrRec.NonResTableOffs + 1);
+          ArcFile^.Read(NEhdrRec.NonResTableName, SizeOf(NEhdrRec.NonResTableName));
+          ArcFile^.Seek(MZExeRec.NewExe + $32);
+          ArcFile^.Read(NEhdrRec.AlignShiftCount, SizeOf(NEhdrRec.AlignShiftCount));
+          ArcFile^.Seek(MZExeRec.NewExe + $36);
+          ArcFile^.Read(NEhdrRec.ExecutableType, SizeOf(NEhdrRec.ExecutableType));
           if NEhdrRec.AlignShiftCount = 0 then NEhdrRec.AlignShiftCount := 9;
+          if NEhdrRec.ExecutableType = 1{OS2} then
+             Exit; {ArcPos=MZ.ArcPos}
           if (NEhdrRec.NonResTableName = 'WinZip') and (NEhdrRec.NumOfSegments >= 3) then
-           begin {NE-winzip}
-            ArcFile.Seek(MZExeRec.NewExe + NEhdrRec.SegTableOffset + $10); {3rd segment}
-            ArcFile.Read(TempWord, SizeOf(TempWord));
-            ArcFile.Read(NEhdrRec.SegmentSize, SizeOf(NEhdrRec.SegmentSize));
+           begin {NE-WinZip}
+            ArcFile^.Seek(NEhdrRec.SegTableOffset + $10); {3rd segment}
+            ArcFile^.Read(TempWord, SizeOf(TempWord));
+            ArcFile^.Read(NEhdrRec.SegmentSize, SizeOf(NEhdrRec.SegmentSize));
             ArcPos := LongInt(TempWord) shl NEhdrRec.AlignShiftCount + NEhdrRec.SegmentSize - $330;
             Check4WinZip;
+            if ArcPos <> 0 then Exit;
+           end;
+          if NEhdrRec.ResTableOffset = NEhdrRec.ResNamesOffset then
+           begin {no resources present: ARJ/2, InfoZIP/2, etc...}
+            ArcFile^.Seek(NEhdrRec.SegTableOffset + 8*NEhdrRec.NumOfSegments - 8); {last segment}
+            ArcFile^.Read(TempWord, SizeOf(TempWord));
+            ArcFile^.Read(NEhdrRec.SegmentSize, SizeOf(NEhdrRec.SegmentSize));
+            ArcPos := LongInt(TempWord) shl NEhdrRec.AlignShiftCount + NEhdrRec.SegmentSize;
+           end
+          else
+           begin {exe with resources: InfoZIP, EasyZIP, etc...}
+            ArcFile^.Seek(LongInt(NEhdrRec.ResTableOffset) + MZExeRec.NewExe);
+            ArcFile^.Read(NEhdrRec.ResourceAlign, SizeOf(NEhdrRec.ResourceAlign));
+            ArcPos := ArcFile^.GetPos - 8; {-8=compensation}
+            NEhdrRec.ResourceTypeNum := 0;
+            Repeat {search for last resource}
+             ArcPos := ArcPos + NEhdrRec.ResourceTypeNum*12 + 8;
+             ArcFile^.Seek(ArcPos);
+             TempWord := NEhdrRec.ResourceTypeNum;
+             ArcFile^.Read(NEhdrRec.ResourceType, SizeOf(NEhdrRec.ResourceType) + SizeOf(NEhdrRec.ResourceTypeNum));
+            Until NEhdrRec.ResourceType = 0;
+            ArcPos := ArcPos - 12;
+            ArcFile^.Seek(ArcPos);
+            ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
+            ArcPos := LongInt(NEhdrRec.ResourceOffset + NEhdrRec.ResourceLenght) shl NEhdrRec.ResourceAlign;
            end;
         end;
         $584c :
          begin {LX}
-          ArcFile.Seek(MZExeRec.NewExe + $88);
-          ArcFile.Read(LXhdrRec.NonResTableOffs, SizeOf(LXhdrRec.NonResTableOffs));
-          ArcFile.Seek(LXhdrRec.NonResTableOffs);
-          ArcFile.Read(LXhdrRec.TableLenght, SizeOf(LXhdrRec.TableLenght));
+          ArcFile^.Seek(MZExeRec.NewExe + $88);
+          ArcFile^.Read(LXhdrRec.NonResTableOffs, SizeOf(LXhdrRec.NonResTableOffs));
+          ArcFile^.Seek(LXhdrRec.NonResTableOffs);
+          ArcFile^.Read(LXhdrRec.TableLenght, SizeOf(LXhdrRec.TableLenght));
           ArcPos := LXhdrRec.NonResTableOffs + LXhdrRec.TableLenght + 4; {4=1+3}
          end;
         {other EXE types}
        end;
       end;
-    end;
+    end else ArcFile^.Seek(ArcPos);
 
 end; {SkipSFX}
 
@@ -3953,15 +997,15 @@ var
    WinZipSfxId: Array [0..2] of Char;
    WZSearchEnd: Longint;
 begin
-   WZSearchEnd:=ArcPos + $200 - SizeOf(WinZipSfxId); {200h = DN's internal ArcFile.Read cache size}
+   WZSearchEnd:=ArcPos + $400 - SizeOf(WinZipSfxId); {400h = 2*DN's internal ArcFile^.Read cache size}
    Repeat
-    ArcFile.Seek(ArcPos);
-    ArcFile.Read(WinZipSfxId, SizeOf(WinZipSfxId));
+    ArcFile^.Seek(ArcPos);
+    ArcFile^.Read(WinZipSfxId, SizeOf(WinZipSfxId));
     ArcPos := ArcPos + 1;
    Until (ArcPos > WZSearchEnd) or (WinZipSfxId = 'NMC');
-   ArcFile.Seek(ArcPos + 11);
+   ArcFile^.Seek(ArcPos + 11);
    ArcPos := 0;
-   if WinZipSfxId = 'NMC' then ArcFile.Read(ArcPos, SizeOf(ArcPos));
+   if WinZipSfxId = 'NMC' then ArcFile^.Read(ArcPos, SizeOf(ArcPos));
 end; {Check4WinZip}
 
 end.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit DnFormat;
 
@@ -52,7 +53,7 @@ unit DnFormat;
 interface
 
      uses Objects, Drivers, Dialogs, Views, advance, advance1, advance2,
-          advance3, Gauge, DnApp, Messages, Format, Commands;
+          advance3, Gauge, DnApp, Messages, Format, Commands, collect;
 
 type
 
@@ -291,7 +292,7 @@ begin
     Dispose(FormatDialogData.Ftypes.Data,Done);
     FormatDialogData.Ftypes.Data := nil;
   end;
- }
+}
   FormatDialogData.Ftypes.Data := GetDriveCapacity(DrivesType[Item]);
   FormatDialogData.Ftypes.Focused := FlStdType[DrivesType[Item]];
 end;
@@ -391,7 +392,8 @@ var I  : integer ;
               ( AdvFDD[I].Focused , AdvFDDR[I] );
              { get Data from focused string }
 
-              FreeObject(AdvFDD[i].Data);
+              Dispose(AdvFDD[i].Data,Done);
+              AdvFDD[i].Data:=nil;
             end;
 
 
@@ -428,7 +430,7 @@ Procedure TMediaCollection.SetCFocus;
 var P : pointer ;
     I , J  : integer ;
 
-   Function Find(Item : Pstring):boolean;far;
+   Function Find(Item : Pstring):boolean;{$IFDEF BIT_16}far;{$ENDIF}
      begin
         Find := False;
             if Item = nil then Exit;
@@ -559,8 +561,8 @@ procedure   TFormatter.UpdateParams;
 
   A := FileSizeStr(I_Size div 1024 {* 1024});
 
-  LB := I_formatted * Boots.Tsect * Boots.Ssize div 1024 ;
-  LC := I_bads * Boots.SSize div 1024 ;
+  LB := I_formatted * Boots^.Tsect * Boots^.Ssize div 1024 ;
+  LC := I_bads * Boots^.SSize div 1024 ;
 
   LD := LB - LC - I_SysSpace div 1024 ;
   if  LD < 0 then LD := 0;
@@ -612,7 +614,7 @@ procedure   TFormatter.UpdateParams;
 
 
   Message(FormatBox, evBroadcast, cmStatusUpdate, nil);
-  Message(FormatBox, evBroadcast, cmUpdateGauge, Pointer(I_formatted));
+  MessageL(FormatBox, evBroadcast, cmUpdateGauge, I_formatted);
 
   asm
     sub ax,ax
@@ -703,7 +705,7 @@ var  result : longint ;
         fdDiskFormatted :begin
 
 
-                          LB := I_bads * Boots.SSize  ; { Total Bad }
+                          LB := I_bads * Boots^.SSize  ; { Total Bad }
 
                           LD := I_Size - I_SysSpace - LB ;      { Usable }
                           if  LD < 0 then LD := 0;
@@ -780,7 +782,7 @@ Procedure   TFormatter.SetData;
                      BTrack       :=   A_Track;
                      U_ClustSZ    :=   A_Clust;
                      U_Roots      :=   A_Dirs;
-                     Boots.SSize  :=   A_Ssize;
+                     Boots^.SSize :=   A_Ssize;
                      Shifts       :=   A_Shft;
                      Shiftt       :=   A_TrackShft;
                      Shifth       :=   A_HeadShft;
@@ -796,7 +798,7 @@ Procedure   TFormatter.SetData;
                      fMode := fmDosFormat;
                      S3 := FLMode[fmNonDos];   {   Get Format Mode  }
 
-                     if ( Boots.SSize<>512 )
+                     if ( Boots^.SSize<>512 )
                         or ( Btrack<>0 )
                          then
                            begin
@@ -826,7 +828,7 @@ Procedure   TFormatter.SetData;
                 end ;  {  Standart types }
 
 
-            Boots.Tsect := Sectors;
+            Boots^.Tsect := Sectors;
 
             Verify := 'y';
 
@@ -881,7 +883,7 @@ Procedure   TFormatter.SetData;
 
 
           S4 :=  FileSizeStr( Longint( Tracks )
-           * Sectors * Heads * Boots.Ssize div 1024  )+' K';
+           * Sectors * Heads * Boots^.Ssize div 1024  )+' K';
 
           DatArr[3] := Longint ( @S4 ) ;    { Size 1200K }
 
@@ -991,6 +993,7 @@ var
             then
                  begin
                    Dispose(Directory,Done);
+                   Directory:=nil;
                    exit;
                  end;
 
@@ -1790,20 +1793,12 @@ var
 
 procedure KillFormatBox;
     begin
-      if FormatBox <> nil then
-      begin
-        Dispose(FormatBox, Done);
-        FormatBox := nil;
-      end;
+      if FormatBox <> nil then Dispose(FormatBox,Done); FormatBox:=nil;
     end;
 
 procedure KillStatusBox;
     begin
-      if StatusBox <> nil then
-      begin
-        Dispose(StatusBox, Done);
-        StatusBox := nil;
-      end;
+      if StatusBox <> nil then Dispose(StatusBox,Done); StatusBox:=nil;
     end;
 
 

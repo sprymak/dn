@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit UniWin;
 
@@ -74,7 +75,7 @@ type
 
 const
   CUniWindow = #70#64#65#66#67#68#69#71#72#73#74#75#76#77#78#164#182#183+
-               #184#185#189#190#191;
+               #184#185#189#190#191#197#198;
 
 implementation
 
@@ -109,19 +110,17 @@ function TUniWindow.MakeScrollBar;
 begin
  GetExtent(R);
  if AOptions and sbVertical<>0
-  then
-   begin
+  then begin
     Inc(R.A.Y);
     Dec(R.B.Y);
     R.A.X:=R.B.X-1;
-   end
-   else
-   begin
-    if FastBookmark then Inc(R.A.X,47) {-$VIV 20.05.99--}
-     else Inc(R.A.X,29); {24}
-    Dec(R.B.X,2);
-    R.A.Y:=R.B.Y-1;
-   end;
+  end else begin
+   if FastBookmark
+    then Inc(R.A.X,49)
+    else Inc(R.A.X,31);
+   Dec(R.B.X,2);
+   R.A.Y:=R.B.Y-1;
+  end;
  New(p,Init(R));
  if AOptions and sbVertical=0 then p^.GrowMode:=gfGrowLoY+gfGrowHiY+gfGrowHiX
                               else {p^.GrowMode:=gfGrowHiY+gfGrowHiX};

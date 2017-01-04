@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,13 +44,14 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit ASCIITab;
 
 interface
 
 uses advance, advance1, advance2, advance3, Objects, DNApp, Views, Drivers,
-     RStrings, ObjType;
+     RStrings;
 
 const boundsASCII: TPoint = (X:0;Y:0);
       charASCII: Char = #04;
@@ -80,27 +81,6 @@ type
     constructor Init(var R: TRect);
     function Execute: Word; virtual;
   end;
-
-const
-
-  RTable: TStreamRec = (
-     ObjType: otTable;
-     VmtLink: Ofs(TypeOf(TTable)^);
-     Load:    @TTable.Load;
-     Store:   @TTable.Store
-  );
-  RReport: TStreamRec = (
-     ObjType: otReport;
-     VmtLink: Ofs(TypeOf(TReport)^);
-     Load:    @TReport.Load;
-     Store:   @TReport.Store
-  );
-  RASCIIChart: TStreamRec = (
-     ObjType: otASCIIChart;
-     VmtLink: Ofs(TypeOf(TASCIIChart)^);
-     Load:    @TASCIIChart.Load;
-     Store:   @TASCIIChart.Store
-  );
 
 procedure ASCIITable;
 
@@ -156,8 +136,8 @@ procedure ASCIITable;
   while GetCH do ;
 {  Desktop^.UnLock;}
   boundsASCII:=P^.Origin;
-  Dispose(P, Done);
-  CR^.Select;
+  Dispose(P,Done);
+  If CR<>nil then CR^.Select;
  end;
 
 
@@ -168,8 +148,8 @@ var
 
 procedure CharFocused;
 begin
-  Message(Owner, evBroadcast, AsciiTableCommandBase + cmCharacterFocused,
-    Pointer(Cursor.X + 32 * Cursor.Y));
+  MessageL(Owner, evBroadcast, AsciiTableCommandBase + cmCharacterFocused,
+    Cursor.X + 32 * Cursor.Y);
 end;
 
 var cX, cY: integer;
@@ -240,10 +220,11 @@ var
   TempStr: string;
 begin
   If ASCIIChar>0 then
-   FormatStr(TempStr, '  Char: ~'#0'%c'#0'~ Decimal: ~%0#%3d~ Hex: ~%0#%02x~  ', ASCIIChar)
+   FormatStr(TempStr, ' Char: ~'#0'%c'#0'~ Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ', ASCIIChar)
   else
-   FormatStr(TempStr, '  Char:   Decimal: ~%0#%3d~ Hex: ~%0#%02x~  ', ASCIIChar);
+   FormatStr(TempStr, ' Char:   Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ', ASCIIChar);
   MoveCStr(Buf, TempStr, GetColor(07) shl 8 + GetColor(06));
+  MoveChar(Buf[Size.X-2], #$FE, ASCIIChar, 1);
   WriteBuf(0, 0, 50, 1, Buf);
 { WriteStr(0, 0, TempStr, 6);}
 end;
@@ -280,8 +261,8 @@ end;
 procedure TTable.SetData;
 begin
  SetCursor(Byte(Data) mod 32, Byte(Data) div 32);
-  Message(Owner, evBroadcast, AsciiTableCommandBase + cmCharacterFocused,
-    Pointer(Cursor.X + 32 * Cursor.Y));
+  MessageL(Owner, evBroadcast, AsciiTableCommandBase + cmCharacterFocused,
+    Cursor.X + 32 * Cursor.Y);
  Owner^.ReDraw;
 end;
 

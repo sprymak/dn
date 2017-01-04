@@ -1,3 +1,49 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source 1.51.07/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//
+//  This programs is free for commercial and non-commercial use as long as
+//  the following conditions are aheared to.
+//
+//  Copyright remains RIT Research Labs, and as such any Copyright notices
+//  in the code are not to be removed. If this package is used in a
+//  product, RIT Research Labs should be given attribution as the RIT Research
+//  Labs of the parts of the library used. This can be in the form of a textual
+//  message at program startup or in documentation (online or textual)
+//  provided with the package.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are
+//  met:
+//
+//  1. Redistributions of source code must retain the copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     "Based on Dos Navigator by RIT Research Labs."
+//
+//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//  The licence and distribution terms for any publically available
+//  version or derivative of this code cannot be changed. i.e. this code
+//  cannot simply be copied and put under another distribution licence
+//  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////}
 {********************************************************************
  STAKDUMP.PAS - a unit for dumping the stack chain of Turbo Pascal
  programs. This is useful for finding the real cause of runtime
@@ -198,15 +244,15 @@ procedure RmLength; assembler;
 asm
     mov  al,ah                  {AL = next byte}
     and  al,$C0                 {AL = mod field}
-    or   al,al                  {Direct addressing mode?}
+    or   al,al                  {Direct addressing mode? }
     jnz  @4                     {No, check again}
     and  ah,7                   {AH = r/m field}
-    cmp  ah,6                   {No base register mode?}
+    cmp  ah,6                   {No base register mode? }
     jne  @1                     {No, just one byte of instruction}
     jmp  @3
-@4: cmp  al,$40                 {One byte displacement mode?}
+@4: cmp  al,$40                 {One byte displacement mode? }
     je   @2                     {Yes, two bytes of instruction}
-    cmp  al,$80                 {Two byte displacement mode?}
+    cmp  al,$80                 {Two byte displacement mode? }
     jne  @1                     {No, just one byte of instruction}
 @3: inc  bx
 @2: inc  bx
@@ -226,13 +272,13 @@ asm
     xor  bh,bh
     and  bl,7                   {BX = instruction length}
     and  al,$F8                 {Separate instruction type}
-    or   al,al                  {Itype = 0?}
+    or   al,al                  {Itype = 0? }
     jz   @4                     {Jump if so}
-    cmp  al,08                  {Itype = 8?}
+    cmp  al,08                  {Itype = 8? }
     jne  @2                     {Jump if not}
 @1: call RmLength               {Get addressing length}
     jmp  @4
-@2: cmp  al,$10                 {Itype = $10?}
+@2: cmp  al,$10                 {Itype = $10? }
     jne  @3                     {No, error}
     mov  al,ah                  {AL = next byte of code}
     and  al,$38
@@ -265,7 +311,7 @@ asm
     je   @2
     call NextIP                 {advance to next instruction}
     jnc  @1                     {loop if no error}
-@2: test al,$08                 {is FAR bit set?}
+@2: test al,$08                 {is FAR bit set? }
     pop  di
 end;
 
@@ -286,7 +332,7 @@ asm
     call WriteAlAscii           {write CR/LF}
     mov  al,10
     call WriteAlAscii
-    cmp  word ptr ss:[si],0     {end of chain?}
+    cmp  word ptr ss:[si],0     {end of chain? }
     je   @3
     call IsFarProc
     jc   @3                     {exit if disassembly error}
@@ -312,13 +358,13 @@ asm
     mov  bx,es                  {Save segment in BX}
     mov  dx,bx                  {Default return value in DX, if not in overlay}
     mov  ax,OvrCodeList         {Walk through overlays, if any}
-@1: or   ax,ax                  {More overlays?}
+@1: or   ax,ax                  {More overlays? }
     jz   @4                     {Jump if not}
     add  ax,cx                  {Fixup for load base}
     mov  es,ax
-    cmp  bx,es:[16]             {Physical overlaid segment?}
+    cmp  bx,es:[16]             {Physical overlaid segment? }
     je   @2
-    cmp  bx,ax                  {Static overlaid segment?}
+    cmp  bx,ax                  {Static overlaid segment? }
     je   @3
     mov  ax,es:[14]             {Next overlay segment}
     jmp  @1
@@ -354,9 +400,9 @@ asm
     call WriteAlAscii
     pop  cx                     {restore fixup}
     pop  dx                     {restore physical segment}
-    cmp  word ptr ss:[si],0     {end of chain?}
+    cmp  word ptr ss:[si],0     {end of chain? }
     je   @3
-    or   dx,dx                  {is code available?}
+    or   dx,dx                  {is code available? }
     jz   @4                     {assume far if not}
     push es
     mov  es,dx
@@ -483,4 +529,3 @@ begin
   ExitSave := ExitProc;
   ExitProc := @DumpExit;
 end.
-

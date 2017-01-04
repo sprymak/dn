@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT MemInfo;
 
@@ -51,18 +52,18 @@ UNIT MemInfo;
 
 INTERFACE
 
+{$IFDEF MEMINFO}
 USES
-  Startup;
-
-CONST
-    cmMemInfo = 100;
+  Startup, CPUType, Advance;
+{$ENDIF}
 
     PROCEDURE MemoryInfo;
-    PROCEDURE SystemInfo;
 
 IMPLEMENTATION
 
+{$IFDEF MEMINFO}
 USES
+  {$IFDEF DPMI} Dpmi,{$ENDIF}
   Dos,
   Objects,
   Views,
@@ -72,17 +73,17 @@ USES
   RStrings,
   Messages,
   Dialogs,
-  ExtraMemory,
+  extramemory,
   DNHelp,
-  advance,
-  advance1,
-  advance2,
-  advance3;
+  Collect,
+
+  Advance1,
+  Advance3;
 
 type
     PTextColl    = ^TTextColl;
     TTextColl    = object(TCollection)
-                    Procedure   AddStr(const s : String);
+                    Procedure   AddStr(s : String);
                     Procedure   FreeItem(Item : Pointer);        virtual;
                    end;
 
@@ -92,10 +93,42 @@ begin Insert(NewStr(s)); end;
 Procedure TTextColl.FreeItem;
 begin DisposeStr(PString(Item)); end;
 
+function RMem(ASeg, ROfs: word): byte;
+{$IFDEF DPMI}
+var q: word;
+begin
+ q:=ASeg mod $1000;
+ ASeg:=RSeg((ASeg div $1000)*$1000);
+ ROfs:=ROfs+q * $10;
+ RMem:=Mem[ASeg:ROfs];
+end;
+{$ELSE}
+inline($5F/         {POP DI}
+       $07/         {POP ES}
+       $26/$8A/$05);{MOV AL,ES:[DI]}
+{$ENDIF}
+
+function RMemW(ASeg, ROfs: word): word;
+{$IFDEF DPMI}
+var q: word;
+begin
+ q:=ASeg mod $1000;
+ ASeg:=RSeg((ASeg div $1000)*$1000);
+ ROfs:=ROfs+q * $10;
+ RMemW:=MemW[ASeg:ROfs];
+end;
+{$ELSE}
+inline($5F/         {POP DI}
+       $07/         {POP ES}
+       $26/$8B/$05);{MOV AX,ES:[DI]}
+{$ENDIF}
 
 var TSR : PTextColl;
 
-Procedure AddTSRs; far;
+{------------------------------------------------------}
+{-------------------}{$IFDEF DPMI}{--------------------}
+{------------------------------------------------------}
+Procedure AddTSRs; {$IFDEF BIT_16}far;{$ENDIF}
 var CurMCB,DevMCB,i,j : Word;
     s,s1              : String;
     LastMCB           : Boolean;
@@ -104,9 +137,93 @@ var CurMCB,DevMCB,i,j : Word;
 
 function aaa: string;
 begin
-  aaa := s+Strg(' ',9-Length(s))+'≥ ';
+  aaa := s+Strg(' ',9-Length(s))+#179' ';
 end;
 
+var Regs : DPMIRegisters;
+begin
+ FillWord(Regs, SizeOf(Regs) shr 1, $00);
+ Regs.Ax:=$5200;
+ SimulateRealModeInt($21, Regs);
+ CurMCB:=RMemW(Regs.ES, Regs.BX-2);
+ SimulateRealModeInt($12, Regs);
+ HiDosMem:=Regs.AX shl 6;
+ isUMB := ExistUMBMem;
+ j:=RMem(CurMCB,3);DevMCB:=CurMCB+1;
+ While DevMCB<CurMCB+RMemW(CurMCB,3)+1 do
+       begin
+        j:=RMemW(DevMCB,3);
+        if j<$18C0 then s1:=Sstr(LongInt(j)*16,6,' ')+'b'
+                   else s1:=Sstr(LongInt(j) div 64,6,' ')+'k';
+        s:='Sys area';
+        case char(RMem(DevMCB,0)) of
+         'T','D'
+             : begin
+                s:='';i:=8;
+                While (i<16) and (RMem(DevMCB,i)<>0) do
+                      begin s:=s+Char(RMem(DevMCB,i));Inc(i);end;
+                s:=aaa;
+                if char(RMem(DevMCB,0))='T'
+                   then s:=s+'Install'
+                   else s:=s+'Driver ';
+               end;
+         'F' : s:=aaa+'Files  ';
+         'B' : s:=aaa+'Buffers';
+         'X' : s:=aaa+'FCBs   ';
+         'L' : s:=aaa+'LastDrv';
+         'S' : s:=aaa+'Stacks ';
+         'I' : s:=aaa+'IFS    ';
+         'E' : s:=aaa+'Buffs/X';
+         else s:='';
+        end;
+        if s<>'' then TSR^.AddStr(s+' '#179' '+Hex4(DevMCB+1)+' '#179+s1+
+                      ' '+Char(DevMCB)+Char(DevMCB shr 8));
+        DevMCB:=(DevMCB+1+RMemW(DevMCB,3));
+       end;
+ LastMCB:=False;
+ While (not LastMCB) and (CurMCB<$FF00) do begin
+   if (RMemW(CurMCB+1,0)=$20CD) and (RMemW(CurMCB,1)<>0) then begin
+     s:='';i:=8;
+     While (i<16) and (RMem(CurMCB,i)<>0) do begin
+       s:=s+Char(RMem(CurMCB,i));
+       Inc(i);
+     end;
+     j:=RMemW(CurMCB,3);
+     if j<$18C0
+       then s1:=Sstr(LongInt(j)*16,6,' ')+'b'
+       else s1:=Sstr(LongInt(j) div 64,6,' ')+'k';
+     s:=aaa+'Program '#179' '+Hex4(CurMCB+1)+' '#179+s1;
+     TSR^.AddStr(s+' '+Char(CurMCB)+Char(CurMCB shr 8));
+   end;
+   {
+     Exit if:
+       MCB = HiDosMem
+       ( MCB > HiDosMem or MCB = 'Z' ) and no UMB
+       ( MCB = 'Z' and MCB > HiDosMem )
+       MCB >= 0xFF00
+   }
+   LastMCB := ( CurMCB = HiDosMem ) or
+              (( CurMCB > HiDosMem ) or ( Char(RMem(CurMCB,0))='Z' )) and not isUMB or
+              (( CurMCB > HiDosMem ) and ( Char(RMem(CurMCB,0))='Z' ));
+   CurMCB:=(CurMCB+1+RMemW(CurMCB,3));
+ end;
+end;
+
+{------------------------------------------------------}
+{-------------------}{$ELSE !DPMI}{--------------------}
+{------------------------------------------------------}
+
+Procedure AddTSRs; {$IFDEF BIT_16}far;{$ENDIF}
+var CurMCB,DevMCB,i,j : Word;
+    s,s1              : String;
+    LastMCB           : Boolean;
+    isUMB             : Boolean;
+    HiDosMem          : Word;
+
+function aaa: string;
+begin
+  aaa := s+Strg(' ',9-Length(s))+#179' ';
+end;
 begin
  asm mov ah,52h
      int $21
@@ -118,7 +235,7 @@ begin
      mov word ptr HiDosMem,ax
  end;
  isUMB := ExistUMBMem;
- j:=mem[CurMCB:3];DevMCB:=CurMCB+1;
+ j:=Mem[CurMCB:3];DevMCB:=CurMCB+1;
  While DevMCB<CurMCB+memw[CurMCB:3]+1 do
        begin
         j:=memw[DevMCB:3];
@@ -145,7 +262,7 @@ begin
          'E' : s:=aaa+'Buffs/X';
          else s:='';
         end;
-        if s<>'' then TSR^.AddStr(s+' ≥ '+Hex4(DevMCB+1)+' ≥'+s1+
+        if s<>'' then TSR^.AddStr(s+' '#179' '+Hex4(DevMCB+1)+' '#179+s1+
                       ' '+Char(DevMCB)+Char(DevMCB shr 8));
         DevMCB:=(DevMCB+1+memw[DevMCB:3]);
        end;
@@ -161,16 +278,9 @@ begin
      if j<$18C0
        then s1:=Sstr(LongInt(j)*16,6,' ')+'b'
        else s1:=Sstr(LongInt(j) div 64,6,' ')+'k';
-     s:=aaa+'Program ≥ '+Hex4(CurMCB+1)+' ≥'+s1;
+     s:=aaa+'Program '#179' '+Hex4(CurMCB+1)+' '#179+s1;
      TSR^.AddStr(s+' '+Char(CurMCB)+Char(CurMCB shr 8));
    end;
-   {
-     Exit if:
-       MCB = HiDosMem
-       ( MCB > HiDosMem or MCB = 'Z' ) and no UMB
-       ( MCB = 'Z' and MCB > HiDosMem )
-       MCB >= 0xFF00
-   }
    LastMCB := ( CurMCB = HiDosMem ) or
               (( CurMCB > HiDosMem ) or ( Char(mem[CurMCB:0])='Z' )) and not isUMB or
               (( CurMCB > HiDosMem ) and ( Char(mem[CurMCB:0])='Z' ));
@@ -178,18 +288,22 @@ begin
  end;
 end;
 
-Procedure ShowInfo(Segm : Word); far;
+{------------------------------------------------------}
+{-------------------}{$ENDIF DPMI}{--------------------}
+{------------------------------------------------------}
+
+Procedure ShowInfo(Segm : Word); {$IFDEF BIT_16}far;{$ENDIF}
 label Unkn,BadCmdL;
 var i,j,k : Word;
     s,q,w : String;
     l,b,e : LongInt;
 begin
  s:='';
- case Char(mem[Segm:0]) of
+ case Char(RMem(Segm,0)) of
   'F','B','X','L',
   'S','I','E' : begin
                  s:= GetString(dlMI_ResArea);
-                 case Char(mem[Segm:0]) of
+                 case Char(RMem(Segm,0)) of
                   'F' : s:=s+GetString(dlMI_Files);
                   'B' : s:=s+GetString(dlMI_Buffers);
                   'X' : s:=s+GetString(dlMI_FCBs);
@@ -200,43 +314,45 @@ begin
                  end;
                 end;
   'D'         : begin
-                 s:=GetString(dlMI_DeviceFlags)+Hex4(memw[Segm:$14])+#13#3;
-                 if memw[Segm:$14] and $8000>0
+                 s:=GetString(dlMI_DeviceFlags)+Hex4(RMemW(Segm,$14))+#13#3;
+                 if RMemW(Segm,$14) and $8000>0
                     then begin
                           s:=s+GetString(dlMI_DeviceName);
-                          for i:=0 to 7 do s:=s+char(mem[Segm:$1A+i]);
+                          for i:=0 to 7 do s:=s+char(RMem(Segm,$1A+i));
                           While s[Byte(s[0])]<#33 do Dec(Byte(s[0]));
                          end
-                    else s:=s+GetString(dlMI_DeviceHandle1)+SStr(mem[Segm:$1A],0,' ')+GetString(dlMI_DeviceHandle2);
+                    else s:=s+GetString(dlMI_DeviceHandle1)+
+                              SStr(RMem(Segm,$1A),0,' ')+
+                              GetString(dlMI_DeviceHandle2);
                 end;
   'T','M','Z' : begin
                  q:='';i:=8;
-                 While (i<16) and (mem[Segm:i]<>0) do
-                       begin q:=q+Char(mem[Segm:i]);Inc(i);end;
-                 i:=memw[Segm:$3C];
+                 While (i<16) and (RMem(Segm,i)<>0) do
+                       begin q:=q+Char(RMem(Segm,i));Inc(i);end;
+                 i:=RMemw(Segm,$3C);
                  w:=GetString(dlMI_PgmPath);
                  if i<>0
                     then begin
                           s:='';j:=0;
-                          While ((mem[i:j]<>0) or (mem[i:j+1]<>0))
+                          While ((RMem(i,j)<>0) or (RMem(i,j+1)<>0))
                                 and (j<$8000) do Inc(j);
                           Inc(j,4);
-                          While mem[i:j]<>0 do
-                                begin s:=s+Char(mem[i:j]);Inc(j);end;
+                          While RMem(i,j)<>0 do
+                                begin s:=s+Char(RMem(i,j));Inc(j);end;
                           If Pos(q,s)=0 then GoTo Unkn;
                           s:=w+s;
                          end
                     else Unkn: s:=w+GetString(dlUnknown);
                  s:=s+GetString(dlMI_CmdLine);
-                 i:=mem[Segm:$90];
+                 i:=RMem(Segm,$90);
                  if i<$80
                     then begin
                           if i=0 then s:=s+GetString(dlDINone)
                                  else begin
                                        q:='"';
                                        For i:=$91 to $90+i do
-                                           if (mem[Segm:i]>31)
-                                              then q:=q+char(mem[Segm:i])
+                                           if (RMem(Segm,i)>31)
+                                              then q:=q+char(RMem(Segm,i))
                                               else GoTo BadCmdL;
                                        s:=s+q+'"';
                                       end;
@@ -244,17 +360,17 @@ begin
                     else BadCmdL: s:=s+GetString(dlUnknown);
                 end;
  end;
- case Char(mem[Segm:0]) of
+ case Char(RMem(Segm,0)) of
   'M','Z','T','D' : begin
                      s:=s+GetString(dlHookVectors);
                      q:='';
                      for i:=0 to $FF do
                          begin
-                          j:=memw[0:i*4];
-                          k:=memw[0:i*4+2];
+                          j:=RMemW(0,i*4);
+                          k:=RMemW(0,i*4+2);
                           l:=LongInt(k)*16+j;
                           b:=LongInt(Segm)*16;
-                          e:=b+LongInt(memw[Segm:3])*16+16;
+                          e:=b+LongInt(RMemW(Segm,3))*16+16;
                           if (l>=b) and (l<=e) then q:=q+Hex2(i)+',';
                          end;
                      if q<>''
@@ -280,15 +396,15 @@ var
   Ps       : PString;
 
 begin
- R.Assign(0,0,52,14);
+ R.Assign(0,0,52,20);
  New(PD,Init(R,GetString(dlMemoryInfo)));
  PD^.Options := PD^.Options or ofCentered;
  PD^.HelpCtx := hcMemoryInfo;
 
- R.Assign(38,2,39,12);
+ R.Assign(38,2,39,18);
  New(VS,Init(R));
  PD^.Insert(VS);
- R.Assign(2,2,38,12);
+ R.Assign(2,2,38,18);
  New(TSRlist,Init(R,1,VS));
  New(TSR,Init(8,8));
  AddTSRs;
@@ -300,9 +416,9 @@ begin
  PD^.Insert(New(PLabel,Init(R, GetString(dlTSRTitle),TSRlist)));
 
  R.Assign(40,2,50,4);
- PD^.Insert(New(PButton, Init(R, GetString(dlDetailButton), cmOK, bfNormal)));
+ PD^.Insert(New(PButton, Init(R, GetString(dlDetailButton), cmOK, bfDefault)));
  Inc(R.A.Y,2);Inc(R.B.Y,2);
- PD^.Insert(New(PButton, Init(R, GetString(dlOKButton), cmCancel, bfDefault)));
+ PD^.Insert(New(PButton, Init(R, GetString(dlOKButton), cmCancel, bfNormal)));
  PD^.SelectNext(False);
  repeat
   w:=DeskTop^.ExecView(PD);
@@ -317,702 +433,8 @@ begin
  Dispose(PD,Done);
 end;
 
-
-Type TCPUinfo = record
-                 cpu_type : byte;
-                 MSW      : word;
-                 GDT      : array[1..6] of byte;
-                 IDT      : array[1..6] of byte;
-                 chkint   : boolean;
-                 opsize   : boolean;
-                 mult     : boolean;
-                 ndp_type : byte;
-                 ndp_cw   : word
-                end;
-
- Var CPUtype : byte ;
-     PCmodel,PCsubModel : byte ;
-
-
-Function Speed : LongInt;
-var a,w,qq : Word;
-begin
- Port[$43]:=$36;Port[$40]:=$0;Port[$40]:=$0;
- w:=memw[0:$46C];While w=memw[0:$46C] do ;
- w:=memw[0:$46C];a:=0; qq := 0;
- while w=memw[0:$46C] do
-       asm   mul cx
-             mov ax,ds
-             mov bx,ax
-             xor dx,dx
-             div bx
-             inc a
-             jnz @1
-             inc qq
-           @1:
-       end;
- Speed:=LongInt(a)+LongInt(qq)*65536;
-end;
-
-function _Processors: Word; far; external;
-{$L CPUType}
-
-Type TCPUFlagInfo = record
-                      case Item: integer of
-                         0: (longWord: longint);
-                         1: (HiWord,
-                             LoWord: word)
-                    end;
-
-Type TCPUExtInfo=record
-                MMXSupport,
-                SSESupport,
-                FPUOnChip,
-                CPUStepping,
-                CPUModel,
-                CPUFamily: byte;
-              end;
-
-Var CPUInfo: TCpuExtInfo;
-    CPUFlag: TCPUFlagInfo;
-
-procedure GetExtCpuInfo;
-
-procedure Body;assembler;
-asm
-        push    bx
-        push    bp
-        db      $66
-        xor     ax,ax
-        mov     [CPUInfo.MMXSupport],  al
-        mov     [CPUInfo.FPUOnChip],   al
-        mov     [CPUInfo.CPUStepping], al
-        mov     [CPUInfo.CPUModel],    al
-        mov     [CPUInfo.CPUFamily],   al
-        inc     ax
-        db      $0F,$A2         {CPUID}
-        mov     bx,ax
-        and     ax,$F
-        mov     [CPUInfo.CPUStepping], al
-        mov     ax,bx
-        and     ax,$F0
-        shr     ax,4
-        mov     [CPUInfo.CPUModel], al
-        mov     ax,bx
-        and     ax,$0F00
-        mov     [CPUInfo.CPUFamily], ah
-        cmp     ah,5
-        jl      @Done
-
-        db      $66
-        xor     ax,ax
-        inc     ax
-        db      $0F,$A2         {CPUID}
-
-        db      $66
-        mov     word ptr CpuFlag.LoWord, dx
-        db      $66
-        shr     dx, 16
-        mov     word ptr CpuFlag.HiWord, dx
-{        db      $66
-        test    dx,$0001
-        jz      @MMXTest
-        mov     [CPUInfo.FPUOnChip],1
-
-@MMXTest:
-        db      $66
-        shr     dx,16
-        db      $66
-        test    dx,$0080
-        jz      @PreDone
-        mov     [CPUInfo.MMXSupport],1
-        db      $66
-        test    dx,$0100
-        jz      @PreDone
-        mov     [CPUInfo.SSESupport],1
-@PreDone:
-}
-@Done:  pop     bp
-        pop     bx
-end;
-
-begin
-  FillChar(CPUinfo,SizeOf(CPUinfo),0);
-  FillChar(CPUFlag,SizeOf(CPUFlag),0);
-  Body;
-  if (CpuFlag.LoWord and $1)>0 then CpuInfo.FpuOnChip:=1;
-  if (CpuFlag.HiWord and $80)>0 then CpuInfo.MMXSupport:=1;
-  if (CpuFlag.HiWord and $200)>0 then CpuInfo.SSESupport:=1;
-end;
-
-Procedure GetCPUinfo(var Name, CoProc: String);
-var s: String;
-    i,y: Word;
-begin
-
- I := _Processors and $FF7F;
-
- CPUtype := I and $7F ;
-
-if I and $7F >= 6 then
- begin
- asm
-    db 0Fh,1,0E0h { SMSW AX }
-    test al,1
-    jz  @@1
-    or I.byte ,80h
- @@1:
- end;
-  end;
-
- case I and $7F of
-   00 : s:='8086';
-   01 : s:='8088';
-   02 : s:='NEC V20';
-   03 : s:='NEC V30';
-   04 : s:='80186';
-   05 : s:='80188';
-   06 : s:='80286';
-   07 : s:='80386';
-   08 : s:='80386SX';
-   09 : s:='80386DX';
-   10 : s:='80486';
-   11 : s:='80486SX';
-   12 : s:='Pentium';
-   13 : s:='P6 family';
-   else s:='Future family';
- end;
-
- Name := S;
-
- {Added by Excelence}{changed by Piwamoto}
- if (I and $7F)>11 then
-  begin
-   GetExtCpuInfo;
-   if CpuInfo.MMXSupport=1 then begin
-     if CpuInfo.SSESupport=1 then
-       Name:=Name+', MMX/SSE Support'
-     else
-       Name:=Name+', MMX Support'
-     end;
-   Str(CpuInfo.CPUFamily, s);
-   Name:=Name+' (F='+s;
-   Str(CpuInfo.CPUModel, s);
-   Name:=Name+' M='+s;
-   Str(CpuInfo.CPUStepping, s);
-   Name:=Name+' S='+s+')';
-  end;
-
- if I and $80 <> 0 then Name := Name + ', V86 mode';
-
- case I shr 8 of
-  $00 : S := GetString(dlSI_None);
-  $01 : S := '8087';
-  $02 : S := '80287';
-  $03 : S := '80287XL';
-  $04 : S := '80387';
-  $05 : S := '80387SX';
-  $06 : S := '80387DX';
-  { $FF : S := 'Weitek';}
-  else  S := 'Unknown';
- end;
- if (I and $F >= 10) then S := GetString(dlSI_BuiltIn);
- asm
-  int 11H
-  mov i, ax
- end;
- {if i and 2 = 0 then S := 'None' else S := 'Installed'};
- CoProc := S;
-end;
-
-Function _MHz   : Word; far; external;
-{Function _Speed : Word; far; external;}
-{$L _MHZ.OBJ}
-
-function GetSpeed(var S: String): LongInt;
- var W: LongInt;
-     A: Real;
-begin
-  A := _MHz;
-  A := A/100;
-  Str((A):6:2, S);
-  w := Speed;
-  W := Trunc(w / 5.5);
-  GetSpeed := W;
-end;
-
-type PModel = ^TModel;
-     TModel = record
-      Len: Word;
-      Model: Byte;
-      SubModel: Byte;
-      BIOSRevision: Byte;
-     end;
-
-procedure GetMType(var S: String);
- var Model, SubModel: Byte;
-     P: PModel;
-begin
- asm
-  mov ah, $C0
-  int 15h
-  mov word ptr P, bx
-  mov word ptr P+2, es
- end;
- Model := P^.Model;
- if P^.Model = 0 then Model := mem[$F000:$FFFE];
- SubModel := P^.SubModel;
-
- PCModel    := P^.Model ;
- PCSubModel := P^.SubModel ;
-
- case Model of
-  $FF: S := 'Original IBM PC';
-  $FE: S := 'IBM XT or Portable PC';
-  $FD: S := 'PC junior';
-  $FC: case SubModel of
-       { 1: S := 'IBM AT 3x9';}
-        2: S := 'IBM XT 286';
-        4: S := 'IBM Personal System/2 Model 50';
-        5: S := 'IBM Personal System/2 Model 60';
-        6: S := 'IBM 7552-XXX "Gearbox"';
-        8: S := 'IBM Personal System/2 Model 25';
-      $0b: S := 'IBM Personal System/1';
-      $20: S := 'Compaq ProLinea';
-      $42: S := 'Olivetti M280';
-      $45: S := 'Olivetti M380';
-      $48: S := 'Olivetti M290';
-      $4F: S := 'Olivetti M250';
-      $50: S := 'Olivetti M380';
-      $51: S := 'Olivetti PCS286';
-      $52: S := 'Olivetti M300';
-      $94: S := 'Zenith 386';
-        else S := 'IBM AT or compatible';
-       end;
-  $FB,$86: S := 'IBM XT';
-  $80: S := 'IBM PC';
-  $FA: if SubModel = 1 then S := 'IBM Personal System/2 Model 25'
-                       else S := 'IBM Personal System/2 Model 30';
-  $F9: S := 'PC Convertible';
-  $F8: if SubModel in [4,9,$B]
-                            then S := 'IBM Personal System/2 Model 70'
-                            else S := 'IBM Personal System/2 Model 80+';
-  $B6: S := 'Hewlett Packard 110';
-  $9A: S := 'Compaq Plus';
-  $2D: S := 'Compaq PC';
-  $E1: S := 'PS/2 Model 55-5530 Laptop';
-  $30: S := 'Sperry PC';
-  else S := 'Unknown machine type.';
- end;
-end;
-
-Function PCIBiosVersion: word; assembler;
-asm
-{  db  $66}
-  mov ax, $b101
-{  db  $66}
-  mov di, 0
-  int $1A
-{  db  $66}
-  cmp ah, 0
-{  db  $66}
-  jne @EndProc
-{  db  $66}
-  mov ax, bx
-@EndProc:
-end;
-
- Function GetBusType:String;
- var  S : String  ;
-      Ft1,Ft2,Ft3 : byte ;
-      OK : boolean ;
-      PCIVer : word;
-      PCMCIA : boolean ;
-      EISA   : boolean ;
-      SCSI   : boolean ;
-      APM    : boolean ;
-   {
-      VESA   : boolean ; VESAFLAG : byte ;
-      PID    : PString ;
-      BB     : array [0..1023] of byte ;
-   }
-   begin
-        S := 'ISA/XT/Classic bus' ;
-        GetBusType := S ;
-        if CPUtype < 6 then Exit  ;
-        if CPUtype = 6 then
-             begin
-               if PCModel > $FC then Exit ;
-               if PCModel = $FC then if
-                  PCSubModel < 3 then Exit ; { Exclude XT 286 machine }
-             end;
-        S := 'ISA/AT';
-     asm
-        mov OK,0
-        mov AH,0C0h
-        int 15h
-        jc  @@1
-        cmp ah,0
-        jne @@1
-        cmp ES:[BX].word,5
-        jb  @@1
-        mov AL, ES:[BX+5].byte
-        mov FT1.byte ,AL
-        mov AL, ES:[BX+7].byte
-        Mov FT3,AL
-        mov OK,1
-  @@1:
-        mov PCMCIA,0
-        mov ah,80h
-        mov cx,5353h
-        int 1Ah
-        jc  @@11
-        cmp cx,5353h
-        jne @@2
-        mov PCMCIA,1
-        jmp @@2
-  @@11: cmp ah,15h
-        jae  @@2
-        mov PCMCIA,1
-
-  @@2:
-        mov EISA,0
-        mov ax,0D804h
-        mov cl,0
-        int 15h
-        jc  @@4
-        cmp ah,0
-        je  @@3
-        cmp ah,80h
-        jb  @@4
-        cmp ah,8Fh
-        ja  @@4
-        cmp ah,86h
-        je  @@4
-  @@3:  mov EISA,1
-
-  @@4:
-       {
-        mov VESA,0
-        push ss
-        pop  es
-        mov di, offset BB
-        mov ax, 4f00h
-        int 10h
-        cmp aL, 4Fh
-        jne @@5
-        mov ax,ES:[DI+6]
-        mov PID.word,AX
-        mov ax,ES:[DI+8]
-        mov PID[2].word,AX
-        mov al,ES:[DI+0AH]
-        mov VESA,1
-        mov VESAFLAG,AL
-  @@5:
-   }
-        mov  APM,0
-        mov  ax,5300h
-        sub  bx,bx
-        int  15h
-        jnc  @@6
-        cmp  ah,86h
-        je   @@7
-  @@6:  mov  APM,1
-  @@7:
-      end;
-        SCSI  := False ;
-        if Ok then begin
-          if Ft1 and 2 > 0 then S := 'Micro Channel';
-          if Ft1 and 1 > 0 then S := 'MCA and ISA';
-          SCSI := (Ft3 and $8> 0) ;
-        end;
-        PCIVer:=PCIBIOSVersion;
-        if EISA then S := 'EISA';
-        if PCIVer<>0 then S := S + '/PCI ' +
-                              chr(((PCIVer and $F00) shr 8)+$30) + '.' +
-                              chr(((PCIVer and $F0) shr 4)+$30) + chr((PCIVer and $F)+$30);
-        if PCMCIA then S:= S + ', PCMCIA';
-        if SCSI then S := S + ', onboard SCSI';
-        if APM  then S := S + ', APM';
-        GetBusType := S;
-  end;
-
-
-procedure GetHDDInfo(N: Byte; var S: String);
- var NumFD: Byte;
-     NumHD, NumCyl, NumSect, NumHeads: Byte;
-     NumCylinders: Word;
-begin
- asm
-  mov ah, 08h
-  mov dl, 80h
-  add dl, N
-  int 13h
-  mov NumHD, dl
-  mov NumHeads, dh
-  mov NumCyl, ch
-  mov NumSect, cl
- end;
- NumCylinders := 1+(NumCyl + (NumSect shr 6)*256);
- S := FStr((LongInt(NumCylinders)*(LongInt((NumSect) and $3F))
-     *LongInt(1+NumHeads)) div 2048);
- S := S + 'M, ' + ItoS(NumHeads+1)+GetString(dlSI_Heads)+
-      ItoS(NumCylinders)+GetString(dlSI_Tracks)+ItoS(NumSect and $3F)+GetString(dlSI_SectTrack);
-end;
-
-procedure GetDisks(var FDD: String);
- var NumFD: Byte;
-     NumHD, NumCyl, NumSect, NumHeads: Byte;
-     S: String;
-     NumCylinders: Word;
-     I: Byte;
-begin
- NumFD := (mem[$40:$10] and 1)*(1+mem[$40:$10] shr 6);
- FDD := '';
- if NumFD = 0 then FDD := GetString(dlSI_NotPresent) else
- for I := 1 to NumFD do
-  begin
-   asm
-    mov ah, 08h
-    mov dl, I
-    dec dl
-    int 13h
-    mov NumHD, bl
-   end;
-   case NumHD of
-    1: S := '5.25" 360K';
-    2: S := '5.25" 1.2M';
-    3: S := '3.5" 720K';
-    4: S := '3.5" 1.44M';
-    6: S := '3.5" 2.88M';
-    else S := 'Unknown disk driver type';
-   end;
-   if FDD <> '' then FDD := FDD + ', ';
-   FDD := FDD + S;
-  end;
-end;
-
-Procedure ShowCPUFlagInfo(var CPUFlagInfo: TCPUFlagInfo);
-
-Const cFlag10 = 9;
-      cFlag11 = 11;
-      cFlag20 = 2;
-      cFlag21 = 7;
-      cFlag22 = 9;
-
-var  s: string;
-     D: PDialog;
-     i: integer;
-
-     MM: record
-           S: array[0..20] of longint;
-         end;
-
-     cPresent,
-     cAbsent: string[10];
-
-begin
-{  s:=  long2str(CpuFlagInfo.LoWord,8)+chr(13);
-   s:=s+long2str(CpuFlagInfo.HiWord,8)+chr(13);
-
-  s:=Long2Str(CPUFlagInfo.LongWord, 16); }
-
-  cPresent := GetString(dlPresent);
-  cAbsent  := GetString(dlAbsent);
-
-  for i:=0 to cFlag10 do begin
-    if (CpuFlagInfo.LoWord and (1 shl i))>0 then
-      MM.S[i]:=longint(@cPresent)
-    else
-      MM.S[i]:=longint(@cAbsent);
-  end;
-
-  for i:=cFlag11 to 15 do begin
-    if (CpuFlagInfo.LoWord and (1 shl i))>0 then
-      MM.S[i-1]:=longint(@cPresent)
-    else
-      MM.S[i-1]:=longint(@cAbsent);
-  end;
-
-  for i:=0 to cFlag20 do begin
-    if (CpuFlagInfo.HiWord and (1 shl i))>0 then
-      MM.S[i+15]:=longint(@cPresent)
-    else
-      MM.S[i+15]:=longint(@cAbsent);
-  end;
-
-  for i:=cFlag21 to cFlag22 do begin
-{    s:=Long2Str(i,2); }
-    if (CpuFlagInfo.HiWord and (1 shl i))>0 then
-      MM.S[i+11]:=longint(@cPresent)
-    else
-      MM.S[i+11]:=longint(@cAbsent);
-  end;
-
-  D := PDialog(LoadResource(dlgCpuFlagInfo));
-  if D <> nil then begin
-     D^.SetData(MM);
-     Application^.ExecView(D);
-     Dispose(D, Done);
-  end;
-end;
-
-procedure SystemInfo;
-var
-    D: PDialog;
-    R: TRect;
-    P: PView;
-    MType,
-    Mhz,
-    CPU,
-    CoCPU,
-    stHD,
-    ndHD,
-    FDDs: String[80];
-    Btype: String[30];
-    S: String;
-    Prc: String[20];
-    EQList, Y, XMSSize: Word;
-    LL: Array[1..10] of LongInt;
-    w: Word;
-
-begin
- asm
-  int 11h
-  mov EQList, ax
- end;
- R.Assign(1,1,73,22);
- New(D, Init(R, GetString(dlSystemInfo)));
- D^.Options := D^.Options or ofCentered;
- D^.HelpCtx := hcSystemInfo;
-
- GetMType(MType);
- GetCPUInfo(CPU, CoCPU);
- Prc := ItoS(GetSpeed(Mhz)); if Prc[0] > #2 then Insert('.', Prc, Length(Prc)-1);
- BType := GetBusType;
- LL[1] := LongInt(@MType);
- LL[2] := LongInt(@CPU);
- LL[3] := LongInt(@MHz);
- LL[4] := LongInt(@CoCPU);
- LL[5] := LongInt(@Prc);
- LL[6] := LongInt(@Btype);
- FormatStr(S, GetString(dlSI_Main), LL);
- R.Assign(3,2,69,7);
- P := New(PStaticText, Init(R, S));
- P^.Options := P^.Options or ofFramed;
- D^.Insert(P);
- S := GetString(dlSI_MainBoard);
- R.Assign(4,1,6+Length(S),2);
- P := New(PLabel, Init(R, S,P));
- D^.Insert(P);
-
- Y := 1;
- GetDisks(FDDs); S := GetString(dlSI_FloppyDrives)+FDDs+^M;
- if (mem[$40:$75] <> 0)
-     then begin
-           GetHDDInfo(0, stHD);
-           S := S +  GetString(dlSI_1stHard) + stHD+^M;
-           Inc(Y);
-          end;
- if Test8086 > 0 then
-  begin
-   if mem[$40:$75] > 1 then
-    begin
-     GetHDDInfo(1, ndHD);
-     S := S +   GetString(dlSI_2ndHard) + ndHD;
-     Inc(Y);
-    end;
-  end;
- R.Assign(3,9,69,9+Y);
- P := New(PStaticText, Init(R, S));
- P^.Options := P^.Options or ofFramed;
- D^.Insert(P);
- S := GetString(dlSI_DiskDrivers);
- R.Assign(4,8,6+Length(S),9);
- P := New(PLabel, Init(R, S,P));
- D^.Insert(P);
-
- asm
-  int 12h
-  mov XMSSize, ax
- end;
-                         S :=  GetString(dlSI_Conventional) + ItoS(XMSSize) + 'K'^M;
- XMSSize := 0;
- if Test8086 > 0 then
-  begin
-   asm
-    mov al, $18
-    mov dx, $70
-    out dx, al
-    inc dx
-    in  al, dx
-    mov ah, al
-    dec dx
-    mov al, $17
-    out dx, al
-    inc dx
-    in  al, dx
-    mov XMSSize, ax
-   end;
-  end;
- if XMSSize <> 0 then S := S + GetString(dlSI_Extended) + ItoS(XMSSize) + 'K'^M;
- if EMSFound then S := S + GetString(dlSI_Expanded) + ItoS(EMSSize) + 'K';
- R.Assign(3,11+Y,37,14+Y);
- P := New(PStaticText, Init(R, S));
- P^.Options := P^.Options or ofFramed;
- D^.Insert(P);
- S := GetString(dlSI_Memory);
- R.Assign(4,10+Y,6+Length(S),11+Y);
- P := New(PLabel, Init(R, S,P));
- D^.Insert(P);
-
-       S := GetString(dlSI_COM);
- if EQList and $0E00 <> 0 then S := S + ItoS((EQList and $0E00) shr 9) else S := S + GetString( dlSI_NotPresent );
- S := S + GetString(dlSI_Lpt);
- if EQList and $C000 <> 0 then S := S + ItoS((EQList and $C000) shr 14) else S := S + GetString( dlSI_NotPresent );
- {S := S + ^M'   Game port : ';
- if EQList and $1000 <> 0 then S := S + 'Present' else S := S + 'None';}
- S := S + GetString(dlSI_OSVer);
- EQList := DOSVersion;
- if WordRec(EQList).Lo >= 10 then begin
-     case EQList of
-         $1E14: S := S+'OS/2 Warp 3';
-         $2814: S := S+'OS/2 Warp 4';
-     else
-         S := S + 'OS/2 '+ItoS(WordRec(EQList).Lo div 10)+'.'+
-              ItoS(WordRec(EQList).Hi)
-     end
- end else
-     S := S + 'DOS '+ ItoS(WordRec(EQList).Lo)+'.'+
-          ItoS(WordRec(EQList).Hi);
- R.Assign(39,11+Y,69,14+Y);
- P := New(PStaticText, Init(R, S));
- P^.Options := P^.Options or ofFramed;
- D^.Insert(P);
- S := GetString(dlSI_Ports);
- R.Assign(41,10+Y,43+Length(S),11+Y);
- P := New(PLabel, Init(R, S,P));
- D^.Insert(P);
-
- R.Assign(1, 18, 11, 20);
- P := New(PButton, Init(R, GetString(dlOKButton), cmCancel, bfNormal));
- P^.Options := P^.Options or ofCenterX;
- D^.Insert(P);
-
- { Added by Excelence }
- if CPU[1]='P' then { èÆ™† Pentium... }
- begin
-   D^.Insert(New(PButton, Init(R, GetString(dlDetailButton), cmOk, bfDefault)));
-   repeat
-   w:=DeskTop^.ExecView(D);
-    if w<>cmCancel then
-      begin
-        ShowCPUFlagInfo(CPUFlag);
-      end;
-   until (w=cmCancel);
- end;
-
- Dispose(D, Done);
-end;
+{$ELSE}
+PROCEDURE MemoryInfo; begin end;
+{$ENDIF}
 
 end.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit HistList;
 
@@ -53,7 +54,7 @@ unit HistList;
 {-----------------------------------------------------}
 
 
-{$O+,F+,X+,I-,S-}
+{$F+,X+,I-,S-}
 
 {****************************************************************************
    History buffer structure:
@@ -70,7 +71,7 @@ interface
 uses Objects;
 
 const
-  HistoryBlock: Pointer = nil;
+  HistoryBlock: PByteArray = nil;
   HistorySize: Word = 2048;
   HistoryUsed: Word = 0;
   MaxHistorySize: Word = 20;
@@ -91,13 +92,18 @@ procedure LoadHistory(var S: TStream);
 var
   CurId: Byte;
   CurString: PString;
+{$IFDEF NOASM}
+  CurPos: word;
+{$ENDIF}
 
 implementation
 uses Memory;
 
 { Advance CurString to next string with an ID of CurId }
 
-procedure AdvanceStringPointer; near; assembler;
+procedure AdvanceStringPointer;
+{$IFNDEF NOASM}
+near; assembler;
 asm
         PUSH    DS
         MOV     CX,HistoryUsed
@@ -122,11 +128,27 @@ asm
 @@3:    POP     DS
         MOV     CurString.Word[0],SI
         MOV     CurString.Word[2],DX
+{$ELSE}
+begin
+  If HistoryBlock=nil then exit;
+  repeat
+   CurPos:=CurPos+Length(CurString^)+3;
+   if CurPos>=HistoryUsed then begin
+    CurPos:=-1;
+    break;
+   end;
+  until HistoryBlock^[CurPos+1]=CurId;
+  if CurPos>=0
+   then CurString:=@(HistoryBlock^[CurPos])
+   else CurString:=nil;
+{$ENDIF}
 end;
 
 { Deletes the current string from the table }
 
-procedure DeleteString; near; assembler;
+procedure DeleteString;
+{$IFNDEF NOASM}
+near; assembler;
 asm
         PUSH    DS
         MOV     CX,HistoryUsed
@@ -145,11 +167,24 @@ asm
         REP     MOVSB
         POP     DS
         MOV     HistoryUsed,DI
+{$ELSE}
+var q: word;
+begin
+ Q:=CurPos+Length(CurString^)+3;
+ if Q>=HistoryUsed then begin
+  HistoryUsed:=CurPos;
+  exit;
+ end;
+ move(HistoryBlock^[Q], HistoryBlock^[CurPos], HistoryUsed-Q);
+ HistoryUsed:=Q;
+{$ENDIF}
 end;
 
 { Insert a string into the table }
 
-procedure InsertString(Id: Byte; const Str: String); near; assembler;
+procedure InsertString(Id: Byte; const Str: String);
+{$IFNDEF NOASM}
+near; assembler;
 asm
         PUSH    DS
         STD
@@ -205,12 +240,30 @@ asm
         REP     MOVSB
 
         POP     DS
+{$ELSE}
+var q: word;
+begin
+ if HistoryUsed+length(Str)+3>=HistorySize then begin
+  q:=curpos;
+  while CurPos+Length(CurString^)+3<HistoryUsed do begin
+   CurPos:=CurPos+Length(CurString^)+3;
+   CurString:=@(HistoryBlock^[Q]);
+  end;
+  DeleteString;
+  CurPos:=q;
+ end;
+ Q:=HistorySize;
+ HistoryBlock^[Q]:=0;
+ HistoryBlock^[Q+1]:=Id;
+ Move(Str, HistoryBlock^[Q+2], Length(Str)+1);
+ HistoryUsed:=HistoryUsed+length(Str)+3;
+{$ENDIF}
 end;
 
-procedure StartId(Id: Byte); near;
+procedure StartId(Id: Byte); {$IFDEF BIT_16}near;{$ENDIF}
 begin
   CurId := Id;
-  CurString := HistoryBlock;
+  CurString := @(HistoryBlock^);
 end;
 
 function HistoryCount(Id: Byte): Word;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,18 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit NavyLink;
 
-{$I LINK.INC} interface uses
-  LFN, LFNCol, {DataCompBoy}
+interface uses
+  LFN, LFNCol, {DataCompBoy} collect,
   advance, advance1, advance2, advance3, Dos, Objects, Views, Drives, Drivers,
-  xTime, Gauge, DiskInfo, FilesCol, ObjType,
+  xTime, Gauge, DiskInfo, FilesCol, tree,
   ComLnk;
 
 type
@@ -112,19 +109,6 @@ type
     end;
 
 
-const
-      RLinker: TStreamRec = (
-       ObjType: otLinker;
-       VmtLink: Ofs(TypeOf(TLinker)^);
-       Load: @TLinker.Load;
-       Store: @TLinker.Store);
-
-      RLinkDrive: TStreamRec = (
-       ObjType: otLinkDrive;
-       VmtLink: Ofs(TypeOf(TLinkDrive)^);
-       Load: @TLinkDrive.Load;
-       Store: @TLinkDrive.Store);
-
 procedure StartLink;
 procedure CopyToLinkDrive(AFiles: PCollection; AOwner: PView; const RealDest: String; Mask: Str12);
              { From Local to Link Drive }
@@ -132,12 +116,12 @@ procedure CopyFromLinkDrive(AFiles: PCollection; AOwner: PView; const RealDest: 
              { From Link to Local Drive }
 
 
-procedure CL_GetLinkDrives(var CSet: CharSet);
+procedure CL_GetLinkDrives(var CSet: TCharSet);
 
 function NewLinkDrive(C: Char): PDrive;
 
 implementation
-uses  {$IFDEF CL_LOG} ComLnk, {$ENDIF}
+uses
   Dialogs,
   LinkTyp, FlPanel, Memory, ApPort,
   OOCom, ModemIO, Commands, DNApp, Messages, DnHelp, FileCopy,
@@ -208,7 +192,7 @@ end end;
 procedure DisposeGrd;
 begin with PLinker(Linker)^ do begin
   if Grd = nil then Exit;
-  Dispose(Grd, Done);
+  Dispose(Grd,Done);
   Grd := nil;
 end end;
 
@@ -389,7 +373,7 @@ end;
 procedure WipeObj(var P: PCL_SlaveJob);
 begin
   if P = nil then Exit;
-  Dispose(P, Done);
+  Dispose(P,Done);
   P := nil;
 end;
 
@@ -660,7 +644,7 @@ begin
      GetRemoteDir := GetRemoteDirCycle(P^.DatP, P^.DatS,
       Owner,SortMode,CurDir,TotalInfo,FreeSpace
     );
-    Dispose(P, Done);
+    Dispose(P,Done);
   end;
 end;
 
@@ -671,7 +655,7 @@ begin
   if not TimerExpired(AUpdTmr) then Exit;
   NewTimer(AUpdTmr,6);
   Progress := ATot-ALeft;
-  WriteGrd(2, StrGrd(ATot, Progress, PLinker(Linker)^.Grd^.Size.X - 6));
+  WriteGrd(2, StrGrd(ATot, Progress, PLinker(Linker)^.Grd^.Size.X - 6, False));
   etm := ElapsedTime(AStrtTmr);
   WriteGrd(3, FStr(Progress)+GetString(dlBytesOf)+FStr(ATot));
   if (etm>50) and (Progress>0) then SetBottom('CPS: '+ItoS((Progress*18) div etm));
@@ -1010,42 +994,6 @@ begin
   {CopyToLinkDrive(AFiles,Own,CurDir,'');}
 end;
 
-        {-DataCompBoy-}
-function MkName(Nm: String; Mask: String): String;
- var a,aa,aaa: string;
-     b,bb,bbb: string;
-     os: string;
-     i:byte;
-begin
- lFSplit(Nm,    a, aa, aaa);
- lFSplit(Mask, b, bb, bbb);
- os:='';
- for i:=1 to length(bb) do
-  case bb[i] of
-   '?': os:=os+aa[i];
-   '*': begin
-         os:=os+copy(aa, i, 255)+copy(bb,i+1,255);
-         while pos('?', os)<>0 do delete(os, pos('?', os), 1);
-         while pos('*', os)<>0 do delete(os, pos('*', os), 1);
-         break;
-        end;
-   else os:=os+bb[i];
-  end;
- for i:=1 to length(bbb) do
-  case bbb[i] of
-   '?': os:=os+aaa[i];
-   '*': begin
-         os:=os+copy(aaa, i, 255)+copy(bbb,i+1,255);
-         while pos('?', os)<>0 do delete(os, pos('?', os), 1);
-         while pos('*', os)<>0 do delete(os, pos('*', os), 1);
-         break;
-        end;
-   else os:=os+bbb[i];
-  end;
- MkName:=os;
-end;
-        {-DataCompBoy-}
-
 function ValidRemoteDir(const ADir: string; var IsValid: Boolean): Boolean;
 var
   P: PCL_InDat;
@@ -1373,7 +1321,7 @@ begin
     Inc(PLinker(Linker)^.DirLevel);
     TransferDir := TransferCollection(NewStr(MakeNormName(Dest^,AName)), P);
     Dec(PLinker(Linker)^.DirLevel);
-    Dispose(P, Done);
+    Dispose(P,Done);
   end;
 end;
 
@@ -1485,7 +1433,7 @@ begin
    PLinker(Linker)^._Mask := x_x;
    CopyFromLinkDrive(PC, nil, TempDir);
    PC^.DeleteAll;
-   Dispose(PC, Done);
+   Dispose(PC,Done);
 
    If MayLFN then
     TempFile := MakeNormName(TempDir, GetLFN(P^.LFN))
@@ -1496,12 +1444,3 @@ end;
         {-DataCompBoy-}
 
 end.
-comlnk
-nlslave
-nlclient
-linkutil
-linktyp
-comlnkio
-apfossil
-slave.inc
-master.incc

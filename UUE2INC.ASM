@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.05/DOS
+;/  Dos Navigator Open Source 1.51.07/DOS
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -166,14 +166,14 @@ proc    AddByte near
 proc    Crc64   near
         arg     Buf:dword,Sz:word,PrevSum:dword,PrevCnt:dword
         cld
-        mov     cx,[Sz]                 ; CX    ออ Block Size
+        mov     cx,[Sz]
         jcxz    @@End
         push    ds
-        lds     si,[Buf]                ; DS:SI ฤ> InBuf
+        lds     si,[Buf]
         les     di,[PrevCnt]
-        mov     dx,[es:di]              ; DX    ออ Counter
-        les     di,[PrevSum]            ; ES:DI ฤ> CheckSum
-        mov     bx,offset Poly64        ; BX    ฤ> Poly64
+        mov     dx,[es:di]
+        les     di,[PrevSum]
+        mov     bx,offset Poly64
         xor     ax,ax
  @@1:   lodsb
         call    AddByte

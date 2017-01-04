@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,20 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
-{$I DN.DEF}
 
 unit FilesCol;
 
 interface
  uses LFN, LFNCol, {DataCompBoy} drvtypes, Objects, Memory, DOS, Startup,
- DNHelp, advance, advance1, advance2, advance3, ObjType;
+ DNHelp, advance, advance1, advance2, advance3, Collect, Drivers;
 
 type
     PDIZ = ^TDIZ;
@@ -112,10 +107,15 @@ type
      SortMode: Byte;
      Selected: Integer;
      Owner: Pointer;
-     procedure FreeItem(Item: Pointer); virtual;
-     function Compare(Key1, Key2: Pointer): Integer; virtual;
+{$IFDEF SORTDEBUG}
+     PanelState: PChar;
+     constructor Init(ALimit, ADelta: LongInt);
+     procedure Sort; virtual;
+{$ENDIF}
      constructor Load(var S: TStream);
      procedure Store(var S: TStream); virtual;
+     procedure FreeItem(Item: Pointer); virtual;
+     function Compare(Key1, Key2: Pointer): Integer; virtual;
     end;
 
 const
@@ -126,12 +126,6 @@ const
       hfmInsertText    = 1;
       hfmInsertFiles   = 2;
 
-      RFilesCollection: TStreamRec = (
-       ObjType: otFilesCollection;
-       VmtLink: Ofs(TypeOf(TFilesCollection)^);
-       Load: @TFilesCollection.Load;
-       Store: @TFilesCollection.Store);
-
 function  SelectDrive(X, Y: Integer; Default: Char; IncludeTemp: Boolean): String;
 function  CopyFileRec(FR: PFileRec): PFileRec; {DataCompBoy}
 function  CreateFileRec(Name: string): PFileRec;
@@ -140,17 +134,16 @@ procedure DelFileRec(var FR: PFileRec); {DataCompBoy}
 function  LoadFileRec(var s: TStream): PFileRec; {DataCompBoy}
 procedure StoreFileRec(var s: TStream; fr: PFileRec); {DataCompBoy}
 function  PackedDate(P: PFileRec): LongInt; {DataCompBoy}
-function GetFileType(const S: String; Attr: Byte): Integer;
+function  GetFileType(const S: String; Attr: Byte): Integer;
 
- const Executables: String[21] = #0'exe'#0'bat'#0'com'#0;
+ const Executables: String[21] = 'exe;bat;com';
 
 implementation
-uses DNApp, Menus, Drivers, Views, FlPanel, Drives,
+uses DNApp, Menus, Views, FlPanel, Drives,
      Commands, DiskTool, Messages
-     {$IFDEF MODEM}
-     ,NavyLink
-     {$ENDIF}
-     , Novell, DnIni
+     {$IFDEF MODEM}{$IFDEF LINK},NavyLink{$ENDIF}{$ENDIF}
+     {$IFDEF NETINFO}, Novell{$ENDIF}
+     , DnIni
 
 ;
 
@@ -170,12 +163,15 @@ function  CreateFileRec(Name: string): PFileRec;
  var fr: PFileRec;
      lsr: lSearchRec;
      D: DateTime;
+     path: string;
  begin
   new(fr);
   CreateFileRec:=fr;
-  fillchar(fr^, sizeof(fr^), 0);
-  Name:=lFExpand(Name);
+  fillword(fr^, sizeof(fr^) shr 1, 0);
+  Name:=lfGetLongFileName(lFExpand(Name));
   lFindFirst(Name+'*', AnyFile, lsr);
+  Path:=GetPath(Name);
+  Name:=GetName(Name);
   while (lsr.FullName<>Name) and (DosError=0) do lFindNext(lsr);
   lFindClose(lsr);
   if DosError=0 then
@@ -184,7 +180,7 @@ function  CreateFileRec(Name: string): PFileRec;
     fr^.LFN:=AddLFN(lsr.FullName);
     fr^.Size:=lsr.FullSize;
     fr^.PSize:=lsr.FullSize;
-    fr^.Owner:=NewStr(GetPath(Name)+'\');
+    fr^.Owner:=NewStr(Path);
     fr^.OwnerDisposible:=true;
     fr^.Diz:=nil;
     UnpackTime(lsr.sr.Time, D);
@@ -195,12 +191,12 @@ function  CreateFileRec(Name: string): PFileRec;
     fr^.Minute := D.Min;
     fr^.Second := D.Sec;
     fr^.Attr:=lsr.sr.attr;
-    fr^.TType := GetFileType(fr^.Name, fr^.Attr);
+    fr^.TType := GetFileType(lsr.FullName, fr^.Attr);
     if fr^.Attr and Directory <> 0 then UpStr(fr^.Name) else LowStr(fr^.Name);
    end
   else
    begin
-    fr^.Owner:=NewStr(GetPath(Name));
+    fr^.Owner:=NewStr(Path);
     fr^.OwnerDisposible:=true;
     fr^.Name:=Norm12(GetURZ(GetName(lfGetShortFileName(Name))));
     fr^.LFN:=AddLFN(GetName(Name));
@@ -215,6 +211,7 @@ begin
  New(P);
  P^ := FR^;
  P^.LFN := UseLFN(FR^.LFN);
+ P^.OwnerDisposible := False;
  if P^.DIZ <> nil then P^.DIZ^.isDisposable := Off;
  CopyFileRec := P;
 end;
@@ -275,18 +272,37 @@ begin with fr^ do begin
 end end;
         {-DataCompBoy-}
 
+{$IFDEF SORTDEBUG}
+        {-DataCompBoy-}
+constructor TFilesCollection.Init(ALimit, ADelta: longint);
+begin
+ Inherited Init(ALimit, ADelta);
+ PanelState:=Ptr(segB800, 0);
+end;
+        {-DataCompBoy-}
+{$ENDIF}
+
         {-DataCompBoy-}
 constructor TFilesCollection.Load;
- var I: Integer;
+var
+  C, I: LongInt;
 begin
- inherited Init($10,$10);
- S.Read(Count, SizeOf(Integer)*3);
- I := Limit;
- Limit := 0;
- SetLimit(I);
- for I := 0 to Count-1 do
-   AtPut(I, LoadFileRec(S));
- S.Read(Selected, SizeOf(Selected));
+  TObject.Init;
+  S.Read(Count, Sizeof(Count));
+  S.Read(Limit, Sizeof(Limit));
+  S.Read(Delta, Sizeof(Delta));
+  if (Count > Limit) or (Delta < 0) then Fail;
+  C:=Count; I:=Limit;
+  Count:=0; Limit:=0;
+  SetLimit(I);
+  for I:=0 to C-1 do begin
+    AtInsert(I, LoadFileRec(S));
+    if (S.Status<>stOK) then
+    begin
+      SetLimit(0); Fail;
+    end;
+  end;
+  S.Read(Selected, SizeOf(Selected));
 end;
         {-DataCompBoy-}
 
@@ -299,7 +315,10 @@ begin
   if (I - 1 = Selected) or (PFileRec(At(I-1))^.Selected) then
    begin if I - 1 = Selected then Sel := J; Inc(J) end;
  I := Count; Count := J;
- S.Write(Count, SizeOf(Integer)*3); Count := I;
+ S.Write(Count, Sizeof(Count));
+ S.Write(Limit, Sizeof(Limit));
+ S.Write(Delta, Sizeof(Delta));
+ Count := I;
  for I := 1 to Count do
   if (I - 1 = Selected) or (PFileRec(At(I-1))^.Selected) then
    StoreFileRec(S, At(I-1));
@@ -312,6 +331,18 @@ procedure TFilesCollection.FreeItem;
 var P: PFileRec absolute Item; begin DelFileRec(P); end;
         {-DataCompBoy-}
 
+{$IFDEF SORTDEBUG}
+        {-DataCompBoy-}
+procedure TFilesCollection.Sort;
+var C: char;
+begin
+ if PanelState<>nil then C:=PanelState^;
+ inherited Sort;
+ if PanelState<>nil then PanelState^:=C;
+end;
+        {-DataCompBoy-}
+{$ENDIF}
+
         {-DataCompBoy-}
 function TFilesCollection.Compare;
  var T1: TFileRec;
@@ -321,8 +352,21 @@ function TFilesCollection.Compare;
      P1P, P2P: Boolean;
      PanelFlags: Word;
      OneIsFile: Boolean;
+{$IFDEF SORTDEBUG}
+ const NumCal: word = 0;
+       States:Array[0..3] of char = '|/-\';
 begin
- PanelFlags := PFilePanel(Owner)^.PanelFlags;
+ inc(NumCal);
+ if PanelState<>nil then
+  if NumCal=1 then PanelState^:=States[0]
+  else if NumCal=2 then PanelState^:=States[1]
+  else if NumCal=3 then PanelState^:=States[2]
+  else if NumCal=4 then begin PanelState^:=States[3]; NumCal:=0 end;
+{$ELSE}
+begin
+{$ENDIF}
+ if Owner<>nil then PanelFlags := PFilePanel(Owner)^.PanelFlags
+               else PanelFlags := PanelDefaults.Show;
  Move(Key1^,T1,SizeOf(T1));
  with P2^ do
    begin
@@ -335,20 +379,15 @@ begin
      OneIsFile:=True;
 {    if (T1.Attr and Directory <> 0) and (Attr and Directory <> 0) then
        OneIsFile:=False;}
-
-     if GetLFN(T1.LFN)=GetLFN(LFN) then C := 0 else
-      if GetLFN(T1.LFN)>GetLFN(LFN) then C := 1
-                                     else C := -1;
-
      SM := SortMode;
-     if (SM >= 5) and (SM <= 20) then begin
+     if (SM >= 7) and (SM <= 20) then begin
        if (T1.Name = Name) and ((T1.Attr or Attr) and Directory = 0) and
-          (((SM-5) and 1 = 0) or (T1.Size = Size)) and
-          (((SM-5) and 2 = 0) or (T1.Yr < Yr) or
+          (((SM-7) and 1 = 0) or (T1.Size = Size)) and
+          (((SM-7) and 2 = 0) or (T1.Yr < Yr) or
            ((T1.Yr = Yr) and (T1.FDate <= FDate)) or
            ((T1.Yr = Yr) and (T1.FDate = FDate) and (T1.Second < Second))) and
-          (((SM-5) and 4 = 0) or (T1.Attr = Attr)) and
-          (((SM-5) and 8 = 0) or
+          (((SM-7) and 4 = 0) or (T1.Attr = Attr)) and
+          (((SM-7) and 8 = 0) or
                   CompareFiles(MakeNormName(T1.Owner^, MakeFileName(T1.Name)),
                                MakeNormName(Owner^, MakeFileName(Name))) )
            then C := 0 else if (T1.Name < Name) then C := -1
@@ -357,7 +396,7 @@ begin
        Exit;
      end;
 
-     if (Owner <> nil) and (SM <> 3) and (SM <> 4) then
+     if (Owner <> nil) and (SM <> 5) and (SM <> 6) then
      begin
        if PanelFlags and fmiExeFirst <> 0 then
        begin
@@ -379,8 +418,8 @@ begin
 
      case SM of
       0: if T1.Owner^ = Owner^ then
-          if (T1.Name = Name) and (GetLFN(T1.LFN) = GetLFN(LFN)) then C := 0
-                                                                 else C := -1
+          if (T1.Name = Name) and (CmpLFN(T1.LFN,LFN)=0) then C := 0
+                                                         else C := -1
          else if T1.Owner^ < Owner^ then C := -1 else C := 1;
       30: begin
            I1 := T1.TType; I2 := TType;
@@ -390,22 +429,31 @@ begin
            if I1 > I2 then C := 1 else
               if T1.Name < Name then C := -1
                 else if T1.Name > Name then C := 1
-                  else if T1.Owner^ < Owner^ then C := -1
-                    else if T1.Owner^ > Owner^ then C := 1;
+                  else begin
+                    C := CmpLFN(T1.LFN,LFN);
+                    If C = 0 then if T1.Owner^ < Owner^ then C := -1
+                                    else if T1.Owner^ > Owner^ then C := 1;
+                  end;
           end;
-      1: if (T1.Attr xor Attr) and Directory <> 0 then
+{NAME}1: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Name < Name then C := -1
             else if T1.Name > Name then C := 1
              else if T1.Owner^ < Owner^ then C := -1
                else if T1.Owner^ > Owner^ then C := 1;
+{LFN} 2: if (T1.Attr xor Attr) and Directory <> 0 then
+          if T1.Attr and Directory <> 0 then C := -1 else C := 1 else begin
+           C := CmpLFN(T1.LFN, LFN);
+           If C = 0 then if T1.Owner^ < Owner^ then C := -1
+                           else if T1.Owner^ > Owner^ then C := 1;
+         end;
      141: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Name < Name then C := -1
             else if (T1.Name > Name) or (GetLFN(T1.LFN)<>GetLFN(LFN))
                   then C := 1
                   else C := 0;
-      2: if (T1.Attr xor Attr) and Directory <> 0 then
+{EXT} 3: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C:=-1
           else                               C:=1
          else
@@ -419,7 +467,16 @@ begin
          if T1.Name   > Name   then C:= 1 else
          if T1.Owner^ < Owner^ then C:=-1 else
          if T1.Owner^ > Owner^ then C:= 1;
-      3: if (T1.Attr xor Attr) and Directory <> 0 then
+{LEXT}4: if (T1.Attr xor Attr) and Directory <> 0 then
+          if T1.Attr and Directory <> 0 then C:=-1
+          else                               C:=1
+         else begin
+          If OneIsFile then C := CmpLEX(T1.LFN, LFN) else C := 0;
+          If C = 0 then C := CmpLFN(T1.LFN, LFN);
+          If C = 0 then if T1.Owner^ < Owner^ then C:=-1 else
+                        if T1.Owner^ > Owner^ then C:= 1;
+         end;
+{SIZE}5: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Size > Size then C := -1 else
            if T1.Size < Size then C := 1 else
@@ -427,7 +484,7 @@ begin
             else if T1.Name > Name then C := 1
              else if T1.Owner^ < Owner^ then C := -1
                else if T1.Owner^ > Owner^ then C := 1;
-      4: begin
+{DATE}6: begin
          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if (T1.Yr < Yr) then C := 1 else
@@ -452,12 +509,12 @@ end;
 
 function SelectDrive;
  var R: TRect;
-     P: PHugeMenuBox;
+     P: PMenuBox;
      Menu: PMenu;
      Items, Lnk: PMenuItem;
      C: Char;
      N, MaxRY: Integer;
-     SC: CharSet;
+     SC: TCharSet;
      Server_Num, Handle_Num, RetCode, DriveNum, MaxL: integer; {-$VIV start}
      FullS, Server, PathName, TmpS: String;       {-$VIV end}
      pSaveNeedAbort,ShowDir: Boolean;
@@ -473,11 +530,28 @@ function SelectDrive;
     flnUseCutChar+flnHandleTildes,nfmNull,nil)
   end;
 
+var IDDQD: record fl, dr: longint; end;
+
 begin
  Items := nil; N := 0; Lnk := nil;
  MaxL := 8; {-$VIV}
 
+ if IncludeTemp and (DriveInfoType and ditIncludeQick <> 0) then begin
+  C := ' ';
+  for DriveNum := 8 downto 0 do
+    if DirsToChange[DriveNum] <> nil then begin
+      FreeStr:='  ~'+Itos(DriveNum+1)+':~ '+ CutH(DirsToChange[DriveNum]^,24);
+      Items := NewItem(FreeStr, 'Alt-'+Itos(DriveNum+1), kbAlt1,
+                       cmQuickChange1 + DriveNum, hcNoContext, Items);
+      MaxL:=Max(CStrLen(FreeStr), MaxL);
+      inc(N);
+      C := '!';
+    end;
+  if C = '!' then Items := NewLine(Items);
+ end;
+
  {$IFDEF MODEM}
+ {$IFDEF LINK}
  if IncludeTemp and (Linker <> nil) then
    begin
      CL_GetLinkDrives(SC);
@@ -485,24 +559,37 @@ begin
        begin
          for C := 'Z' downto 'A' do
            if C in SC then
-             Items := NewItem('  ~'+C+':~  ', '', kbNoKey, 2000 + Byte(C),
+             Items := NewItem('  ~'+C+':~ ', '', kbNoKey, 2000 + Byte(C),
                                hcNoContext, Items);
-         Items := NewSubMenu(' LINK', hcNoContext, NewMenu(Items), nil);
+         Items := NewSubMenu('  ~+:~ LINK', hcNoContext, NewMenu(Items), nil);
          Lnk := Items;
          Inc(N)
        end;
    end;
  {$ENDIF}
+ {$ENDIF}
 
  if IncludeTemp then begin
-     Items := NewItem(' TEMP ', '', kbSpace, 1200, hcTempList, Items);
+     If (DriveInfoType and ditIncludeTempInfo <> 0) then
+      If TempFiles<>nil then begin
+       IDDQD.Dr := TempFiles^.Dirs;
+       IDDQD.Fl := TempFiles^.Files - TempFiles^.Dirs;
+       if IDDQD.Dr+IDDQD.Fl = 0 then FreeStr := GetString(dlEmpty) else
+       if IDDQD.Dr = 0 then FreeStr := ItoS(IDDQD.Fl) + ' ' + #0 + GetString(dlDIFiles) + #0 else
+       if IDDQD.Fl = 0 then FreeStr := ItoS(IDDQD.Dr) + ' ' + #0 + GetString(dlDirectories) + #0 else
+        FormatStr(FreeStr, GetString(dlFilDir), IDDQD);
+      end else FreeStr := GetString(dlEmpty)
+     else FreeStr := '';
+
+     Items := NewItem('  ~*:~ TEMP: '+FreeStr, '', kbSpace, 1200, hcTempList, Items);
+     Items := NewLine(Items);
      Inc(N)
  end;
 
  for C := 'Z' downto 'A' do
   if ValidDrive(C) then
    begin
-    FullS := '  ~'+C+':~  ';                          {-$VIV start}
+    FullS := '  ~'+C+':~ ';                          {-$VIV start}
     if InterfaceData.Options and ouiHideDriveInfo = 0 then
     begin
       DriveNum := Byte(C)-64;
@@ -524,6 +611,7 @@ begin
          dtSuperStor : FullS := FullS + sdtSuperStor ;
         end;
        end;
+      {$IFDEF NETINFO}
       Get_drive_connection_id(DriveNum, Server_num);
       if (Server_num > 0) and (DriveInfoType and ditNetDir <> 0) then
       begin
@@ -541,7 +629,9 @@ begin
         PathName := CutLongString(Server + '/' + PathName);
         PathName := PathName + TmpS;
         FullS := FullS + PathName;
-      end else begin
+      end else
+      {$ENDIF}
+      begin
           if (DriveNum<=2) or ((DriveInfoType and ditCDDir=0)
           and (DriveInfoType and ditLocalDir=0)) then ShowDir:=False
           else if (DriveInfoType and ditCDDir<>0)
@@ -596,63 +686,39 @@ begin
  if R.A.Y=0 then begin Inc(R.A.Y); Inc(R.B.Y) end;
  if (R.B.Y > MaxRY) then R.B.Y := MaxRY;
  {-$VIV end}
- P := New(PHugeMenuBox, Init(R, Menu, nil)); {-$VIV}
+ P := New(PMenuBox, Init(R, Menu, nil)); {-$VIV}
  if (C='+') then Items := Lnk else Items := P^.FindItem(C);
  if Items <> nil then Menu^.Default := Items;
  P^.HelpCtx := hcSelectDrive + Byte( IncludeTemp = True );
 
  N := DeskTop^.ExecView(P);
- Dispose(P, Done);
+ Dispose(P,Done);
  DisposeMenu(Menu);
- if N > 1000 then SelectDrive := Char(N - 1000)+':' else SelectDrive := '';
+ SelectDrive := '';
+ if N > 1000 then SelectDrive := Char(N - 1000)+':';
  if N = 1200 then SelectDrive := cTEMP_;
  if N > 2000 then SelectDrive := '+' + Char(N - 2000);
+ if (N >= cmQuickChange1) and (N <= cmQuickChange9)
+             then SelectDrive := CnvString(DirsToChange[N-cmQuickChange1]);
 end;
-
- var Q: Str5;
 
 function GetFileType(const S: String; Attr: Byte): Integer;
 begin
   if Attr and Directory <> 0 then GetFileType := ttDirectory else
   begin
-    GetFileType := 0;
-    asm
-      cld
-      les   si, S
-      mov   di, offset Q + 2
-      mov   ah, [es:si]
-      sub   ah, 9
-      ja    @o
-   @t:mov   word ptr [Q+0],0003h
-      mov   word ptr [Q+2],002Eh {'.'}
-      jmp   @e
-   @o:add   si,10
-   @1:mov   al, [es:si]
-      inc   si
-      cmp   al, ' '
-      je    @S
-      mov   ds:[di], al
-      inc   di
-   @S:dec   ah
-      jnz   @1
-      mov   byte ptr ds:[di],0
-      sub   di, offset Q
-      cmp   di,3
-      jl    @t
-      mov   word ptr Q, di
-   @e:
-    end;
-
-   if Pos(LowStrg(Q), Executables) <> 0 then GetFileType := ttExec else
-    if (Pos(Q, Archives) <> 0) or
-          (((Q[2] = 'a') or (Q[2] = 'r'))
-            and (Q[3] >= '0') and (Q[4] >= '0')
-            and (Q[3] <= '9') and (Q[4] <= '9')) then GetFileType := ttArc
-    else if Pos(LowStrg(Q), CustomMask1) <> 0 then GetFileType := ttCust1
-    else if Pos(LowStrg(Q), CustomMask2) <> 0 then GetFileType := ttCust2
-    else if Pos(LowStrg(Q), CustomMask3) <> 0 then GetFileType := ttCust3
-    else if Pos(LowStrg(Q), CustomMask4) <> 0 then GetFileType := ttCust4
-    else if Pos(LowStrg(Q), CustomMask5) <> 0 then GetFileType := ttCust5
+   GetFileType := 0;
+   if InExtFilter(S, Executables) then GetFileType := ttExec
+    else if InExtFilter(S, Archives   )  then GetFileType := ttArc
+    else if InExtFilter(S, CustomMask1)  then GetFileType := ttCust1
+    else if InExtFilter(S, CustomMask2)  then GetFileType := ttCust2
+    else if InExtFilter(S, CustomMask3)  then GetFileType := ttCust3
+    else if InExtFilter(S, CustomMask4)  then GetFileType := ttCust4
+    else if InExtFilter(S, CustomMask5)  then GetFileType := ttCust5
+{JO}else if InExtFilter(S, CustomMask6)  then GetFileType := ttCust6
+    else if InExtFilter(S, CustomMask7)  then GetFileType := ttCust7
+    else if InExtFilter(S, CustomMask8)  then GetFileType := ttCust8
+    else if InExtFilter(S, CustomMask9)  then GetFileType := ttCust9
+{JO}else if InExtFilter(S, CustomMask10) then GetFileType := ttCust10
   end;
 end;
 
@@ -663,16 +729,13 @@ function NewFileRec;
       D: DateTime;
       I: Integer;
 begin
-  if Name[1] <> '.' then
-    begin
-      I := PosChar('.', Name);
-      T.Name := AddSpace(Name, 12);
-      if I > 0 then Insert(Strg(' ', 9 - I), T.Name, I);
-    end else T.Name := '..          ';
+  if Name[1] <> '.'
+   then T.Name:=Norm12(GetUrz(Name))
+   else T.Name := '..          ';
   T.Name[9] := ' ';
   if Attr and Directory <> 0 then UpStr(T.Name) else LowStr(T.Name);
-  if Attr and Hidden <> 0 then T.Name[9] := '▒';
-  if Attr and SysFile <> 0 then begin T.Name[9] := '▓'; T.Name[1] := Upcase(T.Name[1]); end;
+  if Attr and Hidden <> 0 then T.Name[9] := #177;
+  if Attr and SysFile <> 0 then begin T.Name[9] := #178; T.Name[1] := Upcase(T.Name[1]); end;
   T.LFN := AddLFN(GetName(LFN));
   T.Size := Size; T.PSize := Size;
   if Date = 0 then
@@ -696,10 +759,11 @@ begin
   T.Attr := Attr and $7FFF;
   T.Selected := Off;
   T.DIZ := nil;
-  T.TType := GetFileType(T.Name, T.Attr);
+  T.TType := GetFileType(LFN, T.Attr);
   T.Owner := AOwner;
   T.OwnerDisposible := false;
-  New(PR); PR^ := T;
+  New(PR);
+  PR^ := T;
   NewFileRec := PR;
 end;
         {-DataCompBoy-}

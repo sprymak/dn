@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.05/DOS
+::  Dos Navigator Open Source 1.51.07/DOS
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -44,162 +44,211 @@
 ::  (including the GNU Public Licence).
 ::
 :://///////////////////////////////////////////////////////////////////////
-
 @echo off
-set tvar=
-set multi=Y
 set _Q_opt=/Q
 set SWPOPT=
-set ASMOPT=
-set bppath=c:\bp\
+set ASMOPT=exe\*.obj
+set binpath=c:\bp\bin\
+set bpcpath=c:\bp\bin\
 set outpath=out
 set GGT=
 set GGB=
 set GGS=
 set GGD=
-set packer=upx -9
-set ovrl=
-md exe >nul
-md out >nul
-cls
-
-echo {} >overlay.def
-if .%ovrl%.==.yes. echo {$define packoverlay} >overlay.def
+set GGDB=
+set real_packer=upx -9q
+set dpmi_packer=
+set com_packer=upx -9q
+set PackOverlay=
+if not exist exe\nul mkdir exe >nul
+if not exist out\nul mkdir out >nul
 
 rem ------------------------------------------------------------------
-rem BUILDDN [swapdisk] [dpmi] [help] [resource] [asm] [nobpc] [nolite] [ver] [verbose]
+rem BUILDDN [debug] [swapdisk] [dpmi] [help] [resource] [asm] [nobpc]
+rem         [nolite] [ver] [verbose]
 rem ------------------------------------------------------------------
 rem ctty con
-if .%1.==.. builddn help resource nolite
+if .%1.==.. builddn asm help resource nolite
+
+if .%PackOverlay%.==.. echo {} >exe\overlay.inc
+if NOT .%PackOverlay%.==.. echo {$DEFINE PackOverlay} >exe\overlay.inc
+
+set prg_packer=%real_packer%
+
+set diz_title=(Real mode binary package)
 
 :Loop
 if .%0.==.nolite.   set GGT=GGT
 if .%0.==.verbose.  set GGB=GGB
 if .%0.==.swapdisk. set GGS=GGS
 if .%0.==.dpmi.     set GGD=GGD
-if .%1.==.asm. goto asm
-if .%1.==.ver. goto cmpver
+if .%0.==.debug.    set GGDB=GGDB
+if .%1.==.asm.      goto asm
+if .%1.==.ver.      goto cmpver
 if .%1.==.resource. goto resource
 if .%1.==.help. goto help
 ::::
 if .%1.==.nolite. set lite=off
 if .%1.==.nolite. shift
-if .%GGT.==.GGT. goto GGT
+if .%GGT%.==.GGT. goto GGT
 if .%0.==.nolite. goto Loop
 :GGT
 if .%1.==.verbose. set _Q_opt=
 if .%1.==.verbose. shift
-if .%GGB%==.GGB. goto GGB
+if .%GGB%.==.GGB. goto GGB
 if .%0.==.verbose. goto Loop
 :GGB
 if .%1.==.swapdisk. set SWPOPT=%SWPOPT% /l
 if .%1.==.swapdisk. shift
-if .%GGS%==.GGS. goto GGS
+if .%GGS%.==.GGS. goto GGS
 if .%0.==.swapdisk. goto Loop
 :GGS
 if .%1.==.dpmi. set SWPOPT=%SWPOPT% /cp
-if .%1.==.dpmi. set ASMOPT=*.obp -d_DPMI_
+if .%1.==.dpmi. set ASMOPT=exe\*.obp -d_DPMI_ -d__DPMI__
+if .%1.==.dpmi. set prg_packer=%dpmi_packer%
+if .%1.==.dpmi. set diz_title=(DPMI binary package)
 if .%1.==.dpmi. shift
-if .%GGD%==.GGD. goto GGD
+if .%GGD%.==.GGD. goto GGD
 if .%0.==.dpmi. goto Loop
 :GGD
+if .%GGDB%.==.GGDB. goto GGDB
+if .%0.==.debug. goto Loop
+:GGDB
 
 :Done
 if .%1.==.nobpc. goto SkipBPC
-%bppath%bin\bpc %SWPOPT% dn /dDN /dDNPRG /GD %_Q_opt% /B %1 %2 %3 %4 %5 %6 %7 %8 %9
+%bpcpath%bpc %SWPOPT% dn /dDN /dDNPRG /GD %_Q_opt% /B %1 %2 %3 %4 %5 %6 %7 %8 %9
 if errorlevel 1 goto Quit
 
-if .%ovrl%.==.yes. %bppath%bin\bpc %SWPOPT% PFile /dDN /dDNPRG /GD %_Q_opt% /B %1 %2 %3 %4 %5 %6 %7 %8 %9
-if .%ovrl%.==.yes. if errorlevel 1 goto Quit
-
-cd Map
-%bppath%bin\bpc %SWPOPT% PackMap /GD %_Q_opt% /B %1 %2 %3 %4 %5 %6 %7 %8 %9
-cd ..
+%bpcpath%bpc %SWPOPT% PackMap /GD %_Q_opt% /M %1 %2 %3 %4 %5 %6 %7 %8 %9
 if errorlevel 1 goto Quit
-Map\PackMap Exe\dn
+Exe\PackMap Exe\dn
 
 if .%lite%.==.off. goto SkipLite
-%packer% exe\dn.exe
+if NOT .%prg_packer%.==.. %prg_packer% exe\dn.exe
 ::if errorlevel 1 goto Quit
 :SkipLite
-if .%ovrl%.==.. goto ovrcopy
-exe\PFile exe\dn.ovr %outpath%\dn.ovr
+
+if .%PackOverlay%.==.. goto ovrcopy
+gzip exe\dn.ovr
+if exist exe\dn.ovz copy exe\dn.ovz %outpath%\dn.ovr >nul
+if exist exe\dn.ogz copy exe\dn.ogz %outpath%\dn.ovr >nul
 goto copyanother
+
 :ovrcopy
-copy exe\dn.ovr %outpath%
+if exist exe\dn.ovr copy exe\dn.ovr %outpath% >nul
+
 :copyanother
-copy exe\dn.exe %outpath%\*.PRG
-copy exe\dn.mpp %outpath%
-copy history.txt %outpath%
+copy exe\dn.exe %outpath%\*.PRG >nul
+copy exe\dn.mpp %outpath% >nul
+if not exist %outpath%\doc\nul mkdir %outpath%\doc >nul
+if not exist %outpath%\doc\english\nul mkdir %outpath%\doc\english >nul
+if not exist %outpath%\doc\russian\nul mkdir %outpath%\doc\russian >nul
+copy doc\english\history.txt %outpath%\doc\english >nul
+copy doc\english\dnosp.txt %outpath%\doc\english >nul
+copy doc\english\authors.txt %outpath%\doc\english >nul
+copy doc\russian\history.txt %outpath%\doc\russian >nul
+copy doc\russian\dnosp.txt %outpath%\doc\russian >nul
+copy doc\russian\authors.txt %outpath%\doc\russian >nul
+copy doc\ritlabs.txt %outpath%\doc >nul
+copy file_id.diz %outpath% >nul
+echo %diz_title% >>%outpath%\file_id.diz
 :SkipBPC
+
+if not %GGDB%.==.GGDB. goto Quit
+copy *.* exe\*.* >nul
+cd exe
+bp dn
 goto Quit
 
 :resource
-if not .%Q%.==.. %bppath%bin\bpc %SWPOPT% rcp %_Q_opt%
-if not .%Q%.==.. goto :r
-if not exist exe\rcp.exe %bppath%bin\bpc %SWPOPT% rcp %_Q_opt%
-:r
+if not exist exe\rcp.exe %bpcpath%bpc %SWPOPT% RegAll /DRCP /M %_Q_opt%
+if errorlevel 1 goto Quit
+if not exist exe\rcp.exe %bpcpath%bpc %SWPOPT% rcp /M %_Q_opt%
 if errorlevel 1 goto Quit
 if not exist exe\rcp.exe goto Quit
 shift
 exe\rcp
 if errorlevel 1 goto Quit
 
-copy exe\*.lng %outpath%
-copy exe\*.dlg %outpath%
+copy exe\*.lng %outpath% >nul
+copy exe\*.dlg %outpath% >nul
 set Q=
 goto Loop
 
 :help
 shift
-%bppath%bin\bpc %SWPOPT% tvhc %_Q_opt%
+%bpcpath%bpc %SWPOPT% tvhc /M %_Q_opt%
 if errorlevel 1 goto Quit
 if not exist exe\tvhc.exe goto Quit
 
 exe\tvhc resource\english\dnhelp.htx exe\english.hlp dnhelp.pas /4DN_OSP
 if errorlevel 1 goto Quit
-copy exe\english.hlp %outpath%
+copy exe\english.hlp %outpath% >nul
 
 exe\tvhc resource\russian\dnhelp.htx exe\russian.hlp dnhelp.pas /4DN_OSP
 if errorlevel 1 goto Quit
-copy exe\russian.hlp %outpath%
+copy exe\russian.hlp %outpath% >nul
 
 exe\tvhc resource\hungary\dnhelp.htx exe\hungary.hlp dnhelp.pas /4DN_OSP
 if errorlevel 1 goto Quit
-copy exe\hungary.hlp %outpath%
+copy exe\hungary.hlp %outpath% >nul
 
 set Q=Y
 goto Loop
 
 :asm
 shift
-%bppath%bin\tasm /t /x /m /zi *.asm
+%binpath%tasm /t /x /m /zi *.asm,exe\*.obj
 if errorlevel 1 goto Quit
-if not .%ASMOPT%.==.. %bppath%bin\tasm /t /x /m /zi *.asm %ASMOPT%
+%binpath%tasm -t -m -q -d__LARGE__ *.asl %ASMOPT%
 if errorlevel 1 goto Quit
-%bppath%bin\tlink /t /x dn.obj, exe\dn.com
+if exist exe\cpuspeed.obp copy exe\cpuspeed.obp exe\*.obj >nul
+if exist exe\p5speed.obp  copy exe\p5speed.obp  exe\*.obj >nul
+if exist exe\cachetst.obp copy exe\cachetst.obp exe\*.obj >nul
+if not .%ASMOPT%.==.exe\*.obj. %binpath%tasm /t /x /m /zi *.asm %ASMOPT%
 if errorlevel 1 goto Quit
-del dn.obj
-copy exe\dn.com %outpath%
+%binpath%tlink /t /x exe\dn.obj, exe\dn.com
+if errorlevel 1 goto Quit
+if exist exe\dn.obj del exe\dn.obj >nul
+if .%com_packer%.==.. goto copydncom
+%com_packer% exe\dn.com
+echo.
+:copydncom
+copy exe\dn.com %outpath% >nul
+if .%GGD%.==.. goto realcode
+%binpath%tasm -t -m -q -d__LARGE__ -d__DPMI__ dpmicode.adp exe\dpmicode.obp
+if errorlevel 1 goto Quit
+goto Loop
+:realcode
+%binpath%tasm -t -m -q -d__LARGE__ realcode.arl exe\realcode.obj
+if errorlevel 1 goto Quit
+:loop
 goto Loop
 
 :cmpver
 shift
-%bppath%bin\bpc %SWPOPT% version %_Q_opt%
-exe\version
+%bpcpath%bpc %SWPOPT% version /M %_Q_opt%
+if errorlevel 1 goto Quit
+exe\version exe\version.inc
+if errorlevel 1 goto Quit
 goto Loop
 
 :Quit
-set tvar=
-set multi=
 set _Q_opt=
 set SWPOPT=
 set ASMOPT=
-set bppath=
+set bpcpath=
+set binpath=
 set outpath=
 set GGT=
 set GGB=
 set GGS=
 set GGD=
-set packer=
-set ovrl=
+set GGDB=
+set prg_packer=
+set real_packer=
+set dpmi_packer=
+set com_packer=
+set diz_title=
+set PackOverlay=

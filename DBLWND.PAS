@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit DblWnd;
 
@@ -73,7 +70,9 @@ type
      Separator: PSeparator;
      LPanel, RPanel: PFilePanel;
      Info: PHideView;
+{$IFDEF NETINFO}
      NetInfo: PHideView; {-$VIV}
+{$ENDIF}
      LTree: PHTreeView;
      QView: PFileViewer;
      OldBounds: TRect;
@@ -105,18 +104,23 @@ const
                      #123#124#125 +     { 25-31  File Info                }
                      #165 +             { 32-38  File Panel               }
                      #172#173#174#175#176#177#180#181 +
-                     #186#187#188       { Drive Line };
+                     #186#187#188 + #192#193#194#195#196 { Drive Line }; {JO - 5 additional highlight groups}
 
 const dtInfo  = 1;
       dtPanel = 2;
       dtTree  = 3;
       dtView  = 4;
+{$IFDEF NETINFO}
       dtNetInfo = 5; {-$VIV}
+{$ENDIF}
 
 implementation
 uses DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
-     advance3, Startup, DNApp, RStrings, NetInfo; {-$VIV}
-
+     advance3, Startup, DNApp, RStrings
+{$IFDEF NETINFO}
+     , NetInfo {-$VIV}
+{$ENDIF}
+     ;
 {
 constructor TCloseBox.Init;
 begin
@@ -131,7 +135,7 @@ begin
     if Size.X > 0 then GrowTo(0,1) else Exit
     else if Size.X = 0 then GrowTo(0,3);
   MoveChar(B, ' ', Owner^.GetColor(1), Size.X);
-  MoveCStr(B, '[~■~]', Owner^.GetColor($0302));
+  MoveCStr(B, '[~'#254'~]', Owner^.GetColor($0302));
   WriteLine(0,0,Size.X,Size.Y,B);
 end;
 
@@ -182,7 +186,7 @@ begin
  B := R; B.A.X := B.B.X; Inc(B.B.X); Inc(B.A.Y); Dec(B.B.Y, 3);
  New(PV, Init(B));
  New(P, Init(R, LDrive, PV));
- if Abort then begin Dispose(P, Done); Dispose(PV, Done); Exit end;
+ if Abort then begin Dispose(P,Done); Dispose(PV,Done); Exit end;
 
  New(P1, Init(R)); P1^.Panel := P; P^.InfoView := P1;
 
@@ -217,7 +221,7 @@ begin
  New(PS, Init(RR));
 
  New(P, Init(R, RDrive, PS));
- if Abort then begin Dispose(P, Done); Dispose(PS, Done); Exit end;
+ if Abort then begin Dispose(P,Done); Dispose(PS,Done); Exit end;
 
  New(P1, Init(R)); P1^.Panel := P; P^.InfoView := P1;
 
@@ -250,7 +254,7 @@ begin
   P := PSeparator(Separator);
   GetExtent(R); R.Grow(-1, 0);
   R.A.X := (R.B.X * P^.OldX) div P^.OldW;
-  if (Longint(D) = 0) and (R.A.X = P^.Origin.X) then
+  if D.EqualsXY(0,0) and (R.A.X = P^.Origin.X) then
   begin
     SetBounds(Bounds);
     DrawView;
@@ -304,14 +308,18 @@ begin
  GetSubViewPtr(S, LPanel);
  GetSubViewPtr(S, RPanel);
  GetSubViewPtr(S, Info);
+{$IFDEF NETINFO}
  GetSubViewPtr(S, NetInfo); {-$VIV}
+{$ENDIF}
  S.Read(B, 1); LTree := nil;
  if B then GetSubViewPtr(S, LTree);
  S.Read(B, 1); QView := nil;
  if B then GetSubViewPtr(S, QView);
  if (LTree <> nil) and (LTree^.Size.X > 0) then LTree^.ReadAfterLoad;
  if (RType = dtInfo) or (LType = dtInfo) then PDiskInfo(Info)^.ReadData(False);
+{$IFDEF NETINFO}
  if (RType = dtNetInfo) or (LType = dtNetInfo) then PNetInfo(NetInfo)^.ReadData(False); {-$VIV}
+{$ENDIF}
  if (RType = dtView) or (LType = dtView) then
     Message(@Self, evCommand, cmEnableView, nil);
  IsValid := True;
@@ -328,7 +336,9 @@ begin
  PutSubViewPtr(S, LPanel);
  PutSubViewPtr(S, RPanel);
  PutSubViewPtr(S, Info);
+{$IFDEF NETINFO}
  PutSubViewPtr(S, NetInfo); {-$VIV}
+{$ENDIF}
  if LTree <> nil then B := True else B := False;
  S.Write(B,1);
  if B then PutSubViewPtr(S, LTree);
@@ -355,7 +365,9 @@ begin
  Info := nil;
  LTree := nil;
  QView := nil;
+{$IFDEF NETINFO}
  NetInfo := nil; {-$VIV}
+{$ENDIF}
 end;
 
 
@@ -482,7 +494,7 @@ procedure TDoubleWindow.HandleCommand;
      RightView := RPanel; RType := dtPanel; RPanel^.ShowView; UnLck;
     end else if not RVisible then SwitchRight; RightView^.GetBounds(R1);
   end else Message(RPanel, evCommand, cmChangeDrive, nil);
-  if (mem[$40:$17] and 3 <> 0) and LSelected then RightView^.Select;
+  if (ShiftState and 3 <> 0) and LSelected then RightView^.Select;
  end;
 
  procedure ViewInsert;
@@ -492,9 +504,9 @@ procedure TDoubleWindow.HandleCommand;
  begin
   R2.Assign(1,1,2,5);
   S := New(PViewScroll, Init(R2)); S^.Options := S^.Options or ofPostProcess;
-  QView := New(PHFileViewer, Init(R1, nil, '', S, True, (EditorDefaults.ViOpt and 1) <> 0));
+  QView := New(PHFileViewer, Init(R1, nil, '', '', S, True, (EditorDefaults.ViOpt and 1) <> 0));
   if not QView^.Valid(0) then
-    begin Dispose(S, Done); Dispose(QView, Done); QView := nil; Exit end
+    begin Dispose(S,Done); Dispose(QView,Done); QView := nil; Exit end
     else begin
           Lock; Insert(QView); Insert(S); QView^.HideView; UnLock;
          end;
@@ -510,7 +522,7 @@ procedure TDoubleWindow.HandleCommand;
   S^.Options := S^.Options or ofPostProcess;
   LTree := New(PHTreeView, Init(R1, 0, False, S));
   if not LTree^.Valid(0) then
-    begin Dispose(S, Done); Dispose(LTree, Done); LTree := nil; Exit end
+    begin Dispose(S,Done); Dispose(LTree,Done); LTree := nil; Exit end
     else begin
           P := New(PTreeInfoView, Init(R1, LTree)); LTree^.Info := P;
           Lock; Insert(LTree); Insert(S); Insert(P); LTree^.HideView; UnLock;
@@ -534,17 +546,21 @@ procedure TDoubleWindow.HandleCommand;
               V := QView;
             end;
     dtInfo: begin if Info = nil then
-                  begin Info := New(PDiskInfo, Init(R)); Info^.HideView;
-                        Insert(Info);
+                  begin
+                   Info := New(PDiskInfo, Init(R));
+                   Info^.HideView;
+                   Insert(Info);
                   end;
                   V := Info;
             end;
+{$IFDEF NETINFO}
     dtNetInfo: begin if NetInfo = nil then {-$VIV start}
                      begin NetInfo := New(PNetInfo, Init(R)); NetInfo^.HideView;
                            Insert(NetInfo);
                      end;
                   V := NetInfo;
                end; {-$VIV end}
+{$ENDIF}
   end;
   V^.GetBounds(R1);
   if (LType = dtType) and LVisible then
@@ -582,7 +598,9 @@ procedure TDoubleWindow.HandleCommand;
         dtTree: LTree := nil;
         dtView: QView := nil;
         dtInfo: Info := nil;
+{$IFDEF NETINFO}
         dtNetInfo: NetInfo := nil;
+{$ENDIF}
       end;
     end;
  end;
@@ -592,32 +610,47 @@ procedure CE; begin ClearEvent(Event) end;
 var AP, PP: PFilePanel;
 
 begin
- RVisible := RightView^.GetState(sfVisible);
- LVisible := LeftView^.GetState(sfVisible);
- LSelected := LeftView^.GetState(sfSelected);
+ if RightView<>nil
+  then RVisible := RightView^.GetState(sfVisible)
+  else RVisible := false;
+ if LeftView<>nil then begin
+  LVisible := LeftView^.GetState(sfVisible);
+  LSelected := LeftView^.GetState(sfSelected);
+ end else begin
+  LVisible := false;
+  LSelected := false;
+ end;
  Sp := Separator;
  case Event.What of
   evKeyDown: case Event.KeyCode of
               kbCtrlLeft,
               kbCtrlRight:
                      if FMSetup.Options and fmoCtrlDifference <> 0 then
-                           begin
-                             if LSelected then
-                              if (Mem[$40:$18] and 1 <> 0)
-                                then RightView^.HandleEvent(Event)
-                                else LeftView^.HandleEvent(Event)
-                             else
-                              if (Mem[$40:$18] and 1 <> 0)
-                                then LeftView^.HandleEvent(Event)
-                                else RightView^.HandleEvent(Event);
-                             Exit;
-                           end;
+                      if FMSetup.Options and fmoAlternCtrlDiff <> 0 then
+                       begin
+                        if LSelected then
+                         if (ShiftState2 and 1 <> 0)
+                          then RightView^.HandleEvent(Event)
+                          else LeftView^.HandleEvent(Event)
+                         else
+                         if (ShiftState2 and 1 <> 0)
+                          then LeftView^.HandleEvent(Event)
+                          else RightView^.HandleEvent(Event);
+                        Exit;
+                       end
+                      else
+                       begin
+                        if LVisible and (ShiftState2 and 1 <> 0)
+                         then LeftView^.HandleEvent(Event)
+                         else RightView^.HandleEvent(Event);
+                        Exit;
+                       end;
 
               kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5,  kbAlt0,
               kbAlt6, kbAlt7, kbAlt8, kbAlt9:
                      if FMSetup.Options and fmoAltDifference <> 0 then
                           begin
-                             if LVisible and (Mem[$40:$18] and 2 <> 0) then
+                             if LVisible and (ShiftState2 and 2 <> 0) then
                                 LeftView^.HandleEvent(Event) else
                                 RightView^.HandleEvent(Event);
                              Exit;
@@ -627,7 +660,7 @@ begin
               kbCtrl8, kbCtrl9, kbCtrl0:
                      if FMSetup.Options and fmoCtrlDifference <> 0 then
                            begin
-                             if LVisible and (Mem[$40:$18] and 1 <> 0) then
+                             if LVisible and (ShiftState2 and 1 <> 0) then
                                 LeftView^.HandleEvent(Event) else
                                 RightView^.HandleEvent(Event);
                              Exit;
@@ -652,20 +685,8 @@ begin
                           ChangeBounds(R);
                           CE;
                          end;
-
-{Knave 11.09.99 --------------- begin 1}
-  {DataCompBoy} kbCtrlAltZ: if RVisible and LVisible then begin CE;
-                      if LSelected then SwitchRight else SwitchLeft;
-                      Message(@Self,evCommand,cmZoom,@Self);
-                      PanelZoomed:=True;
-                  end else if PanelZoomed then begin CE;
-                      PanelZoomed:=False;
-                      if (Size.X=Desktop^.Size.X) and (Size.Y=Desktop^.Size.Y)
-                      then Message(@Self,evCommand,cmZoom,@Self);
-                      if LSelected then SwitchRight else SwitchLeft;
-                  end;
-{Knave 11.09.99 --------------- end 1}
-              $1A1B,$1A1A: begin
+         kbAltCtrlSqBracketL,
+         kbCtrlSqBracketL: begin
                             S := '';
                             Message(LeftView, evCommand, cmGetName, @S);
                             if (ShiftState and kbAltShift<>0)
@@ -676,7 +697,8 @@ begin
                             Message(CommandLine, evCommand, cmInsertName, @S);
                             CE;
                            end;
-              $1B1D,$1B1B: begin
+         kbAltCtrlSqBracketR,
+         kbCtrlSqBracketR: begin
                             S := '';
                             Message(RightView, evCommand, cmGetName, @S);
                             if (ShiftState and kbAltShift<>0)
@@ -712,6 +734,7 @@ begin
                                                  else RPanel^.HandleEvent(Event);
                                     ClearEvent(Event);
                                    end;
+                   cmIsRightPanel: if Event.InfoPtr=RPanel then ClearEvent(Event);
                end;
   evCommand: case Event.Command of
 
@@ -731,6 +754,18 @@ begin
                        if LSelected and (LType = dtView) then SwitchRight else
                          if not LSelected and (RType = dtView) then SwitchLeft;
                       end;
+  {Knave 11.09.99 --------------- begin 1}
+  {DataCompBoy} cmMaxi: if RVisible and LVisible then begin CE;
+                      if LSelected then SwitchRight else SwitchLeft;
+                      Message(@Self,evCommand,cmZoom,@Self);
+                      PanelZoomed:=True;
+                  end else if PanelZoomed then begin CE;
+                      PanelZoomed:=False;
+                      if (Size.X=Desktop^.Size.X) and (Size.Y=Desktop^.Size.Y)
+                      then Message(@Self,evCommand,cmZoom,@Self);
+                      if LSelected then SwitchRight else SwitchLeft;
+                  end;
+  {Knave 11.09.99 --------------- end 1}
               cmGetName: begin PString(Event.InfoPtr)^ := GetString(dlFileManager);
               PString(Event.InfoPtr)^:=PString(Event.InfoPtr)^+Cut(LPanel^.DirectoryName,
               (55-Length(PString(Event.InfoPtr)^)) div 2) + ','
@@ -769,11 +804,13 @@ begin
                             if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                                          else Message(RightView, evCommand, cmLViewFile, nil);
                            end;
+{$IFDEF NETINFO}
               cmNetInfo: begin {-$VIV start}
                             SwitchView(dtNetInfo); CE;
                             if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                                          else Message(RightView, evCommand, cmLViewFile, nil);
                            end;{-$VIV end}
+{$ENDIF}
               cmLoadViewFile: begin
                                if (QView <> nil) and ((LType = dtView) or (RType = dtView))
                                  then QView^.HandleEvent(Event) else

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT
   ExtraMemory;
@@ -54,50 +55,127 @@ CONST
   EMSFound: Boolean = false;
   XMSFound: Boolean = false;
   XMSControl:    Pointer = nil;
-  EMSSize:       Word = 0;
-  EMSBlockSize:  Word = $C000;
+  XMS_IOsts:     Byte    = 0;
+  EMSSize:       Word    = 0;
+  EMSBlockSize:  Word    = $C000;
+
+{$IFNDEF DPMI}
+{ EMS stream state variables }
+
+  EmsCurHandle: Word = $FFFF;
+  EmsCurPage: Word = $FFFF;
+{$ENDIF}
+
 
 Function EMSPresent: Boolean;
 function XMSFree: Word;
 Function EMSFreePages: Word;
 FUNCTION ExistUMBmem: Boolean;
+
 procedure InitExtraMem;
 
 type
 
   PXMSStream = ^TXMSStream;
   TXMSStream =
+{$IFNDEF DPMI}
     object(TStream)
       Handle : Word;              { XMS handle }
       BlocksUsed : Word;          { Number of 1K blocks used. Always allocates
                                     at least one byte more than Size. }
       Size : LongInt;             { The current size of the stream }
-      Position : LongInt;         { Current position }
 
       constructor Init(MinSize,MaxSize:longint);
       destructor Done; virtual;
 
-      function GetPos : LongInt; virtual;
-      function GetSize : LongInt; virtual;
+      function  GetPos : LongInt; virtual;
+      function  GetSize : LongInt; virtual;
       procedure Read(var Buf; Count : Word); virtual;
       procedure Seek(Pos : LongInt); virtual;
       procedure Truncate; virtual;
-      procedure Write(var Buf; Count : Word); virtual;
+      procedure Write(const Buf; Count : Word); virtual;
 
       procedure NewBlock;         { Internal method to allocate a block }
       procedure FreeBlock;        { Internal method to free one block }
+{$ELSE}{DPMI}
+    object(TMemoryStream)
+{$ENDIF}
     end;
 
+{ TEmsStream }
+
+  PEmsStream = ^TEmsStream;
+  TEmsStream =
+{$IFNDEF DPMI}
+  object(TStream)
+    Handle: Word;
+    PageCount: Word;
+    Size: Longint;
+    constructor Init(MinSize, MaxSize: Longint);
+    destructor Done; virtual;
+    function  GetPos: Longint; virtual;
+    function  GetSize: Longint; virtual;
+    procedure Read(var Buf; Count: Word); virtual;
+    procedure Seek(Pos: Longint); virtual;
+    procedure Truncate; virtual;
+    procedure Write(const Buf; Count: Word); virtual;
+{$ELSE}{DPMI}
+  object(TMemoryStream)
+{$ENDIF}
+  end;
+
+{$IFNDEF DPMI}
 function xms_MemAvail : Longint;
   { Returns total of available XMS bytes. }
 function xms_MaxAvail : Longint;
   { Returns size of largest available XMS block in bytes. }
+{$ENDIF}
+
+IMPLEMENTATION uses Commands, Startup{$IFDEF DPMI}, Dpmi{$ENDIF};
+
+{$IFNDEF DPMI}
+function ExistUMBmem: Boolean; assembler;
+{ Attempts to allocate an impossibly large UMB.  On failure ax     }
+{ contains 0, bl indicates UMB's unimplemented if $80, or $bx      }
+{ on other error.  No provision made for success here. Impossible  }
+{ to succeed.  Note that the UMB manager doesn't necessarily depend}
+{ on existence of XMS manager, but if there is no control call     }
+{ vector there is no way to call this UMB function.                }
+asm
+  xor  dx,dx              { Default to False }
+  xor  al,al              { Return FALSE by default }
+  cmp  XMSFound,dl        { If NO XMS driver }
+  jz   @exit              { then exit }
+  dec  dx                 { attempt alloc 0FFFFh }
+  mov  ax,1000h           { impossible large block of UMB's }
+  Call [XMSControl]       { through driver }
+  cmp  bl,0AEh            { BUT all UMB's used up }
+  xor  al,al              { Return FALSE by default }
+  jb   @exit              { then exit, else }
+  mov  al,1               { return True }
+@exit:
+end;
+{$ELSE}
+function ExistUMBmem: Boolean;
+var
+  R: DPMIRegisters;
+begin
+  ExistUMBmem:=False;
+  if not XMSFound then Exit;
+  FillChar(R, SizeOf(R), #0);
+  R.BX:=0;
+  R.DX:=$FFFF; R.AX:=$1000;
+  R.IP:=PtrRec(XMSControl).Ofs;
+  R.CS:=PtrRec(XMSControl).Seg;
+  CallFarRealModeProc(0,nil,R);
+  if R.BL>$AD then ExistUMBmem:=True;
+end;
+{$ENDIF}
 
 
-IMPLEMENTATION uses Commands, Startup;
-
-
-function EMSPresent: Boolean; assembler;
+function EMSPresent: Boolean;
+{$IFNDEF DPMI}
+assembler;
 asm
  xor ax, ax
  mov byte ptr @Res, al
@@ -140,17 +218,60 @@ asm
 @Exit:
  xor ah, ah
  mov al, byte ptr @Res
+{$ELSE}
+var
+  F : file;
+  R:  DPMIRegisters;
+begin
+  EMSPresent := false;
+  Assign(F, 'EMMXXXX0');
+  Reset(F);
+  while IoResult = 0 do
+  begin
+    Close(F);
+    FillChar(R, SizeOf(R), #0);
+    R.AX:=$3567;
+    SimulateRealModeInt($21,R);
+    if (R.ES=0) and (R.BX=0) then break;
+    R.AX:=$4000;
+    SimulateRealModeInt($67,R);
+    if (R.AH<>0) then break;
+    R.AX:=$4100;
+    SimulateRealModeInt($67,R);
+    if (R.AH<>0) then break;
+    EMSPresent:=True;
+    R.AX:=$4200;
+    SimulateRealModeInt($67,R);
+    EMSSize:=R.DX*16;
+    break;
+  end;
+{$ENDIF}
 end;
 
-function EMSFreePages: Word; assembler;
+function EMSFreePages: Word;
+{$IFNDEF DPMI}
+assembler;
 asm
  mov ax, 4200h
  int 67h
  mov ax, bx
+{$ELSE}
+var
+  R:  DPMIRegisters;
+begin
+  EMSFreePages:=0;
+  if not EMSFound then Exit;
+  FillChar(R, SizeOf(R), 0);
+  R.AX:=$4200;
+  SimulateRealModeInt($67,R);
+  EMSFreePages:=R.BX;
+{$ENDIF}
 end;
 
 
-procedure DetectXMS; assembler;
+procedure DetectXMS;
+{$IFNDEF DPMI}
+assembler;
 asm
      mov     ax,4300h
      int     2Fh
@@ -171,18 +292,113 @@ asm
      mov     al, 1
      mov     XMSFound, al
 @@1:
+{$ELSE}
+var
+  R: DPMIRegisters;
+  S1, S2: Word;
+begin
+  xms_IOsts:=$80;
+  FillChar(R, SizeOf(R), #0);
+  R.AX:=$4300;
+  SimulateRealModeInt($2F, R);
+  if R.AL<>$80 then exit;
+  R.AX:=$4310;
+  SimulateRealModeInt($2F, R);
+  if (R.ES=0) and (R.BX=0) then exit;
+  PtrRec(XMSControl).Ofs:=R.BX;
+  PtrRec(XMSControl).Seg:=R.ES;
+  R.AX:=0;
+  R.IP:=PtrRec(XMSControl).Ofs;
+  R.CS:=PtrRec(XMSControl).Seg;
+  CallFarRealModeProc(0,nil,R);
+  if (R.AX=0) or (R.AX=1) then exit;
+{ XMSVersion:=R.AX;}
+  XMSFound:=True;
+  R.AX:=$0900; R.DX:=$0001;
+  R.IP:=PtrRec(XMSControl).Ofs;
+  R.CS:=PtrRec(XMSControl).Seg;
+  CallFarRealModeProc(0,nil,R);
+  S1:=R.DX;
+  R.AX:=$0900; R.DX:=$0001;
+  R.IP:=PtrRec(XMSControl).Ofs;
+  R.CS:=PtrRec(XMSControl).Seg;
+  CallFarRealModeProc(0,nil,R);
+  S2:=R.DX;
+{ R.AX:=$0f00; R.BX:=$0020; R.DX:=S1;}
+{ R.IP:=PtrRec(XMSControl).Ofs;}
+{ R.CS:=PtrRec(XMSControl).Seg;}
+{ CallFarRealModeProc(0,nil,R);}
+{ if R.AX<>0 then XMSReAlloc:=True;}
+  R.AX:=$0A00; R.DX:=S1;
+  R.IP:=PtrRec(XMSControl).Ofs;
+  R.CS:=PtrRec(XMSControl).Seg;
+  CallFarRealModeProc(0,nil,R);
+  R.AX:=$0A00; R.DX:=S2;
+  R.IP:=PtrRec(XMSControl).Ofs;
+  R.CS:=PtrRec(XMSControl).Seg;
+  CallFarRealModeProc(0,nil,R);
+  xms_IOsts:=0;
+{$ENDIF}
 end;
 
+{$IFNDEF DPMI}
 function XMSFree: Word; assembler;
 asm
- mov ah, 08h
- call [XMSControl]
- mov ax, dx
+     xor ax, ax
+     cmp XMSFound, True
+     jne @@exit
+     xor bx, bx          { for better error checking, since qemm
+                           6.0 leaves bl unchanged on success }
+     mov ah, 08h
+     call [XMSControl]
+     mov ax, dx
+     or  bl, bl
+     jz  @@exit
+     xor ax,ax
+     mov byte ptr XMS_IOsts,bl
+@@exit:
+end;
+{$ELSE}
+function XMSFree: Word;
+var
+  R: DPMIRegisters;
+begin
+  XMSFree:=0;
+  if not XMSFound then Exit;
+  FillChar(R, SizeOf(R), #0);
+  R.BX:=0; R.AX:=$0800;
+  R.IP:=PtrRec(XMSControl).Ofs;
+  R.CS:=PtrRec(XMSControl).Seg;
+  CallFarRealModeProc(0,nil,R);
+  if R.BL<>0 then
+    XMS_IOsts:=R.BL else
+    XMSFree:=R.DX;
+end;
+{$ENDIF}
+
+{$IFNDEF DPMI}
+{ Stream error handler                                  }
+{ In    AX    = Error info                              }
+{       DX    = Error code                              }
+{       ES:DI = Stream object pointer                   }
+{ Uses  AX,BX,CX,DX,SI                                  }
+
+procedure DoStreamError; near; assembler;
+asm
+        PUSH    ES
+        PUSH    DI
+        PUSH    DX
+        PUSH    AX
+        PUSH    ES
+        PUSH    DI
+        MOV     DI,ES:[DI]
+        CALL    DWORD PTR [DI].TStream.Error
+        POP     DI
+        POP     ES
 end;
 
 
-var xms_IOsts : Byte;
-    xms_Addr : Pointer;
+var xms_Addr : Pointer;
 
   function MinLong(x,y:longint):longint;
   begin
@@ -448,7 +664,7 @@ const
     end;
   end;
 
-  procedure TXMSStream.Write(var Buf; Count : Word);
+  procedure TXMSStream.Write(const Buf; Count : Word);
   begin
     while (Status = stOK)
     and (Position+Count > LongMul(xms_BlockSize, BlocksUsed)) do
@@ -511,7 +727,7 @@ const
     if xms_IOsts = 0 then
     asm
       xor       bx, bx          { for better error checking, since qemm
-6.0 leaves bl unchanged on success }
+                                  6.0 leaves bl unchanged on success }
       mov     ah,$08
       call    [xms_Addr]
       or      bl, bl            { extended error checking by MM 22.02.93 }
@@ -537,30 +753,326 @@ const
       xms_FreeMem(Handle);
   end;
 
-FUNCTION ExistUMBmem : Boolean; assembler;
-{ Attempts to allocate an impossibly large UMB.  On failure ax     }
-{ contains 0, bl indicates UMB's unimplemented if $80, or $bx      }
-{ on other error.  No provision made for success here. Impossible  }
-{ to succeed.  Note that the UMB manager doesn't necessarily depend}
-{ on existence of XMS manager, but if there is no control call     }
-{ vector there is no way to call this UMB function.                }
+{ TEmsStream }
+
+const
+  EmsPageSize = $4000;
+
+var
+  EmsBaseSeg: Word;
+  EmsVersion: Byte;
+
+procedure EmsSelectPage; near; assembler;
 asm
-  xor  dx,dx              { Default to False }
-  xor  al,al              { Return FALSE by default }
-  cmp  XMSFound,dl        { If NO XMS driver }
-  jz   @exit              { then exit }
-  dec  dx                 { attempt alloc 0FFFFh }
-  mov  ax,1000h           { impossible large block of UMB's }
-  Call [XMSControl]       { through driver }
-  cmp  bl,0AEh            { BUT all UMB's used up }
-  xor  al,al              { Return FALSE by default }
-  jb   @exit              { then exit, else }
-  mov  al,1               { return True }
-@exit:
+        MOV     AX,ES:[DI].TEmsStream.Position.Word[0]
+        MOV     DX,ES:[DI].TEmsStream.Position.Word[2]
+        MOV     CX,EmsPageSize
+        DIV     CX
+        SUB     CX,DX
+        MOV     SI,DX
+        MOV     DX,ES:[DI].TEmsStream.Handle
+        CMP     DX,EmsCurHandle
+        JNE     @@1
+        CMP     AX,EmsCurPage
+        JE      @@3
+@@1:    MOV     BX,AX
+        MOV     AX,4400H
+        INT     67H
+        MOV     AL,AH
+        AND     AX,0FFH
+        JE      @@2
+        MOV     DX,stError
+        JMP     @@3
+@@2:    MOV     EmsCurHandle,DX
+        MOV     EmsCurPage,BX
+@@3:
 end;
+
+procedure EmsSetPages; near; assembler;
+asm
+        CMP     EmsVersion,40H
+        JAE     @@1
+        MOV     AX,84H
+        JMP     @@2
+@@1:    MOV     DX,ES:[DI].TEmsStream.Handle
+        MOV     BX,AX
+        MOV     AH,51H
+        INT     67H
+        MOV     AL,AH
+        AND     AX,0FFH
+        JNE     @@2
+        MOV     ES:[DI].TEmsStream.PageCount,BX
+@@2:
+end;
+
+constructor TEmsStream.Init(MinSize, MaxSize: LongInt); assembler;
+const
+  EmsDeviceLen = 8;
+  EmsDeviceStr: array[1..EmsDeviceLen] of Char = 'EMMXXXX0';
+asm
+        XOR     AX,AX
+        PUSH    AX
+        LES     DI,Self
+        PUSH    ES
+        PUSH    DI
+        CALL    TStream.Init
+        MOV     AX,3567H
+        INT     21H
+        MOV     CX,EmsDeviceLen
+        MOV     SI,OFFSET EmsDeviceStr
+        MOV     DI,0AH
+        CLD
+        REP     CMPSB
+        LES     DI,Self
+        MOV     AX,-1
+        JNE     @@3
+        MOV     AH,41H
+        INT     67H
+        MOV     EmsBaseSeg,BX
+        MOV     AH,46H
+        INT     67H
+        MOV     EmsVersion,AL
+        MOV     CX,EmsPageSize
+        MOV     AX,MinSize.Word[0]
+        MOV     DX,MinSize.Word[2]
+        ADD     AX,EmsPageSize-1
+        ADC     DX,0
+        DIV     CX
+        MOV     BX,AX
+        CMP     EmsVersion,40H
+        JAE     @@2
+        PUSH    AX
+        MOV     AX,MaxSize.Word[0]
+        MOV     DX,MaxSize.Word[2]
+        ADD     AX,EmsPageSize-1
+        ADC     DX,0
+        DIV     CX
+        MOV     CX,AX
+        MOV     AH,42H
+        INT     67H
+        POP     AX
+        CMP     BX,CX
+        JB      @@1
+        MOV     BX,CX
+@@1:    CMP     BX,AX
+        JA      @@2
+        MOV     BX,AX
+@@2:    MOV     AH,43H
+        INT     67H
+        MOV     AL,AH
+        AND     AX,0FFH
+        JE      @@4
+@@3:    MOV     DX,stInitError
+        CALL    DoStreamError
+        MOV     DX,-1
+        XOR     BX,BX
+@@4:    MOV     ES:[DI].TEmsStream.Handle,DX
+        MOV     ES:[DI].TEmsStream.PageCount,BX
+        XOR     AX,AX
+        MOV     AX,MaxSize.Word[0]
+        MOV     DX,MaxSize.Word[2]
+        MOV     ES:[DI].TEmsStream.Size.Word[0],AX
+        MOV     ES:[DI].TEmsStream.Size.Word[2],DX
+end;
+
+destructor TEmsStream.Done; assembler;
+asm
+        LES     DI,Self
+        MOV     DX,ES:[DI].TEmsStream.Handle
+        CMP     DX,-1
+        JE      @@1
+        MOV     AH,45H
+        INT     67H
+@@1:    XOR     AX,AX
+        PUSH    AX
+        PUSH    ES
+        PUSH    DI
+        CALL    TStream.Done
+end;
+
+function TEmsStream.GetPos: Longint; assembler;
+asm
+        LES     DI,Self
+        CMP     ES:[DI].TEmsStream.Status,0
+        JNE     @@1
+        MOV     AX,ES:[DI].TEmsStream.Position.Word[0]
+        MOV     DX,ES:[DI].TEmsStream.Position.Word[2]
+        JMP     @@2
+@@1:    MOV     AX,-1
+        CWD
+@@2:
+end;
+
+function TEmsStream.GetSize: Longint; assembler;
+asm
+        LES     DI,Self
+        CMP     ES:[DI].TEmsStream.Status,0
+        JNE     @@1
+        MOV     AX,ES:[DI].TEmsStream.Size.Word[0]
+        MOV     DX,ES:[DI].TEmsStream.Size.Word[2]
+        JMP     @@2
+@@1:    MOV     AX,-1
+        CWD
+@@2:
+end;
+
+procedure TEmsStream.Read(var Buf; Count: Word); assembler;
+asm
+        LES     DI,Self
+        XOR     BX,BX
+        CMP     BX,ES:[DI].TEmsStream.Status
+        JNE     @@3
+        MOV     AX,ES:[DI].TEmsStream.Position.Word[0]
+        MOV     DX,ES:[DI].TEmsStream.Position.Word[2]
+        ADD     AX,Count
+        ADC     DX,BX
+        CMP     DX,ES:[DI].TEmsStream.Size.Word[2]
+        JA      @@1
+        JB      @@7
+        CMP     AX,ES:[DI].TEmsStream.Size.Word[0]
+        JBE     @@7
+@@1:    XOR     AX,AX
+        MOV     DX,stReadError
+@@2:    CALL    DoStreamError
+@@3:    LES     DI,Buf
+        MOV     CX,Count
+        XOR     AL,AL
+        CLD
+        REP     STOSB
+        JMP     @@8
+@@5:    PUSH    BX
+        CALL    EmsSelectPage
+        POP     BX
+        JNE     @@2
+        MOV     AX,Count
+        SUB     AX,BX
+        CMP     CX,AX
+        JB      @@6
+        MOV     CX,AX
+@@6:    ADD     ES:[DI].TEmsStream.Position.Word[0],CX
+        ADC     ES:[DI].TEmsStream.Position.Word[2],0
+        PUSH    ES
+        PUSH    DS
+        PUSH    DI
+        LES     DI,Buf
+        ADD     DI,BX
+        ADD     BX,CX
+        MOV     DS,EmsBaseSeg
+        CLD
+        REP     MOVSB
+        POP     DI
+        POP     DS
+        POP     ES
+@@7:    CMP     BX,Count
+        JB      @@5
+@@8:
+end;
+
+procedure TEmsStream.Seek(Pos: Longint); assembler;
+asm
+        LES     DI,Self
+        MOV     AX,Pos.Word[0]
+        MOV     DX,Pos.Word[2]
+        OR      DX,DX
+        JNS     @@1
+        XOR     AX,AX
+        CWD
+@@1:    MOV     ES:[DI].TEmsStream.Position.Word[0],AX
+        MOV     ES:[DI].TEmsStream.Position.Word[2],DX
+end;
+
+procedure TEmsStream.Truncate; assembler;
+asm
+        LES     DI,Self
+        XOR     BX,BX
+        CMP     ES:[DI].TEmsStream.Status,BX
+        JNE     @@2
+        CMP     EmsVersion,40H
+        JB      @@1
+        MOV     AX,ES:[DI].TEmsStream.Position.Word[0]
+        MOV     DX,ES:[DI].TEmsStream.Position.Word[2]
+        ADD     AX,EmsPageSize-1
+        ADC     DX,BX
+        MOV     CX,EmsPageSize
+        DIV     CX
+        CALL    EmsSetPages
+        JE      @@1
+        MOV     DX,stError
+        CALL    DoStreamError
+        JMP     @@2
+@@1:    MOV     AX,ES:[DI].TEmsStream.Position.Word[0]
+        MOV     DX,ES:[DI].TEmsStream.Position.Word[2]
+        MOV     ES:[DI].TEmsStream.Size.Word[0],AX
+        MOV     ES:[DI].TEmsStream.Size.Word[2],DX
+@@2:
+end;
+
+procedure TEmsStream.Write(const Buf; Count: Word); assembler;
+asm
+        LES     DI,Self
+        XOR     BX,BX
+        CMP     BX,ES:[DI].TEmsStream.Status
+        JNE     @@7
+        MOV     AX,ES:[DI].TEmsStream.Position.Word[0]
+        MOV     DX,ES:[DI].TEmsStream.Position.Word[2]
+        ADD     AX,Count
+        ADC     DX,BX
+        ADD     AX,EmsPageSize-1
+        ADC     DX,BX
+        MOV     CX,EmsPageSize
+        DIV     CX
+        CMP     AX,ES:[DI].TEmsStream.PageCount
+        JBE     @@4
+        PUSH    BX
+        CALL    EmsSetPages
+        POP     BX
+        JE      @@4
+@@1:    MOV     DX,stWriteError
+        CALL    DoStreamError
+        JMP     @@7
+@@2:    PUSH    BX
+        CALL    EmsSelectPage
+        POP     BX
+        JNE     @@1
+        MOV     AX,Count
+        SUB     AX,BX
+        CMP     CX,AX
+        JB      @@3
+        MOV     CX,AX
+@@3:    ADD     ES:[DI].TEmsStream.Position.Word[0],CX
+        ADC     ES:[DI].TEmsStream.Position.Word[2],0
+        PUSH    ES
+        PUSH    DS
+        PUSH    DI
+        MOV     DI,SI
+        MOV     ES,EmsBaseSeg
+        LDS     SI,Buf
+        ADD     SI,BX
+        ADD     BX,CX
+        CLD
+        REP     MOVSB
+        POP     DI
+        POP     DS
+        POP     ES
+@@4:    CMP     BX,Count
+        JB      @@2
+@@5:    MOV     AX,ES:[DI].TEmsStream.Position.Word[0]
+        MOV     DX,ES:[DI].TEmsStream.Position.Word[2]
+        CMP     DX,ES:[DI].TEmsStream.Size.Word[2]
+        JB      @@7
+        JA      @@6
+        CMP     AX,ES:[DI].TEmsStream.Size.Word[0]
+        JBE     @@7
+@@6:    MOV     ES:[DI].TEmsStream.Size.Word[0],AX
+        MOV     ES:[DI].TEmsStream.Size.Word[2],DX
+@@7:
+end;
+
+{$ENDIF}{DPMI}
 
 procedure InitExtraMem;
 BEGIN
+{$IFNDEF DPMI}
  if SystemData.Options and ossDisableXMS <> 0 then
  begin
    EMSFound := False; XMSFound := False
@@ -577,13 +1089,10 @@ BEGIN
     end;
    DetectXMS;
  end;
+{$ELSE}
+ EMSFound := EMSPresent;
+ DetectXMS;
+{$ENDIF}
 end;
- {
- if XMSFound then
-  asm
-   mov ah, 88h
-   int 15h
-   mov XMSSize, ax
-  end;
- }
+
 END.

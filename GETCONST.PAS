@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT
   GetConst;
@@ -56,6 +53,7 @@ INTERFACE
 
 USES
   LFN, {DataCompBoy}
+  Collect,
   Objects;
 
 TYPE
@@ -106,7 +104,7 @@ begin
 end;
 
 FUNCTION TValuesHolder.GetType;
-  function LookForType( P: PTypeHolder ): boolean; far;
+  function LookForType( P: PTypeHolder ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     LookForType := P^.TypeID = ID;
   end;
@@ -115,8 +113,8 @@ begin
 end;
 
 FUNCTION TValuesHolder.GetValue;
-  function DoScanValue( P: PTypeHolder ): boolean; far;
-    function DoScan( P: PLngWord ): boolean; far;
+  function DoScanValue( P: PTypeHolder ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
+    function DoScan( P: PLngWord ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
     begin
       If P^.Name = S then begin
         GetValue := P^.L;
@@ -133,7 +131,7 @@ begin
 end;
 
 PROCEDURE TTypeHolder.Show;
-  procedure DoScan( P: PLngWord ); far;
+  procedure DoScan( P: PLngWord ); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     WriteLn( P^.Name, '=', P^.L );
   end;
@@ -151,10 +149,10 @@ end;
 
 
 PROCEDURE TValuesHolder.Show;
-  procedure DoScan( P: PTypeHolder ); far;
+  procedure DoScan( P: PTypeHolder ); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     WriteLn( 'TYPE ', P^.TypeID );
-    WriteLn( Strg( '─', 5 + Length( P^.TypeID )));
+    WriteLn( Strg( #196, 5 + Length( P^.TypeID )));
     P^.Show;
   end;
 begin
@@ -283,7 +281,7 @@ end;
     US := UpStrg( S );
   end;
 
-  function LookForType( P: PTypeHolder ): boolean; far;
+  function LookForType( P: PTypeHolder ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     LookForType := ( Mode = pmConst ) and ( P^.Mode = tmConst ) and
                    ( Pos( Copy( ID, 1, 2 ) + #0, P^.TypeID ) > 0 )

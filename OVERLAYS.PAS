@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,22 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Overlays;
-{$i overlay.def}
 interface
 uses LFN, {DataCompBoy}
      Objects,
-{$ifdef packoverlay}
+{$IFDEF PackOverlay}
      DnOverl; {DataCompBoy}
-{$else}
+{$ELSE}
      Overlay;
-{$endif}
+{$ENDIF}
 
 procedure OvrInitStream(S : PStream);
 { Copies overlay segment code to S as new segments are loaded,
@@ -82,7 +78,7 @@ function OvrLoadAll : Boolean;
 procedure InitOverlay(FileName: String);
 
 implementation
-uses ExtraMemory, advance, advance1, advance2, advance3, Startup, Commands;
+uses extramemory, advance, advance1, advance2, advance3, Startup, Commands;
 
   { ****** Overlay stream code ****** }
 
@@ -132,7 +128,7 @@ const
     StdPtr := Ptr(Seg, 0);
   end;
 
-  function NewReadFunc(OvrSeg : Word) : Integer; Far;
+  function NewReadFunc(OvrSeg : Word) : Integer; {$IFDEF BIT_16}far;{$ENDIF}
   var
     Result : Integer;
   begin
@@ -170,7 +166,7 @@ const
     NewReadFunc := Result;
   end;
 
-  procedure OvrExitProc; Far;
+  procedure OvrExitProc; {$IFDEF BIT_16}far;{$ENDIF}
 { Installed exit procedure; disposes of any streams that are still
   handling overlays. }
   begin
@@ -236,7 +232,7 @@ const
     begin
       S := OvrStream;
       OvrDetachStream(S);
-      Dispose(S, Done);
+      Dispose(S,Done);
     end;
   end;
 
@@ -305,7 +301,7 @@ begin
       Halt(1);
     end;
   LL := S^.GetSize;
-  Dispose(S, Done);
+  Dispose(S,Done);
   ovrInit(FileName);
 
   I := FindParam('/BUF:');
@@ -318,7 +314,6 @@ begin
     if XMSfound and (StartupData.Load and osuOverlayXMS <> 0) then
       begin
         S := New(PXMSStream, Init(LL + $2000 , LL + $4000 ));
-        PXMSStream(S)^.Size := 0;
         if S^.Status = stOK then
          begin
           {Writeln( OvrSizeNeeded );}
@@ -330,7 +325,7 @@ begin
               end;}
           Exit ;
          end;
-       Dispose(S, Done) ;
+       Dispose(S,Done) ;
       end
    end else XMSfound := off ;
 

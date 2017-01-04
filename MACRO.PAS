@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,11 +44,13 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Macro;
 
 interface
-uses advance, advance1, advance2, advance3, Objects, Views;
+uses advance, advance1, advance2, advance3, Objects, Views, collect,
+     microed, highlite, {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF};
 
 type
      PEditMacros = ^TEditMacros;
@@ -95,10 +97,14 @@ type
 
 
 procedure EditDOSEvironment(Env: PByteArray);
-procedure InitEditorHighLight(const FName: String; Editor: PView);
+procedure InitHighLight(const FName: String;
+            var HiLitePar: THighliteParams;
+            var EdOpt: TEditOptions;
+            var Macros: PCollection;
+            PEdOptions: PEditOptions);
 
 implementation
-uses Messages, Microed, Drivers, Dialogs, Commands, DNHelp, DNApp,
+uses Messages, Drivers, Dialogs, Commands, DNHelp, DNApp,
      RStrings, Startup;
 
 
@@ -111,7 +117,7 @@ type
       end;
 
 
-function Token(const S: String; var Pos: Integer): String;
+function Token(const S: String; var Pos: LongInt): String;
   var A: String;
       B, Cmd: Boolean;
       M: String;
@@ -170,14 +176,15 @@ end;
 
 constructor TEditMacros.Init;
   var
-      I,J: Integer;
+      I,J: LongInt;
       IDs: PIDCollection;
       Error: Boolean;
 
    function GetId(const S: String): LongInt;
      var T: TLngWord;
-         I: Integer;
+         I: LongInt;
          L: LongInt;
+         qq: integer;
    begin
      FreeStr := S; DelRight(FreeStr);
      if S[Length(S)] = ',' then Dec(FreeStr[0]);
@@ -188,7 +195,7 @@ constructor TEditMacros.Init;
           GetID := PLngWord(IDS^.At(I))^.L;
         end else
         begin
-          Val(FreeStr, L, I);
+          Val(FreeStr, L, qq);
           {if I > 0 then MessageBox(^M^C'Unknown identifier ('+FreeStr+')', nil, mfError+mfOKButton);}
           GetID := L;
         end;
@@ -204,10 +211,12 @@ constructor TEditMacros.Init;
        end else Found := Off;
    end;
 
+   {$IFDEF PRINTMANAGER}
    procedure MakePrint;
    begin
      Commands^.Insert(New(PMacroString, Init(Token(S, I), GetID(Token(S, I)))));
    end;
+   {$ENDIF}
 
    procedure MakeGotoXY(X,Y: Integer);
    begin
@@ -253,12 +262,30 @@ constructor TEditMacros.Init;
     Add(cmMarkLine            ,'MarkLine');
     Add(cmBlockRead           ,'BlockRead');
     Add(cmBlockWrite          ,'BlockWrite');
+    {$IFDEF PRINTMANAGER}
     Add(cmBlockPrint          ,'BlockPrint');
+    {$ENDIF}
     Add(cmIndentBlock         ,'IndentBlock');
     Add(cmUnIndentBlock       ,'UnIndentBlock');
     Add(cmTab                 ,'Tab');
-    Add(cmPlaceMarker         ,'PlaceMarker');
-    Add(cmGoToMarker          ,'GoToMarker');
+    Add(cmPlaceMarker1        ,'PlaceMarker1');
+    Add(cmPlaceMarker2        ,'PlaceMarker2');
+    Add(cmPlaceMarker3        ,'PlaceMarker3');
+    Add(cmPlaceMarker4        ,'PlaceMarker4');
+    Add(cmPlaceMarker5        ,'PlaceMarker5');
+    Add(cmPlaceMarker6        ,'PlaceMarker6');
+    Add(cmPlaceMarker7        ,'PlaceMarker7');
+    Add(cmPlaceMarker8        ,'PlaceMarker8');
+    Add(cmPlaceMarker9        ,'PlaceMarker9');
+    Add(cmGoToMarker1         ,'GoToMarker1');
+    Add(cmGoToMarker2         ,'GoToMarker2');
+    Add(cmGoToMarker3         ,'GoToMarker3');
+    Add(cmGoToMarker4         ,'GoToMarker4');
+    Add(cmGoToMarker5         ,'GoToMarker5');
+    Add(cmGoToMarker6         ,'GoToMarker6');
+    Add(cmGoToMarker7         ,'GoToMarker7');
+    Add(cmGoToMarker8         ,'GoToMarker8');
+    Add(cmGoToMarker9         ,'GoToMarker9');
     Add(cmSpecChar            ,'SpecChar');
     Add(cmReplace             ,'Replace');
     Add(cmEnd                 ,'End');
@@ -320,7 +347,9 @@ begin
         begin
           I := 1;
           if Found('ENDMACRO') then Break;
+            {$IFDEF PRINTMANAGER}
             if Found('PRINT ') then MakePrint else
+            {$ENDIF}
             if Found('GOTOXY ') then MakeGotoXY(GetID(Token(S,I)), GetID(Token(S,I))) else
             if Found('GOTOX ') then MakeGotoXY(GetID(Token(S,I)), -1) else
             if Found('GOTOY ') then MakeGotoXY(-1, GetID(Token(S,I))) else
@@ -333,11 +362,11 @@ begin
               end;
         end;
     end;
-  Dispose(Ids, Done);
+  Dispose(Ids,Done); Ids:=nil;
 end;
 
 procedure TEditMacros.Play;
-  procedure DoPlay(P: PMacroCommand); far;
+  procedure DoPlay(P: PMacroCommand); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     P^.ExecCommand(Editor);
   end;
@@ -348,7 +377,7 @@ end;
 destructor TEditMacros.Done;
 begin
   DisposeStr(Name);
-  Dispose(Commands, Done);
+  Dispose(Commands,Done); Commands:=nil;
 end;
 
 constructor TMacroCommand.Init;
@@ -383,9 +412,9 @@ procedure TMacroMark.ExecCommand;
 begin
   if Mark then
    with PFileEditor(Editor)^ do
-     MarkPos[Char(Command+48)] := Delta else
+     MarkPos[Command] := Delta else
    with PFileEditor(Editor)^ do
-     ScrollTo(MarkPos[Char(Command+48)].X, MarkPos[Char(Command+48)].Y);
+     ScrollTo(MarkPos[Command].X, MarkPos[Command].Y);
 end;
 
 constructor TMacroString.Init;
@@ -401,7 +430,7 @@ begin
   if S = nil then Exit;
   for J := 1 to Max(1, Repetitions) do
     for I := 1 to Length(S^) do
-      Message(Application, evKeyDown, Word(S^[I]), nil);
+      Message(Application, evKeyDown, Byte(S^[I]), nil);
 end;
 
 destructor TMacroString.Done;
@@ -571,11 +600,11 @@ var D: PDialog;
      Control, Labl, Histry : PView;
      PL: PVarList;
      PI: PInputLine;
-     function IsInputLine( P: PView ): boolean; far;
+     function IsInputLine( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
      begin
        IsInputLine := TypeOf( P^ ) = TypeOf( TInputLine )
      end;
-     function IsButton( P: PView ): boolean; far;
+     function IsButton( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
      begin
        IsButton:= TypeOf( P^ ) = TypeOf( TButton )
      end;
@@ -608,7 +637,7 @@ var D: PDialog;
      PL^.NewList(PC);
    end;
 
-   procedure DoPut(P: PDosVar); far;
+   procedure DoPut(P: PDosVar); {$IFDEF BIT_16}far;{$ENDIF}
    var J: Integer;
 
    procedure Put(C: Char);
@@ -654,137 +683,145 @@ begin
   Dispose( PC, Done );
 end;
 
-procedure InitEditorHighLight;
-label 1;
-var F: PTextReader; I: Integer;
+procedure InitHighLight(const FName: String;
+            var HiLitePar: THighliteParams;
+            var EdOpt: TEditOptions;
+            var Macros: PCollection;
+            PEdOptions: PEditOptions);
+var
+  F: PTextReader;
+  I: Integer;
+  CaseStr : string;   {PZ - 2000.04.11}
 
   function Found(const S: String): Boolean;
   begin
     if Copy(FreeStr, 1, Length(S)) = S then
-      begin
-        Found := On;
-        Delete(FreeStr, 1, Length(S));
-        DelLeft(FreeStr);
-      end else Found := Off;
+    begin
+      Found:=On;
+      Delete(FreeStr, 1, Length(S));
+      DelLeft(FreeStr);
+      Delete(CaseStr, 1, Length(S));  {PZ - 2000.04.11}
+      DelLeft(CaseStr);               {PZ}
+    end else
+      Found:=Off;
   end;
 
   procedure InsertMacro;
-    var P: PEditMacros;
+  var
+    P: PEditMacros;
   begin
-     New(P, Init(FreeStr, F));
-     if (P^.Commands^.Count = 0) or (PFileEditor(Editor)^.Macros^.IndexOf(P)>=0) then Dispose(P, Done)
-       else PFileEditor(Editor)^.Macros^.Insert(P);
+    if Macros=nil then exit;
+    New(P, Init(FreeStr, F));
+    if (P^.Commands^.Count = 0) or (Macros^.IndexOf(P)>=0)
+     then Dispose(P,Done)
+     else Macros^.Insert(P);
   end;
 
   function IsOn: Boolean;
   begin
-    IsOn := (FreeStr = 'YES') or (FreeStr = 'ON');
+    IsOn:=(FreeStr = 'YES') or (FreeStr = 'ON');
   end;
 
-  procedure MakeValue(var V: Integer);
-    var J: Integer;
+  procedure MakeValue(var V: Word);
+  var
+    J: Integer;
   begin
-     System.Val(FreeStr, J, I);
-     if (J >= 0) and (I = 0) then V := J;
+    System.Val(FreeStr, J, I);
+    if (J >= 0) and (I = 0) then V := J;
   end;
+
+{PZ - 2000.05.13 - begin }
+  procedure MakeStrings ( Index : THighliteRule );
+  begin
+    while CaseStr <> '' do begin
+      i := System.Pos ( ',', CaseStr );
+      if i = 0 then
+        i := Length(CaseStr)+1;
+      if i > 1 then
+        InsertHighliteRule ( HiLitePar, Index, Copy ( CaseStr, 1, i-1 ) );
+      Delete ( CaseStr, 1, i );
+      DelLeft ( CaseStr );
+    end;
+  end;
+{PZ - end }
 
   procedure MakeDefaults;
-  begin
-    with PFileEditor(Editor)^ do
-    While not F^.EOF do
-     begin
-       FreeStr := F^.GetStr;
-       DelRight(FreeStr);
-       DelLeft(FreeStr);
-       UpStr(FreeStr);
-       if (FreeStr <> '') then
-          if Found('FILES ') or Found('END') then Break;
-          if Found('MACRO ') then InsertMacro else
-          if Found('COMMENT ') then
-             while (NumCommentChars < 5) and (FreeStr <> '') do
-               begin
-                 Inc(NumCommentChars);
-                 CommentChars[NumCommentChars] := FreeStr[1];
-                 DelFC(FreeStr);
-               end else
-          if Found('COMMENTSTART ') then
-             while (NumCommentStartChars < 5) and (FreeStr <> '') do
-               begin
-                 Inc(NumCommentStartChars);
-                 CommentStartChars[NumCommentStartChars] := FreeStr[1];
-                 DelFC(FreeStr);
-               end else
-          if Found('COMMENTSTRING ') then
-             while (NumCommentStrings < 5) and (FreeStr <> '') do
-               begin
-                 Inc(NumCommentStrings);
-                 I := PosChar(',', FreeStr); if I < Length(FreeStr) then I := Length(FreeStr)+1;
-                 CommentStrings[NumCommentStrings] := Copy(FreeStr,1,I-1);
-                 Delete(FreeStr, 1, I);
-                 DelLeft(FreeStr);
-               end else
-          if Found('KEYWORDS1 ') then KeyWords1 := FreeStr else
-          if Found('KEYWORDS2 ') then KeyWords2 := FreeStr else
-          if Found('STRONG_KEYWORDS') then StrongKeywords := On else
-          if Found('COMMENTS_ONLY') then CommentsOnly := On else
-          if Found('C_COMMENTS') then C_Comments := On else
-          if Found('X_COMMENTS') then X_Comments := On else
-          if Found('PAS_COMMENTS') then Pas_Comments := On else
-          if Found('HIGHLIGHT ') then HiLite := Byte(IsOn) else
-          if Found('AUTOINDENT ') then AutoIndent := IsOn else
-          if Found('AUTOBRACKETS ') then AutoBrackets := IsOn else
-          if Found('BACKUNINDENTS ') then BackIndent := IsOn else
-          if Found('H_LINE ') or Found('H_ROW ') then HiliteLine := IsOn else
-          if Found('H_COLUMN ') then HiliteColumn := IsOn else
-          if Found('AUTOWRAP ') then AutoJustify := IsOn else
-          if Found('WRAPJUSTIFY ') then AutoWrap := IsOn else
-          if Found('LEFTMARGIN ') then MakeValue(LeftSide) else
-          if Found('RIGHTMARGIN ') then MakeValue(RightSide) else
-          if Found('PARAGRAPH ') then MakeValue(InSide) else
-          if Found('FORCECRLF ') then ForcedCrLf := cfCRLF else
-          if Found('FORCECR ') then ForcedCrLf := cfCR else
-          if Found('FORCELF ') then ForcedCrLf := cfLF else
-          ;
-     end;
-  end;
+  var
+    j : Integer;
+  begin while not F^.EOF do begin
+      CaseStr:=fDelLeft(fDelRight(F^.GetStr));
+      FreeStr:=UpStrg(CaseStr);
+      if (FreeStr = '') or (FreeStr[1] = ';') then continue;
+      if Found('FILES ') or Found('END') then Break;
+      if Found('MACRO ') then InsertMacro else
+{PZ - 2000.04.14 - begin }
+      if Found('COMMENT ') then begin
+           while CaseStr <> '' do begin
+             i := System.Pos ( ',', CaseStr );
+             j := System.Pos ( ' ', CaseStr );
+             if i = 0 then
+               i := Length(CaseStr)+1;
+             if (j > 1) and (j < i-1) then begin
+               FreeStr := Copy ( CaseStr, 1, j-1 ) + #13;
+               Delete ( CaseStr, 1, j );
+               DelLeft ( CaseStr );
+               i := System.Pos ( ',', CaseStr );
+               if i = 0 then
+                 i := Length(CaseStr)+1;
+               FreeStr := FreeStr + Copy ( CaseStr, 1, i-1 );
+               DelRight ( FreeStr );
+               InsertHighliteRule ( HiLitePar, hrCommentStrings, FreeStr );
+             end;
+             Delete ( CaseStr, 1, i );
+             DelLeft ( CaseStr );
+           end;
+         end else
+      if Found('COMMENTSTART ') then MakeStrings ( hrCommentStarts ) else
+      if Found('COMMENTSTRING ') then MakeStrings ( hrCommentStrings ) else
+      if Found('KEYWORDS1 ') then MakeStrings ( hrKeywords1 ) else
+      if Found('KEYWORDS2 ') then MakeStrings ( hrKeywords2 ) else
+      if Found('GENERALFLAGS ') then MakeValue ( HiLitePar.GenFlags ) else
+      if Found('HEXNUMFLAGS ') then MakeValue ( HiLitePar.HexFlags ) else
+      if Found('DECNUMFLAGS ') then MakeValue ( HiLitePar.DecFlags ) else
+      if Found('OCTONUMFLAGS ') then MakeValue ( HiLitePar.OctFlagsO ) else
+      if Found('OCTQNUMFLAGS ') then MakeValue ( HiLitePar.OctFlagsQ ) else
+      if Found('BINNUMFLAGS ') then MakeValue ( HiLitePar.BinFlags ) else
+      if Found('STRINGFLAGS ') then MakeValue ( HiLitePar.StrFlags ) else
+{PZ - end }
+      if Found('HIGHLIGHT ') then Edopt.HiLite := IsOn else
+      if Found('H_LINE ') or Found('H_ROW ') then EdOpt.HiliteLine:=IsOn else
+      if Found('H_COLUMN ') then EdOpt.HiliteColumn:=IsOn else
+      if Found('AUTOWRAP ') then EdOpt.AutoJustify:=IsOn else
+      if Found('WRAPJUSTIFY ') then EdOpt.AutoWrap:=IsOn else
+      if Found('LEFTMARGIN ') then MakeValue(EdOpt.LeftSide) else
+      if Found('RIGHTMARGIN ') then MakeValue(EdOpt.RightSide) else
+      if Found('PARAGRAPH ') then MakeValue(EdOpt.InSide) else
+      if Found('FORCECRLF ') then EdOpt.ForcedCrLf:=cfCRLF else
+      if Found('FORCECR ') then EdOpt.ForcedCrLf:=cfCR else
+      if Found('FORCELF ') then EdOpt.ForcedCrLf:=cfLF
+  end end;
 
 begin
-  with PFileEditor(Editor)^ do
+  if Macros<>nil then Macros^.FreeAll;
+  if PEdOptions<>nil then
+   PEdOptions^.HiLite:=EditorDefaults.EdOpt2 and ebfHlt <> 0;
+  FillChar(HiLitePar,SizeOf(HiLitePar),0);
+  F:=New(PTextReader, Init(SourceDir+'DN.HGL'));
+  if F = nil then Exit;
+  while not F^.EOF do
+  begin
+    FreeStr:=UpStrg(fDelLeft(fDelRight(F^.GetStr)));
+    if (FreeStr = '') or (FreeStr[1] = ';') then continue;
+    if Found('FILES ') and InFilter(FName, FreeStr) then
     begin
-      HiLite := 0;
-      Macros^.FreeAll;
-      FillChar(KeyWords1, SizeOf(KeyWords1)*2+
-                          SizeOf(NumCommentStrings)+
-                          SizeOf(CommentStrings)+
-                          SizeOf(NumCommentChars)+
-                          SizeOf(CommentChars)+
-                          SizeOf(CommentsOnly)+
-                          SizeOf(NumCommentStartChars)+
-                          SizeOf(CommentStartChars)+
-                          SizeOf(StrongKeywords)+
-                          SizeOf(C_Comments)+
-                          SizeOf(Pas_Comments), 0);
-      F := New(PTextReader, Init(SourceDir+'DN.HGL'));
-      if F = nil then Exit;
-
-
-      While not F^.EOF do
-       begin
-         FreeStr := F^.GetStr;
-         DelRight(FreeStr);
-         DelLeft(FreeStr);
-         UpStr(FreeStr);
-         if (FreeStr <> '') and (FreeStr[1] <> ';') then
-            if Found('FILES ') and InFilter(FName, FreeStr) then
-              begin
-                HiLite := 1;
-                MakeDefaults;
-                Break;
-              end else
-            if Found('DEFAULT') then MakeDefaults;
-       end;
-      Dispose(F, Done);
-    end;
+      MakeDefaults;
+      FixHighliteParams ( HiLitePar ); {PZ - 2000.04.11}
+      Break;
+    end else
+    if Found('DEFAULT') then
+      MakeDefaults;
+  end;
+  Dispose(F, Done);
 end;
 
 end.

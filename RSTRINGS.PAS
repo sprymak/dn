@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,24 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
-//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
-UNIT
-  RStrings;
+{(c) Necromancer's Dos Navigator Team/Necromancer}
+Unit RStrings;
 
-INTERFACE
+Interface
 
-USES
-  LFN, {DataCompBoy}
+Uses
   Objects,
+  Advance6,
   Commands;
 
-TYPE
-  TOffsetType = Word;
+Type
+  TOffsetType = LongInt;
 
   PIndexArray =^TIndexArray;
   TIndexArray = array [ 0..65520 div SizeOf( TOffsetType ) - 1 ] of TOffsetType;
@@ -87,9 +84,9 @@ TYPE
     function Empty( Key: TDlgIdx ): boolean;
   end;
 
-{ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
-IMPLEMENTATION uses advance, advance1, advance2, advance3;
-{ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
+{----------------------------------------------------------------------------}
+Implementation uses Advance3, DnUtil;
+{----------------------------------------------------------------------------}
 CONST
   TempStreamName = '$MAKERES.TMP';
 
@@ -141,17 +138,16 @@ end;
 
 FUNCTION TIdxMaker.Empty;
 begin
-  Empty := Integer( Index^[ Integer( Key ) ] ) = -1
+  Empty := Index^[ Integer( Key ) ] = -1
 end;
 
-        {-DataCompBoy-}
 DESTRUCTOR TIdxMaker.Done;
 var
   I: LongInt;
   IdxSize: LongInt;
   MaxPos: LongInt;
   B: Byte;
-  F: lFile;
+  F: File;
 begin
   IdxSize := Count * SizeOf( TOffsetType );
   For I := 0 to Count - 1 do Inc( Index^[ I ], IdxSize + SizeOf( Count ));
@@ -167,10 +163,9 @@ begin
   Dispose( Stream, Done );
   Dispose( TempStream, Done );
   FreeMem( Index, 65520 );
-  lAssignFile( F, TempStreamName );
-  lEraseFile( F );
+  Assign( F, TempStreamName );
+  Erase( F );
   inherited Done;
 end;
-        {-DataCompBoy-}
 
 END.

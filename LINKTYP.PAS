@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,18 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit LinkTyp;
 
 {$A+}
 
-{$I LINK.INC} interface uses {$IFDEF OS2} ObjOS2 {$ELSE} Objects {$ENDIF},
-                        LFN; {-DataCompBoy-}
+interface uses {$IFDEF OS2} ObjOS2 {$ELSE} Objects {$ENDIF},
+                        collect, LFN;
 
 
 type

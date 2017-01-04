@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,12 +44,13 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit CellsCol;
 
 interface
 
-uses  Objects, ObjType;
+uses  Objects, collect;
 
 type
      PCellRec =^TCellRec;
@@ -64,6 +65,8 @@ type
 
      PCellCollection = ^TCellCollection;
      TCellCollection = object(TSortedCollection)
+      constructor ShortLoad(var S: TStream);
+      procedure ShortStore(var S: TStream);
       procedure FreeItem(Item: Pointer); virtual;
       function NewItem(Col: Byte; Row: Integer; S: String): PCellRec;
       function ReplaceItem(Col: Byte; Row: Integer; S: String): PCellRec;
@@ -77,13 +80,6 @@ type
      end;
 
 const
-    RCellCollection: TStreamRec = (
-       ObjType: otCellCollection;
-       VmtLink: Ofs(TypeOf(TCellCollection)^);
-       Load:    @TCellCollection.Load;
-       Store:   @TCellCollection.Store
-      );
-
     MaxCellY = 4096;
 
 
@@ -92,13 +88,13 @@ const
 
 {      Options :
           x x x x x x x
-          ³ ³ ³ ³ ³ ³ À¿
-          ³ ³ ³ ³ ³ ÀÄÄÁÄ Cell format (Text, Formula, Value)
-          ³ ³ ³ ³ ÀÄÄÄÄ¿
-          ³ ³ ³ ÀÄÄÄÄÄÄÁÄ Justify options (Right, Left, Center)
-          ³ ³ ÀÄÄÄÄÄÄÄÄ¿
-          ³ ÀÄÄÄÄÄÄÄÄÄÄ´
-          ÀÄÄÄÄÄÄÄÄÄÄÄÄÁÄ Display format(As is, Dec, Comma, Exp, Currency,
+          | | | | | | `,
+          | | | | | \--^- Cell format (Text, Formula, Value)
+          | | | | \---,
+          | | | \------^- Justify options (Right, Left, Center)
+          | | \-------,
+          | \----------<
+          \------------^- Display format(As is, Dec, Comma, Exp, Currency,
                                             Logic, Don't display)
 }
     coText         = $0000;
@@ -123,7 +119,38 @@ const
 
 implementation
 
-uses Memory, advance, advance1, advance2, advance3;
+uses Memory, advance, advance1, advance2, advance3, ObjType;
+
+const VObjType:word=otCellCollection;
+procedure TCellCollection.ShortStore(var S: TStream);
+  procedure DoPutItem(P: Pointer); {$IFDEF BIT_16} far; {$ENDIF}
+  begin
+   PutItem(S, P);
+  end;
+begin
+  S.Write(VObjType, 2);
+  S.Write(Count, 2);
+  S.Write(Limit, 2);
+  S.Write(Delta, 2);
+  ForEach(@DoPutItem);
+  S.Write(Duplicates, SizeOf(Duplicates));
+end;
+
+constructor TCellCollection.ShortLoad(var S: TStream);
+var q: word;
+  C, I: Integer;
+  ACount, ALimit, ADelta: integer;
+begin
+  S.Read(q, 2);
+  if q<>VObjType then fail;
+  S.Read(ACount, SizeOf(Integer));
+  S.Read(ALimit, SizeOf(Integer));
+  S.Read(ADelta, SizeOf(Integer));
+  Inherited Init(ALimit, ADelta);
+  SetLimit(ACount);
+  for I := 0 to ACount - 1 do AtInsert(I, GetItem(S));
+  S.Read(Duplicates, SizeOf(Boolean));
+end;
 
 procedure TCellCollection.FreeItem;
 begin

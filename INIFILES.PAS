@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT
   IniFiles;
@@ -51,7 +52,7 @@ UNIT
 INTERFACE
 
 USES
-  Objects;
+  Objects, Collect;
 
 TYPE
   { Collection of strings like "video=vesa.bgi"  }
@@ -83,7 +84,7 @@ TYPE
   TIniFile = Object( TCollection )
     Modified: Boolean;
     Name: PString;
-    constructor Init( FileName: String; var Status: Integer );
+    constructor Init( FileName: String; var AStatus: Integer );
     destructor Done; virtual;
     function Get( const Section, Key: String ): String;
     procedure Put( const Section, Key, Value: String );
@@ -132,7 +133,7 @@ Loop:
 end;
 
 {                                INI Section
-{컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴}
+{----------------------------------------------------------------------------}
 CONSTRUCTOR TIniSection.Init;
 begin
   inherited Init( 5, 5 );
@@ -174,6 +175,7 @@ var
 label
   Loop, Skip;
 begin
+  TCollection.Init(5, 5);
   Base := S.GetPos;
   Str := ReadString( S );
   If ( Str[ 1 ] = '[' ) and ( Str[ Length( Str ) ] = ']' ) then begin
@@ -182,11 +184,6 @@ begin
     TheName := NIL;
     S.Seek( Base );
   end;
-
-  Items := NIL;
-  Count := 0;
-  Limit := 0;
-  Delta := 5;
 
 Loop:
   Str := Simplify( ReadString( S ));
@@ -222,7 +219,7 @@ end;
 PROCEDURE TIniSection.Store;
 var
   Str: String;
-  procedure DoPutItem( P: PString ); far;
+  procedure DoPutItem( P: PString ); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     Str := PStr2Str( P ) + #13#10;
     S.Write( Str[ 1 ], Length( Str ));
@@ -253,7 +250,7 @@ var
   P: PString;
   S: String;
   I: Integer;
-  function Search( P: PString ): boolean; far;
+  function Search( P: PString ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
   var
     S: String;
     I: Integer;
@@ -263,7 +260,7 @@ var
     Search := ( I = 1 ) and ( S[ Length( Key ) + 1 ] = '=' );
   end;
 begin
-  Key := UpStrg( Key );
+  UpStr( Key );
   GetIndexOf := IndexOf( FirstThat( @Search ));
 end;
 
@@ -333,7 +330,7 @@ begin
 end;
 
 {                                  INI File
-{컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴}
+{----------------------------------------------------------------------------}
 CONSTRUCTOR TIniFile.Init;
 var
   T: TBufStream;
@@ -348,14 +345,14 @@ begin
       If P <> NIL
         then Insert( P );
     until P = NIL;
-  Status := T.Status;
+  AStatus := T.Status;
   T.Done;
 end;
 
 DESTRUCTOR TIniFile.Done;
 var
   T: TBufStream;
-  procedure DoPutItem( P: PIniSection ); far;
+  procedure DoPutItem( P: PIniSection ); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     If P <> NIL then P^.Store( T );
   end;
@@ -370,12 +367,12 @@ begin
 end;
 
 FUNCTION TIniFile.GetSection;
-  function Search( P: PIniSection ): boolean; far;
+  function Search( P: PIniSection ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     Search := UpStrg( P^.Name ) = Section
   end;
 begin
-  Section := UpStrg( Section );
+  UpStr( Section );
   GetSection := FirstThat( @Search )
 end;
 

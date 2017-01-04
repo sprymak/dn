@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Reanimator;
 
@@ -51,7 +52,7 @@ interface
 
 uses DNApp, Dialogs, Objects, Views, Drivers, DiskTool, Dos, advance, advance1,
      advance2, advance3, Memory, FViewer, Commands, FilesCol, Drives, RStrings,
-     Messages, DNHelp, DNStdDlg,Tree;
+     Messages, DNHelp, DNStdDlg,Tree, collect, lfn;
 
 type
      PReaData = ^TReaData;
@@ -147,8 +148,8 @@ end;
 
 destructor TClusterStream.Done;
 begin
-{ if Clusters <> nil then Dispose(Clusters, Done);
- if Drv <> nil then Dispose(Drv, Done);}
+{ if Clusters <> nil then Dispose(Clusters,Done); Clusters:=nil;}
+{ if Drv <> nil then Dispose(Drv,Done); Drv:=nil;}
  Inherited Done;
 end;
 
@@ -409,7 +410,7 @@ procedure TReanimator.HandleEvent;
             if I < Cl^.MaxSize then Drv^.SetFAT(Cl^.GetData(I),Cl^.GetData(I+1))
                                else Drv^.SetFAT(Cl^.GetData(I), $FFF+$F000*Byte(not Drv^.FAT12));
            Drv^.WriteFAT;
-           Dispose(Cl, Done);
+           Dispose(Cl,Done); Cl:=nil;
            InfoPane^.FirstCall := On;
            GetDirData;
           end;
@@ -417,13 +418,13 @@ procedure TReanimator.HandleEvent;
       end;
     end;
   Desktop^.Delete(W);
-  Dispose(W, Done);
+  Dispose(W,Done);
   Owner^.SetState(sfActive, True);
   ClearEvent(Event);
   SetRange(List^.Count);
   FocusItem(OldPos);
   NormalCursor;
-  ShowCursor; { Не работает 8-() }
+  ShowCursor; { Does not work 8-() }
  end;
 
  procedure ViewFile;
@@ -450,7 +451,7 @@ procedure TReanimator.HandleEvent;
   D^.Insert(PV);
 
   R.Assign(1, 2, 78, 18);
-  PV := New(PNFileViewer, Init(R, MemoStream, '', PV, False, P^.Attr and Directory <> 0));
+  PV := New(PNFileViewer, Init(R, MemoStream, '', '', PV, False, P^.Attr and Directory <> 0));
   PNFileViewer(PV)^.NoEdit := On;
   D^.Insert(PV);
 
@@ -471,8 +472,8 @@ procedure TReanimator.HandleEvent;
   D := PDialog(Application^.ValidView(D));
   if D = nil then Exit;
   Desktop^.ExecView(D);
-  Dispose(D, Done);
-  Dispose(Cl, Done);
+  Dispose(D,Done);
+  Dispose(Cl,Done); Cl:=nil;
  end;
 
  procedure ChCluster;
@@ -503,7 +504,7 @@ procedure TReanimator.HandleEvent;
   if S[1] = Char(Drv^.Drive+65) then Exit;
   Advance2.lChDir(S);
   GetDir(Byte(S[1])-64, S); if Abort then Exit;
-  Dispose(Drv, Done);
+  Dispose(Drv,Done);
   New(Drv, Init(Byte(S[1])-64, True));
   if Drv = nil then Message(Owner, evCommand, cmCancel, @Self);
   DirCluster := Drv^.GetPath(S);
@@ -557,8 +558,8 @@ end;
 
 destructor TReanimator.Done;
 begin
- if Drv <> nil then Dispose(Drv, Done);
- if List <> nil then Dispose(List, Done);
+ if Drv  <> nil then Dispose(Drv,Done);  Drv :=nil;
+ if List <> nil then Dispose(List,Done); List:=nil;
  inherited Done;
 end;
 
@@ -625,7 +626,7 @@ procedure TReanimator.GetDirData;
      DelSpace(s);
      if S='..' then begin
                       Advance2.lChDir(CurDir);
-                      CurDir:=FExpand(S);
+                      CurDir:=lFExpand(S);
                     end
                else if Length(CurDir)>3 then CurDir:=CurDir+'\'+S
                                         else CurDir:=CurDir+S;
@@ -679,16 +680,15 @@ begin
   Cl := Drv^.GetFAT(Cl);
  until (Cl = 0) or (Cl >= Drv^.EOFMark) or DirEnd;
  Desktop^.Delete(Msg);
- Dispose(Msg, Done);
- FreeMem(Dir, DirSize);
+ Dispose(Msg,Done);
+ FreeMem(Dir, DirSize); Dir:=nil;
  if Owner <> nil then
   begin
    Owner^.SetState(sfActive, True);
    SetState(sfActive, True);
   end;
- if List <> nil then Dispose(List, Done);
+ if List <> nil then Dispose(List,Done); List:=nil;
 
- List := nil;
  NewList(PC);
  isValid := not Abort;
 end;
@@ -785,6 +785,7 @@ begin
  RereadDrives := [];
  Desktop^.ExecView(D);
  S := 'A:\';
+{$IFNDEF FPC}
  for S[1] := 'A' to 'Z' do
   if S[1] in RereadDrives then
    begin
@@ -792,9 +793,18 @@ begin
     GlobalMessage(evCommand, cmRereadInfo, nil);
     GlobalMessage(evCommand, cmRereadTree, @S);
    end;
+{$ELSE}
+ for B := Ord('A') to Ord('Z') do
+  if Char(B) in RereadDrives then
+   begin
+    S[1]:=Char(B);
+    RereadDirectory(S);
+    GlobalMessage(evCommand, cmRereadInfo, nil);
+    GlobalMessage(evCommand, cmRereadTree, @S);
+   end;
+{$ENDIF}
 
-
- Dispose(D, Done);
+ Dispose(D,Done);
 
 end;
 

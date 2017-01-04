@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Gauge;
 
@@ -51,7 +52,7 @@ unit Gauge;
 
 interface
 
-uses Drivers, Objects, Views, Dialogs, Dos, TitleSet;
+uses Drivers, Objects, Views, Dialogs, Dos, TitleSet, Collect;
 
 const
   cmUpdateGauge = 12000;
@@ -239,7 +240,7 @@ begin
    end;
    Boolean( Side ) := not Boolean( Side );
    Locate(R);
-   FreeObject(But);
+   Dispose(But,Done); But:=nil;
    InsBut;
    UnLock;
    DrawView;
@@ -344,18 +345,55 @@ procedure TWhileView.Draw;
      C1, C2: Byte;
      I: Integer;
      S: String;
+     R: TRect;
 begin
+ if Length(Top) > Size.X - 4 then
+  begin
+   Lock;
+   R.A.Y := Origin.Y;
+   R.B.Y := R.A.Y + Size.Y;
+   If Side = sdLeft then begin
+     R.B.X := Origin.X + Size.X + ( Length( Top ) - Size.X + 4 ) div 2;
+     R.A.X := R.B.X - Length( Top ) - 4;
+   end else begin
+     R.A.X := Origin.X - ( Length( Top ) - Size.X + 4 ) div 2;
+     R.B.X := R.A.X + Length( Top ) + 4;
+   end;
+   Boolean( Side ) := not Boolean( Side );
+   Locate(R);
+   Dispose(But,Done); But:=nil;
+   InsBut;
+   UnLock;
+  end;
+ if Length(Bottom) > Size.X - 4 then
+  begin
+   Lock;
+   R.A.Y := Origin.Y;
+   R.B.Y := R.A.Y + Size.Y;
+   If Side = sdLeft then begin
+     R.B.X := Origin.X + Size.X + ( Length( Bottom ) - Size.X + 4 ) div 2;
+     R.A.X := R.B.X - Length( Bottom ) - 4;
+   end else begin
+     R.A.X := Origin.X - ( Length( Bottom ) - Size.X + 4 ) div 2;
+     R.B.X := R.A.X + Length( Bottom ) + 4;
+   end;
+   Boolean( Side ) := not Boolean( Side );
+   Locate(R);
+   Dispose(But,Done); But:=nil;
+   InsBut;
+   UnLock;
+  end;
  C1 := GetColor(2 + Byte(GetState(sfDragging)));
  C2 := GetColor(7);
- MoveChar(B, 'Í', C1, Size.X);
+ MoveChar(B, #205, C1, Size.X);
  if Top <> '' then
   MoveStr(B[(Size.X - Length(Top)) div 2 - 1], ' ' + Top + ' ', C1);
- B1[0].C := 'É'; B1[Size.X - 1].C := '»';
+ B1[0].C := #201; B1[Size.X - 1].C := #187;
  WriteLine(0, 0, Size.X, 1, B);
- MoveChar(B, 'Í', C1, Size.X);
+ MoveChar(B, #205, C1, Size.X);
  if Bottom <> '' then
   MoveStr(B[(Size.X - Length(Bottom)) div 2 - 1], ' ' + Bottom + ' ', C1);
- B1[0].C := 'È'; B1[Size.X - 1].C := '¼';
+ B1[0].C := #200; B1[Size.X - 1].C := #188;
  WriteLine(0, Size.Y - 1, Size.X, 1, B);
  for I := 0 to Size.Y - 5 do
   begin
@@ -365,12 +403,12 @@ begin
      if Lines^.At(I) <> nil then S := PString(Lines^.At(I))^ else S := '';
      MoveStr(B[(Size.X - Length(S)) div 2], S, C2);
     end;
-   B1[0].C := 'º'; B1[Size.X - 1].C := 'º';
+   B1[0].C := #186; B1[Size.X - 1].C := #186;
    B1[0].A := C1; B1[Size.X - 1].A := C1;
    WriteLine(0, I + 1, Size.X, 1, B);
   end;
   MoveChar(B, ' ', C1, Size.X);
-  B1[0].C := 'º'; B1[Size.X - 1].C := 'º';
+  B1[0].C := #186; B1[Size.X - 1].C := #186;
   WriteLine(0, But^.Origin.Y, But^.Origin.X, 2, B);
   WriteLine(But^.Origin.X + But^.Size.X , But^.Origin.Y, Size.X, 2, B[But^.Origin.X + But^.Size.X]);
   But^.Draw;
@@ -384,7 +422,7 @@ end;
 
 destructor TWhileView.Done;
 begin
- Dispose(Lines, Done);
+ Dispose(Lines,Done); Lines:=nil;
  TGroup.Done;
 end;
 

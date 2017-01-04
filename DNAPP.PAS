@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,13 +44,16 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit DNApp;
 
 interface
 
-uses Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, LFN, StakDump,
-     RStrings, Commands, ObjType, xTime, Messages;
+uses Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, LFN,
+     RStrings, Commands, xTime, Messages, Collect, Advance7, Startup
+{$IFNDEF FPC},StakDump{$ENDIF}
+     ;
 
 const
 
@@ -73,21 +76,21 @@ const
   { Turbo Vision 1.0 Color Palettes }
 
   CColor =
-    #$71#$70#$78#$74#$20#$28#$24#$17#$1F#$1A#$31#$31#$78#$7F#$1F#$31 +
-    #$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E#$70 +
-    #$7F#$7A#$13#$13#$70#$70#$7F#$7E#$8F#$8B#$9F#$78#$8E#$70#$78#$7F +
-    #$7E#$0F#$9F#$0E#$9F#$79#$31#$31#$30#$0F#$3F#$31#$8F#$30#$3E#$30 +
-    #$38#$3E#$0F#$07#$0E#$87#$8F#$8F#$8B#$8F#$F0#$87#$7F#$1C#$00#$87 +
-    #$8F#$8B#$8F#$F0#$87#$8F#$8E#$30#$3E#$3F#$8F#$87#$70#$87#$8F#$3F +
-    #$8F#$3F#$8E#$8E#$70#$8B#$87#$30#$3F#$0F#$3E#$0E#$31#$31#$00#$87 +
-    #$8F#$8B#$8F#$F0#$87#$70#$8B#$8E#$8F#$87#$8F#$87#$8F#$70#$7F#$7A +
-    #$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70#$37#$3F#$3A#$13#$13#$30 +
-    #$3E#$1E#$30#$38#$3E#$0F#$07#$0E#$87#$8F#$8F#$8B#$8F#$F0#$87#$70 +
-    #$8E#$30#$3F#$83#$8E#$38#$3F#$3A#$31#$3F#$70#$8F#$8B#$8A#$83#$82 +
-    #$8D#$9E#$8E#$8C#$89#$07#$7F#$03#$0F#$8F#$8F#$8E#$8F#$8D#$8B#$70 +
-    #$07#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F +
-    #$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$08 +
-    #$CF#$CE#$0F#$0E;
+{ 01}#$71#$70#$78#$74#$20#$28#$24#$17#$1F#$1A#$31#$31#$78#$7F#$1F#$31 +
+{ 17}#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E#$70 +
+{ 33}#$7F#$7A#$13#$13#$70#$70#$7F#$7E#$8F#$8B#$9F#$78#$8E#$70#$78#$7F +
+{ 49}#$7E#$0F#$9F#$0E#$9F#$79#$31#$31#$30#$0F#$3F#$31#$8F#$30#$3E#$30 +
+{ 65}#$38#$3E#$0F#$07#$0E#$87#$8F#$8F#$8B#$8F#$F0#$87#$7F#$1C#$00#$87 +
+{ 81}#$8F#$8B#$8F#$F0#$87#$8F#$8E#$30#$3E#$3F#$8F#$87#$70#$87#$8F#$3F +
+{ 97}#$8F#$3F#$8E#$8E#$70#$8B#$87#$30#$3F#$0F#$3E#$0E#$31#$31#$00#$87 +
+{113}#$8F#$8B#$8F#$F0#$87#$70#$8B#$8E#$8F#$87#$8F#$87#$8F#$70#$7F#$7A +
+{129}#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70#$37#$3F#$3A#$13#$13#$30 +
+{145}#$3E#$1E#$30#$38#$3E#$0F#$07#$0E#$87#$8F#$8F#$8B#$8F#$F0#$87#$70 +
+{161}#$8E#$30#$3F#$83#$8E#$38#$3F#$3A#$31#$3F#$70#$8F#$8B#$8A#$83#$82 +
+{177}#$8D#$9E#$8E#$8C#$89#$07#$7F#$03#$0F#$8F#$8F#$8E#$8F#$8D#$8B#$81 + {JO}
+{193}#$86#$84#$85#$80#$8E#$8A#$83#$8F#$8D#$8B#$8E#$8A#$81#$3F#$3F#$3F + {JO}
+{209}#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$08 +
+{225}#$CF#$CE#$0F#$0E;
 
   CBlackWhite =
         #$70#$70#$78#$7F#$07#$07#$0F#$07#$0F#$07#$70#$70#$07#$70#$0F +
@@ -161,9 +164,6 @@ const
 
   CBackground = #1;
 
-var
-  HintString: String[ 80 ];
-
 const
   SystemColors: array[apColor..apMonochrome] of String =
     (CColor, CBlackWhite, CMonochrome);
@@ -224,8 +224,11 @@ type
     destructor Done; virtual;
     function CanMoveFocus: Boolean;
     function ExecuteDialog(P: PDialog; Data: Pointer): Word;
+{$IFDEF SS}
     procedure InsertIdler;
     procedure InsertIdlerN(N: integer);
+    procedure InsertAvIdlerN(Data: TSaversData; N: integer);
+{$ENDIF}
     procedure GetEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -243,6 +246,8 @@ type
     procedure SetScreenMode(Mode: Word);
     function ValidView(P: PView): PView;
     procedure Redraw; virtual;
+    Procedure BFSpeed; {DataCompBoy}
+    Procedure EFSpeed; {DataCompBoy}
    end;
 
 { TApplication object }
@@ -257,7 +262,6 @@ type
     procedure WhenShow; virtual;
     procedure GetTileRect(var R: TRect); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure DoDump(Er: byte);
     procedure Tile;
   end;
 
@@ -269,6 +273,7 @@ procedure OpenResource;
 function  ExecResource( Key: TDlgIdx; var Data): Word;
 function  LoadResource( Key: TDlgIdx ): PObject;
 function  GlobalMessage(What, Command: Word; InfoPtr: Pointer):pointer;
+function  GlobalMessageL(What, Command: Word; InfoLng: LongInt):pointer;
 procedure GlobalEvent(What, Command: Word; InfoPtr: Pointer);
 function  ViewPresent(Command: Word; InfoPtr: Pointer): PView;
 function  WriteMsg(Text: String): PView;
@@ -295,26 +300,6 @@ const
   CommandLine: PView = nil;
 {  HintString: String[80] = '';}
 
-{ Stream registration records }
-
-  RBackground: TStreamRec = (
-    ObjType: otBackground;
-    VmtLink: Ofs(TypeOf(TBackground)^);
-    Load: @TBackground.Load;
-    Store: @TBackground.Store);
-
-  RDesktop: TStreamRec = (
-    ObjType: otDesktop;
-    VmtLink: Ofs(TypeOf(TDesktop)^);
-    Load: @TDesktop.Load;
-    Store: @TDesktop.Store);
-
-  RStringCache: TStreamRec = (
-    ObjType: otStringCache;
-    VmtLink: Ofs(TypeOf(TCacheCollection)^);
-    Load: @TCacheCollection.Load;
-    Store: @TCacheCollection.Store);
-
 const SkyVisible: Boolean = False;
 
 type
@@ -326,8 +311,12 @@ type
 
 implementation
 
-uses Dos, DNHelp, advance, advance1, advance2, advance3, Startup, Idlers,
-     ExtraMemory, UserMenu, MicroEd, FViewer, DblWnd, CmdLine;
+uses Dos, DNHelp, advance, advance1, advance2, advance3,
+     extramemory, UserMenu, MicroEd, FViewer, DblWnd, CmdLine
+{$IFDEF SS}
+     ,Idlers
+{$ENDIF}
+     ;
 
 var
 
@@ -346,7 +335,7 @@ procedure AdjustToDesktopSize(var R: TRect; OldDeskSize: TPoint);
 begin
   if OldDeskSize.X = 0 then OldDeskSize.X := Desktop^.Size.X;
   if OldDeskSize.Y = 0 then OldDeskSize.Y := Desktop^.Size.Y;
-  if LongInt(Desktop^.Size) = LongInt(OldDeskSize) then Exit;
+  if Desktop^.Size.Equals(OldDeskSize) then Exit;
   KX := Desktop^.Size.X/OldDeskSize.X;
   R.A.X := Trunc(R.A.X*KX); R.B.X := Trunc(R.B.X*KX);
   KY := Desktop^.Size.Y/OldDeskSize.Y;
@@ -437,7 +426,7 @@ begin
 end;
 
 procedure TDesktop.Clear;
-  procedure CloseView(P: PView); far;
+  procedure CloseView(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
   begin Message(P, evCommand, cmClose, nil) end;
 begin
   if Desktop^.Valid(cmClose) then Desktop^.ForEach(@CloseView);
@@ -449,7 +438,7 @@ var
   LastView: PView;
   Min, Max: TPoint;
 
-procedure DoCount(P: PView); far;
+procedure DoCount(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 begin
   if Tileable(P) then
   begin
@@ -458,7 +447,7 @@ begin
   end;
 end;
 
-procedure DoCascade(P: PView); far;
+procedure DoCascade(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 var
   NR: TRect;
 begin
@@ -494,7 +483,7 @@ procedure TDesktop.HandleEvent(var Event: TEvent);
     E: TEvent;
 
   procedure _Next; begin SelectNext(False); end;
-  procedure _Prev; begin if Valid(cmReleasedFocus) then Current^.PutInFrontOf(Background); end;
+  procedure _Prev; begin if Valid(cmReleasedFocus) and (Current<>nil) then Current^.PutInFrontOf(Background); end;
 
   procedure _NextSame;
    var Old: PView;
@@ -605,7 +594,7 @@ procedure TDesktop.Tile(var R: TRect);
 var
   NumCols, NumRows, NumTileable, LeftOver, TileNum: Integer;
 
-procedure DoCountTileable(P: PView); far;
+procedure DoCountTileable(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 begin
   if Tileable(P) then Inc(NumTileable);
 end;
@@ -642,7 +631,7 @@ begin
   end;
 end;
 
-procedure DoTile(P: PView); far;
+procedure DoTile(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
 var
   R: TRect;
 begin
@@ -705,9 +694,9 @@ end;
 
 destructor TProgram.Done;
 begin
-  if MenuBar <> nil then Dispose(MenuBar, Done);
-  if StatusLine <> nil then Dispose(StatusLine, Done);
-  if Desktop <> nil then Dispose(Desktop, Done);
+  if MenuBar    <> nil then Dispose(MenuBar,Done);    MenuBar:=nil;
+  if StatusLine <> nil then Dispose(StatusLine,Done); StatusLine:=nil;
+  if Desktop    <> nil then Dispose(Desktop,Done);    DeskTop:=nil;
   Application := nil;
   inherited Done;
 end;
@@ -727,7 +716,7 @@ begin
     if Data <> nil then P^.SetData(Data^);
     C := Desktop^.ExecView(P);
     if (C <> cmCancel) and (Data <> nil) then P^.GetData(Data^);
-    Dispose(P, Done);
+    Dispose(P,Done);
     ExecuteDialog := C;
   end;
 end;
@@ -737,10 +726,11 @@ procedure ExecExit;
 begin
   {if SSaver <> nil then SSaver^.Free;}
   S := GetEnv('DNIDLE');
-  if S = '' then begin Application^.Done; Halt(0); end
+  if S = '' then begin TottalExit:=true; Application^.Done; Halt(0); end
             else Message(Application, evCommand, cmExecString, @S);
 end;
 
+{$IFDEF SS}
 procedure TProgram.InsertIdler;
 begin
   if (SkyEnabled > 0) or SaversData.Mouse and
@@ -777,17 +767,50 @@ begin
       if (SSaver <> nil) then
        begin
          if ExecView(SSaver) = cmCancel then ExecExit;
-         Dispose(SSaver, Done);
+         Dispose(SSaver,Done);
+         SSaver:=nil;
        end;
     end else begin
                CallExternalSaver(S);
              end;
 end;
 
+procedure TProgram.InsertAvIdlerN;
+var I: Integer;
+    S: String;
+    R: TRect;
+    Event: TEvent;
+    MX, MY: Word;
+begin
+  if (SkyEnabled > 0) or SaversData.Mouse and
+  (MouseWhere.Y= Size.Y-1) and (MouseWhere.X = Size.X-1)
+   or (Data.Available.List = nil) or
+      (Data.Available.List^.Count = 0) or
+      (SSaver <> nil) then Exit;
+
+  S := PString(Data.Available.List^.At(N))^;
+  if S[1] = #249 then
+    begin
+      Application^.GetExtent(R);
+      case S[3] of
+         'F': SSaver := New(PProjector, Init);
+         'B': SSaver := New(PSSaver, Init(R));
+         'C': SSaver := New(PClockSaver, Init);
+         else SSaver := New(PStarSkySaver, Init);
+      end;
+      if (SSaver <> nil) then
+       begin
+         if ExecView(SSaver) = cmCancel then ExecExit;
+         Dispose(SSaver,Done);
+         SSaver:=nil;
+       end;
+    end else CallExternalSaver(S);
+end;
+{$ENDIF}
 
 procedure TProgram.GetEvent(var Event: TEvent);
 
-function ContainsMouse(P: PView): Boolean; far;
+function ContainsMouse(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
 begin
   ContainsMouse := (P^.State and sfVisible <> 0) and
     P^.MouseInView(Event.Where);
@@ -836,21 +859,28 @@ begin
   end;
 
   if (Event.What <> evNothing) or (SkyEnabled <> 0) then NewTimer(LastComTime, 0) else
+{$IFDEF SS}
   if (SSaver = nil) and (SkyEnabled=0) and (SkyDelay <> 255) and
      (ElapsedTimeInSecs(LastComTime) >= SkyDelay*60) then
            begin
             InsertIdler;
             NewTimer(LastComTime, 0)
            end;
-
-  if (StatusLine <> nil) and (SSaver = nil) then
+{$ENDIF}
+  if (StatusLine <> nil)
+{$IFDEF SS}
+     and (SSaver = nil)
+{$ENDIF}
+   then
     if (Event.What and evMouseDown <> 0) and (Event.Buttons and mbLeftButton <> 0) and
        (FirstThat(@ContainsMouse) = PView(StatusLine)) then
         StatusLine^.HandleEvent(Event);
 
   if (IdleWas) and
      (SkyEnabled = 0) and
+{$IFDEF SS}
      (SSaver = nil) and
+{$ENDIF}
      (CommandLine <> nil) and
      (CommandLine^.Size.Y <> 0) and
      (CommandLine^.GetState(sfVisible)) then
@@ -884,13 +914,13 @@ var
   I: Word;
   C: Char;
 begin
-  if Event.What = evKeyDown then
-  begin
-    C := GetAltChar(Event.KeyCode);
-    {if (C >= '1') and (C <= '9') then
-      if Message(Desktop, evBroadCast, cmSelectWindowNum,
-        Pointer(Byte(C) - $30)) <> nil then ClearEvent(Event);}
-  end;
+  if (Event.What = evKeyDown) and
+     (Event.KeyCode>=kbCtrlShift1) and
+     (Event.KeyCode<=kbCtrlShift9)
+   then if MessageL(Desktop, evBroadCast,
+                    cmSelectWindowNum,
+                    (Event.KeyCode - kbCtrlShift1) shr 8 + 1) <> nil
+         then ClearEvent(Event);
   TGroup.HandleEvent(Event);
   if Event.What = evCommand then
     if Event.Command = cmQuit then
@@ -904,7 +934,6 @@ procedure TProgram.Idle;
  var P: PView;
      E: TEvent;
      A1, A2: Word;
- label 1;
 begin
   if StatusLine <> nil then StatusLine^.Update;
   if CommandSetChanged then
@@ -985,7 +1014,7 @@ begin
       ActivateView(P);
     end
     else
-      Dispose(P, Done);
+      Dispose(P,Done);
   Idle;
 end;
 
@@ -993,7 +1022,10 @@ procedure TProgram.ActivateView;
  var EV: TEvent;
      PP: TPoint;
 begin
-  EV.What := evMouseDown; PP.X := P^.Origin.X; PP.Y := P^.Origin.Y + P^.Size.Y - 2;
+  If P=nil then exit;
+  EV.What := evMouseDown;
+  PP.X := P^.Origin.X;
+  PP.Y := P^.Origin.Y + P^.Size.Y - 2;
   Desktop^.MakeGlobal(PP, PP); EV.Where := PP;
   EV.Buttons := mbRightButton; {PutEvent(EV);}
 end;
@@ -1022,28 +1054,15 @@ var
 begin
    HideMouse;
    DoneEvents;
-   SetVideoMode(Mode);
-   CharHeight := Mem[$40:$85];
-   InitEvents;
    DoneMemory;
+   SetVideoMode(Mode);
    InitMemory;
+   InitEvents;
    InitScreen;
-   Buffer := ScreenBuffer;
+   Buffer:=ScreenBuffer;
    R.Assign(0, 0, ScreenWidth, ScreenHeight);
    ChangeBounds(R);
-   R.Assign(0,           ScreenHeight - 1 - Byte(InterfaceData.Options and ouiHideStatus = 0),
-            ScreenWidth, ScreenHeight     - Byte(InterfaceData.Options and ouiHideStatus = 0));
-   if CommandLine <> nil then CommandLine^.Locate(R);
    ShowMouse;
-   asm
-     mov ah, 1
-     xor bx, bx
-     mov cx, $0607
-     push bp
-     int 10h
-     pop bp
-   end;
-   CursorLines := $607;
    SetBlink(CurrentBlink);
 end;
 
@@ -1054,17 +1073,35 @@ begin
   begin
     if LowMemory then
     begin
-      Dispose(P, Done);
+      Dispose(P,Done);
       OutOfMemory;
       Exit;
     end;
     if not P^.Valid(cmValid) then
     begin
-      Dispose(P, Done);
+      Dispose(P,Done);
       Exit;
     end;
     ValidView := P;
   end;
+end;
+
+Procedure TProgram.BFSpeed; {DataCompBoy}
+begin
+ if OpSys and (opWNT+opWIN) <> 0 then asm
+  mov AX, 1681h
+  int 21h
+ end;
+ FullSpeed:=True;
+end;
+
+Procedure TProgram.EFSpeed; {DataCompBoy}
+begin
+ FullSpeed:=False;
+ if OpSys and (opWNT+opWIN) <> 0 then asm
+  mov AX, 1682h
+  int 21h
+ end;
 end;
 
 { TApplication }
@@ -1080,9 +1117,9 @@ end;
 
 destructor TApplication.Done;
 begin
-  if LStringList <> nil then Dispose(LStringList, Done);
-  if LngStream <> nil then Dispose(LngStream, Done);
-  if Resource <> nil then Dispose(Resource, Done);
+  if LStringList <> nil then Dispose(LStringList,Done); LStringList:=nil;
+  if LngStream <> nil then Dispose(LngStream,Done); LngStream:=nil;
+  if Resource <> nil then Dispose(Resource,Done); Resource:=nil;
   TProgram.Done;
   DoneHistory;
   DoneSysError;
@@ -1108,8 +1145,8 @@ begin
     pop  bp
  end;
  Insert(PV);
- WhenShow;
  SetPalette(vga_default);
+ WhenShow;
  if CommandLine <> nil then CommandLine^.SetState(sfDisabled, Off);
  SetPalette(vga_palette);
  PV^.Free;
@@ -1150,144 +1187,6 @@ begin
   Desktop^.GetExtent(R);
 end;
 
-procedure TApplication.DoDump(Er: byte);
-var s: string;
-    PPP: TByteArray absolute FreeStr;
-    PP, AC, C: integer;
-    FH: Word;
-    Sg, Os: word;
-{$IFDEF DPMI}
-    tt: text;
-{$ENDIF}
-
-  Function StoreBuffer(var Buf; Size:word ; FH : word ):word;assembler;
-    asm
-       mov  bx,FH
-       push ds
-        mov cx,Size
-          mov  ah,40h
-          sub  al,al
-          lds  dx,Buf
-          int  21h
-          mov  ax,0
-          jnc  @@1
-          inc  ax
-         @@1:
-       pop  ds
-    end;
-
-label t;
-begin
-    { Create Report File. DRIVERS.PAS contains full dupe of this routine }
-
-    FreeStr := lfGetShortFileName(SourceDir); {DataCompBoy}
-    FreeStr := MakeNormName(FreeStr , 'DN.ERR')+#0;
-
-    FH := $FFFF ;
-{$IFDEF DPMI}
-    Assign(TT, FreeStr);
-    Append(TT);
-    If IOResult<>0 then Rewrite(TT);
-    If IOResult=0  then begin
-     FH:=TextRec(TT).Handle;
- asm
-    push ds
-    push bp
-    mov  bx, FH
-{$ELSE}
- asm
-    push ds
-    push bp
-
-    mov ax,6C00h { extended dos 4+ open  }
-    mov si,offset FreeStr
-    inc si
-    mov cx,0
-    mov dx,11h   { if exist open, if not create and open }
-    mov bx,7042h { 42 file mode ; do not use int 24 , write
-                   w/o buffering }
-    int 21h
-    jnc @@1
-    jmp @@99     { other error - exit }
-@@1:
-    mov bx,ax
-{$ENDIF}
-    mov ax,4202H { lseek to end of file }
-    sub dx,dx
-    sub cx,cx
-    int 21h
-    jnc @@2
-    jmp @@99      { other error - exit }
-@@2:
-    mov FH,bx    { save handle        }
-@@99:
-    pop bp
-    pop ds
- end;
-{$IFDEF DPMI}
- end;
-{$ENDIF}
-
- if FH<>$FFFF then
-   begin
-     Asm
-      mov Sg, SEG t
-      mov Os, OFFSET t
-     End;
-     AssignOutput(FH);
-t:   FreeStr :=
-          ^M^J +
-       '----<' + GetDateTime(false) +' '+ GetDateTime(true) +'>'^M^J +
-       'VER :' + VersionName + ^M^J +
-       'DATE:' + VersionDate + ^M^J +
-       'ERR :' + Hex2(Er) + ^M^J +
-       'ADDR:' + Hex4(Sg)+Hex4(Os) + ^M^J ;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-
-     FreeStr :=
-       'PSP :' + Hex4( PrefixSeg ) + ^M^J +
-       'CS  :' + Hex4(CSeg) + ^M^J +
-       'DS  :' + Hex4(DSeg) + ^M^J +
-       'SS  :' + Hex4(SSeg) + ^M^J +
-       'SP  :' + Hex4(SPtr) + ^M^J +
-       'MEMm:' + Hex8(MaxAvail) + ^M^J +
-       'MEMa:' + Hex8(MemAvail) + ^M^J +
-{$IFNDEF DPMI}
-       'hOrg:' + Hex8(Longint(HeapOrg)) + ^M^J +
-       'hEnd:' + Hex8(Longint(HeapEnd)) + ^M^J +
-       'hPtr:' + Hex8(Longint(HeapPtr)) + ^M^J +
-       'hLim:' + Hex4( StackLimit ) + ^M^J +
-{$ENDIF}
-        '';
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-     FreeStr :=
-       'STCK:' + ^M^J;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-     DumpStack;
-     FreeStr :=
-       'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-
-     for C:=0 to Pred(ScreenHeight) do
-      begin
-          S:='';
-          PP := (ScreenWidth*C) shl 1;
-          for AC := 0 to Pred(ScreenWidth) do Begin
-           PPP[AC] :=  PByteArray(ScreenBuffer)^[PP+AC*2];
-           S:=S+Hex2(PByteArray(ScreenBuffer)^[PP+AC*2+1]);
-          End;
-          S := S+#13#10 ;
-          if StoreBuffer( PPP,  ScreenWidth, FH ) <> 0 then Break;
-          if StoreBuffer( S[1], Length(S),   FH ) <> 0 then Break;
-      end; { for lines }
-     asm
-       mov  ah,3Eh     { close file }
-       mov  bx,FH
-       int  21h
-     end;
-   end; { file write ok }
-end;
-
 procedure TApplication.HandleEvent(var Event: TEvent);
 begin
   inherited HandleEvent(Event);
@@ -1302,8 +1201,10 @@ begin
         end;
         ClearEvent(Event);
       end;
-    evKeyDown: if Event.KeyCode=kbCtrlShiftTilde then
+    evKeyDown: if Event.KeyCode=kbCtrlShiftTilde then begin
                 MessageBox('Status dumped to DN.ERR',nil,0);
+                ClearEvent(Event);
+               end;
   end;
 end;
 
@@ -1315,9 +1216,9 @@ begin
   if Desktop <> nil then Desktop^.Tile(R);
 end;
 
-procedure ResourceFail;
+procedure ResourceFail(const S: string);
 begin
-  WriteLn('FATAL: Could not open resource file');
+  WriteLn('FATAL: Could not open resource file ('+S+')');
   Halt(0);
 end;
 
@@ -1331,10 +1232,10 @@ begin
  ResourceStream := New(PBufStream, Init(S + LngId + '.DLG', stOpenRead, 1024));
  if ResourceStream^.Status <> stOK then
    begin
-     Dispose(ResourceStream, Done);
+     Dispose(ResourceStream,Done);
      ResourceStream := New(PBufStream, Init(StartupDir + LngId + '.DLG', stOpenRead, 1024));
    end;
- if ResourceStream^.Status <> stOK then ResourceFail;
+ if ResourceStream^.Status <> stOK then ResourceFail(LngId + '.DLG');
  New(Resource, Init(ResourceStream));
 end;
 
@@ -1351,7 +1252,7 @@ begin
  W := Desktop^.ExecView(D);
  if W <> cmCancel then D^.GetData(Data);
  ExecResource := W;
- Dispose(D, Done);
+ Dispose(D,Done);
 end;
 
 function LoadResource;
@@ -1366,7 +1267,7 @@ function GlobalMessage;
  var Event: TEvent;
      Ptr : Pointer ;
 
- procedure Action(View: PView);far;
+ procedure Action(View: PView);{$IFDEF BIT_16}far;{$ENDIF}
  begin
   Event.What := What;
   Event.Command := Command;
@@ -1384,13 +1285,37 @@ begin
  GlobalMessage := Ptr ;
 end;
 
+function GlobalMessageL;
+
+ var Event: TEvent;
+     Ptr : Pointer ;
+
+ procedure Action(View: PView);{$IFDEF BIT_16}far;{$ENDIF}
+ begin
+  Event.What := What;
+  Event.Command := Command;
+  Event.InfoLong := InfoLng;
+  View^.HandleEvent(Event);
+  if Event.What = evNothing then Ptr := Event.InfoPtr ;
+
+ end;
+
+begin
+ Ptr := Nil ;
+ if Command = cmPanelReread then Command := cmTotalReread;
+ Application^.ForEach(@Action);
+ Desktop^.ForEach(@Action);
+ GlobalMessageL := Ptr ;
+end;
+
 procedure GlobalEvent;
 
  var Event: TEvent;
 
- procedure Action(View: PView);far;
+ procedure Action(View: PView);{$IFDEF BIT_16}far;{$ENDIF}
  begin
-  if (Event.What <> evNothing) and (View <> nil) then View^.HandleEvent(Event);
+  if (Event.What <> evNothing) and (View <> nil) then
+   View^.HandleEvent(Event);
  end;
 
 begin
@@ -1408,7 +1333,7 @@ var ActInt: Boolean;
 
 function ViewPresent;
 
- procedure Action(View: PView);far;
+ procedure FAction(View: PView);{$IFDEF BIT_16}far;{$ENDIF}
  begin
   if ActInt then Exit;
   View^.HandleEvent(Event);
@@ -1420,8 +1345,8 @@ begin
  Event.What := evCommand;
  Event.Command := Command;
  Event.InfoPtr := InfoPtr;
- Application^.ForEach(@Action);
- Desktop^.ForEach(@Action);
+ Application^.ForEach(@FAction);
+ Desktop^.ForEach(@FAction);
  ViewPresent := V;
 end;
 
@@ -1446,7 +1371,7 @@ function WriteMsg;
      P: PStaticText;
 begin
  R.Assign(1,1,30,8);
- New(W,Init(R, '', 0));
+ New(W,Init(R, '', wnNoNumber));
  W^.Options := W^.Options or ofCentered;
  W^.Palette := wpGrayWindow;
  W^.Flags := 0;
@@ -1491,18 +1416,19 @@ begin
    PS := New(PBufStream, Init(S + LngId + '.lng', stOpenRead, 4096));
    if PS^.Status <> stOK then
      begin
-       Dispose(PS, Done);
+       Dispose(PS,Done);
        PS := New(PBufStream, Init(StartupDir + LngId + '.lng', stOpenRead, 4096));
      end;
-   if PS^.Status <> stOK then ResourceFail;
+   if PS^.Status <> stOK then ResourceFail(LngId + '.lng');
 
    XS := nil;
+   {$IFNDEF DPMI} {DataCompBoy: In DPMI EMS and XMS no needed}
    if XMSFound then
      begin
        XS := New(PXMSStream, Init(PS^.GetSize, PS^.GetSize));
        if XS^.Status <> stOK then
          begin
-           Dispose(XS, Done);
+           Dispose(XS,Done);
            XS := nil;
          end;
      end;
@@ -1512,19 +1438,30 @@ begin
        XS := New(PEMSStream, Init(PS^.GetSize, PS^.GetSize));
        if XS^.Status <> stOK then
          begin
-           Dispose(XS, Done);
+           Dispose(XS,Done);
            XS := nil;
          end;
      end;
+   {$ELSE}
+   If PS^.GetSize<MemAvail/100 then {If Language file <1% of free memory,}
+                                    {then load it in memory              }
+    begin
+     XS := New(PMemoryStream, Init(PS^.GetSize, PS^.GetSize));
+     if XS^.Status <> stOK then begin
+      Dispose(XS,Done);
+      XS := nil;
+     end;
+    end;
+   {$ENDIF}
 
    if XS <> nil then
      begin
        XS^.CopyFrom(PS^, PS^.GetSize);
        if XS^.Status = stOK then
        begin
-         Dispose(PS, Done);
+         Dispose(PS,Done);
          PS := XS;
-       end else Dispose(XS, Done);
+       end else Dispose(XS,Done);
 
      end;
 
@@ -1532,7 +1469,7 @@ begin
 
    PS^.Seek(0);
    LStringList := PStringList(PS^.Get);
-   if (PS^.Status <> stOK) or (LStringList = nil) then ResourceFail;
+   if (PS^.Status <> stOK) or (LStringList = nil) then ResourceFail('reading '+LngId + '.lng');
 
 end;
 
@@ -1568,11 +1505,9 @@ begin
 end;
 
 procedure TCacheCollection.PutItem(var S: TStream; Item: Pointer);
-var
-  R: TCacheRec;
+var R: PCacheRec absolute Item;
 begin
-  R := PCacheRec(Item)^;
-  S.Write(R, Length(R.Str) + 1 + SizeOf(TStrIdx));
+  S.Write(R^, Length(R^.Str) + 1 + SizeOf(TStrIdx));
 end;
 
 function TCacheCollection.GetItem(var S: TStream): Pointer;
@@ -1594,6 +1529,7 @@ var
   A: Integer;
 begin
   CacheIndexOf := -1;
+  StringCache^.Pack;
   for A := 0 to StringCache^.Count-1 do
    if PCacheRec(StringCache^.At(A))^.Id = Id then
   begin
@@ -1603,12 +1539,11 @@ end;
 
 procedure InitStringCache;
 begin
+  If StringCache<>nil then Dispose(StringCache,Done);
   StringCache := New(PCacheCollection, Init(CacheSize, 0));
 end;
 
 function GetString;
-
-procedure DoGet;
 var
   S: string;
   I: Integer;
@@ -1635,11 +1570,6 @@ begin
     end;
   end;
   GetString := S;
-end;
-
-begin
-  DoGet;
-  InitDrivers;
 end;
 
 end.

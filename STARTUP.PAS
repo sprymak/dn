@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT Startup;
 
@@ -62,7 +59,8 @@ USES
   advance1,
   advance2,
   advance3,
-  ObjType;
+  Drivers,
+  Collect;
 
 PROCEDURE FatalError( const S: String );
 
@@ -71,27 +69,33 @@ Type TSignRec = Record
                  Sign: String[MaxSignLen];
                  SignLen: Byte;
                  SignVer: Word;
+                 HavVer: boolean; {Is DN version word written after sign}
                 End;
 
 CONST
   FBRPBSignature: Array[1..5] of Char = 'FBRPB';
-  NumSupportedConfigs = 7;
+  NumSupportedConfigs = 9;
   ConfigSigns: Array[1..NumSupportedConfigs] of TSignRec =
    ((Sign:'DN2 Configuration'#26#001#36;SignLen:20;SignVer:00136),
                                                     {Base configuration}
-    (Sign:'DN2 Configuration'#26#151#05;SignLen:20;SignVer:15105),
+    (Sign:'DN2 Configuration'#26#151#05;SignLen:20;SignVer:15104),
                                                     {Configuration for 1.51.04-0}
-    (Sign:'DN2 Configuration'#26#151#42;SignLen:20;SignVer:15141),
+    (Sign:'DN2 Configuration'#26#151#42;SignLen:20;SignVer:15104),
                                                     {Configuration for 1.51.04-1}
-    (Sign:'DN2 Configuration'#26#151#42;SignLen:20;SignVer:15142),
+    (Sign:'DN2 Configuration'#26#151#42;SignLen:20;SignVer:15104),
                                                     {Configuration for 1.51.04-2}
-    (Sign:'DN OSP Configuration'#26#151#42;SignLen:23;SignVer:15142),
-    (Sign:'DN OSP Configuration'#26#151#43;SignLen:23;SignVer:15143),
-    (Sign:'DN OSP Configuration'#26#151#50;SignLen:23;SignVer:15150));
+    (Sign:'DN OSP Configuration'#26#151#42;SignLen:23;SignVer:15104),
+    (Sign:'DN OSP Configuration'#26#151#43;SignLen:23;SignVer:15104),
+    (Sign:'DN OSP Configuration'#26#151#50;SignLen:23;SignVer:15105),
                                                     {Configuration for 1.51.05}
+    (Sign:'DN OSP Configuration'#26#151#51;SignLen:23;SignVer:15105),
+                                                    {Configuration for 1.51.05-2}
+    (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:15106;HavVer:true));
+                                                    {Configuration for 1.51.06+}
   DSKSign: TSignRec =
-    (Sign:'DN OSP Desktop'#26#151#50;SignLen:17;SignVer:15150);
-                                                    {Desktop for 1.51.50}
+{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#70;SignLen:22;SignVer:15107);
+{$ELSE}      (Sign:'DN OSP Desktop'#26#151#70;SignLen:17;SignVer:15107);{$ENDIF}
+                                                    {Desktop for 1.51.07}
   Security: Boolean = True;
   ConfigModified: Boolean = Off;
   DateMode: Byte = 0;
@@ -110,7 +114,18 @@ TYPE
   TTextListBoxRec = record List: PTextCollection; Focus: Integer end;
 
   TSystemData = record
+    Options      : Word;
+    Mode1        : String[5];
+    Mode2        : String[5];
+    Temp         : String;
+    LFNContainer : Word;
+    LFNCache     : String[3];
+    Drives: Array [ 'A'..'Z' ] of Byte;
+  end;
+
+  TOld2SystemData = record
     Options: Word;
+    LFNContainer: Word;
     Mode1: String[5];
     Mode2: String[5];
     Temp: String; {DataCompBoy}
@@ -118,6 +133,14 @@ TYPE
   end;
 
   TOldSystemData = record
+    Options: Word;
+    Mode1: String[5];
+    Mode2: String[5];
+    Temp: String; {DataCompBoy}
+    Drives: Array [ 'A'..'Z' ] of Byte;
+  end;
+
+  TOld1SystemData = record
     Options: Word;
     Mode1: String[5];
     Mode2: String[5];
@@ -131,6 +154,7 @@ TYPE
     Options: Word;
   end;
 
+{$IFDEF SS}
   TSaversData = record
     Selected: TTextListBoxRec;
     Available: TTextListBoxRec;
@@ -146,6 +170,7 @@ TYPE
     Mouse: Boolean;
     _: Byte;
   end;
+{$ENDIF}
 
   TInterfaceData = record
     Options: Word;
@@ -175,6 +200,17 @@ TYPE
   end;
 
   TEditorDefaultsData = record
+    EdOpt: Word;
+    EdOpt2:Word;
+    ViOpt: Word;
+    LM,
+    RM,
+    PM: String[3];
+    NewLine: Word;
+    TabSize: String[3];
+  end;
+
+  TOldEditorDefaultsData = record
     EdOpt: Word;
     ViOpt: Word;
     LM,
@@ -209,6 +245,7 @@ var TempBounds: TRect;
 
 
 CONST
+  ChangeNamesCaseOptions: LongInt = 0;
   UUDecodeOptions: Word = 3;
   MakeListFileOptions: Word = 0;
 
@@ -230,25 +267,55 @@ CONST
     );
 
   Confirms: Word = cfSingleErase + cfMultiErase + cfEraseReadonly +
-                   cfEraseSubdir + cfExitConfirm;
+                   cfEraseSubdir + cfExitConfirm + cfFmtOs2Warning;
 
   TerminalDefaults: TTerminalDefaults = (Emulation:emANSIBBS;Options:toCtrlCLS+toAutoZModem);
 
+{-DataCompBoy-}{piwamoto}{JO}
+{ note: BIN, DAT, RAW are NOT included in any group, }
+{ becouse there is TOO MUCH filetypes with these extensions }
+
+  Archives:string =
+{archive volumes for ace,ain,arj,rar,zxzip}
+                    'a[0-9][0-9];r[0-9][0-9];$z[0-9];'+
+{supported archives in order of appearance}
+                    'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
+                    'lha;ice;lzh;lim;qrk;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
+                    'zip;zoo;$z;zxz;'+
+{arvid}
+                    'avt;tdr;'+
+{unsupported archives}
+                    'j;777;acb;boa;imp';
+
+{sources}
+  CustomMask1: String = 'pas;asm;inc;c;cpp;hdr;def;pp;h;rc;idb';
+{raw text}
+  CustomMask2: String = '.;asc;dok;txt;ans;diz;dif;inf;info;patch';
+{databases & speadsheets}
+  CustomMask3: String = 'dbf;wkz;wks;123;wk1;xls;mdb;mde';
+{kill'em!}
+  CustomMask4: String = 'tmp;$$$;bak;qab;swp;log;lut;c2t;err;old';
+{graphics}
+  CustomMask5: String = 'pcx;bmp;gif;rle;ico;jpg;jpe;jpeg;png;tif;tga;wpg;psd;pcd';
+{config}
+  CustomMask6: String = 'ini;cfg;ctl;nif;lst;m3u;pls';
+{audio & video}
+  CustomMask7: String =
+  {audio streams}
+                        'wav;voc;ym;aud;snd;'+
+  {compressed audio streams}
+                        'mp[1-3g];vqf;vtx;asf;as4;'+
+  {sampled music}
+                        'mod;stm;s3m;xm;it;mdl;mtm;mid;cmf;sid;'+
+  {video}
+                        'avi;mpeg;mpe;smk;bik;gl;mvy;mve;fli;flc;tgv';
+{fonts}
+  CustomMask8: String = 'fon;fot;fnt;ttf;ofm;pfm;afm;sft;eft;pft;xft';
+{Office documents}
+  CustomMask9: String = 'doc;rtf;sdw;lwp;sam;html;htm';
+{system}
+  CustomMask10: String= 'dll;drv;ifs;flt;add;sys;vxd;386;rtl;ovr;ovl';
         {-DataCompBoy-}
-  Archives:string = #0'arc'#0'bsa'#0'bs2'#0'zip'#0'arj'#0'lzh'#0'hyp'#0'chz'#0+
-                    'ha'#0'sqz'#0'zoo'#0'hap'#0'ice'#0'pak'#0'lim'#0'rar'#0'ha '#0+
-                    'j'#0'j  '#0'imp'#0'777'#0'acb'#0'boa'#0'z'#0'$z'#0'gz'#0+
-                    'hpk'#0'gz '#0'tgz'#0'taz'#0'z  '#0'$z '#0'ain'#0'ace'#0+
-                    'uc2'#0'ain'#0'lha'#0'tar'#0'tdr'#0'cab'#0'ufa'#0'avt'#0;
-        {-DataCompBoy-}
-  CustomMask1: String = #0'pas'#0'asm'#0'inc'#0'c'#0'cpp'#0;
-{piwamoto.change.begin}
-  CustomMask2: String = #0'.'#0'doc'#0'txt'#0'ctl'#0'diz'#0'ini'#0'cfg'#0;
-  CustomMask3: String = #0'dbf'#0'wkz'#0'wks'#0'123'#0'wk1'#0;{DataCompBoy}
-  CustomMask4: String = #0'tmp'#0'$$$'#0'bak'#0'old'#0;{DataCompBoy}
-  CustomMask5: String = #0'pcx'#0'bmp'#0'pic'#0'gif'#0'rle'#0'ico'#0'jpg'#0+
-                          'jpe'#0'png'#0'tif'#0'tga'#0;
-{piwamoto.change.end}
 
   InterfaceData: TInterfaceData = (
     Options: ouiClock +
@@ -261,7 +328,7 @@ CONST
   );
 
   PanelDefaults: TPanelDefaultsData = (
-    Sort:  psmExtension;
+    Sort:  psmLongExt;
     Show:  fmiCurrent +
            fmiSelected +
            fmiHiliteFiles +
@@ -282,8 +349,8 @@ CONST
             fmsTagChar +
             fmsDivider;
       Quick: pqsAlt;
-      TagChar : '√';
-      RestChar: '';
+      TagChar : #251;
+      RestChar: #16;
       DIZ: 'descript.ion;files.bbs'
     );
 
@@ -294,6 +361,7 @@ CONST
            ebfEMS +
            ebfXMS +
            ebfTRp; {-$VOL}
+    EdOpt2:ebfHlt+ebfSmt;
     ViOpt: 0;
     LM: '0';
     RM: '78';
@@ -308,22 +376,26 @@ CONST
     Options: omsCursor
   );
 
+{$IFDEF SS}
   SaversData: TSaversData = (
     Selected: ( List: NIL; Focus: 0 );
     Available: ( List: NIL; Focus: 0 );
     Time: '1';
     Mouse: False
   );
+{$ENDIF}
 
   SystemData: TSystemData = (
     Options: ossEditor + ossViewer + ossAdvCopy + ossFlushDsk;
     Mode1: '256';
     Mode2: '265';
     Temp: '';
+    LFNContainer: 0;
+    LFNCache: '3';
     Drives: (
-      ossDirectAccess, ossDirectAccess,
-      ossTree, ossTree, ossTree,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      {A}ossCheckFreeSpace+ossVerify,     {B}ossCheckFreeSpace+ossVerify,
+      {C}0, {D}0, {E}0, {F}0, {G}0, {H}0, {I}0, {J}0, {K}0, {L}0, {M}0, {N}0,
+      {O}0, {P}0, {Q}0, {R}0, {S}0, {T}0, {U}0, {V}0, {W}0, {X}0, {Y}0, {Z}0
     )
   );
 
@@ -419,18 +491,14 @@ CONST
   );
 
 
+  {$IFDEF PRINTMANAGER}
   RPrinterSetup: record Device: Word; InitPrinter, AfterFile: String; end =
     (Device: 0; InitPrinter:''; AfterFile:#12);
+  {$ENDIF}
 
   TetrisRec : record
     L : Word; S : Word; P: Word;
   end = (L:4; S:0; P:0);
-
-  RTextCollection: TStreamRec = (
-    ObjType: otTextCollection;
-    VmtLink: Ofs(TypeOf(TTextCollection)^);
-    Load:    @TTextCollection.Load;
-    Store:   @TTextCollection.Store);
 
   rfDescriptions = $0002;
   rfPhoneBook    = $0004;
@@ -441,16 +509,15 @@ CONST
 
 IMPLEMENTATION
 {$IFDEF DNPRG}
-{$IFNDEF DPMI}{$i overlay.def}{$ENDIF}
-Uses ExtraMemory
+Uses extramemory
 
 {$IFNDEF DPMI}
 
-{$ifdef packoverlay}
+{$IFDEF PackOverlay}
      ,DnOverl {DataCompBoy}
-{$else}
+{$ELSE}
      ,Overlay
-{$endif}
+{$ENDIF}
      ,Overlays
 
 {$ENDIF}{DPMI}
@@ -484,7 +551,6 @@ end;
 {$IFDEF DNPRG }
   procedure SetOverlay;
   var S: String;
-{      I: LongInt; }
   begin
     InitExtraMem;
     S := Dos.GetEnv('DNOVR');

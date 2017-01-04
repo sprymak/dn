@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,30 +44,32 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-
-{$I DN.DEF}
+{$I STDEFINE.INC}
 
 unit Gauges;
 
 { Useful gauges: clock and heap available viewer }
-
 interface
 
-uses Dos, Objects, Views, Drivers, FileCopy, Eraser,
-     Commands, xTime, ObjType, LFNCol;
+uses Dos, Objects, Views, Drivers, FileCopy, Eraser, Collect,
+     Commands, xTime, LFNCol
+{$IFDEF Calendar} ,calendar {$ENDIF}
+     ;
 
 
 type
-
+{$IFDEF TrashCan}
   { Trash can object }
   PTrashCan = ^TTrashCan;
   TTrashCan = object(TView)
+    ImVisible: boolean;
     constructor Init(var R: TRect);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
   end;
+{$ENDIF}
 
   PKeyMacros = ^TKeyMacros;
   TKeyMacros = object(TObject)
@@ -85,19 +87,6 @@ type
 
 const LastHour: Word = $FF;
       LastMin: Word = 0;
-
-
-      RTrashCan: TStreamRec = (
-       ObjType: otTrashCan;
-       VmtLink: Ofs(TypeOf(TTrashCan)^);
-       Load: @TTrashCan.Load;
-       Store: @TTrashCan.Store);
-
-      RKeyMacros: TStreamRec = (
-       ObjType: otKeyMacros;
-       VmtLink: Ofs(TypeOf(TKeyMacros)^);
-       Load: @TKeyMacros.Load;
-       Store: @TKeyMacros.Store);
 
 const
      KeyMacroses: PCollection = nil;
@@ -120,7 +109,6 @@ type
     TimeStr: string[16];   {-SSK (old version: string[12])}
     OldXCoord: integer;    {-SSK}
     OldShowSeconds: boolean;
-    Vversion : word ;
     Utimer: TEventTimer;
     constructor Init(var Bounds: TRect);
     procedure Draw; virtual;
@@ -129,14 +117,13 @@ type
     procedure Update; virtual;
   end;
 
+{$IFDEF PRINTMANAGER}
 procedure PrintFiles(Files: PCollection; Own: PView);
-
+{$ENDIF}
 
 implementation
 uses Memory, Tree, Messages, DNApp, advance, advance1, advance2, advance3,
      FilesCol, RStrings, Startup, DnIni; {-$VIV}
-
-{$I Version.INC}
 
 constructor TKeyMacros.Init;
 begin
@@ -236,7 +223,6 @@ begin
   OldXCoord:=-1;
   OldShowSeconds:=ShowSeconds;
   EventMask:= evMouse or evMessage ;
-  Vversion := VersionWord ;
   Options:=Options or ofTopSelect;
   GrowMode := gfGrowHiX;
   GetTime(LastHour,LastMin , s , hund );
@@ -257,6 +243,9 @@ begin
   if MacroRecord then MoveStr(B, '>MACRO<', C)
                  else
                    begin
+                     if (RightAlignClock = True) and
+                        (Origin.X + Size.X <> ScreenWidth) then
+                       MoveTo(ScreenWidth - Size.X, Origin.Y);
                      if Length(TimeStr) <> Size.X then
                        begin GrowTo(Length(TimeStr), 1); Exit end;
                      MoveStr(B, TimeStr, C);
@@ -270,6 +259,9 @@ var P : TPoint;
 begin
  P:=Size;Application^.GetBounds(R);
  If Event.What=evMouseDown then begin
+{$IFDEF Calendar}
+   If Event.Double then begin InsertCalendar; exit end;
+{$ENDIF}
    OldXCoord:=-1;  {-SSK}
    TView.DragView(Event,dmDragMove,R,P,P);
  end;
@@ -313,16 +305,20 @@ begin
                   +' '+TimeStr
                end else TimeStr:=' '+TimeStr;
            end;
-           if OldXCoord=-1 then OldXCoord:=Origin.X;
-           if Origin.X>(ScreenWidth shr 1) then R.Assign(OldXCoord+
-           StdClockWidth-Length(TimeStr),Origin.Y,OldXCoord+StdClockWidth,
-           Origin.Y+Size.Y) else R.Assign(OldXCoord,Origin.Y,OldXCoord+
-           Length(TimeStr),Origin.Y+Size.Y);
-           TView.Locate(R);
+           if not RightAlignClock then begin
+            if OldXCoord=-1 then OldXCoord:=Origin.X;
+            if (Origin.X+(Size.X shr 1))>(ScreenWidth shr 1) then
+             R.Assign(OldXCoord+StdClockWidth-Length(TimeStr), Origin.Y,
+                      OldXCoord+StdClockWidth,                 Origin.Y+Size.Y)
+            else R.Assign(OldXCoord,                 Origin.Y,
+                          OldXCoord+Length(TimeStr), Origin.Y+Size.Y);
+            TView.Locate(R);
+           end;
            UpdTicks := 6;
       end else
       begin
-        if not (OldXCoord=-1) then begin {-SSK}
+        if not RightAlignClock then
+         if not (OldXCoord=-1) then begin {-SSK}
           R.Assign(OldXCoord,Origin.Y, OldXCoord+Length(TimeStr),Origin.Y+Size.Y);
           OldXCoord:=-1;
           TView.Locate(R);
@@ -378,6 +374,7 @@ begin
   FormatTimeStr := S + N;
 end;
 
+{$IFDEF TrashCan}
 const
   CTrashCan : string[Length(CGrayWindow)] = CGrayWindow;
 
@@ -408,7 +405,7 @@ begin
   C := GetColor(C);
   MoveStr(B, #209#209#216#209#209, C);
   WriteLine(0, 0, Size.X, 1, B);
-  MoveStr(B, 'Trash', C);
+  MoveStr(B, GetString(dlTrashCaption), C);
   WriteLine(0, 1, Size.X, 1, B);
   MoveStr(B, #192#193#193#193#217, C);
   WriteLine(0, 2, Size.X, 1, B);
@@ -458,8 +455,10 @@ begin
   if (AState and (sfSelected + sfFocused + sfDragging) <> 0) then
     DrawView;
 end;
+{$ENDIF}
 
         {-DataCompBoy-}
+{$IFDEF PRINTMANAGER}
 procedure PrintFiles;
   var PF: PFileRec;
       I,J: Integer;
@@ -489,6 +488,7 @@ begin
          end;
     end;
 end;
+{$ENDIF}
         {-DataCompBoy-}
 
 end.

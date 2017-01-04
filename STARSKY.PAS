@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -149,7 +149,7 @@ begin
   Application^.GetEvent(Event);
   asm int 28h end;
  until (Event.What and (evMouse or evKeyDown) <> 0) or (ShiftState <> ks1);
- for i:=1 to nw do Dispose(w[i], Done);
+ for i:=1 to nw do Dispose(w[i],Done);
 end;
 
 Procedure Nibbles(Bounds : TRect);
@@ -201,8 +201,8 @@ begin
  AX1 := Ball.X - 2;
  AX2 := Ball.X - 2;
  InitBall;
- WriteStr(AX1, 1, '<อออ>');
- WriteStr(AX2, ScreenHeight, '<อออ>');
+ WriteStr(AX1, 1, #60#205#205#205#62);
+ WriteStr(AX2, ScreenHeight, #60#205#205#205#62);
  repeat
   WriteStr(Ball.X, Ball.Y, ' ');
   Inc(Ball.Y, DY);
@@ -236,13 +236,13 @@ begin
     WriteStr(AX1, 1, '     ');
     if (Ball.X - 2 < AX1) then Dec(AX1, (1+Random(5))) else Inc(AX1, (1+Random(5)));
     if AX1 < 1 then AX1 := 1; if AX1 > ScreenWidth - 6 then AX1 := ScreenWidth - 6;
-    WriteStr(AX1, 1, '<อออ>');
+    WriteStr(AX1, 1, #60#205#205#205#62);
    end else
    begin
     WriteStr(AX2, ScreenHeight, '     ');
     if (Ball.X - 2 < AX2) then Dec(AX2, (1+Random(5))) else Inc(AX2, (1+Random(5)));
     if AX2 < 1 then AX2 := 1; if AX2 > ScreenWidth - 6 then AX2 := ScreenWidth - 6;
-    WriteStr(AX2, ScreenHeight, '<อออ>');
+    WriteStr(AX2, ScreenHeight, #60#205#205#205#62);
    end;
   WriteStr(Ball.X, Ball.Y, #1);
   Delay(50);
@@ -266,7 +266,7 @@ end;
 
 procedure Sky;
 const
-   qwe : String[6]='ฤ๚*';
+   qwe : String[6]=#196#4#7#15#250#42;
 type
    Lnc = record
           x,y,c : Byte;
@@ -328,7 +328,7 @@ var
    Delay(30);
    Application^.GetEvent(Event);
    asm int 28h end;
-  until (Event.What and (evMouse or evKeyDown) <> 0) or (mem[0:$417] <> ks1);
+  until (Event.What and (evMouse or evKeyDown) <> 0) or (mem[seg0040:$17] <> ks1);
   SkyVisible := Off;
  end;
 
@@ -346,7 +346,7 @@ begin
  end;
  if SMode = 2 then begin StartSky(1); Application^.Redraw;
                     asm mov ah,1; mov cx, OldShape; xor bx, bx; int 10h; end; Exit; end;
- {SaveCursor;SetCursor($2020);}ks1:=mem[0:$417];ks2:=mem[0:$418];
+ {SaveCursor;SetCursor($2020);}ks1:=mem[seg0040:$17];ks2:=mem[seg0040:$18];
  Ad := Seg(ScreenBuffer^); Os := Ofs(ScreenBuffer^);
  nl:=0; ScrBuf := MemAlloc(ScreenWidth*ScreenHeight*2);
  if ScrBuf = nil then Exit; HideMouse;
@@ -378,7 +378,7 @@ begin
  {RestoreCursor;}
  ShowMouse;
  asm mov ah,1; mov cx, OldShape; xor bx, bx; int 10h; end;
- memw[$40:$1a]:=memw[$40:$1c]; SkyVisible := Off;
+ memw[seg0040:$1a]:=memw[seg0040:$1c]; SkyVisible := Off;
 end;
 
 

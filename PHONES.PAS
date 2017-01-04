@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,26 +43,25 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
-{$I DN.DEF}
 
 unit Phones;
 
 interface
 
 uses xTime, Objects, DNApp, Drivers, Dialogs, Menus, Views, DNStdDlg, RStrings,
-     DNHelp, advance, advance1, advance2, advance3, Messages, ObjType;
+     DNHelp, advance, advance1, advance2, advance3, Messages, ObjType, Collect,
+     StrView;
 
-type PPhoneCollection = ^TPhoneCollection;
+type
+     PPhoneCollection = ^TPhoneCollection;
      TPhoneCollection = object(TSortedCollection)
-      constructor Init(ALimit, ADelta: Integer);
+      constructor Init(ALimit, ADelta: LongInt);
       constructor Load(var S: TStream);
+      constructor ShortLoad(var S: TStream);
+      procedure ShortStore(var S: TStream);
       function Compare(P1, P2: Pointer): Integer; virtual;
       procedure FreeItem(Item: Pointer); virtual;
      end;
@@ -93,19 +92,6 @@ type PPhoneCollection = ^TPhoneCollection;
       destructor Done; virtual;
      end;
 
-     PDStringView = ^TDStringView;
-     TDStringView = object(TView)
-      S1, S2: String[50];
-      function GetPalette: PPalette; virtual;
-      procedure Draw; virtual;
-     end;
-
-     PDialBox = ^TDialBox;
-     TDialBox = object(TListBox)
-        function GetText(Item: Integer; MaxLen: Integer): String; virtual;
-{        destructor Done; virtual;}
-     end;
-
      PPhoneBox = ^TPhoneBox;
      TPhoneBox = object(TSortedListBox)
       GroupLabel, ItemLabel: PLabel;
@@ -121,84 +107,11 @@ type PPhoneCollection = ^TPhoneCollection;
 {      procedure SetState(AState: Word; Enable: Boolean); virtual;}
      end;
 
-{$IFDEF Modem}
-     PAutoDialer = ^TAutoDialer;
-     TAutoDialer = object(TDialog)
-      HoldButton,UnholdButton: PButton;
-
-      List: PListBox;
-      Trm: PDStringView;
-      Phones: PPhoneCollection;
-      Phone, Name: String;
-      ModemS: String;
-      SPosX: Integer;
-      Static, Hold, Pause: Boolean;
-      PauseTimer: TEventTimer;
-      UpdTimer: TEventTimer;
-      isValid: Boolean;
-      L: Array [1..2] of Pointer;
-      constructor Init(AName, APhone: String);
-      procedure SetPhone(NewName, NewPhone: String);
-      procedure HandleEvent(var Event: TEvent); virtual;
-      function Valid(C: Word): Boolean; virtual;
-      procedure Update; virtual;
-      constructor Load(var S: TStream);
-      procedure Store(var S: TStream);
-      destructor Done; virtual;
-     end;
-{$ENDIF}
-
 procedure PhoneBook(Manual: Boolean);
 
-{$IFDEF Modem}
-
-const
-      Dialer: PAutoDialer = nil;
-
-      RAutoDialer: TStreamRec = (
-       ObjType: otAutoDialer;
-       VmtLink: Ofs(TypeOf(TAutoDialer)^);
-       Load: @TAutoDialer.Load;
-       Store: @TAutoDialer.Store);
-
-      RDialBox: TStreamRec = (
-       ObjType: otDialBox;
-       VmtLink: Ofs(TypeOf(TDialBox)^);
-       Load: @TDialBox.Load;
-       Store: @TDialBox.Store);
-{$ENDIF}
-
-const
-      RDStringView: TStreamRec = (
-       ObjType: otDStringView;
-       VmtLink: Ofs(TypeOf(TDStringView)^);
-       Load: @TDStringView.Load;
-       Store: @TDStringView.Store);
-
-      RPhone: TStreamRec = (
-       ObjType: otPhone;
-       VmtLink: Ofs(TypeOf(TPhone)^);
-       Load: @TPhone.Load;
-       Store: @TPhone.Store);
-
-      RPhoneDir: TStreamRec = (
-       ObjType: otPhoneDir;
-       VmtLink: Ofs(TypeOf(TPhoneDir)^);
-       Load: @TPhoneDir.Load;
-       Store: @TPhoneDir.Store);
-
-      RPhoneCollection: TStreamRec = (
-       ObjType: otPhoneCollection;
-       VmtLink: Ofs(TypeOf(TPhoneCollection)^);
-       Load: @TPhoneCollection.Load;
-       Store: @TPhoneCollection.Store);
-
-
 implementation
-uses StartUp, Commands {$IFDEF Modem}, ModemIO, Terminal{$ENDIF};
+uses StartUp, Commands {$IFDEF Modem}, ModemIO, Terminal, uDialer{$ENDIF};
 
-const cmHold   = 11304;
-      cmUnhold = 11005;
 var   EnterButton, ReturnButton: PButton;
 
 function CryptWith(Pass, S: String): String;
@@ -210,25 +123,6 @@ begin
         S[I] := Char(Byte(S[I]) xor Byte(Pass[1 + I mod Length(Pass)]) xor (I xor $AA));
     end;
  CryptWith := S;
-end;
-
-procedure TDStringView.Draw;
- var B: TDrawBuffer;
-     C: Word;
-begin
- C := GetColor(1);
- MoveChar(B, ' ', C, Size.X);
- MoveStr(B, S1, C);
- WriteLine(0, 0, Size.X, Size.Y, B);
- MoveChar(B, ' ', C, Size.X);
- MoveStr(B, S2, C);
- WriteLine(0, 1, Size.X, Size.Y, B);
-end;
-
-function TDStringView.GetPalette;
- const S: String[1] = #30;
-begin
- GetPalette := @S;
 end;
 
 var PPH: PPhone;
@@ -245,7 +139,7 @@ procedure PhoneBook(Manual: Boolean);
      I: Integer;
     SS: string;
 
-  procedure DoSearchButton( P: PView ); far;
+  procedure DoSearchButton( P: PView ); {$IFDEF BIT_16}far;{$ENDIF}
    begin
      If ( TypeOf( P^ ) = TypeOf( TButton )) then
       if PButton(P)^.Command=cmOk then EnterButton:=PButton(P)
@@ -271,7 +165,13 @@ begin
     PL := New(PPhoneBox, Init(R, 1, PScrollBar(PV)));
     PL^.Options := PL^.Options or ofPostProcess;
     S.Init(SourceDir+'DN.PHN', stOpenRead, 1024);
+    PC := nil;
     PC := PCollection(S.Get);
+    if PC=nil then begin
+     S.Reset;
+     S.Seek(0);
+     PC := PCollection(New(PPhoneCollection, ShortLoad(S)));
+    end;
     S.Done;
     if PC = nil then PC := New(PPhoneCollection, Init(10,10));
     PC^.Pack;
@@ -305,7 +205,7 @@ begin
 
     R.A.X := Desktop^.ExecView(D);
     D^.GetData(DT);
-    Dispose(D, Done);
+    Dispose(D,Done);
     if R.A.X <> cmDialPhone then Exit;
   end;
   if PPh = nil then Exit;
@@ -316,7 +216,7 @@ begin
   end else
     Dialer^.SetPhone(PPh^.Name,PPh^.Number^);
 {$ENDIF}
-  Dispose(PPh, Done);
+  Dispose(PPh,Done); PPh:=nil;
 end;
 
 function TPhoneBox.GetKey;
@@ -339,20 +239,20 @@ procedure TPhoneBox.SetList;
   var PC: PPhoneCollection;
       S: TBufStream;
 
-  procedure DoPhones(Ph: PPhoneDir); far;
+  procedure DoPhones(Ph: PPhoneDir); {$IFDEF BIT_16}far;{$ENDIF}
 
-    procedure InsertPhone(P: PPhone); far;
+    procedure InsertPhone(P: PPhone); {$IFDEF BIT_16}far;{$ENDIF}
       var PP: PPhoneDir;
-          I: Integer;
+          I: LongInt;
     begin
       if P <> nil then
        begin
-         FreeStr:=UpCaseStr(P^.Name);
+         FreeStr:=UpStrg(P^.Name);
          If (Length(FreeStr)=2) and (FreeStr='..') then Exit;
          PP := New(PPhoneDir, Init('', FreeStr[1], '', ''));
          if PC^.Search(PP, I) then
           begin
-            Dispose(PP, Done);
+            Dispose(PP,Done);
             PP := PC^.At(I);
           end else PC^.AtInsert(I, PP);
          if PP^.Phones = nil then PP^.Phones := New(PPhoneCollection, Init(10,10));
@@ -378,11 +278,17 @@ begin
       end else
       begin
         S.Init(SourceDir+'DN.PHN', stOpenRead, 1024);
+        PC:=nil;
         PC := PPhoneCollection(S.Get);
+        if PC=nil then begin
+         S.Reset;
+         S.Seek(0);
+         PC:=New(PPhoneCollection, ShortLoad(S));
+        end;
         S.Done;
         if PC = nil then PC := New(PPhoneCollection, Init(10,10));
       end;
-      Dispose(Phones, Done);
+      Dispose(Phones,Done);
       Phones := PC;
    end;
   AlphaMode := Alpha;
@@ -483,7 +389,8 @@ procedure TPhoneBox.HandleEvent;
   Owner^.Lock; NewList(C); FocusItem(R.A.X); Owner^.UnLock;
   Active^.Phones := C;
   Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
-  Stream.Put(Phones);
+  if Phones^.Count>16380 then Stream.Put(Phones)
+                         else PPhoneCollection(Phones)^.ShortStore(Stream);
   Stream.Done;
  end;
 
@@ -510,7 +417,8 @@ procedure TPhoneBox.HandleEvent;
   Owner^.Lock; NewList(C); FocusItem(I); Owner^.UnLock;
   Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
   Phones := C;
-  Stream.Put(C);
+  if Phones^.Count>16380 then Stream.Put(Phones)
+                         else PPhoneCollection(Phones)^.ShortStore(Stream);
   Stream.Done;
  end;
 
@@ -533,7 +441,8 @@ procedure TPhoneBox.HandleEvent;
   Owner^.Lock; NewList(C); FocusItem(I); Owner^.UnLock;
   Active^.Phones := C;
   Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
-  Stream.Put(Phones);
+  if Phones^.Count>16380 then Stream.Put(Phones)
+                         else PPhoneCollection(Phones)^.ShortStore(Stream);
   Stream.Done;
  end;
 
@@ -576,7 +485,8 @@ procedure TPhoneBox.HandleEvent;
  (*     if{ SearchMode and} (List <> nil) then
        begin
         List^.DeleteAll;
-        Dispose(List, Done)
+        Dispose(List,Done);
+        Lisr:=nil;
        end;
   *)
       Active := PD;
@@ -589,7 +499,8 @@ procedure TPhoneBox.HandleEvent;
          Owner^.Lock; NewList(C); Owner^.UnLock;
          Active^.Phones := C;
          Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
-         Stream.Put(Phones);
+         if Phones^.Count>16380 then Stream.Put(Phones)
+                                else PPhoneCollection(Phones)^.ShortStore(Stream);
          Stream.Done;
          DrawView;
          Exit;
@@ -613,7 +524,8 @@ procedure TPhoneBox.HandleEvent;
       if SearchMode and (List <> nil) then
        begin
         List^.DeleteAll;
-        Dispose(List, Done)
+        Dispose(List,Done);
+        List:=nil;
        end;
       SearchMode := Off;
       List := nil;
@@ -629,11 +541,11 @@ procedure TPhoneBox.HandleEvent;
    var PC: PPhoneCollection;
        S: String;
 
-    procedure SearchDir(Ph: PPhoneDir); far;
-     procedure DoPhone(P: PPhone); far;
+    procedure SearchDir(Ph: PPhoneDir); {$IFDEF BIT_16}far;{$ENDIF}
+     procedure DoPhone(P: PPhone); {$IFDEF BIT_16}far;{$ENDIF}
       var I: Integer;
      begin
-       if (P <> nil) and ((Pos(S, UpCaseStr(P^.Name)) <> 0) or (Pos(S, UpCaseStr(P^.Number^)) <> 0)) then PC^.Insert(P);
+       if (P <> nil) and ((Pos(S, UpStrg(P^.Name)) <> 0) or (Pos(S, UpStrg(P^.Number^)) <> 0)) then PC^.Insert(P);
      end;
     begin
      if (Ph <> nil) and (Ph^.Phones <> nil) and ((Ph^.Password = '') or (Ph^.Encrypted))
@@ -644,7 +556,7 @@ procedure TPhoneBox.HandleEvent;
    if (Phones = nil) or (Phones^.Count = 0) then Exit;
    S := '';
    if InputBox(GetString(dlPB_SearchPhone), GetString(dlPB_S_earchString), S, 30, 0) <> cmOK then Exit;
-   S := UpCaseStr(S);
+   UpStr(S);
    New(PC, Init(10,10));
    PC^.Duplicates := On;
    Phones^.ForEach(@SearchDir);
@@ -653,7 +565,7 @@ procedure TPhoneBox.HandleEvent;
       MessageBox(GetString(dlPB_Nofind), nil, mfError+mfOKButton);
       Exit;
     end;
-   if SearchMode then begin List^.DeleteAll; Dispose(List, Done) end;
+   if SearchMode then begin List^.DeleteAll; Dispose(List,Done); List:=nil end;
    SearchMode := True;
    List := nil;
    if Active = nil then Active := Phones^.At(Focused);
@@ -736,9 +648,10 @@ procedure TPhoneBox.HandleEvent;
    MessageBox(^C+ItoS(M)+GetString(dlPB_CnvReport), nil, mfInformation+mfOKButton);
    List := nil;
    NewList(Active^.Phones);
-   Dispose(F, Done);
+   Dispose(F,Done);
    Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
-   Stream.Put(Phones);
+   if Phones^.Count>16380 then Stream.Put(Phones)
+                          else PPhoneCollection(Phones)^.ShortStore(Stream);
    Stream.Done;
  end;
 
@@ -798,7 +711,8 @@ begin
                         if (List <> nil) and (Focused < List^.Count) then
                           begin List^.AtFree(Focused); SetRange(List^.Count); DrawView; end;
                         Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
-                        Stream.Put(Phones);
+                        if Phones^.Count>16380 then Stream.Put(Phones)
+                                               else PPhoneCollection(Phones)^.ShortStore(Stream);
                         Stream.Done;
                      end;
              end;
@@ -852,11 +766,11 @@ end;
 
 destructor TPhoneBox.Done;
 begin
-{  if (List <> nil) and (List <> Phones)
-    then List^.DeleteAll;}
-  if Phones <> nil then Dispose(Phones, Done);
-{  if Active <> nil then Dispose(Active, Done);}
-  if Info   <> nil then Dispose(Info, Done);
+{ if (List <> nil) and (List <> Phones) }
+{                  then List^.DeleteAll;}
+  if Phones <> nil then Dispose(Phones,Done); Phones:=nil;
+{ if Active <> nil then Dispose(Active,Done); Active:=nil;}
+  if Info   <> nil then Dispose(Info,Done);   Info  :=nil;
 
   inherited Done;
 end;
@@ -871,23 +785,6 @@ begin
  GetText := S;
 end;
 
-function TDialBox.GetText;
- var S: String;
-     P: PPhone;
-begin
- P := List^.At(Item);
- S := AddSpace(P^.Name, 30);
- if TypeOf(P^)=TypeOf(TPhone) then S := S + ' '+AddSpace(P^.Number^,23);
- GetText := S;
-end;
-
-(*
-destructor TDialBox.Done;
-begin
- Inherited Done;
- if List<>Nil then Dispose(List,Done);
-end; *)
-
 constructor TPhoneCollection.Init;
 begin
  inherited Init(ALimit, ADelta);
@@ -898,6 +795,50 @@ constructor TPhoneCollection.Load;
 begin
  inherited Load(S);
  Duplicates := On;
+end;
+
+const VObjType:word=otPhone;
+     VObjType2:word=otPhoneDir;
+     VObjType3:word=otPhoneCollection;
+procedure TPhoneCollection.ShortStore(var S: TStream);
+  procedure DoPutItem(P: Pointer); {$IFDEF BIT_16} far; {$ENDIF}
+  begin
+   if TypeOf( (PObject(P)^) )=TypeOf(TPhone) then begin
+    S.Write(VObjType, 2);
+    PPhone(P)^.Store(S);
+   end else
+   if TypeOf( (PObject(P)^) )=TypeOf(TPhoneDir) then begin
+    S.Write(VObjType2, 2);
+    PPhoneDir(P)^.Store(S);
+   end;
+  end;
+begin
+  S.Write(VObjType3, 2);
+  S.Write(Count, 2);
+  S.Write(Limit, 2);
+  S.Write(Delta, 2);
+  ForEach(@DoPutItem);
+  S.Write(Duplicates, SizeOf(Duplicates));
+end;
+
+constructor TPhoneCollection.ShortLoad(var S: TStream);
+var q: word;
+  C, I: Integer;
+  ACount, ALimit, ADelta: integer;
+begin
+  S.Read(q, 2);
+  if q<>otPhoneCollection then fail;
+  S.Read(ACount, SizeOf(Integer));
+  S.Read(ALimit, SizeOf(Integer));
+  S.Read(ADelta, SizeOf(Integer));
+  Inherited Init(ALimit, ADelta);
+  SetLimit(ACount);
+  for I := 0 to ACount - 1 do begin
+   S.Read(q, 2);
+   if q=otPhone    then AtInsert(I, New(PPhone, Load(S))) else
+   if q=otPhoneDir then AtInsert(I, New(PPhoneDir, Load(S))) else break;
+  end;
+  S.Read(Duplicates, SizeOf(Boolean));
 end;
 
 function TPhoneCollection.Compare;
@@ -911,7 +852,7 @@ procedure TPhoneCollection.FreeItem(Item: Pointer);
 var PP: PPhone;
 begin
  PP:=Item;
- if Item <> nil then Dispose(PP, Done);
+ if Item <> nil then Dispose(PP,Done);
 end;
 
 constructor TPhone.Init;
@@ -959,7 +900,7 @@ begin
 end;
 
 procedure CryptCol(Col: PCollection; Pass: String);
-  procedure CryptPhone(P: PPhone); far;
+  procedure CryptPhone(P: PPhone); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     if P <> nil then
      with P^ do
@@ -976,6 +917,7 @@ end;
 
 
 constructor TPhoneDir.Load;
+var Q: Word;
 begin
  S.Read(Name[0],1);
  S.Read(Name[1], Byte(Name[0]));
@@ -984,7 +926,14 @@ begin
  S.Read(Password, 1);
  S.Read(Password[1], Byte(Password[0]));
  Password := CryptWith('NaViGaToR', Password);
+ Q:=S.GetPos;
+ Phones := nil;
  Phones := PCollection(S.Get);
+ if Phones=nil then begin
+  S.Status:=stOk;
+  S.Seek(Q);
+  Phones := PCollection(New(PPhoneCollection, ShortLoad(S)));
+ end;
  if Phones <> nil then CryptCol(Phones, Password);
  Encrypted := False;
 end;
@@ -999,7 +948,9 @@ begin
  S.Write(Password[1], Byte(Password[0]));
  Password := CryptWith('NaViGaToR', Password);
  if Phones <> nil then CryptCol(Phones, Password);
- S.Put(Phones);
+ if Phones <> nil then
+  if Phones^.Count>16380 then S.Put(Phones)
+                         else PPhoneCollection(Phones)^.ShortStore(S);
  if Phones <> nil then CryptCol(Phones, Password);
 end;
 
@@ -1007,395 +958,8 @@ destructor TPhoneDir.Done;
 begin
  DisposeStr(Memo1);
  DisposeStr(Memo2);
- if Phones <> nil then Dispose(Phones, Done);
+ if Phones <> nil then Dispose(Phones,Done); Phones:=nil;
  inherited Done;
 end;
-
-{$IFDEF Modem}
-constructor TAutoDialer.Init;
- var P: PView;
-     R: TRect;
-begin
-  R.Assign(0,1,54,12);
-  inherited Init(R, GetString(dlAutoDialer));
-
-  {Options := Options or ofCentered;}
-  if (InitModem = moInitFail) or (COMPort = nil) then Fail;
-  isValid := On;
-  New(Phones, Init(10,10));
-  R.Assign(34,2,35,7);
-  P := New(PScrollBar, Init(R));
-  Insert(P);
-
-  R.Assign(2,2,34,7);
-  List := New(PDialBox, Init(R, 1, PScrollBar(P)));
-  Insert(List);
-
-  R.Assign(2,1,34,2);
-  Insert(New(PLabel, Init(R, GetString(dlAD_Queue), List)));
-
-  R.Assign(2,8,35,10);
-  New(Trm, Init(R));
-  Insert(Trm);
-  R.Assign(2,7,35,8);
-  Insert(New(PLabel, Init(R, GetString(dlAD_Status), Trm)));
-
-  List^.NewList(Phones);
-  R.Assign(36,2,52,4);
-  Insert(New(PButton, Init(R, GetString(dlAD_Redial), cmYes, 0)));
-  R.Assign(36,4,52,6);
-  Insert(New(PButton, Init(R, GetString(dlAD_ForceDial), cmNo, 0)));
-  R.Assign(36,6,52,8);
-  Insert(New(PButton, Init(R, GetString(dlAD_Delete), cmOk, 0)));
-  R.Assign(36,8,52,10);
-  HoldButton := New(PButton, Init(R, GetString(dlAD_Hold), cmHold, 0));
-  Insert(HoldButton);
-  UnholdButton := New(PButton, Init(R, GetString(dlAD_Unhold), cmUnhold, 0));
-  UnholdButton^.Hide;
-  Insert(UnholdButton);
-  SelectNext(Off);
-  SetPhone(AName, APhone);
-  Dialer := @Self;
-  ModemAnswer := '';
-  ModemS := '';
-  SPosX := 1;
-  RegisterToPrior(@Self);
-end;
-
-function TAutoDialer.Valid;
-begin
-  Valid := inherited Valid(C) and isValid;
-end;
-
-constructor TAutoDialer.Load;
-begin
-   inherited Load(S);
-   Phones := PPhoneCollection(S.Get);
-   S.Read(Name, 1);
-   S.Read(Name[1], Length(Name));
-   S.Read(Phone, 1);
-   S.Read(Phone[1], Length(Phone));
-   S.Read(Hold, 1);
-   GetSubViewPtr(S, List);
-   GetSubViewPtr(S, Trm);
-   GetSubViewPtr(S, HoldButton);
-   GetSubViewPtr(S, UnholdButton);
-   Trm^.S1 := '';
-   Trm^.S2 := '';
-   ModemS := '';
-   SPosX := 0;
-   if List <> nil then List^.NewList(Phones);
-   Static := On;
-   Dialer := @Self;
-   isValid := (InitModem <> moInitFail) and (COMPort <> nil);
-   RegisterToPrior( @Self );
-end;
-
-procedure TAutoDialer.Store;
-begin
-   if List <> nil then List^.List := nil;
-   inherited Store(S);
-   if List <> nil then List^.List := Phones;
-   S.Put(Phones);
-   S.Write(Name, 1+Length(Name));
-   S.Write(Phone, 1+Length(Phone));
-   S.Write(Hold, 1);
-   PutSubViewPtr(S, List);
-   PutSubViewPtr(S, Trm);
-   PutSubViewPtr(S, HoldButton);
-   PutSubViewPtr(S, UnholdButton);
-end;
-
-destructor TAutoDialer.Done;
-begin
- Dialer := nil;
- if Trm<>nil then Dispose(Trm, Done);
- if List <> nil then Dispose(List,Done);
- if Phones <> nil then Dispose(Phones, Done);
- inherited Done;
-end;
-
-procedure TAutoDialer.SetPhone;
- var I: Integer;
-     P: PPhone;
-     C: Char;
-     T: TEventTimer;
- label 1;
-begin
- NewTimer(UpdTimer, 18);
- if ComPort^.CheckDCD then
-  begin
-    Static := On;
-    Exit;
-  end;
- if Phone <> '' then ModemWrite(ModemSetup.Escape+#13'ATE0'#13);
- NewTimerSecs(T, 1);
- repeat
-   while not TimerExpired(T) and COMPort^.CharReady do COMPort^.GetChar(C);
- until TimerExpired(T);
- Phone := NewPhone;
- Name := NewName;
- for I := 1 to Phones^.Count do
-  begin
-    if PPhone(Phones^.At(I-1))^.Number^ = Phone then
-      begin
-        P := Phones^.At(I-1);
-        Phones^.AtDelete(I-1);
-        Phones^.AtInsert(0, P);
-        Goto 1;
-      end;
-  end;
- if Phone <> '' then
-  begin
-    New(P, Init(Phone, Name, '', ''));
-    Phones^.AtInsert(0, P);
-  end;
- List^.SetRange(Phones^.Count);
-1:
- List^.DrawView;
- if Phone <> '' then
-  begin
-   if Trm <> nil then
-    begin
-      Trm^.S1 := GetString(dlAD_Dialing)+Phone;
-      ModemS := ''; SPosX := 1;
-      Trm^.DrawView;
-    end;
-   Dial(Phone);
-  end else Hold := True;
-end;
-
-procedure TAutoDialer.HandleEvent;
- var P, PP: PPhone;
-
- procedure CE; begin ClearEvent(Event) end;
-
-  Procedure UnHold;
-  begin
-   with Trm^ do
-    begin
-      S1 := '';
-      S2 := '';
-      DrawView;
-    end;
-   HoldButton^.Show;
-   UnholdButton^.Hide;
-   DrawView;
-  end;
-
-  procedure Redial;
-  begin
-    UnHold;
-    P := Phones^.At(0);
-    SetPhone(P^.Name, P^.Number^);
-    ModemAnswer := '';
-    CE
-  end;
-
-Label 1;
-begin
- case Event.What of
-  evKeyDown: case Event.KeyCode of
-               {kbUp: begin MoveTo(Origin.X, Origin.Y-1); CE end;
-               kbDown: begin MoveTo(Origin.X, Origin.Y+1); CE end;
-               kbLeft: begin MoveTo(Origin.X-1, Origin.Y); CE end;
-               kbRight: begin MoveTo(Origin.X+1, Origin.Y); CE end;}
-               kbESC: begin
-                       Message(Application, evCommand, cmClose, nil);
-                       ClearEvent(Event);
-                       Exit;
-                      end;
-             end;
-  evBroadcast: case Event.Command of
-                 cmCloseDialer: begin CE; Close; Exit end;
-               end;
-  evCommand: case Event.Command of
-               cmGetName: PString(Event.InfoPtr)^ := GetString(dlAD_Name) + Trm^.S1;
-               cmYes: Redial;
-               cmNo : begin
-                        if List^.Focused <> 0 then
-                          begin
-                             UnHold;
-                             PP := Phones^.At(List^.Focused);
-                             Phones^.AtDelete(List^.Focused);
-                             P := Phones^.At(0);
-                             Phones^.AtDelete(0);
-                             Phones^.AtInsert(Phones^.Count, P);
-                             Phones^.AtInsert(0, PP);
-                          end;
-                        Redial;
-                        List^.FocusItem(0);
-                      end;
-               cmOK : begin
-                        if (Phones <> nil) and (Phones^.Count > 0) then
-                         begin
-                           Phones^.AtFree(List^.Focused);
-                           List^.SetRange(Phones^.Count);
-                         end;
-                        if Phones^.Count = 0 then
-                         begin
-                           SetPhone('', '');
-                           Message(@Self, evCommand, cmClose, nil);
-                           Exit;
-                         end;
-                        Redial;
-                      end;
-              cmHold: begin
-                        Hold := On;
-    1:                  Static := On;
-                        Phones^.At(0);
-                        with Trm^ do
-                         begin
-                           P := Phones^.At(List^.Focused);
-                           S1 := GetString(dlAD_Holded1) +' '+ P^.Number^;
-                           S2 := GetString(dlAD_Holded2);
-                           DrawView;
-                         end;
-                         SetPhone('', '');
-                         HoldButton^.Hide;
-                         UnholdButton^.Show;
-                         DrawView;
-                       end;
-             cmUnhold: begin
-                        if not Hold then Goto 1;
-                        Hold := Off;
-                        Static := COMPort^.CheckDCD;
-                        UnHold;
-                        Redial;
-                        ModemS := '';
-                        CE;
-                       end;
-             end;
- end;
- inherited HandleEvent(Event);
-end;
-
-procedure TAutoDialer.Update;
- const InZdes: Boolean = False;
- var Status: String;
-     PP: PView;
-     P: PPhone;
-     I: Integer;
-     C: Char;
-     Tmr: TEventTimer;
-     Event: TEvent;
-
-  procedure Cheers;
-    var I,J: Integer;
-  begin
-    for J := 1 to 2 do
-      begin
-        for I := 1 to 5 do
-          begin
-            Sound(1000);
-            DelayTics(1);
-            Sound(500);
-            DelayTics(1);
-          end;
-        NoSound;
-        Sound(200);
-        DelayTics(1);
-        NoSound;
-      end;
-  end;
-
-begin
- if InZdes then Exit;
- if Hold then Exit;
- if Pause then
-  begin
-    if TimerExpired(PauseTimer) then
-      begin
-        Pause := False;
-        Message(@Self, evCommand, cmYes, nil);
-        Exit;
-      end else Exit;
-  end;
- if Static and not COMPort^.CheckDCD then
-   begin
-     Static := Off;
-     Message(@Self, evCommand, cmYes, nil);
-     Exit;
-   end;
- I := 0;
- if Static then Exit;
- while (COMPort^.CharReady) and (I < 100) do
-  begin
-    Inc(I);
-    COMPort^.GetChar(C);
-    case C of
-      #13: SPosX := 1;
-      #10: begin
-             SPosX := 1; {ModemS := '';}
-             Break;
-           end;
-      #8: if SPosX > 1 then begin Dec(SPosX); System.Delete(ModemS, SPosX, 1) end;
-      else begin
-             if SPosX = 1 then ModemS := '';
-             if SPosX > Length(ModemS) then AddStr(ModemS, C)
-                                       else ModemS[SPosX] := C;
-             Inc(SPosX);
-           end;
-    end;
-    if ModemS[0] > #230 then System.Delete(ModemS, 1, 50);
-  end;
-  if (I > 0) then
-    begin
-     Trm^.S2 := ModemS;
-     Trm^.DrawView;
-    end;
-  if TimerExpired(UpdTimer) and (SPosX = 1) and (ModemS <> '') then
-    begin
-      NewTimer(UpdTimer, 18);
-      if (Pos(maNoCarrier, ModemS) <> 0) or (Pos(maBusy, ModemS) <> 0) or
-         (Pos(maNoAnswer, ModemS) <> 0) then
-        begin
-          Phones^.AtInsert(Phones^.Count, Phones^.At(0));
-          Phones^.AtDelete(0);
-          Pause := True;
-          NewTimerSecs(PauseTimer, Max(2, StoI(ModemSetup.Redial)));
-          Trm^.S1 := '';
-          Trm^.S2 := '';
-          Trm^.DrawView;
-          ModemS := '';
-          List^.DrawView;
-          InZdes := False;
-          Exit;
-        end else if (Pos(maNoDial, ModemS) <> 0) then
-              begin
-                 InZdes := On;
-                 MessageBox(GetString(dlAD_NoDial), nil, mfError + mfOKButton);
-                 InZdes := Off;
-                 Message(@Self, evCommand, cmCancel, nil);
-                 ModemS := '';
-              end else if (Pos(maVoice, ModemS) <> 0) or (Pos(maConnect, ModemS) <> 0) then
-                   begin
-                     InZdes := On;
-                     PP := _WriteMsg(GetString(dlAD_ModemSays)+ModemS);
-                     NewTimer(Tmr, 36);
-                     if TerminalDefaults.Options and toConnectSnd <> 0 then Cheers;
-                     repeat
-                        GetEvent(Event);
-                     until (Event.What and (evKeyDown or evMouseDown) <> 0) or
-                           (TimerExpired(Tmr));
-                     InZdes := Off;
-                     PP^.Free;
-                     Phones^.AtFree(0);
-                     List^.SetRange(Phones^.Count);
-                     Static := On;
-                     if (Pos(maVoice, ModemS) <> 0) then Message(@Self, evCommand, cmCancel, nil);
-                     ModemS := '';
-                     if Term = nil then Message(Application, evCommand, cmTerminal, nil);
-                     if Phones^.Count = 0 then
-                       begin
-                         Event.What := evBroadcast;
-                         Event.Command := cmCloseDialer;
-                         Event.InfoPtr := nil;
-                         PutEvent(Event);
-                       end;
-                   end;
-    end;
-end;
-{$ENDIF}
 
 end.

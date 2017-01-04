@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT
   Scroller;
@@ -51,7 +52,7 @@ UNIT
 INTERFACE
 
 USES
-  Views, Objects, Drivers, ObjType;
+  Views, Objects, Drivers;
 
 TYPE
 { TScroller object }
@@ -72,8 +73,8 @@ TYPE
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure ScrollDraw; virtual;
-    procedure ScrollTo(X, Y: Integer);
-    procedure SetLimit(X, Y: Integer);
+    procedure ScrollTo(X, Y: LongInt);
+    procedure SetLimit(X, Y: LongInt);
     procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Store(var S: TStream);
   private
@@ -117,21 +118,6 @@ TYPE
   private
     procedure FocusItemNum(Item: Integer); virtual;
   end;
-
-CONST
-  RScroller: TStreamRec = (
-     ObjType: otScroller;
-     VmtLink: Ofs(TypeOf(TScroller)^);
-     Load:    @TScroller.Load;
-     Store:   @TScroller.Store
-  );
-
-  RListViewer: TStreamRec = (
-     ObjType: otListViewer;
-     VmtLink: Ofs(TypeOf(TListViewer)^);
-     Load:    @TListViewer.Load;
-     Store:   @TLIstViewer.Store
-  );
 
 IMPLEMENTATION
 
@@ -208,7 +194,7 @@ begin
   end;
 end;
 
-procedure TScroller.ScrollTo(X, Y: Integer);
+procedure TScroller.ScrollTo(X, Y: LongInt);
 begin
   Inc(DrawLock);
   if HScrollBar <> nil then HScrollBar^.SetValue(X);
@@ -217,7 +203,7 @@ begin
   CheckDraw;
 end;
 
-procedure TScroller.SetLimit(X, Y: Integer);
+procedure TScroller.SetLimit(X, Y: LongInt);
 begin
   Limit.X := X;
   Limit.Y := Y;

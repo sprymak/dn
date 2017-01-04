@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,16 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
-{$o+}
 unit Advance2; {File related functions}
 interface
 uses advance, dos, lfn, UFnMatch, objects;
+
+var
+  ErrorFCode: Byte;
 
 function  ExistFile(const FName : String) : Boolean; {DataCompBoy}
 function  FileTime(FileA: String): LongInt;
@@ -73,27 +72,25 @@ procedure SetCurDrive(C: Char);
 FUNCTION  GetExt(const s:string):string;
 FUNCTION  Norm12(const s:string):Str12;
        {-DataCompBoy-}
-FUNCTION  DelSquashes(s: string): string; {yбиpает из S кавычки}
-FUNCTION  GetURZ(const s: string): Str12; {возвpащает имя,ypезанное до 8.3}
-FUNCTION  GetfURZ(const s: string):String;{возвpащает пyть+имя,ypезанное до 8.3}
-FUNCTION  SquashesName(const s:string):string;{если s содеpжит пpобелы или
-                               невеpные сомволы, то возвpащает "s" иначе - s}
-FUNCTION  InMask(Name, Mask: string):Boolean; {попадает ли Name в Mask}
-FUNCTION  InFilter(Name, Filter: string):Boolean; {попадает ли Name в Filter}
-FUNCTION  InExtFilter(Name, Filter: string):Boolean; {попадает ли pасшиpение от Name в Filter}
+FUNCTION  DelSquashes(s: string): string; {removes quotes}
+FUNCTION  GetURZ(const s: string): Str12; {cuts name to 8.3}
+FUNCTION  GetfURZ(const s: string):String;{cuts name and path to 8.3}
+FUNCTION  SquashesName(const s:string):string;{quotes name if needed}
+FUNCTION  InMask(Name, Mask: string):Boolean; {does Name match Mask? }
+FUNCTION  InFilter(Name, Filter: string):Boolean; {does Name match Filter? }
+FUNCTION  InExtFilter(Name, Filter: string):Boolean; {does extension of name Name match Filter}
 FUNCTION  InOldMask(Name,Mask: string):Boolean;     {DataCompBoy}
 FUNCTION  InOldFilter(Name,Filter: string):Boolean; {DataCompBoy}
 FUNCTION  InSpaceMask(Name,Mask: string;ValidSpace: Boolean):Boolean;
 FUNCTION  InSpaceFilter(Name,Filter: string):Boolean;
+function  IsMixedCase(const Name: string): boolean; {JO}
 
-FUNCTION  IsDir(const s: string): boolean; {возвp. калог это, или нет}
-function  MkName(const Nm, Mask: String): String;{возвp. имя, собp из маски и
-                                                 имени}
+FUNCTION  IsDir(const s: string): boolean; {is this a directory? }
+function  MkName(const Nm, Mask: String): String;{modifies name to fit Mask}
 FUNCTION  GetPath(const S: String): String;
 FUNCTION  GetName(const S: String): String;
 FUNCTION  GetSName(const S: String): String;
 FUNCTION  GetIName(const S: String): String;
-FUNCTION  GetAttrF(const S: String): Word;
 FUNCTION  GetAttrStr(Attr: Word): Str6;
 FUNCTION  GetShortRelPath(Path: string): string;
 FUNCTION  GetLongRelPath(Path: string): string;
@@ -101,17 +98,74 @@ FUNCTION  GetLongRelPath(Path: string): string;
 FUNCTION  MakeFileName(S: string): string;
 FUNCTION  MakeNormName(const S, S1: string): string; {DataCompBoy}
 function  FileNameOf(var F: File): string;
+function  GetFileAttr(const S: String): Word;
+function  SetFileAttr(const S: String; Attr: Word):Word;
+function  CorrectFile(const N: String): Boolean;
+function  PathExist(s: string): boolean; {Is path exist}
+function  GetNormPath(s: string): string; {Get correct path}
+
+type TQuickSearchData = record
+      Mask: string;
+      NumExt: Word;
+      ExtD: Word;
+     end;
+
+procedure InitQuickSearch(var QS: TQuickSearchData);
+procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
+function  GetCursorPos(const QS: TQuickSearchData; const Name: String;
+                       Size, ExtSize, Delta: word): word;
+
+type
+   PTempFile = ^TTempFile;
+   TTempFile = object(TBufStream)
+     constructor Init(const AExt: String; ABufSize: SW_Word);
+     destructor  Done; virtual;
+   end;
+
 
 implementation
-uses advance1, advance3;
+uses advance1, advance3, {$IFNDEF FPC}BStrings{$ELSE}Strings{$ENDIF}, Commands;
+
+constructor TTempFile.Init(const AExt: String; ABufSize: SW_Word);
+var
+  S: FNameStr;
+  L: LongInt;
+begin
+  L:=CalcTmpId;
+  S:=CalcTmpFName(L, AExt, True);
+  inherited Init(s, (stCreate and fmDeny) or fmDenyAll or fmDenyChild, ABufSize);
+end;
+
+destructor TTempFile.Done;
+var
+  S: FNameStr;
+begin
+  S:=StrPas(FName);
+  inherited Done;
+  EraseFile(s);
+end;
+
+
+function CorrectFile(const N: String): Boolean;
+   var I: Integer;
+begin
+   CorrectFile := Off;
+   for I := 1 to Length(N) do
+       if N[I] in IllegalCharSet then Exit; {DataCompBoy}
+   CorrectFile := On;
+end;
 
         {-DataCompBoy-}
-function ExistFile(const FName : String) : Boolean;
-var DirInfo:lSearchRec;
+function ExistFile(const FName: String): Boolean;
+var
+  DirInfo:lSearchRec;
 begin
  lFindFirst(FName,Archive+ReadOnly+Hidden+SysFile,DirInfo);
- ExistFile:=DosError=0 ;
- lFindClose(DirInfo);
+ if DosError=0 then ExistFile:=True
+ else begin
+  ExistFile:=False;
+  ErrorFCode:=DosError;
+ end;
 end;
         {-DataCompBoy-}
 
@@ -407,7 +461,7 @@ FUNCTION InMask;
      l:byte;
      ext, maskext:string;
 Begin
- if Mask='*.*' then begin InMask:=true; exit; end;
+ if (Mask=x_x) or (Mask='*') then begin InMask:=true; exit; end;
 
  UpStr(Name); ext:='';
  l:=length(Name); while (l>0) and (not (Name[l] in ['\','/'])) and (Name[l]<>'.') do inc(l);
@@ -444,7 +498,7 @@ begin
     InFilter := B;
     if not B then DelFC(S);
     DelLeft(S); DelRight(S);
-    if (S <> '') and InMask(Name, DelSquashes(S)) then Exit;
+    if (S <> '') and InMask(Name, S) then Exit;
    end;
  InFilter:=Off;
 end;
@@ -474,7 +528,9 @@ begin
     InExtFilter := B;
     if not B then DelFC(S);
     DelLeft(S); DelRight(S);
-    if (S <> '') and InMask(Name, '*.'+DelSquashes(S)) then Exit;
+    if DelSquashes(s)='.'
+     then if PosChar('.', Name)=0 then exit else
+     else if (S <> '') and InMask(Name, '*.'+S) then Exit;
    end;
  InExtFilter:=Off;
 end;
@@ -550,6 +606,16 @@ begin
   until l=0; InSpaceFilter:=Off
 end;
 
+{JO}
+function IsMixedCase(const Name: String): Boolean;
+begin
+ if (UpStrg(Name) = Name) or (LowStrg(Name) = Name) then
+   IsMixedCase := False
+ else
+   IsMixedCase := True;
+end;
+{JO}
+
         {-DataCompBoy-}
 function IsDir(const S: String): Boolean;
 var
@@ -569,6 +635,7 @@ function MkName(const Nm, Mask: String): String;
      bb,bbb: pstring;
      os: pstring;
      i:byte;
+     fp:byte;
 begin
  new(aa); new(aaa);
  new(bb); new(bbb);
@@ -576,28 +643,38 @@ begin
  lFSplit(Nm,   os^, aa^, aaa^);
  lFSplit(Mask, os^, bb^, bbb^);
  os^:='';
- for i:=1 to length(bb^) do
+ fp:=0;
+ for i:=1 to length(bb^) do begin
+  inc(fp);
   case bb^[i] of
-   '?': os^:=os^+aa^[i];
+   '?': if fp<=byte(aa^[0]) then os^:=os^+aa^[fp];
    '*': begin
-         os^:=os^+copy(aa^, i, 255)+copy(bb^,i+1,255);
+         os^:=os^+copy(aa^, fp, 255)+copy(bb^,i+1,255);
          while pos('?', os^)<>0 do delete(os^, pos('?', os^), 1);
          while pos('*', os^)<>0 do delete(os^, pos('*', os^), 1);
          break;
         end;
+   '>': if fp>2 then dec(fp,2);
+   '<': ;
    else os^:=os^+bb^[i];
   end;
- for i:=1 to length(bbb^) do
+ end;
+ fp:=0;
+ for i:=1 to length(bbb^) do begin
+  inc(fp);
   case bbb^[i] of
-   '?': os^:=os^+aaa^[i];
+   '?': if fp<=byte(aaa^[0]) then os^:=os^+aaa^[fp];
    '*': begin
-         os^:=os^+copy(aaa^, i, 255)+copy(bbb^,i+1,255);
+         os^:=os^+copy(aaa^, fp, 255)+copy(bbb^,i+1,255);
          while pos('?', os^)<>0 do delete(os^, pos('?', os^), 1);
          while pos('*', os^)<>0 do delete(os^, pos('*', os^), 1);
          break;
         end;
+   '>': if fp>2 then dec(fp,2);
+   '<': ;
    else os^:=os^+bbb^[i];
   end;
+ end;
  MkName:=os^;
  dispose(os);
  dispose(bbb);dispose(bb);
@@ -645,12 +722,6 @@ FUNCTION GetIName;
 begin
   GetIName:=SquashesName(GetName(S));
 end;
-       {-DataCompBoy-}
-
-       {-DataCompBoy-}
-FUNCTION GetAttrF(const S: String): Word;
-var ATF: lFile; w: word;
-begin lAssignFile(ATF, s); w:=0; lGetFAttr(ATF, w); GetAttrF:=w end;
        {-DataCompBoy-}
 
        {-DataCompBoy-}
@@ -732,5 +803,115 @@ begin
   FileNameOf := S;
 end;
         {-DataCompBoy-}
+
+        {-DataCompBoy-}
+function SetFileAttr(const S: String; Attr: Word) : Word;
+var F:lfile;
+begin
+ lAssignFile(F, s);
+ lSetFAttr(F, Attr);
+ SetFileAttr:=DosError;
+end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
+function GetFileAttr(const S: String): Word;
+var F:lfile;
+    Attr:Word;
+begin
+ lAssignFile(F, s);
+ lGetFAttr(F, Attr);
+ GetFileAttr:=Attr;
+end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
+function  PathExist(s: string): boolean;
+var lSR: lSearchRec;
+begin
+ lFindFirst(MakeNormName(S,'*.*'),AnyFile, lSR);
+ lFindClose(lSR);
+ PathExist:=DosError=0;
+end;
+        {-DataCompBoy-}
+
+function  GetNormPath(s: string): string; {Get correct path}
+var q: byte absolute s;
+begin
+ GetNormPath:=s;
+ S:=MakeNormName(s,'');
+ for q:=length(s) downto 3 do
+  if (s[q] in ['\','/']) and
+     PathExist(S) then begin
+   GetNormPath:=s;
+   exit;
+  end;
+end;
+
+procedure InitQuickSearch(var QS: TQuickSearchData);
+begin
+ QS.Mask:='*';
+ QS.NumExt:=0;
+ QS.ExtD:=0;
+end;
+
+procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
+begin
+ if Key=kbBack then if QS.Mask<>'*' then
+                     if QS.Mask[Length(QS.Mask)-1] <> '.' then begin
+                      Dec(QS.Mask[0]); QS.Mask[Length(QS.Mask)]:='*';
+                      Dec(QS.ExtD);
+                     end else begin
+                      Dec(QS.Mask[0],2); QS.Mask[Length(QS.Mask)]:='*';
+                      Dec(QS.NumExt);
+                      QS.ExtD:=0;
+                      For Key:=Length(QS.Mask)-1 downto 1 do
+                       if QS.Mask[Key]='.' then break else Inc(QS.ExtD);
+                     end
+                    else
+ else
+  case Char(Lo(Key)) of
+   '*': ;
+   '.': begin
+         Inc(QS.NumExt);
+         Inc(QS.Mask[0]);
+         QS.Mask[Length(QS.Mask)]:='.';
+         Inc(QS.Mask[0]);
+         QS.Mask[Length(QS.Mask)]:='*';
+         QS.ExtD:=0;
+        end;
+   else begin
+         QS.Mask[Length(QS.Mask)]:=Char(Lo(Key));
+         Inc(QS.Mask[0]);
+         QS.Mask[Length(QS.Mask)]:='*';
+         Inc(QS.ExtD);
+        end;
+  end;
+end;
+
+function  GetCursorPos(const QS: TQuickSearchData; const Name: String;
+                       Size, ExtSize, Delta: word): word;
+var O: Word;
+    D: Word;
+begin
+ if Not InMask(Name, QS.Mask) then begin GetCursorPos:=0; exit end;
+ D:=1;
+ for O:=1 to QS.NumExt do begin
+  while Name[D]<>'.' do inc(D);
+  Inc(D);
+ end;
+ D:=D+QS.ExtD;
+ if ExtSize=0
+  then GetCursorPos:=Min(D, Size)
+  else begin
+        O:=Length(GetSName(Name));
+        if D>O+1
+         then begin
+               D:=D-O-1;
+               GetCursorPos:=Min(Size, Size-ExtSize+D);
+              end
+         else GetCursorPos:=Min(Size-ExtSize, D);
+       end;
+end;
 
 end.

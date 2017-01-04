@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -76,9 +76,8 @@ const
    otZIPArchiver   =      9221;
    otZOOArchiver   =      9222;
    otZXZArchiver   =      9223;
-
-   otArchiveCollection = 19221;
-
+   otIS3Archiver   =      9224;
+   otTGZArchiver   =      9225;
 
 { --- ArcView }
 
@@ -157,6 +156,7 @@ const
   otHistory         =       19;
   otParamText       =       20;
   otMultiCheckBoxes =       27;
+  otHexLine         =       29;
 
 
 { --- DiskInfo }
@@ -195,11 +195,6 @@ const
 { --- Drives }
 
   otDrive =               4354;
-
-
-{ --- Editor }
-
-  otXFileEditor =         6340;
 
 
 { --- FileFind }
@@ -271,6 +266,8 @@ const
   otEditScrollBar  =      6343;
   otEditFrame      =      6344;
   otBookLine       =      6345;
+  otXFileEditor    =      6346;
+
   otLineCollection =     16344;
 
 
@@ -400,10 +397,18 @@ const
   otGroup       =            6;
   otWindow      =            7;
 
-
 { --- XDblWnd }
 
   otDoubleWindow =        3340;
+
+{ 12335 used internally in MicroEd2 }
+
+  otEditStorer   =        12335;
+
+{ --- Calendar }                 {JO}
+
+  otCalendarView =        27000;
+  otCalendarWindow =      27001; {JO}
 
 implementation
 

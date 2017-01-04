@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,11 +44,13 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit SBlocks;
 
 interface
-uses ExtraMemory, advance, advance1, advance2, advance3, Objects, Dos, Memory;
+uses ExtraMemory, advance, advance1, advance2, advance3, Objects, Dos, Memory,
+     collect;
 
 const
      MaxBlockSize  = 1024;
@@ -70,13 +72,13 @@ type
       procedure AtDelete(N: LongInt); virtual;
       procedure AtFree(N: LongInt); virtual;
       procedure AddStr(S: String); virtual;
-      procedure SwapItems(Idx1, Idx2: Integer); virtual;
+      procedure SwapItems(Idx1, Idx2: LongInt); virtual;
     end;
 
     PStdCollector = ^TStdCollector;
     TStdCollector = object(TCollector)
       Collection: PCollection;
-      constructor Init(MaxLines: Integer);
+      constructor Init(MaxLines: LongInt);
       destructor Done; virtual;
       procedure Insert(P: PString); virtual;
       function  At(N: LongInt): PString; virtual;
@@ -86,7 +88,7 @@ type
       procedure AtDelete(N: LongInt); virtual;
       procedure AtFree(N: LongInt); virtual;
       procedure AddStr(S: String); virtual;
-      procedure SwapItems(Idx1, Idx2: Integer); virtual;
+      procedure SwapItems(Idx1, Idx2: LongInt); virtual;
     end;
 
     PMemBlock = ^TMemBlock;
@@ -101,24 +103,28 @@ type
     PBlocker = ^TBlocker;
     TBlocker = object(TCollector)
        Blocks: Array [0..29] of PNumBlock;
+{$IFNDEF DPMI}
        XMSStream: PXMSStream;
        EMSStream: PEMSStream;
+{$ENDIF}
        MemStream: PMemoryStream;
+{$IFNDEF DPMI}
        NoXMS: Boolean;
        NoEMS: Boolean;
+{$ENDIF}
        NoMem: Boolean;
        Deleted: PSortedCollection;
 
        UseCache: Boolean;
        CachePos: LongInt;
-       CacheSize: Word;
+       CacheSize: LongInt;
        CacheModified: Boolean;
        Cache: Array [0..MaxCacheSize] of
                record S: PString; Modified: Boolean; end;
 
-       constructor Init(Index: Integer);
-       procedure InsertIndex(N: Integer; L: LongInt; Len: Byte);
-       procedure DeleteIndex(N: Integer);
+       constructor Init(Index: LongInt);
+       procedure InsertIndex(N: LongInt; L: LongInt; Len: Byte);
+       procedure DeleteIndex(N: LongInt);
 
        procedure Insert(P: PString); virtual;
        function  At(N: LongInt): PString; virtual;
@@ -128,7 +134,7 @@ type
        procedure AtDelete(N: LongInt); virtual;
        procedure AtFree(N: LongInt); virtual;
        procedure AddStr(S: String); virtual;
-       procedure SwapItems(Idx1, Idx2: Integer); virtual;
+       procedure SwapItems(Idx1, Idx2: LongInt); virtual;
 
        procedure ReadBlock(var B: TMemBlock; var S: String);
        procedure WriteBlock(var B: TMemBlock; var S: String);
@@ -194,7 +200,7 @@ end;
 
 destructor TStdCollector.Done;
 begin
-  if Collection <> nil then Dispose(Collection, Done);
+  if Collection <> nil then Dispose(Collection,Done); Collection:=nil;
   inherited Done;
 end;
 
@@ -278,16 +284,22 @@ end;
 
 { TBlocker }
 
-constructor TBlocker.Init(Index: Integer);
+constructor TBlocker.Init(Index: LongInt);
 begin
   TObject.Init;
   UseCache := True;
+  {$IFNDEF DPMI}
   NoXMS := not XMSFound or (EditorDefaults.EdOpt and ebfXMS = 0);
   NoEMS := not EMSFound or (EditorDefaults.EdOpt and ebfEMS = 0);
+  {$ENDIF}
+  CachePos:=0;
+  CacheSize:=0;
+  CacheModified:=false;
+  FillChar(Cache, SizeOf(Cache), 0);
 end;
 
 procedure TBlocker.InsertIndex;
-  var K, I, K1, K2, KK: Integer;
+  var K, I, K1, K2, KK: LongInt;
 begin
   K := N div MaxBlockSize;
   KK := N mod MaxBlockSize;
@@ -314,7 +326,7 @@ begin
 end;
 
 procedure TBlocker.DeleteIndex;
-  var K, I, K1, K2, KK: Integer;
+  var K, I, K1, K2, KK: LongInt;
 begin
   if Count = 0 then Exit;
   K := N div MaxBlockSize;
@@ -358,7 +370,7 @@ end;
 
 procedure TBlocker.PlaceDeleted;
   var P: PMemBlock;
-      I: Integer;
+      I: LongInt;
 begin
   if B.Pos < 0 then Exit;
   if Deleted = nil then
@@ -379,7 +391,7 @@ begin
 end;
 
 procedure TBlocker.SeekCache;
-  var K, I, K1, K2, KK: Integer;
+  var K, I, KK: LongInt;
       S: String;
 begin
   for I := 0 to CacheSize-1 do
@@ -409,6 +421,7 @@ end;
 
 procedure TBlocker.ReadBlock;
 begin
+{$IFNDEF DPMI}
   if B.Pos < 2000000 then
     begin
       XMSStream^.Status := 0;
@@ -421,6 +434,7 @@ begin
       EMSStream^.Seek(B.Pos-2000000);
       EMSStream^.Read(S, B.Len+1);
     end else
+{$ENDIF}
     begin
       MemStream^.Status := 0;
       MemStream^.Seek(B.Pos-4000000);
@@ -429,8 +443,8 @@ begin
 end;
 
 procedure TBlocker.WriteBlock;
-  label 0, 1, 2, 3, 4;
-  var I: Integer;
+  label {$IFNDEF DPMI}0, 1, 2, {$ENDIF}3, 4;
+  var I: LongInt;
       BB: Boolean;
       L: LongInt;
 begin
@@ -452,6 +466,7 @@ begin
              end;
          end;
        }
+{$IFNDEF DPMI}
 0:
        if not NoXMS then
          begin
@@ -467,16 +482,11 @@ begin
              end else
              begin
                New(XMSStream, Init(1024,1024));
-               if XMSStream^.Status <> stOK then
-                 begin
-                   Dispose(XMSStream, Done);
-                   XMSStream := nil;
-                   NoXMS := On;
-                 end else
-                 begin
-                   XMSStream^.Size := 0;
-                   Goto 1;
-                 end;
+               if XMSStream^.Status = stOK then Goto 1;
+               Dispose(XMSStream,Done);
+               XMSStream:=nil;
+               NoXMS := On;
+               Goto 0;
              end;
          end;
        if not NoEMS then
@@ -495,22 +505,18 @@ begin
                EMSCurHandle := $FFFF;
                EMSCurPage := $FFFF;
                New(EMSStream, Init(16384,16384));
-               if EMSStream^.Status <> stOK then
-                 begin
-                   EMSCurHandle := $FFFF;
-                   EMSCurPage := $FFFF;
-                   Dispose(EMSStream, Done);
-                   EMSCurHandle := $FFFF;
-                   EMSCurPage := $FFFF;
-                   EMSStream := nil;
-                   NoEMS := On;
-                 end else
-                 begin
-                   EMSStream^.Size := 0;
-                   Goto 2;
-                 end;
+               if EMSStream^.Status = stOK then Goto 2;
+               EMSCurHandle := $FFFF;
+               EMSCurPage := $FFFF;
+               Dispose(EMSStream,Done);
+               EMSStream := nil;
+               EMSCurHandle := $FFFF;
+               EMSCurPage := $FFFF;
+               NoEMS := On;
+               Goto 0;
              end;
          end else
+{$ENDIF}
          begin
            if MemStream <> nil then
              begin
@@ -524,21 +530,16 @@ begin
              end else
              begin
                New(MemStream, Init(8192, 2048));
-               if MemStream^.Status <> stOK then
-                 begin
-                   Dispose(MemStream, Done);
-                   MemStream := nil;
-                   NoMem := On;
-                 end else
-                 begin
-                   MemStream^.Size := 0;
-                   Goto 3;
-                 end;
+               if MemStream^.Status = stOK then goto 3;
+               Dispose(MemStream,Done);
+               MemStream := nil;
+               NoMem := On;
              end;
          end;
     end else
     begin
 4:
+{$IFNDEF DPMI}
      if B.Pos < 2000000 then
        begin
          XMSStream^.Status := 0;
@@ -551,6 +552,7 @@ begin
          EMSStream^.Seek(B.Pos-2000000);
          EMSStream^.Write(S, Length(S)+1);
        end else
+{$ENDIF}
        begin
          MemStream^.Status := 0;
          MemStream^.Seek(B.Pos-4000000);
@@ -571,7 +573,7 @@ begin
 end;
 
 procedure TBlocker.AtPut(N: LongInt; P: PString);
-  var K, I, K1, K2, KK: Integer;
+  var K, I, K1, K2, KK: LongInt;
 begin
   if CacheSize > 0 then FlushCache(On);
   K := N div MaxBlockSize;
@@ -624,7 +626,7 @@ begin
 end;
 
 procedure TBlocker.FlushCache;
-  var K, I, K1, K2, KK: Integer;
+  var K, I, K1, K2, KK: LongInt;
 begin
   K := CachePos div MaxBlockSize;
   KK := CachePos mod MaxBlockSize;
@@ -640,7 +642,7 @@ end;
 
 procedure TBlocker.SwapItems;
   var B1, B2: TMemBlock;
-      K,KK,A,AA: Integer;
+      K,KK,A,AA: LongInt;
 begin
   if CacheSize > 0 then FlushCache(On);
   K := Idx1 div MaxBlockSize;
@@ -653,25 +655,29 @@ begin
 end;
 
 destructor TBlocker.Done;
-  var I: Integer;
+  var I: LongInt;
 begin
   FlushCache(On);
   for I := 0 to 29 do
     if Blocks[I] <> nil then FreeMem(Blocks[I], SizeOf(TNumBlock));
-  if XMSStream <> nil then Dispose(XMSStream, Done);
-  if EMSStream <> nil then Dispose(EMSStream, Done);
-  if MemStream <> nil then Dispose(MemStream, Done);
+{$IFNDEF DPMI}
+  if XMSStream <> nil then Dispose(XMSStream,Done); XMSStream := nil;
+  if EMSStream <> nil then Dispose(EMSStream,Done); EMSStream := nil;
   EMSCurHandle := $FFFF;
   EMSCurPage := $FFFF;
+{$ENDIF}
+  if MemStream <> nil then Dispose(MemStream,Done); MemStream := nil;
 end;
 
 
 function GetCollector(MaxSize, MaxLines: LongInt): PCollector;
 begin
+{$IFNDEF DPMI}
    if (XMSFound and (XMSFree > 1) and (EditorDefaults.EdOpt and ebfXMS <> 0)
      or EMSFound and (EMSFreePages > 1) and (EditorDefaults.EdOpt and ebfEMS <> 0))
       and MemOK then
      GetCollector := New(PBlocker, Init(MaxSize)) else
+{$ENDIF}
         GetCollector := New(PStdCollector, Init(MaxLines))
 end;
 

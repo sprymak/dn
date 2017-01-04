@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,8 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
-//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 {$M 65520, 0, 655360}
 PROGRAM RCP;
@@ -55,12 +52,24 @@ PROGRAM RCP;
 {                                     }
 {  Dos Navigator's Resource Compiler  }
 {                                     }
+{DataCompBoy: *.dnl and *.dnr now can contain constructions like this }
+{ ";$IFDEF bla-bla"                                                   }
+{here text                                                            }
+{ ";$ELSE"                                                            }
+{here also text                                                       }
+{ ";$ENDIF"                                                           }
+{but constructions                                                    }
+{ ";$DEFINE bla-bla"                                                  }
+{ ";$UNDEF bla-bla"                                                   }
+{didn't work. Because I want so 8) All defines you can do in separate }
+{file                                                                 }
 
 USES
-  LFN, {DataCompBoy}
-  Dos, Objects, advance, advance1, advance2, advance3, RStrings, GetConst,
-  Drivers, Menus, Commands, Setups, DNHelp, Views, DNApp, Startup, Dialogs,
-  ColorSel, Validate, IniFiles, Scroller;
+  LFN, Collect, Drivers, Dos, Objects, advance, advance1, advance2, advance3,
+  RStrings, GetConst, Menus, Commands, Setups, DNHelp, Views, DNApp, Startup,
+  Dialogs, Validate, IniFiles, Scroller, extramemory, ListMakr, ObjType,
+{$IFDEF CHCOL} ColorSel, {$ENDIF} RegAll, DefColl;
+
 
 CONST
   tidCommands = 'cm'#0'cd'#0;
@@ -79,6 +88,7 @@ VAR
   OutDlgFileName: String;
   OutDir: String;
   DLStream: TBufStream;
+  DefineParser: TDefCollection;
 
 PROCEDURE Error( const S: String );
 begin
@@ -144,6 +154,12 @@ begin
     GetWord := '';
 end;
 
+const RStringList : TStreamRec =
+      (ObjType: otStringList;
+       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(Collect.TStringList){$IFNDEF DPMI}^{$ENDIF});
+       Load   : @Collect.TStringList.Load;
+       Store  : nil);
+
         {-DataCompBoy-}
 PROCEDURE ProcessDLs( Enable: Boolean );
 var
@@ -153,11 +169,11 @@ var
   F: lText;
   S, S1: String;
   P: PLngWord;
-  function DoSeekID( P: PLngWord ): boolean; far;
+  function DoSeekID( P: PLngWord ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     DoSeekID := P^.Name = S1
   end;
-  procedure DoTest( P: PLngWord ); far;
+  procedure DoTest( P: PLngWord ); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     If P^.Mark = 0 then begin
       WriteLn( 'Unresolved identifier "' + P^.Name + '"' );
@@ -165,7 +181,7 @@ var
     end;
   end;
   function MakeStr( S: String ): String;
-  label 1;
+  label 1,2;
   var
     A,M: String;
     I,J: Integer;
@@ -205,7 +221,12 @@ var
       end;
    if S[Length(S)] = '+' then
         begin
+2:
           ReadLn(F.T, S);
+          if S<>'' then begin
+           S:=DefineParser.ProceedStr2(S);
+           if S='' then goto 2;
+          end;
           DelLeft(S);
           I := 0;
           Goto 1;
@@ -223,7 +244,8 @@ begin
     WriteLn( 'Reading ', LngFileName );
     While not EOF( F.T ) do begin
       ReadLn( F.T, S );
-      S := RemoveLeadSpaces( S );
+      S := DefineParser.ProceedStr2(S);
+      DelLeft( S );
       S1 := GetWord( UpStrg( S ), 1 );
       While ( S1[ Length( S1 )] = ',' ) and ( S1 <> '' ) do Dec( S1[ 0 ] );
       If ( S1 = '' ) or ( S1[ 1 ] = ';' ) then Continue;
@@ -265,7 +287,7 @@ type
   end;
 
 {                            Resource Processing
-{ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
+{----------------------------------------------------------------------------}
 VAR
   S: String;
   F: lText; {DataCompBoy}
@@ -285,6 +307,7 @@ CONST
   idDialog       =  'DIALOG ';
   idLabel        =  'LABEL ';
   idInputLine    =  'INPUTLINE ';
+  idHexLine      =  'HEXLINE '; {DataCompBoy}
   idButton       =  'BUTTON ';
   idCheckBoxes   =  'CHECKBOXES ';
   idRadioButtons =  'RADIOBUTTONS ';
@@ -309,14 +332,16 @@ CONST
   TheRF: PIdxMaker = nil;
 
 VAR
+  {$IFDEF CHCOL}
   D: PColorDialog;
   PL, PP: PColorGroup;
   PI: PColorItem;
-  I: Integer;
+  {$ENDIF}
+  I: LongInt;
   NumCommands: Integer;
 
 const
-  MaxCommands = 100;
+  MaxCommands = 200;
 
 var
   EditCommands : Array [1..MaxCommands] of TEditCommand;
@@ -328,22 +353,22 @@ type
   end;
 
 const
-  REditSaver: TStreamRec = (
-    ObjType: 12335;
-    VmtLink: Ofs(TypeOf(TEditSaver)^);
-    Load: @TEditSaver.Load;
-    Store: @TEditSaver.Store);
+      REditSaver: TStreamRec = (
+       ObjType: 12335;
+       VmtLink: {$IFNDEF DPMI}Ofs{$ENDIF}(TypeOf(TEditSaver){$IFNDEF DPMI}^{$ENDIF});
+       Load: @TEditSaver.Load;
+       Store: @TEditSaver.Store);
 
 constructor TEditSaver.Load(var S: TStream);
 begin
   S.Read(NumCommands, SizeOf(NumCommands));
-  S.Read(EditCommands, SizeOf(EditCommands));
+  S.Read(EditCommands, SizeOf(TEditCommand)*NumCommands);
 end;
 
 procedure TEditSaver.Store(var S: TStream);
 begin
   S.Write(NumCommands, SizeOf(NumCommands));
-  S.Write(EditCommands, SizeOf(EditCommands));
+  S.Write(EditCommands, SizeOf(TEditCommand)*NumCommands);
 end;
 
         {-DataCompBoy-}
@@ -360,7 +385,7 @@ end;
 
 procedure StoreResource( P: PObject; ID: TDlgIdx );
 var W: PLngWord;
-  function HaveThisID( P: PLngWord ): boolean; far;
+  function HaveThisID( P: PLngWord ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     HaveThisID := TDlgIdx( P^.L ) = ID
   end;
@@ -368,15 +393,16 @@ begin
   W := DLGs^.FirstThat( @HaveThisID );
   If W = NIL then Error( '*ERROR*: Index #' + ItoS( Word( ID )) + ' out of range.' );
   If ( TheRF^.Empty( TDlgIdx( ID ))) and ( W^.Mark = 0 )
-    then TheRF^.Put( P, TDlgIdx( ID ))
+    then If P<>nil then TheRF^.Put( P, TDlgIdx( ID )) else
     else Error( #13'*ERROR*: Duplicate definition for "' + W^.Name + '"' );
   W^.Mark := 1;
 end;
 
 function GetId(const S: String): LongInt;
   var T: TLngWord;
-      I: Integer;
+      I: LongInt;
       L: LongInt;
+      k: Integer;
 begin
   FreeStr := S; DelRight(FreeStr);
   if S[Length(S)] = ',' then Dec(FreeStr[0]);
@@ -387,18 +413,18 @@ begin
        GetID := PLngWord(IDS^.At(I))^.L;
      end else
      begin
-       Val(FreeStr, L, I);
-       if I > 0 then
+       Val(FreeStr, L, k);
+       if k > 0 then
          Error('Unknown identifier ('+FreeStr+') in line '+ItoS(Line));
        GetID := L;
      end;
 end;
 
-function Token(const S: String; var Pos: Integer): String;
+function Token(const S: String; var Pos: LongInt): String;
 var A: String;
     B, Cmd: Boolean;
     M: String;
-    J: Integer;
+    J: LongInt;
 begin
    Token := ''; A := ''; B := False; Cmd := Off;
    while (S[Pos] = ' ') and (Length(S) >= Pos) do Inc(Pos);
@@ -435,6 +461,7 @@ begin
    Token := A;
 end;
 
+{$IFDEF CHCOL}
 procedure MakeGroup;
  var P: PColorGroup;
 begin
@@ -464,6 +491,7 @@ begin
   while not EOF(F.T) do
    begin
      ReadLn(F.T, S);
+     S := DefineParser.ProceedStr2(S);
      Inc(Line);
      DelLeft(S);
      FreeStr := UpStrg(S);
@@ -477,13 +505,29 @@ begin
  New(D, Init(PP));
  D^.HelpCtx := hcColorDialog;
  StoreResource(D, dlgColors);
- Dispose(D, Done);
+ Dispose(D,Done);
 end;
         {-DataCompBoy-}
+{$ELSE}
+procedure MakeColorDialog;
+begin
+  while not EOF(F.T) do
+   begin
+     ReadLn(F.T, S);
+     S := DefineParser.ProceedStr2(S);
+     Inc(Line);
+     DelLeft(S);
+     FreeStr := UpStrg(S);
+     if (S <> '') and (S[1] <> ';') then
+       if Copy(FreeStr, 1, Length(idEND)) = idEND then Break
+   end;
+ StoreResource(nil, dlgColors);
+end;
+{$ENDIF}
 
         {-DataCompBoy-}
 procedure MakeEditorCommands;
-  var I,J: Integer;
+  var I,J: LongInt;
       T: ^TEditSaver;
 
   procedure MakeCommand;
@@ -510,6 +554,7 @@ begin
   while not EOF(F.T) do
     begin
       ReadLn(F.T, S);
+      S := DefineParser.ProceedStr2(S);
       Inc(Line);
       DelLeft(S);
       FreeStr := UpStrg(S);
@@ -537,9 +582,9 @@ var
     if S[Length(S)] = ',' then Dec(FreeStr[0]);
     DelRight(FreeStr);
     T.Init(0, FreeStr);
-    if IDs^.Search(@T, I) then
+    if IDs^.Search(@T, L) then
        begin
-         GetID := PLngWord(IDS^.At(I))^.L;
+         GetID := PLngWord(IDS^.At(L))^.L;
        end else
        begin
          Val(FreeStr, L, I);
@@ -547,19 +592,25 @@ var
          GetID := L;
        end;
   end;
+
   PROCEDURE SetSavers;
+{$IFDEF SS}
     var D: PDialog;
   begin
     D := MakeSaversDialog;
     StoreResource( D, dlgSaversSetup );
     Dispose( D, Done );
+{$ELSE}
+  begin
+    StoreResource( nil, dlgSaversSetup );
+{$ENDIF}
   end;
 
   function CompileStatus: PStatusDef;
     var
         PM, PL: PStatusItem;
         DM, DL: PStatusDef;
-        I,J: Integer;
+        I,J: LongInt;
         S: String;
 
      procedure MakeStatusDef;
@@ -591,17 +642,15 @@ var
     while not EOF(F.T) do
       begin
         ReadLn(F.T, S);
+        S := DefineParser.ProceedStr2(S);
         Inc(Line);
         DelLeft(S);
         if (S <> '') and (S[1] <> ';') then
          if UpStrg(Copy(S, 1, Length(idStatusDef))) = idStatusDef then MakeStatusDef else
-            if UpStrg(Copy(S, 1, Length(idStatusItem))) = idStatusItem then MakeStatusItem else
-              if UpStrg(Copy(S, 1, Length(idEND))) = idEND then
-                begin
-                  Break;
-                end else
-                 if (S <> '') and (S[1] <> ';') then
-                    Error('Unknown identifier in line '+ItoS(Line));
+         if UpStrg(Copy(S, 1, Length(idStatusItem))) = idStatusItem then MakeStatusItem else
+         if UpStrg(Copy(S, 1, Length(idEND))) = idEND then  Break
+          else if (S <> '') and (S[1] <> ';') then
+                Error('Unknown identifier in line '+ItoS(Line));
       end;
     CompileStatus := DM;
   end;
@@ -615,14 +664,14 @@ var
     R.Assign(0,0,80,1);
     StatusLine := New(PStatusLine, Init(R, PM));
     StoreResource(StatusLine, dlgStatusLine);
-    Dispose(StatusLine, Done);
+    Dispose(StatusLine,Done);
     StatusLine := nil;
   end;
 
   function CompileMenu(S: String): PMenu;
     var PM, PL: PMenuItem;
         S1, S2: String;
-        I, J: Integer;
+        I, J: LongInt;
 
     procedure AddItem(P: Pointer);
     begin
@@ -659,6 +708,7 @@ var
     while not EOF(F.T) do
       begin
          ReadLn(F.T, S);
+         S := DefineParser.ProceedStr2(S);
          Inc(Line);
          DelLeft(S);
          if (S <> '') and (S[1] <> ';') then
@@ -678,7 +728,8 @@ var
         T: TLngWord;
         R: TRect;
         D: PMenuBar;
-        I,J: Integer;
+        I: LongInt;
+        J: LongInt;
   begin
     I := Length(idMenu);
     FreeStr := Token(S, I);
@@ -687,13 +738,14 @@ var
     ID := TDlgIdx(PLngWord(DLGs^.At(J))^.L);
     New(D, Init(R, CompileMenu(S)));
     StoreResource(D, ID);
-    Dispose(D, Done);
+    Dispose(D,Done);
   end;
 
   procedure CompileDialog(S: String);
     var D: PDialog;
         R: TRect;
-        I,J: Integer;
+        I: LongInt;
+        J: LongInt;
         PV: PView;
         LastSB: PScrollBar;
 
@@ -719,6 +771,16 @@ var
           D^.Insert(P);
         end;
     end;
+
+        {-DataCompBoy-}
+    procedure MakeHexLine;
+    begin
+      R.Assign(GetID(Token(S, I)), GetID(Token(S, I)), GetID(Token(S, I)), GetID(Token(S, I)));
+      R.B.Y := R.A.Y + 1;
+      PV := New(PHexLine, Init(R, PInputLine(PV)));
+      D^.Insert(PV);
+    end;
+        {-DataCompBoy-}
 
     procedure MakeLabel;
       var B: String;
@@ -756,8 +818,9 @@ var
        while not EOF(F.T) do
         begin
           ReadLn(F.T, S);
+          S := DefineParser.ProceedStr2(S);
           Inc(Line);
-          while (S[1] = ' ') and (S <> '') do Delete(S, 1, 1);
+          DelLeft(S);
           DelRight(S); FreeStr := S; UpStr(FreeStr);
           if IsThis(idItem) then
             begin
@@ -863,9 +926,11 @@ var
             Options: 0;
             Mode1: '';
             Mode2: '';
+            Temp: '';
             Drives: ( List: NIL; Focus: 0 );
             Current: 0;
-            Temp: ''
+            LFNContainer: 0;
+            LFNCache: ''
           );
 
         {-DataCompBoy-}
@@ -884,12 +949,14 @@ var
      while not EOF(F.T) do
       begin
         ReadLn(F.T, S);
+        S := DefineParser.ProceedStr2(S);
         Inc(Line);
-        while (S[1] = ' ') and (S <> '') do Delete(S, 1, 1);
+        DelLeft(S);
         FreeStr := UpStrg(S);
         if (S <> '') and (S[1] <> ';') then
          begin
           if IsThis(idInputLine) then MakeInputLine else
+          if IsThis(idHexLine)   then MakeHexLine else
            if IsThis(idHelpCtx) then
             begin
                if PV = nil then D^.HelpCtx := GetId(Token(S, I))
@@ -923,17 +990,17 @@ var
         New( PCollection( DData.Drives.List ), Init( 0, 10 ));
         D^.SetData( DData );
       end;
-    Dispose(D, Done);
+    Dispose(D,Done);
   end;
         {-DataCompBoy-}
 
-  procedure DoInsert( P: PLngWord ); far;
+  procedure DoInsert( P: PLngWord ); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     IDs^.Insert( P );
   end;
 
   function FailCheck: boolean;
-    procedure DoCheck( P: PLngWord ); far;
+    procedure DoCheck( P: PLngWord ); {$IFDEF BIT_16}far;{$ENDIF}
     begin
       If P^.Mark <> 1 then begin
         WriteLn( 'Unresolved identifier "', P^.Name, '"' );
@@ -971,9 +1038,10 @@ begin
   while not EOF(F.T) do
     begin
       ReadLn(F.T, S);
+      S := DefineParser.ProceedStr2(S);
       Inc(Line);
       Write(#13'(', Line, ')');
-      while (S[1] = ' ') and (S <> '') do Delete(S, 1, 1);
+      DelLeft(S);
       FreeStr := UpStrg(S);
       if (S <> '') and (S[1] <> ';') then
         if Copy(FreeStr, 1, Length(idColorDialog)) = idColorDialog then MakeColorDialog else
@@ -1006,8 +1074,8 @@ end;
         {-DataCompBoy-}
 
 PROCEDURE CleanupTypes;
-  procedure DoClean( P: PTypeHolder ); far;
-    procedure DoUnmark( P: PLngWord ); far;
+  procedure DoClean( P: PTypeHolder ); {$IFDEF BIT_16}far;{$ENDIF}
+    procedure DoUnmark( P: PLngWord ); {$IFDEF BIT_16}far;{$ENDIF}
     begin
       P^.Mark := 0
     end;
@@ -1066,7 +1134,7 @@ begin
 end;
 
 BEGIN
-  WriteLn( #13'Resource Compiler for Dos Navigator 1.49  Version 1.05' );
+  WriteLn( #13'Resource Compiler for DN OSP 1.51.05a+  Version 1.07' );
   WriteLn(    'Copyright(C) 1994,95 RIT Research Labs');
   WriteLn(    'Copyright(C) 1995 AxoN(R)Soft');
 
@@ -1078,55 +1146,24 @@ BEGIN
   end;
 
   RegisterType( RStrListMaker );
-
- {Views}
-  RegisterType(RView);
-  RegisterType(RFrame);
-  RegisterType(RScrollBar);
-  RegisterType(RGroup);
-  RegisterType(RWindow);
-
-  RegisterType( RScroller );
-  RegisterType( RListViewer );
-  RegisterType(RDialog);
-  RegisterType(RInputLine);
-  RegisterType(RButton);
-  RegisterType(RCluster);
-  RegisterType(RRadioButtons);
-  RegisterType(RCheckBoxes);
-  RegisterType(RMultiCheckBoxes);
-  RegisterType(RListBox);
-  RegisterType(RStaticText);
-  RegisterType(RLabel);
-  RegisterType(RHistory);
-  RegisterType(RParamText);
-  RegisterType(RMenuBar);
-  RegisterType(RMenuBox);
-  RegisterType(RStatusLine);
-  RegisterType(RMenuPopup);
-
-  RegisterType(RFilterValidator);
-  RegisterType(RRangeValidator);
-
-  RegisterType(RColorSelector);
-  RegisterType(RMonoSelector);
-  RegisterType(RColorDisplay);
-  RegisterType(RColorGroupList);
-  RegisterType(RColorItemList);
-  RegisterType(RColorDialog);
-  RegisterType(R_BWSelector);
-
-  RegisterType(RSysDialog);
-  RegisterType(RCurrDriveInfo);
-  RegisterType(RMouseDialog);
-  RegisterType(RMouseBar);
-  RegisterType(RSaversDialog);
-  RegisterType(RSaversListBox);
-  RegisterType(RUpperTable);
+  RegisterALL;
   RegisterType(REditSaver);
 
   New( Types, Init( 10, 10 ));
   InitParser;
+
+{-DataCompBoy-}
+  DefineParser.Init($10, $10);
+  LList := INI.Get( 'Controls', 'Defines');
+  repeat
+    Lng := GetWord( LList, 1 );
+    If Lng <> '' then begin
+      DefineParser.ProceedFile( Lng );
+      LList := CutWord( LList, 1 );
+    end else
+      Break
+  until False;
+{-DataCompBoy-}
 
   LList := INI.Get( 'Controls', 'Indexes' );
   repeat
@@ -1154,8 +1191,8 @@ BEGIN
       ProcessDLGs;
       If LStringList <> NIL then
       begin
-        FreeObject(LStringList);
-        FreeObject(StringCache);
+        Dispose(LStringList,Done); LStringList:=nil;
+        if StringCache<>nil then Dispose(StringCache,Done); StringCache:=nil;
       end;
       DLStream.Done;
       ReRegisterType( RStrListMaker );
@@ -1166,4 +1203,3 @@ BEGIN
   until False;
   Dispose( Types, Done );
 END.
-

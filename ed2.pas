@@ -1,0 +1,535 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source 1.51.07/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//
+//  This programs is free for commercial and non-commercial use as long as
+//  the following conditions are aheared to.
+//
+//  Copyright remains RIT Research Labs, and as such any Copyright notices
+//  in the code are not to be removed. If this package is used in a
+//  product, RIT Research Labs should be given attribution as the RIT Research
+//  Labs of the parts of the library used. This can be in the form of a textual
+//  message at program startup or in documentation (online or textual)
+//  provided with the package.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are
+//  met:
+//
+//  1. Redistributions of source code must retain the copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     "Based on Dos Navigator by RIT Research Labs."
+//
+//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//  The licence and distribution terms for any publically available
+//  version or derivative of this code cannot be changed. i.e. this code
+//  cannot simply be copied and put under another distribution licence
+//  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////}
+
+{$I STDEFINE.INC}
+UNIT Ed2;
+INTERFACE
+Uses Commands, Advance1, U_Keymap, Collect, Views, Drivers, Objects, LFN,
+     SBlocks;
+
+  { TDoCollection }
+const
+      maxUndo    = 100;
+
+      udDelChar  = 1;
+      udInsChar  = 2;
+      udDelLine  = 3;
+      udInsLine  = 4;
+      udDelBlock = 5;
+      udInsBlock = 6;
+      udBackDel  = 7;
+      udSubDel   = 8;
+      udSubDelLine = 9;
+      udIndentBlock = 10;
+      udUnindentBlock = 11;
+      udInsVertBlock  = 12;
+      udReplace       = 13;
+      udReplaceChar   = 14;
+      udReplaceBlock  = 15;
+      udClearBlock    = 16;
+      udStrModified   = 17;
+      udDupeLine      = 18;
+      udFormatBlock   = 19;
+      udReplaceAll    = 20; {-$VOL}
+
+type
+  TDoKind = (dkRedo, dkUndo); {-$VOL}
+
+  PUndoRec = ^TUndoRec;
+  TUndoRec = record
+   What: Word;
+   Where: TPoint;
+   KeyMap: TKeyMap; {-$VIV}
+   case Word of
+    udDelChar: (Str: PString);
+    udInsChar: (Count, Width: Integer; Block: TRect);
+    udDelLine: (Lines: PCollection; Vertical, InsM: Boolean);
+  end;
+
+  PDoCollection = ^TDoCollection;
+  TDoCollection = object(TCollection)
+    DoKind : TDoKind;                                {-$VOL}
+    procedure FreeItem(P: Pointer); virtual;
+    constructor Init(ReOrUn_do: TDoKind);            {-$VOL}
+  end;
+
+  { TInfoLine }
+
+  PInfoLine = ^TInfoLine;
+  TInfoLine = object(TView)
+     constructor Init(var R: TRect);
+     procedure Draw; virtual;
+     procedure HandleEvent(var Event: TEvent);virtual;
+  end;
+
+  { TBookmarkLine }
+
+  PBookmarkLine = ^TBookmarkLine;
+  TBookmarkLine = object(TView)
+     procedure Draw; virtual;
+  end;
+
+  { TAttrBufStream }
+
+  PAttrBufStream=^TAttrBufStream;
+  TAttrBufStream=object(TBufStream)
+    OldAttr: Word;
+    F: lFile;
+    constructor Init(FileName: String; Mode, Size: Word);
+    destructor Done; virtual;
+  end;
+
+function  CheckForOver(Name: String): PStream;
+procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF; AOptimalFill: Boolean);
+
+
+IMPLEMENTATION
+Uses Advance, Advance2, Messages, Dos, DnApp, Microed, Startup, Dnini, EdWin;
+
+{ TDoCollection }
+procedure TDoCollection.FreeItem(P: Pointer);
+ var T: PUndoRec;
+begin
+ T := P;
+ if P = nil then Exit;
+ case DoKind of
+   dkUndo:
+      case T^.What of
+       udDelChar, udInsLine, udSubDelLine, udReplace, udReplaceChar, udInsBlock,
+       udFormatBlock, udStrModified, udSubDel, udBackDel, udReplaceAll:
+         DisposeStr(T^.Str);
+       udDelLine, udDelBlock, udReplaceBlock,
+       udClearBlock: begin Dispose(T^.Lines,Done); T^.Lines:=nil end;
+       udInsChar: begin end;
+      end;
+   dkRedo:
+      case T^.What of
+        udInsChar,udSubDel,udReplaceChar,udSubDelLine,udStrModified,udReplace,
+        udReplaceAll: DisposeStr(T^.Str);
+        udInsLine,udInsBlock,udFormatBlock,udDelBlock,udInsVertBlock,
+        udReplaceBlock,udClearBlock: begin Dispose(T^.Lines,Done); T^.Lines:=nil end;
+        udDelChar,udDelLine,udBackDel:
+          begin end;
+      end;
+ end;
+ Dispose(T);
+end;
+
+constructor TDoCollection.Init(ReOrUn_do: TDoKind); {-$VOL}
+begin
+  inherited Init($100, $80);
+  DoKind:=ReOrUn_do;
+end; {-$VOL}
+
+{ TInfoLine }
+
+constructor TInfoLine.Init;
+begin
+   inherited Init(R);
+   EventMask := evMouseDown;
+   GrowMode := gfGrowHiX + gfGrowHiY + gfGrowLoY;
+end;
+
+procedure TInfoLine.HandleEvent;
+  var T: TPoint;
+      lS: byte;
+      P: PFileEditor;
+      Ev: TEvent;
+      BookMark: Byte;
+begin
+  inherited HandleEvent(Event);
+  if Event.What = evMouseDown then
+    begin
+       Owner^.MakeLocal(Event.Where, T);
+       if T.X >= Owner^.Size.X-2 then
+         begin
+           PWindow(Owner)^.Frame^.HandleEvent(Event);
+           Exit;
+         end;
+       MakeLocal(Event.Where, T);
+       Event.What := evCommand;
+      {==0000000:000=[000]=(x)=CrLf=DOS==<1........>}
+      {000000000011111111112222222222333333333344444}
+      {012345678901234567890123456789012345678901234}
+       P:=PFileEditor(PEditWindow(Owner)^.Intern);
+       if      (T.X >  1) and (T.X < 13) then Event.Command := cmGotoLineNumber
+       else if (T.X > 13) and (T.X < 19) then Event.Command := cmSpecChar
+       else if (T.X > 19) and (T.X < 23) then Event.Command := cmSwitchBlock
+       else if (T.X > 23) and (T.X < 28) then
+               case P^.EdOpt.ForcedCrLf of
+                cfCRLF: Event.Command := cmEditLfMode;
+                cfLF  : Event.Command := cmEditCrMode;
+                cfCR  : Event.Command := cmEditCrLfMode;
+                else    Event.Command := cmEditCrLfMode;
+               end
+       else if (T.X > 28) and (T.X < 32) then Event.Command := cmSwitchKeyMapping
+       else if FastBookmark and ((T.X > 34) and (T.X < 44)) then
+             begin
+              BookMark := T.X-35;
+              if (Event.Buttons and mbRightButton <> 0) or
+                 (not P^.MarkPos[Event.InfoByte].EqualsXY(-1, -1)) then
+               with Event do begin
+                What:=evCommand;
+                if (Event.Buttons and mbRightButton <> 0)
+                 then Command:=cmPlaceMarker1+BookMark
+                 else Command:=cmGotoMarker1+BookMark;
+               end
+              else Event.What := evNothing;
+             end
+       else Event.What := evNothing;
+       if Event.What <> evNothing then PutEvent(Event);
+       ClearEvent(Event);
+    end;
+end;
+
+procedure TInfoLine.Draw;
+ var P: PFileEditor;
+     X,Y: LongInt;
+     C: String[1];
+     S: String;
+     CharNum: Byte; {-$VIV}
+     Ch: Char;
+     Ch2: Char;
+     Color: Byte;
+     qwe: byte;
+     B: Array[0..200] of Word;
+begin
+ P := PFileEditor(PEditWindow(Owner)^.Intern);
+ if Owner^.GetState(sfDragging) or not Owner^.GetState(sfActive) then begin
+  if Owner^.GetState(sfDragging)
+   then Color:=PWindow(Owner)^.Frame^.GetColor(5)
+   else Color:=PWindow(Owner)^.Frame^.GetColor(4);
+  Ch2:=#196;
+ end else begin
+  Color:=PWindow(Owner)^.Frame^.GetColor(3);
+  Ch2:=#205;
+ end;
+ if not Owner^.GetState(sfActive) then S[0] := #0
+ else begin
+  With P^ do
+   begin
+    X := Delta.X + 1;
+    Y := Delta.Y + 1;
+    if X <= Byte(WorkString[0]) then C := WorkString[X] else C := #0;
+   end;
+  C := P^.KeyMapConvertStr(C, false); {-$VIV start}
+  CharNum := Byte(C[1]); {-$VIV e.nd}
+  if P^.Modified then S := #15+Ch2 else S := Ch2+Ch2;
+  S := S + SStr(Y, 7, Ch2) + ':' + SSt2(X, 3, Ch2) + Ch2+'['+SStr(CharNum,3,'0')+']'+Ch2; {-$VIV}
+  if P^.DrawMode = 1 then S := S + '{'#197'}' else
+    if P^.DrawMode = 2 then S := S + '{'#206'}' else
+      if P^.VertBlock then S := S + '('#18')' else S := S + '('#29')';
+
+  if P^.EdOpt.ForcedCrLf = cfNone then
+   begin
+    P^.EdOpt.ForcedCrLf:=cfNone;
+    for qwe:=0 to EditorDefaults.NewLine do
+     P^.EdOpt.ForcedCrLf:=succ(P^.EdOpt.ForcedCrLf);
+   end;
+  if P^.EdOpt.ForcedCrLf = cfCR   then S:=S+Ch2+Ch2+'Cr'+Ch2 else
+  if P^.EdOpt.ForcedCrLf = cfLF   then S:=S+Ch2+Ch2+'Lf'+Ch2 else
+  if P^.EdOpt.ForcedCrLf = cfCRLF then S:=S+Ch2+'CrLf'       else
+                                 S:=S+Ch2+'::::';
+  if CapitalCodePageName then
+   case P^.KeyMap of   {-$VIV--}
+     kmAscii: S := S+Ch2+'Dos'+Ch2;
+     kmAnsi:  S := S+Ch2+'Win'+Ch2;
+     kmKoi8r: S := S+Ch2+'Koi'+Ch2;
+   end
+  else
+   case P^.KeyMap of   {-$VIV--}
+     kmAscii: S := S+Ch2+'DOS'+Ch2;
+     kmAnsi:  S := S+Ch2+'WIN'+Ch2;
+     kmKoi8r: S := S+Ch2+'KOI'+Ch2;
+   end;
+  if FastBookmark then
+  begin
+    S := S + Ch2+'<';    {-$VIV 20.05.99--}
+    for X := 1 to 9 do
+      if not P^.MarkPos[X].EqualsXY(-1, -1)
+       then S := S + Char(X+48)
+       else S := S + #250;
+    S := S + '>';     {-$VIV::}
+  end;
+ end;
+ MoveChar(B, Ch2, Color, Size.X);
+ MoveStr(B, S, Color);
+ WriteLine(0, 0, Size.X, 1, B);
+end;
+
+{TBookmarkLine}
+procedure TBookmarkLine.Draw;
+ var P: PFileEditor;
+     Col: Byte;
+     I: Integer;
+     Mrk: Char;
+     Ch: Char;
+     B: Array[0..20] of Word;
+
+ function IsMarker(pLine: Longint): Char;
+ var I: Byte;
+ begin
+   IsMarker := #0;
+   for I := 1 to 9 do
+     if P^.MarkPos[I].Y = pLine then
+     begin
+       IsMarker := Char(I+48);
+       Break;
+     end;
+ end;
+
+ function SwitchHalfs(B: Byte): Byte;
+ begin
+   SwitchHalfs := ((B and $0F) shl 4) or ((B and $F0) shr 4);
+ end;
+
+begin
+ P := PFileEditor(PEditWindow(Owner)^.Intern);
+ if Owner^.GetState(sfDragging) or not Owner^.GetState(sfActive) then begin
+  if Owner^.GetState(sfDragging)
+   then Col:=PWindow(Owner)^.Frame^.GetColor(5)
+   else Col:=PWindow(Owner)^.Frame^.GetColor(4);
+  Ch:=#179;
+ end else begin
+  Col:=PWindow(Owner)^.Frame^.GetColor(3);
+  Ch:=#186;
+ end;
+ if not ShowBookmarks then
+ begin
+   MoveChar(B, ch, Col, 1); {SYR}
+   WriteLine(0, 0, Size.X, Size.Y, B);
+   Exit;
+ end;
+ for I := 0 to Size.Y do
+ begin
+   Mrk := IsMarker(P^.Pos.Y+I);
+   if Mrk = #0 then MoveChar(B, ch, Col, 1) {SYR}
+     else MoveChar(B, Mrk, SwitchHalfs(Col), 1);
+   WriteLine(0, I, Size.X, 1, B);
+ end;
+end;
+
+constructor TAttrBufStream.Init(FileName: String; Mode, Size: Word);
+begin
+  inherited Init(FileName, Mode, Size); OldAttr := $FFFF;
+end;
+
+destructor TAttrBufStream.Done;
+begin
+  inherited Done;
+  if OldAttr <> $FFFF then lSetFAttr(F, OldAttr);
+end;
+
+        {-DataCompBoy-}
+function CheckForOver(Name: String): PStream;
+ var  S: PAttrBufStream;
+      F: lFile;
+      W: Word;
+      L: array[0..0] of LongInt;
+   Attr: Word;
+
+procedure CreateBackup;
+var
+  Dr: String;
+  Nm: String;
+  Xt: String;
+begin
+  lFSplit(Name, Dr, Nm, Xt); ClrIO;
+  EraseFile( Dr+Nm+'.BAK' );
+  lAssignFile(F, Name); lRenameFile(F, Dr+Nm+'.BAK'); ClrIO;
+end;
+
+procedure OverQuery;
+var
+   P: PString;
+   Dr: string[30];
+begin
+   P := @Dr; Dr := Cut(Name, 30);
+   W := Msg(dlED_OverQuery, @P, mfYesButton+mfCancelButton+mfAppendButton+mfWarning);
+end;
+
+begin
+ CheckForOver := nil; Abort := Off; S := nil;
+ lAssignFile(F, Name); ClrIO; lGetFAttr(F, Attr); if Abort then Exit;
+ if (DosError = 0) and (Attr and ReadOnly <> 0 ) then
+ begin
+   OverQuery; case W of cmYes, cmOK:;else Exit end;
+   Pointer(L[0]) := @Name;
+   if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then Exit;
+   lSetFAttr(F, Archive);
+   if Abort or (DosError<>0) then
+   begin
+     CantWrite(Name);
+     Exit;
+   end;
+ end else begin W := $FFFF; Attr := Archive end;
+ New(S, Init(Name, stOpen, 4096)); if S = nil then Exit;
+ if Abort or (S^.Status = stOK) then
+ begin
+   if W = $FFFF then OverQuery;
+   case W of
+     cmYes, cmOK: begin
+                    if Attr and ReadOnly <> 0 then
+                    begin
+                      S^.OldAttr := Attr;
+                      lAssignFile(S^.F, lFileNameOf(F));
+                    end;
+                    case W of
+                      cmYes: S^.Truncate;
+                      cmOK : S^.Seek(S^.GetSize);
+                    end;
+                    CheckForOver := S;
+                  end;
+     else Begin Dispose(S,Done); S:=nil; end;
+   end;
+   Exit;
+ end;
+ Dispose(S,Done);S:=nil;
+ if Abort then Exit;
+ if EditorDefaults.EdOpt and ebfCBF <> 0 then CreateBackup;
+ New(S, Init(Name, stCreate, 4096));
+ if Abort or (S = nil) or (S^.Status <> stOK) then
+ begin
+   CantWrite(Name);
+   Dispose(S,Done);S:=nil;
+   Exit
+ end;
+ CheckForOver := S;
+end;
+        {-DataCompBoy-}
+
+procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF; AOptimalFill: Boolean);
+ var I: LongInt;
+     M: LongInt;
+     SST: String;
+     P: PString;
+
+  procedure CompressString;
+   var PP: Pointer;
+       TSt: Integer;
+  begin
+   PP := @SST;
+   TSt := StoI(EditorDefaults.TabSize);
+   if TSt = 0 then TSt := 8;
+{$IFNDEF FPC}
+   asm
+      les bx, PP
+      mov cl, es:[bx]
+      inc bx
+      xor ch, ch
+      jcxz @@Ex
+      xor di, di
+      xor si, si
+      mov byte ptr es:[bx-1], ch
+    @@1:
+      mov ah, byte ptr TSt
+      xor dx, dx
+    @@2:
+      mov al, es:[bx][si]
+      mov es:[bx][di], al
+      inc si
+      cmp si, cx
+      ja  @@Ex
+      inc di
+      inc byte ptr es:[bx-1]
+      cmp al, ' '
+      jne @@3
+      inc dl
+      jmp @@4
+     @@3:
+      xor Dl, dl
+     @@4:
+      dec ah
+      jnz @@2
+      or  dl, dl
+      jz @@5
+      dec dl
+      jz @@5
+      sub di, dx
+      sub byte ptr es:[bx-1], dl
+      mov al, 9
+      mov es:[bx][di-1], al
+     @@5:
+      jmp @@1
+    @@Ex:
+   end;
+{$ENDIF}
+  end;
+
+  var PP: PView;
+      CrLf: String[2];
+      qwe: byte;
+begin
+
+ if ForcedCRLF = cfNone then
+  begin
+   ForcedCRLF:=cfNone;
+   for qwe:=0 to EditorDefaults.NewLine do
+    ForcedCRLF:=succ(ForcedCRLF);
+  end;
+
+ if ForcedCRLF = cfCR then CrLf := #13 else
+  if ForcedCRLF = cfLF then CrLf := #10 else
+   if ForcedCRLF = cfCRLF then CrLf := #13#10;
+
+ I := 1; if (S = nil) or (C = nil) then Exit;
+ PP := WriteMsg(^M^M^C+GetString(dlWritingFile));
+ while not Abort and (S^.Status = stOK) and (I < C^.Count) do
+  begin
+   UpdateWriteView(PP);
+   P := C^.At(I-1); if P <> nil then SST := P^ + CrLf else SST := CrLf;
+   if AOptimalFill then CompressString;
+   S^.Write(SST[1], Length(SST));
+   Inc(I);
+  end;
+  {HintString := '';} Application^.Idle;
+  P := C^.At(I-1); if P <> nil then SST := P^ else SST := '';
+  S^.Write(SST[1], Byte(SST[0]));
+  if PP <> nil then PP^.Free;
+end;
+
+END.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,18 +43,19 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
-{$o+}
 unit Advance1; {String functions}
 interface
-uses advance, dos, lfn, u_keymap;
+uses objects, advance, dos, lfn, u_keymap;
 
-function  StrGrd(AMax, ACur: TSize; Wide: Byte): string;
+function  NewStr(const S: String): PString;
+procedure DisposeStr(var P: PString);
+procedure ReplaceP(var P: PString; S: String);
+function  CnvString(P: PString): String; {conversion: PString to String}
+
+function  StrGrd(AMax, ACur: TSize; Wide: Byte; Rev: boolean): string;
 function  Percent(AMax, ACur: TSize): TSize;
 procedure Hex8Lo(L:longInt;var HexLo);
 Procedure AddStr(var S ; C : char);
@@ -70,18 +71,23 @@ Procedure DelRight(var S: string);
 Function fDelRight(s : string) : string;
 procedure DelLeft (var S: string);
 Function fDelLeft (s : string) : string;
-{DataCompBoy procedure DelSymbol(var s: string;C: char);}
 
+{case function}
 Function  Strg(c:char; Num: Byte) : string;
-Function  UpStrg(s : string) : string;
-Procedure UpStr(var s : string);
+
 Function  UpCase(c : Char) : Char;
-Function  LowStrg(s : string) : string;
-Procedure LowStr(var s : string);
+Procedure UpStr(var s : string);
+Function  UpStrg(s : string) : string;
+
 Function  LowCase(c : Char) : Char;
-function  UpCaseStr(S: string): string;
-function  LowCaseStr(S: string): string;
+Procedure LowStr(var s : string);
+Function  LowStrg(s : string) : string;
+
+procedure CapStr(var S: String);
+function  CapStrg(S: String): String;
+
 procedure MakeCase(CaseSensitive: Boolean);
+
 Function  ItoS(a:longint):string;
 Function  ZtoS(a:TSize):string;
 Function  RtoS(a:real;m,f:integer):string;
@@ -94,8 +100,6 @@ Function  Hex2(a : byte) : Str2;
 Function  Hex4(a : word) : Str4;
 Function  Hex8(a : LongInt) : Str8;
 Function  HexChar(a : byte) : char;
-{DataCompBoy Procedure DefineChar(n : Integer;var a);}
-{DataCompBoy Procedure GetDChar(n : Integer;var a);}
 FUNCTION  Replace(const Pattern, ReplaceString: string; var S: string): Boolean;
 FUNCTION fReplace(const SubFrom, SubTo: String; S: string): String;
 FUNCTION  PosChar(C: Char; S: string): Byte;
@@ -121,6 +125,10 @@ Function  SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
 Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV 14.05.99}
 Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV ::}
 
+procedure FormatStr(var Result: String; const Format: String; var Params);
+procedure PrintStr(const S: String);
+procedure CompressString(var S: String);
+
 implementation
 uses advance2, advance3;
 
@@ -132,13 +140,14 @@ uses advance2, advance3;
  end;
 
 
-function StrGrd(AMax, ACur: TSize; Wide: Byte): string;
+function StrGrd(AMax, ACur: TSize; Wide: Byte; Rev: Boolean): string;
 var
   A: Byte;
 begin
   LowPrec(AMax, ACur);
   if AMax = 0 then A := Wide else A := Round((ACur*Wide) / AMax);
-  StrGrd := Copy(Strg(#219,A)+Strg(#177, Wide), 1, Wide);
+  if Rev then StrGrd := Strg(#177, Wide-A)+Strg(#219,A)
+         else StrGrd := Strg(#219,A)+Strg(#177, Wide-A);
 end;
 
 function Percent(AMax, ACur: TSize): TSize;
@@ -148,6 +157,7 @@ begin
 end;
 
 procedure Hex8Lo(L:longInt;var HexLo);assembler;
+{$IFNDEF NOASM}
 asm
         cld
         les     di,[HexLo]
@@ -156,7 +166,7 @@ asm
         call    @@OutWord
         mov     dx,[word ptr L+0]
         call    @@OutWord
-        jmp     @@End
+        jmp     @@LEnd
 
 @@OutWord:      {DX-word}
         mov     ax,dx
@@ -178,20 +188,34 @@ asm
         xlat
         stosb
         retn
-@@End:
+@@LEnd:
+{$ELSE}
+type ChArr: array[1..4] of char;
+begin
+ ChArr(HexLo)[1]:=LoHexChar[L shr 24];
+ ChArr(HexLo)[2]:=LoHexChar[L and $00FF0000 shr 16];
+ ChArr(HexLo)[3]:=LoHexChar[L and $0000FF00 shr 08];
+ ChArr(HexLo)[4]:=LoHexChar[L and $000000FF];
+{$ENDIF}
 end;
 
-Procedure AddStr(var S ; C : char);assembler ;
-   asm
-        cld
-        les Di,S
-        inc ES:DI.byte
-        mov al,ES:DI.byte
-        sub ah,ah
-        add DI,AX
-        mov al,C
-        Stosb
-   end;
+Procedure AddStr(var S ; C : char);
+{$IFNDEF NOASM}
+assembler ;
+asm
+   cld
+   les Di,S
+   inc ES:DI.byte
+   mov al,ES:DI.byte
+   sub ah,ah
+   add DI,AX
+   mov al,C
+   Stosb
+{$ELSE}
+begin
+ String(S):=String(S)+C;
+{$ENDIF}
+end;
 
 procedure DelFC(var s:string);
 var
@@ -207,16 +231,8 @@ begin
 end;
 
 FUNCTION AddSpace(const s:string; N:byte):string;
-var s2: string;
-begin
-s2:=s;
-if length(s)<n then begin
- fillchar(s2[length(s2)+1], n-length(s2), ' ');
- s2[0]:=char(n);
-end;
-AddSpace:=s2;
-end;
-{assembler;
+{$IFNDEF NOASM}
+assembler;
 asm
    cld
    push  ds
@@ -235,15 +251,25 @@ asm
    mov   al, ' '
    mov   cl, ah
    rep   stosb
-   jmp   @End
+   jmp   @LEnd
 
 @JustCopy:
    stosb
    mov  cl, al
    rep movsb
-@End:
+@LEnd:
    pop  ds
-end;}
+{$ELSE}
+var s2: string;
+begin
+ s2:=s;
+ if length(s)<n then begin
+  fillchar(s2[length(s2)+1], n-length(s2), ' ');
+  s2[0]:=char(n);
+ end;
+ AddSpace:=s2;
+{$ENDIF}
+end;
 
 FUNCTION PredSpace;
 begin
@@ -255,15 +281,8 @@ begin
 end;
 
 procedure DelSpace;
-var a, b, j: byte;
-begin
- if s='' then exit;
- b:=1;
- j:= length(s); s[0]:=#0;
- for a:=1 to j do
-  if not (s[a] in [' ',#9]) then begin s[b]:=s[a]; inc(s[0]); inc(b); end;
-end;
-{assembler;
+{$IFNDEF NOASM}
+assembler;
 asm
   les bx, S
   xor ch, ch
@@ -286,31 +305,16 @@ asm
   inc  di
   loop @@2
 @@1:
-end;}
-{DataCompBoy
-procedure DelSymbol; assembler;
-asm
-  les bx, S
-  xor ch, ch
-  mov cl, es:[bx]
-  jcxz @@1
-  mov  di, 1
-  mov  si, 1
-  xor  al, al
-  mov  es:[bx], al
-@@2:
-  mov  al, es:[bx][di]
-  cmp  al, C
-  jz   @@3
-  mov  es:[bx][si], al
-  inc  byte ptr es:[bx]
-  inc  si
-@@3:
-  inc  di
-  loop @@2
-@@1:
+{$ELSE}
+var a, b, j: byte;
+begin
+ if s='' then exit;
+ b:=1;
+ j:= length(s); s[0]:=#0;
+ for a:=1 to j do
+  if not (s[a] in [' ',#9]) then begin s[b]:=s[a]; inc(s[0]); inc(b); end;
+{$ENDIF}
 end;
-}
 
 Function DelSpaces;
 begin
@@ -318,25 +322,33 @@ begin
  DelSpaces := S;
 end;
 
-Procedure DelRight;assembler ;
-   asm
-        les Di,S
-        mov bl,ES:DI.byte
-        sub bh,bh
-        or  BX,BX
-        jz  @@3
-    @@1:
-        mov al, ES:[DI+BX]
-        cmp al, ' '
-        je  @@D
-        cmp al, 9
-        jne @@2
-   @@D: dec BX
-        jnz @@1
-    @@2:
-        mov ES:DI.byte,bl
-    @@3:
-   end;
+Procedure DelRight;
+{$IFNDEF NOASM}
+assembler ;
+asm
+     les Di,S
+     mov bl,ES:DI.byte
+     sub bh,bh
+     or  BX,BX
+     jz  @@3
+ @@1:
+     mov al, ES:[DI+BX]
+     cmp al, ' '
+     je  @@D
+     cmp al, 9
+     jne @@2
+ @@D:
+     dec BX
+     jnz @@1
+ @@2:
+     mov ES:DI.byte,bl
+ @@3:
+{$ELSE}
+var q: byte absolute S;
+begin
+ for q:=q downto 1 do if S[q]<>' ' then break;
+{$ENDIF}
+end;
 
 Function fDelRight(s : string) : string;
 begin DelRight(S); fDelRight:=s end;
@@ -358,13 +370,8 @@ Function fDelLeft(s : string) : string;
 begin DelLeft(S); fDelLeft:=s end;
 
 Function Strg;
-var S: string;
-begin
- fillchar(s[1], num, c);
- s[0]:=char(num);
- Strg:=s;
-end;
-{assembler;
+{$IFNDEF NOASM}
+assembler;
 asm
   les  di, @Result
   mov  al, Num
@@ -373,42 +380,54 @@ asm
   mov  cl, al
   mov  al, c
   rep  stosb
-end;}
-
-Function UpCase(c : Char) : Char;
+{$ELSE}
+var S: string;
 begin
-    if c=#0 then UpCase:=#0 else UpCase:=UpCaseArray[c]
+ fillchar(s[1], num, c);
+ s[0]:=char(num);
+ Strg:=s;
+{$ENDIF}
 end;
+
 
 Function LowCase(c : Char) : Char;
-begin
-    if c=#0 then LowCase:=#0 else LowCase:=LowCaseArray[c]
-end;
+begin if c=#0 then LowCase:=#0 else LowCase:=LowCaseArray[c] end;
 
 Procedure LowStr(var s : string);
 var i:integer;
-begin
-    for i:=1 to Length(s) do if s[i]<>#0 then s[i]:=LowCaseArray[s[i]];
-end;
+begin for i:=1 to Length(s) do if s[i]<>#0 then s[i]:=LowCaseArray[s[i]]; end;
 
 Function LowStrg(s : string) : string;
-begin
- LowStr(s);
- LowStrg:=s;
-end;
+begin LowStr(s); LowStrg:=s; end;
 
-Procedure UpStr(var s : string);
-var i:integer;
-begin
-    for i:=1 to Length(s) do if s[i]<>#0 then s[i]:=UpCaseArray[s[i]];
-end;
 
+Function UpCase(c : Char) : Char;
+begin if c=#0 then UpCase:=#0 else UpCase:=UpCaseArray[c] end;
+
+Procedure UpStr(var s : string); var i:integer;
+begin for i:=1 to Length(s) do if s[i]<>#0 then s[i]:=UpCaseArray[s[i]]; end;
 
 Function UpStrg(s : string) : string;
+begin UpStr(s); UpStrg:=s; end;
+
+Procedure CapStr(var S: String);
+var
+  I: Integer;
 begin
- UpStr(s);
- UpStrg:=s;
+ I:=1;
+ repeat
+  While (I<=Length(S)) and (S[I] in BreakChars) do Inc(I);
+  If I>Length(S) then break;
+  S[I]:=UpCase(S[I]);
+  While (I<Length(S)) and (not (S[I] in BreakChars)) do begin
+   Inc(I); S[I]:=LowCase(S[I]);
+  end;
+ until I>=Length(S);
 end;
+
+function CapStrg(S: String): String;
+begin CapStr(s); CapStrg:=s; end;
+
 
 Function  ItoS(a:longint):string;
  var s : string[12];
@@ -469,18 +488,15 @@ Function  FStr(a:TSize):string;
  var s,s1 : string[40];
      s1l: byte absolute s1;
      i : Integer;
-{     C: Char;}
+{$IFNDEF NOASM} C: Char;{$ENDIF}
 begin
  Str(A:0:0, S);
  if CountryInfo.ThouSep[0] > #0 then
    begin
-      {C := CountryInfo.ThouSep[1];}
       s1:='';
-      for i:=length(s) downto 1 do begin
-       s1:=s[i]+s1;
-       if (i>1) and ((byte(s[0])-i+1) mod 3=0) then s1:=CountryInfo.ThouSep[1]+s1;
-      end;
-{      asm
+      {$IFNDEF NOASM}
+      C := CountryInfo.ThouSep[1];
+      asm
        lea si, s
        lea di, s1
        mov bx, di
@@ -514,7 +530,12 @@ begin
        inc byte ptr ss:[bx]
        jmp @@2
       @@3:
-      end;}
+      {$ELSE}
+      for i:=length(s) downto 1 do begin
+       s1:=s[i]+s1;
+       if (i>1) and ((byte(s[0])-i+1) mod 3=0) then s1:=CountryInfo.ThouSep[1]+s1;
+      {$ENDIF}
+      end;
    end else S1 := S;
  if Length(S1)>12 then
  begin
@@ -566,12 +587,8 @@ begin
 end;
 
 Function HexChar(a : byte) : char;
-begin
- a:=a and 15;
- if a<10 then HexChar:=Char(Ord('0')+a)
-  else HexChar:=Char(Ord('A')+a-10);
-end;
-{assembler;
+{$IFNDEF NOASM}
+assembler;
 label Loc1;
 asm
    mov al,a
@@ -581,40 +598,13 @@ asm
    jc  Loc1
    add al,7
 Loc1:
-end;}
-
-{DataCompBoy
-Procedure DefineChar(n : Integer;var a);
+{$ELSE}
 begin
- PortW[$3C4]:=$0402;
- PortW[$3C4]:=$0704;
- PortW[$3CE]:=$0005;
- PortW[$3CE]:=$0406;
- PortW[$3CE]:=$0204;
- move(a,mem[$A000:n*32],16);
- PortW[$3C4]:=$0302;
- PortW[$3C4]:=$0304;
- PortW[$3CE]:=$1005;
- PortW[$3CE]:=$0E06;
- PortW[$3CE]:=$0004;
+ a:=a and 15;
+ if a<10 then HexChar:=Char(Ord('0')+a)
+  else HexChar:=Char(Ord('A')+a-10);
+{$ENDIF}
 end;
-}
-{DataCompBoy
-Procedure GetDChar(n : Integer;var a);
-begin
- PortW[$3C4]:=$0402;
- PortW[$3C4]:=$0704;
- PortW[$3CE]:=$0005;
- PortW[$3CE]:=$0406;
- PortW[$3CE]:=$0204;
- move(mem[$A000:n*32],a,16);
- PortW[$3C4]:=$0302;
- PortW[$3C4]:=$0304;
- PortW[$3CE]:=$1005;
- PortW[$3CE]:=$0E06;
- PortW[$3CE]:=$0004;
-end;
-}
 
 function Replace;
  var I, J, K: Integer;
@@ -647,13 +637,8 @@ begin
 end;
 
 FUNCTION  PosChar;
-var i: byte;
-begin
- i:=1;
- for i:=1 to length(s) do if s[i]=c then break;
- if s[i]<>c then PosChar:=0 else PosChar:=i;
-end;
-{assembler;
+{$IFNDEF NOASM}
+assembler;
 asm
   les di,S
   xor ch,ch
@@ -669,41 +654,47 @@ asm
   jmp @Q
 @S:xor al,al
 @Q:
-end;}
+{$ELSE}
+var i: byte;
+begin
+ i:=1;
+ for i:=1 to length(s) do if s[i]=c then break;
+ if s[i]<>c then PosChar:=0 else PosChar:=i;
+{$ENDIF}
+end;
 
+function GetDateTime(Time: Boolean): string;
+ var S: string[30];
+     Y,M,D,DW: Word;
+     H,Mn,SS,S100: Word;
 
- function GetDateTime(Time: Boolean): string;
-  var S: string[30];
-      Y,M,D,DW: Word;
-      H,Mn,SS,S100: Word;
+begin
+  GetDate(Y,M,D,DW);
+  GetTime(H,Mn,SS,S100);
+  MakeDateFull(0, D, M, Y, H, Mn, S, not Time); {-$VOL modified}
+  if Time then S := FormatTimeStr(H, Mn, SS)
+          else S[0] := #10;
+  GetDateTime := S;
+end;
 
- begin
-   GetDate(Y,M,D,DW);
-   GetTime(H,Mn,SS,S100);
-   MakeDateFull(0, D, M, Y, H, Mn, S, not Time); {-$VOL modified}
-   if Time then S := FormatTimeStr(H, Mn, SS)
-           else S[0] := #10;
-   GetDateTime := S;
- end;
-
- function FormatTimeStr(H, M, SS: Word): string;
-  var N: string[3];
-      S: string[20];
- begin
-  if (CountryInfo.TimeFmt = 0) and (H > 12) then
+function FormatTimeStr(H, M, SS: Word): string;
+ var N: string[3];
+     S: string[20];
+begin
+ if (CountryInfo.TimeFmt = 0) and (H > 12) then
+  begin
+     S := LeadingZero(h-12) + CountryInfo.TimeSep + LeadingZero(m) + CountryInfo.TimeSep + LeadingZero(ss);
+     N := 'pm';
+   end
+ else
    begin
-      S := LeadingZero(h-12) + CountryInfo.TimeSep + LeadingZero(m) + CountryInfo.TimeSep + LeadingZero(ss);
-      N := 'pm';
-    end
-  else
-    begin
-      S := LeadingZero(h)+ CountryInfo.TimeSep + LeadingZero(m) + CountryInfo.TimeSep + LeadingZero(ss);
-      if CountryInfo.TimeFmt = 0
-         then if (H < 12) then N := 'am' else N := 'pm'
-         else N := '';
-    end;
-  FormatTimeStr := S + N;
- end;
+     S := LeadingZero(h)+ CountryInfo.TimeSep + LeadingZero(m) + CountryInfo.TimeSep + LeadingZero(ss);
+     if CountryInfo.TimeFmt = 0
+        then if (H < 12) then N := 'am' else N := 'pm'
+        else N := '';
+   end;
+ FormatTimeStr := S + N;
+end;
 
 procedure MakeCurrency;
  var I: Integer;
@@ -782,10 +773,8 @@ end;
 procedure MakeDateFull; {-$VOL modified}
 
  procedure GetDig(R: Byte; var S);
- begin
-  Word(S):=word(((R div 10)+ord('0')) + ((R mod 10)+ord('0')) shl 8);
- end;
-{ assembler;
+ {$IFNDEF NOASM}
+ assembler;
  asm
    les bx, S
    mov al, R
@@ -799,7 +788,11 @@ procedure MakeDateFull; {-$VOL modified}
    mov al, '0'
   @@1:
    mov es:[bx], ax
- end;}
+ {$ELSE}
+ begin
+  Word(S):=word(((R div 10)+ord('0')) + ((R mod 10)+ord('0')) shl 8);
+ {$ENDIF}
+ end;
 
 begin
   if YFull then GetDig(Year div 100, S[16]);
@@ -842,85 +835,10 @@ begin
     end;
 end;
 
-procedure InitUpcase; near;
- var C: Char;
-begin
-  UpcaseInit := On;
-  Move(CountryInfo.UpperTable, UpcaseArray[#128], 128);
-  Move(CountryInfo.UpperTable, LowcaseArray[#128], 128);
-  for C := #128 to #255 do
-    begin
-      if (UpcaseArray[C] <> C) and (UpcaseArray[C] > #127) then
-       begin
-         LowCaseArray[UpcaseArray[C]] := C;
-         LowCaseArray[C] := C;
-       end;
-    end;
-end;
-
-function UpCaseStr(S: string): string;
-begin
- asm
-  cmp UpcaseInit, 0
-  jnz @@@1
-  call InitUpcase
-@@@1:
-  lea si, UpCaseArray
-  lea di, S
-  mov cl, ss:[di]
-  xor ch, ch
-  xor bh, bh
-  or  cl, cl
-  jz  @Exit
-@@1:
-  inc di
-  mov al, ss:[di]
-  or al, al
-  jz @@2
-  mov bl, al
-  mov al, ds:[bx+si]
-  mov ss:[di], al
-@@2:
-  loop @@1
-@Exit:
- end;
- UpCaseStr := S;
-end;
-
-function LowCaseStr(S: string): string;
-begin
- asm
-  cmp UpcaseInit, 0
-  jnz @@@1
-  call InitUpcase
-@@@1:
-  lea si, LowCaseArray
-  lea di, S
-  mov cl, ss:[di]
-  xor ch, ch
-  xor bh, bh
-  or  cl, cl
-  jz  @Exit
-@@1:
-  inc di
-  mov al, ss:[di]
-  or al, al
-  jz @@2
-  mov bl, al
-  mov al, ds:[bx+si]
-  mov ss:[di], al
-@@2:
-  loop @@1
-@Exit:
- end;
- LowCaseStr := S;
-end;
-
 const LastCase: Byte = 2;
 
 procedure MakeCase(CaseSensitive: Boolean);
 begin
- if not UpcaseInit then InitUpcase;
  if Byte(CaseSensitive) <> LastCase then
  if CaseSensitive then
   asm
@@ -938,8 +856,8 @@ begin
 end;
 
 function DumpStr;
+{$IFNDEF NOASM}
  var S: string;
-
 begin
  DumpStr := '';
  if Count <= 0 then Exit;
@@ -1028,7 +946,7 @@ begin
   add   si, cx
   add   si, cx
   add   si, cx
-  mov   ax, ' │'
+  mov   ax, 0b320h
   mov   ss:[si], ax
   add   si, 2
 @@2:
@@ -1040,7 +958,7 @@ begin
     cmp  dl, 32
     jnc  @@@4
 @@@5:
-    mov  dl, '·'
+    mov  dl, 250
     jmp  @@@2
 @@@4:
     cmp  Filter, 1
@@ -1079,7 +997,48 @@ begin
   inc   di
   loop  @@2
  end;
- DumpStr := S;
+{$ELSE}
+var
+  S: String;
+  i, j, l, l0, l1: Byte;
+  Buf: Array[0..$FF] of Byte absolute B;
+begin
+  DumpStr := '';
+  if Count <= 0 then Exit;
+  j := 1; S[0] := Char(Count*4 + 12);
+  for i := 0 to 3 do begin
+    l := Addr shr ((3-i)*8); { call }
+    l0 := (l shr 4) + $30;
+    l1 := (l and $0F) + $30;
+    if l0 > $39 then Inc(l0, 7);
+    if l1 > $39 then Inc(l1, 7);
+    S[j] := Char(l0);
+    Inc(j);
+    S[j] := Char(l1);
+    Inc(j);
+  end;
+  S[9] := ':'; S[10] := ' '; Inc(j, 2);
+  S[j+Count*3] := Char($B3); S[j+1+Count*3] := ' ';
+  for i := 0 to Count-1 do begin
+    l := Buf[i];
+    l0 := (l shr 4) + $30;
+    l1 := (l and $0F) + $30;
+    if l0 > $39 then Inc(l0, 7);
+    if l1 > $39 then Inc(l1, 7);
+    if Filter <> 0 then
+      if l < $20 then l := 250;
+    if Filter <> 1 then
+      if l > $80 then l := 250;
+    S[j] := Char(l0);
+    Inc(j);
+    S[j] := Char(l1);
+    Inc(j);
+    S[j] := ' ';
+    Inc(j);
+    S[i + 13 + Count*3] := Char(l);
+  end;
+{$ENDIF}
+  DumpStr := S;
 end;
 
 function SearchFor;
@@ -1163,7 +1122,8 @@ begin
  for I := 1 to Length(S) do S[I] := Tran[S[I]];
  for I := Length(S) downto 1 do
    D[S[I]] := I - 1;
- M := L - Length(S);
+ M := L;
+ M := M - Length(S);
  while M >= 0 do
   begin
    C := Tran[ChBuf[M]];
@@ -1248,5 +1208,127 @@ begin
 end;
 
 {-$VIV::}
+
+function NewStr(const S: String): PString;
+var
+  P: PString;
+begin
+  (*
+  GetMem(P, Length(S) + 1);
+  if (P <> nil) then
+    P^:=S else
+    FatalError('No memory for new string');
+  NewStr:=P;
+  *)
+  if S = '' then P := nil else
+  begin
+    GetMem(P, Length(S) + 1);
+    P^ := S;
+  end;
+  NewStr := P;
+end;
+
+procedure DisposeStr(var P: PString);
+begin
+  if P <> nil then FreeMem(P, Length(P^)+1);
+  P:=Nil;
+end;
+
+procedure ReplaceP(var P: PString; S: String);
+begin
+  DelRight(S);
+  if P = nil then begin
+    if S <> '' then P:=NewStr(S);
+  end else
+  if Length(S) = Length(P^) then
+    P^:=S
+  else begin
+    DisposeStr(P);
+    P:=NewStr(S);
+  end;
+end;
+
+function CnvString(P: PString): String;
+begin
+  if P = nil then CnvString:='' else CnvString:=P^;
+end;
+
+{ String formatting routines }
+{$IFNDEF DPMI}
+ {$L FORMAT.OBJ}
+{$ELSE}
+ {$L FORMAT.OBP}
+{$ENDIF}
+
+procedure Format_Str(var Result: String; const Format: String; var Params);
+  {$IFDEF BIT_16}far;{$ENDIF} external;
+
+procedure FormatStr;
+begin
+  if @Params = nil then
+    Result:=Format else
+    Format_Str(Result, Format, Params);
+end;
+
+procedure PrintStr(const S: String); assembler;
+asm
+    PUSH    DS
+    LDS     SI,S
+    CLD
+    LODSB
+    XOR     AH,AH
+    XCHG    AX,CX
+    MOV     AH,40H
+    MOV     BX,1
+    MOV     DX,SI
+    INT     21H
+    POP     DS
+end;
+
+procedure CompressString(var S: String);
+begin
+  DelRight(S);
+  asm
+     les bx, S
+     mov cl, es:[bx]
+     inc bx
+     xor ch, ch
+     jcxz @@Ex
+     xor di, di
+     xor si, si
+     mov byte ptr es:[bx-1], ch
+   @@1:
+     mov ah, 8
+     xor dx, dx
+   @@2:
+     mov al, es:[bx][si]
+     mov es:[bx][di], al
+     inc si
+     cmp si, cx
+     ja  @@Ex
+     inc di
+     inc byte ptr es:[bx-1]
+     cmp al, ' '
+     jne @@3
+     inc dl
+     jmp @@4
+    @@3:
+     xor Dl, dl
+    @@4:
+     dec ah
+     jnz @@2
+     or  dl, dl
+     jz @@5
+     dec dl
+     jz @@5
+     sub di, dx
+     sub byte ptr es:[bx-1], dl
+     mov al, 9
+     mov es:[bx][di-1], al
+    @@5:
+     jmp @@1
+   @@Ex:
+  end;
+end;
 
 end.

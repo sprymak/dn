@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,22 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 {$ifndef db}
 unit DBView;
 
 interface
-uses LFN, {DataCompBoy}
-     DBWatch, Objects, Views, Drivers, Dos, Memory, Dialogs, RStrings, FViewer, Commands, ObjType;
+uses LFN,   DBWatch, Objects, Views, Drivers, Dos, Memory, Dialogs,
+     RStrings, FViewer, Commands;
 {$else}
 
-uses LFN, {DataCompBoy}
-     DBWatch, Objects, Views, Drivers, Dos, Memory, Menus, Messages,
+uses LFN, DBWatch, Objects, Views, Drivers, Dos, Memory, Menus, Messages,
      advance, advance1, advance2, advance3, Startup, FViewer, Dialogs,
      Commands, DNApp, DNStdDlg;
 
@@ -72,6 +68,7 @@ type
     end;
 {$endif}
 
+    TDBPoint = record X: Integer; Y: LongInt; end;
 
     PDBIndicator = ^TDBIndicator;
     PDBViewer = ^TDBViewer;
@@ -84,7 +81,7 @@ type
      StartRec: LongInt;
      NumRec: Word;
      Indicator: PDBIndicator;
-     Delta, Pos: record X: Integer; Y: LongInt; end;
+     Delta, Pos: TDBPoint;
      constructor Init(R: TRect; FName: String); {DataCompBoy}
      function Valid(Command: Word): Boolean; virtual;
      function GetRecord(N: LongInt): Pointer;
@@ -110,7 +107,7 @@ type
      procedure Read(var Buf; Count: Word); virtual;
      procedure Seek(Pos: Longint); virtual;
      procedure Truncate; virtual;
-     procedure Write(var Buf; Count: Word); virtual;
+     procedure Write(const Buf; Count: Word); virtual;
     end;
 
     TDBIndicator = object(TView)
@@ -132,41 +129,18 @@ type
      constructor Init(FName: String);
      function GetPalette: PPalette; virtual;
      Constructor Load(var S : Tstream);
-       Procedure Store(var S : TStream);
+     Procedure Store(var S : TStream);
+     destructor Done; virtual;
     end;
 
 
  const CDBWindow = #166#167#168#169#170#171;
        CDBViewer = #4#5#6;
 
-  RDBWindow: TStreamRec = (
-  ObjType: otDBWindow;
-  VmtLink: Ofs( TypeOf( TDBWindow )^ );
-  Load: @TDBWindow.Load;
-  Store: @TDBWindow.Store );
-
-  RDBViewer: TStreamRec = (
-  ObjType: otDBViewer;
-  VmtLink: Ofs( TypeOf( TDBViewer )^ );
-  Load: @TDBViewer.Load;
-  Store: @TDBViewer.Store );
-
-  RDBIndicator: TStreamRec = (
-  ObjType: otDBIndicator;
-  VmtLink: Ofs( TypeOf( TDBIndicator )^ );
-  Load: @TDBIndicator.Load;
-  Store: @TDBIndicator.Store );
-
-  RTFieldListBox: TStreamRec = (
-  ObjType: otFieldListBox;
-  VmtLink: Ofs( TypeOf( TFieldListBox )^ );
-  Load: @TFieldListBox.Load;
-  Store: @TFieldListBox.Store );
-
-
 {$ifndef db}
 implementation
-uses Advance, Advance1, Advance2, Advance3, Startup, DNHelp, DNApp, Messages;
+uses Advance, Advance1, Advance2, Advance3, Startup, DNHelp, DNApp, Messages,
+     Histries, Gauge;
 {$endif}
 
 function MaxAvail: LongInt;
@@ -202,6 +176,7 @@ end;
 
 constructor TMemoStream.Init;
 begin
+ TObject.Init;
  StartPos := Start;
  Length := Len;
  BaseStream := AStream;
@@ -212,8 +187,8 @@ end;
 
 destructor TMemoStream.Done;
 begin
- Dispose(BaseStream, Done);
- inherited Done;
+ Dispose(BaseStream,Done); BaseStream:=nil;
+ TObject.Done;
 end;
 
 function TMemoStream.GetPos: Longint;
@@ -254,7 +229,7 @@ begin
  Status := BaseStream^.Status;
 end;
 
-procedure TMemoStream.Write(var Buf; Count: Word);
+procedure TMemoStream.Write(const Buf; Count: Word);
 begin
  BaseStream^.Write(Buf, Count);
  ErrorInfo := BaseStream^.ErrorInfo;
@@ -293,36 +268,21 @@ Procedure TDBViewer.Store ;
  end;
 
 
-function DateToHuman(const D: String): String;
+function DateToHuman(const S: String): String;
   var I: Integer;
       C: Char;
       BB: Byte;
-      S: String[20];
+      D, M: String[2];
+      Y: String[4];
 begin
-  if CountryInfo.DateSep <> '' then
-    begin
-      BB := 1;
-      C := CountryInfo.DateSep[1];
-      S[3] := C; S[6] := C;
-    end else BB := 0;
-  case CountryInfo.DateFmt of
-    1: begin
-         Move(D[7], S[1], 2);
-         Move(D[5], S[BB+3], 2);
-         Move(D[3], S[2*BB+5], 2);
-       end;
-    0: begin
-         Move(D[5], S[1], 2);
-         Move(D[7], S[BB+3], 2);
-         Move(D[3], S[2*BB+5], 2);
-       end;
-    else begin
-           Move(D[3], S[1], 2);
-           Move(D[5], S[BB+3], 2);
-           Move(D[7], S[2*BB+5], 2);
-         end;
-  end;
-  S[0] := Char(6+2*BB); DateToHuman := S;
+ Y:=Copy(S, 1, 4);
+ M:=Copy(S, 5, 2);
+ D:=Copy(S, 7, 2);
+ case CountryInfo.DateFmt of
+  dfMDY: DateToHuman := M + CountryInfo.DateSep + D + CountryInfo.DateSep + Y;
+  dfDMY: DateToHuman := D + CountryInfo.DateSep + M + CountryInfo.DateSep + Y;
+  dfYMD: DateToHuman := Y + CountryInfo.DateSep + M + CountryInfo.DateSep + D;
+ end;
 end;
 
 
@@ -339,7 +299,7 @@ begin
     begin
       GetInfo(dlDBEmptyStruc);
       DisposeStr(SearchString);
-      Dispose(DBFile, Done);
+      Dispose(DBFile,Done); DBFile:=nil;
       TempFile := '';
       if KillAfterUse then EraseFile(CnvString(FileName));
       DisposeStr(FileName);
@@ -379,7 +339,7 @@ destructor TDBViewer.Done;
 begin
  DisposeStr(SearchString);
  if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
- if DBFile <> nil then Dispose(DBFile, Done);
+ if DBFile <> nil then Dispose(DBFile,Done); DBFile:=nil;
  DisposeStr(FileName);
  inherited Done;
 end;
@@ -451,7 +411,7 @@ begin
  D := PDialog(Application^.ValidView(D));
  if D = nil then Exit;
  Desktop^.ExecView(D);
- Dispose(D, Done);
+ Dispose(D,Done);
 end;
 
 procedure TDBViewer.HandleEvent;
@@ -477,13 +437,16 @@ procedure TDBViewer.HandleEvent;
   Val(DelSpaces(S), L, I);
   if (PFR^.Who <> 'M') or (L = 0) then Exit;
   lFSplit(FileName^, Dr, Nm, Xt);
-  if LowMemory then Exit;
   if (XT[0] = #4) and (UpStrg(XT) <> '.DBF') then XT[4] := 'T' else XT := '.FPT';
   MemoStream := New(PDosStream, Init(Dr+Nm+XT, stOpenRead));
   if (MemoStream = nil) or (MemoStream^.Status <> stOK) then
    begin
-    if MemoStream <> nil then Dispose(MemoStream, Done);
+    if MemoStream <> nil then Dispose(MemoStream,Done);
     MemoStream := New(PBufStream, Init(Dr+Nm+'.dbt', stOpenRead, 512));
+    If (MemoStream = nil) or (MemoStream^.Status <> stOK) then begin
+     if MemoStream <> nil then Dispose(MemoStream, Done); MemoStream := nil;
+     exit;
+    end;
     L := L * 512;
     MemoStream^.Seek(L); ML := 0;
     repeat MemoStream^.Read(Nm[1], 1); if Nm[1] <> #$1A then Inc(ML) else Break
@@ -491,7 +454,7 @@ procedure TDBViewer.HandleEvent;
     if (MemoStream = nil) or (MemoStream^.Status <> stOK) then
      begin
       ErrMsg(dlDBViewNoMemo);
-      if MemoStream <> nil then Dispose(MemoStream, Done);
+      if MemoStream <> nil then Dispose(MemoStream,Done); MemoStream:=nil;
       Exit;
      end;
    end else
@@ -523,7 +486,7 @@ procedure TDBViewer.HandleEvent;
    end;
   MemoStream := New(PMemoStream, Init(MemoStream, L, ML));
   if MemoStream^.Status <> stOK then
-   begin Dispose(MemoStream, Done); Exit end;
+   begin Dispose(MemoStream,Done); MemoStream:=nil; Exit end;
   Desktop^.GetExtent(R);
   R.Grow(-2,-2);
   R.Assign(1,1,70,20);
@@ -536,7 +499,7 @@ procedure TDBViewer.HandleEvent;
   PV^.GetPalette^ := CScrollBar;
 
   R.Assign(2, 2, D^.Size.X-2, D^.Size.Y-4);
-  PV := New(PNFileViewer, Init(R, MemoStream, '', PV, False, Off));
+  PV := New(PNFileViewer, Init(R, MemoStream, '', '', PV, False, Off));
   D^.Insert(PV);
 
   R.Assign(30, D^.Size.Y - 3, 40, D^.Size.Y - 1);
@@ -549,7 +512,7 @@ procedure TDBViewer.HandleEvent;
   D := PDialog(Application^.ValidView(D));
   if D = nil then Exit;
   Desktop^.ExecView(D);
-  Dispose(D, Done);
+  Dispose(D,Done);
  end;
         {-DataCompBoy-}
 
@@ -565,21 +528,33 @@ procedure TDBViewer.HandleEvent;
       PFR: PFieldRec;
       S, SS: String;
       P: PByteArray;
+      V: PWhileView;
+      R: TRect;
  begin
   SS := SearchRec.S;
-  if SearchRec.Opt and 1 = 0 then SS := UpcaseStr(SS);
+  if SearchRec.Opt and 1 = 0 then UpStr(SS);
   I := Delta.Y+MY; PFR := DBFile^.GetFieldRec(Delta.X);
   if SearchRec.Scope = 0 then begin U := Delta.X; D := Delta.X end
                          else begin U := 0; D := dbFile^.NumFields - 1 end;
+  R.Assign(1,1,30,10);
+  New(V, Init(R));
+  V^.Top := GetString(dlSearching) + '"' + Cut(SearchRec.S, 40) ;
+  V^.Write(1, GetString(dlPercentComplete));
+  Desktop^.Insert(V);
+  Abort:=False;
   while (I < DBFile^.NumRec) and (SearchRec.Direction <> 1) or
         (SearchRec.Direction = 1) and (I >= 0) do
    begin
+    if Abort then break;
+    V^.Write(2, Copy(Strg(#219, (I*25) div DBFile^.NumRec)+Strg(#177, 25), 1, 25));
+    V^.Write(3, ItoS(I)+'/'+ItoS(DBFile^.NumRec));
     P := GetRecord(I);
     if I = Delta.Y + MY then J := Delta.X - Byte(SearchRec.Direction = 1)
                         else if SearchRec.Direction = 1 then J := U else J := D;
     while (J <= D) and (SearchRec.Direction <> 1) or
           (SearchRec.Direction = 1) and (J >= U) do
       begin
+        If Abort then Break;
         PFR := DBFile^.GetFieldRec(J);
         Move(P^[PFR^.Pos], S[1], PFR^.Len);
         S[0] := Char(PFR^.Len);
@@ -589,12 +564,14 @@ procedure TDBViewer.HandleEvent;
           Delta.Y := I;
           Delta.X := J;
           DrawView;
+          V^.Free;
           Exit;
          end;
        if SearchRec.Direction = 1 then Dec(J) else Inc(J);
       end;
     if SearchRec.Direction = 1 then Dec(I) else Inc(I);
    end;
+  V^.Free;
   ErrMsg(dlDBViewSearchNot);
  end;
 
@@ -675,9 +652,9 @@ procedure TDBViewer.HandleEvent;
                     N1 := GetDig; N2 := GetDig; N3 := GetDig;
                     GetDate(II, MM, DD, YY);
                     case CountryInfo.DateFmt of
-                      0: begin MM := N1; DD := N2; YY := N3; end;
-                      1: begin MM := N2; DD := N1; YY := N3; end;
-                        else begin MM := N2; DD := N3; YY := N1; end;
+                      dfMDY: begin MM := N1; DD := N2; YY := N3; end;
+                      dfDMY: begin MM := N2; DD := N1; YY := N3; end;
+                      dfYMD: begin MM := N2; DD := N3; YY := N1; end;
                     end;
                     if YY < 100 then YY := (II div 100) * 100 + YY;
                     LL[0] := YY mod 10000; LL[1] := MM mod 100; LL[2] := DD mod 100;
@@ -686,14 +663,11 @@ procedure TDBViewer.HandleEvent;
                   end;
               end;
          'L': begin
-                if UpCaseStr(S) = 'T' then S := 'F' else S := 'T';
+                if UpStrg(S) = 'T' then S := 'F' else S := 'T';
                 StoreField;
               end;
    end;
-
  end;
-
-
 
  procedure CE; begin ClearEvent(Event) end;
  procedure CED; begin CE; DrawView end;
@@ -720,7 +694,7 @@ begin
                                       if DBFile <> nil then
                                         begin
                                           if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
-                                          Dispose(DBFile, Done);
+                                          Dispose(DBFile,Done);
                                           Buf := nil;
                                           dbFile := nil;
                                         end;
@@ -795,7 +769,7 @@ begin
     FN[NFN] := PFR;
     if PFR <> nil then
      begin
-      MoveStr(B[I], PFR^.Name, C1);
+      MoveStr(B[I], CenterStr(PFR^.Name, PFR^.Ln), C1);
       Inc(I, PFR^.Ln+1);
      end;
     if I < Size.X then Inc(NFN);
@@ -829,7 +803,7 @@ begin
      begin
        Move(P^[PFR^.Pos], S[1], PFR^.Len); S[0] := Char(PFR^.Len);
        MoveStr(B[I], DateToHuman(S), C);
-       Inc(I, 9);
+       Inc(I, PFR^.Ln + 1);
      end else
      asm
       les di, PFR
@@ -898,12 +872,19 @@ constructor TDBWindow.Load;
    P^.Indicator := P1;
    Redraw ;
  end;
+
 Procedure TDBWindow.Store;
  begin
    inherited Store( S );
      PutSubViewPtr( S, P );
      PutSubViewPtr( S, P1 );
    end;
+
+Destructor TDBWindow.Done;
+begin
+ StoreViewInfo(@Self);
+ Inherited Done;
+end;
 
 {$ifdef db}
 const
@@ -932,7 +913,7 @@ begin
          Init('*.dbf', '', '', fdOpenButton, 1))));
    if D = nil then Exit;
    if Desktop^.ExecView(D) <> cmCancel then D^.GetFileName(S);
-   Dispose(D, Done);
+   Dispose(D,Done);
    if S = '' then Exit;
    S:=lfGetLongFileName(S);
    InsertWindow(New(PDBWindow, Init(S)));

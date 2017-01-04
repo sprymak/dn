@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,18 +43,14 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 unit Calc;
 
 interface
 
-uses LFN,      {DataCompBoy}
-     Objects, Views, CellsCol, Drivers, Dialogs, Par, Messages,
-     HistList, UniWin, Commands, DNHelp, RStrings, ObjType;
+uses Advance, LFN, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
+     HistList, UniWin, Commands, DNHelp, RStrings, Calculator;
 
 const
      CellClipboard : PCellCollection = nil;
@@ -71,6 +67,7 @@ type
      constructor Load(var S: TStream);
      procedure Store(var S: TStream);
      procedure HandleEvent(var Event: TEvent); virtual;
+     destructor Done; virtual;
     end;
 
     TCalcView = object(TView)
@@ -94,14 +91,11 @@ type
      procedure Store(var S: TStream);
 
      procedure Draw; virtual;
-     function Valid(Command: Word): Boolean; virtual;
+     function  Valid(Command: Word): Boolean; virtual;
      procedure SetState(AState: Word; Enable: Boolean); virtual;
-     function GetPalette: PPalette; virtual;
+     function  GetPalette: PPalette; virtual;
      procedure HandleEvent(var Event: TEvent); virtual;
-     Function GetCellValue( S : String) : Real;
-     Function GetFuncValue(P: FPtr) : Real;
-     Function CalcFormula( P : FPtr) : Real;
-     Function CalcFormulaTree( P : FPtr) : Real;
+     Function  GetCellValue( S : String; var Value: CReal) : boolean;
      procedure CalcError( Index: TStrIdx ); virtual;
      procedure ModifyCell(X, Y: Integer);
      procedure LoadSheet(FName: String); {DataCompBoy}
@@ -139,37 +133,10 @@ type
 
 function GetFileName(var FileName: String; Mask, Title, ALabel: String; Buttons: Word): Word;
 
-
-const
-      RCalcWindow: TStreamRec = (
-       ObjType: otCalcWindow;
-       VmtLink: Ofs(TypeOf(TCalcWindow)^);
-       Load: @TCalcWindow.Load;
-       Store: @TCalcWindow.Store);
-
-      RCalcView: TStreamRec = (
-       ObjType: otCalcView;
-       VmtLink: Ofs(TypeOf(TCalcView)^);
-       Load: @TCalcView.Load;
-       Store: @TCalcView.Store);
-
-      RCalcInfo: TStreamRec = (
-       ObjType: otCalcInfo;
-       VmtLink: Ofs(TypeOf(TCalcInfo)^);
-       Load: @TCalcInfo.Load;
-       Store: @TCalcInfo.Store);
-
-      RInfoView: TStreamRec = (
-       ObjType: otInfoView;
-       VmtLink: Ofs(TypeOf(Calc.TInfoView)^);
-       Load: @Calc.TInfoView.Load;
-       Store: @Calc.TInfoView.Store);
-
-
 implementation
 
-uses Memory, Dos, DNApp, DNStdDlg, advance, advance1, advance2, advance3,
-     MicroEd;
+uses Memory, Dos, DNApp, DNStdDlg, advance1, advance2,
+     MicroEd, Histries;
 
 const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
                     (S:''; CellOptions:0; TxtOptions:0);
@@ -178,6 +145,14 @@ const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
        WasReplace: Boolean = False;
        ContSearch: Boolean = False;
        SearchCanceled: Boolean = False;
+       CurCalcView: PCalcView = nil;
+
+function AGetCellValue(VarName: string; var Value: CReal): boolean;
+begin
+ if CurCalcView<>nil
+ then AGetCellValue:=CurCalcView^.GetCellValue(VarName, Value)
+ else AGetCellValue:=false;
+end;
 
         {-DataCompBoy-}
 function GetFileName(var FileName: String; Mask, Title, ALabel: String; Buttons: Word): Word;
@@ -194,7 +169,7 @@ begin
   C := Desktop^.ExecView(D);
   if C <> cmCancel then D^.GetFileName(S);
   GetFileName := C;
-  Dispose(D, Done);
+  Dispose(D,Done);
   FileName := lfGetLongFileName(S);
 end;
         {-DataCompBoy-}
@@ -276,7 +251,7 @@ constructor TCalcWindow.Init;
      P, P1: PView;
 begin
  if AName = '' then AName := 'Untitled.WKZ'
-               else if GetAttrF(AName) and Directory<>0
+               else if GetFileAttr(AName+#0) and Directory<>0
                      then AName := 'Untitled.WKZ'
                      else AName := lfGetLongFileName(lFExpand(AName));
  TWindow.Init(Bounds, Cut(AName,Bounds.B.X-Bounds.A.X-12), 0);
@@ -345,13 +320,19 @@ begin
   evBroadcast:
              case Event.Command of
                cmFindView:
-                  if PString(Event.InfoPtr)^=CalcView^.SName^ then begin
+                  if PString(Event.InfoPtr)^=CnvString(CalcView^.SName) then begin
                     Self.Select;
                     ClearEvent(Event);
                   end;
              end;
  end;
  inherited HandleEvent(Event);
+end;
+
+Destructor TCalcWindow.Done;
+begin
+ StoreViewInfo(@Self);
+ Inherited Done;
 end;
 
 {-----------------------------    TCalcInfo     ---------------------------}
@@ -379,72 +360,46 @@ procedure TCalcInfo.HandleEvent;
  function EndEdit: Boolean;
   label 1,2;
   var S, S1: String;
-      P: FPtr;
-      Hp: Pointer;
-      R: Real;
+      R: CReal;
       I: Integer;
  begin
   GetData(S); EndEdit := True;
-  with CalcView^ do
-  begin
-  Modified := On;
-  CurrentCalc.X := Delta.X + Cur.X; CurrentCalc.Y := Delta.Y + Cur.Y;
-  While S[Byte(S[0])] = ' ' do Dec(S[0]);
-  S1 := S; While (S1[1] = ' ') and (S1 <> '') do Delete(S1, 1, 1);
-  While Pos(' ', S1) > 0 do Delete(S1, Pos(' ', S1), 1);
-  System.Mark(Hp);
-  if (S1[1] = '=') and (S1[0] > #1) then
+  with CalcView^ do begin
+   Modified := On;
+   CurrentCalc.X := Delta.X + Cur.X; CurrentCalc.Y := Delta.Y + Cur.Y;
+   While S[Byte(S[0])] = ' ' do Dec(S[0]);
+   S1 := DelSpaces(S);
+   if (S1[1] = '=') and (S1[0] > #1) then
    begin
-    P := GetFormula(System.Copy(S1, 2, 255));
-    if ErrOcc then
+    DelFC(S1);
+    Error:=false;
+    EvalueError:=false;
+    CurCalcView:=CalcView;
+    R:=Evalue(S1, AGetCellValue);
+    S1:='='+S1;
+    if EvalueError then
      begin
-      Release(Hp);
       S := ''; CalcView^.CalcError(erInvalidFormula);
       EndEdit := False;
       Goto 1;
      end;
-    if not CellOccured then begin R := CalcFormula(P); Str(R:20:2, S);
-                                  While S[1] = ' ' do Delete(S, 1, 1);
-                                  Release(Hp);
-                                  if Error then begin S := ''; EndEdit := False; Goto 1 end;
-                                  with Cells^.ReplaceItem(Delta.X + Cur.X, Delta.Y + Cur.Y, S1)^ do
-                                   begin
-                                    Value := R;
-                                    if (Options and 3) = 0 then
-                                     begin
-                                      Options := coValue or coDec;
-                                      Decimals := 2;
-                                     end else Options := (Options and $FFFC) or coValue;
-                                    if ((Options shr 4) and 7) = 0 then
-                                     begin Options := Options or coDec;
-                                           Decimals := 2 end;
-                                   end;
-                                  ModifyCell(Delta.X + Cur.X, Delta.Y + Cur.Y);
-                                  EndEdit := not ReError;
-                                  Exit;
-                            end
-                       else begin
-                             S := S1;
-                             R := CalcFormula(P); Release(Hp);
-                             if Error then begin S := ''; EndEdit := False; Goto 1 end;
-                             S1 := UpCaseStr(DelSpaces(S));
-                             with Cells^.ReplaceItem(Delta.X + Cur.X, Delta.Y + Cur.Y, S1)^ do
-                              begin
-                               Value := R;
-                               if Options and 3 = 0 then
-                                begin
-                                 Options := coFormula or coDec;
-                                 Decimals := 2;
-                                 end else Options := (Options and $FFFC) or coFormula;
-                                 if ((Options shr 4) and 7) = 0 then
-                                  begin Options := Options or coDec;
-                                        Decimals := 2 end;
-                              end;
-                             ModifyCell(Delta.X + Cur.X, Delta.Y + Cur.Y);
-                             EndEdit := not ReError;
-                             Exit;
-                            end;
-
+    Str(R:20:2, S);
+    While S[1] = ' ' do Delete(S, 1, 1);
+    with Cells^.ReplaceItem(Delta.X + Cur.X, Delta.Y + Cur.Y, S1)^ do
+     begin
+      Value := R;
+      if (Options and 3) = 0 then
+       begin
+        Options := coValue or coDec;
+        Decimals := 2;
+       end else Options := (Options and $FFFC) or coValue;
+      if ((Options shr 4) and 7) = 0 then
+       begin Options := Options or coDec;
+             Decimals := 2 end;
+     end;
+    ModifyCell(Delta.X + Cur.X, Delta.Y + Cur.Y);
+    EndEdit := not ReError;
+    Exit;
    end else if S <> '' then
              begin
               Val(S, R, I);
@@ -487,7 +442,7 @@ begin
                kbUp, kbDown, kbPgUp, kbPgDn, kbCtrlPgUp,
                kbCtrlPgDn, kbEnter: Transfer;
                kbLeft: if CurPos = 0 then Transfer;
-               kbRight: if CurPos > Length(PString(Data)^) - 1 then Transfer;
+               kbRight: if CurPos > Length(CnvString(Data)) - 1 then Transfer;
                kbTab: if not EndEdit then ClearEvent(Event);
               end;
  end;
@@ -528,7 +483,8 @@ begin
   S.Read(CellWidth, SizeOf(CellWidth));
   S.Read(CurrentCalc, SizeOf(CurrentCalc)*3);
   SName:=S.ReadStr;
-  Cells := PCellCollection(S.Get);
+  {Cells := PCellCollection(S.Get);}
+  New(Cells, ShortLoad(S));
   FocusEvent.What := evNothing;
 end;
 
@@ -544,7 +500,8 @@ begin
   S.Write(CellWidth, SizeOf(CellWidth));
   S.Write(CurrentCalc, SizeOf(CurrentCalc)*3);
   S.WriteStr(SName);
-  S.Put(Cells);
+{  S.Put(Cells);}
+  Cells^.ShortStore(S);
 end;
 
 
@@ -572,7 +529,8 @@ begin
  if Owner<>nil then begin
   GetBounds(Bounds);
   DisposeStr(PWindow(Owner)^.Title);
-  PWindow(Owner)^.Title:=NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
+  If SName<>nil then
+   PWindow(Owner)^.Title:=NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
  end;
 end;
 
@@ -623,20 +581,20 @@ begin
      asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
  if Y2 > 4095 then Y2 := 4095;
  MoveChar(B, ' ', C1, Size.X);
- BC[6].C := '│';
- MoveChar(B1, '─', C1, Size.X);
- WordRec(B1[6]).Lo := Byte('┼');
+ BC[6].C := #179;
+ MoveChar(B1, #196, C1, Size.X);
+ WordRec(B1[6]).Lo := Byte(#197);
  NumC := 0; I := 7; J := Delta.X; StX := I; EnX := Size.X;
  While (I < Size.X) and (J <= HScroll^.Max) do
   begin
    K := CellWidth[J]; L := CellWidth[J + 1];
    FillChar(S, K + 1, 32);
-   S[K] := '│';
+   S[K] := #179;
    if J < 26 then S[1 + K div 2] := Dig[J + 1]
       else begin S[K div 2] := Dig[J div 26];
                  S[K div 2 + 1] := Dig[J mod 26 + 1] end;
    S[0] := Char(K);
-   WordRec(B1[I + K - 1]).Lo := Byte('┴');
+   WordRec(B1[I + K - 1]).Lo := Byte(#193);
    MoveStr(B[I], S, C1);
    if J < X1 then Inc(StX, K);
    if (J > X2) and (EnX > I) then EnX := I;
@@ -746,7 +704,7 @@ begin
        L := L + K;
       end;
     end;
-   BC[6].C := '│'; BC[6].A := C1;
+   BC[6].C := #179; BC[6].A := C1;
    if (Delta.Y + I >= Y1) and (Delta.Y + I <= Y2) and (StX < EnX)
       then MoveColor(B[StX], EnX - StX, C3);
    WriteBuf(0, I + 2, Size.X, 1, B);
@@ -761,7 +719,6 @@ procedure TCalcView.HandleEvent;
      MaxX, MaxY, K, L: Integer;
      P: PCellRec;
      FName: String;
-     kbState: Byte absolute $0:$417;
      X1, X2, Y1, Y2: Integer;
 
  procedure ExportToFile;
@@ -869,7 +826,7 @@ procedure TCalcView.HandleEvent;
 
  procedure CheckMark;
  begin
-  Marking := kbState and $3 <> 0
+  Marking := ShiftState and $3 <> 0
  end;
 
  procedure EndMarking;
@@ -1108,283 +1065,24 @@ begin
 end;
         {-DataCompBoy-}
 
-function TCalcView.GetCellValue;
+function TCalcView.GetCellValue( S : String; var Value: CReal) : boolean;
  var X: Byte;
      Y, I: Integer;
      P: PCellRec;
 
- function IsNeeded(PP: PCellRec): Boolean; far;
+ function IsNeeded(PP: PCellRec): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
  begin
   IsNeeded := (PP^.Row = Y) and (PP^.Col = X)
  end;
 
 begin
- if S = 'PI' then begin GetCellValue := PI; Exit end;
- if not GetCellCoord(S, X, Y) then begin CalcError(erInvalidCell); Exit end;
- P := Cells^.FirstThat(@IsNeeded);
- if (P <> nil) and (P^.Options and 3 <> 0) then GetCellValue := P^.Value
-                                           else GetCellValue := 0;
-end;
-
-Function TCalcView.GetFuncValue;
- label 1;
- var I: Integer;
-     R, R1, R2: Real;
-     S: String;
-     T: FPtr;
-     PP: Pointer;
-
- function GetMul: Real;
-   var X1, X2: Byte;
-       Y1, Y2: Integer;
-       R: Real;
-       I,J: Integer;
-       CR: PCellRec;
- begin
-   GetMul := 0;
-   if GetCellCoord(T^.Left^.Name, X1, Y1) and
-      GetCellCoord(T^.Right^.Name, X2, Y2) then
-     begin
-       if X1 > X2 then
-        asm mov AL, X1; mov AH, X2; mov X1, AH; mov X2, AL end;
-       if Y1 > Y2 then
-        asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
-       R := 1;
-       for J := 1 to Cells^.Count do
-        begin
-         CR := Cells^.At(J - 1);
-         if (CR^.Options and 3 <> 0) and (CR^.Col >= X1) and (CR^.Col <= X2)
-            and (CR^.Row >= Y1) and (CR^.Row <= Y2) then
-           if (CR^.Value = 0) or (Abs(1e38 / CR^.Value) > Abs(R)) then R := R * CR^.Value;
-        end;
-     end else CalcError(erInvalidCell);
-   GetMul := R;
+ if not GetCellCoord(S, X, Y) then GetCellValue:=false else begin
+  GetCellValue := True;
+  P := Cells^.FirstThat(@IsNeeded);
+  if (P <> nil) and (P^.Options and 3 <> 0)
+   then Value := P^.Value
+   else Value := 0;
  end;
-
-
-begin
- S := UpCaseStr(P^.Name); GetFuncValue := 0;
- if S = 'SUM' then
-  begin
-   R := 0;
-   for I := 1 to P^.ParamsNum do
-     begin R := R + CalcFormulaTree(P^.Params^[I]); if Error then Exit end;
-   GetFuncValue := R; Exit
-  end;
- if S = 'MUL' then
-  begin
-   R := 1;
-   for I := 1 to P^.ParamsNum do
-     begin
-       T := P^.Params^[I];
-       if T^.Name = ':' then R1 := GetMul
-                        else R1 := CalcFormulaTree(P^.Params^[I]);
-       if (R1 = 0) or (Abs(1e38 / R1) > Abs(R)) then R := R * R1;
-       if Error then Exit
-     end;
-   GetFuncValue := R;
-   Exit
-  end;
- if S = 'IF' then
-  begin
-   if (P^.ParamsNum < 2) or (P^.ParamsNum > 3) then
-    begin CalcError(erInvalidIF); Exit; end;
-   R := 0; R1 := CalcFormulaTree(P^.Params^[1]); if Error then Exit;
-   if (P^.ParamsNum = 2) then begin if R1 <> 0 then R := CalcFormulaTree(P^.Params^[2]) end
-    else if R1 <> 0 then R := CalcFormulaTree(P^.Params^[2])
-                    else R := CalcFormulaTree(P^.Params^[3]);
-   GetFuncValue := R; Exit
-  end;
- if P^.ParamsNum = 1 then
-  begin
-   R := CalcFormulaTree(P^.Params^[1]);
-   if not Error then
-   begin
-     If S='RAD' then begin GetFuncValue:=(R*180)/PI; Exit end;
-     If S='GRAD' then begin GetFuncValue:=(R*PI)/180; Exit end;
-     If S='COS' then begin GetFuncValue:=Cos(R); Exit end;
-     If S='SIN' then begin GetFuncValue:=Sin(R); Exit end;
-     If S='SQR' then begin GetFuncValue:=R * R; Exit end;
-
-     IF ((S='ASIN') or (S='ARCSIN')) then
-      begin
-       if (R=1) then begin GetFuncValue:=PI/2; Exit; end;
-       if (1-Sqr(R)>0) then GetFuncValue:=ArcTan(R/Sqrt(1-Sqr(R)))
-       else GetFuncValue := 0; Exit end;
-     IF ((S='ACOS') or (S='ARCCOS')) then
-      begin
-       if (R=0) then begin GetFuncValue:=PI/2; Exit; end;
-       if ((R<>0) and (1-Sqr(R)>=0)) then GetFuncValue:=ArcTan(Sqrt(1-Sqr(R))/R)
-       else GetFuncValue := 0; Exit end;
-
-     IF (S='SEC') then
-      begin if (Cos(R)<>0) then GetFuncValue:=1/Cos(R) else GetFuncValue := 0; Exit end;
-     IF (S='COSEC') then
-      begin if (Sin(R)<>0) then GetFuncValue:=1/Sin(R) else GetFuncValue := 0; Exit end;
-
-     IF (S='FACT') then
-      begin
-       If (R < 0) then begin GetFuncValue := 0; Exit; end;
-       If (R = 0) then begin GetFuncValue := 1; Exit; end;
-       If (R < 32) then
-        begin
-         R2 := 1;
-         for I := 1 to trunc(R) do
-          R2 := R2 * I;
-         GetFuncValue := R2;
-        end
-      else GetFuncValue := 0; Exit end;
-
-     If (S='SQRT') then
-      begin if (R >= 0) then GetFuncValue:=Sqrt(R) else GetFuncValue := 0; Exit end;
-     If (S='LN') then
-      begin if (R > 0) then GetFuncValue:=Ln(R) else GetFuncValue := 0; Exit end;
-     If (S='LG') then
-      begin if (R > 0) then GetFuncValue:=Ln(R)/Ln(10) else GetFuncValue := 0; Exit end;
-     If ((S='TAN') or (S='TG')) then
-      begin if (cos(R) <> 0) then GetFuncValue:=Sin(R)/Cos(R) else GetFuncValue := 0; Exit end;
-     If S='ARCTAN' then begin GetFuncValue:=ArcTan(R); Exit end;
-     If (S='EXP') then
-      begin if (R < 88.0) then GetFuncValue:=Exp(R) else GetFuncValue := 0; Exit end;
-     If (S='CTAN') or (S='CTG') or (S='COTAN') then
-      begin if (Sin(R) <> 0) then GetFuncValue:=Cos(R)/Sin(R) else GetFuncValue := 0 end;
-     If S='SIGN' then
-      begin if R = 0 then GetFuncValue:=0 else
-            if R < 0 then GetFuncValue := -1
-                     else GetFuncValue := 1; Exit end;
-   end;
-  end else
- if P^.ParamsNum = 2 then
-  begin
-   R := CalcFormulaTree(P^.Params^[1]);
-   R1 := CalcFormulaTree(P^.Params^[2]);
-   if not Error then
-   begin
-     If (S='LOG') then
-      begin if ((R1 > 0) and (R <> 1) and (R > 0))
-         then GetFuncValue:=Ln(R1)/Ln(R) else GetFuncValue := 0; Exit end;
-   end;
-  end;
- CalcError(erInvalidFunction);
-end;
-
-Function TCalcView.CalcFormulaTree;
- var   R,R1 : Real;
-       J, Y1, Y2: Integer;
-       X1, X2: Byte;
-       CR: PCellRec;
-       BB: Boolean;
-
- procedure FormulaError;
- begin
-  CalcError(erInvalidFormula)
- end;
-
-begin
- CalcFormulaTree:=0; if Error then Exit;
- if p=Nil then Exit;
- if (p^.Tp=opFunc)
-    then begin
-          R:=GetFuncValue(P);
-          CalcFormulaTree := R;
-          Exit;
-         end;
- if (p^.Tp=opValue) then
-  begin
-   Val(p^.Name,R,J);
-   if J>0 then CalcError(erInvalidValue);
-   CalcFormulaTree:=R; Exit;
-  end;
-  if (p^.Tp=opCell) then
-   begin
-    R := GetCellValue(p^.Name);
-    CalcFormulaTree := R; Exit;
-   end;
-  if (p^.Tp=opSign) then
-   begin
-    if (p^.Name[0] > #2) or (p^.Name = #0) or (p^.Right = nil) {or
-       (not (p^.Name[1] in UnarySigns) and (p^.Left =nil))}  then
-     begin FormulaError; Exit end;
-    R:=CalcFormulaTree(p^.Left);
-    R1:=CalcFormulaTree(p^.Right);
-    if Error then Exit;
-    if p^.Name[0] = #1 then
-    begin
-     Case p^.Name[1] of
-      '+' : R:=R+R1;
-      '-' : R:=R-R1;
-      '*' : if (Abs(R) > 1) then
-                if (1e38/Abs(R) < Abs(R1)) then R := 0 else R:=R*R1
-              else
-                if (Abs(R1) > 1) and (1e38/Abs(R1) < Abs(R)) then R := 0 else R:=R*R1;
-      '/' : if R1<>0 then R:=R/R1 else R:=0;
-      '^' : if (R<>0) then
-              begin
-                BB := (Frac(R)=0) and (Frac(R1)=0);
-                if R1 = 0 then R := 1 else
-                if (Ln(Abs(R))<(70/abs(R1))) then if R > 0 then R:=Exp(ln(R)*abs(R1))
-                                                      else R:=Exp(-ln(R)*abs(R1))
-                                        else R := 0;
-                if BB then
-                  if Abs(Frac(R)) < 0.5 then
-                    begin
-                       R := Int(R);
-                    end else
-                    begin
-                      if R < 0 then R := Int(R)-1
-                               else R := Int(R)+1;
-                    end;
-                if (R1 < 0) and (R <> 0) then R := 1/R else
-                if (R1 < 0) and (R = 0) then R := 0;
-              end else R := 0;
-      '>' : R := Byte(R>R1);
-      '<' : R := Byte(R<R1);
-      '=' : R := Byte(R=R1);
-      ':' : if (P^.Left <> nil) and (P^.Right <> nil) and
-               GetCellCoord(P^.Left^.Name, X1, Y1) and
-               GetCellCoord(P^.Right^.Name, X2, Y2) then
-              begin
-               if X1 > X2 then
-                asm mov AL, X1; mov AH, X2; mov X1, AH; mov X2, AL end;
-               if Y1 > Y2 then
-                asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
-               R := 0;
-               for J := 1 to Cells^.Count do
-                begin
-                 CR := Cells^.At(J - 1);
-                 if (CR^.Options and 3 <> 0) and (CR^.Col >= X1) and (CR^.Col <= X2)
-                    and (CR^.Row >= Y1) and (CR^.Row <= Y2) then R := R + CR^.Value;
-                end;
-               CalcFormulaTree:=R;
-              end else CalcError(erInvalidCell);
-       else FormulaError;
-     end;
-    end else
-     Case p^.Name[1] of
-      '=': case p^.Name[2] of
-            '=': R := Byte(R=R1);
-            '>': R := Byte(R>=R1);
-            '<': R := Byte(R<=R1);
-             else FormulaError;
-           end;
-      '&': if p^.Name[2] = '&' then R := Byte((R<>0) and (R1<>0)) else FormulaError;
-      '|': if p^.Name[2] = '|' then R := Byte((R<>0) or (R1<>0)) else FormulaError;
-      '^': if p^.Name[2] = '^' then R := Byte((R<>0) xor (R1<>0)) else FormulaError;
-      '>': if p^.Name[2] = '<' then R := Byte(R<>R1) else
-            if p^.Name[2] = '=' then R := Byte(R>=R1) else FormulaError;
-      '<': if p^.Name[2] = '>' then R := Byte(R<>R1) else
-            if p^.Name[2] = '=' then R := Byte(R<=R1) else FormulaError;
-       else FormulaError;
-     end;
-    CalcFormulaTree:=R;
-   end;
-
-end;
-
-function TCalcView.CalcFormula;
-begin
- Error := False;
- CalcFormula := CalcFormulaTree(P);
 end;
 
 procedure TCalcView.CalcError;
@@ -1397,8 +1095,7 @@ procedure TCalcView.ModifyCell(X, Y: Integer);
 
 const MaxRec = 300;
 
-var Hp, Tree: Pointer;
-    Err: Boolean;
+var Err: Boolean;
     P: PCellRec;
     Recurse: Array [1..MaxRec] of record X: Byte; Y: Integer;end;
     NumRec: Integer;
@@ -1424,11 +1121,10 @@ var Hp, Tree: Pointer;
     if P^.Options and coFormula <> 0 then
      if ContainCell(S, P^.S) then
       begin
-       System.Mark(Hp);
        CurrentCalc.X := P^.Col; CurrentCalc.Y := P^.Row;
-       Tree := GetFormula(System.Copy(P^.S, 2, 255));
-       P^.Value := CalcFormula(Tree);
-       Release(Hp);
+       EvalueError:=false;
+       CurCalcView:=@Self;
+       P^.Value := Evalue(System.Copy(P^.S, 2, 255), AGetCellValue);
        Modify(P^.Col, P^.Row);
       end;
    end;
@@ -1445,7 +1141,7 @@ end;
 
 destructor TCalcView.Done;
 begin
- Dispose(Cells, Done);
+ If Cells<>nil then Dispose(Cells,Done); Cells:=nil;
  if Q <> nil then Dispose(Q);
  Q := nil;
  DisposeStr(SName);
@@ -1469,7 +1165,7 @@ procedure TCalcView.LoadSheet;
 begin
  GetBounds(Bounds);
  if Modified and not AskSave then Exit;
- if Cells <> nil then Dispose(Cells, Done);
+ if Cells <> nil then Dispose(Cells,Done); Cells:=nil;
  if (FName = '') or (FName = 'Untitled.WKZ') then begin
    DisposeStr(SName); SName := NewStr('Untitled.WKZ');
    If Owner<>nil then begin
@@ -1489,12 +1185,13 @@ begin
  end;
  if S^.Status <> stOK then
   begin
-   Dispose(S, Done);
+   Dispose(S,Done);
    New(Cells, Init(10,10)); Exit
   end;
  S^.Read(CellWidth, Sizeof(CellWidth));
- Cells := PCellCollection(S^.Get);
- Dispose(S, Done);
+{ Cells := PCellCollection(S^.Get);}
+ New(Cells, ShortLoad(S^));
+ Dispose(S,Done);
  if Cells = nil then
   begin
    ErrMsg(erInvalidFileFormat);
@@ -1528,7 +1225,7 @@ begin
  FName := lfGetLongFileName(lFExpand(FName));
  S := New(PDosStream, Init(FName, stOpen));
  W := S^.Status;
- Dispose(S, Done);
+ Dispose(S,Done);
  if W = 0 then
   begin
    if Msg(dlFileExist, @PP, mfYesButton + mfNoButton + mfWarning) <> cmYes then Exit;
@@ -1542,14 +1239,15 @@ begin
  {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
  S := New(PBufStream, Init(FName, stCreate, 2048));
  S^.Write(CellWidth, Sizeof(CellWidth));
- S^.Put(Cells);
+{ S^.Put(Cells);}
+ Cells^.ShortStore(S^);
  if S^.Status <> stOK then
   begin
    Msg(dlCanNotWrite, @PP, mfError + mfOKButton);
    Error := True;
   end;
  Modified := Off;
- Dispose(S, Done);
+ Dispose(S,Done);
  FileChanged(FName);
 end;
         {-DataCompBoy-}
@@ -1560,14 +1258,16 @@ begin
  if SName^ = 'Untitled.WKZ' then begin SaveSheetAs; Exit end;
  {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
  S := New(PBufStream, Init(SName^, stCreate, 2048));
- S^.Write(CellWidth, Sizeof(CellWidth)); S^.Put(Cells);
+ S^.Write(CellWidth, Sizeof(CellWidth));
+ {S^.Put(Cells);}
+ Cells^.ShortStore(S^);
  if S^.Status <> stOK then
   begin
    Msg(dlCanNotWrite, SName, mfError + mfOKButton);
    Error := True;
   end;
  Modified := Off;
- Dispose(S, Done);
+ Dispose(S,Done);
  FileChanged(SName^);
 end;
 
@@ -1582,7 +1282,7 @@ begin
    asm mov AX, X1; mov BX, X2; mov X1, BX; mov X2, AX end;
  if Y1 > Y2 then
    asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
- if CellClipboard <> nil then Dispose(CellClipboard, Done);
+ if CellClipboard <> nil then Dispose(CellClipboard,Done); CellClipboard:=nil;
  New(CellClipboard, Init(10, 10));
  for I := 1 to Cells^.Count do
   begin
@@ -1685,7 +1385,7 @@ procedure TCalcView.InsertLineCol;
  var I, J, L: Integer;
      P: PCellRec;
      O, D: Integer;
-     V: Real;
+     V: CReal;
 
 procedure RewriteFormula;
  const Signs = [';','[',']','{','}',#39,':','"','.','<', ' ',
@@ -1741,7 +1441,7 @@ procedure TCalcView.DeleteLineCol;
  var I, J, L: Integer;
      P: PCellRec;
      O, D: Integer;
-     V: Real;
+     V: CReal;
 
  procedure RewriteFormula;
   const Signs = [';','[',']','{','}',#39,':','"','.','<', ' ',
@@ -1795,19 +1495,17 @@ end;
 procedure TCalcView.ReCalc;
  var I: Integer;
      P: PCellRec;
-     HP: Pointer;
-     Tree: FPtr;
 begin
  for I := 1 to Cells^.Count do
   begin
    P := Cells^.At(I-1);
    if P^.Options and coFormula <> 0 then
      begin
-      System.Mark(Hp);
       CurrentCalc.X := P^.Col; CurrentCalc.Y := P^.Row;
-      Tree := GetFormula(System.Copy(P^.S, 2, 255));
-      P^.Value := CalcFormula(Tree);
-      Release(Hp);
+      EvalueError:=false;
+      Error:=false;
+      CurCalcView:=@Self;
+      P^.Value := Evalue(System.Copy(P^.S, 2, 255), AGetCellValue);
       ModifyCell(P^.Col, P^.Row);
      end;
   end;
@@ -1846,7 +1544,7 @@ procedure TCalcView.SearchCell;
  const Signs = [#0..#128] - ['A'..'Z','a'..'z','0'..'9','_'];
  var P: PCellRec;
      I, J: Integer;
-     V: Real;
+     V: CReal;
      K, L: Byte;
      S,S1: String;
 
@@ -1882,7 +1580,7 @@ procedure TCalcView.SearchCell;
 begin
  if SearchData.S = '' then Exit;
  Val(SearchData.S, V, I);
- if SearchData.TxtOptions and 1 = 0 then S1 := UpCaseStr(SearchData.S)
+ if SearchData.TxtOptions and 1 = 0 then S1 := UpStrg(SearchData.S)
                                     else S1 := SearchData.S;
  For I := 1 to Cells^.Count do
   begin
@@ -1890,7 +1588,7 @@ begin
    if (P^.Row >= SearchPos.Y) and (P^.Col > SearchPos.X) then
     if (SearchData.CellOptions = 0) then
      begin
-      if SearchData.TxtOptions and 1 = 0 then S := UpCaseStr(P^.S)
+      if SearchData.TxtOptions and 1 = 0 then S := UpStrg(P^.S)
                                          else S := P^.S;
       K := Pos(S1, S); L := 0;
       if SearchData.TxtOptions and 2 = 0 then

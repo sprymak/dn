@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,16 +43,12 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
-{$o+}
 unit Advance4; {OS/2 support}
 interface
-uses advance, lfn, advance1, advance3;
+uses advance, lfn, advance1, advance3, drivers;
 
 type SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed, stPMSession,
                     stVDMFullScreen, stWinFullScreen, stWinWindow, stVDMWindow);
@@ -81,7 +77,7 @@ procedure StartOS2Session(DataLen: Word; Session: Sessiontype; Background: Boole
 
     P: Pointer;
 begin
-   if not OS210 then Exit;
+   if not OS2exec then Exit;
    R.Size := DataLen;
    R.Relation := 1;
    R.FBground := Byte(Background);
@@ -112,13 +108,22 @@ begin
 
 end;
 
+function GetBootDrive: Byte; assembler;
+{ requires DOS 4.0+ or OS/2 Warp 3+ }
+{ return: 1=A:, 2=B:, ...           }
+asm
+    mov ax, 3305h
+    int 21h
+    mov al, dl
+end;
+
         {-DataCompBoy-}
 procedure RunOS2Command;
  var T: lText;
      I: Integer;
-     S,M,EX: string;
+     S, M, EX, OS2comspec: string;
 begin
-  if not OS210 then Exit;
+  if not OS2exec then Exit;
   I := 1;
   repeat
     ClrIO;
@@ -153,7 +158,10 @@ begin
   if not Bckg and (ShiftState and $20 = 0) then WriteLn(T.T, '@pause');
   Write(T.T, '@del "'+EX+'" & exit'^Z);
   Close(T.T);
-  StartOS2Session($20, Session, Bckg, Command, GetEnv('OS2COMSPEC'),
+  OS2comspec := GetEnv('OS2COMSPEC');
+  if OS2comspec = ''
+      then OS2comspec := Chr(96+GetBootDrive) + ':\os2\cmd.exe';
+  StartOS2Session($20, Session, Bckg, Command, OS2comspec,
                      '/c '+EX, '');
 end;
         {DataCompBoy}

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,18 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit DNStdDlg;
 
 interface
 
-uses LFN, LFNCol,     {DataCompBoy}
-     Objects, Drivers, Views, Dialogs, Dos, Memory, Messages, DNApp, ObjType;
+uses LFN, LFNCol, Collect, Objects, Drivers, Views, Dialogs, Dos, Memory,
+     Messages, DNApp;
 
 const
 
@@ -144,7 +141,6 @@ type
     procedure ReadDirectory(AWildCard: String);
     procedure SetData(var Rec); virtual;
     procedure Select; virtual;
-   { procedure GetData(var Rec); virtual;}
   end;
 
   { TDirectoryList }
@@ -228,62 +224,14 @@ const
 
   CInfoPane = #30;
 
-  { TStream registration records }
-
-const
-  RFileInputLine: TStreamRec = (
-     ObjType: otFileInputLine;
-     VmtLink: Ofs(TypeOf(TFileInputLine)^);
-     Load:    @TFileInputLine.Load;
-     Store:   @TFileInputLine.Store
-  );
-
-const
-  RFileCollection: TStreamRec = (
-     ObjType: otFileCollection;
-     VmtLink: Ofs(TypeOf(TFileCollection)^);
-     Load:    @TFileCollection.Load;
-     Store:   @TFileCollection.Store
-  );
-
-const
-  RFileList: TStreamRec = (
-     ObjType: otFileList;
-     VmtLink: Ofs(TypeOf(TFileList)^);
-     Load:    @TFileList.Load;
-     Store:   @TFileList.Store
-  );
-
-const
-  RFileInfoPane: TStreamRec = (
-     ObjType: otFileInfoPane;
-     VmtLink: Ofs(TypeOf(TFileInfoPane)^);
-     Load:    @TFileInfoPane.Load;
-     Store:   @TFileInfoPane.Store
-  );
-
-const
-  RFileDialog: TStreamRec = (
-     ObjType: otFileDialog;
-     VmtLink: Ofs(TypeOf(TFileDialog)^);
-     Load:    @TFileDialog.Load;
-     Store:   @TFileDialog.Store
-  );
-
-const
-  RSortedListBox: TStreamRec = (
-     ObjType: otSortedListBox;
-     VmtLink: Ofs(TypeOf(TSortedListBox)^);
-     Load:    @TSortedListBox.Load;
-     Store:   @TSortedListBox.Store
-  );
-
 function GetFileNameDialog(Mask, Title, Name: String; Buttons, HistoryID: Word): String; {DataCompBoy}
+function GetFileNameMenu (Path, Mask: String; PutNumbers: Boolean; var More: Boolean): String; {JO}
+{DataCompBoy: Mask now an standart DN filter, like "*.Ops;-Pas.*;p*.d"}
 
 implementation
 
 uses HistList, advance, advance1, advance2, advance3, RStrings, Commands,
-     Startup, DNHelp;
+     Startup, DNHelp, {JO} Menus {JO};
 
         {-DataCompBoy-}
 function PathValid(var Path: String): Boolean;
@@ -312,7 +260,9 @@ var
   Ext: String;
 
 { Contains returns true if S1 contains any characters in S2 }
-function Contains(S1, S2: String): Boolean; near; assembler;
+function Contains(S1, S2: String): Boolean;
+{$IFNDEF NOASM}
+near; assembler;
 asm
         PUSH    DS
         CLD
@@ -338,6 +288,13 @@ asm
         JMP     @@4
 @@3:    MOV     AL,1
 @@4:    POP     DS
+{$ELSE}
+var q: integer;
+begin
+ Contains:=true;
+ for q:=1 to length(S2) do if PosChar(S2[q], S1)>0 then exit;
+ Contains:=false;
+{$ENDIF}
 end;
 
 begin
@@ -466,10 +423,9 @@ end;
 
 procedure TSortedListBox.HandleEvent(var Event: TEvent);
 var
-  ShiftKeys: Byte absolute $40:$17;
   CurString, NewString: String;
   K: Pointer;
-  Value, OldPos, OldValue: Integer;
+  Value, OldPos, OldValue: LongInt;
   T: Boolean;
 
 function Equal(var S1: String; var S2: String; Count: Word): Boolean;
@@ -558,7 +514,7 @@ end;
 
 destructor TFileList.Done;
 begin
-  if List <> nil then Dispose(List, Done);
+  if List <> nil then Dispose(List,Done); List:=nil;
   TListBox.Done;
 end;
 
@@ -587,12 +543,6 @@ begin
   TSortedListBox.FocusItem(Item);
   Message(Owner, evBroadcast, cmFileFocused, List^.At(Item));
 end;
-
-{procedure TFileList.GetData(var Rec);
-begin
-end;
-}
-
 
         {-DataCompBoy-}
 function TFileList.GetKey(var S: String): Pointer;
@@ -672,7 +622,6 @@ begin
   lFindClose(S);
   if P = nil then Msg(dlStdDlgManyFiles, nil, mfOkButton + mfWarning);
   NewList(FileList);
-{  if List^.Count = 0 then WriteLn('Пук');
 {  if List^.Count > 0 then
   begin
     Event.What := evBroadcast;
@@ -738,7 +687,7 @@ var
   Event: TEvent;
   C: Char;
 begin
-  AWildCard := FExpand(AWildCard);
+  AWildCard := lFExpand(AWildCard);
   lFSplit(AWildCard, Dir, Name, Ext);
   FileList := New(PFileCollection, Init(5, 5));
 {  FindFirst(AWildCard, FindAttr, S);}
@@ -843,7 +792,7 @@ const
   sFileLine      = ' %-12s %-10s  %sm';
 begin
   { Display path }
-  Path := #0+Cut(lFGetLongFileName(FExpand(PFileDialog(Owner)^.Directory^))+PFileDialog(Owner)^.WildCard^,Size.X-1)+#0;
+  Path := #0+Cut(lFGetLongFileName(lFExpand(PFileDialog(Owner)^.Directory^))+PFileDialog(Owner)^.WildCard^,Size.X-1)+#0;
   Color := GetColor($01);
   MoveChar(B, ' ', Color, Size.X);
   MoveCStr(B[1], Path, Color);
@@ -932,6 +881,7 @@ begin
     then HelpCtx := hcOpenFileDialog
     else HelpCtx := hcSelectFileDialog;
   WildCard := NewStr(AWildCard);
+  Directory:= nil;
 
   R.Assign(3,3,31,4);
   FileName := New(PFileInputLine, Init(R, MaxPathLen));
@@ -1047,7 +997,6 @@ end;
 procedure TFileDialog.GetData(var Rec);
 begin
   GetFilename(String(Rec));
-  String(Rec):=lfGetLongFileName(DelSquashes(String(Rec)));
 end;
         {-DataCompBoy-}
 
@@ -1115,7 +1064,7 @@ end;
 begin
   S := FileName^.Data^; ClrIO;
   if RelativePath(S) then S := lFExpand(Directory^ + S)
-  else S := FExpand(S);
+  else S := lFExpand(S);
   if Abort then Exit;
   lFSplit(S, Path, Name, Ext);
   if (Ext = '') and not IsDir(S) then
@@ -1210,7 +1159,7 @@ end;
         {-DataCompBoy-}
 procedure TFileDialog.SetData(var Rec);
 begin
-  TDialog.SetData(Rec);
+  FileName^.SetData(Rec);
   if (String(Rec) <> '') and (IsWild(String(Rec))) then
   begin
     Valid(cmFileInit);
@@ -1227,9 +1176,9 @@ procedure TFileDialog.ReadDirectory;
 begin
   FileList^.ReadDirectory(WildCard^);
   DirList^.ReadDirectory(WildCard^);
-  lFSplit(FExpand(WildCard^), D, N, X);
-  WildCard := NewStr(N+X);
-  Directory := NewStr(D);
+  lFSplit(lFExpand(WildCard^), D, N, X);
+  DisposeStr(WildCard); WildCard  := NewStr(N+X);
+  DisposeStr(Directory);Directory := NewStr(D);
 end;
         {-DataCompBoy-}
 
@@ -1281,9 +1230,8 @@ begin
         lFSplit(lFName, Dir, Name, Ext);
         if CheckDirectory(Dir) then
         begin
-          DisposeStr(Directory);
-          Directory := NewStr(Dir);
-          WildCard := NewStr(Name+Ext);
+          DisposeStr(Directory);Directory := NewStr(Dir);
+          DisposeStr(WildCard); WildCard  := NewStr(Name+Ext);
           DirList^.ReadDirectory(Directory^+WildCard^);
           FileList^.ReadDirectory(Directory^+WildCard^);
           if Command <> cmFileInit then{ FileList^.Select;}
@@ -1376,15 +1324,97 @@ begin
   if D = nil then Exit;
   if B then D^.SetData(S);
   if Desktop^.ExecView(D) <> cmCancel then D^.GetFileName(S);
-  Dispose(D, Done);
+  Dispose(D,Done);
   S:=lfGetLongFileName(S);
   if S <> '' then
     begin
-       S := FExpand(S);
+       S := lFExpand(S);
        HistoryAdd(HistoryID, S);
     end;
   GetFileNameDialog := S
 end;
 
+function GetFileNameMenu (Path, Mask: String; PutNumbers: Boolean; var More: Boolean): String; {JO}
+
+    var S:string; SS:string; {L:TStringCollection;} L:TLineCollection; SR:lSearchRec;
+        Current,Default:PMenuItem; Menu:PMenu; CurIdx,i:integer;
+        HMB:PMenuBox; R:TRect; V:PView;
+        W: Word;
+
+        function LngMixCase(P:string):string;
+        var i:integer;
+        begin
+            for i:=1 to Length(P) do if (i=1) or not (P[i-1] in ['a'..'z',
+            'A'..'Z']) then P[i]:=UpCase(P[i]) else if P[i] in ['A'..'Z']
+            then P[i]:=Chr(Ord(P[i])+Ord('a')-Ord('A'));
+            LngMixCase:=P
+        end;
+
+    begin
+        GetFileNameMenu := '';
+        L.Init(5,5);
+        lFindFirst(MakeNormName(Path, '*.*'), AnyFile,SR);
+        while DosError=0 do begin
+            if ((SR.SR.Attr and Directory)=0) and (SR.FullSize>0) and
+                (InFilter(SR.FullName,Mask) or InFilter(SR.SR.Name,Mask))
+             then begin
+                SS[0]:=#0;
+{               while SR.FullName[Byte(SS[0])+1]<>'.'}
+{               do SS:=SS+SR.FullName[Byte(SS[0])+1];}
+                SS:=SR.FullName;
+                SS:=LngMixCase(SS);
+                L.Insert(NewStr(SS))
+            end;
+            lFindNext(SR)
+        end;
+        lFindClose(SR);
+        if More then L.Insert(NewStr(GetString(dlMore)));
+        CurIdx:=0;
+        if L.Count>0 then begin
+            Current:=nil;
+            for i:=L.Count-1 downto 0 do
+              begin
+                if PutNumbers then
+                    case i of
+                     0..8: S:='~'+Chr(Ord('1')+i)+'~ ';
+                        9: S:='~0~ ';
+                   10..35: S:='~'+Chr(55+i)+'~ ';
+                    else S:='  ';
+                    end
+                else S:='';
+                Current:=NewItem(S+CutH(PString(L.At(i))^,40),'',kbNoKey,
+                cmSelectMenuCommands+i,hcNoContext,Current);
+                if i=CurIdx then Default:=Current
+              end;
+            Menu:=NewMenu(Current);
+            Menu^.Default:=Default;
+            Application^.GetExtent(R);
+            R.A.X:=((R.A.X+R.B.X) div 2)-8;
+            R.B.X:=R.A.X+16;
+            R.A.Y:=((R.A.Y+R.B.Y-L.Count) div 2)-1;
+            R.B.Y:=R.A.Y+L.Count+2;
+            if R.A.Y<Application^.Origin.Y+1 then R.A.Y:=Application^.Origin.Y+1;
+            if R.B.Y>Application^.Origin.Y+Application^.Size.Y-1
+            then R.B.Y:=Application^.Origin.Y+Application^.Size.Y-1;
+            New(HMB,Init(R,Menu,nil));
+            W:=Application^.ExecView(HMB);
+            If W<>cmCancel then CurIdx:=W-cmSelectMenuCommands else CurIdx:=-1;
+            Dispose(HMB,Done);
+            DisposeMenu(Menu);
+            More := False;
+            if (CurIdx>=0) then
+                    if PString(L.At(CurIdx))^ = GetString(dlMore) then
+                       begin
+                         More := True;
+                       end
+                    else
+                       begin
+                         GetFileNameMenu := MakeNormName(Path, PString(L.At(CurIdx))^);
+                         More := False;
+                       end;
+        end;
+        L.FreeAll;
+        L.Done;
+end; {JO}
 
 end.

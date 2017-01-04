@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,12 +44,13 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit Messages;
 
 interface
 
-uses Objects, Commands, RStrings, Dos;
+uses Objects, Commands, RStrings, Dos, drivers;
 
 const
 
@@ -138,7 +139,7 @@ const MsgActive : Boolean = False;
 
 implementation
 
-uses Drivers, Views, Dialogs, DNApp, DNHelp, advance, advance1, advance2,
+uses Views, Dialogs, DNApp, DNHelp, advance, advance1, advance2,
      advance3, {Tree, }Drives, Startup;
 
 procedure ErrMsg(Index: TStrIdx); begin Msg(Index, nil, mfError + mfOkButton) end;
@@ -302,7 +303,7 @@ begin
   Event.Buttons := 1; Event.Where := PP;
   Application^.PutEvent(Event);}
   MessageBoxRect := DeskTop^.ExecView(Dialog);
-  Dispose(Dialog, Done);
+  Dispose(Dialog,Done);
   MsgActive:=False;
 end;
 
@@ -368,7 +369,7 @@ begin
   Event.Buttons := 1; Event.Where := PP;
   Application^.PutEvent(Event);}
   MessageBox2Rect := DeskTop^.ExecView(Dialog);
-  Dispose(Dialog, Done);
+  Dispose(Dialog,Done);
   MsgActive:=False;
 end;
 
@@ -401,7 +402,7 @@ begin
   Dialog := New(PDialog, Init(Bounds, Title));
   with Dialog^ do
   begin
-    R.Assign(4 + CStrLen(ALabel), 2, Size.X - 2 - 3 * Byte(HistoryID <> 0), 3);
+    R.Assign(4 + CStrLen(ALabel), 2, Size.X - 2 - 4 * Byte(HistoryID <> 0), 3);
     Control := New(PInputLine, Init(R, Limit));
     Insert(Control);
     if HistoryID <> 0 then
@@ -426,7 +427,7 @@ begin
   Dialog^.HelpCtx := hcInputBox;
   C := DeskTop^.ExecView(Dialog);
   if C <> cmCancel then Dialog^.GetData(S);
-  Dispose(Dialog, Done);
+  Dispose(Dialog,Done);
   InputBoxRect := C;
 end;
 

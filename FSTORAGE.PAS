@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,20 +43,17 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
-//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 unit FStorage;
 
 interface
 uses LFN, LFNCol, {DataCompBoy}
-     Objects, advance, advance1, advance2, advance3, DOS, FilesCol, ObjType;
+     Objects, advance, advance1, advance2, advance3, DOS, FilesCol;
 
 type
-   TStoredID = (siUndefined, siEmpty, siDirectory, siFile, siEnd);
+   TStoredID = (siUndefined, siEmpty, siDirectory, siFile, siFileDir, siEnd);
 
    TStored = record
      ID: TStoredID;
@@ -80,11 +77,16 @@ type
      Name: String;
    end;
 
-   TSwapLevel = (slNone, slXMS, slEMS, slDsk, slCnv, slFail);
+   TSwapLevel = (slNone,
+  {$IFNDEF DPMI} slXMS, slEMS, slDsk, slCnv, {$ELSE}
+                 slCnv, slDsk,
+  {$ENDIF} {DataCompBoy: For DPMI no EMS/XMS needed}
+                 slFail);
 
    PDirStorage = ^TDirStorage;
    TDirStorage = object(TObject)
      SwapLevel: TSwapLevel;
+     Dirs: LongInt;
      Files: LongInt;
      Items: LongInt;
      Stream: PStream;
@@ -117,42 +119,8 @@ type
    end;
 
 
-const
-      RDirStorage: TStreamRec = (
-       ObjType: otDirStorage;
-       VmtLink: Ofs(TypeOf(TDirStorage)^);
-       Load: @TDirStorage.Load;
-       Store: @TDirStorage.Store);
-
-
 implementation
-uses ExtraMemory, DNApp, StartUp;
-
-type
-  PTempFile = ^TTempFile;
-  TTempFile = object(TBufStream)
-    FName: string;
-    constructor Init;
-    destructor Done; virtual;
-  end;
-
-constructor TTempFile.Init;
-var
-  s: string;
-begin
-  s := CalcTmpFName(CalcTmpId, 'SWD', true);
-  inherited Init(s, stCreate, 4096);
-  FName := s;
-end;
-
-destructor TTempFile.Done;
-var
-  s: string;
-begin
-  s := FName;
-  inherited Done;
-  EraseFile(s);
-end;
+uses extramemory, DNApp, StartUp;
 
 procedure __Error;
 begin
@@ -206,10 +174,11 @@ LLL:
     OldStream^.Read(Buffer, N);
     if OldStream^.Status <> stOK then __Error;
     Stream^.Write(Buffer, N);
-    if Stream^.Status <> stOK then begin FreeObject(Stream); goto LLL end;
+    if Stream^.Status <> stOK then
+     begin Dispose(Stream,Done); Stream:=nil; goto LLL end;
     Dec(Count, N);
   end;
-  FreeObject(OldStream);
+  Dispose(OldStream,Done);
   Stream^.Seek(vSavePos);
 end;
 
@@ -219,30 +188,32 @@ begin
   Stream := nil;
   Last := True; CurPos := -1;
   case SwapLevel of
+{$IFNDEF DPMI} {DataCompBoy: for DPMI no XMS and EMS needed}
     slXMS: if XMSFound then
            begin
              Stream := New(PXMSStream, Init(X, X));
-             if Stream^.Status <> stOK then FreeObject(Stream);
+             if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
            end;
     slEMS: if EMSFound then
            begin
              Stream := New(PEMSStream, Init(E, E));
-             if Stream^.Status <> stOK then FreeObject(Stream);
+             if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
            end;
+{$ENDIF}
     slCnv: begin
              Stream := New(PMemoryStream, Init(M, 2048));
-             if Stream^.Status <> stOK then FreeObject(Stream);
+             if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
            end;
     slDsk: begin
-             Stream := New(PTempFile, Init);
-             if Stream^.Status <> stOK then FreeObject(Stream);
+             Stream := New(PTempFile, Init('SWD', 4096));
+             if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
            end;
   end;
 end;
 
 destructor TDirStorage.Done;
 begin
-  if Stream <> nil then Dispose(Stream, Done);
+  if Stream <> nil then Dispose(Stream,Done); Stream:=nil;
 end;
 
         {-DataCompBoy-}
@@ -263,9 +234,9 @@ begin
   if (FName <> #0) and (FName<>'') then
   begin
     lFSplit(LFN, Dr, Nm, Xt);
+    if Dr[Length(Dr)] <> '\' then AddStr(Dr, '\');
     if (UpStrg(CurDir) <> UpStrg(Dr)) then
       begin
-        if Dr[Length(Dr)] <> '\' then AddStr(Dr, '\');
         CurDir := Dr;
         SD.T.ID := siDirectory;
         L := SizeOf(TStored) + 1 + Length(Dr);
@@ -274,7 +245,9 @@ begin
         Move(SD, B, L);
         Inc(Items);
       end;
-    SF.T.ID := siFile;
+    if Attr and Directory <> 0
+     then SF.T.ID := siFileDir
+     else SF.T.ID := siFile;
     SF.LFN  := Nm+Xt;
     SF.Name := GetName(FName);
     SF.T.Len:= SizeOf(SF)-254+Length(SF.LFN);
@@ -286,6 +259,7 @@ begin
     SF.Attr := Attr;
     Move(SF, B[L], SF.T.Len); Inc(L, SF.T.Len);
     Inc(Files); Inc(Items);
+    if Attr and Directory <> 0 then Inc(Dirs);
   end;
 
   TS.ID := siEnd;
@@ -326,7 +300,8 @@ begin
       case SD.T.ID of
         siDirectory: begin Dr := SD.Name; LastDir := Dr end;
         siEnd: Break;
-        siFile: begin
+        siFile, siFileDir:
+                 begin
                   CurPos := vSavePos - SF.T.Len;
                   if (CurDir = '') or (UpStrg(Dr) = UpStrg(CurDir)) then
                     begin
@@ -360,6 +335,7 @@ constructor TDirStorage.Load;
   var P, L: LongInt;
 begin
   TObject.Init;
+  S.Read(Dirs, SizeOf(Dirs));
   S.Read(Files, SizeOf(Files));
   S.Read(TotalLength, SizeOf(TotalLength));
   S.Read(TotalCLength, SizeOf(TotalCLength));
@@ -370,7 +346,7 @@ begin
     Stream^.CopyFrom(S, L);
     if Stream^.Status = stOK then Break else
     begin
-      FreeObject(Stream);
+      Dispose(Stream,Done);Stream:=nil;
       TryStream(L);
       S.Seek(P);
     end;
@@ -381,6 +357,7 @@ procedure TDirStorage.Store;
   var L: LongInt;
 begin
   AddFile(#0,#0,0,0,0,0);
+  S.Write(Dirs, SizeOf(Dirs));
   S.Write(Files, SizeOf(Files));
   S.Write(TotalLength, SizeOf(TotalLength));
   S.Write(TotalCLength, SizeOf(TotalCLength));
@@ -410,7 +387,8 @@ begin
       case ST.ID of
         siDirectory: Dr := SD.Name;
         siEnd: Break;
-        siFile: begin
+        siFile, siFileDir:
+                 begin
                   Abort := Off; DosError := 0;
                   lFindFirst(Dr+SF.LFN, $3F xor VolumeID, SR);
                   lFindClose(SR);
@@ -418,6 +396,7 @@ begin
                   if (DosError <> 0) or Abort then
                     begin
                       Dec(Files);
+                      if ST.ID = siFileDir then Dec(Dirs);
                       ST.ID := siEmpty;
                       vSeek(L);
                       vWrite(SF, ST.Len);
@@ -453,10 +432,10 @@ end;
 procedure TDirStorage.Truncate(N: LongInt);
 var
   ST: TStored;
-  L, NF, NI: LongInt;
+  L, NF, ND, NI: LongInt;
 begin
   ResetPointer('');
-  NF := 0; NI := 0;
+  NF := 0; ND := 0; NI := 0;
   while Stream^.Status = stOK do
     begin
       Inc(NI);
@@ -465,12 +444,13 @@ begin
       if ST.Len > SizeOf(TStored) then vSeek(L + ST.Len);
       case ST.ID of
         siEnd  : Break;
-        siFile :
+        siFile, siFileDir :
           begin
             Dec(N);
             if N > 0 then
             begin
               Inc(NF);
+              if ST.ID = siFileDir then Inc(ND);
             end else
             begin
               ST.ID := siEnd;
@@ -478,6 +458,7 @@ begin
               vSeek(L);
               vWrite(ST, SizeOf(TStored));
               vTruncate;
+              Dirs  := ND;
               Files := NF;
               Items := NI;
               Break;
@@ -501,6 +482,7 @@ begin
   vWrite(CurFile, s.Len);{DataCompBoy}
   vSeek(L);
   Dec(Files);
+  if S.ID = siFileDir then Dec(Dirs);
 end;
 
 procedure TDirStorage.vWrite;

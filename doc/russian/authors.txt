@@ -1,0 +1,46 @@
+==============================================================================
+                        Разработчики Dos Navigator (C)
+==============================================================================
+Команда Dos Navigator Open Source Project:
+    Mark Adler for inflate 1.1.2 Copyright 1995-1998
+    Vitaly Astaforkin (Gimly) <gymly@mail.ru>
+    Mariusz Borkowski <mborkows@elka.pw.edu.pl>
+    Ivan Borodikhin (EXCELLENCE) <2:5020/1252.444>
+    Mesaros Csaba (Gyor) <csablak@freemail.hu>
+    Anton Fedorov (DataCompBoy) <2:5000/111.33; datacompboy@mail.ru>
+    Alexey Feldgendler (X-Man) <2:5000/111.27; xman@gorwoda.telefun.ru>
+    Vladimir Fonarev (VOL) <2:5020/1252.7>
+    Alexey Froloff (Sir Raorn) <2:5020/1437.4>
+    Sergey Gazizyanov (DarkLord) <2:5004/43.50>
+    Yuriy Kaminskiy
+    Vladimir Katkov (Chemical)
+    Sergey Klimov <2:5057/18.61>
+    Laszlo Kormoczi (KaeL) <kael@swi.hu>
+    Sergey Korshunoff (SeYKo) <seyko@p5.f434.n5020.z2.fidonet.org>
+    Sergei Koryakin <ksnk@bigfoot.com>
+    Alexey Kostkin (Knave) <2:5020/968.67>
+    Aleksey Luzin <Aleksey@iis.nsk.su>
+    Mike Lykov <2:5057/44; nelescon@samaramail.ru>
+    Ilya Maryasov (IVM) <ivm1999@mail.ru>
+    Andy Neverowsky
+    Anton Novosyolov (ForeverYoung) <foryoung@mail.ru>
+    Vadim Ochkin <2:5020/1365.44>
+    Jaroslaw Osadtchiy (JO) <2:5030/1082.53; Osadtchy@LO6105.spb.edu>
+    Sergey Radkevitch <2:5020/3113; SergeyRadkevitch@mtu-net.ru>
+    Denis Shamov <2:5057/40; dshamov@hippo.ru>
+    Lev Shumskii (WildCat) <2:5042/7.45; Wildcat@tsl.ru>
+    Pawel Skolimowski (PaSkol) <paskol@friko2.onet.pl>
+    Denis Smirnoff (Necromancer) <denisvs@aol.com>
+    Igor Vagin (Antares19) <2:5020/1507.42>
+    Max Vasilyev (Piwamoto) <2:5057/33.36; piwamoto@chat.ru>
+    Ilya Vdovin (VIV)
+    Vladimir Zakharychev (Bobby Z.)
+    Pawel Ziemian <pawelz@aritech.com.pl>
+    V. S. Zubov
+
+Команда Dos Navigator II:
+    Dmitry Dotsenko (AxoNSoft)
+    Slava Filimonov
+    Max Masyutin
+    Stefan Tanurkov
+==============================================================================

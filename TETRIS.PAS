@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,9 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
-//
-//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
-//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
+
 {$define dn}
 {$ifdef dn}
 unit Tetris;
@@ -56,7 +54,7 @@ interface
 {$endif}
 
 USES Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
-     Commands, advance, advance1, advance2, advance3, RStrings, ObjType;
+     Commands, advance, advance1, advance2, advance3, RStrings;
 
 const
   Shi      = 12;
@@ -130,24 +128,6 @@ type
 
 const Game : PGameView = nil;
 
-      RGameWindow: TStreamRec = (
-       ObjType: otGameWindow;
-       VmtLink: Ofs(TypeOf(TGameWindow)^);
-       Load: @TGameWindow.Load;
-       Store: @TGameWindow.Store);
-
-      RGameView: TStreamRec = (
-       ObjType: otGameView;
-       VmtLink: Ofs(TypeOf(TGameView)^);
-       Load: @TGameView.Load;
-       Store: @TGameView.Store);
-
-      RGameInfo: TStreamRec = (
-       ObjType: otGameInfo;
-       VmtLink: Ofs(TypeOf(TGameInfo)^);
-       Load: @TGameInfo.Load;
-       Store: @TGameInfo.Store);
-
 {$ifdef dn}
 implementation
 uses xTime,StartUp, DNHelp;
@@ -155,33 +135,33 @@ uses xTime,StartUp, DNHelp;
 const
   MaxFig   = 27;
   Figures  : array[1..5*MaxFig,1..2] of byte=
-      ((1,3),(2,3),(3,3),(3,2),(0,0),  {0}{Ù}
-       (1,2),(2,2),(3,2),(3,3),(0,0),     {À}
-       (1,2),(2,2),(3,2),(4,2),(0,0),     {³}
-       (2,2),(2,3),(3,2),(3,3),(0,0),     {þ}
-       (1,2),(2,2),(2,3),(3,2),(0,0),     {Ã}
-       (1,2),(2,2),(2,3),(3,3),(0,0),  {5}{~}
-       (1,3),(2,3),(2,2),(3,2),(0,0),{-4-}{~}
-       (1,1),(0,0),(0,0),(0,0),(0,0),{-1-}{ù}
-       (1,1),(2,1),(0,0),(0,0),(0,0),{-2-}{³}
-       (1,2),(2,2),(3,2),(0,0),(0,0),     {³}
-       (1,1),(2,1),(2,2),(0,0),(0,0),{-3-} {10}{À}
-       (1,3),(2,3),(3,3),(4,3),(5,3),          {³}
-       (1,2),(2,1),(2,2),(2,3),(3,2),          {Å}
-       (2,2),(2,3),(3,2),(3,3),(3,4),          {Ü_}
-       (2,2),(2,3),(3,1),(3,2),(3,3),          {_Ü}
-       (1,1),(1,3),(2,1),(2,2),(2,3), {15}     {ÚÄ¿}
-       (1,1),(2,1),(2,2),(3,2),(3,3),          {\}
-       (1,2),(2,2),(3,2),(3,3),(4,3),          {~}
-       (1,3),(2,3),(3,2),(3,3),(4,2),          {~}
-       (1,1),(1,2),(2,2),(3,2),(3,3),          {Z}
-       (1,2),(1,3),(2,2),(3,1),(3,2), {20}     {Z}
-       (1,1),(2,1),(2,2),(2,3),(3,2),          {n}
-       (1,3),(2,1),(2,2),(2,3),(3,2),          {n}
-       (1,1),(1,2),(1,3),(2,2),(3,2),          {T}
-       (1,2),(2,2),(2,3),(3,2),(4,2),          {|~}
-       (1,3),(2,2),(2,3),(3,3),(4,3),          {~|}
-       (1,1),(2,1),(3,1),(3,2),(3,3)           {L}
+      ((1,3),(2,3),(3,3),(3,2),(0,0),
+       (1,2),(2,2),(3,2),(3,3),(0,0),
+       (1,2),(2,2),(3,2),(4,2),(0,0),
+       (2,2),(2,3),(3,2),(3,3),(0,0),
+       (1,2),(2,2),(2,3),(3,2),(0,0),
+       (1,2),(2,2),(2,3),(3,3),(0,0),
+       (1,3),(2,3),(2,2),(3,2),(0,0),
+       (1,1),(0,0),(0,0),(0,0),(0,0),
+       (1,1),(2,1),(0,0),(0,0),(0,0),
+       (1,2),(2,2),(3,2),(0,0),(0,0),
+       (1,1),(2,1),(2,2),(0,0),(0,0),
+       (1,3),(2,3),(3,3),(4,3),(5,3),
+       (1,2),(2,1),(2,2),(2,3),(3,2),
+       (2,2),(2,3),(3,2),(3,3),(3,4),
+       (2,2),(2,3),(3,1),(3,2),(3,3),
+       (1,1),(1,3),(2,1),(2,2),(2,3),
+       (1,1),(2,1),(2,2),(3,2),(3,3),
+       (1,2),(2,2),(3,2),(3,3),(4,3),
+       (1,3),(2,3),(3,2),(3,3),(4,2),
+       (1,1),(1,2),(2,2),(3,2),(3,3),
+       (1,2),(1,3),(2,2),(3,1),(3,2),
+       (1,1),(2,1),(2,2),(2,3),(3,2),
+       (1,3),(2,1),(2,2),(2,3),(3,2),
+       (1,1),(1,2),(1,3),(2,2),(3,2),
+       (1,2),(2,2),(2,3),(3,2),(4,2),
+       (1,3),(2,2),(2,3),(3,3),(4,3),
+       (1,1),(2,1),(3,1),(3,2),(3,3)
        );
   ColPo    : array[0..MaxFig-1] of byte=
       (4,4,4,4,4,4,4,1,2,3, 3,5,5,5,5, 5,5,5,5,5, 5,5,5,5,5,5,5);
@@ -258,35 +238,35 @@ var B: TDrawBuffer;
     C, I, J, K: Word;
 begin
  C := GetColor($0201);
- MoveChar(B, 'Ä', C, Size.X);
+ MoveChar(B, #196, C, Size.X);
  S := GetString(dlGameInfo);
  MoveCStr(B[(Size.X - CStrLen(S)) div 2], S, C);
- MoveChar(B, 'Ú', C, 1);
- MoveChar(B[Size.X-1], '¿', C, 1);
+ MoveChar(B, #218, C, 1);
+ MoveChar(B[Size.X-1], #191, C, 1);
  WriteLine(0,0,Size.X,1,B);
 
  MoveChar(B, ' ', C, Size.X);
  MoveCStr(B, GetString(dlGameScore2) + ItoS(Gm^.Score) + '~', C);
- MoveChar(B[Size.X-1], '³', C, 1);
+ MoveChar(B[Size.X-1], #179, C, 1);
  WriteLine(0,1,Size.X,1,B);
  MoveChar(B, ' ', C, Size.X);
  MoveCStr(B, GetString(dlGameLines) + ItoS(Gm^.Lines) + '~' , C);
- MoveChar(B[Size.X-1], '³', C, 1);
+ MoveChar(B[Size.X-1], #179, C, 1);
  WriteLine(0,2,Size.X,1,B);
  MoveChar(B, ' ', C, Size.X);
  MoveCStr(B, GetString(dlGameLevel) + ItoS(Gm^.Level) + '~', C);
- MoveChar(B[Size.X-1], '³', C, 1);
+ MoveChar(B[Size.X-1], #179, C, 1);
  WriteLine(0,3,Size.X,1,B);
-{ MoveChar(B, 'Ä', C, Size.X);
- MoveChar(B, 'À', C, 1);
- MoveChar(B[Size.X-1], 'Ù', C, 1);
+{ MoveChar(B, #196, C, Size.X);
+ MoveChar(B, #192, C, 1);
+ MoveChar(B[Size.X-1], #217, C, 1);
  WriteLine(0,4,Size.X,1,B);}
 
- MoveChar(B, 'Ä', C, Size.X);
+ MoveChar(B, #196, C, Size.X);
  S := GetString(dlTetrisNext);
  MoveCStr(B[(Size.X - CStrLen(S)) div 2], S, C);
- MoveChar(B, 'Ã', C, 1);
- MoveChar(B[Size.X-1], '´', C, 1);
+ MoveChar(B, #195, C, 1);
+ MoveChar(B[Size.X-1], #180, C, 1);
  WriteLine(0,4,Size.X,1,B);
  K := ((15-Gm^.NextFig mod 7) shl 8) + 219;
  For I := 5 to 10 do
@@ -298,33 +278,33 @@ begin
       if Figures[Gm^.NextFig*5+j,1]=I-4 then
         begin B[Figures[Gm^.NextFig*5+j,2]*2+3] := K; B[Figures[Gm^.NextFig*5+j,2]*2+4] := K; end;
     end;
-   MoveChar(B, '³', C, 1);
-   MoveChar(B[Size.X-1], '³', C, 1);
+   MoveChar(B, #179, C, 1);
+   MoveChar(B[Size.X-1], #179, C, 1);
    WriteLine(0,I,Size.X,1,B);
   end;
- MoveChar(B, 'Ä', C, Size.X);
- MoveChar(B, 'À', C, 1);
- MoveChar(B[Size.X-1], 'Ù', C, 1);
+ MoveChar(B, #196, C, Size.X);
+ MoveChar(B, #192, C, 1);
+ MoveChar(B[Size.X-1], #217, C, 1);
  WriteLine(0,10,Size.X,1,B);
 
  C :=Owner^.GetColor($1112);
- MoveChar(B, 'Ä', C, Size.X);
+ MoveChar(B, #196, C, Size.X);
  S := GetString(dlTetrisBest);
  MoveCStr(B[(Size.X - CStrLen(S)) div 2], S, C);
- MoveChar(B, 'Ú', C, 1);
- MoveChar(B[Size.X-1], '¿', C, 1);
+ MoveChar(B, #218, C, 1);
+ MoveChar(B[Size.X-1], #191, C, 1);
  WriteLine(0,11,Size.X,1,B);
  MoveChar(B, ' ', C, Size.X);
  MoveCStr(B, GetString(dlTetName)+ Gm^.HiScores[1+10*byte(Gm^.Pentix)].Name, C);
- MoveChar(B[Size.X-1], '³', C, 1);
+ MoveChar(B[Size.X-1], #179, C, 1);
  WriteLine(0,12,Size.X,1,B);
  MoveChar(B, ' ', C, Size.X);
  MoveCStr(B,+GetString(dlGameScore) + ItoS(Gm^.HiScores[1+10*byte(Gm^.Pentix)].Score), C);
- MoveChar(B[Size.X-1], '³', C, 1);
+ MoveChar(B[Size.X-1], #179, C, 1);
  WriteLine(0,13,Size.X,1,B);
- MoveChar(B, 'Ä', C, Size.X);
- MoveChar(B, 'À', C, 1);
- MoveChar(B[Size.X-1], 'Ù', C, 1);
+ MoveChar(B, #196, C, Size.X);
+ MoveChar(B, #192, C, 1);
+ MoveChar(B[Size.X-1], #217, C, 1);
  WriteLine(0,14,Size.X,1,B);
 end;
 
@@ -423,7 +403,7 @@ begin
   Stop := On;
   DeskTop^.ExecView(D);
   Stop := PP;
-  Dispose(D, Done);
+  Dispose(D,Done);
 end;
 
 constructor TGameView.Load(var S: TStream);

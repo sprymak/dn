@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.05/DOS
+//  Dos Navigator Open Source 1.51.07/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{$I STDEFINE.INC}
 
 UNIT CDPlayer;
 
@@ -51,13 +52,13 @@ UNIT CDPlayer;
 
 INTERFACE
 
-USES xTime, Dialogs, Drivers, Objects, Views, ObjType;
+USES xTime, Dialogs, Drivers, Objects, Views, Collect;
 
 CONST
-  CDplace: Tpoint = ( X:0; Y:0 );
-  CDsize: Tpoint = ( X:0; Y:0 );
+  CDplace: TPoint = ( X:0; Y:0 );
+  CDsize: TPoint = ( X:0; Y:0 );
   CDparams: array[ 1..3 ] of word = ( 3, 0, 0 );
-  CDmixer : string= '';
+  CDmixer : String= '';
 
   CD_Player: PView = nil;
 
@@ -146,6 +147,8 @@ TYPE
     procedure Awaken; virtual;
   end;
 
+  TReqHdr = Array [0..49] of byte;
+
   PCdPlayer = ^TCdPlayer;
   TCdPlayer = Object( TDialog )
     DiskOk: boolean;
@@ -174,7 +177,7 @@ TYPE
     Qchannel: _Qchannel;
     UpdCnt: TEventTimer;
     NewPlay: TEventTimer;
-    reqHdr: array[ 0..49 ] of byte;
+    reqHdr: TReqHdr;
     Status: _Status;
     Err: _Err;
     LastShuffle: byte;
@@ -228,67 +231,15 @@ TYPE
 
   end;
 
-CONST
-  RCdplayer: TStreamRec = (
-  ObjType: otCdplayer;
-  VmtLink: Ofs( TypeOf( TCdPlayer )^ );
-  Load: @TCDplayer.Load;
-  Store: @TCDplayer.Store );
-
-  RCDCounter: TStreamRec = (
-  ObjType: otCDCounter;
-  VmtLink: Ofs( TypeOf( TCounter )^ );
-  Load: @TCounter.Load;
-  Store: @TCounter.Store );
-
 IMPLEMENTATION
 
 USES advance, advance1, advance2, advance3, Messages, Commands, RStrings,
-     DNHelp, DOS, DnApp, Startup, CDUtil ;
+     DNHelp, DOS, DnApp, Startup, CDUtil, Menus
+     {$IFDEF DPMI}, Dpmi, DosMem{$ENDIF}
+     ;
 
 CONST
   cdDrive: integer = -1;
-
-const
-  Crc32Table : array[0..255] of LongInt = (
-  $00000000, $77073096, $ee0e612c, $990951ba, $076dc419, $706af48f, $e963a535,
-  $9e6495a3, $0edb8832, $79dcb8a4, $e0d5e91e, $97d2d988, $09b64c2b, $7eb17cbd,
-  $e7b82d07, $90bf1d91, $1db71064, $6ab020f2, $f3b97148, $84be41de, $1adad47d,
-  $6ddde4eb, $f4d4b551, $83d385c7, $136c9856, $646ba8c0, $fd62f97a, $8a65c9ec,
-  $14015c4f, $63066cd9, $fa0f3d63, $8d080df5, $3b6e20c8, $4c69105e, $d56041e4,
-  $a2677172, $3c03e4d1, $4b04d447, $d20d85fd, $a50ab56b, $35b5a8fa, $42b2986c,
-  $dbbbc9d6, $acbcf940, $32d86ce3, $45df5c75, $dcd60dcf, $abd13d59, $26d930ac,
-  $51de003a, $c8d75180, $bfd06116, $21b4f4b5, $56b3c423, $cfba9599, $b8bda50f,
-  $2802b89e, $5f058808, $c60cd9b2, $b10be924, $2f6f7c87, $58684c11, $c1611dab,
-  $b6662d3d, $76dc4190, $01db7106, $98d220bc, $efd5102a, $71b18589, $06b6b51f,
-  $9fbfe4a5, $e8b8d433, $7807c9a2, $0f00f934, $9609a88e, $e10e9818, $7f6a0dbb,
-  $086d3d2d, $91646c97, $e6635c01, $6b6b51f4, $1c6c6162, $856530d8, $f262004e,
-  $6c0695ed, $1b01a57b, $8208f4c1, $f50fc457, $65b0d9c6, $12b7e950, $8bbeb8ea,
-  $fcb9887c, $62dd1ddf, $15da2d49, $8cd37cf3, $fbd44c65, $4db26158, $3ab551ce,
-  $a3bc0074, $d4bb30e2, $4adfa541, $3dd895d7, $a4d1c46d, $d3d6f4fb, $4369e96a,
-  $346ed9fc, $ad678846, $da60b8d0, $44042d73, $33031de5, $aa0a4c5f, $dd0d7cc9,
-  $5005713c, $270241aa, $be0b1010, $c90c2086, $5768b525, $206f85b3, $b966d409,
-  $ce61e49f, $5edef90e, $29d9c998, $b0d09822, $c7d7a8b4, $59b33d17, $2eb40d81,
-  $b7bd5c3b, $c0ba6cad, $edb88320, $9abfb3b6, $03b6e20c, $74b1d29a, $ead54739,
-  $9dd277af, $04db2615, $73dc1683, $e3630b12, $94643b84, $0d6d6a3e, $7a6a5aa8,
-  $e40ecf0b, $9309ff9d, $0a00ae27, $7d079eb1, $f00f9344, $8708a3d2, $1e01f268,
-  $6906c2fe, $f762575d, $806567cb, $196c3671, $6e6b06e7, $fed41b76, $89d32be0,
-  $10da7a5a, $67dd4acc, $f9b9df6f, $8ebeeff9, $17b7be43, $60b08ed5, $d6d6a3e8,
-  $a1d1937e, $38d8c2c4, $4fdff252, $d1bb67f1, $a6bc5767, $3fb506dd, $48b2364b,
-  $d80d2bda, $af0a1b4c, $36034af6, $41047a60, $df60efc3, $a867df55, $316e8eef,
-  $4669be79, $cb61b38c, $bc66831a, $256fd2a0, $5268e236, $cc0c7795, $bb0b4703,
-  $220216b9, $5505262f, $c5ba3bbe, $b2bd0b28, $2bb45a92, $5cb36a04, $c2d7ffa7,
-  $b5d0cf31, $2cd99e8b, $5bdeae1d, $9b64c2b0, $ec63f226, $756aa39c, $026d930a,
-  $9c0906a9, $eb0e363f, $72076785, $05005713, $95bf4a82, $e2b87a14, $7bb12bae,
-  $0cb61b38, $92d28e9b, $e5d5be0d, $7cdcefb7, $0bdbdf21, $86d3d2d4, $f1d4e242,
-  $68ddb3f8, $1fda836e, $81be16cd, $f6b9265b, $6fb077e1, $18b74777, $88085ae6,
-  $ff0f6a70, $66063bca, $11010b5c, $8f659eff, $f862ae69, $616bffd3, $166ccf45,
-  $a00ae278, $d70dd2ee, $4e048354, $3903b3c2, $a7672661, $d06016f7, $4969474d,
-  $3e6e77db, $aed16a4a, $d9d65adc, $40df0b66, $37d83bf0, $a9bcae53, $debb9ec5,
-  $47b2cf7f, $30b5ffe9, $bdbdf21c, $cabac28a, $53b39330, $24b4a3a6, $bad03605,
-  $cdd70693, $54de5729, $23d967bf, $b3667a2e, $c4614ab8, $5d681b02, $2a6f2b94,
-  $b40bbe37, $c30c8ea1, $5a05df1b, $2d02ef8d
-  );
 
 var
   Crc32TableOfs : Word;
@@ -297,7 +248,7 @@ function UpdateCrc32(CurByte : Byte; CurCrc : LongInt) : LongInt;
   {-Returns an updated crc32}
 
   (* Model for inline code below
-  UpdateCrc32 := Crc32Table[Byte(CurCrc xor LongInt(CurByte))] xor
+  UpdateCrc32 := Crc_Table[Byte(CurCrc xor LongInt(CurByte))] xor
                  ((CurCrc shr 8) and $00FFFFFF);
   *)
 
@@ -308,7 +259,7 @@ Inline(
   $59/                   {        POP     CX}
   $52/                   {        PUSH    DX}
   $53/                   {        PUSH    BX      ;Save original CurCrc}
-                         {;CX:AX := Get Crc32Table[CurCrc xor CurByte];}
+                         {;CX:AX := Get Crc_Table[CurCrc xor CurByte];}
   $31/$CB/               {        XOR     BX,CX   ;DX:BX = CurCrc xor CurByte}
   $30/$FF/               {        XOR     BH,BH   ;Byte(DX:BX)}
   $D1/$E3/               {        SHL     BX,1    ;LongInt index}
@@ -338,7 +289,7 @@ type
 var CNT : word;
     CRC : Longint;
  begin
-    Crc32TableOfs := Ofs(Crc32Table);
+    Crc32TableOfs := Ofs(Crc_Table);
     CRC := 0;
     GetCrc := 0;
      if BufSize = 0 then Exit;
@@ -349,7 +300,9 @@ var CNT : word;
 
 
 
-FUNCTION CD_GetFirstDrive( var firstDrive: Integer ): integer; assembler;
+FUNCTION CD_GetFirstDrive( var firstDrive: Integer ): integer;
+{$IFNDEF DPMI}
+assembler;
 asm
   mov ax, $1500
   mov bx, 0
@@ -357,47 +310,66 @@ asm
   mov ax, bx {;# of drives }
   les bx, firstDrive
   mov es:[ bx ].word, cx
+{$ELSE}
+var R: DpmiRegisters;
+begin
+  fillword(R, SizeOf(R) shr 1, 0);
+  r.ax := $1500;
+  r.bx := 0;
+  SimulateRealModeInt($2F, R);
+  firstDrive := R.CX;
+  CD_GetFirstDrive := R.BX;
+{$ENDIF}
 end;
 
 FUNCTION CD_Req( drv: integer;
                   cmd: byte;
                   size: integer;
-                  Var reqHdr: array of byte ):boolean;
+                  Var reqHdr: TReqHdr ):boolean;
 var Buf: Pointer;
-
+{$IFDEF DPMI}
+    R: DpmiRegisters;
+    B: Pointer;
+{$ENDIF}
 begin
   reqHdr[ 1 ] := 0;
   reqHdr[ 2 ] := cmd;
   reqHdr[ 0 ] := 20;
-  Buf := System.Addr( reqHdr[ 20 ] );
-  move( Buf, reqHdr[ 14 ], sizeOf( Buf ));
   reqHdr[ 18 ]:= lo( size );
   reqHdr[ 19 ]:= hi( size );
+{$IFNDEF DPMI}
+  Buf := System.Addr( reqHdr[ 20 ] );
+  move( Buf, reqHdr[ 14 ], sizeOf( Buf ));
+  
   asm
     les bx, reqHdr
     mov cx, drv
     mov ax, $1510
     int $2f
   end;
+{$ELSE}
+  FillWord(R, SizeOf(R) shr 1, 0);
+  B := GetDosMem(SizeOf(reqHdr), R.ES);
+  Buf := Ptr(R.ES, 20);
+  Move( Buf, reqHdr[ 14 ], sizeOf( Buf ));
+  Move(reqHdr, B^, SizeOf(reqHdr));
+  R.BX := 0;
+  R.CX := Drv;
+  R.AX := $1510;
+  SimulateRealModeInt($2F, R);
+  Move(B^, reqHdr, SizeOf(reqHdr));
+  FreeDosMem(B);
+{$ENDIF}
 
   CD_req := reqHdr[ 4 ] and $80 = $80;
-  (*
-    if ( reqHdr[ 4 ] and $80 ) > 0 { Error! } then begin
-      if ( reqHdr[ 3 ] = 2 ) or ( reqHdr[ 3 ] = 12 ) then begin
-        Writeln( 'Error: no disk in drive' );
-        exit;
-      end else
-        Writeln( 'Error ', reqHdr[ 3 ], ' cmd ', reqHdr[ 20 ] );
-      end
-  *)
 end;
 
 FUNCTION CD_IsChanged( drive: integer ): boolean;
 var
-   reqHdr: array[ 0..39 ] of byte;
+   reqHdr: TReqHdr;
    Err: byte;
  begin
-  fillchar( reqHdr, SizeOf( reqHdr ), 0 );
+  Fillchar( reqHdr, SizeOf( reqHdr ), 0 );
   reqHdr[ 20 ] := 9; { Changed? cmd }
   CD_Req( drive, 3, 1, reqHdr );
   CD_IsChanged := ( reqHdr[ 21 ] = $FF );
@@ -405,7 +377,7 @@ var
 
 FUNCTION CD_IsPaused( drive: integer ): boolean;
 var
-   reqHdr: array[ 0..39 ] of byte;
+   reqHdr: TReqHdr;
    Err: byte;
  begin
   fillchar( reqHdr, SizeOf( reqHdr ), 0 );
@@ -417,7 +389,7 @@ var
 
 FUNCTION CD_IsDiskPresent( drive: integer ): boolean;
 var
-   reqHdr: array[ 0..39 ] of byte;
+   reqHdr: TReqHdr;
    Err: byte;
    devpar: WORD;
  begin
@@ -433,7 +405,7 @@ var
 
 PROCEDURE CD_DiskInfo( drive: integer; var buf );
 var
-   reqHdr: array[ 0..39 ] of byte;
+   reqHdr: TReqHdr;
    Err: byte;
  begin
   fillchar( reqHdr, SizeOf( reqHdr ), 0 );
@@ -444,7 +416,7 @@ end;
 
 PROCEDURE CD_TrackInfo( drive, track: integer; var buf );
 var
-   reqHdr: array[ 0..39 ] of byte;
+   reqHdr: TReqHdr;
    Err: byte;
  begin
   fillchar( reqHdr, SizeOf( reqHdr ), 0 );
@@ -457,7 +429,7 @@ end;
 
 PROCEDURE CD_Status( drive: integer; var  buf: _Qchannel );
 var
- reqHdr: array[ 0..39 ] of byte;
+ reqHdr: TReqHdr;
  Err: byte;
 begin
  fillchar( reqHdr, SizeOf( reqHdr ), 0 );
@@ -475,7 +447,7 @@ end;
 (*
 PROCEDURE CD_UpcCode( drive: integer; var  buf: array of byte );
 var
-   reqHdr: array[ 0..39 ] of byte;
+   reqHdr: TReqHde;
    UP: _UpcCode;
        Err: byte;
 begin
@@ -490,11 +462,15 @@ end;
 
 *)
 
-FUNCTION CD_Stop( drv: integer; var reqHdr: array of byte ): word;
+FUNCTION CD_Stop( drv: integer; var reqHdr: TReqHdr ): word;
 var
    statBuf: array[ 0..19 ] of byte;
    C: word;
    CC: array[ 1..2 ] of byte absolute C;
+{$IFDEF DPMI}
+    R: DpmiRegisters;
+    B: Pointer;
+{$ENDIF}
 begin
   fillchar( reqHdr, SizeOf( reqHdr ), 10 );
 
@@ -502,125 +478,46 @@ begin
   reqHdr[ 2 ]:=133;
   reqHdr[ 0 ]:=$5;
 
- asm
-  les bx, reqHdr
-  mov cx, drv
-  mov ax, $1510
-  clc
-  int $2f
- end;
+{$IFNDEF DPMI}
+  asm
+    les bx, reqHdr
+    mov cx, drv
+    mov ax, $1510
+    int $2f
+  end;
+{$ELSE}
+  FillWord(R, SizeOf(R) shr 1, 0);
+  B := GetDosMem(SizeOf(reqHdr), R.ES);
+  Move(reqHdr, B^, SizeOf(reqHdr));
+  R.BX := 0;
+  R.CX := Drv;
+  R.AX := $1510;
+  SimulateRealModeInt($2F, R);
+  Move(B^, reqHdr, SizeOf(reqHdr));
+  FreeDosMem(B);
+{$ENDIF}
 
  Move( reqHdr[ 3 ], CC, 2 );
 
  CD_Stop := C;
- (*
-if ( reqHdr[ 4 ] and $80 ) > 0 { Error! } then
- begin
-  if ( reqHdr[ 3 ] = 2 ) or ( reqHdr[ 3 ] = 12 ) then
-  begin
-   Writeln( 'Error: no disk in drive' );
-   exit;
-  end else
-   Writeln( 'Error ', reqHdr[ 3 ], ' cmd ', reqHdr[ 20 ] );
-  end;
- *)
-
 end;
 
-(*
-
-
-FUNCTION CD_PlayTracks( drv , fromTrack, toTrack: integer ): boolean;
-
-var
-   reqHdr: array[ 0..39 ] of byte;
-
-   SAddr ,
-   TAddr: _TrackInfo;
-
-   DM, DS, DF: integer;
-   TL: longint;
-
- begin
-  fillchar( reqHdr, SizeOf( reqHdr ), 0 );
-  CD_PlayTracks := false;
-
- if ( fromTrack > toTrack ) or
-    ( fromTrack < diskInfo.firstTrack ) or
-    ( toTrack > diskInfo.lastTrack ) then
- begin
-  Writeln( 'Bad track #' ); exit;
- end;
-
- if ( til[ fromTrack ].stat and $40 > 0 ) then
- begin
-  Writeln( 'track ', fromTrack, ' is data' );
-  exit;
- end;
-
- if not ( CD_IsPaused( drv )) then
- begin
-  CD_Stop( drv ); { Always stop before playing! }
-  CD_Stop( drv ); { Always stop before playing! }
- end;
-
- reqHdr[ 1 ]  := 0;
- reqHdr[ 2 ]  := 132;
- reqHdr[ 0 ]  := $16;
- reqHdr[ $d ] := 1; { Red book address mode }
-
- SAddr := til[ fromTrack ];
- move( Saddr, reqHdr[ $E ], 4 );
-
- Taddr := til[ toTrack+1 ];
-
- DM :=  Taddr.CMin - SAddr.Cmin;
- DS :=  Taddr.CSec - SAddr.CSec;
- DF :=  Taddr.CFrame - SAddr.CFrame;
-
- if DF < 0 then begin  Dec( DS ); inc( DF, 75 ) end;
- if DS < 0 then begin  Dec( DM ); inc( DS, 60 ) end;
-
- TAddr.CMin   := DM;
- TAddr.Csec   := DS;
- TAddr.Cframe := DF;
-
- TL := Longint( Longint( DM ) * 4500 + Longint( DS ) * 75 + DF - 150 );
-
- move( TL, reqHdr[ $12 ] , 4 );
-
- writeln( 'track ', fromTrack, '-', toTrack, ' at ', Saddr.Cmin,
-     ':', Saddr.CSec, ' len ', DM, ':', DS );
-  asm
-  mov ax, ss
-  mov es, ax
-  lea bx, reqHdr
-  mov cx, drv
-  mov ax, $1510
-  int $2f
-  end;
-
- end;
-
-*)
 FUNCTION CD_Play( drv: integer; FromTrack, toTrack: _TrackInfo;
-                  var reqHdr: array of byte ): boolean;
+                  var reqHdr: TReqHdr ): boolean;
 
 var
-   {reqHdr: array[ 0..39 ] of byte;}
-
    DM, DS, DF: integer;
    TL: longint;
+{$IFDEF DPMI}
+    R: DpmiRegisters;
+    B: Pointer;
+{$ENDIF}
 
  begin
   fillchar( reqHdr, SizeOf( reqHdr ), $12 );
   CD_Play := false;
  if ( fromTrack.stat and $40 > 0 ) then Exit;
- if not ( CD_IsPaused( drv )) then
- begin
-  CD_Stop( drv, reqHdr ); { Always stop before playing! }
-  CD_Stop( drv, reqHdr ); { Always stop before playing! }
- end;
+ if not ( CD_IsPaused( drv )) then CD_Stop( drv, reqHdr ); { Always stop before playing! }
  reqHdr[ 1 ]  := 0;
  reqHdr[ 2 ]  := 132;
  reqHdr[ 0 ]  :=$16;
@@ -634,23 +531,45 @@ var
  TL := Longint( Longint( DM ) * 4500 + Longint( DS ) * 75 + DF - 150 );
  move( TL, reqHdr[ $12 ] , 4 );
 
+{$IFNDEF DPMI}
   asm
-  les bx, reqHdr
-  mov cx, drv
-  mov ax, $1510
-  int $2f
+    les bx, reqHdr
+    mov cx, drv
+    mov ax, $1510
+    int $2f
   end;
+{$ELSE}
+  FillWord(R, SizeOf(R) shr 1, 0);
+  B := GetDosMem(SizeOf(reqHdr), R.ES);
+  Move(reqHdr, B^, SizeOf(reqHdr));
+  R.BX := 0;
+  R.CX := Drv;
+  R.AX := $1510;
+  SimulateRealModeInt($2F, R);
+  Move(B^, reqHdr, SizeOf(reqHdr));
+  FreeDosMem(B);
+{$ENDIF}
 
  end;
 
 
 
 
-FUNCTION CD_GetDriverVersion:integer;assembler;
+FUNCTION CD_GetDriverVersion:integer;
+{$IFNDEF DPMI}
+ assembler;
  asm
   mov ax, $150C
   int $2f
   mov ax, bx
+{$ELSE}
+ var R: DpmiRegisters;
+ begin
+  FillWord(R, SizeOf(R) shr 1, 0);
+  R.AX:=$150C;
+  SimulateRealModeInt($2F, R);
+  CD_GetDriverVersion:=R.BX;
+{$ENDIF}
  end;
 
 
@@ -674,65 +593,6 @@ PROCEDURE  TimeAdd( var M1, S1: integer; M2, S2: byte );
      end;
 
 
-(*
-PROCEDURE CD_ShowInf( drive: integer );
-
-var i, m, s, mb, ml, sb, sl: integer;
-    statBuf: _Qchannel;
-    dig: array[ 1..7 ] of byte;
-begin
-
- I := CD_GetDriverVersion;
-
- Writeln( ^M^J'Drier version is ', hi( I ), '.', lo( I ));
-
- Writeln( 'Tracks ', diskInfo.firstTrack, ' to ', diskInfo.lastTrack );
- Writeln( 'track: start   len' );
-
-  for i := diskInfo.firstTrack to diskInfo.lastTrack do
-
- begin
-
-  M  := til[ i ].cmin;
-  S  := til[ i ].csec;
-
-  Mb := til[ i+1 ].cmin;
-  Sb := til[ i+1 ].csec;
-
-  ml:=mb-m;
-  sl:=sb-s;
-
-  if ( sl < 0 ) then begin inc( sl, 60 ); dec( ml ); end;
-     Writeln( i:3, ': ', m:2, ':', s:2, '   ', ml:2, ':', sl:2 );
- end;
-
- CD_Status( drive, statBuf );
-
- Writeln( 'status =', statBuf.Stat );
-
- if ( CD_IsPaused( cdDrive )) then
-  write( ^M^J^M^J'CD Paused at' )
- else
-  write( ^M^J^M^J'Now playing' );
-  Writeln( ' track ', statBuf.TNO, ' at ', statBuf.Rmin, ':', statBuf.Rsec );
-
-
-  CD_UpcCode( drive, Dig );
-
-  Write( 'Universal Product Code is :' );
-  for I := 0 to 12 do
-   begin
-     m := Dig[ 1+ ( i shr 1 ) ];
-     if i and 1 = 0 then m := m shr 4;
-     m := m and $f;
-     Write( m );
-   end;
-  Writeln;
-
-end;
-
- *)
-
 PROCEDURE GetDigit( Dig: byte; var S: string );
 begin
   case Dig of
@@ -748,23 +608,12 @@ begin
        9: S := 'ÜÜÜÛÜÛÜÜÛ';
 {n}  $6E: S := '   ÜÜÜÛ Û';
 {o}  $6F: S := '   ÜÜÜÛÜÛ';
-{C} { $43: S := 'ÜÜÜÛ  ÛÜÜ';}
-{D} { $44: S := 'ÜÜ Û ÛÛÜß';}
 {C}  $43: S := '   ÜÜÜÛÜÜ';
 {D}  $44: S := '   ÜÜ ÛÜÛ';
 
      else S := '         ';
   end;
 end;
-
-  {
-       ÜÜÜ ÜÜÜ ÜÜÜ ÜÜÜ ÜÜÜ Ü Ü   ÜÜÜ
-       ÛÜÛ ÛÜÛ   Û ÛÜÜ ÛÜÜ ÛÜÛ ß ÜÜÛ
-       ÛÜÛ ÜÜÛ   Û ÛÜÛ ÜÜÛ   Û ß ÜÜÛ
-       ÜÜÜ ÜÜÜ   ÜÜÜ ÜÜ
-       Û Û ÛÜÛ   ÛÜÜ ÛÜÛ
-  }
-
 
   Constructor TCounter.Init;
   var I: byte;
@@ -804,8 +653,7 @@ PROCEDURE InsertText( From: byte );
             GetDigit( A mod 10, S ); InsertText( 14 );
             GetDigit( B div 10, S ); InsertText( 20 );
             GetDigit( B mod 10, S ); InsertText( 24 );
-            Line[ 2, 9+9 ] := 'ß';
-            Line[ 3, 9+9 ] := 'ß';
+            Line[ 2, 9+9 ] := #254;
            end;
          end
         else
@@ -890,6 +738,7 @@ begin
   S.Write( Order, SizeOf( Order ));
   S.Write( LastShuffle, SizeOf( LastShuffle ));
   S.Write( CDParams, SizeOf( CDParams));
+  S.Write( CdDisk, SizeOf(CdDisk) );
 
   {!!SF}
   S.Write( DiskId , SizeOF(DiskId) ) ;
@@ -911,6 +760,7 @@ begin
   S.Read( Order, SizeOf( Order ));
   S.Read( LastShuffle, SizeOf( LastShuffle ));
   S.Read( CDParams, SizeOf( CDParams ));
+  S.Read( CdDisk, SizeOf(CdDisk) );
 
   {!!SF}
   S.Read( DiskId , SizeOF(DiskId) ) ;
@@ -923,7 +773,6 @@ begin
   RegisterToBackGround( @Self );
   CD_Player := @Self;
   {Coder := GlobalMessage( evCommand, cmXdata+1, nil );}
-  CD_GetFirstDrive( CdDisk );
   LoadDiskInfo;
   Update;
   Redraw;
@@ -1067,7 +916,7 @@ end;
 
 DESTRUCTOR TcdPlayer.Done;
 begin
-  ConfigModified := (LongInt(Origin) <> LongInt(CDSize)) or (LongInt(CDSize) <> LongInt(Size));
+  ConfigModified := not (Origin.Equals(CDSize)) or not (CDSize.Equals(Size));
   CDplace := Origin;
   CDsize  := Size;
   CD_Player := Nil;
@@ -1085,9 +934,9 @@ end;
        New(C,Init(10,10));
         for I := LowTrack to HighTrack do
          C^.Insert(NewStr(
-                 SStr( I- LowTrack +1 ,2,' ' ) + ' ³ ' +
+                 SStr( I- LowTrack +1 ,2,' ' ) + ' '#179' ' +
                + SStr( Tlen[I].Lmin,2,' ' ) + ':' +
-               + SStr( Tlen[I].Lsec,2,'0' ) + ' ³ ' +
+               + SStr( Tlen[I].Lsec,2,'0' ) + ' '#179' ' +
                CnvString(Descr^.At(I))
          ));
       MakeTrackList := C ;
@@ -1532,7 +1381,7 @@ end;
                end;
            end;
       end;
-     Dispose(F, Done);
+     Dispose(F,Done);
 
     if CnvString(DiskTitle)<>'' then
      begin
@@ -1570,7 +1419,7 @@ Function TcdPlayer.GetOrder ;
                    AddStr(NewOrder,char((TR-1)+LowTrack));
                end;
       end;
-     Dispose(F, Done);
+     Dispose(F,Done);
 
   if NewOrder<>'' then
      begin
@@ -1586,11 +1435,7 @@ PROCEDURE TcdPlayer.LoadDiskInfo;
 var DD: _DiskInfo;
   I: byte;
   DS, DM: integer;
-  DR: integer;
-
-
 begin
-  {CD_GetFirstDrive( DR );}
   if CD_ISdiskPresent( CDdisk ) then begin
     CD_DiskInfo( CDdisk, DD );
     with DD do begin
@@ -1598,7 +1443,7 @@ begin
       HighTrack := LastTrack;
 
       for I := FirstTrack to LastTrack do
-        CD_TrackInfo( cdDisk, i, Tracks[ i ] ); { read tracks info }
+        CD_TrackInfo( CDdisk, i, Tracks[ i ] ); { read tracks info }
       Tracks[ LastTrack+1 ].addr := LeadStart;
       DiskMin := Tracks[ LastTrack+1 ].CMin;
       DiskSec := Tracks[ LastTrack+1 ].CSec;
@@ -1686,21 +1531,6 @@ PROCEDURE TcdPlayer._Stop;
 begin
   Display( 0, $CC, $CC );
   CD_Stop( CDDISK, reqHdr );
-  {
-  fillchar( reqHdr, SizeOf( reqHdr ), 0 );
-  reqHdr[ 1 ]:=0;
-  reqHdr[ 2 ]:=133;
-  reqHdr[ 0 ]:=$5;
-  asm
-    les bx, SELF
-    mov bx, offset es:reqHdr
-    mov cx, es: CDdisk
-    mov ax, $1510
-    clc
-    int $2f
-  end;
-  Move( reqHdr[ 3 ], Err, 2 );
-  }
   Status := Stopped;
 end;
 
@@ -2127,6 +1957,7 @@ begin
       #27: begin
           Event.What := evCommand; Event.Command := cmClose; Event.InfoPtr := nil;
           inherited HandleEvent( Event );
+          Exit;
         end;
       'P': _Play;
       'S': _Stop;
@@ -2177,6 +2008,11 @@ var
   CD: integer;
   DRV: String[ 20 ];
   PP: Pointer;
+  C: Char;
+  Items: PMenuItem;
+  Menu: PMenu;
+  P: PMenuBox;
+  N: Word;
 begin
   if CD_Player <> nil then begin
     CD_Player^.Select;
@@ -2184,13 +2020,42 @@ begin
   end;
 
   CD := -1;
-  if CD_GetFirstDrive( CD ) = 0 then begin
-    DRV := 'MSCDEX.EXE';
-    if ( Lo( DosVersion )>=20 ) and ( Hi( DosVersion )>=10 )
-      then DRV := 'VCDROM.SYS';
-    PP := @DRV;
-    Msg(dlNoCD, @PP, mfError or mfOkButton );
-    Exit;
+  case CD_GetFirstDrive( CD ) of
+   0: begin
+       DRV := 'MSCDEX.EXE';
+       if ( Lo( DosVersion )>=20 ) and ( Hi( DosVersion )>=10 )
+        then DRV := 'VCDROM.SYS';
+       PP := @DRV;
+       Msg(dlNoCD, @PP, mfError or mfOkButton );
+       Exit;
+      end;
+   1:
+   else begin
+         Items:=nil;
+         cd:=0;
+         For C:='Z' downto 'A' do
+          if IsDriveCDROM(C) then begin
+           FreeStr:='~'+C+'~:';
+           Items := NewItem(FreeStr, '', kbNoKey, cmSelectMenuCommands + Ord(C) - Ord('A'),
+            hcNoContext, Items);
+           inc(cd);
+          end;
+         R.Assign(Application^.Size.X div 2 - 1,
+                  Application^.Size.Y div 2 - CD div 2,
+                  Application^.Size.X div 2 + 1,
+                  Application^.Size.Y div 2 + CD div 2 + CD mod 2);
+         Menu := NewMenu(Items);
+         P := New(PMenuBox, Init(R, Menu, nil));
+         P^.Options := P^.Options or ofCentered;
+         P^.HelpCtx := hcNoContext;
+
+         N := Application^.ExecView(P);
+         Dispose(P,Done);
+         DisposeMenu(Menu);
+         if N >= cmSelectMenuCommands
+          then CD:=N - cmSelectMenuCommands
+          else exit;
+        end;
   end;
 
   Desktop^.GetExtent( R1 );
