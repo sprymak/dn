@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -377,8 +380,9 @@ begin
 end;
 
 procedure TBlocker.PlaceDeleted;
-  var P: PMemBlock;
+  var
       I: LongInt;
+      P: PMemBlock;
 begin
   if B.Pos < 0 then Exit;
   if Deleted = nil then
@@ -452,9 +456,7 @@ end;
 
 procedure TBlocker.WriteBlock;
   label {$IFNDEF NOEXTRA}0, 1, 2, {$ENDIF}3, 4;
-  var I: LongInt;
-      BB: Boolean;
-      L: LongInt;
+  var L: LongInt;
 begin
   if (B.Pos < 0) or (B.Len < Length(S)) then
     begin
@@ -581,7 +583,7 @@ begin
 end;
 
 procedure TBlocker.AtPut(N: LongInt; P: PString);
-  var K, I, K1, K2, KK: LongInt;
+  var K, KK: LongInt;
 begin
   if CacheSize > 0 then FlushCache(True);
   K := N div MaxBlockSize;
@@ -634,7 +636,7 @@ begin
 end;
 
 procedure TBlocker.FlushCache;
-  var K, I, K1, K2, KK: LongInt;
+  var K, I, KK: LongInt;
 begin
   K := CachePos div MaxBlockSize;
   KK := CachePos mod MaxBlockSize;
@@ -649,8 +651,9 @@ begin
 end;
 
 procedure TBlocker.SwapItems;
-  var B1, B2: TMemBlock;
+  var
       K,KK,A,AA: LongInt;
+      B1, B2: TMemBlock;
 begin
   if CacheSize > 0 then FlushCache(True);
   K := Idx1 div MaxBlockSize;

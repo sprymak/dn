@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -297,9 +300,9 @@ end;
 procedure TLinker.Draw;
 var
   C: Word;
-  B: TDrawBuffer;
   R: TRect;
   si: TCL_StatusInfo;
+  B: TDrawBuffer;
 
 procedure Wrt(Y: Byte; const S: string);
 begin
@@ -536,9 +539,7 @@ begin
 end;
 }
 type
-  PCL_DirCollection =
-  {$IFDEF DN}       PFilesCollection  {$ENDIF}
-  {$IFDEF NLCLIENT} PStringCollection {$ENDIF};
+  PCL_DirCollection = PFilesCollection  ;
 
         {-DataCompBoy-}
 function GetRemoteDirCycle(DP: PByteArray; BlkLen: Word
@@ -546,14 +547,14 @@ function GetRemoteDirCycle(DP: PByteArray; BlkLen: Word
       TotalInfo, FreeSpace: PString
  ): PCL_DirCollection;
 var
-  nm,xt: string;
-  lfn: string;
   I: LongInt;
-  D: TCL_DirEntry;
-  C: PCL_DirCollection;
+  ll: integer;
   TFiles: Word;
   Fs, Ts, TotalLen: TSize;
-  ll: integer;
+  D: TCL_DirEntry;
+  C: PCL_DirCollection;
+  nm,xt: string;
+  lfn: string;
 begin
   TFiles := 0;
   TotalLen := 0;
@@ -670,14 +671,14 @@ end;
 
 function ReceiveFile(const RemoteName, LocalName: string): Boolean;
 var
+  Left: LongInt;
+  BS: Word;
+  BP: Pointer;
   StartRece, UpdateGauge: TEventTimer;
   Sent: Boolean;
   P: PCL_InDat;
   Nfo: TCL_FileNfo;
-  Left: LongInt;
   F: lFile;
-  BS: Word;
-  BP: Pointer;
 
 procedure CDI;
 var
@@ -785,13 +786,13 @@ end;
         {-DataCompBoy-}
      function SendFile(FName, DestFName: string; ABuf: Pointer): Boolean;
 var
+  BS: Word;
+  BP: Pointer;
+  L, Left: LongInt;
   StartSend, UpdateGauge: TEventTimer;
   P: PCL_InDat;
   Nfo: TCL_FileNfo;
-  L, Left: LongInt;
   F: lFile;
-  BS: Word;
-  BP: Pointer;
 
 function StartSending: Boolean;
 var
@@ -957,9 +958,9 @@ procedure CreateDirRequest(
    APanelFlags, ASortMode: Integer);
 
 var
-  S: string;
-  R: TCL_DirReq;
   sl1, fl1: Byte;
+  R: TCL_DirReq;
+  S: string;
 
 procedure Mve(const Buf; Size: Word);
 begin Move(Buf, PByteArray(P)^[Ofst], Size); Inc(Ofst, Size) end;
@@ -981,8 +982,6 @@ function TLinkDrive.GetDirectory;
 var
   Ofst: Word;
   P: Pointer;
-
-var
   PC: PFilesCollection;
 begin
   FreeSpace := ''; TotalInfo := '';
@@ -1209,7 +1208,6 @@ begin S := '' end;
 
 procedure UnpackCL_DirNfo(A: PCL_DirNfo; var B: TDiskInfoRec; const ACurDir: string);
 var
-  S1, S2: string;
   DirLn: LongInt;
   NumFls: Integer;
   dTotal : TSize;
@@ -1217,6 +1215,7 @@ var
   dLen   : TSize;
   Drv    : Byte;
   vol    : string[11];
+  S1, S2: string;
 begin
   Drv := Byte(ACurDir[1])-64;
 
@@ -1309,10 +1308,10 @@ end;
 
 function TransferDir(Dest: PString; const APath, AName: String): Boolean;
 var
+  ReqS: Word;
   P: PFilesCollection;
   ReqP: Pointer;
   ReqMask: PString absolute ReqP;
-  ReqS: Word;
 begin
 
   case PLinker(Linker)^.LinkMode of

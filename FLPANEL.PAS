@@ -87,6 +87,12 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn40900-DescriptionInBottom_fix.patch
+//  dn40900-temp_drive_in_directories_history.patch
+//  dn40900-arc_and_temp_to_directories_history_after_tab_fix.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -266,7 +272,6 @@ end;
 
 procedure TDriveLine.MakeDriveLine;
  var C: Char;
-     I: Byte;
 begin
   DriveLine := '';
   for C := 'A' to 'Z' do
@@ -281,9 +286,10 @@ begin
 end;
 
 procedure TDriveLine.Draw;
-  var B: TDrawBuffer;
-      M: Byte absolute DriveLine;
+  var
       I: Integer;
+      M: Byte absolute DriveLine;
+      B: TDrawBuffer;
 begin
   I := M*2+3;
   if (Panel^.Size.X >= I) then
@@ -465,9 +471,8 @@ begin
 end;
 
 var Idx, CurPos, I, J: LongInt;
-    C, C1, C2, C3, C4, C5, C6, C7: Byte;
+    C, C1, C2, C3, C4, C5: Byte;
     B: Array[0..300] of AWord;
-    B1: Array[0..200] of record C: Char; A: Byte; end absolute B;
 
 procedure TFilePanel.GetFull;
 begin
@@ -475,9 +480,10 @@ begin
 end;
 
 procedure TFilePanel.DrawTop;
- var S: String;
+ var
      I,J: Integer;
      C: Word;
+     S: String;
 begin
  Drive^.MakeTop(S);
  I := 0; C := GetColor($0206);
@@ -529,6 +535,8 @@ procedure TFilePanel.SetState;
 
 var
   DoDraw: Boolean;
+  DriveType: TSetDriveTypes;
+  S: string;
 
 begin
   inherited SetState(AState, Enable);
@@ -548,6 +556,7 @@ begin
            ScrollBar^.Hide;
       DoDraw := True;
     end else EnableCommands(PanelCommands); ;
+  DriveType:=Drive^.DriveType;
   if (AState and sfFocused and State <> 0) then
     if Enable then begin
       DoDraw := True;
@@ -557,13 +566,13 @@ begin
       end;
       if InfoView <> nil then InfoView^.DrawView;
       if DirView <> nil then DirView^.DrawView;
-      if (Drive^.DriveType = dtDisk) then begin
-        AddToDirectoryHistory(DirectoryName,integer(dtDisk));
-        if UpStrg(CurrentDirectory) <> UpStrg(DirectoryName)
-          then MakeChange;
-      end else
-      if Drive^.DriveType = dtArc
-        then Drive^.lChDir(#0);
+      s:=DirectoryName; {for dtDisk and dtTemp. Persistor, Mar 2005}
+      case DriveType of
+       dtDisk: if UpStrg(CurrentDirectory) <> UpStrg(DirectoryName)
+                 then MakeChange;
+       dtArc:  s:=PArcDrive(Drive)^.ArcName+':'+Drive^.CurDir;
+      end;
+      AddToDirectoryHistory(s,DriveType);
       ActivePanel := @Self;
       EnableCommands(PanelCommands);
     end;
@@ -577,11 +586,7 @@ begin
   end;
   if AState and (sfSelected+sfActive) <> 0 then
     if GetState(sfSelected+sfActive) then begin
-      if (Drive^.DriveType = dtDisk)
-        then MakeChange
-        else
-      if Drive^.DriveType = dtArc
-        then Drive^.lChDir(#0);
+      if DriveType = dtDisk then MakeChange;
       DoDraw := True;
       EnableCommands(PanelCommands)
     end else begin
@@ -614,19 +619,21 @@ end;
         {-DataCompBoy-}
 procedure TFilePanel.Draw;
  label 1;
- var P: PFileRec;
+ var
      CW: AWord;
      CS: AWord;
      PgS: AWord;
-     S, S1: String;
-     HLC: Array[0..ttUpDir] of Byte; {JO, AK155}
+     P: PFileRec;
      PB: ^Byte;
      TagC: Char;
+     HLC: Array[0..ttUpDir] of Byte; {JO, AK155}
+     S, S1: String;
 
  procedure DrawAtIdx;
-  var P: PFileRec;
-      CC: Byte;
+  var
       JJ: LongInt;
+      CC: Byte;
+      P: PFileRec;
  begin
    JJ := J*LineLength;
    if (Files <> nil) and (Idx < Files^.Count) then
@@ -812,12 +819,13 @@ begin
 end;
 
 procedure TInfoView.HandleEvent;
- var P: TPoint;
+ var
      Y: Integer;
+     P: TPoint;
      Mover: PView;
-     S: String;
      FC: PFilesCollection;
      C: TCopyRec;
+     S: String;
 
  procedure CE; begin ClearEvent(Event) end;
 
@@ -932,16 +940,16 @@ end;
 
         {-DataCompBoy-}
 procedure TInfoView.Draw;
- var B: TDrawBuffer;
-     B1: Array[0..127] of record C: Char; A: Byte; end absolute B;
+ var
      I: LongInt;
      J, L, Y, C1, C2, C3: Word;
      PF, PPF: PFileRec;
-     S, S1, S2, S3: String;
 {--- start -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
      SelectedInDivider, SelectedInBottom,LFNInDivider,LFNInBottom,
      ShowFree, DescriptionInBottom: boolean;
 {--- finish -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+     B: TDrawBuffer;
+     S, S1, S2, S3: String;
 
  { построение строки информации об отмеченных файлах }
  function SelString: string;
@@ -1256,11 +1264,9 @@ begin
           J := Size.X - J + Panel^.DeltaX - 1;
           system.delete(S2, 1,  J);
           end;
-        if length(S2) + L > Size.X then
-          begin
-          S2[0] := Char(Size.X - L);
-          S2[Size.X - L] := FMSetup.RestChar[1];
-          end;
+        j:=Size.X - L;
+        if length(S2) > j then S2[j] := FMSetup.RestChar[1];
+        delete(s2,j+1,255);
         if S2 <> '' then
           begin
           I := 0; { свободное место с описанием не центрируем }
@@ -1313,11 +1319,12 @@ begin
 end;
 
 procedure TTopView.Draw;
- var C: Word;
-     B: TDrawBuffer;
+ var
+     C: Word;
      I: LongInt;
-     S: String;
      R: TRect;
+     B: TDrawBuffer;
+     S: String;
 begin
  C := GetColor(1); if not Panel^.GetState(sfSelected) then C := GetColor(2);
  MoveChar(B, ' ', C, Size.X);
@@ -1348,9 +1355,10 @@ begin
 end;
 
 procedure TTopView.HandleEvent;
- var S: String;
+ var
      I: LongInt;
      P: TPoint;
+     S: String;
 begin
  inherited HandleEvent(Event);
  case Event.What of
@@ -1390,9 +1398,10 @@ begin
 end;
 
 procedure TSeparator.HandleEvent;
- var P: TPoint;
-     R: TRect;
+ var
      RD: Integer;
+     P: TPoint;
+     R: TRect;
      B: Byte;
 begin
  inherited HandleEvent(Event);
@@ -1418,9 +1427,10 @@ begin
 end;
 
 procedure TSeparator.Draw;
- var B: Array[0..128] of record C: Char; B: Byte; end;
+ var
      C: Word;
      Ch: Char;
+     B: Array[0..128] of record C: Char; B: Byte; end;
 begin
  RK:=Owner^.GetColor(2);
  if Owner^.GetState(sfActive) then C := RK
@@ -1443,21 +1453,17 @@ end;
         {-DataCompBoy-}
 PROCEDURE TFilePanel.HandleEvent;
 var
+  CurPos, I: LongInt;
   PF: PFileRec;
-  CurPos: LongInt;
-  PPC: PCollection;
-  MPos: TPoint;
-  LastRDelay: Word;
-  I, J: LongInt;
-  PDr: PDrive;
 
  procedure CE;begin ClearEvent(Event) end;
  procedure CED;begin ClearEvent(Event); DrawView end;
 
  procedure CM_CopyUnselect;
   label 1;
-  var PF: PFileRec;
+  var
       I, OSM: LongInt;
+      PF: PFileRec;
  begin
   if (Files^.Count = 0) or (Event.InfoPtr = nil) then Exit;
   OSM := PFilesCollection(Files)^.SortMode;

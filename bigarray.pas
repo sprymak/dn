@@ -89,8 +89,6 @@ type
     procedure SplitAt(Index: Word);
   end;
 
-  const MaxArrayBytes = 65520;
-
 type
 
 { TBigArray object }
@@ -145,6 +143,8 @@ const
 implementation
 Uses Drivers2,
   {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
+
+  const MaxArrayBytes = 65520;
 
 constructor TArray.Init(AMaxCount, AItemSize: Word);
 var

@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -285,8 +288,9 @@ begin
 end;
 
 procedure TReanimateTreeInfoView.Draw;
- var B: TDrawBuffer;
+ var
      C: Byte;
+     B: TDrawBuffer;
 begin
  C := GetColor(1);
  MoveChar(B, ' ', C, Size.X);
@@ -332,8 +336,9 @@ end;
 
 
 procedure TReanimator.HandleEvent;
- var P: PReaData;
+ var
      I, OldClu: Word;
+     P: PReaData;
 
  function GetCol: PWordCollection;
   var ClC: PWordCollection;
@@ -352,18 +357,19 @@ procedure TReanimator.HandleEvent;
  end;
 
  procedure ReanimateFile;
-  var W: PWindow;
-      PV: PView;
-      R: TRect;
-      C: Char;
-      S,S2: String;
-      S1: String[12];
-      Dir: ^DirPtr;
-      Cl: PWordCollection;
+  var
       I: Word;
       OldPos: Word;
-      PP: Array[1..2] of Pointer;
+      W: PWindow;
+      PV: PView;
       SaveCurrent: PView;
+      R: TRect;
+      C: Char;
+      Dir: ^DirPtr;
+      Cl: PWordCollection;
+      PP: Array[1..2] of Pointer;
+      S1: String[12];
+      S,S2: String;
  begin
   OldPos := Focused;
   R.Assign(1,1,40,14);
@@ -446,13 +452,12 @@ procedure TReanimator.HandleEvent;
 
  procedure ViewFile;
   var
+      Sz: LongInt;
       D: PDialog;
       R: TRect;
       PV: PView;
-      MemoStream: PStream;
-      Xt: String;
       Cl: PWordCollection;
-      Sz: LongInt;
+      MemoStream: PStream;
  begin
   if P^.Attr and Directory = 0 then Sz := P^.Size
                                else Sz := Drv^.ClusterSize(2);
@@ -581,14 +586,15 @@ begin
 end;
 
 procedure TReanimator.GetDirData;
- var P: PReaData;
+ var
      Cl, I, J: Word;
-     Dir: ^DirPtr;
      DirSize: Word;
+     P: PReaData;
+     Dir: ^DirPtr;
      DirEnd: Boolean;
      PC: PCollection;
-     S: String;
      Msg: PView;
+     S: String;
 
  procedure NewEntry(State: Byte);
   var T: DateTime;
@@ -742,8 +748,8 @@ procedure OpenReanimator;
  var D: PDialog;
      P: PView;
      R: TRect;
-     S: String;
      B: Byte;
+     S: String;
 
 begin
  R.Assign(1,1,70,21);

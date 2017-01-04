@@ -52,6 +52,9 @@
 //  dn3323-dnerror_cant_read_dn_err.patch
 //
 //  3.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {.$I STDEFINE.INC}
@@ -75,8 +78,9 @@ implementation
 uses Search, Objects; {Warning! You have to use original objects.pas}
 
 function FromHex(S: string): longint;
-var b: byte;
+var
     l: longint;
+    b: byte;
 begin
  l:=0;
  for b:=1 to length(s) do
@@ -110,19 +114,18 @@ Type TSR = Record
            End;
 
 var
+    np, NumEl: longint;
+    SS, SO: Word;
+    sr: TSR;
+    c: char;
     MapDt: TBufStream;
     Mpp: TBufStream;
-    HasMap: Boolean;
     s: string;
-    sr: TSR;
-    SS, SO: Word;
-    c: char;
-    np: longint;
-    NumEl: longint;
 
 Function Compare(a: longint): longint;
-var fr: TSR;
+var
     Offset: Longint;
+    fr: TSR;
 begin
  Offset := a;
  Offset := a*SizeOf(TSR);

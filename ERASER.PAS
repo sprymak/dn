@@ -64,6 +64,10 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn40900-erase_locked_file_dialog.patch
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -86,9 +90,9 @@ uses Dos, LFN{DataCompBoy}, FilesCol, Commands, advance, advance1, advance2,
         {-DataCompBoy-}
 function ValidErase;
 var
+  I: Integer;
   PF: PFileRec;
   S: string;
-  I: Integer;
 begin
   ValidErase := False;
   if Files = nil then Exit;
@@ -114,24 +118,25 @@ end;
 
         {-DataCompBoy-}
 procedure EraseFiles;
-  var PInfo: PWhileView;
+  var
+      I, J: Integer;
+      PInfo: PWhileView;
       R: TRect;
       EraseCancel: Boolean;
-      Tmr: TEventTimer;
-      I, J: Integer;
-      S, Dr : string;
-      ch: char;
-      F: lFile;
+      DeleteAllFiles: Boolean;
       DOSMode, DirEnd, DirModified: Boolean;
+      ch: char;
+      Tmr: TEventTimer;
       PF: PFileRec;
       {$IFDEF DiskEdit}
       Drv: PDiskDriver;
       DirCluster, DirSize: Word;
       Dir: ^DirPtr;
       {$ENDIF}
-      DeleteAllFiles: Boolean;
       RereadCollection: PStringCollection; {Cat}
       PS: PString; {Cat}
+      F: lFile;
+      S, Dr : string;
 
   procedure InfoWrite(N: Integer; const S: Str40);
   begin
@@ -256,7 +261,7 @@ procedure EraseFiles;
        w      : String;
 
   procedure DirDel(cl : Word);
-   var DirCl,fcl,tcl,i : Word;
+   var DirCl,fcl,i : Word;
        DirEnd          : Boolean;
    label     1;
 
@@ -298,9 +303,10 @@ procedure EraseFiles;
    {$ENDIF}
 
   function DeleteDirectory(Dir: String; Cluster: Word): Boolean;
-   var S: String;
+   var
        dr: Word; j123qwe:boolean;
        SR: lSearchRec;
+       S: String;
   begin
     DeleteDirectory := False;
     Dir:=lFExpand(Dir);
@@ -361,11 +367,12 @@ procedure EraseFiles;
   end;
 
   var Fls: PCollection;
-      Flush: Boolean;
+      Flush, SkipAll: Boolean;
+      D: PDialog;
 
 begin
   if not ValidErase(Files) then Exit;
-  DeleteAllFiles := False; Abort := False; ClrIO;
+  DeleteAllFiles := False; Abort := False; SkipAll := False; ClrIO;
 
   R.Assign(1,1,26,9);
   New(PInfo, Init(R));
@@ -472,7 +479,20 @@ begin
                    InfoWrite(1,GetString(dlDeletingDIZ));
                    DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name), GetLFN(PF^.LFN));
                  end;
-               end else MessageBox(GetString(dlErasingNoFile)+S, nil, mfError+mfOKButton);
+               end else { Persistor, Nov 2004 }
+                        if not SkipAll then begin
+                         D := PDialog(LoadResource(dlgSkipBadFile));
+                         D^.Options := D^.Options or ofCentered;
+                         R.A.X := 1; R.A.Y := 2; R.B.X := 53; R.B.Y := 3;
+                         D^.Insert(New(PStaticText, Init(R,GetString(dlErasingNoFile))));
+                         inc(R.A.Y); inc(R.B.Y);
+                         D^.Insert(New(PStaticText, Init(R,^C+S)));
+                         Case Desktop^.ExecView(D) Of
+                          cmOK:     dec(I);
+                          cmYes:    SkipAll:=true;
+                          cmCancel: break;
+                         End;
+                        end;
          end;
         end else begin
                        InfoWrite(1,GetString(dlErasingDir));
@@ -590,13 +610,14 @@ end;
 
 procedure SetVLabel;
 {$IFDEF DiskEdit}
- var Drv: PDiskDriver;
-     S, S1: String;
+ var
+     W,I: Word;
+     Drv: PDiskDriver;
      SR: SearchRec;
      D: PDialog;
      P: PView;
      R: TRect;
-     W,I: Word;
+     S, S1: String;
      L: Byte Absolute S;
 begin
   Abort := False; DOSError := 0; ClrIO;

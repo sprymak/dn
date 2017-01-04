@@ -70,6 +70,9 @@
 //  dn40328-7Zip.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -310,22 +313,24 @@ begin
 end;
 
 Function LIMDetect: Boolean;
+{4C 4D 1A 08 00 -- -- -- -- -- -- -- -- 23 F1}
+{check for these bytes at start of archive for detection}
 var
-    M: Array[1..8] of Char;
+ ID: LongInt;
+ W: Word;
 begin
- LIMDetect:=False;
- ArcFile^.Read(M, 8);
- if (ArcFile^.Status = stOK) and (Copy(M,1,5) = 'LM'#26#8#0)
-   then begin
-     ArcFile^.Read(M, 7);
-     if (M[6] = #35) and (M[7] = #241) then
-       begin
-         LIMDetect := True;
-         ArcPos:=ArcPos + 13;
-       end;
-     end;
+ LIMDetect := False;
+ ArcFile^.Read(ID, SizeOf(ID));
+ ArcFile^.Seek(ArcPos + 13);
+ ArcFile^.Read(W, SizeOf(W));
+ if (ArcFile^.Status = stOK) and (ID = $081A4D4C) and (W = $F123) then
+   begin
+     LIMDetect := True;
+     ArcPos:=ArcPos + 13;
+   end;
  ArcFile^.Seek(ArcPos);
 end;
+
 
 Function HPKDetect: Boolean;
 var
@@ -477,11 +482,13 @@ end;
 
 function SQZDetect: Boolean;
 var
-    S: Array[0..4] of Char;
+ ID: LongInt;
+ B : Byte;
 begin
- ArcFile^.Read(S, 5);
+ ArcFile^.Read(ID, SizeOf(ID));
+ ArcFile^.Read(B, SizeOf(B));
  SQZDetect := False;
- if (ArcFile^.Status = stOK) and (S = 'HLSQZ')
+ if (ArcFile^.Status = stOK) and (ID = $51534C48) and (B = $5a)
     then begin
           SQZDetect := True;
           ArcPos := ArcPos + 8;

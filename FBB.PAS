@@ -57,6 +57,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -88,10 +91,11 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
  {$ELSE}
  Const MaxBF=20;
  {$ENDIF}
- var Bf      : Array [1..MaxBF] of HRec;
+ var
      dr1,dr2 : Byte;
      FreeSpc : TSize;
      Timer: TEventTimer;
+     Bf      : Array [1..MaxBF] of HRec;
  const NBf   : Byte = 0;
 
  function MaxAvail: LongInt;
@@ -148,29 +152,30 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
         NewStdHdr : NHdr=(nm:'Navigator NLong Copy'#13#10#26;ln:0    ;xt:'');
         NStr : String[40]='123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-  var F1,F2 : lFile;
+  var
       Cs,Cd : LongInt;
       Ls    : LongInt;
-      Tuda  : Boolean;
-      i     : Byte;
+      LastPos: LongInt;
+      Olddate: LongInt;
+      PartSize: LongInt;
+      PartWrt:  LongInt;
       NumW  : Word;
-      Count : Byte;
       wx,wy : Integer;
-      wl    : Byte;
-      d,Fn2 : String;
-      n,x    : String;
-      nhd    : nHdr;
-      ohd    : oHdr absolute nhd;
-      PInfo : PWhileView;
+      Tuda  : Boolean;
       CopyCancelled: Boolean;
       BinarySplit: Boolean;
       NewMode  : Boolean;
       DiskVerify: Boolean;
-      LastPos: LongInt;
-      Olddate: LongInt;
+      i     : Byte;
+      Count : Byte;
+      wl    : Byte;
+      PInfo : PWhileView;
       AlarmTimer: TEventTimer;
-      PartSize: LongInt;
-      PartWrt:  LongInt;
+      nhd    : nHdr;
+      ohd    : oHdr absolute nhd;
+      F1,F2 : lFile;
+      d,Fn2 : String;
+      n,x    : String;
 
   procedure DsplInfo;
   begin
@@ -213,8 +218,9 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
   end;
 
   function OverWr : Boolean;
-   var SR : lSearchRec;
-       lF  : lFile;
+   var
+       lF: lFile;
+       SR: lSearchRec;
   begin
    FreeSpc:=GetDrInfo(d);
    DosError:=0; OverWr:=True; Abort := False;
@@ -244,11 +250,11 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
   end;
 
   procedure RequireNew;
-   label 1;
+   label l1;
   begin
    PartWrt := 0;
    Inc(Count);{DataCompBoy DskOn;}
-1: repeat
+l1:repeat
     if Count>1 then
     begin
      SetFTime(F2.F, OldDate);
@@ -292,14 +298,15 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
         Abort:=True;
         Exit;
        end;
-     GoTo 1;
+     GoTo l1;
     end;
   end;
 
   procedure MaxWrite;
-   label Rep,1,2, 33;
-   var i  : Byte;
+   label Rep,l1,l2,l33;
+   var
        wr : LongInt;
+       i  : Byte;
   begin
    Rep:
     if Abort or CopyCancelled then Exit;
@@ -308,7 +315,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
      begin
 {DataCompBoy      DskOn;}
       wr:=LongInt(Bf[i].NR)-LongInt(Bf[i].NW);
-2:    LastPos := FilePos(F2.f);
+l2:    LastPos := FilePos(F2.f);
       if PartSize<>0
        then BlockWrite(F2.f,Bf[i].Buf^[Bf[i].NW+1], Min(wr, PartSize-PartWrt), NumW)
        else BlockWrite(F2.f,Bf[i].Buf^[Bf[i].NW+1], Word(wr), NumW);
@@ -331,12 +338,12 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
         Abort := True;
         NewTimer(Timer, 0);
        end;
-      if Abort then Goto 33;
+      if Abort then Goto l33;
 {DataCompBoy      DskOn;}
       if (NumW=0) or ((PartSize<>0) and (PartWrt=PartSize)) then
        begin
         wr:=DiskFree(dr2);
-        if (wr=0) or (PartWrt=PartSize) then GoTo 1 else GoTo 2;
+        if (wr=0) or (PartWrt=PartSize) then GoTo l1 else GoTo l2;
        end;
       Inc(Bf[i].NW, NumW);
       Inc(Cd, NumW);
@@ -345,12 +352,12 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
       DispatchEvents(PInfo, CopyCancelled);
       if Abort or CopyCancelled then
          begin
-33:       CopyCancelled := True;
+l33:       CopyCancelled := True;
           Close(F2.f);
           lEraseFile(F2);
           Exit;
          end;
-1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
+l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
        if Tuda then begin
         MessageBox(GetString(dlFBBDiskFull2), nil, mfError+mfOKButton);
         NewTimer(Timer, 0);
@@ -448,17 +455,19 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
   var CopyDir: String;
 
   function CopyDialog: Boolean;
-   var D: PDialog;
-       P, P1: PView;
-       R: TRect;
-       S,Mask: String;
-       SR: lSearchRec;
+   var
        I: Integer;
        L: Longint;
-       F: lFile;
+       D: PDialog;
+       P, P1: PView;
+       R: TRect;
+       SR: lSearchRec;
        DTA: record S: String; W: Word; SPLSiz, NumSect: String[10] end;
+       F: lFile;
        a,aa,aaa:string;
+       S,Mask: String;
    const x_x = '*.';
+
     function IsLabel( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
     begin
       IsLabel := TypeOf( P^ ) = TypeOf( TLabel );

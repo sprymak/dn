@@ -58,6 +58,9 @@
 //  dn31220-Kernel(i)-DN_changes_language_immediately.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -188,15 +191,15 @@ end;
 
 procedure THelpViewer.Draw;
 var
-  B: TDrawBuffer;
-  Line: String;
   I, J, L: AInt;
   KeyCount: AInt;
-  Normal, KeyAWord, SelKeyAWord, HiLite, C: Byte;
-  KeyPoint: TPoint;
-  KeyLength: Byte;
   KeyRef: AWord;
+  KeyPoint: TPoint;
+  Normal, KeyAWord, SelKeyAWord, HiLite, C: Byte;
+  KeyLength: Byte;
   Q: Byte;
+  B: TDrawBuffer;
+  Line: String;
 begin
   Normal := GetColor(1);
   KeyAWord := GetColor(2);
@@ -265,14 +268,12 @@ end;
 
 procedure THelpViewer.HandleEvent(var Event: TEvent);
 var
-  KeyPoint, Mouse: TPoint;
-  KeyLength: Byte;
   KeyRef: AWord;
   KeyCount: AInt;
+  KeyPoint, Mouse: TPoint;
+  KeyLength: Byte;
 
 procedure MakeSelectVisible;
-var
-  D: TPoint;
 begin
   if (Selected <= 0) or (Selected > Topic^.GetNumCrossRefs) then Exit;
   Topic^.GetCrossRef(Selected, KeyPoint, KeyLength, KeyRef);

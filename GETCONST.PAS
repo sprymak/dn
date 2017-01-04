@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -190,21 +193,22 @@ PROCEDURE ProcessFile;
 type
   TParseMode = ( pmSkip, pmComment, pmConst, pmStartType, pmSeekType, pmType );
 var
-  F: lText;
-  US, S, ID: String;
+  TypeCount: Word;
   Eq: Integer;
   P: PTypeHolder;
   CurrentType: PTypeHolder;
-  TypeCount: Word;
   CmtMode, Mode: TParseMode;
   CmtB, CmtE: Integer; CmtS: String[ 2 ];
+  F: lText;
+  US, S, ID: String;
 
   function CalcValue( var S: String ): Word;
   var
-    W: Word; V: String;
-    ParseMode: ( pmNone, pmAlpha, pmWord, pmHex );
     I: Integer;
+    W: Word;
+    ParseMode: ( pmNone, pmAlpha, pmWord, pmHex );
     Complete: Boolean;
+    V: String;
   label Loop;
   begin
     I := 0;
@@ -280,7 +284,7 @@ begin
 end;
 
   function Ident( N: Integer ): String;
-  var R: String; I: Integer;
+  var I: Integer;
   begin
     I := N;
     If not ( S[ I ] in Alpha ) then begin

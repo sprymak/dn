@@ -53,6 +53,9 @@
 //  dn31214-PhoneBook(f)-phone_book_works_in_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -139,15 +142,16 @@ end;
 var PPH: PPhone;
 
 procedure PhoneBook(Manual: Boolean);
- var D: PDialog;
+ var
+     I: Integer;
+     D: PDialog;
      R: TRect;
      PV: PView;
      PL: PPhoneBox;
      PC: PCollection;
-     S: TBufStream;
-     DT: record C: PCollection; N: Word; end;
      W: PWindow;
-     I: Integer;
+     DT: record C: PCollection; N: Word; end;
+     S: TBufStream;
     SS: string;
 
   procedure DoSearchButton( P: PView ); {$IFDEF BIT_16}far;{$ENDIF}
@@ -253,8 +257,9 @@ procedure TPhoneBox.SetList;
   procedure DoPhones(Ph: PPhoneDir); {$IFDEF BIT_16}far;{$ENDIF}
 
     procedure InsertPhone(P: PPhone); {$IFDEF BIT_16}far;{$ENDIF}
-      var PP: PPhoneDir;
+      var
           I: LongInt;
+          PP: PPhoneDir;
     begin
       if P <> nil then
        begin
@@ -308,10 +313,11 @@ begin
 end;
 
 procedure TPhoneBox.HandleEvent;
- var  Dt: record Name: String[30]; Number: String[100]; Memo1, Memo2: String[50]; end;
+ var
       C: PCollection;
-      Stream: TBufStream;
       Ph: PPhone;
+      Dt: record Name: String[30]; Number: String[100]; Memo1, Memo2: String[50]; end;
+      Stream: TBufStream;
 
  function CheckPassword(Ph: PPhoneDir): Boolean;
    var S: String;
@@ -327,12 +333,11 @@ procedure TPhoneBox.HandleEvent;
  end;
 
  procedure EditDirectory(Append: Boolean);
-  var D: PDialog;
-      Dt: record Name: String[30]; Password: String[15]; Memo1, Memo2: String[50]; end;
+  var
       R: TRect;
-      P: PView;
       Idx: TDlgIdx;
       Ph: PPhoneDir;
+      Dt: record Name: String[30]; Password: String[15]; Memo1, Memo2: String[50]; end;
 {      PC: PCollection;}
  begin
   FillChar(DT, SizeOf(DT), 0);
@@ -373,9 +378,7 @@ procedure TPhoneBox.HandleEvent;
  end;
 
  procedure EditNumber(Append: Boolean);
-  var D: PDialog;
-      R: TRect;
-      P: PView;
+  var R: TRect;
       Idx: TDlgIdx;
  begin
   if Active = nil then
@@ -410,9 +413,10 @@ procedure TPhoneBox.HandleEvent;
  end;
 
  procedure CopyDirectory;
-  var Dt: record Name: String[30]; Password: String[15]; Memo1, Memo2: String[50]; end;
-      Ph,P1: PPhoneDir;
+  var
       I : Integer;
+      Ph,P1: PPhoneDir;
+      Dt: record Name: String[30]; Password: String[15]; Memo1, Memo2: String[50]; end;
  begin
     if (List = nil) or (Focused >= List^.Count) then Exit;
     FillChar(DT, SizeOf(DT), 0);
@@ -465,7 +469,6 @@ procedure TPhoneBox.HandleEvent;
 
  procedure DialPhone;
   var P: PPhone;
-      W: PWindow;
  begin
    CE;
    if Focused=0 then Exit;
@@ -477,9 +480,7 @@ procedure TPhoneBox.HandleEvent;
 
 
  procedure EnterDir;
-   var I: Integer;
-       S: String;
-       PD: PPhoneDir;
+   var PD: PPhoneDir;
        P: PPhone;
  begin
    if Active = nil then
@@ -559,7 +560,6 @@ procedure TPhoneBox.HandleEvent;
 
     procedure SearchDir(Ph: PPhoneDir); {$IFDEF BIT_16}far;{$ENDIF}
      procedure DoPhone(P: PPhone); {$IFDEF BIT_16}far;{$ENDIF}
-      var I: Integer;
      begin
        if (P <> nil) and ((Pos(S, UpStrg(P^.Name)) <> 0) or
                           (Pos(S, UpStrg(P^.Number^)) <> 0) or
@@ -601,15 +601,16 @@ procedure TPhoneBox.HandleEvent;
  end;
 
  procedure ImportPhones;
-   var F: PTextReader;
-       S: String;
-       P: String;
+   var
+       M: Integer;
+       F: PTextReader;
        Ph: PPhone;
-       C: Char;
-       I, J, K, M: Integer;
        PV: PView;
+       C: Char;
        Fr: Boolean;
        Template: String;
+       S: String;
+       P: String;
 
  procedure MakePhone;
    var I, J, K: Integer;
@@ -678,7 +679,7 @@ procedure TPhoneBox.HandleEvent;
  end;
 
 procedure CopyItem;
-var S: String[230];
+{var S: String[230];}
  begin
 {  FillChar(S[1], 230, 0);
   S[0]:=#230;
@@ -798,8 +799,9 @@ begin
 end;
 
 function TPhoneBox.GetText;
- var S: String;
+ var
      P: PPhone;
+     S: String;
 begin
  P := List^.At(Item);
  S := AddSpace(P^.Name, 30);

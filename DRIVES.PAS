@@ -75,6 +75,12 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn40900-Descriptions(f)-read_and_show_descriptions_fix.patch
+//  dn50208-cleanup.patch
+//  dn40900-temp_drive_in_directories_history.patch
+//  dn50308-descriptions_show_fix.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -90,11 +96,14 @@ const
      dsInvalid     = 1 ;
 
 type
+
+  TSetDriveTypes = ( dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArcFind, dtArc, dtLink, dtArvid );
+
   PDrive = ^TDrive;
   TDrive = object(TObject)
    Owner: Pointer;
    Prev: PDrive;
-   DriveType: ( dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArcFind, dtArc, dtLink,  dtArvid );
+   DriveType: TSetDriveTypes;
    CurDir: String;          {DataCompBoy}
    DIZOwner: String;        {DataCompBoy}
    NoMemory: Boolean;
@@ -385,12 +394,13 @@ end;
 
 procedure TDrive.GetFull;
  var
-     S1: String[40];
-     X: AWord; LS: Byte;
-     QW: Boolean;
-     NFM: TNameFormatMode;
+     X: AWord;
      OPT, CO: Word;
+     LS: Byte;
+     NFM: TNameFormatMode;
+     QW: Boolean;
      LFNLonger250: Boolean;
+     S1: String[40];
      S, Ext: String;
  label Longer250, Longer250_1, NE;
 begin
@@ -629,6 +639,7 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
+(*
 procedure ReadFileList(
      const CurDir: String;
      const FName: String;
@@ -665,7 +676,7 @@ begin
 
          New(PD);
          {$IFNDEF OS2}
-         PD^.Name := LowStrg(Norm12(GetName(lfGetShortFileName(Nam))));
+         PD^.Name := Norm12(GetName(lfGetShortFileName(Nam)));
          {$ENDIF}
          PD^.LFN := AddLFN(GetName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(Nam)));
          PD^.Name[9] := ' ';
@@ -679,6 +690,168 @@ begin
   Dispose(T,Done);
 end;
         {-DataCompBoy-}
+*)
+
+{AK155: JO внес коррекции в части добавления длинных имен,
+а потом я почти полностью переписал эту процедуру.
+Теперь имена воспринимаются только с первой позиции,
+имена в кавычках допускаются. 01 авг 2001}
+
+procedure ReadFileList(
+    const CurDir: String;
+    const FName: String;
+    var Descriptions: PDIZCol);
+
+  var
+    CurLine: LongInt;
+    T: PTextReader;
+    S: String;
+
+    { прочитать непустую строку (хвостовые пробелы отбрасываются)}
+  function ReadNextS: Boolean;
+    begin
+    ReadNextS := False;
+    repeat
+      if T^.Eof then
+        Exit;
+      S := T^.GetStr;
+      if IOResult <> 0 then
+        Exit;
+      Inc(CurLine);
+      DelRight(S);
+    until S <> '';
+    ReadNextS := True;
+    end;
+
+  var
+    I: LongInt;
+    j: LongInt;
+    NameEnd: LongInt;
+    PD: PDesc;
+    LS: Byte;
+    S1: String;
+  label
+    ReadNextLine, EndDescr, EndFile;
+
+  begin { ReadFileList }
+  ClrIO;
+  T := New(PTextReader, Init(MakeNormName(CurDir, FName)));
+  if  (T = nil) or Abort then
+    Exit;
+  PD := nil;
+  CurLine := 0;
+  if not ReadNextS then
+    begin
+    Dispose(T, Done);
+    Exit;
+    end;
+  while True do
+    begin
+    { Обработка нового описания. S уже прочитана.}
+    if  (S[1] in [' ', #9, '>']) then
+      goto ReadNextLine;
+    { игнорируем остаток
+         предыдущего многострочного описания }
+
+    LS := Length(S);
+    if S[1] = '"' then
+      {имя в кавычках - ищем вторую кавычку }
+      begin
+      NameEnd := 0;
+      for j := 2 to LS do
+        if S[j] = '"' then
+          begin
+          NameEnd := j;
+          Break;
+          end;
+      if NameEnd <= 2 then
+        goto ReadNextLine;
+      if NameEnd = LS then
+        goto ReadNextLine; { пустое описание никого не интересует }
+      S1 := Copy(S, 2, NameEnd-2);
+      end
+    else
+      {имя не в кавычках - ищем пробел или Tab. При этом
+        благодаря DelRight после него что-то должно быть }
+      begin
+      NameEnd := Pos(' ', S);
+      j := Pos(#9, S);
+      if  (j <> 0) and (j < NameEnd) then
+        NameEnd := j { заведомо не 0}
+      else
+        begin
+        if NameEnd = 0 then
+          NameEnd := j; { может быть и 0}
+        if NameEnd = 0 then
+          goto ReadNextLine; { пустое описание никого не интересует }
+        end;
+      S1 := Copy(S, 1, NameEnd-1);
+      end;
+    if PD = nil then
+      New(PD);
+    {$IFNDEF OS2}
+    PD^.Name := Norm12(GetName(lfGetShortFileName(S1)));
+    {$ENDIF}
+    PD^.LFN := AddLFN(GetName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(S1)));
+    PD^.Line := CurLine;
+    if Descriptions^.Search(PD, I) then
+      goto ReadNextLine;
+    System.Delete(S, 1, NameEnd);
+    DelLeft(S);
+    S1 := S;
+
+    {
+AK155: Дочитываем многострочное описание (сколько влазит в S1).
+Признаком дополнительной строки является побел или Tab в начале,
+а такэже '>' в начале (files. bbs вформате AllFix).
+  Это нормально работает для просмотра описаний, но приводит
+к глюкам при попытке редактирования многострочного описания.
+Впрочем, при редактировании многострочных описаний глюки
+будут в любом случае, так как фактически редактируется только
+первая строка. Чтобы избавиться от глюков, надо серьезно переделывать
+и формат TDesc, и его отображение, и его редактирование. Можно
+ввести коллекцию строк, а не одну строку, и попытаться заюзать
+редактор. Или вообще не заниматься самодеятельностью, а просто
+вызывать стандартный редактор для файла описаний, установив курсор
+на нужную строку (предварительно создав эту строку, если ее не было)
+}
+    while True do
+      begin
+      if not ReadNextS then
+        Break;
+      if not (S[1] in [' ', #9, '>']) then
+        Break;
+      j := 2;
+      while (j <= Length(S)) and (S[j] = ' ') do
+        Inc(j);
+      LS := Length(S1);
+      if LS >= 253 then
+        Break;
+
+      S1 := S1+#20' '+Copy(S, j, 253-LS);
+      end;
+    {JO: пока сделал так: "дочитанные" куски отделяются от основной части (и друг }
+    {    от друга) символом #20, который ищется при редактировании и копировании}
+    {    описаний и вся "дочитанная" часть описания после него (и он сам) отбрасывается }
+
+    { конец дочитывания многострочного описания }
+
+    PD^.DIZ := NewStr(S1);
+    Descriptions^.AtInsert(I, PD);
+    PD := nil;
+    goto EndDescr;
+
+ReadNextLine:
+    if not ReadNextS then
+      goto EndFile;
+EndDescr:
+    end;
+
+EndFile:
+  if PD <> nil then
+    Dispose(PD);
+  Dispose(T, Done);
+  end { ReadFileList };
 
         {-DataCompBoy-}
 procedure PrepareDIZ(
@@ -741,7 +914,6 @@ var
   NormMask: Boolean;
   P: PFileRec;
   L: TSize;
-  q: Longint;
   fm: string;
 {$IFDEF CHDIRDEBUG}
   ev: TEvent;
@@ -851,13 +1023,14 @@ end;
 
         {-DataCompBoy-}
 function TDrive.GetDirectory;
- var Files: PFilesCollection;
-     SR: lSearchRec;
-     P: PFileRec;
+ var
      I,J: Integer;
-     AllFiles, ShowD: Boolean;
-     FreeSpc, TotalLen: TSize;
      TFiles: Word;
+     FreeSpc, TotalLen: TSize;
+     Files: PFilesCollection;
+     P: PFileRec;
+     SR: lSearchRec;
+     AllFiles, ShowD: Boolean;
      Descriptions: PDIZCol;
 {DataCompBoy
   function Get32(S: String): LongInt;
@@ -963,14 +1136,15 @@ end;
 
         {-DataCompBoy-}
 function TDrive.GetRealDir;
- var S: String;
-     C: Char;
-     D: PDialog;
-var MM: record
+ var
+    MM: record
          case byte of
           1: (L: LongInt; S: String[1]);
           2: (C: Char);
         end;
+    D: PDialog;
+    C: Char;
+    S: String;
 begin
  if (DriveType = dtDisk) and
     not((word((@CurDir[1])^)=$2F2F{//}) or (word((@CurDir[1])^)=$5C5C{\\})) then
@@ -1058,9 +1232,10 @@ end;
 
         {-DataCompBoy-}
 procedure TDrive.GetDirLength(PF: PFileRec);
- var S: String;
-     I: TSize;
+ var
      J: LongInt;
+     I: TSize;
+     S: String;
 begin
   if (PF^.Attr and $8000 <> 0) or (PF^.Attr and Directory = 0) then Exit;
   S := PF^.Owner^;
@@ -1073,14 +1248,15 @@ end;
 
         {-DataCompBoy-}
 function TDrive.OpenDirectory(const Dir: String): PDrive;
-  var I: LongInt;
+  var
+      I: LongInt;
+      MemReq: LongInt;
+      P: PString;
       PI: PView;
       PDrv: PDrive;
       Dirs: PStringCollection;
       Files:PFilesCollection;
-      P: PString;
       tmr: TEventTimer;
-      MemReq: LongInt;
 
   procedure AddDirectory(S: String);
   begin
@@ -1092,8 +1268,6 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
 
   procedure ReadDir(Dr: PString);
     var SR: lSearchRec;
-        P: PFileRec;
-        D: DateTime;
   begin
      ClrIO;
      lFindFirst(Dr^+x_x, AnyFile, SR); {JO}

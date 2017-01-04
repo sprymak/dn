@@ -66,6 +66,9 @@
 //  dn31029-ChangeLanguage(f)-DN_change_language_immediately_in_VP_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -392,8 +395,8 @@ end;
 
 procedure TBackground.Draw;
 var
-  B, B1: TDrawBuffer;
   I, H, Src: Integer;
+  B, B1: TDrawBuffer;
 begin
   MoveChar(B, ' ', $07, Size.X);
 
@@ -785,11 +788,9 @@ begin
 end;
 
 procedure TProgram.InsertIdlerN;
-var I: Integer;
-    S: String;
+var
     R: TRect;
-    Event: TEvent;
-    MX, MY: Word;
+    S: String;
 begin
   if (SkyEnabled > 0) or SaversData.Mouse and
   (MouseWhere.Y= Size.Y-1) and (MouseWhere.X = Size.X-1)
@@ -819,11 +820,12 @@ begin
 end;
 
 procedure TProgram.InsertAvIdlerN;
-var I: Integer;
-    S: String;
+var
+    I: Integer;
+    MX, MY: Word;
     R: TRect;
     Event: TEvent;
-    MX, MY: Word;
+    S: String;
 begin
   if (SkyEnabled > 0) or SaversData.Mouse and
   (MouseWhere.Y= Size.Y-1) and (MouseWhere.X = Size.X-1)
@@ -862,8 +864,6 @@ begin
 end;
 
 var
-    P: Procedure;
-    R: TRect;
     A1, A2: {$IFNDEF VIRTUALPASCAL}Word{$ELSE}SmallWord{$ENDIF};
 label 11;
 begin
@@ -971,9 +971,6 @@ begin
 end;
 
 procedure TProgram.HandleEvent(var Event: TEvent);
-var
-  I: Word;
-  C: Char;
 begin
   if (Event.What = evKeyDown) and
      (Event.KeyCode>=kbCtrlShift1) and
@@ -1077,15 +1074,15 @@ begin
 end;
 
 procedure TProgram.ActivateView;
- var EV: TEvent;
+ var {EV: TEvent;}
      PP: TPoint;
 begin
   If P=nil then exit;
-  EV.What := evMouseDown;
+  {EV.What := evMouseDown;}
   PP.X := P^.Origin.X;
   PP.Y := P^.Origin.Y + P^.Size.Y - 2;
-  Desktop^.MakeGlobal(PP, PP); EV.Where := PP;
-  EV.Buttons := mbRightButton; {PutEvent(EV);}
+  Desktop^.MakeGlobal(PP, PP); {EV.Where := PP;}
+  {EV.Buttons := mbRightButton;} {PutEvent(EV);}
 end;
 
 procedure TProgram.OutOfMemory;
@@ -1303,8 +1300,9 @@ begin
 end;
 
 function ExecResource;
- var D: PDialog;
+ var
      W: Word;
+     D: PDialog;
 begin
  ExecResource := cmCancel; OpenResource;
  if Resource = nil then Exit;
@@ -1610,9 +1608,9 @@ end;
 
 function GetString;
 var
-  S: string;
   I: Integer;
   P: PCacheRec;
+  S: string;
 begin
   if StringCache = nil then InitStringCache;
 

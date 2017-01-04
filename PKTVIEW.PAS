@@ -59,6 +59,9 @@
 //  dn247-text_and_file_find_improve.patch
 //
 //  2.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -297,10 +300,11 @@ end;
 
 Procedure Msg2Strs(FName:String; var FromUser,ToUser,Subj,Date:String;
                    var C:PLineCollection);
-var message:TBufStream; {file of char;}
+var
+    i:integer;
     header:MessageHeader;
-    i,j:integer;
     buf:char;
+    message:TBufStream; {file of char;}
     txtbuf:string;
 begin
   Message.Init(FName,stOpenRead,4096);
@@ -350,11 +354,12 @@ end;
 
 Function ReadPktHeader(FName:String; var PType:Word; var DT,FromUser,ToUser:string):boolean;
 label l1;
-var PH:PacketHeader;
+var
+    PH:PacketHeader;
     {F:File;}
-    F:TDosStream;
     {Rb:Word;}
     Res:boolean;
+    F:TDosStream;
 begin
  F.Init(FName,stOpenRead);
  if F.Status<>stOk then goto l1;
@@ -396,17 +401,18 @@ end;
 
 Constructor TPktCol.Init(PktFile:String);
 label l1;
-var PH:PacketHeader;
-    PMH:PacketMessageHeader;
-    F:TBufStream;
+var
     Rb:Word;
     i:Word;
-    ch:char;
     LPos,LSize:Longint;
-    St:String;
+    PH:PacketHeader;
+    PMH:PacketMessageHeader;
+    ch:char;
     EmptyPkt:boolean;
-    Date,FromUser,ToUser,Subj:string;
     AFrm,ATo:TNetAddr;
+    St:String;
+    Date,FromUser,ToUser,Subj:string;
+    F:TBufStream;
 begin
  Inherited Init(0,1);
  FName:=NewStr(PktFile);
@@ -480,15 +486,12 @@ begin
 end;
 
 Procedure TPktObj.GetMsgTxt(var Buffer:PCharArray; var MsgLen:Word);
-var F:TBufStream;
+var
     LPos:Longint;
-    PktMsg:PPktObj;
-    st:string;
     I:Word;
-    PH:PacketHeader;
     PMH:PacketMessageHeader;
-    Rb:Word;
     ch:char;
+    F:TBufStream;
 begin
  MsgLen:=0;
  i:=0;
@@ -549,9 +552,10 @@ begin
 end;
 
 Procedure Buffer2Strs(Buffer:PCharArray; var C:PLineCollection);
-var I:word;
-    st:string;
+var
+    I:word;
     Ch:Char;
+    st:string;
 begin
  ST:='';
  PktFromAddr:='';
@@ -591,9 +595,10 @@ begin
 end;
 
 Function TPktList.GetText(Item: LongInt; MaxLen: Integer): String;
-var FromUser,ToUser,Subj,Date:String;
+var
     Pc:PPktObj;
     s1,s2,s3:string;
+    FromUser,ToUser,Subj,Date:String;
 begin
  Pc:=List^.At(Item);
  Pc^.GetMsgInfo(FromUser,ToUser,Subj,Date);
@@ -674,10 +679,11 @@ begin
 end;
 
 Procedure ViewPktHeader(MsgCount:Integer);
-var W:Word;
+var
+    W:Word;
+    D:PDialog;
     s1,s2,s3:String;
     S:String;
-    D:PDialog;
 begin
  ReadPktHeader(PktFileName,W,s1,s2,s3);
  S:=GetString(dlPktFile)+FExpand(PktFileName)+#13+S1+#13+S2+#13+S3+#13+
@@ -689,10 +695,11 @@ begin
 end;
 
 Procedure TPktListDialog.HandleEvent(var Event:TEvent);
-var Pc:PPktObj;
+var
+    M:Word;
+    Pc:PPktObj;
     Buf:PCharArray;
     D:PPktMsgViewer;
-    M:Word;
     s1,s2,s3,s4:string;
 begin
  if (Event.What=evKeyDown) then
@@ -734,14 +741,14 @@ end;
 
 procedure TLineViewer.Draw;
 var
-  B: TDrawBuffer;
-  CNormal: Byte;
   I: Integer;
-  S: String;
+  OrigColor,AreaColor,Citate,WorkStrColor:Word;
   P: PString;
+  CNormal: Byte;
   Color:Byte;
   Bkg:Byte;
-  OrigColor,AreaColor,Citate,WorkStrColor:Word;
+  B: TDrawBuffer;
+  S: String;
 begin
   CNormal := GetColor(1);
   Bkg:=lo((CNormal and $F0) shr 4);
@@ -887,8 +894,9 @@ begin
 end;
 
 Procedure TPktMsgViewer.SaveAsText;
-var TName:String;
+var
     F:Text;
+    TName:String;
     Area:String;
      {--------------------------------------------}
      Procedure WriteFile(Ps:PString); far;
@@ -988,11 +996,13 @@ begin
 end;
 
 Function GetPrevMsg(FName:String):String;
-var D,N,E:String;
+var
     Er:integer;
-    Num:Word; Tm: TEventTimer;
-    Sr:lSearchRec;
+    Num:Word;
+    Tm: TEventTimer;
     VM: PView;
+    Sr:lSearchRec;
+    D,N,E:String;
 begin
  lFSplit(FName,D,N,E);
  while (N[1]='0') and (N<>'') do system.delete(N,1,1);
@@ -1021,11 +1031,13 @@ begin
 end;
 
 Function GetNextMsg(FName:String):String;
-var D,N,E:String;
+var
     Er:integer;
-    Num, St:Word; Tm: TEventTimer;
-    Sr:lSearchRec;
+    Num, St:Word;
+    Tm: TEventTimer;
     VM: PView;
+    Sr:lSearchRec;
+    D,N,E:String;
 begin
  lFSplit(FName,D,N,E);
  while (N[1]='0') and (N<>'') do system.delete(N,1,1);
@@ -1059,7 +1071,6 @@ end;
 Procedure TMsgViewerDlg.GotoMsg;
 var VS:PScrollBar;
     R:TRect;
-    View:PView;
 begin
   DisposeStr(Title);
   Title:=NewStr(GetString(dlNetMailView)+CurMsg^);
@@ -1094,8 +1105,9 @@ begin
 end;
 
 Procedure TMsgViewerDlg.SaveAsText;
-var TName:String;
+var
     F:Text;
+    TName:String;
      Procedure WriteFile(Ps:PString); far;
      begin
       if Ps=nil then writeln(f,' ') else writeln(f,DelChar(Ps^,#1));
@@ -1128,9 +1140,9 @@ begin
 end;
 
 Procedure TMsgViewerDlg.HandleEvent(var Event:TEvent);
-var S:String;
-    SOld:String;
+var
     Er:Byte;
+    S,SOld:String;
 begin
  if Event.What=evKeyDown then
   case Event.KeyCode of
@@ -1203,9 +1215,10 @@ end;
 
 Function IsPktFile(Fname:String):boolean;
 label l_e;
-var S:TDosStream;
+var
     Head:PacketHeader;
     flag:boolean;
+    S:TDosStream;
 begin
  S.Init(FName,stOpenRead);
  if S.Status<>stOk then begin
@@ -1267,10 +1280,11 @@ end;
 
 Function IsMsgFile(FName:String):boolean;
 label l_e;
-var F:PLimitStream;
+var
     L:array[1..5] of Longint;
     i,N:shortint;
     XL: TXlat;
+    F:PLimitStream;
 begin
  NullXLAT(XL);
  New(F,Init(FName,stOpenRead,16384));

@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -118,8 +121,6 @@ begin
 end;
 
 procedure TNetInfo.ReadData;
- var
-     MemBlocks, I: Word;
 begin
  Abort:=False;
  DisposeStr(Info.Title);
@@ -143,13 +144,13 @@ begin
 end;
 
 procedure TNetInfo.Draw;
- var B: TDrawBuffer;
+ var
      C,Y: Word;
+     count, station, retcode, conntype: integer;
      CC: Boolean;
-     count, station, retcode: integer;
+     B: TDrawBuffer;
      server, username: string;
      hex_id, datetime: string;
-     conntype: integer;
 
 procedure Wrt(S: String);
  var I: Integer;

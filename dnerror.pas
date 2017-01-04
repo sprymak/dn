@@ -52,6 +52,9 @@
 //  dn3323-dnerror_cant_read_dn_err.patch
 //
 //  3.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -60,16 +63,17 @@ program DnError;
 
 uses Search, KeyBoard, MapEngn, Dos, Crt;
 
-var Err, TS: Text;
+var
+    i: integer;
+    ERC: Word;
+    Err, TS: Text;
     F: File;
     HasMap: Boolean;
-    s, s2: string;
     FFC: String[5];
     c: char;
     R: Registers;
-    ERC: Word;
     IS: Byte;
-    i: integer;
+    s, s2: string;
 
 begin
  Writeln(' DNError v2.62 - converts DN.ERR to DN2SEND.ERR');

@@ -81,6 +81,9 @@
 //  dn40412-calculator(f)-exponent_form.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {(c) Anton Fedorov aka DataCompBoy, 2000}
@@ -748,9 +751,8 @@ end;
 
 { Flash >>> }
 function DoEval(start, stop: byte): CReal;
- var i,j,k: byte;
+ var i,k: byte;
      V1,V2,V3: CReal;
-     ll: longint;
      sl: byte;
      st: string[10];
 

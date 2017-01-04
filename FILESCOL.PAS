@@ -76,6 +76,9 @@
 //  dn40404-Compare(f)-file_time_compare_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -196,22 +199,12 @@ uses DNApp, Menus, Views, FlPanel, Drives,
 
 ;
 
-const
-    pfrPacked   = $80;
-    pfrSelect   = $40;
-
-type
-    TPackedFileRec = record
-      Time: LongInt;
-      Attr: Byte;
-      NLen: Byte;
-    end;
-
         {-DataCompBoy-}
 function  CreateFileRec(Name: string): PFileRec;
- var fr: PFileRec;
-     lsr: lSearchRec;
+ var
      D: DateTime;
+     fr: PFileRec;
+     lsr: lSearchRec;
      path: string;
  begin
   new(fr);
@@ -336,8 +329,9 @@ end end;
         {-DataCompBoy-}
 
 function  LoadFileRecOwn(var s: TStream; Dirs: PCollection): PFileRec; {DataCompBoy}
-var FR: PFileRec;
+var
     w: longint;
+    FR: PFileRec;
 begin
  FR := LoadFileRec(S);
  if FR <> nil then
@@ -433,6 +427,9 @@ end;
         {-DataCompBoy-}
 function TFilesCollection.Compare;
  var
+     C: Integer;
+     SM, I1, I2: Integer;
+     PanelFlags: Word;
      {$IFNDEF DPMI}
      T1: TFileRec;
      {$ELSE}
@@ -441,10 +438,7 @@ function TFilesCollection.Compare;
      P1: PFileRec absolute Key1;
      {$ENDIF}
      P2: PFileRec absolute Key2;
-     C: Integer;
-     SM, I1, I2: Integer;
      P1P, P2P: Boolean;
-     PanelFlags: Word;
      OneIsFile: Boolean;
      ST1, ST2: String; {JO}
 
@@ -674,20 +668,19 @@ end;
         {-DataCompBoy-}
 
 function SelectDrive;
- var R: TRect;
+ var
+     N, MaxRY: Integer;
+     Server_Num, Handle_Num, RetCode, DriveNum, MaxL: integer; {-$VIV start}
+     R: TRect;
      P: PMenuBox;
      Menu: PMenu;
      Items, Lnk: PMenuItem;
      C: Char;
-     N, MaxRY: Integer;
-     SC: TCharSet;
-     Server_Num, Handle_Num, RetCode, DriveNum, MaxL: integer; {-$VIV start}
-     FullS, Server, PathName, TmpS: String;       {-$VIV end}
      pSaveNeedAbort,ShowDir: Boolean;
+     SC: TCharSet;
+     FullS, Server, PathName, TmpS: String;       {-$VIV end}
 
   function CutLongString(S: String): String;
-  var P, L: Integer;
-      S1: String;
   begin
     CutLongString := #0+S+#0;
     if not CutDriveInfo then Exit;
@@ -989,9 +982,9 @@ end;
 
 procedure DosReread(Files: PFilesCollection);
 var i: longint;
-    sr: lSearchRec;
     p: PFileRec;
     D: DateTime;
+    sr: lSearchRec;
     S: String;
 {$IFDEF CHDIRDEBUG}
   ev: TEvent;

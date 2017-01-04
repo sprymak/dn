@@ -64,6 +64,9 @@
 //  dn31220-kernel(f)-usermenu_fixes.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -145,8 +148,6 @@ begin
 end;
 
 procedure TUserWindow.SetState(AState: Word; Enable: Boolean);
-var
-  WindowCommands: TCommandSet;
 begin
   inherited SetState(AState, Enable);
   if AState = sfSelected then
@@ -230,10 +231,9 @@ end;
 
         {-DataCompBoy-}
 function MakeString(S: String; UserParams: PUserParams; HandleTildes: boolean; TM: PString): String;
-var ts: string;
-    tz: string;
+var
     zs: string[1];
-    Root: String;
+    ts, tz, Root: String;
 {--- start -------- Eugeny Zvyagintzev ---- 15-05-2003 ----}
 {To delete last slash}
 Function DelSlash(s: String): String;
@@ -547,24 +547,25 @@ end;
         {-DataCompBoy-}
 
 function ExecUserMenu;
- var F: PTextReader;
-     F1: lText; {DataCompBoy}
-     P: PUserCollection;
-     S, S1: String;
+ var
      I: LongInt;
-     UI: PUserMenuItem;
      StartPos: Integer;
+     NI, NW, LL: Word;
+     F: PTextReader;
+     P: PUserCollection;
+     UI: PUserMenuItem;
      Items, OItems, SItems: PMenuItem;
      Menu: PMenu;
      PV: PView;
      R: TRect;
-     NI, NW, LL: Word;
-     EnterParms: Boolean;
-     TitleStr: String[30];
-     DefStr: String;
-     RF2E: Boolean;
      Event: TEvent;
+     EnterParms: Boolean;
+     RF2E: Boolean;
      WriteEcho: Boolean;
+     TitleStr: String[30];
+     F1: lText; {DataCompBoy}
+     S, S1: String;
+     DefStr: String;
      Title: String;
 
  Label 1, 2;
@@ -584,9 +585,10 @@ function ExecUserMenu;
  var MenuLast: PMenuItem;
 
  function DoSubMenu(Main: boolean): PMenuItem;
-   var P1, P2: PMenuItem;
-       UI,PU: PUSerMenuItem;
+   var
        KB: Word;
+       P1, P2: PMenuItem;
+       UI,PU: PUSerMenuItem;
  begin
    DoSubMenu := nil;
    if I = P^.Count then Exit;
@@ -806,7 +808,8 @@ const Top: TPoint = (X:10;Y:5);
       Here: Boolean = False;
 
 procedure ScreenGrabber(ShowMessage: Boolean);
- var P: PGrabber;
+ var
+     P: PGrabber;
      B: Boolean;
 begin
   if Here then Exit;
@@ -857,8 +860,9 @@ end;
 
 procedure TGrabber.Draw;
 
- var B: TDrawBuffer;
+ var
      I: Integer;
+     B: TDrawBuffer;
 
  {$IFNDEF NOASM}
       procedure Invert(var B; K: integer);
@@ -940,16 +944,16 @@ begin
 end;
 
 procedure TGrabber.HandleEvent;
-  var B: Boolean;
-      Sh: Boolean;
+  var
       Stp: Integer;
+      B, Sh: Boolean;
   procedure CED; begin ClearEvent(Event); DrawView end;
 
   procedure MakeClip;
   var
     I, J: Integer;
-    S: String;
     C: Char;
+    S: String;
   begin
     if Clipboard <> nil then Dispose(Clipboard,Done);
     Clipboard := New(PLineCollection, Init(R.B.Y - R.A.Y,10));
@@ -1020,14 +1024,15 @@ function QuickExecExternal(N: Integer): Boolean;
 
  label 1;
 
- var UserParams: TUserParams;
-     TitleStr, DefStr, S: String;
-     F: PTextReader;
-     F1: lText;
+ var
      I: Integer;
+     F: PTextReader;
+     UserParams: TUserParams;
      OS2: char;
-     SR: lSearchRec;
      EnterParms, Local: Boolean;
+     F1: lText;
+     SR: lSearchRec;
+     TitleStr, DefStr, S: String;
   label RL;
 begin
   QuickExecExternal := False;
@@ -1061,7 +1066,7 @@ begin
   Exit;
 1:
   I := DNNumber;
-  if OS2 = #0 then FreeStr := 'BAT'
+  if OS2 = #0 then FreeStr := '$.BAT'
     else
     begin
        I := 0;
@@ -1073,10 +1078,10 @@ begin
        until (DOSError <> 0) or (I = 99) or Abort;
        lFindClose(SR);
        ClrIO;
-       FreeStr := 'CMD';
+       FreeStr := '$.CMD';
     end;
 
-  FreeStr := SwpDir+'$DN'+ItoS(I)+'$.'+FreeStr;
+  FreeStr := SwpDir+'$DN'+ItoS(I)+FreeStr;
   lAssignText(F1, FreeStr); ClrIO;
   lRewriteText(F1);
 

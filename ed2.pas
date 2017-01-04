@@ -54,6 +54,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -188,9 +191,7 @@ end;
 
 procedure TInfoLine.HandleEvent;
   var T: TPoint;
-      lS: byte;
       P: PFileEditor;
-      Ev: TEvent;
       BookMark: Byte;
 begin
   inherited HandleEvent(Event);
@@ -240,16 +241,17 @@ begin
 end;
 
 procedure TInfoLine.Draw;
- var P: PFileEditor;
+ var
      X,Y: LongInt;
-     C: String[1];
-     S: String;
+     P: PFileEditor;
+     Color: Byte;
+     qwe: byte;
      CharNum: Byte; {-$VIV}
      Ch: Char;
      Ch2: Char;
-     Color: Byte;
-     qwe: byte;
+     C: String[1];
      B: TDrawBuffer;
+     S: String;
 begin
  P := PFileEditor(PEditWindow(Owner)^.Intern);
  if Owner^.GetState(sfDragging) or not Owner^.GetState(sfActive) then begin
@@ -310,9 +312,10 @@ end;
 
 {TBookmarkLine}
 procedure TBookmarkLine.Draw;
- var P: PFileEditor;
-     Col: Byte;
+ var
      I: Integer;
+     P: PFileEditor;
+     Col: Byte;
      Mrk: Char;
      Ch: Char;
      B: Array[0..20] of AWord;
@@ -373,11 +376,11 @@ end;
 
         {-DataCompBoy-}
 function CheckForOver(Name: String): PStream;
- var  S: PAttrBufStream;
-      F: lFile;
-      W: Word;
+ var
+      Attr, W: Word;
       L: array[0..0] of LongInt;
-   Attr: Word;
+      F: lFile;
+      S: PAttrBufStream;
 
 procedure CreateBackup;
 var
@@ -450,10 +453,11 @@ end;
         {-DataCompBoy-}
 
 procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF; AOptimalFill: Boolean);
- var I: LongInt;
+ var
+     I: LongInt;
      M: LongInt;
-     SST: String;
      P: PString;
+     SST: String;
 
   procedure CompressString;
    var PP: Pointer;

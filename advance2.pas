@@ -73,6 +73,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -211,8 +214,8 @@ uses advance1, advance3,
 
 constructor TTempFile.Init(const AExt: String; ABufSize: SW_Word);
 var
-  S: FNameStr;
   L: LongInt;
+  S: FNameStr;
 begin
   L:=CalcTmpId;
   S:=CalcTmpFName(L, AExt, True);
@@ -276,8 +279,8 @@ end;
 
 function FileTime(FileA: String): LongInt;
 var
-  FA : lfile;
   TA : LongInt;
+  FA : lfile;
 begin
   lAssignFile(FA, FileA);
   lResetFileReadOnly(FA,1);
@@ -314,7 +317,7 @@ const
 
 function  GetTmpId:LongInt;
 var
-        IdL,lm,ld,lh,lmin      : LongInt;
+        lm,ld,lh,lmin: LongInt;
         y,m,d,dow,h,min,s,hund : Word;
 begin
  GetDate(y,m,d,dow);
@@ -330,7 +333,6 @@ end;
 
 function CalcTmpId:LongInt;
 var Id:LongInt;
-    s:string;
 begin
  Id:=GetTmpId;
  if (LastTmpId<>-1) and (LastTmpId>=Id) then Id:=LastTmpId+1;
@@ -403,9 +405,10 @@ begin                   { LogDrvMap: Bit 0: 'A:', Bit 1: 'B:', etc }
   ValidDrive := ((1 shl (Ord(Dr) - Ord('A'))) and LogDrvMap) <> 0;
 end;
 {$ELSE}
-var s,s1 : string[40];
+var
     B,B1: Byte;
     r: {$IFDEF DPMI}DPMIRegisters{$ELSE}Registers{$ENDIF};
+    s,s1 : string[40];
 begin
  ValidDrive := False;
  if dr='*' then begin ValidDrive:=True; exit end;
@@ -465,7 +468,10 @@ FUNCTION GetDrive : byte;
 assembler; asm mov ah,$19; int 21h; end;
 {$ELSE}
 var S: String;
-begin GetDir(0, S); GetDrive := Byte(S[1])-Byte('A'); end;
+begin
+  GetDir(0, S);
+  GetDrive := Byte(S[1]) - $41 {Byte('A')};
+end;
 {$ENDIF}
 
 PROCEDURE SetDrive(a : byte);
@@ -477,9 +483,10 @@ begin GetDir(0, S); ChDir(S); end;
 {$ENDIF}
 
 procedure GetMask(var m : string);
- var q : string[12];
+ var
      i : Byte;
      b : Boolean;
+     q : string[12];
 begin
  q:='????????.???';
  i:=Pos('.',m);
@@ -607,8 +614,7 @@ FUNCTION SquashesName;
 
         {-DataCompBoy-}
 FUNCTION InMask;
- var k:byte;
-     j:boolean;
+ var j:boolean;
      l:byte;
      ext, maskext:string;
 Begin
@@ -634,9 +640,9 @@ End;
         {-DataCompBoy-}
 FUNCTION InFilter;
 var i: byte; k: byte absolute Filter;
-    S: string;
     B: Boolean;
     j:boolean;
+    S: string;
 begin
   InFilter:=True;
   while k>0 do
@@ -967,8 +973,8 @@ end;
 (*        {-DataCompBoy-}
 FUNCTION InOldFilter;
 var i:byte; l:byte absolute Filter;
-    S: string[13];
     B: Boolean;
+    S: string[13];
 begin
   InOldFilter:=True; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
@@ -989,7 +995,6 @@ end;
 
 FUNCTION InSpaceMask;
 var i:byte;
-    j:Boolean;
 begin
   i:=13;
   repeat
@@ -1001,8 +1006,8 @@ end;
 
 FUNCTION InSpaceFilter;
 var i:byte; l:byte absolute Filter;
-    S: string[13];
     B: Boolean;
+    S: string[13];
 begin
   InSpaceFilter:=True; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
@@ -1241,8 +1246,9 @@ end;
 
         {-DataCompBoy-}
 function GetFileAttr(const S: String): Word;
-var F:lfile;
+var
     Attr:Word;
+    F:lfile;
 begin
  Attr := 0;
  lAssignFile(F, s);
@@ -1490,10 +1496,11 @@ end;
 function CompareFiles(const N1, N2: String): Boolean;
   label Finish;
   const BufSize = 2048;
-  var S1, S2: TDOSStream;
+  var
+      I: LongInt;
       B1, B2: Pointer;
       B: Boolean;
-      I: LongInt;
+      S1, S2: TDOSStream;
 begin
   CompareFiles := False;
   B := False;

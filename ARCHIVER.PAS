@@ -85,6 +85,10 @@
 //  dn40328-7Zip.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn50308-SFX_detection.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -669,10 +673,8 @@ procedure MakeArchive;
 
    var
      AID: Word;
-     C: String[40];
-     CurDir: String;
      Arc: PARJArchive;
-     f: lFile;
+     Dlg: PDialog; { Flash 25-12-2002 }
      D : record
        Name : String;
        Password : String[40];
@@ -681,22 +683,25 @@ procedure MakeArchive;
        Archiver : Word;
        Mode : Word;
      end;
-     Dlg: PDialog; { Flash 25-12-2002 }
-     BFile: String;
+     C: String[40];
      F1: lText;
+     f: lFile;
+     CurDir: String;
+     BFile: String;
 
 
   function MakeListFile: String;
-   var F: lText;
+   var
        PF: PFileRec;
        I: Integer;
-       S, S1: String;
        B: Boolean;
+       F: lText;
+       S, S1: String;
 
     procedure PutDir(const SS: String);
-     var I: Integer;
-         S1: String;
+     var
          SR: lSearchRec;
+         S1: String;
     begin
        ClrIO;
 {piwamoto.src.begin}
@@ -1043,8 +1048,16 @@ var
               Reserved4:   Longint;
              end;
    LXhdrRec: record
+              NumOfPages : Longint;
+              ObjectPageTableOffset : Longint;
+              DataPagesOffset : Longint;
               NonResTableOffs : Longint;
               TableLenght : Byte;
+             end;
+   LXPage:   record
+              PageDataOffset : LongInt;
+              DataSize : AWord;
+{              Flags : AWord;}{we don't need 'em}
              end;
    NEhdrRec: record
               NumOfSegments   : AWord;    {1c}
@@ -1145,11 +1158,30 @@ begin
         end;
         $584c :
          begin {LX}
+          ArcFile^.Seek(MZExeRec.NewExe + $14);
+          ArcFile^.Read(LXhdrRec.NumOfPages, SizeOf(LXhdrRec.NumOfPages));
+          ArcFile^.Seek(MZExeRec.NewExe + $48);
+          ArcFile^.Read(LXhdrRec.ObjectPageTableOffset, SizeOf(LXhdrRec.ObjectPageTableOffset));
+          ArcFile^.Seek(MZExeRec.NewExe + $80);
+          ArcFile^.Read(LXhdrRec.DataPagesOffset, SizeOf(LXhdrRec.DataPagesOffset));
           ArcFile^.Seek(MZExeRec.NewExe + $88);
           ArcFile^.Read(LXhdrRec.NonResTableOffs, SizeOf(LXhdrRec.NonResTableOffs));
-          ArcFile^.Seek(LXhdrRec.NonResTableOffs);
-          ArcFile^.Read(LXhdrRec.TableLenght, SizeOf(LXhdrRec.TableLenght));
-          ArcPos := LXhdrRec.NonResTableOffs + LXhdrRec.TableLenght + 4; {4=1+3}
+          if LXhdrRec.NonResTableOffs <> 0 then
+            begin
+              ArcFile^.Seek(LXhdrRec.NonResTableOffs);
+              ArcFile^.Read(LXhdrRec.TableLenght, SizeOf(LXhdrRec.TableLenght));
+              ArcPos := LXhdrRec.NonResTableOffs + LXhdrRec.TableLenght + 4; {4=1+3}
+            end
+          else
+            begin
+              ArcFile^.Seek(MZExeRec.NewExe
+                           + LXhdrRec.ObjectPageTableOffset
+                           + 8 * (LXhdrRec.NumOfPages - 1));{last page offset}
+              ArcFile^.Read(LXPage, SizeOf(LXPage));
+              ArcPos := LXhdrRec.DataPagesOffset
+                       + LXPage.PageDataOffset
+                       + LXPage.DataSize;
+            end;
          end;
         $454c :
          begin {LE}
@@ -1170,16 +1202,25 @@ begin
 end; {SkipSFX}
 
 procedure Check4ArcId; {piwamoto}
+const
+   BufferSize = $1000;{ should be enougth for everyone ;-))) }
 var
    ArcId, ArcPosID : LongInt;
+   Buffer : Array[0..BufferSize - 1] of Byte;
+   F: lFile;
 begin
-   ArcPosID := ArcPos;
+   FillWord(Buffer, BufferSize shr 1, 0);
+   ClrIO;
+   lAssignFile(F, ArcFileName);
+   lResetFileReadOnly(F, 1);
+   lSeek(F, ArcPos, 0);
+   BlockRead(F.F, Buffer, BufferSize);
+   Close(F.F);
+   ArcPosID := 0;
    Repeat
-    ArcFile^.Seek(ArcPosID);
-    ArcFile^.Read(ArcId, SizeOf(ArcId));
+    Move(Buffer[ArcPosID], ArcId, SizeOf(ArcId));
     Inc (ArcPosID);
-   Until ((ArcPosID - ArcPos) = $1fd) or {1fch = SizeOf(DN's internal ArcFile^.Read cache size) - SizeOf(ArcId)}
-         (ArcFile^.EOF) or
+   Until ((BufferSize - ArcPosID) = 3{SizeOf(ArcId)-1}) or
    {ZIP} (ArcId = $04034b50 {'PK'#3#4}) or
    {RAR} (ArcId = $21726152 {'Rar!'}) or
    {ARJ} (((ArcId and $ffff) = $ea60) and (Byte(ArcId shr 24) < $b)) or
@@ -1199,7 +1240,9 @@ begin
    {ACE} (ArcID = $78667321 {'!sfx'}) or {!sfx - ACE-SFX script}
    {ACE} (ArcID = $5846532a {'*SFX'}) or {**SFX** - ACE-SFX script}
    {CAB} (ArcId = $4643534d {'MSCF'});
-   if ((ArcPosID - ArcPos) < $1fd) and not (ArcFile^.EOF) then ArcPos := ArcPosID - 1;
+
+   if (BufferSize - ArcPosID) > 3 then ArcPos := ArcPos + ArcPosID - 1;
+
 {$IFNDEF MINARCH}
    if (ArcId and $f8ffffff) = $30686C2D {LHA/LZH} then ArcPos := ArcPos - 2;
    if ArcId = $736F5920 {LHA .COM SFX} then
@@ -1259,7 +1302,7 @@ begin
       Exit;
      end;
 {last check - uses ArcId}
-   if (ArcPosID - ArcPos) = $1fd {No known ArcId found} then
+   if (BufferSize - ArcPosID) = 3 {No known ArcId found} then
      begin {check for PackageForTheWeb script}
       ArcFile^.Seek(ArcPos);
       ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of script}

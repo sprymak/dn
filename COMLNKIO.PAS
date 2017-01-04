@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -254,11 +257,11 @@ const
   bs = 16384;
 
 var
-  s: string;
   er: Integer;
-  p: Pointer;
   optn : Word;
+  p: Pointer;
   t: tp;
+  s: string;
 
   procedure UpStr;var I:Byte;begin for I:=1 to Length(S) do S[I] := UpCase(S[I]) end;
 

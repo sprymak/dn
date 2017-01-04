@@ -68,6 +68,9 @@
 //  dn40328-fix_UC2_AIN_and_DN_micro_improvement.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -157,9 +160,10 @@ const
      {$IFDEF MICRO}+#3'Micro edition'+{$ENDIF}
      {$IFNDEF LITE}{$IFNDEF MICRO}+#13+{$ENDIF}{$ENDIF}
      +#13#3'Version %s, %s'+
-     +#13#3'http://www.dnosp.ru'+
-     +#13#3'http://dn.traktir.ru'+
-     +#13#3'http://dnosp.nm.ru'+
+     +#13#3'http://www.dnosp.com'+
+{     +#13#3'http://piwamoto.pisem.net'+}
+{     +#13#3'http://dn.traktir.ru'+}
+{     +#13#3'http://dnosp.nm.ru'+}
 {     +#13#3#0'http://www.sama.ru/~piwamoto/'#0+}
      +#13{#13}+
      +#13#3'Based on Dos Navigator'+
@@ -281,18 +285,19 @@ const
      dskEditorFind   = 3;
      dskHideCmdLine  = 4;
      dskViewerBounds = 5;
-     dskTempContents = 6;
+     {dskTempContents = 6;}
      dskTempContents2= 7;
      dskDBFFind      = 8;  {John_SW 13-05-2003}
      dskWKZFind      = 9;  {John_SW 13-05-2003}
      dskWKZReplace   = 10; {John_SW 13-05-2003}
 
 constructor TDataSaver.Load;
-  var D, L: AWord;
-      fs: PDirStorage;
-  var P: PFileRec;
-      DT: DateTime;
+  var
+      D, L: AWord;
       I, Q, Q2: LongInt;
+      DT: DateTime;
+      fs: PDirStorage;
+      P: PFileRec;
       DrNm: String;
 
 begin
@@ -405,9 +410,9 @@ end;
 procedure WriteConfig;
 {$IFDEF DNPRG}
 var
-  S: TBufStream;
   I: AWord;
   SPos: LongInt;
+  S: TBufStream;
 
   procedure StoreBlock(I: AWord; var B; Sz: AWord);
   begin
@@ -512,14 +517,14 @@ begin
 end;
 
 procedure LoadPalFromFile(const FN: String);
- var  P : longint ;
-      LoadPalette,LoadVGAPalette : Boolean;
-      St: String;
-      S: TDOSStream;
+ var
+      P : longint ;
       Pal: PString;
+      LoadPalette: Boolean;
+      S: TDOSStream;
+      St: String;
 begin
   LoadPalette    := False;
-  LoadVGAPalette := False;
   S.Init(FN, stOpenRead);
   if S.Status = 0 then
    begin
@@ -544,7 +549,6 @@ begin
             S.Read( CurrentBlink, SizeOf( CurrentBlink ) );
             SetBlink( CurrentBlink );
           end;
-       LoadVGAPalette := True;
        if StartupData.Load and osuResetPalette <> 0 then SetPalette( VGA_Palette );
 
      end;{ else
@@ -565,8 +569,6 @@ end;
 procedure TDNApplication.LoadDesktop(var S: TStream);
 var
   P: PView;
-  PP: PView;
-  Pal: PString;
   SaveState: AWord;
 begin
   lGetDir(0, ActiveDir);
@@ -597,13 +599,8 @@ end;
         {-DataCompBoy-}
 
 procedure TDNApplication.StoreDesktop(var S: TStream);
-var
-  Pal: PString;
 
 procedure WriteView(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-type TLongInt = array[0..10] of longint;
-     PLongInt = ^TLongInt;
-var l:array[0..5] of longint;
 {$IFDEF StreamDebug} Q: Text; {$ENDIF}
 begin
   if (P <> Desktop^.Last)
@@ -642,23 +639,24 @@ end;
         {-DataCompBoy-}
 procedure TDNApplication.RetrieveDesktop;
 var
-  S: PStream;
-  Sign: String[MaxSignLen];
-  B, BB: Boolean;
+  QQ: integer;
   SM,CC: Word;
+  Sign: String[MaxSignLen];
+  S: PStream;
+  BB: Boolean;
   R: TRect;
   SaveBounds: TRect;
   PS: PString;
   PJ: PString;
   Event: TEvent;
-  F: lFile;
   OldAppSize, OldDskSize: TPoint;
-  Q: String; QQ: integer;
+  F: lFile;
+  Q: String;
 
 procedure GetStringCache;
 var
-  Ss: string;
   P: PCollection;
+  Ss: string;
 begin
   Ss := CnvString(S^.ReadStr);
   if Ss <> #0#0#0 then
@@ -835,10 +833,9 @@ end;
 procedure TDNApplication.SaveDesktop(const FileName: String);
 var
   S: PStream;
-  F: lFile;
-  B: Boolean;
   PP: Pointer;
   R: TRect;
+  F: lFile;
 
 procedure PutStringCache;
 var
@@ -907,11 +904,12 @@ end;
         {-DataCompBoy-}
 constructor TDNApplication.Init;
 var
-  R: TRect;
-  I: Integer; C: Char absolute I { let's so };
-  FileName: String;
+  I: Integer;
+  C: Char absolute I { let's so };
   LoadStream: PStream;
+  R: TRect;
   Event: TEvent;
+  FileName: String;
 
 var flj: boolean;
 begin

@@ -64,6 +64,10 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn40900-temp_drive_in_directories_history.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -345,7 +349,7 @@ begin
   SeekDirectory;
   if ArvidDrives = nil then New(ArvidDrives, Init($100, $100));
   ArvidDrives^.Insert(@Self);
-  AddToDirectoryHistory(Name^+':'+CurDir,Integer(DriveType));
+  AddToDirectoryHistory(Name^+':'+CurDir, DriveType);
 end;
 
 procedure TArvidDrive.SeekDirectory;
@@ -414,7 +418,7 @@ begin
  end else CurDir := ADir;
  SeekDirectory;
  While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
- AddToDirectoryHistory(Name^+':'+CurDir,Integer(DriveType));
+ AddToDirectoryHistory(Name^+':'+CurDir, DriveType);
 end;
 
 function TArvidDrive.GetDir;
@@ -494,9 +498,9 @@ var
     CmdFileCreated: Boolean;
     OwnerPtr: PView;
     P:  PView;
-    T:  lText;
     PF: PFileRec;
     FC, FC2: TAvtFileCell;
+    T:  lText;
     Nam, Desc: String;
     CopyDir: String;
     Mask: String;
@@ -705,9 +709,8 @@ begin
 end;
 
 procedure TArvidDrive.GetFreeSpace;
-  var M, R: LongInt;
+  var M: LongInt;
       L: Array [1..2] of LongInt;
-      A: TAvtMediaCell;
 begin
   case TapeFmt of
       0:   M:=0;
@@ -851,11 +854,11 @@ procedure TArvidDrive.HandleCommand;
       OOM: Boolean;
       WasTape: Boolean;
       WasDir: Boolean;
-      Dr: String;
       LP: LongInt;
       St0: PStream;
-      NName: String;
       AA0: TAvtFileCell;
+      Dr: String;
+      NName: String;
       S0: String;
 
 
@@ -1038,17 +1041,13 @@ procedure TArvidDrive.HandleCommand;
   procedure SearchInAllFiles;
     var SR: SearchRec;
         St: PBufStream;
-        D: TTdrHeader;
   begin
     ClrIO;
     FindFirst(MakeNormName(GetPath(Name^), '*.TDR'), Archive+Byte(Security)*Hidden+ReadOnly+SysFile, SR);
     while (DOSError = 0) and not Abort and not LowMemory do
       begin
         New(St, Init(MakeNormName(GetPath(Name^), SR.Name), stOpenRead, 2048));
-        if St^.Status = stOK then
-          begin
-            SearchInStream(St, SR.Name);
-          end;
+        if St^.Status = stOK then SearchInStream(St, SR.Name);
         Dispose(St,Done);
         ClrIO;
         FindNext(SR);

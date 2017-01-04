@@ -54,6 +54,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -119,7 +122,7 @@ end;
 
 
 procedure AllocateStream;
-  var Size, Pos: LongInt;
+  var Size: LongInt;
 begin
   if BackStream <> nil then Dispose(BackStream, Done);
   BackStream := nil; SBackEnd := 0;
@@ -292,10 +295,10 @@ begin
 end;
 
 procedure SaveAvatar(St: PStream; var B; Len: Integer; var Attr: Byte);
-  var I,K: Integer;
-      S: String;
+  var
+      I, J, K: Integer;
       C: Byte;
-      J: Integer;
+      S: String;
 begin
   J := 0; C := Lo(TWordArray(B)[0]);
   for I := 0 to Len - 1 do
@@ -325,10 +328,11 @@ begin
 end;
 
 function StoreFile(const Mask, Title: String; AddLF: Boolean): PStream;
-  var S: PStream;
-      N: String;
+  var
       P: Pointer;
       K: Word;
+      S: PStream;
+      N: String;
 begin
    StoreFile := nil;
    N := GetFileNameDialog(Mask, Title, GetString(dlFileName),
@@ -399,7 +403,6 @@ end;
 
 procedure NewBackRec;
   var P: PScrollRec;
-      I: Integer;
 begin
   if ScrollBackBuffer = nil then ScrollBackBuffer := New(PCollection, Init(40,40));
   New(P, Init(B, Len*2));
@@ -453,8 +456,9 @@ procedure TScrollBack.Store;
   var W,I: AWord;
 
   procedure DoWrite(P: PScrollRec); far;
-    var B: TDrawBuffer;
+    var
         I: AWord;
+        B: TDrawBuffer;
   begin
     I := P^.Len;
     P^.Read(B, 0, I);
@@ -476,9 +480,9 @@ end;
 
 procedure TScrollBack.Draw;
   var I,J,K,M,KK,BY,BX: Integer;
-      B: TDrawBuffer;
       P: PScrollRec;
       Blk, BlkM: Boolean;
+      B: TDrawBuffer;
 begin
  Blk := CutRect.A.X <> CutRect.B.X;
  if (Term <> nil) and (Limit.X <> Term^.BufSize.X) then Limit.X := Term^.BufSize.X;
@@ -549,10 +553,11 @@ end;
 procedure TScrollBack.HandleEvent(var Event: TEvent);
 
   function GetString(N: Integer): String;
-    var B: Array[0..200] of Word;
-        S: String;
+    var
         P: Pointer;
         L: Integer;
+        B: Array[0..200] of Word;
+        S: String;
   begin
      if N < ScrollBackBuffer^.Count then
       with PScrollRec(ScrollBackBuffer^.At(N))^ do
@@ -602,9 +607,11 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
   end;
 
   procedure Search;
-    const S: String = '';
+    const
           LastPos: Integer = 0;
-    var I,J,K: Integer;
+          S: String = '';
+    var
+          I, J: Integer;
           M: String;
   begin
     M := S;
@@ -634,10 +641,10 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
   end;
 
   procedure SaveDisk;
-    var St: PStream;
-        S: String;
+    var
         I: Integer;
-        P: Pointer;
+        St: PStream;
+        S: String;
   begin
     St := StoreFile(x_x, DNApp.GetString(dlSaveScrollback),True);
     if St = nil then Exit;
@@ -674,11 +681,12 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
      end;
 
      procedure SaveANSI_AVT(AVT: Boolean);
-       var St: PStream;
-           B: Array[0..200] of Word;
-           A: Byte;
+       var
            I,X: Integer;
            P: Pointer;
+           St: PStream;
+           A: Byte;
+           B: Array[0..200] of Word;
      begin
        if AVT then St := StoreFile('*.AVT', DNApp.GetString(dlWriteAvatar),True)
               else St := StoreFile('*.ANS', DNApp.GetString(dlWriteAnsi),True);
@@ -796,9 +804,10 @@ Rep:
  end;
 
 
-  var CE: Boolean;
-      MP: TPoint;
+  var
       I: Integer;
+      MP: TPoint;
+      CE: Boolean;
 
 begin
   CE := True;

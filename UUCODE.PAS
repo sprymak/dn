@@ -56,6 +56,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -123,13 +126,11 @@ end;
 function UU_Decode(
          AFileCollection: PCollection;
          const OutputDir:String;ChkOvr,DispErr,RecoverBrokenUUE:Boolean):Boolean;
-
-var
-        PI: PWhileView;
-        R: TRect;
 var
         ErrorNumber: Integer;
         GoodNumber : Integer;
+        PI: PWhileView;
+        R: TRect;
 const
         Digits  : set of char = ['0'..'9'];
         OutBufSize = $1000;
@@ -179,29 +180,27 @@ const
         GrowStep=16;
 
 var
-        BackSize        : byte;
-        KickBack        : Boolean;
-        BackCRC         : word;
-        BackBuf         : string;
+        SectSSz,
+        CurSectSize,
+        CurFileTime     : LongInt;
+
         FileArr         : PFileArr;
+        InputStream     : PTextReader;
+        CurPSection     : PSection;
+        CurPFile        : PFile;
+        POutBuf         : PDskBufArr;
+
+        BackCRC         : word;
         NFileArr        : word;
         TmpCRC          : word;
         SectCRC         : word;
-        SectSSz         : LongInt;
-        InputStream     : PTextReader;
-        TmpInFile       : lFile;
-        OutFile         : lFile;
-        CurFileName     : string;
-        OrgT            : string;
-        OrgTLen         : byte absolute OrgT;
-        StrT            : string;
-        AuxT            : string;
-        OutFName        : String;
-        InFName         : String;
-        StrL            : byte absolute StrT;
-        AuxL            : byte absolute AuxT;
-        CurPSection     : PSection;
-        CurPFile        : PFile;
+        MaxSectNum      : word;
+        CurSectNo       : word;
+        NumErr          : word;
+        WholeSectCRC    : word;
+        OutBufPos       : word;
+
+        KickBack,
         UUfound,
         BadSection,
         ForceSkip,
@@ -214,20 +213,24 @@ var
         FileNameKnown,
         FileTimeKnown,
         NumSectKnown,
-        PrevTmp,
         ForceEOF,
         MaxSectKnown    : Boolean;
-        MaxSectNum,
-        CurSectNo       : word;
-        NumErr          : word;
+
         SubPos          : byte;
-        WholeSectCRC    : word;
-        OutBufPos       : word;
-        POutBuf         : PDskBufArr;
-        CurSectSize,
-        CurFileTime,
-        HeapBegin,
-        HeapEnd         : LongInt;
+        BackSize        : byte;
+
+        TmpInFile       : lFile;
+        OutFile         : lFile;
+
+        BackBuf         : string;
+        CurFileName     : string;
+        OrgT            : string;
+        OrgTLen         : byte absolute OrgT;
+        StrT            : string;
+        StrL            : byte absolute StrT;
+        AuxT            : string;
+        OutFName        : string;
+        InFName         : string;
 
 
  procedure FReadLn;
@@ -353,7 +356,9 @@ end;
 
 
 function  SSStr(a:LongInt;n:Byte;ch:Char):string;
-var s:string;i:Byte;
+var
+   i:Byte;
+   s:string;
 begin
  Str(a:n,s);for i:=1 to n do if s[i]=' ' then s[i]:=ch else break;
  SSStr:=s;
@@ -548,20 +553,18 @@ begin
 end;
 
 procedure CompileFile;
-var i,j               : word;
-    PA,FA             : word;
-    MissS             : string;
-    SingleMiss        : Boolean;
+var
+    i,j,PA,FA: word;
+    SingleMiss: Boolean;
+    MissS: string;
 
 procedure MoveSection(var a:TSection);
 const
   BufSize=1024;
 var
-  Buf: array[1..BufSize] of byte;
   c  : word;
   i  : word;
-  l  : longint;
-  s  : string;
+  Buf: array[1..BufSize] of byte;
 
   procedure Mve(Sz:word);
   begin
@@ -1069,9 +1072,10 @@ begin
 end;
 
 procedure CheckExist;
-var f: String;
+var
     P: Pointer;
     i,j : word;
+    f: String;
 begin
  if not ChkOvr then Exit;
  j:=0;
@@ -1293,8 +1297,8 @@ end;
 procedure DoUuDecode(AFileRec: Pointer); {$IFDEF BIT_16}far;{$ENDIF}
 var
  PF: PFileRec absolute AFileRec;
- InputFileName: String;
  IdleTimer: TEventTimer;
+ InputFileName: String;
 begin
  if (PF^.Attr and Directory <> 0) then Exit;
  InputFileName:=MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
@@ -1334,9 +1338,6 @@ begin
  Message(Application, evCommand, cmCopyUnselect, PF);
 end;
 
-var
-    PP,P1 : PView;
-    PL : PSortedListBox;
 
 begin { Uu_Decode }
  POutBuf:=NIL;NFileArr:=0;BadSection:=False;KickBack:=False;
@@ -1356,8 +1357,9 @@ end;
         {-DataCompBoy-}
 
 procedure UuDecode(AFileCollection: PCollection);
-var  Dr: Record  S:String; Opt: Word; end;
+var
      BeepDisabled:Boolean;
+     Dr: Record  S:String; Opt: Word; end;
 begin
  Inc(SkyEnabled);
  Dr.S := '';
@@ -1430,53 +1432,36 @@ type
  {$ELSE}
                 UUETitle = '< UUE by DN OSP  >';
  {$ENDIF}
-  var ST: lfile;
-      GetLnEnd: string[2];
+  var
+      I, Start: Integer;
+
+      Sec64Pn, SecCRC, EntireP64, EntireCRC: Word;
+
+      SouTime, SouSize: LongInt;
       NLines: LongInt;
       L, FL, CRC, RSize: LongInt;
-      S: String;
-      I, Start: Integer;
-      Nm: String;
-      Xt: String;
-      Dr: String;
+      MaxSectSize, SectSize, LastSectSize, NumSect: LongInt;
+      TxtBufSize, SecCRCs, StrPerLastS, SectNo, StrPerSect: LongInt;
+      OutBufSize, MsgNameNum: LongInt;
+
       P: Pointer;
       PI: PWhileView;
+      DskBuf, SouBuf: PDskBufArr;
       R: TRect;
+
       Cancel, All, Skip: Boolean; { Flash 30-04-2003 }
+      WriteError : Boolean;
+      CalcEntireCrc, CalcSectCrc, CalcLineCrc, Calc64Crc: Boolean;
 
-        Sec64Pn,
-        SecCRC,
-        EntireP64,
-        EntireCRC
+      GetLnEnd: string[2];
 
-                   : Word;
+      EntireC64: T64;
+      Sec64Crc        : T64;
 
-        SouTime    : LongInt;
-        SouSize    : LongInt;
-        WriteError : Boolean;
-
-        MaxSectSize,
-        SectSize,
-        LastSectSize,
-        NumSect                  : LongInt;
-        EntireC64                : T64;
-
-        TxtBufSize,
-        SecCRCs,
-        StrPerLastS,
-        SectNo,
-        StrPerSect      : LongInt;
-        t               : lfile;
-        DskBuf,SouBuf   : PDskBufArr;
-        OutBufSize,
-        MsgNameNum      : LongInt;
-        Sec64Crc        : T64;
-        CalcEntireCrc,
-        CalcSectCrc,
-        CalcLineCrc,
-        Calc64Crc       : Boolean;
-        OutName         : String;
-        SouName         : String;
+      t, ST: lfile;
+      S: String;
+      Dr, Nm, Xt: String;
+      OutName, SouName: String;
 
 procedure GetData(var Buf; Count: Word);
 begin
@@ -1651,9 +1636,10 @@ var
   UUEData: TUUEncodeData;
 
 procedure StartSection;
-var LocalFreeStr, o:string;
+var
     P: Pointer;
     II: Integer;
+    LocalFreeStr, o:string;
 begin
  Inc(SectNo);
  Skip:=False; { Flash 30-04-2003 }
@@ -1867,7 +1853,7 @@ end;
 procedure DoIt;
 var sss,Ma:LongInt;
     II : Integer;
-    LocalFreeStr, UUEncodeDataName: string;
+    LocalFreeStr: string;
 Label beg;
 begin
 
@@ -1958,7 +1944,6 @@ beg:
      end;
     NewTimer(Timer, 0);
     end;
-
 
  GetFInfo;
 

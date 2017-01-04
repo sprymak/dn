@@ -48,16 +48,19 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
 unit PackF_RS;
 (* Packed File: Read/Seek *)
-(* Autor: Anton Fedorov AKA DataCompBoy (DN OSP v1.51.05) *)
+(* Author: Anton Fedorov AKA DataCompBoy (DN OSP v1.51.05) *)
 (* Debugger: Sergey Korshunoff AKA SeYKo *)
 (* 13.07.2000:                           *)
-(*  Added paritally packed files support *)
+(*  Added partially packed files support *)
 
 interface
 
@@ -161,12 +164,12 @@ const
 
 function pOpen(Name: PChar; Mode: Byte): Word;
 var
-  SaveMode: Byte;
-  FileSig: String[12];
   CP, CPS: Word;
   L: LongInt;
   i: Word;
   Vers: Word;
+  SaveMode: Byte;
+  FileSig: String[12];
 const
   AddOnS = 4*2 + SizeOfPackedSig;
 begin
@@ -314,8 +317,8 @@ end;
 function pRead(F: Word; Num: Word; Buf: Pointer): Word;
 var
   i, j, k: Word;
-  InpBuf, OutBuf: PBuf;
   CurPageS, InpBufSize: Word;
+  InpBuf, OutBuf: PBuf;
 begin
   pRead:=0; InOutRes:=0;
   if (F<MinRange) or (F>MaxRange) or (Handles=nil)

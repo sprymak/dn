@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$i-}{$m 8192, 102400, 655360}
@@ -56,8 +59,9 @@ program PackMap;
 uses Objects, Collect, Advance1, Crt;
 
 function FromHex(S: string): longint;
- var b: byte;
+ var
      l: longint;
+     b: byte;
  begin
   l:=0;
   for b:=1 to length(s) do
@@ -70,8 +74,9 @@ function FromHex(S: string): longint;
  end;
 
 function FromDec(S: string): longint;
- var b: byte;
+ var
      l: longint;
+     b: byte;
  begin
   l:=0;
   for b:=1 to length(s) do
@@ -90,19 +95,20 @@ Type TSR = Record
             StrtAddrOfs: Word;
            End;
 
-var OData: TBufStream;
+var
+    i,j: longint;
+    q: longint;
+    cfi: word;
+    readstate: (_StartRead, _ReadFuncs, _ReadLines, _EndRead);
+    clr: TSR;
+    nb, ne: byte;
+    str:string[80];
+    a: array[0..4095] of byte;
+    OData: TBufStream;
     MapDt: TBufStream;
     Map: Text;
     ps: string;
     s: string;
-    readstate: (_StartRead, _ReadFuncs, _ReadLines, _EndRead);
-    clr: TSR;
-    cfi: word;
-    nb, ne: byte;
-    a: array[0..4095] of byte;
-    i,j: longint;
-    q: longint;
-    str:string[80];
 {!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 Function f(var x,y:TSR):Boolean;
   Begin
@@ -257,11 +263,11 @@ begin
     OData.Write(clr, sizeof(clr));
    end;
 
-   assign(Map, ps+'.map');
+   assign(Map, ps+'.MAP');
    reset(Map);
    if IOResult<>0 then
     begin
-     writeln(' Cannot open '+ps+'.map');
+     writeln(' Cannot open '+ps+'.MAP');
      halt(1);
     end;
 
@@ -325,10 +331,10 @@ ReadLines:
    PoglSort;
    Writeln('done');
 
-   MapDt.Init(ps+'.mpp', stCreate, $2048);
+   MapDt.Init(UpStrg(ps)+'.MPP', stCreate, $2048);
    if MapDt.Status<>0 then
     begin
-     writeln(' Cannot create '+ps+'.mpp');
+     writeln(' Cannot create '+ps+'.MPP');
      halt(1);
     end;
 

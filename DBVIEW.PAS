@@ -86,6 +86,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -227,10 +230,11 @@ begin
 end;
 
 function TFieldListBox.GetText;
- var P: PFieldRec;
-     S: String;
+ var
+     P: PFieldRec;
      S1, S2, S3, S4: String[20];
      M: Array [0..4] of Pointer;
+     S: String;
 begin
  P := List^.At(Item);
  LongInt(M[0]) := Item+1;
@@ -378,11 +382,8 @@ Procedure TDBViewer.Store ;
 
 
 function DateToHuman(const S: String): String;
-  var I: Integer;
-      C: Char;
-      BB: Byte;
-      D, M: String[2];
-      Y: String[4];
+var D, M: String[2];
+    Y: String[4];
 begin
  Y:=Copy(S, 1, 4);
  M:=Copy(S, 5, 2);
@@ -482,8 +483,6 @@ begin
 end;
 
 function TDBViewer.GetRecord;
- var
-     I: Integer;
 begin
  GetRecord := nil;
  if N < 0 then N := 0;
@@ -504,7 +503,8 @@ begin
 end;
 
 procedure TDBViewer.GetInfo;
- var R: TRect;
+ var
+     R: TRect;
      D: PDialog;
      P: PView;
 begin
@@ -569,14 +569,13 @@ begin
 end; {-$VIV}
 
 procedure TDBViewer.SetXlatFile;
-  var Dr: String;
-      Nm: String;
-      Xt: String;
+  var
+      I,J: Integer;
       S: TDosStream;
       Table: Array [1..256] of Record A, B: Char end;
-      C, CC: Char;
-      I,J: Integer;
-{      PC: PChar;}
+      Dr: String;
+      Nm: String;
+      Xt: String;
 begin
   if aFName <> '' then
   begin
@@ -648,14 +647,15 @@ procedure TDBViewer.HandleEvent;
 
 {--- start -------- Eugeny Zvyagintzev ---- 14-03-2003 ----}
  procedure LoadXlatTable;  {JO}
-   var FN: String;
+   var
        More: Boolean;
        None: Boolean;
+       FN: String;
        OldFN: String; {JOHN_SW}
  begin
    FN := CnvString(XlatFile);
    OldFN:=FN; {JOHN_SW}
-   if FN <> '' then FN := FN + '.xlt';
+   if FN <> '' then FN := FN + '.XLT';
    More := True;
    None := UseXlat;
    FN := GetFileNameMenu(SourceDir+'XLT\','*.XLT', FN, True, More, None);
@@ -691,15 +691,16 @@ procedure TDBViewer.HandleEvent;
 
         {-DataCompBoy-}
  procedure ViewMemo;
-  var P: PByteArray;
-      PFR: PFieldRec;
-      S: String;
+  var
       L, ML: LongInt;
       I: Integer;
+      P: PByteArray;
+      PFR: PFieldRec;
       D: PDialog;
       R: TRect;
       PV: PView;
       MemoStream: PStream;
+      S: String;
       Dr: String;
       Nm: String;
       Xt: String;
@@ -809,11 +810,11 @@ procedure TDBViewer.HandleEvent;
  procedure ContSearch(StartSearch: Boolean);
   var FirstFld,LastFld,CurFld,CurRow: LongInt;
       PFR: PFieldRec;
-      S, SS: String;
-      P: PByteArray;
       V: PWhileView;
       R: TRect;
       T: TEventTimer;
+      P: PByteArray;
+      S, SS: String;
  begin
   SS := SearchData.S;
   if SearchData.Opt and 1 = 0 then UpStr(SS);
@@ -923,15 +924,16 @@ procedure TDBViewer.HandleEvent;
 { -------- Eugeny Zvyagintzev ---------}
 
  procedure EditField;
-   var P: PChar;
-       PFR: PFieldRec;
-       S: String;
-       R: Real;
+   var
        I: Integer;
        MM, DD, YY: Word;
        II, N1, N2, N3: Word;
-       LL: Array [0..3] of LongInt;
        FldLen : AWord; { Kirill }
+       P: PChar;
+       PFR: PFieldRec;
+       R: Real;
+       LL: Array [0..3] of LongInt;
+       S: String;
 
    procedure StoreField;
    begin
@@ -1030,9 +1032,10 @@ procedure TDBViewer.HandleEvent;
  procedure CE; begin ClearEvent(Event) end;
  procedure CED; begin CE; DrawView end;
 
- var F: lFile; {DataCompBoy}
-     P: TPoint;
+ var
      RD: Word;
+     P: TPoint;
+     F: lFile; {DataCompBoy}
 
 begin
  inherited HandleEvent(Event);
@@ -1121,16 +1124,17 @@ end;
 
 
 procedure TDBViewer.Draw;
- var B: Array [0..1024] of record C: Char; A: Byte; end;
-     FN: Array [0..132] of PFieldRec;
-     C1, C2 ,C3: Word;
-     C: Byte;
+ var
      I, J, K, NFN: Integer;
      FldLen : Word; { Kirill }
-     FldPart: Byte;
+     C1, C2 ,C3: Word;
      Idx: LongInt;
+     C: Byte;
+     FldPart: Byte;
      PFR: PFieldRec;
      P: PByteArray;
+     B: Array [0..1024] of record C: Char; A: Byte; end;
+     FN: Array [0..132] of PFieldRec;
      S: String;
 begin
  C1 := GetColor(1); C2 := GetColor(2); C3 := GetColor(3);
@@ -1219,10 +1223,11 @@ begin
 end;
 
 procedure TDBIndicator.Draw;
- var B: TDrawBuffer;
-     S,S1: String; {John_SW 18-03-2003}
+ var
      C: Byte;
      PFR: PFieldRec;
+     B: TDrawBuffer;
+     S,S1: String; {John_SW 18-03-2003}
 begin
  {10171114/10171114ÍÍÍ[C 10,10]ÍWINÍ}
  If (DBViewer = Nil) Or (DBViewer^.DBFile = Nil) Then Exit;
@@ -1261,8 +1266,9 @@ begin
 end;
 
 constructor TDBWindow.Init;
- var R  : TRect;
+ var
      I  : Integer;
+     R  : TRect;
      s  : String;
 begin
  DeskTop^.GetExtent(R);

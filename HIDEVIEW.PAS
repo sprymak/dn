@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -104,8 +107,9 @@ begin
  N := 5; W := 15;
 end;
 procedure TStdWindow.ExecWindowMenu;
- var Menu: PMenu;
+ var
      N, W: Word;
+     Menu: PMenu;
      R: TRect;
      P: PView;
 begin

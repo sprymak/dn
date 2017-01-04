@@ -68,6 +68,9 @@
 //  dn31029-Kernel(f)-Word_to_AWord_changed_in_dialogs_in_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -696,8 +699,8 @@ end;
 
 procedure TInputLine.Draw;
 var
-  Color: Byte;
   L, R: Integer;
+  Color: Byte;
   B: TDrawBuffer;
   S: String;
 begin
@@ -881,7 +884,6 @@ procedure ASCIITable;
  var
   P: PWindow;
   W: Word;
-  E: TEvent;
   R: TRect;
   CR:PView;
    function GetCH: boolean;
@@ -1406,8 +1408,8 @@ end;
 procedure TButton.DrawState(Down: Boolean);
 var
   CButton, CShadow: Word;
-  Ch: Char;
   I, S, Y, T: Integer;
+  Ch: Char;
   B: TDrawBuffer;
 
 procedure DrawTitle;
@@ -1733,7 +1735,6 @@ var
   I,J,Cur,Col: Integer;
   CNorm, CSel, CDis, Color: Word;
   B: TDrawBuffer;
-  SCOff: Byte;
 begin
   CNorm := GetColor($0301);
   CSel := GetColor($0402);
@@ -2236,9 +2237,9 @@ end;
 
 procedure TStaticText.Draw;
 var
+  I, J, L, P, Y: Integer;
   Color: Byte;
   Center: Boolean;
-  I, J, L, P, Y: Integer;
   B: TDrawBuffer;
   S: String;
 begin
@@ -2357,8 +2358,8 @@ end;
 procedure TLabel.Draw;
 var
   Color: Word;
-  B: TDrawBuffer;
   SCOff: Byte;
+  B: TDrawBuffer;
 begin
   if Light then
   begin
@@ -2458,9 +2459,9 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
 
  {-$ WildCat $ -}
  var
-   CurStr    : string;
    Value     : integer;
    T         : Boolean;
+   CurStr    : string;
 
  function Equal(const S1, S2: string; Count: Word): Boolean;
  var
@@ -2475,7 +2476,7 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
 
  function Search(const S1: string; SearchPos: Integer; var Index: Integer):Boolean;
  var
-   L, H, I, C: Integer;
+   L, H: Integer;
  begin
    Search := False;
    L := Index;
@@ -2712,9 +2713,9 @@ end;
 
 procedure THistory.HandleEvent(var Event: TEvent);
 var
+  C: Word;
   HistoryWindow: PHistoryWindow;
   R,P: TRect;
-  C: Word;
   Rslt: String;
 begin
   TView.HandleEvent(Event);
@@ -2891,9 +2892,10 @@ begin
 end;
 
 procedure THexLine.Draw;
- var B: TDrawBuffer;
-     S: String;
+ var
      C: Word;
+     B: TDrawBuffer;
+     S: String;
 begin
  if CurX > Byte(InputLine^.Data^[0]) then CurX := Byte(InputLine^.Data^[0]);
  if CurX < 0 then CurX := 0;

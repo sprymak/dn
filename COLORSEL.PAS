@@ -54,6 +54,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -271,9 +274,9 @@ end;
 
 procedure TColorSelector.Draw;
 var
-  B: TDrawBuffer;
   C, I, J: Integer;
   a: Boolean;
+  B: TDrawBuffer;
 begin
   a:= PColorDialog(Owner)^.BakSel = @Self;
 
@@ -530,9 +533,9 @@ end;
 
 procedure TColorDisplay.Draw;
 var
-  B: TDrawBuffer;
   I: Integer;
   C: Byte;
+  B: TDrawBuffer;
 begin
   C := Color^;
 
@@ -596,10 +599,10 @@ constructor TColorGroupList.Load(var S: TStream);
 
 function ReadItems: PColorItem;
 var
+  I: Integer;
+  Count: AInt;
   Itms:  PColorItem;
   CurItm: ^PColorItem;
-  Count: AInt;
-  I: Integer;
 begin
   S.Read(Count, SizeOf(AInt));
   Itms := nil;
@@ -620,9 +623,9 @@ end;
 
 function ReadGroups: PColorGroup;
 var
+  Count, I: AInt;
   Grps:  PColorGroup;
   CurGrp: ^PColorGroup;
-  Count, I: AInt;
 begin
   S.Read(Count, SizeOf(AInt));
   Grps := nil;
@@ -697,8 +700,8 @@ end;
 
 function TColorGroupList.GetText(Item: LongInt; MaxLen: Integer): String;
 var
-  CurGroup: PColorGroup;
   I: Integer;
+  CurGroup: PColorGroup;
 begin
   CurGroup := Groups;
   while Item > 0 do
@@ -713,8 +716,8 @@ procedure TColorGroupList.Store(var S: TStream);
 
 procedure WriteItems(Items: PColorItem);
 var
-  CurItm: PColorItem;
   Count: AInt;
+  CurItm: PColorItem;
 begin
   Count := 0;
   CurItm := Items;
@@ -738,8 +741,8 @@ end;
 
 procedure WriteGroups(Groups: PColorGroup);
 var
-  CurGrp: PColorGroup;
   Count: Integer;
+  CurGrp: PColorGroup;
 begin
   Count := 0;
   CurGrp := Groups;
@@ -873,9 +876,9 @@ end;
 
 procedure TColorItemList.HandleEvent(var Event: TEvent);
 var
+  I: Integer;
   CurItem: PColorItem;
   Group: PColorGroup;
-  I: Integer;
 begin
   TListViewer.HandleEvent(Event);
   if Event.What = evBroadcast then
@@ -902,13 +905,12 @@ end;
 
 constructor TColorDialog.Init( AGroups: PColorGroup );
 var
+  GroupWidth, ItemsWidth: Integer;
+  IX, IW: Integer;
   R: TRect;
   P: PView;
-  GroupWidth, ItemsWidth: Integer;
   G: PColorGroup;
   I: PColorItem;
-  IX, IW: Integer;
-
 begin
   GroupWidth := 0;
   ItemsWidth := 0;

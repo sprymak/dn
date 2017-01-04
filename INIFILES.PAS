@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -114,8 +117,8 @@ end;
 
 FUNCTION ReadString( var Stream: TStream ): String;
 var
-  S: String;
   C: Char;
+  S: String;
 label
   Loop, Failure;
 begin
@@ -252,14 +255,10 @@ begin
 end;
 
 FUNCTION TIniSection.GetIndexOf;
-var
-  P: PString;
-  S: String;
-  I: Integer;
   function Search( P: PString ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
   var
-    S: String;
     I: Integer;
+    S: String;
   begin
     S := UpStrg( PStr2Str( P ));
     I := Pos( Key, S );
@@ -313,8 +312,8 @@ end;
 
 FUNCTION TIniSection.GetKeyAt;
 var
-  S: String;
   I: Integer;
+  S: String;
 begin
   S := PStr2Str( At( Index ));
   I := PosChar( '=', S );
@@ -325,8 +324,8 @@ end;
 
 FUNCTION TIniSection.GetValueAt;
 var
-  S: String;
   I: Integer;
+  S: String;
 begin
   S := PStr2Str( At( Index ));
   I := PosChar( '=', S );
@@ -339,8 +338,8 @@ end;
 {----------------------------------------------------------------------------}
 CONSTRUCTOR TIniFile.Init;
 var
-  T: TBufStream;
   P: PIniSection;
+  T: TBufStream;
 begin
   inherited Init( 5, 5 );
   Name := NewStr( FileName );

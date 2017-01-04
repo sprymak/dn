@@ -58,6 +58,9 @@
 //  dn31220-Kernel(f)-panel_setups_works_in_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -195,11 +198,12 @@ begin
 end;
 
 procedure SystemSetup;
- var W: Word;
-     D: PDialog;
+ var
+     W: Word;
      B: Boolean;
-     Data: TSysData;
      i: char;
+     D: PDialog;
+     Data: TSysData;
 begin
  OpenResource; if Resource = nil then Exit;
  D := PDialog(Application^.ValidView(PDialog(Resource^.Get( dlgSystemSetup ))));
@@ -541,9 +545,6 @@ begin
   SetParams( 0, 0, Size.X-1, 3, 1 );
 end;
 
-const
-  HSenseY = 3;
-
 FUNCTION TMouseBar.DataSize: Word;
 begin DataSize:=SizeOf(AWord); end;
 
@@ -563,8 +564,8 @@ end;
 {----------------------------------------------------------------------------}
 PROCEDURE TSaversListBox.HandleEvent;
 var
-  PS: PString;
   F: Integer;
+  PS: PString;
   A, S: PCollection;
   LocalData: TSaversData;
   function SeekStr( P: PString ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
@@ -705,8 +706,8 @@ end;
         {-DataCompBoy-}
 PROCEDURE TSaversDialog.Awaken;
 var
-  lSR: lSearchRec;
   Data: TSaversData;
+  lSR: lSearchRec;
 begin
   Data := SaversData;
   Data.Available.Focus := 0;
@@ -766,9 +767,10 @@ procedure TUpperTable.GetData; begin Move(Table, Rec, 128); end;
 procedure TUpperTable.SetData; begin Move(Rec, Table, 128); end;
 
 procedure TUpperTable.Draw;
-  var B: TDrawBuffer;
+  var
       I: Integer;
       C: Word;
+      B: TDrawBuffer;
 begin
   if CurrentChar < Delta then Delta := CurrentChar;
   if CurrentChar - Delta > Size.X - 1 then Delta := CurrentChar - Size.X + 1;

@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -68,8 +71,9 @@ type
 implementation
 
 procedure TDStringView.Draw;
- var B: TDrawBuffer;
+ var
      C: Word;
+     B: TDrawBuffer;
 begin
  C := GetColor(1);
  MoveChar(B, ' ', C, Size.X);

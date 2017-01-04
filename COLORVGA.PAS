@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -64,8 +67,8 @@ implementation
 uses Objects, Drivers, Views, Dialogs, commands, Dos,  DnApp, Startup,
      advance, advance1, advance2, advance3, collect, Messages, VideoMan;
 
- Const  cmColorSet               = 73;
-        cmColorMouseSelection    = 74;
+ Const cmColorMouseSelection    = 74;
+
  type
 
   PRegLabel = ^TRegLabel;
@@ -130,8 +133,9 @@ begin
 end;
 
   Procedure TColorView.Draw;
-    var    B : TDrawBuffer;
-           I,J,C : byte ;
+    var
+       I,J,C : byte;
+       B : TDrawBuffer;
     begin
     {  MoveChar(B,' ',  Color2Display shl 4, Size.X);
       WriteLine(0, 0, Size.X, Size.Y, B);
@@ -176,9 +180,9 @@ end;
 
  Constructor TColorVGADialog.Init ;
    var
+     i : integer;
      R : TRect;
      Control, Labl, Histry : PView;
-     i : integer;
      S: String;
   begin
 

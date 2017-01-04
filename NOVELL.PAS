@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -360,9 +363,6 @@ IMPLEMENTATION
 
 uses advance, advance1, advance2, advance3;
 
-const
-     zero = '0';
-
 var
    retcode : byte; { return code for all functions }
 
@@ -512,10 +512,9 @@ begin
 
 procedure get_drive_connection_id(var drive_number, server_number : integer);
 var
-
- drive_table : array [1..32] of byte;
        count : integer;
            p : ^byte;
+ drive_table : array [1..32] of byte;
 begin
   server_number := 0; {-$VIV 13.05.99}
   regs.ah := $EF;
@@ -534,13 +533,12 @@ end;
 procedure get_file_server_name(var server_number : integer; var server_name :
 string);
 var
-  name_table : array [1..8*48] of byte;
-      server : array [1..8] of string;
        count : integer;
       count2 : integer;
-           p : ^byte;
      no_more : integer;
-
+           p : ^byte;
+  name_table : array [1..8*48] of byte;
+      server : array [1..8] of string;
 begin
   server_name := ''; {-$VIV 13.05.99}
   regs.ah := $EF;
@@ -614,10 +612,9 @@ end;
 
 procedure get_drive_handle_id(var drive_number, handle_number : integer);
 var
- drive_table : array [1..32] of byte;
        count : integer;
            p : ^byte;
-
+ drive_table : array [1..32] of byte;
 begin
   handle_number := 0; {-$VIV 13.05.99}
   regs.ah := $EF;
@@ -914,12 +911,12 @@ procedure map(var drive_spec:string; var _rights:byte; var _retcode :
 integer);
 var
     dir_handle : integer;
-     path_name : string;
-        rights : byte;
   drive_number : integer;
-  drive_letter : string;
     new_handle : integer;
        retcode : integer;
+        rights : byte;
+     path_name : string;
+  drive_letter : string;
 
 begin
  {first thing is we strip leading and trailing blanks}
@@ -1082,7 +1079,6 @@ end;
 procedure GetHexID( var userid,hexid: string; var retcode: integer);
 var
     i,x           : integer;
-    hex_id        : string;
     requestbuffer : record
       len      : integer;
       func     : byte;
@@ -1097,6 +1093,7 @@ var
       conntype : word;
       name     : packed array [1..48] of byte;
       end;
+    hex_id        : string;
 
 begin
   regs.ah := $E3;
@@ -1211,10 +1208,10 @@ end;
 procedure send_message_to_username(username,message : string; var retcode:
 integer);
 VAR
-   count1     : byte;
-   userid     : string;
    stationid  : integer;
    ret_code   : integer;
+   count1     : byte;
+   userid     : string;
 
 begin
    ret_code := 1;
@@ -1302,9 +1299,9 @@ procedure getuser( var _station: integer; var  _username: string; var retcode:
 integer);
 {This procedure provides a shorter method of obtaining just the USERID.}
 var
-     gu_hexid : string;
   gu_conntype : integer;
   gu_datetime : string;
+     gu_hexid : string;
 
 begin
   getconnectioninfo(_station,_username,gu_hexid,gu_conntype,gu_datetime,retcode);
@@ -2130,7 +2127,6 @@ procedure get_server_lan_driver_information(var _lan_board_number : integer;
                                                 _retcode : integer);
 
 var      count : integer;
-          text : array [1..3] of string;
             x1 : integer;
 
          request_buffer : record
@@ -2147,6 +2143,9 @@ var      count : integer;
           option_number : byte;
      configuration_text : array [1..160] of byte;
                      end;
+
+          text : array [1..3] of string;
+
 begin
  with request_buffer do begin
       length := 2;

@@ -54,6 +54,9 @@
 //  dn31214-WKZ(f)-wkz_works_in_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -291,8 +294,9 @@ end;
 {-----------------------------------------------------------------------}
 
 function GetCellCoord(S: String; var X: Byte;var Y:Integer): Boolean;
- var S1: String[5];
+ var
      I: Integer;
+     S1: String[5];
 begin
  UpStr(S);
  S1:=''; I := 1;
@@ -317,8 +321,9 @@ end;
 
 {$IFNDEF VIRTUALPASCAL}
 function MakeComma(S: String): String;
- var S1: String;
+ var
      I: Integer;
+     S1: String;
  label Quit;
 begin
  S1 := S;

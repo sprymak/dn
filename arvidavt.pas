@@ -54,6 +54,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -299,17 +302,17 @@ end;
 
 function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
 var
+  FC:         TAvtFileCell;
+  FCL:        TAvtFileCell;
+  FCR:        TAvtFileCell;
+  NewCurDirPos:  LongInt;
+  DelDirAnswer:  Word;
   SaveCurDir: String;
   CurDir2:    String;
   Dr:         String;
   Nm:         String;
   Xt:         String;
   SN:         String;
-  FC:         TAvtFileCell;
-  FCL:        TAvtFileCell;
-  FCR:        TAvtFileCell;
-  NewCurDirPos:  LongInt;
-  DelDirAnswer:  Word;
 
 label 1;
 
@@ -465,7 +468,6 @@ label 1;
 
     function AvtTreeRemoveRightmost(const Loc: LongInt): LongInt;
     var
-      OldBalance3:  LongInt;
       L1, L2:       LongInt;
     begin with AvtDr^ do begin
       Stream^.Seek(Loc); Stream^.Read(FC, SizeOf(FC));
@@ -636,15 +638,7 @@ function AvtNewFile(
   AAttr:        Word ): word;
 
 var
-  SaveCurDir: String;
-  CurDir2:    String;
-  Dr:         String;
-  Nm:         String;
-  Xt:         String;
-  SN:         String;
-  SS:         String;
   FC:         TAvtFileCell;
-  NewCurDirPos:  LongInt;
   NewCell:       LongInt;
   Lv:                 Integer;
   NewCellFailed:      Boolean;
@@ -652,6 +646,13 @@ var
   CreatedCellIsDir:   Boolean;
   NewCellIsDir:       Boolean;
   FirstNameProcessed: Boolean;
+  SaveCurDir: String;
+  CurDir2:    String;
+  Dr:         String;
+  Nm:         String;
+  Xt:         String;
+  SN:         String;
+  SS:         String;
 
   function AvtPutText(S: String): LongInt;
   var
@@ -845,8 +846,6 @@ var
   procedure AvtMakeNew;
   var
     NewCurDirPos: LongInt;
-    DD:           TAvtFileCell;
-    I:            Integer;
   begin with AvtDr^ do begin
     NewCellFailed:=False;
     Lv:=CurLevel+1; Stream^.Status:=stOK;
@@ -1110,9 +1109,9 @@ var
   PD:     PDrive;
   I,J:    Integer;
   PF:     PFileRec;
-  T:      lText;
   CmdFileCreated: Boolean;
   P:      PView;
+  T:      lText;
   Dr: String;
   Nm: String;
   Xt: String;

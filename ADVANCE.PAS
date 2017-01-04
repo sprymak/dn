@@ -56,6 +56,9 @@
 //  dn40307-define_DN_Micro.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -296,9 +299,7 @@ var
                           { programs is supported                         }
                           { use opsys and opOS2 <> 0 to determine if OS/2 }
                           { is running                                    }
-    FreeStr  : string;
     FreeByte : byte; {DataCompBoy 8)}
-    ActiveDir: String; {DataCompBoy}
     DNNumber: Byte;
     UpCaseArray: array[Char] of Char Absolute UpperString ;
     LowCaseArray: array[Char] of Char Absolute LowerString ;
@@ -323,6 +324,8 @@ var
 {$ENDIF}
   LngFile:    String;
   SwpDir:     String;
+  FreeStr:    String;
+  ActiveDir:  String;
        {-DataCompBoy-}
 Const
   DirToChange: String = ''; {DataCompBoy}
@@ -431,10 +434,10 @@ end;
         {-DataCompBoy-}
 function TTextReader.GetStr: string;
 var
-  CurStr: string;
-  CurLen: byte absolute CurStr;
   BufBeg: Integer;
   Was: Boolean;
+  CurStr: string;
+  CurLen: byte absolute CurStr;
 
 procedure aStr(D: Integer);
 var

@@ -51,6 +51,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -104,11 +107,12 @@ begin
 end;
 
 procedure TDefCollection.ProceedFile;
-var F: lText;
-    S: String;
-    Q: String;
+var
     I,j: integer;
     B: boolean;
+    F: lText;
+    S: String;
+    Q: String;
 begin
  lAssignText(F, FName);
  lResetText(F);

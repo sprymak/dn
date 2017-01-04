@@ -51,6 +51,9 @@
 //  dn16rc1-vp_noasm_compatible.patch
 //
 //  2.0.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -407,8 +410,9 @@ begin
 end;
 
 procedure HistoryAdd(Id: Byte; const Str: String);
-  var C: Char;
+  var
       I,J: Integer;
+      C: Char;
 begin
   if Str = '' then Exit;
   if HistoryUsed < 3 then HistoryUsed := 1;

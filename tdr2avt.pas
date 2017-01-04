@@ -51,6 +51,9 @@
 //  dn3331-Arvid_bugfix_and_TDR_detection.patch
 //
 //  3.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 program TDR2AVT;
@@ -92,19 +95,19 @@ Uses
 
 procedure do_tdr_to_avt;
 var
-  Path, Path2, Dr,Nm,Ex,S1,S2,Desc: String;
   PTDR: PArvidDrive;
   PAVT: PArvidDrive;
   PF:   PFileRec;
   FC:   TTdrFileCell;
+  Path, Path2, Dr,Nm,Ex,S1,S2,Desc: String;
 const
   FilesCounter: LongInt = 0;
 
     procedure prepare_avt;
     var
+     D:       TTdrHeader;
      IStream: PBufStream;
      OStream: PBufStream;
-     D:       TTdrHeader;
      PT:      array[1..4656] of char;
     const
      AVT: TAvtHeader =
@@ -264,18 +267,18 @@ end;
 
 procedure do_avt_to_tdr;
 var
-  Path, Path2, Dr,Nm,Ex,S1,S2,Desc: String;
-  FileStream, DirStream, DescStream: PTempFile;
-  PAVT: PArvidDrive;
+   DL:  Word;
+   RecordLen: LongInt;
+   FileStream, DirStream, DescStream: PTempFile;
+   PAVT: PArvidDrive;
    PF:  PFileRec;
    TFC: TTdrFileCell;
    TDC: TTdrDirCell;
    AFC: TAvtFileCell;
-   DL:  Word;
    AVT: TAvtHeader;
    M:   TAvtMediaCell;
-   RecordLen: LongInt;
    PosTable: array[1..4656] of char;
+   Path, Path2, Dr,Nm,Ex,S1,Desc: String;
 const
   DirsCounter:  LongInt = 0;
   FilesCounter: LongInt = 0;
@@ -410,11 +413,11 @@ const
 
    procedure link_tdr;
    var
-     OStream: PBufStream;
-     TDR:     TTdrHeader;
-     Buf:     array[1..512] of char;
      I:       Integer;
      Len:     LongInt;
+     TDR:     TTdrHeader;
+     Buf:     array[1..512] of char;
+     OStream: PBufStream;
    begin
      OStream:=New(PBufStream, Init(Path2, stCreate, 2048));
      if OStream^.Status <> stOK then begin
@@ -485,8 +488,8 @@ end;
 
 procedure do_new_avt;
 var
-  Path, Dr,Nm,Ex: String;
   Stream: PBufStream;
+  Path, Dr,Nm,Ex: String;
 const
   AVT: TAvtHeader =
         (Signature:      $50545641{'AVTP'};
@@ -519,8 +522,8 @@ begin
 end;
 
 Var
- S:   String;
  C:   Integer;
+ S:   String;
 
 { program TDR2AVT }
 begin

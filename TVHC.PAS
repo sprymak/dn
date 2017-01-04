@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -264,8 +267,8 @@ end;
         {-DataCompBoy-}
 function FExists(FileName: String): Boolean;
 var
-  F: lFile;
   Attr: Word;
+  F: lFile;
 begin
   lAssignFile(F, FileName);
   lGetFAttr(F, Attr);
@@ -340,8 +343,8 @@ procedure PrntMsg(Pref: String; var Text: String);
 const
   Blank: String[1] = '';
 var
-  S: String;
   L: array[0..3] of LongInt;
+  S: String;
 begin
   L[0] := LongInt(@Pref);
   if HelpStrm <> nil then
@@ -668,10 +671,10 @@ function TopicDefinition(var Line: String; var I: AInt): PTopicDefinition;
 var
   J: AInt;
   K: Integer;
-  TopicDef: PTopicDefinition;
   Value: AWord;
-  Topic, W: String;
   HelpNumber: AWord;
+  TopicDef: PTopicDefinition;
+  Topic, W: String;
 const
   HelpCounter: AWord = 2; {1 is hcDragging}
 begin
@@ -715,8 +718,8 @@ function TopicDefinitionList(var Line: String; var I: AInt):
   PTopicDefinition;
 var
   J: AInt;
-  W: String;
   TopicList, P: PTopicDefinition;
+  W: String;
 begin
   J := I;
   TopicList := nil;
@@ -747,8 +750,8 @@ const
 function TopicHeader(var Line: String): PTopicDefinition;
 var
   I,J: AInt;
-  W: String;
   TopicDef: PTopicDefinition;
+  W: String;
 
 begin
   I := 1;
@@ -790,9 +793,9 @@ var
 function ReadParagraph(var TextFile: TStream; var XRefs: PCrossRefNode;
  var Offset: AInt): PParagraph;
 var
-  Line: String;
   State: (Undefined, Wrapping, NotWrapping);
   P: PParagraph;
+  Line: String;
 
 procedure CopyToBuffer(var Line: String; Wrapping: Boolean); assembler;
 {$IFNDEF BIT_32}
@@ -1063,13 +1066,13 @@ end;
 
 procedure ReadTopic(var TextFile: TStream; var HelpFile: THelpFile);
 var
-  Line: String;
+  I, J, Offset: AInt;
   P: PParagraph;
   Topic: PHelpTopic;
   TopicDef: PTopicDefinition;
-  I, J, Offset: AInt;
   Ref: TCrossRef;
   RefNode: PCrossRefNode;
+  Line: String;
 
 procedure SkipBlankLines(var S: TStream);
 var
@@ -1194,8 +1197,8 @@ var
 
 procedure DoWriteSymbol(P: PReference); {$IFDEF BIT_16}far;{$ENDIF}
 var
-  L: array[0..1] of LongInt;
   I: AWord;
+  L: array[0..1] of LongInt;
 begin
   if (P^.Resolved) then
   begin

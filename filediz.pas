@@ -57,6 +57,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -83,8 +86,9 @@ uses startup, advance1, advance2, advance, dos, lfn, lfncol,
      messages, dnapp, commands, drives, advance3;
 
 function GetPossibleDizOwner(N: Integer): String;
-  var DIZ: String;
+  var
       I: Integer;
+      DIZ: String;
 begin
   GetPossibleDizOwner := '';
   DIZ := FMSetup.DIZ;
@@ -104,14 +108,16 @@ end;
  {-DataCompBoy: Descriptions remain with short names!!!-}
         {-DataCompBoy-}
 function GetDIZOwner;
-  var SR: lSearchRec;
+  var
       I: Integer;
       lAdd: Boolean;
+      SR: lSearchRec;
 
   procedure Prepare;
-    var F: lFile;
+    var
+        J: Word;
         C: Char;
-        I,J: Word;
+        F: lFile;
   begin
      if lAdd then Exit;
      lAssignFile(F, MakeNormName(Path, SR.FullName)); ClrIO;
@@ -207,15 +213,14 @@ procedure ReplaceDIZ(const DPath, Name1, Name2: String;
     {When (ANewName<>nil) and (ANewDesc= nil) - change a name}
     {When (ANewName<>nil) and (ANewDesc<>nil) - change a name & desc}
 var
-  F1: PTextReader;
-  F2: lText;
+  OrigAttr: Word;
   I, j: Integer;
   zz: boolean;
-  NM: Str12;
-  S, NewName: string;
   WasFilesInDIZ: Boolean;
   FNd: Boolean;
-  OrigAttr: Word;
+  F1: PTextReader;
+  F2: lText;
+  S, NewName: string;
 begin
   NewName:=Name1;
   if ANewName<>nil then begin
@@ -300,10 +305,10 @@ end;
 
 function  GetDIZ(const DPath: string; var Line: longint; const Name, Name2: String): string; {DataCompBoy}
 var
+  i,j: integer;
+  zz: boolean;
   F1: PTextReader;
   S: string;
-  zz: boolean;
-  i,j: integer;
 begin
  GetDIZ:='';
  Line:=0;
@@ -338,8 +343,8 @@ end;
 function CalcDPath(P: PDIZ; Owen: PString): String;
 var
   I: Integer;
-  DPath: String;
   SR: lSearchRec;
+  DPath: String;
 begin
   if (P = nil) or (P^.Owner = nil) then
   begin

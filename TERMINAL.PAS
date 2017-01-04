@@ -57,6 +57,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -164,13 +167,14 @@ begin
 end;
 
 procedure TPortInfo.Draw;
- var B: TDrawBuffer;
+ var
      Baud: LongInt;
      Parity: ParityType;
      DataBits: DataBitType;
      StopBits: StopBitType;
      DTR, RTS: Boolean;
      S: String[80];
+     B: TDrawBuffer;
 begin
  MoveChar(B, ' ', $70, Size.X);
  if COMPort <> nil then
@@ -311,8 +315,8 @@ end;
 
 procedure TTerminal.Draw;
  var I,J,K: Integer;
-     B: TDrawBuffer;
      Blk,BlkM: Boolean;
+     B: TDrawBuffer;
 begin
  Blk := CutRect.A.X <> CutRect.B.X;
  if Blk then
@@ -412,8 +416,9 @@ end;
  end;
 
  procedure ShowReceInfo(AP : AbstractProtocolPtr; Starting, Ending : Boolean); {$IFDEF BIT_16}far;{$ENDIF}
-  var Event: TEvent;
+  var
       I, J, K: LongInt;
+      Event: TEvent;
  begin
   Info^.Write(1, GetString(dlTermProtocol)+ProtocolTypeString[AP^.GetProtocol]);
   Info^.Write(3, GetString(dlTermProtocolFile)+AP^.GetFileName);
@@ -436,8 +441,9 @@ end;
  end;
 
  procedure ShowSendInfo(AP : AbstractProtocolPtr; Starting, Ending : Boolean); {$IFDEF BIT_16}far;{$ENDIF}
-  var Event: TEvent;
+  var
       I, J, K: LongInt;
+      Event: TEvent;
  begin
   Info^.Write(1, GetString(dlTermProtocol)+ProtocolTypeString[AP^.GetProtocol]);
   Info^.Write(3, GetString(dlTermProtocolFile)+AP^.GetFileName);
@@ -462,10 +468,11 @@ end;
 procedure TTerminal.HandleEvent;
 
  procedure SetProtocol;
-  var P: PMenuBox;
+  var
+      W: Word;
+      P: PMenuBox;
       M: PMenu;
       R: TRect;
-      W: Word;
  begin
   if COMPort = nil then Exit;
   M := NewMenu(
@@ -499,17 +506,16 @@ procedure TTerminal.HandleEvent;
  end;
 
  var R: TRect;
-     P: Pointer;
      S: String;
 
         {-DataCompBoy-}
  procedure Rece;
-  var Dr: String;
-      Nm, Xt: String;
+  var
       II: PView;
       PA: AbortFunc;
       Timer: TEventTimer;
       j : lFile;
+      Dr, Nm, Xt: String;
  begin
    ProtocolFileRenameFrom:='';
    ProtocolFileRenameTo:='';
@@ -634,10 +640,10 @@ procedure TTerminal.HandleEvent;
  end;
 
  procedure SendFile;
-  var S: String;
-      B: TBufStream;
+  var
       I,J: Integer;
-      C: Char;
+      B: TBufStream;
+      S: String;
  begin
   if ModemActive then Exit;
   S := GetFileNameDialog(x_x, GetString(dlTermWriteFile), GetString(dlFileName),
@@ -716,7 +722,6 @@ procedure MouseToPort;
 var
  R: TRect;
  S: String;
- I: Integer;
 begin
  s:='';
  Owner^.GetBounds(R);
@@ -759,11 +764,12 @@ end;
  end;
 
  procedure CmdHistory;
-  var PC: PLineCollection;
+  var
+      I: Integer;
+      PC: PLineCollection;
       D: PDialog;
       P: PView;
       R: TRect;
-      I: Integer;
       DT: Record PC: PCollection; I: Integer; end;
       S: String;
  begin
@@ -902,8 +908,9 @@ Rep:
  end;
 
 
- var Ch: Char;
+ var
      I: Integer;
+     Ch: Char;
 
 begin
  inherited HandleEvent(Event);
@@ -1210,20 +1217,12 @@ procedure TTerminal.PutChar;
  end;
 
  procedure EraseRight(N: Integer);
-  var I: Integer;
  begin
    if CurPos.X + N > BufSize.X then N := BufSize.X - CurPos.X;
    MoveColor(WordRec(Buffer^[CurPos.X + CurPos.Y * BufSize.X - 1]).Hi, N, 32);
    DrawView;
  end;
-{DataCompBoy
- procedure AreaUp(X1, Y1, X2, Y2, N, Attr: Byte);
- begin
-   if X2 >= BufSize.X then X2 := BufSize.X - 1;
-   if Y2 >= BufSize.Y then Y2 := BufSize.Y - 1;
-   if (X1 > X2) or (Y1 > Y2) then Exit;
- end;
-}
+
  procedure ScrollDown(N: Integer);
  begin
    {if not Emulator.Scroll then Exit;}
@@ -1473,9 +1472,6 @@ procedure TTerminal.PutChar;
  procedure UpdateAVT;
    var I, J, K: Integer;
        B: Byte absolute AvatarStr;
-       LO: Word;
-       ccc: Char;
-       SIns: Boolean;
        S: String[80];
  begin
    AddStr(AvatarStr, C);
@@ -1668,8 +1664,6 @@ begin
 end;
 
 procedure TTerminal.ChangeBounds;
- var I, J, K: Integer;
-     BB: PWordArray;
 begin
   inherited ChangeBounds(Bounds);
   if (ScreenHeight <> BufSize.Y) then
@@ -1680,9 +1674,9 @@ begin
 end;
 
 procedure TTerminal.ChangeBufSize;
-  var NSize: TPoint;
-      P: PWordArray;
+  var
       I: Integer;
+      P: PWordArray;
 begin
   P := MemAlloc(2*NX*NY);
   if P = nil then Exit;

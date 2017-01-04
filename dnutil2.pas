@@ -70,6 +70,10 @@
 //  dn40205-QuickDirs(i)-restore_windows_title.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn40900-execfile_left_parameters_fix.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -174,7 +178,6 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
        S2: String[255]; {Directory}
       End = (S1:'';S2:'');
   Var
-     S: String;
      i: Byte;
   Begin
    EditCurDirectory:=False;
@@ -233,9 +236,10 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
 
  Procedure UpdateItems(CurNum: Integer);
  Label Retry;
- Var R: TRect;
-     I,Cur: PMenuItem;
+ Var
      N,Q,J: Integer;
+     R: TRect;
+     I,Cur: PMenuItem;
  Begin
   DirListChanged:=True;
   DisposeItems;
@@ -269,9 +273,9 @@ Retry:
  End;
 
  Var
-    S: String;
     i,j,k: Integer;
     Title: TTitleStr; { Flash 08-02-2004 }
+    S: String;
  Begin
   Title:=WindowTitle; { Flash 08-02-2004 }
   DirListChanged:=False;
@@ -343,9 +347,10 @@ Retry:
 {--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
 
  procedure OpenWindow(ChDrive: Boolean);
-  var S: String;
+  var
       R: TRect;
       P: PView;
+      S: String;
  begin
   Desktop^.GetExtent(R);
   S[1] := #0;
@@ -367,9 +372,10 @@ Retry:
  end;
 
  procedure OpenTreeWindow;
-  var S: String;
+  var
       r: TRect;
       P: PView;
+      S: String;
  begin
    Desktop^.GetExtent(R);
    S := ChangeDir(GetString(dlSelectDirectory), 0);
@@ -398,10 +404,10 @@ Retry:
 
  procedure SelectVideoModeDialog;
  var
+   W: Word;
    P: PMenuBox;
    M: PMenu;
    R: TRect;
-   W: Word;
    I: PMenuItem;
  begin
    I := nil;
@@ -529,8 +535,11 @@ Retry:
  {$ENDIF}
 
  procedure StoreColors;
- var FN: String; S: TDosStream; Pal: PString;
+ var
      vID: longint;
+     Pal: PString;
+     S: TDosStream;
+     FN: String;
  begin
   FN := GetFileNameDialog(SourceDir+'COLORS\*.PAL', GetString(dlStoreColorPal), GetString(dlFileName),
                           fdOKButton + fdHelpButton, hsColors);
@@ -598,7 +607,6 @@ Retry:
 
  function ExecCommandLine: Boolean;
   var S,S1: String;
-      up: TUserParams;
  begin
   ExecCommandLine := False;
   S := '';
@@ -674,11 +682,11 @@ Retry:
  end;
 
  procedure GetUserScreen;
-  var P: PView;
+  var
       PP: PView;
  begin
   PP := nil;
-  P := ViewPresent(cmShowOutput, @PP);
+  ViewPresent(cmShowOutput, @PP);
   if PP <> nil then PP^.Select else Desktop^.Insert(New(PUserWindow, Init));
  end;
 
@@ -724,12 +732,13 @@ Retry:
 
  procedure DoQuickChange;
   Label Retry;
-  var R: TRect;
+  var
+      N,Q,J: Integer;
+      R: TRect;
       P: PChangeDirMenu; {John_SW}
       Menu: PMenu;
       Items: PMenuItem;
       C: Char;
-      N,Q,J: Integer;
  begin
 Retry:
   Items := nil;
@@ -798,8 +807,9 @@ Retry:
 
     procedure DoExecFile(PS: PString);
     begin
-      if not TryRunOS2(PS) and CheckExit and
-             not ExecCommandLine then ExecFile(PS^);
+      if not TryRunOS2(PS) and CheckExit {and
+             not ExecCommandLine} then ExecFile(PS^);
+             {в flpanelx это уже проверилось. Persistor, Apr 2005}
     end;
 
     procedure DoExecString(PS: PString);
@@ -892,7 +902,7 @@ Retry:
                 then ActiveLanguage:='';
                 SaveDnIniSettings ( @ActiveLanguage );
                 DoneIniEngine;
-                ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
+                ProbeINI(INIstoredtime,INIstoredsize{,INIstoredcrc});
                 ConfigModified:=True;
                 StringCache^.FreeAll;
 

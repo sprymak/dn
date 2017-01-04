@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn40900-INI-Engine(f)-write_ini_file_fix.patch
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -157,9 +161,9 @@ End;
 
 procedure ReadLine(Buf: PChar);
 var
+  Count: Word;
   c: Char;
   c2: Char; {DataCompBoy}
-  Count: Word;
 Begin
   Count := 0;
   with CurFile^ do Begin
@@ -251,9 +255,9 @@ End;
 
 function FindKey(KeyName: PChar; Dest: PChar): Boolean;
 var
-  Buf: array[0..255] of Char;
-  P: PChar;
   pos: LongInt;
+  P: PChar;
+  Buf: array[0..255] of Char;
 Begin
   FindKey := false;
   If KeyName = nil then Exit;
@@ -343,9 +347,9 @@ End;
 
 function GetPrivateProfileString;
 var
-  Buf: array[0..255] of Char;
   P, Copy: PChar;
   Res: Boolean;
+  Buf: array[0..255] of Char;
 Begin
   Copy := Default;
   If OpenFile(FileName) and
@@ -407,13 +411,28 @@ Begin
   then GetPrivateProfileInt := GetInt(Buf);
 End;
 
+{--- start -------- Eugeny Zvyagintzev ---- 23-10-2004 ----}
+{Check ability to write to ini-file}
+Function CheckWriteAbility: Boolean;
+Var
+   Pos: LongInt;
+Begin
+ Pos:=CurFile^.GetPos;
+ CurFile^.Seek(CurFile^.GetSize);
+ CurFile^.Truncate;
+ CheckWriteAbility:=(CurFile^.Status = 0);
+ CurFile^.Seek(Pos);
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-10-2004 ----}
+
 function WritePrivateProfileString;
 var
-  Buf: array[0..255] of Char;
-  Res: Boolean;
   p: LongInt;
+  Res: Boolean;
+  Buf: array[0..255] of Char;
 begin
   If (OpenFile(FileName) or CreateFile(FileName)) and (ApplicationName <> nil)
+     and CheckWriteAbility  {JOHN_SW 23-10-2004}
   then Begin
     If not FindApplication(ApplicationName)
     then AddApplication(ApplicationName);

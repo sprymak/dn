@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -610,8 +613,9 @@ DataSize:=SizeOf(Value);
 end;
 
 Function SStr(Value,C : Word):String;
-var S : string;
+var
     I : Integer;
+    S : string;
 begin
  Str(Value:C,S);
  For I:=1 to C do If S[i]=' ' then S[i]:='0';
@@ -634,7 +638,8 @@ DrawView;
 end;
 
 Procedure TInputDate.HandleEvent;
-var C : Integer;
+var
+    C : Integer;
     S : String;
 begin
   case Event.What of
@@ -780,7 +785,6 @@ begin
 end;
 
 Procedure TInputString.HandleEvent;
-var C : Integer;
 begin
 { SelStart := SelEnd;}
   case Event.What of
@@ -824,8 +828,8 @@ end;
 
 procedure TInputFName.Draw;
 var
-  Color: Byte;
   L, R: Integer;
+  Color: Byte;
   B: TDrawBuffer;
   S: String;
 begin

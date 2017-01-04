@@ -71,6 +71,10 @@
 //  dn31220-Kernel(f)-file_open_fix_in_VP.patch
 //
 //  4.9.0
+//  dn50202-viewer(if)-DefCodePageView.patch
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -117,10 +121,9 @@ end;
         {-DataCompBoy-}
 procedure MISaveFileAs(AED: PFileEditor);
  var
-  FileName: String;
-  S: PStream;
   X: Integer;
-  T: String;
+  S: PStream;
+  T, FileName: String;
 begin with AED^ do begin
  T:=GetName(EditName); X:=PosChar(':',T); T:=Copy(T,X+1,Length(T)-X);
  HistoryAdd(hsEditSave, T); { Flash 05-12-2002 }
@@ -182,15 +185,16 @@ end end;
 
         {-DataCompBoy-}
 procedure MISaveFile(AED: PFileEditor);
- var S: PBufStream;
+ var
+     OldAttr: Word;
      I: Longint;
+     L: array[0..0] of LongInt;
+     PC: PLineCollection;
+     S: PBufStream;
      F: lFile;
      Dr: String;
      Nm: String;
      Xt: String;
-     OldAttr: Word;
-     L: array[0..0] of LongInt;
-     PC: PLineCollection;
 begin with AED^ do begin
  MIUnlockFile(AED);
  if ClipBrd then begin {-$VOL begin}
@@ -256,7 +260,7 @@ begin with AED^ do begin
  if UpStrg(EditName)=UpStrg(MakeNormName(SourceDir, 'DN.INI')) then begin
    LoadDnIniSettings;
    DoneIniEngine;
-   ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
+   ProbeINI(INIstoredtime,INIstoredsize{,INIstoredcrc});
    InterfaceData.DrvInfType := DriveInfoType;
    ConfigModified:=True;
    ShowIniErrors;
@@ -268,10 +272,10 @@ end end;
         {-DataCompBoy-}
 procedure MILoadFile(AED: PFileEditor; Name: String);
  label 1;
- var  S: String;
+ var
+     PC: PCollection; {-$VOL}
      Nm: String;
      Xt: String;
-      PC: PCollection; {-$VOL}
 begin with AED^ do begin
   If FileLines<>nil then Dispose(FileLines,Done); FileLines:=nil;
   If UndoInfo <>nil then Dispose(UndoInfo,Done);  UndoInfo :=nil;
@@ -348,18 +352,16 @@ end end;
         {-DataCompBoy-}
 function MIReadBlock(AED: PFileEditor; var FileName: String;
                      RetCollector: Boolean): Pointer;
- var S: PDosStream;
-     B: ^ByteArray;
-     I, FFSize: LongInt;
-     J: LongInt;
+ var
      K: Word;
-     LCount: LongInt;
-     Lines: PCollector;
-     S1, ST, S2: String;
-     L: Longint;
-     KeyMapDetecting: Boolean;
-     CodePageDetector: TCodePageDetector;
+     I, FFSize, J, LCount: LongInt;
      OD, OA, ODOA, OAOD, MaxCount: longint; (* X-Man *)
+     Lines: PCollector;
+     CodePageDetector: TCodePageDetector;
+     KeyMapDetecting: Boolean;
+     B: ^ByteArray;
+     S: PDosStream;
+     ST: String;
 
  procedure CountLines;
   var K: Word;
@@ -387,14 +389,12 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
  end;
 
  procedure SearchLines;
-  var P, P2: Pointer;
-      K, L, M: Word;
-      QQQ: LongInt;
+  var
+      P: Pointer;
+      K, L, TS: word;
       WL: Byte absolute ST;
-      MMM: String;
-      C: Char;
-      TS: word;
       {$IFDEF BIT_32}LLL: boolean;{$ENDIF}
+      MMM: String;
   label 1, L2;
  begin with AED^ do begin
   if (EditorDefaults.Defaults and ebfTRp)=0 then TabStep:=0
@@ -584,22 +584,26 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    Exit;
 L2:ST := MMM;
    while (ST[WL]=' ') do Dec(WL);
-   if KeyMapDetecting then CodePageDetector.CheckString(ST);
+   if KeyMapDetecting then CodePageDetector.CheckString(@ST[1], length(ST));
    Lines^.AddStr(ST);
    ST := '';
    Inc(K);
   until K > J;
  end end;
 
- var Info: PView;
-     ep : Boolean;
+ var
+     Info: PView;
      tmr: TEventTimer;
+     ep : Boolean;
+
 begin with AED^ do begin
  MIReadBlock := nil; Abort := False;
  if LowMemory then begin
    FileName:=''; IsValid:=False; Exit;
  end;
- CodePageDetector.Init; KeyMapDetecting:=(KeyMap=kmNone);
+ CodePageDetector.Init;
+ KeyMap := ProcessDefCodepage(DefCodePage); { Flash  8.02.2005 }
+ KeyMapDetecting:=(KeyMap=kmNone);
  ODOA:=0; OD:=0; OA:=0; OAOD:=0;
  S := New(PBufStream, Init(FileName, stOpenRead, 1024));
  if (S^.Status <> stOK) then
@@ -616,7 +620,7 @@ begin with AED^ do begin
       {$ENDIF}
       isValid := (K = 2) or (K = 3);
       if (K <> 2) and (K <> 3) then MessageBox(GetString(dlFBBNoOpen)+FileName, nil, mfError + mfOKButton);
-      Dispose(S,Done); CodePageDetector.Done;
+      Dispose(S,Done);
       Exit
     end;
  if (S^.GetSize > MemAvail - $4000) and
@@ -629,7 +633,6 @@ begin with AED^ do begin
  begin
    Dispose(S,Done);
    FileName := '';
-   CodePageDetector.Done;
    Exit
  end;
  B^[FBufSize]:=0; {For prevent crash}
@@ -650,7 +653,6 @@ begin with AED^ do begin
     begin
       FreeMem(B, FBufSize); Dispose(S,Done); Info^.Free; FileName := '';
       IsValid := False;
-      CodePageDetector.Done;
       Exit
     end;
    CountLines;
@@ -668,7 +670,6 @@ begin with AED^ do begin
     FileName := '';
     Info^.Free;
     isValid := False;
-    CodePageDetector.Done;
     Exit
   end;
  if RetCollector then Lines := GetCollector(LCount*11, LCount+50)
@@ -705,7 +706,6 @@ begin with AED^ do begin
          FreeMem(B, FBufSize);
          Dispose(S,Done);
          Info^.Free;
-         CodePageDetector.Done;
          Application^.OutOfMemory;
          isValid := False;
          Exit
@@ -724,20 +724,17 @@ begin with AED^ do begin
   if ST[1] in [#10, #13] then DelFC(ST);
   while (ST[Byte(ST[0])]=' ') do Dec(ST[0]);
   Lines^.Insert(NewStr(ST));
-  {KOI KeyMap:=kmKoi8r}{WIN KeyMap:=kmAnsi}{DOS KeyMap:=kmAscii}
-  if UpStrg(DefCodePage) = 'DOS' then KeyMap:=kmAscii else
-  if UpStrg(DefCodePage) = 'WIN' then KeyMap:=kmAnsi  else
-  if UpStrg(DefCodePage) = 'KOI' then KeyMap:=kmKoi8r else
-  if UpStrg(DefCodePage) = 'AUTO'then begin
-   KeyMap:=CodePageDetector.DetectedCodePage;
-  end else KeyMap:=kmAscii;
+  { Flash  8.02.2005 >>> }
+  if KeyMapDetecting then
+      KeyMap := CodePageDetector.DetectedCodePage;
+  { Flash  8.02.2005 <<< }
   if RetCollector then MIReadBlock := Lines
                 else begin
                        MIReadBlock := PStdCollector(Lines)^.Collection;
                        PStdCollector(Lines)^.Collection := nil;
                        Dispose(Lines,Done); Lines:=nil;
                      end;
-  Dispose(S,Done); CodePageDetector.Done;
+  Dispose(S,Done);
   FreeMem(B, FBufSize); Info^.Free;
 end end;
         {-DataCompBoy-}

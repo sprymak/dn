@@ -57,6 +57,9 @@
 //  dn31220-Kernel(f)-file_open_fix_in_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -501,8 +504,8 @@ end;
 procedure TStream.CopyFrom(var S: TStream; Count: Longint);
 var
   N: Word;
-  Buffer: PByteArray;
   BufSize: Word;
+  Buffer: PByteArray;
   Allocated: Boolean;
   TTempBuf: array[0..255] of byte;
 begin
@@ -591,9 +594,9 @@ end;
 
 procedure TStream.Put(P: PObject);
 var
-  Q: PStreamRec;
   Magic: AWord;
   ObjType: AWord;
+  Q: PStreamRec;
   {$IFDEF BIT_16}
   VmtPtr: ^Word;     Link: Word;    {$ELSE}
   VmtPtr: ^LongInt;  Link: LongInt; {$ENDIF}
@@ -726,8 +729,8 @@ end;
 constructor TDosStream.Init(FileName: FNameStr; Mode: Word);
 var
   Success: Integer;
-  i: byte;
   OM: Word;
+  i: byte;
 label 1;
 begin
   inherited Init;

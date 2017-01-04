@@ -53,6 +53,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -98,13 +101,12 @@ CONST
 
 VAR
   Types: PValuesHolder;
-  LngFileName: String;
-  OutLngFileName: String;
-  DlgFileName: String;
-  OutDlgFileName: String;
-  OutDir: String;
   DLStream: TBufStream;
   DefineParser: TDefCollection;
+  LngFileName: String;
+  DlgFileName: String;
+  OutLngFileName: String;
+  OutDlgFileName: String;
 
 PROCEDURE Error( const S: String );
 begin
@@ -182,9 +184,9 @@ var
   DLs: PTypeHolder;
   SLM: PStrListMaker;
   Fail: Boolean;
+  P: PLngWord;
   F: lText;
   S, S1: String;
-  P: PLngWord;
   function DoSeekID( P: PLngWord ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     DoSeekID := P^.Name = S1
@@ -199,10 +201,9 @@ var
   function MakeStr( S: String ): String;
   label 1,2;
   var
-    A,M: String;
     I,J: Integer;
     B: Boolean;
-    NotFlag: Boolean;
+    A,M: String;
   begin
     MakeStr := '';
     DelLeft(S);
@@ -305,11 +306,11 @@ type
 {                            Resource Processing
 {----------------------------------------------------------------------------}
 VAR
-  S: String;
-  F: lText; {DataCompBoy}
   Line: LongInt;
   IDs: PTypeHolder;
   DLGs: PTypeHolder;
+  F: lText; {DataCompBoy}
+  S: String;
 
 CONST
   idSubMenu      =  'SUBMENU ';
@@ -438,10 +439,10 @@ begin
 end;
 
 function Token(const S: String; var Pos: LongInt): String;
-var A: String;
-    B, Cmd: Boolean;
-    M: String;
+var
     J: LongInt;
+    B, Cmd: Boolean;
+    A, M: String;
 begin
    Token := ''; A := ''; B := False; Cmd := False;
    while (S[Pos] = ' ') and (Length(S) >= Pos) do Inc(Pos);
@@ -544,7 +545,8 @@ end;
 
         {-DataCompBoy-}
 procedure MakeEditorCommands;
-  var I,J: LongInt;
+  var
+      I: LongInt;
       T: ^TEditSaver;
 
   procedure MakeCommand;
@@ -625,9 +627,9 @@ var
 
   function CompileStatus: PStatusDef;
     var
+        I: LongInt;
         PM, PL: PStatusItem;
         DM, DL: PStatusDef;
-        I,J: LongInt;
         S: String;
 
      procedure MakeStatusDef;
@@ -687,8 +689,8 @@ var
 
   function CompileMenu(S: String): PMenu;
     var PM, PL: PMenuItem;
+        I: LongInt;
         S1, S2: String;
-        I, J: LongInt;
 
     procedure AddItem(P: Pointer);
     begin
@@ -706,7 +708,6 @@ var
     end;
 
     procedure MakeMenuItem;
-      var HK, Cmd, Ctx: Word;
     begin
       I := Length(idMenuItem);
       AddItem(NewItem(Token(S, I), Token(S, I), GetID(Token(S, I)),
@@ -741,12 +742,13 @@ var
         {-DataCompBoy-}
 
   procedure MakeMenu(S: String);
-    var ID: TDlgIdx;
+    var
+        I: LongInt;
+        J: LongInt;
+        ID: TDlgIdx;
         T: TLngWord;
         R: TRect;
         D: PMenuBar;
-        I: LongInt;
-        J: LongInt;
   begin
     I := Length(idMenu);
     FreeStr := Token(S, I);
@@ -760,10 +762,11 @@ var
   end;
 
   procedure CompileDialog(S: String);
-    var D: PDialog;
-        R: TRect;
+    var
         I: LongInt;
         J: LongInt;
+        D: PDialog;
+        R: TRect;
         PV: PView;
         LastSB: PScrollBar;
 
@@ -801,8 +804,9 @@ var
         {-DataCompBoy-}
 
     procedure MakeLabel;
-      var B: String;
+      var
           P: PLabel;
+          B: String;
     begin
       R.A.X := GetID(Token(S, I));
       R.A.Y := GetID(Token(S, I)); R.B.Y := R.A.Y + 1;
@@ -815,7 +819,7 @@ var
     end;
 
     procedure MakeHistory;
-      var B: String;
+      var
           P: PHistory;
     begin
       R.A.X := GetID(Token(S, I)); R.B.X := R.A.X + 3;
@@ -829,8 +833,8 @@ var
         {-DataCompBoy-}
     function GetItems: PSItem;
       var P,PP: PSItem;
-          S: String;
           K: Integer;
+          S: String;
     begin
        PP := nil; K := I;
        while not EOF(F.T) do
@@ -1151,8 +1155,7 @@ VAR
 
 FUNCTION  CutWord( const S: String; No: Integer): String;   { S without word #No }
 var
-  I, K: Integer;
-  L: Byte absolute S;
+  I: Integer;
 label
   Same;
 begin

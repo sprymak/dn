@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -209,8 +212,8 @@ end; {procedure PackClipStr}          {-$VOL end}
 
  Function SetWinClip( PC : PLineCollection ):boolean;
  var Size : longint ;
-     Buf : PDA;
      BufPos : Word ;
+     Buf : PDA;
     TmStr : String ;
    Function CopyLine( Line : PString ):boolean; {$IFDEF BIT_16}far;{$ENDIF}
     var L: byte absolute TmStr;
@@ -247,12 +250,12 @@ end; {procedure PackClipStr}          {-$VOL end}
 
 
  Function GetWinClip( Var PCL : PLineCollection; NeedStream: boolean ):boolean;
-    var Size : longint ;
-        Buf : PDA;
+    var
+        I, Size : longint ;
         BufPos,SZ : Word ;
-        TmStr : String ;
+        Buf : PDA;
         PC: PLineCollection;
-        I: longint;
+        TmStr : String ;
     begin
      GetWinClip := False;
      if not OpenClip then Exit;
@@ -326,8 +329,8 @@ end; {procedure PackClipStr}          {-$VOL end}
 
  procedure PackLinesStream( var PCS: PStream ); {-$VOL begin}
   var
-   ps: PString;
    sp: longint;
+   ps: PString;
    MS: PStream;
  begin
   sp:=PCS^.GetSize-CBSize;

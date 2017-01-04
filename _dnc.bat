@@ -48,6 +48,9 @@
 ::  Version history:
 ::
 ::  4.9.0
+::  dn50308-polish_resources.patch
+::
+::  5.9.0
 ::
 :://///////////////////////////////////////////////////////////////////////
 @Echo off
@@ -86,6 +89,7 @@ if exist out.%Host%\*.hlp goto endcomp
 Echo -------- Compiling help files
 exe.%Host%\tvhc resource\english\dnhelp.htx out.%Host%\english.hlp exe.%Host%\dnhelp.pas /4DN_OSP
 exe.%Host%\tvhc resource\russian\dnhelp.htx out.%Host%\russian.hlp exe.%Host%\dnhelp.pas /4DN_OSP
+exe.%Host%\tvhc resource\polish\dnhelp.htx out.%Host%\polish.hlp exe.%Host%\dnhelp.pas /4DN_OSP
 exe.%Host%\tvhc resource\hungary\dnhelp.htx out.%Host%\hungary.hlp exe.%Host%\dnhelp.pas /4DN_OSP
 :endcomp
 

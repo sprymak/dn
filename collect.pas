@@ -55,6 +55,9 @@
 //  dn31029-Kernel(f)-FirstThat_and_ForEach_methods_in_VP_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1440,7 +1443,9 @@ function GetPos: longint; begin GetPos:=Posit*r end;
 {$ENDIF}
 
  Procedure Vnut(c,cc:longint; m:byte);
-  Var og: Array[1..nseg] of word;  i,j,u: word;
+  Var
+      i,j,u: word;
+      og: Array[1..nseg] of word;
   Procedure Merg; Label 1;
    Begin x:= A[u]^[1]; i:=j+j;
     Repeat If i < q-m Then

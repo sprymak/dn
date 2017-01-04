@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -59,9 +62,9 @@ Interface
 Procedure FmtUnitInitUnit;
 
 const
-     DetectDrive : Boolean = True;
-     SystemDisk  : Boolean = False;
-     Uncondition : Boolean = False;
+{     DetectDrive : Boolean = True;}
+{     SystemDisk  : Boolean = False;}
+{     Uncondition : Boolean = False;}
      Interleave  : Byte    = 1;
      TCylinders  : Byte    = 80;
      SecPerT     : Byte    = 15;
@@ -100,15 +103,16 @@ type
                    end;
      AllDescript = array[1..25] of SecDescript;
 
-var  IOCTL               : IOCTLPacket;
+var
      BadSp,SysSp,FreeSp  : Word;
+     SerialNo            : LongInt;
+     Old1E               : Pointer;
+     IOCTL               : IOCTLPacket;
      Cylinder,NumOfDrives,Side,
      MediaDescr,DriveType,
      SecPerFAT,SecPerCluster,
      RootEntries,IOError : Byte;
-     SerialNo            : LongInt;
      SecDescr            : ^AllDescript;
-     Old1E               : Pointer;
      dFAT                : PArrOfByte;
      VolumeLabel         : String[11];
 
@@ -256,9 +260,10 @@ end;
 
 Function PrepareFormat : Boolean;
 label BadPar;
-var i,j,k : Byte;
-    p     : PArrOfByte;
+var
+    i,j,k : Byte;
     w1,w2 : Byte;
+    p     : PArrOfByte;
 begin
  PrepareFormat:=False;IOError:=0;SecDescr:=NIL;
  SecPerCluster:=1+Byte(TCylinders<44);
@@ -283,7 +288,7 @@ begin
                              end;
      FreeMem(p,512);
     end;
- if DetectDrive and (TCylinders>43) then
+ if {DetectDrive and }(TCylinders>43) then
     if (IOCTL.DeviceType=0) or (TCylinders>85) then Exit;
  if (Interleave>=SecPerT) or (Interleave=0) then Exit;
  PrepareFormat:=True;
@@ -346,7 +351,7 @@ BadPar: PrepareFormat:=False;EndFormat;Exit;
  end;
  asm mov  ah,0; mov dl,CurDrive; int $13;end;
  if FormatMode=2 then Exit;FormatMode:=0;
- if Uncondition then Exit;
+{ if Uncondition then Exit;}
  Side:=1;Cylinder:=TCylinders-3 or 1;VerifyTrack;
  Side:=0;Cylinder:=0;if IOError<>0 then Exit;
  VerifyTrack;if IOError<>0 then Exit;

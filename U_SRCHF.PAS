@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -67,8 +70,9 @@ uses advance, advance1, advance2, advance3, messages, dnini;
 
         {-DataCompBoy-}
 function RecursiveCheck(Name, pPath: String; DoMore: Boolean; Info: PWhileView): string;
-var SR: lSearchRec;
+var
     SC: TStringCollection;
+    SR: lSearchRec;
 label q;
 begin
   If Abort then exit;
@@ -116,11 +120,12 @@ end;
 
         {-DataCompBoy-}
 function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
-var F: lText;
-    S, S2: String;
-    IsSec, Found, InSq: Boolean;
+var
     P, I: Integer;
     D: TMaskData;
+    IsSec, Found, InSq: Boolean;
+    F: lText;
+    S, S2: String;
 label ex;
 begin
   fillchar(D, SizeOf(D), 0);

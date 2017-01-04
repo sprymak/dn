@@ -51,6 +51,9 @@
 //  dn16rc1-vp_noasm_compatible.patch
 //
 //  2.0.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {Writted by DataCompBoy at 29.07.2000 21:04:26}
@@ -116,12 +119,12 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
 
 
  Function GetWinClip( Var PCL : PLineCollection; NeedStream: boolean ):boolean;
-  var Size : longint ;
+  var
+      i, Size : longint ;
       Buf : PChar;
       idx : PChar;
-      s: string;
-      i: longint;
       ODOA: boolean;
+      s: string;
   begin
    if not SysClipCanPaste then begin
     GetWinClip := false;
@@ -174,8 +177,8 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
 
  procedure PackLinesStream( var PCS: PStream ); {-$VOL begin}
   var
-   ps: PString;
    sp: longint;
+   ps: PString;
    MS: PStream;
  begin
   sp:=PCS^.GetSize-CBSize;

@@ -60,6 +60,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -150,11 +153,11 @@ Unit CdUtil;
 
 
    Procedure EditDescr;
-   var T : String ;
-       D : String;
-       F : lText ;
+   var
        I : Word ;
        R : Trect ;
+       F : lText ;
+       T, D : String;
     begin
       With CD^ do
        begin
@@ -191,8 +194,9 @@ Unit CdUtil;
                        ASel   : string ;
                         AList : Boolean ) : PLineCollection ;
 
-    var C : PLineCollection;
+    var
         I : word ;
+        C : PLineCollection;
         T : byte ;
      begin
        New(C,Init(10,10));
@@ -235,14 +239,11 @@ Unit CdUtil;
 
    Constructor TSpad.Init; { Improved by Flash 07-07-2003 }
       var
-
+        I,Y,L,J,K  : integer ;
         R, R1 : TRect;
         Control, Labl, Histry : PView;
-
         KeyLines : byte ;
         Keys     : byte ;
-
-        I,Y,L,J,K  : integer ;
         WTitle: String;
 
       begin
@@ -405,14 +406,10 @@ Unit CdUtil;
 
   Constructor TOrder.Init;
       var
-        Dlg : PDialog;
+        Y2: integer ;
         R : TRect;
-        Control, Labl, Histry : PView;
-
-        Y2,Y3 : integer ;
+        Control, Labl: PView;
       begin
-
-
 
       Y2 := 8;
 
@@ -450,7 +447,6 @@ Unit CdUtil;
 
       Control := New(PButton, Init(R, GetString(dlOKButton), cmOk, bfDefault));
       Insert(Control);
-
 
       if Mode then
        begin
@@ -508,10 +504,11 @@ Unit CdUtil;
  Procedure TOrder.HandleEvent(var Event: TEvent);
 
   procedure AddSong;
-     var T : _OrderRec ;
-         s : string ;
-         I : byte ;
+     var
+         T : _OrderRec ;
          P : PDialog ;
+         I : byte ;
+         s : string ;
       begin
 
       with CD^ do begin
@@ -553,11 +550,10 @@ Unit CdUtil;
 
 
   Procedure SaveOrder ;
-   var T : String ;
-       D : String;
-       F : lText ;
+   var
        I : Word ;
-       R : Trect ;
+       F : lText ;
+       T, D : String;
     begin
       if Order='' then Exit;
       With CD^ do

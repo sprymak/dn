@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -301,11 +304,11 @@ end;
 procedure TListViewer.Draw;
 var
   I, J, Item: LongInt;
-  NormalColor, SelectedColor, FocusedColor, Color: Word;
   ColWidth, CurCol, Indent: LongInt;
+  NormalColor, SelectedColor, FocusedColor, Color: Word;
+  SCOff: Byte;
   B: TDrawBuffer;
   Text: String;
-  SCOff: Byte;
 begin
   if State and (sfSelected + sfActive) = (sfSelected + sfActive) then
   begin

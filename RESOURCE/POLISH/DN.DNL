@@ -1,0 +1,1386 @@
+;/////////////////////////////////////////////////////////////////////////
+;/
+;/  Dos Navigator Open Source
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+;/
+;/  This programs is free for commercial and non-commercial use as long as
+;/  the following conditions are aheared to.
+;/
+;/  Copyright remains RIT Research Labs, and as such any Copyright notices
+;/  in the code are not to be removed. If this package is used in a
+;/  product, RIT Research Labs should be given attribution as the RIT Research
+;/  Labs of the parts of the library used. This can be in the form of a textual
+;/  message at program startup or in documentation (online or textual)
+;/  provided with the package.
+;/
+;/  Redistribution and use in source and binary forms, with or without
+;/  modification, are permitted provided that the following conditions are
+;/  met:
+;/
+;/  1. Redistributions of source code must retain the copyright
+;/     notice, this list of conditions and the following disclaimer.
+;/  2. Redistributions in binary form must reproduce the above copyright
+;/     notice, this list of conditions and the following disclaimer in the
+;/     documentation and/or other materials provided with the distribution.
+;/  3. All advertising materials mentioning features or use of this software
+;/     must display the following acknowledgement:
+;/     "Based on Dos Navigator by RIT Research Labs."
+;/
+;/  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+;/  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;/  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;/  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+;/  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;/  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;/  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;/  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+;/  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+;/  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+;/  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;/
+;/  The licence and distribution terms for any publically available
+;/  version or derivative of this code cannot be changed. i.e. this code
+;/  cannot simply be copied and put under another distribution licence
+;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+;/
+;/  Version history:
+;/
+;/  5.3.8 translated by Figo Fago
+;/
+;//////////////////////////////////////////////////////////////////////////
+
+dlAltTable            'QWERTYUIOP'#0#0#0#0'ASDFGHJKL'#0#0#0#0#0'ZXCVBNM'
+
+erInvalidOvrSize      ^C'Rozmiar musi zawieraÜ si© w przedziale'^M+
+                      ^C'od 64 do 200 Kbajt¢w.'
+erInvalidFormula,     ^M^C'Niepoprawna formuàa w'
+;erInvalidCell,        ^M^C'Niepoprawny numer kom¢rki w'
+;erInvalidValue,       ^M^C'Niepoprawna wartoòÜ w'
+;erInvalidFunction,    ^M^C'Niepoprawna funkcja w'
+erRecurseTooDeep,     ^M^C'Wywoàanie rekurencyjnej formuày w'
+erDeepDependence,     ^M^C'Za bardzo skomplikowane zaleænoòci w'
+erInvalidFileFormat,  ^M^C'Niepoprawny format pliku'
+;erInvalidIF,          ^M^C'Bà©dne wyraæenie IF w'
+erGotoInvalidNumber,  ^M^C'Niepoprawny numer kom¢rki'
+erCantReadDesktop,    ^C'Bà•d odczytu pliku pulpitu'
+erDesktopError,       ^C'Nie moæna otworzyÜ pliku pulpitu'
+erInvalidDesktop,     ^C'Bà•d: Niepoprawny plik pulpitu'
+erCantCreateFile,     ^C'Nie moæna utworzyÜ pliku %s'^M^C
+erNotEnoughMemory,    ^C'Brak pami©ci do zako‰czenia operacji.'
+erCantOpenConfig,     ^C'Nie moæna utworzyÜ pliku konfiguracyjnego'
+erCantOpenHelp,       ^C'Nie moæna otworzyÜ pliku pomocy.'
+erInvalidDrive,       ^C'Niepoprawny nap©d lub katalog.'
+erInvalidFileName,    ^C'Niepoprawna nazwa pliku.'
+erNoDiskSpace,        ^C'Brak wolnego miejsca'^M+
+                      ^C'w nap©dzie %c: do skopiowania'^M+
+                      ^C'pliku %s. KopiowaÜ nast©pny plik?'^M
+erNoDiskSpacePre,     ^C'Brak wolnego miejsca'^M+
+                      ^C'w nap©dzie %c: do skopiowania'^M+
+                      ^C'wszystkich wybranych plik¢w. Rozpocz•Ü kopiowanie?'^M
+erTextNotFound        ^C'Tekst nie zostaà znaleziony'
+erNoQuickDirs         ^C'Nie zdefiniowano katalog¢w'^M^C'szybkiego dost©pu.'
+erTooLongCommandLine  ^C'DàugoòÜ linii polece‰'^M^C'przekracza rozmiar dopuszczalny.'
+eruuNoStuff           ^C'NIe znaleziono danych UUCode w podanym pliku'
+eruuUnknownMode       ^C'Nieznany tryb kodowania'
+eruuBlankLine         ^C'Odnaleziono pusta lini© w pliku'^M^C
+eruuNonUULine         ^C'Znaleziono niewàaòciw• lini© UU w pliku'^M^C
+eruuLineNo            ', linia '
+eruuIncorrectTerm     ^C'Nie poprawnie zako‰czony plik'
+dlUUDecoding          ^M^M^C'UU dekodowanie '
+dlSetDirHistory       ^C'Wà•cz najpierw opcj©'^M^C'"óled´ katalogi"'
+dlSetEditHistory      ^C'Wà•cz najpierw opcj©'^M^C'"óled´ histori© edycji"'
+dlSetViewHistory      ^C'Wà•cz najpierw opcj©'^M^C'"óled´ histori© podgl•du"'
+
+dlPromptForQDir       ^C'Doà•czyÜ ten katalog'^M+
+                      ^C'do listy katalog¢w Ulubionych?'
+
+dlOpenFile,           'Otw¢rz plik'
+dlOpenFileName,       '~N~azwa'
+dlSaveFileAs,         'Zapisz plik jako'
+dlSaveFileAsName,     '~Z~apisz plik jako'
+dlFileExist,          ^C'Plik %s juæ istnieje.'^M^C'NadpisaÜ?'
+dlCanNotWrite,        ^C'Bà•d zapisu'^M^C'%s'
+
+dlOptions,            'Opcje'
+
+dlFindCellString,     'ùa‰cuch'
+
+dlYesButton,          '  ~T~ak  '
+dlOKButton,           'O~K~'
+dlNoButton,           '  ~N~ie  '
+dlNextButton,         'Nast©p.'
+dlAppendButton,       'Do~p~isz'
+dl2YesButton,         '~T~ak'
+dlAllButton,          'CaàoòÜ'
+dlCancelButton,       'Anuluj'
+dlHelpButton,         ' ~P~omoc'
+dlTreeButton,         '~D~rzewo'
+dlReanimateButton,    '~R~eanimuj'
+dlDriveButton,        '~N~ap©d'
+dlViewButton,         'Pod~g~l•d'
+dlHexASCIIButton,     '~H~ex/ASCII'
+dlMkDirButton,        'UtwKat'
+dlRereadButton,       'Wczytaj'
+dlOverwriteButton,    'Nadpisz'
+dlSkipButton,         'Pomi‰'
+
+dlYesForAll,          'Zapisz zmiany dla wszystkich plik¢w'
+dlRead,               'Odczyt:'
+dlWrite,              'Zapis :'
+
+dlChooseDir,          'Wybierz Katalog'
+dlChooseFile,         'Wybierz Plik'
+
+dlColors,             'Kolory'
+dlColorsGroup,        'Grupy'
+dlColorsItem,         'Pozycja'
+dlColorsText,         'Tekst'
+dlColorsBack,         'Tào'
+dlColorsColor,        'Kolor'
+dlColorsNormal,       'Normalny'
+dlColorsHighlight,    'Podòwietlony'
+dlColorsUnderline,    'Podkreòlony'
+dlColorsInverse,      'Odwr¢cony'
+
+dlDBViewNumeric,      'Numeryczny'
+dlDBViewCharacter,    'Znakowy'
+dlDBViewMemo,         'Memo'
+dlDBViewLogical,      'Logiczny'
+dlDBViewDate,         'Data'
+dlDBViewFloat,        'Zmiennoprzecinkowy'
+dlDBViewPicture,      'Obraz'
+dlDBViewEmpty,        ^C'Pusta Baza Danych'
+dlDBViewNoMemo,       ^C'Nie odnaleziono plku MEMO'
+dlDBViewViewMemo,     'Pokaæ wiadomoòÜ'
+dlDBViewInfo,         'Struktura '
+dlDBViewInfoString,   '   N      Nazwa      Typ     DàugoòÜ  Decimals'
+dlDBViewSearchNot,    ^C'Nie znaleziono poszukiwanego àa‰cucha'
+dlDBViewSearch,       'Maska poszukiwa‰: '
+dlDBViewSearchingIn,  'Szukanie w'
+dlDBViewTextSearch,   '~T~ekst do znalezienia'
+dlDBEditField         'Edycja pola'
+dlDBValue             '~W~artoòÜ'
+dlDBCantEdit          'Nie moæna wprowadziÜ zmian - plik tylko-do-odczytu'
+dlDBEmptyStruc        'Pusta Baza Danych '
+
+
+dlComparing           'Por¢wnywanie plik¢w...'
+dlDICurDir,           'Aktualny katalog'
+dlDINoFiles,          'Brak plik¢w w katalogu'
+dlDIFiles,            'plik¢w'
+dlDIBytes,            'bajt¢w'
+dlDIFile,             'plik'
+dlDIByte,             'bajt'
+dlDIWith,             ' z '
+dlDITotalDisk,        '~ wszystkich bajt¢w na dysku ~'
+dlDIFreeDisk,         '~ wolnych bajt¢w na dysku ~'
+dlDIVolumeID,         'Etykieta dysku ~'
+dlDISerialNo,         'Numer seryjny dysku ~' { Rainbow }
+dlDIFileSys,          'System plik¢w dysku ~' { Rainbow }
+dlDIMemoryTotal,      '~ Kbajt¢w pami©ci konwenc.'
+dlDIMemoryForUser,    '~ bajt¢w wolnej pami©ci'
+dlDIMemoryForDN,      '~ bajt¢w dla Navigatora'
+dlDIEMS1,             '~ K W sumie, ~'
+dlDIEMS2,             '~ K wolnej'
+dlDIXMSFree,          '~ Kbajt¢w wolnej pmi©ci extended '
+dlDINone,             'Brak'
+dlDITemporary         'Nap©d wirtualny'
+dlDIFileFind          'Rezulaty poszukiwa‰'
+dlDICurArchive        'Aktualny katalog:'
+dlDIArcTotalFiles     'Wszystkich plik¢w: ~'
+dlDIPackedSize        'Rozmiar spakowanych: ~'
+dlDIUnpackedSize      'Rozmiar pozostaàych: ~'
+
+dlStdDlgManyFiles,    ^C'Za duæo plik¢w.'
+dlDirectory,          'Katalog'
+dlFile,               'Plik'
+dlDrive,              'Nap©d'
+dlFiles,              '~P~liki'
+dlDirectoriesLabel,   '~K~atalogi'
+
+dlClear,              '~C~zyòÜ'
+dlOpen,               '~O~tw¢rz'
+dlStop,               '~S~top'
+dlReplace,            '~Z~amie‰'
+dlWarning,            'Ostrzeæenie'
+dlCloseButton,        '~Z~amknij'
+dlOCloseButton,       'Zamknij'
+dlCopyButton,         '~K~opiuj'
+dlRenameButton,       'Z~m~ie‰ nazw©'
+
+dlDTDiskFull1,        ^C'Katalog gà¢wny w nap©dzie '
+dlDTDiskFull2,        ^M^C'jest peàny,'^M^C'Nie moæna ustawiÜ nowej'^M^C'Etykiety Nap©du'
+
+dlEraseRO,            ^M^C'oznaczony jako Tylko do Odczytu.'^M^C'Wybierz Tak by skasowaÜ mimo to?'
+dlEraseCantDelDir,    ^C'Nie moæna skasowaÜ katalogu %s'
+dlEraseDirNotEmpty,   ^M^C'nie jest pusty.'^M^C'Czy chcesz go skasowaÜ?'
+dlEraseConfirm1,      ^C'Czy napewno skasowaÜ plik'^M^C
+dlEraseConfirms1,     ^C'Czy chesz skasowaÜ'^M^C'te pliki?'
+dlEraseConfirm2,      ^C'Wybierz Tak by skasowaÜ'^M^C
+dlErase,              'Usu‰'
+dlErasingFile,        'Usuwanie pliku'
+dlErasingDir,         'Usuwanie katalogu'
+dlErasingNoFile,      ^C'Nie moæna skasowaÜ pliku '
+dlEraseConfirmDir,    ^C'Czy napewno skasowaÜ'^M^C'katalog '
+
+dlFBBNotReadSource,   ^C'Nie moæna odczytaÜ pliku ´r¢dàowego'^M^C
+dlFBBOver1,           ^C'Plik juæ istnieje :'^M^C
+dlFBBOver2,           ^M^C'NadpisaÜ go?'
+
+dlFBBInsertDisk,      ^C'Wà¢æ dysk numer '
+dlFBBDiskFull1,       ^C'Ten dysk jest peàen...'^M^C'Wà¢æ inny dysk '
+dlFBBNoCreate,        ^C'Nie moæna utworzyÜ pliku :'^M+
+                      ^C'dysk jest peàen , albo uszkodzony.'^M+
+                      ^C'Wà¢æ dysk numer '
+dlFBBNoWrite,         ^C'Nie moæna zapisaÜ do pliku'^M^C
+dlFBBDiskFull2,       ^C'Dysk peàny'
+dlFBBFragment,        'Podziel plik'
+dlFBBDEFragment,      'Scal plik'
+dlFBBFragmentTo,       ' do'
+dlFBBNoOpen,          ^C'Nie moæna otworzyÜ pliku'^M^C
+dlSplit_To,            ' do'
+
+dlFlushingBuffers,    'Bufory strumienii'
+
+dlFCOver,             ^M^C'juæ istnieje w katalogu docelowym'^M +
+                      ^M^C'   çr¢dào:   %s   %s bajt¢w' +
+                      ^M^C'   Obecny:   %s   %s bajt¢w'
+dlFCItself,           ^M^C'nie moæna skopiowaÜ do  siebie samego'
+dlFCNotDiskSpace,     ^C'Brak wystarczaj•cej iloòci wolnego miejsca'
+dlFCCopy1,            '~K~opiuj '
+dlFCMove1,            'Z~m~ie‰ nazw© lub przenieò '
+dlFCCopy2,            ' do'
+dlFCMove2,            ' do'
+dlFCNoRename1,        ^C'Nie moæna zmieniÜ nazwy'
+dlFCNoRename2,        ^M^C'do '
+dlDIDir,              'katalog'
+dlFCNoCreateDir,      ^C'Nie moæna utworzyÜ katalogu'^M^C
+dlFCCopy,             'Kopiuj'
+dlFCMove,             'Zmie‰ nazw©/przenieò'
+dlFCVerifyFailed      ^C'Bà•d weryfikacji pliku '^M^C
+
+dlBranch              'Gaà•´: '
+dlUpDir               '<W--G‡R®>'
+dlSubDir              '<KATALOG>'
+dlNoFilesSelected,    ' Nie wybrano plik¢w '
+dlBytesIn,            ' ~bajt¢w w ~'
+dlSelectedFiles,      ' wybranych plikach'
+dlTotal,              'Caàkowicie: ~'
+dlFileFind,           'Znajd´ plik'
+dlTempDrive,          'Nap©d Tymczasowy'
+dlNoFilesFound,       'Plik¢w nie odnaleziono!'
+dlNoFileFound,        'Pliku nie odnaleziono: '
+dlFilesFound,         ' pliki znalezione'
+
+dlChangeDir,          'Zmie‰ katalog'
+dlSetAttr,            ' Ustawianie atrybut¢w '
+dlSortName,           '~N~azwy'
+dlSortLongName,       '~D~àugiej nazwy'
+dlSortExt,            '~R~ozszerzenia'
+dlSortLongExt,        'Dodatk. ro~z~szerzenia'
+dlSortType,           '~G~rupy'
+dlSortDate,           '~C~zasu'
+dlSortDIZ,            '~O~pisu'
+dlSortSize,           'Roz~m~iaru'
+dlSortUnsorted,       '~B~ez sortowania'
+
+dlViewQuery,          ^C'Informacja zistaàa zmodyfikowna. ZapisaÜ zmiany?'
+dlViewSearchFor,      '~S~zukaj'
+dlViewCase,           '~U~wzg. wilek.litery'
+dlViewSaveXlat,       ^C'ZapisaÜ plik zmodyfik.przy'^M^C'udziale aktual.tabeli Xlat?'
+
+dlArcMsg1,             ^C'Brak pami©ci'#13^C'by uruchomiÜ archiwizer'
+dlArcMsg4,             ^C'Nie moæna otworzyÜ pliku'^M^C
+dlArcMsg5,             ^C'Przerwaàò odczyt'
+dlArcMsg6,             ^C'Uszkodzone archiwum'
+dlArcMsg7,             ^C'Brak plik¢w w archiwum'
+dlArcMsg8,             ^C'Bà•d uruch. archiwizera'^M+
+                       ^C'%s'^M+
+                       ^C'(DOS Error #%d)'
+
+dlArcReadArc,          'Odczyt archiwum'
+dlArcExtract,          'Wypakuj pliki'
+dlArcDest,             'Przeznaczenie'
+dlArcSetPsw,           'Ustaw hasào'
+dlArcMove,             'Przenieò'
+dlArcAdd,              'Dodaj'
+dlArcInto,             ' pliki do archiwum'
+dlArcOpt,              '~O~pcje'
+dlArcDelete,           ^C'Czy skasowaÜ plik(i)?'
+dlArcName,             '~Nazwa:~ '
+dlArcUSize,            '~Oryginaà:~ '
+dlArcPSize,            '~Paczka:~ '
+dlArcRatio,            '~Ws¢àcz.:~ '
+dlArcDate,             '~Data:~ '
+dlQueryExit,           ^C'Czy napewno chcesz wyjòÜ z DOS NAVIGATOR`a ?'
+dlStoreColorPal,       'Zapisz palet© kolor¢w'
+dlLoadColorPal,        'Zaàaduj palet©'
+dlFileName,            '~N~azwa pliku'
+dlDisconnect,          ^M^M^C'Rozà•czanie'
+dlPercentComplete,     '% zako‰czono'
+dlTopName,             ' Kr¢tka nazwa ~≥~'
+dlTopLFN,              'Nazwa'
+dlTopSplit,            '~≥~'
+dlTopSize,             '  Rozmiar ~≥~'
+dlTopTime,             ' Czas~≥~'
+dlTopDate,             '  Data  ~≥~'
+dlTopPath,             '  ócieæka'
+dlTopOriginal,         ' Oryginaà ~≥~'
+dlTopPacked,           '  Paczka  ~≥~'
+dlTopRatio,            ' % ~≥~'
+
+dlASCIIChart,          'Tabela ASCII'
+dlWorksheet,           ^C'Obszar roboczy '
+dlNotSaved,            ^M^C'nie zapisany. ZapisaÜ?'
+dlExportTitle,         'Eksportuj do pliku'
+dlExportLabel,         '~E~ksportuj do'
+
+dlRunButton,           'U~r~uchom'
+dlDropButton,          'Upuòc'
+dlKillButton,          '~Z~abij'
+dlDeleteButton,        '~S~kasuj'
+dlWindowsLabel,        '~O~kna'
+dlWindowManager,       'Menedæer okien'
+
+dlPhoneBook,           'Ksi•æka telefoniczna'
+dlPhonesLabel,         '~T~elefony'
+dlDialButton,          '~W~ybieranie'
+dlEditButton,          '~E~dycja'
+dlPhoneAppend,         '~D~odaj'
+dlPhoneDelete,         'Usu‰'
+dlPhoneDeleteQuery,    ^C'Usun•Ü rekord?'
+
+dlPhonesLabelGroup,    '~G~rupy'
+dlPhonesLabelPhones,   '~N~azwiska                      Telefony'
+dlPhonesUpDir,         ' Wr¢Ü do grup'
+
+dlFileManager,         'Menedæer plik¢w '
+dlDBNumeric,           'Numerycznie'
+dlDBCharacter,         'Znakowo'
+dlDBMemo,              'Memo'
+dlDBLogical,           'Logicznie'
+dlDBDate,              'Data'
+dlDBFloat,             'Zniennoprzecinkowo'
+dlDBPicture,           'Obraz'
+dlDBViewName,          'Widok dBase - '
+
+dlJanuary,             'Sty'
+dlFebruary,            'Lut'
+dlMarch,               'Mar'
+dlApril,               'Kwi'
+dlMay,                 'Maj'
+dlJune,                'Cze'
+dlJuly,                'Lip'
+dlAugust,              'Sie'
+dlSeptember,           'Wrz'
+dlOctober,             'Pa´'
+dlNovember,            'List'
+dlDecember,            'Gru'
+
+dlCluster,             'Klaster'
+dlSector,              'Sektor'
+dl1st,                 '1-szy'
+dl2nd,                 '2-gi'
+dl3rd,                 '3-ci'
+dlSometh,              'n-ty'
+dlCopyOfFAT,           ' kopiuj do FAT'
+dlReservedSector,      'Zastrzeæony Sektor'
+
+dlDiskFixer,           'NaprawiaczDysku'
+dlFixerFill,           'Wypeà‰'
+dlCopyTo,              'Kopiuj blok do'
+dlNumberClusters,      '~L~iczba klastr¢w'
+dlStartingCluster,     '~S~tartowy klaster'
+dlValidClusters,       ^C'Poprawne numery klastr¢w to '^M^C'2 - '
+dlClusterRange,        'Wybierz zakres klastr¢w'
+dlNumberSectors,       '~L~iczba sektor¢w'
+dlStartingSector,      '~S~tartowy sektor'
+dlValidSectors,        ^C'Poprawne numery sektor¢w to '^M^C'0 - '
+dlSectorRange,         'Wybierz zakres sektor¢w'
+dlSBootSector,         '      0      Boot sektor'
+dlBootSector,          'Boot Sektor'
+dlS1stFAT,             '1-sza kopia FAT'
+dlS2ndFAT,             '2-ga kopia FAT'
+dlRootDirectory,       'Katalog gà¢wny'
+dlUnusedDirEntry,      '  Nieuæywane wpisy katalogowe'
+
+dlSearching            'Poszukiwanie'
+dlPasteFromTitle,      'Wklej z pliku'
+dlPasteFromLabel,      '~W~klej z'
+dlQueryModified,       ^C'Plik %s'^M^C'zostaà zmodyfikowany. ZapisaÜ?'
+dlReadingFile,         'Czytanie pliku'
+dlWritingFile,         'Zapisywanie pliku'
+dlQueryReplace,        ^C'ZamieniÜ to wyst•pienie?'
+dlEditTitle,           'Edycja'
+dlReanimateTitle,      'Reanimator'
+dlReanimateView,       'Pokaæ rejestr zmian'
+dlReanimateHead,       'Nazwa            Rozmiar Atrb   Data   Czas Klaster Prognoza'
+dlReanimateScan,       'Skanowanie katalogu...'
+dlReanimateDirectory,  'KATALOG'
+dlReanimateRecovered,  'NAPRAWIONY'
+dlReanimateGood,       'dobrze'
+dlReanimatePoor,       'marnie'
+dlReanimateAverage,    'przeci©tnie'
+dlReanimateWrite,       ^M^C'DOS nadpisaà pierwsz•'^M+
+                        ^C'liter© nazwy pliku'^M^M+
+                        ^C'Podaj now• pierwsz• liter©'^M^M+
+                        ^C' %s'^M^M^C'Niepoprawne znaki'^M^C'%s'
+dlCantReanimate,       ^C'Nie moæna reanimowaÜ pliku'^M+
+                       ^C'poniewaæ pierwszy jego klaster'^M+
+                       ^C'zostaà nadpisany'
+dlCantReanimateDirectory, ^C'Nie moæna reanimowaÜ katalogu'^M^C'poniewaæ moæe to zmiszczyÜ'^M^C'struktur© FAT.'
+dlReanimateNone,       'Brak'
+
+dlGameTitle,          'Gra Navigator`a'
+dlNewButton,          '~ N~owa'
+dlSetupButton,        '~O~pcje'
+dlTop10Button,        ' ~W~yniki'
+dlPauseButton,        '~P~rzerwa'
+dlTetName             '≥~Nazwa :~ '
+dlTetrisBest          ' ~Najlepszy~ '
+dlTetrisNext          ' ~Nast©pny~ '
+dlGameScore,          '≥~Punkty:~ '
+dlGameLevel,          '≥Poziom: ~'
+dlGameLines,          '≥Linie : ~'
+dlGameScore2          '≥Punkty: ~'
+dlGameInfo            ' ~Info~ '
+dlTetris,             'Tetris'
+dlPentix,              'Pentix'
+dlTop10,               'Lista'
+dlGameOver,            ^C'Koniec gry'^M^M^C'Tw¢j wynik - %d'
+dlTotalWrite,          ' ù•cznie: '
+dlTotalWrited,         'Skopiowano: '
+dlBytes,               ' bajt¢w'
+dlViewFile,            'Pokaæ'
+dlExportingDIZ,        'Eksportowanie opisu...'
+dlDeletingDIZ,         'Kasowanie opisu'
+dlDeletingSource,      'Kasowanie pliku ´r¢dàowego...'
+
+erIntoItself,          ^M^C'Przeznaczenie takie samo jak ær¢dào!'
+dlCreatingDirectory,   'Tworzenie katalogu'
+dlPhoneDirDelete,      ^C'Ten wpis nie moæe byÜ pusty.'^M+
+                       ^C'SkasowaÜ go?'
+
+dlPleaseStandBy,       ^M^M^C'Czekaj...'
+dlArcPacking,          ^M^M^C'Archiwizuj©...'
+dlArcUnpacking,        ^M^M^C'Wypakowuj© ...'
+dlLoadingViewer,       ^M^M^C'Uruchamianie przgl•darki...'
+dlLoadingEditor,       ^M^M^C'Uruchamianie edytora...'
+dlErrorsOccurred,      ^C'Napotkano bà©dy podczas wykonywania tej operacji.'^M+
+                       ^C'Wyà•cz "Quiet arvhive processing" '^M+
+                       ^C'i spr¢buj ponownie'^M^C' by zobaczyÜ rezultat'
+
+dlSelectDirectory      'Wybierz katalog'
+
+dlScreenSaverSetup          'Ustawienia wygaszacza'
+dlSS_S_electedSavers        '~Z~aznaczone'
+dlSS_A_dd                   '<ƒƒƒƒƒ ~D~odaj'
+dlSS_R_emove                '~U~su‰ ƒƒ>'
+dlSSA_v_ailableSavers       'D~o~st©pne'
+
+dlSSMin                     'minut'
+dlSS_T_ime                  '~C~zas'
+dlSSUse_M_ouse              'Uæyj myszy by wypr¢bowaÜ'
+
+dlCalculator                'Kalkulator'
+dlCalcEx_p_ression          '~W~yraæenie'
+dlCalcCopy_a_s              'Kopiuj ~j~ako'
+dlEvaluateButton            '~O~blicz'
+dlCalcCopyButton            '~K~opiuj'
+
+dlUnknownWindowType         'Nieznany typ okna'
+
+dlColorsTitle               'Kolory'
+dl_C_olor                   '~K~olor'
+dl_B_ackground              '~T~ào'
+dl_F_oreground              '~F~ront'
+dl_I_tem                    'Po~z~ycja'
+dl_G_roup                   '~G~rupa'
+
+dlFmtOs2Warning             ^C'Pod OS/2 formatowanie moæe nie dziaàaÜ poprawnie'^M+
+                            ^C'(problemy emulacji dyskietek)'^M+
+                            ^C'wi©c nie b•d´ zskoczonym, gdy wyst•pi• dziwne bà©dy.'^M+
+                            ^C'Wypr¢buj formatowanie w trybie ''standard'''
+dlFmtAdvWarning             ^C'Ustawienie dodatkowych opcji formatowania'^M+
+                            ^C'moæe spowodowaÜ nawet fizyczne uszkodzenie'^M+
+                            ^C'twojego dysku.'
+dlFmtMsgStr                 ' ù•cznie       %6s K'^M' Systemowych  -%6s K'^M' Uszkodzonych -%6s K'^M'                ƒƒƒƒƒƒƒ'^M' Uæywanych     %6s K'
+dlFmtTimeStr                ^C'Szacowany czas  %2d:%02d:%02d'^M+
+                            ^C'Miniony  czas   %2d:%02d:%02d'
+dlFmtNewDisk                ^C'Wà¢æ %s dyskietk© do nap©du %c:'
+dlFmtContQuery              ^C'Operacja przerwana'^M^M^C'KontynuowaÜ?'
+dlFmtErrorSysAreas          ^C'Bà•d podczas modyfikacji'^M^C'obszaru systemowego:'^M^M+
+                            ^C'%s.'^M^M^C'Procedura przerwana.'
+dlFmtNoDisk                 ^C'Brak dysku w nap©dzie %c:'^M^M^C'operacja przerwana.'
+
+dlFmtDiskProtected          ^C'Dyskietka w %c:'^M+
+                            ^C'jest zabezpieczona'^M+
+                            ^C'Usu‰ zabezp. i spr¢buj ponownie.'
+dlFmtDiskFormatted          ^C'Dyskietka w %c:'^M^M^C'Etykieta : %s'^M^M^C+
+                            '%10s bajt¢w przestrz. dysk.'^M^C'%10s bajt¢w w uszk. sekt.  '+
+                            ^M^C'%10s bajt¢w przestrz. syst. '^M+
+                            ^C'%10s bajt¢w przestrz.woln. '^M^M+
+                            ^C'Numer seryjny nap©du : %x'^M^M+
+                            ^C'FormatowaÜ nast©pn•?'
+dlFmtNonDos                 ^C'Nierozpoznawalny format dysku.'^M^C'Procedury DOS-owe'^M+
+                            ^C'nie b©d• dost©pne w operacji'^M^C'formatowania.'^M
+dlFmtQuickFormat            ^C'Dysk nie moæe byÜ '^M^C'formatowany ''Quick.''
+dlFmtTrack0Bad              ^C' Scieæka jest bà©dna.'^M^M+
+                            ^C'Ten dysk nie moæe byÜ '^M^C'sformatowany.'
+dlFmtNoSysFiles             ^C'Nie moæna znale´Ü plik¢w systemowych'^M+
+                            ^C'na dysku C:'
+dlFmtBadInterleave          ^C'Bà©dny mnoænik'^M+
+                            ^C'albo hardware`owa/software`owa'^M^C'niekompatybilnoòÜ.'^M^M+
+                            ^C'Upewnij si© ,æe wszystkie ustawienia'^M+
+                            ^C's• kompatybilne z hardwarem/softwarem'
+dlFmtNoFloppy               ^C' Brak dyskietki w nap©dzie '
+
+dlFmt_F_astFormat          'Formatowanie ~F~ast '
+dlFmt_D_OSFormat           'Formatowanie ~D~OS '
+dlFmt_S_afeFormat          'Formatowanie ~S~afe '
+dlFmt_Q_uickFormat         'Formatowanie Q~u~ick'
+
+dlFmt_M_akeDiskBootable    'Uczy‰ botowalnym'
+dlFmtFo_r_cedFormatting    'Wymuò formatowanie'
+dlFmtMarkFullTrack         'Oznacz bà©dne òcieæki'
+dlFmtOptimi_z_eSectors     'O~p~tymalizuj sektory'
+dlFmtAdvButton             '~E~xpert'
+dlFmtStartButton           'Start'
+dlFmtAreYou                ^C' FormatowaÜ?'
+dlFmtDriveHas1             ^C' Dysk '
+dlFmtDriveHas2             ': zawiera nast©puj•c•'^M^C' struktur© katalog¢w i plik¢w:'
+
+dlFBBBinary                'Dziel tylko ~b~inarnie'
+
+
+
+
+
+dlFBBVerify                '~W~eryfikacja wpis¢w'
+
+dlQueryCreateDir           ^C'Czy chcesz utworzyÜ katalog'^M^C
+dlQueryAbort               ^C'AnulowaÜ operacj©?'
+dlFCNotOverDir             ^C'Nie moæna nadpiasÜ katalogu'^M^C
+dlNotRenameDir             ^C'Nie moæna zmieniÜ nazwy katalogu'^M^C
+dlFCRename                 'Zmie‰ nazw©'
+dlFCRenameNew              '~N~owa nazwa'
+dlNoPossibleName           ^C'Nie moæna odnale´Ü poprawnej nazwy'
+dlEditDesc                 'Wprowad´ opis pliku'
+dl_D_escription            '~O~pis'
+dlFC_Writing               ' Zapisuj© '
+dlFC_Written               ' zapisano'
+dlFC_Total                 'W sumie '
+dlFC_To                    'do'
+dlFC_Reading               ' Czytam '
+dlFC_WasRead               ' przeczytano'
+dlFCCheckingDirs           'Sprawdzam katalogi...'
+dlFC_Older                 'Starsze pliki-pomini©to'
+dlFC_Exists                'Plik istnieje-pomini©to'
+
+dlQueryCancelSearch        ^C'AnulowaÜ szukanie?'
+dlReadingList              ^M^M^C'Czytam list©...'
+
+;dlListDriveTop             '    Nazwa   ~≥~ Opis'
+
+dlFillQuery                ^C'Tej operacji nie b©dzie moæna cofn•Ü!'^M^M+
+                           ^C'KontynuowaÜ?'
+
+dlSystemInfo               'Informacje o Systemie'
+dlSI_Ports                 'Inne'
+dlSI_OSVer                 ^M' Wersja OS`a : '
+dlSI_Lpt                   ^M' Porty  LPT  : '
+dlSI_COM                     ' Porty  COM  : '
+dlSI_Memory                'Pami©Ü operacyjna'
+dlSI_Main                  '      Procesor : %s %s'^M+
+                           ' Procesor Info : Rodzina: %s Model: %s Stepping: %s'^M+
+                           '   Ko-procesor : %s'
+dlSI_MainBoard             'Pàyta gà¢wna:'
+dlSI_TotalMem              ' W sumie  : '
+dlSI_Expanded              ' Expanded : '
+dlSI_Extended              ' Extended : '
+dlSI_MemAvail              '  Dost©pna : '
+dlSI_MaxAvail              '  Maksym.  : '
+dlSI_DiskDrivers           'Nap©dy dyskowe'
+dlSI_HardDrive           ^M'      HDD '
+dlSI_FloppyDrives          '  Dyskietki : '
+dlSI_Heads                 ' gàowice, '
+dlSI_Tracks                ' cylindry, '
+dlSI_SectTrack             ' sekt/cyl'
+dlSI_NotPresent            'Nieobecne'
+
+dlMHz                      'MHz'
+dlUnknownDiskDriverType    'Sterownik dysku nieznany'
+dlEmulated                 'Emulated (386+)'
+dlInternal                 'Wbudowany'
+dlNone                     'Brak'
+dlUnknownCPUFPU            'Nieznany'
+
+dlDetailButton             '~D~etale'
+dlTSRTitle                 'Programy ~T~SR'
+dlMemoryInfo               'Informacje o pami©ci'
+dlHookVectors              ^M^C'Haki:'^M^C
+dlUnknown                  'Nieznane'
+dlMI_CmdLine               ^M^C'Linia komend:'^M^C
+dlMI_PgmPath               ^C'ócieæka dost©pu:'^M^C
+dlMI_DeviceHandle1         'Sterowniki '
+dlMI_DeviceHandle2         ' unit(y)'
+dlMI_DeviceName            'Nazwa urz•dzenia: '
+dlMI_DeviceFlags           #3'Flagi urz•dzenia: '
+dlMI_ResArea               #3'T© przestrze‰  zarezerwowano dla DOS`a'#13#3'DOS zapisuje '
+dlMI_Files                 'w niej informacje o otwartych plikach'
+dlMI_Buffers               'buforach dyskowych'
+dlMI_FCBs                  'Informace o'#13#3'plikach otwartych przez FCB '
+dlMI_Drives                'info o nap©dach DOS`a ,'#13#3'np. ostanio odwiedzona òcieæka...etc'
+dlMI_Stacks                'wewn©trzne stosy'
+dlMI_IFS                   'IFS-y'
+dlMI_XBuffers              'Informacje o buforach dyskowych'^M^C'przechowywanych w pami©ci expanded'
+
+dlMsgWarning               'Ostrzeæenie'
+dlMsgError                 'Bà•d'
+dlMsgInformation           'Informacja'
+dlMsgConfirm               'Potwierd´'
+dlMsgQuery                 'Zapytanie'
+dlMsgAbout                 'Wizyt¢wka'
+
+dlED_VertNeed              ^C'Oczekiwano pionowych blok¢w'
+dlED_Printed               '% wydrukowano'
+dlED_Print                 'Drukuj'
+dlED_PrintQuery            ^C'Drukowanie %d linii?'
+dlED_PrintLine             'Linia %d z %d'
+dlED_OpenFile              'Otw¢rz plik'
+dlED_OverQuery             ^C'Plik %s'^M^C'juæ istnieje.'^M^C'NadpisaÜ go?'
+dlED_ModifyRO              ^C'Plik %s '^M^C'oznaoczono jako Tylko-Do-Odczytu.'^M^C'ZmodyfikowaÜ mimo to?'
+
+dlModemNoSetup             ^C'Nie moæna zmieniÜ ustawie‰'^M^C'w czasie transmisji'
+dlNoModemPort              ^C'Nie moæna odnale´Ü portu komunikacyjnego'
+
+dlManualDial               'Wybieranie r©czne'
+dl_P_honeNumber            'Numer telefonu'
+dlMD_Manual                'R©cznie '
+dlPB_SearchPhone           'Znajd´ numery'
+dlPB_S_earchString         'Znajd´ àa‰cuch znak¢w'
+dlPB_NoFind                ^C'Nie moæna znale´Ü numer(¢w)'
+dlPB_ImportPhones          'Importuj numery'
+dlPB_Working               ^M^M^C'Przetwarznie...'
+dlPB_CnvReport             ' przkonwertowano numery telef.'
+
+dlAutoDialer               'Wybieranie'
+dlAD_Name                  'Auto wybieranie - '
+dlAD_Queue                 'Kolejka '
+dlAD_Status                'Status'
+dlAD_Redial                ' ~P~on¢w'
+dlAD_ForceDial             ' ~W~ymuò'
+dlAD_Delete                ' ~Z~rezygnuj'
+dlAD_Hold                  ' Wstrzymaj'
+dlAD_Unhold                ' Wzn¢w'
+dlAD_HoldUnhold            'Wstrz./Wzn¢w'
+dlAD_Dialing               'Wybieranie '
+dlAD_Holded1               'Wstrzymaj:'
+dlAD_Holded2               'Wybierz Wstrz./Wzn¢w by kontynuowaÜ'
+dlAD_NoDial                ^C'Brak sygnaàu wybierania.'^M^C'Sprawd´ czy linia jest podà•czona'^M^M^C'Dialer holded'
+dlAD_ModemSays             ^M^M^C'Odpowied´ modemu '
+
+dlPrintingPaused           'Drukowanie wstrzymano'
+dlPrinting                 'Drukowanie '
+dlPrintOut                 'Wprowad´ nazw© pliku wyjòciowego'
+dlPrintNoInit              ^C'Nie moæna uruchomiÜ zewn©trznego'^M+
+                           ^C'urz•dzenia drukuj•cego'
+dlPrintCancelQuery         ^C'SkasowaÜ kolejk© wydruku?'
+dlPManagerTitle            'Menedæer wydruku'
+dlPDeleteQeury1            ^C'SkasowaÜ plik '^M^C
+dlPDeleteQeury2            ^M^C'z kolejki wydruku?'
+dlCantPrint                ^C'Menedæer wydruku nie m¢gà zapisaÜ'^M+
+                           ^C'na urz•dzenie wyjòciowe - sprawd´ ustawienia.'^M+
+                           ^C'Drukowanie wstrzymano.'
+dlCantPrintFile            ^C'Nie moæna wydrukowaÜ pliku'^M^C
+
+dlTermProtocol             'Protok¢à : '
+dlTermProtocolFile         'Plik : '
+dlTermProtocolRece         'Odebrane : '
+dlTermProtocolSent         'Wysàane : '
+dlTermProtocolErrors       'Bà©dy : '
+dlTermProtocolEstimate     'Szac. czas - '
+dlTermReceXmodem           'Odbierz plik przez Xmodem/Kermit'
+dlTermReceiving            'Odbieranie'
+dlTermWaitAnswer           'Oczekiwanie na odpowied´'
+dlTermSendFile             'Wyòlij plik'
+dlTermSending              'Wysyàanie'
+dlTermWriteFile            'Wypisz plik na termianlu'
+dlTermSetLog               'Ustaw ùapk©'
+dlTermCommandsHistory      'Historia polece‰'
+dlTermCopy_H_istory        'Kopiuj do ~H~istorii'
+dlTermCopy_C_lipboard      'Kopiuj do ~S~chowka'
+dlTerminalTitle            'Terminal'
+
+dlScanningDirs             ^M^M^C'Przeszukiwanie katalog¢w'
+dlTreeFilesWith            ' pliki(¢w) z '
+dlTree1FileWith            '1 plik z '
+
+dlMNUNotFound              ^C'Nie odnaleziono pliku DN.MNU'
+dlMenuParams               'Parametry Menu'
+dlMenuParamLabel           '~P~arametry'
+dlGrabWelcome              ^C'Uæyj strzaàek by przenieòÜ'^M+
+                           ^C'Uæyj Shift i strzaàek by zmieniÜ rozmiar'^M^M+
+                           ^C'Po zaznaczeniu wciònij Enter by umieòciÜ'^M+
+                           ^C'dane w schowku SmartPad`a'
+
+dlValueNotInRange          ^C'WartoòÜ spoza zakresu od %d do %d'
+
+dlEnvVarLabel              '~Z~mienne'
+dlEnvDelConfirm            ^C'SkasowaÜ zmienn• '^M^C'òrodowiskow• "%s"'
+dlEnvAddTitle              'Dodaj zmienn• òrodowiskow•'
+dlEnvVariable              'Zmienna òrod.'
+dlEnvRenVar                'Zmiana nazwy zmiennej òrod. "%s"'
+
+dlFmtDriveLabel            'Nap©d'
+dlFmtCapacityLabel         'PojemnoòÜ'
+dlFmtVolumeL               'Etykietka'
+dlFmtFTypeLabel            'Typ dyskietki '
+dlFmtTitle                 'Formatowanie dyskietek'
+
+dlCDPlayer                 'Odtwarzacz CD'
+dlCDPlayerNoCD             'Brak pàyty CD '
+dlCDTrack                  'ócieæka'
+dlCDPlayTrack              'Odtw¢rz òcieæ.'
+dlCDSelectTrack            'ócieæki'
+dlCDNTWarning              ^C'Ta funkcja nie pracuje pod Windows NT'^M+
+                           ^C'ze wzgl©du na ograniczenia òrodowiska DOS.'
+dlCDNoMixerSet             ^C'Zewn©trzne ustawienia d´wi©ku'^M+
+                           ^C'nie s• wyszczeg¢lnione.'
+dlCDNoDiskInfo             ^C'Nie moæna uzyskaÜ informacji o dysku'^M+
+                           ^C'ze wzgl©du na ograniczenia systemowe.'
+
+dlCDTrackButton            'ócieæki'
+dlCDAddButton              'Doà•cz'
+dlCDDeleteButton           'Usu‰'
+dlCDSaveButton             'Zapisz'
+dlCD_R_Button              '~R~'
+dlCD_C_Button              '~C~'
+
+dlCDTrackTime              'Czas òcieæki'
+dlCDTrackLeft              'Pozost.òcieæki'
+dlCDDiskTime               'Czas dysku'
+dlCDDiskLeft               'Pozost.dysku'
+dlCDTrackLength            'DàugoòÜ'
+
+dlBytesOf                  ' bajt¢w '
+
+dlCDButtonRew              '~~'
+dlCDButtonPrev             '~<~'
+dlCDButtonPlay             '~~'
+dlCDButtonNext             '~>~'
+dlCDButtonFFwd             '~~'
+dlCDButtonPause            '~*~'
+dlCDButtonStop             '~˛~'
+dlCDButtonEject            '~'#30'~'
+
+dlCDButtonSet              'Opcje'
+dlCDButtonTime             'Czas'
+dlCDButtonMode             'Tryby'
+dlCDButtonMix              'Mixer'
+dlCDButtonOrder            'Lista'
+dlCDButtonTitle            'Tytuà'
+
+
+dlNoCD                     ^C'Brak nap©du CD'^M^C'albo (NW)%s nie jest zainstalowany.'
+dlCloseCD                  ^C'Zamkn•Ü Odtwarzacz CD?'
+
+dlHelp                     'Pomoc'
+dlOutputTitle              'Wyjòcie'
+dlWKZ_Empty                ' Pusty'
+dlWKZName                  'Ark.kalkul.'
+dlPM_Print                 ^C'WydrukowaÜ '
+dlOverflow                 'Przepeànienie'
+dlEditHistory              'Edycja historii'
+
+dlArvid_Title              'Katlog taòmy '
+dlArvid_Type               'Format taòmy: '
+dlArvid_TimeUsed           'Rozmiar taòmy: ~%d~ min. (~%d~M bajt¢w)'
+dlArvid_TimeLeft           'Wolne miejsce: ~%d~ min. (~%d~M bajt¢w)'
+dlArvid_TapeDir            'Katalog taòmy '
+
+dlUUEncode                 'UU Kodowanie'
+dlUUEncoding               'Kodowanie '
+dlUUDecode                 'UU Dekodowanie'
+dlUUDecodingto             'Dekodowanie '
+dlUUencodeSFN              'nazwa pliku ´r¢dàowego'
+dlUUencodeOS               'rozmiar oryginaàu'
+dlUUencodeCreated          'utworzono  w'
+dlUUencodeTime             'enkodowano w'
+dlUUencodeSize             'szacowany rozmiar enkodu'
+dlUUencodeSections         'liczba sekcji'
+dlUUencodeLines            'linie dla sekcji'
+dlUUDecodeFiles            ' Zdekodowano :'
+dlUUDecodeErrors           '       Bà©dy :'
+dlFileIsSmall,             ^C'Plik wejòciowy jest zbyt maày.'
+dlMaxFiles,           ^C'Zbyt duæa liczba linii dla sekcji.'^M+
+                      ^C'Brak pami©ci do operowania na sekcji.'^M+
+                      ^C'Spr¢buj ustawiÜ 900 linii dla sekcji.'
+
+dlleSection            'Sekcja'
+dlleSections           'Sekcje'
+dlleListed             'Listowane'
+dlleCalculated         'Obliczone'
+dlleFileSizeMismatch   'Niepoprawny rozmiar pliku'
+dlleFileCRCMismatch    'Bà•d CRC dla pliku'
+dlleErrorOpenTMP       'Wewn©trzny bà•d otwarcia pliku TMP '
+dlleCantCreate         'Nie moæna utworzyÜ'
+dlleFailedToDecode     'Nie moæna zako‰czyÜ dekodowania'
+dlleFileNameExp        'Oczekiwano nazwy pliku'
+dlleFileNamesMismatch  'Bà©dne nazwy "section" i "begin"'
+dlleFileTimeExp        'Oczekiwano numeru filetime'
+dlleInvFileTimeNum     'Bà©dny numer filetime'
+dlleCRC_Err            'Bà•d CRC'
+dlleSizeMism           'Nieprawidàowy rozmiar'
+dlleChkSumFmt          'Nie moæna odczytaÜ formatu sumy kontrolnej '
+dlleSectionHdr         'Nie moæna odczytaÜ nagà¢wka sekcji'
+dlleMaxSectNumMism     'Bà©dny numer max. sekcjii'
+dlleDuplicateSection   'Podwojenie sekcji'
+dlleOfFile             'w pliku'
+dlleIsAbsent           'jest nieobecny'
+dlleAreAbsent          's• nieobecne'
+dlleUnexpEND           'Oczekiwano ko‰ca pliku'
+dlleNoTerm             'Brak ko‰ca pliku'
+dlleFailedFinal        'Bà•d dekodowania'
+
+dlElapsedTime          'Miniony czas: '
+dlReplacesMade         ^C'%d zamieniono'
+dlScrollBack           'Bufor paska przewijania'
+
+dlColorsColors,       'K~o~lory'
+dlColorsBlack,        'Czarny'
+dlColorsDark,         'Ciemny'
+dlColorsGray,         'Szary'
+dlColorsWhite,        'Biaày'
+dlColorsDefault,      '~D~omyòlne kolory'
+dlColorsBlinking,     '~W~à•cz mruganie'
+dlColorsB_W_,         'B/~W~'
+dlColorsMono,         '~M~ono'
+dlColorsVGA,          'Paleta ~V~GA '
+dlColors_D_efault,    '~D~omyòlne'
+dlColors_P_alette,    '~P~aleta'
+dlColorsColor_,       'Kolor:'
+dlColors_R_ed,        '~C~zerwony'
+dlColors_G_reen,      '~Z~ielony'
+dlColors_B_lue,       '~N~iebieski'
+dlColors_G_ray,       '~I~ntensywnoòÜ'
+dlColors_VGA,         'Kolory VGA '
+dlColors_C00,         '00 Czarny'
+dlColors_C01,         '01 Niebieski'
+dlColors_C02,         '02 Zielony'
+dlColors_C03,         '03 Cyan'
+dlColors_C04,         '04 Czerwony'
+dlColors_C05,         '05 Magenta'
+dlColors_C06,         '06 Br•zowy'
+dlColors_C07,         '07 Jasno Szary'
+dlColors_C08,         '08 Ciemno Szary'
+dlColors_C09,         '09 Jasno Niebieski'
+dlColors_C10,         '10 Jasno Zielony'
+dlColors_C11,         '11 Jasny Cyan'
+dlColors_C12,         '12 Jasno Czerwony'
+dlColors_C13,         '13 Jasna Magenta'
+dlColors_C14,         '14 Ω¢àty'
+dlColors_C15,         '15 Biaày'
+
+dlAutoexecWarning     ^C'Czy to konieczne by uruchomiÜ'^M^M+
+                      ^C'AUTOEXEC.BAT?'
+
+dlSelectXLT           'Wybierz tabel© Xlation'
+
+dlLinkTitle           'Navigator Link'
+dlLinkStarted         ^C'Navigator Link jest uruchamiany'
+dlLinkClose           ^C'Czy zamkn•Ü Navigator Link ?'
+dlLinkErrors          '%d bà•d(dy) przez %s Kb'
+dlLinkWaitingCmd      'Oczekiwanie na zdalne polecenia'
+dlLinkSendingFile     'Wysyàanie %s'
+dlLinkReceivingFile   'Odbieranie  %s'
+dlLinkWaitFile        'Oczekiwanie na %s'
+dlLinkQueryExit       ^C'OdwoàaÜ sesj©?'
+dlLinkNoRemote        'Zdalny nap©d ~%s~ jest niedost©pny'
+dlLinkTransmitFile    'Transmitowanie %s'
+dlLinkNoRemoteLink    'Brak poà•czenia'
+dlLinkRemoteError     ^C'Bà•d zdalny #%d'
+dlLinkRemoteWait      'Oczekiwanie na odpowied´'
+dlLinkEraseDirCfm     ^C'Zdalny katalog'^M+
+                      ^C'%s'^M+
+                      ^C'moæe nie byÜ pusty.'^M+
+                      ^C'Wybierz Tak by go skasowaÜ'
+dlLinkErasingFile     'Kasowanie %s'
+dlLinkErase           'Link - Skasuj'
+dlLinkRemoteDirInfo   'Zdalny katalog:'
+dlLinkSend            'Link - Wyòlij'
+dlLinkRcv             'Link - Odbierz'
+
+dlExecDOScmdHdr       'Wykonaj polecenie'
+dlExecDOScmdLine      '~P~olecenie'
+
+dlPnlDescription      'Opis'
+
+dlCE_CriticalError    'Krytyczny wyj•tek na dysku %c'
+dlCE_WriteProtected   'Dysk tylko-do-odczytu w nap©dzie %c'
+dlCE_DiskNotReady     'Dysk w nap©dzie %c nie odpowiada'
+dlCE_DataIntegrity    'Bà•d integralnoòci danych na dysku %c'
+dlCE_SeekError        'Znaleziono bà•d na dysku %c'
+dlCE_UnknownMedia     'Nieznany typ noònika w nap©dzie %c'
+dlCE_SectorNotFound   'Nie znaleziono sektora na dysku %c'
+dlCE_OutOfPaper       'Brak papieru w drukarce'
+dlCE_WriteFault       'Bà•d zapisu na dysku %c'
+dlCE_ReadFault        'Bà•d odczytu na dysku %c'
+dlCE_GeneralFailure   'Krytyczny wyj•tek na dysku %c'
+dlCE_BadImageOfFAT    'Wykryto bà©dny obraz pami©ci w FAT'
+dlCE_DeviceError      'Bà•d dost©pu do urz•dzenia'
+dlCE_InsertDisk       'Wà¢æ dyskietk© do nap©du %c'
+dlCE_SharingViolation 'Bù•d wsp¢àdzielenia danych'
+dlCE_ErrWndTitle      'Bà•d systemowy'
+
+dlCE_ButAbort            '~Z~ako‰cz'
+dlCE_ButRetry            '~P~owt¢rz'
+dlCE_ButIgnore           '~I~gnoruj'
+
+dlTeamHint 'Uæyj strzaàek up i down do przewini©cia listy autor¢w'
+
+dlTeam000  ^Z'~Zaàoga Dos Navigator`a (C):~'
+dlTeam001  ^Z'~Programowanie:~'
+dlTeam002  ^Z'Sergey Abmetko'
+dlTeam003  ^Z'Mark Adler'
+dlTeam004  ^Z'Denis Afonin (De@D_M0r0Ze)'
+dlTeam005  ^Z'Pavel Anufrikov'
+dlTeam006  ^Z'Vitaly Astaforkin (Gimly)'
+dlTeam007  ^Z'Michael Averbukh'
+dlTeam008  ^Z'Sergey Biryukov (Flash)'
+dlTeam009  ^Z'Mariusz Borkowski'
+dlTeam010  ^Z'Ivan Borodikhin (EXCELLENCE)'
+dlTeam011  ^Z'Pavel Borodin (I''am)'
+dlTeam012  ^Z'Anton Fedorov (DataCompBoy)'
+dlTeam013  ^Z'Alexey Feldgendler (X-Man)'
+dlTeam014  ^Z'Vladimir Fonarev (VOL)'
+dlTeam015  ^Z'Alexey Froloff (Sir Raorn)'
+dlTeam016  ^Z'Sergey Gazizyanov (DarkLord)'
+dlTeam017  ^Z'Marcin Gryszkalis (dagoon)'
+dlTeam018  ^Z'Yuriy Kaminskiy'
+dlTeam019  ^Z'Vladimir Katkov (Chemical)'
+dlTeam020  ^Z'Sergey Klimov'
+dlTeam021  ^Z'Vladimir Korablin (VK)'
+dlTeam022  ^Z'Alexey Korop (AK155)'
+dlTeam023  ^Z'Sergey Korshunoff (SeYKo)'
+dlTeam024  ^Z'Sergei Koryakin'
+dlTeam025  ^Z'Alexey Kostkin (Knave)'
+dlTeam026  ^Z'Aleksej Kozlov (Cat)'
+dlTeam027  ^Z'Konstantin Kuznetsov (Dead Ded)'
+dlTeam028  ^Z'Aleksey Luzin'
+dlTeam029  ^Z'Mike Lykov'
+dlTeam030  ^Z'Andrey Marshalko (ChimMAG)'
+dlTeam031  ^Z'Ilya Maryasov (IVM)'
+dlTeam032  ^Z'Marcin Meinardi'
+dlTeam033  ^Z'Michael Mercuryev (Mercury)'
+dlTeam034  ^Z'Max Morozov'
+dlTeam035  ^Z'Alexey Nemytov (Axel)'
+dlTeam036  ^Z'Andy Neverowsky'
+dlTeam037  ^Z'Anton Novosyolov (ForeverYoung)'
+dlTeam038  ^Z'Vadim Ochkin'
+dlTeam039  ^Z'Stanislav Olkhovik (NeCoder)'
+dlTeam040  ^Z'Jaroslaw Osadtchiy (JO)'
+dlTeam041  ^Z'Vladimir Piven'
+dlTeam042  ^Z'Sergey Radkevitch'
+dlTeam043  ^Z'Oleg Redut'
+dlTeam044  ^Z'Dmitry Serzhankov (Sclex)'
+dlTeam045  ^Z'Denis Shamov'
+dlTeam046  ^Z'Lev Shumskii (WildCat)'
+dlTeam047  ^Z'Pawel Skolimowski (PaSkol)'
+dlTeam048  ^Z'Denis Smirnoff (Necromancer)'
+dlTeam049  ^Z'Jiri Travnicek (JITR)'
+dlTeam050  ^Z'Igor Vagin (Antares19)'
+dlTeam051  ^Z'Max Vasilyev (Piwamoto)'
+dlTeam052  ^Z'Ilya Vdovin (VIV)'
+dlTeam053  ^Z'Kirill Vodonosov (Kirill)'
+dlTeam054  ^Z'Max Vysokikh (Force)'
+dlTeam055  ^Z'Vladimir Zakharychev (Bobby Z.)'
+dlTeam056  ^Z'Ondrej Zary (Rainbow)'
+dlTeam057  ^Z'Pawel Ziemian'
+dlTeam058  ^Z'Valerij Zubov'
+dlTeam059  ^Z'Eugeny Zvyagintzev (John_SW)'
+dlTeam060  ^Z''
+dlTeam061  ^Z'~Hungarian Localization:~'
+dlTeam062  ^Z'MÇsz†ros Csaba (csablak)'
+dlTeam063  ^Z''
+dlTeam064  ^Z'~Project Coordinators:~'
+dlTeam065  ^Z'Max Vasilyev (Piwamoto)'
+dlTeam066  ^Z'Eugeny Zvyagintzev (John_SW)'
+dlTeam067  ^Z''
+dlTeam068  ^Z'~Special thanks to:~'
+dlTeam069  ^Z'Mariusz Borkowskii'
+dlTeam070  ^Z'Dimon Demkin (0xeL)'
+dlTeam071  ^Z'Dmitry Glukhov (GD)'
+dlTeam072  ^Z'Joergen Ibsen'
+dlTeam073  ^Z'Andrzej Kowalczyk (Kolec)'
+dlTeam074  ^Z'Antony Mashihin (Antony)'
+dlTeam075  ^Z'Uliana Matarikina'
+dlTeam076  ^Z'Igor Novoselov'
+dlTeam077  ^Z'Denis Petrov'
+dlTeam078  ^Z'Pavel Protasov'
+dlTeam079  ^Z'DimiteriY Roubliouph (DR)'
+dlTeam080  ^Z'Dmitry Shestakov'
+dlTeam081  ^Z'Marinais'
+dlTeam082  ^Z'~...and to all RU.SHELL.DN subscribers~'
+dlTeam083  ^Z''
+dlTeam084  ^Z'~Dos Navigator II team:~'
+dlTeam085  ^Z'~Programming:~'
+dlTeam086  ^Z'Stefan Tanurkov'
+dlTeam087  ^Z'Slava Filimonov'
+dlTeam088  ^Z'Dmitry Dotsenko (AxoNSoft)'
+dlTeam089  ^Z'Max Masyutin'
+dlTeam090  ^Z''
+dlTeam091  ^Z'~Special thanks to:~'
+dlTeam092  ^Z'Andrew Zabolotny'
+dlTeam093  ^Z'Sergey Melnik'
+dlTeam094  ^Z'Diman Pavlov'
+dlTeam095  ^Z'(FRIENDS Software, DN I programming)'
+dlTeam096  ^Z''
+dlTeam097  ^Z'~Testing and support:~'
+dlTeam098  ^Z'Ruslan Aglyamoff'
+dlTeam099  ^Z'Sergey Arsent'
+dlTeam100  ^Z'Ilya Bagdasarov'
+dlTeam101  ^Z'Igor K. Bareev'
+dlTeam102  ^Z'Stefan Behnsen'
+dlTeam103  ^Z'Vladimir Bejan'
+dlTeam104  ^Z'Konst Bessonov'
+dlTeam105  ^Z'Aurel Brinzeanu'
+dlTeam106  ^Z'Andrew Burtovoy'
+dlTeam107  ^Z'Oleg Cherkawsky'
+dlTeam108  ^Z'Sergey Chernikov'
+dlTeam109  ^Z'Max Chernobayev'
+dlTeam110  ^Z'Maxim Chernyshoff'
+dlTeam111  ^Z'Daniel Chuwalow'
+dlTeam112  ^Z'Sergey Demchenko'
+dlTeam113  ^Z'Alexey Durchenkoff'
+dlTeam114  ^Z'Alex Exler'
+dlTeam115  ^Z'Max Fateev'
+dlTeam116  ^Z'Denis Fionov'
+dlTeam117  ^Z'Peter Gannushkin'
+dlTeam118  ^Z'Sergey F. Geleznov'
+dlTeam119  ^Z'Maxim Glukhov'
+dlTeam120  ^Z'Juriy Goloveshkin'
+dlTeam121  ^Z'Ilya Golub'
+dlTeam122  ^Z'Slava Gorbanev'
+dlTeam123  ^Z'Gleb Gornostayew'
+dlTeam124  ^Z'Igor Grabelnikov'
+dlTeam125  ^Z'Victoria Gubchak'
+dlTeam126  ^Z'Sergey Ivanov'
+dlTeam127  ^Z'Pavel Izumrudov'
+dlTeam128  ^Z'Vladimir Januszkiewicz'
+dlTeam129  ^Z'Dmitrii Kalintsev'
+dlTeam130  ^Z'Serge Koghin'
+dlTeam131  ^Z'Serg Kurdoglo'
+dlTeam132  ^Z'Loktev Nikola'
+dlTeam133  ^Z'Ilya Lumpov'
+dlTeam134  ^Z'Andrew Manjov'
+dlTeam135  ^Z'Sergey Markelov'
+dlTeam136  ^Z'Boris Mashnikoff'
+dlTeam137  ^Z'Serge Matveev'
+dlTeam138  ^Z'Stanislav Hradilik'
+dlTeam139  ^Z'Pavel Menshinin'
+dlTeam140  ^Z'Jens Mueller'
+dlTeam141  ^Z'Alexey Myagchonkov'
+dlTeam142  ^Z'Dmitry Niqiforoff'
+dlTeam143  ^Z'Alexey Noskov'
+dlTeam144  ^Z'Sergey Okhapkin'
+dlTeam145  ^Z'Sergey Pankov'
+dlTeam146  ^Z'Boris Parkansky'
+dlTeam147  ^Z'Mike Parnanen'
+dlTeam148  ^Z'Alexander Petrosyan aka PAF'
+dlTeam149  ^Z'Andrej Romashevsky'
+dlTeam150  ^Z'Alexander Ryabkov'
+dlTeam151  ^Z'Andrey Semiuglov'
+dlTeam152  ^Z'Marco Sempel'
+dlTeam153  ^Z'Anatoly Sennov'
+dlTeam154  ^Z'Michael Sevostyanov'
+dlTeam155  ^Z'Andrew Shemetov'
+dlTeam156  ^Z'Ivan Sibarov'
+dlTeam157  ^Z'George Skvortsov'
+dlTeam158  ^Z'Anthony Smirnoff'
+dlTeam159  ^Z'Peter Suchkow'
+dlTeam160  ^Z'Roman Sumin'
+dlTeam161  ^Z'Misha Svintsov'
+dlTeam162  ^Z'Andrew Tanas'
+dlTeam163  ^Z'Evgen Tarasenok'
+dlTeam164  ^Z'Vladimir Tregub'
+dlTeam165  ^Z'Alexander Tsoppe'
+dlTeam166  ^Z'Sandu Tsurcan'
+dlTeam167  ^Z'Oleg Vasenyoff'
+dlTeam168  ^Z'Kostya Viktorov'
+dlTeam169  ^Z'Anton Voronov'
+dlTeam170  ^Z'Alex Vostrikov'
+dlTeam171  ^Z'Mikael Winterkvist'
+dlTeam172  ^Z'Serge Yuriev'
+dlTeam173  ^Z'Yevgeniy Zaremba'
+dlTeam174  ^Z'Alexei Zasypkin'
+dlTeam175  ^Z''
+dlTeam176  ^Z'~Thanks to all!~'
+
+;{-$VIV}
+dlFileMask              'Maska:'
+dlNetInfo               'Informacje Sieciowe'
+dlServer                'Server'
+dlConnections           'Poà•czenia'
+dlLookedFiles           'Przeszukane pliki: '
+dlVeryDeepSearch      ^C'Osi•gni©to max. gàebokoòÜ poszuk. KontynuowaÜ?'
+dlLookedDirs            'Przeszuk. katalogi: '
+
+;{-$VOL}
+dlSE_Dir2Long         ^C'Osi•gni©to maksymaln• gàebokoòÜ przeszuk.!'
+
+;{-SSK}
+stDaysWeek              'NiPoWtórCzPtSo'
+
+;{-DataCompBoy-}
+dlSPF01 ';--------------------------------------------------------------------------'
+dlSPF02 '; Format:'
+dlSPF03 '; ~~~~~~~'
+dlSPF04 '; <Format string> ::= <Comment> | <Section> | <Path>'
+dlSPF05 '; <Comment> ::= <;> Any text'
+dlSPF06 '; <Section> ::= <[> <Extension> { <,> <Extension> } <]>'
+dlSPF07 '; <Path> ::= <Directory> { <;> <Directory> }'
+dlSPF08 '; <Directory> ::= [ <*> | <+> ] <MS-DOS Directory>'
+dlSPF09 '; ')
+dlSPF10 '; Comments:'
+dlSPF11 '; ~~~~~~~~~'
+dlSPF12 '; {} - parameter can repeated 0 and more time'
+dlSPF13 '; [] - optional parameter'
+dlSPF14 ';  * - in first char of directory - recurrent search in'
+dlSPF15 ';      directory and all its subdirectory'
+dlSPF16 ';  + - in first char of directory - recurrent search in'
+dlSPF17 ';      directory and all its first level subdirectorys'
+dlSPF18 '; '
+dlSPF19 '; '
+dlSPF20 '; Example:'
+dlSPF21 '; ~~~~~~~~'
+dlSPF22 '; [pas,atl]'
+dlSPF23 '; *c:\bp\rtl\;c:\my\units'
+dlSPF24 '; i:\vex\atl\'
+dlSPF25 ';------------------------------------------------------------- (c) Viv''99 -'
+dlSPFht ^C'Search paths in DN.SPF should be configured for searching.'^M+
+        ^C'A commented example of DN.SPF was created in your DN directory'
+
+dlOldFiles              ^C'Te pliki nie s• kompatybilne'^M+
+                        ^C'z now• wersj• DN i mog• spowodowaÜ'^M+
+                        ^C'niepoprawne dziaàanie programu.'^M^M+
+                        ^C'SkasowaÜ pliki? (zalecane)'
+dlOldFilesNoWarn        ^C'To ostrzeæenie nie pojawi si© w przyszàoòci'
+
+;{-$Excelence}
+dlPresent                 'aktualny'
+dlAbsent                  'nieaktual.'
+
+dlImage                   'Obraz'
+dlImageError              'Bà•d w pliko-obrazie'
+dlUnpackImages            'Rozpakuj obraz dyskietki'
+dlTargetDir               'Katalog docelowy'
+
+;DataCompBoy
+dlCopied                  'Skopiowano '
+
+dlTestButton                    'Test'
+
+dlArvidNeedDisk         'Nie moæna kopiowaÜ mi©dzy ARVID i tym typem archiwum'
+dlArvidCmdFileCreated   ^C'Created an AVCOMSTR command file:'^M^C
+dlArvidCmdFileAppended  ^C'Appended an AVCOMSTR command file:'^M^C
+dlArvidCanChangeOnlyAVT ^C'Moæna zmodyfikowaÜ pliki AVT'
+dlArvidVolumeIsNotTape  ^C'This ARVID volume is just a catalog (not a real tape)'
+dlArvidNoReal           '~Katalog dyskowy~'
+
+dlAnonymous             'Gal Anonim'
+
+dlMenuItemOn            'Wà'
+dlMenuItemOff           'Wyà'
+
+dlcTitle                'Kalendarz'
+dlcLine                 'Po Wt ór Cz Pt So Ni'
+dlcJanuary              'Stycze‰'
+dlcFebruary             'Luty'
+dlcMarch                'Marzec'
+dlcApril                'Kwiecie‰'
+dlcMay                  'Maj'
+dlcJune                 'Czerwiec'
+dlcJuly                 'Lipiec'
+dlcAugust               'Sierpie‰'
+dlcSeptember            'Wrzesie‰'
+dlcOctober              'Pa´dziernik'
+dlcNovember             'Listopad'
+dlcDecember             'Grudzie‰'
+
+dlOpenNewWindow         'Plik jest juæ otwarty. OtworzyÜ now• sesj© ?'
+
+dlMore                  'Wi©cej... '
+
+dlFindText              'Znajd´ tekst'
+
+dlViewFilter            ^C'Po zmodyfikowaniu nie b©dzie moæliwe zapisanie tego pliku'^M+
+                        ^C'w jego obecnej lokalizacji i/lub formacie.'^M+
+                        ^C'Rozpocz•Ü modyfikowanie?'
+
+dlTrashCaption          'Kosz'
+
+dlFilDir                '%d plik(i) i %d katalog(i)'
+dlDirectories           'katalog(i)'
+
+dlFindPanel             'Znajd´: '
+;NEW+
+dlListPanel             'Lista: '
+;NEW-
+dlEmpty                 'pusty'
+
+dlFileSearch            'Szukaj: '
+
+dlKillBuffer            ^C'WyczyòciÜ bufor?'
+dlSaveScrollback        'Zapisz bufor paska przewijania'
+dlScrollbackSaved       'Bufor paska przewijania zapisany '
+dlWriteASCII            'Zapisz w foramacie ASCII'
+dlWriteAvatar           'Zapisz w formacie Avatar'
+dlWriteAnsi             'Zapisz w formacie ANSI'
+dlCopyToTerminal        'Kopiuj do ~T~erminala'
+dlCopyToHistory         'Kopiuj do ~H~istorii'
+dlCopyToClipboard       'Kopiuj do ~S~chowka'
+dlSaveAsASCII           'Zapisz jako AS~C~II'
+dlSaveAsANSI            'Zapisz jako ~A~NSI'
+dlSaveAsAvatar          'Zapisz jako A~v~atar'
+
+;NEW
+dlPktView               'Pokaæ FIDO PKT: '
+dlPktHeader             'PKT-header'
+dlPktFile               'Plik kieszeni: '
+dlPktMsg                'Komunikaty w kieszeni : '
+dlViewMsg               'Pokaæ - FIDO EchoMail'
+dlSaveMsg               'Zapisz komunikat do pliku'
+dlMsgFile               'Nazwa pliku >'
+dlErrorWriting          'Bà•d zapisu '
+dlNetMailView           'Pokaæ - FIDO NetMail '
+dlLastMsg               'To jest ostatni komunikat!'
+dlFirstMsg              'To jest pierwszy komunikat!'
+dlDelMsg                'Skasuj komunikat '
+dlNotPkt                'To  nie jest plik FIDO PKT!'
+dlReadingPkt            'Odczyt pliku PKT'
+dlLine                  'ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ'
+
+;JO
+dlNameLong              'L'
+dlNameShort             'S'
+dlFullInfo              'PeànyOpis'
+dlDescr                 'Opis '
+dlPath                  'ócieæka '
+
+;JO+
+dlAdvancedFormat        'Zaawansowane parametry formatowania '
+dlBootSector1           'Boot Sekto~r~'
+dlEntries               'Wpisy'
+dlDirEntries            'Wpisy ~K~atalogowe'
+dlSize                  'Rozmiar'
+dlClusterSize           'Rozmiar Klastra'
+dlTracks                'ócieæki'
+dlHeads                 '~G~àowice'
+dlSectors1              '~S~ektory'
+dlSectors2              ''
+dlStartTr1              ' Start'
+dlStartTr2              ' ó~c~ieæka'
+dlStartTr3              ''
+dlInterleave1           ' Inter'
+dlInterleave2           ' lea~v~e'
+dlSectorSh1             'Sektor'
+dlSectorSh2             'sh~i~ft'
+dlSectorSh3             'Mnoænik'
+dlHeadSectSh1           'Gàowica'
+dlHeadSectSh2           'Sektor'
+dlHeadSectSh3           'shi~f~t'
+dlTrackSectSh1          'ócieæka'
+dlTrackSectSh2          'Sekt~o~r'
+dlTrackSectSh3          'shift'
+dlTrack                 'ócieæka'
+dlSectorSize1           'Sektor'
+dlSectorSize2           'Rozmiar'
+dlDrivesType            'Typ nap©du'
+dlDisk                  'Dysk'
+dlDOS                   'DOS'
+dlAutodetect            'Autodetekcja'
+;JO-
+
+;X-Man >>>
+sdtError      = 'Nieznany   ';
+sdtFixed      = 'Fixed ';
+sdtRemovable  = 'Wymienialny ';
+sdtRemote     = 'Zdalny    ';
+sdtCDROM      = 'CD-ROM    ';
+sdtDblSpace   = 'DblSpace  ';
+sdtSUBST      = 'SUBST     ';
+sdtStacker    = 'Stacker   ';
+sdtRAMDrive   = 'RAM       ';
+sdtDublDisk   = 'DoubleDisk';
+sdtDiskreet   = 'Diskreet  ';
+sdtSuperStor  = 'SuperStor ';
+;X-Man <<<
+
+;PZ begin
+dlIniDataReadError      'Bà•d skàadni w DN.INI, sekcja [%s], parameter %s'
+dlIniDataTooLong        'ùa‰cuch zawiera %d niedozwolone znaki w DN.INI, sekcja [%s], parameter %s'
+;PZ end
+
+;Flash >>>
+clStack_Overflow          = 'Przepeànienie stosu';
+clToo_Large_Number        = 'IloòÜ przekracza pojemnoòÜ';
+clArgument_Missing        = 'Nieprawidàowy argument ';
+clToo_Many_Arguments      = 'Zbyt duæo argument¢w ';
+clSyntax_Error            = 'Bà•d skàadni';
+clUnknown_Function        = 'Wyraæenie zawiera nieznan• funkcj©';
+clLeft_Bracket_Missing    = 'Brak lewego nawiasu';
+clRight_Bracket_Missing   = 'Brak prawego nawiasu';
+clOperation_Expected      = 'Brak wskazania operacji';
+clUnknown_Symbol          = 'Wyraæenie zawiera niepoprawny znak';
+clTwo_Operations          = 'Dwie operacje jedna po drugiej';
+clIncorrect_Usage         = 'Niepoprawne uæycie funkcji ';
+clDivision_By_Zero        = 'Dzielenie przez zero';
+clLOG_Wrong_Base          = 'Zàa podstawa logarytmu';
+clPower_Wrong_Index       = 'Bad power index';
+clRoot_Wrong_Index        = 'Bad root index';
+clWrong_Argument          = 'Zày argument funkcji ';
+clPower_Wrong_Argument    = 'Error raising to the power';
+clIncorrect_Form          = 'Nie moæna przekonwertowaÜ do ';
+;Flash <<<
+
+;JOHN_SW begin
+dlInvalidDBFHeader,  ^C'Header is corrupted!'^M
+dlInvalidRecNumber,  ^M^C'Records number in header: '
+dlInvalidRecNumber1, ^M^C'Actually records number : '
+dlInvalidRecSize,    ^M^C'Record''s size in header: %d'^M^C'Actually record''s size : %d'
+dlUseCalcRecNumber,  ^M^M^C'Use header value?'
+dlNoFreeQuickDirNum, ^C'Lista ulubionych katalog¢w jest juæ peàna'^M^C'Usun•Ü jeden czy edytowaÜ list©'
+dlQuickDirNumBusy,   ^C'Ta pozycja jest juæ zaj©ta!'^M^C'Czy nadpisaÜ j•?'
+dlQuickDirDel,       ^C'Czy usun•Ü ten ulubiony katalog?'
+dlHistDelCurDir,     ^C'Nie moæna usun•Ü bieæ•cego katalogu'
+dlIncorrectDirNum,   ^C'Nieprawidàowy numer katalogu''s'
+dlCopyTimeSpeed,     'Upàyn©ào: %s   Pozostaào: %s   SzybkoòÜ: %sb/s'
+dlFoldersDiffers,    ^C'Katalogi r¢æni• si© od siebie!'
+;JOHN_SW end
+
+;KV+
+dlWkzQuerySeparatorTitle 'Separator kolumn'
+dlWkzQuerySeparatorLabel '~S~eparator'
+dlWkzWarningClear ^C'Wszystkie dane w bieæ•cym arkuszu zostan• usuni©te.'^M^C'KontynuowaÜ?'
+;KV-
+
+dlSpacesInPassword = ^C'Hasào nie moæe zawieraÜ spacji.'; Flash
+
+dlDoes_Not_Exist = 'nie istnieje'
+
+dlWarnIfSearchTextInsideOfArc = ^C'DN NIE pszeszukuje tekst¢w wewn•trz archiwum.'^M+
+                                ^C'No files will be found in archives'^M+
+                                ^C'with non-empty ''Text to Find'' field.'^M+
+                                ^M^C'Czy rozpocz•Ü wyszukiwanie?'
+
+dlIncorrectPanelSettings = ^C'Nieprawidàowa iloòÜ znak¢w'^M+
+                           ^C'przypisana do LFN i rozszerzenia.'; Flash
+
+dlPasswordsDiffer = ^C'Hasàa si© r¢æni•!'; Flash
+
+dlUserMenuTitle = 'Menu uæytkownika'; Flash
+
+dlBookmarkAlreadyUsed = ^C'Ta zakàadka jest juæ uæywana.'^M^C'Czy kontynuowaÜ?'; Flash 27-01-2004

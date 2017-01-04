@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -168,8 +171,9 @@ end;
 
         {-DataCompBoy-}
 procedure RunOS2Command;
- var T: lText;
+ var
      I: Integer;
+     T: lText;
      S, M, EX {$IFNDEF VIRTUALPASCAL}, OS2comspec{$ENDIF}: string;
 begin
   if not OS2exec then Exit;

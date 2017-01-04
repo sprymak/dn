@@ -61,6 +61,10 @@
 //  dn40412-BackSearch(f)-back_search_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn40900-backsearch_char_in_editor_fix.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -699,8 +703,9 @@ begin
 end;
 
 Function  SStr(a:longint;b:Byte;c:Char):string;
- var s : string[40];
+ var
      i : integer;
+     s : string[40];
 begin
  Str(a:b,s);i:=1;
  While i<b do
@@ -725,9 +730,10 @@ begin
 end;
 
 Function  FStr(a:TSize):string;
- var s,s1 : string[40];
-     s1l: byte absolute s1;
+ var
      i : Integer;
+     s,s1 : string[40];
+     s1l: byte absolute s1;
 {$IFNDEF NOASM} C: Char;{$ENDIF}
 begin
  Str(A:0:0, S);
@@ -901,9 +907,9 @@ end;
 {$ENDIF}
 
 function Replace;
- var I, J, K: Integer;
+ var I, J: Integer;
 begin
- J := 1; K := 1; Replace := False;
+ J := 1; Replace := False;
  if (Pattern = '') or (S = '') then Exit;
  repeat
   I := Pos(Pattern, Copy(S, J, 255));
@@ -913,7 +919,6 @@ begin
     Insert(ReplaceString, S, J+I-1);
     Replace := True;
    end;
-  K := I;
   Inc(J, I + Length(ReplaceString) - 1);
  until I = 0;
 end;
@@ -1034,10 +1039,10 @@ end;
 {$ENDIF}
 
 function GetDateTime(Time: Boolean): string;
- var S: string[30];
+ var
      Y,M,D,DW: Word;
      H,Mn,SS,S100: Word;
-
+     S: string[30];
 begin
   GetDate(Y,M,D,DW);
   GetTime(H,Mn,SS,S100);
@@ -1556,9 +1561,9 @@ begin
 end;
 {$ELSE}
 var
-  S: String;
   i, j, l, l0, l1: Byte;
   Buf: Array[0..$FF] of Byte absolute B;
+  S: String;
 begin
   DumpStr := '';
   if Count <= 0 then Exit;
@@ -1691,7 +1696,6 @@ begin
    end;
 end;
 
-{Cat: обратный Boyer-Moore-поиск, переделал из прямого}
 procedure Create_BackBMTable
   ({output}       var BMT : BMTable;
    {input/output} var Pattern : string;
@@ -1708,6 +1712,7 @@ begin
     BMT[ord(Pattern[Index])] := (Index - 1)
 end;
 
+{Cat: обратный Boyer-Moore-поиск, переделал из прямого}
 function BackBMsearch({input } var BMT       : BMTable;
                                var Buffer;
                                    BuffSize  : LongInt;

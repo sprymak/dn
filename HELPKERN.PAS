@@ -51,6 +51,9 @@
 //  dn31029-help(f)-crash_on_call_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -266,8 +269,8 @@ procedure THelpTopic.GetCrossRef(I: AInt; var Loc: TPoint;
   var Length: Byte; var Ref: AWord);
 var
   OldOffset, CurOffset, Offset, ParaOffset: Integer;
-  P: PParagraph;
   Line: AInt;
+  P: PParagraph;
 begin
   ParaOffset := 0;
   CurOffset := 0;
@@ -439,7 +442,7 @@ type
   CArray = array[0..32767] of Char;
 var
   Line: String;
-  I, P: AInt;
+  I: AInt;
 
 function IsBlank(Ch: Char): Boolean;
 begin
@@ -672,7 +675,6 @@ procedure THelpIndex.Add(I: AWord; Val: Longint);
 const
   Delta = 10;
 var
-  P: PIndexArray;
   NewSize: AInt;
   Pos: AInt;
 

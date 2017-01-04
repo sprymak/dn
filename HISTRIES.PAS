@@ -83,6 +83,11 @@
 //  dn31220-history(if)-viewer_history_optimization.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn40900-temp_drive_in_directories_history.patch
+//  dn40900-execfile_left_parameters_fix.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -178,14 +183,14 @@ type
         procedure FreeItem(P: Pointer); virtual;
      end;
 
-procedure AddToDirectoryHistory(S: String; DriveType:integer);
+procedure AddToDirectoryHistory(S: String; DriveType: TSetDriveTypes);
 procedure SaveCommands(var S: TStream);
 procedure LoadCommands(var S: TStream);
 procedure CmdHistory;
 {DataCompBoy
 procedure InitCommands;
 }
-function  DirHistoryMenu(DriveType: Integer): String;
+function  DirHistoryMenu(DriveType: TSetDriveTypes): String;
 procedure EditHistoryMenu;
 procedure ViewHistoryMenu;
 procedure StoreEditInfo(P: Pointer);
@@ -234,8 +239,9 @@ end;
 
 
 function  TEditHistoryCol.IndexOf;
-  var S: String;
+  var
       I: Integer;
+      S: String;
 begin
   IndexOf := -1;
   S := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(Copy(CnvString(PEditRecord(P)^.fName), 2, 255)); {DataCompBoy}
@@ -293,7 +299,9 @@ begin
 end;
 
 procedure StoreViewInfo(P: Pointer);
-  var Viewer: PFileWindow absolute P;
+  var
+      I: Integer;
+      Viewer: PFileWindow absolute P;
       {$IFDEF DBView}
       DBView: PDBWindow   absolute P;
       {$ENDIF}
@@ -301,7 +309,6 @@ procedure StoreViewInfo(P: Pointer);
       SSView: PCalcWindow absolute P;
       {$ENDIF}
       R: PViewRecord;
-      I: Integer;
 label Q;
 begin
   if (InterfaceData.Options and ouiTrackViewers = 0) or (P=nil) then Exit;
@@ -382,8 +389,9 @@ Q:begin Dispose(R); R:=nil end;
 end;
 
 procedure StoreExtViewer(const FileName: String; AltExt: Boolean);
-  var R: PViewRecord;
+  var
       I: Integer;
+      R: PViewRecord;
 begin
   if (InterfaceData.Options and ouiTrackViewers = 0) or (FileName='') then Exit;
   if ViewHistory = nil then ViewHistory := New(PViewHistoryCol, Init(30, 30));
@@ -407,8 +415,9 @@ begin
 end;
 
 procedure StoreEditInfo(P: Pointer);
-  var E: PEditWindow absolute P;
+  var
       I: Integer;
+      E: PEditWindow absolute P;
       R: PEditRecord;
       PP: PEditRecord;
 
@@ -461,7 +470,8 @@ end;
 procedure AddCommand(const LastCommand: String);
   var I: Integer;
       P: PString;
-  label 1;
+      str:string;
+  label l1;
 begin
   if LastCommand <> '' then
     begin
@@ -474,17 +484,17 @@ begin
             begin
               CmdStrings^.AtDelete(I);
               CmdStrings^.Insert(P);
-              Goto 1;
+              Goto l1;
             end;
         end;
       CmdStrings^.Insert(NewStr(' '+LastCommand));
-1:
+l1:
       I := 0;
       while (CmdStrings^.Count >= 50) and { Flash }
             (I < CmdStrings^.Count) do
          begin
-            FreeStr := CnvString(CmdStrings^.At(I));
-            if FreeStr[1] <> '+' then
+            Str := CnvString(CmdStrings^.At(I));
+            if Str[1] <> '+' then
               begin
                 {if LastTHistPos > I then Dec(LastTHistPos);}
                 CmdStrings^.AtFree(I);
@@ -503,9 +513,10 @@ begin
 end;
 }
 procedure SaveCommands(var S: TStream);
- var I, J: Integer;
-     S1,S2: String;
+ var
+     I, J: Integer;
      M: PCollection;
+     S1,S2: String;
 begin
  Message(CommandLine, evCommand, cmExecCommandLine, nil);
  if (CmdStrings <> nil) and (CmdStrings^.Count >= 50) then
@@ -593,7 +604,7 @@ begin
 end;
 
 procedure TTHistList.HandleEvent;
-  label 1;
+  label l1;
   var P: Pointer;
 
   procedure ScanMarked(D: Integer);
@@ -624,7 +635,7 @@ procedure TTHistList.HandleEvent;
 begin
   if (Event.What = evKeyDown) and (List <> nil) then
     case Event.KeyCode of
-      kbDel: Goto 1;
+      kbDel: Goto l1;
       kbDown: if (ShiftState and 3 <> 0) and (Focused < List^.Count - 1) then
         SwapItems(Focused);
       kbUp: if (ShiftState and 3 <> 0) and (Focused > 0) then
@@ -646,7 +657,7 @@ begin
              DrawView;
           end;
     cmYes: { удаление }
-1:         begin
+l1:         begin
              ClearEvent(Event);
              if  (Dlg=dlgDirectoryHistory) and (Focused = 0) then
               begin
@@ -683,7 +694,7 @@ begin
   inherited Done;
 end;
 
-procedure AddToDirectoryHistory(S: String; DriveType:integer);
+procedure AddToDirectoryHistory(S: String; DriveType: TSetDriveTypes);
   var I: Integer;
       P: PString;
 
@@ -700,22 +711,17 @@ procedure AddToDirectoryHistory(S: String; DriveType:integer);
 
 begin
   if InterfaceData.Options and ouiTrackDirs = 0 then Exit;
-  if (S = '') or not ((S[2] = ':') or (Copy(S, 1, 2) = '\\')) then Exit;
-  {$IFNDEF OS2}
+  if (S = '') or not ((S[2] in [':','E']) or (Copy(S, 1, 2) = '\\')) then Exit;
+  {$IFNDEF OS2}                    {  for 'TEMP:'  Persistor, Mar 2005}
   S:=lfGetLongFileName(S);
   {$ENDIF}
   if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
-  if (DriveType <> integer(dtList)) and
-     (DriveType <> integer(dtFind)) and
-     (DriveType <> integer(dtArcFind)) and
-     (DriveType <> integer(dtArvid)) and
-     (DriveType <> integer(dtArc))
+  if not (DriveType in [dtList, dtFind, dtArcFind, dtArvid, dtArc, dtTemp])
   then begin
       if S[Length(S)] <> '\' then AddStr(S, '\')
   end else begin
    if S[Length(S)] in ['\','/'] then Dec(S[0]);
-   if (DriveType = integer(dtArvid)) or
-      (DriveType = integer(dtArc)) then AddStr(S,'\');
+   if DriveType in [dtArvid, dtArc] then AddStr(S,'\');
   end;
   I := -1; P := DirHistory^.FirstThat(@IsThat);
   if P <> nil then DirHistory^.AtDelete(I)
@@ -750,9 +756,10 @@ begin
 end;
 
 procedure EditHistoryMenu;
-  var D: PDialog;
-      P: PTHistList;
+  var
       I: Integer;
+      D: PDialog;
+      P: PTHistList;
 begin
   if InterfaceData.Options and ouiTrackEditors = 0 then begin
     Msg(dlSetEditHistory, nil, mfError+mfOKButton);
@@ -776,22 +783,18 @@ begin
 end;
 
 procedure ViewHistoryMenu;
-  var D: PDialog;
+  var
+      I, X: Integer;
+      ViewMode: Word;
+      D: PDialog;
       P: PTHistList;
-      I: Integer;
-{--- start -------- Eugeny Zvyagintzev ---------}
-      X: Integer;
-      RealName: String;
-      AxilName: String;
-{--- finish -------- Eugeny Zvyagintzev ---------}
-      { Flash >>> }
       F: PFileRec;
       ArcD: PDrive;
       Drive: Char;
-      ViewMode: Word;
-      S: String;
       J: Byte;
-      { Flash <<< }
+      S: String;
+      RealName: String;
+      AxilName: String;
 begin
   if InterfaceData.Options and ouiTrackViewers = 0 then
     begin
@@ -849,13 +852,13 @@ begin
    end;
 end;
 
-function DirHistoryMenu(DriveType: Integer): String; { Flash }
+function DirHistoryMenu(DriveType: TSetDriveTypes): String; { Flash }
 var
+  I: Integer;
   PC: PLineCollection;
   D: PDialog;
   P: PView;
   R: TRect;
-  I: Integer;
   DT: Record PC: PCollection; I: Integer; end;
 begin
   DirHistoryMenu := '';
@@ -875,9 +878,7 @@ begin
   if DirHistory^.Count>1 then PListBox(P)^.Focused := 1;
 
   { Flash >>> }
-  if (DriveType = integer(dtFind)) or
-     (DriveType = integer(dtTemp)) then
-   PListBox(P)^.Focused := 0;
+  if (DriveType = dtFind) then PListBox(P)^.Focused := 0;
   { Flash <<< }
 
   I := Desktop^.ExecView(D);
@@ -890,11 +891,11 @@ end;
 
 procedure CmdHistory;
 var
+  I: Integer;
   PC: PLineCollection;
   D: PDialog;
   P: PView;
   R: TRect;
-  I: Integer;
   DT: Record PC: PCollection; I: Integer; end;
 begin
   if CmdStrings = nil then
@@ -927,8 +928,9 @@ const
 
         {-DataCompBoy-}
 procedure LoadHistories;
-  var S: TBufStream;
+  var
       A: AWord;
+      S: TBufStream;
 begin
     S.Init(SourceDir+'DN'+GetEnv('DNDSK')+'.HIS', stOpenRead, 2048);
     if S.Status = stOK then
@@ -960,8 +962,9 @@ end;
 
         {-DataCompBoy-}
 procedure SaveHistories;
-  var S: TBufStream;
+  var
       A: AWord;
+      S: TBufStream;
 begin
   S.Init(SourceDir+'DN'+GetEnv('DNDSK')+'.HIS', stCreate, 2048);
   if S.Status = stOK then

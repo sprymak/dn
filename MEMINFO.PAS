@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -135,18 +138,31 @@ var TSR : PTextColl;
 {-------------------}{$IFDEF DPMI}{--------------------}
 {------------------------------------------------------}
 Procedure AddTSRs; {$IFDEF BIT_16}far;{$ENDIF}
-var CurMCB,DevMCB,i,j : Word;
-    s,s1              : String;
-    LastMCB           : Boolean;
-    isUMB             : Boolean;
-    HiDosMem          : Word;
+var
+    CurMCB, DevMCB, i, j, HiDosMem: Word;
+    LastMCB: Boolean;
+    Regs: DPMIRegisters;
+    S,S1: String;
 
 function aaa: string;
 begin
   aaa := s+Strg(' ',9-Length(s))+#179' ';
 end;
 
-var Regs : DPMIRegisters;
+function ExistUMBmem: Boolean;
+begin
+  ExistUMBmem:=False;
+  if not XMSFound then Exit;
+  FillChar(Regs, SizeOf(Regs), #0);
+{  R.BX:=0;}
+  Regs.DX:=$FFFF;
+  Regs.AX:=$1000;
+  Regs.IP:=PtrRec(XMSControl).Ofs;
+  Regs.CS:=PtrRec(XMSControl).Seg;
+  CallFarRealModeProc(0,nil,Regs);
+  if Regs.BL>$AD then ExistUMBmem:=True;
+end;
+
 begin
  FillWord(Regs, SizeOf(Regs) shr 1, $00);
  Regs.Ax:=$5200;
@@ -154,7 +170,6 @@ begin
  CurMCB:=RMemW(Regs.ES, Regs.BX-2);
  SimulateRealModeInt($12, Regs);
  HiDosMem:=Regs.AX shl 6;
- isUMB := ExistUMBMem;
  j:=RMem(CurMCB,3);DevMCB:=CurMCB+1;
  While DevMCB<CurMCB+RMemW(CurMCB,3)+1 do
        begin
@@ -209,7 +224,7 @@ begin
        MCB >= 0xFF00
    }
    LastMCB := ( CurMCB = HiDosMem ) or
-              (( CurMCB > HiDosMem ) or ( Char(RMem(CurMCB,0))='Z' )) and not isUMB or
+              (( CurMCB > HiDosMem ) or ( Char(RMem(CurMCB,0))='Z' )) and not ExistUMBMem or
               (( CurMCB > HiDosMem ) and ( Char(RMem(CurMCB,0))='Z' ));
    CurMCB:=(CurMCB+1+RMemW(CurMCB,3));
  end;
@@ -220,16 +235,38 @@ end;
 {------------------------------------------------------}
 
 Procedure AddTSRs; {$IFDEF BIT_16}far;{$ENDIF}
-var CurMCB,DevMCB,i,j : Word;
-    s,s1              : String;
-    LastMCB           : Boolean;
-    isUMB             : Boolean;
-    HiDosMem          : Word;
+var
+    CurMCB, DevMCB, i, j, HiDosMem: Word;
+    LastMCB: Boolean;
+    S,S1: String;
 
 function aaa: string;
 begin
   aaa := s+Strg(' ',9-Length(s))+#179' ';
 end;
+
+function ExistUMBmem: Boolean;
+assembler;
+{ Attempts to allocate an impossibly large UMB.  On failure ax     }
+{ contains 0, bl indicates UMB's unimplemented if $80, or $bx      }
+{ on other error.  No provision made for success here. Impossible  }
+{ to succeed.  Note that the UMB manager doesn't necessarily depend}
+{ on existence of XMS manager, but if there is no control call     }
+{ vector there is no way to call this UMB function.                }
+asm
+  mov  dx,$FFFF
+  mov  ax,$1000
+  cmp  XMSFound,al        { If NO XMS driver }{ Return FALSE by default }
+  jz   @exit              { then exit }
+  Call [XMSControl]       { attempt alloc 0FFFFh - impossible large }
+                          { block of UMB's through driver }
+  xor  al,al              { Return FALSE by default }
+  cmp  bl,0AEh            { BUT all UMB's used up }
+  jb   @exit              { then exit, else }
+  mov  al,1               { return True }
+@exit:
+end;
+
 begin
  asm mov ah,52h
      int $21
@@ -240,7 +277,6 @@ begin
      shl ax,cl
      mov word ptr HiDosMem,ax
  end;
- isUMB := ExistUMBMem;
  j:=Mem[CurMCB:3];DevMCB:=CurMCB+1;
  While DevMCB<CurMCB+memw[CurMCB:3]+1 do
        begin
@@ -288,7 +324,7 @@ begin
      TSR^.AddStr(s+' '+Char(CurMCB)+Char(CurMCB shr 8));
    end;
    LastMCB := ( CurMCB = HiDosMem ) or
-              (( CurMCB > HiDosMem ) or ( Char(mem[CurMCB:0])='Z' )) and not isUMB or
+              (( CurMCB > HiDosMem ) or ( Char(mem[CurMCB:0])='Z' )) and not ExistUMBMem or
               (( CurMCB > HiDosMem ) and ( Char(mem[CurMCB:0])='Z' ));
    CurMCB:=(CurMCB+1+memw[CurMCB:3]);
  end;
@@ -300,9 +336,10 @@ end;
 
 Procedure ShowInfo(Segm : Word); {$IFDEF BIT_16}far;{$ENDIF}
 label Unkn,BadCmdL;
-var i,j,k : Word;
-    s,q,w : String;
+var
+    i,j,k : Word;
     l,b,e : LongInt;
+    s,q,w : String;
 begin
  s:='';
  case Char(RMem(Segm,0)) of
@@ -392,13 +429,13 @@ end;
 
 Procedure MemoryInfo;
 var
+  i,j      : Integer;
+  w        : Word;
   R        : TRect;
   PD       : PDialog;
-  i,j      : Integer;
   VS       : PScrollBar;
   ListData : TListBoxRec;
   TSRlist  : PListBox;
-  w        : Word;
   Ps       : PString;
 
 begin

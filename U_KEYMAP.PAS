@@ -56,6 +56,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50202-viewer(if)-DefCodePageView.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -75,14 +78,27 @@
 unit u_keymap;
 interface
 
+uses Objects; { Flash  8.02.2005 }
+
 type
  TKeyMap = (kmNone, kmAscii, kmAnsi, kmKoi8r); {-$VIV}
+ {kmNone обязательно должен быть первым, см. ProcessDefCodepage}
 
+  string3 = String[3];
+
+  {AK155 Код следующий по кругу встроенной таблицы }
+const
+  RollKeyMap: array[TKeyMap] of TKeyMap =
+  {index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
+  (kmAnsi, kmAnsi, kmKoi8r, kmAscii);
+
+  KeyMapDescriptor: array[TKeyMap] of string3 =
+  {index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
+  ('XXX', 'DOS', 'WIN', 'KOI');
+type
 {(c) SeYKo}
- TCodePageDetector = object
-   constructor Init;
-   destructor  Done; virtual;
-   procedure   CheckString(const S: String);
+ TCodePageDetector = object(TObject)
+   procedure CheckString(P1: PChar; len: integer);
    function    DetectedCodePage: TKeyMap;
  private
    Koi, KoiA, Win, WinA, Win2: LongInt;
@@ -90,6 +106,9 @@ type
 {(c) SeYKo}
 
  TXlat = Array[Char] of Char;
+
+ { Flash  8.02.2005 }
+ function ProcessDefCodepage(DefCodepageS: string): TKeyMap;
 
  procedure NullXLAT(var X: TXlat);
 
@@ -231,28 +250,16 @@ implementation
   end;
   {$ENDIF}
 
-{(c) SeYKo}
-constructor TCodePageDetector.Init;
-begin
-  (* inherited Init; *)
-  Koi:=0; KoiA:=0; Win:=0; WinA:=0; Win2:=0;
-end;
-
-destructor TCodePageDetector.Done;
-begin
-  (* inherited Done; *)
-end;
-
 const
   WinSetA = [#224,#229,#232,#238,#243];
   KoiSetA = [#193,#197,#201,#207,#213];
 
-procedure TCodePageDetector.CheckString(const S: String);
+procedure TCodePageDetector.CheckString(P1: PChar; len: integer);
 var
   C: Char;
-  P1, P2: PChar;
+  P2: PChar;
 begin
-  P1:=@S[1]; P2:=P1+Length(S);
+  P2 := P1+len;
   while P1<P2 do
   begin
     C:=P1^; Inc(P1);
@@ -281,6 +288,34 @@ begin
   then DetectedCodePage:=kmAnsi;
 end;
 {(c) SeYKo}
+
+{ Flash  8.02.2005 >>> }
+function ProcessDefCodepage(DefCodepageS: string): TKeyMap;
+  var
+    i: integer;
+    k: TKeyMap;
+  begin
+{ Хочется написать UpStr(DefCodepageS), но лучше этого не делать, так
+как это создаёт жуткую закрутку ссылок между модулями через advance1
+и, главное, работает с какой-то заранее неизвестной UpCaseArray.
+Поскольку параметры в dn.ini все английские, делаем просто:}
+  for i := 1 to length(DefCodepageS) do
+    DefCodepageS[i] := Upcase(DefCodepageS[i]);
+
+  if DefCodepageS = 'AUTO' then
+    ProcessDefCodePage := kmNone
+  else
+    begin
+      ProcessDefCodePage := kmAscii; { на случай некорректного значения }
+      for k := Succ(Low(TKeyMap)) to High(TKeyMap) do
+        if DefCodepageS = KeyMapDescriptor[k] then
+          begin
+            ProcessDefCodePage := k;
+            exit;
+          end;
+    end;
+  end;
+{ Flash  8.02.2005 <<< }
 
  procedure NullXLAT; var C: Char; begin for c:=#0 to #255 do X[c]:=c; end;
 

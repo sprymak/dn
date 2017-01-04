@@ -1,0 +1,4407 @@
+;/////////////////////////////////////////////////////////////////////////
+;/
+;/  Dos Navigator Open Source
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+;/
+;/  This programs is free for commercial and non-commercial use as long as
+;/  the following conditions are aheared to.
+;/
+;/  Copyright remains RIT Research Labs, and as such any Copyright notices
+;/  in the code are not to be removed. If this package is used in a
+;/  product, RIT Research Labs should be given attribution as the RIT Research
+;/  Labs of the parts of the library used. This can be in the form of a textual
+;/  message at program startup or in documentation (online or textual)
+;/  provided with the package.
+;/
+;/  Redistribution and use in source and binary forms, with or without
+;/  modification, are permitted provided that the following conditions are
+;/  met:
+;/
+;/  1. Redistributions of source code must retain the copyright
+;/     notice, this list of conditions and the following disclaimer.
+;/  2. Redistributions in binary form must reproduce the above copyright
+;/     notice, this list of conditions and the following disclaimer in the
+;/     documentation and/or other materials provided with the distribution.
+;/  3. All advertising materials mentioning features or use of this software
+;/     must display the following acknowledgement:
+;/     "Based on Dos Navigator by RIT Research Labs."
+;/
+;/  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+;/  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;/  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;/  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+;/  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;/  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;/  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;/  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+;/  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+;/  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+;/  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;/
+;/  The licence and distribution terms for any publically available
+;/  version or derivative of this code cannot be changed. i.e. this code
+;/  cannot simply be copied and put under another distribution licence
+;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+;/
+;/  Version history:
+;/
+;/  5.3.8 translated by Figo Fago
+;/
+;//////////////////////////////////////////////////////////////////////////
+
+.topic NoContext=0
+ Przykro mi!, brak pomocy dla tego tematu.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        Kliknij przycisk [ESC]
+
+.topic _=65535
+
+.topic Dragging=1
+  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  ³ Rozmiar okna Û
+  ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+
+ Aby zmieni† rozmiar okna u¾yj klawiszy strzaˆek przy wci˜ni©tym
+ klawiszu Shift.
+ Kiedy otrzrzymasz ju¾ po¾¥dany rozmiar okna, wci˜nij klawisz Enter.
+
+ Je¾eli okno posiada Naro¾nik zmiany rozmiaru, chwy† za niego myszk¥
+ i dowolnie zmieä rozmiar.
+
+  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  ³ Przesuni©cie okna Û
+  ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+
+ Aby przemie˜ci† aktywne okno za pomoc¥ klawiszy strzaˆek wybierz
+ z menu Okno pozycj© Rozmiar/Przenie˜. Kiedy uzyskasz ju¾ po¾¥dany
+ efekt wci˜nij klawisz Enter.
+
+ Efekt przesuni©cia okna mo¾esz uzyska† r¢wnie¾ chwytaj¥c za belk©
+ tytuˆow¥ okna.
+
+ {"Index pomocy":Index}
+
+.topic Index=2
+    ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+ ÚÄÄ´      Witamy w DOS Navigatorze!     ÛÄÄ
+ ³  ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ  Û
+ ³                                          Û
+ ³{ O Navigatorze i jego autorach            :CommonInfo}Û
+ ³{ Okna Navigatora                          :NavigatorsWindows}Û
+ ³ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Interfejs ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Û
+ ³{ Klawisze skr¢t¢w                         :HotOverview}Û
+ ³{ Interfejs                                :Interface}Û
+ ³{ Menu gˆ¢wne                              :MainMenu}Û
+ ³{ Dostosowanie systemu                     :OptionsMenu}Û
+ ³ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Narz©dzia ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Û
+ ³{ Praca z plikami                          :Files}Û
+ ³{ Praca z dyskami                          :DiskOperations}Û
+ ³{ Praca z archiwami                        :Archives}Û
+ ³{ Praca z plikami opisowymi                :FilesBBS}Û
+ ³{ Menu u¾ytkownika                         :UserMenu}Û
+ ³{ Uruchomianie plik¢w z rozszerzeniem      :ExtFile}Û
+ ³{ Dodatek OS/2                             :OS2Support}Û
+ ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+
+.topic HelpOnHelp=3
+.title U¾ycie pomocy
+ ş To co wˆa˜nie teraz czytasz to "Ekran pomocy".
+ ş Bardzo przydatne s¥ pod˜wietlone pozycje {Sˆowa kluczowe:_},
+   kt¢re pozwalaj¥ przenie˜† si© do innych ekran¢w pomocy.
+
+ ÚÄÄÄÄÄÄÄÄÄÄ¿ Aby przmieszcza† si© mi©dzy sˆowami
+ ³Klawiatura³ kluczowymi pomocy u¾yj klawiszy strzaˆek,
+ ÀÄÄÄÄÄÄÄÄÄÄÙ aby zatwierdzi† wyb¢r wci˜nij klawisz Enter.
+
+ ÚÄÄÄÄÄÄÄÄÄÄ¿ Mo¾esz r¢wnie¾ u¾y† myszki aby wybra†
+ ³  Myszka  ³ sˆowo kluczowe pomocy i zatwierdzi† wyb¢r.
+ ÀÄÄÄÄÄÄÄÄÄÄÙ
+
+          ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄ O wersji polskiej ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+          ³                                                Û
+          ³     Tˆumaczenie interfejsu i pliku pomocy      Û
+          ³  FIGOFAGO2004PL, e-mail:figafago@poczta.pf.pl  Û
+          ³                                                Û
+          ³  W tˆumaczeniu wykorzystaˆem :                 Û
+          ³   - Plik pomocy (angielski) do wersji DN 4.9   Û
+          ³   - Podr©cznik u¾ytkownika do wersji DN 1.5    Û
+          ³     autorstwa p.Pawˆa Pawlaka                  Û
+          ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+
+ Patrz r¢wnie¾ {"Index pomocy":Index}
+
+.topic CommonInfo=4
+.title O Navigatorze i jego autorach
+DOS NAVIGATOR jest powˆok¥ dosow¥ ˆ¥cz¥c¥ w sobie szerokie mo¾liwo˜ci i cechy u¾ytkowe.
+Zawarto w nim funkcje
+{kopiowania:CopyFiles},
+{przenoszenia:CopyFiles},
+{edytowania:Editor} i
+{podgl¥du:View} plik¢w,
+{formatowania dyskietek:Format},
+{przywracania usuni©tych plik¢w:Reanimator},
+{bezpo˜redniego edytowanie danych w sektorach dyskowych:DiskEditor},
+{ksi¥¾ki telefonicznej:Phone},
+{modemu:Terminal} i {COM-link:NavyLink},
+{pracy z arkuszami kalkulacyjnymi:SpreadSheet},
+{zarz¥dzania archiwami:Archives},
+{odtwarzania pˆyt CD:CDPlayer}, i wiele innych.
+
+Siˆa tych funkcji i wygoda w poˆ¥czeniu z rozmaito˜ci¥ {opcji:Configuration}
+pozwalaj¥ Navigatorowi uczyni† Twoj¥ prac© w DOS'ie wysoce efektywn¥ i komfortow¥.
+{Tutaj:FeaturesOverview} mo¾esz zapozna† si© szczeg¢ˆowo z gˆ¢wnymi cechami Navigatora.
+
+Autorzy s¥ wdzi©czni tym wszystkim, kt¢rzy wˆo¾yli wkˆad w tworzenie Dos Navigatora,
+wspierali swoimi radami i pomysˆami, jak r¢wnie¾ tym wszystkim, kt¢rzy nie przeszkadzali.
+
+Dos Navigator jest projektem typu Open Source Project. Wi©cej szczeg¢ˆ¢w w pliku
+dnosp.txt, kt¢ry mo¾na znale«† w standardowo emitowanych pakietach.
+
+Komentarze i sugestje dotycz¥ce DN prosimy wysyˆa† do RU.SHELL.DN Fidonet
+lub na poni¾sze adresy:
+
+ Max Vasilyev
+ 2:5057/33.36@fidonet
+ piwamoto(at)pisem.net
+ http://www.sama.ru/~piwamoto/
+ http://dn.traktir.ru/
+
+ Eugeny Zvyagintzev
+ 2:5004/18.60@fidonet
+ dn_osp(at)pisem.net
+ http://dnosp.nm.ru
+
+ Prawa autorskie bazowego Dos Navigator'a posiada {RITLABS srl:_}.
+(Moldova. Kishinev. Shtefan chel Mare st 180, office 101)
+
+ {"Index pomocy":Index}
+
+.topic FeaturesOverview=5
+.title  Mo¾liwo˜ci Navigatora - przegl¥d
+ ù {Wielookienkowy interfejs:WindowsFeature}
+ ù {Edytor tekstowy:EditorFeature}
+ ù {Obsˆuga archiw¢w:Archives}
+ ù Pot©¾ne i u¾yteczne {Wyszukiwanie plik¢w:FileFind}
+ ù {Schowek:Clipboard}
+ ù {Ksi¥¾ka telefoniczna:Phone}
+ ù {Arkusz kalkulacyjny:SpreadSheet}
+ ù {Panele plik¢w:FilePanel} {Mened¾era plik¢w:FileManager}
+ ù {Bezpo˜redni dost©p do dysku:DirectDiskAccess} to Standard DOS devices
+ ù {Kalkulator:Calculator}
+ ù {Tworzenie listy plik¢w:MakeListFile}
+ ù {Wygaszacze ekranu:Savers}
+ ù {Menu u¾ytkownika:UserMenu}
+ ù {Uruchomienie plik¢w z rozszerzeniem:ExtFile} [Enter], [Shift-Enter], [Alt-Enter]
+ ù {Odtwarzacz CD:CDPlayer}
+ ù Gry: {Tetris:Tetris} i {Pentix:Pentix}
+
+.topic WindowsFeature=6
+.title Wˆa˜ciwo˜ci okien
+
+.topic HotOverview=7
+.title Klawisze szybkiego dost©pu - przegl¥d
+       ---            Shift          Ctrl           Alt
+
+ F1    {Pomoc         :Index} {Archiwa       :ArchiveFiles} {Ukryj panel 1 :_} {Zmieä panel 1 :SelectDriveExtended}
+ F2    {Menu u¾ytkown.:UserMenu} {Rozpakuj      :Extract} {Ukryj panel 2 :_} {Zmieä panel 2 :SelectDriveExtended}
+ F3    {Podgl¥d       :View} {Ksi¥¾ka telef.:Phone} {Nowy Mened¾er :ManagerCommands} {Podgl¥d altern:View}
+ F4    {Edycja        :Editor} {Otw¢rz        :_} {Zamknij okno  :WindowsFeature} {Edytor altern :Editor}
+ F5    {Kopiowanie    :CopyFiles} {Kopiuj po plik:_} {Przenie˜ okno :WindowsFeature} {Ekran u¾ytkown:_}
+ F6    {Zm.nazw.Przen.:RenameMove} {Przen poj plik:_} {Kalkulator    :Calculator} {Wykonaj polec.:_}
+ F7    {Utw¢rz katalog:MkDir} {Formatuj      :Format} {UU Kodowanie  :UUEncode} {Znajd« plik   :FileFind}
+ F8    {Usuä          :DeleteFiles} {Usuä poj plik :_} {UU Dekodowanie:UUDecode} {Hist. poleceä :CmdHistory}
+ F9    {Nast©pne okno :WindowsFeature} {Poprzedn.okno :WindowsFeature} {Mened¾er druku:PrintManager} {Gry           :Game}
+ F10   {Menu gˆ¢wne   :MainMenu} {Tryb Ega/Vga  :_} {Tryb video 1  :_} {Tryb video 2  :_}
+ F11                  {Arkusz kalkul.:SpreadSheet} {Odtwarzacz CD :CDPlayer} {Link          :NavyLink}
+ F12                  {Zm. tryb video:CustomVideo} {Kalendarz     :Calendar} {Zmieä j©zyk   :ChLngId}
+
+       Alt                           Ctrl
+
+ A     {Wybieranie r©czne            :ManualDial} {Atrybuty pojedynczego pliku  :FileAttr}
+ B     {Tryb sortowania              :SortBy} {Tabela ASCII                 :AsciiChart}
+ C     {Wyb¢r nap©du                 :SelectDriveExtended} {Por¢wnaj katalogi            :CompareDirs}
+ D     {Menu Dysk                    :DiskMenu}
+ E     {Atrybuty pliku               :FilesAttr}
+ F     {Menu plik                    :FileMenu}
+ G     {Rozmiar katalogu             :_}
+ H                                   {Gaˆ©zie katalog¢w            :_}
+ I     {Panel informacyjny           :DiskInfo}
+ J     {Terminal                     :Terminal}
+ K     {Ustawienia kolumn            :ColumnsSetup} {Toggle Descriptions          :_}
+ L     {Tworzenie listy plik¢w       :MakeListFile} {Panel informacyjny           :DiskInfo}
+ M     {Menu Mened¾er                :ManagerCommands} {Maksymalizacja okna          :_}
+ N     {Ustawienia archiwizacji      :ArcSetup}
+ O     {Menu Opcje                   :OptionsMenu} {Okno wyj˜ciowe               :_}
+ P     {Menu Panel                   :PanelMenu} {Ukryj nieaktywny panel       :_}
+ Q     {SmartPad                     :Editor} {Szybki podgl¥d               :_}
+ R     {Od˜wie¾ panel                :_} {Re-read                      :_}
+ S     {Opcje panela                 :PanelSetup}
+ T     {Drzewo kat. (Zmieä/Wybierz)  :TreeDialog} {Drzewo katalog¢w (Panele)    :DirTree}
+ U     {Menu Narz©dzia               :UtilMenu} {Zamiana paneli               :_}
+ V     {Czytaj list© plik¢w          :_} {Com.Line Overstr/Ins         :_}
+ W     {Menu Okno                    :Windows}
+ X     {Wyj˜cie                      :_}
+ Y     {Informacja o pami©ci         :_}        {Toggle Full Mode             :_}
+ Z     {Powi©ksz okno                :WindowsFeature}
+
+ Patrz r¢wnie¾ {"Klawisze szybkiego dost©pu panela plik¢w":PanelHotKeys}
+
+.topic EditorFeature=8
+.title Edytor tekstowy
+
+.topic MainMenu=9
+.title Menu gˆ¢wne
+  {:MenuBox}           - Z tego Menu istnieje mo¾liwo˜† wywoˆania
+                dodatkowych funkcji oraz uzyskania informacji
+                o wersji Navigator'a.
+  {Plik:FileMenu}        - Menu dziaˆaä na plikach.
+  {Dysk:DiskMenu}        - Tutaj znajdziesz narz©dzia do pracy z dyskami
+                i do przywracania usuni©tych plik¢w.
+  {Narz©dzia:UtilMenu}   - Gˆ¢wne okna Navigatora.
+  {Panel:PanelMenu}       - Zarz¥dzanie panelem plik¢w.
+  {Mened¾er:ManagerCommands}    - Specialne zadania Mened¾era plik¢w.
+  {Opcje:OptionsMenu}       - Ustawienia konfiguracji.
+  {Okno:Windows}        - Zarz¥dzanie oknami.
+
+{"Indeks pomocy":Index}
+
+.topic MenuBox=10
+.title Menu 
+{Wizyt¢wka...     :_} - Informacja o bie¾¥cej wersji DN:
+                     nazwie programu, numerze wersji,dacie utworzenia
+                     bie¾¥cej wersji, informacji o u¾ytkowniku
+                     (kto jest zarejestrowany).
+
+{Od˜wie¾ ekran    :_} - Od˜wie¾a wszystkie okna Navigatora,
+                     je¾eli na ekranie powstaˆ nieporz¥dek.
+
+{Wygaszacz ekranu :_} - Natychmiastowa aktywacja wygaszacza ekranu
+
+{apacz ekranu    :ScreenGrabber} - Aktywuje zrzut ekranowy - narz©dzie przydatne
+                     do kopiowania cz©˜ci ekranu do schowka
+                     (przewa¾nie wywoˆywane klawiszem skr¢tu)
+
+{Ekran u¾ytkownika:_} - Pokazuje ekran u¾ytkownika (n.p. ekran DOS'a).
+
+{Okno wyj˜ciowe   :_} - Podobnie jak {Ekran u¾ytkownika:_} ale
+                     w osobnym oknie.
+
+{SmartPad         :_} - Wˆ¥cza SmartPad(TM) - maˆy edytorek dost©pny
+                     z wielu miejsc DN, przydatny w tworzeniu
+                     maˆych notatek.
+
+{Kosz wˆ/wyˆ      :_} - Pokazuje lub ukrywa kosz na pulpicie.
+
+{EGA/VGA          :_} - Przeˆ¥cznik trybu wideo 43/50 linii ekranu
+                     (Ta funkcja jest dost©pna tylko w trybie EGA/VGA
+                     i kompatybilnych).
+
+{Tryb Video 1/2   :_} - Wˆ¥cza {Wˆasny tryb wideo:CustomVideo}, ustawiony w
+                     {Ustawieniach systemowych:Configuration}
+
+{Gra              :_} - Dla relaksu (Tetris lub Pentix).
+
+.topic ExtendedVideo=11
+.title Extended Video Modes
+SVGA extended video modes support.
+
+.topic FileMenu=12
+.title Menu Plik
+ Menu pozwala na dost©p do wielu przydatnych operacji na plikach
+ i katalogach.
+
+  {Podgl¥d:View} - Podgl¥d pliku. Podmenu wskazuje na typ podgl¥du:
+    {Domy˜lnie     :_} - Stosownie do rozszerzenia
+    {Jako tekst    :_} - Podgl¥d jako tekst
+    {Jako Hex      :_} - Podgl¥d w formacie szestnastkowym
+    {Jako b. danych:_} - Podgl¥d jako baza danych
+    {Ark. kalkul.  :_} - Podgl¥d jako arkusz kalkulacyjny
+    {Alternatywny  :_} - Podgl¥d pliku w oknie przegl¥darki zewn©trznej.
+
+  {Edycja :Editor} - Podmenu edycji pliku.
+    {Edytuj        :_} - Edytuje plik u¾ywaj¥c edytora zewn©trznego
+    {Alternatywny  :_} - Edytuje plik u¾ywaj¥c edytora wewn©trznego
+    {Nowy plik     :_} - Tworzy i edytuje nowy plik
+
+  {Znajd«              :FileFind} - Wyszukiwanie plik¢w.
+  {Kopiuj              :CopyFiles} - Kopiowanie bie¾¥cego lub zaznaczonego
+                         pliku(¢w).
+  {Zmieä nazw©/Przenie˜:RenameMove} - Zmienia nazw©/Przenosi plik/katalog na inny
+                         dysk lub do innego katalogu.
+  {Spakuj archiwum     :ArchiveFiles} - Pakowanie plik¢w do archiwum
+  {Rozpakuj archiwum   :Extract} - Rozpakowanie plik¢w z archiwum
+  {Podziel/Scal        :SplitFiles} - Dzieli/¥czy pliki na/z cz©˜ci.
+  {Drukuj              :PrintManager} - Drukowanie pliku w tle.
+  {Utw¢rz katalog      :MkDir} - Tworzenie nowego katalogu, grupy katalog¢w.
+  {Usuä                :DeleteFiles} - Usuwanie pliku lub katalogu.
+  {Atrybuty plik¢w     :FileAttr} - Ustawianie atrybut¢w pliku lub katalogu.
+  {UU Zakoduj          :UUEncode} - Zakodowanie pliku przed wysˆaniem E-Mail
+  {UU Dekoduj          :UUDecode} - Odkodowanie pliku, zwrotnego E-Mail
+
+  {Wyj˜cie             :_} - Wyj˜cie z Navigatora.
+
+.topic RenameMove=13
+.title Zmieä nazw©/Przenie˜
+
+.topic DiskMenu=14
+.title Menu Dysk
+To menu oferuje r¢¾ne funkcje do pracy z dyskami.
+
+  {Formatuj dysk   :Format} - Formatowanie dyskietek w tle
+                     (Dost©pne tylko kiedy pracujesz w DN).
+  {Etykieta        :VolLabel} - Ustawienie etykietki dysku.
+  {Reanimator      :Reanimator} - Przywracanie wymazanych plik¢w.
+  {Edytor dysku    :DiskEditor} - Edytowanie danych na dysku.
+                     UWAGA!!! Niepoprawne u¾ywanie Edytora dyskowego
+                     mo¾e zniszczy† nieodwracalnie Twoje dane!
+  {Drzewo katalog¢w:TreeDialog} - Wyb¢r innego katalogu i otwarcie
+                     nowego Mened¾era plik¢w z dwupanelowym widokiem
+                     Drzewa katalog¢w.
+
+.topic UtilMenu=15
+.title Menu Narz©dzia
+  {Informacja o pami©ci  :_} - Informacja o programach, sterownikach
+                           systemowych i buforach w pami©ci.
+                           R¢wnie¾ pokazuje wektory hooked interrupt.
+  {Informacja o systemie :_} - Informacja o komputerze, na kt¢rym
+                           uruchomiony jest Navigator.
+  {Kalendarz             :Calendar} - Podr©czny kalendarz.
+  {Kalkulator            :Calculator} - U¾ycie kalkulatora.
+  {Tabela ASCII          :AsciiChart} - Widok tabeli ASCII, emulacja klawisza
+                           wybranego znaku.
+  {Ksi¥zka telefoniczna  :Phone} - Ksi¥¾ka telefoniczna
+  {Otw¢rz arkusz kalkul. :SpreadSheet} - Tworzenie/otwieranie arkusza kalkulacyjn.
+  {Odtwarzacz CD         :CDPlayer} - Uruchomianie odtwarzacza CD.
+  {Terminal              :Terminal} - Otwieranie okna Terminala.
+  {Poˆ¥czenie kablowe    :NavyLink} - Wybieranie portu dla poˆ¥czenia.
+  {Wybieranie r©czne     :ManualDial} - Wybieranie numeru telefonicznego.
+  {Rozˆ¥cz               :_} - Modem zawiesiˆ si© i anulowanie wybierania
+                           numeru telefonicznego.
+  {Menu u¾ytkownika      :UserMenu} - Pokazuje menu u¾ytkownika, je¾eli brak
+                           menu lokalnego w katalogu bie¾¥cym,
+                           pokazuje menu globalne.
+  {Edycja ˜rodowiska DOS :EnvEditor} - Edycja/podgl¥d zmiennych ˜rodowiska DOS.
+  {Historia poleceä      :CmdHistory} - Lista poprzednio u¾ywanych poleceä DOS'a.
+  {Historia edycji plik¢w   :EditHistory} - Lista poprzednio edytowanych plik¢w.
+  {Historia podgl¥du plik¢w :ViewHistory} - Lista poprzednio podgl¥danych plik¢w.
+  {Historia katalog¢w       :DirHistory} - Wyb¢r jednego z poprzednio odwiedzonych
+                              katalog¢w
+.topic PanelMenu=16
+.title Menu Panel
+{Utw¢rz list© plik¢w     :MakeListFile} - Tworzenie listy zaznaczonych nazw plik¢w.
+
+{Por¢wnaj katalogi       :CompareDirs} - Por¢wnanie dw¢ch katalog¢w.
+
+{Oblicz rozmiar katalog¢w:_} - Obliczenie wielko˜ci katalogu.
+
+{Ustawienie kolumn       :_} - Wybranie szczeg¢ˆ¢w do pokazywania w
+                            bie¾¥cym panelu plik¢w (rozmiar, data,
+                            czas, opis).
+
+{Ustawienia panela       :PanelSetup} - Konfiguracja bie¾¥cego panela.
+
+{Sortuj wg               :_} - Ustalenie porz¥dku sortowania.
+
+{Zaznacz grup©           :_} - Zaznaczanie grupy plik¢w.
+
+{Odznacz grup©           :_} - Usuwanie zaznaczenia dla grupy plik¢w.
+
+{Odwr¢† zaznaczenie      :_} - Odwr¢cenie bie¾¥cego zaznaczenia.
+
+{Zaawansowany filtr      :AdvancedFilter} - Wyb¢r filtra dla bie¾¥cego panela.
+
+{Zmieä nap©d             :_} - Zmiana nap©du dla bie¾¥cego panela.
+
+{Zmieä katalog           :TreeDialog} - Zmiana bie¾¥cego katalogu
+                            z u¾yciem okienka Drzewo katalog¢w.
+
+{Odczytaj ponownie       :_} - Od˜wie¾enie (odczytanie) bie¾¥cego
+                            katalogu.
+
+{Ulubione katalogi       :QuickDirs} - Menu z dost©pem do ulubionych katalog¢w.
+
+;{Historia katalog¢w      :_} - Wyb¢r jednego z poprzednio odwiedzonych
+;                            katalog¢w
+
+.topic QuickRun=17
+.title Szybkie uruchamianie program¢w
+Istnieje mo¾liwo˜† przypisania ci¥g¢w poleceä kombinacjom
+klawiszy  Ctrl+Shift+Fn  (n=1..10). Ci¥gi tych poleceä
+przechowywane s¥ w pliku DN.XRN, kt¢ry znajduje si© w katalogu
+systemowym DOS Navigatora. Symbole u¾ywane w tym pliku maj¥
+podobne znaczenie co w definicji menu u¾ytkownika.
+Wyj¥tkiem jest tu symbol ">", kt¢ry nie oznacza zagˆ©bienia
+w hierarchii, lecz oznacza numer klawisza funkcyjnego
+( F1 ... F10 ), kt¢ry uruchamia dany ci¥g poleceä.
+
+ Przykˆadowy plik DN.XRN:
+
+   ; Ctrl+Shift+F1
+   >[1
+    cmd
+   ; Ctrl+Shift+F2
+   >2
+    Echo Nacisn¥ˆe˜ Ctrl+Shift+F2
+    pause
+   ; Ctrl+Shift+F10
+   >10
+    Echo Nacisn¥ˆe˜ Ctrl+Shift+F10
+    pause
+
+.topic OptionsMenu=18
+.title Menu Opcje
+ {Konfiguracja    :SubMenuConfig} - Ustawianie opcji DOS Navigatora.
+ {Mened¾er plik¢w :SubMenuFileMgr} - Ustawienia Mened¾era plik¢w.
+ {Archiwa         :Archives} - Ustawienia archiwizacji.
+
+ {Edycja pliku szyb. uruchom. :QuickRun} - Szybkie uruchomianie program¢w.
+ {Edycja pliku rozszerzeä     :ExtFile} - Uruchomianie plik¢w wg rozszerzenia.
+ {Edycja pliku pod˜wieteä     :EditorHilite} - Pod˜wietlanie edytowanych plik¢w.
+ {Edycja pliku (SPF)          :_} - Edycja wyszukiwania ˜cie¾ek pliku.
+ {Edycja pliku ini            :IniFile} - Edycja pliki - ini.
+ {Definicja menu globalnego   :GUserMenu} - Edycja menu globalnego.
+ {Definicja menu lokalnego    :LUserMenu} - Edycja lokalnego menu u¾ytkownika.
+ {Przegl¥darki                :ViewFile} - Konfiguracja przegl¥darki zwen.
+ {Edytory                     :ViewFile} - Konfiguracja edytora zewn©trznego.
+
+ {Zapisz ustawienia pulpitu   :_} - Zachowanie ustawieä DN do pliku.
+ {Przywoˆaj ustawienia pulpitu:_} - Przywoˆanie ustawieä DN z pliku.
+
+ {Ustawienia kolor¢w       :ColorDialog} - Edycja palety kolor¢w Navigatora.
+ {Zachowaj palet© kolor¢w  :_} - Zapisanie bie¾¥cej palety do pliku.
+ {Przywoˆaj palet© kolor¢w :_} - Przywoˆanie palety kolor¢w DN z pliku.
+
+.topic NavigatorsWindows=19
+         ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+ ÚÄÄÄÄÄÄÄ´ Okna Navigatora ÛÄÄÄÄÄÄÄ
+ ³       ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ       Û
+ ³                                 Û
+ ³{ Praca z wieloma oknami          :Windows}Û
+ ³ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Û
+ ³{ Mened¾er plik¢w                 :FileManager}Û
+ ³{ Przegl¥darka plik¢w             :View}Û
+ ³{ Edytor tekstowy                 :Editor}Û
+ ³{ Edytor dysku                    :DiskEditor}Û
+ ³{ Drzewo katalog¢w                :DirTree}Û
+ ³{ Arkusz kalkulacyjny             :SpreadSheet}Û
+ ³{ Kalkulator                      :Calculator}Û
+ ³{ Terminal                        :Terminal}Û
+ ³{ Reanimator plik¢w               :Reanimator}Û
+ ³{ Ksi¥¾ka telefoniczna            :Phone}Û
+ ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+
+; ³ Podgl¥d plik¢w DBase                       Û
+
+.topic FileManager=20
+.title Mened¾er plik¢w
+Mened¾er plik¢w jest gˆ¢wnym oknem Navigatora do pracy z plikami.
+Z jego pomoc¥ wi©kszo˜† operacji plikowych mo¾e zosta† wykonana w
+Navigatorze. Okno Mened¾era plik¢w tworzy si© przez wybranie {Mened¾er|Nowy:_}
+z belki menu gˆ¢wnego.
+Po  wybraniu  tego  polecenia  DOS  Navigator zapyta o dysk, dla kt¢rego ma
+stworzy†  nowego  Mened¾era  plik¢w.
+Po otwarciu nowego Mened¾era mo¾na go skonfigurowa† wg wˆasnych potrzeb.
+
+Poszczeg¢lne pozycje okna Mened¾era plik¢w:
+  - {Panel plik¢w:FilePanel} - Gˆ¢wny panel Mened¾era plik¢w
+  - {Drzewo katalog¢w:DirTree}
+  - {Informacja:DiskInfo}
+  - {Szybki podgl¥d:_}
+  - {Dyski Temp i Znajd« :TempList}
+
+A oto przykˆadowy widok:
+
+ ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»ÉÍÍÍÍÍÍÍÍ E:\ ÍÍÍÍÍ[]Í»
+ º ²E:\²                ºARC         ³ EXE     º
+ º  ÃÄ[+] BBS           şºBBS         ³ FOXPRO2 º
+ º  ÃÄ[+] TP            ±ºBP          ³ HELP    º
+ º  ÃÄ[+] BP            ±ºBPRTL       ³ LEX     º
+ º  ÃÄÄÄLEX             ±ºCOM         ³ NC      º
+ º  ÃÄ[+] ARC           ºÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄº
+ º°E:\°°°°°°°°°°°°°°°°°°ºº dnhlp.txt      14,83 º
+ º°1535°files°with°77,43ºº¿ No files selected  º
+ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ÈÍ³ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÄÙ
+             ³             ³         ³
+         Lewy panel        ³    Prawy panel
+                           ³
+    Separator paneli, kt¢ry mo¾na "przeci¥ga†" w lewo i prawo
+    u¾ywaj¥c myszki. Tym sposobem, mo¾esz zmienia† rozmiar
+    paneli. R¢wnie¾ mo¾esz u¾y† klawiszy  {Alt +  i  Alt + :_}.
+
+ Patrz r¢wnie¾ {"Pozycje menu mened¾era plik¢w":ManagerCommands}
+
+.topic ManagerCommands=21
+.title Pozycje menu mened¾era plik¢w
+Dost©pne polecenia z menu mened¾era. Przy ich pomocy mo¾esz
+skonfigurowa† okno mened«era wg wˆasnych potrzeb.
+
+{Nowy                   :_} - Otwiera nowe okno mened¾era
+
+{Drzewo katalog¢w       :DirTree} - Je˜li nie ma aktywnego Drzewa katalog¢w,
+                           wtedy pojawi si© w panelu nieaktywnym, a w
+                           przypadku jego obecno˜ci - zostanie usuni©te
+                           z okna.
+
+{Informacja             :DiskInfo} - Dotyczy ekranu informacyjnego.
+                           Pokazanie wybranych informacji o dysku.
+
+{Szybki podgl¥d         :_} - Dotyczy panela Szybkiego podgl¥du.
+                           Pozwala podejrze† pod˜wietlony plik.
+
+{Zmieä panele           :_} - Zamienia miejscami poˆo¾enie paneli.
+
+{Poka¾/Ukryj lewy panel :_} - Pokazuje/Ukrywa lewy panel mened¾era.
+
+{Poka¾/Ukryj prawy panel:_} - Pokazuje/Ukrywa prawy panel mened¾era.
+
+{Zmieä lewy dysk        :_} - Zmienia dysk lewego panela bez
+                           uaktywniania go. Je¾eli panel byˆ
+                           niewidoczny, ujawnia go po wybraniu dysku.
+
+{Zmieä prawy dysk       :_} - Tak jak wy¾ej dla prawego panela.
+
+.topic Windows=22
+.title Praca z oknami
+ Navigator jest ˜rodowiskiem wielo-okienkowym, dlatego wielu
+ niedo˜wiadczonych u¾ytkownik¢w mo¾e mie† pewne trudno˜ci w pracy
+ z Navigatorem.
+ Niekt¢rzy u¾ytkownicy mog¥ po prostu zignorowa† wielo-okienkowy
+ interfejs, trac¥c w ten spos¢b du¾o energii i czasu.
+ Poza tym, system wielo-okienkowy jest ˆatwy i przyjemny, wszystkie
+ okna maj¥ jednakowy "wygl¥d" {"Przykˆadowe okno":WindowsType},
+ mo¾esz wi©c szybko nauczy† si© jak pracowa† z Navigatorem.
+ Mo¾esz przeˆ¥cza† si© mi©dzy oknami u¾ywaj¥c myszki albo poleceä
+ menu {Window|Nast©pne:_} i {Window|Poprzednie:_} (wszystkie
+ dziaˆania na oknach maj¥ odpowiadaj¥ce im klawisze skr¢tu).
+ Okno mo¾na zamkn¥† poleceniem menu {Okno|Zamknij:_}. Za pomoc¥
+ polecenia menu {Okno|Powi©kszenie:_}, mo¾na zmaksymalizowa†
+ okno do rozmiaru caˆego ekranu, jak r¢wnie¾ powr¢ci† do
+ poprzedniej wielko˜ci.
+
+ Lista aktualnie otwartych okien, jest dost©pna z
+ polecenia {Okno|Lista okien:_}.
+
+ Rozmiar i poˆo¾enie okna mog¥ by† zmieniane przy pomocy
+ myszki, albo poleceniem menu {Okno|Rozmiar/Przenie˜:_}.
+ Kiedy to polecenie zostanie wybrane, przesuwanie okna b©dzie
+ mo¾liwe przy pomocy strzaˆek {   :_} , a zmiana rozmiaru
+ okna b©dzie mo¾liwa przy pomocy tych samych strzaˆek, ale
+ razem z klawiszem  Shift.
+
+ U¾ytkownik mo¾e rozmieszcza† okna na ekranie wybieraj¥c
+ "Kaskadowo" {Okno|Kaskadowo:_} albo
+ "S¥siaduj¥co" {Okno|S¥siaduj¥co:_}.
+
+.topic WindowsType=23
+.title Przykˆadowe okno
+     ÚÄÄ Kliknij tutaj myszk¥ aby zamkn¥† okno
+     ³
+     ³           Kliknij tutaj zoom aby powi©kszy† okno
+     ³           do peˆnego ekranu  ³
+     ³                              ³
+     ³      ÚÄÄÄÄÄÄ Nazwa okna      ³
+     ³      ³                       ³
+     ³  ÚÄÄÄÄÄ Je¾eli klikniesz i uchwycisz za g¢r©
+     ³  ³   ³  ramki, mo¾esz zmieni† poˆo¾enie okna
+     ³  ³   ³                       ³
+                                 
+  ÉÍ[ş]ÍÍ Edit - A:\DN\DNHLP.TXT 1Í[]Í»
+  º                                    
+  º                                    ±
+  º                                    ş
+  º         Paski przewijania  ÄÄÄÄÄÄÄ±
+  º                           ³        ±
+  º                           ³        ±
+  º                           ³        ±
+  º                                   
+  ÈÍÍÍ35:12 [172]ÍÍÍÍ±ş±±±±±±±±±±±±ÄÙ
+                                      
+    Poci¥gaj¥c za naro¾nik zmienisz   ³
+    rozmiar okna          ÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+.topic Files=24
+.title Praca z plikiami
+Navigator oferuje nast©puj¥ce mo¾liwe operacje pracy z plikami i katalogami:
+
+  - {Kopiowanie/przenoszenie:CopyFiles}
+  - {Dopisywanie do pliku:AppendFiles}
+  - {Dzielenie du¾ych plik¢w na wiele wolumin¢w:SplitFiles}
+  - {Usuwanie plik¢w lub katalog¢w:DeleteFiles}
+  - Podgl¥d zawarto˜ci pliku:
+      - {Archiwum:Archives}
+      - {Bazy danych:View}
+      - {Binarnego:View}
+      - {Tekstowego:View}
+  - {Eddytowanie pliku tekstowego:Editor}
+  - Tworzenie pliku lub katalogu
+  - {Wyszukiwanie plik¢w:FileFind} uzywaj¥c wildcards i contents
+  - Kopiowanie plik¢w na {Dyski Temp i Znajd«:TempList}
+  - Kopiowanie pliku do panela archiwum
+
+.topic DeleteFiles=25
+.title Usuwanie plik¢w
+Navigator pozwala na usuwanie plik¢w i katalog¢w, kt¢re nie s¥ puste.
+Jest to mo¾liwe poleceniem menu {Plik|Usuä:_}. Je˜li masz wˆ¥czony w konfiguracji
+{bezpo˜redni dost©p do dysku:DirectDiskAccess}, usuwanie jest znacznie
+ szybsze! Jednak¾e, to nie dziaˆa dla nap©d¢w sieciowych.
+
+Kiedy b©dziesz pr¢bowaˆ wymaza† niepusty katalog Navigator dodatkowo
+poprosi o potwierdzenie.
+
+
+     ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Potwierd« ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+     º                                                  º
+     º               Katalog C:\REAL\kal                º
+     º                  nie jest pusty.                 º
+     º              Czy chcesz go skasowa†?             º
+     º                                                  º
+     º    Nie  Ü     Tak   Ü    Caˆo˜† Ü    Anuluj Ü  º
+     º   ßßßßßßßßß    ßßßßßßßß    ßßßßßßßß    ßßßßßßßß  º
+     ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+Je˜li przypadkowo "automatycznie" naci˜niesz ENTER, nic si© nie stanie.
+
+W przypadku kiedy chcesz skasowa† kilka niepustych katalog¢w i jeste˜
+pewien tego co robisz, mo¾esz nacisn¥† "Caˆo˜†" a ¾¥dania potwierdzenia
+nie b©d¥ ju¾ powtarzane.
+
+Zauwa¾, ¾e mo¾esz przeˆ¥cza† tryb potwierdzania z w okienku
+{Opcje|Konfiguracja|Potwierdzenia...:_} Nie polecamy tego, chyba
+¾e jeste˜ pewien, ¾e nie b©dziesz wciskaˆ przypadkowo
+klawiszy szybkiego dost©pu dla operacji usuwania.
+
+.topic SplitFiles=26
+.title Dzielenie pliku na wiele wolumin¢w
+Dos Navigator mo¾e dzieli† bardzo du¾e pliki na kilka cz©˜ci a-la
+DOS Backup. Zasadnicz¥ r¢¾nic¥ mi©dzy backup'em a dzieleniem w DN
+jest to, ¾e DN nie usuwa zawarto˜ci z dysku, a tylko u¾ywa
+do tego wolnej przestrzeni dyskowej. Aby podzieli† lub poˆ¥czy†
+plik wybierz polecenie z menu {Plik|Podziel/Scal:_}.
+
+Podczas dzielenia pliku, DN tworzy pliki z rozszerzeniem ".d??",
+gdzie ?? odpowiada numerowi woluminu. Podczas ˆ¥czenia tych
+plik¢w, Navigator rozr¢¾nia utworzone woluminy uzywaj¥c tych
+rozszerzeä i wewn©trznego formatu.
+
+   UWAGA: Pliki, dzielone na wiele wolumin¢w przez Navigatora
+          mog¥ by† przywracane tylko przez Navigatora! Je¾eli
+          nie chcesz u¾ywa† DN do ˆ¥czenia wolumin¢w powiniene˜
+          u¾y† opcji `Tylko binarne dzielenie' w okienku
+          dialogowym {Podziel plik:SplitDialog}.
+
+  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  ³ Dzielenie/ˆ¥czenie plik¢w Û
+  ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+
+  Dzielenie i ˆ¥czenie plik¢w z u¾yciem DN wygl¥da nast©puj¥co:
+
+  ÉÍÍÍÍÍÍÍÍÍÍÍ Podziel plik ÍÍÍÍÍÍÍÍÍÍ»
+  º                                   º
+  º            C:\DN.PRG              º
+  º               do                  º
+  º          A:\DN\DN.d01             º
+  º                                   º
+  º Odczyt: ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ º
+  º Zapis:  ÛÛÛÛÛÛ±±±±±±±±±±±±±±±±±±± º
+  º                                   º
+  º           °°°Stop°°°Ü             º
+  º            ßßßßßßßßß             º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ³ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+                   ³
+   Je˜li wci˜niesz ten przycisk, operacja
+   zostanie przerwana.
+
+Podczas dzielenia pliku oka¾e si©, ¾e dysk jest peˆen
+Navigator poka¾e komunikat:
+
+ ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍ Potwierd« ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º                                        º
+ º           Wˆ¢¾ dysk numer 02           º
+ º                                        º
+ º          °°°OK°°°Ü   °Anuluj°Ü         º
+ º           ßßßßßßßß    ßßßßßßßß         º
+ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+Je¾eli na wˆo¾onym dysku, istnieje ju¾ dzielona cz©˜†
+pliku, pojawi si© nast©puj¥ce pytanie:
+
+ ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍ Pytanie ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º                                        º
+ º            Plik ju¾ istnieje:          º
+ º                 DN.D02                 º
+ º              Nadpisa† go?              º
+ º                                        º
+ º     °°Tak°°°Ü °°Nast°°Ü   °Anuluj°Ü    º
+ º      ßßßßßßßß  ßßßßßßßß    ßßßßßßßß    º
+ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+Je¾eli wybierzesz przycisk "Tak", ta cz©˜† zostanie nadpisana
+, a bie¾¥ca cz©˜† pliku zostanie zapisana na ten dysk.
+
+ Patrz r¢wnie¾ {"Okienko Podziel plik":SplitDialog}
+
+.topic CombineDialog=27
+.title ¥czenie wielu cz©˜ci (wolumin¢w) pliku
+Mo¾esz wybra† katalog docelowy.
+
+ Patrz r¢wnie¾ {"Dzielenie pliku na wiele wolumin¢w":SplitFiles}.
+
+.topic SplitDialog=28
+.title Okienko dialogowe Podziel plik
+
+    ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Podziel plik ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+    º  Podziel zdn.doc do                                º
+ ÚÄÄ ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± Şİ º
+ ³  º                                                    º
+ ³ ÚÄÄ[ ] Tylko binarne dzielenie                       º
+ ³ÚÄÄÄ[X] Weryfikuj zapis na dysku                      º
+ ³³³º  [X] Pami©taj dˆugie nazwy plik¢w      ÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³³³º                                                    º  ³
+ ³³³º  Rozm. sekcji  ±±±±± Şİ  Liczba sekc. ±±±±± Şİ º  ³
+ ³³³º                   ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³³³º               OK  Ü  Anuluj Ü  Drzewo Ü  Pomoc Ü º  ³  ³
+ ³³³º              ßßßßßßßß  ßßßßßßßß  ßßßßßßß  ßßßßßßß º  ³  ³
+ ³³³ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ³ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼  ³  ³
+ ³³³                                      ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ³  ³
+ ÀÄÄ tu pokazuje si© nazwa pliku lub katalogu gdzie      ³  ³  ³
+  ³³ zostanie zapisany wynik operacji dzielenia plik¢w.  ³  ³  ³
+  ³³                                                     ³  ³  ³
+  ³³ Je˜li wci˜niesz ten przycisk, mo¾esz wybra† ÄÄÄÄÄÄÄÄÙ  ³  ³
+  ³³ katalog docelowy z Drzewa katalog¢w.                   ³  ³
+  ³³                                                        ³  ³
+  ³À Kliknij ten kwadracik je¾eli nie chcesz aby zostaˆy    ³  ³
+  ³  zapisane dodatkowe informacje o tworzonych woluminach, ³  ³
+  ³  je˜li b©dziesz umiaˆ poˆ¥czy† je bez u¾ycia Navigatora.³  ³
+  ³                                                         ³  ³
+  ÀÄ Je˜li masz w¥tpliwo˜ci co do jako˜ci dyskietek,        ³  ³
+     kliknij ten kwadracik w celu dokonania weryfikacji     ³  ³
+     zapisu dzielonych plik¢w.                              ³  ³
+                                                            ³  ³
+     Wybierz ten kwadracik aby zachowa† dˆugie nazwy ÄÄÄÄÄÄÄÙ  ³
+     plik¢w w tworzonych woluminach. Woluminy utworzone z t¥   ³
+     opcj¥ nie mog¥ by† l¥czone wersji pre-1.51.05a/DOS DN     ³
+                                                               ³
+     Rozmiar sekcji to zakˆadana wielko˜† wolumin¢w ÄÄÄÄÄÄÄÄÄÄÄÙ
+     Liczba sekcji to podziaˆ na z g¢ry okre˜lon¥ ilo˜†
+     tworzonych wolumin¢w
+
+.topic CopyFiles=29
+.title Kopiowanie/Przenoszenie plik¢w
+Navigator pozwala na jednoczesne kopiowanie plik¢w i katalog¢w
+z zawarto˜ci¥. Mo¾na to wykona† poleceniem menu {Plik|Kopiuj:_},
+w aktywnym panelu Mened¾era plik¢w.
+
+Przenoszenie plik¢w i katalog¢w mo¾na wykona† poleceniem menu
+Plik|{Zmieä nazw©/Przenie˜:RenameMove}. Ograniczeniem tej
+operacji jest tylko pojemno˜† dysku, czy dysk¢w.
+
+Podczas kopiowania, Navigator mo¾e u¾y† dost©pnej pami©ci
+EMS/XMS je˜li uprzednio zostanie odznaczona pozycja
+'Wyˆ¥cz u¾ywanie XMS/EMS' w oknie  Ustawienia systemowe
+z menu  Opcje|Konfiguracja.
+
+ Patrz r¢wnie¾ {"Okno kopiowania":CopyDialog}
+
+.topic CopyDialog=30
+.title Okno kopiowania
+
+     ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Kopiuj ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+     º  Kopiuj 24 plik(i) i 2 katalog(i) do                    º
+  ÚÄÄ ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± Şİ º
+  ³  º                                                         º
+  ³  º  ( ) Nadpisz wszystkie istniej¥ce pliki      ÄÄ¿       º
+  ³  º  ( ) Dodaj do wszystkich istniej¥cych plik¢w    ÃÄÄÄÄÄÄÄÄÄÄ¿
+  ³  º  () Zapytaj przy zamianie                   ÄÄÙ       º  ³
+  ³  º  ( ) Pomiä wszystkie istniej¥ce pliki                   º  ³
+  ³  º  ( ) Od˜wie¾ wszystkie stare pliki                      º  ³
+  ³  º                             ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿³
+  ³  º  [X] Sprawdz. wolne miejsceÙ[X] Kopiuj opisy           º ³³
+  ³  º  [ ] Weryfik. zapis na dysk  [ ] Usuä pliki «r¢dˆowe    º ³³
+  ³  º                                                         º ³³
+  ³  º                    OK  Ü  Anuluj Ü  Drzewo Ü  Pomoc Ü º ³³
+  ³  º                   ßßßßßßßß  ßßßßßßßß  ßßßßßßßß  ßßßßßßß º ³³
+  ³  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ ³³
+  ³                                                              ³³
+  ÀÄÄ Linia z mask¥ pliku, zawieraj¥ca pliki, kt¢re zostan¥      ³³
+      skopiowane. Dozwolone s¥ symbole wieloznaczne 'Wildcards'. ³³
+                                                                 ³³
+      Mo¾liwe opcje kopiowania:   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿    ³³
+                                                            ³    ³³
+       "Nadpisz wszystkie istniej¥ce pliki" - nadpisuje     ³    ³³
+       ju¾ istniej¥ce pliki bez ostrze¾enia,                ³    ³³
+       speeds up the copying process, as does not           ³    ³³
+       check the existence of a created file.               ³    ³³
+                                                            ³    ³³
+       "Dodaj do wszystkich istniej¥cych plik¢w" - dopisuje ³    ³³
+       zawarto˜† kopiowanych plik¢w do ju¾ istniej¥cych     ÃÄÄÄÄ³Ù
+       bez ostrze¾enia. Je˜li kopiowana jest grupa plik¢w   ³    ³
+       niezb©dne jest zadbanie o to aby pliki byˆy          ³    ³
+       w prawidˆowym porz¥dku.                              ³    ³
+                                                            ³    ³
+                                                            ³    ³
+       "Zapytaj przy zamianie" - Navigator ka¾dorazowo      ³    ³
+       b©dzie pytaˆ czy nadpisa† istniej¥cy plik plikiem    ³    ³
+       kopiowanym. Ta opcja jest wˆ¥czona domy˜lnie. ÄÄÄÄÄÄÄÙ    ³
+                                                                 ³
+                                                                 ³
+       Je˜li zaznaczysz t¥ opcj©, Navigator b©dzie   ÄÄÄÄÄÄÄÄÄÄÄÄÙ
+       sprawdzaˆ dost©pn¥ woln¥ powierzchni© na
+       dysku przed zapisaniem pliku na dysk.
+
+.topic AppendFiles=31
+.title Dopisywanie do plik¢w
+ Scalanie - dopisywanie do pliku jest mo¾liwe poprzez kopiowanie
+ dw¢ch lub wi©cej plik¢w do jednego pliku.
+ Mo¾na to wykona† poleceniem kopiuj, a tak¾e wˆ¥czaj¥c opcj© w
+ okienku dialogowym  "Dopisz do wszystkich istniej¥cych plik¢w"
+ czy podczas kiedy Navigator zapyta o mo¾liwo˜† nadpisania
+ istniej¥cych plik¢w, wtedy mo¾esz wybra† przycisk {Dopisz:_}.
+ (To pytanie b©dzie powtarzane za ka¾dym razem podczas kopiowania
+ grupy plik¢w).
+
+ Patrz r¢wnie¾ {"Kopiowanie plik¢w":CopyFiles}
+
+.topic CopyInProgress=32
+.title Copying files in progress
+
+.topic Editor=1102
+.title Edytor tekstowy
+ Wbudowany Edytor tekstowy Navigatora jest przeznaczony do obsˆugi
+ plik¢w zar¢wno istniej¥cych jak i tworzonych plik¢w tekstowych.
+ Polecenia u¾ywane w Edytorze niewiele r¢¾ni¥ si© od poleceä edytora
+ Word Star. Zasadnicze r¢¾nice istniej¥ podczas pracy z blokami
+ tekstowymi - tak jak w znanych edytorach Microsoft'u poprzez
+ wykorzystanie schowka.
+
+ Navigator pozwala na otwarcie w tym samym czasie wi©cej ni¾ jednego
+ okna Edytora. Mo¾esz u¾ywa† tyle okien ile potrzebujesz, i ile
+ wystarczy pami©ci Twojego komputera.
+ Do wymiany danych mi©dzy oknami Edytora, u¾ywaj schowka.
+
+ Patrz r¢wnie¾ {"Polecenia Edytora":EditorCommands}
+               {"Przykˆadowe okno Edytora":EditorWindow}
+
+.topic EditorWindow=10000
+.title Przykˆadowe okno Edytora
+Tak wygl¥da okno edytora:
+
+   ÉÍ[ş]ÍÍÍÍ Edycja - E:\TP\DNHLP.TXT ÍÍÍÍÍÍÍÍÍÍÍÍÍ[]Í»
+   ºÛÛPlikÛÛEdycjaÛÛSzukajÛÛAkapitÛÛBlokÛÛInneÛÛOpcjeÛÛ
+   º                                                   ±
+   º                                                   ş
+   º                                                   ±
+   º         {DOS NAVIGATOR is the BEST!!!    :_}          ±
+   º                                                   ±
+   º                                                   ±
+   º                                                   
+   ÈÍÍÍÍ12:2 [174]Í()ÍCrLfÍDOSÍÍ<    >ş±±±±±±±±±±±±ÄÙ
+                        
+        ³  ³   ³    ³   ³    ³
+        ³  ³   ³    ³   ³    À Tryb kodowania
+        ³  ³   ³    ³   À Zakoäczenie linii
+        ³  ³   ³    À Wska«nik trybu zaznaczania:
+        ³  ³   ³      () oznacza bloki liniowe, () bloki pionowe
+        ³  ³   À Dziesi©tny kod aktualnego znaku
+        ³  À Numer aktualnej kolumny
+        À Numer aktualnej linii
+
+ Patrz r¢wnie¾ {"Przykˆadowe okno":WindowsType}
+
+.topic EditorCommands=10001
+       ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+ ÚÄÄÄÄÄ³ Polecenia Edytora ÛÄÄÄÄÄÄ
+ ³     ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ      Û
+ ³                                Û
+ ³ {Praca z blokami :BlockCommands}               Û
+ ³ {Przesuwanie w tek˜cie:MovementCommands}          Û
+ ³ {Wstawianie i usuwanie:InsDelCommands}          Û
+ ³ {Inne dodatkowe polecenia:MiscCommands}       Û
+ ³                                Û
+ ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+
+.topic BlockCommands=10002
+.title Praca z blokami
+ Aby zaznaczy† blok nale¾y wcisn¥† klawisz  Shift i trzymaj¥c go
+ przesuwa† kursor klawiszami strzaˆek b¥d« klawiszami Home, End,
+ PageUp i PageDown oraz ich kombinacjami z klawiszem Ctrl. Mo¾na te¾
+ u¾y† do tego myszy - nale¾y w tym celu rusza† wska«nikiem przy
+ wci˜ni©tym lewym przycisku myszy. Istniej¥ ponadto nast©puj¥ce
+ polecenia dotycz¥ce zaznaczania i pracy z blokami:
+
+  Dziaˆanie                            Klawisz skr¢tu
+ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+  Zaznacz pocz¥tek bloku             ³ Ctrl + K  B
+  Zaznacz koniec bloku               ³ Ctrl + K  K
+  Kopiuj blok do schowka             ³ Ctrl + Ins  lub Ctrl+C
+  Przenie˜ blok do schowka           ³ Shift + Del lub Ctrl+X
+  Wstaw blok ze schowka              ³ Shift + Ins lub Ctrl+V
+  Usuä blok                          ³ Ctrl + Del  lub Ctrl+D
+  Odczytaj blok z pliku              ³ Ctrl + K  R
+  Zapisz blok do pliku               ³ Ctrl + K  W
+  Przenie˜ blok w prawo              ³ Ctrl + K  I
+  Przenie˜ blok w lewo               ³ Ctrl + K  U
+  Przeˆ¥cz tryb zazn. (pion./poziom.)³ Ctrl + B  V
+  Justuj                             ³ Alt + J
+  Wyr¢wnaj blok do prawej            ³ Alt + R
+  Wyr¢wnaj blok do lewej             ³ Alt + L
+  Wy˜rodkuj blok                     ³ Alt + C
+  Zaznacz caˆy tekst jako blok       ³ Ctrl + A, Ctrl+Numpad5
+  Zaznacz tekst od kurs. do pocz¥tku ³ Ctrl + Shift + 
+  Zaznacz tekst od kursora do koäca  ³ Ctrl + Shift + 
+  Zaznaczaj sˆowa na lewo od kursora ³ Ctrl - <
+  Zaznaczaj  sˆowa na prawo od kurs. ³ Ctrl - >
+
+.topic MovementCommands=10003
+.title Przesuwanie w tek˜cie
+
+   Przesuni©cie               Klawisz skr¢tu
+  ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+   1 znak w lewo            ³ 
+   1 znak w prawo           ³ 
+   1 sˆowo w lewo           ³ Ctrl + 
+   1 sˆowo w prawo          ³ Ctrl + 
+   1 linia w g¢r©           ³ 
+   1 linia w d¢ˆ            ³ 
+   Przewiä w g¢r©           ³ Ctrl + W
+   Przewiä w d¢ˆ            ³ Ctrl + Z
+   1 strona w g¢r©          ³ Ctrl + R lub PgUp
+   1 strona w d¢ˆ           ³ PgDn
+
+.topic InsDelCommands=10004
+.title Wstawianie i usuwanie
+
+   Wstawianie i usuwanie              Klawisz skr¢tu
+  ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+   Tryb wstawiania/nadpisywania     ³ Ins
+   Usuä lini©                       ³ Ctrl + Y
+   Usuä znaki od aktualnej pozycji  ³
+    kursora do koäca linii          ³ Ctrl + Q  Y
+   Usuä znak po lewej stronie       ³ Ctrl + H lub Backspace
+   Usuä znak po prawej stronie      ³ Ctrl + G lub Del
+   Usuä sˆowo za kursorem           ³ Ctrl + T
+   Usuä sˆowo przed kursorem        ³ Ctrl + Backspace
+
+.topic MiscCommands=10005
+.title Dodatkowe polecenia Edytora
+ Maˆa ale w opinii autor¢w bardzo sympatyczna cecha, u¾ywana w pracy
+ z Edytorem wbudowanym: je˜li wci˜niesz prawy przycisk myszki,
+ pojawi si© linia z numeracj¥ kolumn, kt¢r¥ mo¾na przemieszcza†
+ razem z kursorem myszki w obr©bie okna edytora.
+
+Dodatkow¥ cech¥ Edytora jest wielopoziomowe Cofnij.
+
+  ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+   Menu edytora                   ³ F10
+   Zapisz tekst                   ³ Ctrl + K  S lub F2
+   Odczytaj plik z dysku          ³ F3
+   Zamknij okno edytora           ³ Ctrl + F4
+   Tabulacja                      ³ Ctrl + I lub Tab
+   Cofnij                         ³ Alt + Backspace
+   Tryb rysowania linii           ³ Ctrl + Q  M lub F4
+   Ustaw pozycj© znacznika w      ³
+    tek˜cie                       ³ Ctrl + K  n (n=0..9)
+   Wr¢† do znacznika              ³ Ctrl + Q  n (n=0..9)
+   Wstaw znak ASCII               ³
+      {Tabela ASCII             :AsciiChart}   ³ Ctrl + P
+   Wstaw aktualn¥ dat©            ³ Ctrl + Q  D
+   Wstaw aktualny czas            ³ Ctrl + Q  T
+   DU½E LITERY                    ³ Ctrl + [
+   maˆe litery                    ³ Ctrl + ]
+   Kapitaliki                     ³ Ctrl + \
+   Odszukaj ci¥g znak¢w           ³ Ctrl + Q  F
+   Odszukaj i zast¥p              ³ Ctrl + Q  A
+   Powt¢rz ostatnie wyszukiwanie  ³ Ctrl + L
+   Anuluj operacj©                ³ Esc
+
+.topic DiskOperations=10006
+.title Praca z dyskami
+Navigator oferuje r¢¾ne funkcje do pracy z dyskami:
+
+  - {Formatowanie dyskietek:Format}
+  - {Ustawianie etykiety dysku:VolLabel}
+  - {Przywracanie usuni©tych plik¢w:Reanimator}
+  - {Bezpo˜rednie edytowanie danych na dysku:DiskEditor}
+
+ Wszystkie operacje (z wyˆ¥czeniem formatowania) s¥ dost©pne TYLKO
+ wtedy je˜li opcja "{Bezpo˜redni dost©p do dysku:DirectDiskAccess}"
+ w okienku konfiguracyjnym jest wˆ¥czona!
+
+.topic FilePanel=1100
+.title Panel plik¢w
+ Panel plik¢w jest gˆ¢wn¥ cz©˜ci¥ Mened¾era plik¢w. Daje to
+ u¾ytkownikowi sposobno˜† pracy z plikami i katalogami oraz
+ mo¾liwo˜† wykonywania operacji na grupach plik¢w i/lub katalog¢w.
+ U¾ytkownik mo¾e zmienia† parametry ka¾dego panela u¾ywaj¥c
+ polecenia menu {Panel|Ustawienia panela:_}, lub klawiszy
+ szybkiego dost©pu Alt-S.
+
+ Aby zaznaczy† (lub odznaczy†) pliki dla operacji grupowych u¾yj
+ klawisza  Ins lub u¾yj maski, polecenie {Panel|Zaznacz grup©:_}
+ {Panel|Odznacz grup©:_}. Je˜li chcesz zaznaczone pliki odznaczy†
+ lub odznaczone zaznaczy†, u¾yj polecenia menu
+ {Panel|Odwr¢† zaznaczenie:_}.
+
+ Zauwa¾: zaznaczanie katalog¢w mo¾e zosta† wykonane r©cznie.
+
+ Kiedy zechcesz utworzy† list© aktualnie zaznaczonych plik¢w u¾yj
+ polecenia menu {Panel|Utw¢rz list© plik¢w:_}.
+
+ Patrz r¢wnie¾ {"Przykˆadowy panel plik¢w":PanelWide}
+               {"Ustawienia panela":PanelSetup}
+               {"Klawisze szybkiego dost©pu panela plik¢w":PanelHotKeys}
+               {"Indeks pomocy":Index}
+
+.topic LinkPanel=1101
+.title Link Panel
+
+.topic PanelWide=11000
+.title Przykˆadowy panel plik¢w
+Panel plik¢w  Mened¾era plik¢w  wygl¥da jak poni¾ej:
+
+   ÉÍ[ş]ÍÍÍÍÍÍÍÍ E:\TP\DNHLP ÍÍÍÍÍÍÍÍÍ[]Í»
+   º..          ³            ³            
+   º a          ³            ³            ş
+   º dn      hlp³            ³            ±
+   º {Lista plik¢w, kt¢ra mo¾e:_}             ±
+   º            {wygl¥da† jak poni¾ej:_}      ±
+   º a          ³ 1,059 ³23-05-93³21:48   ±
+   º dn      hlp³ 27,724³23-05-93³21:22   ±
+   º dnhlp   hlp³ 21,870³22-05-93³14:15   ±
+   º dn      old³ 7,507 ³22-05-93³13:09   
+   ºÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+   º..          < UP - DIR > 7-04-93 13:50ÄÄÄ¿³
+   º          Nie zaznaczono plik¢w       ÄÄ¿³³
+   º ¥cznie:8 plik¢w z 88,508 bajt¢w     Ä¿³³³
+   º 16,748,544 wolnych bajt¢w na dysku E:¿³³³³
+   ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÄÙ³³³³³
+                                           ³³³³³
+       Caˆkowita wolna przestrzeä na dysku Ù³³³³
+  Informacja o wszystkich plikach w panelu ÄÙ³³³
+   (zaj©tej powierzchni i caˆk. wielko˜ci)   ³³³
+         Informacja o plikach zaznaczonych ÄÄÙ³³
+                      Informacja o bie¾¥co ÄÄÄÙ³
+                      pod˜wietlonych plikach   ³
+                                 Separator ÄÄÄÄÙ
+
+ Wszystkie elementy, kt¢re s¥ cz©˜ci¥ panela plik¢w mog¥ by†
+ wˆ¥czane lub wyˆ¥czane odpowiedni¥ pozycj¥ przeˆ¥cznika w Menu
+ Opcje {Opcje|Mened¾er plik¢w|Panel informacyjny:_}.
+
+.topic PanelSetup=11001
+.title Ustawienia panela
+{Sortuj wg:_} - Rodzaj sortowania. Pliki mog¥ by† sortowane wedˆug
+nazwy, rozszerzenia, rozmiaru, daty i czasu utworzenia lub mog¥
+pozosta† nie sortowane. Oznacza to, ¾e pliki zostan¥ pokazane
+w takim porz¥dku, jak pokazuje polecenie DOS "DIR" pod warunkiem,
+¾e nie u¾yjesz parametru /O !.
+
+{Przegl¥d panela:_} - Co powinno by† widoczne na ekranie?
+
+  Rozmiar katalog¢w - Pokazuje ˆ¥cznie zliczone wszystkie pliki
+                      w podkatalogu, wˆ¥czaj¥c wszystkie katalogi
+                      podrz©dne.
+
+  Separator Info    - Pokazuje separator (lini©) pomi©dzy list¥
+                      plik¢w a cz©˜ci¥ informacyjn¥ (mo¾esz wybra†
+                      inny kolor do rozdzielenia plik¢w od cz©˜ci
+                      informacyjnej panela plik¢w).
+
+  Bie¾¥cy plik      - Pokazuje informacj© o bie¾¥co pod˜wietlonym
+                      pliku.
+
+  Zaznaczony plik   - Pokazuje informacj© o zaznaczonym (wybranym)
+                      pliku.
+
+  Caˆo˜†            - Pokazuje informacj© o wszystkich plikach,
+                      kt¢re s¥ widoczne w panelu plik¢w.
+
+  Wolna przeestrzeä - Pokazuje ilo˜† dost©pnej wolnej przestrzeni na
+                      dysku bie¾¥cym. Tym sposobem nie b©dziesz
+                      potrzebowaˆ dodatkowej informacji na
+                      ekranie (Ctrl-L).
+
+  Automatyczna zmiana katalog¢w - Automatyczna zmiana podkatalog¢w
+                                  podczas przegl¥dania Drzewa
+                                  katalog¢w.
+
+  Przeci¥gnij i upu˜†           - Obsˆuga myszk¥.
+
+  Pod˜wietlanie plik¢w          - "Kolorowanie" plik¢w r¢¾nych typ¢w
+                                  wˆasnymi kolorami. U¾ytkownik mo¾e
+                                  zdefiniowa† pi©† grup plik¢w.
+
+  Wykonawcze jako pierwsze      - Pokazuje pliki wykonawcze
+                                  (BAT, COM, EXE, BTM) na pocz¥tku
+                                  listy plik¢w, niezale¾nie od
+                                  ustalonego porz¥dku sortowania.
+
+  Archiwa jako pierwsze         - Pokazuje archiwa (ZIP, ARJ, ZOO,
+                                  etc.) na pocz¥tku listy plik¢w,
+                                  niezale¾nie od ustalonego
+                                  porz¥dku sortowania.
+
+  Exe przed archiwami
+
+  Dˆuga nazwa pliku w dolnej cz©˜ci - pokazuje peˆn¥ dˆug¥ nazw©
+                                      bie¾¥cego pliku w dolnej cz©˜ci
+                                      informacyjnej panela je¾eli
+                                      caˆo˜† tej dˆugiej nazwy nie
+                                      mie˜ci si© w linii 'bie¾¥cego
+                                      pliku'. Cechy 'Dˆuga nazwa
+                                      pliku' i 'Zaznaczone pliki'
+                                      pokazywane s¥ w jednej linii
+                                      informacyjnej.
+
+  Opis w dolnej cz©˜ci              - pokazuje opis bie¾¥cego pliku
+                                      w dolnej informacyjnej cz©˜ci
+                                      panela. Cechy 'Opis' i 'Wolna
+                                      przestrzeä' dziel¥ si© lini¥
+                                      informacyjn¥ mi©dzy sob¥.
+
+ {Zaawansowany filtr:_} - Filtry masek plik¢w. Ka¾da pojedyncza maska
+                      pliku, jest rozdzielona od nast©pnej ˜rednikiem
+                      (";"). Pliki pasuj¥ce do jednej z tych masek
+                      zostan¥ pokazane w panelu plik¢w.Inne pozostan¥
+                      niewidoczne.
+
+.topic PanelDefaults=11002
+.title Domy˜lne ustawienia panela
+
+.topic PanelHotKeys=11003
+.title Klawisze szybkiego dost©pu panela plik¢w
+ {Wyr¢¾nianie:_}
+ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+ Wyr¢¾nienie pliku i przej˜cie do nast©pnego wiersza .......... Ins
+
+ Zaznaczanie/odznaczanie grupy plik¢w z             Ctrl+Szary Plus
+ pod˜wietleniem takim jak bie¾¥cy plik ........... (Minus odznacza)
+
+ Zaznaczanie/odznaczanie grupy plik¢w z       Ctrl+Shift+Szary Plus
+ rozszerzeniem takim bie¾¥cy plik ................ (Minus odznacza)
+
+ Kopiuj nazwy wyr¢¾nionych plik¢w do schowka ............. Ctrl+Ins
+
+ {Polecenia r¢¾ne:_}
+ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+ Odczytanie ponowne katalog¢w ....................... Alt+R, Ctrl+R
+ Zamiana paneli ............................................ Ctrl+U
+ Przeˆ¥czanie aktywno˜ci Panela-Info ................ Alt+I, Ctrl+L
+ Ukryj/poka¾ nieaktywny panel plik¢w ....................... Ctrl+P
+
+ {Kopiuj (upu˜†) do wiersza poleceä DOS'a:_}
+ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+ Bie¾¥ca nazwa pliku  .................................. Ctrl+Enter
+ Peˆna ˜cie¾ka bie¾¥cego pliku ................... Shift+Ctrl+Enter
+ Nazwa katalogu prawego panela plik¢w ...................... Ctrl+]
+ Nazwa katalogu lewego panela plik¢w ....................... Ctrl+[
+
+ {Zmienianie katalog¢w:_}
+ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+ Przej˜cie do katalogu  wy¾ej/ni¾ej
+ (wyj˜cie z archiwum, znajd«, dysku Temp) ...... Ctrl + PgUp/PgDown
+
+ Przej˜cie do katalogu Gˆ¢wnego (Root) ..................... Ctrl+\
+
+ Dodanie kat. bie¾¥cego do "Ulubionych" ... Ctrl+Shift+Alt+N (1..9)
+
+ "Ulubiony" katalog u¾ytkownika ...................... Alt+N (1..9)
+
+ Historia katalog¢w poprzednio odwiedzonych ......... Alt+Backspace
+
+.topic DriveInfoSetup=11004
+.title Ustawienia panela informacyjnego
+Ustawienie pozycji, kt¢re maj¥ by† widoczne w panelu informacyjnym.
+
+.topic ExtFile=11005
+.title Uruchomianie plik¢w z rozszerzeniem
+ Kiedy u¾ytkownik jest w panelu plik¢w, chciaˆby ¾eby DN uruchomiˆ
+ dany porogram zale¾nie od rozszerzenia bie¾¥cego pliku. Jest to
+ oczywi˜cie mo¾liwe do wykonania!
+
+ Uruchomianie jest mo¾liwe nie tylko z jednym poleceniem ale
+ z kompletn¥ list¥ poleceä czy wywoˆaä z menu dla wybranych kilku
+ opcji. Umo¾liwia to plik rozszerzeä - plik opisu, kt¢ry program ma
+ wsp¢ˆpracowa† z konkretnymi typami plik¢w, wynikaj¥cymi
+ z rozszerzenia.
+
+ Do uruchomienia okre˜lonego polecenia, przenie˜ kursor na wybrany
+ plik i u¾yj jedn¥ z nast©puj¥cych kombinacji klawiszy:
+
+   Enter, Shift-Enter lub Alt-Enter.
+
+ Ostatnia kombinacja klwaiszy, menu podr©czne.
+
+ Do opisu poleceä dla ka¾dego z rozszerzeä, wybierz
+ {Opcje|Edycja pliku rozszerzeä:_} z menu Opcje.
+ Format ka¾dej pozycji w edytowanym pliku jest nast©puj¥cy:
+
+ ??? <symbol otwarcia>...
+             Polecenie DOS'a czy
+             {format pliku menu u¾ytkownkia:MenuFormat} (dla Alt+Enter)
+             ... <symbol zamkni©cia>
+
+ Gdzie ??? jest konkretnym rozszerzeniem na kt¢re DN ma reagowa†
+ w okre˜lony spos¢b, symbole otwarcia i zamkni©cia powinny
+ odpowiada† jednej z nast©puj¥cych kombinacji:
+
+     Enter        - '{{'  '}' - nawiasy klamrowe,
+     Shift-Enter  - '('  ')' - nawiasy okr¥gˆe,
+     Alt-Enter    - '['  ']' - nawiasy kwadratowe,
+
+Je˜li chcesz u¾y† w poleceniu:
+
+        -nazw© pliku, wstaw  '!',
+        -nazw© z rozszerzeniem, wstaw  '!.!',
+        -˜cie¾k© do pliku (bez jego nazwy), wstaw  '!\'.
+        -aby pokaza† tylko symbol  '!', u¾yj  '!!'.
+
+Fragment pliku rozszerzeä:
+
+ Asm{{    @echo off
+         echo $[1;36;40m[J[1;36;44m
+         Echo ÛßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßÛ
+         echo Û Assembling and linking COM file ...Û
+         echo ÛÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+         echo $[1;37;40m
+         tasm !
+         tlink /t/x !.obj
+         echo $[1;36;40m}
+ asm(    @echo off
+         echo $[1;36;40m[J[1;36;44m
+         echo ÛßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßÛ
+         echo Û Assembling and linking EXE file... Û
+         echo ÛÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+         echo $[1;37;40m
+         tasm !
+         tlink /x !.obj
+         echo $[1;36;40m)
+ asm[
+    >1 ~A~ssemble only
+        tasm !
+    >1 Assemble & link ~C~OM file
+       tasm !
+       tlink /t/x !.obj
+    >1 Assemble & link E~X~E file
+       tasm !
+       tlink /x !.obj
+   ]
+
+.topic Interface=11006
+.title Podstawowe informacje o interfejsie DN
+ Pasek menu gˆ¢wnego. Aby go ukry† mo¾na posˆu¾y† si© poleceniem
+ menu {Opcje|Konfiguracja|Interfejs:_}. Aby wybra† okre˜lone
+ polecenie z menu nale¾y u¾y† myszki lub posˆu¾y† si© klawiatur¥
+ w nast©puj¥cy spos¢b:
+
+- nacisn¥† klawisz F10. Pasek menu zostanie uaktywniony.
+
+- po menu mo¾na porusza† si© u¾ywaj¥c klawiszy kursora
+   [w prawo] i [w lewo]. Wyboru podmenu dokonuje si©
+   naciskaj¥c klawisz  Enter. Aby opu˜ci† menu
+   bez wybierania polecenia, naci˜nij klawisz  Esc.
+   Mo¾na bezpo˜rednio wybra† podmenu przy u¾yciu
+   klawisza  Alt i klawisza oznaczonego pierwsz¥ liter¥
+   ¾¥danego polecenia wciskanego podczas trzymania
+   klawisza  Alt, np. dla polecenia "Options" b©dzie to
+   kombinacja  Alt-O.
+
+- aby wybra† polecenie z podmenu mo¾na u¾y† klawisza
+   oznaczonego wyr¢¾nionym znakiem znajduj¥cym si©
+   w nazwie polecenia (nie trzeba trzyma† wci˜ni©tego
+   klawisza  Alt).
+
+ Je¾eli za nazw¥ polecenia znajduj¥ si© trzy kropki ("...") oznacza
+ to, ¾e polecenie wywoˆuje okno dialogowe.
+ Je¾eli za nazw¥ polecenia znajduje si© strzaˆka ("") oznacza to,
+ ¾e polecenie wywoˆuje dalsze podmenu, z kt¢rego mo¾na wybra†
+ wˆa˜ciwe polecenie (lub kolejne podmenu).
+ Niekt¢re nazwy poleceä bywaj¥ "wyszarzaˆe" i wybranie ich nie
+ powoduje ¾adnej reakcji ze strony DOS Navigatora. Oznacza to,
+ ¾e w danym momencie polecenie nie jest dost©pne, np. po zamkni©ciu
+ Mened¾era Plik¢w ( Ctrl+F4 ) ¾adne z poleceä z podmenu "Window"
+ nie jest dost©pne (bo na ekranie nie ma ¾adnych okien).
+
+Przykˆadowy widok Interfejsu DOS Navigatora:
+
+          ÚÄÄÄÄÄÄÄÄÄÄ menu gˆ¢wne
+                  ÚÄÄÄÄÄÄÄÄÄ podmenu menu Dysk
+  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ³ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  ³    Plik³ Dysk³³ Narz©dzia Panel Mened¾er
+  ÉÍ[1]Í C: ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ ÍÍ
+  º      Na ³ Formatuj dysk...  Shift-F7 ³
+  º..       ³ Etykieta...                ³ ..
+  ºDN       ³ Reanimator...  Ctrl-Alt-F8 ³ CO
+  ºREAL     ³ Edytor dysku               ³ SM
+  ºdiff     ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´ dn
+  ºpatch    ³ Drzewo katalog¢w           ³ ed
+  º490_to_5 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ cl
+  ºdnhelp        htx³   141,578³22-03-05 ±ºdn
+  ºdnr           pa}³     6,632³10-03-05 ±ºdn
+  º                 ³          ³         ±ºdn
+  º                 ³          ³         ±ºdn
+  º                 ³          ³         şºdn
+  º                 ³          ³         ±ºdn
+  º                 ³          ³         ±ºdn
+  º                 ³          ³         ±ºdn
+  º                 ³          ³         ±ºdn
+  º                 ³          ³         ºdn
+  ºÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄººÄÄ
+  º490_to~1.pat  1,236,546  8-03-05  1:33ºº..
+  º490_to_50308.patch                    ºº
+  È[ A C D E F G * ]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼È[
+  C:\DN\Real>     ÄÄÄÄÄ wiersz poleceä DOS'a
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+   F1 Pomoc F2 MnU¾ F3 Pgl¥d F4 Edytuj F5 Kop
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+      ÀÄÄÄÄÄÄÄ przykˆadowy pasek statusu
+
+ Pasek ststusu DOS Navigatora znajduje si© na dole ekranu.
+ Mo¾na go ukry† poleceniem menu {Opcje|Konfiguracja|Interfejs:_}.
+
+ Przykˆadowy pasek statusu z u¾yciem klawisza Alt:
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  B Sortuj C Nap©d S Ustaw Listuj F6 ZmPrz F7
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+ Na pasku statusu wy˜wietlane s¥ najwa¾niejsze polecenia dost©pne
+ w danym momencie wraz z klawiszami skr¢tu. Zawarto˜† linii statusu
+ zmienia si© po naci˜ni©ciu klawiszy  Alt,  Ctrl  lub  Shift . Aby
+ wybra† polecenie wy˜wietlone na pasku ststusu mo¾na klikn¥† myszk¥
+ na jego nazw© lub wpisa† z klawiatury pod˜wietlony symbol.
+
+ Okna DOS Navigatora s¥ obszarami roboczymi, w kt¢rych wy˜wietlane
+ s¥ niezb©dne informacje i w kt¢rych mo¾na pracowa†. Wszystkie
+ rodzaje okien mog¥ by† podzielone na dwie du¾e grupy: okna robocze
+ i okna dialogowe. Gˆ¢wna r¢¾nica mi©dzy nimi to to, ¾e mo¾na
+ otworzy† wiele okien roboczych i przeˆ¥cza† si© mi©dzy nimi, a okno
+ dialogowe mo¾e by† wy˜wietlone tylko jedno na raz, i do chwili gdy
+ zostanie ono zamkni©te, praca z innymi oknami nie jest mo¾liwa.
+
+ Okienka dialogowe przeznaczone s¥ przede wszystkim do wprowadzania
+ ustawieä Navigatora, parametr¢w r¢¾nych operacji takich jak
+ kopiowanie pliku, formatowanie dysk¢w elastycznych albo
+ przywracanie skasowanych plik¢w a tak¾e innych funkcji
+ (na przykˆad, podgl¥du pola Memo w przegl¥darce DB).
+
+ Okna Mened¾era plik¢w, Przegl¥darki i Edytora plik¢w s¥ przykˆadem
+ okien roboczych.
+
+ Patrz r¢wnie¾ {"Przykˆadowe okno":WindowsType}
+
+.topic DirTree=11007
+.title Drzewo katalog¢w
+ Po wybraniu polecenia {Mened¾er|Drzewo katalog¢w:_} na przeciwnym
+ panelu ukazuje si© drzewo katalog¢w.
+
+ Panel (czy okno) drzewa katalog¢w pozwala u¾ytkownikowi na
+ przemieszczanie si© po katalogach (czy wskazanie dla operacji
+ kopiowania).
+ Przemieszczanie po drzewie odbywa si© za pomoc¥ klawiszy strzaˆek,
+ a zatwierdzanie wyboru klawiszem  ENTER.
+
+ Przykˆadowe okno Drzewa katalog¢w w ukˆadzie dwupanelowym:
+
+ ÉÍ[2]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ³³Í»ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ E:\ ÍÍÍ³³ÍÍÍÍ[]Í»
+ º  E:\                   ºº      Nazwa      ³  Rozmi  Data  ³ 
+ º  ÃÄÄÄÄ RECYCLED     ³³ ººBazy TreePada    ³ <KATAL³³-12-03³ ş
+ º  ÃÄÄÄÄ Bazy TreePada   ººCatalogs         ³ <KATAL  -06-04³ ±
+ º  ÃÄÄÄÄ obrazC       ³³ ººDANKA            ³ <KATAL³³-10-04³ ±
+ º  ÃÄÄÄÄ obrazD          ººDELPHI           ³ <KATAL  -10-04³ ±
+ º  ÃÄ[+] DELPHI       ³³ ººobrazC           ³ <KATAL³³-01-04³ ±
+ º  ÃÄ[+] DANKA           ººobrazD           ³ <KATAL  -01-04³ ±
+ º  ÃÄÄÄÄ Catalogs     ³³ ººRECYCLED     ²   ³ <KATAL³³-12-03³ ±
+ º  ÃÄÄÄÄ SYSTEMD         ººRoz              ³ <KATAL  -03-05³ ±
+ º  ÃÄÄÄÄ systemD2     ³³ ººSYSTEMD          ³ <KATAL³³-11-04³ ±
+ º  ÀÄÄÄÄ Roz             ººsystemD2         ³ <KATAL  -11-04³ ±
+ º                     ³³ ººautorun      °inf³       ³³-04-04³ ±
+ º                        ººProgramowanie txt³         -10-04³ ±
+ º                     ³³ ººdrzewo        txt³       ³³-04-05³ ±
+ º                        ººopisy pˆyt bo}txt³     1,  -10-04³ ±
+ º                     ³³ ººsd           °ini³    34,³³-04-04³ ±
+ º                        ººStachurski - }mp3³ 4,245,  -06-04³ 
+ º                     ³³ ººÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄ³³ÄÄÄÄÄÄÁÄº
+ º E:\                    ººBAZYTR~1      <KATALOG> 1  3 10:25 º
+ º 669 pliki(¢w) z 2,40³³,ººBazy TreePada            ³³        º
+ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ  Í¼È[ A C D E F G * ]ÍÍÍÍÍÍÍÍ  ÍÍÍÍÍÍÍÄÙ
+ E:\>                  ³³                            ³³
+
+
+ Podczas poruszania si© po tym drzewie na przeciwnym panelu
+ wy˜wietlana jest zawarto˜† poszczeg¢lnych katalog¢w. Aby rozwin¥†
+ lub zwin¥† dowoln¥ gaˆ¥« drzewa, naci˜nij  Spacj©, szary [+],
+ szary [-] lub kliknij na ni¥ myszk¥.
+
+ Patrz r¢wnie¾ {"Przykˆadowe okno":WindowsType}
+               {"Drzewo katalog¢w (Zmieä/Wybierz)":TreeDialog}
+
+.topic Reanimator=11008
+.title Przywracanie usuni©tych plik¢w
+ Reanimator pozwala na przywracanie usuni©tych plik¢w. Niestety,
+ przywr¢cenie usuni©tego pliku nie zawsze jest mo¾liwe, poniewa¾
+ informacje zapisane na dysku mog¥ zosta† nadpisane innymi danymi.
+
+  Uwaga: Reanimator pracuje tylko wtedy gdy wˆ¥czona jest opcja
+  {Bezpo˜redniego dost©pu do dysku:DirectDiskAccess}
+  w {Opcje|Konfiguracja|Ustawienia systemowe:_}.
+
+Przykˆadowy widok okna Reanimatora:
+
+                                                   {Szanse przywr¢cenia pliku:_}
+                                                   {do stanu orginalnego:_}
+                                                                        {³:_}
+ {Podczas przywracania,                             dobrze - mo¾liwe     ³:_}
+ {DN ¾¥da wpisaniaÚÄÄÄÄNazwy plik¢w                 przeci©tnie - 50/50  ³:_}
+ {pierwszej litery³    i informacje                 marnie - niemo¾liwe  ³:_}
+ É{³:_}[ş]ÍÍÍÍÍÍÍÍÍÍÍ{³:_}ÍÍÍÍÍÍÍÍÍÍÍ Reanimator ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»  {³:_}
+ º{³:_}              {³:_}                                                   º  {³:_}
+ º{³:_} Nazwa        {³:_}      Rozm {Atrb:FileAttr}   Data    Czas Klaster  Prognoza  {ÄÄÄÄÙ:_}
+ º{ÀÄ:_}?age dat     {³:_}    89,352 -a--  8-10-93  9:05 19,640   przeci©t  º
+ º  ?fds     bat     187,792 -a--  8-10-93  9:07 19,684   marnie   ş º
+ º  ?om-book arj   1,328,816 -a--  8-10-93  9:43 16,540   przeci©t ± º
+ º  ?ook     arj   1,333,339 -a--  8-10-93  9:32 15,869   marnie   ± º
+ º  ?pnet    exe      61,334 -a-- 12-09-93 17:06 16,385   dobrze    º
+ º                                                                   º
+ º           Nap©d Ü  Podgl¥d Ü   Reanimuj  Ü   Anuluj Ü    Pomoc Ü  º
+ º           ßßßßßßß  ßßßßßßßßß   ßßßßßßßßßßß   ßßßßßßßß   ßßßßßßßß  º
+ ÈÍÍÍÍÍÍÍÍÍÍÍ{³:_}ÍÍÍÍÍÍÍÍÍÍÍÍÍ{³:_}ÍÍÍÍÍÍÍÍÍÍÍÍ{³:_}ÍÍÍÍÍÍÍÍÍÍÍ{³:_}ÍÍÍÍÍÍÍÍÍÍÍ{³:_}ÍÍÍÍ¼
+             {³             ³            ³           ³           ³:_}
+  {Zmieä dysk Ù       Podgl¥d    Przywr¢cenie pliku  ³         Pomoc:_}
+                    {zawarto˜ci pliku                ³:_}{Anulowanie akcji:_}
+
+ Patrz r¢wnie¾ {"Przykˆadowe okno":WindowsType}
+
+.topic Format=11009
+.title Formatowanie dyskietek
+ DOS Navigator pozwala na formatowanie dyskietek w tle, w formacie
+ standardowym jak r¢wnie¾ w formatach niestandardowych.
+ Przykˆadowe okno formatowania dyskietek:
+
+    ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Formatowanie dyskietek ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+    º Ú Nap©d ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  Ú Pojemno˜† ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ º
+    º ³ () A: 1.44M 3'5     ³  ³    720K   80   9   2 DS/DD    º
+    º ³                      ³  ³    800K   80  10   2 DS/DD   ± º
+    º ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ³    830K   83  10   2 DS/DD   ± º
+    º                           ³    1.2M   80  15   2 HD      ş º
+    º     Etykietka             ³   1.44M   80  18   2 HD      ± º
+    º                 Şİ       ³    1.6M   80  20   2 HD       º
+    º                           ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ º
+    º Ú Typ dyskietki  ÄÄÄÄÄÄ¿  Ú Opcje ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ º
+    º ³ () Formatowanie Fast³  ³ [ ] Uczyä botowalnym         ³ º
+    º ³ ( ) Formatowanie DOS ³  ³ [ ] Wymu˜ formatowanie       ³ º
+    º ³ ( ) Formatowanie Safe³  ³ [ ] Oznacz bˆ©dne ˜cie¾ki    ³ º
+    º ³ ( ) Formatowanie Quic³  ³ [ ] Optymalizuj sektory      ³ º
+    º ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ º
+    º                                                            º
+    º        Start Ü     Anuluj  Ü     Expert  Ü     Pomoc Ü   º
+    º        ßßßßßßßßß    ßßßßßßßßßß    ßßßßßßßßßß    ßßßßßßßß   º
+    ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ Po uruchomieniu formatowania istnieje mo¾liwo˜† przeˆ¥czenia si© do
+ innego okna i wykonywania innych zadaä. W tym czasie formatowanie
+ b©dzie przebiegaˆo w tle.
+
+ Patrz r¢wnie¾ {"Przykˆadowe okno":WindowsType}
+
+.topic VolLabel=11010
+.title Etykieta
+ DOS Navigator pozwala na edycj© Etykiety dysk¢w. Okienko zmiany
+ Etykiety dysku jest bardzo proste w u¾yciu:
+
+  ÉÍ[ş]ÍÍÍÍ Etykieta ÍÍÍÍÍÍÍÍ»
+  º                          º
+  º  Etykieta        OK  Ü{ÄÄÄÄÄÄÄ Zapis etykiety na dysk:_}
+  º  Navig±±±±±±±   ßßßßßßßß º
+  º  {³:_}              Anuluj Ü{ÄÄÄÄÄÄÄ Rezygnacja:_}
+  º  {³:_}              ßßßßßßßß º
+  ÈÍÍ{³:_}ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+     {³:_}
+   {Tu wpisz nazw© Etykiety:_}
+
+
+ Podpowied«: Edytowanie Etykiety jest mo¾liwe wtedy, gdy wˆ¥czona
+ jest opcja {Bezpo˜redniego dost©pu do dysku:DirectDiskAccess}!
+
+.topic DiskEditor=11011
+.title Edytor dysku
+ Przy pomocy Edytora dysk¢w mo¾esz bezpo˜rednio edowa† struktur©
+ dysku.
+ Podpowied«: Edytor dysku jest aktywny wtedy je¾eli wˆ¥czona jest
+ opcja {Bezpo˜redni dost©p do dysku:DirectDiskAccess}!
+
+ !!! OSTRZE½ENIE !!!
+ Je¾eli nic nie wiesz o strukturze dysk¢w, powiniene˜ by† BARDZO
+ ostro¾ny podczas pr¢by pracy z Edytorem dysku! Przy u¾yciu Edytora
+ dysk¢w mo¾esz nieodwracalnie zniszczy† swoje dane.
+ Najlepiej caˆkowicie zablokuj dost©p do dysk¢w!
+
+.topic DiskAreaMenu=49001
+.title Edytor Dysku: Menu Obszar
+ W menu {Obszar:_} mo¾esz pracowa† z nast©puj¥cymi logicznymi
+ strukturami dysku:
+
+ {Plik...:_} - pliki.
+ {Katalog...:_} - katalog.
+ {Dysk...:_} - zmiana dysku.
+ {Klaster...:_} - klastry.
+ {Sektor...:_} - sektory.
+
+ {Menu gˆ¢wne:_} - aktywacja gˆ¢wnego Menu Navigatora.
+ {Wyj˜cie:_} - wyj˜cie z Edytora dyskowego.
+
+.topic DiskEditMenu=49002
+.title Edytor Dysku: Menu Edycja
+ W menu {Edycja:_} mo¾liwe s¥ nast©puj¥ce operacje edycyjne:
+
+ {Cofnij:_} - cofni©cie ostatniej operacji.
+
+ {Kopiuj      :_} - kopiowanie.
+ {Wklej       :_} - wklejanie zawarto˜ci schowka.
+ {Kopiuj do...:_} - kopiowanie do.
+ {Wypeˆnij... :_} - wypeˆnianie okre˜lonymi ˆaäcuchami.
+
+ {Szukaj...      :_} - wyszukiwanie okre˜lonych ˆaäcuch¢w.
+ {Szukaj dalej...:_} - wyszukiwanie nast©pnych wyst¥pieä.
+
+.topic DiskViewMenu=49003
+.title Edytor Dysku: Menu Widok
+ W menu {Widok:_} mo¾liwe jest wybranie po¾¥danej formy
+ wy˜wietlania i edycji:
+
+ {Hexadecymalnie:_} - zrzut szesnastkowy.
+ {Katalogowo    :_} - widok katalogowy.
+ {Tekstowo      :_} - format tekstowy.
+ {Jako FAT      :_} - tablica alokacji pliku.
+
+.topic Communication=11012
+.title Komunikacja
+ Okno dialogowe konfiguracji modemu umo¾liwia ustawienie
+ parametr¢w modemu u¾ywanych w systemie jak r¢wnie¾ parametr¢w
+ i opcji dotycz¥cych komunikacji.
+
+ Przykˆadowe okno ustawieä komunikacji:
+
+ ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Ustawienia komunikacji ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º                                                                º
+ º   Port       Bit¢w na sekund©                   Ustaw. portu   º
+ º   ( ) COM1   ( ) 300   ( ) 9600   ( ) 57600     () Domy˜lny   º
+ º   () COM2   ( ) 1200  ( ) 14400  ( ) 115200    ( ) Wˆasny     º
+ º   ( ) COM3   ( ) 2400  () 19200                ( ) FOSSIL     º
+ º   ( ) COM4   ( ) 4800  ( ) 38400                ( ) INT 14h    º
+ º                                                                º
+ º   Wˆasne:         IRQ: ±±±±±±            Port: ±±±±±±          º
+ º                                                                º
+ º  Inicjacja ±~ATZ|±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±  º
+ º                                                                º
+ º  Escape ±+++±±±±±±±±±±±±±±±±±±     On-hook   ATH0|±±±±±±±±±±±  º
+ º                                                                º
+ º  Prefiks dzwonienia ±ATDP±±±±±±     Przyrostek dzwon. ±|±±±±±  º
+ º                                                                º
+ º  Katalog do ˜ci¥gania ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±  º
+ º                                                                º
+ º  Pon¢w po (sek): ±±10±±     OK  Ü  Anuluj Ü  Zaawansowane Ü  º
+ º                            ßßßßßßßß  ßßßßßßßß  ßßßßßßßßßßßßßß  º
+ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ Port                  numer portu, do kt¢rego podˆ¥czony jest modem
+ Pr©dko˜† na sek       maksymalna pr©dko˜† przesyˆania danych
+ Inicjacja             ci¥g znak¢w inicjalizuj¥cy modem
+ Kod Escapa            (zwykle  {+++ ~ ~:_})
+ On-hook               (ATH0|)  ci¥g rozˆ¥czenia (odˆo¾enie sˆuchawki)
+ Prefix dzwonienia     (ATDT)   przedrostek wybierania numeru
+ Przyrostek dzwonienia (|)      przyrostek --||---
+ Katalog ˜ci¥gania     katalog, w kt¢rym b©d¥ zapisywane pliki
+                       ˜ci¥gane przez modem
+ Pon¢w po (sek)        przerwy pomi©dzy kolejnymi pr¢bami poˆ¥czenia
+                       podczas automatycznego wybierania numer¢w
+
+ Istnieje mo¾liwo˜† niestandardowego ustawienia portu. Nale¾y
+ wtedy wybra† opcj© "( ) Wˆasny" z kolumny "Ustaw. portu" oraz
+ wpisa† odpowiednie warto˜ci do p¢l "IRQ:" i "Port:"
+
+Nast©puj¥ce symbole s¥ u¾ywane w polach konfiguracyjnych:
+
+  ~  - 2-sekundowa pauza
+  |  - nowa linia
+
+.topic AdvPortSetup=11013
+.title Zaawansowane ustawienia portu
+
+.topic Archives=11014
+.title Praca z archiwami
+ W ˜rodowisku DOS Navigatora praca z archiwami jest podobna do pracy
+ ze zwykˆymi katalogami. "Dost©p/wej˜cie" do archiwum przy u¾yciu
+ klawisza F3. Panel z nazw¥ dysku zmieni nazw© na:
+
+      Typ_archiwum:nazwa_archiwum   /RAR:Polish.rar/
+
+ Caˆa struktura archiwum wygl¥da jak katalog. W panelu archiwum
+ mo¾liwe s¥ operacje na plikach i katalogach takie jak: podgl¥d F3,
+ kopiowanie F5, usuwanie F8. Wyj˜cie z archiwum odbywa si© w ten sam
+ spos¢b jak z katlogu klikni©cie na "..".
+
+ Podczas kopiowania/przenoszenia nale¾y wpisa† w linii "kopiuj"
+ nazw© i typ archiwum a wyznaczone pliki zostan¥ zarchiwizowane,
+ na przykˆad:
+
+      Kopiuj 10 zaznaczonych plik¢w do:
+      ARJ:archiwum
+
+ Dost©pne rodzaje archiw¢w: ACE, AIN, ARC, ARJ, BS2, BSA, CAB, CHZ,
+ HA, HAP, HPK, HYP, IS3, LHA, LIM, QRK, RAR, SQZ, TAR, UC2, UFA,
+ ZIP, ZOO, ZXZ.
+
+ UWAGA!!! DOS Navigator ma mo¾liwo˜† jedynie podgl¥du struktury
+ archiwum. Aby wykonywa† wszelkie operacje na archiwach (kopiowanie
+ do/z archiwum, testowanie itp.) konieczne jest posiadanie
+ odpowiednich program¢w, kt¢rymi owe archiwa zostaˆy
+ stworzone. Parametry tych program¢w ustawia si© poleceniem
+ {Opcje|Archiwa|Ustawienia archiwizera:_}.
+
+.topic SpreadSheet=11015
+.title Arkusz kalkulacyjny
+ Ka¾da kom¢rka arkusza mo¾e zawiera† liczb©, tekst lub formuˆ©
+ (wyra¾enie). Typ kom¢rki jest dobierany automatycznie ze wzgl©du
+ na jej zawarto˜† - dla liczb s¥ to pola liczbowe, dla pozostaˆych
+ danych - pola tekstowe.
+
+   funkcje:               operacje na kom¢rkach:
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ÚÄÄÄÄÄÄÄ przykˆady ÄÄÄ operacje ÄÄÄÄÄÄÄÄÄ¿
+ ³ sin             ³  ³ SUM     sum(a1,a2)³ a1+a2              ³
+ ³ cos             ³  ³ MUL     mul(a1:a3)³ a1*a2*3            ³
+ ³ tg(tan)         ³  ³ IF      if(a1,a2) ³ je¾eli a1<>0 to a2 ³
+ ³ ctg(cotan,ctan) ³  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+ ³ arctan          ³
+ ³ sqr             ³
+ ³ sqrt            ³
+ ³ ln              ³
+ ³ lg              ³
+ ³ sign            ³
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+.topic Calculator=11016
+.title Kalkulator
+ Kalkulator Navigatora jest pot©¾nym narz©dziem dla programist¢w
+ i biznesmen¢w. Mo¾esz wpisa† dowolne wyra¾enie arytmetyczne
+ "jak leci" a otrzymasz wynik w polu wynik¢w ju¾ podczas wpisywania.
+
+Przykˆadowe okno kalkulatora:
+
+  ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍ Kalkulator ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+  º                                               º
+  ºÚ Wyra¾enie ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄ¿º
+  º³ 123+234+0x2EF+0324+01010b+sin(1e-1)     ³Şİ³º
+  ºÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÙº
+  º  Kopiuj jako ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿º
+  º  () DEC ³                      1108.0998334 ³º
+  º  ( ) HEX ³    {Pole:_}                       454 ³º
+  º  ( ) BIN ³    {wynik¢w:_}            10001010100 ³º
+  º  ( ) OCT ³                              2124 ³º
+  º  ( ) EXP ³                  1.1080998334E+03 ³º
+  º          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙº
+  º   ± Oblicz ±Ü ±Kopiuj±Ü ±Zamknij±Ü ±Pomoc±Ü   º
+  º    ßßßßßßßßßß  ßßßßßßßß  ßßßßßßßßß ßßßßßßßß   º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ W polu "Wyra¾enie" wpisuje si© wyra¾enie liczbowe. W miar©
+ wpisywania w ramce poni¾ej pojawia si© wynik w r¢¾nych notacjach.
+ Aby wpisa† liczb© w innej notacji ni¾ dziesi©tna, nale¾y posˆu¾y†
+ si© nast©puj¥cymi symbolami:
+
+     - dla systemu szesnastkowego r¢wnowa¾ne b©d¥ zapisy
+
+                               0x23AF $23AF 23AFh
+     - dla systemu ¢semkowego
+                               001234 12340
+     - dla systemu dw¢jkowego
+                               0b100101 100101b
+
+ Aby w polu "Wyra¾enie" znalazˆ si© wynik wyra¾enia nale¾y wcisn¥†
+ przycisk  Oblicz  lub klawisz Enter.
+ R¢wnie¾ mo¾esz u¾y† klawiszy  Ctrl-Ins, aby wstawi† wybrany
+ fragment do schowka i  Shift-Ins, by wklei† ˆaäcuch ze schowka
+ do linii pola "Wyra¾enie".
+
+Operacje dost©pne w kalkulatorze:
+
+   arytmetyczne                 por¢wnawcze   logiczne
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³ +  dodawanie             ³ >  wi©kszy  ³ ~  nie                 ³
+ ³ -  odejmowanie           ³ <  mniejszy ³ &  i                   ³
+ ³ *  mno¾enie              ³ =  r¢wny    ³ |  lub                 ³
+ ³ /  dzielenie             ³             ³ \  suma modulo 2 (XOR) ³
+ ³ ^  podnoszenie do pot©gi ³             ³                        ³
+ ³ %  reszta z dzielenia    ³             ³                        ³
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+ UWAGA: wszystkie operacje, opr¢cz ~ ("nie") wymagaj¥ dw¢ch
+        argument¢w. Operacje por¢wnawcze zwracaj¥ warto˜† 1 gdy
+        wynikiem jest "prawda", warto˜† 0 gdy wynikiem jest
+        "faˆsz".
+        Operacje logiczne operuj¥ na wszystkich bitach argument¢w.
+
+Tak¾e mo¾esz wstawia† formuˆy z funkcjami wymienionymi poni¾ej:
+
+    sin               - sinus
+    cos               - cosinus
+    tg(tan)           - tangens
+    ctg(cotan,ctan)   - cotangens
+    arctan            - arcus tangens
+    sqr               - kwadrat
+    sqrt              - pierwiastek kwadratowy
+    IF
+    ln                - logarytm naturalny
+    lg                - logarytm dziesi©tny
+    sign              - funkcja znaku
+    rad               - radiany
+    grad
+    exp               - eksponent (e do pot©gi)
+
+.topic TempList=11017
+.title Dyski Temp i Znajd«
+ Dysk tymczasowy jest nieistniej¥cym dyskiem, do kt¢rego mo¾na
+ kopiowa† nazwy plik¢w z innych katalog¢w, z innych dysk¢w.
+ Nie mo¾na w nim tworzy† katalog¢w. Pliki kopiowane na dysk
+ tymczasowy (panel "TEMP:") nie s¥ naä kopiowane fizycznie - to
+ znaczy, ¾e na dysku tymczasowym jest przechowywana tylko
+ informacja o plikach - ich nazwy wraz z peˆnymi ˜cie¾kami dost©pu.
+ Kopiowanie z dysku tymczasowego powoduje fizyczne kopiowanie
+ plik¢w.
+ Usuwanie plik¢w z dysku tymczasowego nie powoduje ich fizycznego
+ usuni©cia z dysku - usuwane s¥ tylko informacje o nich.
+ Tak¾e przenoszenie pliku z dysku tymczasowego nie powoduje
+ fizycznego usuni©cia pliku, a tylko jego odno˜nika na dysku
+ tymczasowym. Aby jednak mimo wszystko usun¥† plik «r¢dˆowy,
+ nale¾y zaznaczy† pole
+                          [X] Usuä pliki «r¢dˆowe
+
+ w oknie dialogowym polecenia "Zmieä nazw©/Przenie˜" ( F6 ).
+
+ Dla plik¢w w panelach "Znajd«:" i "TEMP:" mo¾liwe jest wy˜wietlenie
+ kompletnej ˜cie¾ki dost©pu.
+ Gdy wyszukiwanie plik¢w przyniesie rezultat, lista znalezionych
+ plik¢w wy˜wietlana jest w panelu "Znajd«:". Z tego panelu mo¾na
+ wykonywa† wszystkie operacje na plikach. Nie mo¾na tu tylko tworzy†
+ katalog¢w i kopiowa† plik¢w z innych paneli. Naci˜ni©cie klawisza
+ Enter  na pliku w panelu "Znajd«:" spowoduje przej˜cie do katalogu,
+ w kt¢rym ten plik si© znajduje, przy czym panel "Znajd«:" zostanie
+ zlikwidowany. Aby nie likwidowa† panelu "Znajd«:" nale¾y u¾y†
+ Shift+Enter  - wtedy katalog z aktualnym plikiem zostanie otwarty
+ w przeciwnym panelu.
+
+.topic Terminal=11018
+.title Terminal
+ Terminal emuluje ANSI, AVATAR, TTY, VT52 i VT102. Obsˆugiwane
+ protokoˆy: XModem, YModem, ZModem, Kermit, Compuserve B+
+ (wszystkie pracuj¥ w tle). U¾ywaj¥c terminala mo¾na posˆugiwa†
+ si© ksi¥¾k¥ telefoniczn¥  Shift+F3  z automatycznym wybieraniem
+ numer¢w b¥d« r©cznym wybieraniem numer¢w  Alt+A .
+
+    Terminal posiada nast©puj¥ce funkcje:
+      F2     - wy˜lij plik tekstowy
+      F3     - open LOG-file
+      F4     - wy˜lij Break
+      Alt+H  - rozˆ¥cz
+      Alt+V  - local echo on/off
+      PgUp   - wy˜lij plik (upload)
+      PgDn   - ˜ci¥gnij plik (download)
+      Alt+I  - inicjalizuj modem
+      Alt+F8 - historia poleceä
+
+ Zmian ustawieä terminala dokonuje si© poprzez naci˜ni©cie Ctrl+F9.
+ Ustawienia domy˜lne ustala si© poleceniem
+ {Opcje|Konfiguracja|Terminal:_}.
+
+ Ustawienia modemu zmienia si© poleceniem
+ {Opcje|Konfiguracja|Komunikacja:_}.
+
+ Terminal obsˆuguje standardow¥ wymian© danych przez Schowek
+ (kombinacje  Shift+Ins  oraz  Ctrl+Ins ).
+
+Patrz r¢wnie¾ {Komunikacja:Communication}
+
+.topic ArcSetup=11019
+.title Ustawienia archiwizera
+Okno ustawieä archiwizera posiada nast©puj¥ce pola:
+
+ {Paker:_} - peˆna nazwa z rozszerzeniem pliku archiwizera
+ {Unpaker:_} - peˆna nazwa z rozszerzeniem pliku unpakera
+ {Wypakuj pliki:_} - parametry rozpakowywania
+ {Przenie˜ pliki:_} - archiwizacja z przeniesieniem plik¢w
+ {Usuä pliki:_} - usuni©cie plik¢w z archiwum
+ {Wypakuj ze ˜cie¾kami:_} - rozpakowanie ze ˜cie¾kami
+ {Znak listy:_} - symbol listy plik¢w
+ {Doˆ¥cz ˜cie¾ki:_} - spos¢b rozpakowania
+ {Testuj pliki:_} - parametry testowania archiwum
+ {Hasˆo:_} - zdefiniowanie hasˆa
+
+.topic Phone=11020
+.title Ksi¥¾ka telefoniczna
+ Ksi¥¾ka telefoniczna zawiera posortowan¥ list© os¢b i ich numer¢w
+ telefon¢w. W dolnej cz©˜ci znajduj¥ si© drobne komentarze o
+ poszczeg¢lnych osobach.
+ Mo¾liwe s¥ dwa sposoby sortowania os¢b: wedˆug grup oraz
+ alfabetycznie. Aktualny tryb sortowania wybiera si© przyciskiem
+ Sortuj.
+ Dane w ksi¥¾ce ˆ¥czone s¥ w tzw. zapisy. Ka¾dy zapis zawiera nazw©
+ (imi© i nazwisko osoby b¥d« nazw© instytucji), numer telefonu oraz
+ kr¢tki komentarz na temat danej osoby (b¥d« instytucji).
+ Zapisy s¥ poˆ¥czone w grupy, kt¢re maj¥ swoj¥ nazw©, hasˆo dost©pu
+ oraz kr¢tki komentarz. Grupy mo¾na przyr¢wna† do katalog¢w na
+ dysku, a zapisy do poszczeg¢lnych plik¢w.
+
+ ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍ Ksi¥¾ka telefoniczna ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º                                                        º
+ º  Nazwiska                      Telefony                º
+ º  ..                                                   º
+ º  Znajoma 1                       36367878            ± º
+ º  Znajomy 1                       4567456             ± º
+ º                                                      ± º
+ º                                                      ± º
+ º                                                      ± º
+ º                                                      ± º
+ º                                                      ş º
+ º                                                       º
+ º                                                        º
+ º                                                        º
+ º                                                        º
+ º   Powr¢†  Ü   Dzwoä  Ü  Dodaj Ü  Edytuj Ü   Usuä  Ü  º
+ º  ßßßßßßßßßßßß  ßßßßßßßßß  ßßßßßßß  ßßßßßßßß  ßßßßßßßß  º
+ º  Sortuj Ü  Szukaj Ü  Importuj Ü  Duplikuj Ü  Anuluj Ü  º
+ º  ßßßßßßßß  ßßßßßßßß  ßßßßßßßßßß  ßßßßßßßßßß  ßßßßßßßß  º
+ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+         <Wprowad«>  - wybierz grup© zapis¢w
+         <Powr¢†>    - powr¢† do listy grup
+         <Anuluj>    - zamknij ksi¥¾k© telefoniczn¥
+         <Dial  >    - wybierz numer
+         <Dodaj >    - dodaj nowy zapis do ksi¥¾ki
+         <Edytuj>    - edytuj aktualny zapis
+         <Usuä  >    - usuä aktualny zapis
+
+         <Sortuj>    - zmieä tryb sortowania zapis¢w
+         <Szukaj>    - szukaj
+         <Importuj>  - importuj numery telefoniczne z pliku tekstowego
+         <Duplikuj>  - kopiuj aktualny zapis lub grup©
+
+ Konfiguracji Modemu mo¾na dokona† poleceniem menu
+ {Opcje:OptionsMenu}|Konfiguracja|{Komunikacja:Communication}.
+
+.topic View=11021
+.title Wbudowana przegl¥darka tekstowa
+ Wewn©trzna przegl¥darka tekstowa DOS Navigatora pozwala na podgl¥d
+ i edycj© tekstu i innych plik¢w.
+ Wbudowana przegl¥darka mo¾e wy˜wietla† pliki na trzy sposoby:
+
+         - Text  (jako tekst)
+         - HEX   (jako ci¥g liczb szesnastkowych)
+         - Dump  (wszystkie znaki)
+
+ Przeˆ¥cznie mi©dzy trybami wy˜wietlania odbywa si© przy pomocy
+ klawisza  F4.
+ W trybie wy˜wietlania tekstu mo¾na wˆ¥czy† lub wyˆ¥czy† zawijanie
+ tekstu (Zawiä) - sˆu¾y do tego klawisz  F2.
+ Podczas wy˜wietlania pliku w trybie "HEX" mo¾liwa jest edycja jego
+ zawarto˜ci, przy czym nie mo¾na zmienia† jego rozmiaru. Edycj©
+ mo¾na przeprowadza† na dwa sposoby - wpisuj¥c liczby szesnastkowe
+ lub wpisuj¥c tekst:
+
+     ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍ C:\command.com ÍÍÍÍÍÍÍÍÍÍÍÍÍ[]Í»
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄ70 61 72 61 6D 65 74 72 18 ³ parametr -
+ ³   º00004899: 41 77 61 72 69 61 20 64 61 ³ Awaria daÄÄÄÄ¿
+ ³   º000048A2: 6E 79 63 68 20 73 69 65 63 ³ nych siec ş   ³
+ ³   º000048AB: 69 6F 77 79 63 68 24 46 75 ³ iowych$Fu ±   ³
+ ³   º000048B4: 6E 6B 63 6A 61 20 6E 69 65 ³ nkcja nie ±   ³
+ ³   º000048BD: 20 6A 65 73 74 20 6F 62 73 ³  jest obs ±   ³
+ ³   º000048C6: 88 75 67 69 77 61 6E 61 20 ³ ˆugiwana  ±   ³
+ ³   º000048CF: 77 20 73 69 65 63 69 2F 4E ³ w sieci/N     ³
+ ³   È[0000489c 00Ä01Ä02Ä03Ä04Ä05Ä06Ä07Ä08]ÍÍÍÍÍÍÍÍÍÍÍÄÙ   ³
+ ³                                                         ³
+ ÀÄÄÄ tu mo¾na wpisywa† liczby szesnastkowe                ³
+                                                           ³
+                          tu mo¾na wpisywa† tekst ÄÄÄÄÄÄÄÄÄÙ
+
+ Przeˆ¥czanie si© mi©dzy sposobami edycji danych odbywa si©
+ za pomoc¥ klawisza  Tab.
+ Aby od razu przesun¥† si© pod wskazane miejsce w podgl¥danym pliku
+ nale¾y u¾y† klawisza  F5. Dziaˆa to w trybach "HEX" i "Dump".
+ Aby wyszuka† okre˜lony ci¥g znak¢w b¥d« liczb szesnastkowych nale¾y
+ u¾y† klawisza  F7. Kombinacja  Shift+F7  powoduje kontynuacj©
+ wyszukiwania (wyszukuje nast©pne wyst¥pienie tego samego ci¥gu).
+ Aby uˆatwi† przegl¥danie pliku Podgl¥d oferuje mo¾liwo˜†
+ odfiltrowania niekt¢rych znak¢w. Symbole, kt¢rych kody szesnastkowe
+ znajduj¥ si© poza okre˜lonymi przedziaˆami zostaj¥ zast¥pione
+ znakiem kropki  "." . Przeˆ¥czanie mi©dzy przedziaˆami odbywa si©
+ przy u¾yciu klawisza F6 (Filtr).
+ Dozwolone przedziaˆy (warto˜ci szesnastkowe/warto˜ci dziesi©tne/):
+
+     - 00h..FFh  /00..255/ (wszystkie symbole)
+     - 20h..7Fh  /32..127/ (tylko znaki ASCII)
+     - 20h..FFh  /32..255/ (specjalne symbole s¥ odfiltrowane)
+
+ Aby skopiowa† fragment tekstu z podgl¥danego pliku i umie˜ci† go
+ w schowku nale¾y posˆu¾y† si© {apaczem ekran¢w:ScreenGrabber}.
+
+ Patrz r¢wnie¾ {"Przykˆadowe okno":WindowsType}
+               {"Podgl¥d i edycja wg rozszerzenia":ViewFile}
+
+.topic Highlight=11022
+.title Grupy pod˜wietleä
+ U¾ytkownik mo¾e zdefiniowa† do 10-ciu grup pod˜wietleä plik¢w wg
+ rozszerzeä rozdzielanych ˜rednikiem. Dla ka¾dej z grup mo¾na
+ zdefiniowa† osobny kolor. Domy˜lnie podziaˆ na grupy pod˜wietleä
+ wygl¥da jak poni¾ej:
+
+ Pliki, na kt¢re praktycznie nie zwraca si© uwagi lub kt¢re s¥
+ zazwyczaj usuwane (kolor czarny):
+
+   BAK;$$$;SWP
+
+ U¾ywane pliki programistyczne, teksty, dokumentacje, itp. pliki
+ najcz©˜ciej edytowane (kolorem zielonym - miˆym dla oka):
+
+   TXT;DOC;BAS;FOR;C;CPP;ASM;INC
+
+Pliki graficzne, muzyczne (kolor niebieski):
+
+   PIC;GIF;PCX;TIF;IMG;STM;CDM;MOD;SND
+
+Pliki, z kt¢rymi pracujesz rzadko, nie powinny pochˆania† Twojej
+uwagi (kolor ciemno-zielony, r¢wnie¾ spokojny dla oka):
+
+   PRJ;OBJ;LST;DBF;WKS;123
+
+Pliki, kt¢re powinny przyci¥ga† uwag© u¾ytkownika, tworzone
+jednorazowo (dobrze widoczne, lecz nie irytuj¥ce kolor magenta):
+
+   !!!;1ST;ME;CUT
+
+.topic Clipboard=11023
+.title Schowek
+ Schowek zapami©tuje tekst, kt¢ry wycinasz i kopiujesz z innych
+ okien. Tekst kopiowany i wycinany do schowka. Tekst w schowku Dos
+ Navigatora u¾ywany jest kiedy wybierzesz polecenie Wklej.
+
+.topic ScreenGrabber=11024
+.title apacz Ekran¢w
+ Aby wyci¥† fragment tekstu z podgl¥danego pliku i umie˜ci† go
+ w Schowku nale¾y posˆu¾y† si© "apaczem Ekran¢w" {Shift+Alt+Ins:_}.
+ "apacz Ekran¢w" dziaˆa nie tylko wtedy, gdy wy˜wietlany jest
+ pulpit DOS Navigatora, ale te¾ w czasie wy˜wietlania ekranu
+ u¾ytkownika {Alt+F5:_}. "apacz Ekran¢w" umo¾liwia ˆatwe wyci©cie
+ fragmentu tekstu znajduj¥cego si© na ekranie w celu p¢«niejszego
+ wykorzystania. Po naci˜ni©ciu  {Shift+Alt+Ins:_} ukazuje si© obszar
+ w negatywie, kt¢ry mo¾e by† zwi©kszany, zmniejszany i przesuwany
+ po ekranie.
+
+   Klawisz lub kombinacja:    Efekt:
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+   ( , , ,  )           ³ Przesuwanie o 1 znak
+   Shift + ( , , ,  )   ³ Zmiana rozmiaru o 1 znak
+   Ctrl + ( ,  )          ³ Przesuwanie o 8 kolumn (znak¢w)
+   Ctrl + ( ,  )          ³ Przesuwanie o 4 wiersze (znaki)
+   Ctrl + SHIFT + ( ,  )  ³ Zmiana rozmiaru o 8 kolumn (znak¢w)
+   Ctrl + SHIFT + ( ,  )  ³ Zmiana rozmiaru o 4 kolumny (znaki)
+   Home                     ³ Przesuni©cie do lewej kraw©dzi ekranu
+   End                      ³ Przesuni©cie do prawej kraw©dzi ekranu
+   PageUp                   ³ Przesuni©cie do g¢rnej kraw©dzi ekranu
+   PageDown                 ³ Przesuni©cie do dolnej kraw©dzi ekranu
+   Enter                    ³ Skopiowane obszaru do schowka
+   Esc                      ³ Anulowanie operacji
+
+.topic SelectDrive=21000
+.title Zmieä nap©d
+Wyb¢r jednego z dost©pnych dysk¢w.
+
+.topic SelectDriveExtended=21001
+.title Zmieä nap©d
+ Wyb¢r jednego z dost©pnych dysk¢w.
+ Mo¾esz r¢wnie¾ wybra† {Dyski TEMP i Znajd«:TempList} wciskaj¥c
+ klawisz {Spacji:_}.
+
+.topic AdvanceSearch=21002
+.title Wyszukiwanie zaawansowane
+ To okienko dialogowe pozwala na ustawienie specjalnych ograniczeä,
+ kt¢re nie zostaˆy zawarte w zasadniczym okienku "Znajd« plik".
+ Jest to szczeg¢lnie wa¾ne podczas przeszukiwania tekstu kiedy
+ chcesz otwiera†, czyta† i przeszukiwa† kilka du¾ych plik¢w.
+ Daje to mo¾liwo˜† podsumowania wszystkich plik¢w ustalonego czasu,
+ rozmiaru, czy okre˜lonych {atrybut¢w pliku:FileAttr}.
+
+ Zaznaczone kryteria wyszukiwania zostan¥ u¾yte podczas nast©pnej
+ sesji wyszukiwania. Je˜li w gˆ¢wnym okienku "Znajd« plik" pokazuje
+ si© pod˜wietlony przycisk "Zaawansowane" oznacza to, ¾e wˆ¥czone
+ jest zaawansowane filtrowanie plik¢w.
+
+Data po    : Wej˜ciowa data i (opcjonalnie) czas pliku musi by†
+              podana w formacie: mm-dd-yy [hh:mm] [AM | PM]].
+              Przykˆadowo: 5-10-90 czy 15-1-89 7:0 am. Tylko pliki,
+              kt¢re zostaˆy zmodyfikowane po tej dacie i czasie
+              zostan¥ wˆ¥czone do wyszukiwania.
+Data przed : Tylko pliki, kt¢re byˆy ostatnio modyfikowane przed
+              dat¥ i czasem wej˜ciowym zostan¥ wˆ¥czone do
+              wyszukiwania.
+
+Rozmiar wi©kszy/mniejszy ni¾ : Wej˜cie zakresu rozmiar¢w pliku.
+              Mo¾esz u¾y† K lub M na koäcu; na przykˆad: 2000 to
+              to samo co 2K.
+
+ Okienko wyboru atrybut¢w pozwala na wˆ¥czenie tylko plik¢w ze
+ specyficzn¥ kombinacj¥ {atrybut¢w pliku:FileAttr}. Na przykˆad,
+ je¾eli jest odhaczony atrybut Archiwalny plik you want has been
+ utworzony/zmodyfikowany skoro ostatnio tworzyˆe˜ kopi©
+ bezpieczeästwa.
+
+
+   ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍ Zaawansowane szukanie ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+   º                                                         º
+   º  Data po        ±±±±±±±±±±±±±±±±±± Şİ     OK   Ü     º
+   º                                         ßßßßßßßßßßß     º
+   º  Data przed     ±±±±±±±±±±±±±±±±±± Şİ    Wyczy˜† Ü     º
+   º                                         ßßßßßßßßßßß     º
+   º  Rozmiar wi©kszy ni¾   ±±±±±±±±±±±±±±     Anuluj  Ü     º
+   º                                         ßßßßßßßßßßß     º
+   º  Rozmiar mniejszy ni¾  ±±±±±±±±±±±±±±                   º
+   º                                           Pomoc   Ü     º
+   º  Atrybuty                               ßßßßßßßßßßß     º
+   º  [ ] Archiwalne  [ ] Ukryte                             º
+   º  [ ] Systemowe   [ ] Tylko do odczytu                   º
+   º                                                         º
+   ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+.topic FileFind=21003
+.title Znajd« plik
+ To polecenie menu przeszukuje bie¾¥ce lub wyszczeg¢lnione katalogi
+ w poszukiwaniu plik¢w nie tylko wg nazwy ale i zawarto˜ci, daty,
+ rozmiaru i {atrybut¢w:FileAttr}. Wpisz w pozycji {"Maska pliku":_}
+ okre˜lon¥ {mask© pliku czy filtr:Wildcards}.
+
+ Aby wyszuka† dany tekst w plikach wpisz w linii {"Znajd«":_}
+ cz©˜† sˆowa czy kr¢tk¥ fraz© (lub jaki˜ fragment tekstu).
+
+ Wynik poszukiwania zostanie wylistowany i wy˜wietlony w katalogu
+ tymczasowym w panelu plik¢w. Na wylistowanych plikach dost©pne s¥
+ wszystkie operacje z {Menu Plik:FileMenu} i {Menu Panel:PanelMenu}.
+
+    ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Znajd« plik ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+    º                                                  º
+    º  Maska pliku  ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± Şİ º
+    º                                                  º
+    º  Znajd«       ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± Şİ º
+    º  aäcuch Hex  ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±     º
+    º  Opcje                                           º
+    º  [ ] {Zaawans. szuk:AdvanceSearch}    [X] Uwzgl. caˆe sˆowa      º
+    º  [X] Wielko˜† liter   [ ] Wszystk. str. kod.     º
+    º  [X] Przesz. podkat.  [ ] Szukaj w archiwach     º
+    º                                                  º
+    º  Zasi©g                                          º
+    º  ( ) Caˆy dysk         ( ) Wszystkie dyski       º
+    º  () Aktualny katalog                            º
+    º                                                  º
+    º      OK  Ü  Zaawansowane Ü  Anuluj Ü  Pomoc Ü  º
+    º     ßßßßßßßß  ßßßßßßßßßßßßßß  ßßßßßßßß  ßßßßßßß  º
+    ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+.topic WinMan=21004
+.title Mened¾er okien
+Lista okien zezwala na aktywowanie lub zamkni©cie okna na Pulpicie.
+
+.topic Game=21005
+.title Wbudowane gry Navigatora
+ Mo¾esz zagra† w jedn¥ z poni¾szych gier DN:
+  {Tetris:Tetris}
+  {Pentix:Pentix}
+
+.topic Tetris=16543
+.title Tetris
+
+.topic Pentix=16544
+.title Pentix
+
+.topic UserMenu=16545
+.title Menu u¾ytkownika
+ DOS Navigator oferuje u¾ytkownikowi mo¾liwo˜† tworzenia wˆasnego
+ menu poleceä.
+ Menu zapisywane jest w pliku DN.MNU. Wywoˆuje si© je poleceniem
+ menu {Narz©dzia|Menu u¾ytkownika:_}
+ Wykonuj¥c to polecenie DOS Navigator sprawdza, czy plik o nazwie
+ DN.MNU znajduje si© w bie¾¥cym katalogu. Je¾eli tak, to uruchamia
+ menu zdefiniowane w tym pliku. Jest to tzw. menu lokalne. Je¾eli
+ plik o tej nazwie nie istnieje w bie¾¥cym katalogu, DOS Navigator
+ szuka menu w katalogach nadrz©dnych w stosunku do bie¾¥cego.
+ Je¾eli nie znajdzie ¾adnego menu lokalnego, uruchamia menu
+ znajduj¥ce si© w katalogu u¾ytkownika DOS Navigatora
+ (zwykle C:\DN). Jest to tzw. menu globalne. Menu globalne definiuje
+ si© poleceniem {Opcje|Definicja menu globalnego:_} a menu lokalne
+ {Opcje|Definicja menu lokalnego:_}.
+ Menu lokalne definiowane jest dla ka¾dego katalogu z osobna.
+ W przypadku, gdy zdefiniowane jest zar¢wno menu lokalne i globalne,
+ mo¾na przeˆ¥cza† si© mi©dzy nimi za pomoc¥ klawisza [F2].
+ Po wywoˆaniu menu (zar¢wno globalnego czy lokalnego) mo¾na
+ przeprowadzi† jego edycj© wciskaj¥c klawisz [F4].
+ Kiedy u¾ytkownik wybierze dowolne polecenie z menu, wtedy, je˜li
+ nie b©dzie to nagˆ¢wek poziomu menu, Navigator utworzy tymczasowy
+ plik .BAT z dwoma parametrami: pierwszy to nazwa pliku, na kt¢rym
+ byˆ kursor, i drugi nazwa listy plik¢w zaznaczonych w tym panelu.
+
+ {Podpowied«:_}: ş Je˜li menu u¾ytkownika nie zostanie odnalezione
+               w katalogu bie¾¥cym, DN b©dzie szukaˆ w
+               katalogach nadrz©dnych.
+             ş Istnieje mo¾liwo˜† przeˆ¥czania si© mi©dzy menu
+               lokalnym/globalnym u¾ytkownika kiedy wybrane jest
+               menu u¾ytkownika.
+             ş Istnieje mo¾liwo˜† edycji pliku menu u¾ytkownika
+               w czasie gdy jest ono uruchomione.
+
+ Patrz r¢wnie¾ {"Format pliku Menu u¾ytkownika":MenuFormat}
+               {"Przykˆady Menu u¾ytkownika":MenuExample}.
+
+.topic LUserMenu=16546
+.title Lokalne Menu u¾ytkownika
+ Patrz r¢wnie¾ {"Menu u¾ytkownika":UserMenu}
+
+.topic GUserMenu=16547
+.title Globalne Menu u¾ytkownika
+ Patrz r¢wnie¾ {"Menu u¾ytkownika":UserMenu}
+
+.topic MenuTips=16548
+.title Menu Tips
+
+.topic MenuExample=16549
+.title Przykˆadowe Menu u¾ytkownika
+ Przykˆad                          Komentarz
+
+ >1 Microsoft ~W~indows 3.1      ³ Litera skr¢tu 'W'
+    win                          ³ uruchom WIN
+ >1                              ³ Separator
+ >1 ~F~ormat diskette            ³
+   >2 1.4~4~ Mb                  ³ Nast©pny poziom
+     format a: /f:1440 /u        ³
+   >2 1.~2~ Mb                   ³
+     format a: /f:1200 /u        ³
+   >2 ~D~efine...                ³
+     <=format a:                 ³ Edycja parametr¢w.
+                                 ³ Domy˜lnie "format a:"
+                                 ³
+ >1 ~M~ail                       ³ Nast©pny pierwszy poziom
+                                 ³ pozycji menu
+   >2 ~G~et...                   ³
+     ............                ³ (pomiä)
+   >2 ~A~rchive                  ³
+     pkzip -mex archive\mail.zip ³ Wywoˆanie archiwizera
+     pkunzip -t archive\mail.zip ³ Sprawdzenie archiwizera
+   >2 ~E~xtract                  ³
+     pkunzip archive\mail.zip    ³
+ >1                              ³ Separator
+ >1 ~G~ames                      ³
+   .........                     ³ itd.
+
+.topic MenuEdit=16550
+.title Edycja Menu u¾ytkownika
+ W celu edycji bie¾¥cego menu u¾ytkownika, wci˜nij klawisz F2.
+
+ Aby edytowa† istniej¥ce lokalne menu u¾ytkownikawybierz pozycj©
+ Menu gˆ¢wnego: {Opcje|Definicja menu lokalnego...:_}
+
+ Aby edytowa† istniej¥ce globalne menu u¾ytkownikawybierz pozycj©
+ Menu gˆ¢wnego: {Opcje|Definicja menu globalnego...:_}
+
+.topic MenuFormat=16551
+.title Format pliku Menu u¾ytkownika
+ Menu u¾ytkownika posiada okre˜lon¥ struktur©. Definicja ka¾dej
+ pozycji menu zaczyna si© symbolem ">", po kt¢rym nast©puje liczba
+ oznaczaj¥ca poziom tej pozycji w hierarchii menu (np. ">1" oznacza
+ pierwszy poziom w hierarchii). Je¾eli po liczbie nie ma ¾adnego
+ znaku, pozycja b©dzie traktowana jako separator (pozioma linia
+ w menu oddzielaj¥ca od siebie dwie inne pozycje).Je¾eli po liczbie
+ wyst¥pi odst©p i jaki˜ tekst, np. ">1 formatuj", to w menu pojawi
+ si© polecenie "formatuj".
+ Oczywi˜cie mo¾e to by† polecenie lub nazwa podmenu
+ (tak jak w pasku menu).
+ Ka¾da pozycja menu mo¾e posiada† sw¢j klawisz skr¢tu, kt¢ry
+ definiuje si© u¾ywaj¥c dw¢ch znak¢w "~" (tylda), np.
+ ">1 ~f~ormatuj" spowoduje, ¾e w menu pojawi si© pozycja "formatuj",
+ kt¢rej klawiszem skr¢tu b©dzie litera [f].
+ Po zdefiniowaniu pozycji menu nale¾y okre˜li†, co si© b©dzie dziaˆo
+ po jej wybraniu. W tym celu nale¾y wpisa† kolejne polecenia DOSu.
+ Mo¾na si© posˆugiwa† znakami specjalnymi z {Makra menu:ExtMacros}.
+
+ Patrz r¢wnie¾ {"Makra Menu":ExtMacros}
+               {"Przykˆady Menu u¾ytkownika":MenuExample}.
+
+.topic ExtMacros=16552
+.title Makra Menu
+      Panel
+ aktywny/pasywny    Opis
+ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+ {!:_}    {$:_}    ³ Nazwa pliku
+ {#:_}    {&:_}    ³ Dˆuga nazwa pliku
+           ³
+ {.!:_}   {.$:_}   ³ Rozszerzenie pliku
+ {.#:_}   {.&:_}   ³ Dˆugie (dodatkowe) rozszerzenie pliku
+           ³
+ {!\:_}   {$\:_}   ³ Nazwa katalogu aktualnego pliku
+ {#\:_}   {&\:_}   ³ Dˆuga nazwa katalogu aktualnego pliku
+           ³
+ {!/:_}   {$/:_}   ³ Nazwa katalogu aktualnego pliku (bez "\")
+ {#/:_}   {&/:_}   ³ Dˆuga nazwa katalogu aktualnego pliku (bez "\")
+           ³
+ {!:::_}   {$:::_}   ³ Nazwa dysku dla aktualnego pliku
+ {#:::_}   {&:::_}   ³ Dˆuga nazwa dysku dla aktualnego pliku
+           ³
+ {!%A:_}  {$%A:_}  ³ Atrybuty plik¢w: RHSVDA, minus oznacza brak
+ {#%A:_}  {&%A:_}  ³ atrybut¢w
+           ³
+ {!%C:_}  {$%C:_}  ³ Rozmiar skompresowanego lub rzeczywistego
+ {#%C:_}  {&%C:_}  ³ archiwum wyj˜ciowego
+           ³
+ {!%D:_}  {$%D:_}  ³ Data ostatniej modyfikacji stosownie
+ {#%D:_}  {&%D:_}  ³ bie¾¥cego formatu daty
+           ³
+ {!%R:_}  {$%R:_}  ³ Stosunek kompresji (sygnowany procentem), "100%"
+ {#%R:_}  {&%R:_}  ³ archiwum wyj˜ciowego
+           ³
+ {!%S:_}  {$%S:_}  ³ Rozmiar pliku (nieskompresowanych w archiwach),
+ {#%S:_}  {&%S:_}  ³ pusty ˆaäcuch dla katalog¢w
+           ³
+ {!%T:_}  {$%T:_}  ³ Czas ostatniej modyfikacji stosownie
+ {#%T:_}  {&%T:_}  ³ bie¾¥cego formatu czasu
+           ³
+ {!%Z:_}  {$%Z:_}  ³ Pierwsza linia opisu pliku, bez nagˆ¢wka
+ {#%Z:_}  {&%Z:_}  ³ i koäcowych spacji, lub pusty ˆaäcuch
+           ³
+ {%1:_}   {%2:_}   ³ Nazwa pliku z list¥ zaznaczonych plik¢w
+           ³
+ {%3:_}...{%9:_}   ³ Parametry u¾ytkownika
+           ³ (Warto˜† wej˜ciowa u¾ytkownika w oknie Menu)
+
+  {Uwagi:_}: ş Pusta linia po gˆ¢wnej pozycji Menu peˆni
+           rol© separatora w okienku Menu.
+         ş Mo¾na ustawic tytuˆ okienka rozpoczynaj¥c lini©
+           znakiem '<' , a dla ustawienia domy˜lnego tekstu
+           w okienku - u¾yj '<=' .
+
+.topic AboutDialog=16553
+.title Wizyt¢wka...
+ Informacja o wersji {Dos Navigatora:CommonInfo}.
+ Wci˜nij {Alt+I:Team} aby zobaczy†  {Team:Team} Dos Navigatora.
+
+ Patrz r¢wnie¾ {"Indeks pomocy":Index}
+
+.topic Team=16554
+.title Dos Navigator OSP Team...
+ Informacja o autorach {Dos Navigatora:CommonInfo}.
+ U¾yj klawiszy strzaˆek    i    do przewini©cia listy.
+
+.topic CDPlayer=16555
+.title Odtwarzacz CD
+ Domy˜lnie Odtwarzacz CD jest uruchomiony w trybie zminimalizowanym:
+
+    É[{ş:_}]ÍÍÍÍÍÍ Celtic Guitar ÍÍÍÍÍÍ[{:_}]Í»
+    ºÚÄÄÄÄ—cie¾kaÄÄÄÄÄÄÄÄ{Czas ˜cie¾ki:_}Ä¿º
+    º³  {ÜÜÜ ÜÜÜ:_}      ÜÜÜ   Ü Ü ÜÜÜ   {A:CDPlayerOptions}³º
+    º³  {Û Û ÜÜÛ:_}      Û Û ß ÛÜÛ   Û   {N:CDPlayerOptions}³º
+    º³  {ÛÜÛ ÛÜÜ:_}      ÛÜÛ ß   Û   Û   {J:CDPlayerOptions}³º
+    ºÀ{ÄTwo Irish BalladsÄÄÄÄÄÄÄÄÄÄÄÄÄÄ:_}Ùº
+    º °°Ü °<°Ü °°°°°°°°Ü °>°Ü °°Ü º
+    º  ßßßß  ßßß  ßßßßßßßßß  ßßß  ßßßß º
+    ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ Aby uzyska† dost©p do dodatkowych przycisk¢w kontroli d«wi©ku
+ musisz powi©kszy† rozmiar Odtwarzacza CD.
+ (Klawisze steruj¥ce s¥ na pasku stanu w dolnej cz©˜ci ekranu)
+
+   Klikaj¥c klawiszem myszki na poni¾sze obszary
+ ş wska«nik trybu czasu
+     - zmieniasz tryb wy˜wietlania czasu
+ ş {wska«nik tryb¢w odtwarzania (AIJ):CDPlayerOptions}
+     - tryb bie¾¥cego odtwarzania <Tryby>
+ ş Wielkie cyfry "—cie¾ka"
+     - wyb¢r ˜cie¾ki odtwarzania
+ ş Dolna linia ramki pod cyframi
+     - wyb¢r ˜cie¾ki odtwarzania z listy ˜cie¾ek
+
+               ÉÍ[ş]ÍÍÍÍÍ Odtwarzacz CD ÍÍÍÍÍÍ[]Í»
+               ºÚÄÄÄ—cie¾kaÄÄÄÄÄÄÄCzas ˜cie¾kiÄÄÄ¿º
+               º³    Ü ÜÜÜ  ÜÜÜ ÜÜÜ   ÜÜÜ ÜÜÜ   A³º
+               º³    Û ÛÜÜ  ÛÜÜ ÛÜÜ ß ÜÜÛ ÛÜÜ   N³º
+               º³    Û ÜÜÛ  ÛÜÛ ÛÜÛ ß ÛÜÜ ÛÜÛ   J³º
+               ºÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙº
+               º   Ü  < Ü         Ü  > Ü   Ü º
+               º  ßßßß  ßßß  ßßßßßßßßß  ßßß  ßßßß º
+               º    *   Ü       ş      Ü       Ü º
+               º  ßßßßßßß  ßßßßßßßßßßßßß  ßßßßßßß º
+               º  {  Opcje :CDPlayerOptions}Ü   Czas   Ü   Tryby  Ü º
+               º  ßßßßßßßßß  ßßßßßßßßß  ßßßßßßßßß º
+               º    Mixer Ü   Lista  Ü  { Tytuˆ  :CDPlayerTitle}Ü º
+               º  ßßßßßßßßß  ßßßßßßßßß  ßßßßßßßßß º
+               ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+  Opis przycisk¢w:
+
+    {  :_}Ü  Odtwarzaj
+    ßßßß
+    {>  :_}Ü  Nast©pna ˜cie¾ka
+    ßßßß
+    {<  :_}Ü  Poprzednia ˜cie¾ka
+    ßßßß
+    { :_}Ü  Szybkie przewijanie do przodu
+    ßßßß
+    { :_}Ü  Szybkie przewijanie do tyˆu
+    ßßßß
+    {*  :_}Ü  Przerwa
+    ßßßß
+    {ş  :_}Ü  Zatrzymaj(Stop)
+    ßßßß
+    {  :_}Ü  Wysuä pˆyt©
+    ßßßß
+
+<{Opcje:CDPlayerOptions}>
+   - Opcje Odtwarzacza CD
+<{Czas :_}>
+   - Wskazuje tryby czasowe (—cie¾ka\Pozostaˆo dysku\Czas)
+<{Tryby:_}>
+   - Wskazuje tryb odtwarzania (Normalnie\Intro\Losowo\Jeden utw¢r)
+<{Mixer:_}>
+   - Uruchomienie wewn©trznego miksera d«wi©ku 'Mixer'
+<{Lista:_}>
+   - Porz¥dek odtwarzania wg u¾ytkownika.
+<{Tytuˆ:CDPlayerTitle}>
+   - Opis CD tytuˆy i ˜cie¾ki
+
+.topic CDPlayerOptions=16556
+.title Opcje Odtwarzacza CD
+ Opcje                         Kolejno˜†
+  [X] Funkcja Autorun           ( ) Normalna
+  [X] Wysuä dysk na koäcu       ( ) Intro
+  [ ] Zamknij szufladk©         ( ) Losowo
+  [ ] Tryby powtarzania         ( ) Jeden utw¢r
+                                ( ) Lista wˆasna
+
+ Mixer zewn©trzny
+
+
+.topic CDPlayerTitle=16557
+.title Format opisu CD
+ TYTU:JEAN-MICHEL JARRE "COLLECTION"
+ 01:REVOLUTIONS;               "Revolutions" '88
+ 02:ETHNICOLOR;                "Zoolok"      '84
+ 03:FIRST RENDEZ-VOUS;         "Rendez-vous" '86
+ 04:SECOND RENDEZ-VOUS PART I; "Rendez-vous" '86
+ 05:SECOND RENDEZ-VOUS PART II;"Rendez-vous" '86
+ 06:CALYPSO;                   "Wainitg for Cousteau" '90
+ 07:INDUSTRIAL REVOLUTION PART I;"Revolutions" '88
+ 08:DIVA;                      "Zoolok"      '84
+ 09:FOURTH RENDEZ-VOUS;        "Rendez-vous" '86
+ 10:COMPUTER WEEKEND;          "Revolutions" '88
+ 11:THIRD RENDEZ-VOUS;         "Rendez-vous" '86
+ 12:INDUSTRIAL REVOLUTION PART III;"Revolutions" '88
+ 13:LAST RENDEZ-VOUS (RON'S PIECE);"Rendez-vous" '86
+
+.topic TreeDialog=16558
+.title Drzewo katalog¢w (Zmieä/Wybierz)
+ Zmieä: {Menu Panel|Zmieä katalog:_}
+ Po zaznaczeniu w okienku "Zmieä katalog" okre˜lonego katalogu
+ zawarto˜† ukazuje si© w panelu aktywnym, panel nieaktywny pozostaje
+ bez zmian. Po prostu przej˜cie do innego katalogu.
+
+ Wybierz: {Menu Dysk|Drzewo katalog¢w:_}
+ Po zaznaczeniu w okienku "Zmieä katalog" okre˜lonego katalogu
+ zawarto˜† ukazuje si© w widoku dwupanelowym {drzewa katalog¢w:DirTree}.
+
+   ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍ Zmieä katalog ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+   º  E:\                                         º
+   º  ÃÄÄÄÄ RECYCLED                 ş    OK   Ü º
+   º  ÃÄÄÄÄ Bazy TreePada            ±   ßßßßßßßßß º
+   º  ÃÄÄÄÄ obrazC                   ±             º
+   º  ÃÄÄÄÄ obrazD                   ±    Nap©d  Ü º
+   º  ÃÄÄÂÄ DELPHI                   ±   ßßßßßßßßß º
+   º  ³  ÃÄÄÂÄ DELPHI_INSTALKI       ±             º
+   º  ³  ³  ÃÄÄÂÄ rejestracja Delphi ±   Wczytaj Ü º
+   º  ³  ³  ³  ÃÄÄÄÄ 2               ±   ßßßßßßßßß º
+   º  ³  ³  ³  ÀÄÄÄÄ 1               ±             º
+   º  ³  ³  ÃÄÄÂÄ LMD                ±   UtwKat  Ü º
+   º  ³  ³  ³  ÃÄÄÄÄ LMD Tools 6.0 Tr±   ßßßßßßßßß º
+   º  ³  ³  ³  ÀÄÄÄÄ LMD Tools 6.0 SE±             º
+   º  ³  ³  ÀÄÄÂÄ Delphi7_Personal   ±   Anuluj  Ü º
+   º E:\                                ßßßßßßßßß º
+   ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+.topic EnvEditor=16559
+.title Edycja ˜rodowiska DOS
+ Edycj© ˜rodowiska DOS'a mo¾na przeprowadzi† wybieraj¥c polecenie
+ menu {Narz©dzia|Edycja ˜rodowiska Dos'a:_}.
+ W oknie edytora mo¾esz zmienia†, dodawa† i usuwa† zmienne
+ ˜rodowiskowe.
+
+ Zmienne ˜rodowiskowe u¾ywane przez DOS Navigatora:
+
+ DN         - nazwa katalogu, w kt¢rym znajduj¥ si© pliki systemowe
+              DOS Navigatora
+ OS2COMSPEC - peˆna nazwa interpretera poleceä systemu OS/2 (je˜li
+              posiadasz system OS/2 v2.10 lub nowszy). Na przykˆad
+              (AUTOEXEC.BAT): SET OS2COMPSEC=C:\OS2\CMD.EXE
+ DNOVR      - nazwa katalogu, w kt¢rym znajduje si© plik DN.OVR
+ DNSWP      - nazwa katalogu, w kt¢rym b©d¥ przechowywame
+              tymczasowe pliki DOS Navigatora
+ DNDLG      - nazwa katalogu, w kt¢rym znajduj¥ si© pliki DN.DLG
+              i DN.LNG (zasoby programu). Je¾eli ta zmienna nie jest
+              zdefiniowana, zasoby b©d¥ ˆadowane z katalogu
+              systemowego (zmienna ˜rodowiskowa DN)
+ DNLNG      - ci¥g znak¢w, kt¢ry b©dzie dodany do nazwy plik¢w
+              zasob¢w (DN*.LNG i DN*.DLG). Na przykˆad:
+              U¾ywasz dw¢ch r¢¾nych zasob¢w. Mo¾esz umie˜ci† lini©
+              SET DNDLG=_XTG w pliku AUTOEXEC.BAT aby DOS Navigator
+              ˆadowaˆ zasoby z plik¢w DN_XTG.LNG i DN_XTG.DLG
+ DNCFG      - ci¥g znak¢w, kt¢ry b©dzie dodany do nazwy pliku
+              konfiguracyjnego. Na przykˆad:
+              U¾ywasz dw¢ch r¢¾nych konfiguracji w DOS i OS/2.
+              Mo¾esz umie˜cie† lini© SET DNCFG=OS2 w sesji DOS
+              w AUTOEXEC.BAT aby zapisa† konfiguracj© spod OS/2
+              w pliku DNOS2.CFG
+              Uwaga: je¾eli chcesz u¾ywa† tej zmiennej, mo¾esz
+              skopiowa† plik DN.CFG do pliku o innej nazwie,
+              po czym mo¾esz dokona† niezb©dnych zmian.
+ DNIDLE     - nazwa programu do uruchomienia po 1 godzinie
+              bezczynno˜ci, tylko je¾eli wygaszacz ekranu jest
+              wyˆ¥czony i wˆ¥czona jest opcja
+              {Opcje|Konfiguracja|Opcje startowe...:_}
+                      [X] Wyjd« po godzinie nieaktywno˜ci
+ DNDSK      - ci¥g znak¢w, kt¢ry b©dzie dodany do nazwy pliku
+              pulpitu (DN??????.DSK - ?????? to dodany ci¥g
+              znak¢w)
+
+.topic NetInfo=16560
+.title Informacje o sieci
+No information available. Just look on this panel and enjoy.
+
+.topic DiskInfo=16561
+.title Panel Informacyjny
+Informacja zawiera
+
+  {Bie¾¥cy dysk/katalog    :_} - Pokazuje aktualny Dysk/Katalog.
+  {Ilo˜† i rozmiar plik¢w  :_} - Ilo˜† dotyczy plik¢w i katalog¢w razem.
+                           - Rozmiar dotyczy tylko plik¢w.
+  {Rozmiar dysku/nap©du    :_} - Caˆkowita pojemno˜† dysku.
+  {Wolny obszar            :_} - Ilo˜† wolnych bajt¢w na dysku.
+  {Etykieta dysku          :_} - Nazwa bie¾¥cego dysku.
+  {Numer seryjny dysku     :_} - np. D: 4212-28F9.
+  {System plik¢w na dysku  :_} - np. D: FAT32.
+  {Pami©† konwencjonalna   :_} - Zwykle ok. 640 Kb.
+  {Pami©† wolna            :_}
+  {Pami©† dla Navigatora   :_}
+  {Pami©† XMS i EMS        :_} - {Opcje|Konfiguracja|Ustawienia systemowe:_}.
+
+.topic PrintManager=16562
+.title Mened¾er wydruku
+ DOS Navigator oferuje mo¾liwo˜† drukowania pliku w tle.
+ Ta cecha jest bardzo przydatna poniewa¾ kiedy drukujesz plik w tym
+ czasie mo¾esz wykonywa† inne operacje takie jak edycja, kopiowanie
+ czy przegl¥danie plik¢w w DN.
+ Drukowany plik jest umieszczany w Mened¾erze wydruku.
+
+ Okno drukowania w tle umo¾liwia nast©puj¥ce operacje
+ (na przyciskach):
+
+ {Skasuj :_} - usuwa plik z bie¾¥cej listy
+ {Zamknij:_} - rezygnacja z warunk¢w wydruku w tle
+ {Przerwa:_} - zatrzymanie wydruku bie¾¥cego pliku.
+            Je˜li drukarka nie jest gotowa do operacji,
+            drukowanie zostaje zawieszone automatycznie.
+
+.topic Confirmations=16563
+.title Potwierdzenia
+
+.topic CountrySetup=16564
+.title Ustawienia regionalne
+
+.topic ReenterPassword=16565
+.title Potwierdzenie hasˆa
+Wpisz ponownie hasˆo w celu potwierdzenia.
+
+.topic ColumnsDefaults=16566
+.title Domy˜lne ustawienia kolumn
+Chodzi o domy˜lne ustawienia (jakie i rozmiar) kolumn w panelu.
+
+Spostrze¾enie: Pozycja "Dla nazwy" jest szeroko˜ci¥ kolumny.
+                Pozycja "Dla rozszerzenia" nie mo¾e przekracza† "Dla nazwy"-5.
+
+.topic MouseSetup=16567
+.title Ustawienia Myszki
+ Myszka jest obsˆugiwana przez wszystkie okna DOS Navigatora.
+ Podczas wy˜wietlania okienka dialogowego, naci˜ni©cie prawego
+ przycisku myszki jest r¢wnowa¾ne naci˜ni©ciu klawisza Enter.
+ {Odwr¢cenie przycisk¢w myszki:_} - zamienia dziaˆanie przycisk¢w
+ myszki z lewego na prawy (dla lewor©cznych).
+
+.topic InterfaceSetup=16568
+.title Ustawienia Interfejsu
+
+.topic SetupTerminal=16569
+.title Ustawienia Terminala
+
+.topic AppendPhoneNumber=16570
+.title Dodawanie numeru telefonu
+Wpisz nazw©(nazwisko), numer telefonu i kr¢tk¥ notatk©.
+
+.topic EditPhoneNumber=16571
+.title Edycja numeru telefonu
+Edycja nazwy(nazwiska), numeru telefonu i kr¢tkiej notatki.
+
+.topic AppendPhoneDirectory=16572
+.title Dodaj grup© kontaktow¥
+Wpisz nazw© grupy, hasˆo i kr¢tki opis.
+
+.topic EditPhoneDirectory=16573
+.title Edytuj grup© kontaktow¥
+Edycja nazwy grupy, hasˆa i kr¢tkiego opisu.
+
+.topic PrinterSetup=16574
+.title Ustawienia drukarek
+ Ustawienie {portu:_} drukarki lub wydruku do {pliku:_}.
+ Je˜li ustawiasz wydruk do pliku to Dos Navigator poprosi
+ przed rozpocz©ciem drukowania o podanie nazwy pliku.
+
+Mo¾esz zarz¥dza† operacj¥ wydruku poprzez {Mened¾era druku:PrintManager}.
+
+.topic GameSetup=16575
+.title Opcje Tetris'a i Pentix'a
+Masz do wyboru dwie gry: Tetris i Pentix.
+Mo¾esz wybra† poziom startowy i podgl¥d nast©pnego klocka.
+
+.topic DBSearch=16576
+.title Szukanie w bazie danych
+
+.topic GotoLine=16577
+.title Id« do linii
+Wpisz numer wiersza, do kt¢rego chcesz przej˜†.
+Pami©taj, ¾e pierwszy wiersz ma numer jeden ("1").
+
+.topic GotoAddress=16578
+.title Przej˜cie pod adres
+ Ustaw ofset pocz¥tkowy pliku.
+ Warto˜† jest absolutna. Numeracja zaczyna si© od zera.
+
+.topic DiskError=16579
+.title Bˆ¥d dyskowy
+Wci˜nij {ESC:_} aby anulowa† operacj© lub {ENTER:_} aby powt¢rzy†.
+
+.topic SetupDiskColumns=16580
+.title Ustawienia kolumn panela PLIKàW
+Wpisz jakie kolumny maj¥ by† w tej chwili widoczne w panelu.
+
+Spostrze¾enie: LFN jest szeroko˜ci¥ kolumn.
+                Pozycja EXT nie mo¾e by† wi©ksza od LFN-5.
+
+.topic SetupArcColumns=16581
+.title Ustawienia kolumn panela ARCHIWUM
+Wpisz jakie kolumny maj¥ by† w tej chwili widoczne w panelu ARCHIWUM.
+
+Spostrze¾enie: LFN jest szeroko˜ci¥ kolumn.
+                Pozycja EXT nie mo¾e by† wi©ksza od LFN-5.
+
+.topic SetupFindColumns=16582
+.title Ustawienia kolumn panela ZNAJD
+Wpisz jakie kolumny maj¥ by† w tej chwili widoczne w panelu ZNAJD.
+
+Spostrze¾enie: LFN jest szeroko˜ci¥ kolumn.
+                Pozycja EXT nie mo¾e by† wi©ksza od LFN-5.
+
+.topic FileAttr=16583
+.title Ustawienie atrybut¢w pliku
+Mo¾esz podgl¥da† i edytowa† atrybuty, dat© i czas bie¾¥cego pliku.
+
+Uwaga! Atrybut "Tylko-execute" tylko w Novell NetWare!
+
+.topic FilesAttr=16584
+.title Ustawienie atrybut¢w pliku
+Mo¾esz ustawi† lub wyczy˜ci† atrybuty pliku.
+
+.topic SetPassword=16585
+.title Ustawienie hasˆa
+
+.topic CmdHistory=16586
+.title Historia poleceä
+ To okno zawiera histori© wprowadzanych poleceä w bie¾¥cej sesji.
+ Pozwala to zaoszcz©dzi† czas na powt¢rnym wprowadzaniu poleceä
+ do wiersza poleceä DOS'a.
+
+ Przy pomocy kursora strzaˆek wybierz potrzebne polecenie
+ i wci˜nij Enter. Wybrane polecenie pojawi si© w wierszu poleceä.
+
+ Wci˜ni©cie klawisza  Esc  spowoduje zamkni©cie okna historii bez
+ zminany zawarto˜ci wiersza poleceä.
+
+W oknie historii s¥ nast©puj¥ce przyciski:
+
+ {Wykonaj:_} - Wykonanie wybranego (zaznaczonego) polecenia
+ {Upu˜†  :_} - Zrzucenie wybranego polecenia do wiersza poleceä
+ {Edytuj :_} - Edycja polecenia w celu skorygowania skˆadni
+ {Skasuj :_} - Usuni©cie pozycji z listy poleceä
+ {Anuluj :_} - Zamkni©cie okna historii poleceä
+
+.topic FileMask=16587
+.title Maska pliku
+ Aby wykona† jakie˜ operacje na grupie plik¢w mo¾esz wprowadzi†
+ mask© pliku.
+ Maska pliku mo¾e zawiera† podstawowe symbole {*:_} i {?:_}.
+
+.topic ExtendedFileMask=16588
+.title Rozszerzanie maski pliku
+
+.topic Select=16589
+.title Zaznaczanie
+ W celu zaznaczenia plik¢w, ustaw odpowiedni¥ mask© lub filtr.
+ Dozwolone jest u¾ycie symboli wieloznacznych {"Wildcards":Wildcards}.
+ Po ustawieniu filtr¢w wci˜nij przycisk OK.
+
+ W celu zaznaczenia plik¢w, kt¢re maj¥ znale«† si© naprzykˆad
+ na tworzonej li˜cie plik¢w ustaw odpowiedni¥ mask© lub filtr.
+ Dozwolone jest u¾ycie symboli wieloznacznych {"Wildcards":Wildcards}.
+ Po ustawieniu filtr¢w wci˜nij przycisk OK a nast©pnie klawisz Esc.
+ Pojawi si© gˆ¢wne okienko {Utw¢rz list© plik¢w:MakeListFile}, gdzie
+ mo¾esz okre˜li† format listy (raportu).
+
+.topic Unselect=16590
+.title Odznaczanie
+ W celu odznaczenia grupy plik¢w w katalogu bie¾¥cym ustaw mask©
+ plik¢w i zatwierd« wyb¢r przyciskiem OK lub klawiszem Enter.
+ Dozwolone u¾ycie symboli wieloznacznych {"Wildcards":Wildcards}.
+
+.topic MemoryInfo=16591
+.title Informacja o pami©ci
+
+.topic SystemInfo=16592
+.title Informacja o systemie
+
+.topic DirectDiskAccess=16593
+.title Bezpo˜redni dost©p do dysku
+ Bezpo˜redni dost©p do dysku pozwala na dost©p do dysku bez u¾ycia
+ systemu plik¢w, poprzez bezpo˜redni odczyt i zapis sektor¢w.
+ Mo¾liwe jest szybsze {odzyskiwanie plik¢w:Reanimator} itp.,
+ ale istnieje mo¾liwo˜† kolidowania z dyskami sieciowymi,
+ RAM-dyskami, SUBST itd.
+
+.topic DirectAccessDenied=16594
+.title Bezpo˜redni dost©p zabroniony
+
+.topic AsciiChart=16595
+.title Tabela ASCII
+ Aby wstawi† znak z tabeli, zaznacz go i kliknij podw¢jnie lewym
+ przyciskiem myszki lub zatwierd« klawiszem {Enter:_}.
+
+.topic AllContainingDialog=48000
+.title Potwierdzenie
+
+.topic YesNoDialog=48001
+.title Pytanie
+
+.topic YesNoCancelDialog=48002
+.title Pytanie
+
+.topic WarningDialog=48003
+.title Ostrze¾enie
+
+.topic ErrorDialog=48004
+.title Bˆ¥d
+
+.topic InformationDialog=48005
+.title Informacja
+Wci˜nij {ENTER:_} po przeczytaniu.
+
+.topic ConfirmationDialog=48006
+.title Potwierdzenie
+
+.topic QueryDialog=48007
+.title Pytanie
+
+.topic InputBox=48008
+.title Wprowad¾ wyra¾enie
+
+.topic Configuration=48009
+.title Opcje DOS Navigatora
+{Wbudowany edytor      :Editor} - {Opcje|Konfiguracja|Ustawienia systemowe:_} -
+                          u¾yj F4 Edytor wewn©trzny lub
+                          Alt+F4 edytor zewn©trzny.
+
+{Wbudowana przegl¥darka:View} - to samo dla przegl¥darki wewn©trznej
+                          odpowiednio u¾yj F3 i Alt+F3 dla zewn©trznej.
+
+{Poka¾ ukryte pliki    :_} - pokazuje pliki z atrybutem "ukryty".
+
+{Wygaszacz ekranu      :Savers} - Spos¢b "zasˆaniania" ekranu z pomoc¥
+                          wygaszacza.
+
+{Katalog tymczasowy    :_} - Katalog do zapisywania bie¾¥cej
+                          dziaˆalno˜ci.
+
+
+.topic SubMenuConfig=48010
+.title Konfiguracja Dos Navigatora
+  {Ustawienia systemowe :SystemSetup} - Dost©pne ustawienia systemowe i nap©d¢w.
+  {Opcje startowe       :OptionsStartup} - Uruchomienie i nakˆadki konfiguracyjne.
+  {Interfejs            :InterfaceSetup} - Interfejs, wiersz poleceä
+                          i ustawienia edytora/przegl¥darki.
+  {Potwierdzenia        :Confirmations} - Potwierdzanie usuwania i innych.
+
+  {Wygaszacze ekranu    :Savers} - Ustawienia wygaszacza ekranu.
+  {Ustawienia drukarek  :PrinterSetup} - Port drukarki i pocz./zakoäcz. ˆancuch¢w.
+  {Ustawienia regionalne:CountrySetup} - Data/czas/waluta/wielko˜† znak¢w.
+  {Myszka               :MouseSetup} - Ustawienia przycisk¢w i czuˆo˜ci myszki.
+  {Komunikacja          :Communication} - Ustawienia port¢w komunikacyjnych
+                          i modemu.
+
+  {Edytor               :EditorDefaults} - Domy˜lne ustawienia edytora wewn©trznego.
+  {Podgl¥d              :ViewerDefaults} - Domy˜lne ustawienia przegl¥darki wewn©trznej.
+  {Terminal             :Terminal} - Opcje komunikacyjne terminala.
+
+.topic SubMenuFileMgr=48011
+.title Mened¾er plik¢w - ustawienia
+  {Ustawienia                :FileMgrSetup}
+  {Panel informacyjny        :DriveInfoSetup}
+  {Domy˜lne ustawienia panela:PanelDefaults}
+  {Domy˜lne ustawienia kolumn:ColumnsDefaults}
+  {Pod˜wietlenia grup        :HighLight}
+
+.topic OpenFileDialog=48012
+.title Otw¢rz plik
+Wybierz plik do otwarcia
+
+.topic SelectFileDialog=48013
+.title Zaznacz plik
+Zaznacz plik lub wpisz nazw© pliku.
+
+.topic ManualDial=48014
+.title Wybieranie r©czne
+Wprowad¾ numer telefonu, z kt¢rym chcesz si© poˆ¥czy†
+
+Na przykˆad: 8w0422-123-456 ({W:_} oznacza przerw©)
+
+.topic TetrisScore=48015
+.title Lista zwyci©zc¢w Tetris'a
+
+.topic TetrisWinner=48016
+.title Zwyci©zca
+Gratulacje! Czy chcesz zagra† jeszcze raz?
+
+.topic MkDir=48017
+.title Utw¢rz katalog
+Aby utworzy† nowy katalog u¾yj polecenia menu {Plik|Utw¢rz katalog:_}
+i wpisz nazw© katalogu, kt¢ry zamierzasz utworzy†. Nazwa nie mo¾e zawiera†
+niedozwolonych w DOS'ie symboli t.j :>,<,[,],?,*,+,/,%.
+Je¾eli nie podasz peˆnej ˜cie¾ki dost©pu, katalog zostanie utworzony
+w katalogu bie¾¥cym.
+Mo¾esz r¢wnie¾ tworzy† caˆ¥ struktur© katalog¢w np. je¾eli wpiszesz
+polecenie 'Dir1\Dir2\Dir3...' to Navigator utworzyw katalogu Dir1
+podkatalog Dir2 a w podkatalogu Dir2 podkatalog Dir3.
+R¢wnie¾ istnieje mo¾liwo˜† utworzenia jednocze˜nie kilku katalog¢w
+w r¢¾nych miejscach systemu. Do rozdzielenia katalog¢w u¾yj ˜rednika.
+Je¾eli wpiszesz polecenie 'Dir1;Dir2;D:\Dir3' to Navigator utworzy
+katalogi Dir1 i Dir2 w katalogu bie¾¥cym a katalog Dir3 w katalogu
+gˆ¢wnym (root) dysku D:.
+
+.topic SortBy=48018
+.title Sortowanie plik¢w
+ Wybierz kryteria sortowania.
+
+.topic QuickDirs=48019
+.title Ulubione katalogi
+ Dla szybkiego dost©pu z panela plik¢w lub drzewa katalog¢w mo¾esz
+ wyspecyfikowa† do 9 katalog¢w {Menu Panel|Ulubione katalogi:_}.
+
+ Aby przej˜† do jednego z katalog¢w wci˜nij {Alt:_} z {cyfr¥:_}.
+ Aby zapami©ta† bie¾¥cy katalog na li˜cie Ulubione katalogi wci˜nij
+ {Alt:_}+{Shift:_}+{Ctrl:_}+cyfra.
+
+ Patrz r¢wnie¾:{"Dodawanie katalog¢w szybkiego dost©pu":AddQuickDir}
+               {"Zmiana katalog¢w szybkiego dost©pu":EditQuickDir}
+               {"Usuwanie wpisu na li˜cie ulubionych:DelItem}
+
+.topic edFile=48020
+.title Edytor tekstowy: Menu Plik
+ {Otw¢rz...                :_} - ˆadowanie pliku do aktywnego okna Edytora.
+ {Otw¢rz plik od kursora...:_} - otwiera plik od kursora.
+ {Zapisz                   :_} - zapisuje zmiany w bie¾¥cym pliku.
+ {Zapisz jako...           :_} - zapisuje bie¾¥cy plik pod inn¥ nazw¥.
+ {Zapisz wszystko...       :_} - zapisuje zmiany we wszystkich plikach.
+
+ {Drukuj         :_} - drukuje caˆy plik w oparciu o ustawienia
+                   {Mened¾era wydruku:PrintManager}.
+ {Drukuj blok    :_} - drukuje zaznaczony tekst.
+
+ {Menu gˆ¢wne    :_} - aktywowanie Menu gˆ¢wnego Navigatora.
+ {Wyj˜cie        :_} - zamkni©cie edytora.
+
+.topic edEdit=48021
+.title Edytor tekstowy: Menu Edycja
+ {Cofnij  :_} - cofa ostatni¥ operacj©.
+ {Przywr¢†:_} - przywraca ostatnio cofni©t¥ operacj©.
+
+ {Wytnij  :_} - wstawia zaznaczony tekst do schowka i usuwa go z tekstu.
+
+ {Kopiuj  :_} - wstawia zaznaczony tekst do schowka.
+ {Wklej   :_} - wstawia zawarto˜† schowka do tekstu.
+ {Kopiuj do...:_} - zachowuje zaznaczony tekst do pliku na dysku.
+ {Wklej z...  :_} - wstawia tekst z pliku do tekstu.
+
+ {Kopiuj do schowka:_}
+ {Wstaw ze schowka :_}
+
+ {Zaznacz wszystko:_} - zaznacza caˆy tekst.
+
+ {Wyczy˜†         :_} - usuwa zaznaczony tekst.
+
+.topic edSearch=48022
+.title Edytor tekstowy: Menu Szukaj
+ {Znajd«...:_} - wyszukuje ˆaäcuch w tek˜cie.
+ {Zamieä...:_} - wyszukuje ˆaäcuch w tek˜cie i zamienia na inny ˆaäcuch.
+ {Szukaj ponownie:_} - powtarza ostatnie poszukiwanie lub zamian©.
+ {Odwr¢† szukanie:_} - powtarza ostatnie poszukiwanie lub zamian©
+                   w przeciwnym kierunku.
+
+ {Id« do linii numer...:_} - ustawia kursor pod wskazanym  numerem linii.
+ {Id« na pocz¥tek bloku:_}
+ {Id¾ na koniec bloku  :_}
+
+.topic edParagraph=48023
+.title Edytor tekstowy: Menu Akapit
+ Menu {Akapit:_} jest przeznaczone dla operacji wyr¢wnywania
+ zaznaczonego tekstu:
+
+ {Justuj      :_} - justowanie (wyr¢wnanie do obu margines¢w).
+ {Prawa       :_} - wyr¢wnanie do prawego marginesu.
+ {Lewa        :_} - wyr¢wnanie do lewego marginesu.
+ {—rodek      :_} - centrowanie tekstu.
+
+ {Marginesy...:_} - ustawienie wielko˜ci margines¢w dla bie¾¥cego
+                Edytora.
+
+.topic edOptions=48024
+.title Edytor tekstowy: Menu Opcje
+Jest to menu przeˆ¥cznik¢w opcji wˆ/wyˆ.
+
+ {Backspace usuwa wci©cia:_}
+ {Auto nawiasy:_}
+ {Auto wci©cia akapitowe:_}
+ {Auto zawijanie:_}
+ {Justuj przy zawijaniu:_}
+ {Pionowe bloki:_}
+ {Optymalne wypeˆnienie:_}
+ {Pod˜wietlanie bie¾¥cej linii:_}
+ {Pod˜wietlanie bie¾¥cej kolumny:_}
+ {Pod˜wietlanie skˆadni:_}
+ {Uaktywnij Tab:_}
+ {Sprytny Tab:_}
+
+.topic UUEncode=48025
+.title UU Kodowanie
+ Binarne kodowanie plik¢w do tekstu drukowalnego celem mo¾liwo˜ci
+ przestˆania poczt¥ elektroniczn¥ (mailem).
+
+  ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ UU Kodowanie ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+  º                                                          º
+  º  Koduj do  ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± Şİ º
+  º                                                          º
+  º  Prefiksy                      Poziom sumy kontrolnej    º
+  º  [X] Data i czas utworzenia    ( ) Brak                  º
+  º  [ ] Tabela mapowania znak¢w   ( ) Caˆego pliku wej˜ciow º
+  º  [X] Statystyki                () Ka¾dej sekcji         º
+  º                                ( ) Ka¾dej linii          º
+  º  Linii na sekcj©  ±±±±±± Şİ   ( ) Zaawansowane 64-bitow º
+  º                                                          º
+  º  Format pliku docelowego                                 º
+  º  () DOS <CR>+<LF>  ( ) UNIX                             º
+  º                                                          º
+  º                     OK  Ü  Anuluj Ü  Drzewo Ü  Pomoc Ü º
+  º                    ßßßßßßßß  ßßßßßßßß  ßßßßßßßß  ßßßßßßß º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+.topic UUDecode=48026
+.title UU Dekodowanie
+Binarne dekodowanie plik¢w, przesyˆanych E-Mail'em.
+
+  ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍ UU Dekodowanie ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+  º  Katalog docelowy                             º
+  º ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± Şİ º
+  º                                               º
+  º  [X] Sprawd« istniej¥ce pliki                 º
+  º  [X] Wy˜wietl bˆ©dy                           º
+  º  [ ] Zapisz uszkodzone pliki                  º
+  º                                               º
+  º        OK  Ü  Anuluj Ü  Drzewo Ü  Pomoc Ü   º
+  º       ßßßßßßßß  ßßßßßßßß  ßßßßßßßß  ßßßßßßß   º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+.topic CompareDirs=48027
+.title Por¢wnaj katalogi
+ Podczas por¢wnywania zawarto˜ci dw¢ch katalog¢w mo¾na wyszczeg¢lni†
+ dodatkowe kryteria:
+
+  ÉÍ[ş]ÍÍÍÍÍÍÍ Por¢wnaj katalogi ÍÍÍÍÍÍÍÍÍÍÍ»
+  º                                         º
+  º   Opcje                                 º
+  º   [X] Por¢wnaj rozmiar          OK  Ü º
+  º   [X] Por¢wnaj czas            ßßßßßßßß º
+  º   [ ] Por¢wnaj atrybuty        Anuluj Ü º
+  º   [ ] Por¢wnaj zawarto˜†       ßßßßßßßß º
+  º   [ ] Por¢wnaj podkatalogi      Pomoc Ü º
+  º                                 ßßßßßßß º
+  º   Maski plik¢w                          º
+  º   ±*.*±±±±±±±±±±±±±±±±±±±±±±±±±±±± Şİ  º
+  º                                         º
+  º   Tryb zaznaczania                      º
+  º   () Zaznacz                           º
+  º   ( ) Odznacz                           º
+  º                                         º
+  º   [ ] Por¢wnaj do p-wszej niezgodno˜ci  º
+  º                                         º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ Mo¾na por¢wnywa† ze sob¥ wszystkie rodzaje paneli - normalne panele
+ plik¢w, archiwa, dysk tymczasowy, panel plik¢w znalezionych
+ ("Znajd«:"), gaˆ¥« katalogu ("Gaˆ¥«:").
+
+.topic MakeListFile=48028
+.title Utw¢rz list© plik¢w
+Wprowad« nazw© pliku maj¥cego zawiera† list© zaznaczonych plik¢w.
+
+ W poleceniu w miejscu nazwy pliku mo¾esz u¾y† {makra:ExtMacros}.
+ Domy˜lna nazwa pliku zostanie utworzona po wykonaniu polecenia.
+
+ Patrz r¢wnie¾ {"FTN File Attach Feature":FTNInfo}
+
+.topic AdvancedFilter=48029
+.title Zaawansowany filtr
+ Ta funkcja zostaˆa zaprojektowana, aby w ˆatwy spos¢b dokona†
+ wyboru filtra pliku w bie¾¥cym panelu plik¢w.
+
+  ÉÍ[ş]ÍÍÍ Filtr-zaawansowane ÍÍÍÍÍÍÍ»
+  º                                  º
+  º    *.*    ³  *.EXT  ³  *.MPP    º
+  º    *.     ³  *.FLG  ³  *.OVR  ş  º
+  º    *.CFG  ³  *.HGL  ³  *.PAS  ±  º
+  º    *.COM  ³  *.HIS  ³  *.PHN  ±  º
+  º    *.DLG  ³  *.HLP  ³  *.PRG  ±  º
+  º    *.DN   ³  *.HTX  ³  *.SPF  ±  º
+  º    *.DOC  ³  *.INI  ³  *.TET  ±  º
+  º    *.DSK  ³  *.LNG  ³  *.TXT  ±  º
+  º    *.EDT  ³  *.MNU  ³  *.VWR    º
+  º                                  º
+  º    Poka¾Ü  Ukryj Ü  Zamknij Ü  º
+  º     ßßßßßßß  ßßßßßßß  ßßßßßßßßß  º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ Pojawia si© okno dialogowe ze wszystkimi rozszerzeniami
+ wyst©puj¥cymi w aktualnym katalogu. Po wybraniu rozszerzenia
+ z listy nale¾y wcisn¥† przycisk  Poka¾  aby pokaza†, lub  Ukryj
+ aby ukry† pliki o wybranym rozszerzeniu.
+
+.topic Extract=48030
+.title Rozpakowanie plik¢w z archiwum
+ Okre˜l docelowy {katalog:_} rozpakowania. Je˜li katalog jeszcze nie
+ istnieje, to zostanie utworzony automatycznie.
+ Uwaga: opcja 'Rozpakuj ze ˜cie¾kami' jest domy˜lnie wˆ¥czona.
+
+.topic ArchiveFiles=48031
+.title Pliki archiwum
+Wpisz {nazw©:_} archiwum.
+
+Domy˜lnia nazwa archiwum b©dzie:
+ ş {taka sama jak nazwa bie¾¥cego pliku:_} je˜li zaznaczysz tylko
+   jeden plik
+ ş {taka sama jak nazwa bie¾¥cego katalogu:_} je˜li zaznaczysz
+   wi©cej ni¾ jeden plik
+
+.topic ExtViewers=48032
+.title Przegl¥darki zewn©trzne
+ Do podgl¥du plik¢w mo¾esz wyszczeg¢lni† osobne programy ze wzgl©du
+ na rozszerzenia plik¢w.
+
+ {Opcje|Przegl¥darki...:_}
+ Na przykˆad:  {gif::chow !.!+:_}
+
+ Patrz r¢wnie¾ {"macros":ExtMacros}.
+
+.topic ExtEditors=48033
+.title Edytory zewn©trzne
+ Do edycji plik¢w mo¾esz wyszczeg¢lni† osobne programy ze wzgl©du na
+ rozszerzenia plik¢w.
+
+ {Opcje|Edytory...:_}
+ Na przykˆad:  {gif::chow !.!+:_}
+
+ Patrz r¢wnie¾ {"Makra":ExtMacros}.
+
+ Efekt u¾ycia klawiszy  F4  i  Alt+F4  jest zale¾ny od ustawienia
+ w {Opcje|Konfiguracja|Ustawienia systemowe...:_}, to znaczy, czy
+ zostaˆy zaznaczone pozycje Edytor/Przegl¥darka wewn©trzna.
+
+.topic ColumnsSetup=48034
+.title Ustawienia kolumn
+ Mo¾esz wybra† pozycje, kt¢re pojawi¥ si© w bie¾¥cym panelu
+ Mened¾era plik¢w:
+
+  Dˆugie nazwy plik¢w
+  Rozmiar
+  Data
+  Czas
+  Data utworzenia
+  Opis
+  Dodatkowe rozszerzenie
+
+ Mo¾esz wyszczeg¢lni† specjalne ustawienia dla r¢¾nych paneli.
+ Domy˜lne ustawienia {Nowego mened¾era:_} s¥ zdefiniowane
+ w poleceniu menu {Opcje|Mened¾er plik¢w|Domy˜lne ustawienia kolumn...:_}
+
+.topic DrivesSetup=48035
+.title Ustawienia nap©d¢w
+ W celu przy˜pieszenia operacji dyskowych oraz udost©pnienia
+ {Reanimatora:Reanimator} i {Edytora Dysku:DiskEditor} dla bie¾¥cego dysku zaznacz
+ pozycj© {Bezpo˜redni dost©p do dysku:DirectDiskAccess} w menu
+ {Opcje|Konfiguracja|Ustawienia systemowe:_}.
+
+Poni¾sze opcje mo¾na ustawi† osobno dla ka¾dego z nap©d¢w:
+  {Bezpo˜redni dost©p:_}
+  {Zapisuj informacj© drzewa:_}
+  {Weryfikuj zapis na dysku:_}
+  {Nie u¾ywaj dlugich nazw plik¢w:_}
+  {Sprawdzaj woln¥ przestrzeä:_}
+
+Opcje globalne dla wszystkich nap©d¢w:
+  Test {Bezpo˜redni dost©p do dysku:DirectDiskAccess}
+  {Czy˜† atrybut "Tylko do odczytu" z CDROMu:_}
+
+.topic FileMgrSetup=48036
+.title Ustawienia Mened¾era plik¢w
+
+.topic SystemSetup=48037
+.title Ustawienia systemowe
+Uwaga! Zmiany w u¾yciu LFN container zajd¥ po restarcie.
+
+{Szybkie wykonanie poleceä:_} - nie zezwala na uruchomienie (dla wykonania
+program¢w) drugiej kopii interpretatora poleceä COMMAND.COM.
+Szybciej, ale mo¾e wyst¥pi† konflikt je¾eli DOS Navigator zostaˆ
+uruchomiony z pliku .BAT - poniewa¾ COMMAND.COM mo¾e by† jeszcze
+obecny w systemie.
+
+{Tryb Video 1/2:CustomVideo} - Dziesi©tny lub szesnastkowy numer trybu wideo.
+
+ Numery tryb¢w wpisuje si© w notacji dziesi©tnej. Aby wpisywa†
+ numery w postaci szesnastkowej nale¾y przed liczb¥ umie˜ci†
+ symbol "$" (dolar), na przykˆad $100 (dziesi©tnie jest to
+ warto˜† 256). Informacje na temat tryb¢w wy˜wietlania i ich
+ numer¢w mo¾na znale«† w dokumentacji karty graficznej.
+ Wskaz¢wka: ekran w trybie numer 256 ma rozmiary 80x30
+ (30 linii po 80znak¢w).
+
+ W jaki spos¢b zakodowa† tryb wideo (Hex):
+$<N><N>
+ gdzie pierwsze <N>:
+  8 - tryby 40 x ??
+  9 - tryby 80 x ??
+  A - tryby 94 x ??
+ drugie <N>:
+  0 - ?? x 12
+  1 - ?? x 14
+  2 - ?? x 25
+  3 - ?? x 30
+  4 - ?? x 34
+  5 - ?? x 43
+  6 - ?? x 50
+  7 - ?? x 60
+
+
+.topic OptionsStartup=48038
+.title Opcje startowe
+{Autozapis Pulpitu:_} - Automatyczne zapisywanie ustawienia paneli.
+                     Podczasponownego wˆ¥czenia komputera panele
+                     otworz¥ si© w takich pozycjach jakie byˆy
+                     podczas wyˆ¥czania.
+
+{Uruchom menu u¾ytkownika:_} - Automatyczne pokazanie {Menu u¾ytkownika:UserMenu}
+                            podczas uruchomienia DOS Navigatora.
+
+{Wyczy˜† histori©        :_} - Wyczyszczenie listy historii.
+
+{Wˆ¥cz miganie           :_} - Przeˆ¥cznik migotania atrybut¢w tekstu.
+
+{Opcje podziaˆu czasu    :_} - opcje podziaˆu czasy w ˜rodowisku
+                            wielozadaniowym.
+
+ {DOS  Idle (Int28)  :_}   - call Int 28 when idle
+ {DPMI Idle (Int2F)  :_}   - call Int 2F
+ {DESQ Idle (Int15)  :_}   - call Int 15
+ {Sleep when inactive:_} - sleep when idle
+
+ Zaleca si© aby zawsze pierwsze trzy opcje byˆy wˆ¥czone.
+
+ {Zwalnianie segment¢w:_}
+
+ Opcja {Jednorazowe:_} oznacza, ¾e w zostanie wywoˆany tylko
+ jeden ze sposob¢w zwalniania czasu, kt¢ry w tym czasie jest
+ niezb©dny. Zalecane.
+
+ Opcje {Podczas odczytu:_}, {Podczas kopiowania:_},
+ {Podczas odczytu archiw¢w:_} i  {Podczas szukania:_}
+ oznaczaj¥ zarz¥dzanie czasem zwalniania w czasie wykonywania
+ poszczeg¢lnych akcji. Zalecane.
+
+.topic Savers=48039
+.title Wygaszacze ekranu
+ Zewn©trzne programy sˆu¾¥ce do ukrywania pulpitu.
+ Programy (.COM, .EXE, .SS) musz¥ by† w katalogu SSAVERS\
+ podkatalogu u¾ytkownika Dos Navigatora.
+
+.topic EditorDefaults=48040
+.title Domy˜lny edytor wbudowany
+
+.topic FloppyFormat=48041
+.title Formatowanie dyskietek
+ DOS Navigator pozwala na formatowanie dyskietek w tle, w formacie
+ standardowym jak r¢wnie¾ w formatach niestandardowych.
+ Przykˆadowe okno formatowania dyskietek:
+
+    ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Formatowanie dyskietek ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+    º Ú Nap©d ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  Ú Pojemno˜† ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ º
+    º ³ () A: 1.44M 3'5     ³  ³    720K   80   9   2 DS/DD    º
+    º ³                      ³  ³    800K   80  10   2 DS/DD   ± º
+    º ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ³    830K   83  10   2 DS/DD   ± º
+    º                           ³    1.2M   80  15   2 HD      ş º
+    º     Etykietka             ³   1.44M   80  18   2 HD      ± º
+    º                 Şİ       ³    1.6M   80  20   2 HD       º
+    º                           ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ º
+    º Ú Typ dyskietki  ÄÄÄÄÄÄ¿  Ú Opcje ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ º
+    º ³ () Formatowanie Fast³  ³ [ ] Uczyä botowalnym         ³ º
+    º ³ ( ) Formatowanie DOS ³  ³ [ ] Wymu˜ formatowanie       ³ º
+    º ³ ( ) Formatowanie Safe³  ³ [ ] Oznacz bˆ©dne ˜cie¾ki    ³ º
+    º ³ ( ) Formatowanie Quic³  ³ [ ] Optymalizuj sektory      ³ º
+    º ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ º
+    º                                                            º
+    º        Start Ü     Anuluj  Ü     Expert  Ü     Pomoc Ü   º
+    º        ßßßßßßßßß    ßßßßßßßßßß    ßßßßßßßßßß    ßßßßßßßß   º
+    ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ Po uruchomieniu formatowania istnieje mo¾liwo˜† przeˆ¥czenia si© do
+ innego okna i wykonywania innych zadaä. W tym czasie formatowanie
+ b©dzie przebiegaˆo w tle.
+
+.topic AdvancedFloppyFormat=48042
+.title Zaawansowane formatowanie dyskietek
+To s¥ opcje dla u¾ytkownik¢w zaawansowanych.
+
+.topic ScrollBack=48043
+.title Pasek przewijania
+
+.topic EditorHilite=48044
+.title Editor Highlight
+
+.topic ColorDialog=48045
+.title Ustawienia kolor¢w
+ R¢¾ne okna i ich elementy, dla uˆatwienia ich odr¢¾niania
+ s¥ oznaczane r¢¾nymi kolorami. Kolory te mo¾na ustawi† dzi©ki
+ poleceniu {Opcje|Ustawienia kolor¢w...:_}.
+
+ ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ³³ÍÍÍÍÍÍÍ Kolory ÍÍ³³ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+ º                                                             º
+ º  Grupa            ³³   Pozycja       ³³     ÚÄÄ Front ÄÄÄ¿  º
+ º   Zegar                Normalne           ³±±²²±±²²±±²²³  º
+ º   Menu            ³³ş   Wyˆ¥czone    ³³  ±  ³²²±±²²±±²²±±³  º
+ º   Pomoc             ±   Skr¢t            ±  ³±±²²±±²²±±²²³  º
+ º   Dialogi         ³³±   Zaznaczony   ³³  ±  ³²²±±²²±±²²±³  º
+ º   ÀÄÄDrzewo         ±   Zaznaczony wy    ±  ÀÄÄÄÄÄÄÄÄÄÄÄÄÙ  º
+ º   Mened¾er plik¢w ³³±   Skr¢t zaznacz³³  ±  ÚÄÄÄ Tˆo ÄÄÄÄ¿  º
+ º   ÃÄÄPanel plik¢w   ±                    ±  ³±±²²±±²²±±²³  º
+ º   ³  ÃÄPod˜wietlan³³±                ³³  ±  ³²²±±²²±±²²±±³  º
+ º   ³  ÃÄLinia nap©d  ±                    ±  ³±±²²±±²²±±²²³  º
+ º   ³  ÀÄInformacja ³³±                ³³  ±  ³²²±±²²±±²²±±³  º
+ º   ÃÄÄDrzewo         ±                    ±  ÀÄÄÄÄÄÄÄÄÄÄÄÄÙ  º
+ º   ÃÄÄSzybki podgl¥³³±                ³³  ş                  º
+ º   ÀÄÄInfo o dysku                         Tekst Tekst Tek º
+ º                   ³³                 ³³     Tekst Tekst Tek º
+ º    [ ] Domy˜lne ko    [ ] Wˆ¥cz mruga       Tekst Tekst Tek º
+ º                   ³³                 ³³                     º
+ º    Kolor  Ü   B/W    Mono  Ü PaletaVG     OK  Ü  Anuluj Ü º
+ º   ßßßßßßßßß  ßßßßß³³ßßßßßßßß ßßßßßßßß³³  ßßßßßßßß  ßßßßßßßß º
+ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ³³ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ³³ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ Aby ustawi† kolor danego elementu (Pozycja) nale¾y najpierw
+ wybra† grup©, do kt¢rej on nale¾y (Grupa).
+ Kolory ustawia si© inaczej dla monitor¢w kolorowych, czarno
+ -biaˆych i monochromatycznych. DOS Navigator automatycznie
+ dostosowuje tryb wy˜wietlania do zainstalowanej karty graficznej.
+ Aby wybra† go samemeu nale¾y posˆu¾y† si© przyciskami u doˆu okna
+ dialogowego ustawienia kolor¢w (<Kolor>, <B/W> lub <Mono>).
+ Aby przywr¢ci† kolory do stanu domy˜lnego nale¾y zaznaczy† pole
+                          [X] Domy˜lne kolory
+ i nacisn¥† jeden z przycisk¢w <Kolor>, <B/W> lub <Mono>.
+ Wybrany tryb wy˜wietlania oraz ustawienia kolor¢w s¥ automatycznie
+ zapisywane w pliku konfiguracyjnym. Istnieje r¢wnie¾ mo¾liwo˜†
+ zapisania ustawieä kolor¢w jako tzw. palety kolor¢w, kt¢r¥ mo¾na
+ p¢«niej zaˆadowa† poleceniem {Opcje|Przywoˆaj palet© kolor¢w:_}.
+ Aby zapisa† palet© u¾yj polecenia {Opcje|Zachowaj palet©...:_}.
+
+ Definiowanie kolor¢w VGA:
+
+ DOS Navigator oferuje ponadto mo¾liwo˜† przedefiniowania samych
+ kolor¢w (np. mo¾na zmieni† nasycenie kolor¢w). Aby to uczyni†
+ nale¾y przycisn¥† przycisk <Paleta VGA>. Uka¾e si© wtedy
+ dodatkowe okienko dialogowe:
+
+   ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍ Kolory VGA  ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+   º  Paleta                                        º
+   º   00 Czarny           Czerwony   0            º
+   º   01 Niebieski     ş   ş±±±±±±±±±±±±±±±±±±±  º
+   º   02 Zielony       ±                           º
+   º   03 Cyan          ±   Zielony    0            º
+   º   04 Czerwony      ±   ş±±±±±±±±±±±±±±±±±±±  º
+   º   05 Magenta       ±                           º
+   º   06 Br¥zowy       ±   Niebieski  0            º
+   º   07 Jasno Szary   ±   ş±±±±±±±±±±±±±±±±±±±  º
+   º   08 Ciemno Szary  ±                           º
+   º   09 Jasno Niebiesk±   Kolor:     0            º
+   º   10 Jasno Zielony ±                           º
+   º   11 Jasny Cyan    ±        ±²²±±²²±±²²       º
+   º   12 Jasno Czerwony±        ²²±±²²±±²²±±       º
+   º   13 Jasna Magenta ±        ±±²²±±²²±±²²       º
+   º   14 ½¢ˆty         ±        ²²±±²²±±²²±±       º
+   º   15 Biaˆy                                    º
+   º                                                º
+   º   Domy˜lne Ü       OK  Ü  Anuluj Ü   Pomoc Ü º
+   º   ßßßßßßßßßß      ßßßßßßßß  ßßßßßßßß  ßßßßßßßß º
+   ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+
+ Z listy kolor¢w (Paleta) nale¾y wybra† kolor, a nast©pnie suwakami
+ {czerwony:_},  {zielony:_} i {niebieski:_} zmieni† jego definicj©.
+ Aby przywr¢ci† kolory standardowe nale¾y wcisn¥†
+ przycisk  Domy˜lne.
+
+.topic OverwriteQuery=48046
+.title Pytanie o zgod© na nadpisanie
+ W katalogu docelowym znajduj¥ si© ju¾ pliki otych smych nazwach.
+ Mo¾esz:
+
+  <{Nadpisz    :_}> - nadpisa† je
+  <{Dopisz     :_}> - dopisa† nowy plik na koäcu starego
+  <{Zmieä nazw©:_}> - zmieni† nazw© dla pliku bie¾¥cego
+  <{Odrzu†     :_}> - pomin¥† operacj© dla pliku bie¾¥cego
+  <{Anuluj     :_}> - anulowa† operacj©
+
+Mo¾esz ustawi† aktualny wyb¢r jako domy˜lny dla bie¾¥cej operacji:
+{Zatwierd« dla wszystkich plik¢w:_}
+
+.topic ViewerFind=48047
+.title Wyszukiwanie w przegl¥darce
+Wpisz mask© wyszukiwania.
+
+.topic DBView=48048
+.title DBF View
+
+.topic Help=48049
+.title Pomoc
+
+.topic Desktop=48050
+.title Pulpit
+
+.topic DialogWindow=48051
+.title Okienko dialogowe
+
+.topic DialogInput=48052
+.title Input line
+
+.topic DialogHistory=48053
+.title Input history
+
+.topic DialogButton=48054
+.title Przyciski
+
+.topic DialogCase=48055
+.title Dialog Cluster
+
+.topic DialogMessage=48056
+.title Okienko komunikatu
+
+.topic ViewFile=48057
+.title Podgl¥d i edycja plik¢w wg rozszerzenia
+ Kiedy u¾ytkownik znajduje si© w panelu plik¢w, sporadycznie
+ zachodzi potrzeba podgl¥du czy edycji w przegl¥darce czy edytorze
+ wewn©trznym. W Navigatorze istnieje mo¾liwo˜† podgl¥dania czy
+ edytowania konkretnego pliku.
+ Realizuje si© to poprzez rozszerzenie pliku (dla przegl¥darki
+ - dn.vwr, dla edytora - dn.edt).
+ Ten plik opisuje wsp¢ˆprac© z okre˜lonym typem pliku, wynikaj¥cym
+ z rozszerzenia DOSu.
+
+ W celu podgl¥du lub edycji pliku konieczne jest przeniesienie
+ kursora na nazw© pliku w panelu plik¢w i dla podgl¥du wci˜ni©cie
+ klawisza F3 a dla edycji - Alt-F4 (je˜li zostaˆ ustawiony
+ domy˜lnie Edytor wewn©trzny w
+ Opcjach|{Konfiguracja:Configuration}|Ustawienia systemowe).
+
+ Dla opisu przegl¥danych plik¢w konieczne jest u¾ycie polecenia
+ {Opcje|Przegl¥darki...:_}
+ Dla opisu edytowanych plik¢w konieczne jest u¾ycie polecenia
+ {Opcje|Edytory...:_}
+
+Format zapisu w tych plikach wygl¥da nast©puj¥co:
+
+ ???:nazwa_polecenia
+
+Gdzie ??? - konkretne rozszerzenie
+     Nazwa polecenia - nazwa programu do podgl¥du czy edycji
+
+ Patrz r¢wnie¾: {"Wbudowana przegl¥darka tekstowa":View}
+
+.topic Wildcards=48058
+.title DOS'owe symbole wieloznaczne i filrty
+ DOS'owa nazwa pliku skˆada si© z dw¢ch cz©˜ci: nazwy (kt¢ra mo¾e
+ zawiera† do 8 znak¢w) i rozszerzenia (kt¢re mo¾e zawiera† do trzech
+ znak¢w). Na przykˆad "nazwapli.ext".
+
+   *   Dopasowanie dowolnych znak¢w do reszty nazwy czy
+       rozszerzenia. Do "a*" b©d¥ pasowaˆy: "a", "ab" i "abc"
+       jak i wiele innych. "*" ma zastosowanie tylko do
+       nazwy pliku, tak wi©c do "a*" nie b©d¥ pasowaˆy "cb.a".
+       U¾yj "a*.*" aby znale«† wszystkie pliki zaczynaj¥ce
+       si© na "a" i maj¥ce dowolne rozszerzenie.
+       Uwaga: Do "*a" b©d¥ pasowaˆy dowolne nazwy plik¢w
+       ale i nie tylko nazywy z "a" na koäcu tak jak mo¾na
+       byˆo tego oczekiwa†.
+
+ DOS Navigator pozwala na u¾ycie nie tylko pojedynczych masek, lecz
+ caˆych zestaw¢w masek zwanych {"Filtrami":_}.
+
+ Filtr jest zdaniem zbudowanym z wielu masek rozdzielonych znakiem
+ ˜rednika ";" :
+
+n.p.. :  *.exe;*.com;*.bat;*.btm;*.cmd
+         *.asm;*.c;*.cpp;*.inc;*.pas      s¥ filtrami
+
+.topic CustomVideo=48059
+.title Dostosowanie trybu wideo
+ W DOS Navigatorze wyst©puje nie tylko standardowy tryb tekstowy.
+ Istnieje tak¾e mo¾liwo˜† szerokiego u¾ycia tryb¢w:
+ Super EGA, VGA i VESA BIOS. Je¾eli chciaˆby˜ skorzysta† z tych
+ mo¾liwo˜ci, wpisz kody po¾¥danych tryb¢w wideo w okienku
+ {Opcje|Konfiguracja|Ustawienia systemowe:_} w pozycjach
+ "Tryb Video 1" i "Tryb Video 2".
+ Kody wideo powinny by† opisane w dokumentacji Twojego systemu.
+
+  Kilka przykˆad¢w:
+           29 (132x25),30 (132x60) - Karty Realtek VGA
+           84,85,86                - Karty Trident VGA
+           35 (132x25)             - Karty ATI VGA
+           80,81,82                - Karty OAK Technology VGA
+                        a tak¾e inne Karty Super EGA/VGA.
+
+ Je¾eli Tw¢j system Video jest kompatybilny z VESA, mo¾esz u¾y†
+ kod¢w uniwersalnych dla trybu VESA (zwr¢† uwag© na to, ¾e karty
+ VESA XGA i VESA SVGA maj¥ r¢¾ne tryby kod¢w).
+ Kody s¥ wi©ksze ni¾ 256.
+ Przykˆadowo dla kart VESA SVGA kody s¥ 109 lub 110.
+
+ {Podpowied«:_}: Wi©kszo˜† sterownik¢w myszek nie ma dodatkowych
+                 rozszerzeä tryb¢w wideo. Wtedy najlepiej
+                 przeˆ¥czy† si© na "Kursor standardowy" w okienku
+                 {Opcje|Konfiguracja|Myszka:MouseSetup}.
+
+ {Przykˆad  :_}: Dla karty VGA tryb 256 oznacza ekran 80x33.
+
+.topic OS2Support=48060
+.title Dodatek OS/2
+ Je¾eli  pracujesz pod kontrol¥ systemu OS/2 w wersji 2.10 lub
+ nowszej, mo¾esz uruchamia† programy w osobnych sesjach DOS
+ lub OS/2. Aby m¢c to robi† nale¾y ustawi† zmienn¥ systemow¥
+ OS2COMSPEC w pliku AUTOEXEC.BAT, np.
+
+   SET OS2COMSPEC=C:\OS2\CMD.EXE
+
+ Kombinacja [ALT-/] przeˆ¥cza lini© poleceä w tryb OS/2.
+ Wszystkie pliki i polecenia b©d¥ przekazywane interpreterowi
+ poleceä systemu OS/2 okre˜lonemu  przez zmienn¥ OS2COMSPEC.
+ Linia  poleceä  mo¾e  wygl¥da† nast©puj¥co:
+
+         D:\DN>   - linia poleceä systemu DOS
+         [D:\DN]  - linia poleceä peˆnoekranowej sesji OS/2
+         (D:\DN)  - linia poleceä okienkowej sesji OS/2
+
+ Plik typu ".CMD" jest plikiem wykonywalnym w systemie OS/2.
+ Po naci˜ni©ciu klawisza [Enter] zostanie uruchomiony. Gdy
+ naci˜niemy kombinacj© [SHIFT-Enter] plik zostanie uruchomiony
+ w sesji w tle. Wszystkie pliki wykonywalne mog¥ by† uruchamiane
+ w oddzielnych sesjach OS/2. Aby uruchomi† plik w oddzielnej
+ sesji naci˜nij:
+
+         Alt+Shift+Enter  - sesja aktywna
+         Alt+Ctrl+Enter   - sesja w tle
+
+ Je¾eli polecenie w linii poleceä poprzedzimy kt¢rym˜ ze znak¢w
+ "<", ">", "[" lub "]", zostanie ono wykonane w oddzielnej sesji OS/2.
+
+Poszczeg¢lne symbole oznaczaj¥:
+         > - uruchom peˆnoekranow¥ sesj© OS/2
+         < - uruchom peˆnoekranow¥ sesj© OS/2 (w tle)
+         ] - uruchom w oknie sesj© OS/2
+         [ - uruchom w oknie sesj© OS/2 (w tle)
+
+.topic FilesBBS=48061
+.title Pliki 4DOS/.BBS
+DOS Navigator posiada r¢wnie¾ tak¥ mo¾liwo˜†!
+
+ Aby skorzysta† z tej wˆa˜ciwo˜ci zaznacz pozycj© "Opis" w menu
+ {Panel|Ustawienia kolumn:_}.
+ Mo¾liwy jest nie tylko podgl¥d opis¢w, ale tak¾e kopiowanie,
+ przenoszenie, jak r¢wnie¾ edytowanie!
+
+ Polecenia menu "Kopiuj" oraz "Zmieä nazw©/przenie˜" plik
+ z opisem jest mo¾liwe tylko wtedy kiedy plik opis¢w jest
+ obecny w panelu plik¢w.
+
+ Je˜li chcesz edytowa† opis pliku u¾yj klawisza {Alt+INS:_},
+ lecz plik z opisem nie istnieje, Navigator utworzy plik
+ opis¢w z pierwsz¥ nazw¥ pliku podan¥ w pozycji
+ "Pliki zawieraj¥ce opisy" okienka dialogowego
+ {Opcje|Mened¾er plik¢w|Ustawienia|Opcje mened¾era plik¢w:_}
+
+ Przykˆadowo: DESCRIPT.ION,FILES.BBS
+
+.topic LinkStatusWnd=48062
+.title Navigator Link Status Window
+  ÉÍ[ş]ÍÍÍÍÍÍ Navigator Link ÍÍÍÍÍÍÍÍÍÍ»
+  º                                    º
+  º      COM1 57600/8N1/SREJ2.1024  ÄÄÄÄÄÄ Informacja
+  º     Receiving D:\DOC\PEPPER.DOC ÄÄÄÄÄÄ Stan
+  º         0 errors per 489 Kb     ÄÄÄÄÄÄ Bˆ©dy
+  º                                    º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+   Informacja:
+
+   57600/8N1/SREJ2.1024
+              
+   ³     ³³³     ³ ÀÄÄÄ Actual frame size
+   ³     ³³³     ÀÄÄÄÄÄ Selective reject level
+   ³     ³³ÀÄÄÄÄÄÄÄÄÄÄÄ Number of stop bits
+   ³     ³ÀÄÄÄÄÄÄÄÄÄÄÄÄ Parity check type (None/Odd/Even/Mark/Space)
+   ³     ÀÄÄÄÄÄÄÄÄÄÄÄÄÄ Number of data bits
+   ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ BPS
+
+ Patrz r¢wnie¾ {"Link Panel":LinkPanel}
+          {"Navigator Link":NavyLink}
+
+.topic NavyLink=48063
+.title Navigator Link
+ Navigator Link umo¾liwia dost©p do innego komputera poprzez zwykˆy
+ panel plik¢w. Dozwolone s¥ nast©puj¥ce operacje: tworzenie/usuwanie
+ katalogu, kopiowanie, podgl¥danie i usuwanie plik¢w.
+ Aby u¾ywa† Navigator Linka wystarczy poˆaczy† ze sob¥ dwa
+ komputery, dokona† niezb©dnych zmian poleceniem menu
+ {Opcje|Konfiguracja|Komunikacja...:_} (nale¾y ustawi† t¥ sam¥
+ pr©dko˜† przesyˆania danych i CTS/RTS w obu komputerach).
+ DOS Navigator nie ˆ¥czy komputer¢w  na  zasadzie master/slave
+ (nadzorca/podwˆadny) - oba komputery maj¥ te same prawa dost©pu
+ do siebie nawzajem.
+ Po uzyskaniu poˆ¥czenia, je¾eli spr¢bujesz zmieni† dysk przez
+ Alt-C  lub  Alt-F1/F2, na koäcu listy dost©pnych dysk¢w uka¾e
+ si© "LINK:". Jest to dodatkowa lista dost©pnych dysk¢w
+ znajduj¥cych si© na drugim komputerze.
+ Navigator Link posiada wˆasny protok¢ˆ komunikacyjny, stworzony
+ przez programist¢w z RIT. Zalety:
+ - block streaming mode:
+     Navigator Link works seamlessly in server/slave mode and
+     doesn't take full CPU time during link session. It is also
+     possible to work fine via packet transport protocols
+     (ipx/spx, tcp/ip) and other hardware (port r¢wnolegˆy)
+     poprzez interfejs FOSSIL
+ - tryb dwukierunkowy i full duplex:
+     oba komputery poˆ¥czone DOS Navigatorem maj¥ r¢wne prawa
+     dost©pu do dysk¢w i mog¥ pracowa† na linii r¢wnocze˜nie
+ - zaawansowana korekcja bˆ©d¢w:
+     Navigator Link u¾ywa podw¢jnej metody selekcji, co stwarza
+     mo¾liwo˜† pracy nawet z wysokoszumowymi liniami
+ - kompresja danych w czasie rzeczywistym:
+     Navigator Link stwarza mo¾liwo˜† transferu plik¢w tekstowych
+     i katalog¢w dwukrotnie szybciej. Kompresja jest efektywniejsza
+     ni¾ metody kompresji stosowane przez modem.
+
+ Patrz r¢wnie¾ {"Link Status Window":LinkStatusWnd}
+               {"Link Panel":LinkPanel}
+               {"Serial Port Interface":SerialInterface}
+
+.topic SerialInterface=48064
+.title Serial Port Interface
+           25 pin      25 pin
+
+   GND       7 ŞÄÄÄÄÄÄÄÄÄİ  7
+
+   TD        2 ŞÄÄÄÄ¿ ÚÄÄİ  2
+                  ÚÄÅÄÙ
+   RD        3 ŞÄÄÙ ÀÄÄÄÄİ  3
+
+   RTS       4 ŞÄÄÄÄ¿ ÚÄÄİ  4
+                  ÚÄÅÄÙ
+   CTS       5 ŞÄÄÙ ÀÄÄÄÄİ  5
+
+   DSR       6 ŞÄÄÄÄ¿ ÚÄÄİ  6
+                  ÚÄÅÄÙ
+   DTR      20 ŞÄÄÙ ÀÄÄÄÄİ 20
+
+
+
+            9 pin       9 pin
+
+   GND       5 ŞÄÄÄÄÄÄÄÄÄİ  5
+
+   TD        3 ŞÄÄÄÄ¿ ÚÄÄİ  3
+                  ÚÄÅÄÙ
+   RD        2 ŞÄÄÙ ÀÄÄÄÄİ  2
+
+   RTS       7 ŞÄÄÄÄ¿ ÚÄÄİ  7
+                  ÚÄÅÄÙ
+   CTS       8 ŞÄÄÙ ÀÄÄÄÄİ  8
+
+   DSR       6 ŞÄÄÄÄ¿ ÚÄÄİ  6
+                  ÚÄÅÄÙ
+   DTR       4 ŞÄÄÙ ÀÄÄÄÄİ  4
+
+
+
+
+           9 pin       25 pin
+
+   GND       5 ŞÄÄÄÄÄÄÄÄÄİ  7
+
+   TD        3 ŞÄÄÄÄ¿ ÚÄÄİ  2
+                  ÚÄÅÄÙ
+   RD        2 ŞÄÄÙ ÀÄÄÄÄİ  3
+
+   RTS       7 ŞÄÄÄÄ¿ ÚÄÄİ  4
+                  ÚÄÅÄÙ
+   CTS       8 ŞÄÄÙ ÀÄÄÄÄİ  5
+
+   DSR       6 ŞÄÄÄÄ¿ ÚÄÄİ  6
+                  ÚÄÅÄÙ
+   DTR       4 ŞÄÄÙ ÀÄÄÄÄİ 20
+
+ Patrz r¢wnie¾ {"Link Status Window":LinkStatusWnd}
+          {"Link Panel":LinkPanel}
+          {"Navigator Link":NavyLink}
+
+.topic UnpackDiskImg=48065
+.title Rozpakowywanie obraz¢w dyskietek
+
+.topic ReplaceCell=48066
+.title Zamiana kom¢rki
+
+.topic FindCell=48067
+.title Wyszukiwanie kom¢rki
+
+.topic GotoCellNumber=48068
+.title Przej˜cie do kom¢rki o numerze
+
+.topic SetCellFormat=48069
+.title Formatowanie kom¢rek
+
+.topic FormatMargins=48070
+.title Format Margines¢w
+
+.topic EditorFind=48071
+.title Edytor - Znajd¾
+
+.topic EditorReplace=48072
+.title Edytor - Zamieä
+
+.topic DirHistory=48073
+.title Historia katalog¢w
+ To okno zawiera histori© odwiedzonych katalog¢w w bie¾¥cej sesji.
+ Pozwala to szybkie przej˜cie do katalogu, kt¢rego ˜cie¾ka
+ zostaˆa zachowana w pami©ci w celu p¢«niejszego wykorzystania.
+
+ Przy pomocy kursora strzaˆek wybierz ˜cie¾k© katalogu
+ i wci˜nij Enter.
+
+ Wci˜ni©cie klawisza  Esc  spowoduje zamkni©cie okna historii
+ katalog¢w.
+
+ W oknie historii s¥ nast©puj¥ce przyciski:
+
+ {Id« do :_} - Przej˜cie do wybranego katalogu w panelu plik¢w
+ {Skasuj :_} - Usuni©cie pozycji z listy historii
+ {Anuluj :_} - Zamkni©cie okna historii katalog¢w
+ {Pomoc  :_}
+
+.topic EditHistory=48074
+.title Historia edycji plik¢w
+ To okno zawiera histori© edytowanych plik¢w.
+ Pozwala to szybki powr¢t do edytowanego pliku, kt¢rego ˜cie¾ka
+ zostaˆa zachowana w pami©ci w celu p¢«niejszego wykorzystania.
+
+ Przy pomocy kursora strzaˆek wybierz ˜cie¾k© edytowanego pliku
+ i wci˜nij Enter. Nast¥pi przej˜cie pod wskazan¥ ˜cie¾k©
+ z jednoczesnym otwarciem  pliku w edytorze DN.
+
+ Wci˜ni©cie klawisza  Esc  spowoduje zamkni©cie okna historii.
+
+ W oknie historii s¥ nast©puj¥ce przyciski:
+
+ {Otw¢rz :_} - Uruchomienie edytora DN z wybranym plikiem
+ {Skasuj :_} - Usuni©cie pozycji z listy historii
+ {Anuluj :_} - Zamkni©cie okna historii edycji plik¢w
+ {Pomoc  :_}
+
+.topic ViewHistory=48075
+.title Historia podgl¥du plik¢w
+ To okno zawiera histori© przegl¥danych plik¢w. Pozwala to szybki
+ powr¢t do podgl¥danego wcze˜niej pliku, kt¢rego ˜cie¾ka zostaˆa
+ zachowana w pami©ci w celu p¢«niejszego wykorzystania.
+
+ Przy pomocy kursora strzaˆek wybierz ˜cie¾k© podgl¥danego pliku
+ i wci˜nij Enter. Nast¥pi przej˜cie pod wskazan¥ ˜cie¾k©
+ z jednoczesnym otwarciem  pliku w przegl¥darce DN.
+
+ Wci˜ni©cie klawisza  Esc  spowoduje zamkni©cie okna historii.
+
+ W oknie historii s¥ nast©puj¥ce przyciski:
+
+ {Otw¢rz :_} - Uruchomienie przegl¥darki DN z wybranym plikiem
+ {Skasuj :_} - Usuni©cie pozycji z listy historii
+ {Anuluj :_} - Zamkni©cie okna historii podgl¥du plik¢w
+ {Pomoc  :_}
+
+.topic ArvidFindResults=48076
+.title Arvid Find Results
+
+.topic ChLngId=48077
+.title Zmiana aktywnego j©zyka interfejsu
+
+.topic EditMiscMenu=48079
+.title Edytor tekstowy: Menu Inne
+ Menu {Inne:_} przeznaczone jest do szybkiego dost©pu do r¢¾nych
+ operacji:
+
+ {Wstaw dat©:_} - wstawia bie¾¥c¥ dat© w miejscu kursora.
+ {Wstaw czas:_} - wstawia bie¾¥cy czas w miejscu kursora.
+ {Duplikuj lini©:_} - wstawia kopi© bie¾¥cego wiersza.
+ {Tabela ASCII  :_} - u¾ycie znak¢w ASCII z tablicy i wstwienie do linii.
+ {Rysowanie linii:_} - przeˆ¥cznik trybu rysowania linii.
+ {Mapowanie klawiatury:_}
+
+ Podmenu {Du¾e litery:_}, {maˆe litery:_} i {Kapitaliki:_} konwertuje sˆowa,
+ linie i bloki do odpowiedniej wielko˜ci liter.
+ {Koniec wiersza:_}
+ {Zmieä wielko˜† liter:_}
+
+.topic MiscUpper=48080
+.title MiscUpper
+
+.topic MiscLower=48081
+.title MiscLower
+
+.topic MiscCapitalize=48082
+.title MiscCapitalize
+
+.topic RenameFile=48083
+.title Szybka zmiana nazwy pliku
+ Bardzo ciekawa i przydatna mo¾liwo˜†.
+ Korzystaj¥c z kombinacji klawiszy  Alt + F6  mo¾na bezpo˜rednio
+ w panelu plik¢w zmieni† nazw© pliku. Po wybraniu powy¾szej
+ kombinacji klawiszy nast©puje bezpo˜rednia edycja nazwy
+ pod˜wietlonego pliku (migaj¥cy kursor). Zatwierdzenie zmiany
+ klawiszem Enter.
+
+.topic Calendar=48084
+.title Kalendarz
+Przykˆadowe okienko kalendarza:
+
+  ÉÍ[ş]ÍÍÍÍÍ Kalendarz ÍÍÍÍÍÍÍÍ»
+  º Kwiecieä      2000      º
+  º Pn  Wt  —r  Cz  Pt  So  Nd º
+  º                      1   2 º
+  º  3   4   5   6   7   8   9 º
+  º 10  11  12  13  14  15  16 º
+  º 17  18  19  20  21  22 23º <- 23 - bie¾¥cy dzieä
+  º 24  25  26  27  28  29  30 º
+  º                    [16/114]º <- [tydzieä/dzieä] - wska«nik
+  ºRoman°Wielkanoc°°°°°°°°°°°°°º
+  º°°°°°°°°°°°°°°°°°°°°°°°°°°°°º
+  º°°°°°°°°°°°°°°°°°°°°°°°°°°°°º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+U¾yj klawiszy strzaˆek "" lub "" aby skoczy† do dnia poprzedniego/nast©pnego.
+
+U¾yj klawiszy strzaˆek "" lub "" aby skoczy† do poprzedniego/nast©pnego tygodnia.
+
+U¾yj klawisza Ctrl razem z klawiszami strzaˆek "" lub "", lub lewy
+przycisk myszki klikaj¥c na symbole "" lub "" (w linii z nazw¥ miesi¥ca)
+aby skoczy† do poprzedniego/nast©pnego miesi¥ca.
+
+U¾yj klawisza Alt razem z klawiszami strzaˆek "" lub "", lub prawy
+przycisk myszki klikaj¥c na symbole "" lub "" aby skoczy† do
+poprzedniego/nast©pnego roku.
+
+Spacj¥ lub dowolnym przyciskiem myszki kliknij na symbol "" aby powr¢ci† do
+daty bie¾¥cej.
+
+Dzieä mi©dzy "" a "" jest dniem oznaczonym dla kt¢rego mo¾na wy˜wietli†
+dodatkow¥ informacj© zdefiniowan¥ w pliku DN.ini w sekcji [Calendar].
+
+Standardowa konfiguracja kalendarza zawiera nast©puj¥ce parametry:
+
+  [Language]
+  ActiveLanguage=<ˆaäcuch>
+
+  [Clock]
+  DaysOfWeek=<ˆaäcuch>
+
+  [Calendar]
+  ShowOnStartup=<boolean>
+  SundayFirst=<byte>      ;0=False, 1=True, 2=Autodetect
+  DefaultInfo=<ˆaäcuch>
+  OptionFlags=<liczba caˆkowita>
+
+W sekcji [Calendar] mo¾na zdefiniowa† wi©cej parametr¢w
+kategorii i opisu dla wybranej daty.
+
+Gramatyka:
+
+  <parameter>::=<date_specification>=<date_description>
+  <date_specification>::=<day_ref>|<easter_ref>|<weekday_ref> [<language>]
+  <day_ref>::=<day> [<month>] [<year>]
+  <easter_ref>::=<easter> [<offset>]
+  <weekday_ref>::=<every_weekday>|<weekday_pivot>
+  <every_weekday>::=<day_of_week> [<month>] [<year>]
+  <weekday_pivot>::=<index> <day_of_week> [<day>] [<month>] [<year>] [<offset>]
+  <day_of_week>::=<clock_week_days>|<day_of_week_1>|<day_of_week_2>|<day_of_week_3>
+  <easter>::=orthodox|roman
+  <month>::=1|2|3|4|5|6|7|8|9|10|11|12|*|<short_month_name>
+  <day>::=<integer>|*
+  <year>::=<year_reference>[-<year_reference>]
+  <year_reference>::=<integer>|*
+  <index>::=[-|+]<integer>
+  <offset>::=[-|+]<integer>
+  <date_description>::=[<category>,]<title>
+  <category>::=<integer>
+  <title>::=<string>[,<title>]
+  <clock_week_days>::=<string>
+  <day_of_week_1>::=<string>
+  <day_of_week_2>::=Su|Mo|Tu|We|Th|Fr|Sa
+  <day_of_week_3>::=Sun|Mon|Tue|Wed|Thu|Fri|Sat
+  <short_month_name>::=Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec
+
+<clock_week_days> zaczerpni©ta z pozycji DaysOfWeek w sekcji [Clock]
+pliku DN.INI.
+<day_of_week_1> zaczerpni©ta z pliku «r¢dˆowego DN'a.
+Powy¾sze zasady mog¥ zosta† zablokowane przez OptionFlags (patrz poni¾ej).
+
+Przykˆad na co pozwalaj¥ zasady gramatyki:
+
+  1 1             =1,Szcz©˜liwego Nowego Roku
+  1 jan 2001      =Happy new 21'st century
+  orthodox        =Orthodox Easter
+  roman 39        =Ascension Thursday
+  roman -3        =1,Maundy Thursday
+  1  su * 3       =Pierwsza niedziela maja
+  1  su 3         =The first Sunday from the 3rd of every month
+     fr nov       =Ka¾dy pi¥tek Pa«dziernika
+  -1 mo    2000-* =Ostatni poniedziaˆek ka¾dego miesi¥ca Nowego Tysi¥clecia
+     sa           =2,This defines each Saturday to the category 2
+  1  su           =Pierwsza niedziela ka¾dego miesi¥ca
+  1  su * 1       =Pierwsza niedziela Stycznia
+  1  su       -1  =Saturday just before the first Sunday of current month
+  1  su * * *  1  =Monday just after the first Sunday of current month
+  1  su 1         =The first Sunday of every month
+
+Spacje w kluczach nie maj¥ znaczenia i zostaj¥ zignorowane. U¾ywane s¥ tylko
+do rozdzielenia cz©˜ci klucza.
+
+Znak '*' oznacza "bie¾¥cy"/"dowolny" dzieä, miesi¥c czy rok. It can be placed
+instead of a particular value to avoid ambiguous definitions.
+Jest to ustawienie domy˜lne je˜li dzieä, miesi¥c czy rok nie jest zdefiniowany.
+
+Kategoria jest liczb¥ caˆkowit¥ mi©dzy 1 a 4. Oznacza to, ¾e dzieä jest
+w okienku kalendarza pod˜wietlony. Kiedy kategoria jest nie zdefiniowana wtedy
+dzieä zostanie wy˜wietlony jako normalny - tekst staˆy. If there is more
+that one category for a day, which is possible when the day is defined in
+more than one parameter, then the lowest is taken.
+
+Kolory kategorii mog¥ by† definiowane dowolnie w okienku {Ustawienia kolor¢w:ColorDialog}.
+
+The "OptionFlags" is a bitfield.
+
+Je˜li ustawiona jest flaga 1 wtedy categories assigned to weekdays are always
+overwritten by other feasts, even if their categories have higher
+priorities than the feasts. This option is applied to such items:
+
+  su      = 1,Every Sunday is a category 1
+  sat Nov = 2,Every Saturday in November is a category 2
+
+Je˜li ustawiona jest flaga 2 wtedy <clock_week_days> grammar rule is disabled.
+
+Je˜li ustawiona jest flaga 4 wtedy <day_of_week_1> grammar rule is disabled.
+
+Je˜li ustawiona jest flaga 8 wtedy [week/day] indicator is enabled. The indicator
+shows a week number and a day number in the year.
+
+Je˜li ustawiona jest flaga 16 wtedy week number in the indicator is not compatible
+with international standard IS-8601 but rather with calendar itself
+and the week number is the same for whole row of seven days.
+
+.topic EditBlockMenu=48085
+.title Edytor tekstowy: Menu Blok
+ Menu {Blok:_} przeznaczone do operacji na zaznaczonym tek˜cie:
+
+ {Przenie˜:_} - przenosi zaznaczony tekst do bie¾¥cej pozycji kursora
+            (tylko dla trwaˆych blok¢w).
+ {Kopiuj  :_} - kopiuje zaznaczony tekst do bie¾¥cej pozycji kursora
+            (tylko dla trwaˆych blok¢w).
+ {Wci©cie         :_} - przesuwa zaznaczony tekst w prawo o jedn¥ pozycj©.
+ {Zmniejsz wci©cie:_} - przesuwa zaznaczony tekst w lewo o jedn¥ pozycj©.
+
+ {Du¾e litery:_} - konwertuje wszystkie sˆowa zaznaczonego tekstu na
+               du¾e litery.
+ {Maˆe litery:_} - konwertuje wszystkie sˆowa zaznaczonego tekstu na
+               maˆe litery.
+ {Kapitaliki :_} - kapitalizuje wszystkie sˆowa zaznaczonego tekstu.
+
+ {Odwr¢† sortowanie:_}
+ {Sortuj           :_} - sortuje wszystkie linie pionowego bloku
+                     w porz¥dku alfabetycznym (zaznaczony tekst
+                     jest u¾ywany do por¢wnania).
+ {Policz sum©      :_} - oblicza sum© liczb w pionowym bloku i wstawia
+                     do schowka.
+ {Rus/Eng Konvert Line:_}
+
+.topic SpreadFileMenu=48086
+.title Arkusz kalkulacyjny: Menu Plik
+ {Nowy          :_} - tworzenie nowej tabeli.
+ {Otw¢rz...     :_} - otwarcie nowej tabeli.
+ {Zapisz        :_} - zapisanie bie¾¥cej tabeli.
+ {Zapisz jako...:_} - zapis bie¾¥cej tabeli pod inn¥ nazw¥.
+ {Import        :_}
+ {Eksport       :_}
+
+ {Menu gˆ¢wne   :_} - aktywowanie menu gˆ¢wnego DN.
+ {Wyj˜cie       :_} - wyj˜cie z edytora.
+
+.topic SpreadTableMenu=48087
+.title Arkusz kalkulacyjny: Menu Tabela
+ {Formatuj kom¢rki   :_} - formatowanie kom¢rek.
+ {Szeroko˜† kolumn...:_} - zmienianie szeroko˜ci kolumny.
+
+ {Wstaw wiersz       :_} - wstawianie nowego wiersza.
+ {Wstaw kolumn©      :_} - wstawianie nowej kolumny.
+ {Usuä wiersz        :_} - usuwanie wiersza.
+ {Usuä kolumn©       :_} - usuwanie kolumny.
+
+.topic SpreadEditMenu=48088
+.title Arkusz kalkulacyjny: Menu Edycja
+ {Cofnij   :_} - cofanie operacji.
+
+ {Wytnij...:_} - wycinanie bloku do schowka.
+ {Kopiuj   :_} - kopiowanie bloku do schowka.
+ {Wklej    :_} - wklejanie bloku ze schowka.
+
+ {Wyczy˜†  :_} - czyszcenie bloku.
+
+.topic SpreadSearchMenu=48089
+.title Arkusz kalkulacyjny: Menu Szukaj
+ {Znajd«...:_} - znajduje pole ze znaczeniem.
+ {Zamieä...:_} - znajduje i zamienia.
+ {Powt¢rz szukanie:_} - kontynuowanie wyszukiwania/zamiany.
+ {Id« do kom¢rki nr...:_} - przej˜cie do okre˜lonego pola.
+ {Id« do ostatniego bˆ©du:_} - przej˜cie do pola z bˆ©dem.
+
+.topic FTNInfo=48090
+.title FTN File Attach Feature
+DN has the ability to attach files to be sent with FTN networking software
+using a Binkley-style outbound. To use this feature, the following information
+should be appended to the Files with descriptions field in the File Manager
+Setup dialog:
+
+{;/fido=<address>,<outbound>:_}
+
+Here <address> is your FTN address in your primary zone, written in 3D or 4D
+form, and the <outbound> is your primary zone outbound directory specification.
+Outbound directories for secondary zones are created and used with Portal Of
+Power style names (with hexadecimal zone numbers as extensions). Outbound
+subdirectories for points are handled correctly.
+
+After that, for attaching select one or more files and press Alt-L for the Make
+List File dialog. Enter either "%", "+", or "/" followed by the 3D or 4D
+destination address instead of the list file name. "%" means Normal flavor, "+"
+means Crash, and "/" is for Hold. Leave the Action field empty for the normal
+send mode, enter ###:#\#.# there for the file to be tuncated after sending
+(substitute ##!:!\!.! if your FTN software does not support long file names) or
+enter ^#:#\#.# to have the file killed after sending (^!:!\!.! for short names
+only).
+
+.topic SrchFailed=48091
+.title Niepowodzenie wyszukiwania
+
+.topic CancelSF=49000
+.title Zatrzymanie wyszukiwania
+Mo¾esz pomin¥† wyszukiwanie tekstu w pliku obecnie przetwarzanym
+
+.topic IniFile=48092
+.title Dos Navigator Configuration (DN.INI)
+DN.INI is a text configuration file of DOS Navigator. There are many
+DOS Navigator global variables set in it such that most likely you
+will not need altering their values often. Be attentive while editing
+this file: enter correct values!
+
+DOS Navigator parameters may be of the following types:
+
+ * bool Ä boolean, accepts values false/true, 0/1, no/yes;
+ * long Ä integer, accepts values from 0 to 2147483647;
+ * str  Ä string, accepts values of a sequence up to 255 chars long.
+
+Below is the description of all the DN.INI parameters:
+
+[Interface]
+
+{ShowCopyTime = bool:_} - COPY process timer switch (boolean expression).
+With ShowCopyTime=1 DN shows time and speed of copying files during the
+copy process.
+ (default: 0)
+
+{HistoryButtonChars = str:_} - In this case displaying history button
+in dialogs will use a limited chars set.
+ (default: 'Şİ')
+
+{PoorFrames = bool:_} - Value 1 declares availability of not all the
+pseudographic chars in the used codepage. In this case displaying
+frames will use a limited chars set.
+ (default: 0)
+
+{UseF3InViewer = long:_} - When 0, pressing F3 in the file view makes
+no action. When 1, pressing F3 closes the view window. When 2,
+pressing F3 switches through view in text, hex and dump modes.
+ (default: 0)
+
+{UseEnterInViewer = long:_} - When 0, pressing Enter in the file view
+makes no action. When 1, pressing Enter closes the view window. When
+2, pressing Enter switches through view in text, hex and dump modes.
+ (default: 0)
+
+ {PanelDescrDrive = str:_} Â User descriptions for columns setup menu
+ {PanelDescrFind  = str:_} ´ items displayed by Alt-_. Descriptions
+ {PanelDescrTemp  = str:_} ´ for each columns number are separated by
+ {PanelDescrArc   = str:_} ´ `#' char.
+ {PanelDescrArvid = str:_} Ù
+ (default: '')
+
+{PreserveMenuPositions = bool:_} - If on, current positions in all
+menus between DOS Navigator launches are saved.
+ (default: 0)
+
+{HistoryErrorBeep = bool:_} - If on, pressing Del at a `frozen'
+element in the input history makes bell. Otherwise pressing Del at
+such an element is ignored.
+ (default: 1)
+
+ {ReuseEditors = long:_} - Specify actions made when a file opened
+ {ReuseViewers = long:_} - with the editor or viewer is tried opening
+ with one of them again. Accept values:
+ 0 Ä open the file once more in a new window;
+ 1 Ä request opening a new window;
+ 2 Ä show already open window.
+ ReuseEditors and ReuseViewers make this setting for the editor and
+the viewer respectively.
+ (default: 0)
+
+{ReflectCopyDirection = bool:_} - When 1, the copying process gauge
+grows from right to left while copying from the right panel to the
+left one.
+ (default: 0; i.e. always from left to right)
+
+{FadeDelay = long:_} - Sets shadowing visual effects when
+starting/quitting DOS Navigator (tunes shadowing speed). Recommended
+value is 5.
+ (default: 0; i.e. effects off)
+
+{VertScrollBarChars = str:_} - Specifies displaying a vertical scroll
+bar. Requires 5 chars: upper glyph, lower glyph, bar char, lift
+glyph, empty bar char. Written as a string of 5 chars.
+ (default: '±ş²')
+
+{HorizScrollBarChars = str:_} - Specifies displaying a horizontal
+scroll bar. Requires 5 chars: left glyph, right glyph, bar char, lift
+glyph, empty bar char. Written as a string of 5 chars.
+ (default: '±ş²')
+
+{SystemMenuChar = long:_} - Specifies char used for denoting the
+first submenu of the main menu. The char is specified by its ASCII
+code.
+ Note: If you want `ğ' instead of `', then set 240.
+ (default: 4)
+
+{DriveSelectVCenter = bool:_} - Sets displaying a disk change dialog
+(Alt-F1/F2) in the panel center.
+ (default: 0)
+
+{WinManagerSelectNext = bool:_} - Choosing window by Alt-0 does not
+select the current window but the next one.
+ (default: 1)
+
+{DriveInfoType = long:_} - Controls displaying the auxiliary
+information in the disk change dialog (Alt-F1/F2). Accepts a
+combination of the following values:
+  1 Ä show drive type;
+  2 Ä show the current catalog for local drives;
+  4 Ä show the current catalog for CD-ROM's;
+  8 Ä show server name/volume for network drives;
+ 16 Ä include quick access directories into menu;
+ 32 Ä show number of files on TEMP drive.
+ Note: You can also set the desired values in
+`Setup|Configuration|Interface' dialog.
+ (default: 2; i.e. show the current catalog for local drives only)
+
+{CutDriveInfo = bool:_} - Shortening disks description in disk change
+catalog (Alt-F1/F2).
+ (default: 1)
+
+[Clock]
+
+{RightAlignClock = bool:_} - When 1, the clock is always placed close
+to the right screen edge.
+ (default: 0)
+
+{DaysOfWeek = str:_} - Specifies weekdays names displayed in the
+clock area while Ctrl pressed, and different from the current
+language defaults. If the value length equals 14 or 21, then a 2- or
+3-letter name of the weekday is taken respectively. Weekdays names
+are enumerated without spaces, starting from Sunday, eg.
+SunMonTueWedThuFriSat. If the value has another length, empty or
+omitted, then 2-letter names, defined in the resources for the
+current language separately, used.
+ (default: '(use language default)')
+
+{ShowDayOfWeek = bool:_} - Show weekday while Ctrl pressed.
+ (default: 1)
+
+{ShowCentury = bool:_} - Show 4 digits of the year while Ctrl
+pressed.
+ (default: 1)
+
+{ShowSeconds = bool:_} - Show seconds in the clock.
+ (default: 1)
+
+[SmartPad]
+
+{LineChar = long:_} - Specifies a char used for separation in
+SmartPad. The char is specified by its ASCII code. The default
+pseudographic char (Ä) may be inappropriate in some cases since it
+does not lend itself to codepages translation.
+ (default: 196)
+
+{InsertDate = bool:_} - Stamp the date when opening SmartPad.
+ (default: 1)
+
+[Game]
+
+{EnableGame = bool:_} - When 0, disable launching the built-in game.
+ (default: 1)
+
+[Clipboard]
+
+{MaxClipBoardSize = long:_} - The maximal accumulated ClipBoard size.
+ (default: 4096)
+
+{SaveClipBoardOnExit = bool:_} - When 1, save ClipBoard between
+launches.
+ (default: 1)
+
+[Kernel]
+
+{AltGrAsAlt = bool:_} - When 1, AltGr and Alt are equal.
+ (default: 1)
+
+{DoVESATest = bool:_} - When 1, the extended 132 columns wide VESA
+videomodes are available, but Windows will do annoying switching into
+full screen.
+ (default: 0)
+
+{SmartWindowsBoxClose = bool:_} - When 1, closing the console window
+in Windows 9x/2000 is equivalent to pressing Alt-X in DOS Navigator.
+ (default: 0)
+
+{StoreVideoMode = long:_} - When 0, the menu selected videomode is
+not saved. When 1, it is saved as videomode 1. When 2, it is saved as
+videomode 2.
+ (default: 0)
+
+{HandleChDirCommand = bool:_} - Enables processing pass command `cd
+path' and D: by DOS Navigator itself, without launching a command
+interpreter.
+ (default: 1)
+
+{CopyLimit = long:_} - Specifies OS copying buffer limitation in
+kilobytes. Value 0 denotes no limitation.
+ (default: 8192; i.e. 8M)
+
+{ShowKeyCode = long:_} - Debug flag showing keyboard scan codes.
+Accepts values:
+ 0 Ä do not show scan codes;
+ 1 Ä show scan code/code pairs in a separate window;
+ 2 Ä show the scan code in the upper right corner;
+ 3 Ä 1 and 2 simultaneously.
+ (default: 0)
+
+{AutoSave = bool:_} - Resave all the DN.INI parameters at startup.
+ (default: 1)
+
+{UseLFN = bool:_} - Try using long filenames or work with short ones
+always.
+ (default: 1)
+
+[Editor]
+
+{RecombineLongLines = bool:_} - As formerly, strings more than 255
+chars long are anyway split by several parts when loaded. But now, if
+the option is on, any string exactly 255 or 254 chars long is
+concatenated with the next string when saving or writing a block to a
+file. This allows limited editing of files containing the long
+strings: You can edit the last part of a long string in the usual
+way, while in the previous parts only overwriting chars is possible
+without changing the string length. To display the specific status of
+such the strings, they are colored when cursor is placed on.
+ (default: 0)
+
+{AutoBracketPairs = str:_} - Specifies any number of chars pairs to
+be considered brackets for AutoBrackets function.
+ Note: This parameter bears no relation to the brackets pair search
+function.
+ (default: '()[]{{}<>')
+
+{WinManagerPosToEdit = bool:_} - When Alt-0 pressed in the editor,
+cursor is placed in the next window of the editor too but not any
+one.
+ Note: The flag effect is prior before WinManagerSelectNext.
+ (default: 1)
+
+{FastSearchDeep = long:_} - Searching begin/end &c. pairs may fail at
+comments containing these keywords (pairs count loses...). To avoid
+an unlimited search through a file (wait too long), you are
+recommended to set the maximal search depth (ca 300 lines).
+ (default: 0; i.e. unlimited search)
+
+{DefCodePage = str:_} - string to specify code page for files that
+are opened in built-in viewer or created in editor, but files that
+are absent in Viewer and Editor History. String value can be: DOS,
+Win, KOI8, Auto (code-page auto detect).
+ Note: For successful recognition of WIN or KOI codepage, the text
+must contain uppercase, lowercase letters and vowels; at least 1
+uppercase letter must be per 500..999 lowercase ones, but no more
+then 1 uppercase letter must be per 5..9 lowercase ones; plus at
+least 1 letter per 5..9 lowercase ones must be a vowel ("ë", "í",
+"î", "ï" are not treated as vowels).
+ (default: Dos)
+
+{FastBookmark = bool:_} - Displaying the quick bookmarks access line
+below the editor window.
+ (default: 1)
+
+{ShowBookmarks = bool:_} - Display bookmarks in the editor.
+ (default: 1)
+
+{AutoScopeDetect = bool:_} - The editor search/replace area automatic
+detection: If block selected then in `Selected text' else `Global'.
+ (default: 1)
+
+{DrawRShift = bool:_} - When 1, LShift draws single line, and RShift
+draws double one. In the double line drawing mode do vice versa.
+ (default: 0)
+
+{Koi8rKeyMap = bool:_} - When 0, the switching through DOS/WIN/KOI by
+F8 in the editor is disabled and only switching DOS/WIN works.
+ Note: This parameter has no influence on the autodetection when
+opening a file in the editor.
+ (default: 1)
+
+{UnlimitUnindent = bool:_} - When 0, a block is shifted left by
+Ctrl-K U while all the line can shift. When 1, the shift is done
+always.
+ (default: 0)
+
+[FilePanels]
+
+{QuickSearchType = bool:_} - Quick Search mode switch (boolean
+expression). Values:
+ 0 - Quick Search highlights only files with precise beginning of
+     file name entered by user.
+ 1 - and upon pressing "." (period) DN automaticallly adds wildcard
+     "*." to mask of Quick Search, i.e. it is not necessary to enter
+     a complete file name.
+ (default: 0)
+
+{QuickRenameInDialog = bool:_} - Do quick file renaming (by Alt-F6)
+in a separate window instead of the panel.
+ (default: 0)
+
+{LFNCutSide = bool:_} - This string defines how LFN is shown on
+information panel if file name does not fit entirely in filename
+column. Boolean expression value can be:
+ 0 - show left part of LFN;
+ 1 - show right part of LFN;
+ 2 - show left part of LFN and file extention (if present).
+ (default: 1)
+
+{AlignLFNInBottom = bool:_} - This string aligns LFN on information
+panel. Boolean expression value can be:
+ 0 - centre LFN on panel;
+ 1 - align LFN left;
+ 2 - align LFN right;
+ (default: 1)
+
+{ShowLongName = bool:_} - This string defines whether LFN is shown
+on panel or not. Boolean expression value can be:
+ 0 - do not show LFN;
+ 1 - do not show LFN if it is not equal to short file name (case
+     insensitive);
+ 2 - show LFN if it is not equal to short file name;
+ 3 - show LFN in any case.
+ (default: 0)
+
+{ShowFileMask = bool:_} - if panel has a file mask different from *.*, it
+will be shown instead of LFN.
+ (default: 1)
+
+[NetInfo]
+
+{NoLevelsInfo = bool:_} - Do not display SFT/TTS Lev. network
+information.
+ (default: 0)
+
+[Language]
+
+{ShowLanguageMenu = bool:_} - When 1, selecting command `Change
+language' or pressing Alt-F12 displays a menu containing a list of
+the available languages (their set is determined by scanning the
+resource files in DOS Navigator and %DNDLG% catalogs). When 0,
+selecting command `Change language' or pressing Alt-F12 causes
+automatic cyclic switch to the next available language after the
+current one.
+ (default: 0)
+
+{HelpLanguageOverride = str:_} - Defines the language of the help.
+Its source is assumed a file named as the language specified in the
+parameter with .HLP extension.
+ (default: ''; i.e. the current language help file is used if exists,
+otherwise the English language help file is used)
+
+{ActiveLanguage = str:_} - Defines the current language. Its
+resources are assumed files named as the language specified in the
+parameter with the appropriate extension.
+ (default: ''; i.e. environment variable %DNLNG% [if it is set],
+then English language is the first from list of languages)
+
+[Calendar]
+
+{OptionFlags = long:_} - Defines main calendar settings. Accepts a
+combination of the following values:
+  1 Ä messages falling on a day off will be overwritten with
+      another events even if their categories are higher;
+  2 Ä disables <clock_week_days> rule;
+  4 Ä disables <day_of_week_1> rule;
+  8 Ä enables the indicator showing the number of the week and day;
+ 16 Ä when SundayFirst = 1, the week number on the indicator will
+      be incompatible with IS-8601 international standard but
+      `correct' from the standpoint of the calendar itself since
+      the week number will be constant during all the week starting
+      from Sunday and finishing on Saturday.
+ (default: 0)
+
+{DefaultInfo = str:_} - Defines the default value for the dates
+belonging to none of the categories.
+ (default: '')
+
+{SundayFirst = long:_} - When 1, Sunday is considered the 1st day of
+week. When 0, Sunday is considered the last one. When 2, this
+parameter is detected automatically.
+ (default: 2)
+
+{ShowOnStartup = bool:_} - Display the calendar window immediately
+after DOS Navigator startup.
+ (default: 0; i.e. do not display)
+
+.topic ChangeNameCase=48093 ; [C] /DataCompBoy/ 22-05-2000
+.title Zmienianie wielko˜ci liter w nazwie pliku
+
+.topic Path=48094 ; [C] /DataCompBoy/  3-06-2000
+.title Select path
+Replace media and/or modify the path
+
+.topic Dialer=48095 ; [C] /DataCompBoy/  5.07.2000
+.title Dialer
+
+.topic PktListDialog=48096 ; [C] /DataCompBoy/ 12.07.2000
+.title Pkt List Dialog
+
+.topic LineViewer=48097 ; [C] /DataCompBoy/ 12.07.2000
+.title Line Viewer
+
+.topic MsgViewer=48098 ; [C] /DataCompBoy/ 12.07.2000
+.title Msg Viewer
+
+.topic PktMsgViewer=48099 ; [C] /DataCompBoy/ 12.07.2000
+.title Pkt Msg Viewer
+
+.topic ViewerDefaults=48100 ; [C] /DataCompBoy/ 11.08.2000
+.title Domy˜lna przegl¥darka wewn©trzna
+
+.topic DBFGoto=48101
+.title Przej˜cie do wiersza lub kolumny
+
+.topic CDPlayerOrder=49004 ; { Flash }
+.title —cie¾ki
+ Tutaj mo¾esz sporz¥dzi† list© ˜cie¾ek, kt¢re zostan¥ odtworzone
+ w CD, wˆa˜nie w takim porz¥dku.
+
+.topic CDPlayerAddSong=49005 ; { Flash }
+.title Dodanie ˜cie¾ki
+ Zaznacz ˜cie¾k© i wci˜nij przycisk {OK:_}.
+
+.topic CDPlayerSelectCDROM=49006 ; { Flash }
+.title Wyb¢r CD-ROMu
+ Zaznacz nap©d CD, zawieraj¥cy muzyk© i wci˜nij {Enter:_}.
+
+.topic CDPlayerSelectTrack=49007 ; { Flash }
+.title Wyb¢r ˜cie¾ki
+ Zaznacz utw¢r, kt¢ry chcesz doda† do listy wciskaj¥c przycisk
+ z numerem utworu.
+ Aby zamkn¥† okno, wci˜nij {Anuluj:_}.
+
+.topic AddQuickDir=49008   {John_SW}
+.title Dodawanie katalogu szybkiego dost©pu (Ulubione)
+ Wybierz polecenie menu {Panel|Ulubione katalogi...:_} aby otworzy†
+ okienko dialogowe "ulubionych" katalog¢w.
+ Ulubiony katalog mo¾na doda† klikaj¥c myszk¥ "Dodaj katalog"
+ na pasku statusu lub wciskaj¥c klawisz Ins.
+ Wygodnie jest wcze˜niej otworzy† dany katalog w jednym z paneli
+ DN, i wtedy w okienku "Dodawanie katalog¢w" wcisn¥† przycisk
+ "Bie¾¥cy" a nast©pnie zatwierdzi† przyciskiem  OK.
+
+.topic SkipBadFile=49009   {John_SW}
+.title Nie mo¾na otworzy† pliku
+
+.topic EditQuickDir=49010  {John_SW}
+.title Zmiana katalogu szybkiego dost©pu (Ulubione)
+ Wybierz polecenie menu {Panel|Ulubione katalogi...:_} aby otworzy†
+ okienko dialogowe "ulubionych" katalog¢w.
+ Ulubiony katalog mo¾na zmieni† klikaj¥c myszk¥ "Zmieä katalog"
+ na pasku statusu lub wciskaj¥c klawisz  F4.
+ Wygodnie jest wcze˜niej otworzy† dany katalog w jednym z paneli
+ DN, i wtedy w okienku "Zmienianie katalogu" wcisn¥† przycisk
+ "Bie¾¥cy" a nast©pnie zatwierdzi† przyciskiem  OK.
+
+.topic DelItem=49011   {FigoFago}
+.title Usuwanie ulubionego katalogu
+ Aby usun¥† jedn z ulubionych katalog¢w nale¾y klikn¥† myszk¥
+ na "Usuä katalog" na pasku statusu lub wcisn¥† klawisz Del.
+ Usuni©cie nast©puje tylko z listy.

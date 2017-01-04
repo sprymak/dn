@@ -66,6 +66,9 @@
 //  dn40328-define_DN_Micro.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1236,7 +1239,6 @@ end;
 procedure TView.PutInFrontOf(Target: PView);
 var
   P, LastView: PView;
-  R: TRect;
 
 procedure MoveView;
 begin
@@ -1410,10 +1412,10 @@ const
   FrameChars: array[0..31] of Char =
     #32#32#32#192#32#179#218#195#32#217#196#193#191#180#194#197#32#32#32#200#32#186#201#199#32#188#205#207#187#182#209#32;
 var
-  FrameMask: array[0..MaxViewWidth-1] of Byte;
   ColorMask : word;
   i,j,k     : LongInt;
   CurrView  : PView;
+  FrameMask: array[0..MaxViewWidth-1] of Byte;
 begin
   if PoorFrames then begin
     FrameChars[23] := #186;
@@ -1471,9 +1473,9 @@ procedure TFrame.Draw;
 var
   CFrame, CTitle: Word;
   F, I, L, Width: Integer;
-  B: TDrawBuffer;
   Title: TTitleStr;
   Min, Max: TPoint;
+  B: TDrawBuffer;
 begin
   if State and sfDragging <> 0 then
   begin
@@ -1653,8 +1655,8 @@ end;
 procedure TMyScrollBar.DrawPos(Pos: LongInt);
 var
   S: LongInt;
-  B: TDrawBuffer;
   col1,col2,col3:byte;
+  B: TDrawBuffer;
 begin
   S := GetSize - 1;
   if ShowScrollBar then begin
@@ -1724,8 +1726,8 @@ end;
 
 procedure TScrollBar.HandleEvent(var Event: TEvent);
 var
-  Tracking: Boolean;
   I, P, S, ClickPart: LongInt;
+  Tracking: Boolean;
   Mouse: TPoint;
   Extent: TRect;
 
@@ -1898,9 +1900,9 @@ end;
 
 constructor TGroup.Load(var S: TStream);
 var
-  FixupSave: PFixupList;
   Count,I: LongInt;
   P, Q: ^Pointer;
+  FixupSave: PFixupList;
   V, Cur: PView;
   OwnerSave: PGroup;
 begin
@@ -2043,8 +2045,6 @@ begin
 end;
 
 procedure TGroup.Draw;
-var
-  R: TRect;
 begin
   if Buffer = nil then
   begin
@@ -2367,8 +2367,6 @@ procedure TGroup.HandleEvent(var Event: TEvent);
       P^.MouseInView(Event.Where);
   end;
 
-var
-  NV: PView;
 begin
   if Event.What and EventMask = 0 then Exit; { Fixed 05.22.95 }
   TView.HandleEvent(Event);

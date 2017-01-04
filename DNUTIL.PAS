@@ -102,6 +102,10 @@
 //  dn40328-fix_UC2_AIN_and_DN_micro_improvement.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn40900-viewer_volatile_bug.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -247,14 +251,15 @@ end;
 (* X-Man <<< *)
 
 procedure TDNAppl.TextView(FileName, RN: String; Fixed: byte);
- var S: String;
+ var
+     X: Integer;
+     I: Integer;
      PS: PString;
      V: PFileViewer;
-     X: Integer;
      W: PWindow;
-     I: Integer;
      P : PViewRecord;
      R : TRect;
+     S: String;
 begin
   { Flash >>> }
   S:=RN; X:=PosChar(':',S);
@@ -301,13 +306,14 @@ begin
            W^.Locate(R);
            with V^, P^ do
             begin
-              if (fPos+fBufPos > FileSize) or { Flash }
-                 (InterfaceData.Options and ouiStoreViewerPosition = 0) then
+              if InterfaceData.Options and ouiStoreViewerPosition = 0 then { Flash }
               begin
                 fPos := 0;
                 fBufPos := 0;
               end;
-              Seek(fPos);
+              { Теперь  не  требуется  хранить  в истории отдельно }
+              { fPos и fBufPos, достаточно суммарного их значения. }
+              { Но пока оставлено как есть.    Persistor, Mar 2005 }
               if XLatFile <> nil then DisposeStr(XLatFile);
               ViewMode   := fViewMode and not vmInternal;
               BufPos     := fBufPos;
@@ -325,7 +331,8 @@ begin
               if UseXLat
                then SetXlatFile(XLatFile^, True)
                else SetXlatFile('', True);
-              MakeLines;
+              if fPos+fBufPos >= FileSize then Message(V,evKeyDown,kbCtrlPgDn,nil) { <= Persistor, Mar 2005}
+                                          else Seek(fPos+fBufPos);                 { <= Persistor, Mar 2005}
             end;
          end;
       case Fixed of
@@ -340,17 +347,17 @@ end;
         {-DataCompBoy-} {AK155} { Flash }
 procedure TDNAppl.ViewFile(FromHistory, AltExt, NoExtFile: boolean; FileName: String); {AK155}
 var
-  XT: String;
+  I : Integer;
+  q : Integer;
   W : PWindow;
   R : TRect;
   fr: PFileRec;
   up: tUserParams;
   P : PViewRecord;
-  I : Integer;
   PS: PString;
-  q : Integer;
-  RN: String;
   Ext: Boolean; { Flash }
+  RN: String;
+  XT: String;
 
   function SpecialIntView: Boolean;
     var
@@ -554,11 +561,11 @@ end;
         {-DataCompBoy-}
 procedure TDNAppl.EditFile;
 var
+  I: Integer;
   W: PWindow;
   R: TRect;
   PS: PString;
   V: PFileEditor;
-  I: Integer;
   P: PEditRecord;
   fr: PFileRec;
   up: tUserParams;
@@ -673,23 +680,22 @@ end;
         {-DataCompBoy-}
 PROCEDURE TDNAppl.HandleCommand;
 
- var R: TRect;
-     P,P1: PView;
-     ST: String;
+ var
      W: Word;
+     OldCtx  : Word;
+     R: TRect;
+     P,P1: PView;
      FileIsDBF: Boolean;
      ViewMode: Byte;
-
      HFile: PHelpFile;
-     HelpStrm: PDosStream;
-     OldCtx  : Word;
      Title : TTitleStr; { Flash }
-
 {$IFDEF VIRTUALPASCAL} {JO}
      CC: Word;
      F: lFile;
      PJ,Q: String; QQ: integer;
 {$ENDIF}
+     HelpStrm: PDosStream;
+     ST: String;
 
     procedure CE; begin ClearEvent(Event) end;
 

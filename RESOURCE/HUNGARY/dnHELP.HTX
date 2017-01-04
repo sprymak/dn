@@ -82,6 +82,7 @@
 ;/  dn370-cdplayer(if)-fix_and_improve.patch
 ;/
 ;/  4.9.0
+;/  dn40900-editor_standard_block_hotkeys.patch
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -906,18 +907,18 @@
 .title Kurzormozgat s
  {thelyez‚s:_}              ³ {Billenty–k:_}
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
- Egy karaktert balra     ³ CTRL-S,     
- Egy karaktert jobbra    ³ CTRL-D,     
+ Egy karaktert balra     ³ 
+ Egy karaktert jobbra    ³ 
  Az el“z“ sz¢hoz         ³ CTRL 
  A k”vetkez“ sz¢hoz      ³ CTRL 
- Egy sorral feljebb      ³ CTRL-E,     
- Egy sorral lejjebb      ³ CTRL-X      
+ Egy sorral feljebb      ³ 
+ Egy sorral lejjebb      ³ 
  A sor elej‚re           ³ HOME
  A sor v‚g‚re            ³ END
  G”rget‚s felfel‚        ³ CTRL-W
  G”rget‚s lefel‚         ³ CTRL-Z
  Lapoz s felfel‚         ³ CTRL-R,     PGUP
- Lapoz s lefel‚          ³ CTRL-C,     PGDN
+ Lapoz s lefel‚          ³             PGDN
  A dokumentum elej‚re    ³ CTRL-PGUP
  A dokumentum v‚g‚re     ³ CTRL-PGDN
  Az ablak elej‚hez       ³ CTRL-HOME
@@ -929,7 +930,7 @@
 .title Besz£r s ‚s t”rl‚s
  {Parancsok:_}..........................³ {Billenty–k:_}
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
- Besz£r¢ \ fell¡r¢ m¢d ............³ CTRL-V,   INS
+ Besz£r¢ \ fell¡r¢ m¢d ............³           INS
  Sor t”rl‚se .......................³ CTRL-Y
  Sor besz£r sa .....................³ CTRL-M,   ENTER
  T”rl‚s az kurzort¢l a sor v‚g‚ig ..³ CTRL-Q-Y

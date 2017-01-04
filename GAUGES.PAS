@@ -51,6 +51,9 @@
 //  dn370-clock(i)-disable_seconds_in_winnt.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -200,9 +203,9 @@ end;
 
 procedure THeapView.Draw;
 var
-  S: String;
-  B: TDrawBuffer;
   C: Byte;
+  B: TDrawBuffer;
+  S: String;
 begin
   OldMem := MemAvail;
   Str(OldMem, S);
@@ -248,8 +251,8 @@ end;
 
 procedure TClockView.Draw;
 var
-  B: TDrawBuffer;
   C: Byte;
+  B: TDrawBuffer;
 begin
   Size.Y := 1;
   C := GetColor(1);
@@ -285,13 +288,13 @@ procedure TClockView.Update;
 var
   h,m,s,hund: word;
   d,mn,y : word ;
-  SS: String[40];
   Event: TEvent;
   P : Pview ;
-  DayWeek: byte;
   R: TRect;
+  DayWeek: byte;
   StdClockWidth: byte;
   Semi: boolean;
+  SS: String[40];
 begin
   if ShowSeconds then StdClockWidth:=10 else StdClockWidth:=7;
   GetTime(h,m,s,hund);
@@ -419,8 +422,8 @@ end;
 
 procedure TTrashCan.Draw;
 var
-  B: TDrawBuffer;
   C: Word;
+  B: TDrawBuffer;
 begin
   if State and sfDragging <> 0 then C := 3
   else if State and sfSelected = 0 then C := 1
@@ -439,13 +442,11 @@ end;
 
 procedure TTrashCan.HandleEvent(var Event:TEvent);
 var
-  Where: TPoint;
-  SaveConfirm: Boolean;
-  Extent: TRect;
-  Msg: String;
   Cfms: Word;
-
-
+  Where: TPoint;
+  Extent: TRect;
+  SaveConfirm: Boolean;
+  Msg: String;
 begin
   inherited HandleEvent(Event);
 
@@ -486,8 +487,9 @@ end;
         {-DataCompBoy-}
 {$IFDEF PRINTMANAGER}
 procedure PrintFiles;
-  var PF: PFileRec;
+  var
       I,J: Integer;
+      PF: PFileRec;
       S: String;
 begin
   if Files = nil then Exit;

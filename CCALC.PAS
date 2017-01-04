@@ -69,6 +69,10 @@
 //  dn31220-Kernel(i)-DN_changes_language_immediately.patch
 //
 //  4.9.0
+//  dn50202-calc(f)-save_desktop_fix.patch
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -244,10 +248,11 @@ begin
 end;
 
 procedure TIndicator.Draw;
-  var B: TDrawBuffer;
+  var
+      LL: LongInt;
       S: String[40];
       C: Byte;
-      LL: LongInt;
+      B: TDrawBuffer;
 
   procedure Wrt(N: Integer);
   begin
@@ -372,9 +377,10 @@ begin
 end;
 
 procedure TCalcLine.SetValues;
- var R: CReal;
-     S: String;
+ var
      N: Word;
+     R: CReal;
+     S: String;
 begin
   GetData(S);
   if S = '' then
@@ -402,9 +408,10 @@ begin
 end;
 
 procedure TCCalcWindow.InsertControls;
- var R: TRect;
-     T: String;
+ var
      N: Word;
+     R: TRect;
+     T: String;
 begin
   { Input line }
   R.Assign(2,3,46,4);
@@ -521,27 +528,27 @@ begin
 end;
 
 constructor TCCalcWindow.Load(var S: TStream);
- var R: TRect;
-     T: String;
-     C: Byte;
+ var
      N: Word;
+     C: Byte;
+     R: TRect;
+     T: String;
 begin
   inherited Load(S);
   T:=CnvString(S.ReadStr);
   S.Read(N, SizeOf(N));
-  InsertControls;
   CalcLine^.SetData(T);
   Radio^.SetData(N);
   Calc:=@Self;
 end;
 
 procedure TCCalcWindow.Store(var S: TStream);
-Var T: String;
+Var
     N: Word;
+    T: String;
 begin
   CalcLine^.GetData(T);
   Radio^.GetData(N);
-  DeleteControls;
   inherited Store(S);
   S.WriteStr(@T);
   S.Write(N, SizeOf(N));
@@ -558,13 +565,12 @@ end;
 {--- start -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
 {Now calculator can be called from InputLine as Modal window}
 Function InsertCalc(S: PString): String;
-var R: CReal;
 begin
   If (S <> Nil) Then
    Begin
     If (ModalCalc = Nil) Then
      Begin
-      R:=Evalue(S^, nil);
+      Evalue(S^, nil);
       ModalCalc:=New(PCCalcWindow, Init(True));
       If Not EvalueError Then ModalCalc^.CalcLine^.SetData(S^);
       If Desktop^.ExecView(ModalCalc) = cmOk Then

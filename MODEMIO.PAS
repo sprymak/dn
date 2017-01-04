@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -254,7 +257,6 @@ end;
 
 procedure ModemWrite(S: String);
   var I: Integer;
-      DTR, RTS: Boolean;
 begin
   for I := 1 to Length(S) do
    case S[I] of
@@ -276,12 +278,11 @@ Function InitModem;
        fmin = bs div 10;
        fmax = bs - fmin;
  var
-     Bauds : array[0..9] of Word;
-     B,R: Boolean;
+     BD : LongInt;
      I,J,K: Word;
+     Bauds : array[0..9] of Word;
      DB, SB: byte;
      PR: ParityType;
-     BD : LongInt;
 begin
  RDSetup;
  InitModem:=moAlreadyUsed;

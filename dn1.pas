@@ -65,6 +65,9 @@
 //  dn31029-Compile_by_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -127,7 +130,6 @@ procedure UpdateConfig;
 var
   OldSecurity: Boolean;
   TempInteger: Integer; {DataCompBoy}
-  R: TRect;
 begin
   InvalidateTempDir;
   OldSecurity := Security;
@@ -157,11 +159,13 @@ end;
         {-DataCompBoy-}
 procedure CheckForOldFiles;
 type TSearchDirSet=set of 0..2;
-var OldFiles:array [0..8] of string;
-    OldFileSearchDirs:array [0..8] of TSearchDirSet;
-    OldFilesCount:integer;
-    Dirs:array [0..2] of string;
-    S:string; i,j:integer;
+var
+    OldFilesCount, i, j: integer;
+    OldFileSearchDirs: array [0..8] of TSearchDirSet;
+    OldFiles: array [0..8] of string;
+    Dirs: array [0..2] of string;
+    S: string;
+
     procedure ProbeOldFile(Name:string; SearchDirs:TSearchDirSet);
     var k:integer;
     begin
@@ -215,9 +219,9 @@ end;
         {-DataCompBoy-}
 PROCEDURE DoStartup;
 var
-  SavePos, SPos1, INIdatapos: LongInt;
+  SPos1, INIdatapos: LongInt;
 
-  function ReadConfig: LongInt;
+  procedure ReadConfig;
   var
     S: TBufStream;
     ID: AWord;
@@ -260,7 +264,6 @@ var
     (* X-Man <<< *)
 
   begin
-    ReadConfig := -1;
     INIdatapos := -1;
     {$IFDEF VIRTUALPASCAL}StartupInitUnit;{$ENDIF} { Kirill }
     S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
@@ -670,8 +673,7 @@ var
   end;
 
   procedure SetOverlay;
-  var S: String;
-      I: LongInt;
+  var I: LongInt;
   begin
     SwpDir := GetEnv('DNSWP');
     if SwpDir = '' then
@@ -687,10 +689,11 @@ var
   end;
 
   procedure ReadINI;
-  var INIavailtime,INIavailsize,INIavailcrc:longint;
+  var
+      INIavailtime,INIavailsize{,INIavailcrc}:longint;
       S:TBufStream;
   begin
-      if (not ProbeINI(INIavailtime,INIavailsize,INIavailcrc)) or
+      if (not ProbeINI(INIavailtime,INIavailsize{,INIavailcrc})) or
          (INIdatapos<0) or
          (INIavailtime<>INIstoredtime) or
          (INIavailsize<>INIstoredsize) {or
@@ -699,7 +702,7 @@ var
           LoadDnIniSettings;
           if DnIni.AutoSave then SaveDnIniSettings ( nil );
           DoneIniEngine; {-$VIV stop}
-          ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
+          ProbeINI(INIstoredtime,INIstoredsize{,INIstoredcrc});
           InterfaceData.DrvInfType := DriveInfoType;
           UpdateConfig; WriteConfig
       end else begin
@@ -715,7 +718,7 @@ begin
 (*  RegisterType( RTextCollection );*)
   IgnoreOldFiles:=False;
 
-  SavePos := ReadConfig;
+  ReadConfig;
   UpdateConfig;
 
   MouseVisible := MouseData.Options and omsCursor <> 0;

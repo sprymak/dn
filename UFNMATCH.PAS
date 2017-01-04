@@ -51,6 +51,9 @@
 //  dn270-IsFilenameMatchesMask_fix_for_DOS_styled_anyfile_mask.patch
 //
 //  3.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -66,10 +69,11 @@ Function FnMatch (Pattern, Str: String): Boolean;
 IMPLEMENTATION
 
 Function FnMatchFunc (Pattern, Str: String; AllLiters: boolean): Boolean;
-Var c, c1: Char;
+Var
+    c, c1: Char;
+    cstart, cend: Char;
     p, n : Byte;
     nt: Boolean;
-    cstart, cend: Char;
 label Litera;
 Begin
   p:=1; n:=1;

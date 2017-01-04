@@ -56,6 +56,9 @@
 //  dn31029-ChangeVideoMode(f)-change_video_mode_on_startup_in_VP_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -307,9 +310,9 @@ end;
 {$ELSE}
 procedure DetectVesaType;
 var
-  P    : PVideoInfo;
   RSeg : Word;
   PSel : Word;
+  P    : PVideoInfo;
   R    : DPMIRegisters;
 begin
   If not DoVESATest then exit;
@@ -526,9 +529,9 @@ end;
 {$ELSE}
 function CheckVesaMode ( Mode : Word ) : Word;
 var
-  P    : PVideoInfo;
   RSeg : Word;
   PSel : Word;
+  P    : PVideoInfo;
   R    : DPMIRegisters;
 begin
   CheckVesaMode := $FFFF;
@@ -640,9 +643,9 @@ end;
 {$ELSE}
 procedure SetVesaMode ( Mode : Word );
 var
-  P    : PVideoInfo;
   RSeg : Word;
   PSel : Word;
+  P    : PVideoInfo;
   R    : DPMIRegisters;
 begin
   if VideoType = vtXGA then begin

@@ -71,6 +71,9 @@
 //  dn31220-fpanel(f)-minimize_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -153,11 +156,7 @@ uses DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
      ;
 
 constructor TDoubleWindow.Init;
- var P: PFilePanel;
-     P1: PInfoView;
-     P2: PTopView;
-     R: TRect;
-     PV: PView;
+ var R: TRect;
 begin
  inherited Init(Bounds, '', ANumber); isValid := True;
  Options := Options or ofTileAble;
@@ -385,8 +384,9 @@ end;
 
 
 procedure TDoubleWindow.HandleCommand;
- var R, R1, R2: TRect;
+ var
      I, K: Integer;
+     R, R1, R2: TRect;
      LVisible, RVisible, LSelected: Boolean;
      Sp: PSeparator;
      EV: TEvent;
@@ -432,8 +432,9 @@ procedure TDoubleWindow.HandleCommand;
  end;
 
  procedure ChangeDrvLeft;
-  var S: String;
+  var
       P: TPoint;
+      S: String;
  begin
   if LType <> dtPanel then
    begin
@@ -466,8 +467,9 @@ procedure TDoubleWindow.HandleCommand;
  end;
 
  procedure ChangeDrvRight;
-  var S: String;
+  var
       P: TPoint;
+      S: String;
  begin
   if RType <> dtPanel then
    begin
@@ -500,7 +502,6 @@ procedure TDoubleWindow.HandleCommand;
  procedure ViewInsert;
   var R2: TRect;
       S: PViewScroll;
-      P: PView;
  begin
   R2.Assign(1,1,2,5);
   S := New(PViewScroll, Init(R2)); S^.Options := S^.Options or ofPostProcess;
@@ -607,8 +608,9 @@ procedure TDoubleWindow.HandleCommand;
 
 procedure CE; begin ClearEvent(Event) end;
 
-var AP, PP: PFilePanel;
+var
     D: Word;
+    AP, PP: PFilePanel;
 begin
  if RightView<>nil
   then RVisible := RightView^.GetState(sfVisible)

@@ -6,6 +6,110 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 5.9.0
+  ---------------------------------------------------------------------
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed writing of settings to dn.ini. Now DN will not crash when starting
+    from CD under MS-DOS.
+
+[*] Default codepage can be set separately for viewer and editor.
+    "DefCodePage" option now has effect only on editor. Use "DefCodePageView"
+    for viewer.
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Now DN will not crash when trying to read files' descriptions,
+    if "descript.ion" is not a real description file.
+
+[-] Fixed error that appeared when searching files with mask "DIR\*.*"
+    (if "DIR" is located deeper than the root of current directory).
+
+[*] When changing drive with <Ctrl-Left/Right> to the same drive, a cursor
+    position is preserved.
+
+[*] When trying to rename or delete inaccessible files, the corresponding
+    dialog is displayed with ability to skip files or cancel operation.
+
+[-] Fixed error connected with changing file panel size with options
+    "[X] Show free space" and "[X] Show description" enabled.
+
+[-] Fixed error connected with handling of commands history and dn.ext.
+
+[-] It was impossible to turn off the changing of descriptions when renaming
+    a file. Now descriptions are corrected when renaming files only if
+    "Always copy descriptions" option is enabled.
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] In editor after deleting any but the last line (with <Ctrl-Y>) horizontal
+    position of cursor is preserved.
+
+[*] When moving block in editor the cursor is placed to the start
+    of selection.
+
+[+] In editor it is possible to return to a previous position with <Ctrl-E>
+    after pressing <Ctrl-PgUp/Dn>, <Home/End>, making search or following
+    a marker.
+
+[*] In editor added standard hotkeys for working with blocks:
+    <Ctrl-X> - synonim for <Shift-Del>
+    <Ctrl-C> - synonim for <Ctrl-Ins>
+    <Ctrl-V> - synonim for <Shift-Ins>
+    <Ctrl-D> - synonim for <Ctrl-Del>
+
+[-] Fixed memory leak when detecting codepage in viewer.
+
+[-] Search of multibyte sequences in hexadecimal mode of viewer.
+
+[-] When searching backwards one symbol in editor with option "Whole words
+    only" enabled, DN could get caught in an endless loop.
+
+[-] Fixed error connected with handling of viewer history for files
+    which have some information appended to them since last viewing.
+
+[-] Fixed suspended applying of changes in hexadecimal mode of viewer
+    for relatively big files.
+
+[-] Fixed incorrect scrolling with <PgUp> when changing read buffer
+    in viewer.
+
+[*] Now if file size has changed since last viewing and position of viewer
+    turns out to be after the end of file, it will be changed to the end
+    instead of beginning of the file.
+
+[*] Now when pressing <Ctrl-PgDn> in viewer lower edge of window will go down
+    one more line after the end of text.
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] DN didn't show some archives' contents.
+
+[*] The field "Archive to" in Archive Files dialog now has its own history.
+
+[*] Improved and accelerated detection of SFX.
+
+[-] Archives were not recorded to Directories History when changing to them
+    with <Tab> hotkey.
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] HDD size detection for 3rd and 4th drive.
+
+[-] Windows of calculator and tetris could become inaccessible after making
+    "Save desktop" operation having them opened.
+
+[+] Language resources have been translated to Polish.
+
+    >>> Source codes usage features <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Sources have been cleaned from unused variables/labels/constants.
+    Sorting of variables was made taking BP compiler into account.
+
+[!] Async Pro library was included in sources.
+
+
    Version 4.9.0
   ---------------------------------------------------------------------
 
@@ -21,15 +125,15 @@
     to use functions that are not supported in these systems, an appropriate
     message will be shown.
 
-[*] The new key 'AutoDisableSecondsWNT' added to section [Clock] in dn.ini,
+[*] The new key "AutoDisableSecondsWNT" added to section [Clock] in dn.ini,
     which allows to disable seconds in built-in clock automatically when
     working under Windows NT/2000/XP.
 
     >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
 
-[*] The new key 'BlinkSeparator' added to section [Clock] in dn.ini to switch
+[*] The new key "BlinkSeparator" added to section [Clock] in dn.ini to switch
     on/off the separator blinking in the clock when seconds are switched off.
-    It is ignored when parameter 'AutoDisableSecondsWNT' is turned on.
+    It is ignored when parameter "AutoDisableSecondsWNT" is turned on.
 
     >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -113,7 +217,7 @@
 
     >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-[+] The new option 'Pass names of directories' is added to archivers' setup.   When it is enabled,
+[+] The new option "Pass names of directories" is added to archivers' setup.
     When it is enabled, the directory names are passed to archiver along with
     file names.
 
@@ -123,9 +227,9 @@
 
 [-] Now DN will delete directories from archives more correctly.
 
-[-] Filenames './path/filename' are processed correctly in archives.
+[-] Filenames like "./path/filename" are processed correctly in archives.
 
-[*] Option 'Swap when unpack/del/test' was liquidated. Now DN unloads itself
+[*] Option "Swap when unpack/del/test" was liquidated. Now DN unloads itself
     from memory before calling any archivers.
 
 [*] Temporary batch file is not used for viewing files in an archive.
@@ -135,7 +239,7 @@
     >>> Calculator <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 [+] The code of calculator is rewritten again and optimized. When pressing
-    'Enter' key on incorrect expression, the cursor will now move to the
+    <Enter> key on incorrect expression, the cursor will now move to the
     position of error. If a function argument is missing, the name of
     corresponding function will be displayed.
 
@@ -395,7 +499,7 @@
 [*] Title of "Copy File" window dialog was changed. Window title refresh will
     occur only with actual changes (Sergey Biryukov).
 
-[*] File name was added to dialog history after copying/moving to "TEMP:'
+[*] File name was added to dialog history after copying/moving to "TEMP:"
     (Sergey Biryukov).
 
 [*] If Directory History menu is called from "Search" panel or "TEMP:" cursor

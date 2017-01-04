@@ -59,6 +59,9 @@
 //  dn31220-kernel(if)-work_with_temporary_files.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -110,26 +113,26 @@ end;
 
 procedure MakeListFile;
  label AddrError, Retry;
- var I, J, K: Integer;
-     D, Dr, SR, Sn: String;
-     P: PFileRec;
-     S: TMakeListRec;
-     T,HF: lText;
-     Nm: String;
-     Xt: String;
-     FidoMode: Boolean;
-     SS: String;
-     PP: PString;
+ var
+     I, J, K, CurPos: integer;
      ZZ, NN, ND, PT: Word;
+     P: PFileRec;
+     PP: PString;
+     FidoMode: Boolean;
      BB: Boolean;
-     FLD, Dr_: String;
-     CurPos: integer;
-     UPr: TUserParams;
 {--- start -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
      PInfo: PWhileView;
      TT: TEventTimer;
      R: TRect;
 {--- finish -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
+     S: TMakeListRec;
+     UPr: TUserParams;
+     T,HF: lText;
+     D, Dr, SR, Sn: String;
+     Nm: String;
+     Xt: String;
+     SS: String;
+     FLD, Dr_: String;
 
   function GetNextName(var TheString,TheName:string):boolean;
   var j: boolean;
@@ -161,7 +164,6 @@ procedure MakeListFile;
 
   procedure MakeStr(D: String);
   label Fail;
-    var Drr: Boolean;
   begin
 
   { BB means "Is filename occurs in Action?" }

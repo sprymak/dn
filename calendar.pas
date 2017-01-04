@@ -58,6 +58,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1128,19 +1131,19 @@ procedure TCalendarView.ParseCalendarIni;
 const
   LToken = 20;
 var
-  CaseStr  : string;
-  key      : string;
-  token    : string[LToken];
   first    : Integer;
   last     : Integer;
   curr     : Integer;
   category : Byte;
+  token    : string[LToken];
+  CaseStr  : string;
+  key      : string;
 
   procedure CheckCategory;
   var
-    c : Byte;
     i : Integer;
     j : Integer;
+    c : Byte;
   begin
     c := 0;
     i := Pos ( ',', CaseStr );
@@ -1354,7 +1357,6 @@ var
   function ParseRelative ( DayPivot : Integer ) : Boolean;
   var
     o : Integer;
-    j : Integer;
   begin
     ParseRelative := False;
     StrToken; { offset/language }
@@ -1434,7 +1436,6 @@ var
   var
     o  : Integer;
     o2 : Integer;
-    c  : Byte;
     d  : Byte;
     w  : Byte;
     w1 : Byte;

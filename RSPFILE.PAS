@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -136,9 +139,10 @@ function StrPas(Str: PChar): String; assembler;
 {$ENDIF}
 
 Function POpen;
-var I: Word;
-    S: String;
+var
+    I: Word;
     savemode: byte;
+    S: String;
 begin
  for i:=MinPFile to MaxPFile do if PFiles[i] = nil then break;
  if PFiles[i] <> nil then begin InOutRes:=04; exit end;

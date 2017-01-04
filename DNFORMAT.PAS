@@ -59,6 +59,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -90,15 +93,12 @@ type
       Focused : integer ;
      end;
 
-
   DialogData = record
-
     Drive  : Word;  {Radiobuttons}
     Ftypes : TListboxRec;  {Listbox}
     Field3 : String[11]; {Inputline}
     Field4 : Word;  {Radiobuttons}
     Field5 : Word; {Checkbox}
-
   end;
 
   AdvDialogData = record
@@ -568,10 +568,11 @@ function    TFormatter.ScanEvents;
 
 procedure   TFormatter.UpdateParams;
             { Data changed }
- var Mesg : string ;
+ var
+     LA,LB,LC,LD : longint ;
      DatArr : array[0..5] of longint;
      a,b,c,d  : string [12];
-     LA,LB,LC,LD : longint ;
+     Mesg : string ;
     begin
 
     asm
@@ -647,11 +648,10 @@ procedure   TFormatter.UpdateParams;
 function    TFormatter.FormatDialog;
 
 var  _result : longint ;
-     Mesg    : String ;
-     A,B,C,D : string [12];
-     LA,LB,LC,LD : longint ;
+     LB,LD : longint ;
      DatArr : array [1..7] of longint;
-     R: TRect;
+     A,B,C,D : string [12];
+     Mesg    : String ;
 
     begin
          {  Write(' Error Occured... (A)bort or (C)ontinue'); }
@@ -762,17 +762,13 @@ var  _result : longint ;
 
 
 Procedure   TFormatter.SetData;
-  var P,S,D : byte ;
-
-      MSG    :  string ;
-      DatArr :  array [1..6] of longint;
-
-      S1,S2,S3,S4,S5,S6 : string[40] ;
-
+  var
       Sectors : integer ;
-
+      P,S,D : byte ;
+      DatArr :  array [1..6] of longint;
+      S1,S2,S3,S4,S5,S6 : string[40] ;
+      MSG    :  string ;
     begin
-
             DrvNum := FormatDialogData.Drive ;
 
             fMode := FormatDialogData.Field4;
@@ -999,7 +995,7 @@ function    TFormatter.CheckFilesOnDisk ;
 var
         Dlg : PDialog;
         R : TRect;
-        Control, Labl  : PView;
+        Control : PView;
 
         Data  : TListBoxRec;
 
@@ -1070,12 +1066,12 @@ var
 
 
 Function GetDriveCapacity;   {  Builds Collection Drive standard formats }
-var I  : Byte;
+var
+    L1,L2 : longint ;
+    I  : Byte;
     S  : PString;
     P  : PMediaCollection;
     S1,S2 : string[40] ;
-
-    L1,L2 : longint ;
 
    begin
           GetDriveCapacity := Nil;
@@ -1218,7 +1214,7 @@ Function BuildFormatDialog: PDialog;
 var
   Dlg : PDialog;
   R : TRect;
-  Control, Labl, Histry, History : PView;
+  Control, Labl, History : PView;
 begin
   BuildFormatDialog := NIL;
   ATitles[0] := GetString(dlAutodetect); {JO}
@@ -1340,7 +1336,7 @@ function BuildAdvFormatDialog : PDialog; {JO}
    var
      Dlg : PDialog;
      R : TRect;
-     Control, Labl, Histry : PView;
+     Control, Labl : PView;
 
    begin
 
@@ -1832,9 +1828,10 @@ procedure KillStatusBox;
 
 
 procedure FormatDisk;
-var P : PFormatter;
+var
     Lim : Longint ;
     R : integer ;
+    P : PFormatter;
     S: String[5];
 label Again ;
     begin
@@ -1868,12 +1865,12 @@ procedure RunFormat;
            end;
        PPR = ^PR ;
 
-  var  P : Pdialog ;
+  var
        R : integer;
-
-    Tab : array [0..3] of longint ;
-    ADD : pointer ;
-    AD  : array[1..2] of word absolute ADD ;
+       ADD : pointer ;
+       P : Pdialog ;
+       Tab : array [0..3] of longint ;
+       AD  : array[1..2] of word absolute ADD ;
 
 begin
 

@@ -54,6 +54,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -206,8 +209,6 @@ const
                cBlkD shl (8*3) ;
 
   MinBlockSize   = 256;
-
-  SuccessStep  = 8;
 
 type
   TArr8 = array[0..7] of Byte;
@@ -537,8 +538,8 @@ end;
 
 procedure FreeTrans(P: Pointer);
 var
-  A : PTransBlock absolute P;
   S : Word;
+  A : PTransBlock absolute P;
 begin
   S := DataBufSz(A^.Hdr);
   Free_Mem(A, S + TransBlkHdrSz);
@@ -695,8 +696,8 @@ begin FreeTrans(Item) end;
 
 function ByteSum(const ABuf; Cnt: LongInt): Byte;
 var
-  R: Byte;
   I: Word;
+  R: Byte;
   Buf: TByteArray absolute ABuf;
 begin
   R := 0;
@@ -777,8 +778,8 @@ end;
 
 function UnpackLI(Arr: TArr8; var LL: LongInt): Boolean;
 var
-  i: Byte;
   L: LongInt;
+  i: Byte;
   b: Byte;
 begin
   UnpackLI := False;
@@ -801,10 +802,10 @@ end;
 
 procedure SendSubBlk(var Blk: TTransBlock);
 var
-  Pfx : TransBlockPrefix;
   TS  : Word;
   I,O : Word;
   B   : Byte;
+  Pfx : TransBlockPrefix;
 begin
   TS := DataBufSz(Blk.Hdr)+TransBlkHdrSz;
   {$IFDEF CL_LOG}
@@ -859,13 +860,13 @@ end;
 procedure FlushQueue;
 var
   CBS : Word;
+  NS  : Word;
+  LS  : Word;
+  SS  : Word;
   OB  : PTransBlock;
   OBH : TTransBlockHeader;
   NBO : PTransBlock;
   NBL : PTransBlock;
-  NS  : Word;
-  LS  : Word;
-  SS  : Word;
 begin
 
   repeat
@@ -971,10 +972,9 @@ end;
 procedure CL_PostBlock;
 var
   ns,ss : LongInt;
+  ASize : LongInt;
   cs : Word;
   pp : PWordArray;
-  ASize : LongInt;
-
 
 procedure FreeLoc;
 begin
@@ -1060,12 +1060,11 @@ end;
 
 procedure ProcessCollDataBlk;
 var
-  B     : PTransBlock;
-  BHdr  : TTransBlockHeader;
+  PId   : LongInt;
   F,S   : Integer;
   LSub  : Word;
-  PId   : LongInt;
-  PPs   : LongInt;
+  B     : PTransBlock;
+  BHdr  : TTransBlockHeader;
 begin
   B := AllocBlk(Lnk^.CollBlk^);
 
@@ -1280,8 +1279,8 @@ end;
 
 procedure NotifyHdr(const Blk: TTransBlock; ATyp: TCL_BlockType);
 var
-  B: PTransBlock;
   S: Word;
+  B: PTransBlock;
   H: TTransBlockHeader;
 begin
   with Blk do
@@ -1345,7 +1344,7 @@ end;
 
 procedure ReqFullResend(AB, AE: LongInt; Force: Boolean);
 var
-  L,D: LongInt;
+  D: LongInt;
   P: PTransBlock;
 begin
   D := Lnk^.z.LastSntRj.Id;
@@ -1677,9 +1676,6 @@ end;
 function Uniq(const Blk: TTransBlock): Boolean;
 var
   Dummy: LongInt;
-  uq: Boolean;
-  NC: LongInt;
-  BI: LongInt;
 begin
   Uniq := False;
 
@@ -1736,16 +1732,12 @@ procedure Collectz;
 const
   ClSize = $1000;
 var
-  gs: Boolean;
-
-
-  ClBuf: array[0..ClSize] of byte;
   GotNow: Word;
   I: Word;
   B: Byte;
   FoundPfx: Boolean;
-
-
+  gs: Boolean;
+  ClBuf: array[0..ClSize] of byte;
 begin
   gs := False;
 
@@ -1762,8 +1754,6 @@ begin
       {$ENDIF}
       GS := True;
     end;
-
-
 
     for I:= 0 to GotNow-1 do
     begin
@@ -1943,8 +1933,8 @@ end;
 
 function  CL_InputBlock;
 var
-  B    : PTransBlock;
   Size : Word;
+  B    : PTransBlock;
   P    : PByteArray;
 begin
   {$IFDEF CL_LOG}CL_Statux;{$ENDIF}

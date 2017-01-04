@@ -95,6 +95,13 @@
 //  dn40412-BackSearch(f)-back_search_fix.patch
 //
 //  4.9.0
+//  dn50202-viewer(if)-DefCodePageView.patch
+//  dn50208-cleanup.patch
+//  dn40900-search_vmHex_fix.patch
+//  dn40900-viewer_volatile_bug.patch
+//  dn50523-hexview_cursor_position.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -183,7 +190,6 @@ type
     procedure   DoHighlite ( var B; const S : String; const Attr : string );
   private
     procedure   AdjustBufSize;
-    function    DetectKeyMap: TKeyMap; { Flash }
   end;
 
   PHFileViewer = ^THFileViewer;
@@ -259,17 +265,17 @@ const
 
 function SearchFileStr;
  label 1, LExit;
- var Buf: PByteArray;
-     Count: LongInt;
-     BufLen, BufPos, BPos, T, StPos, StDelta: LongInt;
+ var
+     Count, BufLen, BufPos, BPos, T, StPos, StDelta: LongInt;
      I, L, J, OldPos, NextPos: LongInt;
-     CancelSearch: Boolean;
+     Buf: PByteArray;
      Info: PWhileView;
      R: Trect;
      Tmr: TEventTimer;
      Inserted: Boolean;
-     W: String;
      SkipFile: Boolean;
+     CancelSearch: Boolean;
+     W: String;
 
 {--- start -------- Eugeny Zvyagintzev ---- 28-03-2002 -----}
 Procedure DispEvents;
@@ -420,11 +426,12 @@ begin
 end;
 
 procedure TViewInfo.Draw;
- var B: TDrawBuffer;
-     S: String;
+ var
      I,J: Integer;
-     Ch, Ch2: Char;
      Color: Word;
+     Ch, Ch2: Char;
+     B: TDrawBuffer;
+     S: String;
 begin
  if (Viewer = nil) or
     (Owner  = nil) or
@@ -470,15 +477,7 @@ begin
     if UseXlat then begin
       Insert(AddSpace(Cut(XLatFile^,8),8), S, Length(S)+1);
     end else
-    begin
-      case KeyMap of
-        kmAscii: S:=S+'DOS..   ';
-        kmAnsi:  S:=S+'WIN..   ';
-        kmKoi8r: S:=S+'KOI..   ';
-        else
-                 S:=S+'XXX..   ';
-      end;
-    end;
+      s := s+KeyMapDescriptor[KeyMap]+'..   '; { Flash  8.02.2005 }
     case Filter of
       0:   Insert('{00-255}'+Ch2, S, Length(S)+1);
       1:   Insert('{32-127}'+Ch2, S, Length(S)+1);
@@ -500,9 +499,10 @@ begin
 end;
 
 procedure TViewInfo.HandleEvent;
-  var P: TPoint;
-      BookMark: Byte;
+  var
+      P: TPoint;
       Ev: TEvent;
+      BookMark: Byte;
 begin
   if Viewer=nil then Exit;
   if (Event.What = evMouseDown) then with Viewer^ do
@@ -545,11 +545,11 @@ end;
 
 
 function TFileViewer.WriteModify;
- var B: Boolean;
+ var
      I: LongInt;
-     S: TDOSStream;
-     A: Word;
      X: Integer;
+     A: Word;
+     B: Boolean;
      T: String;
 begin
  B := BufModified; WriteModify := False;
@@ -660,12 +660,12 @@ end;
 
 
 procedure TViewScroll.HandleEvent;
- var B : Boolean;
-     P: TPoint;
+ var
      RD,SP: LongInt;
-
+     P: TPoint;
      Extent: TRect;
      Tracking : Boolean;
+     B : Boolean;
 
   {JO}
   function GetPrecValue: LongInt;
@@ -790,9 +790,10 @@ begin
 end;
 
 procedure TViewScroll.Draw;
- var B1: TDrawBuffer;
-     B: Array[0..128] of record C: Char; B: Byte; end Absolute B1;
+ var
      C1, C2: Byte;
+     B1: TDrawBuffer;
+     B: Array[0..128] of record C: Char; B: Byte; end Absolute B1;
 begin
  C1 := GetColor(1); C2 := GetColor(2);
  { Flash >>> }
@@ -991,22 +992,18 @@ end;
 
 procedure TFileViewer.Draw;
 var
-  B: TDrawBuffer;
-  C: Byte;
-  I, J, K, M, Src: Integer;
-  L: LongInt;
-  S: String;
   TS: word;
-  C1: Byte;
+  I, J, K, M, Src: Integer;
+  W, W2, W3, WDH: Integer;
+  L: LongInt;
+  C, C1: Byte;
   HP : string[6];
   CC: Array[1..8] of Byte;
+  B: TDrawBuffer;
+  S: String;
 {$IFDEF DisAsm}
   D: XCHGData; {GRM!}
 {$ENDIF}
-
-var
-  W, W2, W3: Integer;
-  WDH: Integer;
 
 begin
   for I := 1 to 8 do CC[I] := GetColor(I);
@@ -1273,58 +1270,15 @@ begin
   end;
 end;
 
-{ Flash >>> }
-function TFileViewer.DetectKeyMap: TKeyMap;
-var  CodePageDetector: TCodePageDetector;
-     I: Integer;
-     S: string;
-     oldViewMode: AInt;
-begin
-If (FileName = '') And (VFileName = '') And (FL = Nil) Then Exit; {Fix for QuickView John_SW 24-03-2004}
-
-KeyMap:=kmAscii;
-CodePageDetector.Init;
-OldViewMode:=vmText;
-{ Other view modes don't have enough lines to perform detection }
-if ViewMode<>vmText then
- begin
- OldViewMode:=ViewMode;
- ViewMode:=vmText;
- end;
-if Buf = nil then
- begin
- If (FileName = '') Then ReadFile('','',False)
- Else ReadFile(FileName, VFileName, True);
- BufPos:=0;
- MakeLines;
- end else
-if (BufPos < 0) or (BufPos > BufSize + 20000) or
-   (BufPos > 65000) then
- begin
- BufPos:=0;
- MakeLines;
- end;
-for I:=0 to MaxLines do begin
- if (Lines[I].Pos >=0) then begin
-  Move(Buf^[Lines[I].Pos], S[1], Lines[I].Len);
-  S[0]:=Char(Lines[I].Len);
-  CodePageDetector.CheckString(S);
- end;
-end;
-ViewMode:=OldViewMode;
-DetectKeyMap:=CodePageDetector.DetectedCodePage;
-CodePageDetector.Done;
-end;
-{ Flash <<< }
-
 function  TFileViewer.ReadFile;
- var I, J: Integer;
-     P: Pointer;
+ var
+     I: Integer;
+     CodePageDetector: TCodePageDetector;
      Macros: PCollection;
+     X: Byte;   { Flash 24-01-2004 }
      Nm: String; {John_SW 14-09-2002}
      Xt: String; {John_SW 14-09-2002}
      S: String; { Flash 24-01-2004 }
-     X: Byte;   { Flash 24-01-2004 }
 begin
   ReadFile:=true;
   WriteModify;
@@ -1333,16 +1287,6 @@ begin
   IsValid := True;
   FileName := FName;
   VFileName := VFName;
-  if KeyMap=kmNone then begin
-   { Flash <<< }
-   if UpStrg(DefCodePage) = 'DOS' then KeyMap:=kmAscii else
-   if UpStrg(DefCodePage) = 'WIN' then KeyMap:=kmAnsi  else
-   if UpStrg(DefCodePage) = 'KOI' then KeyMap:=kmKoi8r else
-   if UpStrg(DefCodePage) = 'AUTO' then KeyMap:=DetectKeyMap else
-   KeyMap:=kmAscii;
-   { Flash >>> }
-   if not UseXLat then SetXlatFile('', False);
-  end;
   if NewStream then
    begin
     if Fl <> nil then Dispose(Fl,Done); Fl:=nil;
@@ -1368,6 +1312,17 @@ begin
   S:=GetName(VFileName);
   X:=Pos(':',S); if X > 0 then S:=Copy(S,X+1,Length(S)-X);
   if UpStrg(S) <> UpStrg(GetName(FileName)) then Filtr:=True else Filtr:=False;
+  { Flash  8.02.2005 >>> }
+  KeyMap := ProcessDefCodepage(DefCodePageView);;
+   if KeyMap = kmNone then
+     begin
+       CodePageDetector.Init;
+       CodePageDetector.CheckString(PChar(Buf), BufSize);
+       KeyMap := CodePageDetector.DetectedCodePage;
+     end;
+   if not UseXLat then
+     SetXlatFile('', False);
+  { Flash  8.02.2005 <<< }
 end;
 
 procedure TFileViewer.SetState;
@@ -1408,30 +1363,27 @@ begin
 end;
 
 procedure TFileViewer.Seek;
+var hbf:word;
 begin
  if (Buf = nil) or (Fl = nil) then Exit;
  FileSize := Fl^.GetSize;
  WriteModify;
  if APos < 0 then APos := 0;
- FilePos := APos;
- if FilePos < 0 then FilePos := 0;
- if FilePos = 0 then
-  begin
+ if APos > FileSize then APos := FileSize; { <= Persistor, Mar 2005}
+ if APos = 0 then begin
    if Buf <> nil then FreeMem(Buf, BufSize);
    AdjustBufSize;
    GetMem(Buf, BufSize);
    if Buf = nil then Exit;
-  end;
- if APos + BufSize >= FileSize then FilePos := FileSize - BufSize;
+ end;
+ {   Persistor, Mar 2005   }
+ hbf:=bufsize div 2;
+ if APos<hbf then FilePos:=0
+ else if APos+hbf>=FileSize then FilePos := FileSize - BufSize
+ else FilePos:=APos-hbf;
+ {   Persistor, Mar 2005   }
+ BufPos := APos - FilePos;
  Fl^.Seek(FilePos);
- if (FileSize-FilePos < BufSize) then
-  begin
-   FreeMem(Buf, BufSize); BufSize := FileSize-FilePos;
-   if BufSize < 0 then BufSize := 0;
-   Buf := MemAlloc(BufSize); if Buf = nil then Exit;
-  end;
- BufPos := APos - FilePos; if BufPos < 0 then BufPos := 0;
- if BufPos > BufSize then BufPos := BufSize - 1;
  Fl^.Read(Buf^, BufSize);
  MakeLines;
  MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
@@ -1513,12 +1465,13 @@ begin
 end;
 
  procedure TFileViewer.SaveToFile(FN: String);
-   var S: TDosStream;
-       P: PView;
+   var
        W, L: Word;
        PS: Pointer;
-       Xl: Boolean;
        Sz: LongInt;
+       P: PView;
+       Xl: Boolean;
+       S: TDosStream;
 
    label 1, 2;
 
@@ -1574,14 +1527,13 @@ end;
 
 procedure TFileViewer.HandleEvent;
 
- var P: TPoint;
-     LR: Integer;
-     I: Integer;
+ var
+     I, X, LR: Integer;
      LLR,LFR: LongInt;
-     F: lFile;
+     P: TPoint;
      Ch: Char;
      Lin: Byte;
-     X: Integer;
+     F: lFile;
      T: String;
 
  procedure CE; begin ClearEvent(Event) end;
@@ -1604,13 +1556,13 @@ procedure TFileViewer.HandleEvent;
   if Lines[Cur.Y].Pos < 0 then Exit;
   I := (FilePos+BufPos) mod 16;
   Owner^.Lock;
-  Seek(FileSize - BufSize); BufPos := BufSize;
+  Seek(FileSize);
   if ViewMode = vmHex then
       While (FilePos+BufPos) mod 16 <> I do Inc(BufPos);
  {AK155: Зачем качать на 3 строки туда-сюда, непонятно. Для глюков?
   CountUp(Size.Y+3);
   CountDown(3);}
-  CountUp(Size.Y); {AK155}
+  CountUp(Size.Y-1); {AK155}
   MakeLines;
   case ViewMode of
    vmHex: begin
@@ -1642,8 +1594,8 @@ procedure TFileViewer.HandleEvent;
  begin
   if (SearchString.What = '') then Exit;
   if SearchX < 0 then SearchX := 0;
-  if (SearchX < FilePos + Lines[0].Pos) or
-     (SearchX > FilePos + Lines[1].Pos+1)
+  if (SearchX < FilePos + Lines[0].Pos) {or
+     (SearchX > FilePos + Lines[1].Pos+1)} {AK155}
      then SearchX := FilePos+BufPos;
   NullXLAT(BXL);
   for i:=255 downto 1 do BXL[XLAT[Char(I)]] := Char(I);
@@ -1698,13 +1650,10 @@ procedure TFileViewer.HandleEvent;
  end;
 
  procedure StartSearch;
-  var D: PDialog;
-      SR: TViewSearch;
-      R: TRect;
-      {P: PView;}
-      PP: PInputLine;
+  var
       I: Integer;
-
+      D: PDialog;
+      SR: TViewSearch;
  begin
   if LowMemory then Exit;
 
@@ -1729,9 +1678,10 @@ procedure TFileViewer.HandleEvent;
  end;
 
  procedure LoadXlatTable;  {JO}
-   var FN: String;
+   var
        More: Boolean;
        None: Boolean;
+       FN: String;
        OldFN: String; {JOHN_SW}
  begin
    CE;
@@ -1760,9 +1710,7 @@ procedure TFileViewer.HandleEvent;
 
  procedure NextXLat;
  begin
-  if KeyMap=kmAscii then KeyMap:=kmAnsi  else
-   if KeyMap=kmAnsi  then KeyMap:=kmKoi8r else
-    KeyMap:=kmAscii;
+  KeyMap := RollKeyMap[KeyMap]; { Flash  8.02.2005 }
   SetXlatFile('', True);
  end;
 
@@ -1897,7 +1845,7 @@ DoSave:
                            {$ENDIF}
                                while ((LFR mod HexPos) <>
                                 ((BufPos+FilePos) mod HexPos)) and (LFR > 0) do
-                                  begin Dec(LFR); Inc(Cur.X,2); end;
+                                  begin Dec(LFR); Inc(Cur.X,(1 + Byte(HexEdit))); end;
                            {$IFDEF DisAsm}
                               end
                              else Cur.X := 10;
@@ -2292,14 +2240,13 @@ end;
 
         {-DataCompBoy-}
 procedure TFileViewer.SetXlatFile;
-  var Dr: String;
-      Nm: String;
-      Xt: String;
+  var
+      I,J: Integer;
       S: TDosStream;
       Table: Array [1..256] of Record A, B: Char end;
-      C, CC: Char;
-      I,J: Integer;
-{      PC: PChar;}
+      Dr: String;
+      Nm: String;
+      Xt: String;
 begin
   UseXLat:=False;
   if aFName <> '' then
@@ -2330,10 +2277,7 @@ end;
 procedure TFileViewer.DoHighlite
           ( var B; const S : String; const Attr : string );
 var
-  i : Integer;
-  j : Integer;
-  k : Integer;
-  l : Integer;
+  i, j, k, l : Integer;
   c : Char;
 begin
   i := XDelta+1;
@@ -2423,8 +2367,6 @@ end;
 
 procedure TFileViewer.CountUp;
  var I, J: LongInt;
-     FP: LongInt;
-     OBP: Word;
      a : Word;
 {$IFDEF DisAsm}
      D: XchgData; {GRM!}
@@ -2434,7 +2376,6 @@ procedure TFileViewer.CountUp;
 
  procedure ScrollUp;
   var I, D, K, E: Longint;
-      P: Pointer;
       MaxX: Integer;
       TSt: Integer;
  begin
@@ -2486,13 +2427,12 @@ procedure TFileViewer.CountUp;
 begin
  if Buf = nil then Exit;
  if BufPos > 65000 then begin BufPos := 0; MakeLines; end;
-1:
- J := BufPos; if (J < 0) and (FilePos <= 0) then Exit;
 {$IFDEF DisAsm}
  D.MemBuff:=Buf; {GRM!}
  D.Offset:=BufPos; {GRM!}
 {$ENDIF}
  for I := 1 to ANumber do begin
+1: J := BufPos; if (J < 0) and (FilePos <= 0) then Exit;
   {GRM!}
   case ViewMode of
    vmText: ScrollUp;
@@ -2511,21 +2451,10 @@ begin
                    if BufPos > 0 then begin BufPos := 0; MakeLines end;
                    BufPos := 0; DrawView; Exit
                   end
-                 else
-                  begin
-                   FP := FilePos;
-                   I := BufSize div 2;
-                   if FilePos+BufPos < I then begin I := FP; FP := 0; end
-                                         else FP := FP - I;
-                   BufPos := BufPos + I;
-                   OBP := BufPos;
-                   FL^.Seek(FP);
-                   Fl^.Read(Buf^, BufSize);
-                   BufPos := OBP;
-                   FilePos := FP;
-                   MakeLines;
-                   Goto 1;
-                  end
+                 else begin
+                       seek(FilePos+BufPos);
+                       Goto 1;
+                      end
            else BufPos := J;
   System.Move(Lines[0], Lines[1], (MaxLines - 1) * sizeof(Lines[0]));
   Lines[0].Pos := J;

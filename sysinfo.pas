@@ -57,6 +57,9 @@
 //  dn3323-HDD_in_sysinfo.patch
 //
 //  3.7.0
+//  dn40900-HDD_detection_fix.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -185,6 +188,7 @@ end;
 
 
 BEGIN
+ NumSect := 0;
  Case N of
   1 : HDDint := $46
  else HDDint := $41

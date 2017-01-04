@@ -66,6 +66,10 @@
 ::  dn370-version_upgrade.patch
 ::
 ::  4.9.0
+::  dn50308-polish_resources.patch
+::  dn40900-version_upgrade.patch
+::
+::  5.9.0
 ::
 :://///////////////////////////////////////////////////////////////////////
 @echo off
@@ -102,7 +106,7 @@ if .%1.==.. builddn asm help resource nolite
 
 set prg_packer=%real_packer%
 
-set dn_version=4.9.0
+set dn_version=5.9.0
 set diz_title=Real Mode Binary Package
 
 :Loop
@@ -218,6 +222,10 @@ copy exe\english.hlp %outpath% >nul
 exe\tvhc resource\russian\dnhelp.htx exe\RUSSIAN.HLP dnhelp.pas /4DN_OSP
 if errorlevel 1 goto Quit
 copy exe\russian.hlp %outpath% >nul
+
+exe\tvhc resource\polish\dnhelp.htx exe\POLISH.HLP dnhelp.pas /4DN_OSP
+if errorlevel 1 goto Quit
+copy exe\polish.hlp %outpath% >nul
 
 exe\tvhc resource\hungary\dnhelp.htx exe\HUNGARY.HLP dnhelp.pas /4DN_OSP
 if errorlevel 1 goto Quit

@@ -60,9 +60,13 @@
   Алексей Фролов (Sir Raorn) <2:5020/1437.4>
   Денис Шамов <2:5057/40; dshamov at hippo.ru>
   Лев Шумский (WildCat) <2:5042/7.45; Wildcat at tsl.ru>
+  Persistor <persistor at yandex.ru>
 
 Локализация для Венгрии:
   MВszаros Csaba (csablak) <csablak at freemail.hu>
+
+Локализация для Польши:
+  Figo Fago <figafago at poczta.pf.pl>
 
 Команда Dos Navigator II:
   Стефан Танурков

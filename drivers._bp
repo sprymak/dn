@@ -57,6 +57,9 @@
 //  dn370-clock(i)-disable_seconds_in_winnt.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -485,8 +488,8 @@ end;
 
 procedure GetKeyEvent;
 Var
-   B: TDrawBuffer;
    C: Byte;
+   B: TDrawBuffer;
    MemStr: String;
 begin
   ShiftState:=mem[Seg0040:$17];

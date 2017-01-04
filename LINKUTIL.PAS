@@ -57,6 +57,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -249,8 +252,8 @@ function CL_Abort; begin CL_Abort := not CL_OK end;
         {-DataCompBoy-}
 function CL_FillFileNfo;
 var
-  sr: lSearchRec;
   er: Word;
+  sr: lSearchRec;
 begin
   FillChar(ANfo, SizeOf(ANfo), 0); ClrIO;
   if Abrt then NeedAbort := True;
@@ -405,10 +408,10 @@ begin CL_FreeToFSend := CL_QueueFree(CL_NormBackOutBuf, 3) end;
 
 function TCL_SlaveFileSend.Next;
 var
-  Left: Boolean;
-  P: PByteArray;
   L: LongInt;
   gms: Word;
+  P: PByteArray;
+  Left: Boolean;
 begin
 
   {$IFDEF CL_LOG}CL_WLog(' ~   Next');{$ENDIF}
@@ -604,8 +607,8 @@ end;
 
 function GetDriveSet: LongInt;
 var
-  C: Char;
   L: LongInt;
+  C: Char;
 begin
   for C := 'A' to 'Z' do begin L := L shl 1; if ValidDrive(C) then Inc(L) end;
   GetDriveSet := L;
@@ -631,10 +634,10 @@ end;
 
 function  CL_UnpackStr(const AP; l: Byte): string;
 var
+  P : TByteArray absolute AP;
+  c : byte;
   s : string;
   sl: byte absolute s;
-  c : byte;
-  P : TByteArray absolute AP;
 begin
   sl := 0;
   while sl<l do
@@ -668,16 +671,13 @@ end;
         {-DataCompBoy-}
 procedure CL_PostDirEntries;
 var
-
-  I,JJ,KK : Integer;
+  TFiles: Word;
+  pf, sm, I, JJ, KK : Integer;
+  TotalLen: TSize;
   CurRec: TCL_DirEntry;
   T : PByteArray;
   Pfx: TCL_DirPrefix;
   Files: PFilesCollection;
-
-  TotalLen: TSize;
-  TFiles: Word;
-  pf, sm: Integer;
   FR: PFileRec;
   st: string;
 begin
@@ -845,8 +845,8 @@ end;
 
 procedure CL_PostDirNfo;
 var
-  P: PCL_DirNfo;
   BS: Word;
+  P: PCL_DirNfo;
 begin
  {$IFDEF NLSLAVE} SlaveInfo('Get dirinfo '+ADir); {$ENDIF}
   P := NewCL_DirNfo(0, BS); ReadDirNfo(ADir, P^);
@@ -872,9 +872,9 @@ end;
         {-DataCompBoy-}
 procedure CL_EraseFile(const AFile: string);
 var
-  F: lfile;
   err: Word;
   att: Word;
+  F: lfile;
 begin
  {$IFDEF NLSLAVE} SlaveInfo('Erase file '+AFile); {$ENDIF}
   NeedAbort := True;  Abort := False;
@@ -922,9 +922,9 @@ end;
         {-DataCompBoy-}
 function EraseLocalDir(ADir: string; var Err: Word): Boolean;
 var
-  SR: lSearchRec;
   Att: Byte;
   ok: Boolean;
+  SR: lSearchRec;
 begin
   if Length(ADir) > 68 then Exit;
   ok := True;
@@ -966,13 +966,14 @@ end;
 
         {-DataCompBoy-}
 procedure CL_MakeDirectory(const ADir: string);
- var S,S1: String;
+ var
+     I: Integer;
+     B: Byte;
+     j: boolean;
+     S,S1: String;
      Dr: String;
      Nm: String;
      XT: String;
-     B: Byte;
-     I: Integer;
-     j: boolean;
 begin
  {$IFDEF NLSLAVE} SlaveInfo('Make dir '+ADir); {$ENDIF}
 

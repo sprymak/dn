@@ -90,6 +90,11 @@
 //  dn40328-7Zip.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn50221-arcreader_fix.patch
+//  dn40900-temp_drive_in_directories_history.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -296,7 +301,7 @@ begin
  TempFile := '';
  Password := '';
  lChDir(Q);
- AddToDirectoryHistory(ArcName+':'+CurDir, integer(DriveType));
+ AddToDirectoryHistory(ArcName+':'+CurDir, DriveType);
 end;
         {-DataCompBoy-}
 
@@ -401,13 +406,12 @@ end;
 
         {-DataCompBoy-}
 Function TArcDrive.ReadArchive;
-var PF : PArcFile;
+var
+    Ln : LongInt;
     P  : PWhileView;
     R  : TRect;
-    Ln : LongInt;
-    Cancel: Boolean;
     T: TEventTimer;
-    olf: String;
+    Cancel: Boolean;
 begin
  ReadArchive:=False;
  New(ArcFile,Init(ArcName, stOpenRead, 512));
@@ -454,25 +458,20 @@ begin
   if FileInfo.Last=0 then
      begin
       Replace('/', '\', FileInfo.FName);
-{piwamoto: it willn't work due to bugs in FName processing in flpanelx
-      if (FileInfo.FName[1] = '.') and (FileInfo.FName[2] = '\') then
-        begin
-(*         System.Delete(FileInfo.FName,1,2); *)
-         Files^.AddFile('\.\..', '\.\..', 0, 0, FileInfo.Date, 0);
-        end;
-}
       if FileInfo.FName[1] <> '\' then FileInfo.FName := '\' + FileInfo.FName;
-      if FileInfo.Attr and Directory <> 0 then FileInfo.FName := FileInfo.FName + '\';
-      olf := FileInfo.FName;
-      Replace('\.','\',FileInfo.FName);
-      UpStr(FileInfo.FName);
+      if FileInfo.FName[length(FileInfo.FName)] = '\' then
+        begin
+          FileInfo.Attr := FileInfo.Attr or Directory;
+          Dec(FileInfo.FName[0]);
+        end;
 {attribute "Hidden" means "with password"}
-      Files^.AddFile(olf,  FileInfo.FName, FileInfo.USize,
-                     FileInfo.PSize,FileInfo.Date,  FileInfo.Attr);
-      if (FileInfo.Attr and Directory<>0) or (olf[length(olf)]='\') then
-       Files^.AddFile(MakeNormName(olf,'..'),  MakeNormName(FileInfo.FName, '..'),
-                      FileInfo.USize,FileInfo.PSize,FileInfo.Date, 0);
-      if (P <> nil) and  TimerExpired(T) then
+      Files^.AddFile(FileInfo.FName, FileInfo.FName, FileInfo.USize,
+                     FileInfo.PSize, FileInfo.Date, FileInfo.Attr);
+      if FileInfo.Attr and Directory <> 0 then
+        Files^.AddFile(MakeNormName(FileInfo.FName, '..'),
+                       MakeNormName(FileInfo.FName, '..'),
+                       FileInfo.USize, FileInfo.PSize, FileInfo.Date, 0);
+      if (P <> nil) and TimerExpired(T) then
         begin
           DispatchEvents(P, Cancel);
           if Cancel then begin StdMsg(5);FileInfo.Last:=1; end;
@@ -516,7 +515,7 @@ begin
  if CurDir[Length(CurDir)] = '\' then Dec(CurDir[0]);
  if CurDir[1]<>'\' then CurDir:='\'+CurDir;
  CheckSlashDot(CurDir);
- AddToDirectoryHistory(ArcName+':'+CurDir, integer(DriveType));
+ AddToDirectoryHistory(ArcName+':'+CurDir, DriveType);
 end;
         {-DataCompBoy-}
 
@@ -564,7 +563,8 @@ begin
     _PSize := Files^.CurFile.CSize;
     if (UpStrg(CurDir + '\') = UpStrg(Files^.LastDir)) and
        (AllFiles or InFilter(Files^.CurFile.LFN, FileMask)
-                 or InFilter(Files^.CurFile.Name, FileMask)) then
+{piwamoto: .LFN = .Name in archive}
+{                 or InFilter(Files^.CurFile.Name, FileMask)}) then
       begin
         if Files^.CurFile.Name = '' then Continue;
         if Files^.CurFile.Name = '..' then Continue;
@@ -646,7 +646,6 @@ begin
     cmIntFileView: C := '-';
     else C := '+';
    end;
-   {if not CheckPassword(AF) then Exit;}
    S := ' ';
    if P^.Attr and Hidden <> 0 then
     begin
@@ -746,12 +745,12 @@ end;
 
         {-DataCompBoy-}
 function TArcDrive.MakeListFile;
- var F: lText;
-     PF: PFileRec;
-     PA: PArcFile;
+ var
      I: Integer;
-     S, S1: String;
+     PF: PFileRec;
      B: Boolean;
+     F: lText;
+     S, S1: String;
 
   function GetArcOwn(S: String): String;
   begin
@@ -822,20 +821,17 @@ end;
         {-DataCompBoy-}
 procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
                                   Own: PView; Options: Byte);
- var SS, S: String;
-     DT: Record S: String; W: Word; Psw: String[30]; end;
+ var
+     FC: PFilesCollection;
+     Pswd: Boolean;
+     I: Byte;
+     F1: lText;
+     SS, S: String;
      ExtrChar: String;
      Nm: String;
      Xt: String;
-     Pswd: Boolean;
-     I: Byte;
      NewArc: String;
-     FC: PFilesCollection;
-     FD: PFileRec;
-     TotalLen: TSize;
-     TFiles: Word;
      BFile: String;
-     F1: lText;
      FDir,DirToChange: String;
 
  procedure UnSelect(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
@@ -1109,10 +1105,10 @@ end;
 
 procedure TArcDrive.GetFull;
 var
-  S1: String[40];
   X: AWord; LS: Byte;
   NFM: TNameFormatMode;
   OPT,CO : Word;
+  S1: String[40];
   S, Ext: String;
   label Longer250, Longer250_1;
 begin

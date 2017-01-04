@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -75,7 +78,6 @@ CONST
 Function EMSPresent: Boolean;
 function XMSFree: Word;
 Function EMSFreePages: Word;
-FUNCTION ExistUMBmem: Boolean;
 
 procedure InitExtraMem;
 
@@ -138,65 +140,16 @@ function xms_MaxAvail : Longint;
 
 IMPLEMENTATION uses Commands, Startup{$IFDEF DPMI}, Dpmi{$ENDIF};
 
-function ExistUMBmem: Boolean;
-{$IFDEF VIRTUALPASCAL} Begin ExistUMBmem:=False end; {$ELSE}
-{$IFNDEF DPMI}
-assembler;
-{ Attempts to allocate an impossibly large UMB.  On failure ax     }
-{ contains 0, bl indicates UMB's unimplemented if $80, or $bx      }
-{ on other error.  No provision made for success here. Impossible  }
-{ to succeed.  Note that the UMB manager doesn't necessarily depend}
-{ on existence of XMS manager, but if there is no control call     }
-{ vector there is no way to call this UMB function.                }
-asm
-  xor  dx,dx              { Default to False }
-  xor  al,al              { Return FALSE by default }
-  cmp  XMSFound,dl        { If NO XMS driver }
-  jz   @exit              { then exit }
-  dec  dx                 { attempt alloc 0FFFFh }
-  mov  ax,1000h           { impossible large block of UMB's }
-  Call [XMSControl]       { through driver }
-  cmp  bl,0AEh            { BUT all UMB's used up }
-  xor  al,al              { Return FALSE by default }
-  jb   @exit              { then exit, else }
-  mov  al,1               { return True }
-@exit:
-end;
-{$ELSE}
-var
-  R: DPMIRegisters;
-begin
-  ExistUMBmem:=False;
-  if not XMSFound then Exit;
-  FillChar(R, SizeOf(R), #0);
-  R.BX:=0;
-  R.DX:=$FFFF; R.AX:=$1000;
-  R.IP:=PtrRec(XMSControl).Ofs;
-  R.CS:=PtrRec(XMSControl).Seg;
-  CallFarRealModeProc(0,nil,R);
-  if R.BL>$AD then ExistUMBmem:=True;
-end;
-{$ENDIF} {$ENDIF VP}
-
-
 function EMSPresent: Boolean;
 {$IFDEF VIRTUALPASCAL} Begin EMSPresent:=False end; {$ELSE}
 {$IFNDEF DPMI}
 assembler;
 asm
- xor ax, ax
- mov byte ptr @Res, al
- jmp @@1
-@EMSName:
- db  'EMMXXXX0',0
-@Res: db 0
-@@1:
  push ds
  push cs
  pop  ds
  lea  dx, @EMSName
- xor  al, al
- mov  ah, 3dH
+ mov  ax, 3d00H
  int  21H
  pop  ds
  jc   @Exit
@@ -221,10 +174,12 @@ asm
  or   ah, ah
  jnz  @Exit
  mov  al, 1
- mov  byte ptr @Res, al
+ jmp  @Exit1
+@EMSName:
+ db  'EMMXXXX0',0
 @Exit:
- xor ah, ah
- mov al, byte ptr @Res
+ xor ax, ax
+@Exit1:
 end;
 {$ELSE}
 var

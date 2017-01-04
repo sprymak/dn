@@ -57,6 +57,9 @@
 //  dn40328-7Zip.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -234,8 +237,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
            DelLeft(S);
            DT.Month := StoI(Copy(S,1,2));
            DT.Day := StoI(Copy(S,4,2));
-           I := StoI('19'+fDelRight(Copy(S,7,3)));
-           if I < 1980 then I := I + 100;
+           I := 1900 + StoI(fDelRight(Copy(S,7,3)));
            DT.Year := I;
            I := PosChar(' ', S);
            Delete (S, 1, I);

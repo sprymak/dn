@@ -54,6 +54,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -130,10 +133,10 @@ type
 
 
 function Token(const S: String; var Pos: LongInt): String;
-  var A: String;
-      B, Cmd: Boolean;
-      M: String;
+  var
       J: Integer;
+      B, Cmd: Boolean;
+      A, M: String;
 begin
    Token := ''; A := ''; B := False; Cmd := False;
    while (S[Pos] = ' ') and (Length(S) >= Pos) do Inc(Pos);
@@ -190,7 +193,6 @@ constructor TEditMacros.Init;
   var
       I,J: LongInt;
       IDs: PIDCollection;
-      Error: Boolean;
 
    function GetId(const S: String): LongInt;
      var T: TLngWord;
@@ -596,18 +598,20 @@ end;
 
 
 procedure EditDOSEvironment;
-var D: PDialog;
+var
+    I: Integer;
+    D: PDialog;
     P: PView;
     R: TRect;
     PC: PCollection;
-    I: Integer;
 
    procedure MakeDialog;
    var
      R: TRect;
-     Control, Labl, Histry : PView;
+     Control, Labl: PView;
      PL: PVarList;
      PI: PInputLine;
+
      function IsInputLine( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
      begin
        IsInputLine := TypeOf( P^ ) = TypeOf( TInputLine )

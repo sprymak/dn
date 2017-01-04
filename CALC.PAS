@@ -81,6 +81,9 @@
 //  dn31220-Kernel(i)-DN_changes_language_immediately.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -94,8 +97,6 @@ uses Advance, Objects, Views, CellsCol, Drivers, Dialogs, Messages, Menus,
 const
      CellClipboard : PCellCollection = nil;
      ClipRect      : record A, B: TPoint; end = (A:(X:0; Y:0); B:(X:0; Y:0));
-     FalseStr      : String[10] = 'False';
-     TrueStr       : String[10] = 'True';
 
 type
     PCalcView = ^TCalcView;
@@ -271,6 +272,8 @@ const  WasReplace: Boolean = False;
        SearchCanceled: Boolean = False;
        CurCalcView: PCalcView = nil;
        ReplaceAll: Boolean = False; {John_SW}
+       FalseStr      : String[10] = 'False';
+       TrueStr       : String[10] = 'True';
 
 Procedure Exchange(Var A,B: Integer);Var C: Integer; Begin C:=A;A:=B;B:=C;End;
 
@@ -283,10 +286,11 @@ end;
 
         {-DataCompBoy-}
 function GetFileName(var FileName: String; Mask, Title, ALabel: String; Buttons: Word): Word;
- var S: String;
+ var
+     C: Word;
      D: PFileDialog;
      B: Boolean;
-     C: Word;
+     S: String;
 begin
  S := ''; B := False; if Mask = '' then begin Mask := x_x; B := False end;
  D := PFileDialog(Application^.ValidView(New(PFileDialog,
@@ -303,11 +307,9 @@ end;
 
 function ContainCell(Cell, Formula: String): Boolean;
  var I, J: Integer;
-     FR, T: String;
      FRX, CX, TX: byte;
      FRY, CY, TY: integer;
 {--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
-     SignOp: String[1];
      DelimPos: Byte;
      FirstOp,SecondOp: String;
 {--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
@@ -521,10 +523,11 @@ end;
 procedure TCalcInfo.HandleEvent;
 
  function EndEdit: Boolean;
-  label 1,2;
-  var S, S1: String;
-      R: CReal;
+  label 1;
+  var
       I: Integer;
+      R: CReal;
+      S, S1: String;
  begin
   GetData(S); EndEdit := True;
   If S = OldValue Then Exit; {John_SW: removed waste calculation}
@@ -731,23 +734,19 @@ procedure TCalcView.Draw;
  const Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
  var
+     I, J, K, L: Integer;
+     X1, X2, Y1, Y2: Integer;
+     P: PCellRec;
+     CurPos: TPoint;
+     C1, C2, C3: Byte;
+     StX, EnX, A1, A2 : Byte;
      B, B1: TDrawBuffer;
      BC: Array [0..127] of record C: Char; A: Byte; end Absolute B;
-     I, J, K, L: Integer;
-     C1, C2, C3: Byte;
      S, S1: String;
-     P: PCellRec;
-     X1, X2, Y1, Y2: Integer;
-     CurPos: TPoint;
-     StX, EnX, A1, A2 : Byte;
-
- label 1;
-
 begin
  if BlockDraw then Exit;
  C1 := GetColor(1); C2 := GetColor(2); C3 := GetColor(3);
  if Q = nil then New(Q);
-1:
  CurPos.X := Delta.X + Cur.X; CurPos.Y := Delta.Y + Cur.Y;
  if CurPos.X > 255 then Cur.X := 255 - Delta.X;
  if CurPos.Y >= MaxCellY then Cur.Y := MaxCellY - 1 - Delta.Y;
@@ -903,13 +902,11 @@ type
   PColTypeAndLengthArray = ^TColTypeAndLengthArray;
   TColTypeAndLengthArray = array[0..255] of TColTypeAndLengthRec; {KV}
 
- var Inf: PCalcInfo;
-     S: String;
+ var
      St: PStream;
-     MaxX, MaxY, K, L: Integer;
      P: PCellRec;
-     FName: String;
-     X1, X2, Y1, Y2: Integer;
+     MaxX, MaxY, K, L, X1, X2, Y1, Y2: Integer;
+     S, FName: String;
 
   procedure kvCalcFieldTypeAndLength(var TypeLenArr : TColTypeAndLengthArray);
   var
@@ -1020,11 +1017,11 @@ type
 
   procedure ImportFromCsv; {KV}
   var
-    ColSeparator : char;
-    F : lText;
     i, CurCol, CurRow, StartCh, EndCh : integer;
     P : PCellRec;
     R : CReal;
+    ColSeparator : char;
+    F : lText;
     S, FileName, CellValue : string;
   begin
     if Cells^.Count > 0 then begin
@@ -1091,12 +1088,11 @@ type
 
   procedure ImportFromDbf; {KV}
   var
+    i : integer;
     S : TDbaseWriter;
     FileName : FNameStr;
-    CellValue : string;
     P : PCellRec;
-    R : CReal;
-    i : integer;
+    CellValue : string;
   begin
     if Cells^.Count > 0 then begin
       if MessageBox(GetString(dlWkzWarningClear),nil,
@@ -1151,12 +1147,11 @@ type
 
   procedure ExportToCsv; {KV}
   var
+    MaxCol, MaxRow, CurCol, CurRow : integer;
     PS : PString;
     ColSeparator : char;
     UseFormatFlag : boolean;
     CalcFormulaFlag : boolean;
-    F : lText;
-    MaxCol, MaxRow, CurCol, CurRow : integer;
     P : PCellRec;
     ColIndexArray : TColIndexArray;
     R : record
@@ -1164,6 +1159,7 @@ type
       ValueFormat : Word;
       FormulaFormat : Word;
     end;
+    F : lText;
     FileName : string;
   begin
     if GetFileName(FileName, '*.CSV', GetString(dlExportTitle), GetString(dlExportLabel),
@@ -1224,17 +1220,15 @@ type
   procedure ExportToDbf; {KV}
   const Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var
+    i, MaxCol, MaxRow, CurCol, CurRow : integer;
     PS : PString;
     TypeLenArr : TColTypeAndLengthArray;
-    i, MaxCol, MaxRow, CurCol, CurRow : integer;
-    DbfHeader : THeaderDbf;
     S : TDbaseWriter;
-    Buf : PByteArray;
-    TmpS : string;
-    FieldName : string;
     ColIndexArray : TColIndexArray;
     P : PCellRec;
     FileName : FNameStr;
+    TmpS : string;
+    FieldName : string;
   begin
     if GetFileName(FileName, '*.DBF', GetString(dlExportTitle), GetString(dlExportLabel),
          fdOKButton+fdHelpButton) = cmCancel then Exit;
@@ -1297,12 +1291,13 @@ type
   end;
 
  procedure ExportToText;
-  var FileName: FNameStr;
-      S1: String;
-      C: Array[0..255] of Integer;
-      P: PCellRec;
+  var
       MaxLv, Maxr, I, J, K, L, A1, A2: Integer;
+      P: PCellRec;
+      FileName: FNameStr;
       F: lText;
+      C: Array[0..255] of Integer;
+      S1: String;
  begin
    if GetFileName(FileName, x_x, GetString(dlExportTitle), GetString(dlExportLabel),
                      fdOKButton+fdHelpButton) = cmCancel then Exit;
@@ -1410,8 +1405,9 @@ type
  begin Marking := False; SetMark; DrawView; ClearEvent(Event) end;
 
  procedure ChangeFormat;
-  var R: record Display, Justify: Word; Dec: String[2]; Protect: Word; end;
+  var
       I, J, X1, Y1, X2, Y2: Integer;
+      R: record Display, Justify: Word; Dec: String[2]; Protect: Word; end;
  begin
   ClearEvent(Event);
   P := Cells^.Get(Delta.X + Cur.X, Delta.Y + Cur.Y);
@@ -1448,7 +1444,6 @@ type
  procedure CE; begin ClearEvent(Event) end;
 
 begin
- Inf := PCalcInfo(Info);
  if GetState(sfFocused) and (FocusEvent.What <> evNothing) then
    begin
     PutEvent(Event); Event := FocusEvent; FocusEvent.What := evNothing;
@@ -1650,11 +1645,12 @@ end;
         {-DataCompBoy-}
 
 function TCalcView.GetCellValue( S : String; var Value: CReal) : boolean;
- var X: Byte;
+ var
      Y, I: Integer;
-     P: PCellRec;
-     AFromX, AToX: Byte;
      AFromY, AToY: Integer;
+     AFromX, AToX: Byte;
+     X: Byte;
+     P: PCellRec;
 {--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
      SignOp: String[1];
      DelimPos: Byte;
@@ -1667,7 +1663,6 @@ function TCalcView.GetCellValue( S : String; var Value: CReal) : boolean;
  end;
 
  procedure DoCalcRange(PP: PCellRec); {$IFDEF BIT_16}far;{$ENDIF}
- Var V: CReal;
  begin
   if (PP^.Row>=AFromY) and (PP^.Row<=AToY) and
      (PP^.Col>=AFromX) and (PP^.Col<=AToX) then
@@ -1761,15 +1756,17 @@ procedure TCalcView.ModifyCell(X, Y: Integer);
 
 const MaxRec = 300;
 
-var Err: Boolean;
-    P: PCellRec;
-    Recurse: Array [1..MaxRec] of record X: Byte; Y: Integer;end;
+var
     NumRec: Integer;
+    P: PCellRec;
+    Err: Boolean;
+    Recurse: Array [1..MaxRec] of record X: Byte; Y: Integer;end;
 
  procedure Modify(AX, AY: Integer);
-  var I: Integer;
-      S: String[6];
+  var
+      I: Integer;
       R: CReal;
+      S: String[6];
  begin
   if Err or Error then Exit;
   for I := 1 to NumRec do
@@ -1851,9 +1848,10 @@ end;
 
         {-DataCompBoy-}
 procedure TCalcView.LoadSheet;
- var S: PStream;
+ var
+     I: Integer;
+     S: PStream;
      Bounds: TRect;
-     I  : Integer;
      S1 : String;
 begin
 {--- start -------- Eugeny Zvyagintzev ---- 07-08-2002 -----}
@@ -1864,9 +1862,9 @@ begin
    S1:=System.Copy(FName, 1, I-1);
    FName:=System.Copy(FName, I+1, 255);
   end;
- if FName = '' then FName := 'Untitled.WKZ'
+ if FName = '' then FName := 'UNTITLED.WKZ'
                else if GetFileAttr(FName+#0) and Directory<>0
-                     then FName := 'Untitled.WKZ'
+                     then FName := 'UNTITLED.WKZ'
                      else FName := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(lFExpand(FName));
  If I <= 0 Then S1:=FName;
  RealName:=S1;
@@ -1874,8 +1872,8 @@ begin
  GetBounds(Bounds);
  if Modified and not AskSave then Exit;
  if Cells <> nil then Dispose(Cells,Done); Cells:=nil;
- if (FName = '') or (FName = 'Untitled.WKZ') then begin
-   DisposeStr(SName); SName := NewStr('Untitled.WKZ');
+ if (FName = '') or (FName = 'UNTITLED.WKZ') then begin
+   DisposeStr(SName); SName := NewStr('UNTITLED.WKZ');
    If Owner<>nil then begin
     DisposeStr(PWindow(Owner)^.Title);
     PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
@@ -1908,7 +1906,7 @@ begin
    KillAfterUse:=False;
 {--- finish -------- Eugeny Zvyagintzev ---- 07-08-2002 -----}
    DisposeStr(SName);
-   SName := NewStr('Untitled.WKZ');
+   SName := NewStr('UNTITLED.WKZ');
    if Owner<>nil then begin
     DisposeStr(PWindow(Owner)^.Title);
     PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
@@ -1967,7 +1965,7 @@ end;
 procedure TCalcView.SaveSheet;
  var S: PStream;
 begin
- if SName^ = 'Untitled.WKZ' then begin SaveSheetAs; Exit end;
+ if SName^ = 'UNTITLED.WKZ' then begin SaveSheetAs; Exit end;
  {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
  S := New(PBufStream, Init(SName^, stCreate, 2048));
  S^.Write(CellWidth, Sizeof(CellWidth));
@@ -2032,9 +2030,10 @@ procedure TCalcView.Paste;
   const Signs = [';','[',']','{','}',#39,':','"','.','<',
                  '>',',','/','?','\','-','=','|','_','(',
                  ')','*','&','^','%','$','!','~','+', ' '];
-  var S, S1: String;
-      X, X1: Byte;
-      I, Y, Y1: Integer;
+  var
+      I, Y: Integer;
+      X: Byte;
+      S, S1: String;
  begin
   if (P^.Options and coFormula) <> 0 then
    begin
@@ -2090,18 +2089,19 @@ begin
 end;
 
 procedure TCalcView.InsertLineCol;
- var I, J, L: Integer;
-     P: PCellRec;
-     O, D: Integer;
+ var
+     I, L, O, D: Integer;
      V: CReal;
+     P: PCellRec;
 
 procedure RewriteFormula;
  const Signs = [';','[',']','{','}',#39,':','"','.','<', ' ',
                 '>',',','/','?','\','-','=','|','_','(',
                 ')','*','&','^','%','$',' ','!','~','+'];
- var S, S1 : String;
-     X: Byte;
+ var
      I, Y: Integer;
+     X: Byte;
+     S, S1 : String;
 begin
  S := '='; I := 2;
  While (I <= Length(P^.S)) do
@@ -2146,18 +2146,19 @@ begin
 end;
 
 procedure TCalcView.DeleteLineCol;
- var I, J, L: Integer;
-     P: PCellRec;
-     O, D: Integer;
+ var
+     I, L, O, D: Integer;
      V: CReal;
+     P: PCellRec;
 
  procedure RewriteFormula;
   const Signs = [';','[',']','{','}',#39,':','"','.','<', ' ',
                  '>',',','/','?','\','-','=','|','_','(',
                  ')','*','&','^','%','$',' ','!','~','+'];
-  var S, S1 : String;
-      X: Byte;
+  var
       I, Y: Integer;
+      X: Byte;
+      S, S1 : String;
  begin
   S := '='; I := 2;
   While (I <= Length(P^.S)) do
@@ -2240,8 +2241,9 @@ begin
 end;
 
 procedure TCalcView.GotoCell;
- var X: Byte;
+ var
      Y,L: Integer;
+     X: Byte;
 begin
  if not GetCellCoord(Cell, X, Y) then
   begin
@@ -2270,8 +2272,9 @@ end;
 
 procedure TCalcView.SearchCell;
  const Signs = [#0..#128] - ['A'..'Z','a'..'z','0'..'9','_'];
- var P: PCellRec;
+ var
      I, J: Integer;
+     P: PCellRec;
      V: CReal;
      K, L: Byte;
 {--- start -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
@@ -2544,9 +2547,8 @@ end;
 
 function TDbaseWriter.FieldAsInteger(FieldIndex : integer) : integer; {KV}
 var
+  Value, i : integer;
   S : string;
-  Value : integer;
-  i : integer;
 begin
   S:=FieldAsString(FieldIndex);
   if S = '' then Value:=0
@@ -2574,13 +2576,11 @@ end;
 
 procedure TDbaseWriter.FieldPutString(FieldIndex : integer; FieldValue : string); {KV}
 var
-  P : PDBFField;
-  Buf : array[0..2047] of char;
   L : AWord;
   StrLen : integer;
+  Buf : array[0..2047] of char;
 begin
   if (FieldIndex < 1) or (FieldIndex > Fields^.Count) then Exit;
-  P:=PDBFField(Fields^.At(FieldIndex-1));
   FillChar(Buf,SizeOf(Buf),' ');
   L:=FieldLen(FieldIndex);
   if L > 2047 then L:=2047;
@@ -2599,10 +2599,10 @@ end;
 
 procedure TDbaseWriter.FieldPutInteger(FieldIndex : integer; FieldValue : integer); {KV}
 var
-  S : string;
   L : AWord;
-  D : byte;
   R : AWord;
+  D : byte;
+  S : string;
 begin
   if (FieldIndex < 1) or (FieldIndex > Fields^.Count) then Exit;
   L:=FieldLen(FieldIndex);

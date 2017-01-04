@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -61,7 +64,6 @@ uses advance, advance1, advance2, advance3, Objects, DNApp, Views, Drivers,
 
 const boundsASCII: TPoint = (X:0;Y:0);
       charASCII: Char = #04;
-      AsciiTableCommandBase: AWord = 910;
 
 type
   PTable = ^TTable;
@@ -96,13 +98,13 @@ uses
   Commands, DNHelp;
 
 const
-  cmCharacterFocused = 0;
+  AsciiTableCommandBase: AWord = 910;
 
 procedure TTable.Draw;
 var
-  Buf: TDrawBuffer;
   X, Y: Integer;
   Color: Byte;
+  Buf: TDrawBuffer;
 begin
   Color := GetColor(6);
   for Y := 0 to Size.Y - 1 do
@@ -154,7 +156,7 @@ var
 
 procedure CharFocused;
 begin
-  MessageL(Owner, evBroadcast, AsciiTableCommandBase + cmCharacterFocused,
+  MessageL(Owner, evBroadcast, AsciiTableCommandBase,
     Cursor.X + 32 * Cursor.Y);
 end;
 
@@ -241,7 +243,7 @@ var
 begin
   TView.HandleEvent(Event);
   if Event.What = evBroadcast then
-    if Event.Command = AsciiTableCommandBase + cmCharacterFocused then
+    if Event.Command = AsciiTableCommandBase then
     begin
       ASCIIChar := Event.InfoLong;
       DrawView;
@@ -267,7 +269,7 @@ end;
 procedure TTable.SetData;
 begin
  SetCursor(Byte(Data) mod 32, Byte(Data) div 32);
-  MessageL(Owner, evBroadcast, AsciiTableCommandBase + cmCharacterFocused,
+  MessageL(Owner, evBroadcast, AsciiTableCommandBase,
     Cursor.X + 32 * Cursor.Y);
  Owner^.ReDraw;
 end;

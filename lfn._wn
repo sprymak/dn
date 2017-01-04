@@ -53,6 +53,9 @@
 //  dn3323-RewriteFile(f)-rewrite_under_Windows_XP_on_Nowell_drive_fix.patch
 //
 //  3.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -296,8 +299,11 @@ begin
   with Regs do
   begin
     AX    := $7160;
+{
     CL    := 0;
     CH    := $00;
+}
+    CX    := 0;
     DS    := Seg(NameZ);
     SI    := Ofs(NameZ);
     ES    := Seg(GetNameZ);
@@ -539,7 +545,7 @@ begin
   begin
     AX    := $7143;
     BL    := Action;
-    if Action = faSetAttr then CX := Attr;
+    {if Action = faSetAttr then }CX := Attr;
     DS    := Seg(F.FullName);
     DX    := Ofs(F.FullName);
     Flags := fCarry;
@@ -562,7 +568,7 @@ begin
   begin
     AX    := $7143;
     BL    := Action;
-    if Action = faSetAttr then CX := Attr;
+    {if Action = faSetAttr then }CX := Attr;
     DS    := Seg(T.FullName);
     DX    := Ofs(T.FullName);
     Flags := fCarry;
@@ -709,9 +715,9 @@ AX = error code
 
 Function lWIN95FileSize(F: lFile): TSize;
 Var
-  FileInfo: lFileInfoDataRec;
   R: TSize;
   Regs: Registers;
+  FileInfo: lFileInfoDataRec;
 Begin
  With Regs Do
   Begin

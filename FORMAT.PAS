@@ -54,6 +54,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -131,13 +134,8 @@
 const   StdTracks : array [1..5] of byte = (40,80,80,80,80);
         StdSect   : array [1..5] of byte = ( 9,10,15,18,36);
 
-        (*
-        Old8      :   Pointer = Nil;
-        In13      :   boolean = False ;
-        *)
 
  type
-{        erAction = (cmCancel,cmOk);}
 
         Barray = array [0..$F000] of byte;
         pBArray = ^BArray;
@@ -205,12 +203,6 @@ const   StdTracks : array [1..5] of byte = (40,80,80,80,80);
        end;
 
       TrackDescriptors = array [1..40,1..4] of byte;
-      {
-        c01,h01,n01,s01  : byte;
-        sh000            : array [0..$1FF] of byte;
-       end;
-      }
-
 
       DirEntrie  =  record
           FileName      :     array [0..10] of byte;
@@ -325,9 +317,6 @@ const   StdTracks : array [1..5] of byte = (40,80,80,80,80);
                FatSeg       :   Word    ;
                {$ENDIF}
                FATsize      :   word    ;
-             {
-               FAT          :   array [0..$11F] of byte;
-             }
 
                {_______System Files_____}
 
@@ -346,15 +335,7 @@ const   StdTracks : array [1..5] of byte = (40,80,80,80,80);
                procedure   SetData ;virtual;
                procedure   SetAdditionalData ;virtual;
 
-               (*
-               procedure   set360k;
-               procedure   set720k;
-               procedure   set12m;
-               procedure   set14m;
-               *)
-
                procedure   set28m;
-
 
                function    CheckIOError : byte;
                function    CheckErrors  : boolean;
@@ -398,11 +379,7 @@ const   StdTracks : array [1..5] of byte = (40,80,80,80,80);
                function    FindSystemFiles:boolean;
                procedure   TransferSystem;          { Copy system files }
 
-
-               {function     getdrv(drv : byte):boolean;}      { Actual Drive type 0..5 }
-
                function    runFormat:integer;       { MAin format proc }
-
 
                {procedure   Int15;}
                destructor  done;virtual;
@@ -415,44 +392,6 @@ const   StdTracks : array [1..5] of byte = (40,80,80,80,80);
    implementation uses xTime;
 {$ENDIF}
 
-     (*
-procedure  INT8;interrupt;
-    begin
-           if In13 then
-
-                    asm
-                      push es
-                      push ax
-                      sub ax,ax
-                      mov es,ax
-
-                      push cx
-
-                      mov  cx,2h
-                    @@1:
-                      push cx
-                      pushf
-                      call dword ptr ES:[ 28h * 4 ]
-                      pop cx
-                      loop @@1
-
-                      pop cx
-
-                      pop  ax
-                      pop  es
-                    end;
-
-               asm
-
-                   sub ax,ax
-                   pushf
-                   call dword ptr old8
-
-               end;
-    end;
-
-      *)
-
 function MaxAvail: LongInt;
 begin
   MaxAvail := MemAdjust(System.MaxAvail);
@@ -461,12 +400,11 @@ end;
         {-DataCompBoy-}
 function CopyFile(FFrom,FTo:string):boolean;
 var
-    FromF, ToF: lfile;
     NumRead, NumWritten: Word;
-    Buf: array[1..4096] of Char;
-
     FATTR : word;
     FTIME : longint;
+    FromF, ToF: lfile;
+    Buf: array[1..4096] of Char;
 
    begin
      lAssignFile(FromF, FFrom); { Open input file }
@@ -516,12 +454,10 @@ Function GetLogSector(Head,Track,Sector : Word;
                                   Pred(Sector) ;
    end;
 
-
   function MoreDiv(A,B : word):word;
     begin
-           MoreDiv := A div B + byte((A mod B) > 0);
+     MoreDiv := A div B + byte((A mod B) > 0);
     end;
-
 
 procedure   Tfmt.initDBT;assembler;
     asm
@@ -715,65 +651,6 @@ procedure tfmt.DoneFat;
            ;
     end;
 
-(*
-
-procedure   Tfmt.set360k;
-    begin
-            with BootS do begin
-            tracks := 40;       { tracks amount     }
-            tsect  := 9;        { sectors / track   }
-            rsize  := $70;      { root size         }
-            U_ClustSZ := 2;     { sectors / claster }
-            medias := $FD;      { media descriptor  }
-
-            bfkey1 := 'd';
-
-           end;
-    end;
-
-procedure   Tfmt.set720k;
-    begin
-      with BootS do begin
-            tracks := 80;       { tracks amount     }
-            tsect  := 9;        { sectors / track   }
-            rsize  := $70;      { root size         }
-            U_ClustSZ := 2;     { sectors / claster }
-            medias := $F9;      { media descriptor  }
-
-            bfkey1 := 'd';
-
-           end;
-    end;
-
-procedure   Tfmt.set12m;
-    begin
-      with BootS do begin
-            tracks := 80;       { tracks amount     }
-            tsect  := 15;       { sectors / track   }
-            rsize  := $E0;      { root size         }
-            U_ClustSZ := 1;     { sectors / claster }
-            medias := $F9;      { media descriptor  }
-
-            bfkey1 := 'd';
-
-           end;
-    end;
-
-procedure   Tfmt.set14m;
-    begin
-      with BootS do begin
-            tracks := 80;       { tracks amount     }
-            tsect  := 18;       { sectors / track   }
-            rsize  := $E0;      { root size         }
-            U_ClustSZ := 1;     { sectors / claster }
-            medias := $F0;      { media descriptor  }
-
-            bfkey1 := 'd';
-
-           end;
-    end;
-*)
-
 procedure   Tfmt.set28m;
     begin
       with BootS^ do begin
@@ -824,13 +701,6 @@ Constructor Tfmt.init;
             initBoot(BootS^);
             initDBT(DBT^);
 
-
-            (*
-            GetIntVec($8,old8);
-            SetIntVec($8,Addr(int8));
-            *)
-
-
             bfkey1   :=   ' ';
             bfkey2   :=   ' ';
             FAT      :=  nil;
@@ -862,30 +732,8 @@ Destructor  Tfmt.done;
       Dispose(BootS);
       {$ENDIF}
 
-(*
-     with regs do
-      begin
-        DL := drvnum;                    { drive }
-        DH := Pred(Heads);
-        AH := $18;                       { set media type    }
-        CH := Lo(Stdtracks[DrvSave]);    { tracks            }
-        CL := STdsect[DrvSave];          { sectors per track }
-        intr($13,regs);
-      end;
- *)
-            (*
-            SetIntVec($8,old8) ;
-             *)
-
-
-
             with regs do
              begin
-               (*
-                 BL := Succ(drvnum);
-                 AX := $440F ;
-                 {$IFDEF DPMI}SimulateRealModeInt{$ELSE}intr{$ENDIF}($21,Regs);
-               *)
                  DL := drvnum;
                  AX := 0;
                  {$IFDEF DPMI}SimulateRealModeInt{$ELSE}intr{$ENDIF}($13,Regs);
@@ -980,11 +828,7 @@ label
       end; { with regs }
     end; { proc }
 
-
-
-   begin
-
-
+  begin
 
            if GetDrv( Drv )
               then
@@ -1061,86 +905,16 @@ label
 
 NotOK :       drvtype := 0;
 
-
    end;
-
-
-
-(*
-
-procedure   tfmt.getdrv;
-
-
-var     ioctlb : IOpar ;
-        maxc   : word;
-        maxs   : byte;
-        ioctl  : byte;
-
-   begin
-     With BootS^,regs do begin
-        { drive }
-
-
-{_______get drive parms}
-
-        BL := Succ(drv);
-        DS := Seg(ioctlb);   { load IOCtl parameter block address }
-        DX := ofs(ioctlb);
-        CX := $0860;         { get device parms }
-        AX := $440D;         { Generic IOCtl    }
-        Intr ($21,regs);     { call DOS service   }
-
-     if ( Flags and FCarry = 0 ) then
-      begin
-        with IOctlB do
-         begin
-
-              writeln(iodev);
-              writeln(iocil);
-              writeln(iosec);
-              writeln(iohed);
-
-              {
-              tracks  := iocil;
-              tsect   := iosec;
-              heads   := iohed;
-              }
-         end;
-        if  tsect >= $16 then Set28m;  { prepare to format 2.88M 3.5" disk }
-         exit;
-      end;
-
-             { no IOCTL available, get from BIOS }
-
-              tracks := StdTracks [ drvtype (drv) ] ;
-              tsect  := StdSect   [ drvtype (drv) ] ;
-              Heads  := 2;
-
-      end { with }
-   end;
-
-*)
 
 function    tfmt.GetLimit;
-
    begin
-         with Boots^ do
-
-           begin
-
-             GetLimit := Heads * Tracks ;
-
-           end;
-
+    with Boots^ do GetLimit := Heads * Tracks ;
    end;
-
 
 procedure   tfmt.SetData;
    begin
-
     with BootS^ do begin
-
-{       drvnum := 1; }
 
        tracks :=  82;
        tsect  :=  18;
@@ -1150,55 +924,12 @@ procedure   tfmt.SetData;
 
        shifts := 2;
 
-{
-       write(' Tracks  ...');readln(tracks);writeln;
-       write(' Sectors ...');readln(tsect);writeln;
-}
-
-      { rsize  :=  ; }
-
-      {  set12m;}
-    {    tsect := 18 ;}
-
-       { bfkey2 :='h';}
-
-    {   clsize := 8;
-       fsize  := 2;
-    }
-
-    {   rsize  := 16; }
-    {
-        rsize := 224;
-        clsize := 1;
-     }
-     {  interl := 2; }
-
-      { shifts := 2; }
-
-    {  bfkey2 := 'h'; }
-
-    {  setup format parameters }
-
-    {
-       clsize
-       ssize
-       fgap1
-       heads
-       shifts
-       shiftt
-       shifth
-    }
       end;
-
    end;
 
 function tfmt.ISDos;
-var  I , R : byte ;
-
-     Tr : integer ;
-
-   begin
-
+var  Tr : integer ;
+begin
       IsDos := False ;
 
         If (  Boot1.Boot_Code[511]<>$AA ) or
@@ -1219,32 +950,14 @@ var  I , R : byte ;
       IF Boot1.Rsize > 1024 then Exit;
 
       IsDos := True ;
-
-   end;
+end;
 
 procedure tfmt.CopyQuickBoot;
-    begin
-
+begin
 
     Move(Boot1.SSize,Boots^.SSize,17);
- (*
-        ssize  : word           ; { sector size }
-        csize  : byte           ; { cluster size }
-        bsize  : word           ; { sectors before 1st fat }
-        fsize  : byte           ; { FAT copyes }
-        rsize  : word           ; { root size }
-        topsec : word           ; { top sector number }
-        media  : byte           ; { media descriptor }
-        fatsz  : word           ; { total sectors in one FAT }
-        tsect  : word           ; { sectors per track }
-        headc  : word           ; { heads }
- *)
-
-      Tracks := Boot1.TopSec div Boot1.Tsect div Boot1.HeadC ;
-
-    end;
-
-
+    Tracks := Boot1.TopSec div Boot1.Tsect div Boot1.HeadC ;
+end;
 
 function tfmt.SameType;
 var  I , R : byte ;
@@ -1285,22 +998,16 @@ var  I , R : byte ;
       if ABS( TR-Tracks ) > 10 then Exit;
 
       SameType := True ;
+end;
 
+procedure  tfmt.AddFile;
+begin
+ Writeln(Name);
+end;
 
-
-   end;
-
-
-
- procedure  tfmt.AddFile;
-     begin
-             Writeln(Name);
-     end;
-
- function  tfmt.CheckFilesOnDisk;
-
+function  tfmt.CheckFilesOnDisk;
  var
-     DirSectors , DirStart , I , Y , Z : Word ;
+     DirSectors, DirStart, I, Y : Word ;
      {$IFDEF DPMI}
      Buf      : ^DirSector  ;
      {$ELSE}
@@ -1308,9 +1015,7 @@ var  I , R : byte ;
      {$ENDIF}
 
      Name  : String[13];
-
-     begin
-
+begin
            CheckFilesOnDisk := False ;
 
            With Boot1 Do
@@ -1367,31 +1072,21 @@ var  I , R : byte ;
              {$IFDEF DPMI}FreeDosMem(Buf);{$ENDIF}
 
             end;  { All sectors }
-
-
-
-     end;
+end;
 
 
 procedure tfmt.SetupHardware;
 
 var
-
           SectorLimit : Byte ;
-
           _Try : byte ;
-
 const
-
           Gaps35lo : array [7..13] of byte = ($61,$5C,$50,$2A,$21,$1C,$02);
 
           Gaps360  : array [7..11] of byte = ($5E,$58,$50,$28,$2);
           Media360 : array [7..11] of byte = ($F0,$FE,$FC,$F0,$F0);
 
           Gaps35hi : array [17..22] of byte = ($73,$6C,$29,$25,$0B,$01);
-
-          Gaps12lo : array [7..11] of byte = ($5E,$58,$50,$28,$2);
-          Media12lo: array [7..11] of byte = ($F0,$FE,$FC,$F0,$F0);
 
           Gaps12hi : array [14..18] of byte = ($59,$54,$23,$1E,$2);
           Media12hi: array [14..18] of byte = ($F0,$F9,$F0,$F0,$F0);
@@ -1466,62 +1161,6 @@ const
      {   Dgap := $2A; }
      end;
 
-(*
-Procedure ATSetDrive(lw:Byte; trk,sec,Disk,SetUp:Byte);assembler;
-asm
-   mov  ah,18h
-   mov  dl,lw
-   mov  cl,sec
-   mov  ch,trk
-   push ds
-   push bp
-   {pushf}
-   cli
-   int 13h
-   pop  bp
-   pop  ds
-   jc   @cont
-   or   ah,ah
-   jz   @exit
-@cont:
-   mov  ah,17h
-   mov  al,setup
-   mov  dl,lw
-   push ds
-   push bp
-{   pushf }
-   cli
-   int 13h
-{   call dword ptr int13p }
-   pop  bp
-   pop  ds
-@exit:
-   xor  bx,bx
-   mov  es,bx
-   mov  ah,disk
-   or   ah,ah
-   jz   @exit1
-   mov  bl,lw
-   mov  es:[bx+490h],ah
-@exit1:
-end;
-
-
-procedure setdrive(drive,track,sectors : byte );
-begin
- case drvtype(drive) of
-  1,3:
-   if (track>43) and (sectors>10) then ATSetDrive(drive,79,15,$0,3) else
-   if (track>43) and (sectors<11) then ATSetDrive(drive,79, 9,$54,4) else
-   if (track<44) and (sectors<11) then ATSetDrive(drive,39, 9,$0,2);
-  2,4,5:
-   if (sectors>17) then ATSetDrive(drive,79,18,$0,5) else
-   if (sectors<11) then ATSetDrive(drive,79, 9,$0,4);
- end;
-end;
-
-  *)
-
     begin
 
      with BootS^,DBT^,Regs do begin
@@ -1538,12 +1177,7 @@ end;
                 else SecSiz := 2;
            end;
 
-        {s01    := 2;}
-
-
-
       { init media type }
-
 
         DL := drvnum;          { drive }
         DH := Pred(Heads);
@@ -1554,12 +1188,7 @@ end;
 
         DGAP    :=  $1B;
 
-     {
-      Writeln(' Current Drive is ...',drvtype(drvnum));
-     }
-
       case drvSave {drvtype( drvnum )} of
-
 
       1: begin     { 360 k drive }
 
@@ -1728,15 +1357,12 @@ end;
                  mem[seg0040:$8F] := set8F; { data & step rate }
 
        if interl=0 then
-         {if fgap>=$1D then interl := 1 else interl := 2;}
 
          if Tsect > SectorLimit
                then
                     Interl := 2
                else
                     Interl := 1;
-
-       {  if fgap > $1C then interl := 1 else interl := 2; }
 
                 { seek to track }
 
@@ -1752,22 +1378,6 @@ end;
                 dec(_Try);
                 if _Try = 0 then Break;
               until Flags and Fcarry = 0;
-
-             (*
-             _Try := 5 ;
-
-
-              repeat
-                AH := $0C;
-                DL := drvnum; { drive }
-                CH := BTrack; { track }
-                DH := 0;      { head  }
-                intr($13,regs);
-                dec(_Try);
-                if _Try = 0 then Break;
-              until Flags and Fcarry = 0;
-             *)
-
      end;
     end;
 
@@ -1824,19 +1434,12 @@ function  tfmt.CheckIOError;
 
              CheckIoError := 0;
                   if Flags and Fcarry = 0 then exit;
-         {
-           with regs do
-           Writeln('  ',S,' at Cyl:',CH:2,' Head:',DH:2,' Sec:',CL:2);
-         }
              CheckIoError := AH;
              Flags := Flags and (not Fcarry);
     end;
   end;
 
-
-
 function    tfmt.VerifyTrack(trk,head,sec,secnum : byte):byte;
-{var Buf : array [1..22,0..512] of byte; }
     begin
         with boots^,regs do
         begin
@@ -1921,10 +1524,7 @@ function    tfmt.FormatTrack;
         with boots^,regs do
         begin
 
-
         TinySlice;
-
-        {interlive(trk,head);}
 
         AH := 5;
         DL := drvnum ;
@@ -1951,60 +1551,10 @@ function    tfmt.FormatTrack;
         end;
     end;
 
-  (*
-function    tfmt.FormatTrack;
-var I : byte ;
-    begin
-        with boots,regs do
-        begin
-
-        interlive(trk,head);
-
-        AH := 5;
-        DL := drvnum ;
-        DH := head;
-        CH := trk;
-        CL := 1;
-        AL := 1;
-        ES := Seg(trdsc^);
-        BX := Ofs(trdsc^);
-        intr($13,regs);
-
-        if Flags and Fcarry > 0 then
-          begin
-           formattrack := AH; Exit ;
-          end;
-
- {  for I:=1 to Boots.tsect do}
-
-    begin
-
-        AH := 4;
-        AL := Boots.Tsect;
-        CL := 1;
-        intr($13,regs);
-
-        if Flags and Fcarry > 0 then
-          begin
-           formattrack := AH; Exit ;
-          end;
-
-    end;
-        { format track }
-
-        FormatTrack := CheckIOError;
-
-        end;
-    end;
-
-    *)
 procedure   tfmt.Interleave(trk,head : byte);
+var I,J,K,NextSector : integer;
 
-var I,J,K,NextSector,SHFT : integer;
-
-
-    begin
-
+begin
     with BootS^,DBT^ do
       begin
 
@@ -2040,27 +1590,12 @@ var I,J,K,NextSector,SHFT : integer;
                 else TrDsc^[NextSector,4] := 2;
            end;
 
-
-
        { next sector }
-
-  {        inc(j); }
-
-  {      if fgap>=$1D then continue; }
 
          inc(j);
          if interl < 2 then continue ;
          inc(j);
          if J>tsect then j:=2;
-    {
-      if interl < 1 then continue;
-
-       for K:=1 to interl do
-        begin
-          inc(j);
-          if J>tsect then j:=1;
-        end;
-     }
 
      end;
     end;
@@ -2092,44 +1627,32 @@ var I,J,K,NextSector,SHFT : integer;
 
         case HI(IO_Error)
             of
-               0 :  { Standard Code }
-                    Exit ;
-
+               0 :  { Standard Code } Exit ;
               $1 :  { Format Erorrs }
                     case LO(IO_Error) of
                          3  : FormatDialog(fdDiskProtected);
                         $80 : FormatDialog(fdNoDiskInDrive);
-                           else
-                              FormatDialog(fdHArdwareError);
+                    else FormatDialog(fdHArdwareError);
                     end; { Case }
-
               $2 :  { Verify Erorrs }
                     case LO(IO_Error) of
                          0  : Exit;
                         $81 : FormatDialog(fdTrack0Bad);
-                           else
-                              Exit ;
+                    else Exit ;
                     end; { Case }
-
               $4 :  { BadSector erors }
                     case LO(IO_Error) of
                          0  : Exit ; { No Actual Verify }
                          3  : Exit ; { Bads Marked }
                          1  : FormatDialog(fdBadInterleave) ;
-                           else
-                              Exit ;
+                    else Exit ;
                     end; { Case }
-
               $8 :  { Write Sys areas Erorrs }
                     case LO(IO_Error) of
                          0  : Exit;
-                           else
-                              FormatDialog(fdErrorSysAreas) ;
+                    else FormatDialog(fdErrorSysAreas) ;
                     end; { Case }
-
-
-             $80 :  { User Interrupt }
-                          ;
+             $80 :  { User Interrupt };
 
         end; { Case }
 
@@ -2137,20 +1660,9 @@ var I,J,K,NextSector,SHFT : integer;
 
       end;
 
-
-
 function    tfmt.FormatMedia;
-
    var CurTrk : word ;
        CurSide : byte ;
-       szz : word;
-       I : byte;
-       Progress : longint ;
-
-
-
-
-
 
     Procedure CalcTime ;
        begin
@@ -2185,13 +1697,6 @@ function    tfmt.FormatMedia;
                            UpdateParams;
                            {$ENDIF}
 
-                           {
-                           if UserInterrupt then
-                                begin
-                                  FormatTrackWithVerify := $8001;
-                                  Exit;
-                                end;
-                            }
                            IO_Err := VerifyTrack(FCurTrk,FCurSide,1,Boots^.tsect);
                               FormatTrackWithVerify := IO_Err or $200;
                          end;
@@ -2229,10 +1734,6 @@ function    tfmt.FormatMedia;
                     FormatTrackWithVerify := $281;
                     Exit;
                    end;
-
-            { I_operation := flFormat ;
-             UpdateParams;
-             }
 
            Until IO_Err = 0 ;
 
@@ -2272,20 +1773,8 @@ function    tfmt.FormatMedia;
 
         Interleave(0,0) ;      { Build Sectors Descriptors }
 
-
         with    Boots^,Regs do
           begin
-      {
-       i_Size := longint(HeadS) *
-                 longint(tsect) *
-                 longint(tracks) *
-                 longint(ssize) ;
-       }
-        {
-           Writeln(' Formatting ',char(65+drvnum),': for ',
-             szz :4,'k');
-        }
-
 
        t_start  := BiosTics^ ;
        t_elaps  := 0;
@@ -2419,38 +1908,14 @@ function    tfmt.FormatMedia;
 
    end;
 
-
-
-
-
-
- {
-  verify ===
-
-    if VerifyTrack <> 0 then
-
-     for I:=1 to tsect do
-      if CheckSector then MarkCluster
-    CheckStart :=  GetLogSector()
-
- }
-
-
-
 Function Tfmt.Cluster(Sector: Word):Word;
- Var h: byte;
-   begin
+begin
      Cluster := $FFFF;
      if Sector < DataStart then Exit;
 
    with BootS^ do
      Cluster := Word( Sector - DataStart ) div Word ( Csize ) + 2 ;
-   {
-     Cluster:=((Sector-(bpb.rde shr 4)-(bpb.spf shl 1)-1) div Word(bpb.spc))+2;
-   }
-   end;
-
-
+end;
 
 procedure nullcluster( cluster:word ; var FAT );assembler;
       asm
@@ -2477,13 +1942,6 @@ procedure nullcluster( cluster:word ; var FAT );assembler;
                 pop     es
       end;
 
-{
-procedure markcluster( cluster:word ; var FAT );
-var P:pbArray;
-      begin
-
-      end;
-}
 procedure markcluster( cluster:word ; var FAT );assembler;
       asm
                 push    es
@@ -2718,17 +2176,13 @@ procedure   tfmt.CalculateBootFatRoot;
        end; { with }
     end;
 
-
-
-
  function  tfmt.WriteBootFatRoot : boolean ;
-
-  var  SecRemain : word ;
-       buf : array [0..1023] of byte ;
+  var
        I : integer;
        CNT  : byte ;
        Quit : boolean;
        {$IFDEF DPMI}B: Pointer;{$ENDIF}
+       buf : array [0..1023] of byte ;
     begin
 
 {_______prepare system area [boot, FAT, root  }
@@ -2743,25 +2197,12 @@ procedure   tfmt.CalculateBootFatRoot;
                 I_operation := flWrite ;
                 UpdateParams;
 
-              { for I:=2 to TotalClusters do
-                  begin
-                   if (GetCluster(I,FAT^)=$0) then continue;
-                   if (GetCluster(I,FAT^)=$FF7) then continue;
-                     writeln('!!!!!!! in',I);
-                   end; }
-
                 { reset drive }
                 DL := drvnum;
                 AX := 0;
                 {$IFDEF DPMI}SimulateRealModeInt{$ELSE}intr{$ENDIF}($13,regs);
 
-
-
-
               with regs do begin
-                {
-                write(#13#10' wr boot ...');
-                 }
 
                CNT := 0 ;
                Quit := false;
@@ -2769,11 +2210,6 @@ procedure   tfmt.CalculateBootFatRoot;
                repeat
 
                 GetAbsSector(0,BootS^,CH,DH,CL);
-              (*
-                DL := Drvnum;
-                AH := $C;
-                {$IFDEF DPMI}SimulateRealModeInt{$ELSE}intr{$ENDIF}($13,regs);
-              *)
                 AH := $3;
                 AL := 1;
                 DL := drvnum;
@@ -2862,9 +2298,6 @@ procedure   tfmt.CalculateBootFatRoot;
               with regs do
                for I:=1 to FatSz do
                 begin
-                  {
-                     write(#13#10' wr #1 fat ...#',I:2);
-                  }
                      GetAbsSector(Pred(Bsize + I),BootS^,CH,DH,CL);
 
                      AH := $3;
@@ -2882,13 +2315,8 @@ procedure   tfmt.CalculateBootFatRoot;
                      IO_Error := CheckIOError or $800;
                      If CheckErrors then Exit ;
 
-
                 if fsize=2 then
                  begin
-                     {
-                      write(#13#10' wr #2 fat ...#',I:2);
-                     }
-
                       GetAbsSector(Pred(Bsize + I + FatSz),BootS^,CH,DH,CL);
                       AH := $3;
                       AL := 1;
@@ -2910,19 +2338,6 @@ procedure   tfmt.CalculateBootFatRoot;
 
                 end;
 
-
-               if BSize>1 then
-                  begin
-
-                   {
-                      fill zero data before fat
-
-                      for I:=1 to (fillsz(pred(bootsz)) shl 1) do
-                       fat[I] := 0;
-                   }
-
-                   end;
-
            with regs do
             for I:=1 to RootS do
              begin
@@ -2940,9 +2355,6 @@ procedure   tfmt.CalculateBootFatRoot;
                 ES := Seg(Buf);
                 BX := Ofs(Buf);
                 {$ENDIF}
-               {
-                write(#13#10' wr root ...#',I:2,'           ');
-               }
                 {$IFDEF DPMI}SimulateRealModeInt{$ELSE}intr{$ENDIF}($13,regs);
                 {$IFDEF DPMI}
                 FreeDosMem(B);
@@ -2963,12 +2375,10 @@ procedure   tfmt.CalculateBootFatRoot;
         {-DataCompBoy-}
 function    tfmt.FindSystemFiles;
 
-var S : string ;
-
+var
     S1,S2 : Boolean ;
-
     F : lFile ;
-
+    S : string ;
    begin
          FindSystemFiles := False ;
 
@@ -3043,22 +2453,9 @@ var
        CopyFile(PATH+Name,WH+Name);
   end;
 
-
 function    tfmt.runFormat;
-
-
-    var R : byte ;
-
-   begin
-   {
-      write('format in progress... press a key...');
-      asm
-        sub ax,ax
-        int  16h
-      end;
-     writeln;
-    }
-
+var R : byte ;
+begin
          RunFormat := 255 ;
 
          if fOptions and foUncond = 0 then
@@ -3111,10 +2508,7 @@ function    tfmt.runFormat;
                           fOptions := { Mask all related bits }
                           fOptions  and ( foUncond + foMarkTrack ) ;
 
-
-                           end;
-
-
+                      end;
 
               end; { case }
 
@@ -3136,12 +2530,7 @@ function    tfmt.runFormat;
                      exit;
                     end;
 
-
-
           SetStatus(stInit);
-              {
-               getdrv(Drvnum);
-              }
 
              {  if FormatDialog(fdInsertNewDisk) <> fdContinue then exit;}
 
@@ -3200,7 +2589,6 @@ var FM : PFMT;
 
  begin
     new(fm,init);
-   {  fm^.getdrv(0); }
     fm^.run;
     Dispose(fm,Done);
   {$ENDIF}

@@ -56,6 +56,9 @@
 //  dn40412-BackSearch(f)-back_search_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -162,8 +165,9 @@ begin
 end;
 
 constructor TDiskStream.Init;
- var S: String;
+ var
      CL: Word;
+     S: String;
 begin
  inherited Init; Abort := False;
  GetDir(ADrive, S); if Abort then Exit;
@@ -191,8 +195,8 @@ begin
 end;
 
 procedure TDiskStream.Read(var Buf; Count: Word);
- var Cl, Pos, M, T, I, J,
-     L: LongInt;
+ var
+     Cl, Pos, M, T, I, J, L: LongInt;
      Buffer: PByteArray;
 begin
  if (Count = 0) or (FilePos >= FileSize) then Exit; Abort := False;
@@ -251,8 +255,8 @@ begin
 end;
 
 procedure TDiskStream.Write(const Buf; Count: Word);
- var Cl, Pos, M, T, I, J,
-     L: LongInt;
+ var
+     Cl, Pos, M, T, I, J, L: LongInt;
      Buffer: PByteArray;
 begin
  if (Count = 0) or (FilePos >= FileSize) then Exit; Abort := False;
@@ -342,8 +346,9 @@ begin
 end;
 
 function TDiskStream.GetPosInfo;
- var S: String;
+ var
      N, I, J: LongInt;
+     S: String;
 begin
  S := '';
  if (Pos < 0) or (Pos >= FileSize) then Exit;
@@ -392,8 +397,7 @@ end;
 
 procedure TDiskFixer.MakeLines;
  var P1, P2: Pointer;
-     I, J, K, Hx: Integer;
-     B: Byte;
+     I, J, K: Integer;
 begin
  if Buf = nil then Exit;
  if ViewMode = 0 then begin inherited MakeLines; Exit end;
@@ -405,9 +409,8 @@ begin
 end;
 
 procedure TDiskFixer.CountDown;
- var K, Q, M: Integer;
+ var K, Q: Integer;
      SL: LongInt;
-     P: Pointer;
 begin
  if Buf = nil then Exit;
  if ViewMode = 0 then begin inherited CountDown(ANumber); Exit end;
@@ -428,9 +431,10 @@ end;
 
 
 function DirStr(var B): String;
- var D: DirRec Absolute B;
-     S, S1: String;
+ var
      T: DateTime;
+     D: DirRec Absolute B;
+     S, S1: String;
  type Str3 = Array [1..3] of Char;
  const Dr: Array[1..6] of Str3 = ('Arc','Dir','Vol','Sys','Hid','R/O');
 begin
@@ -448,14 +452,14 @@ end;
 
 procedure TDiskFixer.HandleEvent;
 
- var P: TPoint;
+ var
      LR: Integer;
-     I, BS, BE: LongInt;
+     I, BS, BE, W: LongInt;
+     P: TPoint;
+     PL: PInputLine;
+     Drv: PDiskDriver;
      C: Char;
      S: String;
-     PL: PInputLine;
-     W: LongInt;
-     Drv: PDiskDriver;
 
  procedure CE; begin ClearEvent(Event) end;
  procedure CED; begin CE; DrawView end;
@@ -473,7 +477,6 @@ procedure TDiskFixer.HandleEvent;
 
  procedure EditField;
   var AA: Word;
-      L: LongInt;
       DT: DateTime;
       D: ^DirRec;
  begin
@@ -551,8 +554,9 @@ procedure TDiskFixer.HandleEvent;
  end;
 
  procedure FixFile;
-  var S: String;
+  var
       W: Word;
+      S: String;
  begin
   S := GetFileNameDialog(x_x, GetString(dlChooseFile), GetString(dlFileName), fdOKButton + fdHelpButton, 100);
   if S = '' then Exit;
@@ -567,8 +571,9 @@ procedure TDiskFixer.HandleEvent;
  end;
 
  procedure FixDir;
-  var S: String;
+  var
       W: Word;
+      S: String;
  begin
   S := ChangeDir(GetString(dlChooseDir), 0);
   if S = '' then Exit;
@@ -590,9 +595,9 @@ procedure TDiskFixer.HandleEvent;
  end;
 
  procedure FixDrive;
-  var S: String;
+  var
       T: TPoint;
-      P: PStream;
+      S: String;
  begin
   T.Y := 0; T.X := (Size.X-8) div 2; MakeGlobal(T,T);
   S := SelectDrive(T.X, T.Y, Char(PDiskStream(Fl)^.Drv^.Drive+65), False);
@@ -604,12 +609,13 @@ procedure TDiskFixer.HandleEvent;
  end;
 
  procedure FixSector;
-  var D: PDialog;
+  var
+      I: LongInt;
+      D: PDialog;
       P: PView;
       R: TRect;
-      I: LongInt;
-      S: String;
       DR: Record S1, S2: String[11]; end;
+      S: String;
  begin
   Drv := PDiskStream(Fl)^.Drv;
   R.Assign(1,1,40,17);
@@ -672,12 +678,13 @@ procedure TDiskFixer.HandleEvent;
  end;
 
  procedure FixCluster;
-  var D: PDialog;
+  var
+      I: LongInt;
+      D: PDialog;
       P: PView;
       R: TRect;
-      I: LongInt;
-      S: String;
       DR: Record S1, S2: String[11]; end;
+      S: String;
  begin
   Drv := PDiskStream(Fl)^.Drv;
   R.Assign(1,1,40,12);
@@ -726,15 +733,16 @@ procedure TDiskFixer.HandleEvent;
  end;
 
  procedure FillBlock;
-  var R: TRect;
+  var
+      I, J: Word;
+      P: Pointer;
+      L: LongInt;
+      DT: record P: Pointer; C: Word; end;
+      R: TRect;
       D: PDialog;
       SC: PStringCollection;
       PV: PView;
       C: Char;
-      I, J: Word;
-      DT: record P: Pointer; C: Word; end;
-      P: Pointer;
-      L: LongInt;
  begin
   if BlockStart = BlockEnd then Exit;
   R.Assign(1,1,30,12);
@@ -792,9 +800,10 @@ procedure TDiskFixer.HandleEvent;
  end;
 
  procedure WriteBlock;
-  var S: String;
-      P: PStream;
+  var
       PP: Pointer;
+      P: PStream;
+      S: String;
  begin
   PP := @S;
   if BlockStart < BlockEnd then begin BS := BlockStart; BE := BlockEnd end
@@ -1155,10 +1164,9 @@ end;
 
 procedure TDiskFixer.Draw;
 var
-  B: TDrawBuffer;
+  I, K: Integer;
   C, C2, C3, C4: Byte;
-  I, J, K, M: Integer;
-  L: LongInt;
+  B: TDrawBuffer;
   S: String;
 
 procedure MoveStr(var B, S; C: Byte);
@@ -1201,12 +1209,10 @@ var W: Integer;
 
 procedure DrawHex;
  var I, J, K, M, Q, QQ, QQQ: Integer;
+     SL, BE, BS: LongInt;
      Ps, L: Integer;
-     CL1, Cl2: Word;
-     SL: LongInt;
      P: Pointer;
      Entered, Marked: Boolean;
-     BE, BS: LongInt;
 begin
   Ps := 0; Marked := BlockStart <> BlockEnd;
   if BlockStart < BlockEnd then begin BS := BlockStart; BE := BlockEnd end

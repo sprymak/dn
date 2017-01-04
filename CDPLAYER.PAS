@@ -61,6 +61,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -267,15 +270,15 @@ TYPE
     procedure DeleteControls;
     end;
 
-const Playing: Boolean = False;
-      CurTrack: Byte = 0;
-
 IMPLEMENTATION
 
 USES advance, advance1, advance2, advance3, Messages, Commands, RStrings,
      DNHelp, DOS, LFN, DnApp, Startup, CDUtil, Menus
      {$IFDEF DPMI}, Dpmi, DosMem{$ENDIF}
      ;
+
+const Playing: Boolean = False;
+      CurTrack: Byte = 0;
 
 FUNCTION CD_GetFirstDrive( var firstDrive: Integer ): integer;
 {$IFNDEF DPMI}
@@ -355,7 +358,6 @@ var
 FUNCTION CD_IsPaused( drive: integer ): boolean;
 var
    reqHdr: TReqHdr;
-   Err: byte;
  begin
   fillchar( reqHdr, SizeOf( reqHdr ), 0 );
   reqHdr[ 20 ] := 15; { AudioStat cmd }
@@ -383,7 +385,6 @@ var
 PROCEDURE CD_DiskInfo( drive: integer; var buf );
 var
    reqHdr: TReqHdr;
-   Err: byte;
  begin
   fillchar( reqHdr, SizeOf( reqHdr ), 0 );
   reqHdr[ 20 ] := 10; { Disk Info cmd }
@@ -394,7 +395,6 @@ end;
 PROCEDURE CD_TrackInfo( drive, track: integer; var buf );
 var
    reqHdr: TReqHdr;
-   Err: byte;
  begin
   fillchar( reqHdr, SizeOf( reqHdr ), 0 );
   reqHdr[ 20 ]:= 11; { Track Info cmd }
@@ -405,7 +405,6 @@ end;
 
 FUNCTION CD_Stop( drv: integer; var reqHdr: TReqHdr ): word;
 var
-   statBuf: array[ 0..19 ] of byte;
    C: word;
    CC: array[ 1..2 ] of byte absolute C;
 {$IFDEF DPMI}
@@ -910,7 +909,6 @@ end;
     Procedure TCdPlayer.SelectOrder ;
      var T : _OrderRec ;
          s : string ;
-         I : byte ;
          P : PDialog ;
       begin
        S := trkOrder ;
@@ -1019,7 +1017,6 @@ PROCEDURE TcdPlayer.Update;
   end;
 
   PROCEDURE OnePlay;
-  var I: byte;
   begin
     with Qchannel do begin
       TNO := CurTrack; { Flash 07-07-2003 }
@@ -1104,8 +1101,6 @@ end;
 
 PROCEDURE TcdPlayer.Display;
 var DS, DM: integer;
-    I : word ;
-    PP: Pstring ;
     Tdscr : string;
 
   PROCEDURE GetShAcc;
@@ -1331,9 +1326,8 @@ end;
 
 Function TcdPlayer.GetOrder ;
  var F : PTextReader ;
-     T,S : String;
-     T1 : string[2];
      TR : Byte ;
+     T,S : String;
      NewOrder : String ;
   Begin
 
@@ -1595,10 +1589,7 @@ PROCEDURE TcdPlayer._Door;
      end;
 
 PROCEDURE TcdPlayer._Eject;
-  var E: Tevent;
      begin
-      E.What := evCommand;
-      E.Command := cmAbout;
       if Status = play then _Stop;
       fillchar( reqHdr, SizeOf( reqHdr ), 0 );
       reqHdr[ 20 ] := 0; { Eject cmd }
@@ -1609,7 +1600,6 @@ PROCEDURE TcdPlayer._Eject;
      end;
 
 PROCEDURE TcdPlayer._Load;
-  var E: Tevent;
      begin
       if Status <> noDisk then Exit;
        if Cd_Loaded then begin _Eject; Exit; end;
@@ -1970,13 +1960,13 @@ PROCEDURE RunPlayer;
 var
   R, R1: TRect;
   CD: integer;
-  DRV: String[ 20 ];
   PP: Pointer;
   C: Char;
   Items: PMenuItem;
   Menu: PMenu;
   P: PMenuBox;
   N: Word;
+  DRV: String[ 20 ];
 begin
   if CD_Player <> nil then begin
     CD_Player^.Select;

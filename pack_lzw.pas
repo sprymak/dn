@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -137,7 +140,7 @@ var
   LZWbuf: Pointer;
 
 const
-  InitCount: Integer = 0;
+  InitCount: Byte = 0;
 
 procedure LZW_Init;
 begin

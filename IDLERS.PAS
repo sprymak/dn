@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -129,16 +132,15 @@ uses
 
 const
   StarChars : Array [0..5] of Char = (#32,#250,#249,#7,#4,#15);
-  MColors: Array [0..3] of Byte = (1, 3, 9, 11);
 
 procedure TSSaver.Update;
 begin
 end;
 
 function TSSaver.Execute;
-  var Event: TEvent;
-      W: Word;
-      WW: Word;
+  var
+      W, WW: Word;
+      Event: TEvent;
       T: TEventTimer;
 begin
   W := ShiftState shl 8 + ShiftState2;
@@ -178,8 +180,9 @@ end;
 
 constructor TStarSkySaver.Init;
  label 1;
- var R: TRect;
+ var
      I, J: Integer;
+     R: TRect;
 begin
   Randomize;
   Application^.GetExtent(R);
@@ -211,9 +214,10 @@ begin
 end;
 
 procedure TStarSkySaver.Draw;
- var B: TDrawBuffer;
+ var
      I,K: Integer;
      W: Word;
+     B: TDrawBuffer;
 begin
  MoveChar(B, ' ', $07, Size.X);
  WriteLine(0,0,Size.X,Size.Y,B);
@@ -227,9 +231,10 @@ begin
 end;
 
 procedure TStarSkySaver.Update;
- var W,I,J,K: Word;
-     M: LongInt;
+ var
+     W,I,J,K: Word;
      Hour, Min, Sec, Sec100: Word;
+     M: LongInt;
      P: TPoint;
  const MM: Array[0..1] of Integer = (-1,1);
  label 1;
@@ -267,8 +272,9 @@ end;
 
 constructor TProjector.Init;
  label 1;
- var R: TRect;
+ var
      I, J: Integer;
+     R: TRect;
 begin
   I := ScreenHeight * ScreenWidth * 2;
   if MaxAvail < I then Fail;
@@ -292,9 +298,10 @@ procedure TProjector.Draw;
             ((L:-1;R:0),(L:-1;R:0),(L:1;R:1),(L:2;R:2),(L:3;R:3),(L:3;R:3),(L:2;R:2),(L:1;R:1)),
             ((L:-1;R:0),(L:-1;R:0),(L:1;R:0),(L:2;R:1),(L:3;R:2),(L:2;R:1),(L:1;R:0),(L:-1;R:0))
             );
- var B: Array[-20..220] of AWord;
+ var
      I,K,L: Integer;
      W: Word;
+     B: Array[-20..220] of AWord;
 begin
  if ScreenHeight*2 > ScreenWidth then K := 1 else K := 2;
  for I := 0 to Size.Y-1 do begin
@@ -373,8 +380,8 @@ end;
 
 PROCEDURE TClockSaver.Draw;
 var
-  B, BB: TDrawBuffer;
   I: Integer;
+  B, BB: TDrawBuffer;
 begin
   MoveChar( BB, ' ', $07, Size.X );
   For I := 0 to Size.Y - 1 do
@@ -391,7 +398,6 @@ end;
 PROCEDURE TClockSaver.Update;
 var
   H, M, S, SS: Word;
-  sX, sY: Integer;
   B: TDrawBuffer;
 label
   Skip;
@@ -431,9 +437,9 @@ end;
 
 
 procedure CallExternalSaver(const FN: String);
- var MX, MY: Word;
+ var
+     SM, MX, MY: Word;
      Event: TEvent;
-     SM: Word;
 begin
   MX := MouseX; MY := MouseY;
   if (MX div 8 = ScreenWidth - 1) and (MY < 8) then Dec(MX,8);

@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -114,23 +117,24 @@ end;
 
         {-DataCompBoy-}
 function TListDrive.GetDirectory;
- var Files: PFilesCollection;
-     SR: lSearchRec;
-     P: PFileRec;
-     D: DateTime;
-     I,J: Integer;
-     DrNm: string;
-     AllFiles: Boolean;
+ var
      FreeSpc, TotalLen: LongInt;
-     S: String;
-     Hilite: Boolean;
+     I,J: Integer;
+     D: DateTime;
+     Files: PFilesCollection;
+     P: PFileRec;
      PD: PDesc;
+     AllFiles: Boolean;
+     Hilite: Boolean;
+     SR: lSearchRec;
+     DrNm, S: String;
 
   procedure ReadList;
-   var T: lText;
-       S: String;
-       S1: String[12];
+   var
        I: Integer;
+       S1: String[12];
+       T: lText;
+       S: String;
   begin
     ClrIO;
     lAssignText(T, MakeNormName(CurDir, SR.Name));
@@ -297,8 +301,9 @@ begin
 end;
 
 procedure TListDrive.GetFull;
- var S: String;
+ var
      X: Byte;
+     S: String;
 begin
   if P^.DIZ <> nil then S := Copy(P^.DIZ^,1,MaxViewWidth) else S := '';
   MoveStr(TWordArray(B), P^.Name, C);

@@ -61,6 +61,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -209,8 +212,9 @@ uses advance1,
  {$ENDIF}
 
  Function StrPas(S: Array Of Char): String;
-  var ss: string;
+  var
       i: word;
+      ss: string;
   Begin
    ss:='';
    For i:=Low(S) to High(S) do
@@ -1095,8 +1099,8 @@ function CheckLFNApi(Api: lAPIType): Boolean;
 
 function lFileNameOf(var lF: lFile): string;
 var
-  S: string;
   k: byte;
+  S: string;
 begin
   Case lF.AssignFileMode of
    lDOS: Begin
@@ -1118,8 +1122,8 @@ end;
 
 function lTextNameOf(var lT: lText): string;
 var
-  S: string;
   k: byte;
+  S: string;
 begin
   Case lT.AssignTextMode of
    lDOS: Begin

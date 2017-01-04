@@ -73,6 +73,10 @@
 //  dn40307-define_DN_Micro.patch
 //
 //  4.9.0
+//  dn50202-viewer(if)-DefCodePageView.patch
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -87,7 +91,7 @@ const
 
   INIstoredsize:longint = 0;
   INIstoredtime:longint = 0;
-  INIstoredcrc :longint = 0;{DataCompBoy}
+{  INIstoredcrc :longint = 0;}{DataCompBoy}
 
   { DO NOT CHANGE THIS LINE } iniparamblock_START:TBlockMarker=();
   { ------------------------------ PLACE ALL INI VARIABLES BELOW }
@@ -179,6 +183,7 @@ const
 {}AutoScopeDetect          : Boolean    = True;
 {}ShowBookmarks            : Boolean    = True;
 {}FastBookmark             : Boolean    = True;
+{}DefCodePageView          : string[5]  = 'AUTO';
 {}DefCodePage              : string[5]  = 'AUTO';
 {}FastSearchDeep           : Longint    = 0;
 {}WinManagerPosToEdit      : Boolean    = True;
@@ -232,7 +237,7 @@ procedure LoadDnIniSettings;
 procedure SaveDnIniSettings ( PVar : Pointer );
 procedure DoneIniEngine;
 
-function ProbeINI(var INItime,INIsize,INIcrc:longint):boolean;
+function ProbeINI(var INItime,INIsize{,INIcrc}:longint):boolean;
 
 procedure ShowIniErrors;
 procedure ClearIniErrors;
@@ -439,6 +444,7 @@ begin
   RV(CSEditor,    'AutoScopeDetect',      ikBool, SizeOf(AutoScopeDetect),      @AutoScopeDetect);
   RV(CSEditor,    'ShowBookmarks',        ikBool, SizeOf(ShowBookmarks),        @ShowBookmarks);
   RV(CSEditor,    'FastBookmark',         ikBool, SizeOf(FastBookmark),         @FastBookmark);
+  RV(CSEditor,    'DefCodePageView',      ikStr,  SizeOf(DefCodePageView),      @DefCodePageView);
   RV(CSEditor,    'DefCodePage',          ikStr,  SizeOf(DefCodePage),          @DefCodePage);
   RV(CSEditor,    'FastSearchDeep',       ikSInt, SizeOf(FastSearchDeep),       @FastSearchDeep);
   RV(CSEditor,    'WinManagerPosToEdit',  ikBool, SizeOf(WinManagerPosToEdit),  @WinManagerPosToEdit);
@@ -471,7 +477,6 @@ end;
 function IniVarToStr ( Kind : TIniItemKind; Size : Word; PVar : Pointer ) : string;
 var
   b      : Boolean;
-  i      : Integer;
 {$IFNDEF RESULT}Var Result: String;{$ENDIF}
 begin
   result := '';
@@ -618,8 +623,8 @@ end;
 
 procedure Loader ( Group, Parameter: PChar; Kind: TIniItemKind; Size : Word; PVar: Pointer );
 var
-  s : string;
   b : Byte;
+  s : string;
 begin
   s    := IniVarToStr ( Kind, Size, PVar ) + #0;
   s[0] := Chr ( GetPrivateProfileString (
@@ -643,8 +648,8 @@ const
 
 procedure Saver ( Group, Parameter: PChar; Kind: TIniItemKind; Size : Word; PVar: Pointer );
 var
-  s : string;
   b : array [0..255] of Char;
+  s : string;
 begin
   if (SaveVar <> nil) and (SaveVar <> PVar) then
     Exit;
@@ -695,23 +700,25 @@ begin
 end;
 
         {-DataCompBoy-}
-function ProbeINI(var INItime,INIsize,INIcrc:longint):boolean;
-var SR:lSearchRec;
-    {F: TDosStream;}
-    {B: PByteArray;}
+function ProbeINI(var INItime,INIsize{,INIcrc}:longint):boolean;
+var
     Pos: Longint;
     S: Word;
+    SR:lSearchRec;
+    {F: TDosStream;}
+    {B: PByteArray;}
 begin
     INItime:=0;
     INIsize:=0;
-    INIcrc :=0;
+{    INIcrc :=0;}
     lFindFirst(DnIniFileName,AnyFile,SR);
     if (DosError=0) and ((SR.SR.Attr and Directory)=0) then begin
         ProbeINI:=True;
         INItime:=SR.SR.Time;
         INIsize:=SR.SR.Size;
+{
         INIcrc :=0;
-        {F.Init(SourceDir+'DN.INI', stOpenRead);
+        F.Init(SourceDir+'DN.INI', stOpenRead);
         S := Min(INIsize, 32767);
         if S>0 then begin
          GetMem(B, S);
@@ -719,7 +726,8 @@ begin
          INIcrc := GetCrc(0, B^, S);
          FreeMem(B, S);
         end;
-        F.Done;}
+        F.Done;
+}
     end else ProbeINI:=False;
     lFindClose(SR);
 end;

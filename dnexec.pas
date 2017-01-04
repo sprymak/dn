@@ -58,6 +58,10 @@
 //  dn40205-kernel(f)-show_mouse_after_executing_programs.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn40900-execfile_left_parameters_fix.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -78,7 +82,8 @@ procedure ExecFile(const FileName: string); {DataCompBoy}
 
 implementation
 uses DnSvLd, DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3,
-     FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4, Videoman, Messages
+     FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4, Videoman, Messages,
+     Histries
 {$IFDEF VIRTUALPASCAL}
      , Memory, VPSysLow
 {$ENDIF}
@@ -86,14 +91,14 @@ uses DnSvLd, DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3,
 
         {-DataCompBoy-}
 procedure ExecString(S: PString; WS: String);
- var F1: lText;
+ var
      I: Integer;
-     M: String;
-     DT: DateTime;
  {$IFDEF VIRTUALPASCAL}
      SM: Word;
      EV: TEvent;
  {$ENDIF}
+     F1: lText;
+     M: String;
  label 1;
 begin
  M:=S^;
@@ -123,6 +128,7 @@ begin
   end else M := MakeCMDParams(M, CnvString(CurFileActive), CnvString(CurFilePassive));
 1:
  M := ' '+M+#13; Dec(M[0]);
+ CmdLine.Str := ''; { Чтобы не дергать лишний раз историю команд. Persistor, Apr 2005}
 {$IFNDEF VIRTUALPASCAL}
  SaveDsk;
  Exiting:=True;
@@ -194,18 +200,18 @@ end;
         {-DataCompBoy-}
 function SearchExt(FileRec: PFileRec; var HS: String): Boolean;
 var
-  AllRight : Boolean;
-  f        : PTextReader;
-  F1       : lText;
-  s,s1     : String;
-  BgCh,EnCh: Char;
-  EF, First: Boolean;
   I        : Integer;
+  f        : PTextReader;
+  BgCh,EnCh: Char;
+  AllRight : Boolean;
+  EF, First: Boolean;
   Local    : Boolean;
-  FName,LFN: string;
+  WriteEcho: Boolean;
   UserParam: TUserParams;
   D        : TMaskData;
-  WriteEcho: Boolean;
+  F1       : lText;
+  FName,LFN: string;
+  s,s1     : String;
 
 label RL;
 
@@ -305,17 +311,19 @@ end;
         {-DataCompBoy-}
 function ExecExtFile(const ExtFName: string; UserParams: PUserParams; (* X-Man *)
 SIdx: TStrIdx; CallIfSuccess: TCallback; var CallbackParam, AltExt): Boolean; (* X-Man *) { Flash }
- var F: PTextReader;
-     S,S1: String;
-     FName, LFN: String;
-     Event: TEvent;
+ var
      I,J: Integer;
+     F: PTextReader;
+     Event: TEvent;
 {$IFNDEF VIRTUALPASCAL}{JO}
      PP: PView;
 {$ENDIF VIRTUALPASCAL}
      Success, CD: Boolean;
      Local: Boolean;
      D: TMaskData;
+     S,S1: String;
+     FName, LFN: String;
+
  label 1,1111, RepeatLocal;
 
 begin
@@ -394,10 +402,11 @@ end;
 
         {-DataCompBoy-}
 procedure ExecFile(const FileName: string);
- var S, L, M: String;
+ var
      fr: PFileRec;
+     S, L, M: String;
 
- procedure PutHistory(B: Boolean);
+ {procedure PutHistory(B: Boolean);
  begin
   if M = '' then Exit;
   CmdLine.Str := M;
@@ -405,7 +414,7 @@ procedure ExecFile(const FileName: string);
   CmdDisabled := B;
   Message(CommandLine, evKeyDown, kbDown, nil);
   Message(CommandLine, evKeyDown, kbUp, nil);
- end;
+ end;}
 
  procedure RunCommand(B: Boolean);
    var ST: SessionType;
@@ -440,16 +449,16 @@ begin
     (not InExtFilter(S, Executables) and
      not InExtFilter(L, Executables)) then
   begin
-   if SearchExt(fr, M) then
-   begin
-    PutHistory(True);
+   if SearchExt(fr, M) then begin
+    {PutHistory(True);} AddCommand(M);
     M := SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension+' '+FreeStr;
     RunCommand(False);
-   end else goto ex;
+   end;
+   goto ex;
   end;
  M := S;
- PutHistory(False);
- M := S;
+ {PutHistory(False);} AddCommand(M);
+ {M := S;}
  RunCommand(True);
 ex:
  DelFileRec(fr);

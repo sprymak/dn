@@ -125,6 +125,11 @@
 ;/  dn40328-7Zip.patch
 ;/
 ;/  4.9.0
+;/  dn40900-archive_files_history.patch
+;/  dn40900-editor_cancel_movement_ctrle.patch
+;/  dn40900-editor_standard_block_hotkeys.patch
+;/  dn40900-rename_error_retry_cancel_dialog.patch
+;/  dn40900-erase_locked_file_dialog.patch
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -441,7 +446,7 @@ END
 DIALOG dlgArchiveFiles, 68, 21, 'Архивирование файлов'
     HELPCTX hcArchiveFiles
     InputLine 16, 2, 63, 3, 255, 0
-    History 63, 2, hsFileCopyName, ofPostProcess
+    History 63, 2, hsArchiveFiles, ofPostProcess
     Label 2, 2, '~З~апаковать в', ofPostProcess, ofPreProcess
     InputLine 3, 5, 15, 6, 40, 0, ofSecurity
     Label 3, 4, '~П~ароль', ofPostProcess, ofPreProcess
@@ -3242,29 +3247,29 @@ EDITOR COMMANDS
     COMMAND       cmContSearch,   0,             0,     ^L#0,     #0#0
     COMMAND       cmBlockRead,    0,             0,     ^K^R,     #0#0
     COMMAND       cmBlockWrite,   0,             0,     ^K^W,     #0#0
-    COMMAND       cmSwitchIns,    kbIns,         0,     ^V,       #0#0
+    COMMAND       cmSwitchIns,    kbIns,         0,     #0#0,     #0#0
     COMMAND       cmSwitchBlock,  0,             0,     ^B^V,     #0#0
     COMMAND       cmFJustify,     kbAltJ,        0,     ^B^J,     #0#0
     COMMAND       cmFRight,       kbAltR,        0,     ^B^R,     #0#0
     COMMAND       cmFLeft,        kbAltL,        0,     ^B^L,     #0#0
     COMMAND       cmFCenter,      kbAltC,        0,     ^B^C,     #0#0
     COMMAND       cmEnter,        kbEnter,       0,     #13#0,    #0#0
-    COMMAND       cmPaste,        kbShiftIns,    0,     #0#0,     #0#0
-    COMMAND       cmCopy,         kbCtrlIns,     0,     #0#0,     #0#0
-    COMMAND       cmCut,          kbShiftDel,    0,     #0#0,     #0#0
+    COMMAND       cmPaste,        kbShiftIns,    0,     ^V#0,     #0#0
+    COMMAND       cmCopy,         kbCtrlIns,     0,     ^C#0,     #0#0
+    COMMAND       cmCut,          kbShiftDel,    0,     ^X#0,     #0#0
     COMMAND       cmInsLine,      0,             0,     ^N#0,     #0#0
     COMMAND       cmEnd,          kbEnd,         0,     #0#0,     #0#0
+    COMMAND       cmHome,         kbHome,        0,     #0#0,     #0#0
+    COMMAND       cmCtrlPgUp,     kbCtrlPgUp,    0,     #0#0,     #0#0
+    COMMAND       cmCtrlPgDn,     kbCtrlPgDn,    0,     #0#0,     #0#0
+    COMMAND       cmPrevPos,      0,             0,     ^E#0,     #0#0
     COMMAND       cmTab,          kbTab,         0,     ^I#0,     #0#0
     COMMAND       cmWordLeft,     kbCtrlLeft,    0,     #0#0,     #0#0
     COMMAND       cmWordRight,    kbCtrlRight,   0,     #0#0,     #0#0
     COMMAND       cmDelBackChar,  kbBack,        0,     ^H#0,     #0#0
     COMMAND       cmDelChar,      kbDel,         0,     ^G#0,     #0#0
-    COMMAND       cmMoveRight,    kbRight,       0,     ^D#0,     #0#0
-    COMMAND       cmMoveLeft,     kbLeft,        0,     ^S#0,     #0#0
-    COMMAND       cmMoveDown,     kbDown,        0,     ^X#0,     #0#0
     COMMAND       cmScrollUp,     0,             0,     ^W#0,     #0#0
     COMMAND       cmScrollDn,     0,             0,     ^Z#0,     #0#0
-    COMMAND       cmMoveUp,       kbUp,          0,     ^E#0,     #0#0
     COMMAND       cmPlaceMarker1, kbAlt1,        0,     ^K'1',    #0#0
     COMMAND       cmPlaceMarker2, kbAlt2,        0,     ^K'2',    #0#0
     COMMAND       cmPlaceMarker3, kbAlt3,        0,     ^K'3',    #0#0
@@ -3284,14 +3289,14 @@ EDITOR COMMANDS
     COMMAND       cmGotoMarker8,  kbCtrl8,       0,     ^Q'8',    #0#0
     COMMAND       cmGotoMarker9,  kbCtrl9,       0,     ^Q'9',    #0#0
     COMMAND       cmPgUp,         kbPgUp,        0,     ^R#0,     #0#0
-    COMMAND       cmPgDn,         kbPgDn,        0,     ^C#0,     #0#0
+    COMMAND       cmPgDn,         kbPgDn,        0,     #0#0,     #0#0
     COMMAND       cmClose,        kbESC,         0,     ^C#0,     #0#0
     COMMAND       cmMenu,         kbF10,         0,     #0#0,     #0#0
     COMMAND       cmUpWord,       $1A1B,         0,     #0#0,     #0#0
     COMMAND       cmLowWord,      $1B1D,         0,     #0#0,     #0#0
     COMMAND       cmCapWord,      0,             0,     ^\#0,     #0#0
     COMMAND       cmPrintBlock,   0,             0,     ^K^P,     #0#0
-    COMMAND       cmClear,        kbCtrlDel,     0,     ^K^Y,     #0#0
+    COMMAND       cmClear,        kbCtrlDel, kbCtrlD,   ^K^Y,     #0#0
     COMMAND       cmCopyBlock,    0,             0,     ^K^C,     #0#0
     COMMAND       cmMoveBlock,    0,             0,     ^K^V,     #0#0
     COMMAND       cmHideBlock,    kbAltH,  kbCtrlF,     ^K^H,     #0#0
@@ -4260,16 +4265,16 @@ DIALOG dlgAddQuickDir, 40, 9, 'Добавление каталога'
 END
 ;{--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
 
-;{--- start -------- Eugeny Zvyagintzev ---- 22-10-2002 ----}
-DIALOG dlgSkipBadFile, 54, 8, 'Предупреждение'
+;{--- start -------- Eugeny Zvyagintzev ---- 22-10-2002 ----}  {   modified by Persistor, Nov 2004   }
+DIALOG dlgSkipBadFile, 54, 8, 'Нет доступа'
     HELPCTX hcSkipBadFile
     StaticText 2, 2, 52, 3, ^C'Невозможно открыть файл:'
-    Button 1, 5, 15,  7, '~П~ропустить', cmNo, bfDefault, ofPostProcess, ofPreProcess
-    Button 15, 5, 33,  7, 'Пропустить ~В~се', cmYes, ofPostProcess, ofPreProcess
-    Button 33, 5, 43, 7, 'Пов~т~ор', cmOK, ofPostProcess, ofPreProcess
+    Button  1, 5, 11, 7, 'Пов~т~ор', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 11, 5, 25, 7, '~П~ропустить', cmNo, ofPostProcess, ofPreProcess
+    Button 25, 5, 43, 7, 'Пропустить ~В~се', cmYes, ofPostProcess, ofPreProcess
     Button 43, 5, 53, 7, '~О~тмена', cmCancel, ofPostProcess, ofPreProcess
 END
-;{--- finish -------- Eugeny Zvyagintzev ---- 22-10-2002 ----}
+;{--- finish -------- Eugeny Zvyagintzev ---- 22-10-2002 ----} {   modified by Persistor, Nov 2004   }
 
 ;{--- start -------- Eugeny Zvyagintzev ---- 26-11-2002 ----}
 DIALOG dlgEditQuickDir, 40, 9, 'Изменение каталога'
@@ -4283,3 +4288,10 @@ DIALOG dlgEditQuickDir, 40, 9, 'Изменение каталога'
     Button 28, 6, 38, 8, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
 END
 ;{--- finish -------- Eugeny Zvyagintzev ---- 26-11-2002 ----}
+
+;{   Persistor, Nov 2004   }
+DIALOG dlgBadFile, 42, 9, 'Нет доступа'
+    Button   9, 6, 21, 8, 'Пов~т~ор', cmOK, ofPostProcess, ofPreProcess
+    Button  21, 6, 33, 8, '~О~тмена', cmCancel, ofPostProcess, ofPreProcess
+END
+;{   Persistor, Nov 2004   }

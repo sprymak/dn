@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -106,8 +109,6 @@ procedure GetUNIXDate(Julian: LongInt; var Year, Month, Day, Hour, Min, Sec: Wor
 
 implementation
 uses Dos{$IFDEF VIRTUALPASCAL},VPUtils{$ENDIF};
-type
-  DayType = (Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday);
 
 const
   {Set to 1/1/1970 00:00 GMT}

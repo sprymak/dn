@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -173,8 +176,9 @@ begin
 end;
 
 procedure TPrintStatus.Draw;
- var B: TDrawBuffer;
+ var
      C: Word;
+     B: TDrawBuffer;
      S,S1: String;
 begin
   S1 := '';
@@ -198,7 +202,6 @@ begin
 end;
 
 constructor TPrintManager.Init;
- var S: String;
 begin
  inherited Init(Bounds, 1, AScrollBar);
  Options := Options or ofPostProcess;
@@ -218,9 +221,10 @@ begin
 end;
 
 function TPrintManager.SetDestination;
- var S: String;
+ var
      P: Boolean;
      OldP: PDOSStream;
+     S: String;
 begin
  SetDestination := False;
  P := Paused;
@@ -395,7 +399,6 @@ function TPrintManager.PrintBuffer;
  label 1;
  const TryCount: Byte = 0;
  var B: Byte;
-     BB: Boolean;
 begin
  PrintBuffer := False;
  B := GetStatus;

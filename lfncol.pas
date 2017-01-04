@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -195,7 +198,9 @@ implementation
  end;
 
  function    TLFNCollection.AddCFN(Name: pchar):  TLFNIndex;
- var plr: PLFNRecord; i: longint;
+ var
+    i: longint;
+    plr: PLFNRecord;
  begin
   New(plr);
   plr^.UsageCount:=1;
@@ -591,9 +596,10 @@ begin
 end;
 
 function    CmpLEX(LFN1, LFN2: TLFNIndex): integer;
-var S1, S2: string;
-    E1, E2: string;
+var
     B, K: Byte;
+    S1, S2: string;
+    E1, E2: string;
 begin
  S1:=UpStrg(GetLFN(LFN1));
  For B:=Length(S1) downto 1 do if S1[B]='.' then break;

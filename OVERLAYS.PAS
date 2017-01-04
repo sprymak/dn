@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -113,8 +116,8 @@ type
              end;
 
 var
-  OldReadFunc : OvrReadFunc;
   OvrOldExitProc : Pointer;
+  OldReadFunc : OvrReadFunc;
   OvrStream : PStream;
 const
   OvrStreamInstalled : Boolean = False;
@@ -286,9 +289,10 @@ const
   end;
 
 procedure InitOverlay(FileName: String);
-  var S: PStream;
+  var
       I : longint ;
       LL : LongInt;
+      S: PStream;
       ST : string[8] ;
 begin
   ClrIo;

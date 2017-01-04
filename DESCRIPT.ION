@@ -255,3 +255,4 @@ realcode.bat Run this to build DN.prg/RealMode
 SORT_W32.INC Sorting types for Win32 versions
 sort_dos.inc Sorting types for Dos versions
 arc_7z.pas   Support for 7-Zip
+APRO Async Professional Library

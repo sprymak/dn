@@ -58,6 +58,9 @@
 //  dn31029-Compile_by_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -577,11 +580,11 @@ function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
 var
   C,AC,WW,K : Word;
   P : Pointer;
-  S : string[63];
-  B,SW : PWordArray;
   I : Byte;
   Event: TEvent;
   PExit, ActiveButton: Byte;
+  B,SW : PWordArray;
+  S : string[63];
 
 function GetCoord(X, Y: LongInt): Word;
 begin

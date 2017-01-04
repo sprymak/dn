@@ -56,6 +56,9 @@
 //  dn31220-LFN(f)-expand_path_on_subst_drives_under_XP_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -533,7 +536,7 @@ begin
     Move(F.FullName, LowBuf^, SizeOf(F.FullName));
     AX    := $7143;
     BL    := Action;
-    if Action = faSetAttr then CX := Attr;
+{    if Action = faSetAttr then }CX := Attr;
     DS    := LowSeg;
 {    DX    := 0;}
     Flags := fCarry;
@@ -556,7 +559,7 @@ begin
     Move(T.FullName, LowBuf^, SizeOf(T.FullName));
     AX    := $7143;
     BL    := Action;
-    if Action = faSetAttr then CX := Attr;
+{    if Action = faSetAttr then }CX := Attr;
     DS    := LowSeg;
 {    DX    := 0;}
     Flags := fCarry;

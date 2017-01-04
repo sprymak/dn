@@ -54,6 +54,9 @@
 //  dn230-save_ActiveLanguage_at_1st_start.patch
 //
 //  2.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -102,8 +105,9 @@ begin
 end;
 
 function LngId: string;
-var S:string;
+var
     SR:lSearchRec;
+    S:string;
 begin
     S:=ActiveLanguage;
     if not ValidLngId(S,False) then S:=GetEnv('DNLNG');

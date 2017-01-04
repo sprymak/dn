@@ -64,6 +64,9 @@
 //  dn31214-DBFView(f)-view_dbf_works_in_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -171,10 +174,11 @@ var FBuf: FRec;
     Par : TParams;    {JOHN_SW}
 
  Function ReadFldStru(CharSizeWord: Boolean): Boolean;
- var I, J: Integer;
-     S: String;
+ var
+     I, J: Integer;
      FieldLen : AWord;
      FieldDec : byte;
+     S: String;
  begin
   ReadFldStru:=True;
   BaseFile.Seek(32);
@@ -284,10 +288,11 @@ begin
 end;
 
 function TDBFile.GetField;
- var I, K, N: Integer;
+ var
+     I, K, N: Integer;
+     L: Word;
      B: Array [0..65000] of Char Absolute Buf;
      S: String;
-     L: Word;
 begin
  I := 0; K := 1;
  While (I < NumFields) and (GetFieldRec(I)^.Name <> Name) do Inc(I);
@@ -299,10 +304,11 @@ begin
 end;
 
 function TDBFile.GetNField;
- var I, K, J: Integer;
+ var
+     I, K, J: Integer;
+     L: Word;
      B: Array [0..65000] of Char Absolute Buf;
      S: String;
-     L: Word;
 begin
  K := GetFieldRec(N)^.Pos;
  S := '';

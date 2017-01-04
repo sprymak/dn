@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -214,7 +217,6 @@ var
         OutFName        : String;
         InFName         : String;
         StrL            : byte absolute StrT;
-        AuxL            : byte absolute AuxT;
         CurPSection     : PSection;
         CurPFile        : PFile;
         UUfound,
@@ -229,7 +231,6 @@ var
         FileNameKnown,
         FileTimeKnown,
         NumSectKnown,
-        PrevTmp,
         ForceEOF,
         MaxSectKnown    : Boolean;
         MaxSectNum,
@@ -240,9 +241,7 @@ var
         OutBufPos       : Longint;
         POutBuf         : PDskBufArr;
         CurSectSize,
-        CurFileTime,
-        HeapBegin,
-        HeapEnd         : LongInt;
+        CurFileTime     : LongInt;
 {!  описания !}
 
         {-DataCompBoy-}
@@ -1907,7 +1906,7 @@ end;
 procedure DoIt;
 var sss,Ma:LongInt;
     II : Integer;
-    LocalFreeStr, UUEncodeDataName: string;
+    LocalFreeStr: string;
     Err: longint;
 Label beg;
 begin

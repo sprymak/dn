@@ -60,9 +60,13 @@ Dos Navigator Open Source Project Team:
   Pawel Ziemian <pawelz at aritech.com.pl>
   Valerij Zubov
   Eugeny Zvyagintzev (John_SW) <2:5004/18.60; dn_osp at pisem.net>
+  Persistor <persistor at yandex.ru>
 
 Hungarian Localization:
   M‚sz ros Csaba (csablak) <csablak at freemail.hu>
+
+Polish Localization:
+  Figo Fago <figafago at poczta.pf.pl>
 
 Dos Navigator II Team:
   Stefan Tanurkov

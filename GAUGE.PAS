@@ -57,6 +57,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -128,10 +131,10 @@ end;
 
 procedure TPercentGauge.Draw;
 var
-  B: TDrawBuffer;
   C: Word;
-  S: string[10];
   PercentDone: Longint;
+  S: string[10];
+  B: TDrawBuffer;
 begin
   C := GetColor(1);
   MoveChar(B, ' ', C, Size.X);
@@ -192,10 +195,10 @@ end;
 { TBarGauge }
 procedure TBarGauge.Draw;
 var
-  B: TDrawBuffer;
   C: Word;
   PercentDone: Longint;
   FillSize: Integer;
+  B: TDrawBuffer;
 begin
   C := GetColor(1);
   MoveChar(B, #176, C, Size.X);
@@ -230,9 +233,10 @@ begin
 end;
 
 procedure TWhileView.Write;
- var R: TRect;
-     B: TDrawBuffer;
+ var
      I: Integer;
+     R: TRect;
+     B: TDrawBuffer;
      S1: String;
 begin
  if N < Lines^.Count then
@@ -355,12 +359,13 @@ begin
 end;
 
 procedure TWhileView.Draw;
- var B: TDrawBuffer;
-     B1: Array [0..127] of record c: Char; a: Byte; end Absolute B;
-     C1, C2: Byte;
+ var
      I: Integer;
-     S: String;
      R: TRect;
+     C1, C2: Byte;
+     B: TDrawBuffer;
+     B1: Array [0..127] of record c: Char; a: Byte; end Absolute B;
+     S: String;
 begin
  if Length(Top) > Size.X - 4 then
   begin

@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -409,12 +412,13 @@ end;
 {$ENDIF}
 
 constructor TDiskDriver.Init;
-var S: string;
+var
     BRec: PBootRec;
     P: PDiskDriver;
     C: Char;
     RemoteDrive: Boolean;
     Removable: Boolean;
+    S: string;
 begin
   Abort := False;
   lGetDir(Drv, s); Drv := Byte(S[1]) - 64;
@@ -546,11 +550,11 @@ end;
 
 function TDiskDriver.GetPath(s : string) : word;
 var
-    ts,vs : string[12];
     cl,i  : word;
-    Made  : boolean;
-    QQP   : ^DirPtr;
     QSize : Word;
+    Made  : boolean;
+    ts,vs : string[12];
+    QQP   : ^DirPtr;
 
 procedure SetCatalog;
  Label 1;
@@ -736,7 +740,6 @@ end;
 
 procedure TDiskDriver.WriteFAT;
  var I: Byte;
-     N: Word;
 begin
  if (FAT=Nil) or not FATModified then Exit;
  for i:=0 to FATCopies-1 do

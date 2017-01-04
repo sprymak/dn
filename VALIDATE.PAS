@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -402,10 +405,10 @@ var
 
     function Iteration: TPicResult;
     var
-      SubPic: String;
       Itr, K, L, OldJ: Byte;
-      Rslt: TPicResult;
       TermCh: Byte;
+      Rslt: TPicResult;
+      SubPic: String;
     begin
       Itr := 0;
       Iteration := prError;

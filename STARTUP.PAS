@@ -68,6 +68,9 @@
 //  dn40328-7Zip.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -382,7 +385,7 @@ procedure InitMaskData;
       Quick: pqsAlt;
       TagChar : #251;
       RestChar: #125;
-      DIZ: 'descript.ion;files.bbs'
+      DIZ: 'DESCRIPT.ION;FILES.BBS'
     );
 
   EditorDefaults: TEditorDefaultsData = (

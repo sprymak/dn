@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -72,7 +75,6 @@ const
   PackFlag:   Boolean = False;
 
   PageSiz: Word = 6600;
-  ToSize:  Word = 0;
 
   FromBuf:  PBytes     = nil;
   ToBuf:    PBytes     = nil;
@@ -82,17 +84,17 @@ const
   AddOnS = 4*2 + SizeOf(PackedSig);
 
 var
-  InpF, OutF: lFile;
   FS, AllocedPages: LongInt;
   ReaderCount, WriterCount: LongInt;
   I, J, C: Word;
   W, CP, CP2, LPS: Word;
+  InpF, OutF: lFile;
   S: String;
 
 procedure Usage;
 begin
   WriteLn('PackFile v0.2: make packed file which allow read/seek');
-  WriteLn('Autor: Anton Fedorov AKA DataCompBoy (DN OSP v1.51.05)');
+  WriteLn('Author: Anton Fedorov AKA DataCompBoy (DN OSP v1.51.05)');
   WriteLn('Debugger: Sergey Korshunoff AKA SeYKo');
   WriteLn('Usage:');
   WriteLn('  packfile [-x] [-pN] IN_FILE OUT_FILE');

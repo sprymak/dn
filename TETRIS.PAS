@@ -55,6 +55,10 @@
 //  dn31220-Game(f)-Tetris_works_in_VP.patch
 //
 //  4.9.0
+//  dn50202-calc(f)-save_desktop_fix.patch
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -272,9 +276,10 @@ begin
 end;
 
 procedure TGameInfo.Draw;
-var B: TDrawBuffer;
-    S, T: String;
+var
     C, I, J, K, L: Word;
+    B: TDrawBuffer;
+    S, T: String;
 begin
  C := GetColor($0201);
  MoveChar(B, #196, C, Size.X);
@@ -353,9 +358,9 @@ begin
 end;
 
 Constructor TGameView.Init;
- var I, J: Integer;
+ var
+     I: Integer;
      S: TDOSStream;
-     C: Word;
      B: Array[0..1024] of Byte;
 begin
  Randomize;
@@ -426,9 +431,9 @@ var
   D: PDialog;
   R: TRect;
   P: PView;
-  S: String;
   I: Byte;
   PP: Boolean;
+  S: String;
 begin
   D := PDialog( LoadResource( TDlgIdx( Byte( dlgTetrisTop10 ) + Byte( Pentix ))));
   R.Assign( 2, 4, D^.Size.X - 2, 14 );
@@ -519,25 +524,23 @@ begin
 end;
 
 function TGameView.MoveFig;
- label 1;
- var I, J: Integer;
 begin
  MoveFig := False; if not ValidMove(DeltaX, DeltaY) then Exit;
  MoveFig := True;
  ChPos := True; HideFig := True; Draw;
  Inc(X, DeltaX); Inc(Y, DeltaY); ChPos := True; Draw;
-1:
 end;
 
 function TGameView.MoveDown;
- var I, J, K, L, W, BW: Integer;
+ var I, J, K, W, BW: Integer;
      B, BB, BBW: Boolean;
 
  procedure CheckHiScores;
-  var I, J: Integer;
+  var
+      I, J: Integer;
+      B: Array[0..1024] of Byte;
       S: TDOSStream;
       Nm: String;
-      B: Array[0..1024] of Byte;
   label 1;
  begin
   for I := 1 to 10 do if HiScores[I+10*Byte(Pentix)].Score < Score then Goto 1;
@@ -550,7 +553,7 @@ function TGameView.MoveDown;
   HiScores[I+10*Byte(Pentix)].StLv := StartLevel;
   HiScores[I+10*Byte(Pentix)].EndLv := Level;
   HiScores[I+10*Byte(Pentix)].Score := Score;
-  S.Init(SourceDir+'dn.tet',stCreate); {DataCompBoy}
+  S.Init(SourceDir+'DN.TET',stCreate); {DataCompBoy}
   Move(HiScores, B, SizeOf(HiScores));
   J := SizeOf(HiScores);
   {$IFNDEF BIT_32}
@@ -588,7 +591,9 @@ begin
   begin
    for I := 1 to ColPo[CurFig] do
      Glass[Fig[I,1]+y,Fig[I,2]+x+1] := 15 - CurFig mod 7;
-   Inc(Score, ((Size.Y - Y)*2+Level*6)*(10 - 3*Byte(Preview)) div 10); BB := False; W:=0;
+   Inc(Score, ((Size.Y - Y)*2+Level*6)*(10 - 3*Byte(Preview)) div 10);
+   BB := False;
+   W:=0;
    BW := 0;
    for I := 0 to Vis-1 do
     begin
@@ -602,8 +607,13 @@ begin
      if B then
       begin
        for K := I Downto 1 do
-        for J := 1 to Shi do begin Glass[K, J] := Glass[K - 1, J]; Glass[K - 1, J] := 0; end;
-       Inc(Score, (W+Size.Y - I)*30); Inc(Lines); Inc(W);
+        for J := 1 to Shi do begin
+                               Glass[K, J] := Glass[K - 1, J];
+                               Glass[K - 1, J] := 0;
+                             end;
+       Inc(Score, (W+Size.Y - I)*30);
+       Inc(Lines);
+       Inc(W);
        BB := True;
       end;
     end;
@@ -635,8 +645,9 @@ begin
 end;
 
 procedure TGameView.Draw;
- var B: TDrawBuffer;
+ var
      I, J, K: Integer;
+     B: TDrawBuffer;
 begin
  if not ChPos then
    for I := 0 to Vis do
@@ -712,7 +723,6 @@ procedure TGameView.HandleEvent;
   Message(Application, evCommand, cmUpdateConfig, nil);
  end;
 
- var O: Integer;
 begin
  inherited HandleEvent(Event);
  case Event.What of
@@ -795,12 +805,10 @@ end;
 constructor TGameWindow.Load(var S: TStream);
 begin
 inherited Load(S);
-InsertButtons;
 end;
 
 procedure TGameWindow.Store(var S: TStream);
 begin
-DeleteButtons;
 inherited Store(S);
 end;
 { Flash 01-02-2003 <<< }

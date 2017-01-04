@@ -62,6 +62,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -262,13 +265,14 @@ begin
 end;
 
 procedure TCommandLine.Draw;
- var B: Array[0..200] of record C: Char; A: Byte; end;
-     C1, C2, C3: Word; S:^Str50;
+ var
+     C1, C3: Word; S:^Str50;
+     B: Array[0..200] of record C: Char; A: Byte; end;
 begin
  if CmdDisabled then Exit;
  New(S); S^:=Cut(Copy(Dir, 1, Length(Dir)-1),49)+Dir[Length(Dir)];
  C3 := $0F;
- C1 := $07; if Overwrite then C2 := $4F else C2 := $70;
+ C1 := $07; {if Overwrite then C2 := $4F else C2 := $70;}
  if CurX < 0 then CurX := 0;
  if CurX > Length(Str) then CurX := Length(Str);
 { DeltaX := Max(Length(Str)-(Size.X-Length(S^)-1), 0);}
@@ -315,10 +319,11 @@ procedure TCommandLine.HandleEvent;
   End;
 {--- finish -------- Eugeny Zvyagintzev ---- 19-09-2002 ----}
 
- var R: TRect;
+ var
+     R: TRect;
      P: TPoint;
-     S: String;
      Changed: Boolean;
+     S: String;
 begin
  inherited HandleEvent(Event);
  if (CCalc.Calc<>nil) and (Desktop^.Current<>nil) and
@@ -528,8 +533,9 @@ begin
 end;
 
 procedure TCmdLine.Draw;
- var B: TDrawBuffer;
+ var
      I: Integer;
+     B: TDrawBuffer;
      S: String;
 begin
 end;

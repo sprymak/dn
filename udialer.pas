@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -102,8 +105,9 @@ implementation
 uses Terminal, DnHelp;
 
 function TDialBox.GetText;
- var S: String;
+ var
      P: PPhone;
+     S: String;
 begin
  P := List^.At(Item);
  S := AddSpace(P^.Name, 30);
@@ -380,13 +384,14 @@ end;
 
 procedure TAutoDialer.Update;
  const InZdes: Boolean = False;
- var Status: String;
+ var
+     I: Integer;
      PP: PView;
      P: PPhone;
-     I: Integer;
-     C: Char;
      Tmr: TEventTimer;
      Event: TEvent;
+     C: Char;
+     Status: String;
 
   procedure Cheers;
     var I,J: Integer;

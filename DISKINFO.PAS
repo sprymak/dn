@@ -60,6 +60,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -323,10 +326,11 @@ begin
 end;
 
 procedure TTeamView.Draw;
-  var B: TDrawBuffer;
-      S: String;
+  var
       I: Integer;
       C: Word;
+      B: TDrawBuffer;
+      S: String;
 begin
   C := Owner^.GetColor($0807);
   Case CState of
@@ -637,10 +641,11 @@ begin
 end;
 
 procedure TDiskInfo.Draw;
- var B: TDrawBuffer;
+ var
      C,Y,X: Word;
-     S1,S2: String[20];
      CC: Boolean;
+     S1,S2: String[20];
+     B: TDrawBuffer;
 
 procedure Wrt(S: String);
  var I: Integer;

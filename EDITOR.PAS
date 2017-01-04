@@ -67,6 +67,11 @@
 //  dn31029-Kernel(fi)-text_search_operation_rewritten.patch
 //
 //  4.9.0
+//  dn40900-editor_ctrl_y_improvements.patch
+//  dn40900-editor_IndentBlock_improvements.patch
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -127,15 +132,14 @@ var  LastX, LastY: LongInt;
      T: TPoint;
 
   procedure ChangeLine;
-   label Ex;
   begin
-    if not WorkModified then goto Ex;
+   if WorkModified then begin
     While WorkString[WL] = ' ' do Dec(WL);
-    if WorkModified then ModifyLine(LastLine, WorkString, True);
+    ModifyLine(LastLine, WorkString,True);
     Modified := Modified or WorkModified;
     WorkModified := False;
-  Ex:
-    WorkString := GetLine(Delta.Y);
+   end;
+   WorkString := GetLine(Delta.Y);
   end;
 
   procedure StartSearch(Replace: Boolean);
@@ -184,13 +188,12 @@ var  LastX, LastY: LongInt;
   end;
 
   procedure MakeUndo;
-   var P: PUndoRec;
-       S, S1: String;
-       V, M: Boolean;
-       I: LongInt;
+   var
+       I, L, J: Longint;
        PS: PString;
-       RPT: Boolean;
-       L, J: Longint;
+       P: PUndoRec;
+       V, M, RPT: Boolean;
+       S, S1: String;
   begin
    repeat
      RPT := True;
@@ -343,12 +346,11 @@ var  LastX, LastY: LongInt;
   end;
 
   procedure MakeRedo; {-$VOL}
-   var P: PUndoRec;
+   var
+       I, L, J: Longint;
+       P: PUndoRec;
+       V, M, RPT: Boolean;
        S, S1: String;
-       I: LongInt;
-       V, M: Boolean;
-       RPT: Boolean;
-       L, J: Longint;
   begin
    repeat
      RPT := True;
@@ -567,14 +569,15 @@ var  LastX, LastY: LongInt;
      ModifyLine(I, S, True);
    end;
    EnableMarking := False; Marking := False; Sel := Mark;
-   ScrollTo(0, Mark.A.Y); Mark := Sel; DrawView; ChangeLine;
+   ScrollTo(Mark.A.X, Mark.A.Y); Mark := Sel; DrawView; ChangeLine;
    EnableMarking := True;
   end;
 
   procedure IndentBlock(Undo: Boolean);
-   var I: LongInt;
-       S: String;
+   var
+       I: LongInt;
        M: TRect;
+       S: String;
   begin
    Modified := True;
    if not (BlockVisible and ValidBlock) then Exit;
@@ -584,7 +587,7 @@ var  LastX, LastY: LongInt;
    for I := Mark.A.Y to Mark.B.Y-Integer(Mark.B.X = 0) do
     begin S := ' ' + GetLine(I); ModifyLine(I, S, True) end;
    EnableMarking := False; Marking := False; M := Mark;
-   ScrollTo(0, Mark.A.Y); Mark := M; DrawView; ChangeLine;
+   ScrollTo(Mark.A.X, Mark.A.Y); Mark := M; DrawView; ChangeLine;
    EnableMarking := True;
   end;
 
@@ -596,9 +599,10 @@ var  LastX, LastY: LongInt;
   end;
 
   function FirstToken(var S: String): String;
-   var SS: String;
+   var
        I: LongInt;
        L: Byte absolute S;
+       SS: String;
   begin
    FirstToken := '';
    I := 1; While (S[L] = ' ') do Dec(L); if S = '' then Exit;
@@ -609,13 +613,13 @@ var  LastX, LastY: LongInt;
   end;
 
   procedure FormatBlock(Command: Word);
-   var S, Left, W: String;
+   var
+       LS, I, J, LG, Q, L: Longint;
        P: PLineCollection;
        PS: PString;
-       LS, I, J, LG: LongInt;
-       Abort, LastLine: Boolean;
        TP: TPoint;
-       Q, L: Longint;
+       Abort, LastLine: Boolean;
+       S, Left, W: String;
 
    label 1;
 
@@ -710,18 +714,18 @@ var  LastX, LastY: LongInt;
         {-DataCompBoy-}
   {$IFDEF PrintManager}
   procedure Print(Block: Boolean);
-   var S: TDOSStream;
+   var
+       I: LongInt;
+       LL: Array [1..3] of LongInt;
        L: PCollector;
        PC: PCollection;
-       M: String;
        P: PWhileView;
-       I: LongInt;
        R: TRect;
-       E: TEvent;
        PS: PString;
        Cancel: Boolean;
-       LL: Array [1..3] of LongInt;
        SR: lSearchRec;
+       S: TDOSStream;
+       M: String;
        FName: String;
    label 1;
   begin
@@ -789,9 +793,10 @@ var  LastX, LastY: LongInt;
        {-DataCompBoy-}
 
   procedure SetFormat;
-   var Data: Record S1, S2, S3: String[6]; end;
+   var
        I: LongInt;
        J: Integer;
+       Data: Record S1, S2, S3: String[6]; end;
   begin
    Data.S1 := ItoS(EdOpt.LeftSide);
    Data.S2 := ItoS(EdOpt.RightSide);
@@ -823,10 +828,11 @@ var  LastX, LastY: LongInt;
     var {PC: PSortCollection;}
         {I, J, K: Integer;
         B: Boolean;}
-        S: string;
         Info: PView;
         Tmr: TEventTimer;
         UC: Boolean;
+        S: string;
+
         Cmpr:function(const L,R:String):Boolean;
 
 {AK155 QuickSort имеет существенный недостаток: при равных
@@ -955,10 +961,8 @@ var  LastX, LastY: LongInt;
   procedure CalcBlock;
     var
         I: LongInt;
-        J: Integer;
-        R1, R2: Extended;
+        R, R1, R2: Extended;
         S: String;
-        R: Extended;
   begin
    if not VertBlock then begin
     ChangeLine;
@@ -998,8 +1002,6 @@ var  LastX, LastY: LongInt;
 
 
   procedure PlayMacro;
-    var P: PEditMacros;
-
     function DoFind(P: PEditMacros): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
     begin
       if UpStrg(P^.Name^) = UpCase(Event.InfoChar) then
@@ -1082,10 +1084,11 @@ var  LastX, LastY: LongInt;
   procedure ChangeVertBlockCase(C: Word); forward;
 
   procedure ChangeBlockCase(C: Word; Show: Boolean);
-    var I,J,K,L,SX,EX,SY,EY: LongInt;
-        S,S1: String;
-        A: String[4];
+    var
+        I, J, L, SX, EX, SY, EY: LongInt;
         P: PCollection;
+        A: String[4];
+        S,S1: String;
   begin
     if (Mark.A.Y > Mark.B.Y) or (Mark.A.Y = Mark.B.Y) and (Mark.A.X >= Mark.B.X) then Exit;
     ChangeLine;
@@ -1127,8 +1130,9 @@ var  LastX, LastY: LongInt;
   end;
 
   procedure ChangeVertBlockCase;
-    var OldMark: TRect;
+    var
         I: LongInt;
+        OldMark: TRect;
   begin
     OldMark := Mark;
     for I := OldMark.A.Y to OldMark.B.Y do
@@ -1141,7 +1145,6 @@ var  LastX, LastY: LongInt;
   end;
 
   procedure CopyWinBlock;
-   var R: TRect;
   begin
    ChangeLine;
    if (Clipboard <> nil) then Dispose(Clipboard,Done);
@@ -1158,8 +1161,9 @@ var  LastX, LastY: LongInt;
   end;
 
   function CurrentWordIs(pWord: String): Boolean;
-  var S: String;
+  var
       Max, I: Integer;
+      S: String;
   begin
     CurrentWordIs := False;
     S := WorkString;
@@ -1179,8 +1183,9 @@ var  LastX, LastY: LongInt;
   { result - found a word ?                                      }
 
   function GetPrevWordViv(var FromPos, WrdPos: TPoint; var pWord: String): Boolean;
-  var S, Buf: String;
+  var
       WasBreak, DoStore, MakeExit: Boolean;
+      S, Buf: String;
   begin
     GetPrevWordViv := False;
     if (FromPos.Y > FileLines^.Count - 1) or (FromPos.Y < 0) then Exit;
@@ -1230,8 +1235,9 @@ var  LastX, LastY: LongInt;
   end;
 
   function GetNextWordViv(var FromPos, WrdPos: TPoint; var pWord: String): Boolean;
-  var S, Buf: String;
+  var
       WasBreak, DoStore, MakeExit: Boolean;
+      S, Buf: String;
   begin
     GetNextWordViv := False;
     if (FromPos.Y > FileLines^.Count - 1) or (FromPos.Y < 0) then Exit;
@@ -1283,12 +1289,11 @@ var  LastX, LastY: LongInt;
   end;
 
   procedure SearchWordViv(Frw: Boolean; pIncWord, pWord: String);
-  var Pnt, Wrd: TPoint;
-      Res: Boolean;
+  var
+      I, PrevLine, DeepLevel: Longint;
+      Pnt, Wrd: TPoint;
+      Res, IsDeepRange: Boolean;
       sWord: String;
-      I, PrevLine: LongInt;
-      DeepLevel: Longint;
-      IsDeepRange: Boolean;
   begin
     Pnt := Delta;
     I := 1;

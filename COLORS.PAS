@@ -51,6 +51,9 @@
 //  dn2510_find_files_progress_window_close_fix.patch
 //
 //  2.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -130,8 +133,9 @@ begin
 end;
 
 function TWindowList.GetText;
- var S: String;
+ var
      P: PView;
+     S: String;
 begin
  P := List^.At(Item);
  S := GetString(dlUnknownWindowType);
@@ -143,13 +147,14 @@ end;
 
 procedure WindowManager;
  label 1;
- var D: PDialog;
+ var
+     I, Num: Integer;
+     D: PDialog;
      R: TRect;
      PC: PWindowCol;
      PV: PView;
-     S: String;
      DT: record P: PCollection; N: Word; end;
-     I, Num: Integer;
+     S: String;
 
   procedure InsView(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
   begin

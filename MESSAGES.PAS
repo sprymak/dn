@@ -54,6 +54,9 @@
 //  dn21013-msg_funct_crash_when_Desktop_does_not_exists_fix.patch
 //
 //  3.7.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -158,16 +161,17 @@ procedure ErrMsg(Index: TStrIdx); begin Msg(Index, nil, mfError + mfOkButton) en
 
 procedure CantWrite(const FName: String);
 var
-  a: string[30];
   PP: Pointer;
+  a: string[30];
 begin
   A := Cut(FName, 30); PP := @A;
   Msg(dlCannotWrite, @PP, mfError+mfOKButton);
 end;
 
 function Msg;
-Var s: String;
+Var
     i: Integer;
+    s: String;
 begin
 {--- start -------- Eugeny Zvyagintzev ---- 19-10-2002 ----}
 {This procedure can be called at startup. But we can't display
@@ -274,11 +278,8 @@ var
   I, X, ButtonCount: Integer;
   Dialog: PDialog;
   Control: PView;
-  T: TRect;
   ButtonList: array[0..4] of PView;
   S: String;
-  PP: TPoint;
-  Event: TEvent;
 
 procedure AddButton;
 var
@@ -329,11 +330,6 @@ begin
     SelectNext(False);
   end;
   MsgActive:=True;
-  {PP.X := 0; PP.Y := 0;
-  Dialog^.MakeGlobal(PP, PP);
-  Event.What := evMouseDown; Event.Double := False;
-  Event.Buttons := 1; Event.Where := PP;
-  Application^.PutEvent(Event);}
   MessageBoxRect := DeskTop^.ExecView(Dialog);
   Dispose(Dialog,Done);
   MsgActive:=False;
@@ -347,11 +343,8 @@ var
   I, X, ButtonCount: Integer;
   Dialog: PDialog;
   Control: PView;
-  T: TRect;
   ButtonList: array[0..4] of PView;
   S: String;
-  PP: TPoint;
-  Event: TEvent;
 begin
   Dialog := New(PDialog,
     Init(R, GetString(TStrIdx(Integer(dlMsgWarning)+AOptions and $7))));
@@ -395,11 +388,6 @@ begin
     SelectNext(False);
   end;
   MsgActive:=True;
-  {PP.X := 0; PP.Y := 0;
-  Dialog^.MakeGlobal(PP, PP);
-  Event.What := evMouseDown; Event.Double := False;
-  Event.Buttons := 1; Event.Where := PP;
-  Application^.PutEvent(Event);}
   MessageBox2Rect := DeskTop^.ExecView(Dialog);
   Dispose(Dialog,Done);
   MsgActive:=False;
@@ -426,10 +414,10 @@ end;
 
 function InputBoxRect;
 var
+  C: Word;
   Dialog: PDialog;
   Control: PView;
   R: TRect;
-  C: Word;
 begin
   Dialog := New(PDialog, Init(Bounds, Title));
   with Dialog^ do
@@ -466,8 +454,8 @@ end;
 
 function FmtFile;
 var
-  s,f: string;
   P: PString;
+  s,f: string;
 begin
   if Len = MaxInt then f := FName else f := Cut(FName, Len);
   P := @f;

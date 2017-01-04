@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -509,9 +512,10 @@ asm
         SUB     BX,CX
         MOV     DS,AX
         MOV     ES,DX
-        SHL     CX,1
-        SHL     CX,1
-        SHL     CX,1
+{        SHL     CX,1}
+{        SHL     CX,1}
+{        SHL     CX,1}
+        SHL     CX,3
         MOV     SI,CX
         DEC     SI
         SHL     SI,1
@@ -579,9 +583,11 @@ end;
 procedure SetMemTop(MemTop: Pointer); assembler;
 asm
         MOV     BX,MemTop.Word[0]
-        ADD     BX,15
-        MOV     CL,4
-        SHR     BX,CL
+{        ADD     BX,15}
+{        MOV     CL,4}
+{        SHR     BX,CL}
+        SHR     BX,4
+        INC     BX
         ADD     BX,MemTop.Word[2]
         MOV     AX,PrefixSeg
         SUB     BX,AX

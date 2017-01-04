@@ -106,6 +106,11 @@
 //  dn40328-7Zip.patch
 //
 //  4.9.0
+//  dn40900-archive_files_history.patch
+//  dn40900-editor_cancel_movement_ctrle.patch
+//  dn40900-rename_error_retry_cancel_dialog.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -400,6 +405,7 @@ const
   hsDBFGotoCol      = 158; {John_SW}
   hsGotoLine        = 159; {John_SW}
   hsGotoAddress     = 160; {John_SW}
+  hsArchiveFiles    = 161; { <= Persistor, Dec 2004}
 
 {UU Encode options}
 
@@ -647,6 +653,10 @@ const
   cmEnd                = 12140;
   cmEnter              = 12141;
   cmInsLine            = 12142;
+  cmPrevPos            = 12143; { <= Persistor, Nov 2004}
+  cmCtrlPgUp           = 12144; { <= Persistor, Nov 2004}
+  cmCtrlPgDn           = 12145; { <= Persistor, Nov 2004}
+  cmHome               = 12146; { <= Persistor, Nov 2004}
   cmLJustify           = 12147;
   cmLCenter            = 12148;
   cmLLeft              = 12149;
@@ -2547,7 +2557,8 @@ TYPE
     dlgNameCase,
     dlgEditorDefaults,
     dlgViewerDefaults,
-    dlgSetExportCsvFormat {KV}
+    dlgSetExportCsvFormat, {KV}
+    dlgBadFile             { <= Persistor, Nov 2004}
   );
 
 IMPLEMENTATION END.

@@ -91,6 +91,15 @@
 //  dn40412-BackSearch(f)-back_search_fix.patch
 //
 //  4.9.0
+//  dn40900-editor_ctrl_y_improvements.patch
+//  dn40900-editor_search_amenity.patch
+//  dn40900-editor_cancel_movement_ctrle.patch
+//  dn40900-editor_standard_block_hotkeys.patch
+//  dn40900-ctrl-e_fix_and_align_optimization.patch
+//  dn50208-cleanup.patch
+//  dn40900-backsearch_char_in_editor_fix.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -127,6 +136,7 @@ const
       Clipboard   : PCollection = nil;
 
       CFileEditor = #13#14#16#17#18#19#20#21#22#23#24#25;
+      MaxPrevPos  = 31; { <= Persistor, Nov 2004}
 
 type
   PEditOptions = ^TEditOptions;
@@ -146,6 +156,9 @@ type
     SmartTab:     Boolean;
   end;
 
+  Position = object(TObject)        { <= Persistor, Nov 2004}
+   Delta,Pos: TPoint;               { <= Persistor, Nov 2004}
+  end;                              { <= Persistor, Nov 2004}
 
   { TFileEditor }
 
@@ -154,7 +167,7 @@ type
     HScroll, VScroll: PScrollBar;
     ReplaceAll: Boolean;
     Delta: TPoint;
-    EditName: String; {DataCompBoy}
+    pPosition: ^Position;           { <= Persistor, Nov 2004}
     FileLines: PCollector;
     IsValid,Marking: Boolean;
     SmartPad: Boolean;
@@ -165,7 +178,6 @@ type
     MarkPos: TPosArray;
     LastLine: LongInt;
     DrawMode: Integer;
-    WorkString,LastShape: String;
     OldBlockValid, SearchOnDisplay,
     InsertMode,VertBlock,Modified,WorkModified,
     JustSaved, {piwamoto}
@@ -184,6 +196,9 @@ type
     MemEnough: Boolean;
     KeyMap: TKeyMap; {-$VIV}
     EdOpt: TEditOptions;
+    PrevPos: PCollection;           { <= Persistor, Nov 2004}
+    WorkString,LastShape: String;
+    EditName: String; {DataCompBoy}
 
     HiLitePar:THighliteParams;
 
@@ -220,6 +235,7 @@ type
     procedure KeyMapAtInsert(N: LongInt; P: PString); {-$VIV}
     procedure KeyMapAtReplace(N: LongInt; P: PString); {-$VIV}
     procedure Convert4do(iP: PUndoRec; DoKind: TDoKind); {-$VOL}
+    procedure SaveDelta;            { <= Persistor, Nov 2004}
   end;
 
 procedure OpenEditor;
@@ -254,9 +270,6 @@ implementation
 uses Gauge, FViewer, Histlist, Macro, Editor, WinClp, DNUtil, Histries,
      xTime, FileCopy, ASCIItab, DnIni, U_SrchF, EdWin, Microed2; {-$VIV}
 
-const
-    cmNoCommand = 4000;
-
    {SmartWindow: PEditWindow = nil;}      {Cat: ¯¥à¥­ñá íâ¨ ¯¥à¥¬¥­­ë¥ ¢ ¬®¤ã«ì MicroEd2}
    {ClipboardWindow: PEditWindow = nil;}  {Cat: ¢­¨¬ ­¨¥! ¯®ï¢¨«¨áì ãª § â¥«¨ SmartWindowPtr ¨ ClipboardWindowPtr}
 
@@ -290,8 +303,9 @@ begin
 end; {-$VIV}
 
 procedure TFileEditor.Convert4do(iP: PUndoRec;DoKind: TDoKind);
-  var P: PUndoRec;
+  var
       I, J: LongInt;
+      P: PUndoRec;
       S: String;
 begin
   if iP = nil then exit;
@@ -590,13 +604,12 @@ end;
 { TFileEditor }
 constructor TFileEditor.Init;
 var
+  MaxWidth, I: Integer;
+  p: PString;
   FileToView: Text;
   Line: String;
-  MaxWidth: Integer;
-  p: PString;
   Nm: String;
   Xt: String;
-  I: Integer;
 begin
   inherited Init(Bounds);
   InsertMode := True; {Cat}
@@ -660,6 +673,7 @@ begin
   if RedoInfo <>nil then Dispose(RedoInfo,Done);  RedoInfo :=nil;
   if Macros   <>nil then Dispose(Macros,Done);    Macros   :=nil;
   if Locker   <>nil then Dispose(Locker,Done);    Locker   :=nil;
+  if PrevPos  <>nil then Dispose(PrevPos,Done);   PrevPos  :=nil;
   if SmartPad then begin SmartWindowPtr     := @SmartWindow;     SmartWindow     := nil; end;
   if ClipBrd  then begin ClipboardWindowPtr := @ClipboardWindow; ClipboardWindow := nil; end;
   inherited Done;
@@ -668,7 +682,6 @@ end;
 procedure TFileEditor.StoreUndoInfo;
  var P, P1: PUndoRec;
      S: String;
-     Bl: Boolean;
 begin
   if not MemOK then begin Dispose(UndoInfo,Done); UndoInfo:=nil end;
   if UndoInfo = nil then UndoInfo := New(PDoCollection, Init(dkUndo));
@@ -941,9 +954,10 @@ function  TFileEditor.LimitY;
 
         {-DataCompBoy-}
 function GetFileNameDialog(Mask, Title, Name: String; Buttons, HistoryID: Word): String;
- var S: String;
+ var
      D: PFileDialog;
      B: Boolean;
+     S: String;
 begin
   S := ''; B := False; if Mask = '' then begin Mask := x_x; B := True end;
   D := PFileDialog(Application^.ValidView(New(PFileDialog,
@@ -990,9 +1004,10 @@ begin
 end;
 
 function TFileEditor.GetSelection;
- var  P: PCollection;
-      S: String;
+ var
       I: LongInt;
+      P: PCollection;
+      S: String;
 begin
  GetSelection := Nil; MemEnough := True ;
  if not (BlockVisible and ValidBlock) or LowMemory then Exit;
@@ -1022,8 +1037,8 @@ end;
 function TFileEditor.Valid(Command: Word): Boolean;
  var I: Word;
      P: Pointer;
-     S: String;
      V: Boolean;
+     S: String;
 begin
   Valid := True; V := True;
   if Command = cmValid then Valid := isValid;
@@ -1077,23 +1092,19 @@ end;
 
 function TFileEditor.Search;
  label 1;
- var I, J, TrX, StX: LongInt;
+ var
+     I, J, TrX, StX, NumRep: LongInt;
+     Dir: Integer;
      D,DD: TPoint;
      T: TRect;
-     W, S, S1: String;
-     F, Prompt: Boolean;
      OldMark: TRect;
-     NumRep: LongInt;
-     Dir: Integer;
-     OldCache: Boolean;
      Tmr: TEventTimer;
-     AllCP: Boolean; {-$VIV 14.05.99}
-{--- start -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
-{Now DN will display Search Progress Window}
      Info: PWhileView;
-     CancelSearch: Boolean;
      R: Trect;
-{--- finish -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
+     F, Prompt: Boolean;
+     AllCP: Boolean; {-$VIV 14.05.99}
+     CancelSearch: Boolean;
+     W, S, S1: String;
 
 procedure _DrawViews;
 begin
@@ -1106,6 +1117,7 @@ label
   LExit, _LExit, EndReplace;
 
 begin
+ SaveDelta; { <= Persistor, Nov 2004}
  SearchActive := True;
  NewTimer(Tmr, 0);
  Marking := False;
@@ -1213,8 +1225,8 @@ begin
          if not (((StX-1+I = 1) or (S1[StX-1+I-1] in BreakChars)) and
             ((StX - 1 + I + Length(W) > Length(S1)) or (S1[StX-1 + I + Length(W)] in BreakChars))) then
               begin
-                if Dir > 0 then D.X := StX+I
-                           else D.X := StX+I-1;
+                D.X := StX+I;
+                if Dir < 0 then dec(d.x,2);
                 Goto 1;
               end;
 
@@ -1229,8 +1241,14 @@ begin
        VScroll^.Value := D.Y;
        if (D.Y - Pos.Y > Size.Y) then Pos.Y := D.Y - Size.Y div 2
          else if (D.Y < Pos.Y) then Pos.Y := Max(0, D.Y-5);
-       if (D.X - Pos.X > Size.X - 10) then Pos.X := D.X - Size.X div 2
-         else if (D.X < Pos.X) then Pos.X := Max(0, D.X-5);
+       {   modified by Persistor, Dec 2004   }
+       j:=length(getline(d.y));
+       if (j<=size.x)or(d.x<=size.x div 2) then pos.x:=0 else
+        if (j+3-d.x<size.x div 2)and(d.x-pos.x<size.x div 2) then pos.x:=j-size.x+3
+         else begin j:=Size.X div 4;
+                    if(D.X-Pos.X>Size.X-10) then Pos.X:=D.X-3*j
+                        else if (D.X<Pos.X) then Pos.X:=D.X-j; end;
+       {   modified by Persistor, Dec 2004   }
        if (SearchData.What = #0) or Prompt then _DrawViews;
        if SearchData.What <> #0 then
         begin
@@ -1305,11 +1323,11 @@ _LExit:
 end;
 
 procedure TFileEditor.InsertBlock;
- var I,Q: LongInt;
-     S, S1, S2: String;
+ var
+     I, Q, L, J: LongInt;
      P: PString;
-     L,J: LongInt;
      LL: PCollection;
+     S, S1, S2: String;
 begin
  if (ABlock = nil) or (ABlock^.Count = 0) then Exit;
  Modified := True;
@@ -1385,17 +1403,17 @@ end;
 
 procedure TFileEditor.Draw;
 var
+  X1, X2: LongInt;
+  I, A: LongInt;
+  LPos: Integer;
+  P: PString;
+  Ch: Char;
   C, BC, Comments, C1: Byte;
+  WM, BV: Boolean;
   HP : string[6];
   CC: Array[1..12] of Byte;
-  I, A: LongInt;
+  B: TDrawBuffer;
   S: String;
-  P: PString;
-  WM, BV: Boolean;
-  X1, X2: LongInt;
-  LPos: Integer;
-  Ch: Char;
-var B: TDrawBuffer;
 
 
   procedure DrawBlock;
@@ -1565,18 +1583,25 @@ end;
 function TFileEditor.HandleCommand;
 begin
 end;
-
+{   Persistor, Nov 2004   }
+procedure TFileEditor.SaveDelta;
+begin
+ if PrevPos = nil then PrevPos := New(PCollection, Init(MaxPrevPos + 1, 0));
+ if PrevPos^.Count>MaxPrevPos then PrevPos^.AtFree(MaxPrevPos);
+ New(pPosition,Init);
+ pPosition^.Delta:=Delta;
+ pPosition^.Pos:=Pos;
+ PrevPos^.AtInsert(0,pPosition);
+end;
+{   Persistor, Nov 2004   }
 procedure TFileEditor.HandleEvent;
  label 1,2;
- var ChPos,WM,DelWord,WasMA,WasMB: Boolean;
-     P: PString;
-     PL: PCollection;
-     S: String;
-     LastY,LastX,i: LongInt;
+ var
+     LastY, LastX, I, L: LongInt;
+     ChPos, DelWord: Boolean;
      WL: Byte absolute WorkString;
-     OldDelta,
-     T: TPoint;
-     L: longint;
+     OldDelta, T: TPoint;
+     S: String;
 
  procedure BlockOff;
  begin
@@ -1616,23 +1641,21 @@ procedure TFileEditor.HandleEvent;
  end;
 
  procedure ChangeLine;
-  label Ex;
  begin
-   if not WorkModified then goto Ex;
+  if WorkModified then begin
    While WorkString[WL] = ' ' do Dec(WL);
-   if WorkModified then ModifyLine(LastLine, WorkString,True);
+   ModifyLine(LastLine, WorkString,True);
    Modified := Modified or WorkModified;
    WorkModified := False;
- Ex:
-   WorkString := GetLine(Delta.Y);
+  end;
+  WorkString := GetLine(Delta.Y);
  end;
 
  procedure MakeEnter;
-  var I, J: LongInt;
-      OldS,s1,s2: String;
-      Bl: Boolean;
-      WBY,WAY: Boolean;
-      L: Longint;
+  var
+      I, L: LongInt;
+      Bl, WBY,WAY: Boolean;
+      OldS, s1, s2: String;
  begin
    BlockOff;
    Bl := ValidBlock and not VertBlock;
@@ -1756,9 +1779,9 @@ procedure TFileEditor.HandleEvent;
  end;
 
  procedure BlockDelete(ChangePos: Boolean);
-  var I, J: LongInt;
-      S, S1, S2: String;
-      L, K: Longint;
+  var
+      I, L, K: Longint;
+      S: String;
  begin
   Modified := True;
   if VertBlock then
@@ -1867,9 +1890,10 @@ L1:
  end;
 
  procedure MakeDel;
-  var P: TPoint;
-      S: String;
+  var
       L: Longint;
+      P: TPoint;
+      S: String;
  begin
   WorkModify;
   ChangeLine;
@@ -1908,8 +1932,9 @@ L1:
  end;
 
  procedure InsertDateTime(Time: Boolean);
-  var S: String[30];
+  var
       SS: Integer;
+      S: String[30];
  begin
    S := GetDateTime(Time);
    EnableMarking := False; Marking := False;
@@ -1934,7 +1959,6 @@ L1:
  end;
 
  procedure CopyBlock;
-  var R: TRect;
  begin
   ChangeLine;
   if (Clipboard <> nil) then Dispose(Clipboard,Done);
@@ -1961,13 +1985,14 @@ L1:
    begin
     StoreUndoInfo(udSubDel, T, WorkString);
     ModifyLine(Delta.Y, '', True); WL := 0;
+    ScrollTo(0, Delta.Y);          { <= replaced by Persistor, Jan 2005}
    end else
    begin
     StoreUndoInfo(udDelLine, T, WorkString);
     WorkModified := False; FileLines^.AtFree(Delta.Y); ChangeLine
    end;
   for L:=1 to 9 do if MarkPos[L].Y >= Delta.Y then Dec(MarkPos[L].Y);
-  SetLimits; ScrollTo(0, Delta.Y); DrawView; ChangeLine;
+  SetLimits; DrawView;
  end;
 
  procedure WordLeft;
@@ -2053,15 +2078,14 @@ L1:
 
         {-DataCompBoy-}
  procedure BlockWrite;
-  var P: PCollection;
-      PS: PStdCollector;
-      S, SST: String;
-      R: PStream;
-      I,J,K: LongInt;
-      CRLF: String[2];
-      VB: Boolean;
-      PI: PView;
+  var
+      I: LongInt;
       A: Word;
+      R: PStream;
+      PI: PView;
+      VB: Boolean;
+      CRLF: String[2];
+      S, SST: String;
 
   procedure CompressString;
    var PP: Pointer;
@@ -2223,15 +2247,17 @@ var qwe: byte;
  procedure CE; begin if Event.What<>evNothing then ClearEvent(Event) end;
  procedure CED; begin ClearEvent(Event); DrawView end;
 
- var CFind: Boolean;
-     EvStr: Array[1..2] of Char;
+ var
      PP: TPoint;
+     CFind: Boolean;
+     EvStr: Array[1..2] of Char;
 
  procedure SplitString;
-  var S: String;
+  var
       I,OldX: LongInt;
       P: PLineCollection;
       TP: TPoint;
+      S: String;
  begin
   ChangeLine;
   S := '';
@@ -2291,7 +2317,8 @@ var qwe: byte;
  end;
 
  procedure InputChar;
-  var I1, I2, I3, i: Byte;
+  var
+      i: Byte;
       Ch: Char;
       S1: String[2];
  begin
@@ -2385,13 +2412,13 @@ var qwe: byte;
       RightContact1 = 'Ä´Å¿ÙÂÁ¶×·½ÒÐ';
       RightContact2 = 'Í¹Î»¼ËÊµØ¸¾ÑÏ';
 
-   var  _Up, _In, _Down: String;
+   var
         L_Up, L_In, L_Down: Char;
         VL: String[32];
         A,B: Word;
-        I,J,K: LongInt;
         ResChar, C: Char;
         DMode: Byte;
+        _Up, _In, _Down: String;
 
    function GetH0: Byte; begin GetH0 := 2*Byte(PosChar(_In[LastX+2], RightContact1)>0)+
                                         8*Byte(PosChar(_In[LastX], LeftContact1)>0) end;
@@ -2534,11 +2561,12 @@ var qwe: byte;
 
         {-DataCompBoy-}
  procedure OpenFileAtCursor;
- var Res, S: String;
+ var
      I, Min1, Max1, Min2, Max2, Min3, Max3, Min4, Max4, P: Integer;
      Q: Pointer;
      Info: PWhileView;
      R: TRect;
+     Res, S: String;
  label Ex;
  procedure Chk;
  begin
@@ -2676,8 +2704,9 @@ ex:
  end;
 
  procedure WordEnd;
- var S: String;
+ var
      NewX: Integer;
+     S: String;
  begin
    S := WorkString;
    if (Delta.X < 0) or (Delta.X >= Length(S)) then Exit;
@@ -2698,8 +2727,8 @@ ex:
 
 procedure ASCIITable;
  var
-  P: PWindow;
   W: Word;
+  P: PWindow;
   E: TEvent;
   R: TRect;
   CR:PView;
@@ -3003,8 +3032,27 @@ begin
                         ScrollTo(Delta.X, Delta.Y);
                         CED
                        end;
-              cmEnd: begin UnMark := True; while WorkString[WL] = ' ' do Dec(WL);
-                           ScrollTo(WL, Delta.Y); CED end;
+              {   Persistor, Nov 2004   }
+              cmEnd,cmHome,cmCtrlPgUp,cmCtrlPgDn: begin
+                         SaveDelta;
+                         case Event.Command of
+                          cmEnd: begin UnMark := True;
+                                       while WorkString[WL] = ' ' do Dec(WL);
+                                       ScrollTo(WL, Delta.Y);
+                                       CED; end;
+                          cmHome:     Message(HScroll,evKeyDown,kbHome,nil);
+                          cmCtrlPgUp: Message(VScroll,evKeyDown,kbCtrlPgUp,nil);
+                          cmCtrlPgDn: Message(VScroll,evKeyDown,kbCtrlPgDn,nil);
+                         end;end;
+              cmPrevPos: if PrevPos^.Count>0 then begin
+                          pPosition:=PrevPos^.At(0);
+                          Delta:=pPosition^.Delta;
+                          ChangeLine;
+                          ScrollTo(Delta.X, Delta.Y);
+                          Pos:=pPosition^.Pos;
+                          PrevPos^.AtFree(0);
+                          CED; end;
+              {   Persistor, Nov 2004   }
               cmInsLine: begin
                           BlockOff;
                           PP := Delta; MakeEnter; Delta := PP;
@@ -3072,6 +3120,7 @@ begin
                       Event.InfoByte:=Event.Command-cmGotoMarker1+1;
                       if not MarkPos[Event.InfoByte].EqualsXY(-1, -1) then
                         begin
+                          SaveDelta; { <= Persistor, Nov 2004}
                           Delta := MarkPos[Event.InfoByte];
                           Pos.X := Delta.X - Size.X div 2;
                           Pos.Y := Delta.Y - Size.Y div 2; ChangeLine; {WorkModify := False;}
@@ -3198,10 +3247,10 @@ begin
              if DrawMode > 0 then
                begin
                  case Event.KeyCode of
-                    kbRight,kbCtrlD,kbCtrlRight: begin DrawLine(1); Exit end;
-                    kbLeft,kbCtrlS,kbCtrlLeft: begin DrawLine(3); Exit end;
-                    kbUp,kbCtrlE: begin DrawLine(0); Exit end;
-                    kbDown,kbCtrlX: begin DrawLine(2); Exit end;
+                    kbRight,kbCtrlRight: begin DrawLine(1); Exit end; { <= modified by Persistor, Dec 2004}
+                    kbLeft,kbCtrlLeft: begin DrawLine(3); Exit end;   { <= modified by Persistor, Dec 2004}
+                    kbUp: begin DrawLine(0); Exit end; { <= modified by Persistor, Nov 2004}
+                    kbDown: begin DrawLine(2); Exit end;              { <= modified by Persistor, Dec 2004}
                  end;
                end;
      (*      if Event.KeyCode = kbCtrlEnter then ; *) {-$VIV 18.05.99--}
@@ -3356,8 +3405,8 @@ procedure OpenSmartpad;
 
      procedure InsertInfo; {-$VIV} {SYR}
      Var
-         Str:String;
          Idx:Integer;
+         Str:String;
      begin
          with SmartWindow^.Intern^ do
          begin
@@ -3398,9 +3447,9 @@ procedure OpenSmartpad;
 
 {--- start -------- Eugeny Zvyagintzev ---------}
 Var
+  I: Integer;
   PS: PString;
   V: PFileEditor;
-  I: Integer;
   P: PEditRecord;
 {--- finish -------- Eugeny Zvyagintzev ---------}
 begin

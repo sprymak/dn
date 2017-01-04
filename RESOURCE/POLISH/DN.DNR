@@ -1,0 +1,4241 @@
+;/////////////////////////////////////////////////////////////////////////
+;/
+;/  Dos Navigator Open Source
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+;/
+;/  This programs is free for commercial and non-commercial use as long as
+;/  the following conditions are aheared to.
+;/
+;/  Copyright remains RIT Research Labs, and as such any Copyright notices
+;/  in the code are not to be removed. If this package is used in a
+;/  product, RIT Research Labs should be given attribution as the RIT Research
+;/  Labs of the parts of the library used. This can be in the form of a textual
+;/  message at program startup or in documentation (online or textual)
+;/  provided with the package.
+;/
+;/  Redistribution and use in source and binary forms, with or without
+;/  modification, are permitted provided that the following conditions are
+;/  met:
+;/
+;/  1. Redistributions of source code must retain the copyright
+;/     notice, this list of conditions and the following disclaimer.
+;/  2. Redistributions in binary form must reproduce the above copyright
+;/     notice, this list of conditions and the following disclaimer in the
+;/     documentation and/or other materials provided with the distribution.
+;/  3. All advertising materials mentioning features or use of this software
+;/     must display the following acknowledgement:
+;/     "Based on Dos Navigator by RIT Research Labs."
+;/
+;/  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+;/  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;/  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;/  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+;/  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;/  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;/  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;/  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+;/  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+;/  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+;/  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;/
+;/  The licence and distribution terms for any publically available
+;/  version or derivative of this code cannot be changed. i.e. this code
+;/  cannot simply be copied and put under another distribution licence
+;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+;/
+;/  Version history:
+;/
+;/  5.3.8 translated by Figo Fago
+;/
+;//////////////////////////////////////////////////////////////////////////
+
+ColorDialog
+    ColorGroup 'Zegar',
+         ColorItem 'Kolor',             1,
+    ColorGroup 'Menu',
+         ColorItem 'Normalne',            2,
+         ColorItem 'Wyà•czone',          3,
+         ColorItem 'Skr¢t',          4,
+         ColorItem 'Zaznaczony',          5,
+         ColorItem 'Zaznaczony wyà•czony', 6,
+         ColorItem 'Skr¢t zaznaczony', 7,
+    ColorGroup 'Pomoc',
+         ColorItem 'Ramka nieaktywna',     139,
+         ColorItem 'Ramka aktywna',      140,
+         ColorItem 'Ikony ramki',       141,
+         ColorItem 'Pasek przew. stron',   142,
+         ColorItem 'Ikony paska przew.',  143,
+         ColorItem 'Zwykày tekst',       144,
+         ColorItem 'Tekst zaznaczony',     163,
+         ColorItem 'Link normalny',       145,
+         ColorItem 'Link zaznaczony',     146,
+    ColorGroup 'Dialogi',
+         ColorItem 'Ramka/tào',  33
+         ColorItem 'Ikony ramek',       34,
+         ColorItem 'Pasek przew. stron',   35,
+         ColorItem 'Ikony paska przew.',  36,
+         ColorItem 'Staày tekst',       37,
+         ColorItem 'Etykieta normalna',      38,
+         ColorItem 'Etykieta zaznaczona',    39,
+         ColorItem 'Skr¢t etykiety',    40,
+         ColorItem 'Przycisk normalny',     41,
+         ColorItem 'Przycisk domyòlny',    42,
+         ColorItem 'Przycisk wybrany',   43,
+         ColorItem 'Przycisk wyà•czony',   44,
+         ColorItem 'Skr¢t przycisku',   45,
+         ColorItem 'Skr¢t zaznaczony', 178,
+         ColorItem 'Skr¢t domyòlny',  179,
+         ColorItem 'Cie‰ przycisku',     46,
+         ColorItem 'Klaster normalny',    47,
+         ColorItem 'Klaster wybrany',  48,
+;        ColorItem 'Klaster wyà•czony',  62,
+         ColorItem 'Skr¢t klastra ',  49,
+         ColorItem 'Wejòcie normalne',      50,
+         ColorItem 'Wejòcie wybrane',    51,
+         ColorItem 'Strzaàka wejòcia',       52,
+         ColorItem 'Przycisk historii',    53,
+         ColorItem 'Strony historii',     54,
+         ColorItem 'Pasek przew. hist.',  55,
+         ColorItem 'Ikony paska hist.', 56,
+         ColorItem 'Lista normalna',       57,
+         ColorItem 'Lista ogniskowana',      58,
+         ColorItem 'Lista wybrana',     59,
+         ColorItem 'Separator listy',      60,
+         ColorItem 'Panel informacyjny',  61,
+    ColorGroup '¿ƒƒDrzewo',
+         ColorItem 'Normalne drzewo',        104,
+         ColorItem 'Katalogi',       105,
+         ColorItem 'Wybrany katalog',      106,
+         ColorItem 'Domyòlny katalog',       107,
+         ColorItem 'Domyòlny wybrany',   108,
+         ColorItem 'Pasywny wybrany',   109,
+         ColorItem 'Pasywny domyòlny', 110,
+    ColorGroup 'Menedæer plik¢w',
+         ColorItem 'Ramka pasywna',     80,
+         ColorItem 'Ramka aktywna',      81,
+         ColorItem 'Ikony ramek',       82,
+         ColorItem 'Pasek przew. stron',   83,
+         ColorItem 'Ikony paska przew.',  84,
+    ColorGroup '√ƒƒPanel plik¢w',
+         ColorItem 'Zwykày tekst',        85,
+         ColorItem 'Wybrany tekst',      87,
+         ColorItem 'Normalny kursor',      88,
+         ColorItem 'Wybrany kursor',    89,
+         ColorItem 'Separator listy',       86,
+         ColorItem 'Katalog aktywny',   90,
+         ColorItem 'Katalog pasywny',  91,
+         ColorItem 'Nazwa kolumny',  165,
+    ColorGroup '≥  √ƒPodòwietlanie',
+         ColorItem 'Katalogi',    172,
+         ColorItem 'Programy',    173,
+         ColorItem 'Archiwa',       174,
+         ColorItem 'Uæytk. 1',       175,
+         ColorItem 'Uæytk. 2',       176,
+         ColorItem 'Uæytk. 3',       177,
+         ColorItem 'Uæytk. 4',       180,
+         ColorItem 'Uæytk. 5',       181,
+         ColorItem 'Uæytk. 6',       192,
+         ColorItem 'Uæytk. 7',       193,
+         ColorItem 'Uæytk. 8',       194,
+         ColorItem 'Uæytk. 9',       195,
+         ColorItem 'Uæytk. 10',      196,
+    ColorGroup '≥  √ƒLinia nap©d¢w',
+         ColorItem 'Litery nap©d¢w',  186,
+         ColorItem 'Nap©d wybrany', 188,
+         ColorItem 'Ramka',          187,
+    ColorGroup '≥  ¿ƒInformacja',
+         ColorItem 'Aktualny plik',       119,
+         ColorItem 'Tekst zaznaczony',      120,
+         ColorItem 'Wybrane numery',   121,
+         ColorItem 'Razem tekst',        122,
+         ColorItem 'Razem liczby',     123,
+         ColorItem 'Wolne miejsce tekstu',    124,
+         ColorItem 'Wolne miejsce liczb', 125,
+    ColorGroup '√ƒƒDrzewo',
+         ColorItem 'Normalne drzewo',        94,
+         ColorItem 'Normalne katalogi',       95,
+         ColorItem 'Wybrany katalog',      96,
+         ColorItem 'Domyòlny katalog',       97,
+         ColorItem 'Domyòlny wybrany',   98,
+         ColorItem 'Pasywny wybrany',    99,
+         ColorItem 'Pasywny domyòlny',  100,
+         ColorItem 'Informacja ',  101,
+    ColorGroup '√ƒƒSzybki podgl•d',
+         ColorItem 'Zwykày tekst',         92,
+         ColorItem 'Zaznaczony tekst',       93,
+    ColorGroup '¿ƒƒInfo o dysku',
+         ColorItem 'Zwykày tekst',         103,
+         ColorItem 'Zaznaczony tekst',    102,
+    ColorGroup 'Kosz',
+         ColorItem 'Pasywny',             24,
+         ColorItem 'Aktywny',              25,
+         ColorItem 'Przeci•ganie',            26,
+    ColorGroup 'Podgl•d pliku',
+         ColorItem 'Ramka pasywna',     112,
+         ColorItem 'Ramka aktywna',      113,
+         ColorItem 'Ikony ramek',       114,
+         ColorItem 'Pasek przew. stron',   115,
+         ColorItem 'Ikona paska przew.',  116,
+         ColorItem 'Zwykày tekst',       117,
+         ColorItem 'Zaznaczony tekst',     118,
+    ColorGroup '¿ƒƒPodòwietlanie',
+         ColorItem 'Komentarze',              199,
+         ColorItem 'Symbole',               200,
+         ColorItem 'ùa‰cuchy znak¢w',               201,
+         ColorItem 'Numery',               202,
+         ColorItem 'Sàowa kluczowe 1',            203,
+         ColorItem 'Sàowa kluczowe 2',            204,
+    ColorGroup 'Edytor/Arkusz kalk.',
+         ColorItem 'Ramka pasywna',     70,
+         ColorItem 'Ramka aktywna',      71,
+         ColorItem 'Ikony ramek',       73,
+         ColorItem 'Tytuà ramki',       72,
+         ColorItem 'Pasek przew. stron',   74,
+         ColorItem 'Ikony paska przew.',  75,
+         ColorItem 'Zwykày tekst',       76,
+         ColorItem 'Zaznaczony tekst',     77,
+    ColorGroup '√ƒƒPodòwietlanie',
+         ColorItem 'Komentarze',              164,
+         ColorItem 'Symbole',               189,
+         ColorItem 'ùa‰cuchy znak¢w',               190,
+         ColorItem 'Numery',               191,
+         ColorItem 'Sàowa kluczowe 1',            197,
+         ColorItem 'Sàowa kluczowe 2',            198,
+         ColorItem 'Aktualna linia',          182,
+         ColorItem 'Koment. aktual. linii',    184,
+         ColorItem 'Zaznacz. aktual. linia', 183,
+         ColorItem 'Aktualna kolumna',        185,
+    ColorGroup '¿ƒƒMenu',
+         ColorItem 'Normalne',            64,
+         ColorItem 'Wyà•czone',          65,
+         ColorItem 'Skr¢t',          66,
+         ColorItem 'Wybrane',          67,
+         ColorItem 'Wybrane wyà•czone', 68,
+         ColorItem 'Skr¢t wybrany', 69,
+    ColorGroup 'Naprawiacz dysku',
+         ColorItem 'Ramka pasywna',     153,
+         ColorItem 'Ramka aktywna',      154,
+         ColorItem 'Ikony ramek',       156,
+         ColorItem 'Tytuà ramki',       155,
+         ColorItem 'Pasek przew. stron',   157,
+         ColorItem 'Ikony paska przew.',  158,
+         ColorItem 'Zwykày tekst',       159,
+         ColorItem 'Zaznaczony tekst',     160,
+         ColorItem 'Tytuà sektora',      161,
+         ColorItem 'Edytowana linia',         162,
+    ColorGroup '¿ƒƒMenu',
+         ColorItem 'Normalne',            147,
+         ColorItem 'Wyà•czone',          148,
+         ColorItem 'Skr¢t',          149,
+         ColorItem 'Wybrane',          150,
+         ColorItem 'Wybrane wyà•czone', 151,
+         ColorItem 'Wybrany skr¢t', 152,
+    ColorGroup 'Terminal',
+         ColorItem 'Ramka pasywna',     8,
+         ColorItem 'Ramka aktywna',      9,
+         ColorItem 'Ikony ramek',       10,
+         ColorItem 'Pasek przew. stron',   11,
+         ColorItem 'Ikony paska przew.',  12,
+    ColorGroup 'Przegl•darka dBase',
+         ColorItem 'Ramka psywna',     166,
+         ColorItem 'Ramka aktywna',      167,
+         ColorItem 'Ikony ramek',       168,
+         ColorItem 'Pasek przew. stron',   212,
+         ColorItem 'Ikony paska przew.',  213,
+         ColorItem 'Tytuày etykiet',     169,
+         ColorItem 'Zwykày tekst',       170,
+         ColorItem 'Kursor',            171,
+    ColorGroup 'Kalendarz',
+         ColorItem 'Staày tekst',        205,
+         ColorItem 'Uæytk. 1',           206,
+         ColorItem 'Uæytk. 2',           207,
+         ColorItem 'Uæytk. 3',           208,
+         ColorItem 'Uæytk. 4',           209,
+         ColorItem 'Nagà¢wek',             210,
+         ColorItem 'Informacja dnia',           211,
+END
+
+DIALOG dlgCountrySetup, 51, 20, 'Ustawienia regionalne'
+    HELPCTX hcCountrySetup
+    RadioButtons 3, 3, 23, 6, ofPostProcess, ofPreProcess
+      ITEM '~M~iesi•c-Dz-Rok'
+      ITEM '~D~zie‰-M-Rok'
+      ITEM '~R~ok-M-Dzie‰'
+    END
+    Label 3, 2, 'Format daty', ofPostProcess, ofPreProcess
+    RadioButtons 25, 3, 45, 5, ofPostProcess, ofPreProcess
+      ITEM '~1~2 godzinny'
+      ITEM '~2~4 godzinny'
+    END
+    Label 25, 2, 'Czas', ofPostProcess, ofPreProcess
+    InputLine 19, 7, 22, 8, 1, 0
+    Label 3, 7, 'Separat. dat~y~', ofPostProcess, ofPreProcess
+    InputLine 19, 8, 22, 9, 1, 0
+    Label 3, 8, 'Separat. cza~s~u', ofPostProcess, ofPreProcess
+    InputLine 45, 6, 48, 7, 1, 0
+    Label 24, 6, 'Separat. ~t~ysi©cy', ofPostProcess, ofPreProcess
+    InputLine 45, 7, 48, 8, 1, 0
+    Label 24, 7, 'Separat. dzi~e~si©tny', ofPostProcess, ofPreProcess
+    InputLine 45, 8, 48, 9, 1, 0
+    Label 24, 8, 'Dziesi•tki wal~u~ty', ofPostProcess, ofPreProcess
+    InputLine 3, 11, 19, 12, 4, 0
+    Label 3, 10, 'Symbol ~w~aluty', ofPostProcess, ofPreProcess
+    RadioButtons 21, 11, 48, 13, ofPostProcess, ofPreProcess
+      ITEM 'zà23.00'
+      ITEM '23.00zà'
+      ITEM 'zà 23.00'
+      ITEM '23.00 zà'
+    END
+    Label 21, 10, 'Format wa~l~uty', ofPostProcess, ofPreProcess
+    UpperTable 11, 14, 48, 16
+    Label 3, 13, 'Ta~b~ela wielkich liter', ofPostProcess, ofPreProcess
+    Label 1, 14, 'Normalne', ofPostProcess, ofPreProcess
+    Label 1, 15, 'Duæe', ofPostProcess, ofPreProcess
+    Button 12, 17, 19, 19, 'DO~S~', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 19, 17, 29, 19, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 17, 39, 19, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 39, 17, 48, 19, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+MENU dlgEditorMenu
+ SubMenu '~P~lik', hcedFile,
+      MenuItem '~O~tw¢rz...', 'F3', kbF3, cmLoadText, hcedFile,
+      MenuItem 'O~t~w¢rz plik od kursora...', 'Ctrl-Enter', kbCtrlEnter, cmOpenFileAtCursor, hcedFile,
+      MenuItem '~Z~apisz', 'F2', kbF2, cmSaveText, hcedFile,
+      MenuItem 'Zapisz ~j~ako...', 'Shift-F2', kbShiftF2, cmSaveTextAs, hcedFile,
+      MenuItem 'Zapisz ~w~szystko...', 'Ctrl-F2', kbCtrlF2, cmSaveAll, hcedFile,
+      MenuLine
+      MenuItem '~D~rukuj', 'Ctrl-F8', kbCtrlF8, cmPrintFile, hcedFile,
+      MenuItem 'Drukuj ~b~lok', 'Shift-F8', kbShiftF8, cmPrintBlock, hcedFile,
+      MenuLine
+      MenuItem 'Menu ~g~à¢wne', 'F10', kbF10, cmMainMenu, hcedFile,
+      MenuItem 'W~y~jòcie', 'Ctrl-F4', kbCtrlF4, cmClose, hcedFile,
+    END
+ SubMenu '~E~dycja', hcedEdit,
+      MenuItem '~C~ofnij', 'Alt-BkSp', kbAltBack, cmUndo, hcedEdit,
+      MenuItem 'Przy~w~r¢Ü', 'Alt-Shift-BkSp', kbAltShiftBack, cmRedo, hcedEdit,
+      MenuLine
+      MenuItem 'Wy~t~nij', 'Shift-Del', kbShiftDel, cmCut, hcedEdit,
+      MenuItem '~K~opiuj', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcedEdit,
+      MenuItem 'Wk~l~ej', 'Shift-Ins', kbShiftIns, cmPaste, hcedEdit,
+      MenuItem 'Kopiuj ~d~o...', ' ', kbNoKey, cmBlockWrite, hcedEdit,
+      MenuItem 'Wklej ~z~...', ' ', kbNoKey, cmBlockRead, hcedEdit,
+      MenuLine
+      Menuitem 'Kopiuj do schowka', 'Ctrl-Q P', kbNokey, cmWindowsCopy, hcedEdit,
+      Menuitem 'Wklej ze schowka', 'Ctrl-Q C', kbNokey, cmWindowsPaste, hcedEdit,
+      MenuLine
+      MenuItem '~Z~aznacz wszystko', 'Ctrl-A', kbCtrlA, cmSelectAllText, hcedEdit,
+      MenuLine
+      MenuItem 'Wycz~y~òÜ', 'Ctrl-Del', kbCtrlDel, cmClear, hcedEdit,
+    END
+ SubMenu '~S~zukaj', hcedSearch,
+      MenuItem '~Z~najd´...', 'F7', kbF7, cmStartSearch, hcedSearch,
+      MenuItem 'Za~m~ie‰...', 'Ctrl-F7', kbCtrlF7, cmReplace, hcedSearch,
+      MenuItem 'Sz~u~kaj ponownie', 'Shift-F7', kbShiftF7, cmContSearch, hcedSearch,
+      MenuItem '~O~dwr¢Ü szukanie', 'Alt-F7', kbAltF7, cmReverseSearch, hcedSearch,
+      Menuline
+      MenuItem '~I~d´ do lini nr...', 'Alt-G', kbAltG, cmGotoLineNumber, hcedSearch,
+      MenuItem 'Id´ na pocz•tek ~b~loku','Ctrl-Q B', kbNoKey, cmMoveBlockStart, hcedSearch,
+      MenuItem 'Id´ na ~k~oniec bloku','Ctrl-Q K', kbNoKey, cmMoveBlockEnd, hcedSearch,
+    END
+ SubMenu '~A~kapit', hcedParagraph,
+      MenuItem '~J~ustuj', 'Alt-J', kbAltJ, cmFJustify, hcedParagraph,
+      MenuItem '~P~rawa', 'Alt-R', kbAltR, cmFRight, hcedParagraph,
+      MenuItem '~L~ewa', 'Alt-L', kbAltL, cmFLeft, hcedParagraph,
+      MenuItem 'ó~r~odek', 'Alt-C', kbAltC, cmFCenter, hcedParagraph,
+      MenuLine
+      MenuItem '~M~arginesy...', '', kbNoKey, cmSetMargins, hcedParagraph,
+    END
+ SubMenu '~B~lok', hcEditBlockMenu,
+      MenuItem '~P~rzenieò', 'Ctrl-K V', kbNoKey, cmMoveBlock, hceditBlockMenu,
+      MenuItem '~K~opiuj', 'Ctrl-K C', kbNoKey, cmCopyBlock, hceditBlockMenu,
+      MenuItem '~W~ci©cie', 'Ctrl-K I', kbNoKey, cmIndentBlock, hceditBlockMenu,
+      MenuItem '~Z~mniejsz wci©cie', 'Ctrl-K U', kbNoKey, cmUnIndentBlock, hceditBlockMenu,
+      MenuLine
+      MenuItem '~D~uæe litery', 'Ctrl-K [', kbNoKey, cmUpcaseBlock, hceditBlockMenu,
+      MenuItem '~M~aàe litery', 'Ctrl-K ]', kbNoKey, cmLowcaseBlock, hceditBlockMenu,
+      MenuItem 'K~a~pitaliki', 'Ctrl-K \', kbNoKey, cmCapitalizeBlock, hceditBlockMenu,
+      MenuLine
+      MenuItem 'Od~w~r¢Ü sortowanie', 'Ctrl-R', kbCtrlR, cmRevSortBlock, hcEditBlockMenu,
+      MenuItem '~S~ortuj', 'Alt-T', kbAltT, cmSortBlock, hceditBlockMenu,
+      MenuItem 'Policz s~u~m©', 'Alt-Ins', kbAltIns, cmCalcBlock, hceditBlockMenu,
+      MenuItem '~R~us/Eng Konwert. blok', 'Alt-F12', kbAltF12, cmRusEngConv, hcEditBlockMenu,
+    END
+ SubMenu '~I~nne', hcEditMiscMenu,
+      MenuItem 'Wstaw ~d~at©', 'Ctrl-Q D', kbNoKey, cmInsertDate, hceditMiscMenu,
+      MenuItem 'Wstaw ~c~zas', 'Ctrl-Q T', kbNoKey, cmInsertTime, hceditMiscMenu,
+      Menuitem 'Du~p~likuj lini©', 'F6', kbF6, cmDuplicateLine, hcEditMiscMenu,
+      MenuItem 'Ta~b~ela ASCII  ', 'Ctrl-P', kbCtrlP, cmASCIITable, hcEditMiscMenu,
+      MenuItem '~R~ysowanie linii', 'F4', kbF4, cmSwitchDrawMode, hcEditMiscMenu,
+      MenuItem '~M~apowanie klawiatury', 'F8', kbF8, cmSwitchKeyMapping, hcEditMiscMenu,
+     MenuLine
+     SubMenu 'Duæe litery', hcEditMiscMenu,
+      MenuItem '~S~àowo', 'Ctrl-[', kbNoKey, cmUpWord, hcMiscUpper,
+      MenuItem '~L~inia', 'Ctrl-Shift-[', kbNoKey, cmUpString, hcMiscUpper,
+      MenuItem '~B~lok', 'Ctrl-K [', kbNoKey, cmUpcaseBlock, hcMiscUpper,
+     END
+     SubMenu 'Maàe litery', hcEditMiscMenu,
+      MenuItem '~S~àowo', 'Ctrl-]', kbNoKey, cmLowWord, hcMiscLower,
+      MenuItem '~L~inia', 'Ctrl-Shift-]', kbNoKey, cmLowString, hcMiscLower,
+      MenuItem '~B~lok', 'Ctrl-K ]', kbNoKey, cmLowcaseBlock, hcMiscLower,
+     END
+     SubMenu '~K~apitaliki', hcEditMiscMenu,
+      MenuItem '~S~àowo', 'Ctrl-\', kbNoKey, cmCapWord, hcMiscCapitalize,
+      MenuItem '~L~inia', 'Ctrl-Shift-\', kbNoKey, cmCapString, hcMiscCapitalize,
+      MenuItem '~B~lok', 'Ctrl-K \', kbNoKey, cmCapitalizeBlock, hcMiscCapitalize,
+     END
+     SubMenu 'Koniec wiersza', hcEditMiscMenu,
+      MenuItem 'CR~+~LF', '', kbNoKey, cmEditCrLfMode, hcEditMiscMenu,
+      MenuItem '~L~F', '', kbNoKey, cmEditLfMode, hcEditMiscMenu,
+      MenuItem '~C~R', '', kbNoKey, cmEditCrMode, hcEditMiscMenu,
+      MenuItem 'L~F~+CR', '', kbNoKey, cmEditLfCrMode, hcEditMiscMenu,
+     END
+     MenuItem 'Zmie‰ wilkoòÜ liter', 'Ctrl-/', kbCtrlSlash, cmChangeCharCase, hcEditMiscMenu,
+   END
+ SubMenu '~O~pcje', hcedOptions,
+      MenuItem '~B~ackSpace usuwa wci©cia', 'Wyà', kbNoKey, cmSwitchBack, hcedOptions,
+      MenuItem 'Auto ~n~awiasy', 'Wyà', kbNoKey, cmSwitchBrackets, hcedOptions,
+      MenuItem '~A~uto wci©cia akapitowe', 'Wyà', kbNoKey, cmSwitchIndent, hcedOptions,
+      MenuItem 'Aut~o~ zawijanie', 'Wyà', kbNoKey, cmSwitchSave, hcedOptions,
+      MenuItem '~J~ustuj przy zawijaniu', 'Wyà', kbNoKey, cmSwitchWrap, hcedOptions,
+      MenuItem '~P~ionowe bloki', 'Wyà', kbNoKey, cmSwitchBlock, hcedOptions,
+      MenuItem 'Opty~m~alne wypeànienie', 'Wyà', kbNoKey, cmSwitchFill, hcedOptions,
+      MenuItem 'Podòwietl.bieæ.~l~inii', 'Wyà', kbNoKey, cmSwitchHiLine, hcedOptions,
+      MenuItem 'Podòwietl.bieæ.~k~olumny', 'Wyà', kbNoKey, cmSwitchHiColumn, hcedOptions,
+      MenuItem 'Podòwietlanie skàadni', 'Wyà', kbNoKey, cmSwitchHighLight, hcedOptions,
+      MenuItem '~U~aktywnij TAB', 'Wyà', kbNoKey, cmSwitchTabReplace, hcedOptions,
+      MenuItem '~S~prytny Tab','Wyà', kbNoKey, cmSwitchSmartTab, hcedOptions,
+     END
+END
+
+MENU dlgFixerMenu
+  SubMenu '~O~bszar', hcDiskAreaMenu,
+      MenuItem '~P~lik...', 'Alt-F', kbAltF, cmFixFile, hcDiskAreaMenu,
+      MenuItem 'K~a~talog...', 'Alt-R', kbAltR, cmFixDir, hcDiskAreaMenu,
+      MenuItem '~D~ysk...', 'Alt-D', kbAltD, cmFixDrive, hcDiskAreaMenu,
+      MenuItem '~K~laster...', 'Alt-C', kbAltC, cmFixCluster, hcDiskAreaMenu,
+      MenuItem '~S~ektor...', 'Alt-S', kbAltS, cmFixSector, hcDiskAreaMenu,
+      MenuLine
+      MenuItem '~M~enu gà¢wne', 'F10', kbF10, cmMainMenu, hcDiskAreaMenu,
+      MenuItem 'W~y~jòcie', 'Ctrl-F4', kbCtrlF4, cmClose, hcDiskAreaMenu,
+    END
+ SubMenu '~E~dycja', hcDiskEditMenu,
+      MenuItem '~C~ofnij', 'Alt-BkSp', kbAltBack, cmUndo, hcDiskEditMenu,
+      MenuLine
+      MenuItem '~K~opiuj', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcDiskEditMenu,
+      MenuItem '~W~klej ', 'Shift-Ins', kbShiftIns, cmPaste, hcDiskEditMenu,
+      MenuItem 'K~o~piuj do...', ' ', kbNoKey, cmFixBlockWrite, hcDiskEditMenu,
+      MenuItem 'Wy~p~eànij...', '', kbNoKey, cmClear, hcDiskEditMenu,
+      MenuLine
+      MenuItem '~S~zukaj...', 'F7', kbF7, cmSearchFor, hcDiskEditMenu,
+      MenuItem 'Szukaj dalej...', 'Shift-F7', kbShiftF7, cmContinueSearch, hcDiskEditMenu,
+    END
+ SubMenu '~W~idok', hcDiskViewMenu,
+      MenuItem '~H~exadecymalnie', 'F2', kbF2, cmHexMode, hcDiskViewMenu,
+      MenuItem '~K~atalogowo', 'F3', kbF3, cmDirMode, hcDiskViewMenu,
+      MenuItem '~T~ekstowo', 'F4', kbF4, cmTextMode, hcDiskViewMenu,
+      MenuItem '~F~AT', 'F5', kbF5, cmFATMode, hcDiskViewMenu,
+    END
+END
+
+MENU dlgMainMenu
+  SubMenu '(placeholder)', hcMenuBox,
+    MenuItem '~W~izyt¢wka...', '', kbNoKey, cmAbout, hcMenuBox,
+    MenuItem '~O~dòwieæ ekran', '', kbNoKey, cmRefresh, hcMenuBox,
+    MenuItem 'W~y~gaszacz ekranu', ' ', kbNoKey, cmScreenRest, hcMenuBox,
+    MenuItem '~Z~mie‰ j©zyk (Change language)','Alt-F12',kbAltF12,cmChLngId,hcMenuBox,
+    MenuLine
+    MenuItem 'ù~a~pacz ekranu', 'Shift-Alt-Ins', kbNoKey, cmExecGrabber, hcMenuBox,
+    MenuItem 'Ekran ~u~æytkownika', 'Alt-F5', kbAltF5, cmShowUserScreen, hcMenuBox,
+    MenuItem 'Ok~n~o wyjòciowe', 'Ctrl-O', kbCtrlO, cmShowOutput, hcMenuBox,
+    MenuItem '~S~martPad (TM)', 'Alt-Q', kbAltQ, cmOpenSmartpad, hcMenuBox,
+    MenuItem '~P~okaæ schowek', '', kbNoKey, cmOpenClipBoard, hcMenuBox,
+    MenuItem '~K~osz wà/wyà', '', kbNoKey, cmHideShowTools, hcMenuBox,
+    MenuLine
+    MenuItem 'EGA~/~VGA ', 'Shift-F10', kbShiftF10, cmChangeMode, hcMenuBox,
+    MenuItem 'Tryb video ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
+    MenuItem 'Tryb video ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
+    MenuItem 'Zmie‰ tryb ~v~ideo', 'Shift-F12', kbShiftF12, cmChScreenMode, hcMenuBox,
+    MenuLine
+    MenuItem '~G~ra', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
+  END
+ SubMenu '~P~lik', hcFileMenu,
+    SubMenu '~P~odgl•d', hcFileMenu,
+      MenuItem '~D~omyòlnie', 'F3', kbF3, cmViewFile, hcFileMenu,
+      MenuItem 'Jako ~t~ekst', '', kbNoKey, cmViewText, hcFileMenu,
+      MenuItem 'Jako he~x~', '', kbNoKey, cmViewHex, hcFileMenu,
+      MenuItem 'Jako ~b~az© danych', '', kbNoKey, cmViewDBF, hcFileMenu,
+      MenuItem 'Jako a~r~kusz kalkulacyjny', '', kbNoKey, cmViewWKZ, hcFileMenu,
+      MenuLine
+      MenuItem 'Podgl•d alternatywny', 'Alt-F3', kbAltF3, cmIntViewFile, hcFileMenu,
+    END
+    SubMenu '~E~dycja', hcFileMenu,
+      MenuItem 'E~d~ytuj', 'F4', kbF4, cmEditFile, hcFileMenu,
+      MenuItem 'Edytor ~a~lternatywny', 'Alt-F4', kbAltF4, cmIntEditFile, hcFileMenu,
+      MenuLine
+      MenuItem '~N~owy plik', 'Shift-F4', kbShiftF4, cmXEditFile, hcFileMenu,
+    END
+    MenuItem '~Z~najd´...', 'Alt-F7', kbAltF7, cmFindFile, hcFileMenu,
+    MenuItem '~K~opiuj...', 'F5', kbF5, cmCopyFiles, hcFileMenu,
+    MenuItem 'Zmie‰ nazw©/P~r~zenieò...', 'F6', kbF6, cmMoveFiles, hcFileMenu,
+    MenuItem '~U~su‰', 'F8', kbF8, cmPanelErase, hcFileMenu,
+    SubMenu 'Plik pojedyn~c~zy', hcFileMenu,
+      MenuItem '~K~opiuj plik...', 'Shift-F5', kbShiftF5, cmSingleCopy, hcFileMenu,
+      MenuItem '~Z~mie‰ nazw© pliku...', 'Shift-F6', kbShiftF6, cmSingleRename, hcFileMenu,
+      MenuItem '~U~su‰ plik','Shift-F8',kbShiftF8, cmSingleDel, hcFileMenu,
+      MenuItem '~A~trybuty pliku', 'Ctrl-A', kbCtrlA, cmSingleAttr, hcFileMenu,
+    END
+    MenuItem 'Wielk~o~òÜ liter...', 'Ctrl-Alt-F6', kbCtrlAltF6, cmChangeNameCase, hcFileMenu,
+    MenuItem 'Spakuj archiwu~m~...', 'Shift-F1', kbShiftF1, cmPanelArcFiles, hcFileMenu,
+    MenuItem 'Rozpaku~j~ archiwum...', 'Shift-F2', kbShiftF2, cmExtractArchive, hcFileMenu,
+    MenuItem 'Podzie~l~/Scal...', 'Ctrl-Alt-F5', kbCtrlAltF5, cmPanelLongCopy, hcFileMenu,
+    MenuItem '~D~rukuj', 'Ctrl-F9', kbCtrlF9, cmPrintFile, hcFileMenu,
+    MenuItem 'Utw¢rz katalo~g~', 'F7', kbF7, cmPanelMkDir, hcFileMenu,
+    MenuItem '~A~trybuty plik¢w...', 'Alt-E', kbAltE, cmSetFAttr, hcFileMenu,
+    MenuItem 'UU Zakoduj...', 'Ctrl-F7', kbCtrlF7, cmUUEncodeFile, hcFileMenu,
+    MenuItem 'UU Dekoduj...', 'Ctrl-F8', kbCtrlF8, cmUUDecodeFile, hcFileMenu,
+    MenuItem 'Rozpakuj obraz dyskietk~i~','Ctrl-I',kbCtrlI, cmUnpDiskImg, hcFileMenu,
+    MenuLine
+    MenuItem 'W~y~konaj polecenie OS', '', kbNoKey, cmExecuteDOSCmd, hcFileMenu,
+    MenuItem 'Res~t~artuj', 'Ctrl-Alt-X', kbCtrlAltX, cmRestart, hcFileMenu,
+    MenuItem '~W~yjòcie', 'Alt-X', kbAltX, cmQuit, hcFileMenu,
+  END
+ SubMenu '~D~ysk', hcDiskMenu,
+    MenuItem '~F~ormatuj dysk...', 'Shift-F7', kbShiftF7, cmFormatDisk, hcDiskMenu,
+    MenuItem '~E~tykieta...', '', kbNoKey, cmSetVolumeLabel, hcDiskMenu,
+    MenuItem 'Rea~n~imator...', 'Ctrl-Alt-F8', kbCtrlAltF8, cmReanimator, hcDiskMenu,
+    MenuItem 'Ed~y~tor dysku', '', kbNoKey, cmDiskEdit, hcDiskMenu,
+    MenuLine
+    MenuItem 'Dr~z~ewo katalog¢w', '', kbNoKey, cmCreateTree, hcDiskMenu,
+ END
+ SubMenu '~N~arz©dzia', hcUtilMenu,
+    MenuItem 'Informac~j~a o pami©ci', 'Alt-Y', kbAltY, cmMemoryInfo, hcUtilMenu,
+    MenuItem 'I~n~formacja o systemie', '', kbNoKey, cmSystemInfo, hcUtilMenu,
+    MenuLine
+    MenuItem '~K~alkulator', 'Ctrl-F6', kbCtrlF6, cmCalculator, hcUtilMenu,
+    MenuItem 'Kalen~d~arz', 'Ctrl-F12', kbCtrlF12, cmCalendar, hcUtilMenu,
+    MenuItem 'Tabela ~A~SCII', 'Ctrl-B', kbCtrlB, cmASCIITable, hcUtilMenu,
+    MenuItem 'Ksi•æka tele~f~on.', 'Shift-F3', kbShiftF3, cmPhoneBook, hcUtilMenu,
+    MenuItem '~O~tw¢rz arkusz kalkulacyjny', 'Shift-F11', kbShiftF11, cmSheetLoad, hcUtilMenu,
+    MenuItem 'Odtwarzacz ~C~D', 'Ctrl-F11', kbCtrlF11, cmPlayCD, hcUtilMenu,
+    MenuLine
+    MenuItem 'Termina~l~', 'Alt-J', kbAltJ, cmTerminal, hcUtilMenu,
+    MenuItem '~P~oà•czenie kablowe', 'Alt-F11', kbAltF11, cmNavyLink, hcUtilMenu,
+    MenuItem 'Wybieranie ~r~©czne...', 'Alt-A', kbAltA, cmUndial, hcUtilMenu,
+    MenuItem 'Ro~z~à•cz', 'Alt-H', kbNoKey, cmHangUp, hcUtilMenu,
+    MenuLine
+    MenuItem '~E~dycja òrodowiska DOS`a', '', kbNoKey, cmEnvEdit, hcUtilMenu,
+    MenuItem '~M~enu uæytkownika', 'F2', kbF2, cmUserMenu, hcUtilMenu,
+    MenuLine
+    MenuItem '~H~istoria katalog¢w...', 'Alt-BkSp', kbAltBack, cmDirHistory, hcUtilMenu,
+    MenuItem 'H~i~storia polece‰', 'Alt-F8', kbAltF8, cmHistoryList, hcUtilMenu,
+    MenuItem 'Hi~s~toria edycji plik¢w', 'Alt-PgUp', kbAltPgUp, cmEditHistory, hcUtilMenu,
+    MenuItem 'His~t~oria podgl•du plik¢w', 'Alt-PgDn', kbAltPgDn, cmViewHistory, hcUtilMenu,
+   END
+ SubMenu 'Pane~l~', hcPanelMenu,
+    MenuItem 'Utw¢rz ~l~ist© plik¢w...', 'Alt-L', kbAltL, cmMakeList, hcPanelMenu,
+    MenuItem '~C~zytaj list© plik¢w', 'Alt-V', kbAltV, cmPanelMakeList, hcPanelMenu,
+    MenuItem 'Por¢w~n~aj katalogi', 'Ctrl-C', kbCtrlC, cmCompareDir, hcPanelMenu,
+    MenuItem '~O~blicz rozmiar katalog¢w ', 'Alt-G', kbAltG, cmCountLen, hcPanelMenu,
+    MenuItem '~G~aà©zie katalog¢w', 'Ctrl-H', kbCtrlH, cmDirBranch, hcPanelMenu,
+    MenuLine
+    MenuItem 'Ustawienia ~k~olumn', 'Alt-K', kbAltK, cmSetupColumns, hcPanelMenu,
+    MenuItem 'Ustawienia ~p~anelu', 'Alt-S', kbAltS, cmPanelSetup, hcPanelMenu,
+    MenuItem '~S~ortuj wg...', 'Alt-B', kbAltB, cmSortBy, hcPanelMenu,
+    MenuItem 'Zawansowany ~f~iltr...', 'Alt-Del', kbAltDel, cmAdvFilter, hcPanelMenu,
+    MenuLine
+    MenuItem '~Z~azancz grup©...', 'Szary "+"', kbNoKey, cmPanelSelect, hcPanelMenu,
+    MenuItem 'O~d~znacz grup©...', 'Szary "-"', kbNoKey, cmPanelUnselect, hcPanelMenu,
+    MenuItem 'Odw~r~¢Ü zaznaczenie', 'Szary "*"', kbNoKey, cmPanelInvertSel, hcPanelMenu,
+    MenuLine
+    MenuItem 'Z~m~ie‰ nap©d', 'Alt-C', kbAltC, cmChangeDrive, hcPanelMenu,
+    MenuItem 'Zmi~e~‰ katalog', 'Alt-T', kbAltT, cmChangeDir, hcPanelMenu,
+    MenuItem 'Odcz~y~taj ponownie', 'Alt-R', kbAltR, cmForceRescan, hcPanelMenu,
+    MenuItem '~U~lubione katalogi...', 'Alt-Shift-0', kbNoKey, cmListOfDirs, hcPanelMenu,
+   END
+ SubMenu '~M~enedæer', hcManagerCommands,
+    MenuItem '~N~owy', 'Ctrl-F3', kbCtrlF3, cmCreatePanel, hcManagerCommands,
+    MenuItem '~D~rzewo katalog¢w', 'Ctrl-T', kbCtrlT, cmDirTree, hcManagerCommands,
+    MenuItem '~I~nformacja', 'Alt-I, Ctrl-L', kbCtrlL, cmDiskInfo, hcManagerCommands,
+    MenuItem 'In~f~o o sieci', 'Ctrl-Alt-N', kbCtrlAltN, cmNetInfo, hcManagerCommands,
+    MenuItem '~S~zybki podgl•d', 'Ctrl-Q', kbCtrlQ, cmQuickView, hcManagerCommands,
+    MenuLine
+    MenuItem '~Z~mie‰ panele', 'Ctrl-U', kbCtrlU, cmSwapPanels, hcManagerCommands,
+    MenuItem 'Pokaæ/Ukryj ~l~ewy panel', 'Ctrl-F1', kbCtrlF1, cmHideLeft, hcManagerCommands,
+    MenuItem 'Pokaæ/Ukryj ~p~rawy panel', 'Ctrl-F2', kbCtrlF2, cmHideRight, hcManagerCommands,
+    MenuItem 'Pokaæ/Ukryj niea~k~tywny panel', 'Ctrl-P', kbCtrlP, cmSwitchOther, hcManagerCommands,
+    MenuLine
+    MenuItem 'Zmie‰ l~e~wy dysk', 'Alt-F1', kbAltF1, cmChangeLeft, hcManagerCommands,
+    MenuItem 'Zmie‰ p~r~awy dysk', 'Alt-F2', kbAltF2, cmChangeRight, hcManagerCommands,
+  END
+  SubMenu '~O~pcje', hcOptionsMenu,
+    SubMenu '~K~onfiguracja', hcOptionsMenu,
+      MenuItem 'Ustawienia s~y~stemowe...', '', kbNoKey, cmSystemSetup, hcSubMenuConfig,
+      MenuItem 'Opcje ~s~tartowe...', '', kbNoKey, cmStartup, hcSubMenuConfig,
+      MenuItem '~I~nterfejs...', '', kbNoKey, cmInterfaceSetup, hcSubMenuConfig,
+      MenuItem '~P~otwierdzenia...', '', kbNoKey, cmSetupConfirmation, hcSubMenuConfig,
+      MenuLine
+      MenuItem '~W~ygaszacze ekranu...', '', kbNoKey, cmSaversSetup, hcSubMenuConfig,
+      MenuItem 'Ustawienia ~d~rukarek...', '', kbNoKey, cmSetupPrinter, hcSubMenuConfig,
+      MenuItem 'Ustawienia ~r~egionalne...', '', kbNoKey, cmCountrySetup, hcSubMenuConfig,
+      MenuItem '~M~yszka...', '', kbNoKey, cmSetupMouse, hcSubMenuConfig,
+      MenuItem 'Kom~u~nikacja...', '', kbNoKey, cmSetupModem, hcSubMenuConfig,
+      MenuLine
+      MenuItem '~E~dytor...', '', kbNoKey, cmEditorDefaults, hcSubMenuConfig,
+      MenuItem 'Podgl•d...', '', kbNoKey, cmViewerDefaults, hcSubMenuConfig,
+      MenuItem '~T~erminal...', '', kbNoKey, cmTerminalDefaults, hcSubMenuConfig,
+     END
+    SubMenu '~M~enedæer plik¢w', hcOptionsMenu,
+      MenuItem '~U~stawienia...', '', kbNoKey, cmFMSetup, hcSubMenuFileMgr,
+      MenuItem '~N~owy menedæer domyòlny...', '', kbNoKey, cmFMDefaults, hcSubMenuFileMgr,
+      MenuItem 'Panel ~i~nformacyjny...', '', kbNoKey, cmDriveInfoSetup, hcSubMenuFileMgr
+      SubMenu 'Domyòlne ustawienia ~k~olumn...', hcSubMenuFileMgr,
+       MenuItem '~N~ap©d...',  '', kbNoKey, cmColumnDefaultsDisk, hcSubMenuFileMgr,
+       MenuItem '~Z~najd´...', '', kbNoKey, cmColumnDefaultsFind, hcSubMenuFileMgr,
+       MenuItem '~T~EMP:...', '', kbNoKey, cmColumnDefaultsTemp, hcSubMenuFileMgr,
+       MenuItem '~A~rchiwum...', '', kbNoKey, cmColumnDefaultsArch, hcSubMenuFileMgr,
+       MenuItem 'A~R~VID...', '', kbNoKey, cmColumnDefaultsArvd, hcSubMenuFileMgr,
+      END
+      MenuItem '~P~odòwietlenia grup...', '', kbNoKey, cmHighlightGroups, hcSubMenuFileMgr,
+    END
+   SubMenu '~A~rchiwa', hcOptionsMenu
+      MenuItem 'Ustawienia archiwizera...', 'Alt-N', kbAltN, cmSetupArchive, hcArchives,
+      MenuItem 'Uaktualnij ARCHIVER.INI', '', kbNoKey, cmUpdateArcFile, hcArchives,
+      MenuLine
+      MenuItem 'AC~E~ - ACE (C) Marcel Lemke',                          '', kbNoKey, cmConfigACE, hcArchives,
+      MenuItem 'AI~N~ - AIN (C) Transas Marine Ltd',                    '', kbNoKey, cmConfigAIN, hcArchives,
+      MenuItem '~A~RC - Arc (C) NoGate Consulting',                     '', kbNoKey, cmConfigARC, hcArchives,
+      MenuItem 'AR~J~ - ARJ (C) Robert K. Jung',                        '', kbNoKey, cmConfigARJ, hcArchives,
+      MenuItem 'BS~2~ - BSArc v2.xx (C) PhysTechSoft',                  '', kbNoKey, cmConfigBS2, hcArchives,
+      MenuItem '~B~SA - BSArc v1.xx (C) PhysTechSoft',                  '', kbNoKey, cmConfigBSA, hcArchives,
+      MenuItem 'CAB - CAB (C) Microsoft',                               '', kbNoKey, cmConfigCAB, hcArchives,
+      MenuItem '~C~HZ - ChArc (C) Dialogue',                            '', kbNoKey, cmConfigCHZ, hcArchives,
+      MenuItem '~H~A  - HA (C) Harri Hirvola',                          '', kbNoKey, cmConfigHA,  hcArchives,
+      MenuItem 'HA~P~ - HAP (C) Hamarsoft',                             '', kbNoKey, cmConfigHAP, hcArchives,
+      MenuItem 'HP~K~ - HPack (C) Peter Gutmann',                       '', kbNoKey, cmConfigHPK, hcArchives,
+      MenuItem 'H~Y~P - Hyper (C) P.Sawatzki & K.P.Nicshke',            '', kbNoKey, cmConfigHYP, hcArchives,
+      MenuItem 'IS~3~ - InstallShield 3.00.xxx',                        '', kbNoKey, cmConfigIS3, hcArchives,
+      MenuItem '~L~HA - LHArc (C) Haruyasu Yoshizaki',                  '', kbNoKey, cmConfigLHA, hcArchives,
+      MenuItem 'L~I~M - Limit (C) J Y Lim',                             '', kbNoKey, cmConfigLIM, hcArchives,
+      MenuItem 'QUARK - QUARK (C) Kunz Robert',                         '', kbNoKey, cmConfigQUARK, hcArchives,
+      MenuItem '~R~AR - RAR (C) E. Roshal',                             '', kbNoKey, cmConfigRAR, hcArchives,
+      MenuItem '~S~QZ - SQZ (C) J.I.Hammarberg',                        '', kbNoKey, cmConfigSQZ, hcArchives,
+      MenuItem '~T~AR - Tape ARchiver for *NIX',                        '', kbNoKey, cmConfigTAR, hcArchives,
+      MenuItem '~G~Z  - GZip compressor',                               '', kbNoKey, cmConfigTGZ, hcArchives,
+      MenuItem '~U~C2 - Ultra Compressor II (C) Ad Infinitum Programs', '', kbNoKey, cmConfigUC2, hcArchives,
+      MenuItem 'U~F~A - UFA (C) Igor Pavlov',                           '', kbNoKey, cmConfigUFA, hcArchives,
+      MenuItem '~Z~IP - PKZIP (C) PKWARE Inc.',                         '', kbNoKey, cmConfigZIP, hcArchives,
+      MenuItem 'ZO~O~ - Zoo (C) Rahul Dhesi',                           '', kbNoKey, cmConfigZOO, hcArchives,
+      MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev',                  '', kbNoKey, cmConfigZXZ, hcArchives,
+      MenuItem '~7~Z - 7-Zip (C) Igor Pavlov',                          '', kbNoKey, cmConfig7Z,  hcArchives,
+     END
+    MenuLine
+    MenuItem 'Edycja pliku ~s~zyb. uruch...', '', kbNoKey, cmEditQuickRun, hcOptionsMenu,
+    MenuItem 'Edycja pliku ~r~ozszerze‰...', '', kbNoKey, cmExtFileEdit, hcOptionsMenu,
+    MenuItem 'Edycja pliku po~d~òwietle‰...', '', kbNoKey, cmEditHGL, hcOptionsMenu,
+    MenuItem 'Edycja plik~u~ SPF...', '', kbNoKey, cmEditSPF, hcOptionsMenu,
+    MenuItem 'Edycja pliku ~i~ni...', '', kbNoKey, cmEditINI, hcOptionsMenu,
+    MenuItem 'Definicja menu ~g~lobalnego...', '', kbNoKey, cmMenuFileEdit, hcOptionsMenu,
+    MenuItem 'Definicja menu ~l~okalnego...', '', kbNoKey, cmLocalMenuFileEdit, hcOptionsMenu,
+    MenuItem '~P~rzegl•darki...', '', kbNoKey, cmExternalViewers, hcOptionsMenu,
+    MenuItem '~E~dytory...', '', kbNoKey, cmExternalEditors, hcOptionsMenu,
+    MenuLine
+    MenuItem '~Z~apisz ustawienia pulpitu', '', kbNoKey, cmSaveDesk, hcOptionsMenu,
+    MenuItem 'Przywoàaj ustawienia pulpi~t~u ', '', kbNoKey, cmLoadDesk, hcOptionsMenu,
+    MenuLine
+    MenuItem 'Ustawienia k~o~lor¢w...', '', kbNoKey, cmChangeColors, hcOptionsMenu,
+    MenuItem 'Za~c~howaj palet© kolor¢w', '', kbNoKey, cmStoreColors, hcOptionsMenu,
+    MenuItem 'Przywoàa~j~ palet© kolor¢w', '', kbNoKey, cmLoadColors, hcOptionsMenu,
+  END
+ SubMenu 'O~k~no', hcWindows,
+    MenuItem '~S~•siaduj•co', '', kbNoKey, cmTile, hcWindows,
+    MenuItem '~K~askadowo', '', kbNoKey, cmCascade, hcWindows,
+    MenuItem 'Zamknij ~w~szystkie', '', kbNoKey, cmClearDesktop, hcWindows,
+    MenuLine
+    MenuItem '~R~ozmiar/Przenieò','Ctrl-F5', kbCtrlF5, cmResize, hcWindows,
+    MenuItem 'P~o~wi©kszenie', 'Alt-Z', kbAltZ, cmZoom, hcWindows,
+    MenuItem '~M~aksymalizuj', 'Ctrl-M, Ctrl-Alt-Z',kbCtrlM, cmMaxi, hcWindows,
+    MenuItem '~N~ast©pne', 'Alt-Tab', kbAltTab, cmNext, hcWindows,
+    MenuItem '~P~oprzednie', 'Ctrl-Tab', kbCtrlTab, cmPrev, hcWindows,
+    MenuItem 'Nas~t~©pne podobne', 'Shift-Gray "+"', kbShiftGrayPlus, cmNext2, hcWindows,
+    MenuItem 'Poprzednie podo~b~ne', 'Shift-Gray "-"', kbShiftGrayMinus,cmPrev2, hcWindows,
+    MenuItem 'N~a~st©pne r¢æne', '', kbNoKey, cmNext3, hcWindows,
+    MenuItem 'Poprzedn~i~e r¢æne', '', kbNoKey, cmPrev3, hcWindows,
+    MenuItem '~Z~amknij', 'Ctrl-F4', kbCtrlF4, cmClose, hcWindows,
+    MenuLine
+    MenuItem '~L~ista okien...', 'Alt-0', kbAlt0, cmWindowManager, hcWindows,
+  END
+END
+
+MENU dlgWkzMenuBar
+  SubMenu '~P~lik', hcSpreadFileMenu,
+       MenuItem '~N~owy', 'F4', kbF4, cmNewTable, hcSpreadFileMenu,
+       MenuItem '~O~tw¢rz...', 'F3', kbF3, cmXEditFile, hcSpreadFileMenu,
+       MenuItem '~Z~apisz', 'F2', kbF2, cmSave, hcSpreadFileMenu,
+       MenuItem 'Zapisz ~j~ako...', 'Shift-F2', kbShiftF2, cmSaveSheetAs, hcSpreadFileMenu,
+       SubMenu '~I~mport', hcSpreadFileMenu,
+         MenuItem 'WartoòÜ rozdzielona przecinkiem (~C~SV)', '', kbNoKey, cmImportFromCsv, hcSpreadFileMenu,
+         MenuItem 'dBase III (~D~BF)','',kbNoKey, cmImportFromDbf, hcSpreadFileMenu,
+       END
+       SubMenu '~E~ksport', hcSpreadFileMenu,
+         MenuItem 'WartoòÜ rozdzielona przecinkiem (~C~SV)', ' ', kbNoKey, cmExportToCsv, hcSpreadFileMenu,
+         MenuItem 'dBase III (~D~BF)', '',kbNoKey, cmExportToDbf, hcSpreadFileMenu,
+         MenuItem 'Plik ~t~ekstowy', 'Shift-F3', kbShiftF3, cmExportToText, hcSpreadFileMenu,
+       END
+       MenuLine
+       MenuItem 'Menu ~g~à¢wne', 'F10', kbF10, cmMainMenu, hcSpreadFileMenu,
+       MenuItem 'W~y~jòcie', 'Ctrl-F4', kbCtrlF4, cmClose, hcSpreadFileMenu,
+     END
+  SubMenu '~E~dycja', hcSpreadEditMenu,
+       MenuItem '~C~ofnij', 'Alt-BkSp', kbAltBack, cmUndo, hcSpreadEditMenu,
+       MenuLine
+       MenuItem 'Wy~t~nij...', 'Shift-Del', kbShiftDel, cmCut, hcSpreadEditMenu,
+       MenuItem '~K~opiuj', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcSpreadEditMenu,
+       MenuItem '~W~klej', 'Shift-Ins', kbShiftIns, cmPaste, hcSpreadEditMenu,
+       MenuLine
+       MenuItem 'Wyc~z~yòÜ', 'Ctrl-Del', kbCtrlDel, cmClear, hcSpreadEditMenu,
+     END
+  SubMenu '~S~zukaj', hcSpreadSearchMenu,
+       MenuItem '~Z~najd´...', 'F7', kbF7, cmFindCell, hcSpreadSearchMenu,
+       MenuItem 'Za~m~ie‰...', 'Ctrl-F7', kbCtrlF7, cmReplaceCell, hcSpreadSearchMenu,
+       MenuItem '~P~owt¢rz szukanie', 'Shift-F7', kbShiftF7, cmSearchAgain, hcSpreadSearchMenu,
+       MenuItem '~I~d´ do kom¢rki nr...', 'F6', kbF6, cmGotoCell, hcSpreadSearchMenu,
+       MenuItem 'Id´ ~d~o ostatniego bà©du', '', kbNoKey, cmGotoError, hcSpreadSearchMenu,
+     END
+  SubMenu '~T~abela', hcSpreadTableMenu,
+       MenuItem '~F~ormatuj kom¢rki', 'Alt-O', kbAltO, cmChangeFormat, hcSpreadTableMenu,
+       MenuItem '~S~zerokoòÜ kolumn...', 'Alt-W', kbAltW, cmChangeWidth, hcSpreadTableMenu,
+       MenuLine
+       MenuItem '~W~staw wiersz', 'Alt-I', kbAltI, cmInsertLine, hcSpreadTableMenu,
+       MenuItem 'Wst~a~w kolumn©', 'Alt-C', kbAltC, cmInsertColumn, hcSpreadTableMenu,
+       MenuItem '~U~su‰ wiersz', 'Alt-L', kbAltL, cmDeleteLine, hcSpreadTableMenu,
+       MenuItem 'Usu‰ ~k~olumn©', 'Alt-D', kbAltD, cmDeleteColumn, hcSpreadTableMenu,
+     END
+END
+
+STATUSLINE
+  StatusDef 1, 1,
+;{BASE}
+      StatusItem '~F1~Pomoc', kbF1, cmHelp,
+      StatusItem '~'#26'~Przenoszenie', kbNoKey, cmNo,
+      StatusItem '~ƒŸ~Zrobione', kbNoKey, cmNo,
+      StatusItem '~Esc~Anuluj', kbNoKey, cmNo,
+;{SHIFT}
+      StatusItem ':~'#26'~ Zmie‰ rozmiar', kbNoKey, cmNo,
+
+  StatusDef hcEnvEditor, hcEnvEditor,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F6~Zmie‰ nazw©', kbF6, cmRenVariable,
+;{ALT}
+     StatusItem '-~Ins~Dopisz', kbAltIns, cmAddVariable,
+     StatusItem '-~Del~Usu‰', kbAltDel, cmDelVariable,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+
+  StatusDef hcHelp, hcHelp,
+;{BASE}
+      StatusItem '~F1~Pomoc do pomocy', kbF1, cmDefault,
+      StatusItem '~Tab~ Nast©pny temat', kbNoKey, cmYes,
+      StatusItem '~ENTER~Otw¢rz',kbNoKey, cmOk,
+      StatusItem '~Esc~ Wyjd´', kbNoKey, cmClose,
+      StatusItem '~Wr¢Ü przy pomocy myszy~', kbNoKey, cmNo,
+;{ALT}
+      StatusItem '-~F1~ Wr¢Ü', kbNoKey, cmNo,
+      StatusItem '-~Z~ Powi©ksz', kbAltZ, cmZoom,
+;{CTRL}
+      StatusItem '+~F5~ Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{SHIFT}
+      StatusItem ':~F1~ Indeks', kbShiftF1, cmCancel,
+      StatusItem ':~Tab~ Poprzedni temat', kbNoKey, cmSave,
+;{ALT-CTRL}
+      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
+;{NO SHOW}
+      StatusItem '', kbF9, cmNext,
+      StatusItem '', kbShiftF9, cmPrev,
+      StatusItem '', kbF10, cmMenu,
+
+  StatusDef hcFilePanel, hcFilePanel,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~MnUæ', kbF2, cmUserMenu,
+     StatusItem '~F3~Pgl•d', kbF3, cmViewFile,
+     StatusItem '~F4~Edytuj', kbF4, cmEditFile,
+     StatusItem '~F5~Kopiuj', kbF5, cmCopyFiles,
+     StatusItem '~F6~ZmPrz', kbF6, cmMoveFiles,
+     StatusItem '~F7~UtwKt', kbF7, cmPanelMkDir,
+     StatusItem '~F8~Usu‰', kbF8, cmPanelErase,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~B~Sortuj', kbAltB, cmSortBy,
+     StatusItem '-~C~Nap©d', kbAltC, cmChangeDrive,
+     StatusItem '-~S~Ustaw', kbAltS, cmPanelSetup,
+     StatusItem '-~L~istuj', kbAltL, cmMakeList,
+     StatusItem '-~F6~SzZmNaz', kbAltF6, cmFastRename,
+     StatusItem '-~F7~Znajd´', kbNoKey, cmFindFile,
+     StatusItem '-~R~Wczyt', kbAltR, cmForceRescan,
+     StatusItem '-~;~Opis', kbAltSemicolon, cmToggleDescriptions,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F6~Kalk', kbCtrlF6, cmCalculator,
+     StatusItem '+~F9~Druk', kbCtrlF9, cmPrintFile,
+     StatusItem '+~K~Opis', kbCtrlK, cmToggleDescriptions,
+     StatusItem '+~L~Info', kbCtrlL, cmDiskInfo,
+     StatusItem '+LF~N~', kbCtrlN, cmToggleLongNames,
+     StatusItem '+~D~rzewo', kbCtrlT, cmDirTree,
+     StatusItem '+~Q~Podgl•d', kbCtrlQ, cmQuickView,
+     StatusItem '+~Y~Pokaæ', kbCtrlY, cmToggleShowMode,
+;{SHIFT}
+     StatusItem ':~F1~Pakuj', kbShiftF1, cmPanelArcFiles,
+     StatusItem ':~F2~Wypakuj', kbShiftF2, cmExtractArchive,
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj', kbShiftF4, cmXEditFile,
+     StatusItem ':~F5~Kopiuj', kbShiftF5, cmSingleCopy,
+     StatusItem ':~F6~ZmPrz', kbShiftF6, cmSingleRename,
+     StatusItem ':~F8~Usu‰', kbShiftF8, cmSingleDel,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~N~etInfo', kbCtrlAltN, cmNetInfo,
+     StatusItem '^~F5~Podz/Scal', kbCtrlAltF5, cmPanelLongCopy,
+     StatusItem '^~F6~Zmie‰ wielkoòÜ liter', kbCtrlAltF6, cmChangeNameCase,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbAltI, cmDiskInfo,
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbAltBack, cmDirHistory,
+
+  StatusDef hcLinkPanel, hcLinkPanel,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~MnUæ', kbF2, cmUserMenu,
+     StatusItem '~F3~Pgl•d', kbF3, cmViewFile,
+     StatusItem '~F5~Kopiuj', kbF5, cmCopyFiles,
+     StatusItem '~F7~UtwKt', kbF7, cmPanelMkDir,
+     StatusItem '~F8~Usu‰', kbF8, cmPanelErase,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~B~Sortuj', kbAltB, cmSortBy,
+     StatusItem '-~C~Nap©d', kbAltC, cmChangeDrive,
+     StatusItem '-~S~Ustaw', kbAltS, cmPanelSetup,
+     StatusItem '-~R~Wczyt', kbAltR, cmForceRescan,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~L~Info', kbCtrlL, cmDiskInfo,
+     StatusItem '+LF~N~', kbCtrlN, cmToggleLongNames,
+     StatusItem '+~Y~Pokaæ', kbCtrlY, cmToggleShowMode,
+;{SHIFT}
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F8~Usu‰', kbShiftF8, cmSingleDel,
+;{ALT-CTRL}
+     StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~N~etInfo', kbCtrlAltN, cmNetInfo,
+     StatusItem '^~F6~Zmie‰ wielkoòÜ liter', kbCtrlAltF6, cmChangeNameCase,
+;{NO SHOW}
+     StatusItem '', kbAltI, cmDiskInfo,
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbAltBack, cmDirHistory,
+
+  StatusDef hcArchives, hcArchives,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~MnUæ', kbF2, cmUserMenu,
+     StatusItem '~F3~Pgl•d', kbF3, cmViewFile,
+     StatusItem '~F4~Wypak', kbF4, cmExtractTo,
+     StatusItem '~F5~Kopiuj', kbF5, cmCopyFiles,
+     StatusItem '~F6~Testuj', kbF6, cmArcTest,
+     StatusItem '~F7~Hasào',  kbF7, cmSetPassword,
+     StatusItem '~F8~Usu‰', kbF8, cmPanelErase,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~B~Sortuj', kbAltB, cmSortBy,
+     StatusItem '-~C~Nap©d', kbAltC, cmChangeDrive,
+     StatusItem '-~S~Ustaw', kbAltS, cmPanelSetup,
+     StatusItem '-~L~istuj', kbAltL, cmMakeList,
+     StatusItem '-~F7~Znajd´', kbAltF7, cmFindFile,
+     StatusItem '-~R~Wczyt', kbAltR, cmForceRescan,
+     StatusItem '-~Y~Pami©Ü Info', kbAltY, cmMemoryInfo,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F6~Kalk', kbCtrlF6, cmCalculator,
+     StatusItem '+~F12~Kalend', kbCtrlF12, cmCalendar,
+     StatusItem '+~L~Info', kbCtrlL, cmDiskInfo,
+     StatusItem '+~D~rzewo', kbCtrlT, cmDirTree,
+     StatusItem '+~Y~Pokaæ', kbCtrlY, cmToggleShowMode,
+;{SHIFT}
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Formatuj', kbShiftF7, cmFormatDisk,
+     StatusItem ':~F8~Wymaæ', kbShiftF8, cmSingleDel,
+;{ALT-CTRL}
+     StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~N~etInfo', kbCtrlAltN, cmNetInfo,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbAltI, cmDiskInfo,
+     StatusItem '', kbAltBack, cmDirHistory,
+     StatusItem '', kbAltSemicolon, cmToggleDescriptions,
+     StatusItem '', kbCtrlK, cmToggleDescriptions,
+     StatusItem '', kbShiftF9, cmPrev,
+
+  StatusDef hcDirTree, hcDirTree,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~MnUæ', kbF2, cmUserMenu,
+     StatusItem '~F5~Kopiuj', kbF5, cmCopyFiles,
+     StatusItem '~F6~ZmPrz', kbF6, cmMoveFiles,
+     StatusItem '~F7~UtwKt', kbF7, cmPanelMkDir,
+     StatusItem '~F8~Usu‰', kbF8, cmPanelErase,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~Y~Pami©Ü info', kbAltY, cmMemoryInfo,
+     StatusItem '-~Z~Powi©ksz', kbAltZ, cmZoom,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~F12~Kalendarz', kbCtrlF12, cmCalendar,
+     StatusItem '+~R~Wczytaj', kbCtrlR, cmForceRescan,
+;{SHIFT}
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj...', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Formatuj', kbShiftF7, cmFormatDisk,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbAltBack, cmDirHistory,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlM, cmMaxi,
+
+  StatusDef hcView, hcView,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Zawi‰', kbF2, cmUnWrap,
+     StatusItem '~F4~Hex/Asc/Dump', kbF4, cmHexMode,
+     StatusItem '~F5~Id´', kbF5, cmGotoCell,
+     StatusItem '~F6~Filtr', kbF6, cmAddFilter,
+     StatusItem '~F7~Znajd´', kbF7, cmSearchFor,
+     StatusItem '~F8~KlawMap', kbF8, cmSwitchKeyMapping,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~Y~Pami©Ü Info', kbAltY, cmMemoryInfo,
+     StatusItem '-~Z~Powi©ksz', kbAltZ, cmZoom,
+     StatusItem '-~A~Wybier. r©czne', kbAltA, cmUndial,
+     StatusItem '-~E~dycja', kbAltE, cmFileEdit,
+     StatusItem '-~J~Terminal', kbAltJ, cmTerminal,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+     StatusItem '-~F7~Odwr¢Ü szukanie', kbAltF7, cmReverseSearch,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~F7~Odwr¢Ü szukanie', kbCtrlF7, cmReverseSearch,
+     StatusItem '+~L~Szukaj dalej', kbCtrlL, cmContinueSearch,
+;{SHIFT}
+     StatusItem ':~F2~Zapisz', kbShiftF2, cmSave,
+     StatusItem ':~F3~Telef', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj', kbShiftF4, cmXEditFile,
+     StatusItem ':~F5~Zapisz jako', kbShiftF5, cmSaveAll,
+     StatusItem ':~F6~XLat', kbShiftF6, cmLoadXlatTable,
+     StatusItem ':~F7~Szuk dalej', kbShiftF7, cmContinueSearch,
+     StatusItem ':~F10~Wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+;{NO SHOW}
+     StatusItem '', kbCtrlEnter, cmContinueSearch,
+     StatusItem '', kbCtrlP, cmASCIITable,
+     StatusItem '', kbCtrlB, cmASCIITable,
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlM, cmMaxi,
+
+  StatusDef hcDiskEditor, hcDiskEditor,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Hex', kbF2, cmHexMode,
+     StatusItem '~F3~Katalog', kbF3, cmDirMode,
+     StatusItem '~F4~Tekst', kbF4, cmTextMode,
+     StatusItem '~F5~FAT', kbF5, cmFATMode,
+     StatusItem '~F7~Znajd´', kbF7, cmSearchFor,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~C~Klaster', kbAltC, cmFixCluster,
+     StatusItem '-~D~Nap©d', kbAltD, cmFixDrive,
+     StatusItem '-~F~Plik', kbAltF, cmFixFile,
+     StatusItem '-~R~Katalog', kbAltR, cmFixDir,
+     StatusItem '-~S~ektor', kbAltS, cmFixSector,
+     StatusItem '-~Z~Powi©ksz', kbAltZ, cmZoom,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+;{SHIFT}
+     StatusItem ':~F2~Zapisz', kbShiftF2, cmSave,
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj...', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Szukaj dalej', kbShiftF7, cmContinueSearch,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbCtrlL, cmContinueSearch,
+     StatusItem '', kbCtrlEnter, cmContinueSearch,
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbAltF3, cmClose,
+
+  StatusDef hcDBView, hcDBView,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Pola', kbF2, cmShowFields,
+     StatusItem '~F3~Zob. Memo', kbF3, cmShowMemo,
+     StatusItem '~F4~Edytuj Pole', kbF4, cmEditDBField,
+     StatusItem '~F6~Id´ do', kbF6, cmDBFGoto,
+     StatusItem '~F7~Znajd´', kbF7, cmSearchFor,
+     StatusItem '~F8~KlawMap', kbF8, cmSwitchKeyMapping,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~F7~Znajd´ poprzed. ', kbAltF7, cmBackSearch,
+     StatusItem '-~Y~Pami©Ü Info', kbAltY, cmMemoryInfo,
+     StatusItem '-~Z~Powi©ksz', kbAltZ, cmZoom,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~D~Usu‰/Przywr¢Ü', kbCtrlD, cmDeleteDBRec,
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+;{SHIFT}
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj', kbShiftF4, cmXEditFile,
+     StatusItem ':~F6~XLat', kbShiftF6, cmLoadXlatTable,
+     StatusItem ':~F7~Szukaj dalej', kbShiftF7, cmContinueSearch,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbCtrlL, cmContinueSearch,
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlM, cmMaxi,
+
+  StatusDef hcEditor, hcEditor,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp2,
+     StatusItem '~F2~Zapisz', kbF2, cmSaveText,
+     StatusItem '~F3~Otw¢rz', kbF3, cmLoadText,
+     StatusItem '~F5~Blok', kbF5, cmSwitchBlock,
+     StatusItem '~F6~Duplikuj', kbF6, cmDuplicateLine,
+     StatusItem '~F7~Znajd´', kbF7, cmStartSearch,
+     StatusItem '~F8~KlawMap', kbF8, cmSwitchKeyMapping,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~BkSp~Cofnij', kbAltBack, cmUndo,
+     StatusItem '-~F7~Szukaj dalej', kbAltF7, cmReverseSearch,
+     StatusItem '-~J~ustuj', kbAltJ, cmFJustify,
+     StatusItem '-~C~entruj',  kbAltC, cmFCenter,
+     StatusItem '-~L~ewo', kbAltL, cmFLeft,
+     StatusItem '-P~r~awo', kbAltR, cmFRight,
+     StatusItem '-~Z~Powi©ksz', kbAltZ, cmZoom,
+     StatusItem '-~Tylda~Wzn¢w', kbAltTilde, cmRedo,
+     StatusItem '-~V~Pokaæ', kbAltV, cmViewFile,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~F7~Zamie‰', kbCtrlF7, cmReplace,
+     StatusItem '+~F8~Drukuj', kbCtrlF8, cmPrintFile,
+     StatusItem '+~Y~Usu‰ lini©', kbCtrlY, cmDeleteLine,
+;{SHIFT}
+     StatusItem ':~F2~Zapisz jako', kbShiftF2, cmSaveTextAs,
+     StatusItem ':~F3~Telef.', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Szuk. dalej', kbShiftF7, cmContSearch,
+     StatusItem ':~F8~Druk. blok', kbShiftF8, cmPrintBlock,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+;{NO SHOW}
+     StatusItem '', kbAltShiftBack, cmRedo,
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlS, cmSaveText,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlM, cmMaxi,
+
+  StatusDef hcScrollBack, hcScrollBack,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Zapisz', kbF2, cmSBBStore,
+     StatusItem '~F5~Zàap', kbF5, cmSBBGrab,
+     StatusItem '~F7~Znajd´', kbF7, cmSearchFor,
+     StatusItem '~F8~Zabij', kbF8, cmSBBKill,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+
+  StatusDef hcTerminal, hcTerminal,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~WyòlijTekst', kbF2, cmTermWrite,
+     StatusItem '~F3~Zàap ekr.', kbF3, cmTermLog,
+     StatusItem '~F4~Wyslij przerw.', kbF4, cmSendModemBreak,
+     StatusItem '~PgDn~Odbierz', kbPgDn, cmReceiveFile,
+     StatusItem '~PgUp~Wyòlij', kbPgUp, cmSendFile,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~B~Przewi‰', kbAltB, cmScrollBack,
+     StatusItem '-~I~niciuj Modem', kbAltI, cmSendInitModem,
+     StatusItem '-~H~Rozà•cz', kbAltH, cmHangUp,
+     StatusItem '-~V~Echo Lokalne', kbAltV, cmTermVisible,
+     StatusItem '-~Z~Powi©ksz', kbAltZ, cmZoom,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~Ins~Zàap', kbCtrlIns, cmSave,
+     StatusItem '+~F3~NowyMenedæ', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~F9~Ustaw.', kbCtrlF9, cmShowMemo,
+     StatusItem '+~F12~Kalend.', kbCtrlF12, cmCalendar,
+     StatusItem '+~Z~Rozà•cz', kbCtrlZ, cmHangUp,
+;{SHIFT}
+     StatusItem ':~Ins~Wklej', kbShiftIns, cmOpen,
+     StatusItem ':~F3~Telef.', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Formatuj', kbShiftF7, cmFormatDisk,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlM, cmMaxi,
+
+  StatusDef hcWinMan, hcWinMan,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~Del~Usu‰', kbDel, cmNo,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+
+  StatusDef hcPhone, hcPhone,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~Ins~Dodaj', kbIns, cmInsertPhone,
+     StatusItem '~Del~Usu‰', kbDel, cmDeletePhone,
+     StatusItem '~F4~Edytuj', kbF4, cmEditPhone,
+     StatusItem '~F5~Dzwo‰', kbF5, cmDialPhone,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+
+  StatusDef hcTetris, hcPentix,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Nowa gra', kbF2, cmNewGame,
+     StatusItem '~F3~Przerwa', kbF3, cmStop,
+     StatusItem '~F4~Wyniki', kbF4, cmShowHi,
+     StatusItem '~F5~Opcje', kbF5, cmSetup,
+     StatusItem '~+~Poziom',  kbGrayPlus, cmTetrisIncLevel,
+     StatusItem '~*~Podgl•d', kbGrayAst, cmTetrisPreview,
+     StatusItem '~F6~Wyjd´', kbF6, cmClose,
+;{ALT}
+     StatusItem '-~N~owa gra', kbAltN, cmNewGame,
+     StatusItem '-~P~rzerwa', kbAltP, cmStop,
+     StatusItem '-~T~Wyniki', kbAltT, cmShowHi,
+     StatusItem '-~S~Opcje', kbAltS, cmSetup,
+     StatusItem '-~X~Wyjòcie', kbNoKey, 0,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæ', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~F12~Kalendarz', kbCtrlF12, cmCalendar,
+;{SHIFT}
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Formatuj', kbShiftF7, cmFormatDisk,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbF10, cmMenu,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbEsc, cmClose,
+
+  StatusDef hcReanimator, hcReanimator,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F3~Pgl•d', kbF3, cmRViewFile,
+     StatusItem '~F5~Reanimuj', kbF5, cmReanimateFile,
+;{ALT}
+     StatusItem '-~C~Zmie‰ nap©d', kbAltC, cmRChDrive,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{NO SHOW}
+     StatusItem '', kbSpace, cmMarkFile,
+     StatusItem '', kbGrayPlus, cmMarkFiles,
+     StatusItem '', kbGrayMinus, cmUnMarkFiles,
+
+  StatusDef hcSpreadSheet, hcSpreadSheet,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Zapisz', kbF2, cmSave,
+     StatusItem '~F3~Otw¢rz', kbF3, cmOpen,
+     StatusItem '~F4~Nowy', kbF4, cmNewTable,
+     StatusItem '~F5~Przelicz', kbF5, cmRecalc,
+     StatusItem '~F6~Id´', kbF6, cmGotoCell,
+     StatusItem '~F7~Znajd´', kbF7, cmFindCell,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~I~Wstaw wier', kbAltI, cmInsertLine,
+     StatusItem '-~C~Wstaw kol', kbAltC, cmInsertColumn,
+     StatusItem '-~L~Usu‰ Wier', kbAltL, cmDeleteLine,
+     StatusItem '-~D~Usu‰ Kol', kbAltD, cmDeleteColumn,
+     StatusItem '-~O~Format. kom.', kbAltO, cmChangeFormat,
+     StatusItem '-~W~Szer. Kol', kbAltW, cmChangeWidth,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~F12~Kalendarz', kbCtrlF12, cmCalendar,
+;{SHIFT}
+     StatusItem ':~F2~Zapisz', kbShiftF2, cmSaveSheetAs,
+     StatusItem ':~F3~Export', kbShiftF3, cmExportToText,
+     StatusItem ':~F4~Edytuj...', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Szukaj dalej', kbShiftF7, cmSearchAgain,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlM, cmMaxi,
+     StatusItem '', kbEsc, cmClose,
+
+   StatusDef hcDiskInfo, hcDiskInfo,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F4~Edytuj KatInfo', kbF4, cmEditFile,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~Y~Pami©Ü Info', kbAltY, cmMemoryInfo,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~F12~Kalendarz', kbCtrlF12, cmCalendar,
+;{SHIFT}
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj...', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Formatuj', kbShiftF7, cmFormatDisk,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlM, cmMaxi,
+
+   StatusDef hcNetInfo, hcNetInfo,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+;{SHIFT}
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~Z~Maksymalizuj', kbCtrlAltZ, cmMaxi,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlM, cmMaxi,
+
+   StatusDef hcDesktop, hcDesktop,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{ALT}
+     StatusItem '-~Y~Pami©Ü Info', kbAltY, cmMemoryInfo,
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F3~Nowy Menedæer', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+     StatusItem '+~F6~Kalkulator', kbCtrlF6, cmCalculator,
+     StatusItem '+~F12~Kalendarz', kbCtrlF12, cmCalendar,
+;{SHIFT}
+     StatusItem ':~F3~Telefon', kbShiftF3, cmPhoneBook,
+     StatusItem ':~F4~Edytuj', kbShiftF4, cmXEditFile,
+     StatusItem ':~F7~Formatuj', kbShiftF7, cmFormatDisk,
+     StatusItem ':~F10~Tryb wideo', kbShiftF10, cmChangeMode,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^~F8~Reanimator', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+
+  StatusDef hcLUserMenu, hcLUserMenu,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Menu gà¢wne', kbF2, cmGlobalUserMenu,
+     StatusItem '~F4~Edytuj', kbF4, cmLocalMenuFileEdit,
+
+  StatusDef hcGUserMenu, hcGUserMenu,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Menu lokalne', kbF2, cmUserMenu,
+     StatusItem '~F4~Edytuj', kbF4, cmMenuFileEdit,
+
+  StatusDef hcAboutDialog, hcAboutDialog,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem 'DOS Navigator (C) Team', kbNoKey, cmGetTeam,
+;{ALT}
+     StatusItem '-~I~ - Zobacz zaàog© DOS Navigator`a (C) Team', kbAltI, cmGetTeam,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{NO SHOW}
+     StatusItem '', kbCtrlF4, cmClose,
+
+  StatusDef hcTeam, hcTeam,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+
+  StatusDef hcCopyDialog, hcCopyDialog,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F10~Drzewo', kbF10, cmTree,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{NO SHOW}
+     StatusItem '', kbCtrlF4, cmClose,
+
+  StatusDef hcCopyInProgress, hcCopyInProgress,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+;     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{NO SHOW}
+;     StatusItem '', kbF9, cmNext,
+;     StatusItem '', kbShiftF9, cmPrev,
+
+  StatusDef hcCDplayer, hcCDplayer,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~P~Odtw.', kbShortCut, cdPlay  ,
+     StatusItem '~S~top', kbShortCut, cdStop  ,
+     StatusItem 'Pa~U~za', kbShortCut, cdPause ,
+     StatusItem '>~N~ast©.',kbShortCut, cdNext  ,
+     StatusItem '<~V~Poprz.', kbShortCut, cdPrev  ,
+     StatusItem ']~F~W prz¢d', kbShortCut, cdFFwd  ,
+     StatusItem '[~B~W tyà', kbShortCut, cdFrew  ,
+     StatusItem '~J~Wysu‰', kbShortCut, cdEject ,
+     StatusItem '~Z~oom', kbShortCut, cdZoom,
+;{ALT}
+     StatusItem '-~X~Wyjòcie', kbAltX, cmQuit,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbF10, cmMenu,
+
+  StatusDef hcTreeDialog, hcTreeDialog,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F7~UtwKat', kbF7, cmPanelMkDir,
+     StatusItem '~F8~Usu‰Kat', kbF8, cmPanelErase,
+;{ALT}
+     StatusItem '-~C~Zmie‰ nap©d', kbAltC, cmChangeDrive,
+     StatusItem '-~R~Wczytaj', kbAltR, cmForceRescan,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{NO SHOW}
+     StatusItem '', kbCtrlF4, cmClose,
+
+  StatusDef hcLinkStatusWnd, hcLinkStatusWnd
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F2~Ustaw.', kbF2, cmSetupModem,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{CTRL}
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+
+  StatusDef hcCalendar, hcCalendar,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~Spacja~Dzisiaj', KbNoKey, 0,
+     StatusItem '~'#27'~Poprz. dzie‰', KbNoKey, 0,
+     StatusItem '~'#26'~Nast. dzie‰',KbNoKey, 0,
+     StatusItem '~'#24'~Poprz. tydz', KbNoKey, 0,
+     StatusItem '~'#25'~Nast. tydz',KbNoKey, 0,
+;{ALT}
+     StatusItem '-~Left~Poprzedni rok', KbNoKey, 0,
+     StatusItem '-~Right~Nast©pny rok',KbNoKey, 0,
+;{CTRL}
+     StatusItem '+~Left~Poprzedni miesi•c', KbNoKey, 0,
+     StatusItem '+~Right~Nast©pny miesi•c',KbNoKey, 0,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{ALT-CTRL}
+     StatusItem '^~X~Restart', kbCtrlAltX, cmRestart,
+;{NO SHOW}
+     StatusItem '', kbEsc, cmClose,
+     StatusItem '', kbCtrlF4, cmClose,
+     StatusItem '', kbF10, cmMenu,
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+
+  StatusDef hcDialer, hcDialer,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{CTRL}
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+
+; { Flash >>> }
+  StatusDef hcCalculator, hcCalculator
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~F10~Menu', kbF10, cmMenu,
+;{CTRL}
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbAltF12, cmChLngId,
+; { Flash <<< }
+
+;{--- start -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+  StatusDef hcQuickDirs, hcQuickDirs,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+     StatusItem '~Ins~Dodaj katalog', kbIns, cmAddQuickDir,
+     StatusItem '~F4~ Zmie‰ katalog', kbF4, cmChangeQuickDir,
+     StatusItem '~Del~Usu‰ katalog', kbDel, cmDelQuickDir,
+;{--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+
+  StatusDef 0, $FFFF,
+;{BASE}
+     StatusItem '~F1~Pomoc', kbF1, cmHelp,
+;{CTRL}
+     StatusItem '+~F4~Zamknij', kbCtrlF4, cmClose,
+     StatusItem '+~F5~Rozmiar/Przesu‰', kbCtrlF5, cmResize,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+END
+
+DIALOG dlgConfirmations, 36, 15, 'Potwierdzenia'
+    HELPCTX hcConfirmations
+    CheckBoxes 3, 2, 33, 11, ofPostProcess, ofPreProcess
+      ITEM 'Skasuj pojedynczy plik'
+      ITEM 'Skasuj pliki'
+      ITEM 'Skasuj nie puste podkat.'
+      ITEM 'Skasuj pliki do odczytu'
+      ITEM 'Utw¢rz katalog'
+      ITEM 'Zamknij Odtwarzacz C~D~'
+      ITEM 'Przeci•gnij i upuòÜ'
+      ITEM '~F~ormatuj pod OS/2'
+      ITEM 'Potwierdzenie w~y~jòcia'
+    END
+    Button  4, 12, 14, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 14, 12, 24, 14, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 24, 12, 33, 14, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+
+DIALOG dlgAdvanceSearch, 59, 15, 'Zaawansowane szukanie'
+    HELPCTX hcAdvanceSearch
+    InputLine 18, 2, 37, 3, 17, 0
+    History 37, 2, hsFindAfter, ofPostProcess
+    Label 2, 2, 'Data po', ofPostProcess, ofPreProcess
+    InputLine 18, 4, 37, 5, 17, 0
+    History 37, 4, hsFindBefore, ofPostProcess
+    Label 2, 4, 'Data przed', ofPostProcess, ofPreProcess
+    InputLine 25, 6, 39, 7, 12, 0
+    Label 2, 6, 'Rozmiar wi©kszy niæ', ofPostProcess, ofPreProcess
+    InputLine 25, 8, 39, 9, 12, 0
+    Label 2, 8, 'Rozmiar mniejszy niæ', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 11, 39, 13, ofPostProcess, ofPreProcess
+      ITEM 'A~r~chiwalne'
+      ITEM 'S~y~stemowe'
+      ITEM 'U~k~ryte'
+      ITEM '~T~ylko do odczytu'
+    END
+    Label 2, 10, 'Atrybuty', ofPostProcess, ofPreProcess
+    Button 40, 2, 53,  4, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 40, 4, 53,  6, '~W~yczyòÜ', cmClearData, ofPostProcess, ofPreProcess
+    Button 40, 6, 53,  8, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 40, 9, 53, 11, 'Pomoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgReenterPassword, 39, 7, 'Potwierd´ hasào'
+    HELPCTX hcReenterPassword
+    InputLine 12, 2, 37, 3, 40, 0, ofSecurity
+    Label 2, 2, '~H~asào', ofPostProcess, ofPreProcess
+    Button 8, 4, 18, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 4, 28, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 4, 37, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgArchiveFiles, 64, 21, 'Pliki archiwalne'
+    HELPCTX hcArchiveFiles
+    InputLine 14, 2, 59, 3, 255, 0
+    History 59, 2, hsArchiveFiles, ofPostProcess
+    Label 2, 2, 'Sp~a~kuj do:', ofPostProcess, ofPreProcess
+    InputLine 3, 5, 15, 6, 40, 0, ofSecurity
+    Label 3, 4, 'Hasào', ofPostProcess, ofPreProcess
+    InputLine 19, 5, 36, 6, 80, 0
+    History 36, 5, hsAddOptions, ofPostProcess
+    Label 19, 4, 'Dodatkowe opcje', ofPostProcess, ofPreProcess
+    CheckBoxes 40, 4, 61, 11, ofPostProcess, ofPreProcess
+      ITEM 'Wypak. ~z~e òcieæk.'
+      ITEM 'P~r~zenieò pliki'
+      ITEM 'Try~b~ wymuszenia'
+      ITEM '~C~i•gàe'
+      ITEM 'Dane napraw.'
+      ITEM 'Samo-rozpako~w~.'
+      ITEM 'Doà•cz podkat.'
+    END
+    RadioButtons 3, 8, 31, 17, ofPostProcess, ofPreProcess
+      ITEM 'A~C~E'
+      ITEM 'AIN'
+      ITEM 'ARC'
+      ITEM 'AR~J~'
+      ITEM 'BS2'
+      ITEM 'BSA'
+      ITEM 'CA~B~'
+      ITEM 'CHZ'
+      ITEM 'HA'
+      ITEM 'HAP'
+      ITEM 'HPK'
+      ITEM 'HYP'
+      ITEM 'IS~3~'
+      ITEM '~L~HA'
+      ITEM 'LIM'
+      ITEM 'QRK'
+      ITEM 'R~A~R'
+      ITEM 'SQZ'
+      ITEM 'TAR'
+      ITEM 'TGZ'
+      ITEM 'UC~2~'
+      ITEM 'UFA'
+      ITEM '~Z~IP'
+      ITEM 'ZOO'
+      ITEM 'ZXZ'
+      ITEM '~7~Z'
+    END
+    Label 3, 7, 'Typ kompresji', ofPostProcess, ofPreProcess
+    RadioButtons 33, 13, 61, 16, ofPostProcess, ofPreProcess
+      ITEM 'Dokàadna'
+      ITEM 'Najszyb.'
+      ITEM '~S~zybka'
+      ITEM 'Nor~m~alna'
+      ITEM '~D~obra'
+      ITEM 'Ma~k~ymalna'
+    END
+    Label 33, 12, 'Kompresja', ofPostProcess, ofPreProcess
+    Button 23, 18, 33, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 33, 18, 43, 20, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 43, 18, 53, 20, 'Drzewo', cmTree, ofPostProcess, ofPreProcess
+    Button 53, 18, 62, 20, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgMouseSetup, 39, 13, 'Ustawienia myszki'
+    HELPCTX hcMouseSetup
+    MouseSCROLLBAR 3, 3, 26, 4
+    Label 3, 2, '~X~-CzuàoòÜ X', ofPostProcess, ofPreProcess
+    MouseSCROLLBAR 3, 6, 26, 7
+    Label 3, 5, '~Y~-CzuàoòÜ Y', ofPostProcess, ofPreProcess
+    CheckBoxes 3, 9, 26, 11, ofPostProcess, ofPreProcess
+      ITEM 'Odwr¢Ü ~p~rzyciski'
+      ITEM '~S~tandardowy kursor'
+    END
+    Label 3, 8, '~O~pcje', ofPostProcess, ofPreProcess
+    Button 27, 2, 37, 4, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 27, 4, 37, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 7, 37, 9, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgInterfaceSetup, 63, 20, 'Interfejs'
+    HELPCTX hcInterfaceSetup
+    CheckBoxes 2, 3, 61, 10, ofPostProcess, ofPreProcess
+      ITEM '~Z~egar'
+      ITEM 'Ukryj belk© ~m~enu'
+      ITEM 'Ukryj lini© ~s~tatusu'
+      ITEM 'ESC pokaæ ekran ~w~yjsciowy'
+      ITEM 'U~k~ryj lini© polece‰'
+      ITEM 'Autoukryw. ~l~inii polece‰'
+      ITEM '~K~ursor zast©puj•cy znaki'
+      ITEM 'Zachowaj pozyc.~e~dytora'
+      ITEM 'Zachowaj pozyc.~p~odgl•du'
+      ITEM 'óled´ histori© e~d~ycji'
+      ITEM 'óled´ histori© pod~g~l•du'
+      ITEM 'óled´ ka~t~alogi'
+      ITEM 'Ukryj info o dysku'
+      ITEM 'Pokazuj paski przew.'
+    END
+    Label 2, 2, 'Ustawienia interfejsu', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 12, 49, 18, ofPostProcess, ofPreProcess
+      ITEM 'Pokazuj typ nap©du'
+      ITEM 'Pokazuj akt.katalog dla dysk¢w lok.'
+      ITEM 'Pokazuj akt.katalog dla CD-ROM'
+      ITEM 'Pokaæ nazw©/dysk serwera nap©du sieciowego'
+      ITEM 'Wà•cz szyb.dost©p katalog¢w do menu'
+      ITEM 'Pokazuj iloòÜ plik¢w w nap©dzie TEMP'
+    END
+    Label 2, 11, 'Menu wyboru nap©du:', ofPostProcess, ofPreProcess
+    Button 51, 12, 61, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 51, 14, 61, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 52, 17, 61, 19, 'Pomoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupTerminal, 56, 15, 'Opcje Terminala'
+    HELPCTX hcSetupTerminal
+    RadioButtons 3, 3, 22, 8, ofPostProcess, ofPreProcess
+      ITEM '~T~TY'
+      ITEM '~A~NSI + AVATAR'
+      ITEM 'ANS~I~'
+      ITEM 'VT~5~2'
+      ITEM 'VT~1~02'
+    END
+    Label 3, 2, 'Emulacja', ofPostProcess, ofPreProcess
+    CheckBoxes 24, 3, 53, 11, ofPostProcess, ofPreProcess
+      ITEM '<~E~NTER> = CR/LF'
+      ITEM '^~L~ CzyòÜ ekran '
+      ITEM 'Lokalne echo'
+      ITEM 'Automat. pobier.-ZModem'
+      ITEM 'Tryb wstawiania'
+      ITEM 'Sprawd´ CD podczas transferu'
+      ITEM 'D´wi©k poà•czenia'
+      ITEM 'Zrz~u~t z kursorem'
+    END
+    Label 24, 2, 'Opcje', ofPostProcess, ofPreProcess
+    Button 24, 12, 34, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 34, 12, 44, 14, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 44, 12, 53, 14, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupModem, 66, 21, 'Ustawienia komunikacji'
+    HELPCTX hcCommunication
+    RadioButtons 3, 3, 13, 7, ofPostProcess, ofPreProcess
+      ITEM 'COM~1~'
+      ITEM 'COM~2~'
+      ITEM 'COM~3~'
+      ITEM 'COM~4~'
+    END
+    Label 3, 2, 'Port', ofPostProcess, ofPreProcess
+    RadioButtons 14, 3, 48, 7, ofPostProcess, ofPreProcess
+      ITEM '300'
+      ITEM '1200'
+      ITEM '2400'
+      ITEM '4800'
+      ITEM '9600'
+      ITEM '14400'
+      ITEM '19200'
+      ITEM '38400'
+      ITEM '57600'
+      ITEM '115200'
+    END
+    Label 14, 2, '~B~it¢w na sekund©', ofPostProcess, ofPreProcess
+
+    RadioButtons 49, 3, 63, 7, ofPostProcess, ofPreProcess
+      ITEM 'Domyòlny'
+      ITEM 'Wàasny'
+      ITEM 'FOSSIL'
+      ITEM 'INT 14h'
+    END
+    Label 49, 2, 'Ustaw. portu'
+    InputLine 27, 8, 31, 9, 2, 0
+    Label 20, 8, 'IRQ:', ofPostProcess, ofPreProcess
+    Label 3, 8, 'Wàasne: ', ofPostProcess, ofPreProcess
+    InputLine 42, 8, 47, 9, 3, 0
+    Label 35, 8, 'Port:', ofPostProcess, ofPreProcess
+
+    InputLine 13, 10, 63, 11, 80, 0
+    Label 2, 10, 'I~n~icjacja', ofPostProcess, ofPreProcess
+    InputLine 10, 12, 35, 13, 20, 0
+    Label 2, 12, '~E~scape', ofPostProcess, ofPreProcess
+    InputLine 46, 12, 63, 13, 20, 0
+    Label 36, 12, '~O~n-hook', ofPostProcess, ofPreProcess
+    InputLine 22, 14, 35, 15, 20, 0
+    Label 2, 14, 'Pre~f~iks dzwonienia', ofPostProcess, ofPreProcess
+    InputLine 56, 14, 63, 15, 20, 0
+    Label 37, 14, 'Przyros~t~ek dzwon.', ofPostProcess, ofPreProcess
+    InputLine 24, 16, 63, 17, 255, 0
+    Label 2, 16, '~K~atalog do òci•gania', ofPostProcess, ofPreProcess
+    InputLine 20, 18, 25, 19, 4, 0
+    Label 2, 18, 'Pon¢w po (sek):', ofPostProcess, ofPreProcess
+    Button 27, 18, 37, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 37, 18, 47, 20, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 47, 18, 63, 20, 'Z~a~awansowane', cmAdvancePortSetup, ofPostProcess, ofPreProcess
+END
+
+
+DIALOG dlgAppendNumber, 44, 13, 'Dodaj numer'
+    HELPCTX hcAppendPhoneNumber
+    InputLine 8, 2, 40, 3, 30, 0
+    Label 1, 2, '~N~azwa', ofPostProcess, ofPreProcess
+    InputLine 8, 4, 40, 5, 100, 0
+    Label 1, 4, '~T~elef', ofPostProcess, ofPreProcess
+    InputLine 2, 7, 42, 8, 50, 0
+    Label 1, 6, '~M~emo', ofPostProcess, ofPreProcess
+    InputLine 2, 8, 42, 9, 50, 0
+    Button 13, 10, 23, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 23, 10, 33, 12, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 33, 10, 42, 12, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgEditNumber, 44, 13, 'Edytuj numer'
+    HELPCTX hcEditPhoneNumber
+    InputLine 8, 2, 40, 3, 30, 0
+    Label 1, 2, '~N~azwa', ofPostProcess, ofPreProcess
+    InputLine 8, 4, 40, 5, 100, 0
+    Label 1, 4, '~T~elef', ofPostProcess, ofPreProcess
+    InputLine 2, 7, 42, 8, 50, 0
+    Label 1, 6, '~M~emo', ofPostProcess, ofPreProcess
+    InputLine 2, 8, 42, 9, 50, 0
+    Button 13, 10, 23, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 23, 10, 33, 12, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 33, 10, 42, 12, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgAppendDirectory, 44, 13, 'Dodaj grup© kontaktow•'
+    HELPCTX hcAppendPhoneDirectory
+    InputLine 8, 2, 40, 3, 30, 0
+    Label 1, 2, '~N~azwa', ofPostProcess, ofPreProcess
+    InputLine 12, 4, 29, 5, 15, 0, ofSecurity
+    Label 1, 4, '~H~asào', ofPostProcess, ofPreProcess
+    InputLine 2, 7, 42, 8, 50, 0
+    Label 1, 6, '~M~emo', ofPostProcess, ofPreProcess
+    InputLine 2, 8, 42, 9, 50, 0
+    Button 13, 10, 23, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 23, 10, 33, 12, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 33, 10, 42, 12, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgEditDirectory, 44, 13, 'Edytuj grup© kontaktow•'
+    HELPCTX hcEditPhoneDirectory
+    InputLine 8, 2, 40, 3, 30, 0
+    Label 1, 2, '~N~azwa', ofPostProcess, ofPreProcess
+    InputLine 12, 4, 29, 5, 15, 0, ofSecurity
+    Label 1, 4, '~H~asào', ofPostProcess, ofPreProcess
+    InputLine 2, 7, 42, 8, 50, 0
+    Label 1, 6, '~M~emo', ofPostProcess, ofPreProcess
+    InputLine 2, 8, 42, 9, 50, 0
+    Button 13, 10, 23, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 23, 10, 33, 12, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 33, 10, 42, 12, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgPrinterSetup, 48, 12, 'Ustawienia drukarki'
+    HELPCTX hcPrinterSetup
+    RadioButtons 2, 3, 22, 8, ofPostProcess, ofPreProcess
+      ITEM 'LPT~1~'
+      ITEM 'LPT~2~'
+      ITEM 'LPT~3~'
+      ITEM 'LPT~4~'
+      ITEM '~P~lik'
+      ITEM 'COM1'
+      ITEM 'COM2'
+      ITEM 'COM3'
+      ITEM 'COM4'
+      ITEM '~N~UL'
+    END
+    Label 2, 2, 'Port', ofPostProcess, ofPreProcess
+    InputLine 24, 3, 46, 4, 255, 0
+    Label 24, 2, 'ùa‰cuch inicjuj•cy', ofPostProcess, ofPreProcess
+    InputLine 24, 6, 46, 7, 255, 0
+    Label 24, 5, 'ùa‰cuch ko‰cz•cy', ofPostProcess, ofPreProcess
+    Button 17, 9, 27, 11, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 27, 9, 37, 11, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 37, 9, 46, 11, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgGameSetup, 53, 15, 'Ustawienia gry'
+    HELPCTX hcGameSetup
+    RadioButtons 3, 3, 28, 13, ofPostProcess, ofPreProcess
+      ITEM '~1~ - Dziecko'
+      ITEM '~2~ - Duæy chàopiec'
+      ITEM '~3~ - Duæe dziecko'
+      ITEM '~4~ - To àatwe'
+      ITEM '~5~ - Niewaæne'
+      ITEM '~6~ - Jestem mistrzem!'
+      ITEM '~7~ - To jest obà©d'
+      ITEM '~8~ - Co jest grane...?'
+      ITEM '~9~ - Szale‰czo szybko'
+      ITEM '1~0~ -Szpital wariat¢w'
+    END
+    Label 3, 2, 'Poziom', ofPostProcess, ofPreProcess
+    RadioButtons 30, 3, 50, 5, ofPostProcess, ofPreProcess
+      ITEM 'Klasyczny'
+      ITEM 'Penti~x~'
+    END
+    Label 30, 2, 'Styl ~g~ry', ofPostProcess, ofPreProcess
+    CheckBoxes 30, 7, 49, 8, ofPostProcess, ofPreProcess
+      ITEM '~P~odgl•d'
+    END
+    Label 30, 6, '~O~pcje', ofPostProcess, ofPreProcess
+    Button 31, 12, 41, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 41, 12, 51, 14, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgDbFind, 58, 15, 'Znajd´'
+    HELPCTX hcDBSearch
+    InputLine 16, 2, 53, 3, 250, 0
+    History 53, 2, hsdbSearch, ofPostProcess
+    Label 2, 2, '~T~ekst do znalezienia', ofPostProcess, ofPreProcess
+    HexLine 16, 3, 53, 4
+    Label 2, 3, 'ùa‰cuch He~x~', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 6, 28, 7, ofPostProcess, ofPreProcess
+      ITEM 'Uwzgl©dniaj wielk. liter'
+    END
+    Label 2, 5, 'Opcje', ofPostProcess, ofPreProcess
+    RadioButtons 2, 9, 28, 11, ofPostProcess, ofPreProcess
+      ITEM 'W polu z kursorem'
+      ITEM 'We wszystk. polach'
+    END
+    Label 2, 8, 'Przeszukaj', ofPostProcess, ofPreProcess
+    RadioButtons 31, 6, 54, 9, ofPostProcess, ofPreProcess
+      ITEM 'W prz¢d'
+      ITEM 'W tyà'
+      ITEM 'W kaæd• stron©'
+    END
+    Label 31, 5, 'Kierunek', ofPostProcess, ofPreProcess
+    Button 27, 12, 37, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 37, 12, 47, 14, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 47, 12, 56, 14, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgReplaceCell, 52, 17, 'Zamie‰ w arkuszu'
+    HELPCTX hcReplaceCell
+    InputLine 3, 3, 45, 4, 240, 0, ofFramed
+    History 46, 3, hsFindCellPattern, ofFramed, ofPostProcess
+    Label 3, 2, 'Wzorzec', ofPostProcess, ofPreProcess
+    InputLine 3, 6, 45, 7, 240, 0, ofFramed
+    History 46, 6, hsReplacePattern, ofFramed, ofPostProcess
+    Label 3, 5, 'Zamie‰ na', ofPostProcess, ofPreProcess
+    RadioButtons 3, 9, 18, 11, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'ùa‰cuch'
+      ITEM 'WartoòÜ'
+    END
+    Label 3, 8, 'Przeszukaj', ofPostProcess, ofPreProcess
+    CheckBoxes 20, 9, 49, 12, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'Uwzgl. wielk liter'
+      ITEM 'Uwzgl. caàe sàowa'
+      ITEM 'Nie pytaj czy zamieniaÜ'
+    END
+    Label 20, 8, 'Opcje', ofPostProcess, ofPreProcess
+    Button 1, 14, 11, 16, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 11, 14, 31, 16, 'Zamie‰ ~w~szystkie', cmYes, ofPostProcess, ofPreProcess
+    Button 31, 14, 41, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 41, 14, 50, 16, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgFindCell, 49, 13, 'Znajd´ w arkuszu'
+    HELPCTX hcFindCell
+    InputLine 3, 3, 42, 4, 240, 0, ofFramed
+    History 43, 3, hsFindCellPattern, ofFramed, ofPostProcess
+    Label 3, 2, 'Wzorzec', ofPostProcess, ofPreProcess
+    RadioButtons 3, 6, 18, 8, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'ùa‰cuch'
+      ITEM 'WartoòÜ'
+    END
+    Label 3, 5, 'Przeszukaj', ofPostProcess, ofPreProcess
+    CheckBoxes 20, 6, 46, 8, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'Uwzgl. wielk. liter'
+      ITEM 'Uwzgl. caàe sàowa'
+    END
+    Label 20, 5, 'Opcje', ofPostProcess, ofPreProcess
+    Button 17, 10, 27, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 27, 10, 37, 12, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 37, 10, 46, 12, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgGotoCellNumber, 41, 7, 'Id´ do kom¢rki numer'
+    HELPCTX hcGotoCellNumber
+    InputLine 27, 2, 35, 3, 6, 0
+    History 35, 2, hsGotoCell, ofPostProcess
+    Label 4, 2, 'Wprowad´ numer nowej kom¢rki ', ofPostProcess, ofPreProcess
+    Button 9, 4, 19, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 19, 4, 29, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 29, 4, 38, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetCellFormat, 42, 17, 'Formatowanie Kom¢rki/Bloku'
+    HELPCTX hcSetCellFormat
+    RadioButtons 3, 3, 39, 7, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'Jak jest'
+      ITEM 'Dzieò©tnie'
+      ITEM 'Z kropk•'
+      ITEM 'Wykàadniczo'
+      ITEM 'Logicznie'
+      ITEM 'Walutowo'
+      ITEM 'Procentowo'
+      ITEM 'Nie pokazuj'
+    END
+    Label 3, 2, 'Wyr¢wnaj do', ofPostProcess, ofPreProcess
+    RadioButtons 3, 9, 21, 12, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'Lewej'
+      ITEM 'Prawej'
+      ITEM 'órodka'
+    END
+    Label 3, 8, 'Justuj', ofPostProcess, ofPreProcess
+    InputLine 23, 9, 39, 10, 2, 0, ofFramed
+    Label 23, 8, 'Dziesi©tne', ofPostProcess, ofPreProcess
+    CheckBoxes 23, 11, 39, 12, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'Zabezpieczone'
+    END
+    Button 8, 14, 18, 16, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 23, 14, 33, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgHighlightGroups, 78, 17, 'Podòwietlenia grup'
+    HELPCTX hcHighlight
+
+    InputLine 12, 2, 35, 3, 250, 0
+    History 35, 2, hsCustoms, ofPostProcess
+    Label 1, 2, 'Uæytk. ~1~', ofPostProcess, ofPreProcess
+    ColorPoint 11, 2, 175
+
+    InputLine 12, 4, 35, 5, 250, 0
+    History 35, 4, hsCustoms, ofPostProcess
+    Label 1, 4, 'Uæytk. ~2~', ofPostProcess, ofPreProcess
+    ColorPoint 11, 4, 176
+
+    InputLine 12, 6, 35, 7, 250, 0
+    History 35, 6, hsCustoms, ofPostProcess
+    Label 1, 6, 'Uæytk. ~3~', ofPostProcess, ofPreProcess
+    ColorPoint 11, 6, 177
+
+    InputLine 12, 8, 35, 9, 250, 0
+    History 35, 8, hsCustoms, ofPostProcess
+    Label 1, 8, 'Uæytk. ~4~', ofPostProcess, ofPreProcess
+    ColorPoint 11, 8, 180
+
+    InputLine 12, 10, 35, 11, 250, 0
+    History 35, 10, hsCustoms, ofPostProcess
+    Label 1, 10, 'Uæytk. ~5~', ofPostProcess, ofPreProcess
+    ColorPoint 11, 10, 181
+
+    InputLine 50, 2, 73, 3, 250, 0
+    History 73, 2, hsCustoms, ofPostProcess
+    Label 39, 2, 'Uæytk. ~6~', ofPostProcess, ofPreProcess
+    ColorPoint 49, 2, 192
+
+    InputLine 50, 4, 73, 5, 250, 0
+    History 73, 4, hsCustoms, ofPostProcess
+    Label 39, 4, 'Uæytk. ~7~', ofPostProcess, ofPreProcess
+    ColorPoint 49, 4, 193
+
+    InputLine 50, 6, 73, 7, 250, 0
+    History 73, 6, hsCustoms, ofPostProcess
+    Label 39, 6, 'Uæytk. ~8~', ofPostProcess, ofPreProcess
+    ColorPoint 49, 6, 194
+
+    InputLine 50, 8, 73, 9, 250, 0
+    History 73, 8, hsCustoms, ofPostProcess
+    Label 39, 8, 'Uæytk. ~9~', ofPostProcess, ofPreProcess
+    ColorPoint 49, 8, 195
+
+    InputLine 50, 10, 73, 11, 250, 0
+    History 73, 10, hsCustoms, ofPostProcess
+    Label 39, 10, 'Uæytk. 1~0~', ofPostProcess, ofPreProcess
+    ColorPoint 49, 10, 196
+
+    InputLine 12, 12, 73, 13, 250, 0
+    History 73, 12, hsCustoms, ofPostProcess
+    Label 1, 12, '~A~rchiwa', ofPostProcess, ofPreProcess
+    ColorPoint 11, 12, 174
+
+    Button 47, 14, 57, 16, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 57, 14, 67, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 67, 14, 76, 16, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgGotoLine, 34, 7, 'Id´ do linii'
+    HELPCTX hcGotoLine
+    InputLine 16, 2, 28, 3, 10, 0
+    History 28, 2, hsGotoLine, ofPostProcess
+    Label 3, 2, 'Numer ~l~inii', ofPostProcess, ofPreProcess
+    Button 3, 4, 13, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 4, 23, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 23, 4, 32, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgGotoAddress, 34, 7, 'Id´ pod adres'
+    HELPCTX hcGotoAddress
+    InputLine 12, 2, 28, 3, 8, 0
+    History 28, 2, hsGotoAddress, ofPostProcess
+    Label 3, 2, '~A~dres', ofPostProcess, ofPreProcess
+    Button 3, 4, 13, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 4, 23, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 23, 4, 32, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgEditorFormat, 39, 11, 'Format margines¢w'
+    HELPCTX hcFormatMargins
+    InputLine 20, 2, 37, 3, 6, 0
+    Label 2, 2, '~L~ewy margines', ofPostProcess, ofPreProcess
+    InputLine 20, 4, 37, 5, 6, 0
+    Label 2, 4, 'P~r~awy margines', ofPostProcess, ofPreProcess
+    InputLine 20, 6, 37, 7, 6, 0
+    Label 2, 6, '~A~kapit', ofPostProcess, ofPreProcess
+    Button 8, 8, 18, 10, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 8, 28, 10, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 8, 37, 10, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgEditorFind, 58, 17, 'Znajd´'
+    HELPCTX hcEditorFind
+    CheckBoxes 2, 6, 28, 9, ofPostProcess, ofPreProcess
+      ITEM 'Uwzgl. ~w~ielk. liter'
+      ITEM 'Uwzgl. ~c~aàe sàowa'
+      ITEM 'Wszystk. ~s~tr. kod.'
+    END
+    Label 2, 5, 'Opcje', ofPostProcess, ofPreProcess
+    RadioButtons 31, 6, 54, 8, ofPostProcess, ofPreProcess
+      ITEM 'W prz¢d'
+      ITEM 'W tyà'
+    END
+    Label 31, 5, 'Kierunek', ofPostProcess, ofPreProcess
+    RadioButtons 2, 11, 28, 13, ofPostProcess, ofPreProcess
+      ITEM 'Caày tekst'
+      ITEM 'Zaznaczony tekst'
+    END
+    Label 2, 10, 'Przeszukaj', ofPostProcess, ofPreProcess
+    RadioButtons 31, 11, 54, 13, ofPostProcess, ofPreProcess
+      ITEM 'Od pocz•tku'
+      ITEM 'Od kursora'
+    END
+    Label 31, 10, 'Rozpocznij', ofPostProcess, ofPreProcess
+    Button 25, 14, 35, 16, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 35, 14, 45, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 45, 14, 54, 16, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 16, 2, 53, 3, 250, 0
+    History 53, 2, hsFindText, ofPostProcess
+    Label 2, 2, '~Z~najd´', ofPostProcess, ofPreProcess
+    HexLine 16, 3, 53, 4
+    Label 2, 3, 'ùa‰cuch He~x~', ofPostProcess, ofPreProcess
+    SelectBack
+    SelectBack
+END
+
+DIALOG dlgEditorReplace, 58, 19, 'Zamie‰'
+    HELPCTX hcEditorReplace
+    CheckBoxes 2, 8, 29, 11, ofPostProcess, ofPreProcess
+      ITEM 'Uwzgl. wielk. liter'
+      ITEM 'Uwzgl. caàe sàowa'
+      ITEM 'Pytaj przy zamianie'
+    END
+    Label 2, 7, 'Opcje', ofPostProcess, ofPreProcess
+    RadioButtons 31, 8, 54, 10, ofPostProcess, ofPreProcess
+      ITEM 'W prz¢d'
+      ITEM 'W tyà'
+    END
+    Label 31, 7, 'Kierunek', ofPostProcess, ofPreProcess
+    RadioButtons 2, 13, 29, 15, ofPostProcess, ofPreProcess
+      ITEM 'Caày tekst'
+      ITEM 'Zaznaczony tekst'
+    END
+    Label 2, 12, 'Przeszukaj', ofPostProcess, ofPreProcess
+    RadioButtons 31, 13, 54, 15, ofPostProcess, ofPreProcess
+      ITEM 'Od pocz•tku'
+      ITEM 'Od kursora'
+    END
+    Label 31, 12, 'Rozpocznij', ofPostProcess, ofPreProcess
+    Button 5, 16, 15, 18, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 15, 16, 35, 18, 'Za~m~ie‰ wszystkie', cmYes, ofPostProcess, ofPreProcess
+    Button 35, 16, 45, 18, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 45, 16, 54, 18, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 16, 2, 53, 3, 250, 0
+    Label 2, 2, '~Z~najd´', ofPostProcess, ofPreProcess
+    History 53, 2, hsFindText, ofPostProcess
+    HexLine 16, 3, 53, 4
+    Label 2, 3, 'ùa‰cuch Hex', ofPostProcess, ofPreProcess
+    InputLine 16, 4, 53, 5, 250, 0
+    Label 2, 4, '~N~owy tekst', ofPostProcess, ofPreProcess
+    History 53, 4, hsFindText, ofPostProcess
+    HexLine 16, 5, 53, 6
+    Label 2, 5, 'Nowy Hex', ofPostProcess, ofPreProcess
+    SelectBack
+    SelectBack
+    SelectBack
+    SelectBack
+END
+
+DIALOG dlgFileFind, 52, 18, 'Znajd´ plik'
+    HELPCTX hcFileFind
+    InputLine 16, 2, 47, 3, 255, 0
+    Label 2, 2, 'Maska pliku', ofPostProcess, ofPreProcess
+    History 47, 2, hsFindMask, ofPostProcess
+    InputLine 16, 4, 47, 5, 255, 0
+    Label 2, 4, 'Zna~j~d´', ofPostProcess, ofPreProcess
+    History 47, 4, hsFindText, ofPostProcess
+    HexLine 16, 5, 47, 6
+    Label 2, 5, 'ùa‰cuch He~x~', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 7, 49, 10, ofPostProcess, ofPreProcess
+      ITEM 'Zaawa~n~s. szuk.'
+      ITEM 'Wie~l~koòÜ liter'
+      ITEM 'P~r~zesz. podkat.'
+      ITEM 'Uwz~g~l. caàe sàowa'
+      ITEM 'Wszystk. str. k~o~d.'
+      ITEM '~S~zukaj w archiwach'
+    END
+    Label 2, 6, 'Opcje', ofPostProcess, ofPreProcess
+    RadioButtons 2, 12, 49, 14, ofPostProcess, ofPreProcess
+      ITEM '~C~aày dysk'
+      ITEM '~A~ktualny katalog'
+      ITEM '~W~szystkie dyski'
+    END
+    Label 2, 11, 'Zasi©g', ofPostProcess, ofPreProcess
+    Button  4, 15, 14, 17, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 14, 15, 30, 17, '~Z~aawansowane', cmSearchAdvance, ofPostProcess, ofPreProcess
+    Button 30, 15, 40, 17, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 40, 15, 49, 17, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 1, 1, 1, 1, 1, 0
+END
+
+DIALOG dlgArcFileFind, 52, 10, 'Znajd´ plik w archiwum'
+    HELPCTX hcFileFind
+    InputLine 16, 2, 49, 3, 255, 0
+    Label 2, 2, 'Maska pliku', ofPostProcess, ofPreProcess
+    History 47, 2, hsFindMask, ofPostProcess
+    CheckBoxes 3, 5, 49, 6, ofPostProcess, ofPreProcess
+      ITEM 'Szukanie zaawa~n~sowane'
+      ITEM 'Szukanie ~r~ekurencyjne'
+    END
+    Label 3, 4, 'Opcje', ofPostProcess, ofPreProcess
+    Button  2, 7, 12, 9, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 12, 7, 31, 9, 'Zaa~w~ansowane...', cmSearchAdvance, ofPostProcess, ofPreProcess
+    Button 31, 7, 41, 9, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 41, 7, 50, 9, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 1, 1, 1, 1, 1, 0
+END
+
+DIALOG dlgMkDir, 70, 7, 'Utw¢rz katalog'
+    HELPCTX hcMkDir
+    InputLine 2, 2, 65, 3, 255, 0
+    History 65, 2, hsMakeDir, ofPostProcess
+    Label 2, 1, '~N~azwa katalogu', ofPostProcess, ofPreProcess
+;$IFDEF UPLOWSTRSINDLG
+    Button 2, 4, 12, 6, '~U~pStr', cmYes, ofPostProcess, ofPreProcess
+    Button 12, 4, 22, 6, '~L~owStr', cmNo, ofPostProcess, ofPreProcess
+;$ENDIF
+    Button 39, 4, 49, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 49, 4, 59, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 59, 4, 68, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgRenFl, 70, 7, 'Szybka zmiana nazwy pliku'
+    HelpCtx hcRenameFile
+    InputLine 2, 2, 66, 3, 255, 0
+    History 66, 2, hsRenameFil, ofPostProcess
+    Label 2, 1, '~N~azwa pliku...', ofPostProcess, ofPreProcess
+;$IFDEF UPLOWSTRSINDLG
+    Button 2, 4, 12, 6, '~U~pStr', cmYes, ofPostProcess, ofPreProcess
+    Button 12, 4, 22, 6, '~L~owStr', cmNo, ofPostProcess, ofPreProcess
+;$ENDIF
+    Button 38, 4, 48, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 48, 4, 58, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 58, 4, 67, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgRenameDialog, 59, 16, 'Zmie‰ nazw©/przenieò'
+    HELPCTX hcCopyDialog
+    InputLine 2, 2, 54, 3, 255, 0
+    History 54, 2, hsFileCopyName, ofPostProcess
+    RadioButtons 2, 4, 57, 9, ofPostProcess, ofPreProcess
+      ITEM '~N~adpisz wszystkie istniej•ce pliki'
+      ITEM 'D~o~daj do wszystk. istniej. plik¢w'
+      ITEM 'Z~a~pytaj przy zamianie'
+      ITEM 'Pomi‰ wszystkie istniej•ce pliki'
+      ITEM '~O~dòwieæ stare pliki'
+    END
+    CheckBoxes 2, 10, 57, 12, ofPostProcess, ofPreProcess
+      ITEM '~S~prawdz. wolne miejsce'
+      ITEM '~W~eryfik. zapis na dysk'
+      ITEM '~K~opiuj opisy'
+      ITEM '~U~su‰ pliki ´r¢dàowe'
+    END
+    Button 18, 13, 28, 15, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 28, 13, 38, 15, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 38, 13, 48, 15, '~D~rzewo', cmTree, ofPostProcess, ofPreProcess
+    Button 48, 13, 57, 15, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgCopyDialog, 59, 16, 'Kopiuj'
+    HELPCTX hcCopyDialog
+    InputLine 2, 2, 54, 3, 255, 0
+    History 54, 2, hsFileCopyName, ofPostProcess
+    RadioButtons 2, 4, 57, 9, ofPostProcess, ofPreProcess
+      ITEM '~N~adpisz wszystkie istniej•ce pliki'
+      ITEM '~D~odaj do wszystkich istniej•cych plik¢w'
+      ITEM 'Z~a~pytaj przy zamianie'
+      ITEM 'Pomi‰ wszystkie istniej•ce pliki'
+      ITEM '~O~dòwieæ wszystkie stare pliki'
+    END
+    CheckBoxes 2, 10, 57, 12, ofPostProcess, ofPreProcess
+      ITEM '~S~prawdz. wolne miejsce'
+      ITEM '~W~eryfik. zapis na dysk'
+      ITEM '~K~opiuj opisy'
+      ITEM '~U~su‰ pliki ´r¢dàowe'
+    END
+    Button 18, 13, 28, 15, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 28, 13, 38, 15, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 38, 13, 48, 15, '~D~rzewo', cmTree, ofPostProcess, ofPreProcess
+    Button 48, 13, 57, 15, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgMakeList, 69, 21, 'Utw¢rz list© plik¢w'
+    HELPCTX hcMakeListFile
+    Label 2, 4, 'ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ'
+    InputLine 16, 2, 64, 3, 255, hsMakeList
+    Label 2, 2, '~N~azwa pliku', ofPostProcess, ofPreProcess
+    InputLine 14, 6, 64, 7, 255, hsMakeListHeader
+    Label 2, 6, 'Nagà¢wek', ofPostProcess, ofPreProcess
+    RadioButtons 14, 7, 64, 8, ofPostProcess, ofPreProcess
+      ITEM 'Au~t~o'
+      ITEM '~W~staw tekst'
+      ITEM 'W~s~taw pliki'
+    END
+    InputLine 14, 9, 64, 10, 255, hsExecDOSCmd
+    Label 2, 9, '~A~kcja', ofPostProcess, ofPreProcess
+    InputLine 14, 11, 64, 12, 255, hsMakeListFooter
+    Label 2, 11, 'Stopka', ofPostProcess, ofPreProcess
+    RadioButtons 14, 12, 64, 13, ofPostProcess, ofPreProcess
+      ITEM 'Aut~o~'
+      ITEM 'Wstaw ~t~ekst'
+      ITEM 'Wstaw p~l~iki'
+    END
+    CheckBoxes 2, 14, 67, 17, ofPostProcess, ofPreProcess
+      ITEM '~Z~apisz òcieæki do pliku listy'
+      ITEM 'A~u~todecyduj o koniecznoòci nazw òcieæek'
+      ITEM 'Uzyj ~d~àugich nazw plik¢w'
+    END
+    Button 38, 18, 48, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 48, 18, 58, 20, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 58, 18, 67, 20, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgDiskError, 43, 10, 'Bà•d dysku'
+    HELPCTX hcDiskError
+    StaticText 2, 5, 31, 6, 'Prosz© wpisaÜ poprawn• nazw© nap©du'
+    ParamText 2, 2, 42, 5, 'Wyst•pià bà•d podczas odczytu nap©du %c:'^M'Dysk moæe byÜ niesformatowany albo'^M'niepoprwanie podà•czony.',1
+    InputLine 32, 5, 35, 6, 1, 0
+    Button 17, 7, 27, 9, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgDiskParms, 41, 14, 'Ustawienia Kolumn'
+    HELPCTX hcSetupDiskColumns
+    CheckBoxes 2, 3, 26,10, ofPostProcess, ofPreProcess
+      ITEM '~D~àugie nazwy plik¢w'
+      ITEM '~R~ozmiar'
+      ITEM 'D~a~ta'
+      ITEM '~C~zas'
+      ITEM 'Data utworzenia'
+      ITEM 'Op~i~s'
+      ITEM 'Doda~t~kowe rozszerz.'
+    END
+    Label 2, 2, 'Pokazuj', ofPostProcess, ofPreProcess
+    InputLine 33, 3, 38, 4, 3, 0
+    Label 27, 3, 'LFN:', ofPostProcess, ofPreProcess
+    InputLine 33, 4, 38, 5, 3, 0
+    Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
+    Button 26, 6, 38, 8, 'Ustaw #~1~', cmYes, ofPostProcess, ofPreProcess
+    Button 26, 8, 38, 10, 'Ustaw #~2~', cmNo, ofPostProcess, ofPreProcess
+    Button  8, 11, 18, 13, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 11, 28, 13, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 11, 37, 13, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgArcParms, 41, 14, 'Ustawienia kolumn'
+    HELPCTX hcSetupArcColumns
+    CheckBoxes 3, 3, 26,10, ofPostProcess, ofPreProcess
+      ITEM '~D~àugie nazwy plik¢w'
+      ITEM '~R~ozmiar'
+      ITEM 'D~a~ta'
+      ITEM '~C~zas'
+      ITEM 'Ro~z~miar paczki'
+      ITEM '~W~ska´nik'
+      ITEM 'Doda~t~kowe rozszerz.'
+    END
+    Label 3, 2, 'Pokazuj', ofPostProcess, ofPreProcess
+    InputLine 33, 3, 38, 4, 3, 0
+    Label 27, 3, 'LFN:', ofPostProcess, ofPreProcess
+    InputLine 33, 4, 38, 5, 3, 0
+    Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
+    Button 26,  6, 38,  8, 'Ustaw #~1~', cmYes, ofPostProcess, ofPreProcess
+    Button 26,  8, 38, 10, 'Ustaw #~2~', cmNo, ofPostProcess, ofPreProcess
+    Button  8, 11, 18, 13, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 11, 28, 13, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 11, 37, 13, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgFindParms, 41, 13, 'Ustawienia kolumn'
+    HELPCTX hcSetupFindColumns
+    CheckBoxes 3, 3, 26, 9, ofPostProcess, ofPreProcess
+      ITEM '~D~àugie nazwy plik¢w'
+      ITEM '~R~ozmiar'
+      ITEM 'D~a~ta'
+      ITEM '~C~zas'
+      ITEM 'ócieæka'
+      ITEM 'Doda~t~kowe rozszerz.'
+    END
+    Label 3, 2, 'Pokazuj', ofPostProcess, ofPreProcess
+    InputLine 33, 3, 38, 4, 3, 0
+    Label 27, 3, 'LFN:', ofPostProcess, ofPreProcess
+    InputLine 33, 4, 38, 5, 3, 0
+    Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
+    Button 26, 6, 38, 8, 'Ustaw #~1~', cmYes, ofPostProcess, ofPreProcess
+    Button 26, 8, 38, 10, 'Ustaw #~2~', cmNo, ofPostProcess, ofPreProcess
+    Button  8, 10, 18, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 10, 28, 12, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 10, 37, 12, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgFileAttr, 43, 14, 'Atrybuty pliku'
+    HELPCTX hcFileAttr
+    InputLine 27, 3, 41, 4, 8, 0
+    Label 27, 2, '~C~zas (G:M:S)', ofPostProcess, ofPreProcess
+    InputLine 27, 6, 41, 7, 10, 0
+    Label 27, 5, '~D~ata (D-M-R)', ofPostProcess, ofPreProcess
+    Button 12, 11, 22, 13, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 22, 11, 32, 13, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 32, 11, 41, 13, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+    CheckBoxes 4, 3, 25, 9, ofFramed, ofPostProcess, ofPreProcess
+      ITEM '~T~ylko do odczytu'
+      ITEM '~U~kryty'
+      ITEM '~S~ystemowy'
+      ITEM 'Etykieta ~w~ol.'
+      ITEM 'Kata~l~og'
+      ITEM '~A~rchiwalny'
+    END
+    selectback
+END
+
+DIALOG dlgFilesAttr, 49, 14, 'Atrybuty pliku'
+    HELPCTX hcFilesAttr
+    InputLine 33, 3, 47, 4, 8, 0
+    Label 33, 2, '~C~zas (G:M:S)', ofPostProcess, ofPreProcess
+    InputLine 33, 6, 47, 7, 10, 0
+    Label 33, 5, '~D~ata (D-M-R)', ofPostProcess, ofPreProcess
+    Button 18, 11, 28, 13, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 28, 11, 38, 13, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 38, 11, 47, 13, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 8, 9, ofFramed, ofPostProcess, ofPreProcess
+      ITEM '~T~ylko do odczytu'
+      ITEM '~U~kryty'
+      ITEM '~S~ystemowy'
+      ITEM 'Etykieta ~w~ol.'
+      ITEM 'Kata~l~og'
+      ITEM '~A~rchiwalny'
+    END
+    Label 3, 2, 'Ustaw', ofPostProcess, ofPreProcess
+    CheckBoxes 9, 3, 31, 9, ofFramed, ofPostProcess, ofPreProcess
+      ITEM '~T~ylko do odczytu'
+      ITEM '~U~kryty'
+      ITEM '~S~ystemowy'
+      ITEM 'Etykieta ~w~ol.'
+      ITEM 'Kata~l~og'
+      ITEM '~A~rchiwalny'
+    END
+    Label 9, 2, 'WyczyòÜ', ofPostProcess, ofPreProcess
+    selectback
+    selectback
+END
+
+DIALOG dlgCompareDirs, 43, 19, 'Por¢wnaj katalogi'
+    HELPCTX hcCompareDirs
+    CheckBoxes 3, 3, 30, 9, ofPostProcess, ofPreProcess
+      ITEM 'Por¢wnaj ~r~ozmiar'
+      ITEM 'Por¢wnaj ~c~zas'
+      ITEM 'Por¢wnaj ~a~trybuty'
+      ITEM 'Por¢wnaj ~z~awartoòÜ'
+      ITEM 'Por¢wnaj po~d~katalogi'
+    END
+    Label 3, 2, 'Opcje', ofPostProcess, ofPreProcess
+    InputLine 3, 10, 37, 11, 255, 0
+    Label 3, 9, '~M~aski plik¢w', ofPostProcess, ofPreProcess
+    History 37, 10, hsFindMask, ofPostProcess
+    RadioButtons 3, 13, 28, 15, ofPostProcess, ofPreProcess
+      ITEM 'Zaznacz '
+      ITEM 'Odznacz'
+    END
+    Label 3, 12, 'Tryb zaznaczania', ofPostProcess, ofPreProcess
+    CheckBoxes 3, 16, 40, 17, ofPostProcess, ofPreProcess
+      ITEM 'Por¢wnaj ~d~o p-wszej niezgodnoòci'
+    END
+    Button 31, 3, 41, 5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 31, 5, 41, 7, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 32, 7, 41, 9, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetPassword, 39, 7, 'Wprowad´ hasào'
+    HELPCTX hcSetPassword
+    InputLine 12, 2, 37, 3, 40, 0, ofSecurity
+    Label 2, 2, '~H~asào', ofPostProcess, ofPreProcess
+    Button 8, 4, 18, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 4, 28, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 4, 37, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgExtract, 49, 12, 'Wypakuj pliki'
+    HELPCTX hcExtract
+    InputLine 14, 2, 44, 3, 255, 0
+    History 44, 2, hsFileCopyName, ofPostProcess
+    Label 2, 2, 'Wypak~u~j do', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 4, 47, 6, ofPostProcess, ofPreProcess
+      ITEM 'Wypakuj ~z~e òcieækami do plik¢w'
+      ITEM 'Tylko ~t~estuj'
+    END
+    InputLine 12, 7, 45, 8, 30, 0, ofSecurity
+    Label 2, 7, '~H~asào', ofPostProcess, ofPreProcess
+    Button 8, 9, 18, 11, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 9, 28, 11, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 9, 38, 11, '~D~rzewo', cmTree, ofPostProcess, ofPreProcess
+    Button 38, 9, 47, 11, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgCommandsHistory, 59, 17, 'Historia polece‰'
+    HELPCTX hcCmdHistory
+    Button  7, 14, 18, 16, '~W~ykonaj', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 14, 27, 16, '~U~puòÜ', cmYes, ofPostProcess, ofPreProcess
+    Button 27, 14, 37, 16, '~E~dytuj', cmOK, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 37, 14, 47, 16, '~S~kasuj', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 47, 14, 57, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgDirectoryHistory, 59, 17, 'Historia katalog¢w'
+    HELPCTX hcDirHistory
+    Button 18, 14, 28, 16, '~I~d´ do', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 28, 14, 38, 16, '~S~kasuj', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 38, 14, 48, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 48, 14, 57, 16, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgEditHistory, 59, 17, 'Historia edycji plik¢w'
+    HELPCTX hcEditHistory
+    Button 18, 14, 28, 16, '~O~tw¢rz', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 28, 14, 38, 16, '~S~kasuj', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 38, 14, 48, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 48, 14, 57, 16, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgViewHistory, 59, 17, 'Historia przegl•dania plik¢w'
+    HELPCTX hcViewHistory
+    Button 18, 14, 28, 16, '~O~tw¢rz', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 28, 14, 38, 16, '~S~kasuj', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 38, 14, 48, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 48, 14, 57, 16, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupArc, 56, 21, 'Ustawienia archiwizera'
+    HELPCTX hcArcSetup
+    InputLine 10, 2, 24, 3, 255, 0
+    Label 3, 2,  '~P~aker', ofPostProcess, ofPreProcess
+    InputLine 39, 2, 53, 3, 255, 0
+    Label 30, 2, 'U~n~paker', ofPostProcess, ofPreProcess
+    InputLine 18, 4, 24, 5, 20, 0
+    Label 3, 4,  '~W~ypakuj pliki', ofPostProcess, ofPreProcess
+    InputLine 47, 4, 53, 5, 20, 0
+    Label 25, 4, 'W~y~pakuj ze òcieækami', ofPostProcess, ofPreProcess
+    InputLine 18, 5, 24, 6, 20, 0
+    Label 5, 5,  '~D~odaj pliki', ofPostProcess, ofPreProcess
+    InputLine 47, 5, 53, 6, 20, 0
+    Label 31, 5, 'Pr~z~enieò pliki', ofPostProcess, ofPreProcess
+    InputLine 18, 6, 24, 7, 20, 0
+    Label 6, 6,  '~U~su‰ pliki', ofPostProcess, ofPreProcess
+    InputLine 47, 6, 53, 7, 20, 0
+    Label 33, 6, '~T~estuj pliki', ofPostProcess, ofPreProcess
+    InputLine 18, 7, 24, 8, 20, 0
+    Label 1, 7,  'Tryb wymuszenia', ofPostProcess, ofPreProcess
+    InputLine 47, 7, 53, 8, 20, 0
+    Label 31, 7, 'Doà•cz òcieæki', ofPostProcess, ofPreProcess
+    InputLine 18, 8, 24, 9, 20, 0
+    Label 11, 8,  '~H~asào', ofPostProcess, ofPreProcess
+    InputLine 47, 8, 53, 9, 20, 0
+    Label 31, 8, 'Wyà•cz òcieæki', ofPostProcess, ofPreProcess
+    InputLine 18, 9, 24, 10, 20, 0
+    Label 2, 9,  'Dane naprawcze', ofPostProcess, ofPreProcess
+    InputLine 47, 9, 53, 10, 20, 0
+    Label 27, 9, 'Samo-rozpakowuj•ce', ofPostProcess, ofPreProcess
+    InputLine 18, 10, 24, 11, 20, 0
+    Label 4, 10, 'Arch. ci•gàe', ofPostProcess, ofPreProcess
+    InputLine 47, 10, 53, 11, 20, 0
+    Label 30, 10, 'Z podkatalogami', ofPostProcess, ofPreProcess
+    StaticText 2, 11, 21, 12, 'Typ kompresji:'
+    InputLine 12, 12, 18, 13, 20, 0
+    Label 6, 12, 'Brak', ofPostProcess, ofPreProcess
+    InputLine 28, 12, 34, 13, 20, 0
+    Label 18, 12, 'Najszyb.', ofPostProcess, ofPreProcess
+    InputLine 47, 12, 53, 13, 20, 0
+    Label 39, 12, 'Szybka', ofPostProcess, ofPreProcess
+    InputLine 12, 13, 18, 14, 20, 0
+    Label 2, 13, 'Normalna', ofPostProcess, ofPreProcess
+    InputLine 28, 13, 34, 14, 20, 0
+    Label 21, 13, 'Dobra', ofPostProcess, ofPreProcess
+    InputLine 47, 13, 53, 14, 20, 0
+    Label 35, 13, 'Maksymalna', ofPostProcess, ofPreProcess
+    InputLine 15, 15, 18, 16, 1, 0
+    Label 3, 15, 'Znak ~l~isty', ofPostProcess, ofPreProcess
+    CheckBoxes 23, 15, 53, 16, ofPostProcess, ofPreProcess
+      ITEM 'Zachowaj nazwy katalog¢w'
+    END
+    CheckBoxes 23, 16, 53, 17, ofPostProcess, ofPreProcess
+      ITEM 'Uæywaj dàug. nazw plik¢w'
+    END
+    Button 24, 18, 34, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 34, 18, 44, 20, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 44, 18, 53, 20, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSelect, 27, 9, 'Zaznacz'
+    HELPCTX hcSelect
+    InputLine 2, 2, 21, 3, 255, 0
+    Label 2, 1, '~M~aska pliku', ofPostProcess, ofPreProcess
+    History 21, 2, hsSelectBox, ofPostProcess
+    CheckBoxes 2, 4, 25, 5, ofPostProcess, ofPreProcess
+      ITEM 'P~o~mi‰ mask©'
+    END
+    Button 3, 6, 13, 8, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 6, 23, 8, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgUnselect, 27, 9, 'Odznacz'
+    HELPCTX hcUnselect
+    InputLine 2, 2, 21, 3, 255, 0
+    Label 2, 1, '~M~aska pliku', ofPostProcess, ofPreProcess
+    History 21, 2, hsSelectBox, ofPostProcess
+    CheckBoxes 2, 4, 25, 5, ofPostProcess, ofPreProcess
+      ITEM 'P~o~mi‰ mask©'
+    END
+    Button 3, 6, 13, 8, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 6, 23, 8, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgUUDecode, 49, 11, 'UU Dekodowanie'
+    HELPCTX hcUUDecode
+    InputLine 2, 2, 44, 3, 255, 0
+    History 44, 2, hsUUDecode, ofPostProcess
+    Label 2, 1, 'Katalog ~d~ocelowy', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 4, 45, 7, ofPostProcess, ofPreProcess
+      ITEM '~S~prawd´ istniej•ce pliki'
+      ITEM '~W~yòwietl bà©dy'
+      ITEM '~Z~apisz uszkodzone pliki'
+    END
+    Button  6, 8, 16, 10, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 16, 8, 26, 10, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 26, 8, 36, 10, '~D~rzewo', cmTree, ofPostProcess, ofPreProcess
+    Button 36, 8, 45, 10, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+
+DIALOG dlgUUEncode, 60, 17, 'UU Kodowanie'
+    HELPCTX hcUUEncode
+    InputLine 13, 2, 55, 3, 255, 0
+    History 55, 2, hsUUEncode, ofPostProcess
+    Label 2, 2, '~K~oduj do', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 5, 31, 8, ofPostProcess, ofPreProcess
+      ITEM 'Data i czas utworzenia'
+      ITEM 'Tabela mapowania znak¢w'
+      ITEM 'Statystyki'
+    END
+    Label 2, 4, '~P~refiksy', ofPostProcess, ofPreProcess
+    RadioButtons 32, 5, 58, 10, ofPostProcess, ofPreProcess
+      ITEM '~B~rak'
+      ITEM '~C~aàego pliku wejòciowego'
+      ITEM 'K~a~ædej sekcji'
+      ITEM 'Kaædej ~l~inii'
+      ITEM 'Zaawansowane ~6~4-bitowe'
+    END
+    Label 32, 4, 'P~o~ziom sumy kontrolnej', ofPostProcess, ofPreProcess
+    InputLine 21, 9, 27, 10, 4, 0
+    Label 2, 9, 'Li~n~ii na sekcj©', ofPostProcess, ofPreProcess
+    History 27, 9, hsUULines, ofPostProcess
+
+    RadioButtons 2, 12, 31, 13, ofPostProcess, ofPreProcess
+      ITEM '~D~OS <CR>+<LF>'
+      ITEM '~U~NIX'
+;     ITEM 'Tylko <CR> '
+    END
+    Label 2, 11, '~F~ormat pliku docelowego', ofPostProcess, ofPreProcess
+
+    Button 19, 14, 29, 16, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 14, 39, 16, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 39, 14, 49, 16, '~D~rzewo', cmTree, ofPostProcess, ofPreProcess
+    Button 49, 14, 58, 16, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgCDOptions, 48, 15, 'Opcje Odtwarzacza CD'
+  HELPCTX hcCDPlayerOptions
+  CheckBoxes 2, 3, 28, 7, ofPostProcess, ofPreProcess
+    ITEM '~A~utostart nowej pàyty  ≥A'
+    ITEM '~W~ysu‰ dysk na ko‰cu    ≥J'
+    ITEM '~Z~amknij szuflad©       ≥L'
+    ITEM '~T~ryby powtarzania       ≥R'
+  END
+
+  Label 2, 2, '~Z~achowanie', ofPostProcess, ofPreProcess
+  RadioButtons 30, 3, 46, 8, ofPostProcess, ofPreProcess
+    ITEM '~N~ormalna   ≥N'
+    ITEM '~I~ntro      ≥I'
+    ITEM '~L~osowo     ≥S'
+    ITEM '~J~eden utw¢r≥1'
+    ITEM '~W~àasna     ≥O'
+  END
+  Label 30, 2, 'K~o~lejnoòÜ', ofPostProcess, ofPreProcess
+  InputLine 2, 10, 46, 11, 255, 0
+  Label 2, 9, 'Z~e~wn©trzny mikser', ofPostProcess, ofPreProcess
+
+  Button 17, 12, 27, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 27, 12, 37, 14, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+  Button 37, 12, 46, 14, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+
+DIALOG dlgPhoneBook, 58, 20, 'Ksi•æka telefoniczna'
+  HELPCTX hcPhone
+  Button 1,15,15,17, 'Pow~r~¢Ü', cmNo, bfDefault, ofPostProcess, ofPreProcess
+  Button 1,15,15,17, '~W~prowad´', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 15,15,26,17, '~D~zwo‰', cmDialPhone, bfNormal, ofPostProcess, ofPreProcess
+  Button 26,15,35,17, 'D~o~daj', cmInsertPhone, bfNormal, ofPostProcess, ofPreProcess
+  Button 35,15,45,17, '~E~dytuj', cmEditPhone, bfNormal, ofPostProcess, ofPreProcess
+  Button 45,15,55,17, '~U~su‰', cmDeletePhone, bfNormal, ofPostProcess, ofPreProcess
+  Button 1,17,11,19, '~S~ortuj', cmPhoneBookMode, bfNormal, ofPostProcess, ofPreProcess
+  Button 11,17,21,19, 'S~z~ukaj', cmSearchPhone, bfNormal, ofPostProcess, ofPreProcess
+  Button 21,17,33,19, '~I~mportuj', cmImportPhones, bfNormal, ofPostProcess, ofPreProcess
+  Button 33,17,45,19, 'Dup~l~ikuj', cmCopyPhone, bfNormal, ofPostProcess, ofPreProcess
+  Button 45,17,55,19, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+END
+
+
+DIALOG dlgDenie, 45, 8, 'Ostrzeæenie'
+  HELPCTX hcDirectAccessDenied
+  StaticText 2, 2, 43, 4, ^C'Ta funkcja jest niedost©pna'^M^C'"bezpoòredni dost©p do dysku" zabroniony.'
+  Button 17, 5, 27, 7, 'Anuluj', cmCancel, bfDefault, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgManualDial, 47, 7, 'Wybieranie r©czne'
+  HELPCTX hcManualDial
+  InputLine 16, 2, 42, 3, 255, hsManualPhone
+  History 42, 2, hsManualPhone, ofPostProcess
+  Label 2, 2, '~N~umer telef:', ofPostProcess, ofPreProcess
+  Button 16, 4, 26, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 26, 4, 36, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+  Button 36, 4, 45, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgWindowManager, 70, 14, 'Menedæer okien'
+  HELPCTX hcWinMan
+  Button 58, 2, 68,  4, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 58, 4, 68,  6, '~Z~amknij', cmNo, bfNormal, ofPostProcess, ofPreProcess
+  Button 58, 6, 68,  8, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+  Button 59, 9, 68, 11, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgVolumeLabel, 28, 7, 'Etykieta'
+  HELPCTX hcVolLabel
+  InputLine 2, 3, 16, 4, 12, 0
+  Label 2, 2, '~E~tykieta', ofPostProcess, ofPreProcess
+  Button 16,2,26,4, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 16,4,26,6, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgEditEnvironment, 57, 18, 'Edytor òrodowiska DOS'
+  HELPCTX hcEnvEditor
+  InputLine 12, 15, 55, 16, 255, 0
+  Label 2, 15, '~W~artoòÜ', ofPostProcess, ofPreProcess
+  Button 45,  2, 55,  4, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 45,  4, 55,  6, '~Z~m.naz', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+  Button 45,  6, 55,  8, '~D~opisz', cmOK, bfBroadcast, ofPostProcess, ofPreProcess
+  Button 45,  8, 55, 10, '~U~su‰', cmNo, bfBroadcast, ofPostProcess, ofPreProcess
+  Button 45, 10, 55, 12, 'Anuluj', cmCancel, bfNormal
+  Button 45, 13, 55, 15, ' ~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgTetrisWinner, 50, 7, 'Dostaàeò si© na list© zwyci©zc¢w!'
+  HELPCTX hcTetrisWinner
+  InputLine 20, 2, 45, 3, 30, hsTetris
+  History 45, 2, hsTetris, ofPostProcess
+  Label 2, 2, 'Podaj swoje imi©:', ofPostProcess, ofPreProcess
+  Button 18, 4, 28, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 28, 4, 38, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+  Button 38, 4, 47, 6, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSplitFile, 54, 13, 'Podziel plik'
+  HELPCTX hcSplitDialog
+  InputLine 2, 2, 49, 1, 255, hsFBBCopy
+  History 49, 2, hsFBBCopy, ofPostProcess
+  Label 2, 1, 'P~o~dziel', ofPostProcess, ofPreProcess
+
+  CheckBoxes 2, 4, 52, 7, ofPostProcess, ofPreProcess
+    ITEM '~T~ylko binarne dzielenie'
+    ITEM '~W~eryfikuj zapis na dysku'
+    ITEM 'Pami©taj dà~u~gie nazwy plik¢w'
+  END
+
+  InputLine 17, 8, 26, 9, 10, hsFBBCopySize
+  History 26, 8, hsFBBCopySize, ofPostProcess
+  Label 2, 8, '~R~ozm. sekcji', ofPostProcess, ofPreProcess
+
+  InputLine 43, 8, 49, 9, 10, hsFBBCopyNum
+  History 49, 8, hsFBBCopyNum, ofPostProcess
+  Label 29, 8, '~L~iczba sekc.', ofPostProcess, ofPreProcess
+
+  Button 13, 10, 23, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 23, 10, 33, 12, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+  Button 33, 10, 43, 12, '~D~rzewo', cmTree, bfNormal, ofPostProcess, ofPreProcess
+  Button 43, 10, 52, 12, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+
+DIALOG dlgCombineFile, 54, 7, 'ù•czenie plik¢w'
+  HELPCTX hcCombineDialog
+  InputLine 2, 2, 49, 3, 255, hsFBBCopy
+  History 49, 2, hsFBBCopy, ofPostProcess
+  Label 2, 1, '~ù~•cz', ofPostProcess, ofPreProcess
+  Button 13, 4, 23, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 23, 4, 33, 6, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+  Button 33, 4, 43, 6, '~D~rzewo', cmTree, bfNormal, ofPostProcess, ofPreProcess
+  Button 43, 4, 52, 6, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgNextSection, 54, 7, 'Ponowne à•czenie plik¢w'
+  HELPCTX hcPath
+  InputLine 2, 2, 49, 3, 255, hsFBBCopy
+  History 49, 2, hsFBBCopy, ofPostProcess
+  Label 2, 1, '~S~ekcja %D jest wymagana', ofPostProcess, ofPreProcess
+  Button 13, 4, 23, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+  Button 23, 4, 33, 6, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+  Button 33, 4, 43, 6, '~D~rzewo', cmTree, bfNormal, ofPostProcess, ofPreProcess
+  Button 43, 4, 52, 6, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgPentixTop10, 59, 18, 'Lista zwyci©zc¢w Pentixa'
+  HELPCTX hcTetrisScore
+  Button 24,15,34,17, 'O~K~', cmOK, bfDefault
+  Label 2,2, '~Nazwa                          Start  Koniec    Punkty~'
+END
+
+DIALOG dlgTetrisTop10, 59, 18, 'Lista zwyci©zc¢w Tetrisa'
+  HELPCTX hcTetrisScore
+  Button 24,15,34,17, 'O~K~', cmOK, bfDefault
+  Label 2,2, '~Nazwa                          Start  Koniec    Punkty~'
+END
+
+DIALOG dlgOverwriteQuery, 60, 13, 'Potwierd´'
+    HELPCTX hcOverwriteQuery
+    CheckBoxes 2, 8, 57, 9, ofPostProcess
+      ITEM Z~a~twierd´ dla wszystkich plik¢w
+    END
+    Button  1, 10, 12, 12, '~N~adpisz', cmYes, bfDefault, ofPostProcess
+    Button 12, 10, 22, 12, '~D~opisz', cmNo, bfNormal, ofPostProcess
+    Button 22, 10, 37, 12, '~Z~mie‰ nazw©', cmOK, bfNormal, ofPostProcess
+    Button 37, 10, 47, 12, '~O~drzuÜ', cmSkip, bfNormal, ofPostProcess
+    Button 47, 10, 57, 12, 'Anuluj', cmCancel, bfNormal, ofPostProcess
+END
+
+DIALOG dlgAdvancedFilter, 36, 15, 'Filtr-zaawansowane'
+    HELPCTX hcAdvancedFilter
+    Button  4, 12, 13, 14, '~P~okaæ', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 12, 22, 14, '~U~kryj', cmNo, bfNormal, ofPostProcess, ofPreProcess
+    Button 22, 12, 33, 14, '~Z~amknij', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgViewerFind, 58, 13, 'Znajd´'
+    HELPCTX hcViewerFind
+    InputLine 16, 2, 53, 3, 250, hsViewFind
+    Label 2, 2, '~S~zukaj', ofPostProcess, ofPreProcess
+    HexLine 16, 3, 53, 4
+    Label 2, 3, 'ùa‰cuch ~H~ex', ofPostProcess, ofPreProcess
+
+    CheckBoxes 2, 6, 28, 9, ofPostProcess
+      ITEM 'Uwzgl. ~w~ielk. liter'
+      ITEM 'Uwzgl. ~c~aàe sàowa'
+      ITEM 'Wszystk. ~s~tr. kod.'
+    END
+    Label 2, 5, 'Opcje', ofPostProcess, ofPreProcess
+
+    RadioButtons 31, 6, 54, 8, ofPostProcess
+      ITEM 'W p~r~z¢d'
+      ITEM 'W ~t~yà'
+    END
+    Label 31, 5, 'Kierunek', ofPostProcess, ofPreProcess
+
+    Button 25, 10, 35, 12, 'O~K~', cmOK, bfDefault, ofPostProcess
+    Button 35, 10, 45, 12, 'Anuluj', cmCancel, bfNormal, ofPostProcess
+    Button 45, 10, 54, 12, '~P~omoc', cmHelp, bfNormal, ofPostProcess
+END
+
+DIALOG dlgPanelSetup, 72, 23, 'Opcje Panelu'
+    HELPCTX hcPanelSetup
+    RadioButtons 2, 3, 28, 12, ofPostProcess, ofPreProcess
+      ITEM '~N~azwy'
+      ITEM '~D~àugiej nazwy'
+      ITEM '~R~ozszerzenia'
+      ITEM 'Dodatk. ro~z~szerzenia'
+      ITEM 'Roz~m~iaru'
+      ITEM '~C~zasu'
+      ITEM '~O~pisu'
+      ITEM '~G~rupy'
+      ITEM '~B~ez sortowania'
+    END
+    Label 2, 2, 'Sortuj wedàug', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 13, 33, 17, ofPostProcess, ofPreProcess
+      ITEM '~P~odòwietlenia plik¢w'
+      ITEM 'P~i~erwsze wykonaw. *.exe'
+      ITEM 'Pie~r~wsze archiwa'
+      ITEM '~E~xe przed archiwami'
+    END
+    Label 2, 12, 'Wyòwietlanie', ofPostProcess, ofPreProcess
+    CheckBoxes 34, 3, 70, 8, ofPostProcess, ofPreProcess
+      ITEM 'WielkoòÜ katalog¢w'
+      ITEM 'Aktualny plik'
+      ITEM 'ù•cznie'
+      ITEM 'Wolna przestrze‰'
+      ITEM 'Opis na dole'
+    END
+    Label 34, 2, 'Informacje w panelu', ofPostProcess, ofPreProcess
+    RadioButtons 34, 9, 70, 12, ofPostProcess, ofPreProcess
+      ITEM 'Nie pokazuj'
+      ITEM 'Pokaæ na dole w okienku'
+      ITEM 'Pokaæ na dolnej ramce'
+    END
+    Label 34, 8, 'Zaznaczanie plik¢w', ofPostProcess, ofPreProcess
+    RadioButtons 34, 13, 70, 16, ofPostProcess, ofPreProcess
+      ITEM 'Nie pokazuj'
+      ITEM 'Pokaæ na dole w okienku'
+      ITEM 'Pokaæ na dolnej ramce'
+    END
+    Label 34, 12, 'Dàuga nazwa pliku', ofPostProcess, ofPreProcess
+    InputLine 2, 18, 67, 19, 250, 0
+    History 67, 18, hsFileMask, ofPostProcess
+    Label 2, 17, 'Maska plik¢w', ofPostProcess, ofPreProcess
+    Button 28, 20, 38, 22, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 38, 20, 48, 22, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 48, 20, 57, 22, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgFMDefaults, 72, 23, 'Ustawienia domyòlne panela'
+    HELPCTX hcPanelDefaults
+    RadioButtons 2, 3, 28, 12, ofPostProcess, ofPreProcess
+      ITEM '~N~azwy'
+      ITEM '~D~àugiej nazwy'
+      ITEM '~R~ozszerzenia'
+      ITEM 'Dodatk. ro~z~szerzenia'
+      ITEM 'Roz~m~iaru'
+      ITEM '~C~zasu'
+      ITEM '~O~pisu'
+      ITEM '~G~rupy'
+      ITEM '~B~ez sortowania'
+    END
+    Label 2, 2, 'Sortuj wedàug', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 13, 33, 17, ofPostProcess, ofPreProcess
+      ITEM '~P~odòwietlenia plik¢w'
+      ITEM 'P~i~erwsze wykonaw. *.exe'
+      ITEM 'Pie~r~wsze archiwa'
+      ITEM '~E~xe przed archiwami'
+    END
+    Label 2, 12, 'Wyòwietlanie', ofPostProcess, ofPreProcess
+    CheckBoxes 34, 3, 70, 8, ofPostProcess, ofPreProcess
+      ITEM 'WielkoòÜ katalog¢w'
+      ITEM 'Aktualny plik'
+      ITEM 'ù•cznie'
+      ITEM 'Wolna przestrze‰'
+      ITEM 'Opis na dole'
+    END
+    Label 34, 2, 'Informacje w panelu', ofPostProcess, ofPreProcess
+    RadioButtons 34, 9, 70, 12, ofPostProcess, ofPreProcess
+      ITEM 'Nie pokazuj'
+      ITEM 'Pokaæ na dole w okienku'
+      ITEM 'Pokaæ na dolnej ramce'
+    END
+    Label 34, 8, 'Zaznaczanie plik¢w', ofPostProcess, ofPreProcess
+    RadioButtons 34, 13, 70, 16, ofPostProcess, ofPreProcess
+      ITEM 'Nie pokazuj'
+      ITEM 'Pokaæ na dole w okienku'
+      ITEM 'Pokaæ na dolnej ramce'
+    END
+    Label 34, 12, 'Dàuga nazwa pliku', ofPostProcess, ofPreProcess
+    RadioButtons 2, 18, 60, 19
+      ITEM 'Nap©dem'
+      ITEM 'Info'
+      ITEM 'Drzewem'
+      ITEM 'Puste'
+    END
+    Label 2, 17, 'Lewy panel'
+    Button 28, 20, 38, 22, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 38, 20, 48, 22, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 48, 20, 57, 22, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgFMSetup, 57, 22, 'Ustawienia Menedæera Plik¢w'
+    HELPCTX hcFileMgrSetup
+    CheckBoxes 2, 2, 35, 16, ofPostProcess, ofPreProcess
+      ITEM 'Auto zmieniaj katalogi'
+      ITEM 'Przeci•g.-i-upuòÜ mi©dzy kol.'
+      ITEM 'D´wi©k po skopiowaniu'
+      ITEM 'ENTER otwiera archiwum'
+      ITEM 'SPACJA przeà•cza zaznacz.'
+      ITEM 'DEL usuwa plik(i)'
+      ITEM 'Uæywaj klawiszy /'#26'
+      ITEM '~A~lt difference'
+      ITEM '~C~trl difference'
+      ITEM '¿ƒ Odwr¢Ü logik©'
+      ITEM 'BS-id´ do wyæszego katalogu'
+      ITEM 'Nie zabijaj opis¢w'
+      ITEM 'Zabijaj opisy'
+      ITEM 'Kopiuj opisy'
+    END
+    Label 2, 1, 'Zachowanie', ofPostProcess, ofPreProcess
+    CheckBoxes 36, 3, 55, 7, ofPostProcess, ofPreProcess
+      ITEM 'Tytuày kolumn'
+      ITEM 'Linie nap©d¢w'
+      ITEM 'Lini© nad info'
+      ITEM 'Znak zaznacz.'
+    END
+    Label 36, 2, 'Wyòwietl', ofPostProcess, ofPreProcess
+    RadioButtons 36, 9, 55, 12, ofPostProcess, ofPreProcess
+      ITEM 'Pojed. Alt'
+      ITEM 'Pojed. Ctrl'
+      ITEM 'Caps+Znak'
+    END
+    Label 36, 8, 'Szybkie szukanie', ofPostProcess, ofPreProcess
+
+    InputLine 52, 13, 55, 14, 1, 0
+    Label 36, 13, 'Symb.zaznacz.:', ofPostProcess, ofPreProcess
+    InputLine 52, 14, 55, 15, 1, 0
+    Label 36, 14, 'Symb.wycin.:', ofPostProcess, ofPreProcess
+
+    InputLine 2, 17, 55, 18, 250, 0
+    Label 2, 16, 'Pliki zawieraj•ce opisy', ofPostProcess, ofPreProcess
+
+    Button 26, 19, 36, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 36, 19, 46, 21, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 46, 19, 55, 21, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgDriveInfoSetup, 55, 14, 'Ustawienia panela informacyjnego'
+    HELPCTX hcDriveInfoSetup
+    CheckBoxes 2, 3, 53, 10
+      ITEM 'Nazwa katalogu'
+      ITEM 'ù•czne'
+      ITEM 'Rozmiar dysku'
+      ITEM 'Wolny obszar dysku'
+      ITEM 'Etykieta dysku'
+;NEW
+      ITEM 'Numer seryjny dysku'
+      ITEM 'System plik¢w dysku'
+;-NEW
+      ITEM 'Pami©Ü konwenc.'
+      ITEM 'Pami©Ü dla uæytk.'
+      ITEM 'Pami©Ü dla ~N~avigatora'
+      ITEM 'Informacja EMS'
+      ITEM 'Informacja XMS'
+      ITEM 'Plik informacyjny'
+    END
+    Label 2, 2, 'Pozycje do wyòwietlenia'
+    Button 24, 11, 34, 13, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 34, 11, 44, 13, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 44, 11, 53, 13, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgStartupSetup, 60, 21, 'Opcje startowe...'
+    HELPCTX hcOptionsStartup
+    CheckBoxes 2, 2, 58, 5, ofPostProcess, ofPreProcess
+      ITEM 'Uruchom menu uæytkownika'
+      ITEM 'Przywr¢Ü typ ekranu '
+      ITEM 'WyczyòÜ histori©'
+      ITEM 'ùaduj do XMS'
+      ITEM 'ùaduj do EMS'
+      ITEM 'Wymuszaj palet© VGA'
+    END
+    Label 2, 1, 'Opcje startowe', ofPostProcess, ofPreProcess
+
+    CheckBoxes 2, 6, 58, 9, ofPostProcess, ofPreProcess
+      ITEM 'Wyjd´ po godz. nieaktyw.'
+      ITEM 'Autozapis Pulpitu    '
+      ITEM 'Wà•cz miganie     '
+      ITEM 'Przywracaj katalog  '
+      ITEM 'Przywr¢Ü palet© VGA '
+    END
+    Label 2, 5, 'Opcje zamykania', ofPostProcess, ofPreProcess
+
+    CheckBoxes 2, 10, 58, 12, ofPostProcess, ofPreProcess
+      ITEM 'BezczynnoòÜ DOS (Int28)      '
+      ITEM 'Uòpij gdy nieaktywne         '
+      ITEM 'BezczynnoòÜ DPMI (Int2F)     '
+      ITEM 'BezczynnoòÜ DESQ (Int15)     '
+    END
+    Label 2, 9, 'Opcje podzaàu czasu', ofPostProcess, ofPreProcess
+
+    CheckBoxes 2, 13, 58, 16, ofPostProcess, ofPreProcess
+      ITEM 'Jed~n~orazowo           '
+      ITEM 'Podcz~a~s odczytu pliku '
+      ITEM 'Podczas ~k~opiowania    '
+      ITEM 'Pod~c~zas odczytu archiw'
+      ITEM 'Podczas ~s~zukania      '
+    END
+    Label 2, 12, 'Zwalnianie segment¢w', ofPostProcess, ofPreProcess
+
+    InputLine 40, 16, 58, 17, 3, 0
+    Label 2, 16, 'Nakàadaj rozmiar buforu (64-200 KB):', ofPostProcess, ofPreProcess
+
+    Button 29, 18, 39, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 39, 18, 49, 20, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 49, 18, 58, 20, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgArvidFileFind, 50, 13, 'Znajd´ plik w ARVID'
+    HELPCTX hcFileFind
+    InputLine 15, 2, 45, 3, 255, 0
+    Label 2, 2, 'Maska pliku', ofPostProcess, ofPreProcess
+    History 45, 2, hsFindMask, ofPostProcess
+    InputLine 15, 4, 45, 5, 255, 0
+    Label 2, 4, 'Opis', ofPostProcess, ofPreProcess
+    History 45, 4, hsFindText, ofPostProcess
+    CheckBoxes 3, 7, 47, 9, ofPostProcess, ofPreProcess
+      ITEM 'Zaawansowane szukanie'
+      ITEM 'Szukaj w innym katalogu ARVID'
+    END
+    Label 3, 6, 'Opcje', ofPostProcess, ofPreProcess
+    Button  3, 10, 13, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 10, 29, 12, '~Z~aawansowane', cmSearchAdvance, ofPostProcess, ofPreProcess
+    Button 29, 10, 39, 12, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 39, 10, 48, 12, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+Dialog dlgArvidFindResults, 60, 18, 'Rezultaty poszukiwania'
+    HELPCTX hcArvidFindResults
+    Button  14, 15, 26, 17, '~I~d´ do', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button  26, 15, 38, 17, '~W~yczyòÜ', cmNo, ofPostProcess, ofPreProcess
+    Button  38, 15, 50, 17, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+End
+
+DIALOG dlgSystemSetup, 72, 21, 'Ustawienia systemowe'
+    HELPCTX hcSystemSetup
+    CheckBoxes 2, 2, 69, 7, ofPostProcess, ofPreProcess
+      ITEM '~E~dytor wewn©trzny'
+      ITEM 'P~r~zegl•darka wewn©trzna'
+      ITEM '~U~æyj systemowego schowka'
+      ITEM 'Po~k~aæ ukryte pliki'
+      ITEM '~S~zybkie wykonanie polece‰'
+      ITEM '~W~yà•cz uæywanie XMS/EMS'
+      ITEM 'Wà•cz systemowy ~d~ost©p do dysku'
+      ITEM '~C~zyòÜ atrybut TDO z CDromu'
+      ITEM '~Z~aawansowane kopiowanie'
+      ITEM '~O~pr¢æniaj bufory dysk¢w'
+    END
+    Label 2, 1, 'Opcje', ofPostProcess, ofPreProcess
+
+    InputLine 18, 8, 25, 9, 5, 0
+    Label 2, 8, 'Tryb Video ~1~', ofPostProcess, ofPreProcess
+    InputLine 48, 8, 55, 9, 5, 0
+    Label 32, 8, 'Tryb Video ~2~', ofPostProcess, ofPreProcess
+
+    InputLine 2, 11, 70, 12, 255, 0
+    Label 2, 10, 'Katalog tymczasowy', ofPostProcess, ofPreProcess
+
+    Scrollbar 6, 14, 7, 19
+    ListBox 2, 14, 6, 19, 1
+    Label 1, 13, 'Nap©dy', ofPostProcess, ofPreProcess
+
+    DriveCheckBoxes 8, 14, 39, 19, ofPostProcess, ofPreProcess
+      ITEM '~B~ezpoòredni dost©p'
+      ITEM 'Zapisuj ~i~nformacj© drzewa'
+      ITEM 'Wery~f~ikuj zapis na dysku'
+      ITEM '~N~ie uæywaj dà. nazw plik¢w'
+      ITEM 'Sprawdzaj woln• ~p~rzestrze‰'
+    END
+    Label 8, 13, 'Opcje aktualnego nap©du', ofPostProcess, ofPreProcess
+;$IFDEF LFNCache
+    RadioButtons 39, 14, 56, 17, ofPostProcess, ofPreProcess
+      ITEM 'EMS-XMS-LOW'
+      ITEM 'XMS-EMS-LOW'
+      ITEM 'LOW'
+    END
+    Label 39, 13, 'LFN container', ofPostProcess, ofPreProcess
+
+    InputLine 57, 15, 67, 16, 3, 0
+    Label 57, 13, 'Name cache', ofPostProcess, ofPreProcess
+    Label 56, 14, 'in low memory', ofPostProcess, ofPreProcess
+    Label 67, 15, '%', ofPostProcess, ofPreProcess
+;$ENDIF
+    Button 41, 18, 51, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 51, 18, 61, 20, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 61, 18, 70, 20, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgAdvancedCOMSetup, 45, 15, 'Zaawansowane ustawienia port¢w'
+    HELPCTX hcAdvPortSetup
+    RadioButtons 3, 3, 18, 5, ofPostProcess, ofPreProcess
+      ITEM '~8~'
+      ITEM '~7~'
+      ITEM '~6~'
+      ITEM '~5~'
+    END
+    Label 3, 2, 'Bity danych', ofPostProcess, ofPreProcess
+    RadioButtons 3, 7, 18, 8, ofPostProcess, ofPreProcess
+      ITEM '~1~'
+      ITEM '~2~'
+    END
+    Label 3, 6, 'Bity stopu', ofPostProcess, ofPreProcess
+    RadioButtons 20, 3, 31, 8, ofPostProcess, ofPreProcess
+      ITEM 'Brak'
+      ITEM 'Nieparzysty'
+      ITEM 'Kaædy'
+      ITEM 'Znacznik'
+      ITEM 'Pusty'
+    END
+    Label 20, 2, 'ParzystoòÜ', ofPostProcess, ofPreProcess
+    CheckBoxes 3, 11, 18, 13, ofPostProcess, ofPreProcess
+      ITEM '~C~TS/RTS'
+      ITEM '~D~TR/DSR'
+    END
+    Label 6, 10, 'Hardware', ofPostProcess, ofPreProcess
+    StaticText 10, 9, 28, 10, '⁄ƒ Kontrola przepàywu ƒø'
+    CheckBoxes 19, 11, 33, 13, ofPostProcess, ofPreProcess
+      ITEM '~X~on/Xoff'
+    END
+    Label 22, 10, 'Software', ofPostProcess, ofPreProcess
+    Button 33, 2, 43, 4, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 33, 4, 43, 6, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 34, 7, 43, 9, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+EDITOR COMMANDS
+;Format is:  COMMAND  <Command>,  KeyCode1,  KeyCode2, CtrlCode1, CtrlCode2
+    COMMAND       cmDeleteLine,   0,             0,     ^Y#0,     #0#0
+    COMMAND       cmDelWordLeft,  kbCtrlBack,    0,     #0#0,     #0#0
+    COMMAND       cmDelWordRight, 0,             0,     ^T#0,     #0#0
+    COMMAND       cmSpecChar,     0,             0,     ^P#0,     #0#0
+    COMMAND       cmUndo,         kbAltBack,     0,     ^Q^L,     #0#0
+    COMMAND       cmCtrlHome,     kbCtrlHome,    0,     #0#0,     #0#0
+    COMMAND       cmCtrlEnd,      kbCtrlEnd,     0,     #0#0,     #0#0
+    COMMAND       cmDeltoEOLN,    0,             0,     ^Q^Y,     #0#0
+    COMMAND       cmStartSearch,  0,             0,     ^Q^F,     #0#0
+    COMMAND       cmReplace,      0,             0,     ^Q^A,     #0#0
+    COMMAND       cmMoveBlockStart, 0,           0,     ^Q^B,     #0#0
+    COMMAND       cmMoveBlockEnd, 0,             0,     ^Q^K,     #0#0
+    COMMAND       cmContSearch,   0,             0,     ^L#0,     #0#0
+    COMMAND       cmBlockRead,    0,             0,     ^K^R,     #0#0
+    COMMAND       cmBlockWrite,   0,             0,     ^K^W,     #0#0
+    COMMAND       cmSwitchIns,    kbIns,         0,     #0#0,     #0#0
+    COMMAND       cmSwitchBlock,  0,             0,     ^B^V,     #0#0
+    COMMAND       cmFJustify,     kbAltJ,        0,     ^B^J,     #0#0
+    COMMAND       cmFRight,       kbAltR,        0,     ^B^R,     #0#0
+    COMMAND       cmFLeft,        kbAltL,        0,     ^B^L,     #0#0
+    COMMAND       cmFCenter,      kbAltC,        0,     ^B^C,     #0#0
+    COMMAND       cmEnter,        kbEnter,       0,     #13#0,    #0#0
+    COMMAND       cmPaste,        kbShiftIns,    0,     ^V#0,     #0#0
+    COMMAND       cmCopy,         kbCtrlIns,     0,     ^C#0,     #0#0
+    COMMAND       cmCut,          kbShiftDel,    0,     ^X#0,     #0#0
+    COMMAND       cmInsLine,      0,             0,     ^N#0,     #0#0
+    COMMAND       cmEnd,          kbEnd,         0,     #0#0,     #0#0
+    COMMAND       cmTab,          kbTab,         0,     ^I#0,     #0#0
+    COMMAND       cmWordLeft,     kbCtrlLeft,    0,     #0#0,     #0#0
+    COMMAND       cmWordRight,    kbCtrlRight,   0,     #0#0,     #0#0
+    COMMAND       cmDelBackChar,  kbBack,        0,     ^H#0,     #0#0
+    COMMAND       cmDelChar,      kbDel,         0,     ^G#0,     #0#0
+    COMMAND       cmScrollUp,     0,             0,     ^W#0,     #0#0
+    COMMAND       cmScrollDn,     0,             0,     ^Z#0,     #0#0
+    COMMAND       cmMoveUp,       kbUp,          0,     ^E#0,     #0#0
+    COMMAND       cmPlaceMarker1, kbAlt1,        0,     ^K'1',    #0#0
+    COMMAND       cmPlaceMarker2, kbAlt2,        0,     ^K'2',    #0#0
+    COMMAND       cmPlaceMarker3, kbAlt3,        0,     ^K'3',    #0#0
+    COMMAND       cmPlaceMarker4, kbAlt4,        0,     ^K'4',    #0#0
+    COMMAND       cmPlaceMarker5, kbAlt5,        0,     ^K'5',    #0#0
+    COMMAND       cmPlaceMarker6, kbAlt6,        0,     ^K'6',    #0#0
+    COMMAND       cmPlaceMarker7, kbAlt7,        0,     ^K'7',    #0#0
+    COMMAND       cmPlaceMarker8, kbAlt8,        0,     ^K'8',    #0#0
+    COMMAND       cmPlaceMarker9, kbAlt9,        0,     ^K'9',    #0#0
+    COMMAND       cmGotoMarker1,  kbCtrl1,       0,     ^Q'1',    #0#0
+    COMMAND       cmGotoMarker2,  kbCtrl2,       0,     ^Q'2',    #0#0
+    COMMAND       cmGotoMarker3,  kbCtrl3,       0,     ^Q'3',    #0#0
+    COMMAND       cmGotoMarker4,  kbCtrl4,       0,     ^Q'4',    #0#0
+    COMMAND       cmGotoMarker5,  kbCtrl5,       0,     ^Q'5',    #0#0
+    COMMAND       cmGotoMarker6,  kbCtrl6,       0,     ^Q'6',    #0#0
+    COMMAND       cmGotoMarker7,  kbCtrl7,       0,     ^Q'7',    #0#0
+    COMMAND       cmGotoMarker8,  kbCtrl8,       0,     ^Q'8',    #0#0
+    COMMAND       cmGotoMarker9,  kbCtrl9,       0,     ^Q'9',    #0#0
+    COMMAND       cmPgUp,         kbPgUp,        0,     ^R#0,     #0#0
+    COMMAND       cmPgDn,         kbPgDn,        0,     #0#0,     #0#0
+    COMMAND       cmClose,        kbESC,       kbAltF3, ^C#0,     #0#0
+    COMMAND       cmMenu,         kbF10,         0,     #0#0,     #0#0
+    COMMAND       cmUpWord,       $1A1B,         0,     #0#0,     #0#0
+    COMMAND       cmLowWord,      $1B1D,         0,     #0#0,     #0#0
+    COMMAND       cmCapWord,      0,             0,     ^\#0,     #0#0
+    COMMAND       cmPrintBlock,   0,             0,     ^K^P,     #0#0
+    COMMAND       cmClear,        kbCtrlDel, kbCtrlD,   ^K^Y,     #0#0
+    COMMAND       cmCopyBlock,    0,             0,     ^K^C,     #0#0
+    COMMAND       cmMoveBlock,    0,             0,     ^K^V,     #0#0
+    COMMAND       cmHideBlock,    kbAltH,  kbCtrlF,     ^K^H,     #0#0
+    COMMAND       cmMarkWord,     0,             0,     ^K^T,     #0#0
+    COMMAND       cmMarkLine,     0,             0,     ^K^L,     #0#0
+    COMMAND       cmBlockStart,   0,             0,     ^K^B,     #0#0
+    COMMAND       cmBlockEnd,     0,             0,     ^K^K,     #0#0
+    COMMAND       cmIndentBlock,  kbAltRight,    0,     ^K^I,     #0#0
+    COMMAND       cmUnindentBlock,kbAltLeft,     0,     ^K^U,     #0#0
+    COMMAND       cmSortBlock,    kbAltT,        0,     ^K^S,     #0#0
+    COMMAND       cmCalcBlock,    kbAltIns,      0,     ^K^U,     #0#0
+    COMMAND       cmInsertTime,   0,             0,     ^Q^T,     #0#0
+    COMMAND       cmInsertDate,   0,             0,     ^Q^D,     #0#0
+    COMMAND       cmMenu,         0,             0,     ^K^Q,     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'1'     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'2'     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'3'     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'4'     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'5'     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'6'     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'7'     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'8'     #0#0
+    COMMAND       cmPlayMacro,    0,             0,     ^J'9'     #0#0
+    COMMAND       cmSelectMacro,  0,             0,     ^J'0'     #0#0
+    COMMAND       cmBracketPair,  kbAltLeft, kbAltRight,^Q'['     ^Q^]
+    COMMAND       cmUpcaseBlock,  0,             0,     ^K^[     #0#0
+    COMMAND       cmLowcaseBlock, 0,             0,     ^K^]     #0#0
+    COMMAND   cmCapitalizeBlock,  0,             0,     ^K^\     #0#0
+    COMMAND   cmChangeCaseBlock,  0,             0,     ^K^A     #0#0
+    COMMAND      cmSyncClipOut,   0,             0,     ^Q^O     #0#0
+    COMMAND       cmSyncClipIn,   0,             0,     ^Q^I     #0#0
+    COMMAND     cmWindowsPaste,   0,             0,     ^Q^P     #0#0
+    COMMAND      cmWindowsCopy,   0,             0,     ^Q^C     #0#0
+    COMMAND   cmSwitchDrawMode,   kbF4,          0,     ^Q^M     #0#0
+    COMMAND cmSwitchKeyMapping,   kbF8,          0,     #0#0     #0#0
+    COMMAND    cmReverseSearch,   kbAltF7,       0,     ^Q^R     #0#0
+    COMMAND    cmSelectAllText,   kbCtrlNumpad5, 0,     ^A#0     #0#0
+END
+
+;DataCompBoy
+DIALOG dlgFTNInfo, 55, 8, 'Informacja FTN '
+    HELPCTX hcFTNInfo
+
+    InputLine  2, 3, 53, 4, 255, 0
+    Label 1, 1, 'Jeæeli jesteò czàonkiem FTM , prosz© wpisz sw¢j pierwszy'
+    Label 1, 2, 'adres FTN ,kropk© i domyòln• òcieæk© dost©pu           '
+
+    Button 24, 5, 34, 7, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 34, 5, 44, 7, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 44, 5, 53, 7, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+;DataCompBoy
+
+;DataCompBoy
+DIALOG dlgSrchFailed, 56, 8, 'Poszukiwanie nie powidào si©'
+    HELPCTX hcSrchFailed
+
+    ParamText 2, 2, 39, 3, 'Pliku %s nie znaleziono.',1
+    Label 1, 3, 'ócieæka dost©pu w dn.spf moæe wymagaÜ konfiguracji'
+
+    Button 10, 5, 20, 7, 'Anuluj', cmCancel, bfDefault, ofPostProcess, ofPreProcess
+    Button 20, 5, 30, 7, 'Utw¢rz', cmNo, ofPostProcess, ofPreProcess
+    Button 30, 5, 52, 7, 'Konfiguruj òcieæki', cmYes, ofPostProcess, ofPreProcess
+END
+;DataCompBoy
+
+;DataCompBoy
+DIALOG dlgSetupColumnsDisk, 70, 23, 'Ustawienia kolumn - Nap©d'
+    HELPCTX hcColumnsDefaults
+    StaticText 2, 2, 17, 3, 'Dàuga nazwa'
+    StaticText 2, 3, 17, 4, 'Rozmiar'
+    StaticText 2, 4, 17, 5, 'Data'
+    StaticText 2, 5, 17, 6, 'Czas'
+    StaticText 2, 6, 17, 7, 'Opis'
+    StaticText 2, 7, 18, 8, 'Peàny opis'
+    StaticText 2, 8, 17, 9, 'Dodatk. roz.'
+    StaticText 2, 9, 17,10, 'Dla nazwy'
+    StaticText 2,10, 17,11, 'Dla rozszerzen.'
+
+    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
+
+    CheckBoxes 18, 2, 23, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 18,  9, 24, 10, 3, 0
+    InputLine 18, 10, 24, 11, 3, 0
+
+    CheckBoxes 23, 2, 28, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 23,  9, 29, 10, 3, 0
+    InputLine 23, 10, 29, 11, 3, 0
+
+    CheckBoxes 28, 2, 33, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 28,  9, 34, 10, 3, 0
+    InputLine 28, 10, 34, 11, 3, 0
+
+    CheckBoxes 33, 2, 38, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 33,  9, 39, 10, 3, 0
+    InputLine 33, 10, 39, 11, 3, 0
+
+    CheckBoxes 38, 2, 43, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 38,  9, 44, 10, 3, 0
+    InputLine 38, 10, 44, 11, 3, 0
+
+    CheckBoxes 43, 2, 48, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 43,  9, 49, 10, 3, 0
+    InputLine 43, 10, 49, 11, 3, 0
+
+    CheckBoxes 48, 2, 53, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 48,  9, 54, 10, 3, 0
+    InputLine 48, 10, 54, 11, 3, 0
+
+    CheckBoxes 53, 2, 58, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 53,  9, 59, 10, 3, 0
+    InputLine 53, 10, 59, 11, 3, 0
+
+    CheckBoxes 58, 2, 63, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 58,  9, 64, 10, 3, 0
+    InputLine 58, 10, 64, 11, 3, 0
+
+    CheckBoxes 63, 2, 68, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 63,  9, 68, 10, 3, 0
+    InputLine 63, 10, 68, 11, 3, 0
+
+    RadioButtons 2, 13, 32, 19, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 2, 12, 'Wielk. liter w nazwie pliku:', ofPostProcess, ofPreProcess
+
+    RadioButtons 36, 13, 68, 19, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 36, 12, 'Wielk. liter w nazwie katalogu:', ofPostProcess, ofPreProcess
+
+    Button 39, 20, 49, 22, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 49, 20, 59, 22, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 59, 20, 68, 22, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupColumnsFind, 70, 22, 'Ustawienia kolumn - Znajd´'
+    HELPCTX hcColumnsDefaults
+    StaticText 2, 2, 17, 3, 'Dàuga nazwa'
+    StaticText 2, 3, 17, 4, 'Rozmiar'
+    StaticText 2, 4, 17, 5, 'Data'
+    StaticText 2, 5, 17, 6, 'Czas'
+    StaticText 2, 6, 17, 7, 'ócieæka'
+    StaticText 2, 7, 17, 8, 'Dodatk. roz.'
+    StaticText 2, 8, 17, 9, 'Dla nazwy'
+    StaticText 2, 9, 17,10, 'Dla rozszerzen.'
+
+    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
+
+    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 18, 8, 24,  9, 3, 0
+    InputLine 18, 9, 24, 10, 3, 0
+
+    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 23, 8, 29,  9, 3, 0
+    InputLine 23, 9, 29, 10, 3, 0
+
+    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 28, 8, 34,  9, 3, 0
+    InputLine 28, 9, 34, 10, 3, 0
+
+    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 33, 8, 39,  9, 3, 0
+    InputLine 33, 9, 39, 10, 3, 0
+
+    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 38, 8, 44,  9, 3, 0
+    InputLine 38, 9, 44, 10, 3, 0
+
+    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 43, 8, 49,  9, 3, 0
+    InputLine 43, 9, 49, 10, 3, 0
+
+    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 48, 8, 54,  9, 3, 0
+    InputLine 48, 9, 54, 10, 3, 0
+
+    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 53, 8, 59,  9, 3, 0
+    InputLine 53, 9, 59, 10, 3, 0
+
+    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 58, 8, 64,  9, 3, 0
+    InputLine 58, 9, 64, 10, 3, 0
+
+    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 63, 8, 68,  9, 3, 0
+    InputLine 63, 9, 68, 10, 3, 0
+
+    RadioButtons 2, 12, 32, 18, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 2, 11, 'Wielk. liter w nazwie pliku:', ofPostProcess, ofPreProcess
+
+    RadioButtons 36, 12, 68, 18, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 36, 11, 'Wielk. liter w nazwie katalogu:', ofPostProcess, ofPreProcess
+
+    Button 39, 19, 49, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 49, 19, 59, 21, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 59, 19, 68, 21, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupColumnsTemp, 70, 22, 'Ustawienia kolumn - TEMP'
+    HELPCTX hcColumnsDefaults
+    StaticText 2, 2, 17, 3, 'Dàuga nazwa'
+    StaticText 2, 3, 17, 4, 'Rozmiar'
+    StaticText 2, 4, 17, 5, 'Data'
+    StaticText 2, 5, 17, 6, 'Czas'
+    StaticText 2, 6, 17, 7, 'ócieæka'
+    StaticText 2, 7, 17, 8, 'Dodatk. roz.'
+    StaticText 2, 8, 17, 9, 'Dla nazwy'
+    StaticText 2, 9, 17,10, 'Dla rozszerzen.'
+
+    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
+
+    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 18, 8, 24,  9, 3, 0
+    InputLine 18, 9, 24, 10, 3, 0
+
+    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 23, 8, 29,  9, 3, 0
+    InputLine 23, 9, 29, 10, 3, 0
+
+    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 28, 8, 34,  9, 3, 0
+    InputLine 28, 9, 34, 10, 3, 0
+
+    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 33, 8, 39,  9, 3, 0
+    InputLine 33, 9, 39, 10, 3, 0
+
+    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 38, 8, 44,  9, 3, 0
+    InputLine 38, 9, 44, 10, 3, 0
+
+    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 43, 8, 49,  9, 3, 0
+    InputLine 43, 9, 49, 10, 3, 0
+
+    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 48, 8, 54,  9, 3, 0
+    InputLine 48, 9, 54, 10, 3, 0
+
+    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 53, 8, 59,  9, 3, 0
+    InputLine 53, 9, 59, 10, 3, 0
+
+    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 58, 8, 64,  9, 3, 0
+    InputLine 58, 9, 64, 10, 3, 0
+
+    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 63, 8, 68,  9, 3, 0
+    InputLine 63, 9, 68, 10, 3, 0
+
+    RadioButtons 2, 12, 32, 18, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 2, 11, 'Wielk. liter w nazwie pliku:', ofPostProcess, ofPreProcess
+
+    RadioButtons 36, 12, 68, 18, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 36, 11, 'Wielk. liter w nazwie katalogu:', ofPostProcess, ofPreProcess
+
+    Button 39, 19, 49, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 49, 19, 59, 21, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 59, 19, 68, 21, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupColumnsArch, 70, 23, 'Ustawienia kolumn - Archiwa'
+    HELPCTX hcColumnsDefaults
+    StaticText 2, 2, 17, 3, 'Dàuga nazwa'
+    StaticText 2, 3, 17, 4, 'Rozmiar ´r¢dàa'
+    StaticText 2, 4, 17, 5, 'Data'
+    StaticText 2, 5, 17, 6, 'Czas'
+    StaticText 2, 6, 17, 7, 'Rozmiar paczki'
+    StaticText 2, 7, 17, 8, 'Stosunek'
+    StaticText 2, 8, 17, 9, 'Dodatk. roz.'
+    StaticText 2, 9, 17,10, 'Dla nazwy'
+    StaticText 2,10, 17,11, 'Dla rozszerzen.'
+
+    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
+
+    CheckBoxes 18, 2, 23, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 18,  9, 24, 10, 3, 0
+    InputLine 18, 10, 24, 11, 3, 0
+
+    CheckBoxes 23, 2, 28, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 23,  9, 29, 10, 3, 0
+    InputLine 23, 10, 29, 11, 3, 0
+
+    CheckBoxes 28, 2, 33, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 28,  9, 34, 10, 3, 0
+    InputLine 28, 10, 34, 11, 3, 0
+
+    CheckBoxes 33, 2, 38, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 33,  9, 39, 10, 3, 0
+    InputLine 33, 10, 39, 11, 3, 0
+
+    CheckBoxes 38, 2, 43, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 38,  9, 44, 10, 3, 0
+    InputLine 38, 10, 44, 11, 3, 0
+
+    CheckBoxes 43, 2, 48, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 43,  9, 49, 10, 3, 0
+    InputLine 43, 10, 49, 11, 3, 0
+
+    CheckBoxes 48, 2, 53, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 48,  9, 54, 10, 3, 0
+    InputLine 48, 10, 54, 11, 3, 0
+
+    CheckBoxes 53, 2, 58, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 53,  9, 59, 10, 3, 0
+    InputLine 53, 10, 59, 11, 3, 0
+
+    CheckBoxes 58, 2, 63, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 58,  9, 64, 10, 3, 0
+    InputLine 58, 10, 64, 11, 3, 0
+
+    CheckBoxes 63, 2, 68, 9, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 63,  9, 68, 10, 3, 0
+    InputLine 63, 10, 68, 11, 3, 0
+
+    RadioButtons 2, 13, 32, 19, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 2, 12, 'Wielk. liter w nazwie pliku:', ofPostProcess, ofPreProcess
+
+    RadioButtons 36, 13, 68, 19, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 36, 12, 'Wielk. liter w nazwie katalogu:', ofPostProcess, ofPreProcess
+
+    Button 39, 20, 49, 22, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 49, 20, 59, 22, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 59, 20, 68, 22, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSetupColumnsArvd, 70, 22, 'Ustawienia kolumn - ARVID'
+    HELPCTX hcColumnsDefaults
+    StaticText 2, 2, 17, 3, 'Dàuga nazwa'
+    StaticText 2, 3, 17, 4, 'Rozmiar'
+    StaticText 2, 4, 17, 5, 'Data'
+    StaticText 2, 5, 17, 6, 'Czas'
+    StaticText 2, 6, 17, 7, 'Opis'
+    StaticText 2, 7, 17, 8, 'Dodatk. roz.'
+    StaticText 2, 8, 17, 9, 'Dla nazwy'
+    StaticText 2, 9, 17,10, 'Dla rozszerzen.'
+
+    StaticText 20, 1, 66, 2, '1    2    3    4    5    6    7    8    9    0'
+
+    CheckBoxes 18, 2, 23, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 18, 8, 24,  9, 3, 0
+    InputLine 18, 9, 24, 10, 3, 0
+
+    CheckBoxes 23, 2, 28, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 23, 8, 29,  9, 3, 0
+    InputLine 23, 9, 29, 10, 3, 0
+
+    CheckBoxes 28, 2, 33, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 28, 8, 34,  9, 3, 0
+    InputLine 28, 9, 34, 10, 3, 0
+
+    CheckBoxes 33, 2, 38, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 33, 8, 39,  9, 3, 0
+    InputLine 33, 9, 39, 10, 3, 0
+
+    CheckBoxes 38, 2, 43, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 38, 8, 44,  9, 3, 0
+    InputLine 38, 9, 44, 10, 3, 0
+
+    CheckBoxes 43, 2, 48, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 43, 8, 49,  9, 3, 0
+    InputLine 43, 9, 49, 10, 3, 0
+
+    CheckBoxes 48, 2, 53, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 48, 8, 54,  9, 3, 0
+    InputLine 48, 9, 54, 10, 3, 0
+
+    CheckBoxes 53, 2, 58, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 53, 8, 59,  9, 3, 0
+    InputLine 53, 9, 59, 10, 3, 0
+
+    CheckBoxes 58, 2, 63, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 58, 8, 64,  9, 3, 0
+    InputLine 58, 9, 64, 10, 3, 0
+
+    CheckBoxes 63, 2, 68, 8, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    InputLine 63, 8, 68,  9, 3, 0
+    InputLine 63, 9, 68, 10, 3, 0
+
+    RadioButtons 2, 12, 32, 18, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 2, 11, 'Wielk. liter w nazwie pliku:', ofPostProcess, ofPreProcess
+
+    RadioButtons 36, 12, 68, 18, ofPostProcess, ofPreProcess
+      ITEM 'jaK Jest'
+      ITEM 'maàe'
+      ITEM 'Kapitaliki'
+      ITEM 'DUΩE'
+      ITEM 'Poà•czone'
+      ITEM 'Autodetekcja'
+    END
+    Label 36, 11, 'Wielk. liter w nazwie katalogu:', ofPostProcess, ofPreProcess
+
+    Button 39, 19, 49, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 49, 19, 59, 21, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 59, 19, 68, 21, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+;DataCompBoy
+
+;DataCompBoy
+DIALOG dlgNameCase, 40, 12, 'Zmiana wielkoòci liter'
+    HelpCtx hcChangeNameCase
+    RadioButtons 2, 3, 22, 8, ofPostProcess, ofPreProcess
+      ITEM 'NaZwA PLiku'
+      ITEM 'nazwa pliku'
+      ITEM 'Nazwa pliku'
+      ITEM 'Nazwa Pliku'
+      ITEM 'NAZWA PLIKU'
+    END
+    Label 2, 2, '~N~azwa', ofPostProcess, ofPreProcess
+    RadioButtons 24, 3, 38, 8, ofPostProcess, ofPreProcess
+      ITEM 'RoZsZeRz'
+      ITEM 'rozszerz'
+      ITEM 'Rozszerz'
+      ITEM 'Rozszerz'
+      ITEM 'ROZSZERZ'
+    END
+    Label 24, 2, '~R~ozszerzenia', ofPostProcess, ofPreProcess
+    Button  9, 9, 19, 11, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 19, 9, 29, 11, 'Anuluj', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button 29, 9, 38, 11, '~P~omoc', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+;DataCompBoy
+
+DIALOG dlgEditorDefaults, 60, 22, 'Edytor domyòlny'
+    HELPCTX hcEditorDefaults
+    CheckBoxes 2, 3, 58, 6
+      ITEM 'Tw¢rz kopie               '
+      ITEM 'Trwaàe bloki              '
+      ITEM 'Nadpisuj bloki            '
+      ITEM 'Zablokuj plik             '
+      ITEM 'Uæywaj pami©ci EMS        '
+      ITEM 'Uæywaj pami©ci XMS        '
+    END
+    Label 2, 2, 'Opcje globalne:', ofPostProcess, ofPreProcess
+
+    CheckBoxes 2, 8, 58, 14, ofPostProcess, ofPreProcess
+      ITEM '[BackSpace] cofa wci©cia  '
+      ITEM 'Au~t~ozamykanie nawias¢w  '
+      ITEM 'A~u~towci©cia             '
+      ITEM 'Autoza~w~ijanie           '
+      ITEM '~J~ustuj podczas zawijania'
+      ITEM '~B~loki pionowe           '
+      ITEM 'Opty~m~alne wypeàn.       '
+      ITEM 'Podòwietl. l~i~nii        '
+      ITEM 'Podòwietl. ~k~olumn       '
+      ITEM 'Zamieniaj T~a~by          '
+      ITEM '~P~odòwietl. skàadni      '
+      ITEM '~S~martTab                '
+    END
+    Label 2, 7, 'Domyòlne dla nowego pliku:', ofPostProcess, ofPreProcess
+
+    RadioButtons 17, 15, 58, 16, ofPostProcess, ofPreProcess
+      ITEM 'CR+LF'
+      ITEM 'CR'
+      ITEM 'LF'
+      ITEM 'LF+CR'
+    END
+    Label 2, 15, 'Ko~n~iec linii', ofPostProcess, ofPreProcess
+
+    InputLine 18, 16, 23, 17, 3, 0
+    Label 2, 16, '~L~ewy margines', ofPostProcess, ofPreProcess
+
+    InputLine 47, 16, 52, 17, 3, 0
+    Label 30, 16, 'P~r~awy margines', ofPostProcess, ofPreProcess
+
+    InputLine 18, 17, 23, 18, 3, 0
+    Label 2, 17, '~A~kapit', ofPostProcess, ofPreProcess
+
+    InputLine 47, 17, 52, 18, 3, 0
+    Label 30, 17, 'Ro~z~miar Taba', ofPostProcess, ofPreProcess
+
+    Button 29, 19, 39, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 39, 19, 49, 21, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 49, 19, 58, 21, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgViewerDefaults, 34, 13, 'Przegl•darka'
+    HELPCTX hcViewerDefaults
+    CheckBoxes 2, 2, 28, 7, ofPostProcess, ofPreProcess
+      ITEM 'Tryb He~x~'
+      ITEM 'Za~w~ijaj linie'
+      ITEM 'Zawijaj sà~o~wa'
+      ITEM 'Podòwietlanie ~s~kàadni'
+      ITEM 'Zamie‰ Tab'
+    END
+    InputLine 24, 8, 29, 9, 3, 0
+    Label 2, 8, 'Ro~z~miar TAB'a', ofPostProcess, ofPreProcess
+    Button  3, 10, 13, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 10, 23, 12, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 23, 10, 32, 12, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+
+;{--- start -------- Eugeny Zvyagintzev ---- 28-03-2002 ----}
+DIALOG dlgCancelSearchFiles, 42, 7, 'Potwierd´'
+    HELPCTX hcCancelSF
+    StaticText  14, 2, 41, 3, 'AnulowaÜ szukanie?'
+    Button  5, 4, 14, 6, '~T~ak', cmYes, bfDefault, ofPostProcess, ofPreProcess
+    Button 14, 4, 28, 6, '~P~omi‰ plik', cmNo, ofPostProcess, ofPreProcess
+    Button 28, 4, 37, 6, '~N~ie', cmCancel, ofPostProcess, ofPreProcess
+END
+;{--- finish -------- Eugeny Zvyagintzev --------}
+
+;KV
+DIALOG dlgSetExportCsvFormat, 46, 16, 'Eksport do formatu CSV'
+    HELPCTX hcSpreadSheet
+    InputLine 25, 2, 28, 3, 1, 0, ofFramed
+    Label 2, 2, 'Separator ~k~olumn:', ofPostProcess, ofPreProcess
+    RadioButtons 2, 5, 44, 7, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'Tak jak jest (wartoòÜ liczbowa)'
+      ITEM 'WartoòÜ jako sformatowany àa‰cuch'
+    END
+    Label 3, 4, 'Format ~l~iczby:', ofPostProcess, ofPreProcess
+    RadioButtons 2, 9, 44, 11, ofFramed, ofPostProcess, ofPreProcess
+      ITEM 'Jako àa‰cuch'
+      ITEM 'Jako obliczona wartoòÜ'
+    END
+    Label 3, 8, 'Format ~f~ormuày:', ofPostProcess, ofPreProcess
+    Button 11, 13, 21, 15, 'é~ä~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 25, 13, 35, 15, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+;KV
+
+;{--- start -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
+DIALOG dlgDBFGoto, 41, 9, 'Id´ do wiersza/kolumny'
+    HELPCTX hcDBFGoto
+    InputLine 17, 2, 35, 3, 10, 0
+    History 35, 2, hsDBFGotoRow, ofPostProcess
+    Label 3, 2, 'IloòÜ wie~r~szy', ofPostProcess, ofPreProcess
+    InputLine 17, 4, 35, 5, 10, 0
+    History 35, 4, hsDBFGotoCol, ofPostProcess
+    Label 3, 4, 'Nazwa ~k~olumny', ofPostProcess, ofPreProcess
+    Button 10, 6, 20, 8, 'é~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 20, 6, 30, 8, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+    Button 30, 6, 39, 8, '~P~omoc', cmHelp, ofPostProcess, ofPreProcess
+END
+;{--- finish -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
+
+;{--- start -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+DIALOG dlgAddQuickDir, 40, 9, 'Dodawanie katalogu'
+    HELPCTX hcAddQuickDir
+    InputLine 22, 2, 25, 3, 1, 0
+    Label 1, 2, '~I~loòÜ katalog¢w', ofPostProcess, ofPreProcess
+    InputLine 12, 4, 38, 5, 255, 0
+    Label 1, 4, '~K~atalog', ofPostProcess, ofPreProcess
+    Button  7, 6, 17, 8, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 17, 6, 28, 8, 'Bieæ•cy', cmYes, ofPostProcess, ofPreProcess
+    Button 28, 6, 38, 8, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+;{--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+
+;{--- start -------- Eugeny Zvyagintzev ---- 22-10-2002 ----}  {   modified by Persistor, Nov 2004   }
+DIALOG dlgSkipBadFile, 54, 8, 'Brak dost©pu'
+    HELPCTX hcSkipBadFile
+    StaticText 2, 2, 52, 3, ^C'Nie moæna otworzyÜ pliku:'
+    Button  1, 5, 14, 7, '~P~on¢w', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 14, 5, 32, 7, '~P~omi‰', cmYes, ofPostProcess, ofPreProcess
+    Button 28, 5, 42, 7, 'Pomi‰ w~s~zystko', cmYes, ofPostProcess, ofPreProcess
+    Button 42, 5, 52, 7, '~A~nuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+;{--- finish -------- Eugeny Zvyagintzev ---- 22-10-2002 ----} {   modified by Persistor, Nov 2004   }
+
+;{--- start -------- Eugeny Zvyagintzev ---- 26-11-2002 ----}
+DIALOG dlgEditQuickDir, 40, 9, 'Zmienianie katalogu'
+    HELPCTX hcEditQuickDir
+    InputLine 22, 2, 25, 3, 1, 0
+    Label 1, 2, '~I~loòÜ katalog¢w', ofPostProcess, ofPreProcess
+    InputLine 12, 4, 38, 5, 255, 0
+    Label 1, 4, '~K~atalog', ofPostProcess, ofPreProcess
+    Button  7, 6, 17, 8, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 17, 6, 28, 8, '~B~ieæ•cy', cmYes, ofPostProcess, ofPreProcess
+    Button 28, 6, 38, 8, 'Anuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+;{--- finish -------- Eugeny Zvyagintzev ---- 26-11-2002 ----}
+
+;{   Persistor, Nov 2004   }
+DIALOG dlgBadFile, 42, 9, 'Brak dost©pu'
+    Button   8, 6, 21, 8, '~P~on¢w', cmOK, ofPostProcess, ofPreProcess
+    Button  21, 6, 35, 8, '~A~nuluj', cmCancel, ofPostProcess, ofPreProcess
+END
+;{   Persistor, Nov 2004   }

@@ -57,6 +57,9 @@
 //  dn370-archives(if)-improve_and_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -142,7 +145,6 @@ procedure SetupArchive;
    ReplaceP(D^.Title, s);
   end;
 
-label Ex;
 begin
  If ArchCommand >= cmLoConfigArchiver then Dec(ArchCommand, cmLoConfigArchiver);
  Arch := GetArchiveByTag(ArchCommand);
@@ -176,47 +178,50 @@ begin
     DT.UseLFN   := UseLFN;
   end;
  D := PDialog(Application^.ValidView(PDialog(LoadResource(dlgSetupArc))));
- if D = nil then goto Ex;
- D^.SetData(DT);
- CndRpl;
- W := Desktop^.ExecView(D);
- if W = cmOK then D^.GetData(DT);
+ if D <> nil then
+ begin
+   D^.SetData(DT);
+   CndRpl;
+   W := Desktop^.ExecView(D);
+   if W = cmOK then
+   begin
+     D^.GetData(DT);
+     { DefaultArchiver := ArchCommand;}
+     with Arch^ do
+      begin
+         Done;
+         Packer             := NewStr(DT.Pack);
+         Unpacker           := NewStr(DT.Unpack);
+         Extract            := NewStr(DT.Extract);
+         ExtractWP          := NewStr(DT.ExWP);
+         Add                := NewStr(DT.Add);
+         Move               := NewStr(DT.Move);
+         Test               := NewStr(DT.Test);
+         Delete             := NewStr(DT.Delete);
+         Garble             := NewStr(DT.Password);
+         ForceMode          := NewStr(DT.Force);
+         IncludePaths       := NewStr(DT.IncludeP);
+         ExcludePaths       := NewStr(DT.ExcludeP);
+         RecoveryRec        := NewStr(DT.RecovRec);
+         SelfExtract        := NewStr(DT.SelfExtr);
+         Solid              := NewStr(DT.Solid);
+         RecurseSubDirs     := NewStr(DT.Recurse);
+         StoreCompression   := NewStr(DT.StoreC);
+         FastestCompression := NewStr(DT.FastestC);
+         FastCompression    := NewStr(DT.FastC);
+         NormalCompression  := NewStr(DT.NormC);
+         GoodCompression    := NewStr(DT.GoodC);
+         UltraCompression   := NewStr(DT.MaxC);
+         if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';
+         PassDirNames := DT.DirNames;
+         UseLFN := DT.UseLFN;
+      end;
+      UpdateARH(Arch);
+      Message(Application, evCommand, cmUpdateConfig, nil);
+   end;
  Dispose(D, Done);
- if W <> cmOK then goto Ex;
-{ DefaultArchiver := ArchCommand;}
- with Arch^ do
-  begin
-     Done;
-     Packer             := NewStr(DT.Pack);
-     Unpacker           := NewStr(DT.Unpack);
-     Extract            := NewStr(DT.Extract);
-     ExtractWP          := NewStr(DT.ExWP);
-     Add                := NewStr(DT.Add);
-     Move               := NewStr(DT.Move);
-     Test               := NewStr(DT.Test);
-     Delete             := NewStr(DT.Delete);
-     Garble             := NewStr(DT.Password);
-     ForceMode          := NewStr(DT.Force);
-     IncludePaths       := NewStr(DT.IncludeP);
-     ExcludePaths       := NewStr(DT.ExcludeP);
-     RecoveryRec        := NewStr(DT.RecovRec);
-     SelfExtract        := NewStr(DT.SelfExtr);
-     Solid              := NewStr(DT.Solid);
-     RecurseSubDirs     := NewStr(DT.Recurse);
-     StoreCompression   := NewStr(DT.StoreC);
-     FastestCompression := NewStr(DT.FastestC);
-     FastCompression    := NewStr(DT.FastC);
-     NormalCompression  := NewStr(DT.NormC);
-     GoodCompression    := NewStr(DT.GoodC);
-     UltraCompression   := NewStr(DT.MaxC);
-     if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';
-     PassDirNames := DT.DirNames;
-     UseLFN := DT.UseLFN;
-  end;
-  UpdateARH(Arch);
-  Message(Application, evCommand, cmUpdateConfig, nil);
-Ex:
-  Dispose(Arch, Done);
+ end;
+ Dispose(Arch, Done);
 end;
 
 end.

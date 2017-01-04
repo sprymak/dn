@@ -65,6 +65,10 @@
 //  dn370-version_upgrade.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//  dn40900-version_upgrade.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -75,7 +79,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionWord:word   = 40900; {Last changed: Year-2000,Month,Day}
+  VersionWord:word   = 50900; {Last changed: Year-2000,Month,Day}
   VersionName:string = '/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}
@@ -88,8 +92,9 @@ CONST
 (*                       +'/Piwamoto' {don't use my vendor ID ;)}*)
 {                       +'/Unknown vendor ID'}
                        ;
-var F : lText ;
+var
     Day, Month, Year, DOW: word;
+    F : lText;
 
 CONST
  DOWs:   Array[0..6] of string[3]=

@@ -56,6 +56,9 @@
 //  dn31220-Kernel(f)-file_open_fix_in_VP.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -250,9 +253,8 @@ uses HistList, advance, advance1, advance2, advance3, RStrings, Commands,
         {-DataCompBoy-}
 function PathValid(var Path: String): Boolean;
 var
-  ExpPath: String;
-  F: lFile;
   SR: lSearchRec;
+  ExpPath: String;
 begin
   ClrIO; ExpPath := lFExpand(Path); if Abort then Exit;
   if Length(ExpPath) <= 3 then PathValid := ValidDrive(ExpPath[1])
@@ -385,7 +387,6 @@ procedure TFileInputLine.HandleEvent(var Event: TEvent);
 var
   Dir: String;
   Name: String;
-  Ext: String;
 begin
   TInputLine.HandleEvent(Event);
   if (Event.What = evBroadcast) and (Event.Command = cmFileFocused) and
@@ -469,10 +470,9 @@ end;
 
 procedure TSortedListBox.HandleEvent(var Event: TEvent);
 var
-  CurString, NewString: String;
   K: Pointer;
   Value, OldPos, OldValue: LongInt;
-  T: Boolean;
+  CurString, NewString: String;
 
 function Equal(var S1: String; var S2: String; Count: Word): Boolean;
 var
@@ -512,7 +512,7 @@ begin
         CurString[SearchPos] := UpCase(Event.CharCode);
       end;
       K := GetKey(CurString);
-      if List <> nil then T := PSortedCollection(List)^.Search(K, Value)
+      if List <> nil then PSortedCollection(List)^.Search(K, Value)
                      else Value := Range;
       if Value < Range then
       begin
@@ -630,8 +630,6 @@ end;
 
         {-DataCompBoy-}
 procedure TFileList.ReadDirectory(AWildCard: String);
-const
-  FindAttr = ReadOnly + Archive + SysFile;
 var
   S: lSearchRec;
   P: PSearchRec;
@@ -639,12 +637,12 @@ var
   Dir: String;
   Name: String;
   Ext: String;
-  Event : TEvent;
 begin
   AWildCard := lFExpand(AWildCard);
   lFSplit(AWildCard, Dir, Name, Ext);
   FileList := New(PFileCollection, Init(5, 5));
-  lFindFirst(AWildCard, FindAttr+Byte(SystemData.Options and ossShowHidden <> 0)*Hidden, S);
+  lFindFirst(AWildCard, ReadOnly + Archive + SysFile +
+             Byte(SystemData.Options and ossShowHidden <> 0)*Hidden, S);
   P := @P;
   while (P <> nil) and (DosError = 0) do
   begin
@@ -669,13 +667,6 @@ begin
   lFindClose(S);
   if P = nil then Msg(dlStdDlgManyFiles, nil, mfOkButton + mfWarning);
   NewList(FileList);
-{  if List^.Count > 0 then
-  begin
-    Event.What := evBroadcast;
-    Event.Command := cmFileFocused;
-    Event.InfoPtr := List^.At(0);
-    Owner^.HandleEvent(Event);
-  end;  }
 end;
         {-DataCompBoy-}
 
@@ -720,23 +711,20 @@ end;
         {-DataCompBoy-}
 procedure TDirectoryList.ReadDirectory(AWildCard: String);
 const
-  FindAttr = ReadOnly + Archive + SysFile;
   PrevDir  = '..';
 var
   S: lSearchRec;
   P: PSearchRec;
   FileList: PFileCollection;
+  C: Char;
   Dir: String;
   Name: String;
   Ext: String;
   Tmp: String;
-  Event: TEvent;
-  C: Char;
 begin
   AWildCard := lFExpand(AWildCard);
   lFSplit(AWildCard, Dir, Name, Ext);
   FileList := New(PFileCollection, Init(5, 5));
-{  FindFirst(AWildCard, FindAttr, S);}
   P := @P;
   Tmp := Dir + x_x;
   lFindFirst(Tmp, Directory+Byte(SystemData.Options and ossShowHidden <> 0)*Hidden, S);
@@ -802,13 +790,6 @@ begin
      end;
   if P = nil then Msg(dlStdDlgManyFiles, nil, mfOkButton + mfWarning);
   NewList(FileList);
-{  if List^.Count > 0 then
-  begin
-    Event.What := evBroadcast;
-    Event.Command := cmFileFocused;
-    Event.InfoPtr := List^.At(0);
-    Owner^.HandleEvent(Event);
-  end;                               }
 end;
         {-DataCompBoy-}
 
@@ -823,15 +804,15 @@ end;
         {-DataCompBoy-}
 procedure TFileInfoPane.Draw;
 var
-  B: TDrawBuffer;
+  Color: Word;
+  Time: DateTime;
+  Params: array[0..7] of LongInt;
   D: String[10];
   M: String[20];
   PM: Boolean;
-  Color: Word;
-  Time: DateTime;
+  B: TDrawBuffer;
   Path: String;
   FmtId: String;
-  Params: array[0..7] of LongInt;
   Str: String;
 const
   sDirectoryLine = ' %-12s %-10s  %sm';
@@ -916,10 +897,10 @@ end;
         {-DataCompBoy-}
 constructor TFileDialog.Init;
 var
+  Opt: Word;
   Control: PView;
   R: TRect;
   S: String;
-  Opt: Word;
   ACurDir: String;
 begin
   R.Assign(15,1,62,21);
@@ -1065,17 +1046,12 @@ begin
 end;
 
 function RTrim(S: String): String;
-var
-  I: Integer;
 begin
   while S[Length(S)] = ' ' do Dec(S[0]);
   RTrim := S;
 end;
 
 function RelativePath(var S: String): Boolean;
-var
-  I,J: Integer;
-  P: String;
 begin
   S := LTrim(RTrim(S));
   if (S <> '') and ((S[1] = '\') or (S[2] = ':')) then RelativePath := False
@@ -1244,7 +1220,6 @@ end;
         {-DataCompBoy-}
 function TFileDialog.Valid(Command: Word): Boolean;
 var
-  T: Boolean;
   lFName: String;
   Dir:   String;
   Name:  String;
@@ -1363,9 +1338,10 @@ end;
 
         {-DataCompBoy-}
 function GetFileNameDialog(Mask, Title, Name: String; Buttons, HistoryID: Word): String;
- var S: String;
+ var
      D: PFileDialog;
      B: Boolean;
+     S: String;
 begin
   S := ''; B := False; if Mask = '' then begin Mask := x_x; B := True end;
   D := PFileDialog(Application^.ValidView(New(PFileDialog,
@@ -1387,15 +1363,16 @@ end;
 
 function GetFileNameMenu (Path, Mask, Default: String; PutNumbers: Boolean; var More, None: Boolean): String; {JO}
 
- var S:string;
+ var
+     CurIdx, i:integer;
+     W: Word;
      L:TLineCollection;
      SR:lSearchRec;
      Current, Def: PMenuItem;
      Menu: PMenu;
      HMB:PMenuBox;
-     CurIdx, i:integer;
      R: TRect;
-     W: Word;
+     S:string;
 
         function LngMixCase(P:string):string;
         var i:integer;

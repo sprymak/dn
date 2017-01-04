@@ -89,6 +89,7 @@
 ;/  dn370-archives(if)-improve_and_fix.patch
 ;/
 ;/  4.9.0
+;/  dn40900-editor_standard_block_hotkeys.patch
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -917,10 +918,10 @@ mouse cursor while pressing the left mouse-button.
  ออออออออออออออออออออออออออออออออออออัออออออออออ
   Mark the beginning of a block      ณ Ctrl+K B
   Mark the end of a block            ณ Ctrl+K K
-  Copy the block to Clipboard        ณ Ctrl+Ins
-  Move the block to Clipboard        ณ Shift+Del
-  Insert the copied block            ณ Shift+Ins
-  Delete the block                   ณ Ctrl+Del
+  Copy the block to Clipboard        ณ Ctrl+Ins  or Ctrl+C
+  Move the block to Clipboard        ณ Shift+Del or Ctrl+X
+  Insert the copied block            ณ Shift+Ins or Ctrl+V
+  Delete the block                   ณ Ctrl+Del  or Ctrl+D
   Read the block from file           ณ Ctrl+K R
   Write the block to a file          ณ Ctrl+K W
   Move the block left to right       ณ Ctrl+K I
@@ -940,22 +941,22 @@ mouse cursor while pressing the left mouse-button.
 .title Moving on text
         What move?                  Key
   ออออออออออออออออออออออออออัออออออออออออออออออออออ
-   One character to the leftณ Ctrl + S or 
-   One character to right   ณ Ctrl + D or 
+   One character to the leftณ 
+   One character to right   ณ 
    One word to the left     ณ Ctrl + 
    One word to the right    ณ Ctrl + 
-   One line upwards         ณ Ctrl + E or 
-   One line downwards       ณ Ctrl + X or 
+   One line upwards         ณ 
+   One line downwards       ณ 
    Scroll upwards           ณ Ctrl + W
    Scroll downwards         ณ Ctrl + Z
    One page upwards         ณ Ctrl + R or PgUp
-   One page downwards       ณ Ctrl + C or PgDn
+   One page downwards       ณ PgDn
 
 .topic InsDelCommands=10004
 .title Insertion and deleting
   ออออออออออออออออออออออออออัออออออออออออออออออออออ
    Toggle Insert/Overwrite  ณ
-    Mode                    ณ Ctrl+V or Ins
+    Mode                    ณ Ins
    Delete the current line  ณ Ctrl+Y
    Delete from the cursor-  ณ
     position to end of line ณ Ctrl+Q Y

@@ -51,6 +51,9 @@
 //  dn31220-CodePage(f)-change_code_page_and_search_in_all_code_pages_fix.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -109,12 +112,12 @@ end;
 
 function GetLineNumberForOffset(const FName: String; Offset: LongInt): LongInt;
 var
-  F: lFile;
-  q: PByteArray;
   bl: integer;
   ln: longint;
   fp: longint;
   bp: longint;
+  F: lFile;
+  q: PByteArray;
 begin
  GetMem(q, 4096);
  lAssignFile(F, FName);
@@ -135,12 +138,12 @@ end;
 
 function GetOffsetForLineNumber(const FName: String; LineNm: LongInt): LongInt;
 var
-  F: lFile;
-  q: PByteArray;
   bl: integer;
   ln: longint;
   fp: longint;
   bp: longint;
+  F: lFile;
+  q: PByteArray;
 begin
  GetMem(q, 4096);
  lAssignFile(F, FName);

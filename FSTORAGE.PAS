@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -163,10 +166,10 @@ label
 const
   BufSize = 512;
 var
-  OldStream: PStream;
-  SavePos, Count: LongInt;
-  Buffer: array[0..BufSize-1] of Byte;
+  Count: LongInt;
   N: Word;
+  OldStream: PStream;
+  Buffer: array[0..BufSize-1] of Byte;
 begin
   OldStream := Stream; OldStream^.Status := stOK;
 
@@ -226,14 +229,13 @@ end;
 
         {-DataCompBoy-}
 procedure TDirStorage.AddFile;
-  var Dr: String;
-      Nm: String;
-      Xt: String;
+  var
+      L: Word;
       SF: TStoredFile;
       SD: TStoredDir absolute SF;
       TS: TStored absolute SF;
       B: Array[0..542] of Byte;
-      L: Word;
+      Dr, Nm, Xt: String;
 begin
   if Stream = nil then Exit;
   Stream^.Status := stOk;
@@ -377,12 +379,13 @@ end;
 
         {-DataCompBoy-}
 procedure TDirStorage.DosReread;
- var SF: TStoredFile;
+ var
+     L, B: LongInt;
+     SF: TStoredFile;
      SD: TStoredDir absolute SF;
      ST: TStored absolute SF;
-     Dr: String;
-     L, B: LongInt;
      SR: lSearchRec;
+     Dr: String;
 begin
   Last := False; Dr := '';
   Stream^.Status := stOK;
@@ -439,8 +442,8 @@ end;
 
 procedure TDirStorage.Truncate(N: LongInt);
 var
-  ST: TStored;
   L, NF, ND, NI: LongInt;
+  ST: TStored;
 begin
   ResetPointer('');
   NF := 0; ND := 0; NI := 0;

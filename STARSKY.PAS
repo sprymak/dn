@@ -51,6 +51,9 @@
 //  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -96,8 +99,9 @@ end;
 
 Procedure Worm.NextMove;
 label ChDir;
-var k,l : Byte;
+var
     w   : Word;
+    k,l : Byte;
 
 Function MoveTo(x,y : Word) : Boolean;
 var i : Byte;
@@ -144,10 +148,11 @@ begin
 end;
 
 Procedure Worms(Bounds : TRect);
-var w    : array[1..20] of PWorm;
+var
+    ks1: Word;
     i,nw : Byte;
     Event: TEvent;
-    ks1: Word;
+    w: array[1..20] of PWorm;
 begin
  repeat nw:=Random(15)+5; until (nw > 5) and (nw < 20);
  ks1 := ShiftState;
@@ -288,15 +293,15 @@ type
 var
    OldS    : Pointer;
    mx,my   : Word;
-   i,j,nl  : integer;
-   ks1,ks2 : Byte;
-   lc      : array[1..30] of lnc;
-   ScrBuf  : PWordArray;
-   Event   : TEvent;
    Ad, Os  : Word;
    Base, Bos: Word;
    SMode:   Word;
    OldShape: Word;
+   i,j,nl  : integer;
+   ks1,ks2 : Byte;
+   ScrBuf  : PWordArray;
+   Event   : TEvent;
+   lc      : array[1..30] of lnc;
 
  procedure ReallySky;
   var I,j: Integer;

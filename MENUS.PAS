@@ -60,6 +60,9 @@
 //  dn31220-built-in_result_variable.patch
 //
 //  4.9.0
+//  dn50208-cleanup.patch
+//
+//  5.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -469,14 +472,14 @@ function TMenuView.Execute: Word;
 type
   MenuAction = (DoNothing, DoSelect, DoReturn);
 var
-  AutoSelect: Boolean;
-  Action: MenuAction;
-  Ch: Char;
 {$IFNDEF RESULT}Result: Word;{$ENDIF}
+  Action: MenuAction;
   ItemShown, P: PMenuItem;
   Target: PMenuView;
   R: TRect;
   E: TEvent;
+  Ch: Char;
+  AutoSelect: Boolean;
   MouseActive: Boolean;
   MouseWalk: Boolean;
   Going: Boolean;
@@ -583,8 +586,9 @@ begin
   TopMenu := P;
 end;
 
-var Frst: Boolean;
+var
     W: Integer;
+    Frst: Boolean;
 
 begin
   If TypeOf(Self) <> TypeOf(TMenuBar) then RecalcBounds(R); {John_SW: For centering MenuBox purpose}
@@ -804,8 +808,8 @@ end;
 
 function TMenuView.FindItem(Ch: Char): PMenuItem;
 var
-  P: PMenuItem;
   I: Integer;
+  P: PMenuItem;
 begin
   Ch := UpCaseArray[Ch];
   P := Menu^.Items;
@@ -896,7 +900,6 @@ begin
   ClearEvent(Event);
 end;
 
-var q: TPoint;
 begin
   if Menu <> nil then
     case Event.What of
@@ -1089,10 +1092,9 @@ end;
 procedure TMenuBox.Draw;
 var
   CNormal, CSelect, CNormDisabled, CSelDisabled, Color: Word;
-  Y: Integer;
+  Y, TopIndex: Integer;
   P: PMenuItem;
   B: TDrawBuffer;
-  TopIndex: Integer;
 
 Function PastEnd: boolean;
 var P: PMenuItem;
@@ -1268,7 +1270,6 @@ end;
 
 function DoLoadStatusDefs: PStatusDef;
 var
-  AMin: AWord;
   Cur, First: PStatusDef;
   Last: ^PStatusDef;
   Count: AInt;
@@ -1329,13 +1330,12 @@ end;
 
 procedure TStatusLine.DrawSelect(Selected: PStatusItem);
 var
-  B: TDrawBuffer;
-  T: PStatusItem;
   I, L: Integer;
-  CSelect, CNormal, CSelDisabled, CNormDisabled: Word;
-  Color: Word;
-  HintBuf: String;
+  CSelect, CNormal, CSelDisabled, CNormDisabled, Color: Word;
+  T: PStatusItem;
   FirstChar: Char;
+  B: TDrawBuffer;
+  HintBuf: String;
 begin
   CNormal := GetColor($0301);
   CSelect := GetColor($0604);
