@@ -55,6 +55,10 @@
 //  dn3315-format(i)-user_defined_type.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -642,7 +646,7 @@ procedure   TFormatter.UpdateParams;
 
 function    TFormatter.FormatDialog;
 
-var  result : longint ;
+var  _result : longint ;
      Mesg    : String ;
      A,B,C,D : string [12];
      LA,LB,LC,LD : longint ;
@@ -665,16 +669,16 @@ var  result : longint ;
                            Mesg := FlMedias[StdFormatRecord];
                            DatArr[1] := Longint(@Mesg);
                            DatArr[2] := 65+DrvNum ;
-                           Result := Msg(dlFmtNewDisk,
+                           _Result := Msg(dlFmtNewDisk,
                               @DatArr, mfConfirmation+mfOKbutton+mfCancelButton);
-                           if Result = cmOk then FormatDialog := FdContinue;
+                           if _Result = cmOk then FormatDialog := FdContinue;
 
                           end;
 
         fdUserInterrupt :begin
-                           Result := Msg(dlFmtContQuery,
+                           _Result := Msg(dlFmtContQuery,
                                  @DatArr, mfQuery+mfYesbutton+mfNoButton);
-                           if Result = cmYes then FormatDialog := FdContinue;
+                           if _Result = cmYes then FormatDialog := FdContinue;
                          end;
 
         fdHardwareError :begin
@@ -683,7 +687,7 @@ var  result : longint ;
 
                            DatArr[1] := Longint(@Mesg);
 
-                           Result :=
+                           _Result :=
                              MessageBox(^C'%s',
                            @DatArr,
                            mfError+mfOkbutton);
@@ -1858,7 +1862,7 @@ Again:
 
 
 procedure RunFormat;
-  const FormatInit: Boolean = Off;
+  const FormatInit: Boolean = False;
   type PR  = record
             OFS,SG : word ;
            end;
@@ -1881,7 +1885,7 @@ begin
 
  if not FormatInit then
    begin
-      FormatInit := Off;
+      FormatInit := False;
       DrivesType[0] := DrvType(0); { 5'25 HD }
       DrivesType[1] := DrvType(1); { 3'5  HD }
 

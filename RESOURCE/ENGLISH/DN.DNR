@@ -114,6 +114,11 @@
 ;/  dn3421-resource_and_help_fixes.patch
 ;/
 ;/  3.7.0
+;/  dn370-CompareDir(i)-comparing_directories_improve.patch
+;/  dn370-archives(if)-improve_and_fix.patch
+;/  dn40328-7Zip.patch
+;/
+;/  4.9.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -695,6 +700,7 @@ MENU dlgMainMenu
       MenuItem '~Z~IP - PKZIP (C) PKWARE Inc.',                         '', kbNoKey, cmConfigZIP, hcArchives,
       MenuItem 'ZO~O~ - Zoo (C) Rahul Dhesi',                           '', kbNoKey, cmConfigZOO, hcArchives,
       MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev',                  '', kbNoKey, cmConfigZXZ, hcArchives,
+      MenuItem '~7~Z - 7-Zip (C) Igor Pavlov',                          '', kbNoKey, cmConfig7Z,  hcArchives,
      END
     MenuLine
     MenuItem '~Q~uick run file edit...', '', kbNoKey, cmEditQuickRun, hcOptionsMenu,
@@ -1641,10 +1647,11 @@ DIALOG dlgArchiveFiles, 64, 21, 'Archive files'
       ITEM 'TAR'
       ITEM 'TGZ'
       ITEM 'UC~2~'
-      ITEM 'UFA
+      ITEM 'UFA'
       ITEM '~Z~IP'
       ITEM 'ZOO'
       ITEM 'ZXZ'
+      ITEM '~7~Z'
     END
     Label 3, 7, 'Archive type', ofPostProcess, ofPreProcess
     RadioButtons 33, 13, 61, 16, ofPostProcess, ofPreProcess
@@ -2466,28 +2473,30 @@ DIALOG dlgFilesAttr, 49, 14, 'Files Attributes'
     selectback
 END
 
-DIALOG dlgCompareDirs, 40, 16, 'Compare directories'
+DIALOG dlgCompareDirs, 43, 19, 'Compare directories'
     HELPCTX hcCompareDirs
-    CheckBoxes 3, 3, 28, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 30, 9, ofPostProcess, ofPreProcess
       ITEM 'Compare ~s~ize'
       ITEM 'Compare ~t~ime'
       ITEM 'Compare ~a~ttributes'
       ITEM 'Compare ~c~ontents'
+      ITEM 'Compare sub~d~irectories'
     END
     Label 3, 2, 'Options', ofPostProcess, ofPreProcess
-; {-$VOL begin}
-    InputLine 3, 9, 35, 10, 255, 0
-    Label 3, 8, '~F~ile masks', ofPostProcess, ofPreProcess
-    History 35, 9, hsFindMask, ofPostProcess
-; {-$VOL end}
-    RadioButtons 3, 12, 28, 14, ofPostProcess, ofPreProcess
+    InputLine 3, 10, 37, 11, 255, 0
+    Label 3, 9, '~F~ile masks', ofPostProcess, ofPreProcess
+    History 37, 10, hsFindMask, ofPostProcess
+    RadioButtons 3, 13, 28, 15, ofPostProcess, ofPreProcess
       ITEM 'S~e~lect '
-      ITEM '~U~nselect'
+      ITEM 'U~n~select'
     END
-    Label 3, 11, 'Selection mode', ofPostProcess, ofPreProcess
-    Button 28, 3, 38, 5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 28, 6, 38, 8, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 28, 12, 38, 14, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+    Label 3, 12, 'Selection mode', ofPostProcess, ofPreProcess
+    CheckBoxes 3, 16, 40, 17, ofPostProcess, ofPreProcess
+      ITEM 'Compare ~u~p to the first mismatch'
+    END
+    Button 31, 3, 41, 5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 31, 5, 41, 7, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 31, 7, 41, 9, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetPassword, 39, 7, 'Enter Password'
@@ -2549,7 +2558,7 @@ DIALOG dlgViewHistory, 59, 17, 'File View History'
     Button 47, 14, 57, 16, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgSetupArc, 56, 22, 'Archiver Setup'
+DIALOG dlgSetupArc, 56, 21, 'Archiver Setup'
     HELPCTX hcArcSetup
     InputLine 11, 2, 25, 3, 255, 0
     Label 3, 2,  '~P~acker', ofPostProcess, ofPreProcess
@@ -2599,14 +2608,14 @@ DIALOG dlgSetupArc, 56, 22, 'Archiver Setup'
     InputLine 15, 15, 18, 16, 1, 0
     Label 4, 15, 'List cha~r~', ofPostProcess, ofPreProcess
     CheckBoxes 23, 15, 53, 16, ofPostProcess, ofPreProcess
-      ITEM '~S~wap when unpack/del/test'
+      ITEM 'Pass names of directories'
     END
-    CheckBoxes 3, 17, 53, 18, ofPostProcess, ofPreProcess
+    CheckBoxes 23, 16, 53, 17, ofPostProcess, ofPreProcess
       ITEM 'Use long ~f~ile names'
     END
-    Button 24, 19, 34, 21, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 34, 19, 44, 21, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 44, 19, 54, 21, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+    Button 24, 18, 34, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 34, 18, 44, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 44, 18, 54, 20, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSelect, 27, 9, 'Select'

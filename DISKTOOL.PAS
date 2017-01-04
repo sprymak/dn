@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -241,7 +244,7 @@ Rep:
 @LocEx:
    end;
   end;
- Abort := Off;
+ Abort := False;
  if BiosError > 0 then
   begin
    Abort := SysErrorFunc(XlatError(BiosError), Drive) = 3;
@@ -294,7 +297,7 @@ Rep:
 @LocEx:
    end;
   end;
- Abort := Off;
+ Abort := False;
  if BiosError > 0 then
   begin
    Abort := SysErrorFunc(XlatError(BiosError), Drive) = 3;
@@ -343,7 +346,7 @@ begin
     if SimulateRealModeInt($25, R) <> 0 then
       BiosError:=R.AH;
   end;
-  Abort:=Off;
+  Abort:=False;
   if BiosError > 0 then
   begin
    Abort:=SysErrorFunc(XlatError(BiosError), Drive) = 3;
@@ -390,7 +393,7 @@ begin
     if SimulateRealModeInt($26, R) <> 0 then
       BiosError:=R.AH;
   end;
-  Abort:=Off;
+  Abort:=False;
   if BiosError > 0 then
   begin
    Abort:=SysErrorFunc(XlatError(BiosError), Drive) = 3;
@@ -438,7 +441,7 @@ begin
 
   if SystemData.Options and ossCheckDDA <> 0 then
     begin
-      if opSys and not opDos = 0 then Removable := on else Removable := off;
+      if opSys and not opDos = 0 then Removable := True else Removable := False;
 {piwamoto.change.end}
       if not Removable then
         begin
@@ -492,7 +495,7 @@ begin
           end;
   end;
 
-  FATModified := Off;
+  FATModified := False;
   if FATRead then
     begin
      SeekFAT(0);
@@ -561,13 +564,13 @@ begin
   Byte(ts[0]):=11;Byte(vs[0]):=11;
   ts:=vs;
 1:
-  ClusterRead(QQP^,cl);i:=0;Made:=Off;
+  ClusterRead(QQP^,cl);i:=0;Made:=False;
   while (i<MadeLen(cl)*SectLen div 32) and not Made do
         begin
           if (QQP^[i].Attr and VolumeID = 0) and StrEq(QQP^[i].Name,ts[1],11) then
              begin
               cl:=QQP^[i].clus;
-              Made:=On;
+              Made:=True;
              end;
           Inc(i);
         end;
@@ -581,7 +584,7 @@ end;
 
 begin
   GetPath:=$FFFF;
-  if FAT=Nil then begin Abort := On; Exit; end;
+  if FAT=Nil then begin Abort := True; Exit; end;
   QSize:=SectLen*SectPerClust;
   if QSize<RootEntries*32 then QSize:=RootEntries*32;
   QQP := MemAlloc(QSize);cl:=0;GetPath:=0;
@@ -641,7 +644,7 @@ begin
            then SeekFAT(D div SectLen);
           D := D - FATSect*SectLen;
           V := FAT^[d]+FAT^[d+1] shl 8;
-          FATModified := On;
+          FATModified := True;
           if N and 1=0 then begin
            v:=(v and $F000) or (Value and $FFF);
            Move(v,FAT^[d],2);
@@ -654,7 +657,7 @@ begin
           DD := LongInt(N)*2 div LongInt(SectLen);
           if (DD < FATSect) or (DD >= FATSect+FATCurSectNum) then SeekFAT(DD);
           DD := LongInt(N)*2 - LongInt(FATSect)*LongInt(SectLen);
-          FATModified := On;
+          FATModified := True;
           FAT^[DD]:=Value and 255;
           FAT^[DD+1]:=Value shr 8;
          end;
@@ -715,7 +718,7 @@ end;
 procedure TDiskDriver.ReadFAT;
  var N: Word;
 begin
- Abort := On;
+ Abort := True;
  if FAT = nil then begin
      {if MAXAvail > 40*1024 then N := 32768 else }N := 1024*5;
      if LongInt(N) > MaxAvail then Exit;
@@ -727,8 +730,8 @@ begin
     then FATCurSectNum := SectPerFAT - FATSect
     else FATCurSectNum := FATSectNum;
  SectorRead(Drive,FAT,Reserved+FATSect,FATSectNum);
- FATModified := Off;
- Abort := Off;
+ FATModified := False;
+ Abort := False;
 end;
 
 procedure TDiskDriver.WriteFAT;
@@ -738,11 +741,11 @@ begin
  if (FAT=Nil) or not FATModified then Exit;
  for i:=0 to FATCopies-1 do
   begin
-   NeedAbort := On;
+   NeedAbort := True;
    SectorWrite(Drive,FAT,Reserved+FATSect+SectPerFAT*i, FATCurSectNum);
   end;
- NeedAbort := Off;
- FATModified := Off;
+ NeedAbort := False;
+ FATModified := False;
 end;
 
 procedure TDiskDriver.FreeFAT;
@@ -780,7 +783,7 @@ procedure TDiskDriver.SetVLabel;
       ye,mh,dd,dw,hh,mm,ss,s1
           : Word;
 begin
- Abort:=Off;
+ Abort:=False;
  I := Length(Lb);
  while (I > 1) and (Lb[I] <> '.') do Dec(I);
  if Lb[I] = '.' then
@@ -836,10 +839,10 @@ end;
        Removable: Boolean;
  begin
    ClrIO;
-   CheckDisk := Off;
+   CheckDisk := False;
 {piwamoto.change.begin}
    if SystemData.Drives[C] and ossDirectAccess = 0 then Exit;
-   RemoteDrive := Off;
+   RemoteDrive := False;
    asm
     mov ax, 4409H
     xor bh,bh
@@ -859,7 +862,7 @@ end;
 
    if SystemData.Options and ossCheckDDA <> 0 then
      begin
-       if opSys and not opDos = 0 then Removable := on else Removable := off;
+       if opSys and not opDos = 0 then Removable := True else Removable := False;
 {piwamoto.change.end}
        if not Removable then
          begin
@@ -878,7 +881,7 @@ end;
            if not Removable then Exit;
          end;
      end;
-    CheckDisk := On;
+    CheckDisk := True;
  end;
 
 end.

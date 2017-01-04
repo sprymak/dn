@@ -51,6 +51,10 @@
 //  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
 //
 //  3.7.0
+//  dn370-archives(if)-improve_and_fix.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -104,8 +108,8 @@ begin
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-TT'));
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
-  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  q := GetVal(@Sign[1], @FreeStr[1], PPassDirNames, '0');
+  if q='0' then PassDirNames := False else PassDirNames := True;
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
   if q='0' then UseLFN := False else UseLFN := True;
 end;
@@ -127,7 +131,7 @@ begin
   S := UNPACKER^+' ~D '+ArcFileName+' >'+MakeNormName(TempDir,'!!!DN!!!.TMP');
   if PReader <> nil then PReader^.Free;
   P := WriteMsg(' '+GetString(dlPleaseStandBy));
-  if UserScreen <> nil then InsertUserSaver(Off);
+  if UserScreen <> nil then InsertUserSaver(False);
   TempFile := '[UC2:'+MakeNormName(TempDir,'!!!DN!!!.TMP')+']'+ArcFileName;
   LocateCursor(0,0);
   StartupData.Unload := StartupData.Unload and not osuBlinking;

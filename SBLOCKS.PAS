@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -482,7 +485,7 @@ begin
                L := XMSStream^.GetSize;
                XMSStream^.Seek(L);
                XMSStream^.Write(S, B.Len+1);
-               if XMSStream^.Status <> stOK then begin NoXMS := On; goto 0 end
+               if XMSStream^.Status <> stOK then begin NoXMS := True; goto 0 end
                  else begin B.Pos := L; Exit end;
              end else
              begin
@@ -490,7 +493,7 @@ begin
                if XMSStream^.Status = stOK then Goto 1;
                Dispose(XMSStream,Done);
                XMSStream:=nil;
-               NoXMS := On;
+               NoXMS := True;
                Goto 0;
              end;
          end;
@@ -503,7 +506,7 @@ begin
                L := EMSStream^.GetSize;
                EMSStream^.Seek(L);
                EMSStream^.Write(S, B.Len+1);
-               if EMSStream^.Status <> stOK then begin NoEMS := On; goto 0 end
+               if EMSStream^.Status <> stOK then begin NoEMS := True; goto 0 end
                  else begin B.Pos := L + 2000000; Exit end;
              end else
              begin
@@ -517,7 +520,7 @@ begin
                EMSStream := nil;
                EMSCurHandle := $FFFF;
                EMSCurPage := $FFFF;
-               NoEMS := On;
+               NoEMS := True;
                Goto 0;
              end;
          end else
@@ -530,7 +533,7 @@ begin
                B.Pos := MemStream^.GetSize+4000000;
                MemStream^.Seek(MemStream^.GetSize);
                MemStream^.Write(S, B.Len+1);
-               if MemStream^.Status <> stOK then NoMem := On
+               if MemStream^.Status <> stOK then NoMem := True
                  else Exit;
              end else
              begin
@@ -538,7 +541,7 @@ begin
                if MemStream^.Status = stOK then goto 3;
                Dispose(MemStream,Done);
                MemStream := nil;
-               NoMem := On;
+               NoMem := True;
              end;
          end;
     end else
@@ -569,7 +572,7 @@ end;
 procedure TBlocker.AtInsert(N: LongInt; P: PString);
   var B: TMemBlock;
 begin
-  if CacheSize > 0 then FlushCache(On);
+  if CacheSize > 0 then FlushCache(True);
   if P = nil then FreeStr := '' else FreeStr := P^;
   B.Pos := -1;
   WriteBlock(B, FreeStr);
@@ -580,7 +583,7 @@ end;
 procedure TBlocker.AtPut(N: LongInt; P: PString);
   var K, I, K1, K2, KK: LongInt;
 begin
-  if CacheSize > 0 then FlushCache(On);
+  if CacheSize > 0 then FlushCache(True);
   K := N div MaxBlockSize;
   KK := N mod MaxBlockSize;
   if Blocks[K] = nil then
@@ -606,7 +609,7 @@ end;
 
 procedure TBlocker.AtDelete(N: LongInt);
 begin
-  {if CacheSize > 0 then FlushCache(On);}
+  {if CacheSize > 0 then FlushCache(True);}
   if (CachePos <= N) and (CachePos+CacheSize > N) then
      begin
        DisposeStr(Cache[N-CachePos].S);
@@ -624,7 +627,7 @@ end;
 procedure TBlocker.AddStr;
   var B: TMemBlock;
 begin
-  if CacheSize > 0 then FlushCache(On);
+  if CacheSize > 0 then FlushCache(True);
   B.Pos := -1;
   WriteBlock(B, S);
   InsertIndex(Count, B.Pos, B.Len);
@@ -642,14 +645,14 @@ begin
        FillChar(Cache, SizeOf(Cache), 0);
        CacheSize := 0;
     end;
-  CacheModified := Off;
+  CacheModified := False;
 end;
 
 procedure TBlocker.SwapItems;
   var B1, B2: TMemBlock;
       K,KK,A,AA: LongInt;
 begin
-  if CacheSize > 0 then FlushCache(On);
+  if CacheSize > 0 then FlushCache(True);
   K := Idx1 div MaxBlockSize;
   KK := Idx1 mod MaxBlockSize;
   B1 := Blocks[K]^[KK];
@@ -662,7 +665,7 @@ end;
 destructor TBlocker.Done;
   var I: LongInt;
 begin
-  FlushCache(On);
+  FlushCache(True);
   for I := 0 to 29 do
     if Blocks[I] <> nil then FreeMem(Blocks[I], SizeOf(TNumBlock));
 {$IFNDEF NOEXTRA}

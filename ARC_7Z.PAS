@@ -47,124 +47,93 @@
 //
 //  Version history:
 //
-//  1.6.RC1
-//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//  2004.04.03 implemented by piwamoto
 //
-//  2.0.0
-//  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
-//
-//  3.7.0
-//  dn370-archives(if)-improve_and_fix.patch
+//  dn40404-7Zip_fix.patch
 //
 //  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit Arc_SQZ; {SQZ}
+unit Arc_7Z; {7-Zip}
 
 interface
- uses Archiver, Advance, Advance1, Objects, LFNCol, Dos;
+uses Objects, Archiver, advance2, advance, dnapp, commands, drivers,
+     Advance1, advance3, startup, views;
 
-type
-    PSQZArchive = ^TSQZArchive;
-    TSQZArchive = object(TARJArchive)
-        constructor Init;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
+Type
+     PS7ZArchive = ^TS7ZArchive;
+     TS7ZArchive = object(TARJArchive)
+      constructor Init;
+      procedure GetFile; virtual;
+      function GetID: Byte; virtual;
+      function GetSign: TStr4; virtual;
     end;
 
-type
-     SQZHdr = record
-      Size: Byte;
-      SUM: Byte;
-      Method: Byte;
-      PackedSize: LongInt;
-      OriginSize: LongInt;
-      Date: LongInt;
-      Attr: Byte;
-      CRC: LongInt;
-      Name: Array[0..127] of Char;
-     end;
-
 implementation
-{ ----------------------------- SQZ ------------------------------------}
+{ ------------------------------- AIN ------------------------------------- }
 
-constructor TSQZArchive.Init;
+constructor TS7ZArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'SQZ'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'SQZ'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             '7Z'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           '7Z'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a'));
-  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'a'));
+  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               ''));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd'));
-  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             ''));
   Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               't'));
+  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-p'));
   IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
-  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
+  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-y'));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
-  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        's'));
+  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-sfx'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
-  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
-  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
-  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-m1'));
-  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m2'));
-  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-m4'));
-  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-m4'));
-  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-m4'));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-r0'));
+  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-mx0'));
+  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-mx1'));
+  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-mx1'));
+  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-mx5'));
+  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-mx7'));
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-mx9'));
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
   q := GetVal(@Sign[1], @FreeStr[1], PPassDirNames, '0');
   if q='0' then PassDirNames := False else PassDirNames := True;
-  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   if q='0' then UseLFN := False else UseLFN := True;
 end;
 
-function TSQZArchive.GetID;
+function TS7ZArchive.GetID;
 begin
-  GetID := arcSQZ;
+  GetID := arc7Z;
 end;
 
-function TSQZArchive.GetSign;
+function TS7ZArchive.GetSign;
 begin
-  GetSign := sigSQZ;
+  GetSign := sig7Z;
 end;
 
-Procedure TSQZArchive.GetFile;
-label 1;
-var
-    i    : AWord;
-    P    : SQZHdr;
+Procedure TS7ZArchive.GetFile;
+ var
+     P: PView;
+     S: String;
 begin
-1:
- ArcFile^.Read(P,1);
- if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2; Exit; end;
- if (P.Size = 0) then begin FileInfo.Last := 1; Exit;end;
-{ if P.Size < $19 then}{changed by piwamoto}
- if P.Size < 18 then
-  begin
-   ArcFile^.Read(I, 2);
-   ArcFile^.Seek(ArcFile^.GetPos + I);
-   Goto 1;
-  end;
- ArcFile^.Read(P.SUM, P.Size + 1);
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := P.Attr and not Hidden;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date := P.Date;
- FileInfo.FName[0] := Char(P.Size - 18);
- System.Move(P.Name, FileInfo.FName[1], P.Size - 18);
- if Length(FileInfo.FName) > 79 then begin FileInfo.Last := 2; Exit; end;
- ArcFile^.Seek(ArcFile^.GetPos + P.PackedSize);
+  S := UNPACKER^+' l '+SquashesName(ArcFileName)+' >'+MakeNormName(TempDir,'!!!DN!!!.TMP');
+  if PReader <> nil then PReader^.Free;
+  P := WriteMsg(' '+GetString(dlPleaseStandBy));
+  if UserScreen <> nil then InsertUserSaver(False);
+  TempFile := '[7Z!:'+MakeNormName(TempDir,'!!!DN!!!.TMP')+']'+ArcFileName;
+  LocateCursor(0,0);
+  StartupData.Unload := StartupData.Unload and not osuBlinking;
+  {P^.Free;}
+  Message(Application, evCommand, cmExecString, @S);
 end;
 
 end.

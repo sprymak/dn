@@ -52,6 +52,9 @@
 //  dn16rc1-vp_noasm_compatible.patch
 //
 //  2.0.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -93,7 +96,7 @@ uses advance1, advance2, advance6;
 {$IFDEF OS_DOS}
 procedure AppendCheck;
  begin
-  AppendInstalled := Off;
+  AppendInstalled := False;
   if Dos40 then
     asm
       mov  ax, $B700

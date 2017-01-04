@@ -51,6 +51,9 @@
 //  dn230-remove_useless_CapitalCodePageName_option.patch
 //
 //  2.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -397,7 +400,7 @@ begin
 end;
 
 begin
- CheckForOver := nil; Abort := Off; S := nil;
+ CheckForOver := nil; Abort := False; S := nil;
  lAssignFile(F, Name); ClrIO; lGetFAttr(F, Attr); if Abort then Exit;
  if (DosError = 0) and (Attr and ReadOnly <> 0 ) then
  begin

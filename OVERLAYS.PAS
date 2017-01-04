@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -325,13 +328,13 @@ begin
          end;
        Dispose(S,Done) ;
       end
-   end else XMSfound := off ;
+   end else XMSfound := False ;
 
   if (FindParam('/NOEMS') = 0) then
      begin
         if EMSFound and (StartupData.Load and osuOverlayEMS <> 0) then
         begin OvrInitEMS; if ovrResult = ovrOK then Exit end
-     end else EMSfound := off ;
+     end else EMSfound := False ;
 
 end;
 

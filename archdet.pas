@@ -66,6 +66,10 @@
 //  dn281-more_strict_ZIP_detection.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn40328-7Zip.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -76,7 +80,7 @@ uses archiver, Arc_Zip, Arc_LHA, arc_RAR, arc_ACE, arc_HA, arc_CAB,
 {$IFNDEF MINARCH}
        arc_arc, arc_bsa, arc_bs2, arc_hyp, arc_lim, arc_hpk, arc_TAR, arc_TGZ,
        arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
-       arc_UC2, arc_AIN,
+       arc_UC2, arc_AIN, arc_7Z,
 {$ENDIF}
      profile, objects, advance, advance1, advance2;
 
@@ -107,7 +111,7 @@ begin
     NullXLAT (NXL);
     FP := ArcFile^.GetPos;
     repeat
-     FP := SearchFileStr(@ArcFile^, NXL, 'PK', FP, Off{piwamoto:we need it OFF}, Off, Off, On, Off, Nil);
+     FP := SearchFileStr(@ArcFile^, NXL, 'PK', FP, False{piwamoto:we need it FALSE}, False, False, True, False, Nil);
      ArcFile^.Seek(FP);
      ArcFile^.Read(ID, SizeOf(ID));
     until (FP < 0) or
@@ -148,7 +152,7 @@ var
  ID: LongInt;
  M2: MainRAR2Hdr;
 begin
- RAR2 := Off;
+ RAR2 := False;
  RARDetect:=False;
  ArcFile^.Read(ID, SizeOf(ID));
  if (ArcFile^.Status = stOK) and (ID = $5e7e4552{'RE~^'}{RAR until v1.50})
@@ -166,7 +170,7 @@ begin
       if M2.HeadType = $73 then
         begin
           RARDetect := True;
-          RAR2 := On;
+          RAR2 := True;
           ArcPos := ArcPos + M2.HeadLen + 7{Rar ID};
           if M2.HeadFlags and $80 <> 0 {headers are encrypted} then
              ArcPos := ArcFile^.GetSize;
@@ -350,8 +354,8 @@ begin
     then
      begin
       ArcFile^.Seek(ArcFile^.GetSize - SizeOf(P));
-      P.NumFiles := GetLong(On);
-      P.Margin := GetLong(On);
+      P.NumFiles := GetLong(True);
+      P.Margin := GetLong(True);
       ArcFile^.Read(P.I,7);
       if P.S = 'HPAK' then
        begin
@@ -363,7 +367,7 @@ begin
           New(R); R^.Name := nil;
           ArcFile^.Read(W,2);
           if W and $10 <> 0 then ArcFile^.Read(J,2);
-          R^.Date := GetLong(On);
+          R^.Date := GetLong(True);
           R^.USize := GetLong(W and $0080 <> 0);
           R^.PSize := GetLong(W and $0040 <> 0);
           HPKCol^.Insert(R);
@@ -552,6 +556,17 @@ begin
    end;
  ArcFile^.Seek(ArcPos);
 end;
+
+Function S7ZDetect: Boolean;
+var
+ ID: LongInt;
+begin
+ S7ZDetect:=False;
+ ArcFile^.Read(ID, SizeOf(ID));
+ if (ArcFile^.Status = stOK) and (ID = $AFBC7A37)
+   then S7ZDetect := True
+   else ArcFile^.Seek(ArcPos);
+end;
 {$ENDIF}
 
 function DetectArchive;
@@ -582,6 +597,7 @@ begin
  if ZOODetect   then DetectArchive:=New(PZOOArchive,  Init) else
  if ZXZDetect   then DetectArchive:=New(PZXZArchive,  Init) else
  if IS3Detect   then DetectArchive:=New(PIS3Archive,  Init) else
+ if S7ZDetect   then DetectArchive:=New(PS7ZArchive,  Init) else
 {$ENDIF}
  DetectArchive:=nil;
  CloseProfile;
@@ -615,6 +631,7 @@ begin
   if sign=sigZOO   then GetArchiveTagBySign := arcZOO   else
   if sign=sigZXZ   then GetArchiveTagBySign := arcZXZ   else
   if sign=sigIS3   then GetArchiveTagBySign := arcIS3   else
+  if sign=sig7Z    then GetArchiveTagBySign := arc7Z    else
 {$ENDIF}
   GetArchiveTagBySign := arcUNK;
 end;
@@ -647,6 +664,7 @@ begin
  if ID=arcZOO   then GetArchiveByTag:=New(PZOOArchive,  Init) else
  if ID=arcZXZ   then GetArchiveByTag:=New(PZXZArchive,  Init) else
  if ID=arcIS3   then GetArchiveByTag:=New(PIS3Archive,  Init) else
+ if ID=arc7Z    then GetArchiveByTag:=New(PS7ZArchive,  Init) else
 {$ENDIF}
  GetArchiveByTag:=nil;
  CloseProfile;

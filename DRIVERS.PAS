@@ -54,6 +54,10 @@
 //  dn270_device_not_ready_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -278,7 +282,7 @@ uses
   Startup,
   DnApp,
   DnUtil,
-  {$IFDEF VIRTUALPASCAL} VpSysLow, Crt, {$ENDIF}
+  {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
   FlPanelX
   ;
 
@@ -623,8 +627,8 @@ begin
  if NeedAbort then
   begin
    SystemError := 3;
-   Abort := On;
-   NeedAbort := Off;
+   Abort := True;
+   NeedAbort := False;
    Exit;
   end;
 

@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -104,7 +107,7 @@ end;
 
 procedure TNetInfo.ShowView;
 begin
- ReadData(Off);
+ ReadData(False);
  inherited ShowView;
 end;
 
@@ -118,7 +121,7 @@ procedure TNetInfo.ReadData;
  var
      MemBlocks, I: Word;
 begin
- Abort:=Off;
+ Abort:=False;
  DisposeStr(Info.Title);
  FillChar(Info, SizeOf(Info), 0);
  Message(Owner, evCommand, cmGetNetInfo, @Info);
@@ -131,10 +134,10 @@ begin
   case Event.Command of
    cmInfoPresent: begin ClearEvent(Event); Event.InfoPtr := Owner end;
    cmRereadInfo: begin
-                   ReadData(Off); DrawView; ClearEvent(Event);
+                   ReadData(False); DrawView; ClearEvent(Event);
                  end;
    cmLocalReread: begin
-                   ReadData(On); DrawView; ClearEvent(Event);
+                   ReadData(True); DrawView; ClearEvent(Event);
                   end;
   end;
 end;

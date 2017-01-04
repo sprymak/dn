@@ -56,6 +56,10 @@
 //  dn328-CDPlayer(i)-Tab_fix.patch
 //
 //  3.7.0
+//  dn370-cdplayer(if)-fix_and_improve.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -156,13 +160,13 @@ Unit CdUtil;
        begin
 
         D := SourceDir + 'CD\';
-        T := D + Hex8(DiskID) + '.CD';
+        T := D + UpStrg(Hex8(DiskID)) + '.CD';
         lAssignText(F,T);
         ClrIo;
         lResetText(F);
         if IOResult<>0 then begin
                              ClrIo ;
-                             CreateDirInheritance(D,off);
+                             CreateDirInheritance(D,False);
                              lRewriteText(F);
                              if IoResult<>0 then Exit;
                              Writeln(F.T,'TITLE:',CnvString(DiskTitle));
@@ -229,36 +233,7 @@ Unit CdUtil;
       MakeTrackList := C ;
      end;
 
-    {
-    function TTrks.GetText;
-    var S : String ;
-       I : Integer ;
-     begin
-        S := '';
-         if CD_Player <> Nil then
-          with PCdPlayer( CD_Player )^ do
-           begin
-            I := FirstTrack+Item;
-            S := SStr( Item+1,2,' '      ) + ' '#179' ' +
-               + SStr( Tlen[I].Lmin,2,' ' ) + ':' +
-               + SStr( Tlen[I].Lsec,2,'0' ) + ' '#179' ' +
-               CnvString(Decr^.At(I));
-           end;
-        GetText := S;
-     end;
-    }
-
-
-      (*
-      var
-        DataRec : record
-          trks : TListboxRec;  {Listbox}
-           list
-           Selection
-          end;
-       *)
-
-   Constructor TSpad.Init;
+   Constructor TSpad.Init; { Improved by Flash 07-07-2003 }
       var
 
         R, R1 : TRect;
@@ -267,16 +242,25 @@ Unit CdUtil;
         KeyLines : byte ;
         Keys     : byte ;
 
-        I,Y,L  : integer ;
+        I,Y,L,J,K  : integer ;
+        WTitle: String;
 
       begin
 
       Keys := ASongs ;
       if Keys > 9 then Keys := 12 ;
       KeyLines := 4 ;
-      R.Assign(16,4,54,16);
-
-      Inherited Init( R  , GetString(dlCDPlayTrack)+' (1..'+ itos(ASongs) +') '#254#254 ) ;
+      if ASongs > 9 then
+       begin
+       R.Assign(16,4,54,15);
+       WTitle := GetString(dlCDPlayTrack)+' (1..'+ itos(ASongs) +') '#254#254;
+       end
+      else
+       begin
+       R.Assign(16,4,54,14);
+       WTitle := GetString(dlCDPlayTrack)+' (1..'+ itos(ASongs) +')';
+       end;
+       Inherited Init( R , WTitle ) ;
         Options := Options or ofCentered ;
 
       Songs := ASongs ;
@@ -285,7 +269,6 @@ Unit CdUtil;
       Ent[1] := #254;
       Ent[2] := #254;
       EntPos := 1;
-
 
       R1.Assign(1,2,8,4);
 
@@ -305,56 +288,37 @@ Unit CdUtil;
           Insert(Control);
           inc(Y);
            R1.Move(7,0);
-          if Y = 4 then
+          if Songs > 9 then begin J := 4; K := -21; end
+                       else begin J := 6; K := -35; end;
+          if Y = {4}J then
            begin
 
               if Songs >= (L*10) then
                  begin
-                   Inc(R1.B.X,3);
+                   Inc(R1.B.X,{3}7); Inc(R1.A.X,4);
                    Control := New(PButton, Init(R1, '+~'+ItoS( L ) + '~0' , cdSong + L*10 , bfBroadCast ));
                    Insert(Control);
-                   Dec(R1.B.X,3);
+                   Dec(R1.B.X,{3}7); Dec(R1.A.X,4);
                  end;
 
               Y := 1;
-              R1.Move(-21,2);
+              R1.Move({-21}K,2);
               inc(L);
            end;
 
-
         end;
 
-
     if Keys < 12 then
-
-    begin
+     begin
       EntPos := 2;
-
-      R.Assign( 12, KeyLines*2 ,22,KeyLines*2 + 2 ) ;
+      R.Assign(14, KeyLines*2 - 1, 24, KeyLines*2 + 1) ;
       Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
       {Control^.Options := Control^.Options or ofCenterX ;}
       Insert(Control);
-    end;
-      {
-
-      if Asongs > 1 then
-       begin
-        R.Move( -11 , 0);
-        Control := New(PButton, Init(R, '~E~nter', cmOk, bfNormal));
-        Insert(Control);
-
-       end;
-       }
-
-      {
-      R.Assign(13,10,23,12);
-      Control := New(PButton, Init(R, 'O~K~', cmOk, bfDefault));
-      Dlg^.Insert(Control);
-      }
-
-      {R.Assign(25,10,35,12);}
+     end;
 
       SelectNext(False);
+
       end;
 
    Procedure TSPad.UpdateTitle ;
@@ -401,6 +365,7 @@ Unit CdUtil;
                 end;
             else
               begin
+                if (P > 0) and (P < 10) and (EntPos = 1) then inc(EntPos);
                 if P > 9 then
                 P := P div 10 ;
                 Ent[EntPos] := Char( P + byte('0') );
@@ -568,7 +533,7 @@ Unit CdUtil;
           then begin
                 P^.GetData(T);
                 AddStr(Self.Order,S[T.Selection+1]{,BOX^.Focused+2});
-                List := MakeTrackList( CD , Self.order,'', On );
+                List := MakeTrackList( CD , Self.order,'', True );
                 Box^.NewList( List );
                end;
         end;
@@ -581,7 +546,7 @@ Unit CdUtil;
     i := Box^.Focused;
     System.Delete( Order, i+1,1 );
 
-    List := MakeTrackList( CD , order ,'', On );
+    List := MakeTrackList( CD , order ,'', True );
     Box^.NewList( List );
 
   end;
@@ -604,7 +569,7 @@ Unit CdUtil;
         lReWriteText(F);
         if IOResult<>0 then begin
                              ClrIo ;
-                             CreateDirInheritance(D,off);
+                             CreateDirInheritance(D,False);
                              lRewriteText(F);
                              if IoResult<>0 then Exit;
                             end;

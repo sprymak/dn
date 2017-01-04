@@ -64,6 +64,11 @@
 //  dn368-calculator_clipboard_fix.patch
 //
 //  3.7.0
+//  dn370-calculator(i)_optimization.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -72,14 +77,13 @@ UNIT CCalc;
 
 interface
 
-uses advance, advance1, advance2, advance3, calculat, RStrings, DNApp,
-     Dialogs, Views, Objects, Drivers, Commands, HistList, DNHelp;
+uses Advance, Advance1, Calculat, DNApp, Dialogs, Views, Objects, Drivers,
+     Commands, HistList, DNHelp;
 
 type
      PCalcLine = ^TCalcLine;
      TCalcLine = object(TInputLine)
         Radio: PRadioButtons; { Flash 02-02-2003 }
-        ResultSelected: Boolean;
         procedure HandleEvent(var Event: TEvent); virtual;
         procedure SetData(var B); virtual;
         procedure SetValues(SetSelf: Boolean);
@@ -112,16 +116,21 @@ type
        procedure DeleteControls;
        procedure CenterButtons;
        procedure Store(var S: TStream);
+       procedure ChangeLanguage; virtual;  {John_SW  23-12-2003}
      end;
 
-Function InsertCalc(s: PString): String;
+function InsertCalc(s: PString): String;
 function CTrunc(Value:Double): LongInt; { Max Morozov }
 procedure GetNValue(L: LongInt; A: Integer; var S: String);
 
-Const Calc: PView = nil;
+const Calc: PView = nil;
       ModalCalc: PCCalcWindow = Nil;
 
 implementation
+
+uses Messages;
+
+const Limit = 4294967295.0;
 
 { Max Morozov: begin } { trunc without overflow exception }
 function CTrunc(Value:Double): LongInt; assembler;
@@ -158,7 +167,7 @@ constructor TIndicator.Init;
 begin
   inherited Init(R);
   EventMask := evBroadcast;
-  CalcError := Off;
+  CalcError := False;
   Value := 0;
 end;
 
@@ -179,6 +188,23 @@ end;
      end;
   end;
 
+{ Flash 26-08-2003 >>> }
+procedure GetForm(N: byte; V: CReal; var S: string);
+begin
+case N of
+ 0: begin
+    if Abs(V)>=1E+14 then Str(V, S) else Str(V:0:15, S);
+    if Pos('E',S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
+    if S[Length(S)] = '.' then Dec(S[0]);
+    end;
+ 1: if Abs(V) < Limit then GetNValue(CTrunc(V), 4, S) else Exit;
+ 2: if Abs(V) < Limit then GetNValue(CTrunc(V), 1, S) else Exit;
+ 3: if Abs(V) < Limit then GetNValue(CTrunc(V), 3, S) else Exit;
+ 4: Str(V, S);
+end;
+DelSpace(S);
+end;
+{ Flash 26-08-2003 <<< }
 
 procedure TIndicator.HandleEvent;
  var D: record
@@ -193,12 +219,12 @@ begin
   if (Event.What = evBroadcast) then
     case Event.Command of
        cmSetValue: begin
-                     CalcError := Off;
+                     CalcError := False;
                      Value := PCReal(Event.InfoPtr)^;
                      CE
                    end;
        cmSetError: begin
-                     CalcError := On;
+                     CalcError := True;
                      CE
                    end;
        cmCancel: begin
@@ -211,18 +237,7 @@ begin
        cmCopyClip: begin
                   ClearEvent(Event);
                   Owner^.GetData(D);
-                  case D.N of
-                    0: begin
-                         if Abs(Value)>=1E+14 then Str(Value, D.S) else Str(Value:0:15, D.S); { Flash }
-                         if Pos('E',D.S)=0 then While D.S[Length(D.S)] = '0' do Dec(D.S[0]);  { Flash }
-                         if D.S[Length(D.S)] = '.' then Dec(D.S[0]);
-                         DelSpace(D.S);                                                       { Flash }
-                       end;
-                    1: if Abs(Value) < 4294967295.0 then GetNValue(CTrunc(Value), 4, D.S) else Exit;
-                    2: if Abs(Value) < 4294967295.0 then GetNValue(CTrunc(Value), 1, D.S) else Exit;
-                    3: if Abs(Value) < 4294967295.0 then GetNValue(CTrunc(Value), 3, D.S) else Exit;
-                    4: Str(Value, D.S);
-                  end;
+                  GetForm(D.N, Value, D.S);
                   Message(Application, evCommand, cmPutInClipboard, @D.S);
                end;
     end;
@@ -232,7 +247,7 @@ procedure TIndicator.Draw;
   var B: TDrawBuffer;
       S: String[40];
       C: Byte;
-      L, LL: LongInt;
+      LL: LongInt;
 
   procedure Wrt(N: Integer);
   begin
@@ -259,7 +274,8 @@ begin
         case ErrCode of
         Stack_Overflow          : S:=GetString(clStack_Overflow);
         Too_Large_Number        : S:=GetString(clToo_Large_Number);
-        Argument_Missing        : S:=GetString(clArgument_Missing);
+        Argument_Missing        : S:=GetString(clArgument_Missing)+ErrString;
+        Too_Many_Arguments      : S:=GetString(clToo_Many_Arguments)+ErrString;
         Syntax_Error            : S:=GetString(clSyntax_Error);
         Unknown_Function        : S:=GetString(clUnknown_Function);
         Left_Bracket_Missing    : S:=GetString(clLeft_Bracket_Missing);
@@ -267,8 +283,6 @@ begin
         Operation_Expected      : S:=GetString(clOperation_Expected);
         Unknown_Symbol          : S:=GetString(clUnknown_Symbol);
         Two_Operations          : S:=GetString(clTwo_Operations);
-        Comma_Missing           : S:=GetString(clComma_Missing);
-        Too_Many_Commas         : S:=GetString(clToo_Many_Commas);
         Incorrect_Usage         : S:=GetString(clIncorrect_Usage)+ErrString;
         Division_By_Zero        : S:=GetString(clDivision_By_Zero);
         LOG_Wrong_Base          : S:=GetString(clLOG_Wrong_Base);
@@ -285,20 +299,12 @@ begin
         WriteLine(0,2,Size.X,1,B);
      end else
      begin
-       if Abs(Value)>=1E+14 then Str(Value, S)        { Flash }
-                            else Str(Value:0:15, S);  { Flash }
-       if PosChar('E', S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
-       if S[Length(S)] = '.' then Dec(S[0]);
+       GetForm(0, Value, S);
        Wrt(0);
-       if Abs(Value) > 4294967295.0 then
-         begin
-            S := GetString(dlOverflow);
-            Wrt(1); Wrt(2); Wrt(3);
-         end
-         else begin
-            LL := CTrunc(Value);
-            WrtN(1, 4); WrtN(2, 1); WrtN(3, 3);
-         end;
+       if Abs(Value) > Limit then
+         begin S := GetString(dlOverflow); Wrt(1); Wrt(2); Wrt(3); end
+       else
+         begin LL := CTrunc(Value); WrtN(1, 4); WrtN(2, 1); WrtN(3, 3); end;
        Str(Value, S);
        Wrt(4);
      end;
@@ -309,14 +315,12 @@ procedure TCalcLine.HandleEvent;
  var WasKey: Boolean;
 begin
    WasKey := Event.What = evKeyDown;
-   if WasKey and ResultSelected then
-     if Not (Event.CharCode in ['0'..'9']) then SelEnd:=0;
    if (Event.What = evKeyDown) and (Event.KeyCode = kbUp) then
      ClearEvent(Event);
    inherited HandleEvent(Event);
    if WasKey then
     begin
-     SetValues(Off);
+     SetValues(False);
      if Event.KeyCode = kbESC then
       begin
         GetData(FreeStr);
@@ -331,7 +335,17 @@ begin
     if (Event.What = evCommand) then
       case Event.Command of
         cmCalcValue: Begin
-                      SetValues(On);
+                      SetValues(True);
+                      SelectAll(True);
+                      GetData(FreeStr);
+                      CurPos:=Length(FreeStr);
+                      if ErrPos>0 then
+                       begin
+                       GetData(FreeStr);
+                       Inc(ErrPos,CharCount(' ',Copy(FreeStr,1,ErrPos-1)));
+                       CurPos:=ErrPos-1; SelStart:=0; SelEnd:=0
+                       end;
+                      DrawView;
                       If Owner^.GetState(sfModal) Then EndModal(cmOk); {John_SW 09-02-2003}
                      End;
         cmGetName: PString(Event.InfoPtr)^ := GetString(dlCalculator);
@@ -341,13 +355,13 @@ end;
 procedure TCalcLine.SetData;
 begin
   inherited SetData(B);
-  SetValues(Off);
+  SetValues(False);
 end;
 
 procedure TCalcLine.Awaken;
 begin
   inherited Awaken;
-  SetValues(Off);
+  SetValues(False);
   If ModalCalc = Nil Then Calc := Owner Else PView(ModalCalc) := Owner;
 end;
 
@@ -362,9 +376,7 @@ procedure TCalcLine.SetValues;
      S: String;
      N: Word;
 begin
-  ResultSelected:=False;
   GetData(S);
-  DelSpace(S);
   if S = '' then
    begin R := 0; Message(Owner, evBroadcast, cmSetValue, @R); Exit end;
   R := Evalue(S, nil);
@@ -375,42 +387,22 @@ begin
     GetData(S);
     { Flash 02-02-2003 >>> }
     Radio^.GetData(N);
+    GetForm(N, R, S);
     case N of
-     0: begin
-         if Abs(R)>=1E+14 then Str(R, S) else Str(R:0:15, S);
-         if Pos('E',S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
-         if S[Length(S)] = '.' then Dec(S[0]);
-        end;
-     1: begin
-         if Abs(R) < 4294967295.0 then GetNValue(CTrunc(R), 4, S) else Exit;
-         S:='$'+S;
-        end;
-     2: begin
-         if Abs(R) < 4294967295.0 then GetNValue(CTrunc(R), 1, S) else Exit;
-         S:=S+'b';
-        end;
-     3: begin
-         if Abs(R) < 4294967295.0 then GetNValue(CTrunc(R), 3, S) else Exit;
-         S:=S+'o';
-        end;
-     4: Str(R, S);
+     1: S:='$'+S;
+     2: S:=S+'b';
+     3: S:=S+'o';
     end;
-    DelSpace(S);
     HistoryAdd(hsCalcLine, S);
     { Flash 02-02-2003 <<< }
     SetData(S);
-    Message(@Self, evKeyDown, kbEnd, nil);
-    SelStart:=0;
-    SelEnd:=Length(Data^);
     DrawView;
-    ResultSelected:=True;
    end;
   end;
 end;
 
 procedure TCCalcWindow.InsertControls;
  var R: TRect;
-     P: Pointer;
      T: String;
      N: Word;
 begin
@@ -477,6 +469,7 @@ begin
   Insert(Indicator);
 
   CalcLine^.MakeFirst;
+  Title:=NewStr(GetString(dlCalculator));
 end;
 
 procedure TCCalcWindow.DeleteControls;
@@ -539,7 +532,6 @@ begin
   InsertControls;
   CalcLine^.SetData(T);
   Radio^.SetData(N);
-  Title:=NewStr(GetString(dlCalculator));
   Calc:=@Self;
 end;
 
@@ -554,6 +546,14 @@ begin
   S.WriteStr(@T);
   S.Write(N, SizeOf(N));
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+procedure TCCalcWindow.ChangeLanguage;
+begin
+ DeleteControls;
+ InsertControls;
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
 
 {--- start -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
 {Now calculator can be called from InputLine as Modal window}

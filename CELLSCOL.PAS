@@ -51,6 +51,9 @@
 //  dn2825-wkz_delete_row_and_column_fix.patch
 //
 //  3.7.0
+//  dn31214-WKZ(f)-wkz_works_in_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -65,10 +68,10 @@ type
      PCellRec =^TCellRec;
      TCellRec = record
       Col: Byte;
-      Row: Integer;
-      Options: Word;
+      Row: AWord;
+      Options: AWord;
       Decimals: Byte;
-      Value: Real;
+      Value: {$IFNDEF VIRTUALPASCAL}Real{$ELSE}Real48{$ENDIF};
       S: String;
      end;
 
@@ -92,8 +95,8 @@ const
     MaxCellY = 4096;
 
 
-    LenDataRec = Sizeof(Byte) + SizeOf(Integer) + SizeOf(Word) +
-                 SizeOf(Byte) + sizeof(Real) + SizeOf(Char);
+    LenDataRec = Sizeof(Byte) + SizeOf(AWord) + SizeOf(AWord) +
+                 SizeOf(Byte) + {sizeof(Real)}6 + SizeOf(Char);
 
 {      Options :
           x x x x x x x
@@ -148,13 +151,14 @@ end;
 constructor TCellCollection.ShortLoad(var S: TStream);
 var q: word;
   C, I: Integer;
-  ACount, ALimit, ADelta: integer;
+  ACount, ALimit, ADelta: AWord;
 begin
   S.Read(q, 2);
   if q<>VObjType then fail;
-  S.Read(ACount, SizeOf(Integer));
-  S.Read(ALimit, SizeOf(Integer));
-  S.Read(ADelta, SizeOf(Integer));
+  S.Read(ACount, 2);
+  S.Read(ALimit, 2);
+  S.Read(ADelta, 2);
+
   Inherited Init(ALimit, ADelta);
   SetLimit(ACount);
   for I := 0 to ACount - 1 do AtInsert(I, GetItem(S));
@@ -311,6 +315,7 @@ begin
   GetCellName := S;
 end;
 
+{$IFNDEF VIRTUALPASCAL}
 function MakeComma(S: String): String;
  var S1: String;
      I: Integer;
@@ -377,5 +382,20 @@ begin
  end;
 Quit: MakeComma := S1;
 end;
-
+{$ELSE}
+function MakeComma(S: String): String;
+ var I: Integer;
+  K: Integer;
+begin
+ I := PosChar('.', S);
+ if I = 0 then I := Length(S)+1;
+ K := 3;
+ while (I - K) > 1 do
+ begin
+   insert(CommaChar, S, I - K);
+   Inc(K, 3);
+ end;
+ MakeComma := S;
+end;
+{$ENDIF}
 end.

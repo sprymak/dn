@@ -63,6 +63,11 @@
 //  dn3421-InputLines(f)_Ctrl_B_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31029-Kernel(f)-Word_to_AWord_changed_in_dialogs_in_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -510,7 +515,7 @@ implementation
 
 uses AsciiTab, HistList, advance, advance1, advance2, advance3, Commands,
      Startup, xTime, FlPanelX, dnapp, dnutil2,ccalc
-     {$IFDEF VIRTUALPASCAL}, Crt{$ENDIF}
+     {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
 const
@@ -1715,7 +1720,7 @@ end;
 
 function TCluster.DataSize: Word;
 begin
-  DataSize := SizeOf(Word);
+  DataSize := SizeOf(AWord);
 end;
 
 procedure TCluster.DrawBox(const Icon: String; Marker: Char);
@@ -1769,7 +1774,7 @@ end;
 
 procedure TCluster.GetData(var Rec);
 begin
-  Word(Rec) := Value;
+  AWord(Rec) := Value;
   DrawView;
 end;
 
@@ -1936,7 +1941,7 @@ end;
 
 procedure TCluster.SetData(var Rec);
 begin
-  Value := Word(Rec);
+  Value := AWord(Rec);
   DrawView;
 end;
 
@@ -2150,7 +2155,7 @@ end;
 type
   TListBoxRec = record
     List: PCollection;
-    Selection: Word;
+    Selection: AWord;
   end;
 
 constructor TListBox.Init(var Bounds: TRect; ANumCols: Word;
@@ -2574,7 +2579,7 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
          begin
            if HistoryErrorBeep then begin
             {$IFDEF VIRTUALPASCAL}
-            PlaySound(500,110);
+            SysBeepEx{PlaySound}(500,110);
             {$ELSE}
             Sound(500); DelayTics(2); NoSound;
             {$ENDIF}
@@ -2829,10 +2834,10 @@ begin
                           If Sec
                             then begin
                               Delete( InputLine^.Data^, CurX+1, 1 );
-                              Sec := OFF;
+                              Sec := False;
                             end else begin
                               Delete(InputLine^.Data^, CurX, 1);
-                              Dec(CurX); Sec := Off;
+                              Dec(CurX); Sec := False;
                             end;
                         CED
                       end;
@@ -2840,7 +2845,7 @@ begin
                        if CurX < Length(InputLine^.Data^) then
                           begin
                              Delete( InputLine^.Data^, CurX+1, 1 );
-                             Sec := OFF;
+                             Sec := False;
                           end;
                         CED
                       end;

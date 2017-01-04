@@ -54,6 +54,9 @@
 //  dn200-dont_change_default_archiver.patch
 //
 //  2.3.0
+//  dn370-archives(if)-improve_and_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -119,7 +122,7 @@ procedure SetupArchive;
           GoodC    : String[20]; {Inputline}
           MaxC     : String[20]; {Inputline}
           List     : String[1];  {Inputline}
-          Swap     : WordBool;   {Checkbox}
+          DirNames : WordBool;   {Checkbox}
           UseLFN   : WordBool;   {Checkbox}
         end;
 
@@ -169,7 +172,7 @@ begin
     DT.GoodC    := CnvString(GoodCompression);
     DT.MaxC     := CnvString(UltraCompression);
     DT.List     := ListChar;
-    DT.Swap     := Swap;
+    DT.DirNames := PassDirNames;
     DT.UseLFN   := UseLFN;
   end;
  D := PDialog(Application^.ValidView(PDialog(LoadResource(dlgSetupArc))));
@@ -207,7 +210,7 @@ begin
      GoodCompression    := NewStr(DT.GoodC);
      UltraCompression   := NewStr(DT.MaxC);
      if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';
-     Swap := DT.Swap;
+     PassDirNames := DT.DirNames;
      UseLFN := DT.UseLFN;
   end;
   UpdateARH(Arch);

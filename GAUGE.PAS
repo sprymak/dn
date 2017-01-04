@@ -54,6 +54,9 @@
 //  dn270-remove_#0_from_progress_indicators-jo21122a.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -304,7 +307,7 @@ procedure TWhileView.HandleEvent;
  begin
   DeskTop^.GetExtent(R);
   Inc(R.A.Y, Size.Y - 1);
-  SetState(sfDragging, On);
+  SetState(sfDragging, True);
   DrawView;
   DragView(Event, dmDragMove, R, Size, Size);
   ClearEvent(Event);
@@ -429,7 +432,7 @@ end;
 function TWhileView.Valid;
 begin
   if (C <> cmQuit) and (C <> cmClose) then Valid := inherited Valid(C)
-                   else Valid := Off;
+                   else Valid := False;
 end;
 
 destructor TWhileView.Done;
@@ -449,7 +452,7 @@ begin
     then
      begin
       InfoView^.ClearEvent(Event);
-      CancelParam := On;
+      CancelParam := True;
      end;
  if (Event.What <> evNothing){ and not ((Event.What = evKeyDown) and
     (Event.KeyCode = kbEnter))}

@@ -57,6 +57,9 @@
 //  dn368-Memory_for_user_DN_DPMI_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -473,7 +476,7 @@ end;
 
 procedure TDiskInfo.ShowView;
 begin
- ReadData(Off);
+ ReadData(False);
  inherited ShowView;
 end;
 
@@ -488,7 +491,7 @@ procedure TDiskInfo.ReadData;
    MemBlocks: Word;
    BaseAddress: LongInt;
 begin
- Abort:=Off;
+ Abort:=False;
  {$IFNDEF OS_DOS}
  TotalMemory := MemAvail;
  {$ELSE}
@@ -573,7 +576,7 @@ begin
    kbLeft : begin
              if Delta.X>0 then begin
               dec(Delta.X);
-              SetState(sfExposed, On);
+              SetState(sfExposed, True);
               DrawView
              end;
              ClearEvent(Event);
@@ -581,7 +584,7 @@ begin
    kbRight: begin
              if Delta.X+Size.X-2<Info.Limit.X then begin
               Inc(Delta.X);
-              SetState(sfExposed, On);
+              SetState(sfExposed, True);
               DrawView
              end;
              ClearEvent(Event);
@@ -589,7 +592,7 @@ begin
    kbDown : begin
              if Delta.Y<Info.Limit.Y then begin
               inc(Delta.Y);
-              SetState(sfExposed, On);
+              SetState(sfExposed, True);
               DrawView
              end;
              ClearEvent(Event);
@@ -597,7 +600,7 @@ begin
    kbUp   : begin
              if Delta.Y>0 then begin
               Dec(Delta.Y);
-              SetState(sfExposed, On);
+              SetState(sfExposed, True);
               DrawView
              end;
              ClearEvent(Event);
@@ -621,10 +624,10 @@ begin
                 end;
     cmInfoPresent: begin ClearEvent(Event); Event.InfoPtr := Owner end;
      cmRereadInfo: begin
-                    ReadData(Off); DrawView; ClearEvent(Event);
+                    ReadData(False); DrawView; ClearEvent(Event);
                   end;
     cmLocalReread: begin
-                    ReadData(On); DrawView; ClearEvent(Event);
+                    ReadData(True); DrawView; ClearEvent(Event);
                    end;
     cmLoadViewFile: begin
                       S := PString(Event.InfoPtr)^; {DataCompBoy}
@@ -656,7 +659,7 @@ end;
   end;
 
 begin
- C := (GetColor(1) shl 8) or (GetColor(2) and 255); Y := 0; CC := Off;
+ C := (GetColor(1) shl 8) or (GetColor(2) and 255); Y := 0; CC := False;
  if ((Info.Title <> Info.Dir) or (Info.Title <> Info.Dir)) and
     (DriveInfoData and (fdiTitle+fdiTotals) <> 0) then
    begin
@@ -711,7 +714,7 @@ begin
      Move(S1[1], FreeStr[X+1], Length(S1));
      Wrt(FreeStr);
      C := (GetColor(1) shl 8) or (GetColor(2) and 255);
-     CC := On;
+     CC := True;
      for X := Delta.Y to Info.DirInfo^.Count - 1 do begin
       Wrt(#0+Copy(CnvString(Info.DirInfo^.At(X)), Delta.X, 255)+#0);
       if Y > Size.Y then Break;
@@ -751,7 +754,7 @@ begin
 
     If Word(Length(FreeStr))>MaxPathLen-1 then Begin Abort := True; Break End;
 
-    DosError := 0; Abort := Off;
+    DosError := 0; Abort := False;
 
     lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
     While (DOSError = 0) and not Abort do

@@ -76,6 +76,11 @@
 //  dn3421-resource_and_help_fixes.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31214-WKZ(f)-wkz_works_in_VP.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -83,7 +88,7 @@ unit Calc;
 
 interface
 
-uses Advance, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
+uses Advance, Objects, Views, CellsCol, Drivers, Dialogs, Messages, Menus,
      HistList, UniWin, Commands, DNHelp, RStrings, Calculat;
 
 const
@@ -97,6 +102,7 @@ type
     PCalcWindow = ^TCalcWindow;
     TCalcWindow = object(TUniWindow)
      CalcView: PCalcView;
+     MenuBar : PMenuBar;  {John_SW  23-12-2003}
      constructor Init(Bounds: TRect; AName: String); {DataCompBoy}
 {--- start -------- Eugeny Zvyagintzev ---------}
      Procedure ChangeBounds(Var R: TRect); Virtual;
@@ -105,6 +111,7 @@ type
      procedure Store(var S: TStream);
      procedure HandleEvent(var Event: TEvent); virtual;
      destructor Done; virtual;
+     procedure ChangeLanguage; virtual;  {John_SW  23-12-2003}
     end;
 
     TCalcView = object(TView)
@@ -265,6 +272,8 @@ const  WasReplace: Boolean = False;
        CurCalcView: PCalcView = nil;
        ReplaceAll: Boolean = False; {John_SW}
 
+Procedure Exchange(Var A,B: Integer);Var C: Integer; Begin C:=A;A:=B;B:=C;End;
+
 function AGetCellValue(VarName: string; var Value: CReal): boolean;
 begin
  if CurCalcView<>nil
@@ -377,10 +386,10 @@ begin
  Insert(P);
 
  GetExtent(R); R.Grow(-1,-1); R.B.Y := R.A.Y + 1;
- P := PView(LoadResource(dlgWkzMenuBar));
- P^.Locate(R);
- P^.GrowMode := gfGrowHiX;
- Insert(P);
+ MenuBar := PMenuBar(LoadResource(dlgWkzMenuBar));
+ MenuBar^.Locate(R);
+ MenuBar^.GrowMode := gfGrowHiX;
+ Insert(MenuBar);
 
  GetExtent(R); R.Grow(-1,-1); Inc(R.A.Y);
  R.B.Y := R.A.Y + 1; Inc(R.A.X, 7);
@@ -466,6 +475,20 @@ begin
  Inherited Done;
 end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+procedure TCalcWindow.ChangeLanguage;
+Var
+  R: TRect;
+begin
+ If MenuBar <> Nil Then Dispose(MenuBar,Done);
+ GetExtent(R); R.Grow(-1,-1); R.B.Y := R.A.Y + 1;
+ MenuBar := PMenuBar(LoadResource(dlgWkzMenuBar));
+ MenuBar^.Locate(R);
+ MenuBar^.GrowMode := gfGrowHiX;
+ Insert(MenuBar);
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+
 {-----------------------------    TCalcInfo     ---------------------------}
 
 constructor TCalcInfo.Load;
@@ -507,7 +530,7 @@ procedure TCalcInfo.HandleEvent;
   If S = OldValue Then Exit; {John_SW: removed waste calculation}
   with CalcView^ do begin
    Error:=false;
-   Modified := On;
+   Modified := True;
    CurrentCalc.X := Delta.X + Cur.X; CurrentCalc.Y := Delta.Y + Cur.Y;
    While S[Byte(S[0])] = ' ' do Dec(S[0]);
    S1 := DelSpaces(S);
@@ -626,7 +649,7 @@ begin
  EventMask := $FFFF; Info := AInfo; CellInfo := ACellInfo;
  PCalcInfo(Info)^.CalcView := @Self;
  FocusEvent.What := evNothing; FillChar(CellWidth, SizeOf(CellWidth), 11);
- Marking := False; BlockDraw := False; Modified := Off;
+ Marking := False; BlockDraw := False; Modified := False;
  Cells := nil;
  Delta.X := 0; Delta.Y := 0;
  Cur := Delta; Mark  := Cur;
@@ -733,10 +756,8 @@ begin
  CurPos.X := Delta.X + Cur.X; CurPos.Y := Delta.Y + Cur.Y;
  X1 := CurPos.X; X2 := Mark.X;
  Y1 := CurPos.Y; Y2 := Mark.Y;
- if X1 > X2 then
-     asm mov AX, X1; mov BX, X2; mov X1, BX; mov X2, AX end;
- if Y1 > Y2 then
-     asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
+ if X1 > X2 then Exchange(X1,X2);
+ if Y1 > Y2 then Exchange(Y1,Y2);
  if Y2 > 4095 then Y2 := 4095;
  MoveChar(B, ' ', C1, Size.X);
  BC[6].C := #179;
@@ -1065,7 +1086,7 @@ type
     Close(F.T);
     ReCalc;
     Owner^.Redraw;
-    Modified:=On;{JOHN_SW}
+    Modified:=True;{JOHN_SW}
   end;
 
   procedure ImportFromDbf; {KV}
@@ -1125,7 +1146,7 @@ type
     S.Done;
     ReCalc;
     Owner^.Redraw;
-    Modified:=On;{JOHN_SW}
+    Modified:=True;{JOHN_SW}
   end;
 
   procedure ExportToCsv; {KV}
@@ -1406,10 +1427,8 @@ type
   begin
    X1 := Delta.X + Cur.X; X2 := Mark.X;
    Y1 := Delta.Y + Cur.Y; Y2 := Mark.Y;
-   if X1 > X2 then
-     asm mov AX, X1; mov BX, X2; mov X1, BX; mov X2, AX end;
-   if Y1 > Y2 then
-     asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
+   if X1 > X2 then Exchange(X1,X2);
+   if Y1 > Y2 then Exchange(Y1,Y2);
    Val(R.Dec, J, I);
    for I := 1 to Cells^.Count do
     begin
@@ -1799,7 +1818,7 @@ var Err: Boolean;
  end;
 
 begin
- Modified := On;
+ Modified := True;
  Err := False; ReError := False; NumRec := 0;
  Modify(X, Y); ReError := Err;
 end;
@@ -1823,10 +1842,10 @@ end;
 function TCalcView.AskSave;
  var A: Word;
 begin
- AskSave := On; if not Modified then Exit;
+ AskSave := True; if not Modified then Exit;
  A := MessageBox(GetString(dlWorkSheet)+' '+Cut(SName^,30)+GetString(dlNotSaved),
                  nil, mfWarning+mfYesNoCancel);
- if A <> cmCancel then Modified := Off;
+ if A <> cmCancel then Modified := False;
  if A = cmYes then SaveSheet else AskSave := A <> cmCancel;
 end;
 
@@ -1898,7 +1917,7 @@ begin
    FillChar(CellWidth, Sizeof(CellWidth), 11);
    ErrMsg(erInvalidFileFormat);
   end;
- Modified := Off;
+ Modified := False;
  if Owner<>nil then Owner^.ReDraw;
 end;
         {-DataCompBoy-}
@@ -1939,7 +1958,7 @@ begin
    Msg(dlCanNotWrite, @PP, mfError + mfOKButton);
    Error := True;
   end;
- Modified := Off;
+ Modified := False;
  Dispose(S,Done);
  FileChanged(FName);
 end;
@@ -1959,7 +1978,7 @@ begin
    Msg(dlCanNotWrite, SName, mfError + mfOKButton);
    Error := True;
   end;
- Modified := Off;
+ Modified := False;
  Dispose(S,Done);
  FileChanged(SName^);
 end;
@@ -1971,10 +1990,8 @@ procedure TCalcView.Copy;
 begin
  X1 := Delta.X + Cur.X; X2 := Mark.X;
  Y1 := Delta.Y + Cur.Y; Y2 := Mark.Y;
- if X1 > X2 then
-   asm mov AX, X1; mov BX, X2; mov X1, BX; mov X2, AX end;
- if Y1 > Y2 then
-   asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
+ if X1 > X2 then Exchange(X1,X2);
+ if Y1 > Y2 then Exchange(Y1,Y2);
  if CellClipboard <> nil then Dispose(CellClipboard,Done); CellClipboard:=nil;
  New(CellClipboard, Init(10, 10));
  for I := 1 to Cells^.Count do
@@ -2062,10 +2079,8 @@ procedure TCalcView.Clear;
 begin
  X1 := Delta.X + Cur.X; X2 := Mark.X;
  Y1 := Delta.Y + Cur.Y; Y2 := Mark.Y;
- if X1 > X2 then
-  asm mov AX, X1; mov BX, X2; mov X1, BX; mov X2, AX end;
- if Y1 > Y2 then
-  asm mov AX, Y1; mov BX, Y2; mov Y1, BX; mov Y2, AX end;
+ if X1 > X2 then Exchange(X1,X2);
+ if Y1 > Y2 then Exchange(Y1,Y2);
  for K := X1 to X2 do
   for L := Y1 to Y2 do
    begin

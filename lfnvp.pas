@@ -48,6 +48,12 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31029-Compile_by_VP.patch
+//  dn31029-lFindFirst(f)-in_VP_fix.patch
+//  dn31029-LFN(f)-Ansi_File_Name_Converts_To_OEM_in_VP_fix.patch
+//  dn31220-Kernel(f)-OEM_title_fix_for_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -58,7 +64,7 @@ unit LFNVP;
 
 interface
 
-uses Dos, DnINI;
+uses Dos, DnINI,vpsyslow;
 
 type
   lAPIType = (lDOS, lWIN95);  {API currently used}
@@ -67,9 +73,9 @@ type
 
    {Extended search structure to be used instead of SearchRec}
   lSearchRec = record
-    SR: SearchRec;     {Basic field set (SR.Name - short name)}
-    FileHandle: Word;  {Search handle, undefined in lDOS mode}
-    FullSize: TSize; {True file size}
+    SR: TOsSearchRec; {Basic field set (SR.Name - short name)}
+    FileHandle: Word; {Search handle, undefined in lDOS mode}
+    FullSize: TSize;  {True file size}
     LoCreationTime: Longint; {Time created (low-order byte)}
     HiCreationTime: Longint; {Time created (high-order byte)}
     LoLastAccessTime: Longint; {Time accessed (low-order byte)}
@@ -122,9 +128,7 @@ procedure lFindClose(var R: lSearchRec);
 
         { Name retrieval functions }
 {$IFNDEF OS2}
-procedure lGetShortFileName(const Name: String; var ShortName: String);
 function lfGetShortFileName(const Name: String): String;
-procedure lGetLongFileName(const Name: String; var LongName: String);
 function lfGetLongFileName(const Name: String): String;
 {$ENDIF}
 
@@ -169,21 +173,15 @@ procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 
 procedure LFNInitUnit; inline; begin end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+function lFileSize(var F: lFile): TSize;
+Function lSeek(var F: lfile;NewPos: TSize;Direction: Byte): TSize;
+Function lFilePos(var F: lfile): TSize;
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+
 implementation
 
-uses Windows;
-
- Function StrPas(S: Array Of Char): String;
-  var ss: string;
-      i: word;
-  Begin
-   ss:='';
-   For i:=Low(S) to High(S) do
-    If (i<255) and (s[i]<>#0)
-     then ss:=ss+s[i]
-     else break;
-   StrPas:=ss;
-  End;
+uses Windows,advance1, strings, advance;
 
 procedure NameToNameZ(const Name: String; var NameZ: TNameZ);
 begin
@@ -212,94 +210,82 @@ begin
   end;
 end;
 
-(*
- Offset  Size    Description
-  00h    DWORD   file attributes
-                 bits 0-6 standard DOS attributes
-                 bit 8: temporary file
-  04h    QWORD   file creation time
-                 (number of 100ns intervals since 1/1/1601)
-  0Ch    QWORD   last access time
-  14h    QWORD   last modification time
-  1Ch    DWORD   file size (high 32 bits)
-  20h    DWORD   file size (low 32 bits)
-  24h  8 BYTEs   reserved
-  2Ch 260 BYTEs  ASCIZ full filename
- 130h 14 BYTEs   ASCIZ short filename (for backward compatibility)
-*)
-
 procedure CorrectSearchRec(var R: lSearchRec);
-var NZ,NZ2: TNameZ;
+var NZ: TNameZ;
 begin
-  R.FullName := R.SR.Name;
-  NameToNameZ(R.SR.Name, NZ2);
-  GetShortPathName(NZ2, NZ, SizeOf(NZ));
-  R.SR.Name := StrPas(NZ);
+  StrPCopy(NZ, R.SR.FindData.cAlternateFileName);
+  If (StrPas(NZ) <> '') Then {John_SW  01-12-2003}
+   Begin
+    {CharToOEM(R.SR.FindData.cAlternateFileName, NZ);}
+    R.SR.Name := StrPas(NZ);
+   End;
+  R.FullName := StrPas(R.SR.FindData.cFileName);
   R.LoCreationTime:= R.SR.Time;
   R.HiCreationTime:= 0;
   R.LoLastAccessTime:= R.SR.Time;
   R.HiLastAccessTime:= 0;
   R.LoLastModificationTime:= R.SR.Time;
   R.HiLastModificationTime:= 0;
-  R.FullSize:=R.SR.Size;
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+{LoSize must be unsigned, but LongInt is signed}
+{So we have to write LoSize and HiSize to FullSize directly}
+  R.FullSize:=0;
+  Move(R.SR.FindData.nFileSizeLow,R.FullSize,SizeOf(R.SR.FindData.nFileSizeLow));
+  Move(R.SR.FindData.nFileSizeHigh,Ptr(Ofs(R.FullSize)+SizeOf(R.SR.FindData.nFileSizeLow)+1)^,SizeOf(R.SR.FindData.nFileSizeHigh));
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
 end;
 
 procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
+var
+  PathBuf: array [0..SizeOf(PathStr)-1] of Char;
 begin
   R.FullName := '';
-  FindFirst(Path, Attr, R.SR);
+  DosError:=SysFindFirst(StrPCopy(PathBuf, Path), Attr, R.SR, False);
   CorrectSearchRec(R);
+{$IFDEF OS2}
+  R.PrevName := R.FullName;
+{$ENDIF}
 end;
 
 procedure lFindNext(var R: lSearchRec);
 begin
   R.FullName := '';
-  FindNext(R.SR);
+  DosError:=SysFindNext(R.SR, False);
   CorrectSearchRec(R);
 end;
 
 procedure lFindClose(var R: lSearchRec);
 begin
- DOS.FindClose(R.SR);
+ DosError:=SysFindClose(R.SR);
 end;
 
 {$IFNDEF OS2}
-procedure lGetShortFileName(const Name: String; var ShortName: String);
-var NZ, NZ2: TNameZ;
-begin
- if LFNDisabled(Name)
-  then ShortName := Name
-  else begin
-        NameToNameZ(Name, NZ);
-        GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
-        ShortName := StrPas(NZ);
-       end;
-end;
-
 function lfGetShortFileName(const Name: String): String;
- var s: String;
+var NZ, NZ2: TNameZ;
+  l: longint;
 begin
-  lGetShortFileName(Name, s);
- lfGetShortFileName:=s;
-end;
-
-procedure lGetLongFileName(const Name: String; var LongName: String);
-var NZ, NZ2: TNameZ; P: PChar;
-begin
-{ if LFNDisabled(Name)
-  then }LongName := Name
-{  else begin
-        NameToNameZ(Name, NZ);
-        GetFullPathName(@NZ2, SizeOf(NZ), NZ, P);
-        LongName := StrPas(NZ);
-       end;} {?}
+  if (Name = '.') or (Name = '..') then begin lfGetShortFileName := Name; Exit; end;
+  NameToNameZ(Name, NZ2);
+  if SysPlatformID = VER_PLATFORM_WIN32_WINDOWS then
+    OemToChar(@NZ2, @NZ2);
+    {AK155 18.07.2003 Тут и ниже приходится испралять баг Win9x,
+      в которых GetShortPathName работает в кодировке ANSI несмотря на
+      SetFileApisToOEM
+    }
+  l := GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
+  if l = 0 then
+    lfGetShortFileName := Name
+  else
+    begin
+    if SysPlatformID = VER_PLATFORM_WIN32_WINDOWS then
+      CharToOEM(@NZ, @NZ);
+    lfGetShortFileName := StrPas(NZ);
+    end;
 end;
 
 function lfGetLongFileName(const Name: String): String;
- var s: String;
 begin
-  lGetLongFileName(Name, s);
- lfGetLongFileName:=s;
+ lfGetLongFileName:=Name;
 end;
 {$ENDIF}
 
@@ -388,6 +374,38 @@ begin OldMode:= FileMode;
       Rewrite(F.T);
       FileMode:=OldMode;
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+Function lFileSize(var F: lfile): TSize;
+Var
+  R: TSize;
+  LoS,HiS: DWord;
+Begin
+ LoS:=GetFileSize(FileRec(F.F).Handle,@HiS);
+ Move(LoS,R,SizeOf(LoS));
+ Move(HiS,Ptr(Ofs(R)+SizeOf(LoS)+1)^,SizeOf(HiS));
+ lFileSize:=R;
+
+End;
+
+Function lSeek(var F: lfile;NewPos: TSize;Direction: Byte): TSize;
+Var
+  R: TSize;
+  LoD,HiD: LongInt;
+Begin
+ Move(NewPos,LoD,SizeOf(LoD));
+ Move(Ptr(Ofs(NewPos)+SizeOf(LoD)+1)^,HiD,SizeOf(HiD));
+ LoD:=SetFilePointer(FileRec(F.F).Handle, LoD, @HiD,Direction);
+ Move(LoD,R,SizeOf(LoD));
+ Move(HiD,Ptr(Ofs(R)+SizeOf(LoD)+1)^,SizeOf(HiD));
+ lSeek:=R;
+End;
+
+Function lFilePos(var F: lfile): TSize;
+Begin
+ lFilePos:=lSeek(F,0,1);
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
 
 { Inline functions, which temporary compiled as not inline, because VP are   }
 { crased on compiling 8(                                                     }

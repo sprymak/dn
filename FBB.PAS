@@ -54,6 +54,9 @@
 //  dn269-diskinfo.patch
 //
 //  2.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -181,7 +184,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
    var  i : Byte;
         b : Boolean;
   begin
-    b:=On;
+    b:=True;
     DsplInfo;
     for i:=1 to NBf do
      begin
@@ -191,7 +194,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
       if IOResult <> 0 then
        begin
         MessageBox(GetString(dlFBBNotReadSource)+Fn1, nil, mfError+mfOKButton);
-        Abort := On;
+        Abort := True;
         NewTimer(Timer, 0);
         NewTimerSecs(AlarmTimer, 20);
        end;
@@ -214,7 +217,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
        lF  : lFile;
   begin
    FreeSpc:=GetDrInfo(d);
-   DosError:=0; OverWr:=On; Abort := Off;
+   DosError:=0; OverWr:=True; Abort := False;
    lFindFirst(d+n+'.d??', AnyFile,SR);
    while (DOSError=0) and not (SR.FullName[Length(SR.FullName)] in ['0'..'9'])
    and not (SR.FullName[Length(SR.FullName)-1] in ['0'..'9']) do lFindNext(SR);
@@ -265,13 +268,13 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
      FreeSpc:=GetDrInfo(d);
      if i<>cmOK then
        begin
-        Abort:=On;
+        Abort:=True;
         Exit;
        end;
 {DataCompBoy     DskOn;}
     end;
 {DataCompBoy   DskOn;}
-   CreateDirInheritance(d, Off);
+   CreateDirInheritance(d, False);
    lAssignFile(F2,Fn2); PInfo^.Write(3, Fn2);
    ClrIO; lReWriteFile(F2,1);
    if not BinarySplit then
@@ -286,7 +289,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
     NewTimerSecs(AlarmTimer, 20);
     if i<>cmOK then
        begin
-        Abort:=On;
+        Abort:=True;
         Exit;
        end;
      GoTo 1;
@@ -325,7 +328,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
       if (IOResult <> 0) then
        begin
         MessageBox(GetString(dlFBBNoWrite)+Fn2, nil, mfError+mfOKButton);
-        Abort := On;
+        Abort := True;
         NewTimer(Timer, 0);
        end;
       if Abort then Goto 33;
@@ -342,7 +345,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
       DispatchEvents(PInfo, CopyCancelled);
       if Abort or CopyCancelled then
          begin
-33:       CopyCancelled := On;
+33:       CopyCancelled := True;
           Close(F2.f);
           lEraseFile(F2);
           Exit;
@@ -351,7 +354,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
        if Tuda then begin
         MessageBox(GetString(dlFBBDiskFull2), nil, mfError+mfOKButton);
         NewTimer(Timer, 0);
-        Abort:=On;
+        Abort:=True;
         Exit;
        end else begin
         if TimerExpired(AlarmTimer) and
@@ -437,7 +440,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
    var i : Byte;
        b : Boolean;
   begin
-   b:=Off;
+   b:=False;
    for i:=1 to NBF do b:=b or (BF[i].NR=0);
    if b and (cd<ls) then InsCor;
   end;
@@ -462,7 +465,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
     end;
   begin
     lFSplit(Fn1, a, aa, aaa);
-    CopyDialog := Off;
+    CopyDialog := False;
     If Tuda
       then D := PDialog( LoadResource( dlgCombineFile ))
       else D := PDialog( LoadResource( dlgSplitFile ));
@@ -578,13 +581,13 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
       csv: byte;
   begin
     NewTimer(Timer, 0);
-    LongCopy := On;
+    LongCopy := True;
     Count:=0;
-    Tuda:=Off;
-    Abort:=Off;
+    Tuda:=False;
+    Abort:=False;
     CopyCancelled := False;
-    BinarySplit := Off;
-    NewMode := On;
+    BinarySplit := False;
+    NewMode := True;
     Fn1:=lFExpand(Fn1);
     lFSplit(Fn1,d,n,x);
     dr1:=Byte(Fn1[1])-64;
@@ -593,7 +596,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
     lAssignFile(F1,Fn1); ClrIO;
     lResetFile(F1,1);
     if IOResult<>0 then
-     begin MessageBox(GetString(dlFBBNoOpen)+Fn1, nil, mfError + mfOKButton); LongCopy := Off; Exit; end;
+     begin MessageBox(GetString(dlFBBNoOpen)+Fn1, nil, mfError + mfOKButton); LongCopy := False; Exit; end;
     GetFTime(F1.F, OldDate);
     lFSplit(Fn1,d,n,x);
 
@@ -603,7 +606,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
            begin
             Close(F1.f);
             Message(Desktop, evCommand, cmSingleCopy, nil);
-            LongCopy := Off;
+            LongCopy := False;
             Exit;
            end;
 
@@ -616,7 +619,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
        Count := 1;
        RequirePath;
        lAssignFile(F1, Fn1);
-       if Abort then begin LongCopy := Off; Exit; end;
+       if Abort then begin LongCopy := False; Exit; end;
        FileMode := 0;
        lResetFile(F1,1);
        csv := CheckSvoi;
@@ -633,7 +636,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
                 else Ls:=ohd.Ln;
 
     if (not CopyDialog) or Abort then
-_Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
+_Abort_:    begin Close(F1.F); LongCopy := False; Exit; end;
 
     if NewMode then nhd.Ln:=Ls
                else ohd.Ln:=Ls;
@@ -649,7 +652,7 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
     if Tuda then PInfo^.Top := GetString(dlFBBDeFragment)
             else PInfo^.Top := GetString(dlFBBFragment);
     PInfo^.Bottom := '';
-    PInfo^.SetState(sfShadow, On);
+    PInfo^.SetState(sfShadow, True);
     Desktop^.Insert(PInfo);
     PInfo^.Write(1, Fn1);
     lFSplit(Fn2,d,n,x);
@@ -665,7 +668,7 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
     if not Tuda then RequireNew
                 else
                  begin
-                  CreateDirInheritance(d, Off);
+                  CreateDirInheritance(d, False);
                   lResetFile(F2,1);
                   if IOResult=0 then
                    begin
@@ -707,7 +710,7 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
     Close(F2.F);
     if (Abort or CopyCancelled) and Tuda then lEraseFile(F2);
     ClearMem;
-    Abort := Off;
+    Abort := False;
     {RereadDirectory(CopyDir);}
     GlobalMessage(evCommand, cmPanelReread, @CopyDir);
 {    GlobalMessage(evCommand, cmRereadInfo, nil);}

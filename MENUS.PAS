@@ -54,6 +54,12 @@
 //  dn2825-quick_directories_list_improve.patch
 //
 //  3.7.0
+//  dn370-Menus(f)-recursion_calls_are_removed.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31220-interface(i)-quick_directories_improve.patch
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -466,7 +472,7 @@ var
   AutoSelect: Boolean;
   Action: MenuAction;
   Ch: Char;
-  Result: Word;
+{$IFNDEF RESULT}Result: Word;{$ENDIF}
   ItemShown, P: PMenuItem;
   Target: PMenuView;
   R: TRect;
@@ -793,7 +799,7 @@ begin
   end;
   if TypeOf(Self) = TypeOf(TMenuBar) then Message(Owner, evCommand, cmMenuOff, @Self);
   MenuActive:=False;
-  Execute := Result;
+{$IFNDEF RESULT}Execute:=Result;{$ENDIF}
 end;
 
 function TMenuView.FindItem(Ch: Char): PMenuItem;
@@ -1086,6 +1092,7 @@ var
   Y: Integer;
   P: PMenuItem;
   B: TDrawBuffer;
+  TopIndex: Integer;
 
 Function PastEnd: boolean;
 var P: PMenuItem;
@@ -1121,61 +1128,58 @@ begin
   Inc(Y);
 end;
 
-begin
-  CNormal := GetColor($0301);
-  CSelect := GetColor($0604);
-  CNormDisabled := GetColor($0202);
-  CSelDisabled := GetColor($0505);
-  Y := 0;
-  Color := CNormal;
-  FrameLine(0);
-  DrawLine;
+{--- start -------- Eugeny Zvyagintzev ---- 28-09-2003 ----}
+{Procedure was optimized: multiple recursion calls are eliminated }
+Begin
+ CNormal := GetColor($0301);
+ CSelect := GetColor($0604);
+ CNormDisabled := GetColor($0202);
+ CSelDisabled := GetColor($0505);
+ If (Menu <> Nil) And (Menu^.Items <> Nil) Then
+  Begin
+   If TopItem = Nil Then TopItem:=Menu^.Items;
+   TopIndex:=MenuIndexOf(Menu,TopItem);
+   If Current <> Nil Then Y:=MenuIndexOf(Menu,Current)
+   Else Y:=0;
+   If TopIndex > Y Then TopIndex:=Y;
+   If (Y - TopIndex) >= Size.Y-2 Then TopIndex:=Y-Size.Y+3;
+   TopItem:=LookUpMenu(Menu,TopIndex,dfByPosition);
 
-  if Menu^.Items = nil then Exit; {John_SW: to prevent crash 04-09-2002}
-  if Menu <> nil then
-  begin
-    P:=Menu^.Items;
-    while (P <> nil) and
-          (P <> Current) and
-          (P <> TopItem) do P:=P^.Next;
-    if (P <> nil) and (P = Current) and (P <> TopItem) then begin
-     TopItem := P;
-     DrawView;
-     Exit;
-    end;
+   Y := 0; Color := CNormal; FrameLine(0); DrawLine;
 
-    P := TopItem;
-    while P <> nil do
-    begin
-      Color := CNormal;
-      if P^.Name = nil then FrameLine(15) else
-      begin
-        if P^.Disabled then
-          if P = Current then
-            Color := CSelDisabled else
-            Color := CNormDisabled else
-          if P = Current then Color := CSelect;
-        FrameLine(10);
-        MoveCStr(B[3], P^.Name^, Color);
-        if P^.Command = 0 then
-          MoveChar(B[Size.X - 4], #16, Byte(Color), 1) else
-          if P^.Param <> nil then
-            MoveStr(B[Size.X - 3 - Length(P^.Param^)],
-              P^.Param^, Byte(Color));
-      end;
-      If (Y < Size.Y-1) then DrawLine
-      else if P = Current then begin
-       TopItem := TopItem^.Next;
-       DrawView;
-       Exit;
-      end;
-      P := P^.Next;
-    end;
-  end;
-  Color := CNormal;
-  FrameLine(5);
-  DrawLine;
-end;
+   P := TopItem;
+   Y:=1;
+   While (Y < Size.Y-1) Do
+    Begin
+     Color := CNormal;
+     If P^.Name = Nil Then FrameLine(15)
+     Else
+      Begin
+       If P^.Disabled Then
+        If P = Current Then Color := CSelDisabled
+        Else Color := CNormDisabled
+       Else If P = Current Then Color := CSelect;
+       FrameLine(10);
+       MoveCStr(B[3], P^.Name^, Color);
+       If P^.Command = 0 Then MoveChar(B[Size.X - 4], #16, Byte(Color), 1)
+       Else
+        If P^.Param <> Nil Then
+         MoveStr(B[Size.X - 3 - Length(P^.Param^)], P^.Param^, Byte(Color));
+      End;
+     DrawLine;
+     P := P^.Next;
+    End;
+  End
+ Else
+  Begin
+   {Y := 0; Color := CNormal; FrameLine(0); DrawLine;}
+   Exit;
+  End;
+ Color := CNormal;
+ FrameLine(5);
+ DrawLine;
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 28-09-2003 ----}
 
 procedure TMenuBox.GetItemRect(Item: PMenuItem; var R: TRect);
 var

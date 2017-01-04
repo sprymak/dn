@@ -48,6 +48,14 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31029-Kernel(f)-Word_to_AWord_changed_in_dialogs_in_VP.patch
+//  dn31029-Kernel(fi)-text_search_operation_rewritten.patch
+//  dn31220-kernel(f)-usermenu_fixes.patch
+//  dn40307-define_DN_Micro.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -64,6 +72,7 @@ USES Dos,{DnIni}
      {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
      Objects, LFN{DataCompBoy}
      {$IFDEF DPMI},Dpmi,DosMem{$ENDIF}
+  {Cat}, U_KeyMap {/Cat}
      ;
 
 Procedure AdvanceInitUnit;
@@ -148,15 +157,15 @@ type
 {PZ - end}
 
     TCountryInfo = record
-      DateFmt: Word;  {Radiobuttons}
-      TimeFmt: Word;  {Radiobuttons}
+      DateFmt: AWord;  {Radiobuttons}
+      TimeFmt: AWord;  {Radiobuttons}
       DateSep: string[1]; {Inputline}
       TimeSep: string[1]; {Inputline}
       ThouSep: string[1]; {Inputline}
       DecSep: string[1]; {Inputline}
       DecSign: string[1]; {Inputline}
       Currency: string[4]; {Inputline}
-      CurrencyFmt: Word;  {Radiobuttons}
+      CurrencyFmt: AWord;  {Radiobuttons}
       UpperTable: array[#128..#255] of Char;
     end;
 
@@ -176,9 +185,6 @@ CONST
   kbNumState    = $0020;
   kbCapsState   = $0040;
   kbInsState    = $0080;
-
-  On  = True;
-  Off = False;
 
   NumFloppy:      Byte    = 0;
 
@@ -204,13 +210,13 @@ inline {DataCompBoy}
 ($33/$C0/          { XOR ax, ax       }
  $3E/$A2/>InOutRes/{ mov InOutRes, al }{ InOutRes := 0;  }
  $3E/$A2/>DosError/{ mov DosError, al }{ DosError := 0;  }
- $3E/$A2/>Abort    { mov Abort,    al }{ Abort    := Off;}
+ $3E/$A2/>Abort    { mov Abort,    al }{ Abort    := False;}
 );
 {$ELSE}inline;
 begin
  InOutRes := 0;
  DosError := 0;
- Abort    := Off;
+ Abort    := False;
 end;
 {$ENDIF}
 
@@ -273,7 +279,11 @@ const
       LoHexChar  : array[0..$F] of char = '0123456789abcdef';
       N_O_E_M_S  : array[1..5] of char = 'NOEMS';
          cTEMP_  : string[5] = 'TEMP:';
+ {$IFDEF MODEM}
+ {$IFDEF LINK}
          cLINK_  : string[5] = 'LINK:';
+ {$ENDIF}
+ {$ENDIF}
  {$IFNDEF OS2}
          x_x     : string[3] = '*.*';
  {$ELSE}
@@ -292,6 +302,15 @@ var
     DNNumber: Byte;
     UpCaseArray: array[Char] of Char Absolute UpperString ;
     LowCaseArray: array[Char] of Char Absolute LowerString ;
+{Cat}
+    UpCaseArray_Ascii_Ascii: TXlat Absolute UpperString;
+    UpCaseArray_Ascii_Koi8r: TXlat;
+    UpCaseArray_Ascii_Ansi: TXlat;
+    UpCaseArray_Koi8r_Ascii: TXlat;
+    UpCaseArray_Ansi_Ascii: TXlat;
+    UpCaseArray_Ascii_Ansi_Koi8r_Ascii: TXlat;
+    UpCaseArray_Ascii_Koi8r_Ansi_Ascii: TXlat;
+{/Cat}
     Tran: array[Char] of Char;
 
        {-DataCompBoy-}
@@ -307,11 +326,12 @@ var
        {-DataCompBoy-}
 Const
   DirToChange: String = ''; {DataCompBoy}
-
-const
+{$IFDEF MODEM}
+{$IFDEF LINK}
     CL_SafeBuf           = $8000;
-
     Linker: Pointer      = nil;
+{$ENDIF}
+{$ENDIF}
     NeedLocated: LongInt = 0;
 
 
@@ -334,7 +354,7 @@ const
 
 Type TCrc_Table = array[0..255] of LongInt;
 const
-  crc_table_empty : boolean = on;
+  crc_table_empty : boolean = True;
   Crc_Table : ^TCrc_Table = nil;
 
 {$IFNDEF NONBP}
@@ -352,11 +372,10 @@ type TPosArray = Array [1..9] of TPoint;
 IMPLEMENTATION
 
 uses xTime,
-     u_keymap,
      Startup,
      advance3, advance1,
      {$IFDEF VIRTUALPASCAL}
-     advance2, crt,
+     advance2, VpSysLow,
      {$ENDIF}
      ExtraMem,
      Commands
@@ -523,8 +542,15 @@ var
             if (R^[i]='~') and ((Options and flnHandleTildes)<>0)
             then AddStr(Res^,#0);
             AddStr(Res^,R^[i]);
+{AK155: зачем этот второй #0 - придумать не смог, поэтому убрал его.
+ А относительно первого #0 догадался, что он должен обеспечивать
+ отрисовку тильды. И внес соответствующую коррекцию в
+ drivers._vp.MoveCStr. 06.01.2001}
+            {$IFNDEF VIRTUALPASCAL}
             if (R^[i]='~') and ((Options and flnHandleTildes)<>0)
             then AddStr(Res^,#0);
+            {$ENDIF}
+{/AK155}
             if ((i=Hi1) or (i=Hi2) or (i=Hi3)) and
             ((Options and flnHighlight)<>0) then AddStr(Res^,'~');
         end;
@@ -927,10 +953,14 @@ end; {-$VOL end}
 
 function MemAdjust(L: LongInt): LongInt;
 begin
+{$IFDEF MODEM}
+{$IFDEF LINK}
   if Linker <> nil then
   begin
     if L > CL_SafeBuf then L := L - CL_SafeBuf else L := 0;
   end;
+{$ENDIF}
+{$ENDIF}
   MemAdjust := L;
 end;
 
@@ -955,7 +985,7 @@ end;
 
 procedure LocateCursor(X, Y: Byte);
 {$IFDEF VIRTUALPASCAL}
-begin GotoXY(X, Y) end;
+begin SysTVSetCurPos{GotoXY}(X, Y) end;
 {$ELSE}
 assembler;
 asm
@@ -1006,7 +1036,8 @@ var Released: boolean;
 begin
  Released:=false;
  {$IFNDEF OS_DOS}
- Delay(50);
+ if (StartupData.Slice2 and osuOnceRelease <> 0) then SysCtrlSleep{Delay}(1) {Delay(32)}
+   else SysCtrlSleep{Delay}(0);
  {$ELSE}
  if (StartupData.Slice  and osuInt15 <> 0) and
    ((StartupData.Slice2 and osuOnceRelease = 0) or not Released) and

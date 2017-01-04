@@ -51,6 +51,11 @@
 //  dn16rc1-W2K_compatibility_fix-diff156byMV.patch
 //
 //  2.0.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31029-ChangeVideoMode(f)-change_video_mode_on_startup_in_VP_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1232,7 +1237,7 @@ begin
 (*    TEST    StartupData.Unload,osuBlinking {///////////}
     JNZ     @@1*)
   end;
- If (FadeDelay > 0) then ResetVgaPalette(ON);; {Knave}
+ If (FadeDelay > 0) then ResetVgaPalette(True);; {Knave}
 end;
 
 procedure ClearScreen; assembler;
@@ -1402,7 +1407,7 @@ var
   Visible: Boolean;
   SrcSize: TSysPoint;
 begin
-  ScreenMode := SysTVGetScrMode(@SrcSize);
+  ScreenMode := SysTVGetScrMode(@SrcSize,False);
   ScreenHeight := SrcSize.Y;
   ScreenWidth := SrcSize.X;
   ShowMouse;
@@ -1418,7 +1423,7 @@ end;
 
 procedure DetectVideo;
 begin
-  ScreenMode := FixCrtMode(SysTVGetScrMode(nil));
+  ScreenMode := FixCrtMode(SysTVGetScrMode(nil,False));
 end;
 
 // Sets the video mode. Mode is one of the constants smCO80, smBW80, or smMono,
@@ -1455,6 +1460,25 @@ begin
    end;
 end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 28-11-2003 -----}
+Function GetVideoMode: Word;
+var Cols,Rows,Color: Word;
+Begin
+ GetVideoModeInfo(Cols,Rows,Color);
+ If Cols <> 80 Then Result:=sm80x25
+ Else
+  Case Rows Of
+   25: Result := sm80x25;
+   30: Result := sm80x30;
+   34: Result := sm80x34;
+   43: Result := sm80x43;
+   50: Result := sm80x50;
+  Else
+   Result:=sm80x25;
+  End;
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 28-11-2003 -----}
+
 // Initializes Turbo Vision's video manager. Saves the current screen
 // mode in StartupMode, and switches the screen to the mode indicated by
 // ScreenMode. The ScreenWidth, ScreenHeight, HiResScreen, ScreenBuffer,
@@ -1478,11 +1502,10 @@ procedure InitVideo;
 {$ENDIF}
  begin
   SysTVGetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
- {if StartupMode = $FFFF then
-     StartupMode := SysTVGetScrMode(nil);}
-   if StartupMode <> ScreenMode then
-    {SysTVSetScrMode(ScreenMode);}
-    SetVideoMode(ScreenMode);
+{--- start -------- Eugeny Zvyagintzev ---- 28-11-2003 -----}
+  StartupMode := GetVideoMode;
+  SetVideoMode(StartupMode);
+{--- finish -------- Eugeny Zvyagintzev ---- 28-11-2003 -----}
   SetCrtData;
                 {?}{DataCompBoy: how to do this in OS/2 ???}
                    {JO: this is not needed under OS/2 because it's  }

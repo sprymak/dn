@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -92,6 +95,7 @@ begin
  SP:=0;
  DefStack[SP]:=true;
 {$IFDEF VER70} Def('VER70'); {$ENDIF}
+{$IFDEF VER80} Def('VER80'); {$ENDIF}
 {$IFDEF NONBP} Def('VER20'); {$ENDIF}
 {$IFDEF DPMI}  Def('DPMI');  {$ENDIF}
 {$IFDEF VIRTUALPASCAL}Def('VIRTUALPASCAL');  {$ENDIF}

@@ -51,6 +51,10 @@
 //  dn328-Kernel(f)_sleep_when_Idle_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn40205-ScreenGrabber(f)-call_by_hot_keys.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -120,9 +124,14 @@ begin
        begin
 {          if (Event.KeyCode = kbAltQ) and Desktop^.GetState(sfFocused) then begin OpenSmartpad; ClearEvent(Event) end;}
            if Event.KeyCode = kbNoKey then begin Event.What := evNothing; Exit end else
-             if (not MacroPlaying) and (Event.KeyCode = kbShiftIns) and (ShiftState and kbAltShift <> 0)
+             if (not MacroPlaying)
+{$IFNDEF VIRTUALPASCAL}
+                and (Event.KeyCode = kbShiftIns) and (ShiftState and kbAltShift <> 0)
+{$ELSE}
+                and (Event.KeyCode = kbAltIns) and (ShiftState and 3 <> 0)
+{$ENDIF}
                 and (ShiftState and kbCtrlShift = 0) then
-                 begin Event.What := evNothing; ScreenGrabber(Off); Exit end;
+                 begin Event.What := evNothing; ScreenGrabber(False); Exit end;
            if (Event.ScanCode >= Hi(kbCtrlF1)) and (Event.ScanCode <= Hi(kbCtrlF10))
              and (Pointer(Current) = Pointer(Desktop)) and (ShiftState and 3 <> 0) then
              begin
@@ -259,12 +268,12 @@ begin
    TApplication.Idle;
  end;
 
- UpdateAll(On);
+ UpdateAll(True);
 
  if CtrlWas then
    if ShiftState and kbCtrlShift = 0 then
      begin
-       CtrlWas := Off;
+       CtrlWas := False;
        {if DelSpaces(CmdLine.Str) = '' then}
          Message(@Self, evCommand, cmTouchFile, nil);
      end;

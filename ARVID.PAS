@@ -61,6 +61,9 @@
 //  dn3331-Arvid_bugfix_and_TDR_detection.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -538,7 +541,7 @@ var
 
 { CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual; }
 begin
-   CtrlBreakHit:=Off;
+   CtrlBreakHit:=False;
    AFiles^.Pack; if AFiles^.Count <= 0 then Exit;
    lFSplit(Name^, Dr, Nm, Xt);
    if FileType = avdTdr then
@@ -546,7 +549,7 @@ begin
      S1:= Dr+'AVT:'+Nm+'\';
    Message(Application, evCommand, cmPushFirstName, @CopyDirName);
    if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
-                     MoveMode, AFiles, 0, Owner, On) then Exit;
+                     MoveMode, AFiles, 0, Owner, True) then Exit;
 
    if CopyDir[Length(CopyDir)] <> '\' then CopyDir:=CopyDir+'\';
    if Pos(S1, CopyDir) = 1 then begin
@@ -809,7 +812,7 @@ begin
   S:=CnvString(PF^.Diz^.Diz);
   if BigInputBox(GetString(dlEditDesc),GetString(dl_D_escription), S, 255, hsEditDesc) <> cmOK then Exit;
   Dispose(Stream,Done); Stream:=nil; RealAttr:=$FFFF;
-  ClrIO; Abort:=Off;
+  ClrIO; Abort:=False;
   GetAttr; if Attrb and ReadOnly <> 0 then
   begin
     SetAttr(Archive);
@@ -869,7 +872,7 @@ procedure TArvidDrive.HandleCommand;
     end;
     if not WasTape then FindList^.Insert(New(PFindObject, Init(Name)));
     if not WasDir then FindList^.Insert(New(PFindDir, Init(Dr, LP)));
-    WasTape:=On; WasDir:=On;
+    WasTape:=True; WasDir:=True;
     FindList^.Insert(P);
   end;
 
@@ -882,14 +885,14 @@ procedure TArvidDrive.HandleCommand;
         LastLv: Integer;
         SS: String[12];
   begin
-    Lv0:=Off; LastLv:=0;
+    Lv0:=False; LastLv:=0;
     LP:=D.DirTableOfs;
     repeat
       St^.Seek(LP);
       St^.Read(DD, SizeOf(DD));
       if DD.Level = 0 then
          if Lv0 then Break
-                else Lv0:=On;
+                else Lv0:=True;
       SS:=DD.Name; Insert('.', SS, 9);
       if DD.Level > LastLv then Dr:=MakeNormName(Dr, MakeFileName(SS))
          else if DD.Level <= LastLv then
@@ -903,7 +906,7 @@ procedure TArvidDrive.HandleCommand;
                   Dr:=MakeNormName(Dr, MakeFileName(SS))
                 end;
       LastLv:=DD.Level;
-      WasDir:=Off;
+      WasDir:=False;
       if InSpaceFilter(SS, DT.Mask) then
         begin
           if SDesc and (DD.Description <> 0) then
@@ -919,7 +922,7 @@ procedure TArvidDrive.HandleCommand;
                   (FF.Size >= SizeGreat) and (FF.Size <=SizeLess) and
                   ((Attr = 0) or (FF.Attr and Attr <> 0))) then
               begin
-                WasDir:=On;
+                WasDir:=True;
                 Add(New(PFindDir, Init(Dr, LP)), Name);
               end;
         end;
@@ -1008,7 +1011,7 @@ procedure TArvidDrive.HandleCommand;
         DD: TTdrHeader;
         AA: TAvtHeader;
   begin
-    WasTape:=Off; Dr:='\';
+    WasTape:=False; Dr:='\';
     St^.Seek(0);
     St^.Read(AA, SizeOf(AA));
     if AA.Signature = $50545641{'AVTP'} then begin

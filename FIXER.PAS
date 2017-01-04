@@ -51,6 +51,11 @@
 //  dn2510-resource_and_help_fixes_20020516.patch
 //
 //  2.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//  dn40412-BackSearch(f)-back_search_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -92,8 +97,10 @@ type
 
     PFixerWindow = ^TFixerWindow;
     TFixerWindow = object(TUniWindow)
+     MenuBar: PView;
      constructor Init;
      function GetPalette: PPalette; virtual;
+     procedure ChangeLanguage; virtual;  {John_SW  23-12-2003}
     end;
 
     PDiskFixer = ^TDiskFixer;
@@ -158,7 +165,7 @@ constructor TDiskStream.Init;
  var S: String;
      CL: Word;
 begin
- inherited Init; Abort := Off;
+ inherited Init; Abort := False;
  GetDir(ADrive, S); if Abort then Exit;
  New(Drv, Init(Byte(S[1])-64, True));
  if Drv = nil then Fail;
@@ -188,7 +195,7 @@ procedure TDiskStream.Read(var Buf; Count: Word);
      L: LongInt;
      Buffer: PByteArray;
 begin
- if (Count = 0) or (FilePos >= FileSize) then Exit; Abort := Off;
+ if (Count = 0) or (FilePos >= FileSize) then Exit; Abort := False;
  if FilePos + LongInt(Count) >= FileSize then Count := FileSize - FilePos;
  Pos := 0; L := Count; T := BlockSize;
  Buffer := MemAlloc(BlockSize);
@@ -248,7 +255,7 @@ procedure TDiskStream.Write(const Buf; Count: Word);
      L: LongInt;
      Buffer: PByteArray;
 begin
- if (Count = 0) or (FilePos >= FileSize) then Exit; Abort := Off;
+ if (Count = 0) or (FilePos >= FileSize) then Exit; Abort := False;
  if FilePos + LongInt(Count) >= FileSize then Count := FileSize - FilePos;
  Pos := 0; L := Count; T := BlockSize;
  Buffer := MemAlloc(BlockSize);
@@ -377,7 +384,7 @@ constructor TDiskFixer.Init;
  var P: PDiskStream;
 begin
  New(P, Init(0));
- inherited Init(R, P, '', '', nil, False, On);
+ inherited Init(R, P, '', '', nil, False, True);
  ViewMode := 2; HexEdit := True;
  HelpCtx := hcDiskEditor;
 end;
@@ -453,7 +460,7 @@ procedure TDiskFixer.HandleEvent;
  procedure CE; begin ClearEvent(Event) end;
  procedure CED; begin CE; DrawView end;
 
- procedure SeekEOF;
+(* procedure SeekEOF;
  begin
 {  if Lines[Size.Y].Pos < 0 then Exit;
   Owner^.Lock;
@@ -462,7 +469,7 @@ procedure TDiskFixer.HandleEvent;
   CountDown(3);
   MakeLines; DrawView;
   Owner^.UnLock;}
- end;
+ end;*)
 
  procedure EditField;
   var AA: Word;
@@ -496,7 +503,7 @@ procedure TDiskFixer.HandleEvent;
     I := Owner^.ExecView(PL);
     if I <> cmCancel then
      begin
-      BufModified := On;
+      BufModified := True;
       case XPos mod 32 of
        1: begin PL^.GetData(S); UpStr(S); While (S[0] < #3) do S := S + ' ';
                   Move(S[1], D^.Name[8], 3); end;
@@ -530,17 +537,17 @@ procedure TDiskFixer.HandleEvent;
  procedure CheckMark;
   begin
    if ShiftState and 3 <> 0 then BlockEnd := FilePos+BufPos+XPos else BlockOff;
-   DrawDisabled := Off; DrawView;
+   DrawDisabled := False; DrawView;
   end;
 
  function ChDrive(N: Byte): Boolean;
   var P: PStream;
  begin
-  ChDrive := On;
+  ChDrive := True;
   if N = PDiskStream(Fl)^.Drv^.Drive+1 then Exit;
   P := Fl;
   Fl := New(PDiskStream, Init(N));
-  if (Fl = nil) or (PDiskStream(Fl)^.Drv = nil) then begin Fl := P; ChDrive := Off end else Dispose(P,Done);
+  if (Fl = nil) or (PDiskStream(Fl)^.Drv = nil) then begin Fl := P; ChDrive := False end else Dispose(P,Done);
  end;
 
  procedure FixFile;
@@ -588,7 +595,7 @@ procedure TDiskFixer.HandleEvent;
       P: PStream;
  begin
   T.Y := 0; T.X := (Size.X-8) div 2; MakeGlobal(T,T);
-  S := SelectDrive(T.X, T.Y, Char(PDiskStream(Fl)^.Drv^.Drive+65),Off);
+  S := SelectDrive(T.X, T.Y, Char(PDiskStream(Fl)^.Drv^.Drive+65), False);
   if S = '' then Exit;
   WriteModify;
   ChDrive(Byte(S[1])-64);
@@ -777,7 +784,7 @@ procedure TDiskFixer.HandleEvent;
    Fl^.Write(P^, J);
    Dec(L, J);
   until L <= 0;
-  BufModified := Off;
+  BufModified := False;
   I := BufPos;
   Seek(FilePos);
   BufPos := I;
@@ -846,7 +853,7 @@ begin
   begin
    if SB <> nil then PViewScroll(SB)^.MaxV := FileSize;
    MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
-   Loaded := Off;
+   Loaded := False;
   end;
  W := BufPos+(XPos div 32)*32;
  case Event.What of
@@ -910,7 +917,7 @@ begin
                                  8: XPos := W+22+4;
                                   else XPos := W+11;
                                 end;
-                                ViewMode := 1; HexEdit := On; DrawView; CE end;
+                                ViewMode := 1; HexEdit := True; DrawView; CE end;
               cmDirMode: begin if ViewMode = 0 then XPos := 0 else
                                BlockOff;
                                W := (XPos div 32) * 32;
@@ -973,15 +980,15 @@ begin
                kbEnd: CE;
                kbDown: begin CE; if (ViewMode > 0) and (XPos < LastChars - HexPos - 1)
                                    then begin Inc(XPos, HexPos); XXPos := True; end else
-                                         begin DrawDisabled := On; CountDown(1); end; CheckMark; end;
-               kbPgDn: begin CE; DrawDisabled := On; CountDown(Size.Y-1); CheckMark; end;
+                                         begin DrawDisabled := True; CountDown(1); end; CheckMark; end;
+               kbPgDn: begin CE; DrawDisabled := True; CountDown(Size.Y-1); CheckMark; end;
                kbUp: begin CE; if (ViewMode > 0) and (XPos >= HexPos) then
                                  begin XXPos := True; Dec(XPos, HexPos); end else
-                                 begin DrawDisabled := On; CountUp(1); end; CheckMark; end;
-               kbPgUp: begin CE; DrawDisabled := On; CountUp(Size.Y-1); CheckMark; end;
+                                 begin DrawDisabled := True; CountUp(1); end; CheckMark; end;
+               kbPgUp: begin CE; DrawDisabled := True; CountUp(Size.Y-1); CheckMark; end;
                kbCtrlPgUp: begin Seek(0); XPos := 0; CheckMark; CE end;
                kbLeft: begin
-                         CE; DrawDisabled := On;
+                         CE; DrawDisabled := True;
                          case ViewMode of
                           0: if XDelta > 0 then begin Dec(XDelta); DrawView end;
                           1: if HexEdit and not XXPos then XXPos := True else
@@ -1008,7 +1015,7 @@ begin
                          CheckMark;
                        end;
                kbRight: begin
-                         CE; DrawDisabled := On;
+                         CE; DrawDisabled := True;
                          case ViewMode of
                           0: if (XDelta < 255 - Size.X + 1) then begin Inc(XDelta); DrawView; end;
                           1: {if HexEdit and XXPos then XXPos := False else}
@@ -1057,19 +1064,19 @@ begin
                                         else Buf^[BufPos+XPos] := (Buf^[BufPos+XPos] and $F0) or (Pos(C, '123456789ABCDEF'));
                                if XXPos then begin XXPos := False; DrawView end
                                  else Message(@Self, evKeyDown, kbRight, nil);
-                                BufModified := On;
+                                BufModified := True;
                               end
                             end else
                                  begin
                                   Buf^[BufPos+XPos] := Byte(C);
-                                  BufModified := On;
+                                  BufModified := True;
                                   Message(@Self, evKeyDown, kbRight, nil);
                                  end;
                          end;
                       3: begin
                           case Event.CharCode of
                            'E', 'e': begin
-                                      BufModified := On;
+                                      BufModified := True;
                                       W := $FFFF;
                                       case PDiskStream(Fl)^.Drv^.FATType of
                                        FAT12: begin
@@ -1099,7 +1106,7 @@ begin
                                       Dispose(PL,Done);
                                       CE;
                                       if I = cmCancel then Exit;
-                                      BufModified := On;
+                                      BufModified := True;
                                       Case PDiskStream(Fl)^.Drv^.FATType of
                                        FAT12: begin
                                                W := W and $FFF;
@@ -1335,7 +1342,7 @@ begin
           end;
          end;
  end;
- XDelta := 0; K := BufPos; Entered := Off;
+ XDelta := 0; K := BufPos; Entered := False;
  for J := 0 to Size.Y - 1 do begin
   MoveChar(B, ' ', C, 200);
   S := '';
@@ -1381,7 +1388,7 @@ begin
     FAT16: I := (XPos mod HexPos) * 4 + 4;
    end;
    LastR.Assign(I-1+Origin.X, J+Origin.Y, I+6+Origin.X, J+1+Origin.Y);
-   MoveColor(B[I], 5, C4); Entered := On;
+   MoveColor(B[I], 5, C4); Entered := True;
   end;
   WriteLine(0, J, Size.X, 1, B[XDelta]);
  end;
@@ -1445,7 +1452,6 @@ constructor TFixerWindow.Init;
      P: PView;
      PV: PDiskFixer;
      UpMenu: PMenu;
-     MenuBar: PView;
 begin
  Desktop^.GetExtent(R);
  inherited Init(R, GetString(dlDiskFixer), 0);
@@ -1472,5 +1478,20 @@ function TFixerWindow.GetPalette;
 begin
  GetPalette:=@P;
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+procedure TFixerWindow.ChangeLanguage;
+ var R: TRect;
+begin
+ If MenuBar <> Nil Then Dispose(MenuBar,Done);
+
+ GetExtent(R); R.Grow(-1, -1); R.B.Y := R.A.Y + 1;
+ MenuBar := PView(LoadResource(dlgFixerMenu));
+ MenuBar^.Locate(R);
+ MenuBar^.GrowMode := gfGrowHiX;
+ Insert(MenuBar);
+
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
 
 end.

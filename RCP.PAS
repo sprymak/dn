@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -203,7 +208,7 @@ var
     DelLeft(S);
     if S = '' then Exit;
     I := 0;
-    B := Off;
+    B := False;
     A := '';
   1:
     while I < Length(S) do
@@ -438,7 +443,7 @@ var A: String;
     M: String;
     J: LongInt;
 begin
-   Token := ''; A := ''; B := False; Cmd := Off;
+   Token := ''; A := ''; B := False; Cmd := False;
    while (S[Pos] = ' ') and (Length(S) >= Pos) do Inc(Pos);
    while Pos <= Length(S) do
      begin
@@ -463,7 +468,7 @@ begin
                      end;
            else if B then AddStr(A, S[Pos])
                   else begin
-                         B := On; Cmd := On;
+                         B := True; Cmd := True;
                          AddStr(A, S[Pos])
                        end;
        end;
@@ -990,13 +995,13 @@ var
              if IsThis(idStaticText) then MakeStaticText else
              if IsThis(idParamText) then MakeParamText else
              if IsThis(idListBox) then MakeListBox else
-             if IsThis(idScrollBar) then MakeScrollBar(Off) else
-             if IsThis(idMScrollBar) then MakeScrollBar(On) else
+             if IsThis(idScrollBar) then MakeScrollBar(False) else
+             if IsThis(idMScrollBar) then MakeScrollBar(True) else
              if IsThis(idUpperTable) then MakeUpperTable else
              if IsThis(idCheckBoxes) then MakeCheckBoxes else
              if IsThis(idDriveCheckBox) then MakeDriveCheckBoxes else
-             if IsThis(idSelectForward) then D^.SelectNext(Off) else
-             if IsThis(idSelectBack) then D^.SelectNext(On) else
+             if IsThis(idSelectForward) then D^.SelectNext(False) else
+             if IsThis(idSelectBack) then D^.SelectNext(True) else
              if IsThis(idRadioButtons) then MakeRadioButtons else
              if IsThis(idButton) then MakeButton else
              if IsThis(idHistory) then MakeHistory else
@@ -1158,6 +1163,29 @@ begin
     else Same: CutWord := S;
 end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 29-11-2003 -----}
+Function GetExtForTarget(S: String): String;
+{$IFNDEF RESULT}Var Result: String;{$ENDIF}
+Begin
+ Result:=S;
+{$IFNDEF RESULT}GetExtForTarget:=Result;{$ENDIF}
+ If Pos('%p',S) = 0 Then Exit;
+ Result:='';
+{$IFDEF VIRTUALPASCAL}
+ {$IFDEF OS2}
+ Result:='OS2';
+ {$ENDIF}
+ {$IFDEF WIN32}
+ Result:='W32';
+ {$ENDIF}
+ {$IFDEF DPMI32}
+ Result:='D32';
+ {$ENDIF}
+{$ENDIF}
+ Result:=Copy(S,1,Pos('%p',S)-1)+Result+Copy(S,Pos('%p',S)+2,Length(S));
+{$IFNDEF RESULT}GetExtForTarget:=Result;{$ENDIF}
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 29-11-2003 -----}
 BEGIN
   AdvanceInitUnit;
   {$IFNDEF NONBP}StakdumpInitUnit;{$ENDIF}
@@ -1214,12 +1242,14 @@ BEGIN
        If LngFileName = '' then Error( 'No LNG input file defined for language "' + Lng +'".' );
        OutLngFileName := INI.Get( Lng, 'LngOutput' );
        If OutLngFileName = '' then Error( 'No LNG output file defined for language "' + Lng +'".' );
+       OutLngFileName:=GetExtForTarget(OutLngFileName); {John_SW  29-11-2003}
        ProcessDLs( True );
       end else ProcessDLs( False );
       DlgFileName := INI.Get( Lng, 'DlgInput' );
       If DlgFileName = '' then Error( 'No DLG input file defined for language "' + Lng +'".' );
       OutDlgFileName := INI.Get( Lng, 'DlgOutput' );
       If OutDlgFileName = '' then Error( 'No DLG output file defined for language "' + Lng +'".' );
+      OutDlgFileName:=GetExtForTarget(OutDlgFileName);  {John_SW  29-11-2003}
       ProcessDLGs;
       If LStringList <> NIL then
       begin

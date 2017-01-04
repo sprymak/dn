@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -271,7 +274,7 @@ constructor TReanimateTreeInfoView.Init;
 begin
  Inherited Init(R, nil);
  GetDir(0, CurDir);
- FirstCall:= On;
+ FirstCall:= True;
  OldDir:=CurDir;
 end;
 
@@ -425,7 +428,7 @@ procedure TReanimator.HandleEvent;
              else Drv^.SetFAT(Cl^.GetData(I), $F+Drv^.LastEl);
            Drv^.WriteFAT;
            Dispose(Cl,Done); Cl:=nil;
-           InfoPane^.FirstCall := On;
+           InfoPane^.FirstCall := True;
            GetDirData;
           end;
         end else FreeMem(Dir,Drv^.ClusterSize(P^.Dir));
@@ -466,7 +469,7 @@ procedure TReanimator.HandleEvent;
 
   R.Assign(1, 2, 78, 18);
   PV := New(PNFileViewer, Init(R, MemoStream, '', '', PV, False, P^.Attr and Directory <> 0));
-  PNFileViewer(PV)^.NoEdit := On;
+  PNFileViewer(PV)^.NoEdit := True;
   D^.Insert(PV);
 
 {  R.Assign(13, 16, 28, 18);
@@ -514,7 +517,7 @@ procedure TReanimator.HandleEvent;
   if Drv = nil then Exit;
   S[1] := Char(Drv^.Drive+65);
   T.X := Size.X div 2; T.Y := 1; MakeGlobal(T, T); Desktop^.MakeLocal(T,T);
-  S := SelectDrive(T.X, T.Y, S[1], Off); if S = '' then Exit;
+  S := SelectDrive(T.X, T.Y, S[1], False); if S = '' then Exit;
   if S[1] = Char(Drv^.Drive+65) then Exit;
   Advance2.lChDir(S);
   GetDir(Byte(S[1])-64, S); if Abort then Exit;

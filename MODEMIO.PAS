@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -257,10 +260,10 @@ begin
    case S[I] of
       '~': DelayTics(19);
       '^': begin
-             COMPort^.SetDTR(On);
+             COMPort^.SetDTR(True);
            end;
       'v': begin
-             COMPort^.SetDTR(Off);
+             COMPort^.SetDTR(False);
            end;
       '|': ComPort^.PutChar(#13);
         else ComPort^.PutChar(S[I]);
@@ -327,8 +330,8 @@ begin
           COMport := New(UARTPortPtr, InitCustom(COMNameType(ModemSetup.Port),BD,PR,DB,SB,
                                     bs, bs, defPortOptions ));
 
-          if  (ComPort <> nil) and (ClassifyUART(COMPort^.GetBaseAddr, Off) = U16550A) then
-               SetFIFOBuffering(COMPort^.GetBaseAddr, On, 8);
+          if  (ComPort <> nil) and (ClassifyUART(COMPort^.GetBaseAddr, False) = U16550A) then
+               SetFIFOBuffering(COMPort^.GetBaseAddr, True, 8);
         end;
  end;
  if COMport=NIL then
@@ -346,10 +349,10 @@ begin
             ComPort^.SWFlowEnable(fmax, fmin) else
               ComPort^.SWFlowDisable;
        end;
- COMPort^.SetModem(On, On);
+ COMPort^.SetModem(True, True);
  InitModem:=moOk;
  ModemWrite(ModemSetup.Init+#10);
- COMPort^.SetModem(On, On);
+ COMPort^.SetModem(True, True);
 
 end;
 
@@ -357,7 +360,7 @@ Function Dial(Number : String) : Byte;
 begin
  Dial:=moInitFail;
  if COMport=NIL then Exit;
- ComPort^.SetModem(On, On);
+ ComPort^.SetModem(True, True);
  ModemWrite(ModemSetup.Prefix+Number+ModemSetup.Suffix);
  Dial:=moOk;
 end;
@@ -372,11 +375,11 @@ var i: Word;
     C: Char;
     B1, B2: Boolean;
 begin
- ComPort^.SetModem(Off, Off);
+ ComPort^.SetModem(False, False);
  ComPort^.FlushInBuffer;
  ComPort^.FlushOutBuffer;
  DelayTics(2);
- ComPort^.SetModem(On, On);
+ ComPort^.SetModem(True, True);
  ModemWrite(ModemSetup.Escape);
  i:=memw[seg0040:$6C];While (memw[seg0040:$6C]-i)<36 do ;
  ModemWrite(ModemSetup.OnHook);
@@ -384,7 +387,7 @@ begin
  While ComPort^.CharReady do ComPort^.GetChar(C);
  InitTimeOut(HangUpTime);
  repeat ReadModem; until ModemSay(maOK) or TimeOut;
- COMPort^.SetModem(On, On);
+ COMPort^.SetModem(True, True);
  COMPort^.GetModem(B1, B2);
  ModemAnswer:='';
 end;

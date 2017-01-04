@@ -53,6 +53,9 @@
 //  dn3323-RewriteFile(f)-rewrite_under_Windows_XP_on_Nowell_drive_fix.patch
 //
 //  3.7.0
+//  dn31220-LFN(f)-expand_path_on_subst_drives_under_XP_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -292,7 +295,7 @@ begin
   begin
     AX    := $7160;
 {    CL    := 0;}
-{    CH    := $00;}
+    CH    := $80; {John_SW 29-01-2004}
     DS    := LowSeg;
 {    SI    := 0;}
     ES    := LowSeg;

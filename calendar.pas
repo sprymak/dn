@@ -54,6 +54,10 @@
 //  dn16rc1-piwcal23.patch
 //
 //  2.0.0
+//  dn31214-Calendar(f)-calendar_works_in_VP.patch
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -423,15 +427,14 @@ end;
  *****************************************************************)
 
 function JulianDay ( Day, Month, Year : Word ) : Longint;
-var
-  result : Longint;
+{$IFNDEF RESULT}var Result : Longint;{$ENDIF}
 begin
   Dec ( Year );
-  result := Longint(365) * Year + Year div 4;
+  Result := Longint(365) * Year + Year div 4;
   if Year >= GregorianThreshold then
-    Dec ( result, Year div 100 - Year div 400 - 2 );
-  Inc ( result, DayOfYear ( Day, Month, Year+1 ) );
-  JulianDay := result;
+    Dec ( Result, Year div 100 - Year div 400 - 2 );
+  Inc ( Result, DayOfYear ( Day, Month, Year+1 ) );
+{$IFNDEF RESULT}JulianDay := Result;{$ENDIF}
 end;
 
 (*****************************************************************

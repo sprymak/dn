@@ -57,6 +57,17 @@
 //  dn368-DBF_WKZ(f)-lite_version_find_settings_store_fix.patch
 //
 //  3.7.0
+//  dn370-clock(i)-disable_seconds_in_winnt.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31005-FileView(f)-view_file_temp_file_fix.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31220-kernel(f)-BatchExtension_fix.patch
+//  dn40205-kernel(f)-BatchExtension_fix.patch
+//  dn40225-StartUp(f)-quoted_parameters_fix.patch
+//  dn40307-define_DN_Micro.patch
+//  dn40328-fix_UC2_AIN_and_DN_micro_improvement.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -142,11 +153,13 @@ const
      cfgColumnsDefaultsArvd = 70; {piwamoto}{LFNLen,EXTLen:string[3]}
 
      dlAbout = #13#3'Dos Navigator Open Source'#13+
-     {$IFDEF LITE}+#3'Light version'+{$ELSE}+#13+{$ENDIF}
+     {$IFDEF LITE}+#3'Light edition'+{$ENDIF}
+     {$IFDEF MICRO}+#3'Micro edition'+{$ENDIF}
+     {$IFNDEF LITE}{$IFNDEF MICRO}+#13+{$ENDIF}{$ENDIF}
      +#13#3'Version %s, %s'+
-     +#13#3#0'http://www.dnosp.ru'#0+
-     +#13#3#0'http://dn.traktir.ru'#0+
-     +#13#3#0'http://dnosp.nm.ru'#0+
+     +#13#3'http://www.dnosp.ru'+
+     +#13#3'http://dn.traktir.ru'+
+     +#13#3'http://dnosp.nm.ru'+
 {     +#13#3#0'http://www.sama.ru/~piwamoto/'#0+}
      +#13{#13}+
      +#13#3'Based on Dos Navigator'+
@@ -256,7 +269,7 @@ constructor TDataSaver.Init;
 begin
   R.Assign(0,0,0,0);
   inherited Init(R);
-  SetState(sfVisible, Off);
+  SetState(sfVisible, False);
   Options := Options and not ofSelectable;
   EventMask := 0;
   DataSaver := @Self;
@@ -281,8 +294,6 @@ constructor TDataSaver.Load;
       DT: DateTime;
       I, Q, Q2: LongInt;
       DrNm: String;
-      OW: PString;
-      AS: String;
 
 begin
   if DataSaver <> nil then Dispose(DataSaver,Done); DataSaver:=nil;
@@ -421,7 +432,7 @@ var
   end;
 
 begin
- ConfigModified := Off;
+ ConfigModified := False;
  S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stCreate, 16384);
  if S.Status <> stOK then begin Msg(erCantOpenConfig, nil, mfError+mfOKButton); S.Done; Exit; end;
  S.Write(ConfigSigns[NumSupportedConfigs].Sign[1], ConfigSigns[NumSupportedConfigs].SignLen);
@@ -507,8 +518,8 @@ procedure LoadPalFromFile(const FN: String);
       S: TDOSStream;
       Pal: PString;
 begin
-  LoadPalette    := Off;
-  LoadVGAPalette := Off;
+  LoadPalette    := False;
+  LoadVGAPalette := False;
   S.Init(FN, stOpenRead);
   if S.Status = 0 then
    begin
@@ -519,7 +530,7 @@ begin
       While St[0] < Char(Length(CColor)) do St := St + #$3F;
       Application^.GetPalette^ := Copy(St,1,Length(CColor));
       {SetSysColors(Application^.GetPalette^);}
-      LoadPalette := On;
+      LoadPalette := True;
     end;
     LoadIndexes(S);
     P := 0;
@@ -533,7 +544,7 @@ begin
             S.Read( CurrentBlink, SizeOf( CurrentBlink ) );
             SetBlink( CurrentBlink );
           end;
-       LoadVGAPalette := On;
+       LoadVGAPalette := True;
        if StartupData.Load and osuResetPalette <> 0 then SetPalette( VGA_Palette );
 
      end;{ else
@@ -581,7 +592,7 @@ begin
     until P = nil;
   end;
  P := DeskTop^.Current;
- if P <> nil then P^.SetState(sfActive, On);
+ if P <> nil then P^.SetState(sfActive, True);
 end;
         {-DataCompBoy-}
 
@@ -706,32 +717,44 @@ begin
       else
        begin
         TempFile := Copy(PJ^,2,255);
-        QQ := Pos('|', TempFile); Dec(QQ);
-        if QQ>0 then Q:=Copy(TempFile, QQ+2, 255) else Q:='';
-        QQ := QQ and 255; {BP bugfix by piwamoto}
+{John_SW  7-10-2003: Extract correct file name first!}
+        QQ := Pos('|', TempFile);
+        if QQ>0 then
+         begin
+          Q:=Copy(TempFile, QQ, 255);
+          TempFile:=Copy(PJ^,2,QQ-1);
+         end
+        else Q:='';
+
         If Not ExistFile(TempFile) then TempFile:=GetfURZ(Copy(PJ^,2,QQ));
         If Not ExistFile(TempFile) then TempFile:=GetfURZ2(Copy(PJ^,2,QQ));
         If Not ExistFile(TempFile) then TempFile:=GetGLUKName(Copy(PJ^,2,QQ));
-        If Not ExistFile(TempFile) then TempFile:=Copy(PJ^,2,QQ);
+        If Not ExistFile(TempFile) then TempFile:=Copy(PJ^,2,255);
         case PJ^[1] of
           '-': CC := cmIntFileView;
-          '=': CC := cmDBFView;
-          '>': CC := cmWKZView;
           '<': CC := cmTextView;
           '|': CC := cmHexView;
+{$IFDEF DBView}
+          '=': CC := cmDBFView;
+{$ENDIF}
+{$IFDEF SpreadSheet}
+          '>': CC := cmWKZView;
+{$ENDIF}
+{$IFNDEF MINARCH}
           '[': CC := cmReadArchive;
+{$ENDIF}
           '!': CC := cmViewFilter;
           else CC := cmFileView;
         end;
-        if CC <> 0 then
-                    begin
-                      if Q<>'' then TempFile:=TempFile+'|'+Q;
-                      Event.What := evCommand;
-                      Event.Command := CC;
-                      Event.InfoPtr := @TempFile;
-                      PutEvent(Event);
-                     end;
-        RunMenu := Off;
+{Commented by John_SW  7-10-2003: CC never equals zero!
+{        if CC <> 0 then begin}
+        if Q<>'' then TempFile:=TempFile+Q;
+        Event.What := evCommand;
+        Event.Command := CC;
+        Event.InfoPtr := @TempFile;
+        PutEvent(Event);
+{                     end;}
+        RunMenu := False;
        end;
 (*  S^.Read(NewArchiveName, 1); S^.Read(NewArchiveName[1],length(NewArchiveName));
     S^.Read(OldArchiveName, 1); S^.Read(OldArchiveName[1],length(OldArchiveName));
@@ -892,6 +915,11 @@ var
 
 var flj: boolean;
 begin
+  {$IFDEF VIRTUALPASCAL}
+  if ((opSys and opWNT) = opWNT) or
+     ((opSys and opOS2) = opOS2) then
+   BatchExtension := '.CMD';
+  {$ENDIF}
   for C := 'A' to 'Z' do DrvTrees[C].C := nil;
   LastViewerBounds.Assign(0,0,0,0);
 
@@ -905,6 +933,8 @@ begin
   if ShowSeconds then R.A.X := R.B.X - 10 else R.A.X := R.B.X - 7;
   R.B.Y := R.A.Y + 1;
   Clock := New(PClockView , Init( R ));
+  if ((opSys and opWNT) = opWNT) and AutoDisableSecondsWNT then
+   begin ShowSeconds := False; BlinkSeparator := False; end;
   if InterfaceData.Options and ouiClock = 0 then Clock^.Hide;
   PClockView(Clock)^.UpDate;
 
@@ -938,7 +968,7 @@ begin
     if (LoadStream <> nil) and (ClipBoardStream <> nil) then begin
       LoadStream^.Seek(0);
       ClipBoardStream^.CopyFrom(LoadStream^, LoadStream^.GetSize);
-      if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(Off);
+      if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(False);
     end;
     FreeObject( LoadStream );
   end;
@@ -950,9 +980,10 @@ begin
   if RunFirst then
   for I := 1 to ParamCount do
    begin
-    if flj then FileName := FileName + ParamStr(I) else FileName := ParamStr(I);
-    if Pos('"',FileName)<>0 then flj:=not flj;
-    if (FileName[1] <> '/') and not flj then EditFile(On, DelSquashes(FileName));
+    if flj then FileName := FileName+' '+ParamStr(I)
+    else FileName := ParamStr(I);
+    if Pos('"',ParamStr(I))<>0 then flj:=not flj;
+    if (FileName[1] <> '/') and not flj then EditFile(True, DelSquashes(FileName));
    end;
 
  if RunMenu then begin
@@ -1020,7 +1051,7 @@ begin
 {$IFDEF Modem}
  SetBlink(StartupData.Unload and osuBlinking <> 0);
  DeallocateScrollBk ;
- if StartupData.Unload and osuRestorePal <> 0 then ResetVGApalette(On);
+ if StartupData.Unload and osuRestorePal <> 0 then ResetVGApalette(True);
  if COMPort <> nil then
   begin
     B := COMPort^.GetBaseAddr;
@@ -1029,7 +1060,7 @@ begin
       COMPort^.ptOptionsOff(ptRestoreOnClose);
     end;
     Dispose(COMPort,Done);
-    SetFIFOBuffering(B, Off, 0);
+    SetFIFOBuffering(B, False, 0);
   end;
 {$ENDIF}
 end;

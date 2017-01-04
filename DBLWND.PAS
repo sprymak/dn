@@ -66,6 +66,11 @@
 //  dn3216-FilePanel(f)-change_folder_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//  dn31220-fpanel(f)-minimize_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -112,6 +117,7 @@ type
      function  Valid(C: Word): Boolean; virtual;
      procedure ChangeBounds(var Bounds: TRect); virtual;
      procedure HandleCommand(var Event: TEvent);
+     procedure ChangeLanguage; virtual;  {John_SW  23-12-2003}
     end;
 
 
@@ -153,9 +159,9 @@ constructor TDoubleWindow.Init;
      R: TRect;
      PV: PView;
 begin
- inherited Init(Bounds, '', ANumber); isValid := On;
+ inherited Init(Bounds, '', ANumber); isValid := True;
  Options := Options or ofTileAble;
- EventMask := $FFFF; Abort := Off;
+ EventMask := $FFFF; Abort := False;
  if (ADrive <= 0) or not ValidDrive(Char(ADrive+64)) then ADrive := 0;
  LDrive := ADrive; RDrive := ADrive;
  GetExtent(R); R.Grow(-1, 0);
@@ -443,7 +449,7 @@ procedure TDoubleWindow.HandleCommand;
               P.X := (OldBounds.A.X + ((OldBounds.B.X - OldBounds.A.X) * Separator^.OldX) div Separator^.OldW) div 2
              else P.X := 1;
    P.Y := Origin.Y + 3;
-   S := SelectDrive(P.X, P.Y, LPanel^.DirectoryName[1], On);
+   S := SelectDrive(P.X, P.Y, LPanel^.DirectoryName[1], True);
    if S = '' then Exit; ClrIO;
    Message(LPanel, evCommand, cmChangeDrv, @S);
    if LType <> dtPanel then
@@ -478,7 +484,7 @@ procedure TDoubleWindow.HandleCommand;
                                             Separator^.OldX) div Separator^.OldW) div 2
                      else P.X := OldBounds.B.X + OldBounds.A.X;
    P.Y := Origin.Y + 3;
-   S := SelectDrive(P.X, P.Y, RPanel^.DirectoryName[1], On);
+   S := SelectDrive(P.X, P.Y, RPanel^.DirectoryName[1], True);
    if S = '' then Exit; ClrIO;
    Message(RPanel, evCommand, cmChangeDrv, @S);
    if RType <> dtPanel then
@@ -784,12 +790,16 @@ begin
                               ClearEvent(Event);
                             end;
               cmZoom: begin
-                       if LSelected and (LType = dtView) then SwitchRight else
-                         if not LSelected and (RType = dtView) then SwitchLeft;
-                       { Flash >>> }
-                       ChangeBounds(OldPanelBounds);
-                       GetBounds(OldPanelBounds);
-                       { Flash <<< }
+                       { Flash 05-02-2004 >>> }
+                       if (LSelected and (LType = dtView)) or
+                          (not LSelected and (RType = dtView)) then
+                        begin
+                         GetBounds(OldBounds);
+                         GetBounds(OldPanelBounds);
+                         if (Size.X < Desktop^.Size.X) or PanelZoomed then
+                          Message(@Self, evCommand, cmMaxi, nil);
+                        end;
+                       { Flash 05-02-2004 <<< }
                       end;
   {Knave 11.09.99 --------------- begin 1}
   {DataCompBoy} cmMaxi: if RVisible and LVisible then begin
@@ -828,12 +838,12 @@ begin
               CE end;
               cmPostHideRight: begin
                                  if not RVisible then SwitchRight;
-                                 RVisible := On;
+                                 RVisible := True;
                                  if LVisible then SwitchLeft;
                                end;
               cmPostHideLeft: begin
                                  if not LVisible then SwitchLeft;
-                                 LVisible := On;
+                                 LVisible := True;
                                  if RVisible then SwitchRight;
                                end;
               cmChangeInactive: begin
@@ -949,5 +959,15 @@ begin
  end;
  inherited HandleEvent(Event);
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+procedure TDoubleWindow.ChangeLanguage;
+begin
+ If LTree <> Nil Then LTree^.Info^.ChangeLanguage;
+ If Info <> Nil Then Message(Info,evCommand,cmRereadInfo,Nil);
+ If LPanel <> Nil Then LPanel^.ChangeLanguage;
+ If RPanel <> Nil Then RPanel^.ChangeLanguage;
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
 
 end.

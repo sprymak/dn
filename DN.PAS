@@ -51,6 +51,10 @@
 //  dn230-remove_GZip_compression_and_change_external_filter_view.patch
 //
 //  2.7.0
+//  dn40307-define_DN_Micro.patch
+//  dn40328-7Zip.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -90,21 +94,27 @@ uses DN1;
   {$O Arc_arc}  {$O Arc_bsa}  {$O Arc_bs2}  {$O Arc_hyp}  {$O Arc_lim}
   {$O Arc_hpk}  {$O Arc_TAR}  {$O Arc_ZXZ}  {$O Arc_QRK}  {$O Arc_UFA}
   {$O Arc_IS3}  {$O Arc_SQZ}  {$O Arc_HAP}  {$O Arc_ZOO}  {$O Arc_CHZ}
-  {$O Arc_UC2}  {$O Arc_AIN}  {$O Arc_TGZ}  {$O Archread}
+  {$O Arc_UC2}  {$O Arc_AIN}  {$O Arc_TGZ}  {$O Archread} {$O Arc_7Z}
 (* we do NOT need GZip compression inside
   {$O GZIO}     {$O ZUtil}    {$O ZInflate} {$O ZLib}
   {$O ADler}    {$O InfBlock} {$O InfCodes} {$O InfFast}
   {$O InfTrees} {$O InfUtil}  {$IFNDEF NO_DEFLATE}{$O Trees}{$ENDIF}
 *)
 {$ENDIF !MINARCH}
-  {$O ASCIITab} {$O DNStdDlg} {$O SBlocks}  {$O FBB}      {$O Tree}
+  {$O ASCIITab} {$O DNStdDlg} {$O SBlocks}  {$O Tree}
   {$O Messages} {$O Colors}   {$O UserMenu} {$O HelpFile} {$O Validate}
-  {$O Arvid}    {$O ArvidAvt} {$O ArvidTdr} {$O Advance6} {$O WinClp}
-  {$O DiskImg}  {$O DRVTYPES} {$O DNIni}    {$O FindObj}  {$O DNEXEC}
+  {$O Advance6} {$O WinClp}
+  {$O DRVTYPES} {$O DNIni}    {$O DNEXEC}
   {$O advance4} {$O RegAll}   {$O advance7}
   {$O calculat} {$O HelpKern}
 
-{$IFDEF DiskFormat}           {$O DNFormat} {$O Format}   {$ENDIF}
+{$IFDEF ARVID}
+  {$O Arvid}    {$O ArvidAvt} {$O ArvidTdr} {$O FindObj}
+{$ENDIF}
+
+{$IFDEF DiskImg}   {$O DiskImg}                               {$ENDIF}
+{$IFDEF LongCopy}  {$O FBB}                                   {$ENDIF}
+{$IFDEF DiskFormat}           {$O DNFormat} {$O Format}       {$ENDIF}
 {$IFDEF MicroedOvr}{$O Editor}   {$O MicroEd}  {!$O U_KeyMap}
                    {$O Ed2}      {$O EdWin}    {$O MicroEd2}  {$ENDIF}
 {$IFDEF ADVANCEOVR}{$O advance1} {$O advance2} {$O advance3}

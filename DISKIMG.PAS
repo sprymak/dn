@@ -52,6 +52,11 @@
 //  dn368-disk_unpacking_FAT_processing_fix.patch
 //
 //  3.7.0
+//  dn370-diskimage_unpacker_uudecoder_datetime.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -83,7 +88,7 @@ begin
   begin
     DispatchEvents(PInfo, Cancel);
     Cancel := (Cancel or CtrlBreakHit) and (MessageBox(GetString(dlQueryAbort), nil, mfYesNoConfirm) = cmYes);
-    CtrlBreakHit := Off;
+    CtrlBreakHit := False;
     NewTimer(Tmr, 1);
   end;
 end;
@@ -146,7 +151,7 @@ var
   B: PBufStream;
   Dir, FName: string;
 
-procedure Try;
+procedure _Try;
 begin
   B := New(PBufStream, Init(FName, stCreate, $8000));
   if B^.Status <> stOK then begin Dispose(B,Done); B:=nil; end;
@@ -185,7 +190,9 @@ procedure SetFData;
 var
   F: lfile;
 begin
-  lAssignFile(F, FName); lResetFileReadOnly(F, 1);
+  lAssignFile(F, FName);
+  FileMode:=$42;{set filetime under OS/2}
+  lResetFile(F, 1);
   SetFTime(F, Date);
   Close(F.F);
   if Attr <> Archive then lSetFAttr(F, Attr);
@@ -196,11 +203,11 @@ begin
   Dir := FmtStr(ADir, VolumeLabel);
   FName := MakeNormName(Dir, ANm);
   PInfo^.Write(3, LowStrg(GetName(FName)));
-  Try;
+  _Try;
   if B = nil then
   begin
-    CreateDirInheritance(Dir, Off);
-    Try;
+    CreateDirInheritance(Dir, False);
+    _Try;
     if B = nil then Exit;
   end;
   GetMem(CpyBuf, BytesPerClu);

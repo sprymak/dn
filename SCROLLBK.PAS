@@ -51,6 +51,9 @@
 //  dn2510-resource_and_help_fixes_20020516.patch
 //
 //  2.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -391,7 +394,7 @@ end;
 
 function TScrollBackWindow.ReactOnCmd;
 begin
-  ReactOnCmd := On;
+  ReactOnCmd := True;
 end;
 
 procedure NewBackRec;
@@ -483,7 +486,7 @@ begin
  if Blk then
    with CutRect do
    begin
-     BlkM := Off;
+     BlkM := False;
      if A.X < 0 then CutRect.Move(-A.X,0);
      if A.Y < 0 then CutRect.Move(0,-A.Y);
      if B.X - A.X > Size.X then B.X := A.X + Size.X;
@@ -491,13 +494,13 @@ begin
      if B.X > Limit.X then CutRect.Move(Limit.X-B.X, 0);
      if B.Y > Limit.Y then CutRect.Move(0, Limit.Y-B.Y);
      if A.X < Delta.X then
-       begin Delta.X := A.X; BlkM := On; end;
+       begin Delta.X := A.X; BlkM := True; end;
      if CutRect.A.Y < Delta.Y then
-       begin Delta.Y := A.Y; BlkM := On; end;
+       begin Delta.Y := A.Y; BlkM := True; end;
      if B.X - Delta.X > Size.X then
-       begin Delta.X := B.X - Size.X; BlkM := On; end;
+       begin Delta.X := B.X - Size.X; BlkM := True; end;
      if B.Y - Delta.Y > Size.Y then
-       begin Delta.Y := B.Y - Size.Y; BlkM := On; end;
+       begin Delta.Y := B.Y - Size.Y; BlkM := True; end;
      if Delta.X < 0 then Delta.X := 0;
      if Delta.Y < 0 then Delta.Y := 0;
      if BlkM then ScrollTo(Delta.X, Delta.Y);
@@ -636,10 +639,10 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
         I: Integer;
         P: Pointer;
   begin
-    St := StoreFile(x_x, DNApp.GetString(dlSaveScrollback),On);
+    St := StoreFile(x_x, DNApp.GetString(dlSaveScrollback),True);
     if St = nil then Exit;
     S := Strg('*', Limit.X)+#13#10; St^.Write(S[1], Length(S));
-    S := Strg(' ',20) + DNApp.GetString(dlScrollbackSaved)+GetDateTime(Off)+' '+GetDateTime(On) + #13#10;
+    S := Strg(' ',20) + DNApp.GetString(dlScrollbackSaved)+GetDateTime(False)+' '+GetDateTime(True) + #13#10;
     St^.Write(S[1], Length(S));
     S := Strg('*', Limit.X) + #13#10; St^.Write(S[1], Length(S));
     for I := 0 to Limit.Y-1 do
@@ -660,7 +663,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
        var St: PStream;
            I: Integer;
      begin
-       St := StoreFile('*.ASC', DNApp.GetString(dlWriteASCII),On);
+       St := StoreFile('*.ASC', DNApp.GetString(dlWriteASCII),True);
        if St = nil then Exit;
        for I := CutRect.A.Y to CutRect.B.Y-1 do
          begin
@@ -677,8 +680,8 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
            I,X: Integer;
            P: Pointer;
      begin
-       if AVT then St := StoreFile('*.AVT', DNApp.GetString(dlWriteAvatar),On)
-              else St := StoreFile('*.ANS', DNApp.GetString(dlWriteAnsi),On);
+       if AVT then St := StoreFile('*.AVT', DNApp.GetString(dlWriteAvatar),True)
+              else St := StoreFile('*.ANS', DNApp.GetString(dlWriteAnsi),True);
        if St = nil then Exit;
        A := 0; X := CutRect.A.X;
        for I := CutRect.A.Y to CutRect.B.Y-1 do
@@ -692,7 +695,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
        St^.Free;
      end;
   begin
-    MakeGrab := Off;
+    MakeGrab := False;
     L := CutRect.B.X-CutRect.A.X;
     R.A.X := CutRect.A.X - Delta.X;
     R.A.Y := CutRect.A.Y - Delta.Y;
@@ -709,7 +712,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
                     nil)))))))),
              nil)));
     if W < 1000 then Exit;
-    MakeGrab := On;
+    MakeGrab := True;
     case W of
       1004,1005: SaveANSI_AVT(W=1005);
       1000: begin
@@ -798,7 +801,7 @@ Rep:
       I: Integer;
 
 begin
-  CE := On;
+  CE := True;
   inherited HandleEvent(Event);
   case Event.What of
      evMouseDown: begin
@@ -827,12 +830,12 @@ begin
                   cmSBBKill: KillBuffer;
                   cmSBBStore: SaveDisk;
                   cmSBBGrab: Grab;
-                  else CE := Off;
+                  else CE := False;
                 end;
      evKeyDown: case Event.KeyCode of
-                  kbHome,kbCtrlHome: begin Event.KeyCode := kbCtrlPgUp; CE := Off; end;
-                  kbEnd,kbCtrlEnd: begin Event.KeyCode := kbCtrlPgDn; CE := Off; end;
-                  kbESC: begin Event.What := evCommand; Event.Command := cmClose; CE := Off; end;
+                  kbHome,kbCtrlHome: begin Event.KeyCode := kbCtrlPgUp; CE := False; end;
+                  kbEnd,kbCtrlEnd: begin Event.KeyCode := kbCtrlPgDn; CE := False; end;
+                  kbESC: begin Event.What := evCommand; Event.Command := cmClose; CE := False; end;
                   {
                   else if Event.CharCode > #32 then
                         begin
@@ -845,9 +848,9 @@ begin
                          ClearEvent(Event);
                         end
                   }
-                  else CE := Off;
+                  else CE := False;
                 end;
-     else CE := Off;
+     else CE := False;
   end;
   if CE then ClearEvent(Event);
 end;

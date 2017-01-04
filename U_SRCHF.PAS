@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -183,7 +186,7 @@ begin
     end else
     if IsSec then begin
       DelLeft(S);
-      InSq:=Off;
+      InSq:=False;
       P:=1;
       For i:=1 to length(S)+1 do
        if ((i>length(s)) and (P<length(s))) or

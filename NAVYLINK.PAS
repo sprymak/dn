@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -453,9 +456,9 @@ begin
     repeat
       if CL_Abort then NewTimer(T, 20);
       GiveSlice;
-      C := Off; DispatchGrd(C);
+      C := False; DispatchGrd(C);
       C := C or CtrlBreakHit;
-      CtrlBreakHit := Off;
+      CtrlBreakHit := False;
       if C then begin A := True; break end;
     until (not CL_Abort) and TimerExpired(T);
     DisposeGrd;
@@ -1398,7 +1401,7 @@ function ExecCopyDialog(var Dest: String; AFiles: PCollection; AOwner: PView): B
 begin
   with PLinker(Linker)^ do ExecCopyDialog :=
     CopyDialog(Dest, _Mask, CopyOpt, CopyMode, CopyPrn,
-                     MoveMode, AFiles, 0, AOwner, On);
+                     MoveMode, AFiles, 0, AOwner, True);
 end;
 
 procedure CopyFromLinkDrive;

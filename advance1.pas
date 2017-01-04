@@ -57,6 +57,10 @@
 //  dn200-change_drive_menu_small_fix.patch
 //
 //  2.7.0
+//  dn31029-Kernel(fi)-text_search_operation_rewritten.patch
+//  dn40412-BackSearch(f)-back_search_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -136,10 +140,10 @@ procedure MakeDateFull(const Mode,Day,Month: Word; {-$VOL moidfied}
                        const YFull: boolean);
 Function  DumpStr(var B; Addr: LongInt; Count: Integer; Filter: Byte): string;
 
-Function  BackSearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-Function  SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV 14.05.99}
-Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV ::}
+Function  BackSearchFor(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+Function  SearchFor(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+Function  BackSearchForAllCP(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt; {-$VIV 14.05.99}
+Function  SearchForAllCP(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt; {-$VIV ::}
 
 procedure CompressString(var S: String);
 
@@ -1594,223 +1598,305 @@ begin
 end;
 {$ENDIF}
 
-function SearchFor;
- var D: array[Char] of Word;
-     ChBuf: array [0..0] of Char absolute B;
-     I: Integer;
-     BB: Byte;
-     M: Word;
-     C: Char;
+{AK155: Выкинул ту муть, что здесь была, и заменил на
+нормальнй BM-поиск, сделанный на основе программы
+demobmse.pas из SWAG }
+(* Public-domain demo of Boyer-Moore search algorithm.  *)
+(* Guy McLoughlin - May 2, 1993.                        *)
+
+(* Boyer-Moore index-table data definition.             *)
+type
+  BMTable  = array[0..255] of byte;
+
+
+(***** Create a Boyer-Moore index-table to search with.  *)
+procedure Create_BMTable
+  ({output}       var BMT : BMTable;
+   {input/output} var Pattern : string;
+    var UpCaseArray:TXlat; {Cat: UpCase -> UpCaseArray}
+    ExactCase : boolean);
+var
+  Index : byte;
 begin
- SearchFor := 0;
- if S = '' then Exit;
- MakeCase(CaseSensitive);
- {$IFNDEF BIT_32}
- asm
-  lea di, D
-  mov ax, ss
-  mov es, ax
-  mov cx, 256
-  lea bx, S
-  mov al, ss:[bx]
-  xor ah, ah
-  cld
-  rep stosw
-  mov dx, ax
-  mov cx, ax
-  lea bx, Tran
-  lea si, S
-@@@2:
-  inc si
-  mov al, ss:[si]
-  push bx
-  add bx, ax
-  mov al, ds:[bx]
-  pop bx
-  mov ss:[si], al
-  loop @@@2
-  mov cx, dx
-  lea si, D
-  lea bx, S
-@@@1:
-  inc bx
-  dec dx
-  mov al, ss:[bx]
-  xor ah, ah
-  add ax, ax
-  push si
-  add si, ax
-  mov ss:[si], dx
-  pop si
-  loop @@@1
- end;
- {$ELSE BIT_32}
- asm
-  push edi
-  push esi
-  push ebx
-  push edx
-  push ecx
-  lea edi, D
-  mov ecx, 256
-  lea ebx, S
-  xor eax, eax
-  mov al, [ebx]
-  cld
-  rep stosw
-  mov edx, eax
-  mov ecx, eax
-  lea ebx, Tran
-  lea esi, S
-@@@2:
-  inc esi
-  mov al, [esi]
-  push ebx
-  add ebx, eax
-  mov al, [ebx]
-  pop ebx
-  mov [esi], al
-  loop @@@2
-  mov ecx, edx
-  lea esi, D
-  lea ebx, S
-@@@1:
-  inc ebx
-  dec edx
-  xor eax, eax
-  mov al, [ebx]
-  add eax, eax
-  push esi
-  add esi, eax
-  mov [esi], edx
-  pop esi
-  loop @@@1
-  pop ecx
-  pop edx
-  pop ebx
-  pop esi
-  pop edi
- end;
- {$ENDIF BIT_32}
- M := Length(S) - 1;
- for I := 1 to Length(S) do S[I] := Tran[S[I]];
- while M < L do
-  begin
-   C := Tran[ChBuf[M]];
-   if C = S[Byte(S[0])] then
-    begin
-     for I := 0 to Byte(S[0]) - 1 do
-      begin
-       if Tran[ChBuf[M-I]] <> S[Byte(S[0])-I] then Break;
-       if I = Byte(S[0]) - 1 then begin SearchFor := M - I + 1; Exit; end;
-      end;
-     Inc(M);
-    end else Inc(M, D[C]);
-  end;
+  fillchar(BMT, sizeof(BMT), length(Pattern));
+  if NOT ExactCase then
+    for Index := 1 to length(Pattern) do
+      Pattern[Index] := UpCaseArray[Pattern[Index]];
+  for Index := 1 to length(Pattern) do
+    BMT[ord(Pattern[Index])] := (length(Pattern) - Index)
 end;
 
-function BackSearchFor;
+
+(***** Boyer-Moore Search function. *)
+function BMsearch({input } var BMT       : BMTable;
+                           var Buffer;
+                               BuffSize  : LongInt;
+                         const Pattern   : String;
+                           var UpCaseArray : TXlat; {Cat: UpCase -> UpCaseArray}
+                               ExactCase : Boolean) : {output} LongInt;
+{ Результат - индекс (от 1) начала найденного текста или 0,
+  если текст не найден }
+var
+  Buffer2: array[1..65520] of Char absolute Buffer;
+  BufIndex,
+  PatternIndex,
+  PatSize: LongInt;
+  c: Char;
+  d, l: LongInt;
+
+begin
+  {$IFDEF BIT_16} {Cat:эта проверка актуальна только для 16-битного случая,}
+                  {    в 32-битном буфер может оказаться достаточно большим}
+  if (BuffSize > 65520)  then
+    begin
+      BMsearch := $FFFF;
+      exit
+    end;
+  {$ENDIF}
+  PatSize := length(Pattern);
+  if PatSize > BuffSize then
+    begin
+      BMsearch := 0;
+      Exit;
+    end;
+  BufIndex := PatSize;
+  PatternIndex := PatSize;
+  while true do
+   begin
+    c := Buffer2[BufIndex];
+    if not ExactCase then c := UpCaseArray[c];
+    if  (c = Pattern[PatternIndex]) then
+     begin
+      if PatternIndex = 1 then
+       begin
+        BMsearch := BufIndex;
+        Exit;
+       end;
+      Dec(BufIndex);
+      Dec(PatternIndex);
+     end
+    else
+     begin
+      d := BMT[ord(c)];
+      l := Succ(PatSize-PatternIndex);
+      if l > d then Inc(BufIndex, l)
+      else Inc(BufIndex, d);
+      if BufIndex > BuffSize then
+       begin
+        BMsearch := 0;
+        Exit;
+       end;
+      PatternIndex := PatSize
+     end;
+   end;
+end;
+
+{Cat: обратный Boyer-Moore-поиск, переделал из прямого}
+procedure Create_BackBMTable
+  ({output}       var BMT : BMTable;
+   {input/output} var Pattern : string;
+    var UpCaseArray:TXlat;
+    ExactCase : boolean);
+var
+  Index : byte;
+begin
+  fillchar(BMT, sizeof(BMT), length(Pattern));
+  if NOT ExactCase then
+    for Index := 1 to length(Pattern) do
+      Pattern[Index] := UpCaseArray[Pattern[Index]];
+  for Index := length(Pattern) downto 1 do
+    BMT[ord(Pattern[Index])] := (Index - 1)
+end;
+
+function BackBMsearch({input } var BMT       : BMTable;
+                               var Buffer;
+                                   BuffSize  : LongInt;
+                             const Pattern   : String;
+                               var UpCaseArray : TXlat;
+                                   ExactCase : Boolean) : {output} LongInt;
+{ Результат - индекс (от 1) начала найденного текста или 0,
+  если текст не найден }
+var
+  Buffer2: array[1..65520] of Char absolute Buffer;
+  BufIndex,
+  PatternIndex,
+  PatSize : LongInt;
+  c: Char;
+  d: LongInt;
+
+begin
+  {$IFDEF BIT_16} {Cat:эта проверка актуальна только для 16-битного случая,}
+                  {    в 32-битном буфер может оказаться достаточно большим}
+  if (BuffSize > 65520)  then
+    begin
+      BackBMsearch := $FFFF;
+      exit
+    end;
+  {$ENDIF}
+  PatSize := length(Pattern);
+  if PatSize > BuffSize then
+    begin
+      BackBMsearch := 0;
+      Exit;
+    end;
+  BufIndex := BuffSize-PatSize+1;
+  PatternIndex := 1;
+  while true do
+   begin
+    c := Buffer2[BufIndex];
+    if not ExactCase then c := UpCaseArray[c];
+    if (c = Pattern[PatternIndex]) then
+      begin
+       Inc(BufIndex);
+       Inc(PatternIndex);
+       if PatternIndex > PatSize then
+        begin
+         BackBMsearch := BufIndex - PatSize;
+         Exit;
+        end;
+      end
+    else
+      begin
+       d := BMT[ord(c)];
+       if PatternIndex > d then Dec(BufIndex, PatternIndex)
+       else Dec(BufIndex, d);
+       PatternIndex := 1;
+       if BufIndex < 1 then
+        begin
+         BackBMsearch := 0;
+         Exit;
+        end;
+      end;
+   end;
+end;
+{/Cat}
+
+
+{Cat: переписал эту процедуру с использованием обратного Boyer-Moore-поиска}
+(*
+{AK155 Убрал ненужное и неправильное обращение к FillWord
+и слегка оптимизировал код}
+function BackSearchForCP(S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
  var D: array[Char] of Word;
      ChBuf: array [0..0] of Char absolute B;
-     I: Integer;
+     I: LongInt;
      BB: Byte;
-     M: LongInt;
+     ls, M: LongInt;
      C: Char;
 begin
  BackSearchFor := 0;
  if S = '' then Exit;
  MakeCase(CaseSensitive);
- FillWord(D, 256, Length(S));
- for I := 1 to Length(S) do S[I] := Tran[S[I]];
- for I := Length(S) downto 1 do
+ ls := Length(S);
+ for I := 1 to ls do S[I] := Tran[S[I]];
+ for C := low(D) to high(D) do D[C] := ls;
+ for I := ls downto 1 do
    D[S[I]] := I - 1;
- M := L;
- M := M - Length(S);
+ M := L - ls;
  while M >= 0 do
   begin
    C := Tran[ChBuf[M]];
    if C = S[1] then
     begin
-     for I := 0 to Byte(S[0]) - 1 do
+     for I := 0 to ls - 1 do
       begin
        if Tran[ChBuf[M+I]] <> S[I+1] then Break;
-       if I = Byte(S[0]) - 1 then begin BackSearchFor := M + 1; Exit; end;
+       if I = ls - 1 then begin BackSearchFor := M + 1; Exit; end;
       end;
      Dec(M);
     end else Dec(M, D[C]);
   end;
 end;
+{/AK155}
+*)
 
-{-$VIV 14.05.99}
 
-Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-var Res: array[0..6] of Word;
-    I, Res2: Word;
-    S2: String;
+{Cat: раньше регистронезависимый поиск по всем кодовым страницам был на
+      самом деле регистронезависимым только для 866 страницы, т.к. для
+      других страниц тоже использовался стандартный UpCaseArray, теперь я
+      сделал собственный UpCaseArray для каждой кодовой страницы и заменил
+      функции SearchFor и BackSearchFor на SearchForCP и BackSearchForCP}
+function SearchForCP(S: String; var B; L: LongInt; var UpCaseArray:TXlat;
+                     CaseSensitive: Boolean): LongInt;
+var
+  BMT: BMTable;
 begin
-  {CURRENT}
-  S2 := S;
-  Res[0] := BackSearchFor(S2, B, L, CaseSensitive);
-  {ASCII-ANSI}
-  S2 := ascii_ansi(S);
-  Res[1] := BackSearchFor(S2, B, L, CaseSensitive);
-  {ASCII-KOI8R}
-  S2 := ascii_koi8r(S);
-  Res[2] := BackSearchFor(S2, B, L, CaseSensitive);
-  {ANSI-ASCII}
-  S2 := ansi_ascii(S);
-  Res[3] := BackSearchFor(S2, B, L, CaseSensitive);
-  {ANSI-ASCII-KOI8R}
-  S2 := ascii_koi8r( ansi_ascii(S) );
-  Res[4] := BackSearchFor(S2, B, L, CaseSensitive);
-  {KOI8R-ASCII}
-  S2 := koi8r_ascii(S);
-  Res[5] := BackSearchFor(S2, B, L, CaseSensitive);
-  {KOI8R-ASCII-ANSI}
-  S2 := ascii_ansi( koi8r_ascii(S) );
-  Res[6] := BackSearchFor(S2, B, L, CaseSensitive);
-  {::}
-  Res2 := Res[0];
-  for I := 1 to 6 do
-   if (Res[I] > Res2) then Res2:= Res[I];
-  BackSearchForAllCP := Res2;
+  {MakeCase(UpCaseArray, CaseSensitive);}
+  Create_BMTable(BMT, S, UpCaseArray, CaseSensitive);
+  SearchForCP := BMsearch(BMT, B, L, S, UpCaseArray, CaseSensitive);
 end;
 
-Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-var Res: array[0..6] of Word;
-    I, Res2: Word;
-    S2: String;
+function BackSearchForCP(S: String; var B; L: LongInt; var UpCaseArray:TXlat;
+                         CaseSensitive: Boolean): LongInt;
+var
+  BMT: BMTable;
+begin
+  Create_BackBMTable(BMT, S, UpCaseArray, CaseSensitive);
+  BackSearchForCP := BackBMsearch(BMT, B, L, S, UpCaseArray, CaseSensitive);
+end;
+
+function SearchFor(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+begin
+  SearchFor := SearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
+end;
+
+function BackSearchFor(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+begin
+  BackSearchFor := BackSearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
+end;
+
+Function SearchForAllCP(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+var
+  Res: array[0..6] of LongInt;
+  I, Res2: LongInt;
 begin
   {CURRENT}
-  S2 := S;
-  Res[0] := SearchFor(S2, B, L, CaseSensitive);
+  Res[0] := SearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
   {ASCII-ANSI}
-  S2 := ascii_ansi(S);
-  Res[1] := SearchFor(S2, B, L, CaseSensitive);
+  Res[1] := SearchForCP(ascii_ansi(S), B, L, UpCaseArray_Ascii_Ansi, CaseSensitive);
   {ASCII-KOI8R}
-  S2 := ascii_koi8r(S);
-  Res[2] := SearchFor(S2, B, L, CaseSensitive);
+  Res[2] := SearchForCP(ascii_koi8r(S), B, L, UpCaseArray_Ascii_Koi8r, CaseSensitive);
   {ANSI-ASCII}
-  S2 := ansi_ascii(S);
-  Res[3] := SearchFor(S2, B, L, CaseSensitive);
-  {ANSI-ASCII-KOI8R}
-  S2 := ascii_koi8r( ansi_ascii(S) );
-  Res[4] := SearchFor(S2, B, L, CaseSensitive);
+  Res[3] := SearchForCP(ansi_ascii(S), B, L, UpCaseArray_Ansi_Ascii, CaseSensitive);
   {KOI8R-ASCII}
-  S2 := koi8r_ascii(S);
-  Res[5] := SearchFor(S2, B, L, CaseSensitive);
-  {KOI8R-ASCII-ANSI}
-  S2 := ascii_ansi( koi8r_ascii(S) );
-  Res[6] := SearchFor(S2, B, L, CaseSensitive);
-  {::}
+  Res[4] := SearchForCP(koi8r_ascii(S), B, L, UpCaseArray_Koi8r_Ascii, CaseSensitive);
+  {ASCII-ANSI , KOI8R-ASCII}
+  Res[5] := SearchForCP(koi8r_ascii(ascii_ansi(S)), B, L, UpCaseArray_Ascii_Ansi_Koi8r_Ascii, CaseSensitive);
+  {ASCII-KOI8 , ANSI-ASCII}
+  Res[6] := SearchForCP(ansi_ascii(ascii_koi8r(S)), B, L, UpCaseArray_Ascii_Koi8r_Ansi_Ascii, CaseSensitive);
+
   Res2 := Res[0];
   for I := 1 to 6 do
-   if (Res2 = 0) or ((Res[I] < Res2) and (Res[I] > 0)) then Res2:= Res[I];
+    if (Res2 = 0) or ((Res[I] < Res2) and (Res[I] > 0)) then Res2:= Res[I];
   SearchForAllCP := Res2;
 end;
 
-{-$VIV::}
+Function BackSearchForAllCP(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+var
+  Res: array[0..6] of LongInt;
+  I, Res2: LongInt;
+begin
+  {CURRENT}
+  Res[0] := BackSearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
+  {ASCII-ANSI}
+  Res[1] := BackSearchForCP(ascii_ansi(S), B, L, UpCaseArray_Ascii_Ansi, CaseSensitive);
+  {ASCII-KOI8R}
+  Res[2] := BackSearchForCP(ascii_koi8r(S), B, L, UpCaseArray_Ascii_Koi8r, CaseSensitive);
+  {ANSI-ASCII}
+  Res[3] := BackSearchForCP(ansi_ascii(S), B, L, UpCaseArray_Ansi_Ascii, CaseSensitive);
+  {KOI8R-ASCII}
+  Res[4] := BackSearchForCP(koi8r_ascii(S), B, L, UpCaseArray_Koi8r_Ascii, CaseSensitive);
+  {ASCII-ANSI , KOI8R-ASCII}
+  Res[5] := BackSearchForCP(koi8r_ascii(ascii_ansi(S)), B, L, UpCaseArray_Ascii_Ansi_Koi8r_Ascii, CaseSensitive);
+  {ASCII-KOI8 , ANSI-ASCII}
+  Res[6] := BackSearchForCP(ansi_ascii(ascii_koi8r(S)), B, L, UpCaseArray_Ascii_Koi8r_Ansi_Ascii, CaseSensitive);
 
+  Res2 := Res[0];
+  for I := 1 to 6 do
+    if (Res[I] > Res2) then Res2:= Res[I];
+  BackSearchForAllCP := Res2;
+end;
+{/Cat}
 function NewStr(const S: String): PString;
 var
   P: PString;

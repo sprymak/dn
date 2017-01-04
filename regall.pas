@@ -52,6 +52,12 @@
 //  dn21225-calculator(if)-multilanguage.patch
 //
 //  3.7.0
+//  dn370-RegisterAll_without_counter.patch
+//  dn31029-Compile_by_VP.patch
+//  dn40307-define_DN_Micro.patch
+//  dn40328-7Zip.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -69,7 +75,7 @@ Uses
 {$IFNDEF MINARCH}
      Arc_ARC,  Arc_BSA,  Arc_BS2,  Arc_HYP,  Arc_LIM,  Arc_HPK,  Arc_TAR,
      Arc_TGZ,  Arc_ZXZ,  Arc_QRK,  Arc_AIN,  Arc_CHZ,  Arc_HAP,  Arc_IS3,
-     Arc_SQZ,  Arc_UC2,  Arc_UFA,  Arc_ZOO,
+     Arc_SQZ,  Arc_UC2,  Arc_UFA,  Arc_ZOO,  Arc_7Z,
 {$ENDIF}
      Archiver, Arcview,  Arvid,    Asciitab, Ccalc,
      Collect,  Diskinfo, Dnapp,    Dnstddlg, DnSvLd,   Drives,   Ed2,
@@ -92,819 +98,984 @@ Uses
      Validate, Views,    SWE, dnutil2;
 
 const
-  NumRElms =
-{$IFDEF RCP}32{$ELSE} 124
-  {$IFDEF MODEM}       +7 {$IFDEF LINK} +2 {$ENDIF} {$ENDIF}
-  {$IFDEF SpreadSheet} +5 {$ENDIF}
-  {$IFDEF Game}        +3 {$ENDIF}
-  {$IFDEF PrintManager}+4 {$ENDIF}
-  {$IFDEF CDPlayer}    +2 {$ENDIF}
-  {$IFDEF DBView}      +5 {$ENDIF}
-  {$IFDEF Calendar}    +2 {$ENDIF}   {JO}
-  {$IFDEF TrashCan}    +1 {$ENDIF}
-  {$IFDEF NETINFO}     +1 {$ENDIF}
-  {$IFDEF MINARCH}    -18 {$ENDIF}
-  {$IFDEF PHONES}      +4 {$ENDIF}
-{$ENDIF}
-  {$IFDEF SS}          +2 {$ENDIF}
-  {$IFDEF CHCOL}       +7 {$ENDIF}
-  ;
-  RegArray : array[1..NumRElms] of TStreamRec = (
+{first TStreamRec used in RegisterAll}
+      { Validate }
+RFilterValidator: TStreamRec = (
+       ObjType: otFilterValidator;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Validate.TFilterValidator){$IFDEF OFFS}^{$ENDIF});
+       Load   : @Validate.TFilterValidator.Load;
+       Store  : @Validate.TFilterValidator.Store);
+RRangeValidator: TStreamRec = (
+       ObjType: otRangeValidator;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Validate.TRangeValidator){$IFDEF OFFS}^{$ENDIF});
+       Load   : @Validate.TRangeValidator.Load;
+       Store  : @Validate.TRangeValidator.Store);
+      { Views }
+RView: TStreamRec = (
+       ObjType: otView;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TView){$IFDEF OFFS}^{$ENDIF});
+       Load   : @Views.TView.Load;
+       Store  : @Views.TView.Store);
+RFrame: TStreamRec = (
+       ObjType: otFrame;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TFrame){$IFDEF OFFS}^{$ENDIF});
+       Load   : @Views.TFrame.Load;
+       Store  : @Views.TFrame.Store);
+RScrollBar: TStreamRec = (
+       ObjType: otScrollBar;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TScrollBar){$IFDEF OFFS}^{$ENDIF});
+       Load   : @Views.TScrollBar.Load;
+       Store  : @Views.TScrollBar.Store);
+RGroup: TStreamRec = (
+       ObjType: otGroup;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TGroup){$IFDEF OFFS}^{$ENDIF});
+       Load   : @Views.TGroup.Load;
+       Store  : @Views.TGroup.Store);
+RWindow: TStreamRec = (
+       ObjType: otWindow;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TWindow){$IFDEF OFFS}^{$ENDIF});
+       Load   : @Views.TWindow.Load;
+       Store  : @Views.TWindow.Store);
 {$IFNDEF RCP}
       { Arc_ZIP }
-      (ObjType: otZIPArchiver;
+RZIPArchiver: TStreamRec = (
+       ObjType: otZIPArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_ZIP.TZIPArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_ZIP.TZIPArchive.Load;
-       Store  : @Arc_ZIP.TZIPArchive.Store)
+       Store  : @Arc_ZIP.TZIPArchive.Store);
       { Arc_LHA }
-     ,(ObjType: otLHAArchiver;
+RLHAArchiver: TStreamRec = (
+       ObjType: otLHAArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_LHA.TLHAArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_LHA.TLHAArchive.Load;
-       Store  : @Arc_LHA.TLHAArchive.Store)
+       Store  : @Arc_LHA.TLHAArchive.Store);
       { Arc_RAR }
-     ,(ObjType: otRARArchiver;
+RRARArchiver: TStreamRec = (
+       ObjType: otRARArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_RAR.TRARArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_RAR.TRARArchive.Load;
-       Store  : @Arc_RAR.TRARArchive.Store)
+       Store  : @Arc_RAR.TRARArchive.Store);
       { Arc_CAB }
-     ,(ObjType: otCABArchiver;
+RCABArchiver: TStreamRec = (
+       ObjType: otCABArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_CAB.TCABArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_CAB.TCABArchive.Load;
-       Store  : @Arc_CAB.TCABArchive.Store)
+       Store  : @Arc_CAB.TCABArchive.Store);
       { Arc_ACE }
-     ,(ObjType: otACEArchiver;
+RACEArchiver: TStreamRec = (
+       ObjType: otACEArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_ACE.TACEArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_ACE.TACEArchive.Load;
-       Store  : @Arc_ACE.TACEArchive.Store)
+       Store  : @Arc_ACE.TACEArchive.Store);
       { Arc_HA }
-     ,(ObjType: otHAArchiver;
+RHAArchiver: TStreamRec = (
+       ObjType: otHAArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_HA.THAArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_HA.THAArchive.Load;
-       Store  : @Arc_HA.THAArchive.Store)
+       Store  : @Arc_HA.THAArchive.Store);
 {$IFNDEF MINARCH}
       { Arc_arc }
-     ,(ObjType: otARCArchiver;
+RARCArchiver: TStreamRec = (
+       ObjType: otARCArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_arc.TARCArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_arc.TARCArchive.Load;
-       Store  : @Arc_arc.TARCArchive.Store)
+       Store  : @Arc_arc.TARCArchive.Store);
       { Arc_bsa }
-     ,(ObjType: otBSAArchiver;
+RBSAArchiver: TStreamRec = (
+       ObjType: otBSAArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_bsa.TBSAArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_bsa.TBSAArchive.Load;
-       Store  : @Arc_bsa.TBSAArchive.Store)
+       Store  : @Arc_bsa.TBSAArchive.Store);
       { Arc_bs2 }
-     ,(ObjType: otBS2Archiver;
+RBS2Archiver: TStreamRec = (
+       ObjType: otBS2Archiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_bs2.TBS2Archive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_bs2.TBS2Archive.Load;
-       Store  : @Arc_bs2.TBS2Archive.Store)
+       Store  : @Arc_bs2.TBS2Archive.Store);
       { Arc_hyp }
-     ,(ObjType: otHYPArchiver;
+RHYPArchiver: TStreamRec = (
+       ObjType: otHYPArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_hyp.THYPArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_hyp.THYPArchive.Load;
-       Store  : @Arc_hyp.THYPArchive.Store)
+       Store  : @Arc_hyp.THYPArchive.Store);
       { Arc_lim }
-     ,(ObjType: otLIMArchiver;
+RLIMArchiver: TStreamRec = (
+       ObjType: otLIMArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_lim.TLIMArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_lim.TLIMArchive.Load;
-       Store  : @Arc_lim.TLIMArchive.Store)
+       Store  : @Arc_lim.TLIMArchive.Store);
       { Arc_hpk }
-     ,(ObjType: otHPKArchiver;
+RHPKArchiver: TStreamRec = (
+       ObjType: otHPKArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_hpk.THPKArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_Hpk.THPKArchive.Load;
-       Store  : @Arc_hpk.THPKArchive.Store)
+       Store  : @Arc_hpk.THPKArchive.Store);
       { Arc_TAR }
-     ,(ObjType: otTARArchiver;
+RTARArchiver: TStreamRec = (
+       ObjType: otTARArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_TAR.TTARArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_TAR.TTARArchive.Load;
-       Store  : @Arc_TAR.TTARArchive.Store)
+       Store  : @Arc_TAR.TTARArchive.Store);
       { Arc_TGZ }
-     ,(ObjType: otTGZArchiver;
+RTGZArchiver: TStreamRec = (
+       ObjType: otTGZArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_TGZ.TTGZArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_TGZ.TTGZArchive.Load;
-       Store  : @Arc_TGZ.TTGZArchive.Store)
+       Store  : @Arc_TGZ.TTGZArchive.Store);
       { Arc_ZXZ }
-     ,(ObjType: otZXZArchiver;
+RZXZArchiver: TStreamRec = (
+       ObjType: otZXZArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_ZXZ.TZXZArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_ZXZ.TZXZArchive.Load;
-       Store  : @Arc_ZXZ.TZXZArchive.Store)
+       Store  : @Arc_ZXZ.TZXZArchive.Store);
       { Arc_QRK }
-     ,(ObjType: otQuArkArchiver;
+RQuArkArchiver: TStreamRec = (
+       ObjType: otQuArkArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_QRK.TQuArkArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_QRK.TQuArkArchive.Load;
-       Store  : @Arc_QRK.TQuArkArchive.Store)
+       Store  : @Arc_QRK.TQuArkArchive.Store);
       { Arc_UFA }
-     ,(ObjType: otUFAArchiver;
+RUFAArchiver: TStreamRec = (
+       ObjType: otUFAArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_UFA.TUFAArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_UFA.TUFAArchive.Load;
-       Store  : @Arc_UFA.TUFAArchive.Store)
+       Store  : @Arc_UFA.TUFAArchive.Store);
       { Arc_IS3 }
-     ,(ObjType: otIS3Archiver;
+RIS3Archiver: TStreamRec = (
+       ObjType: otIS3Archiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_IS3.TIS3Archive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_IS3.TIS3Archive.Load;
-       Store  : @Arc_IS3.TIS3Archive.Store)
+       Store  : @Arc_IS3.TIS3Archive.Store);
       { Arc_SQZ }
-     ,(ObjType: otSQZArchiver;
+RSQZArchiver: TStreamRec = (
+       ObjType: otSQZArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_SQZ.TSQZArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_SQZ.TSQZArchive.Load;
-       Store  : @Arc_SQZ.TSQZArchive.Store)
+       Store  : @Arc_SQZ.TSQZArchive.Store);
       { Arc_HAP }
-     ,(ObjType: otHAPArchiver;
+RHAPArchiver: TStreamRec = (
+       ObjType: otHAPArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_HAP.THAPArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_HAP.THAPArchive.Load;
-       Store  : @Arc_HAP.THAPArchive.Store)
+       Store  : @Arc_HAP.THAPArchive.Store);
       { Arc_ZOO }
-     ,(ObjType: otZOOArchiver;
+RZOOArchiver: TStreamRec = (
+       ObjType: otZOOArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_ZOO.TZOOArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_ZOO.TZOOArchive.Load;
-       Store  : @Arc_ZOO.TZOOArchive.Store)
+       Store  : @Arc_ZOO.TZOOArchive.Store);
       { Arc_CHZ }
-     ,(ObjType: otCHZArchiver;
+RCHZArchiver: TStreamRec = (
+       ObjType: otCHZArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_CHZ.TCHZArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_CHZ.TCHZArchive.Load;
-       Store  : @Arc_CHZ.TCHZArchive.Store)
+       Store  : @Arc_CHZ.TCHZArchive.Store);
       { Arc_UC2 }
-     ,(ObjType: otUC2Archiver;
+RUC2Archiver: TStreamRec = (
+       ObjType: otUC2Archiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_UC2.TUC2Archive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_UC2.TUC2Archive.Load;
-       Store  : @Arc_UC2.TUC2Archive.Store)
+       Store  : @Arc_UC2.TUC2Archive.Store);
       { Arc_AIN }
-     ,(ObjType: otAINArchiver;
+RAINArchiver: TStreamRec = (
+       ObjType: otAINArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_AIN.TAINArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_AIN.TAINArchive.Load;
-       Store  : @Arc_AIN.TAINArchive.Store)
+       Store  : @Arc_AIN.TAINArchive.Store);
+      { Arc_7Z }
+RS7ZArchiver:  TStreamRec = (
+       ObjType: otS7ZArchiver;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_7Z.TS7ZArchive){$IFDEF OFFS}^{$ENDIF});
+       Load   : @Arc_7Z.TS7ZArchive.Load;
+       Store  : @Arc_7Z.TS7ZArchive.Store);
 {$ENDIF MINARCH}
       { Archiver }
-     ,(ObjType: otARJArchiver;
+RARJArchiver: TStreamRec = (
+       ObjType: otARJArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Archiver.TARJArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Archiver.TARJArchive.Load;
-       Store  : @Archiver.TARJArchive.Store)
-     ,(ObjType: otFileInfo;
+       Store  : @Archiver.TARJArchive.Store);
+RFileInfo: TStreamRec = (
+       ObjType: otFileInfo;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Archiver.TFileInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @Archiver.TFileInfo.Load;
-       Store  : @Archiver.TFileInfo.Store)
-     ,(ObjType: otUserSaver;
+       Store  : @Archiver.TFileInfo.Store);
+RUserSaver: TStreamRec = (
+       ObjType: otUserSaver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Archiver.TUserSaver){$IFDEF OFFS}^{$ENDIF});
        Load   : @Archiver.TUserSaver.Load;
-       Store  : @Archiver.TUserSaver.Store)
+       Store  : @Archiver.TUserSaver.Store);
       { ArcView }
-     ,(ObjType: otArcDrive;
+RArcDrive: TStreamRec = (
+       ObjType: otArcDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ArcView.TArcDrive){$IFDEF OFFS}^{$ENDIF});
        Load   : @ArcView.TArcDrive.Load;
-       Store  : @ArcView.TArcDrive.Store)
+       Store  : @ArcView.TArcDrive.Store);
+{$IFDEF ARVID}
       { Arvid }
-     ,(ObjType: otArvidDrive;
+RArvidDrive: TStreamRec = (
+       ObjType: otArvidDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arvid.TArvidDrive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arvid.TArvidDrive.Load;
-       Store  : @Arvid.TArvidDrive.Store)
+       Store  : @Arvid.TArvidDrive.Store);
+{$ENDIF}
       { AsciiTab }
-     ,(ObjType: otTable;
+RTable: TStreamRec = (
+       ObjType: otTable;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(AsciiTab.TTable){$IFDEF OFFS}^{$ENDIF});
        Load   : @AsciiTab.TTable.Load;
-       Store  : @AsciiTab.TTable.Store)
-     ,(ObjType: otReport;
+       Store  : @AsciiTab.TTable.Store);
+RReport: TStreamRec = (
+       ObjType: otReport;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(AsciiTab.TReport){$IFDEF OFFS}^{$ENDIF});
        Load   : @AsciiTab.TReport.Load;
-       Store  : @AsciiTab.TReport.Store)
-     ,(ObjType: otASCIIChart;
+       Store  : @AsciiTab.TReport.Store);
+RASCIIChart: TStreamRec = (
+       ObjType: otASCIIChart;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(AsciiTab.TASCIIChart){$IFDEF OFFS}^{$ENDIF});
        Load   : @AsciiTab.TASCIIChart.Load;
-       Store  : @AsciiTab.TASCIIChart.Store)
+       Store  : @AsciiTab.TASCIIChart.Store);
       { Calc }
 {$IFDEF SpreadSheet}
-     ,(ObjType: otCalcWindow;
+RCalcWindow: TStreamRec = (
+       ObjType: otCalcWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calc.TCalcWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @Calc.TCalcWindow.Load;
-       Store  : @Calc.TCalcWindow.Store)
-     ,(ObjType: otCalcView;
+       Store  : @Calc.TCalcWindow.Store);
+RCalcView: TStreamRec = (
+       ObjType: otCalcView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calc.TCalcView){$IFDEF OFFS}^{$ENDIF});
        Load   : @Calc.TCalcView.Load;
-       Store  : @Calc.TCalcView.Store)
-     ,(ObjType: otCalcInfo;
+       Store  : @Calc.TCalcView.Store);
+RCalcInfo: TStreamRec = (
+       ObjType: otCalcInfo;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calc.TCalcInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @Calc.TCalcInfo.Load;
-       Store  : @Calc.TCalcInfo.Store)
-     ,(ObjType: otInfoView;
+       Store  : @Calc.TCalcInfo.Store);
+RInfoView: TStreamRec = (
+       ObjType: otInfoView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calc.TInfoView){$IFDEF OFFS}^{$ENDIF});
        Load   : @Calc.TInfoView.Load;
-       Store  : @Calc.TInfoView.Store)
+       Store  : @Calc.TInfoView.Store);
       { CellsCol }
-     ,(ObjType: otCellCollection;
+RCellCollection: TStreamRec = (
+       ObjType: otCellCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(CellsCol.TCellCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @CellsCol.TCellCollection.Load;
-       Store  : @CellsCol.TCellCollection.Store)
+       Store  : @CellsCol.TCellCollection.Store);
 {$ENDIF SpreadSheet}
 {$IFDEF Calendar}
       { Calendar }
-     ,(ObjType: otCalendarView;
+RCalendarView: TStreamRec = (
+       ObjType: otCalendarView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calendar.TCalendarView){$IFDEF OFFS}^{$ENDIF});
        Load   : @Calendar.TCalendarView.Load;
-       Store  : @Calendar.TCalendarView.Store)
-     ,(ObjType: otCalendarWindow;
+       Store  : @Calendar.TCalendarView.Store);
+RCalendarWindow: TStreamRec = (
+       ObjType: otCalendarWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calendar.TCalendarWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @Calendar.TCalendarWindow.Load;
-       Store  : @Calendar.TCalendarWindow.Store)
+       Store  : @Calendar.TCalendarWindow.Store);
 {$ENDIF Calendar}
       { CCalc }
-     ,(ObjType: otCCalcWindow;
+RCCalcWindow: TStreamRec = (
+       ObjType: otCCalcWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(CCalc.TCCalcWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @CCalc.TCCalcWindow.Load;
-       Store  : @CCalc.TCCalcWindow.Store)
-     ,(ObjType: otCalcLine;
+       Store  : @CCalc.TCCalcWindow.Store);
+RCalcLine: TStreamRec = (
+       ObjType: otCalcLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(CCalc.TCalcLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @CCalc.TCalcLine.Load;
-       Store  : @CCalc.TCalcLine.Store)
-     ,(ObjType: otIndicator;
+       Store  : @CCalc.TCalcLine.Store);
+RIndicator: TStreamRec = (
+       ObjType: otIndicator;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(CCalc.TIndicator){$IFDEF OFFS}^{$ENDIF});
        Load   : @CCalc.TIndicator.Load;
-       Store  : @CCalc.TIndicator.Store)
+       Store  : @CCalc.TIndicator.Store);
 {$IFDEF CDPlayer}
       { CDPlayer }
-     ,(ObjType: otCdplayer;
+RCdplayer: TStreamRec = (
+       ObjType: otCdplayer;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(CDPlayer.TCdPlayer){$IFDEF OFFS}^{$ENDIF});
        Load   : @CDPlayer.TCDplayer.Load;
-       Store  : @CDPlayer.TCDplayer.Store)
-     ,(ObjType: otCDCounter;
+       Store  : @CDPlayer.TCDplayer.Store);
+RCDCounter: TStreamRec = (
+       ObjType: otCDCounter;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(CDPlayer.TCounter){$IFDEF OFFS}^{$ENDIF});
        Load   : @CDPlayer.TCounter.Load;
-       Store  : @CDPlayer.TCounter.Store )
+       Store  : @CDPlayer.TCounter.Store);
 {$ENDIF CDPlayer}
       { Collect }
-     ,(ObjType: otCollection;
+RCollection: TStreamRec = (
+       ObjType: otCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Collect.TCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @Collect.TCollection.Load;
-       Store  : @Collect.TCollection.Store)
-     ,(ObjType: otLineCollection;
+       Store  : @Collect.TCollection.Store);
+RLineCollection: TStreamRec = (
+       ObjType: otLineCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Collect.TLineCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @Collect.TLineCollection.Load;
-       Store  : @Collect.TLineCollection.Store)
-     ,(ObjType: otStringCollection;
+       Store  : @Collect.TLineCollection.Store);
+RStringCollection: TStreamRec = (
+       ObjType: otStringCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Collect.TStringCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @Collect.TStringCollection.Load;
-       Store  : @Collect.TStringCollection.Store)
-     ,(ObjType: otStrCollection;
+       Store  : @Collect.TStringCollection.Store);
+RStrCollection: TStreamRec = (
+       ObjType: otStrCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Collect.TStrCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @Collect.TStrCollection.Load;
-       Store  : @Collect.TStrCollection.Store)
-     ,(ObjType: otStringList;
+       Store  : @Collect.TStrCollection.Store);
+RStringList: TStreamRec = (
+       ObjType: otStringList;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Collect.TStringList){$IFDEF OFFS}^{$ENDIF});
        Load   : @Collect.TStringList.Load;
-       Store  : nil),
+       Store  : nil);
 {$ENDIF !RCP}
 {$IFDEF CHCOL}
       { ColorSel }
-      (ObjType: otColorSelector;
+RColorSelector: TStreamRec = (
+       ObjType: otColorSelector;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ColorSel.TColorSelector){$IFDEF OFFS}^{$ENDIF});
        Load   : @ColorSel.TColorSelector.Load;
-       Store  : @ColorSel.TColorSelector.Store)
-     ,(ObjType: otMonoSelector;
+       Store  : @ColorSel.TColorSelector.Store);
+RMonoSelector: TStreamRec = (
+       ObjType: otMonoSelector;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ColorSel.TMonoSelector){$IFDEF OFFS}^{$ENDIF});
        Load   : @ColorSel.TMonoSelector.Load;
-       Store  : @ColorSel.TMonoSelector.Store)
-     ,(ObjType: otColorDisplay;
+       Store  : @ColorSel.TMonoSelector.Store);
+RColorDisplay: TStreamRec = (
+       ObjType: otColorDisplay;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ColorSel.TColorDisplay){$IFDEF OFFS}^{$ENDIF});
        Load   : @ColorSel.TColorDisplay.Load;
-       Store  : @ColorSel.TColorDisplay.Store)
-     ,(ObjType: otColorGroupList;
+       Store  : @ColorSel.TColorDisplay.Store);
+RColorGroupList: TStreamRec = (
+       ObjType: otColorGroupList;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ColorSel.TColorGroupList){$IFDEF OFFS}^{$ENDIF});
        Load   : @ColorSel.TColorGroupList.Load;
-       Store  : @ColorSel.TColorGroupList.Store)
-     ,(ObjType: otColorItemList;
+       Store  : @ColorSel.TColorGroupList.Store);
+RColorItemList: TStreamRec = (
+       ObjType: otColorItemList;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ColorSel.TColorItemList){$IFDEF OFFS}^{$ENDIF});
        Load   : @ColorSel.TColorItemList.Load;
-       Store  : @ColorSel.TColorItemList.Store)
-     ,(ObjType: otColorDialog;
+       Store  : @ColorSel.TColorItemList.Store);
+RColorDialog: TStreamRec = (
+       ObjType: otColorDialog;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ColorSel.TColorDialog){$IFDEF OFFS}^{$ENDIF});
        Load   : @ColorSel.TColorDialog.Load;
-       Store  : @ColorSel.TColorDialog.Store)
-     ,(ObjType: otR_BWSelector;
+       Store  : @ColorSel.TColorDialog.Store);
+RR_BWSelector: TStreamRec = (
+       ObjType: otR_BWSelector;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ColorSel.T_BWSelector){$IFDEF OFFS}^{$ENDIF});
        Load:    @ColorSel.T_BWSelector.Load;
-       Store:   @ColorSel.T_BWSelector.Store),
+       Store:   @ColorSel.T_BWSelector.Store);
 {$ENDIF CHCOL}
 {$IFNDEF RCP}
 {$IFDEF DBView}
       { DBView }
-      (ObjType: otDBWindow;
+RDBWindow: TStreamRec = (
+       ObjType: otDBWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DBView.TDBWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @DBView.TDBWindow.Load;
-       Store  : @DBView.TDBWindow.Store)
-     ,(ObjType: otDBViewer;
+       Store  : @DBView.TDBWindow.Store);
+RDBViewer: TStreamRec = (
+       ObjType: otDBViewer;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DBView.TDBViewer){$IFDEF OFFS}^{$ENDIF});
        Load   : @DBView.TDBViewer.Load;
-       Store  : @DBView.TDBViewer.Store)
-     ,(ObjType: otDBIndicator;
+       Store  : @DBView.TDBViewer.Store);
+RDBIndicator: TStreamRec = (
+       ObjType: otDBIndicator;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DBView.TDBIndicator){$IFDEF OFFS}^{$ENDIF});
        Load   : @DBView.TDBIndicator.Load;
-       Store  : @DBView.TDBIndicator.Store)
-     ,(ObjType: otFieldListBox;
+       Store  : @DBView.TDBIndicator.Store);
+RFieldListBox: TStreamRec = (
+       ObjType: otFieldListBox;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DBView.TFieldListBox){$IFDEF OFFS}^{$ENDIF});
        Load   : @DBView.TFieldListBox.Load;
-       Store  : @DBView.TFieldListBox.Store)
-     ,(ObjType: otDBScrollBar;
+       Store  : @DBView.TFieldListBox.Store);
+RDBScrollBar: TStreamRec = (
+       ObjType: otDBScrollBar;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DBView.TDBScrollBar){$IFDEF OFFS}^{$ENDIF});
        Load   : @DBView.TDBScrollBar.Load;
-       Store  : @DBView.TDBScrollBar.Store),
+       Store  : @DBView.TDBScrollBar.Store);
 {$ENDIF DBView}
 {$ENDIF !RCP}
       { Dialogs }
-      (ObjType: otDialog;
+RDialog: TStreamRec = (
+       ObjType: otDialog;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TDialog){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TDialog.Load;
-       Store  : @Dialogs.TDialog.Store)
-     ,(ObjType: otInputLine;
+       Store  : @Dialogs.TDialog.Store);
+RInputLine: TStreamRec = (
+       ObjType: otInputLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TInputLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TInputLine.Load;
-       Store  : @Dialogs.TInputLine.Store)
-     ,(ObjType: otHexLine;
+       Store  : @Dialogs.TInputLine.Store);
+RHexLine: TStreamRec = (
+       ObjType: otHexLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.THexLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.THexLine.Load;
-       Store  : @Dialogs.THexLine.Store)
-     ,(ObjType: otButton;
+       Store  : @Dialogs.THexLine.Store);
+RButton: TStreamRec = (
+       ObjType: otButton;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TButton){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TButton.Load;
-       Store  : @Dialogs.TButton.Store)
-     ,(ObjType: otCluster;
+       Store  : @Dialogs.TButton.Store);
+RCluster: TStreamRec = (
+       ObjType: otCluster;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TCluster){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TCluster.Load;
-       Store  : @Dialogs.TCluster.Store)
-     ,(ObjType: otRadioButtons;
+       Store  : @Dialogs.TCluster.Store);
+RRadioButtons: TStreamRec = (
+       ObjType: otRadioButtons;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TRadioButtons){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TRadioButtons.Load;
-       Store  : @Dialogs.TRadioButtons.Store)
-     ,(ObjType: otCheckBoxes;
+       Store  : @Dialogs.TRadioButtons.Store);
+RCheckBoxes: TStreamRec = (
+       ObjType: otCheckBoxes;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TCheckBoxes){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TCheckBoxes.Load;
-       Store  : @Dialogs.TCheckBoxes.Store)
-     ,(ObjType: otMultiCheckBoxes;
+       Store  : @Dialogs.TCheckBoxes.Store);
+RMultiCheckBoxes: TStreamRec = (
+       ObjType: otMultiCheckBoxes;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TMultiCheckBoxes){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TMultiCheckBoxes.Load;
-       Store  : @Dialogs.TMultiCheckBoxes.Store)
-     ,(ObjType: otListBox;
+       Store  : @Dialogs.TMultiCheckBoxes.Store);
+RListBox: TStreamRec = (
+       ObjType: otListBox;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TListBox){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TListBox.Load;
-       Store  : @Dialogs.TListBox.Store)
-     ,(ObjType: otStaticText;
+       Store  : @Dialogs.TListBox.Store);
+RStaticText: TStreamRec = (
+       ObjType: otStaticText;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TStaticText){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TStaticText.Load;
-       Store  : @Dialogs.TStaticText.Store)
-     ,(ObjType: otLabel;
+       Store  : @Dialogs.TStaticText.Store);
+RLabel: TStreamRec = (
+       ObjType: otLabel;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TLabel){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TLabel.Load;
-       Store  : @Dialogs.TLabel.Store)
-     ,(ObjType: otHistory;
+       Store  : @Dialogs.TLabel.Store);
+RHistory: TStreamRec = (
+       ObjType: otHistory;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.THistory){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.THistory.Load;
-       Store  : @Dialogs.THistory.Store)
-     ,(ObjType: otParamText;
+       Store  : @Dialogs.THistory.Store);
+RParamText: TStreamRec = (
+       ObjType: otParamText;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Dialogs.TParamText){$IFDEF OFFS}^{$ENDIF});
        Load   : @Dialogs.TParamText.Load;
-       Store  : @Dialogs.TParamText.Store)
+       Store  : @Dialogs.TParamText.Store);
 {$IFNDEF RCP}
       { DiskInfo }
-     ,(ObjType: otDiskInfo;
+RDiskInfo: TStreamRec = (
+       ObjType: otDiskInfo;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DiskInfo.TDiskInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @DiskInfo.TDiskInfo.Load;
-       Store  : @DiskInfo.TDiskInfo.Store)
+       Store  : @DiskInfo.TDiskInfo.Store);
       { DnApp }
-     ,(ObjType: otBackground;
+RBackground: TStreamRec = (
+       ObjType: otBackground;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnApp.TBackground){$IFDEF OFFS}^{$ENDIF});
        Load   : @DnApp.TBackground.Load;
-       Store  : @DnApp.TBackground.Store)
-     ,(ObjType: otDesktop;
+       Store  : @DnApp.TBackground.Store);
+RDesktop: TStreamRec = (
+       ObjType: otDesktop;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnApp.TDesktop){$IFDEF OFFS}^{$ENDIF});
        Load   : @DnApp.TDesktop.Load;
-       Store  : @DnApp.TDesktop.Store)
-     ,(ObjType: otStringCache;
+       Store  : @DnApp.TDesktop.Store);
+RStringCache: TStreamRec = (
+       ObjType: otStringCache;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnApp.TCacheCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @DnApp.TCacheCollection.Load;
-       Store  : @DnApp.TCacheCollection.Store)
+       Store  : @DnApp.TCacheCollection.Store);
       { DnStdDlg }
-     ,(ObjType: otFileInputLine;
+RFileInputLine: TStreamRec = (
+       ObjType: otFileInputLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnStdDlg.TFileInputLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @DnStdDlg.TFileInputLine.Load;
-       Store  : @DnStdDlg.TFileInputLine.Store)
-     ,(ObjType: otFileCollection;
+       Store  : @DnStdDlg.TFileInputLine.Store);
+RFileCollection: TStreamRec = (
+       ObjType: otFileCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnStdDlg.TFileCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @DnStdDlg.TFileCollection.Load;
-       Store  : @DnStdDlg.TFileCollection.Store)
-     ,(ObjType: otFileList;
+       Store  : @DnStdDlg.TFileCollection.Store);
+RFileList: TStreamRec = (
+       ObjType: otFileList;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnStdDlg.TFileList){$IFDEF OFFS}^{$ENDIF});
        Load   : @DnStdDlg.TFileList.Load;
-       Store  : @DnStdDlg.TFileList.Store)
-     ,(ObjType: otFileInfoPane;
+       Store  : @DnStdDlg.TFileList.Store);
+RFileInfoPane: TStreamRec = (
+       ObjType: otFileInfoPane;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnStdDlg.TFileInfoPane){$IFDEF OFFS}^{$ENDIF});
        Load   : @DnStdDlg.TFileInfoPane.Load;
-       Store  : @DnStdDlg.TFileInfoPane.Store)
-     ,(ObjType: otFileDialog;
+       Store  : @DnStdDlg.TFileInfoPane.Store);
+RFileDialog: TStreamRec = (
+       ObjType: otFileDialog;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnStdDlg.TFileDialog){$IFDEF OFFS}^{$ENDIF});
        Load:    @DnStdDlg.TFileDialog.Load;
-       Store:   @DnStdDlg.TFileDialog.Store)
-     ,(ObjType: otSortedListBox;
+       Store:   @DnStdDlg.TFileDialog.Store);
+RSortedListBox: TStreamRec = (
+       ObjType: otSortedListBox;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnStdDlg.TSortedListBox){$IFDEF OFFS}^{$ENDIF});
        Load:    @DnStdDlg.TSortedListBox.Load;
-       Store:   @DnStdDlg.TSortedListBox.Store)
+       Store:   @DnStdDlg.TSortedListBox.Store);
       { DNSvLd }
-     ,(ObjType: otDataSaver;
+RDataSaver: TStreamRec = (
+       ObjType: otDataSaver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DNSvLd.TDataSaver){$IFDEF OFFS}^{$ENDIF});
        Load   : @DNSvLd.TDataSaver.Load;
-       Store  : @DNSvLd.TDataSaver.Store)
+       Store  : @DNSvLd.TDataSaver.Store);
       { Drives }
-     ,(ObjType: otDrive;
+RDrive: TStreamRec = (
+       ObjType: otDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Drives.TDrive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Drives.TDrive.Load;
-       Store  : @Drives.TDrive.Store)
+       Store  : @Drives.TDrive.Store);
       { Ed2 }
-     ,(ObjType: otInfoLine;
+RInfoLine: TStreamRec = (
+       ObjType: otInfoLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Ed2.TInfoLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @Ed2.TInfoLine.Load;
-       Store  : @Ed2.TInfoLine.Store)
-     ,(ObjType: otBookLine;
+       Store  : @Ed2.TInfoLine.Store);
+RBookLine: TStreamRec = (
+       ObjType: otBookLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Ed2.TBookmarkLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @Ed2.TBookmarkLine.Load;
-       Store  : @Ed2.TBookmarkLine.Store)
+       Store  : @Ed2.TBookmarkLine.Store);
       { Editor }
-     ,(ObjType: otXFileEditor;
+RXFileEditor: TStreamRec = (
+       ObjType: otXFileEditor;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Editor.TXFileEditor){$IFDEF OFFS}^{$ENDIF});
        Load   : @Editor.TXFileEditor.Load;
-       Store  : @Editor.TXFileEditor.Store)
+       Store  : @Editor.TXFileEditor.Store);
       { FileFind }
-     ,(ObjType: otFindDrive;
+RFindDrive: TStreamRec = (
+       ObjType: otFindDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FileFind.TFindDrive){$IFDEF OFFS}^{$ENDIF});
        Load   : @FileFind.TFindDrive.Load;
-       Store  : @FileFind.TFindDrive.Store)
-     ,(ObjType: otTempDrive;
+       Store  : @FileFind.TFindDrive.Store);
+RTempDrive: TStreamRec = (
+       ObjType: otTempDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FileFind.TTempDrive){$IFDEF OFFS}^{$ENDIF});
        Load   : @FileFind.TTempDrive.Load;
-       Store  : @FileFind.TTempDrive.Store)
+       Store  : @FileFind.TTempDrive.Store);
       { FilesCol }
-     ,(ObjType: otFilesCollection;
+RFilesCollection: TStreamRec = (
+       ObjType: otFilesCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FilesCol.TFilesCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @FilesCol.TFilesCollection.Load;
-       Store  : @FilesCol.TFilesCollection.Store)
+       Store  : @FilesCol.TFilesCollection.Store);
       { FlPanel }
-     ,(ObjType: otFilePanel;
+RFilePanel: TStreamRec = (
+       ObjType: otFilePanel;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FlPanel.TFilePanel){$IFDEF OFFS}^{$ENDIF});
        Load   : @FlPanel.TFilePanel.Load;
-       Store  : @FlPanel.TFilePanel.Store)
-     ,(ObjType: otFlPInfoView;
+       Store  : @FlPanel.TFilePanel.Store);
+RFlPInfoView: TStreamRec = (
+       ObjType: otFlPInfoView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FlPanel.TInfoView){$IFDEF OFFS}^{$ENDIF});
        Load   : @FlPanel.TInfoView.Load;
-       Store  : @FlPanel.TInfoView.Store)
-     ,(ObjType: otTopView;
+       Store  : @FlPanel.TInfoView.Store);
+RTopView: TStreamRec = (
+       ObjType: otTopView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FlPanel.TTopView){$IFDEF OFFS}^{$ENDIF});
        Load   : @FlPanel.TTopView.Load;
-       Store  : @FlPanel.TTopView.Store)
-     ,(ObjType: otSeparator;
+       Store  : @FlPanel.TTopView.Store);
+RSeparator: TStreamRec = (
+       ObjType: otSeparator;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FlPanel.TSeparator){$IFDEF OFFS}^{$ENDIF});
        Load   : @FlPanel.TSeparator.Load;
-       Store  : @FlPanel.TSeparator.Store)
-     ,(ObjType: otSpecScroll;
+       Store  : @FlPanel.TSeparator.Store);
+RSpecScroll: TStreamRec = (
+       ObjType: otSpecScroll;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FlPanel.TSpecScroll){$IFDEF OFFS}^{$ENDIF});
        Load   : @FlPanel.TSpecScroll.Load;
-       Store  : @FlPanel.TSpecScroll.Store)
-     ,(ObjType: otDriveLine;
+       Store  : @FlPanel.TSpecScroll.Store);
+RDriveLine: TStreamRec = (
+       ObjType: otDriveLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FlPanel.TDriveLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @FlPanel.TDriveLine.Load;
-       Store  : @FlPanel.TDriveLine.Store)
+       Store  : @FlPanel.TDriveLine.Store);
       { FStorage }
-     ,(ObjType: otDirStorage;
+RDirStorage: TStreamRec = (
+       ObjType: otDirStorage;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FStorage.TDirStorage){$IFDEF OFFS}^{$ENDIF});
        Load   : @FStorage.TDirStorage.Load;
-       Store  : @FStorage.TDirStorage.Store)
+       Store  : @FStorage.TDirStorage.Store);
       { FViewer }
-     ,(ObjType: otFileViewer;
+RFileViewer: TStreamRec = (
+       ObjType: otFileViewer;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FViewer.TFileViewer){$IFDEF OFFS}^{$ENDIF});
        Load   : @FViewer.TFileViewer.Load;
-       Store  : @FViewer.TFileViewer.Store)
-     ,(ObjType: otFileWindow;
+       Store  : @FViewer.TFileViewer.Store);
+RFileWindow: TStreamRec = (
+       ObjType: otFileWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FViewer.TFileWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @FViewer.TFileWindow.Load;
-       Store  : @FViewer.TFileWindow.Store)
-     ,(ObjType: otViewScroll;
+       Store  : @FViewer.TFileWindow.Store);
+RViewScroll: TStreamRec = (
+       ObjType: otViewScroll;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FViewer.TViewScroll){$IFDEF OFFS}^{$ENDIF});
        Load   : @FViewer.TViewScroll.Load;
-       Store  : @FViewer.TViewScroll.Store)
-     ,(ObjType: otHFileViewer;
+       Store  : @FViewer.TViewScroll.Store);
+RHFileViewer: TStreamRec = (
+       ObjType: otHFileViewer;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FViewer.THFileViewer){$IFDEF OFFS}^{$ENDIF});
        Load   : @FViewer.THFileViewer.Load;
-       Store  : @FViewer.THFileViewer.Store)
-     ,(ObjType: otViewInfo;
+       Store  : @FViewer.THFileViewer.Store);
+RViewInfo: TStreamRec = (
+       ObjType: otViewInfo;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(FViewer.TViewInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @FViewer.TViewInfo.Load;
-       Store  : @FViewer.TViewInfo.Store)
+       Store  : @FViewer.TViewInfo.Store);
       { Gauges }
 {$IFDEF TrashCan}
-     ,(ObjType: otTrashCan;
+RTrashCan: TStreamRec = (
+       ObjType: otTrashCan;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Gauges.TTrashCan){$IFDEF OFFS}^{$ENDIF});
        Load   : @Gauges.TTrashCan.Load;
-       Store  : @Gauges.TTrashCan.Store)
+       Store  : @Gauges.TTrashCan.Store);
 {$ENDIF TrashCan}
-     ,(ObjType: otKeyMacros;
+RKeyMacros: TStreamRec = (
+       ObjType: otKeyMacros;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Gauges.TKeyMacros){$IFDEF OFFS}^{$ENDIF});
        Load   : @Gauges.TKeyMacros.Load;
-       Store  : @Gauges.TKeyMacros.Store)
+       Store  : @Gauges.TKeyMacros.Store);
       { HelpKern }
-      ,(ObjType: otHelpTopic;
+RHelpTopic: TStreamRec = (
+       ObjType: otHelpTopic;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(HelpKern.THelpTopic){$IFDEF OFFS}^{$ENDIF});
        Load:    @HelpKern.THelpTopic.Load;
-       Store:   @HelpKern.THelpTopic.Store),
-      (ObjType: otHelpIndex;
+       Store:   @HelpKern.THelpTopic.Store);
+RHelpIndex: TStreamRec = (
+       ObjType: otHelpIndex;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(HelpKern.THelpIndex){$IFDEF OFFS}^{$ENDIF});
        Load:    @HelpKern.THelpIndex.Load;
-       Store:   @HelpKern.THelpIndex.Store)
+       Store:   @HelpKern.THelpIndex.Store);
       { Histries }
-     ,(ObjType: otEditHistoryCol;
+REditHistoryCol: TStreamRec = (
+       ObjType: otEditHistoryCol;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Histries.TEditHistoryCol){$IFDEF OFFS}^{$ENDIF});
        Load   : @Histries.TEditHistoryCol.Load;
-       Store  : @Histries.TEditHistoryCol.Store)
-     ,(ObjType: otViewHistoryCol;
+       Store  : @Histries.TEditHistoryCol.Store);
+RViewHistoryCol: TStreamRec = (
+       ObjType: otViewHistoryCol;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Histries.TViewHistoryCol){$IFDEF OFFS}^{$ENDIF});
        Load   : @Histries.TViewHistoryCol.Load;
-       Store  : @Histries.TViewHistoryCol.Store)
+       Store  : @Histries.TViewHistoryCol.Store);
       { Menus }
 {$ENDIF !RCP}
-     ,(ObjType: otMenuBar;
+RMenuBar: TStreamRec = (
+       ObjType: otMenuBar;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Menus.TMenuBar){$IFDEF OFFS}^{$ENDIF});
        Load   : @Menus.TMenuBar.Load;
-       Store  : @Menus.TMenuBar.Store)
-     ,(ObjType: otMenuBox;
+       Store  : @Menus.TMenuBar.Store);
+RMenuBox: TStreamRec = (
+       ObjType: otMenuBox;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Menus.TMenuBox){$IFDEF OFFS}^{$ENDIF});
        Load   : @Menus.TMenuBox.Load;
-       Store  : @Menus.TMenuBox.Store)
-     ,(ObjType: otChangeDirMenu;
+       Store  : @Menus.TMenuBox.Store);
+RChangeDirMenu: TStreamRec = (
+       ObjType: otChangeDirMenu;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(dnutil2.TChangeDirMenu){$IFDEF OFFS}^{$ENDIF});
        Load   : @dnutil2.TChangeDirMenu.Load;
-       Store  : @dnutil2.TChangeDirMenu.Store)
-     ,(ObjType: otStatusLine;
+       Store  : @dnutil2.TChangeDirMenu.Store);
+RStatusLine: TStreamRec = (
+       ObjType: otStatusLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Menus.TStatusLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @Menus.TStatusLine.Load;
-       Store  : @Menus.TStatusLine.Store)
-     ,(ObjType: otMenuPopup;
+       Store  : @Menus.TStatusLine.Store);
+RMenuPopup: TStreamRec = (
+       ObjType: otMenuPopup;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Menus.TMenuPopup){$IFDEF OFFS}^{$ENDIF});
        Load   : @Menus.TMenuPopup.Load;
-       Store  : @Menus.TMenuPopup.Store)
+       Store  : @Menus.TMenuPopup.Store);
 {$IFNDEF RCP}
       { Microed }
-     ,(ObjType: otFileEditor;
+RFileEditor: TStreamRec = (
+       ObjType: otFileEditor;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Microed.TFileEditor){$IFDEF OFFS}^{$ENDIF});
        Load   : @Microed.TFileEditor.Load;
-       Store  : @Microed.TFileEditor.Store)
-     ,(ObjType: otEditWindow;
+       Store  : @Microed.TFileEditor.Store);
+REditWindow: TStreamRec = (
+       ObjType: otEditWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(EdWin.TEditWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @EdWin.TEditWindow.Load;
-       Store  : @EdWin.TEditWindow.Store)
+       Store  : @EdWin.TEditWindow.Store);
 {$IFDEF MODEM}
 {$IFDEF LINK}
       { NavyLink }
-     ,(ObjType: otLinker;
+RLinker: TStreamRec = (
+       ObjType: otLinker;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(NavyLink.TLinker){$IFDEF OFFS}^{$ENDIF});
        Load   : @NavyLink.TLinker.Load;
-       Store  : @NavyLink.TLinker.Store)
-     ,(ObjType: otLinkDrive;
+       Store  : @NavyLink.TLinker.Store);
+RLinkDrive: TStreamRec = (
+       ObjType: otLinkDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(NavyLink.TLinkDrive){$IFDEF OFFS}^{$ENDIF});
        Load   : @NavyLink.TLinkDrive.Load;
-       Store  : @NavyLink.TLinkDrive.Store)
+       Store  : @NavyLink.TLinkDrive.Store);
 {$ENDIF LINK IN MODEM}
       { Dialer }
-     ,(ObjType: otAutoDialer;
+RAutoDialer: TStreamRec = (
+       ObjType: otAutoDialer;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(uDialer.TAutoDialer){$IFDEF OFFS}^{$ENDIF});
        Load   : @uDialer.TAutoDialer.Load;
-       Store  : @uDialer.TAutoDialer.Store)
-     ,(ObjType: otDialBox;
+       Store  : @uDialer.TAutoDialer.Store);
+RDialBox: TStreamRec = (
+       ObjType: otDialBox;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(uDialer.TDialBox){$IFDEF OFFS}^{$ENDIF});
        Load   : @uDialer.TDialBox.Load;
-       Store  : @uDialer.TDialBox.Store)
+       Store  : @uDialer.TDialBox.Store);
       { ScrollBk }
-     ,(ObjType: otScrollBackWindow;
+RScrollBackWindow: TStreamRec = (
+       ObjType: otScrollBackWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ScrollBk.TScrollBackWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @ScrollBk.TScrollBackWindow.Load;
-       Store  : @ScrollBk.TScrollBackWindow.Store)
-     ,(ObjType: otScrollBack;
+       Store  : @ScrollBk.TScrollBackWindow.Store);
+RScrollBack: TStreamRec = (
+       ObjType: otScrollBack;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ScrollBk.TScrollBack){$IFDEF OFFS}^{$ENDIF});
        Load   : @ScrollBk.TScrollBack.Load;
-       Store  : @ScrollBk.TScrollBack.Store)
+       Store  : @ScrollBk.TScrollBack.Store);
 {$ENDIF MODEM}
 {$IFDEF NETINFO}
       { NetInfo }
-     ,(ObjType: otNetInfo;
+RNetInfo: TStreamRec = (
+       ObjType: otNetInfo;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(NetInfo.TNetInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @NetInfo.TNetInfo.Load;
-       Store  : @NetInfo.TNetInfo.Store)
+       Store  : @NetInfo.TNetInfo.Store);
 {$ENDIF NETINFO}
 {$IFDEF PHONES}
-     ,(ObjType: otDStringView;
+RDStringView: TStreamRec = (
+       ObjType: otDStringView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(StrView.TDStringView){$IFDEF OFFS}^{$ENDIF});
        Load   : @StrView.TDStringView.Load;
-       Store  : @StrView.TDStringView.Store)
-     ,(ObjType: otPhone;
+       Store  : @StrView.TDStringView.Store);
+RPhone: TStreamRec = (
+       ObjType: otPhone;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Phones.TPhone){$IFDEF OFFS}^{$ENDIF});
        Load   : @Phones.TPhone.Load;
-       Store  : @Phones.TPhone.Store)
-     ,(ObjType: otPhoneDir;
+       Store  : @Phones.TPhone.Store);
+RPhoneDir: TStreamRec = (
+       ObjType: otPhoneDir;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Phones.TPhoneDir){$IFDEF OFFS}^{$ENDIF});
        Load   : @Phones.TPhoneDir.Load;
-       Store  : @Phones.TPhoneDir.Store)
-     ,(ObjType: otPhoneCollection;
+       Store  : @Phones.TPhoneDir.Store);
+RPhoneCollection: TStreamRec = (
+       ObjType: otPhoneCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Phones.TPhoneCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @Phones.TPhoneCollection.Load;
-       Store  : @Phones.TPhoneCollection.Store)
+       Store  : @Phones.TPhoneCollection.Store);
 {$ENDIF PHONES}
 {$IFDEF PrintManager}
       { PrintManager }
-     ,(ObjType: otStringCol;
+RStringCol: TStreamRec = (
+       ObjType: otStringCol;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintManager.TStringCol){$IFDEF OFFS}^{$ENDIF});
        Load   : @PrintManager.TStringCol.Load;
-       Store  : @PrintManager.TStringCol.Store)
-     ,(ObjType: otPrintManager;
+       Store  : @PrintManager.TStringCol.Store);
+RPrintManager: TStreamRec = (
+       ObjType: otPrintManager;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintManager.TPrintManager){$IFDEF OFFS}^{$ENDIF});
        Load   : @PrintManager.TPrintManager.Load;
-       Store  : @PrintManager.TPrintManager.Store)
-     ,(ObjType: otPrintStatus;
+       Store  : @PrintManager.TPrintManager.Store);
+RPrintStatus: TStreamRec = (
+       ObjType: otPrintStatus;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintManager.TPrintStatus){$IFDEF OFFS}^{$ENDIF});
        Load   : @PrintManager.TPrintStatus.Load;
-       Store  : @PrintManager.TPrintStatus.Store)
-     ,(ObjType: otPMWindow;
+       Store  : @PrintManager.TPrintStatus.Store);
+RPMWindow: TStreamRec = (
+       ObjType: otPMWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintManager.TPMWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @PrintManager.TPMWindow.Load;
-       Store  : @PrintManager.TPMWindow.Store)
+       Store  : @PrintManager.TPMWindow.Store);
 {$ENDIF PrintManager}
 {$ENDIF !RCP}
       { Scroller }
-     ,(ObjType: otScroller;
+RScroller: TStreamRec = (
+       ObjType: otScroller;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Scroller.TScroller){$IFDEF OFFS}^{$ENDIF});
        Load   : @Scroller.TScroller.Load;
-       Store  : @Scroller.TScroller.Store)
-     ,(ObjType: otListViewer;
+       Store  : @Scroller.TScroller.Store);
+RListViewer: TStreamRec = (
+       ObjType: otListViewer;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Scroller.TListViewer){$IFDEF OFFS}^{$ENDIF});
        Load   : @Scroller.TListViewer.Load;
-       Store  : @Scroller.TLIstViewer.Store)
+       Store  : @Scroller.TLIstViewer.Store);
       { Setups }
-     ,(ObjType: otSysDialog;
+RSysDialog: TStreamRec = (
+       ObjType: otSysDialog;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Setups.TSysDialog){$IFDEF OFFS}^{$ENDIF});
        Load   : @Setups.TSysDialog.Load;
-       Store  : @Setups.TSysDialog.Store)
-     ,(ObjType: otCurrDriveInfo;
+       Store  : @Setups.TSysDialog.Store);
+RCurrDriveInfo: TStreamRec = (
+       ObjType: otCurrDriveInfo;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Setups.TCurrDriveInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @Setups.TCurrDriveInfo.Load;
-       Store  : @Setups.TCurrDriveInfo.Store)
-     ,(ObjType: otMouseBar;
+       Store  : @Setups.TCurrDriveInfo.Store);
+RMouseBar: TStreamRec = (
+       ObjType: otMouseBar;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Setups.TMouseBar){$IFDEF OFFS}^{$ENDIF});
        Load   : @Setups.TMouseBar.Load;
-       Store  : @Setups.TMouseBar.Store)
+       Store  : @Setups.TMouseBar.Store);
 {$IFDEF SS}
-     ,(ObjType: otSaversDialog;
+RSaversDialog: TStreamRec = (
+       ObjType: otSaversDialog;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Setups.TSaversDialog){$IFDEF OFFS}^{$ENDIF});
        Load   : @Setups.TSaversDialog.Load;
-       Store  : @Setups.TSaversDialog.Store)
-     ,(ObjType: otSaversListBox;
+       Store  : @Setups.TSaversDialog.Store);
+RSaversListBox: TStreamRec = (
+       ObjType: otSaversListBox;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Setups.TSaversListBox){$IFDEF OFFS}^{$ENDIF});
        Load   : @Setups.TSaversListBox.Load;
-       Store  : @Setups.TSaversListBox.Store)
+       Store  : @Setups.TSaversListBox.Store);
 {$ENDIF SS}
-     ,(ObjType: otUpperTable;
+RUpperTable: TStreamRec = (
+       ObjType: otUpperTable;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Setups.TUpperTable){$IFDEF OFFS}^{$ENDIF});
        Load   : @Setups.TUpperTable.Load;
-       Store  : @Setups.TUpperTable.Store)
+       Store  : @Setups.TUpperTable.Store);
 {$IFNDEF RCP}
       { Startup }
-     ,(ObjType: otTextCollection;
+RTextCollection: TStreamRec = (
+       ObjType: otTextCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Startup.TTextCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @Startup.TTextCollection.Load;
-       Store  : @Startup.TTextCollection.Store)
+       Store  : @Startup.TTextCollection.Store);
       { Terminal }
 {$IFDEF Modem}
-     ,(ObjType: otTerminalWindow;
+RTerminalWindow: TStreamRec = (
+       ObjType: otTerminalWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Terminal.TTerminalWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @Terminal.TTerminalWindow.Load;
-       Store  : @Terminal.TTerminalWindow.Store)
-     ,(ObjType: otTerminal;
+       Store  : @Terminal.TTerminalWindow.Store);
+RTerminal: TStreamRec = (
+       ObjType: otTerminal;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Terminal.TTerminal){$IFDEF OFFS}^{$ENDIF});
        Load   : @Terminal.TTerminal.Load;
-       Store  : @Terminal.TTerminal.Store)
-     ,(ObjType: otPortInfo;
+       Store  : @Terminal.TTerminal.Store);
+RPortInfo: TStreamRec = (
+       ObjType: otPortInfo;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Terminal.TPortInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @Terminal.TPortInfo.Load;
-       Store  : @Terminal.TPortInfo.Store)
+       Store  : @Terminal.TPortInfo.Store);
 {$ENDIF Modem}
 {$IFDEF Game}
       { Tetris }
-     ,(ObjType: otGameWindow;
+RGameWindow: TStreamRec = (
+       ObjType: otGameWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tetris.TGameWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tetris.TGameWindow.Load;
-       Store  : @Tetris.TGameWindow.Store)
-     ,(ObjType: otGameView;
+       Store  : @Tetris.TGameWindow.Store);
+RGameView: TStreamRec = (
+       ObjType: otGameView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tetris.TGameView){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tetris.TGameView.Load;
-       Store  : @Tetris.TGameView.Store)
-     ,(ObjType: otGameInfo;
+       Store  : @Tetris.TGameView.Store);
+RGameInfo: TStreamRec = (
+       ObjType: otGameInfo;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tetris.TGameInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tetris.TGameInfo.Load;
-       Store  : @Tetris.TGameInfo.Store)
+       Store  : @Tetris.TGameInfo.Store);
 {$ENDIF Game}
       { Tree }
-     ,(ObjType: otTreeView;
+RTreeView: TStreamRec = (
+       ObjType: otTreeView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tree.TTreeView){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tree.TTreeView.Load;
-       Store  : @Tree.TTreeView.Store)
-     ,(ObjType: otTreeReader;
+       Store  : @Tree.TTreeView.Store);
+RTreeReader: TStreamRec = (
+       ObjType: otTreeReader;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tree.TTreeReader){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tree.TTreeReader.Load;
-       Store  : @Tree.TTreeReader.Store)
-     ,(ObjType: otTreeWindow;
+       Store  : @Tree.TTreeReader.Store);
+RTreeWindow: TStreamRec = (
+       ObjType: otTreeWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tree.TTreeWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tree.TTreeWindow.Load;
-       Store  : @Tree.TTreeWindow.Store)
-     ,(ObjType: otTreePanel;
+       Store  : @Tree.TTreeWindow.Store);
+RTreePanel: TStreamRec = (
+       ObjType: otTreePanel;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tree.TTreePanel){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tree.TTreePanel.Load;
-       Store  : @Tree.TTreePanel.Store)
-     ,(ObjType: otTreeDialog;
+       Store  : @Tree.TTreePanel.Store);
+RTreeDialog: TStreamRec = (
+       ObjType: otTreeDialog;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tree.TTreeDialog){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tree.TTreeDialog.Load;
-       Store  : @Tree.TTreeDialog.Store)
-     ,(ObjType: otTreeInfoView;
+       Store  : @Tree.TTreeDialog.Store);
+RTreeInfoView: TStreamRec = (
+       ObjType: otTreeInfoView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tree.TTreeInfoView){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tree.TTreeInfoView.Load;
-       Store  : @Tree.TTreeInfoView.Store)
-     ,(ObjType: otHTreeView;
+       Store  : @Tree.TTreeInfoView.Store);
+RHTreeView: TStreamRec = (
+       ObjType: otHTreeView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tree.THTreeView){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tree.THTreeView.Load;
-       Store  : @Tree.THTreeView.Store)
-     ,(ObjType: otDirCollection;
+       Store  : @Tree.THTreeView.Store);
+RDirCollection: TStreamRec = (
+       ObjType: otDirCollection;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Tree.TDirCollection){$IFDEF OFFS}^{$ENDIF});
        Load   : @Tree.TDirCollection.Load;
-       Store  : @Tree.TDirCollection.Store)
+       Store  : @Tree.TDirCollection.Store);
       { UniWin }
-     ,(ObjType: otEditScrollBar;
+REditScrollBar: TStreamRec = (
+       ObjType: otEditScrollBar;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(UniWin.TEditScrollBar){$IFDEF OFFS}^{$ENDIF});
        Load   : @UniWin.TEditScrollBar.Load;
-       Store  : @UniWin.TEditScrollBar.Store)
-     ,(ObjType: otEditFrame;
+       Store  : @UniWin.TEditScrollBar.Store);
+REditFrame: TStreamRec = (
+       ObjType: otEditFrame;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(UniWin.TEditFrame){$IFDEF OFFS}^{$ENDIF});
        Load   : @UniWin.TEditFrame.Load;
-       Store  : @UniWin.TEditFrame.Store)
+       Store  : @UniWin.TEditFrame.Store);
       { UserMenu }
-     ,(ObjType: otUserWindow;
+RUserWindow: TStreamRec = (
+       ObjType: otUserWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(UserMenu.TUserWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @UserMenu.TUserWindow.Load;
-       Store  : @UserMenu.TUserWindow.Store)
-     ,(ObjType: otUserView;
+       Store  : @UserMenu.TUserWindow.Store);
+RUserView: TStreamRec = (
+       ObjType: otUserView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(UserMenu.TUserView){$IFDEF OFFS}^{$ENDIF});
        Load   : @UserMenu.TUserView.Load;
-       Store  : @UserMenu.TUserView.Store)
-      { Validate }
-{$ENDIF !RCP}
-     ,(ObjType: otFilterValidator;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Validate.TFilterValidator){$IFDEF OFFS}^{$ENDIF});
-       Load   : @Validate.TFilterValidator.Load;
-       Store  : @Validate.TFilterValidator.Store)
-     ,(ObjType: otRangeValidator;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Validate.TRangeValidator){$IFDEF OFFS}^{$ENDIF});
-       Load   : @Validate.TRangeValidator.Load;
-       Store  : @Validate.TRangeValidator.Store)
-      { Views }
-     ,(ObjType: otView;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TView){$IFDEF OFFS}^{$ENDIF});
-       Load   : @Views.TView.Load;
-       Store  : @Views.TView.Store)
-     ,(ObjType: otFrame;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TFrame){$IFDEF OFFS}^{$ENDIF});
-       Load   : @Views.TFrame.Load;
-       Store  : @Views.TFrame.Store)
-     ,(ObjType: otScrollBar;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TScrollBar){$IFDEF OFFS}^{$ENDIF});
-       Load   : @Views.TScrollBar.Load;
-       Store  : @Views.TScrollBar.Store)
-     ,(ObjType: otGroup;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TGroup){$IFDEF OFFS}^{$ENDIF});
-       Load   : @Views.TGroup.Load;
-       Store  : @Views.TGroup.Store)
-     ,(ObjType: otWindow;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TWindow){$IFDEF OFFS}^{$ENDIF});
-       Load   : @Views.TWindow.Load;
-       Store  : @Views.TWindow.Store)
-{$IFNDEF RCP}
-     ,(ObjType: otMyScrollBar;
+       Store  : @UserMenu.TUserView.Store);
+RMyScrollBar: TStreamRec = (
+       ObjType: otMyScrollBar;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Views.TMyScrollBar){$IFDEF OFFS}^{$ENDIF});
        Load   : @Views.TMyScrollBar.Load;
-       Store  : @Views.TMyScrollBar.Store)
+       Store  : @Views.TMyScrollBar.Store);
       { XDblWnd }
-     ,(ObjType: otDoubleWindow;
+RDoubleWindow: TStreamRec = (
+       ObjType: otDoubleWindow;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(XDblWnd.TXDoubleWindow){$IFDEF OFFS}^{$ENDIF});
        Load   : @XDblWnd.TXDoubleWindow.Load;
-       Store  : @XDblWnd.TXDoubleWindow.Store)
+       Store  : @XDblWnd.TXDoubleWindow.Store);
 {$ENDIF !RCP}
-     ,(ObjType: otColorPoint;
+
+{last TStreamRec used in RegisterAll}
+RColorPoint: TStreamRec = (
+       ObjType: otColorPoint;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(SWE.TColorPoint){$IFDEF OFFS}^{$ENDIF});
        Load   : @SWE.TColorPoint.Load;
-       Store  : @SWE.TColorPoint.Store)
-  );
+       Store  : @SWE.TColorPoint.Store);
 
 procedure RegisterAll;
 var
-  I: Integer;
+  P: PStreamRec;
+  i: Integer;
 begin
-  for I := 1 to NumRElms do RegisterType(RegArray[I]);
+  P := @RFilterValidator;
+  i:=Ofs(RRangeValidator)-Ofs(RFilterValidator);
+  repeat
+    RegisterType(P^);
+    Inc(PtrRec(P).Ofs, i);
+  until PtrRec(P).Ofs > Ofs(RColorPoint);
 end;
 
 END.

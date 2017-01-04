@@ -98,6 +98,14 @@
 //  dn3331-FileFindPanel(f)-reread_directory_fix.patch
 //
 //  3.7.0
+//  dn3617-system(f)-set_and_get_window_title_more_correct.patch
+//  dn370-cdplayer(if)-fix_and_improve.patch
+//  dn370-CompareDir(i)-comparing_directories_improve.patch
+//  dn370-calculator(i)_optimization.patch
+//  dn31220-interface(i)-confirmation_to_reuse_bookmark.patch
+//  dn40328-7Zip.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1031,7 +1039,8 @@ const
   cmConfigUFA         = 3122;
   cmConfigZOO         = 3124;
   cmConfigZXZ         = 3125;
-  cmHiConfigArchiver  = 3125;
+  cmConfig7Z          = 3126;
+  cmHiConfigArchiver  = 3126;
   cmUpdateArcFile     = 3200;
 
   cmGlobalUserMenu    = 3220;
@@ -2038,6 +2047,12 @@ TYPE
     dlCDTrackLeft,
     dlCDDiskTime,
     dlCDDiskLeft,
+    { Flash 07-07-2003 >>> }
+    dlCDTrackLength,
+    dlCDNTWarning,
+    dlCDNoMixerSet,
+    dlCDNoDiskInfo,
+    { Flash 07-07-2003 <<< }
 
     dlCDButtonRew,
     dlCDButtonPrev,
@@ -2398,16 +2413,20 @@ TYPE
     dlHistDelCurDir,    {John_SW}
     dlIncorrectDirNum,  {John_SW}
     dlCopyTimeSpeed,    {John_SW}
+    dlFoldersDiffers,   {John_SW}
     dlWkzQuerySeparatorTitle, {KV}
     dlWkzQuerySeparatorLabel, {KV}
     dlWkzWarningClear, {KV}
     { Flash >>> }
+    dlBookmarkAlreadyUsed,
     dlIncorrectPanelSettings,
+    dlUserMenuTitle,
     dlPasswordsDiffer,
     dlSpacesInPassword,
     clStack_Overflow,
     clToo_Large_Number,
     clArgument_Missing,
+    clToo_Many_Arguments,
     clSyntax_Error,
     clUnknown_Function,
     clLeft_Bracket_Missing,
@@ -2415,8 +2434,6 @@ TYPE
     clOperation_Expected,
     clUnknown_Symbol,
     clTwo_Operations,
-    clComma_Missing,
-    clToo_Many_Commas,
     clIncorrect_Usage,
     clDivision_By_Zero,
     clLOG_Wrong_Base,

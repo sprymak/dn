@@ -61,6 +61,9 @@
 //  dn21225-erase-files(f)-erase_by_short_name_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -142,7 +145,7 @@ procedure EraseFiles;
     begin
       DispatchEvents(PInfo, EraseCancel);
       EraseCancel := (EraseCancel or CtrlBreakHit) and (MessageBox(GetString(dlQueryAbort), nil, mfYesNoConfirm) = cmYes);
-      CtrlBreakHit := Off;
+      CtrlBreakHit := False;
       NewTimer(Tmr, 1);
     end;
   end;
@@ -266,7 +269,7 @@ procedure EraseFiles;
      begin
       CalcCancel;                         {JOHN_SW}
       If Abort or EraseCancel then break; {JOHN_SW}
-      if DirEnd or (Dir^[I].Name[0] = #0) then begin DirEnd := On; Break end;
+      if DirEnd or (Dir^[I].Name[0] = #0) then begin DirEnd := True; Break end;
       if (Dir^[i].Name[0]>#32) and (Dir^[i].Name[0]<>#$E5) and
          (Dir^[i].Name[0]<>'.') then
       begin
@@ -299,7 +302,7 @@ procedure EraseFiles;
        dr: Word; j123qwe:boolean;
        SR: lSearchRec;
   begin
-    DeleteDirectory := Off;
+    DeleteDirectory := False;
     Dir:=lFExpand(Dir);
     if Dir[Length(Dir)]='.' then Dec(Dir[0]);
     if not DeleteAllFiles then
@@ -337,14 +340,14 @@ procedure EraseFiles;
          if j123qwe then
            begin
               MessageBox(GetString(dlEraseCantDelDir)+Cut(FreeStr,40), nil, mfError+mfOKButton);
-              Abort := On;
+              Abort := True;
            end;
          PInfo^.DrawView;
        {$IFDEF DiskEdit}
        end else begin DirDel(Cluster); Drv^.WriteFAT; end;
        {$ENDIF}
-    CreateDirectory(Dir, On);
-    DeleteDirectory := On;
+    CreateDirectory(Dir, True);
+    DeleteDirectory := True;
     {$IFDEF DiskEdit}
     if not DosMode then
     begin
@@ -362,7 +365,7 @@ procedure EraseFiles;
 
 begin
   if not ValidErase(Files) then Exit;
-  DeleteAllFiles := Off; Abort := Off; ClrIO;
+  DeleteAllFiles := False; Abort := False; ClrIO;
 
   R.Assign(1,1,26,9);
   New(PInfo, Init(R));
@@ -379,35 +382,35 @@ begin
     PF := Files^.At(0); S := PF^.Owner^;
     for I := 1 to Files^.Count-1 do
       if PFileRec(Files^.At(I))^.Owner^ <> S then
-       begin DOSMode := On; Break end;
+       begin DOSMode := True; Break end;
    end;
   {$ENDIF}
 
-  EraseCancel := Off; Abort := Off;
+  EraseCancel := False; Abort := False;
   NewTimer(Tmr, 0); CalcCancel;
 
   {$IFDEF DiskEdit}
   if not DOSMode then
    begin
     if (S[0] > #3) and (S[Length(S)] = '\') then Dec(S[0]);
-    New(Drv, Init(Byte(S[1])-64, On));
-    if Drv = nil then begin Abort := Off; DOSMode := On; end
+    New(Drv, Init(Byte(S[1])-64, True));
+    if Drv = nil then begin Abort := False; DOSMode := True; end
      else
       begin
        DirCluster := Drv^.GetPath(S);
        DirSize := Max(Drv^.ClusterSize(DirCluster), Drv^.ClusterSize(2));
-       if DirCluster = $FFFF then begin Dispose(Drv,Done); DOSMode := On; end
+       if DirCluster = $FFFF then begin Dispose(Drv,Done); DOSMode := True; end
         else
          begin
           Drv^.FreeFAT; Dir := MemAlloc(DirSize);
           Drv^.SeekFAT(0);
           if (Drv^.FAT = nil) or Abort then
-           begin Abort := Off; FreeMem(Dir, DirSize);
-                 Dispose(Drv,Done); DOSMode := On; end else
+           begin Abort := False; FreeMem(Dir, DirSize);
+                 Dispose(Drv,Done); DOSMode := True; end else
            begin
             Drv^.ClusterRead(Dir^, DirCluster);
-            if Abort then begin Abort := Off; FreeMem(Dir, DirSize);
-                                Dispose(Drv,Done); DOSMode := On; end
+            if Abort then begin Abort := False; FreeMem(Dir, DirSize);
+                                Dispose(Drv,Done); DOSMode := True; end
            end;
          end;
     end;
@@ -483,15 +486,15 @@ begin
   {$IFDEF DiskEdit}
   end else
   begin
-   DirEnd := Off;
+   DirEnd := False;
    while (Files^.Count > 0) and not DirEnd and not Abort do
     begin
-     DirModified := Off;
+     DirModified := False;
      for I := 0 to (DirSize div 32) - 1 do
       begin
        if Abort then Break;
        if (Dir^[I].Name[0] < #32) then
-        begin DirEnd := On; break; end;
+        begin DirEnd := True; break; end;
        for J := 1 to Files^.Count do
         begin
          if Abort then Break;
@@ -510,7 +513,7 @@ begin
                InfoWrite(2,Cut(S,40));
                EraseChain(Dir^[I].Clus);
                Dir^[I].Name[0] := #$E5;
-               DirModified := On;
+               DirModified := True;
               end;
             end else
              begin
@@ -536,7 +539,7 @@ begin
        begin
         DirCluster := Drv^.GetFAT(DirCluster);
         if (DirCluster >= Drv^.LastEl)
-         then DirEnd := On
+         then DirEnd := True
          else Drv^.ClusterRead(Dir^, DirCluster);
        end;
     end;
@@ -596,7 +599,7 @@ procedure SetVLabel;
      W,I: Word;
      L: Byte Absolute S;
 begin
-  Abort := Off; DOSError := 0; ClrIO;
+  Abort := False; DOSError := 0; ClrIO;
   FindFirst('\*.*', VolumeID, SR);
   if Abort then Exit;
   GetDir(0, S1);

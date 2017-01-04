@@ -62,6 +62,10 @@
 ::  dn270-version_upgrade.patch
 ::
 ::  3.7.0
+::  dn31029-Compile_by_VP.patch
+::  dn370-version_upgrade.patch
+::
+::  4.9.0
 ::
 :://///////////////////////////////////////////////////////////////////////
 @echo off
@@ -98,7 +102,7 @@ if .%1.==.. builddn asm help resource nolite
 
 set prg_packer=%real_packer%
 
-set dn_version=3.7.0
+set dn_version=4.9.0
 set diz_title=Real Mode Binary Package
 
 :Loop
@@ -198,8 +202,6 @@ shift
 exe\rcp
 if errorlevel 1 goto Quit
 
-copy exe\*.lng %outpath% >nul
-copy exe\*.dlg %outpath% >nul
 set Q=
 goto Loop
 

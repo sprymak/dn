@@ -54,6 +54,9 @@
 //  dn328-Terminal(f)-enable_activization.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -172,7 +175,7 @@ begin
  MoveChar(B, ' ', $70, Size.X);
  if COMPort <> nil then
   begin
-   COMPort^.GetLine(Baud, Parity, DataBits, StopBits, Off);
+   COMPort^.GetLine(Baud, Parity, DataBits, StopBits, False);
    S := SStr(DataBits,4,' ')+N_O_E_M_S[Byte(Parity)+1]+Char(48+StopBits)+'~   ';
    COMPort^.GetModem(DTR, RTS);
    BBB := COMPort^.GetModemStatus;
@@ -228,7 +231,7 @@ begin
   end;
 end;
 
-function TTerminalWindow.ReactOnCmd; begin ReactOnCmd := On end;
+function TTerminalWindow.ReactOnCmd; begin ReactOnCmd := True end;
 
 constructor TTerminal.Init;
  var I: Integer;
@@ -250,7 +253,7 @@ begin
  ParamCount := 0;
  Term := @Self;
  isValid := True;
- ScrollBack := Off;
+ ScrollBack := False;
  OutAttr := $07;
  HelpCtx := hcTerminal;
  for I := 0 to 200 do TabStops[I] := I mod 8 = 0;
@@ -315,7 +318,7 @@ begin
  if Blk then
    with CutRect do
    begin
-     BlkM := Off;
+     BlkM := False;
      if A.X < 0 then CutRect.Move(-A.X,0);
      if A.Y < 0 then CutRect.Move(0,-A.Y);
      if B.X - A.X > Size.X then B.X := A.X + Size.X;
@@ -323,13 +326,13 @@ begin
      if B.X > BufSize.X then CutRect.Move(BufSize.X-B.X, 0);
      if B.Y > BufSize.Y then CutRect.Move(0, BufSize.Y-B.Y);
      if A.X < Delta.X then
-       begin Delta.X := A.X; BlkM := On; end;
+       begin Delta.X := A.X; BlkM := True; end;
      if CutRect.A.Y < Delta.Y then
-       begin Delta.Y := A.Y; BlkM := On; end;
+       begin Delta.Y := A.Y; BlkM := True; end;
      if B.X - Delta.X > Size.X then
-       begin Delta.X := B.X - Size.X; BlkM := On; end;
+       begin Delta.X := B.X - Size.X; BlkM := True; end;
      if B.Y - Delta.Y > Size.Y then
-       begin Delta.Y := B.Y - Size.Y; BlkM := On; end;
+       begin Delta.Y := B.Y - Size.Y; BlkM := True; end;
      if BlkM then ScrollTo(Delta.X, Delta.Y);
    end;
  for I := 0 to Size.Y - 1 do
@@ -378,7 +381,7 @@ end;
 
  const XferAborted :Boolean = False;
        Info: PWhileView = nil;
-       InProc: Boolean = Off;
+       InProc: Boolean = False;
 
  var
        XChkTimer: TEventTimer;
@@ -386,7 +389,7 @@ end;
  function AbortXfer: Boolean; {$IFDEF BIT_16}far;{$ENDIF}
   var Event: TEvent;
  begin
-  if (Info = nil) or (COMPort = nil) then begin AbortXfer := On; Exit end;
+  if (Info = nil) or (COMPort = nil) then begin AbortXfer := True; Exit end;
   if TimerExpired(XChkTimer) then
     begin
       XferAborted := not COMPort^.CheckDCD and
@@ -395,16 +398,16 @@ end;
     end;
   if not InProc then
    begin
-    InProc := On;
+    InProc := True;
     Application^.GetEvent(Event);
     if Event.What <> evNothing then
      begin
       Application^.HandleEvent(Event);
       if (Event.What = evCommand) and (Event.Command = cmCancel)
-         and (Event.InfoPtr = Info^.But) then XferAborted := On;
+         and (Event.InfoPtr = Info^.But) then XferAborted := True;
      end;
     end;
-  InProc := Off;
+  InProc := False;
   AbortXfer := XferAborted;
  end;
 
@@ -482,14 +485,14 @@ procedure TTerminal.HandleEvent;
   DisposeMenu(M);
   if W < 1000 then Exit;
   case W of
-   1001: Protocol := New(XModemProtocolPtr, Init(COMPort, Off, Off));
-   1002: Protocol := New(XModemProtocolPtr, Init(COMPort, On, Off));
-   1003: Protocol := New(XModemProtocolPtr, Init(COMPort, Off, On));
-   1004: Protocol := New(YModemProtocolPtr, Init(COMPort, On, Off));
-   1005: Protocol := New(YModemProtocolPtr, Init(COMPort, On, On));
+   1001: Protocol := New(XModemProtocolPtr, Init(COMPort, False, False));
+   1002: Protocol := New(XModemProtocolPtr, Init(COMPort, True, False));
+   1003: Protocol := New(XModemProtocolPtr, Init(COMPort, False, True));
+   1004: Protocol := New(YModemProtocolPtr, Init(COMPort, True, False));
+   1005: Protocol := New(YModemProtocolPtr, Init(COMPort, True, True));
    1006: begin
           Protocol := New(ZModemProtocolPtr, Init(COMPort));
-          ZModemProtocolPtr(Protocol)^.SetRecoverOption(On);
+          ZModemProtocolPtr(Protocol)^.SetRecoverOption(True);
          end;
    1007: Protocol := New(KermitProtocolPtr, Init(COMPort));
   end;
@@ -527,7 +530,7 @@ procedure TTerminal.HandleEvent;
      ProtocolFileRenameTo:=Dr+Nm+Xt;
     end else
       if TypeOf(Protocol^) = TypeOf(ZModemProtocol) then
-           ZModemProtocolPtr(Protocol)^.SetFileMgmtOptions(On, Off, WriteCrc);
+           ZModemProtocolPtr(Protocol)^.SetFileMgmtOptions(True, False, WriteCrc);
    R.Assign(1,1,40,13);
    Info := New(PWhileView, Init(R));
    Info^.Top := GetString(dlTermReceiving);
@@ -535,7 +538,7 @@ procedure TTerminal.HandleEvent;
    Info^.Write(3, GetString(dlTermWaitAnswer));
    Desktop^.Insert(Info);
    NewTimer(XChkTimer, 18*2);
-   XferAborted := Off;
+   XferAborted := False;
    PA := COMPort^.PR^.UserAbort;
    COMPort^.SetAbortFunc(AbortXfer);
    lGetDir(0, ProtocolDirToChange);
@@ -551,7 +554,7 @@ procedure TTerminal.HandleEvent;
      lAssignFile(j, ProtocolFileRenameFrom);
      lRenameFile(j, ProtocolFileRenameTo);
     end;
-   XferAborted := Off;
+   XferAborted := False;
    Dispose(Protocol,Done);
    II := Info;
    Info := nil;
@@ -591,7 +594,7 @@ procedure TTerminal.HandleEvent;
    Info^.Top := GetString(dlTermSending);
    Info^.Write(3, GetString(dlTermWaitAnswer));
    Desktop^.Insert(Info);
-   XferAborted := Off;
+   XferAborted := False;
    NewTimer(XChkTimer, 18*2);
    Inc(SkyEnabled);
    PA := COMPort^.PR^.UserAbort;
@@ -604,7 +607,7 @@ procedure TTerminal.HandleEvent;
    Info := nil;
    II^.Free;
    Dispose(Protocol,Done);
-   XferAborted := Off;
+   XferAborted := False;
    Protocol := nil;
    COMPort^.SetAbortFunc(PA);
    Event.What := evCommand;
@@ -919,7 +922,7 @@ begin
                             end;
               cmSave: begin CaptureScreen; CE; end;
               cmOpen: begin
-                       if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
+                       if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(True);
                        if Clipboard <> nil then begin
                           for I:=0 to Clipboard^.Count - 1 do begin
                             SendString(CnvString(Clipboard^.At(I)));
@@ -935,10 +938,10 @@ begin
                                   begin
                                     COMPort^.FlushInBuffer;
                                     COMPort^.FlushOutBuffer;
-                                    COMPort^.SetDTR(Off);
-                                    COMPort^.SetDTR(On);
-                                    COMPort^.SetDTR(Off);
-                                    COMPort^.SetDTR(On);
+                                    COMPort^.SetDTR(False);
+                                    COMPort^.SetDTR(True);
+                                    COMPort^.SetDTR(False);
+                                    COMPort^.SetDTR(True);
                                     ModemWrite(ModemSetup.Escape+#13#10);
                                     ModemWrite(ModemSetup.Init);
                                   end;
@@ -1012,15 +1015,15 @@ procedure TTerminal.ZmodemDload;
 begin
   Protocol := New(ZModemProtocolPtr, Init(COMPort));
   if Protocol = nil then Exit;
-  ZModemProtocolPtr(Protocol)^.SetRecoverOption(On);
-  ZModemProtocolPtr(Protocol)^.SetBigSubpacketOption(On);
+  ZModemProtocolPtr(Protocol)^.SetRecoverOption(True);
+  ZModemProtocolPtr(Protocol)^.SetBigSubpacketOption(True);
   R.Assign(1,1,40,13);
   Info := New(PWhileView, Init(R));
   Info^.Top := GetString(dlTermReceiving);
   Info^.Options := Info^.Options or ofSelectable;
   Info^.Write(3, GetString(dlTermWaitAnswer));
   Desktop^.Insert(Info);
-  XferAborted := Off;
+  XferAborted := False;
   PA := COMPort^.PR^.UserAbort;
   COMPort^.SetAbortFunc(AbortXfer);
   Protocol^.SetShowStatusProc(ShowReceInfo);
@@ -1028,7 +1031,7 @@ begin
   Inc(SkyEnabled);
   NewTimer(Timer, 0);
   Protocol^.ProtocolReceive;
-  XferAborted := Off;
+  XferAborted := False;
   NewTimer(XChkTimer, 18*2);
   Dispose(Protocol,Done);
   II := Info;
@@ -1123,7 +1126,7 @@ procedure TTerminal.PutChar;
    if (TerminalDefaults.Options and toCaptureCtrls = 0) and (Log <> nil) then Log^.Write(C, 1);
    case C of
      #9: while (not TabStops[CurPos.X] and (CurPos.X < BufSize.X-1)) do
-            if TOptions and toInsertMode <> 0 then PrintChar(' ', On)
+            if TOptions and toInsertMode <> 0 then PrintChar(' ', True)
               else Inc(CurPos.X);
      #7: System.Write(#7);
      {#12: {if TOptions and toCTRLCLS <> 0 then ClearScreen else LocateCursor(CurPos.X, CurPos.Y+1);}
@@ -1140,11 +1143,11 @@ procedure TTerminal.PutChar;
             begin
               C := Char(TOptions);
               TOptions := TOptions and not toInsertMode;
-              PrintChar(' ', Off);
+              PrintChar(' ', False);
               TOptions := Word(C)
             end;
          end;
-     else PrintChar(C, On);
+     else PrintChar(C, True);
    end;
  end;
 
@@ -1346,12 +1349,12 @@ procedure TTerminal.PutChar;
           'B', 'e': DoMoveCursor(I, 0,  1);
           'C', 'a': DoMoveCursor(I, 1,  0);
           'D': DoMoveCursor(I, -1, 0);
-          'g': if I = 0 then TabStops[CurPos.X] := Off
+          'g': if I = 0 then TabStops[CurPos.X] := False
                  else if I = 3 then FillChar(TabStops, SizeOf(TabStops), 0);
           '@': begin
                   J := TOptions;
                   TOptions := TOptions or toInsertMode;
-                  while I > 0 do begin PrintChar(C, Off); Dec(I) end;
+                  while I > 0 do begin PrintChar(C, False); Dec(I) end;
                   TOptions := J;
                end;
          'P': begin
@@ -1509,8 +1512,8 @@ procedure TTerminal.PutChar;
  function UpdateVT52: Boolean;
    var CE: Boolean;
  begin
-   UpdateVT52 := On;
-   CE := On;
+   UpdateVT52 := True;
+   CE := True;
    AddStr(ANSIStr, C);
    case ANSIStr[2] of
      '7': SavePos := CurPos;
@@ -1530,14 +1533,14 @@ procedure TTerminal.PutChar;
      'W': ;{ ENTER transparent printing }
      'X': ;{ Exit transparent printing }
      'Y': if Length(ANSIStr) > 3 then LocateCursor(Byte(ANSIStr[4])+CurPos.Y,Byte(ANSIStr[3])+CurPos.X)
-                                 else CE := Off;
+                                 else CE := False;
      'Z': SendModem(#27'/Z');
 
      '<': Emulator := emVT102;
      ']': ; { PrintScreen }
      '^': ; { Printer On }
      '_': ; { Printer Off }
-      else UpdateVT52 := Off;
+      else UpdateVT52 := False;
    end;
    if CE then ANSIStr := '';
  end;
@@ -1546,19 +1549,19 @@ procedure TTerminal.PutChar;
  function UpdateVT100:Boolean;
    var CE: Boolean;
  begin
-   CE := On;
+   CE := True;
    if (ANSIStr[0] >= #1) and
       (PosChar(ANSIStr[1],' !?"$')>0) then begin UpdateAnsi; Exit; end;
    AddStr(ANSIStr, C);
    case ANSIStr[2] of
      '[': begin ANSIStr := ' '; Exit end;
      ' ': if ANSIStr < #3 then Exit
-           else if C = 'F' then {Emulator.StripHigh := On}
-             else if C = 'G' then {Emulator.StripHigh := Off};
+           else if C = 'F' then {Emulator.StripHigh := True}
+             else if C = 'G' then {Emulator.StripHigh := False};
      '7': SavePos := CurPos;
      '8': begin CurPos := SavePos; LocateCursor(CurPos.X, CurPos.Y) end;
      'E': LocateCursor(0,CurPos.Y+1);
-     'H': TabStops[CurPos.X] := On;
+     'H': TabStops[CurPos.X] := True;
      'D':
            LocateCursor(CurPos.X, CurPos.Y+1);
      'J': EraseScreen(0, BufSize.Y - CurPos.Y);
@@ -1566,7 +1569,7 @@ procedure TTerminal.PutChar;
      'M': if CurPos.Y = 0 then begin ScrollDown(1); DrawView end
                           else LocateCursor(CurPos.X, CurPos.Y-1);
      'Y': if Length(ANSIStr) > 3 then LocateCursor(Byte(ANSIStr[4])+CurPos.Y,Byte(ANSIStr[3])+CurPos.X)
-                                 else CE := Off;
+                                 else CE := False;
      'Z': ;
      '<': ;
      ']': ; { PrintScreen }

@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1004,13 +1007,13 @@ begin
   If Pos( '.TITLE', RemoveLeadSpaces( UpStr( Line ))) = 1 then begin
     Line := RemoveLeadSpaces( Copy( RemoveLeadSpaces( Line ), 7, 255 ));
     FreeStr := #218 + Strg(#196, Length( Line ) + 2 );
-    AddToBuffer( FreeStr, OFF );
+    AddToBuffer( FreeStr, False );
     FreeStr := #179#32 + Line + #32#219;
-    AddToBuffer( FreeStr, OFF );
+    AddToBuffer( FreeStr, False );
     FreeStr := #192 + Strg( #220, Length( Line ) + 2 ) + #219;
-    AddToBuffer( FreeStr, OFF );
+    AddToBuffer( FreeStr, False );
     FreeStr := '';
-    AddToBuffer( FreeStr, OFF );
+    AddToBuffer( FreeStr, False );
     Line := GetLine( TextFile );
   end else
   if IsEndParagraph then begin

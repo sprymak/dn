@@ -61,6 +61,10 @@
 //  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -900,9 +904,9 @@ begin
  R.AH:=1; R.BL:=0; R.CX:=$0607;
  SimulateRealmodeInt($10, R);
 {$ENDIF}
-{$IFDEF VIRTUALPASCAL} RunFirst:=true; {$ENDIF}
 
 {$ENDIF}
+{$IFDEF VIRTUALPASCAL} RunFirst:=true; {$ENDIF}
  if DDTimer > 0 then DDTimer := Get100s-DDTimer;
 
  TempBounds.Assign(0,0,0,0);
@@ -1004,7 +1008,7 @@ GrabPalette;
  MyApplication.Run;
  ClearIniErrors;
  GlobalMessage(evCommand, cmKillUsed, nil);
- TottalExit := On;
+ TottalExit := True;
  MyApplication.Done;
 end;
 

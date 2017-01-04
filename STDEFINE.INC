@@ -51,39 +51,55 @@
 //  dn16rc1-move_COMBINE_MIXED_from_sources_to_Options_menu_diff140byMV.patch
 //
 //  2.0.0
+//  dn31029-Compile_by_VP.patch
+//  dn31214-DBFView(f)-view_dbf_works_in_VP.patch
+//  dn31214-PhoneBook(f)-phone_book_works_in_VP.patch
+//  dn31214-Calendar(f)-calendar_works_in_VP.patch
+//  dn31214-WKZ(f)-wkz_works_in_VP.patch
+//  dn31214-StdDefine(f)-another_modules_works_in_VP.patch
+//  dn31220-UUE(f)-uueCode_uueEncode_works_in_VP.patch
+//  dn31220-Game(f)-Tetris_works_in_VP.patch
+//  dn31220-built-in_result_variable.patch
+//  dn40307-define_DN_Micro.patch
+//
+//  4.9.0
 //
 /////////////////////////////////////////////////////////////////////////}
 
 {/$DEFINE LFNCache}
-  {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$ENDIF}
+  {$IFDEF VER80}{$DEFINE DELPHI}{$DEFINE RESULT}{$ENDIF}
+  {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$DEFINE RESULT}{$ENDIF}
   {$IFDEF FPC}{$DEFINE NONBP}{$ENDIF}
 
-
-  {$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
+{$DEFINE LongCopy}
+{$DEFINE DiskImg}
+{$DEFINE ARVID}
+{$DEFINE DBView}
+{$DEFINE PHONES}
+{$DEFINE Calendar}
+{$DEFINE SpreadSheet}
+{$DEFINE TrashCan}
+{$DEFINE COLUMNSMENU}
 {$DEFINE UUENCODE}
 {$DEFINE UUDECODE}
+{$DEFINE Game}
+  {$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
 {$DEFINE Modem} {For enabling modem features you must have ASyncPro}
 {$DEFINE Link}
-{$DEFINE SpreadSheet}
 {$DEFINE DiskEdit}
 {$DEFINE DiskFormat}
 {$DEFINE Reanimator}
-{$DEFINE DBView}
 {$DEFINE PrintManager}
 {$DEFINE Game}
 {$DEFINE CdPlayer}
-{$DEFINE Calendar}
 {$DEFINE SYSINFO}
 {$DEFINE MEMINFO}
-{$DEFINE TrashCan}
 {$DEFINE NETINFO}
-{$DEFINE PHONES}
 {$DEFINE SS}
 {$DEFINE CHCOL}
 {.$DEFINE DisAsm}
 {.$DEFINE PKTVIEW}
 {.$DEFINE UPLOWSTRSINDLG}
-{$DEFINE COLUMNSMENU}
 
 {$IFDEF DPMI}
  {$DEFINE BIGCOLLECTION}
@@ -110,9 +126,8 @@
 {$DEFINE NO_OVERLAY}
 {$DEFINE NOEXTRA}
 {$DEFINE BIT_32}
-{$DEFINE FILE_32}
 {$DEFINE Win32}
-{$DEFINE MINARCH}
+{.$DEFINE MINARCH}
 {$Use32+}
 {$DEFINE POGLSORT}
 {$DEFINE COLUMNSMENU}
@@ -161,6 +176,42 @@
   {$UNDEF DisAsm}
 {$ENDIF}
 
+{.$DEFINE MICRO}
+
+{$IFDEF MICRO}
+  {$DEFINE MINARCH}
+
+  {$UNDEF LongCopy}
+  {$UNDEF SYSINFO}
+  {$UNDEF MEMINFO}
+  {$UNDEF DiskImg}
+  {$UNDEF ARVID}
+  {$UNDEF TrashCan}
+  {$UNDEF Game}
+  {$UNDEF UUENCODE}
+  {$UNDEF UUDECODE}
+  {$UNDEF Calendar}
+  {$UNDEF CdPlayer}
+  {$UNDEF NETINFO}
+  {$UNDEF PHONES}
+  {$UNDEF SS}
+  {$UNDEF PrintManager}
+  {$UNDEF CHCOL}
+  {$UNDEF SpreadSheet}
+  {$UNDEF DBView}
+  {$UNDEF Link}
+  {$UNDEF DisAsm}
+  {$UNDEF Modem}
+  {$UNDEF DiskEdit}
+  {$UNDEF Reanimator}
+  {$UNDEF COLUMNSMENU}
+  {$UNDEF SORTDEBUG}
+  {$UNDEF CHDIRDEBUG}
+  {$UNDEF DiskFormat}
+
+{$ENDIF}{MICRO}
+
+
 {$DEFINE FULLOVR}
 {$DEFINE FULLOVR2}
 {$DEFINE VIEWSOVR}
@@ -183,4 +234,10 @@
   {$IFDEF NLCLIENT}
     {$DEFINE CL_MASTER}
   {$ENDIF}
+{$ENDIF}
+
+{$IFDEF VIRTUALPASCAL}
+ {$DEFINE USESYSUTILS}   {Cat: если хочется подключать модуль SysUtils или}
+                         {использовать механизм исключений; в плагинной версии ни на что не влияет}
+
 {$ENDIF}

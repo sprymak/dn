@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31029-help(f)-crash_on_call_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -117,7 +120,7 @@ type
     LastOffset: AInt;
     LastLine: AInt;
     LastParagraph: PParagraph;
-    function WrapText(var Text; Size: AInt; var Offset: AInt;
+    function WrapText(var Text; Size: Integer; var Offset: Integer;
       Wrap: Boolean): String;
   end;
 
@@ -262,7 +265,7 @@ end;
 procedure THelpTopic.GetCrossRef(I: AInt; var Loc: TPoint;
   var Length: Byte; var Ref: AWord);
 var
-  OldOffset, CurOffset, Offset, ParaOffset: AInt;
+  OldOffset, CurOffset, Offset, ParaOffset: Integer;
   P: PParagraph;
   Line: AInt;
 begin
@@ -292,7 +295,8 @@ end;
 
 function THelpTopic.GetLine(Line: AInt): String;
 var
-  Offset, I: AInt;
+  Offset: Integer;
+  I: AInt;
   P: PParagraph;
 begin
   if LastLine < Line then
@@ -336,7 +340,8 @@ end;
 
 function THelpTopic.NumLines: AInt;
 var
-  Offset, Lines: AInt;
+  Offset: Integer;
+  Lines: AInt;
   P: PParagraph;
 begin
   Offset := 0;
@@ -426,7 +431,7 @@ begin
   WriteParagraphs;
   WriteCrossRefs;
 end;
-
+{$IFNDEF NONBP}
 function THelpTopic.WrapText(var Text; Size: AInt;
   var Offset: AInt; Wrap: Boolean): String;
 type
@@ -528,6 +533,79 @@ begin
   Inc(Offset, I);
   WrapText := Line;
 end;
+{$ELSE}
+{JO: взял THelpTopic.WrapText из VP 2.1 TVDEMO, так как в старой падала      }
+{    регулярно ассемблерная функция Scan на repne   scasb ; решил, что       }
+{    разбираться с этой хренью будет себе дороже и взял готовое решение      }
+function THelpTopic.WrapText(var Text; Size: Integer;
+  var Offset: Integer; Wrap: Boolean): String;
+type
+  PCArray = ^CArray;
+  CArray = array[0..32767] of Char;
+var
+  Line: String;
+  I, P: Integer;
+
+function IsBlank(Ch: Char): Boolean;
+begin
+  IsBlank := (Ch = ' ') or (Ch = #13) or (Ch = #10);
+end;
+
+function Scan(var P; Offset, Size: Integer; C: Char): Integer; assembler;
+        {&USES esi,edi} {&FRAME-}
+asm
+        cld
+        mov     edi,P
+        add     edi,&Offset
+        mov     edx,Size
+        sub     edx,&Offset
+        test    dh,dh
+        jz      @@1
+        mov     edx,256
+      @@1:
+        mov     ecx,edx
+        mov     al,C
+        repne   scasb
+        sub     ecx,edx
+        neg     ecx
+        xchg    eax,ecx
+end;
+
+procedure TextToLine(var Text; Offset, Length: Integer; var Line: String);
+  assembler;
+       {&USES esi,edi} {&FRAME-}
+asm
+        cld
+        mov     esi,Text
+        add     esi,&Offset
+        mov     edi,Line
+        mov     eax,Length
+        stosb
+        xchg    eax,ecx
+        rep     movsb
+end;
+
+begin
+  I := Scan(Text, Offset, Size, #13);
+  if (I >= Width) and Wrap then
+  begin
+    I := Offset + Width - 1;
+    if I > Size then I := Size
+    else
+    begin
+      while (I > Offset) and not IsBlank(PCArray(@Text)^[I]) do Dec(I);
+      if I = Offset then I := Offset + Width
+      else Inc(I);
+    end;
+    if I = Offset then I := Offset + Width;
+    Dec(I, Offset);
+  end;
+  TextToLine(Text, Offset, I, Line);
+  if Line[Length(Line)] = #13 then SetLength(Line, Length(Line)-1);
+  Inc(Offset, I);
+  WrapText := Line;
+end;
+{$ENDIF}
 
 { THelpIndex }
 

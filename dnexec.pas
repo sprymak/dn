@@ -53,6 +53,11 @@
 //  dn3216-archives(f)-too_long_command_line_message.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-kernel(if)-work_with_temporary_files.patch
+//  dn40205-kernel(f)-show_mouse_after_executing_programs.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -75,7 +80,7 @@ implementation
 uses DnSvLd, DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3,
      FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4, Videoman, Messages
 {$IFDEF VIRTUALPASCAL}
-     , Memory
+     , Memory, VPSysLow
 {$ENDIF}
      ;
 
@@ -102,7 +107,7 @@ begin
  { Flash 17-02-2003 <<< }
  if {$IFDEF OS_DOS}not Chk4Dos and {$ENDIF}(Pos('||', M) <> 0) then
   begin
-    lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
+    lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension); ClrIO;
     lRewriteText(F1); if IOResult <> 0 then begin Close(F1.T); Exit; end;
     I := 0;
     repeat
@@ -114,7 +119,7 @@ begin
       Delete(M, 1, I+1);
     until (M = '');
     Close(F1.T);
-    M := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ';
+    M := SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension+' ';
   end else M := MakeCMDParams(M, CnvString(CurFileActive), CnvString(CurFilePassive));
 1:
  M := ' '+M+#13; Dec(M[0]);
@@ -149,7 +154,7 @@ begin
   DoneVideo;
   FreeMem(UserScreen, UserScreenSize);
   UserScreen := nil;
-  ScreenSaved := Off;
+  ScreenSaved := False;
   DoneDOSMem;
   DoneMemory;
   {$IFDEF OS_DOS}asm cld; mov eax,3; int $10; end;{$ENDIF}
@@ -172,10 +177,11 @@ begin
   InitMemory;
   InitVideo;
 {  SetVideoMode(ScreenMode); SM := ScreenMode;}
-{  SetBlink(On);    }
+{  SetBlink(True);    }
 {  ScreenMode := SM;}
   InitEvents;
   InitSysError;
+  SysTVKbdInit; { Flash 11-02-2004: Чтобы мышь не убегала }
   if (StartupData.Load and osuResetPalette <> 0) and VGASystem { dagoon }
      then SetPalette(vga_palette);
   Application^.Redraw;
@@ -213,16 +219,16 @@ begin
   if CharCount('.', LFN)=0 then LFN:=LFN+'.';
   lGetDir(0, ActiveDir);
   SearchExt:=False;
-  Local := On;
+  Local := True;
   f := New(PTextReader, Init('DN.EXT'));
   if f=nil then
    begin
   RL:
-     Local := Off;
+     Local := False;
      f := New(PTextReader, Init(SourceDir+'DN.EXT'));
    end;
   if f=nil then exit; AllRight:=False;
-  BgCh:='{';EnCh:='}'; Abort := Off; EF:=Off;
+  BgCh:='{';EnCh:='}'; Abort := False; EF:=False;
   if PShootState and 8 > 0 then begin BgCh:='[';EnCh:=']';end else
   if PShootState and 3 > 0 then begin BgCh:='(';EnCh:=')';end;
   While (not f^.EOF) and (not AllRight) do begin
@@ -237,9 +243,9 @@ begin
        D.Filter := S1;
        MakeTMaskData(D);
        if InExtFilter(FName, D) or InExtFilter(LFN, D) then begin
-        lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
+        lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension); ClrIO;
         lRewriteText(F1); if IOResult <> 0 then begin Dispose(F,Done); exit; end;
-        WriteEcho := On;
+        WriteEcho := True;
         System.Delete(S, 1, PosChar(BgCh, S));
         repeat
          Replace(']]', #0, S);
@@ -247,29 +253,29 @@ begin
          Replace('}}', #2, S);
          DelLeft(S); DelRight(S);
          if S[Length(S)] = EnCh then
-          begin Dec(S[0]); EF := On; if S <> '' then
+          begin Dec(S[0]); EF := True; if S <> '' then
            begin
              Replace(#0, ']', S);
              Replace(#1, ')', S);
              Replace(#2, '}', S);
-             S := MakeString(S, @UserParam, off, nil);
+             S := MakeString(S, @UserParam, False, nil);
              HS := S;
              {JO: если строка на REXX'е или Perl'e, то не нужно добавлять @Echo off}
              if WriteEcho and (Copy(S, 1, 2) <> '/*') and (S[1] <> '#')
                then Writeln(F1.T, '@echo off');
-             WriteEcho := Off;
+             WriteEcho := False;
              WriteLn(F1.T, S); Break
            end;
           end;
          if S <> '' then
           begin
            Replace(#0, ']', S);  Replace(#1, ')', S);  Replace(#2, '}', S);
-           if (BgCh <> '[') then S := MakeString(S, @UserParam, off, nil);
+           if (BgCh <> '[') then S := MakeString(S, @UserParam, False, nil);
            if First and (BgCh <> '[') then HS := S;
            {JO: если строка на REXX'е или Perl'e, то не нужно добавлять @Echo off}
            if WriteEcho and (Copy(S, 1, 2) <> '/*') and (S[1] <> '#')
              then Writeln(F1.T, '@echo off');
-           WriteEcho := Off;
+           WriteEcho := False;
            WriteLn(F1.T, S);
            First := False;
           end;
@@ -277,7 +283,7 @@ begin
          if not EF then S := F^.GetStr;
         until (IOResult <> 0) or Abort or EF;
         Close(F1.T);
-        AllRight := On;
+        AllRight := True;
        end;
       end;
      end;
@@ -289,7 +295,7 @@ begin
    begin
     EraseFile( SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU' );
     lRenameText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU');
-    EF := ExecUserMenu(Off);
+    EF := ExecUserMenu(False);
     if not EF then lEraseText(F1);
    end;
   SearchExt:=not Abort and EF;
@@ -314,9 +320,9 @@ SIdx: TStrIdx; CallIfSuccess: TCallback; var CallbackParam, AltExt): Boolean; (*
 
 begin
  FillChar(D, sizeof(D), 0);
- ExecExtFile := Off;
+ ExecExtFile := False;
  FileMode := $40;
- Local := On;
+ Local := True;
  LFN:=GetLFN(UserParams^.Active^.LFN);
  if CharCount('.', LFN)=0 then LFN:=LFN+'.';
  FName:=MakeFileName(UserParams^.Active^.Name);
@@ -326,7 +332,7 @@ begin
  if F = nil then
   begin
 RepeatLocal:
-    Local := Off;
+    Local := False;
     F := New(PTextReader, Init(SourceDir+ExtFName));
   end;
  if F = nil then Exit;
@@ -339,7 +345,7 @@ RepeatLocal:
       D.Filter := S1; MakeTMaskData(D);
       if InExtFilter(FName, D) or InExtFilter(LFN, D) then goto 1111;
    end;
-   ExecExtFile := Off;
+   ExecExtFile := False;
    Dispose(F, Done);
    D.Filter := ''; MakeTMaskData(D);
    if Local then Goto RepeatLocal;
@@ -350,7 +356,7 @@ RepeatLocal:
    if not Application^.Valid(cmQuit) then Exit;
    ClrIO;
    S1:='';
-   S:=MakeString(S, UserParams, off, @S1);
+   S:=MakeString(S, UserParams, False, @S1);
    if S1<>''
     then TempFile:='!'+S1+'|'+MakeNormName(UserParams^.Active^.Owner^, LFN)
     else if TempFile<>''
@@ -376,7 +382,7 @@ RepeatLocal:
           DirToChange:=S1;
           lChDir({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Active^.Owner^));
          end;
-   ExecExtFile := On;
+   ExecExtFile := True;
    if Addr(CallIfSuccess)<>nil then CallIfSuccess(CallbackParam,AltExt); (* X-Man *) { Flash }
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
    ExecString(@S, '');
@@ -395,7 +401,7 @@ procedure ExecFile(const FileName: string);
  begin
   if M = '' then Exit;
   CmdLine.Str := M;
-  CmdLine.StrModified := On;
+  CmdLine.StrModified := True;
   CmdDisabled := B;
   Message(CommandLine, evKeyDown, kbDown, nil);
   Message(CommandLine, evKeyDown, kbUp, nil);
@@ -408,8 +414,8 @@ procedure ExecFile(const FileName: string);
      begin
        if PCommandLine(CommandLine)^.LineType = ltOS2FullScreen then ST := stOS2FullScreen
          else ST := stOS2Windowed;
-       RunOS2Command(M, Off, ST);
-       CmdLine.StrModified := On;
+       RunOS2Command(M, False, ST);
+       CmdLine.StrModified := True;
        Message(CommandLine, evKeyDown, kbDown, nil);
        Exit;
      end;
@@ -436,15 +442,15 @@ begin
   begin
    if SearchExt(fr, M) then
    begin
-    PutHistory(On);
-    M := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + FreeStr;
-    RunCommand(Off);
+    PutHistory(True);
+    M := SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension+' '+FreeStr;
+    RunCommand(False);
    end else goto ex;
   end;
  M := S;
- PutHistory(Off);
+ PutHistory(False);
  M := S;
- RunCommand(On);
+ RunCommand(True);
 ex:
  DelFileRec(fr);
 end;

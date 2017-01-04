@@ -81,6 +81,15 @@
 //  dn368-find_LFN_inside_of_archive.patch
 //
 //  3.7.0
+//  dn370-archives(if)-improve_and_fix.patch
+//  dn370-change_dirname_started_with_a_dot.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-view_file_in_archive.patch
+//  dn31220-kernel(if)-work_with_temporary_files.patch
+//  dn40307-define_DN_Micro.patch
+//  dn40328-7Zip.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -170,11 +179,18 @@ const
 
 Implementation
  uses Menus, DnApp, Messages, Dialogs, Gauge, FileCopy, Memory, Startup,
-      Arvid, xTime, VideoMan, Filefind
+      Arvid, xTime, VideoMan, Filefind, DNUtil
       ;
 
 const
   LowMemSize = $4000;  {Local setting}
+
+procedure CheckSlashDot(var S: String);{piwamoto}
+begin
+  if ((S[Length(S)] <> '.') and (S[Length(S)-1] <> '\')) then
+    {directory name '.' bugfix by piwamoto}
+    While (PosChar(S[Length(S)], '.\') > 0) do Dec(S[0]);
+end;
 
 function MaxAvail: LongInt;
 begin
@@ -203,7 +219,7 @@ end;
 
 procedure TArcDrive.StdMsg4;
 begin
-  if TempFile <> '' then TempFile := ''; StdMsg(4); Abort := On;
+  if TempFile <> '' then TempFile := ''; StdMsg(4); Abort := True;
 end;
 
         {-DataCompBoy-}
@@ -331,7 +347,7 @@ begin
  S.Read(KillAfterUse, 1);
  S.Read(Password[0],1);S.Read(Password[1],Length(Password));
  Files := PDirStorage(S.Get);
- ForceRescan := Off;
+ ForceRescan := False;
  DriveType := dtArc;
  ArcFileName := ArcName;
  VArcFileName := VArcName;
@@ -393,7 +409,7 @@ var PF : PArcFile;
     T: TEventTimer;
     olf: String;
 begin
- ReadArchive:=Off;
+ ReadArchive:=False;
  New(ArcFile,Init(ArcName, stOpenRead, 512));
  ArcFileName := ArcName;
  VArcFileName := VArcName;
@@ -415,7 +431,7 @@ begin
  R.Assign(1,1,30,10);
  {P := WriteMsg(GetString(dlArcReadArc));}
  LN := ArcFile^.GetSize + 1;
- Cancel := Off; PReader := nil;
+ Cancel := False; PReader := nil;
  Inc(SkyEnabled);
  NewTimer(T, 3);
  if StartupData.Slice2 and osuReleaseArch = 0 then Application^.BFSpeed;
@@ -467,10 +483,12 @@ begin
  Dec(SkyEnabled);
  if P <> nil then P^.Free;
  FreeObject(ArcFile);
+{$IFNDEF MINARCH}
  CDir := '';
+{$ENDIF}
  if FileInfo.Last=2 then StdMsg(6);
- ReadArchive:=On;
- if Files^.Files=0 then begin StdMsg(7);ReadArchive:=Off;end;
+ ReadArchive:=True;
+ if Files^.Files=0 then begin StdMsg(7);ReadArchive:=False;end;
 end;
         {-DataCompBoy-}
 
@@ -481,8 +499,8 @@ procedure TArcDrive.lChDir;
      Xt: String;
 begin
  if ADir = #0 then Exit;
- While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
- if ADir[1] = '.' then
+ CheckSlashDot(CurDir);
+ if ADir = '..' then
   begin
    if CurDir <> '' then While (CurDir <> '') and (not(CurDir[Length(CurDir)] in ['\','/'])) do Dec(CurDir[0])
                    else Advance2.lChDir(GetPath(ArcName));
@@ -495,9 +513,9 @@ begin
    while (CurDir <> '') and not (CurDir[Length(CurDir)] in ['\','/']) do
     Dec(CurDir[0]);
   end else CurDir := ADir;
- While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
- If CurDir='' then CurDir:='\';
- If CurDir[1]<>'\' then CurDir:='\'+CurDir;
+ if CurDir[Length(CurDir)] = '\' then Dec(CurDir[0]);
+ if CurDir[1]<>'\' then CurDir:='\'+CurDir;
+ CheckSlashDot(CurDir);
  AddToDirectoryHistory(ArcName+':'+CurDir, integer(DriveType));
 end;
         {-DataCompBoy-}
@@ -508,7 +526,7 @@ function TArcDrive.GetDir;
      Nm: String;
      Xt: String;
 begin
- While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
+ CheckSlashDot(CurDir);
  if (Length(CurDir)>0) and (not (CurDir[1] in ['\','/'])) then CurDir := '\' + CurDir;
  lFSplit(ArcName, Dr, Nm, Xt);
  GetDir := AType^.GetSign+Nm+Xt+CurDir;
@@ -532,7 +550,7 @@ begin
  PFilesCollection(AFiles)^.Owner := Owner;
  PFilesCollection(AFiles)^.SortMode := Sortmode;
  GetDirectory := AFiles;
- While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
+ CheckSlashDot(CurDir);
  FD := New(PFilesCollection, Init($40, $10));
  FreeSpace := ''; TotalInfo := ''; TTL := 0; TPL := 0;
  AllFiles := (FileMask = x_x) or (FileMask='*');
@@ -617,8 +635,12 @@ begin
    if (Command = cmEditFile) or (Command = cmFileEdit) or
       (Command = cmIntEditFile) or (Command = cmIntFileEdit) then Exit;
    case Command of
+{$IFDEF DBView}
     cmDBFView: C := '=';
+{$ENDIF}
+{$IFDEF SpreadSheet}
     cmWKZView: C := '>';
+{$ENDIF}
     cmTextView: C := '<';
     cmHexView: C := '|';
     cmIntFileView: C := '-';
@@ -660,86 +682,29 @@ TryAgain:
    S2:=Copy(TempFile,2,255); {ExecOK:=True;}
    if not ExistFile(S2) or (PackedDate(P)<>FileTime(S2)) then
    begin
+    { Flash 09-07-2003 >>> }
+    ClrIO;
+    Advance2.lChDir(Copy(TempDir,1,2));
     lGetDir(0, DirToChange);
     Advance2.lChDir(TempDir);
-    {ExecOK :=} Exec(CnvString(AType^.unPacker),s);
-    Advance2.lChDir(DirToChange); DirToChange := '';
+    Exec(CnvString(AType^.unPacker), S);
+    { Flash 09-07-2003 <<< }
+    DirToChange := '';
    end;
-(* {JO: убрал, т.к. без этого всё работает, а с этим куском - глючит просмотр в архивах с фильтром}
-   if ExecOK then
-   begin
-     TempFile := MakeNormName(TempDir, GetLFN(P^.LFN));
-     if Q<>'' then TempFile:=TempFile+Q;
-     While TempFile[Length(TempFile)] = ' ' do Dec(TempFile[0]);
-     Message(Application, evCommand, Command, @TempFile);
-   end;
-*)
 {$IFDEF VIRTUALPASCAL}
    TempFileSWP := TempFile; {JO}
-{$ENDIF}
+   Message(Application, evCommand, cmRetrieveSwp, nil); {JO}
+{$ELSE}
    TempFile:=''; {-$VOL}
-{$IFDEF VIRTUALPASCAL}
-  Message(Application, evCommand, cmRetrieveSwp, nil); {JO}
 {$ENDIF}
 end;
         {-DataCompBoy-}
 
 function TArcDrive.Exec;
  var S: String;
-     SM: Word;
-     DE: Word;
-
-procedure StdMsg8;
-var
-  L: array[0..1] of LongInt;
 begin
-  Application^.Redraw;
-  Pointer(L[0]) := @S; L[1] := DE;
-  Msg(dlArcMsg8, @L, mfOkButton or mfError);
-end;
-
-begin
-  Exec := True;
-  S := Prg+' '+Cmd;
-  if AType^.Swap then
-  begin
-    Exec := Message(Application, evCommand, cmExecString, @S) = nil;
-    Exit;
-  end;
-  DoneSysError;
-  DoneEvents;
-  DoneVideo;
-  FreeMem(UserScreen, UserScreenSize);
-  UserScreen := nil;
-  ScreenSaved := Off;
-  DoneDOSMem;
-  DoneMemory;
-  {$IFDEF OS_DOS}asm cld; mov ax,3; int $10; end;{$ENDIF}
-  S := GetEnv('PATH');
-  S := FSearch(Prg,S);
-  SwapVectors;
-  if InFilter(S, '*.EXE;*.COM')
-   then DOS.Exec(S,Cmd)
-   else DOS.Exec(GetEnv('COMSPEC'),'/c '+S+' '+Cmd);
-  DE := DosError; ClrIO;
-  SwapVectors;
-  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {DataCompBoy}
-  InitDOSMem;
-  InitMemory;
-  SetVideoMode(ScreenMode); SM := ScreenMode;
-  SetBlink(On);
-  InitVideo; ScreenMode := SM;
-  InitEvents;
-  InitSysError;
-  if (StartupData.Load and osuResetPalette <> 0) and VGASystem { dagoon }
-     then SetPalette(vga_palette);
-  case DE of
-     0 : Application^.Redraw;
-     8 : StdMsg(1);
-    else StdMsg8;
-  end;
-  GlobalMessage(evCommand, cmPanelReread, nil);
-  GlobalMessage(evCommand, cmRereadInfo, nil);
+ S := Prg+' '+Cmd;
+ Exec := Message(Application, evCommand, cmExecString, @S) = nil;
 end;
 
 function TArcDrive.isUp;
@@ -806,6 +771,9 @@ function TArcDrive.MakeListFile;
       begin
         S1 := Files^.LastDir + Files^.CurFile.LFN;
         if S1[1] in ['\','/'] then DelFC(S1);
+        I:=Length(S1);
+        if Copy(S1,I-2,3)='\..' then
+         if not AType^.PassDirNames then continue else S1:=Copy(S1,1,I-3);
         if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1);
       end;
   end;
@@ -860,6 +828,15 @@ procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
      Nm: String;
      Xt: String;
      Pswd: Boolean;
+     I: Byte;
+     NewArc: String;
+     FC: PFilesCollection;
+     FD: PFileRec;
+     TotalLen: TSize;
+     TFiles: Word;
+     BFile: String;
+     F1: lText;
+     FDir,DirToChange: String;
 
  procedure UnSelect(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
  begin
@@ -886,7 +863,7 @@ begin
   if not (ExtrDir[Length(ExtrDir)] in ['\','/']) then ExtrDir := ExtrDir + '\';
   repeat   {JO}
     SS := MakeListFile(AFiles);
-    S := ' '; Pswd := Off;
+    S := ' '; Pswd := False;
     AFiles^.ForEach(@IsPswd);
     if not Uncompleted
        and (PFilePanel(ActivePanel)^.SelNum > 0) then { Flash 17-02-2003 }
@@ -900,15 +877,55 @@ begin
 {$IFNDEF OS2}
    if not AType^.UseLFN then ArcName := lfGetShortFileName(ArcName);
 {$ENDIF}
-    S := ExtrChar + ' ' +s+ SquashesName(ArcName);
+    S := ExtrChar{ + ' '} +s+ SquashesName(ArcName);
     if (Xt = '.') and (S[length(S)] <> '.')
        then S := S + '.';{piwamoto: extracting from extensionless archives}
     S := S +' '+SS+' ';
     lGetDir(0, DirToChange);
-    CreateDirInheritance(ExtrDir, On);
-    Advance2.lChDir(ExtrDir);
-    DelDoubles('  ', S);
-    Exec(CnvString(AType^.unPacker),s);
+    I:=Pos(':',ExtrDir);
+    if (I>2) and (I<5) then
+     begin
+     NewArc:=Copy(ExtrDir,1,Length(ExtrDir)-1);
+     ExtrDir:=TempDir+'$DN'+ItoS(DNNumber)+'$\';
+     CreateDirInheritance(ExtrDir, True);
+     lGetDir(0, DirToChange);
+     if ValidDrive(ExtrDir[1]) then
+      begin
+      lGetDir(Byte(UpCase(ExtrDir[1]))-64, FDir);
+      Advance2.lChDir(ExtrDir);
+      end
+     else FDir:='.';
+     FC:=New(PFilesCollection,Init(0,0));
+     FC^.Count:=0;
+     ArchiveFiles(NewArc, FC, True, nil, True);
+     FC^.DeleteAll; Dispose(FC,Done);
+     BFile := SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension;
+     lAssignText(F1, BFile);
+     lResetText(F1);
+     ReadLn(F1.T, SS);
+     Close(F1.T);
+     lRewriteText(F1);
+     WriteLn(F1.T, '@echo off');
+     WriteLn(F1.T, CnvString(AType^.unPacker)+' '+S);
+     WriteLn(F1.T, SS);
+     WriteLn(F1.T, 'deltree /y '+Copy(ExtrDir,1,Length(ExtrDir)-1)+'>nul');
+     if (opSys and opWNT) <> opWNT then
+      begin
+      if PosChar(' ',FDir)=0 then WriteLn(F1.T, 'cd '+FDir)
+                             else WriteLn(F1.T, 'cd '+'"'+FDir+'"')
+      end
+     else
+      begin FDir:=lfGetShortFileName(FDir); WriteLn(F1.T, 'cd '+FDir) end;
+     if DirToChange[1]<>TempDir[1] then WriteLn(F1.T, Copy(DirToChange,1,2));
+     { We should compare the drive with TEMP drive, because FDir may be '.' }
+     Close(F1.T);
+     Message(Application, evCommand, cmExecString, @BFile);
+     end else
+     begin
+     CreateDirInheritance(ExtrDir, True);
+     Advance2.lChDir(ExtrDir);
+     Exec(CnvString(AType^.unPacker),s);
+     end;
   until not Uncompleted; {JO}
   StopPoint := 0; {JO}
   Advance2.lChDir(DirToChange); DirToChange := '';
@@ -937,7 +954,7 @@ begin
      if ExecResource( dlgExtract, DT) <> cmOK then Exit;
   if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
   ExtractWithPathNames:=(DT.W and 1) <> 0;
-  SkipCopyDialog := Off;
+  SkipCopyDialog := False;
   if DT.S = cTEMP_ then
     begin
      CopyToTempDrive(AFiles, Own, ArcName);
@@ -955,11 +972,12 @@ end;
 
         {-DataCompBoy-}
 procedure TArcDrive.EraseFiles;
- var SS, S: String;
+ var
      PF: PFileRec;
      J, I: Word;
      O: PView;
      P: PString;
+     SS, S: String;
 begin
   if AFiles^.Count = 0 then Exit;
   if AFiles^.Count = 1 then
@@ -984,7 +1002,7 @@ begin
   S := S +' '+SS;
   ForceRescan := True;
   Exec(CnvString(AType^.Packer),s);
-  ForceRescan := Off;
+  ForceRescan := False;
   O := Owner;
   if not ReadArchive then
     begin
@@ -1317,9 +1335,9 @@ end;
 
 procedure TArcDrive.CopyFilesInto;
 begin
- ForceRescan := On;
- ArchiveFiles(GetRealName, AFiles, MoveMode, nil);
- ForceRescan := Off;
+ ForceRescan := True;
+ ArchiveFiles(GetRealName, AFiles, MoveMode, nil, False);
+ ForceRescan := False;
 end;
 
 procedure TArcDrive.HandleCommand;
@@ -1344,22 +1362,24 @@ procedure TArcDrive.HandleCommand;
  end;
 
  var PDr: PDrive;
-     S: String;
      O: PView;
+     S: String;
 
 begin
  case Command of
    cmSetPassword: SetPassword;
    cmArcTest: TestFiles;
    cmExtractTo: Extract;
-   cmMakeForced: ForceRescan := On;
+   cmMakeForced: ForceRescan := True;
    cmRereadForced: if ForceRescan then
                     begin
-                      ForceRescan := Off;
+                      ForceRescan := False;
 {$IFNDEF MINARCH}
-                      if (AType^.GetID = arcUC2) or (AType^.GetID = arcAIN) then
+                      if (AType^.GetID = arcUC2) or
+                         (AType^.GetID = arcAIN) or
+                         (AType^.GetID = arc7Z) then
                         begin
-                          PFilePanel(Owner)^.ForceReading := On;
+                          PFilePanel(Owner)^.ForceReading := True;
                         end;
 {$ENDIF}
                       O := Owner;
@@ -1400,13 +1420,15 @@ begin
  ArcViewer := False;
  P := New(PArcDrive, Init(AName, VAname, num));
  if Abort then Exit;
+{$IFDEF ARVID}
  if P = nil then
    begin
      Xt:=UpStrg(GetExt(AName));
      if (Xt = '.TDR') or (Xt = '.AVT')
       then P := New(PArvidDrive, Init(AName, num));
-     if P = nil then Exit;
    end;
+{$ENDIF}
+ if P = nil then Exit;
  E.What := evCommand;
  E.Command := cmInsertDrive;
  E.InfoPtr := P;

@@ -92,6 +92,13 @@
 ;/  dn3421-resource_and_help_fixes.patch
 ;/
 ;/  3.7.0
+;/  dn3617-system(f)-set_and_get_window_title_more_correct.patch
+;/  dn370-cdplayer(if)-fix_and_improve.patch
+;/  dn370-CompareDir(i)-comparing_directories_improve.patch
+;/  dn370-calculator(i)_optimization.patch
+;/  dn31220-interface(i)-confirmation_to_reuse_bookmark.patch
+;/
+;/  4.9.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -200,7 +207,7 @@ dlDBEditField              'Mezì szerkesztÇse'
 dlDBValue                  'êrtÇk'
 dlDBCantEdit               'Nem tudom szerkeszteni a mezìt - a f†jl °r†svÇdett.'
 dlDBEmptyStruc             'öres adatb†zis '
-dlComparing                ^M^M^C'F†jlok îsszehasonl°t†sa...'
+dlComparing                'F†jlok îsszehasonl°t†sa...'
 dlDICurDir,                'Az aktu†lis kînyvt†r tartalmaz'
 dlDINoFiles,               'Ebben a kînyvt†rban nincsenek f†jlok '
 dlDIFiles,                 'f†jlt'
@@ -722,6 +729,12 @@ dlCDPlayerNoCD             'Ooops! Nincs is CD lemez a meghajt¢ban.'
 dlCDTrack                  'S†v'
 dlCDPlayTrack              'S†v lej†tsz†s'
 dlCDSelectTrack            'S†vok'
+dlCDNTWarning              ^C'This function does not work under Windows NT'^M+
+                           ^C'because of restrictions in DOS virtual machine.'
+dlCDNoMixerSet             ^C'External sound configuration'^M+
+                           ^C'program is not specified.'
+dlCDNoDiskInfo             ^C'Cannot get disk information'^M+
+                           ^C'because of system limitations.'
 dlCDTrackButton            '~S~†vok'
 dlCDAddButton              '~B~ìv°t'
 dlCDDeleteButton           '~T~îrîl'
@@ -732,6 +745,7 @@ dlCDTrackTime              'S†v-idì'
 dlCDTrackLeft              'S†v-vÇg'
 dlCDDiskTime               'Lemez-idì'
 dlCDDiskLeft               'Lemez-vÇg'
+dlCDTrackLength            'Length'
 dlBytesOf                  ' b†jt '
 dlCDButtonRew              '~~'
 dlCDButtonPrev             '~<~'
@@ -1235,7 +1249,7 @@ dlIniDataTooLong       'T£l sok %d karakter a DN.INI-ben. [%s] szakasz, %s param
 
 clStack_Overflow          = 'Verem t£lcsordul†s';
 clToo_Large_Number        = 'T£l nagy sz†m';
-clArgument_Missing        = 'Hi†nyz¢ funkci¢';
+clArgument_Missing        = 'Hi†nyz¢ funkci¢ ';
 clSyntax_Error            = 'Szintaktikus hiba';
 clUnknown_Function        = 'Ismeretlen kifejezÇs';
 clLeft_Bracket_Missing    = 'Hi†nyz¢ szîgletes bal z†r¢jel';
@@ -1243,8 +1257,7 @@ clRight_Bracket_Missing   = 'Hi†nyz¢ szîgletes jobb z†r¢jel';
 clOperation_Expected      = 'Hi†nyz¢ mñvelet jelzì';
 clUnknown_Symbol          = 'Ismeretlen szimb¢lum';
 clTwo_Operations          = 'KÇt oper†ci¢ egy m†sik ut†n';
-clComma_Missing           = 'Hi†nyz¢ vesszì';
-clToo_Many_Commas         = 'T£l sok vesszì';
+clToo_Many_Arguments      = 'T£l sok funkci¢ ';
 clIncorrect_Usage         = 'êrvÇnytelen funkci¢ ';
 clDivision_By_Zero        = 'Null†val val¢ oszt†s';
 clLOG_Wrong_Base          = 'Hib†s logaritmus b†zis';
@@ -1266,6 +1279,8 @@ dlQuickDirDel,       ^C'Letîrîljem a gyorskînyvt†rat?'
 dlHistDelCurDir,     ^C'Nem tudom tîrîlni ezt a kînyvt†rat'
 dlIncorrectDirNum,   ^C'êrvÇnytelen kînyvt†r sz†m'
 dlCopyTimeSpeed,     'Elapsed: %s   Left: %s   Speed: %sb/s'
+dlFoldersDiffers,    ^C'Directories differ from each other!'
+;JOHN_SW end
 
 dlWkzQuerySeparatorTitle        'Oszlop elv†laszt†s'
 dlWkzQuerySeparatorLabel        '~E~lv†laszt†s'
@@ -1280,3 +1295,5 @@ dlWarnIfSearchTextInsideOfArc   = ^C'Nem tal†ltam szîveget ebben az arch°vumban,
 dlIncorrectPanelSettings        = ^C'êrvÇnytelen szimb¢lum'^M+
                                 ^C'kijelîlÇs a hossz£ f†jlnÇv kiterjesztÇsÇben.'
 dlPasswordsDiffer               = ^C'A jelsz¢ nem egyezik!'
+dlUserMenuTitle                 = 'Felhaszn†l¢i menÅ'
+dlBookmarkAlreadyUsed = ^C'This bookmark is already used.'^M^C'Do you want to continue?'; Flash 27-01-2004

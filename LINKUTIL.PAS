@@ -54,6 +54,9 @@
 //  dn269-diskinfo.patch
 //
 //  2.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -991,7 +994,7 @@ begin
     if I = 0 then I := Length(S)+1;
     S1 := DelSquashes(Copy(S, 1, I-1)); Delete(S, 1, I);
     if S1 = '' then Continue;
-    B := CreateDirInheritance(S1, Off);
+    B := CreateDirInheritance(S1, False);
     if Abort or (IOResult <> 0) then Exit;
     if CreatedDir = '' then CreatedDir := S1;
     lFSplit(S1, Dr, Nm, XT);

@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31029-Compile_by_VP.patch
+//  dn31220-kernel(f)-usermenu_fixes.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -61,6 +65,8 @@ var
   I : Byte;
   t : text;
 
+{Cat: закомментировал, объяснения см. ниже}
+(*
 function GetCoord(X, Y: LongInt): SmallWord;
 begin
  GetCoord := ((ScreenHeight-8) div 2+Y)*(ScreenWidth*2)+
@@ -110,6 +116,7 @@ var CO : SmallWord ;
 
     SysTVShowBuf(CO, CO+ScreenWidth*2);
   end;
+*)
 
 begin
  SysTvClrScr;
@@ -119,6 +126,14 @@ begin
  { Create Report File }
  DoDump(ExitCode, Pointer(ErrAdd));
 
+{Cat: закомментировал эту процедуру рисования красивого окошка, т.к. если
+      выходим через Exception, то в некоторых случаях оно не рисуется
+      (рисуется или нет - зависит от местоположения исключения), а если
+      выходим через ExitProc, то оно не рисуется никогда. Вероятно, это
+      происходит из-за неинициализированности Turbo Vision-а. Поскольку
+      вывод сообщения об ошибке - это весьма странное место для наведения
+      красивости, на мой взгляд, сойдёт и вывод через обычный Writeln}
+(*
   { Display Error Box }
   if Lo(ScreenMode) = smMono then
     begin C := SysMonoAttr; AC := $0F07 end else
@@ -140,6 +155,13 @@ begin
     end;
 
   GotoXY(0, 20);
+*)
+  Writeln('Fatal Error'^M^J'───────────'^M^J^M^J+
+          'Exception 0',Hex2(ExitCode),'h at address ',Hex8(LongInt(ErrorAddr)),^M^J+
+          'Report to RU.SHELL.DN'^M^J+
+          '( file DN.ERR )'^M^J^M^J+
+          'Press any key...');
+{/Cat}
   Writeln; Writeln('Enter description of problem:');
   Readln(FreeStr);
   SourceDir := SourceDir + 'DN.ERR';
@@ -382,16 +404,8 @@ end;
 // for shift states.
 
 function GetShiftState: Byte;
-var
-  Handled: Boolean;
-  Result : Byte;
 begin
-  Handled := False;
-{  if @GetShiftStateHandler <> nil then
-    Handled := GetShiftStateHandler(Result);
-  if not Handled then}
-    Result := SysTVGetShiftState;
-  GetShiftState := Result;
+ Result := SysTVGetShiftState;
 end;
 
 {--------------------------------------------------}
@@ -716,6 +730,11 @@ end;
 // (~) in the string toggle between the two attribute bytes passed in
 // the Attr word.
 
+{AK155: добавлено использование символа #0 в качестве авторегистра:
+следующий за ним символ отображается безусловно (даже если это '~').
+Это согласовано с advance.FormatLongName.MakeResult
+06.01.2001}
+
 procedure MoveCStr(var Dest; const Str: String; Attrs: Word); {&USES esi,edi} {&FRAME-}
 asm
                 xor     ecx,ecx
@@ -729,8 +748,17 @@ asm
                 mov     ah,dl
               @@1:
                 lodsb
+                cmp     al,0
+                jne     @@6
+                loop    @@5
+                jmp     @@3
+              @@5:
+                lodsb
+                jmp     @@7
+              @@6:
                 cmp     al,'~'
                 je      @@2
+              @@7:
                 stosw
                 loop    @@1
                 jmp     @@3

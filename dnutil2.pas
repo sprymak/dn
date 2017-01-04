@@ -63,6 +63,13 @@
 //  dn3216-FilePanel(f)-change_folder_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-ChangeLanguage(f)-DN_change_language_immediately_in_VP_fix.patch
+//  dn31220-interface(i)-quick_directories_improve.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//  dn40205-QuickDirs(i)-restore_windows_title.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -111,21 +118,18 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
      lfn, Videoman, DnHelp, DnIni, Startup, Advance1, DnStdDlg,
      ColorSel, advance2, Drives, DnSvLd, advance4, cmdline, dnutil, dnexec,
      flpanelx, messages, usermenu, winclp, microed, filefind, collect,
-     advance7, histries
+     advance7, histries, TitleSet
      {$IFDEF SpreadSheet},Calc{$ENDIF}
      ;
 
 {--- start -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
- Function AddNewDirectory: Boolean;
+ Function AddNewDirectory(var i: Integer): Boolean;
   Label 1;
   Const
       NewDir: Record
        S1: String[1];   {Number Of Directory}
        S2: String[255]; {Directory}
       End = (S1:'';S2:'');
-  Var
-     S: String;
-     i: Byte;
   Begin
    i:=0;
    AddNewDirectory:=False;
@@ -156,13 +160,13 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
 
      If DirsToChange[i] <> Nil Then
       If MessageBox(GetString(dlQuickDirNumBusy),Nil,mfYesNoConfirm) <> cmYes Then
-       Exit;
+       Goto 1;
      DirsToChange[i]:=NewStr(NewDir.S2);
      AddNewDirectory:=True;
     End;
   End;
 
- Function EditCurDirectory(Var Number: Byte; Var DirName: String): Boolean;
+ Function EditCurDirectory(Var Number: Integer; Var DirName: String): Boolean;
   Label 1;
   Const
       NewDir: Record
@@ -227,16 +231,16 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
    End;
  End;
 
- Procedure UpdateItems;
+ Procedure UpdateItems(CurNum: Integer);
  Label Retry;
  Var R: TRect;
-     I: PMenuItem;
+     I,Cur: PMenuItem;
      N,Q,J: Integer;
  Begin
   DirListChanged:=True;
   DisposeItems;
 Retry:
-  I:=Nil;
+  I:=Nil; Cur:=Nil;
   Q:=0; J:=0;
   For N := 8 DownTo 0 Do
    If DirsToChange[N] <> Nil Then
@@ -246,15 +250,12 @@ Retry:
         hcNoContext, I);
      J:=Max(CStrLen(FreeStr), J);
      Inc(q);
+     If CurNum = N Then Cur := I;
    End;
   If I = Nil Then
-   Begin
-    If MessageBox(GetString(erNoQuickDirs), Nil, mfYesNoConfirm) <> cmYes Then
-     Exit
-    Else
-     If Not AddNewDirectory Then Exit;
-     Goto Retry;
-   End;
+   If (MessageBox(GetString(erNoQuickDirs), Nil, mfYesNoConfirm) = cmYes)
+      And AddNewDirectory(CurNum) Then Goto Retry
+   Else Exit;
   R.Assign(Application^.Size.X Div 2 - J Div 2,
            Application^.Size.Y Div 2 - Q Div 2,
            Application^.Size.X Div 2 + J Div 2 + J Mod 2,
@@ -262,22 +263,46 @@ Retry:
   Menu^.Items:=I;
   Menu^.Default:=I;
   TopItem:=I;
-  Current:=I;
+  If Cur<>Nil Then Current:=Cur Else Current:=I;
   RecalcBounds(R);
   Draw;
  End;
 
  Var
     S: String;
-    i,j: Byte;
+    i,j,k: Integer;
+    Title: TTitleStr; { Flash 08-02-2004 }
  Begin
+  Title:=WindowTitle; { Flash 08-02-2004 }
   DirListChanged:=False;
   Inherited GetEvent(Event);
+  { Flash 25-01-2004 >>> }
+  If Event.What = evKeyDown Then
+   Case Event.KeyCode Of
+    kbUp, kbDown:
+    If ShiftState and 3 <> 0 Then
+     Begin
+      ClearEvent(Event);
+      i:=StoI(Copy(CnvString(Current^.Name),2,1))-1;
+      if (i=0) and (Event.KeyCode=kbUp) then Exit;
+      j:=8; while (j>1) and (DirsToChange[j]=nil) do dec(j);
+      if (i=j) and (Event.KeyCode=kbDown) then Exit;
+      S:=CnvString(DirsToChange[i]);
+      if Event.KeyCode=kbUp then
+       begin k:=i-1; while (DirsToChange[k]=nil) and (k>0) do dec(k); end
+      else
+       begin k:=i+1; while (DirsToChange[k]=nil) and (k<j) do inc(k); end;
+      DirsToChange[i]:=DirsToChange[k];
+      DirsToChange[k]:=NewStr(S);
+      UpdateItems(k);
+     End;
+   End;
+  { Flash 25-01-2004 <<< }
   If Event.What = evCommand Then
    Case Event.Command Of
     cmAddQuickDir:
      Begin
-      If AddNewDirectory Then UpdateItems;
+      If AddNewDirectory(i) Then UpdateItems(i);
       ClearEvent(Event);
      End;
     cmChangeQuickDir:
@@ -287,9 +312,9 @@ Retry:
       j:=i;
       If EditCurDirectory(i, S) Then
        Begin
-        If i <> j Then DisposeStr(DirsToChange[j]);
+        If i<>j Then DisposeStr(DirsToChange[j]);
         DirsToChange[i]:=NewStr(S);
-        UpdateItems;
+        UpdateItems(i);
        End;
       ClearEvent(Event);
      End;
@@ -298,9 +323,10 @@ Retry:
       If MessageBox(GetString(dlQuickDirDel),Nil,mfYesNoConfirm) = cmYes Then
        Begin
         i:=StoI(Copy(CnvString(Current^.Name),2,1))-1;
-        DisposeStr(DirsToChange[i]);
-        DirsToChange[i]:=Nil;
-        UpdateItems;
+        DisposeStr(DirsToChange[i]); DirsToChange[i]:=Nil;
+        j:=8; while (j>1) and (DirsToChange[j]=nil) do dec(j);
+        if i<j then inc(i) else if i>0 then dec(i);
+        UpdateItems(i);
        End;
       If Menu^.Items = Nil Then
        Begin
@@ -312,6 +338,7 @@ Retry:
    End;
   If DirListChanged Then Message(Application, evCommand, cmUpdateConfig, nil);
   DirListChanged:=False;
+  if WindowTitle<>Title then SetTitle(Title); { Flash 08-02-2004 }
  End;
 {--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
 
@@ -324,7 +351,7 @@ Retry:
   S[1] := #0;
   if ChDrive then
    begin
-    S := SelectDrive(R.A.X + (R.B.X - R.A.X) div 2, R.A.Y, #0, Off);
+    S := SelectDrive(R.A.X + (R.B.X - R.A.X) div 2, R.A.Y, #0, False);
     if S = '' then Exit;
     S[1] := Char(Byte(S[1])-64);
    end;
@@ -532,7 +559,7 @@ Retry:
  begin
   More := True;
   None := False;
-  FN := GetFileNameMenu(SourceDir+'COLORS\', '*.PAL', '', On, More, None);
+  FN := GetFileNameMenu(SourceDir+'COLORS\', '*.PAL', '', True, More, None);
      if More then
        FN := GetFileNameDialog(SourceDir+'COLORS\*.PAL', GetString(dlLoadColorPal), GetString(dlFileName),
                               fdOKButton + fdHelpButton, hsColors);
@@ -544,17 +571,17 @@ Retry:
   var B: Boolean;
       ST: SessionType;
  begin
-   TryRunOS2 := On;
+   TryRunOS2 := True;
    DelLeft(S^); DelRight(S^);
    if S^ = '' then Exit;
    if S^ = '' then Exit;
-   TryRunOS2 := Off;
+   TryRunOS2 := False;
    if not OS2exec then Exit;
    case S^[1] of
-    '>': begin B := Off; ST := stOS2FullScreen end;
-    '<': begin B := On;  ST := stOS2FullScreen end;
-    ']': begin B := Off; ST := stOS2Windowed end;
-    '[': begin B := On;  ST := stOS2Windowed end;
+    '>': begin B := False; ST := stOS2FullScreen end;
+    '<': begin B := True;  ST := stOS2FullScreen end;
+    ']': begin B := False; ST := stOS2Windowed end;
+    '[': begin B := True;  ST := stOS2Windowed end;
      else if (CmdLine.Str <> '') and (PCommandLine(CommandLine)^.LineType in [ltOS2Window,ltOS2FullScreen]) then
             begin
               S^ := ' '+S^; B := ShiftState and 3 <> 0;
@@ -563,9 +590,9 @@ Retry:
             end else
              Exit;
    end;
-   TryRunOS2 := On;
+   TryRunOS2 := True;
    RunOS2Command(Copy(S^,2,255), B, ST);
-   CmdLine.StrModified := On;
+   CmdLine.StrModified := True;
    Message(CommandLine, evKeyDown, kbDown, nil);
  end;
 
@@ -573,11 +600,11 @@ Retry:
   var S,S1: String;
       up: TUserParams;
  begin
-  ExecCommandLine := Off;
+  ExecCommandLine := False;
   S := '';
   CommandLine^.GetData(S);
   if (DelSpaces(S) = '') then Exit;
-  ExecCommandLine := On;
+  ExecCommandLine := True;
   { Flash >>> }
   if Length(S) > 126 then
    begin
@@ -669,7 +696,7 @@ Retry:
 
  procedure GetFromClip(PS: PString);
  begin
-   if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
+   if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(True);
    if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
     PS^ := '' else
      PS^ := PString(MicroEd.Clipboard^.At(0))^;
@@ -718,7 +745,7 @@ Retry:
   If Items = NIL then begin
     If MessageBox(GetString(erNoQuickDirs), NIL, mfYesNoConfirm) <> cmYes Then
      Exit;
-    If not AddNewDirectory Then Exit;
+    If not AddNewDirectory(N) Then Exit;
     Message(Application, evCommand, cmUpdateConfig, nil);
     Goto Retry;
   end;
@@ -783,7 +810,7 @@ Retry:
     procedure ChLngId;
     var S:string; SS:string[9]; L:TStringCollection; SR:lSearchRec;
         Current,Default:PMenuItem; Menu:PMenu; CurIdx,i:integer;
-        HMB:PMenuBox; R:TRect; V:PView;
+        HMB:PMenuBox; R:TRect; V:PView; OldCmd: Boolean;
         function LngMixCase(P:string):string;
         var i:integer;
         begin
@@ -792,6 +819,10 @@ Retry:
             then P[i]:=Chr(Ord(P[i])+Ord('a')-Ord('A'));
             LngMixCase:=P
         end;
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+        procedure ChngLng(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
+        begin P^.ChangeLanguage; end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
     begin
         L.Init(5,5);
         S:=SourceDir; if S[Byte(S[0])]<>'\' then S:=S+'\';
@@ -854,7 +885,8 @@ Retry:
                 DisposeMenu(Menu)
             end else CurIdx:=(CurIdx+1) mod L.Count;
             if (CurIdx>=0) and (PString(L.At(CurIdx))^<>
-            LngMixCase(ActiveLanguage)) and CheckExit then begin
+            LngMixCase(ActiveLanguage)) then begin {and CheckExit} {Commented by John_SW  23-12-2003}
+
                 ActiveLanguage:=PString(L.At(CurIdx))^;
                 if ActiveLanguage=LngMixCase(GetEnv('DNLNG'))
                 then ActiveLanguage:='';
@@ -863,7 +895,38 @@ Retry:
                 ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
                 ConfigModified:=True;
                 StringCache^.FreeAll;
-                ExecString(@NullStr,'');
+
+{--- start -------- Eugeny Zvyagintzev ---- 28-11-2003 -----}
+                {ExecString(@NullStr,'');}
+                OldCmd:=CommandLine^.GetState(sfVisible);
+                if LStringList <> nil then Dispose(LStringList,Done); LStringList:=nil;
+                if LngStream <> nil then Dispose(LngStream,Done); LngStream:=nil;
+                if Resource <> nil then Dispose(Resource,Done); Resource:=nil;
+                InitStringCache;
+                InitLngStream;
+                OpenResource;
+
+                Desktop^.ForEach(@ChngLng);
+
+                if StatusLine <> nil then Dispose(StatusLine,Done); StatusLine:=nil;
+                if MenuBar    <> nil then Dispose(MenuBar,Done); MenuBar:=nil;
+
+                Application^.SetScreenMode(ScreenMode);
+                PDNApplication(Application)^.InitStatusLine;
+                if StatusLine <> nil then PDNApplication(Application)^.Insert( StatusLine );
+                if StatusLine <> nil then StatusLine^.GrowTo(StatusLine^.Size.X, 1);
+
+                PDNApplication(Application)^.InitMenuBar;
+                if MenuBar <> nil then Application^.Insert(MenuBar);
+                if MenuBar <> nil then MenuBar^.GrowTo(MenuBar^.Size.X, 1);
+
+                CommandLine^.SetState( sfVisible, OldCmd);
+
+                Desktop^.MakeFirst;
+                If PApplication(Application)^.Clock <> Nil Then
+                 PApplication(Application)^.Clock^.MakeFirst;
+                Desktop^.Redraw;
+{--- finish -------- Eugeny Zvyagintzev ---- 28-11-2003 -----}
             end;
         end;
         L.FreeAll;

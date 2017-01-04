@@ -51,6 +51,11 @@
 //  dn3421-FileOpenDialog(f)-quick_search_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31220-Kernel(f)-file_open_fix_in_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -833,7 +838,7 @@ const
   sFileLine      = ' %-12s %-10s  %sm';
 begin
   { Display path }
-  Path := #0+Cut({$IFNDEF OS2}lFGetLongFileName{$ENDIF}
+  Path := #0+Cut({$IFNDEF OS2}lfGetLongFileName{$ENDIF}
                  (lFExpand(PFileDialog(Owner)^.Directory^))+
                  PFileDialog(Owner)^.WildCard^,Size.X-1)+#0;
   Color := GetColor($01);
@@ -1077,52 +1082,31 @@ begin
   else RelativePath := True;
 end;
 
-function NoWildChars(S: String): String; assembler;
-{$IFNDEF BIT_32}
- asm
-        PUSH    DS
-        LDS     SI,S
-        XOR     AX,AX
-        LODSB
-        XCHG    AX,CX
-        LES     DI,@Result
-        INC     DI
- @@1:   LODSB
-        CMP     AL,'?'
-        JE      @@2
-        CMP     AL,'*'
-        JE      @@2
-        STOSB
- @@2:   LOOP    @@1
-        XCHG    AX,DI
-        MOV     DI,WORD PTR @Result
-        SUB     AX,DI
-        DEC     AX
-        STOSB
-        POP     DS
- end;
-{$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, ECX}
- asm
-        LEA     ESI,S
-        XOR     EAX,EAX
-        LODSB
-        XCHG    EAX,ECX
-        MOV     EDI,@Result
-        INC     EDI
- @@1:   LODSB
-        CMP     AL,'?'
-        JE      @@2
-        CMP     AL,'*'
-        JE      @@2
-        STOSB
- @@2:   LOOP    @@1
-        XCHG    EAX,EDI
-        MOV     EDI,@Result
-        SUB     EAX,EDI
-        DEC     EAX
-        STOSB
- end;
-{$ENDIF}
+{AK155: тут было нечто ассемблерное с условной трансляцией,
+глючившее под VP. Эта функция вызывается в единственном месте
+в связи с диалогом, так что ассемблер здесь совершенно не нужен.
+Поэтому переписал на Паскале: и понятно, и платформонезависимо.}
+function NoWildChars(S: String): String;
+  var
+    i, j: integer;
+    c: char;
+{$IFNDEF VIRTUALPASCAL}Result: String;{$ENDIF}
+  begin
+  j := 0;
+  for i := 1 to length(S) do
+    begin
+    c := S[i];
+    if (c <> '*') and (c <> '?') then
+      begin
+      inc(j); Result[j] := c;
+      end;
+    end;
+{$IFDEF VIRTUALPASCAL}SetLength(Result, j);{$ELSE}Byte(Result[0]):=j;{$ENDIF}
+  if Result = '.' then
+    Result := ''; {Cat: чтобы к именам без расширения не добавлялась точка}
+{$IFNDEF VIRTUALPASCAL}NoWildChars := Result;{$ENDIF}
+  end;
+{/AK155}
 
 begin
   S := FileName^.Data^; ClrIO;
@@ -1383,7 +1367,7 @@ function GetFileNameDialog(Mask, Title, Name: String; Buttons, HistoryID: Word):
      D: PFileDialog;
      B: Boolean;
 begin
-  S := ''; B := Off; if Mask = '' then begin Mask := x_x; B := On end;
+  S := ''; B := False; if Mask = '' then begin Mask := x_x; B := True end;
   D := PFileDialog(Application^.ValidView(New(PFileDialog,
         Init(Mask, Title, Name, Buttons, HistoryID))));
   if D = nil then Exit;

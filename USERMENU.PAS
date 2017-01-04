@@ -58,9 +58,18 @@
 //  dn3421-Macros(f)-empty_or_network_drive_fix.patch
 //
 //  3.7.0
+//  dn3617-system(f)-set_and_get_window_title_more_correct.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-kernel(if)-work_with_temporary_files.patch
+//  dn31220-kernel(f)-usermenu_fixes.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{$IFDEF VIRTUALPASCAL}
+ {$DEFINE NOASM}
+{$ENDIF}
 unit UserMenu;
 
 interface
@@ -97,7 +106,8 @@ const RunFrom2E : Boolean = False;
 
 implementation
 uses DOS, LFN, DNApp, advance, advance1, advance2, advance3, Startup, Messages,
-     Menus, Commands, MicroEd, WinClp, DNHelp, Memory, Dialogs, Tree, RStrings;
+     Menus, Commands, MicroEd, WinClp, DNHelp, Memory, Dialogs, Tree, RStrings,
+     TitleSet, DNUtil;
 
 type
      PUserMenuItem = ^TUserMenuItem;
@@ -154,7 +164,7 @@ begin
  GrowMode := gfGrowHiX+gfGrowHiY;
  EventMask := $FFFF;
  Options := Options or ofSelectable;
- Grabbing := Off;
+ Grabbing := False;
  ScrollTo( 0,
    Byte(CommandLine^.GetState(sfVisible)) +
    Byte(InterfaceData.Options and ouiHideMenu = 0){ +
@@ -233,9 +243,17 @@ Begin
  Else DelSlash:=s;
 End;
 {--- finish -------- Eugeny Zvyagintzev ---- 15-05-2003 ----}
+{ Flash 27-01-2004 >>> }
+procedure ReplaceMacros;
+begin
+ Replace('$', #4, ts); Replace('!', #1, ts);
+ Replace('&', #2, ts); Replace('#', #3, ts);
+end;
+{ Flash 27-01-2004 <<< }
 
 begin
   if HandleTildes then zs:=#0 else zs:='';
+  {$IFDEF VIRTUALPASCAL} zs:=''; {$ENDIF}
   Replace('!!',#1, S);
   Replace('&&',#2, S);
   Replace('##',#3, S);
@@ -252,7 +270,7 @@ begin
     then ts:=MakeNormName(lfGetShortFileName(UserParams^.Active^.Owner^),'')
     else ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
       UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    ReplaceMacros;
     Root:=DelSlash(GetRoot(ts)); {John_SW 15-05-2003 GetRoot returns correct drive letter or network path}
     Replace('!:', Root, S);
     Replace('!\', zs+Copy(ts,Pos(Root,ts)+Length(Root),255)+zs, S);
@@ -268,7 +286,7 @@ begin
     then ts:=MakeNormName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Active^.Owner^),'')
     else ts:=MakeNormName(GetPath({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(MakeNormName(
      UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    ReplaceMacros;
     Root:=DelSlash(GetRoot(ts)); {John_SW 15-05-2003 GetRoot returns correct drive letter or network path}
     Replace('#:', Root, S);
     Replace('#\', zs+Copy(ts,Pos(Root,ts)+Length(Root),255)+zs, S);
@@ -284,7 +302,7 @@ begin
     then ts:=MakeNormName(lfGetShortFileName(UserParams^.Passive^.Owner^),'')
     else ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    ReplaceMacros;
     Root:=DelSlash(GetRoot(ts)); {John_SW 15-05-2003 GetRoot returns correct drive letter or network path}
     Replace('$:', Root, S);
     Replace('$\', zs+Copy(ts,Pos(Root,ts)+Length(Root),255)+zs, S);
@@ -300,7 +318,7 @@ begin
     then ts:=MakeNormName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Passive^.Owner^),'')
     else ts:=MakeNormName(GetPath({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(MakeNormName(
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    ReplaceMacros;
     Root:=DelSlash(GetRoot(ts)); {John_SW 15-05-2003 GetRoot returns correct drive letter or network path}
     Replace('&:', Root, S);
     Replace('&\', zs+Copy(ts,Pos(Root,ts)+Length(Root),255)+zs, S);
@@ -376,7 +394,7 @@ begin
       else
       if (UserParams^.Active^.DIZ<>nil) and (UserParams^.Active^.DIZ^.DIZ<>nil)
        then ts:=UserParams^.Active^.DIZ^.DIZ^ else ts:='';
-      Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+      ReplaceMacros;
       Replace(#5'Z', ts, S);
       Replace(#5'z', ts, S);
      end;
@@ -390,7 +408,7 @@ begin
       ts := MakeNormName(SwpDir, GetName(CalcTmpFName(CalcTmpId, 'flt', True)));
       {$ENDIF}
       if TM<>nil then TM^:=ts;
-      Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+      ReplaceMacros;
       Replace(#5'F', ts, S);
       Replace(#5'f', ts, S);
      end;
@@ -465,7 +483,7 @@ begin
       else
       if (UserParams^.Passive^.DIZ<>nil) and (UserParams^.Passive^.DIZ^.DIZ<>nil)
        then ts:=UserParams^.Passive^.DIZ^.DIZ^ else ts:='';
-      Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+      ReplaceMacros;
       Replace(#6'Z', ts, S);
       Replace(#6'z', ts, S);
      end;
@@ -476,24 +494,24 @@ begin
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
-    ts:=UserParams^.Active^.Name;
-    ts[9]:='.';
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    ts:=UserParams^.Active^.Name; ts[9]:='.'; ReplaceMacros;
     tz:=fDelRight(Copy(ts, 9, 4)); if tz='.' then tz:='';
+    ts:=fDelRight(Copy(ts, 1, 8));
+    {$IFDEF VIRTUALPASCAL} Replace('~', #0'~', ts); {$ENDIF}
     Replace('.!',zs+tz+zs, S);
-    Replace('!', zs+fDelRight(Copy(ts, 1, 8))+zs, S);
+    Replace('!', zs+ts+zs, S);
    end;
 
   if (PosChar('$', S)>0) then
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
-    ts:=UserParams^.Passive^.Name;
-    ts[9]:='.';
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    ts:=UserParams^.Passive^.Name; ts[9]:='.'; ReplaceMacros;
     tz:=fDelRight(Copy(ts, 9, 4)); if tz='.' then tz:='';
+    ts:=fDelRight(Copy(ts, 1, 8));
+    {$IFDEF VIRTUALPASCAL} Replace('~', #0'~', ts); {$ENDIF}
     Replace('.$',zs+tz+zs, S);
-    Replace('$', zs+fDelRight(Copy(ts, 1, 8))+zs, S);
+    Replace('$', zs+ts+zs, S);
    end;
   {$ENDIF}
 
@@ -501,9 +519,9 @@ begin
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
-    ts:=GetLFN(UserParams^.Active^.LFN);
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    ts:=GetLFN(UserParams^.Active^.LFN); ReplaceMacros;
     tz:=GetExt(ts); if tz='.' then tz:='';
+    {$IFDEF VIRTUALPASCAL} Replace('~', #0'~', ts); Delete(tz,1,1); {$ENDIF}
     Replace('.#',zs+tz+zs, S);
     Replace('#', zs+GetSName(ts)+zs, S);
    end;
@@ -512,9 +530,9 @@ begin
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
-    ts:=GetLFN(UserParams^.Passive^.LFN);
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    ts:=GetLFN(UserParams^.Passive^.LFN); ReplaceMacros;
     tz:=GetExt(ts); if tz='.' then tz:='';
+    {$IFDEF VIRTUALPASCAL} Replace('~', #0'~', ts); Delete(tz,1,1); {$ENDIF}
     Replace('.&',zs+tz+zs, S);
     Replace('&', zs+GetSName(ts)+zs, S);
    end;
@@ -547,6 +565,7 @@ function ExecUserMenu;
      RF2E: Boolean;
      Event: TEvent;
      WriteEcho: Boolean;
+     Title: String;
 
  Label 1, 2;
 
@@ -605,11 +624,15 @@ function ExecUserMenu;
 begin
  FillChar(UserParams, SizeOf(UserParams), 0);
  Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams);
- RunFrom2E := Off;
+ RunFrom2E := False;
  ExecUserMenu := False;
  TitleStr := '';
  DefStr := '';
  EnterParms := False;
+ { Flash 22-06-2003 >>> }
+ Title:=WindowTitle;
+ SetTitle(GetString(dlUserMenuTitle));
+ { Flash 22-06-2003 <<< }
  if DoGlobal then Goto 2;
 
  F := New(PTextReader, Init(SwpDir+'$dn'+ItoS(DNNumber)+'$.mnu'));
@@ -644,15 +667,15 @@ begin
    DelLeft(S); DelRight(S);
    if (S <> '') and (S[1]<>';') and (S[1] = '>') then
     begin
-     RF2E := Off;
+     RF2E := False;
      DelFC(S);
-     if S[1] = '>' then begin DelFC(S); RF2E := On end;
+     if S[1] = '>' then begin DelFC(S); RF2E := True end;
      S1 := ''; repeat S1 := S1+S[1]; DelFC(S); until (S = '') or (S[1] = ' ');
      DelFC(S);
      if (StoI(S1) > 0) then
       begin
        New(UI);
-       S := MakeString(S, @UserParams, on, nil);
+       S := MakeString(S, @UserParams, True, nil);
        UI^.Text := NewStr(S);
        UI^.Level := StoI(S1);
        if (CStrLen(S) > NW) and (UI^.Level=1) then NW := CStrLen(S);
@@ -669,7 +692,7 @@ begin
    StartPos := -1;
    repeat
      I := 0; OItems := nil; SItems := nil; NI := 3;
-     SItems := DoSubMenu(On);
+     SItems := DoSubMenu(True);
      if SItems = nil then Break;
      Menu := NewMenu(SItems);
      Application^.GetExtent(R);
@@ -703,13 +726,9 @@ begin
          UI := P^.At(I); LL := UI^.Line;
          if I >= P^.Count - 1 then LL := 65535 else LL := PUserMenuItem(P^.At(I+1))^.Line - 1;
          F := New(PTextReader, Init(S));
-         {$IFNDEF OS2}
-         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
-         {$ELSE}
-         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD');
-         {$ENDIF}
+         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension);
          lRewriteText(F1);
-         WriteEcho := On;
+         WriteEcho := True;
          I := I - 1001;
          if F<>nil then
          begin
@@ -722,11 +741,11 @@ begin
                if (S[1] = '>') then Break else
                   if (S[1] = '<') then
                     begin
-                     EnterParms := On;
+                     EnterParms := True;
                      DelFC(S);
                      if (S <> '') and (S[1] = '=') then
                       begin DelFC(S);
-{Knave 29.08.99}      S := MakeString(S, @UserParams, off, nil);
+{Knave 29.08.99}      S := MakeString(S, @UserParams, False, nil);
                       DefStr := S;
                       end
                       else
@@ -740,8 +759,8 @@ begin
               {JO: если строка на REXX'е или Perl'e, то не нужно добавлять @Echo off}
               if WriteEcho and (Copy(S, 1, 2) <> '/*') and (S[1] <> '#')
                 then Writeln(F1.T, '@echo off');
-              WriteEcho := Off;
-              WriteLn(F1.T, MakeString(S, @UserParams, off, nil));
+              WriteEcho := False;
+              WriteLn(F1.T, MakeString(S, @UserParams, False, nil));
               RunFrom2E := UI^.RunFrom2E;
             end;
          end;
@@ -763,6 +782,7 @@ begin
    FreeStr := ActiveList + ' ' + PassiveList + ' ' + FreeStr;
   end;
  EraseFile(SwpDir+'$dn'+ItoS(DNNumber)+'$.mnu');
+ SetTitle(Title); { Flash 22-06-2003 }
 end;
         {-DataCompBoy-}
 
@@ -782,22 +802,22 @@ type
 
 const Top: TPoint = (X:10;Y:5);
       Bot: TPoint = (X:21;Y:6);
-      NotMessage: Boolean = On;
-      Here: Boolean = Off;
+      NotMessage: Boolean = True;
+      Here: Boolean = False;
 
 procedure ScreenGrabber(ShowMessage: Boolean);
  var P: PGrabber;
      B: Boolean;
 begin
   if Here then Exit;
-  Here := On;
+  Here := True;
   if NotMessage and ShowMessage then
    begin
      MessageBox(GetString(dlGrabWelcome),
                 nil, mfOKButton + mfInformation);
-     NotMessage := Off;
+     NotMessage := False;
    end;
-  B := MsgActive; MsgActive := Off;
+  B := MsgActive; MsgActive := False;
   P := New(PGrabber, Init);
   { Flash 30-12-2002 >>> }
   GrabberActive:=True;
@@ -806,7 +826,7 @@ begin
   GrabberActive:=False;
   { Flash 30-12-2002 <<< }
   Dispose(P,Done);
-  Here := Off;
+  Here := False;
   MsgActive := B;
 end;
 
@@ -840,6 +860,7 @@ procedure TGrabber.Draw;
  var B: TDrawBuffer;
      I: Integer;
 
+ {$IFNDEF NOASM}
       procedure Invert(var B; K: integer);
        assembler;
        {$IFNDEF BIT_32}
@@ -873,6 +894,16 @@ procedure TGrabber.Draw;
          loop @@1
        end;
        {$ENDIF}
+ {$ELSE}
+      procedure Invert(K1, K2: integer);
+        Var I: integer;
+      begin
+         for I := K1 to K1+K2-1 do
+           begin
+             B[I] := ((B[I] xor $7F00) and $7F00) or Lo(B[I]);
+           end
+      end;
+ {$ENDIF}
 begin
   with R do
    begin
@@ -888,7 +919,11 @@ begin
    begin
      Move(Screen^[Size.X*I], B, Size.X*2);
      if (I >= R.A.Y) and (I < R.B.Y) and (R.A.X < R.B.X) then
+ {$IFNDEF NOASM}
           Invert(B[R.A.X], R.B.X - R.A.X);
+ {$ELSE}
+          Invert(R.A.X, R.B.X - R.A.X);
+ {$ENDIF}
      WriteLine(0,I,Size.X,1,B);
    end;
 end;
@@ -896,7 +931,7 @@ end;
 function TGrabber.Execute;
  var E: TEvent;
 begin
-   ModalEnd := Off;
+   ModalEnd := False;
    DrawView;
    repeat
      GetEvent(E);
@@ -935,7 +970,7 @@ procedure TGrabber.HandleEvent;
    end;
 
 begin
-  B := On;
+  B := True;
   inherited HandleEvent(Event);
   case Event.What of
     evKeyDown:
@@ -954,11 +989,11 @@ begin
                                                       else R.B.X := R.A.X+1;
                                end else R.Move(-Stp,0);
           kbEnter: begin
-                     ModalEnd := On;
+                     ModalEnd := True;
                      MakeClip;
                    end;
           kbESC: begin
-                     ModalEnd := On;
+                     ModalEnd := True;
                    end;
           else
           begin
@@ -970,12 +1005,12 @@ begin
                                                           else R.B.Y := R.A.Y+1;
                                    end else R.Move(0, -Stp);
               kbDown, kbCtrlDown : if Sh then begin Inc(R.B.Y,Stp);R.B.Y := Min(R.B.Y, Size.Y) end else R.Move(0,Stp);
-              else B := Off;
+              else B := False;
             end;
           end;
         end;
       end
-    else B := Off;
+    else B := False;
   end;
   if B then CED;
 end;
@@ -995,15 +1030,15 @@ function QuickExecExternal(N: Integer): Boolean;
      EnterParms, Local: Boolean;
   label RL;
 begin
-  QuickExecExternal := Off;
+  QuickExecExternal := False;
 
-  Local := On;
+  Local := True;
   F := New(PTextReader, Init('DN.XRN'));
 
   if F = nil then
     begin
   RL:
-      Local := Off;
+      Local := False;
       F := New(PTextReader, Init(SourceDir+'DN.XRN'));
     end;
   if F = nil then Exit;
@@ -1055,7 +1090,7 @@ begin
        WriteLn(F1.T, '@cd ', TitleStr);
     end;
 
-  TitleStr := ''; DefStr := ''; EnterParms := Off;
+  TitleStr := ''; DefStr := ''; EnterParms := False;
   Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams); ClrIO;
   while not F^.EOF do
    begin
@@ -1067,11 +1102,11 @@ begin
        if (S[1] = '>') then Break else
           if (S[1] = '<') then
             begin
-             EnterParms := On;
+             EnterParms := True;
              DelFC(S);
              if (S <> '') and (S[1] = '=') then
                       begin DelFC(S);
-{Knave 29.08.99}      S := MakeString(S, @UserParams, off, nil);
+{Knave 29.08.99}      S := MakeString(S, @UserParams, False, nil);
                       DefStr := S;
                       end
               else
@@ -1082,7 +1117,7 @@ begin
              Continue;
             end;
          EnterParms := EnterParms or (Pos('%3', S) > 0);
-         WriteLn(F1.T, MakeString(S, @UserParams, off, nil));
+         WriteLn(F1.T, MakeString(S, @UserParams, False, nil));
        end;
 
 with UserParams do

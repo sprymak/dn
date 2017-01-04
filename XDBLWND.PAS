@@ -51,6 +51,9 @@
 //  dn16rc1-use_ctrl-M_as_Maximize_diff133byMV.patch
 //
 //  2.0.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -118,7 +121,7 @@ begin
    LVisible := false;
    LSelected := false;
   end;
-  CE := On;
+  CE := True;
   case Event.What of
    evKeyDown: case Event.KeyCode of
                {kbCtrlP,}
@@ -133,12 +136,12 @@ begin
                kbCtrlM,{piwamoto}
                kbCtrlSqBracketL,kbCtrlSqBracketR,
                kbAltCtrlSqBracketL,kbAltCtrlSqBracketR:
-                begin HandleCommand(Event); CE := Off; end;
+                begin HandleCommand(Event); CE := False; end;
               end;
    evBroadcast: case Event.Command of
                   cmLookForPanels, cmGetUserParams, cmGetUserParamsWL,
                 cmChangeDirectory, cmChangeDrv, cmGetDirName,
-                   cmIsRightPanel: begin HandleCommand(Event); CE := Off end;
+                   cmIsRightPanel: begin HandleCommand(Event); CE := False end;
                 end;
    evCommand: case Event.Command of
                 cmChangeDirectory:
@@ -200,7 +203,7 @@ begin
                cmDirTree,
                cmQuickView,
                cmSwapPanels,
-               cmSwitchOther: begin HandleCommand(Event); CE := Off end;
+               cmSwitchOther: begin HandleCommand(Event); CE := False end;
               end;
   end;
 

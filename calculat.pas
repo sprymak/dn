@@ -72,11 +72,20 @@
 //  dn3323-calculator(f)-bugs_fix.patch
 //
 //  3.7.0
+//  dn370-calculator(i)_optimization.patch
+//  dn31029-WKZ(f)-character_@_is_valid_again.patch
+//  dn31029-calc(f)-brackets_fix.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31029-calculator(f)-use_exceptions_in_vp.patch
+//  dn31220-built-in_result_variable.patch
+//  dn40412-calculator(f)-exponent_form.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
-{$I STDEFINE.INC}
 {(c) Anton Fedorov aka DataCompBoy, 2000}
-{(c) Sergey Biryukov aka Flash, 2002}
+{(c) Sergey Biryukov aka Flash, 2002-2003}
+{$I STDEFINE.INC}
 UNIT Calculat;
 
 INTERFACE
@@ -86,26 +95,23 @@ Type CReal = Extended;
 
 Type VarGetFunc = Function (VarName: string; var Value: CReal): boolean;
 
-function GetValue(S: String; var Value: CReal): boolean;
-
-function Evalue(const as: string; aVGF: VarGetFunc): CReal;
+function Evalue(const as1: string; aVGF: VarGetFunc): CReal;
 
 Const EvalueError: Boolean = False;
 
 { Flash >>> }
-      Stack_Overflow          = 1;
-      Too_Large_Number        = 5;
-      Argument_Missing        = 10;   { Syntax Errors }
-      Syntax_Error            = 15;
-      Unknown_Function        = 20;
-      Left_Bracket_Missing    = 25;
-      Right_Bracket_Missing   = 30;
-      Operation_Expected      = 35;
-      Unknown_Symbol          = 40;
-      Two_Operations          = 45;
-      Comma_Missing           = 50;
-      Too_Many_Commas         = 55;
-      Incorrect_Usage         = 60;
+      Stack_Overflow          = 001;
+      Too_Large_Number        = 005;
+      Argument_Missing        = 010;   { Syntax Errors }
+      Too_Many_Arguments      = 015;
+      Syntax_Error            = 020;
+      Unknown_Function        = 025;
+      Left_Bracket_Missing    = 030;
+      Right_Bracket_Missing   = 035;
+      Operation_Expected      = 040;
+      Unknown_Symbol          = 045;
+      Two_Operations          = 050;
+      Incorrect_Usage         = 055;
       Division_By_Zero        = 100;   { Math Errors }
       LOG_Wrong_Base          = 105;
       Power_Wrong_Index       = 110;
@@ -116,16 +122,17 @@ Const EvalueError: Boolean = False;
 
 const Epsilon : CReal = 3.4e-4932;
 
-var ErrCode: integer;
+var ErrCode, ErrPos: byte;
     ErrString: string[20];
 { Flash <<< }
 
 IMPLEMENTATION
 
-uses Dos, Advance1, Collect;
-(*{$IFDEF DPMI}{$L Int10.obp}procedure Exc10Handler; external;{$ENDIF}*)
+uses Dos, Advance1, Collect{$IFDEF USESYSUTILS}, SysUtils{$ENDIF};
 
 Var StrToCalcList: PLineCollection; {John_SW}
+
+procedure SetErr(Code: byte; Pos: byte); forward;
 
 function dnSin(x: CReal): CReal;
 begin
@@ -158,7 +165,7 @@ begin
 K:=(Exp(x)+Exp(-x));
 if Abs(K)>Epsilon
  then dnTh:=(Exp(x)-Exp(-x))/K
- else begin dnTh:=1; ErrCode:=Wrong_Argument; EvalueError:=true; end;
+ else begin dnTh:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnCth(x: CReal): CReal;
@@ -167,42 +174,42 @@ begin
 K:=(Exp(x)-Exp(-x));
 if Abs(K)>Epsilon
  then dnCth:=(Exp(x)+Exp(-x))/K
- else begin dnCth:=1; ErrCode:=Wrong_Argument; EvalueError:=true; end;
+ else begin dnCth:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnArsh(x: CReal): CReal;
 begin
 if (x>=0)
  then dnArsh:=Ln(x+Sqrt(Sqr(x)+1))
- else begin dnArsh:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnArsh:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnArch(x: CReal): CReal;
 begin
 if (x>=1)
  then dnArch:=Ln(x+Sqrt(Sqr(x)-1))
- else begin dnArch:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnArch:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnArth(x: CReal): CReal;
 begin
 if (Abs(X)<1-Epsilon)
  then dnArth:=Ln((1+x)/(1-x))/2
- else begin dnArth:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnArth:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnArcth(x: CReal): CReal;
 begin
 if (Abs(X)>1+Epsilon)
  then dnArcth:=Ln((x+1)/(x-1))/2
- else begin dnArcth:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnArcth:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnSec(x: CReal): CReal;
 begin
 if (Abs(dnCos(x))>Epsilon)
  then dnSec:=1/dnCos(x)
- else begin dnSec:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnSec:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnRad(x: CReal): CReal;
@@ -214,7 +221,7 @@ function dnTan(x: CReal): CReal;
 begin
 if (Abs(dnCos(x))>Epsilon)
  then dnTan:=dnSin(x)/dnCos(x)
- else begin dnTan:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnTan:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnGrad(x: CReal): CReal;
@@ -225,36 +232,36 @@ end;
 function dnFact(x: CReal): CReal;
 var R: CReal; I: longint;
 begin
-if (x>=0) {and (x<=1754)} then
+if (x>=0) and (x<1755) then
  begin R:=1; for I:=2 to Trunc(x) do R:=R*I; dnFact:=R; end
-else begin dnFact:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+else begin dnFact:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnDFact(x: CReal): CReal;
 var R: CReal; I: longint;
 begin
-if (x>0) {and (x<=1754)} then
+if (x>0) and (x<3210) then
  begin
  if Odd(Trunc(x)) then begin R:=1; I:=3; end
                   else begin R:=2; I:=4; end;
  while I<=Trunc(x) do begin R:=R*I; Inc(I,2); end;
  dnDFact:=R;
  end
-else begin dnDFact:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+else begin dnDFact:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnCoSec(x: CReal): CReal;
 begin
 if (Abs(Sin(x))>Epsilon)
  then dnCoSec:=1/Sin(x)
- else begin dnCoSec:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnCoSec:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnCoTan(x: CReal): CReal;
 begin
 if (Abs(Sin(x))>Epsilon)
  then dnCoTan:=Cos(x)/Sin(x)
- else begin dnCoTan:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnCoTan:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnArcCoTan(x: CReal): CReal;
@@ -268,7 +275,7 @@ if (x>=-1) and (x<=1) then
  if Abs(x+1)<Epsilon then dnArcSin:=-(pi/2) else
   if Abs(x-1)<Epsilon then dnArcSin:=(pi/2) else
    dnArcSin:=ArcTan(x/sqrt(1-sqr(x)))
-else begin dnArcSin:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+else begin dnArcSin:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnArcCos(x: CReal): CReal;
@@ -277,82 +284,75 @@ if (x>=-1) and (x<=1) then
  if Abs(x+1)<Epsilon then dnArcCos:=pi else
   if Abs(x-1)<Epsilon then dnArcCos:=0 else
    dnArcCos:=dnArcCoTan(x/sqrt(1-sqr(x)))
-else begin dnArcCos:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+else begin dnArcCos:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnArcSec(x: CReal): CReal;
 begin
 if Abs(x)>Epsilon
  then dnArcSec:=dnArcCos(1/x)
- else begin dnArcSec:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnArcSec:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function dnArcCoSec(x: CReal): CReal;
 begin
 if Abs(x)>Epsilon
  then dnArcCoSec:=dnArcSin(1/x)
- else begin dnArcCoSec:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ else begin dnArcCoSec:=1; SetErr(Wrong_Argument,0); end;
 end;
 
 function Step(x,a: CReal): CReal;
 var S: CReal;
 begin
 if ((Abs(x)<Epsilon) and (Abs(a)<Epsilon)) then
- begin Step:=1; ErrCode:=Power_Wrong_Index; EvalueError:=true; Exit end
-else
- if (Abs(a)<Epsilon) then begin Step:=1; Exit end
-  else
-  if a=int(a) then
-   if Abs(x)>Epsilon then
-    begin
-    S:=Exp(a*Ln(Abs(x)));
-    if (x=int(x)) and (a>0) then S:=int(S+0.5);
-    if (Abs(Trunc(a)) mod 2 = 1) and (x<0) then Step:=-S else Step:=S;
-    Exit;
-    end else
-   begin
-   Step:=0; Exit;
-   end;
-  if x>Epsilon then
-   begin
-   S:=Exp(a*Ln(x));
-   if (a=int(a)) and (x=int(x)) and (a>0) then S:=int(S+0.5);
-   Step:=S;
-   Exit;
-   end
-  else begin Step:=1; ErrCode:=Power_Wrong_Argument; EvalueError:=true end;
+ begin Step:=1; SetErr(Power_Wrong_Index,0); exit end;
+if (Abs(a)<Epsilon) then begin Step:=1; exit end;
+if a=int(a) then
+ begin
+ if Abs(x)>Epsilon then
+  begin
+  S:=Exp(a*Ln(Abs(x))); if (x=int(x)) and (a>0) then S:=int(S+0.5);
+  if (Abs(Trunc(a)) mod 2 = 1) and (x<0) then Step:=-S else Step:=S;
+  exit
+  end;
+ Step:=0; exit;
+ end;
+if x>Epsilon then
+ begin
+ S:=Exp(a*Ln(x)); if (a=int(a)) and (x=int(x)) and (a>0) then S:=int(S+0.5);
+ Step:=S; exit;
+ end;
+Step:=1; SetErr(Power_Wrong_Argument,0);
 end;
 
 function dnRoot(a,x: CReal): CReal;
 var S: CReal;
 begin
 if (a<1-Epsilon) or (Abs(Frac(a))>Epsilon)
- then begin dnRoot:=1; ErrCode:=Root_Wrong_Index; EvalueError:=true end
- else
- if (Trunc(a) mod 2 = 1) then
-  begin
-  if Abs(x)>Epsilon then S:=Exp((1/a)*Ln(Abs(x)))
-   else begin dnRoot:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
-  if x<0 then dnRoot:=-S
-   else dnRoot:=S
-  end
- else if x>Epsilon then dnRoot:=Exp((1/a)*Ln(x))
-else begin dnRoot:=1; ErrCode:=Wrong_Argument; EvalueError:=true end;
+ then begin dnRoot:=1; SetErr(Root_Wrong_Index,0); exit end;
+if (Trunc(a) mod 2 = 1) then
+ begin
+ if Abs(x)>Epsilon then S:=Exp((1/a)*Ln(Abs(x)))
+  else begin dnRoot:=1; SetErr(Wrong_Argument,0); exit end;
+ if x<0 then dnRoot:=-S else dnRoot:=S; exit;
+ end;
+if x>Epsilon then begin dnRoot:=Exp((1/a)*Ln(x)); exit end;
+dnRoot:=1; SetErr(Wrong_Argument,0);
 end;
 
 function dnLog(a,x: CReal): CReal;
 begin
 if (a<Epsilon) or (Abs(a-1)<Epsilon) then
- begin dnLog:=1; ErrCode:=LOG_Wrong_Base; EvalueError:=true end else
+ begin dnLog:=1; SetErr(LOG_Wrong_Base,0); end else
 if (x<Epsilon) or (EvalueError) then
- begin dnLog:=1; ErrCode:=Wrong_Argument; EvalueError:=true end else
+ begin dnLog:=1; SetErr(Wrong_Argument,0); end else
 dnLog:=Ln(x)/Ln(a);
 end;
 
 function dnLn(x: CReal): CReal;
 begin
 if (x<Epsilon)
- then begin dnLn:=1; ErrCode:=Wrong_Argument; EvalueError:=true end
+ then begin dnLn:=1; SetErr(Wrong_Argument,0); end
  else dnLn:=System.Ln(x);
 end;
 
@@ -373,6 +373,7 @@ end;
 
 function dnSqrt(x: CReal): CReal;
 begin
+if x<0 then begin dnSqrt:=1; SetErr(Wrong_Argument,0) end else
 dnSqrt:=System.Sqrt(x);
 end;
 
@@ -403,237 +404,34 @@ begin
 dnPi:=System.Pi;
 end;
 
-function dnIf(Value,Value2,Value3: CReal): CReal;
+function dnIf(V1,V2,V3: CReal): CReal;
 begin
-if Value<>0 then dnIf:=Value2 else dnIf:=Value3;
+if V1<>0 then dnIf:=V2 else dnIf:=V3;
 end;
 
 const cmd: string[10] = 'CALCULATOR';
-      CmdSign: Set of char = ['>', '<', '=', '!', '#', '+', '-', '|',
+      CmdSign: Set of char = ['>', '<', '=', '#', '+', '-', '|',
                               '\', '/', '*', '&', '~', '%', '^'];
       DoubleOperations: string[40] = '>= <= <> != || && << >>';
 
-function IsFunction(s: string; start, stop: byte; var k: byte) : boolean; forward;
-
-function GetValue(S: String; var Value: CReal): boolean;
-
- function GetHex(var S: String; var Value: CReal): boolean;
- var RR, RRR: CReal;
-     l: byte absolute S;
-     j: byte;
-     Invert: boolean;
- begin
-  GetHex := false;
-  if L>15 then begin EvalueError:=true; ErrCode:=Too_Large_Number; exit; end;
-  if S[1] in ['-','+'] then begin
-   Invert:=S[1]='-';
-   DelFC(S);
-  end else Invert:=False;
-
-  RR:=0;
-  for j:=1 to l do
-   Case S[j] of
-    '0'..'9': RR:=RR*$10 + Ord(S[j])-48;
-    'A'..'F': RR:=RR*$10 + Ord(S[j])-55;
-    '.': break;
-    else exit;
-   end;
-  Delete(S, 1, j);
-  if (L<1) then begin
-   GetHex:=true;
-   If Invert then Value:=-RR else Value:=RR;
-   exit
-  end;
-  RRR:=RR; RR:=0;
-  for j:=1 to l do
-   Case S[j] of
-    '0'..'9': RR:=RR*$10 + Ord(S[j])-48;
-    'A'..'F': RR:=RR*$10 + Ord(S[j])-55;
-    else exit;
-   end;
-  If Invert
-   then Value:=-(RRR + RR/Step($10,l))
-   else Value:=RRR + RR/Step($10,l);
-  GetHex:=True;
- end;
-
- function GetOct(var S: String; var Value: CReal): boolean;
- var RR, RRR: CReal;
-     l: byte absolute S;
-     j: byte;
-     Invert: boolean;
- begin
-  GetOct := false;
-  if L>21 then begin EvalueError:=true; ErrCode:=Too_Large_Number; exit; end;
-  if S[1] in ['-','+'] then begin
-   Invert:=S[1]='-';
-   DelFC(S);
-  end else Invert:=False;
-
-  RR:=0;
-  for j:=1 to l do
-   Case S[j] of
-    '0'..'7': RR:=RR*8 + Ord(S[j])-48;
-    '.': break;
-    else exit;
-   end;
-  Delete(S, 1, j);
-  if (L<1) then begin
-   GetOct:=true;
-   If Invert then Value:=-RR else Value:=RR;
-   exit
-  end;
-  RRR:=RR; RR:=0;
-  for j:=1 to l do
-   Case S[j] of
-    '0'..'7': RR:=RR*8 + Ord(S[j])-48;
-    else exit;
-   end;
-  If Invert
-   then Value:=-(RRR + RR/Step(8,l))
-   else Value:=RRR + RR/Step(8,l);
-  GetOct:=True;
- end;
-
- function GetBin(var S: String; var Value: CReal): boolean;
- var RR, RRR: CReal;
-     l: byte absolute S;
-     j: byte;
-     Invert: boolean;
- begin
-  GetBin := false;
-  if L>63 then begin EvalueError:=true; ErrCode:=Too_Large_Number; exit; end;
-  if S[1] in ['-','+'] then begin
-   Invert:=S[1]='-';
-   DelFC(S);
-  end else Invert:=False;
-
-  RR:=0;
-  for j:=1 to l do
-   Case S[j] of
-    '0': RR:=RR*2;
-    '1': RR:=RR*2 + 1;
-    '.': break;
-    else exit;
-   end;
-  Delete(S, 1, j);
-  if (L<1) then begin
-   GetBin:=true;
-   If Invert then Value:=-RR else Value:=RR;
-   exit
-  end;
-  RRR:=RR; RR:=0;
-  for j:=1 to l do
-   Case S[j] of
-    '0': RR:=RR*2;
-    '1': RR:=RR*2 + 1;
-    else exit;
-   end;
-  If Invert
-   then Value:=-(RRR + RR/Step(2,l))
-   else Value:=RRR + RR/Step(2,l);
-  GetBin:=True;
- end;
-
- function GetDec(var S: String; var Value: CReal): boolean;
- var R: Integer;
- begin
-  Val(S, Value, R);
-  GetDec := R=0;
- end;
-
-var i,k,j1,j2: integer;
-    p: byte;
-    Result: boolean;
+procedure SetErrPos(Pos: byte);
 begin
- GetValue:=false;
- if (S[Length(S)] = 'H') and (S[1] in ['0'..'9','A'..'F']) then begin
-  Dec(S[0]);
-  Result:=GetHex(S, Value);
-  if EvalueError then exit;
-  if not Result then begin ErrCode:=Incorrect_Form; ErrString:='HEX'; EvalueError:=true; Exit; end;
-  GetValue:=Result;
- end else
- if S[1] = '$' then begin
-  DelFC(S);
-  Result:=GetHex(S, Value);
-  if EvalueError then exit;
-  if not Result then begin ErrCode:=Incorrect_Form; ErrString:='HEX'; EvalueError:=true; Exit; end;
-  GetValue:=Result;
- end else
- if (S[0]>#2) and (S[1] = '0') and (S[2] = 'X') then begin
-  DelFC(S); DelFC(S);
-  Result:=GetHex(S, Value);
-  if EvalueError then exit;
-  if not Result then begin ErrCode:=Incorrect_Form; ErrString:='HEX'; EvalueError:=true; Exit; end;
-  GetValue:=Result;
- end else
- if (S[Length(S)] in ['O','Q']) then begin
-  Dec(S[0]);
-  Result:=GetOct(S, Value);
-  if EvalueError then exit;
-  if not Result then begin ErrCode:=Incorrect_Form; ErrString:='OCT'; EvalueError:=true; Exit; end;
-  GetValue:=Result;
- end else
- if (S[0]>#2) and (S[1] = '0') and (S[2] in ['O','Q']) then begin
-  DelFC(S); DelFC(S);
-  Result:=GetOct(S, Value);
-  if EvalueError then exit;
-  if not Result then begin ErrCode:=Incorrect_Form; ErrString:='OCT'; EvalueError:=true; Exit; end;
-  GetValue:=Result;
- end else
- if (S[Length(S)] = 'B') then begin
-  Dec(S[0]);
-  Result:=GetBin(S, Value);
-  if EvalueError then exit;
-  if not Result then begin ErrCode:=Incorrect_Form; ErrString:='BIN'; EvalueError:=true; Exit; end;
-  GetValue:=Result;
- end else
- if (S[0]>#2) and (S[1] = '0') and (S[2] = 'B') then begin
-  DelFC(S); DelFC(S);
-  Result:=GetBin(S, Value);
-  if EvalueError then exit;
-  if not Result then begin ErrCode:=Incorrect_Form; ErrString:='BIN'; EvalueError:=true; Exit; end;
-  GetValue:=Result;
- end else
- begin
- if ((S[0]=#2) and (S[1] = '0') and (S[2] = 'X')) or (S[Length(S)]='H') then
-  begin ErrCode:=Incorrect_Form; ErrString:='HEX'; EvalueError:=true; Exit; end;
- if s[Length(s)]<>'H' then
-   begin
-   j1:=1; j2:=1;
-   for i:=1 to Length(s) do
-     if (s[i] in ['A'..'Z']) and (s[i]<>'E') then
-        begin
-        j1:=i;
-        j2:=Length(s);
-        for k:=j1 to Length(s)-1 do
-        if (s[k] in ['A'..'Z'])
-           and ((s[k+1] in ['0'..'9']) or (s[k+1] in CmdSign))
-           and (s[k]<>'E') then begin j2:=k; break; end;
-        if IsFunction(s,j1,j2,p) or (s[j2] in ['H','B','O','Q']) then
-         begin ErrCode:=Operation_Expected; EvalueError:=true; Exit; end
-        else
-         begin ErrCode:=Unknown_Function; EvalueError:=true; Exit; end;
-        break;
-        end;
-   end;
- Result:=GetDec(S, Value);
- if not Result then
-   begin   { Flash >>> }
-   ErrCode:=Incorrect_Form;
-   if Pos('E',S)>0 then ErrString:='EXP' else ErrString:='DEC';
-   EvalueError:=true; Exit;
-   end;    { Flash <<< }
- GetValue:=Result;
- end
+if ErrPos=0 then ErrPos:=Pos;
 end;
+
+procedure SetErr(Code: byte; Pos: byte);
+begin
+ErrCode:=Code;
+SetErrPos(Pos);
+EvalueError:=true;
+end;
+
+function IsFunction(s: string; start, stop: byte; var k: byte) : boolean; forward;
 
 Var S: ^String;
     VGF: VarGetFunc;
-    FreeByte: byte;
 
-{$IFNDEF BIT_32}
+{$IFNDEF VIRTUALPASCAL}
  {Sergey Abmetko - Unhanled exception bug fix start}
 Procedure       Int75Handler;Interrupt;
 Begin
@@ -646,8 +444,7 @@ Begin
     out     20h,al
     out     0A0h,al
   End;
-  EvalueError := true;
-  ErrCode := Too_Large_Number; { Flash }
+  SetErr(Too_Large_Number,0); { Flash }
 End;
 
 Var Int75Old:Pointer;
@@ -715,9 +512,9 @@ const
    ,(N:'CTANH';    E: @dnCth;      A:1)
    ,(N:'CTG';      E: @dnCoTan;    A:1)
    ,(N:'CTH';      E: @dnCth;      A:1)
+   ,(N:'DFACT';    E: @dnDFact;    A:1)
    ,(N:'EXP';      E: @dnExp;      A:1)
    ,(N:'FACT';     E: @dnFact;     A:1)
-   ,(N:'DFACT';    E: @dnDFact;    A:1)
    ,(N:'GRAD';     E: @dnGrad;     A:1)
    ,(N:'IF';       E: @dnIf;       A:3)
    ,(N:'LG';       E: @dnLg;       A:1)
@@ -741,15 +538,25 @@ const
    ,(N:'TH';       E: @dnTh;       A:1)
    );
 
-BinOpsMax = 28;
+const BinOpsMax = 28;
 BinOpsTab: array[0..BinOpsMax-1] of string[3] =
 ('>',   '>=',  '<',   '<=',  '<>', '!=',  '#',  '=',  { Relational }
  '+',   '-',   'OR',  'XOR', '||', '|',   '\',        { Adding }
  '*',   '/',   'DIV', 'MOD', '%',  'AND', '&&', '&',
  'SHR', 'SHL', '<<',  '>>',                           { Multiplying }
  '^');                                                { Power }
+BinOpRel = 1; BinOpAdd = 2; BinOpMul = 3;
 
 var Depth: byte;
+
+function BinOpType(cmd: string): byte;
+var i: byte;
+begin
+for i:=0 to BinOpsMax-1 do if BinOpsTab[i]=cmd then break;
+if i in [0..7]   then begin BinOpType:=BinOpRel; exit end;
+if i in [8..14]  then begin BinOpType:=BinOpAdd; exit end;
+if i in [15..26] then begin BinOpType:=BinOpMul; exit end;
+end;
 
 function DoEval(start, stop: byte): CReal; forward;
 
@@ -801,14 +608,16 @@ if stop-start>=j-1 then
 end;
 { Flash <<< }
 
-function Evalue(const as: string; aVGF: VarGetFunc): CReal;
-var LeftBrackets, RightBrackets,  { Flash }
-    i,j,k: byte;                  { Flash }
+function Evalue(const as1: string; aVGF: VarGetFunc): CReal;
+var LBr, RBr,          { Flash }
+    i,j,k: byte;       { Flash }
+    c,d: char;
     Brackets: Integer;
 begin
+{$IFDEF USESYSUTILS}try{$ENDIF} { Flash 29-11-2003 }
 {--- start -------- Eugeny Zvyagintzev ---- 14-06-2002 ----}
 {We have to check for empty line}
- If As = '' Then
+ If As1 = '' Then
   Begin
    EValue:=0;
    Exit;
@@ -823,59 +632,46 @@ begin
    StrToCalcList^.Insert(S);
   End;
 {--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
- New(S);
- S^:=UpStrg(DelSpaces(as));
+ New(S); S^:=UpStrg(DelSpaces(as1));
 
  { Flash >>> }
- LeftBrackets:=0; RightBrackets:=0; ErrCode:=0; Evalue:=0; Brackets:=0;
+ LBr:=0; RBr:=0; ErrCode:=0; Evalue:=0; Brackets:=0; ErrPos:=0;
+ EvalueError:=false;
  for i:=1 to Length(S^) do   { Counting brackets }
     begin
-    if not (S^[i] in CmdSign) and not (S^[i] in ['A'..'Z','(',')',',','$',':'])
-       and not (IsDigit(S^[i])) then
-       ErrCode:=Unknown_Symbol
+    c:=S^[i];
+    if not (c in CmdSign) and not IsDigit(c) and (c<>'!') and (c<>'@') and
+       not (c in ['A'..'Z','(',')',',','$',':']) then
+       begin SetErr(Unknown_Symbol,i-1); break end
     else
-    if S^[i]='(' then begin Inc(LeftBrackets); Inc(Brackets) end else
-    if S^[i]=')' then begin Inc(RightBrackets); Dec(Brackets) end;
-    if Brackets<0 then begin ErrCode:=Syntax_Error; break; end;
+    if c='(' then begin Inc(LBr); Inc(Brackets) end else
+    if c=')' then begin Inc(RBr); Dec(Brackets) end;
+    if Brackets<0 then break;
     end;
- if LeftBrackets>RightBrackets then ErrCode:=Right_Bracket_Missing else
- if LeftBrackets<RightBrackets then ErrCode:=Left_Bracket_Missing else
- begin
- if ErrCode<>0 then begin EvalueError:=true; Evalue:=ErrCode; exit end
- else
+ if LBr>RBr then SetErr(Right_Bracket_Missing,0);
+ if LBr<RBr then SetErr(Left_Bracket_Missing,0);
+ if ErrCode<>0 then begin Evalue:=ErrCode; exit end;
  for i:=1 to Length(S^)-1 do
     begin
-    if (S^[i]='(') and (S^[i+1]=')') then ErrCode:=Syntax_Error
+    c:=S^[i]; d:=S^[i+1];
+    if (IsDigit(c) and (d='('))
+    or (IsDigit(d) and (c=')'))
+    or (IsDigit(c) and (d='$'))
+    or ((c='!') and not (d in CmdSign) and not (d in [',',')','!']))
+    or ((c=')') and (d='(')) then SetErr(Operation_Expected,i+1)
     else
-    if (IsDigit(S^[i]) and (S^[i+1]='('))
-    or (IsDigit(S^[i+1]) and (S^[i]=')'))
-    or (IsDigit(S^[i]) and (S^[i+1]='$'))
-    or ((S^[i]=')') and (S^[i+1]='(')) then ErrCode:=Operation_Expected
-    else
-    if (S^[i]='(') and (S^[i+1] in CmdSign) and not (S^[i+1] in ['+','-','~']) then
-       ErrCode:=Syntax_Error
-    else
-    if ((S^[i+1]=')') and (S^[i] in CmdSign) and (S^[i]<>'!')) then ErrCode:=Syntax_Error
-    else
-    if (S^[i]='!') then
-     begin
-     if S^[i+1]='.' then ErrCode:=Syntax_Error else
-     if not (S^[i+1] in CmdSign) and not (S^[i+1] in [',',')']) then ErrCode:=Operation_Expected;
-     end;
+    if ((c='!') and (d='.'))
+    or ((c='(') and (d=')'))
+    or ((c='(') and (d in CmdSign) and not (d in ['+','-','~']))
+    or ((d=')') and (c in CmdSign)) then SetErr(Syntax_Error,i+1);
     end;
- end;
- if ErrCode<>0 then
-   begin EvalueError:=true; Evalue:=ErrCode; end
+ if ErrCode<>0 then begin Evalue:=ErrCode; exit end;
  { Flash <<< }
-
- else begin
  VGF:=aVGF;
  Depth:=0; { Flash }
- EvalueError:=false;
-{$IFNDEF BIT_32} SetInt75Handler; {$ENDIF}
+{$IFNDEF VIRTUALPASCAL} SetInt75Handler; {$ENDIF}
  Evalue:=DoEval(1, Length(S^));
-{$IFNDEF BIT_32} RestoreInt75Handler; {$ENDIF}
- end;
+{$IFNDEF VIRTUALPASCAL} RestoreInt75Handler; {$ENDIF}
 {--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
 {We have to store string for calculation in a recursive call}
  If S <> Nil Then Begin Dispose(S); S:=Nil; End;
@@ -890,6 +686,14 @@ begin
     End;
   End;
 {--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
+{ Flash 29-11-2003 >>> }
+{$IFDEF USESYSUTILS}
+ except
+  on E: EOverflow do
+   begin EvalueError := true; SetErr(Too_Large_Number,0); end;
+ end;
+{$ENDIF}
+{ Flash 29-11-2003 <<< }
 end;
 
 {Pavel Anufrikov --> } { Sergey Biryukov >>> }
@@ -906,51 +710,147 @@ end;
 
 { <-- Pavel Anufrikov} { Sergey Biryukov <<< }
 
+ { This code by Alexey Korop (AK155) was taken from DN/2 >>> }
+ function GetV(S: String; Base: integer; var Value: CReal): boolean;
+ { Returns a number in specified scale of notation }
+ const
+   HexDigits = '0123456789ABCDEFG';
+ var RR, FractValue: CReal;
+     j: byte;
+     c: char;
+     d: longint;
+     l: byte absolute s;
+ begin
+  GetV := false;
+  if l = 0 then exit;
+  RR:=0;
+  { integer part }
+  for j:=1 to l do
+    begin
+    c := system.Upcase(S[j]); if c = '.' then break;
+    d := Pos(c, HexDigits)-1; if (d < 0) or (d >= Base) then exit;
+    RR:=RR*Base + d;
+    end;
+  Delete(S, 1, j);
+  if (l < 1) then begin Value:=RR; GetV:=true; exit end;
+  { fractional part }
+  FractValue:=1;
+  for j:=1 to l do
+    begin
+    FractValue := FractValue / Base;
+    d := Pos(S[j], HexDigits)-1; if (d < 0) or (d >= Base) then exit;
+    RR := RR + d*FractValue;
+    end;
+  Value:=RR;
+  GetV:=True;
+ end;
+ { This code by Alexey Korop (AK155) was taken from DN/2 <<< }
+
 { Flash >>> }
 function DoEval(start, stop: byte): CReal;
  var i,j,k: byte;
-     Value,Value2,Value3: CReal;
+     V1,V2,V3: CReal;
      ll: longint;
      sl: byte;
+     st: string[10];
+
+ function GetDec(var S: String; var Value: CReal): boolean;
+{$IFDEF VIRTUALPASCAL}var R: Longint;{$ELSE}var R: Integer;{$ENDIF}
+ begin
+  Val(S, Value, R);
+  GetDec := R=0;
+ end;
+
+ function GetValue(S: String; var Value: CReal): boolean;
+ var i,j1,j2,k,p,ls: byte;
+{$IFNDEF RESULT}Result,{$ENDIF}A,B: boolean;
+ begin
+  GetValue:=false; ls:=Length(S); if EvalueError then Exit;
+  { Checking hexadecimal number }
+  A := (S[ls]='H') and (S[1] in ['0'..'9','A'..'F']);
+  B := (S[0]>#2) and (S[1]='0') and (S[2]='X');
+  if A or B or (S[1]='$') then begin
+   if A then Dec(S[0]) else begin DelFC(S); if B then DelFC(S); end;
+   Result:=GetV(S, 16, Value);
+   if not Result then begin SetErr(Incorrect_Form,start); ErrString:='HEX'; Exit; end;
+   {$IFNDEF RESULT}GetValue:=Result;{$ENDIF}Exit;
+  end;
+  { Checking octal number }
+  A := (S[0]>#2) and (S[1]='0') and (S[2] in ['O','Q']);
+  if A or (S[ls] in ['O','Q']) then begin
+   if A then begin DelFC(S); DelFC(S); end else Dec(S[0]);
+   Result:=GetV(S, 8, Value);
+   if not Result then begin SetErr(Incorrect_Form,start); ErrString:='OCT'; Exit; end;
+   {$IFNDEF RESULT}GetValue:=Result;{$ENDIF}Exit;
+  end;
+  { Checking binary number }
+  A := (S[0]>#2) and (S[1]='0') and (S[2]='B');
+  if A or (S[ls]='B') then begin
+   if A then begin DelFC(S); DelFC(S); end else Dec(S[0]);
+   Result:=GetV(S, 2, Value);
+   if not Result then begin SetErr(Incorrect_Form,start); ErrString:='BIN'; Exit; end;
+   {$IFNDEF RESULT}GetValue:=Result;{$ENDIF}Exit;
+  end;
+  if ((S[0]=#2) and (S[1]='0') and (S[2]='X')) or (S[ls]='H') then
+   begin SetErr(Incorrect_Form,start); ErrString:='HEX'; Exit; end;
+  if S[ls]<>'H' then
+   for i:=1 to ls do
+    begin
+    if S[i] in ['A'..'D','F'..'Z'] then
+     begin
+     j1:=i; j2:=ls;
+     for k:=j1 to ls-1 do
+      if (S[k] in ['A'..'D','F'..'Z']) and (IsDigit(S[k+1]) or (S[k+1] in CmdSign))
+       then begin j2:=k; break; end;
+     if (IsFunction(S,j1,j2,p) or (S[j2] in ['H','B','O','Q'])) and (S[j1-1] in ['0'..'9','E'])
+      then SetErr(Operation_Expected,start+j1-1)
+      else SetErr(Unknown_Function,start+j1-1);
+     Exit;
+     end;
+    end;
+  Result:=GetDec(S, Value);
+  if not Result then
+    begin   { Flash >>> }
+    if Pos('E',S)>0 then ErrString:='EXP' else ErrString:='DEC';
+    SetErr(Incorrect_Form,start); Exit;
+    end;    { Flash <<< }
+{$IFNDEF RESULT}GetValue:=Result;{$ENDIF}Exit;
+ end;
 
  function GetParams(start, stop, num: byte) : boolean;
  var i,j,k,l: byte;
  begin
  GetParams:=false;
- Value:=0; Value2:=0; Value3:=0;
+ V1:=0; V2:=0; V3:=0;
+ if num in [2,3] then
+  begin
+  l:=0; for i:=start to stop do if s^[i]=',' then inc(l);
+  if (l<num-1) then begin SetErr(Argument_Missing,stop); exit end;
+  if (l>num-1) then begin SetErr(Too_Many_Arguments,stop); exit end;
+  end;
  case num of
-  1: Value:=DoEval(start,stop);
+  1: V1:=DoEval(start,stop);
   2: begin
-     l:=0; for i:=start to stop do if s^[i]=',' then inc(l);
-     if (l<1) then begin ErrCode:=Comma_Missing; EvalueError:=True; exit end;
-     if (l>1) then begin ErrCode:=Too_Many_Commas; EvalueError:=True; exit end;
-     while s^[start]='(' do inc(start);
-     while s^[stop]=')' do dec(stop);
+     while s^[start]='(' do inc(start); while s^[stop]=')' do dec(stop);
      for i:=start to stop do if s^[i]=',' then break;
-     if i in [stop,start] then begin ErrCode:=Argument_Missing; EvalueError:=True; exit end;
-     j:=i-1; while s^[j]=')' do dec(j);
-     k:=i+1; while s^[k]='(' do inc(k);
-     Value:=DoEval(start,j); Value2:=DoEval(k,stop);
+     if i=start then SetErr(Argument_Missing,i);
+     if i=stop then SetErr(Argument_Missing,i+1);
+     if EvalueError then exit;
+     j:=i-1; k:=i+1;
+     V1:=DoEval(start,j); V2:=DoEval(k,stop);
      end;
   3: begin
-     if (s^[start]<>'(') or (s^[stop]<>')') then
-      begin ErrCode:=Incorrect_Usage; EvalueError:=True; exit end;
-     while s^[start]='(' do inc(start);
-     while s^[stop]=')' do dec(stop);
-     l:=0; for i:=start to stop do if s^[i]=',' then inc(l);
-     if (l<2) then begin ErrCode:=Comma_Missing; EvalueError:=True; exit end;
-     if (l>2) then begin ErrCode:=Too_Many_Commas; EvalueError:=True; exit end;
-     if Pos(',,',copy(s^,start,stop-start+1))>0 then begin ErrCode:=Argument_Missing; EvalueError:=True; exit end;
+     if s^[start]<>'(' then begin SetErr(Incorrect_Usage,start); exit end;
+     if s^[stop]<>')' then begin SetErr(Incorrect_Usage,stop); exit end;
+     while s^[start]='(' do inc(start); while s^[stop]=')' do dec(stop);
      for i:=start to stop do if s^[i]=',' then break;
-     if i in [stop,start] then begin ErrCode:=Argument_Missing; EvalueError:=True; exit end;
-     dec(i);
-     for l:=i+2 to stop do if s^[l]=',' then break;
-     if l in [stop,start] then begin ErrCode:=Argument_Missing; EvalueError:=True; exit end;
-     dec(l);
-     j:=i+2; if j<stop then while s^[j]='(' do inc(j);
-     k:=l+2; if k<stop then while s^[k]='(' do inc(k);
-     while s^[l]=')' do dec(l); while s^[i]=')' do dec(i);
-     Value:=DoEval(start,i); Value2:=DoEval(j,l); Value3:=DoEval(k,stop);
+     for l:=i+1 to stop do if s^[l]=',' then break;
+     if i in [stop,start] then SetErr(Argument_Missing,i);
+     if l=i+1 then SetErr(Argument_Missing,l);
+     if l=stop then SetErr(Argument_Missing,l+1);
+     if EvalueError then exit;
+     dec(i); dec(l); j:=i+2; k:=l+2;
+     V1:=DoEval(start,i); V2:=DoEval(j,l); V3:=DoEval(k,stop);
      end;
  end;
  GetParams:=true;
@@ -959,49 +859,93 @@ function DoEval(start, stop: byte): CReal;
  function GetCmd(i: byte) : string;
  var s1: string[10];
  begin
- if s^[i] in ['~','-','+'] then begin GetCmd:=s^[i]; Exit; end;
- s1:='';
- repeat dec(i) until not (s^[i] in CmdSign) or (s^[i]='!'); inc(i);
+ if s^[i] in ['~','-','+'] then begin GetCmd:=s^[i]; Exit; end; s1:='';
+ repeat dec(i)
+ until (not (s^[i] in CmdSign)) or (s^[i+1]='!'); inc(i);
  repeat s1:=s1+s^[i]; inc(i);
- until (not (s^[i] in CmdSign)) or (s^[i] in ['+','-','~']) or (i>stop);
+ until (not (s^[i] in CmdSign) and (s^[i]<>'!')) or (s^[i] in ['+','-','~']) or (i>stop);
  GetCmd:=s1;
  end;
 
+ function SkipBrackets(start: byte; var j: byte) : boolean;
+ var i,k: byte;
+ begin
+ SkipBrackets:=True;
+ if s^[j]=')' then begin
+  k:=0;
+  for i:=j downto start do
+   case s^[i] of
+    '(': begin dec(k); if k=0 then break end;
+    ')': inc(k);
+   end;
+  SkipBrackets:=False; j:=i;
+  end;
+ end;
+
+ function CheckBinarySign(i:byte; c: char): boolean;
+ begin
+ CheckBinarySign:=False;
+ if (cmd=c) and (i>start) and (i<stop)
+    and (not IsFunction(s^,start,i-k,sl) or (sl=0))
+    and not IsBinOp(s^,start,i-k) and not TestSignE(start,i) then
+  CheckBinarySign:=True;
+ end;
+
+ function CheckBinOp(i: byte; t: string): boolean;
+ begin
+ CheckBinOp:=False;
+ if (i>stop-length(t)) or (length(s^)<length(t)+2) then Exit;
+ if s^[i-1] in ['A'..'Z'] then repeat dec(i) until (i=1) or not (s^[i-1] in ['A'..'Z']);
+ cmd:=copy(s^,i,length(t)); k:=Length(cmd);
+ if (cmd=t) then
+  begin
+  CheckBinOp:=True; V1:=DoEval(start, i-1); V2:=DoEval(i+k, stop);
+  end;
+ end;
+
+ function Divide(cmd: string): CReal;
+ begin
+ if V2<>0 then
+  begin
+  if cmd= '/' then Divide:=V1 / V2;
+  if (cmd='%') or (cmd='MOD') then Divide:=Round(V1) mod Round(V2);
+  if cmd='DIV' then Divide:=Round(V1) div Round(V2);
+  end
+ else begin SetErr(Division_By_Zero,i); Divide:=ErrCode; end;
+ end;
+
 begin
-  if EvalueError then begin DoEval:=ErrCode; exit end;
+  if EvalueError then begin DoEval:=ErrCode; SetErrPos(i); exit end;
 
   if s^[start]='!' then
-   begin EvalueError:=true; ErrCode:=Syntax_Error; DoEval:=ErrCode; exit end;
+   begin SetErr(Syntax_Error,start); DoEval:=ErrCode; exit end;
 
   {Ignore unfinished operator}
-  while (s^[stop] in CmdSign) and (stop>0) and (s^[stop]<>'!') do dec(stop);
+  while (s^[stop] in CmdSign) and (stop>0) do dec(stop);
   Inc(Depth);
-  if Depth>63 then begin EvalueError:=true; ErrCode:=Stack_Overflow; DoEval:=ErrCode; exit end;
+  if Depth>62 then begin SetErr(Stack_Overflow,i); DoEval:=ErrCode; exit end;
   if (s^[start] in CmdSign) and (not (s^[start] in ['+','-','~']) or (start>stop)) then
-   begin EvalueError:=true; ErrCode:=Syntax_Error; DoEval:=ErrCode; exit end;
+   begin SetErr(Syntax_Error,start); DoEval:=ErrCode; exit end;
   if (stop<start) then begin DoEval:=0; exit end;
   while (s^[start]='+') and (start<=stop) do inc(start);
 
   if s^[start]<>'-' then
   for i:=0 to BinOpsMax-1 do
   begin
-  k:=length(BinOpsTab[i]);
-  if (copy(s^,start,k)=BinOpsTab[i]) or
-     (copy(s^,stop-k+1,k)=BinOpsTab[i]) then
-   begin
-   EvalueError:=True; ErrCode:=Argument_Missing; DoEval:=ErrCode; exit
-   end;
+  k:=length(BinOpsTab[i]); ErrString:=BinOpsTab[i];
+  if copy(s^,start,k)=BinOpsTab[i] then SetErr(Argument_Missing,start) else
+  if copy(s^,stop-k+1,k)=BinOpsTab[i] then SetErr(Argument_Missing,stop+1);
+  if EvalueError then begin DoEval:=ErrCode; exit end;
   end;
 
   for i:=start+1 to stop-1 do
    begin
    cmd[1]:=s^[i]; k:=1; if cmd[1] in ['+','-'] then continue;
-   if IsBinOp(cmd,1,k) and (s^[i-1] in CmdSign) and (s^[i-1]<>'!')
+   if IsBinOp(cmd,1,k) and (s^[i-1] in CmdSign)
       and (Pos(copy(s^,i-1,2),DoubleOperations)=0) then
-     if (cmd[1] in CmdSign) then
-      begin ErrCode:=Two_Operations; EvalueError:=True; exit end
-     else
-      begin ErrCode:=Argument_Missing; EvalueError:=True; exit end;
+     if (cmd[1] in CmdSign)
+      then begin SetErr(Two_Operations,i); exit end
+      else begin SetErr(Argument_Missing,i); exit end;
    end;
 
   {Level 0... Simple value or variable}
@@ -1014,156 +958,75 @@ begin
 
   {Proceed level 6... '>' '>=' '<' '<=' '<>' '!=' '#' '=' - Relational}
   for i:=stop downto start do begin
-   {if s^[i]='(' then begin DoEval:=1; EvalueError:=True; exit end;}
-   if s^[i]=')' then begin
-    FreeByte:=0;
-    for i:=i downto start do
-     case s^[i] of
-      '(': begin dec(FreeByte); if FreeByte=0 then break end;
-      ')': inc(FreeByte);
-     end;
-    {if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;}
-    continue;
-   end;
-  if s^[i] in CmdSign then
-   begin
-   cmd:=GetCmd(i); k:=Length(cmd);
-   if (cmd='=') and (s^[i-1]<>'!') then
-    begin DoEval:=Byte(DoEval(start, i-k) =  DoEval(i+1, stop)); exit end;
-   if (cmd='=') and (s^[i-1]='!') then
-    begin DoEval:=Byte(DoEval(start, i-2) <> DoEval(i+1, stop)); exit end;
-   if cmd='>' then
-    begin DoEval:=Byte(DoEval(start, i-k) >  DoEval(i+1, stop)); exit end;
-   if cmd='>=' then
-    begin DoEval:=Byte(DoEval(start, i-k) >= DoEval(i+1, stop)); exit end;
-   if cmd='<'  then
-    begin DoEval:=Byte(DoEval(start, i-k) <  DoEval(i+1, stop)); exit end;
-   if cmd='<='  then
-    begin DoEval:=Byte(DoEval(start, i-k) <= DoEval(i+1, stop)); exit end;
-   if cmd='<>'  then
-    begin DoEval:=Byte(DoEval(start, i-k) <> DoEval(i+1, stop)); exit end;
-   if cmd='#' then
-    begin DoEval:=Byte(DoEval(start, i-k) <> DoEval(i+1, stop)); exit end;
-   end;
+   if not SkipBrackets(start,i) or (i in [start,stop]) then continue;
+   if s^[i] in CmdSign then
+    begin
+    cmd:=GetCmd(i); k:=Length(cmd); st:=cmd;
+    if BinOpType(cmd)<>BinOpRel then continue;
+    V1:=DoEval(start, i-k); V2:=DoEval(i+1, stop); cmd:=st;
+    if (cmd='<>') or (cmd='#') or (cmd='!=')
+                then DoEval:=Byte(V1 <> V2);
+    if cmd='='  then DoEval:=Byte(V1 =  V2);
+    if cmd='>'  then DoEval:=Byte(V1 >  V2);
+    if cmd='>=' then DoEval:=Byte(V1 >= V2);
+    if cmd='<'  then DoEval:=Byte(V1 <  V2);
+    if cmd='<=' then DoEval:=Byte(V1 <= V2);
+    exit;
+    end;
   end;
 
   {Proceed level 5... '+' '-' 'or' 'xor' '||' '|' '\' - Adding}
   for i:=stop downto start do begin
-   {if s^[i]='(' then begin DoEval:=1; EvalueError:=True; exit end;}
-   if s^[i]=')' then begin
-    FreeByte:=0;
-    for i:=i downto start do
-     case s^[i] of
-      '(': begin dec(FreeByte); if FreeByte=0 then break end;
-      ')': inc(FreeByte);
-     end;
-    {if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;}
-    continue;
-   end;
+   if not SkipBrackets(start,i) or (i in [start,stop]) then continue;
    if s^[i] in CmdSign then
     begin
-    cmd:=GetCmd(i); k:=Length(cmd);
-    if (cmd='+') and (i>start) and (i<stop)
-       and (not IsFunction(s^,start,i-k,sl) or (sl=0))
-       and not IsBinOp(s^,start,i-k) and not TestSignE(start,i) then
-     begin DoEval:=DoEval(start, i-k) + DoEval(i+1, stop); exit end;
-    if (cmd='-') and (i>start) and (i<stop)
-       and (not IsFunction(s^,start,i-k,sl) or (sl=0))
-       and not IsBinOp(s^,start,i-k) and not TestSignE(start,i) then
-     begin DoEval:=DoEval(start, i-k) - DoEval(i+1, stop); exit end;
-    if (cmd='||') then
-     begin DoEval:=Byte((Round(DoEval(start, i-k))<>0) or (Round(DoEval(i+1, stop))<>0)); exit end;
-    if (cmd='|') then
-     begin DoEval:=Round(DoEval(start, i-k)) or Round(DoEval(i+1, stop)); exit end;
-    if (cmd='\') then
-     begin DoEval:=Round(DoEval(start, i-k)) xor Round(DoEval(i+1, stop)); exit end;
-   end;
-   cmd:=copy(s^,i,3); k:=Length(cmd);
-   if (cmd='XOR') then
-    begin DoEval:=Round(DoEval(start, i-1)) xor Round(DoEval(i+k, stop)); exit end;
-   cmd:=copy(s^,i,2); k:=Length(cmd);
-   if (cmd='OR') then
-    begin DoEval:=Round(DoEval(start, i-1)) or Round(DoEval(i+k, stop)); exit end;
+    cmd:=GetCmd(i); k:=Length(cmd); st:=cmd;
+    if BinOpType(cmd)<>BinOpAdd then continue;
+    if (cmd[1] in ['+','-']) and not CheckBinarySign(i,cmd[1]) then continue;
+    V1:=DoEval(start, i-k); V2:=DoEval(i+1, stop); cmd:=st;
+    if cmd='+'  then DoEval:=V1 + V2;
+    if cmd='-'  then DoEval:=V1 - V2;
+    if cmd='||' then DoEval:=Byte((Round(V1)<>0) or (Round(V2)<>0));
+    if cmd='|'  then DoEval:=Round(V1) or  Round(V2);
+    if cmd='\'  then DoEval:=Round(V1) xor Round(V2);
+    exit;
+    end;
+   if CheckBinOp(i,'XOR') then begin DoEval:=Round(V1) xor Round(V2); exit end;
+   if CheckBinOp(i,'OR')  then begin DoEval:=Round(V1) or  Round(V2); exit end;
   end;
 
   {Proceed level 4... '*' '/' 'div' 'mod' '%' 'and' '&&' '&' 'shr' 'shl' '<<' '>>' - Multiplying}
   for i:=stop downto start do begin
-   {if s^[i]='(' then begin DoEval:=1; EvalueError:=True; exit end;}
-   if s^[i]=')' then begin
-    FreeByte:=0;
-    for i:=i downto start do
-     case s^[i] of
-      '(': begin dec(FreeByte); if FreeByte=0 then break end;
-      ')': inc(FreeByte);
-     end;
-    {if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;}
-    continue;
-   end;
+   if not SkipBrackets(start,i) or (i in [start,stop]) then continue;
    if s^[i] in CmdSign then
     begin
-    cmd:=GetCmd(i); k:=Length(cmd);
-    if cmd='*' then
-     begin DoEval:=DoEval(start, i-k) * DoEval(i+1, stop); exit end;
-    if cmd='/' then begin
-     value:=DoEval(i+1, stop);
-     if value<>0 then DoEval:=DoEval(start, i-k) / value
-                 else begin EvalueError:=True; ErrCode:=Division_By_Zero; DoEval:=ErrCode; end;
-     exit end;
-    if cmd='&&' then
-     begin DoEval:=Byte((Round(DoEval(start, i-k))<>0) and (Round(DoEval(i+1, stop))<>0)); exit end;
-    if cmd='&' then
-     begin DoEval:=Round(DoEval(start, i-k)) and Round(DoEval(i+1, stop)); exit end;
-    if cmd='<<' then
-     begin DoEval:=Round(DoEval(start, i-k)) shl Round(DoEval(i+1, stop)); exit end;
-    if cmd='>>' then
-     begin DoEval:=Round(DoEval(start, i-k)) shr Round(DoEval(i+1, stop)); exit end;
-    if cmd='%' then begin
-     value:=DoEval(i+1, stop);
-     if value<>0 then DoEval:=Round(DoEval(start, i-k)) mod Round(value)
-                 else begin EvalueError:=True; ErrCode:=Division_By_Zero; DoEval:=ErrCode; end;
-     exit end;
+    cmd:=GetCmd(i); k:=Length(cmd); st:=cmd;
+    if BinOpType(cmd)<>BinOpMul then continue;
+    V1:=DoEval(start, i-k); V2:=DoEval(i+1, stop); cmd:=st;
+    if cmd='*'  then DoEval:=V1 * V2;
+    if cmd='/'  then DoEval:=Divide('/');
+    if cmd='%'  then DoEval:=Divide('%');
+    if cmd='&&' then DoEval:=Byte((Round(V1)<>0) and (Round(V2)<>0));
+    if cmd='&'  then DoEval:=Round(V1) and Round(V2);
+    if cmd='<<' then DoEval:=Round(V1) shl Round(V2);
+    if cmd='>>' then DoEval:=Round(V1) shr Round(V2);
+    exit;
    end;
-   if s^[0]>#3 then begin
-    cmd:=copy(s^, i, 3); k:=Length(cmd);
-    if Cmd = 'DIV' then begin
-     value:=DoEval(i+k, stop);
-     if value<>0 then DoEval:=Round(DoEval(start, i-1)) div Round(value)
-                 else begin EvalueError:=True; ErrCode:=Division_By_Zero; DoEval:=ErrCode; end;
-     exit end;
-    if Cmd = 'MOD' then begin
-     value:=DoEval(i+k, stop);
-     if value<>0 then DoEval:=Round(DoEval(start, i-1)) mod Round(value)
-                 else begin EvalueError:=True; ErrCode:=Division_By_Zero; DoEval:=ErrCode; end;
-     exit end;
-    if Cmd = 'AND' then begin LL:=Round(DoEval(start, i-1));
-                              DoEval:=LL and Round(DoEval(i+k, stop)); exit end;
-    if Cmd = 'SHL' then begin LL:=Round(DoEval(start, i-1));
-                              DoEval:=LL shl Round(DoEval(i+k, stop)); exit end;
-    if Cmd = 'SHR' then begin LL:=Round(DoEval(start, i-1));
-                              DoEval:=LL shr Round(DoEval(i+k, stop)); exit end;
-   end;
+   if CheckBinOp(i,'DIV') then begin DoEval:=Divide('DIV'); exit end;
+   if CheckBinOp(i,'MOD') then begin DoEval:=Divide('MOD'); exit end;
+   if CheckBinOp(i,'AND') then begin DoEval:=Round(V1) and Round(V2); exit end;
+   if CheckBinOp(i,'SHL') then begin DoEval:=Round(V1) shl Round(V2); exit end;
+   if CheckBinOp(i,'SHR') then begin DoEval:=Round(V1) shr Round(V2); exit end;
   end;
 
   {Proceed level 3... '^' }
   for i:=stop downto start do begin
-   {if s^[i]='(' then begin DoEval:=1; EvalueError:=True; exit end;}
-   if s^[i]=')' then begin
-    FreeByte:=0;
-    for i:=i downto start do
-     case s^[i] of
-      '(': begin dec(FreeByte); if FreeByte=0 then break end;
-      ')': inc(FreeByte);
-     end;
-    {if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;}
-    continue;
-   end;
+   if not SkipBrackets(start,i) or (i in [start,stop]) then continue;
    if s^[i]='^' then
-    if not (s^[i-1] in CmdSign) or (s^[i-1]='!') then
+    if not (s^[i-1] in CmdSign) then
      begin DoEval:=Step(DoEval(start, i-1), DoEval(i+1, stop)); exit end
-    else begin ErrCode:=Two_Operations; EvalueError:=True; exit end;
+    else begin SetErr(Two_Operations,i); exit end;
    end;
-
-  if s^[start]='-' then begin DoEval:= - DoEval(start+1, stop); exit end;
 
   { Flash >>> }
   {Proceed level 2... 'sin' 'cos' and other - Functions}
@@ -1173,100 +1036,82 @@ begin
    cmd:=copy(s^,start,k);
    if (cmd[k]='H') and (cmd[k-1] in ['A'..'F']) and (k=stop) then break;
     for i:=0 to MaxFunctions-1 do
+     if (cmd = FnTab[i].N) then with FnTab[i] do
       begin
-      if EvalueError then begin DoEval:=ErrCode; exit end;
-      if (cmd = FnTab[i].N) then
-       with FnTab[i] do
+      sl:=Length(N); ErrString:=N;
+      if (A<>0) and (start+sl-1=stop) then
        begin
-       sl:=Length(N);
-       if A=0 then
-           begin
-           if IsDigit(s^[start+sl]) then
-            begin EvalueError:=true; ErrCode:=Operation_Expected; DoEval:=ErrCode; exit end;
-           if (start+sl<=stop) and (s^[start+sl] in ['A'..'Z']) then
-            begin EvalueError:=true; ErrCode:=Unknown_Function; DoEval:=ErrCode; exit end;
-           DoEval:=VarEval(E);
-           exit;
-           end;
-       if start+sl-1=stop then
-        begin
-        if N='CH' then break else
-        EvalueError:=True; ErrCode:=Argument_Missing; DoEval:=ErrCode; exit;
-        end;
-       ErrString:=N;
-       if A=1 then begin
-        if not GetParams(start+sl,stop,1) then DoEval:=ErrCode
-         else DoEval:=FnEval(E)(Value); exit; end;
-       if A=2 then begin
-        if not GetParams(start+sl,stop,2) then DoEval:=ErrCode
-         else DoEval:=FnEval2(E)(Value,Value2); exit; end;
-       if A=3 then begin
-        if not GetParams(start+sl,stop,3) then DoEval:=ErrCode
-         else DoEval:=FnEval3(E)(Value,Value2,Value3); exit; end;
-       exit;
+       if N='CH' then break;
+       SetErr(Argument_Missing,stop+1); DoEval:=ErrCode; exit;
        end;
+      if (A in [1,2,3]) and not GetParams(start+sl,stop,A) then
+       begin SetErrPos(start); DoEval:=ErrCode; exit end;
+      case A of
+       0: begin
+          if IsDigit(s^[start+sl]) then
+           begin SetErr(Operation_Expected,start+sl); DoEval:=ErrCode; exit end;
+          if (start+sl<=stop) and (s^[start+sl] in ['A'..'Z']) then
+           begin SetErr(Unknown_Function,start+sl); DoEval:=ErrCode; exit end;
+          DoEval:=VarEval(E);
+          end;
+       1: DoEval:=FnEval(E)(V1);
+       2: DoEval:=FnEval2(E)(V1,V2);
+       3: DoEval:=FnEval3(E)(V1,V2,V3);
+      end;
+      if EvalueError then
+       begin if A in [1,2,3] then SetErrPos(start+sl+1); DoEval:=ErrCode end;
+      exit;
       end;
    end;
   { Flash <<< }
 
   {Proceed level 1... Brackets}
-  if (s^[start]='(') then
-   if s^[stop]=')' then begin DoEval:=DoEval(start+1, stop-1); exit end;
-                   {else begin DoEval:=1; EvalueError:=True; exit end;}
+  if (s^[start]='(') and (s^[stop]=')') then
+   begin DoEval:=DoEval(start+1, stop-1); exit end;
 
   {Proceed level 0... simple value or variable}
 
   { Flash >>> }
-  if ((s^[stop]<>'H') and (stop-start>0)) or (stop-start=0) then
+  if ((s^[stop]<>'H') and (stop>start)) or (stop=start) then
    begin
    k:=0;
    for i:=start to stop do
     if s^[i] in ['A'..'Z'] then inc(k);
     if (k=stop-start+1) then
-     if IsFunction(s^,start,stop,k) and (k>0) then
-      begin ErrCode:=Argument_Missing; EvalueError:=true; end else
-      begin ErrCode:=Unknown_Function; EvalueError:=true; end
+     begin
+     ErrString:=copy(s^,i,k);
+     if IsFunction(s^,i,stop,k) and (k>0)
+      then SetErr(Argument_Missing,stop+1)
+      else SetErr(Unknown_Function,start);
+     end;
    end;
   { Flash <<< }
 
   if EvalueError then begin DoEval:=ErrCode; exit; end;
 
   if @VGF<>nil then
-   If VGF(Copy(s^,start,stop-start+1), value) then
-    begin DoEval:=value; exit end;
+   If VGF(Copy(s^,start,stop-start+1), V1) then
+    begin DoEval:=V1; exit end;
 
   if s^[start]='-' then begin DoEval:= - DoEval(start+1, stop); exit end;
   if s^[start]='~' then begin DoEval:=not Round(DoEval(start+1, stop)); exit end;
-  if Pos('~',copy(s^,start,stop-start+1))>0 then
-   begin EvalueError:=true; ErrCode:=Operation_Expected; DoEval:=ErrCode; exit end;
+  i:=Pos('~',copy(s^,start,stop-start+1));
+  if i>0 then begin SetErr(Operation_Expected,i); DoEval:=ErrCode; exit end;
 
   {Factorial checking}
   if (stop>1) and (s^[stop]='!') then
    begin
    if s^[stop-1]<>'!' then
-    begin
-    if s^[start]='-' then DoEval:=-dnFact(DoEval(start+1, stop-1))
-    else DoEval:=dnFact(DoEval(start, stop-1));
-    ErrString:='FACT';
-    end
-   else
-    begin
-    if (stop>2) and (s^[stop-2]='!') then
-     begin ErrCode:=Wrong_Argument; EvalueError:=True; ErrString:='FACT'; DoEval:=ErrCode; Exit end
-    else
-     begin
-     if s^[start]='-' then DoEval:=-dnDFact(DoEval(start+1, stop-2))
-     else DoEval:=dnDFact(DoEval(start, stop-2));
-     ErrString:='DFACT';
-     end;
-    end;
+    begin DoEval:=dnFact(DoEval(start, stop-1)); ErrString:='FACT'; Exit end;
+   if (stop>2) and (s^[stop-2]='!') then
+    begin SetErr(Wrong_Argument,0); ErrString:='FACT'; DoEval:=ErrCode; Exit end;
+   DoEval:=dnDFact(DoEval(start, stop-2));
+   ErrString:='DFACT';
    Exit;
    end;
 
-  while (s^[start]='(') or (s^[start] in CmdSign) do inc(start);
-  while (s^[stop]=')') or (s^[stop] in CmdSign) do dec(stop);
-  if GetValue(Copy(s^, Start, stop-start+1), Value) then DoEval:=Value
-  else begin EvalueError:=True; DoEval:=ErrCode; end;
+  if GetValue(Copy(s^, start, stop-start+1), V1)
+   then DoEval:=V1 else DoEval:=ErrCode;
   Dec(Depth); { Flash }
 end;
 { Flash <<< }

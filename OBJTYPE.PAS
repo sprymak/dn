@@ -52,6 +52,9 @@
 //  dn21225-calculator(if)-multilanguage.patch
 //
 //  3.7.0
+//  dn40328-7Zip.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -88,6 +91,7 @@ const
    otZXZArchiver   =      9223;
    otIS3Archiver   =      9224;
    otTGZArchiver   =      9225;
+   otS7ZArchiver   =      9226;
 
 { --- ArcView }
 

@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -364,7 +367,7 @@ begin
   DY := 1 - Random(3);
   DDY := 3 + Random(10);
   Clr := $09;            {JO}
-  SetBlink( ON );
+  SetBlink(True);
   Update;
 end;
 

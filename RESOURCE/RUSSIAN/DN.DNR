@@ -119,6 +119,12 @@
 ;/  dn3421-resource_and_help_fixes.patch
 ;/
 ;/  3.7.0
+;/  dn370-cdplayer(if)-fix_and_improve.patch
+;/  dn370-CompareDir(i)-comparing_directories_improve.patch
+;/  dn370-archives(if)-improve_and_fix.patch
+;/  dn40328-7Zip.patch
+;/
+;/  4.9.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -473,10 +479,11 @@ DIALOG dlgArchiveFiles, 68, 21, 'Архивирование файлов'
       ITEM 'TAR'
       ITEM 'TGZ'
       ITEM 'UC~2~'
-      ITEM 'UFA
+      ITEM 'UFA'
       ITEM '~Z~IP'
       ITEM 'ZOO'
       ITEM 'ZXZ'
+      ITEM '~7~Z'
     END
     Label 3, 7, 'Тип архива', ofPostProcess, ofPreProcess
     RadioButtons 32, 13, 65, 16, ofPostProcess, ofPreProcess
@@ -1285,26 +1292,30 @@ DIALOG dlgFilesAttr, 51, 14, 'Атрибуты файлов'
     Label 3, 2, '~У~ст', ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgCompareDirs, 41, 16, 'Сравнить каталоги'
+DIALOG dlgCompareDirs, 43, 19, 'Сравнить каталоги'
     HELPCTX hcCompareDirs
-    CheckBoxes 3, 3, 28, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 30, 9, ofPostProcess, ofPreProcess
       ITEM 'Сравнить ~р~азмер'
       ITEM 'Сравнить ~в~ремя'
       ITEM 'Сравнить ~а~трибуты'
       ITEM 'Сравнить ~с~одержимое'
+      ITEM 'Сравнить ~п~одкаталоги'
     END
     Label 3, 2, 'Опции', ofPostProcess, ofPreProcess
-    InputLine 3, 9, 35, 10, 255, 0
-    Label 3, 8, 'Маски ~Ф~айлов', ofPostProcess, ofPreProcess
-    History 35, 9, hsFindMask, ofPostProcess
-    RadioButtons 3, 12, 28, 14, ofPostProcess, ofPreProcess
+    InputLine 3, 10, 37, 11, 255, 0
+    Label 3, 9, 'Маски ~Ф~айлов', ofPostProcess, ofPreProcess
+    History 37, 10, hsFindMask, ofPostProcess
+    RadioButtons 3, 13, 28, 15, ofPostProcess, ofPreProcess
       ITEM '~О~тметить '
       ITEM 'Ра~з~отметить'
     END
-    Label 3, 11, 'Режим выбора', ofPostProcess, ofPreProcess
-    Button 29, 3, 39, 5, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 6, 39, 8, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 29, 12, 39, 14, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    Label 3, 12, 'Режим выбора', ofPostProcess, ofPreProcess
+    CheckBoxes 3, 16, 40, 17, ofPostProcess, ofPreProcess
+      ITEM 'Сравнивать ~д~о первого различия'
+    END
+    Button 31, 3, 41, 5, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 31, 5, 41, 7, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 31, 7, 41, 9, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetPassword, 39, 7, 'Введи пароль'
@@ -1366,7 +1377,7 @@ DIALOG dlgViewHistory, 59, 17, 'История просмотра файлов'
     Button 47, 14, 57, 16, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgSetupArc, 62, 22, 'Установки архиватора'
+DIALOG dlgSetupArc, 62, 21, 'Установки архиватора'
     HELPCTX hcArcSetup
     InputLine 13, 2, 30, 3, 255, 0
     Label 3, 2, '~П~аковщик', ofPostProcess, ofPreProcess
@@ -1415,15 +1426,15 @@ DIALOG dlgSetupArc, 62, 22, 'Установки архиватора'
     Label 39, 13, '~М~аксимальная', ofPostProcess, ofPreProcess
     InputLine 17, 15, 20, 16, 1, 0
     Label 2, 15, 'Список фай~л~ов', ofPostProcess, ofPreProcess
-    CheckBoxes 28, 15, 58, 16, ofPostProcess, ofPreProcess
-      ITEM '~С~воп при работе'
+    CheckBoxes 21, 15, 60, 16, ofPostProcess, ofPreProcess
+      ITEM 'Передавать имена каталогов'
     END
-    CheckBoxes 3, 17, 58, 18, ofPostProcess, ofPreProcess
+    CheckBoxes 21, 16, 60, 17, ofPostProcess, ofPreProcess
       ITEM 'Использовать длинные имена файлов'
     END
-    Button 30, 19, 40, 21, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 40, 19, 50, 21, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 50, 19, 60, 21, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    Button 30, 18, 40, 20, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 40, 18, 50, 20, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 50, 18, 60, 20, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSelect, 27, 9, 'Выбор'
@@ -2112,15 +2123,15 @@ STATUSLINE
   StatusDef hcCDplayer, hcCDplayer,
 ;{BASE}
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
-     StatusItem '~P~lay', kbShortCut, cdPlay,
-     StatusItem '~S~top', kbShortCut, cdStop,
-     StatusItem 'pa~U~se', kbShortCut, cdPause,
-     StatusItem '> ~N~ext', kbShortCut, cdNext,
-     StatusItem '< pre~V~', kbShortCut, cdPrev,
-     StatusItem '] ~F~orward', kbShortCut, cdFFwd,
-     StatusItem '[ ~B~ackward', kbShortCut, cdFrew,
-     StatusItem 'e~J~ect', kbShortCut, cdEject,
-     StatusItem '~Z~oom', kbShortCut, cdZoom,
+     StatusItem '~И~грать', kbShortCut, cdPlay,
+     StatusItem '~С~топ', kbShortCut, cdStop,
+     StatusItem 'Па~у~за', kbShortCut, cdPause,
+     StatusItem '> С~л~едующая', kbShortCut, cdNext,
+     StatusItem '< Пре~д~ыдущая~', kbShortCut, cdPrev,
+;     StatusItem '] ~В~перед', kbShortCut, cdFFwd,
+;     StatusItem '[ ~Н~азад', kbShortCut, cdFrew,
+     StatusItem 'В~ы~брос', kbShortCut, cdEject,
+     StatusItem '~Р~аскрыть', kbShortCut, cdZoom,
 ;{ALT-CTRL}
      StatusItem '^~X~ Перезапуск', kbCtrlAltX, cmRestart,
 ;{NO SHOW}
@@ -2555,6 +2566,7 @@ MENU dlgMainMenu
       MenuItem '~Z~IP - PKZIP (C) PKWARE Inc.',                         '', kbNoKey, cmConfigZIP, hcArchives,
       MenuItem 'ZO~O~ - Zoo (C) Rahul Dhesi',                           '', kbNoKey, cmConfigZOO, hcArchives,
       MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev',                  '', kbNoKey, cmConfigZXZ, hcArchives,
+      MenuItem '~7~Z - 7-Zip (C) Igor Pavlov',                          '', kbNoKey, cmConfig7Z,  hcArchives,
      END
     MenuLine
     MenuItem 'Файл быстрого запуска...', '', kbNoKey, cmEditQuickRun, hcOptionsMenu,

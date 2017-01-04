@@ -66,6 +66,13 @@
 //  dn3421-Kernel(i)_AltGr_works_like_Alt.patch
 //
 //  3.7.0
+//  dn370-clock(i)-disable_seconds_in_winnt.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31220-built-in_result_variable.patch
+//  dn40205-FViewer(f)-streams_auto_detect_code_page_fix.patch
+//  dn40307-define_DN_Micro.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -100,7 +107,7 @@ const
 {}SystemMenuChar           : Byte       = 4;
 {}HorizScrollBarChars      : string[6]  = #17#16#177#254#178;         {DataCompBoy}
 {}VertScrollBarChars       : string[6]  = #30#31#177#254#178;         {DataCompBoy}
-{}FadeDelay                : Word       = 0;                                {Knave}
+{}FadeDelay                : Byte       = 0;                                {Knave}
 {}ReflectCopyDirection     : Boolean    = False;
 {}ReuseViewers             : Byte       = 0;                 { 0 - always open new}
 {}ReuseEditors             : Byte       = 0;                 { 1 - prompt for open}
@@ -123,7 +130,9 @@ const
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
 {}{Clock}
+{}AutoDisableSecondsWNT    : Boolean    = True;
 {}ShowSeconds              : Boolean    = True;
+{}BlinkSeparator           : Boolean    = True; {JO}
 {}ShowCentury              : Boolean    = True;
 {}ShowDayOfWeek            : Boolean    = True;
 {}DaysOfWeek               : string[23] = '(use language default)';
@@ -138,7 +147,9 @@ const
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
 {}{Game}
+{$IFDEF GAME}
 {}EnableGame               : Boolean    = True;
+{$ENDIF}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -168,7 +179,7 @@ const
 {}AutoScopeDetect          : Boolean    = True;
 {}ShowBookmarks            : Boolean    = True;
 {}FastBookmark             : Boolean    = True;
-{}DefCodePage              : string[9]  = 'Dos';
+{}DefCodePage              : string[5]  = 'AUTO';
 {}FastSearchDeep           : Longint    = 0;
 {}WinManagerPosToEdit      : Boolean    = True;
 {}AutoBracketPairs         : string     = '()[]{}<>';
@@ -187,7 +198,9 @@ const
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
 {}{NetInfo}
+{$IFDEF NETINFO}
 {}NoLevelsInfo             : Boolean    = False;
+{$ENDIF}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -199,10 +212,12 @@ const
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
 {}{Calendar}
+{$IFDEF CALENDAR}
 {}CalShowOnStartup         : Boolean    = False;                               {PZ}
 {}CalSundayFirst           : Byte       = 2;                         {piwamoto}{PZ}
 {}CalDefaultInfo           : string[30] = '';                                  {PZ}
-{}CalOptionFlags           : Word       = 0;                                   {PZ}
+{}CalOptionFlags           : byte       = 0;                                   {PZ}
+{$ENDIF}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`~~~~~~~~~~~~`,}
 {;                   This is end of parameters definitions                       ;}
 {`.______________________________________________________________________________'}
@@ -258,9 +273,13 @@ const
  CSKernel               :PChar = 'Kernel';
  CSEditor               :PChar = 'Editor';
  CSFilePanels           :PChar = 'FilePanels';
+{$IFDEF NETINFO}
  CSNetInfo              :PChar = 'NetInfo';
+{$ENDIF}
  CSLanguage             :PChar = 'Language';
+{$IFDEF CALENDAR}
  CSCalendar             :PChar = 'Calendar';
+{$ENDIF}
 
 type
   PIniError = ^TIniError;
@@ -386,7 +405,9 @@ begin
   RV(CSInterface, 'HistoryButtonChars',   ikStr,  SizeOf(HistoryButtonChars),   @HistoryButtonChars); {PZ}
   RV(CSInterface, 'ShowCopyTime',         ikBool, SizeOf(ShowCopyTime),         @ShowCopyTime);       {John_SW 22-03-2003}
   {Clock}
+  RV(CSClock,     'AutoDisableSecondsWNT',ikBool, SizeOf(AutoDisableSecondsWNT),@AutoDisableSecondsWNT); { Flash 14-07-2003 }
   RV(CSClock,     'ShowSeconds',          ikBool, SizeOf(ShowSeconds),          @ShowSeconds);
+  RV(CSClock,     'BlinkSeparator',       ikBool, SizeOf(BlinkSeparator),       @BlinkSeparator);
   RV(CSClock,     'ShowCentury',          ikBool, SizeOf(ShowCentury),          @ShowCentury);
   RV(CSClock,     'ShowDayOfWeek',        ikBool, SizeOf(ShowDayOfWeek),        @ShowDayOfWeek);
   RV(CSClock,     'DaysOfWeek',           ikStr,  SizeOf(DaysOfWeek),           @DaysOfWeek);
@@ -394,8 +415,10 @@ begin
   {SmartPad}
   RV(CSSmartPad,  'InsertDate',           ikBool, SizeOf(SPInsertDate),         @SPInsertDate);
   RV(CSSmartPad,  'LineChar',             ikUInt, SizeOf(SPLineChar),           @SPLineChar); {SYR}
+{$IFDEF GAME}
   {Game}
   RV(CSGame,      'EnableGame',           ikBool, SizeOf(EnableGame),           @EnableGame);
+{$ENDIF}
   {Clipboard}
   RV(CSClipboard, 'SaveClipboardOnExit',  ikBool, SizeOf(CBAutoSave),           @CBAutoSave);
   RV(CSClipboard, 'MaxClipboardSize',     ikSInt, SizeOf(CBSize),               @CBSize);
@@ -428,24 +451,28 @@ begin
   RV(CSFilePanels,'LFNCutSide',           ikUInt, SizeOf(LFNCutSide),           @LFNCutSide);         {John_SW 18-01-2003}
   RV(CSFilePanels,'QuickRenameInDialog',  ikBool, SizeOf(QuickRenameInDialog),  @QuickRenameInDialog);
   RV(CSFilePanels,'QuickSearchType',      ikBool, SizeOf(QuickSearchType),      @QuickSearchType);
+{$IFDEF NETINFO}
   {NetInfo}
   RV(CSNetInfo,   'NoLevelsInfo',         ikBool, SizeOf(NoLevelsInfo),         @NoLevelsInfo);
+{$ENDIF}
   {Language}
   RV(CSLanguage,  'ActiveLanguage',       ikStr,  SizeOf(ActiveLanguage),       @ActiveLanguage);
   RV(CSLanguage,  'HelpLanguageOverride', ikStr,  SizeOf(HelpLanguageOverride), @HelpLanguageOverride);
   RV(CSLanguage,  'ShowLanguageMenu',     ikBool, SizeOf(ShowLanguageMenu),     @ShowLanguageMenu);
+{$IFDEF CALENDAR}
   {Calendar}
   RV(CSCalendar,  'ShowOnStartup',        ikBool, SizeOf(CalShowOnStartup),     @CalShowOnStartup);  {PZ}
   RV(CSCalendar,  'SundayFirst',          ikUInt, SizeOf(CalSundayFirst),       @CalSundayFirst);    {PZ}
   RV(CSCalendar,  'DefaultInfo',          ikStr,  SizeOf(CalDefaultInfo),       @CalDefaultInfo);    {PZ}
   RV(CSCalendar,  'OptionFlags',          ikUInt, SizeOf(CalOptionFlags),       @CalOptionFlags);    {PZ}
+{$ENDIF}
 end;
 
 function IniVarToStr ( Kind : TIniItemKind; Size : Word; PVar : Pointer ) : string;
 var
-  result : string;
   b      : Boolean;
   i      : Integer;
+{$IFNDEF RESULT}Var Result: String;{$ENDIF}
 begin
   result := '';
 
@@ -496,7 +523,7 @@ begin
     end;
 
   end;
-  IniVarToStr := result;
+{$IFNDEF RESULT}IniVarToStr:=Result;{$ENDIF}
 end;
 
 function IniStrToVar ( Text : string; Kind : TIniItemKind; Size : Word; PVar : Pointer ) : Boolean;

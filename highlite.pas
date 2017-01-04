@@ -56,6 +56,9 @@
 //  dn270-^char_highlighting-jo21115e.patch
 //
 //  3.7.0
+//  dn31220-Highlite(f)-highlite_in_editor_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1157,6 +1160,7 @@ var
   rules : THiliteRules;
   bc    : set of Char;
 begin
+  If Len = 0 Then Exit; {Nothing to do  John_SW  04-02-2004}
   GetHighliteRules ( Params, rules );
   if (Params.GenFlags and hoCaseSensitive) = 0 then begin
     for i := 0 to Len-1 do

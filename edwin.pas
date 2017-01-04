@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -74,6 +78,7 @@ type
     procedure Store(var S: TStream);
     function Execute: Word; virtual;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure ChangeLanguage; virtual;  {John_SW  23-12-2003}
   end;
 
 implementation
@@ -94,7 +99,7 @@ const
        Load: @TEditSaver.Load;
        Store: @TEditSaver.Store);
 
-       Registered: Boolean = Off;
+       Registered: Boolean = False;
 
 constructor TEditSaver.Load(var S: TStream);
 begin
@@ -114,7 +119,7 @@ begin
   if MaxCommands = 0 then
     begin
       if not Registered then RegisterType(REditSaver);
-      Registered := On;
+      Registered := True;
       P := PEditSaver(LoadResource(dlgEditorCommands));
       P^.Free;
     end;
@@ -167,7 +172,7 @@ end;
 function TEditWindow.Execute;
  var Event: TEvent;
 begin
-  ModalEnd := Off;
+  ModalEnd := False;
   repeat
     GetEvent(Event);
     if Event.What <> evNothing then HandleEvent(Event);
@@ -248,5 +253,34 @@ begin
  inherited SetState(AState,Enable);
  Redraw;
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+procedure TEditWindow.ChangeLanguage;
+Var
+  r: TRect;
+  Pi: PMenuItem;
+begin
+  If MenuBar <> Nil Then Dispose(MenuBar,Done);
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.B.Y := R.A.Y + 1;
+  MenuBar := PMenuBar(LoadResource(dlgEditorMenu));
+  if MenuBar <> nil then MenuBar^.Locate(R);
+  Insert(MenuBar);
+
+  PI := MenuBar^.Menu^.Items;
+  while (PI <> nil) and (PI^.HelpCtx <> hcedOptions) do
+      PI := PI^.Next;
+  if (PI <> nil) then PI := Pointer(PI^.SubMenu);
+  PFileEditor(Intern)^.OptMenu := Pointer(Pi);
+
+  if Title<>nil then DisposeStr(Title);
+  if PFileEditor(Intern)^.SmartPad then begin
+    Title := NewStr('SmartPad(TM) - ' + PFileEditor(Intern)^.EditName);
+  end else if PFileEditor(Intern)^.ClipBrd then begin
+    Title := NewStr('Clipboard');
+  end else Title := NewStr(GetString(dlEditTitle) + ' - ' + PFileEditor(Intern)^.EditName);
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
 
 END.

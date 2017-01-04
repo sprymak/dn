@@ -48,6 +48,12 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn3617-system(f)-set_and_get_window_title_more_correct.patch
+//  dn370-change_dirname_started_with_a_dot.patch
+//  dn31029-window(f)-title_fix.patch
+//  dn31220-Kernel(f)-OEM_title_fix_for_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -56,13 +62,23 @@ Interface
 
  Procedure SetTitle(Text: String);
 
+const WindowTitle: String = ''; { Flash 22-06-2003 }
+
 Implementation
 {$IFDEF WIN32}
-uses Windows;
+uses Windows, Advance, U_KeyMap, VPSysLow;
 Procedure SetTitle(Text: String);
 begin
- Text:='DN - '+Text+#0;
+ { Flash 29-11-2003 >>> }
+ if Pos('DN -',Text)=0 then
+  begin
+  if SysPlatformID = VER_PLATFORM_WIN32_WINDOWS then OEMToChar(@Text, @Text);
+  if Text<>'' then Text:='DN - '+Text else Text:='DN';
+  end;
+ { Flash 29-11-2003 <<< }
+ Text:=Text+#0;
  SetConsoleTitle(@Text[1]);
+ WindowTitle:=Text; { Flash 22-06-2003 }
 end;
 {$ELSE}
 {$IFDEF NONBP}Procedure SetTitle(Text: String); begin end;{$ELSE}
@@ -79,7 +95,11 @@ var r: registers;
  Procedure SetTitle(Text: String);
   begin
       {Setting Win9x application title}
-   Text:=Advance.FormatLongName(Text,79,0,flnUseCutChar,nfmNull,nil)+#0;
+{piwamoto}
+{directory name '.' bugfix by piwamoto}
+   Text := Advance.FormatLongName(Text+#0,80,0,flnUseCutChar,nfmNull,nil);
+{/piwamoto}
+   WindowTitle:=Text;
    r.ax:=$168E;
    r.dx:=$0000;
 {$IFDEF DPMI}

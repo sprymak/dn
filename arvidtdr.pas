@@ -51,6 +51,9 @@
 //  dn3331-Arvid_bugfix_and_TDR_detection.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -171,7 +174,7 @@ var
           F := NewFileRec(MakeFileName(S), {$IFNDEF OS2}MakeFileName(S),{$ENDIF} FF.Size, FF.Time, FF.Attr, @CurDir);
           New(F^.DIZ);
           F^.DIZ^.Owner := nil;
-          F^.DIZ^.isDisposable := On;
+          F^.DIZ^.isDisposable := True;
           F^.DIZ^.Line := SeekPos;
           if FF.Description <> 0 then
             begin

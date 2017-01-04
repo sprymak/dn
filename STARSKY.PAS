@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -262,12 +265,12 @@ procedure StartSky(N: Integer);
  var R: TRect;
 begin
  R.Assign(0,0,ScreenWidth, ScreenHeight);
- SkyVisible := On;
+ SkyVisible := True;
  case N of
   1: Nibbles(R);
   else Loop;
  end;
- SkyVisible := Off;
+ SkyVisible := False;
 end;
 
 procedure Sky;
@@ -299,7 +302,7 @@ var
   var I,j: Integer;
       S: String[3];
  begin
-  SkyVisible := On;
+  SkyVisible := True;
   S := #7#8#15;
   repeat
    if (nl<30) and (Random(5)>3) then
@@ -335,7 +338,7 @@ var
    Application^.GetEvent(Event);
    {$IFDEF OS_DOS}asm int 28h end;{$ENDIF}
   until (Event.What and (evMouse or evKeyDown) <> 0) or (mem[seg0040:$17] <> ks1);
-  SkyVisible := Off;
+  SkyVisible := False;
  end;
 
 begin
@@ -364,7 +367,7 @@ begin
  Ad := Seg(ScreenBuffer^); Os := Ofs(ScreenBuffer^);
  nl:=0; ScrBuf := MemAlloc(ScreenWidth*ScreenHeight*2);
  if ScrBuf = nil then Exit; HideMouse;
- SkyVisible := On;
+ SkyVisible := True;
  Base := Seg(ScrBuf^); Bos := Ofs(ScrBuf^);
  Move(ScreenBuffer^, ScrBuf^, ScreenWidth*ScreenHeight*2);
  for i:=1 to ScreenWidth do
@@ -393,7 +396,7 @@ begin
  ShowMouse;
  {$IFDEF OS_DOS}
  asm mov ah,1; mov cx, OldShape; xor bx, bx; int 10h; end;
- memw[seg0040:$1a]:=memw[seg0040:$1c]; SkyVisible := Off;
+ memw[seg0040:$1a]:=memw[seg0040:$1c]; SkyVisible := False;
  {$ENDIF}
 end;
 

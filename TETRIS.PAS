@@ -51,6 +51,10 @@
 //  dn21225-tetris(if)-multilanguage.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-Game(f)-Tetris_works_in_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -87,6 +91,7 @@ type
      procedure HandleEvent(var Event: TEvent); virtual;
      procedure InsertButtons;
      procedure Store(var S: TStream);
+     procedure ChangeLanguage; virtual;  { Flash 27-01-2004 }
     end;
     { Flash 01-02-2003 <<< }
 
@@ -224,6 +229,7 @@ begin
  btnPause:=New(PButton, Init(R, GetString(dlPauseButton), cmStop, 0));
  Insert(btnPause);
  SelectNext(False);
+ Title := NewStr(GetString(dlTetris));
 end;
 { Flash 01-02-2003 <<< }
 
@@ -443,7 +449,7 @@ begin
     D^.Insert( New( PLabel, Init( R, S, nil)));
   end;
   PP := Stop;
-  Stop := On;
+  Stop := True;
   DeskTop^.ExecView(D);
   Stop := PP;
   Dispose(D,Done);
@@ -509,7 +515,7 @@ begin
   inherited SetState(AState, Enable);
   if not Enable and (AState and (sfActive + sfFocused) <> 0) and
      (Owner^.State and sfActive <> 0) and not Stop and
-     ValidMove(0,0) then Stop := On;
+     ValidMove(0,0) then Stop := True;
 end;
 
 function TGameView.MoveFig;
@@ -694,7 +700,7 @@ procedure TGameView.HandleEvent;
 
  procedure Setup;
  begin
-  Stop := On;
+  Stop := True;
   TetrisRec.L := Level - 1; TetrisRec.S := Byte(Pentix); TetrisRec.P := Byte(Preview);
   if ExecResource(dlgGameSetup, TetrisRec) <> cmOK then Exit;
   StartLevel := TetrisRec.L + 1;
@@ -789,7 +795,6 @@ end;
 constructor TGameWindow.Load(var S: TStream);
 begin
 inherited Load(S);
-Title := NewStr(GetString(dlTetris));
 InsertButtons;
 end;
 
@@ -799,5 +804,13 @@ DeleteButtons;
 inherited Store(S);
 end;
 { Flash 01-02-2003 <<< }
+
+{ Flash 27-01-2004 >>> }
+procedure TGameWindow.ChangeLanguage;
+begin
+ DeleteButtons;
+ InsertButtons;
+end;
+{ Flash 27-01-2004 <<< }
 
 end.

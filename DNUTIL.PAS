@@ -88,6 +88,20 @@
 //  dn3421-DiskEditor(f)-quit_from_DN_fix.patch
 //
 //  3.7.0
+//  dn3617-system(f)-set_and_get_window_title_more_correct.patch
+//  dn3617-output(f)-correct_help_showing.patch
+//  dn31005-DiskEditor(f)-quit_from_DN_in_BANK_Version_fix.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31005-FileView(f)-view_file_temp_file_fix.patch
+//  dn31214-FileView(f)-view_file_temp_file_fix_in_VP.patch
+//  dn31220-kernel(if)-work_with_temporary_files.patch
+//  dn31220-kernel(f)-BatchExtension_fix.patch
+//  dn31220-Kernel(f)-OEM_title_fix_for_VP.patch
+//  dn31220-viewer(f)-save_history_for_archived_files.patch
+//  dn40205-kernel(f)-BatchExtension_fix.patch
+//  dn40328-fix_UC2_AIN_and_DN_micro_improvement.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -109,6 +123,9 @@ var
   RunFirst: Boolean;
   IgnoreOldFiles: Boolean;
 
+const
+  BatchExtension: String[4] = '.BAT';
+
 type
      PDNAppl = ^TDNAppl;
      TDNAppl = object(TApplication)
@@ -123,6 +140,8 @@ type
         procedure OutOfMemory; virtual;
         procedure EventError(var Event: TEvent); virtual;
         procedure HandleCommand(var Event: TEvent);
+        private
+        procedure TextView(FileName, RN: String; Fixed: byte);
      end;
 
 function  CheckExit: Boolean;
@@ -177,12 +196,14 @@ end;
 function CheckExit: Boolean;
  var Event: TEvent;
 {--- start -------- Eugeny Zvyagintzev ---- 19-05-2003 ----}
+{$IFDEF DiskEdit}
      b: Boolean;
  procedure CloseDiskFixer(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
  begin
   If TypeOf(P^) = TypeOf(TFixerWindow) Then Dispose(P,Done);
  end;
-{--- start -------- Eugeny Zvyagintzev ---- 19-05-2003 ----}
+{$ENDIF}
+{--- finish -------- Eugeny Zvyagintzev ---- 19-05-2003 ----}
 
  function FindQuit(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
  begin
@@ -192,9 +213,13 @@ function CheckExit: Boolean;
 begin
 { if FormatWindow <> nil then begin CheckExit := False; Exit; end;}
  Event.What := evCommand; Event.Command := cmQuit;
- b:=Desktop^.FirstThat(@FindQuit) = nil;
+{$IFNDEF DiskEdit}
+ CheckExit := Desktop^.FirstThat(@FindQuit) = nil;
+{$ELSE}
+ b:=(Desktop^.FirstThat(@FindQuit) = nil);
  If b Then Desktop^.ForEach(@CloseDiskFixer); {John_SW 19-05-2003 Quit from DN when DiskFixer is active}
  CheckExit := b;
+{$ENDIF}
 end;
 
 procedure TDNAppl.EventError;
@@ -220,6 +245,97 @@ begin
     StoreExtViewer(string(Param), boolean(AltExt))
 end;
 (* X-Man <<< *)
+
+procedure TDNAppl.TextView(FileName, RN: String; Fixed: byte);
+ var S: String;
+     PS: PString;
+     V: PFileViewer;
+     X: Integer;
+     W: PWindow;
+     I: Integer;
+     P : PViewRecord;
+     R : TRect;
+begin
+  { Flash >>> }
+  S:=RN; X:=PosChar(':',S);
+  if X>2 then
+   begin
+   S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S);
+   if X>0 then
+    begin
+    S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S);
+    if X>0 then S:=Copy(S,X+1,Length(S)-X);
+    end;
+   if S[1]<>'\' then S:='\'+UpStrg(S);
+   end else S:=UpStrg(GetSName(RN)+GetExt(RN));
+  if (UpStrg(GetExt(FileName))='.FLT') and
+     (UpStrg(GetSName(FileName)+GetExt(FileName)) <> S) then
+   begin
+   if (UpStrg(GetCurrentDir)+'\'<>UpStrg(TempDir)) and
+      (not ExistFile(GetCurrentDir+'\'+GetName(RN)) or
+       (FileTime(GetCurrentDir+'\'+GetName(RN))=FileTime(TempDir+GetName(RN)))) then
+    EraseTempFile(TempDir+GetName(RN));
+   if (InterfaceData.Options and ouiTrackViewers <> 0) and (ViewHistory <> nil) then
+    begin
+    S:=CnvString(PViewRecord(ViewHistory^.At(0))^.fName);
+    DelFC(S); RN:=S;
+    end;
+   end;
+  { Flash <<< }
+  W := New(PFileWindow,Init(FileName, RN, ViewerDefaults.Options and vbfHex <> 0));
+  if (W <> nil) and (W^.Valid(cmValid)) then
+    begin
+      V := PFileViewer(W^.Current); S := V^.VFileName; System.Insert(' ', S, 1); UpStr(S);
+      PS := @S;
+      if (InterfaceData.Options and ouiTrackViewers <> 0) and (ViewHistory <> nil)
+        then I := ViewHistory^.IndexOf(@PS) else I := -1;
+      if I >= 0 then
+         if (PViewRecord(ViewHistory^.At(I))^.fViewMode and not vmInternal)>vmAsm then I:=-1;
+      if I >= 0 then
+         begin
+           P := ViewHistory^.At(I);
+           R.Assign(P^.fOrigin.X, P^.fOrigin.Y,
+                    P^.fOrigin.X + P^.fSize.X,
+                    P^.fOrigin.Y + P^.fSize.Y);
+           AdjustToDesktopSize(R, P^.fDeskSize);
+           W^.Locate(R);
+           with V^, P^ do
+            begin
+              if (fPos+fBufPos > FileSize) or { Flash }
+                 (InterfaceData.Options and ouiStoreViewerPosition = 0) then
+              begin
+                fPos := 0;
+                fBufPos := 0;
+              end;
+              Seek(fPos);
+              if XLatFile <> nil then DisposeStr(XLatFile);
+              ViewMode   := fViewMode and not vmInternal;
+              BufPos     := fBufPos;
+              XLatFile   := NewStr(fXlatFile);
+              Filter     := fFilter;
+              HexEdit    := fHexEdit;
+              Wrap       := fWrap;
+              XDelta     := fXDelta;
+              HexPos     := fHexPos;
+              Cur        := fCur;
+              UseXLat    := fUseXLat;
+              KeyMap     := fKeyMap;
+              MarkPos    := fMarks;
+              Loaded     := true;
+              if UseXLat
+               then SetXlatFile(XLatFile^, True)
+               else SetXlatFile('', True);
+              MakeLines;
+            end;
+         end;
+      case Fixed of
+        1: V^.ViewMode := vmText;
+        2: V^.ViewMode := vmHex;
+      end;
+      if Fixed in [1,2] then V^.MakeLines;
+      InsertWindow(W);
+    end;
+end;
 
         {-DataCompBoy-} {AK155} { Flash }
 procedure TDNAppl.ViewFile(FromHistory, AltExt, NoExtFile: boolean; FileName: String); {AK155}
@@ -380,86 +496,6 @@ db:
     SpecialIntView := true;
     end;
 
-  procedure TextView;
-   var S: String;
-       V: PFileViewer;
-       X: Integer;
-  begin
-    { Flash >>> }
-    S:=RN; X:=PosChar(':',S);
-    if X>2 then
-     begin
-     S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S);
-     if X>0 then
-      begin
-      S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S);
-      if X>0 then S:=Copy(S,X+1,Length(S)-X);
-      end;
-     if S[1]<>'\' then S:='\'+UpStrg(S);
-     end else S:=UpStrg(GetSName(RN)+GetExt(RN));
-    if (UpStrg(GetExt(FileName))='.FLT') and
-       (UpStrg(GetSName(FileName)+GetExt(FileName)) <> S) then
-     begin
-     if (UpStrg(GetCurrentDir)+'\'<>UpStrg(TempDir)) and
-        (not ExistFile(GetCurrentDir+'\'+GetName(RN)) or
-         (FileTime(GetCurrentDir+'\'+GetName(RN))=FileTime(TempDir+GetName(RN)))) then
-      EraseTempFile(TempDir+GetName(RN));
-     if (InterfaceData.Options and ouiTrackViewers <> 0) and (ViewHistory <> nil) then
-      begin
-      S:=CnvString(PViewRecord(ViewHistory^.At(0))^.fName);
-      DelFC(S); RN:=S;
-      end;
-     end;
-    { Flash <<< }
-    W := New(PFileWindow,Init(FileName, RN, ViewerDefaults.Options and vbfHex <> 0));
-    if (W <> nil) and (W^.Valid(cmValid)) then
-      begin
-        V := PFileViewer(W^.Current); S := V^.VFileName; System.Insert(' ', S, 1); UpStr(S);
-        PS := @S;
-        if (InterfaceData.Options and ouiTrackViewers <> 0) and (ViewHistory <> nil)
-          then I := ViewHistory^.IndexOf(@PS) else I := -1;
-        If I>=0 then if (PViewRecord(ViewHistory^.At(I))^.fViewMode and not vmInternal)>vmAsm then I:=-1;
-        if I >= 0 then
-           begin
-             P := ViewHistory^.At(I);
-             R.Assign(P^.fOrigin.X, P^.fOrigin.Y,
-                      P^.fOrigin.X + P^.fSize.X,
-                      P^.fOrigin.Y + P^.fSize.Y);
-             AdjustToDesktopSize(R, P^.fDeskSize);
-             W^.Locate(R);
-             with V^, P^ do
-              begin
-                if (fPos+fBufPos > FileSize) or { Flash }
-                   (InterfaceData.Options and ouiStoreViewerPosition = 0) then
-                begin
-                  fPos := 0;
-                  fBufPos := 0;
-                end;
-                Seek(fPos);
-                BufPos     := fBufPos;
-                if XLatFile<>nil then DisposeStr(XLatFile);
-                XLatFile   := NewStr(fXlatFile);
-                ViewMode   := fViewMode and not vmInternal;
-                Filter     := fFilter;
-                HexEdit    := fHexEdit;
-                Wrap       := fWrap;
-                XDelta     := fXDelta;
-                HexPos     := fHexPos;
-                Cur        := fCur;
-                UseXLat    := fUseXLat;
-                KeyMap     := fKeyMap;
-                if UseXLat
-                 then SetXlatFile(XLatFile^, True)
-                 else SetXlatFile('', True);
-                MarkPos   := fMarks;
-                Loaded    := true;
-                MakeLines;
-              end;
-           end;
-        InsertWindow(W);
-      end;
-  end;
-
 begin
    Q:=-1; {JOHN_SW}
    I:=PosChar('|', FileName);
@@ -504,12 +540,13 @@ begin
   по Alt-Shift-F3 (это вообще не здесь) - безусловно текстовый. }
 
    Ext:=(Q=vmAltExt) or AltExt;
+   OldTitle:='';
    if (not NoExtFile) and ((Q in [vmExternal, vmAltExt]) or (Q<0) or AltExt) then
      if ExecExtFile(ExtFileName[Ext],@up,dlLoadingViewer,StoreCallback,RN,Ext) then exit;
    if ((Q>vmAltExt) or (Q<0)) and not AltExt and SpecialIntView then exit;
    if not FromHistory and not AltExt and NoExtFile then
      if ExecExtFile(ExtFileName[Ext],@up,dlLoadingViewer,StoreCallback,RN,Ext) then exit;
-   TextView;
+   TextView(FileName, RN, 0);
    DelFileRec(fr); {Cat}
 end;
         {-DataCompBoy-} {AK155} { Flash }
@@ -641,6 +678,7 @@ PROCEDURE TDNAppl.HandleCommand;
      ST: String;
      W: Word;
      FileIsDBF: Boolean;
+     ViewMode: Byte;
 
      HFile: PHelpFile;
      HelpStrm: PDosStream;
@@ -742,14 +780,11 @@ begin
      cmTextView, cmHexView: begin
                              ST:=CnvString(Event.InfoPtr);
                              W:=PosChar('|', ST);
-                             if W>0
-                              then InsertWindow(New(PFileWindow,
-                                                    Init(Copy(ST, 1, W-1),
-                                                         Copy(ST,W+1,255),
-                                                         Event.Command = cmHexView)))
-                              else InsertWindow(New(PFileWindow,
-                                                    Init(ST, ST,
-                                                         Event.Command = cmHexView)))
+                             if Event.Command = cmTextView then ViewMode := 1 else ViewMode := 2;
+                             if W>0 then
+                               TextView(Copy(ST, 1, W-1), Copy(ST, W+1, 255), ViewMode)
+                             else
+                               TextView(ST, ST, ViewMode)
                             end;
      {$IFDEF MODEM}
      cmAdvancePortSetup: if ExecResource( dlgAdvancedCOMSetup, AdvModemData) = cmOK then
@@ -785,11 +820,7 @@ begin
                   ST := FreeStr;
                   if CheckExit then
                   begin
-                  {$IFNDEF OS2}
-                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + ST;
-                  {$ELSE}
-                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD ' + ST;
-                  {$ENDIF}
+                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension+' '+ST;
                    ExecString(@ST,'');
                   end;
                 end;
@@ -813,12 +844,12 @@ begin
      cmRefresh: Redraw;
      cmClearDesktop: GlobalMessage(evCommand, cmClose, nil);
      cmFileView:    if (SystemData.Options and ossViewer = 0) then
-                     ViewFile(Off, Off, Off, CnvString(Event.InfoPtr))
+                     ViewFile(False, False, False, CnvString(Event.InfoPtr))
                     else
-                     ViewFile(Off, Off, On, CnvString(Event.InfoPtr));
+                     ViewFile(False, False, True, CnvString(Event.InfoPtr));
      cmFileEdit: EditFile(True, CnvString(Event.InfoPtr));
-     cmViewFilter: ViewFile(Off, On, On, CnvString(Event.InfoPtr));{piwamoto} { Flash }
-     cmIntFileView: ViewFile(Off, On, Off, CnvString(Event.InfoPtr)); (* X-Man *) { Flash }
+     cmViewFilter: ViewFile(False, True, True, CnvString(Event.InfoPtr));{piwamoto} { Flash }
+     cmIntFileView: ViewFile(False, True, False, CnvString(Event.InfoPtr)); (* X-Man *) { Flash }
      cmIntFileEdit: EditFile(False, CnvString(Event.InfoPtr));
      cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.XRN');
      cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.EXT');
@@ -854,34 +885,47 @@ begin
      if PosChar(TempFileSWP[1], '+-=<>|[!') = 0  then
       begin lAssignFile(F, TempFileSWP); lSetFAttr(F, $20);  lEraseFile(F); end
       else
-  begin
+       begin
         PJ := TempFileSWP;
-        TempFile := Copy(PJ,2,255);
-        QQ := Pos('|', TempFile); Dec(QQ);
-        if QQ>0 then Q:=Copy(TempFile, QQ+2, 255) else Q:='';
-        QQ := QQ and 255; {BP bugfix by piwamoto}
+{John_SW  7-10-2003: Extract correct file name first!}
+        if TempFile[1]='|' then TempFile:=Copy(TempFile,2,Length(TempFile)-1);
+        QQ := Pos('|', TempFile);
+        if QQ>0 then
+         begin
+          Q:=Copy(TempFile, QQ, 255);
+          TempFile:=Copy(PJ,2,QQ-1);
+         end
+        else Q:='';
+        if TempFile[Length(TempFile)]='|' then TempFile:=Copy(TempFile,1,Length(TempFile)-1);
+
         If Not ExistFile(TempFile) then TempFile:=GetfURZ(Copy(PJ,2,QQ));
         If Not ExistFile(TempFile) then TempFile:=GetfURZ2(Copy(PJ,2,QQ));
         If Not ExistFile(TempFile) then TempFile:=GetGLUKName(Copy(PJ,2,QQ));
-        If Not ExistFile(TempFile) then TempFile:=Copy(PJ,2,QQ);
+        If Not ExistFile(TempFile) then TempFile:=Copy(PJ,2,255);
         case PJ[1] of
           '-': CC := cmIntFileView;
-          '=': CC := cmDBFView;
-          '>': CC := cmWKZView;
           '<': CC := cmTextView;
           '|': CC := cmHexView;
+{$IFDEF DBView}
+          '=': CC := cmDBFView;
+{$ENDIF}
+{$IFDEF SpreadSheet}
+          '>': CC := cmWKZView;
+{$ENDIF}
+{$IFNDEF MINARCH}
           '[': CC := cmReadArchive;
+{$ENDIF}
           '!': CC := cmViewFilter;
           else CC := cmFileView;
         end;
-        if CC <> 0 then
-                    begin
-                      if Q<>'' then TempFile:=TempFile+'|'+Q;
-                      Event.What := evCommand;
-                      Event.Command := CC;
-                      Event.InfoPtr := @TempFile;
-                      PutEvent(Event);
-                     end;
+{Commented by John_SW  7-10-2003: CC never equals zero!
+{        if CC <> 0 then begin}
+        if Q<>'' then TempFile:=TempFile+Q;
+        Event.What := evCommand;
+        Event.Command := CC;
+        Event.InfoPtr := @TempFile;
+        PutEvent(Event);
+{                     end;}
         RunMenu := False;
        end;
 {$ENDIF}               {JO changes end}
@@ -951,15 +995,7 @@ begin
                  ClearEvent(Event);
                  { Flash >>> }
                  if GrabberActive and HelpInUse then Exit;
-                 if Desktop^.Current <> nil then
-                  begin
-                  if TypeOf(Desktop^.Current^) = TypeOf(TWhileView) then
-                   Title:=PWhileView(Desktop^.Current)^.Top else
-                  if Desktop^.Current^.ObjectID <> TViewID then
-                   Title:=PWindow(DeskTop^.Current)^.GetTitle(255) else
-                  Title:=CurrentDirectory;
-                  end
-                  else Title:='';
+                 Title:=WindowTitle;
                  { Flash <<< }
                  if (not HelpInUse) or (HelpWnd=nil) then
                  begin
@@ -993,7 +1029,7 @@ begin
                          (Desktop^.Current^.GetState(sfModal)) or
                          (Desktop^.Current^.GetState(sfDragging))
                         )
-                       ) or MenuActive or GrabberActive
+                       ) or MenuActive or GrabberActive or OutputActive { Flash 25-06-2003 }
                      then ExecView(HelpWnd)
                      else begin
                            HelpWnd^.SetState(sfModal, false);

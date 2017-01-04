@@ -51,6 +51,9 @@
 //  dn3331-colors(f)-preserve_groups_position.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1102,7 +1105,7 @@ begin
                else DisableCommands([cmPalVGA]);
   {!! IB}
   for len := apColor to apMonochrome do OldColors[len] := NewStr(SystemColors[len]);
-  DefaultColorsFlag := off;
+  DefaultColorsFlag := False;
   len := Byte(CurrentBlink)*2;
   if DefaultColors <> nil then DefaultColors^.SetData(len);
 end;
@@ -1124,7 +1127,7 @@ begin
   begin
    CurrentBlink := not CurrentBlink;
    SetBlink(CurrentBlink);
-   ConfigModified := On;
+   ConfigModified := True;
   end;
 
  if DefaultColors^.Mark(0) <> DefaultColorsFlag then

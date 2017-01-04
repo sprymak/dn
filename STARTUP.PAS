@@ -63,6 +63,11 @@
 //  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn40307-define_DN_Micro.patch
+//  dn40328-7Zip.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -123,7 +128,7 @@ CONST
                                                     {Desktop for 2.0.0}
   CFGVer: AWord = 0; {John_SW 21-01-2003}
   Security: Boolean = True;
-  ConfigModified: Boolean = Off;
+  ConfigModified: Boolean = False;
   DateMode: Byte = 0;
   SkyDelay: Byte = 1;
 
@@ -665,9 +670,11 @@ begin
 {supported archives in order of appearance}
                         'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
                         'lha;ice;lzh;lim;ark;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
-                        'zip;zoo;$z;zxz;'+
-{arvid}
-                        'avt;tdr;';
+                        'zip;zoo;$z;zxz;7z;'
+{$IFDEF ARVID}
+                       +'avt;tdr;'
+{$ENDIF}
+                        ;
 {unsupported archives}
 {                        'j;777;acb;boa;imp';}
 

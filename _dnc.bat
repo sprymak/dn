@@ -47,70 +47,67 @@
 ::
 ::  Version history:
 ::
-::  2.0.0
+::  4.9.0
 ::
 :://///////////////////////////////////////////////////////////////////////
 @Echo off
-if not exist exe\nul md exe
 
 set vppath=c:\vp21
-set os=w32
+if %Host% == .. Set Host=w32
 
-Echo -------- Preparing compiling...
-if exist exe\vp\nul goto endpr
-if not exist exe\vp\nul md exe\vp
-copy %vppath%\units.%os%\Sysutils.* exe\vp >nul
-copy %vppath%\units.%os%\Vpsyslow.* exe\vp >nul
-copy %vppath%\units.%os%\system.*   exe\vp >nul
-copy %vppath%\units.%os%\use32.*    exe\vp >nul
-copy %vppath%\units.%os%\dos.*      exe\vp >nul
-copy %vppath%\units.%os%\windows.*  exe\vp >nul
-copy %vppath%\units.%os%\vpkbdw32.* exe\vp >nul
-copy %vppath%\units.%os%\exehdr.*   exe\vp >nul
-copy %vppath%\units.%os%\strings.*  exe\vp >nul
-copy %vppath%\units.%os%\vputils.*  exe\vp >nul
-copy %vppath%\units.%os%\crt.*      exe\vp >nul
-copy %vppath%\lib.%os%\import32.*   exe\vp >nul
-copy %vppath%\res.%os%\sysutils.*   exe\vp >nul
-:endpr
+if [%target%]==[] set target=%Host%
+set T=O
+if [%Target%]==[OS2] goto end_Target
+set T=W
+if [%Target%]==[W32] goto end_Target
+set T=D
+if [%Target%]==[D32] goto end_Target
+goto Help
+:end_Target
+
+
+if not exist exe.%Host%\nul md exe.%Host%
+if not exist out.%Host%\nul md out.%Host%
 
 Echo -------- Compiling VERSION.EXE
-if exist exe\version.exe goto dover
-vpc version /b /q
+if exist exe.%Host%\version.exe goto dover
+%vppath%\bin.%Host%\vpc version /b /q
 if errorlevel 1 goto ex
-if exist exe\tvhc.exe del exe\thvc.exe
+if exist exe.%Host%\tvhc.exe del exe.%Host%\thvc.exe
 :dover
-exe\version.exe exe\version.inc
+exe.%Host%\version.exe exe.%Host%\version.inc
 
-if exist exe\tvhc.exe goto comphelp
+if exist exe.%Host%\tvhc.exe goto comphelp
 Echo -------- Compiling TVHC.EXE
-vpc tvhc /b /q
+%vppath%\bin.%Host%\vpc tvhc /b /q
 if errorlevel 1 goto ex
-del exe\*.vpi
-del exe\*.lib
 :comphelp
-if exist exe\*.hlp goto endcomp
-exe\tvhc resource\english\dnhelp.htx exe\english.hlp exe\dnhelp.pas /4DN_OSP
-exe\tvhc resource\russian\dnhelp.htx exe\russian.hlp exe\dnhelp.pas /4DN_OSP
-exe\tvhc resource\hungary\dnhelp.htx exe\hungary.hlp exe\dnhelp.pas /4DN_OSP
+if exist out.%Host%\*.hlp goto endcomp
+Echo -------- Compiling help files
+exe.%Host%\tvhc resource\english\dnhelp.htx out.%Host%\english.hlp exe.%Host%\dnhelp.pas /4DN_OSP
+exe.%Host%\tvhc resource\russian\dnhelp.htx out.%Host%\russian.hlp exe.%Host%\dnhelp.pas /4DN_OSP
+exe.%Host%\tvhc resource\hungary\dnhelp.htx out.%Host%\hungary.hlp exe.%Host%\dnhelp.pas /4DN_OSP
 :endcomp
 
-if exist exe\rcp.exe goto dores
+if exist exe.%Host%\rcp.exe goto dores
 Echo -------- Compiling RCP.EXE
-vpc rcp /b /dRCP /q
+%vppath%\bin.%Host%\vpc rcp /b /dRCP /q
 if errorlevel 1 goto ex
-del exe\*.vpi
-del exe\*.lib
 :dores
-if exist exe\*.dlg goto endres
-exe\rcp
+if exist out.%Host%\*.dlg goto endres
+exe.%Host%\rcp
 :endres
 
 Echo -------- Compiling DN.EXE
-vpc dn /b /dDN;DNPRG /q
-if not %1.==debug. goto ex
-copy *.* exe\*.*
-copy vp.vpo exe\*.*
-cd exe
-vp
+%vppath%\bin.%Host%\vpc dn /b /dDN;DNPRG /q /c%T% /eOut.%Host%
+if errorlevel 1 goto ex
+
+Goto Ex1
 :ex
+Echo Error was founded!
+:Ex1
+Exit
+
+:Help
+@echo Переменная Host должна указывать текущую платформу (OS2, W32),
+@echo Переменная Target должна указывать целевую платформу (OS2, W32).

@@ -104,6 +104,11 @@
 ;/  dn3421-resource_and_help_fixes.patch
 ;/
 ;/  3.7.0
+;/  dn370-CompareDir(i)-comparing_directories_improve.patch
+;/  dn370-archives(if)-improve_and_fix.patch
+;/  dn40328-7Zip.patch
+;/
+;/  4.9.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -689,6 +694,7 @@ MENU dlgMainMenu
       MenuItem 'Z~I~P - PKZIP (C) PKWARE Inc.',                         '', kbNoKey, cmConfigZIP, hcArchives,
       MenuItem 'Z~O~O - Zoo (C) Rahul Dhesi',                           '', kbNoKey, cmConfigZOO, hcArchives,
       MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev',                  '', kbNoKey, cmConfigZXZ, hcArchives,
+      MenuItem '~7~Z - 7-Zip (C) Igor Pavlov',                          '', kbNoKey, cmConfig7Z,  hcArchives,
      END
     MenuLine
     MenuItem 'DN.~X~RN szerkesztÇse...', '', kbNoKey, cmEditQuickRun, hcOptionsMenu,
@@ -1626,10 +1632,11 @@ DIALOG dlgArchiveFiles, 69, 21, 'Sñr°tett f†jl kÇsz°tÇse'
       ITEM 'TAR'
       ITEM 'TGZ'
       ITEM 'UC2'
-      ITEM 'UFA
+      ITEM 'UFA'
       ITEM 'ZIP'
       ITEM 'ZOO'
       ITEM 'ZXZ'
+      ITEM '~7~Z'
     END
     Label 3, 7, 'Sñ~r~°tì t°pusok', ofPostProcess, ofPreProcess
     RadioButtons 33, 13, 67, 16, ofPostProcess, ofPreProcess
@@ -2451,26 +2458,30 @@ DIALOG dlgFilesAttr, 55, 11, 'Tîbb f†jl attrib£tumainak v†lt†sa'
     selectback
 END
 
-DIALOG dlgCompareDirs, 44, 16, 'Kînyvt†rak îsszehasonl°t†sa'
+DIALOG dlgCompareDirs, 43, 19, 'Kînyvt†rak îsszehasonl°t†sa'
     HELPCTX hcCompareDirs
-    CheckBoxes 2, 3, 27, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 30, 9, ofPostProcess, ofPreProcess
       ITEM '~M~Çret szerint'
       ITEM '~I~dì szerint'
       ITEM '~A~ttrib£tum szerint'
       ITEM '~T~artalom szerint'
+      ITEM '~C~ompare subdirectories'
     END
-    Label 2, 2, 'ôsszehasonl°t†s', ofPostProcess, ofPreProcess
-    InputLine 2, 9, 37, 10, 255, 0
-    Label 2, 8, '~F~†jl maszk', ofPostProcess, ofPreProcess
-    History 37, 9, hsFindMask, ofPostProcess
-    RadioButtons 2, 12, 29, 14, ofPostProcess, ofPreProcess
+    Label 3, 2, 'ôsszehasonl°t†s', ofPostProcess, ofPreProcess
+    InputLine 3, 10, 37, 11, 255, 0
+    Label 3, 9, '~F~†jl maszk', ofPostProcess, ofPreProcess
+    History 37, 10, hsFindMask, ofPostProcess
+    RadioButtons 3, 13, 28, 15, ofPostProcess, ofPreProcess
       ITEM '~E~gyezìket jelîlÇse'
       ITEM 'KÅ~l~înbîzìket jelîlÇse'
     END
-    Label 2, 11, 'KijelîlÇs m¢dja', ofPostProcess, ofPreProcess
-    Button 30, 3, 40, 5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 30, 6, 40, 8, '~M~Çgsem', cmCancel, ofPostProcess, ofPreProcess
-    Button 30, 13, 40, 15, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
+    Label 3, 12, 'KijelîlÇs m¢dja', ofPostProcess, ofPreProcess
+    CheckBoxes 3, 16, 40, 17, ofPostProcess, ofPreProcess
+      ITEM 'Compare ~u~p to the first mismatch'
+    END
+    Button 31, 3, 41, 5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 31, 5, 41, 7, '~M~Çgsem', cmCancel, ofPostProcess, ofPreProcess
+    Button 31, 7, 41, 9, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetPassword, 39, 7, 'Jelsz¢ bevitel'
@@ -2606,11 +2617,11 @@ DIALOG dlgSetupArc, 67, 21, 'Sñr°tìk be†ll°t†sa'
     InputLine 57, 12, 65, 13, 1, 0
     Label 41, 12, 'Lis~t~a karakter', ofPostProcess, ofPreProcess
 
-    CheckBoxes 37, 14, 65, 15, ofPostProcess, ofPreProcess
-      ITEM 'Mem¢ria ~f~elszabad°t†sa'
+    CheckBoxes 35, 14, 65, 15, ofPostProcess, ofPreProcess
+      ITEM 'Pass names of directories'
     END
 
-    CheckBoxes 37, 16, 65, 17, ofPostProcess, ofPreProcess
+    CheckBoxes 35, 15, 65, 16, ofPostProcess, ofPreProcess
       ITEM 'Haszn†lj LFN~-~t'
     END
 

@@ -52,6 +52,9 @@
 //  dn3331-Kernel(f)-collections_memory_leak_fix.patch
 //
 //  3.7.0
+//  dn31029-Kernel(f)-FirstThat_and_ForEach_methods_in_VP_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -600,6 +603,7 @@ begin
   {RunError(212 - Code);}
 end;
 
+{$IFNDEF VIRTUALPASCAL}
 function TCollection.FirstThat(Test: Pointer): Pointer;
 var
   I: LongInt;
@@ -627,6 +631,116 @@ begin
    if C = Count then inc(I) else C := Count;
   end;
 end;
+{$ELSE}
+ {$IFDEF BIT_32}
+{AK155: replace with TCollection.FirstThat from VP2.1 Objects.pas }
+function TCollection.FirstThat(Test: Pointer): Pointer; assembler; {$USES ebx} {$FRAME-}
+asm
+                mov     edx,Self
+                mov     ecx,[edx].TCollection.Count
+                jecxz   @@3
+                mov     ebx,Test
+                mov     edx,[edx].TCollection.Items
+              @@1:
+                push    edx
+                push    ecx
+                push    DWord Ptr [edx]         { [1]:Pointer = Item }
+                Call    ebx
+                pop     ecx
+                pop     edx
+                test    al,al
+                jnz     @@2
+                add     edx,4
+                loop    @@1
+                jmp     @@3
+              @@2:
+                mov     ecx,[edx]
+              @@3:
+                mov     eax,ecx
+end;  {/AK155}
+
+{AK155: pick ForEach from VP 2.1.231 RTL source}
+procedure TCollection.ForEach(Action: Pointer); assembler; {$USES ebx} {$FRAME-}
+asm
+                mov     edx,Self
+                mov     ecx,[edx].TCollection.Count
+                jecxz   @@2
+                mov     ebx,Action
+                mov     edx,[edx].TCollection.Items
+              @@1:
+                push    edx
+                push    ecx
+                push    DWord Ptr [edx]         { [1]:Pointer = Item }
+                Call    ebx
+                pop     ecx
+                pop     edx
+                add     edx,4
+                loop    @@1
+              @@2:
+end; {/AK155}
+  {$ELSE BIT_32}
+function TCollection.FirstThat(Test: Pointer): Pointer; assembler;
+asm
+        LES     DI,Self
+        MOV     CX,ES:[DI].TCollection.Count
+        JCXZ    @@2
+        LES     DI,ES:[DI].TCollection.Items
+@@1:    PUSH    ES
+        PUSH    DI
+        PUSH    CX
+        PUSH    WORD PTR ES:[DI+2]
+        PUSH    WORD PTR ES:[DI]
+{$IFDEF Windows}
+        MOV     AX,[BP]
+        AND     AL,0FEH
+        PUSH    AX
+{$ELSE}
+        PUSH    WORD PTR [BP]
+{$ENDIF}
+        CALL    Test
+        POP     CX
+        POP     DI
+        POP     ES
+        OR      AL,AL
+        JNE     @@3
+        ADD     DI,4
+        LOOP    @@1
+@@2:    XOR     AX,AX
+        MOV     DX,AX
+        JMP     @@4
+@@3:    MOV     AX,ES:[DI]
+        MOV     DX,ES:[DI+2]
+@@4:
+end;
+
+procedure TCollection.ForEach(Action: Pointer); assembler;
+asm
+        LES     DI,Self
+        MOV     CX,ES:[DI].TCollection.Count
+        JCXZ    @@2
+        LES     DI,ES:[DI].TCollection.Items
+@@1:    PUSH    ES
+        PUSH    DI
+        PUSH    CX
+        PUSH    WORD PTR ES:[DI+2]
+        PUSH    WORD PTR ES:[DI]
+{$IFDEF Windows}
+        MOV     AX,[BP]
+        AND     AL,0FEH
+        PUSH    AX
+{$ELSE}
+        PUSH    WORD PTR [BP]
+{$ENDIF}
+        CALL    Action
+        POP     CX
+        POP     DI
+        POP     ES
+        ADD     DI,4
+        LOOP    @@1
+@@2:
+end;
+  {$ENDIF}
+{$ENDIF VIRTUALPASCAL}
 
 procedure TCollection.Free(Item: Pointer);
 begin

@@ -83,6 +83,9 @@
 //  dn3421-DBF_WKZ(f)-find_settings_store_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -355,7 +358,7 @@ begin
   if Failed(FileIsDBF) then isValid:=false else if isValid then TempFile := '';
   KeyMap:=kmAscii; {John_SW 14-03-2003}
   XlatFile := nil;              {John_SW 18-03-2003}
-  NullXLAT(XLat); UseXLat:=Off; {John_SW 18-03-2003}
+  NullXLAT(XLat); UseXLat:=False; {John_SW 18-03-2003}
 end;
         {-DataCompBoy-}
 
@@ -593,7 +596,7 @@ begin
     S.Done;
   end;
   if aFName='' then begin
-    UseXLat:=Off;
+    UseXLat:=False;
     if not GetToAsciiRecodeTable ( KeyMap, XLat ) then
       NullXLAT(XLat);
   end;
@@ -655,11 +658,11 @@ procedure TDBViewer.HandleEvent;
    if FN <> '' then FN := FN + '.xlt';
    More := True;
    None := UseXlat;
-   FN := GetFileNameMenu(SourceDir+'XLT\','*.XLT', FN, On, More, None);
+   FN := GetFileNameMenu(SourceDir+'XLT\','*.XLT', FN, True, More, None);
    if None then begin
     KeyMap:=kmAscii;
-    SetXlatFile('', On);
-    UseXlat := Off;
+    SetXlatFile('', True);
+    UseXlat := False;
     DisposeStr(XlatFile); XlatFile:=nil;
     Exit;
    end;
@@ -669,8 +672,8 @@ procedure TDBViewer.HandleEvent;
                                         fdOKButton + fdHelpButton,
                                         hsOpenXLT);
    DisposeStr(XlatFile); XlatFile:=nil;
-   if FN <> '' then SetXlatFile(FN, On)
-   else if UseXlat then SetXlatFile(OldFN, On); {JOHN_SW}
+   if FN <> '' then SetXlatFile(FN, True)
+   else if UseXlat then SetXlatFile(OldFN, True); {JOHN_SW}
  end; {JO}
 
  procedure NextXLat;
@@ -682,7 +685,7 @@ procedure TDBViewer.HandleEvent;
     kmKoi8r: KeyMap := kmAscii;
     else     KeyMap := kmAscii;
   end;
-  SetXlatFile('', On); {John_SW 18-03-2003}
+  SetXlatFile('', True); {John_SW 18-03-2003}
  end;
 {--- finish -------- Eugeny Zvyagintzev ---- 14-03-2003 ----}
 
@@ -778,7 +781,7 @@ procedure TDBViewer.HandleEvent;
   PV^.GetPalette^ := CScrollBar;
 
   R.Assign(2, 2, D^.Size.X-2, D^.Size.Y-4);
-  PV := New(PNFileViewer, Init(R, MemoStream, '', '', PV, False, Off));
+  PV := New(PNFileViewer, Init(R, MemoStream, '', '', PV, False, False));
 
   PNFileViewer(PV)^.KeyMap := KeyMap;      {John_SW 14-03-2003}
   PNFileViewer(PV)^.UseXLat := UseXLat;    {John_SW 18-03-2003}

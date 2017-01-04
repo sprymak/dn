@@ -59,6 +59,9 @@
 //  dn21116-cmdline(f)-short_prompt_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -150,7 +153,7 @@ var MM: record
 begin
  Inc(SkyEnabled);
  repeat
-  Abort := Off; NeedAbort := On;
+  Abort := False; NeedAbort := True;
   lGetDir(0, Dir); {DataCompBoy}
   if Abort then
    begin
@@ -168,11 +171,11 @@ begin
       if ValidDrive(MM.S[1]) then
        begin SetCurDrive(MM.S[1]); Break; end;
     until False;
-    Abort := On;
+    Abort := True;
    end;
  until not Abort;
  Dec(SkyEnabled);
- NeedAbort := Off;
+ NeedAbort := False;
  if (Dir[0] > #3) and (Dir[Length(Dir)] = '\') then Dec(Dir[0]);
  ActiveDir := Dir;
  FullDir:='';
@@ -291,7 +294,7 @@ procedure TCommandLine.HandleEvent;
  begin
    if not GetState(sfVisible) and (Str <> '') then
       begin
-        ToggleCommandLine(On);
+        ToggleCommandLine(True);
       end;
  end;
 
@@ -412,7 +415,7 @@ begin
                                     not GetState(sfVisible) and (Str = '')
                                       then begin
                                              Str := ' ';
-                                             ToggleCommandLine(On);
+                                             ToggleCommandLine(True);
                                              Str := '';
                                            end;
                                  CE2
@@ -434,7 +437,7 @@ begin
                                    begin
                                     AddCommand(Str);
                                     CurString := CmdStrings^.Count; { Flash }
-                                    StrModified := Off;
+                                    StrModified := False;
                                    end;
                                   if CurString > 0 then Dec(CurString);
                                   Str := GetCommand(CurString);
@@ -448,7 +451,7 @@ begin
                                      begin
                                        AddCommand(Str);
                                        CurString := CmdStrings^.Count;
-                                       StrModified := Off;
+                                       StrModified := False;
                                      end;
                                      Str := GetCommand(CurString);
                                      if Str <> '' then Inc(CurString);

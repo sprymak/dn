@@ -96,6 +96,13 @@
 ;/  dn3421-resource_and_help_fixes.patch
 ;/
 ;/  3.7.0
+;/  dn3617-system(f)-set_and_get_window_title_more_correct.patch
+;/  dn370-cdplayer(if)-fix_and_improve.patch
+;/  dn370-CompareDir(i)-comparing_directories_improve.patch
+;/  dn370-calculator(i)_optimization.patch
+;/  dn31220-interface(i)-confirmation_to_reuse_bookmark.patch
+;/
+;/  4.9.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -319,7 +326,7 @@ dlFlushingBuffers,          'Сброс буферов'
 dlBytesOf                   ' байт из '
 
 dlFCCheckingDirs            'Проверка каталога...'
-dlComparing                 ^M^M^C'Сравниваются файлы...'
+dlComparing                 'Сравниваются файлы...'
 dlFCCopy,                   'Копирование'
 dlFCMove,                   'Переименовать/Переместить'
 dlFCItself,                 ^M^C'Нельзя копировать в себя'
@@ -702,6 +709,11 @@ dlCDPlayerNoCD             'В проигрывателе отсутствует диск'
 dlCDTrack                  'Мелодия'
 dlCDPlayTrack              'Выбор мелодии'
 dlCDSelectTrack            'Мелодии'
+dlCDNTWarning              ^C'Эта функция не работает под Windows NT'^M+
+                           ^C'из-за ограничений в виртуальной машине DOS.'
+dlCDNoMixerSet             ^C'Внешняя программа управления звуком не задана.'
+dlCDNoDiskInfo             ^C'Информация о диске недоступна'^M+
+                           ^C'из-за системных ограничений.'
 
 dlCDTrackButton            '~М~елодии'
 dlCDAddButton              '~Д~обавить'
@@ -714,6 +726,7 @@ dlCDTrackTime              'Проиграно'
 dlCDTrackLeft              'Осталось'
 dlCDDiskTime               'Всего проиграно'
 dlCDDiskLeft               'Всего осталось'
+dlCDTrackLength            'Длительность'
 
 dlCDButtonRew              '~~'
 dlCDButtonPrev             '~<~'
@@ -1278,7 +1291,8 @@ dlIniDataTooLong        'Длина строки превышена на %d символ(ов) в DN.INI, секци
 ;Flash >>>
 clStack_Overflow          = 'Переполнение стека';
 clToo_Large_Number        = 'Число выходит за допустимые границы';
-clArgument_Missing        = 'Пропущен аргумент функции';
+clArgument_Missing        = 'Пропущен аргумент ';
+clToo_Many_Arguments      = 'Слишком много аргументов ';
 clSyntax_Error            = 'Ошибка синтаксиса';
 clUnknown_Function        = 'Строка содержит неизвестную функцию';
 clLeft_Bracket_Missing    = 'Отсутствует левая скобка';
@@ -1286,8 +1300,6 @@ clRight_Bracket_Missing   = 'Отсутствует правая скобка';
 clOperation_Expected      = 'Пропущен знак операции';
 clUnknown_Symbol          = 'Строка содержит недопустимый символ';
 clTwo_Operations          = 'Две операции подряд';
-clComma_Missing           = 'Не хватает запятой';
-clToo_Many_Commas         = 'Слишком много запятых';
 clIncorrect_Usage         = 'Неверное использование функции ';
 clDivision_By_Zero        = 'Деление на ноль';
 clLOG_Wrong_Base          = 'Неверное основание логарифма';
@@ -1310,6 +1322,7 @@ dlQuickDirDel,       ^C'Удалить каталог быстрого доступа?'
 dlHistDelCurDir,     ^C'Невозможно удалить текущий каталог'
 dlIncorrectDirNum,   ^C'Некорректный номер каталога'
 dlCopyTimeSpeed,     'Прошло: %s   Осталось: %s   Скорость: %sб/с'
+dlFoldersDiffers,    ^C'Каталоги отличаются друг от друга!'
 ;JOHN_SW end
 
 ;KV+
@@ -1331,3 +1344,7 @@ dlIncorrectPanelSettings = ^C'Неверное значение количества символов,'^M+
                            ^C'отводящихся под имя и расширение.'; Flash
 
 dlPasswordsDiffer = ^C'Пароли не совпадают!'; Flash
+
+dlUserMenuTitle = 'Меню пользователя'; Flash
+
+dlBookmarkAlreadyUsed = ^C'Эта закладка уже используется.'^M^C'Продолжить?'; Flash 27-01-2004

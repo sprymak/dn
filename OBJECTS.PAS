@@ -54,6 +54,9 @@
 //  dn21202-help_showing_improve.patch
 //
 //  3.7.0
+//  dn31220-Kernel(f)-file_open_fix_in_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -772,10 +775,8 @@ begin
                    end;
     end;
     FileMode:=OM;
-    If IOResult = 0 then begin
-      StreamSize:=FileSize(FHandle.F);
-      Success := IOResult;
-    end else Success:=103;
+    Success := IOResult;
+    If Success = 0 then StreamSize:=FileSize(FHandle.F);
   end;
   if (Success <> 0) then begin
     if PHandle=0 then PHandle:=-1;

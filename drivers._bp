@@ -54,12 +54,16 @@
 //  dn3421-Kernel(f)-8_and_2_on_key_pad_fix.patch
 //
 //  3.7.0
+//  dn370-clock(i)-disable_seconds_in_winnt.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
 var
   Ticks: Word absolute $40:$6C;
   SaveExit: Pointer;
+  ShiftWasPressed: Boolean;  {John_SW 13-07-2003}
 
 {$IFDEF DNPRG}
 Procedure FatalError ;
@@ -480,10 +484,36 @@ end;
 
 
 procedure GetKeyEvent;
+Var
+   B: TDrawBuffer;
+   C: Byte;
+   MemStr: String;
 begin
   ShiftState:=mem[Seg0040:$17];
   ShiftState2:=mem[Seg0040:$18];
   _GetKeyEvent(Event);
+
+{--- start -------- Eugeny Zvyagintzev ---- 13-07-2003 -----}
+{To display available memory's size}
+  If (ShiftState And 3 = 0) And ShiftWasPressed Then
+   Begin
+    If InterfaceData.Options And ouiHideMenu = 0 Then MenuBar^.Draw
+    Else Desktop^.Draw;
+    ShiftWasPressed:=False;
+   End;
+  If (ShiftState And 3 <> 0) And (InterfaceData.Options And ouiClock = 0) Then
+   Begin
+    ShiftWasPressed:=True;
+    C:=Desktop^.GetColor(1);
+    MemStr:=' '+FStr(MemAvail)+' ';
+    MoveChar(B, ' ', C, Length(MemStr));
+    MoveStr(B, MemStr, C);
+    If InterfaceData.Options And ouiHideMenu = 0 Then
+     MenuBar^.WriteLine(Desktop^.Size.X-Length(MemStr), 0, Length(MemStr), 1, B)
+    Else
+     Desktop^.WriteLine(Desktop^.Size.X-Length(MemStr), 0, Length(MemStr), 1, B);
+   End;
+{--- finish -------- Eugeny Zvyagintzev ---- 13-07-2003 ----}
   if Event.What = evNothing then Exit;
 {--- start -------- Eugeny Zvyagintzev ---- 11-05-2003 -----}
 {KbUpUp,kbDownUp have to be inaccessible}

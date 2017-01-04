@@ -84,6 +84,11 @@
 //  dn3421-FileList(i)-read_and_write_files_list_improve.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31220-kernel(if)-work_with_temporary_files.patch
+//  dn40328-7Zip.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -265,7 +270,7 @@ begin
     TempWord := MessageBox(GetString(dlWarnIfSearchTextInsideOfArc), nil, mfYesNoConfirm);
     if TempWord <> cmYes then Exit;
    end;
- ConfigModified := On;
+ ConfigModified := True;
  DelLeft(FindRec.Mask); DelRight(FindRec.Mask);
  if FindRec.Mask = '' then FindRec.Mask := x_x;
  if (Pos('*', FindRec.Mask)=0) and
@@ -385,7 +390,7 @@ function FindFiles;
  procedure InitPanel;
  begin
   Pnl := Message(Desktop, evBroadcast, cmInsertDrive, Drv);
-  if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := On;
+  if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := True;
  end;
 
  procedure DispatchEvents;
@@ -440,8 +445,8 @@ function FindFiles;
    If S.Status = stOK Then
     i:=FViewer.SearchFileStr(@S, XL, FindRec.What, 0,
                              FindRec.Options and ffoCaseSens <> 0,
-                             Off,
-                             FindRec.Options and ffoWholeWords <> 0, Off,
+                             False,
+                             FindRec.Options and ffoWholeWords <> 0, False,
                              FindRec.Options and ffoAllCP <> 0,PInfo)
    Else
     i:=-1;
@@ -453,7 +458,7 @@ function FindFiles;
               ( FViewer.SearchFileStr(@S, XL, FindRec.What, 0,
                                           FindRec.Options and ffoCaseSens <> 0,} {-$VIV 14.05.99}
                                           {Off,
-                                          FindRec.Options and ffoWholeWords <> 0, Off,
+                                          FindRec.Options and ffoWholeWords <> 0, False,
                                           FindRec.Options and ffoAllCP <> 0) >= 0 );} {-$VIV 14.05.99}
 {--- finish -------- Eugeny Zvyagintzev ---------}
    S.Done;
@@ -536,7 +541,7 @@ function FindFiles;
         AType := DetectArchive;
         if (AType = nil)
 {$IFNDEF MINARCH}
-          or (AType^.GetID in [arcAIN, arcUC2])
+          or (AType^.GetID in [arcAIN, arcUC2, arc7Z])
 {$ENDIF}
           {временно! - надо решить проблему с лочкой dndosout.bat}
           {piwamoto: это у JO временно. а мы в DOSe}
@@ -717,7 +722,7 @@ begin
      if AdvanceSearchData.Attr and 4 <> 0 then Attr := Attr or Hidden;
      if AdvanceSearchData.Attr and 8 <> 0 then Attr := Attr or ReadOnly;
    end;
- CancelSearch := Off; FFResult := ffSeFnd;
+ CancelSearch := False; FFResult := ffSeFnd;
  SearchString.What := FindRec.What;
  SearchString.Opts := ((FindRec.Options and ffoCaseSens) shr 1) or
                       ((FindRec.Options and ffoWholeWords) shr 2) or
@@ -744,7 +749,7 @@ begin
  New(Drv, Init(GetString(dlFindPanel) + FindRec.Mask, Directories, Files, FreeByte));
  if FindRec.What<>'' then Drv^.AWhat:=NewStr(FindRec.What);
  Drv^.AMask := NewStr(FindRec.Mask);
- Drv^.isDisposable := Off;
+ Drv^.isDisposable := False;
  Pnl := nil;
 
  case FindRec.Where of
@@ -757,8 +762,8 @@ begin
  if not MemOK then Drv^.NoMemory := True;
  if Pnl <> nil then
   begin
-    if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := Off;
-    Drv^.isDisposable := On;
+    if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := False;
+    Drv^.isDisposable := True;
     CurFileRec :=
          PFilePanel(Pnl)^.Files^.At(PFilePanel(Pnl)^.ScrollBar^.Value); {JO}
     Dispose(PFilePanel(Pnl)^.Files, Done);
@@ -1007,7 +1012,7 @@ begin
  innum:=num;
  AllowPack := True;
  ListFile := nil;
- isDisposable := On;
+ isDisposable := True;
  DriveType := dtFind;
  CurDir := AName;
  Dirs := PSortedCollection(ADirs);
@@ -1033,7 +1038,7 @@ constructor TFindDrive.Load(var S: TStream);
 begin
  inherited Load(S);
  AllowPack := True;
- isDisposable := On;
+ isDisposable := True;
  S.Read(DriveType,SizeOf(DriveType));
  AMask:=S.ReadStr;
  AWhat:=S.ReadStr;
@@ -1139,7 +1144,7 @@ LLL:
 
  OOM := False;
  DOSError := 0;
- Abort := Off; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO;
+ Abort := False; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO;
  FreeSpc := 0;
  FreeSpace := ''; TotalInfo := ''; TotalLen := 0;
 
@@ -1183,7 +1188,7 @@ LLL:
         begin
           if SR.SR.Name[1] <> '.' then
              P^.Size := GetDirLen(MakeNormName(P^.Owner^, GetLFN(P^.LFN)));
-          if Abort then begin PanelFlags := PanelFlags and (not fmiDirLen); Abort := Off; end;
+          if Abort then begin PanelFlags := PanelFlags and (not fmiDirLen); Abort := False; end;
         end;
     end;
   end;
@@ -1450,7 +1455,7 @@ begin
       New(ArcFile,Init(OwnArc, stOpenRead, 512));
       if (ArcFile=nil) or (ArcFile^.Status <> stOK) then
         begin
-          FreeObject(ArcFile); {Abort := On;} Exit;
+          FreeObject(ArcFile); {Abort := True;} Exit;
         end;
       ArcPos := 0;
       SkipSFX;
@@ -1459,8 +1464,12 @@ begin
       if AType = nil then Exit;
 
       case Command of
+{$IFDEF DBView}
        cmDBFView: C := '=';
+{$ENDIF}
+{$IFDEF SpreadSheet}
        cmWKZView: C := '>';
+{$ENDIF}
        cmTextView: C := '<';
        cmHexView: C := '|';
        cmIntFileView: C := '-';
@@ -1626,7 +1635,7 @@ begin
  if TempDirs = nil then TempDirs := New(PStringCollection, Init(10, 10));
  if TempFiles = nil then NewTemp;
  TempFiles^.ForEach(@Unselect); {John_SW 02-03-2003}
- isDisposable := On;
+ isDisposable := True;
  Dirs := TempDirs;
  Files := TempFiles;
  CurDir := cTEMP_;
@@ -1644,7 +1653,7 @@ begin
  TDrive.Load(S);
  if TempDirs = nil then TempDirs := New(PStringCollection, Init(10, 10));
  if TempFiles = nil then NewTemp;
- isDisposable := On;
+ isDisposable := True;
  Dirs  := TempDirs;
  Files := TempFiles;
  CurDir := cTEMP_;
@@ -1789,7 +1798,7 @@ begin
    ExtrDir := DT.S;
 
     PI := WriteMsg(GetString(dlReadingList));
-    BatchFile := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT';
+    BatchFile := SwpDir+'$DN'+ItoS(DNNumber)+'$'+BatchExtension;
     lAssignText(F1, BatchFile);
     lRewriteText(F1);
 
@@ -1838,7 +1847,7 @@ begin
 
             if not (ExtrDir[Length(ExtrDir)] in ['\','/']) then ExtrDir := ExtrDir + '\';
             repeat   {JO}
-             SS := PArcDrive(Drv)^.MakeListFile(FCCur); S := ' '; Pswd := Off;
+             SS := PArcDrive(Drv)^.MakeListFile(FCCur); S := ' '; Pswd := False;
              NewName := SwpDir + Hex2(DNNumber) + Copy(Hex8(ListCounter),3,6) + '.$DN';
              lAssignText(F2, Copy(SS,2,Length(SS)-1));
              lRenameText(F2, NewName);
@@ -1863,7 +1872,7 @@ begin
              S := S +' '+SS+' ';
 
              lGetDir(0, DirToChange);
-             CreateDirInheritance(ExtrDir, On);
+             CreateDirInheritance(ExtrDir, True);
              Advance2.lChDir(ExtrDir);
              DelDoubles('  ', S);
 
@@ -1927,9 +1936,9 @@ begin
 { Flash 03-02-2003 <<< }
  if FC_Disk <> nil then
    begin
-     if not MoveMode then CopyFromTemp := On;
+     if not MoveMode then CopyFromTemp := True;
      if Prev <> nil then Prev^.CopyFiles(FC_Disk, Own, MoveMode);
-     CopyFromTemp := Off;
+     CopyFromTemp := False;
      FC_Disk^.DeleteAll;
      Dispose(FC_Disk,Done);
    end;

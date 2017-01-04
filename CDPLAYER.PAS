@@ -57,10 +57,14 @@
 //  dn368-cdplayer_crash_fix_for_WinXP.patch
 //
 //  3.7.0
+//  dn370-cdplayer(if)-fix_and_improve.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-
+{Improved by Sergey Biryukov aka Flash, 2003}
 UNIT CDPlayer;
 
 {.$DEFINE UPD}
@@ -204,7 +208,6 @@ TYPE
     Parm2: string[ 20 ];
     CD_Loaded : boolean ;
     Constructor Init( R: Trect; ACdDisk: integer );
-    Procedure   InitInterior;
     Procedure   LoadDiskInfo;
     Procedure   Display( T, M, S: byte );
     Destructor  Done; virtual;
@@ -218,6 +221,23 @@ TYPE
     procedure   SizeLimits(var Min, Max: TPoint); virtual;
 
   private
+    ButtonRew,
+    ButtonPrev,
+    ButtonPlay,
+    ButtonNext,
+    ButtonFFwd,
+    ButtonPause,
+    ButtonStop,
+    ButtonEject,
+    ButtonSet,
+    ButtonTime,
+    ButtonMode,
+    ButtonMix,
+    ButtonOrder,
+    ButtonTitle: PButton;
+    CDTrack: PStaticText;
+    View: PView;
+
     procedure  _SetOrder;
 
     procedure  _Play;
@@ -237,14 +257,18 @@ TYPE
     function   _DiskStatus: boolean;
     function   _DiskIsChanged: boolean;
 
-
     Function MakeTrackList : PLineCollection ;
     Procedure SelectTrack ;
     Procedure SelectOrder ;
     Procedure GetDescription ;
     Function  GetOrder : boolean ;
 
-  end;
+    procedure InsertControls;
+    procedure DeleteControls;
+    end;
+
+const Playing: Boolean = False;
+      CurTrack: Byte = 0;
 
 IMPLEMENTATION
 
@@ -252,10 +276,6 @@ USES advance, advance1, advance2, advance3, Messages, Commands, RStrings,
      DNHelp, DOS, LFN, DnApp, Startup, CDUtil, Menus
      {$IFDEF DPMI}, Dpmi, DosMem{$ENDIF}
      ;
-{
-CONST
-  cdDrive: aint = -1;
-}
 
 FUNCTION CD_GetFirstDrive( var firstDrive: Integer ): integer;
 {$IFNDEF DPMI}
@@ -383,42 +403,6 @@ var
   move( reqHdr[ 22 ], buf, 5 );
 end;
 
-
-PROCEDURE CD_Status( drive: integer; var  buf: _Qchannel );
-var
- reqHdr: TReqHdr;
- Err: byte;
-begin
- fillchar( reqHdr, SizeOf( reqHdr ), 0 );
- reqHdr[ 20 ]:=12; { Track Info cmd }
- reqHdr[ 21 ]:=1;
- CD_Req( drive, 3, 11, reqHdr );
- move( reqHdr[ 21 ], buf, 10 );
- with Buf do
-  begin
-     TNO :=(( TNO and $f )+(( TNO and $f0 )) * 10 div 16 );
-     Move( reqHdr[ 3 ], STAT, sizeof( STAT ));
-  end;
-end;
-
-(*
-PROCEDURE CD_UpcCode( drive: integer; var  buf: array of byte );
-var
-   reqHdr: TReqHde;
-   UP: _UpcCode;
-       Err: byte;
-begin
-  fillchar( reqHdr, SizeOf( reqHdr ), 0 );
-
- reqHdr[ 20 ]:=14; { UPC Info cmd }
- reqHdr[ 21 ]:=1;
- CD_Req( drive, 3, 11, reqHdr );
- move( reqHdr[ 21 ], UP, SizeOF( UP ));
- move( UP.UPC, buf, 7 );
-end;
-
-*)
-
 FUNCTION CD_Stop( drv: integer; var reqHdr: TReqHdr ): word;
 var
    statBuf: array[ 0..19 ] of byte;
@@ -457,6 +441,7 @@ begin
  Move( reqHdr[ 3 ], CC, 2 );
 
  CD_Stop := C;
+ Playing := False;
 end;
 
 FUNCTION CD_Play( drv: integer; FromTrack, toTrack: _TrackInfo;
@@ -506,7 +491,7 @@ var
   Move(B^, reqHdr, SizeOf(reqHdr));
   FreeDosMem(B);
 {$ENDIF}
-
+  Playing := True;
  end;
 
 
@@ -647,9 +632,9 @@ begin
  {if CD_GetFirstDrive( cdDrive ) = 0 then Fail;}
   R1 := R;
   R1.B.X := R1.A.X + 36;
-  R1.B.Y := R1.A.Y + 8;
+  R1.B.Y := R1.A.Y + 9;
 
-  if R.B.Y - R.A.Y > 8 then begin
+  if R.B.Y - R.A.Y > 9 then begin
     R.B.X := R.A.X + 36;
     R.B.Y := R.A.Y + {10}15;
   end else
@@ -678,8 +663,11 @@ begin
     New(Descr,Init(100,10));
     for TR :=1 to 100 do Descr^.Insert(Nil);
 
-  InitInterior;
+  InsertControls;
   LoadDiskInfo;
+  if (LowTrack = 0) and (HighTrack = 0) then
+   begin MessageBox(GetString(dlCDNoDiskInfo),nil,mfOKButton);; Exit; end;
+  if CurTrack = 0 then CurTrack := 1; { Flash 07-07-2003 }
 end;
 
 PROCEDURE TCdPlayer.Awaken;
@@ -689,11 +677,13 @@ end;
 
 PROCEDURE TCdPlayer.Store;
 begin
+  DeleteControls;
   inherited Store( S );
   PutSubViewPtr( S, Counter );
   PutSubViewPtr( S, Info0 );
   PutSubViewPtr( S, Info1 );
   PutSubViewPtr( S, Info2 );
+  S.Write( CurTrack, SizeOf( CurTrack ));
   S.Write( Order, SizeOf( Order ));
   S.Write( LastShuffle, SizeOf( LastShuffle ));
   S.Write( CDParams, SizeOf( CDParams));
@@ -716,6 +706,7 @@ begin
   GetSubViewPtr( S, Info0 );
   GetSubViewPtr( S, Info1 );
   GetSubViewPtr( S, Info2 );
+  S.Read( CurTrack, SizeOf( CurTrack ));
   S.Read( Order, SizeOf( Order ));
   S.Read( LastShuffle, SizeOf( LastShuffle ));
   S.Read( CDParams, SizeOf( CDParams ));
@@ -733,98 +724,105 @@ begin
   CD_Player := @Self;
   {Coder := GlobalMessage( evCommand, cmXdata+1, nil );}
   LoadDiskInfo;
+  { Flash 07-07-2003 >>> }
+  InsertControls;
+  if not Playing then Display( Succ( HighTrack-LowTrack ), DiskMin, DiskSec );
+  if (opSys and opWNT) = opWNT then CurTrack := 1;
+  { Flash 07-07-2003 <<< }
   Update;
   Redraw;
 end;
 
-
-PROCEDURE  TCdPlayer.InitInterior;
-var
-  R: TRect;
-  Control, Labl, Histry: PView;
-  D: array[ 1..2 ] of PString;
-
-  Y : byte ;
+{ Flash 07-07-2003 >>> }
+procedure TCDPlayer.DeleteControls;
 begin
-  Y := 6;
+Delete(ButtonRew);
+Delete(ButtonPrev);
+Delete(ButtonPlay);
+Delete(ButtonNext);
+Delete(ButtonFFwd);
+Delete(ButtonPause);
+Delete(ButtonStop);
+Delete(ButtonEject);
+Delete(ButtonSet);
+Delete(ButtonTime);
+Delete(ButtonMode);
+Delete(ButtonMix);
+Delete(ButtonOrder);
+Delete(ButtonTitle);
+Delete(Counter);
+Delete(CDTrack);
+Delete(Info0);
+Delete(Info1);
+Delete(Info2);
+end;
 
-  R.Assign( 1, Y, 7, Y+2 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonRew), cdFRew, bfBroadcast ));
-  Insert( Control );
+procedure TCDPlayer.InsertControls;
+var R: TRect;
+begin
+  R.Assign( 1, 6, 7, 8 );
+  ButtonRew := New( PButton, Init( R, GetString(dlCDButtonRew), cdFRew, bfBroadcast ));
+  Insert( ButtonRew );
 
-  R.Assign( 7, Y, 12, Y+2 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonPrev), cdPrev, bfBroadcast ));
-  Insert( Control );
+  R.Assign( 7, 6, 12, 8 );
+  ButtonPrev := New( PButton, Init( R, GetString(dlCDButtonPrev), cdPrev, bfBroadcast ));
+  Insert( ButtonPrev );
 
-  R.Assign( 12, Y, 23, Y+2 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonPlay), cdPlay, bfBroadcast ));
-  Insert( Control );
+  R.Assign( 12, 6, 23, 8 );
+  ButtonPlay := New( PButton, Init( R, GetString(dlCDButtonPlay), cdPlay, bfBroadcast ));
+  Insert( ButtonPlay );
 
-  R.Assign( 23, Y, 28, Y+2 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonNext), cdNext, bfBroadcast ));
-  Insert( Control );
+  R.Assign( 23, 6, 28, 8 );
+  ButtonNext := New( PButton, Init( R, GetString(dlCDButtonNext), cdNext, bfBroadcast ));
+  Insert( ButtonNext );
 
-  R.Assign( 28, Y, 34, Y+2 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonFFwd), cdFFwd, bfBroadcast ));
-  Insert( Control );
+  R.Assign( 28, 6, 34, 8 );
+  ButtonFFwd := New( PButton, Init( R, GetString(dlCDButtonFFwd), cdFFwd, bfBroadcast ));
+  Insert( ButtonFFwd );
 
-  inc(Y,2);
-  R.Assign( 1, Y, 10, Y+2 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonPause), cdPause, bfBroadCast ));
-  Insert( Control );
+  R.Assign( 1, 8, 10, 10 );
+  ButtonPause := New( PButton, Init( R, GetString(dlCDButtonPause), cdPause, bfBroadCast ));
+  Insert( ButtonPause );
 
   R.Move(9,0); Inc(R.B.X,6);
-  Control := New( PButton, Init( R, GetString(dlCDButtonStop), cdStop, bfBroadcast ));
-  Insert( Control );
+  ButtonStop := New( PButton, Init( R, GetString(dlCDButtonStop), cdStop, bfBroadcast ));
+  Insert( ButtonStop );
 
   R.Move(15,0); Dec(R.B.X,6);
-  Control := New( PButton, Init( R, GetString(dlCDButtonEject), cdEject, bfBroadCast ));
-  Insert( Control );
+  ButtonEject := New( PButton, Init( R, GetString(dlCDButtonEject), cdEject, bfBroadCast ));
+  Insert( ButtonEject );
 
+  if Size.Y < 10 then
+   begin ButtonPause^.Hide; ButtonStop^.Hide; ButtonEject^.Hide; end;
 
-  inc(Y,2);
-  R.Assign( 1,  Y, 12,  Y+2 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonSet), cdSetup, bfBroadCast ));
-  Insert( Control );
-
-  R.Move( 11, 0 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonTime), cdDisplay, bfBroadCast ));
-  Insert( Control );
+  R.Assign( 1,  10, 12,  12 );
+  ButtonSet := New( PButton, Init( R, GetString(dlCDButtonSet), cdSetup, bfBroadCast ));
+  Insert( ButtonSet );
 
   R.Move( 11, 0 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonMode), cdMode, bfBroadCast ));
-  Insert( Control );
-
-  inc(Y,2);
-  R.Assign( 1, Y, 12,  Y+2 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonMix), cdMix, bfBroadCast ));
-  Insert( Control );
+  ButtonTime := New( PButton, Init( R, GetString(dlCDButtonTime), cdDisplay, bfBroadCast ));
+  Insert( ButtonTime );
 
   R.Move( 11, 0 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonOrder), cdOrder, bfBroadCast ));
-  Insert( Control );
+  ButtonMode := New( PButton, Init( R, GetString(dlCDButtonMode), cdMode, bfBroadCast ));
+  Insert( ButtonMode );
+
+  R.Assign( 1, 12, 12,  14 );
+  ButtonMix := New( PButton, Init( R, GetString(dlCDButtonMix), cdMix, bfBroadCast ));
+  Insert( ButtonMix );
 
   R.Move( 11, 0 );
-  Control := New( PButton, Init( R, GetString(dlCDButtonTitle), cdTitle, bfBroadCast ));
-  Insert( Control );
+  ButtonOrder := New( PButton, Init( R, GetString(dlCDButtonOrder), cdOrder, bfBroadCast ));
+  Insert( ButtonOrder );
 
-
-  {
-  R.Assign( 56, 2, 57, 8 );
-  Control := New( PScrollbar, Init( R ));
-  Dlg^.Insert( Control );
-
-  R.Assign( 36, 2, 56, 8 );
-  Control := New( PListBox, Init( R, 1, PScrollbar( Control )));
-  Dlg^.Insert( Control );
-  }
-
-
+  R.Move( 11, 0 );
+  ButtonTitle := New( PButton, Init( R, GetString(dlCDButtonTitle), cdTitle, bfBroadCast ));
+  Insert( ButtonTitle );
 
   R.Assign( 2, 2, 34, 5 );
-  Control := New( Pview, Init( R ));
-  Control^.Options := Control^.Options or ofFramed;
-  Insert( Control );
+  View := New( PView, Init( R ));
+  View^.Options := View^.Options or ofFramed;
+  Insert( View );
 
   R.Assign( 4, 2, 32, 3 );
   Counter := New( PCounter, Init( R ));
@@ -834,47 +832,30 @@ begin
   R.Assign( 2,5,2,6 );
   New( Info2, Init( R, '%s', 1 ));
   Insert( Info2 );
-  {
-  R.Assign( 35, 2, 45, 5 );
-  New( Info0, Init( R, ^M^C + '%s' + ^M^C + '%s', 2 ));
-  Info0^.Options := Info0^.Options or ofFramed;
-  Insert( Info0 );
-  }
-
 
   R.Assign( 33, 2, 34, 5 );
   New( Info0, Init( R,'%c'+^M +'%c'+^M+'%c',3));
   {Info0^.Options := Info0^.Options or ofFramed;}
   Insert( Info0 );
 
-  FreeStr:=GetString(dlCDTrack);
+  FreeStr := GetString(dlCDTrack);
   R.Assign( 11-Length(FreeStr), 1, 11, 2 );
-  Insert( New( PStaticText, Init( R, FreeStr  )));
-
+  CDTrack := New( PStaticText, Init( R, FreeStr ));
+  Insert( CDTrack );
 
   R.Move( 13, 0 ); R.B.X := R.A.X + 4;
   New( Info1, Init( R, '%s', 1 ));
   Insert( Info1 );
 
-  {
-  R.Move( 20, 0 ); R.B.X := R.A.X + 4;
-  Insert( New( PStaticText, Init( R, 'Mode' )));
-  }
-  {
-  R.Assign( 35, 2, 45, 5 );
-  Control := New( PView, Init( R ));
-  Control^.Options := Control^.Options or ofFramed;
-  Insert( Control );
-  }
-  {New( PStaticText, Init( R, 'Time' )));}
-
   SelectNext( False );
   SelectNext( False );
   SelectNext( False );
 end;
+{ Flash 07-07-2003 <<< }
 
 DESTRUCTOR TcdPlayer.Done;
 begin
+  DeleteControls;
   ConfigModified := not (Origin.Equals(CDSize)) or not (CDSize.Equals(Size));
   CDplace := Origin;
   CDsize  := Size;
@@ -991,6 +972,7 @@ PROCEDURE TcdPlayer.Update;
   PROCEDURE NormalPlay;
   begin
     with Qchannel do begin
+      TNO := CurTrack; { Flash 07-07-2003 }
       if TNO < HighTrack then Exit;
       with Tracks[ HighTrack+1 ] do if not Reached( CMin, CSec ) then Exit;
       if checkEject then Exit;
@@ -1003,6 +985,7 @@ PROCEDURE TcdPlayer.Update;
   begin
     if not TimerExpired( NewPlay ) then Exit;
     with Qchannel do begin
+      TNO := CurTrack; Inc(CurTrack); { Flash 07-07-2003 }
       TTO := TNO + 1;
       if TTO > ( HighTrack ) then begin
         if CheckEject then Exit;
@@ -1019,6 +1002,7 @@ PROCEDURE TcdPlayer.Update;
   begin
     with Qchannel do begin
       with Tracks[ LastShuffle+1 ] do if not Reached( CMin, CSec ) then Exit;
+      TNO := CurTrack; { Flash 07-07-2003 }
       for I:= LowTrack to HighTrack do
         if TNO = Order[ I ] then Break;
       if not TimerExpired( NewPlay ) Then Exit;
@@ -1030,7 +1014,7 @@ PROCEDURE TcdPlayer.Update;
       I := Order[ I ];
       CD_Play( CDdisk, tracks[ I ], tracks[ I+1 ], reqHdr );
       NewTimerSecs( NewPlay, 3 );
-      LastShuffle := I;
+      LastShuffle := I; CurTrack := I; { Flash 07-07-2003 }
     end;
   end;
 
@@ -1038,6 +1022,7 @@ PROCEDURE TcdPlayer.Update;
   var I: byte;
   begin
     with Qchannel do begin
+      TNO := CurTrack; { Flash 07-07-2003 }
       with Tracks[ LastShuffle+1 ] do if not Reached( CMin, CSec ) then Exit;
       if not TimerExpired( NewPlay ) Then Exit;
       {if TNO = LastShuffle+1 then } begin
@@ -1195,27 +1180,6 @@ begin
   if SkyVisible then Exit;
 
   if Info0 <> nil then begin
-  {
-    Case CDparams[ 2 ] of
-      cpNormal: Parm1 := 'Normal';
-      cpIntro: Parm1 := 'Intro';
-      cpShuffle: Parm1 := 'Shuffle';
-      cpOne: Parm1 := 'One track';
-      cpOrder: if (TrkOrder<>'') then Parm1 := 'Order'
-                                 else Parm1 := 'Normal';
-    end;
-
-    Parm0 := '';
-
-    if CDparams[ 1 ] and cpAutoPlay > 0 then Parm0 := 'Auto';
-    if CDparams[ 1 ] and cpRepeat > 0 then Parm0 := 'Repeat';
-
-
-    Parm[ 1 ] := Longint( @Parm0 );
-    Parm[ 2 ] := Longint( @Parm1 );
-
-    Info0^.SetData( Parm );
-    }
     C2 :=' ';
     Case CDparams[ 2 ] of
       cpNormal: C2 := 'N';
@@ -1245,6 +1209,7 @@ begin
       2: Parm2 := GetString(dlCDDiskTime);
       3: Parm2 := GetString(dlCDDiskLeft);
     end;
+    if (opSys and opWNT) = opWNT then Parm2 := GetString(dlCDTrackLength);
     Parmt := Longint( @Parm2 );
     with Info1^ do begin
       GrowTo( Length( Parm2 ), 1 );
@@ -1275,6 +1240,8 @@ begin
     Exit;
   end;
   with QChannel do begin
+    if (opSys and opWNT) = opWNT then
+     begin DS := Tlen[TNO+1].Lsec; DM := Tlen[TNO+1].Lmin; end else
     case CDparams[ 3 ] of
       cpTrack: begin
           DS := S;
@@ -1325,8 +1292,7 @@ end;
 
     for TR :=1 to 100 do Descr^.Insert(Nil);
 
-    T := SourceDir + 'CD\' + Hex8(DiskID) + '.CD'; {DataCompBoy}
-
+    T := SourceDir + 'CD\' + UpStrg(Hex8(DiskID)) + '.CD'; {DataCompBoy}
     F := New(PTextReader, Init(T));
     if F = nil then Exit;
 
@@ -1340,7 +1306,7 @@ end;
               if Pos(':',S)=3 then
                begin
                   T1 := Copy(S,1,2);
-                  System.Delete(S,1,3);
+                  System.Delete(S,1,3); DelLeft(S); DelRight(S);
                   if T1[1] = '0' then DelFC(T);
                   TR := StoI(T1);
                   if (TR>0) and (TR<100) then
@@ -1357,6 +1323,7 @@ end;
      begin
         DisposeStr(Title);
         Title := NewStr(CnvString(DiskTitle));
+        DelLeft(Title^); DelRight(Title^);
         Frame^.DrawView;
      end;
 
@@ -1411,6 +1378,13 @@ begin
     with DD do begin
       LowTrack  := FirstTrack;
       HighTrack := LastTrack;
+      { Flash 07-07-2003 >>> }
+      if LowTrack > 1 then
+       begin
+       LowTrack := 0; FirstTrack := 0;
+       HighTrack := 0; LastTrack := 0;
+       end;
+      { Flash 07-07-2003 <<< }
 
       for I := FirstTrack to LastTrack do
         CD_TrackInfo( CDdisk, i, Tracks[ i ] ); { read tracks info }
@@ -1434,8 +1408,8 @@ begin
       DiskOk := not _DiskStatus;
 
       if DiskOk then with Qchannel do begin
-        if ( TNO > 0 ) and (( RSec <> 0 ) or ( RMin<>0 ))
-          then Status := Play
+        if ( TNO > 0 ) and (( RSec <> 0 ) or ( RMin<>0 )) or Playing
+          then begin Status := Play; Playing := True; end
           else begin
             Status := NewDisk;
             NewTimerSecs( NewPlay, 5 );
@@ -1460,6 +1434,10 @@ PROCEDURE TcdPlayer._Play;
 begin
   if Status = noDisk then Exit;
   with QChannel do begin
+    { Flash 07-07-2003 >>> }
+    if CDParams[2] = cpShuffle then
+     begin TNO := order[ lowTrack ]; CurTrack := TNO; end;
+    { Flash 07-07-2003 <<< }
     if Status = Play then begin
          RMin := 0;
          RSec := 0;
@@ -1510,6 +1488,7 @@ begin
   if not DiskOk then Exit;
   with QChannel do begin
     if TNO >= HighTrack then begin _Stop; Exit end;
+    TNO := CurTrack; Inc(CurTrack); { Flash 07-07-2003 }
     Rmin := 0;
     Rsec := 0;
     Display( TNO+1, 0, 0 );
@@ -1527,6 +1506,7 @@ begin
   if not DiskOk then Exit;
   with QChannel do begin
     if TNO <= LowTrack then begin _Stop; Exit end;
+    TNO := CurTrack; Dec(CurTrack); { Flash 07-07-2003 }
     RMin := 0;
     RSec := 0;
     Display( TNO-1, 0, 0 );
@@ -1551,6 +1531,10 @@ end;
 PROCEDURE TcdPlayer._Pause;
 var Res: _trackInfo;
 begin
+  { Flash 07-07-2003 >>> }
+  if (opSys and opWNT) = opWNT then
+    begin MessageBox(GetString(dlCDNTWarning),nil,mfOKButton); Exit; end;
+  { Flash 07-07-2003 <<< }
   if Status = Play then begin
     if _DiskStatus
       then Exit; _Stop; Status := Paused; Exit end
@@ -1581,8 +1565,14 @@ FUNCTION TcdPlayer._DiskStatus;
         Exit;
        end;
       move( reqHdr[ 21 ], Qchannel, 10 );
+      { Flash 07-07-2003 >>> }
+      if (opSys and opWNT) = opWNT then QChannel.TNO := CurTrack else
       with Qchannel do
-          TNO :=(( TNO and $f )+(( TNO and $f0 )) * 10 div 16 );
+       begin
+       TNO :=(( TNO and $f )+(( TNO and $f0 )) * 10 div 16 );
+       CurTrack := TNO;
+       end;
+      { Flash 07-07-2003 <<< }
       _DiskStatus := false;
   end;
 
@@ -1636,6 +1626,10 @@ PROCEDURE TcdPlayer._FForward;
      begin
       if Status <> play then Exit;
       if _DiskStatus then Exit;
+      { Flash 07-07-2003 >>> }
+      if (opSys and opWNT) = opWNT then
+       begin MessageBox(GetString(dlCDNTWarning),nil,mfOKButton); Exit; end;
+      { Flash 07-07-2003 <<< }
       with QChannel do
        begin
          fillchar( TR, SizeOf( Tr ), 0 );
@@ -1672,6 +1666,10 @@ var
 begin
   if Status <> play then Exit;
   if _DiskStatus then Exit;
+  { Flash 07-07-2003 >>> }
+  if (opSys and opWNT) = opWNT then
+   begin MessageBox(GetString(dlCDNTWarning),nil,mfOKButton); Exit; end;
+  { Flash 07-07-2003 <<< }
   with QChannel do begin
     fillchar( TR, SizeOf( Tr ), 0 );
     DM := AMin*60 + Asec;
@@ -1719,10 +1717,11 @@ begin
       CDparams[ 2 ] := P2;
       _Stop;
       _SetOrder;
+      if CDparams[ 2 ] <> cpShuffle then CurTrack := 1; { Flash 07-07-2003 }
     end;
     CDparams[ 2 ] := P2;
     _Door( CDparams[ 1 ] and cpLockDoor > 0 );
-    ConfigModified := On;
+    ConfigModified := True;
   end;
  end;
 end;
@@ -1756,6 +1755,7 @@ end;
         begin
 
          TNO := LowTrack - 1 + trk ;
+         CurTrack := TNO; { Flash 07-07-2003 }
          if TNO < LowTrack then
           begin
            _Stop;
@@ -1798,15 +1798,28 @@ begin
   end;
 end;
 
+{ Flash 07-07-2003 >>> }
 PROCEDURE TcdPlayer.Zoom;
+var CurButton: PButton;
 begin
-  if Size.Y > 8 then begin
-    while  Current^.Origin.Y > 7 do SelectNext(False); { Flash 11-02-2003 }
-    GrowTo( 36, 8 );
+  if Size.Y > 9 then begin
+    GrowTo( 36, 9 );
+    CurButton:=PButton(Current);
+    ButtonPause^.Hide;
+    ButtonStop^.Hide;
+    ButtonEject^.Hide;
+    CurButton^.Select;
+    while Current^.Origin.Y > 7 do SelectNext(False);
   end else begin
+    CurButton:=PButton(Current);
+    ButtonPause^.Show;
+    ButtonStop^.Show;
+    ButtonEject^.Show;
+    CurButton^.Select;
     GrowTo( 36, 15 );
   end;
 end;
+{ Flash 07-07-2003 <<< }
 
 FUNCTION TcdPlayer.Valid( Command: Word ): Boolean;
 begin
@@ -1818,42 +1831,6 @@ end;
 
 PROCEDURE TcdPlayer.HandleEvent;
   var MS : Tpoint ;
-(*
-PROCEDURE ProcessCmd;
-var cd: word;
-begin
-  CD :=  Event.Command xor ( Longint( Coder ) shr 16 );
-  with Event do
-    if CD = cmd[ 2 ]
-      then {cdFFwd :} _FForward
-      else
-    if CD = cmd[ 5 ]
-      then {cdFREW :} _FRewind
-      else
-    if CD = Command then begin
-      Event.Command := cmAbout;
-      Event.What := evCommand;
-      PutEvent( Event );
-    end else
-    if CD = cmd[ 1 ]
-      then {cdSetup:} _Setup
-      else
-    if CD = cmd[ 4 ] then { cdDisplay:} begin
-      Inc( CDparams[ 3 ] );
-      if CDparams[ 3 ] > 3 then CDparams[ 3 ] := 0;
-      {fillChar( UpdCnt, SizeOf( UpdCnt ), 0 );}
-      Update;
-    end else
-    if CD = cmd[ 3 ] then {cdMode} begin
-      Inc( CDparams[ 2 ] );
-      if CDparams[ 2 ] > 3 then CDparams[ 2 ] := 0;
-      _Stop;
-      _SetOrder;
-      {fillChar( UpdCnt, SizeOf( UpdCnt ), 0 );}
-      Update;
-    end;
-  end{ with };
-*)
 begin
   if ( Event.What = evBroadCast ) or
      ( Event.What = evCommand ) then begin
@@ -1865,17 +1842,14 @@ begin
       cdPause: _Pause;
       cdEject: if Status=noDisk then _Load else _Eject;
       cdZoom: Zoom;
-      (*
-      cdDisplay,
-      cdFFwd,
-      cdFREW,
-      cdSetup,
-      cdMode: ProcessCmd;
-      *)
       cdFFwd: _FForward;
       cdFREW: _FRewind;
       cdSetup: _Setup;
       cdDisplay: begin
+          { Flash 07-07-2003 >>> }
+          if (opSys and opWNT) = opWNT then
+           begin MessageBox(GetString(dlCDNTWarning),nil,mfOKButton); Exit; end;
+          { Flash 07-07-2003 <<< }
           Inc( CDparams[ 3 ] );
           if CDparams[ 3 ] > 3 then CDparams[ 3 ] := 0;
           {fillChar( UpdCnt, SizeOf( UpdCnt ), 0 );}
@@ -1888,7 +1862,8 @@ begin
                end;
       cdOrder: SelectOrder;
       cdMix: if CDmixer <>'' then
-               Message(Application, evCommand, cmExecString, @CDmixer);
+               Message(Application, evCommand, cmExecString, @CDmixer) else
+               MessageBox(GetString(dlCDNoMixerSet),nil,mfOKButton);
       cdMode: begin
           Inc( CDparams[ 2 ] );
           if CDparams[ 2 ] > 3 then CDparams[ 2 ] := 0;
@@ -1968,12 +1943,12 @@ begin
         KbRight: _FForward;
                { Flash 11-02-2003 >>> }
         KbTab: begin
-                if (Size.Y = 8) and (PButton(Current)^.Command = cdFFwd) then
+                if (Size.Y = 9) and (PButton(Current)^.Command = cdFFwd) then
                  repeat SelectNext(False) until Current^.Origin.Y < 7
                 else SelectNext(False);
                end;
         KbShiftTab: begin
-                     if (Size.Y = 8) and (PButton(Current)^.Command = cdFRew) then
+                     if (Size.Y = 9) and (PButton(Current)^.Command = cdFRew) then
                       repeat SelectNext(True) until Current^.Origin.Y < 7
                      else SelectNext(True);
                     end;

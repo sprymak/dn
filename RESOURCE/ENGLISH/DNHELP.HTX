@@ -85,6 +85,10 @@
 ;/  dn3421-resource_and_help_fixes.patch
 ;/
 ;/  3.7.0
+;/  dn370-cdplayer(if)-fix_and_improve.patch
+;/  dn370-archives(if)-improve_and_fix.patch
+;/
+;/  4.9.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -1651,7 +1655,6 @@ The window of installations of achiever contains the following fields:
  {Extract with pathnames:_} - unpacking with pathnames
  {List char:_} - symbol of list of files
  {Extract path:_} - unpacking method
- {Swap on execute:_} - to give all memory
  {Test:_} - parameters of testing of archive
  {Password:_} - parameters for definitions of password
 
@@ -1993,10 +1996,12 @@ menu elements of this level.
     É[{ş:_}]ÍÍÍÍÍÍ Celtic Guitar ÍÍÍÍÍÍ[{:_}]Í»
     ºÚÄÄÄÄTrackÄÄÄÄÄÄÄÄ{Track Time:_}ÄÄÄÄÄ¿º
     º³  {ÜÜÜ ÜÜÜ:_}      ÜÜÜ   Ü Ü ÜÜÜ   {A:CDPlayerOptions}³º
-    º³  {Û Û ÜÜÛ:_}      Û Û ß ÛÜÛ   Û   {I:CDPlayerOptions}³º
+    º³  {Û Û ÜÜÛ:_}      Û Û ß ÛÜÛ   Û   {N:CDPlayerOptions}³º
     º³  {ÛÜÛ ÛÜÜ:_}      ÛÜÛ ß   Û   Û   {J:CDPlayerOptions}³º
     ºÀ{ÄTwo Irish BalladsÄÄÄÄÄÄÄÄÄÄÄÄÄÄ:_}Ùº
-    ÈÍ{  :_}ÍÍ{ < :_}ÍÍÍÍÍ{  :_}ÍÍÍÍÍ{ > :_}ÍÍ{  :_}ÍÍ¼
+    º °°Ü °<°Ü °°°°°°°°Ü °>°Ü °°Ü º
+    º  ßßßß  ßßß  ßßßßßßßßß  ßßß  ßßßß º
+    ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
   To get additional buttons for sound control you
 have to zoom the CD Player.

@@ -57,6 +57,10 @@
 //  dn21225-FileCopy(f)-copy_more_then_2Gb_fix.patch
 //
 //  3.7.0
+//  dn31029-Compile_by_VP.patch
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -139,9 +143,7 @@ procedure lFindNext(var R: lSearchRec);
 procedure lFindClose(var R: lSearchRec);
 
         { Name retrieval functions }
-procedure lGetShortFileName(const Name: String; var ShortName: String);
 function lfGetShortFileName(const Name: String): String;
-procedure lGetLongFileName(const Name: String; var LongName: String);
 function lfGetLongFileName(const Name: String): String;
 
         { Name correction routine }
@@ -502,50 +504,41 @@ begin
   end;
 end;
 
-procedure lGetShortFileName(const Name: String; var ShortName: String);
+Function lfGetShortFileName(const Name: String): String;
+{$IFNDEF RESULT}Var Result: String;{$ENDIF}
 begin
+  Result:='';
   case lAPI of
-    lDOS: ShortName := Name;
+    lDOS: Result := Name;
     lWIN95:
-      if LFNDisabled(Name) then ShortName := Name
-      else lWIN95GetFileNameFunc(Name, ShortName, 1);
+      if LFNDisabled(Name) then Result := Name
+      else lWIN95GetFileNameFunc(Name, Result, 1);
     {$IFDEF DPMI}
     lSIM95:
-      if LFNDisabled(Name) then ShortName := Name
-      else lSIM95GetFileNameFunc(Name, ShortName, 1);
+      if LFNDisabled(Name) then Result := Name
+      else lSIM95GetFileNameFunc(Name, Result, 1);
     {$ENDIF}
     { Other APIs will be added later }
   end;
+{$IFNDEF RESULT}lfGetShortFileName:=Result;{$ENDIF}
 end;
 
-function lfGetShortFileName(const Name: String): String;
- var s: String;
-begin
-  lGetShortFileName(Name, s);
- lfGetShortFileName:=s;
-end;
-
-procedure lGetLongFileName(const Name: String; var LongName: String);
+Function lfGetLongFileName(const Name: String): String;
+{$IFNDEF RESULT}Var Result: String;{$ENDIF}
 begin
   case lAPI of
-    lDOS: LongName := Name;
+    lDOS: Result := Name;
     lWIN95:
-      if LFNDisabled(Name) then LongName := Name
-      else lWIN95GetFileNameFunc(Name, LongName, 2);
+      if LFNDisabled(Name) then Result := Name
+      else lWIN95GetFileNameFunc(Name, Result, 2);
     {$IFDEF DPMI}
     lSIM95:
-      if LFNDisabled(Name) then LongName := Name
-      else lSIM95GetFileNameFunc(Name, LongName, 2);
+      if LFNDisabled(Name) then Result := Name
+      else lSIM95GetFileNameFunc(Name, Result, 2);
     {$ENDIF}
     { Other APIs will be added later }
   end;
-end;
-
-function lfGetLongFileName(const Name: String): String;
- var s: String;
-begin
-  lGetLongFileName(Name, s);
- lfGetLongFileName:=s;
+{$IFNDEF RESULT}lfGetLongFileName:=Result;{$ENDIF}
 end;
 
 (*

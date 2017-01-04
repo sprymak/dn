@@ -51,10 +51,17 @@
 //  dn3315-DBF_Viewer(i)-indicator_and_code_page_improve.patch
 //
 //  3.7.0
+//  dn31029-Compile_by_VP.patch
+//  dn31220-CodePage(f)-change_code_page_and_search_in_all_code_pages_fix.patch
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-
+{$IFDEF VIRTUALPASCAL} {John_SW 11-01-2004 Only for VP}
+ {$DEFINE NOASM} {JO - если убрать, в редакторе не работает}
+{$ENDIF}
 {---------------------------------------------------------------------------}
 {                                                                           }
 { ASCII(DOS-866), ANSI(WIN-1251), KOI8-R CODEPAGES SUPPORT                  }
@@ -102,6 +109,85 @@ type
  procedure CharsConvertBuf ( var Buf; Len : Word; const AllChars : string );
  procedure CharsConvertBufBack ( var Buf; Len : Word; const AllChars : string );
  procedure XlatBuf(var B; Len: Integer; var XTable);
+
+{Cat: раньше: function ***AllChars:string в implementation
+      теперь: const ***AllChars:string в interface}
+
+ {ASCII-ANSI}
+
+const
+  AnsiAllChars:string=
+        #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
+  + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
+  + #$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
+  + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
+  + #$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
+  + #$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
+  + #$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
+  + #$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
+
+  + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
+  + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
+  + #$E0#$E1#$E2#$E3#$E4#$E5#$E6#$E7#$E8#$E9#$EA#$EB#$EC#$ED#$EE#$EF
+  + #$80#$81#$82#$83#$84#$85#$86#$87#$88#$89#$8A#$8B#$8C#$8D#$8E#$8F
+  + #$90#$91#$92#$93#$94#$95#$96#$97#$98#$99#$9A#$9B#$9C#$9D#$9E#$9F
+  + #$A0#$B5#$B6#$A3#$A4#$A5#$A6#$A7#$A9#$B1#$AB#$AC#$AD#$AE#$B3#$B0
+  + #$F0#$F1#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF
+  + #$A8#$B8#$AA#$BA#$AF#$BF#$A1#$A2#$B7#$B9#$B2#$BB#$BC#$BD#$BE#$B4;
+{Cat: переделал таблицу, чтобы буквы ЄєЇїЎў были на своих местах
+  + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
+  + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
+  + #$E0#$E1#$E2#$E3#$E4#$E5#$E6#$E7#$E8#$E9#$EA#$EB#$EC#$ED#$EE#$EF
+  + #$80#$81#$82#$83#$84#$85#$86#$87#$88#$89#$8A#$8B#$8C#$8D#$8E#$8F
+  + #$90#$91#$92#$93#$94#$95#$96#$97#$98#$99#$9A#$9B#$9C#$9D#$9E#$9F
+  + #$A0#$A1#$A2#$A3#$A4#$A5#$A6#$A7#$A9#$AA#$AB#$AC#$AD#$AE#$AF#$B0
+  + #$F0#$F1#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF
+  + #$A8#$B8#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B9#$BA#$BB#$BC#$BD#$BE#$BF;
+}
+
+ {ASCII-KOI8R}
+
+const
+  Koi8rAllChars:string=
+        #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
+  + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
+  + #$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
+  + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
+  + #$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
+  + #$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
+  + #$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
+  + #$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
+
+  + #$E1#$E2#$F7#$E7#$E4#$E5#$F6#$FA#$E9#$EA#$EB#$EC#$ED#$EE#$EF#$F0
+  + #$F2#$F3#$F4#$F5#$E6#$E8#$E3#$FE#$FB#$FD#$FF#$F9#$F8#$FC#$E0#$F1
+  + #$C1#$C2#$D7#$C7#$C4#$C5#$D6#$DA#$C9#$CA#$CB#$CC#$CD#$CE#$CF#$D0
+  + #$90#$91#$92#$81#$87#$B2#$B4#$A7#$A6#$B5#$A1#$A8#$AE#$AD#$AC#$83
+  + #$84#$89#$88#$86#$80#$8A#$AF#$B0#$AB#$A5#$BB#$B8#$B1#$A0#$BE#$B9
+  + #$BA#$B6#$B7#$AA#$A9#$A2#$A4#$BD#$BC#$85#$82#$8D#$8C#$8E#$8F#$8B
+  + #$D2#$D3#$D4#$D5#$C6#$C8#$C3#$DE#$DB#$DD#$DF#$D9#$D8#$DC#$C0#$D1
+  + #$B3#$A3#$99#$98#$93#$9B#$9F#$97#$9C#$95#$9E#$96#$BF#$9D#$94#$9A;
+
+ {RUS-ENG}
+
+const
+  RusEngAllChars:string=
+        #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
+  + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
+  + #$20#$21#$9D#$23#$24#$25#$26#$ED#$28#$29#$2A#$2B#$A1#$2D#$EE#$2F
+  + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$86#$A6#$81#$3D#$9E#$3F
+  + #$40#$94#$88#$91#$82#$93#$80#$8F#$90#$98#$8E#$8B#$84#$9C#$92#$99
+  + #$87#$89#$8A#$9B#$85#$83#$8C#$96#$97#$8D#$9F#$E5#$5C#$EA#$5E#$5F
+  + #$F1#$E4#$A8#$E1#$A2#$E3#$A0#$AF#$E0#$E8#$AE#$AB#$A4#$EC#$E2#$E9
+  + #$A7#$A9#$AA#$EB#$A5#$A3#$AC#$E6#$E7#$AD#$EF#$95#$7C#$9A#$F0#$7F
+
+  + #$46#$3C#$44#$55#$4C#$54#$3A#$50#$42#$51#$52#$4B#$56#$59#$4A#$47
+  + #$48#$43#$4E#$45#$41#$7B#$57#$58#$49#$4F#$7D#$53#$4D#$22#$3E#$5A
+  + #$66#$2C#$64#$75#$6C#$74#$3B#$70#$62#$71#$72#$6B#$76#$79#$6A#$67
+  + #$B0#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B8#$B9#$BA#$BB#$BC#$BD#$BE#$BF
+  + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
+  + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
+  + #$68#$63#$6E#$65#$61#$5B#$77#$78#$69#$6F#$5D#$73#$6D#$27#$2E#$7A
+  + #$7E#$60#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF;
 
 implementation
 
@@ -274,45 +360,20 @@ type
    ConvertBuf ( Buf, Len, ConvertTable );
  end;
 
- {ASCII-ANSI}
-
- function AnsiAllChars : string;
- begin
-   AnsiAllChars
-     :=    #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-     + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-     + #$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
-     + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
-     + #$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
-     + #$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
-     + #$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
-     + #$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
-     + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
-     + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
-     + #$E0#$E1#$E2#$E3#$E4#$E5#$E6#$E7#$E8#$E9#$EA#$EB#$EC#$ED#$EE#$EF
-     + #$80#$81#$82#$83#$84#$85#$86#$87#$88#$89#$8A#$8B#$8C#$8D#$8E#$8F
-     + #$90#$91#$92#$93#$94#$95#$96#$97#$98#$99#$9A#$9B#$9C#$9D#$9E#$9F
-     + #$A0#$A1#$A2#$A3#$A4#$A5#$A6#$A7#$A9#$AA#$AB#$AC#$AD#$AE#$AF#$B0
-     + #$F0#$F1#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF
-     + #$A8#$B8#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B9#$BA#$BB#$BC#$BD#$BE#$BF;
- end;
-
  function Ascii_Ansi ( const S : string ) : string;
- var
-   result : string;
+{$IFNDEF RESULT}var result : string;{$ENDIF}
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), AnsiAllChars );
-   Ascii_Ansi := result;
+{$IFNDEF RESULT}Ascii_Ansi:=Result;{$ENDIF}
  end;
 
  function Ansi_Ascii ( const S : string ) : string;
- var
-   result : string;
+{$IFNDEF RESULT}var result : string;{$ENDIF}
  begin
    result := S;
    CharsConvertBufBack ( result[1], Length(result), AnsiAllChars );
-   Ansi_Ascii := result;
+{$IFNDEF RESULT}Ansi_Ascii:=Result;{$ENDIF}
  end;
 
  procedure Ascii_Ansi_Buf ( var Buf; L : Word );
@@ -325,45 +386,20 @@ type
    CharsConvertBufBack ( Buf, L, AnsiAllChars );
  end;
 
- {ASCII-KOI8R}
-
- function Koi8rAllChars : string;
- begin
-   Koi8rAllChars
-     :=    #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-     + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-     + #$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
-     + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
-     + #$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
-     + #$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
-     + #$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
-     + #$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
-     + #$E1#$E2#$F7#$E7#$E4#$E5#$F6#$FA#$E9#$EA#$EB#$EC#$ED#$EE#$EF#$F0
-     + #$F2#$F3#$F4#$F5#$E6#$E8#$E3#$FE#$FB#$FD#$FF#$F9#$F8#$FC#$E0#$F1
-     + #$C1#$C2#$D7#$C7#$C4#$C5#$D6#$DA#$C9#$CA#$CB#$CC#$CD#$CE#$CF#$D0
-     + #$90#$91#$92#$81#$87#$B2#$B4#$A7#$A6#$B5#$A1#$A8#$AE#$AD#$AC#$83
-     + #$84#$89#$88#$86#$80#$8A#$AF#$B0#$AB#$A5#$BB#$B8#$B1#$A0#$BE#$B9
-     + #$BA#$B6#$B7#$AA#$A9#$A2#$A4#$BD#$BC#$85#$82#$8D#$8C#$8E#$8F#$8B
-     + #$D2#$D3#$D4#$D5#$C6#$C8#$C3#$DE#$DB#$DD#$DF#$D9#$D8#$DC#$C0#$D1
-     + #$B3#$A3#$99#$98#$93#$9B#$9F#$97#$9C#$95#$9E#$96#$BF#$9D#$94#$9A;
- end;
-
  function Ascii_Koi8r ( const S : string ): string;
- var
-   result : string;
+{$IFNDEF RESULT}var result : string;{$ENDIF}
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), Koi8rAllChars );
-   Ascii_Koi8r := result;
+{$IFNDEF RESULT}Ascii_Koi8r:=Result;{$ENDIF}
  end;
 
  function Koi8r_Ascii ( const S : string ) : string;
- var
-   result : string;
+{$IFNDEF RESULT}var result : string;{$ENDIF}
  begin
    result := S;
    CharsConvertBufBack ( result[1], Length(result), Koi8rAllChars );
-   Koi8r_Ascii := result;
+{$IFNDEF RESULT}Koi8r_Ascii:=Result;{$ENDIF}
  end;
 
  procedure Ascii_Koi8r_Buf ( var Buf; L : Word );
@@ -376,36 +412,12 @@ type
    CharsConvertBufBack ( Buf, L, Koi8rAllChars );
  end;
 
- {RUS-ENG}
-
- function RusEngAllChars : string;
- begin
-   RusEngAllChars
-     :=    #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-     + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-     + #$20#$21#$9D#$23#$24#$25#$26#$ED#$28#$29#$2A#$2B#$A1#$2D#$EE#$2F
-     + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$86#$A6#$81#$3D#$9E#$3F
-     + #$40#$94#$88#$91#$82#$93#$80#$8F#$90#$98#$8E#$8B#$84#$9C#$92#$99
-     + #$87#$89#$8A#$9B#$85#$83#$8C#$96#$97#$8D#$9F#$E5#$5C#$EA#$5E#$5F
-     + #$F1#$E4#$A8#$E1#$A2#$E3#$A0#$AF#$E0#$E8#$AE#$AB#$A4#$EC#$E2#$E9
-     + #$A7#$A9#$AA#$EB#$A5#$A3#$AC#$E6#$E7#$AD#$EF#$95#$7C#$9A#$F0#$7F
-     + #$46#$3C#$44#$55#$4C#$54#$3A#$50#$42#$51#$52#$4B#$56#$59#$4A#$47
-     + #$48#$43#$4E#$45#$41#$7B#$57#$58#$49#$4F#$7D#$53#$4D#$22#$3E#$5A
-     + #$66#$2C#$64#$75#$6C#$74#$3B#$70#$62#$71#$72#$6B#$76#$79#$6A#$67
-     + #$B0#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B8#$B9#$BA#$BB#$BC#$BD#$BE#$BF
-     + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
-     + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
-     + #$68#$63#$6E#$65#$61#$5B#$77#$78#$69#$6F#$5D#$73#$6D#$27#$2E#$7A
-     + #$7E#$60#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF;
- end;
-
  function RusEngConv ( const S : string ): string;
- var
-   result : string;
+{$IFNDEF RESULT}var result : string;{$ENDIF}
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), RusEngAllChars );
-   RusEngConv := result;
+{$IFNDEF RESULT}RusEngConv:=Result;{$ENDIF}
  end;
 
 

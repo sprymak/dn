@@ -72,6 +72,9 @@
 //  dn3323-temp(f)-copy_files_from_archives.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -311,7 +314,7 @@ end;
 
 function TDrive.Disposable;
 begin
- Disposable := On;
+ Disposable := True;
 end;
 
         {-DataCompBoy-}
@@ -687,7 +690,7 @@ var
   FName: String;
 begin
   ClrIO;
-  S := GetDizOwner(CurDir, '', On);
+  S := GetDizOwner(CurDir, '', True);
   if S <> '' then
      begin
        FName := GetName(S);
@@ -722,7 +725,7 @@ begin
                                         P^.DIZ^.DIZ := PD^.DIZ;
                                         P^.DIZ^.Owner := PDIZOwner;
                                         P^.DIZ^.Line := PD^.Line;
-                                        P^.DIZ^.isDisposable := On;
+                                        P^.DIZ^.isDisposable := True;
                                         PD^.DIZ := nil;
                                        end
                                   else P^.DIZ := nil;
@@ -875,7 +878,7 @@ begin
  TFiles := 0; DOSError := 0; TotalLen := 0;
  DIZOwner := ''; FreeSpace := ''; TotalInfo := '';
  Descriptions := nil;
- Abort := Off;
+ Abort := False;
  ShowD := (Flags and psShowDescript <> 0);
 
  if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) or
@@ -976,11 +979,11 @@ begin
    if C = CurDir[1] then
     begin
       ClrIO;
-      NeedAbort := On;
+      NeedAbort := True;
       lGetDir(0, S); if Abort then S := CurrentDirectory;
-      NeedAbort := On; Advance2.lChDir(CurDir);
+      NeedAbort := True; Advance2.lChDir(CurDir);
       repeat
-       Abort := Off; NeedAbort := On;
+       Abort := False; NeedAbort := True;
        lGetDir(0, CurDir);
        if Abort then
         begin
@@ -998,10 +1001,10 @@ begin
            if ValidDrive(MM.S[1]) then
             begin SetCurDrive(MM.S[1]); Break; end;
          until False;
-         Abort := On;
+         Abort := True;
         end;
       until not Abort;
-      NeedAbort := Off;
+      NeedAbort := False;
       lGetDir(0,CurDir);
       Advance2.lChDir(S);
     end else
@@ -1009,7 +1012,7 @@ begin
       Advance2.lChDir(CurDir);
       if not Abort then
        repeat
-        Abort := Off; NeedAbort := On;
+        Abort := False; NeedAbort := True;
         lGetDir(0, CurDir);
         if Abort then
          begin
@@ -1027,14 +1030,14 @@ begin
             if ValidDrive(MM.S[1]) then
              begin SetCurDrive(MM.S[1]); Break; end;
           until False;
-          Abort := On;
+          Abort := True;
          end;
        until not Abort;
       SetCurDrive(C);
     end;
    GetRealDir := CurDir;
   end else GetRealDir := GetDir;
-  NeedAbort := Off;
+  NeedAbort := False;
 end;
         {-DataCompBoy-}
 
@@ -1063,7 +1066,7 @@ begin
   S := PF^.Owner^;
   if PF^.TType <> ttUpDir then S := MakeNormName(S, GetLFN(PF^.LFN));
   I := 1;
-  PF^.Size := CountDirLen(S, On, I, Integer(J));
+  PF^.Size := CountDirLen(S, True, I, Integer(J));
   if not Abort then PF^.Attr := PF^.Attr or $8000;
 end;
         {-DataCompBoy-}

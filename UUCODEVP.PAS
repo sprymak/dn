@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source
+//  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,32 +43,49 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////}
 //
 //  Version history:
-//
-//  1.6.RC1
-//  dn270-UUdecode-fix.patch
-//  dn3421-uucode(f)-existing_files_fix.patch
-//
-//  3.7.0
-//  dn370-diskimage_unpacker_uudecoder_datetime.patch
-//  dn31005-bp_to_vp_on_off_true_false.patch
 //
 //  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
-unit UUCode;
+{AK155
+   Переписал все ассемблерные и inline подпрограммы под
+   32-разрядный VP. При этом никаких условных компиляций не делал.
+   Мутную и неэффективную процедуру MoveSection переписал короче и проще.
+
+   По состоянию на 08/03/2001 компилируется только декодирование.
+
+   04/06/2001 - подключил кодирование с новым модулем uue2inc.pas (см.).
+   По-прежнему все ассемблерные вставки чисто 32-разрядные.
+}
+{Cat
+   23/08/2001 - переделал очень много чего, основное - заменил в операциях
+   с дисковыми буферами, да и во многих других местах Word-ы на Longint-ы,
+   что позволяет избавиться от ограничения в 900 строк в секции и наверняка
+   ещё кучи глюков, которые выискивать не хочется - проще исправить  ;-)
+}
+{$IFNDEF VirtualPascal} VP only! {$ENDIF}
+unit UUCodeVP;
 
 interface
-uses Objects, tree
+
+uses
+  Objects, tree
 {$IFDEF UUDECODE}
-   , collect;
-   procedure UuDecode(AFileCollection: PCollection);
-{$ELSE}
+   , collect
+{$ENDIF}
+{$IFDEF UUENCODE}
+   , uue2inc
+{$ENDIF}
    ;
+{$IFDEF UUDECODE}
+   procedure UuDecode(AFileCollection: PCollection);
 {$ENDIF}
 
 {$IFDEF UUENCODE}
@@ -77,13 +94,17 @@ uses Objects, tree
 
 implementation
 
-uses Dos, LFN {DataCompBoy}
-     ,advance, advance1, advance2, advance3, Views, StartUp, Dialogs,
-     xTime, FilesCol, DNApp, Drivers, Gauge, Messages, Commands, RStrings,
-     FileCopy, HistList, DNStdDlg, DNUtil;
+uses
+     Dos, LFN {DataCompBoy}
+     ,advance, advance1, advance2, Views, StartUp,
+     xTime, FilesCol, DNApp, Drivers, Gauge, Messages, Commands,
+     FileCopy, HistList, Use16, lfncol
+     ;
 
-function longmul(X, Y: Word): Longint; inline($5A/$58/$f7/$E2);
-
+function longmul(X, Y: Longint): Longint; inline;
+  begin
+  longmul := longint(X)*longint(Y);
+  end;
 
 const
   TmpExt = 'UUS';
@@ -99,8 +120,8 @@ var Timer: TEventTimer;
 function ApplicationIdle(Info: PWhileView): Boolean;
    var C: Boolean;
    begin
-     C := False;
-     ApplicationIdle := False;
+     C := false;
+     ApplicationIdle := false;
      DispatchEvents(Info, C);
      C:= C or CtrlBreakHit;
      if C then
@@ -108,7 +129,7 @@ function ApplicationIdle(Info: PWhileView): Boolean;
         ApplicationIdle := Msg(dlQueryAbort, nil, mfYesNoConfirm) = cmYes;
         NewTimer(Timer, 0);
       end;
-     CtrlBreakHit := False;
+     CtrlBreakHit := false;
    end;
 
 procedure RereadGlobal(OutputDir:String); {DataCompBoy}
@@ -119,10 +140,7 @@ end;
 
 {$IFDEF UUDECODE}
 
-        {-DataCompBoy-}
-function UU_Decode(
-         AFileCollection: PCollection;
-         const OutputDir:String;ChkOvr,DispErr,RecoverBrokenUUE:Boolean):Boolean;
+{!  описания !}
 
 var
         PI: PWhileView;
@@ -138,7 +156,7 @@ type
         PDskBufArr      = ^TDskBufArr;
         PSection = ^TSection;
         TSection = record
-                     Number    : word;
+                     Number    : Longint;
                      TmpFileId : LongInt;
                      Size      : TSize;
                    end;
@@ -148,7 +166,7 @@ type
 
         TSectInfo= record
                      MaxSectKnw : Boolean;
-                     TotSect    : word;
+                     TotSect    : Longint;
                    end;
 
         PFile    = ^TFile;
@@ -164,16 +182,13 @@ type
                      Crc        : word;
                      s          : TSectInfo;
                      FileTime   : LongInt;
-                     NSect      : word;
+                     NSect      : Longint;
                      Sect       : PSectArr;
                      Broken     : Boolean;
                    end;
 
         TFileArr = array[1..1500] of TFile;
         PFileArr = ^TFileArr;
-
-function  Min(a1,a2:integer):integer;inline($58/$5B/$3B/$C3/$7C/$01/$93);
-function  Max(a1,a2:integer):integer;inline($58/$5B/$3B/$C3/$7F/$01/$93);
 
 const
         GrowStep=16;
@@ -184,7 +199,7 @@ var
         BackCRC         : word;
         BackBuf         : string;
         FileArr         : PFileArr;
-        NFileArr        : word;
+        NFileArr        : Longint;
         TmpCRC          : word;
         SectCRC         : word;
         SectSSz         : LongInt;
@@ -218,17 +233,23 @@ var
         ForceEOF,
         MaxSectKnown    : Boolean;
         MaxSectNum,
-        CurSectNo       : word;
-        NumErr          : word;
+        CurSectNo       : Longint;
+        NumErr          : Longint;
         SubPos          : byte;
         WholeSectCRC    : word;
-        OutBufPos       : word;
+        OutBufPos       : Longint;
         POutBuf         : PDskBufArr;
         CurSectSize,
         CurFileTime,
         HeapBegin,
         HeapEnd         : LongInt;
+{!  описания !}
 
+        {-DataCompBoy-}
+function UU_Decode(
+         AFileCollection: PCollection;
+         const OutputDir:String;ChkOvr,DispErr,RecoverBrokenUUE:Boolean):Boolean;
+{! тут были описания !}
 
  procedure FReadLn;
  begin
@@ -245,14 +266,14 @@ begin
  if ErrorFCode=0 then PrepareWrite;
 end;
 
-procedure BWrite(var Buf;Sz:word);
-var a:word;
+procedure BWrite(var Buf;Sz:Longint);
+var a:longint;
 begin
  BlockWrite(OutFile.F,Buf,Sz,a);
  if a<>Sz then ErrorFCode:=101 else ErrorFCode:=IOResult;
 end;
 
-procedure PutBlock(var OutBuf;Sz:word);
+procedure PutBlock(var OutBuf;Sz:Longint);
 var Buf:TDskBufArr absolute OutBuf;
 begin
  if Sz=0 then Exit;
@@ -298,10 +319,10 @@ end;
 function RExpand(s:string;n:byte):string;
 begin while Length(s)<n do s:=s+' ';RExpand:=s end;
 
-procedure GrArr(var p;var Index:word;Sz:word);
+procedure GrArr(var p;var Index:Longint;Sz:Longint);
 var a1:pointer;
      a:pointer absolute p;
-  BufS:word;
+  BufS:Longint;
 begin
  if Index mod GrowStep=0 then
  begin
@@ -317,35 +338,38 @@ begin
  Inc(Index);
 end;
 
-procedure CalcBufCRC(var Buf;Size:word;var PrevSum:word);assembler;
+procedure CalcBufCRC(var Buf;Size:longint;var PrevSum:word);assembler;
+{&USES esi} {&FRAME-}
 asm
-        mov     cx,Size
-        jcxz    @@Ext
-        push    ds
-        lds     si,Buf
-        les     di,PrevSum
-        mov     dx,word ptr [es:di]
+        mov     ecx,Size
+        jecxz   @@Ext
+        mov     esi,Buf
+        mov     edi,PrevSum
+        mov     dx,word ptr [edi]
         xor     ax,ax
  @@1:   lodsb
         ror     dx,1
         add     dx,ax
         loop    @@1
-        pop     ds
-        mov     word ptr es:[di],dx
+        mov     word ptr [edi],dx
  @@Ext:
 end;
 
-function SmartDIV(L:LongInt;W:Word):Word;assembler;
-asm      mov     ax,word ptr [L+0]
-         mov     dx,word ptr [L+2]
+{Cat: не всегда она будет возвращать Word, что приводит к глюкам}
+function SmartDIV(L:LongInt;W:Longint):Longint;assembler;
+{&USES None} {&FRAME-}
+asm
+         mov     eax,L
+         xor     edx,edx
          div     W
-         or      dx,dx
+         mov     edx,eax
+         and     edx,$FFFF0000
          jz      @@Exit
-         inc     ax
+         inc     eax
 @@Exit:
 end;
 
-procedure FreeArr(var pp;Index,Sz:word);
+procedure FreeArr(var pp;Index,Sz:Longint);
 var p : pointer absolute pp;
 begin
  FreeMem(p,SmartDiv(Index,GrowStep)*GrowStep*Sz);
@@ -364,30 +388,30 @@ begin DelLeft(s);DelRight(s) end;
 
 function EndOfFile:Boolean;
 begin
- if ForceEOF then begin EndOfFile:=True; Exit end;
+ if ForceEOF then begin EndOfFile:=true; Exit end;
  EndOfFile:=InputStream^.Eof;
 end;
 
 function UUString(var s:string;var CRC:word):Boolean;assembler;
+{&USES esi} {&FRAME+}
 asm
         cld
-        push    ds
-        lds     si,CRC
-        mov     dx,ds:[si]
-        lds     si,s
+        mov     esi,CRC
+        mov     dx,word ptr[esi]
+        mov     esi,s
         mov     ah,0
-        mov     ch,0
+        xor     ecx,ecx
         lodsb
         mov     cl,al
 
-        push    cx
-        les     di,s
-        add     di,cx
-        inc     di
+        push    ecx
+        mov     edi,s
+        add     edi,ecx
+        inc     edi
         mov     al,0
-        mov     cx,70
+        mov     ecx,70
         rep     stosb
-        pop     cx
+        pop     ecx
 
         lodsb
         ror     dx,1
@@ -398,7 +422,7 @@ asm
         ja      @@NonUU
         sub     al,' '
         and     al,3Fh
-        mov     ds:[si-1],al
+        mov     byte ptr[esi-1],al
         dec     cl
  @@L:   lodsb
         cmp     al,0
@@ -411,30 +435,33 @@ asm
         ja      @@NonUU
         sub     al,' '
         and     al,3Fh
-        mov     ds:[si-1],al
+        mov     byte ptr[esi-1],al
         loop    @@L
         jmp     @@UU
 @@NonUU:mov     al,0
         jmp     @@End
-@@UU:   lds     si,CRC
+@@UU:   mov     esi,CRC
         ror     dx,1
         add     dx,0Ah
-        mov     ds:[si],dx
+        mov     word ptr[esi],dx
         mov     al,1
-@@End:  pop     ds
+@@End:
+
 end;
 
-function MemEqu(var A,B; Size : Word) : Boolean; assembler;
-asm      push  ds
+function MemEqu(var A,B; Size : longint) : Boolean; assembler;
+{&USES esi} {&FRAME-}
+asm
          cld
-         mov   cx,Size
-         lds   si,A
-         les   di,B
+         mov   ecx,Size
+         mov   esi,A
+         mov   edi,B
          repe  cmpsb
-         mov   al,1
+         mov   eax,1
          je    @@EQ
          dec   al
-@@EQ:    pop   ds
+@@EQ:
+
 end;
 
 procedure DelTBeg(b:byte);begin Delete(StrT,1,b) end;
@@ -456,8 +483,8 @@ begin
  w:='';
  DelSpaces(s); if s='' then Exit;
  while (sl>0) and (s[1]<>' ') do
- begin w:=w+s[1];DelFC(s) end;
- DelFC(s);
+ begin w:=w+s[1];Delete(s, 1, 1); {DelFC(s)} end;
+ Delete(s, 1, 1); {DelFC(s);}
 end;
 
 procedure GetN(var s,w:string);
@@ -466,8 +493,8 @@ begin
  w:='';
  DelSpaces(s); if s='' then Exit;
  while (sl>0) and (s[1] in Digits) do
- begin w:=w+s[1];DelFC(s) end;
- DelFC(s);
+ begin w:=w+s[1];Delete(s, 1, 1); {DelFC(s)} end;
+ Delete(s, 1, 1); {DelFC(s);}
 end;
 
 procedure GetWord; begin GetW(StrT,AuxT) end;
@@ -480,23 +507,23 @@ begin Val(AuxT,Num,NumErr);ValidLNumber:=NumErr=0 end;
 
 procedure ClearEX;
 begin
- NumSectKnown:=False;
- MaxSectKnown:=False;
- FileNameKnown:=False;
- SectionGo:=False;
- FileTimeKnown:=False;
- exFileTime:=False;
- exEnd:=False;
- exBegin:=True;
- exTable:=False;
+ NumSectKnown:=false;
+ MaxSectKnown:=false;
+ FileNameKnown:=false;
+ SectionGo:=false;
+ FileTimeKnown:=false;
+ exFileTime:=false;
+ exEnd:=false;
+ exBegin:=true;
+ exTable:=false;
 end;
 
 function Complete__File:Boolean;
 begin
- Complete__File:=False;
+ Complete__File:=false;
  if not CurPFile^.s.MaxSectKnw then Exit;
  if CurPFile^.s.TotSect<>CurPFile^.NSect then Exit;
- Complete__File:=True;
+ Complete__File:=true;
 end;
 
 procedure Local_Error(const s:string; Severe: Boolean);
@@ -548,8 +575,8 @@ begin
 end;
 
 procedure CompileFile;
-var i,j               : word;
-    PA,FA             : word;
+var i,j               : Longint;
+    PA,FA             : Longint;
     MissS             : string;
     SingleMiss        : Boolean;
 
@@ -558,27 +585,26 @@ const
   BufSize=1024;
 var
   Buf: array[1..BufSize] of byte;
-  c  : word;
-  i  : word;
-  l  : longint;
-  s  : string;
-
-  procedure Mve(Sz:word);
-  begin
-   BlockRead(TmpInFile.F,Buf,Sz);
-   CalcBufCRC(Buf,Sz,CurPFile^.CRC);
-   PutBlock(Buf,Sz);
-  end;
+  c  : Longint;
+  i  : TSize;
+  l  : Longint;
 
 begin
   InFName:=CalcTmpFName(a.TmpFileId,TmpExt,False);
   lAssignFile(TmpInFile,InFName);
   FileMode:=$40; lResetFile(TmpInFile,1);
   if IOResult<>0 then LocalError(GetString(dlleErrorOpenTMP));
-  i:=round(a.Size) div BufSize;
-  for c:=1 to round(i) do Mve(BufSize);
-  i:=Round(a.Size) mod BufSize;
-  if i>0 then Mve(i);
+  i := a.Size;
+  while i <> 0 do
+    begin
+    l := BufSize;
+    if i < BufSize then
+      l := {Cat:warn} Round(i);
+    BlockRead(TmpInFile.F, Buf, l);
+    CalcBufCRC(Buf, l, CurPFile^.CRC);
+    PutBlock(Buf, l);
+    i := i - l;
+    end;
   Close(TmpInFile.F);
   EraseFile(InFName);
   CurPFile^.Size:=CurPFile^.Size+a.Size;
@@ -599,7 +625,7 @@ begin
 end;
 
 procedure CheckPresence;
-var ii,jj:word;
+var ii,jj:Longint;
 begin
  jj:=0;
  for ii:=1 to CurPFile^.NSect do if CurPFile^.Sect^[ii].Number=i then
@@ -636,11 +662,8 @@ procedure SetFileTime(ft:LongInt);
 var f:lfile;
 begin
  if ft=0 then Exit;
- lAssignFile(f,OutputDir+OutFName);
- FileMode:=$42;{set filetime under OS/2}
- lResetFile(f,1);
- SetFTime(f.f,ft);
- Close(f.f);
+{Cat: изменил FileMode с $40 на 2 - иначе время не ставится}
+ lAssignFile(f,OutputDir+OutFName);FileMode:=2;lResetFile(f,1);SetFTime(f.f,ft);Close(f.f);
 end;
 
 procedure ReportMiss;
@@ -654,8 +677,8 @@ begin
 end;
 
 begin { CompileFile }
- ClearFAPA;MissS:='';SingleMiss:=True;
- OutFName:=CurPFile^.FName^;CurPFile^.Flushed:=True;
+ ClearFAPA;MissS:='';SingleMiss:=true;
+ OutFName:=CurPFile^.FName^;CurPFile^.Flushed:=true;
  FileRewrite(OutputDir+OutFName);
  if ErrorFCode<>0 then
  begin
@@ -691,7 +714,7 @@ begin
 end;
 
 begin
- KickBack:=False;
+ KickBack:=false;
  if BadSection then
  begin
   CancelOutFile;Exit;
@@ -711,7 +734,7 @@ end;
 procedure SetFN;
 var D:String;N:String;E:String;nl:byte absolute n;el:byte absolute E;
 begin
- UpStr(AuxT);lFSplit(AuxT,D,N,E); nl:=Min(nl,8);el:=Min(el,4);
+{UpStr(AuxT);} lFSplit(AuxT,D,N,E); {nl:=Min(nl,8);el:=Min(el,4);} {JO: для OS/2 это как-то странно}
  AuxT:=N+E;
 end;
 
@@ -723,26 +746,26 @@ function SetSection:Boolean;
 
 procedure SetCurFName;
 begin
- GetWord;SetFN;CurFileName:=AuxT;SetSection:=True;FileNameKnown:=True;
- exFileTime:=True;
+ GetWord;SetFN;CurFileName:=AuxT;SetSection:=true;FileNameKnown:=true;
+ exFileTime:=true;
 end;
 
 begin
- SetSection:=False;
+ SetSection:=false;
  if StrT='' then Exit;
  GetWord;
  if StrT='' then Exit;
- if not ValidWNumber(CurSectNo) then Exit;
+ if not ValidLNumber(CurSectNo) then Exit;
  GetWord;
  if StrT='' then Exit;
  if AuxT<>'of' then Exit;
  GetWord;
  if StrT='' then Exit;
- if not ValidWNumber(MaxSectNum) then MaxSectNum:=0 else GetWord;
+ if not ValidLNumber(MaxSectNum) then MaxSectNum:=0 else GetWord;
  if StrT='' then Exit;
  if AuxT='file' then
  begin
-  NumSectKnown:=True;
+  NumSectKnown:=true;
   SetCurFName;
   Exit;
  end;
@@ -751,8 +774,8 @@ begin
  GetWord;
  if StrT='' then Exit;
  SetCurFName;
- NumSectKnown:=True;
- if MaxSectNum>0 then MaxSectKnown:=True;
+ NumSectKnown:=true;
+ if MaxSectNum>0 then MaxSectKnown:=true;
 end;
 
 procedure SetBegin;
@@ -762,30 +785,30 @@ begin
  GetWord;
  SetFN;
  if (AuxT<>CurFileName) and FileNameKnown then LocalError(GetString(dlleFileNamesMismatch));
- CurFileName:=AuxT;FileNameKnown:=True;
- exFileTime:=False;
+ CurFileName:=AuxT;FileNameKnown:=true;
+ exFileTime:=false;
 end;
 
 function SetFileTime:Boolean;
 begin
- SetFileTime:=False;
+ SetFileTime:=false;
  if StrT='' then begin LocalError(GetString(dlleFileTimeExp));Exit end;
  GetWord;
  if not ValidLNumber(CurFileTime) then begin LocalError(GetString(dlleInvFileTimeNum));Exit end;
- FileTimeKnown:=True;
+ FileTimeKnown:=true;
 end;
 
 procedure CalcLnCRC(var Strng:string;var CRC:word);assembler;
+{&USES esi} {&FRAME-}
 asm
         cld
-        xor     cx,cx
-        push    ds
-        lds     si,Strng
+        xor     ecx,ecx
+        mov     esi,Strng
         lodsb
         mov     cl,al
-        jcxz    @@End
-        les     di,CRC
-        mov     dx,word ptr [es:di]
+        jecxz    @@End
+        mov     edi,CRC
+        mov     dx,word ptr [edi]
         xor     ax,ax
  @@1:   lodsb
         ror     dx,1
@@ -793,8 +816,8 @@ asm
         loop    @@1
         ror     dx,1
         add     dx,0Ah
-        mov     word ptr es:[di],dx
- @@End: pop     ds
+        mov     word ptr [edi],dx
+ @@End:
 end;
 
 
@@ -802,9 +825,9 @@ procedure CheckSum;
 var Num:string;
 
 function CheckS:Boolean;
-var c:word;s:LongInt;
+var c:Word;s:LongInt;
 begin
- CheckS:=False;
+ CheckS:=false;
  GetN(Num,StrT);
  if Num='' then Exit;
  if AuxT='section' then
@@ -821,7 +844,7 @@ begin
   begin
    LocalError(GetString(dlleSizeMism)+' '#196' '+CurPFile^.FName^+', '+GetString(dlleSection)+' '+ItoS(CurSectNo));
   end;
-  CheckS:=True;
+  CheckS:=true;
  end else
  if AuxT='entire' then
  begin
@@ -829,7 +852,7 @@ begin
   if not ValidWNumber(c) then Exit;
   AuxT:=Num;
   if not ValidLNumber(s) then Exit;
-  CheckS:=True;
+  CheckS:=true;
   if CurPFile^.Flushed then
   begin
    CheckFileSize(s,CurPFile^.Size);
@@ -838,7 +861,7 @@ begin
   begin
    CurPFile^.RealCRC:=c;
    CurPFile^.RealSize:=s;
-   CurPFile^.CrcKnown:=True;
+   CurPFile^.CrcKnown:=true;
   end;
  end;
 end;
@@ -853,24 +876,25 @@ end;
 
 procedure CalcCRC;
 begin
- KickBack:=False;
+ KickBack:=false;
  CalcLnCRC(OrgT,SectCRC);Inc(SectSSz,OrgTLen+1);
 end;
 
 procedure FlushBack;
 var s:string;
 begin
- if POutBuf = nil then Exit;
-{AK155: такое бывает при массовом раскодировании, когда в одном файле был ююк
+ if POutBuf = nil then
+   exit; {AK155
+Такое бывает при массовом раскодировании, когда в одном файле был ююк
 без section, но с '`', затем встретился файл с 'M', а затем - файл с 'end',
 но без ююков (скажем, программа на Паскале). Так по этому end происходит
 вызов с POutBuf = nil. А предотвратить такое сложно, не разрушив при этом
 возможность раскодирования всяких не вполне корректных ююков}
- if KickBack = True then
+ if KickBack=true then
  begin
   s:=StrT;StrT:=BackBuf;OutString;StrT:=s;SectCRC:=BackCRC;
   Inc(SectSSz,BackSize);
-  KickBack:=False;
+  KickBack:=false;
  end;
 end;
 
@@ -909,7 +933,7 @@ begin
   StrT:=OrgT;
   if StrT[1]='M' then
   begin
-   TmpCRC:=SectCRC;KickBack:=False;
+   TmpCRC:=SectCRC;KickBack:=false;
    if UUString(StrT,TmpCRC) then
     begin SectCRC:=TmpCRC;Inc(SectSSz,OrgTLen+1);Break end;
   end else
@@ -918,27 +942,27 @@ begin
    begin
     if BadSection then
     begin
-     ExSUM:=False;
+     ExSUM:=false;
      ClearEX;
      Continue;
     end else
     begin
      if CurPFile <> nil then
      begin
-      CurPFile^.EndFound:=True;
-      CurPFile^.s.MaxSectKnw:=True;
+      CurPFile^.EndFound:=true;
+      CurPFile^.s.MaxSectKnw:=true;
       CurPFile^.s.TotSect:=CurSectNo;
      end;
      FlushBack;
      CalcCRC;
      TerminateSection;
-     ClearEX;exEnd:=True;
+     ClearEX;exEnd:=true;
      Continue
     end;
    end ;
    if exSUM     then if StrTBegins('sum -r/size ') then
    begin
-    ExEnd:=False;
+    ExEnd:=false;
     if BadSection then
     begin
      ClearEX;
@@ -946,7 +970,8 @@ begin
     end else
     begin
      if WholeSectCRC=0 then WholeSectCRC:=SectCRC;
-     if CurPFile<>NIL then CheckSum;
+     if CurPFile<>NIL then
+        CheckSum;
      if SectionGo then begin TerminateSection;ClearEX end;
      ClearCRC;Continue;
     end
@@ -960,7 +985,7 @@ begin
    if exBegin then if StrTBegins('begin ') then
    begin
     if SectionGo then begin TerminateSection;ClearEX end;
-    if ExTable then exTable:=False else ClearCRC;
+    if ExTable then exTable:=false else ClearCRC;
     SetBegin;
     CalcCRC;
     Continue
@@ -969,7 +994,7 @@ begin
    begin
     FlushBack;
     CalcCRC;
-    WholeSectCRC:=SectCRC;ExEnd:=False;
+    WholeSectCRC:=SectCRC;ExEnd:=false;
     if CurPFile<>NIL then
     if not CurPFile^.EndFound then LocalError(GetString(dlleUnexpEND));
     Continue
@@ -980,11 +1005,11 @@ begin
     if not SetSection then
     begin
      LocalError(GetString(dlleSectionHdr));
-     BadSection:=True;
+     BadSection:=true;
     end else
     begin
-     if CurSectNo>1 then exBegin:=False;
-     exTable:=True;
+     if CurSectNo>1 then exBegin:=false;
+     exTable:=true;
      ClearCRC;
     end;
     Continue;
@@ -999,7 +1024,7 @@ begin
    begin
      if SectionGo then
      begin
-       KickBack:=True;continue
+       KickBack:=true;continue
      end else
      if FileNameKnown then
      begin
@@ -1009,16 +1034,16 @@ begin
      end
    end;
   end;
- until False;
+ until false;
 end;
 
 procedure DecodeStr(var Src,Dst);assembler;
+{&USES esi,ebx}
 var     Cnt:byte;
 asm
         cld
-        push    ds
-        lds     si,Src
-        les     di,Dst
+        mov     esi,Src
+        mov     edi,Dst
         mov     Cnt,15
 @@L:    lodsw
         mov     ch,ah
@@ -1042,7 +1067,6 @@ asm
         stosb
         dec     Cnt
         jnz     @@L
-        pop     ds
 end;
 
 procedure OutString;
@@ -1055,7 +1079,7 @@ begin
 end;
 
 procedure GoSect;
-begin exBegin:=True;exEnd:=True;SectionGo:=True end;
+begin exBegin:=true;exEnd:=true;SectionGo:=true end;
 
 procedure OpenOutFile;
 begin
@@ -1064,14 +1088,14 @@ begin
  FileRewrite(OutFName);
  if ErrorFCode<>0 then
  begin
-  LocalError(GetString(dlleCantCreate)+' '+OutFName);BadSection:=True;
+  LocalError(GetString(dlleCantCreate)+' '+OutFName);BadSection:=true;
  end;
 end;
 
 procedure CheckExist;
 var f: String;
     P: Pointer;
-    i,j : word;
+    i,j : Longint;
 begin
  if not ChkOvr then Exit;
  j:=0;
@@ -1085,9 +1109,9 @@ begin
   begin
    Case MessageBox(GetString(dlFileExist)+^M, @P, mfQuery+mfYesButton+mfNoButton+mfCancelButton+mfAllButton) of
    { cmYes:;}
-    cmOk:begin ChkOvr := False; end;
-    cmNo:begin BadSection:=True; ForceSkip:=True end;
-    cmCancel: begin BadSection:=True; ForceEOF:=True end;
+    cmOk:begin ChkOvr := false; end;
+    cmNo:begin BadSection:=true; ForceSkip:=true end;
+    cmCancel: begin BadSection:=true; ForceEOF:=true end;
     end;
    NewTimer(Timer, 0);
   end;
@@ -1101,12 +1125,13 @@ end;
 procedure DecodeUnheadered;
 
 function CalcUnknownName:string;
-var     Num:word;
+var     Num:Longint;
         u:string;
  procedure CalcMaxUnk(var s:string);
- var v,c:word;
+ var v:Longint;
+   c: longint;
  begin
-  if s[1]='.' then DelFC(s);
+  if s[1]='.' then Delete(s, 1, 1); {DelFC(s);}
   Val(s,v,c);
   if c>0 then Exit;
   if v<=Num then Exit;
@@ -1147,10 +1172,10 @@ procedure MakeTmpFile;
 
 procedure MaxSectNumMism;
 begin
- LocalError(GetString(dlleMaxSectNumMism));BadSection:=True;
+ LocalError(GetString(dlleMaxSectNumMism));BadSection:=true;
 end;
 
-var j:word;
+var j:Longint;
 procedure SetTotSect(var s:TSectInfo);
 begin
  with s do
@@ -1192,7 +1217,7 @@ begin
   SetTotSect(s);
   FName:=NewStr(CurFileName);
   Size:=0;Crc:=0;NSect:=0;
-  Broken:=False;CrcKnown:=False;EndFound:=False;ForceSkp:=ForceSkip;Flushed:=ForceSkip;
+  Broken:=False;CrcKnown:=false;EndFound:=false;ForceSkp:=ForceSkip;Flushed:=ForceSkip;
   if FileTimeKnown then FileTime:=CurFileTime else FileTime:=0;
   CurPFile:=@f;
   if not ForceSkip then
@@ -1206,11 +1231,11 @@ end;
 procedure DuplicateSection;
 begin
  LocalWarning(GetString(dlleDuplicateSection)+' '+ItoS(CurSectNo)+' '+GetString(dlleOfFile)+' '+CurFileName);
- BadSection:=True;
+ BadSection:=true;
 end;
 
 procedure AddNewSItem(var f:TFile);
-var i:word;
+var i:Longint;
 begin
  with f do
  begin
@@ -1233,7 +1258,7 @@ begin
  end
 end;
 
-var i:word;
+var i:Longint;
 begin
  if ForceEOF then Exit;
  j:=0;
@@ -1251,7 +1276,7 @@ begin
  CheckExist;
  MakeTmpFile;
  OpenOutFile;
- exSum:=True;
+ exSum:=true;
  while SectionGo do
  begin
   OutString;
@@ -1266,7 +1291,7 @@ begin
  MakeTmpFile;
  OpenOutFile;
  GoSect;
- exSum:=True;
+ exSum:=true;
  while SectionGo do
  begin
   OutString;
@@ -1276,7 +1301,7 @@ begin
 end;
 
 procedure FlushLeftSections;
-var i:word;
+var i:Longint;
 begin
  for i:=1 to NFileArr do
  begin
@@ -1297,7 +1322,7 @@ var
  IdleTimer: TEventTimer;
 begin
  if (PF^.Attr and Directory <> 0) then Exit;
- InputFileName:=MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
+ InputFileName:=MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
  if not ExistFile(InputFileName) then Exit;
  InputStream := New(PTextReader, Init(InputFileName));
  if (InputStream = nil) then Exit;
@@ -1318,7 +1343,7 @@ begin
   PI^.Write(3,CurFileName);
   PI^.Write(5,GetString(dlUUDecodeFiles)+SSStr(GoodNumber,3,' '));
   PI^.Write(6,GetString(dlUUDecodeErrors)+SSStr(ErrorNumber,3,' '));
-  BadSection:=False;KickBack:=False;ForceSkip:=False;ExSum:=False;CurPFile:=NIL;
+  BadSection:=false;KickBack:=false;ForceSkip:=false;ExSum:=false;CurPFile:=NIL;
 
   if not NumSectKnown then DecodeUnheadered
    else if MaxSectKnown then WriteHeadered else WriteOrphanedSection;
@@ -1334,14 +1359,14 @@ begin
  Message(Application, evCommand, cmCopyUnselect, PF);
 end;
 
-var
+{var
     PP,P1 : PView;
-    PL : PSortedListBox;
+    PL : PSortedListBox;}
 
 begin { Uu_Decode }
- POutBuf:=NIL;NFileArr:=0;BadSection:=False;KickBack:=False;
- ForceEOF:=False;
- UUfound:=False;CurFileName:='';GoodNumber:=0;ErrorNumber:=0;
+ POutBuf:=NIL;NFileArr:=0;BadSection:=false;KickBack:=false;
+ ForceEOF:=false;
+ UUfound:=false;CurFileName:='';GoodNumber:=0;ErrorNumber:=0;
  CurPFile:=NIL;PI:=NIL;
  ClearEX;ClearCRC;
  AFileCollection^.ForEach(@DoUuDecode);
@@ -1371,7 +1396,8 @@ begin
      UUDecodeOptions := Dr.Opt;
      if Dr.S='' then Dr.S :='.\' else if Dr.S[Length(Dr.S)]<>'\' then
        if not ((Length(Dr.S)=2) and (Dr.S[2]=':')) then Dr.S:=Dr.S+'\';
-     CreateDirInheritance(Dr.S, False);
+     {Cat:warn могут быть проблемы с сетевыми путями}
+     CreateDirInheritance(Dr.S, false);
     NewTimer(Timer, 0);
     BeepDisabled := UU_Decode(AFileCollection,Dr.S, Dr.Opt and 1 <> 0, Dr.Opt and 2 <> 0, Dr.Opt and 4 <> 0);
      RereadGlobal(Dr.S);
@@ -1388,6 +1414,9 @@ end;
 
 {$IFDEF UUENCODE}
 
+(* {Это все не нужно, итак как используется не ассемблерный obj,
+а паскальный unit}
+
 type
         T64             = record
                           case Byte of
@@ -1401,19 +1430,27 @@ function  GetLnCrc(var Buf;Size:word):Char;near;external;
 procedure cCrc(var Buf;Size:word;var PrevSum:word);near;external;
 procedure Crc64(var Buf;Size:word;var PrevSum;var Cnt:word);near;external;
 procedure Clear64(n:T64);near;external;
+
 {$IFDEF DPMI}
 {$L UUE2INC.OBP}
 {$ELSE}
 {$L UUE2INC.OBJ}
 {$ENDIF}
+*)
 
-function SmartDIV(L:LongInt;W:Word):Word;assembler;
-asm             mov     ax,word ptr [L+0]
-                mov     dx,word ptr [L+2]
-                div     W
-                or      dx,dx
-                jz      @@Exit
-                inc     ax
+{Cat: не всегда она будет возвращать Word, что приводит к глюкам
+      (кстати: ещё один потенциальный источник глюков -  в модуле две функции
+      называются SmartDiv, но вместе с тем этот SmartDiv абсолютно отличается
+      от того, который был раньше)}
+function SmartDIV(L:LongInt;W:Longint):Longint;assembler;
+{&USES None} {&FRAME-}
+asm
+         mov     eax,L
+         xor     edx,edx
+         div     W
+         or      edx,edx
+         jz      @@Exit
+         inc     eax
 @@Exit:
 end;
 
@@ -1426,9 +1463,9 @@ type
   const
                 SectNZ   = 2000;
  {$IFDEF DNPRG}
-                UUETitle = '< UUE by DN OSP '+VersionName+' >';
+                UUETitle = '< UUE by DN/2 '+VersionName+' >';
  {$ELSE}
-                UUETitle = '< UUE by DN OSP  >';
+                UUETitle = '< UUE by DN/2 >';
  {$ENDIF}
   var ST: lfile;
       GetLnEnd: string[2];
@@ -1478,7 +1515,7 @@ type
         OutName         : String;
         SouName         : String;
 
-procedure GetData(var Buf; Count: Word);
+procedure GetData(var Buf; Count: Longint);
 begin
  BlockRead(ST.f, Buf,Count);
  if CalcEntireCrc then cCRC(Buf,Count,EntireCRC);
@@ -1488,10 +1525,6 @@ end;
 procedure WriteT(const s:string);
 var sl:byte absolute s;
 begin
- if TxtBufSize + sl > OutBufSize then
- asm
-   nop
- end;
  Move(s[1],DskBuf^[TxtBufSize+1],sl);
  Inc(TxtBufSize,sl);
 end;
@@ -1504,7 +1537,7 @@ var sl:byte;
 begin
  if CalcSectCrc then
  begin
-  sl:=Byte(s[0]);
+  sl:=Length(s);
   Inc(sl);Inc(SecCRCs,sl);s[sl]:=#10;
   cCrc(s[1],sl,SecCRC);
  end;
@@ -1524,18 +1557,21 @@ end;
 
 procedure WriteEmptyLn;begin WriteLnT('') end;
 
+{Cat: эта функция есть в advance1.pas}
+(*
 function ItoS(a:longint):string;
  var s : string[40];
 begin
  Str(a,s);
  ItoS:=s;
 end;
+*)
 
 procedure ClrIO;
 begin
  InOutRes := 0;
  DosError := 0;
- Abort    := False;
+ Abort    := false;
 end;
 
 
@@ -1593,7 +1629,8 @@ function GetDecimal(Number:word):string;assembler; {Set 2-b}
         mov     edi,@Result
         mov     al,2
         stosb
-        mov     eax,Number
+//        mov     eax,Number
+        mov     ax,Number
         mov     cl,10
         div     cl
         add     ax,3030h
@@ -1610,13 +1647,13 @@ function StdDateTime(Year, Month, Day, Hour, Minute, Second:word):string;
 var s:string[6];
    sl:byte absolute s;
 begin
- s:=ItoS(Year);while sl>2 do DelFC(s);
+ s:=ItoS(Year);while sl>2 do Delete(s, 1, 1); {DelFC(s);}
  StdDateTime:=GetDecimal(Day)+'-'+GetMonth(Month)+'-'+s+' '+
  GetDecimal(Hour)+':'+GetDecimal(Minute)+':'+GetDecimal(Second);
 end;
 
 function CurStdDateTime:string;
-var Dummy, Year, Month, Day, Hour, Minute, Second:word;
+var Dummy, Year, Month, Day, Hour, Minute, Second:longint;
 begin
  GetDate(Year, Month, Day, Dummy);
  GetTime(Hour, Minute, Second, Dummy);
@@ -1664,9 +1701,9 @@ begin
 
  OutName:=Dr+Nm+LocalFreeStr;
  lAssignFile(t,OutName);
-{---------------------------------------------------------------}
-if not All and (NumSect>0) then { Flash 30-04-2003 }
- begin
+ {---------------------------------------------------------------}
+ if not All and (NumSect>0) then { Flash 30-04-2003 }
+  begin
    { FileMode:=$40;}
     ClrIO;
     lResetFile(t,1);
@@ -1676,11 +1713,11 @@ if not All and (NumSect>0) then { Flash 30-04-2003 }
         P := @OutName;
         II := MessageBox(GetString(dlFileExist)+^M, @P, mfQuery+mfYesButton+mfNoButton+mfCancelButton+mfAllButton);
         Case II of
-         cmOk:     All := True;
-         { Flash 29-04-2003 >>> }
-         cmCancel: begin Cancel := True; Exit; end;
-         cmNo:     begin Skip   := True; Exit; end;
-         { Flash 29-04-2003 <<< }
+          cmOk:     All := true;
+          { Flash 29-04-2003 >>> }
+          cmCancel: begin Cancel := True; Exit; end;
+          cmNo:     begin Skip   := True; Exit; end;
+          { Flash 29-04-2003 <<< }
         end;
         NewTimer(Timer, 0);
        end;
@@ -1713,7 +1750,7 @@ end;
 function SS64(n:T64):string;
 var s:string;
 begin
- s[0]:=#16;
+ SetLength(s, 16);
  Hex8Lo(n.l1,s[1]);
  Hex8Lo(n.l0,s[9]);
  SS64:=s;
@@ -1760,7 +1797,7 @@ begin
  FlushT;
 end;
 
-procedure WriteStr(var Buf;NumBytes:word);
+procedure WriteStr(var Buf;NumBytes:Longint);
 var d  : string[60];
     dl : byte absolute d;
     s  : array[1..45] of byte;
@@ -1774,8 +1811,8 @@ begin
        WriteLnCRC(GetUUxlt(NumBytes)+d);
 end;
 
-procedure WriteSection(var Buf;ss:word);
-var i:word;Buff:TDskBufArr absolute Buf;
+procedure WriteSection(var Buf;ss:Longint);
+var i:Longint;Buff:TDskBufArr absolute Buf;
 begin
  for i:=0 to ss-1 do WriteStr(Buff[(i)*45+1],45);
 end;
@@ -1786,17 +1823,17 @@ begin WriteSection(Buf,StrPerSect) end;
 procedure Write_Section;
 begin
  StartSection;
- if Cancel or Skip then Exit;  {!! IB} { Flash 30-04-2003 }
+ if Cancel or Skip then Exit;   {!! IB} { Flash 30-04-2003 }
  GetData(SouBuf^,SectSize);
  WriteCompleteSection(SouBuf^);
  EndSection;
 end;
 
 procedure WriteLastSection;
-var i:word;
+var i:Longint;
 begin
  StartSection;
- if Cancel or Skip then Exit;  {!! IB}
+ if Cancel or Skip then Exit;   {!! IB}
  GetData(SouBuf^,LastSectSize);
  i:=StrPerLastS-1;
  if i>0 then WriteSection(SouBuf^,i);
@@ -1805,7 +1842,7 @@ begin
 end;
 
 procedure EncodeSections;
-var i:word;
+var i:Longint;
   IdleTimer: TEventTimer;
 begin
  Cancel:=False;
@@ -1841,6 +1878,8 @@ begin
  LastSectSize:=ls;
 end;
 
+{Cat: незачем два раза открывать файл}
+(*
 procedure GetFInfo;
 var f:lfile;
 begin
@@ -1852,11 +1891,12 @@ begin
  GetFTime(f.f,SouTime);
  Close(f.f);
 end;
+*)
 
 FUNCTION MakeNormName(S, S1: string): string;
 begin
- While S[Length(S)] = ' ' do Dec(S1[0]);
- While S1[Length(S1)] = ' ' do Dec(S1[0]);
+ While S[Length(S)] = ' ' do SetLength(S1, Length(S1)-1);
+ While S1[Length(S1)] = ' ' do SetLength(S1, Length(S1)-1);
  if S <> '' then
  begin
    if S[Length(S)]='\' then MakeNormName := S + S1
@@ -1868,6 +1908,7 @@ procedure DoIt;
 var sss,Ma:LongInt;
     II : Integer;
     LocalFreeStr, UUEncodeDataName: string;
+    Err: longint;
 Label beg;
 begin
 
@@ -1904,10 +1945,12 @@ beg:
  GetLnEnd := #13#10;
  if UUEData.Format=1 then GetLnEnd := #10;
 
+{Cat:todo ругаться при неправильном количестве строк вместо того,
+          чтобы молча брать какое-то другое}
  NLines := 900;
 
- Val(UUEData.NLines, L, I);
- if I = 0 then NLines := Max(10, L);
+ Val(UUEData.NLines, L, Err);
+ if Err = 0 then NLines := Max(10, L);
 
  lFSplit(lFExpand(UUEData.Name), S, Nm, Xt);
  if (Xt='') or (Xt='.') then Xt:='.uue';
@@ -1918,7 +1961,7 @@ beg:
      Xt := '.uue';
    end else Dr := S;
 
- CreateDirInheritance(Dr, False);
+ CreateDirInheritance(Dr, false);
 
  lAssignFile(ST,FName);
  FileMode:=$40;
@@ -1941,6 +1984,20 @@ beg:
    Exit; {Input file is too small}
   end;
 
+{Cat: GetFInfo всего лишь получает время модификации файла}
+(*
+ GetFInfo;
+*)
+ GetFTime(ST.f,SouTime);
+{/Cat}
+
+ MaxSectSize:=LongMul(NLines,45);
+ NumSect:=SmartDIV(SouSize,MaxSectSize)-1;
+ SectNo:=0;
+
+{Cat: раньше в этом месте проверялось наличие файла, но оно проверяется ещё
+      и в StartSection, поэтому запрос на перезапись появлялся дважды}
+(*
  LocalFreeStr:=Dr+Nm+Xt;
  lAssignFile(t,LocalFreeStr);
  FileMode:=$40;
@@ -1958,19 +2015,18 @@ beg:
      end;
     NewTimer(Timer, 0);
     end;
+*)
 
-
- GetFInfo;
-
- MaxSectSize:=LongMul(NLines,45);
- NumSect:=SmartDIV(SouSize,MaxSectSize)-1;
- SectNo:=0;
-
- if NumSect=0 then begin LastSectSize:=SouSize;SectSize:=0 end else
- begin
-  SectSize:=LongMul(SmartDIV(SmartDIV(SouSize,NumSect+1),45),45);
-  CalcLSSize;
- end;
+  if NumSect=0 then
+    begin
+      LastSectSize:=SouSize;
+      SectSize:=0
+    end
+  else
+    begin
+      SectSize:=LongMul(SmartDIV(SmartDIV(SouSize,NumSect+1),45),45);
+      CalcLSSize;
+    end;
 
  StrPerSect:=SmartDIV(SectSize, 45);
  StrPerLastS:=SmartDIV(LastSectSize,45);
@@ -1978,6 +2034,9 @@ beg:
  sss:=Max(SectSize,LastSectSize);
  SectNo:=0;
  Ma:=MaxAvail-OutBufSize-sss;
+{Cat: убрал ограничение на размер буфера - в VP можно и побольше памяти
+      выделить - и, соответственно, ограничение в 900 строк в секции}
+(*
  if (Ma<20000) or (OutBufSize>$FFEF) then
  begin
   Close(ST.f);
@@ -1992,6 +2051,17 @@ beg:
   WriteError:=True;
   Exit;
  end;
+*)
+{Cat}
+  if Ma<20000 then
+    begin
+      Close(ST.f);
+      ErrMsg(erNotEnoughMemory);
+      NewTimer(Timer, 0);
+      WriteError:=True;
+      Exit;
+    end;
+{/Cat}
 
  GetMem(DskBuf,OutBufSize);
  GetMem(SouBuf,sss);
@@ -2028,5 +2098,5 @@ end;
         {-DataCompBoy-}
 
 {$ENDIF}
-
 end.
+

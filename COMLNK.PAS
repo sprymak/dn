@@ -51,6 +51,9 @@
 //  dn3421-NavigatorLink(f)-packets_compress_disbled.patch
 //
 //  3.7.0
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -742,18 +745,18 @@ end;
 
 function OutB_Free: Word;
 var
-  f,Result: LongInt;
+  f,_Result: LongInt;
 begin
   FlushOB;
-  if Lnk^.DelBlkSz > 0 then Result := 0 else
+  if Lnk^.DelBlkSz > 0 then _Result := 0 else
   begin
     f := CL_OutBuffFree(Lnk^.Port);
-    if f<=SafeOutKeep then Result := 0 else Result := f-SafeOutKeep;
+    if f<=SafeOutKeep then _Result := 0 else _Result := f-SafeOutKeep;
   end;
 {$IFDEF CL_LOG}
-  WLog('OutB_Free = '+SStr(Result));
+  WLog('OutB_Free = '+SStr(_Result));
 {$ENDIF}
-  OutB_Free := Result;
+  OutB_Free := _Result;
 end;
 
 function OutB_Used: Word;

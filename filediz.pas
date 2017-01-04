@@ -54,6 +54,9 @@
 //  dn200-new_description_creation_fix-diff162byMV.patch
 //
 //  2.3.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -184,7 +187,7 @@ begin
    end;
    DIZOwner:=DIZ;
   end else DIZOwner:=GetName(DizOwner);
-  DIZOwner := GetDizOwner(PF^.Owner^, DIZOwner, Off);
+  DIZOwner := GetDizOwner(PF^.Owner^, DIZOwner, False);
   if (PF^.DIZ = nil) or (PF^.DIZ^.DIZ = nil) then DIZ := ''
                                              else DIZ := PF^.DIZ^.DIZ^;
   if BigInputBox(GetString(dlEditDesc),GetString(dl_D_escription), DIZ, 255, hsEditDesc) <> cmOK then Exit;
@@ -237,7 +240,7 @@ begin
   {$IFNDEF NONBP}DisableAppend;{$ENDIF}
   lRewriteText(F2);
   if IOResult <> 0 then begin Dispose(F1,Done); Exit; end;
-  Fnd := Off; WasFilesInDIZ:=off;
+  Fnd := False; WasFilesInDIZ := False;
   repeat
     S := F1^.GetStr;
     if s='' then continue;
@@ -257,7 +260,7 @@ begin
 
      if zz
       then begin
-       Fnd:=On;
+       Fnd := True;
 
        if ((ANewDescription=nil) or (ANewDescription^='')) and
           (ANewName=nil) and

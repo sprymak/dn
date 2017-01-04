@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -164,14 +167,14 @@ begin
  Descriptions := nil;
  Hilite := PFilePanel(Owner)^.PanelFlags and pfHiliteFiles <> 0;
  DOSError := 0;
- Abort := Off; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO; FreeSpc := 0;
+ Abort := False; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO; FreeSpc := 0;
  FreeSpace := ''; TotalInfo := ''; TotalLen := 0;
  Files := New(PFilesCollection, Init(10, 20));
  PFilesCollection(Files)^.Owner := Owner;
  if PanelFlags and pfFreeSpace <> 0 then FreeSpc := DiskFree(Byte(CurDir[1])-64);
 
  PFilesCollection(Files)^.SortMode := SortMode;
- DosError := 0; ClrIO; Abort := Off;
+ DosError := 0; ClrIO; Abort := False;
  DrNm := MakeNormName(CurDir,x_x);
  lFindFirst(DrNm, AnyFile, SR); {JO}
  While (DosError = 0) and not Abort and (IOResult = 0) and (MemAvail > LowMemSize) do
@@ -199,7 +202,7 @@ begin
     P^.Attr := SR.Attr;
     P^.Size := FullSize;
     P^.DIZ := nil;
-    P^.Selected := Off;
+    P^.Selected := False;
     if SR.Attr and Directory = 0 then
      begin
       if (Descriptions = nil) and InFilter(FullName, FMSetup.DIZ) then
@@ -216,7 +219,7 @@ begin
         begin
           if SR.Name[1] = '.' then P^.Size := GetDirLen(CurDir)
                               else P^.Size := GetDirLen(CurDir+'\'+SR.Name);
-          if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := Off; end;
+          if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := False; end;
         end;
       end;
     if P^.Name[1] <> '.' then Inc(TotalLen, P^.Size);
@@ -261,11 +264,11 @@ begin
     P^.Attr := Directory;
     P^.Size := 0;
     P^.DIZ := nil;
-    P^.Selected := Off;
+    P^.Selected := False;
     if PanelFlags and pfShowLength <> 0 then
      begin
        P^.Size := GetDirLen(CurDir);
-       if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := Off; end;
+       if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := False; end;
      end;
     P^.Owner := @CurDir;
     Files^.Insert(P);

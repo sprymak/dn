@@ -71,6 +71,11 @@
 //  dn3323-Kernel(f)-error_in_DosReread_fix.patch
 //
 //  3.7.0
+//  dn370-CompareDir(i)-comparing_directories_improve.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn40404-Compare(f)-file_time_compare_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -468,14 +473,11 @@ begin
      if P2P and not P1P then begin Compare := +1; Exit; end;
 
      OneIsFile:=True;
-(*    if ({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Attr and Directory <> 0)
-        and (Attr and Directory <> 0) then OneIsFile:=False;*)
      SM := SortMode;
-
-     if (SM >= NumSortModes) and (SM <= NumSortModes + 15) then begin { условие используется для сравнения }
+     if (SM >= NumSortModes) and (SM <= NumSortModes + 31) then begin { условие используется для сравнения }
                                                                       {  каталогов по Ctrl-C }
        C:=CmpLFN({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}LFN,LFN);
-       if (C=0) and (({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Attr or Attr) and Directory = 0) and
+       If (C=0) and
           (((SM-NumSortModes) and 1 = 0) or ({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Size = Size)) and
           (((SM-NumSortModes) and 2 = 0) or ({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Yr < Yr) or
            (({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Yr = Yr) and
@@ -483,12 +485,19 @@ begin
            (({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Yr = Yr) and
             ({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}FDate = FDate) and
             ({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Second < Second))) and
-          (((SM-NumSortModes) and 4 = 0) or ({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Attr = Attr)) and
-          (((SM-NumSortModes) and 8 = 0) or
-                  CompareFiles(MakeNormName({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Owner^,
-                               MakeFileName({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Name)),
-                               MakeNormName(Owner^, MakeFileName(Name))) )
-           then C := 0 else if (C=0) then C := 1;
+          (((SM-NumSortModes) and 4 = 0) or ({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Attr = Attr)) Then
+        C:=0 Else C:=1;
+       If (C <> 0) Or (({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Attr or Attr) and Directory <> 0) Then
+        Begin
+         Compare := C;
+         Exit;
+        End;
+        If ((SM-NumSortModes) and 8 = 0) or
+           CompareFiles(MakeNormName({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Owner^,
+                        MakeFileName({$IFNDEF DPMI}T1.{$ELSE}P1^.{$ENDIF}Name)),
+                        MakeNormName(Owner^, MakeFileName(Name)))
+           then C := 0 else C := 1;
+
        Compare := C;
        Exit;
      end; { конец куска для сравнения каталогов по Ctrl-C }
@@ -948,7 +957,7 @@ begin
     T.Second := D.Sec;
   end;
   T.Attr := Attr and $7FFF;
-  T.Selected := Off;
+  T.Selected := False;
   T.DIZ := nil;
   T.TType := GetFileType(LFN, T.Attr);
   T.Owner := AOwner;

@@ -70,6 +70,9 @@
 //  dn368-Kernel(f)-GetSName_function_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -229,10 +232,10 @@ end;
 function CorrectFile(const N: String): Boolean;
    var I: Integer;
 begin
-   CorrectFile := Off;
+   CorrectFile := False;
    for I := 1 to Length(N) do
        if N[I] in IllegalCharSet then Exit; {DataCompBoy}
-   CorrectFile := On;
+   CorrectFile := True;
 end;
 
         {-DataCompBoy-}
@@ -404,8 +407,8 @@ var s,s1 : string[40];
     B,B1: Byte;
     r: {$IFDEF DPMI}DPMIRegisters{$ELSE}Registers{$ENDIF};
 begin
- ValidDrive := Off;
- if dr='*' then begin ValidDrive:=On; exit end;
+ ValidDrive := False;
+ if dr='*' then begin ValidDrive:=True; exit end;
  if dr<'A' then exit;
  dr:=UpCase(dr); {John_SW  07-05-2003 drive letter may be in low case!}
  if (dr < 'C') then
@@ -482,7 +485,7 @@ begin
  i:=Pos('.',m);
  if i>0 then if i>9 then Delete(m,9,i-9) else Insert(Copy('        ',1,9-i),m,i)
    else m:=Copy(m+Strg(' ',8),1,8)+'.   ';
- i:=1;b:=On;
+ i:=1;b:=True;
  while m[i]<>'.' do
  begin
   if b then
@@ -493,7 +496,7 @@ begin
    Inc(i);
  end;
  Delete(m,1,i);
- i:=1;b:=On;
+ i:=1;b:=True;
  while (i<=3) and (m[0]>=Char(i)) do
  begin
   if b then
@@ -635,11 +638,11 @@ var i: byte; k: byte absolute Filter;
     B: Boolean;
     j:boolean;
 begin
-  InFilter:=On;
+  InFilter:=True;
   while k>0 do
    begin
     i:=k+1;
-    j:=Off;
+    j:=False;
     repeat
      dec(i);
      if Filter[i]='"' then j:=not j;
@@ -652,7 +655,7 @@ begin
     DelLeft(S); DelRight(S);
     if (S <> '') and InMask(Name, S) then Exit;
    end;
- InFilter:=Off;
+ InFilter:=False;
 end;
         {-DataCompBoy-}
 
@@ -711,11 +714,11 @@ var
     I: byte;
     S: string;
 begin
-  InDirFilter:=On;
+  InDirFilter:=True;
   while Length(Filter) > 0 do
    begin
     i := Length(Filter) + 1;
-    j := Off;
+    j := False;
     repeat
      dec(i);
      if Filter[i]='"' then j:=not j;
@@ -731,7 +734,7 @@ begin
        InMask(Name, Copy(S, 1, Length(S)-1))
       then Exit;
    end;
- InDirFilter:=Off;
+ InDirFilter:=False;
 end;
 {/JO}
 
@@ -956,8 +959,8 @@ begin
     dec(i);
     if (Mask[i]<>'?') and (UpCase(Mask[i])<>UpCase(Name[i]))
       and (I <> 9)
-      then begin InOldMask:=Off; Exit end
-  until i=0; InOldMask:=On
+      then begin InOldMask:=False; Exit end
+  until i=0; InOldMask:=True
 end;
         {-DataCompBoy-}
 
@@ -967,7 +970,7 @@ var i:byte; l:byte absolute Filter;
     S: string[13];
     B: Boolean;
 begin
-  InOldFilter:=On; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
+  InOldFilter:=True; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
   if Filter='' then Exit; Name:=Norm12(Name);
   repeat if Filter[l]=';' then dec(l);
@@ -980,7 +983,7 @@ begin
       if (S <> '') and InMask(Name, Norm12(S)) then Exit;
       l:=pred(i);
     end
-  until l=0; InOldFilter:=Off
+  until l=0; InOldFilter:=False
 end;
         {-DataCompBoy-}*)
 
@@ -992,8 +995,8 @@ begin
   repeat
     dec(i);
     if (Mask[i]='?') or ((Mask[I]=' ') and ValidSpace) or (UpCase(Mask[i])=UpCase(Name[i]))
-      or (I = 9) then else begin InSpaceMask:=Off; Exit end
-  until i=0; InSpaceMask:=On
+      or (I = 9) then else begin InSpaceMask:=False; Exit end
+  until i=0; InSpaceMask:=True
 end;
 
 FUNCTION InSpaceFilter;
@@ -1001,7 +1004,7 @@ var i:byte; l:byte absolute Filter;
     S: string[13];
     B: Boolean;
 begin
-  InSpaceFilter:=On; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
+  InSpaceFilter:=True; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
   if Filter='' then Exit; Name:=Norm12(Name);
   repeat if Filter[l]=';' then dec(l);
@@ -1011,10 +1014,10 @@ begin
       InSpaceFilter := not B;
       if B then DelFC(S);
       DelLeft(S);
-      if (S <> '') and InSpaceMask(Name, Norm12(S), On) then Exit;
+      if (S <> '') and InSpaceMask(Name, Norm12(S), True) then Exit;
       l:=pred(i);
     end
-  until l=0; InSpaceFilter:=Off
+  until l=0; InSpaceFilter:=False
 end;
 
 
@@ -1430,9 +1433,9 @@ function  PackMask(const Mask: string; var PM: String; LFNDis: boolean): boolean
  begin
   if (Mask = x_x) or (Mask='*') then begin
    PM:=x_x;
-   PackMask:=off;
+   PackMask:=False;
   end else begin
-   PackMask:=on;
+   PackMask:=True;
    {!}
    if (PosChar(';', Mask)=0) and (PosChar('[', Mask)=0) then begin
     if LFNDis then begin
@@ -1452,7 +1455,7 @@ function  PackMask(const Mask: string; var PM: String; LFNDis: boolean): boolean
           (k3=Byte(Mask[0]))
          ) then begin
                  PM := Mask;
-                 PackMask := off;
+                 PackMask := False;
                 end
            else goto mc;
      end else begin
@@ -1461,7 +1464,7 @@ mc:   {Place mask comressing here, but do not touch NormMask variable}
      end;
     end else begin
      PM := Mask;
-     PackMask := off;
+     PackMask := False;
     end;
    end else begin
 fc: {Place filter comressing here, but do not touch NormMask variable}
@@ -1477,7 +1480,7 @@ procedure FileChanged(const Name: String);
      Nm: String;
      Xt: String;
 begin
- lFSplit(Name, Dr, Nm, Xt); Abort := Off;
+ lFSplit(Name, Dr, Nm, Xt); Abort := False;
  GlobalMessage(evCommand, cmRereadDir, @Dr);
  GlobalMessage(evCommand, cmRereadInfo, nil);
  GlobalMessage(evCommand, cmRereadTree, @Dr);
@@ -1492,8 +1495,8 @@ function CompareFiles(const N1, N2: String): Boolean;
       B: Boolean;
       I: LongInt;
 begin
-  CompareFiles := Off;
-  B := Off;
+  CompareFiles := False;
+  B := False;
   B1 := nil; B2 := nil;
   S1.Init(N1, stOpenRead);
   if S1.Status <> stOK then begin S1.Done; Exit end;
@@ -1502,7 +1505,7 @@ begin
   B1 := MemAlloc(BufSize); if B1 = nil then Goto Finish;
   B2 := MemAlloc(BufSize); if B2 = nil then Goto Finish;
   I := BufSize;
-  CompareFiles := On;
+  CompareFiles := True;
   while (S1.Status = stOK) and (S2.Status = stOK) and (I > 0) and not B do
     begin
       I := BufSize;

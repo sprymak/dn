@@ -59,6 +59,13 @@
 //  dn3421-Views(i)-dragging_and_resizing_terminates_by_ESC.patch
 //
 //  3.7.0
+//  dn3617-system(f)-set_and_get_window_title_more_correct.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//  dn31220-built-in_result_variable.patch
+//  dn40328-define_DN_Micro.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -304,6 +311,7 @@ type
     procedure   WriteStr(X, Y: Integer; Str: String; Color: Byte);
     procedure   Update; virtual;
     function    MenuEnabled(Command: Word): Boolean; {-$VOL}
+    procedure   ChangeLanguage; virtual;  {John_SW 23-12-2003}
   private
     procedure DrawCursor;
     procedure DrawHide(LastView: PView);
@@ -755,6 +763,8 @@ begin
                    or (Command=cmViewWKZ)
                    or (Command=cmSheetLoad)                           {$ENDIF}
 {$IFNDEF DBView}   or (Command=cmViewDBF)                             {$ENDIF}
+{$IFNDEF LongCopy} or (Command=cmPanelLongCopy)                       {$ENDIF}
+{$IFNDEF DiskImg}  or (Command=cmUnpDiskImg)                          {$ENDIF}
    then MenuEnabled:=False else
   MenuEnabled:=(Command > 255) or (Command in CurCommandSet);
 end; {-$VOL}
@@ -979,8 +989,7 @@ begin
 end;
 
 function TView.Focus: Boolean;
-var
-  Result: Boolean;
+{$IFNDEF RESULT}Var Result: Boolean;{$ENDIF}
 begin
   Result := True;
   if State and (sfSelected + sfModal) = 0 then
@@ -997,7 +1006,7 @@ begin
           Result := False;
     end;
   end;
-  Focus := Result;
+{$IFNDEF RESULT}Focus:=Result;{$ENDIF}
 end;
 
 procedure TView.GetClipRect(var Clip: TRect);
@@ -2861,7 +2870,7 @@ end;
 
 procedure TWindow.Draw;
 begin
- if GetState(sfActive) and (Title<>nil) then
+ if GetState(sfSelected{Active}) and (Title<>nil) then
   begin
   OldTitle:=''; { Flash 21-02-2003 }
   SetTitle(GetTitle(255));
@@ -2962,5 +2971,11 @@ begin
   if All and (UpdatePrior <> nil) and (UpdatePrior^.Count > 0) then
      DoUpdate(UpdatePrior^.At(0));
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+procedure TView.ChangeLanguage;
+begin
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
 
 end.

@@ -79,6 +79,9 @@
 ;/  dn3315-resource_and_help_fixes.patch
 ;/
 ;/  3.7.0
+;/  dn370-cdplayer(if)-fix_and_improve.patch
+;/
+;/  4.9.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -1958,15 +1961,15 @@
 
 .topic CDPlayer=16555
 .title CD Lej tsz¢
-     A  Dos  Navig tor zenei  ÚÄ[ş]ÄÄÄÄ UdvarosÿDorottya ÄÄÄÄ[]Ä¿
-  CD lemezek lej tsz s ra is  ³ÚÄÄÄÄTrackÄÄÄÄÄÄÄÄDiskÿTimeÄÄÄÄÄÄ¿³Û
-  alkalmas. A CD lej tsz¢ az  ³³  ÜÜÜ ÜÜÜ  ÜÜÜ ÜÜÜ   ÜÜÜ ÜÜÜ   A³³Û
-  {Utilis|CDÿLej tsz¢:_}     pa-  ³³  Û Û ÛÜÜ  ÜÜÛ ÜÜÛ ß ÜÜÛ ÛÜÜ   I³³Û
-  rancsal  ind¡that¢ a men-  ³³  ÛÜÛ ÛÜÛ  ÛÜÜ ÛÜÜ ß ÛÜÜ ÛÜÛ   J³³Û
-  b“l.  Ez a CD lej tsz¢ nem  ³ÀBotladozvaÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ³Û
-  k‚pes  a hanger“ szab lyo-  ³ °°Ü °<°Ü °°°°°°Ü °>°Ü °°Ü ³Û
-  z s ra,  ez‚rt a megfelel“  ³  ßßßß  ßßß  ßßßßßßßßß  ßßß  ßßßß ³Û
-  hanger“t  csak  az  er“s¡-  ÀÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ
+     A  Dos  Navig tor zenei  ÉÍ[ş]ÍÍÍÍ UdvarosÿDorottya ÍÍÍÍ[]Í»
+  CD lemezek lej tsz s ra is  ºÚÄÄÄÄTrackÄÄÄÄÄÄÄÄDiskÿTimeÄÄÄÄÄÄ¿º
+  alkalmas. A CD lej tsz¢ az  º³  ÜÜÜ ÜÜÜ  ÜÜÜ ÜÜÜ   ÜÜÜ ÜÜÜ   A³º
+  {Utilis|CDÿLej tsz¢:_}     pa-  º³  Û Û ÛÜÜ  ÜÜÛ ÜÜÛ ß ÜÜÛ ÛÜÜ   I³º
+  rancsal  ind¡that¢ a men-  º³  ÛÜÛ ÛÜÛ  ÛÜÜ ÛÜÜ ß ÛÜÜ ÛÜÛ   J³º
+  b“l.  Ez a CD lej tsz¢ nem  ºÀBotladozvaÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙº
+  k‚pes  a hanger“ szab lyo-  º °°Ü °<°Ü °°°°°°Ü °>°Ü °°Ü º
+  z s ra,  ez‚rt a megfelel“  º  ßßßß  ßßß  ßßßßßßßßß  ßßß  ßßßß º
+  hanger“t  csak  az  er“s¡-  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
   t“n‚l tudjuk szab lyozni. Vagy egy kls“ mixerrel.
   Alapbe ll¡t sk‚nt a lej tsz¢ minimaliz lt  llapotban indul el.
 

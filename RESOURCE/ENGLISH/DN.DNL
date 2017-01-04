@@ -89,6 +89,13 @@
 ;/  dn3421-resource_and_help_fixes.patch
 ;/
 ;/  3.7.0
+;/  dn3617-system(f)-set_and_get_window_title_more_correct.patch
+;/  dn370-cdplayer(if)-fix_and_improve.patch
+;/  dn370-CompareDir(i)-comparing_directories_improve.patch
+;/  dn370-calculator(i)_optimization.patch
+;/  dn31220-interface(i)-confirmation_to_reuse_bookmark.patch
+;/
+;/  4.9.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -207,7 +214,7 @@ dlDBCantEdit          'Could not edit field - file is write-protected'
 dlDBEmptyStruc        'Empty database '
 
 
-dlComparing           ^M^M^C'Comparing files...'
+dlComparing           'Comparing files...'
 dlDICurDir,           'Current directory'
 dlDINoFiles,          'No files in this directory'
 dlDIFiles,            'files'
@@ -786,6 +793,12 @@ dlCDPlayerNoCD             'CD is not present'
 dlCDTrack                  'Track'
 dlCDPlayTrack              'Play track'
 dlCDSelectTrack            'Tracks'
+dlCDNTWarning              ^C'This function does not work under Windows NT'^M+
+                           ^C'because of restrictions in DOS virtual machine.'
+dlCDNoMixerSet             ^C'External sound configuration'^M+
+                           ^C'program is not specified.'
+dlCDNoDiskInfo             ^C'Cannot get disk information'^M+
+                           ^C'because of system limitations.'
 
 dlCDTrackButton            '~T~racks'
 dlCDAddButton              '~A~dd'
@@ -798,6 +811,7 @@ dlCDTrackTime              'Track Time'
 dlCDTrackLeft              'Track Left'
 dlCDDiskTime               'Disk Time'
 dlCDDiskLeft               'Disk Left'
+dlCDTrackLength            'Length'
 
 dlBytesOf                  ' bytes of '
 
@@ -1361,7 +1375,8 @@ dlIniDataTooLong        'String contains %d excess characters in DN.INI, section
 ;Flash >>>
 clStack_Overflow          = 'Stack overflow';
 clToo_Large_Number        = 'The number is out of capacity';
-clArgument_Missing        = 'Function argument is missing';
+clArgument_Missing        = 'Missing argument of ';
+clToo_Many_Arguments      = 'Too many arguments of ';
 clSyntax_Error            = 'Syntax error';
 clUnknown_Function        = 'Expression has unknown function';
 clLeft_Bracket_Missing    = 'Left bracket is missing';
@@ -1369,8 +1384,6 @@ clRight_Bracket_Missing   = 'Right bracket is missing';
 clOperation_Expected      = 'Operation sign is missing';
 clUnknown_Symbol          = 'Expression contains bad symbol';
 clTwo_Operations          = 'Two operations one after another';
-clComma_Missing           = 'Comma is missing';
-clToo_Many_Commas         = 'Too many commas';
 clIncorrect_Usage         = 'Incorrect usage of function ';
 clDivision_By_Zero        = 'Division by zero';
 clLOG_Wrong_Base          = 'Bad base of logarithm';
@@ -1393,6 +1406,7 @@ dlQuickDirDel,       ^C'Delete this quick directory?'
 dlHistDelCurDir,     ^C'Could not delete current directory'
 dlIncorrectDirNum,   ^C'Incorrect directory''s number'
 dlCopyTimeSpeed,     'Elapsed: %s   Left: %s   Speed: %sb/s'
+dlFoldersDiffers,    ^C'Directories differ from each other!'
 ;JOHN_SW end
 
 ;KV+
@@ -1414,3 +1428,7 @@ dlIncorrectPanelSettings = ^C'Incorrect quantity of symbols'^M+
                            ^C'assigned for LFN and extension.'; Flash
 
 dlPasswordsDiffer = ^C'Passwords are different!'; Flash
+
+dlUserMenuTitle = 'User Menu'; Flash
+
+dlBookmarkAlreadyUsed = ^C'This bookmark is already used.'^M^C'Do you want to continue?'; Flash 27-01-2004

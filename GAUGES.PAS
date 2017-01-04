@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn370-clock(i)-disable_seconds_in_winnt.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -357,7 +360,7 @@ begin
         LastSemi:=Semi;
         TimeStr := FormatTimeStr(h, m, s);
         if not ShowSeconds then TimeStr := Copy(TimeStr, 1, 6) + ' '; {-$VIV} {-SSK}
-        if not (Semi or ShowSeconds) then TimeStr[4]:=' ';
+        if BlinkSeparator and not (Semi or ShowSeconds) then TimeStr[4]:=' ';
         if ShowSeconds<>OldShowSeconds then begin
             if Origin.X>(ScreenWidth shr 1) then begin
                 R.B.X:=Origin.X+Size.X;

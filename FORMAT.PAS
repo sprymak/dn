@@ -51,6 +51,9 @@
 //  dn200-Format_disk_in_realmode.patch
 //
 //  2.3.0
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1376,7 +1379,7 @@ var
 
           SectorLimit : Byte ;
 
-          Try : byte ;
+          _Try : byte ;
 
 const
 
@@ -1737,7 +1740,7 @@ end;
 
                 { seek to track }
 
-             Try := 3 ;
+             _Try := 3 ;
 
               repeat
                 AH := 0;
@@ -1746,12 +1749,12 @@ end;
                 TinySlice;
 
                 {$IFDEF DPMI}SimulateRealModeInt{$ELSE}intr{$ENDIF}($13,regs);
-                dec(Try);
-                if Try = 0 then Break;
+                dec(_Try);
+                if _Try = 0 then Break;
               until Flags and Fcarry = 0;
 
              (*
-             Try := 5 ;
+             _Try := 5 ;
 
 
               repeat
@@ -1760,8 +1763,8 @@ end;
                 CH := BTrack; { track }
                 DH := 0;      { head  }
                 intr($13,regs);
-                dec(Try);
-                if Try = 0 then Break;
+                dec(_Try);
+                if _Try = 0 then Break;
               until Flags and Fcarry = 0;
              *)
 
@@ -2539,12 +2542,11 @@ function  getcluster ( cluster:word ; var FAT ):word;assembler;
 function    tfmt.MarkBadSectors(trk,head : byte):word;
 var CurSector : word ;
     CurLogSector : word ;
-    Result : word ;
+{$IFNDEF RESULT}Result : word ;{$ENDIF}
     begin
 
-         MarkBadSectors := $400 ;  { No Errors }
          Result := $400 ;
-
+         {$IFNDEF RESULT}MarkBadSectors := Result ;  { No Errors }{$ENDIF}
             if FAT = nil then exit;
 
 
@@ -2567,7 +2569,8 @@ var CurSector : word ;
                   if CurSector and $3 = 3 then
                       if UserInterrupt then
                           begin
-                            MarkBadSectors := $8001 ;
+                            Result := $8001 ;
+                            {$IFNDEF RESULT}MarkBadSectors := $8001 ;{$ENDIF}
                             exit;
                           end;
 
@@ -2604,7 +2607,7 @@ var CurSector : word ;
              end; { all sectors in current track }
 
 
-             MarkBadSectors := Result ;
+             {$IFNDEF RESULT}MarkBadSectors := Result ;{$ENDIF}
 
                         {
                          $400  no actual verify ;

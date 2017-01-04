@@ -54,6 +54,10 @@
 //  dn270-help_window_size_depends_on_screen_size-jo20627a.patch
 //
 //  3.7.0
+//  dn31220-help(f)-crash_on_exit_fix.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -105,6 +109,7 @@ type
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure SetState(aState: word; Enable: boolean); virtual;
     destructor Done; virtual;
+    procedure ChangeLanguage; virtual;  {John_SW  23-12-2003}
   end;
 
 const
@@ -143,7 +148,7 @@ destructor THelpViewer.Done;
 begin
   inherited Done;
   Dispose(HFile,Done); HFile:=nil;
-  Dispose(Topic,Done); HFile:=nil;
+  Dispose(Topic,Done); Topic:=nil;
 end;
 
 procedure THelpViewer.GotoContext(Context: AWord);
@@ -468,7 +473,7 @@ begin
     (Event.Command=cmClose) then
   begin
    ClearEvent(Event);
-   EndModal(cmClose);
+   {EndModal(cmClose);} { Commented by Flash 06-01-2004 - Fix crash on exit }
    Free;
   end;
  if (Event.What=evCommand) and
@@ -491,6 +496,13 @@ begin
   if HelpWnd=@Self then begin HelpWnd:=nil; HelpInUse:=false end;
   inherited Done;
 end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+procedure THelpWindow.ChangeLanguage;
+begin
+ Done;
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
 
 
 end.

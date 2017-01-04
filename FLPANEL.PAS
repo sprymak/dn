@@ -79,6 +79,14 @@
 //  dn3216-flpanel_show_mask_fix-jo30309a.patch
 //
 //  3.7.0
+//  dn370-QuickSearch(f)-quick_search_on_empty_panel_fix.patch
+//  dn370-change_dirname_started_with_a_dot.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31220-Kernel(i)-DN_changes_language_immediately.patch
+//  dn31220-built-in_result_variable.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -108,6 +116,7 @@ type
      function  GetPalette: PPalette; virtual;
      procedure GetFull(var B; P: PFileRec; C, CW: AWord); virtual; {DataCompBoy}
      procedure DrawTop(var B); virtual;
+     procedure ChangeLanguage; virtual;  {John_SW  23-12-2003}
     end;
 
     PInfoView = ^TInfoView;
@@ -349,7 +358,7 @@ begin
                                   Message(PCopyRec(Event.InfoPtr)^.Owner,
                                           evBroadcast, cmCopyCollection,
                                           PCopyRec(Event.InfoPtr)^.FC);
-                                  SkipCopyDialog := Off;
+                                  SkipCopyDialog := False;
                                 end;
                  end;
     evMouseDown: begin
@@ -489,7 +498,7 @@ procedure TFilePanel.SetState;
   begin
      CurrentDirectory := DirectoryName;
      ClrIO;
-     NeedAbort := On;
+     NeedAbort := True;
      lChDir(CurrentDirectory);
      A := Abort;
      ActivePanel := @Self;
@@ -526,10 +535,10 @@ begin
   If DrawDisableLvl > 0 Then Exit;              {John_SW}
   If DrawDisableLvl < 0 Then DrawDisableLvl:=0; {John_SW}
 
-  DoDraw := OFF;
+  DoDraw := False;
   If QuickSearch and ( AState and ( sfFocused + sfActive + sfVisible + sfSelected ) <> 0 ) and not Enable then begin
-    DoDraw := ON;
-    QuickSearch := OFF
+    DoDraw := True;
+    QuickSearch := False
   end;
   if (AState and sfActive <> 0) then
     if not Enable then begin
@@ -537,11 +546,11 @@ begin
       if not GetState(sfActive + sfSelected) and
          (ScrollBar <> nil) and ScrollBar^.GetState(sfVisible) then
            ScrollBar^.Hide;
-      DoDraw := ON;
+      DoDraw := True;
     end else EnableCommands(PanelCommands); ;
   if (AState and sfFocused and State <> 0) then
     if Enable then begin
-      DoDraw := ON;
+      DoDraw := True;
       if ScrollBar <> nil then begin
         ScrollBar^.Show;
         ScrollBar^.Options := ScrollBar^.Options or ofPostProcess;
@@ -573,19 +582,19 @@ begin
         else
       if Drive^.DriveType = dtArc
         then Drive^.lChDir(#0);
-      DoDraw := ON;
+      DoDraw := True;
       EnableCommands(PanelCommands)
     end else begin
       if ScrollBar <> nil then begin
         ScrollBar^.Hide;
         ScrollBar^.Options := ScrollBar^.Options and (not ofPostProcess);
       end;
-      DoDraw := ON;
+      DoDraw := True;
       if InfoView <> nil then InfoView^.DrawView;
       if DirView <> nil then DirView^.DrawView;
     end;
   If DoDraw then begin
-    PosChanged := OFF;
+    PosChanged := False;
     DrawView;
   end;
   if GetState(sfFocused) then
@@ -689,7 +698,7 @@ begin
   begin
    if (UpStrg(OldDirectory[1]) <> UpStrg(DirectoryName[1])) and (OldDirectory <> '')
       then ScrollBar^.SetValue(0);
-   PosChanged := Off;
+   PosChanged := False;
    DecDrawDisabled; OldDirectory := DirectoryName;
   end;
  C1 := GetColor(1);  { Normal }
@@ -746,13 +755,13 @@ begin
          end;
        end;
     end else Goto 1;
-   PosChanged := Off;
+   PosChanged := False;
    OldDelta := Delta; OldPos := CurPos;
    Exit;
   end;
 1:
  OldDelta := Delta; OldPos := CurPos;
- PosChanged := Off;
+ PosChanged := False;
  if (FMSetup.Show and fmsColumnTitles <> 0) then
   begin
     DrawTop(B);
@@ -883,7 +892,7 @@ begin
                   PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
                 Message(Owner, evKeyDown, kbDown, nil);
                until not MouseEvent(Event, evMouseMove + evMouseAuto);
-               RepeatDelay := 2; Panel^.MSelect := Off;
+               RepeatDelay := 2; Panel^.MSelect := False;
               end;
              Exit
             end;
@@ -936,7 +945,7 @@ procedure TInfoView.Draw;
 
  { построение строки информации об отмеченных файлах }
  function SelString: string;
-  var result: string;
+{$IFNDEF RESULT}Var Result: String;{$ENDIF}
   begin
    with Panel^ do
     begin
@@ -947,14 +956,13 @@ procedure TInfoView.Draw;
      Result := Result + GetString(dlBytesIn)+
          +ItoS(SelNum)+'~'+ GetString(dlSelectedfiles);
     end;
-   SelString := Result;
+{$IFNDEF RESULT}SelString:=Result;{$ENDIF}
   end;
 
  { построение строки текущей маски быстрого поиска }
  function QuickSearchString: string;
   var
-    S: string;
-    result: string;
+{$IFNDEF RESULT}Result,{$ENDIF}S: string;
   begin
    S := Panel^.SearchParam.Mask;
    if QuickSearchType then Dec(S[0]);
@@ -964,7 +972,7 @@ procedure TInfoView.Draw;
          Copy(S, Length(S) - Size.X - Length(S1) - 1, 255) + '~'
    else
      Result := Result + '~' + S + '~';
-   QuickSearchString := Result;
+{$IFNDEF RESULT}QuickSearchString:=Result;{$ENDIF}
   end;
 
  { Flash 07-02-2003 >>> }
@@ -1320,7 +1328,12 @@ begin
    Insert('...', S, PosChar(':', S) + 2);
   end;}
   (*X-Man*)
-   S:=Cut(Panel^.DirectoryName,Panel^.Size.X-10);
+{piwamoto}
+   {directory name '.' bugfix by piwamoto}
+{   S:=Cut(Panel^.DirectoryName,Panel^.Size.X-10);}{original code}
+   S:=Cut(Panel^.DirectoryName+#0,Panel^.Size.X-9);
+   Dec(S[0]);{remove #0}
+{/piwamoto}
  if Length(S) + 2 <> Size.X then
   if Length(S) < Panel^.Size.X - 2 then
   begin
@@ -1460,7 +1473,7 @@ var
   with PF^ do
    if Selected then
    begin
-    Selected := Off;
+    Selected := False;
     SelectedLen := SelectedLen - Size;
     PackedLen := PackedLen - PSize;
     Dec(SelNum)
@@ -1549,7 +1562,7 @@ begin
                   ClearEvent( Event );
                 end;
               cmKillUsed: if (StartupData.Unload and osuAutosave = 0) then Drive^.KillUse;
-              cmClose: CommandEnabling := Off;
+              cmClose: CommandEnabling := False;
               cmCopyUnselect: begin CM_CopyUnselect; CE end;
               cmRecountDirs: begin
                                if Files <> nil then files^.ForEach(@DoMakeDirs); CED;
@@ -1567,7 +1580,8 @@ begin
                  (not CommandLine^.GetState(sfVisible)) and
                  (InterfaceData.Options and ouiHideCmdLine <> 0)) then
                begin
-                CtrlWas := Off;
+                CtrlWas := False;
+                If (Files = Nil) Or (Files^.Count = 0) Then Exit; {John_SW 19-07-2003}
                 InitQuickSearch(SearchParam);
                 QuickSearch := not QuickSearch;
                 if not QuickSearch then
@@ -1600,14 +1614,14 @@ begin
                                       (Event.KeyCode = kbBackUp) or
                                       (Event.KeyCode = kbIns)) then
                    begin
-                    CtrlWas := Off;
+                    CtrlWas := False;
                     if (Event.KeyCode = kbGrayPlus) or (Event.KeyCode = kbGrayMinus) or
                        (Event.KeyCode = kbGrayAst) or (Event.KeyCode = kbIns) or
                        (Event.KeyCode = kbBackUp) then
                      Goto GotoKb;
                     case Event.CharCode of
                      #27: begin
-                           QuickSearch := Off;
+                           QuickSearch := False;
                            InitQuickSearch(SearchParam);
                            InfoView^.DrawView;
                            CED;
@@ -1627,7 +1641,7 @@ begin
                               PutEvent(Event);
                             end;
                            CE;
-                           QuickSearch := Off;
+                           QuickSearch := False;
                            InfoView^.DrawView; {Cat}
                            Exit;
                           end;
@@ -1641,7 +1655,7 @@ begin
                     CED;
                    end else
                    begin
-                    CtrlWas := Off;
+                    CtrlWas := False;
                     if QuickSearch then
                      begin
                       QuickSearch := false;
@@ -1667,7 +1681,7 @@ GotoKB:
                             end;
                      kbIns,kbSpace: if CurPos < Files^.Count then
                             begin
-                             QuickSearch := Off;
+                             QuickSearch := False;
                              if (Event.CharCode = ' ') and ((CmdLine.Str <> '') or
                                 (FMSetup.Options and fmoSpaceToggle = 0)) then Exit;
                              CE; if Files^.Count = 0 then Exit;
@@ -1717,9 +1731,9 @@ GotoKB:
                                            end;
                                          end;
                                         end;
-                                      PosChanged := On;
+                                      PosChanged := True;
                                       if InfoView <> nil then InfoView^.DrawView;
-                                      CED; PosChanged := Off;
+                                      CED; PosChanged := False;
                                       if (RepeatDelay <> 0) and (ViewEnabled or
                                          (Drive^.Flags and psShowLongDesc <> 0) and
                                          (Drive^.DriveType < dtArc)) then
@@ -1730,5 +1744,12 @@ GotoKB:
  end;
 end;
         {-DataCompBoy-}
+{--- start -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
+procedure TFilePanel.ChangeLanguage;
+begin
+ DirectoryName:=Drive^.GetDir;
+ DirView^.DrawView;
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 23-12-2003 ----}
 
 end.

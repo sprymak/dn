@@ -61,6 +61,10 @@
 //  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
 //
 //  3.7.0
+//  dn370-archives(if)-improve_and_fix.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -178,8 +182,8 @@ begin
   if q<>'' then ListChar := q[1] else ListChar:=' ';
 {$ENDIF}
 
-  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  q := GetVal(@Sign[1], @FreeStr[1], PPassDirNames, '0');
+  if q='0' then PassDirNames := False else PassDirNames := True;
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   if q='0' then UseLFN := False else UseLFN := True;
 end;
@@ -243,10 +247,10 @@ begin
      begin
       FPP := FP;
       NullXLAT ( NXL );
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FPP, On, Off, Off, Off, Off,Nil);{local file header signature}
+      FP := SearchFileStr(@ArcFile^,NXL,'PK'#03#04,FPP,True,False,False,False,False,Nil);{local file header signature}
       if FP < 0 then
         begin
-         FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off,Nil);{central file header signature}
+         FP := SearchFileStr(@ArcFile^,NXL,'PK'#01#02,FPP,True,False,False,False,False,Nil);{central file header signature}
          if FP < 0 then begin FileInfo.Last:=2;Exit;end;
         end;
       ArcFile^.Seek(FP - 8);

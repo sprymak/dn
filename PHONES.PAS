@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn370-phonebook(i)-search_in_comments.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31214-PhoneBook(f)-phone_book_works_in_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -183,8 +188,8 @@ begin
     PC^.Pack;
     PL^.Phones := PC;
     PL^.Active := nil;
-    PL^.AlphaMode := Off;
-    PL^.SearchMode := Off;
+    PL^.AlphaMode := False;
+    PL^.SearchMode := False;
     PL^.NewList(PC);
 
     D^.Insert(PL);
@@ -262,7 +267,7 @@ procedure TPhoneBox.SetList;
             PP := PC^.At(I);
           end else PC^.AtInsert(I, PP);
          if PP^.Phones = nil then PP^.Phones := New(PPhoneCollection, Init(10,10));
-         PSortedCollection(PP^.Phones)^.Duplicates := On;
+         PSortedCollection(PP^.Phones)^.Duplicates := True;
          PP^.Phones^.Insert(P);
         end;
     end;
@@ -422,7 +427,7 @@ procedure TPhoneBox.HandleEvent;
   List := nil; I := Focused;
 
   P1 :=New(PPhoneDir, Init(DT.Password, Dt.Name, Dt.Memo1, Dt.Memo2));
-  P1^.Encrypted := Off;
+  P1^.Encrypted := False;
   C^.Insert(P1);
   Owner^.Lock; NewList(C); FocusItem(I); Owner^.UnLock;
   Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
@@ -538,7 +543,7 @@ procedure TPhoneBox.HandleEvent;
         Dispose(List,Done);
         List:=nil;
        end;
-      SearchMode := Off;
+      SearchMode := False;
       List := nil;
       NewList(Phones);
       FocusItem(Phones^.IndexOf(Active));
@@ -556,7 +561,13 @@ procedure TPhoneBox.HandleEvent;
      procedure DoPhone(P: PPhone); {$IFDEF BIT_16}far;{$ENDIF}
       var I: Integer;
      begin
-       if (P <> nil) and ((Pos(S, UpStrg(P^.Name)) <> 0) or (Pos(S, UpStrg(P^.Number^)) <> 0)) then PC^.Insert(P);
+       if (P <> nil) and ((Pos(S, UpStrg(P^.Name)) <> 0) or
+                          (Pos(S, UpStrg(P^.Number^)) <> 0) or
+          { Flash 16-08-2003 >>> }
+          ((P^.Memo1 <> nil) and (Pos(S, UpStrg(P^.Memo1^)) <> 0)) or
+          ((P^.Memo2 <> nil) and (Pos(S, UpStrg(P^.Memo2^)) <> 0)))
+          { Flash 16-08-2003 <<< }
+          then PC^.Insert(P);
      end;
     begin
      if (Ph <> nil) and (Ph^.Phones <> nil) and ((Ph^.Password = '') or (Ph^.Encrypted))
@@ -569,7 +580,7 @@ procedure TPhoneBox.HandleEvent;
    if InputBox(GetString(dlPB_SearchPhone), GetString(dlPB_S_earchString), S, 30, 0) <> cmOK then Exit;
    UpStr(S);
    New(PC, Init(10,10));
-   PC^.Duplicates := On;
+   PC^.Duplicates := True;
    Phones^.ForEach(@SearchDir);
    if PC^.Count = 0 then
     begin
@@ -638,7 +649,7 @@ procedure TPhoneBox.HandleEvent;
    if F=nil then
     begin MessageBox(GetString(dlFBBNoOpen)+S, nil, mfError+mfOKButton); Exit end;
    PV := WriteMsg(GetString(dlPB_Working));
-   Fr := On;
+   Fr := True;
    while not F^.EOF do
     begin
       UpdateWriteView(PV);
@@ -647,7 +658,7 @@ procedure TPhoneBox.HandleEvent;
         begin
           if Fr and (S[1] = '|') then
             begin
-             Fr := Off;
+             Fr := False;
              Template := S;
              Continue;
             end;
@@ -702,9 +713,9 @@ begin
                       if (EnterButton^.State and sfVisible) = 0 then Focused:=0;
                       EnterDir; CE
                     end;
-              cmInsertPhone: begin if not AlphaMode or SearchMode then EditNumber(On); CE end;
+              cmInsertPhone: begin if not AlphaMode or SearchMode then EditNumber(True); CE end;
               cmEditPhone: begin if List^.Count > 0 then if not AlphaMode or SearchMode then
-                                if not((Active <> nil) and ( focused=0 )) then EditNumber(Off); CE end;
+                                if not((Active <> nil) and ( focused=0 )) then EditNumber(False); CE end;
               cmPhoneBookMode: begin SetList(not AlphaMode); CE end;
               cmDeletePhone: begin
                         CE;
@@ -799,13 +810,13 @@ end;
 constructor TPhoneCollection.Init;
 begin
  inherited Init(ALimit, ADelta);
- Duplicates := On;
+ Duplicates := True;
 end;
 
 constructor TPhoneCollection.Load;
 begin
  if not inherited Load(S) then fail;
- Duplicates := On;
+ Duplicates := True;
  Sort;
 end;
 
@@ -834,15 +845,16 @@ begin
 end;
 
 constructor TPhoneCollection.ShortLoad(var S: TStream);
-var q: word;
+var q: Aword;
   C, I: Integer;
-  ACount, ALimit, ADelta: integer;
+  ACount, ALimit, ADelta: AWord;
 begin
   S.Read(q, 2);
   if q<>otPhoneCollection then fail;
-  S.Read(ACount, SizeOf(Integer));
-  S.Read(ALimit, SizeOf(Integer));
-  S.Read(ADelta, SizeOf(Integer));
+
+  S.Read(ACount, 2);
+  S.Read(ALimit, 2);
+  S.Read(ADelta, 2);
   Inherited Init(ALimit, ADelta);
   SetLimit(ACount);
   for I := 0 to ACount - 1 do begin

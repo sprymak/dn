@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -381,7 +384,7 @@ procedure TDirStorage.DosReread;
      L, B: LongInt;
      SR: lSearchRec;
 begin
-  Last := Off; Dr := '';
+  Last := False; Dr := '';
   Stream^.Status := stOK;
   vSeek(0);
   while Stream^.Status = stOK do
@@ -394,7 +397,7 @@ begin
         siEnd: Break;
         siFile, siFileDir:
                  begin
-                  Abort := Off; DosError := 0;
+                  Abort := False; DosError := 0;
                   lFindFirst(Dr+SF.LFN, AnyFile, SR); {JO}
                   TotalLength:=TotalLength-SF.Size;
                   if (DosError <> 0) or Abort then

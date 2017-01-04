@@ -78,6 +78,11 @@
 //  dn3323-history(i)-ak30327b.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Compile_by_VP.patch
+//  dn31220-history(if)-viewer_history_optimization.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -87,7 +92,6 @@ unit Histries;
 interface
 uses LFN, Collect, Drivers, Objects, Views, EdWin, Drives, advance, advance1,
      advance2, advance3, U_KeyMap, microed
-     {$IFDEF VIRTUALPASCAL}, Crt{$ENDIF}
 {$IFDEF DBView},DBView{$ENDIF} {$IFDEF SpreadSheet},Calc{$ENDIF}
      ;
 
@@ -206,6 +210,7 @@ const
 implementation
  uses Dos, Commands, DNApp, DNStdDlg, Dialogs, HistList,
       Startup, RStrings, xTime, Messages, DNUtil, DnIni,
+      {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
 {$IFDEF SS}
       Idlers,
 {$ENDIF}
@@ -655,7 +660,7 @@ begin
                begin
                 If HistoryErrorBeep then begin
                  {$IFDEF VIRTUALPASCAL}
-                 PlaySound(500, 110);
+                 SysBeepEx{PlaySound}(500, 110);
                  {$ELSE}
                  Sound(500);DelayTics(2);NoSound;
                  {$ENDIF}
@@ -757,7 +762,7 @@ begin
 {  if EditHistory^.Count = 0 then Exit;}
   D := GetDialog(dlgEditHistory, Pointer(P));
   P^.NewList(EditHistory);
-  P^.EVHistory := On;
+  P^.EVHistory := True;
   if Desktop^.ExecView(D) = cmOK then I := P^.Focused else I := -1;
   Dispose(D,Done);
   if EditHistory^.Count = 0 then Exit; {Proverka, esli udalyali, zarazy:}
@@ -765,7 +770,7 @@ begin
     begin
      If (PViewRecord(EditHistory^.At(I))^.fName = nil) then Exit;
      {A eto tak, na vsyakiy sluchay proverka, esli eto ne DPMI :}
-     PDNAppl(Application)^.EditFile(On,
+     PDNAppl(Application)^.EditFile(True,
        Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, 255));
     end;
 end;
@@ -782,8 +787,10 @@ procedure ViewHistoryMenu;
       { Flash >>> }
       F: PFileRec;
       ArcD: PDrive;
-      Drive: char;
-      ViewMode: word;
+      Drive: Char;
+      ViewMode: Word;
+      S: String;
+      J: Byte;
       { Flash <<< }
 begin
   if InterfaceData.Options and ouiTrackViewers = 0 then
@@ -795,7 +802,7 @@ begin
 {  if ViewHistory^.Count = 0 then Exit;}
   D := GetDialog(dlgViewHistory, Pointer(P));
   P^.NewList(ViewHistory);
-  P^.EVHistory := On;
+  P^.EVHistory := True;
   if Desktop^.ExecView(D) = cmOK then I := P^.Focused else I := -1;
   Dispose(D,Done);
   if ViewHistory^.Count = 0 then Exit; {Proverim, esli udalyali, pa**y}
@@ -807,50 +814,38 @@ begin
     RealName:=Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255);
     X:=PosChar(':', RealName);
     { Flash >>> }
-    If X > 2 Then
-     Begin
-     RealName:=Copy(RealName,X+1,Length(RealName)-X);
-     Drive:=RealName[1];
-     X:=PosChar(':', RealName);
-     If X > 0 Then
-      Begin
-      RealName:=Copy(RealName,X+1,Length(RealName)-X);
-      X:=PosChar(':', RealName);
-      If X > 0 Then
-       Begin
-       If Pos('\',Copy(RealName,X+1,Length(RealName)-X))>0 then
-        begin
-        AxilName:=GetPath(Copy(RealName,X+1,Length(RealName)-X));
-        ArcD:=New(PArcDrive,Init(Drive+':'+GetPath(RealName),'', 0));
-        end
-       else
-        begin
-        AxilName:='';
-        ArcD:=New(PArcDrive,Init(Drive+':'+Copy(RealName,1,X-1),'', 0));
-        end;
-       If ArcD=nil then Exit;
-       F:=CreateFileRec(Copy(RealName,X+1,Length(RealName)-X));
-       If F=nil then Exit;
-       F^.Owner:=@AxilName;
-       case PViewRecord(ViewHistory^.At(I))^.fViewMode of
-        vmText    : ViewMode:=cmTextView;
-        vmHex     : ViewMode:=cmHexView;
-        vmInternal: ViewMode:=cmTextView;
-        vmExternal: ViewMode:=cmViewFile;
-        vmAltExt  : ViewMode:=cmIntFileView;
-        vmDB      : ViewMode:=cmViewDBF;
-        vmSpread  : ViewMode:=cmViewWKZ;
-       end;
-       ArcD^.UseFile(F,ViewMode);
-       DelFileRec(F);
-       Dispose(ArcD,Done);
-       Exit;
-       End
-      End
-     End;
+    if X>2 then
+     begin
+     Drive:=RealName[X+1]; S:=RealName;
+     for J:=1 to 2 do
+      begin S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S); end;
+     RealName:=S; S:=Copy(S,X+1,Length(S)-X); AxilName:='\';
+     { S - полный путь к файлу внутри архива }
+     { AxilName - путь к файлу отдельно (для F^.Owner) }
+     { RealName - путь к архиву относительно текущего диска }
+     if Pos('\',S)>0 then
+      begin RealName:=GetPath(RealName); AxilName:=GetPath(S); end
+     else RealName:=Copy(RealName,1,X-1);
+     ArcD:=New(PArcDrive,Init(Drive+':'+RealName,'',0)); if ArcD=nil then Exit;
+     F:=CreateFileRec(S); if F=nil then Exit;
+     F^.Owner:=NewStr(AxilName);
+     case PViewRecord(ViewHistory^.At(I))^.fViewMode of
+      vmText    : ViewMode:=cmTextView;
+      vmHex     : ViewMode:=cmHexView;
+      vmInternal: ViewMode:=cmTextView;
+      vmExternal: ViewMode:=cmViewFile;
+      vmAltExt  : ViewMode:=cmIntFileView;
+      vmDB      : ViewMode:=cmViewDBF;
+      vmSpread  : ViewMode:=cmViewWKZ;
+     end;
+     ArcD^.UseFile(F,ViewMode);
+     DelFileRec(F);
+     Dispose(ArcD,Done);
+     Exit;
+     end;
     { Flash <<< }
 {--- finish -------- Eugeny Zvyagintzev ---------}
-    PDNAppl(Application)^.ViewFile(On, Off, Off, RealName);
+    PDNAppl(Application)^.ViewFile(True, False, False, RealName);
    end;
 end;
 
@@ -909,7 +904,7 @@ begin
 
   PListBox(P)^.NewList(CmdStrings);
   PListBox(P)^.FocusItem(CmdStrings^.Count-1);
-  PTHistList(P)^.CommandHistory := On;
+  PTHistList(P)^.CommandHistory := True;
   if CmdStrings^.Count > 0 then PListBox(P)^.FocusItem(CmdStrings^.Count - 1);
 
   I := Desktop^.ExecView(D);

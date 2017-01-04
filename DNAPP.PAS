@@ -60,6 +60,12 @@
 //  dn247-text_and_file_find_improve.patch
 //
 //  2.7.0
+//  dn3617-output(f)-correct_help_showing.patch
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-ChangeVideoMode(f)-change_video_mode_in_VP_fix.patch
+//  dn31029-ChangeLanguage(f)-DN_change_language_immediately_in_VP_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -304,6 +310,7 @@ procedure ForceWriteShow(P: Pointer);
 function  GetString( Index: TStrIdx ): String;
 procedure ToggleCommandLine(OnOff: Boolean);
 procedure AdjustToDesktopSize(var R: TRect; OldDeskSize: TPoint);
+procedure InitLngStream; {John_SW 28-11-2003}
 
 const
 
@@ -323,6 +330,7 @@ const
 {  HintString: String[80] = '';}
 
 const SkyVisible: Boolean = False;
+      OutputActive: Boolean = False; { Flash 25-06-2003 }
 
 type
    PWriteWin = ^TWriteWin;
@@ -1104,8 +1112,13 @@ var
 begin
    HideMouse;
    DoneEvents;
+{$IFDEF VIRTUALPASCAL}
+   FillChar(ScreenMirror, SizeOf(ScreenMirror), 0); // Added by SANDSoft
+{$ENDIF}
    DoneMemory;
+   DoneVideo;
    SetVideoMode(Mode);
+   InitVideo;
    InitMemory;
    InitEvents;
    InitScreen;
@@ -1175,9 +1188,10 @@ procedure TApplication.ShowUserScreen;
      PV: PView;
      R: TRect;
 begin
+ OutputActive := True; { Flash 25-06-2003 }
  GetExtent(R);
  PV := New(PBackground, Init(R, ' '));
- if CommandLine <> nil then CommandLine^.SetState(sfDisabled, On);
+ if CommandLine <> nil then CommandLine^.SetState(sfDisabled, True);
  {$IFDEF OS_DOS}
  asm
     mov cx, $2020
@@ -1192,7 +1206,7 @@ begin
  if (StartupData.Load and osuResetPalette <> 0) and VGASystem
   then SetPalette(vga_default);
  WhenShow;
- if CommandLine <> nil then CommandLine^.SetState(sfDisabled, Off);
+ if CommandLine <> nil then CommandLine^.SetState(sfDisabled, False);
  if (StartupData.Load and osuResetPalette <> 0) and VGASystem
   then SetPalette(vga_palette);
  PV^.Free;
@@ -1200,11 +1214,11 @@ begin
  (*
  B := ScreenMode; BB := CursorLines;
  HideMouse;
- Inc(SkyEnabled); SkyVisible := On;
+ Inc(SkyEnabled); SkyVisible := True;
  DoneVideo;
 { if B <> StartupMode then SetVideoMode(StartupMode);}
  WhenShow;
- InitVideo; SetBlink(Off); Dec(SkyEnabled); SkyVisible := Off;
+ InitVideo; SetBlink(False); Dec(SkyEnabled); SkyVisible := False;
 { if B <> StartupMode then SetScreenMode(B);}
  InitVideo; CursorLines := BB;
  Redraw; ShowCursor; ShowMouse;

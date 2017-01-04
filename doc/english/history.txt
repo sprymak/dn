@@ -6,6 +6,171 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 4.9.0
+  ---------------------------------------------------------------------
+
+    >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] When creating directory under control of Windows NT/2000/XP the cursor
+    had not been placed on a new directory if its name contained spaces.
+
+[-] Now DN works with substed drives correctly under Windows XP.
+
+[*] Improved compatibility of CD player with Windows NT/2000/XP. Now one can
+    use buttons for switching tracks in main windows (< and >). When trying
+    to use functions that are not supported in these systems, an appropriate
+    message will be shown.
+
+[*] The new key 'AutoDisableSecondsWNT' added to section [Clock] in dn.ini,
+    which allows to disable seconds in built-in clock automatically when
+    working under Windows NT/2000/XP.
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] The new key 'BlinkSeparator' added to section [Clock] in dn.ini to switch
+    on/off the separator blinking in the clock when seconds are switched off.
+    It is ignored when parameter 'AutoDisableSecondsWNT' is turned on.
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Now DN can compare subdirectories.
+
+[+] Now DN can copy files from one archive to another using a temporary
+    directory (incompatible with WinNT: temporary files are not deleted).
+
+[+] Now Quick Directories list elements can be swapped (Shift-Up/Down).
+
+[-] Showing help for output window (Alt-F5) works correctly now.
+
+[-] Fixed DN crash at attempt to Quick Search files on empty panel.
+
+[-] Now DN will change drive by pressing Ctrl+LeftArrow more correctly.
+
+[-] A current directory on a disk which locates a temporary directory is not
+    changed to temporary directory after viewing files from archives.
+
+[-] Now DN will change current language using new algorithm.
+
+[-] After maximizing file manager window it was impossible to restore its
+    previous size.
+
+[-] After changing Quick Directories in dialog mode a window title was not
+    restored.
+
+[-] Now DN will process quoted command line parameters correctly.
+
+[-] Now DN correctly places the cursor after deleting of the selected files.
+    If the cursor before removal was on the selected file after deleting
+    the cursor will be placed on the following file after selected files.
+
+[*] Improved interface of Compare Directories operation.
+
+[*] Information about free memory, which is displayed on pressing Shift key,
+    stays available when the clock is disabled.
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Now when placing a bookmark in viewer or editor a dialog requiring
+    confirmation is displayed if bookmark with the same number already
+    exists.
+
+[-] Now DN will accept the character @ in WKZ formulas again. Fixed error
+    concerning functions with several parameters, leading to impossibility
+    of using expressions with brackets as a parameters.
+
+[-] Now DN will view temporary files correctly.
+
+[-] In the editor the forward searching in the vertical block did not work
+    correctly for short lines, which end before the left edge of a selected
+    area. In some cases (i.e. when there were empty lines) DN crashed.
+    For non-empty lines sometimes it could cause false success of searching.
+
+[-] Fixed crash when viewing file in archive from history.
+
+[-] Fixed error because of which viewer's history for files without an
+    extension could not be saved.
+
+[-] Now DN highlites text in editor correctly.
+
+[-] DN crashed in attempt to perform Quick View operation when option
+    DefCodePage in dn.ini was set to Auto.
+
+[-] The mistake in backward search is fixed, and also use of search in editor and
+    viewer is corrected. Now forward and backward search, and any alternation
+    of them work correctly.
+
+[*] The searching in the block in the editor is slightly optimised.
+
+[*] Now DN can save viewer's position for archived files.
+
+[*] Now combinations Ctrl-NumPad4/NumPad6 in editor (un)indent block only if
+    NumLock function is turned off.
+
+    >>> Database viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] It was impossible to view memo field in dbf viewer when parameter
+    DefCodePage in dn.ini was set to Auto.
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] The new option 'Pass names of directories' is added to archivers' setup.   When it is enabled,
+    When it is enabled, the directory names are passed to archiver along with
+    file names.
+
+[+] LHA .COM SFX detection.
+
+[+] Support of 7-Zip archiver.
+
+[-] Now DN will delete directories from archives more correctly.
+
+[-] Filenames './path/filename' are processed correctly in archives.
+
+[*] Option 'Swap when unpack/del/test' was liquidated. Now DN unloads itself
+    from memory before calling any archivers.
+
+[*] Temporary batch file is not used for viewing files in an archive.
+
+[*] CAB-SFX detection.
+
+    >>> Calculator <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] The code of calculator is rewritten again and optimized. When pressing
+    'Enter' key on incorrect expression, the cursor will now move to the
+    position of error. If a function argument is missing, the name of
+    corresponding function will be displayed.
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Now in phone book search is performed not only by name and phone number,
+    but also by memo lines.
+
+[-] Now change of current language affects opened CD player window.
+
+[-] When CD player cannot retrieve Audio CD information, DN does not crash
+    but shows a warning message.
+
+[-] Change of DN window title is implemented more correctly.
+
+[-] Disk image unpacker and UU-decoder set incorrect date and time to files
+    in some cases.
+
+[*] Improved interface of CD player.
+
+[*] Extension of temporary batch files depends on operating system:
+    CMD for WinNT and OS/2, BAT for DOS and Win9x.
+
+    >>> Source codes usage features <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[!] Virtual Pascal compatibility.
+
+[+] Implemented conditional symbol {$DEFINE MICRO}.
+
+[-] Now DN will compile in BANK version.
+
+[*] RegAll unit is rewritten: NumRElms counter removed.
+
+
+
    Version 3.7.0
   ---------------------------------------------------------------------
 

@@ -54,6 +54,9 @@
 //  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
 //
 //  3.7.0
+//  dn370-archives(if)-improve_and_fix.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -126,8 +129,8 @@ begin
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-sh'));
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
-  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  q := GetVal(@Sign[1], @FreeStr[1], PPassDirNames, '0');
+  if q='0' then PassDirNames := False else PassDirNames := True;
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   if q='0' then UseLFN := False else UseLFN := True;
   FoldersOffs:=-1;

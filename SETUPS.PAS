@@ -53,6 +53,11 @@
 //  dn328-FilePanel(f)_jo30224a_crash_fix.patch
 //
 //  3.7.0
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//  dn31029-Kernel(f)-Word_to_AWord_changed_in_dialogs_in_VP.patch
+//  dn31220-Kernel(f)-panel_setups_works_in_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -78,7 +83,7 @@ USES
 {----------------------------------------------------------------------------}
 TYPE
   TSysData = record
-    Options: Word;
+    Options: AWord;
     Mode1: String[5];
     Mode2: String[5];
     Temp: String;
@@ -178,14 +183,14 @@ begin
              (Confirms and cfFmtOs2Warning) shr 1 +
              (Confirms and cfExitConfirm)   shl 1;
   If D <> cmOK then Exit;
-  ConfigModified := On;
+  ConfigModified := True;
 end;
 
 function TerminalSetup;
 begin
-  TerminalSetup := Off;
+  TerminalSetup := False;
   If ExecResource( dlgSetupTerminal, TerminalDefaults ) <> cmOK then Exit;
-  TerminalSetup := On;
+  TerminalSetup := True;
   Message(Application, evCommand, cmUpdateConfig, nil);
 end;
 
@@ -254,7 +259,7 @@ procedure StartupSetup;
 var
   Data: Record
     Load, Unload,
-    Slice,Slice2: Word;
+    Slice,Slice2: AWord;
     OvrBuf: String[ 3 ];
   end;
   W: Word;
@@ -319,11 +324,11 @@ begin
   if ExecResource(dlgCountrySetup, CountryInfo) <> cmOK then Exit;
   Initupcase;
   GlobalMessage(evCommand, cmReboundPanel, nil);
-  ConfigModified := On;
+  ConfigModified := True;
 end;
 
 procedure FMDefaults;
-Var R: record Sort,Show,Info,Sel,LFN,LeftPanel: Integer; end; {John_SW 18-01-2003}
+Var R: record Sort,Show,Info,Sel,LFN,LeftPanel: AWord; end; {John_SW 18-01-2003}
 begin
 {--- start -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
   R.Sort := PanelDefaults.Sort;
@@ -539,14 +544,14 @@ end;
 const
   HSenseY = 3;
 
-FUNCTION TMouseBar.DataSize; assembler;
-asm mov ax,2 end;
+FUNCTION TMouseBar.DataSize: Word;
+begin DataSize:=SizeOf(AWord); end;
 
 PROCEDURE TMouseBar.SetData;
-begin SetValue( Integer( Rec )) end;
+begin SetValue( AWord( Rec )) end;
 
 PROCEDURE TMouseBar.GetData;
-begin Integer( Rec ) := Value end;
+begin AWord( Rec ) := Value end;
 
 PROCEDURE TMouseBar.HandleEvent;
 begin

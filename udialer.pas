@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn31005-bp_to_vp_on_off_true_false.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -126,7 +129,7 @@ begin
 
   {Options := Options or ofCentered;}
   if (InitModem = moInitFail) or (COMPort = nil) then Fail;
-  isValid := On;
+  isValid := True;
   New(Phones, Init(10,10));
   R.Assign(34,2,35,7);
   P := New(PScrollBar, Init(R));
@@ -158,7 +161,7 @@ begin
   UnholdButton := New(PButton, Init(R, GetString(dlAD_Unhold), cmUnhold, 0));
   UnholdButton^.Hide;
   Insert(UnholdButton);
-  SelectNext(Off);
+  SelectNext(False);
   SetPhone(AName, APhone);
   Dialer := @Self;
   ModemAnswer := '';
@@ -190,7 +193,7 @@ begin
    ModemS := '';
    SPosX := 0;
    if List <> nil then List^.NewList(Phones);
-   Static := On;
+   Static := True;
    Dialer := @Self;
    isValid := (InitModem <> moInitFail) and (COMPort <> nil);
    RegisterToPrior( @Self );
@@ -230,7 +233,7 @@ begin
  NewTimer(UpdTimer, 18);
  if ComPort^.CheckDCD then
   begin
-    Static := On;
+    Static := True;
     Exit;
   end;
  if Phone <> '' then ModemWrite(ModemSetup.Escape+#13'ATE0'#13);
@@ -346,8 +349,8 @@ begin
                         Redial;
                       end;
               cmHold: begin
-                        Hold := On;
-    1:                  Static := On;
+                        Hold := True;
+    1:                  Static := True;
                         Phones^.At(0);
                         with Trm^ do
                          begin
@@ -363,7 +366,7 @@ begin
                        end;
              cmUnhold: begin
                         if not Hold then Goto 1;
-                        Hold := Off;
+                        Hold := False;
                         Static := COMPort^.CheckDCD;
                         UnHold;
                         Redial;
@@ -425,7 +428,7 @@ begin
   end;
  if Static and not COMPort^.CheckDCD then
    begin
-     Static := Off;
+     Static := False;
      Message(@Self, evCommand, cmYes, nil);
      Exit;
    end;
@@ -475,14 +478,14 @@ begin
           Exit;
         end else if (Pos(maNoDial, ModemS) <> 0) then
               begin
-                 InZdes := On;
+                 InZdes := True;
                  MessageBox(GetString(dlAD_NoDial), nil, mfError + mfOKButton);
-                 InZdes := Off;
+                 InZdes := False;
                  Message(@Self, evCommand, cmCancel, nil);
                  ModemS := '';
               end else if (Pos(maVoice, ModemS) <> 0) or (Pos(maConnect, ModemS) <> 0) then
                    begin
-                     InZdes := On;
+                     InZdes := True;
                      PP := _WriteMsg(GetString(dlAD_ModemSays)+ModemS);
                      NewTimer(Tmr, 36);
                      if TerminalDefaults.Options and toConnectSnd <> 0 then Cheers;
@@ -490,11 +493,11 @@ begin
                         GetEvent(Event);
                      until (Event.What and (evKeyDown or evMouseDown) <> 0) or
                            (TimerExpired(Tmr));
-                     InZdes := Off;
+                     InZdes := False;
                      PP^.Free;
                      Phones^.AtFree(0);
                      List^.SetRange(Phones^.Count);
-                     Static := On;
+                     Static := True;
                      if (Pos(maVoice, ModemS) <> 0) then Message(@Self, evCommand, cmCancel, nil);
                      ModemS := '';
                      if Term = nil then Message(Application, evCommand, cmTerminal, nil);

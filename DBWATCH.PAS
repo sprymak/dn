@@ -61,6 +61,9 @@
 //  dn3323-DBFViewer(i)-header_corruption_warning_dialog_improve.patch
 //
 //  3.7.0
+//  dn31214-DBFView(f)-view_dbf_works_in_VP.patch
+//
+//  4.9.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -173,6 +176,7 @@ var FBuf: FRec;
      FieldLen : AWord;
      FieldDec : byte;
  begin
+  ReadFldStru:=True;
   BaseFile.Seek(32);
   If Fields <> Nil Then Dispose(Fields,Done);
  {piwamoto.src.end}
