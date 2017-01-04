@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -417,7 +417,10 @@ begin
   else if State and sfSelected = 0 then C := 1
   else C := 2;
   C := GetColor(C);
-  MoveStr(B, #209#209#216#209#209, C);
+  if PoorFrames then
+    MoveStr(B, #205#205#205#205#205, C)
+  else
+    MoveStr(B, #209#209#216#209#209, C);
   WriteLine(0, 0, Size.X, 1, B);
   MoveStr(B, GetString(dlTrashCaption), C);
   WriteLine(0, 1, Size.X, 1, B);

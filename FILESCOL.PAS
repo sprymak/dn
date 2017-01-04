@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -185,7 +185,6 @@ function  CreateFileRec(Name: string): PFileRec;
   Path:=GetPath(Name);
   Name:=GetName(Name);
   while (lsr.FullName<>Name) and (DosError=0) do lFindNext(lsr);
-  lFindClose(lsr);
   if DosError=0 then
    begin
     {$IFNDEF OS2}
@@ -223,6 +222,7 @@ function  CreateFileRec(Name: string): PFileRec;
     fr^.LFN:=AddLFN(GetName(Name));
    end;
   fr^.UsageCount:=1;
+  lFindClose(lsr);
  end;
         {-DataCompBoy-}
 
@@ -425,7 +425,8 @@ begin
        OneIsFile:=False;}
      SM := SortMode;
      if (SM >= 7) and (SM <= 20) then begin
-       if (T1.Name = Name) and ((T1.Attr or Attr) and Directory = 0) and
+       C:=CmpLFN(T1.LFN,LFN);
+       if (C=0) and ((T1.Attr or Attr) and Directory = 0) and
           (((SM-7) and 1 = 0) or (T1.Size = Size)) and
           (((SM-7) and 2 = 0) or (T1.Yr < Yr) or
            ((T1.Yr = Yr) and (T1.FDate <= FDate)) or
@@ -434,8 +435,7 @@ begin
           (((SM-7) and 8 = 0) or
                   CompareFiles(MakeNormName(T1.Owner^, MakeFileName(T1.Name)),
                                MakeNormName(Owner^, MakeFileName(Name))) )
-           then C := 0 else if (T1.Name < Name) then C := -1
-                                                 else C := 1;
+           then C := 0 else if (C=0) then C := 1;
        Compare := C;
        Exit;
      end;
@@ -884,7 +884,6 @@ begin
   ClrIO;
   p:=Files^.At(I);
   with P^ do lFindFirst(MakeNormName(Owner^, GetLFN(LFN)), AnyFile, SR); {JO}
-  lFindClose(SR);
   if (DosError <> 0) or Abort then Files^.AtFree(i)
   else begin
    P^.Size  := SR.FullSize;
@@ -898,6 +897,7 @@ begin
    P^.Attr  := SR.SR.Attr;
    inc(i);
   end;
+  lFindClose(SR);
  end;
  If Files^.Count > 0 then Files^.Sort;
 {$IFDEF CHDIRDEBUG}

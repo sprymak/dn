@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1296,7 +1296,7 @@ begin
      cmViewFile: if Valid(cmClose) and (EditName<>'') then begin
                   {if Desktop<>nil then Desktop^.Lock;}
                   if Application<>nil then begin
-                    PDNAppl(Application)^.ViewFile(True, EditName);
+                    PDNAppl(Application)^.ViewFile(1, EditName); (* X-Man *)
                     MessageL(Application, evCommand, cmScrollBarChanged,
                       GetOffsetForLineNumber(EditName, Pos.Y+1));
                   end;

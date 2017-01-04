@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -110,10 +110,10 @@ const
 
 
 procedure FindFile;
-function FindFiles(var Files: PFilesCollection; var Directories: PCollection;var FindRec: TFindRec; PInfo: PWhileView): byte;
-function ReadList(const AName: String; var DC: PSortedCollection; var FC: PFilesCollection): Boolean; {DataCompBoy}
-function OpenDirectory(const Dir: String): PDrive;
-function ParseTime(S: String): LongInt;
+function  FindFiles(var Files: PFilesCollection; var Directories: PCollection;var FindRec: TFindRec; PInfo: PWhileView): byte;
+function  ReadList(const AName: String; var DC: PSortedCollection; var FC: PFilesCollection): Boolean; {DataCompBoy}
+function  OpenDirectory(const Dir: String): PDrive;
+function  ParseTime(S: String): LongInt;
 
 type
 
@@ -198,6 +198,7 @@ procedure FindFile;
      Directories: PCollection;
      BB: byte; {-$VOL}
      R: TRect;
+     P: PView;
 begin
  FindRec.AddChar:='';
 
@@ -301,7 +302,7 @@ function FindFiles;
      Dr: String;
      Nm: String;
      Xt: String;
-     C: Char;
+     C: Char; i: byte;
      Drv: PFindDrive;
      Pnl: PView;
      CancelSearch: Boolean;
@@ -387,15 +388,16 @@ function FindFiles;
 
     While (DosError = 0) {and not LowMemory} and not CancelSearch and MemOK do
      begin
-      if {$IFNDEF OS2}(SR.SR.Attr and VolumeID = 0) and {$ENDIF}(SR.SR.Name[1] <> '.') and
-       (not Security or (Security and (SR.SR.Attr and Hidden = 0)))
-       and (MaskSearch or InFilter(SR.FullName, FindRec.Mask+FindRec.AddChar))
-       and ((FindRec.Options and ffoAdvanced = 0) or (SR.SR.Time >= DateAfter)
-            and (SR.SR.Time <= DateBefore) and (SR.FullSize >= SizeGreat) and
-            (SR.FullSize <= SizeLess) and ((Attr = 0) or (SR.SR.Attr and Attr <> 0)))
-       and ((FindRec.What='') or (SR.SR.Attr and Directory <> 0) and (FindRec.What='')
-            or (FindRec.What<>'') and SearchF)
-           then
+      if {$IFNDEF OS2}(SR.SR.Attr and VolumeID = 0) and {$ENDIF}
+         (SR.SR.Name[1] <> '.') and
+         (not Security or (SR.SR.Attr and Hidden = 0)) and
+         (MaskSearch or InFilter(SR.FullName, FindRec.Mask+FindRec.AddChar)) and
+         ((FindRec.Options and ffoAdvanced = 0) or (SR.SR.Time >= DateAfter)
+           and (SR.SR.Time <= DateBefore) and (SR.FullSize >= SizeGreat) and
+           (SR.FullSize <= SizeLess) and
+           ((Attr = 0) or (SR.SR.Attr and Attr <> 0))) and
+         ((FindRec.What='') or (SR.SR.Attr and Directory <> 0) and
+          (FindRec.What='') or (FindRec.What<>'') and SearchF) then
        begin
         if PDir = nil then PDir := NewStr(Path);
         P := NewFileRec(SR.FullName, {$IFNDEF OS2}SR.SR.Name,{$ENDIF} SR.FullSize, SR.SR.Time, SR.SR.Attr, PDir);
@@ -488,17 +490,14 @@ begin
  Drv^.AMask := NewStr(FindRec.Mask);
  Drv^.isDisposable := Off;
  Pnl := nil;
- {FN := DelSpaces(lFExpand(FindRec.Mask));
- lFSplit(FN, Dr, Nm, Xt);}
- lGetDir(0, FN);
+ FN:=GetCurrentDir;
  if FN[Length(FN)] <> '\' then FN := FN + '\';
  case FindRec.Where of
   1: SearchData(FN);
   2: for C := 'A' to 'Z' do
          if ValidDrive(C) then
            if (C = UpCase(FN[1])) or (not SlowDrive(C)) then SearchData(C + ':\');
-  {3: SearchData(Dr)}
-   else SearchData(Copy(FN, 1, 3));
+  else SearchData(GetRoot(FN));
  end;
  if not MemOK then Drv^.NoMemory := True;
  if Pnl <> nil then
@@ -623,7 +622,8 @@ function OpenDirectory(const Dir: String): PDrive;
   begin
      if not MemOk then exit;
      if S[Length(S)] <> '\' then AddStr(S, '\');
-     S[1]:=LowCase(S[1]);
+     if S[1]='\' then S[1]:='!'
+     else S[1]:=LowCase(S[1]);
      Dirs^.Insert(NewStr(S));
   end;
 
@@ -687,9 +687,10 @@ begin
         begin
           UpdateWriteView(PI);
           P := Dirs^.At(I);
-          if (P^[1] >= 'a') and (P^[1] <= 'z') then
+          if ((P^[1] >= 'a') and (P^[1] <= 'z')) or (P^[1]='!') then
             begin
-              P^[1]:=UpCase(P^[1]);
+              if P^[1]='!' then P^[1]:='\'
+              else P^[1]:=UpCase(P^[1]);
               Dirs^.AtDelete(I);
               Dirs^.Insert(P);
               ReadDir(P);
@@ -723,9 +724,9 @@ begin
 end;
         {-DataCompBoy-}
 
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ TFindDrive }
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TFindDrive }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 
         {-DataCompBoy-}
 procedure TFindDrive.GetParam;

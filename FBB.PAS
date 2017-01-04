@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -524,12 +524,15 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
      begin
       DosError := 0;
       lFindFirst(S+'\*.*', AnyFile, SR);
-      lFindClose(SR);
-      if Abort or CopyCancelled then Exit;
+      if Abort or CopyCancelled then begin
+       lFindClose(SR);
+       Exit;
+      end;
       if (DOSError = 0)
         then begin CopyDir := S+'\'; Mask := x_x end
-        else begin lFSplit(S,CopyDir,N,X); Mask:=N+X end
-      end
+        else begin lFSplit(S,CopyDir,N,X); Mask:=N+X end;
+      lFindClose(SR);
+     end
     else begin
       lFSplit(S,CopyDir,N,X); Mask := N+X
     end;

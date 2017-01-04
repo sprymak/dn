@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1083,10 +1083,14 @@ begin
                {$ELSE}
                Sn:=S;
                {$ENDIF}
-               S2:=GetPossibleDizOwner(1);
-               if S2 <> '' then begin
-                S2 := GetDizOwner(PF^.Owner^, S2, Off);
-                ReplaceDIZ(S2, Nm, GetLFN(PF^.LFN), @Sn, nil);
+               S:=GetLFN(PF^.LFN);
+               if (Pos(Nm, FMSetup.DIZ)=0) and
+                  (Pos(S, FMSetup.DIZ)=0) then begin
+                S2:=GetPossibleDizOwner(1);
+                if S2 <> '' then begin
+                 S2 := GetDizOwner(PF^.Owner^, S2, Off);
+                 ReplaceDIZ(S2, Nm, S, @Sn, nil);
+                end;
                end;
              end;
       lChDir(SSS);
@@ -1289,10 +1293,14 @@ begin
                {$ELSE}
                Sn:=S;
                {$ENDIF}
-               S2:=GetPossibleDizOwner(1);
-               if S2 <> '' then begin
-                S2 := GetDizOwner(PF^.Owner^, S2, Off);
-                ReplaceDIZ(S2, Nm, GetLFN(PF^.LFN), @Sn, nil);
+               S:=GetLFN(PF^.LFN);
+               if (Pos(Nm, FMSetup.DIZ)=0) and
+                  (Pos(S, FMSetup.DIZ)=0) then begin
+                S2:=GetPossibleDizOwner(1);
+                if S2 <> '' then begin
+                 S2 := GetDizOwner(PF^.Owner^, S2, Off);
+                 ReplaceDIZ(S2, Nm, GetLFN(PF^.LFN), @Sn, nil);
+                end;
                end;
              end;
       lChDir(SSS);

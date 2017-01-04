@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -111,7 +111,7 @@ const
      cfgCustomMasks2        = 54; {DataCompBoy}
      cfgArcCustomMasks      = 55; {DataCompBoy}
      cfgFMSetup             = 56; {DataCompBoy}
-     {{{{{{{{{{{{{{{{{{{{{{ = 57; !DO NOT USE!}
+     {!!!!!!!!!!!!!!!!!!!!! = 57; !DO NOT USE!}
      cfgNewSystemData       = 58; {DataCompBoy}
      cfgOldEditorDefaults2  = 59; {DataCompBoy}
      cfgNewPanelDefaults    = 60; {DataCompBoy}
@@ -124,7 +124,7 @@ const
      dlAbout = #13#3'Dos Navigator Open Source'#13+
      {$IFDEF LITE}+#3'Light version'+{$ELSE}+#13+{$ENDIF}
      +#13#3'Version %s, %s'+
-     +#13#3#0'http://dnosp.web.com/'#0+
+     +#13#3#0'http://www.nsk.su/~dnosp/'#0+
      {$IFDEF VIRTUALPASCAL}
      +#13+
      +#13#3'Thanks to Allan Mertner for copy of VP'+

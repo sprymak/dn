@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -52,16 +52,19 @@ uses UserMenu, Startup, Objects, FilesCol, Commands
      {$IFDEF DPMI}, DPMI {$ENDIF}
      ;
 
+type TCallback=procedure(var Param); (* X-Man *)
+
 procedure ExecString(S: PString; WS: String);
 function  SearchExt(FileRec: PFileRec; var HS: String): Boolean; {DataCompBoy}
-function  ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean; {DataCompBoy}
+function  ExecExtFile(const ExtFName: string; UserParams: PUserParams;   (* X-Man *)
+    SIdx: TStrIdx; CallIfSuccess:TCallback; var CallbackParam): Boolean; (* X-Man *) {DataCompBoy}
 procedure ExecFile(const FileName: string); {DataCompBoy}
 
 implementation
 uses DnSvLd, DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3,
-     FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4
+     FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4, Videoman
 {$IFDEF VIRTUALPASCAL}
-     ,Videoman, Memory
+     , Memory
 {$ENDIF}
      ;
 
@@ -155,6 +158,8 @@ begin
 {  ScreenMode := SM;}
   InitEvents;
   InitSysError;
+  if (StartupData.Load and osuResetPalette <> 0) and VGASystem { dagoon }
+     then SetPalette(vga_palette);
   Application^.Redraw;
   GlobalMessage(evCommand, cmPanelReread, nil);
   GlobalMessage(evCommand, cmRereadInfo, nil);
@@ -264,7 +269,8 @@ end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
-function ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean;
+function ExecExtFile(const ExtFName: string; UserParams: PUserParams; (* X-Man *)
+SIdx: TStrIdx; CallIfSuccess: TCallback; var CallbackParam): Boolean; (* X-Man *)
  var F: PTextReader;
      S,S1: String;
      FName, LFN: String;
@@ -343,6 +349,7 @@ RepeatLocal:
           lChDir({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Active^.Owner^));
          end;
    ExecExtFile := On;
+   if Addr(CallIfSuccess)<>nil then CallIfSuccess(CallbackParam); (* X-Man *)
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
    ExecString(@S, '');
 {$IFDEF VIRTUALPASCAL}
@@ -388,6 +395,11 @@ begin
  S := MakeFileName(fr^.Name);
  L := GetLFN(fr^.LFN);
  if CharCount('.', L)=0 then L:=L+'.';
+ if (Word((@FileName[1])^) = $2F2F{//}) or
+    (Word((@FileName[1])^) = $5C5C{\\}) then begin
+   S:=MakeNormName(fr^.Owner^, S);
+   L:=MakeNormName(fr^.Owner^, L);
+ end;
  FreeStr := '';
  M := '';
  if (ShiftState and (3 or kbAltShift) <> 0) or

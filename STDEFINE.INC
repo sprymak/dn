@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -53,7 +53,7 @@
   {$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
 {$DEFINE UUENCODE}
 {$DEFINE UUDECODE}
-{.$DEFINE Modem} {For enabling modem features you must have ASyncPro}
+{$DEFINE Modem} {For enabling modem features you must have ASyncPro}
 {$DEFINE Link}
 {$DEFINE SpreadSheet}
 {$DEFINE DiskEdit}
@@ -97,7 +97,7 @@
 {$DEFINE CHDIRDEBUG}
 {.$DEFINE CHDIRTIMER}
 
-  {$ELSE VIRTUALPASCAL}
+  {$ELSE NONBP}
 {$DEFINE NO_OVERLAY}
 {$DEFINE NOEXTRA}
 {$DEFINE BIT_32}
@@ -107,7 +107,7 @@
 {$Use32+}
 {$DEFINE POGLSORT}
 {$DEFINE COLUMNSMENU}
-  {$ENDIF VIRTUALPASCAL}
+  {$ENDIF NONBP}
 
 {$IFDEF BPIDE}
 {$UNDEF CHCOL}

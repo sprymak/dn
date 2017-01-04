@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -282,8 +282,10 @@ procedure EraseFiles;
        lFindFirst(S, AnyFile, SR);  {JO}
        if (SR.SR.Name[1] = '.') then lFindNext(SR);
        if (SR.SR.Name[1] = '.') then lFindNext(SR);
-       lFindClose(SR);
-       if Abort then Exit;
+       if Abort then begin
+        lFindClose(SR);
+        Exit;
+       end;
        dr := cmOK;
        if (DOSError = 0) and (not DeleteAllFiles) then
         begin
@@ -296,6 +298,7 @@ procedure EraseFiles;
          DeleteAllFiles := DR = cmOK;
          Abort:= dr = cmCancel;
         end;
+       lFindClose(SR);
        if not (dr in [cmYes, cmOK]) then Exit;
     end;
     {$IFDEF DiskEdit}

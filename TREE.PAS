@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1748,7 +1748,7 @@ end;
 
         {-DataCompBoy-}
 function CreateDirInheritance;
- var I, J: Integer;
+ var I, J, DE: Integer;
      SR: lSearchRec;
      LS: Byte absolute S;
      M: String;
@@ -1768,9 +1768,10 @@ begin
      M := Copy(S, 1, I-Byte(S[I] = '\'));
      if M[length(M)]='.' then Dec(M[0]);
      ClrIO; lFindFirst(M, AnyFile, SR); {JO}
+     DE:=DosError;
      lFindClose(SR);
      if Abort then Exit;
-     if DOSError <> 0 then
+     if DE <> 0 then
       begin
         if BB and (S[I] = '\') then
           begin CreateDirInheritance := J-1; BB := Off end;

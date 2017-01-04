@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.11
+::  Dos Navigator Open Source 1.51.12
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -45,9 +45,30 @@
 ::
 :://///////////////////////////////////////////////////////////////////////
 @Echo off
-if not exist exe md exe
+if not exist exe\nul md exe
 
-Echo        Compiling VERSION.EXE
+set vppath=c:\vp21
+set os=w32
+
+Echo -------- Preparing compiling...
+if exist exe\vp\nul goto endpr
+if not exist exe\vp\nul md exe\vp
+copy %vppath%\units.%os%\Sysutils.* exe\vp >nul
+copy %vppath%\units.%os%\Vpsyslow.* exe\vp >nul
+copy %vppath%\units.%os%\system.*   exe\vp >nul
+copy %vppath%\units.%os%\use32.*    exe\vp >nul
+copy %vppath%\units.%os%\dos.*      exe\vp >nul
+copy %vppath%\units.%os%\windows.*  exe\vp >nul
+copy %vppath%\units.%os%\vpkbdw32.* exe\vp >nul
+copy %vppath%\units.%os%\exehdr.*   exe\vp >nul
+copy %vppath%\units.%os%\strings.*  exe\vp >nul
+copy %vppath%\units.%os%\vputils.*  exe\vp >nul
+copy %vppath%\units.%os%\crt.*      exe\vp >nul
+copy %vppath%\lib.%os%\import32.*   exe\vp >nul
+copy %vppath%\res.%os%\sysutils.*   exe\vp >nul
+:endpr
+
+Echo -------- Compiling VERSION.EXE
 if exist exe\version.exe goto dover
 vpc version /m /q
 if errorlevel 1 goto ex
@@ -56,7 +77,7 @@ if exist exe\tvhc.exe del exe\thvc.exe
 exe\version.exe exe\version.inc
 
 if exist exe\tvhc.exe goto comphelp
-Echo        Compiling TVHC.EXE
+Echo -------- Compiling TVHC.EXE
 vpc tvhc /m /q
 if errorlevel 1 goto ex
 del exe\*.vpi
@@ -69,7 +90,7 @@ exe\tvhc resource\hungary\dnhelp.htx exe\hungary.hlp exe\dnhelp.pas /4DN_OSP
 :endcomp
 
 if exist exe\rcp.exe goto dores
-Echo        Compiling RCP.EXE
+Echo -------- Compiling RCP.EXE
 vpc rcp /m /dRCP /q
 if errorlevel 1 goto ex
 del exe\*.vpi
@@ -79,12 +100,11 @@ if exist exe\*.dlg goto endres
 exe\rcp
 :endres
 
-
-Echo        Compiling DN.EXE
+Echo -------- Compiling DN.EXE
 vpc dn /m /dDN;DNPRG /q
 if not %1.==debug. goto ex
 copy *.* exe\*.*
+copy vp.vpo exe\*.*
 cd exe
 vp
-
 :ex

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -192,7 +192,7 @@ type
    TUnSortedStrCollection = object(TStringCollection)
       procedure Insert(Item: Pointer); virtual;
    end;
-
+(*
 { TResourceCollection object }
 
   PResourceCollection = ^TResourceCollection;
@@ -223,7 +223,7 @@ type
     IndexPos: Longint;
     Index: TResourceCollection;
   end;
-
+*)
 { TStringList object }
 
   TStrIndexRec = record
@@ -850,7 +850,7 @@ procedure TUnSortedStrCollection.Insert(Item: Pointer);
 begin
   AtInsert(Count, Item);
 end;
-
+(*
 { Private resource manager types }
 
 const
@@ -1144,7 +1144,7 @@ begin
     BasePos:=NewBasePos;
   end;
 end;
-
+*)
 { TStringList }
 
 constructor TStringList.Load(var S: TStream);
@@ -1268,7 +1268,7 @@ end;
 
 {$IFDEF POGLSORT}
 
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 procedure TSortedCollection.PoglSort;
 type TSR = pointer; Label 1;
  Const r=SizeOf(TSR); mm=65520 div r; nseg=20; mr=mm*r;
@@ -1377,11 +1377,11 @@ function GetPos: longint; begin GetPos:=Posit*r end;
    End;
   FreeMem(A[w], nw*r); For u:= w-1 downto 1 do FreeMem(A[u], mr)
 END;
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 
 {$ELSE}{Not PoglSort}
 
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 Procedure TSortedCollection.KputSort;
  type TSR = pointer; Label 1;
  Const r=SizeOf(TSR); mm=65520 div r; nseg=9; mr=mm*r;
@@ -1509,7 +1509,7 @@ function GetPos: longint; begin GetPos:=Posit end;
     Until (c >= np) Or (c < 0); p:=-p; v:= v1; nn:=nn-1
    UNTIL nn < 0; {Truncate(t);} For u:= 1 to kp+1 do FreeMem(A[u],mr)
   END;
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 {$ENDIF}{NOT POGLSORT}
 
 {$ENDIF}{NOT QSort}

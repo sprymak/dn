@@ -101,7 +101,7 @@ eraser.pas    File eraser
 extkbd.pas    Access to extended keyboard (temporary unit)
 extramem.pas  Access to extra memory
 fbb.pas       LongCopy
-file_id.diz   Logo
+file_id.diz   Directory banner
 filecopy.pas  Files copyer
 filediz.pas   Files descriptions support
 filefind.pas  Files finder
@@ -221,7 +221,6 @@ zlib.pas      Part of the 'zlib' compression library
 zutil.pas     Part of the 'zlib' compression library
 drivers2.pas  Fail information
 microed2.pas  Microed: Read/Write/Store/Load methods
-DOC          Documentation files
 s95tfio.adp   Standard textfile open routine
 lzwc2_32.asm  Lempel-Ziv Welch Compression routine
 lzwd2_32.asm  Lempel-Ziv Welch Decompression routine
@@ -246,3 +245,6 @@ views._vp     Views for VP
 lfn._wn       General LFN routines
 lfn._ws       DPMI LFN routines
 dnsvld.pas    DN Save and Load code
+dnutil2.pas   DN Utilities: Exec & other
+flage.pas     OS/2 fileage routines
+vp.vpo        VPC Config

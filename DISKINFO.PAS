@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -159,7 +159,7 @@ uses Startup, ExtraMem, DNApp, Commands, DNHelp, Tree, xTime
      {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
-const MaxTeam = 164;
+const MaxTeam = 167;
 
 const
       Logo1 = '          ,     sSSs     s$$s   ' ;

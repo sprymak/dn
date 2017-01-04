@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -988,13 +988,14 @@ begin
           vm:=WriteMsg(GetString(dlPleaseStandBy));
          dec(Num);
          lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'),AnyFile-Directory,Sr);
-         lFindClose(Sr);
          if DosError=0 then
           begin
            GetPrevMsg:=MakeNormName(D, Sr.FullName);
            If vm<>nil then Dispose(vm, Done);
+           lFindClose(Sr);
            exit;
           end;
+         lFindClose(Sr);
         end;
        if (Num=0) then GetPrevMsg:='';
        If vm<>nil then Dispose(vm, Done);
@@ -1020,15 +1021,16 @@ begin
           vm:=WriteMsg(GetString(dlPleaseStandBy));
          Inc(Num);
          lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'),AnyFile-Directory,Sr);
-         lFindClose(Sr);
          if DosError=0 then
           begin
            GetNextMsg:=MakeNormName(D, Sr.FullName);
            If vm<>nil then Dispose(vm, Done);
+           lFindClose(Sr);
            exit;
           end else
            begin
             GetNextMsg:='';
+            lFindClose(Sr);
             continue;
            end;
         end;

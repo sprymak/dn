@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -263,7 +263,7 @@ begin
     2: S := '5.25" 1.2M';
     3: S := '3.5" 720K';
     4: S := '3.5" 1.44M';
-    6: S := '3.5" 2.88M';
+    5: S := '3.5" 2.88M'; { Rainbow }
     else S := GetString(dlUnknownDiskDriverType);
    end;
    if FDD <> '' then FDD := FDD + ', ';
@@ -401,6 +401,7 @@ begin
   $0004 : Build := '95'; {OSR1=4.00.950B & OSR2=4.00.1111 returns same code}
   $0304 : Build := '95 OSR 2.1'; {4.00.1212}
   $0a04 : Build := '98';         {4.10.1998}
+  $5a04 : Build := 'Millenium Edition';  {4.90.3000} { Rainbow }
  else
   Build := ItoS(LongInt(Reg.AL)) + '.';
   if Reg.AH < 10 then Build := Build + '0' + ItoS(LongInt(Reg.AH))
@@ -526,13 +527,8 @@ begin
  S := S + GetString(dlSI_Lpt);
 {LPT detection by piwamoto}
  EQList := (EQList and $C000) shr 14;
- if ((opSys and (opWin or opOS2))=opWin) and (EQList = 3) then
-  begin
-   inc (EQList);
-   repeat
-    dec (EQList);
-   until (EQList = 0) or (memw[seg0040:$06+EQList*2] <> 0);
-  end;
+ if (EQList = 3) then
+   while (EQList > 0) and (memw[seg0040:$06+EQList*2] = 0) do dec (EQList);
  if EQList = 0 then S := S + GetString( dlSI_NotPresent ) else S := S + ItoS(EQList);
 
 {advanced OS detection by piwamoto}

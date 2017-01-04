@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.11
+;/  Dos Navigator Open Source 1.51.12
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -1097,7 +1097,9 @@ Int24Handler:
         PUSH    CX
         PUSH    BX
         AND     DI,0FFH                 ;Error code in low byte
+IFNDEF _DPMI_ ; X-Man
         PUSH    DI                      ;Save error code
+ENDIF         ; X-Man
         CMP     DI,9                    ;Printer out of paper
         JE      @@0                     ;Yes, @@0
         TEST    AH,80H                  ;Disk error?
@@ -1113,6 +1115,7 @@ Int24Handler:
         PUSH    DI                      ;Push error code
         PUSH    AX                      ;Push drive code
         CALL    SysErrorFunc            ;Call system error handler
+IFNDEF _DPMI_ ; X-Man
         POP     DI                      ;Restore error code
         CMP     AX,1                    ;Zero if retry
         JBE     @@3                     ;Jump if retry
@@ -1127,6 +1130,7 @@ Int24Handler:
         MOV     AX,DI                   ;Get return code
         MOV     BP,SP                   ;Set CF in return flags
         OR      BYTE PTR [BP+20],1
+ENDIF         ; X-Man
 @@3:    POP     BX                      ;Restore registers
         POP     CX
         POP     DX

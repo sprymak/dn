@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -161,7 +161,8 @@ const
   fmDenyChild = $0080;           { Don't give right's to child }
 
  {$ELSE VP}
-  stCreate    = $DC0B;           { Create new file }
+  stCreate    = $DC00 or fmOpenReadWrite;
+                                 { Create new file }
   stOpenRead  = fmOpenRead;      { Read access only }
   stOpenWrite = fmOpenWrite;     { Write access only }
   stOpen      = fmOpenReadWrite; { Read and write access }

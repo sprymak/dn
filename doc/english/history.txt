@@ -6,6 +6,179 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 1.51.12
+  ---------------------------------------------------------------------
+
+    >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] 3.5" 2.88 megabyte floppy drives are now correctly identified in the
+    System Information and Format windows (Ondrej Zary)
+
+[-] Some drive types were reported incorrectly by the DPMI version under pure
+    DOS (Alexey Feldgendler)
+
+[-] Selecting Abort in the System Error window caused a crash in DPMI version
+    under pure DOS (Alexey Feldgendler)
+
+[-] Long file names could not be used on Novell NetWare remote drives
+    (Anton Fedorov)
+
+[-] Clear Read-Only from CD-ROM option did not work in DPMI version under pure
+    DOS (Max Vasilyev)
+
+[-] The CopyLimit parameter from [Kernel] section of DN.INI was used not only
+    in Windows, but in DOS too. This did not match the documented behavior
+    (Max Vasilyev)
+
+[-] The SmartWindowsBoxClose DN.INI parameter ([Kernel] section) almost never
+    worked. Now it is fixed both for real-mode and DPMI versions. The only
+    limitation remaining is that you should start DN.COM from Windows
+    directly, not, for example, from a batch file, in order for the close
+    button to work (Vitaly Astaforkin)
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] New DN.INI parameter: UseF3InViewer = long ([Interface] section). Similar
+    to the existing UseEnterInViewer parameter ([Interface] section). When set
+    to 0, pressing F3 in viewer does nothing; when set to 1, F3 closes the
+    viewer window; and the value of 2 means that F3 should cycle through
+    text, hexadecimal and dump view modes (Alexey Feldgendler)
+
+[+] New DN.INI parameter: PoorFrames = bool ([Interface] section). Value of 1
+    means that the character encoding being used does not contain all the
+    pseudographic characters. In this case DN uses a reduced set of characters
+    for rendering various boxes (Pawel Ziemian)
+
+[*] Made the memory allocation for DN.INI parameters more efficient
+    (Pawel Ziemian)
+
+[*] When reading DN.INI file, syntax errors are reported along with the
+    corresponding line numbers (Pawel Ziemian)
+
+[*] Optimized writing of DN.INI (Pawel Ziemian)
+
+[*] The colour of scrollbars in the database viewer is now customizeable
+    (Max Morozov)
+
+[*] Updated some default values: enabled Advanced copy, turned on Check free
+    space for all drives, added some new column presets (Max Vasilyev)
+
+[-] The Ending string in the Printer setup was ignored (Anton Fedorov)
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] When HandleChDirCommand=1 is set in the [Kernel] section of DN.INI, one
+    can browse remote drives without mapping them to drive letters. To change
+    to a shared network resource, just enter "cd \\server_name\resource_name"
+    (Anton Fedorov)
+
+[*] Directories are now compared using long file names (Max Morozov)
+
+[*] When copying files, the system cache is flushed each time after writing
+    the whole RAM load, in case when more than one megabyte was transferred.
+    The tests show that it really speeds up copying (Stanislav Olkhovik)
+
+[*] Disabled syntax highlighting for Quick View panels, as handling it
+    properly would require introducing too many color customzation entries
+    (Max Morozov)
+
+[-] File search could find particular files not matching the wildcard pattern
+    (Anton Fedorov)
+
+[-] Renaming a file with Alt-F6 to one of the description file names like
+    files.bbs caused its content to be damaged (Anton Fedorov)
+
+[-] After renaming a file, a stray space appeared between its name and
+    description in the descriptions file (Max Vasilyev)
+
+[-] The last description from a descriptions file could be deleted incorrectly
+    (Max Vasilyev)
+
+[-] File sizes were not shown according to the country setup
+    (Marcin Gryszkalis)
+
+[-] Fixed display of sizes for very large files, including compressed sizes
+    in archives (Marcin Gryszkalis, Alexey Feldgendler)
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Files viewed with external facilities are now correctly recorded into the
+    view history unless they reside in a temporary storage like files
+    extracted from archives for viewing (Alexey Feldgendler)
+
+[*] Optimized the Open file at cursor Editor feature by speed, not changing
+    the logic (Anton Fedorov)
+
+[-] Improved the Open file at cursor Editor feature: fixed the logic for
+    extracting the file name from the current line, added correct handling
+    of absolute pathnames, made cosmetic changes to the related user
+    interface. Also fixed the newly created DN.SPF not becoming visible until
+    refresh (Alexey Feldgendler)
+
+[-] Fixed a possible crash when opening an Editor window (Anton Fedorov)
+
+[-] When opening a file in Editor, stray empty lines could appear
+    (Anton Fedorov)
+
+[-] After viewing a file with an internal viewer (Alt-F3) it was impossible to
+    view it with an external tool (F3) because it was recorded in the view
+    history. Now F3 always selects the viewer that matches the file's
+    extension, be that viewer internal or external. Selecting an entry from
+    the view history still activates the viewer last used for the file
+    (Alexey Feldgendler)
+
+    >>> User Add-on Package <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Added more examples and fixed some old ones in the DN.EXT, DN.HGL, DN.XRN
+    configuration files from the User Add-on Package (Andrzej Kowalczyk)
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed reading of WinRAR 2.80 beta 1 and later archives (Max Vasilyev)
+
+    >>> System Information <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Added Windows ME (Millenium Edition) detection (Ondrej Zary)
+
+[*] OS/2 Warp Server for e-Business version is shown in System Information
+    (Max Vasilyev)
+
+[-] Too many LPT ports was sometimes reported by the System Information
+    (Anton Fedorov)
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] DDI disk images can be unpacked (Max Vasilyev)
+
+[*] Added arcctg function to Calculator as a synonym to arccotan
+    (Michael Mercuryev)
+
+[-] Fixed sqrt function in Calculator (Michael Mercuryev)
+
+[-] Fixed the VGA palette not being properly initialized on startup
+    (Alexey Feldgendler)
+
+[-] After running an external program, the VGA palette was reset to the
+    default values (Marcin Gryszkalis)
+
+[-] When in 132-conumn extended video mode, the initial state of the video
+    mode selection menu did not reflect the current mode (Pawel Ziemian)
+
+[-] Pressing PgUp while moving a window would cause it to jump off the screen
+    (Alexey Feldgendler)
+
+[-] A help window called from a menu could be obscured by it
+    (Alexey Feldgendler)
+
+[-] Characters with decimal code 255 used in the Help window could cause
+    unwanted visual effects sometimes and were replaced with spaces
+    (Jaroslaw Osadtchiy)
+
+[-] Multiple cosmetic fixes to the Russian user interface (Michael Mercuryev)
+
+[-] Fixed a number of other bugs, minor and not...
+
+
    Version 1.51.11
   ---------------------------------------------------------------------
 
@@ -78,6 +251,8 @@
 
 [-] Cosmetic fixes of many dialog windows in Russian resources (Pavel Borodin)
 
+[-] Fixed a number of other bugs, minor and not...
+
 
    Version 1.51.10
   ---------------------------------------------------------------------
@@ -113,7 +288,7 @@
 
 [+] New DN.INI parameter: UseEnterInViewer = long ([Interface] section). When
     set to 0, pressing Enter in viewer does nothing; when set to 1, Enter
-    closes the viewer windows; and the value of 2 means that Enter should
+    closes the viewer window; and the value of 2 means that Enter should
     cycle through text, hexadecimal and dump view modes (Jaroslaw Osadtchiy)
 
 [*] The information set shown in the drive selection menu is now configurable
@@ -528,7 +703,8 @@
 
 [-] Editor performed very slowly in real mode (Anton Fedorov)
 
-[*] The List panel's title is now shown with appropriate prefix (Anton Fedorov)
+[*] The List panel's title is now shown with appropriate prefix
+    (Anton Fedorov)
 
 [*] Shift-F6 in viewer does not reset the current xlat table anymore. Instead,
     a menu of available xlat tables is opened. Pressing Backspace in this menu
@@ -737,8 +913,8 @@
     extra-large (with invisible side borders) and the prior size. This is
     true for the editor, viewer and terminal windows. The file manager window
     was also subject to modification: Ctrl-Alt-Z now only enlarges the current
-    panel to the size of the whole file manager window, not zooming the latter to
-    the screen extent and leaving this task up to Alt-Z. This influenced a
+    panel to the size of the whole file manager window, not zooming the latter
+    to the screen extent and leaving this task up to Alt-Z. This influenced a
     change of DN.DSK desktop file format (Anton Fedorov)
 
 [-] Fixed numerous bugs in Navigator Link (Anton Fedorov)
@@ -1432,7 +1608,6 @@
 [-] Fixed saving of string parameters in DN.INI
 
 [+] New DN.INI parameters: HorizScrollBarChars = str and VertScrollBarChars =
-
     str ([Interface] section), specifying the scroll bar appearance,
     containing 5 characters: first character, last craracter, bar character,
     slider character and the empty bar character. Specified like a string of
@@ -1851,8 +2026,6 @@
 
 [-] "UU-encode" and "Directory tree" commands in the Russian resources were
     both bound to Ctrl-F7 hot key
-
-
 
 [-] The drive selection menu from Ctrl-F3 and in some other cases was shown
     with a very strange shadow

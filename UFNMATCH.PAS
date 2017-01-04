@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -73,12 +73,12 @@ Begin
 
       Case (c) Of
        '?': If (n>Length(Str)) Then Begin FnMatchFunc:=False; Exit; End;
-       {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+       {!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
        '*': Begin
              c := Pattern[p]; Inc(p);
              While ((c='?') Or (c='*')) and (p<=Length(Pattern)) Do
               Begin
-               Inc(n);
+               if c='?' then Inc(n);{DataCompBoy: * may present 0 chars...}
                If (c='?') And (n>Length(Str)) Then Begin FnMatchFunc:=False; Exit; End;
                c := Pattern[p]; Inc(p);
               End;
@@ -97,7 +97,7 @@ Begin
              FnMatchFunc:=False;
              Exit;
             End;
-       {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+       {!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
        '[': Begin
              if AllLiters then Goto Litera;
              If n>Length(Str) Then Begin FnMatchFunc:=False; Exit; End;
@@ -135,9 +135,10 @@ Begin
                If nt Then Begin FnMatchFunc:=False; Exit; End;
               End;
             End;
-       {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+       {!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
        Else
-Litera:  If c<>Str[n] Then Begin FnMatchFunc:=False; Exit; End;
+Litera:  If (c<>Str[n]) or (N>length(Str))
+           Then Begin FnMatchFunc:=False; Exit; End;
       End;
 
       Inc(n);

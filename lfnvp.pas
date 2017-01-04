@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -160,6 +160,8 @@ procedure lGetDir(D: Byte; var Path: String);
          { Name expansion and splitting }
 function lFExpand(const Path: String): String;
 procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
+
+procedure LFNInitUnit; inline; begin end;
 
 implementation
 

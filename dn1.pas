@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -65,10 +65,11 @@ uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
      Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
      UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver,
      U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries,
-     ExtraMem, Menus, VideoMan, extkbd, stakdump, DnSvLd, filefind
+     ExtraMem, Menus, VideoMan, extkbd, DnSvLd, filefind
 {$IFDEF CDPLAYER},CDPlayer{$ENDIF}
 {$IFDEF DPMI}, DPMI {$ENDIF}
 {$IFDEF DiskFormat}, FmtUnit {$ENDIF}
+{$IFNDEF NONBP}, stakdump {$ENDIF}
      ;
 
 
@@ -218,6 +219,17 @@ var
        End;
       end;
     end;
+
+    (* X-Man >>> *)
+    procedure DoResetPalette;
+    var Temp:TVideoType;
+    begin
+        Temp:=VideoType;
+        GetCrtMode;
+        if VGASystem then SetPalette(VGA_Palette);
+        VideoType:=Temp
+    end;
+    (* X-Man <<< *)
 
   begin
     ReadConfig := -1;
@@ -540,8 +552,7 @@ var
              cfgVGApalette: begin
                               SRead(VGA_Palette);
                               if (StartupData.Load and osuResetPalette <> 0)
-                                 and VGASystem
-                               then SetPalette(VGA_Palette);
+                              then DoResetPalette (* X-Man *)
                             end;
         cfgDefaultArchiver: SRead(DefaultArchiver);
     cfgDefaultArchiverMode: SRead(DefaultArcMode);
@@ -600,7 +611,7 @@ var
          (INIavailcrc <>INIstoredcrc )} then begin
           {-$VIV start}
           LoadDnIniSettings;
-          if DnIni.AutoSave then SaveDnIniSettings;
+          if DnIni.AutoSave then SaveDnIniSettings ( nil );
           DoneIniEngine; {-$VIV stop}
           ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
           InterfaceData.DrvInfType := DriveInfoType;
@@ -657,6 +668,10 @@ begin
   {EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST');}       {-JITR-}
   ReadINI;
 
+  {$IFDEF OS_DOS}
+  w95QuitInit; {Gimly}
+  {$ENDIF}
+
 {$IFDEF SS}Val(SaversData.Time, SkyDelay, Integer(SPos1));{$ENDIF}
   if SkyDelay=0 then SkyDelay:=255; { X-Man }
 end;
@@ -712,7 +727,9 @@ begin
 
  Init09Handler;
  AdvanceInitUnit;
+ {$IFNDEF NONBP}
  StakDumpInitUnit;
+ {$ENDIF}
  {$IFDEF DiskFormat}
  FmtunitInitUnit;
  {$ENDIF}
@@ -831,6 +848,9 @@ begin
  MyApplication.Init;
 
  if RunFirst then
+   ShowIniErrors;
+
+ if RunFirst then
   if (StartupData.Load and osuKillHistory <> 0) then ClearHistories;
 
  {if not RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');} {-JITR-}
@@ -866,10 +886,9 @@ GrabPalette;
   Clock^.MakeFirst;
   Unlock;
  end;
- {$IFDEF OS_DOS}
- w95QuitInit; {Gimly}
- {$ENDIF}
+
  MyApplication.Run;
+ ClearIniErrors;
  GlobalMessage(evCommand, cmKillUsed, nil);
  TottalExit := On;
  MyApplication.Done;

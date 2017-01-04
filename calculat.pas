@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -671,7 +671,9 @@ function DoEval(start, stop: byte): CReal;
     if cmd = 'CTG'      then begin DoEval:=CoTan(DoEval(start+3,stop));    exit end else
     if cmd = 'SEC'      then begin DoEval:=Sec(DoEval(start+3,stop));      exit end else
     if cmd = 'ABS'      then begin DoEval:=Abs(DoEval(start+3,stop));      exit end else
-    if cmd = 'SQR'      then begin DoEval:=Sqr(DoEval(start+3,stop));      exit end else
+    if (cmd = 'SQR')       { Mercury }
+       and (copy(s^,start,4)<>'SQRT')
+                        then begin DoEval:=Sqr(DoEval(start+3,stop));      exit end else
     if cmd = 'RAD'      then begin DoEval:=Rad(DoEval(start+3,stop));      exit end else
     if cmd = 'EXP'      then begin DoEval:=Exp(DoEval(start+3,stop));      exit end else
     if cmd = 'CTH'      then begin DoEval:=Cth(DoEval(start+3,stop));      exit end else
@@ -716,6 +718,7 @@ function DoEval(start, stop: byte): CReal;
        if cmd = 'ARCCOS'   then begin DoEval:=ArcCos(DoEval(start+6,stop));   exit end else
        if cmd = 'ARCSEC'   then begin DoEval:=ArcSec(DoEval(start+6,stop));   exit end else
        if cmd = 'ARCTAN'   then begin DoEval:=ArcTan(DoEval(start+6,stop));   exit end else
+       if cmd = 'ARCCTG' then begin DoEval:=ArcCoTan(DoEval(start+6,stop));   exit end else  {Mercury}
        if stop-start>6 then begin
         cmd:=copy(s^,start,7);
         if cmd = 'ARCCOTAN' then begin DoEval:=ArcCoTan(DoEval(start+7,stop)); exit end else

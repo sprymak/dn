@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -463,6 +463,8 @@ begin
        end;
   MouseWhere.X := MX div 8; MouseWhere.Y := MY div 8;
   ShowMouse;
+  if (StartupData.Load and osuResetPalette <> 0) and VGASystem { dagoon }
+     then SetPalette(vga_palette);
   Application^.Redraw;
   if DOSError = 0 then
     begin

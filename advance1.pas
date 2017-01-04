@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -819,30 +819,28 @@ begin
   FStr:='>='+s1 else FStr:=s1;
 end;
 
-Function FileSizeStr;
-var
-  S: string[40];
-  J: TSize;
-label K;
+{ dagoon }
+function FileSizeStr(X:TSize): string;
+const LVS:string[4]='KMGT';                  (* X-Man *)
+var LV:integer; S:string[20]; IsMax:boolean; (* X-Man *)
 begin
-  If X >= 0
-   then If X < 10000000 then FileSizeStr := FStr( X )
-                        else begin
-                              J := X / 1024;
-                              If J >= 10000000then begin
-                                                    J := X / 1024;
-                                                    Str( J:0:0, S );
-                                                    If Length( S ) > 3 then Insert( ',', S, Length( S )-2 );
-                                                    FileSizeStr := S + 'M';
-                                                    exit;
-                                                   end;
-                              Str( J:0:0, S );
-                              If Length( S ) > 3 then Insert( ',', S, Length( S )-2 );
-                              If X = MaxLongInt then FileSizeStr := '>=' + S + 'K'
-                                                else FileSizeStr := S + 'K';
-                             end
-   else FileSizeStr := '?'
+    if X<0 then begin FileSizeStr:='?'; exit; end;
+    IsMax:=X=MaxLongint; (* X-Man *)
+    LV:=0;
+    while (X>=10000000) or (IsMax and (X>=100000)) do begin (* X-Man *)
+        Inc(LV);
+        X:=X/1024
+    end;
+    Str(X:0:0,S);
+    if (CountryInfo.ThouSep[0]>#0) And (Length(S)>3) then begin
+        Insert(CountryInfo.ThouSep[1],S,Length(S)-2);     (* X-Man *)
+        if (Length(S)>8) or ((Length(S)=8) and (LV=0))    (* X-Man *)
+        then Insert(CountryInfo.ThouSep[1],S,Length(S)-6) (* X-Man *)
+    end;
+    if IsMax then S:='>='+S; (* X-Man *)
+    if LV>0 then FileSizeStr:=S+LVS[LV] else FileSizeStr:=S
 end;
+{ dagoon }
 
 Function Hex2;
 begin Hex2:=HexChar(a shr 4)+HexChar(a) end;

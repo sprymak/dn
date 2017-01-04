@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -126,7 +126,7 @@ begin
               end;
    evBroadcast: case Event.Command of
                   cmLookForPanels, cmGetUserParams, cmGetUserParamsWL,
-                cmChangeDirectory, cmChangeDrv,
+                cmChangeDirectory, cmChangeDrv, cmGetDirName,
                    cmIsRightPanel: begin HandleCommand(Event); CE := Off end;
                 end;
    evCommand: case Event.Command of
@@ -163,12 +163,7 @@ begin
                               RPanel^.HandleEvent(Event);
                               ClearEvent(Event);
                              end;
-              cmPushName,
-              cmGetDirName: begin
-                             if LType = dtPanel then LeftView^.HandleEvent(Event);
-                             if RType = dtPanel then RightView^.HandleEvent(Event);
-                             Exit
-                            end;
+               cmPushName,
                cmGetDirInfo,
                cmZoom,
                cmMaxi,

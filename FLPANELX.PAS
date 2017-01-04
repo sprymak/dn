@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -222,8 +222,9 @@ begin
               SizeOf(Drive^.DirFLP)+SizeOf(Drive^.FilFLP)+
               SizeOf(Drive^.Param) +SizeOf(Drive^.Flags));
  Files := PFilesCollection(S.Get);
- if Files <> nil then
-  for I := 0 to Files^.Count-1 do PFileRec(Files^.At(I))^.Owner := @Drive^.CurDir; {DataCompBoy}
+ if (Files <> nil) and (Drive^.DriveType=dtDisk) then
+   for I := 0 to Files^.Count-1
+     do PFileRec(Files^.At(I))^.Owner := @Drive^.CurDir;
  Loaded := On; MSelect := Off; isValid := True; QuickSearch := Off; ViewEnabled := Off;
  CommandEnabling := On;
 end;
@@ -240,6 +241,7 @@ begin
 end;
 
 procedure TFilePanelRoot.Store;
+var I: Longint;
 begin
  inherited Store(S);
  PutPeerViewPtr(S, ScrollBar);
@@ -247,7 +249,10 @@ begin
  PutPeerViewPtr(S, InfoView);
  PutPeerViewPtr(S, DriveLine);
  if (ActivePanel <> @Self) or (Drive^.DriveType <> dtDisk)
-    or (StartupData.UnLoad and osuPreserveDir <> 0) then S.Put(Drive) else S.Put(nil);
+    or (StartupData.UnLoad and osuPreserveDir <> 0)
+    or (word((@DirectoryName[1])^)=$2F2F{//})
+    or (word((@DirectoryName[1])^)=$5C5C{\\})
+   then S.Put(Drive) else S.Put(nil);
  S.Write(FileMask, 1 + Length(FileMask));
  S.Write(SortMode, 1);
  S.Write(PanelFlags, 2);
@@ -260,7 +265,13 @@ begin
  S.Write(Drive^.Param,     SizeOf(Drive^.Param    ));
  S.Write(Drive^.Flags,     SizeOf(Drive^.Flags    ));
  PFilesCollection(Files)^.Selected := ScrollBar^.Value;
- S.Put(Files);
+ if (Files <> nil) and (Drive^.DriveType<>dtDisk) then begin
+   for I := 0 to Files^.Count-1
+     do PFileRec(Files^.At(I))^.OwnerDisposible:=true;
+   S.Put(Files);
+   for I := 0 to Files^.Count-1
+     do PFileRec(Files^.At(I))^.OwnerDisposible:=false;
+ end else S.Put(Files);
 end;
 
 function TFilePanelRoot.Valid;
@@ -883,23 +894,33 @@ var
      else MakeFName := FreeStr;
  end;
 
+ procedure _CtrlPgUp; forward;
  procedure DoChange(SS: String);
    var SR: lSearchRec;
+       DE: Integer;
  begin
    ClrIO;
    lFindFirst(SS, AnyFile, SR); {JO}
+   DE:=DosError;
    lFindClose(SR);
    if Abort then Exit;
-   if ((DOSError <> 0) or (SR.SR.Attr and Directory = 0)) and
-      (Copy(SS,Length(SS)-1,2) <> ':\') then
+   if ((DE <> 0) or (SR.SR.Attr and Directory = 0)) and
+      (Copy(SS,Length(SS)-1,2) <> ':\') and
+      not((word((@SS[1])^)=$2F2F{//}) or (word((@SS[1])^)=$5C5C{\\})) then
      Exit;
    if SS = '' then Exit;
-   if Drive^.DriveType <> dtDisk then
-      begin
-        if not ReplaceDrive(SS[1]) then Exit;
-      end;
-   SS := MakeNormName(SS,'.'); OldDelta := -1;
-   GotoFile(SS);
+   if SS[1]='\' then begin
+     if Drive^.DriveType <> dtDisk then begin
+       Drive^.ChangeRoot;
+       if Drive^.DriveType = dtArc then _CtrlPgUp;
+     end;
+     ChDir(SS);
+   end else begin
+     if Drive^.DriveType <> dtDisk then
+       else if not ReplaceDrive(SS[1]) then Exit;
+     SS := MakeNormName(SS,'.'); OldDelta := -1;
+     GotoFile(SS);
+   end;
    Rebound;
  end;
 (*DataCompBoy
@@ -1236,6 +1257,9 @@ var
           Message(Application, evCommand, cmExecString, @S);
           Exit;
        end;
+      if (Word((@DirectoryName[1])^) = $2F2F{//}) or
+         (Word((@DirectoryName[1])^) = $5C5C{\\})
+         then S:=MakeNormName(DirectoryName, S);
       Message(Application, evCommand, cmExecFile, @S);
    end else ViewFile(cmViewFile)
    {else Message(Application, evCommand, cmExecCommandLine, nil);}
@@ -1822,7 +1846,6 @@ begin
                               end;
                   cmDirHistory: _DoDirHistory;
               cmCloseLinked: _CloseLinked;
-              cmGetDirName: begin PString(Event.InfoPtr)^ := DirectoryName end;
               cmSetFAttr,cmSingleAttr: begin CM_SetAttributes(@Self, Event.Command=cmSingleAttr,CurPos); CE end;
               cmPanelLongCopy: begin CM_LongCopy(@Self); CE end;
               cmEnableView: begin ViewEnabled := On; SendLocated; end;

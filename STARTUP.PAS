@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -95,9 +95,9 @@ CONST
     (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:15106;HavVer:true));
                                                     {Configuration for 1.51.06+}
   DSKSign: TSignRec =
-{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#11;SignLen:22;SignVer:15111);
-{$ELSE}      (Sign:'DN OSP Desktop'#26#151#11;SignLen:17;SignVer:15111);{$ENDIF}
-                                                    {Desktop for 1.51.11}
+{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#12;SignLen:22;SignVer:15112);
+{$ELSE}      (Sign:'DN OSP Desktop'#26#151#12;SignLen:17;SignVer:15112);{$ENDIF}
+                                                    {Desktop for 1.51.12}
   Security: Boolean = True;
   ConfigModified: Boolean = Off;
   DateMode: Byte = 0;
@@ -287,10 +287,6 @@ CONST
 
   TerminalDefaults: TTerminalDefaults = (Emulation:emANSIBBS;Options:toCtrlCLS+toAutoZModem);
 
-{-DataCompBoy-}{piwamoto}{JO}
-{ note: BIN, DAT, RAW are NOT included in any group, }
-{ becouse there is TOO MUCH filetypes with these extensions }
-
   Archives:    PMaskData = nil;
 {sources}
   CustomMask1: PMaskData = nil;
@@ -393,16 +389,40 @@ procedure InitMaskData;
              ossViewer +
              ossUseSysClip +
              ossCheckDDA +
-             ossRemoveCD_RO;
+             ossRemoveCD_RO +
+             ossAdvCopy;
     Mode1: '147';
     Mode2: '265';
     Temp: '';
     LFNContainer: 0;
     LFNCache: '3';
     Drives: (
-      {A}ossCheckFreeSpace+ossVerify,     {B}ossCheckFreeSpace+ossVerify,
-      {C}0, {D}0, {E}0, {F}0, {G}0, {H}0, {I}0, {J}0, {K}0, {L}0, {M}0, {N}0,
-      {O}0, {P}0, {Q}0, {R}0, {S}0, {T}0, {U}0, {V}0, {W}0, {X}0, {Y}0, {Z}0
+      {A}ossCheckFreeSpace+ossVerify,
+      {B}ossCheckFreeSpace+ossVerify,
+      {C}ossCheckFreeSpace,
+      {D}ossCheckFreeSpace,
+      {E}ossCheckFreeSpace,
+      {F}ossCheckFreeSpace,
+      {G}ossCheckFreeSpace,
+      {H}ossCheckFreeSpace,
+      {I}ossCheckFreeSpace,
+      {J}ossCheckFreeSpace,
+      {K}ossCheckFreeSpace,
+      {L}ossCheckFreeSpace,
+      {M}ossCheckFreeSpace,
+      {N}ossCheckFreeSpace,
+      {O}ossCheckFreeSpace,
+      {P}ossCheckFreeSpace,
+      {Q}ossCheckFreeSpace,
+      {R}ossCheckFreeSpace,
+      {S}ossCheckFreeSpace,
+      {T}ossCheckFreeSpace,
+      {U}ossCheckFreeSpace,
+      {V}ossCheckFreeSpace,
+      {W}ossCheckFreeSpace,
+      {X}ossCheckFreeSpace,
+      {Y}ossCheckFreeSpace,
+      {Z}ossCheckFreeSpace
     )
   );
 
@@ -412,11 +432,18 @@ procedure InitMaskData;
    FileCase: aword;
    DirsCase: aword;
   end = (
-    Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '18'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '4'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+    Params: (
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param:63; LFNLen: '18'; EXTLen: '3'),
+              (Param: 1; LFNLen: '18'; EXTLen: '4'),
+              (Param: 1; LFNLen: '18'; EXTLen: '0'),
+              (Param:65; LFNLen: '18'; EXTLen: '4'),
+              (Param:65; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3')
+            );
     FileCase:1;
     DirsCase:0
   );
@@ -427,11 +454,18 @@ procedure InitMaskData;
    FileCase: aword;
    DirsCase: aword;
   end = (
-    Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:31; LFNLen: '18'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '4'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+    Params: (
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param:31; LFNLen: '18'; EXTLen: '3'),
+              (Param: 1; LFNLen: '18'; EXTLen: '4'),
+              (Param: 1; LFNLen: '18'; EXTLen: '0'),
+              (Param:33; LFNLen: '18'; EXTLen: '4'),
+              (Param:33; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3')
+            );
     FileCase:1;
     DirsCase:0
   );
@@ -443,11 +477,18 @@ procedure InitMaskData;
    FileCase: aword;
    DirsCase: aword;
   end = (
-    Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:31; LFNLen: '18'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '4'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+    Params: (
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param:31; LFNLen: '18'; EXTLen: '3'),
+              (Param: 1; LFNLen: '18'; EXTLen: '4'),
+              (Param: 1; LFNLen: '18'; EXTLen: '0'),
+              (Param:33; LFNLen: '18'; EXTLen: '4'),
+              (Param:33; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3')
+            );
     FileCase:1;
     DirsCase:0
   );
@@ -459,11 +500,18 @@ procedure InitMaskData;
    FileCase: aword;
    DirsCase: aword;
   end = (
-    Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '18'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '4'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+    Params: (
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param:63; LFNLen: '18'; EXTLen: '3'),
+              (Param: 1; LFNLen: '18'; EXTLen: '4'),
+              (Param: 1; LFNLen: '18'; EXTLen: '0'),
+              (Param:65; LFNLen: '18'; EXTLen: '4'),
+              (Param:65; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3')
+            );
     FileCase:1;
     DirsCase:0
   );
@@ -474,11 +522,18 @@ procedure InitMaskData;
    FileCase: aword;
    DirsCase: aword;
   end = (
-    Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '18'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '4'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+    Params: (
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param:31; LFNLen: '18'; EXTLen: '3'),
+              (Param: 1; LFNLen: '18'; EXTLen: '4'),
+              (Param: 1; LFNLen: '18'; EXTLen: '0'),
+              (Param:33; LFNLen: '18'; EXTLen: '4'),
+              (Param:33; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3'),
+              (Param: 1; LFNLen: '12'; EXTLen: '3')
+            );
     FileCase:1;
     DirsCase:0
   );
@@ -566,6 +621,11 @@ end;
 procedure InitMaskData;
 begin
  New(Archives); FillChar(Archives^, SizeOf(Archives^), 0);
+
+{-DataCompBoy-}{piwamoto}{JO}
+{ note: BIN, DAT, RAW are NOT included in any group, }
+{ because there is TOO MUCH filetypes with these extensions }
+
  Archives^.Filter    :=
 {archive volumes for ace,ain,arj,rar,zxzip}
                         'a[0-9][0-9];r[0-9][0-9];$z[0-9];'+

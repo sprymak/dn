@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -274,7 +274,8 @@ begin
  S:=GetName(CurDir);
  lChDir(MakeNormName(CurDir,'..'));
  if Abort then Exit;
- lGetDir(0, CurDir);
+ if not ((word((@CurDir[1])^)=$2F2F{//}) or (word((@CurDir[1])^)=$5C5C{\\}))
+   then lGetDir(0, CurDir);
  if Abort then Exit;
 end;
         {-DataCompBoy-}
@@ -282,9 +283,10 @@ end;
         {-DataCompBoy-}
 procedure TDrive.ChangeRoot;
 begin
- lChDir(CurDir[1] + ':\');
+ lChDir(GetRoot(CurDir));
  if Abort then Exit;
- lGetDir(0, CurDir);
+ if not ((word((@CurDir[1])^)=$2F2F{//}) or (word((@CurDir[1])^)=$5C5C{\\}))
+   then lGetDir(0, CurDir);
  if Abort then Exit;
 end;
         {-DataCompBoy-}
@@ -373,7 +375,7 @@ NE:  OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHa
    end;
   X:=LFNLen;
   MoveCStr(TWordArray(B), S, C);
-{{{{{{{{{{{{}
+{!!!!!!!!!!!}
   if P^.Selected and PView(Owner)^.GetState(sfFocused) then begin
    C:=C shr 8;
    SC:=SC and $00FF + C shl 8;
@@ -469,9 +471,12 @@ procedure TDrive.lChDir;
 begin
  ClrIO;
  if (Length(ADir)>3) and (ADir[Length(ADir)] in ['\','/']) then dec(ADir[0]);
+ if (ADir[1] in ['\', '/']) and not (ADir[2] in ['\', '/']) then
+   ADir:=MakeNormName(GetRoot(GetCurrentDir), Copy(ADir, 2, 255));
  LFN.lChDir(ADir);
  if Abort then Exit;
- LFN.lGetDir(0, ADir);
+ if not ((word((@ADir[1])^)=$2F2F{//}) or (word((@ADir[1])^)=$5C5C{\\}))
+   then LFN.lGetDir(0, ADir);
  if Abort then Exit;
  CurDir := ADir;
 end;
@@ -823,7 +828,8 @@ var MM: record
           2: (C: Char);
         end;
 begin
- if DriveType = dtDisk then
+ if (DriveType = dtDisk) and
+    not((word((@CurDir[1])^)=$2F2F{//}) or (word((@CurDir[1])^)=$5C5C{\\})) then
   begin
    C := GetCurDrive;
    if C = CurDir[1] then

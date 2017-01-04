@@ -3,7 +3,7 @@
 ==============================================================================
 Dos Navigator Open Source Project Team:
   Sergey Abmetko <2:450/86.380>
-  Mark Adler for inflate 1.1.2 Copyright 1995-1998
+  Mark Adler
   Denis Afonin (De@D_M0r0Ze) <2:5015/133.37; root@afonin.i-connect.ru>
   Vitaly Astaforkin (Gimly) <gymly@mail.ru>
   Michael Averbukh <aml@sandy.ru>
@@ -16,23 +16,26 @@ Dos Navigator Open Source Project Team:
   Vladimir Fonarev (VOL) <2:5020/1252.7>
   Alexey Froloff (Sir Raorn) <2:5020/1437.4>
   Sergey Gazizyanov (DarkLord) <2:5004/43.50>
-  Marcin Gryszkalis
+  Marcin Gryszkalis (dagoon) <dagoon@rs.math.uni.lodz.pl>
   Yuriy Kaminskiy
   Vladimir Katkov (Chemical)
   Sergey Klimov <2:5057/18.61>
-  Vladimir Korablin (VK) 2:5025/3.86@fidonet
+  Vladimir Korablin (VK) <2:5025/3.86>
   Laszlo Kormoczi (KaeL) <kael@swi.hu>
-  Sergey Korshunoff (SeYKo) <seyko@p5.f434.n5020.z2.fidonet.org>
+  Sergey Korshunoff (SeYKo) <2:5020/434.5>
   Sergei Koryakin <ksnk@bigfoot.com>
   Alexey Kostkin (Knave) <2:5020/968.67>
   Konstantin Kuznetsov (Dead Ded) <2:5020/549.22; dead@nm.ru>
   Aleksey Luzin <Aleksey@iis.nsk.su>
   Mike Lykov <2:5057/44; nelescon@samaramail.ru>
   Ilya Maryasov (IVM) <ivm1999@mail.ru>
+  Michael Mercuryev (Mercury) <m_mercuryev@yahoo.com>
+  Max Morozov <salary@overta.ru>
   Alexey Nemytov (Axel) <axx2000@mail.ru>
-  Andy Neverowsky
+  Andy Neverowsky <andy@edu.nsu.ru>
   Anton Novosyolov (ForeverYoung) <foryoung@mail.ru>
   Vadim Ochkin <2:5020/1365.44>
+  Stanislav Olkhovik (NeCoder) <2:5030/647>
   Jaroslaw Osadtchiy (JO) <2:5030/1082.53; Osadtchy@LO6105.spb.edu>
   Sergey Radkevitch <2:5020/3113; SergeyRadkevitch@mtu-net.ru>
   Oleg Redut <2:5000/111; ovr@byte.nsk.su>
@@ -45,7 +48,7 @@ Dos Navigator Open Source Project Team:
   Max Vasilyev (Piwamoto) <2:5057/33.36; piwamoto@chat.ru>
   Ilya Vdovin (VIV)
   Vladimir Zakharychev (Bobby Z.)
-  Ondrej Zary (Rainbow)
+  Ondrej Zary (Rainbow) <rnbw@geocities.com>
   Pawel Ziemian <pawelz@aritech.com.pl>
   Valerij Zubov
   Eugeny Zvyagintzev <john@omsktyre.com>

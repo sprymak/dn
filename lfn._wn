@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -85,7 +85,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then
+    if (Flags and fCarry <> 0)  then
     begin
       R.FileHandle := $FFFF;
       DosError := AX;
@@ -130,7 +130,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
+    if (Flags and fCarry <> 0)  then DosError := AX
     else
     begin
       FindDataToSearchRec(FindData, R);
@@ -235,7 +235,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then S := Name
+    if (Flags and fCarry <> 0)  then S := Name
     else
     begin
       S := StrPas(GetNameZ);
@@ -294,7 +294,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then S := Name
+    if (Flags and fCarry <> 0)  then S := Name
     else
     begin
       S := StrPas(GetNameZ);
@@ -353,7 +353,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+    if (Flags and fCarry <> 0)  then InOutRes := AX
     else
     begin
       FileRec(F.F).Mode:=fmInOut;
@@ -396,7 +396,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+    if (Flags and fCarry <> 0)  then InOutRes := AX
                                              else InOutRes := 0;
   end;
 end;
@@ -414,7 +414,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+    if (Flags and fCarry <> 0)  then InOutRes := AX
                                              else InOutRes := 0;
   end;
 end;
@@ -450,7 +450,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+    if (Flags and fCarry <> 0)  then InOutRes := AX
                                              else InOutRes := 0;
   end;
 end;
@@ -472,7 +472,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+    if (Flags and fCarry <> 0)  then InOutRes := AX
                                              else InOutRes := 0;
   end;
 end;
@@ -533,7 +533,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
+    if (Flags and fCarry <> 0)  then DosError := AX
     else
     begin
       if Action = faGetAttr then Attr := CX;
@@ -556,7 +556,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then DosError := AX
+    if (Flags and fCarry <> 0)  then DosError := AX
     else
     begin
       if Action = faGetAttr then Attr := CX;
@@ -602,7 +602,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+    if (Flags and fCarry <> 0)  then InOutRes := AX
                                              else InOutRes := 0;
   end;
 end;
@@ -642,7 +642,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then InOutRes := AX
+    if (Flags and fCarry <> 0)  then InOutRes := AX
                                              else InOutRes := 0;
   end;
 end;
@@ -678,7 +678,7 @@ begin
     Flags := fCarry;
     asm stc end;
     Intr($21, Regs);
-    if (Flags and fCarry <> 0) or (AX=$7100) then NameZ[0] := #0;
+    if (Flags and fCarry <> 0)  then NameZ[0] := #0;
 
     Path := Concat(C, ':\', StrPas(NameZ));
   end;

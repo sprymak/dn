@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -147,9 +147,9 @@ type
     end;
 
 
- const CDBWindow = #166#167#168#169#170#171;
+ const CDBWindow = #166#167#168#169#170#171#205#206;
        CDBViewer = #4#5#6;
-       CDBScrollBar = #1#5#6;
+       CDBScrollBar = #7#8#8;
 
 {$ifndef db}
 implementation

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -212,7 +212,6 @@ begin
  If ((xt='') or (xt='.')) and (ArcName[length(ArcName)]<>'.')
   then ArcName:=ArcName+'.';
  lFindFirst(ArcName, AnyFile, SR); {JO}
- lFindClose(SR);
  if DosError <> 0 then
  begin
    ArcFileName := ArcName;
@@ -220,6 +219,7 @@ begin
    lFindClose(SR);
    Fail
  end;
+ lFindClose(SR);
  ArcDate := SR.SR.Time;
  DriveType := dtArc;
  if not ReadArchive or (Files = nil) then begin Done; Fail; end;
@@ -289,13 +289,14 @@ begin
  lFSplit(ArcName, Dr, Nm, Xt);
  ArcFileName := ArcName;
  lFindFirst(ArcName, AnyFile, SR); {JO}
- lFindClose(SR);
  if DosError <> 0 then goto Failure;
+ lFindClose(SR);
  ArcDate := SR.SR.Time;
  New(ArcFile,Init(ArcName, stOpenRead, 512));
  if (ArcFile=nil) or (ArcFile^.Status <> stOK) then begin
    Dispose(ArcFile, Done); ArcFile:=nil;
  Failure:
+   lFindClose(SR);
    StdMsg(4);
    if Files <> nil then Dispose(Files, Done); Files:=nil;
    S.Read(ForceRescan, 1);
@@ -684,6 +685,8 @@ begin
   InitVideo; ScreenMode := SM;
   InitEvents;
   InitSysError;
+  if (StartupData.Load and osuResetPalette <> 0) and VGASystem { dagoon }
+     then SetPalette(vga_palette);
   case DE of
      0 : Application^.Redraw;
      8 : StdMsg(1);
@@ -992,7 +995,7 @@ begin
 
   X:=LFNLen;
   MoveCStr(TWordArray(B), S, C);
-{{{{{{{{{{{{}
+{!!!!!!!!!!!}
   if P^.Selected and PView(Owner)^.GetState(sfFocused) then begin
    C:=C shr 8;
    SC:=SC and $00FF + C shl 8;
@@ -1014,7 +1017,7 @@ begin
   if Flags and psShowPacked <> 0 then
    begin
     Inc(X, 11);
-    if PosChar('<',S) = 0 then S := FStr(P^.PSize);
+    if PosChar('<',S) = 0 then S := FileSizeStr(P^.PSize);
     MoveStr(TWordArray(B)[X-Length(S)-1], S, C);
     TWordArray(B)[X-1]:=SC;
    end;

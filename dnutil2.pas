@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -55,8 +55,10 @@ uses Menus, Objects;
  function NewVideoMenu ( Items : PMenuItem ) : PMenu;
  procedure SelectVideoModeDialog;
  procedure MessageBoxAbout;
+ {$IFDEF SpreadSheet}
  procedure LoadSheet(const SheetName: String);
  procedure OpenSheet;
+ {$ENDIF}
  procedure StoreColors;
  procedure LoadColors; {JO}
  function TryRunOS2(S: PString): Boolean;
@@ -77,10 +79,12 @@ uses Menus, Objects;
 
 implementation
 uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
-     lfn, Drivers, Videoman, DnHelp, DnIni, Startup, Advance1, Calc, DnStdDlg,
+     lfn, Drivers, Videoman, DnHelp, DnIni, Startup, Advance1, DnStdDlg,
      ColorSel, advance2, Drives, DnSvLd, advance4, cmdline, dnutil, dnexec,
      flpanelx, messages, usermenu, winclp, microed, filefind, collect,
-     advance7;
+     advance7
+     {$IFDEF SpreadSheet},Calc{$ENDIF}
+     ;
 
  procedure OpenWindow(ChDrive: Boolean);
   var S: String;
@@ -203,7 +207,16 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
             I)))
           );
    end;
-   M^.Default:=LookUpMenu(M, (ScreenMode shr 4) - $7, dfByPosition);
+   {PZ begin 2000.11.14}
+   case ScreenMode of
+     sm40x25..sm40x60: W := 1;
+     sm80x25..sm80x60: W := 2;
+     sm94x25..sm94x60: W := 3;
+     $109..$10C:       W := 4;
+   else                W := 2; { 80 columns }
+   end;
+   M^.Default:=LookUpMenu(M, W, dfByPosition);
+   {PZ end 2000.11.14}
    R.Assign(1,1,20,4);
    P:=New(PMenuBox, Init(R, M, nil));
    P^.Options:=P^.Options or ofCentered;
@@ -587,7 +600,7 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
                 ActiveLanguage:=PString(L.At(CurIdx))^;
                 if ActiveLanguage=LngMixCase(GetEnv('DNLNG'))
                 then ActiveLanguage:='';
-                SaveDnIniSettings;
+                SaveDnIniSettings ( @ActiveLanguage );
                 DoneIniEngine;
                 ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
                 ConfigModified:=True;

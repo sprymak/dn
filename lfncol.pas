@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -155,8 +155,8 @@ type
 implementation
 
 {$IFDEF LFNCache}
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ TLFNCollection }
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ LFNs collector in convertional memory }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TLFNCollection }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! LFNs collector in convertional memory }
 
  constructor TLFNCollection.Init;
  begin inherited Init(AL, AD); Duplicates:=true; end;
@@ -243,8 +243,8 @@ implementation
  end;
 
 {$IFNDEF DPMI}
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ TEFNCollection }
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ LFNs collector in extended memory }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TEFNCollection }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! LFNs collector in extended memory }
 
  constructor TEFNCollection.Init;
  var hdr: TSTMRec;
@@ -376,8 +376,8 @@ implementation
   StrDispose(pc);
  end;
 
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ TXFNCollection }
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ LFNs collector in expanded memory }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TXFNCollection }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! LFNs collector in expanded memory }
 
  constructor TXFNCollection.Init;
  var hdr: TSTMRec;
@@ -394,8 +394,8 @@ implementation
  var MFNs: PLFNCollection;
 
 
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ Interface functions }
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{ LFNs collector interface functions }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Interface functions }
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! LFNs collector interface functions }
 
 function    AddLFN(const Name: string): TLFNIndex;   {Add name}
 begin

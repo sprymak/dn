@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -72,7 +72,7 @@ type
 
         Pk1,Pk2,Pk3,Pk4 : PView ;
 
-        procedure ViewFile(Intern: Boolean; FileName: String); {DataCompBoy}
+        procedure ViewFile(Intern: integer; FileName: String); {DataCompBoy} (* X-Man *)
         procedure ViewFilter(FileName: String); {DataCompBoy}
         procedure EditFile(Intern: Boolean; FileName: String); {DataCompBoy}
         procedure OutOfMemory; virtual;
@@ -93,10 +93,14 @@ const w95locked:boolean=FALSE; {Gimly}
 
 implementation
 uses Advance2, Commands, Idlers, Startup, Messages, FilesCol, Histries, Dnexec,
-     FViewer, Advance1, Dos, LFN, Advance, DnIni, DbView, Calc, Arcview,
-     Microed, EdWin, DnUtil2, DnFormat, usermenu, dnsvld, colors, archread,
+     FViewer, Advance1, Dos, LFN, Advance, DnIni, Arcview,
+     Microed, EdWin, DnUtil2, usermenu, dnsvld, colors, archread,
      asciitab, ccalc, filefind, videoman, archset, archiver, dnhelp, diskinfo,
      helpfile,Setups
+     {$IFDEF DiskFormat},DnFormat{$ENDIF}
+     {$IFDEF SpreadSheet},Calc{$ENDIF}
+     {$IFDEF DBView},DbView{$ENDIF}
+     {$IFDEF DPMI},DPMI{$ENDIF}
      {$IFDEF Game},Tetris{$ENDIF}
      {$IFDEF CDPlayer},CdPlayer{$ENDIF}
      {$IFDEF SysInfo},SysInfo{$ENDIF}
@@ -150,6 +154,13 @@ begin
   Msg(erNotEnoughMemory, nil, mfError + mfOKButton);
 end;
 
+(* X-Man >>> *)
+procedure StoreCallback(var Param);
+begin
+    StoreExtViewer(string(Param))
+end;
+(* X-Man <<< *)
+
         {-DataCompBoy-}
 procedure TDNAppl.ViewFile;
 var
@@ -166,7 +177,9 @@ var
 
   function View: Boolean;
   begin
-   View := ExecExtFile('DN.VWR', @up, dlLoadingViewer);
+   if RN=FileName                                                        (* X-Man *)
+   then View:=ExecExtFile('DN.VWR',@up,dlLoadingViewer,StoreCallback,RN) (* X-Man *)
+   else View:=ExecExtFile('DN.VWR',@up,dlLoadingViewer,nil,RN);          (* X-Man *)
   end;
 
   procedure InternalView;
@@ -220,7 +233,7 @@ var
       end;
   end;
 
-label ex, int;
+label ex, int, ext; (* X-Man *)
 begin
    I:=PosChar('|', FileName);
    If I>0 then begin
@@ -242,7 +255,7 @@ begin
           )
          )
      then begin TempFile:=''; Exit; end;
-   if Intern then
+   if Intern=1 then (* X-Man *)
     begin
      XT := ' '+RN;
      UpStr(XT);
@@ -255,7 +268,7 @@ begin
       Q := P^.fViewMode;
       if Q and vmInternal = vmInternal then goto Int;
      end else Q:=-1;
-     if (Intern and (SystemData.Options and ossViewer = 0)) and View
+Ext:  if ((Intern>0) and (SystemData.Options and ossViewer = 0)) and View (* X-Man *)
       then goto ex;
      XT := UpStrg(GetExt(FileName));
      {$IFDEF DBView}
@@ -307,7 +320,7 @@ begin
         if ArcViewer(FileName, FreeByte) or Abort then goto ex
          else if View then goto ex
           else goto Int;
-    end else
+    end else if Intern=2 then goto Ext else (* X-Man *)
 Int:InternalView;
    if (W <> nil) and not W^.Valid(0) then begin Dispose(W,Done); InternalView end;
    StoreViewInfo(W);
@@ -399,7 +412,7 @@ var
 
   function Edit: Boolean;
   begin
-    Edit := ExecExtFile('DN.EDT', @up, dlLoadingEditor);
+    Edit := ExecExtFile('DN.EDT', @up, dlLoadingEditor, nil, I); (* X-Man *)
   end;
 
 label ex;
@@ -471,6 +484,9 @@ ex: DelFileRec(fr);
 end;
         {-DataCompBoy-}
 
+ procedure Denie; {$IFDEF VIRTUALPASCAL}inline;{$ENDIF}
+ begin ExecResource( dlgDenie, FreeStr ); end;
+
         {-DataCompBoy-}
 PROCEDURE TDNAppl.HandleCommand;
 
@@ -502,9 +518,6 @@ FUNCTION GetfURZ2(const s: string): string;
   GetfURZ2:=a+Copy(aa, 1, 8)+'.'+Copy(aaa, 9, 3);
  End;
 {$ENDIF}
-
- procedure Denie; {$IFDEF VIRTUALPASCAL}inline;{$ENDIF}
- begin ExecResource( dlgDenie, FreeStr ); end;
 
 begin
    case Event.Command of
@@ -647,10 +660,10 @@ begin
 {$ENDIF}
      cmRefresh: Redraw;
      cmClearDesktop: GlobalMessage(evCommand, cmClose, nil);
-     cmFileView: ViewFile(True, CnvString(Event.InfoPtr));
+     cmFileView: ViewFile(2, CnvString(Event.InfoPtr)); (* X-Man *)
      cmFileEdit: EditFile(True, CnvString(Event.InfoPtr));
      cmViewFilter: ViewFilter(CnvString(Event.InfoPtr));
-     cmIntFileView: ViewFile(False, CnvString(Event.InfoPtr));
+     cmIntFileView: ViewFile(0, CnvString(Event.InfoPtr)); (* X-Man *)
      cmIntFileEdit: EditFile(False, CnvString(Event.InfoPtr));
      cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.xrn');
      cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.ext');
@@ -788,60 +801,102 @@ end;
         {Gimly}
 const w95QuitEnabled:BYTE=1;
 
+{$IFDEF DPMI}
+function Int_2F_168F(const DX: integer):integer;
+   var Reg: DPMIRegisters;
+begin
+    Reg.AX:=$168F;
+    Reg.DX:=DX;
+    SimulateRealModeInt($2F,Reg);
+    Int_2F_168F:=Reg.AX;
+end;
+{$ENDIF}
+
 procedure w95QuitInit; assembler;
 asm
-   MOV AL, OpSys {Check Win95}
-   AND AL, opWin
+{Checking DN.INI setting... So, it can run only AFTER dn.ini parsing.. }
+   MOV AL, SmartWindowsBoxClose
+   OR  AL, AL
+   JZ  @@No
+
+   MOV AL, OpSys {Check Win9x, WinNT, W2K}
+   AND AL, opWin+opWNT
    JNZ @@EnableEvent
 
-   MOV AL, OpSys {Check WinNT and W2K}
-   AND AL, opWNT
-   JNZ @@EnableEvent
-
+@@No:
    XOR AL, AL
    MOV w95QuitEnabled, AL
    JMP @@E
 
 @@EnableEvent:
 { Enablind close event handling... }
+{$IFDEF DPMI}
+   push 1
+   call Int_2F_168F
+{$ELSE}
    mov ax, 168fh
    mov dx, 1
    int 2fh
+{$ENDIF}
+   test AX, AX
+   jnz @@No    { Windoze did not want to warn us.. }
 
 @@E:
 end;
 
-function w95QuitCheck:boolean; assembler;
+{const w95Timer:BYTE=1;} { Timer for delayed checking }
+
+function w95QuitCheck:boolean;assembler;
 asm
    MOV AL, w95QuitEnabled
    OR  AL, AL
    JZ  @@No
 
-{Checking DN.INI setting...}
-   MOV AL, SmartWindowsBoxClose
-   OR  AL, AL
-   JZ  @@No
+(*) { <- uncomment for less frequently close button state checking}
+{ Delay checking }
+   MOV al, w95Timer
+   dec al
+   jnz @@S1
+   mov al, 10 {divider}
+@@S1:
+   mov w95Timer, al
+   jnz @@No
+(**)
 
-{ Checking the close button }
+{ Checking the close button state }
+{$IFDEF DPMI}
+   push 100h
+   call Int_2F_168F
+{$ELSE}
    MOV AX, 168Fh
-   MOV CX, AX
-   MOV DX, 100h
+   MOV DH, 1
    INT 2fh
-   CMP AX, CX
-   JZ  @@No
-
+{$ENDIF}
+   TEST AX, AX
+   JNZ  @@No
 { Pressed - preventing the Windows message from appearing }
-   MOV AX, 168Fh
-   MOV DX, 200h
-   INT 2fh
 
    MOV AL, 1
    MOV w95locked, AL
 
-{ Just disabling close ;) }
+{$IFDEF DPMI}
+   push 200h
+   call Int_2F_168F
+{$ELSE}
    MOV AX, 168Fh
-   MOV DX, 0h
+   MOV DH, 2
    INT 2fh
+{$ENDIF DPMI}
+
+{ Just disabling close ;) }
+{$IFDEF DPMI}
+   push 0
+   call Int_2F_168F
+{$ELSE}
+   MOV AX, 168Fh
+   XOR DX, DX
+   INT 2fh
+{$ENDIF DPMI}
 
    MOV AX, 1 { "X" button pressed }
    JMP @@E
@@ -850,20 +905,29 @@ asm
 @@E:;
 end;
 
-procedure w95QuitCancel;
-begin
+procedure w95QuitCancel;assembler;
   asm
-{ Enabling the cancel button ;) }
+{ Enabling the w95 close button }
+{$IFDEF DPMI}
+   push 1
+   call Int_2F_168F
+{$ELSE}
    mov ax, 168Fh
    mov dx, 1
    int 2fh
+{$ENDIF DPMI}
 
 { Cancelling close }
+{$IFDEF DPMI}
+   push 300h
+   call Int_2F_168F
+{$ELSE}
    mov ax, 168Fh
    mov dx, 300h
    int 2fh
-  end;
-  w95locked := FALSE;
+{$ENDIF}
+   mov al, 0
+   mov w95locked, al
 end;
      {Gimly}
 {$ENDIF}

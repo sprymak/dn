@@ -46,4 +46,4 @@
 :://///////////////////////////////////////////////////////////////////////
 @echo off
 break on
-command.com /e:2048 /c builddn.bat %1 dpmi swapdisk asm ver help resource
+%comspec% /e:2048 /c builddn.bat %1 dpmi swapdisk asm ver help resource

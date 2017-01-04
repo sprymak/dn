@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -196,6 +196,7 @@ begin with AED^ do begin
    ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
    InterfaceData.DrvInfType := DriveInfoType;
    ConfigModified:=True;
+   ShowIniErrors;
  end;
 end end;
         {-DataCompBoy-}
@@ -549,13 +550,14 @@ begin with AED^ do begin
    Application^.OutOfMemory; Dispose(S,Done); FileName := ''; isValid := Off;
    Exit
  end;
- B := MemAlloc(FBufSize); if B = nil then
+ B := MemAlloc(FBufSize+1); if B = nil then
  begin
    Dispose(S,Done);
    FileName := '';
    CodePageDetector.Done;
    Exit
  end;
+ B^[FBufSize]:=0; {For prevent crash}
  Info := WriteMsg(^M^M^C+GetString(dlReadingFile));
  I := 0; FFSize := S^.GetSize; LCount := 1;
  if FFSize - I > FBufSize then J := FBufSize else J := FFSize - I;
@@ -633,7 +635,8 @@ begin with AED^ do begin
          isValid := Off;
          Exit
        end;
-     if (B^[J] in [13, 10]) and (S^.GetPos < S^.GetSize) then begin Dec(J); S^.Seek(S^.GetPos-1); end;
+     if (((B^[J]=13) and (B^[J-1]<>10)) or ((B^[J]=10) and (B^[J-1]<>13))) and
+        (S^.GetPos < S^.GetSize) then begin Dec(J); S^.Seek(S^.GetPos-1); end;
      SearchLines;
      I := S^.GetPos;
      if FFSize - I > FBufSize then J := FBufSize

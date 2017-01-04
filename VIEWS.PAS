@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1347,6 +1347,17 @@ var
   i,j,k     : LongInt;
   CurrView  : PView;
 begin
+  if PoorFrames then begin
+    FrameChars[23] := #186;
+    FrameChars[27] := #205;
+    FrameChars[29] := #186;
+    FrameChars[30] := #205;
+  end else begin
+    FrameChars[23] := #199;
+    FrameChars[27] := #207;
+    FrameChars[29] := #182;
+    FrameChars[30] := #209;
+  end;
   FrameMask[0]:=InitFrame[n];
   FillChar(FrameMask[1],Size.X-2,InitFrame[n+1]);
   FrameMask[Size.X-1]:=InitFrame[n+2];
@@ -2631,7 +2642,7 @@ begin
         if Flags and (wfMove + wfGrow) <> 0 then
         begin
           Owner^.GetExtent(Limits);
-          Dec(Limits.A.Y, Limits.B.Y);
+          {Dec(Limits.A.Y, Limits.B.Y);} (* X-Man *)
           SizeLimits(Min, Max);
           DragView(Event, DragMode or (Flags and (wfMove + wfGrow)),
             Limits, Min, Max);

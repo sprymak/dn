@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -567,6 +567,7 @@ var  ReadStream:  lfile;
      _Tmr: TEventTimer;
      IOR: Integer;
      SSS: string;
+     BytesWrited: Longint; {-NeCoder-}
 
    function GetPercent(N: TSize): Str12;
    var
@@ -860,6 +861,18 @@ const
            begin
 1:            Inc(I); if I = CopyQueue^.Count then
               begin
+{-NeCoder-}
+                if (BytesWrited > 1048576) and (opSys = opWin) then
+                begin
+                  {$IFDEF OS_DOS}
+                  asm
+                    mov ah,0dh  { Flush windows cache }
+                    int 21h
+                  end;
+                  {$ENDIF}
+                end;
+                BytesWrited:=0;
+{-NeCoder-}
                 if WPWas then WriteProgress;
                 Break;
               end;
@@ -1062,6 +1075,8 @@ lbStartWrite:
               if CopyCancel then Break;
               if  CopyOptions and cpoVerify <> 0 then SeekPos := FilePos(WriteStream.F);
               BlockWrite(WriteStream.F, B^, P^.Len, J); IOR := IOResult;
+
+              Inc(BytesWrited,P^.Len);  {-NeCoder-}
 
               if not Abort and (CopyOptions and cpoVerify <> 0)  and (J > 0) then begin
                    {$IFDEF OS_DOS}
@@ -1292,8 +1307,8 @@ lbStartWrite:
      Info^.Write(3, ReadCount);
    end;
 
+   var DE: integer;
    begin
-
       if CopyPrn then
       begin
         NName := CopyDir;
@@ -1356,8 +1371,9 @@ lbStartWrite:
         begin
            ClrIO; EOF := eoStart or eoCheck;
            lFindFirst(S2, AnyFile, SR); {JO}
+           DE:=DOSError;
            lFindClose(SR);
-           if DOSError = 0 then
+           if DE = 0 then
              begin
                EOF := eoStart;
                Was := SR.FullSize;
@@ -2093,7 +2109,6 @@ begin
 
    D^.GetData(DT);
    S := DT.S3; CopyMode := DT.WW; CopyOpt := DT.WW1;
-   S := DT.S3;
    ccCopyMode := DT.WW; ccCopyOpt := DT.WW1;
    Dispose(D,Done);
    lFSplit(S, CopyDir, Nm, Xt);
@@ -2132,10 +2147,13 @@ begin
         If not ((Files^.Count=1) and (UpStrg(S)=UpStrg(GetLFN(PFileRec(Files^.At(0))^.LFN))))
          then begin
           lFindFirst(SSS, AnyFile, SR); {JO}
-          lFindClose(SR);
-          if Abort then Exit;
+          if Abort then begin
+           lFindClose(SR);
+           Exit;
+          end;
           if (DOSError = 0) and (SR.SR.Attr and Directory <> 0) then
-             begin CopyDir := S+'\'; Mask := x_x end
+             begin CopyDir := S+'\'; Mask := x_x end;
+          lFindClose(SR);
          end;
       end;
     end;
@@ -2153,6 +2171,7 @@ begin
      end
      else begin
             if (CopyDir = '') then CopyOpt := CopyOpt or cpoDirEmpty;
+            if CopyDir='\' then CopyDir:=GetRoot(GetCurrentDir);
             CopyDir := lFExpand(CopyDir);
             if CopyDir[Length(CopyDir)] <> '\' then AddStr(CopyDir, '\');
             CopyPrn := Off;

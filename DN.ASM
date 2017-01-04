@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.11
+;/  Dos Navigator Open Source 1.51.12
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -91,11 +91,11 @@ ClearKBD        MACRO
 ;size & speed optimizations by Max Piwamoto
 
                 IFDEF _DPMI_
-DNversionTXT    equ    'Open Source 1.51.11/DPMI'
+DNversionTXT    equ    'Open Source 1.51.12/DPMI'
                 ELSE
-DNversionTXT    equ    'Open Source 1.51.11/DOS'
+DNversionTXT    equ    'Open Source 1.51.12/DOS'
                 ENDIF
-DNversionBIN    equ    15111
+DNversionBIN    equ    15112
 DNversionSIGN   equ    'DN'
 
                 .model tiny
@@ -318,9 +318,11 @@ ENDIF
                 int    21h
 
 ; Enabling close event handling...
-;               mov    ax, 168fh
-;               mov    dx, 1
-;               int    2fh
+; if not to do this here (in parent 'process'),
+; no close event can be retrived by a child... {Gimly}
+              mov    ax, 168fh
+              mov    dx, 1
+              int    2fh
 
 ;search for master ENV
                 mov    ah,52h

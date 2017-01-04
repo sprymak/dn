@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -156,6 +156,7 @@ begin
     Writeln(F.T, GetString(dlSPF24));
     Writeln(F.T, GetString(dlSPF25));
     Close(F.T);
+    FileChanged(SourceDir + 'DN.SPF'); (* X-Man *)
     MessageBox(GetString(dlSPFht), nil, mfOkButton);
     Exit;
   end;

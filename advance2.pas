@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -69,6 +69,11 @@ Procedure SetDrive(a : byte);
 Procedure GetMask(var m : string);
 function  GetCurDrive: Char;
 procedure SetCurDrive(C: Char);
+function  GetRoot(const S: String): string;
+function  GetCurrentDir: string;
+function  lFExpand(const S: string): string;
+{DataCompBoy: Make shure, that you use this version of lFExpand when you}
+{expands names from dialogs...}
 
 FUNCTION  GetExt(const s:string):string;
 {$IFNDEF OS2}
@@ -163,7 +168,7 @@ function CompareFiles(const N1, N2: String): Boolean;
 
 implementation
 uses advance1, advance3, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
-     Commands, dnapp, memory
+     Commands, dnapp, memory, drivers, drvtypes, views
 {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
@@ -181,7 +186,7 @@ destructor TTempFile.Done;
 var
   S: FNameStr;
 begin
-  S:=StrPas(FHandle.FullName);
+  S:=lFileNameOf(FHandle);
   inherited Done;
   EraseFile(s);
 end;
@@ -201,13 +206,15 @@ function ExistFile(const FName: String): Boolean;
 var
   DirInfo:lSearchRec;
 begin
+ NeedAbort:=True; (* X-Man *)
  lFindFirst(FName,Archive+ReadOnly+Hidden+SysFile,DirInfo);
- lFindClose(DirInfo);
+ NeedAbort:=False; (* X-Man *)
  if DosError=0 then ExistFile:=True
  else begin
   ExistFile:=False;
   ErrorFCode:=DosError;
  end;
+ lFindClose(DirInfo);
 end;
         {-DataCompBoy-}
 
@@ -216,15 +223,17 @@ function  ExistDir(const DName: string): Boolean; {based on ExistFile}
 var
  Dirinfo:lsearchrec;
 begin
+ NeedAbort:=True; (* X-Man *)
  If DName[Length(DName)]='\'
   then lFindFirst(Copy(DName, 1, Length(DName)-1),Directory,DirInfo)
   else lFindFirst(DName,Directory,DirInfo);
- lFindClose(DirInfo);
+ NeedAbort:=False; (* X-Man *)
  if DosError=0 then existdir:=True
  else begin
   Existdir:=False;
   ErrorFCode:=DosError;
  end;
+ lFindClose(DirInfo);
 end;
 { /VK }
 
@@ -293,19 +302,10 @@ begin
 end;
 
 function IsDriveCDROM(Drive : Char) : Boolean;
+begin
 {$IFNDEF VIRTUALPASCAL}
-var
-  R : Registers;
-begin
-  FillChar(R, SizeOf(R), 0);
-  with R do begin
-    AX := $150B;
-    CX := Ord(Upcase(Drive))-Ord('A');
-    Intr($2F, R);
-    IsDriveCDRom := (AX <> 0) and (BX = $ADAD);
-  end;
+ IsDriveCDROM := GetDriveType(Ord(UpCase(Drive))-64) = dtCDRom; (* X-Man *)
 {$ELSE}
-begin
  IsDriveCDROM := SysGetDriveType(Drive) = dtCDRom;
 {$ENDIF}
 end;
@@ -374,9 +374,12 @@ begin
      Exit;
    end;
  B := GetDrive;
+ NeedAbort:=True; (* X-Man *)
  SetDrive(Byte(Dr)-65);
  B1 := GetDrive;
+ NeedAbort:=True; (* X-Man *)
  SetDrive(B);
+ NeedAbort:=False; (* X-Man *)
  if Byte(dr)-65 <> b1 then Exit;
  s:=dr+':\QQP.OBJ'#0;
 {$IFDEF NOASM}
@@ -385,9 +388,12 @@ begin
  r.si:=ofs(s[1]);
  r.es:=seg(s1);
  r.di:=ofs(s1);
+ NeedAbort:=True; (* X-Man *)
  intr($21,r);
+ NeedAbort:=False; (* X-Man *)
  if r.ax<>$ff then ValidDrive:=true else ValidDrive:=false;
 {$ELSE}
+ NeedAbort:=True; (* X-Man *)
  asm
     lea  di,s1
     push ss
@@ -406,6 +412,7 @@ begin
 @LocEx:
     mov  [bp-1],al
  end;
+ NeedAbort:=False; (* X-Man *)
 {$ENDIF}
 end;
 {$ENDIF}
@@ -566,13 +573,16 @@ FUNCTION InMask;
 Begin
  if (Mask=x_x) or (Mask='*') then begin InMask:=true; exit; end;
 
- UpStr(Name); ext:='';
- l:=length(Name); while (l>0) and (not (Name[l] in ['\','/'])) and (Name[l]<>'.') do inc(l);
- if Name[l]='.' then begin ext:=copy(Name, l+1, 255);delete(Name, l, 255); end;
-
  UpStr(Mask); maskext:='';
- l:=length(mask); while (l>0) and (not (mask[l] in ['\','/'])) and (mask[l]<>'.') do inc(l);
+ l:=length(mask); while (l>0) and (not (mask[l] in ['\','/'])) and (mask[l]<>'.') do dec(l);
  if mask[l]='.' then begin maskext:=copy(mask, l+1, 255);delete(mask, l, 255); end;
+
+ ext:=''; UpStr(Name);
+ if MaskExt<>'' then begin
+   l:=length(Name); while (l>0) and (not (Name[l] in ['\','/'])) and (Name[l]<>'.') do dec(l);
+   if Name[l]='.' then begin ext:=copy(Name, l+1, 255);delete(Name, l, 255); end;
+   if Ext='' then mask:=mask+'.'+maskext;
+ end;
 
  if ext<>'' then InMask:=FnMatch(mask, Name) and FnMatch(maskext, ext)
             else InMask:=FnMatch(mask, Name);
@@ -1162,9 +1172,11 @@ end;
 function  PathExist(s: string): boolean;
 var lSR: lSearchRec;
 begin
+ NeedAbort:=True; (* X-Man *)
  lFindFirst(MakeNormName(S,'*.*'), AnyFile, lSR);
- lFindClose(lSR);
+ NeedAbort:=False; (* X-Man *)
  PathExist:=DosError=0;
+ lFindClose(lSR);
 end;
         {-DataCompBoy-}
 
@@ -1394,5 +1406,45 @@ Finish:
   S2.Done;
 end;
 
+function GetRoot(const S: String): string;
+var i, c: byte;
+begin
+  if Not ((word((@S[1])^)=$2F2F{//}) or (word((@S[1])^)=$5C5C))
+    then GetRoot:=Copy(S, 1, 3)
+    else begin
+      c:=4; i:=0;
+      while (i<length(S)) and (c>0) do begin
+        inc(i);
+        if S[i] in ['\', '/'] then dec(c);
+      end;
+      GetRoot:=Copy(S, 1, i);
+    end;
+end;
+
+function  GetCurrentDir: string;
+var P: PView;
+    S: String;
+begin
+ P:=Message( Application, evBroadcast, cmLookForPanels, NIL );
+ if P=nil then lGetDir(0, S)
+ else Message(P, evBroadCast, cmGetDirName, @S);
+
+ GetCurrentDir:=S;
+end;
+
+function  lFExpand(const S: string): string;
+var DD: String;
+begin
+  if (length(s)<2) or
+     ((S[2]<>':') and not (S[1] in ['\', '/']) and not (S[2] in ['\', '/']))
+  then begin
+    DD:=GetCurrentDir;
+    if (DD[1]='\') then begin
+      lFExpand:=MakeNormName(DD, S);
+      exit
+    end;
+  end;
+  lFExpand:=LFN.lFExpand(S);
+end;
 
 end.

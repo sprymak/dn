@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1096,7 +1096,7 @@ begin
           end;
           {-DataCompBoy: done-}
           MoveStr(B, Copy(S, XDelta+1, Size.X), C);
-          if Hilite then begin
+          if Hilite and not QuickView then begin
            Highlites ( Length(S), @S[1], HiLitePar );
            C1                  := C and $F0;                 { Background }
            HP[0]               := #6;                        { Attr. size }
@@ -1894,6 +1894,10 @@ DoSave:
                               DrawView; CE
                              end;
   {JO}         kbEnter: case UseEnterInViewer of
+                      1: if not QuickView then begin CE; Message(Application, evCommand, cmClose, nil) end;
+                      2: Message(Owner, evCommand, cmHexMode, nil);
+                        end;
+  (* X-Man *)  kbF3: case UseF3InViewer of
                       1: if not QuickView then begin CE; Message(Application, evCommand, cmClose, nil) end;
                       2: Message(Owner, evCommand, cmHexMode, nil);
                         end

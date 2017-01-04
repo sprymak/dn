@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -96,7 +96,8 @@ var OData: TBufStream;
     a: array[0..4095] of byte;
     i,j: longint;
     q: longint;
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+    str:string[80];
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 Function f(var x,y:TSR):Boolean;
   Begin
    f:=false;
@@ -104,7 +105,7 @@ Function f(var x,y:TSR):Boolean;
    if x.StrtAddrSeg<y.StrtAddrSeg then f:=false else
    if x.StrtAddrOfs>y.StrtAddrOfs then f:=true;
   End;
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 Procedure PoglSort; Label 1;
  Const r=SizeOf(TSR); mm=65520 div r; nseg=16; mr=mm*r;
  Type mas = Array[1..mm] of TSR;
@@ -181,7 +182,7 @@ Procedure PoglSort; Label 1;
    End;
   FreeMem(A[w], nw*r); For u:= w-1 downto 1 do FreeMem(A[u], mr)
  END;
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+{!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
 
 label ReadLines;
 begin
@@ -302,7 +303,9 @@ ReadLines:
      end;
     end;
    Close(Map);
-   writeln(#13,i:5,': ',s);
+   FillChar(Str,78,#32);
+   Str[0]:=#78;
+   write(#13,Str,#13);
    FileNames.AtInsert(FileNames.Count, NewStr('!unknown!'));
    with clr do begin
     FileInd:=FileNames.Count;

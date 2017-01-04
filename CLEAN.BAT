@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.11
+::  Dos Navigator Open Source 1.51.12
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -45,14 +45,13 @@
 ::
 :://///////////////////////////////////////////////////////////////////////
 @echo off
-set outpath=out
 if (%OS%)==(Windows_NT) goto winnt
 if exist exe\nul deltree /y exe >nul
-if exist %outpath%\nul deltree /y %outpath% >nul
+if exist out\nul deltree /y out >nul
 goto continue
 :winnt
 if exist exe\*.* cmd /c rd exe /s /q
-if exist %outpath%\*.* cmd /c rd %outpath% /s /q
+if exist out\*.* cmd /c rd out /s /q
 :continue
 if exist *.tmp del *.tmp >nul
 set outpath=

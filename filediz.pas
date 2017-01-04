@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -120,16 +120,17 @@ begin
     begin
       GetDIZOwner := MakeNormName(Path, LastOwner);
       lFindFirst(MakeNormName(Path, LastOwner), Archive+ReadOnly+Hidden+SysFile, SR);
+      I:=DosError;
       lFindClose(SR);
-      if DOSError = 0 then begin Prepare; Exit; end;
+      if I = 0 then begin Prepare; Exit; end;
       I := 1;
     end;
   repeat
     SR.FullName := GetPossibleDizOwner(I); Inc(I);
     if SR.FullName = '' then Exit;
     lFindFirst(MakeNormName(Path, SR.FullName), Archive+ReadOnly+Hidden+SysFile, SR);
+    if DOSError = 0 then begin Prepare; GetDIZOwner := MakeNormName(Path, SR.FullName); lFindClose(SR); Exit end;
     lFindClose(SR);
-    if DOSError = 0 then begin Prepare; GetDIZOwner := MakeNormName(Path, SR.FullName); Exit end;
   until False;
 end;
         {-DataCompBoy-}
@@ -334,9 +335,10 @@ begin
       if DPath = '' then Exit;
       DPath := MakeNormName(CnvString(Owen), DPath);
       lFindFirst(DPath, Archive+ReadOnly+Hidden, SR);
-      lFindClose(SR);
       if DOSError = 0 then Break;
+      lFindClose(SR);
     end;
+    lFindClose(SR);
   end else DPath := P^.Owner^;
   CalcDPath := DPath;
 end;

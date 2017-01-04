@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -117,7 +117,7 @@ const dtInfo  = 1;
 
 implementation
 uses DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
-     advance3, Startup, DNApp, RStrings, {DataCompBoy}messages
+     advance3, Startup, DNApp, RStrings, {DataCompBoy}messages, drives
 {$IFDEF NETINFO}, NetInfo {-$VIV}{$ENDIF}
 {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}
      ;
@@ -421,14 +421,6 @@ procedure TDoubleWindow.HandleCommand;
     Lock; RightView^.ShowView; Redraw; ChangeBounds(R); UnLock;
     Owner^.Redraw;
    end
- end;
-
- procedure GetDirName;
- begin
-  if LVisible and (LType = dtPanel) then
-     PString(Event.InfoPtr)^ := PFilePanel(LPanel)^.DirectoryName else
-  if RVisible and (RType = dtPanel) then
-     PString(Event.InfoPtr)^ := PFilePanel(RPanel)^.DirectoryName
  end;
 
  procedure ChangeDrvLeft;
@@ -744,6 +736,13 @@ begin
                            end;
              end;
   evBroadcast: case Event.Command of
+                cmGetDirName: begin
+                                if LSelected and (LType = dtPanel) and (PFilePanel(LPanel)^.Drive^.DriveType = dtDisk) then
+                                  PString(Event.InfoPtr)^ := PFilePanel(LPanel)^.DirectoryName else
+                                if not LSelected and (RType = dtPanel) and (PFilePanel(RPanel)^.Drive^.DriveType = dtDisk) then
+                                  PString(Event.InfoPtr)^ := PFilePanel(RPanel)^.DirectoryName else
+                                lGetDir(0, PString(Event.InfoPtr)^);
+                              end;
                 cmLookForPanels: ClearEvent( Event );
                 cmGetUserParams,cmGetUserParamsWL:
                                  begin
@@ -836,7 +835,6 @@ begin
                                     end;
                                    CE;
                                 end;
-              cmGetDirName: GetDirName;
               cmPanelCompare: begin
                                if LSelected then RPanel^.HandleEvent(Event)
                                             else LPanel^.HandleEvent(Event);

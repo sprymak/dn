@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -716,7 +716,7 @@ begin
   if I >= 0 then
    begin
     If (PViewRecord(ViewHistory^.At(I))^.fName = nil) then Exit; {Ku :}
-    PDNAppl(Application)^.ViewFile(On,
+    PDNAppl(Application)^.ViewFile(1, (* X-Man *)
      Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255));
    end;
 end;

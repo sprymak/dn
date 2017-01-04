@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -984,11 +984,12 @@ begin
     begin
        I := 0;
        repeat
-         ClrIO;
          Inc(I);
-         lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', AnyFile, SR); {JO}
          lFindClose(SR);
+         ClrIO;
+         lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', AnyFile, SR); {JO}
        until (DOSError <> 0) or (I = 99) or Abort;
+       lFindClose(SR);
        ClrIO;
        FreeStr := 'CMD';
     end;

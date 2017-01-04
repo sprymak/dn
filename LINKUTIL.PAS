@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -243,9 +243,10 @@ begin
   er := IOResult; if er <> 0 then begin CL_FillFileNfo := er; Exit end;
   if Abrt then NeedAbort := True;
   lFindFirst(lFileNameOf(AF), ReadOnly+Archive+Hidden+SysFile, sr);
-  lFindClose(sr);
   if Abrt then NeedAbort := False;
-  er := DosError; if er <> 0 then begin CL_FillFileNfo := er; Exit end;
+  er := DosError;
+  lFindClose(sr);
+  if er <> 0 then begin CL_FillFileNfo := er; Exit end;
   with ANfo do
   begin
     Time := sr.sr.Time;
@@ -929,7 +930,6 @@ begin
     end;
     NeedAbort := True; lFindNext(SR);
   end;
-  lFindClose(SR);
   if ok then
   begin
     Err := DosError; if Err = 18 then Err := 0;
@@ -937,6 +937,7 @@ begin
     if ok then ok := EraseEmptyDir(ADir, Err);
   end;
   EraseLocalDir := ok;
+  lFindClose(SR);
 end;
         {-DataCompBoy-}
 

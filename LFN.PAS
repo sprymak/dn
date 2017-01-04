@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -209,8 +209,9 @@ begin
   if not CanUseLFN then exit;
   if CheckingApi then begin LFNDisabled:=False; exit; end;
   if not LFNPresent then exit;
-  if (Length(Path) > 1) and (Path[1] = '\') and (Path[2] = '\')
-   then LFNDisabled := False
+  if (Length(Path) > 1) and
+     ((word((@Path[1])^)=$2F2F{//}) or (word((@Path[1])^)=$5C5C{\\}))
+   then begin LFNDisabled := False; exit end
    else begin
          if (Length(Path) > 1) and (Path[2] = ':')
           then Drive := Upcase(Path[1])
@@ -965,50 +966,46 @@ end;
 procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 var
   HasColon: Boolean;
-  DotPos, SlashPos, B: Byte;
+  DotPos, SlashPos, L, B: Byte;
   D:String;
   N:String;
   E:String;
 begin
-{ case lAPI of
-    lDOS: Begin
-           FSplit(Path, D, N, E);
-           Dir:=D;
-           Name:=N;
-           Ext:=E;
-          End;
-    lWIN95:}
-      begin
-        Dir := '';
-        Name := '';
-        Ext := '';
-        DotPos := 0;
-        SlashPos := 0;
-        HasColon := (Length(Path) > 1) and (Path[2] = ':');
+  Dir := '';
+  Name := '';
+  Ext := '';
+  DotPos := 255;
+  SlashPos := 0;
+  HasColon := (Length(Path) > 1) and
+              ((Path[2] = ':') or ((Word((@Path[1])^)=$2F2F{//}) or (
+               Word((@Path[1])^)=$5C5C{\\})));
+  if ((Word((@Path[1])^)=$2F2F{//}) or (Word((@Path[1])^)=$5C5C{\\})) then begin
+    B:=4; L:=0;
+    while (L<Length(Path)) and (B>0) do begin
+      inc(l);
+      if Path[l] in ['\', '/'] then dec(b);
+    end;
+  end else L:=1;
 
-        for B := Length(Path) downto 1 do
-        begin
-          if (Path[B] = '.') and (DotPos = 0) and (B>1) then DotPos := B;
-          if ((Path[B] = ':') or (Path[B] = '\')) and (SlashPos = 0) and
-             ((B > 2) or not HasColon) then SlashPos := B;
-          if (DotPos <> 0) and (SlashPos <> 0) then Break;
-        end;
+  for B := Length(Path) downto L do
+  begin
+    if (Path[B] = '.') and (DotPos = 255) and (B>1) then DotPos := B;
+    if ((Path[B] = ':') or (Path[B] in ['\','/'])) and (SlashPos = 0) then SlashPos := B;
+    if SlashPos <> 0 then Break;
+  end;
 
-        if DotPos + SlashPos = 0 then
-          if HasColon then Dir := Path
-          else Name := Path
-        else
-        begin
-          if DotPos > SlashPos then Ext := Copy(Path, DotPos, 255)
-          else DotPos := 255;
+  if (DotPos=255) and (SlashPos = 0) then
+    if HasColon then Dir := Path
+    else Name := Path
+  else
+  begin
+    if DotPos > SlashPos then Ext := Copy(Path, DotPos, 255)
+    else DotPos := 255;
 
-          if SlashPos <> 0 then Dir := Copy(Path, 1, SlashPos);
+    if SlashPos <> 0 then Dir := Copy(Path, 1, SlashPos);
 
-          Name := Copy(Path, SlashPos + 1, DotPos - SlashPos - 1);
-        end;
-      end;
-    { Other APIs will be added later }
-{ end;}
+    Name := Copy(Path, SlashPos + 1, DotPos - SlashPos - 1);
+  end;
 end;
 
 function CheckLFNApi(Api: lAPIType): Boolean;

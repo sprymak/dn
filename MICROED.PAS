@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -2401,76 +2401,81 @@ var qwe: byte;
    R.Assign(0, 0, 20, 7);
    New(Info, Init(R));
    Info^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, 255));
-   Application^.Insert(Info);
+   Desktop^.Insert(Info); (* X-Man *)
    Abort:=False;
 
    P:=Delta.X+1;
 
    Min1:=1;
    For i:=P downto 1 do
-    if WorkString[i] in IllegalCharSet+['*','?']
+    if WorkString[i] in IllegalCharSet+['\','/','*','?'] (* X-Man *)
      then begin Min1:=i+1; break end;
+   if (Min1>2) and (WorkString[Min1-1]=':')
+   and (UpCase(WorkString[Min1-2])>='A')
+   and (UpCase(WorkString[Min1-2])>='Z') then Dec(Min1,2); (* X-Man *)
    DispatchEvents(Info, Abort);
    if Abort then goto ex;
 
    Min2:=1;
    For i:=P downto 1 do
-    if WorkString[i] in IllegalCharSet-['\']
+    if WorkString[i] in IllegalCharSet-['\','/']+['*','?'] (* X-Man *)
      then begin Min2:=i+1; break end;
    DispatchEvents(Info, Abort);
    if Abort then goto ex;
 
    Min3:=1;
    For i:=P downto 1 do
-    if WorkString[i] in IllegalCharSetDos+['*','?']
+    if WorkString[i] in IllegalCharSetDos+[#32,'\','/','*','?'] (* X-Man *)
      then begin Min3:=i+1; break end;
+   if (Min3>2) and (WorkString[Min3-1]=':')
+   and (UpCase(WorkString[Min3-2])>='A')
+   and (UpCase(WorkString[Min3-2])>='Z') then Dec(Min3,2); (* X-Man *)
    DispatchEvents(Info, Abort);
    if Abort then goto ex;
 
    Min4:=1;
    For i:=P downto 1 do
-    if WorkString[i] in IllegalCharSetDos-['\']
+    if WorkString[i] in IllegalCharSetDos-['\','/']+[#32,'*','?'] (* X-Man *)
      then begin Min4:=i+1; break end;
    DispatchEvents(Info, Abort);
    if Abort then goto ex;
 
    Max1:=length(WorkString)+1;
    For i:=P to length(WorkString) do
-    if WorkString[i] in IllegalCharSet+['*','?']
+    if WorkString[i] in IllegalCharSet+['\','/','*','?'] (* X-Man *)
      then begin Max1:=i; break end;
    DispatchEvents(Info, Abort);
    if Abort then goto ex;
 
    Max2:=length(WorkString)+1;
    For i:=P to length(WorkString) do
-    if WorkString[i] in IllegalCharSet-['\']
+    if WorkString[i] in IllegalCharSet-['\','/']+['*','?'] (* X-Man *)
      then begin Max2:=i; break end;
    DispatchEvents(Info, Abort);
    if Abort then goto ex;
 
    Max3:=length(WorkString)+1;
    For i:=P to length(WorkString) do
-    if WorkString[i] in IllegalCharSetDos+['*','?']
+    if WorkString[i] in IllegalCharSetDos+[#32,'\','/','*','?'] (* X-Man *)
      then begin Max3:=i; break end;
    DispatchEvents(Info, Abort);
    if Abort then goto ex;
 
    Max4:=length(WorkString)+1;
    For i:=P to length(WorkString) do
-    if WorkString[i] in IllegalCharSetDos-['\']
+    if WorkString[i] in IllegalCharSetDos-['\','/']+[#32,'*','?'] (* X-Man *)
      then begin Max4:=i; break end;
    DispatchEvents(Info, Abort);
    if Abort then goto ex;
 
-   Res:='';
-   S:=Copy(WorkString, Min1, Max1-Min1); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min1, Max2-Min1); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min2, Max1-Min2); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min2, Max2-Min2); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min3, Max3-Min3); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min3, Max4-Min3); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min4, Max3-Min4); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min4, Max4-Min4); Chk; if Abort then goto ex;
+   Res:='';       S:=Copy(WorkString, Min1, Max1-Min1); Chk; if Abort then goto ex;
+   if Res='' then S:=Copy(WorkString, Min1, Max2-Min1); Chk; if Abort then goto ex;
+   if Res='' then S:=Copy(WorkString, Min2, Max1-Min2); Chk; if Abort then goto ex;
+   if Res='' then S:=Copy(WorkString, Min2, Max2-Min2); Chk; if Abort then goto ex;
+   if Res='' then S:=Copy(WorkString, Min3, Max3-Min3); Chk; if Abort then goto ex;
+   if Res='' then S:=Copy(WorkString, Min3, Max4-Min3); Chk; if Abort then goto ex;
+   if Res='' then S:=Copy(WorkString, Min4, Max3-Min4); Chk; if Abort then goto ex;
+   if Res='' then S:=Copy(WorkString, Min4, Max4-Min4); Chk; if Abort then goto ex;
 
    S:=Copy(WorkString, Min4, Max4-Min4); DelLeft(S); DelRight(S);
    If (PosChar('.',S)=0) Then S:=S+GetExt(EditName);

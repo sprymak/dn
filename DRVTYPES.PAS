@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -121,7 +121,62 @@ asm
         mov     ax,0FE00h
         mov     di,'NU'
         mov     si,'DC'
-        int     2Fh
+(* X-Man >>> *)
+{$IFDEF DPMI}
+       push    es
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       pushf
+       push    0
+       push    ax
+       push    0
+       push    cx
+       push    0
+       push    dx
+       push    0
+       push    bx
+       push    0
+       push    0
+       push    0
+       push    bp
+       push    0
+       push    si
+       push    0
+       push    di
+       push    ss
+       pop     es
+       mov     di,sp
+       xor     cx,cx
+       mov     bx,2Fh
+       mov     ax,0300h
+       int     31h
+       pop     di
+       add     sp,2
+       pop     si
+       add     sp,2
+       pop     bp
+       add     sp,6
+       pop     bx
+       add     sp,2
+       pop     dx
+       add     sp,2
+       pop     cx
+       add     sp,2
+       pop     ax
+       add     sp,2
+       popf
+       add     sp,16
+       pop     es
+{$ELSE}
+       int     2Fh
+{$ENDIF}
+(* X-Man <<< *)
         or      al,al
         je      @@2
         cmp     al,1
@@ -255,14 +310,124 @@ asm
 @@CDCheck:
        mov     ax,1500h
        sub     bx,bx
+(* X-Man >>> *)
+{$IFDEF DPMI}
+       push    es
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       pushf
+       push    0
+       push    ax
+       push    0
+       push    cx
+       push    0
+       push    dx
+       push    0
+       push    bx
+       push    0
+       push    0
+       push    0
+       push    bp
+       push    0
+       push    si
+       push    0
+       push    di
+       push    ss
+       pop     es
+       mov     di,sp
+       xor     cx,cx
+       mov     bx,2Fh
+       mov     ax,0300h
+       int     31h
+       pop     di
+       add     sp,2
+       pop     si
+       add     sp,2
+       pop     bp
+       add     sp,6
+       pop     bx
+       add     sp,2
+       pop     dx
+       add     sp,2
+       pop     cx
+       add     sp,2
+       pop     ax
+       add     sp,2
+       popf
+       add     sp,16
+       pop     es
+{$ELSE}
        int     2Fh
+{$ENDIF}
+(* X-Man <<< *)
        or      bx,bx
        jz      @@2
        mov     ax,150Bh
        sub     ch,ch
        mov     cl,Drive
        dec     cl
+(* X-Man >>> *)
+{$IFDEF DPMI}
+       push    es
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       pushf
+       push    0
+       push    ax
+       push    0
+       push    cx
+       push    0
+       push    dx
+       push    0
+       push    bx
+       push    0
+       push    0
+       push    0
+       push    bp
+       push    0
+       push    si
+       push    0
+       push    di
+       push    ss
+       pop     es
+       mov     di,sp
+       xor     cx,cx
+       mov     bx,2Fh
+       mov     ax,0300h
+       int     31h
+       pop     di
+       add     sp,2
+       pop     si
+       add     sp,2
+       pop     bp
+       add     sp,6
+       pop     bx
+       add     sp,2
+       pop     dx
+       add     sp,2
+       pop     cx
+       add     sp,2
+       pop     ax
+       add     sp,2
+       popf
+       add     sp,16
+       pop     es
+{$ELSE}
        int     2Fh
+{$ENDIF}
+(* X-Man <<< *)
        cmp     bx,0ADADh
        jne     @@2
        or      ax,ax
@@ -283,7 +448,62 @@ asm
        mov     bx,1
        mov     dl,Drive
        dec     dl
+(* X-Man >>> *)
+{$IFDEF DPMI}
+       push    es
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       push    0
+       pushf
+       push    0
+       push    ax
+       push    0
+       push    cx
+       push    0
+       push    dx
+       push    0
+       push    bx
+       push    0
+       push    0
+       push    0
+       push    bp
+       push    0
+       push    si
+       push    0
+       push    di
+       push    ss
+       pop     es
+       mov     di,sp
+       xor     cx,cx
+       mov     bx,2Fh
+       mov     ax,0300h
+       int     31h
+       pop     di
+       add     sp,2
+       pop     si
+       add     sp,2
+       pop     bp
+       add     sp,6
+       pop     bx
+       add     sp,2
+       pop     dx
+       add     sp,2
+       pop     cx
+       add     sp,2
+       pop     ax
+       add     sp,2
+       popf
+       add     sp,16
+       pop     es
+{$ELSE}
        int     2Fh
+{$ENDIF}
+(* X-Man <<< *)
        or      ax,ax
        jnz     @@network
        cmp     dl,bl
@@ -328,15 +548,63 @@ asm
         jc      @@5
        test    al,al
        jz      @@check_Bernoulli
+(* X-Man >>> *)
+{$IFDEF DPMI}
+       push    es
+       push    ss
+       pop     es
+       mov     ax,0100h
+       mov     bx,3
+       int     31h
+       jc      @@allocfail
+       push    dx
+       mov     cx,25
+       jmp     @@lp
+@@allocfail:
+       push    ds
+       mov     si,sp
+       stc
+       jmp     @@cleanup
+@@lp:  push    0
+       loop    @@lp
+       mov     di,sp
+       mov     cx,440Dh
+       mov     es:[di+1Ch],cx
+       mov     cl,Drive
+       mov     es:[di+10h],cl
+       mov     cx,0860h
+       mov     es:[di+18h],cx
+       mov     es:[di+24h],ax
+       mov     es:[di+04h],cx
+       pushf
+       pop     cx
+       mov     es:[di+20h],cx
+       mov     ax,0300h
+       mov     bx,21h
+       xor     cx,cx
+       int     31h
+       mov     cx,es:[di+20h]
+       add     sp,50
+       pop     dx
+       pop     es
+       push    ds
+       mov     si,sp
+       mov     ds,dx
+       xor     dx,dx
+       push    cx
+       popf
+{$ELSE}
        push    ds
        push    ss
        pop     ds
-        mov     si,sp
-        sub     sp,28h
-        mov     dx,sp
-        mov     ax,440Dh
-        mov     cx,860h
-        int     21h
+       mov     si,sp
+       sub     sp,28h
+       mov     dx,sp
+       mov     ax,440Dh
+       mov     cx,860h
+       int     21h
+{$ENDIF}
+(* X-Man <<< *)
        jc      @@cleanup
        pushf
        mov     di,dx
@@ -348,13 +616,31 @@ asm
        popf
        mov     bl,dtDublDisk
        mov     sp,si
+(* X-Man >>> *)
+{$IFDEF DPMI}
+       mov     dx,ds
+{$ENDIF}
        pop     ds
+{$IFDEF DPMI}
+       mov     ax,0101h
+       int     31h
+{$ENDIF}
        jmp     @@Done
 @@cleanup:
-        mov     sp,si
-        pop     ds
-        mov     bl,dtRAMDrive
-        jc      @@Done
+       mov     sp,si
+{$IFDEF DPMI}
+       mov     dx,ds
+{$ENDIF}
+       pop     ds
+{$IFDEF DPMI}
+       pushf
+       mov     ax,0101h
+       int     31h
+       popf
+{$ENDIF}
+(* X-Man <<< *)
+       mov     bl,dtRAMDrive
+       jc      @@Done
        jmp     @@fixed
 @@check_Bernoulli:
        cmp     Drive,2

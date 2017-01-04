@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -72,7 +72,8 @@ USES
   LFN, Collect, Drivers, Dos, Objects, advance, advance1, advance2, advance3,
   RStrings, GetConst, Menus, Commands, Setups, DNHelp, Views, DNApp, Startup,
   Dialogs, Validate, IniFiles, Scroller, ExtraMem, ListMakr, ObjType,
-{$IFDEF CHCOL} ColorSel, {$ENDIF} RegAll, DefColl, swe, stakdump;
+{$IFDEF CHCOL} ColorSel, {$ENDIF} RegAll, DefColl, swe
+{$IFNDEF NONBP}, stakdump{$ENDIF};
 
 
 CONST
@@ -1153,7 +1154,7 @@ end;
 
 BEGIN
   AdvanceInitUnit;
-  StakdumpInitUnit;
+  {$IFNDEF NONBP}StakdumpInitUnit;{$ENDIF}
   LFNInitUnit;
   StartupInitUnit;
 

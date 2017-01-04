@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.11
+//  Dos Navigator Open Source 1.51.12
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -730,7 +730,7 @@ begin
   if ValidView(P) <> nil then
   begin
     if Data <> nil then P^.SetData(Data^);
-    C := Desktop^.ExecView(P);
+    C := {Desktop^.}ExecView(P);
     if (C <> cmCancel) and (Data <> nil) then P^.GetData(Data^);
     Dispose(P,Done);
     ExecuteDialog := C;
