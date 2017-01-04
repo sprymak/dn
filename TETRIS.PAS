@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,8 +43,11 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
-
 {$define dn}
 {$ifdef dn}
 unit Tetris;
@@ -53,7 +56,7 @@ interface
 {$endif}
 
 USES Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
-     Commands, Advance, RStrings, ObjType;
+     Commands, advance, advance1, advance2, advance3, RStrings, ObjType;
 
 const
   Shi      = 12;
@@ -150,8 +153,6 @@ implementation
 uses xTime,StartUp, DNHelp;
 {$endif}
 const
-  sAnonymous = 'Anonymous';
-
   MaxFig   = 27;
   Figures  : array[1..5*MaxFig,1..2] of byte=
       ((1,3),(2,3),(3,3),(3,2),(0,0),  {0}{┘}
@@ -221,11 +222,7 @@ begin
  R.Assign(4+Shi*2,1,27+Shi*2,16);
  Info := New(PGameInfo, Init(R));
  Insert(Info);
- {R.Assign(6+Shi*2,13,25+Shi*2,16);
- Hi := New(PGameInfo, Init(R));
- Insert(Hi);}
- {Info^.Options := Info^.Options or ofFramed;}
- Info^.Gm := Gm; Gm^.Info := Info; {Gm^.Hi := Hi;}
+ Info^.Gm := Gm; Gm^.Info := Info;
  R.Assign(4+Shi*2, 17, 15+Shi*2, 19);
  Insert(New(PButton, Init(R, GetString(dlNewButton), cmNewGame, 0)));
  R.Assign(15+Shi*2, 17, 26+Shi*2, 19);
@@ -348,11 +345,12 @@ begin
  Preview := TetrisRec.P and 1 <> 0;
  for I := 1 to 20 do
   begin
-   HiScores[I].Name := sAnonymous; HiScores[I].Score := 0;
+   HiScores[I].Name := GetString(dlAnonymous);
+   HiScores[I].Score := 0;
    HiScores[I].StLv := 1;
    HiScores[I].EndLv := 1;
   end;
- S.Init(SourceDir+'dn.tet', stOpenRead);
+ S.Init(SourceDir+'dn.tet', stOpenRead); {DataCompBoy}
  if S.Status = stOK then S.Read(B, sizeof(HiScores));
  S.Done;
  I := SizeOf(HiScores);
@@ -372,11 +370,12 @@ begin
   begin
    for I := 1 to 20 do
    begin
-    HiScores[I].Name := sAnonymous; HiScores[I].Score := 0;
+    HiScores[I].Name := GetString(dlAnonymous);
+    HiScores[I].Score := 0;
     HiScores[I].StLv := 1;
     HiScores[I].EndLv := 1;
    end;
-   S.Init(SourceDir+'dn.tet', stCreate);
+   S.Init(SourceDir+'dn.tet', stCreate); {DataCompBoy}
    S.Write(HiScores, sizeof(HiScores));
    S.Done;
    Break;
@@ -514,14 +513,14 @@ function TGameView.MoveDown;
   for I := 1 to 10 do if HiScores[I+10*Byte(Pentix)].Score < Score then Goto 1;
   Exit;
   1: for J := 10 downto I+1 do HiScores[J+10*Byte(Pentix)] := HiScores[J-1+10*Byte(Pentix)];
-  Nm := sAnonymous;
+  Nm := GetString(dlAnonymous);
   ExecResource( dlgTetrisWinner, Nm );
 
   HiScores[I+10*Byte(Pentix)].Name := Nm;
   HiScores[I+10*Byte(Pentix)].StLv := StartLevel;
   HiScores[I+10*Byte(Pentix)].EndLv := Level;
   HiScores[I+10*Byte(Pentix)].Score := Score;
-  S.Init(SourceDir+'dn.tet',stCreate);
+  S.Init(SourceDir+'dn.tet',stCreate); {DataCompBoy}
   Move(HiScores, B, SizeOf(HiScores));
   J := SizeOf(HiScores);
   asm

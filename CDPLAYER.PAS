@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -57,12 +57,11 @@ CONST
   CDplace: Tpoint = ( X:0; Y:0 );
   CDsize: Tpoint = ( X:0; Y:0 );
   CDparams: array[ 1..3 ] of word = ( 3, 0, 0 );
-  CDmixer : string[80]= '';
+  CDmixer : string= '';
 
   CD_Player: PView = nil;
 
 PROCEDURE RunPlayer;
-PROCEDURE RegisterCDplayer;
 
 {$IFDEF UPD}
 PROCEDURE UpdateCDplayer;
@@ -244,18 +243,11 @@ CONST
 
 IMPLEMENTATION
 
-USES Advance, Messages, Commands, RStrings, DNHelp, DOS, DnApp, Startup,
-     CDUtil ;
+USES advance, advance1, advance2, advance3, Messages, Commands, RStrings,
+     DNHelp, DOS, DnApp, Startup, CDUtil ;
 
 CONST
   cdDrive: integer = -1;
-
-PROCEDURE RegisterCDplayer;
-begin
-  RegisterType( RCdPlayer );
-  RegisterType( RCdCounter );
-end;
-
 
 const
   Crc32Table : array[0..255] of LongInt = (
@@ -1514,7 +1506,7 @@ end;
 
     for TR :=1 to 100 do Descr^.Insert(Nil);
 
-    T := SourceDir + 'CD\' + Hex8(DiskID) + '.CD';
+    T := SourceDir + 'CD\' + Hex8(DiskID) + '.CD'; {DataCompBoy}
 
     F := New(PTextReader, Init(T));
     if F = nil then Exit;
@@ -1562,7 +1554,7 @@ Function TcdPlayer.GetOrder ;
     GetOrder := False ;
     NewOrder := '';
 
-    T := SourceDir + 'CD\' + Hex8(DiskID) + '.TRK';
+    T := SourceDir + 'CD\' + Hex8(DiskID) + '.TRK'; {DataCompBoy}
 
     F := New(PTextReader, Init(T));
     if F = nil then Exit;
@@ -1910,7 +1902,7 @@ PROCEDURE TcdPlayer._Setup;
 var
   Prm : record
    P1,P2 : word;
-   P3    : string[80];
+   P3    : string;
    end;
 begin
 

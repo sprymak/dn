@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -269,7 +269,7 @@ begin
     evKeyDown:
       begin
         case Event.KeyCode of
-          kbTab:
+          kbTab, kbCtrlRight:
             begin
               if Selected >= Topic^.GetNumCrossRefs then Selected := 1
                else if Selected > 0 then Inc(Selected) else
@@ -290,7 +290,7 @@ begin
                  end;
               MakeSelectVisible;
             end;
-          kbShiftTab:
+          kbShiftTab, kbCtrlLeft:
             begin
                if Selected > 1 then Dec(Selected) else
                if Selected > 0 then Selected := Topic^.GetNumCrossRefs else
@@ -363,8 +363,8 @@ begin
                 PutEvent(Event);
              end;
       cmDefault: with Indexes[NumTopics] do
-           if NOT (Index=2) then
-                    SwitchToTopic(2);
+           if NOT (Index=3) then
+                    SwitchToTopic(3);
       cmCancel: with Indexes[NumTopics] do
            if NOT (Index=2) then
                     SwitchToTopic(2);
@@ -395,4 +395,3 @@ begin
 end;
 
 end.
-

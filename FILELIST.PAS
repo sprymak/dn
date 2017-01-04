@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,8 @@
 unit FileList;
 
 interface
-  uses Drives, Drivers, Views, Objects, FilesCol, DOS, Advance, RStrings;
+  uses Drives, Drivers, Views, Objects, FilesCol, DOS, advance, advance1,
+  advance2, advance3, RStrings, LFNCol;
 
   const DIZFilter: String = 'files.bbs;*.diz';
 
@@ -72,10 +73,10 @@ type
           function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
                                 var FreeSpace, TotalInfo: String ): PCollection; virtual;
           destructor Done; virtual;
-          procedure GetFull(var B; P: PFileRec; C, Flags: Word); virtual;
-          procedure GetEmpty(var B; C, Flags: Word); virtual;
-          function CalcLength(Flags: Word): Integer; virtual;
-          procedure MakeTop(var S: String; Flags: Word); virtual;
+          procedure GetFull(var B; P: PFileRec; C, SC: Word); virtual;
+          procedure GetEmpty(var B; C: Word); virtual;
+          function  CalcLength: Integer; virtual;
+          procedure MakeTop(var S: String); virtual;
        end;
 
 
@@ -104,13 +105,14 @@ begin
   inherited Done;
 end;
 
+        {-DataCompBoy-}
 function TListDrive.GetDirectory;
  var Files: PFilesCollection;
-     SR: SearchRec;
+     SR: lSearchRec;
      P: PFileRec;
      D: DateTime;
      I,J: Integer;
-     DrNm: PathStr;
+     DrNm: string;
      AllFiles: Boolean;
      FreeSpc, TotalLen: LongInt;
      S: String;
@@ -124,12 +126,12 @@ function TListDrive.GetDirectory;
        I: Integer;
   begin
     ClrIO;
-    Assign(T, MakeNormName(CurDir, SR.Name));
-    Reset(T);
+    lAssignText(T, MakeNormName(CurDir, SR.Name));
+    lResetText(T);
     if (IOResult <> 0) or  Abort then Exit;
-    While not SeekEOF(T) do
+    While not SeekEOF(T.T) do
       begin
-        ReadLn(T,S);
+        ReadLn(T.T,S);
         DelLeft(S);
         S1 := '';
         if S <> '' then
@@ -145,7 +147,7 @@ function TListDrive.GetDirectory;
             else Descriptions^.FreeItem(PD);
          end;
       end;
-    Close(T);
+    Close(T.T);
   end;
 
 begin
@@ -163,12 +165,13 @@ begin
  PFilesCollection(Files)^.SortMode := SortMode;
  DosError := 0; ClrIO; Abort := Off;
  DrNm := MakeNormName(CurDir,x_x);
- FindFirst(DrNm, $3F xor VolumeID, SR);
+ lFindFirst(DrNm, $3F xor VolumeID, SR);
  While (DosError = 0) and not Abort and (IOResult = 0) and (MemAvail > LowMemSize) do
+ With SR do
  begin
   if (SR.Attr and VolumeID = 0) and (SR.Name <> '.') then
    if (SR.Name[1] = '.') or (not Security or (Security and (SR.Attr and Hidden=0))) then
-   if AllFiles or (SR.Attr and Directory <> 0) or (InFilter(SR.Name, FileMask)) then
+   if AllFiles or (SR.Attr and Directory <> 0) or (InFilter(FullName, FileMask)) then
    begin
     New(P);
     if SR.Name[1] <> '.' then
@@ -178,6 +181,7 @@ begin
              else P^.Name := Copy(Copy(SR.Name, 1, I - 1) + '        ', 1, 9) + Copy(SR.Name, I + 1, 3) + '   ';
     end else P^.Name := '..          ';
     UnpackTime(SR.Time, D);
+    P^.LFN := AddLFN(FullName);
     P^.TType := Byte(Hilite);
     P^.Year := D.Year mod 100;
     P^.Month := D.Month;
@@ -185,12 +189,12 @@ begin
     P^.Hour := D.Hour;
     P^.Min := D.Min;
     P^.Attr := SR.Attr;
-    P^.Size := SR.Size;
+    P^.Size := FullSize;
     P^.DIZ := nil;
     P^.Selected := Off;
     if SR.Attr and Directory = 0 then
      begin
-      if (Descriptions = nil) and InFilter(SR.Name, DIZFilter) then
+      if (Descriptions = nil) and InFilter(FullName, DIZFilter) then
        begin
          Descriptions := New(PDIZCol, Init(10,10));
          ReadList;
@@ -215,8 +219,9 @@ begin
     Files^.Insert(P);
    end;
   DosError := 0;
-  FindNext(SR);
+  lFindNext(SR);
  end;
+ lFindClose(SR);
 
  if Files^.Count = 0 then S := GetString(dlDINoFiles)
   else begin
@@ -233,6 +238,7 @@ begin
   begin
     New(P);
     P^.Name := '..          ';
+    P^.LFN := AddLFN('..');
     P^.TType := Byte(Hilite);
     P^.Year := 80;
     P^.Month := 1;
@@ -260,6 +266,7 @@ begin
     end;
  GetDirectory := Files;
 end;
+        {-DataCompBoy-}
 
 procedure TListDrive.GetEmpty;
  var

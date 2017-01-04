@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -108,6 +108,9 @@ function MessageBox2Rect(var R: TRect;
 function InputBox(Title: String; ALabel: String; var S: String;
   Limit: Byte; HistoryID: Word): Word;
 
+function BigInputBox(Title: String; ALabel: String; var S: String;
+  Limit: Byte; HistoryID: Word): Word;
+
 { InputBoxRect is like InputBox but allows the specification of }
 { a rectangle.                                                  }
 
@@ -123,7 +126,7 @@ function Msg2( Index1,Index2: TStrIdx;
 
 procedure ErrMsg(Index: TStrIdx);
 
-procedure CantWrite(const FName: PathStr);
+procedure CantWrite(const FName: String);
 
 function FmtFile(const Fmt: string; const FName: string; Len: Integer): string;
 function FmtStr(const Fmt: string; const S: string): string;
@@ -135,11 +138,12 @@ const MsgActive : Boolean = False;
 
 implementation
 
-uses Drivers, Views, Dialogs, DNApp, DNHelp, Advance, {Tree, }Drives, Startup;
+uses Drivers, Views, Dialogs, DNApp, DNHelp, advance, advance1, advance2,
+     advance3, {Tree, }Drives, Startup;
 
 procedure ErrMsg(Index: TStrIdx); begin Msg(Index, nil, mfError + mfOkButton) end;
 
-procedure CantWrite(const FName: PathStr);
+procedure CantWrite(const FName: String);
 var
   a: string[30];
   PP: Pointer;
@@ -378,6 +382,15 @@ begin
   InputBox := InputBoxRect(R, Title, ALabel, S, Limit, HistoryID);
 end;
 
+function BigInputBox;
+var
+  R: TRect;
+begin
+  R.Assign(0, 0, 76, 7);
+  R.Move((Desktop^.Size.X - R.B.X) div 2, (Desktop^.Size.Y - R.B.Y) div 2);
+  BigInputBox:=InputBoxRect(R, Title, ALabel, S, Limit, HistoryID);
+end;
+
 function InputBoxRect;
 var
   Dialog: PDialog;
@@ -388,7 +401,7 @@ begin
   Dialog := New(PDialog, Init(Bounds, Title));
   with Dialog^ do
   begin
-    R.Assign(4 + CStrLen(ALabel), 2, Size.X - 3 - 3 * Byte(HistoryID <> 0), 3);
+    R.Assign(4 + CStrLen(ALabel), 2, Size.X - 2 - 3 * Byte(HistoryID <> 0), 3);
     Control := New(PInputLine, Init(R, Limit));
     Insert(Control);
     if HistoryID <> 0 then

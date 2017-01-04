@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -107,9 +107,16 @@ CONST
   kbCtrlM = $320D;  kbCtrlN = $310E;  kbCtrlO = $180F;  kbCtrlP = $1910;
   kbCtrlQ = $1011;  kbCtrlR = $1312;  kbCtrlS = $1F13;  kbCtrlT = $1414;
   kbCtrlU = $1615;  kbCtrlV = $2F16;  kbCtrlW = $1117;  kbCtrlX = $2D18;
-  kbCtrlY = $1519;  kbCtrlZ = $2C1A;  kbAltTilda = $2900;
-  kbAltQuote = $2800;
+  kbCtrlY = $1519;  kbCtrlZ = $2C1A;  kbAltTilde = $2900;
 
+        {-DataCompBoy-}
+  kbCtrlAltX = $2D0D; kbCtrlAltZ = $2C0C;
+  kbCtrl1=$D100; kbCtrl2=$D200; kbCtrl3=$D300; kbCtrl4=$D400; kbCtrl5=$D500;
+  kbCtrl6=$D600; kbCtrl7=$D700; kbCtrl8=$D800; kbCtrl9=$D900; kbCtrl0=$DA00;
+  kbCtrlShiftTilde = $0FE00;
+        {-DataCompBoy-}
+
+  kbAltQuote = $2800;
 
 { FileMode constants }
   fmReadOnly  =   0;
@@ -139,19 +146,20 @@ CONST
   ebfTRp = 1 shl 15; {-$VOL} {TabReplace}
 
 
-  ouiClock          = $01;
-  ouiHideMenu       = $02;
-  ouiHideStatus     = $04;
-  ouiEsc            = $08;
-  ouiHideCmdline    = $10;
-  ouiAutoCmdLine    = $20;
-  ouiBlockInsertCursor = $40;
-  ouiStoreEditorPosition = $80;
+  ouiClock               = $0001;
+  ouiHideMenu            = $0002;
+  ouiHideStatus          = $0004;
+  ouiEsc                 = $0008;
+  ouiHideCmdline         = $0010;
+  ouiAutoCmdLine         = $0020;
+  ouiBlockInsertCursor   = $0040;
+  ouiStoreEditorPosition = $0080;
   ouiStoreViewerPosition = $0100;
   ouiTrackEditors        = $0200;
   ouiTrackViewers        = $0400;
   ouiTrackDirs           = $0800;
   ouiHideDriveInfo       = $1000; {-$VIV}
+  ouiShowScrollBar       = $2000;
 
   omsReverse = $01;
   omsCursor  = $02;
@@ -171,6 +179,14 @@ CONST
 
   osuInt28          = $01;
   osuSleep          = $02;
+  osuInt2F          = $04;
+  osuInt15          = $08;
+
+  osuOnceRelease    = $01;
+  osuReleaseOpen    = $02;
+  osuReleaseCopy    = $04;
+  osuReleaseArch    = $08;
+  osuReleaseFind    = $10;
 
   ossEditor      =  $01;
   ossViewer      =  $02;
@@ -186,9 +202,16 @@ CONST
   ossDirectAccess   = 1;
   ossTree           = 2;
   ossVerify         = 4;
-  ossRemoveReadOnly = 8;
+  ossNoLFN          = 8; {DataCompBoy}
 
   cdnHideCmdLine    = $0001;  { DN Misc Information }
+
+        {-DataCompBoy-}
+  ditMediaType      = $01;
+  ditLocalDir       = $02;
+  ditCDdir          = $04;
+  ditNetDir         = $08;
+        {-DataCompBoy-}
 
 { Editor History }
 
@@ -236,6 +259,8 @@ CONST
   hsUULines         = 149;
   hsMakeListHeader  = 150;
   hsMakeListFooter  = 151;
+  hsFmtVolumeL      = 152;
+  hsAddOptions      = 153;
 
 {UU Encode options}
 
@@ -290,6 +315,7 @@ CONST
   fmoCtrlDifference  = $0100;
   fmoBackGoesBack    = $0200;
   fmoPreserveDesc    = $0400;
+  fmoKillContainer   = $0800;
 
 { New manager panel types }
   fdoDriveDrive      = 0;
@@ -321,14 +347,15 @@ CONST
   cfExitConfirm      = $0080;
 
 { Column data items }
-  psShowSize     = $0001;
-  psShowDate     = $0002;
-  psShowTime     = $0004;
-  psShowDir      = $0008;
-  psShowDescript = $0008;
-  psShowPacked   = $0008;
-  psShowRatio    = $0010;
-  psShowLongDesc = $0010;
+  psShowLongName = $0001;
+  psShowSize     = $0002;
+  psShowDate     = $0004;
+  psShowTime     = $0008;
+  psShowDir      = $0010;
+  psShowDescript = $0010;
+  psShowPacked   = $0010;
+  psShowRatio    = $0020;
+  psShowLongDesc = $0020;
 
 { Terminal emulation }
   emTTY     = 0;
@@ -437,6 +464,14 @@ CONST
   cmEditINI          = 12188; {-$VIV}
   cmChangeCharCase   = 12189;
   cmSwitchTabReplace = 12190; {-$VOL}
+  cmEditCrLfMode    = 12191;
+  cmEditLfMode      = 12192;
+  cmEditCrMode      = 12193;
+  cmNext2           = 12194;
+  cmPrev2           = 12195;
+  cmNext3           = 12196;
+  cmPrev3           = 12197;
+  cmGotoLineNumber2 = 12198;
 
   cmCopyUnselect = 10001;
   cmRereadDir    = 10004;
@@ -507,6 +542,7 @@ CONST
   cmStartup         = 10610;
   cmInterfaceSetup  = 10611;
   cmSaversSetup     = 10612;
+  cmChScreenMode    = 10613;
 
   cmSSortName   = 10801;
   cmSSortExt    = 10802;
@@ -605,7 +641,6 @@ CONST
   cmPostHideLeft       = 19006;
   cmPostHideRight      = 19007;
   cmDuplicateLine      = 19008;
-
   { Special Commands }
   cmChangeInactive     = 19010;
   cmMainMenu           = 19011;
@@ -710,10 +745,14 @@ CONST
   cmSetupPrinter      = 3055;
   cmFilePrint         = 3056;
   cmNavyLink          = 3057;
-  cmColumnDefaults    = 3058;
+  cmColumnDefaultsDisk= 3058; {DataCompBoy}
   cmRunDemo           = 3059;
   cmEditQuickRun      = 3060;
-
+  cmRestart           = 3061; {DataCompBoy}
+  cmColumnDefaultsFind= 3062; {DataCompBoy}
+  cmColumnDefaultsTemp= 3063; {DataCompBoy}
+  cmColumnDefaultsArch= 3064; {DataCompBoy}
+  cmColumnDefaultsArvd= 3065; {DataCompBoy}
 
   cmLoConfigArchiver  = 3101;
 
@@ -721,8 +760,8 @@ CONST
   cmConfigAIN         = 3102;
   cmConfigARC         = 3103;
   cmConfigARJ         = 3104;
-  cmConfigBSA         = 3105;
-  cmConfigBS2         = 3106;
+  cmConfigBS2         = 3105;
+  cmConfigBSA         = 3106;
   cmConfigCAB         = 3107;
   cmConfigCHZ         = 3108;
   cmConfigHA          = 3109;
@@ -731,15 +770,17 @@ CONST
   cmConfigHYP         = 3112;
   cmConfigLHA         = 3113;
   cmConfigLIM         = 3114;
-  cmConfigRAR         = 3115;
-  cmConfigSQZ         = 3116;
-  cmConfigTAR         = 3117;
-  cmConfigUC2         = 3118;
-  cmConfigZIP         = 3119;
-  cmConfigZOO         = 3120;
-  cmConfigZXZ         = 3121;
+  cmConfigQUARK       = 3115;
+  cmConfigRAR         = 3116;
+  cmConfigSQZ         = 3117;
+  cmConfigTAR         = 3118;
+  cmConfigUC2         = 3119;
+  cmConfigUFA         = 3120;
+  cmConfigZIP         = 3121;
+  cmConfigZOO         = 3122;
+  cmConfigZXZ         = 3123;
 
-  cmHiConfigArchiver  = 3121;
+  cmHiConfigArchiver  = 3123;
 
 
   cmForceRescan       = 3217;
@@ -781,6 +822,7 @@ CONST
 
   cmOpenClipBoard     = 3555; {-$VOL}
 
+  cmShowTimeInfo      = 3556; {DataCompBoy}
 
   cmTextView      = 22189;
   cmHexView       = 22190;
@@ -814,6 +856,7 @@ CONST
   cmNext    = 7;
   cmPrev    = 8;
   cmHelp    = 9;
+  cmHelp2   = $DCB;
 
 { TDialog standard commands }
 
@@ -823,6 +866,7 @@ CONST
   cmNo      = 13;
   cmDefault = 14;
   cmSkip    = 15;
+  cmTest    = 16;
 
 { Application command codes }
 
@@ -905,7 +949,6 @@ CONST
   cmSingleDel         = 183;
   cmAdvFilter         = 184;
   cmDirBranch         = 186;
-
 
 
 { ??? Commands }
@@ -1122,6 +1165,7 @@ TYPE
     dlDBViewInfoString,
     dlDBViewSearchNot,
     dlDBViewSearch,
+    dlDBViewSearchingIn,
     dlDBViewTextSearch,
     dlDBEditField,
     dlDBValue,
@@ -1192,9 +1236,10 @@ TYPE
     dlFCOver,
     dlFCItself,
     dlFCNotDiskSpace,
-    dlFCCopyTo,
-    dlFCMoveTo,
-    dlFCMoveOr,
+    dlFCCopy1,
+    dlFCMove1,
+    dlFCCopy2,
+    dlFCMove2,
     dlFCNoRename1,
     dlFCNoRename2,
     dlDIDir,
@@ -1250,6 +1295,8 @@ TYPE
     dlFileName,
     dlDisconnect,
     dlPercentComplete,
+    dlTopLFN,
+    dlTopSplit,
     dlTopName,
     dlTopSize,
     dlTopTime,
@@ -1702,6 +1749,15 @@ TYPE
     dlTeam115,
     dlTeam116,
     dlTeam117,
+    dlTeam118,
+    dlTeam119,
+    dlTeam120,
+    dlTeam121,
+    dlTeam122,
+    dlTeam123,
+    dlTeam124,
+    dlTeam125,
+    dlTeam126,
 
     dlHelp,
     dlOutputTitle,
@@ -1914,7 +1970,83 @@ TYPE
     stDaysWeek,  {-SSK}
 
     dlOldFiles,
-    dlOldFilesNoWarn
+    dlOldFilesNoWarn,
+
+    dlPresent,
+    dlAbsent,
+
+    dlImage,
+    dlImageError,
+    dlUnpackImages,
+    dlTargetDir,
+
+        {-DataCompBoy-}
+    dlSPF01,
+    dlSPF02,
+    dlSPF03,
+    dlSPF04,
+    dlSPF05,
+    dlSPF06,
+    dlSPF07,
+    dlSPF08,
+    dlSPF09,
+    dlSPF10,
+    dlSPF11,
+    dlSPF12,
+    dlSPF13,
+    dlSPF14,
+    dlSPF15,
+    dlSPF16,
+    dlSPF17,
+    dlSPF18,
+    dlSPF19,
+    dlSPF20,
+    dlSPF21,
+    dlSPF22,
+    dlSPF23,
+    dlSPF24,
+    dlSPF25,
+    dlSPFht,
+        {-DataCompBoy-}
+    dlSetupSPF,
+        {-DataCompBoy-}
+    dlCopied,
+    dlSetupColumnsDisk,
+    dlSetupColumnsFind,
+    dlSetupColumnsTemp,
+    dlSetupColumnsArch,
+    dlSetupColumnsArvd,
+    dlSetupColumnsLongName,
+    dlSetupColumnsSize,
+    dlSetupColumnsSourceSize,
+    dlSetupColumnsDate,
+    dlSetupColumnsTime,
+    dlSetupColumnsPackedSize,
+    dlSetupColumnsPath,
+    dlSetupColumnsDescription,
+    dlSetupColumnsRatio,
+    dlSetupColumnsFullDescription,
+    dlSetupColumnsForName,
+    dlSetupColumnsForExtention,
+    dlSetupColumnsAsIs,
+    dlSetupColumnsLower,
+    dlSetupColumnsFromUpper,
+    dlSetupColumnsUpper,
+    dlSetupColumnsCombine,
+    dlSetupColumnsFilsCase,
+    dlSetupColumnsDirsCase,
+    dlTestButton,
+        {-DataCompBoy-}
+    dlArvidNeedDisk,
+    dlArvidCmdFileCreated,
+    dlArvidCmdFileAppended,
+    dlArvidCanChangeOnlyAVT,
+    dlArvidVolumeIsNotTape,
+    dlArvidNoReal,
+
+    dlAnonymous,  (*X-Man*)
+    dlMenuItemOn, (*X-Man*)
+    dlMenuItemOff (*X-Man*)
   );
 
   TDlgIdx = (
@@ -1969,7 +2101,6 @@ TYPE
     dlgInterfaceSetup,
     dlgMouseSetup,
     dlgStartupSetup,
-    dlgColumnsDefaults,
     dlgArchiveFiles,
     dlgReenterPassword,
     dlgAdvanceSearch,
@@ -2001,7 +2132,8 @@ TYPE
     dlgDirectoryHistory,
     dlgEditHistory,
     dlgViewHistory,
-    dlgAdvancedCOMSetup
+    dlgAdvancedCOMSetup,
+    dlgCpuFlagInfo
   );
 
 IMPLEMENTATION END.

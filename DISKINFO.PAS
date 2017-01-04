@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,11 +43,17 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit DiskInfo;
 interface
-uses Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings, Advance, ObjType;
+uses LFN, {DataCompBoy}
+     Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings, advance,
+     advance1, advance2, advance3, ObjType;
 
 type
      PDiskInfoRec = ^TDiskInfoRec;
@@ -64,7 +70,7 @@ type
 
      PDiskInfo = ^TDiskInfo;
      TDiskInfo = object(THideView)
-      Dir: PathStr;
+      Dir: string;
       FreeSpace, TotalSpace, DirLen: LongInt;
       FreeMemory, TotalMemory: LongInt;
       VolumeLabel: String[12];
@@ -80,11 +86,13 @@ type
       destructor Done; virtual;
      end;
 
- function CountDirLen(Dir: PathStr; Recurse: Boolean;
-                      var ClusterLen: LongInt; var NumFiles: Integer): LongInt;
+ procedure DispInfo(var Info: TDiskInfoRec); {DataCompBoy}
+
+ function CountDirLen(const Dir: String; Recurse: Boolean; {DataCompBoy}
+                      var ClusterLen: TSize; var NumFiles: Integer): TSize;
  procedure GetDrInfo(Drv: Byte);
  procedure ReadDiskInfo(const Dr: String; var B: TDiskInfoRec; ShowFlags: Integer);
- function  GetVolumeLabel: string;
+ function  GetVolumeLabel: Str12;
  function Disk_Free(Drive: Byte): TSize;
 
 const
@@ -119,16 +127,27 @@ function GetRndBytes(B, Rnd: LongInt): LongInt;
 
 var
    FreeSpc, TotalSpc: TSize;
-   BytePerClu: LongInt;
-   TotClu,
-   SecPerClu,
-   FreeClu,
-   BytPerSec: Word;
+        {-DataCompBoy-}
+   DriveData: Record
+           {00}RecSize:             Word;
+           {02}StructVersion:       Word;
+           {04}SectorsPerCluster:   LongInt;
+           {08}BytesPerSector:      Longint;
+           {0C}AvailClusters:       LongInt;
+           {10}TotalClusters:       LongInt;
+           {14}NumPhisSectorsAvail: LongInt;
+           {18}NumPhisSectorsTotal: LongInt;
+           {1C}AvailAllocUnits:     LongInt;
+           {20}TotalAllocUnits:     LongInt;
+           {24}Reserved:            Array[0..7] of byte;
+              end;
+   BytesPerCluster: LongInt;
+        {-DataCompBoy-}
 
 implementation
 uses Startup, ExtraMemory, DNApp, Commands, DNHelp, Tree, xTime;
 
-const MaxTeam = 118;
+const MaxTeam = 126;
 
 function ESC_Pressed: Boolean; var E: TEvent;
 begin
@@ -139,7 +158,7 @@ end;
 function GetVolumeLabel;
 var
   sr: SearchRec;
-  VolumeLabel: string;
+  VolumeLabel: Str12;
 
 begin
   DOSError := 0;
@@ -221,6 +240,20 @@ begin
   inherited Done;
 end;
 
+procedure DispInfo;
+begin
+ with Info do
+  begin
+   if Title   <>nil then DisposeStr(Title);
+   if Dir     <>nil then DisposeStr(Dir);
+   if Files   <>nil then DisposeStr(Files);
+   if Free    <>nil then DisposeStr(Free);
+   if Total   <>nil then DisposeStr(Total);
+   if VolumeID<>nil then DisposeStr(VolumeID);
+   if DirInfo <>nil then Dispose   (DirInfo, Done); DirInfo:=nil;
+  end;
+ fillchar(Info, sizeof(Info), 0);
+end;
 
 constructor TDiskInfo.Load;
 begin
@@ -234,17 +267,12 @@ begin
  HelpCtx := hcDiskInfo;
  EventMask := evCommand;
  Options := Options or ofSelectable or ofTopSelect;
+ FillChar(Info, SizeOf(Info), 0);
 end;
 
 destructor TDiskInfo.Done;
 begin
-  DisposeStr(Info.Title);
-  DisposeStr(Info.Dir);
-  DisposeStr(Info.Files);
-  DisposeStr(Info.Free);
-  DisposeStr(Info.Total);
-  DisposeStr(Info.VolumeID);
-  if Info.DirInfo <> nil then Dispose(Info.DirInfo, Done);
+  DispInfo(Info);
   inherited Done;
 end;
 
@@ -271,30 +299,22 @@ begin
  end;
  TotalMemory := Longint(LongInt(MemBlocks) shl 10);
  FreeMemory := TotalMemory-Longint(PrefixSeg) shl 4;
- DisposeStr(Info.Title);
- DisposeStr(Info.Dir);
- DisposeStr(Info.Files);
- DisposeStr(Info.Free);
- DisposeStr(Info.Total);
- DisposeStr(Info.VolumeID);
- if Info.DirInfo <> nil then Dispose(Info.DirInfo, Done);
- FillChar(Info, SizeOf(Info), 0);
+ DispInfo(Info);
  Message(Owner, evCommand, cmGetDirInfo, @Info);
 end;
 
 procedure TDiskInfo.HandleEvent;
-var S: PathStr;
+var S: String; {DataCompBoy}
 
+        {-DataCompBoy-}
  procedure ReadInfoBBS;
    var F: PTextReader;
        I: Integer;
-       Nm: String[12];
+       Nm: String;
        DZ: string;
-
-
  begin
-   if (Info.DirInfo = nil) then Info.DirInfo := New(PStringCollection , Init(20, 10)) else
-     Info.DirInfo^.FreeAll;
+   if (Info.DirInfo = nil) then Info.DirInfo := New(PStringCollection , Init(20, 10))
+                           else Info.DirInfo^.FreeAll;
    Info.InfoFile := ifDescription;
    I := -1;
    F := nil;
@@ -310,7 +330,7 @@ var S: PathStr;
      F := New(PTextReader, Init(GetPath(S)+FreeStr));
    end;
    if F = nil then Exit;
-   Nm := GetName(S); UpStr(Nm);
+   Nm := GetName(lfGetShortFileName(S));
    while (IOResult = 0) and not F^.EOF do
      begin
        FreeStr := F^.GetStr;
@@ -318,7 +338,7 @@ var S: PathStr;
          begin
            I := PosChar(' ', FreeStr);
            if I = 0 then Continue;
-           if UpStrg(Copy(FreeStr, 1, I-1)) = Nm then
+           if UpStrg(Copy(FreeStr, 1, I-1)) = UpStrg(Nm) then
             begin
               Delete(FreeStr, 1, I);
               repeat
@@ -332,6 +352,7 @@ var S: PathStr;
      end;
    ClrIO; Dispose(F, Done);
  end;
+        {-DataCompBoy-}
 
 begin
  inherited HandleEvent(Event);
@@ -355,7 +376,7 @@ begin
                    ReadData(On); DrawView; ClearEvent(Event);
                   end;
    cmLoadViewFile: begin
-                     S := PString(Event.InfoPtr)^;
+                     S := PString(Event.InfoPtr)^; {DataCompBoy}
                      ReadInfoBBS; DrawView; ClearEvent(Event);
                    end;
   end;
@@ -389,7 +410,7 @@ begin
     (DriveInfoData and (fdiTitle+fdiTotals) <> 0) then
    begin
      XWrt(Info.Title, fdiTitle);
-     if (Info.Dir <> nil) and (DriveInfoData and fdiTitle <> 0) then Wrt('~'+Info.Dir^+'~');
+     if (Info.Dir <> nil) and (DriveInfoData and fdiTitle <> 0) then Wrt('~'#0+Cut(Info.Dir^,Size.X)+#0'~');
      XWrt(Info.Files, fdiTotals);
      Wrt('');
    end;
@@ -439,91 +460,144 @@ begin
  if Y <= Size.Y - 1 then WriteLine(0, Y, Size.X, Size.Y - Y + 1, B);
 end;
 
+        {-DataCompBoy-}
 function CountDirLen;
 var
   Tmr: TEventTimer;
-
-function Count_DirLen(Dir: PathStr; Recurse: Boolean;
-                      var ClusterLen: LongInt; var NumFiles: Integer): LongInt;
- var L: LongInt;
-     SR: SearchRec;
-begin
- if TimerExpired(Tmr) then
- begin
-   NewTimer(Tmr, 3);
-   if ESC_Pressed then
-   begin
-     Abort := True; Count_DirLen:=0; Exit
-   end;
- end;
-
- L := 0;
- DosError := 0; Abort := Off;
- if Dir[Length(Dir)] <> '\' then Dir := Dir + '\';
- FindFirst(Dir+x_x, $3F xor VolumeID, SR);
- While (DOSError = 0) and not Abort do
- begin
-  if (SR.Name[1] <> '.') then
-   begin
-    Inc(NumFiles);
-    if SR.Attr and Directory <> 0 then
-      begin
-        if Recurse then
-        begin
-          Inc(L, Count_DirLen(Dir+SR.Name, True, ClusterLen, NumFiles));
-          if Abort then Break;
-        end;
-          end
-         else
-          begin
-           Inc(L, SR.Size);
-           if BytePerClu > 0 then
-            begin
-             Inc(ClusterLen, (SR.Size div BytePerClu)*BytePerClu);
-             if SR.Size mod BytePerClu <> 0 then Inc(ClusterLen, BytePerClu);
-            end;
-          end;
-   end;
-  FindNext(SR);
- end;
- Count_DirLen := L;
-end;
-
+  L: TSize;
+  SR: lSearchRec;
+  DC: PDirCol;
 begin
   NewTimer(Tmr, 1);
-  CountDirLen := Count_DirLen(Dir, Recurse, ClusterLen, NumFiles);
-  if Abort then CountDirLen := 0;
-end;
+  ClusterLen:=0;
+  L:=0;
+  NumFiles:=0;
 
+  new(DC, Init($10, $10));
+  DC^.Insert(NewStr(Dir));
+  Abort:=false;
+  while DC^.Count>0 do
+   begin
+    FreeStr:=PString(DC^.At(0))^;
+    DC^.AtFree(0);
+    If Abort then break;
+
+    if TimerExpired(Tmr) then
+    begin
+      NewTimer(Tmr, 3);
+      if ESC_Pressed then begin Abort := True; L:=0; Break end;
+    end;
+
+    If Word(Length(FreeStr))>MaxPathLen-1 then Begin Abort := True; Break End;
+
+    DosError := 0; Abort := Off;
+
+    lFindFirst(MakeNormName(FreeStr, x_x), $3F xor VolumeID, SR);
+    While (DOSError = 0) and not Abort do
+    begin
+     if (SR.SR.Name[1] <> '.') then
+      begin
+       Inc(NumFiles);
+       if SR.SR.Attr and Directory <> 0 then
+        begin
+         if Recurse then
+          begin
+           If (Word(Length(FreeStr))+Word(Length(SR.FullName))>MaxPathLen-1)
+           or (MaxAvail<Length(FreeStr+SR.FullName)+$41) then
+           Begin Abort := True; L:=0; Break End;
+           DC^.Insert(NewStr(MakeNormName(FreeStr, SR.FullName)));
+          end;
+        end
+       else
+        begin
+         L:=L+SR.FullSize;
+         if BytesPerCluster > 0 then
+          begin
+           ClusterLen:=ClusterLen+(SR.FullSize / BytesPerCluster)*BytesPerCluster;
+           if Round(SR.FullSize/BytesPerCluster)-(SR.FullSize/BytesPerCluster)<>0 then ClusterLen:=ClusterLen+BytesPerCluster;
+          end;
+        end;
+      end;
+     lFindNext(SR);
+    end;
+    lFindClose(SR);
+   end;
+  DC^.FreeAll;
+  Dispose(DC, Done);
+  CountDirLen := L;
+end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
+const DriveConstant: array[0..3] of Char = ('?',':','\',#0);
+      SizeOfDriveData: Word = SizeOf(DriveData);
 procedure GetSpace(Drive : Char);assembler;
 asm
-  mov ax,0
-  mov BytPerSec,ax
-  mov SecPerClu,ax
-  mov TotClu,ax
-  mov FreeClu,ax
-  mov ah,$36
-  mov dl,Drive
-  sub dl,64
-  int $21
-  cmp ax,$ffff
-  jz  @Ex
-  mov BytPerSec,cx
-  mov TotClu,dx
-  mov FreeClu,bx
-  mov SecPerClu,ax
-@ex:
-end;
+  pusha
 
+  push ES
+  push DI
+  mov CX, SizeOfDriveData
+  shr CX, 1
+  mov AX, SEG DriveData
+  mov ES, AX
+  mov DI, OFFSET DriveData
+  mov AX, 0
+  cld
+@@REP:
+  rep stosw
+{i286 REP bug fix begin}
+  jcxz  @@next
+  loop  @@REP
+@@NEXT:
+{i286 REP bug fix end}
+  pop DI
+  pop ES
+
+  mov AH,$36
+  mov DL,Drive
+  sub DL,64
+  int $21
+  push AX
+  mov AX, SEG DriveData
+  mov ES, AX
+  mov SI, OFFSET DriveData
+  pop AX
+  mov ES:[SI+004h], AX {sectors per cluster}
+  mov ES:[SI+008h], CX {Bytes per sector}
+  mov ES:[SI+00Ch], BX {avail clusters}
+  mov ES:[SI+010h], DX {total clusters}
+
+  mov CX, SizeOfDriveData
+  mov AX, SEG DriveConstant
+  mov DS, AX
+  mov DI, OFFSET DriveConstant
+  mov DX, DI
+  mov AL, Drive
+  mov byte ptr DS:[DI], AL
+  mov AX, SEG DriveData
+  mov ES, AX
+  mov DI, OFFSET DriveData
+  mov AX, 7303h
+  int 21h
+  popa
+end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
 procedure GetDrInfo(Drv: Byte);
  var Dr : Char;
 begin
  if Drv = 0 then Dr := GetCurDrive else Dr := Char(Drv+64);
  GetSpace(Dr);
- BytePerClu:=SecPerClu;BytePerClu:=BytePerClu*BytPerSec;
- FreeSpc:=BytePerClu;FreeSpc:=FreeSpc*FreeClu;
- TotalSpc:=BytePerClu;TotalSpc:=TotalSpc*TotClu;
+ BytesPerCluster:=DriveData.SectorsPerCluster;
+ BytesPerCluster:=BytesPerCluster*DriveData.BytesPerSector;
+ FreeSpc:=BytesPerCluster;
+ FreeSpc:=FreeSpc*DriveData.AvailClusters;
+ TotalSpc:=BytesPerCluster;
+ TotalSpc:=TotalSpc*DriveData.TotalClusters;
 end;
+        {-DataCompBoy-}
 
 function Disk_Free(Drive: Byte): TSize;
 begin
@@ -531,6 +605,7 @@ begin
   Disk_Free := FreeSpc;
 end;
 
+        {-DataCompBoy-}
 procedure ReadDiskInfo;
  var  VolumeLabel: String[12];
       L: Byte absolute VolumeLabel;
@@ -538,19 +613,23 @@ procedure ReadDiskInfo;
       S1, S2: String[30];
       Drv: Byte;
       F: PTextReader;
-      DirLen: LongInt;
+      DirLen: TSize;
       NumFiles: Integer;
 begin
   ClrIO;
   if Dr = '' then GetDir(0, S)
               else S := Dr;
   if Abort then Exit;
+
+  DispInfo(B);
+
   B.Title := NewStr(GetString(dlDICurDir)+':');
   B.Dir := NewStr(S);
   Drv := Byte(S[1])-64;
 
   GetDrInfo(Drv);if Abort then Exit;
-  BytePerClu:=BytPerSec;BytePerClu:=BytePerClu*SecPerClu;
+  BytesPerCluster:=DriveData.BytesPerSector;
+  BytesPerCluster:=BytesPerCluster*DriveData.SectorsPerCluster;
 
   DirLen := 0; NumFiles := 0;
   CountDirLen(S, False, DirLen, NumFiles);
@@ -572,7 +651,7 @@ begin
     B.DirInfo  := nil;
   end else
   begin
-    B.DirInfo := New(PStringCollection, Init(100, 10));
+    B.DirInfo := New(PStringCollection, Init($10, $10));
     F := New(PTextReader, Init(MakeNormName(S, sDIRINFO)));
     if F = nil then
     begin
@@ -591,8 +670,7 @@ begin
   end;
   VolumeLabel := GetVolumeLabel;
   B.VolumeID := NewStr(GetString(dlDIVolumeID) + Char(Drv+64) + ': ' + VolumeLabel + '~');
-
 end;
-
+        {-DataCompBoy-}
 
 end.

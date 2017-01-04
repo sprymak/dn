@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -54,7 +54,8 @@ unit ColorSel;
 
 interface
 
-uses Objects, Drivers, Views, Dialogs, Scroller,  ColorVGA, Messages, Memory, ObjType, Advance;
+uses Objects, Drivers, Views, Dialogs, Scroller,  ColorVGA,
+     Messages, Memory, ObjType, advance, advance1, advance2, advance3;
 
 const
   cmColorForegroundChanged = 71;
@@ -215,10 +216,6 @@ function DesktopColorItems(const Next: PColorItem): PColorItem;
 function MenuColorItems(const Next: PColorItem): PColorItem;
 function DialogColorItems(const Next: PColorItem): PColorItem;
 function WindowColorItems(const Next: PColorItem): PColorItem;
-
-{ ColorSel registration procedure }
-
-{procedure RegisterColorSel;}
 
 { Stream registration records }
 
@@ -1490,7 +1487,7 @@ begin
     ColorItem('List selected',     Offset + 27,
     ColorItem('List divider',      Offset + 28,
 
-    ColorItem('Information pane',  Offset + 29,
+    ColorItem('Information panel', Offset + 29,
     Next)))))))))))))))))))))))))))))));
 end;
 
@@ -1508,21 +1505,6 @@ begin
     ColorItem('Normal text',       Offset + 5,
     Next))))));
 end;
-
-{ ColorSel registration procedure }
-
-{
-procedure RegisterColorSel;
-begin
-  RegisterType(RColorSelector);
-  RegisterType(RMonoSelector);
-  RegisterType(RColorDisplay);
-  RegisterType(RColorGroupList);
-  RegisterType(RColorItemList);
-  RegisterType(RColorDialog);
-  RegisterType(R_BWSelector);
-end;
-}
 
 end.
 

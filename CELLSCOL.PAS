@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -117,18 +117,13 @@ const
     CommaChar : Char = ',';
     SeparatorChar: Char = '|';
 
- procedure RegisterCellCollection;
  function MakeComma(S: String): String;
  function GetCellCoord(S: String; var X: Byte;var Y:Integer): Boolean;
  function GetCellName(X, Y: Integer): String;
-{ function StoI(S: String): LongInt;
- function ItoS(L: LongInt): String;
- function UpCaseStr(S: String): String;
- function DelSpaces(S: String): String;}
 
 implementation
 
-uses Memory, Advance;
+uses Memory, advance, advance1, advance2, advance3;
 
 procedure TCellCollection.FreeItem;
 begin
@@ -346,60 +341,4 @@ begin
 Quit: MakeComma := S1;
 end;
 
-function ItoS(L: LongInt): String;
- var S: String;
-begin
- Str(L, S);
- ItoS := S;
-end;
-
-function StoI(S: String): LongInt;
- var I: LongInt;
-     J: Integer;
-begin
- Val(S, I, J);
- StoI := I;
-end;
-
-procedure RegisterCellCollection;
-begin
- RegisterType(RCellCollection);
-end;
-
-(*
-const UpcaseChars : String =
-                    ' !"#$%&''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`'+
-                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~'+
-                    '€‚ƒ„…†‡ˆ‰Š‹Œ‘’“”•–—˜™š›œŸ'+
-                    'ABƒ„E†‡ˆ‰K‹MHO°±²³´µ¶·¸¹º»¼½¾'+
-                    '¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖ×ØÙÚÛÜİŞß'+
-                    'PCT“”X–—˜™š›œŸğñòóôõö÷øùúûüış'#255;
-
-function DelSpaces(S: String): String;
-begin
- asm
-  lea bx, S
-  mov di, bx
-  mov si, bx
-  xor ch, ch
-  mov cl, ss:[bx]
-  or  cl, cl
-  jz  @Exit
-@@1:
-  inc si
-  mov al, ss:[si]
-  cmp al, ' '
-  jz @@2
-  inc di
-  mov ss:[di], al
-  jmp @@3
-@@2:
-  dec byte ptr ss:[bx]
-@@3:
-  loop @@1
-@Exit:
-  end;
- DelSpaces := S;
-end;
-*)
 end.

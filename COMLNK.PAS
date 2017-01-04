@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit ComLnk;
@@ -52,6 +56,11 @@ unit ComLnk;
 {$I LINK.INC} interface
 
 {$A+}
+
+USES LFN; {-DataCompBoy-}
+
+VAR
+    MayLFN    : Boolean; {DataCompBoy}
 
 type
   TCL_BlockType = Byte;
@@ -105,6 +114,8 @@ const
    b_ResendFull = 5 shl bt_SpcBits + bt_Spec;
    b_SRej0      = 6 shl bt_SpcBits + bt_Spec;
    b_NotifyLast = 7 shl bt_SpcBits + bt_Spec;
+   b_LogonLFN   = 8 shl bt_SpcBits + bt_Spec; {DataCompBoy}
+   b_LogonLFNOK = 9 shl bt_SpcBits + bt_Spec; {DataCompBoy}
 
 function  CL_InitComLink(AMaxBuf: LongInt; AMaxBlockSize, AStartBlockSize: Word): Boolean;
 procedure CL_DoneComLink;
@@ -123,17 +134,13 @@ procedure CL_FillNfo(var ANumErrs, ABlkSz: Word; var ATotalTrs: LongInt);
 {$IFDEF CL_LOG}
 procedure CL_WLog(const s: string);
 procedure CL_Statux;
-var CL_LogF : File;
+var CL_LogF : lFile; {DataCompBoy}
 {$ENDIF}
 
 function DropCD: Boolean;
 
-implementation uses Objects,Dos,
-
-                    xTime, Advance,
-
-                    ComLnkIO
-                    ;
+implementation uses Objects,Dos, xTime, advance, advance1, advance2, advance3,
+                    ComLnkIO;
 
 
 const
@@ -147,14 +154,14 @@ begin
   s := 'btc'+ItoS(BiosTics^)+' '+s+#13#10; InOutRes := 0;
 
  {$IFDEF HARD_LOG}
-  FileMode := 1;Reset(Cl_LogF, 1); if IOResult>0 then Exit;
-  Seek(Cl_LogF, FileSize(Cl_LogF)); if IOResult>0 then Exit;
+  FileMode := 1;lResetFile(Cl_LogF, 1); if IOResult>0 then Exit;
+  Seek(Cl_LogF.F, FileSize(Cl_LogF)); if IOResult>0 then Exit;
  {$ENDIF}
 
-  BlockWrite(CL_LogF, s[1], Length(s));
+  BlockWrite(CL_LogF.F, s[1], Length(s));
 
  {$IFDEF HARD_LOG}
-  Close(CL_LogF);
+  Close(CL_LogF.F);
  {$ENDIF}
 
   InOutRes := 0;
@@ -168,7 +175,7 @@ procedure Halt_;
 begin
   {$IFDEF CL_LOG}
   WLog('!!!! H A L T !!!!');
-  Close(CL_LogF);
+  Close(CL_LogF.F);
   {$ENDIF}
   RunError(221);
 end;
@@ -306,6 +313,7 @@ type
     RcvBufSz  : Word;
 
     SuccessNm : Byte;
+
     EscTbl    : array[byte] of Boolean;
   end;
 
@@ -407,6 +415,8 @@ begin
     b_NotifyLast: ATypStr := 'b_NotifyLast';
     b_Logon     : ATypStr := 'b_Logon';
     b_LogonOK   : ATypStr := 'b_LogonOK';
+    b_LogonLFN  : ATypStr := 'b_LogonLFN';      {DataCompBoy}
+    b_LogonLFNOK: ATypStr := 'b_LogonOKLFN';    {DataCompBoy}
    else ATypStr := '!!!== unknown TCL_BlockType (' + SStr(ATyp)+')';
   end
 end;
@@ -646,11 +656,24 @@ begin
                      if Lnk^.ComState = csOK then
                      begin
                        ClearAll;
-                       Lnk^.ComState := csBegin
+                       Lnk^.ComState := csBegin;
+                       MayLFN := False;
                      end;
                      GlobalNotify(0, b_LogonOK)
                    end;
-    b_LogonOK    : Lnk^.ComState := csBegin;
+    b_LogonOK    : Begin Lnk^.ComState := csBegin; MayLFN := False; End;
+        {-DataCompBoy-}
+    b_LogonLFN   : begin
+                     if Lnk^.ComState = csOK then
+                     begin
+                       ClearAll;
+                       Lnk^.ComState := csBegin
+                     end;
+                     if MayLFN then GlobalNotify(0, b_LogonLFNOK)
+                               else GlobalNotify(0, b_LogonOK)
+                   end;
+    b_LogonLFNOK : Begin Lnk^.ComState := csBegin; MayLFN := True; End;
+        {-DataCompBoy-}
     b_NotifyLast : begin
                      if Lnk^.ComState = csBegin then Lnk^.ComState := csOK;
                      LocInsSpec(P);
@@ -885,11 +908,17 @@ procedure SendSpecBlk(var Blk: TTransBlock); begin SendSubBlk(Blk) end;
 
 procedure StartSentAllTm; begin CL_NewTimer(Lnk^.z.SentAllTm, 5) end;
 
+        {-DataCompBoy-}
 procedure NotifyState;
 begin
   with Lnk^ do
   begin
-    if ComState = csLogon then GlobalNotify(0, b_Logon) else
+    if ComState = csLogon then
+     Begin
+      If MayLFN then GlobalNotify(0, b_LogonLFN)
+                else GlobalNotify(0, b_Logon);
+     End
+    else
     begin
       z.LastSntBl.Typ := b_NotifyLast;
       SendSpecBlk(PTransBlock(Addr(z.LastSntBl))^);
@@ -897,6 +926,7 @@ begin
     StartSentAllTm;
   end;
 end;
+        {-DataCompBoy-}
 
 procedure FlushQueue;
 var
@@ -937,6 +967,7 @@ begin
           begin
             if (CL_TimerExpired(z.SentAllTm)) and
                (not SpecExist(b_Logon)) and
+               (not SpecExist(b_LogonLFN)) and
                (not SpecExist(b_NotifyLast)) then NotifyState;
           end else NotifyState;
         Break;
@@ -1943,6 +1974,8 @@ begin
 
   end;
 
+  MayLFN := LFNPresent; {DataCompBoy}
+
   CL_InitComLink := True;
 end;
 
@@ -1962,6 +1995,7 @@ begin
 
     CL_DoneCOM(Port);
   end;
+  MayLFN := False; {DataCompBoy}
   Dispose(Lnk);
 end;
 

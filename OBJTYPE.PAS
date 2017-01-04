@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -53,27 +53,29 @@ const
 
 { --- Archiver }
 
-   otARJArchiver =        9201;
-   otZIPArchiver =        9202;
-   otARCArchiver =        9203;
-   otHYPArchiver =        9204;
-   otRARArchiver =        9205;
-   otHAPArchiver =        9206;
-   otHAArchiver  =        9207;
-   otSQZArchiver =        9208;
-   otBSAArchiver =        9209;
-   otBS2Archiver =        9210;
-   otCHZArchiver =        9211;
-   otLHAArchiver =        9212;
-   otZOOArchiver =        9213;
-   otUC2Archiver =        9214;
-   otLIMArchiver =        9215;
-   otHPKArchiver =        9216;
-   otTARArchiver =        9217;
-   otCABArchiver =        9218;
-   otZXZArchiver =        9219;
-   otAINArchiver =        9220;
-   otACEArchiver =        9221;
+   otACEArchiver   =      9201;
+   otAINArchiver   =      9202;
+   otARCArchiver   =      9203;
+   otARJArchiver   =      9204;
+   otBS2Archiver   =      9205;
+   otBSAArchiver   =      9206;
+   otCABArchiver   =      9207;
+   otCHZArchiver   =      9208;
+   otHAArchiver    =      9209;
+   otHAPArchiver   =      9210;
+   otHPKArchiver   =      9211;
+   otHYPArchiver   =      9212;
+   otLHAArchiver   =      9213;
+   otLIMArchiver   =      9214;
+   otQUARKArchiver =      9215;
+   otRARArchiver   =      9216;
+   otSQZArchiver   =      9217;
+   otTARArchiver   =      9218;
+   otUC2Archiver   =      9219;
+   otUFAArchiver   =      9220;
+   otZIPArchiver   =      9221;
+   otZOOArchiver   =      9222;
+   otZXZArchiver   =      9223;
 
    otArchiveCollection = 19221;
 
@@ -346,7 +348,6 @@ const
   otGameView   =          6372;
   otGameInfo   =          6373;
 
-
 { --- Tree }
 
   otTreeView      =       3330;
@@ -356,7 +357,7 @@ const
   otTreeDialog    =       3334;
   otTreeInfoView  =       3335;
   otHTreeView     =       3336;
-  otDirCollection =      16336;
+  otDirCollection =      16337;
 
 
 { --- UserKey }
@@ -392,18 +393,17 @@ const
 
 { --- Views }
 
-  otView      =              1;
-  otFrame     =              2;
-  otScrollBar =              3;
-  otGroup     =              6;
-  otWindow    =              7;
+  otView        =            1;
+  otFrame       =            2;
+  otScrollBar   =            3;
+  otMyScrollBar =            8;
+  otGroup       =            6;
+  otWindow      =            7;
 
 
 { --- XDblWnd }
 
   otDoubleWindow =        3340;
-
-
 
 implementation
 

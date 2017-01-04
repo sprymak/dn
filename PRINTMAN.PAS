@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,14 +43,19 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit PrintManager;
 
 interface
 
-uses Objects, Views, Drivers, DNApp, Advance, Dialogs, DOS, Messages,
-     Commands, ObjType;
+uses LFN, {DataCompBoy}
+     Objects, Views, Drivers, DNApp, advance, advance1, advance2, advance3,
+     Dialogs, DOS, Messages, Commands, ObjType;
 
  type
       PStringCol =  ^TStringCol;
@@ -79,7 +84,7 @@ uses Objects, Views, Drivers, DNApp, Advance, Dialogs, DOS, Messages,
         procedure Store(var S: TStream);
         function PrintBuffer(Num: Word): Boolean;
         procedure HandleEvent(var Event: TEvent); virtual;
-        procedure PrintFile(FileName: String);
+        procedure PrintFile(const FileName: String);
         function SetDestination: Boolean;
         function GetStatus: Byte;
         procedure InitPrinter;
@@ -137,7 +142,7 @@ uses
 
 procedure TStringCol.FreeItem;
 begin
-  DisposeStr(P);
+  DisposeStr(PString(P));
 end;
 
 procedure TStringCol.PutItem;
@@ -198,7 +203,7 @@ begin
      then S := GetString(dlPrintingPaused)
      else begin
            S := GetString(dlPrinting);
-           S := S + Cut(PString(Print^.List^.At(0))^, Size.X - CStrLen(S));
+           S := S + CutH(PString(Print^.List^.At(0))^, Size.X - CStrLen(S));
            if Print^.FileLen <> 0 then
             S1 := '~'+Copy(Strg(#219, ((Size.X-6)*Print^.FilePos) div Print^.FileLen)
                        + Strg(#177, Size.X-6), 1, Size.X - 6) + ' ~' +
@@ -367,7 +372,7 @@ end;
 procedure TPrintManager.PrintFile;
 begin
   if List = nil then List := New(PStringCol, Init(10,10));
-  List^.Insert(NewStr(Advance.FExpand(FileName)));
+  List^.Insert(NewStr(lfGetLongFileName(FileName)));
   SetRange(List^.Count);
   DrawView;
   if Status <> nil then Status^.DrawView;
@@ -453,7 +458,7 @@ procedure TPrintManager.Update;
              mfError + mfOKButton);
   Dispose(PrintStream, Done);
   PrintStream := nil;
-  if InMask(Norm12(GetName(S)), '$DN????$.PRN') then EraseFile(S);
+  if InMask(GetName(S), '$DN????$.PRN') then EraseFile(S); {DataCompBoy}
   List^.AtFree(0);
   SetRange(List^.Count);
   FocusItem(Focused-1);

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,8 +43,12 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+// Включена поддеpжка pyсского языка в кодиpовке cp866 в качестве констант
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
-
 {-----------------------------------------------------}
 { Turbo Vision Help Compiler Unit                     }
 { Copyright (c) 1990 by Borland International         }
@@ -129,7 +133,9 @@ program TVHC;
 
 {$M 8192,8192,655360}
 
-uses Drivers, Objects, Dos, Strings, HelpKernel, Advance;
+uses LFN, {DataCompBoy}
+     Drivers, Objects, Dos, Strings, HelpKernel, advance, advance1, advance2,
+     advance3;
 
 {======================= File Management ===============================}
 
@@ -138,9 +144,9 @@ procedure Error(Text: String); forward;
 type
   PProtectedStream = ^TProtectedStream;
   TProtectedStream = object(TBufStream)
-    FileName: FNameStr;
+    FileName: String; {DataCompBoy}
     Mode: Word;
-    constructor Init(AFileName: FNameStr; AMode, Size: Word);
+    constructor Init(AFileName: String; AMode, ASize: Word); {DataCompBoy}
     destructor Done; virtual;
     procedure Error(Code, Info: Integer); virtual;
   end;
@@ -152,24 +158,26 @@ var
 const
   HelpStrm: PProtectedStream = nil;
 
-constructor TProtectedStream.Init(AFileName: FNameStr; AMode, Size: Word);
+constructor TProtectedStream.Init(AFileName: String; AMode, ASize: Word); {DataCompBoy}
 begin
-  inherited Init(AFileName, AMode, Size);
+  inherited Init(AFileName, AMode, ASize);
   FileName := AFileName;
   Mode := AMode;
 end;
 
+        {-DataCompBoy-}
 destructor TProtectedStream.Done;
 var
-  F: File;
+  F: lFile;
 begin
   inherited Done;
   if (Mode = stCreate) and ((Status <> stOk) or (ExitCode <> 0)) then
   begin
-    Assign(F, FileName);
-    Erase(F);
+    lAssignFile(F, FileName);
+    lEraseFile(F);
   end;
 end;
+        {-DataCompBoy-}
 
 procedure TProtectedStream.Error(Code, Info: Integer);
 begin
@@ -193,14 +201,19 @@ end;
 {  Returns a string with Str uppercased.                                }
 {-----------------------------------------------------------------------}
 
+        {-DataCompBoy-} {!Russian support!}{letter "ё" (yo) NOT supported!}
 function UpStr(Str: String): String;
 var
   I: Integer;
 begin
   for I := 1 to Length(Str) do
-    Str[I] := UpCase(Str[I]);
+   Case Str[i] of
+    'a'..'z','а'..'п': Str[i]:=Char(Byte(Str[i])-$20);
+    'р'..'я': Str[i]:=Char(Byte(Str[i])-$50);
+   end;
   UpStr := Str;
 end;
+        {-DataCompBoy-}
 
 {----- ReplaceExt(FileName, NExt, Force) -------------------------------}
 {  Replace the extension of the given file with the given extension.    }
@@ -208,33 +221,35 @@ end;
 {  replaced anyway.                                                     }
 {-----------------------------------------------------------------------}
 
-function ReplaceExt(FileName: PathStr; NExt: ExtStr; Force: Boolean):
-  PathStr;
+        {-DataCompBoy-}
+function ReplaceExt(FileName: String; NExt: String; Force: Boolean): String;
 var
-  Dir: DirStr;
-  Name: NameStr;
-  Ext: ExtStr;
+  Dir: String;
+  Name: String;
+  Ext: String;
 begin
-  FileName := UpStr(FileName);
-  FSplit(FileName, Dir, Name, Ext);
+  lFSplit(FileName, Dir, Name, Ext);
   if Force or (Ext = '') then
     ReplaceExt := Dir + Name + NExt else
     ReplaceExt := FileName;
 end;
+        {-DataCompBoy-}
 
 {----- FExist(FileName) ------------------------------------------------}
 {  Returns true if the file exists false otherwise.                     }
 {-----------------------------------------------------------------------}
 
-function FExists(FileName: PathStr): Boolean;
+        {-DataCompBoy-}
+function FExists(FileName: String): Boolean;
 var
-  F: file;
+  F: lFile;
   Attr: Word;
 begin
-  Assign(F, FileName);
-  GetFAttr(F, Attr);
+  lAssignFile(F, FileName);
+  lGetFAttr(F, Attr);
   FExists := DosError = 0;
 end;
+        {-DataCompBoy-}
 
 
 {======================== Line Management ==============================}
@@ -576,12 +591,12 @@ function GetWord(var Line: String; var I: Integer): String;
 var
   J: Integer;
 const
-  WordChars = ['A'..'Z','a'..'z','0'..'9','_'];
+  {DataCompBoy} {!Russian support!}{letter "ё" (yo) NOT supported!}
+  WordChars = ['A'..'Z','a'..'z','А'..'Я','а'..'п','р'..'я','0'..'9','_'];
 
 procedure SkipWhite;
 begin
-  while (I <= Length(Line)) and (Line[I] = ' ') or (Line[I] = #8) do
-    Inc(I);
+  while (I <= Length(Line)) and (Line[I] = ' ') or (Line[I] = #9) do Inc(I);
 end;
 
 procedure SkipToNonWord;
@@ -1124,14 +1139,14 @@ const
   Footer: array[1..Length(FooterText)] of Char = FooterText;
 var
   I, Count: Integer;
-  Dir: DirStr;
-  Name: NameStr;
-  Ext: ExtStr;
+  Dir:  String; {DataCompBoy}
+  Name: String; {DataCompBoy}
+  Ext:  String; {DataCompBoy}
+  Line: String;
 
 procedure DoWriteSymbol(P: PReference); far;
 var
   L: array[0..1] of LongInt;
-  Line: String;
   I: Word;
 begin
   if (P^.Resolved) then
@@ -1140,7 +1155,7 @@ begin
     begin
       L[0] := LongInt(P^.Topic);
       L[1] := P^.Value;
-      FormatStr(Line, '  hc%-20s = %d;'#13#10, L);
+      FormatStr(Line, ' hc%-20s = %5d;'#13#10, L);
       SymbFile.Write(Line[1], Length(Line));
     end
   end
@@ -1149,7 +1164,7 @@ end;
 
 begin
   SymbFile.Write(Header1, SizeOf(Header1));
-  FSplit(SymbFile.FileName, Dir, Name, Ext);
+  lFSplit(SymbFile.FileName, Dir, Name, Ext); {DataCompBoy}
   SymbFile.Write(Name[1], Length(Name));
   SymbFile.Write(Header2, SizeOf(Header2));
 
@@ -1178,7 +1193,7 @@ end;
 var
   TextName,
   HelpName,
-  SymbName: PathStr;
+  SymbName: String; {DataCompBoy}
 
 procedure ExitClean; far;
 begin
@@ -1201,7 +1216,7 @@ begin
   if ParamCount < 1 then
   begin
     PrintStr(
-      #13#10 +
+      #13#10+
       '  Syntax:  TVHC <Help text>[.TXT] [<Help file>[.HLP] [<Symbol file>[.PAS]]'#13#10 +
       #13#10+
       '     Help text   = Help file source'#13#10 +
@@ -1227,6 +1242,103 @@ begin
 
   TextStrm.Init(TextName, stOpenRead, $8000);
   SymbStrm.Init(SymbName, stCreate,   $8000);
+        {-DataCompBoy-}
+  if ParamStr(ParamCount)='/4DN_OSP' then
+   begin
+    Line:='{/////////////////////////////////////////////////////////////////////////'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  Dos Navigator Open Source '+VersionName+''#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  Based on Dos Navigator (C) 1991-99 RIT Research Labs'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  This programs is free for commercial and non-commercial use as long as'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  the following conditions are aheared to.'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  Copyright remains RIT Research Labs, and as such any Copyright notices'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  in the code are not to be removed. If this package is used in a'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  product, RIT Research Labs should be given attribution as the RIT Research'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  Labs of the parts of the library used. This can be in the form of a textual'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  message at program startup or in documentation (online or textual)'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  provided with the package.'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  Redistribution and use in source and binary forms, with or without'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  modification, are permitted provided that the following conditions are'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  met:'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  1. Redistributions of source code must retain the copyright'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//     notice, this list of conditions and the following disclaimer.'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  2. Redistributions in binary form must reproduce the above copyright'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//     notice, this list of conditions and the following disclaimer in the'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//     documentation and/or other materials provided with the distribution.'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  3. All advertising materials mentioning features or use of this software'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//     must display the following acknowledgement:'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//     "Based on Dos Navigator by RIT Research Labs"'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  The licence and distribution terms for any publically available'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  version or derivative of this code cannot be changed. i.e. this code'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  cannot simply be copied and put under another distribution licence'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//  (including the GNU Public Licence).'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+    Line:='//////////////////////////////////////////////////////////////////////////}'#13#10;
+    SymbStrm.Write(Line[1],Length(Line));
+   end;
+        {-DataCompBoy-}
   HelpStrm := New(PProtectedStream, Init(HelpName, stCreate, $8000));
-  ProcessText(TextStrm, HelpStrm^, SymbStrm);
+  ProcessText(TextStrm, PProtectedStream(HelpStrm)^, SymbStrm);
 end.

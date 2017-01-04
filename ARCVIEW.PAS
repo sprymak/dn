@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,64 +43,70 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 Unit ArcView;
 
-Interface uses Dos,Objects,Views,Drivers,FViewer,FlPanel,FilesCol,DiskInfo,
+Interface uses LFN, {DataCompBoy} LFNCol,
+               Dos,Objects,Views,Drivers,FViewer,FlPanel,FilesCol,DiskInfo,
                DblWnd,HistList,HideView,RStrings,Drives,Commands,Archiver,
-               FStorage, ObjType, Advance;
+               FStorage, ObjType, advance, advance1, advance2, advance3;
 const
-    DirToChange: PathStr = '';
+    DirToChange: String = ''; {DataCompBoy}
 
 type
     PArcDrive = ^TArcDrive;
     TArcDrive = object(TDrive)
-     ArcName: PathStr;
-     AType: PARJArchive;
-     Files: PDirStorage;
-     KillAfterUse: Boolean;
-     ArcDate: LongInt;
+     ArcName:     String; {DataCompBoy}
+     AType:       PARJArchive;
+     Files:       PDirStorage;
+     KillAfterUse:Boolean;
+     ArcDate:     LongInt;
      ForceRescan: Boolean;
-     Password: String;
-     constructor Init(const AName: String);
+     Password:    String;
+     constructor Init(const AName: String; viewmode: byte);
      constructor InitCol(PC: PDirStorage; const AName: String);
      constructor Load(var S: TStream);
-     procedure Store(var S: TStream);
-     procedure RereadDirectory(S: PathStr); virtual;
-     procedure KillUse; virtual;
-     function ReadArchive: Boolean;
-     procedure ChDir(ADir: PathStr); virtual;
-     function GetDir: PathStr; virtual;
-     function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
-                           var FreeSpace, TotalInfo: String ): PCollection; virtual;
-     function Exec(Prg, Cmd: String): Boolean;
-     procedure UseFile(P: PFileRec; Command: Word); virtual;
-     function MakeListFile(PC: PCollection): String;
-     procedure CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
-     procedure CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
-     procedure EraseFiles(AFiles: PCollection); virtual;
-     {procedure GetDown(var B; C: Word; P: PFileRec); virtual;}
-     procedure GetFull(var B; P: PFileRec; C, AFlags: Word); virtual;
-     procedure GetEmpty(var B; C, AFlags: Word); virtual;
-     function CalcLength(AFlags: Word): Integer; virtual;
-     function GetRealName: String; virtual;
-     procedure MakeTop(var S: String; AFlags: Word); virtual;
-     procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
-     procedure MakeDir; virtual;
-     function isUp: Boolean; virtual;
-     procedure ChangeUp(var S: String); virtual;
-     procedure ChangeRoot; virtual;
-     procedure ExtractFiles(AFiles: PCollection; ExtrDir: PathStr; Own: PView; Options: Byte);
-     procedure GetFreeSpace(var S: String); virtual;
-     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
-     function  GetFullFlags: Word; virtual;
-     procedure GetDirLength(PF: PFileRec); virtual;
-     destructor Done; virtual;
-     procedure StdMsg4;
+     procedure   Store(var S: TStream); virtual;
+     procedure   RereadDirectory(S: String); virtual; {DataCompBoy}
+     procedure   KillUse; virtual;
+     function    ReadArchive: Boolean;
+     procedure   lChDir(ADir: String); virtual; {DataCompBoy}
+     function    GetDir: String; virtual;
+     function    GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
+                              var FreeSpace, TotalInfo: String ): PCollection; virtual;
+     function    Exec(Prg, Cmd: String): Boolean;
+     procedure   UseFile(P: PFileRec; Command: Word); virtual; {DataCompBoy}
+     function    MakeListFile(PC: PCollection): String;
+     procedure   CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
+     procedure   CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
+     procedure   EraseFiles(AFiles: PCollection); virtual;
+     {procedure  GetDown(var B; C: Word; P: PFileRec); virtual;}
+     procedure   GetFull(var B; P:PFileRec; C, SC:Word); virtual;{DataCompBoy}
+     procedure   GetEmpty(var B; SC: Word); virtual;
+     function    CalcLength: Integer; virtual;
+     function    GetRealName: String; virtual;
+     procedure   MakeTop(var S: String); virtual;
+     procedure   HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
+     procedure   MakeDir; virtual;
+     function    isUp: Boolean; virtual;
+     procedure   ChangeUp(var S: String); virtual;
+     procedure   ChangeRoot; virtual;
+     procedure   ExtractFiles(AFiles: PCollection; ExtrDir: String; Own: PView; Options: Byte); {DataCompBoy}
+     procedure   GetFreeSpace(var S: String); virtual;
+     procedure   GetDirInfo(var B: TDiskInfoRec); virtual;
+     function    GetFullFlags: Word; virtual;
+     procedure   GetDirLength(PF: PFileRec); virtual; {DataCompBoy}
+     procedure   GetParam(n: byte); virtual; {DataCompBoy}
+     destructor  Done; virtual;
+     procedure   StdMsg4;
     end;
 
-    function ArcViewer(AName : PathStr): Boolean;
+    function ArcViewer(AName : String; num: byte): Boolean; {DataCompBoy}
     procedure StdMsg(MsgNo: Byte);
 
 const
@@ -109,7 +115,8 @@ const
 type
     PFInfo     = ^TFInfo;
     TFInfo     = Record
-                  FName   : PathStr;
+                  LFN     : String; {DataCompBoy}
+                  FName   : String;
                   USize   : LongInt;
                   PSize   : LongInt;
                   Date    : LongInt;
@@ -156,7 +163,7 @@ var
 begin
  Application^.Redraw;
  case MsgNo of
-  4 : MessageBox(GetString(dlArcMsg4)+Cut(ArcFileName,40),NIL,mfOkButton or mfError);
+  4 : MessageBox(GetString(dlArcMsg4)+''''+Cut(ArcFileName,40)+'''',NIL,mfOkButton or mfError);
   5 : Msg(dlArcMsg5,NIL,mfOkButton or mfInformation);
   1, 6, 7:
    begin
@@ -172,55 +179,91 @@ end;
 
 procedure TArcDrive.StdMsg4;
 begin
-  if TempFile <> '' then TEMPFile := ''; StdMsg(4); Abort := On;
+  if TempFile <> '' then TempFile := ''; StdMsg(4); Abort := On;
 end;
 
+        {-DataCompBoy-}
+procedure TArcDrive.GetParam;
+begin
+ Param:=n;
+ with ColumnsDefaultsArch do
+  begin
+   Flags := Params[n].Param;
+   LFNLen:=StoI(Params[n].LFNLen);
+   EXTLen:=StoI(Params[n].EXTLen);
+   case FileCase of
+    0: FilFLP := 0;
+    1: FilFLP := flnLowCase;
+    2: FilFLP := flnCapitalCase;
+    3: FilFLP := flnUpCase;
+    4: FilFLP := 65535;
+   end;
+   case DirsCase of
+    0: DirFLP := 0;
+    1: DirFLP := flnLowCase;
+    2: DirFLP := flnCapitalCase;
+    3: DirFLP := flnUpCase;
+    4: DirFLP := 65535;
+   end;
+  end;
+end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 constructor TArcDrive.Init;
- var SR: SearchRec;
-     Nm: NameStr;
-     Xt: ExtStr;
+ var SR: lSearchRec;
+     Nm: String;
+     Xt: String;
 begin
  TObject.Init;
- Flags := ColumnsDefaults.Arc;
- ArcName := FExpand(AName);
- FSplit(ArcName, FreeStr, Nm, Xt);
+ if viewmode<1 then GetParam(1)
+               else GetParam(viewmode);
+ innum:=viewmode;
+ ArcName := lFExpand(AName);
+ lFSplit(ArcName, FreeStr, Nm, Xt);
  if Xt = '' then AddStr(ArcName, '.');
- FindFirst(ArcName, $3F xor VolumeID, SR);
+ lFindFirst(ArcName, $3F xor VolumeID, SR);
  if DosError <> 0 then
  begin
    ArcFileName := ArcName;
    StdMsg4;
+   lFindClose(SR);
    Fail
  end;
- ArcDate := SR.Time;
+ ArcDate := SR.SR.Time;
  DriveType := dtArc;
  if not ReadArchive or (Files = nil) then Fail;
  KillAfterUse := TempFile <> '';
  TempFile := '';
  Password := '';
  CurrentArchive := AType;
+ lFindClose(SR);
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 constructor TArcDrive.InitCol;
- var SR: SearchRec;
- var  Dr: PathStr;
-      Nm: NameStr;
-      Xt: ExtStr;
+ var SR: lSearchRec;
+ var  Dr: String;
+      Nm: String;
+      Xt: String;
 begin
  TObject.Init;
- Flags := ColumnsDefaults.Arc;
- ArcName := FExpand(AName);
- FindFirst(ArcName, $3F xor VolumeID, SR);
- ArcDate := SR.Time;
+ GetParam(1);
+ ArcName := lFExpand(AName);
+ lFindFirst(ArcName, $3F xor VolumeID, SR);
+ ArcDate := SR.SR.Time;
+ lFindClose(SR);
  DriveType := dtArc;
  Files := PC;
  if (Files = nil) then Fail;
  KillAfterUse := TempFile <> '';
  TempFile := '';
  Password := '';
- FSplit(UpStrg(ArcName), Dr, Nm, Xt);
- ArcFile.Init(ArcName, stOpenRead, 512);
+ lFSplit(ArcName, Dr, Nm, Xt);
+ if ExistFile(ArcName) then
+  ArcFile.Init(ArcName, stOpenRead, 512)
+ else ArcFile.Status:=stInitError;
  ArcFileName := ArcName;
  if ArcFile.Status <> stOK then begin
    StdMsg(4);
@@ -233,12 +276,14 @@ begin
  AType := DetectArchive;
  ArcFile.Done;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 constructor TArcDrive.Load;
- var  Dr: PathStr;
-      Nm: NameStr;
-      Xt: ExtStr;
-      SR: SearchRec;
+ var  Dr: String;
+      Nm: String;
+      Xt: String;
+      SR: lSearchRec;
 label
   Failure;
 begin
@@ -251,11 +296,12 @@ begin
  Files := PDirStorage(S.Get);
  ForceRescan := Off;
  DriveType := dtArc;
- FSplit(UpStrg(ArcName), Dr, Nm, Xt);
+ lFSplit(ArcName, Dr, Nm, Xt);
  ArcFileName := ArcName;
- FindFirst(ArcName, $3F xor VolumeID, SR);
+ lFindFirst(ArcName, $3F xor VolumeID, SR);
+ lFindClose(SR);
  if DosError <> 0 then goto Failure;
- ArcDate := SR.Time;
+ ArcDate := SR.SR.Time;
  ArcFile.Init(ArcName, stOpenRead, 512);
  if ArcFile.Status <> stOK then begin
    ArcFile.Done;
@@ -272,6 +318,7 @@ begin
  if AType = nil then goto Failure;
  S.Read(ForceRescan, 1);
 end;
+        {-DataCompBoy-}
 
 procedure TArcDrive.KillUse;
 begin
@@ -296,21 +343,24 @@ begin
  inherited Done;
 end;
 
+        {-DataCompBoy-}
 Function TArcDrive.ReadArchive;
 var PF : PArcFile;
     i  : Integer;
     ev : TEvent;
     P  : PWhileView;
     R  : TRect;
-    Dr: PathStr;
-    Nm: NameStr;
-    Xt: ExtStr;
-    Ln: LongInt;
+    Dr : String;
+    Nm : String;
+    Xt : String;
+    tmp: String;
+    Ln : LongInt;
     Cancel: Boolean;
     T: TEventTimer;
+    olf: String;
 begin
  ReadArchive:=Off;
- FSplit(UpStrg(ArcName), Dr, Nm, Xt);
+ lFSplit(ArcName, Dr, Nm, Xt);
  ArcFile.Init(ArcName, stOpenRead, 512);
  ArcFileName := ArcName;
  if ArcFile.Status <> stOK then
@@ -333,6 +383,7 @@ begin
  Cancel := Off; PReader := nil;
  Inc(SkyEnabled);
  NewTimer(T, 3);
+ if StartupData.Slice2 and osuReleaseArch = 0 then Application^.FullSpeed:=True;
  Repeat
   if TimerExpired(T) then
     begin
@@ -352,11 +403,17 @@ begin
   if FileInfo.Last=0 then
      begin
       DelLeft(FileInfo.FName);
-      if FileInfo.FName[1] <> '\' then FileInfo.FName := '\' + FileInfo.FName;
-      Replace('/', '\', FileInfo.FName); UpStr(FileInfo.FName);
-      if FileInfo.Attr and 1 <> 0 then FileInfo.Attr := FileInfo.Attr or Hidden;
-      Files^.AddFile(FileInfo.FName, FileInfo.USize, FileInfo.PSize,
-                     FileInfo.Date, FileInfo.Attr);
+      if not (FileInfo.FName[1] in ['\','/']) then FileInfo.FName := '\' + FileInfo.FName;
+      Replace('/', '\', FileInfo.FName); FileInfo.FName:=UpStrg(FileInfo.FName);
+      olf:=GetLFN(FileInfo.LFN);
+      DelLFN(FileInfo.LFN);
+      if not (olf[1] in ['\','/']) then olf:='\'+olf; Replace('/', '\', olf);
+{attribute "Hidden" means "with password"}
+      Files^.AddFile(olf,  FileInfo.FName, FileInfo.USize,
+                     FileInfo.PSize,FileInfo.Date,  FileInfo.Attr);
+      if (FileInfo.Attr and Directory<>0) or (olf[length(olf)]='\') then
+       Files^.AddFile(MakeNormName(olf,'..'),  MakeNormName(FileInfo.FName, '..'),
+                      FileInfo.USize,FileInfo.PSize,FileInfo.Date, 0);
       if (P <> nil) and  TimerExpired(T) then
         begin
           DispatchEvents(P, Cancel);
@@ -364,6 +421,7 @@ begin
         end;
      end;
  until (FileInfo.Last>0) or LowMemory;
+ if StartupData.Slice2 and osuReleaseArch = 0 then Application^.FullSpeed:=False;
  Dec(SkyEnabled);
  if P <> nil then P^.Free;
  ArcFile.Done;
@@ -371,58 +429,66 @@ begin
  ReadArchive:=On;
  if Files^.Files=0 then begin StdMsg(7);ReadArchive:=Off;end;
 end;
+        {-DataCompBoy-}
 
-procedure TArcDrive.ChDir;
- var Dr: DirStr;
-     Nm: NameStr;
-     Xt: ExtStr;
+        {-DataCompBoy-}
+procedure TArcDrive.lChDir;
+ var Dr: String;
+     Nm: String;
+     Xt: String;
 begin
  CurrentArchive := AType;
  if ADir = #0 then Exit;
- While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
+ While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
  if ADir[1] = '.' then
   begin
-   if CurDir <> '' then While (CurDir <> '') and (CurDir[Length(CurDir)] <> '\') do Dec(CurDir[0])
-                   else Advance.ChDir(GetPath(ArcName));
+   if CurDir <> '' then While (CurDir <> '') and (not(CurDir[Length(CurDir)] in ['\','/'])) do Dec(CurDir[0])
+                   else Advance2.lChDir(GetPath(ArcName));
    Exit;
   end;
- FSplit(ADir, Dr, Nm, Xt);
+ lFSplit(ADir, Dr, Nm, Xt);
  if Xt = '..' then
   begin
    CurDir := Dr;
-   repeat Dec(CurDir[0]) until (CurDir = '') or (CurDir[Length(CurDir)] = '\');
+   while (CurDir <> '') and not (CurDir[Length(CurDir)] in ['\','/']) do
+    Dec(CurDir[0]);
   end else CurDir := ADir;
- While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
+ While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 function TArcDrive.GetDir;
  var Dr: String;
-     Nm: NameStr;
-     Xt: ExtStr;
+     Nm: String;
+     Xt: String;
 begin
- While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
- if (Length(CurDir)>0) and (CurDir[1]<>'\') then CurDir := '\' + CurDir;
- FSplit(ArcName, Dr, Nm, Xt);
- GetDir := AType^.GetSign+Copy(Dr,1,2)+Nm+Xt+CurDir;;
+ While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
+ if (Length(CurDir)>0) and (not (CurDir[1] in ['\','/'])) then CurDir := '\' + CurDir;
+ lFSplit(ArcName, Dr, Nm, Xt);
+ GetDir := AType^.GetSign+Copy(Dr,1,2)+Nm+Xt+CurDir;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 function TArcDrive.GetDirectory;
  var F: PFileRec;
      FA: PArcFile;
      I: Integer;
-     Dr: PathStr;
-     Nm: NameStr;
-     Xt: ExtStr;
+     si:integer;
+     Dr: String;
+     Nm: String;
+     Xt: String;
      DT: DateTime;
      AllFiles: Boolean;
      AFiles, FF, FD: PFilesCollection;
      TTL, TPL: TSize;
-     _USize, _PSize: LongInt;
+     _USize, _PSize: TSize;
      FR: TFileRec;
      OW: Pointer;
 
 begin
- While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
+ While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
  AFiles := New(PFilesCollection, Init(Files^.Files, 10));
  FD := New(PFilesCollection, Init(40, 10));
  PFilesCollection(AFiles)^.Owner := Owner;
@@ -430,45 +496,49 @@ begin
  FreeSpace := ''; TotalInfo := ''; TTL := 0; TPL := 0;
  GetDirectory := AFiles; AllFiles := FileMask = x_x;
  FD^.SortMode := 141;
- AFiles^.Duplicates := True;
+ AFiles^.Duplicates := False;
  Files^.ResetPointer('');
  While not Files^.Last and Files^.GetNextFile and (MaxAvail > LowMemSize) do
   begin
     _USize := Files^.CurFile.Size;
     _PSize := Files^.CurFile.CSize;
-    if (CurDir + '\' = Files^.LastDir) and (AllFiles or InFilter(Files^.CurFile.Name, FileMask)) then
+    if (UpStrg(CurDir + '\') = UpStrg(Files^.LastDir)) and (AllFiles or InFilter(Files^.CurFile.LFN, FileMask)) then
       begin
         if Files^.CurFile.Name = '' then Continue;
+        if Files^.CurFile.Name = '..' then Continue;
         with Files^.CurFile do
-        F := NewFileRec(Name, _USize, Date, Attr, @CurDir);
+         F := NewFileRec(LFN, GetURZ(Name), _USize, Date, Attr, @CurDir);
         F^.PSize := _PSize;
         TTL := TTL + _USize;
         TPL := TPL + _PSize;
-      end else if (CurDir+'\' = Copy(Files^.LastDir, 1, Length(CurDir)+1)) then
+      end else if (UpStrg(CurDir+'\') = UpStrg(Copy(Files^.LastDir, 1, Length(CurDir)+1))) then
               begin
                 Dr := Copy(Files^.LastDir, Length(CurDir)+2, 255);
                 I := PosChar('\', Dr); if I = 0 then I := Length(Dr)+1;
-                Dr[0] := Char(I-1); UpStr(Dr);
+                Dr[0] := Char(I-1);
                 if Dr = '' then Continue;
                 FillChar(FR, SizeOf(FR), 0);
-                FR.Name := Norm12(Dr); FR.Name[9] := ' '; FR.Attr := Directory;
+                FR.Name := Norm12(GetURZ(Dr)); FR.Name[9] := ' ';
+                FR.LFN := AddLFN(Dr);
+                FR.Attr := Directory;
                 I := FD^.IndexOf(@FR);
                 if I >= 0 then
                  with PFileRec(FD^.At(I))^ do
                   begin
-                    Inc(Size, _USize);
-                    Inc(PSize, _PSize);
+                    Size:=Size+_USize;
+                    PSize:=PSize+_PSize;
                     TTL := TTL + _USize;
                     TPL := TPL + _PSize;
                     Continue;
                   end;
-                F := NewFileRec(Dr, _USize, ArcDate, $80 or Directory, @CurDir);
+                F := NewFileRec(Dr, GetURZ(Dr), _USize, ArcDate, $80 or Directory, @CurDir);
                 F^.PSize := _PSize;
                 TTL := TTL + _USize;
                 TPL := TPL + _PSize;
                 FD^.Insert(F);
               end else Continue;
-      AFiles^.Insert(F);
+      if AFiles^.Search(F,si) then DelFileRec(F)
+                              else AFiles^.Insert(F);
   end;
  if MaxAvail <= LowMemSize then
  begin
@@ -479,19 +549,21 @@ begin
  TotalInfo := CalcTotalInfo(AFiles^.Count, AFiles^.Count, TTL);
 
  if CurDir = '' then OW := @ArcName else OW := @CurDir;
- if TTL > MaxLongInt then F := NewFileRec('..',0, ArcDate, Directory, OW) else
+ if TTL > MaxLongInt then F := NewFileRec('..', '..',0, ArcDate, Directory, OW) else
  begin
-   F := NewFileRec('..',Round(TTL), ArcDate, Directory, OW);
-   F^.Attr := $80 or F^.Attr;
+   F := NewFileRec('..','..',Round(TTL), ArcDate, Directory, OW);
+   F^.Attr := $8000 or F^.Attr;
  end;
  if TPL < MaxLongInt then F^.PSize := Round(TPL);
  FF^.AtInsert(0, F);
  FD^.DeleteAll; Dispose(FD, Done);
  GetDirectory := FF;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TArcDrive.UseFile;
- var SS, S: String;
+ var SS, S, S2: String;
      C: Char;
      ExecOK: Boolean;
 begin
@@ -513,23 +585,27 @@ begin
      if ExecResource( dlgSetPassword, S ) <> cmOK then Exit;
      S := ' ' + DelSpaces(CnvString(AType^.Garble) + S) + ' ';
     end;
-   SS := MakeNormName(P^.Owner^, MakeFileName(P^.Name));
+   SS := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
    if SS[1] = '\' then DelFC(SS);
-   S := CnvString(AType^.Extract)+' '+s+ArcName+' '+SS+' ';
+   S := CnvString(AType^.Extract)+' '+s+lfGetShortFileName(ArcName)+' '+SquashesName(SS)+' ';
    DelDoubles('  ',S);
-   SS := MakeFileName(P^.Name);
-   TempFile := C + MakeNormName(TempDir , SS);
-   System.GetDir(0, DirToChange);
-   Advance.ChDir(TempDir);
-   ExecOK := Exec(CnvString(AType^.unPacker),s);
-   Advance.ChDir(DirToChange); DirToChange := '';
+   TempFile := C + MakeNormName(TempDir , GetLFN(P^.LFN));
+   S2:=Copy(TempFile,2,255); ExecOK:=True;
+   if not ExistFile(S2) or (PackedDate(P)<>FileTime(S2)) then
+   begin
+    lGetDir(0, DirToChange);
+    Advance2.lChDir(TempDir);
+    ExecOK := Exec(CnvString(AType^.unPacker),s);
+    Advance2.lChDir(DirToChange); DirToChange := '';
+   end;
    if ExecOK then
    begin
-     TempFile := MakeNormName(TempDir, SS);
+     TempFile := MakeNormName(TempDir, GetLFN(P^.LFN));
      While TempFile[Length(TempFile)] = ' ' do Dec(TempFile[0]);
      Message(Application, evCommand, Command, @TempFile);
    end;
 end;
+        {-DataCompBoy-}
 
 function TArcDrive.Exec;
  var S: String;
@@ -567,7 +643,7 @@ begin
   SwapVectors;
   DOS.Exec(S,Cmd); DE := DosError; ClrIO;
   SwapVectors;
-  EraseFile(SwpDir+'$$$DN$$$.LST');
+  EraseFile(SwpDir+'$$$DN$$$.LST'); {DataCompBoy}
   InitDOSMem;
   InitMemory;
   SetVideoMode(ScreenMode); SM := ScreenMode;
@@ -594,18 +670,18 @@ begin
   if CurDir <> '' then
    begin
      S := GetName(CurDir);
-     ChDir('..');
+     lChDir('..');
      Exit
    end;
   if Owner = nil then Exit;
   if Prev = nil then
    begin
-     New(Prev, Init(0, Owner, Flags));
+     New(Prev, Init(0, Owner, innum));
      if Prev = nil then Exit;
      {Prev^.Owner := Owner;}
    end;
   PFilePanel(Owner)^.Drive := Prev;
-  Prev^.ChDir(Prev^.CurDir);
+  Prev^.lChDir(Prev^.CurDir);
   if (Prev^.DriveType = dtDisk) and
      (PView(Owner)^.GetState(sfSelected+sfActive)) then
       ActivePanel := Owner;
@@ -621,25 +697,27 @@ begin
  CurDir := '';
 end;
 
+        {-DataCompBoy-}
 function TArcDrive.MakeListFile;
- var F: Text;
+ var F: lText;
      PF: PFileRec;
      PA: PArcFile;
      I: Integer;
-     S, S1: String[120];
+     S, S1: String;
      B: Boolean;
 
   procedure PutDir(SS: String);
    var I: Integer;
-       S1: String[120];
+       S1: String;
   begin
-   if SS[Length(SS)] <> '\' then AddStr(SS, '\'); UpStr(SS);
+   if not (SS[Length(SS)] in ['\','/']) then AddStr(SS, '\');
    Files^.ResetPointer('');
    while not Files^.Last and Files^.GetNextFile do
      if (SS = Copy(Files^.LastDir, 1, Length(SS))) and (Files^.CurFile.Name <> '') then
       begin
-        S1 := Files^.LastDir + Files^.CurFile.Name; if S1[1] = '\' then DelFC(S1);
-        if B then S := S + ' ' + S1 else WriteLn(F, S1);
+        S1 := Files^.LastDir + Files^.CurFile.LFN;
+        if S1[1] in ['\','/'] then DelFC(S1);
+        if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1);
       end;
   end;
 
@@ -648,33 +726,35 @@ begin
  if B then S := '' else
   begin
    S := SwpDir + '$$$DN$$$.LST';
-   Assign(F, S); ClrIO;
-   Rewrite(F);
+   lAssignText(F, S); ClrIO;
+   lRewriteText(F);
    B := IOResult <> 0;
    if B then S := '' else S := AType^.ListChar + S;
   end;
  for I := 0 to PC^.Count - 1 do
   begin
    PF := PC^.At(I);
-   S1 := MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
-   if S1[1] = '\' then DelFC(S1);
+   S1 := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
+   if S1[1] in ['\','/'] then DelFC(S1);
    if PF^.Attr and Directory = 0
-      then if B then S := S + ' ' + S1 else WriteLn(F, S1)
+      then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1)
       else PutDir('\'+S1+'\');
    MakeListFile := S;
    if S[0] > #100 then Exit;
   end;
  MakeListFile := S;
- if not B then Close(F);
+ if not B then Close(F.T);
 end;
+        {-DataCompBoy-}
 
-procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: PathStr;
+        {-DataCompBoy-}
+procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
                                   Own: PView; Options: Byte);
- var SS, S: String[128];
-     DT: Record S: String[70]; W: Word; Psw: String[30]; end;
-     ExtrChar: String[20];
-     Nm: NameStr;
-     Xt: ExtStr;
+ var SS, S: String;
+     DT: Record S: String; W: Word; Psw: String[30]; end;
+     ExtrChar: String;
+     Nm: String;
+     Xt: String;
      Pswd: Boolean;
 
  procedure UnSelect(P: PFileRec); far;
@@ -685,8 +765,8 @@ procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: PathStr;
 
 begin
   While ExtrDir[Length(ExtrDir)] = ' ' do Dec(ExtrDir[0]);
-  if (ExtrDir = '') or (ExtrDir = '..') then FSplit(ArcName, ExtrDir, Nm, Xt);
-  if ExtrDir[Length(ExtrDir)] <> '\' then ExtrDir := ExtrDir + '\';
+  if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(lfGetShortFileName(ArcName), ExtrDir, Nm, Xt);
+  if not (ExtrDir[Length(ExtrDir)] in ['\','/']) then ExtrDir := ExtrDir + '\';
 
   SS := MakeListFile(AFiles);
   S := ' '; Pswd := Off;
@@ -697,22 +777,24 @@ begin
   if (Password = '') and Pswd then
     if ExecResource(dlgSetPassword, Password) <> cmOK then Exit;
   if Password <> '' then S := ' ' + DelSpaces(CnvString(AType^.Garble) + Password) + ' ';
-  S := ExtrChar+' '+s+ArcName+' '+SS+' ';
-  System.GetDir(0, DirToChange);
+  S := ExtrChar+' '+s+lfGetShortFileName(ArcName)+' '+SS+' ';
+  lGetDir(0, DirToChange);
   CreateDirInheritance(ExtrDir, On);
-  Advance.ChDir(ExtrDir);
+  Advance2.lChDir(ExtrDir);
   DelDoubles('  ', S);
   Exec(CnvString(AType^.unPacker),s);
-  Advance.ChDir(DirToChange); DirToChange := '';
+  Advance2.lChDir(DirToChange); DirToChange := '';
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TArcDrive.CopyFiles;
- var SS, S: String[128];
-     DT: Record S: String[70]; W: Word; Psw: String[30]; end;
-     ExtrDir: PathStr;
-     ExtrChar: String[20];
-     Nm: NameStr;
-     Xt: ExtStr;
+ var SS, S: String;
+     DT: Record S: String; W: Word; Psw: String[30]; end;
+     ExtrDir: String;
+     ExtrChar: String;
+     Nm: String;
+     Xt: String;
 begin
   S := ' ';
   ExtrDir := '';
@@ -728,20 +810,22 @@ begin
   CopyDirName := '';
   if not SkipCopyDialog then
      if ExecResource( dlgExtract, DT) <> cmOK then Exit;
-   if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
+  if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
   ExtractWithPathNames:=(DT.W and 1) <> 0;
   SkipCopyDialog := Off;
   ExtrDir := DT.S;
   Password := DT.Psw;
   ExtractFiles(AFiles, ExtrDir, Own, DT.W);
 end;
+        {-DataCompBoy-}
 
 procedure TArcDrive.MakeDir;
 begin
 end;
 
+        {-DataCompBoy-}
 procedure TArcDrive.EraseFiles;
- var SS, S: String[128];
+ var SS, S: String;
      PF: PFileRec;
      J, I: Word;
      O: PView;
@@ -750,7 +834,7 @@ begin
   if AFiles^.Count = 0 then Exit;
   if AFiles^.Count = 1 then
    begin PF := AFiles^.At(0);
-         S := GetString(dlEraseConfirm1) + MakeFileName(PF^.Name) + ' ?'; end
+         S := GetString(dlEraseConfirm1) + GetLFN(PF^.LFN) + ' ?'; end
   else S := GetString(dlEraseConfirms1);
   I := MessageBox(S,nil,mfConfirmation+mfYesButton+mfNoButton{+mfFastButton});
   if (I <> cmYes) then Exit;
@@ -761,7 +845,7 @@ begin
     if (J <> cmYes) then Exit;
    end;
   SS := MakeListFile(AFiles);
-  S := CnvString(AType^.Delete)+' '+ArcName+' '+SS;
+  S := CnvString(AType^.Delete)+' '+lfGetShortFileName(ArcName)+' '+SS;
   ForceRescan := True;
   Exec(CnvString(AType^.Packer),s);
   ForceRescan := Off;
@@ -776,126 +860,167 @@ begin
     end else
       PFilePanel(O)^.RereadDir;
 end;
+        {-DataCompBoy-}
 
 function TArcDrive.CalcLength;
 begin
- CalcLength := 13 +
-               (10 + CountryInfo.TimeFmt) * Byte(AFlags and psShowSize <> 0) +
-               11 * Byte(AFlags and psShowPacked <> 0) +
-                9 * Byte(AFlags and psShowDate <> 0) +
-               (7 - CountryInfo.TimeFmt) * Byte(AFlags and psShowTime <> 0) +
-                4 * Byte(AFlags and psShowRatio <> 0);
+ if Flags and psShowLongName <> 0 then
+  CalcLength := LFNLen + 1 +
+                (10 + CountryInfo.TimeFmt) * Byte(Flags and psShowSize <> 0) +
+                11 * Byte(Flags and psShowPacked <> 0) +
+                 9 * Byte(Flags and psShowDate <> 0) +
+                (7 - CountryInfo.TimeFmt) * Byte(Flags and psShowTime <> 0) +
+                 4 * Byte(Flags and psShowRatio <> 0)
+ else
+  CalcLength := 13 +
+                (10 + CountryInfo.TimeFmt) * Byte(Flags and psShowSize <> 0) +
+                11 * Byte(Flags and psShowPacked <> 0) +
+                 9 * Byte(Flags and psShowDate <> 0) +
+                (7 - CountryInfo.TimeFmt) * Byte(Flags and psShowTime <> 0) +
+                 4 * Byte(Flags and psShowRatio <> 0)
 end;
 
 procedure TArcDrive.MakeTop;
 begin
- S := GetString(dlTopName);
- if Flags and psShowSize <> 0 then S := S + Copy(GetString(dlTopOriginal),2-CountryInfo.TimeFmt,255);
- if Flags and psShowPacked <> 0 then S := S + GetString(dlTopPacked);
- if Flags and psShowRatio <> 0 then S := S + GetString(dlTopRatio);
- if Flags and psShowDate <> 0 then S := S + GetString(dlTopDate);
- if Flags and psShowTime <> 0 then S := S + Copy(' '+GetString(dlTopTime),1+CountryInfo.TimeFmt,255);
+ if Flags and psShowLongName <> 0 then S := CenterStr(GetString(dlTopLFN), LFNLen)+GetString(dlTopSplit)
+                                  else S:=GetString(dlTopName);
+ if Flags and psShowSize     <> 0 then S := S + Copy(GetString(dlTopOriginal),2-CountryInfo.TimeFmt,255);
+ if Flags and psShowPacked   <> 0 then S := S + GetString(dlTopPacked);
+ if Flags and psShowRatio    <> 0 then S := S + GetString(dlTopRatio);
+ if Flags and psShowDate     <> 0 then S := S + GetString(dlTopDate);
+ if Flags and psShowTime     <> 0 then S := S + Copy(' '+GetString(dlTopTime),1+CountryInfo.TimeFmt,255);
 end;
 
 procedure TArcDrive.GetFull;
 var
-  S,S1: String[40];
+  S: String;
+  S1: String[40];
   X: Byte;
+  NFM: TNameFormatMode;
+  OPT: Word;
 begin
+  if Flags and psShowLongName <> 0 then
+   begin
+    s:=GetLFN(P^.LFN);
+    NFM:=nfmNull;
+    if EXTLen=0
+     then OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes
+     else OPT:=flnHardExtArea or flnAutoHideDot or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes;
+    if P^.Selected then OPT:=OPT or flnSelected;
+    if P^.Attr and SysFile   <>0 then NFM:=nfmSystem;
+    if P^.Attr and Hidden    <>0 then NFM:=nfmHidden;
+    if P^.Attr and Directory <>0 then if DirFLP<>65535
+                                       then OPT:=OPT or DirFLP
+                                       else if (Length(GetSName(S))<=8) and
+                                               (Length(GetExt(S))<=4)
+                                             then OPT:=OPT or flnUpCase
+                                             else
+                                 else if FilFLP<>65535
+                                       then OPT:=OPT or FilFLP
+                                       else if (Length(GetSName(S))<=8) and
+                                               (Length(GetExt(S))<=4)
+                                             then OPT:=OPT or flnLowCase
+                                             else ;
+    S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
+   end
+  else
+   begin
+    NFM:=nfmNull;
+    OPT:=flnHardExtArea or flnAutoHideDot or flnPadRight or flnHighlight or flnHandleTildes;
+    if P^.Selected then OPT:=OPT+flnSelected;
+    if P^.Attr and SysFile<>0 then begin NFM:=nfmSystem; OPT:=OPT or flnCapitalCase end;
+    if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
+    if P^.Attr and Directory <>0 then OPT:=OPT or flnUpCase
+                                 else OPT:=OPT or flnLowCase;
+    S:=FormatLongName(MakeFileName(P^.Name), 12, 3, OPT, NFM, nil);
+   end;
+
+  X:=LFNLen;
+  MoveCStr(TWordArray(B), S, C);
+{{{{{{{{{{{{}
+  if P^.Selected then begin
+                       C:=C shr 8;
+                       SC:=SC and $00FF + C shl 8;
+                      end;
+  Inc(X);
+  TWordArray(B)[X-1]:=SC;
+  MakeDate(DateMode, P^.Day, P^.Month, P^.Yr, P^.Hour, P^.Minute, S1);
   if (P^.Size > 0) or (P^.Attr and Directory = 0)
     then S := FileSizeStr( P^.Size )
     else if P^.Name[1]= '.'
       then S := GetString( dlUpDir )
       else S := GetString( dlSubDir );
-  MakeDate(DateMode, P^.Day, P^.Month, P^.Yr, P^.Hour, P^.Minute, S1);
-  MoveStr(TWordArray(B), P^.Name, C);
-  if AFlags and psShowSize <> 0 then
+  if Flags and psShowSize <> 0 then
    begin
-    MoveStr(TWordArray(B)[22-Length(S)+CountryInfo.TimeFmt], S, C);
-    X := 23+CountryInfo.TimeFmt;
-   end else X := 13;
-  if AFlags and psShowPacked <> 0 then
+    MoveStr(TWordArray(B)[X+9-Length(S)+CountryInfo.TimeFmt], S, C);
+    X := X+10+CountryInfo.TimeFmt;
+    TWordArray(B)[X-1]:=SC;
+   end;
+  if Flags and psShowPacked <> 0 then
    begin
     Inc(X, 11);
     if PosChar('<',S) = 0 then S := FStr(P^.PSize);
     MoveStr(TWordArray(B)[X-Length(S)-1], S, C);
+    TWordArray(B)[X-1]:=SC;
    end;
-  if AFlags and psShowRatio <> 0 then
+  if Flags and psShowRatio <> 0 then
    begin
     Inc(X, 4);
     if PosChar('<',S) = 0 then
      begin
-      if P^.Size <> 0 then S := ItoS(Percent(P^.Size, P^.PSize))
+      if P^.Size <> 0 then S := ZtoS(Percent(P^.Size, P^.PSize))
                       else S := '100';
       S := PredSpace(S, 3);
      end else S := '';
     MoveStr(TWordArray(B)[X-Length(S)-1], S, C);
+    TWordArray(B)[X-1]:=SC;
    end;
-  if AFlags and psShowDate <> 0 then
+  if Flags and psShowDate <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S1,1,8), C);
     Inc(X, 9);
+    TWordArray(B)[X-1]:=SC;
    end;
-  if AFlags and psShowTime <> 0 then
+  if Flags and psShowTime <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S1,10,6), C);
     Inc(X, 7+CountryInfo.TimeFmt);
+    TWordArray(B)[X-1]:=SC;
    end;
 end;
 
 procedure TArcDrive.GetEmpty;
  var
-     X: Byte;
+  X: Byte;
 begin
-  C := C and $0FFF;
-  if AFlags and psShowSize <> 0 then
+  if Flags and psShowLongName <> 0 then X:=LFNLen+1 else X:=13;
+  TWordArray(B)[X-1]:=SC;
+  if Flags and psShowSize <> 0 then
    begin
-    TWordArray(B)[22+CountryInfo.TimeFmt] := (TWordArray(B)[23] and $F000) or C;
-    X := 23+CountryInfo.TimeFmt
-   end else X := 13;
-  if AFlags and psShowPacked <> 0 then
+    X := X+10+CountryInfo.TimeFmt;
+    TWordArray(B)[X-1]:=SC;
+   end;
+  if Flags and psShowPacked <> 0 then
    begin
-    TWordArray(B)[X+10] := (TWordArray(B)[X+10] and $F000) or C;
     Inc(X, 11);
+    TWordArray(B)[X-1]:=SC;
    end;
-  if AFlags and psShowRatio <> 0 then
+  if Flags and psShowRatio <> 0 then
    begin
-    TWordArray(B)[X+3] := (TWordArray(B)[X+3] and $F000) or C;
     Inc(X, 4);
+    TWordArray(B)[X-1]:=SC;
    end;
-  if AFlags and psShowDate <> 0 then
+  if Flags and psShowDate <> 0 then
    begin
-    TWordArray(B)[X+8] := (TWordArray(B)[X+8] and $F000) or C;
     Inc(X, 9);
+    TWordArray(B)[X-1]:=SC;
    end;
-  if AFlags and psShowTime <> 0 then
+  if Flags and psShowTime <> 0 then
    begin
-    TWordArray(B)[X+6-CountryInfo.TimeFmt] := (TWordArray(B)[X+5] and $F000) or C;
-    Inc(X, 7 - CountryInfo.TimeFmt);
+    Inc(X, 7+CountryInfo.TimeFmt);
+    TWordArray(B)[X-1]:=SC;
    end;
-  TWordArray(B)[12] := (TWordArray(B)[12] and $F000) or C;
 end;
-
-{procedure TArcDrive.GetDown;
- var FR: TFileRec;
-     S,S1: String[80];
-begin
-    FR := P^; FR.Name[9] := ' ';
-    if (FR.Attr and Directory = 0) or (PFilePanel(Owner)^.PanelFlags and pfShowLength <> 0) or
-       (FR.Size <> 0) then
-     begin
-      if (FR.Size < 0) or (FR.Size > 120000000) then S := '?'
-                                                else S := FStr(FR.Size);
-      if FR.Size = 0 then S1 := '100%' else S1 := ItoS((100*FR.PSize) div FR.Size) + '%';
-      S := S + #26 + FStr(FR.PSize) + '(' + S1 + ')';
-     end
-     else if FR.Name[1]= '.' then S := GetString( dlUpDir )
-                             else S := GetString( dlSubDir );
-    MakeDate(DateMode, FR.Day, FR.Month, FR.Year, FR.Hour, FR.Min, S1);
-    MoveStr(B, FR.Name, C);
-    MoveStr(TWordArray(B)[23-Length(S)],S , C);
-    MoveStr(TWordArray(B)[14],S+' '+S1, C);
-end;}
 
 function TArcDrive.GetRealName;
  var S: String;
@@ -968,17 +1093,18 @@ end;
 function ArcViewer;
  var P: PDrive;
      E: TEvent;
-     Dr: DirStr;
-     Nm: NameStr;
-     Xt: ExtStr;
+     Dr: String;
+     Nm: String;
+     Xt: String;
 begin
  ArcViewer := False;
- P := New(PArcDrive, Init(AName));
+ P := New(PArcDrive, Init(AName, num));
  if Abort then Exit;
  if P = nil then
    begin
-     FSplit(AName, Dr, Nm, Xt);
-     if UpStrg(XT) = '.TDR' then P := New(PArvidDrive, Init(AName));
+     lFSplit(AName, Dr, Nm, Xt);
+     if (UpStrg(XT) = '.TDR') or (UpStrg(XT) = '.AVT')
+      then P := New(PArvidDrive, Init(AName, num));
      if P = nil then Exit;
    end;
  E.What := evCommand;
@@ -1000,15 +1126,15 @@ end;
 
 procedure TArcDrive.GetDirInfo;
   var Fl: Integer;
-      PSz, USz: LongInt;
+      PSz, USz: TSize;
 
   procedure DoCount(P: PArcFile); far;
   begin
-    if (P <> nil) and (P^.FName^[Length(P^.FName^)] <> '\') then
+    if (P <> nil) and (not(P^.FName^[Length(P^.FName^)] in ['\','/'])) then
       begin
         Inc(Fl);
-        Inc(USz, P^.USize);
-        Inc(PSz, P^.PSize);
+        USz:=USz+P^.USize;
+        PSz:=PSz+P^.PSize;
       end;
   end;
 

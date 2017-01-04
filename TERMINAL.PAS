@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,18 +43,22 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
-
 {$F+}
 
 unit Terminal;
 
 interface
 
-uses Objects, Views, Scroller, Drivers, Dos, Memory, Menus, Messages,
-     Advance, Commands, DNApp, OOCOM, DNStdDlg, apPort, DNHelp,
-     OOZModem, OOXModem, OOYModem, OOKermit, OOAbsPcl, Dialogs, xTime,
-     ObjType;
+uses LFN, {DataCompBoy}
+     Objects, Views, Scroller, Drivers, Dos, Memory, Menus, Messages,
+     advance, advance1, advance2, advance3, Commands, DNApp, OOCOM,
+     DNStdDlg, apPort, DNHelp, OOZModem, OOXModem, OOYModem, OOKermit,
+     OOAbsPcl, Dialogs, xTime, ObjType;
 
 type
     PTerminalWindow = ^TTerminalWindow;
@@ -87,6 +91,9 @@ type
      CutRect, OldCutRect: TRect;
      ScrollTop, ScrollBot: Byte;
      UpdTimer: TEventTimer;
+     ProtocolDirToChange:String;    {DataCompBoy}
+     ProtocolFileRenameFrom:String; {DataCompBoy}
+     ProtocolFileRenameTo:String;   {DataCompBoy}
      constructor Init(var R: TRect; AHScroll, AVScroll: PScrollBar);
      constructor Load(var S: TStream);
      procedure Store(var S: TStream);
@@ -117,7 +124,7 @@ const Term: PTerminal = nil;
 const
      ANSIStr: String = '';
      AvatarStr: String = '';
-     LastCommand: String[80] = '';
+     LastCommand: String = '';
 
       RTerminalWindow: TStreamRec = (
        ObjType: otTerminalWindow;
@@ -137,28 +144,13 @@ const
        Load: @TPortInfo.Load;
        Store: @TPortInfo.Store);
 
-const {COMPort:  AbstractPortPtr = nil;
-      Modem:    AbstractModemPtr = nil;}
-      Protocol: AbstractProtocolPtr = nil;
+const Protocol: AbstractProtocolPtr = nil;
       CommandsHistory: PCollection = nil;
-
-{function InitModem: Boolean;}
 
 implementation
 
 uses Phones, RStrings, Startup, Microed, Gauge, ScrollBk,
      WinClp, ModemIO, FileCopy;
-
-
-{function InitModem;
-begin
- InitModem := True;
- if COMPort <> nil then Exit;
- COMPort := New(UARTPortPtr, InitFast(COM4, 1200));
- if COMPort = nil then begin InitModem := False; Exit; end;
- Modem := New(HayesModemPtr, Init(COMPort));
- Modem^.SetDialPulse;
-end;}
 
 constructor TPortInfo.Init;
 begin
@@ -310,6 +302,8 @@ begin
  if Dialer <> nil then Deregister(Dialer);
  RegisterToPrior(@Self);
  if Dialer <> nil then RegisterToPrior(Dialer);
+ Emulator := TerminalDefaults.Emulation;
+ TOptions := TerminalDefaults.Options;
 end;
 
 destructor TTerminal.Done;
@@ -321,7 +315,6 @@ begin
 end;
 
 procedure TTerminal.Store;
- var I,J: Word;
 begin
  inherited Store(S);
  S.Write(OutAttr, SizeOf(OutAttr));
@@ -427,15 +420,15 @@ end;
       I, J, K: LongInt;
  begin
   Info^.Write(1, GetString(dlTermProtocol)+ProtocolTypeString[AP^.GetProtocol]);
-  Info^.Write(3, GetString(dlTermProtocolFile) +AP^.GetFileName);
+  Info^.Write(3, GetString(dlTermProtocolFile)+AP^.GetFileName);
   I := AP^.GetBytesTransferred; J := AP^.GetFileSize;
-  Info^.Write(4, GetString(dlTermProtocolRece) + FStr(I) + ' of ' + FStr(J));
+  Info^.Write(4, GetString(dlTermProtocolRece) + FStr(I) + GetString(dlBytesOf) + FStr(J));
   if J = 0 then J := 1; K := Info^.Size.X - 4;
   Info^.Write(5, Copy(Strg(#219, (K * I) div J)+Strg(#177, K),1,K));
   K := AP^.GetElapsedTics;
-  if K > 0 then K := (I*18) div K else K := 0;
+  if (K>0) and (i-AP^.GetInitialFilePos>0) then K:=((I-AP^.GetInitialFilePos)*18) div K else K:=0;
   Info^.Write(6, GetString(dlTermProtocolErrors) + ItoS(AP^.GetTotalErrors) + ',  CPS : '+ItoS(K));
-  I := AP^.EstimateTransferSecs(J-I); J := I mod 3600;
+  if (K<>0) and (J-I>0) then I := (J-I) div K else I:=0;J := I mod 3600;
   Info^.Bottom := SStr(J div 60,2,'0')+':'+SStr(J mod 60,2,'0');
   if I > J then Info^.Bottom := ItoS(I div 3600) + ':'+Info^.Bottom;
   Info^.Bottom := GetString(dlTermProtocolEstimate) + Info^.Bottom;
@@ -453,13 +446,13 @@ end;
   Info^.Write(1, GetString(dlTermProtocol)+ProtocolTypeString[AP^.GetProtocol]);
   Info^.Write(3, GetString(dlTermProtocolFile)+AP^.GetFileName);
   I := AP^.GetBytesTransferred; J := AP^.GetFileSize;
-  Info^.Write(4, GetString(dlTermProtocolSent) + FStr(I) + ' of ' + FStr(J));
+  Info^.Write(4, GetString(dlTermProtocolSent) + FStr(I) + GetString(dlBytesOf) + FStr(J));
   if J = 0 then J := 1; K := Info^.Size.X - 4;
   Info^.Write(5, Copy(Strg(#219, (K * I) div J)+Strg(#177, K),1,K));
   K := AP^.GetElapsedTics;
-  if K > 0 then K := (I*18) div K else K := 0;
+  if (K>0) and (i-AP^.GetInitialFilePos>0) then K:=((I-AP^.GetInitialFilePos)*18) div K else K:=0;
   Info^.Write(6, GetString(dlTermProtocolErrors) + ItoS(AP^.GetTotalErrors) + ',  CPS : '+ItoS(K));
-  I := AP^.EstimateTransferSecs(J-I); J := I mod 3600;
+  if (K<>0) and (J-I>0) then I := (J-I) div K else I:=0;J := I mod 3600;
   Info^.Bottom := SStr(J div 60,2,'0')+':'+SStr(J mod 60,2,'0');
   if I > J then Info^.Bottom := ItoS(I div 3600) + ':'+Info^.Bottom;
   Info^.Bottom := GetString(dlTermProtocolEstimate) + Info^.Bottom;
@@ -513,13 +506,17 @@ procedure TTerminal.HandleEvent;
      P: Pointer;
      S: String;
 
+        {-DataCompBoy-}
  procedure Rece;
-  var Dr: PathStr;
-      Nm, Xt: NameStr;
+  var Dr: String;
+      Nm, Xt: String;
       II: PView;
       PA: AbortFunc;
       Timer: TEventTimer;
+      j : lFile;
  begin
+   ProtocolFileRenameFrom:='';
+   ProtocolFileRenameTo:='';
    DefProtocolOptions := DefProtocolOptions or apRTSLowForWrite;
    if Protocol <> nil then Exit;
    SetProtocol;
@@ -530,10 +527,11 @@ procedure TTerminal.HandleEvent;
       S := GetFileNameDialog(x_x, GetString(dlTermReceXmodem), GetString(dlFileName),
                           fdOKButton + fdHelpButton, 100);
      if S = '' then begin Dispose(Protocol, Done); Protocol := nil; Exit; end;
-     FSplit(FExpand(S), Dr, Nm, Xt);
-     Protocol^.SetDestinationDirectory(Dr);
-     Protocol^.SetReceiveFileName(Nm+Xt);
-
+     lFSplit(lFExpand(S), Dr, Nm, Xt);
+     Protocol^.SetDestinationDirectory(SystemData.Temp);
+     Protocol^.SetReceiveFileName(GetURZ(Nm+Xt));
+     ProtocolFileRenameFrom:=SystemData.Temp+GetURZ(Nm+Xt);
+     ProtocolFileRenameTo:=Dr+Nm+Xt;
     end else
       if TypeOf(Protocol^) = TypeOf(ZModemProtocol) then
            ZModemProtocolPtr(Protocol)^.SetFileMgmtOptions(On, Off, WriteCrc);
@@ -547,11 +545,19 @@ procedure TTerminal.HandleEvent;
    XferAborted := Off;
    PA := COMPort^.PR^.UserAbort;
    COMPort^.SetAbortFunc(AbortXfer);
+   lGetDir(0, ProtocolDirToChange);
+   lChDir(ModemSetup.Download);
    Protocol^.SetShowStatusProc(ShowReceInfo);
-   Protocol^.SetDestinationDirectory(ModemSetup.Download);
+   Protocol^.SetDestinationDirectory('.\');
    Inc(SkyEnabled);
    NewTimer(Timer, 0);
    Protocol^.ProtocolReceive;
+   lChDir(ProtocolDirToChange);
+   If ProtocolFileRenameFrom<>'' then
+    begin
+     lAssignFile(j, ProtocolFileRenameFrom);
+     lRenameFile(j, ProtocolFileRenameTo);
+    end;
    XferAborted := Off;
    Dispose(Protocol, Done);
    II := Info;
@@ -566,19 +572,24 @@ procedure TTerminal.HandleEvent;
    if (FMSetup.Options and fmoBeep <> 0) and
       (ElapsedTimeInSecs(Timer) > 30) then BeepAfterCopy;
  end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
  procedure Send;
   var II: PView;
       PA: AbortFunc;
       Timer: TEventTimer;
  begin
    if Protocol <> nil then Exit;
-    S := GetFileNameDialog(x_x, GetString(dlTermSendFile), GetString(dlFileName),
+   S := GetFileNameDialog(x_x, GetString(dlTermSendFile), GetString(dlFileName),
                         fdOKButton + fdHelpButton, 100);
    if S = '' then Exit;
+   S:=lfGetShortFileName(S);
    SetProtocol;
    if Protocol = nil then Exit;
-   Protocol^.SetFileMask(FExpand(S));
+   lGetDir(0, ProtocolDirToChange);
+   lChDir(GetPath(S));
+   Protocol^.SetFileMask(GetName(S));
    R.Assign(1,1,40,13);
    Info := New(PWhileView, Init(R));
    Info^.Options := Info^.Options or ofSelectable;
@@ -593,6 +604,7 @@ procedure TTerminal.HandleEvent;
    Protocol^.SetShowStatusProc(ShowSendInfo);
    NewTimer(Timer, 0);
    Protocol^.ProtocolTransmit;
+   lChDir(ProtocolDirToChange);
    II := Info;
    Info := nil;
    II^.Free;
@@ -607,6 +619,7 @@ procedure TTerminal.HandleEvent;
    if (FMSetup.Options and fmoBeep <> 0) and
        (ElapsedTimeInSecs(Timer) > 30) then BeepAfterCopy;
  end;
+        {-DataCompBoy-}
 
  procedure SendChar(C: Char);
  begin
@@ -662,11 +675,83 @@ procedure TTerminal.HandleEvent;
  end;
 
  procedure CE; begin ClearEvent(Event); end;
+{+......chemical's input point........+}
+procedure PutCursor(x,y:byte);
+   begin
+    Dec(x);
+    Dec(y);
+    asm
+      mov ah,02h
+      mov bh,0h
+      mov dh,y
+      mov dl,x
+      int 10h
+    end;
+   end;
+
+function GetMouseChar(x,y:integer):char;
+var
+T:TPoint;
+C:char;
+begin
+T:=CurPos;
+hidecursor;
+PutCursor(x+1,y+1);
+ asm
+     mov       ah,08
+     mov       bh,00
+     int       10h
+     mov       c,al
+ end;
+GetMouseChar:=C;
+Showcursor;
+CurPos:=T;
+end;
+
+procedure MouseToPort;
+var
+ R: TRect;
+ S: String;
+ I: Integer;
+begin
+ s:='';
+ Owner^.GetBounds(R);
+
+ if  (Event.Buttons and mbLeftButton <> 0) then
+  S:=GetMouseChar(event.where.x,event.where.y);
+
+ if  (Event.Buttons and mbRightButton <> 0) then
+  if GetMouseChar(event.where.x,event.where.y)<=' ' then
+  S:=GetMouseChar(event.where.x,event.where.y)
+  else
+  begin
+   repeat
+    if GetMouseChar(event.where.x,event.where.y) >' ' then
+     dec(event.where.x)
+   until (event.where.x<=R.A.X) or (GetMouseChar(event.where.x,event.where.y)<=' ');
+    inc(event.where.x);
+   repeat
+    s:=s+GetMouseChar(event.where.x,event.where.y);
+    inc(event.where.x);
+   until (Owner^.Size.X-2=event.where.x) or (GetMouseChar(event.where.x,event.where.y)<=' ');
+  end;
+
+ if Event.Double then
+  begin
+    SendChar(#13);
+    if TOptions and toENTERLF <> 0 then SendChar(#10);
+  end else SendString(S);
+ CE;
+end;
+{+......chemical's output point........+}
 
  procedure Setup;
  begin
-   ExecResource(dlgSetupTerminal, Emulator);
-   CE
+  CE;
+  If ExecResource( dlgSetupTerminal, TerminalDefaults ) <> cmOK then Exit;
+  Message(Application, evCommand, cmUpdateConfig, nil);
+  Emulator := TerminalDefaults.Emulation;
+  TOptions := TerminalDefaults.Options;
  end;
 
  procedure CmdHistory;
@@ -817,6 +902,7 @@ Rep:
 begin
  inherited HandleEvent(Event);
  case Event.What of
+  evMouseDown: MouseToPort;
   evBroadcast: case Event.Command of
                  cmSendTerminalString: begin
                                         SendString(PString(Event.InfoPtr)^);
@@ -1123,15 +1209,14 @@ procedure TTerminal.PutChar;
    MoveColor(WordRec(Buffer^[CurPos.X + CurPos.Y * BufSize.X - 1]).Hi, N, 32);
    DrawView;
  end;
-
+{DataCompBoy
  procedure AreaUp(X1, Y1, X2, Y2, N, Attr: Byte);
  begin
    if X2 >= BufSize.X then X2 := BufSize.X - 1;
    if Y2 >= BufSize.Y then Y2 := BufSize.Y - 1;
    if (X1 > X2) or (Y1 > Y2) then Exit;
-   {if N = 0 then}
  end;
-
+}
  procedure ScrollDown(N: Integer);
  begin
    {if not Emulator.Scroll then Exit;}
@@ -1542,7 +1627,6 @@ begin
   if (CurPos.Y < Delta.Y) then ScrollTo(0, 0);
   if (CurPos.Y > Delta.Y+Size.Y-1) then ScrollTo(0, CurPos.Y - Size.Y + 1);
 end;
-
 
 procedure TTerminal.Update;
  const S = '**'^X'B00';

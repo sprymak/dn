@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -51,8 +51,8 @@ unit DnFormat;
 
 interface
 
-     uses Objects,Drivers,Dialogs,Views,Advance,Gauge,DnApp,Messages,
-          Format, Commands;
+     uses Objects, Drivers, Dialogs, Views, advance, advance1, advance2,
+          advance3, Gauge, DnApp, Messages, Format, Commands;
 
 type
 
@@ -1193,7 +1193,7 @@ Function BuildFormatDialog: PDialog;
 var
   Dlg : PDialog;
   R : TRect;
-  Control, Labl, Histry : PView;
+  Control, Labl, Histry, History : PView;
 begin
   BuildFormatDialog := NIL;
 
@@ -1246,6 +1246,10 @@ begin
   R.Assign(5,7,18,8);
   Control := New(PInputLine, Init(R, 11));
   Dlg^.Insert(Control);
+
+  R.A.X:=R.B.X; R.B.X:=R.A.X+3;
+  History := New(PHistory,Init(R,PInputLine(Control),hsFmtVolumeL));
+  Dlg^.Insert(History);
 
   FreeStr := GetString(dlFmtVolumeL);
   R.Assign(5,6,7+CStrLen(FreeStr),7);

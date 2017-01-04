@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,139 +43,94 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
+//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
 
-Uses Advance ;
+Uses LFN, {DataCompBoy}
+     Dos,
+     advance1, advance;
 
 {$I STDEFINE.INC}
 
 CONST
-  VersionName = '1.51.04/DOS';
-  VersionDate = 'September 19, 1999';
-  VersionWord = 15104;
+  VersionName:string = '1.51.05/DOS';
+  VersionDate:string = '';
+  VersionWord:word   = 15105;
 
+var F : lText ;
+    Day, Month, Year, DOW: word;
 
-  SourceDir  = '';
-
-{
- function CrStr( S : String ) : String ;
-  var I,Y : word ;
-      L : array[0..$ff] of byte absolute S;
-      B : byte ;
-      Ok : boolean ;
- begin
-
-  B := L[0];
-     for I := 1 to L[0] do
-      begin
-
-         OK := false ;
-      for Y :=0 to $FF do
-        if L[I] = Y xor ( ( B xor $ff ) and ( I ) )
-         then
-         begin
-          B := L[i];
-          L[I] := Y;
-          Ok := true ;
-          Break ;
-         end;
-        if not Ok then Writeln('ERR');
-      end;
-
-  Crstr := S ;
- end;
- }
-{
-
-
- function CrStr( S : String ) : String ;
- var I : integer ;
-     W,Y : word ;
-     BB : array[1..2] of byte absolute W ;
-     C : byte ;
-     D : byte ;
-     OK: boolean ;
-  begin
-
-   C := byte(S[0]);
-   W := C or $100 ;
-
-     for I := 1 to Length(S) do
-      begin
-
-        OK := False ;
-
-        for Y:=1 to $FF do
-         begin
-
-         D:= W mod Y ;
-
-          if D = byte(S[I]) then
-             begin
-              OK := true ;
-              Break;
-             end;
-         end;
-
-         if Not ok then Writeln('ERR');
-
-
-
-         C := byte(S[i]);
-         inc(W,C);
-
-         byte(S[i]) := Y ;
-
-      end;
-
-
-     CrStr := S;
-  end;
-
-
- function DeStr( S : String ) : String ;
- var I : Integer ;
-  begin
-     for I := 1 to Length(S) do
-      begin
-       byte( S[I] ) :=  (byte(S[I-1]) shl 8) mod
-                        (byte(S[I]) );
-      end;
-
-    DeStr := S;
-  end;
-
- }
-
-var F : Text ;
-    S,S1 : string ;
+CONST
+ DOWs:   Array[0..6] of string[3]=
+   ('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
+ Months: Array[1..12]of string[3]=
+   ('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec');
+ Days:   Array[1..31]of string[2]=
+   ('01','02','03','04','05','06','07','08','09','10',
+    '11','12','13','14','15','16','17','18','19','20',
+    '21','22','23','24','25','26','27','28','29','30','31');
 
  begin
-  {
-  S:=' This is sample test string an nothing else .... ±±±±±±±±±±±±±±±±±±±±±±±±±±±±' ;
-  S:='                                                                             ';
-
-  Writeln(S);
-  S1:=CrStr(S);
-
-  }
-  {
-  Writeln(S);
-  Writeln(S1);
-  S1:=DeStr(S1);
-  Writeln(S1);
-  halt(1);
-  }
-
-
-  Writeln(' þ Creating ',SourceDir + 'VERSION.INC');
-  Assign(F,SourceDir + 'VERSION.INC');
+  Writeln(' þ Creating ', 'VERSION.INC');
+  GetDate(Year, Month, Day, DOW);
+  Str(Year, VersionDate);
+  VersionDate:=DOWs[DOW]+', '+Days[Day]+' '+Months[Month]+' '+VersionDate+' at '+GetDateTime(true);
+  lAssignText(F, 'VERSION.INC');
   ClrIo;
-  Rewrite(F);
-  Writeln(F,'  Const');
-  Writeln(F,'     VersionName =''',VersionName,''';');
-  Writeln(F,'     VersionDate =''',VersionDate,''';');
-  Writeln(F,'     VersionWord = $', Hex4(VersionWord) , ';');
+  lRewriteText(F);
+  Writeln(F.T,'{/////////////////////////////////////////////////////////////////////////');
+  Writeln(F.T,'//');
+  Writeln(F.T,'//  Dos Navigator Open Source '+VersionName);
+  Writeln(F.T,'//  Based on Dos Navigator (C) 1991-99 RIT Research Labs');
+  Writeln(F.T,'//');
+  Writeln(F.T,'//  This programs is free for commercial and non-commercial use as long as');
+  Writeln(F.T,'//  the following conditions are aheared to.');
+  Writeln(F.T,'//');
+  Writeln(F.T,'//  Copyright remains RIT Research Labs, and as such any Copyright notices');
+  Writeln(F.T,'//  in the code are not to be removed. If this package is used in a');
+  Writeln(F.T,'//  product, RIT Research Labs should be given attribution as the RIT Research');
+  Writeln(F.T,'//  Labs of the parts of the library used. This can be in the form of a textual');
+  Writeln(F.T,'//  message at program startup or in documentation (online or textual)');
+  Writeln(F.T,'//  provided with the package.');
+  Writeln(F.T,'//');
+  Writeln(F.T,'//  Redistribution and use in source and binary forms, with or without');
+  Writeln(F.T,'//  modification, are permitted provided that the following conditions are');
+  Writeln(F.T,'//  met:');
+  Writeln(F.T,'//');
+  Writeln(F.T,'//  1. Redistributions of source code must retain the copyright');
+  Writeln(F.T,'//     notice, this list of conditions and the following disclaimer.');
+  Writeln(F.T,'//  2. Redistributions in binary form must reproduce the above copyright');
+  Writeln(F.T,'//     notice, this list of conditions and the following disclaimer in the');
+  Writeln(F.T,'//     documentation and/or other materials provided with the distribution.');
+  Writeln(F.T,'//  3. All advertising materials mentioning features or use of this software');
+  Writeln(F.T,'//     must display the following acknowledgement:');
+  Writeln(F.T,'//     "Based on Dos Navigator by RIT Research Labs.');
+  Writeln(F.T,'//');
+  Writeln(F.T,'//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS');
+  Writeln(F.T,'//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED');
+  Writeln(F.T,'//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE');
+  Writeln(F.T,'//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR');
+  Writeln(F.T,'//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL');
+  Writeln(F.T,'//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE');
+  Writeln(F.T,'//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS');
+  Writeln(F.T,'//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER');
+  Writeln(F.T,'//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR');
+  Writeln(F.T,'//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF');
+  Writeln(F.T,'//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.');
+  Writeln(F.T,'//');
+  Writeln(F.T,'//  The licence and distribution terms for any publically available');
+  Writeln(F.T,'//  version or derivative of this code cannot be changed. i.e. this code');
+  Writeln(F.T,'//  cannot simply be copied and put under another distribution licence');
+  Writeln(F.T,'//  (including the GNU Public Licence).');
+  Writeln(F.T,'//');
+  Writeln(F.T,'//////////////////////////////////////////////////////////////////////////}');
+  Writeln(F.T,'  Const');
+  Writeln(F.T,'     VersionName =''',VersionName,''';');
+  Writeln(F.T,'     VersionDate =''',VersionDate,''';');
+  Writeln(F.T,'     VersionWord = $', Hex4(VersionWord), ';');
 
-  Close(F);
- end .
+  Close(F.T);
+ end.

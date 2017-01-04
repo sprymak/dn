@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit DBWatch;
 
 interface
 
-uses Objects,Dos,Advance;
+uses LFN, {DataCompBoy}
+     Objects, Dos, advance, advance1, advance2, advance3;
 
 type
      PFieldRec = ^Fieldrec;
@@ -69,7 +74,7 @@ type
      PDBFile = ^TDBFile;
      TDBFile = object(TObject)
       WriteMode: Byte;
-      BaseName: PathStr;
+      BaseName: String; {DataCompBoy}
       BaseFile: TBufStream;
       Date, NumRec: LongInt;
       HeaderLen, RecLen: Word;
@@ -77,7 +82,7 @@ type
       NumFields: Integer;
       Loc: LongInt;
       Fields: PCollection;
-      constructor Init(FileName : PathStr);
+      constructor Init(FileName : String); {DataCompBoy}
       destructor Done; virtual;
       procedure Read(var Buf; Num: Word);
       procedure Seek(NewLoc: LongInt);
@@ -130,7 +135,7 @@ var FBuf: FRec;
 
 begin
  inherited Init;
- BaseName := DelSpaces(FExpand(FileName));
+ BaseName := lFExpand(FileName); {DataCompBoy}
  OpenMode(stOpenRead);
  if BaseFile.Status <> stOk then begin BaseFile.Done;Fail;end;
  BaseFile.Read(Date, 32);
@@ -215,28 +220,4 @@ begin
  BaseFile.Done;
 end;
 
-{begin
- New(P, Open('marrec.dbf'));
- if P = Nil then
-  begin
-   Write('Cann''t open file');
-   Halt;
-  end;
- WriteLn('File : ', P^.BaseName);
- WriteLn('Field :');
- for I := 1 to P^.NumFields do
-  begin
-   F := P^.Fields^.At(I - 1);
-   WriteLn(F^.Name : 11, F^.Who : 2, F^.Len : 4, F^.Dec : 4);
-  end;
- Assign(t,'output');
- Rewrite(t);
- for I := 1 to P^.NumRec do
-  begin
-   P^.Read(B);
-   for j:=0 to P^.NumFields - 1 do
-     Write(P^.GetNField(j, B),' ');
-   WriteLn;
-  end;
- close(t);}
 end.

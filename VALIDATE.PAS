@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -55,7 +55,7 @@ unit Validate;
 
 interface
 
-uses Objects, ObjType;
+uses Objects, ObjType, advance, advance1, advance2, advance3;
 
 const
 
@@ -98,25 +98,6 @@ type
   TPicResult = (prComplete, prIncomplete, prEmpty, prError, prSyntax,
     prAmbiguous, prIncompNoFill);
 
-(*
-{ TPXPictureValidator }
-
-  PPXPictureValidator = ^TPXPictureValidator;
-  TPXPictureValidator = object(TValidator)
-    Pic: PString;
-    constructor Init(const APic: string; AutoFill: Boolean);
-    constructor Load(var S: TStream);
-    destructor Done; virtual;
-    procedure Error; virtual;
-    function IsValidInput(var S: string;
-      SuppressFill: Boolean): Boolean; virtual;
-    function IsValid(const S: string): Boolean; virtual;
-    function Picture(var Input: string;
-      AutoFill: Boolean): TPicResult; virtual;
-    procedure Store(var S: TStream);
-  end;
-*)
-
 { TFilterValidator }
 
   PFilterValidator = ^TFilterValidator;
@@ -145,50 +126,7 @@ type
       Flag: TVTransfer): Word; virtual;
   end;
 
-(*
-
-{ TLookupValidator }
-
-  PLookupValidator = ^TLookupValidator;
-  TLookupValidator = object(TValidator)
-    function IsValid(const S: string): Boolean; virtual;
-    function Lookup(const S: string): Boolean; virtual;
-  end;
-*)
-
-
-(*
-{ TStringLookupValidator }
-
-  PStringLookupValidator = ^TStringLookupValidator;
-  TStringLookupValidator = object(TLookupValidator)
-    Strings: PStringCollection;
-    constructor Init(AStrings: PStringCollection);
-    constructor Load(var S: TStream);
-    destructor Done; virtual;
-    procedure Error; virtual;
-    function Lookup(const S: string): Boolean; virtual;
-    procedure NewStringList(AStrings: PStringCollection);
-    procedure Store(var S: TStream);
-  end;
-
-*)
-
-{ Validate registration procedure }
-
-{procedure RegisterValidate;}
-
 { Stream registration records }
-
-(*
-const
-  RPXPictureValidator: TStreamRec = (
-    ObjType: 80;
-    VmtLink: Ofs(TypeOf(TPXPictureValidator)^);
-    Load: @TPXPictureValidator.Load;
-    Store: @TPXPictureValidator.Store
-  );
-*)
 
 const
   RFilterValidator: TStreamRec = (
@@ -206,16 +144,6 @@ const
     Store: @TRangeValidator.Store
   );
 
-
-(*
-const
-  RStringLookupValidator: TStreamRec = (
-    ObjType: 83;
-    VmtLink: Ofs(TypeOf(TStringLookupValidator)^);
-    Load: @TStringLookupValidator.Load;
-    Store: @TStringLookupValidator.Store
-  );
-*)
 
 implementation
 
@@ -387,7 +315,7 @@ end;
 
 { This helper function will be used for a persistant TInputLine mask.
   It will be moved to DIALOGS.PAS when needed. }
-
+{DataCompBoy
 function NumChar(Chr: Char; const S: string): Byte; near; assembler;
 asm
         XOR     AH,AH
@@ -403,7 +331,7 @@ asm
         JMP     @@1
 @@2:    MOV     AL,AH
 end;
-
+}
 function IsComplete(Rslt: TPicResult): Boolean;
 begin
   IsComplete := Rslt in [prComplete, prAmbiguous];
@@ -1005,16 +933,6 @@ procedure TStringLookupValidator.Store(var S: TStream);
 begin
   inherited Store(S);
   S.Put(Strings);
-end;
-
-{ Validate registration procedure }
-
-procedure RegisterValidate;
-begin
-  RegisterType(RPXPictureValidator);
-  RegisterType(RFilterValidator);
-  RegisterType(RRangeValidator);
-  RegisterType(RStringLookupValidator);
 end;
 
 *)

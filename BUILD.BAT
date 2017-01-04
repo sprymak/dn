@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.04/DOS
+::  Dos Navigator Open Source 1.51.05/DOS
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,6 @@
 ::  (including the GNU Public Licence).
 ::
 :://///////////////////////////////////////////////////////////////////////
-
 @echo off
-builddn.bat %1 %2 %3 %4 %5 %6 %7 %8 asm ver help resource
+Break On
+builddn.bat swapdisk asm ver help resource

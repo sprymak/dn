@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,41 +43,48 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 procedure SaveDsk;
 begin
+ ClrIO;
  if StartupData.Unload and osuAutosave = 0 then
-    PDNApplication(Application)^.SaveDesktop(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+  PDNApplication(Application)^.SaveDesktop(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
 end;
 
-procedure ExecString(S: Str128);
- var F1: Text;
+        {-DataCompBoy-}
+procedure ExecString(S: PString);
+ var F1: lText;
      I: Integer;
      M: String;
      DT: DateTime;
  label 1;
 begin
- DelRight(S);
- if not Chk4Dos and (Pos('||', S) <> 0) then
+ M:=S^;
+ DelRight(M);
+ if not Chk4Dos and (Pos('||', M) <> 0) then
   begin
-    Assign(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
-    Rewrite(F1); if IOResult <> 0 then begin Close(F1); Exit; end;
+    lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
+    lRewriteText(F1); if IOResult <> 0 then begin Close(F1.T); Exit; end;
     I := 0;
     repeat
-      I := Pos('||', S);
-      if I = 0 then I := Length(S)+1;
-      WriteLn(F1, MakeCMDParams(Copy(S, 1, I-1),
+      I := Pos('||', M);
+      if I = 0 then I := Length(M)+1;
+      WriteLn(F1.T, MakeCMDParams(Copy(M, 1, I-1),
                                 CnvString(CurFileActive),
                                 CnvString(CurFilePassive)));
-      Delete(S, 1, I+1);
-    until (S = '');
-    Close(F1);
-    S := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ';
-  end else S := MakeCMDParams(S, CnvString(CurFileActive), CnvString(CurFilePassive));
+      Delete(M, 1, I+1);
+    until (M = '');
+    Close(F1.T);
+    M := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ';
+  end else M := MakeCMDParams(M, CnvString(CurFileActive), CnvString(CurFilePassive));
 1:
- S := ' '+S+#13; Dec(S[0]);
- if (LoaderSeg <> 0) then Move(S, mem[LoaderSeg:CommandOfs], Length(S)+2);
+ M := ' '+M+#13; Dec(M[0]);
+ if (LoaderSeg <> 0) then Move(M, mem[LoaderSeg:CommandOfs], Length(M)+2);
  if (SystemData.Options and ossFastExec <> 0) or RunFrom2E then asm
                                                mov ax, 9903h
                                                mov cl, 1
@@ -96,57 +103,30 @@ begin
  end;
  Halt(1);
 end;
+        {-DataCompBoy-}
 
-function SearchExt(Name: NameStr; Ext: ExtStr; var HS: String): Boolean;
+        {-DataCompBoy-}
+function SearchExt(FileRec: PFileRec; var HS: String): Boolean;
 var
   AllRight : Boolean;
   f        : PTextReader;
-  f1       : Text;
+  F1       : lText;
   s,s1     : String;
   BgCh,EnCh: Char;
   EF, First: Boolean;
   I        : Integer;
-  Local: Boolean;
+  Local    : Boolean;
+  FName,LFN: string;
+  UserParam: TUserParams;
 label RL;
-
-  function transl(var s: string): string;
-  var i: integer;
-      b: ExtStr;
-      r: NameStr;
-      ad: string;
-  begin
-    ad := ActiveDir; if ad[Length(ad)]<>'\' then ad := ad + '\';
-    B := Ext; LowStr(B); Insert('.', B, 1);
-    R := Name; DelRight(R); LowStr(R);
-    Replace('!!', #0, S);
-    Replace('.!', B, S);
-    Replace('!\', LowStrg(ad), S);
-    Replace('!/', Copy(LowStrg(ad), 1, Length(ad)-1), S);
-    Replace('!', R, S);
-    Replace(#0, '!!', S);
-    Transl:=S;
-  end;
-
-  function InFilter(const S: String): Boolean;
-    var I: Integer;
-        M: String[3];
-  begin
-    InFilter := On;
-    repeat
-       I := PosChar(';', S1);
-       if I = 0 then I := PosChar(',',S1);
-       if I = 0 then I := Length(S1)+1;
-       M := Copy(S1, 1, I-1); Delete(S1, 1, I);
-       if M = '.' then M := '';
-       if InMask(S, Norm12('*.'+M)) then Exit;
-    until (S1 = '');
-    InFilter := Off;
-  end;
-
 
 begin
   First := True;
-  GetDir(0, ActiveDir);
+  Message(Desktop, evBroadcast, cmGetUserParams, @UserParam);
+  UserParam.Active:=FileRec;
+  FName:=FileRec^.Name;
+  LFN  :=GetLFN      (FileRec^.LFN);
+  lGetDir(0, ActiveDir);
   SearchExt:=False;
   Local := On;
   f := New(PTextReader, Init('DN.EXT'));
@@ -156,7 +136,7 @@ begin
      Local := Off;
      f := New(PTextReader, Init(SourceDir+'DN.EXT'));
    end;
-  if f=nil then Exit; AllRight:=False;
+  if f=nil then exit; AllRight:=False;
   BgCh:='{';EnCh:='}'; Abort := Off; EF:=Off;
   if PShootState and 8 > 0 then begin BgCh:='[';EnCh:=']';end else
   if PShootState and 3 > 0 then begin BgCh:='(';EnCh:=')';end;
@@ -164,37 +144,36 @@ begin
     S := f^.GetStr;
     if S[1] <> ' ' then
      begin
-      I := PosChar(BgCh, S); if I = 0 then Continue;
-      S1 := Copy(S, 1, I-1); UpStr(S1);
-      if InFilter(Name+'.'+Ext) then
+      I := PosChar(BgCh, S); if (I = 0) or (S[I+1]=BgCh) then Continue;
+      S1 := Copy(S, 1, I-1);
+      if InExtFilter(FName, S1) or InExtFilter(LFN, S1) then
        begin
-        Assign(f1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
-        Rewrite(F1); if IOResult <> 0 then begin Dispose(F, Done); Exit; end;
-        WriteLn(F1, '@echo off');
+        lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
+        lRewriteText(F1); if IOResult <> 0 then begin Dispose(F, Done); exit; end;
+        Writeln(F1.T, '@echo off');
         System.Delete(S, 1, PosChar(BgCh, S));
         repeat
          Replace(']]', #0, S);  Replace('))', #1, S);  Replace('}}', #2, S);
          DelLeft(S); DelRight(S);
          if S[Length(S)] = EnCh then
           begin Dec(S[0]); EF := On; if S <> '' then
-           begin S := Transl(S); HS := S;
+           begin S := MakeString(S, @UserParam, off); HS := S;
              Replace(#0, ']', S);  Replace(#1, ')', S);  Replace(#2, '}', S);
-             WriteLn(F1, S); Break
+             WriteLn(F1.T, S); Break
            end;
           end;
          if S <> '' then
           begin
-           if (BgCh <> '[') then S := Transl(S);
+           if (BgCh <> '[') then S := MakeString(S, @UserParam, off);
            if First and (BgCh <> '[') then HS := S;
            Replace(#0, ']', S);  Replace(#1, ')', S);  Replace(#2, '}', S);
-           WriteLn(F1, S);
+           WriteLn(F1.T, S);
            First := False;
           end;
          if (F^.EOF) then Break;
          if not EF then S := F^.GetStr;
         until (IOResult <> 0) or Abort or EF;
-        WriteLn(F1, '@echo off');
-        Close(F1);
+        Close(F1.T);
         AllRight := On;
        end;
       end;
@@ -203,30 +182,33 @@ begin
   if not EF and not Abort and Local then Goto RL;
   if EF and (BgCh = '[') then
    begin
-    EraseFile( SwpDir+'$dn'+ItoS(DNNumber)+'$.mnu' );
-    Rename(F1, SwpDir+'$dn'+ItoS(DNNumber)+'$.mnu');
+    EraseFile( SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU' );
+    lRenameText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU');
     EF := ExecUserMenu(Off);
-    if not EF then Erase(F1);
+    if not EF then lEraseText(F1);
    end;
   SearchExt:=not Abort and EF;
 end;
+        {-DataCompBoy-}
 
-function ExecExtFile(const ExtFName, FName: PathStr; SIdx: TStrIdx): Boolean;
+        {-DataCompBoy-}
+function ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean;
  var F: PTextReader;
-     S: String;
-     Mask, Nm: String[12];
-     Dr: PathStr;
-     Xt: ExtStr;
+     S,S1: String;
+     FName, LFN: String;
      Event: TEvent;
      I,J: Integer;
      PP: PView;
      Success, CD: Boolean;
      Local: Boolean;
  label 1,1111, RepeatLocal;
+
 begin
  ExecExtFile := Off;
  FileMode := $40;
  Local := On;
+ LFN:=GetLFN(UserParams^.Active^.LFN);
+ FName:=UserParams^.Active^.Name;
 
  F := New(PTextReader, Init(ExtFName));
 
@@ -237,76 +219,47 @@ RepeatLocal:
     F := New(PTextReader, Init(SourceDir+ExtFName));
   end;
  if F = nil then Exit;
- FSplit(FExpand(FName), Dr, Nm, Xt);
- Nm := Norm12(Nm+Xt);
  While not F^.EOF do
    begin
       S := F^.GetStr;
       DelLeft(S);
-      if (S <> '') and (S[1] <> ';') then
-        begin
-          repeat
-             J := PosChar(':', S); if J = 0 then Goto 1;
-             I := PosChar(',', S);
-             if (I <> 0) and (I < J) then
-               begin
-                 Mask := Norm12('*.'+Copy(S,1,I-1));
-                 if InMask(Nm, Mask) then
-                   begin
-                     Delete(S, 1, J); Goto 1111;
-                   end else Delete(S, 1, I);
-               end else
-               begin
-                 Mask := Norm12('*.'+Copy(S,1,J-1));
-                 Delete(S, 1, J);
-                 if InMask(Nm, Mask) then Goto 1111;
-                 Break;
-               end;
-          until S='';
-        end;
-    1:
+      S1:=Copy(S, 1, pred(PosChar(':', S)));
+      if S1='' then continue;
+      if InExtFilter(FName, S1) or InExtFilter(LFN, S1) then goto 1111;
    end;
    ExecExtFile := Off;
    Dispose(F, Done);
    if Local then Goto RepeatLocal;
    Exit;
 1111:
+   Delete(S, 1, succ(Length(S1)));
    Dispose(F,Done);
    if not Application^.Valid(cmQuit) then Exit;
-   Replace('!!', #0, S);
-   Success := PosChar('!', S) = 0;
-   CD := Off;
-   FSplit(FExpand(FName), Dr, Nm, Xt);
-   if not Success then
-     begin
-        Replace('!', #0, Dr);
-        Replace('!', #0, Nm);
-        Replace('!', #0, Xt);
-        CD := not Replace('!\', Copy(Dr, 3, 255), S);
-        Replace('!:', Copy(Dr, 1, 2), S);
-        Replace('.!', Xt, S);
-        Replace('!',  Nm, S);
-     end else S := S + ' ' + Dr+Nm+Xt;
-   Replace(#0, '!', S);
    ClrIO;
-   if CD then
-     begin
-        GetDir(0, DirToChange);
-        ChDir(Dr);
-     end else DirToChange := '';
+   S:=MakeString(S, UserParams, off);
    if Abort then Exit;
    if S[1] = '*' then DelFC(S);
-    begin
-        PP := _WriteMsg(' '+GetString(SIdx));
-        InsertUserSaver(Off);
-        SaveDsk;
-        Application^.Done;
-        ExecString(S);
-    end;
+   PP := _WriteMsg(' '+GetString(SIdx));
+   if not CheckExit then Begin ExecExtFile:=false; Exit; end;
+   lGetDir(0, S1);
+   if UpStrg(MakeNormName(lfGetLongFileName(UserParams^.Active^.Owner^),'.'))<>
+      UpStrg(MakeNormName(S1,'.'))
+    then begin
+          DirToChange:=S1;
+          lChDir(lfGetLongFileName(UserParams^.Active^.Owner^));
+         end;
+   ExecExtFile := On;
+   Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
+   SaveDsk;
+   Application^.Done;
+   ExecString(@S);
 end;
+        {-DataCompBoy-}
 
-procedure ExecFile(Name: PathStr);
- var S, M: String;
+        {-DataCompBoy-}
+procedure ExecFile(const FileName: string);
+ var S, L, M: String;
+     fr: PFileRec;
 
  procedure PutHistory(B: Boolean);
  begin
@@ -333,25 +286,31 @@ procedure ExecFile(Name: PathStr);
     SaveDsk;
     Application^.Done;
     if B then begin WriteLn(#13#10, ActiveDir+'>', M); M := M + #13 end;
-    ExecString(M);
+    ExecString(@M);
  end;
 
+label ex;
 begin
- S := LowStrg(Norm12(Name));
+ fr:= CreateFileRec(FileName);
+ S := MakeFileName(fr^.Name);
+ L := GetLFN(fr^.LFN);
  FreeStr := '';
  M := '';
  if (ShiftState and (3 or kbAltShift) <> 0) or
-    (Pos(#0+Copy(S, 10, 3)+#0, Executables) = 0) then
+    ((Pos(#0+LowStrg(Copy(GetExt(S), 2,  3))+#0, Executables) = 0) and
+     (Pos(#0+LowStrg(Copy(GetExt(L), 2,255))+#0, Executables) = 0)) then
   begin
-   if SearchExt(Copy(S, 1, 8), Copy(S, 10, 3), M) then
+   if SearchExt(fr, M) then
    begin
     PutHistory(On);
     M := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + FreeStr;
     RunCommand(Off);
-   end else Exit;
+   end else goto ex;
   end;
- M := LowStrg(MakeFileName(S));
+ M := S;
  PutHistory(Off);
- M := Name;
+ M := S;
  RunCommand(On);
+ex:
+ DelFileRec(fr);
 end;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,17 +43,24 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$ifndef db}
 unit DBView;
 
 interface
-uses DBWatch, Objects, Views, Drivers, Dos, Memory, Dialogs, RStrings, FViewer, Commands, ObjType;
+uses LFN, {DataCompBoy}
+     DBWatch, Objects, Views, Drivers, Dos, Memory, Dialogs, RStrings, FViewer, Commands, ObjType;
 {$else}
 
-uses DBWatch, Objects, Views, Drivers, Dos, Memory, Menus, Messages,
-     Advance, Startup, FViewer, Dialogs, Commands, DNApp, DNStdDlg;
+uses LFN, {DataCompBoy}
+     DBWatch, Objects, Views, Drivers, Dos, Memory, Menus, Messages,
+     advance, advance1, advance2, advance3, Startup, FViewer, Dialogs,
+     Commands, DNApp, DNStdDlg;
 
 {$endif}
 
@@ -78,7 +85,7 @@ type
      NumRec: Word;
      Indicator: PDBIndicator;
      Delta, Pos: record X: Integer; Y: LongInt; end;
-     constructor Init(R: TRect; FName: PathStr);
+     constructor Init(R: TRect; FName: String); {DataCompBoy}
      function Valid(Command: Word): Boolean; virtual;
      function GetRecord(N: LongInt): Pointer;
      procedure GetInfo(StrIdx: TStrIdx);
@@ -159,7 +166,7 @@ type
 
 {$ifndef db}
 implementation
-uses Advance, Startup, DNHelp, DNApp, Messages;
+uses Advance, Advance1, Advance2, Advance3, Startup, DNHelp, DNApp, Messages;
 {$endif}
 
 function MaxAvail: LongInt;
@@ -256,9 +263,10 @@ begin
  {Move(AStream^, Self, sizeof(TStream));}
 end;
 
+        {-DataCompBoy-}
 constructor TDBViewer.Init;
  var I: Word;
-     F: File;
+     F: lFile;
 begin
   inherited Init(R);
   KillAfterUse := TempFile <> '';
@@ -267,10 +275,11 @@ begin
   EventMask := $FFFF;
   SearchString := nil;
   HelpCtx := hcDBView;
-  Buf := nil; FileName := NewStr(DelSpaces(FExpand(FName)));
+  Buf := nil; FileName := NewStr(lFExpand(FName));
   if Failed then Fail;
   if isValid then TempFile := '';
 end;
+        {-DataCompBoy-}
 
 Procedure TDBViewer.Store ;
  begin
@@ -367,7 +376,6 @@ begin
 end;
 
 destructor TDBViewer.Done;
- var F: File;
 begin
  DisposeStr(SearchString);
  if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
@@ -448,6 +456,7 @@ end;
 
 procedure TDBViewer.HandleEvent;
 
+        {-DataCompBoy-}
  procedure ViewMemo;
   var P: PByteArray;
       PFR: PFieldRec;
@@ -458,18 +467,18 @@ procedure TDBViewer.HandleEvent;
       R: TRect;
       PV: PView;
       MemoStream: PStream;
-      Dr: PathStr;
-      Nm: NameStr;
-      Xt: ExtStr;
+      Dr: String;
+      Nm: String;
+      Xt: String;
  begin
   P := GetRecord(Delta.Y); if P = nil then Exit;
   PFR := DBFile^.GetFieldRec(Delta.X); if PFR = nil then Exit;
   Move(P^[PFR^.Pos], S[1], PFR^.Len); S[0] := Char(PFR^.Len);
   Val(DelSpaces(S), L, I);
   if (PFR^.Who <> 'M') or (L = 0) then Exit;
-  FSplit(UpStrg(FileName^), Dr, Nm, Xt);
+  lFSplit(FileName^, Dr, Nm, Xt);
   if LowMemory then Exit;
-  if (XT[0] = #4) and (XT <> '.DBF') then XT[4] := 'T' else XT := '.FPT';
+  if (XT[0] = #4) and (UpStrg(XT) <> '.DBF') then XT[4] := 'T' else XT := '.FPT';
   MemoStream := New(PDosStream, Init(Dr+Nm+XT, stOpenRead));
   if (MemoStream = nil) or (MemoStream^.Status <> stOK) then
    begin
@@ -542,6 +551,7 @@ procedure TDBViewer.HandleEvent;
   Desktop^.ExecView(D);
   Dispose(D, Done);
  end;
+        {-DataCompBoy-}
 
   const SearchRec : record
      S: String[250]; {Inputline}
@@ -688,13 +698,22 @@ procedure TDBViewer.HandleEvent;
  procedure CE; begin ClearEvent(Event) end;
  procedure CED; begin CE; DrawView end;
 
- var F: File;
+ var F: lFile; {DataCompBoy}
      P: TPoint;
      RD: Word;
 
 begin
  inherited HandleEvent(Event);
  case Event.What of
+  evBroadcast: case Event.Command of
+              cmFindView:
+                if PString(Event.InfoPtr)^=FileName^ then begin
+                  if Owner<>nil then begin
+                    Self.Select;
+                    ClearEvent(Event);
+                  end;
+                end;
+             end;
   evCommand: case Event.Command of
               cmClose, cmKillUsed: if KillAfterUse then
                                     begin
@@ -856,7 +875,7 @@ constructor TDBWindow.Init;
  var R: TRect;
 begin
  DeskTop^.GetExtent(R);
- FName := DelSpaces(FExpand(FName));
+ FName := lFExpand(FName);
  TWindow.Init(R, FName, 0);
  GetExtent(R); R.Grow(-1, -1);
  P := New(PDBViewer, Init(R, FName));
@@ -915,6 +934,7 @@ begin
    if Desktop^.ExecView(D) <> cmCancel then D^.GetFileName(S);
    Dispose(D, Done);
    if S = '' then Exit;
+   S:=lfGetLongFileName(S);
    InsertWindow(New(PDBWindow, Init(S)));
   end;
 end;

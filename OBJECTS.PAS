@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit Objects;
@@ -53,7 +57,10 @@ unit Objects;
 {-----------------------------------------------------}
 
 
-interface uses ObjType;
+interface uses ObjType,
+               LFN; {DataCompBoy}
+
+
 
 const
 
@@ -169,9 +176,9 @@ type
 { DOS file name string }
 
 {$IFDEF Windows}
-  FNameStr = PChar;
+  FString = PChar;
 {$ELSE}
-  FNameStr = string[79];
+  FString = String; {DataCompBoy}
 {$ENDIF}
 
 { TDosStream }
@@ -179,7 +186,8 @@ type
   PDosStream = ^TDosStream;
   TDosStream = object(TStream)
     Handle: Word;
-    constructor Init(FileName: FNameStr; Mode: Word);
+    hFile: lFile;
+    constructor Init(FileName: FString; Mode: Word);
     destructor Done; virtual;
     function GetPos: Longint; virtual;
     function GetSize: Longint; virtual;
@@ -197,7 +205,7 @@ type
     BufSize: Word;
     BufPtr: Word;
     BufEnd: Word;
-    constructor Init(FileName: FNameStr; Mode, Size: Word);
+    constructor Init(FileName: FString; Mode, Size: Word);
     destructor Done; virtual;
     procedure Flush; virtual;
     function GetPos: Longint; virtual;
@@ -285,7 +293,7 @@ type
     procedure Pack;
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
     procedure SetLimit(ALimit: Integer); virtual;
-    procedure Store(var S: TStream);
+    procedure Store(var S: TStream); virtual;
   end;
 
 { TSortedCollection object }
@@ -300,7 +308,7 @@ type
     procedure Insert(Item: Pointer); virtual;
     function KeyOf(Item: Pointer): Pointer; virtual;
     function Search(Key: Pointer; var Index: Integer): Boolean; virtual;
-    procedure Store(var S: TStream);
+    procedure Store(var S: TStream); virtual;
     procedure QSort;
     procedure QuickSort(L, R: Integer);
   end;
@@ -324,6 +332,14 @@ type
     function GetItem(var S: TStream): Pointer; virtual;
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
   end;
+
+        {-DataCompBoy-}
+ Type PDirCol = ^TDirCol;
+      TDirCol = Object (TStringCollection)
+                 function Compare(Key1, Key2: pointer): integer; virtual;
+                end;
+        {-DataCompBoy-}
+
 
 { TStrCollection object }
 
@@ -414,6 +430,9 @@ type
   PPoint = ^TPoint;
   TPoint = object
     X, Y: Integer;
+    function  Equals(P: TPoint): Boolean;
+    function  EqualsXY(AX, AY: Integer): Boolean;
+    procedure Assign(AX, AY: Integer);
   end;
 
 { Rectangle object }
@@ -442,7 +461,7 @@ procedure ReplaceP(var P: PString; S: String);
 { Dynamic string handling routines }
 
 function NewStr(const S: String): PString;
-procedure DisposeStr(P: PString);
+procedure DisposeStr(var P: PString); {DataCompBoy}
 
 { Longint routines }
 
@@ -898,80 +917,46 @@ end;
 
 { TDosStream }
 
-constructor TDosStream.Init(FileName: FNameStr; Mode: Word); assembler;
-var
-  NameBuf: array[0..79] of Char;
-asm
-        XOR     AX,AX
-        PUSH    AX
-        LES     DI,Self
-        PUSH    ES
-        PUSH    DI
-        CALL    TStream.Init
-{$IFDEF Windows}
-        LEA     DI,NameBuf
-        PUSH    SS
-        PUSH    DI
-        LES     DI,FileName
-        PUSH    ES
-        PUSH    DI
-        MOV     AX,79
-        PUSH    AX
-        CALL    StrLCopy
-        PUSH    DX
-        PUSH    AX
-        PUSH    DX
-        PUSH    AX
-        CALL    AnsiToOem
-        PUSH    DS
-        LEA     DX,NameBuf
-{$ELSE}
-        PUSH    DS
-        LDS     SI,FileName
-        LEA     DI,NameBuf
-        MOV     DX,DI
-        PUSH    SS
-        POP     ES
-        CLD
-        LODSB
-        CMP     AL,79
-        JB      @@1
-        MOV     AL,79
-@@1:    CBW
-        XCHG    AX,CX
-        REP     MOVSB
-        XCHG    AX,CX
-        STOSB
-{$ENDIF}
-        PUSH    SS
-        POP     DS
-        XOR     CX,CX
-        MOV     AX,Mode
-        INT     21H
-        POP     DS
-        JNC     @@2
-        LES     DI,Self
-        MOV     DX,stInitError
-        CALL    DoStreamError
-        MOV     AX,-1
-@@2:    LES     DI,Self
-        MOV     ES:[DI].TDosStream.Handle,AX
-end;
+        {-DataCompBoy-}
+constructor TDosStream.Init(FileName: FString; Mode: Word);
+ Var SaveMode: Byte;
+ Begin
+  Inherited Init;
+  Status:=IOResult;
+  SaveMode:=FileMode;
+  lAssignFile(hFile, FileName);
+  Case Mode of
+   stCreate:   Begin
+                FileMode:=$41;
+                lRewriteFile(hFile, 1);
+               End;
+   stOpenRead: Begin
+                FileMode:=$40;
+                lResetFile(hFile, 1);
+               End;
+   stOpenWrite:Begin
+                FileMode:=$41;
+                lResetFile(hFile, 1);
+               End;
+   stOpen:     Begin
+                FileMode:=$42;
+                lResetFile(hFile, 1);
+               End;
+  end;
+  FileMode:=SaveMode;
+  Handle:=Word((@hFile.F)^);
+  Status:=IOResult;
+ end;
+        {-DataCompBoy-}
 
-destructor TDosStream.Done; assembler;
-asm
-        LES     DI,Self
-        MOV     BX,ES:[DI].TDosStream.Handle
-        CMP     BX,-1
-        JE      @@1
-        MOV     AH,3EH
-        INT     21H
-@@1:    XOR     AX,AX
-        PUSH    AX
-        PUSH    ES
-        PUSH    DI
-        CALL    TStream.Done
+        {-DataCompBoy-}
+destructor TDosStream.Done;
+begin
+ Close(hFile.F);
+ InOutRes:=0;
+ Inherited Done;
 end;
+        {-DataCompBoy-}
 
 function TDosStream.GetPos: Longint; assembler;
 asm
@@ -1150,7 +1135,7 @@ asm
 @@4:
 end;
 
-constructor TBufStream.Init(FileName: FNameStr; Mode, Size: Word);
+constructor TBufStream.Init(FileName: FString; Mode, Size: Word);
 begin
   TDosStream.Init(FileName, Mode);
   BufSize := Size;
@@ -1163,8 +1148,8 @@ end;
 destructor TBufStream.Done;
 begin
   TBufStream.Flush;
-  TDosStream.Done;
   FreeMem(Buffer, BufSize);
+  TDosStream.Done;
 end;
 
 procedure TBufStream.Flush; assembler;
@@ -2496,7 +2481,7 @@ end;
 
 procedure TStringCollection.FreeItem(Item: Pointer);
 begin
-  DisposeStr(Item);
+  DisposeStr(PString(Item));
 end;
 
 function TStringCollection.GetItem(var S: TStream): Pointer;
@@ -2509,10 +2494,20 @@ begin
   S.WriteStr(Item);
 end;
 
+        {-DataCompBoy-}
+ Function TDirCol.Compare;
+  var a, b, c: byte;
+  begin
+   a:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(a);
+   b:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(b);
+   If a>b then Compare:=-1 else Compare:=+1
+  end;
+        {-DataCompBoy-}
+
 { TLineCollection }
 procedure TLineCollection.FreeItem(P: Pointer);
 begin
-  DisposeStr(P);
+  DisposeStr(PString(P));
 end;
 
 procedure TLineCollection.PutItem;
@@ -2535,7 +2530,7 @@ end;
 
 procedure TStrCollection.FreeItem(Item: Pointer);
 begin
-  StrDispose(Item);
+  StrDispose(PChar(Item));
 end;
 
 function TStrCollection.GetItem(var S: TStream): Pointer;
@@ -2973,6 +2968,21 @@ asm
 @@2:
 end;
 
+function  TPoint.Equals(P: TPoint): Boolean;
+begin
+  Equals:=(X=P.X) and (Y=P.Y);
+end;
+
+function  TPoint.EqualsXY(AX, AY: Integer): Boolean;
+begin
+  EqualsXY:=(X=AX) and (Y=AY);
+end;
+
+procedure TPoint.Assign(AX, AY: Integer);
+begin
+  X:=AX; Y:=AY;
+end;
+
 procedure TRect.Assign(XA, YA, XB, YB: Integer); assembler;
 asm
         LES     DI,Self
@@ -3153,10 +3163,13 @@ begin
   NewStr := P;
 end;
 
-procedure DisposeStr(P: PString);
+        {-DataCompBoy-}
+procedure DisposeStr(var P: PString);
 begin
-  if P <> nil then FreeMem(P, Length(P^) + 1);
+ if (P<>nil) then FreeMem(P, Length(P^) + 1);
+ P:=Nil;
 end;
+        {-DataCompBoy-}
 
 procedure ReplaceP(var P: PString; S: String);
 begin

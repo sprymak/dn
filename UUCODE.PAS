@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$IFDEF DN}
@@ -52,9 +56,10 @@
 unit UUCode;
 
 interface
+uses Objects;
 
 {$IFDEF UUDECODE}
-   procedure UuDecode(const FName: String);
+   procedure UuDecode(AFileCollection: PCollection);
 {$ENDIF}
 
 {$IFDEF UUENCODE}
@@ -63,11 +68,11 @@ interface
 
 implementation
 
-uses Dos
+uses Dos, LFN {DataCompBoy}
 {$IFDEF DN}
-     ,Objects, Advance, Views, StartUp, Dialogs, xTime,
-     DNApp, Drivers, Gauge, Messages, Commands, RStrings, FileCopy,
-     HistList, DNStdDlg, DNUtil
+     ,advance, advance1, advance2, advance3, Views, StartUp, Dialogs,
+     xTime, FilesCol, DNApp, Drivers, Gauge, Messages, Commands, RStrings,
+     FileCopy, HistList, DNStdDlg, DNUtil
 {$ENDIF};
 
 function longmul(X, Y: Word): Longint; inline($5A/$58/$f7/$E2);
@@ -100,7 +105,7 @@ function ApplicationIdle(Info: PWhileView): Boolean;
      CtrlBreakHit := Off;
    end;
 
-procedure RereadGlobal(OutputDir:PathStr);
+procedure RereadGlobal(OutputDir:String); {DataCompBoy}
 begin
  GlobalMessage(evCommand, cmPanelReread, @OutputDir);
  GlobalMessage(evCommand, cmRereadTree,  @OutputDir);
@@ -115,7 +120,10 @@ const
 
 {$IFDEF UUDECODE}
 
-function UU_Decode(const InputFileName,OutputDir:PathStr;ChkOvr,DispErr,RecoverBrokenUUE:Boolean):Boolean;
+        {-DataCompBoy-}
+function UU_Decode(
+         AFileCollection: PCollection;
+         const OutputDir:String;ChkOvr,DispErr,RecoverBrokenUUE:Boolean):Boolean;
 
 var
         PI: PWhileView;
@@ -133,7 +141,7 @@ type
         TSection = record
                      Number    : word;
                      TmpFileId : LongInt;
-                     Size      : LongInt;
+                     Size      : TSize;
                    end;
 
         TSectArr = array[1..990] of TSection;
@@ -146,13 +154,13 @@ type
 
         PFile    = ^TFile;
         TFile    = record
-                     FName      : string[12];
+                     FName      : PString;
                      EndFound   : Boolean;
                      CrcKnown   : Boolean;
                      ForceSkp   : Boolean;
                      Flushed    : Boolean;
                      RealSize   : LongInt;
-                     Size       : LongInt;
+                     Size       : TSize;
                      RealCRC    : word;
                      Crc        : word;
                      s          : TSectInfo;
@@ -182,15 +190,15 @@ var
         SectCRC         : word;
         SectSSz         : LongInt;
         InputStream     : PTextReader;
-        TmpInFile       : file;
-        OutFile         : file;
-        CurFileName     : string[12];
+        TmpInFile       : lFile;
+        OutFile         : lFile;
+        CurFileName     : string;
         OrgT            : string;
         OrgTLen         : byte absolute OrgT;
         StrT            : string;
         AuxT            : string;
-        OutFName        : PathStr;
-        InFName         : PathStr;
+        OutFName        : String;
+        InFName         : String;
         StrL            : byte absolute StrT;
         AuxL            : byte absolute AuxT;
         CurPSection     : PSection;
@@ -215,15 +223,16 @@ var
         NumErr          : word;
         SubPos          : byte;
         WholeSectCRC    : word;
-        ErrorFName      : PathStr;
+        ErrorFName      : String;
         ErrorFCode      : Byte;
         OutBufPos       : word;
         POutBuf         : PDskBufArr;
-        CurSectSize,
         CurFileTime,
-        LastFSize,
         HeapBegin,
         HeapEnd         : LongInt;
+        LastFSize,
+        CurSectSize     : TSize;
+
 
 
 
@@ -233,29 +242,30 @@ var
  end;
 
 
-function  ExistFile(const FName : PathStr) : Boolean;
-var DirInfo:SearchRec;
+function  ExistFile(const FName : String) : Boolean;
+var DirInfo: lSearchRec;
 begin
- FindFirst(FName,Archive+ReadOnly+Hidden+SysFile,DirInfo);
+ lFindFirst(FName, Archive+ReadOnly+Hidden+SysFile, DirInfo);
  if DosError=0 then
  begin
   ExistFile:=True;
-  LastFSize:=DirInfo.Size;
+  LastFSize:=DirInfo.FullSize;
  end else
  begin
   ExistFile:=False;
   ErrorFCode:=DosError;
   ErrorFName:=FName
  end;
+ lFindClose(DirInfo);
 end;
 
-procedure EraseFile(const FName : PathStr);
-var f:file;begin Assign(f,FName);Erase(f) end;
+procedure EraseFile(const FName : String);
+var f:lfile;begin lAssignFile(f,FName);lEraseFile(f) end;
 
-procedure RenameFile(const Name1,Name2:PathStr);
-var f:file; begin Assign(f,Name1);Rename(f,Name2) end;
-
-function GetASCIIZ(var Buf):PathStr;assembler;
+procedure RenameFile(const Name1, Name2: String);
+var f:lfile; begin lAssignFile(f,Name1);lRenameFile(f,Name2) end;
+{DataCompBoy
+function GetASCIIZ(var Buf):String;assembler;
 asm
         push    ds
         les     di,@Result
@@ -271,23 +281,23 @@ asm
         mov     es:[di],ah
         pop     ds
 end;
-
+}
 procedure PrepareWrite;
 begin OutBufPos:=65535;GetMem(POutBuf,OutBufSize) end;
 
-procedure FileRewrite(const FName:PathStr);
+procedure FileRewrite(const FName:String);
 begin
- Assign(OutFile,FName);
- Rewrite(OutFile,1);ErrorFCode:=IOResult;
+ lAssignFile(OutFile,FName);
+ lRewriteFile(OutFile,1);ErrorFCode:=IOResult;
  if ErrorFCode=0 then PrepareWrite else ErrorFName:=FName;
 end;
 
 procedure BWrite(var Buf;Sz:word);
 var a:word;
 begin
- BlockWrite(OutFile,Buf,Sz,a);
+ BlockWrite(OutFile.F,Buf,Sz,a);
  if a<>Sz then ErrorFCode:=101 else ErrorFCode:=IOResult;
- if ErrorFCode>0 then ErrorFName:=FileNameOf(OutFile)
+ if ErrorFCode>0 then ErrorFName:=lFileNameOf(OutFile)
 end;
 
 procedure PutBlock(var OutBuf;Sz:word);
@@ -322,30 +332,30 @@ procedure FlushOutBuf;
 var Dummy:byte;
 begin
  if OutBufPos>0 then BWrite(POutBuf^,OutBufPos);FreeMem(POutBuf,OutBufSize);
- Close(OutFile);Dummy:=IOResult;POutBuf:=NIL;
+ Close(OutFile.F);Dummy:=IOResult;POutBuf:=NIL;
 end;
-
+{DataCompBoy
 procedure PutByte(b:byte);begin PutBlock(b,1) end;
-
+}
 procedure CancelOutFile;
 var Dummy:byte;
 begin
- Close(OutFile);Dummy:=IOResult;
+ Close(OutFile.F);Dummy:=IOResult;
  if POutBuf<>NIL then FreeMem(POutBuf,OutBufSize);
  POutBuf:=NIL;
 end;
 
 function RExpand(s:string;n:byte):string;
 begin while Length(s)<n do s:=s+' ';RExpand:=s end;
-
+{DataCompBoy
 function FFExpand(s:string):string;
-var D:DirStr;N:NameStr;E:ExtStr;
+var D:String;N:String;E:String;
 begin
  FSplit(LowStrg(s),D,N,E);
  s:=RExpand(RExpand(N,8)+E,12);
  s[9]:=' ';FFExpand:=s;
 end;
-
+}
 procedure GrArr(var p;var Index:word;Sz:word);
 var a1:pointer;
      a:pointer absolute p;
@@ -492,7 +502,7 @@ procedure FindStr(const s:string); begin SubPos:=Pos(s,StrT) end;
 function StrTBegins(s:string):Boolean;
 var sl:byte absolute s;b:boolean;
 begin
- b:=MemEqu(StrT[1],s[1],sl) and (StrL>=sl);
+ b:=(StrL>=sl) and MemEqu(StrT[1],s[1],sl);
  StrTBegins:=b;
  if b then DelTBeg(sl);
  DelLeft(StrT);
@@ -564,7 +574,7 @@ begin
    if not Broken then
    begin
      Broken := True;
-     if (not RecoverBrokenUUE) and (DispErr) then MB(GetString(dlleFailedFinal)+' '+CurPFile^.FName);
+     if (not RecoverBrokenUUE) and (DispErr) then MB(GetString(dlleFailedFinal)+' '+CurPFile^.FName^);
    end;
  end;
 end;
@@ -579,18 +589,18 @@ begin
   Local_Error(s, False);
 end;
 
-procedure CheckFileSize(Listed,Calculated:LongInt);
+procedure CheckFileSize(Listed,Calculated:TSize);
 begin
  if Listed<>Calculated then
-  LocalError(GetString(dlleFileSizeMismatch)+' '+CurPFile^.FName+
-            ', '+GetString(dlleListed)+'='+ItoS(Listed)+', '+
-                 GetString(dlleCalculated)+'='+ItoS(Calculated));
+  LocalError(GetString(dlleFileSizeMismatch)+' '+CurPFile^.FName^+
+            ', '+GetString(dlleListed)+'='+ZtoS(Listed)+', '+
+                 GetString(dlleCalculated)+'='+ZtoS(Calculated));
 end;
 
 procedure CheckFileCRC(Listed,Calculated:Word);
 begin
  if Listed<>Calculated then
-  LocalError(GetString(dlleFileCRCMismatch)+' '+CurPFile^.FName+
+  LocalError(GetString(dlleFileCRCMismatch)+' '+CurPFile^.FName^+
             ', '+GetString(dlleListed)+'='+ItoS(Listed)+', '+
                  GetString(dlleCalculated)+'='+ItoS(Calculated));
 end;
@@ -602,36 +612,37 @@ var i,j               : word;
     SingleMiss        : Boolean;
 
 procedure MoveSection(var a:TSection);
+const
+  BufSize=1024;
+var
+  Buf: array[1..BufSize] of byte;
+  c  : word;
+  i  : TSize;
+  l  : longint;
+  r  : real;
+  s  : string;
 
-procedure BufCopy;
-const BufSize=1024;
-var   Buf : array[1..BufSize] of byte;
-
-procedure Mve(Sz:word);
-begin
- BlockRead(TmpInFile,Buf,Sz);
- CalcBufCRC(Buf,Sz,CurPFile^.CRC);
- PutBlock(Buf,Sz);
-end;
-
-var   c,i : word;
-      l   : longint;
-      s   : string;
-begin
- i:=a.Size div BufSize;
- for c:=1 to i do Mve(BufSize);
- i:=a.Size mod BufSize;
- if i>0 then Mve(i);
-end;
+  procedure Mve(Sz:word);
+  begin
+   BlockRead(TmpInFile.F,Buf,Sz);
+   CalcBufCRC(Buf,Sz,CurPFile^.CRC);
+   PutBlock(Buf,Sz);
+  end;
 
 begin
- InFName := CalcTmpFName(a.TmpFileId, TmpExt);
- Assign(TmpInFile,InFName);FileMode:=$40;Reset(TmpInFile,1);
- if IOResult<>0 then LocalError(GetString(dlleErrorOpenTMP));
- BufCopy;
- Close(TmpInFile);
- EraseFile(InFName);
- Inc(CurPFile^.Size,a.Size);
+  InFName:=CalcTmpFName(a.TmpFileId,TmpExt,False);
+  lAssignFile(TmpInFile,InFName);
+  FileMode:=$40; lResetFile(TmpInFile,1);
+  if IOResult<>0 then LocalError(GetString(dlleErrorOpenTMP));
+  i:=a.Size/BufSize;
+  for c:=1 to round(i) do Mve(BufSize);
+  r:=a.Size;
+  r:=round(r/BufSize);
+  i:=a.Size-r*BufSize;
+  if i>0 then Mve(Round(i));
+  Close(TmpInFile.F);
+  EraseFile(InFName);
+  CurPFile^.Size:=CurPFile^.Size+a.Size;
 end;
 
 procedure ClearFAPA; begin PA:=0;FA:=0 end;
@@ -683,10 +694,10 @@ begin
 end;
 
 procedure SetFileTime(ft:LongInt);
-var f:file;
+var f:lfile;
 begin
  if ft=0 then Exit;
- Assign(f,OutputDir+OutFName);FileMode:=$40;Reset(f,1);SetFTime(f,ft);Close(f);
+ lAssignFile(f,OutputDir+OutFName);FileMode:=$40;lResetFile(f,1);SetFTime(f.f,ft);Close(f.f);
 end;
 
 procedure ReportMiss;
@@ -699,9 +710,9 @@ begin
   LocalError(GetString(dlleSections)+s+GetString(dlleAreAbsent));
 end;
 
-begin
+begin { CompileFile }
  ClearFAPA;MissS:='';SingleMiss:=On;
- OutFName:=CurPFile^.FName;CurPFile^.Flushed:=On;
+ OutFName:=CurPFile^.FName^;CurPFile^.Flushed:=On;
  FileRewrite(OutputDir+OutFName);
  if ErrorFCode<>0 then
  begin
@@ -755,9 +766,9 @@ begin
 end;
 
 procedure SetFN;
-var D:DirStr;N:NameStr;E:ExtStr;nl:byte absolute n;el:byte absolute E;
+var D:String;N:String;E:String;nl:byte absolute n;el:byte absolute E;
 begin
- UpStr(AuxT);FSplit(AuxT,D,N,E); nl:=Min(nl,8);el:=Min(el,4);
+ UpStr(AuxT);lFSplit(AuxT,D,N,E); nl:=Min(nl,8);el:=Min(el,4);
  AuxT:=N+E;
 end;
 
@@ -859,13 +870,13 @@ begin
   if not ValidWNumber(TmpCRC) then Exit;
   if TmpCRC<>WholeSectCRC then
   begin
-   LocalError(GetString(dlleCRC_Err)+' ─ '+CurPFile^.FName+', '+GetString(dlleSection)+' '+ItoS(CurSectNo));
+   LocalError(GetString(dlleCRC_Err)+' ─ '+CurPFile^.FName^+', '+GetString(dlleSection)+' '+ItoS(CurSectNo));
   end;
   AuxT:=Num;
   if not ValidLNumber(s) then Exit;
   if s<>SectSSz then
   begin
-   LocalError(GetString(dlleSizeMism)+' ─ '+CurPFile^.FName+', '+GetString(dlleSection)+' '+ItoS(CurSectNo));
+   LocalError(GetString(dlleSizeMism)+' ─ '+CurPFile^.FName^+', '+GetString(dlleSection)+' '+ItoS(CurSectNo));
   end;
   CheckS:=On;
  end else
@@ -1090,7 +1101,7 @@ begin
  if BadSection then Exit;
  DecodeStr(StrT[2],b);
  PutBlock(b,Byte(StrT[1]));
- Inc(CurSectSize,Byte(StrT[1]));
+ CurSectSize:=CurSectSize+Byte(StrT[1]);
 end;
 
 procedure GoSect;
@@ -1108,14 +1119,14 @@ begin
 end;
 
 procedure CheckExist;
-var f: PathStr;
+var f: String;
     P: Pointer;
     i,j : word;
 begin
  if not ChkOvr then Exit;
  j:=0;
  for i:=1 to NFileArr do
-  if FileArr^[i].FName=CurFileName then begin j:=i;Break end;
+  if UpStrg(FileArr^[i].FName^)=UpStrg(CurFileName) then begin j:=i;Break end;
  if j=0 then
  begin
   f:=OutputDir+CurFileName;
@@ -1151,17 +1162,18 @@ var     Num:word;
   if v<=Num then Exit;
   Num:=v;
  end;
-var Dir:SearchRec;D:DirStr;N:NameStr;E:ExtStr;
+var Dir:lSearchRec;D:String;N:String;E:String;
 begin
- u:='UNKNOWN.';
+ u:='Unknown.';
  Num:=0;
- FindFirst(u+'*', Archive, Dir);
+ lFindFirst(u+'*', Archive, Dir);
  while DosError = 0 do
  begin
-  FSplit(Dir.Name,D,N,E);
+  lFSplit(Dir.FullName,D,N,E);
   CalcMaxUnk(E);
-  FindNext(Dir);
+  lFindNext(Dir);
  end;
+ lFindClose(Dir);
  CalcUnknownName:=u+SSStr(Num+1,3,'0');
 end;
 
@@ -1213,7 +1225,7 @@ begin
  begin
   Number:=CurSectNo;
   TmpFileId:=CalcTmpId;
-  OutFName := CalcTmpFName(TmpFileId, TmpExt);
+  OutFName := CalcTmpFName(TmpFileId, TmpExt, True);
  end;
  CurPSection:=@s;
 end;
@@ -1228,7 +1240,7 @@ begin
    if MaxSectKnown then TotSect:=MaxSectNum else TotSect:=0;
   end;
   SetTotSect(s);
-  FName:=CurFileName;
+  FName:=NewStr(CurFileName);
   Size:=0;Crc:=0;NSect:=0;
   Broken:=False;CrcKnown:=Off;EndFound:=Off;ForceSkp:=ForceSkip;Flushed:=ForceSkip;
   if FileTimeKnown then FileTime:=CurFileTime else FileTime:=0;
@@ -1276,7 +1288,7 @@ begin
  if ForceEOF then Exit;
  j:=0;
  for i:=1 to NFileArr do
-  if FileArr^[i].FName=CurFileName then begin j:=i;Break end;
+  if UpStrg(FileArr^[i].FName^)=UpStrg(CurFileName) then begin j:=i;Break end;
  if j=0 then
  begin
   GrArr(FileArr,NFileArr,SizeOf(TFile));
@@ -1324,40 +1336,31 @@ begin
     if CurPFile^.Broken then EraseFile(OutputDir+OutFName);
   end;
  end;
+ For i:=1 to NFileArr do DisposeStr(FileArr^[i].FName);
  FreeArr(FileArr,NFileArr,SizeOf(TFile));
 end;
 
+procedure DoUuDecode(AFileRec: Pointer); far;
 var
-    PP,P1 : PView;
-    PL : PSortedListBox;
-    IdleTimer: TEventTimer;
-
+ PF: PFileRec absolute AFileRec;
+ InputFileName: String;
+ IdleTimer: TEventTimer;
 begin
- if not ExistFile(InputFileName) then
- begin
-  Exit;
- end;
- POutBuf:=NIL;NFileArr:=0;BadSection:=Off;KickBack:=Off;
- ForceEOF:=Off;
- UUfound:=Off;CurFileName:='';GoodNumber:=0;ErrorNumber:=0;
- CurPFile:=NIL;PI:=NIL;
+ if (PF^.Attr and Directory <> 0) then Exit;
+ InputFileName:=MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
+ if not ExistFile(InputFileName) then Exit;
  InputStream := New(PTextReader, Init(InputFileName));
  if (InputStream = nil) then Exit;
- ClearEX;ClearCRC;
  Get_String;
-
  if not EndOfFile then
  begin
    R.Assign(0,0,40,12);
    New(PI, Init(R));
    PI^.Top := GetString(dlUUDecode);
-
    PI^.Write(1,GetString(dlUUDecodingto)+Cut(InputFileName, 40));
    PI^.Write(2,GetString(dlFC_To)+' '+OutputDir);
-
    Desktop^.Insert(PI);
  end;
-
  NewTimer(IdleTimer, 0);
  while not EndOfFile do
  begin
@@ -1368,26 +1371,32 @@ begin
   BadSection:=Off;KickBack:=Off;ForceSkip:=Off;ExSum:=Off;CurPFile:=NIL;
 
   if not NumSectKnown then DecodeUnheadered else
-  begin  {if NumSectKnown}
-   if MaxSectKnown then
-   begin
-    {if (CurSectNo=1) and (MaxSectNum=1) then WriteSingleHeadered
-                                        else }WriteHeadered;
-   end else
-   begin {if not MaxSectKnown}
-    WriteOrphanedSection;
-   end;
-  end;
+   if MaxSectKnown then WriteHeadered
+                   else WriteOrphanedSection;
   if TimerExpired(IdleTimer) then
   begin
     if ApplicationIdle(PI) then Break;
     NewTimer(IdleTimer, 1);
   end;
  end;
- Dispose(InputStream, Done);
  if SectionGo then TerminateSection;
- if NFileArr > 0 then FlushLeftSections;
  FreeObject(PI);
+ Dispose(InputStream, Done);
+ Message(Application, evCommand, cmCopyUnselect, PF);
+end;
+
+var
+    PP,P1 : PView;
+    PL : PSortedListBox;
+
+begin { Uu_Decode }
+ POutBuf:=NIL;NFileArr:=0;BadSection:=Off;KickBack:=Off;
+ ForceEOF:=Off;
+ UUfound:=Off;CurFileName:='';GoodNumber:=0;ErrorNumber:=0;
+ CurPFile:=NIL;PI:=NIL;
+ ClearEX;ClearCRC;
+ AFileCollection^.ForEach(@DoUuDecode);
+ if NFileArr > 0 then FlushLeftSections;
  if not UUfound then
   begin
    ErrMsg(eruuNoStuff);
@@ -1395,9 +1404,10 @@ begin
   end;
  UU_Decode:=ForceEOF;
 end;
+        {-DataCompBoy-}
 
-procedure UuDecode(const FName: String);
-var  Dr: Record  S:PathStr; Opt: Word; end;
+procedure UuDecode(AFileCollection: PCollection);
+var  Dr: Record  S:String; Opt: Word; end;
      BeepDisabled:Boolean;
 begin
  Inc(SkyEnabled);
@@ -1414,7 +1424,7 @@ begin
        if not ((Length(Dr.S)=2) and (Dr.S[2]=':')) then Dr.S:=Dr.S+'\';
      CreateDirInheritance(Dr.S, Off);
     NewTimer(Timer, 0);
-    BeepDisabled := UU_Decode(FName,Dr.S, Dr.Opt and 1 <> 0, Dr.Opt and 2 <> 0, Dr.Opt and 4 <> 0);
+    BeepDisabled := UU_Decode(AFileCollection,Dr.S, Dr.Opt and 1 <> 0, Dr.Opt and 2 <> 0, Dr.Opt and 4 <> 0);
      RereadGlobal(Dr.S);
      if not BeepDisabled then
      begin
@@ -1454,23 +1464,25 @@ asm             mov     ax,word ptr [L+0]
 @@Exit:
 end;
 
+        {-DataCompBoy-}
 procedure UuEncode(const FName: String);
 type
         PDskBufArr       = ^TDskBufArr;
         TDskBufArr       = array[1..65535] of byte;
 
+{$I version.inc}
   const
                 SectNZ   = 2000;
-                UUETitle = '< uuencode by Dos Navigator >';
-  var ST: file;
+                UUETitle = '< UUE by DN OSP v'+VersionName+' ==>';
+  var ST: lfile;
       GetLnEnd: string[2];
       NLines: LongInt;
       L, FL, CRC, RSize: LongInt;
       S: String;
       I, Start: Integer;
-      Nm: NameStr;
-      Xt: ExtStr;
-      Dr: PathStr;
+      Nm: String;
+      Xt: String;
+      Dr: String;
       P: Pointer;
 {$IFDEF DN}
       PI: PWhileView;
@@ -1500,7 +1512,7 @@ type
         StrPerLastS,
         SectNo,
         StrPerSect      : LongInt;
-        t               : file;
+        t               : lfile;
         DskBuf,SouBuf   : PDskBufArr;
         OutBufSize,
         MsgNameNum      : LongInt;
@@ -1509,12 +1521,12 @@ type
         CalcSectCrc,
         CalcLineCrc,
         Calc64Crc       : Boolean;
-        OutName         : PathStr;
-        SouName         : PathStr;
+        OutName         : String;
+        SouName         : String;
 
 procedure GetData(var Buf; Count: Word);
 begin
- BlockRead(ST, Buf,Count);
+ BlockRead(ST.f, Buf,Count);
  if CalcEntireCrc then cCRC(Buf,Count,EntireCRC);
  if Calc64Crc then Crc64(Buf,Count,EntireC64,EntireP64);
 end;
@@ -1548,11 +1560,11 @@ end;
 
 procedure FlushT;
 begin
- Rewrite(t,1);
+ lRewriteFile(t,1);
  if IOResult>0 then begin WriteError:=True; Exit end;
- BlockWrite(t,DskBuf^,TxtBufSize);
+ BlockWrite(t.f,DskBuf^,TxtBufSize);
  if IOResult>0 then WriteError:=True;
- Close(t);
+ Close(t.f);
  if IOResult>0 then WriteError:=True;
 end;
 
@@ -1688,16 +1700,16 @@ begin
        else LocalFreeStr := '.'+ItoS(SectNo);
 
  OutName:=Dr+Nm+LocalFreeStr;
- Assign(t,OutName);
+ lAssignFile(t,OutName);
 {---------------------------------------------------------------}
 if not All then
  begin
    { FileMode:=$40;}
     ClrIO;
-    Reset(t,1);
+    lResetFile(t,1);
     if IOResult=0 then
        begin
-        Close(t);
+        Close(t.f);
 {$IFDEF DN}
         P := @OutName;
         II := MessageBox(GetString(dlFileExist)+^M, @P, mfQuery+mfYesButton+mfNoButton+mfCancelButton+mfAllButton);
@@ -1919,15 +1931,15 @@ begin
 end;
 
 procedure GetFInfo;
-var f:file;
+var f:lfile;
 begin
- Assign(f,FName);
+ lAssignFile(f,FName);
  FileMode:=$40;
  ClrIO;
- Reset(f,1);
+ lResetFile(f,1);
  if IOResult<>0 then exit;
- GetFTime(f,SouTime);
- Close(f);
+ GetFTime(f.f,SouTime);
+ Close(f.f);
 end;
 
 FUNCTION MakeNormName(S, S1: string): string;
@@ -1956,7 +1968,7 @@ begin
  UUEData := UUEncodeData;
  UUEData.Name := '';
 {$ENDIF}
- FSplit(FName, Dr, Nm, Xt);
+ lFSplit(FName, Dr, Nm, Xt);
 
  SouName:=Nm+Xt;
 
@@ -2001,11 +2013,11 @@ beg:
 {$ENDIF}
 
 
- FSplit({$IFDEF DN}Advance.{$ENDIF}FExpand({$IFDEF DN}UUEData.Name{$ELSE}UUEncodeDataName{$ENDIF}), S, Nm, Xt);
+ lFSplit(lFExpand({$IFDEF DN}UUEData.Name{$ELSE}UUEncodeDataName{$ENDIF}), S, Nm, Xt);
  if (Xt='') or (Xt='.') then Xt:='.UUE';
  if Nm = '' then
    begin
-     FSplit(FName, Dr, Nm, Xt);
+     lFSplit(FName, Dr, Nm, Xt);
      Dr := MakeNormName(S, '');
      Xt := '.UUE';
    end else Dr := S;
@@ -2014,10 +2026,10 @@ beg:
  CreateDirInheritance(Dr, Off);
 {$ENDIF}
 
- Assign(ST,FName);
+ lAssignFile(ST,FName);
  FileMode:=$40;
  ClrIO;
- Reset(ST,1);
+ lResetFile(ST,1);
  if IOResult <> 0 then
  begin
 {$IFDEF DN}
@@ -2027,11 +2039,11 @@ beg:
   Exit
  end;
 
- SouSize := FileSize(ST);
+ SouSize := FileSize(ST.f);
 
  if SouSize<3 then
   begin
-   Close(ST);
+   Close(ST.f);
 {$IFDEF DN}
    Msg(dlFileIsSmall, nil, mfError+mfOkButton);
    NewTimer(Timer, 0);
@@ -2040,13 +2052,13 @@ beg:
   end;
 
  LocalFreeStr:=Dr+Nm+Xt;
- Assign(t,LocalFreeStr);
+ lAssignFile(t,LocalFreeStr);
  FileMode:=$40;
  ClrIO;
- Reset(t,1);
+ lResetFile(t,1);
  if IOResult=0 then
     begin
-     Close(t);
+     Close(t.f);
 {$IFDEF DN}
      P := @LocalFreeStr;
      II := MessageBox(GetString(dlFileExist)+^M, @P, mfQuery+mfYesButton+mfNoButton+mfCancelButton+mfAllButton);
@@ -2055,9 +2067,9 @@ beg:
 
       cmCancel:
 {$ENDIF}
-                  begin Close(ST); Exit; end;
+                  begin Close(ST.f); Exit; end;
 {$IFDEF DN}
-      cmNo    :   begin Close(ST); Goto beg end;
+      cmNo    :   begin Close(ST.f); Goto beg end;
      end;
     NewTimer(Timer, 0);
 {$ENDIF}
@@ -2084,7 +2096,7 @@ beg:
  Ma:=MaxAvail-OutBufSize-sss;
  if (Ma<20000) or (OutBufSize>$FFEF) then
  begin
-  Close(ST);
+  Close(ST.f);
 {$IFDEF DN}
   if NLines > 900 then
     begin
@@ -2117,7 +2129,7 @@ beg:
  EncodeSections;
  FreeMem(SouBuf,sss);
  FreeMem(DskBuf,OutBufSize);
- Close(ST);
+ Close(ST.f);
 {$IFDEF DN}
  PI^.Free;
  if WriteError then
@@ -2137,7 +2149,7 @@ begin
   DoIt;
 {$IFDEF DN}Dec(SkyEnabled);{$ENDIF}
 end;
-
+        {-DataCompBoy-}
 {$ENDIF}
 
 

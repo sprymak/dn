@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -55,7 +55,6 @@
 {$DEFINE PrintManager}
 {$DEFINE Game}
 {$DEFINE CdPlayer}
-{.$DEFINE Demo}
 
 {.$DEFINE LITE}
 
@@ -70,6 +69,7 @@
 {$ENDIF}
 
 {$DEFINE FULLOVR}
+{$DEFINE VIEWSOVR}
 
 { Only TPW uses "WObjects"; BP 7 calls the same unit "Objects" }
 {$ifdef windows}

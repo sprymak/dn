@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -75,7 +75,7 @@ TYPE
     procedure FreeItem( Item: Pointer ); virtual;
     procedure Insert( Item: Pointer ); virtual;
     constructor Load( var S: TStream );
-    procedure Store( var S: TStream );
+    procedure Store( var S: TStream ); virtual;
   end;
 
   { Collection of TIniSections }
@@ -93,7 +93,7 @@ TYPE
 IMPLEMENTATION
 
 USES
-  Advance;
+  advance, advance1, advance2, advance3;
 
 CONST
   CrLf: Array [ 0..1 ] of Char = ( #13, #10 );
@@ -211,7 +211,7 @@ end;
 
 PROCEDURE TIniSection.FreeItem;
 begin
-  DisposeStr( Item );
+  DisposeStr( PString(Item) );
 end;
 
 PROCEDURE TIniSection.Insert;

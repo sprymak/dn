@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit Views;
@@ -55,7 +59,8 @@ unit Views;
 
 interface
 
-uses Objects, Drivers, Memory, xTime, ObjType;
+uses LFN, TitleSet, {DataCompBoy}
+     Objects, Drivers, Memory, xTime, ObjType;
 
 const
 
@@ -164,6 +169,7 @@ const
   cmNext    = 7;
   cmPrev    = 8;
   cmHelp    = 9;
+  cmHelp2   = $DCB;
 
 { Application command codes }
 
@@ -312,7 +318,9 @@ type
     procedure Select;
     procedure SetBounds(var Bounds: TRect);
     procedure SetCommands(Commands: TCommandSet);
+{DataCompBoy
     procedure SetCmdState(Commands: TCommandSet; Enable: Boolean);
+}
     procedure SetCursor(X, Y: Integer);
     procedure SetData(var Rec); virtual;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
@@ -327,8 +335,6 @@ type
       Count: Integer);
     procedure WriteLine(X, Y, W, H: Integer; var Buf);
     procedure WriteStr(X, Y: Integer; Str: String; Color: Byte);
-    procedure StoreText(var F: Text); virtual;
-    function  GetOptionsStr: String;
     procedure Update; virtual;
     function MenuEnabled(Command: Word): Boolean; {-$VOL}
   private
@@ -394,13 +400,19 @@ type
     procedure SetStep(APgStep, AArStep: Integer);
     procedure SetValue(AValue: Integer);
     procedure Store(var S: TStream);
-    procedure StoreText(var F: Text); virtual;
   private
     Chars: TScrollChars;
     procedure DrawPos(Pos: Integer);
     function GetPos: Integer;
     function GetSize: Integer;
   end;
+
+ PMyScrollBar=^TMyScrollBar;
+ TMyScrollBar = object(TScrollBar)
+    procedure Draw; virtual;
+    private
+    procedure DrawPos(Pos: Integer);
+ end;
 
 { Video buffer }
 
@@ -487,7 +499,7 @@ type
     Palette: Integer;
     Frame: PFrame;
     Title: PString;
-    constructor Init(var Bounds: TRect; ATitle: TTitleStr; ANumber: Integer);
+    constructor Init(var Bounds: TRect; const ATitle: TTitleStr; ANumber: Integer);
     constructor Load(var S: TStream);
     destructor Done; virtual;
     procedure Close; virtual;
@@ -501,6 +513,7 @@ type
     procedure Store(var S: TStream);
     procedure Zoom; virtual;
     function  ReactOnCmd: Boolean; virtual;
+    procedure Draw; virtual; {DataCompBoy}
   end;
 
 { Message dispatch function }
@@ -561,6 +574,14 @@ const
   );
 
 const
+  RMyScrollBar: TStreamRec = (
+     ObjType: otMyScrollBar;
+     VmtLink: Ofs(TypeOf(TMyScrollBar)^);
+     Load:    @TMyScrollBar.Load;
+     Store:   @TMyScrollBar.Store
+  );
+
+const
   RGroup: TStreamRec = (
      ObjType: otGroup;
      VmtLink: Ofs(TypeOf(TGroup)^);
@@ -600,7 +621,7 @@ procedure Deregister(P: PView);
 procedure UpdateAll(All: Boolean);
 
 implementation
-uses Commands, Startup, DNapp, Advance, DNini;
+uses Commands, Startup, DNapp, advance, advance1, advance2, advance3, DNIni;
 
 type
   PFixupList = ^TFixupList;
@@ -1732,12 +1753,13 @@ asm
         POP     DS
 end;
 
+{DataCompBoy
 procedure TView.SetCmdState(Commands: TCommandSet; Enable: Boolean);
 begin
   if Enable then EnableCommands(Commands)
   else DisableCommands(Commands);
 end;
-
+}
 procedure TView.SetCommands(Commands: TCommandSet);
 begin
   CommandSetChanged := CommandSetChanged or (CurCommandSet <> Commands);
@@ -2199,10 +2221,12 @@ begin
   begin
     GrowMode := gfGrowLoX + gfGrowHiX + gfGrowHiY;
     Chars := VChars;
+    if Length(VertScrollBarChars)=5 then move(VertScrollBarChars[1], Chars, 5);
   end else
   begin
     GrowMode := gfGrowLoY + gfGrowHiX + gfGrowHiY;
     Chars := HChars;
+    if Length(HorizScrollBarChars)=5 then move(HorizScrollBarChars[1], Chars, 5);
   end;
 end;
 
@@ -2216,6 +2240,46 @@ procedure TScrollBar.Draw;
 begin
   DrawPos(GetPos);
 end;
+
+procedure TMyScrollBar.Draw;
+var chrs:TScrollChars;
+begin
+  if ShowScrollBar then DrawPos(GetPos) else
+  begin
+  Chrs:=Chars;
+  Chars:='║║║║║';
+  DrawPos(GetPos);
+  Chars:=Chrs;
+  end;
+end;
+procedure TMyScrollBar.DrawPos(Pos: Integer);
+var
+  S: Integer;
+  B: TDrawBuffer;
+  col1,col2,col3:byte;
+begin
+  S := GetSize - 1;
+  if ShowScrollBar then begin
+  col1:=GetColor(1);
+  col2:=GetColor(2);
+  col3:=GetColor(3);
+  end  else
+  begin
+  col1:=GetColor(1);
+  col2:=col1;
+  col3:=col2;
+  end;
+  MoveChar(B[0], Chars[0], Col2, 1);
+  if Max = Min then
+    MoveChar(B[1], Chars[4], Col1, S - 1)
+  else
+  begin
+    MoveChar(B[1], Chars[2], Col1, S - 1);
+    MoveChar(B[Pos], Chars[3], Col3, 1);
+  end;
+  MoveChar(B[S], Chars[1], Col2, 1);
+  WriteBuf(0, 0, Size.X, Size.Y, B);
+ end;
 
 procedure TScrollBar.DrawPos(Pos: Integer);
 var
@@ -3185,7 +3249,7 @@ end;
 
 { TWindow }
 
-constructor TWindow.Init(var Bounds: TRect; ATitle: TTitleStr;
+constructor TWindow.Init(var Bounds: TRect; const ATitle: TTitleStr;
   ANumber: Integer);
 begin
   TGroup.Init(Bounds);
@@ -3320,6 +3384,7 @@ begin
   if AState = sfSelected then
   begin
     SetState(sfActive, Enable);
+    if GetState(sfActive) then if Title<>nil then SetTitle(Title^);
     WindowCommands := [cmNext, cmPrev, cmTile, cmCascade, cmClearDesktop, cmWindowManager];
     if Flags and wfGrow + wfMove <> 0 then
       WindowCommands := WindowCommands + [cmResize];
@@ -3378,6 +3443,12 @@ begin
   end else Locate(ZoomRect);
 end;
 
+procedure TWindow.Draw;
+begin
+ if GetState(sfActive) then if Title<>nil then SetTitle(Title^);
+ inherited Draw;
+end;
+
 { Message dispatch function }
 
 function Message(Receiver: PView; What, Command: Word;
@@ -3394,41 +3465,6 @@ begin
     Receiver^.HandleEvent(Event);
     if Event.What = evNothing then Message := Event.InfoPtr;
   end;
-end;
-
-procedure TView.StoreText;
-  var S: String;
-      R: TRect;
-      L: Array[1..4] of LongInt;
-begin
-  GetBounds(R); L[1] := R.A.X; L[2] := R.A.Y; L[3] := R.B.X; L[4] := R.B.Y;
-  FormatStr(S, '%d, %d, %d, %d', L);
-  WriteLn(F, '    View ', S, GetOptionsStr);
-end;
-
-function TView.GetOptionsStr;
-  var S: String;
-begin
-  S := '';
-  if Options and ofCenterX <> 0 then S := S + ', ofCenterX';
-  if Options and ofCenterY <> 0 then S := S + ', ofCenterY';
-  if Options and ofFramed <> 0 then S := S + ', ofFramed';
-  if Options and ofPostProcess <> 0 then S := S + ', ofPostProcess';
-  if Options and ofPreProcess <> 0 then S := S + ', ofPreProcess';
-  if Options and ofValidate <> 0 then S := S + ', ofValidate';
-  if Options and ofSecurity <> 0 then S := S + ', ofSecurity';
-  GetOptionsStr := S;
-end;
-
-
-procedure TScrollBar.StoreText;
-  var S: String;
-      R: TRect;
-      L: Array[1..4] of LongInt;
-begin
-  GetBounds(R); L[1] := R.A.X; L[2] := R.A.Y; L[3] := R.B.X; L[4] := R.B.Y;
-  FormatStr(S, '%d, %d, %d, %d', L);
-  WriteLn(F, '    SCROLLBAR ', S, GetOptionsStr);
 end;
 
 { Background work }

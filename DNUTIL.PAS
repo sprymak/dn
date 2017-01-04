@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
@@ -53,6 +57,10 @@ unit DNUtil;
 interface
 uses
      Dos,
+
+     LFN,    {DataCompBoy}
+     LFNCol, {DataCompBoy}
+
      Drivers,
      Objects,
      Views,
@@ -65,7 +73,11 @@ uses
      Eraser,
      DiskInfo,
      NetInfo,
-     Advance,
+     advance,
+     advance1,
+     advance2,
+     advance3,
+     advance4,
      Startup,
      Dialogs,
      Gauges,
@@ -150,19 +162,21 @@ uses
      XDblWnd,
      DiskTool,
      CCalc,
-     DnIni; {-$VIV}
+     DnIni {-$VIV}
+     ;
 
 const
   TrashCan: PView = nil;
   RunMenu: Boolean = Off;
   IdleCounter: Word = 0;
-  CheckingRegister: Word = 0;
   StartTicks: Word = 0;
+  NullStr: byte=0;
 
 var
   LoaderSeg: Word;
   CommandOfs: Word;
-  RunFirst,IgnoreOldFiles: Boolean;
+  RunFirst: Boolean;
+  IgnoreOldFiles: Boolean;
 
 type
      PDNApplication = ^TDNApplication;
@@ -179,12 +193,12 @@ type
         procedure InitCommandLine; virtual;
         procedure InitDesktop; virtual;
         procedure InitStatusLine; virtual;
-        procedure ViewFile(Intern: Boolean; const FileName: PathStr);
+        procedure ViewFile(Intern: Boolean; FileName: String); {DataCompBoy}
         procedure AddFormat;
-        procedure EditFile(Intern: Boolean; const FileName: PathStr);
+        procedure EditFile(Intern: Boolean; FileName: String); {DataCompBoy}
         procedure OutOfMemory; virtual;
-        procedure RetrieveDesktop(const FileName: PathStr; LS: PStream; LoadColors: Boolean);
-        procedure SaveDesktop(FileName: PathStr);
+        procedure RetrieveDesktop(const FileName: String; LS: PStream; LoadColors: Boolean); {DataCompBoy}
+        procedure SaveDesktop(const FileName: String); {DataCompBoy}
         procedure LoadDesktop(var S: TStream);
         procedure StoreDesktop(var S: TStream);
         procedure ChgColors;
@@ -193,52 +207,64 @@ type
         procedure HandleCommand(var Event: TEvent);
      end;
 
-procedure ASCIITable;
 procedure LoadHistories;
 procedure SaveHistories;
 procedure ClearHistories;
 function CheckExit: Boolean;
-function PresentFile(Name: PathStr): PStream;
+function PresentFile(Name: String): PStream; {DataCompBoy}
 procedure WriteConfig;
-procedure ExecString(S: Str128);
-function SearchExt(Name: NameStr; Ext: ExtStr; var HS: String): Boolean;
-function ExecExtFile(const ExtFName, FName: PathStr; SIdx: TStrIdx): Boolean;
-procedure ExecFile(Name: PathStr);
+procedure ExecString(S: PString);
+function SearchExt(FileRec: PFileRec; var HS: String): Boolean; {DataCompBoy}
+function ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean; {DataCompBoy}
+procedure ExecFile(const FileName: string); {DataCompBoy}
 function ParseAddress(const Address: String; var Zone, Net, Node, Point: Word): Boolean;
 procedure ShowTimeInfo;
 Procedure SetSysColors( var Pal);
-procedure LoadPalFromFile(const FN: String);
+procedure LoadPalFromFile(const FN: String); {DataCompBoy}
 
 const
-     cfgMouseData       = 3;
-     cfgInterfaceData   = 4;
-     cfgSaversData      = 5;
-     cfgSystemColors    = 6;
-     cfgPanelDefaults   = 7;
-     cfgTetrisRec       = 9;
-     cfgCustomMasks     = 10;
-     cfgPrinterSetup    = 11;
-     cfgColumnDefaults  = 12;
-     cfgSavers          = 13;
-     cfgCountryInfo     = 14;
-     cfgConfirms        = 15;
-     cfgTermDefaults    = 16;
-     cfgDirsToChange    = 17;
-     cfgFindDlgPos      = 20;
-     cfgCDParams        = 21;
-     cfgUUEData         = 22;
-     cfgVGAPalette      = 23;
-     cfgBlink           = 24;
-     cfgFFindOptions    = 26;
-     cfgFMSetup         = 27;
-     cfgDriveInfoData   = 28;
-     cfgMakeListFile    = 29;
-     cfgEditorDefaults  = 30;
-     cfgStartupData     = 31;
-     cfgSystemData      = 32;
-     cfgINIdata         = 33;
-     cfgIgnoreOldFiles  = 34;
-     cfgExtractOptions  = 35;
+     cfgMouseData           =  3;
+     cfgInterfaceData       =  4;
+     cfgSaversData          =  5;
+     cfgSystemColors        =  6;
+     cfgPanelDefaults       =  7;
+     cfgTetrisRec           =  9;
+     cfgCustomMasks         = 10;
+     cfgPrinterSetup        = 11;
+     cfgColumnDefaults      = 12;
+     cfgSavers              = 13;
+     cfgCountryInfo         = 14;
+     cfgConfirms            = 15;
+     cfgTermDefaults        = 16;
+     cfgDirsToChange        = 17;
+     cfgFindDlgPos          = 20;
+     cfgCDParams            = 21;
+     cfgUUEData             = 22;
+     cfgVGAPalette          = 23;
+     cfgBlink               = 24;
+     cfgFFindOptions        = 26;
+     cfgFMSetup             = 27;
+     cfgDriveInfoData       = 28;
+     cfgMakeListFile        = 29;
+     cfgEditorDefaults      = 30;
+     cfgStartupData         = 31;
+     cfgSystemData          = 32;
+     cfgINIdata             = 33;
+     cfgIgnoreOldFiles      = 34;
+     cfgExtractOptions      = 35;
+{New Record Versions}
+     cfgNewSystemData       = 36;
+     cfgNewSaversData       = 37;
+     cfgColumnsDefaultsDisk = 38;
+     cfgColumnsDefaultsFind = 39;
+     cfgColumnsDefaultsTemp = 40;
+     cfgColumnsDefaultsArch = 41;
+{    cfgColumnsDefaultsArvd = 42; Do not use 42 - old version!!!}
+     cfgNewFMSetup          = 43;
+     cfgArcCustomMasks      = 44;
+     cfgColumnsDefaultsArvd = 45;
+     cfgShowScrollBar       = 47;
+     cfgNewStartupData      = 48;
 
      dlAbout = #3'Dos Navigator Open Source'#13#13#3'Version %s, %s'#13#3+
      #0'http://dn_osp.web.com/'#0#13#13#3'Based on Dos Navigator'#13#3+
@@ -271,7 +297,8 @@ uses
   {$ifdef modem}
   modemio,
   {$endif}
-  ColorSel;
+  ColorSel,
+  UFNMatch;
 
 {$I RunCmd.INC}
 {$I Version.INC}
@@ -406,14 +433,19 @@ begin
   inherited Done;
 end;
 
-
-function PresentFile(Name: PathStr): PStream;
+        {-DataCompBoy-}
+function PresentFile(Name: String): PStream;
  var S: PStream;
 begin
- S := New(PBufStream, Init(Name, stOpenRead, 2048));
- if S^.Status <> stOK then FreeObject(S);
+ if ExistFile(Name) then
+  begin
+   S := New(PBufStream, Init(Name, stOpenRead, 2048));
+   if S^.Status <> stOK then begin FreeObject(S); S:=nil; end
+  end
+ else s:=nil;
  PresentFile := S;
 end;
+        {-DataCompBoy-}
 
 function CheckExit: Boolean;
  var Event: TEvent;
@@ -428,20 +460,22 @@ begin
  CheckExit := Desktop^.FirstThat(@FindQuit) = nil;
 end;
 
+        {-DataCompBoy-}
 procedure ClearSwap;
   var DT: DOS.DateTime;
       L: LongInt;
-      SR: SearchRec;
+      SR: lSearchRec;
 
   procedure ClearFiles(const FileSpec: String);
   begin
-    FindFirst(SwpDir+FileSpec, Archive, SR);
+    lFindFirst(SwpDir+FileSpec, Archive, SR);
     while DOSError = 0 do
       begin
-        if SR.Time < L then EraseFile(SwpDir+SR.Name);
+        if SR.SR.Time < L then EraseFile(SR.FullName);
         ClrIO;
-        FindNext(SR);
+        lFindNext(SR);
       end;
+    lFindClose(SR);
   end;
 
 
@@ -454,27 +488,33 @@ begin
   ClrIO;
   ClearFiles('DN*.SWP');
   ClearFiles('$DN*.*');
+  ClearFiles('$$DN*.*');
   ClearFiles('$$$DN*.*');
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 constructor TDNApplication.Init;
 var
   R: TRect;
   I: Integer; C: Char absolute I { let's so };
-  FileName: PathStr;
+  FileName: String;
   LoadStream: PStream;
   Event: TEvent;
 
 const
-  NumRElms = 140
-  {$IFDEF MODEM}
-  +9
-  {$ENDIF}
-  +2 {-$VIV}
+  NumRElms = 136
+  {$IFDEF MODEM}       +9 {$ENDIF}
+  {$IFDEF SpreadSheet} +5 {$ENDIF}
+  {$IFDEF Game}        +3 {$ENDIF}
+  {$IFDEF PrintManager}+4 {$ENDIF}
+  {$IFDEF CDPlayer}    +2 {$ENDIF}
+  {$IFDEF DBView}      +4 {$ENDIF}
   ;
   RegArray : array[1..NumRElms] of Word = (
 
   Ofs(RScroller),
+  Ofs(RMyScrollBar),
   Ofs(RListViewer),
 
   { Register Tree }
@@ -520,6 +560,7 @@ const
   Ofs(RCluster),
   Ofs(RRadioButtons),
   Ofs(RCheckBoxes),
+  Ofs(RMultiCheckBoxes),
   Ofs(RListBox),
   Ofs(RStaticText),
   Ofs(RLabel),
@@ -559,6 +600,7 @@ const
   Ofs(RXFileEditor),
   Ofs(REditWindow),
   Ofs(RInfoLine),
+  Ofs(RFileEditor),
   Ofs(RBookmarkLine), {-$VIV}
   Ofs(REditScrollBar),
   Ofs(REditFrame),
@@ -622,28 +664,25 @@ const
   Ofs(RZIPArchiver),
   Ofs(RSQZArchiver),
   Ofs(RHAPArchiver),
-
   Ofs(RHAArchiver),
   Ofs(RRARArchiver),
   Ofs(RTARArchiver),
   Ofs(RHYPArchiver),
   Ofs(RHPKArchiver),
-
   Ofs(RZOOArchiver),
   Ofs(RARCArchiver),
   Ofs(RLHAArchiver),
   Ofs(RUC2Archiver),
-
   Ofs(RBSAArchiver),
   Ofs(RBS2Archiver),
   Ofs(RCHZArchiver),
   Ofs(RLIMArchiver),
   Ofs(RCABArchiver),
-
   Ofs(RZXZArchiver),
   Ofs(RAINArchiver),
   Ofs(RACEArchiver),
-
+  Ofs(RUFAArchiver),
+  Ofs(RQUARKArchiver),
   Ofs(RArchiveCollection),
 
   Ofs(RTable),
@@ -655,10 +694,12 @@ const
   Ofs( RCdCounter ),
   {$ENDIF}
 
+  {$IFDEF DBView}
   Ofs(RTFieldListBox),
   Ofs(RDBWindow),
   Ofs(RDBViewer),
   Ofs(RDBIndicator),
+  {$ENDIF}
 
   Ofs(RFilterValidator),
   Ofs(RRangeValidator),
@@ -684,7 +725,16 @@ const
  {App}
   Ofs(RBackground),
   Ofs(RDesktop),
-  Ofs(RStringCache)
+  Ofs(RStringCache),
+
+ {DnStdDlg}
+  Ofs(RFileCollection),
+  Ofs(RFileInputLine),
+  Ofs(RFileList),
+  Ofs(RFileInfoPane),
+  Ofs(RFileDialog),
+  Ofs(RSortedListBox),
+  Ofs(RTextCollection)
  );
 
 procedure RegisterAll;
@@ -694,6 +744,7 @@ begin
   for I := 1 to NumRElms do RegisterType(PStreamRec(Ptr(DSEG,RegArray[I]))^);
 end;
 
+var flj: boolean;
 begin
   for C := 'A' to 'Z' do DrvTrees[C].C := nil;
   RegisterAll;
@@ -722,6 +773,12 @@ begin
   Desktop^.Insert(TrashCan);
   if HideCommandLine then CommandLine^.Hide;
 
+  If RunFirst then
+   begin
+    OldArchiveName:='';
+    NewArchiveName:='';
+   end;
+
   LoadStream := PresentFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
   if LoadStream = nil then LoadStream := PresentFile(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK');
   if LoadStream <> nil then RetrieveDesktop('', LoadStream, True);
@@ -730,7 +787,7 @@ begin
   {-$VOL begin}
   if not RunFirst or CBAutoSave then begin
     ClipBoardStream := GetMeMemoStream;
-    LoadStream := PresentFile(SourceDir+'ClipBoard'+'.DN');
+    LoadStream := PresentFile(SourceDir+'ClipBoar'+'.DN');
     if (LoadStream <> nil) and (ClipBoardStream <> nil) then begin
       LoadStream^.Seek(0);
       ClipBoardStream^.CopyFrom(LoadStream^, LoadStream^.GetSize);
@@ -740,30 +797,15 @@ begin
   end;
   {-$VOL end}
 
-  {Desktop^.GetExtent(R);
-  Dec(R.B.Y, 4); Inc(R.A.X);
-  R.A.Y := R.B.Y - 3;
-  R.B.X := R.A.X + 5;
-  Lister := New(PLister, Init(R));
-  with Lister^ do
-  begin
-    Options := Options or ofTopSelect;
-    EventMask := EventMask or evBroadcast;
-  end;
-  Lister^.Hide;
-  Desktop^.Insert(Lister);}
-
-  {InitCommandLine;
-  Delete(Desktop);
-  Insert(Desktop);}
-
   Insert(Clock);
 
+  flj:=false;
   if RunFirst then
   for I := 1 to ParamCount do
    begin
-    FileName := ParamStr(I);
-    if FileName[1] <> '/' then EditFile(On, FileName);
+    if flj then FileName := FileName + ParamStr(I) else FileName := ParamStr(I);
+    if Pos('"',FileName)<>0 then flj:=not flj;
+    if (FileName[1] <> '/') and not flj then EditFile(On, DelSquashes(FileName));
    end;
 
  if RunMenu then begin
@@ -771,7 +813,10 @@ begin
    Event.Command := cmUserMenu;
    PutEvent(Event);
  end;
+
+ If ExistFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP') then EraseByName(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
 end;
+        {-DataCompBoy-}
 
 procedure TDNApplication.RunFormat;
   const FormatInit: Boolean = Off;
@@ -805,6 +850,7 @@ begin
         with FormatDialogData do
           begin
              Ftypes.Data := Nil;
+             Field3:=Copy(HistoryStr(hsFmtVolumeL,0),1,11);
           end;
        FillChar( AdvFDDR, 0 , SizeOf(AdvFDDR));
    end;
@@ -868,18 +914,21 @@ begin
   if not HideCL then ActivateView(CommandLine);
 end;
 
+        {-DataCompBoy-}
 procedure SaveRealDsk;
 begin
   PDNApplication(Application)^.SaveDesktop(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK');
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 destructor TDNApplication.Done;
   var B: Word;
       SaveStream: PStream; {-$VOL}
 begin
  {-$VOL begin}{if CBAutoSave added by piwamoto}
  if CBAutoSave then begin
-   SaveStream := New(PBufStream, Init(SourceDir+'ClipBoard'+'.DN', stCreate, 2048));
+   SaveStream := New(PBufStream, Init(SourceDir+'ClipBoar'+'.DN', stCreate, 2048));
    if (SaveStream<>nil)and(SaveStream^.Status=stOk)and(ClipBoardStream<>nil) then begin
      ClipBoardStream^.Seek(0);
      SaveStream^.CopyFrom(ClipBoardStream^, ClipBoardStream^.GetSize);
@@ -891,10 +940,9 @@ begin
 
  if ConfigModified then WriteConfig;
  if StartupData.Unload and osuAutosave <> 0 then
-  begin
-    SaveRealDsk;
-    EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-  end;
+  SaveRealDsk
+ else
+  PDNApplication(Application)^.SaveDesktop(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
  SaveHistories;
  HideCommandLine := (CommandLine <> nil) and not CommandLine^.GetState(sfVisible);
  B := $8000 or (Byte(HideCommandLine));
@@ -922,6 +970,7 @@ begin
   end;
 {$ENDIF}
 end;
+        {-DataCompBoy-}
 
 procedure TDNApplication.EventError;
 begin
@@ -935,6 +984,7 @@ begin
  WriteConfig;
 end;
 
+        {-DataCompBoy-}
 procedure WriteConfig;
 var
   S: TBufStream;
@@ -967,16 +1017,18 @@ begin
  ConfigModified := Off;
  S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stCreate, 16384);
  if S.Status <> stOK then begin Msg(erCantOpenConfig, nil, mfError+mfOKButton); S.Done; Exit; end;
- S.Write(ConfigSign[ 1 ], ConfigSignLen );
- StoreBlock(cfgSystemData, SystemData, SizeOf(SystemData));
- StoreBlock(cfgStartupData, StartupData, SizeOf(StartupData));
+ S.Write(ConfigSigns[NumSupportedConfigs].Sign[1], ConfigSigns[NumSupportedConfigs].SignLen);
+ StoreBlock(cfgNewSystemData, SystemData, SizeOf(SystemData));
+ StoreBlock(cfgNewStartupData, StartupData, SizeOf(StartupData));
  StoreBlock(cfgMouseData, MouseData, SizeOf(MouseData));
  StoreBlock(cfgInterfaceData, InterfaceData, SizeOf(InterfaceData));
- StoreBlock(cfgSaversData, SaversData.Time, SizeOf(SaversData)-SizeOf(SaversData.Selected)*2);
+ StoreBlock(cfgShowScrollBar, ShowScrollBar, SizeOf(ShowScrollBar));
+ StoreBlock(cfgNewSaversData, SaversData.Time, SizeOf(SaversData)-SizeOf(SaversData.Selected)*2);
  StoreBlock(cfgSystemColors, SystemColors, SizeOf(SystemColors));
  StoreBlock(cfgPanelDefaults, PanelDefaults, SizeOf(PanelDefaults));
  StoreBlock(cfgEditorDefaults, EditorDefaults, SizeOf(EditorDefaults));
  StoreBlock(cfgTetrisRec, TetrisRec, SizeOf(TetrisRec));
+ StoreBlock(cfgArcCustomMasks, Startup.Archives, SizeOf(Startup.Archives));
  MarkP(cfgCustomMasks);
  S.Write(CustomMask1, SizeOf(CustomMask1));
  S.Write(CustomMask2, SizeOf(CustomMask1));
@@ -985,14 +1037,20 @@ begin
  S.Write(CustomMask5, SizeOf(CustomMask1));
  UnMark;
  StoreBlock(cfgPrinterSetup, RPrinterSetup, SizeOf(RPrinterSetup));
- StoreBlock(cfgColumnDefaults, ColumnsDefaults, SizeOf(ColumnsDefaults));
+ StoreBlock(cfgColumnsDefaultsDisk, ColumnsDefaultsDisk, SizeOf(ColumnsDefaultsDisk));
+ StoreBlock(cfgColumnsDefaultsFind, ColumnsDefaultsFind, SizeOf(ColumnsDefaultsFind));
+ StoreBlock(cfgColumnsDefaultsTemp, ColumnsDefaultsTemp, SizeOf(ColumnsDefaultsTemp));
+ StoreBlock(cfgColumnsDefaultsArch, ColumnsDefaultsArch, SizeOf(ColumnsDefaultsArch));
+ StoreBlock(cfgColumnsDefaultsArvd, ColumnsDefaultsArvd, SizeOf(ColumnsDefaultsArvd));
  StoreBlock(cfgCountryInfo, CountryInfo, SizeOf(CountryInfo));
  StoreBlock(cfgConfirms, Confirms, SizeOf(Confirms));
  StoreBlock(cfgUUEData, UUDecodeOptions, SizeOf(UUDecodeOptions)+SizeOf(TUUEncodeData));
  StoreBlock(cfgMakeListFile, MakeListFileOptions, SizeOf(MakeListFileOptions));
  StoreBlock(cfgTermDefaults, TerminalDefaults, SizeOf(TerminalDefaults));
- StoreBlock(cfgFMSetup, Startup.FMSetup, SizeOf(Startup.FMSetup));
+ StoreBlock(cfgNewFMSetup, Startup.FMSetup, SizeOf(Startup.FMSetup));
+{$IFDEF CDPlayer}
  StoreBlock(cfgCDParams, CDPlace, LongInt(@CD_Player)-LongInt(@CDPlace));
+{$ENDIF}
  StoreBlock(cfgVGApalette, VGA_palette , SizeOf(VGA_palette)) ;
  StoreBlock(cfgBlink, CurrentBlink, SizeOf(CurrentBlink)) ;
  StoreBlock(cfgFFindOptions, FileFind.FindRec.Options, SizeOf(Word) * 2);
@@ -1016,50 +1074,60 @@ begin
  StoreBlock(0,I,0);
  S.Done;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TDNApplication.LoadDesktop(var S: TStream);
 var
   P: PView;
   PP: PView;
   Pal: PString;
   SaveState: Word;
-label 1;
 begin
-  GetDir(0, ActiveDir);
+  lGetDir(0, ActiveDir);
   if Desktop^.Valid(cmClose) then begin
     Desktop^.Clear;
     repeat
-    1:
-      P := PView(S.Get);
-      if P <> nil then
-       begin
-         if DataSaver <> nil then begin Dispose(DataSaver, Done); Goto 1 end;
-         P := ValidView(P);
-         if P = nil then Goto 1;
-         SaveState := P^.State;
-         P^.Hide;
-         Desktop^.InsertView(P, DeskTop^.Last);
-         if SaveState and sfVisible <> 0 then P^.Show;
-       end;
+     P := PView(S.Get);
+     if P <> nil then
+      begin
+       if DataSaver <> nil then begin Dispose(DataSaver, Done); Continue end;
+       P := ValidView(P);
+       if P = nil then Continue;
+       SaveState := P^.State;
+       P^.Hide;
+       Desktop^.InsertView(P, DeskTop^.Last);
+       if SaveState and sfVisible <> 0 then P^.Show;
+      end;
     until P = nil;
   end;
  P := DeskTop^.Current;
  if P <> nil then P^.SetState(sfActive, On);
 end;
+        {-DataCompBoy-}
 
 procedure TDNApplication.StoreDesktop(var S: TStream);
 var
   Pal: PString;
 
 procedure WriteView(P: PView); far;
+type TLongInt = array[0..10] of longint;
+     PLongInt = ^TLongInt;
+var l:array[0..5] of longint;
 begin
-  if (P <> Desktop^.Last) and (P <> TrashCan)
-     {and (P <> Lister)} then S.Put(P);
+  if (P <> Desktop^.Last) and (P <> TrashCan) and
+     (P <> PView(Desktop^.Background)) and (TypeOf(P^) <> TypeOf(TWriteWin))
+   then S.Put(P);
 end;
 
 begin
   if DataSaver = nil then New(DataSaver, Init);
-  if DataSaver <> nil then begin S.Put(DataSaver); Dispose(DataSaver, Done); end;
+  if DataSaver <> nil then
+   begin
+    S.Put(DataSaver);
+    Dispose(DataSaver, Done);
+    DataSaver:=nil;
+   end;
   Desktop^.ForEach(@WriteView);
   S.Put(nil);
 end;
@@ -1069,17 +1137,19 @@ begin
   CacheLngId := versionName + LngId + versionDate + '123';
 end;
 
+        {-DataCompBoy-}
 procedure TDNApplication.RetrieveDesktop;
 var
   S: PStream;
-  Sign: String[ DskSignLen ];
+  Sign: String[MaxSignLen];
   B, BB: Boolean;
   SM,CC: Word;
   R: TRect;
   SaveBounds: TRect;
   PS: PString;
+  PJ: PString;
   Event: TEvent;
-  F: File;
+  F: lFile;
   OldAppSize, OldDskSize: TPoint;
 
 procedure GetStringCache;
@@ -1099,6 +1169,19 @@ begin
   end;
 end;
 
+function GetGLUKName(s: string):string;
+ Begin
+  GetGLUKName:=GetPath(s)+Copy(GetName(s), 1, 12);
+ end;
+
+FUNCTION GetfURZ2(const s: string): string;
+ var a,aa,aaa:string;
+ Begin
+  lFSplit(S, a, aa, aaa);
+  aa:=aa+aaa;
+  GetfURZ2:=a+Copy(aa, 1, 8)+'.'+Copy(aaa, 9, 3);
+ End;
+
 label
   Err;
 begin
@@ -1116,14 +1199,17 @@ begin
       Err: ErrMsg(erCantReadDesktop)
     else
   begin
-    S^.Read( Sign[ 1 ], DskSignLen );
-    Sign[ 0 ] := Char( DskSignLen );
-    If Sign <> DskSign then goto Err;
+    S^.Read( Sign[ 1 ], DSKSign.SignLen );
+    Sign[ 0 ] := Char( DSKSign.SignLen );
+    If Sign <> DSKSign.Sign then goto Err;
     GetStringCache;
     if S^.Status <> stOK then goto Err;
     PS := S^.ReadStr;
-    if PS <> nil then ChDir(PS^);
-    PS := S^.ReadStr;
+    if PS <> nil then lChDir(PS^);
+    DisposeStr(PS);
+    PJ := S^.ReadStr;
+    S^.Read(NewArchiveName, 1); S^.Read(NewArchiveName[1],length(NewArchiveName));
+    S^.Read(OldArchiveName, 1); S^.Read(OldArchiveName[1],length(OldArchiveName));
     S^.Read(SM, Sizeof(SM));
     S^.Read( OldAppSize, SizeOf( Size ));
     S^.Read( OldDskSize, SizeOf( Size ));
@@ -1145,13 +1231,29 @@ begin
       Desktop^.ChangeBounds(R);
     end;
     LoadDesktop(S^);
-    if (PS <> nil) and (PS^ <> '') then
-     if PosChar(PS^[1], '+-=<>|[') = 0  then
-      begin Assign(F, DelSpaces(PS^)); SetFAttr(F, $20); Erase(F); end
+    If OldArchiveName<>NewArchiveName then
+     begin
+      lAssignFile(F, OldArchiveName);
+      lRenameFile(F, NewArchiveName);
+      OldArchiveName:=GetPath(OldArchiveName);
+      NewArchiveName:=GetPath(NewArchiveName);
+      RereadDirectory(OldArchiveName);
+      If UpStrg(OldArchiveName)<>UpStrg(OldArchiveName) then
+       RereadDirectory(NewArchiveName);
+      OldArchiveName:='';
+      NewArchiveName:='';
+     end;
+    if (PJ <> nil) and (PJ^ <> '') then
+     if PosChar(PJ^[1], '+-=<>|[') = 0  then
+      begin lAssignFile(F, PJ^); lSetFAttr(F, $20);  lEraseFile(F); end
       else
        begin
-        TempFile := Copy(PS^,2,255);
-        case PS^[1] of
+        TempFile := Copy(PJ^,2,255);
+        If Not ExistFile(TempFile) then TempFile:=GetfURZ(TempFile);
+        If Not ExistFile(TempFile) then TempFile:=GetfURZ2(TempFile);
+        If Not ExistFile(TempFile) then TempFile:=GetGLUKName(Copy(PJ^,2,255));
+        If Not ExistFile(TempFile) then TempFile:=Copy(PJ^,2,255);
+        case PJ^[1] of
           '-': CC := cmIntFileView;
           '=': CC := cmDBFView;
           '>': CC := cmWKZView;
@@ -1169,7 +1271,7 @@ begin
                      end;
         RunMenu := Off;
        end;
-    DisposeStr(PS);
+    DisposeStr(PJ);
     S^.Read(TempBounds, SizeOf(TempBounds));
     {S^.Read(ArcBounds, SizeOf(TempBounds));}
     S^.Read(B, 1);
@@ -1199,41 +1301,42 @@ begin
   GetBounds(R);
   if (Clock^.Size.X <= 0) or (Clock^.Size.Y <= 0) or not R.Contains(Clock^.Origin) then
     begin
-       if ShowSeconds then R.Assign(Size.X-10,0,Size.X,1)
-       else R.Assign(Size.X-7,0,Size.X,1);
+      if ShowSeconds then R.Assign(Size.X-10,0,Size.X,1)
+      else R.Assign(Size.X-7,0,Size.X,1);
       Clock^.Locate(R);
     end;
   Dispose(S, Done);
   ActivateView(Desktop^.Current);
   GlobalMessage(evCommand, cmRereadForced, nil);
 end;
+        {-DataCompBoy-}
 
-procedure TDNApplication.SaveDesktop(FileName: PathStr);
+        {-DataCompBoy-}
+procedure TDNApplication.SaveDesktop(const FileName: String);
 var
   S: PStream;
-  F: File;
+  F: lFile;
   B: Boolean;
   PP: Pointer;
   R: TRect;
 
 procedure PutStringCache;
 var
-  Ss: string;
-  Dr: DirStr;
-  Nm: NameStr;
-  Xt: ExtStr;
+  Ss: pString;
 begin
-  FSplit(FileName, Dr, Nm, Xt);
-  if (Xt = '.DSK') or (StringCache = nil) or (StringCache^.Count = 0) then
+  new(ss);
+  lFSplit(FileName, FreeStr, FreeStr, Ss^);
+  if (UpStrg(Ss^) = '.DSK') or (StringCache = nil) or (StringCache^.Count = 0) then
   begin
-    Ss := #0#0#0;
-    S^.WriteStr(@Ss);
+    Ss^ := #0#0#0;
+    S^.WriteStr(Ss);
   end else
   begin
-    Ss := CacheLngId;
-    S^.WriteStr(@Ss);
+    Ss^ := CacheLngId;
+    S^.WriteStr(Ss);
     S^.Put(StringCache);
   end;
+  dispose(ss);
 end;
 
 begin
@@ -1241,17 +1344,18 @@ begin
   S := New(PBufStream, Init(FileName, stCreate, 2048));
   if not LowMemory and (S^.Status = stOk) then
   begin
-    S^.Write( DskSign[1], DskSignLen );
+    S^.Write( DSKSign.Sign[1], DSKSign.SignLen );
     PutStringCache;
     S^.WriteStr(@DirToChange);
     S^.WriteStr(@TempFile);
+    S^.WriteStr(@NewArchiveName);
+    S^.WriteStr(@OldArchiveName);
     S^.Write(ScreenMode, sizeof(Word));
     S^.Write( Size, SizeOf( Size ));
     S^.Write( Desktop^.Size, SizeOf( Size ));
     StoreIndexes(S^);
     StoreDesktop(S^);
     S^.Write(TempBounds, SizeOf(TempBounds));
-    {S^.Write(ArcBounds, SizeOf(TempBounds));}
     B := TrashCan^.GetState(sfVisible);
     S^.Write(B, 1);
     S^.Put(KeyMacroses);
@@ -1260,36 +1364,45 @@ begin
     S^.Write(R.A, 2 * SizeOf(LongInt));
     TrashCan^.GetBounds(R);
     if B then S^.Write(R.A, 2 * SizeOf(LongInt));
-    {S^.Write(ArcFlags, 4);}
     if S^.Status <> stOk then
     begin
       PP := @FileName;
       Msg(erCantCreateFile, @PP, mfOkButton + mfError);
+      MessageBox('S^.Status = '+ItoS(S^.Status), nil, 0);
       Dispose(S, Done);
-      Assign(F, FileName);
-      Erase(F);
+      lAssignFile(F, FileName);
+      lEraseFile(F);
       Exit;
     end;
   end;
   Dispose(S, Done);
 end;
+        {-DataCompBoy-}
 
 procedure TDNApplication.OutOfMemory;
 begin
+{$IFDEF DPMI}
+  DoDump(1);
+  MessageBox(GetString(erNotEnoughMemory), nil, mfError + mfOKButton);
+{$ELSE}
   Msg(erNotEnoughMemory, nil, mfError + mfOKButton);
+{$ENDIF}
 end;
 
+        {-DataCompBoy-}
 procedure TDNApplication.ViewFile;
 var
-  DR: PathStr;
-  NM: NameStr;
-  XT: ExtStr;
+  DR: String;
+  NM: String;
+  XT: String;
   W: PWindow;
   R: TRect;
+  fr: PFileRec;
+  up: tUserParams;
 
   function View: Boolean;
   begin
-    View := ExecExtFile('DN.VWR', FileName, dlLoadingViewer);
+    View := ExecExtFile('DN.VWR', @up, dlLoadingViewer);
   end;
 
   procedure InternalView;
@@ -1321,44 +1434,60 @@ var
                 end;
                 Seek(fPos);
                 BufPos     := fBufPos;
+                if XLatFile<>nil then DisposeStr(XLatFile);
+                XLatFile   := NewStr(fXlatFile);
                 ViewMode   := fViewMode;
-                MakeLines;
                 Filter     := fFilter;
                 HexEdit    := fHexEdit;
                 Wrap       := fWrap;
                 XDelta     := fXDelta;
                 HexPos     := fHexPos;
                 Cur        := fCur;
-                SetXlatFile(fXlateTable);
+                UseXLat    := fUseXLat;
+                KeyMap     := fKeyMap;
+                if UseXLat
+                 then SetXlatFile(XLatFile^, On)
+                 else SetXlatFile('', On);
+                MarkPos   :=fMarks;
+                Loaded    := true;
                 MakeLines;
               end;
            end else StoreViewInfo(W);
       end;
   end;
 
+label ex;
 begin
-   FSplit(FExpand(FileName), DR, NM, XT);
+   FileName:=lFExpand(FileName);
+   lFSplit(FileName, DR, NM, XT);
+   fr:=CreateFileRec(DR+NM+XT);
+   fillchar(up, sizeof(up), 0);
+   up.active:=fr;
    UpStr(XT);
    Desktop^.GetExtent(R);
    Abort := Off;
    if (Intern and (SystemData.Options and ossViewer = 0)) and
-       View then Exit;
+       View then goto ex;
+   if Message(DeskTop, evBroadcast, cmFindView, @FileName) <> nil then Exit;
    if Intern then
     begin
      {$ifdef DBView}
-     if (XT = '.DBF') then W := New(PDBWindow,Init(FileName)) else
+     if (UpStrg(XT) = '.DBF') then W := New(PDBWindow,Init(FileName)) else
      {$ENDIF}
      {$IFDEF SpreadSheet}
-      if (XT = '.WKZ') then W := New(PCalcWindow,Init(R, FileName)) else
+      if (UpStrg(XT) = '.WKZ') then W := New(PCalcWindow,Init(R, FileName)) else
      {$ENDIF}
-        if ArcViewer(FileName) or Abort then Exit
-         else if View then Exit
+        if ArcViewer(FileName, FreeByte) or Abort then goto ex
+         else if View then goto ex
           else InternalView;
     end else InternalView;
    if (W <> nil) and not W^.Valid(0) then begin Dispose(W, Done); InternalView end;
    InsertWindow(W);
+ex: DelFileRec(fr);
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TDNApplication.EditFile;
 var
   W: PWindow;
@@ -1367,17 +1496,26 @@ var
   V: PFileEditor;
   I: Integer;
   P: PEditRecord;
+  fr: PFileRec;
+  up: tUserParams;
+  s: string;
 
   function Edit: Boolean;
   begin
-    Edit := ExecExtFile('DN.EDT', FileName,dlLoadingEditor);
+    Edit := ExecExtFile('DN.EDT', @up, dlLoadingEditor);
   end;
 
+label ex;
 begin
+  FileName:=lFExpand(FileName);
+  fr:=CreateFileRec(lFExpand(FileName));
+  fillchar(up, sizeof(up), 0);
+  up.active:=fr;
    if (Intern and (SystemData.Options and ossEditor <> 0)) or
       (not Intern and (SystemData.Options and ossEditor = 0)) or
      not Edit then
       begin
+        if Message(DeskTop, evBroadcast, cmFindEdit, @FileName) <> nil then Exit;
         if (InterfaceData.Options and ouiStoreEditorPosition <> 0) then
          begin
            if not TempBounds.Empty then R := TempBounds
@@ -1425,7 +1563,9 @@ begin
             InsertWindow(W);
           end;
       end;
+ex: DelFileRec(fr);
 end;
+        {-DataCompBoy-}
 
 procedure TDNApplication.AddFormat;
 begin
@@ -1481,7 +1621,7 @@ begin
   New( Desktop, Init( R ));
 end;
 
-
+        {-DataCompBoy-}
 procedure LoadPalFromFile(const FN: String);
  var  P : longint ;
       LoadPalette,LoadVGAPalette : Boolean;
@@ -1531,8 +1671,9 @@ begin
     Application^.ReDraw;
    end;
 end;
+        {-DataCompBoy-}
 
-
+        {-DataCompBoy-}
 PROCEDURE TDNApplication.HandleCommand;
 
  var R: TRect;
@@ -1558,6 +1699,7 @@ PROCEDURE TDNApplication.HandleCommand;
     S[1] := Char(Byte(S[1])-64);
    end;
   if TrashCan^.GetState(sfVisible) then Desktop^.Delete(TrashCan);
+  P := nil;
   P := New(PXDoubleWindow, Init(R, 0, Byte(S[1])));
   if Abort then Dispose(P, Done) else InsertWindow(PWindow(P));
   if TrashCan^.GetState(sfVisible) then Desktop^.Insert(TrashCan);
@@ -1570,42 +1712,92 @@ PROCEDURE TDNApplication.HandleCommand;
    Desktop^.GetExtent(R);
    S := ChangeDir(GetString(dlSelectDirectory), 0);
    if S = '' then Exit; ClrIO;
-   ChDir(S); ClrIO;
+   lChDir(S); ClrIO;
    S[1] := Char(Byte(S[1])-64);
    P := New(PXDoubleWindow, Init(R, 0, Byte(S[1])));
    Message(P, evCommand, cmDirTree, nil);
    if Abort then Dispose(P, Done) else InsertWindow(PWindow(P));
  end;
 
- procedure MessageBoxAbout;
- var S: array[1..2] of String[20];
-     D: array [1..2] of PString ;
+ procedure SetScrMode(Mode: Word);
+   var R1, A: TRect;
  begin
-   S[1]:=VersionName;
-   S[2]:=VersionDate;
-   D[1]:=@S[1];
-   D[2]:=@S[2];
-   MessageBox2( dlAbout , ^C'This product is a FREEWARE',@D,Nil, mfAbout + mfOKButton );
+  if (Mode = ScreenMode) and not
+     ((ScreenMode and smFont8x8 = 0) and (Size.Y <> 25))
+   then Exit;
+  GetExtent(R1);
+  Clock^.GetBounds(A);
+  SetScreenMode(Mode);
+  GetExtent(R);
+  A.A.X := Round(A.A.X*R.B.X/R1.B.X);
+  if A.B.Y = R1.B.Y then A.A.Y := R.B.Y-1
+     else A.A.Y := Round(A.A.Y*R.B.Y/R1.B.Y);
+  if ShowSeconds then A.B.X := A.A.X + 10 else A.B.X := A.A.X + 7;
+  A.B.Y := A.A.Y + 1;
+  Clock^.Locate(A);
+  SetBlink(CurrentBlink); ReDraw;
  end;
 
 
+ procedure MessageBoxAbout;
+ var D: array [1..2] of PString ;
+ begin
+   D[1]:=NewStr(VersionName); D[2]:=NewStr(#13+#3+'Compiled '+VersionDate);
+   MessageBox2( dlAbout , ^C'This product is a FREEWARE',@D,Nil, mfAbout + mfOKButton );
+   DisposeStr(D[1]);          DisposeStr(D[2]);
+ end;
+
+ Procedure ChScreenMode;
+  var P: PMenuBox;
+      M: PMenu;
+      R: TRect;
+      W: Word;
+      tmp:word;
+ begin
+  M := NewMenu(NewItem('~1~ 40 x 25 ','', kbNoKey, 1, hcNoContext,
+               NewItem('~2~ 80 x 25 ','', kbNoKey, 3, hcNoContext,
+               NewItem('~3~ 80 x 30 ','', kbNoKey, 256, hcNoContext,
+               NewItem('~4~ 80 x 50','',  kbNoKey, 259, hcNoContext,
+               NewItem('~5~ 80 x 60','',  kbNoKey, 264, hcNoContext,
+               NewItem('~6~ 132 x 25','', kbNoKey, 265, hcNoContext,
+               NewItem('~7~ 132 x 43','', kbNoKey, 266, hcNoContext,
+               NewItem('~8~ 132 x 50','', kbNoKey, 267, hcNoContext,
+               NewItem('~9~ 132 x 60','', kbNoKey, 268, hcNoContext,
+               nil))))))))));
+  R.Assign(1,1,20,4);
+  P := New(PMenuBox, Init(R, M, nil));
+  P^.Options := P^.Options or ofCentered;
+  W := Application^.ExecView(P);
+  Dispose(P);
+  DisposeMenu(M);
+  if w=0 then exit;
+  tmp:=smSVGALo;
+  smSVGALo:=w;
+  SetScrMode(smSVGALo);
+  smSVGALo:=tmp;
+ end;
+
  {$IFDEF SpreadSheet}
- procedure LoadSheet(SheetName: PathStr);
+         {-DataCompBoy-}
+ procedure LoadSheet(const SheetName: String);
  begin
   DeskTop^.GetExtent(R);
   DeskTop^.Insert(ValidView(New(PCalcWindow, Init(R, SheetName))));
  end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
  procedure OpenSheet;
-  var FN: PathStr;
+  var FN: String;
  begin
-  if GetFileName(FN, '*.WKZ', GetString(dlOpenFile), GetString(dlOpenFileName),
+  if GetFileName(FN,'*.WKZ', GetString(dlOpenFile), GetString(dlOpenFileName),
                      fdOpenButton) = cmFileOpen then  LoadSheet(FN);
  end;
+        {-DataCompBoy-}
  {$ENDIF}
 
  var S: TDOSStream;
-     FN: PathStr;
+     FN: String;
      Pal: PString;
      W: Word;
      WW: Word;
@@ -1650,30 +1842,31 @@ PROCEDURE TDNApplication.HandleCommand;
  end;
 {$ENDIF}
 
- function TryRunOS2(var S: String): Boolean;
+ function TryRunOS2(S: PString): Boolean;
   var B: Boolean;
       ST: SessionType;
  begin
    TryRunOS2 := On;
-   DelLeft(S); DelRight(S);
-   if S = '' then Exit;
+   DelLeft(S^); DelRight(S^);
+   if S^ = '' then Exit;
+   if S^ = '' then Exit;
    TryRunOS2 := Off;
    if not OS210 then Exit;
-   case S[1] of
+   case S^[1] of
     '>': begin B := Off; ST := stOS2FullScreen end;
     '<': begin B := On;  ST := stOS2FullScreen end;
     ']': begin B := Off; ST := stOS2Windowed end;
     '[': begin B := On;  ST := stOS2Windowed end;
      else if (CmdLine.Str <> '') and (PCommandLine(CommandLine)^.LineType in [ltOS2Window,ltOS2FullScreen]) then
             begin
-              S := ' '+S; B := ShiftState and 3 <> 0;
+              S^ := ' '+S^; B := ShiftState and 3 <> 0;
               if PCommandLine(CommandLine)^.LineType = ltOS2Window then ST := stOS2Windowed
                                                                    else ST := stOS2FullScreen
             end else
              Exit;
    end;
    TryRunOS2 := On;
-   RunOS2Command(Copy(S,2,255), B, ST);
+   RunOS2Command(Copy(S^,2,255), B, ST);
    CmdLine.StrModified := On;
    Message(CommandLine, evKeyDown, kbDown, nil);
    ClearEvent(Event);
@@ -1681,35 +1874,56 @@ PROCEDURE TDNApplication.HandleCommand;
 
  function ExecCommandLine: Boolean;
   var S: String;
+      up: TUserParams;
  begin
   ExecCommandLine := Off;
   S := '';
   CommandLine^.GetData(S);
   if (DelSpaces(S) = '') then Exit;
-  if not CheckExit then begin ClearEvent(Event); Exit end;
   ExecCommandLine := On;
-  if TryRunOS2(S) then Exit;
+  if not CheckExit then begin ClearEvent(Event); Exit end;
+  if HandleChDirCommand then
+   begin
+    DelLeft(S); DelRight(S);
+    if (S[1] in ['c','C']) and (S[2] in ['d','D']) and (S[3]=' ')
+    then
+     begin
+      DelFC(S); DelFC(S); DelLeft(S); S:=DelSquashes(S);
+      Message(Application, evBroadcast, cmChangeDirectory, @S);
+      S:='';CommandLine^.SetData(S);CommandLine^.DrawView;
+      exit;
+     end;
+    if (S[0]=#2) and ValidDrive(UpCase(S[1])) and (S[2]=':') then
+    begin
+     if s[1]='*' then s:=cTEMP_;
+     Message(Desktop, evBroadcast, cmChangeDrv, @S);
+     S:='';CommandLine^.SetData(S);CommandLine^.DrawView;
+     exit;
+    end;
+    CommandLine^.GetData(S);
+   end;
+  if TryRunOS2(@S) then Exit;
   Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
   SaveDsk;
   Application^.Done;
   DosWrite(#13 + ActiveDir+'>' + S +#13#10);
-  ExecString(S);
+  ExecString(@S);
  end;
 
  procedure ExecDOSCmd;
-   var Nm: NameStr;
-       Xt: ExtStr;
+   var Nm: String;
+       Xt: String;
  begin
    ST := '';
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
-   FSplit(CnvString(CurFileActive), FreeStr, Nm, Xt);
+   lFSplit(CnvString(CurFileActive), FreeStr, Nm, Xt);
    if Pos(#0+LowStrg(Copy(Xt, 2, 3))+#0, Executables) > 0 then ST := Nm+Xt+' ';
    if InputBox(GetString(dlExecDOScmdHdr), GetString(dlExecDOScmdLine), ST, 128, hsExecDOSCmd) <> cmOK then Exit;
-    if not TryRunOS2(ST) and CheckExit then
+    if not TryRunOS2(@ST) and CheckExit then
                       begin
                         SaveDsk; Done;
                         WriteLn(#13#10 + ActiveDir+'>' + ST +#13#10);
-                        ExecString(St);
+                        ExecString(@St);
                       end;
    DisposeStr(CurFileActive); CurFileActive := nil;
    DisposeStr(CurFilePassive); CurFilePassive := nil;
@@ -1729,25 +1943,6 @@ PROCEDURE TDNApplication.HandleCommand;
    ExecResource( dlgDenie, FreeStr );
  end;
 
- procedure SetScrMode(Mode: Word);
-   var R1, A: TRect;
- begin
-  if (Mode = ScreenMode) and not
-     ((ScreenMode and smFont8x8 = 0) and (Size.Y <> 25))
-   then Exit;
-  GetExtent(R1);
-  Clock^.GetBounds(A);
-  SetScreenMode(Mode);
-  GetExtent(R);
-  A.A.X := Round(A.A.X*R.B.X/R1.B.X);
-  if A.B.Y = R1.B.Y then A.A.Y := R.B.Y-1
-     else A.A.Y := Round(A.A.Y*R.B.Y/R1.B.Y);
-  if ShowSeconds then A.B.X := A.A.X + 10 else A.B.X := A.A.X + 7;
-  A.B.Y := A.A.Y + 1;
-  Clock^.Locate(A);
-  SetBlink(CurrentBlink); ReDraw;
- end;
-
  procedure Rebound;
  begin
   GetExtent(R);
@@ -1761,7 +1956,7 @@ PROCEDURE TDNApplication.HandleCommand;
 
 
  {$IFDEF PrintManager}
- procedure PrintFile(S: String);
+ procedure PrintFile(const S: String);
   var W: PView;
  begin
    R.Assign(0,0,50,9);
@@ -1820,7 +2015,7 @@ PROCEDURE TDNApplication.HandleCommand;
   for N := 8 downto 0 do
     if DirsToChange[N] <> nil then begin
       Items := NewItem(
-        '~'+Itos(N+1)+'~ '+ Cut(DirsToChange[N]^,40),
+        '~'+Itos(N+1)+'~ '+ CutH(DirsToChange[N]^,40),
         'Alt-'+Itos(N+1), kbAlt1, cmQuickChange1 + N,
         hcNoContext, Items);
     end;
@@ -1838,15 +2033,6 @@ PROCEDURE TDNApplication.HandleCommand;
   DisposeMenu(Menu);
   if N >= cmQuickChange1 then Message(Desktop, evCommand, N, nil);
  end;
-
- procedure PirateKey;
-    begin
-           Event.Command := cmRunAmin ;
-           IdleEvt := Event ;
-           ClearEvent(Event);
-           NewTimerSecs( IdleClick , 60 + Random(60) );
-           Exit;
-    end;
 
   procedure ExecTree;
     var S: String;
@@ -1884,23 +2070,23 @@ PROCEDURE TDNApplication.HandleCommand;
 
     procedure DoExecFile;
     begin
-      if not TryRunOS2(PString(Event.InfoPtr)^) and CheckExit and
-                      not ExecCommandLine then ExecFile(PString(Event.InfoPtr)^);
+      if not TryRunOS2(PString(Event.InfoPtr)) and CheckExit and
+             not ExecCommandLine then ExecFile(PString(Event.InfoPtr)^);
       CE;
     end;
 
     procedure DoExecString;
     begin
-      if not TryRunOS2(PString(Event.InfoPtr)^) and CheckExit then
+      if not TryRunOS2(PString(Event.InfoPtr)) and CheckExit then
                       begin
                         SaveDsk; Done;
-                        ExecString(PString(Event.InfoPtr)^);
+                        ExecString(PString(Event.InfoPtr));
                       end;
       CE;
     end;
 
     procedure ChLngId;
-    var S:string; SS:string[9]; L:TStringCollection; SR:SearchRec;
+    var S:string; SS:string[9]; L:TStringCollection; SR:lSearchRec;
         Current,Default:PMenuItem; Menu:PMenu; CurIdx,i:integer;
         HMB:PHugeMenuBox; R:TRect; V:PView;
         function LngMixCase(P:string):string;
@@ -1914,30 +2100,32 @@ PROCEDURE TDNApplication.HandleCommand;
     begin
         L.Init(5,5);
         S:=SourceDir; if S[Byte(S[0])]<>'\' then S:=S+'\';
-        FindFirst(S+'*.lng',AnyFile,SR);
+        lFindFirst(S+'*.lng',AnyFile,SR);
         while DosError=0 do begin
-            if ((SR.Attr and Directory)=0) and (SR.Size>0) then begin
+            if ((SR.SR.Attr and Directory)=0) and (SR.FullSize>0) then begin
                 SS[0]:=#0;
-                while SR.Name[Byte(SS[0])+1]<>'.'
-                do SS:=SS+SR.Name[Byte(SS[0])+1];
+                while SR.FullName[Byte(SS[0])+1]<>'.'
+                do SS:=SS+SR.FullName[Byte(SS[0])+1];
                 SS:=LngMixCase(SS);
                 if ValidLngId(SS,False) then L.Insert(NewStr(SS))
             end;
-            FindNext(SR)
+            lFindNext(SR)
         end;
+        lFindClose(SR);
         S:=StartupDir; if S[Byte(S[0])]<>'\' then S:=S+'\';
-        FindFirst(S+'*.lng',AnyFile,SR);
+        lFindFirst(S+'*.lng',AnyFile,SR);
         while DosError=0 do begin
-            if ((SR.Attr and Directory)=0) and (SR.Size>0) then begin
+            if ((SR.SR.Attr and Directory)=0) and (SR.FullSize>0) then begin
                 SS[0]:=#0;
-                while SR.Name[Byte(SS[0])+1]<>'.'
-                do SS:=SS+SR.Name[Byte(SS[0])+1];
+                while SR.FullName[Byte(SS[0])+1]<>'.'
+                do SS:=SS+SR.FullName[Byte(SS[0])+1];
                 SS:=LngMixCase(SS);
                 if ValidLngId(SS,False) and (L.IndexOf(@SS)=-1) then
                 L.Insert(NewStr(SS));
             end;
-            FindNext(SR)
+            lFindNext(SR)
         end;
+        lFindClose(SR);
         S:=LngMixCase(LngId);
         CurIdx:=L.IndexOf(@S);
         if CurIdx=-1 then begin
@@ -1951,7 +2139,7 @@ PROCEDURE TDNApplication.HandleCommand;
                 for i:=L.Count-1 downto 0 do begin
                     if i=9 then S:='~0~ ' else if i<9 then
                     S:='~'+Chr(Ord('1')+i)+'~ ' else S:='  ';
-                    Current:=NewItem(S+PString(L.At(i))^,'',kbNoKey,
+                    Current:=NewItem(S+CutH(PString(L.At(i))^,40),'',kbNoKey,
                     cmCancel+1+i,hcChLngId,Current);
                     if i=CurIdx then Default:=Current
                 end;
@@ -1983,14 +2171,15 @@ PROCEDURE TDNApplication.HandleCommand;
                 StringCache^.FreeAll;
                 SaveDsk;
                 Done;
-                ExecString('');
+                ExecString(@NullStr);
             end;
         end;
         L.FreeAll;
         L.Done;
     end;
 begin
-   ST := PString(Event.InfoPtr)^;
+   If Event.InfoPtr<>nil then ST := PString(Event.InfoPtr)^
+                         else ST := '';
    case Event.Command of
      cmFirstTimePanel: OpenWindow( False );
      cmPutInClipboard: PutInClip;
@@ -2011,9 +2200,12 @@ begin
      {$ENDIF}
      cmSetupConfirmation: ConfirmSetup;
      cmCountrySetup: SetupCountryInfo;
-     cmColumnDefaults: if SetupColumnDefaults then WriteConfig;
-     cmHighlightGroups:
-       SetHighlightGroups;
+     cmColumnDefaultsDisk: if SetupColumnDefaultsDisk then WriteConfig;
+     cmColumnDefaultsTemp: if SetupColumnDefaultsTemp then WriteConfig;
+     cmColumnDefaultsFind: if SetupColumnDefaultsFind then WriteConfig;
+     cmColumnDefaultsArch: if SetupColumnDefaultsArch then WriteConfig;
+     cmColumnDefaultsArvd: if SetupColumnDefaultsArvd then WriteConfig;
+     cmHighlightGroups: SetHighlightGroups;
      {$IFDEF DBView}
         cmDBFView: InsertWindow(New(PDBWindow,Init(ST)));
      {$ENDIF}
@@ -2083,11 +2275,13 @@ begin
                   if CheckExit then
                   begin
                    SaveDsk; Application^.Done;
-                   ExecString(SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + ST);
+                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + ST;
+                   ExecString(@ST);
                   end;
                 end;
      cmReadArchive: begin ReadArcList; end;
      cmScreenRest: InsertIdler;
+     cmChScreenMode:ChScreenMode;
      cmASCIITable: ASCIITable;
      cmAbout: begin
                 ClearEvent(Event);
@@ -2111,6 +2305,14 @@ begin
      cmExternalViewers: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.vwr');
      cmExternalEditors: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.edt');
      cmShowUserScreen: ShowUserScreen;
+      {-DataCompBoy-}
+     cmRestart: Begin
+                 StringCache^.FreeAll;
+                 SaveDsk;
+                 Done;
+                 ExecString(@NullStr);
+                end;
+      {-DataCompBoy-}
      cmCreatePanel: OpenWindow(True);
      cmCreateTree: OpenTreeWindow;
      cmFindFile: FindFile;
@@ -2123,7 +2325,8 @@ begin
      cmSaveDesk: SaveRealDsk;
      cmExecFile: DoExecFile;
      cmExecString: DoExecString;
-     cmExecCommandLine: ExecCommandLine;
+     cmExecCommandLine: if ExecCommandLine then CE;
+     cmShowTimeInfo: ShowTimeInfo; {DataCompBoy}
      cmChangeColors: ChgColors;
      cmChangeUserMode1: if ScreenMode <> smSVGALo then SetScrMode(smSVGALo) else SetScrMode(StartupMode);
      cmChangeUserMode2: if ScreenMode <> smSVGAHi then SetScrMode(smSVGAHi) else SetScrMode(StartupMode);
@@ -2154,9 +2357,8 @@ begin
      cmStoreColors: StoreColors;
      {$IFDEF Game}
      cmGame: if Game = nil then InsertWindow(New(PGameWindow, Init))
-     else Game^.Owner^.Select;
+                           else Game^.Owner^.Select;
      {$ENDIF}
-
      {From  GetEvent}
 
      cmHideCmdLine: ToggleCmdLine;
@@ -2189,7 +2391,7 @@ begin
                       ClearEvent(Event);
                       Event.InfoPtr := BuildAdvFormatDialog;
                    end;
-        cmHelp: if not HelpInUse then
+ cmHelp,cmHelp2: if not HelpInUse then
                  begin
                    HelpInUse := True;
                    HelpStrm := New(PDosStream, Init(SourceDir+HelpLngId + '.hlp', stOpenRead));
@@ -2206,9 +2408,10 @@ begin
                    end
                    else
                    begin
-                     PW := New(PHelpWindow,Init(HFile, GetHelpCtx));
-                     if ValidView(PW) <> nil then
-                     begin
+                     if Event.Command=cmHelp
+                      then PW := New(PHelpWindow,Init(HFile, GetHelpCtx))
+                      else PW := New(PHelpWindow,Init(HFile, Word(Event.InfoWord)));
+                     if ValidView(PW) <> nil then begin
                        ExecView(PW);
                        Dispose(PW, Done);
                      end;
@@ -2225,10 +2428,10 @@ begin
                        PView(Event.InfoPtr)^.Owner^.SetData(FreeStr);
                        ClearEvent(Event);
                      end;
-        cmChLngId: ChLngId;
+         cmChLngId: ChLngId;
    end;
 end;
-
+        {-DataCompBoy-}
 
 function ParseAddress(const Address: String; var Zone, Net, Node, Point: Word): Boolean;
   const Signs = ':/.';
@@ -2281,9 +2484,9 @@ begin
 end;
 
 const
-      HistoryFileSign = 'DN History file'#13#10#26#1#40;
+      HistoryFileSign = 'DN OSP History file'#13#10#26#1#51#05;
 
-
+        {-DataCompBoy-}
 procedure LoadHistories;
   var S: TBufStream;
       W: Word;
@@ -2305,11 +2508,14 @@ begin
                end;
              S.Read(HistoryBlock^, HistoryUsed);
              LoadCommands(S);
-          end;
+          end
+        else MessageBox('Can''t load histories!', nil, mfOkButton);
       end;
     S.Done;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure SaveHistories;
   var S: TBufStream;
 begin
@@ -2324,6 +2530,7 @@ begin
     end;
   S.Done;
 end;
+        {-DataCompBoy-}
 
 procedure ClearHistories;
   var I, J, K: Integer;
@@ -2378,28 +2585,6 @@ begin
   ClearCollection(ViewHistory);
 end;
 
-procedure ASCIITable;
- const T: TPoint = (X:0;Y:0);
-       C: Char = #112;
- var P: PWindow;
-     W: Word;
-     E: TEvent;
-     R: TRect;
-begin
- P := New(PASCIIChart, Init(R));
- {P^.Options := P^.Options and not ofSelectable;}
- P^.MoveTo(T.X, T.Y);
- P^.SetData(C);
- {InsertWindow(P);}
- W := Desktop^.ExecView(P);
- P^.GetData(C);
- E.What := evKeyDown;
- E.KeyCode := Byte(C);
- T := P^.Origin;
- Dispose(P, Done);
- if W = cmOK then Application^.PutEvent(E);
-end;
-
 Procedure SetSysColors( var Pal);
 type
  PLL = array[0..255] of byte;
@@ -2411,7 +2596,4 @@ type
      }
   end;
 
-
-
 end.
-

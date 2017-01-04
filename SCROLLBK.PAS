@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -108,8 +108,9 @@ const
 
 
 implementation
-uses Advance,Memory,Terminal,Commands,RStrings, DNHelp,
-     HistList,Messages,DNStdDlg,DNApp,MicroEd,Menus,ExtraMemory;
+uses advance, advance1, advance2, advance3, Memory, Terminal, Commands,
+     RStrings, DNHelp, HistList, Messages, DNStdDlg, DNApp, MicroEd, Menus,
+     ExtraMemory;
 
 
 const  BackStream: PStream = nil;
@@ -586,7 +587,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
     While (S[Length(S)] = ' ') do Dec(S[0]);
     GetString := S;
   end;
-
+{DataCompBoy
   procedure ReturnString;
     var I: Integer;
   begin
@@ -594,7 +595,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
     PString(Event.InfoPtr)^ := GetString(I);
     ClearEvent(Event);
   end;
-
+}
   procedure KillBuffer;
   begin
     if MessageBox(^C'Kill entire buffer?', nil, mfYesNoConfirm) <> cmYes then Exit;
@@ -606,14 +607,14 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
   end;
 
   procedure Search;
-    const S: String[80] = '';
+    const S: String = '';
           LastPos: Integer = 0;
     var I,J,K: Integer;
           M: String;
   begin
     M := S;
     if S = '' then S := HistoryStr(hsViewFind, 0);
-    if InputBox('Find Text', '~T~ext', S, 80, hsViewFind) <> cmOK then Exit;
+    if InputBox('Find Text', '~T~ext', S, 255, hsViewFind) <> cmOK then Exit;
     if S = '' then Exit;
     if (M <> S) or (Delta.Y <> LastPos) then LastPos := Delta.Y else Inc(LastPos);
     UpStr(S);

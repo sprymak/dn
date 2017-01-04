@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
@@ -52,15 +56,10 @@ unit Phones;
 
 interface
 
-uses xTime, Objects, DNApp, Drivers, Dialogs, Menus, Views, DNStdDlg, RStrings
-     ,DNHelp, Advance, Messages, ObjType;
+uses xTime, Objects, DNApp, Drivers, Dialogs, Menus, Views, DNStdDlg, RStrings,
+     DNHelp, advance, advance1, advance2, advance3, Messages, ObjType;
 
-type {TMyApp = object(TApplication)
-       procedure Idle; virtual;
-       procedure HandleEvent(var Event: TEvent); virtual;
-     end;}
-
-     PPhoneCollection = ^TPhoneCollection;
+type PPhoneCollection = ^TPhoneCollection;
      TPhoneCollection = object(TSortedCollection)
       constructor Init(ALimit, ADelta: Integer);
       constructor Load(var S: TStream);
@@ -161,15 +160,15 @@ const
        VmtLink: Ofs(TypeOf(TAutoDialer)^);
        Load: @TAutoDialer.Load;
        Store: @TAutoDialer.Store);
-{$ENDIF}
 
-const
       RDialBox: TStreamRec = (
        ObjType: otDialBox;
        VmtLink: Ofs(TypeOf(TDialBox)^);
        Load: @TDialBox.Load;
        Store: @TDialBox.Store);
+{$ENDIF}
 
+const
       RDStringView: TStreamRec = (
        ObjType: otDStringView;
        VmtLink: Ofs(TypeOf(TDStringView)^);
@@ -760,11 +759,6 @@ var S: String[230];
 
  var WasBroad: Boolean;
 
- function Registered : bOOLEAN ;
-  begin
-    Registered := TRUE ;
-  end;
-
 begin
  WasBroad := Event.What = evBroadcast;
  case Event.What of
@@ -776,10 +770,10 @@ begin
                  CE;
                end;
   evCommand: case Event.KeyCode of
-              cmCopyPhone: begin CE; if Registered then CopyPhones; Ce; end;
-              cmImportPhones: begin CE; if Registered then ImportPhones; ce; end;
+              cmCopyPhone: begin CE; CopyPhones; Ce; end;
+              cmImportPhones: begin CE; ImportPhones; ce; end;
               cmDialPhone: begin CE; DialPhone end;
-              cmSearchPhone: begin CE; if Registered then SearchPhone; Ce; end;
+              cmSearchPhone: begin CE; SearchPhone; Ce; end;
               cmOK,cmNo: begin
                       if (EnterButton^.State and sfVisible) = 0 then Focused:=0;
                       EnterDir; CE
@@ -787,9 +781,10 @@ begin
               cmInsertPhone: begin if not AlphaMode or SearchMode then EditNumber(On); CE end;
               cmEditPhone: begin if List^.Count > 0 then if not AlphaMode or SearchMode then
                                 if not((Active <> nil) and ( focused=0 )) then EditNumber(Off); CE end;
-              cmPhoneBookMode: begin  if Registered then SetList(not AlphaMode); CE end;
+              cmPhoneBookMode: begin SetList(not AlphaMode); CE end;
               cmDeletePhone: begin
                         CE;
+                        if (List = nil) or (List^.Count = 0) then exit;
                         if AlphaMode or SearchMode then Exit;
                         if (Active <> nil) and ( focused=0 ) then Exit;
                         if Active = nil then
@@ -850,8 +845,8 @@ begin
     Owner^.Redraw
    end;
 
- if SearchMode then DisableCommands([cmInsertPhone, cmDeletePhone, cmEditPhone,cmImportPhones])
-              else EnableCommands([cmInsertPhone, cmDeletePhone, cmEditPhone]);
+ if SearchMode then DisableCommands([cmInsertPhone, cmDeletePhone, cmEditPhone, cmImportPhones])
+               else EnableCommands ([cmInsertPhone, cmDeletePhone, cmEditPhone]);
 
 end;
 

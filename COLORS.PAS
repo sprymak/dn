@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Colors;
 interface
 uses Objects, {ColorSel,} DNApp, Dialogs, Drivers, Views, Memory,
-     Commands, DNStdDlg, Advance,DNHelp;
+     Commands, DNStdDlg, advance, advance1, advance2, advance3, DNHelp;
 
  procedure ChangeColors;
  procedure WindowManager;
@@ -72,7 +72,7 @@ uses Messages, RStrings, Drives, Startup,
      DnIni; {-$VIV}
 
 procedure SetHighlightGroups;
- var D: Record S1, S2, S3, S4, S5: String[250]; end;
+ var D: Record S1, S2, S3, S4, S5, S6: String[250]; end;
 begin
  With D do
   begin
@@ -81,13 +81,15 @@ begin
     S3 := CustomMask3; Replace(#0, ';', S3); DelFC(S3); Dec(S3[0]);
     S4 := CustomMask4; Replace(#0, ';', S4); DelFC(S4); Dec(S4[0]);
     S5 := CustomMask5; Replace(#0, ';', S5); DelFC(S5); Dec(S5[0]);
+    S6 := Archives;    Replace(#0, ';', S6); DelFC(S6); Dec(S6[0]);
     if ExecResource(dlgHighlightGroups, D) <> cmOK then Exit;
-    LowStr(S1); LowStr(S2); LowStr(S3); LowStr(S4); LowStr(S5);
+    LowStr(S1); LowStr(S2); LowStr(S3); LowStr(S4); LowStr(S5); LowStr(S6);
     While S1[Length(S1)] in [' ', ';'] do Dec(S1[0]); Replace(';', #0,S1); CustomMask1 := #0+DelSpaces(S1)+#0;
     While S2[Length(S2)] in [' ', ';'] do Dec(S2[0]); Replace(';', #0,S2); CustomMask2 := #0+DelSpaces(S2)+#0;
     While S3[Length(S3)] in [' ', ';'] do Dec(S3[0]); Replace(';', #0,S3); CustomMask3 := #0+DelSpaces(S3)+#0;
     While S4[Length(S4)] in [' ', ';'] do Dec(S4[0]); Replace(';', #0,S4); CustomMask4 := #0+DelSpaces(S4)+#0;
     While S5[Length(S5)] in [' ', ';'] do Dec(S5[0]); Replace(';', #0,S5); CustomMask5 := #0+DelSpaces(S5)+#0;
+    While S6[Length(S6)] in [' ', ';'] do Dec(S6[0]); Replace(';', #0,S6); Archives    := #0+DelSpaces(S6)+#0;
   end;
  Message(Application, evCommand, cmUpdateConfig, nil);
  GlobalMessage(evCommand, cmPanelReread, nil);
@@ -155,6 +157,8 @@ begin
   PV := New(PWindowList, Init(R,1,PScrollBar(PV)));
   PV^.Options := PV^.Options or ofPostProcess or ofSecurity;
   PListBox(PV)^.NewList(PC);
+  if PC^.Count > 1 then PListBox(PV)^.Focused:=1
+  else                  PListBox(PV)^.Focused:=0;
   Num := 0; {-$VIV 28.05.99--}
   if (WinManagerPosToEdit) and (PC^.Count > 0) and
      (Pos('Edit -', PWindowList(PV)^.GetText(0,255)) > 0)

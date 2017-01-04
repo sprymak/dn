@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,22 +43,27 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit DblWnd;
 
 interface
- uses Views, Objects, Drivers, FlPanel, HideView, Tree, FViewer;
+ uses LFN, {DataCompBoy}messages,
+      Views, Objects, Drivers, FlPanel, HideView, Tree, FViewer;
 
 type
-    {
+{
     PCloseBox = ^TCloseBox;
     TCloseBox = object(TView)
       constructor Init(var R: TRect; ACommand: Word);
-      procedure Draw; vurtual;
+      procedure Draw; virtual;
       procedure HandleEvent(var Event: TEvent); virtual;
     end;
-    }
+}
 
     PDoubleWindow = ^TDoubleWindow;
     TDoubleWindow = object(TStdWindow)
@@ -109,8 +114,8 @@ const dtInfo  = 1;
       dtNetInfo = 5; {-$VIV}
 
 implementation
-uses DiskInfo, Commands, FileCopy, FilesCol, Advance, Startup,
-     DNApp, RStrings, NetInfo; {-$VIV}
+uses DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
+     advance3, Startup, DNApp, RStrings, NetInfo; {-$VIV}
 
 {
 constructor TCloseBox.Init;
@@ -497,11 +502,11 @@ procedure TDoubleWindow.HandleCommand;
 
  procedure InsertTree;
   var R2: TRect;
-      S: PScrollBar;
+      S: PMyScrollBar;
       P: PView;
  begin
   R2.Assign(1,1,2,5);
-  S := New(PScrollBar, Init(R2));
+  S := New(PMyScrollBar, Init(R2));
   S^.Options := S^.Options or ofPostProcess;
   LTree := New(PHTreeView, Init(R1, 0, False, S));
   if not LTree^.Valid(0) then
@@ -597,9 +602,14 @@ begin
               kbCtrlRight:
                      if FMSetup.Options and fmoCtrlDifference <> 0 then
                            begin
-                             if LVisible and (Mem[$40:$18] and 1 <> 0) then
-                                LeftView^.HandleEvent(Event) else
-                                RightView^.HandleEvent(Event);
+                             if LSelected then
+                              if (Mem[$40:$18] and 1 <> 0)
+                                then RightView^.HandleEvent(Event)
+                                else LeftView^.HandleEvent(Event)
+                             else
+                              if (Mem[$40:$18] and 1 <> 0)
+                                then LeftView^.HandleEvent(Event)
+                                else RightView^.HandleEvent(Event);
                              Exit;
                            end;
 
@@ -612,7 +622,17 @@ begin
                                 RightView^.HandleEvent(Event);
                              Exit;
                           end;
-
+{
+              kbCtrl1, kbCtrl2, kbCtrl3, kbCtrl4, kbCtrl5, kbCtrl6, kbCtrl7,
+              kbCtrl8, kbCtrl9, kbCtrl0:
+                     if FMSetup.Options and fmoCtrlDifference <> 0 then
+                           begin
+                             if LVisible and (Mem[$40:$18] and 1 <> 0) then
+                                LeftView^.HandleEvent(Event) else
+                                RightView^.HandleEvent(Event);
+                             Exit;
+                           end;
+}
               kbAltLeft: if RVisible and LVisible then begin
                           if Sp^.OldX > 0 then Dec(Sp^.OldX);
                           Sp^.OldW := Size.X;
@@ -634,7 +654,7 @@ begin
                          end;
 
 {Knave 11.09.99 --------------- begin 1}
-                  kbAltZ: if RVisible and LVisible then begin CE;
+  {DataCompBoy} kbCtrlAltZ: if RVisible and LVisible then begin CE;
                       if LSelected then SwitchRight else SwitchLeft;
                       Message(@Self,evCommand,cmZoom,@Self);
                       PanelZoomed:=True;
@@ -644,49 +664,35 @@ begin
                       then Message(@Self,evCommand,cmZoom,@Self);
                       if LSelected then SwitchRight else SwitchLeft;
                   end;
-(*                kbAltZ: if RVisible and LVisible then begin
-                            if LSelected then begin
-                                Sp^.OldW := Size.X;
-                                if Sp^.OldX < Sp^.OldW then begin
-                                    XBuff.A.X:=Sp^.OldX;
-                                    Sp^.OldX:=Sp^.OldW
-                                end else Sp^.OldX:=XBuff.A.X
-                            end else begin
-                                if Sp^.OldX > 0 then begin
-                                    XBuff.A.X:=Sp^.OldX;
-                                    Sp^.OldX:=0;
-                                end else Sp^.OldX:=XBuff.A.X;
-                                Sp^.OldW := Size.X;
-                            end;
-                            R.A := Origin;
-                            R.B.X := Origin.X + Size.X;
-                            R.B.Y := Origin.Y + Size.Y;
-                            ChangeBounds(R);
-                            CE;
-                        end;
-                        *)
 {Knave 11.09.99 --------------- end 1}
-
-                   $1A1B: begin
+              $1A1B,$1A1A: begin
                             S := '';
                             Message(LeftView, evCommand, cmGetName, @S);
-                            if S[Length(S)] <> '\' then AddStr(S, '\');
+                            if (ShiftState and kbAltShift<>0)
+                             then S:=lfGetLongFileName(S)
+                             else S:=lfGetShortFileName(S);
+                            if not (S[Length(S)] in ['\','/']) then AddStr(S, '\');
+                            S:=SquashesName(S);
                             Message(CommandLine, evCommand, cmInsertName, @S);
                             CE;
-                          end;
-                   $1B1D: begin
+                           end;
+              $1B1D,$1B1B: begin
                             S := '';
                             Message(RightView, evCommand, cmGetName, @S);
-                            if S[Length(S)] <> '\' then AddStr(S, '\');
+                            if (ShiftState and kbAltShift<>0)
+                             then S:=lfGetLongFileName(S)
+                             else S:=lfGetShortFileName(S);
+                            if not (S[Length(S)] in ['\','/']) then AddStr(S, '\');
+                            S:=SquashesName(S);
                             Message(CommandLine, evCommand, cmInsertName, @S);
                             CE;
-                          end;
+                           end;
              end;
   evBroadcast: case Event.Command of
                 cmLookForPanels: ClearEvent( Event );
                 cmGetUserParams: begin
-                                   AP := RPanel; PP := LPanel;
-                                   if LSelected then begin PP := RPanel; AP := LPanel; end;
+                                   if LSelected then begin PP := RPanel; AP := LPanel end
+                                                else begin PP := LPanel; AP := RPanel end;
                                    with PUserParams(Event.InfoPtr)^ do
                                       begin
                                         AP^.GetUserParams(Active, ActiveList);
@@ -694,12 +700,18 @@ begin
                                       end;
                                    CE;
                                  end;
-(*                cmDropped: begin
-                            if LeftView^.MouseInView(PCopyRec(Event.InfoPtr)^.Where) then LeftView^.HandleEvent(Event) else
-                             if RightView^.MouseInView(PCopyRec(Event.InfoPtr)^.Where) then RightView^.HandleEvent(Event);
-{                            CE;}
-                           end;
-*)
+                cmChangeDirectory: Begin
+                                    If LSelected
+                                     then LPanel^.ChDir(PString(Event.InfoPtr)^)
+                                     else RPanel^.ChDir(PString(Event.InfoPtr)^);
+                                    CE;
+                                   End;
+                      cmChangeDrv: begin
+                                    Event.What:=evCommand;
+                                    if LSelected then LPanel^.HandleEvent(Event)
+                                                 else RPanel^.HandleEvent(Event);
+                                    ClearEvent(Event);
+                                   end;
                end;
   evCommand: case Event.Command of
 
@@ -719,8 +731,11 @@ begin
                        if LSelected and (LType = dtView) then SwitchRight else
                          if not LSelected and (RType = dtView) then SwitchLeft;
                       end;
-              cmGetName: begin PString(Event.InfoPtr)^ := GetString(dlFileManager) + Cut(LPanel^.DirectoryName, 20) +
-                                                          ',' + Cut(RPanel^.DirectoryName, 20); CE end;
+              cmGetName: begin PString(Event.InfoPtr)^ := GetString(dlFileManager);
+              PString(Event.InfoPtr)^:=PString(Event.InfoPtr)^+Cut(LPanel^.DirectoryName,
+              (55-Length(PString(Event.InfoPtr)^)) div 2) + ','
+              +Cut(RPanel^.DirectoryName,
+              (55-Length(PString(Event.InfoPtr)^)) div 2); CE end;
               cmPostHideRight: begin
                                  if not RVisible then SwitchRight;
                                  RVisible := On;

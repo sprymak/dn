@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,17 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
-
 unit Calc;
 
 interface
 
-uses Objects, Views, CellsCol, Drivers, Dialogs, Par, Messages,
+uses LFN,      {DataCompBoy}
+     Objects, Views, CellsCol, Drivers, Dialogs, Par, Messages,
      HistList, UniWin, Commands, DNHelp, RStrings, ObjType;
 
 const
@@ -62,9 +66,8 @@ type
     PCalcView = ^TCalcView;
     PCalcWindow = ^TCalcWindow;
     TCalcWindow = object(TUniWindow)
-     Name: String;
      CalcView: PCalcView;
-     constructor Init(Bounds: TRect; AName: String);
+     constructor Init(Bounds: TRect; AName: String); {DataCompBoy}
      constructor Load(var S: TStream);
      procedure Store(var S: TStream);
      procedure HandleEvent(var Event: TEvent); virtual;
@@ -82,7 +85,7 @@ type
      Error, ReError, Marking, BlockDraw, Modified: Boolean;
      CellWidth: Array[Byte] of Byte;
      CurrentCalc, SearchPos, ErrorCell: TPoint;
-
+     SName: PString; {DataCompBoy}
      constructor Init(Bounds: TRect; AInfo, ACellInfo: PView;
                       AHScroll, AVScroll: PScrollBar);
      destructor Done; virtual;
@@ -101,7 +104,7 @@ type
      Function CalcFormulaTree( P : FPtr) : Real;
      procedure CalcError( Index: TStrIdx ); virtual;
      procedure ModifyCell(X, Y: Integer);
-     procedure LoadSheet(FName: TTitleStr);
+     procedure LoadSheet(FName: String); {DataCompBoy}
      procedure SaveSheet;
      procedure SaveSheetAs;
      function  AskSave: Boolean;
@@ -165,7 +168,8 @@ const
 
 implementation
 
-uses Memory, Dos, DNApp, DNStdDlg, Advance, MicroEd;
+uses Memory, Dos, DNApp, DNStdDlg, advance, advance1, advance2, advance3,
+     MicroEd;
 
 const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
                     (S:''; CellOptions:0; TxtOptions:0);
@@ -175,8 +179,9 @@ const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
        ContSearch: Boolean = False;
        SearchCanceled: Boolean = False;
 
+        {-DataCompBoy-}
 function GetFileName(var FileName: String; Mask, Title, ALabel: String; Buttons: Word): Word;
- var S: PathStr;
+ var S: String;
      D: PFileDialog;
      B: Boolean;
      C: Word;
@@ -190,8 +195,9 @@ begin
   if C <> cmCancel then D^.GetFileName(S);
   GetFileName := C;
   Dispose(D, Done);
-  FileName := S;
+  FileName := lfGetLongFileName(S);
 end;
+        {-DataCompBoy-}
 
 function ContainCell(Cell, Formula: String): Boolean;
  const Signs = ['#','+','-','=','*','&','^','(',')','<','>', ';', ' ',
@@ -264,12 +270,16 @@ end;
 
 {-------------------------      TCalcWindow      -------------------------}
 
+        {-DataCompBoy-}
 constructor TCalcWindow.Init;
  var R: TRect;
      P, P1: PView;
 begin
- if AName = '' then Name := 'Untitled.WKZ' else Name := FExpand(AName);
- TWindow.Init(Bounds, Name, 0);
+ if AName = '' then AName := 'Untitled.WKZ'
+               else if GetAttrF(AName) and Directory<>0
+                     then AName := 'Untitled.WKZ'
+                     else AName := lfGetLongFileName(lFExpand(AName));
+ TWindow.Init(Bounds, Cut(AName,Bounds.B.X-Bounds.A.X-12), 0);
  Options := Options or ofTileable;
  if LowMemory then Exit;
 
@@ -310,22 +320,19 @@ begin
                   MakeScrollBar(sbVertical + sbHandleKeyboard)));
  CalcView^.Options := CalcView^.Options;
  Insert(CalcView);
- CalcView^.LoadSheet(Title^);
+ CalcView^.LoadSheet(AName);
 end;
+        {-DataCompBoy-}
 
 constructor TCalcWindow.Load;
 begin
   inherited Load(S);
-  S.Read(Name[0], 1);
-  S.Read(Name[1], Length(Name));
   GetSubViewPtr(S, CalcView);
 end;
 
 procedure TCalcWindow.Store;
 begin
   inherited Store(S);
-  S.Write(Name[0], 1);
-  S.Write(Name[1], Length(Name));
   PutSubViewPtr(S, CalcView);
 end;
 
@@ -334,6 +341,14 @@ begin
  case Event.What of
   evCommand: case Event.Command of
                cmClose, cmQuit: if not CalcView^.AskSave then ClearEvent(Event);
+             end;
+  evBroadcast:
+             case Event.Command of
+               cmFindView:
+                  if PString(Event.InfoPtr)^=CalcView^.SName^ then begin
+                    Self.Select;
+                    ClearEvent(Event);
+                  end;
              end;
  end;
  inherited HandleEvent(Event);
@@ -482,7 +497,6 @@ end;
 {-----------------------------    TCalcView     ---------------------------}
 
 constructor TCalcView.Init;
-
  var I, J: Integer;
 begin
  TView.Init(Bounds);
@@ -499,6 +513,7 @@ begin
  Cur := Delta; Mark  := Cur;
  HScroll^.SetParams(0, 0, 255, 1, 1);
  VScroll^.SetParams(0, 0, MaxCellY - 1, Size.Y - 3, 1);
+ SName:=nil;
 end;
 
 constructor TCalcView.Load;
@@ -512,6 +527,7 @@ begin
   S.Read(NumC, 6); {###}
   S.Read(CellWidth, SizeOf(CellWidth));
   S.Read(CurrentCalc, SizeOf(CurrentCalc)*3);
+  SName:=S.ReadStr;
   Cells := PCellCollection(S.Get);
   FocusEvent.What := evNothing;
 end;
@@ -527,6 +543,7 @@ begin
   S.Write(NumC, 6); {###}
   S.Write(CellWidth, SizeOf(CellWidth));
   S.Write(CurrentCalc, SizeOf(CurrentCalc)*3);
+  S.WriteStr(SName);
   S.Put(Cells);
 end;
 
@@ -537,6 +554,7 @@ begin
 end;
 
 procedure TCalcView.SetState;
+ var Bounds: TRect;
 begin
  TView.SetState(AState, Enable);
  if Enable and (AState and sfFocused <> 0) then DrawView;
@@ -551,6 +569,11 @@ begin
    HScroll^.GrowTo(HScroll^.Size.X, 0);
    VScroll^.GrowTo(0, VScroll^.Size.Y);
   end;
+ if Owner<>nil then begin
+  GetBounds(Bounds);
+  DisposeStr(PWindow(Owner)^.Title);
+  PWindow(Owner)^.Title:=NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
+ end;
 end;
 
 function TCalcView.GetPalette;
@@ -730,13 +753,14 @@ begin
   end;
 end;
 
+        {-DataCompBoy-}
 procedure TCalcView.HandleEvent;
  var Inf: PCalcInfo;
      S: String;
      St: PStream;
      MaxX, MaxY, K, L: Integer;
      P: PCellRec;
-     FName: PathStr;
+     FName: String;
      kbState: Byte absolute $0:$417;
      X1, X2, Y1, Y2: Integer;
 
@@ -745,12 +769,12 @@ procedure TCalcView.HandleEvent;
       C: Array[0..255] of Integer;
       P: PCellRec;
       MaxLv, Maxr, I, J, K, L, A1, A2: Integer;
-      F: Text;
+      F: lText;
  begin
    if GetFileName(S, x_x, GetString(dlExportTitle), GetString(dlExportLabel),
                      fdOKButton+fdHelpButton) = cmCancel then Exit;
-   Assign(F, S); SetFAttr(F, Archive);
-   Rewrite(F);
+   lAssignText(F, S); lSetTAttr(F, Archive);
+   lRewriteText(F);
    MaxLv := 0;
    for I := 1 to Cells^.Count do
     begin
@@ -808,14 +832,14 @@ procedure TCalcView.HandleEvent;
          K := CellWidth[I]; S[0] := #255;
          while (I < MaxR) and (C[I+1] < 0) do
           begin Inc(I); Inc(K, CellWidth[I]); end;
-         if K < Length(S1) then Write(F, System.Copy(S, 1, K))
+         if K < Length(S1) then Write(F.T, System.Copy(S, 1, K))
          else begin
                  if K > 255 then L := 255 else L := K;
-                 Write(F, System.Copy(S,1,L));
+                 Write(F.T, System.Copy(S,1,L));
                  repeat
                   Dec(K, L); if K > 255 then L := 255 else L := K;
                   if L <= 0 then Break;
-                  Write(F, Strg(' ', L));
+                  Write(F.T, Strg(' ', L));
                  until K <= 0;
               end;
        end else
@@ -824,16 +848,16 @@ procedure TCalcView.HandleEvent;
           while (I < MaxR) and (C[I+1] < 0) do
            begin Inc(I); Inc(K, CellWidth[I]); end;
           if K > 255 then L := 255 else L := K;
-          Write(F, Strg(' ', L));
+          Write(F.T, Strg(' ', L));
           repeat
            Dec(K, L); if K > 255 then L := 255 else L := K;
            if L <= 0 then Break;
-           Write(F, Strg(' ', L));
+           Write(F.T, Strg(' ', L));
           until K <= 0;
         end;
-      WriteLn(F);
+      WriteLn(F.T);
     end;
-   Close(F);
+   Close(F.T);
  end;
 
  procedure SetMark;
@@ -900,7 +924,7 @@ begin
  TView.HandleEvent(Event);
  case Event.What of
   evCommand: case Event.Command of
-              cmGetName: PString(Event.InfoPtr)^ := 'Speadsheet - '+PWindow(Owner)^.Title^;
+              cmGetName: PString(Event.InfoPtr)^ := 'Speadsheet - '+SName^;
               cmImportToFile: begin ExportToFile; ClearEvent(Event) end;
               cmSaveSheetAs: begin
                        SaveSheetAs; CE;
@@ -1082,7 +1106,7 @@ begin
  end;
  Marking := False;
 end;
-
+        {-DataCompBoy-}
 
 function TCalcView.GetCellValue;
  var X: Byte;
@@ -1424,6 +1448,7 @@ begin
  Dispose(Cells, Done);
  if Q <> nil then Dispose(Q);
  Q := nil;
+ DisposeStr(SName);
  TView.Done;
 end;
 
@@ -1431,30 +1456,40 @@ function TCalcView.AskSave;
  var A: Word;
 begin
  AskSave := On; if not Modified then Exit;
- A := MessageBox(GetString(dlWorkSheet)+PWindow(Owner)^.Title^+GetString(dlNotSaved),
+ A := MessageBox(GetString(dlWorkSheet)+Cut(SName^,40)+GetString(dlNotSaved),
                  nil, mfWarning+mfYesNoCancel);
  if A <> cmCancel then Modified := Off;
  if A = cmYes then SaveSheet else AskSave := A <> cmCancel;
 end;
 
+        {-DataCompBoy-}
 procedure TCalcView.LoadSheet;
  var S: PStream;
+     Bounds: TRect;
 begin
+ GetBounds(Bounds);
  if Modified and not AskSave then Exit;
  if Cells <> nil then Dispose(Cells, Done);
  if (FName = '') or (FName = 'Untitled.WKZ') then begin
-   DisposeStr(PWindow(Owner)^.Title);
-   PWindow(Owner)^.Title := NewStr('Untitled.WKZ'); Owner^.Redraw;
+   DisposeStr(SName); SName := NewStr('Untitled.WKZ');
+   If Owner<>nil then begin
+    DisposeStr(PWindow(Owner)^.Title);
+    PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
+    Owner^.Redraw;
+   end;
    New(Cells, Init(10,10)); Exit
   end;
- FName := FExpand(FName);
+ FName := lfGetLongFileName(lFExpand(FName));
  S := New(PBufStream, Init(FName, stOpenRead, 2048));
- DisposeStr(PWindow(Owner)^.Title);
- PWindow(Owner)^.Title := NewStr(FName);
+ DisposeStr(SName); SName := NewStr(FName);
+ if Owner<>nil then begin
+  DisposeStr(PWindow(Owner)^.Title);
+  PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
+  Owner^.Redraw;
+ end;
  if S^.Status <> stOK then
   begin
    Dispose(S, Done);
-   Owner^.Redraw;
    New(Cells, Init(10,10)); Exit
   end;
  S^.Read(CellWidth, Sizeof(CellWidth));
@@ -1463,28 +1498,34 @@ begin
  if Cells = nil then
   begin
    ErrMsg(erInvalidFileFormat);
-   if Owner <> nil then
-    begin
-     DisposeStr(PWindow(Owner)^.Title);
-     PWindow(Owner)^.Title := NewStr('Untitled.WKZ');
-    end;
+   DisposeStr(SName);
+   SName := NewStr('Untitled.WKZ');
+   if Owner<>nil then begin
+    DisposeStr(PWindow(Owner)^.Title);
+    PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
+    Owner^.Redraw;
+   end;
    New(Cells, Init(10,10));
    FillChar(CellWidth, Sizeof(CellWidth), 11);
   end;
  Modified := Off;
  Owner^.ReDraw;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TCalcView.SaveSheetAs;
  var S: PStream;
-     FName: PathStr;
+     FName: String;
      W: Word;
      PP: Pointer;
+     Bounds: TRect;
 begin
+ GetBounds(Bounds);
  PP := @FName;
  if GetFileName(FName, '*.WKZ', GetString(dlSaveFileAs),
      GetString(dlSaveFileAs), fdOKButton{, hsSaveSheetAs, 0}) = cmCancel then Exit;
- FName := FExpand(FName);
+ FName := lfGetLongFileName(lFExpand(FName));
  S := New(PDosStream, Init(FName, stOpen));
  W := S^.Status;
  Dispose(S, Done);
@@ -1492,8 +1533,12 @@ begin
   begin
    if Msg(dlFileExist, @PP, mfYesButton + mfNoButton + mfWarning) <> cmYes then Exit;
   end;
- DisposeStr(PWindow(Owner)^.Title);
- PWindow(Owner)^.Title := NewStr(FName); Owner^.Redraw;
+ DisposeStr(SName); SName := NewStr(FName);
+ if Owner<>nil then begin
+  DisposeStr(PWindow(Owner)^.Title);
+  PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
+  Owner^.Redraw;
+ end;
  {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
  S := New(PBufStream, Init(FName, stCreate, 2048));
  S^.Write(CellWidth, Sizeof(CellWidth));
@@ -1507,26 +1552,23 @@ begin
  Dispose(S, Done);
  FileChanged(FName);
 end;
+        {-DataCompBoy-}
 
 procedure TCalcView.SaveSheet;
  var S: PStream;
-     SS: String;
-     PP: Pointer;
 begin
- PP := @SS;
- if PWindow(Owner)^.Title^ = 'Untitled.WKZ' then begin SaveSheetAs; Exit end;
+ if SName^ = 'Untitled.WKZ' then begin SaveSheetAs; Exit end;
  {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
- S := New(PBufStream, Init(PWindow(Owner)^.Title^, stCreate, 2048));
+ S := New(PBufStream, Init(SName^, stCreate, 2048));
  S^.Write(CellWidth, Sizeof(CellWidth)); S^.Put(Cells);
- SS := PWindow(Owner)^.Title^;
  if S^.Status <> stOK then
   begin
-   Msg(dlCanNotWrite, @PP, mfError + mfOKButton);
+   Msg(dlCanNotWrite, SName, mfError + mfOKButton);
    Error := True;
   end;
  Modified := Off;
  Dispose(S, Done);
- FileChanged(PWindow(Owner)^.Title^);
+ FileChanged(SName^);
 end;
 
 procedure TCalcView.Copy;

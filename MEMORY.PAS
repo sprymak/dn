@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -76,8 +76,10 @@ function SetBufferSize(P: Pointer; Size: Word): Boolean;
 
 {$IFNDEF DPMI}
 
+{DataCompBoy
 procedure GetBufMem(var P: Pointer; Size: Word);
 procedure FreeBufMem(P: Pointer);
+}
 procedure SetMemTop(MemTop: Pointer);
 
 {$ENDIF}
@@ -593,16 +595,16 @@ begin
   end;
 end;
 
+{DataCompBoy
 procedure GetBufMem(var P: Pointer; Size: Word);
 begin
   NewCache(P, Size);
 end;
-
 procedure FreeBufMem(P: Pointer);
 begin
   DisposeCache(P);
 end;
-
+}
 procedure SetMemTop(MemTop: Pointer); assembler;
 asm
         MOV     BX,MemTop.Word[0]

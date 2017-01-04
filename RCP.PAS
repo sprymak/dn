@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,9 +43,13 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
+//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
 
-
+{$M 65520, 0, 655360}
 PROGRAM RCP;
 
 {                                     }
@@ -53,8 +57,10 @@ PROGRAM RCP;
 {                                     }
 
 USES
-  Dos, Objects, Advance, RStrings, GetConst, Drivers, Menus, Commands, Setups,
-  DNHelp, Views, DNApp, Startup, Dialogs, ColorSel, Validate, IniFiles, Scroller;
+  LFN, {DataCompBoy}
+  Dos, Objects, advance, advance1, advance2, advance3, RStrings, GetConst,
+  Drivers, Menus, Commands, Setups, DNHelp, Views, DNApp, Startup, Dialogs,
+  ColorSel, Validate, IniFiles, Scroller;
 
 CONST
   tidCommands = 'cm'#0'cd'#0;
@@ -74,7 +80,7 @@ VAR
   OutDir: String;
   DLStream: TBufStream;
 
-PROCEDURE Error( S: String );
+PROCEDURE Error( const S: String );
 begin
   WriteLn( #13, S );
   Halt( 1 );
@@ -138,12 +144,13 @@ begin
     GetWord := '';
 end;
 
+        {-DataCompBoy-}
 PROCEDURE ProcessDLs( Enable: Boolean );
 var
   DLs: PTypeHolder;
   SLM: PStrListMaker;
   Fail: Boolean;
-  F: Text;
+  F: lText;
   S, S1: String;
   P: PLngWord;
   function DoSeekID( P: PLngWord ): boolean; far;
@@ -198,7 +205,7 @@ var
       end;
    if S[Length(S)] = '+' then
         begin
-          ReadLn(F, S);
+          ReadLn(F.T, S);
           DelLeft(S);
           I := 0;
           Goto 1;
@@ -211,11 +218,11 @@ begin
   If Enable then begin
     DLs := Types^.GetType( tidDLs );
     New(SLM, Init($FFF0,$280));
-    Assign( F, LngFileName ); Reset( F );
+    lAssignText( F, LngFileName ); lResetText( F );
     If IOResult <> 0 then Error( 'Cannot open file ' + LngFileName );
     WriteLn( 'Reading ', LngFileName );
-    While not EOF( F ) do begin
-      ReadLn( F, S );
+    While not EOF( F.T ) do begin
+      ReadLn( F.T, S );
       S := RemoveLeadSpaces( S );
       S1 := GetWord( UpStrg( S ), 1 );
       While ( S1[ Length( S1 )] = ',' ) and ( S1 <> '' ) do Dec( S1[ 0 ] );
@@ -226,7 +233,7 @@ begin
       SLM^.Put( P^.L, MakeStr( S ));
       P^.Mark := 1;
     end;
-    Close( F );
+    Close( F.T );
     Fail := False; DLs^.ForEach( @DoTest ); If Fail then Halt( 1 );
     DLStream.Init( OutLngFileName, stCreate, 512 );
     If DLStream.Status <> stOK then Error( 'Cannot create file ' + OutLngFileName );
@@ -249,6 +256,7 @@ begin
     Error( 'Error reading file ' + OutLngFileName );
   end;
 end;
+        {-DataCompBoy-}
 
 type
   TEditCommand = record
@@ -260,7 +268,7 @@ type
 {ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
 VAR
   S: String;
-  F: Text;
+  F: lText; {DataCompBoy}
   Line: LongInt;
   IDs: PTypeHolder;
   DLGs: PTypeHolder;
@@ -338,15 +346,17 @@ begin
   S.Write(EditCommands, SizeOf(EditCommands));
 end;
 
+        {-DataCompBoy-}
 FUNCTION FSetExt( F: String; NewExt: String ): String;
 var
-  Dir: DirStr;
-  Name: NameStr;
-  Ext: ExtStr;
+  Dir: String;
+  Name: String;
+  Ext: String;
 begin
-  FSplit( F, Dir, Name, Ext );
+  lFSplit( F, Dir, Name, Ext );
   FSetExt := Dir + Name + NewExt;
 end;
+        {-DataCompBoy-}
 
 procedure StoreResource( P: PObject; ID: TDlgIdx );
 var W: PLngWord;
@@ -447,12 +457,13 @@ begin
    PI := P;
 end;
 
+        {-DataCompBoy-}
 procedure MakeColorDialog;
 begin
   PI := nil; PL := nil; PP := nil;
-  while not EOF(F) do
+  while not EOF(F.T) do
    begin
-     ReadLn(F, S);
+     ReadLn(F.T, S);
      Inc(Line);
      DelLeft(S);
      FreeStr := UpStrg(S);
@@ -468,7 +479,9 @@ begin
  StoreResource(D, dlgColors);
  Dispose(D, Done);
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure MakeEditorCommands;
   var I,J: Integer;
       T: ^TEditSaver;
@@ -494,9 +507,9 @@ procedure MakeEditorCommands;
 begin
   FillChar(EditCommands, SizeOf(EditCommands), 0);
   NumCommands := 0;
-  while not EOF(F) do
+  while not EOF(F.T) do
     begin
-      ReadLn(F, S);
+      ReadLn(F.T, S);
       Inc(Line);
       DelLeft(S);
       FreeStr := UpStrg(S);
@@ -509,6 +522,7 @@ begin
    StoreResource( T, dlgEditorCommands );
    T^.Free;
 end;
+        {-DataCompBoy-}
 
 PROCEDURE ProcessDLGs;
 var
@@ -570,13 +584,13 @@ var
         PL := P;
      end;
 
-
+        {-DataCompBoy-}
   begin
     DM := nil; DL := nil;
     PM := nil; PL := nil;
-    while not EOF(F) do
+    while not EOF(F.T) do
       begin
-        ReadLn(F, S);
+        ReadLn(F.T, S);
         Inc(Line);
         DelLeft(S);
         if (S <> '') and (S[1] <> ';') then
@@ -591,6 +605,7 @@ var
       end;
     CompileStatus := DM;
   end;
+       {-DataCompBoy-}
 
   procedure MakeStatus;
    var PM: PStatusDef;
@@ -606,7 +621,7 @@ var
 
   function CompileMenu(S: String): PMenu;
     var PM, PL: PMenuItem;
-        S1, S2: String[80];
+        S1, S2: String;
         I, J: Integer;
 
     procedure AddItem(P: Pointer);
@@ -637,12 +652,13 @@ var
       AddItem(NewLine(nil));
     end;
 
+        {-DataCompBoy-}
   begin
     CompileMenu := nil;
     PL := nil; PM := nil;
-    while not EOF(F) do
+    while not EOF(F.T) do
       begin
-         ReadLn(F, S);
+         ReadLn(F.T, S);
          Inc(Line);
          DelLeft(S);
          if (S <> '') and (S[1] <> ';') then
@@ -655,6 +671,7 @@ var
       end;
     CompileMenu := NewMenu(PM);
   end;
+        {-DataCompBoy-}
 
   procedure MakeMenu(S: String);
     var ID: TDlgIdx;
@@ -729,15 +746,16 @@ var
              P^.Options := P^.Options or GetID(Token(S, I));
     end;
 
+        {-DataCompBoy-}
     function GetItems: PSItem;
       var P,PP: PSItem;
           S: String;
           K: Integer;
     begin
        PP := nil; K := I;
-       while not EOF(F) do
+       while not EOF(F.T) do
         begin
-          ReadLn(F, S);
+          ReadLn(F.T, S);
           Inc(Line);
           while (S[1] = ' ') and (S <> '') do Delete(S, 1, 1);
           DelRight(S); FreeStr := S; UpStr(FreeStr);
@@ -752,6 +770,7 @@ var
        GetItems := PP;
        I := K;
     end;
+         {-DataCompBoy-}
 
     procedure MakeCheckBoxes;
     begin
@@ -849,7 +868,7 @@ var
             Temp: ''
           );
 
-
+        {-DataCompBoy-}
   begin
     I := Length(idDialog); PV := nil; LastSB := nil;
     FreeStr := Token(S, I);
@@ -862,9 +881,9 @@ var
                                   D^.Awaken;
                                 end else New(D, Init(R, Token(S, I)));
     D^.Options := D^.Options or ofCentered;
-     while not EOF(F) do
+     while not EOF(F.T) do
       begin
-        ReadLn(F, S);
+        ReadLn(F.T, S);
         Inc(Line);
         while (S[1] = ' ') and (S <> '') do Delete(S, 1, 1);
         FreeStr := UpStrg(S);
@@ -906,6 +925,7 @@ var
       end;
     Dispose(D, Done);
   end;
+        {-DataCompBoy-}
 
   procedure DoInsert( P: PLngWord ); far;
   begin
@@ -925,6 +945,7 @@ var
     DLGs^.ForEach( @DoCheck );
   end;
 
+        {-DataCompBoy-}
 begin
   DLGs := Types^.GetType( tidDLGs );
   New( IDs, Init( '', tmConst ));
@@ -935,21 +956,21 @@ begin
   tP := Types^.GetType( tidOptions ); tP^.ForEach( @DoInsert );
 
   WriteLn( 'Reading ', DlgFileName );
-  Assign( F, DlgFileName ); ClrIO; Reset(F);
+  lAssignText( F, DlgFileName ); ClrIO; lResetText(F);
   Line := 0;
   if IOResult <> 0 then Error( 'Could not open input file' );
   St := New( PBufStream, Init( OutDlgFileName, stCreate, 512 ));
   if St^.Status <> stOK then begin
-    Close(F);
+    Close(F.T);
     Dispose( St, Done );
     EraseFile( OutDlgFileName );
     Error('Could not create output file ' + OutDlgFileName );
   end;
 
   TheRF := New(PIdxMaker, Init(St));
-  while not EOF(F) do
+  while not EOF(F.T) do
     begin
-      ReadLn(F, S);
+      ReadLn(F.T, S);
       Inc(Line);
       Write(#13'(', Line, ')');
       while (S[1] = ' ') and (S <> '') do Delete(S, 1, 1);
@@ -963,7 +984,7 @@ begin
         else Error('Unknown identifier in line '+ItoS(Line));
     end;
 
-  Close(F);
+  Close(F.T);
   SetSavers;
   If FailCheck then Halt( 1 );
 
@@ -973,13 +994,16 @@ begin
   IDs^.DeleteAll;
   Dispose( IDs, Done );
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 FUNCTION GetName( S: String ): String;
 var P, N, E: String;
 begin
-  FSplit( S, P, N, E );
+  lFSplit( S, P, N, E );
   GetName := N;
 end;
+        {-DataCompBoy-}
 
 PROCEDURE CleanupTypes;
   procedure DoClean( P: PTypeHolder ); far;

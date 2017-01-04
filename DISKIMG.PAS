@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -53,11 +53,11 @@ procedure UnpackDiskImages(AOwner: Pointer; Files: PFilesCollection);
 
 implementation
 
-uses Dos, Messages, Views, Commands, Objects, DnApp, Drivers,
-     Advance, FileCopy, DiskTool, Gauge, xTime;
+uses Dos, LFN, Messages, Views, Commands, Objects, DnApp, Drivers,
+     advance, advance1, advance2, advance3, FileCopy, DiskTool, Gauge, xTime;
 
-
-function UnpackImage(const FName, DestDir: PathStr; PInfo: PWhileView): Boolean;
+        {-DataCompBoy-}
+function UnpackImage(const FName, DestDir: String; PInfo: PWhileView): Boolean;
 var
   F: PBufStream;
   Error, Cancel       : Boolean;
@@ -125,7 +125,7 @@ begin
   Fat2Sec := LongInt(FirstClust+(W-2)*SectPerClust);
 end;
 
-procedure WriteFile(const ADir: PathStr; const ANm: Str12; Clus: Word;
+procedure WriteFile(const ADir: String; const ANm: Str12; Clus: Word;
      Len, Date: LongInt; Attr: Byte);
 var
   B: PBufStream;
@@ -168,12 +168,12 @@ end;
 
 procedure SetFData;
 var
-  F: file;
+  F: lfile;
 begin
-  Assign(F, FName); FileMode := $40; Reset(F, 1);
+  lAssignFile(F, FName); lResetFileReadOnly(F, 1);
   SetFTime(F, Date);
-  Close(F);
-  if Attr <> Archive then SetFAttr(F, Attr);
+  Close(F.F);
+  if Attr <> Archive then lSetFAttr(F, Attr);
 end;
 
 begin
@@ -195,8 +195,7 @@ begin
   if Error then EraseFile(FName) else SetFData;
 end;
 
-
-procedure ProcessDir(const Dir: PathStr; Ofst: Word);
+procedure ProcessDir(const Dir: String; Ofst: Word);
 var
   _Dir : PByteArray;
   DR   : DirRec;
@@ -238,6 +237,7 @@ begin
   end;
   FreeMem(_Dir,RootEntries*32);
 end;
+        {-DataCompBoy-}
 
 procedure ChkValid;
 begin
@@ -295,11 +295,12 @@ begin
   DoIt;
   Error := Error or (F^.Status <> stOK);
   FreeObject(F);
-  if Error then MessageBox('Error in image file '+Cut(FName,40), nil, mfError+mfOkButton);
+  if Error then MessageBox(GetString(dlImageError)+' '+Cut(FName,40), nil, mfError+mfOkButton);
   UnpackImage := not (Error or Cancel);
 end;
+        {-DataCompBoy-}
 
-procedure RereadGlobal(const OutputDir:PathStr);
+procedure RereadGlobal(const OutputDir:String);
 begin
  GlobalMessage(evCommand, cmPanelReread, @OutputDir);
  GlobalMessage(evCommand, cmRereadTree,  @OutputDir);
@@ -313,12 +314,12 @@ var
   PInfo: PWhileView;
   R: TRect;
 begin
-  if ADestPath = '' then GetDir(0, ADestPath);
+  if ADestPath = '' then lGetDir(0, ADestPath);
   ADestPath := MakeNormName(ADestPath, '');
 
   R.Assign(1,1,26,10);
   New(PInfo, Init(R));
-  PInfo^.Top := 'Image';
+  PInfo^.Top := GetString(dlImage);
   Desktop^.Insert(PInfo);
 
   CreateDirInheritance(ADestPath, False);
@@ -341,7 +342,7 @@ begin
   if (Files = nil) or (Files^.Count = 0) then Exit;
   DestPath := '';
   Message(Application, evCommand, cmPushFullName, @DestPath);
-  if InputBox('Unpack Diskette Images', '~T~arget directory',DestPath, 78, 0)
+  if InputBox(GetString(dlUnpackImages),GetString(dlTargetDir),DestPath, 255, 0) {DataCompBoy}
     = cmOK then DoIt(AOwner, Files, DestPath);
   Files^.DeleteAll; FreeObject(Files);
 end;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,16 +43,20 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
-
 unit UserMenu;
 
 interface
-uses Objects, Views, Scroller, Drivers, ObjType;
+uses Objects, Views, Scroller, Drivers, ObjType, FilesCol, LFNCol;
 
 function QuickExecExternal(N: Integer): Boolean;
 function ExecUserMenu(DoGlobal: Boolean): Boolean;
 procedure ScreenGrabber(ShowMessage: Boolean);
+function MakeString(S: String; UserParams: PUserParams; HandleTildes: boolean): String;
 
 type
      PUserView = ^TUserView;
@@ -89,8 +93,9 @@ const
        Store: @TUserView.Store);
 
 implementation
-uses DNApp, Advance, Startup, Messages, Menus, Commands, MicroEd, WinClp,
-     DNHelp, FilesCol, DOS, Memory, Dialogs, Tree, RStrings;
+uses LFN, {DataCompBoy}
+     DNApp, advance, advance1, advance2, advance3, Startup, Messages, Menus,
+     Commands, MicroEd, WinClp, DNHelp, DOS, Memory, Dialogs, Tree, RStrings;
 
 type
      PUserMenuItem = ^TUserMenuItem;
@@ -205,40 +210,230 @@ begin
  Dispose(PUserMenuItem(P));
 end;
 
-
-function MakeString(S: String;
-                    const AD, ADD, PD, PDD: DirStr;
-                    const AN, PN: NameStr;
-                    const AE, PE: ExtStr): String;
+        {-DataCompBoy-}
+function MakeString(S: String; UserParams: PUserParams; HandleTildes: boolean): String;
+var ts: string;
+    tz: string;
+    zs: string[1];
 begin
-  Replace('$$',#0, S);
+  if HandleTildes then zs:=#0 else zs:='';
   Replace('!!',#1, S);
+  Replace('&&',#2, S);
+  Replace('##',#3, S);
+  Replace('$$',#4, S);
 
-  Replace('.!', AE, S);
-  Replace('.$', PE, S);
+  if (Pos('!\',S)>0) or (Pos('!:',S)>0) or (Pos('!/',S)>0) then
+   begin
+    ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
+     UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
+    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    Replace('!:', Copy(ts,1,2), S);
+    Replace('!\', zs+Copy(ts,3,255)+zs, S);
+    Replace('!/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+   end;
 
-  Replace('!:', Copy(AD,1,2), S);
-  Replace('$:', Copy(PD,1,2), S);
+  if (Pos('#\',S)>0) or (Pos('#:',S)>0) or (Pos('#/',S)>0) then
+   begin
+    ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
+     UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
+    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    Replace('#:', Copy(ts,1,2), S);
+    Replace('#\', zs+Copy(ts,3,255)+zs, S);
+    Replace('#/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+   end;
 
-  Replace('!\', Copy(AD,3,255), S);
-  Replace('$\', Copy(PD,3,255), S);
+  if (Pos('$\',S)>0) or (Pos('$:',S)>0) or (Pos('$/',S)>0) then
+   begin
+    ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
+     UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
+    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    Replace('$:', Copy(ts,1,2), S);
+    Replace('$\', zs+Copy(ts,3,255)+zs, S);
+    Replace('$/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+   end;
 
-  Replace('!/', Copy(ADD,3,255), S);
-  Replace('$/', Copy(PDD,3,255), S);
+  if (Pos('&\',S)>0) or (Pos('&:',S)>0) or (Pos('&/',S)>0) then
+   begin
+    ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
+     UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
+    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    Replace('&:', Copy(ts,1,2), S);
+    Replace('&\', zs+Copy(ts,3,255)+zs, S);
+    Replace('&/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+   end;
 
-  Replace('!', AN, S);
-  Replace('$', PN, S);
+  if Replace('!%', #5, S) or Replace('#%', #5, S) then
+   begin
+    if (Pos(#5'A', S)>0) or (Pos(#5'a', S)>0) then
+     begin
+      ts:=GetAttrStr(UserParams^.Active^.Attr);
+      Replace(#5'A', ts, S);
+      Replace(#5'a', ts, S);
+     end;
 
-  Replace(#0,'$', S);
+    if (Pos(#5'C', S)>0) or (Pos(#5'c', S)>0) then
+     begin
+      if UserParams^.Active^.Attr and Directory<>0
+       then ts:=''
+       else ts:=ZtoS(UserParams^.Active^.PSize);
+      Replace(#5'C', ts, S);
+      Replace(#5'c', ts, S);
+     end;
+
+    if (Pos(#5'D', S)>0) or (Pos(#5'd', S)>0) then
+     begin
+      with UserParams^.Active^ do
+       MakeDateFull(CountryInfo.DateFmt,Day,Month,Yr,Hour,Minute,ts,True);
+      ts[0] := #10;
+      Replace(#5'D', ts, S);
+      Replace(#5'd', ts, S);
+     end;
+
+    if (Pos(#5'R', S)>0) or (Pos(#5'r', S)>0) then
+     begin
+      ts:=ItoS(round(((UserParams^.Active^.PSize/UserParams^.Active^.Size)*100)+0.5))+'%';
+      Replace(#5'R', ts, S);
+      Replace(#5'r', ts, S);
+     end;
+
+    if (Pos(#5'S', S)>0) or (Pos(#5's', S)>0) then
+     begin
+      if UserParams^.Active^.Attr and Directory<>0
+       then ts:=''
+       else ts:=ZtoS(UserParams^.Active^.Size);
+      Replace(#5'S', ts, S);
+      Replace(#5's', ts, S);
+     end;
+
+    if (Pos(#5'T', S)>0) or (Pos(#5't', S)>0) then
+     begin
+      with UserParams^.Active^ do
+       ts:=FormatTimeStr(Hour, Minute, Second);
+      Replace(#5'T', ts, S);
+      Replace(#5't', ts, S);
+     end;
+
+    if (Pos(#5'Z', S)>0) or (Pos(#5'z', S)>0) then
+     begin
+      if (UserParams^.Active^.DIZ<>nil) and (UserParams^.Active^.DIZ^.DIZ<>nil)
+       then ts:=UserParams^.Active^.DIZ^.DIZ^ else ts:='';
+      Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+      Replace(#5'Z', ts, S);
+      Replace(#5'z', ts, S);
+     end;
+   end;
+
+  if Replace('$%', #6, S) or Replace('&%', #6, S) then
+   begin
+    if (Pos(#6'A', S)>0) or (Pos(#6'a', S)>0) then
+     begin
+      ts:=GetAttrStr(UserParams^.Passive^.Attr);
+      Replace(#6'A', ts, S);
+      Replace(#6'a', ts, S);
+     end;
+
+    if (Pos(#6'C', S)>0) or (Pos(#6'c', S)>0) then
+     begin
+      if UserParams^.Passive^.Attr and Directory<>0
+       then ts:=''
+       else ts:=ZtoS(UserParams^.Passive^.PSize);
+      Replace(#6'C', ts, S);
+      Replace(#6'c', ts, S);
+     end;
+
+    if (Pos(#6'D', S)>0) or (Pos(#6'd', S)>0) then
+     begin
+      with UserParams^.Passive^ do
+       MakeDateFull(CountryInfo.DateFmt,Day,Month,Yr,Hour,Minute,ts,True);
+      ts[0] := #10;
+      Replace(#6'D', ts, S);
+      Replace(#6'd', ts, S);
+     end;
+
+    if (Pos(#6'R', S)>0) or (Pos(#6'r', S)>0) then
+     begin
+      ts:=ItoS(round(((UserParams^.Passive^.PSize/UserParams^.Passive^.Size)*100)+0.5))+'%';
+      Replace(#6'R', ts, S);
+      Replace(#6'r', ts, S);
+     end;
+
+    if (Pos(#6'S', S)>0) or (Pos(#6's', S)>0) then
+     begin
+      if UserParams^.Passive^.Attr and Directory<>0
+       then ts:=''
+       else ts:=ZtoS(UserParams^.Passive^.Size);
+      Replace(#6'S', ts, S);
+      Replace(#6's', ts, S);
+     end;
+
+    if (Pos(#6'T', S)>0) or (Pos(#6't', S)>0) then
+     begin
+      with UserParams^.Passive^ do
+       ts:=FormatTimeStr(Hour, Minute, Second);
+      Replace(#6'T', ts, S);
+      Replace(#6't', ts, S);
+     end;
+
+    if (Pos(#6'Z', S)>0) or (Pos(#6'z', S)>0) then
+     begin
+      if (UserParams^.Passive^.DIZ<>nil) and (UserParams^.Passive^.DIZ^.DIZ<>nil)
+       then ts:=UserParams^.Passive^.DIZ^.DIZ^ else ts:='';
+      Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+      Replace(#6'Z', ts, S);
+      Replace(#6'z', ts, S);
+     end;
+   end;
+
+  if (PosChar('!', S)>0) then
+   begin
+    ts:=UserParams^.Active^.Name;
+    ts[9]:='.';
+    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    tz:=fDelRight(Copy(ts, 9, 4)); if tz='.' then tz:='';
+    Replace('.!',zs+tz+zs, S);
+    Replace('!', zs+fDelRight(Copy(ts, 1, 8))+zs, S);
+   end;
+
+  if (PosChar('$', S)>0) then
+   begin
+    ts:=UserParams^.Passive^.Name;
+    ts[9]:='.';
+    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    tz:=fDelRight(Copy(ts, 9, 4)); if tz='.' then tz:='';
+    Replace('.$',zs+tz+zs, S);
+    Replace('$', zs+fDelRight(Copy(ts, 1, 8))+zs, S);
+   end;
+
+  if (PosChar('#', S)>0) then
+   begin
+    ts:=GetLFN(UserParams^.Active^.LFN);
+    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    tz:=GetExt(ts); if tz='.' then tz:='';
+    Replace('.#',zs+tz+zs, S);
+    Replace('#', zs+GetSName(ts)+zs, S);
+   end;
+
+  if (PosChar('&', S)>0) then
+   begin
+    ts:=GetLFN(UserParams^.Passive^.LFN);
+    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
+    tz:=GetExt(ts); if tz='.' then tz:='';
+    Replace('.&',zs+tz+zs, S);
+    Replace('&', zs+GetSName(ts)+zs, S);
+   end;
+
   Replace(#1,'!', S);
+  Replace(#2,'&', S);
+  Replace(#3,'#', S);
+  Replace(#4,'$', S);
 
   MakeString := S;
 end;
-
+        {-DataCompBoy-}
 
 function ExecUserMenu;
  var F: PTextReader;
-     F1: Text;
+     F1: lText; {DataCompBoy}
      P: PUserCollection;
      S, S1: String;
      I: LongInt;
@@ -251,7 +446,7 @@ function ExecUserMenu;
      NI, NW, LL: Word;
      EnterParms: Boolean;
      TitleStr: String[30];
-     DefStr: String[125];
+     DefStr: String;
      RF2E: Boolean;
      Event: TEvent;
 
@@ -304,13 +499,12 @@ function ExecUserMenu;
     end;
  end;
 
+        {-DataCompBoy-}
  var UserParams: TUserParams;
-     AD, ADD, PD, PDD: DirStr;
-     AN, PN: NameStr;
-     AE, PE: ExtStr;
 
 begin
  FillChar(UserParams, SizeOf(UserParams), 0);
+ Message(Desktop, evBroadcast, cmGetUserParams, @UserParams);
  RunFrom2E := Off;
  ExecUserMenu := False;
  TitleStr := '';
@@ -321,7 +515,7 @@ begin
  F := New(PTextReader, Init(SwpDir+'$dn'+ItoS(DNNumber)+'$.mnu'));
  if F <> nil then Goto 1;
 
- S := Advance.FExpand('dn.mnu');
+ S := lFExpand('dn.mnu');
  I := Length(S); if Abort then Goto 2;
  While (I > 0) and (S[I] <> '\') do Dec(I);
  if I = 0 then Goto 2;
@@ -343,16 +537,6 @@ begin
   end;
 1:
  Message(Desktop, evBroadcast, cmGetUserParams, @UserParams); ClrIO;
- FSplit(UserParams.Active, AD, AN, AE); LowStr(AN); LowStr(AE);
- FSplit(UserParams.Passive, PD, PN, PE); LowStr(PN); LowStr(PE);
- Replace('$', #0, AD); Replace('!', #1, AD);
- Replace('$', #0, AE); Replace('!', #1, AE);
- Replace('$', #0, AN); Replace('!', #1, AN);
- Replace('$', #0, PD); Replace('!', #1, PD);
- Replace('$', #0, PN); Replace('!', #1, PN);
- Replace('$', #0, PE); Replace('!', #1, PE);
- ADD := AD; if ADD[0] > #3 then Dec(ADD[0]);
- PDD := PD; if PDD[0] > #3 then Dec(PDD[0]);
  New(P, Init(10, 10)); I := 0; NW := 30;
  while (not F^.EOF) and (IOResult = 0) do
   begin
@@ -368,7 +552,7 @@ begin
      if (StoI(S1) > 0) then
       begin
        New(UI);
-       S := MakeString(S, AD, ADD, PD, PDD, AN, PN, AE, PE);
+       S := MakeString(S, @UserParams, on);
        UI^.Text := NewStr(S);
        if Length(S) > NW then NW := Length(S);
        UI^.Line := I;
@@ -417,9 +601,9 @@ begin
          UI := P^.At(I); LL := UI^.Line;
          if I >= P^.Count - 1 then LL := 65535 else LL := PUserMenuItem(P^.At(I+1))^.Line - 1;
          F := New(PTextReader, Init(S));
-         Assign(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
-         Rewrite(F1);
-         WriteLn(F1, '@Echo off');
+         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
+         lRewriteText(F1);
+         Writeln(F1.T, '@Echo off');
          I := I - 1001;
          if F<>nil then
          begin
@@ -436,7 +620,7 @@ begin
                      DelFC(S);
                      if (S <> '') and (S[1] = '=') then
                       begin DelFC(S);
-{Knave 29.08.99}      S := MakeString(S, AD, ADD, PD, PDD, AN, PN, AE, PE);
+{Knave 29.08.99}      S := MakeString(S, @UserParams, off);
                       DefStr := S;
                       end
                       else
@@ -446,21 +630,12 @@ begin
                        end;
                      Continue;
                     end;
-             { begin
-               S1 := '';
-               repeat
-                S1 := S1+S[1]; DelFC(S);
-               until (S = '') or (S[1] = ' ');
-               DelFC(S);
-               if (StoI(S1) <= UI^.Level) then Break;
-              end else}
               EnterParms := EnterParms or (Pos('%3', S) > 0);
-              WriteLn(F1, MakeString(S, AD, ADD, PD, PDD, AN, PN, AE, PE));
+              WriteLn(F1.T, MakeString(S, @UserParams, off));
               RunFrom2E := UI^.RunFrom2E;
             end;
          end;
-         WriteLn(F1, '@Echo off');
-         Close(F1);
+         Close(F1.T);
          Dispose(F, Done);
          Break;
         end;
@@ -478,6 +653,7 @@ begin
    FreeStr := ActiveList + ' ' + PassiveList + ' ' + FreeStr;
   end;
 end;
+        {-DataCompBoy-}
 
 type
      PGrabber = ^TGrabber;
@@ -669,15 +845,12 @@ function QuickExecExternal(N: Integer): Boolean;
  label 1;
 
  var UserParams: TUserParams;
-     AD, ADD, PD, PDD: DirStr;
-     AN, PN: NameStr;
-     AE, PE: ExtStr;
      TitleStr, DefStr, S: String;
      F: PTextReader;
-     F1: Text;
+     F1: lText;
      I: Integer;
      OS2: char;
-     SR: SearchRec absolute TitleStr;
+     SR: lSearchRec;
      EnterParms, Local: Boolean;
   label RL;
 begin
@@ -719,33 +892,30 @@ begin
        repeat
          ClrIO;
          Inc(I);
-         FindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', $3F xor VolumeID, SR);
+         lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', $3F xor VolumeID, SR);
+         lFindClose(SR);
        until (DOSError <> 0) or (I = 99) or Abort;
        ClrIO;
        FreeStr := 'CMD';
     end;
 
   FreeStr := SwpDir+'$DN'+ItoS(I)+'$.'+FreeStr;
-  Assign(F1, FreeStr); ClrIO;
-  Rewrite(F1);
+  lAssignText(F1, FreeStr); ClrIO;
+  lRewriteText(F1);
 
   if IOResult <> 0 then begin Dispose(F, Done); Exit end;
-  WriteLn(F1, '@Echo off');
+  WriteLn(F1.T, '@Echo off');
 
   if OS2 <> #0 then
     begin
        GetDir(0, TitleStr);
-       WriteLn(F1, '@', Copy(TitleStr, 1, 2));
-       WriteLn(F1, '@cd ', TitleStr);
+       WriteLn(F1.T, '@', Copy(TitleStr, 1, 2));
+       WriteLn(F1.T, '@cd ', TitleStr);
     end;
 
   TitleStr := ''; DefStr := ''; EnterParms := Off;
   Message(Desktop, evBroadcast, cmGetUserParams, @UserParams); ClrIO;
-  FSplit(UserParams.Active, AD, AN, AE); LowStr(AN); LowStr(AE);
-  FSplit(UserParams.Passive, PD, PN, PE); LowStr(PN); LowStr(PE);
-  ADD := AD; if ADD[0] > #3 then Dec(ADD[0]);
-  PDD := PD; if PDD[0] > #3 then Dec(PDD[0]);
-
+  WriteLn(F1.T, '@Echo off');
   while not F^.EOF do
    begin
      S := F^.GetStr;
@@ -759,7 +929,10 @@ begin
              EnterParms := On;
              DelFC(S);
              if (S <> '') and (S[1] = '=') then
-              begin DelFC(S); DefStr := S; end
+                      begin DelFC(S);
+{Knave 29.08.99}      S := MakeString(S, @UserParams, off);
+                      DefStr := S;
+                      end
               else
                begin
                 DelLeft(S);
@@ -768,18 +941,17 @@ begin
              Continue;
             end;
          EnterParms := EnterParms or (Pos('%3', S) > 0);
-         WriteLn(F1, MakeString(S, AD, ADD, PD, PDD, AN, PN, AE, PE));
+         WriteLn(F1.T, MakeString(S, @UserParams, off));
        end;
-  WriteLn(F1, '@Echo off');
 
 with UserParams do
  begin
-  if ActiveList  <> '' then Writeln(F1, '@DEL ', ActiveList  );
-  if PassiveList <> '' then Writeln(F1, '@DEL ', PassiveList );
+  if ActiveList  <> '' then Writeln(F1.T, '@DEL ', ActiveList  );
+  if PassiveList <> '' then Writeln(F1.T, '@DEL ', PassiveList );
  end;
 
-  Write(F1, '@DEL ', FreeStr);
-  Close(F1);
+  Write(F1.T, '@DEL ', FreeStr);
+  Close(F1.T);
   Dispose(F, Done);
 
   if OS2<>#0 then S := Os2 + 'call ' + FreeStr
@@ -797,8 +969,6 @@ with UserParams do
    end;
 
 end;
-
-
-
+        {-DataCompBoy-}
 
 end.

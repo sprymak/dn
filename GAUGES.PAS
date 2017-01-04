@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -54,7 +54,7 @@ unit Gauges;
 interface
 
 uses Dos, Objects, Views, Drivers, FileCopy, Eraser,
-     Commands, xTime, ObjType;
+     Commands, xTime, ObjType, LFNCol;
 
 
 type
@@ -133,8 +133,8 @@ procedure PrintFiles(Files: PCollection; Own: PView);
 
 
 implementation
-uses Memory, Tree, Messages, DNApp, Advance, FilesCol, RStrings, Startup,
-     DnIni; {-$VIV}
+uses Memory, Tree, Messages, DNApp, advance, advance1, advance2, advance3,
+     FilesCol, RStrings, Startup, DnIni; {-$VIV}
 
 {$I Version.INC}
 
@@ -241,7 +241,6 @@ begin
   GrowMode := gfGrowHiX;
   GetTime(LastHour,LastMin , s , hund );
   LastSemi:=hund<50;
- { SetState(sfShadow,False);}
   RegisterToBackground(@Self);
   if ShowSeconds then UpdTicks := 18 else UpdTicks := 9;
   NewTimerSecs(UTimer, 1200+Random(1200));
@@ -324,8 +323,7 @@ begin
       end else
       begin
         if not (OldXCoord=-1) then begin {-SSK}
-          R.Assign(OldXCoord,Origin.Y,
-          OldXCoord+Length(TimeStr),Origin.Y+Size.Y);
+          R.Assign(OldXCoord,Origin.Y, OldXCoord+Length(TimeStr),Origin.Y+Size.Y);
           OldXCoord:=-1;
           TView.Locate(R);
         end; {-SSK}
@@ -461,6 +459,7 @@ begin
     DrawView;
 end;
 
+        {-DataCompBoy-}
 procedure PrintFiles;
   var PF: PFileRec;
       I,J: Integer;
@@ -476,7 +475,7 @@ begin
   if J = 0 then Exit;
   if Files^.Count = 1 then
     begin
-      S := GetString(dlDIFile) + ' ' + MakeFileName(PFileRec(Files^.At(0))^.Name)
+      S := GetString(dlDIFile) + ' ' + Cut(GetLFN(PFileRec(Files^.At(0))^.LFN), 40)
     end else S := ItoS(Files^.Count)+' '+GetString(dlDIFiles);
   if MessageBox(GetString(dlPM_Print)+S+'?', nil, mfYesNoConfirm) <> cmYes then Exit;
   for I := 0 to Files^.Count - 1 do
@@ -484,12 +483,13 @@ begin
        PF := Files^.At(I);
        if PF^.Attr and Directory = 0 then
          begin
-           S := MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
+           S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
            Message(Own, evCommand, cmCopyUnselect, PF);
            Message(Application, evCommand, cmFilePrint, @S);
          end;
     end;
 end;
+        {-DataCompBoy-}
 
 end.
 

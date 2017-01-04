@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -50,8 +50,8 @@ unit Fixer;
 interface
 
 uses Objects, Views, Drivers, Dos, Memory, Menus, Messages, DiskTool, HideView,
-     Advance, Dialogs, Commands, DNApp, DNStdDlg, FViewer, RStrings,
-     SWE, Tree, FilesCol, Validate, UniWin, DNHelp;
+     advance, advance1, advance2, advance3, Dialogs, Commands, DNApp, DNStdDlg,
+     FViewer, RStrings, SWE, Tree, FilesCol, Validate, UniWin, DNHelp;
 
 {
 type
@@ -1411,5 +1411,3 @@ begin
 end;
 
 end.
-
-

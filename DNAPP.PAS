@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,8 +49,8 @@ unit DNApp;
 
 interface
 
-uses Objects, Drivers, Memory, HistList, Views, Menus, Dialogs,
-     RStrings, Commands, ObjType, xTime;
+uses Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, LFN, StakDump,
+     RStrings, Commands, ObjType, xTime, Messages;
 
 const
 
@@ -219,11 +219,13 @@ type
   PProgram = ^TProgram;
   TProgram = object(TGroup)
     IdleSecs: TEventTimer;
+    FullSpeed: boolean;
     constructor Init;
     destructor Done; virtual;
     function CanMoveFocus: Boolean;
     function ExecuteDialog(P: PDialog; Data: Pointer): Word;
     procedure InsertIdler;
+    procedure InsertIdlerN(N: integer);
     procedure GetEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -255,6 +257,7 @@ type
     procedure WhenShow; virtual;
     procedure GetTileRect(var R: TRect); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
+    procedure DoDump(Er: byte);
     procedure Tile;
   end;
 
@@ -263,15 +266,15 @@ type
 procedure UpdateWriteView(P: Pointer);
 procedure InitStringCache;
 procedure OpenResource;
-function ExecResource( Key: TDlgIdx; var Data): Word;
-function LoadResource( Key: TDlgIdx ): PObject;
-function GlobalMessage(What, Command: Word; InfoPtr: Pointer):pointer;
+function  ExecResource( Key: TDlgIdx; var Data): Word;
+function  LoadResource( Key: TDlgIdx ): PObject;
+function  GlobalMessage(What, Command: Word; InfoPtr: Pointer):pointer;
 procedure GlobalEvent(What, Command: Word; InfoPtr: Pointer);
-function ViewPresent(Command: Word; InfoPtr: Pointer): PView;
-function WriteMsg(Text: String): PView;
+function  ViewPresent(Command: Word; InfoPtr: Pointer): PView;
+function  WriteMsg(Text: String): PView;
 function _WriteMsg(const Text: String): PView;
 procedure ForceWriteShow(P: Pointer);
-function GetString( Index: TStrIdx ): String;
+function  GetString( Index: TStrIdx ): String;
 procedure ToggleCommandLine(OnOff: Boolean);
 procedure AdjustToDesktopSize(var R: TRect; OldDeskSize: TPoint);
 
@@ -314,9 +317,17 @@ const
 
 const SkyVisible: Boolean = False;
 
+type
+   PWriteWin = ^TWriteWin;
+   TWriteWin = object(TWindow)
+     Tmr: TEventTimer;
+     IState: Byte;
+   end;
+
 implementation
 
-uses Dos, DNHelp, Advance, Startup, Idlers, ExtraMemory;
+uses Dos, DNHelp, advance, advance1, advance2, advance3, Startup, Idlers,
+     ExtraMemory, UserMenu, MicroEd, FViewer, DblWnd, CmdLine;
 
 var
 
@@ -479,17 +490,64 @@ begin
 end;
 
 procedure TDesktop.HandleEvent(var Event: TEvent);
+ var PCur, PNext: PView;
+    E: TEvent;
+
+  procedure _Next; begin SelectNext(False); end;
+  procedure _Prev; begin if Valid(cmReleasedFocus) then Current^.PutInFrontOf(Background); end;
+
+  procedure _NextSame;
+   var Old: PView;
+   begin
+    Old:=Desktop^.Current;
+    Lock;
+    Repeat _Next
+    until (Old=Desktop^.Current) or (TypeOf(Desktop^.Current^)=TypeOf(Old^));
+    UnLock;
+   end;
+
+  procedure _PrevSame;
+   var Old: PView;
+   begin
+    Old:=Desktop^.Current;
+    Lock;
+    Repeat _Prev;
+    until (Old=Desktop^.Current) or (TypeOf(Desktop^.Current^)=TypeOf(Old^));
+    UnLock;
+  end;
+
+  procedure _NextOther;
+   var Old: PView;
+   begin
+    Old:=Desktop^.Current;
+    Lock;
+    Repeat _Next
+    until (Old=Desktop^.Current) or (TypeOf(Desktop^.Current^)<>TypeOf(Old^));
+    UnLock;
+   end;
+
+  procedure _PrevOther;
+   var Old: PView;
+   begin
+    Old:=Desktop^.Current;
+    Lock;
+    Repeat _Prev;
+    until (Old=Desktop^.Current) or (TypeOf(Desktop^.Current^)<>TypeOf(Old^));
+    UnLock;
+  end;
+
 begin
   TGroup.HandleEvent(Event);
   if Event.What = evCommand then
   begin
     case Event.Command of
-      cmNext: SelectNext(False);
-      cmPrev:
-        if Valid(cmReleasedFocus) then
-          Current^.PutInFrontOf(Background);
-    else
-      Exit;
+     cmNext: _Next;
+     cmPrev: _Prev;
+     cmNext2:  _NextSame;
+     cmPrev2:  _PrevSame;
+     cmNext3:  _NextOther;
+     cmPrev3:  _PrevOther;
+     else      Exit;
     end;
     ClearEvent(Event);
   end;
@@ -675,7 +733,7 @@ begin
 end;
 
 procedure ExecExit;
-   var S: PathStr;
+   var S: String; {DataCompBoy}
 begin
   {if SSaver <> nil then SSaver^.Free;}
   S := GetEnv('DNIDLE');
@@ -684,6 +742,16 @@ begin
 end;
 
 procedure TProgram.InsertIdler;
+begin
+  if (SkyEnabled > 0) or SaversData.Mouse and
+  (MouseWhere.Y= Size.Y-1) and (MouseWhere.X = Size.X-1)
+   or (SaversData.Selected.List = nil) or
+      (SaversData.Selected.List^.Count = 0) or
+      (SSaver <> nil) then Exit;
+  InsertIdlerN(Random(SaversData.Selected.List^.Count));
+end;
+
+procedure TProgram.InsertIdlerN;
 var I: Integer;
     S: String;
     R: TRect;
@@ -696,7 +764,7 @@ begin
       (SaversData.Selected.List^.Count = 0) or
       (SSaver <> nil) then Exit;
 
-  S := PString(SaversData.Selected.List^.At(Random(SaversData.Selected.List^.Count)))^;
+  S := PString(SaversData.Selected.List^.At(N))^;
   if S[1] = #249 then
     begin
       Application^.GetExtent(R);
@@ -715,6 +783,7 @@ begin
                CallExternalSaver(S);
              end;
 end;
+
 
 procedure TProgram.GetEvent(var Event: TEvent);
 
@@ -1001,9 +1070,6 @@ end;
 { TApplication }
 
 constructor TApplication.Init;
- var S: PathStr;
-     Nm: NameStr;
-     Xt: ExtStr;
 begin
   InitMemory;
   InitVideo;
@@ -1043,8 +1109,11 @@ begin
  end;
  Insert(PV);
  WhenShow;
+ SetPalette(vga_default);
  if CommandLine <> nil then CommandLine^.SetState(sfDisabled, Off);
+ SetPalette(vga_palette);
  PV^.Free;
+
  (*
  B := ScreenMode; BB := CursorLines;
  HideMouse;
@@ -1081,6 +1150,144 @@ begin
   Desktop^.GetExtent(R);
 end;
 
+procedure TApplication.DoDump(Er: byte);
+var s: string;
+    PPP: TByteArray absolute FreeStr;
+    PP, AC, C: integer;
+    FH: Word;
+    Sg, Os: word;
+{$IFDEF DPMI}
+    tt: text;
+{$ENDIF}
+
+  Function StoreBuffer(var Buf; Size:word ; FH : word ):word;assembler;
+    asm
+       mov  bx,FH
+       push ds
+        mov cx,Size
+          mov  ah,40h
+          sub  al,al
+          lds  dx,Buf
+          int  21h
+          mov  ax,0
+          jnc  @@1
+          inc  ax
+         @@1:
+       pop  ds
+    end;
+
+label t;
+begin
+    { Create Report File. DRIVERS.PAS contains full dupe of this routine }
+
+    FreeStr := lfGetShortFileName(SourceDir); {DataCompBoy}
+    FreeStr := MakeNormName(FreeStr , 'DN.ERR')+#0;
+
+    FH := $FFFF ;
+{$IFDEF DPMI}
+    Assign(TT, FreeStr);
+    Append(TT);
+    If IOResult<>0 then Rewrite(TT);
+    If IOResult=0  then begin
+     FH:=TextRec(TT).Handle;
+ asm
+    push ds
+    push bp
+    mov  bx, FH
+{$ELSE}
+ asm
+    push ds
+    push bp
+
+    mov ax,6C00h { extended dos 4+ open  }
+    mov si,offset FreeStr
+    inc si
+    mov cx,0
+    mov dx,11h   { if exist open, if not create and open }
+    mov bx,7042h { 42 file mode ; do not use int 24 , write
+                   w/o buffering }
+    int 21h
+    jnc @@1
+    jmp @@99     { other error - exit }
+@@1:
+    mov bx,ax
+{$ENDIF}
+    mov ax,4202H { lseek to end of file }
+    sub dx,dx
+    sub cx,cx
+    int 21h
+    jnc @@2
+    jmp @@99      { other error - exit }
+@@2:
+    mov FH,bx    { save handle        }
+@@99:
+    pop bp
+    pop ds
+ end;
+{$IFDEF DPMI}
+ end;
+{$ENDIF}
+
+ if FH<>$FFFF then
+   begin
+     Asm
+      mov Sg, SEG t
+      mov Os, OFFSET t
+     End;
+     AssignOutput(FH);
+t:   FreeStr :=
+          ^M^J +
+       '----<' + GetDateTime(false) +' '+ GetDateTime(true) +'>'^M^J +
+       'VER :' + VersionName + ^M^J +
+       'DATE:' + VersionDate + ^M^J +
+       'ERR :' + Hex2(Er) + ^M^J +
+       'ADDR:' + Hex4(Sg)+Hex4(Os) + ^M^J ;
+     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
+
+     FreeStr :=
+       'PSP :' + Hex4( PrefixSeg ) + ^M^J +
+       'CS  :' + Hex4(CSeg) + ^M^J +
+       'DS  :' + Hex4(DSeg) + ^M^J +
+       'SS  :' + Hex4(SSeg) + ^M^J +
+       'SP  :' + Hex4(SPtr) + ^M^J +
+       'MEMm:' + Hex8(MaxAvail) + ^M^J +
+       'MEMa:' + Hex8(MemAvail) + ^M^J +
+{$IFNDEF DPMI}
+       'hOrg:' + Hex8(Longint(HeapOrg)) + ^M^J +
+       'hEnd:' + Hex8(Longint(HeapEnd)) + ^M^J +
+       'hPtr:' + Hex8(Longint(HeapPtr)) + ^M^J +
+       'hLim:' + Hex4( StackLimit ) + ^M^J +
+{$ENDIF}
+        '';
+     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
+     FreeStr :=
+       'STCK:' + ^M^J;
+     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
+     DumpStack;
+     FreeStr :=
+       'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;
+     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
+
+     for C:=0 to Pred(ScreenHeight) do
+      begin
+          S:='';
+          PP := (ScreenWidth*C) shl 1;
+          for AC := 0 to Pred(ScreenWidth) do Begin
+           PPP[AC] :=  PByteArray(ScreenBuffer)^[PP+AC*2];
+           S:=S+Hex2(PByteArray(ScreenBuffer)^[PP+AC*2+1]);
+          End;
+          S := S+#13#10 ;
+          if StoreBuffer( PPP,  ScreenWidth, FH ) <> 0 then Break;
+          if StoreBuffer( S[1], Length(S),   FH ) <> 0 then Break;
+      end; { for lines }
+     asm
+       mov  ah,3Eh     { close file }
+       mov  bx,FH
+       int  21h
+     end;
+   end; { file write ok }
+end;
+
 procedure TApplication.HandleEvent(var Event: TEvent);
 begin
   inherited HandleEvent(Event);
@@ -1095,6 +1302,8 @@ begin
         end;
         ClearEvent(Event);
       end;
+    evKeyDown: if Event.KeyCode=kbCtrlShiftTilde then
+                MessageBox('Status dumped to DN.ERR',nil,0);
   end;
 end;
 
@@ -1216,13 +1425,6 @@ begin
  ViewPresent := V;
 end;
 
-type
-   PWriteWin = ^TWriteWin;
-   TWriteWin = object(TWindow)
-     Tmr: TEventTimer;
-     IState: Byte;
-   end;
-
 procedure UpdateWriteView(P: Pointer);
 begin
   if P = nil then Exit;
@@ -1258,6 +1460,7 @@ begin
  W^.SetState(sfShadow, True);
  W^.IState := Byte(Text[1] = ' ');
  NewTimer(W^.Tmr, 4);
+ Desktop^.Insert(W);
  WriteMsg := W;
 end;
 

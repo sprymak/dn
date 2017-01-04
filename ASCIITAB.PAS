@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,7 +49,12 @@ unit ASCIITab;
 
 interface
 
-uses Objects, DNApp, Views, Drivers, RStrings, ObjType;
+uses advance, advance1, advance2, advance3, Objects, DNApp, Views, Drivers,
+     RStrings, ObjType;
+
+const boundsASCII: TPoint = (X:0;Y:0);
+      charASCII: Char = #04;
+      AsciiTableCommandBase: Word = 910;
 
 type
   PTable = ^TTable;
@@ -77,7 +82,6 @@ type
   end;
 
 const
-  AsciiTableCommandBase: Word = 910;
 
   RTable: TStreamRec = (
      ObjType: otTable;
@@ -98,9 +102,7 @@ const
      Store:   @TASCIIChart.Store
   );
 
-procedure RegisterASCIITab;
-
-function InputASCIIChar(var R: TRect; var C: Char): Boolean;
+procedure ASCIITable;
 
 implementation
 
@@ -109,33 +111,6 @@ uses
 
 const
   cmCharacterFocused = 0;
-
-function InputASCIIChar(var R: TRect; var C: Char): Boolean;
- const QQQChar: Char = #115;
- var P: PWindow;
-     W: Word;
-     E: TEvent;
-     RR: TRect;
-begin
- C := QQQChar;
- P := New(PASCIIChart, Init(RR));
- R.B.X := R.A.X + P^.Size.X;
- R.B.Y := R.A.Y + P^.Size.Y;
- if R.A.Y < 0 then R.Move(0,-R.A.Y);
- if R.A.X < 0 then R.Move(-R.A.X,0);
- if R.B.X > Desktop^.Size.X-3 then R.Move(Desktop^.Size.X-3-R.B.X, 0);
- if R.B.Y > Desktop^.Size.Y-1 then R.Move(0,Desktop^.Size.Y-1-R.B.Y);
- P^.MoveTo(R.A.X, R.A.Y);
- {P^.Options := P^.Options and not ofSelectable;}
- P^.SetData(C);
- {InsertWindow(P);}
- InputASCIIChar := Desktop^.ExecView(P) = cmOK;
- P^.GetData(C);
- QQQChar := C;
- Dispose(P, Done);
-end;
-
-
 
 procedure TTable.Draw;
 var
@@ -154,6 +129,38 @@ begin
   ShowCursor;
 end;
 
+procedure ASCIITable;
+ var
+  P: PWindow;
+  W: Word;
+  E: TEvent;
+  R: TRect;
+  CR:PView;
+   function GetCH: boolean;
+   begin
+    W := Desktop^.ExecView(P);
+    P^.GetData(charASCII);
+    E.What := evKeyDown;
+    E.CharCode := charASCII;
+    E.ScanCode := 0;
+    if W in [cmOk, cmYes] then
+     Application^.HandleEvent(E);
+    GetCh:= W=cmYes;
+  end;
+ begin
+  P:=New(PASCIIChart, Init(R));
+  P^.MoveTo(boundsASCII.X, boundsASCII.Y);
+  P^.SetData(charASCII);
+  CR:=Desktop^.Current;
+{  Desktop^.Lock;}
+  while GetCH do ;
+{  Desktop^.UnLock;}
+  boundsASCII:=P^.Origin;
+  Dispose(P, Done);
+  CR^.Select;
+ end;
+
+
 procedure TTable.HandleEvent(var Event:TEvent);
 var
   CurrentSpot: TPoint;
@@ -165,6 +172,7 @@ begin
     Pointer(Cursor.X + 32 * Cursor.Y));
 end;
 
+var cX, cY: integer;
 begin
   if Event.What = evMouseDown then
   begin
@@ -191,15 +199,25 @@ begin
   end
   else if Event.What = evKeyDown then
     with Cursor do begin
+      cX:=X; cY:=Y;
       case Event.KeyCode of
-        kbHome: SetCursor(0,0);
-        kbEnd: SetCursor(Size.X - 1, Size.Y - 1);
-        kbUp: if Y > 0 then SetCursor(X, Y - 1);
-        kbDown: if Y < Size.Y - 1 then SetCursor(X, Y + 1);
-        kbLeft: if X > 0 then SetCursor(X - 1, Y);
-        kbRight: if X < Size.X - 1 then SetCursor(X + 1, Y);
+        kbCtrlPgUp: SetCursor(0, 0);
+        kbCtrlPgDn: SetCursor(Size.X - 1, Size.Y - 1);
+        kbCtrlHome, kbPgUp: SetCursor(X, 0);
+        kbCtrlEnd, kbPgDn: SetCursor(X, Size.Y - 1);
+        kbHome: SetCursor(0, Y);
+        kbEnd: SetCursor(Size.X - 1, Y);
+        kbUp:   begin dec(cY, 1);if cY < 1 then cY:=0;SetCursor(cX, cY); end;
+        kbDown: begin inc(cY, 1);if cY > Size.Y - 1 then cY:=Size.Y-1;SetCursor(cX, cY);end;
+        kbLeft: begin dec(cX, 1);if cX < 1 then cX:=0;SetCursor(cX, cY); end;
+        kbRight:begin inc(cX, 1);if cX > Size.X - 1 then cX:=Size.X - 1;SetCursor(cX, cY);end;
+        kbCtrlUp:   begin dec(cY, 2);if cY < 1 then cY:=0;SetCursor(cX, cY); end;
+        kbCtrlDown: begin inc(cY, 2);if cY > Size.Y - 1 then cY:=Size.Y-1;SetCursor(cX, cY);end;
+        kbCtrlLeft: begin dec(cX, 5);if cX < 1 then cX:=0;SetCursor(cX, cY); end;
+        kbCtrlRight:begin inc(cX, 5);if cX > Size.X - 1 then cX:=Size.X - 1;SetCursor(cX, cY);end;
       else
-        SetCursor(ord(Event.CharCode) mod 32, ord(Event.CharCode) div 32);
+        if (ord(Event.CharCode)>0) then
+         SetCursor(ord(Event.CharCode) mod 32, ord(Event.CharCode) div 32);
       end;
       CharFocused;
       ClearEvent(Event);
@@ -218,12 +236,16 @@ end;
 procedure TReport.Draw;
 var
   Ch: LongInt;
-  Color: Byte;
-  Buf: TDrawBuffer;
+  Buf: Array[0..50] of word;
   TempStr: string;
 begin
-  FormatStr(TempStr, '  Char: %c Decimal: %0#%3d Hex: %0#%02x  ', ASCIIChar);
-  WriteStr(0, 0, TempStr, 6);
+  If ASCIIChar>0 then
+   FormatStr(TempStr, '  Char: ~'#0'%c'#0'~ Decimal: ~%0#%3d~ Hex: ~%0#%02x~  ', ASCIIChar)
+  else
+   FormatStr(TempStr, '  Char:   Decimal: ~%0#%3d~ Hex: ~%0#%02x~  ', ASCIIChar);
+  MoveCStr(Buf, TempStr, GetColor(07) shl 8 + GetColor(06));
+  WriteBuf(0, 0, 50, 1, Buf);
+{ WriteStr(0, 0, TempStr, 6);}
 end;
 
 procedure TReport.HandleEvent(var Event: TEvent);
@@ -270,6 +292,7 @@ begin
   R.Assign(0, 0, 34, 12);
   TWindow.Init(R, GetString(dlASCIIChart), wnNoNumber);
   Flags := Flags and not (wfGrow + wfZoom);
+  Options := Options and ofTopSelect;
   HelpCtx := hcAsciiChart;
   Palette := wpGrayWindow;
 
@@ -304,24 +327,25 @@ begin
   GetEvent(Event);
   case Event.What of
    evKeyDown: case Event.KeyCode of
-               kbESC: begin Event.What := evCommand; Event.Command := cmCancel; end;
-               kbEnter, kbCtrlB, kbCtrlP: begin Event.What := evCommand; Event.Command := cmOK; end;
-                   else if Event.CharCode > #0 then
-                          begin SetData(Event.CharCode); Event.What := evCommand; Event.Command := cmOK; end;
+               kbESC:
+                 begin Event.What := evCommand; Event.Command := cmCancel; end;
+               kbEnter, kbCtrlB, kbCtrlP:
+                 begin Event.What := evCommand; Event.Command := cmOK; end;
+               kbCtrlEnter:
+                 begin Event.What := evCommand; Event.Command := cmYes; end;
+               else if Event.CharCode > #0 then
+                     begin
+                      SetData(Event.CharCode);
+                      Event.What := evCommand;
+                      Event.Command := cmOK;
+                     end;
               end;
+   evCommand: if Event.Command=cmClose then Event.Command:=cmCancel;
   end;
   If Event.What<>evNothing then HandleEvent(Event);
  until (Event.What = evCommand) and ((Event.Command < 255) and
-        (Event.Command in [cmOK, cmCancel, cmClose]));
+        (Event.Command in [cmOK, cmCancel, cmYes]));
  Execute := Event.Command;
 end;
 
-procedure RegisterASCIITab;
-begin
-  RegisterType(RTable);
-  RegisterType(RReport);
-  RegisterType(RASCIIChart);
-end;
-
 end.
-

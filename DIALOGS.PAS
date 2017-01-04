@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit Dialogs;
@@ -55,7 +59,8 @@ unit Dialogs;
 
 interface
 
-uses Objects, Drivers, Views, Scroller, Validate, ObjType;
+uses LFN, {DataCompBoy} DnIni,
+     Objects, Drivers, Views, Scroller, Validate, ObjType;
 
 const
 
@@ -144,12 +149,11 @@ type
 
   PDialog = ^TDialog;
   TDialog = object(TWindow)
-    constructor Init(var Bounds: TRect; ATitle: TTitleStr);
+    constructor Init(var Bounds: TRect; const ATitle: TTitleStr);
     constructor Load(var S: TStream);
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     function Valid(Command: Word): Boolean; virtual;
-    procedure StoreText(var F: Text); virtual;
   end;
 
 { TSItem }
@@ -192,8 +196,6 @@ type
     procedure SetValidator(AValid: PValidator);
     procedure Store(var S: TStream);
     function Valid(Command: Word): Boolean; virtual;
-    procedure StoreText(var F: Text); virtual;
-  private
     function CanScroll(Delta: Integer): Boolean;
   end;
 
@@ -226,7 +228,7 @@ type
     Command: Word;
     Flags: Byte;
     AmDefault: Boolean;
-    constructor Init(var Bounds: TRect; ATitle: TTitleStr; ACommand: Word;
+    constructor Init(var Bounds: TRect; const ATitle: TTitleStr; ACommand: Word;
       AFlags: Word);
     constructor Load(var S: TStream);
     destructor Done; virtual;
@@ -238,7 +240,6 @@ type
     procedure Press; virtual;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Store(var S: TStream);
-    procedure StoreText(var F: Text); virtual;
   end;
 
 { TCluster }
@@ -297,7 +298,6 @@ type
     procedure MovedTo(Item: Integer); virtual;
     procedure Press(Item: Integer); virtual;
     procedure SetData(var Rec); virtual;
-    procedure StoreText(var F: Text); virtual;
   end;
 
 { TCheckBoxes }
@@ -313,7 +313,6 @@ type
     procedure Draw; virtual;
     function Mark(Item: Integer): Boolean; virtual;
     procedure Press(Item: Integer); virtual;
-    procedure StoreText(var F: Text); virtual;
   end;
 
 { TMultiCheckBoxes }
@@ -363,7 +362,6 @@ type
     procedure NewList(AList: PCollection); virtual;
     procedure SetData(var Rec); virtual;
     procedure Store(var S: TStream);
-    procedure StoreText(var F: Text); virtual;
   end;
 
 { TStaticText }
@@ -381,7 +379,6 @@ type
     function GetPalette: PPalette; virtual;
     procedure GetText(var S: String); virtual;
     procedure Store(var S: TStream);
-    procedure StoreText(var F: Text); virtual;
   end;
 
 { TParamText }
@@ -420,7 +417,6 @@ type
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Store(var S: TStream);
-    procedure StoreText(var F: Text); virtual;
   end;
 
 { THistoryViewer }
@@ -435,6 +431,7 @@ type
   PHistoryViewer = ^THistoryViewer;
   THistoryViewer = object(TListViewer)
     HistoryId: Word;
+    SearchPos: word;
     constructor Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar;
       AHistoryId: Word);
     function GetPalette: PPalette; virtual;
@@ -481,16 +478,11 @@ type
     function InitHistoryWindow(var Bounds: TRect): PHistoryWindow; virtual;
     procedure RecordHistory(const S: String); virtual;
     procedure Store(var S: TStream);
-    procedure StoreText(var F: Text); virtual;
   end;
 
 { SItem routines }
 
 function NewSItem(const Str: String; ANext: PSItem): PSItem;
-
-{ Dialogs registration procedure }
-
-{procedure RegisterDialogs;}
 
 { Stream Registration Records }
 
@@ -598,7 +590,8 @@ const
 
 implementation
 
-uses AsciiTab, HistList, Advance, Commands, Startup, xTime;
+uses AsciiTab, HistList, advance, advance1, advance2, advance3, Commands,
+     Startup, xTime, FlPanelX, dnapp;
 
 const
 
@@ -618,7 +611,7 @@ end;
 
 { TDialog }
 
-constructor TDialog.Init(var Bounds: TRect; ATitle: TTitleStr);
+constructor TDialog.Init(var Bounds: TRect; const ATitle: TTitleStr);
 begin
   inherited Init(Bounds, ATitle, wnNoNumber);
   Options := Options or ofVersion20;
@@ -720,7 +713,9 @@ begin
   TView.Init(Bounds);
   State := State or sfCursorVis;
   if (InterfaceData.Options and ouiBlockInsertCursor <> 0) then BlockCursor;
-  Options := Options or (ofSelectable + ofFirstClick + ofVersion20);
+  if (Bounds.A.X<>Bounds.B.X) and (Bounds.A.Y<>Bounds.B.Y)
+   then Options := Options or (ofSelectable + ofFirstClick + ofVersion20)
+   else Options := Options or (ofFirstClick + ofVersion20) and not ofSelectable;
   GetMem(Data, AMaxLen + 1);
   Data^ := '';
   MaxLen := AMaxLen;
@@ -743,18 +738,17 @@ end;
 
 destructor TInputLine.Done;
 begin
-  FreeMem(Data, MaxLen + 1);
+  FreeMem(Data, MaxLen + 1); Data:=nil;
   SetValidator(nil);
   TView.Done;
 end;
 
 function TInputLine.CanScroll(Delta: Integer): Boolean;
 begin
-  if Delta < 0 then
-    CanScroll := FirstPos > 0 else
-  if Delta > 0 then
-    CanScroll := Length(Data^) - FirstPos + 2 > Size.X else
-    CanScroll := False;
+  If Data=nil then CanScroll:=false else
+  if Delta < 0 then CanScroll := FirstPos > 0 else
+  if Delta > 0 then CanScroll := Length(Data^) - FirstPos + 2 > Size.X
+               else CanScroll := False;
 end;
 
 function TInputLine.DataSize: Word;
@@ -762,14 +756,12 @@ var
   DSize: Word;
 begin
   DSize := 0;
-
-  if Validator <> nil then
-    DSize := Validator^.Transfer(Data^, nil, vtDataSize);
-
-  if DSize <> 0 then
-    DataSize := DSize
-  else
-    DataSize := MaxLen + 1;
+  if Data<>nil then
+   begin
+    if Validator <> nil then DSize := Validator^.Transfer(Data^, nil, vtDataSize);
+    if DSize <> 0 then DataSize := DSize
+                  else DataSize := MaxLen + 1;
+   end;
 end;
 
 procedure TInputLine.Draw;
@@ -779,6 +771,7 @@ var
   B: TDrawBuffer;
   S: String;
 begin
+  if Data=nil then Exit;
   if DrawShift = 0 then SelStart := SelEnd;
   if State and sfFocused = 0 then
     Color := GetColor(1) else
@@ -808,6 +801,9 @@ end;
 
 procedure TInputLine.GetData(var Rec);
 begin
+  if Data=nil then
+    FillChar(Rec, DataSize, #0)
+  else
   if (Validator = nil) or
     (Validator^.Transfer(Data^, @Rec, vtGetData) = 0) then
   begin
@@ -834,6 +830,7 @@ var
   OldCurPos, OldFirstPos,
   OldSelStart, OldSelEnd: Integer;
   S: String;
+  pS: PString;
   R: TRect;
 
 function MouseDelta: Integer;
@@ -931,10 +928,57 @@ begin
     CheckValid := True;
 end;
 
-label ebem;
+Procedure InsChar(c: char);
+ begin
+  if (State and sfCursorIns <> 0) xor
+     (InterfaceData.Options and ouiBlockInsertCursor <> 0) then
+   Delete(Data^, CurPos + 1, 1) else DeleteSelect;
+  if CheckValid(True) then
+  begin
+    if Length(Data^) < MaxLen then
+    begin
+      if FirstPos > CurPos then FirstPos := CurPos;
+      Inc(CurPos);
+      Insert(C, Data^, CurPos);
+    end;
+    CheckValid(False);
+  end;
+ end;
+
+procedure ASCIITable;
+ var
+  P: PWindow;
+  W: Word;
+  E: TEvent;
+  R: TRect;
+  CR:PView;
+   function GetCH: boolean;
+   begin
+    W:=Desktop^.ExecView(P);
+    P^.GetData(charASCII);
+    if W in [cmOk, cmYes] then
+     begin
+      InsChar(charASCII);
+      DrawView;
+     end;
+    GetCh:= W=cmYes;
+  end;
+ begin
+  P:=New(PASCIIChart, Init(R));
+  P^.MoveTo(boundsASCII.X, boundsASCII.Y);
+  P^.SetData(charASCII);
+  CR:=Desktop^.Current;
+{  Desktop^.Lock;}
+  while GetCH do ;
+{  Desktop^.UnLock;}
+  boundsASCII:=P^.Origin;
+  Dispose(P, Done);
+  CR^.Select;
+ end;
 
 begin
   TView.HandleEvent(Event);
+  if Data=nil then Exit;
   if State and sfSelected <> 0 then
   begin
     case Event.What of
@@ -982,6 +1026,18 @@ begin
           else
             ExtendBlock := False;
           case Event.KeyCode of
+            kbCtrlBack: if CurPos > 0 then begin
+                         if (Data^[CurPos] in BreakChars) then
+                          repeat
+                           Delete(Data^, CurPos, 1);
+                           Dec(CurPos)
+                          until (CurPos = 0) or not (Data^[CurPos] in BreakChars)
+                         else
+                          repeat
+                           Delete(Data^, CurPos, 1);
+                           Dec(CurPos)
+                          until (CurPos = 0) or (Data^[CurPos] in BreakChars)
+                        end;
             kbCtrlIns:
                   if Options and ofSecurity = 0 then begin
                     S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
@@ -1021,6 +1077,20 @@ begin
                     DrawView;
                     Exit;
                   end;
+            kbAlt1..kbAlt9:
+                  begin
+                    ClearEvent(Event);
+                    S := ''; DeleteSelect;
+                    pS:=DirsToChange[Event.ScanCode-(kbAlt1 shr 8)];
+                    if (pS=nil) or (pS^[0]=#0) then Exit else S:=pS^;
+                    if S = '' then Exit;
+                    SelStart := CurPos; SelEnd := CurPos + Length(S);
+                    OldData := Data^;
+                    Insert(S, OldData, CurPos + 1);
+                    Data^ := Copy(OldData, 1, MaxLen);
+                    DrawView;
+                    Exit;
+                  end;
             kbLeft:
               if CurPos > 0 then Dec(CurPos);
             kbRight:
@@ -1052,26 +1122,9 @@ begin
               SetState(sfCursorIns, State and sfCursorIns = 0);
           else
             case Event.CharCode of
-              ' '..#254:
-                begin
-ebem:             if (State and sfCursorIns <> 0) xor (InterfaceData.Options and ouiBlockInsertCursor <> 0) then
-                    Delete(Data^, CurPos + 1, 1) else DeleteSelect;
-                  if CheckValid(True) then
-                  begin
-                    if Length(Data^) < MaxLen then
-                    begin
-                      if FirstPos > CurPos then FirstPos := CurPos;
-                      Inc(CurPos);
-                      Insert(Event.CharCode, Data^, CurPos);
-                    end;
-                    CheckValid(False);
-                  end;
-                end;
+              ' '..#254: InsChar(Event.CharCode);
               ^P, ^B: begin
-                        Owner^.MakeGlobal(Origin, R.A);
-                        Owner^.Owner^.MakeLocal(R.A, R.A);
-                        R.Move(Size.X div 2 - 15, -4);
-                        if InputASCIIChar(R, Event.CharCode) then Goto ebem;
+                        ASCIITable;
                         ClearEvent(Event);
                       end;
               ^Y:
@@ -1104,6 +1157,7 @@ end;
 
 procedure TInputLine.SelectAll(Enable: Boolean);
 begin
+  if Data=nil then Exit;
   CurPos := 0;
   FirstPos := 0;
   SelStart := 0;
@@ -1113,6 +1167,7 @@ end;
 
 procedure TInputLine.SetData(var Rec);
 begin
+  if Data=nil then Exit;
   if (Validator = nil) or
     (Validator^.Transfer(Data^, @Rec, vtSetData) = 0) then
     Move(Rec, Data^[0], DataSize);
@@ -1123,6 +1178,7 @@ end;
 procedure TInputLine.SetState(AState: Word; Enable: Boolean);
 begin
   TView.SetState(AState, Enable);
+  if Data=nil then Exit;
   if (AState = sfSelected) or ((AState = sfActive) and
     (State and sfSelected <> 0)) then SelectAll(Enable);
 end;
@@ -1157,7 +1213,7 @@ end;
 
 { TButton }
 
-constructor TButton.Init(var Bounds: TRect; ATitle: TTitleStr;
+constructor TButton.Init(var Bounds: TRect; const ATitle: TTitleStr;
   ACommand: Word; AFlags: Word);
 begin
   TView.Init(Bounds);
@@ -2232,6 +2288,7 @@ constructor THistoryViewer.Init(var Bounds: TRect; AHScrollBar,
 begin
   TListViewer.Init(Bounds, 1, AHScrollBar, AVScrollBar);
   HistoryId := AHistoryId;
+  SearchPos:=0;
   SetRange(HistoryCount(AHistoryId));
   if Range > 1 then FocusItem(1);
   HScrollBar^.SetRange(1, HistoryWidth-Size.X + 3);
@@ -2255,14 +2312,76 @@ begin
 end;
 
 procedure THistoryViewer.HandleEvent(var Event: TEvent);
-begin
-  if ((Event.What = evMouseDown) and (Event.Double)) or
+
+ {-$ WildCat $ -}
+ var
+   CurStr    : string;
+   Value     : integer;
+   T         : Boolean;
+
+ function Equal(const S1, S2: string; Count: Word): Boolean;
+ var
+   I: Word;
+ begin
+   Equal := False;
+   if (Length(S1) < Count) or (Length(S2) < Count) then Exit;
+   for I := 1 to Count do
+     if UpCase(S1[I]) <> UpCase(S2[I]) then Exit;
+   Equal := True;
+ end;
+
+ function Search(const S1: string; SearchPos: Integer; var Index: Integer):Boolean;
+ var
+   L, H, I, C: Integer;
+ begin
+   Search := False;
+   L := Index;
+   H := HistoryCount(HistoryID) - 1;
+   while L <= H do
+   begin
+     if Equal(HistoryStr(HistoryID, L), S1, SearchPos) then
+       begin
+        Search := True;
+        Break;
+       end;
+    Inc(L);
+   end;
+   if L>H then begin
+       L:=0;
+       H := Index - 1;
+       while L <= H do
+       begin
+          if Equal(HistoryStr(HistoryID, L), S1, SearchPos) then begin
+              Search := True;
+              Break;
+          end;
+          Inc(L);
+       end;
+   end;
+   Index := L;
+ end;
+ {- $ WildCat $ -}
+
+ begin
+    if ((Event.What = evBroadcast) and (Event.Command = cmReleaseDFocus))
+    or (Event.What = evMouseDown) then begin
+       SearchPos := 0;
+       HideCursor
+   end else if Event.What=evKeyDown then case Event.KeyCode of
+       kbCtrlPgDn, kbCtrlPgUp, kbPgDn, kbPgUp,
+       kbEnd, kbHome, kbDown, kbUp: begin
+           SearchPos:=0;
+           HideCursor
+       end
+   end;
+ if ((Event.What = evMouseDown) and (Event.Double)) or
      ((Event.What = evKeyDown) and (Event.KeyCode = kbEnter)) then
   begin
     EndModal(cmOk);
     ClearEvent(Event);
   end else
-  if ((Event.What = evKeyDown) and (Event.CharCode = ' ') and (Focused < HistoryCount(HistoryID))) then
+  if ((Event.What = evKeyDown) and (Event.CharCode = ' ')
+  and (Focused < HistoryCount(HistoryID)) and (SearchPos=0)) then
     begin
      FreeStr := HistoryStr(HistoryID, Focused);
      if CurString <> nil then
@@ -2291,6 +2410,31 @@ begin
   begin
     EndModal(cmCancel);
     ClearEvent(Event);
+  end else if (Event.What = evKeyDown) and (Event.CharCode <> #0) and (Range>0)
+  and ((Event.KeyCode<>kbCtrlEnter) or (SearchPos>0)) then begin
+      Value := Focused;
+      if Value < Range then CurStr := Copy(GetText(Value, 255),2,255)
+      else CurStr := '';
+      if Event.KeyCode = kbBack then
+      begin
+        CurStr[0] := Char(SearchPos);
+        T:=False
+      end else if Event.KeyCode = kbCtrlEnter then begin
+        Inc(Value); if Value>=Range then Value:=0;
+        T := Search(CurStr, SearchPos, Value);
+      end else begin
+        Inc(SearchPos);
+        CurStr[0] := Char(SearchPos);
+        CurStr[SearchPos] := Event.CharCode;
+        T := Search(CurStr, SearchPos, Value);
+       end;
+       ClearEvent(Event);
+      ShowCursor;
+      if T then FocusItem(Value) else if SearchPos>0 then begin
+          Dec(SearchPos);
+          CurStr[0] := Char(SearchPos);
+      end;
+      SetCursor(SearchPos+2, Cursor.Y);
   end else TListViewer.HandleEvent(Event);
 end;
 
@@ -2423,11 +2567,38 @@ end;
 
 function THistory.InitHistoryWindow(var Bounds: TRect): PHistoryWindow;
 var
-  P: PHistoryWindow;
+  R,O: TRect;
+  P  : PHistoryWindow;
 begin
+ {===START====  New code realisation by Shumskii Lev aka WildCat}
+  Owner^.GetExtent(O);
+  Link^.GetBounds(R);
+  if (O.B.Y-R.B.Y) > 4 then
+   {Если у нас в "запасе" до нижнего края рамки владельца больше 4 строк,
+    то рисуем окно истории сдвинув от линка на одну строку вниз и вправо,
+    иначе отображаем по старому :(}
+  begin
+   Inc(R.A.X); Inc(R.B.Y); Inc(R.B.Y,7); Inc(R.A.Y,1);
+   Inc(R.B.X,2);
+   R.Intersect(O);
+   if (R.B.Y >= O.B.Y) then Dec(R.B.Y,1);
+   {Если наш размер (после InterSect) равен или больше (на всякий случай)
+   размера владельца, то уменьшаем наш V-size на 1, чтобы рамка окна истории
+   не перекрывала нижнюю рамку владельца}
+
+   P:=New(PHistoryWindow, Init(R,HistoryID));
+   P^.HelpCtx:=Link^.HelpCtx;
+   InitHistoryWindow:=P
+  end
+   {===END=== New code realisation by Shumskii Lev aka WildCat}
+  else
+{=== Old code realisation START ===}
+ begin
   P := New(PHistoryWindow, Init(Bounds, HistoryId));
   P^.HelpCtx := Link^.HelpCtx;
   InitHistoryWindow := P;
+ end;
+{=== Old code realisation END ===}
 end;
 
 procedure THistory.RecordHistory(const S: String);
@@ -2553,154 +2724,6 @@ begin
  MoveStr(B[1], Copy(S, 1, Size.X - 2), C);
  WriteLine(0, 0, Size.X, Size.Y, B);
 end;
-
-
-procedure TListBox.StoreText;
-  var S: String;
-      R: TRect;
-      L: Array[1..4] of LongInt;
-begin
-  GetBounds(R); L[1] := R.A.X; L[2] := R.A.Y; L[3] := R.B.X; L[4] := R.B.Y;
-  FormatStr(S, '%d, %d, %d, %d, ', L);
-  WriteLn(F, '    ListBox ', S, NumCols, GetOptionsStr);
-end;
-
-procedure TInputLine.StoreText;
-  var S: String;
-      R: TRect;
-      L: Array[1..4] of LongInt;
-begin
-  GetBounds(R); L[1] := R.A.X; L[2] := R.A.Y; L[3] := R.B.X; L[4] := R.B.Y;
-  FormatStr(S, '%d, %d, %d, %d, ', L);
-  WriteLn(F, '    InputLine ', S, MaxLen, ', 0', GetOptionsStr);
-end;
-
-procedure TLabel.StoreText;
-begin
-  WriteLn(F, '    Label ', Origin.X, ', ', Origin.Y, ', ''', CnvString(Text), '''', GetOptionsStr);
-end;
-
-procedure THistory.StoreText;
-begin
-  WriteLn(F, '    History ', Origin.X, ', ', Origin.Y, ', ', HistoryID, GetOptionsStr);
-end;
-
-procedure TButton.StoreText;
-  var S: String;
-      R: TRect;
-      L: Array[1..4] of LongInt;
-begin
-  GetBounds(R); L[1] := R.A.X; L[2] := R.A.Y; L[3] := R.B.X; L[4] := R.B.Y;
-  FormatStr(S, '%d, %d, %d, %d, ', L);
-  Write(F, '    Button ', S, '''', CnvString(Title),'''');
-  case Command of
-    cmOK: S := ', cmOK';
-    cmCancel: S := ', cmCancel';
-    cmNo: S := ', cmNo';
-    cmYes: S := ', cmYes';
-    cmHelp: S := ', cmHelp';
-     else begin
-            Str(Command, S);
-            S := ', '+S;
-          end;
-  end;
-  Write(F, S);
-  if Flags and bfBroadcast <> 0 then Write(F, ', bfBroadcast');
-  if Flags and bfLeftJust <> 0 then Write(F, ', bfLeftJust');
-  if Flags and bfDefault <> 0 then Write(F, ', bfDefault');
-  if Flags and bfGrabFocus <> 0 then Write(F, ', bfGrabFocus');
-  WriteLn(F, GetOptionsStr);
-end;
-
-procedure TRadioButtons.StoreText;
-  var S: String;
-      R: TRect;
-      L: Array[1..4] of LongInt;
-
-  procedure DoPut(P: PString); far;
-  begin
-      WriteLn(F, '      ITEM ', '''',CnvString(P), '''');
-  end;
-
-begin
-  GetBounds(R); L[1] := R.A.X; L[2] := R.A.Y; L[3] := R.B.X; L[4] := R.B.Y;
-  FormatStr(S, '%d, %d, %d, %d', L);
-  WriteLn(F, '    RadioButtons ', S, GetOptionsStr);
-  Strings.ForEach(@DoPut);
-  WriteLn(F, '    END');
-end;
-
-procedure TCheckBoxes.StoreText;
-  var S: String;
-      R: TRect;
-      L: Array[1..4] of LongInt;
-      P: PSItem;
-
-  procedure DoPut(P: PString); far;
-  begin
-      WriteLn(F, '      ITEM ', '''',CnvString(P), '''');
-  end;
-
-begin
-  GetBounds(R); L[1] := R.A.X; L[2] := R.A.Y; L[3] := R.B.X; L[4] := R.B.Y;
-  FormatStr(S, '%d, %d, %d, %d', L);
-  WriteLn(F, '    CheckBoxes ', S, GetOptionsStr);
-  Strings.ForEach(@DoPut);
-  WriteLn(F, '    END');
-end;
-
-procedure TStaticText.StoreText;
-  var S: String;
-      R: TRect;
-begin
-   GetBounds(R);
-   S := CnvString(Text);
-   Replace('''', #0, S);
-   Replace(^C, '''^C''', S);
-   Replace(^M, '''^M''', S);
-   Replace('''''', '', S);
-   Replace(#0, '''''', S);
-   WriteLn(F, '    StaticText ', R.A.X, ', ', R.A.Y, ', ', R.B.X, ', ', R.B.Y,
-              ', ''', S, '''', GetOptionsStr);
-end;
-
-procedure TDialog.StoreText;
- var P: PView;
- procedure DoStore(P: PView); far;
- begin
-   if P <> nil then P^.StoreText(F);
-   if P^.HelpCtx <> 0 then
-        WriteLn(F,  '    HELPCTX ', P^.HelpCtx);
- end;
-begin
-  WriteLn(F, 'DIALOG dlg, ', Size.X, ', ', Size.Y, ', ''', CnvString(Title), '''');
-  WriteLn(F,  '    HELPCTX ', HelpCtx);
-  P := Current;
-  repeat
-    if P <> Pointer(Frame) then DoStore(P);
-    P := P^.Prev;
-  until (P = Current) or (P = nil);
-  WriteLn(F, 'END'#13#10);
-end;
-
-{ Dialogs registration procedure }
-
-{procedure RegisterDialogs;
-begin
-  RegisterType(RDialog);
-  RegisterType(RInputLine);
-  RegisterType(RButton);
-  RegisterType(RCluster);
-  RegisterType(RRadioButtons);
-  RegisterType(RCheckBoxes);
-  RegisterType(RMultiCheckBoxes);
-  RegisterType(RListBox);
-  RegisterType(RStaticText);
-  RegisterType(RLabel);
-  RegisterType(RHistory);
-  RegisterType(RParamText);
-end;
-}
 
 end.
 

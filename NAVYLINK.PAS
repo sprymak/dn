@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,19 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit NavyLink;
 
 {$I LINK.INC} interface uses
-  Advance, Dos, Objects, Views, Drives, Drivers,
-  xTime, Gauge, DiskInfo, FilesCol, ObjType;
+  LFN, LFNCol, {DataCompBoy}
+  advance, advance1, advance2, advance3, Dos, Objects, Views, Drives, Drivers,
+  xTime, Gauge, DiskInfo, FilesCol, ObjType,
+  ComLnk;
 
 type
     TLinkMode = (lcmUnknown, lcmLinkToLocal, lcmLocalToLink);
@@ -71,8 +77,8 @@ type
       RefreshWndTimer: TEventTimer;
       MainTimeOut: TEventTimer;
       Grd: PWhileView;
-      _Mask: Str12;
-      _Name: Str12;
+      _Mask: String;
+      _Name: String;
       CopyOpt: Word;
       CopyMode: Word;
       CopyPrn: Boolean;
@@ -88,11 +94,11 @@ type
     PLinkDrive = ^TLinkDrive;
     TLinkDrive = object(TDrive)
        constructor Init(D: Char);
-       procedure ChDir(ADir: PathStr); virtual;
-       function GetDir: PathStr; virtual;
+       procedure lChDir(ADir: String); virtual; {DataCompBoy}
+       function GetDir: String; virtual;       {DataCompBoy}
        function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
                              var FreeSpace, TotalInfo: String ): PCollection; virtual;
-       procedure RereadDirectory(S: PathStr); virtual;
+       procedure RereadDirectory(S: String); virtual; {DataCompBoy}
        procedure CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
                    { From Link to Local Drive }
        procedure CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
@@ -120,9 +126,9 @@ const
        Store: @TLinkDrive.Store);
 
 procedure StartLink;
-procedure CopyToLinkDrive(AFiles: PCollection; AOwner: PView; const RealDest: PathStr; Mask: Str12);
+procedure CopyToLinkDrive(AFiles: PCollection; AOwner: PView; const RealDest: String; Mask: Str12);
              { From Local to Link Drive }
-procedure CopyFromLinkDrive(AFiles: PCollection; AOwner: PView; const RealDest: PathStr);
+procedure CopyFromLinkDrive(AFiles: PCollection; AOwner: PView; const RealDest: String);
              { From Link to Local Drive }
 
 
@@ -143,10 +149,12 @@ begin
   NewLinkDrive := New(PLinkDrive, Init(C));
 end;
 
-procedure Reread_Dir(const ADir: PathStr);
+        {-DataCompBoy-}
+procedure Reread_Dir(const ADir: String);
 begin
   Drives.RereadDirectory(ADir);
 end;
+        {-DataCompBoy-}
 
 const MainTimeOutSecs = 60;
 
@@ -353,7 +361,7 @@ end;
 
 procedure __Halt;
 begin
- {$IFDEF CL_LOG}CL_WLog('*** Halted ***');Close(CL_LogF);{$ENDIF}
+ {$IFDEF CL_LOG}CL_WLog('*** Halted ***');Close(CL_LogF.F);{DataCompBoy}{$ENDIF}
  RunError(222);
 end;
 
@@ -530,32 +538,35 @@ begin
     end;
   until LoopBreak;
 end;
-
+{DataCompBoy
 function NotRoot(const Dir: string): Boolean;
 begin
-  NotRoot := Length(Dir)>3;
+  NotRoot := (Length(Dir)>3) or (Dir[2]<>':');
 end;
-
+}
 type
   PCL_DirCollection =
   {$IFDEF DN}       PFilesCollection  {$ENDIF}
   {$IFDEF NLCLIENT} PStringCollection {$ENDIF};
 
-function GetRemoteDirCycle(DP: PByteArray; N: Word
+        {-DataCompBoy-}
+function GetRemoteDirCycle(DP: PByteArray; BlkLen: Word
       ;Owner: PObject; SortMode: Integer; CurDir: PString;
       TotalInfo, FreeSpace: PString
  ): PCL_DirCollection;
 var
   nm,xt: string;
+  lfn: string;
   I: LongInt;
   D: TCL_DirEntry;
   C: PCL_DirCollection;
   TFiles: Word;
   Fs, Ts, TotalLen: TSize;
+  ll: integer;
 begin
   TFiles := 0;
   TotalLen := 0;
-  C := New(PCL_DirCollection, Init((N div 16+1)*16, 4));
+  C := New(PCL_DirCollection, Init($10, $10));
 
   {$IFDEF DN} C^.Owner := Owner; C^.SortMode := SortMode; {$ENDIF}
 
@@ -567,16 +578,28 @@ begin
     Ts := Ts * 1024;
   end;
 
-  if N > 0 then for I:=0 to N-1 do
+  ll:=SizeOf(TCL_DirPrefix);
+
+  if BlkLen > 0 then
+  while ll<BlkLen do
   begin
-    Move(DP^[i*CL_DirRecSz+SizeOf(TCL_DirPrefix)], D, CL_DirRecSz);
+    Move(DP^[ll], D, CL_DirRecSz);
+    inc(ll, CL_DirRecSz);
+    If MayLFN then
+     begin
+      Move(DP^[ll], lfn,    1);           inc(ll, 1);
+      Move(DP^[ll], lfn[1], length(lfn)); inc(ll, length(lfn));
+     end;
     nm := CL_UnpackStr(d.Name,8);
     xt := CL_UnpackStr(d.Ext,3);
+    If not MayLFN then
+     if xt<>'' then lfn:=nm+'.'+xt else lfn:=nm;
     if d.Attr and Directory = 0 then begin Inc(TFiles); TotalLen := TotalLen+d.Size; end;
-    C^.Insert(NewFileRec(nm+'.'+xt, d.Size, d.Time, d.Attr {$IFDEF DN},CurDir{$ENDIF}));
+
+    C^.Insert(NewFileRec(lfn, nm+'.'+xt, d.Size, d.Time, d.Attr {$IFDEF DN},CurDir{$ENDIF}));
   end;
 
-  if TotalInfo <> nil then TotalInfo^ := CalcTotalInfo(N, TFiles, Ts);
+  if TotalInfo <> nil then TotalInfo^ := CalcTotalInfo(C^.Count, TFiles, Ts);
 
   if (FreeSpace <> nil) and (CurDir <> nil) then
   begin
@@ -585,6 +608,7 @@ begin
   end;
   GetRemoteDirCycle := C;
 end;
+        {-DataCompBoy-}
 
 function WaitRemoteDirData(ReqP: Pointer; ReqS: Word): PCL_PtrData;
 var
@@ -633,7 +657,7 @@ begin
   P := WaitRemoteDirData(ReqP, ReqS); FreeReq;
   if P = nil then GetRemoteDir := nil else
   begin
-     GetRemoteDir := GetRemoteDirCycle(P^.DatP, (P^.DatS-SizeOf(TCL_DirPrefix)) div CL_DirRecSz,
+     GetRemoteDir := GetRemoteDirCycle(P^.DatP, P^.DatS,
       Owner,SortMode,CurDir,TotalInfo,FreeSpace
     );
     Dispose(P, Done);
@@ -660,7 +684,7 @@ var
   P: PCL_InDat;
   Nfo: TCL_FileNfo;
   Left: LongInt;
-  F: File;
+  F: lFile;
   BS: Word;
   BP: Pointer;
 
@@ -706,7 +730,7 @@ begin
          Left := Nfo.Size;
 
          CDI; if Abort then Break;
-         Assign(F, LocalName); Rewrite(F, 1);
+         lAssignFile(F, LocalName); lRewriteFile(F, 1);
 
          NewTimer(StartRece,0); NewTimer(UpdateGauge,0);
 
@@ -719,13 +743,13 @@ begin
              P := CL_InData^.At(0);
              if P^.Typ <> id_FileBlk then UnExp;
              with PCL_PtrData(P)^ do begin BP := DatP; BS := DatS end;
-             BlockWrite(F, BP^, BS); InitMainTimeout;
+             BlockWrite(F.F, BP^, BS); InitMainTimeout;
              Dec(Left, BS);
              CL_InData^.AtFree(0);
            end else if LoopBreak then Break;
          end;
          ReceiveFile := Left = 0;
-         Close(f);
+         Close(f.F);
 {         if ReseiveFile then Set File Date}
          Break;
        end;
@@ -767,13 +791,14 @@ begin
   until LoopBreak;
 end;
 
-function SendFile(const FName, DestFName: string; ABuf: Pointer): Boolean;
+        {-DataCompBoy-}
+     function SendFile(FName, DestFName: string; ABuf: Pointer): Boolean;
 var
   StartSend, UpdateGauge: TEventTimer;
   P: PCL_InDat;
   Nfo: TCL_FileNfo;
   L, Left: LongInt;
-  F: File;
+  F: lFile;
   BS: Word;
   BP: Pointer;
 
@@ -845,7 +870,12 @@ end;
 
 begin
   SendFile := False;
-  ClrIO; FileMode := $40; Assign(F, FName); Reset(F, 1); if IOResult <> 0 then Exit;
+  if not MayLFN then
+   begin
+    FName:=lfGetShortFileName(FName);
+    DestFName:=GetURZ(FName);
+   end;
+  ClrIO; FileMode := $40; lAssignFile(F, FName); lResetFile(F, 1); if IOResult <> 0 then Exit;
   CL_FillFileNfo(F, Nfo, False); Left := Nfo.Size;
   ClrGrd(FmtFileId(dlLinkTransmitFile, FName));
   if not StartSending then Exit;
@@ -857,14 +887,15 @@ begin
     if CL_FreeToFSend then
     begin
       L := Left; if L > CL_FileBuf then L := CL_FileBuf;
-      BlockRead(F, ABuf^, L); InitMainTimeout;
+      BlockRead(F.F, ABuf^, L); InitMainTimeout;
       CL_PostFileBlock(ABuf, L);
       Dec(Left, L);
       if AllDone then Break;
     end else if LoopBreak then Break;
   until False;
-  Close(F);
+  Close(F.F);
 end;
+        {-DataCompBoy-}
 
 procedure TLinker.Update;
 begin
@@ -896,13 +927,14 @@ begin
   DriveType := dtLink;
 end;
 
-procedure TLinkDrive.ChDir;
- var Dr: DirStr;
-     Nm: NameStr;
-     Xt: ExtStr;
+        {-DataCompBoy-}
+procedure TLinkDrive.lChDir;
+ var Dr: String;
+     Nm: String;
+     Xt: String;
 begin
  if ADir = #0 then Exit;
- FSplit(ADir, Dr, Nm, Xt);
+ lFSplit(ADir, Dr, Nm, Xt);
  if Xt = '..' then
   begin
    if Dr <> '' then CurDir := Dr;
@@ -912,6 +944,7 @@ begin
   end else CurDir := ADir;
  While (CurDir[0] > #3) and (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
 end;
+        {-DataCompBoy-}
 
 function TLinkDrive.GetDir;
 begin
@@ -921,7 +954,7 @@ end;
 procedure CreateDirRequest(
    var P: Pointer;
    var Ofst: Word;
-   const CurDir: PathStr;
+   const CurDir: String;
    const FileMask: string;
    APanelFlags, ASortMode: Integer);
 
@@ -962,10 +995,7 @@ begin
   begin
     {PC := New(PFilesCollection, Init(0, 0));}
     FreeSpace := FmtStrId(dlLinkNoRemote, Copy(CurDir, 1, 2));
-  end {else
-  begin
-    if NotRoot(CurDir) then PC^.AtInsert(0, NewFileRec('..',0,0,Directory,@CurDir));
-  end};
+  end ;
   GetDirectory := PC;
 end;
 
@@ -980,14 +1010,41 @@ begin
   {CopyToLinkDrive(AFiles,Own,CurDir,'');}
 end;
 
-function MkName(Nm: Str12; const Mask: Str12): Str12;
-  var I: Integer;
+        {-DataCompBoy-}
+function MkName(Nm: String; Mask: String): String;
+ var a,aa,aaa: string;
+     b,bb,bbb: string;
+     os: string;
+     i:byte;
 begin
-  for I := 1 to 12 do if Mask[I] <> '?' then Nm[I] := Mask[I];
-  Nm[9] := '.';
-  MkName := MakeFileName(Nm);
+ lFSplit(Nm,    a, aa, aaa);
+ lFSplit(Mask, b, bb, bbb);
+ os:='';
+ for i:=1 to length(bb) do
+  case bb[i] of
+   '?': os:=os+aa[i];
+   '*': begin
+         os:=os+copy(aa, i, 255)+copy(bb,i+1,255);
+         while pos('?', os)<>0 do delete(os, pos('?', os), 1);
+         while pos('*', os)<>0 do delete(os, pos('*', os), 1);
+         break;
+        end;
+   else os:=os+bb[i];
+  end;
+ for i:=1 to length(bbb) do
+  case bbb[i] of
+   '?': os:=os+aaa[i];
+   '*': begin
+         os:=os+copy(aaa, i, 255)+copy(bbb,i+1,255);
+         while pos('?', os)<>0 do delete(os, pos('?', os), 1);
+         while pos('*', os)<>0 do delete(os, pos('*', os), 1);
+         break;
+        end;
+   else os:=os+bbb[i];
+  end;
+ MkName:=os;
 end;
-
+        {-DataCompBoy-}
 
 function ValidRemoteDir(const ADir: string; var IsValid: Boolean): Boolean;
 var
@@ -1023,13 +1080,16 @@ begin
   until LoopBreak;
 end;
 
+        {-DataCompBoy-}
 function ValidLocalDir(const ADir: string): Boolean;
 var
-  SR: SearchRec;
+  SR: lSearchRec;
 begin
-  FindFirst(ADir, $3E xor VolumeID, SR);
-  ValidLocalDir := (DOSError = 0) and (SR.Attr and Directory <> 0);
+  lFindFirst(ADir, $3E xor VolumeID, SR);
+  ValidLocalDir := (DOSError = 0) and (SR.SR.Attr and Directory <> 0);
+  lFindClose(SR);
 end;
+        {-DataCompBoy-}
 
 function ValidDir(ADir: string; var IsValid: Boolean): Boolean;
 begin
@@ -1046,7 +1106,7 @@ var
 begin
   CalcMasks := False;
 
-  FreeStr := MakeNormName(Advance.FExpand(Dest), Mask);
+  FreeStr := MakeNormName(lFExpand(Dest), Mask);
   if (Mask = '') then Mask := x_x else
   if (PosChar('*', Mask) = 0) and (PosChar('?', Mask) = 0) then
   begin
@@ -1058,13 +1118,12 @@ begin
     end;
   end;
 
-  Mask := Norm12(Mask);
   CalcMasks := True;
 end;
 
 const mfEraseConfirm = mfConfirmation + mfNoButton + mfAllButton+ mf2YesButton + mfCancelButton;
 
-function AskReadOnly(const S: PathStr): Word;
+function AskReadOnly(const S: String): Word;
  var I: Integer;
 begin
   if Confirms and cfEraseReadonly = 0 then begin AskReadOnly := cmYes; Exit end;
@@ -1073,7 +1132,7 @@ begin
   AskReadOnly := I;
 end;
 
-function AskKillDir(const S: PathStr): Word;
+function AskKillDir(const S: String): Word;
  var I: Integer;
 begin
   I := Ask(FmtFileId(dlLinkEraseDirCfm, S), nil, mfEraseConfirm);
@@ -1081,7 +1140,7 @@ begin
   AskKillDir := I;
 end;
 
-function EraseRemote(const FName: PathStr; Attr: Byte): Boolean;
+function EraseRemote(const FName: String; Attr: Byte): Boolean;
 var
   P: PCL_InDat;
   Sent: Boolean;
@@ -1178,7 +1237,7 @@ begin
   if CurDir[0] > #3 then
    begin
      S := GetName(CurDir);
-     ChDir('..');
+     lChDir('..');
    end;
 end;
 
@@ -1232,24 +1291,25 @@ begin
   FreeCL_DirNfo(D);
 end;
 
-
-
+        {-DataCompBoy-}
 function TransferFile(P: PFileRec; const Dest, Mask: string): Boolean;
 var
-  FName, DestFName: PathStr;
+  FName, DestFName: String;
 begin
-  FName     := MakeNormName(P^.Owner^, MakeFileName(P^.Name));
-  DestFName := MakeNormName(Dest, MkName(Norm12(GetName(FName)), Mask));
+  FName     := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
+  DestFName := MakeNormName(Dest, MkName(GetName(FName), Mask));
   case PLinker(Linker)^.LinkMode of
     lcmLocalToLink : TransferFile := SendFile(FName, DestFName, PLinker(Linker)^.CopyFileBuf);
     lcmLinkToLocal : TransferFile := ReceiveFile(FName, DestFName);
    else Unexp;
   end;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 function InvalidateDest(const ARealDest, AMask: string): PString;
 var
-  Dest: PathStr;
+  Dest: String;
 begin
   InvalidateDest := nil;
   Dest := ARealDest;
@@ -1257,31 +1317,35 @@ begin
   if not CalcMasks(Dest, PLinker(Linker)^._Mask) then Exit;
   InvalidateDest := NewStr(Dest);
 end;
+        {-DataCompBoy-}
 
 function TransferCollection(Dest: PString; AFiles: PCollection): Boolean; forward;
 
+        {-DataCompBoy-}
 function GetLocalDir(const ADir: string; AOwner: PString): PFilesCollection;
 var
   P: PFilesCollection;
-  SR: SearchRec;
+  SR: lSearchRec;
 begin
   P := New(PFilesCollection, Init(16,16));
-  FindFirst(ADir, $3E xor VolumeID, SR);
+  lFindFirst(ADir, $3E xor VolumeID, SR);
   while DosError = 0 do
   begin
-    if SR.Name[1] <> '.' then with SR, P^ do
-      AtInsert(Count, NewFileRec(Name, Size, Time, Attr, AOwner));
-    FindNext(SR);
+    if SR.SR.Name[1] <> '.' then with SR, P^, SR do
+      AtInsert(Count, NewFileRec(FullName, Name, Size, Time, Attr, AOwner));
+    lFindNext(SR);
   end;
+  lFindClose(SR);
   GetLocalDir := P;
 end;
+        {-DataCompBoy-}
 
-function NewPathMask(const APath: PathStr): PString;
+function NewPathMask(const APath: String): PString;
 begin
   NewPathMask := NewStr(MakeNormName(APath,x_x));
 end;
 
-function TransferDir(Dest: PString; const APath, AName: PathStr): Boolean;
+function TransferDir(Dest: PString; const APath, AName: String): Boolean;
 var
   P: PFilesCollection;
   ReqP: Pointer;
@@ -1313,7 +1377,7 @@ begin
   end;
 end;
 
-
+        {-DataCompBoy-}
 function TransferCollection;
 var
   C: Word;
@@ -1328,7 +1392,10 @@ begin
       P := AFiles^.At(C);
       if P^.Attr and Directory <> 0 then
       begin
-        PLinker(Linker)^._Name := MakeFileName(P^.Name);
+        If MayLFN then
+         PLinker(Linker)^._Name := GetLFN(P^.LFN)
+        else
+         PLinker(Linker)^._Name := MakeFileName(P^.Name);
         if PLinker(Linker)^._Name = '..' then Continue else
         begin
           if not TransferDir(Dest, MakeNormName(P^.Owner^, PLinker(Linker)^._Name), PLinker(Linker)^._Name)
@@ -1346,7 +1413,7 @@ begin
   end;
   DisposeStr(Dest);
 end;
-
+        {-DataCompBoy-}
 
 procedure CopyToLinkDrive;
 begin
@@ -1368,7 +1435,7 @@ begin
 
 end;
 
-function ExecCopyDialog(var Dest: PathStr; AFiles: PCollection; AOwner: PView): Boolean;
+function ExecCopyDialog(var Dest: String; AFiles: PCollection; AOwner: PView): Boolean;
 begin
   with PLinker(Linker)^ do ExecCopyDialog :=
     CopyDialog(Dest, _Mask, CopyOpt, CopyMode, CopyPrn,
@@ -1390,20 +1457,22 @@ begin
   DisposeGrd;
 end;
 
+        {-DataCompBoy-}
 procedure TLinkDrive.CopyFiles;
 var
-  Dest, RealDest: PathStr;
+  Dest, RealDest: String;
 begin
   if AFiles^.Count = 0 then Exit;
   if not ExecCopyDialog(Dest, AFiles, Own) then Exit;
   RealDest := Dest;
-  PLinker(Linker)^._Mask := MakeFileName(PLinker(Linker)^._Mask);
   PLinker(Linker)^.LinkMode := lcmLinkToLocal;
   if not CalcMasks(Dest, PLinker(Linker)^._Mask) then Exit;
   CopyFromLinkDrive(AFiles, Own, Dest);
   Reread_Dir(RealDest);
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TLinkDrive.UseFile;
  var
      PC: PFilesCollection;
@@ -1413,14 +1482,18 @@ begin
 
    PC := New(PFilesCollection, Init(1,1));
    PC^.Insert(P);
-   PLinker(Linker)^._Mask := Norm12(x_x);
+   PLinker(Linker)^._Mask := x_x;
    CopyFromLinkDrive(PC, nil, TempDir);
    PC^.DeleteAll;
    Dispose(PC, Done);
 
-   TempFile := MakeNormName(TempDir, MakeFileName(P^.Name));
+   If MayLFN then
+    TempFile := MakeNormName(TempDir, GetLFN(P^.LFN))
+   else
+    TempFile := MakeNormName(TempDir, MakeFileName(P^.Name));
    Message(Application, evCommand, Command, @TempFile);
 end;
+        {-DataCompBoy-}
 
 end.
 comlnk

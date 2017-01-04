@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
@@ -51,7 +55,8 @@
 unit FilesCol;
 
 interface
- uses Objects, Memory, DOS, Startup, DNHelp, Advance, ObjType;
+ uses LFN, LFNCol, {DataCompBoy} drvtypes, Objects, Memory, DOS, Startup,
+ DNHelp, advance, advance1, advance2, advance3, ObjType;
 
 type
     PDIZ = ^TDIZ;
@@ -64,14 +69,16 @@ type
 
     PFileRec = ^TFileRec;
     TFileRec = record
-     Size: LongInt;
-     PSize: LongInt;
+     Size: TSize;
+     PSize: TSize;
      Owner: PString;
+     OwnerDisposible: Boolean;
      Diz: PDIZ;
      Name: Str12;
+     LFN: TLFNIndex; {DataCompBoy}
      Yr: Word;
      TType: Byte;
-     Attr: Byte;
+     Attr: Word;
      Second: Byte;
      Selected: Boolean;
      case Boolean of
@@ -80,20 +87,22 @@ type
     end;
 
     TMakeListRec = record
-     FileName: String[79];
-     Header: String[79];
+     FileName  : String; {DataCompBoy}
+     Header    : String;
      HeaderMode: Word;
-     Action: String[255];
-     Footer: String[79];
+     Action    : String;
+     Footer    : String;
      FooterMode: Word;
-     Options: Word;
+     Options   : Word;
     end;
 
+        {-DataCompBoy-}
     PUserParams = ^TUserParams;
     TUserParams = record
-      Active, Passive: PathStr;
-      ActiveList, PassiveList: PathStr;
+      Active, Passive: PFileRec;
+      ActiveList, PassiveList: String;
     end;
+        {-DataCompBoy-}
 
     PLineCollection = PTextCollection;
     TLineCollection = TTextCollection;
@@ -106,7 +115,7 @@ type
      procedure FreeItem(Item: Pointer); virtual;
      function Compare(Key1, Key2: Pointer): Integer; virtual;
      constructor Load(var S: TStream);
-     procedure Store(var S: TStream);
+     procedure Store(var S: TStream); virtual;
     end;
 
 const
@@ -123,17 +132,17 @@ const
        Load: @TFilesCollection.Load;
        Store: @TFilesCollection.Store);
 
-function SelectDrive(X, Y: Integer; Default: Char; IncludeTemp: Boolean): String;
-function CopyFileRec(FR: PFileRec): PFileRec;
-function NewFileRec(const Name: String; Size, Date: LongInt; Attr: Byte; AOwner: PString): PFileRec;
-function PackedDate(P: PFileRec): LongInt;
+function  SelectDrive(X, Y: Integer; Default: Char; IncludeTemp: Boolean): String;
+function  CopyFileRec(FR: PFileRec): PFileRec; {DataCompBoy}
+function  CreateFileRec(Name: string): PFileRec;
+function  NewFileRec(const LFN, Name: String; Size:TSize; Date: LongInt; Attr: Word; AOwner: PString): PFileRec; {DataCompBoy}
+procedure DelFileRec(var FR: PFileRec); {DataCompBoy}
+function  LoadFileRec(var s: TStream): PFileRec; {DataCompBoy}
+procedure StoreFileRec(var s: TStream; fr: PFileRec); {DataCompBoy}
+function  PackedDate(P: PFileRec): LongInt; {DataCompBoy}
+function GetFileType(const S: String; Attr: Byte): Integer;
 
-   const Archives = #0'arc'#0'bsa'#0'bs2'#0'zip'#0'arj'#0'lzh'#0'hyp'#0'chz'#0+
-                    'ha'#0'sqz'#0'zoo'#0'hap'#0'ice'#0'pak'#0'lim'#0'rar'#0'ha '#0+
-                    'j'#0'j  '#0'imp'#0'777'#0'acb'#0'boa'#0'z'#0'$z'#0'gz'#0+
-                    'hpk'#0'gz '#0'tgz'#0'taz'#0'z  '#0'$z '#0'ain'#0'ace'#0+
-                    'uc2'#0'ain'#0'lha'#0'tar'#0'tdr'#0'cab'#0;
-       Executables: String[21] = #0'exe'#0'bat'#0'com'#0;
+ const Executables: String[21] = #0'exe'#0'bat'#0'com'#0;
 
 implementation
 uses DNApp, Menus, Drivers, Views, FlPanel, Drives,
@@ -156,54 +165,134 @@ type
       NLen: Byte;
     end;
 
+        {-DataCompBoy-}
+function  CreateFileRec(Name: string): PFileRec;
+ var fr: PFileRec;
+     lsr: lSearchRec;
+     D: DateTime;
+ begin
+  new(fr);
+  CreateFileRec:=fr;
+  fillchar(fr^, sizeof(fr^), 0);
+  Name:=lFExpand(Name);
+  lFindFirst(Name+'*', AnyFile, lsr);
+  while (lsr.FullName<>Name) and (DosError=0) do lFindNext(lsr);
+  lFindClose(lsr);
+  if DosError=0 then
+   begin
+    fr^.name:=Norm12(lsr.sr.name);
+    fr^.LFN:=AddLFN(lsr.FullName);
+    fr^.Size:=lsr.FullSize;
+    fr^.PSize:=lsr.FullSize;
+    fr^.Owner:=NewStr(GetPath(Name)+'\');
+    fr^.OwnerDisposible:=true;
+    fr^.Diz:=nil;
+    UnpackTime(lsr.sr.Time, D);
+    fr^.Yr := D.Year;
+    fr^.Month := D.Month;
+    fr^.Day := D.Day;
+    fr^.Hour := D.Hour;
+    fr^.Minute := D.Min;
+    fr^.Second := D.Sec;
+    fr^.Attr:=lsr.sr.attr;
+    fr^.TType := GetFileType(fr^.Name, fr^.Attr);
+    if fr^.Attr and Directory <> 0 then UpStr(fr^.Name) else LowStr(fr^.Name);
+   end
+  else
+   begin
+    fr^.Owner:=NewStr(GetPath(Name));
+    fr^.OwnerDisposible:=true;
+    fr^.Name:=Norm12(GetURZ(GetName(lfGetShortFileName(Name))));
+    fr^.LFN:=AddLFN(GetName(Name));
+   end;
+ end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 function CopyFileRec;
  var P: PFileRec;
 begin
  New(P);
  P^ := FR^;
- CopyFileRec := P;
+ P^.LFN := UseLFN(FR^.LFN);
  if P^.DIZ <> nil then P^.DIZ^.isDisposable := Off;
+ CopyFileRec := P;
+end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
+procedure DelFileRec(var FR: PFileRec);
+begin
+ if FR <> nil then
+   begin
+     if (FR^.DIZ <> nil) and FR^.DIZ^.isDisposable then
+      begin
+        DisposeStr(FR^.DIZ^.DIZ);
+        Dispose(FR^.DIZ);
+      end;
+     if FR^.OwnerDisposible then DisposeStr(FR^.Owner);
+     DelLFN(FR^.LFN);
+     Dispose(FR);
+   end;
+ FR:=Nil;
+end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
+function LoadFileRec(var s: TStream): PFileRec;
+var P: PFileRec;
+begin
+ new(P); fillchar(p^, sizeof(p^), 0);
+ with P^ do begin
+  s.Read(Size, Sizeof(Size));
+  s.Read(PSize, Sizeof(PSize));
+  S.Read(Name, SizeOf(Name));
+  LFN:=LoadLFN(S);
+  S.Read(TType, SizeOf(TType));
+  S.Read(Attr, SizeOf(Attr));
+  S.Read(Second, SizeOf(Second));
+  S.Read(Selected, SizeOf(Selected));
+  S.Read(FDate, SizeOf(FDate));
+  S.Read(OwnerDisposible, SizeOf(OwnerDisposible));
+  if OwnerDisposible then Owner:=S.ReadStr;
+ end;
+ LoadFileRec:=P;
 end;
 
+procedure StoreFileRec(var s: TStream; fr: PFileRec);
+begin with fr^ do begin
+  s.Write(Size, Sizeof(Size));
+  s.Write(PSize, Sizeof(PSize));
+  S.Write(Name, SizeOf(Name));
+  StoreLFN(S, LFN);
+  S.Write(TType, SizeOf(TType));
+  S.Write(Attr, SizeOf(Attr));
+  S.Write(Second, SizeOf(Second));
+  S.Write(Selected, SizeOf(Selected));
+  S.Write(FDate, SizeOf(FDate));
+  S.Write(OwnerDisposible, SizeOf(OwnerDisposible));
+  if OwnerDisposible then S.WriteStr(Owner);
+end end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
 constructor TFilesCollection.Load;
  var I: Integer;
-     P: PFileRec;
-     R: TPackedFileRec;
-     Nm: Str12;
-     Pck: Boolean;
-     Sel: Boolean;
-     Sz: LongInt;
 begin
+ inherited Init($10,$10);
  S.Read(Count, SizeOf(Integer)*3);
  I := Limit;
  Limit := 0;
  SetLimit(I);
- for I := 1 to Count do
-  begin
-   S.Read(R, SizeOf(R));
-   with R do
-   begin
-     Pck := NLen and pfrPacked <> 0; if Pck then NLen := NLen and not pfrPacked;
-     Sel := NLen and pfrSelect <> 0; if Sel then NLen := NLen and not pfrSelect;
-     if NLen > 12 then RunError(201);
-     Nm[0] := Char(NLen); if NLen > 0 then S.Read(Nm[1], NLen);
-   end;
-   if R.Attr and Directory = 0 then S.Read(Sz, SizeOf(Sz)) else Sz := 0;
-   P := NewFileRec(Nm, Sz, R.Time, R.Attr, nil);
-   if Pck then S.Read(P^.PSize, SizeOf(P^.PSize));
-   if Sel then P^.Selected := True;
-   AtPut(I-1, P);
-  end;
+ for I := 0 to Count-1 do
+   AtPut(I, LoadFileRec(S));
  S.Read(Selected, SizeOf(Selected));
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TFilesCollection.Store;
  var I, J, Sel: Integer;
-     R: TPackedFileRec;
-     P: PFileRec;
-     SS: Str12;
-     SL: byte absolute SS;
 begin
  J := 0;
  for I := 1 to Count do
@@ -213,37 +302,17 @@ begin
  S.Write(Count, SizeOf(Integer)*3); Count := I;
  for I := 1 to Count do
   if (I - 1 = Selected) or (PFileRec(At(I-1))^.Selected) then
- begin
-   P := At(I-1);
-   R.Time := PackedDate(P);
-   R.Attr := P^.Attr;
-   SS := MakeFileName(P^.Name);
-   R.NLen := SL;
-   if P^.PSize <> P^.Size then R.NLen := R.NLen or pfrPacked;
-   if P^.Selected then R.NLen := R.NLen or pfrSelect;
-   S.Write(R, SizeOf(R));
-   if SL>0 then S.Write(SS[1], SL);
-   if P^.Attr and Directory = 0 then S.Write(P^.Size, SizeOf(P^.Size));
-   if P^.PSize <> P^.Size then S.Write(P^.PSize, SizeOf(P^.PSize));
- end;
-
+   StoreFileRec(S, At(I-1));
  S.Write(Sel, SizeOf(Sel));
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TFilesCollection.FreeItem;
- var P: PFileRec absolute Item;
-begin
- if Item <> nil then
-   begin
-     if (P^.DIZ <> nil) and P^.DIZ^.isDisposable then
-      begin
-        DisposeStr(P^.DIZ^.DIZ);
-        Dispose(P^.DIZ);
-      end;
-     Dispose(P);
-   end;
-end;
+var P: PFileRec absolute Item; begin DelFileRec(P); end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 function TFilesCollection.Compare;
  var T1: TFileRec;
      P2: PFileRec absolute Key2;
@@ -251,11 +320,10 @@ function TFilesCollection.Compare;
      SM, I1, I2: Integer;
      P1P, P2P: Boolean;
      PanelFlags: Word;
-
+     OneIsFile: Boolean;
 begin
  PanelFlags := PFilePanel(Owner)^.PanelFlags;
  Move(Key1^,T1,SizeOf(T1));
- C := 0;
  with P2^ do
    begin
      P1P := T1.Name[1] = '.';
@@ -263,6 +331,14 @@ begin
 
      if P1P and not P2P then begin Compare := -1; Exit; end;
      if P2P and not P1P then begin Compare := +1; Exit; end;
+
+     OneIsFile:=True;
+{    if (T1.Attr and Directory <> 0) and (Attr and Directory <> 0) then
+       OneIsFile:=False;}
+
+     if GetLFN(T1.LFN)=GetLFN(LFN) then C := 0 else
+      if GetLFN(T1.LFN)>GetLFN(LFN) then C := 1
+                                     else C := -1;
 
      SM := SortMode;
      if (SM >= 5) and (SM <= 20) then begin
@@ -302,9 +378,10 @@ begin
      end;
 
      case SM of
-      0: if T1.Owner^ = Owner^ then if (T1.Name = Name) then C := 0
-                                                          else C := -1
-           else if T1.Owner^ < Owner^ then C := -1 else C := 1;
+      0: if T1.Owner^ = Owner^ then
+          if (T1.Name = Name) and (GetLFN(T1.LFN) = GetLFN(LFN)) then C := 0
+                                                                 else C := -1
+         else if T1.Owner^ < Owner^ then C := -1 else C := 1;
       30: begin
            I1 := T1.TType; I2 := TType;
            if I1 = 0 then I1 := 100;
@@ -325,15 +402,23 @@ begin
      141: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Name < Name then C := -1
-            else if T1.Name > Name then C := 1 else C := 0;
+            else if (T1.Name > Name) or (GetLFN(T1.LFN)<>GetLFN(LFN))
+                  then C := 1
+                  else C := 0;
       2: if (T1.Attr xor Attr) and Directory <> 0 then
-          if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
-           if Copy(T1.Name, 10, 3) < Copy(Name, 10, 3) then C := -1 else
-            if Copy(Name, 10, 3) < Copy(T1.Name, 10, 3) then C := 1 else
-           if T1.Name < Name then C := -1
-            else if T1.Name > Name then C := 1
-              else if T1.Owner^ < Owner^ then C := -1
-                else if T1.Owner^ > Owner^ then C := 1;
+          if T1.Attr and Directory <> 0 then C:=-1
+          else                               C:=1
+         else
+         if OneIsFile and (Copy(T1.Name, 10, 3) < Copy(Name, 10, 3)) then
+           C:=-1
+         else
+         if OneIsFile and (Copy(Name, 10, 3) < Copy(T1.Name, 10, 3)) then
+           C:=1
+         else
+         if T1.Name   < Name   then C:=-1 else
+         if T1.Name   > Name   then C:= 1 else
+         if T1.Owner^ < Owner^ then C:=-1 else
+         if T1.Owner^ > Owner^ then C:= 1;
       3: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Size > Size then C := -1 else
@@ -357,12 +442,13 @@ begin
                else if T1.Owner^ > Owner^ then C := 1;
          end;
       else if (T1.Attr and $3F = Attr and $3F) and (T1.Yr=Yr) and (T1.FDate = FDate) and (T1.Second = Second)
-              and (T1.Name=Name) and (T1.Owner^ = Owner^)
+              and (T1.Name=Name) and (T1.Owner^ = Owner^) and (GetLFN(T1.LFN)=GetLFN(LFN))
                then C := 0 else C := -1;
      end;
-   end;
+  end;
  Compare := C;
 end;
+        {-DataCompBoy-}
 
 function SelectDrive;
  var R: TRect;
@@ -374,23 +460,17 @@ function SelectDrive;
      SC: CharSet;
      Server_Num, Handle_Num, RetCode, DriveNum, MaxL: integer; {-$VIV start}
      FullS, Server, PathName, TmpS: String;       {-$VIV end}
-     pSaveNeedAbort: Boolean;
+     pSaveNeedAbort,ShowDir: Boolean;
 
   function CutLongString(S: String): String;
   var P, L: Integer;
       S1: String;
   begin
-    CutLongString := S;
+    CutLongString := #0+S+#0;
     if not CutDriveInfo then Exit;
-    P := Pos(':', S);
-    if P > 0 then
-    begin
-      S1 := Copy(S, 1, P);
-      Delete(S, 1, P);
-      L := 30 - Length(S1);
-      if Length(S) > L then
-        CutLongString := S1 + Copy(S, 1, 2) + '...' + Copy(S, Length(S) - L + 7, 255);
-    end;
+    (* X-Man *)
+    CutLongString:=FormatLongName(S,30,0,flnPreferName+flnHighlight+
+    flnUseCutChar+flnHandleTildes,nfmNull,nil)
   end;
 
 begin
@@ -418,21 +498,40 @@ begin
      Items := NewItem(' TEMP ', '', kbSpace, 1200, hcTempList, Items);
      Inc(N)
  end;
+
  for C := 'Z' downto 'A' do
   if ValidDrive(C) then
    begin
-    FullS := '  ~'+C+':~  '#0;                          {-$VIV start}
+    FullS := '  ~'+C+':~  ';                          {-$VIV start}
     if InterfaceData.Options and ouiHideDriveInfo = 0 then
     begin
       DriveNum := Byte(C)-64;
+      if DriveInfoType and ditMediaType <> 0 then
+       begin
+        case getDriveType(DriveNum) of
+         dtError     : FullS := FullS + sdtError     ;
+         dtFixed     : FullS := FullS + sdtFixed     ;
+         dtRemovable : FullS := FullS + sdtRemovable ;
+         dtRemote    : FullS := FullS + sdtRemote    ;
+         dtCDROM     : FullS := FullS + sdtCDROM     ;
+         dtDblSpace  : FullS := FullS + sdtDblSpace  ;
+         dtSUBST     : FullS := FullS + sdtSUBST     ;
+         dtStacker   : FullS := FullS + sdtStacker   ;
+         dtRAMDrive  : FullS := FullS + sdtRAMDrive  ;
+         dtDublDisk  : FullS := FullS + sdtDublDisk  ;
+         dtBernoully : FullS := FullS + sdtBernoully ;
+         dtDiskreet  : FullS := FullS + sdtDiskreet  ;
+         dtSuperStor : FullS := FullS + sdtSuperStor ;
+        end;
+       end;
       Get_drive_connection_id(DriveNum, Server_num);
-      if (Server_num > 0) then
+      if (Server_num > 0) and (DriveInfoType and ditNetDir <> 0) then
       begin
         Get_File_Server_Name(Server_Num, Server);
         Set_Preferred_Connection_Id(Server_Num);
         Get_Drive_Handle_Id(DriveNum, Handle_Num);
         Get_Directory_Path(Handle_Num, PathName, RetCode);
-        GetDir(DriveNum, TmpS);
+        lGetDir(DriveNum, TmpS); {DataCompBoy}
         if Length(TmpS) > 3 then
         begin
           TmpS := ' <' + Copy(PathName, Length(PathName) - Length(TmpS) + 4, 255) + '>';
@@ -440,15 +539,21 @@ begin
           if PathName[Length(PathName)] = '/' then Delete(PathName, Length(PathName), 1);
         end else TmpS := '';
         PathName := CutLongString(Server + '/' + PathName);
-        if not HideNetworkCurDir then
-          PathName := PathName + TmpS;
+        PathName := PathName + TmpS;
         FullS := FullS + PathName;
-      end else
-      if (DriveNum > 2) and (not HideLocalCurDir) then
+      end else begin
+          if (DriveNum<=2) or ((DriveInfoType and ditCDDir=0)
+          and (DriveInfoType and ditLocalDir=0)) then ShowDir:=False
+          else if (DriveInfoType and ditCDDir<>0)
+          and (DriveInfoType and ditLocalDir<>0) then ShowDir:=True
+          else if (DriveInfoType and ditLocalDir<>0)
+          then ShowDir:=not IsDriveCDROM(Char(DriveNum+64))
+          else ShowDir:=IsDriveCDROM(Char(DriveNum+64));
+      if ShowDir then
       begin
         pSaveNeedAbort := NeedAbort;
         NeedAbort := True;
-        {$I-}GetDir(DriveNum, PathName);{$I+}
+        lGetDir(DriveNum, PathName);{DataCompBoy}
         if IOResult = 0 then
         begin
           if Length(PathName) = 3 then PathName := '' else
@@ -459,6 +564,7 @@ begin
           FullS := FullS + PathName;
         end;
         NeedAbort := pSaveNeedAbort;
+      end
       end;
       if Length(FullS) > MaxL then MaxL := Length(FullS);
     end;                                                {-$VIV end}
@@ -537,22 +643,23 @@ begin
    @e:
     end;
 
-   if Pos(Q, Executables) <> 0 then GetFileType := ttExec else
+   if Pos(LowStrg(Q), Executables) <> 0 then GetFileType := ttExec else
     if (Pos(Q, Archives) <> 0) or
           (((Q[2] = 'a') or (Q[2] = 'r'))
             and (Q[3] >= '0') and (Q[4] >= '0')
             and (Q[3] <= '9') and (Q[4] <= '9')) then GetFileType := ttArc
-    else if Pos(Q, CustomMask1) <> 0 then GetFileType := ttCust1
-    else if Pos(Q, CustomMask2) <> 0 then GetFileType := ttCust2
-    else if Pos(Q, CustomMask3) <> 0 then GetFileType := ttCust3
-    else if Pos(Q, CustomMask4) <> 0 then GetFileType := ttCust4
-    else if Pos(Q, CustomMask5) <> 0 then GetFileType := ttCust5
+    else if Pos(LowStrg(Q), CustomMask1) <> 0 then GetFileType := ttCust1
+    else if Pos(LowStrg(Q), CustomMask2) <> 0 then GetFileType := ttCust2
+    else if Pos(LowStrg(Q), CustomMask3) <> 0 then GetFileType := ttCust3
+    else if Pos(LowStrg(Q), CustomMask4) <> 0 then GetFileType := ttCust4
+    else if Pos(LowStrg(Q), CustomMask5) <> 0 then GetFileType := ttCust5
   end;
 end;
 
+        {-DataCompBoy-}
 function NewFileRec;
   var PR: PFileRec;
-      T: TFileRec;
+      T:  TFileRec;
       D: DateTime;
       I: Integer;
 begin
@@ -566,6 +673,7 @@ begin
   if Attr and Directory <> 0 then UpStr(T.Name) else LowStr(T.Name);
   if Attr and Hidden <> 0 then T.Name[9] := '▒';
   if Attr and SysFile <> 0 then begin T.Name[9] := '▓'; T.Name[1] := Upcase(T.Name[1]); end;
+  T.LFN := AddLFN(GetName(LFN));
   T.Size := Size; T.PSize := Size;
   if Date = 0 then
   begin
@@ -585,16 +693,18 @@ begin
     T.Minute := D.Min;
     T.Second := D.Sec;
   end;
-  T.Attr := Attr and $7F;
+  T.Attr := Attr and $7FFF;
   T.Selected := Off;
   T.DIZ := nil;
   T.TType := GetFileType(T.Name, T.Attr);
   T.Owner := AOwner;
+  T.OwnerDisposible := false;
   New(PR); PR^ := T;
   NewFileRec := PR;
 end;
+        {-DataCompBoy-}
 
-function PackedDate(P: PFileRec): LongInt;
+function PackedDate(P: PFileRec {DataCompBoy} ): LongInt;
 var
   DT: DateTime;
   L: LongInt;

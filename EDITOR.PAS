@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,17 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit Editor;
 
 interface
-uses Views, Objects, Drivers, MicroEd, ObjType,
+uses LFN, {DataCompBoy}
+     Views, Objects, Drivers, MicroEd, ObjType,
      U_KeyMap; {-$VIV 14.05.99}
 
 type
@@ -65,10 +70,9 @@ const
        Store: @TXFileEditor.Store);
 
 implementation
-uses U_Crt,
-     Advance, DOS, Dialogs, DNApp, RStrings, SBlocks, Memory, Gauge,
-     Startup, WinClp, Messages, Commands, Macro, xTime,
-     DnIni; {-$VIV 13.05.99}
+uses advance, advance1, advance2, advance3, DOS, Dialogs, DNApp, RStrings,
+     SBlocks, Memory, Gauge, Startup, WinClp, Messages, Commands, Macro,
+     xTime, DnIni; {-$VIV 13.05.99}
 
 type
      PSortCollection = ^TSortCollection;
@@ -170,7 +174,7 @@ var  LastX, LastY: Integer;
      P := UndoInfo^.At(UndoInfo^.Count - 1);
      if (P^.Where.X <> Delta.X) or (P^.Where.Y <> Delta.Y) then
       begin ScrollTo(P^.Where.X, P^.Where.Y);
-            if P^.What<>udReplaceAll then Exit; end;
+     if P^.What<>udReplaceAll then Exit; end;
      KeyMap := P^.KeyMap;
      Convert4Do(P,dkRedo); {-$VOL}
      case P^.What of
@@ -209,7 +213,7 @@ var  LastX, LastY: Integer;
                       SetLimits;
                     end;
       udInsVertBlock: begin
-                       for I := 1 to P^.Count do
+                       for I:=1 to P^.Count do
                        begin
                         S := GetLine(I+Delta.Y-1);
                         Delete(S, Delta.X+1, P^.Width);
@@ -642,6 +646,7 @@ var  LastX, LastY: Integer;
    EnableMarking := On;
   end;
 
+        {-DataCompBoy-}
   procedure Print(Block: Boolean);
    var S: TDOSStream;
        L: PCollector;
@@ -654,7 +659,7 @@ var  LastX, LastY: Integer;
        PS: PString;
        Cancel: Boolean;
        LL: Array [1..3] of LongInt;
-       SR: SearchRec;
+       SR: lSearchRec;
        FName: String;
    label 1;
   begin
@@ -681,9 +686,11 @@ var  LastX, LastY: Integer;
      begin
        FName := SwpDir+'$DN'+SStr(I, 4, '0')+'$.PRN';
        ClrIO;
-       FindFirst(FName, Archive, SR);
+       lFindFirst(FName, Archive, SR);
        if DOSError <> 0 then Break;
+       lFindClose(SR);
      end;
+   lFindClose(SR);
    S.Init(FName, stCreate);
    if S.Status <> stOK then
      begin
@@ -714,6 +721,7 @@ var  LastX, LastY: Integer;
    P^.Free;
    if Block then Dispose(L, Done);
   end;
+       {-DataCompBoy-}
 
   procedure SetFormat;
    var Data: Record S1, S2, S3: String[6]; end;
@@ -1014,8 +1022,8 @@ var  LastX, LastY: Integer;
 
   function WordsIsEqual(pWord1, pManyWords: String): Boolean;
   begin
-    WordsIsEqual := System.Pos(';' + UpperCase(pWord1) + ';',
-                               ';' + UpperCase(pManyWords) + ';') <> 0;
+    WordsIsEqual := System.Pos(';' + UpCaseStr(pWord1) + ';',
+                               ';' + UpCaseStr(pManyWords) + ';') <> 0;
   end;
 
   function CurrentWordIs(pWord: String): Boolean;
@@ -1210,6 +1218,10 @@ begin
      cmSelectMacro: SelectMacro;
      cmSetMargins: SetFormat;
      cmGotoLineNumber: GotoLine;
+     cmGotoLineNumber2: if LongInt(Event.InfoPtr)>0 then begin
+                         ScrollTo(Delta.X, LongInt(Event.InfoPtr)+20);
+                         ScrollTo(Delta.X, LongInt(Event.InfoPtr)-1);
+                        end;
      cmSortBlock: begin if ValidBlock then SortBlock; HandleCommand := On; end;
      cmCalcBlock: begin if ValidBlock then CalcBlock; HandleCommand := On; end;
      cmInsertDate, cmInsertTime: InsertDateTime(Event.Command = cmInsertTime);
@@ -1254,6 +1266,7 @@ begin
            kmAnsi: if Koi8rKeyMap then KeyMap := kmKoi8r
                     else KeyMap := kmAscii;
            kmKoi8r: KeyMap := kmAscii;
+           else     KeyMap := kmAscii;
          end;
          WorkString := GetLine(Delta.Y);
          DrawView;

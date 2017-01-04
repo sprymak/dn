@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -61,12 +61,12 @@ type  PHideView = ^THideView;
       TStdWindow = object(TWindow)
        constructor Init(var R: TRect; ATitle: TTitleStr; ANumber: Integer);
        procedure HandleEvent(var Event: TEvent); virtual;
-       procedure ExecWindowMenu; virtual;
+{DataCompBoy       procedure ExecWindowMenu; virtual;}
        function  GetWindowMenu(var N, W: Word): PMenu; virtual;
       end;
 
 implementation
-uses DNApp, Dialogs, Advance, Commands;
+uses DNApp, Dialogs, advance, advance1, advance2, advance3, Commands;
 
 constructor TStdWindow.Init;
 begin
@@ -95,7 +95,7 @@ begin
                      nil))))));
  N := 5; W := 15;
 end;
-
+{DataCompBoy
 procedure TStdWindow.ExecWindowMenu;
  var Menu: PMenu;
      N, W: Word;
@@ -114,7 +114,7 @@ begin
  DisposeMenu(Menu);
  if N <> cmCancel then Message(@Self, evCommand, N, nil);
 end;
-
+}
 procedure THideView.HideView;
 begin
  OldSizeX := Size.X; GrowTo(0, Size.Y);
@@ -129,4 +129,3 @@ begin
 end;
 
 end.
-

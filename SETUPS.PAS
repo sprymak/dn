@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$DEFINE AsUnit}
@@ -52,6 +56,7 @@
 USES
   ObjType,
   Dos,
+  LFN, {DataCompBoy}
   Objects,
   Drivers,
   Views,
@@ -64,7 +69,8 @@ USES
 {$ENDIF}
   Commands,
   RStrings,
-  Startup;
+  Startup,
+  Validate;
 
 {$IFNDEF AsUnit}
 TYPE
@@ -91,7 +97,7 @@ TYPE
     Mode2: String[5];
     Drives: TTextListboxRec;
     Current: Word;
-    Temp: PathStr;
+    Temp: String; {DataCompBoy}
   end;
 
   PSysDialog =^TSysDialog;
@@ -127,6 +133,7 @@ TYPE
   PSaversDialog =^TSaversDialog;
   TSaversDialog = Object( TDialog )
     constructor Init;
+    procedure HandleEvent( var Event: TEvent ); virtual;
     destructor Done; virtual;
     procedure Awaken; virtual;
   end;
@@ -213,7 +220,11 @@ procedure MouseSetup;
 procedure SaversSetup;
 procedure ConfirmSetup;
 function TerminalSetup: boolean;
-function SetupColumnDefaults: boolean;
+function SetupColumnDefaultsDisk: boolean;
+function SetupColumnDefaultsFind: boolean;
+function SetupColumnDefaultsTemp: boolean;
+function SetupColumnDefaultsArch: boolean;
+function SetupColumnDefaultsArvd: boolean;
 
 {$IFDEF AsUnit}
 FUNCTION MakeSaversDialog: PDialog;
@@ -223,7 +234,7 @@ FUNCTION MakeInterfaceDialog: PDialog;
 FUNCTION MakeMouseDialog: PDialog;
 }
 IMPLEMENTATION
-uses Tree, Drives, Advance, Messages, DNHelp;
+uses Tree, Drives, advance, advance1, advance2, advance3, Messages, DNHelp;
 {$ENDIF}
 
 procedure ConfirmSetup;
@@ -245,6 +256,7 @@ procedure SystemSetup;
      D: PDialog;
      B: Boolean;
      Data: TSysData;
+     i: char;
 begin
  OpenResource; if Resource = nil then Exit;
  D := PDialog(Application^.ValidView(PDialog(Resource^.Get( dlgSystemSetup ))));
@@ -262,12 +274,28 @@ procedure InterfaceSetup;
   var AltTab: Boolean;
       R: TRect;
 begin
+  if ShowScrollBar then InterfaceData.Options:=InterfaceData.Options or ouiShowScrollBar
+                   else InterfaceData.Options:=InterfaceData.Options and not ouiShowScrollBar;
   with PApplication(Application)^ do
   If ExecResource( dlgInterfaceSetup, InterfaceData ) <> cmCancel then begin
     GetExtent( R );
     if InterfaceData.Options and ouiHideMenu = 0 then Inc(R.A.Y);
     if InterfaceData.Options and ouiHideStatus = 0 then Dec(R.B.Y);
     if InterfaceData.Options and ouiHideCmdline = 0 then Dec( R.B.Y );
+    if (InterfaceData.Options and ouiShowScrollBar<>0)<>ShowScrollBar then
+    begin
+     Desktop^.Lock;
+     ShowScrollBar:=InterfaceData.Options and ouiShowScrollBar<>0;
+     if ShowScrollBar then begin
+                            Desktop^.Hide;
+                            Desktop^.Show;
+                           end else begin
+      Message(Application, evKeyDown, kbTab, nil);
+      Message(Application, evKeyDown, kbTab, nil);
+     end;
+     Desktop^.UnLock;
+     Desktop^.Redraw;
+    end;
     Desktop^.Locate( R );
     R.A.Y := R.B.Y;
     R.B.Y := R.A.Y + Byte(InterfaceData.Options and ouiHideCmdline = 0);
@@ -284,7 +312,8 @@ end;
 procedure StartupSetup;
 var
   Data: Record
-    Load, Unload, Slice: Word;
+    Load, Unload,
+    Slice,Slice2: Word;
     OvrBuf: String[ 3 ];
   end;
   W: Word;
@@ -295,6 +324,7 @@ begin
   Data.Load := StartupData.Load;
   Data.Unload := StartupData.Unload;
   Data.Slice := StartupData.Slice;
+  Data.Slice2:= StartupData.Slice2;
 Retry:
   Data.OvrBuf := ItoS( StartupData.OvrSize );
   If ExecResource( dlgStartupSetup, Data ) <> cmCancel then begin
@@ -306,6 +336,7 @@ Retry:
     StartupData.Load := Data.Load;
     StartupData.Unload := Data.Unload;
     StartupData.Slice := Data.Slice;
+    StartupData.Slice2:= Data.Slice2;
     StartupData.OvrSize := W;
     LSliceCnt := -3;
     Message(Application, evCommand, cmUpdateConfig, nil);
@@ -376,10 +407,1381 @@ begin
   end;
 end;
 
+ {-DataCompBoy-}
+function SetupColumnDefaultsDisk: Boolean;
+var
+  Dlg : PDialog;
+  R : TRect;
+  Control, Labl, Histry : PView;
+Begin
+R.Assign(5,2,75,20);
+New(Dlg, Init(R, GetString(dlSetupColumnsDisk)));
 
-function SetupColumnDefaults: Boolean;
-begin
-  SetupColumnDefaults := ExecResource(dlgColumnsDefaults, ColumnsDefaults) = cmOK;
+R.Assign(18,2,23,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(18,8,23,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(18,9,23,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,2,28,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(23,8,28,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,9,28,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,2,33,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(28,8,33,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,9,33,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,2,38,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(33,8,38,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,9,38,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,2,43,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(38,8,43,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,9,43,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,2,48,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(43,8,48,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,9,48,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,2,53,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(48,8,53,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,9,53,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,2,58,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(53,8,58,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,9,58,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,2,63,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(58,8,63,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,9,63,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,2,68,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(63,8,68,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,9,68,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(2,12,68,13);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 1;
+Dlg^.Insert(Control);
+
+  R.Assign(2,11,23,12);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsFilsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(2,14,68,15);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+  R.Assign(2,13,26,14);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsDirsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(17,15,27,17);
+Control := New(PButton, Init(R, GetString(dlOkButton), cmOK, bfDefault));
+Dlg^.Insert(Control);
+
+R.Assign(29,15,39,17);
+Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(41,15,51,17);
+Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(2,2,17,3);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsLongName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,3,17,4);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsSize)));
+Dlg^.Insert(Control);
+
+R.Assign(2,4,17,5);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsDate)));
+Dlg^.Insert(Control);
+
+R.Assign(2,5,17,6);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsTime)));
+Dlg^.Insert(Control);
+
+R.Assign(2,6,17,7);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsDescription)));
+Dlg^.Insert(Control);
+
+R.Assign(2,7,17,8);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsFullDescription)));
+Dlg^.Insert(Control);
+
+R.Assign(2,8,17,9);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,9,17,10);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForExtention)));
+Dlg^.Insert(Control);
+
+R.Assign(20,1,66,2);
+Control := New(PStaticText, Init(R, '1    2    3    4    5    6    7    8    9    0'));
+Dlg^.Insert(Control);
+
+Dlg^.SelectNext(False);
+
+SetupColumnDefaultsDisk :=
+  Application^.ExecuteDialog(Dlg, @ColumnsDefaultsDisk) = cmOK;
+end;
+
+function SetupColumnDefaultsFind: Boolean;
+var
+  Dlg : PDialog;
+  R : TRect;
+  Control, Labl, Histry : PView;
+Begin
+R.Assign(5,3,75,20);
+New(Dlg, Init(R, GetString(dlSetupColumnsFind)));
+
+R.Assign(18,2,23,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(18,7,23,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(18,8,23,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,2,28,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(23,7,28,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,8,28,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,2,33,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(28,7,33,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,8,33,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,2,38,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(33,7,38,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,8,38,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,2,43,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(38,7,43,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,8,43,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,2,48,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(43,7,48,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,8,48,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,2,53,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(48,7,53,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,8,53,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,2,58,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(53,7,58,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,8,58,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,2,63,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(58,7,63,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,8,63,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,2,68,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(63,7,68,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,8,68,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(2,11,68,12);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 1;
+Dlg^.Insert(Control);
+
+  R.Assign(2,10,23,11);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsFilsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(2,13,68,14);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+  R.Assign(2,12,26,13);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsDirsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(17,14,27,16);
+Control := New(PButton, Init(R, GetString(dlOKButton), cmOk, bfDefault));
+Dlg^.Insert(Control);
+
+R.Assign(29,14,39,16);
+Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(41,14,51,16);
+Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(2,2,17,3);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsLongName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,3,17,4);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsSize)));
+Dlg^.Insert(Control);
+
+R.Assign(2,4,17,5);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsDate)));
+Dlg^.Insert(Control);
+
+R.Assign(2,5,17,6);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsTime)));
+Dlg^.Insert(Control);
+
+R.Assign(2,6,17,7);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsPath)));
+Dlg^.Insert(Control);
+
+R.Assign(2,7,17,8);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,8,17,9);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForExtention)));
+Dlg^.Insert(Control);
+
+R.Assign(20,1,66,2);
+Control := New(PStaticText, Init(R, '1    2    3    4    5    6    7    8    9    0'));
+Dlg^.Insert(Control);
+
+Dlg^.SelectNext(False);
+
+SetupColumnDefaultsFind :=
+  Application^.ExecuteDialog(Dlg, @ColumnsDefaultsFind) = cmOK;
+end;
+
+function SetupColumnDefaultsTemp: Boolean;
+var
+  Dlg : PDialog;
+  R : TRect;
+  Control, Labl, Histry : PView;
+Begin
+R.Assign(5,3,75,20);
+New(Dlg, Init(R, GetString(dlSetupColumnsTemp)));
+
+R.Assign(18,2,23,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(18,7,23,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(18,8,23,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,2,28,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(23,7,28,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,8,28,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,2,33,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(28,7,33,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,8,33,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,2,38,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(33,7,38,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,8,38,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,2,43,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(38,7,43,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,8,43,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,2,48,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(43,7,48,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,8,48,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,2,53,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(48,7,53,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,8,53,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,2,58,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(53,7,58,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,8,58,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,2,63,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(58,7,63,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,8,63,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,2,68,7);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(63,7,68,8);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,8,68,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(2,11,68,12);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 1;
+Dlg^.Insert(Control);
+
+  R.Assign(2,10,23,11);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsFilsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(2,13,68,14);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+  R.Assign(2,12,26,13);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsDirsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(17,14,27,16);
+Control := New(PButton, Init(R, GetString(dlOkButton), cmOk, bfDefault));
+Dlg^.Insert(Control);
+
+R.Assign(29,14,39,16);
+Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(41,14,51,16);
+Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(2,2,17,3);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsLongName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,3,17,4);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsSize)));
+Dlg^.Insert(Control);
+
+R.Assign(2,4,17,5);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsDate)));
+Dlg^.Insert(Control);
+
+R.Assign(2,5,17,6);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsTime)));
+Dlg^.Insert(Control);
+
+R.Assign(2,6,17,7);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsPath)));
+Dlg^.Insert(Control);
+
+R.Assign(2,7,17,8);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,8,17,9);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForExtention)));
+Dlg^.Insert(Control);
+
+R.Assign(20,1,66,2);
+Control := New(PStaticText, Init(R, '1    2    3    4    5    6    7    8    9    0'));
+Dlg^.Insert(Control);
+
+Dlg^.SelectNext(False);
+ SetupColumnDefaultsTemp :=
+  Application^.ExecuteDialog(Dlg, @ColumnsDefaultsTemp) = cmOK;
+end;
+
+function SetupColumnDefaultsArch: Boolean;
+var
+  Dlg : PDialog;
+  R : TRect;
+  Control, Labl, Histry : PView;
+Begin
+R.Assign(5,2,75,20);
+New(Dlg, Init(R, GetString(dlSetupColumnsArch)));
+
+R.Assign(18,2,23,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(18,8,23,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(18,9,23,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,2,28,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(23,8,28,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,9,28,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,2,33,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(28,8,33,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,9,33,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,2,38,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(33,8,38,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,9,38,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,2,43,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(38,8,43,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,9,43,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,2,48,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(43,8,48,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,9,48,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,2,53,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(48,8,53,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,9,53,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,2,58,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(53,8,58,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,9,58,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,2,63,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(58,8,63,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,9,63,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,2,68,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(63,8,68,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,9,68,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(2,12,68,13);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 1;
+Dlg^.Insert(Control);
+
+  R.Assign(2,11,23,12);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsFilsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(2,14,68,15);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+  R.Assign(2,13,26,14);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsDirsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(17,15,27,17);
+Control := New(PButton, Init(R, GetString(dlOKButton), cmOk, bfDefault));
+Dlg^.Insert(Control);
+
+R.Assign(29,15,39,17);
+Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(41,15,51,17);
+Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(2,2,17,3);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsLongName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,3,17,4);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsSourceSize)));
+Dlg^.Insert(Control);
+
+R.Assign(2,4,17,5);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsDate)));
+Dlg^.Insert(Control);
+
+R.Assign(2,5,17,6);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsTime)));
+Dlg^.Insert(Control);
+
+R.Assign(2,6,17,7);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsPackedSize)));
+Dlg^.Insert(Control);
+
+R.Assign(2,7,17,8);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsRatio)));
+Dlg^.Insert(Control);
+
+R.Assign(2,8,17,9);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,9,17,10);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForExtention)));
+Dlg^.Insert(Control);
+
+R.Assign(20,1,66,2);
+Control := New(PStaticText, Init(R, '1    2    3    4    5    6    7    8    9    0'));
+Dlg^.Insert(Control);
+
+Dlg^.SelectNext(False);
+
+ SetupColumnDefaultsArch :=
+  Application^.ExecuteDialog(Dlg, @ColumnsDefaultsArch) = cmOK;
+end;
+
+function SetupColumnDefaultsArvd: Boolean;
+var
+  Dlg : PDialog;
+  R : TRect;
+  Control, Labl, Histry : PView;
+Begin
+R.Assign(5,2,75,20);
+New(Dlg, Init(R, GetString(dlSetupColumnsArvd)));
+
+R.Assign(18,2,23,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(18,8,23,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(18,9,23,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,2,28,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(23,8,28,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(23,9,28,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,2,33,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(28,8,33,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(28,9,33,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,2,38,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(33,8,38,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(33,9,38,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,2,43,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(38,8,43,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(38,9,43,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,2,48,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(43,8,48,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(43,9,48,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,2,53,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(48,8,53,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(48,9,53,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,2,58,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(53,8,58,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(53,9,58,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,2,63,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(58,8,63,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(58,9,63,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,2,68,8);
+Control := New(PCheckboxes, Init(R,
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',
+  NewSItem('',Nil))))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+R.Assign(63,8,68,9);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(63,9,68,10);
+Control := New(PInputLine, Init(R, 2));
+Dlg^.Insert(Control);
+
+R.Assign(2,12,68,13);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 1;
+Dlg^.Insert(Control);
+
+  R.Assign(2,11,23,12);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsFilsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(2,14,68,15);
+Control := New(PRadioButtons, Init(R,
+  NewSItem(GetString(dlSetupColumnsAsIs),
+  NewSItem(GetString(dlSetupColumnsLower),
+  NewSItem(GetString(dlSetupColumnsFromUpper),
+  NewSItem(GetString(dlSetupColumnsUpper),
+  NewSItem(GetString(dlSetupColumnsCombine),Nil)))))));
+PCluster(Control)^.Value := 0;
+Dlg^.Insert(Control);
+
+  R.Assign(2,13,26,14);
+  Labl := New(PLabel, Init(R, GetString(dlSetupColumnsDirsCase), Control));
+  Dlg^.Insert(Labl);
+
+R.Assign(17,15,27,17);
+Control := New(PButton, Init(R, GetString(dlOKButton), cmOk, bfDefault));
+Dlg^.Insert(Control);
+
+R.Assign(29,15,39,17);
+Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(41,15,51,17);
+Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
+Dlg^.Insert(Control);
+
+R.Assign(2,2,17,3);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsLongName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,3,17,4);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsSourceSize)));
+Dlg^.Insert(Control);
+
+R.Assign(2,4,17,5);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsDate)));
+Dlg^.Insert(Control);
+
+R.Assign(2,5,17,6);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsTime)));
+Dlg^.Insert(Control);
+
+R.Assign(2,6,17,7);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsPackedSize)));
+Dlg^.Insert(Control);
+
+R.Assign(2,7,17,8);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsRatio)));
+Dlg^.Insert(Control);
+
+R.Assign(2,8,17,9);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForName)));
+Dlg^.Insert(Control);
+
+R.Assign(2,9,17,10);
+Control := New(PStaticText, Init(R, GetString(dlSetupColumnsForExtention)));
+Dlg^.Insert(Control);
+
+R.Assign(20,1,66,2);
+Control := New(PStaticText, Init(R, '1    2    3    4    5    6    7    8    9    0'));
+Dlg^.Insert(Control);
+
+Dlg^.SelectNext(False);
+
+ SetupColumnDefaultsArvd :=
+  Application^.ExecuteDialog(Dlg, @ColumnsDefaultsArvd) = cmOK;
 end;
 
 PROCEDURE TCurrDriveInfo.HandleEvent;
@@ -390,7 +1792,7 @@ begin
   inherited HandleEvent( Event );
   If ( Event.What = evBroadcast ) and ( Event.Command = cmScrollBarChanged ) then begin
     W := PSysDialog( Owner )^.LocalData.Drives[ Char( Byte( 'A' ) + PScrollBar( Event.InfoPtr )^.Value ) ];
-    SetData( W );
+      SetData( W );
   end else
   If ( Event.What = evKeydown ) and ( Event.CharCode = ' ' ) and ( TypeOf( Owner^.Current^ ) = TypeOf( TListBox ))
     then Press( 0 );
@@ -404,109 +1806,6 @@ begin
   Owner^.GetData( Data );
   PSysDialog( Owner )^.LocalData.Drives[ Char( Byte( 'A' ) + Data.Drives.Focus ) ] := Value;
 end;
-
-(*
-CONSTRUCTOR TSysDialog.Init;
-var
-  R: TRect;
-  Control, Labl: PView;
-begin
-
-  R.Assign(0,0,63,21);
-  inherited Init(R, GetString(dlSystemSetup));
-  Options := Options or ofCentered;
-  HelpCtx := hcSystemSetup;
-
-  R.Assign(3,3,60,7);
-  Control := New(PCheckboxes, Init(R,
-    NewSItem(GetString(dlSysInternal_E_ditor),
-    NewSItem(GetString(dlSysInternal_V_iewer),
-    NewSItem(GetString(dlUseSysClip),
-    NewSItem(GetString(dlSys_S_howHiddenFiles),
-    NewSItem(GetString(dlSys_F_astCommand),
-    NewSItem(GetString(dlSysD_i_sableXMSEMS),
-    NewSItem(GetString(dlSysDetectAccess),
-    NewSItem(GetString(dlSysClearRO),
-    Nil))))))))));
-  Insert(Control);
-
-  FreeStr := GetString(dlSys_O_ptions);
-  R.Assign(3,2,5+Length(FreeStr),3);
-  Labl := New(PLabel, Init(R, FreeStr, Control));
-  Insert(Labl);
-
-  FreeStr := GetString(dlSysVideoMode1);
-
-  R.Assign(3+Length(FreeStr), 8, 30, 9);
-  Control := New(PInputLine, Init(R, 5));
-  Insert(Control);
-
-  R.Assign(2, 8, 3+Length(FreeStr), 9);
-  Labl := New(PLabel, Init(R, FreeStr, Control));
-  Insert(Labl);
-
-  FreeStr := GetString(dlSysVideoMode2);
-  R.Assign(33+Length(FreeStr),8,59,9);
-  Control := New(PInputLine, Init(R, 5));
-  Insert(Control);
-
-  R.Assign(32,8,33+Length(FreeStr),9);
-  Labl := New(PLabel, Init(R, FreeStr, Control));
-  Insert(Labl);
-
-  R.Assign(18,11,19,19);
-  Control := New(PScrollbar, Init(R));
-  Insert(Control);
-
-  R.Assign(3,11,18,19);
-  Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
-  Insert(Control);
-
-  FreeStr := GetString(dlSys_D_rives);
-  R.Assign(3,10,5+Length(FreeStr),11);
-  Labl := New(PLabel, Init(R, FreeStr, Control));
-  Insert(Labl);
-
-  R.Assign(20,11,58,14);
-  Control := New(PCurrDriveInfo, Init(R,
-    NewSItem(GetString(dlSysDirect_A_ccess),
-    NewSItem(GetString(dlSysStoreT_r_eeInformation),
-    NewSItem(GetString(dlSysCopyVerify),
-    Nil)))));
-  With Control^ do begin
-    Options := Options or ofPostProcess;
-    EventMask := evBroadcast + evCommand + evKeyDown + evMouseDown;
-  end;
-  Insert(Control);
-
-  FreeStr := GetString(dlSys_C_urrentDriveOptions);
-  R.Assign(20,10,22+Length(FreeStr),11);
-  Labl := New(PLabel, Init(R, FreeStr, Control));
-  Insert(Labl);
-
-  R.Assign(20,16,58,17);
-  Control := New( PInputLine, Init( R, 79 ));
-  Insert( Control );
-
-  R.Assign(20,15,58,16);
-  Insert( New( PLabel, Init( R, GetString(dlSys_T_emporaryDir), Control )));
-
-  R.Assign(29,18,39,20);
-  Control := New(PButton, Init(R, GetString(dlOKButton), cmOK, bfDefault));
-  Insert(Control);
-
-  R.Assign(39,18,49,20);
-  Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
-  Insert(Control);
-
-  R.Assign(49,18,59,20);
-  Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
-  Insert(Control);
-
-  SelectNext(False);
-{$IFNDEF AsUnit} Awaken {$ENDIF}
-end;
-*)
 
 PROCEDURE TSysDialog.Awaken;
 var
@@ -777,9 +2076,9 @@ var
   D: PDialog;
   Control, Labl, Histry: PView;
 begin
-  R.Assign(0,0,57,22);
+  R.Assign(0,0,57,20);
   inherited Init(R, GetString(dlScreenSaverSetup));
-  Options := Options or ofCentered;
+  Options := Options or ofCentered or ofValidate;
   HelpCtx := hcSavers;
   R.Assign(19,3,20,13);
   Control := New(PScrollbar, Init(R));
@@ -813,13 +2112,10 @@ begin
   Labl := New(PLabel, Init(R, GetString(dlSSA_v_ailableSavers), Control));
   Insert(Labl);
 
-  R.Assign(2,15,18,20);
-  Control := New(PRadioButtons, Init(R,
-    NewSItem(GetString(dlSS_N_ever),
-    NewSItem(GetString(dlSS_1_minute),
-    NewSItem(GetString(dlSS_2_minutes),
-    NewSItem(GetString(dlSS_5_minutes),
-    NewSItem(GetString(dlSS1_0_minutes) ,Nil)))))));
+  R.Assign(2,15,18,16);
+  Control := New(PInputLine, Init(R, 3));
+  PInputLine(Control)^.SetValidator(New(PRangeValidator, Init(0, 254)));
+  Control^.Options := Control^.Options or ofValidate;
   Insert(Control);
 
   R.Assign(2,14,18,15);
@@ -831,25 +2127,43 @@ begin
     NewSItem(GetString(dlSSUse_M_ouse),Nil)));
   Insert(Control);
 
-  R.Assign(25,19,35,21);
+  R.Assign(10,17,20,19);
   Control := New(PButton, Init(R, GetString(dlOKButton), cmOK, bfDefault));
   Insert(Control);
 
-  R.Assign(35,19,45,21);
+  R.Assign(20,17,30,19);
   Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
   Insert(Control);
 
-  R.Assign(45,19,55,21);
+  R.Assign(30,17,40,19);
   Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
+  Insert(Control);
+
+  R.Assign(40,17,50,19);
+  Control := New(PButton, Init(R, GetString(dlTestButton), cmTest, bfNormal));
   Insert(Control);
 
   SelectNext(False);
 {$IFNDEF AsUnit} Awaken {$ENDIF}
 end;
 
+procedure TSaversDialog.HandleEvent( var Event: TEvent );
+begin
+ inherited HandleEvent(Event);
+ case Event.What of
+  evCommand: case Event.Command of
+              cmTest: begin
+                       ClearEvent(Event);
+                       Application^.InsertIdlerN(SaversData.Selected.Focus);
+                      end;
+             end;
+ end;
+end;
+
+        {-DataCompBoy-}
 PROCEDURE TSaversDialog.Awaken;
 var
-  SR: SearchRec;
+  lSR: lSearchRec;
   Data: TSaversData;
 begin
   Data := SaversData;
@@ -864,17 +2178,19 @@ begin
     Insert( NewStr( '∙ Clock' ));
     Insert( NewStr( '∙ Blackness' ));
   {$IFDEF AsUnit}
-    FindFirst( SourceDir + 'SSAVERS\*.SS', AnyFile, SR );
+    lFindFirst( SourceDir + 'SSAVERS\*.SS', AnyFile, lSR );
   {$ELSE}
-    FindFirst( '*.PAS', AnyFile, SR );
+    lFindFirst( '*.PAS', AnyFile, lSR );
   {$ENDIF}
     While DosError = 0 do begin
-      Insert( NewStr( SR.Name ));
-      FindNext( SR );
+      Insert( NewStr( lSR.FullName ));
+      lFindNext( lSR );
     end;
+    lFindClose(lSR);
   end;
   SetData( Data );
 end;
+        {-DataCompBoy-}
 
 DESTRUCTOR TSaversDialog.Done;
 var
@@ -996,9 +2312,10 @@ BEGIN
   SystemData.Options := 3;
   SystemData.Mode1 := '29';
   SystemData.Mode2 := '30';
-  SystemData.Drives[ 'A' ] := 1;
-  SystemData.Drives[ 'C' ] := 3;
-  SystemData.Drives[ 'D' ] := 2;
+  SystemData.Drives[ 'A' ] := ossDirectAccess;
+  SystemData.Drives[ 'B' ] := ossDirectAccess;
+  SystemData.Drives[ 'C' ] := ossTree;
+  SystemData.Drives[ 'D' ] := ossTree;
   T.Init;
   MenuBar^.MoveTo(0,0); MenuBar^.GrowTo(80, 1);
   Desktop^.MoveTo(0,1);

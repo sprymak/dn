@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -163,7 +163,7 @@ function StrNew(Str: PChar): PChar;
 { StrDispose disposes a string that was previously allocated    }
 { with StrNew. If Str is NIL, StrDispose does nothing.          }
 
-procedure StrDispose(Str: PChar);
+procedure StrDispose(var Str: PChar);
 
 implementation
 
@@ -597,9 +597,10 @@ begin
   end;
 end;
 
-procedure StrDispose(Str: PChar);
+procedure StrDispose(var Str: PChar);
 begin
   if Str <> nil then FreeMem(Str, StrLen(Str) + 1);
+  Str := nil;
 end;
 
 end.

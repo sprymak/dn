@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.04/DOS
+;/  Dos Navigator Open Source 1.51.05/DOS
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -125,7 +125,7 @@ DPMI            EQU     31H
 
 dpmiAllocDesc   EQU     0000H           ;Allocate descriptor
 dpmiFreeDesc    EQU     0001H           ;Free descriptor
-dpmiSetSegBase  EQU     0007H           ;Set segment base address
+dpmiSetSegBase  EQU     0008H           ;Set segment base address
 dpmiGetRealInt  EQU     0200H           ;Get real mode interrupt vector
 dpmiSetRealInt  EQU     0201H           ;Set real mode interrupt vector
 dpmiGetProtInt  EQU     0204H           ;Get protected mode interrupt vector

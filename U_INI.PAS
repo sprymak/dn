@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,11 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 Unit u_ini;
 interface
-uses u_crt, objects;
+uses objects, LFN, advance, advance1, advance2, advance3; {DataCompBoy}
 
 Type
   TBoolMode = (bmTrueFalse, bm10, bmYesNo);
@@ -113,29 +117,33 @@ Type
     function    GetItem(AName: String; Create: Boolean): PIniItem; {Create item if not found it in list}
     function    GetLastItem: PIniItem;
     procedure   GetItemPointer(AName: String; var PPrev, PSelf: PIniItem);
-    procedure   WriteSelf(var F: Text);
+    procedure   WriteSelf(var F: lText); {DataCompBoy}
   end;
 
   PIniFile = ^TIniFile;
   TIniFile = Object
     FileName: PString;
-    constructor Init(AFileName: String);
-    destructor  Done(SaveChanges: Boolean); Virtual;
-    procedure   SetFileName(AFileName: PString);
-    function    RenameItem(ASection, OldName, NewName: String): Boolean;
+    constructor Init         (AFileName: String);
+    destructor  Done         (SaveChanges: Boolean); Virtual;
+{DataCompBoy
+    procedure   SetFileName  (AFileName: PString);
+}
+    function    RenameItem   (ASection, OldName, NewName: String): Boolean;
     function    RenameSection(OldName, NewName: String): Boolean;
-    procedure   WriteChar(ASection, AName: String; C:Char); {SYR}
-    procedure   WriteStr(ASection, AName, S: String);
-    procedure   WriteBool(ASection, AName: String; B: Boolean);
-    procedure   WriteInt(ASection, AName: String; L: Longint);
-    procedure   WriteFloat(ASection, AName: String; F: TFloat);
-    function    ReadChar(ASection, AName: String; Default: Char): Char; {SYR}
-    function    ReadStr(ASection, AName: String; Default: String): String;
-    function    ReadBool(ASection, AName: String; Default: Boolean): Boolean;
-    function    ReadInt(ASection, AName: String; Default: Longint): Longint;
-    function    ReadFloat(ASection, AName: String; Default: TFloat): TFloat;
-    procedure   DeleteItem(ASection, AName: String);
+    procedure   WriteChar    (ASection, AName: String; C:Char); {SYR}
+    procedure   WriteStr     (ASection, AName, S: String);
+    procedure   WriteBool    (ASection, AName: String; B: Boolean);
+    procedure   WriteInt     (ASection, AName: String; L: Longint);
+    procedure   WriteFloat   (ASection, AName: String; F: TFloat);
+    function    ReadChar     (ASection, AName: String; Default: Char): Char; {SYR}
+    function    ReadStr      (ASection, AName: String; Default: String): String;
+    function    ReadBool     (ASection, AName: String; Default: Boolean): Boolean;
+    function    ReadInt      (ASection, AName: String; Default: Longint): Longint;
+    function    ReadFloat    (ASection, AName: String; Default: TFloat): TFloat;
+    procedure   DeleteItem   (ASection, AName: String);
+{DataCompBoy
     procedure   DeleteSection(ASection: String);
+}
   private
     FirstSection: PIniSection;
     procedure   FreeContent;
@@ -191,7 +199,7 @@ end;
 
 procedure   TIniItem.SetInt(L: Longint);
 begin
-  SetString(Int2Str(L, 1));
+  SetString(ItoS(L));
 end;
 
 procedure   TIniItem.SetFloat(F: TFloat);
@@ -200,19 +208,19 @@ begin
   if FloatPrecision < 0 then begin
     Str(F, S);
     SetString(S);
-  end else SetString(Rel2Str(F, FloatPrecision + 2, FloatPrecision));
+  end else SetString(RtoS(F, FloatPrecision + 2, FloatPrecision));
 end;
 
 function    TIniItem.GetStr: String;
 begin
-  GetStr := Data^;
+  GetStr := CnvString(Data);
 end;
 
 function    TIniItem.GetChar(Default: Char): Char; {SYR}
 Var
     S: String;
 begin
-    S := UpperCase(Data^);
+    S := UpCaseStr(Data^);
     GetChar := Default;
     if(Length(S)>0)Then
     Begin
@@ -223,7 +231,7 @@ end;
 function    TIniItem.GetBool(Default: Boolean): Boolean;
 var S: String;
 begin
-  S := UpperCase(Data^);
+  S := UpCaseStr(Data^);
   GetBool := Default;
   if (S = '1') or (S = 'TRUE') or (S = 'YES') or (S = 'OK') or (S = 'ДА') then GetBool := True else
   if (S = '0') or (S = 'FALSE') or (S = 'NO') or (S = 'НЕТ') then GetBool := False;
@@ -249,12 +257,12 @@ function    TIniItem.GetStrForWriting: String;
 var S: String;
 begin
   S := '';
-  if Name <> Nil then S := S + Name^;
+  S := S + CnvString(Name);
   S := S + '=';
-  if Data <> Nil then S := S + Data^;
+  S := S + CnvString(Data);
   case Convert of
-    cUpper: S := UpperCase(S);
-    cLower: S := LowerCase(S);
+    cUpper: S := UpCaseStr(S);
+    cLower: S := LowCaseStr(S);
   end;
   GetStrForWriting := S;
 end;
@@ -408,30 +416,32 @@ begin
   end;
   PSelf := FirstItem;
   while PSelf <> Nil do
-    if UpperCase(PSelf^.Name^) <> UpperCase(AName) then begin
+    if UpCaseStr(PSelf^.Name^) <> UpCaseStr(AName) then begin
       PPrev := PSelf;
       PSelf := PSelf^.NextItem;
     end else Break;
   if PSelf = Nil then PPrev := Nil;
 end;
 
-procedure   TIniSection.WriteSelf(var F: Text);
+        {-DataCompBoy-}
+procedure   TIniSection.WriteSelf(var F: lText);
 var P: PIniItem;
     S: String;
 begin
   if (FirstItem = Nil) and (not WriteEmptySection) then Exit;
   S := '[' + Name^ + ']';
   case Convert of
-    cUpper: S := UpperCase(S);
-    cLower: S := LowerCase(S);
+    cUpper: S := UpCaseStr(S);
+    cLower: S := LowCaseStr(S);
   end;
-  Writeln(F, S);
+  Writeln(F.T, S);
   P := FirstItem;
   while P <> Nil do begin
-    Writeln(F, P^.GetStrForWriting);
+    Writeln(F.T, P^.GetStrForWriting);
     P := P^.NextItem;
   end;
 end;
+        {-DataCompBoy-}
 
 {***************************************************************************}
 {****                             TIniFile                              ****}
@@ -451,11 +461,13 @@ begin
   DisposeStr(FileName);
 end;
 
+{DataCompBoy
 procedure   TIniFile.SetFileName(AFileName: PString);
 begin
   DisposeStr(FileName);
   FileName := AFileName;
 end;
+}
 
 function    TIniFile.RenameItem(ASection, OldName, NewName: String): Boolean;
 var P: PIniSection;
@@ -547,7 +559,7 @@ begin
   P := GetSection(ASection, False);
   if P <> Nil then P^.DeleteItem(AName);
 end;
-
+{DataCompBoy
 procedure   TIniFile.DeleteSection(ASection: String);
 var PPrev, PSelf: PIniSection;
 begin
@@ -557,7 +569,7 @@ begin
   else PPrev^.NextSection := PSelf^.NextSection;
   Dispose(PSelf, Done);
 end;
-
+}
 procedure   TIniFile.FreeContent;
 var P: PIniSection;
 begin
@@ -602,7 +614,7 @@ begin
   end;
   PSelf := FirstSection;
   while PSelf <> Nil do
-    if UpperCase(PSelf^.Name^) <> UpperCase(ASection) then begin
+    if UpCaseStr(PSelf^.Name^) <> UpCaseStr(ASection) then begin
       PPrev := PSelf;
       PSelf := PSelf^.NextSection;
     end else Break;
@@ -632,45 +644,44 @@ begin
   S := Copy(S, N1, N2);
 end;
 
+        {-DataCompBoy-}
 procedure   TIniFile.ReadContent;
-var F: Text;
+var F: lText;
     S, Sec, AName, AValue: String;
 begin
-  Assign(F, FileName^);
-  {$I-}
-  Reset(F);
-  {$I+}
+  lAssignText(F, FileName^);
+  lResetText(F);
   if IOResult <> 0 then Exit;
   Sec := '';
-  while not EOF(f) do begin
-    Readln(F, S);
+  while not EOF(F.T) do begin
+    Readln(F.T, S);
     ShortLine(S);
-    if S = '' then Continue;
+    if (S = '') or (s[1]=';') then Continue;
     if (S[1] = '[') and (S[Length(S)] = ']') then Sec := Copy(S, 2, Length(S) - 2)
     else begin
       SplitLine(S, AName, AValue);
       if (Sec <> '') and (AName <> '') then WriteStr(Sec, AName, AValue);
     end;
   end;
-  Close(F);
+  Close(F.T);
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure   TIniFile.WriteContent;
-var F: Text;
+var F: lText;
     P: PIniSection;
 begin
-  Assign(F, FileName^);
-  {$I-}
-  Rewrite(F);
-  {$I+}
+  lAssignText(F, FileName^);
+  lRewriteText(F);
   if IOResult <> 0 then Exit;
   P := FirstSection;
   while P <> Nil do begin
     P^.WriteSelf(F);
     P := P^.NextSection;
-    if P <> Nil then Writeln(F);
+    if P <> Nil then Writeln(F.T);
   end;
-  Close(F);
+  Close(F.T);
 end;
 
 end.

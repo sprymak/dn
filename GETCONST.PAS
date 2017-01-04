@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 UNIT
@@ -51,6 +55,7 @@ UNIT
 INTERFACE
 
 USES
+  LFN, {DataCompBoy}
   Objects;
 
 TYPE
@@ -88,7 +93,10 @@ IMPLEMENTATION
 
 USES
   Dos,
-  Advance,
+  advance,
+  advance1,
+  advance2,
+  advance3,
   Commands;
 
 PROCEDURE Error( S: String );
@@ -173,11 +181,12 @@ CONST
   Hexs = [ '0'..'9','A'..'F','a'..'f' ];
   Blank = [ #0..#32 ];
 
+        {-DataCompBoy-}
 PROCEDURE ProcessFile;
 type
   TParseMode = ( pmSkip, pmComment, pmConst, pmStartType, pmSeekType, pmType );
 var
-  F: Text;
+  F: lText;
   US, S, ID: String;
   Eq: Integer;
   P: PTypeHolder;
@@ -282,20 +291,20 @@ end;
                    ( Mode = pmStartType ) and ( P^.Mode = tmEnum ) and
                    ( UpStrg( ID ) = UpStrg( P^.TypeID ));
   end;
-
+{DataCompBoy
   function DelDblSpc( S: String ): String;
   begin
     DelDoubles( '  ', S );
     DelDblSpc := S;
   end;
-
+}
 label
   Reparse, StartType;
 begin
   Mode := pmSkip;
-  Assign( F, FileName ); Reset( F );
-  While not EOF( F ) do begin
-    ReadLn( F, S );
+  lAssignText( F, FileName ); lResetText( F );
+  While not EOF( F.T ) do begin
+    ReadLn( F.T, S );
   Reparse:
     S := RemoveLeadSpaces( TruncSpace( S )); DelDoubles( '  ', S );
     If S = '' then Continue;
@@ -378,10 +387,10 @@ begin
                 CurrentType := Types^.FirstThat( @LookForType );
                 If CurrentType = NIL then begin
                   If Pos( ')', S ) > 0 then
-                    While not EOF( F ) do
+                    While not EOF( F.T ) do
                       If Pos( ')', S ) > 0
                         then Break
-                        else ReadLn( F, S );
+                        else ReadLn( F.T, S );
                     Mode := pmSeekType;
                 end else begin
                   TypeCount := 0;
@@ -416,7 +425,8 @@ begin
               end
     end;
   end;
-  Close( F );
+  Close( F.T );
 end;
+        {-DataCompBoy-}
 
 END.

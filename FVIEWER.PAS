@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit FViewer;
 
 interface
 
-uses Objects, Views, Dos, Drivers, HideView, Commands, DNHelp, ObjType;
+uses Objects, Views, Dos, Drivers, HideView, Commands, DNHelp, advance,
+     advance1, advance2, advance3, ObjType, U_KeyMap;
 
 type
 
@@ -72,7 +77,7 @@ type
   TFileViewer = object(THideView)
     RdOnly: Boolean;
     NoEdit: Boolean;
-    FileName: PathStr;
+    FileName: String; {DataCompBoy}
     Buf: PByteArray;
     Fl: PStream;
     XDelta, ViewMode, HexPos: Integer;
@@ -92,29 +97,33 @@ type
     Filter: Byte;
     XLAT: Array [Char] of Char;
     UseXLAT: Boolean;
-    XLatFile: String[8];
+    XLatFile: PString;
+    KeyMap: TKeyMap;
+    MarkPos: TPosArray;
+    CtrlK: Boolean;
+    CtrlQ: Boolean;
     constructor Init(var Bounds: TRect; AStream: PStream;
-                     AFileName: PathStr; ASB: PView; Quick, Hex: Boolean);
+                   const AFileName: String; ASB: PView; Quick, Hex: Boolean); {DataCompBoy}
     constructor Load(var S: TStream);
-    procedure Store(var S: TStream);
-    destructor Done; virtual;
-    procedure ShowView; virtual;
-    procedure HideView; virtual;
-    procedure Draw; virtual;
-    procedure SetXlatFile(const aFName: String);
-    procedure ReadFile(FName: PathStr; NewStream: Boolean);
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
-    procedure HandleEvent(var Event: TEvent); virtual;
-    function  WriteModify: Boolean;
-    procedure CountDown(ANumber: Integer); virtual;
-    procedure CountUp(ANumber: Integer); virtual;
-    procedure Seek(APos: LongInt);
-    procedure MakeLines; virtual;
-    function Valid(Command: Word): Boolean; virtual;
-    procedure ChangeBounds(var Bounds: TRect); virtual;
-    function GetPalette: PPalette; virtual;
+    procedure   Store(var S: TStream);
+    destructor  Done; virtual;
+    procedure   ShowView; virtual;
+    procedure   HideView; virtual;
+    procedure   Draw; virtual;
+    procedure   SetXlatFile(const aFName: String; DoRedraw: Boolean);
+    procedure   ReadFile(const FName: String; NewStream: Boolean); {DataCompBoy}
+    procedure   SetState(AState: Word; Enable: Boolean); virtual;
+    procedure   HandleEvent(var Event: TEvent); virtual;
+    function    WriteModify: Boolean;
+    procedure   CountDown(ANumber: Integer); virtual;
+    procedure   CountUp(ANumber: Integer); virtual;
+    procedure   Seek(APos: LongInt);
+    procedure   MakeLines; virtual;
+    function    Valid(Command: Word): Boolean; virtual;
+    procedure   ChangeBounds(var Bounds: TRect); virtual;
+    function    GetPalette: PPalette; virtual;
   private
-    procedure AdjustBufSize;
+    procedure   AdjustBufSize;
   end;
 
   PHFileViewer = ^THFileViewer;
@@ -130,12 +139,12 @@ type
 
   PFileWindow = ^TFileWindow;
   TFileWindow = object(TStdWindow)
-    constructor Init(const FileName: PathStr; Hex: Boolean);
-    function GetPalette: PPalette; virtual;
-    function  ReactOnCmd: Boolean; virtual;
-    procedure Zoom; virtual;
-    procedure ChangeBounds(var Bounds: TRect); virtual;
-    procedure SizeLimits(var Min, Max: TPoint); virtual;
+    constructor Init(const FileName: String; Hex: Boolean); {DataCompBoy}
+    function    GetPalette: PPalette; virtual;
+    function    ReactOnCmd: Boolean; virtual;
+    procedure   Zoom; virtual;
+    procedure   ChangeBounds(var Bounds: TRect); virtual;
+    procedure   SizeLimits(var Min, Max: TPoint); virtual;
   end;
 
   PViewInfo = ^TViewInfo;
@@ -143,9 +152,9 @@ type
     Viewer: PFileViewer;
     constructor Init(var R: TRect; AViewer: PFileViewer);
     constructor Load(var S: TStream);
-    procedure Store(var S: TStream);
-    procedure Draw; virtual;
-    procedure HandleEvent(var Event: TEvent); virtual;
+    procedure   Store(var S: TStream);
+    procedure   Draw; virtual;
+    procedure   HandleEvent(var Event: TEvent); virtual;
   end;
 
 const
@@ -199,13 +208,14 @@ const
   LastViewerDeskSize: TPoint = (X:0;Y:0);
   LastEditDeskSize: TPoint = (X:0;Y:0);
 
-function SearchFileStr(F: PStream; What: String; Pos: LongInt;
+function SearchFileStr(F: PStream; const What: String; Pos: LongInt;
                           CaseSensitive, Display, WholeWords, Back, AllCP: Boolean): LongInt;
 
 implementation
 
-uses Memory, Messages, DNApp, Advance, Startup, Dialogs, RStrings,
-     Gauge, Microed, DNStdDlg, Histries, xTime, Drives;
+uses LFN, {DataCompBoy}
+     Memory, Messages, DNApp, Startup, Dialogs, RStrings,
+     Gauge, Microed, DNStdDlg, Histries, xTime, Drives, DnUtil;
 
 function MaxAvail: LongInt;
 begin
@@ -259,7 +269,7 @@ begin
    if Display then
     begin
      Info^.Write(1, StrGrd(L, I, 30));
-     Info^.Write(2, ItoS(Percent(L, I))+'%');
+     Info^.Write(2, ZtoS(Percent(L, I))+'%');
      if (not Inserted) and TimerExpired(Tmr) then
      begin
        Desktop^.Insert(Info);
@@ -335,50 +345,122 @@ procedure TViewInfo.Draw;
  var B: TDrawBuffer;
      S: String;
      I,J: Integer;
+     Ch, Ch2: Char;
+     Color: Word;
 begin
  if Viewer = nil then begin inherited Draw; Exit; end;
  With Viewer^ do
   begin
-    if ViewMode <> 1 then
-      begin
-        if not Wrap then S := '<=>]['
-          else if WordWrap then S := '>W<]['
-          else S := '>=<][';
-        if (Lines[Size.Y].Pos < 0) and (FilePos+BufSize >= FileSize)
-                  or (FileSize = 0) then S := S + '100'
-          else S := S + ItoS(Percent(FileSize, FilePos+BufPos));
-        S := S + '% of ' + FStr(Viewer^.FileSize) + ' Bytes';
-      end else
-      begin
-        S := Hex8(Cur.X div (1+Byte(HexEdit))+Cur.Y*HexPos+BufPos+FilePos)+' ';
-        J := (FilePos+BufPos) mod max(1,HexPos);
-        for I := 0 to HexPos - 1 do
-          S := S+Hex2(I+J)+'─';
-        Dec(S[0]);
-      end;
-    Insert('[', S, 1);
-    case Filter of
-      0: AddStr(S, ']');
-      1: Insert(']{ASCII}', S, Length(S)+1);
-       else Insert(']{32-255}', S, Length(S)+1);
+    Color:=PWindow(Owner)^.Frame^.GetColor(3); Ch2:='═';
+    if not Owner^.GetState(sfActive) then begin
+      Color:=PWindow(Owner)^.Frame^.GetColor(1);
+      MoveChar(B, '─', Color, Size.X);
+      WriteLine(0, 0, Size.X, 1, B);
+      Exit;
+    end else
+    if Owner^.GetState(sfDragging) then begin
+      Color:=PWindow(Owner)^.Frame^.GetColor(5);
+      Ch2:='─';
     end;
-    if UseXlat then Insert('(X)', S, Length(S)+1);
-
+    if ViewMode <> 1 then
+    begin
+      if not Wrap then S:=Ch2+'<=>' else
+      if WordWrap then S:=Ch2+'>W<' else
+                       S:=Ch2+'>=<';
+    end else
+    begin
+      S:=Hex8(Cur.X div (1+Byte(HexEdit))+Cur.Y*HexPos+BufPos+FilePos)+' ';
+      J:=(FilePos+BufPos) mod max(1,HexPos);
+      for I:=0 to HexPos - 1 do S:=S+Hex2(I+J)+'─';
+      Dec(S[0]);
+      Insert('[', S, 1);
+      Insert(']', S, Length(S)+1);
+    end;
+    if ViewMode <> 1 then
+    begin
+      S:=S + Ch2+Ch2+ '<';
+      for Ch := '1' to '9' do
+        if not MarkPos[Ch].EqualsXY(-1,-1) then
+          S:=S + Ch else
+          S:=S + '·';
+      S:=S + '>';
+    end;
+    Insert(Ch2+Ch2, S, Length(S)+1);
+    if UseXlat then begin
+      Insert(AddSpace(Cut(XLatFile^,8),8), S, Length(S)+1);
+    end else
+    begin
+      case KeyMap of
+        kmAscii: S:=S+'DOS..   ';
+        kmAnsi:  S:=S+'WIN..   ';
+        kmKoi8r: S:=S+'KOI..   ';
+        else
+                 S:=S+'XXX..   ';
+      end;
+    end;
+    case Filter of
+      0:   Insert('{00-255}'+Ch2, S, Length(S)+1);
+      1:   Insert('{32-127}'+Ch2, S, Length(S)+1);
+      else Insert('{32-255}'+Ch2, S, Length(S)+1);
+    end;
+    if ViewMode <> 1 then
+    begin
+      S:=S+Ch2;
+      if (Lines[Size.Y].Pos < 0) and (FilePos+BufSize >= FileSize)
+        or (FileSize = 0) then
+        S:=S + '100' else
+        S:=S + Long2Str(Round(Percent(FileSize, FilePos+BufPos)),3);
+      S:=S + '% of ' + FStr(Viewer^.FileSize) + ' Bytes'+Ch2;
+    end;
   end;
  if Byte(S[0]) <> Size.X then GrowTo(Byte(S[0]), 1);
- MoveStr(B, S, Owner^.GetColor(2));
+ MoveStr(B, S, Color);
  WriteLine(0, 0, Size.X, Size.Y, B);
 end;
 
 procedure TViewInfo.HandleEvent;
   var P: TPoint;
+      BookMark: Char;
+      Ev: TEvent;
 begin
-  if (Event.What = evMouseDown) and Event.Double and (Viewer^.ViewMode = 0) then
+  if Viewer=nil then Exit;
+  if (Event.What = evMouseDown) then with Viewer^ do
+  begin
+    MakeLocal(Event.Where, P);
+    if (ViewMode <> 1) then
     begin
-      MakeLocal(Event.Where, P);
-      if P.X < 5 then Message(Viewer, evCommand, cmUnwrap, nil);
-      ClearEvent(Event);
+      if P.X <  1 then {} else
+      if P.X <  4 then Message(Viewer, evCommand, cmUnwrap, nil) else
+      if P.X <  7 then {} else
+      if P.X < 16 then begin
+        BookMark:=Char(Byte('1') + (P.X-7));
+        if (Event.Buttons and mbRightButton <> 0) or
+          (MarkPos[BookMark].Y<>-1) then
+        with Ev do
+        begin
+          What:=evCommand;
+          if (Event.Buttons and mbRightButton <> 0) then
+            Command:=cmPlaceMarker else
+            Command:=cmGotoMarker;
+          InfoChar:=BookMark;
+          PutEvent(Ev);
+        end;
+      end else
+      if P.X < 19 then {} else
+      if P.X < 28 then Message(Viewer, evCommand, cmSwitchKeyMapping, nil)
+      else
+      if P.X < 36 then Message(Viewer, evCommand, cmAddFilter, nil);
+    end else
+    begin
+      if P.X < 3*HexPos+9+3 then {} else
+      if P.X < 3*HexPos+9+12 then
+        Message(Viewer, evCommand, cmSwitchKeyMapping, nil)
+      else
+      if P.X < 3*HexPos+9+20 then
+        Message(Viewer, evCommand, cmAddFilter, nil);
     end;
+    ClearEvent(Event);
+  end;
 end;
 
 
@@ -622,16 +704,19 @@ begin
 end;
 
 constructor TFileViewer.Init;
+var
+  C: Char;
 begin
   inherited Init(Bounds); ViewMode := 0;
-  FillChar(Xlat, SizeOf(XLat), 0); UseXLat := Off;
+  XlatFile := nil;
+  for C:=#0 to #255 do XLat[C]:=C; UseXLat:=Off; KeyMap:=kmNone;
+  FillChar(MarkPos, SizeOf(MarkPos), $FF);
   HelpCtx := hcView;
   GrowMode := gfGrowHiX + gfGrowHiY;
   Options := Options or ofSelectable or (LongInt(Quick)*ofTopSelect);
   EventMask := $FFFF; SB := ASB; QuickView := Quick;
   Buf := nil; IsValid := True; Loaded := Off;
   KillAfterUse := TempFile <> '';
-  TempFile := '';
   Wrap := EditorDefaults.ViOpt and 2 <> 0;
   WordWrap := EditorDefaults.ViOpt and 4 <> 0;
   if WordWrap then Wrap:=On;
@@ -641,14 +726,15 @@ begin
   if Fl = nil then ReadFile(AFileName, On) else
   if (Fl <> nil) and (Fl^.Status = stOK) then ReadFile(' ', Off)
     else IsValid := Off;
+  TempFile:='';
 end;
 
 destructor TFileViewer.Done;
- var F: File;
 begin
   EnableCommands([cmGotoCell,cmUnwrap]);
   if Buf <> nil then FreeMem(Buf, BufSize);
   if Fl <> nil then Dispose(Fl, Done);
+  Info:=nil;
   inherited Done;
 end;
 
@@ -669,9 +755,11 @@ begin
  S.Read(KillAfterUse, 1);
  S.Read(Filter, 1);
  S.Read(ViewMode, 2);
- S.Read(XlatFile, 9);
+ XlatFile:=S.ReadStr;
  S.Read(XLAT, SizeOf(XLAT));
  S.Read(UseXLAT, SizeOf(UseXLAT));
+ S.Read(KeyMap, SizeOf(KeyMap));
+ S.Read(MarkPos, Sizeof(MarkPos));
  Fl := nil; Buf := nil; IsValid := True; Loaded := On;
  if FileName = '' then Exit;
  ReadFile(FileName, On); Seek(I);
@@ -692,9 +780,11 @@ begin
  S.Write(KillAfterUse, 1);
  S.Write(Filter, 1);
  S.Write(ViewMode, 2);
- S.Write(XlatFile, 9);
+ S.WriteStr(XlatFile);
  S.Write(XLAT, SizeOf(XLAT));
  S.Write(UseXLAT, SizeOf(UseXLAT));
+ S.Write(KeyMap, SizeOf(KeyMap));
+ S.Write(MarkPos, Sizeof(MarkPos));
 end;
 
 procedure XDumpStr(var S: String; var B; Addr: LongInt; Count: Integer; Filter: Byte);
@@ -875,6 +965,7 @@ begin
      if L + LongInt(HexPos) > FileSize then J := FileSize - L else J := HexPos;
      if J > 0 then
       begin
+{      if UseXlat then XLatBuf(S[1], Length(S), XLat);}
        if J = HexPos then Drivers.MoveStr(B, DumpStr(Buf^[W], L, J, Filter), C)
         else
          begin
@@ -882,13 +973,19 @@ begin
           Drivers.MoveStr(B, Copy(S, 1, J*3+10), C);
           Drivers.MoveStr(B[10+HexPos*3], Copy(S, J*3+11, 255), C);
          end;
+{piwamoto.change.begin}
+       XDumpStr(S, Buf^[W], L, J, Filter);
+       XLatBuf(S[10], HexPos, XLat);
+       Drivers.MoveStr(B[12 + HexPos * 3], Copy(S, 10, HexPos), C);
        if SearchActive then
          begin
           if (L <= SearchX) and (L+J > SearchX) then
             begin
-              Cur.Y := I; Cur.X := (SearchX-L)*2;
+              K := 1 + Byte(HexEdit);
+              Cur.Y := I; Cur.X := (SearchX-L) * K;
               if HexEdit then SetCursor(10 + (Cur.X div 2) * 3 + Cur.X and 1, Cur.Y)
-                         else SetCursor(12 + HexPos * 3 + Cur.X, Cur.Y);
+                         else SetCursor(12 + HexPos * 3 + Cur.X div k, Cur.Y);
+{piwamoto.change.end}
               ShowCursor;
               Src := Min(L+J-SearchX, Length(SearchString.What));
               MoveColor(B[10+(SearchX-L)*3], Src*3-1, GetColor(2));
@@ -902,7 +999,14 @@ begin
               MoveColor(B[12+HexPos*3], K, GetColor(2));
               Dec(Src, J);
             end;
-         end;
+         end
+         else {piwamoto}
+          if I = Cur.Y then
+             begin
+               K := Cur.X div (1 + Byte(HexEdit));
+               MoveColor(B[10 + K * 3], 2, GetColor(2));
+               MoveColor(B[12 + HexPos * 3 + K], 1, GetColor(2));
+             end;
        Inc(W, J);
        Inc(L, LongInt(J));
       end;
@@ -924,7 +1028,7 @@ begin
        if J > 0 then
         begin
           XDumpStr(S, Buf^[W], L, J, Filter);
-          if UseXlat then XLatBuf(S[10], Length(S)-9, XLat);
+          XLatBuf(S[10], Length(S)-9, XLat);
           Drivers.MoveStr(B, S, C);
           if SearchActive then
             begin
@@ -966,8 +1070,10 @@ begin
       MoveChar(B[XDelta], ' ', C, Size.X);
       if (Lines[I].Pos >=0) then
        begin
-        Move(Buf^[Lines[I].Pos], S[1], Lines[I].Len); S[0] := Char(Lines[I].Len);
-        if UseXlat then XLatBuf(S[1], Length(S), XLat);
+        Move(Buf^[Lines[I].Pos], S[1], Lines[I].Len);
+        S[0] := Char(Lines[I].Len);
+        if (S<>'') and (S[Length(S)]=#13) then Dec(S[0]);
+        XLatBuf(S[1], Length(S), XLat);
         MoveStr(B, S, C, Filter, TS);
        end;
       if SearchActive and (Lines[I].Pos <= SearchX - FilePos) and
@@ -984,6 +1090,11 @@ begin
  if Info <> nil then Info^.DrawView;
 end;
 
+function DetectKeyMap(const FName: String): TKeyMap;
+begin
+ DetectKeyMap:=kmAscii;
+end;
+
 procedure TFileViewer.ReadFile;
  var I, J: Integer;
      P: Pointer;
@@ -993,6 +1104,10 @@ begin
   BufModified := Off;
   IsValid := True;
   FileName := FName;
+  if KeyMap=kmNone then begin
+    KeyMap:=DetectKeyMap(FName);
+    if not UseXLat then SetXlatFile('', Off);
+  end;
   if NewStream then
    begin
     if Fl <> nil then Dispose(Fl, Done); Fl := nil;
@@ -1000,6 +1115,7 @@ begin
     Fl := New(PDosStream, Init(FName, stOpenRead));
     RdOnly := Off;
    end;
+  if not ExistFile(FName) or isDir(FName) then Exit;
   if Fl^.Status <> stOK then begin IsValid := False; Exit end;
   FileSize := FL^.GetSize; FilePos := 0; I := 1; NumLines := 1;
   if FileSize < 0 then FileSize := 0;
@@ -1012,10 +1128,22 @@ end;
 procedure TFileViewer.SetState;
 begin
   inherited SetState(AState, Enable);
-  if (AState and (sfActive + sfSelected) <> 0) then
-   if GetState(sfSelected) and (Owner^.GetState(sfActive)) then
-    begin if SB <> nil then begin SB^.Show; SB^.EventMask := $FFFF end; DrawView end
-    else if SB <> nil then begin SB^.Hide; SB^.EventMask := 0; end;
+  if (AState and (sfActive + sfSelected) <> 0) then begin
+    if GetState(sfSelected) and (Owner^.GetState(sfActive)) then
+    begin
+      if SB <> nil then begin
+        SB^.Show; SB^.EventMask:=$FFFF
+      end;
+      DrawView
+    end else
+    if SB <> nil then begin
+      SB^.Hide; SB^.EventMask:=0;
+    end;
+  end;
+  if (Info<>nil) then
+    if (AState and sfDragging <> 0)
+      or (AState and (sfSelected+sfActive) <> 0)
+    then Info^.Draw;
 end;
 
 procedure TFileViewer.HideView;
@@ -1103,7 +1231,7 @@ begin
        @@1:
             SegES lodsb
             cmp AL, 9
-            jne @@2_0
+            jne @@2_1
             dec CX
             inc BX
             mov LastCX, CX
@@ -1215,13 +1343,40 @@ begin
  end;
 end;
 
+function GetLineNumberForOffset(const FName: String; Offset: LongInt): LongInt;
+var
+  F: lFile;
+  q: PByteArray;
+  bl: integer;
+  ln: longint;
+  fp: longint;
+  bp: longint;
+begin
+ GetMem(q, 4096);
+ lAssignFile(F, FName);
+ ln:=1; fp:=0;
+ lResetFileReadOnly(F,1);
+ repeat
+  BlockRead(F.F, q^, 4096, bl);
+  bp:=0;
+  repeat
+   if q^[bp]=10 then inc(ln);
+   inc(bp); inc(fp);
+  until (bp>=bl) or (fp>=offset)
+ until fp>=offset;
+ GetLineNumberForOffset:=ln;
+ close(f.f);
+ freemem(q, 4096);
+end;
+
 procedure TFileViewer.HandleEvent;
 
  var P: TPoint;
      LR: Integer;
      I: Integer;
      LLR,LFR: LongInt;
-     F: File;
+     F: lFile;
+     Ch: Char;
 
  procedure CE; begin ClearEvent(Event) end;
 
@@ -1240,7 +1395,7 @@ procedure TFileViewer.HandleEvent;
  procedure SeekEOF;
    var I: Integer;
  begin
-  if Lines[Size.Y].Pos < 0 then Exit;
+  if Lines[Cur.Y].Pos < 0 then Exit;
   I := (FilePos+BufPos) mod 16;
   Owner^.Lock;
   Seek(FileSize - BufSize); BufPos := BufSize;
@@ -1296,7 +1451,7 @@ procedure TFileViewer.HandleEvent;
     MakeLines;
     SearchActive := On;
     DrawView;
-    Inc(Searchx{, LongInt(Byte(SearchString.What[0]))});
+(*    Inc(Searchx{, LongInt(Byte(SearchString.What[0]))});*)
     SearchActive := Off; Inc(SearchX);
    end else if SearchX <> -2 then MessageBox(GetString(dlDBViewSearchNot), nil, mfError + mfOKButton);
  end;
@@ -1367,10 +1522,9 @@ procedure TFileViewer.HandleEvent;
 
 
  begin
-
-   Xl := (MaxAvail > 4096) and UseXlat and (MessageBox(GetString(dlViewSaveXlat), nil,
-                                            mfYesButton+mfNoButton+mfConfirmation) = cmYes);
-
+   Xl := (MaxAvail > 4096) and (UseXlat or (KeyMap<>kmAscii)) and
+         (MessageBox(GetString(dlViewSaveXlat), nil,
+          mfYesButton+mfNoButton+mfConfirmation) = cmYes);
    S.Init(FN, stOpen);
    if S.Status = stOK then
      begin
@@ -1419,12 +1573,21 @@ procedure TFileViewer.HandleEvent;
  procedure LoadXlatTable;
    var FN: String;
  begin
-   CE; XlatFile := '';
+   CE;
+   DisposeStr(XlatFile); XlatFile:=nil;
    if UseXlat then begin UseXlat := Off; DrawView; Exit end;
    FN := GetFileNameDialog(SourceDir+'XLT\*.XLT', GetString(dlSelectXLT),
                                     GetString(dlOpenFileName),
                             fdOKButton + fdHelpButton, hsOpenXLT);
-   if FN <> '' then SetXlatFile(FN);
+   if FN <> '' then SetXlatFile(FN, On);
+ end;
+
+ procedure NextXLat;
+ begin
+  if KeyMap=kmAscii then KeyMap:=kmAnsi  else
+   if KeyMap=kmAnsi  then KeyMap:=kmKoi8r else
+    KeyMap:=kmAscii;
+  SetXlatFile('', On);
  end;
 
  label 1,2,DoSave;
@@ -1443,12 +1606,21 @@ begin
    end;
  if Loaded then
   begin
-   if SB <> nil then PViewScroll(SB)^.MaxV := FileSize;
-   Message(SB, evCommand, cmChangeValue, Pointer(FilePos+BufPos));
    Loaded := Off;
+   if SB<>nil then begin
+    PViewScroll(SB)^.MaxV := FileSize;
+    PViewScroll(SB)^.Value:= FilePos+BufPos;
+   end;
+   PViewScroll(SB)^.DrawView;
   end;
  case Event.What of
   evBroadcast: case Event.Command of
+                 cmFindView:
+                   if PString(Event.InfoPtr)^=FileName then
+                     if Owner<>nil then begin
+                       Owner^.Select;
+                       ClearEvent(Event);
+                     end;
                  cmReanimator:
 DoSave:
                                if (Fl <> nil) and (Fl^.Status = stOK) then
@@ -1460,7 +1632,7 @@ DoSave:
                                    if FreeStr <> '' then SaveToFile(FreeStr);
                                  end;
                  cmReleaseFile: begin
-                                  if UpStrg(FileName) = PString(Event.InfoPtr)^ then
+                                  if UpStrg(FileName) = UpStrg(PString(Event.InfoPtr)^) then
                                       begin
                                         ReadFile('', On);
                                         {if not QuickView then Message(Owner, evCommand, cmClose, nil);}
@@ -1468,6 +1640,53 @@ DoSave:
                                 end;
                end;
   evCommand: case Event.Command of
+              cmFileEdit:
+                begin
+                  WriteModify;
+                  if Desktop<>nil then Desktop^.Lock;
+                  if Application<>nil then begin
+                    PDNApplication(Application)^.EditFile(True, FileName);
+                    Message(Application, evCommand, cmGotoLineNumber2,
+                      Pointer( GetLineNumberForOffset(FileName,FilePos+BufPos) )
+                      );
+                  end;
+                  if Desktop<>nil then Desktop^.UnLock;
+                  CE;
+                  if (Owner<>nil) and (TypeOf(Owner^)=TypeOf(TFileWindow))
+                  then begin
+                    KillAfterUse:=False;
+                    Message(Owner, evCommand, cmClose, nil);
+                  end;
+                end;
+              cmPlaceMarker:
+                begin
+                  Ch:=Event.InfoChar;
+                  if (Ch>='1') and (Ch<='9') then begin
+                    if (MarkPos[Ch].Y=-1) or
+                      (MarkPos[Ch].Y<>FilePos+BufPos) or
+                      (MarkPos[Ch].X<>Byte(HexEdit)*256*256
+                        +Cur.Y*256+Cur.X)
+                    then
+                      MarkPos[Ch].Assign(Byte(HexEdit)*256*256
+                        +Cur.Y*256+Cur.X,FilePos+BufPos) else
+                      MarkPos[Ch].Assign(-1,-1);
+                    DrawView;
+                  end;
+                  CE;
+                end;
+              cmGotoMarker:
+                begin
+                  Ch:=Event.InfoChar;
+                  if (Ch>='1') and (Ch<='9') and (MarkPos[Ch].Y<>-1) then
+                  begin
+                    Cur.X:=MarkPos[Ch].X mod 256;
+                    Cur.Y:=(MarkPos[Ch].X div 256) mod 256;
+                    HexEdit:=(MarkPos[Ch].X div (256*256)) = 0;
+                    Seek(MarkPos[Ch].Y); MakeLines;
+                    DrawView;
+                  end;
+                  CE;
+                end;
               cmGotoCell: begin
                             CE;
                             if ViewMode = 0 then Exit; FreeStr := '';
@@ -1487,7 +1706,7 @@ DoSave:
               cmSave: begin WriteModify; CE end;
               cmSaveAll: Goto DoSave;
               cmGetName: if FileName <> '' then PString(Event.InfoPtr)^ := GetString(dlViewFile)+FileName;
-              cmLoadViewFile: if QuickView and (FExpand(PString(Event.InfoPtr)^) <> FExpand(FileName)) then
+              cmLoadViewFile: if QuickView and (UpStrg(lFExpand(PString(Event.InfoPtr)^)) <> UpStrg(lFExpand(FileName))) then
                                begin ReadFile(PString(Event.InfoPtr)^, On);
                                      DrawView; CE end;
               cmClose, cmQuit, cmKillUsed: if WriteModify then CE else
@@ -1541,7 +1760,9 @@ DoSave:
                                    MakeLines;
                                    DrawView;
                                   end;
+               cmSwitchKeyMapping: NextXLat;
              end;
+
   evKeyDown: case Event.KeyCode of
                kbCtrlHome: if ViewMode = 1 then
                              begin
@@ -1553,7 +1774,7 @@ DoSave:
                                Cur.Y := Size.Y - 1;
                                DrawView; CE;
                              end else Goto 2;
-               kbESC: if not QuickView then begin Message(Application, evCommand, cmClose, nil); CE end;
+               kbESC, kbEnter: if not QuickView then begin Message(Application, evCommand, cmClose, nil); CE end;
                kbCtrlLeft: if ViewMode = 0 then
                      begin CE; if XDelta>19 then Dec(XDelta,20) else XDelta:=0; DrawView end
                           else
@@ -1617,7 +1838,7 @@ DoSave:
                         if ViewMode <> 1 then begin CE; CountDown(1) end else
                         begin Inc(Cur.Y); DrawView; CE; end;
                        end;
-               kbPgDn: begin CE; CountDown(Size.Y-1) end;
+               kbPgDn, kbSpace: begin CE; CountDown(Size.Y-1) end;
                kbUp: if ViewMode <> 1 then begin CE; CountUp(1) end else
                         begin Dec(Cur.Y); DrawView; CE; end;
                kbPgUp: begin
@@ -1642,6 +1863,35 @@ DoSave:
                               DrawView; CE
                              end;
                else
+               begin
+                    if (Event.CharCode = #11) and not CtrlK then begin
+                      CtrlK:=True; CE;
+                    end else
+                    if CtrlK then begin
+                      Ch:=Event.CharCode;
+                      if (Ch >= '1') and (Ch <= '9') then
+                      begin
+                        Event.What:=evCommand;
+                        Event.Command:=cmPlaceMarker;
+                        Event.InfoChar:=Ch;
+                        PutEvent(Event);
+                      end;
+                      CtrlK:=False; CE;
+                    end else
+                    if (Event.CharCode = #17) and not CtrlQ then begin
+                      CtrlQ:=True; CE;
+                    end else
+                    if CtrlQ then begin
+                      Ch:=Event.CharCode;
+                      if (Ch >= '1') and (Ch <= '9') then
+                      begin
+                        Event.What:=evCommand;
+                        Event.Command:=cmGotoMarker;
+                        Event.InfoChar:=Ch;
+                        PutEvent(Event);
+                      end;
+                      CtrlQ:=False; CE;
+                    end else
                     if (Event.CharCode > #31) and not NoEdit then
                     begin
                      if (ViewMode = 1) and (Buf <> nil) and
@@ -1662,13 +1912,22 @@ DoSave:
                          end;
                        end else
                        begin
-                        BufModified := On;
+                        BufModified:=On; I:=0;
+                        while I < 256 do begin
+                         if XLat[Char(I)] = Char(Event.CharCode) then
+                         begin
+                          Event.CharCode:=Char(I);
+                          break;
+                         end;
+                         Inc(I);
+                        end;
                         Char(Buf^[Cur.X+Cur.Y*HexPos+BufPos]) := Event.CharCode;
                         Message(@Self, evKeyDown, kbRight, nil);
                        end;
                      end;
                      CE
                     end;
+               end;
              end;
   evMouseDown: begin
                 LR := RepeatDelay; RepeatDelay := 0;
@@ -1685,33 +1944,44 @@ DoSave:
  end;
 end;
 
+        {-DataCompBoy-}
 procedure TFileViewer.SetXlatFile;
-  var Dr: PathStr;
-      Nm: NameStr;
-      xt: ExtStr;
+  var Dr: String;
+      Nm: String;
+      Xt: String;
       S: TDosStream;
       Table: Array [1..256] of Record A, B: Char end;
       C, CC: Char;
       I,J: Integer;
+      PC: PChar;
 begin
-  XlatFile := '';
-  if aFName = '' then begin UseXLat := Off; DrawView; Exit end;
-  FSplit(aFName, Dr, Nm, Xt);
-  if Dr = '' then begin Dr := SourceDir+'XLT\'; Xt := '.xlt'; end;
-
-   S.Init(Dr+Nm+Xt, stOpenRead);
-   if (S.Status = stOK) and (S.GetSize >= 2) then
-     begin
-       for C := #0 to #255 do XLat[C] := C;
-       J := Min(256, S.GetSize div 2);
-       S.Read(Table, J * 2);
-       for I := 1 to J do XLat[Table[I].A] := Table[I].B;
-       UseXlat := S.Status = stOK;
-       if UseXlat then XlatFile := Nm;
-     end;
-   S.Done;
-   DrawView;
+  UseXLat:=Off;
+  if aFName <> '' then
+  begin
+    lFSplit(aFName, Dr, Nm, Xt);
+    if Dr = '' then begin Dr:=SourceDir+'XLT\'; Xt:='.xlt'; end;
+    S.Init(Dr+Nm+Xt, stOpenRead);
+    if (S.Status = stOK) and (S.GetSize >= 2) then
+    begin
+      J:=Min(256, S.GetSize div 2);
+      S.Read(Table, J * 2);
+      for C:=#0 to #255 do XLat[C]:=C;
+      for I:=1 to J do XLat[Table[I].A]:=Table[I].B;
+      UseXlat:=S.Status = stOK;
+      if XlatFile<>nil then DisposeStr(XlatFile); XlatFile:=nil;
+      if UseXlat then XlatFile:=NewStr(Nm);
+    end;
+    S.Done;
+  end;
+  if aFName='' then begin
+    PC:=GetToAsciiRecodeTable(KeyMap);
+    if PC=nil then
+      for C:=#0 to #255 do XLat[C]:=C else
+      Move(PC^,XLat,256);
+  end;
+  if DoRedraw then DrawView;
 end;
+        {-DataCompBoy-}
 
 procedure TFileViewer.CountDown;
 begin
@@ -1763,28 +2033,25 @@ procedure TFileViewer.CountUp;
    les di, P
    add di, word ptr I
    mov cx, MaxX
-   mov al, 13
    mov bl, 10
    dec di
    dec word ptr I
    js  @Exit
-   mov ah, es:[di]
+   mov al, es:[di]
    dec di
    dec word ptr I
    js  @Exit
-   cmp ah, 10
+   cmp al, bl
    je  @@@
-   cmp ah, 13
+   cmp al, 13
    jne @@2
 @@@:
-   cmp es:[di], ah
+   cmp es:[di], bl
    je  @Exit
    jmp @@2
 @@1:
-   mov ah, es:[di]
-   cmp ah, al
-   jz  @Exit
-   cmp ah, bl
+   mov al, es:[di]
+   cmp al, bl
    jz  @Exit
 @@2:
    dec di
@@ -1792,7 +2059,6 @@ procedure TFileViewer.CountUp;
    js  @Exit
    loop @@1
 @Exit:
-
   end;
   J := I + 1;
  end;
@@ -1834,7 +2100,7 @@ begin
   System.Move(Lines[0], Lines[1], (MaxLines - 1) * sizeof(Lines[0]));
   Lines[0].Pos := J;
   a := 0;
-  while (j+a<Lines[1].Pos) and not (Buf^[J+A] in [13, 10]) do Inc(a);
+  while (j+a<Lines[1].Pos) and not (Buf^[J+A] in [10]) do Inc(a);
   if a > $FF then
   asm
    nop
@@ -1863,7 +2129,6 @@ end;
 { TFileWindow }
 constructor TFileWindow.Init;
 var
-
   R: TRect;
   P: PView;
   PV: PFileViewer;
@@ -1907,22 +2172,24 @@ begin
            Max.X := Owner^.Size.X+2;
            Max.Y := Owner^.Size.Y;
         end else Longint(Max) := $7FFF7FFF;
+  Min.X := MinWinSize.X;
+  Min.Y := MinWinSize.Y;
 end;
 
 procedure TFileWindow.Zoom;
 var
-    R: TRect;
-    Max, Min: TPoint;
+  R: TRect;
+  Max, Min: TPoint;
 begin
-    SizeLimits(Min, Max);
-    Dec(Max.X,2);
-    Longint(R.A) := 0;
-    R.B := Max;
-    if Longint(Size) = Longint(Max) then begin
-        Dec(R.A.X);
-        Inc(R.B.X)
-    end;
-    Locate(R)
+  SizeLimits(Min, Max);
+  Dec(Max.X,2);
+  Longint(R.A) := 0;
+  R.B := Max;
+  if Longint(Size) = Longint(Max) then begin
+      Dec(R.A.X);
+      Inc(R.B.X)
+  end;
+  Locate(R)
 end;
 
 function TFileWindow.ReactOnCmd;
@@ -1931,4 +2198,3 @@ begin
 end;
 
 end.
-

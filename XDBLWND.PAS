@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -68,7 +68,7 @@ const
 
 
 implementation
-uses Commands, Advance, DNApp;
+uses Commands, advance, advance1, advance2, advance3, DNApp;
 
 function TXDoubleWindow.GetPalette;
  const S: String[Length(CDoubleWindow)] = CDoubleWindow;
@@ -107,19 +107,20 @@ begin
                {kbCtrlP,}
                kbCtrlLeft,
                kbCtrlRight,
-               kbAlt1, kbAlt2,
-               kbAlt3, kbAlt4,
-               kbAlt5, kbAlt6,
-               kbAlt7, kbAlt8,
-               kbAlt9, kbAlt0,
+               kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5,
+               kbAlt6, kbAlt7, kbAlt8, kbAlt9, kbAlt0,
+               kbCtrl1, kbCtrl2, kbCtrl3, kbCtrl4, kbCtrl5, {DataCompBoy}
+               kbCtrl6, kbCtrl7, kbCtrl8, kbCtrl9, kbCtrl0, {DataCompBoy}
                kbAltLeft,kbAltRight,
-               kbAltZ,{Knave 11.09.99}
-                    $1A1B,
-                    $1B1D: begin HandleCommand(Event); CE := Off; end;
+               kbCtrlAltZ,{Knave 11.09.99} {DataCompBoy}
+               $1A1B,$1B1D,$1A1A,$1B1B:
+                begin HandleCommand(Event); CE := Off; end;
               end;
    evBroadcast: case Event.Command of
                   cmLookForPanels,
                   cmGetUserParams: begin HandleCommand(Event); CE := Off end;
+                cmChangeDirectory: begin HandleCommand(Event); CE := Off end;
+                      cmChangeDrv: begin HandleCommand(Event); CE := Off end;
                 end;
    evCommand: case Event.Command of
                 cmChangeDirectory: begin

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit Histries;
 
 interface
-uses Drivers, Objects, Views, MicroEd, ObjType, Drives,
-     U_KeyMap; {-$VIV 14.05.99}
+uses LFN, {DataCompBoy}
+     Drivers, Objects, Views, MicroEd, ObjType, Drives, advance, advance1,
+     advance2, advance3, U_KeyMap; {-$VIV 14.05.99}
 
 type
      PViewRecord = ^TViewRecord;
@@ -61,13 +66,16 @@ type
        fViewMode: Integer;
        fPos: LongInt;
        fBufPos: Word;
-       fXlateTable: String[8];
+       fXlatFile: String[8];
        fFilter: Byte;
        fHexEdit: Boolean;
        fWrap: Boolean;
        fXDelta: Integer;
        fHexPos: Integer;
        fCur: TPoint;
+       fUseXlat: Boolean;
+       fKeyMap: TKeyMap;
+       fMarks: TPosArray;
      end;
 
      PEditRecord = ^TEditRecord;
@@ -115,13 +123,15 @@ procedure AddToDirectoryHistory(S: String; DriveType:integer);
 procedure SaveCommands(var S: TStream);
 procedure LoadCommands(var S: TStream);
 procedure CmdHistory;
+{DataCompBoy
 procedure InitCommands;
+}
 function  DirHistoryMenu: String;
 procedure EditHistoryMenu;
 procedure ViewHistoryMenu;
 procedure StoreEditInfo(P: Pointer);
 procedure StoreViewInfo(P: Pointer);
-procedure AddCommand(LastCommand: String);
+procedure AddCommand(const LastCommand: String);
 function  GetCommand(Idx: Integer): String;
 
 
@@ -147,8 +157,7 @@ const
       Store: @TViewHistoryCol.Store );
 
 implementation
- uses U_Crt,
-      Dos, Commands, DNApp, DNStdDlg, Dialogs, Advance,
+ uses Dos, Commands, DNApp, DNStdDlg, Dialogs,
       Startup, RStrings, xTime, Messages, Idlers, DNUtil,
       FViewer, CmdLine;
 
@@ -174,7 +183,7 @@ function  TEditHistoryCol.IndexOf;
       I: Integer;
 begin
   IndexOf := -1;
-  S := Copy(CnvString(PEditRecord(P)^.fName), 2, 255); UpStr(S);
+  S := lfGetLongFileName(Copy(CnvString(PEditRecord(P)^.fName), 2, 255)); {DataCompBoy}
   for I := 0 to Count-1 do
     begin
       if Copy(CnvString(PEditRecord(At(I))^.fName), 2, 255) = S then {-$VOL}
@@ -238,20 +247,23 @@ begin
   New(R);
   with PFileViewer(Viewer^.Current)^, R^ do
     begin
-       fName       := NewStr(' '+UpStrg(FileName));
-       fOrigin     := Viewer^.Origin;
-       fSize       := Viewer^.Size;
-       fDeskSize   := Desktop^.Size;
-       fViewMode   := ViewMode;
-       fPos        := FilePos;
-       fBufPos     := BufPos;
-       fXlateTable := XlatFile;
-       fFilter     := Filter;
-       fHexEdit    := HexEdit;
-       fWrap       := Wrap;
-       fXDelta     := XDelta;
-       fHexPos     := HexPos;
-       fCur        := Cur;
+       fName     := NewStr(' '+lfGetLongFileName(FileName)); {DataCompBoy}
+       fOrigin   := Viewer^.Origin;
+       fSize     := Viewer^.Size;
+       fDeskSize := Desktop^.Size;
+       fViewMode := ViewMode;
+       fPos      := FilePos;
+       fBufPos   := BufPos;
+       fXlatFile := XlatFile^;
+       fFilter   := Filter;
+       fHexEdit  := HexEdit;
+       fWrap     := Wrap;
+       fXDelta   := XDelta;
+       fHexPos   := HexPos;
+       fCur      := Cur;
+       fUseXLat  := UseXLat;
+       fKeyMap   := KeyMap;
+       fMarks    := MarkPos;
     end;
   I := ViewHistory^.IndexOf(R);
   if I >= 0 then begin
@@ -274,7 +286,7 @@ begin
   New(R);
   with PFileEditor(E^.Intern)^, R^ do
     begin
-       fName          := NewStr(' '+UpStrg(EditName));
+       fName          := NewStr(' '+lfGetLongFileName(EditName)); {DataCompBoy}
        fOrigin        := Owner^.Origin;
        fSize          := Owner^.Size;
        fDeskSize      := Desktop^.Size;
@@ -306,7 +318,7 @@ begin
   if EditHistory^.Count > MaxEditHistorySize then FreeLastUnmarked(EditHistory);
 end;
 
-procedure AddCommand(LastCommand: String);
+procedure AddCommand(const LastCommand: String);
   var I: Integer;
       P: PString;
   label 1;
@@ -325,8 +337,7 @@ begin
               Goto 1;
             end;
         end;
-      Insert(' ', LastCommand, 1);
-      CmdStrings^.Insert(NewStr(LastCommand));
+      CmdStrings^.Insert(NewStr(' '+LastCommand));
 1:
       I := 0;
       while (CmdStrings^.Count > 50) and
@@ -340,10 +351,9 @@ begin
               end
               else Inc(I);
          end;
-      LastCommand := '';
     end;
 end;
-
+{DataCompBoy
 procedure InitCommands;
 begin
  if CmdStrings <> nil then Dispose(CmdStrings, Done);
@@ -351,7 +361,7 @@ begin
  StrModified := False;
  CurString := 0;
 end;
-
+}
 procedure SaveCommands(var S: TStream);
  var I, J: Integer;
      S1,S2: String;
@@ -425,7 +435,7 @@ end;
 
 function TTHistList.GetText;
 begin
-  FreeStr := CnvString(ItemStr(Item));
+  FreeStr := Cut(CnvString(ItemStr(Item)), Size.X);
   if FreeStr[1] = '+' then FreeStr[1] := '■'
                       else FreeStr[1] := ' ';
   GetText := FreeStr;
@@ -484,7 +494,7 @@ begin
     cmOK: begin
              ClearEvent(Event);
              if Focused >= List^.Count then Exit;
-             FreeStr := Trim(Copy(CnvString(List^.At(Focused)), 2, 255)); {-$VIV}
+             FreeStr := fDelLeft(fDelRight(Copy(CnvString(List^.At(Focused)), 2, 255))); {-$VIV} {DataCompBoy}
              if InputBox(GetString(dlEditHistory), GetString(dlFindCellString), FreeStr, 255, hsEditHistory) <> cmOK then Exit;
              Insert(Copy(CnvString(List^.At(Focused)), 1, 1), FreeStr, 1);
              List^.AtReplace(Focused, NewStr(FreeStr));
@@ -529,8 +539,9 @@ procedure AddToDirectoryHistory(S: String; DriveType:integer);
 begin
   if InterfaceData.Options and ouiTrackDirs = 0 then Exit;
   if (S = '') or (S[2] <> ':') then Exit;
+  S:=lfGetLongFileName(S);
   if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
-  UpStr(S); if (DriveType <> integer(dtList))
+  if (DriveType <> integer(dtList))
   and (DriveType <> integer(dtFind)) then begin
       if S[Length(S)] <> '\' then AddStr(S, '\')
   end else begin
@@ -583,7 +594,7 @@ begin
   P^.EVHistory := On;
   if Desktop^.ExecView(D) = cmOK then I := P^.Focused else I := -1;
   Dispose(D, Done);
-  if I >= 0 then PDNApplication(Application)^.EditFile(Off, Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, 255));
+  if I >= 0 then PDNApplication(Application)^.EditFile(On, Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, 255));
 end;
 
 procedure ViewHistoryMenu;

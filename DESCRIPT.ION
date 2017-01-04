@@ -1,30 +1,165 @@
-_MHZ.ASM     CPU Frequency detection
+ADVANCE.PAS  Advanced procedures: startup
+ADVANCE1.PAS Advanced procedures: String functions
+ADVANCE2.PAS Advanced procedures: File related functions
+ADVANCE3.PAS Advanced procedures: Misc stuff
+ADVANCE4.PAS Advanced procedures: OS/2 support
+ARCHIVER.PAS Archivators access
+ARCVIEW.PAS  View archives as drives
+ARVID.PAS    Access to ARVID tapes
+ASCIITAB.PAS ASCII table
+AUTHORS.TXT  Разработчики Dos Navigator
+BIGARRAY.PAS TBigArray implementation.
+BLD_DPMI.BAT Run this to build for DPMI mode
+BPC.CFG      BPC Config
+BUILD.BAT    Run this to standard build
+BUILDDN.BAT  Batch to build DN OSP
+BUTTCODE.INC BUTTONS CODE'S TABLE
+CALC.PAS     Spreadsheet's cells
+CCALC.PAS    Calculator
+CDPLAYER.PAS CD Player
+CDUTIL.PAS   CD Player utilites
+CELLSCOL.PAS Cells collection for spreadsheet
+CLEAN.BAT    Batch to clean source tree
+CMDLINE.PAS  Command line
+COLORS.PAS   Colors
+COLORSEL.PAS Color selector
+COLORVGA.PAS VGA Color
+COMLNK.PAS   COM Link
+COMLNKIO.PAS COM Link
+COMMANDS.PAS Constants
 CPUTYPE.ASM  determines CPU & NDP type
+DBLWND.PAS   Double Window
+DBVIEW.PAS   .DBF Viewer
+DBWATCH.PAS  .DBF access
+DESCRIPT.ION File Descriptions
+DIALOGS.PAS  Basic dialogs
+DISKIMG.PAS  Disk image unpacker
+DISKINFO.PAS Disk info
+DISKS.PAS    Some disk routines
+DISKTOOL.PAS Disk editor
 DN.ASM       resident part of DN
-FORMAT.ASM   function FormatStr
-GETCPU.ASM   detect processor type
-LZWC2.ASM    LZW compression
-LZWD2.ASM    LZW decompression
-RUNCMD.INC   RunCommand ...
-XMSSTRM.INC  XMS stream
-COLORSEL.PAS TV
-DIALOGS.PAS  TV
+DN.DEF       Defines for DN OSP
+DN.PAS       Main program module
+DN1.PAS      Main program module, Part 2
+DNAPP.PAS    DN Application unit
 DNFORMAT.PAS Format Disk
 DNHELP.PAS   Help constants
-DRIVERS.PAS  TV
+DNINI.PAS    Ini Configuration
+DNOSP.TXT    Dos Navigator Open Source Project
+DNOVEMS.ASM  EMS Overlay support
+DNOVERL.ASM  Overlay manager implementation
+DNOVERL.PAS  Overlay manager interface
+DNSTDDLG.PAS DN Standard dialogs
+DNUTIL.PAS   DN Utilites: About & other
+DRIVERS.PAS  Event manager routines
+DRIVES.PAS   Drive access
+DRVTYPES.PAS Определение Типа Диска
+EDITOR.PAS   File editor
+ERASER.PAS   File eraser
+EXTKBD.PAS   Access to extended keyboard
+EXTRAMEM.PAS Access to extra memory
 FBB.PAS      LongCopy
+FILECOPY.PAS File copyer
+FILEFIND.PAS File finder
+FILELIST.PAS File lister
+FILESCOL.PAS Files collection
+FIXER.PAS    File fixer
+FLPANEL.PAS  File panel
+FLPANELX.PAS File panel
+FLTOOLS.PAS  File tools
 FMTUNIT.PAS  format disk utils
-HISTLIST.PAS TV
+FORMAT.ASM   function FormatStr
+FORMAT.PAS   formatter kernel
+FSTORAGE.PAS Files storage
+FVIEWER.PAS  File viewer
+GAUGE.PAS    Gauges: Bar, Percent.
+GAUGES.PAS   Gauges: Clock, Heap, TrashCan, Macros
+GETCONST.PAS Getting constants
+GETCPU.ASM   detect processor type
+HASH.PAS     Hash string
+HELPFILE.PAS Access to help file
+HELPKERN.PAS Help kernel
+HIDEVIEW.PAS Hide view
+HISTLIST.PAS History list
+HISTORY.TXT  Dos Navigator Что нового?..
+HISTRIES.PAS Histories
 IDLERS.PAS   Idle (screen savers)
-MEMORY.PAS   TV
-MENUS.PAS    TV
-OBJECTS.PAS  TV
+INIFILES.PAS Access to .INI files
+LFN.PAS      LFN Support
+LFNCOL.PAS   EMS & Memory LFN collection
+LINK.INC     Included in DN LINK
+LINKTYP.PAS  DN Link
+LINKUTIL.PAS DN Link
+LZW4P.PAS    LZW Interface
+LZW4PLIB.ASM LZW Routines
+LZWC2.ASM    LZW compression
+LZWD2.ASM    LZW decompression
+MACRO.PAS    Macro editor & environment editor
+MAP          Map tools
+MEMINFO.PAS  Memory information
+MEMORY.PAS   Memory access
+MENUS.PAS    Menus
+MESSAGES.PAS Message boxes
+MICROED.PAS  Editor
+MODEMIO.PAS  Modem IO
+NAVYLINK.PAS DN Link
+NETDRIVE.PAS Network drive panel
+NETINFO.PAS  Net information
+NETWORK.PAS  NetWork support
+NOVELL.PAS   Novell information
+OBJECTS.PAS  Main objects: TObject, Streams, other.
+OBJTYPE.PAS  Object types
+OVERLAYS.PAS Overlay's support
+OVRSIZ.PAS   OVRSIZ generates a report describing an overlaid Turbo Pascal 5.0 program.
+PAR.PAS      Parser
+PFILE.PAS    Packing program
+PFILE.PAS    Packing program
+PHONES.PAS   Phones book
+PRINTMAN.PAS Print manager
+RCP.INI      Resource compiler options
 RCP.PAS      DN Resource Compiler
+README.TXT   Dos Navigator Open Source
+REANIMAT.PAS Reanimator
+RESOURCE     Resource source for DN OSP
+RSPFILE.PAS  Access to packed files
+RSR.BAT      Run this to rebuild resource
+RSTRINGS.PAS Strings cashe
+RUNCMD.INC   RunCommand ...
+RW_IO.PAS    Reader/Writer Buffered I/O
+SBLOCKS.PAS  Collectors
+SCROLLBK.PAS Scrollback
+SCROLLER.PAS Scrollers
+SE.INC       Included in LFN API
+SETUPS.PAS   Setups DN
+STAKDUMP.PAS A unit for dumping the stack chain
 STARSKY.PAS  StarSky screen saver
-STRINGS.PAS  TV
-TVHC.PAS     TV Help Compiler
-VALIDATE.PAS TV
-VIEWS.PAS    TV
-WINCLP.PAS   windows clipboard
-UUE2INC.ASM  UU encode/decode
+STARTUP.PAS  Startup configuration
 STDEFINE.INC defines for project
+STRINGS.PAS  Strings access
+SWE.PAS      Inputs
+SYSINT.ASM   System interrupt vectors
+TDR2AVT.PAS  TDR -> AVT converter
+TEMPLATE.TXT Template of the .patch file
+TERMINAL.PAS Terminal
+TETRIS.PAS   Tetris
+TITLESET.PAS Application title changing support
+TREE.PAS     View of disk tree
+TVHC.PAS     TV Help Compiler
+UFNMATCH.PAS Filename matches the UNIX style mask
+UNIWIN.PAS   Uni Window
+USERMENU.PAS User menu routines
+UUCODE.PAS   UU Encode/Decode
+UUE2INC.ASM  UU encode/decode
+U_INI.PAS    Work with INI files
+U_KEYMAP.PAS Keyboard map
+U_SRCHF.PAS  Search File Names
+VALIDATE.PAS Validators
+VERSION.PAS  Version.Inc generator
+VIEWS.PAS    Standard views
+W95EXPN.ASM  Win95 file Expand routine
+W95TCTL.ASM  Win95 file access routines
+W95TFIO.ASM  Win95 file access routines
+WINCLP.PAS   windows clipboard
+XDBLWND.PAS  Double Window
+XTIME.PAS    Extended time support
+_MHZ.ASM     CPU Frequency detection

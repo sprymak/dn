@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,8 +49,8 @@ UNIT CCalc;
 
 interface
 
-uses Advance, Par, RStrings, DNApp, Dialogs, Views, Objects,
-     Drivers, Commands, HistList, DNHelp, ObjType;
+uses advance, advance1, advance2, advance3, Par, RStrings, DNApp, Dialogs,
+     Views, Objects, Drivers, Commands, HistList, DNHelp, ObjType;
 
 type
      Real  =  Extended;
@@ -92,10 +92,11 @@ const
 
 procedure InsertCalc;
 
+Const Calc: PView = nil;
+
 implementation
 
 var Error: Boolean;
-    Calc: PView;
 
 procedure CalcError(NError: TStrIdx);
 begin
@@ -394,7 +395,6 @@ procedure TIndicator.HandleEvent;
 
 begin
   inherited HandleEvent(Event);
-  if (Event.What = evKeyDown) and (Event.KeyCode = kbUp) then CE;
   if (Event.What = evBroadcast) then
     case Event.Command of
        cmSetValue: begin
@@ -487,8 +487,10 @@ procedure TCalcLine.HandleEvent;
  var WasKey: Boolean;
 begin
    WasKey := Event.What = evKeyDown;
-   if WasKey and (Event.KeyCode = kbUp) then ClearEvent(Event);
-   if WasKey and ResultSelected then if Not (Event.CharCode in ['0'..'9']) then SelEnd:=0;
+   if WasKey and ResultSelected then
+     if Not (Event.CharCode in ['0'..'9']) then SelEnd:=0;
+   if (Event.What = evKeyDown) and (Event.KeyCode = kbUp) then
+     ClearEvent(Event);
    inherited HandleEvent(Event);
    if WasKey then
     begin
@@ -530,7 +532,6 @@ begin
   inherited Done;
 end;
 
-
 procedure TCalcLine.SetValues;
  var P: Pointer;
      R: Real;
@@ -567,7 +568,6 @@ begin
                    end;
                 end;
 end;
-
 
 procedure InsertCalc;
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,22 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit Overlays;
-
+{$i overlay.def}
 interface
-uses Objects, Overlay;
+uses LFN, {DataCompBoy}
+     Objects,
+{$ifdef packoverlay}
+     DnOverl; {DataCompBoy}
+{$else}
+     Overlay;
+{$endif}
 
 procedure OvrInitStream(S : PStream);
 { Copies overlay segment code to S as new segments are loaded,
@@ -69,10 +79,10 @@ function OvrLoadAll : Boolean;
 { Forces all overlay segments to be copied into the stream; if successful
   (true) then no more references to the overlay file will be made. }
 
-procedure InitOverlay(const FileName: String);
+procedure InitOverlay(FileName: String);
 
 implementation
-uses ExtraMemory, Advance, Startup, Commands;
+uses ExtraMemory, advance, advance1, advance2, advance3, Startup, Commands;
 
   { ****** Overlay stream code ****** }
 
@@ -273,13 +283,12 @@ const
     end;
   end;
 
-procedure InitOverlay(const FileName: String);
+procedure InitOverlay(FileName: String);
   var S: PStream;
       LM,LL: LongInt;
       I : longint ;
       ST : string[8] ;
 begin
-
 {  if FindParam('/NCF')=0 then
   if SystemFiles < 25 then
       begin
@@ -288,6 +297,7 @@ begin
       end;
 }
   ClrIo;
+  FileName:=lfGetShortFileName(FileName); {DataCompBoy}
   S := New(PDosStream, Init(FileName, stOpenRead));
   if S^.Status <> stOK then
     begin

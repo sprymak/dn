@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,189 +43,154 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit u_srchf;
 interface
-uses Objects;
+uses Objects,
+     LFN,      {DataCompBoy}
+     Commands, {DataCompBoy}
+     DNApp;    {DataCompBoy}
 
 function FindFileWithSPF(pFileName: String): String;
 
 implementation
 
-uses u_crt, dos, advance, u_dos, messages, format, dnini;
+uses dos, advance, advance1, advance2, advance3, messages, format, dnini;
 
-procedure RecursiveAdd(SC: PStringCollection; pPath: String; DoMore: Boolean); far;
-var SR: SearchRec;
+        {-DataCompBoy-}
+function RecursiveCheck(Name, pPath: String; DoMore: Boolean): string;
+var SR: lSearchRec;
+    SC: TStringCollection;
+label q;
 begin
-  pPath := u_crt.Replace(pPath + '\', '\\', '\');
-  SC^.Insert(NewStr(UpperCase(pPath)));
-  FindFirst(pPath + '*.*', AnyFile, SR);
-  while DOSError = 0 do
-  begin
-    if (SR.Name <> '.') and (SR.Name <> '..') and
-       (SR.Attr and Directory <> 0) then
-    begin
-      if DoMore then RecursiveAdd(SC, pPath + SR.Name, DoMore) else
-        SC^.Insert(NewStr(UpperCase(pPath + SR.Name)));
-    end;
-    FindNext(SR);
-  end;
-end;
+  SC.Init($10, $10);
+  RecursiveCheck:='';
+  SC.AtInsert(0, NewStr(pPath));
 
+  Repeat
+   pPath:=CnvString(SC.At(0));
+   SC.AtFree(0);
+
+   if FileExists(MakeNormName(pPath, Name)) then begin
+    RecursiveCheck:=MakeNormName(pPath, Name);
+    lFindClose(SR);
+    goto q;
+   end;
+
+   lFindFirst(MakeNormName(pPath, '*.*'), AnyFile, SR);
+   while DOSError = 0 do
+   begin
+     if (SR.SR.Name <> '.') and (SR.SR.Name <> '..') and
+        (SR.SR.Attr and Directory <> 0) then
+     begin
+       if DoMore
+        then SC.Insert(NewStr(MakeNormName(pPath, SR.FullName)))
+        else if FileExists(MakeNormName(MakeNormName(pPath, SR.FullName), Name)) then begin
+              RecursiveCheck:=MakeNormName(MakeNormName(pPath, SR.FullName), Name);
+              lFindClose(SR);
+              goto q;
+             end;
+     end;
+     lFindNext(SR);
+   end;
+   lFindClose(SR);
+  until SC.Count=0;
+q: SC.Done;
+end;
+        {-DataCompBoy-}
+
+        {-DataCompBoy-}
 function FindFileWithSPF(pFileName: String): String;
-var SPF: PStringCollection;
-    F: Text;
-    Ext, S, S2: String;
-    IsSec, More1, Found: Boolean;
+var F: lText;
+    S, S2: String;
+    IsSec, Found, InSq: Boolean;
     P, I: Integer;
-    Hour, Min, Sec, Sec100: Word;
 begin
   FindFileWithSPF := '';
-  pFileName := UpperCase(pFileName);
   if FileExists(pFileName) then
   begin
     FindFileWithSPF := pFileName;
     Exit;
   end;
-  Ext := CutExt(pFileName);
-  SPF := New(PStringCollection, Init(20, 10));
-  Assign(F, SourceDir + 'DN.SPF');
-  {$I-}
-  Reset(F);
-  {$I+}
+  lAssignText(F, SourceDir + 'DN.SPF');
+  lResetText(F);
   if IOResult <> 0 then
   begin
-    Dispose(SPF, Done);
-    {$I-}
-    Rewrite(F);
-    {$I+}
+    lRewriteText(F);
     if IOResult <> 0 then Exit;
-    Writeln(F, '; Dos Navigator Search Paths file');
-    Writeln(F);
-    Writeln(F);
-    Writeln(F);
-    Writeln(F, ';--------------------------------------------------------------------------');
-    Writeln(F, '; Формат:' );
-    Writeln(F, '; ~~~~~~~' );
-    Writeln(F, '; <Формат строки> ::= <Комментарий> | <Секция> | <Путь>');
-    Writeln(F, '; <Комментарий> ::= <;> Любой текст');
-    Writeln(F, '; <Секция> ::= <[> <Расширение> { <,> <Расширение> } <]>');
-    Writeln(F, '; <Путь> ::= <Каталог> { <;> <Каталог> }');
-    Writeln(F, '; <Каталог> ::= [ <*> | <+> ] <Каталог MS-DOS>');
-    Writeln(F, '; ');
-    Writeln(F, '; Примечания:');
-    Writeln(F, '; ~~~~~~~~~~~' );
-    Writeln(F, '; {} - параметр может повтарятся 0 и более раз');
-    Writeln(F, '; [] - параметр может быть опущен');
-    Writeln(F, ';  * - в первом символе имени каталога означает рекурсивный');
-    Writeln(F, ';      поиск в каталоге по всем подкаталогам');
-    Writeln(F, ';  + - в первом символе имени каталога означает рекурсивный');
-    Writeln(F, ';      поиск по всем подкаталогам одного уровня вложенности');
-    Writeln(F, '; Для отладки используйте ключ Kernel/DebugMode в dn.ini');
-    Writeln(F, '; ');
-    Writeln(F, '; Пример:');
-    Writeln(F, '; ~~~~~~' );
-    Writeln(F, '; [pas,atl]');
-    Writeln(F, '; *c:\bp\rtl\;c:\my\units');
-    Writeln(F, '; i:\vex\atl\');
-    Writeln(F, ';------------------------------------------------------------- (c) Viv''99 -');
-    Close(F);
-    MessageBox('Для поиска фалов необходимо настроить файл DN.SPF. Образец файла DN.SPF был успешно создан.', nil, mfOkButton);
+    Writeln(F.T, '; Dos Navigator Search Paths file');
+    Writeln(F.T);
+    Writeln(F.T, GetString(dlSPF01));
+    Writeln(F.T, GetString(dlSPF02));
+    Writeln(F.T, GetString(dlSPF03));
+    Writeln(F.T, GetString(dlSPF04));
+    Writeln(F.T, GetString(dlSPF05));
+    Writeln(F.T, GetString(dlSPF06));
+    Writeln(F.T, GetString(dlSPF07));
+    Writeln(F.T, GetString(dlSPF08));
+    Writeln(F.T, GetString(dlSPF09));
+    Writeln(F.T, GetString(dlSPF10));
+    Writeln(F.T, GetString(dlSPF11));
+    Writeln(F.T, GetString(dlSPF12));
+    Writeln(F.T, GetString(dlSPF13));
+    Writeln(F.T, GetString(dlSPF14));
+    Writeln(F.T, GetString(dlSPF15));
+    Writeln(F.T, GetString(dlSPF16));
+    Writeln(F.T, GetString(dlSPF17));
+    Writeln(F.T, GetString(dlSPF18));
+    Writeln(F.T, GetString(dlSPF19));
+    Writeln(F.T, GetString(dlSPF20));
+    Writeln(F.T, GetString(dlSPF21));
+    Writeln(F.T, GetString(dlSPF22));
+    Writeln(F.T, GetString(dlSPF23));
+    Writeln(F.T, GetString(dlSPF24));
+    Writeln(F.T, GetString(dlSPF25));
+    Close(F.T);
+    MessageBox(GetString(dlSPFht), nil, mfOkButton);
     Exit;
   end;
   IsSec := False;
-  if DebugMode then InitTimer;
-  while not EOF(F) do
+  Found := False;
+  while (not EOF(F.T)) and (not Found) do
   begin
-    Readln(F, S); S := Trim(S);
+    Readln(F.T, S); S := fDelLeft(fDelRight(S));
     if (S = '') or (Copy(S, 1, 1) = ';') then Continue;
     if (S[1] = '[') then
     begin
       IsSec := False;
       P := Pos(']', S);
       if P > 0 then S := Copy(S, 2, P - 2) else Delete(S, 1, 1);
-      S := UpperCase(S);
-      repeat
-        S := Trim(S);
-        P := Pos(',', S);
-        if P > 0 then
-        begin
-          S2 := Copy(S, 1, P - 1);
-          Delete(S, 1, P);
-        end else
-        begin
-          S2 := S;
-          S := '';
-        end;
-        S2 := Trim(S2);
-        if S2 <> '' then
-          if (S2 = '*') or (S2 = Ext) then IsSec := True;
-      until (S = '') or IsSec;
-    end else if IsSec then
-    begin
-      repeat
-        S := Trim(S);
-        P := Pos(';', S);
-        if P > 0 then
-        begin
-          S2 := Copy(S, 1, P - 1);
-          Delete(S, 1, P);
-        end else
-        begin
-          S2 := S;
-          S := '';
-        end;
-        S2 := Trim(S2);
-        if S2 <> '' then
-        begin
-          if S2[1] in ['*', '+'] then
-          begin
-            More1 := (S2[1] = '*');
-            Delete(S2, 1, 1); S2 := Trim(S2);
-            RecursiveAdd(SPF, S2, More1);
-          end else SPF^.Insert(NewStr(UpperCase(S2)));
-        end;
-      until (S = '');
+      IsSec:=InExtFilter(pFileName, S);
+    end else
+    if IsSec then begin
+      DelLeft(S);
+      InSq:=Off;
+      P:=1;
+      For i:=1 to length(S)+1 do
+       if ((i>length(s)) and (P<length(s))) or
+          ((S[i] in [';',',']) and (not InSq)) then begin
+        S2:=Copy(S, P, I-P);
+        if S2[1]='*' then S2:=RecursiveCheck(pFileName, DelSquashes(Copy(S2, 2, 255)), True) else
+         if S2[1]='+' then S2:=RecursiveCheck(pFileName, DelSquashes(Copy(S2, 2, 255)), False) else
+          if FileExists(MakeNormName(DelSquashes(Copy(S2, 2, 255)), pFileName))
+           then S2:=MakeNormName(DelSquashes(Copy(S2, 2, 255)), pFileName)
+           else S2:='';
+        P:=I+1;
+        If S2<>'' then begin
+         FindFileWithSPF:=S2;
+         Found:=true;
+        end
+       end else
+        if S[i]='"' then InSq:=not InSq;
     end;
   end;
-  Close(F);
-  Found := False;
-  for I := 0 to SPF^.Count - 1 do
-  begin
-    S := u_crt.Replace(PString(SPF^.At(I))^ + '\' + pFileName, '\\', '\');
-    if FileExists(S) then
-    begin
-      FindFileWithSPF := S;
-      Found := True;
-      if DebugMode then
-      begin
-        S2 := PString(SPF^.At(I))^; {-$VOL}
-        SPF^.AtReplace(I, NewStr(S2 + ' <--- найден здесь')); {-$VOL}
-      end;
-      Break;
-    end;
-  end;
-
-  {DEBUF}
-  if DebugMode then
-  begin
-    GetTimerFull(Hour, Min, Sec, Sec100);
-    Assign(f, SourceDir + 'SPF.DBG');
-    Rewrite(f);
-    Writeln(f, ';----------------------------------------------------------');
-    Writeln(f, '; Отчет о поиске файла: ', pFileName);
-    if Found then Writeln(f, '; Найден как файл: ', S) else
-                  Writeln(f, '; Файл не найден !');
-    Writeln(f, '; Всего каталогов в списке: ', SPF^.Count);
-    Writeln(f, '; Общее время поиска: ', Hour, ':', Min, ':', Sec);
-    Writeln(f, ';----------------------------------------------------------');
-    for I := 0 to SPF^.Count - 1 do Writeln(f, PString(SPF^.At(I))^);
-    Close(f);
-    MessageBox('DEBUG: Файл ' + SourceDir + 'SPF.DBG сформирован.', nil, mfOkButton);
-  end;
-
-  Dispose(SPF, Done);
+  Close(F.T);
 end;
+        {-DataCompBoy-}
 
 end.

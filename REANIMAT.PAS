@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,8 +49,9 @@ unit Reanimator;
 
 interface
 
-uses DNApp, Dialogs, Objects, Views, Drivers, DiskTool, Dos, Advance, Memory,
-     FViewer, Commands, FilesCol, Drives, RStrings, Messages, DNHelp, DNStdDlg,Tree;
+uses DNApp, Dialogs, Objects, Views, Drivers, DiskTool, Dos, advance, advance1,
+     advance2, advance3, Memory, FViewer, Commands, FilesCol, Drives, RStrings,
+     Messages, DNHelp, DNStdDlg,Tree;
 
 type
      PReaData = ^TReaData;
@@ -74,7 +75,7 @@ type
 
      PReanimateTreeInfoView = ^TReanimateTreeInfoView;
      TReanimateTreeInfoView = object(TDTreeInfoView)
-      CurDir, OldDir: PathStr;
+      CurDir, OldDir: String;
       FirstCall: Boolean;
       constructor Init(R: TRect);
       destructor Done; virtual;
@@ -268,7 +269,7 @@ end;
 destructor TReanimateTreeInfoView.Done;
 begin
  Inherited Done;
- ChDir(OldDir);
+ Advance2.lChDir(OldDir);
 end;
 
 procedure TReanimateTreeInfoView.Draw;
@@ -431,7 +432,7 @@ procedure TReanimator.HandleEvent;
       R: TRect;
       PV: PView;
       MemoStream: PStream;
-      Xt: ExtStr;
+      Xt: String;
       Cl: PWordCollection;
       Sz: LongInt;
  begin
@@ -500,7 +501,7 @@ procedure TReanimator.HandleEvent;
   T.X := Size.X div 2; T.Y := 1; MakeGlobal(T, T); Desktop^.MakeLocal(T,T);
   S := SelectDrive(T.X, T.Y, S[1], Off); if S = '' then Exit;
   if S[1] = Char(Drv^.Drive+65) then Exit;
-  ChDir(S);
+  Advance2.lChDir(S);
   GetDir(Byte(S[1])-64, S); if Abort then Exit;
   Dispose(Drv, Done);
   New(Drv, Init(Byte(S[1])-64, True));
@@ -607,7 +608,7 @@ procedure TReanimator.GetDirData;
  end;
 
  procedure InfoPaneUpdate;
- var S,S1: PathStr;
+ var S,S1: String;
 
  begin
   With InfoPane^ do
@@ -623,7 +624,7 @@ procedure TReanimator.GetDirData;
      if Copy(S,10,3)<>'   ' then S[Pos(' ',S)]:='.';
      DelSpace(s);
      if S='..' then begin
-                      ChDir(CurDir);
+                      Advance2.lChDir(CurDir);
                       CurDir:=FExpand(S);
                     end
                else if Length(CurDir)>3 then CurDir:=CurDir+'\'+S

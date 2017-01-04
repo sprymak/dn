@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -89,7 +89,9 @@ type
     constructor Init;
     constructor Load(var S: TStream);
     destructor Done; virtual;
+{DataCompBoy
     procedure AddCrossRef(Ref: TCrossRef);
+}
     procedure AddParagraph(P: PParagraph);
     procedure GetCrossRef(I: Integer; var Loc: TPoint; var Length: Byte;
       var Ref: Word);
@@ -242,7 +244,7 @@ begin
   FreeMem(CrossRefs, SizeOf(TCrossRef) * NumRefs);
   inherited Done
 end;
-
+{DataCompBoy
 procedure THelpTopic.AddCrossRef(Ref: TCrossRef);
 var
   P: PCrossRefs;
@@ -256,7 +258,7 @@ begin
   CrossRefs^[NumRefs] := Ref;
   Inc(NumRefs);
 end;
-
+}
 procedure THelpTopic.AddParagraph(P: PParagraph);
 var
   PP: ^PParagraph;

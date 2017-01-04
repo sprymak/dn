@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -47,10 +47,16 @@
 //
 //  Ini Configuration by VIV (C) 1999
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit dnini;
 interface
+uses Strings;
+
 
 type TBlockMarker=record end;
 
@@ -64,11 +70,13 @@ const
 
   {Interface}
   CutDriveInfo: Boolean = True;
-  HideLocalCurDir: Boolean = False;
-  HideNetworkCurDir: Boolean = True;
+  DriveInfoType: Longint = 2; {DataCompBoy} {DataCompBoy}
   WinManagerSelectNext: Boolean = True;
   DriveSelectVCenter: Boolean = False; {-$X-Man}
   SystemMenuChar: Longint = 4;
+  HorizScrollBarChars: string = #17#16#177#254#178; {DataCompBoy}
+  VertScrollBarChars:  string = #30#31#177#254#178; {DataCompBoy}
+  FadeDelay: Longint = 0; {Knave}
 
   {Clock}
   ShowSeconds: Boolean = True;
@@ -88,10 +96,12 @@ const
   CBAutoSave: Boolean = True; {-$VOL}
 
   {Kernel}
+  CanUseLFN: Boolean = True;
   AutoSave: Boolean = True;
   DebugMode: Boolean = False;
-  ShowKeyCode: Boolean = False;
-  CopyLimit8M: Boolean = True; {piwamoto}
+  ShowKeyCode: Longint = 0;
+  CopyLimit: LongInt = 8192; {DataCompBoy}{piwamoto}
+  HandleChDirCommand: Boolean = True; {DataCompBoy}
 
   {Editor}
   UnlimitUnindent: Boolean = False;
@@ -130,15 +140,16 @@ procedure SaveDnIniSettings;
 function ProbeINI(var INItime,INIsize:longint):boolean;
 
 implementation
-uses u_ini, advance, objects, dos;
+uses dos, LFN, {DataCompBoy}
+     u_ini, advance, advance1, advance2, advance3, objects;
 
 type
   TIniItemKind = (ikBoolean, ikString, ikLongint, ikChar{SYR});
 
   PIniItem = ^TIniItem;
   TIniItem = record
-    Section: PString;
-    Name: PString;
+    Section: PChar;
+    Name: PChar;
     Kind: TIniItemKind;
     VarPtr: Pointer;
   end;
@@ -153,8 +164,6 @@ var iP: PIniItem;
 begin
   if P = nil then Exit;
   iP := PIniItem(P);
-  DisposeStr(iP^.Section);
-  DisposeStr(iP^.Name);
   Dispose(iP);
 end;
 
@@ -167,16 +176,16 @@ procedure LoadDnIniSettings;
   begin
     with iP^ do
       case Kind of
-        ikBoolean: Boolean(VarPtr^) := IniF^.ReadBool(Section^, Name^, Boolean(VarPtr^));
-        ikString: String(VarPtr^) := IniF^.ReadStr(Section^, Name^, String(VarPtr^));
-        ikLongint: Longint(VarPtr^) := IniF^.ReadInt(Section^, Name^, Longint(VarPtr^));
-        ikChar: Char(VarPtr^) := IniF^.ReadChar(Section^, Name^, Char(VarPtr^)); {SYR}
+        ikBoolean: Boolean(VarPtr^) := IniF^.ReadBool(StrPas(Section), StrPas(Name), Boolean(VarPtr^));
+        ikString:  String (VarPtr^) := IniF^.ReadStr (StrPas(Section), StrPas(Name), String (VarPtr^));
+        ikLongint: Longint(VarPtr^) := IniF^.ReadInt (StrPas(Section), StrPas(Name), Longint(VarPtr^));
+        ikChar:    Char   (VarPtr^) := IniF^.ReadChar(StrPas(Section), StrPas(Name), Char   (VarPtr^)); {SYR}
       end;
   end;
 
 begin
   if IniCol = nil then Exit;
-  IniF := New(PIniFile, Init(SourceDir+'DN.INI'));
+  IniF := New(PIniFile, Init(SourceDir+'DN.INI')); {DataCompBoy}
   IniCol^.ForEach(@Loader);
   Dispose(IniF, Done(False));
 end;
@@ -187,10 +196,10 @@ procedure SaveDnIniSettings;
   begin
     with iP^ do
       case Kind of
-        ikBoolean: IniF^.WriteBool(Section^, Name^, Boolean(VarPtr^));
-        ikString: IniF^.WriteStr(Section^, Name^, String(VarPtr^));
-        ikLongint: IniF^.WriteInt(Section^, Name^, Longint(VarPtr^));
-        ikChar: IniF^.WriteChar(Section^, Name^, Char(VarPtr^)); {SYR}
+        ikBoolean: IniF^.WriteBool(StrPas(Section), StrPas(Name), Boolean  (VarPtr^));
+        ikString:  IniF^.WriteStr (StrPas(Section), StrPas(Name), CnvString(VarPtr));
+        ikLongint: IniF^.WriteInt (StrPas(Section), StrPas(Name), Longint  (VarPtr^));
+        ikChar:    IniF^.WriteChar(StrPas(Section), StrPas(Name), Char     (VarPtr^)); {SYR}
       end;
   end;
 
@@ -201,14 +210,14 @@ begin
   Dispose(IniF, Done(True));
 end;
 
-procedure RegisterVar(pSection, pName: String; pKind: TIniItemKind; pVarPtr: Pointer);
+procedure RegisterVar(pSection, pName: PChar; pKind: TIniItemKind; pVarPtr: Pointer);
 var iP: PIniItem;
 begin
   New(iP);
   with iP^ do
   begin
-     Section := NewStr(pSection);
-     Name := NewStr(pName);
+     Section := pSection;
+     Name := pName;
      Kind := pKind;
      VarPtr := pVarPtr;
   end;
@@ -216,65 +225,149 @@ begin
 end;
 
 const
-  CSInterface = 'Interface';
-  CSClock = 'Clock';
-  CSSmartPad = 'SmartPad';
-  CSGame = 'Game';
-  CSClipBoard = 'ClipBoard';
-  CSKernel = 'Kernel';
-  CSEditor = 'Editor';
-  CSFilePanels = 'FilePanels';
-  CSNetInfo = 'NetInfo';
-  CSLanguage = 'Language';
+{{{{{{{{{{{{}
+ CSInterface            :PChar = 'Interface';
+{{{{{{{{{{{{}
+ KCutDriveInfo          :PChar = 'CutDriveInfo';
+ KDriveInfoType         :PChar = 'DriveInfoType';
+ KWinManagerSelectNext  :PChar = 'WinManagerSelectNext';
+ KDriveSelectVCenter    :PChar = 'DriveSelectVCenter';
+ KSystemMenuChar        :PChar = 'SystemMenuChar';
+ KHorizScrollBarChars   :PChar = 'HorizScrollBarChars';
+ KVertScrollBarChars    :PChar = 'VertScrollBarChars';
+ KFadeDelay             :PChar = 'FadeDelay';
+{{{{{{{{{{{{}
+
+{{{{{{{{{{{{}
+ CSClock                :PChar = 'Clock';
+{{{{{{{{{{{{}
+ KShowSeconds           :PChar = 'ShowSeconds';
+ KShowCentury           :PChar = 'ShowCentury';
+ KShowDayOfWeek         :PChar = 'ShowDayOfWeek';
+ KDaysOfWeek            :PChar = 'DaysOfWeek';
+{{{{{{{{{{{{}
+
+{{{{{{{{{{{{}
+ CSSmartPad             :PChar = 'SmartPad';
+{{{{{{{{{{{{}
+ KInsertDate            :PChar = 'InsertDate';
+ KLineChar              :PChar = 'LineChar';
+{{{{{{{{{{{{}
+
+
+{{{{{{{{{{{{}
+ CSGame                 :PChar = 'Game';
+{{{{{{{{{{{{}
+ KEnableGame            :PChar = 'EnableGame';
+{{{{{{{{{{{{}
+
+{{{{{{{{{{{{}
+ CSClipBoard            :PChar = 'ClipBoard';
+{{{{{{{{{{{{}
+ KSaveClipBoardOnExit   :PChar = 'SaveClipBoardOnExit';
+ KMaxClipBoardSize      :PChar = 'MaxClipBoardSize';
+{{{{{{{{{{{{}
+
+{{{{{{{{{{{{}
+ CSKernel               :PChar = 'Kernel';
+{{{{{{{{{{{{}
+ KUseLFN                :PChar = 'UseLFN';
+ KAutoSave              :PChar = 'AutoSave';
+ KDebugMode             :PChar = 'DebugMode';
+ KShowKeyCode           :PChar = 'ShowKeyCode';
+ KCopyLimit             :PChar = 'CopyLimit';
+ KHandleChDirCommand    :PChar = 'HandleChDirCommand';
+{{{{{{{{{{{{}
+
+{{{{{{{{{{{{}
+ CSEditor               :PChar = 'Editor';
+{{{{{{{{{{{{}
+ KUnlimitUnindent       :PChar = 'UnlimitUnindent';
+ KKoi8rKeyMap           :PChar = 'Koi8rKeyMap';
+ KDrawRShift            :PChar = 'DrawRShift';
+ KAutoScopeDetect       :PChar = 'AutoScopeDetect';
+ KShowBookmarks         :PChar = 'ShowBookmarks';
+ KFastBookmark          :PChar = 'FastBookmark';
+ KDefCodePage           :PChar = 'DefCodePage';
+ KCapitalCodePageName   :PChar = 'CapitalCodePageName';
+ KFastSearchDeep        :PChar = 'FastSearchDeep';
+ KWinManagerPosToEdit   :PChar = 'WinManagerPosToEdit';
+ KAutoBracketPairs      :PChar = 'AutoBracketPairs';
+{{{{{{{{{{{{}
+
+{{{{{{{{{{{{}
+ CSFilePanels           :PChar = 'FilePanels';
+{{{{{{{{{{{{}
+ KShowFileMask          :PChar = 'ShowFileMask';
+ KShowLongName          :PChar = 'ShowLongName';
+{{{{{{{{{{{{}
+
+{{{{{{{{{{{{}
+ CSNetInfo              :PChar = 'NetInfo';
+{{{{{{{{{{{{}
+ KNoLevelsInfo          :PChar = 'NoLevelsInfo';
+{{{{{{{{{{{{}
+
+{{{{{{{{{{{{}
+ CSLanguage             :PChar = 'Language';
+{{{{{{{{{{{{}
+ KActiveLanguage        :PChar = 'ActiveLanguage';
+ KHelpLanguageOverride  :PChar = 'HelpLanguageOverride';
+ KShowLanguageMenu      :PChar = 'ShowLanguageMenu';
+{{{{{{{{{{{{}
 
 procedure FillVarList;
 begin
   {Interface}
-  RegisterVar(CSInterface, 'CutDriveInfo', ikBoolean, @CutDriveInfo);
-  RegisterVar(CSInterface, 'HideLocalCurDir', ikBoolean, @HideLocalCurDir);
-  RegisterVar(CSInterface, 'HideNetworkCurDir', ikBoolean, @HideNetworkCurDir);
-  RegisterVar(CSInterface, 'WinManagerSelectNext', ikBoolean, @WinManagerSelectNext);
-  RegisterVar(CSInterface, 'DriveSelectVCenter', ikBoolean, @DriveSelectVCenter); {-$X-Man}
-  RegisterVar(CSInterface, 'SystemMenuChar', ikLongint, @SystemMenuChar);
+  RegisterVar(CSInterface, KCutDriveInfo,         ikBoolean, @CutDriveInfo);
+  RegisterVar(CSInterface, KDriveInfoType,        ikLongint, @DriveInfoType);
+  RegisterVar(CSInterface, KWinManagerSelectNext, ikBoolean, @WinManagerSelectNext);
+  RegisterVar(CSInterface, KDriveSelectVCenter,   ikBoolean, @DriveSelectVCenter); {-$X-Man}
+  RegisterVar(CSInterface, KSystemMenuChar,       ikLongint, @SystemMenuChar);
+  RegisterVar(CSInterface, KHorizScrollBarChars,  ikString,  @HorizScrollBarChars);
+  RegisterVar(CSInterface, KVertScrollBarChars,   ikString,  @VertScrollBarChars);
+  RegisterVar(CSInterface, KFadeDelay,            ikLongInt, @FadeDelay);
   {Clock}
-  RegisterVar(CSClock, 'ShowSeconds', ikBoolean, @ShowSeconds);
-  RegisterVar(CSClock, 'ShowCentury', ikBoolean, @ShowCentury);
-  RegisterVar(CSClock, 'ShowDayOfWeek', ikboolean, @ShowDayOfWeek);
-  RegisterVar(CSClock, 'DaysOfWeek', ikString, @DaysOfWeek);
+  RegisterVar(CSClock, KShowSeconds,   ikBoolean, @ShowSeconds);
+  RegisterVar(CSClock, KShowCentury,   ikBoolean, @ShowCentury);
+  RegisterVar(CSClock, KShowDayOfWeek, ikboolean, @ShowDayOfWeek);
+  RegisterVar(CSClock, KDaysOfWeek,    ikString,  @DaysOfWeek);
   {SmartPad}
-  RegisterVar(CSSmartPad, 'InsertDate', ikBoolean, @SPInsertDate);
-  RegisterVar(CSSmartPad, 'LineChar', ikLongint, @SPLineChar); {SYR}
+  RegisterVar(CSSmartPad, KInsertDate, ikBoolean, @SPInsertDate);
+  RegisterVar(CSSmartPad, KLineChar,   ikLongint, @SPLineChar); {SYR}
   {Game}
-  RegisterVar(CSGame, 'EnableGame', ikBoolean, @EnableGame);
+  RegisterVar(CSGame, KEnableGame, ikBoolean, @EnableGame);
   {ClipBoard}
-  RegisterVar(CSClipBoard, 'SaveClipBoardOnExit', ikBoolean, @CBAutoSave);
-  RegisterVar(CSClipBoard, 'MaxClipBoardSize', ikLongint, @CBSize);
+  RegisterVar(CSClipBoard, KSaveClipBoardOnExit, ikBoolean, @CBAutoSave);
+  RegisterVar(CSClipBoard, KMaxClipBoardSize,    ikLongint, @CBSize);
   {Kernel}
-  RegisterVar(CSKernel, 'AutoSave', ikBoolean, @AutoSave);
-  RegisterVar(CSKernel, 'DebugMode', ikBoolean, @DebugMode);
-  RegisterVar(CSKernel, 'ShowKeyCode', ikBoolean, @ShowKeyCode);
-  RegisterVar(CSKernel, 'CopyLimit8M', ikBoolean, @CopyLimit8M);
+  RegisterVar(CSKernel, KUseLFN,              ikBoolean, @CanUseLFN);
+  RegisterVar(CSKernel, KAutoSave,            ikBoolean, @AutoSave);
+  RegisterVar(CSKernel, KDebugMode,           ikBoolean, @DebugMode);
+  RegisterVar(CSKernel, KShowKeyCode,         ikLongInt, @ShowKeyCode);
+  RegisterVar(CSKernel, KCopyLimit,           ikLongInt, @CopyLimit);
+  RegisterVar(CSKernel, KHandleChDirCommand,  ikBoolean, @HandleChDirCommand); {DataCompBoy}
   {Editor}
-  RegisterVar(CSEditor, 'UnlimitUnindent', ikBoolean, @UnlimitUnindent);
-  RegisterVar(CSEditor, 'Koi8rKeyMap', ikBoolean, @Koi8rKeyMap);
-  RegisterVar(CSEditor, 'DrawRShift', ikBoolean, @DrawRShift);
-  RegisterVar(CSEditor, 'AutoScopeDetect', ikBoolean, @AutoScopeDetect);
-  RegisterVar(CSEditor, 'ShowBookmarks', ikBoolean, @ShowBookmarks);
-  RegisterVar(CSEditor, 'FastBookmark', ikBoolean, @FastBookmark);
-  RegisterVar(CSEditor, 'DefCodePage', ikString, @DefCodePage);
-  RegisterVar(CSEditor, 'CapitalCodePageName', ikBoolean, @CapitalCodePageName);
-  RegisterVar(CSEditor, 'FastSearchDeep', ikLongint, @FastSearchDeep);
-  RegisterVar(CSEditor, 'WinManagerPosToEdit', ikBoolean, @WinManagerPosToEdit);
-  RegisterVar(CSEditor, 'AutoBracketPairs', ikString, @AutoBracketPairs);
+  RegisterVar(CSEditor, KUnlimitUnindent,     ikBoolean, @UnlimitUnindent);
+  RegisterVar(CSEditor, KKoi8rKeyMap,         ikBoolean, @Koi8rKeyMap);
+  RegisterVar(CSEditor, KDrawRShift,          ikBoolean, @DrawRShift);
+  RegisterVar(CSEditor, KAutoScopeDetect,     ikBoolean, @AutoScopeDetect);
+  RegisterVar(CSEditor, KShowBookmarks,       ikBoolean, @ShowBookmarks);
+  RegisterVar(CSEditor, KFastBookmark,        ikBoolean, @FastBookmark);
+  RegisterVar(CSEditor, KDefCodePage,         ikString,  @DefCodePage);
+  RegisterVar(CSEditor, KCapitalCodePageName, ikBoolean, @CapitalCodePageName);
+  RegisterVar(CSEditor, KFastSearchDeep,      ikLongint, @FastSearchDeep);
+  RegisterVar(CSEditor, KWinManagerPosToEdit, ikBoolean, @WinManagerPosToEdit);
+  RegisterVar(CSEditor, KAutoBracketPairs,    ikString,  @AutoBracketPairs);
   {FilePanels}
-  RegisterVar(CSFilePanels, 'ShowFileMask', ikBoolean, @ShowFileMask);
-  RegisterVar(CSFilePanels, 'ShowLongName', ikBoolean, @ShowLongName);
+  RegisterVar(CSFilePanels, KShowFileMask, ikBoolean, @ShowFileMask);
+  RegisterVar(CSFilePanels, KShowLongName, ikBoolean, @ShowLongName);
   {NetInfo}
-  RegisterVar(CSNetInfo, 'NoLevelsInfo', ikBoolean, @NoLevelsInfo);
+  RegisterVar(CSNetInfo, KNoLevelsInfo, ikBoolean, @NoLevelsInfo);
   {Language}
-  RegisterVar(CSLanguage, 'ActiveLanguage', ikString, @ActiveLanguage);
-  RegisterVar(CSLanguage, 'HelpLanguageOverride', ikString, @HelpLanguageOverride);
-  RegisterVar(CSLanguage, 'ShowLanguageMenu', ikBoolean, @ShowLanguageMenu);
+  RegisterVar(CSLanguage, KActiveLanguage,       ikString,  @ActiveLanguage);
+  RegisterVar(CSLanguage, KHelpLanguageOverride, ikString,  @HelpLanguageOverride);
+  RegisterVar(CSLanguage, KShowLanguageMenu,     ikBoolean, @ShowLanguageMenu);
 end;
 
 procedure InitIniEngine;
@@ -291,18 +384,21 @@ begin
   IniCol := nil;
 end;
 
+        {-DataCompBoy-}
 function ProbeINI(var INItime,INIsize:longint):boolean;
-var F:file; SR:SearchRec;
+var SR:lSearchRec;
 begin
     INItime:=0;
     INIsize:=0;
-    FindFirst(SourceDir+'DN.INI',AnyFile,SR);
-    if (DosError=0) and ((SR.Attr and Directory)=0) then begin
+    lFindFirst(SourceDir+'DN.INI',AnyFile,SR);
+    lFindClose(SR);
+    if (DosError=0) and ((SR.SR.Attr and Directory)=0) then begin
         ProbeINI:=True;
-        INItime:=SR.Time;
-        INIsize:=SR.Size
+        INItime:=SR.SR.Time;
+        INIsize:=SR.SR.Size
     end else ProbeINI:=False
 end;
+        {-DataCompBoy-}
 
 begin
   IniCol := nil;

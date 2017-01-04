@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -74,12 +74,15 @@ USES
   Dialogs,
   ExtraMemory,
   DNHelp,
-  Advance;
+  advance,
+  advance1,
+  advance2,
+  advance3;
 
 type
     PTextColl    = ^TTextColl;
     TTextColl    = object(TCollection)
-                    Procedure   AddStr(s : String);
+                    Procedure   AddStr(const s : String);
                     Procedure   FreeItem(Item : Pointer);        virtual;
                    end;
 
@@ -87,7 +90,7 @@ Procedure TTextColl.AddStr;
 begin Insert(NewStr(s)); end;
 
 Procedure TTextColl.FreeItem;
-begin DisposeStr(Item); end;
+begin DisposeStr(PString(Item)); end;
 
 
 var TSR : PTextColl;
@@ -297,9 +300,9 @@ begin
  PD^.Insert(New(PLabel,Init(R, GetString(dlTSRTitle),TSRlist)));
 
  R.Assign(40,2,50,4);
- PD^.Insert(New(PButton, Init(R, GetString(dlDetailButton), cmOK, bfDefault)));
+ PD^.Insert(New(PButton, Init(R, GetString(dlDetailButton), cmOK, bfNormal)));
  Inc(R.A.Y,2);Inc(R.B.Y,2);
- PD^.Insert(New(PButton, Init(R, GetString(dlOKButton), cmCancel, bfNormal)));
+ PD^.Insert(New(PButton, Init(R, GetString(dlOKButton), cmCancel, bfDefault)));
  PD^.SelectNext(False);
  repeat
   w:=DeskTop^.ExecView(PD);
@@ -354,8 +357,16 @@ end;
 function _Processors: Word; far; external;
 {$L CPUType}
 
+Type TCPUFlagInfo = record
+                      case Item: integer of
+                         0: (longWord: longint);
+                         1: (HiWord,
+                             LoWord: word)
+                    end;
+
 Type TCPUExtInfo=record
                 MMXSupport,
+                SSESupport,
                 FPUOnChip,
                 CPUStepping,
                 CPUModel,
@@ -363,18 +374,21 @@ Type TCPUExtInfo=record
               end;
 
 Var CPUInfo: TCpuExtInfo;
+    CPUFlag: TCPUFlagInfo;
 
-procedure GetExtCpuInfo; assembler;
+procedure GetExtCpuInfo;
+
+procedure Body;assembler;
 asm
         push    bx
         push    bp
         db      $66
         xor     ax,ax
-;        mov     [CPUInfo.MMXSupport],  al
-;        mov     [CPUInfo.FPUOnChip],   al
-;        mov     [CPUInfo.CPUStepping], al
-;        mov     [CPUInfo.CPUModel],    al
-;        mov     [CPUInfo.CPUFamily],   al
+        mov     [CPUInfo.MMXSupport],  al
+        mov     [CPUInfo.FPUOnChip],   al
+        mov     [CPUInfo.CPUStepping], al
+        mov     [CPUInfo.CPUModel],    al
+        mov     [CPUInfo.CPUFamily],   al
         inc     ax
         db      $0F,$A2         {CPUID}
         mov     bx,ax
@@ -389,31 +403,52 @@ asm
         mov     [CPUInfo.CPUFamily], ah
         cmp     ah,5
         jl      @Done
+
         db      $66
         xor     ax,ax
         inc     ax
         db      $0F,$A2         {CPUID}
-;        db      $66
+
+        db      $66
+        mov     word ptr CpuFlag.LoWord, dx
+        db      $66
+        shr     dx, 16
+        mov     word ptr CpuFlag.HiWord, dx
+{        db      $66
+        test    dx,$0001
+        jz      @MMXTest
+        mov     [CPUInfo.FPUOnChip],1
+
+@MMXTest:
+        db      $66
+        shr     dx,16
+        db      $66
         test    dx,$0080
-;        dw      $0080
         jz      @PreDone
         mov     [CPUInfo.MMXSupport],1
+        db      $66
+        test    dx,$0100
+        jz      @PreDone
+        mov     [CPUInfo.SSESupport],1
 @PreDone:
-;        db      $66
-        test    dx,$0001
-;        dw      $0001
-        jz      @Done
-        mov     [CPUInfo.FPUOnChip],1
+}
 @Done:  pop     bp
         pop     bx
 end;
 
+begin
+  FillChar(CPUinfo,SizeOf(CPUinfo),0);
+  FillChar(CPUFlag,SizeOf(CPUFlag),0);
+  Body;
+  if (CpuFlag.LoWord and $1)>0 then CpuInfo.FpuOnChip:=1;
+  if (CpuFlag.HiWord and $80)>0 then CpuInfo.MMXSupport:=1;
+  if (CpuFlag.HiWord and $200)>0 then CpuInfo.SSESupport:=1;
+end;
 
 Procedure GetCPUinfo(var Name, CoProc: String);
 var s: String;
     i,y: Word;
 begin
- FillChar(CPUinfo,SizeOf(CPUinfo),0);
 
  I := _Processors and $FF7F;
 
@@ -443,24 +478,30 @@ if I and $7F >= 6 then
    09 : s:='80386DX';
    10 : s:='80486';
    11 : s:='80486SX';
-   12 : s:='Pentium(tm)';
+   12 : s:='Pentium';
    13 : s:='P6 family';
-   else s:='Unknown';
+   else s:='Future family';
  end;
 
  Name := S;
 
- {Added by Excelence}
+ {Added by Excelence}{changed by Piwamoto}
  if (I and $7F)>11 then
- begin
+  begin
    GetExtCpuInfo;
+   if CpuInfo.MMXSupport=1 then begin
+     if CpuInfo.SSESupport=1 then
+       Name:=Name+', MMX/SSE Support'
+     else
+       Name:=Name+', MMX Support'
+     end;
    Str(CpuInfo.CPUFamily, s);
    Name:=Name+' (F='+s;
    Str(CpuInfo.CPUModel, s);
    Name:=Name+' M='+s;
    Str(CpuInfo.CPUStepping, s);
    Name:=Name+' S='+s+')';
- end;
+  end;
 
  if I and $80 <> 0 then Name := Name + ', V86 mode';
 
@@ -482,12 +523,6 @@ if I and $7F >= 6 then
  end;
  {if i and 2 = 0 then S := 'None' else S := 'Installed'};
  CoProc := S;
- {Added by Excelence}
- if (I and $7F)>11 then
-   if CpuInfo.MMXSupport=1 then
-     CoProc:=CoProc+', MMX Support'
-   else
-     CoProc:=CoProc+', MMX no support';
 end;
 
 Function _MHz   : Word; far; external;
@@ -498,12 +533,12 @@ function GetSpeed(var S: String): LongInt;
  var W: LongInt;
      A: Real;
 begin
- A := _MHz;
- A := A/100;
- Str((A):6:2, S);
- w := Speed;
- W := Trunc(w / 5.5);
- GetSpeed := W;
+  A := _MHz;
+  A := A/100;
+  Str((A):6:2, S);
+  w := Speed;
+  W := Trunc(w / 5.5);
+  GetSpeed := W;
 end;
 
 type PModel = ^TModel;
@@ -567,15 +602,31 @@ begin
   $2D: S := 'Compaq PC';
   $E1: S := 'PS/2 Model 55-5530 Laptop';
   $30: S := 'Sperry PC';
-  else S := 'Unknown machine type. Report to RIT';
+  else S := 'Unknown machine type.';
  end;
 end;
 
+Function PCIBiosVersion: word; assembler;
+asm
+{  db  $66}
+  mov ax, $b101
+{  db  $66}
+  mov di, 0
+  int $1A
+{  db  $66}
+  cmp ah, 0
+{  db  $66}
+  jne @EndProc
+{  db  $66}
+  mov ax, bx
+@EndProc:
+end;
 
  Function GetBusType:String;
  var  S : String  ;
       Ft1,Ft2,Ft3 : byte ;
       OK : boolean ;
+      PCIVer : word;
       PCMCIA : boolean ;
       EISA   : boolean ;
       SCSI   : boolean ;
@@ -595,7 +646,7 @@ end;
                if PCModel = $FC then if
                   PCSubModel < 3 then Exit ; { Exclude XT 286 machine }
              end;
-        S := 'ISA/AT/Classic bus' ;
+        S := 'ISA/AT';
      asm
         mov OK,0
         mov AH,0C0h
@@ -669,17 +720,21 @@ end;
   @@6:  mov  APM,1
   @@7:
       end;
-         SCSI  := False ;
+        SCSI  := False ;
         if Ok then begin
-         if Ft1 and 2 > 0 then S := 'Micro Channel';
-         if Ft1 and 1 > 0 then S := 'MCA and ISA';
-            SCSI := (Ft3 and $8> 0) ;
+          if Ft1 and 2 > 0 then S := 'Micro Channel';
+          if Ft1 and 1 > 0 then S := 'MCA and ISA';
+          SCSI := (Ft3 and $8> 0) ;
         end;
-         if EISA then S := 'EISA';
-         if PCMCIA then S:= S + ', PCMCIA';
-         if SCSI then S := S + ', onboard SCSI';
-         if APM  then S := S + ', APM';
-         GetBusType := S ;
+        PCIVer:=PCIBIOSVersion;
+        if EISA then S := 'EISA';
+        if PCIVer<>0 then S := S + '/PCI ' +
+                              chr(((PCIVer and $F00) shr 8)+$30) + '.' +
+                              chr(((PCIVer and $F0) shr 4)+$30) + chr((PCIVer and $F)+$30);
+        if PCMCIA then S:= S + ', PCMCIA';
+        if SCSI then S := S + ', onboard SCSI';
+        if APM  then S := S + ', APM';
+        GetBusType := S;
   end;
 
 
@@ -737,6 +792,70 @@ begin
   end;
 end;
 
+Procedure ShowCPUFlagInfo(var CPUFlagInfo: TCPUFlagInfo);
+
+Const cFlag10 = 9;
+      cFlag11 = 11;
+      cFlag20 = 2;
+      cFlag21 = 7;
+      cFlag22 = 9;
+
+var  s: string;
+     D: PDialog;
+     i: integer;
+
+     MM: record
+           S: array[0..20] of longint;
+         end;
+
+     cPresent,
+     cAbsent: string[10];
+
+begin
+{  s:=  long2str(CpuFlagInfo.LoWord,8)+chr(13);
+   s:=s+long2str(CpuFlagInfo.HiWord,8)+chr(13);
+
+  s:=Long2Str(CPUFlagInfo.LongWord, 16); }
+
+  cPresent := GetString(dlPresent);
+  cAbsent  := GetString(dlAbsent);
+
+  for i:=0 to cFlag10 do begin
+    if (CpuFlagInfo.LoWord and (1 shl i))>0 then
+      MM.S[i]:=longint(@cPresent)
+    else
+      MM.S[i]:=longint(@cAbsent);
+  end;
+
+  for i:=cFlag11 to 15 do begin
+    if (CpuFlagInfo.LoWord and (1 shl i))>0 then
+      MM.S[i-1]:=longint(@cPresent)
+    else
+      MM.S[i-1]:=longint(@cAbsent);
+  end;
+
+  for i:=0 to cFlag20 do begin
+    if (CpuFlagInfo.HiWord and (1 shl i))>0 then
+      MM.S[i+15]:=longint(@cPresent)
+    else
+      MM.S[i+15]:=longint(@cAbsent);
+  end;
+
+  for i:=cFlag21 to cFlag22 do begin
+{    s:=Long2Str(i,2); }
+    if (CpuFlagInfo.HiWord and (1 shl i))>0 then
+      MM.S[i+11]:=longint(@cPresent)
+    else
+      MM.S[i+11]:=longint(@cAbsent);
+  end;
+
+  D := PDialog(LoadResource(dlgCpuFlagInfo));
+  if D <> nil then begin
+     D^.SetData(MM);
+     Application^.ExecView(D);
+     Dispose(D, Done);
+  end;
+end;
 
 procedure SystemInfo;
 var
@@ -755,13 +874,14 @@ var
     Prc: String[20];
     EQList, Y, XMSSize: Word;
     LL: Array[1..10] of LongInt;
+    w: Word;
 
 begin
  asm
   int 11h
   mov EQList, ax
  end;
- R.Assign(1,1,70,22);
+ R.Assign(1,1,73,22);
  New(D, Init(R, GetString(dlSystemInfo)));
  D^.Options := D^.Options or ofCentered;
  D^.HelpCtx := hcSystemInfo;
@@ -777,7 +897,7 @@ begin
  LL[5] := LongInt(@Prc);
  LL[6] := LongInt(@Btype);
  FormatStr(S, GetString(dlSI_Main), LL);
- R.Assign(3,2,66,7);
+ R.Assign(3,2,69,7);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
@@ -803,7 +923,7 @@ begin
      Inc(Y);
     end;
   end;
- R.Assign(3,9,66,9+Y);
+ R.Assign(3,9,69,9+Y);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
@@ -855,15 +975,17 @@ begin
  S := S + GetString(dlSI_OSVer);
  EQList := DOSVersion;
  if WordRec(EQList).Lo >= 10 then begin
-                                    if (WordRec(EQList).Hi = 30) and
-                                       (WordRec(EQList).Lo = 20) then S := S+'OS/2 Warp'
-                                       else
-                                    S := S + 'OS/2 '+ItoS(WordRec(EQList).Lo div 10)+'.'+
-                                                     ItoS(WordRec(EQList).Hi)
-                                  end
-                             else S := S + 'DOS '+ ItoS(WordRec(EQList).Lo)+'.'+
-                                                   ItoS(WordRec(EQList).Hi);
- R.Assign(39,11+Y,66,14+Y);
+     case EQList of
+         $1E14: S := S+'OS/2 Warp 3';
+         $2814: S := S+'OS/2 Warp 4';
+     else
+         S := S + 'OS/2 '+ItoS(WordRec(EQList).Lo div 10)+'.'+
+              ItoS(WordRec(EQList).Hi)
+     end
+ end else
+     S := S + 'DOS '+ ItoS(WordRec(EQList).Lo)+'.'+
+          ItoS(WordRec(EQList).Hi);
+ R.Assign(39,11+Y,69,14+Y);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
@@ -873,10 +995,22 @@ begin
  D^.Insert(P);
 
  R.Assign(1, 18, 11, 20);
- P := New(PButton, Init(R, GetString(dlOKButton), cmOK, bfDefault));
+ P := New(PButton, Init(R, GetString(dlOKButton), cmCancel, bfNormal));
  P^.Options := P^.Options or ofCenterX;
  D^.Insert(P);
- Desktop^.ExecView(D);
+
+ { Added by Excelence }
+ if CPU[1]='P' then { Пока Pentium... }
+ begin
+   D^.Insert(New(PButton, Init(R, GetString(dlDetailButton), cmOk, bfDefault)));
+   repeat
+   w:=DeskTop^.ExecView(D);
+    if w<>cmCancel then
+      begin
+        ShowCPUFlagInfo(CPUFlag);
+      end;
+   until (w=cmCancel);
+ end;
 
  Dispose(D, Done);
 end;

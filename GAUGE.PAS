@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -51,7 +51,7 @@ unit Gauge;
 
 interface
 
-uses Drivers, Objects, Views, Dialogs, Dos;
+uses Drivers, Objects, Views, Dialogs, Dos, TitleSet;
 
 const
   cmUpdateGauge = 12000;
@@ -82,7 +82,7 @@ type
    Lines: PCollection;
    But: PButton;
    QuitNormal: Boolean;
-   Top, Bottom: String[ SizeOf( PathStr ) - 1 ];
+   Top, Bottom: String[ SizeOf( String ) - 1 ];
    constructor Init(Bounds: TRect);
    procedure Write(N: Integer;S: String);
    function GetPalette: PPalette; virtual;
@@ -100,7 +100,7 @@ type
 procedure DispatchEvents(InfoView: PWhileView; var CancelParam: Boolean);
 
 implementation
-uses DNApp, RStrings, Commands, Advance;
+uses DNApp, RStrings, Commands, advance, advance1, advance2, advance3;
 
 constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: Longint );
 begin
@@ -270,6 +270,7 @@ begin
   if AState = sfSelected then
   begin
     SetState(sfActive, Enable);
+    if Top<>'' then SetTitle(Top);
     WindowCommands := [cmNext, cmPrev];
     if Enable then EnableCommands(WindowCommands)
     else DisableCommands(WindowCommands);
@@ -406,6 +407,5 @@ begin
     or (Event.What = evKeyDown) and ((Event.ScanCode=kbAltS) or (Event.))
     then Application} InfoView^.HandleEvent(Event);
 end;
-
 
 end.

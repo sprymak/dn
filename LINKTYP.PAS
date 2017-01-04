@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit LinkTyp;
 
 {$A+}
 
-{$I LINK.INC} interface uses {$IFDEF OS2} ObjOS2 {$ELSE} Objects {$ENDIF};
+{$I LINK.INC} interface uses {$IFDEF OS2} ObjOS2 {$ELSE} Objects {$ENDIF},
+                        LFN; {-DataCompBoy-}
 
 
 type
@@ -69,7 +74,7 @@ type
    TCL_File = record
     TotSize : LongInt;
     CurPos  : LongInt;
-    Handle  : file;
+    Handle  : lFile; {DataCompBoy}
     Error   : Word;
     Id      : Byte
    end;
@@ -88,7 +93,6 @@ type
      Attr : Byte;
      Id   : Byte;
    end;
-
 
    TCL_DirEntry = packed record
      Name : array[1..8] of char;

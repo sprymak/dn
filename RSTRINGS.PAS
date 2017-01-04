@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
+//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
 
 UNIT
@@ -51,6 +55,7 @@ UNIT
 INTERFACE
 
 USES
+  LFN, {DataCompBoy}
   Objects,
   Commands;
 
@@ -83,7 +88,7 @@ TYPE
   end;
 
 {ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
-IMPLEMENTATION uses Advance;
+IMPLEMENTATION uses advance, advance1, advance2, advance3;
 {ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
 CONST
   TempStreamName = '$MAKERES.TMP';
@@ -139,13 +144,14 @@ begin
   Empty := Integer( Index^[ Integer( Key ) ] ) = -1
 end;
 
+        {-DataCompBoy-}
 DESTRUCTOR TIdxMaker.Done;
 var
   I: LongInt;
   IdxSize: LongInt;
   MaxPos: LongInt;
   B: Byte;
-  F: File;
+  F: lFile;
 begin
   IdxSize := Count * SizeOf( TOffsetType );
   For I := 0 to Count - 1 do Inc( Index^[ I ], IdxSize + SizeOf( Count ));
@@ -161,9 +167,10 @@ begin
   Dispose( Stream, Done );
   Dispose( TempStream, Done );
   FreeMem( Index, 65520 );
-  Assign( F, TempStreamName );
-  Erase( F );
+  lAssignFile( F, TempStreamName );
+  lEraseFile( F );
   inherited Done;
 end;
+        {-DataCompBoy-}
 
 END.

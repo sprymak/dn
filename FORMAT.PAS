@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 {$DEFINE bFMTDBG}
@@ -54,7 +58,8 @@
    interface
 {$ENDIF}
 
- uses  Objects,DOS,advance;
+ uses LFN, {DataCompBoy} Objects, DOS, advance, advance1, advance2, advance3;
+
 
  Const
 
@@ -211,8 +216,8 @@ var
 
 
       SysFile  = record
-          Path : string[80];
-          Name : string[12];
+          Path : string;
+          Name : string;
           Size : longint ;
       end;
 
@@ -435,10 +440,10 @@ begin
   MaxAvail := MemAdjust(System.MaxAvail);
 end;
 
-
+        {-DataCompBoy-}
 function CopyFile(FFrom,FTo:string):boolean;
 var
-    FromF, ToF: file;
+    FromF, ToF: lfile;
     NumRead, NumWritten: Word;
     Buf: array[1..4096] of Char;
 
@@ -446,44 +451,45 @@ var
     FTIME : longint;
 
    begin
-     Assign(FromF, FFrom); { Open input file }
+     lAssignFile(FromF, FFrom); { Open input file }
 
-     GetFattr(FromF,FATTR);
+     lGetFattr(FromF,FATTR);
 
-     Reset(FromF, 1);  { Record size = 1 }
-     Assign(ToF, Fto ); { Open output file }
-     Rewrite(ToF, 1);  { Record size = 1 }
+     lResetFile(FromF, 1);   { Record size = 1 }
+     lAssignFile(ToF, Fto ); { Open output file }
+     lRewriteFile(ToF, 1);   { Record size = 1 }
      repeat
-       BlockRead(FromF, Buf, SizeOf(Buf), NumRead);
-       BlockWrite(ToF, Buf, NumRead, NumWritten);
+       BlockRead(FromF.F, Buf, SizeOf(Buf), NumRead);
+       BlockWrite(ToF.F, Buf, NumRead, NumWritten);
      until (NumRead = 0) or (NumWritten <> NumRead);
 
-     GetFtime(FromF,FTime);
-     GetFattr(FromF,FATTR);
-     SetFtime(ToF,FTime);
+     GetFtime(FromF.F,FTime);
+     lGetFattr(FromF,FATTR);
+     SetFtime(ToF.F,FTime);
 
 
-     Close(FromF);
-     Close(ToF);
+     Close(FromF.F);
+     Close(ToF.F);
 
-     Assign(ToF, Fto ); { Open output file }
-     SetFattr(ToF,FATTR);
+     lAssignFile(ToF, Fto ); { Open output file }
+     lSetFattr(ToF,FATTR);
    end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 function FileExists(FileName: String): Boolean;
 { Boolean function that returns True if the file exists;otherwise,
  it returns False. Closes the file if it exists. }
    var
-    F: file;
+    F: lfile;
    begin
-    {$I-}
-    Assign(F, FileName);
+    lAssignFile(F, FileName);
     FileMode := 0;  { Set file access to read only }
-    Reset(F);
-    Close(F);
-    {$I+}
+    lResetFile(F,1);
+    Close(F.F);
     FileExists := (IOResult = 0) and (FileName <> '');
    end;  { FileExists }
+        {-DataCompBoy-}
 
 procedure GetAbsSector(relSector:Word; BootS : BootSector;
                    Var track,head,phsector:byte);
@@ -2825,13 +2831,14 @@ procedure   tfmt.CalculateBootFatRoot;
 
 
 
+        {-DataCompBoy-}
 function    tfmt.FindSystemFiles;
 
-var S : string[80] ;
+var S : string ;
 
     S1,S2 : Boolean ;
 
-    F : File ;
+    F : lFile ;
 
    begin
          FindSystemFiles := False ;
@@ -2845,10 +2852,10 @@ var S : string[80] ;
          Path := GetPath(S);
        If Not FileExists(Path+Name) then Exit ;
 
-        Assign(f, Path + Name );
-        Reset(f,1);
-        size := FileSize(f);
-        close(f);
+        lAssignFile(f, Path + Name );
+        lResetFile(f,1);
+        size := FileSize(f.f);
+        close(f.f);
 
        end;
 
@@ -2864,10 +2871,10 @@ var S : string[80] ;
                    Path := 'C:\';
         {If Not FileExists(Path+Name) then Exit ; }
 
-        Assign(f, Path + Name );
-        Reset(f,1);
-        size := FileSize(f);
-        close(f);
+        lAssignFile(f, Path + Name );
+        lResetFile(f,1);
+        size := FileSize(f.f);
+        close(f.f);
 
 
        end;
@@ -2879,10 +2886,10 @@ var S : string[80] ;
                    Path := 'C:\';
        If Not FileExists(Path+Name) then Exit ;
 
-        Assign(f, Path + Name );
-        Reset(f,1);
-        size := FileSize(f);
-        close(f);
+        lAssignFile(f, Path + Name );
+        lResetFile(f,1);
+        size := FileSize(f.f);
+        close(f.f);
 
 
        end;
@@ -2890,7 +2897,7 @@ var S : string[80] ;
        FindSystemFiles := True ;
 
    end;
-
+        {-DataCompBoy-}
 
 procedure   tfmt.transferSystem;
 var

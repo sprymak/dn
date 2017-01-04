@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit LinkUtil;
@@ -50,8 +54,9 @@ unit LinkUtil;
 {$A+}
 
 {$I LINK.INC} interface uses
-         {$IFDEF DN}  Advance, Messages, Dos,{$ENDIF}
-         {$IFDEF OS2} ObjOS2 {$ELSE} Objects {$ENDIF},
+                     LFN, LFNCol, {DataCompBoy}
+        {$IFDEF DN}  advance, advance1, advance2, advance3, Messages, Dos,{$ENDIF}
+        {$IFDEF OS2} ObjOS2 {$ELSE} Objects {$ENDIF},
                      LinkTyp
           ;
 
@@ -80,7 +85,7 @@ function  CL_CanProcInCmds: Boolean;
 procedure CL_ClearAll;
 
 procedure CL_PostDriveSet;
-procedure CL_PostDirEntries (const ADir: PathStr; const Mask: string; var Rec: TCL_DirReq);
+procedure CL_PostDirEntries (const ADir: String; const Mask: string; var Rec: TCL_DirReq); {DataCompBoy}
 procedure CL_PostDirNfo     (const ADir: string);
 procedure CL_PostDirValid   (const ADir: string);
 
@@ -96,7 +101,7 @@ function CL_Abort: Boolean;
 procedure CL_PostFileNfo(const ANfo: TCL_FileNfo; const FName: string);
 procedure CL_PostFileBlock(ABuf: Pointer; ASz: LongInt);
 
-function CL_FillFileNfo(var AF: File; var ANfo: TCL_FileNfo; Abrt: Boolean): Word;
+function CL_FillFileNfo(var AF: lFile; var ANfo: TCL_FileNfo; Abrt: Boolean): Word; {DataCompBoy}
 
 function CL_FreeToFSend: Boolean;
 
@@ -127,7 +132,7 @@ type
 
    PCL_DirReqCmd = ^TCL_DirReqCmd;
    TCL_DirReqCmd = object(TCL_InCmd)
-     Dir: PathStr;
+     Dir: String; {DataCompBoy}
      Mask: string;
      R: TCL_DirReq;
      constructor Init(AP: Pointer; ASz: Word);
@@ -230,32 +235,37 @@ end;
 
 function CL_Abort; begin CL_Abort := not CL_OK end;
 
+        {-DataCompBoy-}
 function CL_FillFileNfo;
 var
-  sr: SearchRec;
+  sr: lSearchRec;
   er: Word;
 begin
   FillChar(ANfo, SizeOf(ANfo), 0); ClrIO;
   if Abrt then NeedAbort := True;
-  ANfo.Size := FileSize(AF);
+  ANfo.Size := FileSize(AF.F);
   er := IOResult; if er <> 0 then begin CL_FillFileNfo := er; Exit end;
   if Abrt then NeedAbort := True;
-  FindFirst(FileNameOf(AF), ReadOnly+Archive+Hidden+SysFile, sr);
+  lFindFirst(lFileNameOf(AF), ReadOnly+Archive+Hidden+SysFile, sr);
+  lFindClose(sr);
   if Abrt then NeedAbort := False;
   er := DosError; if er <> 0 then begin CL_FillFileNfo := er; Exit end;
   with ANfo do
   begin
-    Time := sr.Time;
-    Attr := sr.Attr;
+    Time := sr.sr.Time;
+    Attr := sr.sr.Attr;
   end;
   CL_FillFileNfo := 0;
 end;
+        {-DataCompBoy-}
 
 function TCL_SlaveJob.Next;begin end;
 function TCL_SlaveJob.InfoStr;begin end;
 
+        {-DataCompBoy-}
 constructor TCL_SlaveFileJob.Init;
-begin inherited Init; Assign(F.Handle, FName); F.Id := AId; ClrIO end;
+begin inherited Init; lAssignFile(F.Handle, FName); F.Id := AId; ClrIO end;
+        {-DataCompBoy-}
 
 destructor TCL_SlaveFileJob.Done;
 begin ClrIO; if Opened then fClose; ClrIO; inherited Done end;
@@ -275,52 +285,58 @@ begin
   CL_PostError(F.Id, F.Error);
 end;
 
+        {-DataCompBoy-}
 procedure TCL_SlaveFileJob.fReset;
 begin
   NeedAbort := True;  Abort := False;
-  ClrIO; FileMode := $40; Reset(F.Handle, 1); F.Error := IOResult; if F.Error = 0 then Opened := True;
-  NeedAbort := False; Abort := False;
+  ClrIO; FileMode := $40; lResetFile(F.Handle, 1); F.Error := IOResult;
+  if F.Error = 0 then Opened := True; NeedAbort := False; Abort := False;
 end;
+        {-DataCompBoy-}
 
-
+        {-DataCompBoy-}
 procedure TCL_SlaveFileJob.fRewrite;
 var
-  S: PathStr;
+  S: String;
 begin
   NeedAbort := True;  Abort := False;
-  S := GetPath(FileNameOf(F.Handle));
+  S := GetPath(lFileNameOf(F.Handle));
   CreateDirInheritance(S, False);
   if Abort then F.Error := 3 else
   begin
-    ClrIO; NeedAbort := True; Rewrite(F.Handle, 1);
+    ClrIO; NeedAbort := True; lRewriteFile(F.Handle, 1);
     F.Error := IOResult; if F.Error = 0 then Opened := True;
   end;
   NeedAbort := False; Abort := False;
 end;
+        {-DataCompBoy-}
 
-
+        {-DataCompBoy-}
 procedure TCL_SlaveFileJob.fClose;
 begin
   NeedAbort := True;  Abort := False;
-  ClrIO; if Opened then Close(F.Handle); F.Error := IOResult; Opened := False;
-  NeedAbort := False; Abort := False;
+  ClrIO; if Opened then Close(F.Handle.F); F.Error := IOResult;
+  Opened := False; NeedAbort := False; Abort := False;
 end;
+        {-DataCompBoy-}
 
-
+        {-DataCompBoy-}
 procedure TCL_SlaveFileJob.fBlockRead;
 begin
   NeedAbort := True;  Abort := False;
-  ClrIO; BlockRead(F.Handle, Buf, Sz); F.Error := IOResult;
+  ClrIO; BlockRead(F.Handle.F, Buf, Sz); F.Error := IOResult;
   NeedAbort := False; Abort := False;
 end;
+        {-DataCompBoy-}
 
-
+        {-DataCompBoy-}
 procedure TCL_SlaveFileJob.fBlockWrite;
 begin
   NeedAbort := True;  Abort := False;
-  ClrIO; BlockWrite(F.Handle, Buf, Sz); F.Error := IOResult;
+  ClrIO; BlockWrite(F.Handle.F, Buf, Sz); F.Error := IOResult;
   NeedAbort := False; Abort := False;
 end;
+        {-DataCompBoy-}
 
 constructor TCL_SlaveFileSend.Init;
 var
@@ -355,10 +371,12 @@ begin
   ReportError; if F.Error <> 0 then Fail;
 end;
 
-function GetSlaveInfo(const ActionIdx: string; var F: file): string;
+        {-DataCompBoy-}
+function GetSlaveInfo(const ActionIdx: string; var F: lfile): string;
 begin
-  GetSlaveInfo := FmtFile(ActionIdx, FileNameOf(F), 2 + CL_StatusStrWdth - Length(ActionIdx));
+  GetSlaveInfo := FmtFile(ActionIdx, lFileNameOf(F), 2 + CL_StatusStrWdth - Length(ActionIdx));
 end;
+        {-DataCompBoy-}
 
 function TCL_SlaveFileSend.InfoStr;
 begin
@@ -497,15 +515,15 @@ destructor TCL_PtrCmd.Done; begin FreeMem(CmdP, CmdS); inherited Done end;
 function CL_InitLink;
 begin
   {$IFDEF CL_LOG}
-  Assign(CL_LogF,
+  lAssignFile(CL_LogF,  {DataCompBoy}
     {$IFDEF DN}       SourceDir+'DN_LINK.LOG'  {$ENDIF}
-    {$IFDEF NLSLAVE}  'F:\BP\DN\NL_SLAVE.LOG'  {$ENDIF}
-    {$IFDEF NLCLIENT} '\NL_CLIEN.LOG'  {$ENDIF}
+    {$IFDEF NLSLAVE}  '\NL_SLAVE.LOG'          {$ENDIF}
+    {$IFDEF NLCLIENT} '\NL_CLIEN.LOG'          {$ENDIF}
   );
-  Rewrite(CL_LogF,1);
+  lRewriteFile(CL_LogF,1); {DataCompBoy}
   {$ENDIF}
 
-  {$IFDEF HARD_LOG}Close(CL_LogF);{$ENDIF}
+  {$IFDEF HARD_LOG}Close(CL_LogF.F);{$ENDIF}
 
   CL_InitLink := CL_InitComLink(CL_MaxInBufStorage, CL_MaxBlockSize, CL_StartBlockSize);
   CL_InCmd  := New(PCollection, Init(64,64));
@@ -515,7 +533,7 @@ end;
 procedure CL_DoneLink;
 begin
   CL_DoneComLink;
-  {$IFDEF CL_LOG}{$IFNDEF HARD_LOG}Close(CL_LogF);{$ENDIF}{$ENDIF}
+  {$IFDEF CL_LOG}{$IFNDEF HARD_LOG}Close(CL_LogF.F);{$ENDIF}{$ENDIF} {DataCompBoy}
   Dispose(CL_InCmd, Done);
   Dispose(CL_InData, Done);
 end;
@@ -615,14 +633,13 @@ begin
   CL_UnpackStr := S;
 end;
 
-
 procedure CL_PackFName(const AFName: string; var ANm, AXt);
 var
-  D : DirStr;
-  N : NameStr;
-  E : ExtStr;
+  D : String;
+  N : String;
+  E : String;
 begin
-  FSplit(AFName, D, N, E); if (E<>'') and (E[1]='.') then Delete(E,1,1);
+  lFSplit(AFName, D, N, E); if (E<>'') and (E[1]='.') then Delete(E,1,1); {DataCompBoy}
   CL_PackStr(N,ANm,8);
   CL_PackStr(E,AXt,3);
 end;
@@ -635,10 +652,11 @@ begin
   if Abort then begin TotalSpc := -1; FreeSpc := -1 end;
 end;
 
+        {-DataCompBoy-}
 procedure CL_PostDirEntries;
 var
 
-  I,JJ : Integer;
+  I,JJ,KK : Integer;
   CurRec: TCL_DirEntry;
   T : PByteArray;
   Pfx: TCL_DirPrefix;
@@ -648,7 +666,7 @@ var
   TFiles: Word;
   pf, sm: Integer;
   FR: PFileRec;
-
+  st: string;
 begin
  {$IFDEF NLSLAVE} SlaveInfo('Get dir '+ADir); {$ENDIF}
 
@@ -666,7 +684,9 @@ begin
     JJ := Min(Files^.Count, CL_MaxDirEntries);
   end;
 
-  GetMem(T, JJ*CL_DirRecSz+SizeOf(TCL_DirPrefix));
+  New(T);
+
+  KK:=SizeOf(TCL_DirPrefix);
 
   with PCL_DirPrefix(T)^ do
   begin
@@ -689,17 +709,31 @@ begin
     CL_PackFName(MakeFileName(FR^.Name), CurRec.Name, CurRec.Ext);
     CurRec.Attr := FR^.Attr;
     CurRec.Time := PackedDate(FR);
-    CurRec.Size := FR^.Size;
-    Move(CurRec,T^[I*CL_DirRecSz+SizeOf(TCL_DirPrefix)],CL_DirRecSz);
+    if FR^.Size<MaxLongInt then CurRec.Size := Round(FR^.Size)
+                           else CurRec.Size := maxlongint;
+    Move(CurRec,T^[KK],CL_DirRecSz);
+    Inc(KK,CL_DirRecSz);
+    if MayLFN then
+     begin
+      st:=GetLFN(FR^.LFN);
+      move(st, T^[KK], Length(st)+1);
+      Inc(KK,Length(st)+1);
+     end;
+    If 32767-KK<CL_DirRecSz+255 then
+     begin
+      PCL_DirPrefix(T)^.NumFiles := I;
+      break;
+     end;
   end;
 
   FreeObject(Files);
 
-  CL_PostBlock(T,JJ*CL_DirRecSz+SizeOf(TCL_DirPrefix),b_Dir);
-  FreeMem(T, JJ*CL_DirRecSz+SizeOf(TCL_DirPrefix));
+  CL_PostBlock(T,KK,b_Dir);
+  Dispose(T);
   ClrIO;
 
 end;
+        {-DataCompBoy-}
 
 function CL_CanProcInCmds: Boolean;
 begin
@@ -744,11 +778,11 @@ procedure ReadDirNfo(const ADir: string; var ANfo: TCL_DirNfo);
 var
   Drv: Byte;
   S: string;
-  DirLn: LongInt;
+  DirLn: TSize;
   NumFls: Integer;
 begin
   ClrIO;
-  if ADir = '' then GetDir(0, S) else S := ADir;
+  if ADir = '' then lGetDir(0, S) else S := ADir; {DataCompBoy}
   Drv := Byte(S[1])-64;
   ChkDrvInfo(Drv);
   DirLn := 0; NumFls := 0;
@@ -760,7 +794,7 @@ begin
     if not Abort then CL_PackFName(GetVolumeLabel, VolNm, VolXt);
     DrvTotal := Round(TotalSpc/1024);
     DrvFree  := Round(FreeSpc/1024);
-    DirLen   := DirLn;
+    DirLen   := Round(DirLn);
     NumFiles := NumFls;
   end;
   Abort := False;
@@ -781,20 +815,22 @@ begin
   FreeMem(P, SizeOf(TCL_DirNfo)-1+P^.DifNfoSz);
 end;
 
+        {-DataCompBoy-}
 procedure CL_PostDirValid;
 var
   er: Word;
-  SR: SearchRec;
+  SR: lSearchRec;
 begin
  {$IFDEF NLSLAVE} SlaveInfo('Invalidate dir '+ADir); {$ENDIF}
   NeedAbort := True;  Abort := False;
-  FindFirst(ADir, $3E xor VolumeID, SR);
+  lFindFirst(ADir, $3E xor VolumeID, SR);
   er := DosError;
-  if er = 0 then if SR.Attr and Directory = 0 then er := 18;
+  if er = 0 then if SR.SR.Attr and Directory = 0 then er := 18;
   CL_PostError(0, er);
   NeedAbort := False; Abort := False;
+  lFindClose(SR);
 end;
-
+        {-DataCompBoy-}
 
 procedure CL_PostDirNfo;
 var
@@ -822,65 +858,69 @@ begin
   CL_PostBlock(ABuf, ASz, b_cFileBlk);
 end;
 
+        {-DataCompBoy-}
 procedure CL_EraseFile(const AFile: string);
 var
-  F: file;
+  F: lfile;
   err: Word;
   att: Word;
 begin
  {$IFDEF NLSLAVE} SlaveInfo('Erase file '+AFile); {$ENDIF}
   NeedAbort := True;  Abort := False;
-  Assign(F, AFile); ClrIO; Erase(F);
+  lAssignFile(F, AFile); ClrIO; lEraseFile(F);
   err := IOResult; if err = 5 then
   begin
-    GetFAttr(F, att); if (att and (ReadOnly+Hidden+SysFile)) <> 0 then
+    lGetFAttr(F, att); if (att and (ReadOnly+Hidden+SysFile)) <> 0 then
     begin
-      SetFAttr(F, 0); if IOResult = 0 then
+      lSetFAttr(F, 0); if DosError = 0 then
       begin
-        Erase(F); err := IOResult;
+        lEraseFile(F); err := IOResult;
       end;
     end;
   end;
   CL_PostError(0, err);
   NeedAbort := False; Abort := False;
 end;
+        {-DataCompBoy-}
 
-type
-  PSearchRec = ^SearchRec;
-
+        {-DataCompBoy-}
 function EraseLocalFile(const AName: string; Attr: Byte; var Err: Word): Boolean;
 var
-  F: file;
+  F: lfile;
 begin
   EraseLocalFile := False;
-  Assign(F, AName);
+  lAssignFile(F, AName);
   if (Attr and (ReadOnly+Hidden+SysFile)) <> 0 then
   begin
-    NeedAbort := True; SetFAttr(F, 0);
-    Err := IOResult; if Err <> 0 then Exit;
+    NeedAbort := True; lSetFAttr(F, 0);
+    Err := DosError; if Err <> 0 then Exit;
   end;
-  NeedAbort := True; Erase(F);
+  NeedAbort := True; lEraseFile(F);
   Err := IOResult; if Err <> 0 then Exit;
   EraseLocalFile := True;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 function EraseEmptyDir(const ADir: string; var Err: Word): Boolean;
 begin
-  NeedAbort := True; RmDir(ADir); Err := IOResult; EraseEmptyDir := Err = 0;
+  NeedAbort := True; lRmDir(ADir); Err := IOResult; EraseEmptyDir := Err = 0;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 function EraseLocalDir(ADir: string; var Err: Word): Boolean;
 var
-  SR: PSearchRec;
+  SR: lSearchRec;
   Att: Byte;
   ok: Boolean;
 begin
   if Length(ADir) > 68 then Exit;
-  New(SR); ok := True;
-  NeedAbort := True; FindFirst(MakeNormName(ADir, '*.*'), $3E xor VolumeID, SR^);
+  ok := True;
+  NeedAbort := True; lFindFirst(MakeNormName(ADir, '*.*'), $3E xor VolumeID, SR);
   while DosError = 0 do
   begin
-    with SR^ do begin FreeStr := Name; Att := Attr end;
+    with SR do begin FreeStr := FullName; Att := sr.Attr end;
     if FreeStr[1] <> '.' then
     begin
       FreeStr := MakeNormName(ADir, FreeStr);
@@ -890,9 +930,9 @@ begin
 
       if not ok then Break;
     end;
-    NeedAbort := True; FindNext(SR^);
+    NeedAbort := True; lFindNext(SR);
   end;
-  Dispose(SR);
+  lFindClose(SR);
   if ok then
   begin
     Err := DosError; if Err = 18 then Err := 0;
@@ -901,6 +941,7 @@ begin
   end;
   EraseLocalDir := ok;
 end;
+        {-DataCompBoy-}
 
 procedure CL_EraseDir(const ADir: string);
 var
@@ -912,39 +953,48 @@ begin
   NeedAbort := False; Abort := False;
 end;
 
+        {-DataCompBoy-}
 procedure CL_MakeDirectory(const ADir: string);
- var SafeDir, S, S1: String;
-     Dr: PathStr;
-     Nm: NameStr;
-     Xt: ExtStr;
+ var S,S1: String;
+     Dr: String;
+     Nm: String;
+     XT: String;
      B: Byte;
      I: Integer;
-     NdSet: Boolean;
+     j: boolean;
 begin
  {$IFDEF NLSLAVE} SlaveInfo('Make dir '+ADir); {$ENDIF}
 
- NeedAbort := True; Abort := False; CreatedDir := ''; NdSet := False;
+ CreatedDir := '';
  S := ADir;
 
+ CreatedDir := '';
  while S <> '' do
   begin
-    I := Pos(';', S);
+    j:=false;
+    i:=0;
+    while (i<length(s)) do
+     begin
+      inc(i);
+      if not j and (s[i]=';') then break;
+      if s[i]='"' then j:=not j;
+     end;
+    if i=length(s) then inc(i);
     if I = 0 then I := Length(S)+1;
-    S1 := Copy(S, 1, I-1); Delete(S, 1, I);
+    S1 := DelSquashes(Copy(S, 1, I-1)); Delete(S, 1, I);
     if S1 = '' then Continue;
-    if not NdSet then
-    begin
-      GetDir(0, SafeDir);
-      ChDir(S1);
-      NdSet := True;
-      Continue;
-    end;
-    B := CreateDirInheritance(S1, False);
-    if Abort or (IOResult <> 0) then Break;
+    B := CreateDirInheritance(S1, Off);
+    if Abort or (IOResult <> 0) then Exit;
+    if CreatedDir = '' then CreatedDir := S1;
+    lFSplit(S1, Dr, Nm, XT);
+    if B > 0 then Dr[0] := Char(B) else
+     if (Dr[0] > #3) and (Dr[Length(Dr)]='\') then Dec(Dr[0]);
+    RereadDirectory(Dr);
+    GlobalMessage(evCommand, cmRereadTree, @Dr);
+    GlobalMessage(evCommand, cmRereadInfo, nil);
   end;
-  NeedAbort := False; Abort := False;
-  if NdSet then ChDir(SafeDir);
 end;
+        {-DataCompBoy-}
 
 procedure CL_GetLinkNfo;
 var
@@ -959,7 +1009,14 @@ begin if SL>CL_StatusStrWdth then SL := CL_StatusStrWdth end;
 begin
  CL_FillNfo(Errs, BlkSz, trs);
  with Nfo do begin
-  if ConnectOK then FreeStr := '/SREJ2.'+ItoS(BlkSz) else FreeStr := '';
+        {-DataCompBoy-}
+  if ConnectOK then
+   begin
+    FreeStr := '/SREJ2.'+ItoS(BlkSz);
+    if MayLFN then FreeStr:=FreeStr+'/LFN';
+   end
+  else FreeStr := '';
+        {-DataCompBoy-}
   S := 'COM'+ItoS(ComNum)+' '+ ItoS(Speed)+'/'+
     Char(DataBits+Ord('0'))+N_O_E_M_S[Parity+1]+Char(StopBits+Ord('0'))+FreeStr;
   CutS; PortStr := S;

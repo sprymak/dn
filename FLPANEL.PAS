@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,17 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFN¨§ æ¨ï ¢ë¯®«­¥­  €­â®­®¬ ”¥¤®p®¢ë¬ aka DataCompBoy'¥¬.
+//                  ‚ ç¥áâì Œ â pëª¨­®© “«ìï­ë...
 //////////////////////////////////////////////////////////////////////////}
 
 unit FlPanel;
 
 interface
 uses Objects, Views, Drivers, Dos, Eraser, FilesCol, HideView,
-     Drives, FLPanelX, DNHelp, ObjType;
+     Drives, FLPanelX, DNHelp, ObjType, LFNCol, TitleSet;
 
 type
     PSeparator=^TSeparator;
@@ -67,8 +71,8 @@ type
      procedure Draw; virtual;
      procedure SetState(AState: Word; Enable: Boolean); virtual;
      procedure HandleEvent(var Event: TEvent); virtual;
-     function GetPalette: PPalette; virtual;
-     procedure GetFull(var B; P: PFileRec; C: Word); virtual;
+     function  GetPalette: PPalette; virtual;
+     procedure GetFull(var B; P: PFileRec; C, CW: Word); virtual; {DataCompBoy}
      procedure DrawTop(var B); virtual;
     end;
 
@@ -94,7 +98,7 @@ type
     end;
 
     PSpecScroll = ^TSpecScroll;
-    TSpecScroll = object(TScrollBar)
+    TSpecScroll = object(TMyScrollBar)
      procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -159,15 +163,15 @@ VAR
   DirsToChange: Array [0..9] of PString absolute FlPanelX.DirsToChange;
 
 VAR
-  CurrentDirectory: PathStr absolute FLPanelX.CurrentDirectory;
+  CurrentDirectory: String absolute FLPanelX.CurrentDirectory;
 
 implementation
 
-uses U_Crt,
-     DNApp, Advance, Startup, Memory, FileCopy, Messages, Menus, DiskInfo,
-     Dialogs, Commands, HistList, Tree, FBB, RStrings, UUCode,
-     ArcView, CmdLine, Histries, Archiver, Gauges, Gauge, FileFind, FlTools,
-     DnIni, U_Dos, LongName; {-$VIV}
+uses LFN, {DataCompBoy}
+     DNApp, advance, advance1, advance2, advance3, Startup, Memory, FileCopy,
+     Messages, Menus, DiskInfo, Dialogs, Commands, HistList, Tree, FBB,
+     RStrings, UUCode, ArcView, CmdLine, Histries, Archiver, Gauges, Gauge,
+     FileFind, FlTools, DnIni;
 
 const
     chTempDrive = '*';
@@ -340,7 +344,7 @@ var Idx, CurPos, I, J: Integer;
 
 procedure TFilePanel.GetFull;
 begin
-  Drive^.GetFull(B, P, C, ShowFlags);
+  Drive^.GetFull(B, P, C, CW); {DataCompBoy}
 end;
 
 procedure TFilePanel.DrawTop;
@@ -348,7 +352,7 @@ procedure TFilePanel.DrawTop;
      I,J: Integer;
      C: Word;
 begin
- Drive^.MakeTop(S, ShowFlags);
+ Drive^.MakeTop(S);
  I := 0; C := GetColor($0206);
  J := CStrLen(S);
  While I < Size.X do
@@ -358,37 +362,39 @@ begin
   end;
 end;
 
+        {-DataCompBoy-}
 procedure TFilePanel.SetState;
 
   procedure MakeChange;
    var Event: TEvent;
        A: Boolean;
   begin
-     CurrentDirectory := DirectoryName; ClrIO;
+     CurrentDirectory := DirectoryName;
+     ClrIO;
      NeedAbort := On;
-     ChDir(CurrentDirectory);
+     lChDir(CurrentDirectory);
      A := Abort;
      ActivePanel := @Self;
-     {
-     if IOresult<>0 then
-      begin
-        DriveState := dsInvalid ;
-        exit;
-      end;
-     }
+
      DriveState := dsActive ;
 
-     NeedAbort := Off;
+     if IOresult<>0 then begin
+         DriveState := DriveState and dsInvalid ;
+         exit;
+     end;
+     DriveState := dsActive ;
+
+     NeedAbort := DriveState and dsInvalid <> 0;
+
      Message(CommandLine, evCommand, cmRereadInfo, nil);
-     if (ActiveDir <> DirectoryName) or A then
+     if (UpStrg(ActiveDir) <> UpStrg(DirectoryName)) or A then
       begin
-       Drive^.Chdir(ActiveDir);
+       Drive^.lChDir(ActiveDir);
        ReadDirectory;
        CurrentDirectory := DirectoryName;
        Event.What := evKeyDown;
        Event.KeyCode := kbTab;
        Event.InfoPtr := nil;
-       PutEvent(Event);
        PutEvent(Event);
       end;
      Message(Owner, evCommand, cmChangeTree, @DirectoryName);
@@ -424,11 +430,11 @@ begin
       if (Drive^.DriveType = dtDisk) then begin
         ActivePanel := @Self;
         AddToDirectoryHistory(DirectoryName,integer(dtDisk));
-        if CurrentDirectory <> DirectoryName
+        if UpStrg(CurrentDirectory) <> UpStrg(DirectoryName)
           then MakeChange;
       end else
       if Drive^.DriveType = dtArc
-        then Drive^.ChDir(#0);
+        then Drive^.lChDir(#0);
       EnableCommands(PanelCommands);
     end;
   if GetState(sfFocused) then begin
@@ -445,7 +451,7 @@ begin
         then MakeChange
         else
       if Drive^.DriveType = dtArc
-        then Drive^.ChDir(#0);
+        then Drive^.lChDir(#0);
       DoDraw := ON;
       EnableCommands(PanelCommands)
     end else begin
@@ -461,12 +467,20 @@ begin
     PosChanged := OFF;
     DrawView;
   end;
+  if GetState(sfSelected+sfActive) then
+   begin
+    SetTitle(DirectoryName);
+    FreeByte:=Drive^.Param;
+   end;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure TFilePanel.Draw;
  label 1;
  var P: PFileRec;
      CW: Word;
+     CS: Word;
      PgS: Word;
      S,S1: String;
      HLC: Array[0..ttCust5] of Byte;
@@ -484,67 +498,26 @@ procedure TFilePanel.Draw;
       P := Files^.At(Idx);
       CC := HLC[P^.TType];
       if (Idx = CurPos) then begin LastCurPos.X := JJ; LastCurPos.Y := I+1 end;
-      asm
-       les bx, P
-       mov ax, Idx
-       cmp ax, CurPos
-       jne @@1
-       mov al, C4
-       cmp es:[bx].TFileRec.Selected, 0
-       je  @@2
-       mov al, C5
-       jmp @@2
-     @@1:
-       mov al, CC
-       cmp es:[bx].TFileRec.Selected, 0
-       je  @@2
-       mov al, C3
-     @@2:
-       mov C, al
-      end;
+      if Idx=CurPos then
+       If p^.Selected then begin C:=C5; CC:=C5 end else C:=C4
+      else if P^.Selected then begin C:=CC; CC:=C3 end else C:=CC;
       if QuickSearch then if (Idx = CurPos) then
         begin SetCursor(JJ+SearchX, I); ShowCursor; NormalCursor end;
-      if LineLength = 13 then
-      asm
-       les bx, P
-       lea di, B
-       mov ax, J
-       mov cx, 26
-       mul cx
-       add di, ax
-       mov cx, 12
-       mov ah, C
-       lea bx, [bx].TFileRec.Name+1
-     @@3:
-       mov al, es:[bx]
-       inc bx
-       mov ds:[di], ax
-       add di,2
-       dec cx
-       jnz @@3
-      end else begin
-        MoveChar(B[JJ], ' ', C, LineLength);
-        GetFull(B[JJ], P, C);
-      end;
-      {
-      if P^.Attr and Hidden <> 0 then
-         if P^.Attr and SysFile = 0 then WordRec(B[JJ+8]).Lo := Byte( '±' )
-                                    else WordRec(B[JJ+8]).Lo := Byte( '²' );
-      }
-      if (FMSetup.Show and fmsTagChar <> 0) and P^.Selected then begin
-        WordRec(B[JJ+8]).Lo := Byte( TagC );
-        PB := @WordRec(B[JJ+8]).Hi;
-        If ( PB^ shr 4 ) <> ( CC and $0F )
-          then PB^ := ( PB^ and $F0 ) + ( CC and $0F );
-      end
+      MoveChar(B[JJ], ' ', C, LineLength);
+      if Idx=CurPos then GetFull(B[JJ], P,  C shl 8+C, CS and $00FF + C shl 8)
+                    else GetFull(B[JJ], P, CC shl 8+C, CS);
     end else
+     begin
       MoveChar(B[JJ], ' ', C1, LineLength);
+      Drive^.GetEmpty(B[JJ], CS);
+     end;
  end;
 
 begin
  if DrawDisableLvl > 0 then Exit;
  if DrawDisableLvl < 0 then DrawDisableLvl := 0;
- LineLength := Drive^.CalcLength(ShowFlags);
+ if Loaded then RereadDir;
+ LineLength := Drive^.CalcLength;
 
  if (DriveState and dsInvalid>0) then
     begin
@@ -558,9 +531,9 @@ begin
    end;
 
  if Size.X > LineLength - 1 then DeltaX := 0;
- if OldDirectory <> DirectoryName then
+ if UpStrg(OldDirectory) <> UpStrg(DirectoryName) then
   begin
-   if (OldDirectory[1] <> DirectoryName[1]) and (OldDirectory <> '')
+   if (UpStrg(OldDirectory[1]) <> UpStrg(DirectoryName[1])) and (OldDirectory <> '')
       then ScrollBar^.SetValue(0);
    PosChanged := Off;
    DecDrawDisabled; OldDirectory := DirectoryName;
@@ -576,7 +549,8 @@ begin
  if PanelFlags and fmiHiliteFiles <> 0 then
       for I := 1 to ttCust5 do HLC[I] := GetColor(6+I)
     else for I := 1 to ttCust5 do HLC[I] := C1;
- CW := 179+C2 shl 8;
+ CS := 179+C2 shl 8;
+ CW :=  32+C2 shl 8;
  PgS := (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))*((Size.X+1) div LineLength);
  if PgS = 0 then PgS := (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0));
  ScrollBar^.PgStep := PgS;
@@ -612,8 +586,7 @@ begin
           MoveChar(B, ' ', C1, Size.X);
           DrawAtIdx;
           Idx := (J+1)*LineLength;
-          if LineLength > 13 then Drive^.GetEmpty(B[Idx - LineLength], CW, ShowFlags);
-          if Idx < Size.X then B[Idx - 1] := CW;
+          if Idx < Size.X then B[Idx - 1] := CS else B[Idx - 1] := CW;
           Idx := J*LineLength;
           WriteLine(Idx, I, LineLength-1, 1, B[Idx+DeltaX]);
          end;
@@ -641,13 +614,13 @@ begin
             J*(Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0)) + Delta;
      DrawAtIdx;
      Idx := (J+1)*LineLength;
-     if LineLength > 13 then Drive^.GetEmpty(B[Idx - LineLength], CW, ShowFlags);
-     if Idx < Size.X then B[Idx - 1] := CW;
+     if Idx < Size.X then B[Idx - 1] := CS else B[Idx - 1] := CW;
     end;
-   if ShowFlags <> 0 then Drive^.GetEmpty(B, CW, ShowFlags);
    WriteLine(0, I, Size.X, 1, B[DeltaX]);
   end;
+  if GetState(sfSelected+sfActive) then SetTitle(DirectoryName);
 end;
+        {-DataCompBoy-}
 
 {                                 TInfoView
 {ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ}
@@ -683,7 +656,7 @@ procedure TInfoView.HandleEvent;
  begin
   with Panel^ do
    begin
-    S:=MakeFileName(PFileRec(Files^.At(ScrollBar^.Value))^.Name);
+    S:=Cut(GetLFN(PFileRec(Files^.At(ScrollBar^.Value))^.LFN), 20); {DataCompBoy}
     if S[1] = '.' then Exit;
    end;
   New(FC, Init(1, 100));
@@ -696,14 +669,14 @@ procedure TInfoView.HandleEvent;
 
  procedure DragSelected;
   var I: Integer;
-      PF: PFileRec;
+      PF: PFileRec; {DataCompBoy}
  begin
   if Panel^.SelNum = 0 then Exit;
   New(FC, Init(Panel^.SelNum, 100));
   for I := 1 to Panel^.Files^.Count do
    begin
-    PF := Panel^.Files^.At(I-1);
-    if PF^.Selected then FC^.Insert(CopyFileRec(PF));
+    PF := Panel^.Files^.At(I-1); {DataCompBoy}
+    if PF^.Selected then FC^.Insert(CopyFileRec(PF)); {DataCompBoy}
    end;
   MakeGlobal(P, P);
   DragMover(@P, ItoS(Panel^.SelNum)+GetString(dlSelectedFiles), FC, @C);
@@ -712,13 +685,13 @@ procedure TInfoView.HandleEvent;
 
  procedure DragTotals;
   var I: Integer;
-      PF: PFileRec;
+      PF: PFileRec; {DataCompBoy}
  begin
   New(FC, Init(Panel^.SelNum, 100));
   for I := 1 to Panel^.Files^.Count do
    begin
-    PF := Panel^.Files^.At(I-1);
-    if PF^.Name[1] <> '.' then FC^.Insert(CopyFileRec(PF));
+    PF := Panel^.Files^.At(I-1); {DataCompBoy}
+    if PF^.Name[1] <> '.' then FC^.Insert(CopyFileRec(PF)); {DataCompBoy}
    end;
   MakeGlobal(P, P);
   DragMover(@P, ItoS(Panel^.Files^.Count)+' '+GetString(dlDIFiles), FC, @C);
@@ -767,6 +740,7 @@ begin
   end;
 end;
 
+        {-DataCompBoy-}
 procedure TInfoView.Draw;
  label 1;
  var B: Array [0..600] of Word;
@@ -789,38 +763,13 @@ begin
  if FMSetup.Show and fmsDivider <> 0 then
  begin
   Y := 1;
-  asm
-   lea di, B
-   mov cx, I
-   mov ah, byte ptr C2
- @@1:
-   mov dl, byte ptr C1
-   mov al, 'Ä'
- @@2:
-   mov ss:[di], ax
-   inc di
-   inc di
-   dec cx
-   jz  @@4
-   dec dl
-   jnz @@2
-   mov al, 'Á'
-   cmp cx, 1
-   jnz @@3
-   mov al, 'Ä'
- @@3:
-   mov ss:[di], ax
-   inc di
-   inc di
-   loop @@1
- @@4:
-  end;
+  MoveChar(B, 'Ä', C2, Size.X+Panel^.DeltaX);
   I := 0; C2 := (C2 shl 8) or Byte('Á');
-  if Panel^.LineLength > 13 then
-  While I < Size.X do
+  While I < Size.X+Panel^.DeltaX do
    begin
-    Panel^.Drive^.GetEmpty(B[I], C2, Panel^.ShowFlags);
+    Panel^.Drive^.GetEmpty(B[I], C2);
     Inc(I, Panel^.LineLength);
+    If I = Size.X+Panel^.DeltaX then B[I-1]:=(C2 and $FF00)+Byte('Ä');
    end;
   WriteLine(0,0,Size.X,1,B[Panel^.DeltaX]);
  end;
@@ -848,7 +797,7 @@ begin
      begin
       MoveChar(B, ' ', C1, Size.X);
       C3 := GetColor($0302);
-      if PF^.Size = 0 then S := '100%' else S := ItoS(Percent(PF^.Size, PF^.PSize))+'%';
+      if PF^.Size = 0 then S := '100%' else S := ZtoS(Percent(PF^.Size, PF^.PSize))+'%';
       if Panel^.ScrollBar^.Value < Panel^.Files^.Count then
          MoveCStr(B, GetString(dlArcPSize) + ' ' + AddSpace(FStr(PF^.PSize),14) +
                   GetString(dlArcRatio) + S, C3);
@@ -864,10 +813,10 @@ begin
     MoveChar(B, ' ', C3, Size.X);
     if Panel^.SelNum = 0 then
     begin
-      if (Pos(x_x, Panel^.FileMask) = 0) and (ShowFileMask) then {-$VIV 19.05.99--}
+      if (x_x<>Panel^.FileMask) and (ShowFileMask) then {-$VIV 19.05.99--}
       begin
-        S := u_crt.Replace(Panel^.FileMask, '*.', '');
-        S := u_crt.Replace(S, ' ', '');
+        S := fReplace('*.', '', Panel^.FileMask);
+        S := fReplace(' ', '', S);
         if Copy(S, 1, 1) = ';' then Delete(S, 1, 1);
         S := GetString(dlFileMask) + S;
       end else
@@ -875,15 +824,14 @@ begin
         S := GetString(dlNoFilesSelected);
         if ShowLongName then
         begin
-          S2 := Trim(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.Name);
+          S2 := MakeFileName(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.Name);
           if S2 <> '..' then
           begin
-            S3 := Trim(Copy(S2, 1, 8));
-            Delete(S2, 1, 8); S2 := Trim(S2);
-            if S2 <> '' then S3 := S3 + '.' + S2;
-            S3 := u_crt.Replace(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.Owner^ + '\' + S3, '\\', '\');
-            S2 := GetLongFileName(S3);
-            if UpperCase(S2) <> UpperCase(S3) then S := #0+CutName(S2);
+            S3 := GetLFN(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.LFN); {DataCompBoy}
+            if (UpStrg(S2) <> UpStrg(S3)) and (Panel^.Files^.Count > 0)
+            then S := FormatLongName(GetName(S3),Size.X,0,
+            flnPreferName+flnHighlight+flnHandleTildes+flnUseCutChar,
+            nfmNull,nil);
           end;
         end;
       end;
@@ -924,6 +872,7 @@ begin
  MoveChar(B, ' ', C1, Size.X);
  WriteLine(0, Y, Size.X, Size.Y - Y,B);
 end;
+        {-DataCompBoy-}
 
 function TInfoView.GetPalette;
  const S: String[Length(CInfoView)] = CInfoView;
@@ -959,12 +908,14 @@ procedure TTopView.Draw;
      R: TRect;
 begin
  C := GetColor(1); if not Panel^.GetState(sfSelected) then C := GetColor(2);
- MoveChar(B, ' ', C, Size.X); S := Panel^.DirectoryName;
+ MoveChar(B, ' ', C, Size.X); {S := Panel^.DirectoryName;
  if Length(S) > Panel^.Size.X - 10  then
   begin
    Delete(S, PosChar(':', S) + 2, Length(S) - Panel^.Size.X + 13);
    Insert('...', S, PosChar(':', S) + 2);
-  end;
+  end;}
+  (*X-Man*)
+   S:=Cut(Panel^.DirectoryName,Panel^.Size.X-10);
  if Length(S) + 2 <> Size.X then
   if Length(S) < Panel^.Size.X - 2 then
   begin
@@ -1059,7 +1010,8 @@ procedure TSeparator.Draw;
      C: Word;
      Ch: Char;
 begin
- if Owner^.GetState(sfActive) then C := Owner^.GetColor(2)
+ RK:=Owner^.GetColor(2);
+ if Owner^.GetState(sfActive) then C := RK
                               else C := Owner^.GetColor(1);
  if Owner^.GetState(sfDragging) then C := Owner^.GetColor(3);
  B[0].B := C; B[Size.Y-1].B := C;
@@ -1076,6 +1028,7 @@ end;
 
 { FilePanel HandleEvent}
 
+        {-DataCompBoy-}
 PROCEDURE TFilePanel.HandleEvent;
 var
   PF: PFileRec;
@@ -1085,7 +1038,7 @@ var
   LastRDelay: Word;
   I, J: Integer;
   PDr: PDrive;
-  DotSearchMask: Str12;
+  DotSearchMask: String;
 
  procedure CE;begin ClearEvent(Event) end;
  procedure CED;begin ClearEvent(Event); DrawView end;
@@ -1119,34 +1072,19 @@ var
  end;
 
  procedure MaskSearch(B: Byte);
- {
- var I, J: Integer;
- begin
-  if Files^.Count = 0 then begin QuickSearch := Off; Exit; end;
-  for I := CurPos+B to Files^.Count-1 do
-   if InMask(PFileRec(Files^.At(I))^.Name, SearchMask) then
-    begin ScrollBar^.SetValue(I); Exit end;
-  for I := 0 to CurPos-1 do
-   if InMask(PFileRec(Files^.At(I))^.Name, SearchMask) then
-    begin ScrollBar^.SetValue(I); Exit end;
-  I := CurPos;
-  if InMask(PFileRec(Files^.At(I))^.Name, SearchMask)
-    then begin If SearchX = 8 then Inc( SearchX ) end
-    else Message(@Self, evKeyDown, kbBack, nil);
- }
  var
    I: Integer;
  begin
    I := CurPos + B; If I >= Files^.Count then I := 0;
    repeat
-     If InMask( PFileRec( Files^.At( I ))^.Name, SearchMask ) then begin
+     If InOldMask( PFileRec( Files^.At( I ))^.Name, SearchMask ) then begin
        ScrollBar^.SetValue( I );
        If SearchX = 8 then Inc( SearchX );
        Exit;
      end;
      Inc( I ); If I >= Files^.Count then I := 0;
    until I = CurPos;
-   If not InMask( PFileRec( Files^.At( CurPos ))^.Name, SearchMask )
+   If not InOldMask( PFileRec( Files^.At( CurPos ))^.Name, SearchMask )
      then begin
          If SearchX > 0 then repeat
              If SearchX = 9 then Dec( SearchX );
@@ -1169,16 +1107,13 @@ begin
  inherited HandleEvent(Event);
  CurPos := ScrollBar^.Value;
  if Files^.Count > CurPos then PF := Files^.At(CurPos) else PF := nil;
-{                               }
-{ inherited HandleEvent(Event); } { ALREADY CALLED FROM FLPANEL.PAS }
-{                               }
  I := ShiftState;
  if (Event.What = evKeyDown) and (I and 3 <> 0) and
     ((Event.KeyCode = kbCtrlRight) or (Event.KeyCode = kbCtrlLeft) or (Event.KeyCode = kbBack))
       then begin CommandHandle(Event); Exit; end;
  if (Event.What = evKeyDown) and (CommandLine <> nil) then
   if ((I and 3 <> 0) and ((Event.KeyCode = kbDown) or (Event.KeyCode = kbUp)
-         or (Event.KeyCode = kbCtrlIns) or (Event.KeyCode = kbGrayAst) )) or
+         or ((Event.KeyCode = kbCtrlIns) and (CmdLine.Str<>'')) or (Event.KeyCode = kbGrayAst) )) or
     ((Event.ScanCode < (kbAlt1 shr 8)) or (Event.ScanCode > (kbAlt9 shr 8))) and
      (Event.CharCode = #0) and (CmdLine.Str <> '') and
      ((I and 3 <> 0) xor (FMSetup.Options and fmoUseArrows = 0) and
@@ -1346,7 +1281,7 @@ begin
                             until SearchX = 9;
                             I := CurPos;
                             repeat
-                              If InMask( PFileRec( Files^.At( I ))^.Name, DotSearchMask ) then begin
+                              If InOldMask( PFileRec( Files^.At( I ))^.Name, DotSearchMask ) then begin
                                 SearchMask := DotSearchMask;
                                 ScrollBar^.SetValue( I );
                                 Break;
@@ -1413,6 +1348,7 @@ GotoKB:
                      kbGrayMinus,
                      kbGrayAst, kbCtrlGAst,
                      kbAlt1..kbAlt9,
+                     kbCtrl1..kbCtrl9,
                      kbAltEnter,
                      $1312,
                      $2B1C,
@@ -1465,6 +1401,6 @@ GotoKB:
   evMouseDown: CommandHandle(Event);
  end;
 end;
-
+        {-DataCompBoy-}
 
 end.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -115,7 +115,7 @@ const
 implementation
 
 uses
-  DOS, DNApp, Advance, Memory, Startup, Commands;
+  DOS, DNApp, advance, advance1, advance2, advance3, Memory, Startup, Commands;
 
 const
   StarChars : Array [0..5] of Char = (' ','ú','ù','','','');
@@ -431,7 +431,9 @@ begin
   DoneDOSMem;
   SwapVectors;
   DoneMemory;
+  DoneSysError;
   Exec(SourceDir + 'SSAVERS\' + FN, '');
+  InitSysError;
   SetVideoMode(ScreenMode); SM := ScreenMode;
   SwapVectors;
   InitDOSMem;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -47,9 +47,8 @@
 
 unit NetInfo;
 interface
-uses u_crt,
-     Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings, Advance, ObjType,
-     Novell;
+uses Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings, advance,
+     advance1, advance2, advance3, ObjType, Novell;
 
 type
      PNetInfoRec = ^TNetInfoRec;
@@ -174,13 +173,13 @@ begin
     GetStation(Station, retcode);
     GetConnectionInfo(Station, UserName, hex_id, conntype, datetime, retcode);
     Wrt('Ú' + GetString(dlServer) + ' ~' + server + '~ ' +
-              int2str(ServerInfo.NetwareVers, 0)+'.'+int2str(ServerInfo.NetwareSubV, 0));
+              ItoS(ServerInfo.NetwareVers)+'.'+ItoS(ServerInfo.NetwareSubV));
     if (not NoLevelsInfo) then
-      Wrt('ÃSFT level ' + int2str(ServerInfo.SFT_Level, 0) + ' TTS level ' + int2str(ServerInfo.TTS_Level, 0));
-    Wrt('Ã' + GetString(dlConnections) + ': Max ' + int2str(ServerInfo.Connections_max, 3)
-                   + ' Use ' + int2str(ServerInfo.Connections_in_use, 3)
-                   + ' Peak ' + int2str(ServerInfo.peak_Connections_used, 3));
-    Wrt('ÀUser ' + UserName + ' Connect '+int2str(Station, 3)+ ' Logged '+datetime);
+      Wrt('ÃSFT level ' + ItoS(ServerInfo.SFT_Level) + ' TTS level ' + ItoS(ServerInfo.TTS_Level));
+    Wrt('Ã' + GetString(dlConnections) + ': Max ' + SStr(ServerInfo.Connections_max, 3,' ')
+                   + ' Use ' + SStr(ServerInfo.Connections_in_use, 3,' ')
+                   + ' Peak ' + SStr(ServerInfo.peak_Connections_used, 3,' '));
+    Wrt('ÀUser ' + UserName + ' Connect '+SStr(Station, 3,' ')+ ' Logged '+datetime);
    end;
  end;
  cc := false;

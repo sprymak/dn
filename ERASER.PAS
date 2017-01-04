@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,22 +43,27 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 UNIT ERASER;
 
 interface
-uses Objects;
+uses Objects, LFNCol;
 
  procedure EraseFiles(Files: PCollection);
  procedure SetVLabel;
  function  ValidErase(Files: PCollection): Boolean;
 
 implementation
-uses Dos, FilesCol, Commands, Advance, Startup, DiskTool, Messages, xTime,
-     Drivers, Tree, Memory, DNApp, Gauge, Views, RStrings, Dialogs, Drives,
-     FileCopy;
+uses Dos, LFN{DataCompBoy}, FilesCol, Commands, advance, advance1, advance2,
+     advance3, Startup, DiskTool, Messages, xTime, Drivers, Tree, Memory,
+     DNApp, Gauge, Views, RStrings, Dialogs, Drives, FileCopy;
 
+        {-DataCompBoy-}
 function ValidErase;
 var
   PF: PFileRec;
@@ -72,8 +77,8 @@ begin
    begin PF := Files^.At(0);
          if PF^.Attr and Directory <> 0 then S := GetString(dlEraseConfirmDir)
                                         else S := GetString(dlEraseConfirm1);
-         S := S + MakeFileName(PF^.Name) + ' ?';
-         end
+         S := S + '"' + Cut(GetLFN(PF^.LFN), 40)  + '"' + ' ?';
+   end
   else S := GetString(dlEraseConfirms1);
   if (Files^.Count = 1) and (Confirms and cfSingleErase = 0) then I := cmYes else
   I := MessageBox(S,nil,mfConfirmation+mfYesButton+mfNoButton);
@@ -85,7 +90,9 @@ begin
    end;
   ValidErase := True;
 end;
+        {-DataCompBoy-}
 
+        {-DataCompBoy-}
 procedure EraseFiles;
   var PInfo: PWhileView;
       R: TRect;
@@ -93,7 +100,7 @@ procedure EraseFiles;
       Tmr: TEventTimer;
       I, J: Integer;
       S, Dr : string;
-      F: File;
+      F: lFile;
       DOSMode, DirEnd, DirModified: Boolean;
       PF: PFileRec;
       Drv: PDiskDriver;
@@ -119,12 +126,12 @@ procedure EraseFiles;
     end;
   end;
 
-  function Over(S: PathStr): Word;
+  function Over(S: String): Word;
    var I: Integer;
   begin
     if Confirms and cfEraseReadonly = 0 then
       begin Over := cmYes; Exit end;
-    I := MessageBox(^C+GetString(dlFile)+' '+S+GetString(dlEraseRO), nil,mfYesNoConfirm+mfAllButton);
+    I := MessageBox(^C+GetString(dlFile)+' "'+Cut(S, 40)+'"'+GetString(dlEraseRO), nil,mfYesNoConfirm+mfAllButton);
     if I = cmOK then DeleteAllFiles := True;
     Over := I; if I = cmOK then Over := cmYes;
   end;
@@ -141,71 +148,77 @@ procedure EraseFiles;
    until (CCL < 2) or (CCL >= ENDM);
   end;
 
-  function DOSDelDir(const D: PathStr): Boolean;
-    var
-        S: PathStr;
-        SR: SearchRec absolute S;
-     label 1;
+  function DOSDelDir: Boolean;
+   var
+    DC: PDirCol;
+    TD: PDirCol;
+    SR: lSearchRec;
   begin
-   PInfo^.Write(2, GetName(D));
-   DOSDelDir := Off;
-   FreeStr := D;
-   if Length(D) > 64 then Exit;
+   DOSDelDir := false;
+   Abort:=false;
+   new(DC, Init($10, $10));
+   new(TD, Init($10, $10));
+   DC^.Insert(NewStr(FreeStr));
 
-   if (SystemData.Options and ossAdvCopy <> 0) then
-   begin
-     ClrIO; GetDir(0, FreeStr); if Abort then Exit;
-     ChDir(D);
-     FillChar(S, 20, 0);
-     S := '???????????'; S[0] := #0;
-     asm
-       lea  dx, S
-       push ds
-       mov  ax, ss
-       mov  ds, ax
-       push bp
-       mov ah, 13h
-       int  21h
-       pop  bp
-       pop  ds
-     end;
-     ChDir(FreeStr);
-   end;
-
-   ClrIO;
-   CalcCancel;
-   FindFirst(MakeNormName(D, x_x), $FF xor VolumeID, SR);
-   While (DOSError = 0) and not Abort and not EraseCancel do
+   While DC^.Count>0 do
     begin
-      if (SR.Attr and (Directory or VolumeID) = Directory) then
-          begin
-            if (SR.Name[1] <> '.') then
-               if not DOSDelDir(MakeNormName(D, SR.Name)) then Exit
-          end
-      else if (SR.Attr and VolumeID = 0) then
-       begin
-        CalcCancel;
-        if EraseCancel then Break;
-        Assign(F, MakeNormName(D, SR.Name)); ClrIO; Erase(F);
-        if IOResult <> 0 then begin ClrIO; SetFAttr(F, Archive); Erase(F); end;
-       end;
-     ClrIO;
-     FindNext(SR);
-     CalcCancel;
-    end;
-   S := Copy(D,1,Length(D)-Byte(D[Length(D)]='\'));
-   CalcCancel;
-   if EraseCancel then begin DOSDelDir := On; Exit; end;
-   if Abort then Exit;
-   ClrIO;
-   ChDir(GetPath(S)+'..');
-   ClrIO;
-   RmDir(S);
-   DOSDelDir := IOResult = 0;
-   ChDir(FreeStr);
-   FreeStr := S;
-  end;
+     FreeStr:=PString(DC^.At(0))^;
+     DC^.AtFree(0);
+     PInfo^.Write(2, Cut(GetName(FreeStr), 40));
 
+     if Word(Length(FreeStr))+Word(Length(x_x)) > MaxPathLen-1 then
+      begin Abort:=true; Break end;
+
+     lFindFirst(MakeNormName(FreeStr, x_x), $FF xor VolumeID, SR);
+     while DosError=0 do
+      begin
+       If Abort then break;
+       if (SR.FullName='.') or (SR.FullName='..') then
+        begin lFindNext(SR); continue end;
+       if (Word(Length(FreeStr))+Word(Length(SR.FullName))) > MaxPathLen-1
+        then begin Abort:=true; break; end;
+       if (SR.SR.Attr and Directory)<>0 then
+        begin
+         If MaxAvail<Length(MakeNormName(FreeStr, SR.FullName))+$40
+          then begin Abort:=True; Break; end;
+         DC^.AtInsert(0, NewStr(MakeNormName(FreeStr, SR.FullName)));
+        end
+       else
+        begin
+         if (Word(Length(FreeStr))+Word(Length(SR.FullName))) > MaxPathLen-1
+          then begin Abort:=true; break; end;
+         ClrIO;
+         lAssignFile(F, MakeNormName(FreeStr, SR.FullName));
+         lSetFAttr(F, 0);
+         lEraseFile(F);
+         if IOResult<>0 then begin Abort:=true; break; end;
+        end;
+       lFindNext(SR);
+      end;
+     lFindClose(SR);
+     if not Abort then
+      begin
+       if MaxAvail<Length(FreeStr)+$40 then begin Abort:=true; break end;
+       If FreeStr[Length(FreeStr)]='\'
+        then TD^.AtInsert(0, NewStr(Copy(FreeStr,1, length(FreeStr)-1)))
+        else TD^.AtInsert(0, NewStr(FreeStr));
+      end else Break;
+    end;
+   DC^.FreeAll;
+   Dispose(DC, Done);
+   DOSDelDir:=not Abort;
+   If not Abort then
+    while TD^.Count>0 do
+     begin
+      ClrIO;
+      lRmDir(PString(tD^.At(0))^);
+      if IOResult<>0 then
+       begin DOSDelDir:=False; FreeStr:=PString(tD^.At(0))^; break; end;
+      TD^.AtFree(0);
+     end;
+   TD^.FreeAll;
+   Dispose(TD, Done);
+  end;
 
   var  nxt,fs : Word;
        w      : String;
@@ -249,22 +262,22 @@ procedure EraseFiles;
      begin DirCL := CL; GoTo 1; end;
    end;
 
-  function DeleteDirectory(Dir: PathStr; Cluster: Word): Boolean;
+  function DeleteDirectory(Dir: String; Cluster: Word): Boolean;
    var S: String;
-       dr: Word;
-       SR: SearchRec;
+       dr: Word; j123qwe:boolean;
+       SR: lSearchRec;
   begin
     DeleteDirectory := Off;
-    Dir:=FExpand(Dir);
-    if Dir[Byte(Dir[0])]='.' then Dec(Byte(Dir[0]));
+    Dir:=lFExpand(Dir);
+    if Dir[Length(Dir)]='.' then Dec(Dir[0]);
     if not DeleteAllFiles then
     begin
        S := MakeNormName(Dir, x_x);
        DosError:=0;
-       FindFirst(S ,$FF xor VolumeID, SR);
-       if (SR.Name[1] = '.') then FindNext(SR);
-       if (SR.Name[1] = '.') then FindNext(SR);
-       if Abort then Exit;
+       lFindFirst(S ,$FF xor VolumeID, SR);
+       if (SR.SR.Name[1] = '.') then lFindNext(SR);
+       if (SR.SR.Name[1] = '.') then lFindNext(SR);
+       if Abort then begin lFindClose(SR); Exit; end;
        dr := cmOK;
        if (DOSError = 0) and (not DeleteAllFiles) then
         begin
@@ -281,7 +294,9 @@ procedure EraseFiles;
     end;
     if DOSMode then
        begin
-         if not DOSDelDir(Dir) then
+         FreeStr:=Dir;
+         j123qwe:=not DOSDelDir;
+         if j123qwe then
            begin
               MessageBox(GetString(dlEraseCantDelDir)+Cut(FreeStr,40), nil, mfError+mfOKButton);
               Abort := On;
@@ -311,7 +326,7 @@ begin
   R.Assign(1,1,26,9);
   New(PInfo, Init(R));
   PInfo^.Top := GetString(dlErase);
-  DOSMode := Off;{not DiskOperation;//////////////////}
+  DOSMode := LFNPresent; {DataCompBoy}
 
   if not DOSMode then
    begin
@@ -323,7 +338,6 @@ begin
 
   EraseCancel := Off; Abort := Off;
   NewTimer(Tmr, 0); CalcCancel;
-
 
   if not DOSMode then
    begin
@@ -360,32 +374,32 @@ begin
     for I := 1 to Files^.Count do
      begin
       PF := Files^.At(I-1);
-      S := MakeFileName(PF^.Name);
+      S := GetLFN(PF^.LFN);
       CalcCancel;
       if (PF <> nil) and not EraseCancel and not Abort then
        if (PF^.Attr and Directory = 0) then
        begin
         InfoWrite(1,GetString(dlErasingFile));
-        InfoWrite(2, S);
+        InfoWrite(2,Cut(S,40));
         J := cmYes;
         if not DeleteAllFiles and (PF^.Attr and ReadOnly <> 0) then J := Over(S);
         EraseCancel := EraseCancel or (J = cmCancel);
         if J = cmYes then
          begin
                S := MakeNormName(PF^.Owner^, S);
-               Assign(F, S); ClrIO;
+               lAssignFile(F, S); ClrIO;
                if PF^.Attr and ReadOnly <> 0 then
                begin
-LLL:             SetFAttr(F, Archive); ClrIO; Erase(F);
+LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
                end else
                begin
-                 Erase(F); if IOResult <> 0 then goto LLL;
+                 lEraseFile(F); if IOResult <> 0 then goto LLL;
                end;
                if IOResult <> 0 then
                  begin
-                   S := FExpand(S);
+                   S := lFExpand(S);
                    GlobalMessage(evBroadcast, cmReleaseFile, @S);
-                   ClrIO; Erase(F);
+                   ClrIO; lEraseFile(F);
                  end;
                if IOResult = 0 then
                begin
@@ -393,14 +407,17 @@ LLL:             SetFAttr(F, Archive); ClrIO; Erase(F);
                     (FMSetup.Options and fmoPreserveDesc = 0) then
                  begin
                    InfoWrite(1,GetString(dlDeletingDIZ));
-                   DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), PF^.Name);
+                   DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name));
+                   DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), GetLFN(PF^.LFN));
                  end;
                end else MessageBox(GetString(dlErasingNoFile)+S, nil, mfError+mfOKButton);
          end;
         end else begin
                        InfoWrite(1,GetString(dlErasingDir));
-                       InfoWrite(2, S);
-                       S := MakeNormName(PF^.Owner^, S);
+                       InfoWrite(2,Cut(S,40));
+                       DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name));
+                       DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), GetLFN(PF^.LFN));
+                       S := lfGetLongFileName(MakeNormName(PF^.Owner^, S));
                        DeleteDirectory(S,0);
                  end
        else Break;
@@ -419,7 +436,7 @@ LLL:             SetFAttr(F, Archive); ClrIO; Erase(F);
        for J := 1 to Files^.Count do
         begin
          if Abort then Break;
-         PF := Files^.At(J-1); S := UpStrg(PF^.Name); Delete(S, 9, 1);
+         PF := Files^.At(J-1); S := UpStrg(MakeFileName(PF^.Name)); Delete(S, 9, 1);
          if StrEq(S[1], Dir^[I].Name, 11) then
           begin
            {Files^.AtDelete(J-1);}
@@ -431,7 +448,7 @@ LLL:             SetFAttr(F, Archive); ClrIO; Erase(F);
              if J = cmYes then
               begin
                InfoWrite(1,GetString(dlErasingFile));
-               InfoWrite(2, S);
+               InfoWrite(2,Cut(S,40));
                EraseChain(Dir^[I].Clus);
                Dir^[I].Name[0] := #$E5;
                DirModified := On;
@@ -439,7 +456,7 @@ LLL:             SetFAttr(F, Archive); ClrIO; Erase(F);
             end else
              begin
                InfoWrite(1, GetString(dlErasingDir));
-               PInfo^.Write(2, S);
+               PInfo^.Write(2, Cut(S,40));
                S := MakeNormName(PF^.Owner^, S);
                Drv^.ClusterWrite(Dir^, DirCluster);
                if DeleteDirectory(S, Dir^[I].Clus) and not Abort then
@@ -497,6 +514,7 @@ LLL:             SetFAttr(F, Archive); ClrIO; Erase(F);
   end;
   Dec(SkyEnabled);
 end;
+        {-DataCompBoy-}
 
 procedure SetVLabel;
  var Drv: PDiskDriver;
@@ -524,4 +542,3 @@ begin
 end;
 
 END.
-

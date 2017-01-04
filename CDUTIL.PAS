@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 Unit CdUtil;
@@ -60,7 +64,11 @@ Unit CdUtil;
          StartUp,
          Microed,
          Commands,
-         Advance ;
+         LFN, {DataCompBoy}
+         advance,
+         advance1,
+         advance2,
+         advance3;
 
     type
 
@@ -124,8 +132,8 @@ Unit CdUtil;
 
    Procedure EditDescr;
    var T : String ;
-       D : String[80];
-       F : Text ;
+       D : String;
+       F : lText ;
        I : Word ;
        R : Trect ;
     begin
@@ -134,19 +142,19 @@ Unit CdUtil;
 
         D := SourceDir + 'CD\';
         T := D + Hex8(DiskID) + '.CD';
-        Assign(F,T);
+        lAssignText(F,T);
         ClrIo;
-        Reset(F);
+        lResetText(F);
         if IOResult<>0 then begin
                              ClrIo ;
                              CreateDirInheritance(D,off);
-                             Rewrite(F);
+                             lRewriteText(F);
                              if IoResult<>0 then Exit;
-                             Writeln(F,'TITLE:',CnvString(DiskTitle));
+                             Writeln(F.T,'TITLE:',CnvString(DiskTitle));
                              for I:=LowTrack to HighTrack do
-                             Writeln(F,SStr(I-LowTrack+1,2,'0'),':');
+                              Writeln(F.T,SStr(I-LowTrack+1,2,'0'),':');
                             end;
-         System.Close(F);
+         System.Close(F.T);
 
          if (InterfaceData.Options and ouiStoreEditorPosition <> 0) then
            begin
@@ -562,8 +570,8 @@ Unit CdUtil;
 
   Procedure SaveOrder ;
    var T : String ;
-       D : String[80];
-       F : Text ;
+       D : String;
+       F : lText ;
        I : Word ;
        R : Trect ;
     begin
@@ -572,18 +580,18 @@ Unit CdUtil;
        begin
         D := SourceDir + 'CD\';
         T := D + Hex8(DiskID) + '.TRK';
-        Assign(F,T);
+        lAssignText(F,T);
         ClrIo;
-        ReWrite(F);
+        lReWriteText(F);
         if IOResult<>0 then begin
                              ClrIo ;
                              CreateDirInheritance(D,off);
-                             Rewrite(F);
+                             lRewriteText(F);
                              if IoResult<>0 then Exit;
                             end;
          For I:=1 to Length(Self.order) do
-         Writeln(F,ItoS( Byte(Self.Order[I]) - LowTrack + 1));
-         System.Close(F);
+         Writeln(F.T,ItoS( Byte(Self.Order[I]) - LowTrack + 1));
+         System.Close(F.T);
        end;
     end;
 

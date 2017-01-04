@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,7 +49,8 @@ UNIT DISKTOOL;
 
 interface
 
-uses Advance,Dos,Objects;
+uses LFN, {DataCompBoy}
+     advance, advance1, advance2, advance3, Dos, Objects;
 
 const On = True;
       Off = False;
@@ -142,7 +143,7 @@ type
      function  MadeSec(t : LongInt) : LongInt;
      function  MadeLen(t : LongInt) : LongInt;
      function  MadeClust(t : word) : word;
-     function  GetPath(s : pathstr) : word;
+     function  GetPath(s : string) : word;
      function  ClusterSize(Cluster: Word): Word;
      procedure ReadFAT;
      procedure SetVLabel(Lb : String);
@@ -156,9 +157,13 @@ type
     function  CompareFiles(const N1, N2: String): Boolean;
     procedure SectorRead(Drive : Byte;q : pointer;t : LongInt; l : word);
     procedure SectorWrite(Drive : Byte;q : pointer;t : LongInt; l : word);
+{DataCompBoy
     procedure DiskOn(Drv : Byte);
+}
     function  StrEq(Var a,b;Count : Word) : Boolean;
+{DataCompBoy
     procedure DiskOff;
+}
     function  CheckDisk(C : Char) : Boolean;
 
 implementation
@@ -299,7 +304,7 @@ Rep:
 end;
 
 constructor TDiskDriver.Init;
-var S: pathstr;
+var S: string;
     BRec: PBootRec;
     P: PDiskDriver;
     C: Char;
@@ -307,7 +312,7 @@ var S: pathstr;
     Removable: Boolean;
 begin
   Abort := False;
-  GetDir(Drv, s); Drv := Byte(S[1]) - 64;
+  lGetDir(Drv, s); Drv := Byte(S[1]) - 64;
   RemoteDrive := False;
   C := S[1];
   asm
@@ -430,7 +435,7 @@ begin
  ReadFAT;
 end;
 
-function TDiskDriver.GetPath(s : pathstr) : word;
+function TDiskDriver.GetPath(s : string) : word;
 var
     ts,vs : string[12];
     cl,i  : word;
@@ -474,8 +479,8 @@ begin
   if QSize<RootEntries*32 then QSize:=RootEntries*32;
   QQP := MemAlloc(QSize);cl:=0;GetPath:=0;
   if (QQP=Nil) or (QSize=0) then Exit;
-  UpStr(s);if s[Byte(s[0])]<>'\' then s:=s+'\';
-  Delete(s,1,posChar(':',s));if s[1]='\' then DelFC(s);
+  UpStr(s);if not (s[Byte(s[0])] in ['\','/']) then s:=s+'\';
+  Delete(s,1,posChar(':',s));if s[1] in ['\','/'] then DelFC(s);
   while (Byte(s[0])>0) and (PosChar('\',s)>0) do
         begin
           FillChar(ts[1],11,32);
@@ -645,21 +650,20 @@ begin
  FreeFAT;
 end;
 
+{DataCompBoy
 procedure DiskOn;
 begin
-{ /////////////
  if not DiskOperation then Exit;
  Port[$3F2]:=($08 shl Drv) or $0C or (Drv-1);
  mem[0:$440]:=$FF;
-}
 end;
-
+}
+{DataCompBoy
 procedure DiskOff;
 begin
-{ ////////////
  Port[$3F2]:=$0C;
-}
 end;
+}
 
 procedure TDiskDriver.SetVLabel;
   label   Ex;

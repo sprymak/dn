@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -48,7 +48,7 @@
 unit SBlocks;
 
 interface
-uses ExtraMemory, Advance, Objects, Dos, Memory;
+uses ExtraMemory, advance, advance1, advance2, advance3, Objects, Dos, Memory;
 
 const
      MaxBlockSize  = 1024;
@@ -142,7 +142,8 @@ type
 
 function GetCollector(MaxSize, MaxLines: LongInt): PCollector;
 
-implementation uses Commands, Startup;
+implementation
+ uses Commands, Startup;
 
 
 { TCollector }

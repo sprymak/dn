@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -60,7 +60,7 @@ type  ModemString   = String[32];
            Init: String[80];
            Escape, Onhook: String[20];
            Prefix, Suffix: String[20];
-           DownLoad: PathStr;
+           DownLoad: String;
            Redial: String[4];
           end;
 
@@ -112,7 +112,9 @@ var   StartTime     : Word;
       ModemChar     : Char;       {°±²Û Last character readed from modem Û²±°}
 
       Procedure HangUp;
+{DataCompBoy
       Procedure ModemDone;
+}
       Procedure InitTimeOut(Max : Word);
       Function  ReadModem : Boolean;
       Function  InitModem : Byte;
@@ -124,8 +126,9 @@ var   StartTime     : Word;
       procedure StoreModemSetup;
 
 Implementation
-uses xTime, Advance, Objects, DNApp, Views, Terminal, Messages, StartUp, Commands, RStrings,
-     apUART, apFossil, DnUtil, Drivers;
+uses xTime, advance, advance1, advance2, advance3, Objects, DNApp, Views,
+     Terminal, Messages, StartUp, Commands, RStrings, apUART, apFossil, DnUtil,
+     Drivers;
 
 var MaxTime : Word;
 
@@ -351,13 +354,13 @@ begin
  ModemWrite(ModemSetup.Prefix+Number+ModemSetup.Suffix);
  Dial:=moOk;
 end;
-
+{DataCompBoy
 Procedure ModemDone;
 begin
  if COMport=NIL then Exit;
  Dispose(COMport,Done);
 end;
-
+}
 Procedure HangUp;
 var i: Word;
     C: Char;

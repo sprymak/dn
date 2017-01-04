@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,10 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//      LFNизация выполнена Антоном Федоpовым aka DataCompBoy'ем.
+//                  В честь Матаpыкиной Ульяны...
 //////////////////////////////////////////////////////////////////////////}
 
 unit Drivers;
@@ -54,7 +58,8 @@ unit Drivers;
 
 interface
 
-uses Objects, xTime, dnini;
+uses LFN, StakDump, {DataCompBoy}
+     Objects, xTime, dnini;
 
 {$I Version.INC}
 
@@ -93,6 +98,8 @@ const
 
   mbLeftButton  = $01;
   mbRightButton = $02;
+
+  ShowScrollBar:Boolean=True;
 
 type
 
@@ -174,7 +181,9 @@ procedure HideMouse;
 procedure GetMouseEvent(var Event: TEvent);
 procedure GetKeyEvent(var Event: TEvent);
 procedure SetMouseSpeed(XS, YS: Byte);
-{function GetShiftState: Byte;}
+{DataCompBoy
+function GetShiftState: Byte;
+}
 procedure GetCrtMode; { used to fixup screen before application starts }
 
 { ******** SCREEN MANAGER ******** }
@@ -240,13 +249,25 @@ procedure DoneVideo;
 procedure SetVideoMode(Mode: Word);
 procedure ClearScreen;
 
+(*DataCompBoy
 Procedure InitVGApalette ;     { To be called at startup time !!!! }
+*)
 Procedure ResetVGApalette( Update : Boolean );  { reset palette to default          }
 Procedure GetPalette(var Buf); { fill buff with palette 64 bytes   }
 Procedure SetPalette(var Buf); { set palette using buf 64 bytes    }
 Function  VGASystem: Boolean;
+(* OLD
 Procedure Set_palette( slot:Word; sred,sgreen,sblue : Byte);
 Procedure Get_palette( Var   slot,gred,ggreen,gblue : Byte);
+*)
+                               {Knave begin}
+Procedure FadePalette;
+Procedure GlowPalette;
+Procedure BlackPalette;
+Procedure Set_palette(color,r,g,b :Byte);
+Procedure Get_palette(color :Byte; Var r,g,b :Byte);
+                               {Knave end}
+
 { ******** SYSTEM ERROR HANDLER ******** }
 
 type
@@ -303,7 +324,10 @@ function CStrLen(const S: String): Integer;
 implementation
 uses
   Dos,
-  Advance,
+  advance,
+  advance1,
+  advance2,
+  advance3,
   Commands,
   Views,
   Startup,
@@ -648,13 +672,13 @@ begin
      (ShiftState and 3 <> 0) then Event.CharCode := #0;
 end;
 
-
-{function GetShiftState: Byte; assembler;
+{DataCompBoy
+function GetShiftState: Byte; assembler;
 asm
         MOV     ES,Seg0040
         MOV     AL,ES:ShiftState
-end;}
-
+end;
+}
 { ******** SCREEN MANAGER ******** }
 
 var
@@ -1087,7 +1111,7 @@ begin
    if (ScreenWidth = 80) and (ScreenHeight = 30) and (ScreenMode = 3) then
       ScreenMode := 256;
    SetBlink(CurrentBlink);
-   if VGASystem and (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
+   {if VGASystem and (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);}
 end;
 
 procedure DoneVideo;
@@ -1110,6 +1134,7 @@ var
     rep  stosw
   end;
 begin
+ If FadeDelay > 0 then FadePalette; {Knave}
   if (ScreenSaved) and (UserScreen <> nil) then begin
     J := UserScreenWidth; if J > ScreenWidth then J := ScreenWidth;
     if WordRec(OldCursorPos).Hi > ScreenHeight - 1 then WordRec(OldCursorPos).Hi := ScreenHeight - 1;
@@ -1149,6 +1174,7 @@ begin
 (*    TEST    StartupData.Unload,osuBlinking {///////////}
     JNZ     @@1*)
   end;
+ If (FadeDelay > 0) then ResetVgaPalette(ON);; {Knave}
 end;
 
 const ModeChanged: Boolean = False;
@@ -1278,7 +1304,6 @@ asm
         CALL    VideoInt
 end;
 
-
      Function VGASystem: Boolean; assembler ;
       asm
         mov ax,1C00h
@@ -1296,7 +1321,7 @@ end;
 @@1:    mov ax,1
 @@2:
      end;
-
+{DataCompBoy
    Procedure InitVGApalette ;
      Var
        regs : Registers;
@@ -1317,7 +1342,8 @@ end;
          end;
        end;
      end;
-
+}
+(* OLD!!!
      Procedure Set_palette(slot:Word; sred,sgreen,sblue : Byte);
      Var
        regs : Registers;
@@ -1352,7 +1378,7 @@ end;
          gblue:=CL;
        end;
      end;
-
+*)
  Procedure GetPalette;
  var PAL : VGA_pal absolute Buf ;
      I,y : byte ;
@@ -1377,6 +1403,75 @@ end;
     if Update then VGA_palette := VGA_default ;
     SetPalette( VGA_default );
   end;
+
+{Knave begin}
+procedure Set_palette(color,r,g,b: Byte); Assembler;
+ asm
+ mov dx,3C8h
+  mov al,color
+  out dx,al
+  inc dx
+  mov al,r
+  out dx,al
+  mov al,g
+  out dx,al
+  mov al,b
+  out dx,al
+ end;
+
+procedure Get_palette(color:byte; var r,g,b:byte); Assembler;
+ asm
+  mov dx,3C7h
+  mov al,color
+  out dx,al
+  add dx,2
+  in al,dx
+  les di,r
+  stosb
+  in al,dx
+  les di,g
+  stosb
+  in al,dx
+  les di,b
+  stosb
+ end;
+
+Procedure FadePalette; {Плавно уходим в черное}
+var i,j,r,g,b:byte;
+begin
+  for i:=0 to 63 do begin
+    Delay(FadeDelay);
+    for j:=0 to 15 do begin
+      Get_palette(SL[j],r,g,b);
+      if r>0 then dec(r);
+      if g>0 then dec(g);
+      if b>0 then dec(b);
+      Set_palette(SL[j],r,g,b);
+    end;
+  end;
+end;
+
+Procedure BlackPalette; {Мгновенно в черное}
+var j:byte;
+begin
+for j:=0 to 15 do Set_palette(SL[j],0,0,0);
+end;
+
+Procedure GlowPalette; {Плавно выходим из черного}
+var i,j,r,g,b:byte;
+begin
+ for i:=0 to 63 do begin
+    Delay(FadeDelay);
+    for j:=0 to 15 do begin
+      Get_palette(SL[j],r,g,b);
+      if r<VGA_Palette[1,j] then inc(r);
+      if g<VGA_Palette[2,j] then inc(g);
+      if b<VGA_Palette[3,j] then inc(b);
+      Set_palette(SL[j],r,g,b);
+    end;
+  end;
+end;
+{Knave end}
 
 { ******** SYSTEM ERROR HANDLER ******** }
 
@@ -1854,30 +1949,31 @@ end;
 
 procedure MoveCStr(var Dest; const Str: String; Attrs: Word); assembler;
 asm
-        MOV     DL,'~'
+        MOV     DX,'~'
         PUSH    DS
         LDS     SI,Str
         CLD
         LODSB
         MOV     CL,AL
         XOR     CH,CH
-        JCXZ    @@3
+        JCXZ    @OUT
         LES     DI,Dest
         MOV     BX,Attrs
         MOV     AH,BL
-@@1:    LODSB
-        CMP     AL,DL
-        JE      @@2
+@LP:    LODSB
         CMP     AL,0
-        JNE     @ST
-        MOV     DL,0
-        JMP     @@LP
-@ST:    STOSW
-        LOOP    @@1
-        JMP     @@3
-@@2:    XCHG    AH,BH
-@@LP:   LOOP    @@1
-@@3:    POP     DS
+        JE      @NULL
+        CMP     AL,DL
+        JE      @TILDE
+        STOSW
+        LOOP    @LP
+        JMP     @OUT
+@NULL:  XCHG    DL,DH
+        LOOP    @LP
+        JMP     @OUT
+@TILDE: XCHG    AH,BH
+        LOOP    @LP
+@OUT:   POP     DS
 end;
 
 procedure MoveStr(var Dest; const Str: String; Attr: Byte); assembler;
@@ -1945,7 +2041,7 @@ var
   C,AC,PP,FH : Word;
   P : Pointer;
   B : array[0..42] of Word;
-
+  TT: Text;
   {!!!!!}
   PPP: TByteArray absolute FreeStr;
 
@@ -2030,12 +2126,24 @@ begin
         CALL    VideoInt
  end;
 
-    { Create Report File }
+    { Create Report File. DNAPP.PAS contains full dupe of this routine }
 
+    SourceDir := lfGetShortFileName(SourceDir); {DataCompBoy}
     I := length(SourceDir);
     SourceDir := SourceDir + 'DN.ERR'#0;
 
     FH := $FFFF ;
+{$IFDEF DPMI}
+    Assign(TT, SourceDir);
+    Append(TT);
+    If IOResult<>0 then Rewrite(TT);
+    If IOResult=0  then begin
+     FH:=TextRec(TT).Handle;
+ asm
+    push ds
+    push bp
+    mov  bx, FH
+{$ELSE}
  asm
     push ds
     push bp
@@ -2047,12 +2155,12 @@ begin
     mov dx,11h   { if exist open, if not create and open }
     mov bx,7042h { 42 file mode ; do not use int 24 , write
                    w/o buffering }
-
     int 21h
     jnc @@1
     jmp @@99     { other error - exit }
 @@1:
     mov bx,ax
+{$ENDIF}
     mov ax,4202H { lseek to end of file }
     sub dx,dx
     sub cx,cx
@@ -2065,9 +2173,13 @@ begin
     pop bp
     pop ds
     end;
+{$IFDEF DPMI}
+  end;
+{$ENDIF}
 
  if FH<>$FFFF then
    begin
+     AssignOutput(FH);
      FreeStr :=
           ^M^J +
        '----<' + GetDateTime(false) +' '+ GetDateTime(true) +'>'^M^J +
@@ -2085,21 +2197,33 @@ begin
        'SP  :' + Hex4(SPtr) + ^M^J +
        'MEMm:' + Hex8(MaxAvail) + ^M^J +
        'MEMa:' + Hex8(MemAvail) + ^M^J +
+{$IFNDEF DPMI}
        'hOrg:' + Hex8(Longint(HeapOrg)) + ^M^J +
        'hEnd:' + Hex8(Longint(HeapEnd)) + ^M^J +
        'hPtr:' + Hex8(Longint(HeapPtr)) + ^M^J +
        'hLim:' + Hex4( StackLimit ) + ^M^J +
+{$ENDIF}
+       '';
+     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
+     FreeStr :=
+       'STCK:' + ^M^J;
+     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
+     DumpStack;
+     FreeStr :=
        'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;
      StoreBuffer( FreeStr[1] , length(FreeStr), FH );
 
      for C:=0 to Pred(ScreenHeight) do
       begin
+          TempFile:='';
           PP := (ScreenWidth*C) shl 1;
-          for AC := 0 to Pred(ScreenWidth) do
-          PPP[AC] :=  PByteArray(ScreenBuffer)^[PP+AC*2];
-          PPP[ScreenWidth] := $0d ;
-          PPP[ScreenWidth+1] := $0a ;
-          if StoreBuffer( PPP , ScreenWidth+2 , FH ) <> 0 then Break;
+          for AC := 0 to Pred(ScreenWidth) do Begin
+           PPP[AC] :=  PByteArray(ScreenBuffer)^[PP+AC*2];
+           TempFile:=TempFile+Hex2(PByteArray(ScreenBuffer)^[PP+AC*2+1]);
+          End;
+          TempFile := TempFile+#13#10 ;
+          if StoreBuffer(PPP,         ScreenWidth,      FH) <> 0 then Break;
+          if StoreBuffer(TempFile[1], Length(TempFile), FH) <> 0 then Break;
       end; { for lines }
      asm
        mov  ah,3Eh     { close file }
@@ -2214,7 +2338,7 @@ asm
     mul  cx
     add  bx, ax
 end;
-
+{DataCompBoy
 procedure HideGraphCursor; far; assembler;
 asm
     cmp OldMouseX, 0
@@ -2256,7 +2380,7 @@ asm
     add  si, si
 @@1:
 end;
-
+}
 procedure PrepareCharGen; assembler;
 asm
  mov dx, $3C4
@@ -2288,7 +2412,7 @@ asm
  mov ax, $0004
  out dx, ax
 end;
-
+{DataCompBoy
 procedure ShowGraphCursor; far;
  var GraphBlock: Array[0..5,0..15] of Byte;
      I: Integer;
@@ -2430,7 +2554,7 @@ begin
 @@3:
  end;
 end;
-
+}
 procedure HideTextCursor; far; assembler;
 asm
     cmp OldMouseX, 0
@@ -2449,13 +2573,13 @@ asm
    mov ax, 1
    int 33h
 end;
-
+{DataCompBoy
 procedure HideStdCursor; far; assembler;
 asm
    mov ax, 2
    int 33h
 end;
-
+}
 procedure ShowTextCursor; far; assembler;
 asm
    call HideTextCursor
@@ -2894,4 +3018,3 @@ begin
   SaveExit := ExitProc;
   ExitProc := @ExitDrivers;
 end.
-

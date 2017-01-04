@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -144,6 +144,37 @@ VAR
                                 name : string;
                    End;
 
+procedure GetConnectionInfo(var LogicalStationNo: integer;
+                            var name,hex_id:string;
+                            var conntype:integer;
+                            var datetime:string;
+                            var retcode:integer);
+{ returns username and login date/time when you supply the station number. }
+
+procedure GetServerInfo;
+{ returns various info of the default server }
+
+procedure GetStation( var _station: integer;
+                      var retcode: integer);
+{ returns the station number of your workstation }
+
+procedure get_drive_connection_id(var drive_number,
+                                  server_number : integer);
+{pass the drive number - it returns the server number if a network volume}
+
+procedure get_file_server_name(var server_number : integer;
+                               var server_name : string);
+
+procedure get_directory_path(var handle : integer;
+                             var pathname : string;
+                             var retcode : integer);
+
+procedure get_drive_handle_id(var drive_number, handle_number : integer);
+
+procedure set_preferred_connection_id(server_num : integer);
+
+
+(*DataCompBoy
 
 procedure get_server_lan_driver_information(var _lan_board_number : integer;
 { This will return info on what }           var _text1,_text2:string;
@@ -153,13 +184,6 @@ procedure get_server_lan_driver_information(var _lan_board_number : integer;
                                                 _option_number,
                                                 _retcode : integer);
 
-procedure GetConnectionInfo(var LogicalStationNo: integer;
-                            var name,hex_id:string;
-                            var conntype:integer;
-                            var datetime:string;
-                            var retcode:integer);
-{ returns username and login date/time when you supply the station number. }
-
 procedure clear_connection(connection_number : integer; var retcode :
 integer);
 { kicks the workstation off the server}
@@ -167,9 +191,6 @@ integer);
 procedure GetHexID(var userid,hexid: string;
                    var retcode: integer);
 { returns the novell hexid of an username when you supply the username. }
-
-procedure GetServerInfo;
-{ returns various info of the default server }
 
 procedure GetUser( var _station: integer;
                    var _username: string;
@@ -179,10 +200,6 @@ procedure GetUser( var _station: integer;
 procedure GetNode( var hex_addr: string;
                    var retcode: integer);
 { returns your physical network node in hex. }
-
-procedure GetStation( var _station: integer;
-                      var retcode: integer);
-{ returns the station number of your workstation }
 
 procedure GetServerName(var servername : string;
                         var retcode : integer);
@@ -240,21 +257,6 @@ string; var retcode : integer);
 
 procedure get_personal_message(var _connection : integer; var _message :
 string; var retcode : integer);
-
-procedure get_drive_connection_id(var drive_number,
-                                  server_number : integer);
-{pass the drive number - it returns the server number if a network volume}
-
-procedure get_file_server_name(var server_number : integer;
-                               var server_name : string);
-
-procedure get_directory_path(var handle : integer;
-                             var pathname : string;
-                             var retcode : integer);
-
-procedure get_drive_handle_id(var drive_number, handle_number : integer);
-
-procedure set_preferred_connection_id(server_num : integer);
 
 procedure get_preferred_connection_id(var server_num : integer);
 
@@ -345,11 +347,12 @@ retcode:integer);
 procedure purge_all_erased_files(var retcode:integer);
 
 procedure purge_erased_files(var retcode:integer);
-{--------------------------------------------------------------------------
----}
+{-----------------------------------------------------------------------------}
 
-
+*)
 IMPLEMENTATION
+
+{$IFDEF DN} uses advance, advance1, advance2, advance3; {$ENDIF}
 
 const
      zero = '0';
@@ -364,6 +367,275 @@ var
 {$IFNDEF WINDOWS}
   regs : registers;    { Turbo Pascal for Dos }
 {$ENDIF WINDOWS}
+
+
+
+Procedure GetConnectionInfo
+(Var LogicalStationNo: Integer; Var Name: String; Var HEX_ID: String;
+ Var ConnType : Integer; Var DateTime : String; Var retcode:integer);
+
+Var
+  I,X            : Integer;
+  RequestBuffer  : Record
+                     PacketLength : Integer;
+                     FunctionVal  : Byte;
+                     ConnectionNo : Byte;
+                   End;
+  ReplyBuffer    : Record
+                     ReturnLength : Integer;
+                     UniqueID1    : Packed Array [1..2] of byte;
+                     UniqueID2    : Packed Array [1..2] of byte;
+                     NWConnType   : Packed Array [1..2] of byte;
+                     ObjectName   : Packed Array [1..48] of Byte;
+                     LoginTime    : Packed Array [1..8] of Byte;
+                   End;
+  Month          : String[3];
+  Year,
+  Day,
+  Hour,
+  Minute         : String[2];
+
+Begin
+  With RequestBuffer Do Begin
+    PacketLength := 2;
+    FunctionVal := 22;  { 22 = Get Station Info }
+    ConnectionNo := LogicalStationNo;
+  End;
+  ReplyBuffer.ReturnLength := 62;
+  With Regs Do Begin
+    Ah := $e3;
+    ds := 0;
+    es := 0;
+    Ds := Seg(RequestBuffer);
+    Si := Ofs(RequestBuffer);
+    Es := Seg(ReplyBuffer);
+    Di := Ofs(ReplyBuffer);
+  End;
+  MsDos(Regs);
+  retcode := regs.al;
+  name := '';
+  hex_id := hexdigits[replybuffer.uniqueid1[1] shr 4];
+  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[1] and $0F];
+  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[2] shr 4];
+  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[2] and $0F];
+  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[1] shr 4];
+  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[1] and $0F];
+  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[2] shr 4];
+  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[2] and $0F];
+  { Now we chop off leading zeros }
+    while ( (hex_id[1]='0') and (length(hex_id) > 1) )
+             do hex_id := copy(hex_id,2,length(hex_id));
+  ConnType := replybuffer.nwconntype[2];
+  datetime := '';
+  If hex_id <> '0' Then Begin {Grab username}
+    With ReplyBuffer Do Begin
+      I := 1;
+      While (I <= 48)  and (ObjectName[I] <> 0) Do
+        Begin
+        Name[I] := Chr(Objectname[I]);
+        I := I + 1;
+        End { while };
+     Name[0] := Chr(I - 1);
+   End; {With} End; {if}
+   If hex_id <> '0' then With replybuffer do {Grab login time}
+   begin
+     Str(LoginTime[1]:2,Year);
+     Month := Months[LoginTime[2]];
+     Str(LoginTime[3]:2,Day);
+     Str(LoginTime[4]:2,Hour);
+     Str(LoginTime[5]:2,Minute);
+     If Day[1] = ' ' Then Day[1] := '0';
+     If Hour[1] = ' ' Then Hour[1] := '0';
+     If Minute[1] = ' ' Then Minute[1] := '0';
+     DateTime := Day+'-'+Month+'-'+Year+' ' + Hour + ':' + Minute;
+     End;
+End { GetConnectInfo };
+
+Procedure GetServerInfo;
+Var
+  RequestBuffer  : Record
+                     PacketLength : Integer;
+                     FunctionVal  : Byte;
+                   End;
+  I              : Integer;
+
+Begin
+  With RequestBuffer Do Begin
+    PacketLength := 1;
+    FunctionVal := 17;  { 17 = Get Server Info }
+  End;
+  ServerInfo.ReturnLength := 128;
+  With Regs Do Begin
+    Ah := $e3;
+    Ds := Seg(RequestBuffer);
+    Si := Ofs(RequestBuffer);
+    Es := Seg(ServerInfo);
+    Di := Ofs(ServerInfo);
+  End;
+  MsDos(Regs);
+  With serverinfo do
+  begin
+   connections_max := connectionmax[1]*256 + connectionmax[2];
+   connections_in_use := connectionuse[1]*256 + connectionuse[2];
+   max_connected_volumes := maxconvol[1]*256 + maxconvol[2];
+   peak_connections_used := peak_used[1]*256 + peak_used[2];
+   name := '';
+   i := 1;
+   while ((server[i] <> 0) and (i<>48)) do
+    begin
+    name := name + chr(server[i]);
+    i := i + 1;
+    end;
+   end;
+End;
+
+procedure getstation( var _station: integer; var retcode: integer);
+begin
+   With Regs do
+   begin
+    ah := $DC;
+    ds := 0;
+    si := 0;
+   end;
+   MsDos( Regs );
+   _station := Regs.al;
+   retcode := 0;
+   end;
+
+procedure get_drive_connection_id(var drive_number, server_number : integer);
+var
+
+ drive_table : array [1..32] of byte;
+       count : integer;
+           p : ^byte;
+begin
+  server_number := 0; {-$VIV 13.05.99}
+  regs.ah := $EF;
+  regs.al := $02;
+  regs.es := 0;
+  regs.ds := 0;
+  regs.si := 0;
+  msdos(regs);
+  if (regs.es = 0) and (regs.si = 0) then Exit; {-$VIV 13.05.99}
+  p := ptr(regs.es, regs.si);
+  move(p^,drive_table,32);
+  if ((drive_number < 0) or (drive_number > 32))  then drive_number := 1;
+  server_number := drive_table[drive_number];
+end;
+
+procedure get_file_server_name(var server_number : integer; var server_name :
+string);
+var
+  name_table : array [1..8*48] of byte;
+      server : array [1..8] of string;
+       count : integer;
+      count2 : integer;
+           p : ^byte;
+     no_more : integer;
+
+begin
+  server_name := ''; {-$VIV 13.05.99}
+  regs.ah := $EF;
+  regs.al := $04;
+  regs.ds := 0;
+  regs.es := 0;
+  regs.si := 0;
+  msdos(regs);
+  if (regs.es = 0) and (regs.si = 0) then Exit; {-$VIV 13.05.99}
+  no_more := 0;
+  p := ptr(regs.es, regs.si);
+  move(p^,name_table,8*48);
+  for count := 1 to 8 do server[count] := '';
+  for count := 0 to 7 do
+  begin
+    no_more := 0;
+    for count2 := (count*48)+1 to (count*48)+48 do if name_table[count2] <>
+$00
+        then
+        begin
+        if no_more=0 then server[count+1] := server[count+1] +
+chr(name_table[count2]);
+        end else no_more:=1; {scan until 00h is found}
+  end;
+  if ((server_number<1) or (server_number>8)) then server_number := 1;
+  server_name := server[server_number];
+end;
+
+procedure get_directory_path(var handle : integer; var pathname : string; var
+retcode : integer);
+var count : integer;
+
+   request_buffer : record
+              len : integer;
+      subfunction : byte;
+       dir_handle : byte;
+              end;
+
+     reply_buffer : record
+              len : integer;
+         path_len : byte;
+        path_name : array [1..255] of byte;
+              end;
+
+begin
+  With Regs Do Begin
+    Ah := $e2;
+    Ds := Seg(Request_Buffer);
+    Si := Ofs(Request_Buffer);
+    Es := Seg(Reply_Buffer);
+    Di := Ofs(Reply_Buffer);
+  End;
+  With request_buffer do
+   begin
+   len := 2;
+   subfunction := $01;
+   dir_handle := handle;
+   end;
+  With reply_buffer do
+   begin
+   len := 256;
+   path_len := 0;
+   for count := 1 to 255 do path_name[count] := $00;
+   end;
+  msdos(regs);
+  retcode := regs.al;
+  pathname := '';
+  if reply_buffer.path_len > 0 then for count := 1 to reply_buffer.path_len do
+     pathname := pathname + chr(reply_buffer.path_name[count]);
+end;
+
+procedure get_drive_handle_id(var drive_number, handle_number : integer);
+var
+ drive_table : array [1..32] of byte;
+       count : integer;
+           p : ^byte;
+
+begin
+  handle_number := 0; {-$VIV 13.05.99}
+  regs.ah := $EF;
+  regs.al := $00;
+  regs.ds := 0;
+  regs.es := 0;
+  regs.si := 0;
+  msdos(regs);
+  if (regs.es = 0) and (regs.si = 0) then Exit; {-$VIV 13.05.99}
+  p := ptr(regs.es, regs.si);
+  move(p^,drive_table,32);
+  if ((drive_number < 0) or (drive_number > 32))  then drive_number := 1;
+  handle_number := drive_table[drive_number];
+end;
+
+procedure set_preferred_connection_id(server_num : integer);
+begin
+ regs.ah := $F0;
+ regs.al := $00;
+ regs.ds := 0;
+ regs.es := 0;
+ regs.dl := server_num;
+ msdos(regs);
+end;
+
+(*DataCompBoy
 
 procedure get_volume_name(var volume_name: string; volume_number: integer;
                           var retcode:integer);
@@ -693,16 +965,6 @@ retcode := regs.al;
 end;
 
 
-procedure set_preferred_connection_id(server_num : integer);
-begin
- regs.ah := $F0;
- regs.al := $00;
- regs.ds := 0;
- regs.es := 0;
- regs.dl := server_num;
- msdos(regs);
-end;
-
 procedure set_primary_connection_id(server_num : integer);
 begin
  regs.ah := $F0;
@@ -741,88 +1003,6 @@ begin
  regs.es := 0;
  msdos(regs);
  server_num := regs.al;
-end;
-
-
-procedure get_drive_connection_id(var drive_number, server_number : integer);
-var
-
- drive_table : array [1..32] of byte;
-       count : integer;
-           p : ^byte;
-begin
-  server_number := 0; {-$VIV 13.05.99}
-  regs.ah := $EF;
-  regs.al := $02;
-  regs.es := 0;
-  regs.ds := 0;
-  regs.si := 0;
-  msdos(regs);
-  if (regs.es = 0) and (regs.si = 0) then Exit; {-$VIV 13.05.99}
-  p := ptr(regs.es, regs.si);
-  move(p^,drive_table,32);
-  if ((drive_number < 0) or (drive_number > 32))  then drive_number := 1;
-  server_number := drive_table[drive_number];
-end;
-
-procedure get_drive_handle_id(var drive_number, handle_number : integer);
-var
- drive_table : array [1..32] of byte;
-       count : integer;
-           p : ^byte;
-
-begin
-  handle_number := 0; {-$VIV 13.05.99}
-  regs.ah := $EF;
-  regs.al := $00;
-  regs.ds := 0;
-  regs.es := 0;
-  regs.si := 0;
-  msdos(regs);
-  if (regs.es = 0) and (regs.si = 0) then Exit; {-$VIV 13.05.99}
-  p := ptr(regs.es, regs.si);
-  move(p^,drive_table,32);
-  if ((drive_number < 0) or (drive_number > 32))  then drive_number := 1;
-  handle_number := drive_table[drive_number];
-end;
-
-
-procedure get_file_server_name(var server_number : integer; var server_name :
-string);
-var
-  name_table : array [1..8*48] of byte;
-      server : array [1..8] of string;
-       count : integer;
-      count2 : integer;
-           p : ^byte;
-     no_more : integer;
-
-begin
-  server_name := ''; {-$VIV 13.05.99}
-  regs.ah := $EF;
-  regs.al := $04;
-  regs.ds := 0;
-  regs.es := 0;
-  regs.si := 0;
-  msdos(regs);
-  if (regs.es = 0) and (regs.si = 0) then Exit; {-$VIV 13.05.99}
-  no_more := 0;
-  p := ptr(regs.es, regs.si);
-  move(p^,name_table,8*48);
-  for count := 1 to 8 do server[count] := '';
-  for count := 0 to 7 do
-  begin
-    no_more := 0;
-    for count2 := (count*48)+1 to (count*48)+48 do if name_table[count2] <>
-$00
-        then
-        begin
-        if no_more=0 then server[count+1] := server[count+1] +
-chr(name_table[count2]);
-        end else no_more:=1; {scan until 00h is found}
-  end;
-  if ((server_number<1) or (server_number>8)) then server_number := 1;
-  server_name := server[server_number];
 end;
 
 procedure disable_file_server_login(var retcode : integer);
@@ -882,49 +1062,6 @@ begin
 end;
 
 
-procedure get_directory_path(var handle : integer; var pathname : string; var
-retcode : integer);
-var count : integer;
-
-   request_buffer : record
-              len : integer;
-      subfunction : byte;
-       dir_handle : byte;
-              end;
-
-     reply_buffer : record
-              len : integer;
-         path_len : byte;
-        path_name : array [1..255] of byte;
-              end;
-
-begin
-  With Regs Do Begin
-    Ah := $e2;
-    Ds := Seg(Request_Buffer);
-    Si := Ofs(Request_Buffer);
-    Es := Seg(Reply_Buffer);
-    Di := Ofs(Reply_Buffer);
-  End;
-  With request_buffer do
-   begin
-   len := 2;
-   subfunction := $01;
-   dir_handle := handle;
-   end;
-  With reply_buffer do
-   begin
-   len := 256;
-   path_len := 0;
-   for count := 1 to 255 do path_name[count] := $00;
-   end;
-  msdos(regs);
-  retcode := regs.al;
-  pathname := '';
-  if reply_buffer.path_len > 0 then for count := 1 to reply_buffer.path_len do
-     pathname := pathname + chr(reply_buffer.path_name[count]);
-end;
-
 procedure detach_from_file_server(var id,retcode:integer);
 begin
  regs.ah := $F1;
@@ -933,21 +1070,6 @@ begin
  msdos(regs);
  retcode := regs.al;
 end;
-
-
-procedure getstation( var _station: integer; var retcode: integer);
-begin
-   With Regs do
-   begin
-    ah := $DC;
-    ds := 0;
-    si := 0;
-   end;
-   MsDos( Regs );
-   _station := Regs.al;
-   retcode := 0;
-   end;
-
 
 procedure GetHexID( var userid,hexid: string; var retcode: integer);
 var
@@ -1006,88 +1128,6 @@ begin
   end;
    hexid := hex_id;
 end;
-
-
-Procedure GetConnectionInfo
-(Var LogicalStationNo: Integer; Var Name: String; Var HEX_ID: String;
- Var ConnType : Integer; Var DateTime : String; Var retcode:integer);
-
-Var
-  I,X            : Integer;
-  RequestBuffer  : Record
-                     PacketLength : Integer;
-                     FunctionVal  : Byte;
-                     ConnectionNo : Byte;
-                   End;
-  ReplyBuffer    : Record
-                     ReturnLength : Integer;
-                     UniqueID1    : Packed Array [1..2] of byte;
-                     UniqueID2    : Packed Array [1..2] of byte;
-                     NWConnType   : Packed Array [1..2] of byte;
-                     ObjectName   : Packed Array [1..48] of Byte;
-                     LoginTime    : Packed Array [1..8] of Byte;
-                   End;
-  Month          : String[3];
-  Year,
-  Day,
-  Hour,
-  Minute         : String[2];
-
-Begin
-  With RequestBuffer Do Begin
-    PacketLength := 2;
-    FunctionVal := 22;  { 22 = Get Station Info }
-    ConnectionNo := LogicalStationNo;
-  End;
-  ReplyBuffer.ReturnLength := 62;
-  With Regs Do Begin
-    Ah := $e3;
-    ds := 0;
-    es := 0;
-    Ds := Seg(RequestBuffer);
-    Si := Ofs(RequestBuffer);
-    Es := Seg(ReplyBuffer);
-    Di := Ofs(ReplyBuffer);
-  End;
-  MsDos(Regs);
-  retcode := regs.al;
-  name := '';
-  hex_id := hexdigits[replybuffer.uniqueid1[1] shr 4];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[1] and $0F];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[2] shr 4];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid1[2] and $0F];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[1] shr 4];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[1] and $0F];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[2] shr 4];
-  hex_id := hex_id + hexdigits[replybuffer.uniqueid2[2] and $0F];
-  { Now we chop off leading zeros }
-    while ( (hex_id[1]='0') and (length(hex_id) > 1) )
-             do hex_id := copy(hex_id,2,length(hex_id));
-  ConnType := replybuffer.nwconntype[2];
-  datetime := '';
-  If hex_id <> '0' Then Begin {Grab username}
-    With ReplyBuffer Do Begin
-      I := 1;
-      While (I <= 48)  and (ObjectName[I] <> 0) Do
-        Begin
-        Name[I] := Chr(Objectname[I]);
-        I := I + 1;
-        End { while };
-     Name[0] := Chr(I - 1);
-   End; {With} End; {if}
-   If hex_id <> '0' then With replybuffer do {Grab login time}
-   begin
-     Str(LoginTime[1]:2,Year);
-     Month := Months[LoginTime[2]];
-     Str(LoginTime[3]:2,Day);
-     Str(LoginTime[4]:2,Hour);
-     Str(LoginTime[5]:2,Minute);
-     If Day[1] = ' ' Then Day[1] := '0';
-     If Hour[1] = ' ' Then Hour[1] := '0';
-     If Minute[1] = ' ' Then Minute[1] := '0';
-     DateTime := Day+'-'+Month+'-'+Year+' ' + Hour + ':' + Minute;
-     End;
-End { GetConnectInfo };
 
 procedure login_to_file_server(obj_type:integer;_name,_password : string;var
 retcode:integer);
@@ -1187,44 +1227,6 @@ begin
      { retcode = 0 if sent,  1 if userid not found }
 end; { end of procedure }
 
-
-Procedure GetServerInfo;
-Var
-  RequestBuffer  : Record
-                     PacketLength : Integer;
-                     FunctionVal  : Byte;
-                   End;
-  I              : Integer;
-
-Begin
-  With RequestBuffer Do Begin
-    PacketLength := 1;
-    FunctionVal := 17;  { 17 = Get Server Info }
-  End;
-  ServerInfo.ReturnLength := 128;
-  With Regs Do Begin
-    Ah := $e3;
-    Ds := Seg(RequestBuffer);
-    Si := Ofs(RequestBuffer);
-    Es := Seg(ServerInfo);
-    Di := Ofs(ServerInfo);
-  End;
-  MsDos(Regs);
-  With serverinfo do
-  begin
-   connections_max := connectionmax[1]*256 + connectionmax[2];
-   connections_in_use := connectionuse[1]*256 + connectionuse[2];
-   max_connected_volumes := maxconvol[1]*256 + maxconvol[2];
-   peak_connections_used := peak_used[1]*256 + peak_used[2];
-   name := '';
-   i := 1;
-   while ((server[i] <> 0) and (i<>48)) do
-    begin
-    name := name + chr(server[i]);
-    i := i + 1;
-    end;
-   end;
-End;
 
 procedure GetServerName(var servername : string; var retcode : integer);
 {-----------------------------------------------------------------}
@@ -2111,7 +2113,6 @@ begin
   retcode := regs.al;
 end;
 
-
 procedure get_server_lan_driver_information(var _lan_board_number : integer;
 { This will return info on what }           var _text1,_text2:string;
 { type of network cards are being }         var _network_address : byte4;
@@ -2183,5 +2184,7 @@ begin
   _text1 := text[1];
   _text2 := text[2];
 end;
+
+*)
 
 end. { end of unit novell }

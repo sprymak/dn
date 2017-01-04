@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -24,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -170,12 +170,22 @@ type
 
      PInputFName = ^TInputFName;
      TInputFName = object(TInputString)
+       LC: Char;
+       RC: Char;
+       C1, C2, C3: Word;
+       CR, CL: Word;
+       procedure Draw;virtual;
+       procedure HandleEvent(var Event: TEvent);virtual;
+     end;
+
+     PInputSFName = ^TInputSFName;
+     TInputSFName = object(TInputString)
        procedure HandleEvent(var Event: TEvent);virtual;
      end;
 
 Implementation
 
-uses Advance, Commands;
+uses advance, advance1, advance2, advance3, Commands;
 
 function TInpLine.GetPalette;
  const S: Array [0..1] of String[Length(CInputLine)] =
@@ -756,7 +766,7 @@ end;
 Procedure TInputString.HandleEvent;
 var C : Integer;
 begin
-  SelStart := SelEnd;
+{ SelStart := SelEnd;}
   case Event.What of
     evKeyDown:
      begin
@@ -779,6 +789,52 @@ end;
 procedure TInputFName.HandleEvent;
   var Dir, I: Integer;
 begin
+  if (Event.What=evKeyDown) then
+   case Event.KeyCode of
+    kbLeft:  if CurPos=0             then ClearEvent(Event);
+    kbRight: if CurPos=Length(Data^) then ClearEvent(Event);
+   end;
+  inherited HandleEvent(Event);
+end;
+
+procedure TInputFName.Draw;
+var
+  Color: Byte;
+  L, R: Integer;
+  B: TDrawBuffer;
+  S: String;
+begin
+{ if DrawShift = 0 then SelStart := SelEnd;}
+  if State and sfFocused = 0 then
+    Color := C1 else
+    Color := C2;
+  MoveChar(B, ' ', Color, Size.X);
+  S := Copy(Data^, FirstPos + 1, Size.X - 2 * DrawShift);
+  MoveStr(B[DrawShift], S, Color);
+  if Options and ofSecurity <> 0 then MoveChar(B[DrawShift], 'þ', Color, Length(S));
+  if DrawShift > 0 then
+    begin
+      if CanScroll(1) then MoveChar(B[Size.X - 1], #16, CR, 1)
+                      else MoveChar(B[Size.X - 1], RC, CR, 1);
+      MoveChar(B[0], {#32}LC, CL, 1);
+    end;
+  if State and sfSelected <> 0 then
+  begin
+    if (DrawShift > 0) and CanScroll(-1) then MoveChar(B[0], #17, CL, 1)
+                                         else MoveChar(B[0], LC, CL, 1);
+    L := SelStart - FirstPos;
+    R := SelEnd - FirstPos;
+    if L < 0 then L := 0;
+    if R > Size.X - 2 * DrawShift then R := Size.X - 2 * DrawShift;
+    if L < R then MoveChar(B[L + 1], #0, C3, R - L);
+  end;
+  WriteLine(0, 0, Size.X, Size.Y, B);
+  SetCursor(CurPos - FirstPos + DrawShift, 0);
+end;
+
+procedure TInputSFName.HandleEvent;
+  var Dir, I: Integer;
+begin
   Dir := 1;
   if (Event.What = evKeyDown) then
     begin
@@ -797,6 +853,5 @@ begin
      end;
   if CurPos = 8 then begin Inc(CurPos, Dir); DrawView end;
 end;
-
 
 end.

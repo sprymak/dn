@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.04/DOS
+//  Dos Navigator Open Source 1.51.05/DOS
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,7 @@
 unit Macro;
 
 interface
-uses Advance, Objects, Views;
+uses advance, advance1, advance2, advance3, Objects, Views;
 
 type
      PEditMacros = ^TEditMacros;
@@ -278,6 +278,7 @@ constructor TEditMacros.Init;
     Add(cmCtrlEnd             ,'CtrlEnd');
     Add(cmSwitchHighLight     ,'SwitchHighLight');
     Add(cmGotoLineNumber      ,'GotoLineNumber');
+    Add(cmGotoLineNumber2     ,'GotoLineNumber2');
     Add(cmSwitchWrap          ,'SwitchWrap');
     Add(cmSwitchHiLine        ,'SwitchHiLine');
     Add(cmSwitchHiColumn      ,'SwitchHiColumn');
@@ -785,9 +786,5 @@ begin
       Dispose(F, Done);
     end;
 end;
-
-
-
-
 
 end.
