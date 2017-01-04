@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -385,6 +386,8 @@ var
 
               function    drvtype(drv:byte) : byte;
 
+function FileExists(FileName: String): Boolean;
+
 {$IFnDEF FMTDBG}
    implementation uses xTime;
 {$ENDIF}
@@ -535,7 +538,7 @@ procedure   Tfmt.initDBT;assembler;
         db      0f6h            { fill byte                           }
         db      00fh            { head settle time                    }
         db      004h            { motor start time                    }
-        db      'DN II Par table'
+        db      'DN Par table'
 @@done:
      {
       disk10:paratyp=($df,$02,$25,$02,10,$1b,$ff,$2e,$F6,$0f,$04);

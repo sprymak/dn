@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -51,13 +52,16 @@ interface
  Uses Objects , Advance ;
 
  Function SetWinClip( PC : PLineCollection ):boolean;
- Function GetWinClip( Var PC : PLineCollection ):boolean;
+ Function GetWinClip( Var PCL : PLineCollection; NeedStream: boolean ):boolean;
  Function GetWinClipSize : boolean ;
  procedure SyncClipIn;
- procedure SyncClipOut;
+ procedure SyncClipOut(NeedStream: boolean);
+
+ procedure CopyLines2Stream( PC: PCollection; var PCS: PStream); {-$VOL}
+ procedure CopyStream2Lines( PCS: PStream; var PC: PCollection); {-$VOL}
 
 Implementation
-uses MicroEd;
+uses MicroEd, DNini;
 
 function MaxAvail: LongInt;
 begin
@@ -71,9 +75,9 @@ end;
  end;
 
 
- procedure SyncClipOut;
+ procedure SyncClipOut(NeedStream: boolean);
  begin
-    GetWinClip(PLineCollection(Clipboard));
+    GetWinClip(PLineCollection(Clipboard),NeedStream);
  end;
 
 
@@ -151,6 +155,7 @@ end;
     begin
       CopyLine := False ;
       TmStr := CnvString(Line) + #13#10 ;
+      DelSymbol(TmStr, #0);
       if BufPos + Length(TmStr) > Size then
           begin
            CopyLine := True ;
@@ -178,12 +183,13 @@ end;
    end;
 
 
- Function GetWinClip( Var PC : PLineCollection ):boolean;
-    var
-       Size : longint ;
+ Function GetWinClip( Var PCL : PLineCollection; NeedStream: boolean ):boolean;
+    var Size : longint ;
         Buf : PDA;
-     BufPos,SZ : Word ;
-      TmStr : String ;
+        BufPos,SZ : Word ;
+        TmStr : String ;
+        PC: PLineCollection;
+        I: longint;
     begin
      GetWinClip := False;
      if not OpenClip then Exit;
@@ -192,8 +198,8 @@ end;
      if (Size + $800) > (MaxAvail div 2) then begin CloseClip; Exit; end;
      GetMem(Buf,Size);
      if not GetClip(Buf^) then begin FreeMem(Buf,Size); CloseClip; Exit; end;
-     if PC = nil then New(PC,Init(10,10));
-     PC^.FreeAll;
+     if PCL = nil then New(PCL,Init(10,10)); {-$VOL}
+     New(PC,Init(10,10));
      BufPos := 0 ; SZ := Size;
      TmStr := '';
       while BufPos < SZ do
@@ -204,10 +210,15 @@ end;
                  TmStr:='';
                 end;
           {13: if Buf^[BufPos+1]=10 then}
-          13,0:;
+          13:;
+          0:break;
          else
           begin
-           if Length(TmStr)<200 then AddStr(TmStr,char(Buf^[BufPos]));
+           AddStr(TmStr,char(Buf^[BufPos]));
+           if Length(TmStr) >= 200 then
+             if (Length(TmStr)=250)or(Buf^[BufPos]=$20) then begin
+               Buf^[BufPos]:=10; continue; {-$VOL}
+             end;
           end;
          end; { case }
          inc(BufPos);
@@ -215,7 +226,26 @@ end;
      if TmStr<>'' then PC^.Insert(NewStr(TmStr));
      FreeMem(Buf,Size);
      CloseClip;
-     GetWinClip := PC^.Count>0;
+     {-$VOL begin}
+     if NeedStream then begin
+       I := 0;
+       with PCL^ do
+         while (Count > 0) and (I < PC^.Count) do begin
+           if CnvString( At(0) ) <> CnvString( PC^.At(I) ) then break;
+           AtFree(0); Inc(I);
+         end;
+       PCL^.FreeAll;
+       with PCL^ do
+         while I < PC^.Count do begin
+           Insert( NewStr( CnvString( PC^.At(I) ) ) );
+           Inc(I);
+         end;
+       CopyLines2Stream( PCL, ClipBoardStream );
+     end;
+     FreeObject(PCL);
+     PCL := PC;
+     {-$VOL end}
+     GetWinClip := PCL^.Count>0;
     end;
 
  Function GetWinClipSize : boolean ;
@@ -228,4 +258,44 @@ end;
       CloseClip ;
     end;
 
+ procedure PackLinesStream( var PCS: PStream ); {-$VOL begin}
+   var P: PCollection;
+       I, C2: longint;
+       PS1, PS2: PString;
+ begin
+   P := nil;
+   CopyStream2Lines( PCS, P );
+   FreeObject( PCS );
+   C2 := P^.Count div 2;
+   with P^ do
+     for I := 0 to C2 do begin
+       PS1 := At(I); PS2 := At(Count - I - 1);
+       AtPut(I, PS2); AtPut(Count - I - 1, PS1);
+     end;
+   CopyLines2Stream( P, PCS );
+   FreeObject( P );
+ end; {-$VOL end}
+
+ procedure CopyLines2Stream( PC: PCollection; var PCS: PStream); {-$VOL begin}
+   var i: longint;
+       P: PLineCollection absolute PC;
+ begin
+   if PC = nil then Exit;
+   if PCS = nil then PCS := GetMeMemoStream; if PCS = nil then Exit;
+   for i := 0 to P^.Count - 1 do PCS^.WriteStr( P^.At(i) );
+   if (PCS^.GetSize > CBSize) and (P^.Count > 1) then PackLinesStream( PCS );
+ end; {-$VOL end}
+
+ procedure CopyStream2Lines( PCS: PStream; var PC: PCollection); {-$VOL begin}
+ begin
+   if PCS = nil then Exit;
+   if PC = nil then PC := New(PLineCollection, Init(100,5)); if PC = nil then Exit;
+   PCS^.Seek(0);
+   while not PCS^.Eof do begin
+     PC^.AtInsert( 0, PCS^.ReadStr );
+     if (PCS^.GetPos > CBSize) and (PC^.Count > 1) then
+       PC^.AtFree(PC^.Count - 1);
+   end;
+   PC^.Pack;
+ end; {-$VOL end}
 end.

@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -44,14 +45,13 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 
-
 {$A-,B-}
 
 UNIT Advance;
 
 INTERFACE
 
-USES Dos;
+USES Dos,DnIni,Strings;
 
 const
   TextReaderBufSize = $1000;
@@ -122,6 +122,7 @@ type
       UpperTable: array[#128..#255] of Char;
     end;
 
+    PathStrLFN = String[255]; {-=DL=-}
 
 CONST
 
@@ -144,11 +145,13 @@ CONST
   NumFloppy:      Byte    = 0;
   JustRegistered: Boolean = Off;
 
-function FExpand (Path: PathStr): PathStr;
+function FExpand (Path: PathStrLFN): PathStrLFN;
 function StrGrd(AMax, ACur: LongInt; Wide: Byte): string;
 function Percent(AMax, ACur: LongInt): LongInt;
 procedure LowPrec(var A, B: LongInt);
 procedure ResourceAccessError;
+function ValidLngId(LI:string; CheckForHelp:boolean):boolean;
+function HelpLngId: string;
 function LngId: string;
 function  ExistFile(const FName : PathStr) : Boolean;
 function MemOK: Boolean;
@@ -174,11 +177,13 @@ Function  DelSpaces(s : string) : string;
 procedure DelSpace(var s : string);
 Procedure DelRight(var S: string);
 procedure DelLeft (var S: string);
+procedure DelSymbol(var s: string;C: char);
 
 function  GetSTime: LongInt;
 procedure LocateCursor(X, Y: Byte);
 procedure FillWord(var B;Count, W: Word);
-procedure ChDir(S: string);
+procedure ChDir (S: string);
+procedure MkDirLFN(S: string);
 procedure GetUNIXDate(Julian: LongInt; var Year, Month, Day, Hour, Min, Sec: Word);
 function  UpCaseStr(S: string): string;
 function  LowCaseStr(S: string): string;
@@ -192,6 +197,9 @@ Procedure EraseFile(const N: PathStr);
 
 Function  BackSearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
 Function  SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+
+Function  BackSearchForAllCP(S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV 14.05.99}
+Function  SearchForAllCP(S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV ::}
 
 Function  DumpStr(var B; Addr: LongInt; Count: Integer; Filter: Byte): string;
 Function  ValidDrive(dr : char) : Boolean;
@@ -248,12 +256,18 @@ FUNCTION Long0Str(X: Longint; L: Byte): string;
 FUNCTION ToHex(I: Word): string;
 PROCEDURE DosWrite( S: string );
 FUNCTION  PosChar(C: Char; S: string): Byte;
-procedure MakeDate(Mode,Day,Month,Year,Hour,Min: Word; var S: string);
+procedure MakeDate(const Mode,Day,Month,Year,Hour,Min: Word; var S: string);
+procedure MakeDateFull(const Mode,Day,Month: Word; {-$VOL moidfied}
+                       Year,Hour: Word;
+                       const Min: Word;
+                       var S: string;
+                       const YFull: boolean);
 procedure MakeCurrency(R: Real; var S: string);
 function  KeyPressed: Boolean;
 procedure Beep(N: Byte);
 function  FindParam(const S: string): Integer;
 function  Chk4Dos: Boolean;
+function  WinIsHere: Boolean;
 function  FileNameOf(var F: file): string;
 function  MemAdjust(L: LongInt): LongInt;
 
@@ -266,7 +280,7 @@ const
      'ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~' +
      'A‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ' +
      'A‚ƒ„…†‡ˆ‰Š‹ŒŽ°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß'+
-     '‘’“”•–—˜™š›œžŸðñòóôõö÷øùúûüýþ'#255;
+     '‘’“”•–—˜™š›œžŸððòóôõö÷øùúûüýþ'#255; {-$VIV}
      LowerString: string =
      (#1#2#3#4#5#6#7#8#9#10#11#12#13#14#15#16 +
      #17#18#19#20#21#22#23#24#25#26#27#28#29#30#31#32 +
@@ -275,7 +289,7 @@ const
      'abcdefghijklmnopqrstuvwxyz{|}~' +
      'a¡¢£¤e¦§¨©ª«m­o¯pcâyäåæçèéêëìíîï' +
      'a¡¢£¤e¦§¨©ª«m­o¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß'+
-     'pcâyäåæçèéêëìíîïðñòóôõö÷øùúûüýþ'#255);
+     'pcâyäåæçèéêëìíîïññòóôõö÷øùúûüýþ'#255); {-$VIV}
 
       BreakChars  : Set of Char = [',',' ','[',']','{','}','(',')',':',';','.','^',
                                    '&','*','!','#','$','/','\','''','"','%','>','<',
@@ -308,6 +322,7 @@ var
   LngFile: PathStr;
   SwpDir: PathStr;
 
+  IOResultLFN: Integer;
 
 const
     CL_SafeBuf           = $8000;
@@ -365,8 +380,11 @@ function  GetDateTime(Time: Boolean): string;
 
 IMPLEMENTATION
 
-uses xTime;
+uses xTime, u_keymap;
 
+{-=DL=-}
+function  FExpandLFN(Path: PathStr): PathStr; far; external;
+{$L expn}
 
  function GetDateTime(Time: Boolean): string;
   var S: string[30];
@@ -402,9 +420,9 @@ uses xTime;
  begin
    GetDate(Y,M,D,DW);
    GetTime(H,Mn,SS,S100);
-   MakeDate(0, D, M, Y mod 100, H, Mn, S);
+   MakeDateFull(0, D, M, Y, H, Mn, S, not Time); {-$VOL modified}
    if Time then S := FormatTimeStr(H, Mn, SS)
-           else S[0] := #8;
+           else S[0] := #10;
    GetDateTime := S;
  end;
 
@@ -443,6 +461,11 @@ uses xTime;
 
 
 procedure MakeDate;
+begin
+  MakeDateFull(Mode,Day,Month,Year,Hour,Min,S,False);
+end;
+
+procedure MakeDateFull; {-$VOL modified}
 
  procedure GetDig(R: Byte; var S); assembler;
  asm
@@ -462,6 +485,7 @@ procedure MakeDate;
  end;
 
 begin
+  if YFull then GetDig(Year div 100, S[16]);
   Year := Year mod 100;
   FillChar(S, 16, 32);
   S[0] := #15;
@@ -494,6 +518,11 @@ begin
     end else Dec(S[0]);
   GetDig(Hour, S[10]);
   if S[10] = '0' then S[10] := ' ';
+  if YFull then
+    case CountryInfo.DateFmt of
+      0,1: S := Copy(S, 1, 6) + S[16] + S[17] + Copy(S, 7, 255);
+      2  : S := S[16] + S[17] + S;
+    end;
 end;
 (*assembler;
 asm
@@ -703,6 +732,29 @@ asm
   cmp  al, ' '
   jz   @@3
   cmp  al, 9
+  jz   @@3
+  mov  es:[bx][si], al
+  inc  byte ptr es:[bx]
+  inc  si
+@@3:
+  inc  di
+  loop @@2
+@@1:
+end;
+
+procedure DelSymbol; assembler;
+asm
+  les bx, S
+  xor ch, ch
+  mov cl, es:[bx]
+  jcxz @@1
+  mov  di, 1
+  mov  si, 1
+  xor  al, al
+  mov  es:[bx], al
+@@2:
+  mov  al, es:[bx][di]
+  cmp  al, C
   jz   @@3
   mov  es:[bx][si], al
   inc  byte ptr es:[bx]
@@ -1463,7 +1515,6 @@ begin
       end;
      Inc(M);
     end else Inc(M, D[C]);
-
   end;
 end;
 
@@ -1498,6 +1549,75 @@ begin
   end;
 end;
 
+{-$VIV 14.05.99}
+
+Function  BackSearchForAllCP(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+var Res: array[0..6] of Word;
+    I, Res2: Word;
+    S2: String;
+begin
+  {CURRENT}
+  S2 := S;
+  Res[0] := BackSearchFor(S2, B, L, CaseSensitive);
+  {ASCII-ANSI}
+  S2 := ascii_ansi(S);
+  Res[1] := BackSearchFor(S2, B, L, CaseSensitive);
+  {ASCII-KOI8R}
+  S2 := ascii_koi8r(S);
+  Res[2] := BackSearchFor(S2, B, L, CaseSensitive);
+  {ANSI-ASCII}
+  S2 := ansi_ascii(S);
+  Res[3] := BackSearchFor(S2, B, L, CaseSensitive);
+  {ANSI-ASCII-KOI8R}
+  S2 := ascii_koi8r( ansi_ascii(S) );
+  Res[4] := BackSearchFor(S2, B, L, CaseSensitive);
+  {KOI8R-ASCII}
+  S2 := koi8r_ascii(S);
+  Res[5] := BackSearchFor(S2, B, L, CaseSensitive);
+  {KOI8R-ASCII-ANSI}
+  S2 := ascii_ansi( koi8r_ascii(S) );
+  Res[6] := BackSearchFor(S2, B, L, CaseSensitive);
+  {::}
+  Res2 := Res[0];
+  for I := 1 to 6 do
+   if (Res[I] > Res2) then Res2:= Res[I];
+  BackSearchForAllCP := Res2;
+end;
+
+Function  SearchForAllCP(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+var Res: array[0..6] of Word;
+    I, Res2: Word;
+    S2: String;
+begin
+  {CURRENT}
+  S2 := S;
+  Res[0] := SearchFor(S2, B, L, CaseSensitive);
+  {ASCII-ANSI}
+  S2 := ascii_ansi(S);
+  Res[1] := BackSearchFor(S2, B, L, CaseSensitive);
+  {ASCII-KOI8R}
+  S2 := ascii_koi8r(S);
+  Res[2] := BackSearchFor(S2, B, L, CaseSensitive);
+  {ANSI-ASCII}
+  S2 := ansi_ascii(S);
+  Res[3] := SearchFor(S2, B, L, CaseSensitive);
+  {ANSI-ASCII-KOI8R}
+  S2 := ascii_koi8r( ansi_ascii(S) );
+  Res[4] := SearchFor(S2, B, L, CaseSensitive);
+  {KOI8R-ASCII}
+  S2 := koi8r_ascii(S);
+  Res[5] := SearchFor(S2, B, L, CaseSensitive);
+  {KOI8R-ASCII-ANSI}
+  S2 := ascii_ansi( koi8r_ascii(S) );
+  Res[6] := SearchFor(S2, B, L, CaseSensitive);
+  {::}
+  Res2 := Res[0];
+  for I := 1 to 6 do
+   if (Res2 = 0) or ((Res[I] < Res2) and (Res[I] > 0)) then Res2:= Res[I];
+  SearchForAllCP := Res2;
+end;
+
+{-$VIV::}
 
 FUNCTION GetDrive : byte; assembler; asm mov ah,$19; int 21h; end;
 PROCEDURE SetDrive(a : byte); assembler; asm mov ah,$0E; mov dl,a; int $21; end;
@@ -1649,6 +1769,27 @@ begin
    if PosChar(':', S) > 2 then
      begin InOutRes := 666; Exit; end;
    System.ChDir(S);
+end;
+
+procedure MkDirLFN(S: String);
+var Ptr: array[0..255] of char;
+    ssSeg, ssOfs: word;
+begin
+     StrPCopy( Ptr, S );
+     ssOfs := Ofs(Ptr); ssSeg := Seg(Ptr);
+     asm
+        push ds
+        mov ax, ssSeg
+        mov ds, ax
+        mov dx, ssOfs
+        mov ax, 7139h
+        int 21h
+        pop ds
+        jc @@1
+        xor ax,ax
+ @@1:
+        mov IOResultLFN, ax
+     end;
 end;
 
 procedure LocateCursor(X, Y: Byte); assembler;
@@ -1976,6 +2117,20 @@ function Chk4Dos: Boolean; assembler;
   end;
 
 
+{piwamoto.change.begin}
+function WinIsHere: Boolean; assembler;
+  asm
+    mov ax, $1600
+    int $2F
+    xor bx, bx
+    and al,$7f
+    jz  @1
+    inc bl
+ @1:
+    mov ax, bx
+  end;
+{piwamoto.change.end}
+
 
 function Get100s: LongInt;
   var DD,MM,YY, HH, Mn, Sc, Sc100: Word;
@@ -2225,7 +2380,45 @@ begin
  ExistFile:=DosError=0 ;
 end;
 
-function LngId: string; begin LngId := GetEnv('DNLNG') end;
+function ValidLngId(LI:string; CheckForHelp:boolean):boolean;
+var S1,S2:string;
+begin
+    ValidLngId:=False;
+    S1:=GetEnv('DNDLG');
+    if S1='' then S1:=SourceDir;
+    if S1[Byte(S1[0])]<>'\' then S1:=S1+'\';
+    S2:=StartupDir;
+    if S2[Byte(S2[0])]<>'\' then S2:=S2+'\';
+    if (not CheckForHelp) and (not ExistFile(S1+LI+'.DLG')) and
+    (not ExistFile(S2+LI+'.DLG')) then Exit;
+    if (not CheckForHelp) and (not ExistFile(S1+LI+'.LNG')) and
+    (not ExistFile(S2+LI+'.LNG')) then Exit;
+    if CheckForHelp then begin
+        S1:=SourceDir; if S1[Byte(S1[0])]<>'\' then S1:=S1+'\';
+        if (not ExistFile(S1+LI+'.HLP')) and (not ExistFile(S2+LI+'.HLP'))
+        then Exit
+    end;
+    ValidLngId:=True;
+end;
+
+function HelpLngId: string;
+var S:string;
+begin
+    S:=HelpLanguageOverride;
+    if not ValidLngId(S,True) then S:=ActiveLanguage;
+    if not ValidLngId(S,True) then S:=GetEnv('DNLNG');
+    if not ValidLngId(S,True) then S:='English';
+    HelpLngId:=S
+end;
+
+function LngId: string;
+var S:string;
+begin
+    S:=ActiveLanguage;
+    if not ValidLngId(S,False) then S:=GetEnv('DNLNG');
+    if not ValidLngId(S,False) then S:='English';
+    LngId:=S
+end;
 
 procedure ResourceAccessError;
 begin
@@ -2263,10 +2456,11 @@ begin
   StrGrd := Copy(Strg(#219,A)+Strg(#177, Wide), 1, Wide);
 end;
 
-function FExpand (Path: PathStr): PathStr;
+function FExpand (Path: PathStrLFN): PathStrLFN;
 begin
   if Copy(Path, 1, 2) = '\\' then FExpand := Path else
-                                  FExpand := DOS.FExpand(Path);
+     if WinIsHere then FExpand := FExpandLFN(Path) {-=DL=-}
+                             else FExpand := DOS.FExpand(Path);
 end;
 
 BEGIN

@@ -1,3 +1,50 @@
+;/////////////////////////////////////////////////////////////////////////
+;/
+;/  Dos Navigator Open Source 1.51.04/DOS
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+;/
+;/  This programs is free for commercial and non-commercial use as long as
+;/  the following conditions are aheared to.
+;/
+;/  Copyright remains RIT Research Labs, and as such any Copyright notices
+;/  in the code are not to be removed. If this package is used in a
+;/  product, RIT Research Labs should be given attribution as the RIT Research
+;/  Labs of the parts of the library used. This can be in the form of a textual
+;/  message at program startup or in documentation (online or textual)
+;/  provided with the package.
+;/
+;/  Redistribution and use in source and binary forms, with or without
+;/  modification, are permitted provided that the following conditions are
+;/  met:
+;/
+;/  1. Redistributions of source code must retain the copyright
+;/     notice, this list of conditions and the following disclaimer.
+;/  2. Redistributions in binary form must reproduce the above copyright
+;/     notice, this list of conditions and the following disclaimer in the
+;/     documentation and/or other materials provided with the distribution.
+;/  3. All advertising materials mentioning features or use of this software
+;/     must display the following acknowledgement:
+;/     "Based on Dos Navigator by RIT Research Labs."
+;/
+;/  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+;/  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;/  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;/  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+;/  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;/  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;/  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;/  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+;/  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+;/  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+;/  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;/
+;/  The licence and distribution terms for any publically available
+;/  version or derivative of this code cannot be changed. i.e. this code
+;/  cannot simply be copied and put under another distribution licence
+;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+
 dlAltTable                 'ЙЦУКЕНГШЩЗХЪ'#0#0'ФЫВАПРОЛДЖЭ'#0#0#0'ЯЧСМИТЬБЮ'
 
 erInvalidOvrSize           ^C'Размер буфера оверлеев должен быть'^M^C'от 64 до 200 Кбайт'
@@ -131,7 +178,7 @@ dlDBViewViewMemo,           'Просмотр комментариев'
 dlDBEditField               'Редактирование поля'
 dlDBValue                   '~З~начение'
 dlDBCantEdit                'Файл защищен от модификации - редактирование поля невозможно'
-dlDBEmptyStruc              'Empty database '
+dlDBEmptyStruc              'Пустая база данных '
 
 
 dlDIByte,                   'байт'
@@ -181,7 +228,7 @@ dlED_PrintLine              'линия %d из %d'
 dlED_PrintQuery             ^C'Печатать %d линий ?'
 dlED_Printed                '% отпечатано'
 dlED_VertNeed               ^C'Выберите вертикальный блок для этой операции'
-dlED_ModifyRO              ^C'File %s '^M^C'is marked as Read-Only.'^M^C'Modify it instead?'
+dlED_ModifyRO              ^C'Файл %s '^M^C'помечен как только-чтение.'^M^C'Все pавно сохpанять?'
 
 
 dlEditButton,               '~Р~едактор'
@@ -277,7 +324,7 @@ dlFixerFill,                'Заполнить'
 dlFmtAdvButton             'П~р~офи'
 dlFmtAdvWarning             ^C'Неправильное использование установок '^M^C'расширенного форматирования'^M^C'может привести к повреждению дисковода.'
 dlFmtAreYou                ^C' Вы уверены что хотите форматировать ?'
-dlFmtBadInterleave          ^C'Неправильный Interleave '^M^C'или аппаратная/програмная^M^C'несовместимость.'^M^M^C'Сделайте все установки'^M^C'для поддержки аппаратно/прог. части'
+dlFmtBadInterleave          ^C'Неправильный Interleave '^M^C'или аппаратная/програмная'^M^C'несовместимость.'^M^M^C'Сделайте все установки'^M^C'для поддержки аппаратно/прог. части'
 dlFmtCapacityLabel         '~Е~мкость'
 dlFmtContQuery              ^C'Прервать операцию   '^M^M^C'Продолжить'
 dlFmtDiskFormatted          ^C'Диск в ус-ве %c:'^M^M^C'Метка тома: %s'^M^M^C+
@@ -602,8 +649,8 @@ erInvalidFormula,           ^M^C'Ошибка в формуле'
 erInvalidFunction,          ^M^C'Неправильная функция в'
 erInvalidIF,                ^M^C'Ошибка в конструкции IF в'
 erInvalidValue,             ^M^C'Ошибочное значение в'
-erNotDiskSpace1,            ^C'Нет места'^M^C'на устройстве %c: для копирования'^M^C'файла %s. Копировать файл ?'
-erNotDiskSpace2,            ^C'Нет места'^M^C'на устройстве %c: для копирования'^M^C'файла %s.'
+erNoDiskSpace,              ^C'Нет места'^M^C'на устройстве %c: для копирования'^M^C'файла %s. Копировать следующий файл?'
+erNoDiskSpacePre,           ^C'Нет места'^M^C'на устройстве %c: для копирования'^M^C'всех выбранных файлов. Продолжить?'
 erNotEnoughMemory,          ^C'Недостаточно памяти для выполнения операции.'
 erRecurseTooDeep,           ^M^C'Рекурсивная формула в'
 erTextNotFound              ^C'Текст не найден'
@@ -824,97 +871,141 @@ dlCE_ButIgnore           '[ ~И~гнор. ]'
 
 
 
-dlTeam000  ^Z'~Команда Dos Navigator II:~'
-dlTeam001  ^Z'~Программирование:~'
-dlTeam002  ^Z'Стефан Танурков'
-dlTeam003  ^Z'Слава Филимонов'
-dlTeam004  ^Z'Дмитрий Доценко (AxoNSoft)'
-dlTeam005  ^Z'Максим Масютин'
-dlTeam006  ^Z''
-dlTeam007  ^Z'~Особая благодарность:~'
-dlTeam008  ^Z'Андрею Заболотному'
-dlTeam009  ^Z'Сергею Мельнику'
-dlTeam009a ^Z'Диману Павлову'
-dlTeam010  ^Z'(FRIENDS Software, команда DN I)'
-dlTeam011  ^Z''
-dlTeam012  ^Z'~Тестирование и поддержка:~'
-dlTeam012a ^Z'Руслан Аглямов'
-dlTeam013  ^Z'Сергей Арсент'
-dlTeam014  ^Z'Илья Багдасаров'
-dlTeam015  ^Z'Игорь К.Бареев'
-dlTeam016  ^Z'Stefan Behnsen'
-dlTeam017  ^Z'Вовка Бежан'
-dlTeam018  ^Z'Константин Бессонов'
-dlTeam019  ^Z'Аурел Брынзяну'
-dlTeam020  ^Z'Андрей Буртовой'
-dlTeam021  ^Z'Олег Черкавский'
-dlTeam022  ^Z'Сергей Черников'
-dlTeam023  ^Z'Максим Чернобаев'
-dlTeam024  ^Z'Максим Чернышов'
-dlTeam025  ^Z'Daniel Chuwalow'
-dlTeam026  ^Z'Сергей Демченко'
-dlTeam027  ^Z'Алексей Дурченков'
-dlTeam028  ^Z'Алексей Экслер'
-dlTeam029  ^Z'Максим Фатеев'
-dlTeam030  ^Z'Денис Фионов'
-dlTeam030a ^Z'Peter Gannushkin'
-dlTeam031  ^Z'Сергей Ф. Железнов'
-dlTeam032  ^Z'Максим Глухов'
-dlTeam033  ^Z'Юрий Головешкин'
-dlTeam034  ^Z'Илья Голуб'
-dlTeam034a ^Z'Slava Gorbanev'
-dlTeam035  ^Z'Глеб Горностаев'
-dlTeam036  ^Z'Игорь Грабельников'
-dlTeam036a ^Z'Виктория Губчак'
-dlTeam037  ^Z'Сергей Иванов'
-dlTeam038  ^Z'Павел Изумрудов'
-dlTeam039  ^Z'Владимир Янушкевич'
-dlTeam040  ^Z'Димон Калинцев'
-dlTeam041  ^Z'Сергей Кожин'
-dlTeam042  ^Z'Серж Курдогло'
-dlTeam043  ^Z'Локтев Hикола'
-dlTeam044  ^Z'Илья Лумпов'
-dlTeam045  ^Z'Андрей Манжов'
-dlTeam046  ^Z'Сергей Маркелов'
-dlTeam047  ^Z'Бориска Машникофф'
-dlTeam048  ^Z'Сергей Матвеев'
-dlTeam049  ^Z'Vilo Mlich'
-dlTeam049a ^Z'Pavel Menshinin'
-dlTeam050  ^Z'Jens Mueller'
-dlTeam051  ^Z'Алексей Мягчонков'
-dlTeam052  ^Z'Дмитрий Никифоров'
-dlTeam053  ^Z'Алексей Носков'
-dlTeam054  ^Z'Сергей Охапкин'
-dlTeam055  ^Z'Сергей Панков'
-dlTeam056  ^Z'Борис Парканский'
-dlTeam056a ^Z'Mike Parnanen'
-dlTeam057  ^Z'Александр Петросян aka PAF'
-dlTeam058  ^Z'Андрей Ромашевский'
-dlTeam059  ^Z'Александр Рябков'
-dlTeam060  ^Z'Андрей Семиуглов'
-dlTeam061  ^Z'Marco Sempel'
-dlTeam062  ^Z'Анатолий Сеннов'
-dlTeam063  ^Z'Михаил Севостьянов'
-dlTeam064  ^Z'Андрей Шеметов'
-dlTeam065  ^Z'Иван Сибаров'
-dlTeam066  ^Z'Георгий Скворцов'
-dlTeam067  ^Z'Anthony Smirnoff'
-dlTeam068  ^Z'Петр Сучков'
-dlTeam069  ^Z'Роман Сумин'
-dlTeam070  ^Z'Миша Свинцов'
-dlTeam071  ^Z'Андрей Танас'
-dlTeam072  ^Z'Евгений Тарасенок'
-dlTeam073  ^Z'Владимир Трегуб'
-dlTeam073a ^Z'Alexander Tsoppe'
-dlTeam074  ^Z'Санду Цуркан'
-dlTeam075  ^Z'Олег Васенев'
-dlTeam076  ^Z'Костя Викторов'
-dlTeam077  ^Z'Антон Воронов'
-dlTeam078  ^Z'Алексей Востриков'
-dlTeam079  ^Z'Mikael Winterkvist'
-dlTeam080  ^Z'Сергей Юрьев'
-dlTeam081  ^Z'Евгений Заремба'
-dlTeam082  ^Z'Алексей Засыпкин'
-dlTeam083  ^Z''
-dlTeam084  ^Z'~Спасибо всем!~'
+dlTeamHint 'Используйте стрелки вверх и вниз для прокрутки списка авторов'
 
+dlTeam000  ^Z'~Команда DN II Open Source:~'
+dlTeam001  ^Z'~Команда Dos Navigator Open Source Project:~'
+dlTeam002  ^Z'~Программирование~'
+dlTeam003  ^Z'Иван Бородихин (EXCELLENCE)'
+dlTeam004  ^Z'Макс Васильев (Пивамото)'
+dlTeam005  ^Z'Илья Вдовин (VIV)'
+dlTeam006  ^Z'Сергей Газизянов (-=DarkLord=-)'
+dlTeam007  ^Z'Сергей Климов'
+dlTeam008  ^Z'Алексей Косткин (Knave)'
+dlTeam009  ^Z'Энди Неверовский'
+dlTeam010  ^Z'Сергей Радкевич'
+dlTeam011  ^Z'Сир Раорн'
+dlTeam012  ^Z'Алексей Фельдгендлер (X-Man)'
+dlTeam013  ^Z'Владимир Фонарев (VOL)'
+dlTeam014  ^Z''
+dlTeam015  ^Z'~Координаторы проекта:~'
+dlTeam016  ^Z'Алексей Фельдгендлер (X-Man)'
+dlTeam017  ^Z'Майк Лыков'
+dlTeam018  ^Z''
+dlTeam019  ^Z'~Отдельное списибо:~'
+dlTeam020  ^Z'Мариусу Борковскому'
+dlTeam021  ^Z'Игорю Новоселову'
+dlTeam022  ^Z'Олегу Редуту'
+dlTeam023  ^Z'~...и всем подписчикам RU.SHELL.DN~'
+dlTeam024  ^Z''
+dlTeam025  ^Z'~Команда Dos Navigator II:~'
+dlTeam026  ^Z'~Программирование:~'
+dlTeam027  ^Z'Стефан Танурков'
+dlTeam028  ^Z'Слава Филимонов'
+dlTeam029  ^Z'Дмитрий Доценко (AxoNSoft)'
+dlTeam030  ^Z'Максим Масютин'
+dlTeam031  ^Z''
+dlTeam032  ^Z'~Особая благодарность:~'
+dlTeam033  ^Z'Андрею Заболотному'
+dlTeam034  ^Z'Сергею Мельнику'
+dlTeam035  ^Z'Диману Павлову'
+dlTeam036  ^Z'(FRIENDS Software, команда DN I)'
+dlTeam037  ^Z''
+dlTeam038  ^Z'~Тестирование и поддержка:~'
+dlTeam039  ^Z'Руслан Аглямов'
+dlTeam040  ^Z'Сергей Арсент'
+dlTeam041  ^Z'Илья Багдасаров'
+dlTeam042  ^Z'Игорь К.Бареев'
+dlTeam043  ^Z'Stefan Behnsen'
+dlTeam044  ^Z'Вовка Бежан'
+dlTeam045  ^Z'Константин Бессонов'
+dlTeam046  ^Z'Аурел Брынзяну'
+dlTeam047  ^Z'Андрей Буртовой'
+dlTeam048  ^Z'Олег Черкавский'
+dlTeam049  ^Z'Сергей Черников'
+dlTeam050  ^Z'Максим Чернобаев'
+dlTeam051  ^Z'Максим Чернышов'
+dlTeam052  ^Z'Daniel Chuwalow'
+dlTeam053  ^Z'Сергей Демченко'
+dlTeam054  ^Z'Алексей Дурченков'
+dlTeam055  ^Z'Алексей Экслер'
+dlTeam056  ^Z'Максим Фатеев'
+dlTeam057  ^Z'Денис Фионов'
+dlTeam058  ^Z'Peter Gannushkin'
+dlTeam059  ^Z'Сергей Ф. Железнов'
+dlTeam060  ^Z'Максим Глухов'
+dlTeam061  ^Z'Юрий Головешкин'
+dlTeam062  ^Z'Илья Голуб'
+dlTeam063  ^Z'Slava Gorbanev'
+dlTeam064  ^Z'Глеб Горностаев'
+dlTeam065  ^Z'Игорь Грабельников'
+dlTeam066  ^Z'Виктория Губчак'
+dlTeam067  ^Z'Сергей Иванов'
+dlTeam068  ^Z'Павел Изумрудов'
+dlTeam069  ^Z'Владимир Янушкевич'
+dlTeam070  ^Z'Димон Калинцев'
+dlTeam071  ^Z'Сергей Кожин'
+dlTeam072  ^Z'Серж Курдогло'
+dlTeam073  ^Z'Локтев Hикола'
+dlTeam074  ^Z'Илья Лумпов'
+dlTeam075  ^Z'Андрей Манжов'
+dlTeam076  ^Z'Сергей Маркелов'
+dlTeam077  ^Z'Бориска Машникофф'
+dlTeam078  ^Z'Сергей Матвеев'
+dlTeam079  ^Z'Vilo Mlich'
+dlTeam080  ^Z'Pavel Menshinin'
+dlTeam081  ^Z'Jens Mueller'
+dlTeam082  ^Z'Алексей Мягчонков'
+dlTeam083  ^Z'Дмитрий Никифоров'
+dlTeam084  ^Z'Алексей Носков'
+dlTeam085  ^Z'Сергей Охапкин'
+dlTeam086  ^Z'Сергей Панков'
+dlTeam087  ^Z'Борис Парканский'
+dlTeam088  ^Z'Mike Parnanen'
+dlTeam089  ^Z'Александр Петросян aka PAF'
+dlTeam090  ^Z'Андрей Ромашевский'
+dlTeam091  ^Z'Александр Рябков'
+dlTeam092  ^Z'Андрей Семиуглов'
+dlTeam093  ^Z'Marco Sempel'
+dlTeam094  ^Z'Анатолий Сеннов'
+dlTeam095  ^Z'Михаил Севостьянов'
+dlTeam096  ^Z'Андрей Шеметов'
+dlTeam097  ^Z'Иван Сибаров'
+dlTeam098  ^Z'Георгий Скворцов'
+dlTeam099  ^Z'Anthony Smirnoff'
+dlTeam100  ^Z'Петр Сучков'
+dlTeam101  ^Z'Роман Сумин'
+dlTeam102  ^Z'Миша Свинцов'
+dlTeam103  ^Z'Андрей Танас'
+dlTeam104  ^Z'Евгений Тарасенок'
+dlTeam105  ^Z'Владимир Трегуб'
+dlTeam106  ^Z'Alexander Tsoppe'
+dlTeam107  ^Z'Санду Цуркан'
+dlTeam108  ^Z'Олег Васенев'
+dlTeam109  ^Z'Костя Викторов'
+dlTeam110  ^Z'Антон Воронов'
+dlTeam111  ^Z'Алексей Востриков'
+dlTeam112  ^Z'Mikael Winterkvist'
+dlTeam113  ^Z'Сергей Юрьев'
+dlTeam114  ^Z'Евгений Заремба'
+dlTeam115  ^Z'Алексей Засыпкин'
+dlTeam116  ^Z''
+dlTeam117  ^Z'~Спасибо всем!~'
+
+;{-$VIV}
+dlFileMask 'Маска: '
+dlNetInfo  'Сетевая информация'
+dlServer   'Сервер'
+dlConnections 'Соединения'
+dlLookedFiles 'Обработано файлов: '
+dlVeryDeepSearch 'Исчерпана максимальная глубина поиска. Продолжить поиск?'
+dlLookedDirs  'Обработано каталогов: '
+
+;{-$VOL}
+dlSE_Dir2Long ^C'Исчерпана максимальная глубина поиска!'
+
+;{-SSK}
+stDaysWeek 'ВсПнВтСрЧтПтСб'
+
+dlOldFiles ^C'Новая версия DN больше не использует'^M^C'перечисленные файлы. Их присутствие может'^M^C'вызвать неполадки в работе.'^M^M^C'Удалить эти файлы? (рекомендуется)'
+dlOldFilesNoWarn ^C'В дальнейшем это предупреждение повторяться не будет'

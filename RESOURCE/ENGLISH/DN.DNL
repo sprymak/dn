@@ -1,4 +1,49 @@
-
+;/////////////////////////////////////////////////////////////////////////
+;/
+;/  Dos Navigator Open Source 1.51.04/DOS
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+;/
+;/  This programs is free for commercial and non-commercial use as long as
+;/  the following conditions are aheared to.
+;/
+;/  Copyright remains RIT Research Labs, and as such any Copyright notices
+;/  in the code are not to be removed. If this package is used in a
+;/  product, RIT Research Labs should be given attribution as the RIT Research
+;/  Labs of the parts of the library used. This can be in the form of a textual
+;/  message at program startup or in documentation (online or textual)
+;/  provided with the package.
+;/
+;/  Redistribution and use in source and binary forms, with or without
+;/  modification, are permitted provided that the following conditions are
+;/  met:
+;/
+;/  1. Redistributions of source code must retain the copyright
+;/     notice, this list of conditions and the following disclaimer.
+;/  2. Redistributions in binary form must reproduce the above copyright
+;/     notice, this list of conditions and the following disclaimer in the
+;/     documentation and/or other materials provided with the distribution.
+;/  3. All advertising materials mentioning features or use of this software
+;/     must display the following acknowledgement:
+;/     "Based on Dos Navigator by RIT Research Labs."
+;/
+;/  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+;/  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;/  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;/  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+;/  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;/  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;/  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;/  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+;/  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+;/  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+;/  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;/
+;/  The licence and distribution terms for any publically available
+;/  version or derivative of this code cannot be changed. i.e. this code
+;/  cannot simply be copied and put under another distribution licence
+;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
 
 dlAltTable            'QWERTYUIOP'#0#0#0#0'ASDFGHJKL'#0#0#0#0#0'ZXCVBNM'
 
@@ -21,8 +66,8 @@ erCantOpenConfig,     ^C'Could not create config file'
 erCantOpenHelp,       ^C'Could not open help file.'
 erInvalidDrive,       ^C'Invalid drive or directory.'
 erInvalidFileName,    ^C'Invalid file name.'
-erNotDiskSpace1,      ^C'There is not enough room'^M^C'on drive %c: to copy'^M^C'file %s. Copy other files?'^M
-erNotDiskSpace2,      ^C'There is not enough room'^M^C'on drive %c: to copy'^M^C'file %s.'
+erNoDiskSpace,        ^C'There is not enough room'^M^C'on drive %c: to copy'^M^C'file %s. Copy next file?'^M
+erNoDiskSpacePre,     ^C'There is not enough room'^M^C'on drive %c: to copy'^M^C'all selected files. Proceed with copying?'^M
 erTextNotFound        ^C'Search text not found'
 erNoQuickDirs         ^C'No fast accessed'^M^C'directories defined.'
 eruuNoStuff           ^C'There is no UUCode stuff in this file'
@@ -868,97 +913,141 @@ dlCE_ButIgnore           '[ ~I~gnore ]'
 
 
 
-dlTeam000  ^Z'~Dos Navigator II team:~'
-dlTeam001  ^Z'~Programming:~'
-dlTeam002  ^Z'Stefan Tanurkov'
-dlTeam003  ^Z'Slava Filimonov'
-dlTeam004  ^Z'Dmitry Dotsenko (AxoNSoft)'
-dlTeam005  ^Z'Max Masyutin'
-dlTeam006  ^Z''
-dlTeam007  ^Z'~Special thanks to:~'
-dlTeam008  ^Z'Andrew Zabolotny'
-dlTeam009  ^Z'Sergey Melnik'
-dlTeam009a ^Z'Diman Pavlov'
-dlTeam010  ^Z'(FRIENDS Software, DN I programming)'
-dlTeam011  ^Z''
-dlTeam012  ^Z'~Testing and support:~'
-dlTeam012a ^Z'Ruslan Aglyamoff'
-dlTeam013  ^Z'Sergey Arsent'
-dlTeam014  ^Z'Ilya Bagdasarov'
-dlTeam015  ^Z'Igor K. Bareev'
-dlTeam016  ^Z'Stefan Behnsen'
-dlTeam017  ^Z'Vladimir Bejan'
-dlTeam018  ^Z'Konst Bessonov'
-dlTeam019  ^Z'Aurel Brinzeanu'
-dlTeam020  ^Z'Andrew Burtovoy'
-dlTeam021  ^Z'Oleg Cherkawsky'
-dlTeam022  ^Z'Sergey Chernikov'
-dlTeam023  ^Z'Max Chernobayev'
-dlTeam024  ^Z'Maxim Chernyshoff'
-dlTeam025  ^Z'Daniel Chuwalow'
-dlTeam026  ^Z'Sergey Demchenko'
-dlTeam027  ^Z'Alexey Durchenkoff'
-dlTeam028  ^Z'Alex Exler'
-dlTeam029  ^Z'Max Fateev'
-dlTeam030  ^Z'Denis Fionov'
-dlTeam030a ^Z'Peter Gannushkin'
-dlTeam031  ^Z'Sergey F. Geleznov'
-dlTeam032  ^Z'Maxim Glukhov'
-dlTeam033  ^Z'Juriy Goloveshkin'
-dlTeam034  ^Z'Ilya Golub'
-dlTeam034a ^Z'Slava Gorbanev'
-dlTeam035  ^Z'Gleb Gornostayew'
-dlTeam036  ^Z'Igor Grabelnikov'
-dlTeam036a ^Z'Victoria Gubchak'
-dlTeam037  ^Z'Sergey Ivanov'
-dlTeam038  ^Z'Pavel Izumrudov'
-dlTeam039  ^Z'Vladimir Januszkiewicz'
-dlTeam040  ^Z'Dmitrii Kalintsev'
-dlTeam041  ^Z'Serge Koghin'
-dlTeam042  ^Z'Serg Kurdoglo'
-dlTeam043  ^Z'Loktev Nikola'
-dlTeam044  ^Z'Ilya Lumpov'
-dlTeam045  ^Z'Andrew Manjov'
-dlTeam046  ^Z'Sergey Markelov'
-dlTeam047  ^Z'Boris Mashnikoff'
-dlTeam048  ^Z'Serge Matveev'
-dlTeam049  ^Z'Stanislav Hradilik'
-dlTeam049a ^Z'Pavel Menshinin'
-dlTeam050  ^Z'Jens Mueller'
-dlTeam051  ^Z'Alexey Myagchonkov'
-dlTeam052  ^Z'Dmitry Niqiforoff'
-dlTeam053  ^Z'Alexey Noskov'
-dlTeam054  ^Z'Sergey Okhapkin'
-dlTeam055  ^Z'Sergey Pankov'
-dlTeam056  ^Z'Boris Parkansky'
-dlTeam056a ^Z'Mike Parnanen'
-dlTeam057  ^Z'Alexander Petrosyan aka PAF'
-dlTeam058  ^Z'Andrej Romashevsky'
-dlTeam059  ^Z'Alexander Ryabkov'
-dlTeam060  ^Z'Andrey Semiuglov'
-dlTeam061  ^Z'Marco Sempel'
-dlTeam062  ^Z'Anatoly Sennov'
-dlTeam063  ^Z'Michael Sevostyanov'
-dlTeam064  ^Z'Andrew Shemetov'
-dlTeam065  ^Z'Ivan Sibarov'
-dlTeam066  ^Z'George Skvortsov'
-dlTeam067  ^Z'Anthony Smirnoff'
-dlTeam068  ^Z'Peter Suchkow'
-dlTeam069  ^Z'Roman Sumin'
-dlTeam070  ^Z'Misha Svintsov'
-dlTeam071  ^Z'Andrew Tanas'
-dlTeam072  ^Z'Evgen Tarasenok'
-dlTeam073  ^Z'Vladimir Tregub'
-dlTeam073a ^Z'Alexander Tsoppe'
-dlTeam074  ^Z'Sandu Tsurcan'
-dlTeam075  ^Z'Oleg Vasenyoff'
-dlTeam076  ^Z'Kostya Viktorov'
-dlTeam077  ^Z'Anton Voronov'
-dlTeam078  ^Z'Alex Vostrikov'
-dlTeam079  ^Z'Mikael Winterkvist'
-dlTeam080  ^Z'Serge Yuriev'
-dlTeam081  ^Z'Yevgeniy Zaremba'
-dlTeam082  ^Z'Alexei Zasypkin'
-dlTeam083  ^Z''
-dlTeam084  ^Z'~Thanks to all!~'
+dlTeamHint 'Use up and down arrows to scroll the authors list'
 
+dlTeam000  ^Z'~Dos Navigator (C) Team:~'
+dlTeam001  ^Z'~Dos Navigator Open Source Project Team:~'
+dlTeam002  ^Z'~Programming:~'
+dlTeam003  ^Z'Ivan Borodikhin (EXCELLENCE)'
+dlTeam004  ^Z'Alexey Feldgendler (X-Man)'
+dlTeam005  ^Z'Vladimir Fonarev (VOL)'
+dlTeam006  ^Z'Sergey Gazizyanov (-=DarkLord=-)'
+dlTeam007  ^Z'Sergey Klimov'
+dlTeam008  ^Z'Alexey Kostkin (Knave)'
+dlTeam009  ^Z'Andy Neverowsky'
+dlTeam010  ^Z'Sergey Radkevitch'
+dlTeam011  ^Z'Sir Raorn'
+dlTeam012  ^Z'Max Vasilyev (Piwamoto)'
+dlTeam013  ^Z'Ilya Vdovin (VIV)'
+dlTeam014  ^Z''
+dlTeam015  ^Z'~Project Coordinators:~'
+dlTeam016  ^Z'Alexey Feldgendler (X-Man)'
+dlTeam017  ^Z'Mike Lykov'
+dlTeam018  ^Z''
+dlTeam019  ^Z'~Special thanks to:~'
+dlTeam020  ^Z'Mariusz Borkowskii'
+dlTeam021  ^Z'Igor Novoselov'
+dlTeam022  ^Z'Oleg Redut'
+dlTeam023  ^Z'~...and to all RU.SHELL.DN subscribers~'
+dlTeam024  ^Z''
+dlTeam025  ^Z'~Dos Navigator II team:~'
+dlTeam026  ^Z'~Programming:~'
+dlTeam027  ^Z'Stefan Tanurkov'
+dlTeam028  ^Z'Slava Filimonov'
+dlTeam029  ^Z'Dmitry Dotsenko (AxoNSoft)'
+dlTeam030  ^Z'Max Masyutin'
+dlTeam031  ^Z''
+dlTeam032  ^Z'~Special thanks to:~'
+dlTeam033  ^Z'Andrew Zabolotny'
+dlTeam034  ^Z'Sergey Melnik'
+dlTeam035  ^Z'Diman Pavlov'
+dlTeam036  ^Z'(FRIENDS Software, DN I programming)'
+dlTeam037  ^Z''
+dlTeam038  ^Z'~Testing and support:~'
+dlTeam039  ^Z'Ruslan Aglyamoff'
+dlTeam040  ^Z'Sergey Arsent'
+dlTeam041  ^Z'Ilya Bagdasarov'
+dlTeam042  ^Z'Igor K. Bareev'
+dlTeam043  ^Z'Stefan Behnsen'
+dlTeam044  ^Z'Vladimir Bejan'
+dlTeam045  ^Z'Konst Bessonov'
+dlTeam046  ^Z'Aurel Brinzeanu'
+dlTeam047  ^Z'Andrew Burtovoy'
+dlTeam048  ^Z'Oleg Cherkawsky'
+dlTeam049  ^Z'Sergey Chernikov'
+dlTeam050  ^Z'Max Chernobayev'
+dlTeam051  ^Z'Maxim Chernyshoff'
+dlTeam052  ^Z'Daniel Chuwalow'
+dlTeam053  ^Z'Sergey Demchenko'
+dlTeam054  ^Z'Alexey Durchenkoff'
+dlTeam055  ^Z'Alex Exler'
+dlTeam056  ^Z'Max Fateev'
+dlTeam057  ^Z'Denis Fionov'
+dlTeam058  ^Z'Peter Gannushkin'
+dlTeam059  ^Z'Sergey F. Geleznov'
+dlTeam060  ^Z'Maxim Glukhov'
+dlTeam061  ^Z'Juriy Goloveshkin'
+dlTeam062  ^Z'Ilya Golub'
+dlTeam063  ^Z'Slava Gorbanev'
+dlTeam064  ^Z'Gleb Gornostayew'
+dlTeam065  ^Z'Igor Grabelnikov'
+dlTeam066  ^Z'Victoria Gubchak'
+dlTeam067  ^Z'Sergey Ivanov'
+dlTeam068  ^Z'Pavel Izumrudov'
+dlTeam069  ^Z'Vladimir Januszkiewicz'
+dlTeam070  ^Z'Dmitrii Kalintsev'
+dlTeam071  ^Z'Serge Koghin'
+dlTeam072  ^Z'Serg Kurdoglo'
+dlTeam073  ^Z'Loktev Nikola'
+dlTeam074  ^Z'Ilya Lumpov'
+dlTeam075  ^Z'Andrew Manjov'
+dlTeam076  ^Z'Sergey Markelov'
+dlTeam077  ^Z'Boris Mashnikoff'
+dlTeam078  ^Z'Serge Matveev'
+dlTeam079  ^Z'Stanislav Hradilik'
+dlTeam080  ^Z'Pavel Menshinin'
+dlTeam081  ^Z'Jens Mueller'
+dlTeam082  ^Z'Alexey Myagchonkov'
+dlTeam083  ^Z'Dmitry Niqiforoff'
+dlTeam084  ^Z'Alexey Noskov'
+dlTeam085  ^Z'Sergey Okhapkin'
+dlTeam086  ^Z'Sergey Pankov'
+dlTeam087  ^Z'Boris Parkansky'
+dlTeam088  ^Z'Mike Parnanen'
+dlTeam089  ^Z'Alexander Petrosyan aka PAF'
+dlTeam090  ^Z'Andrej Romashevsky'
+dlTeam091  ^Z'Alexander Ryabkov'
+dlTeam092  ^Z'Andrey Semiuglov'
+dlTeam093  ^Z'Marco Sempel'
+dlTeam094  ^Z'Anatoly Sennov'
+dlTeam095  ^Z'Michael Sevostyanov'
+dlTeam096  ^Z'Andrew Shemetov'
+dlTeam097  ^Z'Ivan Sibarov'
+dlTeam098  ^Z'George Skvortsov'
+dlTeam099  ^Z'Anthony Smirnoff'
+dlTeam100  ^Z'Peter Suchkow'
+dlTeam101  ^Z'Roman Sumin'
+dlTeam102  ^Z'Misha Svintsov'
+dlTeam103  ^Z'Andrew Tanas'
+dlTeam104  ^Z'Evgen Tarasenok'
+dlTeam105  ^Z'Vladimir Tregub'
+dlTeam106  ^Z'Alexander Tsoppe'
+dlTeam107  ^Z'Sandu Tsurcan'
+dlTeam108  ^Z'Oleg Vasenyoff'
+dlTeam109  ^Z'Kostya Viktorov'
+dlTeam110  ^Z'Anton Voronov'
+dlTeam111  ^Z'Alex Vostrikov'
+dlTeam112  ^Z'Mikael Winterkvist'
+dlTeam113  ^Z'Serge Yuriev'
+dlTeam114  ^Z'Yevgeniy Zaremba'
+dlTeam115  ^Z'Alexei Zasypkin'
+dlTeam116  ^Z''
+dlTeam117  ^Z'~Thanks to all!~'
+
+;{-$VIV}
+dlFileMask 'Mask: '
+dlNetInfo  'Network Information'
+dlServer   'Server'
+dlConnections 'Connections'
+dlLookedFiles 'Scaned files: '
+dlVeryDeepSearch ^C'Maximum search deep reaching. Continue search?'
+dlLookedDirs  'Scaned dirs: '
+
+;{-$VOL}
+dlSE_Dir2Long ^C'Maximum search deep reaching!'
+
+;{-SSK}
+stDaysWeek 'SuMoTuWeThFrSa'
+
+dlOldFiles ^C'These files are no longer used'^M^C'by the new version of DN and may'^M^C'cause improper functionality.'^M^M^C'Delete these files? (recommended)'
+dlOldFilesNoWarn ^C'This warning will not appear in the future'

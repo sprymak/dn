@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -122,20 +123,19 @@ VAR
 IMPLEMENTATION
 
 uses
+  u_crt,
 {$IFDEF DEBUG} DEBUG, {$ENDIF}
   Messages, DnApp, DnHelp, Startup, Commands, Histries, HistList, FlTools,
-  FileFind, 
+  FileFind,
 
   {$IFDEF MODEM}
-  NavyLink, 
+  NavyLink,
   {$ENDIF}
 
   CmdLine, ArcView, Archiver, UUcode, DiskImg, DiskInfo,
-  FileCopy, DnUtil
-  {DNApp, Startup, Memory, FileCopy, Messages, Menus, DiskInfo, Validate,
-  Dialogs, Commands, HistList, Tree, FBB, RStrings, UUCode, Swe,
-  ArcView, CmdLine, Histries, Archiver, Gauges, Gauge, FileFind, FlPanel,
-  NavyLink, DiskImg, FlTools};
+  FileCopy, DnUtil,
+
+  u_hex, dnini; {-$VIV}
 
 procedure TFilePanelRoot.IncDrawDisabled;
 begin
@@ -375,9 +375,9 @@ begin
  I := 0; CurP := FC^.At(Pos);
  while (I < FC^.Count) do
    begin
-     P := FC^.Items^[I];
+     P := FC^.At(I); {-$VOL}
      if (P <> CurP) and (P <> nil) and not P^.Selected then
-       begin FC^.Items^[I] := nil; FC^.FreeItem(P) end;
+       FC^.AtReplace(I,nil); {-$VOL}
      Inc(I);
    end;
  ReadDirectory;
@@ -399,15 +399,15 @@ begin
       if (PP <> nil) and PP^.Selected or (PP = CurP) then
         for J := 0 to Files^.Count - 1 do
          begin
-           P := Files^.Items^[J];
+           P := Files^.At(J); {-$VOL}
            if (P^.Name = PP^.Name) and (WasLoaded or (P^.Owner^ = PP^.Owner^)) then
              begin
               TF := PP^;
               PP^ := P^;
               P^ := TF;
               PP^.Selected := TF.Selected;
-              FC^.Items^[I] := P;
-              Files^.Items^[J] := PP;
+              FC^.AtPut(I,P); {-$VOL}
+              Files^.AtPut(J,PP); {-$VOL}
               if PP^.Name[1] = '.' then PP^.Selected := Off;
               if PP^.Selected then
               begin
@@ -591,7 +591,8 @@ var
   ChangeUp := Drive^.IsUp;
   DeltaX := 0;
   if Drive^.IsUp then Drive^.ChangeUp(S) else Exit;
-  IncDrawDisabled; ReadDirectory; AddToDirectoryHistory(DirectoryName);
+  IncDrawDisabled; ReadDirectory;
+  AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
   if S <> '' then GotoSingle(UpStrg(S));
   DecDrawDisabled;
   Rebound;
@@ -609,14 +610,14 @@ var
   if Copy(Dr, 1, 5) = cLINK_ then  Delete(Dr, 1, 5);
   if (Dr[Length(Dr)] = '\') and ((Dr[2] <> ':') or (Dr[0] > #3)) then Dec(Dr[0]);
   While (Dr[Length(Dr)] = '.') or (Dr[Length(Dr)] = ' ') do Dec(Dr[0]);
-  if (Dr[2] = ':') and ((Drive^.DriveType <> dtDisk) and (Drive^.DriveType <> dtLink)) then
+  if (Dr[2] = ':') and not(Drive^.DriveType in [dtDisk,dtLink,dtArc]) then
     begin Dispose(Drive, Done); New(Drive, Init(Byte(Upcase(Dr[1]))-64, @Self, -1)); end;
   {if (Xt = '..') and ChangeUp then Exit;}
   DirectoryName := Dr; IncDrawDisabled; OldDirectory := Dr;
   DeltaX := 0;
   Drive^.ChDir(DirectoryName); DirectoryName := Drive^.GetDir;
   OldDelta := -1; Delta := 0;
-  ReadDirectory; AddToDirectoryHistory(DirectoryName);
+  ReadDirectory; AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
   DecDrawDisabled;
   if Nm = '' then Name := '..          '
              else Name := Nm+Xt;
@@ -738,7 +739,8 @@ var
   Drive^.Owner := @Self;
   CE;
   DeltaX := 0;
-  ReadDirectory; AddToDirectoryHistory(DirectoryName);
+  ReadDirectory;
+  AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
   ScrollBar^.SetValue(0);
   Rebound;
  end;
@@ -914,7 +916,9 @@ var
    CE;
    Abort := Off; OldDelta := -1;
    MPos.X := Origin.X + Size.X div 2;
-   MPos.Y := Origin.Y+1;
+   if DriveSelectVCenter then                {-$X-Man}
+   MPos.Y := Origin.Y + Size.Y div 2 {-$VIV} {-$X-Man}
+   else MPos.Y := Origin.Y+1;                {-$X-Man}
    Owner^.MakeGlobal(MPos, MPos);
    if (DirectoryName[2] = ':') then S[1] := DirectoryName[1]
        else if (Drive^.DriveType = dtLink) then S[1] := '+'
@@ -946,7 +950,7 @@ var
         S := Drive^.GetDir;
       end;
      IncDrawDisabled; DirectoryName := S; ReadDirectory;
-     AddToDirectoryHistory(DirectoryName);
+     AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
      DecDrawDisabled; SetDirName;
     end;
    ChDirName;
@@ -988,7 +992,7 @@ var
    Drive^.ChDir(S);
    IncDrawDisabled;
    ReadDirectory;
-   AddToDirectoryHistory(DirectoryName);
+   AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
    ScrollBar^.SetValue(0);
    DecDrawDisabled; DrawView;
    GlobalMessage(evCommand, cmRereadInfo, nil);
@@ -1003,7 +1007,9 @@ var
    if S <> '' then
    begin
      if Drive^.DriveType <> dtDisk then ReplaceDrive(S[1]);
-     Message(@Self, evCommand, cmChangeDirectory, @S);
+     if S[Length(S)]='\'
+     then Message(@Self, evCommand, cmChangeDirectory, @S)
+     else Message(@Self, evCommand, cmInsertDrive, New(PFindDrive,InitList(S)))
    end;
    CE;
  end;
@@ -1185,6 +1191,26 @@ var
     end;
  end;
 
+ procedure FindNextSelFile(pNext: Boolean); {-$VIV,VOL 19.05.99---}
+ var I: Integer;
+
+    function CheckIt(I: Integer): Boolean;
+    begin
+      CheckIt := False;
+      if PFileRec(Files^.At(I))^.Selected then
+      begin
+        ScrollBar^.SetValue( I );
+        CED;
+        CheckIt := True;
+      end;
+    end;
+
+ begin
+   if Files = nil then Exit;
+   if pNext then begin for I := CurPos + 1 to Files^.Count - 1 do if CheckIt(I) then Break; end
+     else begin for I := CurPos - 1 downto 0 do if CheckIt(I) then Break; end;
+ end;
+
  procedure _CheckKB;
  var
    I: Integer;
@@ -1233,9 +1259,11 @@ var
                  {DirectoryName[0] := #3;
                  IncDrawDisabled;}
                  ReadDirectory;
-                 AddToDirectoryHistory(DirectoryName);
+                 AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
                  ScrollBar^.SetValue(0);
                  DecDrawDisabled;
+                 if Drive^.DriveType = dtArc then {-$VOL}
+                 begin _CtrlPgUp; Exit; end;{-$VOL}
                  Owner^.Redraw; CE end;
 kbCtrlRight, kbCtrlLeft: _DoCtrl;
 kbCtrlDel: if Files^.Count > 0 then
@@ -1302,6 +1330,7 @@ kbCtrlEnter: _CtrlEnter;
                CE;
                FreeStr := 'AUTOEXEC BAT'; FreeStr[9] := PF^.Name[9];
                if (Drive^.DriveType = dtDisk) and
+                  (PF^.Attr and Directory = 0) and {-$VOL}
                   (UpStrg(PF^.Name) = FreeStr) and
                   (Msg(dlAutoexecWarning,nil,mfYesNoConfirm) <> cmYes) then Exit;
                if (Drive^.DriveType in [dtFind, dtTemp, dtList]) then
@@ -1358,6 +1387,8 @@ kbCtrlEnter: _CtrlEnter;
            end;
     kbGrayPlus: begin SelectFiles(@Self, On, ShiftState and 3 <> 0); CE end;
     kbGrayMinus: begin SelectFiles(@Self, Off, ShiftState and 3 <> 0); CE end;
+    kbAltUp, kbAltDown: FindNextSelFile( Event.KeyCode = kbAltDown ); {-$VIV}
+    else if ShowKeyCode then MessageBox(GetHexWord(Event.KeyCode),nil,0);
    end;
  end;
 
@@ -1399,7 +1430,7 @@ end;
        DeltaX := 0;
        DirectoryName := Drive^.GetDir;
        ReadDirectory;
-       AddToDirectoryHistory(DirectoryName);
+       AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
        Rebound;
      end;
    end else RereadDir;

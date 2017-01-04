@@ -1,6 +1,5 @@
-		Dos Navigator 1.51
-		Copyright (c) 1991-99 RIT Research Labs.
-		All rights reserved.
+        Dos Navigator Open Source 1.51.04/DOS
+        Based on Dos Navigator (C) 1991-99 RIT Research Labs
 
 This directory contains source code of Dos Navigator.
 
@@ -8,7 +7,8 @@ Tools required to compile Dos Navigator are Borland Pascal 7.0, TASM & TLINK.
 
 To build Dos Navigator, run build.bat.
 
-The current version of Dos Navigator is available at http://www.ritlabs.com/dn/
+The current version of Dos Navigator is available at
+http://www.hippo.ru/~nelescon/
 
 This product is free for commercial and non-commercial use as long as
 the following conditions are aheared to.

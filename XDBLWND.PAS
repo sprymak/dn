@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -111,8 +112,8 @@ begin
                kbAlt5, kbAlt6,
                kbAlt7, kbAlt8,
                kbAlt9, kbAlt0,
-               kbAltLeft,
-               kbAltRight,
+               kbAltLeft,kbAltRight,
+               kbAltZ,{Knave 11.09.99}
                     $1A1B,
                     $1B1D: begin HandleCommand(Event); CE := Off; end;
               end;
@@ -159,6 +160,7 @@ begin
                cmGetDirName,
                cmPanelCompare,
                cmDiskInfo,
+               cmNetInfo, {-$VIV}
                cmChangeDirectory,
                cmLoadViewFile,
                cmGLoadViewFile,

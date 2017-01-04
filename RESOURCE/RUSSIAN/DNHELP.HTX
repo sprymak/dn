@@ -1,3 +1,50 @@
+;/////////////////////////////////////////////////////////////////////////
+;/
+;/  Dos Navigator Open Source 1.51.04/DOS
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+;/
+;/  This programs is free for commercial and non-commercial use as long as
+;/  the following conditions are aheared to.
+;/
+;/  Copyright remains RIT Research Labs, and as such any Copyright notices
+;/  in the code are not to be removed. If this package is used in a
+;/  product, RIT Research Labs should be given attribution as the RIT Research
+;/  Labs of the parts of the library used. This can be in the form of a textual
+;/  message at program startup or in documentation (online or textual)
+;/  provided with the package.
+;/
+;/  Redistribution and use in source and binary forms, with or without
+;/  modification, are permitted provided that the following conditions are
+;/  met:
+;/
+;/  1. Redistributions of source code must retain the copyright
+;/     notice, this list of conditions and the following disclaimer.
+;/  2. Redistributions in binary form must reproduce the above copyright
+;/     notice, this list of conditions and the following disclaimer in the
+;/     documentation and/or other materials provided with the distribution.
+;/  3. All advertising materials mentioning features or use of this software
+;/     must display the following acknowledgement:
+;/     "Based on Dos Navigator by RIT Research Labs."
+;/
+;/  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+;/  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;/  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;/  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+;/  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;/  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;/  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;/  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+;/  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+;/  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+;/  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;/
+;/  The licence and distribution terms for any publically available
+;/  version or derivative of this code cannot be changed. i.e. this code
+;/  cannot simply be copied and put under another distribution licence
+;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+
 .topic NoContext=0
 .title Обратитесь к оглавлению
 
@@ -121,17 +168,17 @@
 участие в написании Навигатора на разных этапах его
 существования.
 
-Свои пожелания и предложения Вы можете направлять по адресу:
+Навигатор является проектом Open Source. Подробнее читайте в файле
+dnosp.txt, входящем в комплект поставки.
 
- Fidonet   2:469/77 Stefan Tanurkov
-           2:469/12 Sergey Demchenko
+Свои пожелания и предложения Вы можете направлять в эхоконференцию
+Fidonet RU.SHELL.DN или по адресам:
 
- Авторские права на ДОС Навигатор принадлежат {RITLABS srl:_}.
+ Fidonet   2:5000/111.27 Alexey Feldgendler
+           2:5057/44     Mike Lykov
+
+ Авторские права на базовый ДОС Навигатор принадлежат {RITLABS srl:_}.
 (Молдова. Кишинев. ул Штефан чел Маре 180, офис 101)
-
- "{ДОС Навигатор:_}" является зарегистрированной торговой маркой.
- Права на торговые марки, употребленные в системе контекстной
- помощи принадлежат их соответствующим владельцам.
 
 .topic FeaturesOverview
 .title Обзор возможностей ДОС Навигатора
@@ -1900,8 +1947,13 @@ pежим "Fast" command execution - таким обpазом установки пеpеменных сpеды
 .topic AboutDialog
 .title О программе...
   Это окно содержит информацию о версии {Навигатора:CommonInfo}.
-Нажмите {Alt-I:_} для просмотра списка авторов, а также всех,
+Нажмите {Alt-I:Team} для просмотра {списка авторов:Team}, а также всех,
 кто принимал участие в проекте.
+
+.topic Team
+.title Список авторов
+  Это окно содержит информацию об авторах {Навигатора:CommonInfo}.
+Используйте стрелки вверх и вниз для прокрутки списка.
 
 .topic CDplayer
 .title Проигрыватель Компакт-Дисков
@@ -2065,6 +2117,11 @@ BLASTER.
 находится курсор. Значение этой переменной отображается в нижней строке.
 Там Вы можете отредактировать это значение. Для добавления/удаления/переименования
 переменных служат соответствующие кнопки в правой части окна.
+
+.topic NetInfo
+.title Текущая информация о локальной сети
+
+  Информация не доступна в данный момент
 
 .topic DiskInfo
 .title Текущая системная информация
@@ -3624,3 +3681,5 @@ Navigator Link использует двухуровневый режим выборочной перепосылки сбойных
 .topic ArvidFindResults
 .title Arvid Find Results
 
+.topic ChLngId
+.title Change Active Language

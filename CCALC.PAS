@@ -1,3 +1,50 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//
+//  This programs is free for commercial and non-commercial use as long as
+//  the following conditions are aheared to.
+//
+//  Copyright remains RIT Research Labs, and as such any Copyright notices
+//  in the code are not to be removed. If this package is used in a
+//  product, RIT Research Labs should be given attribution as the RIT Research
+//  Labs of the parts of the library used. This can be in the form of a textual
+//  message at program startup or in documentation (online or textual)
+//  provided with the package.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are
+//  met:
+//
+//  1. Redistributions of source code must retain the copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     "Based on Dos Navigator by RIT Research Labs."
+//
+//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//  The licence and distribution terms for any publically available
+//  version or derivative of this code cannot be changed. i.e. this code
+//  cannot simply be copied and put under another distribution licence
+//  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////}
+
 UNIT CCalc;
 
 interface
@@ -98,7 +145,7 @@ Function CalcFormulaTree(P: FPtr) : Real;
 
    Function GetFuncValue(P: FPtr) : Real;
     var I: Integer;
-        R, R1: Real;
+        R, R1, R2: Real;
         S: String;
    begin
     S := UpCaseStr(P^.Name); GetFuncValue := 0;
@@ -122,6 +169,36 @@ Function CalcFormulaTree(P: FPtr) : Real;
         If S='COS' then begin GetFuncValue:=Cos(R); Exit end;
         If S='SIN' then begin GetFuncValue:=Sin(R); Exit end;
         If S='SQR' then begin GetFuncValue:=R * R; Exit end;
+
+        IF ((S='ASIN') or (S='ARCSIN')) then
+         begin
+          if (R=1) then begin GetFuncValue:=PI/2; Exit; end;
+          if (1-Sqr(R)>0) then GetFuncValue:=ArcTan(R/Sqrt(1-Sqr(R)))
+          else Error := On; Exit end;
+        IF ((S='ACOS') or (S='ARCCOS')) then
+         begin
+          if (R=0) then begin GetFuncValue:=PI/2; Exit; end;
+          if ((R<>0) and (1-Sqr(R)>=0)) then GetFuncValue:=ArcTan(Sqrt(1-Sqr(R))/R)
+          else Error := On; Exit end;
+
+        IF (S='SEC') then
+         begin if (Cos(R)<>0) then GetFuncValue:=1/Cos(R) else Error := On; Exit end;
+        IF (S='COSEC') then
+         begin if (Sin(R)<>0) then GetFuncValue:=1/Sin(R) else Error := On; Exit end;
+
+        IF (S='FACT') then
+         begin
+          If (R < 0) then begin Error := On; Exit; end;
+          If (R = 0) then begin GetFuncValue := 1; Exit; end;
+          If (R < 32) then
+           begin
+            R2 := 1;
+            for I := 1 to trunc(R) do
+             R2 := R2 * I;
+            GetFuncValue := R2;
+           end
+         else Error := On; Exit end;
+
         If (S='SQRT') then
          begin if (R >= 0) then GetFuncValue:=Sqrt(R) else Error := On; Exit end;
         If (S='LN') then
@@ -143,7 +220,19 @@ Function CalcFormulaTree(P: FPtr) : Real;
                if R < 0 then GetFuncValue := -1
                         else GetFuncValue := 1; Exit end;
        end;
+      end else
+     if P^.ParamsNum = 2 then
+      begin
+       R := CalcFormulaTree(P^.Params^[1]);
+       R1 := CalcFormulaTree(P^.Params^[2]);
+       if not Error then
+       begin
+        If (S='LOG') then
+         begin if ((R1 > 0) and (R <> 1) and (R > 0))
+            then GetFuncValue:=Ln(R1)/Ln(R) else Error := On; Exit end;
+       end;
       end;
+
     CalcError(erInvalidFunction);
    end;
 
@@ -222,7 +311,7 @@ begin
                    if R>0 then Y1:=1 else Y1:=-1;
                    R:=Abs(R);
                    if (Ln(R)<(70/Abs(R1))) then {if R1 < 0 then R:=Exp(-ln(R)*R1)
-                                                     else} R:=Exp(ln(R)*R1)
+                                                     else} R:=Exp(ln(R)*abs(R1))
                                       else Error := On;
                    if Odd(J) then R := R*Y1;
                   end;
@@ -235,6 +324,8 @@ begin
                       if R < 0 then R := Int(R)-1
                                else R := Int(R)+1;
                     end;
+                if (R1 < 0) and (R <> 0) then R := 1/R else
+                if (R1 < 0) and (R = 0) then Error := On;
               end else Error := On;
       '>' : R := Byte(R>R1);
       '<' : R := Byte(R<R1);
@@ -396,6 +487,7 @@ procedure TCalcLine.HandleEvent;
  var WasKey: Boolean;
 begin
    WasKey := Event.What = evKeyDown;
+   if WasKey and (Event.KeyCode = kbUp) then ClearEvent(Event);
    if WasKey and ResultSelected then if Not (Event.CharCode in ['0'..'9']) then SelEnd:=0;
    inherited HandleEvent(Event);
    if WasKey then

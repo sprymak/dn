@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -77,9 +78,15 @@ const
      CFileFinder = #6#7#8#9;
      CFindInfo   = #10#11#12#13;
 
+     ffSeFnd    = $01; {Файл найден}                {-$VOL}
+     ffSeD2Lng  = $02; {Переполнение строки поиска} {-$VOL}
+     ffSeNotFnd = $FE; {Файл не найден}             {-$VOL}
+
      ffoAdvanced    = 1;
      ffoCaseSens    = 2;
      ffoRecursive   = 4;
+     ffoWholeWords  = 8; {-$VIV 14.05.99}
+     ffoAllCP       = 16; {-$VIV 14.05.99}
 
      FindRec: TFindRec = ( Mask : '*.*';
                            What : '';
@@ -99,7 +106,7 @@ const
 
 
 procedure FindFile;
-function FindFiles(var Files: PDirStorage; var Directories: PCollection;var FindRec: TFindRec; PInfo: PWhileView): Boolean;
+function FindFiles(var Files: PDirStorage; var Directories: PCollection;var FindRec: TFindRec; PInfo: PWhileView): byte;
 function ReadList(AName: String; var DC: PSortedCollection; var FC: PDirStorage): Boolean;
 function OpenDirectory(const Dir: String): PDrive;
 function ParseTime(S: String): LongInt;
@@ -180,8 +187,9 @@ const
 
 
 implementation
-uses DNApp, Advance, Startup, Memory, Messages, HistList, Commands,
-     RStrings, FlPanel, FViewer, MicroEd, Tree, xTime, DnUtil;
+uses u_crt,
+     DNApp, Advance, Startup, Memory, Messages, HistList, Commands,
+     RStrings, FlPanel, FViewer, MicroEd, Tree, xTime, DnUtil; {-$VIV}
 
 const
   LowMemSize = $6000;  {Local setting}
@@ -213,7 +221,7 @@ procedure FindFile;
      CancelSearch: Boolean;
      AMask: PathStr;
      Event: TEvent;
-     BB: Boolean;
+     BB: byte; {-$VOL}
      II,I,J: Word;
 begin
  II := ExecResource(dlgFileFind, FindRec);
@@ -224,7 +232,7 @@ begin
  AMask := FindRec.Mask;
  New(Files, Init);
  Directories := New(PStringCollection, Init(30,30));
- R.Assign(1, 1, 25, 8); Inc(SkyEnabled);
+ R.Assign(1, 1, 25, 10); Inc(SkyEnabled);
  New(PInfo, Init(R)); PInfo^.Options := PInfo^.Options or ofSelectable;
  PInfo^.Top := GetString(dlDBViewSearch);
  PInfo^.Bottom := GetString(dlNoFilesFound);
@@ -232,7 +240,8 @@ begin
  BB := FindFiles(Files, Directories, FindRec, PInfo);
  Desktop^.Delete(PInfo); Dec(SkyEnabled);
  Dispose(PInfo, Done);
- if not BB then MessageBox(^C+GetString(dlNoFilesFound), nil, mfError + mfOkButton);
+ if (BB and ffSeD2Lng) <> 0 then MessageBox( GetString(dlSE_Dir2Long), nil, mfWarning + mfOkButton);
+ if (BB and ffSeNotFnd) = BB then MessageBox(^C+GetString(dlNoFilesFound), nil, mfError + mfOkButton);
 end;
 
 function ParseTime(S: String): LongInt;
@@ -313,6 +322,8 @@ function FindFiles;
      Mask: String[12];
      T: TEventTimer;
      FF: string;
+     TotalNum: Longint; {-$VIV}
+     FFResult: byte; {-$VOL}
 
 procedure InitPanel;
 begin
@@ -335,7 +346,7 @@ end;
      then Application^.HandleEvent(Event);
  end;
 
- procedure SearchData(Path: PathStr);
+ procedure SearchData(Path: string);
   label Skip;
   var PDir: PString;
       SR: SearchRec;
@@ -347,20 +358,31 @@ end;
    var S: TDOSStream;
  begin
    PInfo^.Write(1, Cut( Path+SR.Name, 50 ));
+   Inc(TotalNum); {-$VIV}
+   PInfo^.Write(3, GetString(dlLookedFiles) + Int2Str(TotalNum,1)); {-$VIV}
    S.Init(Path+SR.Name, stOpenRead);
    SearchF := (S.Status = stOK) and
               ( FViewer.SearchFileStr(@S, FindRec.What, 0,
-                                          FindRec.Options and 2 <> 0,
+                                          FindRec.Options and ffoCaseSens <> 0, {-$VIV 14.05.99}
                                           Off,
-                                          FindRec.Options and 8 <> 0, Off) >= 0 );
+                                          FindRec.Options and ffoWholeWords <> 0, Off,
+                                          FindRec.Options and ffoAllCP <> 0) >= 0 ); {-$VIV 14.05.99}
    S.Done;
  end;
 
  begin
+  if (length(Path) + length(Mask)) > (sizeOf(PathStr) - 1) then {-$VOL}
+    begin FFResult := FFResult or ffSeD2Lng; Exit; end;
   if CancelSearch or not MemOK then Exit;
   PDir := nil;
   DosError := 0;
   if PInfo <> nil then PInfo^.Write(1, Cut(Path , 50 ));
+  if (FindRec.What = '') then
+  begin
+    Inc(TotalNum); {-$VIV}
+    PInfo^.Write(3, GetString(dlLookedDirs) + Int2Str(TotalNum,1)); {-$VIV}
+  end;
+
   FindFirst(Path + Mask, $FF and not VolumeID, SR);
 
   While (DosError = 0) {and not LowMemory} and not CancelSearch and MemOK do
@@ -431,6 +453,7 @@ begin
 end;
 
 begin
+ TotalNum := 0; {-$VIV}
  NewTimer(T, 0);
  FF := GetString(dlFilesFound);
  if FindRec.Options and ffoAdvanced <> 0 then
@@ -447,10 +470,11 @@ begin
      if AdvanceSearchData.Attr and 4 <> 0 then Attr := Attr or Hidden;
      if AdvanceSearchData.Attr and 8 <> 0 then Attr := Attr or ReadOnly;
    end;
- CancelSearch := Off; FindFiles := On;
+ CancelSearch := Off; FFResult := ffSeFnd;
  SearchString.What := FindRec.What;
- SearchString.Opts := ((FindRec.Options and 2) shr 1) or
-                      ((FindRec.Options and 8) shr 2);
+ SearchString.Opts := ((FindRec.Options and ffoCaseSens) shr 1) or
+                      ((FindRec.Options and ffoWholeWords) shr 2) or
+                      ((FindRec.Options and ffoAllCP) shr 2); {-$VIV 14.05.99}
  Microed.SearchData.Line := FindRec.What;
  Microed.SearchData.What := #0;
  Microed.SearchData.Options := SearchString.Opts;
@@ -490,8 +514,9 @@ begin
  if (Files^.Files = 0) or (Pnl = nil) then
   begin
    Dispose(Drv, Done);
-   FindFiles := Off;
+   FFResult := FFResult and ffSeNotFnd; {-$VOL}
   end;
+ FindFiles := FFResult;
 end;
 
 

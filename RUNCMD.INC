@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -23,7 +24,7 @@
 //     documentation and/or other materials provided with the distribution.
 //  3. All advertising materials mentioning features or use of this software
 //     must display the following acknowledgement:
-//     "Based on TinyWeb Server by RIT Research Labs."
+//     "Based on Dos Navigator by RIT Research Labs."
 //
 //  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
 //  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -169,6 +170,7 @@ begin
        begin
         Assign(f1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
         Rewrite(F1); if IOResult <> 0 then begin Dispose(F, Done); Exit; end;
+        WriteLn(F1, '@echo off');
         System.Delete(S, 1, PosChar(BgCh, S));
         repeat
          Replace(']]', #0, S);  Replace('))', #1, S);  Replace('}}', #2, S);
@@ -191,7 +193,7 @@ begin
          if (F^.EOF) then Break;
          if not EF then S := F^.GetStr;
         until (IOResult <> 0) or Abort or EF;
-        Write(F1, '@echo off');
+        WriteLn(F1, '@echo off');
         Close(F1);
         AllRight := On;
        end;

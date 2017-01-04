@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -289,7 +290,7 @@ begin
   else
   begin
     if ExpPath[Length(ExpPath)] = '\' then Dec(ExpPath[0]);
-    FindFirst(ExpPath, Directory+Byte(SystemData.Options and ossShowHidden <> 0)*Hidden, SR);
+    FindFirst(ExpPath, Directory+Hidden+SysFile+ReadOnly+Archive, SR);
     PathValid := (DosError = 0) and (SR.Attr and Directory <> 0);
   end;
 end;

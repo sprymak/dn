@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -63,6 +64,7 @@ uses
      FileCopy,
      Eraser,
      DiskInfo,
+     NetInfo,
      Advance,
      Startup,
      Dialogs,
@@ -147,7 +149,8 @@ uses
      ExtraMemory,
      XDblWnd,
      DiskTool,
-     CCalc;
+     CCalc,
+     DnIni; {-$VIV}
 
 const
   TrashCan: PView = nil;
@@ -159,7 +162,7 @@ const
 var
   LoaderSeg: Word;
   CommandOfs: Word;
-  RunFirst: Boolean;
+  RunFirst,IgnoreOldFiles: Boolean;
 
 type
      PDNApplication = ^TDNApplication;
@@ -233,8 +236,13 @@ const
      cfgEditorDefaults  = 30;
      cfgStartupData     = 31;
      cfgSystemData      = 32;
+     cfgINIdata         = 33;
+     cfgIgnoreOldFiles  = 34;
+     cfgExtractOptions  = 35;
 
-     dlAbout = #3'Dos Navigator'#13#13#3'Version %s'#13#3'%s'#13#13#3'Copyright (C) 1991-99'#13#3'RIT Research Labs'#13#13;
+     dlAbout = #3'Dos Navigator Open Source'#13#13#3'Version %s, %s'#13#3+
+     #0'http://dn_osp.web.com/'#0#13#13#3'Based on Dos Navigator'#13#3+
+     'Copyright (C) 1991-99 RIT Research Labs'#13#13;
 
 
 type
@@ -458,10 +466,11 @@ var
   Event: TEvent;
 
 const
-  NumRElms = 136
+  NumRElms = 140
   {$IFDEF MODEM}
   +9
   {$ENDIF}
+  +2 {-$VIV}
   ;
   RegArray : array[1..NumRElms] of Word = (
 
@@ -481,6 +490,7 @@ const
   Ofs(RDoubleWindow),
   { Register DiskInfo }
   Ofs(RDiskInfo),
+  Ofs(RNetInfo),  {-$VIV}
   { Register FilesCol }
   Ofs(RFilesCollection),
   { Register FlPanel }
@@ -549,6 +559,7 @@ const
   Ofs(RXFileEditor),
   Ofs(REditWindow),
   Ofs(RInfoLine),
+  Ofs(RBookmarkLine), {-$VIV}
   Ofs(REditScrollBar),
   Ofs(REditFrame),
   Ofs(RLineCollection),
@@ -627,6 +638,11 @@ const
   Ofs(RBS2Archiver),
   Ofs(RCHZArchiver),
   Ofs(RLIMArchiver),
+  Ofs(RCABArchiver),
+
+  Ofs(RZXZArchiver),
+  Ofs(RAINArchiver),
+  Ofs(RACEArchiver),
 
   Ofs(RArchiveCollection),
 
@@ -692,7 +708,8 @@ begin
   GetExtent( R );
   Clock := New(PClockView , Init( R ));
   GetExtent(R);
-  R.A.X := R.B.X - 10; R.B.Y := R.A.Y + 1;
+  if ShowSeconds then R.A.X := R.B.X - 10 else R.A.X := R.B.X - 7;
+  R.B.Y := R.A.Y + 1;
   Clock^.Locate( R );
   if InterfaceData.Options and ouiClock = 0 then Clock^.Hide;
   PClockView(Clock)^.UpDate;
@@ -709,6 +726,19 @@ begin
   if LoadStream = nil then LoadStream := PresentFile(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK');
   if LoadStream <> nil then RetrieveDesktop('', LoadStream, True);
   InitDrivers;
+
+  {-$VOL begin}
+  if not RunFirst or CBAutoSave then begin
+    ClipBoardStream := GetMeMemoStream;
+    LoadStream := PresentFile(SourceDir+'ClipBoard'+'.DN');
+    if (LoadStream <> nil) and (ClipBoardStream <> nil) then begin
+      LoadStream^.Seek(0);
+      ClipBoardStream^.CopyFrom(LoadStream^, LoadStream^.GetSize);
+      if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(Off);
+    end;
+    FreeObject( LoadStream );
+  end;
+  {-$VOL end}
 
   {Desktop^.GetExtent(R);
   Dec(R.B.Y, 4); Inc(R.A.X);
@@ -845,7 +875,20 @@ end;
 
 destructor TDNApplication.Done;
   var B: Word;
+      SaveStream: PStream; {-$VOL}
 begin
+ {-$VOL begin}{if CBAutoSave added by piwamoto}
+ if CBAutoSave then begin
+   SaveStream := New(PBufStream, Init(SourceDir+'ClipBoard'+'.DN', stCreate, 2048));
+   if (SaveStream<>nil)and(SaveStream^.Status=stOk)and(ClipBoardStream<>nil) then begin
+     ClipBoardStream^.Seek(0);
+     SaveStream^.CopyFrom(ClipBoardStream^, ClipBoardStream^.GetSize);
+   end;
+   FreeObject(SaveStream);
+ end;
+ FreeObject(ClipBoardStream);
+ {-$VOL end}
+
  if ConfigModified then WriteConfig;
  if StartupData.Unload and osuAutosave <> 0 then
   begin
@@ -954,6 +997,15 @@ begin
  StoreBlock(cfgBlink, CurrentBlink, SizeOf(CurrentBlink)) ;
  StoreBlock(cfgFFindOptions, FileFind.FindRec.Options, SizeOf(Word) * 2);
  StoreBlock(cfgDriveInfoData, DriveInfoData, SizeOf(DriveInfoData));
+ StoreBlock(cfgExtractOptions, ExtractWithPathNames, sizeof(ExtractWithPathNames));
+
+ MarkP(cfgINIdata);
+ S.Write(INIstoredtime,sizeof(INIstoredtime));
+ S.Write(INIstoredsize,sizeof(INIstoredsize));
+ S.Write(iniparamblock_START,Ofs(iniparamblock_END)-Ofs(iniparamblock_START));
+ UnMark;
+
+ if IgnoreOldFiles then StoreBlock(cfgIgnoreOldFiles,IgnoreOldFiles,0);
 
  MarkP(cfgDirsToChange);
  for I := 0 to 8 do S.WriteStr(DirsToChange[I]);
@@ -1123,6 +1175,7 @@ begin
     S^.Read(B, 1);
     KeyMacroses := PCollection(S^.Get);
     S^.Read(R.A,2 * SizeOf(LongInt));
+    if not ShowSeconds then if R.A.X>(ScreenWidth shr 1) then Inc(R.A.X,3) else Dec(R.B.X,3);
     Clock^.Locate(R);
     {S^.Read(ArcFlags, 4);}
     if B then begin TrashCan^.Show; {Lister^.Show;} end;
@@ -1146,7 +1199,8 @@ begin
   GetBounds(R);
   if (Clock^.Size.X <= 0) or (Clock^.Size.Y <= 0) or not R.Contains(Clock^.Origin) then
     begin
-       R.Assign(Size.X-10,0,Size.X,1);
+       if ShowSeconds then R.Assign(Size.X-10,0,Size.X,1)
+       else R.Assign(Size.X-7,0,Size.X,1);
       Clock^.Locate(R);
     end;
   Dispose(S, Done);
@@ -1202,6 +1256,7 @@ begin
     S^.Write(B, 1);
     S^.Put(KeyMacroses);
     Clock^.GetBounds(R);
+    if R.A.X>(ScreenWidth shr 1) then R.A.X:=R.B.X-10 else R.B.X:=R.A.X+10;
     S^.Write(R.A, 2 * SizeOf(LongInt));
     TrashCan^.GetBounds(R);
     if B then S^.Write(R.A, 2 * SizeOf(LongInt));
@@ -1283,6 +1338,7 @@ var
 
 begin
    FSplit(FExpand(FileName), DR, NM, XT);
+   UpStr(XT);
    Desktop^.GetExtent(R);
    Abort := Off;
    if (Intern and (SystemData.Options and ossViewer = 0)) and
@@ -1361,6 +1417,8 @@ begin
                     RightSide    := fRightSide;
                     InSide       := fInSide;
                     InsertMode   := fInsMode;
+                    KeyMap       := fKeyMap; {-$VIV}
+                    WorkString := GetLine(fDelta.Y); {-$VIV 11.05.99}
                   end;
               end else StoreEditInfo(W);
 
@@ -1384,6 +1442,7 @@ begin
   R.B.Y := R.A.Y;
   MenuBar := PMenuBar(LoadResource(dlgMainMenu));
   if MenuBar = nil then FatalError( 'Invalid resource file.' );
+  MenuBar^.Menu^.Items^.Name^:='~'+Char(SystemMenuChar)+'~';
   MenuBar^.Locate(R);
   MenuBar^.Options := MenuBar^.Options and (not ofPreProcess) or ofPostProcess;
 end;
@@ -1683,7 +1742,7 @@ PROCEDURE TDNApplication.HandleCommand;
   A.A.X := Round(A.A.X*R.B.X/R1.B.X);
   if A.B.Y = R1.B.Y then A.A.Y := R.B.Y-1
      else A.A.Y := Round(A.A.Y*R.B.Y/R1.B.Y);
-  A.B.X := A.A.X + 10;
+  if ShowSeconds then A.B.X := A.A.X + 10 else A.B.X := A.A.X + 7;
   A.B.Y := A.A.Y + 1;
   Clock^.Locate(A);
   SetBlink(CurrentBlink); ReDraw;
@@ -1722,7 +1781,7 @@ PROCEDURE TDNApplication.HandleCommand;
 
  procedure GetFromClip;
  begin
-   if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut;
+   if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
    if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
     PString(Event.InfoPtr)^ := '' else
      PString(Event.InfoPtr)^ := PString(MicroEd.Clipboard^.At(0))^;
@@ -1745,6 +1804,7 @@ PROCEDURE TDNApplication.HandleCommand;
    MicroEd.Clipboard := New(PLineCollection, Init(1,1));
    MicroEd.Clipboard^.Insert(NewStr(PString(Event.InfoPtr)^));
    if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
+   CopyLines2Stream(MicroEd.Clipboard, ClipBoardStream);
  end;
 
 
@@ -1838,6 +1898,97 @@ PROCEDURE TDNApplication.HandleCommand;
                       end;
       CE;
     end;
+
+    procedure ChLngId;
+    var S:string; SS:string[9]; L:TStringCollection; SR:SearchRec;
+        Current,Default:PMenuItem; Menu:PMenu; CurIdx,i:integer;
+        HMB:PHugeMenuBox; R:TRect; V:PView;
+        function LngMixCase(P:string):string;
+        var i:integer;
+        begin
+            for i:=1 to Length(P) do if (i=1) or not (P[i-1] in ['a'..'z',
+            'A'..'Z']) then P[i]:=UpCase(P[i]) else if P[i] in ['A'..'Z']
+            then P[i]:=Chr(Ord(P[i])+Ord('a')-Ord('A'));
+            LngMixCase:=P
+        end;
+    begin
+        L.Init(5,5);
+        S:=SourceDir; if S[Byte(S[0])]<>'\' then S:=S+'\';
+        FindFirst(S+'*.lng',AnyFile,SR);
+        while DosError=0 do begin
+            if ((SR.Attr and Directory)=0) and (SR.Size>0) then begin
+                SS[0]:=#0;
+                while SR.Name[Byte(SS[0])+1]<>'.'
+                do SS:=SS+SR.Name[Byte(SS[0])+1];
+                SS:=LngMixCase(SS);
+                if ValidLngId(SS,False) then L.Insert(NewStr(SS))
+            end;
+            FindNext(SR)
+        end;
+        S:=StartupDir; if S[Byte(S[0])]<>'\' then S:=S+'\';
+        FindFirst(S+'*.lng',AnyFile,SR);
+        while DosError=0 do begin
+            if ((SR.Attr and Directory)=0) and (SR.Size>0) then begin
+                SS[0]:=#0;
+                while SR.Name[Byte(SS[0])+1]<>'.'
+                do SS:=SS+SR.Name[Byte(SS[0])+1];
+                SS:=LngMixCase(SS);
+                if ValidLngId(SS,False) and (L.IndexOf(@SS)=-1) then
+                L.Insert(NewStr(SS));
+            end;
+            FindNext(SR)
+        end;
+        S:=LngMixCase(LngId);
+        CurIdx:=L.IndexOf(@S);
+        if CurIdx=-1 then begin
+            S:='English';
+            CurIdx:=L.IndexOf(@S)
+        end;
+        if CurIdx=-1 then CurIdx:=0;
+        if L.Count>0 then begin
+            if ShowLanguageMenu then begin
+                Current:=nil;
+                for i:=L.Count-1 downto 0 do begin
+                    if i=9 then S:='~0~ ' else if i<9 then
+                    S:='~'+Chr(Ord('1')+i)+'~ ' else S:='  ';
+                    Current:=NewItem(S+PString(L.At(i))^,'',kbNoKey,
+                    cmCancel+1+i,hcChLngId,Current);
+                    if i=CurIdx then Default:=Current
+                end;
+                Menu:=NewMenu(Current);
+                Menu^.Default:=Default;
+                Desktop^.GetExtent(R);
+                R.A.X:=((R.A.X+R.B.X) div 2)-8;
+                R.B.X:=R.A.X+16;
+                R.A.Y:=((R.A.Y+R.B.Y-L.Count) div 2)-1;
+                R.B.Y:=R.A.Y+L.Count+2;
+                if R.A.Y<Desktop^.Origin.Y+1 then R.A.Y:=Desktop^.Origin.Y+1;
+                if R.B.Y>Desktop^.Origin.Y+Desktop^.Size.Y-1
+                then R.B.Y:=Desktop^.Origin.Y+Desktop^.Size.Y-1;
+                New(HMB,Init(R,Menu,nil));
+                CurIdx:=Desktop^.ExecView(HMB)-cmCancel-1;
+                Dispose(HMB,Done);
+                DisposeMenu(Menu)
+            end else CurIdx:=(CurIdx+1) mod L.Count;
+            if (CurIdx>=0) and (PString(L.At(CurIdx))^<>
+            LngMixCase(ActiveLanguage)) and CheckExit then begin
+                ActiveLanguage:=PString(L.At(CurIdx))^;
+                if ActiveLanguage=LngMixCase(GetEnv('DNLNG'))
+                then ActiveLanguage:='';
+                InitIniEngine;
+                SaveDnIniSettings;
+                DoneIniEngine;
+                ProbeINI(INIstoredtime,INIstoredsize);
+                ConfigModified:=True;
+                StringCache^.FreeAll;
+                SaveDsk;
+                Done;
+                ExecString('');
+            end;
+        end;
+        L.FreeAll;
+        L.Done;
+    end;
 begin
    ST := PString(Event.InfoPtr)^;
    case Event.Command of
@@ -1852,6 +2003,7 @@ begin
        cmSetupPrinter: SetupPrinter;
      {$ENDIF}
      cmOpenSmartpad: OpenSmartpad;
+     cmOpenClipBoard: OpenClipBoard; {-$VOL}
      cmExecGrabber: ScreenGrabber(On);
      {$IFDEF MODEM}
      cmTerminalDefaults: if TerminalSetup and (Term <> nil) then
@@ -1954,6 +2106,8 @@ begin
      cmMenuFileEdit: EditFile(True, SourceDir+'dn.mnu');
      cmLocalMenuFileEdit: EditFile(True, 'dn.mnu');
      cmEditHGL: EditFile(True, SourceDir+'dn.hgl');
+     cmEditSPF: EditFile(True, SourceDir+'dn.spf');
+     cmEditINI: EditFile(True, SourceDir+'dn.ini');
      cmExternalViewers: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.vwr');
      cmExternalEditors: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.edt');
      cmShowUserScreen: ShowUserScreen;
@@ -2000,19 +2154,20 @@ begin
      cmStoreColors: StoreColors;
      {$IFDEF Game}
      cmGame: if Game = nil then InsertWindow(New(PGameWindow, Init))
-                           else Game^.Owner^.Select;
+     else Game^.Owner^.Select;
      {$ENDIF}
 
      {From  GetEvent}
 
      cmHideCmdLine: ToggleCmdLine;
 
-     cmGetTeam: if (TeamView = nil) and (Desktop^.TopView^.HelpCtx = hcAboutDialog) then
+     cmGetTeam: if Desktop^.TopView^.HelpCtx = hcAboutDialog then
                      begin
                        Desktop^.TopView^.GetExtent(R);
                        R.Grow(-1,-2); Dec(R.B.Y,2);
                        New(TeamView, Init(R));
                        PGroup(Desktop^.TopView)^.Insert(TeamView);
+                       Desktop^.TopView^.HelpCtx := hcTeam;
                      end;
         cmQuit: begin
                   if Confirms and cfExitConfirm <> 0 then
@@ -2037,11 +2192,11 @@ begin
         cmHelp: if not HelpInUse then
                  begin
                    HelpInUse := True;
-                   HelpStrm := New(PDosStream, Init(SourceDir+'DN' + LngId + '.hlp', stOpenRead));
+                   HelpStrm := New(PDosStream, Init(SourceDir+HelpLngId + '.hlp', stOpenRead));
                    if HelpStrm^.Status <> stOk then
                      begin
                        Dispose(HelpStrm, Done);
-                       HelpStrm := New(PDosStream, Init(StartupDir+'DN' + LngId + '.hlp', stOpenRead));
+                       HelpStrm := New(PDosStream, Init(StartupDir+HelpLngId + '.hlp', stOpenRead));
                      end;
                    HFile := New(PHelpFile, Init(HelpStrm));
                    if HelpStrm^.Status <> stOk then
@@ -2070,17 +2225,7 @@ begin
                        PView(Event.InfoPtr)^.Owner^.SetData(FreeStr);
                        ClearEvent(Event);
                      end;
-
-                    {
-                         if Registered and rfAdvFind <> 0 then
-
-                         if ExecResource(dlgAdvanceSearch, AdvanceSearchData) = cmOK then
-                           begin
-                             PView(Event.InfoPtr)^.Owner^.GetData(FindRec);
-                             FindRec.Options := FindRec.Options or ffoAdvanced;
-                             PView(Event.InfoPtr)^.Owner^.SetData(FindRec);
-                           end;
-                    }
+        cmChLngId: ChLngId;
    end;
 end;
 

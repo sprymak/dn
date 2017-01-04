@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -206,13 +207,6 @@ constructor TArcDrive.InitCol;
  var  Dr: PathStr;
       Nm: NameStr;
       Xt: ExtStr;
-      ExeRec: record
-               AR: Array[0..1] of Char;
-               LastB: Word;
-               TotalB: Word;
-               Relocations: Word;
-               HeaderSize: Word;
-              end;
 begin
  TObject.Init;
  Flags := ColumnsDefaults.Arc;
@@ -235,13 +229,7 @@ begin
    Fail;
  end;
  ArcPos := 0;
- if XT = '.EXE' then begin
-   ArcFile.Read(ExeRec, SizeOf(ExeRec));
-   if (ExeRec.AR = 'MZ') or (ExeRec.AR = 'ZM') then begin
-     ArcPos := LongInt(ExeRec.TotalB)*512 {+ LongInt(ExeRec.HeaderSize)*16)} -
-               512 + LongInt(ExeRec.LastB);
-   end;
- end;
+ if XT = '.EXE' then SkipSFX;
  AType := DetectArchive;
  ArcFile.Done;
 end;
@@ -251,13 +239,6 @@ constructor TArcDrive.Load;
       Nm: NameStr;
       Xt: ExtStr;
       SR: SearchRec;
-      ExeRec: record
-               AR: Array[0..1] of Char;
-               LastB: Word;
-               TotalB: Word;
-               Relocations: Word;
-               HeaderSize: Word;
-              end;
 label
   Failure;
 begin
@@ -285,12 +266,7 @@ begin
    Fail;
  end;
  ArcPos := 0;
- if XT = '.EXE' then begin
-   ArcFile.Read(ExeRec, SizeOf(ExeRec));
-   if (ExeRec.AR = 'MZ') or (ExeRec.AR = 'ZM') then begin
-     ArcPos := LongInt(ExeRec.TotalB)*512 - 512 + LongInt(ExeRec.LastB);
-   end;
- end;
+ if XT = '.EXE' then SkipSFX;
  AType := DetectArchive;
  ArcFile.Done;
  if AType = nil then goto Failure;
@@ -332,13 +308,6 @@ var PF : PArcFile;
     Ln: LongInt;
     Cancel: Boolean;
     T: TEventTimer;
-    ExeRec: record
-             AR: Array[0..1] of Char;
-             LastB: Word;
-             TotalB: Word;
-             Relocations: Word;
-             HeaderSize: Word;
-            end;
 begin
  ReadArchive:=Off;
  FSplit(UpStrg(ArcName), Dr, Nm, Xt);
@@ -351,16 +320,9 @@ begin
     Exit;
   end;
  if Files <> nil then Dispose(Files, Done);
- Files := nil; ArcPos := 0;
- if XT = '.EXE' then
-  begin
-   ArcFile.Read(ExeRec, SizeOf(ExeRec));
-   if (ExeRec.AR = 'MZ') or (ExeRec.AR = 'ZM') then
-    begin
-     ArcPos := LongInt(ExeRec.TotalB)*512 {+ LongInt(ExeRec.HeaderSize)*16)} -
-               512 + LongInt(ExeRec.LastB);
-    end;
-  end;
+ Files := nil;
+ ArcPos := 0;
+ if XT = '.EXE' then SkipSFX;
  AType := DetectArchive;
  if AType = nil then begin ArcFile.Done; Exit; end;
  New(Files, Init);
@@ -458,11 +420,6 @@ function TArcDrive.GetDirectory;
      _USize, _PSize: LongInt;
      FR: TFileRec;
      OW: Pointer;
-     ExeRec: record
-              AR: Array[0..1] of Char;
-              LastB: Word;
-              TotalB: Word;
-             end;
 
 begin
  While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
@@ -711,7 +668,8 @@ begin
  if not B then Close(F);
 end;
 
-procedure TArcDrive.ExtractFiles;
+procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: PathStr;
+                                  Own: PView; Options: Byte);
  var SS, S: String[128];
      DT: Record S: String[70]; W: Word; Psw: String[30]; end;
      ExtrChar: String[20];
@@ -760,7 +718,7 @@ begin
   ExtrDir := '';
   DT.S := '';
   DT.Psw := Password;
-  DT.W := 1;
+  DT.W := byte(ExtractWithPathNames);
   Message(Application, evCommand, cmPushFirstName, @DT.S);
   if CopyDirName <> '' then DT.S := CopyDirName;
   if DT.S = cTEMP_ then DT.S := '';
@@ -770,6 +728,8 @@ begin
   CopyDirName := '';
   if not SkipCopyDialog then
      if ExecResource( dlgExtract, DT) <> cmOK then Exit;
+   if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
+  ExtractWithPathNames:=(DT.W and 1) <> 0;
   SkipCopyDialog := Off;
   ExtrDir := DT.S;
   Password := DT.Psw;
@@ -985,7 +945,7 @@ begin
    cmRereadForced: if ForceRescan then
                     begin
                       ForceRescan := Off;
-                      if AType^.GetID = arcUC2 then
+                      if (AType^.GetID = arcUC2) or (AType^.GetID = arcAIN) then
                         begin
                           PFilePanel(Owner)^.ForceReading := On;
                         end;
@@ -1073,4 +1033,5 @@ end;
 
 
 end.
+
 

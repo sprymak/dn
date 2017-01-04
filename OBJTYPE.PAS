@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -69,6 +70,10 @@ const
    otLIMArchiver =        9215;
    otHPKArchiver =        9216;
    otTARArchiver =        9217;
+   otCABArchiver =        9218;
+   otZXZArchiver =        9219;
+   otAINArchiver =        9220;
+   otACEArchiver =        9221;
 
    otArchiveCollection = 19221;
 
@@ -157,6 +162,11 @@ const
   otDiskInfo =            3361;
 
 
+{ --- NetInfo }
+
+  otNetInfo  =            3362; {-$VIV}
+
+
 { --- DnApp }
 
   otBackground  =           30;
@@ -229,7 +239,7 @@ const
 
   otTrashCan  =           4090;
   otKeyMacros =           4091;
-  
+
 
 { --- HelpKern }
 
@@ -258,6 +268,7 @@ const
   otEditWindow     =      6342;
   otEditScrollBar  =      6343;
   otEditFrame      =      6344;
+  otBookLine       =      6345;
   otLineCollection =     16344;
 
 
@@ -287,7 +298,7 @@ const
 
 
 { --- PrintMan }
-  
+
   otStringCol    =        5356;
   otPrintManager =        5357;
   otPrintStatus  =        5358;
@@ -334,8 +345,8 @@ const
   otGameWindow =          6371;
   otGameView   =          6372;
   otGameInfo   =          6373;
-  
-  
+
+
 { --- Tree }
 
   otTreeView      =       3330;
@@ -346,7 +357,7 @@ const
   otTreeInfoView  =       3335;
   otHTreeView     =       3336;
   otDirCollection =      16336;
-  
+
 
 { --- UserKey }
 
@@ -391,7 +402,7 @@ const
 { --- XDblWnd }
 
   otDoubleWindow =        3340;
-  
+
 
 
 implementation

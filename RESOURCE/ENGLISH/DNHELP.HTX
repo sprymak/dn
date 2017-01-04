@@ -1,4 +1,49 @@
-
+;/////////////////////////////////////////////////////////////////////////
+;/
+;/  Dos Navigator Open Source 1.51.04/DOS
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+;/
+;/  This programs is free for commercial and non-commercial use as long as
+;/  the following conditions are aheared to.
+;/
+;/  Copyright remains RIT Research Labs, and as such any Copyright notices
+;/  in the code are not to be removed. If this package is used in a
+;/  product, RIT Research Labs should be given attribution as the RIT Research
+;/  Labs of the parts of the library used. This can be in the form of a textual
+;/  message at program startup or in documentation (online or textual)
+;/  provided with the package.
+;/
+;/  Redistribution and use in source and binary forms, with or without
+;/  modification, are permitted provided that the following conditions are
+;/  met:
+;/
+;/  1. Redistributions of source code must retain the copyright
+;/     notice, this list of conditions and the following disclaimer.
+;/  2. Redistributions in binary form must reproduce the above copyright
+;/     notice, this list of conditions and the following disclaimer in the
+;/     documentation and/or other materials provided with the distribution.
+;/  3. All advertising materials mentioning features or use of this software
+;/     must display the following acknowledgement:
+;/     "Based on Dos Navigator by RIT Research Labs."
+;/
+;/  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+;/  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;/  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;/  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+;/  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;/  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;/  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;/  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+;/  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+;/  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+;/  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;/
+;/  The licence and distribution terms for any publically available
+;/  version or derivative of this code cannot be changed. i.e. this code
+;/  cannot simply be copied and put under another distribution licence
+;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
 
 .topic NoContext=0
 No help available for this context
@@ -79,29 +124,34 @@ No help available for this context
   ≥    its authors      €
   ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
 
+Navigator is a DOS shell that combines a wide set of useful features.
+The later include {copying:CopyFiles}, {moving:CopyFiles}, {editing:Editor}
+and {viewing:View} files, {formatting floppies:Format}, {recovering deleted files:Reanimator},
+{directly editing data in disk sectors:DiskEditor}, {personal phone book:Phone},
+{modem:Terminal} and {COM-link:NavyLink} functions, {spreadsheeting:SpreadSheet},
+managing {archives:Archives}, {audio CD player:CDplayer}, and more.
 
-
- DOS Navigator is developed by two groups of programmers:
- RIT Research Labs and AxoNSoft of RIT Ltd.
-
-           Stefan Tanurkov (RIT, ex-AxoNSoft)
-           Slava Filimonov (RIT)
-           Dmitry Dotsenko (AxoNSoft)
-           Ilya Bagdasarov (RIT)
-           Max Masyutin    (RIT, FRIENDS Software)
-
- Fidonet   2:469/77 Stefan Tanurkov
-           2:469/12 Sergey Demchenko
-
-
- Address:  RITLABS S.R.L.
-           str. Stefan cel Mare 180, office 101
-           Chisinau 2004
-           Moldova
-
+These functions' power and convenience in conjunction with a variety of
+{options:Configuration} allow Navigator to make your DOS sessions highly
+effective and comfortable.
+{Here:FeaturesOverview} you can study a more detailed overview of Navigator's features.
 
 The authors are grateful to all who supported the creation of Dos Navigator,
 assisted by councils and ideas, as well as all who did not obstruct.
+
+Dos Navigator is an Open Source Project. For details refer to the file
+dnosp.txt, which can be found in the standard shipping package.
+
+Feel free to send your comments and suggestions to the RU.SHELL.DN Fidonet
+echo area or to these addresses:
+
+ Fidonet   2:5000/111.27 Alexey Feldgendler
+           2:5057/44     Mike Lykov
+
+ The Basic Dos Navigator is copyrighted by {RITLABS srl:_}.
+(Moldova. Kishinev. Shtefan chel Mare st 180, office 101)
+
+
 
 .topic FeaturesOverview
 .title Overview
@@ -1952,7 +2002,13 @@ menu elements of this level.
 .title About...
 
  This is information about version of {Dos Navigator:CommonInfo}.
-Press {Alt-I:_} to view the Dos Navigator {Team:_}
+Press {Alt-I:Team} to view the Dos Navigator {Team:Team}
+
+.topic Team
+.title Dos Navigator (C) Team...
+
+ This is information about authors of {Dos Navigator:CommonInfo}.
+Use up and down arrows to scroll the list.
 
 
 .topic CDplayer
@@ -2085,6 +2141,11 @@ have to zoom the CD Player.
 
 .topic EnvEditor
 .title Edit DOS Environment
+
+.topic NetInfo
+.title Network Information Panel
+
+  No information available. Just look on this panel and enjoy.
 
 .topic DiskInfo
 .title Information Panel
@@ -2498,7 +2559,7 @@ as a paragraph:
  {ASCII Table    :_}  Use ASCII character map to choose
                   a symbol to type
  {Line Drawing   :_}  Toggle Line Draw mode.
- 
+
  {Uppercase, Lowercase:_} and {Capitalize:_} submenus are
  for converting words, lines and blocks to an appropriate
  case.
@@ -3051,3 +3112,5 @@ compression methods.
 .topic ArvidFindResults
 .title Arvid Find Results
 
+.topic ChLngId
+.title Change Active Language

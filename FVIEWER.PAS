@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -79,6 +80,7 @@ type
     SearchX: LongInt;
     SB: PView;
     Wrap: Boolean;
+    WordWrap: Boolean;
     Lines: Array[0..200] of record Pos: LongInt; Len: Byte; end;
     FilePos, FileSize, NumLines: LongInt;
     Cur: TPoint;
@@ -131,7 +133,9 @@ type
     constructor Init(const FileName: PathStr; Hex: Boolean);
     function GetPalette: PPalette; virtual;
     function  ReactOnCmd: Boolean; virtual;
+    procedure Zoom; virtual;
     procedure ChangeBounds(var Bounds: TRect); virtual;
+    procedure SizeLimits(var Min, Max: TPoint); virtual;
   end;
 
   PViewInfo = ^TViewInfo;
@@ -196,7 +200,7 @@ const
   LastEditDeskSize: TPoint = (X:0;Y:0);
 
 function SearchFileStr(F: PStream; What: String; Pos: LongInt;
-                          CaseSensitive, Display, WholeWords, Back: Boolean): LongInt;
+                          CaseSensitive, Display, WholeWords, Back, AllCP: Boolean): LongInt;
 
 implementation
 
@@ -267,8 +271,17 @@ begin
    F^.Read(Buf^[BPos], J-BPos); T := J-BPos;
  1:
    if J <= 0 then BufPos := 0 else
-   if Back then BufPos := BackSearchFor(What, Buf^[StPos], J-StPos, CaseSensitive)
-           else BufPos := SearchFor(What, Buf^[StPos], J-StPos, CaseSensitive);
+   begin {-$VIV 14.05.99}
+     if AllCP then
+     begin
+       if Back then BufPos := BackSearchForAllCP(What, Buf^[StPos], J-StPos, CaseSensitive)
+               else BufPos := SearchForAllCP(What, Buf^[StPos], J-StPos, CaseSensitive);
+     end else
+     begin
+       if Back then BufPos := BackSearchFor(What, Buf^[StPos], J-StPos, CaseSensitive)
+               else BufPos := SearchFor(What, Buf^[StPos], J-StPos, CaseSensitive);
+     end;
+   end; {-$VIV ::}
    if BufPos > 0 then
     begin
      if WholeWords and not (((BufPos = 1) or (Char(Buf^[BufPos-2+StPos]) in BreakChars)) and
@@ -328,7 +341,9 @@ begin
   begin
     if ViewMode <> 1 then
       begin
-        if Wrap then S := '>=<][' else S := '<=>][';
+        if not Wrap then S := '<=>]['
+          else if WordWrap then S := '>W<]['
+          else S := '>=<][';
         if (Lines[Size.Y].Pos < 0) and (FilePos+BufSize >= FileSize)
                   or (FileSize = 0) then S := S + '100'
           else S := S + ItoS(Percent(FileSize, FilePos+BufPos));
@@ -618,6 +633,8 @@ begin
   KillAfterUse := TempFile <> '';
   TempFile := '';
   Wrap := EditorDefaults.ViOpt and 2 <> 0;
+  WordWrap := EditorDefaults.ViOpt and 4 <> 0;
+  if WordWrap then Wrap:=On;
   ViewMode := {EditorDefaults.ViOpt and}Byte(Hex);
   Fl := AStream;
   if (AFileName = '') and (Fl = nil) then Exit;
@@ -648,6 +665,7 @@ begin
  S.Read(I, Sizeof(LongInt));
  S.Read(QuickView, 1);
  S.Read(Wrap, 1);
+ S.Read(WordWrap, 1);
  S.Read(KillAfterUse, 1);
  S.Read(Filter, 1);
  S.Read(ViewMode, 2);
@@ -670,6 +688,7 @@ begin
  S.Write(I, Sizeof(LongInt));
  S.Write(QuickView, 1);
  S.Write(Wrap, 1);
+ S.Write(WordWrap, 1);
  S.Write(KillAfterUse, 1);
  S.Write(Filter, 1);
  S.Write(ViewMode, 2);
@@ -722,8 +741,9 @@ var
   I, J, K, M, Src: Integer;
   L: LongInt;
   S: String;
+  TS: word;
 
-procedure MoveStr(var B, S; C, Flt: Byte); assembler;
+procedure MoveStr(var B, S; C, Flt: Byte; TSS: word); assembler;
  asm
   push ds
   lds  si,B
@@ -737,6 +757,10 @@ procedure MoveStr(var B, S; C, Flt: Byte); assembler;
   mov al, es:[di+1]
   cmp al, 9
   jne @@3
+  {-$VOL begin}
+  cmp TSS, 0
+  je  @@3
+  {-$VOL end}
   mov al, ' '
 @@2:
   mov ds:[si], ax
@@ -794,6 +818,14 @@ end;
 var W: Integer;
 
 begin
+  {-$VOL begin}
+  if (EditorDefaults.EdOpt and ebfTRp)=0 then TS:=0
+  else begin
+    TS:=StoI(EditorDefaults.TabSize);
+    if TS=0 then TS:=8;
+  end;
+  if TS>100 then TS:=100;
+  {-$VOL end}
   if Buf = nil then
     begin
       ReadFile(FileName, On);
@@ -936,14 +968,14 @@ begin
        begin
         Move(Buf^[Lines[I].Pos], S[1], Lines[I].Len); S[0] := Char(Lines[I].Len);
         if UseXlat then XLatBuf(S[1], Length(S), XLat);
-        MoveStr(B, S, C, Filter);
+        MoveStr(B, S, C, Filter, TS);
        end;
       if SearchActive and (Lines[I].Pos <= SearchX - FilePos) and
          (Lines[I+1].Pos >= SearchX - FilePos) then
           begin
            K := 0; M := Lines[I].Pos;
            While M < J + Lines[I].Pos do
-            begin repeat Inc(K) until (Buf^[M] <> 9) or (K and 7 = 0); Inc(M); end;
+              begin repeat Inc(K) until (Buf^[M] <> 9) or (K and 7 = 0); Inc(M); end;
            MoveColor(B[K], Length(SearchString.What), GetColor(2));
           end;
       WriteLine(0, I, Size.X, 1, B[XDelta]);
@@ -1035,11 +1067,14 @@ end;
 procedure TFileViewer.MakeLines;
  var P1, P2: Pointer;
      I, J, K, Hx: longInt;
+     LastCX, LastBX, LastSI: Word;
+     IsWordWrap: Byte;
      B: Byte;
      MaxX: longInt;
 begin
  if Buf = nil then Exit;
  if Wrap then MaxX := Size.X else MaxX := 255;
+ if WordWrap then IsWordWrap := 1 else IsWordWrap := 0;
  P1 := Buf; P2 := @Lines; J := BufPos; I := BufSize - J;
  MaxLines := 200;
  FillChar(Lines, SizeOf(Lines), 0);
@@ -1052,6 +1087,7 @@ begin
   else for K := 0 to MaxLines do
        begin
         I := (BufSize - J);
+        LastCX := $FFFF;
         Lines[K].Pos := -1;
         Lines[K].Len := 0;
         if I > 0 then
@@ -1059,49 +1095,119 @@ begin
            Lines[K].Pos := J;
            if I > MaxX then I := MaxX;
            asm
-            les di, P1
-            add di, word ptr J
+            les si, P1
+            add si, word ptr J
             mov cx, word ptr I
-            xor dx, dx
-            mov bh, 9
-            mov ax, $0A0D
-            mov bl, 0
+            xor BX, BX
+            xor DX, DX
        @@1:
-            inc di
-            cmp es:[di], bh
-            jnz @@@1
-            add dx, 8
-            and dx, $FFF8
-            dec dx
-            jmp @@5
-       @@@1:
-            cmp es:[di-1], al
-            jnz @@2
-            dec cx
-            cmp es:[di], ah
-            jnz @@3
-            dec cx
+            SegES lodsb
+            cmp AL, 9
+            jne @@2_0
+            dec CX
+            inc BX
+            mov LastCX, CX
+            mov LastBX, BX
+            mov LastSI, SI
+            add DX, 8
+            and DX, $FFF8
+            jcxz @@3_0
+            cmp DX, Word Ptr MaxX
+            jae @@3_0
+            jmp @@1
+       @@2_0:
+            cmp AL, $0D
+            jne @@2_1
+            dec CX
+            cmp Byte Ptr ES:[SI], $0A
+            jne @@3
+            dec CX
             jmp @@3
-       @@2:
-            cmp es:[di-1], ah
-            jnz @@5
-            dec cx
+       @@2_1:
+            cmp AL, $0A
+            jne @@2_2
+            dec CX
             jmp @@3
-       @@5:
-            inc  bl
-            inc  dx
-            cmp  dx, word ptr I
-            jle  @@6
-            dec  cx
-            jmp  @@3
-       @@6:
-            loop @@1
+       @@2_2:
+            cmp AL, ' '
+            je @@2_3
+            cmp AL, ','
+            je @@2_3_1
+            cmp AL, ';'
+            je @@2_3_1
+            jmp @@2_4
+       @@2_3_1:
+            mov LastBX, BX
+            inc LastBX
+            jmp @@2_4_1
+       @@2_3:
+            mov LastBX, BX
+       @@2_4_1:
+            mov LastCX, CX
+            mov LastSI, SI
+            dec LastCX
+       @@2_4:
+            inc BX
+            inc DX
+            dec CX
+            jcxz @@3_0
+            cmp DX, Word Ptr MaxX
+            jb @@1
+       @@3_0:
+            SegES lodsb
+            dec CX
+            cmp AL, $0D
+            jne @@3_1
+            cmp DX, Word Ptr MaxX
+            ja @@3_2
+            mov LastBX, BX
+            mov LastCX, CX
+            mov LastSI, SI
+       @@3_2:
+            cmp Byte Ptr ES:[SI], $0A
+            jne @@3
+            cmp DX, Word Ptr MaxX
+            ja @@3_4
+            dec LastCX
+       @@3_4:
+            dec CX
+            jmp @@3
+       @@3_1:
+            cmp AL, $0A
+            jne @@3_5
+            cmp DX, Word Ptr MaxX
+            ja @@3
+            mov LastBX, BX
+            mov LastCX, CX
+            mov LastSI, SI
+       @@3_5:
+            inc CX
+            dec SI
        @@3:
+            cmp IsWordWrap, 0
+            je @@3_3
+            or CX, CX
+            cmp DX, Word Ptr MaxX
+            jb @@3_3
+            cmp LastCX, $FFFF
+            je @@3_3
+            mov CX, LastCX
+            mov BX, LastBX
+            mov SI, LastSI
+       @@4:
+            SegES lodsb
+            cmp AL, ' '
+            je @@4_1
+            cmp AL, 9
+            jne @@3_3
+       @@4_1:
+            dec CX
+            jmp @@4
+       @@3_3:
             mov B, bl
             sub word ptr I, cx
-            mov ax, word ptr J
-            add ax, word ptr I
-            mov word ptr J, ax
+            mov ax, word ptr I
+            add word ptr J, ax
            end;
            Lines[K].Len := B;
          end;
@@ -1168,7 +1274,8 @@ procedure TFileViewer.HandleEvent;
      then SearchX := FilePos+BufPos;
   SearchX := SearchFileStr(Fl, SearchString.What, SearchX,
                                SearchString.Opts and 1 <> 0, On,
-                               SearchString.Opts and 2 <> 0, (SearchString.Dir = 1) xor Reverse);
+                               SearchString.Opts and 2 <> 0, (SearchString.Dir = 1) xor Reverse,
+                               SearchString.Opts and 4 <> 0);
   if SearchX >= 0 then
    begin
     if HexPos > 0 then JJ := (FilePos+BufPos) mod HexPos;
@@ -1417,6 +1524,10 @@ DoSave:
                           end;
               cmUnWrap: begin
                          Wrap := not Wrap;
+                         if not Wrap then begin
+                                            WordWrap := not WordWrap;
+                                            Wrap := WordWrap
+                                          end;
                          MakeLines;
                          DrawView; CE;
                         end;
@@ -1486,6 +1597,7 @@ DoSave:
                            end;
                kbCtrlPgDn: begin
 2:                           SearchX :=  FileSize;
+                             Lines[Size.Y].Pos := 0; {piwamoto}
                              SeekEOF;
                              CE
                            end;
@@ -1653,12 +1765,12 @@ procedure TFileViewer.CountUp;
    mov cx, MaxX
    mov al, 13
    mov bl, 10
-   sub di, 1
-   sub word ptr I, 1
+   dec di
+   dec word ptr I
    js  @Exit
    mov ah, es:[di]
-   sub di, 1
-   sub word ptr I, 1
+   dec di
+   dec word ptr I
    js  @Exit
    cmp ah, 10
    je  @@@
@@ -1787,7 +1899,36 @@ begin
     end;
 end;
 
-function TFileWindow.ReactOnCmd; begin ReactOnCmd := On end;
+procedure TFileWindow.SizeLimits(var Min, Max: TPoint);
+begin
+  Longint(Min) := 0;
+  if Owner <> nil then
+        begin
+           Max.X := Owner^.Size.X+2;
+           Max.Y := Owner^.Size.Y;
+        end else Longint(Max) := $7FFF7FFF;
+end;
+
+procedure TFileWindow.Zoom;
+var
+    R: TRect;
+    Max, Min: TPoint;
+begin
+    SizeLimits(Min, Max);
+    Dec(Max.X,2);
+    Longint(R.A) := 0;
+    R.B := Max;
+    if Longint(Size) = Longint(Max) then begin
+        Dec(R.A.X);
+        Inc(R.B.X)
+    end;
+    Locate(R)
+end;
+
+function TFileWindow.ReactOnCmd;
+begin
+  ReactOnCmd := On
+end;
 
 end.
 

@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -87,6 +88,7 @@ CONST
   kbAlt0      = $8100;  kbAltMinus  = $8200;  kbAltEqual   = $8300;
   kbCtrlPgUp  = $8400;  kbAltBack   = $0E00;  kbNoKey      = $0000;
   kbDoubleAlt = $3800;  kbAltLeft   = $9B00;  kbAltRight   = $9D00;
+                        kbAltUp     = $9800;  kbAltDown    = $A000; {-$VIV}
   kbAltTAB    = $A500;  kbCtrlTAB   = $9400;  kbCtrlESC    = $0E00;
   kbAltEnter  = $1C00;  kbDoubleCtrl = $1D00; kbGrayAst    = $372A;
   kbSpace     = $3920;  kbCtrlGPlus  = $9000; kbCtrlGMinus = $8E00;
@@ -105,7 +107,8 @@ CONST
   kbCtrlM = $320D;  kbCtrlN = $310E;  kbCtrlO = $180F;  kbCtrlP = $1910;
   kbCtrlQ = $1011;  kbCtrlR = $1312;  kbCtrlS = $1F13;  kbCtrlT = $1414;
   kbCtrlU = $1615;  kbCtrlV = $2F16;  kbCtrlW = $1117;  kbCtrlX = $2D18;
-  kbCtrlY = $1519;  kbCtrlZ = $2C1A;
+  kbCtrlY = $1519;  kbCtrlZ = $2C1A;  kbAltTilda = $2900;
+  kbAltQuote = $2800;
 
 
 { FileMode constants }
@@ -133,7 +136,7 @@ CONST
   ebfLck = 1 shl 12;
   ebfEMS = 1 shl 13;
   ebfXMS = 1 shl 14;
-
+  ebfTRp = 1 shl 15; {-$VOL} {TabReplace}
 
 
   ouiClock          = $01;
@@ -148,6 +151,7 @@ CONST
   ouiTrackEditors        = $0200;
   ouiTrackViewers        = $0400;
   ouiTrackDirs           = $0800;
+  ouiHideDriveInfo       = $1000; {-$VIV}
 
   omsReverse = $01;
   omsCursor  = $02;
@@ -230,6 +234,8 @@ CONST
   hsUUEncode        = 147;
   hsUUDecode        = 148;
   hsUULines         = 149;
+  hsMakeListHeader  = 150;
+  hsMakeListFooter  = 151;
 
 {UU Encode options}
 
@@ -377,7 +383,7 @@ CONST
   cmMoveUp        = 12124;
   cmMoveLeft      = 12125;
   cmMoveRight     = 12126;
-  cmMoveDown      = 12127;
+  cmMoveDown      = 12127;
   cmBlockStart    = 12128;
   cmBlockEnd      = 12129;
   cmMarkWord      = 12130;
@@ -425,6 +431,12 @@ CONST
   cmLoadXlatTable   = 12182;
   cmAdvancePortSetup= 12183;
   cmNavyLinkSetup   = 12184;
+  cmSwitchKeyMapping = 12185; {-$VIV}
+  cmOpenFileAtCursor = 12186; {-$VIV}
+  cmEditSPF          = 12187; {-$VIV}
+  cmEditINI          = 12188; {-$VIV}
+  cmChangeCharCase   = 12189;
+  cmSwitchTabReplace = 12190; {-$VOL}
 
   cmCopyUnselect = 10001;
   cmRereadDir    = 10004;
@@ -610,6 +622,7 @@ CONST
   cmWindowsCopy        = 19023;
   cmReleaseFile        = 19024;
   cmFastRename         = 19025;
+  cmGetNetInfo         = 19026; {-$VIV}
 
 
   { Terminal/ScrollBack }
@@ -704,25 +717,29 @@ CONST
 
   cmLoConfigArchiver  = 3101;
 
-  cmConfigARC         = 3101;
-  cmConfigARJ         = 3102;
-  cmConfigBSA         = 3103;
-  cmConfigBS2         = 3104;
-  cmConfigCHZ         = 3105;
-  cmConfigHA          = 3106;
-  cmConfigHAP         = 3107;
-  cmConfigHPK         = 3108;
-  cmConfigHYP         = 3109;
-  cmConfigLHA         = 3110;
-  cmConfigLIM         = 3111;
-  cmConfigRAR         = 3112;
-  cmConfigSQZ         = 3113;
-  cmConfigTAR         = 3114;
-  cmConfigUC2         = 3115;
-  cmConfigZIP         = 3116;
-  cmConfigZOO         = 3117;
+  cmConfigACE         = 3101;
+  cmConfigAIN         = 3102;
+  cmConfigARC         = 3103;
+  cmConfigARJ         = 3104;
+  cmConfigBSA         = 3105;
+  cmConfigBS2         = 3106;
+  cmConfigCAB         = 3107;
+  cmConfigCHZ         = 3108;
+  cmConfigHA          = 3109;
+  cmConfigHAP         = 3110;
+  cmConfigHPK         = 3111;
+  cmConfigHYP         = 3112;
+  cmConfigLHA         = 3113;
+  cmConfigLIM         = 3114;
+  cmConfigRAR         = 3115;
+  cmConfigSQZ         = 3116;
+  cmConfigTAR         = 3117;
+  cmConfigUC2         = 3118;
+  cmConfigZIP         = 3119;
+  cmConfigZOO         = 3120;
+  cmConfigZXZ         = 3121;
 
-  cmHiConfigArchiver  = 3117;
+  cmHiConfigArchiver  = 3121;
 
 
   cmForceRescan       = 3217;
@@ -754,12 +771,15 @@ CONST
   cmDriveInfoSetup    = 3247;
   cmHideCmdLine       = 3248;
   cmRecountDirs       = 3249;
+  cmChLngId           = 3250;
 
   cmLookForPanels     = 3550; { Есть ли панели? }
   cmFirstTimePanel    = 3551; { Открыть панель, если ни одной нет }
   cmReverseSearch     = 3552;
   cmEditHistory       = 3553;
   cmViewHistory       = 3554;
+
+  cmOpenClipBoard     = 3555; {-$VOL}
 
 
   cmTextView      = 22189;
@@ -810,6 +830,7 @@ CONST
   cmCopy    = 21;
   cmPaste   = 22;
   cmUndo    = 23;
+  cmRedo    = 30; {-$VOL}
   cmClear   = 24;
   cmTile    = 25;
   cmCascade = 26;
@@ -842,6 +863,7 @@ CONST
   cmCapitalizeBlock = 134;
   cmIndentBlock     = 135;
   cmUnIndentBlock   = 136;
+  cmRusEngConv      = 137; {-$VIV 20.05.99--}
 
 
 { Panel Commands }
@@ -913,6 +935,7 @@ CONST
   cmChangeRight   = 206;
   cmDiskInfo      = 207;
   cmSwitchOther   = 208;
+  cmNetInfo       = 209; {-$VIV}
 
 
 { Phonebook Commands }
@@ -993,8 +1016,8 @@ TYPE
     erCantOpenHelp,
     erInvalidDrive,
     erInvalidFileName,
-    erNotDiskSpace1,
-    erNotDiskSpace2,
+    erNoDiskSpace,
+    erNoDiskSpacePre,
     erTextNotFound,
     erNoQuickDirs,
     erInvalidOvrSize,
@@ -1559,6 +1582,8 @@ TYPE
     dlSI_BuiltIn,
     dlSI_None,
 
+    dlTeamHint,
+
     dlTeam000,
     dlTeam001,
     dlTeam002,
@@ -1569,11 +1594,9 @@ TYPE
     dlTeam007,
     dlTeam008,
     dlTeam009,
-    dlTeam009a,
     dlTeam010,
     dlTeam011,
     dlTeam012,
-    dlTeam012a,
     dlTeam013,
     dlTeam014,
     dlTeam015,
@@ -1592,15 +1615,12 @@ TYPE
     dlTeam028,
     dlTeam029,
     dlTeam030,
-    dlTeam030a,
     dlTeam031,
     dlTeam032,
     dlTeam033,
     dlTeam034,
-    dlTeam034a,
     dlTeam035,
     dlTeam036,
-    dlTeam036a,
     dlTeam037,
     dlTeam038,
     dlTeam039,
@@ -1614,7 +1634,6 @@ TYPE
     dlTeam047,
     dlTeam048,
     dlTeam049,
-    dlTeam049a,
     dlTeam050,
     dlTeam051,
     dlTeam052,
@@ -1622,7 +1641,6 @@ TYPE
     dlTeam054,
     dlTeam055,
     dlTeam056,
-    dlTeam056a,
     dlTeam057,
     dlTeam058,
     dlTeam059,
@@ -1640,7 +1658,6 @@ TYPE
     dlTeam071,
     dlTeam072,
     dlTeam073,
-    dlTeam073a,
     dlTeam074,
     dlTeam075,
     dlTeam076,
@@ -1652,6 +1669,39 @@ TYPE
     dlTeam082,
     dlTeam083,
     dlTeam084,
+    dlTeam085,
+    dlTeam086,
+    dlTeam087,
+    dlTeam088,
+    dlTeam089,
+    dlTeam090,
+    dlTeam091,
+    dlTeam092,
+    dlTeam093,
+    dlTeam094,
+    dlTeam095,
+    dlTeam096,
+    dlTeam097,
+    dlTeam098,
+    dlTeam099,
+    dlTeam100,
+    dlTeam101,
+    dlTeam102,
+    dlTeam103,
+    dlTeam104,
+    dlTeam105,
+    dlTeam106,
+    dlTeam107,
+    dlTeam108,
+    dlTeam109,
+    dlTeam110,
+    dlTeam111,
+    dlTeam112,
+    dlTeam113,
+    dlTeam114,
+    dlTeam115,
+    dlTeam116,
+    dlTeam117,
 
     dlHelp,
     dlOutputTitle,
@@ -1849,7 +1899,22 @@ TYPE
     dlCE_ButRetry,
     dlCE_ButIgnore,
 
-    dlViewSaveXlat
+    dlViewSaveXlat,
+
+    dlFileMask,  {-$VIV}
+    dlNetInfo,
+    dlServer,
+    dlConnections,
+    dlLookedFiles,
+    dlVeryDeepSearch,
+    dlLookedDirs,
+
+    dlSE_Dir2Long, {-VOL}
+
+    stDaysWeek,  {-SSK}
+
+    dlOldFiles,
+    dlOldFilesNoWarn
   );
 
   TDlgIdx = (

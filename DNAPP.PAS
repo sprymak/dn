@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -1118,11 +1119,11 @@ begin
  if Resource <> nil then Exit;
  S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
  if S[Byte(S[0])] <> '\' then S := S + '\';
- ResourceStream := New(PBufStream, Init(S + 'DN' + LngId + '.DLG', stOpenRead, 1024));
+ ResourceStream := New(PBufStream, Init(S + LngId + '.DLG', stOpenRead, 1024));
  if ResourceStream^.Status <> stOK then
    begin
      Dispose(ResourceStream, Done);
-     ResourceStream := New(PBufStream, Init(StartupDir + 'DN' + LngId + '.DLG', stOpenRead, 1024));
+     ResourceStream := New(PBufStream, Init(StartupDir + LngId + '.DLG', stOpenRead, 1024));
    end;
  if ResourceStream^.Status <> stOK then ResourceFail;
  New(Resource, Init(ResourceStream));
@@ -1284,11 +1285,11 @@ begin
    S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
    if S[Byte(S[0])] <> '\' then S := S + '\';
 
-   PS := New(PBufStream, Init(S + 'dn' + LngId + '.lng', stOpenRead, 4096));
+   PS := New(PBufStream, Init(S + LngId + '.lng', stOpenRead, 4096));
    if PS^.Status <> stOK then
      begin
        Dispose(PS, Done);
-       PS := New(PBufStream, Init(StartupDir + 'dn' + LngId + '.lng', stOpenRead, 4096));
+       PS := New(PBufStream, Init(StartupDir + LngId + '.lng', stOpenRead, 4096));
      end;
    if PS^.Status <> stOK then ResourceFail;
 

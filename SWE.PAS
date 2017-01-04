@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -714,7 +715,7 @@ begin
          ((Event.KeyCode=kbRight) and (CurPos=Length(PString(Data)^)))
 
           then EndView:=Event.KeyCode;
-          
+
 
       If (Event.CharCode in [#8,^Y,#0,'0'..'9']) or
          ((CurPos=0) and (Event.CharCode='-') and

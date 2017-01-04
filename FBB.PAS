@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -443,9 +444,6 @@ uses Advance, FileCopy, DNApp, Messages, Views, Objects, Dialogs, Commands,
      begin MessageBox(GetString(dlFBBNoOpen)+fn1, nil, mfError + mfOKButton); LongCopy := Off; Exit; end;
     GetFTime(F1, OldDate);
     FSplit(fn1,d,n,x);
-
-         {!! IB 18.07.95}
-{    Tuda:=(X[0]=#4) and (Copy(x,2,1)='D') and (StoI(Copy(x,3,2)) > 0) and CheckSvoi; }
 
     Tuda := (X[0]=#4) and (Copy(x,2,1)='D') and (StoI(Copy(x,3,2)) > 0);
     if Tuda and not CheckSvoi then

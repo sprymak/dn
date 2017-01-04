@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -154,6 +155,18 @@ type
     procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;
   end;
 
+  {-$VIV 24.05.99--}
+  {поддержка очень длинных менюх со скролингом}
+
+  PHugeMenuBox = ^THugeMenuBox;
+  THugeMenuBox = object(TMenuView)
+    constructor Init(var Bounds: TRect; AMenu: PMenu;
+      AParentMenu: PMenuView);
+    procedure Draw; virtual;
+    procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;
+    function BeyondTop: Longint;
+  end;
+
 { TMenuPopup object }
 
   { Palette layout }
@@ -273,7 +286,7 @@ const
 
 
 implementation
-uses Advance, Commands;
+uses Advance, Commands,DnHelp,DnApp;
 
 const OldKbdState: Byte = 0;
 
@@ -292,7 +305,7 @@ begin
     P^.Next := Next;
     P^.Name := NewStr(Name);
     P^.Command := Command;
-    P^.Disabled := not T^.CommandEnabled(Command);
+    P^.Disabled := not T^.MenuEnabled(Command); {-$VOL}
     P^.KeyCode := KeyCode;
     P^.HelpCtx := AHelpCtx;
     P^.Param := NewStr(Param);
@@ -517,7 +530,7 @@ begin
     GetEvent(E);
     case E.What of
       evMouseDown:
-        if MouseInView(E.Where) or MouseInOwner then
+        if (MouseInView(E.Where) or MouseInOwner) then
         begin
           TrackMouse;
           if Size.Y = 1 then AutoSelect := True;
@@ -540,7 +553,7 @@ begin
               end;
         end;
       evMouseMove:
-        if E.Buttons <> 0 then
+        if (E.Buttons <> 0) then
         begin
           TrackMouse;
           if not (MouseInView(E.Where) or MouseInOwner) and
@@ -728,7 +741,7 @@ begin
       if P^.Command = 0 then UpdateMenu(P^.SubMenu)
       else
       begin
-        CommandState := CommandEnabled(P^.Command);
+        CommandState := MenuEnabled(P^.Command);
         if P^.Disabled = CommandState then
         begin
           P^.Disabled := not CommandState;
@@ -763,7 +776,7 @@ begin
         else
         begin
           P := HotKey(Event.KeyCode);
-          if (P <> nil) and (CommandEnabled(P^.Command)) then
+          if (P <> nil) and CommandEnabled(P^.Command) then
           begin
             Event.What := evCommand;
             Event.Command := P^.Command;
@@ -820,7 +833,7 @@ end;
 function TMenuView.NewSubView(var Bounds: TRect; AMenu: PMenu;
   AParentMenu: PMenuView): PMenuView;
 begin
-  NewSubView := New(PMenuBox, Init(Bounds, AMenu, AParentMenu));
+  NewSubView := New(PHugeMenuBox, Init(Bounds, AMenu, AParentMenu));
 end;
 
 procedure TMenuView.Store(var S: TStream);
@@ -1042,6 +1055,163 @@ begin
   R.Assign(2, Y, Size.X - 2, Y + 1);
 end;
 
+{ THugeMenuBox - $VIV--}
+
+constructor THugeMenuBox.Init(var Bounds: TRect; AMenu: PMenu;
+  AParentMenu: PMenuView);
+var
+  W, H, L: Integer;
+  P: PMenuItem;
+  R: TRect;
+begin
+  W := 10;
+  H := 2;
+  if AMenu <> nil then
+  begin
+    P := AMenu^.Items;
+    while P <> nil do
+    begin
+      if P^.Name <> nil then
+      begin
+        L := CStrLen(P^.Name^) + 6;
+        if P^.Command = 0 then Inc(L, 3) else
+          if P^.Param <> nil then Inc(L, CStrLen(P^.Param^) + 2);
+        if L > W then W := L;
+      end;
+      Inc(H);
+      P := P^.Next;
+    end;
+  end;
+  R.Copy(Bounds);
+  if R.A.X + W < R.B.X then R.B.X := R.A.X + W else R.A.X := R.B.X - W;
+  if R.A.Y + H < R.B.Y then R.B.Y := R.A.Y + H else R.A.Y := R.B.Y - H;
+  if R.A.Y<0 then R.A.Y:=0;
+  if (AParentMenu<>nil) and (R.A.Y<AParentMenu^.Origin.Y)
+  then R.A.Y:=AParentMenu^.Origin.Y;
+  if R.B.Y>Bounds.B.Y then R.B.Y:=Bounds.B.Y;
+  if (CommandLine^.Size.X>0) and (CommandLine^.Size.Y>0)
+  and (R.B.Y>CommandLine^.Origin.Y) then R.B.Y:=CommandLine^.Origin.Y;
+  TMenuView.Init(R);
+  State := State or sfShadow;
+  Options := Options or ofPreProcess;
+  Menu := AMenu;
+  ParentMenu := AParentMenu;
+end;
+
+function THugeMenuBox.BeyondTop: Longint;
+var N: Longint;
+    P: PMenuItem;
+    Found: Boolean;
+begin
+  BeyondTop := 0;
+  if Menu = nil then Exit;
+  P := Menu^.Items;
+  N := 0;
+  Found := False;
+  while (P <> nil) do
+  begin
+    if P = Current then
+    begin
+      Found := True;
+      Break;
+    end;
+    P := P^.Next;
+    Inc(N);
+  end;
+  if not Found then Exit;
+  if N > Size.Y - 3 then BeyondTop := N - Size.Y + 3;
+end;
+
+procedure THugeMenuBox.Draw;
+var
+  CNormal, CSelect, CNormDisabled, CSelDisabled, Color: Word;
+  Y, N, BeyTop: Integer;
+  P: PMenuItem;
+  B: TDrawBuffer;
+  NeedDwnArr: Boolean;
+
+procedure FrameLine(N: Integer);
+const
+  FrameChars: array[0..19] of Char = ' ┌─┐  └─┘  │ │  ├─┤ ';
+  UpArr: array[0..2] of char = '  ';
+  DnArr: array[0..2] of char = '  ';
+begin
+  MoveBuf(B[0], FrameChars[N], Byte(CNormal), 2);
+  MoveChar(B[2], FrameChars[N + 2], Byte(Color), Size.X - 4);
+  MoveBuf(B[Size.X - 2], FrameChars[N + 3], Byte(CNormal), 2);
+  if (N = 0) and (BeyTop > 0) then MoveBuf(B[4], UpArr, Byte(Color), 3)
+  else if (N = 5) and (NeedDwnArr) then MoveBuf(B[4], DnArr, Byte(Color), 3);
+end;
+
+procedure DrawLine;
+begin
+  WriteBuf(0, Y, Size.X, 1, B);
+  Inc(Y);
+end;
+
+begin
+  CNormal := GetColor($0301);
+  CSelect := GetColor($0604);
+  CNormDisabled := GetColor($0202);
+  CSelDisabled := GetColor($0505);
+  Y := 0;
+  Color := CNormal;
+  BeyTop := BeyondTop;
+  FrameLine(0);
+  DrawLine;
+  NeedDwnArr := False;
+  if Menu <> nil then
+  begin
+    P := Menu^.Items;
+    for N := 1 to BeyTop do P := P^.Next;
+    while P <> nil do
+    begin
+      Color := CNormal;
+      if P^.Name = nil then FrameLine(15) else
+      begin
+        if P^.Disabled then
+          if P = Current then
+            Color := CSelDisabled else
+            Color := CNormDisabled else
+          if P = Current then Color := CSelect;
+        FrameLine(10);
+        MoveCStr(B[3], P^.Name^, Color);
+        if P^.Command = 0 then
+          MoveChar(B[Size.X - 4], #16, Byte(Color), 1) else
+          if P^.Param <> nil then
+            MoveStr(B[Size.X - 3 - Length(P^.Param^)],
+              P^.Param^, Byte(Color));
+      end;
+      DrawLine;
+      P := P^.Next;
+      if Y = (Size.Y - 1) then
+      begin
+        NeedDwnArr := (P <> nil);
+        Break;
+      end;
+    end;
+  end;
+  Color := CNormal;
+  FrameLine(5);
+  DrawLine;
+end;
+
+procedure THugeMenuBox.GetItemRect(Item: PMenuItem; var R: TRect);
+var
+  Y: Integer;
+  P: PMenuItem;
+begin
+  Y := 1 - BeyondTop;
+  P := Menu^.Items;
+  while P <> Item do
+  begin
+    Inc(Y);
+    P := P^.Next;
+  end;
+  R.Assign(2, Y, Size.X - 2, Y + 1);
+end;
+
+{TMenuPopup}
 
 constructor TMenuPopup.Init(var Bounds: TRect; AMenu: PMenu);
 begin
@@ -1333,7 +1503,8 @@ end;
 
 function TStatusLine.Hint(AHelpCtx: Word): String;
 begin
-  Hint := '';
+  if AHelpCtx=hcTeam then Hint := GetString(dlTeamHint)
+  else Hint := '';
 end;
 
 procedure TStatusLine.Store(var S: TStream);

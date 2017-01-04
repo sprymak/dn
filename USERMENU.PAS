@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -418,6 +419,7 @@ begin
          F := New(PTextReader, Init(S));
          Assign(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
          Rewrite(F1);
+         WriteLn(F1, '@Echo off');
          I := I - 1001;
          if F<>nil then
          begin
@@ -433,7 +435,10 @@ begin
                      EnterParms := On;
                      DelFC(S);
                      if (S <> '') and (S[1] = '=') then
-                      begin DelFC(S); DefStr := S; end
+                      begin DelFC(S);
+{Knave 29.08.99}      S := MakeString(S, AD, ADD, PD, PDD, AN, PN, AE, PE);
+                      DefStr := S;
+                      end
                       else
                        begin
                         DelLeft(S);
@@ -454,7 +459,7 @@ begin
               RunFrom2E := UI^.RunFrom2E;
             end;
          end;
-         Write(F1, '@Echo off');
+         WriteLn(F1, '@Echo off');
          Close(F1);
          Dispose(F, Done);
          Break;
@@ -608,6 +613,7 @@ procedure TGrabber.HandleEvent;
        Clipboard^.Insert(NewStr(S));
      end;
     if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
+    CopyLines2Stream(Clipboard, ClipBoardStream);
   end;
 
 
@@ -724,6 +730,7 @@ begin
   Rewrite(F1);
 
   if IOResult <> 0 then begin Dispose(F, Done); Exit end;
+  WriteLn(F1, '@Echo off');
 
   if OS2 <> #0 then
     begin

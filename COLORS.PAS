@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -66,7 +67,9 @@ type
      end;
 
 
-implementation uses Messages, RStrings, Drives, Startup;
+implementation
+uses Messages, RStrings, Drives, Startup,
+     DnIni; {-$VIV}
 
 procedure SetHighlightGroups;
  var D: Record S1, S2, S3, S4, S5: String[250]; end;
@@ -124,6 +127,7 @@ procedure WindowManager;
      PV: PView;
      S: String;
      DT: record P: PCollection; N: Word; end;
+     I, Num: Integer;
 
   procedure InsView(P: PView); far;
   begin
@@ -151,6 +155,18 @@ begin
   PV := New(PWindowList, Init(R,1,PScrollBar(PV)));
   PV^.Options := PV^.Options or ofPostProcess or ofSecurity;
   PListBox(PV)^.NewList(PC);
+  Num := 0; {-$VIV 28.05.99--}
+  if (WinManagerPosToEdit) and (PC^.Count > 0) and
+     (Pos('Edit -', PWindowList(PV)^.GetText(0,255)) > 0)
+  then
+    for I := 1 to PC^.Count - 1 do
+      if (Pos('Edit -', PWindowList(PV)^.GetText(I,255)) > 0) then
+      begin
+        Num := I;
+        Break;
+      end;
+  if (WinManagerSelectNext) and (Num = 0) and (PC^.Count > 1) then Num := 1;
+  PListBox(PV)^.Focused := Num; {-$VIV--}
   D^.Insert(PV);
 
   R.Assign(2,2,45,3);

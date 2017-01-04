@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -80,7 +81,11 @@ type
 
     TMakeListRec = record
      FileName: String[79];
+     Header: String[79];
+     HeaderMode: Word;
      Action: String[255];
+     Footer: String[79];
+     FooterMode: Word;
      Options: Word;
     end;
 
@@ -108,6 +113,10 @@ const
       cmlPathNames     = 1;
       cmlAutoDetermine = 2;
 
+      hfmAuto          = 0;
+      hfmInsertText    = 1;
+      hfmInsertFiles   = 2;
+
       RFilesCollection: TStreamRec = (
        ObjType: otFilesCollection;
        VmtLink: Ofs(TypeOf(TFilesCollection)^);
@@ -119,17 +128,20 @@ function CopyFileRec(FR: PFileRec): PFileRec;
 function NewFileRec(const Name: String; Size, Date: LongInt; Attr: Byte; AOwner: PString): PFileRec;
 function PackedDate(P: PFileRec): LongInt;
 
- const Archives = #0'arc'#0'bsa'#0'bs2'#0'zip'#0'arj'#0'lzh'#0'hyp'#0'chz'#0+
-                  'ha'#0'sqz'#0'zoo'#0'hap'#0'ice'#0'pak'#0'lim'#0'rar'#0'ha '#0+
-                  'uc2'#0'ain'#0'lha'#0'tar'#0'tdr'#0;
+   const Archives = #0'arc'#0'bsa'#0'bs2'#0'zip'#0'arj'#0'lzh'#0'hyp'#0'chz'#0+
+                    'ha'#0'sqz'#0'zoo'#0'hap'#0'ice'#0'pak'#0'lim'#0'rar'#0'ha '#0+
+                    'j'#0'j  '#0'imp'#0'777'#0'acb'#0'boa'#0'z'#0'$z'#0'gz'#0+
+                    'hpk'#0'gz '#0'tgz'#0'taz'#0'z  '#0'$z '#0'ain'#0'ace'#0+
+                    'uc2'#0'ain'#0'lha'#0'tar'#0'tdr'#0'cab'#0;
        Executables: String[21] = #0'exe'#0'bat'#0'com'#0;
 
 implementation
 uses DNApp, Menus, Drivers, Views, FlPanel, Drives,
-     Commands, DiskTool
+     Commands, DiskTool, Messages
      {$IFDEF MODEM}
      ,NavyLink
      {$ENDIF}
+     , Novell, DnIni
 
 ;
 
@@ -354,14 +366,36 @@ end;
 
 function SelectDrive;
  var R: TRect;
-     P: PMenuBox;
+     P: PHugeMenuBox;
      Menu: PMenu;
      Items, Lnk: PMenuItem;
      C: Char;
-     N: Integer;
+     N, MaxRY: Integer;
      SC: CharSet;
+     Server_Num, Handle_Num, RetCode, DriveNum, MaxL: integer; {-$VIV start}
+     FullS, Server, PathName, TmpS: String;       {-$VIV end}
+     pSaveNeedAbort: Boolean;
+
+  function CutLongString(S: String): String;
+  var P, L: Integer;
+      S1: String;
+  begin
+    CutLongString := S;
+    if not CutDriveInfo then Exit;
+    P := Pos(':', S);
+    if P > 0 then
+    begin
+      S1 := Copy(S, 1, P);
+      Delete(S, 1, P);
+      L := 30 - Length(S1);
+      if Length(S) > L then
+        CutLongString := S1 + Copy(S, 1, 2) + '...' + Copy(S, Length(S) - L + 7, 255);
+    end;
+  end;
+
 begin
  Items := nil; N := 0; Lnk := nil;
+ MaxL := 8; {-$VIV}
 
  {$IFDEF MODEM}
  if IncludeTemp and (Linker <> nil) then
@@ -375,16 +409,61 @@ begin
                                hcNoContext, Items);
          Items := NewSubMenu(' LINK', hcNoContext, NewMenu(Items), nil);
          Lnk := Items;
+         Inc(N)
        end;
    end;
  {$ENDIF}
 
- if IncludeTemp then Items := NewItem(' TEMP ', '', kbSpace, 1200,
-                                          hcTempList, Items);
+ if IncludeTemp then begin
+     Items := NewItem(' TEMP ', '', kbSpace, 1200, hcTempList, Items);
+     Inc(N)
+ end;
  for C := 'Z' downto 'A' do
   if ValidDrive(C) then
    begin
-    Items := NewItem('  ~'+C+':~  ', '', kbNoKey, 1000 + Byte(C),
+    FullS := '  ~'+C+':~  '#0;                          {-$VIV start}
+    if InterfaceData.Options and ouiHideDriveInfo = 0 then
+    begin
+      DriveNum := Byte(C)-64;
+      Get_drive_connection_id(DriveNum, Server_num);
+      if (Server_num > 0) then
+      begin
+        Get_File_Server_Name(Server_Num, Server);
+        Set_Preferred_Connection_Id(Server_Num);
+        Get_Drive_Handle_Id(DriveNum, Handle_Num);
+        Get_Directory_Path(Handle_Num, PathName, RetCode);
+        GetDir(DriveNum, TmpS);
+        if Length(TmpS) > 3 then
+        begin
+          TmpS := ' <' + Copy(PathName, Length(PathName) - Length(TmpS) + 4, 255) + '>';
+          Delete(PathName, Length(PathName) - Length(TmpS) + 4, 255);
+          if PathName[Length(PathName)] = '/' then Delete(PathName, Length(PathName), 1);
+        end else TmpS := '';
+        PathName := CutLongString(Server + '/' + PathName);
+        if not HideNetworkCurDir then
+          PathName := PathName + TmpS;
+        FullS := FullS + PathName;
+      end else
+      if (DriveNum > 2) and (not HideLocalCurDir) then
+      begin
+        pSaveNeedAbort := NeedAbort;
+        NeedAbort := True;
+        {$I-}GetDir(DriveNum, PathName);{$I+}
+        if IOResult = 0 then
+        begin
+          if Length(PathName) = 3 then PathName := '' else
+          begin
+            Delete(PathName, 1, 3);
+            PathName := '<' + CutLongString(PathName) + '>';
+          end;
+          FullS := FullS + PathName;
+        end;
+        NeedAbort := pSaveNeedAbort;
+      end;
+      if Length(FullS) > MaxL then MaxL := Length(FullS);
+    end;                                                {-$VIV end}
+
+    Items := NewItem(FullS, '', kbNoKey, 1000 + Byte(C),
                       hcNoContext, Items);
     Inc(N);
    end;
@@ -397,11 +476,21 @@ begin
  end else C := Default;
  Menu := NewMenu(Items);
  DeskTop^.GetExtent(R);
+ {-$VIV start}
+ X := X - (MaxL div 2);
+ if (X + MaxL + 4) > R.B.X then X := R.B.X - MaxL - 4;
+ if (X < 0) then X := 0;
+ Y := Y - (N div 2) + 1;
+ if (Y + N + 2) > R.B.Y then Y := R.B.Y - N - 2;
+ if (Y < 0) then Y := 0;
  R.A.X := X; R.A.Y := Y;
- if X < 0 then R.A.X := 0 else if X + 8 > R.B.X then R.A.X := R.B.X - 8;
- if Y < 0 then R.A.Y := 0 else if Y + N + 2 > R.B.Y then R.A.Y := R.B.Y - N - 2;
- R.B.X := R.A.X + 8; R.B.Y := R.A.Y + N + 2;
- P := New(PMenuBox, Init(R, Menu, nil));
+ R.B.X := R.A.X + MaxL + 4;
+ MaxRY := R.B.Y;
+ R.B.Y := R.A.Y + N + 2;
+ if R.A.Y=0 then begin Inc(R.A.Y); Inc(R.B.Y) end;
+ if (R.B.Y > MaxRY) then R.B.Y := MaxRY;
+ {-$VIV end}
+ P := New(PHugeMenuBox, Init(R, Menu, nil)); {-$VIV}
  if (C='+') then Items := Lnk else Items := P^.FindItem(C);
  if Items <> nil then Menu^.Default := Items;
  P^.HelpCtx := hcSelectDrive + Byte( IncludeTemp = True );

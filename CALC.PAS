@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -1104,7 +1105,7 @@ end;
 Function TCalcView.GetFuncValue;
  label 1;
  var I: Integer;
-     R, R1: Real;
+     R, R1, R2: Real;
      S: String;
      T: FPtr;
      PP: Pointer;
@@ -1180,6 +1181,36 @@ begin
      If S='COS' then begin GetFuncValue:=Cos(R); Exit end;
      If S='SIN' then begin GetFuncValue:=Sin(R); Exit end;
      If S='SQR' then begin GetFuncValue:=R * R; Exit end;
+
+     IF ((S='ASIN') or (S='ARCSIN')) then
+      begin
+       if (R=1) then begin GetFuncValue:=PI/2; Exit; end;
+       if (1-Sqr(R)>0) then GetFuncValue:=ArcTan(R/Sqrt(1-Sqr(R)))
+       else GetFuncValue := 0; Exit end;
+     IF ((S='ACOS') or (S='ARCCOS')) then
+      begin
+       if (R=0) then begin GetFuncValue:=PI/2; Exit; end;
+       if ((R<>0) and (1-Sqr(R)>=0)) then GetFuncValue:=ArcTan(Sqrt(1-Sqr(R))/R)
+       else GetFuncValue := 0; Exit end;
+
+     IF (S='SEC') then
+      begin if (Cos(R)<>0) then GetFuncValue:=1/Cos(R) else GetFuncValue := 0; Exit end;
+     IF (S='COSEC') then
+      begin if (Sin(R)<>0) then GetFuncValue:=1/Sin(R) else GetFuncValue := 0; Exit end;
+
+     IF (S='FACT') then
+      begin
+       If (R < 0) then begin GetFuncValue := 0; Exit; end;
+       If (R = 0) then begin GetFuncValue := 1; Exit; end;
+       If (R < 32) then
+        begin
+         R2 := 1;
+         for I := 1 to trunc(R) do
+          R2 := R2 * I;
+         GetFuncValue := R2;
+        end
+      else GetFuncValue := 0; Exit end;
+
      If (S='SQRT') then
       begin if (R >= 0) then GetFuncValue:=Sqrt(R) else GetFuncValue := 0; Exit end;
      If (S='LN') then
@@ -1197,6 +1228,17 @@ begin
       begin if R = 0 then GetFuncValue:=0 else
             if R < 0 then GetFuncValue := -1
                      else GetFuncValue := 1; Exit end;
+   end;
+  end else
+ if P^.ParamsNum = 2 then
+  begin
+   R := CalcFormulaTree(P^.Params^[1]);
+   R1 := CalcFormulaTree(P^.Params^[2]);
+   if not Error then
+   begin
+     If (S='LOG') then
+      begin if ((R1 > 0) and (R <> 1) and (R > 0))
+         then GetFuncValue:=Ln(R1)/Ln(R) else GetFuncValue := 0; Exit end;
    end;
   end;
  CalcError(erInvalidFunction);
@@ -1256,8 +1298,8 @@ begin
               begin
                 BB := (Frac(R)=0) and (Frac(R1)=0);
                 if R1 = 0 then R := 1 else
-                if (Ln(Abs(R))<(70/R1)) then if R > 0 then R:=Exp(ln(R)*R1)
-                                                      else R:=Exp(-ln(R)*R1)
+                if (Ln(Abs(R))<(70/abs(R1))) then if R > 0 then R:=Exp(ln(R)*abs(R1))
+                                                      else R:=Exp(-ln(R)*abs(R1))
                                         else R := 0;
                 if BB then
                   if Abs(Frac(R)) < 0.5 then
@@ -1268,6 +1310,8 @@ begin
                       if R < 0 then R := Int(R)-1
                                else R := Int(R)+1;
                     end;
+                if (R1 < 0) and (R <> 0) then R := 1/R else
+                if (R1 < 0) and (R = 0) then R := 0;
               end else R := 0;
       '>' : R := Byte(R>R1);
       '<' : R := Byte(R<R1);

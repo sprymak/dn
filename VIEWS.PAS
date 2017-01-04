@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -329,6 +330,7 @@ type
     procedure StoreText(var F: Text); virtual;
     function  GetOptionsStr: String;
     procedure Update; virtual;
+    function MenuEnabled(Command: Word): Boolean; {-$VOL}
   private
     procedure DrawCursor;
     procedure DrawHide(LastView: PView);
@@ -585,13 +587,20 @@ const
   UpdateViews: PCollection = nil;
   UpdatePrior: PCollection = nil;
 
+const
+
+{ Current command set. All but window commands are active by default }
+
+  CurCommandSet: TCommandSet =
+    [0..255] - [cmZoom, cmClose, cmResize, cmNext, cmPrev];
+
 procedure RegisterToPrior(P: PView);
 procedure RegisterToBackground(P: PView);
 procedure Deregister(P: PView);
 procedure UpdateAll(All: Boolean);
 
 implementation
-uses Commands, Startup, DNapp, Advance;
+uses Commands, Startup, DNapp, Advance, DNini;
 
 type
   PFixupList = ^TFixupList;
@@ -601,13 +610,6 @@ const
   OwnerGroup: PGroup = nil;
   FixupList: PFixupList = nil;
   TheTopView: PView = nil;
-
-const
-
-{ Current command set. All but window commands are active by default }
-
-  CurCommandSet: TCommandSet =
-    [0..255] - [cmZoom, cmClose, cmResize, cmNext, cmPrev];
 
 { Convert color into attribute                          }
 { In    AL = Color                                      }
@@ -994,9 +996,16 @@ begin
   Event.InfoPtr := @Self;
 end;
 
+function TView.MenuEnabled(Command: Word): Boolean; {-$VOL}
+begin
+  if (Command=cmGame) then MenuEnabled:=EnableGame else
+  MenuEnabled:=(Command > 255)or(Command in CurCommandSet);
+end; {-$VOL}
+
 function TView.CommandEnabled(Command: Word): Boolean;
 begin
-  CommandEnabled := (Command > 255) or (Command in CurCommandSet);
+  if (Command=cmGame) then CommandEnabled:=EnableGame else
+  CommandEnabled := (Command > 255) or (Command in CurCommandSet) or (Command=cmRedo);
 end;
 
 function TView.DataSize: Word;

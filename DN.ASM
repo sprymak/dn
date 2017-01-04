@@ -1,6 +1,7 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+;/  Dos Navigator Open Source 1.51.04/DOS
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
 ;/  the following conditions are aheared to.
@@ -93,7 +94,7 @@ OldInt2F:       dw     0,0
                 mov    ax,word ptr cs:NumRun ; ah-FirstRun
                 mov    cl,byte ptr cs:ExecErrl;cl-child errorlevel
                 mov    bx,'DN'               ;
-                mov    dx,2151h              ; version num II - 1.51
+                mov    dx,15104              ; OSP version - 1.51.04
                 iret
 @@My1:          dec    al
                 jnz    @@my2                 ; return pointer
@@ -232,7 +233,7 @@ COMSPEC         db     80 dup (0)  ; Temporary comspec here
 
 ; DN.COM leave resident only valable part of DNPath to save memory...
 
-Copyright       db     13,'Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs',0Dh,0AH,'$'
+Copyright       db     13,'Dos Navigator Open Source 1.51.04/DOS  Based on DN (C) 1991-99 RIT Labs',0Dh,0AH,'$'
 DNfound         db     '(*)',0Dh,0Ah,'$'
 CanNotFound     db     'No path to main file.',0Dh,0Ah,'$'
 CanNotAllocate  db     'Not enough memory.',0Dh,0Ah,'$'

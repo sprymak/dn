@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -793,6 +794,7 @@ Rep:
                   Clipboard^.Insert(NewStr(S));
                 end;
                if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
+               CopyLines2Stream(Clipboard, ClipBoardStream);
              end;
      end;
    end;
@@ -828,7 +830,7 @@ begin
                             end;
               cmSave: begin CaptureScreen; CE; end;
               cmOpen: begin
-                       if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut;
+                       if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
                        if Clipboard <> nil then begin
                           for I := 0 to Clipboard^.Count - 1 do begin
                             SendString(CnvString(Clipboard^.At(I)));

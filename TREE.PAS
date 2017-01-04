@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -735,11 +736,17 @@ begin
  CreatedDir := '';
  if LowMemory then Exit; S := '';
  if ExecResource(dlgMkDir, S) <> cmOK then Exit;
- DelLeft(S); DelRight(S);
+ DelRight(S); if not WinIsHere then DelLeft(S); {-=DL=-}
 
  if S = '' then Exit;
  (*
- ClrIO; MkDir(S);
+ ClrIO;
+ {-=DL=-}
+ if WinIsHere the MkDirLFN(S) else MkDir(S);
+ if WinIsHere and (IOResultLFN <> 0) then
+  begin MessageBox(^C'Could not create the directory'^M^C+S, nil, mfError + mfOKButton);
+        Exit;
+  end else
  if IOResult <> 0 then
   begin MessageBox(^C'Could not create the directory'^M^C+S, nil, mfError + mfOKButton);
         Exit;
@@ -755,6 +762,7 @@ begin
     S1 := Copy(S, 1, I-1); Delete(S, 1, I);
     if S1 = '' then Continue;
     B := CreateDirInheritance(S1, Off);
+    if WinIsHere and (IOResultLFN <> 0) then Exit; {-=DL=-}
     if Abort or (IOResult <> 0) then Exit;
     if CreatedDir = '' then CreatedDir := S1;
     FSplit(S1, Dr, Nm, Xt);

@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -53,7 +54,7 @@ unit Drivers;
 
 interface
 
-uses Objects, xTime;
+uses Objects, xTime, dnini;
 
 {$I Version.INC}
 
@@ -84,8 +85,6 @@ const
   evMouse     = $000F;
   evKeyboard  = $0010;
   evMessage   = $FF00;
-
-  AltSpaceChar: Char = #240;
 
   AltCodes1: array[$10..$34] of Char =
     'QWERTYUIOP'#0#0#0#0'ASDFGHJKL'#0#0#0#0#0'ZXCVBNM'#0#0;
@@ -1713,7 +1712,7 @@ begin
   GetAltChar := #0;
   if Lo(KeyCode) = 0 then
     case Hi(KeyCode) of
-      $C2: GetAltChar := {#240} AltSpaceChar;
+      $C2: GetAltChar := Char(SystemMenuChar);
       $10..$34: GetAltChar := AltCodes1[Hi(KeyCode)];
       $78..$83: GetAltChar := AltCodes2[Hi(KeyCode)];
     end;
@@ -1726,7 +1725,7 @@ begin
   GetAltCode := 0;
   if Ch = #0 then Exit;
   Ch := UpCase(Ch);
-  if Ch = #240 then
+  if Ch = Char(SystemMenuChar) then
   begin
     GetAltCode := $0200;
     Exit;
@@ -2127,7 +2126,7 @@ begin
                      + 'h at address '+Hex4( ErrAdd shr 16 ) +
                        ':' + Hex4( ErrAdd );
 
-             4 : FreeStr := 'Please report to RIT.';
+             4 : FreeStr := 'Report to RU.SHELL.DN';
              5 : FreeStr := '( file DN.ERR )';
              7 : FreeStr := '[ Press a key to exit now ]';
             else FreeStr := '';

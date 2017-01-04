@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -162,6 +163,7 @@ type
     procedure Truncate; virtual;
     procedure Write(var Buf; Count: Word); virtual;
     procedure WriteStr(P: PString);
+    function Eof: boolean; {-$VOL}
   end;
 
 { DOS file name string }
@@ -432,6 +434,7 @@ type
 {$ENDIF}
 
 
+function GetMeMemoStream: PStream; {-$VOL}
 procedure FreeObject(var O);
 function  CnvString(P: PString): String;
 procedure ReplaceP(var P: PString; S: String);
@@ -515,9 +518,9 @@ const
 implementation
 
 {$IFDEF Windows}
-uses WinProcs, Strings, OMemory;
+uses WinProcs, Strings, OMemory, ExtraMemory;
 {$ELSE}
-uses Memory, Strings;
+uses Memory, Strings, ExtraMemory;
 {$ENDIF}
 
 {$IFDEF Windows}
@@ -886,6 +889,11 @@ const
   Empty: String[1] = '';
 begin
   if P <> nil then Write(P^, Length(P^) + 1) else Write(Empty, 1);
+end;
+
+function TStream.Eof: boolean;
+begin
+  Eof := GetPos >= GetSize;
 end;
 
 { TDosStream }
@@ -3202,6 +3210,32 @@ begin
   if OP <> nil then begin Dispose(OO, Done); OP := nil end;
 end;
 
+function GetMeMemoStream: PStream; {-$VOL begin}
+  var S: PStream; Pos: longint;
+begin
+  S:=nil;
+  if XMSFound then begin
+    Pos:=longint(XMSFree);
+    if Pos>=512 then begin
+      if Pos > 8192 then Pos := 8192;
+      Pos := LongInt(Pos-1) shl 10;
+      if Pos > 10240 then Pos := 10240;
+      S:=New(PXMSStream,Init(Pos,0));
+    end;
+  end;
+  if (S=nil) and EMSFound then begin
+    Pos:=longint(EMSFreePages);
+    if Pos>=32 then begin
+      if Pos > 512 then Pos := 512;
+      Pos := (Pos-1) * LongInt(16384);
+      if Pos > 10240 then Pos := 10240;
+      S:=New(PEMSStream,Init(Pos,0));
+    end;
+  end;
+  if S=nil then S:=New(PMemoryStream,Init(2048,2048));
+  if S^.Status<>stOk then FreeObject(S);
+  GetMeMemoStream:=S;
+end; {-$VOL end}
 
 end.
 

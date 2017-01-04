@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -95,7 +96,7 @@ end;
 
 function TSelectList.IsSelected(I: Integer): Boolean;
 begin
-  IsSelected := (List <> nil) and (Copy(CnvString(List^.At(I)),1,1)= 'þ');
+  IsSelected := (List <> nil) and (Copy(CnvString(List^.At(I)),1,1)= 'û'); {-$VIV þ}
 end;
 
 procedure TSelectList.HandleEvent(var Event: TEvent);
@@ -108,7 +109,7 @@ begin
   if (List <> nil) and (Focused < List^.Count) then P := List^.At(Focused)
                               else P := nil;
   if P <> nil then
-     if P^[1] = ' ' then P^[1] := #254
+     if P^[1] = ' ' then P^[1] := #251 {-$VIV #254}
                     else P^[1] := ' ';
   CE
 end;
@@ -117,9 +118,9 @@ procedure DoSelect(P: PString); far;
 begin
  if P <> nil then
    case Event.CharCode of
-    '*': if P^[1] = ' ' then P^[1] := #254
+    '*': if P^[1] = ' ' then P^[1] := #251 {-$VIV #254}
                         else P^[1] := ' ';
-    '+': P^[1] := #254;
+    '+': P^[1] := #251; {-$VIV #254}
     '-': P^[1] := ' ';
    end;
 end;
@@ -417,7 +418,7 @@ procedure CM_CompareDirs;
      OSM1, OSM2: Word;
      I, J: Integer;
      PF: PFileRec;
-     DT: record O, S: Word; end;
+     DT: record O: Word; FMask: string[80]; S: Word; end; {-$VOL added}
      Info: PView;
      P: PFilePanelRoot absolute AFP;
 
@@ -431,14 +432,17 @@ procedure CM_CompareDirs;
   UpdateWriteView(Info);
   if DT.S = 0 then PF^.Selected := Off;
   if (PF^.Attr and Directory = 0) and
+     (InSpaceFilter(MakeFileName(PF^.Name),DT.FMask)) and {-$VOL}
      (InThat^.FirstThat(@Cmp) = nil) then PF^.Selected := DT.S = 0;
  end;
 
  label 1,2;
 
 begin
- DT.O := 3; DT.S := 0;
+ DT.FMask:='*.*'; DT.O := 3; DT.S := 0;
  if ExecResource( dlgCompareDirs, DT) <> cmOK then Exit;
+ DT.FMask := DelSpaces(DT.FMask);
+ if DT.FMask = '' then DT.FMask := x_x;
 
  DD := IP;
  OSM1 := PFilesCollection(P^.Files)^.SortMode;
@@ -562,7 +566,7 @@ begin
        GetFTime(F, DTT); Close(F);
        UnpackTime(DTT, DT);
        D.T := SStr(DT.Hour, 2, '0')+':'+SStr(DT.Min, 2, '0')+':'+SStr(DT.Sec, 2, '0');
-       D.D := ItoS(DT.Day)+'-'+SStr(DT.Month, 2, '0')+'-'+ItoS(DT.Year mod 100);
+       D.D := ItoS(DT.Day)+'-'+SStr(DT.Month, 2, '0')+'-'+ItoS(DT.Year);
      end else
        Dlg^.ForEach( @DoHideInputLines );
    if D.C and DOS.Archive <> 0 then D.S := 1;

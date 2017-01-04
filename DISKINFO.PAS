@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -109,6 +110,7 @@ type
        constructor Init(var R: TRect);
        procedure Draw; virtual;
        procedure Update; virtual;
+       procedure HandleEvent(var Event: TEvent); virtual;
        destructor Done; virtual;
      end;
 
@@ -126,7 +128,7 @@ var
 implementation
 uses Startup, ExtraMemory, DNApp, Commands, DNHelp, Tree, xTime;
 
-const MaxTeam = 93;
+const MaxTeam = 118;
 
 function ESC_Pressed: Boolean; var E: TEvent;
 begin
@@ -158,6 +160,7 @@ constructor TTeamView.Init;
 begin
   inherited Init(R);
   UpdTicks := 9;
+  Options := Options or ofPreProcess;
   RegisterToBackground(@Self);
 end;
 
@@ -189,9 +192,27 @@ procedure TTeamView.Update;
      L, I: LongInt;
 begin
    Move(Strings[2], Strings[1], (Size.Y-2) * SizeOf(Integer));
-   if Strings[Size.Y-1] > MaxTeam - 1 then Strings[Size.Y-1] := MaxTeam * Byte(Strings[1]<MaxTeam-1)
-     else Inc(Strings[Size.Y-1]);
+   if (Strings[Size.Y-1] > 0) and (Strings[Size.Y-1] < MaxTeam)
+   then Inc(Strings[Size.Y-1]);
+   if Strings[Size.Y-1] = MaxTeam then Strings[Size.Y-1]:=0;
+   if (Strings[Size.Y-1] = 0) and (Strings[1]=0) then Strings[Size.Y-1]:=1;
    DrawView;
+end;
+
+procedure TTeamView.HandleEvent(var Event: TEvent);
+begin
+    if (Event.What=evKeyDown) and (Event.KeyCode=kbDown) then begin
+        ClearEvent(Event);
+        Update;
+        NewTimer(UpTmr,36)
+    end else if (Event.What=evKeyDown) and (Event.KeyCode=kbUp) then begin
+        ClearEvent(Event);
+        Move(Strings[1], Strings[2], (Size.Y-2) * SizeOf(Integer));
+        if Strings[1]>0 then Dec(Strings[1]);
+        if (Strings[1]=0) and (Strings[Size.Y-1]=0) then Strings[1]:=MaxTeam;
+        DrawView;
+        NewTimer(UpTmr,36)
+    end
 end;
 
 destructor TTeamView.Done;

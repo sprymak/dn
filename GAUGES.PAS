@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -115,7 +116,10 @@ type
   TClockView = object(TView)
     Refresh: Byte;
     LastTime: DateTime;
-    TimeStr: string[12];
+    LastSemi: boolean;
+    TimeStr: string[16];   {-SSK (old version: string[12])}
+    OldXCoord: integer;    {-SSK}
+    OldShowSeconds: boolean;
     Vversion : word ;
     Utimer: TEventTimer;
     constructor Init(var Bounds: TRect);
@@ -129,7 +133,8 @@ procedure PrintFiles(Files: PCollection; Own: PView);
 
 
 implementation
-uses Memory, Tree, Messages, DNApp, Advance, FilesCol, RStrings, Startup;
+uses Memory, Tree, Messages, DNApp, Advance, FilesCol, RStrings, Startup,
+     DnIni; {-$VIV}
 
 {$I Version.INC}
 
@@ -228,14 +233,17 @@ begin
   FillChar(LastTime, SizeOf(LastTime), #$FF);
   TimeStr := '';
   Refresh := 1;
+  OldXCoord:=-1;
+  OldShowSeconds:=ShowSeconds;
   EventMask:= evMouse or evMessage ;
   Vversion := VersionWord ;
   Options:=Options or ofTopSelect;
   GrowMode := gfGrowHiX;
   GetTime(LastHour,LastMin , s , hund );
+  LastSemi:=hund<50;
  { SetState(sfShadow,False);}
   RegisterToBackground(@Self);
-  UpdTicks := 18;
+  if ShowSeconds then UpdTicks := 18 else UpdTicks := 9;
   NewTimerSecs(UTimer, 1200+Random(1200));
 end;
 
@@ -262,8 +270,10 @@ var P : TPoint;
     R : TRect;
 begin
  P:=Size;Application^.GetBounds(R);
- If Event.What=evMouseDown then
-   TView.DragView(Event,dmDragMove,R,P,P)
+ If Event.What=evMouseDown then begin
+   OldXCoord:=-1;  {-SSK}
+   TView.DragView(Event,dmDragMove,R,P,P);
+ end;
 end;
 
 procedure TClockView.Update;
@@ -273,22 +283,53 @@ var
   SS: String[40];
   Event: TEvent;
   P : Pview ;
+  DayWeek: byte;
+  R: TRect;
+  StdClockWidth: byte;
+  Semi: boolean;
 begin
+  if ShowSeconds then StdClockWidth:=10 else StdClockWidth:=7;
   GetTime(h,m,s,hund);
-  if Abs(s - LastTime.sec) >= Refresh then
+  Semi:=hund<50;
+  if (Abs(s - LastTime.sec) >= Refresh) or (Semi<>LastSemi) then
   begin
     GetDate(y,mn,d,hund);
     if ShiftState and 7 <> 0 then
       begin
         if ShiftState and 3 <> 0 then TimeStr := ' '+FStr(MemAvail)+' '
           else begin
-                 MakeDate(0, d, mn, y, 0, 0, SS);
-                 TimeStr := ' '+Copy(SS, 1, 8); AddStr(TimeStr, ' ');
-               end;
-        UpdTicks := 6;
+              MakeDateFull(0, d, mn, y, 0, 0, SS, ShowCentury);
+              if ShowCentury then TimeStr:=Copy(SS,1,10)+' '
+              else TimeStr:=Copy(SS,1,8)+' ';
+              if ShowDayOfWeek then begin
+                  asm {-SSK}
+                      mov ah, 02Ah
+                      int 21h
+                      mov DayWeek, al
+                  end;
+                  if (Length(DaysOfWeek)<>14) and (Length(DaysOfWeek)<>21)
+                  then TimeStr:=' '+Copy(GetString(stDaysWeek),1+DayWeek*2,2)
+                  +' '+TimeStr else TimeStr:=' '+Copy(DaysOfWeek,1+DayWeek*
+                  (Length(DaysOfWeek) div 7),(Length(DaysOfWeek) div 7))
+                  +' '+TimeStr
+               end else TimeStr:=' '+TimeStr;
+           end;
+           if OldXCoord=-1 then OldXCoord:=Origin.X;
+           if Origin.X>(ScreenWidth shr 1) then R.Assign(OldXCoord+
+           StdClockWidth-Length(TimeStr),Origin.Y,OldXCoord+StdClockWidth,
+           Origin.Y+Size.Y) else R.Assign(OldXCoord,Origin.Y,OldXCoord+
+           Length(TimeStr),Origin.Y+Size.Y);
+           TView.Locate(R);
+           UpdTicks := 6;
       end else
       begin
-        UpdTicks := 18;
+        if not (OldXCoord=-1) then begin {-SSK}
+          R.Assign(OldXCoord,Origin.Y,
+          OldXCoord+Length(TimeStr),Origin.Y+Size.Y);
+          OldXCoord:=-1;
+          TView.Locate(R);
+        end; {-SSK}
+        if ShowSeconds then UpdTicks := 18 else UpdTicks := 9;
         with LastTime do
         begin
           inc(LastMin);
@@ -299,10 +340,25 @@ begin
           Month := mn ;
           Year := y ;
         end;
+        LastSemi:=Semi;
         TimeStr := FormatTimeStr(h, m, s);
+        if not ShowSeconds then TimeStr := Copy(TimeStr, 1, 6) + ' '; {-$VIV} {-SSK}
+        if not (Semi or ShowSeconds) then TimeStr[4]:=' ';
+        if ShowSeconds<>OldShowSeconds then begin
+            if Origin.X>(ScreenWidth shr 1) then begin
+                R.B.X:=Origin.X+Size.X;
+                R.A.X:=R.B.X-StdClockWidth
+            end else begin
+                R.A.X:=Origin.X;
+                R.B.X:=R.A.X+StdClockWidth
+            end;
+            R.A.Y:=Origin.Y; R.B.Y:=R.A.Y+1;
+            TView.Locate(R);
+            OldShowSeconds:=ShowSeconds
+        end;
       end;
     DrawView;
-  end;
+  end else UpdTicks:=1
 end;
 
 function TClockView.FormatTimeStr;
@@ -311,12 +367,12 @@ function TClockView.FormatTimeStr;
 begin
   if (CountryInfo.TimeFmt = 0) and (H > 12) then
    begin
-      S := ' '+LeadingZero(h-12) + CountryInfo.TimeSep + LeadingZero(m) + CountryInfo.TimeSep + LeadingZero(ss);
+      S := ' ' + LeadingZero(h-12) + CountryInfo.TimeSep + LeadingZero(m) + CountryInfo.TimeSep + LeadingZero(ss);
       N := 'pm ';
     end
   else
     begin
-      S := ' '+LeadingZero(h)+ CountryInfo.TimeSep + LeadingZero(m) + CountryInfo.TimeSep + LeadingZero(ss);
+      S := ' ' + LeadingZero(h) + CountryInfo.TimeSep + LeadingZero(m) + CountryInfo.TimeSep + LeadingZero(ss);
       if CountryInfo.TimeFmt = 0
          then if (H < 12) then N := 'am ' else N := 'pm '
          else N := ' ';

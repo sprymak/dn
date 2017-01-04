@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -1326,6 +1327,18 @@ begin
         ClearEvent(Event);
       end;
     evKeyDown:
+      if ((Event.KeyCode = kbRight) or (Event.KeyCode = kbDown)) and
+         (State and sfSelected <> 0) then
+      begin
+        Event.KeyCode := kbTab;
+        TView.HandleEvent(Event);
+      end else
+      if ((Event.KeyCode = kbLeft) or (Event.KeyCode = kbUp)) and
+         (State and sfSelected <> 0) then
+      begin
+        Event.KeyCode := kbShiftTab;
+        TView.HandleEvent(Event);
+      end else
       begin
         C := HotKey(Title^);
         if (C <> #0) and (

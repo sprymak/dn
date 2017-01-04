@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -353,11 +354,67 @@ end;
 function _Processors: Word; far; external;
 {$L CPUType}
 
+Type TCPUExtInfo=record
+                MMXSupport,
+                FPUOnChip,
+                CPUStepping,
+                CPUModel,
+                CPUFamily: byte;
+              end;
+
+Var CPUInfo: TCpuExtInfo;
+
+procedure GetExtCpuInfo; assembler;
+asm
+        push    bx
+        push    bp
+        db      $66
+        xor     ax,ax
+;        mov     [CPUInfo.MMXSupport],  al
+;        mov     [CPUInfo.FPUOnChip],   al
+;        mov     [CPUInfo.CPUStepping], al
+;        mov     [CPUInfo.CPUModel],    al
+;        mov     [CPUInfo.CPUFamily],   al
+        inc     ax
+        db      $0F,$A2         {CPUID}
+        mov     bx,ax
+        and     ax,$F
+        mov     [CPUInfo.CPUStepping], al
+        mov     ax,bx
+        and     ax,$F0
+        shr     ax,4
+        mov     [CPUInfo.CPUModel], al
+        mov     ax,bx
+        and     ax,$0F00
+        mov     [CPUInfo.CPUFamily], ah
+        cmp     ah,5
+        jl      @Done
+        db      $66
+        xor     ax,ax
+        inc     ax
+        db      $0F,$A2         {CPUID}
+;        db      $66
+        test    dx,$0080
+;        dw      $0080
+        jz      @PreDone
+        mov     [CPUInfo.MMXSupport],1
+@PreDone:
+;        db      $66
+        test    dx,$0001
+;        dw      $0001
+        jz      @Done
+        mov     [CPUInfo.FPUOnChip],1
+@Done:  pop     bp
+        pop     bx
+end;
+
+
 Procedure GetCPUinfo(var Name, CoProc: String);
 var s: String;
     i,y: Word;
 begin
- {FillChar(CPUnfo,SizeOf(CPUnfo),0);}
+ FillChar(CPUinfo,SizeOf(CPUinfo),0);
+
  I := _Processors and $FF7F;
 
  CPUtype := I and $7F ;
@@ -387,12 +444,25 @@ if I and $7F >= 6 then
    10 : s:='80486';
    11 : s:='80486SX';
    12 : s:='Pentium(tm)';
-   13 : s:='Sixtium???';
+   13 : s:='P6 family';
    else s:='Unknown';
  end;
 
- if I and $80 <> 0 then S := S + ', V86 mode';
  Name := S;
+
+ {Added by Excelence}
+ if (I and $7F)>11 then
+ begin
+   GetExtCpuInfo;
+   Str(CpuInfo.CPUFamily, s);
+   Name:=Name+' (F='+s;
+   Str(CpuInfo.CPUModel, s);
+   Name:=Name+' M='+s;
+   Str(CpuInfo.CPUStepping, s);
+   Name:=Name+' S='+s+')';
+ end;
+
+ if I and $80 <> 0 then Name := Name + ', V86 mode';
 
  case I shr 8 of
   $00 : S := GetString(dlSI_None);
@@ -412,6 +482,12 @@ if I and $7F >= 6 then
  end;
  {if i and 2 = 0 then S := 'None' else S := 'Installed'};
  CoProc := S;
+ {Added by Excelence}
+ if (I and $7F)>11 then
+   if CpuInfo.MMXSupport=1 then
+     CoProc:=CoProc+', MMX Support'
+   else
+     CoProc:=CoProc+', MMX no support';
 end;
 
 Function _MHz   : Word; far; external;

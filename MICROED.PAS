@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -68,10 +69,11 @@ interface
 uses
   Dos, Objects, Drivers, Memory, Views, Messages, DNApp, Advance, Startup,
   Menus, DNStdDlg, Dialogs, Commands, UniWin, RStrings, DNHelp, SBlocks,
-  ObjType;
+  ObjType,
+  U_KeyMap; {-$VIV 14.05.99}
 
 
-  { TUndoCollection }
+  { TDoCollection }
 
 const
       maxUndo    = 50;
@@ -95,6 +97,7 @@ const
       udStrModified   = 17;
       udDupeLine      = 18;
       udFormatBlock   = 19;
+      udReplaceAll    = 20; {-$VOL}
 
       Clipboard   : PCollection = nil;
 
@@ -104,19 +107,24 @@ type
 
   TPosArray = Array ['1'..'9'] of TPoint;
 
+  TDoKind = (dkRedo, dkUndo); {-$VOL}
+
   PUndoRec = ^TUndoRec;
   TUndoRec = record
    What: Word;
    Where: TPoint;
+   KeyMap: TKeyMap; {-$VIV}
    case Word of
     udDelChar: (Str: PString);
     udInsChar: (Count, Width: Integer; Block: TRect);
-    udDelLine: (Lines: PCollection; Vertical: Boolean);
+    udDelLine: (Lines: PCollection; Vertical, InsM: Boolean);
   end;
 
-  PUndoCollection = ^TUndoCollection;
-  TUndoCollection = object(TCollection)
+  PDoCollection = ^TDoCollection;
+  TDoCollection = object(TCollection)
+    DoKind : TDoKind;                                {-$VOL}
     procedure FreeItem(P: Pointer); virtual;
+    constructor Init(ReOrUn_do: TDoKind);            {-$VOL}
   end;
 
   TForceCRLF = (cfNone, cfCRLF, cfCR, cfLF);
@@ -132,6 +140,7 @@ type
     FileLines: PCollector;
     IsValid,Marking: Boolean;
     SmartPad: Boolean;
+    ClipBrd: Boolean; {-$VOL}
     OptMenu: PMenu;
     Mark,Sel: TRect;
     LeftSide, RightSide, InSide: Integer;
@@ -144,8 +153,10 @@ type
     BlockVisible,SpecChar,WasDelete,BackIndent,MouseMark, UnMark,
     AutoWrap,LineMarking,AutoJustify,OptimalFill,RulerVisible,EnableMarking,
     HiliteColumn, HiliteLine, AutoBrackets,
+    TabReplace, {-$VOL}
     SearchActive: Boolean;
     UndoInfo: PCollection;
+    RedoInfo: PCollection; {-$VOL}
     UndoTimes: LongInt;
     HiLite: Integer;
     KeyWords1,KeyWords2: String;
@@ -166,6 +177,7 @@ type
     LastDir: Integer;
     MemEnough: Boolean;
     ForcedCRLF: TForceCRLF;
+    KeyMap: TKeyMap; {-$VIV}
     constructor Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar;
       var FileName: PathStr);
     constructor Load(var S: TStream);
@@ -200,6 +212,10 @@ type
                          Comments, Keywords1C, KeyWords2C,
                          Symbols, Strings, Numbers: Byte);
     function HandleCommand(var Event: TEvent): Boolean; virtual;
+    function KeyMapConvertStr(S: String; toAscii: Boolean): String; {-$VIV}
+    procedure KeyMapAtInsert(N: LongInt; P: PString); {-$VIV}
+    procedure KeyMapAtReplace(N: LongInt; P: PString); {-$VIV}
+    procedure Convert4do(iP: PUndoRec; DoKind: TDoKind); {-$VOL}
   end;
 
   { TInfoLine }
@@ -211,11 +227,19 @@ type
      procedure HandleEvent(var Event: TEvent);virtual;
   end;
 
+  { TBookmarkLine }
+
+  PBookmarkLine = ^TBookmarkLine;
+  TBookmarkLine = object(TView)
+     procedure Draw; virtual;
+  end;
+
   { TEditWindow }
 
   PEditWindow = ^TEditWindow;
   TEditWindow = object(TUniWindow)
     AInfo: PInfoLine;
+    ABookLine: PBookmarkLine;
     Intern: PFileEditor;
     MenuBar: PMenuBar;
     UpMenu: PMenu;
@@ -225,11 +249,14 @@ type
     procedure ChangeBounds(var R: TRect); virtual;
     procedure Store(var S: TStream);
     function Execute: Word; virtual;
+    procedure Zoom; virtual;
+    procedure SizeLimits(var Min, Max: TPoint); virtual;
   end;
 
 function CapCaseStr(S: String): String;
 procedure OpenEditor;
 procedure OpenSmartpad;
+procedure OpenClipBoard;
 procedure FileChanged(const Name: PathStr);
 
 const
@@ -246,6 +273,12 @@ const
        VmtLink: Ofs(TypeOf(TInfoLine)^);
        Load: @TInfoLine.Load;
        Store: @TInfoLine.Store);
+
+      RBookmarkLine: TStreamRec = (
+       ObjType: otBookLine;
+       VmtLink: Ofs(TypeOf(TBookmarkLine)^);
+       Load: @TBookmarkLine.Load;
+       Store: @TBookmarkLine.Store);
 
       REditWindow: TStreamRec = (
        ObjType: otEditWindow;
@@ -271,6 +304,9 @@ const
        Load: @TLineCollection.Load;
        Store: @TLineCollection.Store);
 
+     ClipBoardStream : PStream = nil; {-$VOL}
+
+
 type
     TSearchData = record
                  Options: Word;
@@ -285,8 +321,10 @@ const
 
 implementation
 
-uses Gauge, FViewer, Histlist, Macro, Editor, WinClp, DNUtil, Histries,
-     xTime, FileCopy;
+uses U_Crt,
+     Gauge, FViewer, Histlist, Macro, Editor, WinClp, DNUtil, Histries,
+     xTime, FileCopy,
+     DnIni, U_Dos, U_SrchF; {-$VIV}
 
 const
     On          = True;
@@ -294,6 +332,8 @@ const
     cmNoCommand = 4000;
     TabStep     : Integer = 8;
     SmartWindow : PEditWindow = nil;
+
+    ClipBoardWindow : PEditWindow = nil;
 
 type
      TEditCommand = record
@@ -468,6 +508,7 @@ begin
  inherited Load(S);
  GetSubViewPtr(S, Intern);
  GetSubViewPtr(S, AInfo);
+ GetSubViewPtr(S, ABookLine); {-$VIV}
  GetSubViewPtr(S, MenuBar);
  UpMenu := MenuBar^.Menu;
 
@@ -483,7 +524,7 @@ end;
 procedure TEditWindow.ChangeBounds;
 begin
  inherited ChangeBounds(R);
- Intern^.HScroll^.GrowTo(Size.X - 26, 1);
+ Intern^.HScroll^.GrowTo(Size.X - 44{30/26}, 1); {-$VIV&VOL}
  if not (Intern^.SmartPad or GetState(sfModal)) then
     begin
       GetBounds(TempBounds);
@@ -507,8 +548,337 @@ begin
  inherited Store(S);
  PutSubViewPtr(S, Intern);
  PutSubViewPtr(S, AInfo);
+ PutSubViewPtr(S, ABookLine); {-$VIV}
  PutSubViewPtr(S, MenuBar);
 end;
+
+procedure TEditWindow.SizeLimits(var Min, Max: TPoint);
+begin
+  Longint(Min) := 0;
+  if Owner <> nil then
+        begin
+           Max.X := Owner^.Size.X+2;
+           Max.Y := Owner^.Size.Y;
+        end else Longint(Max) := $7FFF7FFF;
+end;
+
+procedure TEditWindow.Zoom;
+var
+    R: TRect;
+    Max, Min: TPoint;
+begin
+    SizeLimits(Min, Max);
+    Dec(Max.X,2);
+    Longint(R.A) := 0;
+    R.B := Max;
+    if Longint(Size) = Longint(Max) then begin
+        Dec(R.A.X);
+        Inc(R.B.X)
+    end;
+    Locate(R)
+end;
+
+function TFileEditor.KeyMapConvertStr(S: String; toAscii: Boolean): String; {-$VIV}
+begin
+  case KeyMap of
+    kmAnsi:
+      if toAscii then
+        KeyMapConvertStr := ansi_ascii(S) else
+        KeyMapConvertStr := ascii_ansi(S);
+    kmKoi8r:
+      if toAscii then
+        KeyMapConvertStr := koi8r_ascii(S) else
+        KeyMapConvertStr := ascii_koi8r(S);
+    else KeyMapConvertStr := S;
+  end;
+end; {-$VIV}
+
+procedure TFileEditor.KeyMapAtInsert(N: LongInt; P: PString); {-$VIV}
+begin
+  if (P <> nil) then P^ := KeyMapConvertStr(P^, false);
+  FileLines^.AtInsert(N, P);
+end; {-$VIV}
+
+procedure TFileEditor.KeyMapAtReplace(N: LongInt; P: PString); {-$VIV}
+begin
+  if (P <> nil) then P^ := KeyMapConvertStr(P^, false);
+  FileLines^.AtReplace(N, P);
+end; {-$VIV}
+
+procedure TFileEditor.Convert4do(         {-$VOL}
+   iP: PUndoRec; {‘ãé¥áâ¢ãîé ï § ¯¨áì(¤«ï ª®««¥ªæ¨¨ not DoKind)}
+   DoKind: TDoKind {„«ï ª ª®© ª®««¥ªæ¨¨?});
+  var P: PUndoRec;
+      I, J: Integer;
+      S: String;
+begin
+  P := nil;
+  if iP = nil then exit;
+  New(P);
+  Move(iP^, P^, sizeOf(TUndoRec));
+  case DoKind of
+    dkUndo:
+      begin
+      if UndoInfo = nil then UndoInfo:=New(PDoCollection, Init(dkUndo));
+      with iP^ do
+        case What of
+          udDelChar:
+             begin
+               Dec(P^.Where.X,Count);
+               P^.Str:=NewStr(copy(GetLine(Where.Y),P^.Where.X+1,Count));
+               UndoInfo^.Insert(P);
+             end;
+          udInsChar:
+             begin
+               P^.Count:=byte(Str^[0]);
+               Inc(P^.Where.X,P^.Count);
+               UndoInfo^.Insert(P);
+             end;
+          udDelLine:
+             begin
+               P^.Lines := New(PLineCollection, Init(10, 10));
+               for I:=0 to Count-1 do
+                 P^.Lines^.Insert(NewStr(GetLine(P^.Where.Y+I)));
+               UndoInfo^.Insert(P);
+             end;
+          udInsLine:
+             begin
+               P^.Str:=NewStr(GetLine(Where.Y));
+               UndoInfo^.Insert(P);
+             end;
+          udDelBlock:
+             begin
+               P^.Lines := New(PLineCollection, Init(10, 10));
+               if Lines^.Count>0 then S:=CnvString(Lines^.At(0))else S:='';
+               J:=byte(S[0]);
+               if Vertical then
+                 begin
+                   for I:=0 to Lines^.Count-1 do
+                     begin
+                       S:=copy(GetLine(Where.Y+I),Where.X+1,J);
+                       P^.Lines^.Insert(NewStr(S));
+                     end;
+                 end
+               else
+                 begin
+                   for I:=0 to Lines^.Count-1 do
+                     begin
+                       S:=GetLine(Where.Y+I);
+                       if I=0 then
+                         S:=copy(S,Where.X+1,255)
+                       else if I=Lines^.Count-1 then
+                         S:=copy(S,1,byte(S[0])-(J-Where.X));
+                       P^.Lines^.Insert(NewStr(S));
+                     end;
+                 end;
+               UndoInfo^.Insert(P);
+             end;
+          udInsBlock, udFormatBlock:
+             begin
+               I:=Lines^.Count;
+               P^.Str:=NewStr(Char(Lo(I))+Char(Hi(I))+GetLine(Delta.Y));
+               UndoInfo^.Insert(P);
+             end;
+          udBackDel:
+             begin
+               P^.Str:=NewStr(copy(GetLine(Where.Y),Where.X+1,Count));
+               UndoInfo^.Insert(P);
+             end;
+          udSubDel:
+             begin
+               P^.Str:=NewStr(GetLine(Where.Y));
+               UndoInfo^.Insert(P);
+             end;
+          udSubDelLine:
+             begin
+               P^.Str:=NewStr(GetLine(Where.Y+1));
+               UndoInfo^.Insert(P);
+             end;
+          udIndentBlock:
+             begin
+               UndoInfo^.Insert(P);
+             end;
+          udUnindentBlock:
+             begin
+               UndoInfo^.Insert(P);
+             end;
+          udInsVertBlock:
+             begin
+               P^.Count:=Lines^.Count;
+               if P^.Count>0 then S:=CnvString(Lines^.At(0)) else S:='';
+               P^.Width:=byte(S[0]);
+               UndoInfo^.Insert(P);
+             end;
+          udReplace,udReplaceAll:
+             begin
+               S:=GetLine(Where.Y);
+               P^.Str:=NewStr(Char(byte(Str^[0])-1)+copy(S,Where.X+1,byte(Str^[1])));
+               UndoInfo^.Insert(P);
+             end;
+          udReplaceChar:
+             begin
+               S:=GetLine(Where.Y);
+               Inc(P^.Where.X,byte(Str^[0]));
+               P^.Str:=NewStr(copy(S,Where.X+1,byte(Str^[0])));
+               UndoInfo^.Insert(P);
+             end;
+          udReplaceBlock,udClearBlock:
+             begin
+               P^.Lines:=New(PLineCollection, Init(10, 10));
+               for I := Where.Y to Lines^.Count + Where.Y - 1 do
+                 begin
+                   S := GetLine(I);
+                   J := length(CnvString(Lines^.At(I-Where.Y)));
+                   P^.Lines^.Insert(NewStr(copy(S,Where.X+1,J)));
+                 end;
+               UndoInfo^.Insert(P);
+             end;
+          udStrModified:
+             begin
+               P^.Str:=NewStr(GetLine(Where.Y));
+               UndoInfo^.Insert(P);
+             end;
+          udDupeLine:
+             begin
+               UndoInfo^.Insert(P);
+             end;
+        end; {case of iP^.What/dkUndo}
+      end;
+    dkRedo:
+      begin
+      if RedoInfo = nil then RedoInfo:=New(PDoCollection, Init(dkRedo));
+      with iP^ do
+        case What of
+          udDelChar:
+             begin
+               P^.Count:=byte(Str^[0]);
+               Inc(P^.Where.X,P^.Count);
+               RedoInfo^.Insert(P);
+             end;
+          udInsChar:
+             begin
+               Dec(P^.Where.X,Count);
+               P^.Str:=NewStr(copy(GetLine(Where.Y),P^.Where.X+1,Count));
+               RedoInfo^.Insert(P);
+             end;
+          udDelLine:
+             begin
+               P^.Count:=Lines^.Count;
+               RedoInfo^.Insert(P);
+             end;
+          udInsLine:
+             begin
+               P^.Lines := New(PLineCollection, Init(10, 10));
+               P^.Lines^.Insert(NewStr(GetLine(P^.Where.Y)));
+               P^.Lines^.Insert(NewStr(GetLine(P^.Where.Y+1)));
+               RedoInfo^.Insert(P);
+             end;
+          udDelBlock:
+             begin
+               P^.Lines := New(PLineCollection, Init(10, 10));
+               if Lines^.Count>0 then S:=CnvString(Lines^.At(0))else S:='';
+               J:=byte(S[0]);
+               if Vertical then
+                 if InsM then
+                   begin
+                     for I:= 0 to Lines^.Count-1 do
+                       P^.Lines^.Insert(NewStr(S));
+                   end
+                 else
+                   begin
+                     for I:=0 to Lines^.Count-1 do
+                       begin
+                         S:=copy(GetLine(Where.Y+I),Where.X+1,J);
+                         P^.Lines^.Insert(NewStr(S));
+                       end;
+                   end
+               else
+                 begin
+                   S:=GetLine(P^.Where.Y);
+                   for I:=0 to Lines^.Count-1 do
+                     P^.Lines^.Insert(NewStr(S));
+                 end;
+               RedoInfo^.Insert(P);
+             end;
+          udInsBlock, udFormatBlock:
+             begin
+               P^.Lines := New(PLineCollection, Init(10, 10));
+               for I:=1 to byte(Str^[2])*256+byte(Str^[1]) do
+                 P^.Lines^.Insert(NewStr(GetLine(Delta.Y+I-1)));
+               RedoInfo^.Insert(P);
+             end;
+          udBackDel:
+             begin
+               P^.Count:=byte(Str^[0]);
+               RedoInfo^.Insert(P);
+             end;
+          udSubDel:
+             begin
+               P^.Str:=NewStr(GetLine(P^.Where.Y));
+               RedoInfo^.Insert(P);
+             end;
+          udSubDelLine:
+             begin
+               S:=GetLine(Where.Y);
+               P^.Str:=NewStr(S);
+               RedoInfo^.Insert(P);
+             end;
+          udIndentBlock:
+             begin
+               RedoInfo^.Insert(P);
+             end;
+          udUnindentBlock:
+             begin
+               RedoInfo^.Insert(P);
+             end;
+          udInsVertBlock:
+             begin
+               P^.Lines := New(PLineCollection, Init(10, 10));
+               for I:=1 to Count do
+                 begin
+                   S:=Copy(GetLine(I+Where.Y-1),Where.X+1,Width);
+                   P^.Lines^.Insert(NewStr(S));
+                 end;
+               P^.Vertical:=true; P^.InsM:=true;
+               RedoInfo^.Insert(P);
+             end;
+          udReplace,udReplaceAll:
+             begin
+               S:=GetLine(Where.Y);
+               P^.Str:=NewStr(Char(byte(Str^[0])-1)+copy(S,Where.X+1,byte(Str^[1])));
+               RedoInfo^.Insert(P);
+             end;
+          udReplaceChar:
+             begin
+               S:=GetLine(Where.Y);
+               Dec(P^.Where.X,byte(Str^[0]));
+               P^.Str:=NewStr(copy(S,P^.Where.X+1,byte(Str^[0])));
+               RedoInfo^.Insert(P);
+             end;
+          udReplaceBlock,udClearBlock:
+             begin
+               P^.Lines:=New(PLineCollection, Init(10, 10));
+               for I := Where.Y to Lines^.Count + Where.Y - 1 do
+                 begin
+                   S := GetLine(I);
+                   J := length(CnvString(Lines^.At(I-Where.Y)));
+                   P^.Lines^.Insert(NewStr(copy(S,Where.X+1,J)));
+                 end;
+               RedoInfo^.Insert(P);
+             end;
+          udStrModified:
+             begin
+               P^.Str:=NewStr(GetLine(Where.Y));
+               RedoInfo^.Insert(P);
+             end;
+          udDupeLine:
+             begin
+               RedoInfo^.Insert(P);
+             end;
+        end; {case of iP^.What/dkRedo}
+      end;
+    end; {case of DoKind}
+end; {-$VOL}
 
 constructor TFileEditor.Load(var S: TStream);
  var SS: PString;
@@ -532,6 +902,8 @@ begin
  S.Read(OptimalFill, SizeOf(OptimalFill));
  S.Read(AutoWrap, SizeOf(AutoWrap));
  S.Read(AutoBrackets, SizeOf(AutoBrackets));
+ S.Read(KeyMap, SizeOf(KeyMap)); {-$VIV}
+ S.Read(TabReplace, SizeOf(TabReplace)); {-$VOL}
  isValid := True;
  Macros := New(PCollection, Init(10,10));
  LastDir := -1;
@@ -555,6 +927,8 @@ begin
  S.Write(OptimalFill, SizeOf(OptimalFill));
  S.Write(AutoWrap, SizeOf(AutoWrap));
  S.Write(AutoBrackets, SizeOf(AutoBrackets));
+ S.Write(KeyMap, SizeOf(KeyMap)); {-$VIV}
+ S.Write(TabReplace, SizeOf(TabReplace)); {-$VOL}
 end;
 
 procedure TFileEditor.Awaken;
@@ -759,20 +1133,41 @@ begin
  GetPalette:=@s;
 end;
 
-{ TUndoCollection }
-procedure TUndoCollection.FreeItem(P: Pointer);
+{ TDoCollection }
+procedure TDoCollection.FreeItem(P: Pointer);
  var T: PUndoRec;
 begin
  T := P;
  if P = nil then Exit;
- case T^.What of
-  udDelChar, udInsLine, udSubDelLine, udReplace, udReplaceChar, udInsBlock,
-  udFormatBlock, udStrModified, udSubDel, udBackDel: DisposeStr(T^.Str);
-  udDelLine, udDelBlock, udReplaceBlock,
-  udClearBlock: Dispose(T^.Lines, Done);
+ case DoKind of
+   dkUndo:
+      case T^.What of
+       udDelChar, udInsLine, udSubDelLine, udReplace, udReplaceChar, udInsBlock,
+       udFormatBlock, udStrModified, udSubDel, udBackDel, udReplaceAll:
+         DisposeStr(T^.Str);
+       udDelLine, udDelBlock, udReplaceBlock,
+       udClearBlock: Dispose(T^.Lines, Done);
+       udInsChar: begin end;
+      end;
+   dkRedo:
+      case T^.What of
+        udInsChar,udSubDel,udReplaceChar,udSubDelLine,udStrModified,udReplace,
+        udReplaceAll: DisposeStr(T^.Str);
+        udInsLine,udInsBlock,udFormatBlock,udDelBlock,udInsVertBlock,
+        udReplaceBlock,udClearBlock:
+          Dispose(T^.Lines, Done);
+        udDelChar,udDelLine,udBackDel:
+          begin end;
+      end;
  end;
  Dispose(T);
 end;
+
+constructor TDoCollection.Init(ReOrUn_do: TDoKind); {-$VOL}
+begin
+  inherited Init($100, $80);
+  DoKind:=ReOrUn_do;
+end; {-$VOL}
 
 { TInfoLine }
 
@@ -786,6 +1181,8 @@ procedure TInfoLine.HandleEvent;
   var T: TPoint;
       S: String[40];
       P: PFileEditor;
+      Ev: TEvent;
+      BookMark: Char;
 begin
   inherited HandleEvent(Event);
   if Event.What = evMouseDown then
@@ -807,7 +1204,27 @@ begin
        if (T.X > 2) and (T.X < Length(S)) then Event.Command := cmGotoLineNumber else
          if (T.X > Length(S)) and (T.X <= Length(S)+5) then Event.Command := cmSpecChar else
            if (T.X > Length(S)+6) and (T.X <= Length(S)+9) then Event.Command := cmSwitchBlock else
-             Event.What := evNothing;
+             if (T.X > Length(S)+10) and (T.X <= Length(S)+13) then Event.Command := cmSwitchKeyMapping else {-$VIV}
+             begin
+               if FastBookmark and ((T.X > Length(S)+16) and (T.X <= Length(S)+25)) then {-$VIV 20.05.99--}
+               begin
+                 BookMark := char(byte('1') + (T.X-Length(S)-17));
+                 with Ev do
+                 begin
+                   What := evCommand;
+                   if LongInt(P^.MarkPos[BookMark]) >= 0 then
+                   begin
+                     if (P^.MarkPos[BookMark].Y = P^.Delta.Y) and
+                        (Event.Buttons and mbRightButton <> 0)
+                       then Command := cmPlaceMarker
+                         else Command := cmGotoMarker;
+                   end else Command := cmPlaceMarker;
+                   InfoChar := BookMark;
+                 end;
+                 PutEvent(Ev);
+               end;
+               Event.What := evNothing;
+             end;
        if Event.What <> evNothing then PutEvent(Event);
        ClearEvent(Event);
     end;
@@ -816,8 +1233,11 @@ end;
 procedure TInfoLine.Draw;
  var P: PFileEditor;
      X,Y: Word;
-     C: Char;
-     S: String[40];
+     C: String[1];
+     S: String[50];
+     S2: String;
+     CharNum: Byte; {-$VIV}
+     Ch: Char;
 begin
  P := PFileEditor(PEditWindow(Owner)^.Intern);
  With P^ do
@@ -826,16 +1246,81 @@ begin
    Y := Delta.Y + 1;
    if X <= Byte(WorkString[0]) then C := WorkString[X] else C := #0;
   end;
+ C := P^.KeyMapConvertStr(C, false); {-$VIV start}
+ CharNum := Byte(C[1]); {-$VIV end}
  if P^.Modified then S := #15'ÍÍ' else S := 'ÍÍÍ';
- S := S + ItoS(Y) + ':' + ItoS(X) + ' ['+SStr(Byte(C),3,'0')+'] ';
+ S := S + ItoS(Y) + ':' + ItoS(X) + 'Í['+SStr(CharNum,3,'0')+']Í'; {-$VIV}
  if P^.DrawMode = 1 then S := S + '{Å}' else
    if P^.DrawMode = 2 then S := S + '{Î}' else
      if P^.VertBlock then S := S + '('#18')' else S := S + '('#29')';
+ case P^.KeyMap of   {-$VIV--}
+   kmAscii: S2 := 'ÍDosÍ';
+   kmAnsi:  S2 := 'ÍWinÍ';
+   kmKoi8r: S2 := 'ÍKoiÍ';
+ end;
+ if not CapitalCodePageName then S2 := UpperCase(S2);
+ S := S + S2;
+ if FastBookmark then
+ begin
+   S := S + 'Í<';    {-$VIV 20.05.99--}
+   for Ch := '1' to '9' do
+     if LongInt(P^.MarkPos[Ch]) >= 0 then S := S + Ch else S := S + 'ú';
+   S := S + '>';     {-$VIV::}
+ end;
  if not Owner^.GetState(sfActive) then S[0] := #0;
  if Size.X <> Byte(S[0]) then
-    begin GrowTo(Byte(S[0]),Size.Y);  Exit end;
+    begin GrowTo(Byte(S[0]),Size.Y);  {Exit} end; {-$VOL :(Exit }
  MoveStr(B, S, Owner^.GetColor(8));
  WriteLine(0, 0, Size.X, 1, B);
+end;
+
+{TBookmarkLine}
+procedure TBookmarkLine.Draw;
+ var P: PFileEditor;
+     Col: Byte;
+     I: Integer;
+     Mrk: Char;
+
+ function IsMarker(pLine: Longint): Char;
+ var I: Char;
+ begin
+   IsMarker := #0;
+   for I := '1' to '9' do
+     if P^.MarkPos[I].Y = pLine then
+     begin
+       IsMarker := I;
+       Break;
+     end;
+ end;
+
+ function SwitchHalfs(B: Byte): Byte;
+ begin
+   SwitchHalfs := ((B and $0F) shl 4) or ((B and $F0) shr 4);
+ end;
+
+ Function ch:Char; {SYR}
+ const
+     Line:Array[false..true]of Char=('³','º');
+ Begin
+     ch:=Line[Owner^.GetState(sfActive)];
+ End;
+
+begin
+ P := PFileEditor(PEditWindow(Owner)^.Intern);
+ Col := Owner^.GetColor(8);
+ if not ShowBookmarks then
+ begin
+   MoveChar(B, ch, Col, 1); {SYR}
+   WriteLine(0, 0, Size.X, Size.Y, B);
+   Exit;
+ end;
+ for I := 0 to Size.Y do
+ begin
+   Mrk := IsMarker(P^.Pos.Y+I);
+   if Mrk = #0 then MoveChar(B, ch, Col, 1) {SYR}
+     else MoveChar(B, Mrk, SwitchHalfs(Col), 1);
+   WriteLine(0, I, Size.X, 1, B);
+ end;
 end;
 
 { TEditWindow }
@@ -886,6 +1371,13 @@ begin
   AInfo := New(PInfoLine, Init(R));
   AInfo^.GrowMode := gfGrowLoY + gfGrowHiY;
   Insert(AInfo);
+  GetExtent(R);
+  R.B.X := R.A.X + 1;
+  Inc(R.A.Y, 2);
+  Dec(R.B.Y);
+  ABookLine := New(PBookmarkLine, Init(R));
+  ABookLine^.GrowMode := gfGrowHiY;
+  Insert(ABookLine);
 end;
 
 { TFileEditor }
@@ -903,6 +1395,7 @@ begin
   LastDir := -1;
   HelpCtx := hcEditor;
   UndoInfo := nil;
+  RedoInfo := nil;
   HScroll := AHScrollBar;
   VScroll := AVScrollBar;
   GrowMode := gfGrowHiX + gfGrowHiY;
@@ -920,31 +1413,39 @@ begin
   AutoJustify  := EditorDefaults.EdOpt and ebfJwr <> 0;
   AutoBrackets := EditorDefaults.EdOpt and ebfAbr <> 0;
   AutoWrap     := EditorDefaults.EdOpt and ebfAwr <> 0;
+  TabReplace   := On;
 
   Val(EditorDefaults.RM, RightSide, I); if I <> 0 then RightSide := 76;
   Val(EditorDefaults.LM, LeftSide, I); if I <> 0 then LeftSide := 0;
   Val(EditorDefaults.PM, InSide, I); if I <> 0 then InSide := 5;
-  SmartPad := Off;
+  SmartPad := FileName = 'SmartPad';
+  ClipBrd := FileName = 'ClipBoard'; {-$VOL}
   FillChar(MarkPos, SizeOf(MarkPos), $FF);
-  if FileName = 'SmartPad' then
+  if SmartPad then
     begin
       Line := GetEnv('SMARTPAD');
       if (Line = '') then Line := SourceDir;
       if (Line[Length(Line)]<>'\') then Line := Line+'\';
       FileName := Line+Filename+'.DN';
-      SmartPad := On;
-    end else Line := FileName;
+    end else if ClipBrd then FileName := ''
+    else Line := FileName;
   FileLines := GetCollector(10000, 100);
   Macros := New(PCollection, Init(10,10));
+
+  if UpperCase(DefCodePage) = 'WIN' then KeyMap := kmAnsi
+   else if UpperCase(DefCodePage) = 'KOI' then KeyMap := kmKoi8r
+    else KeyMap := kmAscii; {-$VIV}
 end;
 
 destructor TFileEditor.Done;
 begin
   FreeObject(FileLines);
   FreeObject(UndoInfo);
+  FreeObject(RedoInfo);
   FreeObject(Macros);
   FreeObject(Locker);
   if SmartPad then SmartWindow := nil;
+  if ClipBrd then ClipBoardWindow := nil;
   inherited Done;
 end;
 
@@ -954,7 +1455,8 @@ procedure TFileEditor.StoreUndoInfo;
      Bl: Boolean;
 begin
   if not MemOK then FreeObject(UndoInfo);
-  if UndoInfo = nil then UndoInfo := New(PUndoCollection, Init($100, $80));
+  if UndoInfo = nil then UndoInfo := New(PDoCollection, Init(dkUndo));
+  if RedoInfo <> nil then RedoInfo^.FreeAll;
   if UndoInfo^.Count > 0 then P1 := UndoInfo^.At(UndoInfo^.Count-1) else P1 := nil;
   if ValidBlock then
   case What of
@@ -1015,6 +1517,7 @@ begin
                   else begin
                         S := Char(Info); New(P); P^.What := What;
                         P^.Where := Where; P^.Str := NewStr(S);
+                        P^.KeyMap := KeyMap; {-$VIV}
                         UndoInfo^.Insert(P); Inc(UndoTimes);
                        end;
    udReplaceChar: if (P1 <> nil) and (P1^.What = What) and (P1^.Where.Y = Where.Y) and
@@ -1025,6 +1528,7 @@ begin
                         S := Char(Info); New(P); P^.What := What;
                         P^.Where := Where; P^.Str := NewStr(S);
                         Inc(P^.Where.X);
+                        P^.KeyMap := KeyMap; {-$VIV}
                         UndoInfo^.Insert(P); Inc(UndoTimes);
                        end;
    udBackDel: if (P1 <> nil) and (P1^.What = What) and (P1^.Where.Y = Where.Y) and
@@ -1035,6 +1539,7 @@ begin
                         S := Char(Info); New(P); P^.What := What;
                         P^.Where := Where; P^.Str := NewStr(S);
                         Dec(P^.Where.X);
+                        P^.KeyMap := KeyMap; {-$VIV}
                         UndoInfo^.Insert(P); Inc(UndoTimes);
                        end;
    udInsChar: if (P1 <> nil) and (P1^.What = What) and (P1^.Where.Y = Where.Y) and
@@ -1044,12 +1549,14 @@ begin
                         New(P); P^.What := What;
                         P^.Where := Where; Inc(P^.Where.X);
                         P^.Count := 1;
+                        P^.KeyMap := KeyMap; {-$VIV}
                         UndoInfo^.Insert(P); Inc(UndoTimes);
                        end;
    udDupeLine: begin
                    New(P); P^.What := What;
                    P^.Where := Where;
                    P^.Count := 1;
+                   P^.KeyMap := KeyMap; {-$VIV}
                    UndoInfo^.Insert(P); Inc(UndoTimes);
                end;
    udDelLine: if (P1 <> nil) and (P1^.What = What) and (P1^.Where.Y = Where.Y) then
@@ -1059,13 +1566,15 @@ begin
                 P^.Where := Where;
                 P^.Lines := New(PLineCollection, Init(10, 10));
                 P^.Lines^.Insert(NewStr(String(Info)));
+                P^.KeyMap := KeyMap; {-$VIV}
                 UndoInfo^.Insert(P); Inc(UndoTimes);
               end;
-   udInsLine, udSubDel, udSubDelLine, udInsBlock, udReplace, udFormatBlock:
+   udInsLine, udSubDel, udSubDelLine, udInsBlock, udReplace, udFormatBlock, udReplaceAll:
               begin
                 New(P); P^.What := What;
                 P^.Where := Where;
                 P^.Str := NewStr(String(Info));
+                P^.KeyMap := KeyMap; {-$VIV}
                 UndoInfo^.Insert(P); Inc(UndoTimes);
               end;
    udReplaceBlock, udClearBlock:
@@ -1073,6 +1582,7 @@ begin
                     New(P); P^.What := What;
                     P^.Where := Where;
                     P^.Lines := PCollection(Info);
+                    P^.KeyMap := KeyMap; {-$VIV}
                     UndoInfo^.Insert(P); Inc(UndoTimes);
                    end;
    udInsVertBlock: begin
@@ -1080,13 +1590,16 @@ begin
                     P^.Where := Where;
                     P^.Count := LongInt(Info) and $FFFF;
                     P^.Width := LongInt(Info) shr 16;
+                    P^.KeyMap := KeyMap; {-$VIV}
                     UndoInfo^.Insert(P); Inc(UndoTimes);
                    end;
    udDelBlock: begin
                 New(P); P^.What := What;
                 P^.Where := Where;
                 P^.Vertical := VertBlock;
+                P^.InsM := InsertMode; {-$VOL}
                 P^.Lines := PCollection(Info);
+                P^.KeyMap := KeyMap; {-$VIV}
                 UndoInfo^.Insert(P); Inc(UndoTimes);
                end;
    udIndentBlock, udUnindentBlock
@@ -1098,6 +1611,7 @@ begin
                    P^.Where := Where;
                    P^.Block := TRect(Info);
                    P^.Count := 1;
+                   P^.KeyMap := KeyMap; {-$VIV}
                    UndoInfo^.Insert(P); Inc(UndoTimes);
                   end;
    udStrModified:  begin
@@ -1105,6 +1619,7 @@ begin
                       P^.Where := Where; Inc(P^.Where.X);
                       P^.Count := 1;
                       P^.Str := NewStr(String(Info));
+                      P^.KeyMap := KeyMap; {-$VIV}
                       UndoInfo^.Insert(P); Inc(UndoTimes);
                     end;
   end;
@@ -1136,12 +1651,16 @@ begin
   BlkC := [cmCopy,cmCut,cmClear,cmBlockWrite,cmFJustify, cmCopyBlock, cmMoveBlock,
            cmFRight,cmFLeft,cmFCenter,cmPrintBlock, cmCalcBlock, cmSortBlock,
            cmUpcaseBlock, cmLowcaseBlock, cmCapitalizeBlock,
-           cmIndentBlock, cmUnIndentBlock];
+           cmIndentBlock, cmUnIndentBlock, cmRusEngConv]; {-$VIV}
   OldBlockValid := (ValidBlock and BlockVisible);
   if OldBlockValid then EnableCommands(BlkC)
                    else DisableCommands(BlkC);
   if (UndoInfo <> nil) and (UndoInfo^.Count > 0)
      then EnableCommands([cmUndo]) else DisableCommands([cmUndo]);
+{-$VOL begin}
+  if (RedoInfo <> nil) and (RedoInfo^.Count > 0)
+     then EnableCommands([cmRedo]) else DisableCommands([cmRedo]);
+{-$VOL end}
   if (Clipboard <> nil) and (Clipboard^.Count > 0) or (GetWinClipSize)
      then EnableCommands([cmPaste]) else DisableCommands([cmPaste]);
   if OptMenu <> Nil then
@@ -1157,9 +1676,10 @@ begin
    SetM(HiliteLine);
    SetM(HiliteColumn);
    SetM(HiLite <> 0);
+   SetM(TabReplace);
   end;
   GetCommands(GC);
-  PEditWindow(Owner)^.MenuBar^. SetCommands(GC);
+  PEditWindow(Owner)^.MenuBar^.SetCommands(GC);
   SetCommands(GC);
 end;
 
@@ -1193,22 +1713,35 @@ procedure TFileEditor.LoadFile;
  var S: PathStr;
      Nm: NameStr;
      Xt: ExtStr;
+     PC: PCollection; {-$VOL}
 begin
   FreeObject(FileLines);
   FreeObject(UndoInfo);
+  FreeObject(RedoInfo);
   UndoTimes := 0; LastDir := -1; DrawMode := 0;
   SearchOnDisplay := Off; ForcedCRLF := cfNone;
 1:
-  if Name = '' then begin FileLines := GetCollector(10000, 100);;
-                          Name := 'Untitled.TXT';
-                          FileLines^.Insert(NewStr('')) end else
-   begin
+  if Name = '' then begin
+    FileLines := GetCollector(10000, 100);
+    Name := 'Untitled.TXT';
+    if ClipBrd then begin {-$VOL begin}
+      PC := nil;
+      CopyStream2Lines(ClipBoardStream, PC);
+      if PC <> nil then with PC^ do
+        while Count > 0 do begin
+          FileLines^.Insert( At(Count - 1) );
+          AtDelete(Count - 1);
+        end;
+      FreeObject( PC );
+    end;                  {-$VOL end}
+    if FileLines^.Count = 0 then FileLines^.Insert(NewStr(''))
+  end else begin
     FileLines := ReadBlock(Name, On);
     if not IsValid then Exit;
     if FileLines = nil then begin FileLines := GetCollector(10000, 100);
                                   FileLines^.Insert(NewStr('')) end;
     if Name <> '' then Name := FExpand(Name) else Name := 'Untitled.TXT';
-   end;
+  end;
   SetLimits;
   Pos.X := 0; Pos.Y := 0;
   Delta := Pos;
@@ -1223,11 +1756,11 @@ begin
   WorkString := GetLine(0);
   if Name <> 'Untitled.TXT' then Name := DelSpaces(FExpand(Name));
   EditName := Name; DisposeStr(PWindow(Owner)^.Title);
-  if SmartPad then
-    begin
-      PWindow(Owner)^.Title := NewStr('SmartPad(TM) - ' + EditName);
-    end
-    else PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle) + EditName);
+  if SmartPad then begin
+    PWindow(Owner)^.Title := NewStr('SmartPad(TM) - ' + EditName);
+  end else if ClipBrd then begin
+    PWindow(Owner)^.Title := NewStr('ClipBoard');
+  end else PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle) + EditName);
   LockFile;
   FillChar(MarkPos,0,SizeOf(MarkPos));
   FSplit(EditName, FreeStr, Nm, Xt);
@@ -1379,7 +1912,7 @@ function TFileEditor.Valid(Command: Word): Boolean;
 begin
   Valid := On; V := On;
   if Command = cmValid then Valid := isValid;
-  if SmartPad then
+  if (SmartPad or ClipBrd) then
    begin
      if Modified then Message(@Self, evCommand, cmSaveText, nil);
      PEditWindow(Owner)^.ModalEnd := True;
@@ -1400,7 +1933,7 @@ begin
           V := not ((I = cmCancel) or (I = cmYes) and Modified);
          end;
       Valid := V;
-      if V and not SmartPad and (Owner <> nil) then StoreEditInfo(Owner);
+      if V and not(SmartPad or ClipBrd)and (Owner <> nil) then StoreEditInfo(Owner);
     end;
 end;
 
@@ -1424,6 +1957,7 @@ function TFileEditor.Search;
      Dir: Integer;
      OldCache: Boolean;
      Tmr: TEventTimer;
+     AllCP: Boolean; {-$VIV 14.05.99}
 
 procedure _DrawViews;
 begin
@@ -1441,9 +1975,11 @@ begin
  Marking := Off;
  OldMark := Mark;
  if (SearchData.Scope = 1) and not (BlockVisible and ValidBlock) then goto LExit;
- Search := Off; F := On; Prompt := SearchData.Options and 4 <> 0;
+ Search := Off; F := On;
+ Prompt := (SearchData.What <> #0) and (SearchData.Options and 4 <> 0);
  D := Delta; W := SearchData.Line; if W = '' then goto LExit;
  if SearchData.Options and 1 = 0 then W := UpCaseStr(W);
+ AllCP := (SearchData.What = #0) and (SearchData.Options and 8 <> 0);
  UnMark := Off;
  NumRep := 0;
  Dir := 1 - 2 * SearchData.Dir;
@@ -1466,8 +2002,9 @@ begin
             if (D.Y = Mark.B.Y) or VertBlock then
                if TrX > Mark.B.X then TrX := Mark.B.X;
          end;
-        if TrX < StX then I := 0
-                     else I := BackSearchFor(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0);
+        if TrX < StX then I := 0 {-$VIV 14.05.99}
+         else if AllCP then I := BackSearchForAllCP(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0)
+          else I := BackSearchFor(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0);
        end else
            begin
              StX := D.X + 1;
@@ -1480,8 +2017,9 @@ begin
                    if StX < Mark.A.X then StX := Mark.A.X + 1;
                if (D.Y = Mark.B.Y) or VertBlock then TrX := Mark.B.X;
               end;
-              if TrX < StX then I := 0
-                           else I := SearchFor(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0);
+              if TrX < StX then I := 0 {-$VIV 14.05.99}
+               else if AllCP then I := SearchForAllCP(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0)
+                else I := SearchFor(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0);
            end;
 
      if (I > 0) and (SearchData.Options and 2 <> 0) then
@@ -1537,7 +2075,9 @@ begin
            Modified := On;
            S := Copy(S1, DD.X + 1, Length(W));
            Insert(Char(Length(SearchData.What)), S, 1);
-           StoreUndoInfo(udReplace, DD, S);
+           if ReplaceAll then
+             StoreUndoInfo(udReplaceAll, DD, S) {-$VOL}
+           else StoreUndoInfo(udReplace, DD, S);
            Delete(S1, DD.X+1, Length(W));
            Insert(SearchData.What, S1, DD.X+1);
            PBlocker(FileLines)^.UseCache := False;
@@ -1639,7 +2179,7 @@ begin
      if I = 1 then S := S1 + S;
      if I = ABlock^.Count then
        begin if SaveUndo then Mark.B.X := Length(S); S := S + S2; end;
-     FileLines^.AtInsert(Delta.Y + I - 1, NewStr(S));
+     KeyMapAtInsert(Delta.Y + I - 1, NewStr(S)); {-$VIV}
     end
    end;
  SetLimits;
@@ -1976,66 +2516,122 @@ begin
  LastPos.X := Delta.X;
  LastPos.Y := Delta.Y;
  if PEditWindow(Owner)^.AInfo <> nil then PEditWindow(Owner)^.AInfo^.Draw;
+ if PEditWindow(Owner)^.ABookLine <> nil then PEditWindow(Owner)^.ABookLine^.Draw; {-$VIV}
  ChPosition := Off;
 end;
 
 function TFileEditor.GetLine(Index : Integer) : String;
  var p: PString;
+     s: String;
 begin
  if (Index < FileLines^.Count) and (Index >= 0) then p := FileLines^.At(Index)
                                                 else p := Nil;
- if p <> Nil then GetLine := p^ else GetLine := '';
+ if p <> Nil then s := p^ else s := ''; {-$VIV* START}
+ s := KeyMapConvertStr(s, true);
+ GetLine := s;                          {-$VIV END}
 end;
 
 procedure TFileEditor.SaveFile;
  var S: PBufStream;
-     I: Integer;
+     I: Longint;
      F: File;
      Dr: PathStr;
      Nm: NameStr;
      Xt: ExtStr;
      OldAttr: Word;
      L: array[0..0] of LongInt;
+     PC: PLineCollection;
+
+     FDbg: Text; {-$VIV!!!--}
 begin
  UnlockFile;
- if EditName = 'Untitled.TXT' then begin SaveFileAs; Exit end;
- Assign(F, EditName); ClrIO;
- GetFAttr(F, OldAttr);
- if (IOResult = 0) and (OldAttr and ReadOnly <> 0) then
- begin
-   Pointer(L[0]) := @EditName;
-   if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then Exit;
- end;
+ if ClipBrd then begin {-$VOL begin}
+   FreeObject(ClipBoardStream);
+   PC := New(PLineCollection, Init(100, 5) );
+   for i := 0 to FileLines^.Count - 1 do
+     PC^.Insert( NewStr( CnvString(FileLines^.At(i)) ) );
+   CopyLines2Stream(PC, ClipBoardStream);
+   FreeObject(PC);
+ end else begin                  {-$VOL end}
+   if EditName = 'Untitled.TXT' then begin SaveFileAs; Exit end;
 
- ClrIO; if OldAttr <> Archive then SetFAttr(F, Archive); if Abort then Exit;
- if EditorDefaults.EdOpt and ebfCBF <> 0 then
-  begin
-   FSplit(EditName, Dr, Nm, Xt); ClrIO;
-   EraseFile( Dr+Nm+'.BAK' );
-   Assign(F, EditName); Rename(F, Dr+Nm+'.BAK'); ClrIO;
-  end;
- New(S, Init(EditName, stCreate, 4096));
- if S = nil then Exit;
- if S^.Status <> stOK then
-   begin
-    CantWrite(EditName);
-    FreeObject(S);
-    LockFile;
-    Exit;
+   if DebugMode then begin
+   {-$VIV!!!--}Assign(FDbg, SourceDir+'dnedit.dbg');
+   {-$VIV!!!--}Rewrite(FDbg); Writeln(FDbg, EditName); Close(FDbg);
+   {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '1. Assign'); Close(FDbg);
    end;
- WriteBlock(EditName, S, FileLines, ForcedCRLF, OptimalFill); FreeObject(S);
- Assign(F, EditName); ClrIO; if OldAttr <> Archive then SetFAttr(F, OldAttr or Archive); ClrIO;
+   Assign(F, EditName); ClrIO;
+   GetFAttr(F, OldAttr);
+   if (IOResult = 0) and (OldAttr and ReadOnly <> 0) then
+   begin
+     Pointer(L[0]) := @EditName;
+     if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then Exit;
+   end;
+   if DebugMode then begin
+   {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '2. Before save BAK'); Close(FDbg);
+   end;
+
+   ClrIO; if OldAttr <> Archive then SetFAttr(F, Archive); if Abort then Exit;
+   if EditorDefaults.EdOpt and ebfCBF <> 0 then
+    begin
+     FSplit(EditName, Dr, Nm, Xt); ClrIO;
+     EraseFile( Dr+Nm+'.BAK' );
+     Assign(F, EditName); Rename(F, Dr+Nm+'.BAK'); ClrIO;
+    end;
+   if DebugMode then begin
+   {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '3. Before init stream'); Close(FDbg);
+   end;
+   New(S, Init(EditName, stCreate, 4096));
+   if S = nil then Exit;
+   if DebugMode then begin
+   {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '4. After init stream'); Close(FDbg);
+   end;
+   if S^.Status <> stOK then
+     begin
+      CantWrite(EditName);
+      FreeObject(S);
+      LockFile;
+      Exit;
+     end;
+   if DebugMode then begin
+   {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '5. Before WriteBlock'); Close(FDbg);
+   end;
+   WriteBlock(EditName, S, FileLines, ForcedCRLF, OptimalFill); FreeObject(S);
+   if DebugMode then begin
+   {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '6. After WriteBlock'); Close(FDbg);
+   end;
+   Assign(F, EditName); ClrIO; if OldAttr <> Archive then SetFAttr(F, OldAttr or Archive); ClrIO;
+ end;
+ if DebugMode then begin
+ {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '7. Before LockFile'); Close(FDbg);
+ end;
  LockFile;
  Modified := Off;
+ if DebugMode then begin
+ {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '8. Before Redraw'); Close(FDbg);
+ end;
  Owner^.Redraw;
- if not SmartPad then FileChanged(EditName);
+ if DebugMode then begin
+ {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '8.2. After Redraw'); Close(FDbg);
+ end;
+ if not(SmartPad or ClipBrd) then FileChanged(EditName);
+ if DebugMode then begin
+ {-$VIV!!!--}Append(FDbg); Writeln(FDbg, '9. Complete.Ok.'); Close(FDbg);
+ end;
+ if UpperCase(EditName)=UpperCase(SourceDir+'dn.ini') then begin
+   InitIniEngine;
+   LoadDnIniSettings;
+   DoneIniEngine;
+   ProbeINI(INIstoredtime,INIstoredsize);
+   ConfigModified:=True;
+ end;
 end;
 
-procedure TFileEditor.ModifyLine;
+procedure TFileEditor.ModifyLine(Index : Integer; S : String; DelSpaces: Boolean);
 begin
  if (Index < 0) or (Index >= FileLines^.Count) then Exit;
  if DelSpaces then DelRight(S);
- FileLines^.AtReplace(Index, NewStr(S));
+ KeyMapAtReplace(Index, NewStr(S)); {-$VIV}
 end;
 
 function TFileEditor.HandleCommand;
@@ -2156,7 +2752,7 @@ procedure TFileEditor.HandleEvent;
                  if WBY then Inc(Mark.B.X);
               end;
          end else LastX := 0;
-        FileLines^.AtInsert(LastY + 1, NewStr(WorkString));
+        KeyMapAtInsert(LastY + 1, NewStr(WorkString)); {-$VIV}
         SetLimits; Delta.X := LastX; Inc(Delta.Y);
        end;
  end;
@@ -2359,7 +2955,7 @@ L1:
 
  procedure PasteBlock;
  begin
-  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut;
+  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
   EnableMarking := Off; Marking := Off;
   ChangeLine;
   if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
@@ -2378,6 +2974,7 @@ L1:
   if (Clipboard <> nil) then Dispose(Clipboard, Done);
   Clipboard := GetSelection;
   if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
+  CopyLines2Stream(Clipboard, ClipBoardStream);
  end;
 
  procedure CenterScreen;
@@ -2429,31 +3026,39 @@ L1:
   WordRight;
  end;
 
+ procedure InputChar; forward;
+
  procedure MakeTab;
  begin
-  TabStep := StoI(EditorDefaults.TabSize);
-  if TabStep = 0 then TabStep := 8;
-  WorkModify;
-  repeat InsertSpace; until (LastX) mod TabStep = 0;
-  ScrollTo(LastX, Delta.Y); DrawView;
+   TabStep := StoI(EditorDefaults.TabSize);
+   if TabStep = 0 then TabStep := 8;
+   WorkModify;
+   repeat InsertSpace; until (LastX) mod TabStep = 0;
+   ScrollTo(LastX, Delta.Y); DrawView;
  end;
 
  procedure DoTab;
  begin
   Modified := On;
-  if LastY > 0 then s := GetLine(LastY - 1)
-               else s := '';
-  if (LastY = 0) then MakeTab
-   else
-   if (LastY > 0) and (LastX < Byte(S[0])) then
-   begin
-    WorkModify;
-    repeat InsertSpace until (s[LastX + 1] = ' ') or (LastX >= Byte(S[0]));
-    {WM := (s[LastX + 2] = ' ') and (LastX < Byte(s[0]));}
-    While (s[LastX + 2] = ' ') and (LastX < Byte(s[0])) do InsertSpace;
-    {if WM then }InsertSpace;
-    ScrollTo(LastX, Delta.Y); DrawView;
-   end else MakeTab;
+  {-$VOL begin}
+  if not TabReplace then begin
+    Event.CharCode:=#09;
+    InputChar;
+  end {-$VOL end} else begin
+    if LastY > 0 then s := GetLine(LastY - 1)
+                 else s := '';
+    if (LastY = 0) then MakeTab
+     else
+     if (LastY > 0) and (LastX < Byte(S[0])) then
+     begin
+      WorkModify;
+      repeat InsertSpace until (s[LastX + 1] = ' ') or (LastX >= Byte(S[0]));
+      {WM := (s[LastX + 2] = ' ') and (LastX < Byte(s[0]));}
+      While (s[LastX + 2] = ' ') and (LastX < Byte(s[0])) do InsertSpace;
+      {if WM then }InsertSpace;
+      ScrollTo(LastX, Delta.Y); DrawView;
+     end else MakeTab;
+   end;
  end;
 
  procedure BlockRead;
@@ -2623,7 +3228,7 @@ L1:
     S := Strg(' ', LeftSide)+S;
    end;
    ModifyLine(LastY, WorkString, On);
-   FileLines^.AtInsert(LastY+1, NewStr(S));
+   KeyMapAtInsert(LastY+1, NewStr(S)); {-$VIV}
    S := #2#0;
    StoreUndoInfo(udFormatBlock, TP, S);
    if Delta.X >= WL then
@@ -2640,18 +3245,21 @@ L1:
  end;
 
  procedure InputChar;
-  var I1, I2, I3: Byte;
+  var I1, I2, I3, i: Byte;
       Ch: Char;
       S1: String[2];
  begin
    Ch := Event.CharCode;
+    S1 := Ch;
    if AutoBrackets and ((LastX >= WL) or (WorkString[LastX+1] = ' ')) then
-    case Ch of
-      '(': S1 := '()';
-      '{': S1 := '{}';
-      '[': S1 := '[]';
-        else S1 := Ch;
-    end else S1 := Ch;
+    begin
+        for i:=1 to Length(AutoBracketPairs) shr 1
+        do if Ch=AutoBracketPairs[i*2-1] then begin
+            S1:=Copy(AutoBracketPairs,i*2-1,2);
+            break
+        end;
+    end;
+
    EnableMarking := Off;
    if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
      then DeleteBlock(On);
@@ -2705,7 +3313,7 @@ L1:
     then DeleteBlock(On);
   BlockOff;
 
-  GetWinClip(PLineCollection(Clipboard));
+  GetWinClip(PLineCollection(Clipboard), On);
   InsertBlock(Clipboard, On);
 
   ChangeLine;
@@ -2763,7 +3371,15 @@ L1:
      Modify := On;
    end;
 
+ var WasShift: Boolean; {-$VIV 18.05.99--}
  begin
+   {-$VIV 18.05.99--}
+   WasShift := RShiftDown and DrawRShift;
+   if WasShift then
+   begin
+     if DrawMode = 1 then DrawMode := 2 else DrawMode := 1;
+   end;
+   {-$VIV--}
    ChangeLine;
    if ShiftState and 3 <> 0 then DMode := 1
      else if ShiftState and 4 <> 0 then DMode := 2 else DMode := 0;
@@ -2860,6 +3476,80 @@ L1:
    if DMode > 0 then LastDir := (Dir + 2) mod 4
                 else LastDir := -1;
    EnableMarking := On;
+
+   if WasShift then {-$VIV 18.05.99--}
+   begin
+     if DrawMode = 1 then DrawMode := 2 else DrawMode := 1;
+   end;             {-$VIV--}
+
+ end;
+
+ procedure OpenFileAtCursor; {-$VIV 18.05.99--}
+ var Res, S, Ext: String;
+     I, Max, P: Integer;
+ const
+     BreakChars: Set of Char = [',', ' ', '[', ']', ';', '^', '*', '''',
+                                  '"', '>', '<', '+', '=', '|', '?', '{', '}'];
+ begin
+   S := WorkString;
+   Max := Delta.X;
+   if Max > Length(S) then Max := Length(S) else if Max = 0 then Max := 1;
+   for I := Max downto 1 do
+     if (S[I] in BreakChars) then begin S := Copy(S, I + 1, 255); Break; end;
+   for I := 1 to Length(S) do
+     if (S[I] in BreakChars) then begin S := Copy(S, 1, I - 1); Break; end;
+   if CutExt(S) = '' then
+   begin
+     Ext := CutExt(EditName);
+     if Ext <> '' then S := S + '.' + Ext;
+   end;
+   Res := FindFileWithSPF(S);
+   if Res = '' then MessageBox('” ©« ' + S + ' ­¥ ­ ©¤¥­.  áâà®©â¥ DN.SPF ­  ­ã¦­ë¥ ¯ãâ¨.', nil, mfOkButton)
+    else PDNApplication(Application)^.EditFile(On, Res);
+ end;
+
+ procedure ChangeCharCaseDirect; {-$VIV 21.05.99--}
+ var Ch: Char;
+     S, S2: String;
+ begin
+   S := WorkString;
+   if (Delta.X >= 0) and (Delta.X < Length(S)) then
+   begin
+     WorkModify;
+     StoreUndoInfo(udStrModified, Delta, WorkString);
+     Ch := S[Delta.X+1];
+     if Ch = UpperCase(Ch) then
+       S2 := LowerCase(Ch) else S2 := UpperCase(Ch);
+     S[Delta.X+1] := S2[1];
+     WorkString := S;
+     ChangeLine;
+     CED;
+     ScrollTo(Delta.X+1, Delta.Y);
+   end else begin
+     if Delta.Y < FileLines^.Count - 1 then
+       ScrollTo(0, Delta.Y + 1);
+   end;
+ end;
+
+ procedure WordEnd;
+ var S: String;
+     NewX: Integer;
+ begin
+   S := WorkString;
+   if (Delta.X < 0) or (Delta.X >= Length(S)) then Exit;
+   NewX := Delta.X;
+   if not (S[NewX+1] in BreakChars) then
+     repeat
+       Inc(NewX);
+       if (NewX >= Length(S)) or (S[NewX+1] in BreakChars) then Break;
+     until False
+   else
+     repeat
+       Dec(NewX);
+       if (NewX < 0) or not (S[NewX+1] in BreakChars) then
+        begin Inc(NewX); Break; end;
+     until False;
+   ScrollTo(NewX, Delta.Y);
  end;
 
  var PC: PCollection;
@@ -2882,13 +3572,13 @@ begin
               cmDuplicateLine: begin
                                  ChangeLine;
                                  WorkModify;
-                                 FileLines^.AtInsert(LastY+1, NewStr(GetLine(LastY)));
+                                 KeyMapAtInsert(LastY+1, NewStr(GetLine(LastY))); {-$VIV}
                                  StoreUndoInfo(udDupeLine, Delta, S);
                                  SetLimits;
                                  CED;
                                end;
               cmClose: begin
-                         if SmartPad then
+                         if (SmartPad or ClipBrd) then
                            begin
                              ChangeLine;
                              if Modified then SaveFile;
@@ -2927,6 +3617,7 @@ begin
                        end;
                        System.Insert(S, WorkString, LastX+1);
                      end;
+                     ChangeLine; {-$VIV}
                   end;
                   CED
                 end;
@@ -2962,6 +3653,7 @@ begin
               cmSwitchHiColumn: begin HiliteColumn := not HiliteColumn; CED end;
               cmSwitchWrap: begin AutoJustify := not AutoJustify; CE end;
               cmSwitchFill: begin OptimalFill := not OptimalFill; CE end;
+              cmSwitchTabReplace: begin TabReplace := not TabReplace; CE end;
               cmSwitchBack: begin BackIndent := not BackIndent; CE end;
               cmIndentOn,cmIndentOff: begin AutoIndent := Event.Command = cmIndentOn; CE end;
               cmSwitchIndent: begin AutoIndent := not AutoIndent; CE end;
@@ -3022,6 +3714,7 @@ begin
                                  SearchOnDisplay := Off;
                                end;
               cmWindowsPaste: PasteWinBlock;
+              cmChangeCharCase: ChangeCharCaseDirect; {-$VIV}
               cmBracketPair,
               cmPlayMacro,
               cmSelectMacro,
@@ -3038,6 +3731,7 @@ begin
               cmIndentBlock,
               cmUnIndentBlock,
               cmUndo,
+              cmRedo, {-$VOL}
               cmReplace,
               cmUpcaseBlock,
               cmLowcaseBlock,
@@ -3045,7 +3739,10 @@ begin
               cmWindowsCopy,
               cmSyncClipIn,
               cmSyncClipOut,
-              cmStartSearch: begin if HandleCommand(Event) then DrawView; CE end;
+              cmStartSearch,
+              cmSwitchKeyMapping,
+              cmRusEngConv: {-$VIV}
+                begin if HandleCommand(Event) then DrawView; CE end;
               cmContSearch: begin ChangeLine; Search; ChangeLine; CE end;
               cmSpecChar,cmAsciiTable: begin
                              ASCIITable;
@@ -3122,7 +3819,14 @@ begin
                                   BlockVisible := On; DrawView; CE end;
               cmBlockEnd: begin UnMark := On; Marking := Off; Mark.B := Delta;
                                 BlockVisible := On; DrawView; CE end;
-              cmPlaceMarker: begin UnMark := On;  MarkPos[Event.InfoChar] := Delta; CE end;
+              cmPlaceMarker:
+                begin
+                  UnMark := On;
+                  if (MarkPos[Event.InfoChar].Y = Delta.Y) then
+                    FillChar(MarkPos[Event.InfoChar], SizeOf(TPoint), $FF)
+                    else MarkPos[Event.InfoChar] := Delta;
+                  CED;
+                end; {-$VIV}
               cmGotoMarker: begin ChangeLine;
                                   UnMark := On;
                                   if LongInt(MarkPos[Event.InfoChar]) >= 0 then
@@ -3171,46 +3875,49 @@ begin
                               While (LastX > 0) and not (WorkString[LastX] in BreakChars) do MakeSmallBack;
                               ScrollTo(LastX, LastY); CED;
                              end;
+              cmOpenFileAtCursor: OpenFileAtCursor; {-$VIV 18.05.99--}
              end;
-  evKeyDown: begin
-              if DrawMode > 0 then
-                begin
-                  case Event.KeyCode of
-                     kbRight,kbCtrlD,kbCtrlRight: begin DrawLine(1); Exit end;
-                     kbLeft,kbCtrlS,kbCtrlLeft: begin DrawLine(3); Exit end;
-                     kbUp,kbCtrlE: begin DrawLine(0); Exit end;
-                     kbDown,kbCtrlX: begin DrawLine(2); Exit end;
-                  end;
-                end;
-              if Event.KeyCode = kbCtrlEnter then
-                begin BlockOff; MakeEnter; ScrollTo(Delta.X, Delta.Y); CED; Exit end;
-              CFind := Off; EvStr := #0#0;
-              for I := 1 to MaxCommands do
-               with EditCommands[I] do
-                begin
-                 if (CC1[1] = Event.CharCode) then
-                    begin EvStr[1] := CC1[1];
-                          if CC1[2]<>#0 then
-                           begin KeyEvent(Event); EvStr[2] := Event.CharCode end;
-                          Break;
-                    end;
-                 if (CC2[1] = Event.CharCode) then
-                    begin EvStr[1] := CC2[1];
-                          if CC2[2]<>#0 then
-                           begin KeyEvent(Event); EvStr[2] := Event.CharCode end;
-                          Break;
-                    end;
-                end;
-              if EvStr[2] in ['A'..'Z','a'..'z'] then EvStr[2] := Char(Ord(UpCase(EvStr[2]))-64);
-              for I := 1 to MaxCommands do
-               with EditCommands[I] do
-                 if ((C1 = Event.KeyCode) or (C2 = Event.KeyCode)) and (EvStr[2]=#0) or
-                    (EvStr<>#0#0) and ((CC1 = EvStr) or (CC2 = EvStr)) then
-                     begin CFind := True; Break end;
-              if CFind then
-               begin CE; Message(Owner, evCommand, EditCommands[I].C, Pointer(EvStr[2])); Exit end;
-              if (Event.CharCode>#31) and (Event.CharCode<#255) then InputChar;
-   end;
+  evKeyDown:
+        if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
+        begin
+             if DrawMode > 0 then
+               begin
+                 case Event.KeyCode of
+                    kbRight,kbCtrlD,kbCtrlRight: begin DrawLine(1); Exit end;
+                    kbLeft,kbCtrlS,kbCtrlLeft: begin DrawLine(3); Exit end;
+                    kbUp,kbCtrlE: begin DrawLine(0); Exit end;
+                    kbDown,kbCtrlX: begin DrawLine(2); Exit end;
+                 end;
+               end;
+     (*      if Event.KeyCode = kbCtrlEnter then ; *) {-$VIV 18.05.99--}
+     (*      begin BlockOff; MakeEnter; ScrollTo(Delta.X, Delta.Y); CED; Exit end; *)
+             CFind := Off; EvStr := #0#0;
+             for I := 1 to MaxCommands do
+              with EditCommands[I] do
+               begin
+                if (CC1[1] = Event.CharCode) then
+                   begin EvStr[1] := CC1[1];
+                         if CC1[2]<>#0 then
+                          begin KeyEvent(Event); EvStr[2] := Event.CharCode end;
+                         Break;
+                   end;
+                if (CC2[1] = Event.CharCode) then
+                   begin EvStr[1] := CC2[1];
+                         if CC2[2]<>#0 then
+                          begin KeyEvent(Event); EvStr[2] := Event.CharCode end;
+                         Break;
+                   end;
+               end;
+             if EvStr[2] in ['A'..'Z','a'..'z'] then EvStr[2] := Char(Ord(UpCase(EvStr[2]))-64);
+             for I := 1 to MaxCommands do
+              with EditCommands[I] do
+                if ((C1 = Event.KeyCode) or (C2 = Event.KeyCode)) and (EvStr[2]=#0) or
+                   (EvStr<>#0#0) and ((CC1 = EvStr) or (CC2 = EvStr)) then
+                    begin CFind := True; Break end;
+             if CFind then
+              begin CE; Message(Owner, evCommand, EditCommands[I].C, Pointer(EvStr[2])); Exit end;
+             if (Event.CharCode>#31) and (Event.CharCode<#255) then InputChar;
+        end;
   evBroadcast: case Event.Command of
                 cmScrollBarChanged: begin
                                      if HScroll <> nil then Delta.X := HScroll^.Value;
@@ -3315,7 +4022,6 @@ function TFileEditor.ReadBlock;
      Lines: PCollector;
      S1, ST, S2: String;
      FF: File absolute S1;
-     WasCR: Boolean;
 
  procedure CountLines;
   var P: Pointer;
@@ -3358,10 +4064,9 @@ function TFileEditor.ReadBlock;
       WL: Byte absolute ST;
       MMM: String;
       C: Char;
-      WC: Boolean;
+      TS: word;
  begin
-  WC := WasCR;
-  K := 1; P := B; L := J;
+  K := 1; P := B; L := J; TS := TabStep;
   repeat
    MMM := ST;
    asm
@@ -3387,6 +4092,11 @@ function TFileEditor.ReadBlock;
   @@5:
     cmp al, 9
     jnz @@3
+    {-$VOL begin}
+    mov cx, TS
+    and cx, $ffff
+    jz  @@3
+    {-$VOL end}
    @@4:
     mov al, ' '
     mov ss:[bx+si], al
@@ -3485,6 +4195,14 @@ begin
   end;
  if RetCollector then Lines := GetCollector(LCount*11, LCount+50)
                  else Lines := New(PStdCollector, Init(LCount+50));
+ {-$VOL begin}
+ if EditorDefaults.EdOpt and ebfTRp = 0 then TabStep:=0
+ else begin
+   TabStep:=StoI(EditorDefaults.TabSize);
+   if TabStep = 0 then TabStep := 8;
+ end;
+ if TabStep > 100 then TabStep := 100;
+ {-$VOL end}
  S^.Seek(0);
  I := 0;
  FFSize := S^.GetSize;
@@ -3537,19 +4255,28 @@ procedure OpenSmartpad;
   var R: TRect;
       PV: Pointer;
 
- procedure InsertInfo;
- begin
-  with SmartWindow^.Intern^ do
-   begin
-     FileLines^.Insert(NewStr('ÄÄÄÄÄÄ< ' +GetDateTime(Off)+' '+GetDateTime(On)+' >ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ'));
-     FileLines^.Insert(nil);
-     SetLimits;
-     ScrollTo(0, FileLines^.Count-1);
-     Pos.Y := Delta.Y-1;
-     SmartWindow^.Redraw;
-   end;
-
- end;
+     procedure InsertInfo; {-$VIV} {SYR}
+     Var
+         Str:String;
+         Idx:Integer;
+     begin
+         with SmartWindow^.Intern^ do
+         begin
+             if SPInsertDate then
+             begin
+                 Str:='';
+                 For Idx:=0 To 5 Do Str:=Str+Char(SPLineChar);
+                 Str:=Str+'< '+GetDateTime(Off)+' '+GetDateTime(On)+' >';
+                 For Idx:=0 To 35 Do Str:=Str+Char(SPLineChar);
+                 FileLines^.Insert(NewStr(Str));
+             end;
+             FileLines^.Insert(nil);
+             SetLimits;
+             ScrollTo(0, FileLines^.Count-1);
+             Pos.Y := Delta.Y-1;
+             SmartWindow^.Redraw;
+         end;
+     end;
 
 begin
   if (SmartWindow <> nil) and SmartWindow^.GetState(sfModal) then Exit;
@@ -3580,7 +4307,32 @@ begin
      end else Desktop^.Insert(SmartWindow);
 end;
 
-
-
+procedure OpenClipBoard; {-$VOL begin}
+  var R: TRect;
+      PV: Pointer;
+begin
+  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
+  if (ClipBoardWindow <> nil) and ClipBoardWindow^.GetState(sfModal) then Exit;
+  PV := Application^.TopView;
+  Desktop^.GetExtent(R);
+  if (ClipBoardWindow <> nil) then
+    begin
+      if (PV <> Application) then
+        begin
+           Desktop^.Delete(ClipBoardWindow);
+           Desktop^.ExecView(ClipBoardWindow);
+           Desktop^.InsertBefore(ClipBoardWindow, Desktop^.Last);
+           Desktop^.SetCurrent(PV, EnterSelect);
+        end else ClipBoardWindow^.Select;
+      Exit;
+    end;
+  New(ClipBoardWindow, Init(R, 'ClipBoard'));
+  if (PV <> Application) then
+     begin
+       Desktop^.ExecView(ClipBoardWindow);
+       ClipBoardWindow^.Free;
+       ClipBoardWindow := nil
+     end else Desktop^.Insert(ClipBoardWindow);
+end; {-$VOL end}
 
 end.

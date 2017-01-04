@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -179,10 +180,13 @@ CONST
   TerminalDefaults: TTerminalDefaults = (Emulation:emANSIBBS;Options:toCtrlCLS+toAutoZModem);
 
   CustomMask1: String = #0'pas'#0'asm'#0'inc'#0'c'#0'cpp'#0;
-  CustomMask2: String = #0'.'#0'doc'#0'txt'#0'ctl'#0'diz'#0'ini'#0;
+{piwamoto.change.begin}
+  CustomMask2: String = #0'.'#0'doc'#0'txt'#0'ctl'#0'diz'#0'ini'#0'cfg'#0;
   CustomMask3: String = #0'dbf'#0'wkz'#0'wks'#0'123'#0'wk1';
   CustomMask4: String = #0'tmp'#0'$$$'#0'bak'#0;
-  CustomMask5: String = #0'pcx'#0'bmp'#0'pic'#0'gif'#0'rle'#0'ico'#0'jpg'#0;
+  CustomMask5: String = #0'pcx'#0'bmp'#0'pic'#0'gif'#0'rle'#0'ico'#0'jpg'#0+
+                          'jpe'#0'png'#0'tif'#0'tga'#0;
+{piwamoto.change.end}
 
   InterfaceData: TInterfaceData = (
     Options: ouiClock +
@@ -220,7 +224,8 @@ CONST
            ebfAId +
            ebfPBl +
            ebfEMS +
-           ebfXMS;
+           ebfXMS +
+           ebfTRp; {-$VOL}
     ViOpt: 0;
     LM: '0';
     RM: '78';
@@ -295,6 +300,9 @@ CONST
   Registered: Word = 0;
 
 IMPLEMENTATION
+{$IFDEF DNPRG}
+Uses ExtraMemory, Overlay, Overlays;
+{$ENDIF}
 
 PROCEDURE TTextCollection.FreeItem;
 begin
@@ -318,6 +326,31 @@ begin
   Halt( 1 );
 end;
 
+{$IFDEF DNPRG }
+  procedure SetOverlay;
+  var S: String;
+{      I: LongInt; }
+  begin
+    InitExtraMem;
+{
+    SwpDir := GetEnv('DNSWP');
+    if SwpDir = '' then
+      begin
+        I := FindParam('/S');
+        if I > 0 then SwpDir := Copy(ParamStr(I), 3, 255);
+      end;
+    if SwpDir = '' then SwpDir := TempDir;
+    if SwpDir[Length(SwpDir)] <> '\' then SwpDir := SwpDir+'\'; ClrIO;
+    UpStr(SwpDir);
+}
+    S := GetEnv('DNOVR');
+    if S = '' then S := StartupDir + 'DN.OVR'
+              else S := MakeNormName(S, 'DN.OVR');
+    OvrFileMode := $40;
+    InitOverlay(S);
+  end;
+{$ENDIF}
+
 begin
   StartupDir:='';
   SourceDir:='';
@@ -331,4 +364,8 @@ begin
   if SourceDir = '' then SourceDir := StartupDir;
   if SourceDir[Length(SourceDir)] <> '\' then AddStr(SourceDir, '\');
   UpStr(SourceDir); UpStr(StartupDir);
+
+{$IFDEF DNPRG}
+ SetOverlay;
+{$ENDIF}
 END.

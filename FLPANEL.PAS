@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -162,9 +163,11 @@ VAR
 
 implementation
 
-uses DNApp, Advance, Startup, Memory, FileCopy, Messages, Menus, DiskInfo,
+uses U_Crt,
+     DNApp, Advance, Startup, Memory, FileCopy, Messages, Menus, DiskInfo,
      Dialogs, Commands, HistList, Tree, FBB, RStrings, UUCode,
-     ArcView, CmdLine, Histries, Archiver, Gauges, Gauge, FileFind, FlTools;
+     ArcView, CmdLine, Histries, Archiver, Gauges, Gauge, FileFind, FlTools,
+     DnIni, U_Dos, LongName; {-$VIV}
 
 const
     chTempDrive = '*';
@@ -420,7 +423,7 @@ begin
       if DirView <> nil then DirView^.DrawView;
       if (Drive^.DriveType = dtDisk) then begin
         ActivePanel := @Self;
-        AddToDirectoryHistory(DirectoryName);
+        AddToDirectoryHistory(DirectoryName,integer(dtDisk));
         if CurrentDirectory <> DirectoryName
           then MakeChange;
       end else
@@ -771,7 +774,7 @@ procedure TInfoView.Draw;
      I: Integer;
      C1, C2, C3: Word;
      PF, PPF: PFileRec;
-     S, S1: String;
+     S, S1, S2, S3: String;
      Y: Integer;
 
  var FR: TFileRec;
@@ -859,7 +862,32 @@ begin
 1:
     C3 := GetColor($0302);
     MoveChar(B, ' ', C3, Size.X);
-    if Panel^.SelNum = 0 then S := GetString(dlNoFilesSelected)
+    if Panel^.SelNum = 0 then
+    begin
+      if (Pos(x_x, Panel^.FileMask) = 0) and (ShowFileMask) then {-$VIV 19.05.99--}
+      begin
+        S := u_crt.Replace(Panel^.FileMask, '*.', '');
+        S := u_crt.Replace(S, ' ', '');
+        if Copy(S, 1, 1) = ';' then Delete(S, 1, 1);
+        S := GetString(dlFileMask) + S;
+      end else
+      begin
+        S := GetString(dlNoFilesSelected);
+        if ShowLongName then
+        begin
+          S2 := Trim(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.Name);
+          if S2 <> '..' then
+          begin
+            S3 := Trim(Copy(S2, 1, 8));
+            Delete(S2, 1, 8); S2 := Trim(S2);
+            if S2 <> '' then S3 := S3 + '.' + S2;
+            S3 := u_crt.Replace(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.Owner^ + '\' + S3, '\\', '\');
+            S2 := GetLongFileName(S3);
+            if UpperCase(S2) <> UpperCase(S3) then S := #0+CutName(S2);
+          end;
+        end;
+      end;
+    end
      else begin
            if (Panel^.SelectedLen = Panel^.PackedLen) or (Panel^.Drive^.DriveType <> dtArc) then
             S := '~'+FStr(Panel^.SelectedLen)+GetString(dlBytesIn)+
@@ -1071,7 +1099,7 @@ var
   OSM := PFilesCollection(Files)^.SortMode;
   PFilesCollection(Files)^.SortMode := 100;
   for I := 0 to Files^.Count - 1 do
-   if Files^.Compare(Files^.Items^[I], Event.InfoPtr) = 0 then Goto 1;
+   if Files^.Compare(Files^.At(I), Event.InfoPtr) = 0 then Goto 1; {-$VOL}
   PFilesCollection(Files)^.SortMode := OSM;
   Exit;
  1:
@@ -1119,7 +1147,14 @@ var
      Inc( I ); If I >= Files^.Count then I := 0;
    until I = CurPos;
    If not InMask( PFileRec( Files^.At( CurPos ))^.Name, SearchMask )
-     then Message( @Self, evKeyDown, kbBack, NIL );
+     then begin
+         If SearchX > 0 then repeat
+             If SearchX = 9 then Dec( SearchX );
+             SearchMask[ SearchX ] := '?';
+             Dec( SearchX );
+         until ( SearchX = 0 ) or ( SearchX = 9 )
+         or ( SearchMask[ SearchX ] <> ' ' );
+     end
  end;
 
  procedure DoMakeDirs(P: PFileRec); far;
@@ -1324,7 +1359,7 @@ begin
                      else
                       begin
                        if SearchX < 12 then Inc(SearchX, 1+Byte(SearchX = 8));
-                       SearchMask[SearchX] := Event.CharCode;
+                       SearchMask[SearchX] := LowCase(Event.CharCode);
                        MaskSearch(0);
                       end;
                      end;
@@ -1367,6 +1402,11 @@ GotoKB:
                              if CurPos = ScrollBar^.Value then DrawView;
                              if InfoView <> nil then InfoView^.DrawView;
                             end;
+                     kbAltQuote: begin
+                                SystemData.Options:=SystemData.Options xor ossShowHidden;
+                                ConfigModified:=True;
+                                Message(Application, evCommand, cmUpdateConfig, nil)
+                            end
                      (*
                      kbAltIns,
                      kbGrayPlus,

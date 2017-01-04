@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -47,7 +48,8 @@
 unit Histries;
 
 interface
-uses Drivers, Objects, Views, MicroEd, ObjType;
+uses Drivers, Objects, Views, MicroEd, ObjType, Drives,
+     U_KeyMap; {-$VIV 14.05.99}
 
 type
      PViewRecord = ^TViewRecord;
@@ -91,6 +93,7 @@ type
        fLeftSide,
        fRightSide,
        fInSide: Integer;
+       fKeyMap: TKeyMap; {-$VIV}
      end;
 
      PEditHistoryCol = ^TEditHistoryCol;
@@ -108,7 +111,7 @@ type
         procedure FreeItem(P: Pointer); virtual;
      end;
 
-procedure AddToDirectoryHistory(S: String);
+procedure AddToDirectoryHistory(S: String; DriveType:integer);
 procedure SaveCommands(var S: TStream);
 procedure LoadCommands(var S: TStream);
 procedure CmdHistory;
@@ -144,7 +147,8 @@ const
       Store: @TViewHistoryCol.Store );
 
 implementation
- uses Dos, Commands, DNApp, DNStdDlg, Dialogs, Advance,
+ uses U_Crt,
+      Dos, Commands, DNApp, DNStdDlg, Dialogs, Advance,
       Startup, RStrings, xTime, Messages, Idlers, DNUtil,
       FViewer, CmdLine;
 
@@ -173,7 +177,7 @@ begin
   S := Copy(CnvString(PEditRecord(P)^.fName), 2, 255); UpStr(S);
   for I := 0 to Count-1 do
     begin
-      if Copy(CnvString(PEditRecord(Items^[I])^.fName), 2, 255) = S then
+      if Copy(CnvString(PEditRecord(At(I))^.fName), 2, 255) = S then {-$VOL}
         begin IndexOf := I; Exit end;
     end;
 end;
@@ -291,6 +295,7 @@ begin
        fRightSide     := RightSide;
        fInSide        := InSide;
        fInsMode       := InsertMode;
+       fKeyMap        := KeyMap; {-$VIV}
     end;
   I := EditHistory^.IndexOf(R);
   if I >= 0 then begin
@@ -479,7 +484,7 @@ begin
     cmOK: begin
              ClearEvent(Event);
              if Focused >= List^.Count then Exit;
-             FreeStr := Copy(CnvString(List^.At(Focused)), 2, 255);
+             FreeStr := Trim(Copy(CnvString(List^.At(Focused)), 2, 255)); {-$VIV}
              if InputBox(GetString(dlEditHistory), GetString(dlFindCellString), FreeStr, 255, hsEditHistory) <> cmOK then Exit;
              Insert(Copy(CnvString(List^.At(Focused)), 1, 1), FreeStr, 1);
              List^.AtReplace(Focused, NewStr(FreeStr));
@@ -506,7 +511,7 @@ begin
   inherited Done;
 end;
 
-procedure AddToDirectoryHistory(S: String);
+procedure AddToDirectoryHistory(S: String; DriveType:integer);
   var I: Integer;
       P: PString;
 
@@ -525,7 +530,12 @@ begin
   if InterfaceData.Options and ouiTrackDirs = 0 then Exit;
   if (S = '') or (S[2] <> ':') then Exit;
   if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
-  UpStr(S); if S[Length(S)] <> '\' then AddStr(S, '\');
+  UpStr(S); if (DriveType <> integer(dtList))
+  and (DriveType <> integer(dtFind)) then begin
+      if S[Length(S)] <> '\' then AddStr(S, '\')
+  end else begin
+      if S[Length(S)] = '\' then Dec(S[0])
+  end;
   I := -1; P := DirHistory^.FirstThat(@IsThat);
   if P <> nil then DirHistory^.AtDelete(I)
               else P := NewStr(' '+S);
@@ -661,10 +671,5 @@ begin
   Message(CommandLine, evKeyDown, kbEnd, nil);
   if I <> cmYes then Message(CommandLine, evKeyDown, kbEnter, nil);
 end;
-
-
-
-
-
 
 end.

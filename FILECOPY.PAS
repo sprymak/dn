@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -50,7 +51,7 @@
 unit FileCopy;
 
 interface
-uses Advance, Objects, Views, Dialogs, Drivers, FilesCol, Dos;
+uses Advance, Objects, Views, Dialogs, Drivers, FilesCol, Dos, DnIni;
 
 type
     PCopyRec = ^TCopyRec;
@@ -83,9 +84,9 @@ function CopyDialog( var CopyDir: PathStr; var Mask: Str12;
 
 implementation
 uses DNApp, Startup, ExtraMemory, Memory, Messages, HistList, Commands,
-     DiskTool, xTime, Validate, 
+     DiskTool, xTime, Validate,
     {$IFDEF MODEM}
-     NavyLink, 
+     NavyLink,
     {$ENDIF}
      Gauge, FileFind,
      DNUtil, RStrings, Tree, Archiver, Drives, DiskInfo;
@@ -104,6 +105,7 @@ const
       cpoFromTemp  = $80;
       cpoCopyDesc  = $40;
       cpoDirEmpty  = $20;
+      cpoFitAll    = $10;
 
 
 var  { SR: SearchRec;}
@@ -408,7 +410,7 @@ procedure MakeListFile;
      D, Dr, SR, Sn: PathStr;
      P: PFileRec;
      S: TMakeListRec;
-     T: Text;
+     T,HF: Text;
      Nm: NameStr;
      Xt: ExtStr;
      FidoMode: Boolean;
@@ -417,6 +419,33 @@ procedure MakeListFile;
      ZZ, NN, ND, PT: Word;
      BB: Boolean;
      FLD, Dr_: PathStr;
+     CurPos: integer;
+
+  function GetNextName(var TheString,TheName:string):boolean;
+  begin
+      while (CurPos<=Length(TheString)) and (TheString[CurPos] in [';',' '])
+      do Inc(CurPos);
+      TheName:='';
+      while (CurPos<=Length(TheString)) and (TheString[CurPos]<>';') do begin
+          TheName:=TheName+TheString[CurPos];
+          Inc(CurPos)
+      end;
+      while TheName[Length(TheName)]=' ' do Dec(TheName[0]);
+      GetNextName:=TheName<>''
+  end;
+
+  function SomeFilesExist(var NameList:string):boolean;
+  var TheName:string; TheFile:Text;
+  begin
+      SomeFilesExist:=False;
+      CurPos:=1;
+      while GetNextName(NameList,TheName) do if ExistFile(TheName)
+      then begin
+          SomeFilesExist:=True;
+          Close(TheFile);
+          Exit
+      end
+  end;
 
   procedure MakeStr(D: String);
   label Fail;
@@ -468,6 +497,8 @@ begin
  S.FileName := HistoryStr(hsMakeList, 0);
  if S.FileName = '' then S.FileName := 'DNLIST.BAT';
  S.Action := HistoryStr(hsExecDOSCmd, 0);
+ S.Header := ''; S.HeaderMode:=hfmAuto;
+ S.Footer := ''; S.FooterMode:=hfmAuto;
  S.Options := MakeListFileOptions;
  if S.Options and cmlPathNames <> 0 then
  begin
@@ -483,6 +514,8 @@ begin
  if (ExecResource(dlgMakeList, S) <> cmOK) then Exit;
  MakeListFileOptions := S.Options;
  while S.Action[Length(S.Action)] = ' ' do Dec(S.Action[0]);
+ while S.Header[Length(S.Header)] = ' ' do Dec(S.Header[0]);
+ while S.Footer[Length(S.Footer)] = ' ' do Dec(S.Footer[0]);
  if S.Action <> '' then S.Action := S.Action + ' '; FileMode := 2;
  Abort := Off;
  if S.FileName[1] in ['+', '%', '/'] then
@@ -518,7 +551,7 @@ AddrError:
      SS := MakeNormName(SS, Nm + Xt);
      S.FileName := SS;
      S.Options := S.Options or cmlPathNames;
-   end;
+   end else FidoMode:=False;
  D := Advance.FExpand(S.FileName); FSplit(D, Dr, Nm, Xt); ClrIO;
  FLD := Dr;
  CreateDirInheritance(Dr, Off);
@@ -544,6 +577,27 @@ AddrError:
    MessageBox(GetString(dlFBBNoOpen)+S.FileName, nil, mfError + mfOKButton);
    Exit;
   end;
+ if (S.Header<>'') and not FidoMode then begin
+     if (S.HeaderMode=hfmInsertText) or
+     ((S.HeaderMode=hfmAuto) and not SomeFilesExist(S.Header))
+     then WriteLn(T,S.Header) else begin
+         CurPos:=1;
+         while GetNextName(S.Header,SS) do begin
+             Assign(HF,SS); ClrIO;
+             Reset(HF);
+             if (IOResult<>0) and (S.HeaderMode=hfmInsertFiles) then begin
+                 MessageBox(GetString(dlFBBNoOpen)+SS,
+                 nil, mfError + mfOKButton);
+             end;
+             while (IOResult=0) and not EOF(HF) do begin
+                 ReadLn(HF,SS);
+                 WriteLn(T,SS);
+             end;
+             Close(HF)
+         end;
+         ClrIO;
+     end;
+ end;
  for I := 1 to Files^.Count do
   begin
     P := Files^.At(I-1);
@@ -568,6 +622,27 @@ AddrError:
       then MakeStr( '!\!.!' )
       else MakeStr('!.!');
   end;
+ if (S.Footer<>'') and not FidoMode then begin
+     if (S.FooterMode=hfmInsertText) or
+     ((S.FooterMode=hfmAuto) and not SomeFilesExist(S.Footer))
+     then WriteLn(T,S.Footer) else begin
+         CurPos:=1;
+         while GetNextName(S.Footer,SS) do begin
+             Assign(HF,SS); ClrIO;
+             Reset(HF);
+             if (IOResult<>0) and (S.FooterMode=hfmInsertFiles) then begin
+                 MessageBox(GetString(dlFBBNoOpen)+SS,
+                 nil, mfError + mfOKButton);
+             end;
+             while (IOResult=0) and not EOF(HF) do begin
+                 ReadLn(HF,SS);
+                 WriteLn(T,SS);
+             end;
+             Close(HF)
+         end;
+         ClrIO;
+     end;
+ end;
  Close(T);
  RereadDirectory(Dr);
  GlobalMessage(evCommand, cmRereadInfo, nil);
@@ -616,7 +691,7 @@ function CreateDirInheritance;
  var I, J: Integer;
      SR: SearchRec;
      LS: Byte absolute S;
-     M: PathStr;
+     M: PathStrLFN;
      BB: Boolean;
 begin
   CreateDirInheritance := 0; BB := On;
@@ -641,7 +716,16 @@ begin
              if (MessageBox(GetString(dlQueryCreateDir)+Cut(S, 40)+' ?', nil, mfYesNoConfirm) <> cmYes)
                  then Exit;
             end;
-        ClrIO; MkDir(M);
+        ClrIO;
+{-=DL=-}
+        if WinIsHere then MkDirLFN(M) else MkDir(M);
+
+        if WinIsHere then begin
+          if Abort or (IOResultLFN <> 0) then
+         begin
+           MessageBox(GetString(dlFCNoCreateDir) + S, nil, mfError + mfOKButton);
+           Exit;
+         end; end else
         if Abort or (IOResult <> 0) then
          begin
            MessageBox(GetString(dlFCNoCreateDir) + S, nil, mfError + mfOKButton);
@@ -675,7 +759,7 @@ const
   NoUseXMS: Boolean = Off;
 
 var
-   ToDo: LongInt;
+   ToDo,ToDoCopy: LongInt;
 
 type
   PLine = ^TLine;
@@ -821,7 +905,10 @@ begin
     begin
       Pos := LongInt(EMSFreePages);
       if Pos < 32 then begin NoUseEMS := True; Len := 0; Exit end;
-      if Pos > 512 then Pos := 512;
+{piwamoto.change.begin}
+      if (Pos > 512) and (WinIsHere and CopyLimit8M) then Pos := 512;
+      if Pos > 2048 then Pos := 2048;
+{piwamoto.change.end}
       Pos := (Pos-1) * LongInt(16384);
       if Pos > ToDo+10240 then Pos := ToDo+10240;
       New(EMSStream, Init(Pos, Pos));
@@ -852,8 +939,11 @@ begin
   if XMSStream = nil then
     begin
       Pos := LongInt(XMSFree);
-      if Pos < 512 then begin NoUseXMS := On; Len := 0; Exit end;
-      if Pos > 8192 then Pos := 8192;
+      if Pos < 512 then begin NoUseXMS := On; Len := 0; Exit; end;
+{piwamoto.change.begin}
+      if (Pos > 8192) and (WinIsHere and CopyLimit8M) then Pos := 8192;
+      if Pos > 32768 then Pos := 32768;
+{piwamoto.change.end}
       Pos := LongInt(Pos-1) shl 10;
       if Pos > ToDo+10240 then Pos := ToDo+10240;
       New(XMSStream, Init(Pos, Pos));
@@ -916,23 +1006,23 @@ begin
   Assign(F2, GetPath(DPath) + '$DN'+ItoS(DNNumber)+'$.DIZ');
   DisableAppend;
   Rewrite(F2); if IOResult <> 0 then begin Dispose(F1, Done); Exit; end;
-  WB := Off;
+  WB := On;
   repeat
     S := F1^.GetStr;
-    if WB or (S = '') or (S[1] = ' ') then WriteLn(F2, S)
-      else begin
-             I := 1;
-             While (I <= Length(S)) and (I <= 12) and (S[I] <> ' ') do Inc(I);
-             NM := Copy(S, 1, I-1); LowStr(NM);
-             if (NM = Name) or (NM = Name+'.') then
-               begin
-                WB := On;
-                repeat
-                  S := F1^.GetStr;
-                until F1^.EOF or (S = '') or not (S[1] in [' ','.']) or (IOResult <> 0);
-               end;
-             WriteLn(F2, S);
-           end;
+    if WB and (S<>'') and (S[1]<>' ') then
+     begin
+       I := 1;
+       While (I <= Length(S)) and (I <= 12) and (S[I] <> ' ') do Inc(I);
+       NM := Copy(S, 1, I-1); LowStr(NM);
+       if (NM = Name) or (NM = Name+'.') then
+         begin
+          WB := Off;
+          repeat
+            S := F1^.GetStr;
+          until F1^.EOF or (S[1]<>' ') or (IOResult <> 0);
+         end;
+     end;
+    if S<>'' then WriteLn(F2, S);
   until F1^.EOF or (IOResult <> 0);
   ReplaceT(F1, F2);
 end;
@@ -1142,30 +1232,6 @@ var  ReadStream:  file;
       P := New(PStaticText, Init(R,^C+GetString(dlFile)+' '+Cut(NName, 40)+S));
       D^.Insert(P);
 
-      {
-      R.Assign(6, 8, 54, 9);
-      D^.Insert(New(PCheckBoxes, Init(R, NewSItem(GetString(dlYesForAll), nil))));
-
-      R.Assign(3, 10, 16, 12);
-      P := New(PButton, Init(R, GetString(dlOverwriteButton), cmYes, bfDefault));
-      D^.Insert(P);
-      R.Assign(16, 10, 26, 12);
-      P := New(PButton, Init(R, GetString(dlAppendButton), cmNo, 0));
-      D^.Insert(P);
-      R.Assign(26, 10, 36, 12);
-      P := New(PButton, Init(R, GetString(dlRenameButton), cmOK, 0));
-      D^.Insert(P);
-      R.Assign(36, 10, 46, 12);
-      P := New(PButton, Init(R, GetString(dlSkipButton), cmSkip, 0));
-      D^.Insert(P);
-      R.Assign(46, 10, 56, 12);
-      P := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, 0));
-      D^.Insert(P);
-
-      D^.SelectNext(False);
-      D^.SelectNext(False);
-      }
-
       MsgActive := On;
       D^.SetData(AcceptAll);
       I := Desktop^.ExecView(D);
@@ -1204,6 +1270,7 @@ var  ReadStream:  file;
          BufCrc : word ;
          Created: Boolean;
          Opened: Integer;
+         MsgResult: integer;
 
       procedure TryToReset;
         var F: FileRec absolute WriteStream;
@@ -1392,7 +1459,11 @@ const
                      PS[2] := P^.OldName;
                      Assign(WriteStream, '');
                      ForceDispatch;
-                     CopyCancel := Msg(erNotDiskSpace1, @PS, mfError+mfYesButton+mfNoButton) <> cmYes;
+                     if CopyOptions and cpoFitAll = 0 then begin
+                        MsgResult:= Msg(erNoDiskSpace, @PS, mfError+mfYesButton+mfNoButton+mfAllButton);
+                        CopyCancel := (MsgResult <> cmYes) and (MsgResult <> cmOK);
+                        if MsgResult = cmOK then CopyOptions:=CopyOptions or cpoFitAll
+                     end else CopyCancel:=False;
                      NewTimer(Timer, 0);
                      DoSkip;
                      if not SkipRequested then Goto 1;
@@ -1407,15 +1478,6 @@ const
                          begin
                            TryToReset;
                            if not Use40 then goto DoNotUse40;
-                           {
-                              begin
-                                 Use40 := FileSize(WriteStream) = 0;
-                                 Close(WriteStream); ClrIO;
-                                 if Use40 then Erase(WriteStream);
-                                 ClrIO; Use40 := Off;
-                                 Goto DoNotUse40;
-                              end;
-                           }
                            case Opened of
                              0 : begin
                                    if Created then Goto lbStartWrite else
@@ -1751,10 +1813,6 @@ lbStartWrite:
        if not CopyCancel then RenameFile;
        if not CopyCancel and (Own <> nil) then
          begin
-          {
-          if SoftMode and (TempFiles <> nil) then J := 1
-                                             else J := -1;
-          }
           PFileRec(Own)^.Attr := PFileRec(Own)^.Attr or $80;
           if (PFileRec(Own)^.DIZ <> nil) or (CopyOptions and cpoDesc <> 0) then
              begin
@@ -1765,7 +1823,6 @@ lbStartWrite:
              end;
           PFileRec(Own)^.Name := Norm12(GetName(NName));
           PFileRec(Own)^.Name[9] := ' ';
-          {if J > 0 then PFileRec(TempFiles^.At(J))^.Name := PFileRec(Own)^.Name;}
           if (Owner <> nil) then Message(Owner, evCommand, cmCopyUnselect, Own);
           Inc(ToWrite, Ln);
           Inc(ToRead, Ln);
@@ -1823,18 +1880,6 @@ lbStartWrite:
       Was := 0;
       ClrIO; Assign(ReadStream, FName);
       if S1[1] in CD_Drives then Attr := Attr and not ReadOnly;
-
-      {
-      if DosError <> 0 then
-        begin
-           ClrIO;
-           if CopyQueue^.Count > 0 then MaxWrite; if CopyCancel then Exit;
-           ForceDispatch;
-           MessageBox(GetString(dlFBBNoOpen)+FName, nil, mfError+mfOKButton);
-           CopyCancel := On;
-           Exit;
-        end;
-      }
 
       FileMode := $40;
       DisableAppend;
@@ -1912,27 +1957,6 @@ lbStartWrite:
            DoRename;
            Exit
          end;
-      (* !!!
-      if CopyOptions and cpoCheckFree <> 0 then
-        begin
-          if FreeDisk < 0 then
-           begin
-            GetDrInfo(Drv);
-            FreeDisk := FreeSpc;
-           end;
-          Inc(FreeDisk, LongInt(EOF and eoAppend = 0)*GetRndBytes(Was, BytePerClu));
-          Byte(PS[1]) := Drv+64;
-          PS[2] := @FName;
-          if FreeDisk < Ln then
-            begin
-              Close(ReadStream);
-              CopyCancel := Msg(erNotDiskSpace1, @PS, mfError+mfYesButton+mfNoButton) <> cmYes;
-              NewTimer(Timer, 0);
-              Exit;
-            end;
-          Dec(FreeDisk, GetRndBytes(Ln, BytePerClu));
-        end;
-      *)
       if B = nil then MakeBuffer;
       if B = nil then
          begin
@@ -1946,6 +1970,7 @@ lbStartWrite:
       Info^.Write(3, ReadCount);
       Dispatch; GrdClick := False;
       {Info^.DrawView;}
+      Ln:=FileSize(ReadStream); {-$VOL}
       repeat
         SkipRequested := Off;
         WW := Ln - Rd;
@@ -2014,7 +2039,7 @@ lbStartWrite:
         EOF := EOF and not eoStart;
         Inc(Rd, WW);
         if CopyQueue^.Count > 400 then MaxWrite;
-      until CopyCancel or Abort or (Rd = Ln) or SkipRequested;
+      until CopyCancel or Abort or (Rd = Ln) or System.EOF(ReadStream) or SkipRequested; {-$VOL}
       SkipRequested := Off;
       ClrIO;
       ReadProgress;
@@ -2179,7 +2204,12 @@ lbStartWrite:
                    ClrIO;
                    if not CopyPrn then
                    begin
-                     MkDir(Dest+Name);
+                   {-=DL=-}
+                     if WinIsHere then MkDirLFN(Dest+Name) else MkDir(Dest+Name);
+                     if WinIsHere then begin
+                        if IOResultLFN = 0 then
+                          SetFileAttr(Dest+Name+#0, Attr and not Directory);
+                     end else
                      if IOResult = 0 then
                         SetFileAttr(Dest+Name+#0, Attr and not Directory)
                    end;
@@ -2204,7 +2234,7 @@ lbStartWrite:
       ClrIO;
       if not CopyPrn then
       begin
-        MkDir(Dest);
+        if WinIsHere then MkDirLFN(Dest) else MkDir(Dest); {-=DL=-}
         if IOResult = 0 then
           begin
              SetFileAttr(Dest+#0, Attr and not Directory);
@@ -2218,7 +2248,11 @@ lbStartWrite:
           if (SR.Attr and Directory <> 0) and (SR.Name[1] <> '.') then
           begin
             CopyI(Dest, Source+'\'+SR.Name, SR.Name, nil, CopyIt, SR.Attr)
-          end else Inc(ToDo, SR.Size);
+          end else begin
+              Inc(ToDo, SR.Size);
+              if (Source[1]<>Dest[1]) or (CopyOptions and cpoMove=0)
+              then Inc(ToDoCopy, SR.Size)
+          end;
           ClrIO;
           Dispatch;
           if not CopyCancel then FindNext(SR);
@@ -2256,7 +2290,11 @@ lbStartWrite:
             if not (Abort or CopyCancel) and
                (P^.DIZ <> nil) or (CopyOptions and cpoDesc <> 0) then
                 ImportDIZ(LowStrg(P^.Name), MkName(P^.Name), P^.DIZ, P^.Owner);
-         end else Inc(ToDo, P^.Size);
+         end else begin
+             Inc(ToDo, P^.Size);
+             if (CopyDir[1]<>P^.Owner^[1]) or (CopyOptions and cpoMove=0)
+             then Inc(ToDoCopy, P^.Size)
+         end;
         if CopyCancel then Break;
       end;
 1:  repeat
@@ -2325,6 +2363,7 @@ lbStartWrite:
 
 var
   Flush: Boolean;
+  DrvC: integer;
 
 begin
   Dirs := nil;
@@ -2355,7 +2394,7 @@ begin
       mov  AppendState, BX
 @@1:
     end;
-  ToRead := 0; ToWrite := 0; ToDo := 0;
+  ToRead := 0; ToWrite := 0; ToDo := 0; ToDoCopy := 0;
   R.Assign(0,0,40,13);
   New(Info, Init(R));
   if CopyOptions and cpoMove <> 0 then Info^.Top := GetString(dlFCMove)
@@ -2375,8 +2414,13 @@ begin
   XMSStream := nil; NoUseXMS := Off;
   B := nil;
   New(CopyQueue, Init(250, 100));
-  Info^.Bottom := GetString(dlFC_Total)+FStr(ToDo) +GetString(dlBytes);
+  Info^.Bottom := GetString(dlFC_Total)+FStr(ToDo)+GetString(dlBytes);
   Info^.DrawView;
+  DrvC:=Drv+64;
+  if (CopyOptions and cpoCheckFree<>0) and (ToDoCopy>Disk_Free(Drv))
+  and (MessageBox(GetString(erNoDiskSpacePre),@DrvC,mfError+mfYesButton+mfNoButton)<>cmYes)
+  then CopyCancel:=True;
+  if CopyCancel then goto 1;
   MaxRead;
   if Abort or CopyCancel then
     begin
@@ -2386,8 +2430,8 @@ begin
       Close(WriteStream);
       if IOResult = 0 then Erase(WriteStream);
     end else if (FMSetup.Options and fmoBeep <> 0)
-    {and
-                (ElapsedTimeInSecs(Timer) > 30)} then BeepAfterCopy;
+    and
+                (ElapsedTimeInSecs(Timer) > 30) then BeepAfterCopy;
   if B <> nil then FreeMem(B, BSize);
   Dispose(CopyQueue, Done);
   DoneStreams;

@@ -1,0 +1,23 @@
+==============================================================================
+                        Разработчики Dos Navigator (C)
+==============================================================================
+Команда Dos Navigator Open Source Project:
+    Ivan Borodikhin (EXCELLENCE)
+    Vladimir Fonarev (VOL)
+    Sergey Gazizyanov (-=DarkLord=-)
+    Sergey Klimov
+    Alexey Kostkin (Knave)
+    Andy Neverowsky
+    Sergey Radkevitch
+    Sir Raorn
+    Max Vasilyev (Piwamoto)
+    Ilya Vdovin (VIV)
+    Alexey Feldgendler
+    Mike Lykov
+
+Команда Dos Navigator II:
+    Stefan Tanurkov
+    Slava Filimonov
+    Dmitry Dotsenko (AxoNSoft)
+    Max Masyutin
+==============================================================================

@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -919,7 +920,7 @@ begin
                           1: begin
                               HexEdit := not HexEdit;
                               XXPos := True;
-                              DrawView;
+                              DrawView;
                               end;
                           2: if (Buf^[W] > 32) and (Buf^[W] <> $E5) then
                              begin

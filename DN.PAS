@@ -1,6 +1,7 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator  Version 1.51  Copyright (C) 1991-99 RIT Research Labs
+//  Dos Navigator Open Source 1.51.04/DOS
+//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
@@ -148,7 +149,9 @@ uses
      DNUtil,
      XDblWnd,
      Histries,
-     CCalc;
+     CCalc,
+     Novell,
+     DnIni; {-$VIV}
 
   {!$O DNApp}
   {!$O Drivers}
@@ -215,6 +218,7 @@ uses
   {$O ColorVGA}
   {$O WinClp}
   {$O DiskImg}
+  {$O Novell}
 
 
 {$IFDEF Game}
@@ -261,6 +265,7 @@ uses
 {$ENDIF}
 
 {$I Version.Inc}
+{$I runcmd.inc}
 
 type
    MyApp = object (TDNApplication)
@@ -329,8 +334,7 @@ end;
 
 PROCEDURE DoStartup;
 var
-  SavePos, SPos1: LongInt;
-
+  SavePos, SPos1,INIdatapos: LongInt;
 
   function ReadConfig: LongInt;
   var
@@ -346,6 +350,7 @@ var
   begin
     ReadConfig := -1;
     SPos1 := -1;
+    INIdatapos:=-1;
     S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
     if ( S.Status <> stOK ) or ( S.GetSize < SizeOf( ConfigSign )) then begin S.Done; Exit; end;
     S.Read( Chk[ 1 ], ConfigSignLen );
@@ -398,6 +403,18 @@ var
                             end;
            cfgDirsToChange: begin SPos1 := S.GetPos; S.Seek(S.GetPos+L); end;
                  cfgSavers: begin ReadConfig := S.GetPos; S.Seek(S.GetPos+L); end;
+                cfgINIdata: begin
+                                if L-sizeof(INIstoredtime)-sizeof(INIstoredsize)
+                                =Ofs(iniparamblock_END)-Ofs(iniparamblock_START)
+                                then begin
+                                    S.Read(INIstoredtime,sizeof(INIstoredtime));
+                                    S.Read(INIstoredsize,sizeof(INIstoredsize));
+                                    INIdatapos:=S.GetPos;
+                                    S.Seek(S.GetPos+L-sizeof(INIstoredtime)-sizeof(INIstoredsize))
+                                end else S.Seek(S.GetPos+L)
+                            end;
+         cfgExtractOptions: SRead(ExtractWithPathNames);
+         cfgIgnoreOldFiles: IgnoreOldFiles:=True;
             else S.Seek(S.GetPos+L);
         end;
       end;
@@ -437,7 +454,7 @@ var
   var S: String;
       I: LongInt;
   begin
-    InitExtraMem;
+{    InitExtraMem; }
     SwpDir := GetEnv('DNSWP');
     if SwpDir = '' then
       begin
@@ -448,15 +465,38 @@ var
     if SwpDir[Length(SwpDir)] <> '\' then SwpDir := SwpDir+'\'; ClrIO;
     UpStr(SwpDir);
     if RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+{
     S := GetEnv('DNOVR');
     if S = '' then S := StartupDir + 'DN.OVR'
               else S := MakeNormName(S, 'DN.OVR');
     OvrFileMode := $40;
     InitOverlay(S);
+}
+  end;
+
+  procedure ReadINI;
+  var INIavailtime,INIavailsize:longint;
+      S:TBufStream;
+  begin
+      if (not ProbeINI(INIavailtime,INIavailsize)) or (INIdatapos<0) or
+      (INIavailtime>INIstoredtime) or (INIavailsize<>INIstoredsize) then begin
+          InitIniEngine; {-$VIV start}
+          LoadDnIniSettings;
+          if DnIni.AutoSave then SaveDnIniSettings;
+          DoneIniEngine; {-$VIV stop}
+          ProbeINI(INIstoredtime,INIstoredsize);
+          UpdateConfig; WriteConfig
+      end else begin
+          S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
+          S.Seek(INIdatapos);
+          S.Read(iniparamblock_START,Ofs(iniparamblock_END)-Ofs(iniparamblock_START));
+          S.Done;
+      end;
   end;
 
 begin
   RegisterType( RTextCollection );
+  IgnoreOldFiles:=False;
   SavePos := ReadConfig;
 
   if SavePos >= 0 then UpdateConfig else InvalidateTempDir;
@@ -470,6 +510,56 @@ begin
   EraseFile(SwpDir+'$$$DN$$.LST');
   EraseFile(SwpDir+'$$$DN$$$.LST');
   If SavePos >= 0 then ReadSavers( SavePos );
+  ReadINI;
+end;
+
+procedure CheckForOldFiles;
+type TSearchDirSet=set of 0..2;
+var OldFiles:array [0..8] of string[12];
+    OldFileSearchDirs:array [0..8] of TSearchDirSet;
+    OldFilesCount:integer;
+    Dirs:array [0..2] of string;
+    S:string; i,j:integer;
+    procedure ProbeOldFile(Name:string; SearchDirs:TSearchDirSet);
+    var k:integer;
+    begin
+        for k:=0 to 2 do if (k in SearchDirs) and ExistFile(Dirs[k]+Name)
+        then begin
+            OldFiles[OldFilesCount]:=Name;
+            OldfileSearchDirs[OldFilesCount]:=SearchDirs;
+            Inc(OldFilesCount);
+            break
+        end;
+    end;
+begin
+    if not IgnoreOldFiles then ConfigModified:=True;
+    IgnoreOldFiles:=True;
+    Dirs[0]:=GetEnv('DNDLG');
+    Dirs[1]:=SourceDir;
+    Dirs[2]:=StartupDir;
+    if Dirs[0]='' then Dirs[0]:=Dirs[1];
+    for i:=0 to 2 do if Dirs[i][Byte(dirs[i][0])]<>'\'
+    then Dirs[i]:=Dirs[i]+'\';
+    OldFilesCount:=0;
+    ProbeOldFile('DN.DLG',[0,2]);
+    ProbeOldFile('DNENG.DLG',[0,2]);
+    ProbeOldFile('DNRUS.DLG',[0,2]);
+    ProbeOldFile('DN.LNG',[0,2]);
+    ProbeOldFile('DNENG.LNG',[0,2]);
+    ProbeOldFile('DNRUS.LNG',[0,2]);
+    ProbeOldFile('DN.HLP',[1,2]);
+    ProbeOldFile('DNENG.HLP',[1,2]);
+    ProbeOldFile('DNRUS.HLP',[1,2]);
+    if OldFilesCount=0 then Exit;
+    S:='';
+    for i:=0 to OldFilesCount-1 do S:=S+#3+OldFiles[i]+#13;
+    if MessageBox2(S+#13,GetString(dlOldFiles),nil,nil,
+    mfWarning+mfYesButton+mfNoButton)=cmYes then begin
+        for i:=0 to OldFilesCount-1 do for j:=0 to 2
+        do if j in OldFileSearchDirs[i] then EraseFile(Dirs[j]+OldFiles[i]);
+        SaveDsk; MyApplication.Done; ExecString('')
+    end else MessageBox(GetString(dlOldFilesNoWarn),nil,
+    mfInformation+mfOkButton);
 end;
 
 procedure MyApp.GetEvent;
@@ -793,6 +883,7 @@ begin
      cmRSearchAdvance,
      cmSetupPrinter,
      cmOpenSmartpad,
+     cmOpenClipBoard,
      cmExecGrabber,
      cmTerminalDefaults,
      cmSetupConfirmation,
@@ -919,6 +1010,7 @@ begin
     Halt(203);
  end;
  Randomize;
+
  LoaderSeg := 0;
  LSliceCnt := -3;
  asm
@@ -951,7 +1043,6 @@ begin
   mov  word ptr DDTimer+2, cx
   pop  bp
  end;
-
 
  if DDTimer > 0 then DDTimer := Get100s-DDTimer;
 
@@ -989,7 +1080,6 @@ begin
    end
  end;
 
-
 {$IFDEF DEBUG} DEBUG.Flash( $4E64 ); {$ENDIF}
  SetBlink(CurrentBlink);
 
@@ -1019,10 +1109,12 @@ GrabPalette;
 {$ENDIF}
  if DDTimer > 0 then ShowTimeInfo;
 
+ if not IgnoreOldFiles then CheckForOldFiles;
 
  MyApplication.Run;
  GlobalMessage(evCommand, cmKillUsed, nil);
  TottalExit := On;
  MyApplication.Done;
+
 END.
 

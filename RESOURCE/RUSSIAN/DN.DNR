@@ -1,3 +1,50 @@
+;/////////////////////////////////////////////////////////////////////////
+;/
+;/  Dos Navigator Open Source 1.51.04/DOS
+;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+;/
+;/  This programs is free for commercial and non-commercial use as long as
+;/  the following conditions are aheared to.
+;/
+;/  Copyright remains RIT Research Labs, and as such any Copyright notices
+;/  in the code are not to be removed. If this package is used in a
+;/  product, RIT Research Labs should be given attribution as the RIT Research
+;/  Labs of the parts of the library used. This can be in the form of a textual
+;/  message at program startup or in documentation (online or textual)
+;/  provided with the package.
+;/
+;/  Redistribution and use in source and binary forms, with or without
+;/  modification, are permitted provided that the following conditions are
+;/  met:
+;/
+;/  1. Redistributions of source code must retain the copyright
+;/     notice, this list of conditions and the following disclaimer.
+;/  2. Redistributions in binary form must reproduce the above copyright
+;/     notice, this list of conditions and the following disclaimer in the
+;/     documentation and/or other materials provided with the distribution.
+;/  3. All advertising materials mentioning features or use of this software
+;/     must display the following acknowledgement:
+;/     "Based on Dos Navigator by RIT Research Labs."
+;/
+;/  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
+;/  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;/  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;/  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+;/  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;/  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;/  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;/  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+;/  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+;/  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+;/  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;/
+;/  The licence and distribution terms for any publically available
+;/  version or derivative of this code cannot be changed. i.e. this code
+;/  cannot simply be copied and put under another distribution licence
+;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+
 ColorDialog
     ColorGroup 'Таймер'
          ColorItem 'Цвет',                          1,
@@ -106,6 +153,10 @@ ColorDialog
     ColorGroup '└──Информация по диску',
          ColorItem 'Нормальный текст',                  103,
          ColorItem 'Подсвеченный текст',                102,
+    ColorGroup 'Урна',
+         ColorItem 'Пассивная',                         24,
+         ColorItem 'Активная',                          25,
+         ColorItem 'При перемещении',                   26,
     ColorGroup 'Просмотр файла',
          ColorItem 'Рамка пассивная',                      112,
          ColorItem 'Рамка активная',                       113,
@@ -259,10 +310,10 @@ DIALOG dlgAdvanceSearch, 55, 15, 'Расширенный поиск'
       ITEM 'Только ~ч~тение'
     END
     Label 3, 10, 'Атрибуты', ofPostProcess, ofPreProcess
-    Button 41, 2, 53, 4, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 40, 2, 53, 4, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 40, 5, 53, 7, '~О~чистить', 3222, ofPostProcess, ofPreProcess
-    Button 41, 8, 53, 10, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 41, 11, 53, 13, 'Помощь', cmHelp, ofPostProcess, ofPreProcess
+    Button 40, 8, 53, 10, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 40, 11, 53, 13, 'Помощь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgReenterPassword, 39, 7, 'Повтори пароль'
@@ -282,30 +333,34 @@ DIALOG dlgArchiveFiles, 64, 18, 'Архивирование файлов'
     InputLine 3, 5, 15, 6, 40, 0, ofSecurity
     Label 3, 4, '~П~ароль', ofPostProcess, ofPreProcess
     InputLine 19, 5, 39, 6, 40, 0
-    Label 19, 4, 'Д~о~п. установки', ofPostProcess, ofPreProcess
+    Label 19, 4, 'Доп. уст~а~новки', ofPostProcess, ofPreProcess
     CheckBoxes 40, 4, 61, 7, ofPostProcess, ofPreProcess
       ITEM 'Запоминать п~у~ти'
       ITEM 'П~е~реносить файлы'
       ITEM 'У~с~коренный режим'
     END
     RadioButtons 3, 8, 39, 14, ofPostProcess, ofPreProcess
+      ITEM 'ACE'
+      ITEM 'AI~N~'
       ITEM '~A~RC'
       ITEM 'AR~J~'
       ITEM '~B~SA'
       ITEM 'BS~2~'
-      ITEM '~C~HZ'
+      ITEM 'CAB'
+      ITEM 'CHZ'
       ITEM '~H~A'
       ITEM 'HAP'
-      ITEM 'H~P~K'
-      ITEM 'H~Y~P'
+      ITEM 'HPK'
+      ITEM 'HYP'
       ITEM '~L~HA'
       ITEM 'L~I~M'
       ITEM '~R~AR'
       ITEM '~S~QZ'
-      ITEM '~T~AR'
+      ITEM 'TAR'
       ITEM '~U~C2'
       ITEM '~Z~IP'
       ITEM 'Z~O~O'
+      ITEM 'Z~X~Z'
     END
     Label 3, 7, 'Тип архива', ofPostProcess, ofPreProcess
     RadioButtons 41, 9, 61, 12, ofPostProcess, ofPreProcess
@@ -379,9 +434,10 @@ DIALOG dlgMouseSetup, 39, 13, 'Установки мышки'
     Button 27, 9, 37, 11, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgInterfaceSetup, 68, 12, 'Установки интерфейса'
+;{-$VIV}
+DIALOG dlgInterfaceSetup, 68, 13, 'Установки интерфейса'
     HELPCTX hcInterfaceSetup
-    CheckBoxes 2, 2, 66, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 2, 2, 66, 9, ofPostProcess, ofPreProcess
       ITEM '~Ч~асы'
       ITEM 'Скрыть ~м~еню'
       ITEM 'Скрыть ~с~троку статуса'
@@ -394,10 +450,11 @@ DIALOG dlgInterfaceSetup, 68, 12, 'Установки интерфейса'
       ITEM 'Истоpия ~р~едактоpования файлов'
       ITEM 'Истоpия ~п~pосмотpа файлов'
       ITEM '~И~стоpия смены каталогов'
+      ITEM 'Скрыть и~н~формацию о дисках'
     END
-    Button 35, 9, 45, 11, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 45, 9, 55, 11, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 55, 9, 65, 11, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    Button 35, 10, 45, 12, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 45, 10, 55, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 55, 10, 65, 12, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetupTerminal, 63, 15, 'Hастройки терминала'
@@ -497,11 +554,14 @@ DIALOG dlgEditorDefaults, 58, 22, 'Установки pедактоpа/пpосмотpа'
       ITEM '"~З~ащита" файла'
       ITEM 'Использование EMS'
       ITEM 'Использование XMS'
+; {-$VOL} {Tab Replace}
+      ITEM 'За~м~ена табуляции'
     END
     Label 2, 2, 'Опции редактора', ofPostProcess, ofPreProcess
-    CheckBoxes 2, 13, 21, 15, ofPostProcess, ofPreProcess
+    CheckBoxes 2, 13, 24, 16, ofPostProcess, ofPreProcess
       ITEM 'He~х~ режим'
       ITEM 'Перенос лини~й~'
+      ITEM 'Перенос по словам'
     END
     Label 2, 12, 'Опции просмотра', ofPostProcess, ofPreProcess
     InputLine 50, 12, 55, 13, 3, 0
@@ -647,7 +707,7 @@ DIALOG dlgDbFind, 55, 12, 'Поиск'
       ITEM 'В ~т~екущем поле'
       ITEM '~П~овсем полям'
     END
-    Label 5, 6, 'Область', ofPostProcess, ofPreProcess
+    Label 3, 6, 'Область', ofPostProcess, ofPreProcess
     RadioButtons 35, 5, 53, 8, ofPostProcess, ofPreProcess
       ITEM '~В~перед'
       ITEM '~Н~азад'
@@ -791,11 +851,13 @@ DIALOG dlgEditorFormat, 39, 11, 'Отступы'
     Button 27, 8, 37, 10, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
+;{-$VIV 14.05.99}
 DIALOG dlgEditorFind, 57, 15, 'Поиск'
     HELPCTX hcEditorFind
-    CheckBoxes 3, 5, 29, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 5, 29, 8, ofPostProcess, ofPreProcess
       ITEM '~Р~азличать регистр'
       ITEM 'Поиск ~о~тдельных слов'
+      ITEM 'Во всех код~и~ровках'
     END
     Label 3, 4, 'Опции', ofPostProcess, ofPreProcess
     RadioButtons 31, 5, 54, 7, ofPostProcess, ofPreProcess
@@ -803,20 +865,19 @@ DIALOG dlgEditorFind, 57, 15, 'Поиск'
       ITEM 'Наза~д~'
     END
     Label 31, 4, 'Направление поиска', ofPostProcess, ofPreProcess
-    RadioButtons 3, 9, 29, 11, ofPostProcess, ofPreProcess
+    RadioButtons 3, 10, 29, 12, ofPostProcess, ofPreProcess
       ITEM '~В~есь текст'
       ITEM 'От~м~еченный текст'
     END
-
-    Label 3, 8, 'Область поиска', ofPostProcess, ofPreProcess
-    RadioButtons 31, 9, 54, 11, ofPostProcess, ofPreProcess
+    Label 3, 9, 'Область поиска', ofPostProcess, ofPreProcess
+    RadioButtons 31, 10, 54, 12, ofPostProcess, ofPreProcess
       ITEM 'С на~ч~ала текста'
       ITEM 'С ~п~озиции курсора'
     END
-    Label 31, 8, 'Искать', ofPostProcess, ofPreProcess
-    Button 22, 12, 32, 14, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 32, 12, 42, 14, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 42, 12, 52, 14, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    Label 31, 9, 'Искать', ofPostProcess, ofPreProcess
+    Button 22, 13, 32, 15, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 32, 13, 42, 15, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 42, 13, 52, 15, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
     InputLine 17, 2, 49, 3, 250, 0
     History 49, 2, hsFindText, ofPostProcess
     Label 3, 2, 'Искать ~т~екст', ofPostProcess, ofPreProcess
@@ -861,7 +922,8 @@ DIALOG dlgEditorReplace, 57, 18, 'Замена'
     SelectBack
 END
 
-DIALOG dlgFileFind, 52, 17, 'Поиск файла'
+;{-$VIV 14.05.99}
+DIALOG dlgFileFind, 52, 18, 'Поиск файла'
     HELPCTX hcFileFind
     InputLine 16, 2, 47, 3, 80, 0
     Label 2, 2, 'Маска ~Ф~айла', ofPostProcess, ofPreProcess
@@ -869,29 +931,30 @@ DIALOG dlgFileFind, 52, 17, 'Поиск файла'
     InputLine 16, 4, 47, 5, 200, 0
     Label 2, 4, '~И~скать текст', ofPostProcess, ofPreProcess
     History 47, 4, hsFindText, ofPostProcess
-    CheckBoxes 3, 7, 49, 9, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 7, 49, 10, ofPostProcess, ofPreProcess
       ITEM 'Р~а~сширенный поиск'
       ITEM '~Р~азличать регистр'
       ITEM 'Р~е~куpсивный поиск'
       ITEM 'Полные ~с~лова'
+      ITEM 'Во всех к~о~дировках'
     END
     Label 3, 6, 'Опции', ofPostProcess, ofPreProcess
-    RadioButtons 3, 11, 49, 13, ofPostProcess, ofPreProcess
+    RadioButtons 3, 12, 49, 14, ofPostProcess, ofPreProcess
       ITEM '~Д~иск'
       ITEM '~Т~екущий каталог'
       ITEM '~В~се диски'
     END
-    Label 3, 10, 'Область', ofPostProcess, ofPreProcess
-    Button  3, 14, 13, 16, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 13, 14, 28, 16, 'Рас~ш~иренный', 3223, ofPostProcess, ofPreProcess
-    Button 28, 14, 38, 16, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 38, 14, 48, 16, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    Label 3, 11, 'Область', ofPostProcess, ofPreProcess
+    Button  3, 15, 13, 17, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 15, 28, 17, 'Рас~ш~иренный', 3223, ofPostProcess, ofPreProcess
+    Button 28, 15, 38, 17, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 38, 15, 48, 17, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 
 END
 
 DIALOG dlgMkDir, 49, 7, 'Создать каталог'
     HELPCTX hcMkDir
-    InputLine 2, 2, 44, 3, 70, 0
+    InputLine 2, 2, 44, 3, 254, 0
     History 44, 2, hsMakeDir, ofPostProcess
     Label 2, 1, '~И~мя каталога', ofPostProcess, ofPreProcess
     Button 18, 4, 28, 6, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
@@ -945,19 +1008,34 @@ DIALOG dlgCopyDialog, 62, 16, 'Копирование'
     Button 42, 13, 52, 15, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgMakeList, 69, 12, 'Создать список файлов'
+DIALOG dlgMakeList, 69, 20, 'Создать список файлов'
     HELPCTX hcMakeListFile
-    InputLine 14, 2, 64, 3, 79, 143
+    Label 2, 4, '───────────────────────────────────────────────────────────────'
+    InputLine 14, 2, 64, 3, 79, hsMakeList
     Label 2, 2, 'Имя ~ф~айла', ofPostProcess, ofPreProcess
-    InputLine 14, 4, 64, 5, 255, 142
-    Label 2, 4, '~Д~ействие', ofPostProcess, ofPreProcess
-    CheckBoxes 4, 6, 67, 8, ofPostProcess, ofPreProcess
+    InputLine 14, 6, 64, 7, 79, hsMakeListHeader
+    Label 2, 6, 'В ~н~ачало', ofPostProcess, ofPreProcess
+    RadioButtons 14, 7, 64, 8, ofPostProcess, ofPreProcess
+      ITEM 'А~в~то'
+      ITEM 'Встав~и~ть текст'
+      ITEM 'Вставить фа~й~лы'
+    END
+    InputLine 14, 9, 64, 10, 255, hsExecDOSCmd
+    Label 2, 9, '~Д~ействие', ofPostProcess, ofPreProcess
+    InputLine 14, 11, 64, 12, 79, hsMakeListFooter
+    Label 2, 11, 'В коне~ц~', ofPostProcess, ofPreProcess
+    RadioButtons 14, 12, 64, 13, ofPostProcess, ofPreProcess
+      ITEM 'Ав~т~о'
+      ITEM 'Вставить т~е~кст'
+      ITEM 'Вставить фай~л~ы'
+    END
+    CheckBoxes 4, 14, 67, 16, ofPostProcess, ofPreProcess
       ITEM '~С~охранять полные пути файлов в списке'
       ITEM '~А~втоматически определять необходимость сохранения путей'
     END
-    Button 27, 9, 37, 11, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 38, 9, 48, 11, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 49, 9, 59, 11, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    Button 27, 17, 37, 19, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 38, 17, 48, 19, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 49, 17, 59, 19, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgDiskError, 43, 10, 'Дисковая ошибка'
@@ -1058,7 +1136,7 @@ DIALOG dlgFilesAttr, 49, 12, 'Атрибуты файлов'
     Label 3, 2, '~У~ст', ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgCompareDirs, 41, 13, 'Сравнить каталоги'
+DIALOG dlgCompareDirs, 41, 16, 'Сравнить каталоги'
     HELPCTX hcCompareDirs
     CheckBoxes 3, 3, 28, 7, ofPostProcess, ofPreProcess
       ITEM 'Сравнить ~р~азмер'
@@ -1067,14 +1145,19 @@ DIALOG dlgCompareDirs, 41, 13, 'Сравнить каталоги'
       ITEM 'Сравнить ~с~одержимое'
     END
     Label 3, 2, 'Опции', ofPostProcess, ofPreProcess
-    RadioButtons 3, 9, 28, 11, ofPostProcess, ofPreProcess
+; {-$VOL}
+    InputLine 3, 9, 35, 10, 80, 0
+    Label 3, 8, 'Маски ~Ф~айлов', ofPostProcess, ofPreProcess
+    History 35, 9, hsFindMask, ofPostProcess
+; {-$VOL}
+    RadioButtons 3, 12, 28, 14, ofPostProcess, ofPreProcess
       ITEM '~О~тметить '
       ITEM 'Ра~з~отметить'
     END
-    Label 3, 8, 'Режим выбора', ofPostProcess, ofPreProcess
-    Button 29, 4, 39, 6, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 7, 39, 9, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 29, 10, 39, 12, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    Label 3, 11, 'Режим выбора', ofPostProcess, ofPreProcess
+    Button 29, 3, 39, 5, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 6, 39, 8, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 29, 12, 39, 14, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetPassword, 39, 7, 'Введи пароль'
@@ -1249,6 +1332,8 @@ STATUSLINE
      StatusItem '-~S~ Установки', kbAltS, cmPanelSetup,
      StatusItem '-~W~ Список', kbAltW, cmMakeList,
      StatusItem '+~Д~иск инфо', kbCtrlL, cmDiskInfo,
+;{-$VIV}
+     StatusItem '+~О~ сети', kbCtrlN, cmNetInfo,
      StatusItem '+Д~е~рево', kbCtrlT, cmDirTree,
      StatusItem '+~K~ Описания', kbCtrlK, cmToggleDescriptions,
      StatusItem '+~R~ Перечитать', kbCtrlR, cmForceRescan,
@@ -1257,6 +1342,7 @@ STATUSLINE
      StatusItem '', kbAltBack, cmDirHistory,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlJ, cmTerminal,
   StatusDef hcLinkPanel, hcLinkPanel,
      StatusItem '~F2~ Польз', kbF2, cmUserMenu,
      StatusItem '~F3~ Смотри', kbF3, cmViewFile,
@@ -1273,10 +1359,13 @@ STATUSLINE
      StatusItem '-~С~менить диск ', kbAltC, cmChangeDrive,
      StatusItem '-~S~ Установки', kbAltS, cmPanelSetup,
      StatusItem '+~Д~иск инфо', kbCtrlL, cmDiskInfo,
+;{-$VIV}
+     StatusItem '+~О~ сети', kbCtrlN, cmNetInfo,
      StatusItem '+~R~ Перечитать', kbCtrlR, cmForceRescan,
      StatusItem '+~Y~ Показ', kbCtrlY, cmToggleShowMode,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlJ, cmTerminal,
   StatusDef hcArchives, hcArchives,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F2~ Меню', kbF2, cmUserMenu,
@@ -1304,6 +1393,7 @@ STATUSLINE
      StatusItem '', kbAltX, cmQuit,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlJ, cmTerminal,
   StatusDef hcDirTree, hcDirTree,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F2~ Польз', kbF2, cmUserMenu,
@@ -1326,6 +1416,7 @@ STATUSLINE
      StatusItem '', kbAltX, cmQuit,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlJ, cmTerminal,
   StatusDef hcView, hcView,
      StatusItem '~F2~ (Un)Wrap', kbF2, cmUnWrap,
      StatusItem '~F4~ Hex/ASCII/Dump', kbF4, cmHexMode,
@@ -1351,6 +1442,7 @@ STATUSLINE
      StatusItem '', kbAltX, cmQuit,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlJ, cmTerminal,
   StatusDef hcDiskEditor, hcDiskEditor,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F2~ Hex', kbF2, cmHexMode,
@@ -1367,7 +1459,7 @@ STATUSLINE
      StatusItem '+~F3~ Нов.панель', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Закрыть', kbCtrlF4, cmClose,
      StatusItem '+~F6~ Калькулятор', kbCtrlF6, cmCalculator,
-     StatusItem '+~J~ Терминал', kbCtrlJ, cmTerminal,
+;    StatusItem '+~J~ Терминал', kbCtrlJ, cmTerminal,
      StatusItem ':~F2~ Запись', kbShiftF2, cmSave,
      StatusItem ':~F3~ Телефон', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Редактор', kbShiftF4, cmXEditFile,
@@ -1402,6 +1494,7 @@ STATUSLINE
      StatusItem '', kbAltX, cmQuit,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlJ, cmTerminal,
   StatusDef hcEditor, hcEditor,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F2~ Запись', kbF2, cmSaveText,
@@ -1409,7 +1502,8 @@ STATUSLINE
      StatusItem '~F5~ Блок', kbF5, cmSwitchBlock,
      StatusItem '~F6~ Дубль', kbF6, cmDuplicateLine,
      StatusItem '~F7~ Поиск', kbF7, cmStartSearch,
-     StatusItem '~F8~ Печать', kbF8, cmPrintFile,
+;{-$VIV}
+     StatusItem '~F8~ Кодировка', kbF8, cmSwitchKeyMapping,
      StatusItem '~F10~ Меню', kbF10, cmMenu,
      StatusItem '-~F7~ Pевеpс поиска', kbAltF7, cmReverseSearch,
      StatusItem '-~J~ Выравнивание', kbAltJ, cmFJustify,
@@ -1420,6 +1514,8 @@ STATUSLINE
      StatusItem '+~F4~ Закрыть', kbCtrlF4, cmClose,
      StatusItem '+~F6~ Калькулятор', kbCtrlF6, cmCalculator,
      StatusItem '+~F7~ Замена', kbCtrlF7, cmReplace,
+;{-$VIV}
+     StatusItem '+~F8~ Печать', kbCtrlF8, cmPrintFile,
      StatusItem ':~F2~ Записать в', kbShiftF2, cmSaveTextAs,
      StatusItem ':~F3~ Телефон', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Редактор', kbShiftF4, cmXEditFile,
@@ -1433,6 +1529,9 @@ STATUSLINE
      StatusItem '', kbAltX, cmQuit,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '-~Tilde~ Redo', kbAltTilda, cmRedo,
+;{-$VOL}
+     StatusItem '', kbCtrlJ, cmTerminal,
   StatusDef hcScrollBack, hcScrollBack,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F2~ Сохранить', kbF2, cmSBBStore,
@@ -1543,6 +1642,7 @@ STATUSLINE
      StatusItem '', kbAltX, cmQuit,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlJ, cmTerminal,
    StatusDef hcDiskInfo, hcDiskInfo,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F4~ Pедактиpовать DirInfo', kbF4, cmEditFile,
@@ -1561,6 +1661,20 @@ STATUSLINE
      StatusItem '', kbAltX, cmQuit,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
+;{-$VIV}
+     StatusItem '', kbCtrlJ, cmTerminal,
+   StatusDef hcNetInfo, hcNetInfo,
+     StatusItem '~F1~ Помощь', kbF1, cmHelp,
+     StatusItem '~F10~ Меню', kbF10, cmMenu,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '+~F3~ Новая панель', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~F4~ Закрыть', kbCtrlF4, cmClose,
+     StatusItem '+~F6~ Калькулятор', kbCtrlF6, cmCalculator,
+     StatusItem ':~F10~ Видео', kbShiftF10, cmChangeMode,
+     StatusItem '', kbAltX, cmQuit,
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbShiftF9, cmPrev,
+     StatusItem '', kbCtrlJ, cmTerminal,
    StatusDef hcDesktop, hcDesktop,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F10~ Меню', kbF10, cmMenu,
@@ -1575,6 +1689,7 @@ STATUSLINE
      StatusItem ':~F10~ Видео', kbShiftF10, cmChangeMode,
      StatusItem '-~F10~ Видео/1', kbAltF10, cmChangeUserMode1,
      StatusItem '+~F10~ Видео/2', kbCtrlF10, cmChangeUserMode2,
+     StatusItem '', kbCtrlJ, cmTerminal,
   StatusDef hcLUserMenu, hcLUserMenu,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F2~ Глобальное меню', kbF2, cmGlobalUserMenu,
@@ -1585,9 +1700,11 @@ STATUSLINE
      StatusItem '~F4~ Редактор', kbF4, cmMenuFileEdit,
   StatusDef hcAboutDialog, hcAboutDialog,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
-     StatusItem '-~I~ - Команда Дос Навигатора', kbAltI, cmGetTeam,
+     StatusItem '-~I~ - Команда Дос Навигатора (C)', kbAltI, cmGetTeam,
      StatusItem '', kbCtrlF5, cmResize,
      StatusItem '', kbCtrlF4, cmClose,
+  StatusDef hcTeam, hcTeam,
+     StatusItem '~F1~ Помощь', kbF1, cmHelp,
   StatusDef hcCopyDialog, hcCopyDialog,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F10~ Дерево', kbF10, cmTree,
@@ -1609,11 +1726,13 @@ Menu dlgEditorMenu
 
  SubMenu '~Ф~айл', hcedFile
       MenuItem '~О~ткрыть...', 'F3', kbShiftF3, cmLoadText, hcedFile,
+      MenuItem 'О~т~крыть файл под курсором...', 'Ctrl+Enter', kbCtrlEnter, cmOpenFileAtCursor, hcedFile,
       MenuItem '~С~охранить', 'F2', kbF2, cmSaveText, hcedFile,
       MenuItem 'Сохранить ~к~ак...', 'Shift-F2', kbShiftF2, cmSaveTextAs, hcedFile,
       MenuItem 'Сохранить ~в~се...', 'Ctrl-F2', kbCtrlF2, cmSaveAll, hcedFile,
       MenuLine
-      MenuItem '~П~ечать', 'F8', kbF8, cmPrintFile, hcedFile,
+; {-$VIV}
+      MenuItem '~П~ечать', 'Ctrl+F8', kbCtrlF8, cmPrintFile, hcedFile,
       MenuItem 'Печатать ~б~лок', 'Shift+F8', kbShiftF8, cmPrintBlock, hcedFile,
       MenuLine
       MenuItem '~Г~лавное меню', 'F10', kbF10, cmMainMenu, hcedFile,
@@ -1621,6 +1740,7 @@ Menu dlgEditorMenu
     END
  SubMenu '~Р~едактор', hcedEdit,
       MenuItem '~О~ткат', 'Alt-BkSp', kbAltBack, cmUndo, hcedEdit,
+      MenuItem '~Н~акат', 'Alt-~', kbAltTilda, cmRedo, hcedEdit,
       MenuLine
       MenuItem 'В~ы~резать', 'Shift-Del', kbShiftDel, cmCut, hcedEdit,
       MenuItem '~К~опировать', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcedEdit,
@@ -1657,15 +1777,19 @@ Menu dlgEditorMenu
       MenuLine
       MenuItem 'С~о~ртировать', 'Alt-T', kbAltT, cmSortBlock, hcedParagraph,
       MenuItem 'В~ы~числить сумму', 'Alt-Ins', kbAltIns, cmCalcBlock, hcedParagraph,
+;{-$VIV 18.05.99--}
+      MenuItem 'Р~у~с/Анг Конвертировать Строку', 'Alt+F12', kbAltF12, cmRusEngConv, 0,
     END
- SubMenu '~P~азное', 0,
+ SubMenu 'Pа~з~ное', 0,
       MenuItem 'Вставить ~д~ату  ', 'Ctrl Q D', kbNoKey, cmInsertDate, hcedParagraph,
       MenuItem 'Вставить ~в~pемя  ', 'Ctrl Q T', kbNoKey, cmInsertTime, hcedParagraph,
       Menuitem 'К~о~пиpовать стpоку', 'F6', kbF6, cmDuplicateLine, 0,
       MenuItem 'ASCII ~т~аблица', 'Ctrl P', kbCtrlP, cmASCIITable, 0,
       MenuItem '~P~исование линий', 'F4', kbF4, cmSwitchDrawMode, 0,
-      MenuLine
-      SubMenu '~С~тpочные буквы', 0,
+; {-$VIV}
+      MenuItem 'Код~и~ровка', 'F8', kbF8, cmSwitchKeyMapping, 0,
+     MenuLine
+     SubMenu '~С~тpочные буквы', 0,
       MenuItem '~С~лово', 'Ctrl ]', kbNoKey, cmLowWord, 0,
       MenuItem 'С~т~pока', 'Ctrl+Shift ]', kbNoKey, cmLowString, 0,
       MenuItem '~Б~лок', 'Ctrl K ]', kbNoKey, cmLowcaseBlock, 0,
@@ -1680,6 +1804,8 @@ Menu dlgEditorMenu
       MenuItem 'С~т~pока', 'Ctrl+Shift \', kbNoKey, cmCapString, 0,
       MenuItem '~Б~лок', 'Ctrl K \', kbNoKey, cmCapitalizeBlock, 0,
      END
+;{-$VIV}
+     MenuItem 'Из~м~енить регистр буквы', 'Alt+/', kbAltSlash, cmChangeCharCase, 0,
    END
  SubMenu 'Оп~ц~ии', hcedOptions,
       MenuItem 'Отступ при ~з~абое', ' Off', kbNoKey, cmSwitchBack, hcedOptions,
@@ -1692,6 +1818,8 @@ Menu dlgEditorMenu
       MenuItem 'Подсветка ~т~екущей строки', ' Off', kbNoKey, cmSwitchHiLine, hcedOptions,
       MenuItem 'По~д~светка текущей колонки', ' Off', kbNoKey, cmSwitchHiColumn, hcedOptions,
       MenuItem '~П~одсветка синтаксиса', ' Off', kbNoKey, cmSwitchHighLight, hcedOptions,
+; {-$VOL} {Tab Replace}
+      MenuItem 'За~м~ена табуляции',' Off', kbNoKey, cmSwitchTabReplace, hcedOptions,
      END
 END
 
@@ -1724,16 +1852,19 @@ Menu dlgFixerMenu
     END
 END
 
-Menu dlgMainMenu
-  SubMenu '~'#240'~', hcMenuBox,
+MENU dlgMainMenu
+  SubMenu '(placeholder)', hcMenuBox,
     MenuItem '~О~ программе...', ' ', kbNoKey, cmAbout, hcMenuBox,
     MenuItem '~П~ерерисовать экран', ' ', kbNoKey, cmRefresh, hcMenuBox,
     MenuItem 'Экранная заставка', ' ', kbNoKey, cmScreenRest, hcMenuBox,
+    MenuItem '~С~менить язык (Change language)','Alt-F12',kbAltF12,cmChLngId,hcMenuBox,
     MenuLine
     MenuItem '~В~ырезать с экрана', 'Shift-Alt-Ins', kbNoKey, cmExecGrabber, hcMenuBox,
-    MenuItem 'Окно в~ы~вода', 'Ctrl-O', kbCtrlO, cmShowOutput, hcMenuBox,
     MenuItem '~Э~кран Дос', 'Alt-F5', kbAltF5, cmShowUserScreen, hcMenuBox,
+    MenuItem 'Окно в~ы~вода', 'Ctrl-O', kbCtrlO, cmShowOutput, hcMenuBox,
     MenuItem 'Записная ~к~нижка', 'Alt-Q', kbAltQ, cmOpenSmartpad, hcMenuBox,
+;{-$VOL}
+    MenuItem 'Показать текстовый бу~ф~ер', '', kbNoKey, cmOpenClipBoard, hcMenuBox,
     MenuItem '~У~рна вкл/выкл.', '', kbNoKey, cmHideShowTools, hcMenuBox,
     MenuLine
     MenuItem '~E~GA/VGA режим', 'Shift-F10', kbShiftF10, cmChangeMode, hcMenuBox,
@@ -1754,20 +1885,19 @@ Menu dlgMainMenu
     END
     SubMenu '~Р~едактировать', hcFileMenu,
       MenuItem '~Р~едактировать', 'F4', kbF4, cmEditFile, hcFileMenu,
-      MenuItem '~Н~овый файл...', 'Shift-F4', kbShiftF4, cmXEditFile, hcFileMenu,
-      MenuLine
       MenuItem '~В~строенный редактор', 'Alt-F4', kbAltF4, cmIntEditFile, hcFileMenu,
+      MenuLine
+      MenuItem '~Н~овый файл...', 'Shift-F4', kbShiftF4, cmXEditFile, hcFileMenu,
     END
+    MenuItem '~И~скать...', 'Alt-F7', kbAltF7, cmFindFile, hcFileMenu,
     MenuItem '~К~опировать...', 'F5', kbF5, cmCopyFiles, hcFileMenu,
     MenuItem '~П~ереименовать/перенести...', 'F6', kbF6, cmMoveFiles, hcFileMenu,
-    MenuItem '~У~далить', 'F8', kbF8, cmPanelErase, hcFileMenu,
-    MenuItem '~И~скать...', 'Alt-F7', kbAltF7, cmFindFile, hcFileMenu,
-    MenuItem '~Н~апечатать', 'Ctrl-F9', kbCtrlF9, cmPrintFile, hcFileMenu,
-    MenuLine
     MenuItem 'К~о~пировать в архив...', 'Shift-F1', kbShiftF1, cmPanelArcFiles, hcFileMenu,
     MenuItem 'Из~в~лечь из архива...', 'Shift-F2', kbShiftF2, cmExtractArchive, hcFileMenu,
     MenuItem 'Разре~з~ать/склеить...', 'Shift-F5', kbShiftF5, cmPanelLongCopy, hcFileMenu,
+    MenuItem '~Н~апечатать', 'Ctrl-F9', kbCtrlF9, cmPrintFile, hcFileMenu,
     MenuItem 'Создать ка~т~алог', 'F7', kbF7, cmPanelMkDir, hcFileMenu,
+    MenuItem '~У~далить', 'F8', kbF8, cmPanelErase, hcFileMenu,
     MenuItem '~А~трибуты файла', 'Alt-F', kbAltF, cmSetFAttr, hcPanelMenu,
     MenuItem 'UU-ко~д~ирование...', 'Ctrl-F7', kbCtrlF7, cmUUEncodeFile, hcFileMenu,
     MenuItem 'UU-раскодировани~е~...', 'Ctrl-F8', kbCtrlF8, cmUUDecodeFile, hcFileMenu,
@@ -1782,8 +1912,8 @@ Menu dlgMainMenu
     MenuItem '~М~етка диска...', '', kbNoKey, cmSetVolumeLabel, hcDiskMenu,
     MenuItem '~Р~еаниматор...', 'Shift-F6', kbShiftF6, cmReanimator, hcDiskMenu,
     MenuItem 'Р~е~дактор диска', '', kbNoKey, cmDiskEdit, hcDiskMenu,
-    MenuItem '~Д~ерево каталогов', 'Ctrl-F7', kbCtrlF7, cmCreateTree, hcDiskMenu,
-  END
+    MenuItem '~Д~ерево каталогов', '', kbNoKey, cmCreateTree, hcDiskMenu,
+ END
  SubMenu '~У~тилиты', hcUtilMenu,
     MenuItem '~И~нформация о памяти', '', kbNoKey, cmMemoryInfo, hcUtilMenu,
     MenuItem '~С~истемная информация', '', kbNoKey, cmSystemInfo, hcUtilMenu,
@@ -1807,19 +1937,19 @@ Menu dlgMainMenu
    END
  SubMenu '~П~анель', hcPanelMenu,
     MenuItem '~С~оздать список файлов...', 'Alt-W', kbAltW, cmMakeList, hcPanelMenu,
+    MenuItem 'Ассо~ц~иировать список файлов', 'Ctrl-W', kbCtrlW, cmPanelMakeList, hcPanelMenu,
     MenuItem 'Ср~а~внить каталоги', 'Ctrl-C', kbCtrlC, cmCompareDir, hcPanelMenu,
     MenuItem 'В~ы~числить размер каталога', 'Ctrl-G', kbCtrlG, cmCountLen, hcPanelMenu,
-    MenuItem 'Ассо~ц~иировать список файлов', 'Ctrl-W', kbCtrlW, cmPanelMakeList, hcPanelMenu,
     MenuItem '~В~етвь каталога', 'Ctrl-H', kbCtrlH, cmDirBranch, hcPanelMenu,
     MenuLine
     MenuItem 'Установки ~к~олонок', 'Alt-R', kbAltR, cmSetupColumns, hcPanelMenu,
     MenuItem '~У~становки панели', 'Alt-S', kbAltS, cmPanelSetup, hcPanelMenu,
     MenuItem 'С~о~ртировать по...', 'Alt-B', kbAltB, cmSortBy, hcPanelMenu,
-    MenuItem '~Ф~ильтр...', 'Alt-Del', kbAltDel, cmAdvFilter, hcPanelMenu,
     MenuLine
     MenuItem 'О~т~метить группу...', 'Gray "+"', kbNoKey, cmPanelSelect, hcPanelMenu,
     MenuItem 'От~м~енить группу...', 'Gray "-"', kbNoKey, cmPanelUnselect, hcPanelMenu,
     MenuItem '~И~нвертировать выбор', 'Gray "*"', kbNoKey, cmPanelInvertSel, hcPanelMenu,
+    MenuItem '~Ф~ильтр...', 'Alt-Del', kbAltDel, cmAdvFilter, hcPanelMenu,
     MenuLine
     MenuItem 'Сменить ~д~иск', 'Alt-C', kbAltC, cmChangeDrive, hcPanelMenu,
     MenuItem 'См~е~нить каталог', 'Alt-T', kbAltT, cmChangeDir, hcPanelMenu,
@@ -1829,9 +1959,10 @@ Menu dlgMainMenu
    END
  SubMenu '~М~енеджер', hcManagerCommands,
     MenuItem '~Н~овый', 'Ctrl-F3', kbCtrlF3, cmCreatePanel, hcManagerCommands,
-    MenuLine
     MenuItem '~Д~ерево каталогов', 'Ctrl-T', kbCtrlT, cmDirTree, hcManagerCommands,
+;{-$VIV}
     MenuItem '~И~нформация', 'Ctrl-L', kbCtrlL, cmDiskInfo, hcManagerCommands,
+    MenuItem 'Ин~ф~ормация о сети', 'Ctrl-N', kbCtrlN, cmNetInfo, hcManagerCommands,
     MenuItem 'Б~ы~стрый просмотр', 'Ctrl-Q', kbCtrlQ, cmQuickView, hcManagerCommands,
     MenuLine
     MenuItem 'Поменять панели ~м~естами', 'Ctrl-U', kbCtrlU, cmSwapPanels, hcManagerCommands,
@@ -1854,7 +1985,6 @@ Menu dlgMainMenu
       MenuItem '~С~трана...', '', kbNoKey, cmCountrySetup, hcSubMenuConfig,
       MenuItem '~М~ышка...', '', kbNoKey, cmSetupMouse, hcSubMenuConfig,
       MenuItem '~К~оммуникации...', '', kbNoKey, cmSetupModem, hcSubMenuConfig,
-
       MenuLine
       MenuItem '~Р~едактор/просмотр...', '', kbNoKey, cmEditorDefaults, hcSubMenuConfig,
       MenuItem '~Т~ерминал...', '', kbNoKey, cmTerminalDefaults, hcSubMenuConfig,
@@ -1867,10 +1997,15 @@ Menu dlgMainMenu
       MenuItem '~Г~руппы файлов...', '', kbNoKey, cmHighlightGroups, hcSubMenuFileMgr,
      END
    SubMenu 'А~р~хиваторы', hcOptionsMenu,
+      MenuItem 'Текущий архиватор...', 'Alt-N', kbAltN, cmSetupArchive, hcArchives,
+      MenuLine
+      MenuItem 'AC~E~ - ACE (C) Marcel Lemke', '', kbNoKey, cmConfigACE, hcArchives,
+      MenuItem 'AI~N~ - AIN (C) Transas Marine Ltd', '', kbNoKey, cmConfigAIN, hcArchives,
       MenuItem '~A~RC - Arc (C) NoGate Consulting', '', kbNoKey, cmConfigARC, hcArchives,
       MenuItem 'AR~J~ - ARJ (C) Robert K. Jung', '', kbNoKey, cmConfigARJ, hcArchives,
       MenuItem '~B~SA - BSArc v1.xx (C) PhysTechSoft', '', kbNoKey, cmConfigBSA, hcArchives,
       MenuItem 'BS~2~ - BSArc v2.xx (C) PhysTechSoft', '', kbNoKey, cmConfigBS2, hcArchives,
+      MenuItem 'CAB - CAB (C) Microsoft', '', kbNoKey, cmConfigCAB, hcArchives,
       MenuItem '~C~HZ - ChArc (C) Dialogue', '', kbNoKey, cmConfigCHZ, hcArchives,
       MenuItem '~H~A  - HA (C) Harry Hirvola', '', kbNoKey, cmConfigHA, hcArchives,
       MenuItem 'HA~P~ - HAP (C) Hamarsoft', '', kbNoKey, cmConfigHAP, hcArchives,
@@ -1884,17 +2019,21 @@ Menu dlgMainMenu
       MenuItem '~U~C2 - Ultra Compressor II (C) Ad Infinitum Programs', '', kbNoKey, cmConfigUC2, hcArchives,
       MenuItem '~Z~IP - PKZIP (C) PKWARE Inc.', '', kbNoKey, cmConfigZIP, hcArchives,
       MenuItem 'ZO~O~ - Zoo (C) Rahul Dhesi', '', kbNoKey, cmConfigZOO, hcArchives,
+      MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev', '', kbNoKey, cmConfigZXZ, hcArchives,
      END
     MenuLine
+    MenuItem 'Файл быстрого запуска...', ' ', kbNoKey, cmEditQuickRun, hcOptionsMenu,
     MenuItem 'Файл запуска по расширению...', ' ', kbNoKey, cmExtFileEdit, hcOptionsMenu,
     MenuItem 'Файл раскраски редактора', ' ', kbNoKey, cmEditHGL, hcOptionsMenu,
-    MenuItem 'Файл быстрого запуска...', ' ', kbNoKey, cmEditQuickRun, hcOptionsMenu,
+;{-$VIV 19.05.00}
+    MenuItem 'Файл путей для поиска (SPF)...', ' ', kbNoKey, cmEditSPF, hcOptionsMenu,
+    MenuItem 'Файл настройки (INI)...', ' ', kbNoKey, cmEditINI, hcOptionsMenu,
     MenuItem 'Г~л~обальное меню пользователя...', ' ', kbNoKey, cmMenuFileEdit, hcOptionsMenu,
     MenuItem 'Локальное ~м~еню пользователя...', ' ', kbNoKey, cmLocalMenuFileEdit, hcOptionsMenu,
     MenuItem 'Программы ~п~росмотра...', ' ', kbNoKey, cmExternalViewers, hcOptionsMenu,
     MenuItem 'Р~е~дакторы...', ' ', kbNoKey, cmExternalEditors, hcOptionsMenu,
     MenuLine
-    MenuItem '~З~апомнить состояние', ' ', kbNoKey, cmSaveDesk, hcOptionsMenu,
+    MenuItem '~З~апомнить состояние', '', kbNoKey, cmSaveDesk, hcOptionsMenu,
     MenuItem '~В~осстановить состояние', ' ', kbNoKey, cmLoadDesk, hcOptionsMenu,
     MenuLine
     MenuItem '~Ц~вета...', ' ', kbNoKey, cmChangeColors, hcOptionsMenu,
@@ -2187,7 +2326,7 @@ DIALOG dlgViewerFind, 50, 14, 'Поиск'
     END
     Label 2, 7, 'Опции', ofPostProcess, ofPreProcess
 
-    CheckBoxes 31,8,47,10, ofPostProcess
+    RadioButtons 31,8,47,10, ofPostProcess
 
       ITEM '~В~пеpед'
       ITEM '~Н~азад'
