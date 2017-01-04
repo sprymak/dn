@@ -48,6 +48,9 @@
 ;/  Version history:
 ;/
 ;/  5.3.8 translated by Figo Fago
+;/  dn50900-ASCII_chart-AK60225A.patch
+;/
+;/  6.4.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -1471,6 +1474,13 @@ STATUSLINE
      StatusItem '~F4~ Zmieä katalog', kbF4, cmChangeQuickDir,
      StatusItem '~Del~Usuä katalog', kbDel, cmDelQuickDir,
 ;{--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+
+  StatusDef hcAsciiChart, hcAsciiChart,
+     StatusItem '~F1~ Help', kbF1, cmHelp,
+     StatusItem '~Esc~ Close', kbEsc, cmClose,
+     StatusItem '~Space~ Insert', kbSpace, cmYes,
+     StatusItem '~Enter~ Insert and close', kbEnter, cmOK,
+     StatusItem '+~Enter~ Insert', kbCtrlEnter, cmYes,
 
   StatusDef 0, $FFFF,
 ;{BASE}

@@ -95,6 +95,9 @@
 //  dn40900-temp_drive_in_directories_history.patch
 //
 //  5.9.0
+//  dn50900-SFX_detection.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -332,7 +335,6 @@ begin
    if Files <> nil then begin Dispose(Files, Done); Files:=nil end;
    Fail;
  end;
- ArcPos := 0;
  SkipSFX;
  AType := DetectArchive;
  FreeObject(ArcFile);
@@ -371,7 +373,6 @@ Failure:
    Drives.DriveLoadingError:=True;
    Fail;
  end;
- ArcPos := 0;
  SkipSFX;
  AType := DetectArchive;
  FreeObject(ArcFile);
@@ -425,7 +426,6 @@ begin
   end;
  if Files <> nil then Dispose(Files, Done);
  Files := nil;
- ArcPos := 0;
  SkipSFX;
  If AType <> nil then Dispose(AType, Done); AType:=nil; {DataCompBoy}
  AType := DetectArchive;

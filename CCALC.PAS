@@ -73,6 +73,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -187,7 +190,7 @@ end;
     if L = 0 then S := '0' else
     while (L <> 0) do
      begin
-       S := HexStr[(L and ((1 shl A) - 1)) + 1] + S;
+       S := HexStr[(L and ((1 shl A) - 1))] + S;
        L := L shr A;
      end;
   end;

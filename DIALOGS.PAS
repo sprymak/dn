@@ -71,6 +71,10 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//  dn50900-ASCII_chart-AK60225A.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -996,6 +1000,12 @@ begin
           end
           else
             ExtendBlock := False;
+          if fASCIITable then
+            begin
+            InsChar(Event.CharCode);
+            ClearEvent(Event);
+            Exit;
+            end;
           if CtrlK Or CtrlQ then
            begin
             If CtrlK Then
@@ -1234,6 +1244,16 @@ begin
                 CheckValid(True);
               end;
             kbIns: SetState(sfCursorIns, State and sfCursorIns = 0);
+            kbCtrlP, kbCtrlB:
+              begin
+              ASCIITable;
+              ClearEvent(Event);
+              end;
+            kbCtrlY:
+              begin
+              Data^ := '';
+              CurPos := 0;
+              end;
 {--- start -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
             kbCtrlQ : CtrlQ:=True;
             kbCtrlLAngle: Begin
@@ -1281,21 +1301,10 @@ begin
                       End;
 {--- finish -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
           else
-            case Event.CharCode of
-              ' '..#254: InsChar(Event.CharCode);
-              ^P, ^B: begin
-                        ASCIITable;
-                        ClearEvent(Event);
-                        SelectBlockStay:=False;
-                      end;
-              ^Y:
-                begin
-                  Data^ := '';
-                  CurPos := 0;
-                end;
+            if Event.CharCode >= ' ' then
+              InsChar(Event.CharCode)
             else
               Exit;
-            end;
           end;
           If (Not CtrlK) And (Not CtrlQ) then
            if ExtendBlock then AdjustSelectBlock
@@ -2877,9 +2886,9 @@ begin
                       S := InputLine^.Data^;
                       if CurX + 1 > Byte(S[0]) then S := S + #0;
                       if Sec then S[CurX+1] := Char((Byte(S[CurX+1]) and $F0) or (Pos(UpCase(Event.CharCode),
-                                                                              '0123456789ABCDEF')-1))
+                                                                              HexStr)-1))
                              else S[CurX+1] := Char((Byte(S[CurX+1]) and $F) or (Pos(UpCase(Event.CharCode),
-                                                                              '0123456789ABCDEF')-1) shl 4);
+                                                                              HexStr)-1) shl 4);
                       InputLine^.Data^ := Copy(S, 1, InputLine^.MaxLen);
                       InputLine^.DrawView;
                       if Sec then begin Inc(CurX); Sec := False end else Sec := True;

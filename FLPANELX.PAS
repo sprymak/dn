@@ -113,6 +113,9 @@
 //  dn40900-temp_drive_in_directories_history.patch
 //
 //  5.9.0
+//  dn50900-GotoSingle-AK60213C.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -705,10 +708,16 @@ var
  procedure GotoSingle(Name: String);
   var A: LongInt;
  begin
-  A := 0;
-  While (A < Files^.Count) and
-        (GetLFN(PFileRec(Files^.At(A))^.LFN) <> Name) do Inc(A);
-  if A >= Files^.Count then A := 0; IncDrawDisabled;
+  A := Files^.Count;
+  UpStr(Name);
+  while A <> 0 do
+    begin
+    Dec(A);
+    if UpStrg(GetLFN(PFileRec(Files^.At(A))^.LFN)) = Name then
+      Break;
+    {AK155 странно, почему тут сравнивается только длинное имя.}
+    end;
+  IncDrawDisabled;
   OldDirectory := DirectoryName;
   ScrollBar^.SetValue(A);
   DecDrawDisabled;

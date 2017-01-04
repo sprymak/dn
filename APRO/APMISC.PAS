@@ -1,3 +1,11 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
+//
+//////////////////////////////////////////////////////////////////////////}
+
 {$S-,R-,V-,I-,B-,F+,O+,A-}
 
 {Conditional defines that may affect this unit}
@@ -40,6 +48,8 @@ uses
 
 implementation
 
+uses advance;
+
 {$I APMISC.PA1}         {StatusStr procedure with default messages}
 
 {$IFDEF HeapDebug}
@@ -65,7 +75,6 @@ var
 {$IFDEF Standalone}
 const
   DosDelimSet : set of Char = ['\', ':', #0];
-  Digits : array[0..$F] of Char = '0123456789ABCDEF';
 {$ENDIF}
 
   function UpdateChecksum(CurByte : Byte; CheckSum : Word) : Word;
@@ -381,10 +390,10 @@ const
     {-Return hex string for word}
   begin
     HexW[0] := #4;
-    HexW[1] := Digits[hi(W) shr 4];
-    HexW[2] := Digits[hi(W) and $F];
-    HexW[3] := Digits[lo(W) shr 4];
-    HexW[4] := Digits[lo(W) and $F];
+    HexW[1] := HexStr[hi(W) shr 4];
+    HexW[2] := HexStr[hi(W) and $F];
+    HexW[3] := HexStr[lo(W) shr 4];
+    HexW[4] := HexStr[lo(W) and $F];
   end;
 
   function HexL(L : LongInt) : string;

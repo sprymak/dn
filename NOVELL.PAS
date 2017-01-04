@@ -51,6 +51,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -105,12 +108,6 @@ Uses
 {$ELSE !WINDOWS}
      Dos;
 {$ENDIF WINDOWS}
-
-Const
-  Months : Array [1..12] of String[3] = ('JAN','FEB','MAR','APR','MAY','JUN',
-                                         'JUL','AUG','SEP','OCT','NOV','DEC');
-
-{  HEXDIGITS : Array [0..15] of char = '0123456789ABCDEF';}
 
 Type    byte4 = array [1..4] of byte;
 
@@ -361,7 +358,7 @@ procedure purge_erased_files(var retcode:integer);
 *)
 IMPLEMENTATION
 
-uses advance, advance1, advance2, advance3;
+uses advance, advance1, advance2, advance3, dnapp, commands;
 
 var
    retcode : byte; { return code for all functions }
@@ -446,7 +443,7 @@ Begin
    If hex_id <> '0' then With replybuffer do {Grab login time}
    begin
      Str(LoginTime[1]:2,Year);
-     Month := Months[LoginTime[2]];
+     Month := GetString(TStrIdx(Integer(dlJanuary)+LoginTime[2]-1));
      Str(LoginTime[3]:2,Day);
      Str(LoginTime[4]:2,Hour);
      Str(LoginTime[5]:2,Minute);

@@ -60,6 +60,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-stream_fix.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -324,9 +327,13 @@ type
   TBufStream = object(TDosStream)
     Buffer:   PByteArray;
     BufSize:  Sw_Word;
-    BufPtr:   Sw_Word; { Buffer start }
+    BufPtr:   Sw_Word;
+      {` Индекс в Buffer^ первого необработанного байта, то есть
+      непрочитанного при чтении, не записанного при записи`}
     BufEnd:   Sw_Word;
-    LastMode: Byte;    { Last buffer mode }
+      {` Индекс в Buffer^ первого незаполненного байта `}
+    ModBufStart, ModBufEnd: SW_Word;
+      {` в буфере модифицированы байты с ModBufStart по ModBufEnd-1 `}
     constructor Init(FileName: FNameStr; Mode: Word; Size: Sw_Word);
     destructor Done; virtual;
     procedure Flush; virtual;
@@ -1000,6 +1007,7 @@ begin
   if Size = 0 then Error(stInitError, 0) else begin
     GetMem(Buffer, Size);
     If Buffer = nil then Error(stInitError, 0);
+    ModBufStart := $FFFF;
   end;
 end;
 
@@ -1015,11 +1023,13 @@ end;
 
 procedure TBufStream.Flush;
 var
+  Pos: LongInt;
   Success: Integer;
-  W: Sw_Word;
+  W, Len: SW_Word;
 begin
   ClrIO;
-  if (LastMode = 2) and (BufPtr <> 0) then begin
+  if ModBufEnd > ModBufStart then
+    begin
     if (PHandle > -1) or
        ((FMode and $000F)=fmPacked) or
        ((FMode and $000F)=fmReadOnly) or
@@ -1027,13 +1037,17 @@ begin
     then Error(stError, 103)
     else begin
       (* inherited Write(Buffer^, BufPtr); *)
-      BlockWrite(FHandle.F, Buffer^, BufPtr, W);
+      Len := ModBufEnd - ModBufStart;
+      Pos := Position;
+      inherited Seek(Position - BufPtr + ModBufStart);
+      BlockWrite(FHandle.F, Buffer^[ModBufStart], Len, W);
       Success:=IOResult;
-      If (Success <> 0) or (W <> BufPtr) then Error(stError, Success);
+      inherited Seek(Pos);
+      if (Success <> 0) or (W <> Len) then
+        Error(stError, Success);
     end;
+    ModBufStart := $FFFF; ModBufEnd := 0;
   end;
-  BufPtr:=0;
-  BufEnd:=0;
 end;
 
 procedure TBufStream.Read(Var Buf; Count: Sw_Word);
@@ -1048,8 +1062,6 @@ begin
    then Error(stReadError, 103) else
   If Position + Count > StreamSize then Error(stReadError, 0)
   else begin
-    If LastMode = 2 then Flush;
-    LastMode:=1;
     while (Count > 0) and (Status = stOk) do begin
       if BufPtr = BufEnd then begin  { Buffer is empty }
         if Position + BufSize > StreamSize then Bw:=StreamSize - Position
@@ -1057,15 +1069,15 @@ begin
         if PHandle > -1 then begin
           W:=pRead(PHandle, Bw, Buffer);
           Success:=IOResult;
-        end else begin
+        end else
+        begin
+          Flush;
           BlockRead(FHandle.F, Buffer^, Bw, W);
           Success:=IOResult;
         end;
-        if (Success <> 0) or (Bw <> W) then Error(stReadError, Success)
-        else begin
-          BufPtr:=0;
-          BufEnd:=W;
-        end;
+        BufPtr := 0;
+        BufEnd := W;
+        if (Success <> 0) or (Bw <> W) then Error(stReadError, Success);
       end;
       if Status = stOk then begin
         W:=BufEnd - BufPtr;
@@ -1082,11 +1094,25 @@ begin
 end;
 
 procedure TBufStream.Seek(Pos: LongInt);
+var
+  BufStart: LongInt; {файловый адрес начала буфера}
 begin
-  if (Status = stOk) and (Position <> Pos) then begin
+  Status := stOK;
+  BufStart := Position-BufPtr;
+  if (Pos >= BufStart) and (Pos < BufStart+BufEnd) then
+    begin { AK155 Установка в пределах буфера без обращения к файлу}
+    BufPtr := Pos - BufStart;
+    Position := Pos;
+    end
+  else
+    begin
     Flush;
+    if (Status <> stOK) then
+      Exit;
     inherited Seek(Pos);
-  end;
+    BufPtr := 0;
+    BufEnd := 0;
+    end;
 end;
 
 procedure TBufStream.Truncate;
@@ -1106,25 +1132,25 @@ begin
      ((FMode and $000F)=fmReadOnly)
   then Error(stWriteError, 103) else
   begin
-    if LastMode = 1 then Flush;
-    LastMode:=2;
     P:=@Buf;
     while (Count > 0) and (Status = stOk) do begin
       if BufPtr = BufSize then begin  { Buffer is full }
-        BlockWrite(FHandle.F, Buffer^, BufSize, W);
-        Success:=IOResult;
-        if (Success <> 0) or (W <> BufSize) then Error(stError, Success);
-        BufPtr:=0;
+        Flush;
+        BufPtr := 0;
+        BufEnd := 0;
       end;
       if Status = stOk then begin
         W:=BufSize - BufPtr;
         if Count < W then W:=Count;
         Move(P^, Buffer^[BufPtr], W);
+        if BufPtr < ModBufStart then ModBufStart := BufPtr;
         Dec(Count, W);
         Inc(BufPtr, W);
+        if BufPtr > ModBufEnd then ModBufEnd := BufPtr;
         P:=Pointer(LongInt(P) + W);
         Inc(Position, W);
         If Position > StreamSize then StreamSize := Position;
+        if BufEnd < BufPtr then BufEnd := BufPtr;
       end;
     end;
   end;

@@ -54,6 +54,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -63,7 +66,6 @@ Unit ModemIO;
 Interface uses OOCOM, apPort, DOS;
 
 type  ModemString   = String[32];
-      Str15         = String[15];
       TModemSetup = Record
            Port: Word;
            Baud: Word;
@@ -104,14 +106,14 @@ const
         );
 
   {**** Modem answers ****}
-      maOK          : Str15 = 'OK';
-      maCONNECT     : Str15 = 'CONNECT';
-      maBUSY        : Str15 = 'BUSY';
-      maNOCARRIER   : Str15 = 'NO CARRIER';
-      maNODIALTONE  : Str15 = 'NO DIALTONE';
-      maNOANSWER    : Str15 = 'NO ANSWER';
-      maVOICE       : Str15 = 'VOICE';
-      maNODIAL      : Str15 = 'NO DIAL';
+      maOK          : String[2] = 'OK';
+      maCONNECT     : String[7] = 'CONNECT';
+      maBUSY        : String[4] = 'BUSY';
+      maNOCARRIER   : String[10] = 'NO CARRIER';
+{      maNODIALTONE  : String[11] = 'NO DIALTONE';}
+      maNOANSWER    : String[9] = 'NO ANSWER';
+      maVOICE       : String[5] = 'VOICE';
+      maNODIAL      : String[7] = 'NO DIAL';
 
        AdvModemData: TAdvModemData =
          (Data:0; Stop:0; Parity: NoParity; Byte_0: 0; HFlow: 1; SFlow: 0);

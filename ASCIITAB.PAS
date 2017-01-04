@@ -51,6 +51,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-ASCII_chart-AK60225A.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -88,9 +91,18 @@ type
   TASCIIChart = object(TWindow)
     constructor Init(var R: TRect);
     function Execute: Word; virtual;
+    destructor Done; virtual;
   end;
 
 procedure ASCIITable;
+
+var
+  fASCIITable: Boolean;
+    {` Признак того, что активна ASCIITable. Он используется для
+  того, чтобы символ вставлять в редактируемую строку, а не
+  обрабатывать каким-то иным образом. Например, код 27 (Esc), если
+  он введён с клавиатуры, завершает диалог, а если он сгенерирован
+  ASCIITable, он должен быть вставлен в строку ввода. `}
 
 implementation
 
@@ -307,6 +319,7 @@ begin
   end;
   Insert(Control);
   Control^.Select;
+  fASCIITable := True;
 end;
 
 function TASCIIChart.Execute: Word;
@@ -316,12 +329,8 @@ begin
   GetEvent(Event);
   case Event.What of
    evKeyDown: case Event.KeyCode of
-               kbESC:
-                 begin Event.What := evCommand; Event.Command := cmCancel; end;
-               kbEnter, kbCtrlB, kbCtrlP:
+               kbCtrlB, kbCtrlP:
                  begin Event.What := evCommand; Event.Command := cmOK; end;
-               kbCtrlEnter:
-                 begin Event.What := evCommand; Event.Command := cmYes; end;
                else if Event.CharCode > #0 then
                      begin
                       SetData(Event.CharCode);
@@ -335,6 +344,12 @@ begin
  until (Event.What = evCommand) and ((Event.Command < 255) and
         (Event.Command in [cmOK, cmCancel, cmYes]));
  Execute := Event.Command;
+end;
+
+destructor TASCIIChart.Done;
+begin
+ fASCIITable := False;
+ inherited Done;
 end;
 
 end.

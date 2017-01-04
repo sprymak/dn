@@ -95,6 +95,9 @@
 //  dn40900-temp_drive_in_directories_history.patch
 //
 //  5.9.0
+//  dn50900-SFX_detection.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -546,7 +549,6 @@ function FindFiles;
         ArcTime := FileTime(ArcPath);
         New(ArcFile,Init(ArcPath, stOpenRead, 512));
         if (ArcFile = nil) or (ArcFile^.Status <> stOK) then Goto NotArchive;
-        ArcPos := 0;
         SkipSFX;
         AType := DetectArchive;
         if (AType = nil)
@@ -1468,7 +1470,6 @@ begin
         begin
           FreeObject(ArcFile); {Abort := True;} Exit;
         end;
-      ArcPos := 0;
       SkipSFX;
       AType := DetectArchive;
       FreeObject(ArcFile);

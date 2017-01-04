@@ -71,6 +71,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -95,7 +98,7 @@ Procedure StartupInitUnit;
 
 PROCEDURE FatalError( const S: String );
 
-Const MaxSignLen = 30;
+Const MaxSignLen = 23;
 Type TSignRec = Record
                  Sign: String[MaxSignLen];
                  SignLen: Byte;
@@ -104,7 +107,7 @@ Type TSignRec = Record
                 End;
 
 CONST
-  FBRPBSignature: Array[1..5] of Char = 'FBRPB';
+{  FBRPBSignature: Array[1..5] of Char = 'FBRPB';}
   NumSupportedConfigs = 10;
   ConfigSigns: Array[1..NumSupportedConfigs] of TSignRec =
    ((Sign:'DN2 Configuration'#26#001#36;SignLen:20;SignVer:00136),

@@ -189,8 +189,7 @@
     New  DN versions are distributed by the project coordinator. The NAVIGATOR
  fileecho  serves for this purpose. The new versions are also available at the
  following Internet addresses:
-        http://www.dnosp.ru
-        http://dn.traktir.ru
+        http://www.dnosp.com
     Each new version is released as four packages:
         DN<version>S.RAR - source code (mainly for the project participants)
         DN<version>B.RAR - binary distribution for DOS  real-mode  environment
@@ -229,12 +228,10 @@
         2:5057/33.36@fidonet
         piwamoto(at)pisem.net
         http://www.sama.ru/~piwamoto/
-        http://dn.traktir.ru/
     Second coordinator:
         Eugeny Zvyagintzev
         2:5004/18.60@fidonet
         dn_osp(at)pisem.net
-        http://dnosp.nm.ru
     Third coordinator:
         check out our www pages and RU.SHELL.DN Fidonet echo area
 

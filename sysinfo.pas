@@ -60,6 +60,9 @@
 //  dn40900-HDD_detection_fix.patch
 //
 //  5.9.0
+//  dn50900-HDD_detection.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -222,20 +225,22 @@ BEGIN
  Reg.AH := 8;
  Reg.DL := $80 + N;
  {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($13,Reg);
- if Reg.AH <> 0 then begin S := ''; Exit; end {no HDD found}
+ if Reg.AH <> 0
+ then begin S := GetString(dlleIsAbsent); Exit; end {no HDD found}
  else if (NumCylinders=0) or (NumSect=0) or (NumHeads=0) then
         begin
          NumCylinders := LongInt(Reg.CH) + LongInt((Reg.CL shr 6))*256 + 1;
          NumSect := LongInt(Reg.CL and $3F);
          NumHeads := LongInt(Reg.DH) + 1;
         end;
- if (NumCylinders*NumSect*NumHeads = $fb0400){8Gb limit} and
+ if (NumHeads = 255) and {8Gb limit}
+    (NumSect = 63) and
+    ((NumCylinders = 1023) or (NumCylinders = 1024)) and
     (GetExtendedInfo(N, NumLBASectors)) then
     NumCylinders := NumLBASectors div NumHeads div NumSect;
- S := FStr(NumCylinders*NumSect*NumHeads div 2048);
- S := GetString(dlSI_HardDrive) + Chr($31{'1'} + N) + ' : ' + S + 'M, ' +
-      ItoS(NumHeads) + GetString(dlSI_Heads) +
+ S := FStr(NumCylinders*NumSect*NumHeads div 2048) + 'M, ' +
       ItoS(NumCylinders) + GetString(dlSI_Tracks) +
+      ItoS(NumHeads) + GetString(dlSI_Heads) +
       ItoS(NumSect) + GetString(dlSI_SectTrack);
 END;
 
@@ -273,7 +278,7 @@ end;
 
 procedure SystemInfo;
 var
-    EQList, Y, XMSSize: Word;
+    EQList, XMSSize: Word;
     LL: Array[1..6] of LongInt;
     D: PDialog;
     R: TRect;
@@ -382,23 +387,22 @@ begin
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 
- Y := 1;
  GetDisks(S2); S := GetString(dlSI_FloppyDrives) + S2;
+ for HDDcount := 0 to 3 do
+   S := S + GetString(dlSI_HardDrive) + Chr($31{'1'} + HDDcount) + ' :';
+ R.Assign(3,7,69,12);
+ P := New(PStaticText, Init(R, S));
+ P^.Options := P^.Options or ofFramed;
+ D^.Insert(P);
 
  for HDDcount := 0 to 3 do
  begin
    GetHDDInfo(HDDcount, S2);
-   if S2 <> '' then
-     begin
-      S := S + S2;
-      Inc(Y);
-     end;
+   R.Assign(20, 8 + HDDcount, 68, 9 + HDDcount);
+   P := New(PLabel, Init(R, S2, P));
+   D^.Insert(P);
  end;
 
- R.Assign(3,7,69,7+Y);
- P := New(PStaticText, Init(R, S));
- P^.Options := P^.Options or ofFramed;
- D^.Insert(P);
  S := GetString(dlSI_DiskDrivers);
  R.Assign(4,6,6+Length(S),7);
  P := New(PLabel, Init(R, S,P));
@@ -441,12 +445,12 @@ begin
  S := GetString(dlSI_TotalMem) + ItoS(LongInt(EQList)*64 + XMSSize + 1024) + 'K'^M;
  if XMSFound then S := S + GetString(dlSI_Extended) + ItoS(XMSFree) + 'K'^M;
  if EMSFound then S := S + GetString(dlSI_Expanded) + ItoS(EMSSize) + 'K';
- R.Assign(3,9+Y,25,12+Y);
+ R.Assign(3,14,25,17);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
  S := GetString(dlSI_Memory);
- R.Assign(4,8+Y,6+Length(S),9+Y);
+ R.Assign(4,13,6+Length(S),14);
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 
@@ -485,12 +489,12 @@ begin
     else S := S + DosVendor + 'DOS ' + ItoS(WordRec(EQList).Lo) + '.' +
               ItoS(WordRec(EQList).Hi)
  else S := S + S2;
- R.Assign(27,9+Y,69,12+Y);
+ R.Assign(27,14,69,17);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
  S := GetString(dlSI_Ports);
- R.Assign(28,8+Y,30+Length(S),9+Y);
+ R.Assign(28,13,30+Length(S),14);
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 

@@ -52,6 +52,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-INI_fix.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -278,7 +281,7 @@ Begin
       End;
     End;
   Until IsAppLine(Buf) or (CurFile^.Status <> 0);
-  If CurFile^.Status <> 0 then CurFile^.Reset;
+  CurFile^.Reset;
 end;
 
 procedure DeleteBuf(Dest, Source: LongInt);
@@ -309,7 +312,7 @@ var
 Begin
   pos := CurFile^.GetPos;
   ReadLine(Buf);
-  If CurFile^.Status <> 0 then CurFile^.reset;
+  CurFile^.reset;
   DeleteBuf(pos, CurFile^.GetPos);
 End;
 
@@ -370,7 +373,7 @@ Begin
           End
         End
       Until Res or (CurFile^.Status <> 0);
-      If CurFile^.Status <> 0 then CurFile^.Reset;
+      CurFile^.Reset;
       Copy[0] := #0;
       GetPrivateProfileString := Copy-ReturnedString-1;
       Exit
@@ -446,7 +449,7 @@ begin
         If not Res and (Buf[0] <> ';') then
           DeleteBuf(p, CurFile^.GetPos);
       until Res;
-      If CurFile^.Status <> 0 then CurFile^.Reset;
+      CurFile^.Reset;
     End
     else Begin
       If FindKey(KeyName, nil) then DeleteLine else CurFile^.Seek(CurApp);

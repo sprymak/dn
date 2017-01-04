@@ -1,4 +1,12 @@
-{adapted for DN OSP 5.02.08 by Max Piwamoto}
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source
+//
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
+//
+//////////////////////////////////////////////////////////////////////////}
 
 {$S-,R-,V-,I-,B-,F+,O+,A-}
 
@@ -329,9 +337,11 @@ type
 
 implementation
 
+uses advance;
+
 const
   {For various hex digit manipulations}
-  HexDigits : array[0..15] of Char = '0123456789abcdef';
+{  HexDigits : array[0..15] of Char = '0123456789abcdef';}
 
   {For manipulating file management options}
   FileMgmtMask = 7;                {Isolate file mgmnt values}

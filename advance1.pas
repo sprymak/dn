@@ -65,6 +65,9 @@
 //  dn40900-backsearch_char_in_editor_fix.patch
 //
 //  5.9.0
+//  dn50900-Hex8Lo-NoAsm.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -252,12 +255,12 @@ procedure Hex8Lo(L:longInt;var HexLo);
  end;
  {$ENDIF}
 {$ELSE}
-type ChArr = array[1..4] of char;
+  type
+    ChArr = array[1..8] of Char;
+  var
+    i: integer;
 begin
- ChArr(HexLo)[1]:=LoHexChar[L shr 24];
- ChArr(HexLo)[2]:=LoHexChar[L and $00FF0000 shr 16];
- ChArr(HexLo)[3]:=LoHexChar[L and $0000FF00 shr 08];
- ChArr(HexLo)[4]:=LoHexChar[L and $000000FF];
+  for i := 1 to 8 do ChArr(HexLo)[i] := LoHexChar[L shr (32-(i*4)) and $F];
 end;
 {$ENDIF}
 

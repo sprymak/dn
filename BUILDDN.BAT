@@ -70,6 +70,9 @@
 ::  dn40900-version_upgrade.patch
 ::
 ::  5.9.0
+::  dn50900-version_upgrade.patch
+::
+::  6.4.0
 ::
 :://///////////////////////////////////////////////////////////////////////
 @echo off
@@ -106,7 +109,7 @@ if .%1.==.. builddn asm help resource nolite
 
 set prg_packer=%real_packer%
 
-set dn_version=5.9.0
+set dn_version=6.4.0
 set diz_title=Real Mode Binary Package
 
 :Loop

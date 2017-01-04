@@ -84,6 +84,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -731,8 +734,6 @@ type
 const Q: PQArray = nil;
 
 procedure TCalcView.Draw;
- const Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
  var
      I, J, K, L: Integer;
      X1, X2, Y1, Y2: Integer;
@@ -1218,7 +1219,6 @@ type
   end;
 
   procedure ExportToDbf; {KV}
-  const Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var
     i, MaxCol, MaxRow, CurCol, CurRow : integer;
     PS : PString;

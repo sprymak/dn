@@ -100,6 +100,9 @@
 //  dn40900-backsearch_char_in_editor_fix.patch
 //
 //  5.9.0
+//  dn50900-ASCII_chart-AK60225A.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -2725,48 +2728,6 @@ ex:
    ScrollTo(NewX, Delta.Y);
  end;
 
-procedure ASCIITable;
- var
-  W: Word;
-  P: PWindow;
-  E: TEvent;
-  R: TRect;
-  CR:PView;
-   function GetCH: boolean;
-   begin
-{    Desktop^.Insert(P);
-    Desktop^.UnLock;
-    W:=P^.Execute;
-    Desktop^.Lock;
-    Desktop^.Delete(P);}
-    W:=Desktop^.ExecView(P);
-    P^.GetData(charASCII);
-    GetCh:=true;
-    if W in [cmOk, cmYes] then
-     begin
-      Event.What := evKeyDown;
-      Event.CharCode := charASCII;
-      Event.ScanCode := 0;
-      PutEvent(E);
-      ClearEvent(E);
-      InputChar;
-      Desktop^.UnLock;
-     end;
-    GetCh:= W=cmYes;
-  end;
- begin
-  P:=New(PASCIIChart, Init(R));
-  P^.MoveTo(boundsASCII.X, boundsASCII.Y);
-  P^.SetData(charASCII);
-  CR:=Desktop^.Current;
-{  Desktop^.Lock;}
-  while GetCH do ;
-{  Desktop^.UnLock;}
-  boundsASCII:=P^.Origin;
-  Dispose(P,Done);
-  if CR<>nil then CR^.Select;
- end;
-
  var PC: PCollection;
      R: TRect;
 
@@ -3185,6 +3146,12 @@ begin
                                { Flash <<< }
              end;
   evKeyDown:
+        begin
+        if fAsciiTable then
+          begin
+          InputChar;
+          Exit;
+          end;
         { Flash >>> }
         if (Event.KeyCode = kbCtrlLAngle) then
          begin
@@ -3282,6 +3249,7 @@ begin
               begin CE; MessageL(Owner, evCommand, EditCommands[I].C,
                                 Byte(EvStr[2])); Exit end;
              if (Event.CharCode>#31) and (Event.CharCode<#255) then InputChar;
+        end;
         end;
   evBroadcast: case Event.Command of
                 cmFindEdit:

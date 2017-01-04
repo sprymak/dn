@@ -114,6 +114,9 @@
 ;/  dn40900-editor_standard_block_hotkeys.patch
 ;/  dn40900-rename_error_retry_cancel_dialog.patch
 ;/  dn40900-erase_locked_file_dialog.patch
+;/  dn50900-ASCII_chart-AK60225A.patch
+;/
+;/  6.4.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -1532,6 +1535,13 @@ STATUSLINE
      StatusItem '~Ins~ —j k”nyvt r', kbIns, cmAddQuickDir,
      StatusItem '~F4~ Kedvenc cser‚je', kbF4, cmChangeQuickDir,
      StatusItem '~Del~ K”nyvt r t”rl‚s', kbDel, cmDelQuickDir,
+
+  StatusDef hcAsciiChart, hcAsciiChart,
+     StatusItem '~F1~ Help', kbF1, cmHelp,
+     StatusItem '~Esc~ Close', kbEsc, cmClose,
+     StatusItem '~Space~ Insert', kbSpace, cmYes,
+     StatusItem '~Enter~ Insert and close', kbEnter, cmOK,
+     StatusItem '+~Enter~ Insert', kbCtrlEnter, cmYes,
 
   StatusDef 0, $FFFF,
 ;{BASE}

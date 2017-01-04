@@ -59,6 +59,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -278,7 +281,7 @@ const
                                    '&','*','!','#','$','/','\','"','%','>','<',
                                    '-','+','=','|','?',#13,#10,#9,#26,#12,'@'];
 
-      HexStr     : array[1..$10] of char = '0123456789ABCDEF';
+      HexStr     : array[0..$F] of char = '0123456789ABCDEF';
       LoHexChar  : array[0..$F] of char = '0123456789abcdef';
       N_O_E_M_S  : array[1..5] of char = 'NOEMS';
          cTEMP_  : string[5] = 'TEMP:';

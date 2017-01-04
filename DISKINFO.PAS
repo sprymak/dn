@@ -63,6 +63,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -240,14 +243,13 @@ var DWord:Array[1..2] of Word;
     DiskInfo: ^TDiskInfo;
 
   function Word2Hex(I:Word):String;
-  const Values:Array[0..15] of Char='0123456789ABCDEF';
   var S,S1:String;
       A:Byte;
   begin
     S:='';
     S1:='';
     repeat
-      S:=S+Values[I mod 16];
+      S:=S+HexStr[I mod 16];
       I:=I div 16;
     until I=0;
     for A:=3 downto Length(S) do S1:=S1+'0';

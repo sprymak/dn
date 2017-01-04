@@ -57,6 +57,9 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -127,6 +130,8 @@ const
 
     CommaChar : Char = ',';
     SeparatorChar: Char = '|';
+
+    Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
  function MakeComma(S: String): String;
  function GetCellCoord(S: String; var X: Byte;var Y:Integer): Boolean;
@@ -310,7 +315,6 @@ begin
 end;
 
 function GetCellName(X, Y: Integer): String;
- const Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
  var S: String[10];
 begin
   Str(Y + 1, S);

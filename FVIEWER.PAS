@@ -102,6 +102,9 @@
 //  dn50523-hexview_cursor_position.patch
 //
 //  5.9.0
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -2175,7 +2178,7 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                    Event.CharCode:=UpCase(Event.CharCode);
                    if Event.CharCode in ['A'..'F', '0'..'9'] then begin
                     BufModified:=True;
-                    I:=PosChar(Event.CharCode, '0123456789ABCDEF')-1;
+                    I:=PosChar(Event.CharCode, HexStr)-1;
                    {$IFDEF DisAsm}
                     if (ViewMode <> vmAsm) then {JO}
                    {$ENDIF}

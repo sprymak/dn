@@ -69,6 +69,9 @@
 //  dn40900-version_upgrade.patch
 //
 //  5.9.0
+//  dn50900-version_upgrade.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -79,7 +82,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionWord:word   = 50900; {Last changed: Year-2000,Month,Day}
+  VersionWord:word   = 60400; {Last changed: Year-2000,Month,Day}
   VersionName:string = '/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}

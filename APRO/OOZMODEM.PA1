@@ -1,3 +1,11 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  dn50900-data_segment_optimization.patch
+//
+//  6.4.0
+//
+//////////////////////////////////////////////////////////////////////////}
+
   procedure ZmodemProtocol.zpRawInit;
     {-Do low-level zmodem inits}
   begin
@@ -251,8 +259,8 @@
   var
     B : Byte absolute C;
   begin
-    APort^.PutChar(HexDigits[B shr 4]);
-    APort^.PutChar(HexDigits[B and $0F]);
+    APort^.PutChar(LoHexChar[B shr 4]);
+    APort^.PutChar(LoHexChar[B and $0F]);
   end;
 
   procedure ZmodemProtocol.zpPutHexHeader(FrameType : Char);
@@ -404,7 +412,7 @@ Escape:
       end else
         CanCount := 0;
 
-      B := Pos(C, HexDigits);
+      B := Pos(C, LoHexChar);
       if B <> 0 then
         Dec(B);
 

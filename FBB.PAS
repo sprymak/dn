@@ -60,6 +60,10 @@
 //  dn50208-cleanup.patch
 //
 //  5.9.0
+//  dn50900-split_combine_fix.patch
+//  dn51229-split_combine_fix_1.patch
+//
+//  6.4.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -68,13 +72,12 @@ UNIT FBB;
 
 interface
 
- Function LongCopy(Fn1: String): Boolean; {DataCompBoy}
+procedure LongCopy(Fn1: String);
 
 implementation
-uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
-     Messages, Views, Objects, Dialogs, Commands, Drivers, Memory, FilesCol,
-     RStrings, HistList, Gauge, StartUp, DNutil, xTime, DiskInfo
-     {$IFNDEF NONBP},DiskTool{$ENDIF};
+uses LFN, Dos, tree, advance, advance1, advance2, FileCopy, DNApp, Messages,
+     Views, Objects, Dialogs, Commands, Drivers, Memory, HistList, Gauge,
+     StartUp, xTime, DiskInfo;
 
  type Ar65000 = Array [1..65000] of Byte;
       ArPtr = ^Ar65000;
@@ -127,15 +130,8 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
    FreeMem(Bf[i].Buf,Bf[i].Num);
   NBf:=0;
  end;
-{DataCompBoy
- procedure DskOn;
- begin
-  if dr1<=NumFloppy then DiskOn(dr1);
-  if dr2<=NumFloppy then DiskOn(dr2);
- end;
-}
-        {-DataCompBoy-}
- Function LongCopy(Fn1: String): Boolean;
+
+procedure LongCopy(Fn1: String);
   label Ex, _Abort_;
   type OHdr=record
         nm : array[1..23] of Char;
@@ -148,9 +144,8 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
         xt : String;
        end;
 
-  const OldStdHdr : OHdr=(nm:'Navigator Long Copy '#13#10#26;xt:'   ';ln:0);
-        NewStdHdr : NHdr=(nm:'Navigator NLong Copy'#13#10#26;ln:0    ;xt:'');
-        NStr : String[40]='123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const OldStdHdr : array[1..23] of Char='Navigator Long Copy '#13#10#26;
+        NewStdHdr : array[1..23] of Char='Navigator NLong Copy'#13#10#26;
 
   var
       Cs,Cd : LongInt;
@@ -159,6 +154,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
       Olddate: LongInt;
       PartSize: LongInt;
       PartWrt:  LongInt;
+      PP: Pointer;
       NumW  : Word;
       wx,wy : Integer;
       Tuda  : Boolean;
@@ -169,20 +165,22 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
       i     : Byte;
       Count : Byte;
       wl    : Byte;
+      csv   : Byte;
       PInfo : PWhileView;
-      AlarmTimer: TEventTimer;
       nhd    : nHdr;
       ohd    : oHdr absolute nhd;
+      R: TRect;
       F1,F2 : lFile;
       d,Fn2 : String;
       n,x    : String;
+      CopyDir: String;
 
   procedure DsplInfo;
   begin
     PInfo^.Write(5, GetString(dlRead)+
-                 Copy(Strg(#219,(LongInt(wl)*Cs) div Ls)+Strg(#177, wl),1,wl));
+                 Copy(Strg(#219,(LongInt(wl)*Cs) div (Ls + Byte(Ls=0)))+Strg(#177, wl),1,wl));
     PInfo^.Write(6, GetString(dlWrite)+
-                 Copy(Strg(#219,(LongInt(wl)*Cd) div Ls)+Strg(#177, wl),1,wl));
+                 Copy(Strg(#219,(LongInt(wl)*Cd) div (Ls + Byte(Ls=0)))+Strg(#177, wl),1,wl));
   end;
 
   procedure MaxRead;
@@ -193,7 +191,6 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
     DsplInfo;
     for i:=1 to NBf do
      begin
-{DataCompBoy      DskOn;}
       if b then BlockRead(F1.f,Bf[i].Buf^,Bf[i].Num,Bf[i].NR)
            else Bf[i].Nr:=0;
       if IOResult <> 0 then
@@ -201,9 +198,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
         MessageBox(GetString(dlFBBNotReadSource)+Fn1, nil, mfError+mfOKButton);
         Abort := True;
         NewTimer(Timer, 0);
-        NewTimerSecs(AlarmTimer, 20);
        end;
-{DataCompBoy      DskOn;}
       DispatchEvents(PInfo, CopyCancelled);
       if Abort or CopyCancelled then begin
        Close(F2.f);
@@ -232,7 +227,6 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
      i:=MessageBox(GetString(dlFBBOver1) + SR.FullName + GetString(dlFBBOver2), nil,
                    mfQuery+mfYesButton+mfNextDButton+mfCancelButton);
      NewTimer(Timer, 0);
-     NewTimerSecs(AlarmTimer, 20);
      Abort:=i=cmCancel;
      if i=cmYes
        then EraseFile( d+SR.fullname )
@@ -246,14 +240,13 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
    Abort:=MessageBox(GetString(dlFBBInsertDisk)+SStr(Count,2,'0'), nil,
                      mfConfirmation + mfOKButton + mfCancelButton)<>cmOK;
    NewTimer(Timer, 0);
-   NewTimerSecs(AlarmTimer, 20);
   end;
 
   procedure RequireNew;
    label l1;
   begin
    PartWrt := 0;
-   Inc(Count);{DataCompBoy DskOn;}
+   Inc(Count);
 l1:repeat
     if Count>1 then
     begin
@@ -277,22 +270,20 @@ l1:repeat
         Abort:=True;
         Exit;
        end;
-{DataCompBoy     DskOn;}
     end;
-{DataCompBoy   DskOn;}
    CreateDirInheritance(d, False);
-   lAssignFile(F2,Fn2); PInfo^.Write(3, Fn2);
-   ClrIO; lReWriteFile(F2,1);
+   lAssignFile(F2,Fn2);
+   PInfo^.Write(3, Fn2);
+   ClrIO;
+   lReWriteFile(F2,1);
    if not BinarySplit then
     if Not NewMode then BlockWrite(F2.f,ohd,SizeOf(OHdr))
                    else BlockWrite(F2.f,nhd,SizeOf(NHdr)-254+length(nhd.xt));
-{DataCompBoy   DskOn;}
    if IOResult<>0 then
     begin
     i:=MessageBox(GetString(dlFBBNoCreate)+SStr(Count,2,'0'), nil,
                   mfError + mfOKButton + mfCancelButton);
     NewTimer(Timer, 0);
-    NewTimerSecs(AlarmTimer, 20);
     if i<>cmOK then
        begin
         Abort:=True;
@@ -313,7 +304,6 @@ l1:repeat
     for i:=1 to NBf do
      if BF[i].NW<BF[i].NR then
      begin
-{DataCompBoy      DskOn;}
       wr:=LongInt(Bf[i].NR)-LongInt(Bf[i].NW);
 l2:    LastPos := FilePos(F2.f);
       if PartSize<>0
@@ -339,7 +329,6 @@ l2:    LastPos := FilePos(F2.f);
         NewTimer(Timer, 0);
        end;
       if Abort then Goto l33;
-{DataCompBoy      DskOn;}
       if (NumW=0) or ((PartSize<>0) and (PartWrt=PartSize)) then
        begin
         wr:=DiskFree(dr2);
@@ -364,10 +353,10 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
         Abort:=True;
         Exit;
        end else begin
-        if TimerExpired(AlarmTimer) and
+        if (ElapsedTime(Timer) > 20*1000) and
            (FMSetup.Options and fmoBeep <> 0) then
          BeepAftercopy;
-        ReQuireNew;
+        if Cd < Ls then ReQuireNew;
         GoTo Rep;
        end;
       if Bf[i].NR>Bf[i].NW then Dec(i);
@@ -380,18 +369,20 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
    b:=0;
    FillChar(nhd,SizeOf(nHdr),0);
    Seek(F1.f, 0);
-   BlockRead(F1.f,nhd,SizeOf(NHdr));
+   BlockRead(F1.F, nhd, Min(FileSize(F1.F), SizeOf(NHdr)));
    if IOResult=0 then
     begin
-     if ohd.nm=OldStdHdr.nm then b:=1
-      else if nhd.nm=NewStdHdr.nm then b:=2
-       else b:=0;
-    end
-   else b:=0;
-   Case b of
-    1: Seek(F1.f,SizeOf(OHdr));
-    2: Seek(F1.f,SizeOf(NHdr)-254+Length(nhd.xt));
-   end;
+     if ohd.nm=OldStdHdr then
+       begin
+        b:=1;
+        Seek(F1.f, SizeOf(OHdr));
+       end;
+     if nhd.nm=NewStdHdr then
+       begin
+        b:=2;
+        Seek(F1.f, SizeOf(NHdr) - 254 + Length(nhd.xt));
+       end;
+    end;
    CheckSvoi:=b;
   end;
 
@@ -418,11 +409,10 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
    Dispose(D,Done);
    Fn1:=MakeNormName(S, K+L);
    NewTimer(Timer, 0);
-   NewTimerSecs(AlarmTimer, 20);
   end;
 
   procedure InsCor;
-  var s,j: Byte;
+  var j: Byte;
   begin
    Inc(Count);
    j:=0;
@@ -438,9 +428,10 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
     lFSplit(Fn1,d,n,x);
     Fn1:=d+n+'.d'+SStr(Count, 2, '0');
     FileMode := 0;
-    lAssignFile(F1,Fn1); lResetFile(F1,1); PInfo^.Write(1, Fn1);
-    s:=CheckSvoi;
-   until ((IOResult=0) and ((s=1) or (s=2))) or Abort or CopyCancelled;
+    lAssignFile(F1,Fn1);
+    lResetFile(F1,1);
+    PInfo^.Write(1, Fn1);
+   until ((IOResult=0) and (CheckSvoi<>0)) or Abort or CopyCancelled;
   end;
 
   procedure Nedochit;
@@ -451,8 +442,6 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
    for i:=1 to NBF do b:=b or (BF[i].NR=0);
    if b and (cd<ls) then InsCor;
   end;
-
-  var CopyDir: String;
 
   function CopyDialog: Boolean;
    var
@@ -576,21 +565,17 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
      If NewMode then
       begin
        nhd.xt:=S;
-       nhd.nm:=NewStdHdr.nm;
+       move(NewStdHdr, nhd.nm, SizeOf(NewStdHdr));
       end
      else
       begin
        move(s[1], ohd.xt, 3);
-       ohd.nm:=OldStdHdr.nm;
+       move(OldStdHdr, ohd.nm, SizeOf(OldStdHdr));
       end;
   end;
 
-  var R: TRect;
-      PP: Pointer;
-      csv: byte;
-  begin
+begin{LongCopy}
     NewTimer(Timer, 0);
-    LongCopy := True;
     Count:=0;
     Tuda:=False;
     Abort:=False;
@@ -600,12 +585,13 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
     Fn1:=lFExpand(Fn1);
     lFSplit(Fn1,d,n,x);
     dr1:=Byte(Fn1[1])-64;
-    Cs:=0; Cd:=0; {DataCompBoy DskOn;}
+    Cs:=0;
+    Cd:=0;
     FileMode := $40;
     lAssignFile(F1,Fn1); ClrIO;
     lResetFile(F1,1);
     if IOResult<>0 then
-     begin MessageBox(GetString(dlFBBNoOpen)+Fn1, nil, mfError + mfOKButton); LongCopy := False; Exit; end;
+     begin MessageBox(GetString(dlFBBNoOpen)+Fn1, nil, mfError + mfOKButton); Exit; end;
     GetFTime(F1.F, OldDate);
     lFSplit(Fn1,d,n,x);
 
@@ -615,7 +601,6 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
            begin
             Close(F1.f);
             Message(Desktop, evCommand, cmSingleCopy, nil);
-            LongCopy := False;
             Exit;
            end;
 
@@ -628,7 +613,7 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
        Count := 1;
        RequirePath;
        lAssignFile(F1, Fn1);
-       if Abort then begin LongCopy := False; Exit; end;
+       if Abort then Exit;
        FileMode := 0;
        lResetFile(F1,1);
        csv := CheckSvoi;
@@ -645,7 +630,7 @@ l1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
                 else Ls:=ohd.Ln;
 
     if (not CopyDialog) or Abort then
-_Abort_:    begin Close(F1.F); LongCopy := False; Exit; end;
+_Abort_:    begin Close(F1.F); Exit; end;
 
     if NewMode then nhd.Ln:=Ls
                else ohd.Ln:=Ls;

@@ -6,6 +6,46 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 6.4.0
+  ---------------------------------------------------------------------
+
+    >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed extender (DPMI16BI.OVL) in DPMI version. It improves stability
+    under MS-DOS 7.1 when using EMM386.EXE NOEMS or working with NTFSDOS
+    Professional Edition v4.x and v5.x (ntfspro.exe).
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] INI engine fixed.
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] 'Split/Combine' made 'Copy' instead of 'Combine' in some cases.
+
+[-] Fixed cursor positioning on exit from a directory after 'CD' command.
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed MS hotfix detection (CAB-SFX with digital sign).
+
+    >>> Miscellaneous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] It was impossible to insert symbols with code less than $20 (space)
+    from ASCII Chart to input lines.
+
+[*] In addition to Ctrl-Enter introduced the new hotkey (Space) to get symbol
+    from ASCII Chart without closing its window.
+
+[*] Added description for ASCII Chart in status line.
+
+[-] Fixed HDD size detection in System Info.
+
+    >>> Source codes usage features <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Internal optimizations: size of data segment decreased.
+
+
    Version 5.9.0
   ---------------------------------------------------------------------
 

@@ -1,3 +1,11 @@
+{/////////////////////////////////////////////////////////////////////////
+//
+//  Dos Navigator Open Source
+//
+//  6.4.0
+//
+//////////////////////////////////////////////////////////////////////////}
+
   function ZmodemProtocol.zpReceiveBlock(var Block : DataBlockType;
                                          var BlockSize : Word;
                                          var Handshake : Char) : Boolean;
