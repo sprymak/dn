@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -65,7 +65,7 @@ uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
      Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
      UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver,
      U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries,
-     ExtraMem, Menus, VideoMan, extkbd, stakdump
+     ExtraMem, Menus, VideoMan, extkbd, stakdump, DnSvLd, filefind
 {$IFDEF CDPLAYER},CDPlayer{$ENDIF}
 {$IFDEF DPMI}, DPMI {$ENDIF}
 {$IFDEF DiskFormat}, FmtUnit {$ENDIF}
@@ -658,6 +658,7 @@ begin
   ReadINI;
 
 {$IFDEF SS}Val(SaversData.Time, SkyDelay, Integer(SPos1));{$ENDIF}
+  if SkyDelay=0 then SkyDelay:=255; { X-Man }
 end;
         {-DataCompBoy-}
 

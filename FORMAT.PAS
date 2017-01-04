@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -535,7 +535,7 @@ procedure   Tfmt.initDBT;assembler;
         db      0f6h            { fill byte                           }
         db      00fh            { head settle time                    }
         db      004h            { motor start time                    }
-        db      'DN Par table'
+        db      'DNOSP Par table'
 @@done:
      {
       disk10:paratyp=($df,$02,$25,$02,10,$1b,$ff,$2e,$F6,$0f,$04);

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -690,7 +690,7 @@ begin
     begin
      If (PViewRecord(EditHistory^.At(I))^.fName = nil) then Exit;
      {A eto tak, na vsyakiy sluchay proverka, esli eto ne DPMI :}
-     PDNApplication(Application)^.EditFile(Off,
+     PDNAppl(Application)^.EditFile(Off,
        Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, 255));
     end;
 end;
@@ -716,7 +716,7 @@ begin
   if I >= 0 then
    begin
     If (PViewRecord(ViewHistory^.At(I))^.fName = nil) then Exit; {Ku :}
-    PDNApplication(Application)^.ViewFile(On,
+    PDNAppl(Application)^.ViewFile(On,
      Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255));
    end;
 end;

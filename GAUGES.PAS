@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -69,6 +69,10 @@ type
     function GetPalette: PPalette; virtual;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
   end;
+
+ Const
+  TrashCan: PTrashCan = nil;
+ Type
 {$ENDIF}
 
   PKeyMacros = ^TKeyMacros;

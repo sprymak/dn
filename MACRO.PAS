@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -211,12 +211,10 @@ constructor TEditMacros.Init;
        end else Found := Off;
    end;
 
-   {$IFDEF PRINTMANAGER}
    procedure MakePrint;
    begin
      Commands^.Insert(New(PMacroString, Init(Token(S, I), GetID(Token(S, I)))));
    end;
-   {$ENDIF}
 
    procedure MakeGotoXY(X,Y: Integer);
    begin
@@ -347,9 +345,7 @@ begin
         begin
           I := 1;
           if Found('ENDMACRO') then Break;
-            {$IFDEF PRINTMANAGER}
             if Found('PRINT ') then MakePrint else
-            {$ENDIF}
             if Found('GOTOXY ') then MakeGotoXY(GetID(Token(S,I)), GetID(Token(S,I))) else
             if Found('GOTOX ') then MakeGotoXY(GetID(Token(S,I)), -1) else
             if Found('GOTOY ') then MakeGotoXY(-1, GetID(Token(S,I))) else
@@ -831,7 +827,8 @@ var
         if Found('PARAGRAPH ') then MakeValue(EdOptions^.InSide) else
         if Found('FORCECRLF ') then EdOptions^.ForcedCrLf:=cfCRLF else
         if Found('FORCECR ') then EdOptions^.ForcedCrLf:=cfCR else
-        if Found('FORCELF ') then EdOptions^.ForcedCrLf:=cfLF
+        if Found('FORCELF ') then EdOptions^.ForcedCrLf:=cfLF else
+        if Found('FORCELFCR ') then EdOptions^.ForcedCrLf:=cfLFCR
       end
 {PZ - end }
     end

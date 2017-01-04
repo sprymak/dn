@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -130,6 +130,7 @@ CONST
 
   kbAltQuote = $2800;
   kbAltSemicolon = $2700; {JO}
+  kbMenu = $B8E0; { Michael Averbukh } { X-Man }
 
 const
 
@@ -480,6 +481,8 @@ const
   cmResize  = 6;
   cmNext    = 7;
   cmPrev    = 8;
+
+
   cmHelp    = 9;
   cmHelp2   = $DCB;
 
@@ -618,6 +621,7 @@ const
   cmPrev3              = 12197;
   cmGotoLineNumber2    = 12198;
   cmSwitchSmartTab     = 12199;
+  cmEditLfCrMode       = 12200;
   cmPlaceMarker1       = 14001;
   cmPlaceMarker2       = 14002;
   cmPlaceMarker3       = 14003;
@@ -898,6 +902,7 @@ const
   cmSetupModem        = 3034;
   cmTerminal          = 3035;
   cmUndial            = 3036;
+
   cmTotalReread       = 3038;
   cmHideWindows       = 3040;
   cmHistoryList       = 3041;
@@ -1002,13 +1007,6 @@ const
   cmGetPtr1           = 23000;
   cmGetPtr2           = 23001;
 
-  { R - Commands      }
-
-  cmRFormat           = 24000;
-  cmNewStrColl        = 24001;
-  cmGetCmpNfo         = 24418;
-  cmRSearchAdvance    = 24123;
-
   cmCalendar          = 27000;
 
 { Open/Save commands }
@@ -1051,6 +1049,7 @@ const
   cmEditFile          = 151;
   cmIntViewFile       = 153;
   cmIntEditFile       = 154;
+
   cmCopyFiles         = 155;
   cmTempCopyFiles     = 156;
   cmPanelLongCopy     = 157;
@@ -1193,7 +1192,7 @@ const
   wmWords       = 2;
 
 Type
-  TCRLF = (cfNone, cfCRLF, cfCR, cfLF);
+  TCRLF = (cfNone, cfCRLF, cfCR, cfLF, cfLFCR);
 
 
 TYPE
@@ -1644,6 +1643,7 @@ TYPE
     dlEditDesc,
     dl_D_escription,
     dlFC_Writing,
+
     dlFC_Written,
     dlFC_Total,
     dlFC_To,
@@ -1944,6 +1944,12 @@ TYPE
     dlTeam155,
     dlTeam156,
     dlTeam157,
+    dlTeam158,
+    dlTeam159,
+    dlTeam160,
+    dlTeam161,
+    dlTeam162,
+    dlTeam163,
 
     dlHelp,
     dlOutputTitle,
@@ -2301,6 +2307,7 @@ TYPE
     dlReadingPkt,
     dlLine,
     dlAdvancedFormat,
+
     dlBootSector1,
     dlEntries,
     dlDirEntries,
@@ -2335,7 +2342,22 @@ TYPE
     dlFullInfo,
     dlDescr,
     dlPath,
-    dlAutodetect
+    dlAutodetect,
+{X-Man >>>}
+    sdtError,
+    sdtFixed,
+    sdtRemovable,
+    sdtRemote,
+    sdtCDROM,
+    sdtDblSpace,
+    sdtSUBST,
+    sdtStacker,
+    sdtRAMDrive,
+    sdtDublDisk,
+    sdtBernoully,
+    sdtDiskreet,
+    sdtSuperStor
+{X-Man <<<}
   );
 
   TDlgIdx = (

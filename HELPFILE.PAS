@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -95,8 +95,15 @@ type
     destructor Done; virtual;
   end;
 
+procedure OpenHelp(Cmd: word);
+
+const
+  HelpWnd: PHelpWindow = nil;
+  HelpInUse: Boolean = False;
+
 implementation
-uses DNApp, Commands, DNHelp, RStrings, DnUtil;
+uses DNApp, Commands, DNHelp, RStrings, DnUtil, Advance, Advance7, Messages,
+     Menus, Dialogs;
 
 { THelpViewer }
 
@@ -463,6 +470,59 @@ destructor THelpWindow.Done;
 begin
   if HelpWnd=@Self then begin HelpWnd:=nil; HelpInUse:=false end;
   inherited Done;
+end;
+
+Procedure OpenHelp(Cmd: word);
+var HelpStrm: PStream;
+    HFile: PHelpFile;
+    P, P1: PView;
+Begin
+ if (not HelpInUse) or (HelpWnd=nil) then begin
+  HelpInUse := True;
+  HelpStrm := New(PDosStream, Init(SourceDir+HelpLngId + '.HLP', stOpenPacked));
+  if HelpStrm^.Status <> stOk then begin
+   Dispose(HelpStrm,Done);
+   HelpStrm := New(PDosStream, Init(StartupDir+HelpLngId + '.HLP', stOpenPacked));
+  end;
+  HFile := New(PHelpFile, Init(HelpStrm));
+  if HelpStrm^.Status <> stOk then begin
+   Msg(erCantOpenHelp, nil, mfError + mfOkButton);
+   Dispose(HFile,Done);
+   HFile:=nil;
+   HelpStrm:=nil;
+  end else begin
+   if Cmd=0
+    then HelpWnd := PHelpWindow(Application^.ValidView(New(PHelpWindow,Init(HFile, Application^.GetHelpCtx))))
+    else HelpWnd := PHelpWindow(Application^.ValidView(New(PHelpWindow,Init(HFile, Cmd))));
+   if HelpWnd<>nil then begin
+    if ((DeskTop^.Current<>nil) and
+       ((Desktop^.Current^.GetState(sfModal)) or (Desktop^.Current^.GetState(sfDragging)))
+       ) or MenuActive
+     then Application^.ExecuteDialog(PDialog(HelpWnd),nil)
+     else begin
+           HelpWnd^.SetState(sfModal, false);
+           HelpWnd^.Options := HelpWnd^.Options or ofTileable or ofTopSelect;
+           Application^.InsertWindow(HelpWnd);
+           Exit;
+          end;
+   end;
+  end;
+  HelpWnd^.Free;
+  HelpInUse := False;
+ end else begin
+  if Cmd>0 then HelpWnd^.GotoContext(Cmd);
+  if ((DeskTop^.Current<>nil) and (Desktop^.Current^.GetState(sfModal))) or MenuActive
+   then begin
+         HelpWnd^.SetState(sfModal, true);
+         P:=HelpWnd^.Next;
+         P1:=DeskTop^.Current;
+         Desktop^.Delete(HelpWnd);
+         Application^.ExecuteDialog(PDialog(HelpWnd), nil);
+         Desktop^.InsertBefore(HelpWnd, P);
+         Desktop^.SetCurrent(P1, EnterSelect);
+        end
+   else HelpWnd^.Focus;
+ end;
 end;
 
 end.

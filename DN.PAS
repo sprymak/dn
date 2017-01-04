@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -59,7 +59,7 @@ uses DN1;
 {$IFNDEF NO_OVERLAY}
 
   {!$O DNApp} {!$O Drivers} {!$O Overlays} {!$O Startup}
-  {$O DN1}
+  {$O DN1}    {$O DnSvLd}   {$O DnUtil2}
 
 {$IFDEF FULLOVR}
   {$O RStrings} {$O UniWin} {$O FlPanelX} {$O FlPanel} {$O XDBlWnd}
@@ -74,7 +74,7 @@ uses DN1;
   {$O Profile}  {$O U_SRCHF}  {$O HistList} {$O Histries} {$O FlTools}
   {$O Scroller} {$O DiskTool} {$O HideView} {$O Setups}   {$O FViewer}
   {$O Macro}    {$O FileCopy} {$O FileDiz}  {$O FileLst}  {$O CCalc}
-  {$O DiskInfo} {$O Eraser}   {$O FileFind} {$O Dialogs}  {$O DNUtil}
+  {$O DiskInfo} {$O Eraser}   {$O FileFind} {$O Dialogs}  {!$O DNUtil}
   {$O ArcView}  {$O Archiver} {$O Archset}  {$O Archdet}  {$O Arc_Zip}
   {$O Arc_LHA}  {$O Arc_RAR}  {$O Arc_ACE}  {$O Arc_HA}   {$O Arc_CAB}
 {$IFNDEF MINARCH}

@@ -44,77 +44,51 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+
+{$Optimise-}
+
 {$I STDEFINE.INC}
-
-(* modified for supporting packed overlay 'overlay.pas' from BP 7.0 RTL *)
-
-{*******************************************************}
-{                                                       }
-{       Turbo Pascal Runtime Library                    }
-{       Overlay Interface Unit                          }
-{                                                       }
-{       Copyright (C) 1988,92 Borland International     }
-{                                                       }
-{*******************************************************}
-
-unit Overlay1;
-
-{.$I-,S-}
-
+unit flage;
 interface
 
-const
-  ovrOk = 0;
-  ovrError = -1;
-  ovrNotFound = -2;
-  ovrNoMemory = -3;
-  ovrIOError = -4;
-  ovrNoEMSDriver = -5;
-  ovrNoEMSMemory = -6;
-
-const
-  OvrResult: Integer = 0;
-  OvrEmsPages: Word = 0;
-  OvrTrapCount: Word = 0;
-  OvrLoadCount: Word = 0;
-  OvrFileMode: Byte = 0;
-
-type
-  OvrReadFunc = function(OvrSeg: Word): Integer;
-
-var
-  OvrReadBuf: OvrReadFunc;
-
-procedure OvrInit(FileName: String);
-procedure OvrInitEMS;
-procedure OvrSetBuf(Size: LongInt);
-function  OvrGetBuf: LongInt;
-procedure OvrSetRetry(Size: LongInt);
-function  OvrGetRetry: LongInt;
-procedure OvrClearBuf;
+function GetFileAge(S: String): longint;
+function SetFileAge(S: String; Age: longint): longint;
 
 implementation
-uses
-  PackF_RS;
 
-{$L OVERLAY.OBJ}
-{$L OVEREMS.OBJ}
+uses SysUtils, os2base, Strings;
 
-const
-  OvrRetrySize: Word = 0;
-  OvrFileBase: Longint = 0;
+function GetFileAge(S: String): longint;
+ begin
+  GetFileAge := FileAge (S);
+ end;
 
-procedure OvrInit(FileName: String); external;
-procedure OvrInitEMS; external;
-procedure OvrSetBuf(Size: LongInt); external;
-function  OvrGetBuf: LongInt; external;
-procedure OvrSetRetry(Size: LongInt); external;
-function  OvrGetRetry: LongInt; external;
-procedure OvrClearBuf; external;
-
-procedure OverlayHalt;
+function SetFileAge(S: String; Age: longint): longint;
+  Var
+   fsts3ConfigInfo : FileStatus3;
+   ulBufSize       : Longint;
+   rc              : Longint;
+   PS: PChar;
 begin
-  RunError(209);
+   ulBufSize := sizeof(FileStatus3);
+   PS := StrPCopy (PS, S);
+   rc := DosQueryPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize);
+
+   fsts3ConfigInfo.fdateLastWrite := Age shr 16;
+   fsts3ConfigInfo.ftimeLastWrite := Age and $FFFF;
+
+   rc := DosSetPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize,
+      0);
+   SetFileAge := rc;
+
 end;
 
 end.

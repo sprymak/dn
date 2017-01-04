@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -145,6 +145,7 @@ const
 {}FastSearchDeep           : Longint = 0;
 {}WinManagerPosToEdit      : Boolean = True;
 {}AutoBracketPairs         : String  = '()[]{}<>';
+{}RecombineLongLines       : Boolean = False; {JO}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type  ; Default value      ;          Comments ;}
 {`.________________________;_________;____________________;___________________'}
@@ -257,6 +258,7 @@ begin
   RegisterVar(CSEditor, 'FastSearchDeep',      ikLongint, @FastSearchDeep);
   RegisterVar(CSEditor, 'WinManagerPosToEdit', ikBoolean, @WinManagerPosToEdit);
   RegisterVar(CSEditor, 'AutoBracketPairs',    ikString,  @AutoBracketPairs);
+  RegisterVar(CSEditor, 'RecombineLongLines',  ikBoolean, @RecombineLongLines); {JO}
   {FilePanels}
   RegisterVar(CSFilePanels, 'ShowFileMask',        ikBoolean, @ShowFileMask);
   RegisterVar(CSFilePanels, 'ShowLongName',        ikBoolean, @ShowLongName);

@@ -3,7 +3,7 @@
             Based on Dos Navigator (C) 1991-1999 RIT Research Labs
 ==============================================================================
 
-    Last revision date: Wednesday August 23 2000
+    Last revision date: Saturday November 4 2000
 
                               Table of Contents
 
@@ -11,7 +11,7 @@
  2. Creating patches
  3. Programming style
  4. Applying patches
- 5. New DN versions distribution
+ 5. [CHANGED] New DN versions distribution
  6. Project coordinators
 
                               1. General issues
@@ -188,13 +188,13 @@
         http://dn2.da.ru/
         http://dnosp.web.com/ (the real name is http://www.nsk.su/~dnosp/)
         http://dnosp.id.ru/ (the real name is http://www.hippo.ru/~nelescon/)
-    Each new version is released as four packages:
-        DN<version>S.ZIP - source code (mainly for the project participants)
-        DN<version>B.ZIP - binary distribution for DOS  real-mode  environment
+    [CHANGED] Each new version is released as four packages:
+        DN<version>S.RAR - source code (mainly for the project participants)
+        DN<version>B.RAR - binary distribution for DOS  real-mode  environment
                            (for the end user)
-        DN<version>D.ZIP - binary distribution for DOS protected-mode environ-
+        DN<version>D.RAR - binary distribution for DOS protected-mode environ-
                            ment - DPMI (for the end user)
-        DN<version>P.ZIP - a set of extra files for the end user
+        DN<version>P.RAR - a set of extra files for the end user
     The fourth  packet contains  screensavers, xlat tables,  Windows icons and
  examples of text configuration files. This package is not released with every
  version but only when an update is necessary.
@@ -206,13 +206,18 @@
  (ritlabs.txt).
     When needed, other packages may be released as well,  such as localization
  sets for national languages.
-    Beta versions may be released when necessary.  A beta version is a supple-
- mentary release intended  solely for  beta-testing pruposes,  not for general
- usage.  A person who  is going to  do beta-testing is  encouraged to mail the
- project coordinator and give information about which version would be tested,
- and in  what hardware  and software environment  (regardless of whether he or
- she did beta-testing  of prior versions).  Beta versions are released as only
- one packet being the source code.
+    [NEW] With each new version, two more files are released:
+        PATCH<minor version>.RAR - patch collection since last release
+        <old minor version>TO<new minor version>.RAR - cumulative update patch
+    [CHANGED] Beta versions may be released when necessary.  A beta version is
+ a supplementary  release intended  solely for beta-testing pruposes,  not for
+ general usage. A person who is going to do beta-testing is encouraged to mail
+ the project  coordinator and  give information  about which  version would be
+ tested, and in  what hardware and software environment (regardless of whether
+ he or she did beta-testing of prior versions).
+    [NEW] While in beta-state,  new beta-versions are released each  time when
+ two weeks  elapse since the last beta-version was  released and not less than
+ twenty new patches were installed, or when four weeks elapse.
 
                            6. Project coordinators
 

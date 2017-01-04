@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -62,7 +62,7 @@ Uses
      Arc_SQZ,  Arc_UC2,  Arc_UFA,  Arc_ZOO,
 {$ENDIF}
      Archiver, Arcview,  Arvid,    Asciitab, Ccalc,
-     Collect,  Diskinfo, Dnapp,    Dnstddlg, Dnutil,   Drives,   Ed2,
+     Collect,  Diskinfo, Dnapp,    Dnstddlg, DnSvLd,   Drives,   Ed2,
      Editor,   Filefind, Filescol, Flpanel,  Fstorage, Fviewer,  Gauges,
      Histries, Microed,  Startup,  Tree,     Uniwin,   Usermenu, Xdblwnd,
      Helpkern,
@@ -489,11 +489,11 @@ const
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DnStdDlg.TSortedListBox){$IFDEF OFFS}^{$ENDIF});
        Load:    @DnStdDlg.TSortedListBox.Load;
        Store:   @DnStdDlg.TSortedListBox.Store)
-      { DNUtil }
+      { DNSvLd }
      ,(ObjType: otDataSaver;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DNUtil.TDataSaver){$IFDEF OFFS}^{$ENDIF});
-       Load   : @DNUtil.TDataSaver.Load;
-       Store  : @DNUtil.TDataSaver.Store)
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(DNSvLd.TDataSaver){$IFDEF OFFS}^{$ENDIF});
+       Load   : @DNSvLd.TDataSaver.Load;
+       Store  : @DNSvLd.TDataSaver.Store)
       { Drives }
      ,(ObjType: otDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Drives.TDrive){$IFDEF OFFS}^{$ENDIF});

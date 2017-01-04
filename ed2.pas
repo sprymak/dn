@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -203,7 +203,8 @@ begin
                case P^.EdOpt.ForcedCrLf of
                 cfCRLF: Event.Command := cmEditLfMode;
                 cfLF  : Event.Command := cmEditCrMode;
-                cfCR  : Event.Command := cmEditCrLfMode;
+                cfCR  : Event.Command := cmEditLfCrMode;
+                cfLFCR: Event.Command := cmEditCrLfMode;
                 else    Event.Command := cmEditCrLfMode;
                end
        else if (T.X > 28) and (T.X < 32) then Event.Command := cmSwitchKeyMapping
@@ -273,6 +274,7 @@ begin
   if P^.EdOpt.ForcedCrLf = cfCR   then S:=S+Ch2+Ch2+'Cr'+Ch2 else
   if P^.EdOpt.ForcedCrLf = cfLF   then S:=S+Ch2+Ch2+'Lf'+Ch2 else
   if P^.EdOpt.ForcedCrLf = cfCRLF then S:=S+Ch2+'CrLf'       else
+  if P^.EdOpt.ForcedCrLf = cfLFCR then S:=S+Ch2+'LfCr'       else
                                  S:=S+Ch2+'::::';
   if CapitalCodePageName then
    case P^.KeyMap of   {-$VIV--}
@@ -512,14 +514,19 @@ begin
 
  if ForcedCRLF = cfCR then CrLf := #13 else
   if ForcedCRLF = cfLF then CrLf := #10 else
-   if ForcedCRLF = cfCRLF then CrLf := #13#10;
+   if ForcedCRLF = cfCRLF then CrLf := #13#10 else
+    if ForcedCRLF = cfLFCR then CrLf := #10#13;
 
  I := 1; if (S = nil) or (C = nil) then Exit;
  PP := WriteMsg(^M^M^C+GetString(dlWritingFile));
  while not Abort and (S^.Status = stOK) and (I < C^.Count) do
   begin
    UpdateWriteView(PP);
-   P := C^.At(I-1); if P <> nil then SST := P^ + CrLf else SST := CrLf;
+   P := C^.At(I-1); if P <> nil then                                   {JO}
+                       if (Length(P^) < 254) or not RecombineLongLines then
+                          SST := P^ + CrLf
+                       else SST := P^
+                    else SST := CrLf;                                  {JO}
    if AOptimalFill then CompressString;
    S^.Write(SST[1], Length(SST));
    Inc(I);

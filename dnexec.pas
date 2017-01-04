@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -52,28 +52,18 @@ uses UserMenu, Startup, Objects, FilesCol, Commands
      {$IFDEF DPMI}, DPMI {$ENDIF}
      ;
 
-procedure SaveDsk;
 procedure ExecString(S: PString; WS: String);
 function  SearchExt(FileRec: PFileRec; var HS: String): Boolean; {DataCompBoy}
 function  ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean; {DataCompBoy}
 procedure ExecFile(const FileName: string); {DataCompBoy}
 
 implementation
-uses DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3, FlPanelX,
-     CmdLine, Views, Advance2, Drivers, Advance4
+uses DnSvLd, DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3,
+     FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4
 {$IFDEF VIRTUALPASCAL}
      ,Videoman, Memory
 {$ENDIF}
      ;
-
-procedure SaveDsk;
-begin
- ClrIO;
- if ((OpSys <> opDos) or (StartupData.Unload and osuAutosave = 0))
-    and not (TottalExit) then
-  PDNApplication(Application)^.SaveDesktop(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-end;
-
 
         {-DataCompBoy-}
 procedure ExecString(S: PString; WS: String);

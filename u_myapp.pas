@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -49,8 +49,8 @@
 Unit U_MyApp;
 
 interface
-uses DnUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
-     UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects;
+uses DnUtil, DnSvLd, DNApp, Drivers, Gauges, Advance, Advance3, Views,
+     Commands, UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects;
 
 type
    MyApp = object (TDNApplication)
@@ -64,8 +64,6 @@ var
 
 implementation
 uses Dn1;
-
-(*{$I  runcmd.inc}*)
 
 {$IFDEF OS_DOS}
      {Gimly}

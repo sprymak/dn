@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -57,6 +57,9 @@ interface
 
 uses Objects, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
      advance, advance1, advance2, advance3, drivers;
+
+procedure LoadIndexes(var S: TStream);
+procedure StoreIndexes(var S: TStream);
 
 const
   cmColorForegroundChanged = 71;
@@ -1103,7 +1106,7 @@ begin
    apBlackWhite : SystemColors[apBlackWhite]:= CBlackWhite;
    apMonochrome : SystemColors[apMonochrome]:= CMonochrome;
   end else SystemColors[appPalette]:= OldColors[appPalette]^;
- SetSysColors(SystemColors[appPalette]);
+ {SetSysColors(SystemColors[appPalette]);}
 end;
 
 procedure TColorDialog.GetEvent(var Event: TEvent);

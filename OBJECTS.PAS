@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -161,7 +161,7 @@ const
   fmDenyChild = $0080;           { Don't give right's to child }
 
  {$ELSE VP}
-  stCreate    = $DCB0;           { Create new file }
+  stCreate    = $DC0B;           { Create new file }
   stOpenRead  = fmOpenRead;      { Read access only }
   stOpenWrite = fmOpenWrite;     { Write access only }
   stOpen      = fmOpenReadWrite; { Read and write access }
@@ -170,13 +170,13 @@ const
 { File share mode constants }
   fmClean     = $FF00;           { Mask to clean low byte of file mode constatns }
 
-  fmOpenMode  = $FFFF;           { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
+  fmOpenMode  = $FFF0;           { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
   fmReadOnly  = fmOpenRead;      { Open read-only file }
   fmWriteOnly = fmOpenWrite;     { Open file for write only }
   fmReadWrite = fmOpenReadWrite; { Open file as for read, as for write }
   fmPacked    = fmOpenReadWrite+1;{Open a packed file, if can }
 
-  fmDeny      = $FFFF;           { Mask to apply fmDenyXXX }
+  fmDeny      = $FF0F;           { Mask to apply fmDenyXXX }
   fmDenyAll   = fmShareExclusive;{ Exclusive file use }
   fmDenyWrite = fmShareDenyWrite;{ Deny write access }
   fmDenyRead  = fmShareDenyRead; { Deny read access }
@@ -184,6 +184,11 @@ const
   fmDenyChild = fmShareDenyNone; { Don't give right's to child }
 
  {$ENDIF}
+  ctCreate    = stCreate     and fmDeny;
+  ctOpenRead  = stOpenRead   and fmDeny;
+  ctOpenWrite = stOpenWrite  and fmDeny;
+  ctOpen      = stOpen       and fmDeny;
+  ctOpenPacked= stOpenPacked and fmDeny;
 
 { TStream error codes }
 
@@ -730,21 +735,21 @@ begin
   begin
 1:  PHandle:=-1;
     OM:=FileMode;
-    case FMode of
-     stCreate    : begin
-                    FileMode:=fmReadWrite;
+    case FMode and fmDeny of
+     ctCreate    : begin
+                    FileMode:=fmReadWrite+(FMode and not fmDeny);
                     lRewriteFile(FHandle, 1);
                    end;
-     stOpenRead  : begin
-                    FileMode:=fmReadOnly;
+     ctOpenRead  : begin
+                    FileMode:=fmReadOnly +(FMode and not fmDeny);
                     lResetFile(FHandle, 1);
                    end;
-     stOpenWrite : begin
-                    FileMode:=fmWriteOnly;
+     ctOpenWrite : begin
+                    FileMode:=fmWriteOnly+(FMode and not fmDeny);
                     lRewriteFile(FHandle, 1);
                    end;
-     stOpen      : begin
-                    FileMode:=fmReadWrite;
+     ctOpen      : begin
+                    FileMode:=fmReadWrite+(FMode and not fmDeny);
                     lResetFile(FHandle, 1);
                    end;
     end;

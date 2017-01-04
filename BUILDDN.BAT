@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.51.10
+::  Dos Navigator Open Source 1.51.11
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -48,7 +48,6 @@
 :: Set up the paths to your Borland tools or leave blank if they are in PATH
 set binpath=c:\bp\bin\
 set bpcpath=c:\bp\bin\
-path=%bpcpath%
 :: Set up optional executable packing utilities (recommended)
 set real_packer=
 set dpmi_packer=
@@ -79,7 +78,8 @@ if .%1.==.. builddn asm help resource nolite
 
 set prg_packer=%real_packer%
 
-set diz_title=   (Real mode binary package)
+set dn_version=1.51.11
+set diz_title=Real Mode Binary Package
 
 :Loop
 if .%0.==.nolite.   set GGT=GGT
@@ -110,7 +110,7 @@ if .%0.==.swapdisk. goto Loop
 if .%1.==.dpmi. set SWPOPT=%SWPOPT% /cp
 if .%1.==.dpmi. set ASMOPT=exe\*.obp -d_DPMI_ -d__DPMI__
 if .%1.==.dpmi. set prg_packer=%dpmi_packer%
-if .%1.==.dpmi. set diz_title=    (DPMI binary package)
+if .%1.==.dpmi. set diz_title=DPMI Binary Package
 if .%1.==.dpmi. shift
 if .%GGD%.==.GGD. goto GGD
 if .%0.==.dpmi. goto Loop
@@ -158,6 +158,8 @@ copy doc\russian\dnosp.txt %outpath%\doc\russian >nul
 copy doc\russian\authors.txt %outpath%\doc\russian >nul
 copy doc\ritlabs.txt %outpath%\doc >nul
 copy file_id.diz %outpath% >nul
+echo Dos Navigator Open Source Project >%outpath%\file_id.diz
+echo Version %dn_version% >>%outpath%\file_id.diz
 echo %diz_title% >>%outpath%\file_id.diz
 :SkipBPC
 
@@ -259,4 +261,5 @@ set real_packer=
 set dpmi_packer=
 set com_packer=
 set diz_title=
+set dn_version=
 set PackOverlay=

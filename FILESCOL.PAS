@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -460,6 +460,7 @@ begin
        end;
      end;
 
+     c:=0;
      case SM of
       0: if T1.Owner^ = Owner^
           then C := CmpLFN(T1.LFN,LFN)
@@ -480,10 +481,11 @@ begin
           end;
 {NAME}1: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
-           if T1.Name < Name then C := -1
-            else if T1.Name > Name then C := 1
-             else if T1.Owner^ < Owner^ then C := -1
-               else if T1.Owner^ > Owner^ then C := 1;
+           if T1.Name < Name then C := -1 else
+           if T1.Name > Name then C := 1  else
+           if T1.Owner^ < Owner^ then C := -1 else
+           if T1.Owner^ > Owner^ then C := 1
+           else C:=0;
 {LFN} 2: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else begin
            C := CmpLFN(T1.LFN, LFN);
@@ -500,10 +502,10 @@ begin
           if T1.Attr and Directory <> 0 then C:=-1
           else                               C:=1
          else
-         if OneIsFile and (Copy(T1.Name, 10, 3) < Copy(Name, 10, 3)) then
+         if {OneIsFile and }(Copy(T1.Name, 10, 3) < Copy(Name, 10, 3)) then
            C:=-1
          else
-         if OneIsFile and (Copy(Name, 10, 3) < Copy(T1.Name, 10, 3)) then
+         if {OneIsFile and }(Copy(T1.Name, 10, 3) > Copy(Name, 10, 3)) then
            C:=1
          else
          if T1.Name   < Name   then C:=-1 else
@@ -522,11 +524,11 @@ begin
 {SIZE}5: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Size > Size then C := -1 else
-           if T1.Size < Size then C := 1 else
-           if T1.Name < Name then C := -1
-            else if T1.Name > Name then C := 1
-             else if T1.Owner^ < Owner^ then C := -1
-               else if T1.Owner^ > Owner^ then C := 1;
+           if T1.Size < Size then C := 1  else
+           if T1.Name < Name then C := -1 else
+           if T1.Name > Name then C := 1  else
+           if T1.Owner^ < Owner^ then C := -1 else
+           if T1.Owner^ > Owner^ then C := 1;
 {DATE}6: begin
          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
@@ -661,19 +663,21 @@ begin
         end;
         {$ELSE}
         case getDriveType(DriveNum) of
-         dtError     : FullS := FullS + sdtError     ;
-         dtFixed     : FullS := FullS + sdtFixed     ;
-         dtRemovable : FullS := FullS + sdtRemovable ;
-         dtRemote    : FullS := FullS + sdtRemote    ;
-         dtCDROM     : FullS := FullS + sdtCDROM     ;
-         dtDblSpace  : FullS := FullS + sdtDblSpace  ;
-         dtSUBST     : FullS := FullS + sdtSUBST     ;
-         dtStacker   : FullS := FullS + sdtStacker   ;
-         dtRAMDrive  : FullS := FullS + sdtRAMDrive  ;
-         dtDublDisk  : FullS := FullS + sdtDublDisk  ;
-         dtBernoully : FullS := FullS + sdtBernoully ;
-         dtDiskreet  : FullS := FullS + sdtDiskreet  ;
-         dtSuperStor : FullS := FullS + sdtSuperStor ;
+{X-Man >>>}
+         dtError     : FullS := FullS + GetString(sdtError);
+         dtFixed     : FullS := FullS + GetString(sdtFixed);
+         dtRemovable : FullS := FullS + GetString(sdtRemovable);
+         dtRemote    : FullS := FullS + GetString(sdtRemote);
+         dtCDROM     : FullS := FullS + GetString(sdtCDROM);
+         dtDblSpace  : FullS := FullS + GetString(sdtDblSpace);
+         dtSUBST     : FullS := FullS + GetString(sdtSUBST);
+         dtStacker   : FullS := FullS + GetString(sdtStacker);
+         dtRAMDrive  : FullS := FullS + GetString(sdtRAMDrive);
+         dtDublDisk  : FullS := FullS + GetString(sdtDublDisk);
+         dtBernoully : FullS := FullS + GetString(sdtBernoully);
+         dtDiskreet  : FullS := FullS + GetString(sdtDiskreet);
+         dtSuperStor : FullS := FullS + GetString(sdtSuperStor);
+{X-Man <<<}
         end;
         {$ENDIF}
        end;

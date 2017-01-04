@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -194,7 +194,7 @@ type
 
     procedure ShowStatusBox(Mesg : String);
     procedure KillStatusBox;
-
+    procedure RunFormat;
 
 Const
      FlTypes = 12;
@@ -271,7 +271,7 @@ const
     PParamsMsg   :  PString = @ParamsMsg;
    }
 implementation
-uses RStrings, DNHelp;
+uses RStrings, DNHelp, HistList, Startup;
 
 {
 Function  SStr(a : Longint; n : Byte; Ch : Char) : String;
@@ -1838,5 +1838,83 @@ Again:
          GlobalMessage(evCommand, cmRereadDir, @S);
 
     end;
+
+
+procedure RunFormat;
+  const FormatInit: Boolean = Off;
+  type PR  = record
+            OFS,SG : word ;
+           end;
+       PPR = ^PR ;
+
+  var  P : Pdialog ;
+       R : integer;
+
+    Tab : array [0..3] of longint ;
+    ADD : pointer ;
+    AD  : array[1..2] of word absolute ADD ;
+
+begin
+
+ if FormatBox <> nil then
+    begin
+      FormatBox^.Select;
+      Exit;
+    end;
+
+ if not FormatInit then
+   begin
+      FormatInit := Off;
+      DrivesType[0] := DrvType(0); { 5'25 HD }
+      DrivesType[1] := DrvType(1); { 3'5  HD }
+
+       MediaListBox := Nil ;
+        with FormatDialogData do
+          begin
+             Ftypes.Data := Nil;
+             Field3:=Copy(HistoryStr(hsFmtVolumeL,0),1,11);
+          end;
+       FillChar( AdvFDDR, 0 , SizeOf(AdvFDDR));
+   end;
+
+  if (opSys and opOS2 <> 0) and
+     (Confirms and cfFmtOs2Warning <> 0) then
+          Msg(dlFmtOs2Warning, nil , mfWarning or mfOkButton ) ;
+
+  FmtUserDefined := False;
+
+  TAB[0] := $83FE9B00 ;
+  Tab[1] := $16bacde7 ;
+  Tab[2] := $08c7a1c5 ;
+  Tab[3] := $19b86e07 ;
+
+  repeat
+    P :=  Nil ;
+    P := BuildFormatDialog ;
+    if P = Nil then Exit ;
+    R := Application^.ExecuteDialog(P,@FormatDialogData) ;
+    DisposeFormatDialogData;
+    case R of
+       CMok  :  begin
+                  Inc(SkyEnabled);
+                  FormatDisk;
+                  Dec(SkyEnabled);
+                  break;
+                end;
+       CmCancel :  break;
+        else {if Registered and rfArchives <> 0 then}
+             begin
+                P := BuildAdvFormatDialog ;
+                R := Application^.ExecuteDialog(P,@AdvFormatDialogData) ;
+                if R = CmOk then
+                  begin
+                    FmtUserDefined := True;
+                    AdvFormatWarning;
+                  end;
+                DisposeAdvFormatDialogData;
+             end;
+         end ; { c.ase }
+     until false;
+end;
 
 end.

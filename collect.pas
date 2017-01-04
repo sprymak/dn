@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1261,7 +1261,7 @@ end;
 
 procedure TSortedCollection.QSort;
 begin
-  if Count > 0 then QuickSort(0, Count-1);
+  QuickSort(0, Count-1);
 end;
 
 {$ELSE}{Not QSort}

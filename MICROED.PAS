@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1350,7 +1350,7 @@ begin
          end;
      end;
     if ChPosition and not ((A = Delta.Y) or (A = LastPos.Y)) then Continue;
-    if EdOpt.HiliteLine then
+    if EdOpt.HiliteLine or ((Length(WorkString) >= 254) and RecombineLongLines) then {JO}
      if A = Delta.Y then
      begin
        C:=CC[4];
@@ -2029,6 +2029,7 @@ var qwe: byte;
    cfCrLf: crlf := #13#10;
    cfCr: crlf := #13;
    cfLf: crlf := #10;
+   cfLfCr: crlf := #10#13;
    else
     begin
      EdOpt.ForcedCrLf:=cfNone;
@@ -2036,7 +2037,8 @@ var qwe: byte;
       EdOpt.ForcedCrLf:=succ(EdOpt.ForcedCrLf);
      if EditorDefaults.NewLine = 1 then CrLf := #13 else
       if EditorDefaults.NewLine = 2 then CrLf := #10 else
-       crlf := #13#10;
+       if EditorDefaults.NewLine = 3 then CrLf := #10#13 else
+        crlf := #13#10;
     end;
   end;
 
@@ -2050,7 +2052,7 @@ var qwe: byte;
                      else SST := GetLine(I);
       if OptimalFill then CompressString;
       R^.Write(SST[1], Length(SST));
-      if I <> Mark.B.Y then R^.Write(CrLf[1], Length(CrLf));
+      if (I <> Mark.B.Y) and ((Length(SST) < 254) or not RecombineLongLines) then R^.Write(CrLf[1], Length(CrLf)); {JO}
     end;
 
   if PI<>nil then PI^.Free;
@@ -2478,10 +2480,10 @@ var qwe: byte;
     Res:=Cut(S, 20);
     Q:=@Res;
     case ExecResource(dlgSrchFailed, Q) of
-          cmYes: PDNApplication(Application)^.EditFile(On, SourceDir + 'DN.SPF');
-          cmNo: PDNApplication(Application)^.EditFile(On, S);
+          cmYes: PDNAppl(Application)^.EditFile(On, SourceDir + 'DN.SPF');
+          cmNo: PDNAppl(Application)^.EditFile(On, S);
          end
-   end else PDNApplication(Application)^.EditFile(On, Res);
+   end else PDNAppl(Application)^.EditFile(On, Res);
 
 ex:
    Info^.Free;
@@ -2707,6 +2709,10 @@ begin
                                  end;
               cmEditCrMode:      begin
                                   EdOpt.ForcedCrLf:=cfCR;
+                                  DrawView;
+                                 end;
+              cmEditLfCrMode:    begin
+                                  EdOpt.ForcedCrLf:=cfLFCR;
                                   DrawView;
                                  end;
               cmSwitchBrackets: begin EdOpt.AutoBrackets := not EdOpt.AutoBrackets; CE end;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -95,9 +95,9 @@ CONST
     (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:15106;HavVer:true));
                                                     {Configuration for 1.51.06+}
   DSKSign: TSignRec =
-{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#10;SignLen:22;SignVer:15110);
-{$ELSE}      (Sign:'DN OSP Desktop'#26#151#10;SignLen:17;SignVer:15110);{$ENDIF}
-                                                    {Desktop for 1.51.10}
+{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#11;SignLen:22;SignVer:15111);
+{$ELSE}      (Sign:'DN OSP Desktop'#26#151#11;SignLen:17;SignVer:15111);{$ENDIF}
+                                                    {Desktop for 1.51.11}
   Security: Boolean = True;
   ConfigModified: Boolean = Off;
   DateMode: Byte = 0;
@@ -580,15 +580,15 @@ begin
 
 {sources}
  New(CustomMask1);  FillChar(CustomMask1^, SizeOf(CustomMask1^), 0);
- CustomMask1^.Filter := 'pas;asm;inc;c;cpp;hdr;def;pp;h;rc;idb';
+ CustomMask1^.Filter := 'pas;asm;inc;c;cpp;cc;cxx;hdr;def;pp;h;hpp;hxx;rc;idb;bas;js;jav;java';
 
 {raw text}
  New(CustomMask2);  FillChar(CustomMask2^, SizeOf(CustomMask2^), 0);
- CustomMask2^.Filter := '.;asc;dok;txt;ans;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][1-9]';
+ CustomMask2^.Filter := '.;asc;dok;txt;ans;me;1st;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][1-9]';
 
 {databases & speadsheets}
  New(CustomMask3);  FillChar(CustomMask3^, SizeOf(CustomMask3^), 0);
- CustomMask3^.Filter := 'dbf;wkz;wks;123;wk1;xls;mdb;mde';
+ CustomMask3^.Filter := 'dbf;db;wkz;wks;123;wk1;xls;mdb;mde';
 
 {kill'em!}
  New(CustomMask4);  FillChar(CustomMask4^, SizeOf(CustomMask4^), 0);
@@ -597,11 +597,11 @@ begin
 {graphics}
  New(CustomMask5);  FillChar(CustomMask5^, SizeOf(CustomMask5^), 0);
  CustomMask5^.Filter := 'pcx;bmp;gif;rle;ico;jpg;jpe;jpeg;png;tif;tga;wpg;psd;'+
-                       'pcd';
+                       'pcd;cur;ani;dib';
 
 {config}
  New(CustomMask6);  FillChar(CustomMask6^, SizeOf(CustomMask6^), 0);
- CustomMask6^.Filter := 'ini;cfg;ctl;nif;lst;m3u;pls;reg';
+ CustomMask6^.Filter := 'ini;cfg;ctl;nif;lst;m3u;pls;reg;mak';
 
 {audio & video}
  New(CustomMask7);  FillChar(CustomMask7^, SizeOf(CustomMask7^), 0);
@@ -613,15 +613,15 @@ begin
   {sampled music}
                         'mod;stm;s3m;xm;it;mdl;mtm;mid;cmf;sid;'+
   {video}
-                        'avi;mpeg;mpe;smk;bik;gl;mvy;mve;fli;flc;tgv';
+                        'avi;mpeg;mpe;smk;bik;gl;mvy;mve;mov;fli;flc;tgv';
 
 {fonts}
  New(CustomMask8);  FillChar(CustomMask8^, SizeOf(CustomMask8^), 0);
- CustomMask8^.Filter := 'fon;fot;fnt;ttf;ofm;pfm;afm;sft;eft;pft;xft';
+ CustomMask8^.Filter := 'fon;fot;fnt;ttf;ofm;pfm;afm;sft;eft;pft;xft;chr';
 
 {Office documents}
  New(CustomMask9);  FillChar(CustomMask9^, SizeOf(CustomMask9^), 0);
- CustomMask9^.Filter := 'doc;rtf;sdw;lwp;sam;html;htm';
+ CustomMask9^.Filter := 'doc;wp;rtf;sdw;lwp;sam;html;htm';
 
 {system}
  New(CustomMask10); FillChar(CustomMask10^,SizeOf(CustomMask10^),0);

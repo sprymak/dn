@@ -6,6 +6,79 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 1.51.11
+  ---------------------------------------------------------------------
+
+    >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] DN caused a conflict with LFN00X long file name services for Windows NT
+    (Anton Fedorov)
+
+[-] DN caused a conflict with QEMM memory manager (Jiri Travnicek)
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] New DN.INI parameter: RecombineLongLines = bool ([Editor] section). As
+    before, lines longer than 255 characters are cut into several lines when
+    loading a file in any case. But now, when the new option is enabled, each
+    line that is exactly 255 or 254 characters long is recombined with the
+    next line when saving the file or writing the selected block to a file.
+    This allows limited editing of files with lines longer than 255
+    characters: all usual editing can be done on the last line segment, and
+    only character replacement, but not insertion or deletion, is possible on
+    the prior segments (in order not to change their length). To indicate the
+    special status of these lines, they are highlit when hit by the cursor
+    (Jaroslaw Osadtchiy)
+
+[*] Added 1ST, ANI, BAS, CC, CHR, CUR, CXX, DB, DIB, HPP, HXX, JAV, JAVA, JS,
+    MAK, ME, MOV and WP extensions to the corresponding highlight group
+    defaults (Alexey Feldgendler)
+
+[*] Tweaked the default palette setting for the Terminal window frame
+    (Alexey Nemytov)
+
+[-] Some accented Cyryllic characters used in Russia and Ukraine were not
+    subject to case conversion by default (Alexey Feldgendler)
+
+[-] A value of zero accidentally specified for the screensaver delay could
+    make DN lock up in an endless loop (Alexey Feldgendler)
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] On 104-key extended keyboards, the Menu key now opens the menu associated
+    with the extension of the current file. This allows to free Alt-Enter for
+    Windows needs (Michael Averbukh)
+
+[-] Drive type captions in the drive selection menu were always in English
+    (Alexey Feldgendler)
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Added support for text files with LFCR-style line breaks (Anton Fedorov)
+
+[-] Fixed detection of line break type (Alexey Feldgendler)
+
+    >>> User Add-on Package <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Added many new xlat tables to the User Add-on Package
+    (Pavel Protasov, Andrzej Kowalczyk)
+
+[*] Added more examples and fixed some old ones in the DN.EXT, DN.HGL, DN.MNU,
+    DN.SPF configuration files from the User Add-on Package
+    (Andrzej Kowalczyk, Alexey Feldgendler)
+
+[*] The User Add-on Package now contains DN.INI with English and Russian
+    comments describing each parameter (Alexey Feldgendler)
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Splitting the DNUtil unit into two parts and placing the one that is not
+    required to be constantly present into the overlay helped to free up some
+    conventional memory without suffering in performance (Anton Fedorov)
+
+[-] Cosmetic fixes of many dialog windows in Russian resources (Pavel Borodin)
+
+
    Version 1.51.10
   ---------------------------------------------------------------------
 
@@ -90,7 +163,7 @@
 [-] After automatically updating the description file like descript.ion,
     its attributes were reset (Anton Fedorov)
 
-[-] Fixed deletion of descriptions spanning several lines (Jaroslaw Osadtchiy)
+[-] Fixed deletion of descriptions spanning several lines (Max Vasilyev)
 
 [-] Sometimes an attempt to ascend to the parent directory from a subdirectory
     or an archive could bring up the root directory (Anton Fedorov)
@@ -1359,6 +1432,7 @@
 [-] Fixed saving of string parameters in DN.INI
 
 [+] New DN.INI parameters: HorizScrollBarChars = str and VertScrollBarChars =
+
     str ([Interface] section), specifying the scroll bar appearance,
     containing 5 characters: first character, last craracter, bar character,
     slider character and the empty bar character. Specified like a string of
@@ -1777,6 +1851,8 @@
 
 [-] "UU-encode" and "Directory tree" commands in the Russian resources were
     both bound to Ctrl-F7 hot key
+
+
 
 [-] The drive selection menu from Ctrl-F3 and in some other cases was shown
     with a very strange shadow

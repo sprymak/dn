@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -225,7 +225,7 @@ implementation
 
  uses DnUtil, advance, advance1, advance2, advance3, DNApp, Commands,
       Dialogs, FilesCol, FViewer, StartUp, RStrings, Memory, Messages,
-      ArcView, FileCopy, HistList,FStorage, Menus, ArchDet;
+      ArcView, FileCopy, HistList,FStorage, Menus, ArchDet, DnSvLd;
 
 
 { ------------------------------- Collections ----------------------------- }

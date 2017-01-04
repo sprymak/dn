@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -87,7 +87,8 @@ uses LFN, LFNCol, {DataCompBoy} collect, xtime, dnini,
      advance, advance1, advance2, advance3, Dos, Objects, Dialogs, FilesCol,
      Views, DnApp, Commands, Drivers, FlPanel, FlPanelX, Drives, FileCopy,
      Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DnHelp,
-     FileFind, Tree, FBB, DnUtil, filediz, filelst;
+     FileFind, Tree, FBB, DnUtil, filediz, filelst {$IFDEF OS2}, flage {$ENDIF}
+     ;
 
 type
     PSelectList = ^TSelectList;
@@ -613,6 +614,7 @@ begin
    AddStr(S, #0); Dec(S[0]);
    Dlg := PDialog( LoadResource( dlgFileAttr ));
    D.C := GetFileAttr(S);
+{$IFNDEF OS2}
    if D.C and Directory = 0 then
     begin
      lAssignFile(F, S);
@@ -620,10 +622,16 @@ begin
      ClrIO; lResetFile(F,1);
      if IOResult <> 0 then Exit;
      GetFTime(F.F, DTT); Close(F.F);
+{$ELSE}
+    DTT := GetFileAge (S);
+{$ENDIF}
      UnpackTime(DTT, DT);
      D.T := SStr(DT.Hour, 2, '0')+':'+SStr(DT.Min, 2, '0')+':'+SStr(DT.Sec, 2, '0');
      D.D := ItoS(DT.Day)+'-'+SStr(DT.Month, 2, '0')+'-'+ItoS(DT.Year);
-    end else Dlg^.ForEach(@DoHideInputLines);
+{$IFNDEF OS2}
+    end else Dlg^.ForEach(@DoHideInputLines)
+{$ENDIF}
+   ;
    D.S:=D.C;
    Dlg^.SetData( D );
    if Desktop^.ExecView( Dlg ) <> cmOK then begin
@@ -682,23 +690,33 @@ begin
      S := Cut(GetLFN(PF^.LFN), 40);
      PInfo^.Write(1, S);
      S := MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
+     {$IFNDEF OS2}
      lAssignFile(F, S);
+     {$ENDIF}
      AddStr(S, #0); Dec(S[0]);
      K := (GetFileAttr(S) and (not D.C)) or D.S;
-     if (K and Directory = 0) and TimeSet or DateSet then
+     if {$IFNDEF OS2} (K and Directory = 0) and {$ENDIF} TimeSet or DateSet then
       begin
+       {$IFNDEF OS2}
        FileMode := $42 ;
        lSetFAttr(F,Archive);
        lResetFile(F,1);
        GetFTime(F.F, DTT);
+       {$ELSE}
+       DTT := GetFileAge (S);
+       {$ENDIF}
        UnPackTime(DTT, DT);
        if TimeSet then begin DT.Hour := DT1.Hour; DT.Sec := DT1.Sec; DT.Min := DT1.Min; end;
        if DateSet then begin DT.Year := DT1.Year; DT.Day := DT1.Day; DT.Month := DT1.Month; end;
        PackTime(DT, DTT1);
        DT.Sec := 0;
        UnPackTime(DTT1, DT);
+       {$IFNDEF OS2}
        SetFTime(F.F, DTT1);
        Close(F.F);
+       {$ELSE}
+       SetFileAge(S, DTT1);
+       {$ENDIF}
       end;
 
      SetFileAttr(S, K and not Directory and not VolumeID);

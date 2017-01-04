@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -75,8 +75,8 @@ const
 
   { Turbo Vision 1.0 Color Palettes }
 
-  CColor =
-{ 01}#$71#$70#$78#$74#$20#$28#$24#$17#$1F#$1A#$31#$31#$78#$7F#$1F#$31 +
+  CColor =                       { 8 - 12 - Terminal }
+{ 01}#$71#$70#$78#$74#$20#$28#$24#$07#$0F#$0B#$F0#$F0#$78#$7F#$1F#$31 +
 { 17}#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E#$70 +
 { 33}#$7F#$7A#$13#$13#$70#$70#$7F#$7E#$8F#$8B#$9F#$78#$8E#$70#$78#$7F +
 { 49}#$7E#$0F#$9F#$0E#$9F#$79#$31#$31#$30#$0F#$3F#$31#$8F#$30#$3E#$30 +

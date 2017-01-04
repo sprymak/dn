@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -290,7 +290,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
      L: Longint;
      KeyMapDetecting: Boolean;
      CodePageDetector: TCodePageDetector;
-     OD, OA, ODOA: longint;
+     OD, OA, ODOA, OAOD, MaxCount: longint; (* X-Man *)
 
  procedure CountLines;
   var K: Word;
@@ -298,6 +298,9 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
   For k:=1+Byte(I>0) to J do
    if (B^[k]=$0D) and ((K<=J-1) and (B^[k+1]=$0A)) then begin
     inc(ODOA); inc(LCount); inc(k);
+   end else
+   if (B^[k]=$0A) and ((K<=J-1) and (B^[k+1]=$0D)) then begin
+    inc(OAOD); inc(LCount); inc(k);
    end else
    if (B^[k]=$0D) then begin
     inc(OD); inc(LCount)
@@ -339,7 +342,13 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    @@1:
     mov al, es:[di]
     cmp al, 10
-    je  L2
+    jne @@n
+    mov al, es:[di+1]
+    cmp al, 13
+    jne L2
+    inc K
+    jmp L2
+  @@n:
     cmp al, 13
     jne  @@5
     mov al, es:[di+1]
@@ -515,7 +524,7 @@ begin with AED^ do begin
    FileName:=''; IsValid:=False; Exit;
  end;
  CodePageDetector.Init; KeyMapDetecting:=(KeyMap=kmNone);
- ODOA:=0; OD:=0; OA:=0;
+ ODOA:=0; OD:=0; OA:=0; OAOD:=0;
  S := New(PBufStream, Init(FileName, stOpenRead, 1024));
  if (S^.Status <> stOK) then
     begin
@@ -624,13 +633,13 @@ begin with AED^ do begin
          isValid := Off;
          Exit
        end;
-     if (B^[J] = 13) and (S^.GetPos < S^.GetSize) then begin Dec(J); S^.Seek(S^.GetPos-1); end;
+     if (B^[J] in [13, 10]) and (S^.GetPos < S^.GetSize) then begin Dec(J); S^.Seek(S^.GetPos-1); end;
      SearchLines;
      I := S^.GetPos;
      if FFSize - I > FBufSize then J := FBufSize
                               else J := FFSize - I;
    end;
-  if ST[1] = #10 then DelFC(ST);
+  if ST[1] in [#10, #13] then DelFC(ST);
   while (ST[Byte(ST[0])]=' ') do Dec(ST[0]);
   Lines^.Insert(NewStr(ST));
   {KOI KeyMap:=kmKoi8r}{WIN KeyMap:=kmAnsi}{DOS KeyMap:=kmAscii}
@@ -640,9 +649,13 @@ begin with AED^ do begin
   if UpStrg(DefCodePage) = 'AUTO'then begin
    KeyMap:=CodePageDetector.DetectedCodePage;
   end else KeyMap:=kmAscii;
-  if (ODOA shl 1>=OD+OA) then EdOpt.ForcedCRLF:=cfCRLF else
-  if (OD shl 1>=ODOA+OA) then EdOpt.ForcedCRLF:=cfCR   else
-  if (OA shl 1>=ODOA+OD) then EdOpt.ForcedCRLF:=cfLF;
+  (* X-Man >>> *)
+  MaxCount:=Max(Max(ODOA,OAOD),Max(OD,OA));
+  if MaxCount=ODOA then EdOpt.ForcedCRLF:=cfCRLF else
+  if MaxCount=OD then EdOpt.ForcedCRLF:=cfCR else
+  if MaxCount=OA then EdOpt.ForcedCRLF:=cfLF else
+  EdOpt.ForcedCRLF:=cfLFCR;
+  (* X-Man <<< *)
   if RetCollector then MIReadBlock := Lines
                 else begin
                        MIReadBlock := PStdCollector(Lines)^.Collection;

@@ -6,6 +6,7 @@ Dos Navigator Open Source Project Team:
   Mark Adler for inflate 1.1.2 Copyright 1995-1998
   Denis Afonin (De@D_M0r0Ze) <2:5015/133.37; root@afonin.i-connect.ru>
   Vitaly Astaforkin (Gimly) <gymly@mail.ru>
+  Michael Averbukh <aml@sandy.ru>
   Mariusz Borkowski <mborkows@elka.pw.edu.pl>
   Pavel Borodin (I'am) <2:5025/3.22>
   Ivan Borodikhin (EXCELLENCE) <2:5020/1252.444>
@@ -58,11 +59,16 @@ Dos Navigator II Team:
 Special thanks to:
   Mariusz Borkowskii
   Dimon Demkin (0xeL) for the logo
+  Dmitry Glukhov (GD)
   Joergen Ibsen
-  Uliana Matarikina (DataCompBoy dedicate to her LFN, Win32 and all him work)
-  Allan Mertner <vpascal@vpascal.com> for copy of Vitual Pascal
+  Andrzej Kowalczyk (Kolec) <kolec@post.pl>
+  Antony Mashihin (Antony)
+  Uliana Matarikina for DataCompBoy's inspiration
+  Allan Mertner <vpascal@vpascal.com> for the free copy of Vitual Pascal
   Igor Novoselov
   Denis Petrov
+  Pavel Protasov <pprot@mail.ru>
+  DimiteriY Roubliouph (DR)
   Dmitry Shestakov
   ...and to all RU.SHELL.DN subscribers
 ==============================================================================

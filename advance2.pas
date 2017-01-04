@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -202,6 +202,7 @@ var
   DirInfo:lSearchRec;
 begin
  lFindFirst(FName,Archive+ReadOnly+Hidden+SysFile,DirInfo);
+ lFindClose(DirInfo);
  if DosError=0 then ExistFile:=True
  else begin
   ExistFile:=False;
@@ -218,6 +219,7 @@ begin
  If DName[Length(DName)]='\'
   then lFindFirst(Copy(DName, 1, Length(DName)-1),Directory,DirInfo)
   else lFindFirst(DName,Directory,DirInfo);
+ lFindClose(DirInfo);
  if DosError=0 then existdir:=True
  else begin
   Existdir:=False;

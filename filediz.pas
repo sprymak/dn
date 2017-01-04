@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -334,11 +334,11 @@ begin
       if DPath = '' then Exit;
       DPath := MakeNormName(CnvString(Owen), DPath);
       lFindFirst(DPath, Archive+ReadOnly+Hidden, SR);
+      lFindClose(SR);
       if DOSError = 0 then Break;
     end;
   end else DPath := P^.Owner^;
   CalcDPath := DPath;
-  lFindClose(SR);
 end;
         {-DataCompBoy-}
 

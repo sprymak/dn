@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.51.10
+;/  Dos Navigator Open Source 1.51.11
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -382,6 +382,7 @@ MENU dlgEditorMenu
       MenuItem '~D~OS     (CrLf)', '', kbNoKey, cmEditCrLfMode, 0,
       MenuItem '~U~NIX    (Lf)',   '', kbNoKey, cmEditLfMode, 0,
       MenuItem '~E~gy‚b   (Cr)',   '', kbNoKey, cmEditCrMode, 0,
+      MenuItem 'L~F~+CR', '', kbNoKey, cmEditLfCrMode, 0,
      END
      MenuItem 'Kisbe~t~–/NAGYBET˜ v lt¢', 'Ctrl+/', kbCtrlSlash, cmChangeCharCase, 0,
    END
@@ -1481,7 +1482,7 @@ DIALOG dlgAdvanceSearch, 55, 15, 'Keres‚s Jellemz“i'
     Label 3, 10, 'Attrib£tumok', ofPostProcess, ofPreProcess
 
     Button 41, 2, 53, 4, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 40, 5, 53, 7, '~T~iszt¡t', 3222, ofPostProcess, ofPreProcess
+    Button 40, 5, 53, 7, '~T~iszt¡t', cmClearData, ofPostProcess, ofPreProcess
     Button 41, 8, 53, 10, '~M~‚gsem', cmCancel, ofPostProcess, ofPreProcess
     Button 41, 11, 53, 13, '~S~£g¢', cmHelp, ofPostProcess, ofPreProcess
 END
@@ -1613,6 +1614,7 @@ DIALOG dlgInterfaceSetup, 73, 22, 'Poz¡ci¢k'
     END
     Label 3, 10, 'Drive selection menu information type:', ofPostProcess, ofPreProcess
     Button 28, 18, 38, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+
     Button 38, 18, 48, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
     Button 48, 18, 58, 20, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 ;NEW-
@@ -4228,10 +4230,11 @@ DIALOG dlgEditorDefaults, 60, 22, 'Szerkeszt“ alapbe ll¡t sok'
     END
     Label 2, 7, 'Defaults for new file:', ofPostProcess, ofPreProcess
 
-    RadioButtons 17, 15, 51, 16, ofPostProcess, ofPreProcess
+    RadioButtons 17, 15, 58, 16, ofPostProcess, ofPreProcess
       ITEM 'CR+LF'
       ITEM 'CR'
       ITEM 'LF'
+      ITEM 'LF+CR'
     END
     Label 2, 15, 'Sorle~z~ r s', ofPostProcess, ofPreProcess
 

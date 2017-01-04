@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.10
+//  Dos Navigator Open Source 1.51.11
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -1475,10 +1475,14 @@ kbCtrlEnter: _CtrlEnter;
                        end;
     kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); Owner^.ReDraw end;
     kbEnd:  begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
-    kbAltEnter: if _AltEnter then Exit else
+    kbAltEnter,kbMenu: { Michael Averbukh } { X-Man }
     begin
-      _GotoExt;
-      Exit;
+      ShiftState := ShiftState or kbAltShift; { Michael Averbukh }
+      if _AltEnter then Exit else
+      begin
+        _GotoExt;
+        Exit;
+      end;
     end;
     kbEnter: if CurPos < Files^.Count then
              begin
