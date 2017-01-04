@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_HAP; {HAP}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, Arc_HA,
-      lfn;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos;
 
 type
     PHAPArchive = ^THAPArchive;
@@ -122,15 +130,12 @@ begin
 end;
 
 Procedure THAPArchive.GetFile;
-var HS,i : AWord;
-    FP   : Longint;
+var
     P    : HAPHdr;
-    S    : String;
     C    : Char;
 begin
  ArcFile^.Read(P,1);
- if (ArcFile^.GetPos = ArcFile^.GetSize)
-   then begin FileInfo.Last := 1;Exit;end;
+ if (ArcFile^.GetPos = ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P.ID,SizeOf(P)-1);
  if (ArcFile^.Status <> stOK) or (P.ID <> #142#104#74#87)
    then begin FileInfo.Last := 2;Exit;end;
@@ -140,16 +145,14 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date := P.Date;
- i := 1;
- S[0] := #0;
- repeat ArcFile^.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 77);
+ FileInfo.FName := '';
+ repeat
+   ArcFile^.Read(C, 1);
+   if C <> #0 then FileInfo.FName := FileInfo.FName + C;
+ until (C = #0) or (Length(FileInfo.FName) > 77);
  repeat ArcFile^.Read(C, 1); until (C in [#$15,#$16]) or (ArcFile^.Status <> stOK);
- if (ArcFile^.Status <> stOK) or (Length(S) > 79) then
+ if (ArcFile^.Status <> stOK) or (Length(FileInfo.FName) > 79) then
   begin FileInfo.Last := 2; Exit; end;
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
- FileInfo.FName := S; {DataCompBoy}
  ArcFile^.Seek(ArcFile^.GetPos + P.PackedSize-1);
 end;
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,16 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-hex_full_range.patch
+//  dn16rc1-vp_noasm_compatible.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
@@ -75,10 +85,42 @@ type
      end;
 
 procedure InsertCalc;
+function CTrunc(Value:Double): LongInt; { Max Morozov }
 
 Const Calc: PView = nil;
 
 implementation
+
+{ Max Morozov: begin } { trunc without overflow exception }
+function CTrunc(Value:Double): LongInt; assembler;
+type
+  TWordStruct = record
+     Byte0: Byte;
+     Byte1: Byte;
+  end;
+  TQWordStruct = record
+     Word0: AWord; { Kirill }{ for compatible Virtual Pascal Word -> AWord }
+     Word1: AWord;
+     Word2: AWord;
+     Word3: AWord;
+  end;
+var
+ temp1:TWordStruct;
+ temp2:TQWordStruct;
+asm
+        fld     Value
+        fstcw   temp1                   { save the control word }
+        fwait
+        mov     al, temp1.Byte1
+        or      temp1.Byte1, 0Ch
+        fldcw   temp1
+        fistp   qword ptr temp2         { convert to 64-bit integer }
+        mov     temp1.Byte1, al
+        fldcw   temp1                   { restore the control word }
+        mov     ax, temp2.Word0         { return LS 32 bits }
+        mov     dx, temp2.Word1
+end;
+{ Max Morozov: end }
 
 constructor TIndicator.Init;
 begin
@@ -143,9 +185,9 @@ begin
                          While D.S[Length(D.S)] = '0' do Dec(D.S[0]);
                          if D.S[Length(D.S)] = '.' then Dec(D.S[0]);
                        end;
-                    1: if Abs(Value) < $7FFFFFFF then GetNValue(Trunc(Value), 4, D.S) else Exit;
-                    2: if Abs(Value) < $7FFFFFFF then GetNValue(Trunc(Value), 1, D.S) else Exit;
-                    3: if Abs(Value) < $7FFFFFFF then GetNValue(Trunc(Value), 3, D.S) else Exit;
+                    1: if Abs(Value) < 4294967295.0 then GetNValue(CTrunc(Value), 4, D.S) else Exit;
+                    2: if Abs(Value) < 4294967295.0 then GetNValue(CTrunc(Value), 1, D.S) else Exit;
+                    3: if Abs(Value) < 4294967295.0 then GetNValue(CTrunc(Value), 3, D.S) else Exit;
                     4: Str(Value, D.S);
                   end;
                   Message(Application, evCommand, cmPutInClipboard, @D.S);
@@ -188,15 +230,15 @@ begin
        if PosChar('E', S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
        if S[Length(S)] = '.' then Dec(S[0]);
        Wrt(0);
-       if Abs(Value) > $7FFFFFFF then
+       if Abs(Value) > 4294967295.0 then
          begin
             S := GetString(dlOverflow);
             Wrt(1); Wrt(2); Wrt(3);
          end
          else begin
-                LL := Trunc(Value);
-                WrtN(1, 4); WrtN(2, 1); WrtN(3, 3);
-              end;
+            LL := CTrunc(Value);
+            WrtN(1, 4); WrtN(2, 1); WrtN(3, 3);
+         end;
        Str(Value, S);
        Wrt(4);
      end;

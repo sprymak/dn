@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,17 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-DBF_detection_diff130byMV.patch
+//  dn16rc1-view_clipper_dbf_file.patch
+//  dn16rc1-vp_noasm_compatible.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
@@ -57,9 +68,9 @@ type
      FieldRec = record
       Name: String[10];
       Who: Char;
-      Ln: Word;
-      Len, Dec: Word;
-      Pos: Word;
+      Ln: AWord; { Kirill } { For Compatible Virtual Pascal Word -> AWord }
+      Len, Dec: AWord;
+      Pos: AWord;
      end;
 
      PFieldCollection = ^TFieldCollection;
@@ -73,7 +84,7 @@ type
       BaseName: String; {DataCompBoy}
       BaseFile: TBufStream;
       Date, NumRec: LongInt;
-      HeaderLen, RecLen: Word;
+      HeaderLen, RecLen: AWord;
       Unused: Array [0..31] of Byte;
       NumFields: Integer;
       Loc: LongInt;
@@ -95,7 +106,7 @@ begin
  Dispose(PFieldRec(P));
 end;
 
-function NewField(Name: String; Who: Char; Len, Dec: Byte;Pos: Word) : PFieldRec;
+function NewField(Name: String; Who: Char; Len : word; Dec: Byte; Pos: Word) : PFieldRec; { Kirill }
  var P: PFieldRec;
 begin
  New(P);
@@ -111,6 +122,7 @@ begin
  If P^.Who='D'
   then If Length(Name) > 10  then P^.Ln := Length(Name) else P^.Ln := 10
   else If Length(Name) > Len then P^.Ln := Length(Name) else P^.Ln := Len;
+ if P^.Ln > 255 then P^.Ln:=255; { Kirill }
 end;
 
 procedure TDBFile.OpenMode(Mode: Word);
@@ -121,18 +133,24 @@ end;
 constructor TDBFile.Init;
 
 type
+    TFldLenRec = record { Kirill }
+      case integer of
+        0: (Len, Dec : byte);
+        1: (CharFieldLen : AWord);
+    end;
     frec = record
      Name: Array [0..10] of Char;
      Who: Char;
      Info1: Array [0..3] of Char;
-     Len,Dec: Byte;
+     FldLen : TFldLenRec; { Kirill }
      Info2: Array [0..13] of Char;
     end;
 
 var FBuf: FRec;
     I, J, RL: Integer;
     S: String;
-
+    FieldLen : AWord;
+    FieldDec : byte;
 begin
  inherited Init;
  BaseName := lFExpand(FileName); {DataCompBoy}
@@ -143,15 +161,14 @@ begin
 {piwamoto.src.begin}{bugfixed .DBF detection}
  NumFields := -1;
  repeat
-   BaseFile.Read(FBuf, 32);
+   BaseFile.Read(FBuf, 1);
+   BaseFile.Seek(BaseFile.GetPos+31);
    Inc (NumFields);
  until (FBuf.Name[0] < #32) or
-       (BaseFile.Status <> stOk) or
-       (HeaderLen + 32 < BaseFile.GetPos);
+       (BaseFile.EOF) or
+       (HeaderLen < BaseFile.GetPos);
  if (NumFields < 1) or
-    (FBuf.Name[0] <> #13) or
-    (BaseFile.Status <> stOk) or
-    (HeaderLen + 32 < BaseFile.GetPos)
+    (FBuf.Name[0] <> #13)
    then begin BaseFile.Done;Fail;end;
  BaseFile.Seek(32);
 {piwamoto.src.end}
@@ -160,7 +177,15 @@ begin
  for I := 1 to NumFields do
   begin
    BaseFile.Read(FBuf, 32);
-   Inc(RL, FBuf.Len);
+   if FBuf.Who = 'C' then begin { Kirill }
+     FieldLen:=FBuf.FldLen.CharFieldLen; { Kirill }
+     FieldDec:=0; { Kirill }
+   end
+   else begin
+     FieldLen:=FBuf.FldLen.Len; { Kirill }
+     FieldDec:=FBuf.FldLen.Dec; { Kirill }
+   end;
+   Inc(RL, FieldLen); { Kirill }
    S := ''; J := 0;
    While FBuf.Name[J] >= #32 do
     begin
@@ -170,10 +195,11 @@ begin
    S[0] := Char(J);
    if (J = 0) or (BaseFile.Status <> stOk) then
       begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
-   with FBuf do Fields^.Insert(NewField(S, Who, Len, Dec, RL - Len));
+   with FBuf do Fields^.Insert(NewField(S, Who, FieldLen, FieldDec, RL - FieldLen));
   end;
  if RL <> RecLen then
    begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
+
  Loc := 0;
  BaseFile.Seek(HeaderLen);
 end;

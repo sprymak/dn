@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-vwr_ext_edt_incorrect_mask_bugfix.patch
+//  dn16rc1-pkview_some_dialogs_resources_fix.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -100,6 +110,7 @@ uses Advance2, Commands, Idlers, Startup, Messages, FilesCol, Histries, Dnexec,
      {$IFDEF DiskFormat},DnFormat{$ENDIF}
      {$IFDEF SpreadSheet},Calc{$ENDIF}
      {$IFDEF DBView},DbView{$ENDIF}
+     {$IFDEF PKTVIEW},PKTView{$ENDIF}
      {$IFDEF DPMI},DPMI{$ENDIF}
      {$IFDEF Game},Tetris{$ENDIF}
      {$IFDEF CDPlayer},CdPlayer{$ENDIF}
@@ -418,7 +429,7 @@ var
 label ex;
 begin
   FileName:=lFExpand(FileName);
-  fr:=CreateFileRec(lFExpand(FileName));
+  fr:=CreateFileRec(FileName);
   fillchar(up, sizeof(up), 0);
   up.active:=fr;
    if (Intern and (SystemData.Options and ossEditor <> 0)) or
@@ -665,15 +676,15 @@ begin
      cmViewFilter: ViewFilter(CnvString(Event.InfoPtr));
      cmIntFileView: ViewFile(0, CnvString(Event.InfoPtr)); (* X-Man *)
      cmIntFileEdit: EditFile(False, CnvString(Event.InfoPtr));
-     cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.xrn');
-     cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.ext');
-     cmMenuFileEdit: EditFile(True, SourceDir+'dn.mnu');
-     cmLocalMenuFileEdit: EditFile(True, 'dn.mnu');
-     cmEditHGL: EditFile(True, SourceDir+'dn.hgl');
-     cmEditSPF: EditFile(True, SourceDir+'dn.spf');
-     cmEditINI: EditFile(True, SourceDir+'dn.ini');
-     cmExternalViewers: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.vwr');
-     cmExternalEditors: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.edt');
+     cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.XRN');
+     cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.EXT');
+     cmMenuFileEdit: EditFile(True, SourceDir+'DN.MNU');
+     cmLocalMenuFileEdit: EditFile(True, 'DN.MNU');
+     cmEditHGL: EditFile(True, SourceDir+'DN.HGL');
+     cmEditSPF: EditFile(True, SourceDir+'DN.SPF');
+     cmEditINI: EditFile(True, SourceDir+'DN.INI');
+     cmExternalViewers: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.VWR');
+     cmExternalEditors: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.EDT');
      cmShowUserScreen: ShowUserScreen;
      cmRestart: if not CheckExit
                  then begin ClearEvent(Event); Exit end

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,12 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -125,13 +131,8 @@ const
      {$IFDEF LITE}+#3'Light version'+{$ELSE}+#13+{$ENDIF}
      +#13#3'Version %s, %s'+
      +#13#3#0'http://www.nsk.su/~dnosp/'#0+
-     {$IFDEF VIRTUALPASCAL}
-     +#13+
-     +#13#3'Thanks to Allan Mertner for copy of VP'+
-     +#13#3#0'http://www.vpascal.com'#0#13+
-     {$ELSE}
+     +#13#3#0'http://dn.traktir.ru'#0+
      +#13#13+
-     {$ENDIF}
      +#13#3'Based on Dos Navigator'+
      +#13#3'Copyright (C) 1991-99 RIT Research Labs'#13#13;
 

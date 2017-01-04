@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -45,7 +45,15 @@
 //
 //////////////////////////////////////////////////////////////////////////
 //
-//  Ini Configuration by VIV (C) 1999
+//  Version history:
+//
+//  1.6.RC1
+//  dn15112-enhanced_calendar.patch
+//  dn15112-history_button.patch
+//  dn16rc1-Calendar_improvement_diff129byMV.patch
+//  dn16rc1-piwcal22.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -97,6 +105,7 @@ const
 {}UseEnterInViewer         : Byte       = 0;                          {JO}
 {}UseF3InViewer            : Byte       = 0;                   (* X-Man *)
 {}PoorFrames               : Boolean    = False;                      {PZ}
+{}HistoryButtonChars       : string[4]  = #222#25#221;                {PZ}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -141,7 +150,7 @@ const
 {}{Editor}
 {}UnlimitUnindent          : Boolean    = False;
 {}Koi8rKeyMap              : Boolean    = True;
-{}DrawRShift               : Boolean    = True;
+{}DrawRShift               : Boolean    = False;
 {}AutoScopeDetect          : Boolean    = True;
 {}ShowBookmarks            : Boolean    = True;
 {}FastBookmark             : Boolean    = True;
@@ -170,6 +179,14 @@ const
 {}ActiveLanguage           : string[9]  = '';
 {}HelpLanguageOverride     : string[9]  = '';
 {}ShowLanguageMenu         : Boolean    = False;
+{,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
+{;      Variable name      ;   Type     ; Default value      ;          Comments ;}
+{`.________________________;____________;____________________;___________________'}
+{}{Calendar}
+{}CalShowOnStartup         : Boolean    = False;                               {PZ}
+{}CalSundayFirst           : Byte       = 2;                         {piwamoto}{PZ}
+{}CalDefaultInfo           : string[30] = '';                                  {PZ}
+{}CalOptionFlags           : Word       = 0;                                   {PZ}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`~~~~~~~~~~~~`,}
 {;                   This is end of parameters definitions                       ;}
 {`.______________________________________________________________________________'}
@@ -227,6 +244,7 @@ const
  CSFilePanels           :PChar = 'FilePanels';
  CSNetInfo              :PChar = 'NetInfo';
  CSLanguage             :PChar = 'Language';
+ CSCalendar             :PChar = 'Calendar';
 
 type
   PIniError = ^TIniError;
@@ -349,6 +367,7 @@ begin
   RV(CSInterface, 'UseEnterInViewer',     ikUInt, SizeOf(UseEnterInViewer),     @UseEnterInViewer);   {JO}
   RV(CSInterface, 'UseF3InViewer',        ikUInt, SizeOf(UseF3InViewer),        @UseF3InViewer); (* X-Man *)
   RV(CSInterface, 'PoorFrames',           ikBool, SizeOf(PoorFrames),           @PoorFrames);         {PZ}
+  RV(CSInterface, 'HistoryButtonChars',   ikStr,  SizeOf(HistoryButtonChars),   @HistoryButtonChars); {PZ}
   {Clock}
   RV(CSClock,     'ShowSeconds',          ikBool, SizeOf(ShowSeconds),          @ShowSeconds);
   RV(CSClock,     'ShowCentury',          ikBool, SizeOf(ShowCentury),          @ShowCentury);
@@ -395,6 +414,11 @@ begin
   RV(CSLanguage,  'ActiveLanguage',       ikStr,  SizeOf(ActiveLanguage),       @ActiveLanguage);
   RV(CSLanguage,  'HelpLanguageOverride', ikStr,  SizeOf(HelpLanguageOverride), @HelpLanguageOverride);
   RV(CSLanguage,  'ShowLanguageMenu',     ikBool, SizeOf(ShowLanguageMenu),     @ShowLanguageMenu);
+  {Calendar}
+  RV(CSCalendar,  'ShowOnStartup',        ikBool, SizeOf(CalShowOnStartup),     @CalShowOnStartup);  {PZ}
+  RV(CSCalendar,  'SundayFirst',          ikUInt, SizeOf(CalSundayFirst),       @CalSundayFirst);    {PZ}
+  RV(CSCalendar,  'DefaultInfo',          ikStr,  SizeOf(CalDefaultInfo),       @CalDefaultInfo);    {PZ}
+  RV(CSCalendar,  'OptionFlags',          ikUInt, SizeOf(CalOptionFlags),       @CalOptionFlags);    {PZ}
 end;
 
 function IniVarToStr ( Kind : TIniItemKind; Size : Word; PVar : Pointer ) : string;

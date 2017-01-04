@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-ExponentForm_Calculator.patch
+//  dn16rc1-calc_func.patch
+//  dn16rc1-calc_func_fix.patch
+//  dn16rc1-calculator_fix.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 {(c) Anton Fedorov aka DataCompBoy, 2000}
@@ -62,8 +74,12 @@ function Evalue(const as: string; aVGF: VarGetFunc): CReal;
 Const EvalueError: Boolean = False;
 
 IMPLEMENTATION
+
 uses Dos, Advance1;
 (*{$IFDEF DPMI}{$L Int10.obp}procedure Exc10Handler; external;{$ENDIF}*)
+
+const
+  Epsilon = 1e-200;
 
 function Sin (x:CReal):CReal;
 begin
@@ -106,7 +122,7 @@ begin
  if (not EvalueError)
   then begin
         K := (Exp(x) + Exp(-x));
-        If K <> 0
+        If Abs(K) > Epsilon
          then Th := (Exp(x) - Exp(-x)) / K
          else begin Th := 1; EvalueError := true; end;
        end
@@ -119,7 +135,7 @@ begin
  if (not EvalueError)
   then begin
         K := (Exp(x) - Exp(-x));
-        If K <> 0
+        If Abs(K) > Epsilon
          then Cth := (Exp(x) + Exp(-x)) / K
          else begin Cth := 1; EvalueError := true; end;
        end
@@ -128,84 +144,84 @@ end;
 
 function Arsh(x:CReal):CReal;
 begin
- if (not EvalueError)
-  then Arsh:=Ln(x + Sqrt(Sqr(x)+1))
-  else Arsh:= 1;
+ if (not EvalueError) and (x >= 0)
+  then Arsh := Ln(x + Sqrt(Sqr(x)+1))
+  else begin Arsh := 1; EvalueError := true end;
 end;
 
 function Arch(x:CReal):CReal;
 begin
- if (not EvalueError) and (x>=1)
-  then Arch:=Ln(x + Sqrt(Sqr(x)-1))
-  else begin Arch:= 1; EvalueError:=true end;
+ if (not EvalueError) and (x >= 1)
+  then Arch := Ln(x + Sqrt(Sqr(x)-1))
+  else begin Arch := 1; EvalueError := true end;
 end;
 
 function Arth(x:CReal):CReal;
 begin
- if (not EvalueError) and (Abs(X) < 1)
-  then Arth:=Ln( (1+x) / (1-x) ) / 2
-  else begin Arth:= 1; EvalueError:=true end;
+ if (not EvalueError) and (Abs(X) < 1-Epsilon)
+  then Arth := Ln( (1+x) / (1-x) ) / 2
+  else begin Arth := 1; EvalueError := true end;
 end;
 
 function Arcth(x:CReal):CReal;
 begin
- if (not EvalueError) and (Abs(X) > 1)
-  then Arcth:=Ln( (x+1) / (x-1) ) / 2
-  else begin Arcth:= 1; EvalueError:=true end;
+ if (not EvalueError) and (Abs(X) > 1+Epsilon)
+  then Arcth := Ln( (x+1) / (x-1) ) / 2
+  else begin Arcth := 1; EvalueError := true end;
 end;
 
 function Sec (x:CReal):CReal;
 begin
- if (not EvalueError) and (Cos(X)<>0)
+ if (not EvalueError) and (Abs(Cos(X)) > Epsilon)
   then Sec := 1 / Cos(x)
-  else begin EvalueError := True; Sec:=1 end;
+  else begin Sec := 1; EvalueError := true end;
 end;
 
 function Rad (x:CReal):CReal;
 begin
  if (not EvalueError)
-  then Rad := (x*180)/PI
+  then Rad := (x*180) / PI
   else Rad := 1;
 end;
 
 function Tan (x:CReal):CReal;
 begin
- if (not EvalueError) and (Cos(X)<>0)
-  then Tan := Sin(x)/Cos(x)
-  else begin EvalueError := True; Tan:=1 end;
+ if (not EvalueError) and (Abs(Cos(X)) > Epsilon)
+  then Tan := Sin(x) / Cos(x)
+  else begin Tan := 1; EvalueError := true end;
 end;
 
 function Grad (x:CReal):CReal;
 begin
  if (not EvalueError)
-  then Grad := (x*PI)/180
+  then Grad := (x*PI) / 180
   else Grad := 1;
 end;
 
 function Fact (x:CReal):CReal;
  var R: CReal; I: longint;
 begin
- if (not EvalueError)
+ if (not EvalueError) and (x >= 1) and (x <= 1750)
   then begin
         R := 1;
-        for I := 1 to trunc(x) do R := R * I;
+        for I := 1 to Trunc(x) do R := R * I;
         Fact := R;
        end
-  else Fact := 1;
+  else begin Fact := 1; EvalueError := true end;
 end;
 
 function CoSec (x:CReal):CReal;
 begin
- if (not EvalueError) and (Sin(X)<>0)
+ if (not EvalueError) and (Abs(Sin(X)) > Epsilon)
   then CoSec := 1 / Sin(x)
-  else begin EvalueError := True; CoSec:=1 end;
+  else begin CoSec := 1; EvalueError := true end;
 end;
 
 function CoTan (x:CReal):CReal;
 begin
- if (not EvalueError) and (Sin(X)<>0)
-  then CoTan := Cos(x)/Sin(x)
-  else begin EvalueError := True; CoTan:=1 end;
+ if (not EvalueError) and (Abs(Sin(X)) > Epsilon)
+  then CoTan := Cos(x) / Sin(x)
+  else begin CoTan := 1; EvalueError := true end;
 end;
 
 function ArcCoTan (x:CReal):CReal;
@@ -217,74 +233,91 @@ end;
 
 function ArcSin (x:CReal):CReal;
 begin
- if (not EvalueError) and (x <> 1)
-  then ArcSin := ArcTan ( x / sqrt (1-sqr (x)))
-  else if (not EvalueError) and ((x = 1) or (x = -1))
-        then ArcSin := (pi/2)*x
-        else begin EvalueError := True; ArcSin:=1 end;
+ if (not EvalueError) and (x >= -1) and (x <= 1) then
+  if Abs(x+1) < Epsilon then
+   ArcSin := -(pi/2)
+  else
+   if Abs(x-1) < Epsilon then
+    ArcSin := (pi/2)
+   else
+    ArcSin := ArcTan ( x / sqrt(1-sqr(x)))
+ else begin ArcSin := 1; EvalueError := true end;
 end;
 
 function ArcCos (x:CReal):CReal;
 begin
- if (not EvalueError) and (x <> 1) and (x<>-1)
-  then ArcCos := ArcCoTan ( x / sqrt (1-sqr (x)))
-  else if (not EvalueError) and (x = 1)
-        then ArcCos := 0
-        else if (not EvalueError) and (x = -1)
-              then ArcCos := pi
-              else begin EvalueError := True; ArcCos:=1 end;
+ if (not EvalueError) and (x >= -1) and (x <= 1) then
+  if Abs(x+1) < Epsilon then
+   ArcCos := pi
+  else
+   if Abs(x-1) < Epsilon then
+    ArcCos := 0
+   else
+    ArcCos := ArcCoTan ( x / sqrt(1-sqr(x)))
+ else begin ArcCos := 1; EvalueError := true end;
 end;
 
 function ArcSec (x:CReal):CReal;
 begin
- if (not EvalueError) and (x <> 0) and (x <> 1)
+ if (not EvalueError) and (Abs(x) > Epsilon)
   then ArcSec := ArcCos(1/x)
-  else begin EvalueError := True; ArcSec:=1 end;
+  else begin ArcSec := 1; EvalueError := true end;
 end;
 
 function ArcCoSec (x:CReal):CReal;
 begin
- if (not EvalueError) and (x <> 0) and (x <> 1)
-  then ArcCoSec:= ArcSin(1/x)
-  else begin EvalueError := True; ArcCoSec:=1 end;
+ if (not EvalueError) and (Abs(x) > Epsilon)
+  then ArcCoSec := ArcSin(1/x)
+  else begin ArcCoSec := 1; EvalueError := true end;
 end;
 
 function Step (x,a:CReal):CReal;
 var S: CReal;
 begin
- if ((x=0) and (a=0)) or (EvalueError)
-  then begin EvalueError:=true; Step:=1 end
-  else if (a=0) then Step:=1
-        else if (Frac(a)=0) then begin
-              S:=Exp(a*Ln(Abs(x)));
-              if (Abs(Trunc(a)) mod 2 = 1) and (x<0)
-               then Step:=-s
-               else Step:=s;
-             end else if x>0
-                       then Step:=Exp(a*Ln(x))
-                       else begin EvalueError:=true; Step:=1 end;
+ if ((Abs(x) < Epsilon) and (Abs(a) < Epsilon)) or (EvalueError)
+  then begin Step := 1; EvalueError := true end
+  else if (Abs(a) < Epsilon) then Step := 1
+        else if (Abs(Frac(a)) < Epsilon) then begin
+              if Abs(x) > Epsilon then begin
+               S:=Exp(a*Ln(Abs(x)));
+               if (Abs(Trunc(a)) mod 2 = 1) and (x < 0)
+                then Step := -S
+                else Step := S;
+              end else begin Step := 1; EvalueError := true end;
+             end else if x > Epsilon
+                       then Step := Exp(a*Ln(x))
+                       else begin Step := 1; EvalueError := true end;
 end;
 
-function Root(x, a:CReal):CReal;
+function Root(x,a:CReal):CReal;
 var S: CReal;
 begin
- if (a<1) or (Frac(a)<>0) or (EvalueError)
- then begin EvalueError:=true; Root:=1 end
- else if (trunc(a) mod 2 = 1)
+ if (a < 1-Epsilon) or (Abs(Frac(a)) > Epsilon) or (EvalueError)
+ then begin Root := 1; EvalueError := true end
+ else if (Trunc(a) mod 2 = 1)
        then begin
-             S:=Exp((1/a)*Ln(Abs(x)));
-             if x<0 then Root:=-S
-                    else Root:=S
+             if Abs(x) > Epsilon
+              then S := Exp((1/a)*Ln(Abs(x)))
+              else begin Root := 1; EvalueError := true end;
+             if x < 0 then Root := -S
+                      else Root := S
             end
-       else if x>0 then Root:=Exp((1/a)*Ln(x))
-                   else begin EvalueError:=true; Root:=1 end;
+       else if x > Epsilon then Root := Exp((1/a)*Ln(x))
+                           else begin Root := 1; EvalueError := true end;
 end;
 
 function Log(a,x:CReal):CReal;
 begin
- if (A<=0) or (A=1) or (X<=0) or (X=1) or (EvalueError)
-  then begin EvalueError := True; Log:=1 end
+ if (a < Epsilon) or (Abs(a-1) < Epsilon) or (x < Epsilon) or (EvalueError)
+  then begin Log := 1; EvalueError := true end
   else Log := Ln(x)/Ln(a);
+end;
+
+function Ln(x:CReal):CReal;
+begin
+ if (x < Epsilon) or (EvalueError)
+  then begin Ln := 1; EvalueError := true end
+  else Ln := System.Ln(x);
 end;
 
 function GetValue(S: String; var Value: CReal): boolean;
@@ -490,6 +523,20 @@ end;
 const cmd: string[10] = 'CALCULATOR';
       CmdSign: Set of char = ['>', '<', '=', '!', '#', '+', '-', '|',
                               '\', '/', '*', '&', '~', '%', '^'];
+
+{Pavel Anufrikov --> }
+
+function TestSignE(start,i : byte) : boolean;
+begin
+ TestSignE:=false;
+ if (s^[i-1]<>'E') then exit;
+ dec(i,2);
+ while (i>start) and (s^[i] in ['0'..'9','A'..'F']) do dec(i);
+ TestSignE := (s^[i-1]<>'0') or (s^[i]<>'X');
+end;
+
+{ <-- Pavel Anufrikov}
+
 function DoEval(start, stop: byte): CReal;
  var i: byte;
      value: CReal;
@@ -548,19 +595,19 @@ function DoEval(start, stop: byte): CReal;
     if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;
     continue;
    end;
-   if (s^[i]='+') and (i>start) and not (s^[i-1] in CmdSign) then
+   if (s^[i]='+') and (i>start) and not (s^[i-1] in CmdSign) and not TestSignE(start,i) then
     begin DoEval:=DoEval(start, i-1) + DoEval(i+1, stop); exit end;
-   if (s^[i]='-') and (i>start) and not (s^[i-1] in CmdSign) then
+   if (s^[i]='-') and (i>start) and not (s^[i-1] in CmdSign) and not TestSignE(start,i) then
     begin DoEval:=DoEval(start, i-1) - DoEval(i+1, stop); exit end;
    if (s^[i]='-') and (i=start) and not (s^[i-1] in CmdSign) then
     begin DoEval:= - DoEval(i+1, stop); exit end;
-   if (s^[i]='o') and (i<stop) and (s^[i+1]='r') and (i>1) then
+   if (s^[i]='O') and (i<stop) and (s^[i+1]='R') and (i>1) then
     begin DoEval:=Round(DoEval(start, i-1)) or Round(DoEval(i+2, stop)); exit end;
-   if (s^[i]='|') and (i<stop) and (s^[i+1]='|') and (i>1) then
-    begin DoEval:=Round(DoEval(start, i-1)) or Round(DoEval(i+2, stop)); exit end;
+   if (s^[i]='|') and (i>start) and (s^[i-1]='|') then
+    begin DoEval:=Byte((Round(DoEval(start, i-2))<>0) or (Round(DoEval(i+1, stop))<>0)); exit end;
    if (s^[i]='|') and (i>1) then
     begin DoEval:=Round(DoEval(start, i-1)) or Round(DoEval(i+1, stop)); exit end;
-   if (s^[i]='x') and (i<stop-1) and (s^[i+1]='o') and (s^[i+2]='r') and (i>1) then
+   if (s^[i]='X') and (i<stop-1) and (s^[i+1]='O') and (s^[i+2]='R') and (i>1) then
     begin DoEval:=Round(DoEval(start, i-1)) xor Round(DoEval(i+3, stop)); exit end;
    if (s^[i]='\') and (i>1) then
     begin DoEval:=Round(DoEval(start, i-1)) xor Round(DoEval(i+1, stop)); exit end;
@@ -587,8 +634,10 @@ function DoEval(start, stop: byte): CReal;
                 else begin EvalueError:=True; DoEval:=1; end;
     exit
    end;
-   if (s^[i]='&') and (i<stop) and (s^[i+1]='&') then
-    begin DoEval:=Round(DoEval(start, i-1)) and Round(DoEval(i+2, stop)); exit end;
+   if (s^[i]='&') and (i>start) and (s^[i-1]='&') then
+    begin DoEval:=Byte((Round(DoEval(start, i-2))<>0) and (Round(DoEval(i+1, stop))<>0)); exit end;
+   if (s^[i]='&') then
+    begin DoEval:=Round(DoEval(start, i-1)) and Round(DoEval(i+1, stop)); exit end;
    if (s^[i]='<') and (i<stop) and (s^[i+1]='<') then
     begin DoEval:=Round(DoEval(start, i-1)) shl Round(DoEval(i+2, stop)); exit end;
    if (s^[i]='>') and (i<stop) and (s^[i+1]='>') then

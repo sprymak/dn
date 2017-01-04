@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//
+//  dn16rc1-window-manager-changes.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -808,10 +818,18 @@ begin
                         end;
   {Knave 11.09.99 --------------- end 1}
               cmGetName: begin PString(Event.InfoPtr)^ := GetString(dlFileManager);
-              PString(Event.InfoPtr)^:=PString(Event.InfoPtr)^+Cut(LPanel^.DirectoryName,
-              (55-Length(PString(Event.InfoPtr)^)) div 2) + ','
-              +Cut(RPanel^.DirectoryName,
-              (55-Length(PString(Event.InfoPtr)^)) div 2); CE end;
+              if Length(LPanel^.DirectoryName) < ((51 - Length(PString(Event.InfoPtr)^)) div 2)
+               then PString(Event.InfoPtr)^ := PString(Event.InfoPtr)^ + LPanel^.DirectoryName + ','
+                + Cut(RPanel^.DirectoryName,51 - Length(PString(Event.InfoPtr)^) - Length(LPanel^.DirectoryName))
+               else if Length(RPanel^.DirectoryName) < ((51 - Length(PString(Event.InfoPtr)^)) div 2)
+                 then PString(Event.InfoPtr)^ := PString(Event.InfoPtr)^
+                  + Cut(LPanel^.DirectoryName, 51 - Length(PString(Event.InfoPtr)^) - Length(RPanel^.DirectoryName))
+                  + ',' + RPanel^.DirectoryName
+                 else PString(Event.InfoPtr)^:=PString(Event.InfoPtr)^
+                  + Cut(LPanel^.DirectoryName,(51 - Length(PString(Event.InfoPtr)^)) div 2
+                  + (51 - Length(PString(Event.InfoPtr)^)) mod 2) + ','
+                  + Cut(RPanel^.DirectoryName,(51 - Length(PString(Event.InfoPtr)^)) div 2);
+              CE end;
               cmPostHideRight: begin
                                  if not RVisible then SwitchRight;
                                  RVisible := On;

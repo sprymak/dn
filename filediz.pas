@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-description_for_longname_workaround-diff160byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -216,7 +225,7 @@ begin
      if Abort then begin Close(F2.T); Exit; end;
      if IOResult <> 0 then (* begin CantWrite(DPath); *) Exit; (* end; *)
      if Length(NewName)<=12 then NewName:=AddSpace(NewName,13);
-     WriteLn(F2.T, NewName+ANewDescription^);
+     WriteLn(F2.T, NewName+' '+ANewDescription^);
     end;
     Close(F2.T);
     Exit;
@@ -260,10 +269,10 @@ begin
 
        Delete(S, 1, j-1);
 
-       if Length(NewName)<=12 then NewName:=AddSpace(NewName,13);
+       if Length(NewName)<12 then NewName:=AddSpace(NewName,12);
        if ANewDescription<>nil
-        then S:=NewName + ANewDescription^
-        else S:=NewName + S;
+        then S:=NewName + ' ' + ANewDescription^
+        else S:=NewName + ' ' + S;
      end;
     end;
     WasFilesInDIZ:=True;

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_lim; {LIM}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos;
 
 type
     PLIMArchive = ^TLIMArchive;
@@ -122,13 +131,22 @@ begin
 end;
 
 Procedure TLIMArchive.GetFile;
-var HS,i : AWord;
-    FP   : Longint;
+var i    : AWord;
     P    : LIMHdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
     C    : Char;
     label 1;
+
+procedure GetName;
+begin
+  i := 1; FileInfo.FName := ''; C := #1;
+  While (I < 80) and (C <> #0) and not Abort and (ArcFile^.Status = stOK) do
+   begin
+    ArcFile^.Read(C, 1);
+    if C <> #0 then FileInfo.FName := FileInfo.FName + C;
+    Inc(I);
+   end;
+end;
+
 begin
 1:
  ArcFile^.Read(P, 4);
@@ -137,15 +155,11 @@ begin
  if (ArcFile^.Status = stOK) and (P.ID = #$80#$D1)
   then
    begin
-    FileInfo.Last := 0;
-    i := 1; S := ''; C := #1;
-    While (I < 80) and (C <> #0) and not Abort and (ArcFile^.Status = stOK) do
-     begin ArcFile^.Read(C, 1); if C <> #0 then S := S + C; Inc(I); end;
-     CDir := S;
+    GetName;
+    CDir := FileInfo.FName;
     Goto 1;
    end;
- if (ArcFile^.Status <> stOK) or (P.ID <> #35#241)
-  then begin FileInfo.Last := 2;Exit;end;
+ if (ArcFile^.Status <> stOK) or (P.ID <> #35#241) then begin FileInfo.Last:=2;Exit;end;
  ArcFile^.Read(P.ThreeZeros[2], Sizeof(P)-4);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
  {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
@@ -154,17 +168,10 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1; S := '';
- C := #1;
- While (I < 80) and (C <> #0) and not Abort and (ArcFile^.Status = stOK) do
-  begin ArcFile^.Read(C, 1); if C <> #0 then S := S + C; Inc(I); end;
-  While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(CDir+'\'+S);      {DataCompBoy}
- FileInfo.FName := CDir + '\' + S; {DataCompBoy}
+ GetName;
+ FileInfo.FName := CDir + '\' + FileInfo.FName;
  if P.ThreeZeros[3] and Directory <> 0 then Goto 1;
- FP := ArcFile^.GetPos;
- ArcFile^.Seek(FP + P.PackedSize);
+ ArcFile^.Seek(ArcFile^.GetPos + P.PackedSize);
 end;
 
 end.

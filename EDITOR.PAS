@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Undo_after_save_diff132byMV.patch
+//  dn16rc1-Editor_search_fix.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -99,7 +109,6 @@ function TXFileEditor.HandleCommand;
 
 var  LastX, LastY: LongInt;
      WL: Byte absolute WorkString;
-     OldDelta,
      T: TPoint;
 
   procedure ChangeLine;
@@ -152,11 +161,11 @@ var  LastX, LastY: LongInt;
 
    if Y = cmCancel then Exit;
    ReplaceAll := Replace and (Y = cmYes);
-   OldDelta := Delta;
-   if SearchData.Origin=0 then
-      if SearchData.Dir = 0 then Delta.Assign(0, 0)
-                            else begin Delta.X := 255; Delta.Y := FileLines^.Count - 1; end;
-   if not Search then Delta := OldDelta;
+   if SearchData.Origin = 0 then
+      if SearchData.Dir = 0 then
+        Search(0, 0)
+      else Search (255, FileLines^.Count - 1)
+   else Search(Delta.X, Delta.Y);
   end;
 
   procedure MakeUndo;
@@ -307,12 +316,14 @@ var  LastX, LastY: LongInt;
      ChangeLine;
      UndoInfo^.AtFree(UndoInfo^.Count - 1);
      Dec(UndoTimes);
-     if UndoTimes = 0 then
+     Modified := On;
+     if not JustSaved and (UndoTimes = LastSaveUndoTimes) then
        begin
           Modified := Off;
           if PEditWindow(Owner)^.AInfo <> nil then PEditWindow(Owner)^.AInfo^.DrawView;
           if PEditWindow(Owner)^.ABookLine <> nil then PEditWindow(Owner)^.ABookLine^.DrawView; {-$VIV}
        end;
+     JustSaved := Off;
    until RPT;
   end;
 
@@ -508,6 +519,13 @@ var  LastX, LastY: LongInt;
      RedoInfo^.AtFree(RedoInfo^.Count - 1);
      Inc(UndoTimes);
      Modified := On;
+     if not JustSaved and (UndoTimes = LastSaveUndoTimes) then
+       begin
+          Modified := Off;
+          if PEditWindow(Owner)^.AInfo <> nil then PEditWindow(Owner)^.AInfo^.DrawView;
+          if PEditWindow(Owner)^.ABookLine <> nil then PEditWindow(Owner)^.ABookLine^.DrawView; {-$VIV}
+       end;
+     JustSaved := Off;
    until RPT;
   end; {-$VOL}
 

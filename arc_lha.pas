@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_LHA; {LHA}
 
 interface
-uses Archiver, Advance1, Objects, LFNCol, Dos, lfn, Advance, xTime;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos, xTime;
 
 Type
     PLHAArchive = ^TLHAArchive;
@@ -145,9 +154,8 @@ begin
    ArcFile^.Seek(FP + Byte(P.Name[0]) + $1b - P.Size);
   end;
   ArcFile^.Read(HS, 2);
-  System.Move(P.Name, S, Byte(P.Name[0])+1);
-  Replace('/', '\', S);
-  FileInfo.FName := S; FileInfo.Last := 0;
+  System.Move(P.Name, FileInfo.FName, Byte(P.Name[0])+1);
+  FileInfo.Last := 0;
   FileInfo.Attr := P.Attr and not Hidden;
   FileInfo.USize := P.OriginSize;
   FileInfo.PSize := P.PackedSize;
@@ -161,11 +169,9 @@ begin
          while (I < Min(255,HS)) and (P.Name[I] > #31) do
            begin AddStr(S, P.Name[I]); Inc(I) end;
          Replace(#255, '\', S);
-         Replace('/', '\', S);
          System.Insert(S, FileInfo.FName, 1);
       end;
    end;
- FileInfo.LFN := AddLFN(FileInfo.FName);
  ArcFile^.Seek(FP + P.PackedSize);
 end;
 

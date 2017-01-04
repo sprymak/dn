@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,19 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archives_without_extension_fix_diff131byMV.patch
+//  dn16rc1-move_COMBINE_MIXED_from_sources_to_Options_menu_diff140byMV.patch
+//  dn16rc1-deleting_temporary_files_safety_fix.patch
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//  dn16rc1-Archive_total_size_2GB_fix-diff155byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -111,7 +124,6 @@ const
 type
     PFInfo     = ^TFInfo;
     TFInfo     = Record
-                  LFN     : String; {DataCompBoy}
                   FName   : String;
                   USize   : LongInt;
                   PSize   : LongInt;
@@ -177,6 +189,7 @@ begin
     2: FilFLP := flnCapitalCase;
     3: FilFLP := flnUpCase;
     4: FilFLP := 65535;
+    5: FilFLP := 65534;
    end;
    case DirsCase of
     0: DirFLP := 0;
@@ -184,6 +197,7 @@ begin
     2: DirFLP := flnCapitalCase;
     3: DirFLP := flnUpCase;
     4: DirFLP := 65535;
+    5: DirFLP := 65534;
    end;
   end;
 end;
@@ -192,9 +206,8 @@ end;
         {-DataCompBoy-}
 constructor TArcDrive.Init;
  var SR: lSearchRec;
-     xt: string;
      I: Integer;
-     Q: String;
+     xt,Q: String;
 begin
  TObject.Init;
  if viewmode<1 then GetParam(1)
@@ -236,9 +249,6 @@ end;
         {-DataCompBoy-}
 constructor TArcDrive.InitCol;
  var SR: lSearchRec;
- var  Dr: String;
-      Nm: String;
-      Xt: String;
 begin
  TObject.Init;
  GetParam(1);
@@ -252,7 +262,6 @@ begin
  KillAfterUse := TempFile <> '';
  TempFile := '';
  Password := '';
- lFSplit(ArcName, Dr, Nm, Xt);
  if ExistFile(ArcName) then
   New(ArcFile,Init(ArcName, stOpenRead, 512))
  else ArcFile:=nil;
@@ -272,9 +281,7 @@ end;
 
         {-DataCompBoy-}
 constructor TArcDrive.Load;
- var  Dr: String;
-      Nm: String;
-      Xt: String;
+ var
       SR: lSearchRec;
 label
   Failure;
@@ -288,7 +295,6 @@ begin
  Files := PDirStorage(S.Get);
  ForceRescan := Off;
  DriveType := dtArc;
- lFSplit(ArcName, Dr, Nm, Xt);
  ArcFileName := ArcName;
  lFindFirst(ArcName, AnyFile, SR); {JO}
  if DosError <> 0 then goto Failure;
@@ -297,7 +303,7 @@ begin
  New(ArcFile,Init(ArcName, stOpenRead, 512));
  if (ArcFile=nil) or (ArcFile^.Status <> stOK) then begin
    Dispose(ArcFile, Done); ArcFile:=nil;
- Failure:
+Failure:
    lFindClose(SR);
    StdMsg(4);
    if Files <> nil then Dispose(Files, Done); Files:=nil;
@@ -314,9 +320,14 @@ end;
         {-DataCompBoy-}
 
 procedure TArcDrive.KillUse;
+ var Dir, Name, Ext: String; {JO}
 begin
  if Prev <> nil then Prev^.KillUse;
- if KillAfterUse then EraseFile(ArcName);
+ if KillAfterUse then
+                   begin
+                     lFSplit(ArcName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+                     if Dir = Tempdir then EraseFile(ArcName); {во временном каталоге не помешает}
+                   end;
 end;
 
 procedure TArcDrive.Store;
@@ -339,14 +350,8 @@ end;
         {-DataCompBoy-}
 Function TArcDrive.ReadArchive;
 var PF : PArcFile;
-    i  : Integer;
-    ev : TEvent;
     P  : PWhileView;
     R  : TRect;
-    Dr : String;
-    Nm : String;
-    Xt : String;
-    tmp: String;
     Ln : LongInt;
     PLn: LongInt;
     Cancel: Boolean;
@@ -354,7 +359,6 @@ var PF : PArcFile;
     olf: String;
 begin
  ReadArchive:=Off;
- lFSplit(ArcName, Dr, Nm, Xt);
  New(ArcFile,Init(ArcName, stOpenRead, 512));
  ArcFileName := ArcName;
  if (ArcFile=nil) or (ArcFile^.Status <> stOK) then
@@ -363,7 +367,7 @@ begin
     StdMsg4;
     Exit;
   end;
- if Files <> nil then Dispose(Files, Done); Files:=nil;
+ if Files <> nil then Dispose(Files, Done);
  Files := nil;
  ArcPos := 0;
  SkipSFX;
@@ -378,7 +382,7 @@ begin
   LN:=0;
   {$IFNDEF MINARCH}
   If TypeOf(AType^)=TypeOf(TTGZArchive)
-   then PLn:=FileSize(PTGZArchive(AType)^.gzf^.gzFile.F);
+   then PLn:=FileSize(PTGZArchive(AType)^.gzf^.gzFile.F) + 1;
   {$ENDIF}
  end;
  Cancel := Off; PReader := nil;
@@ -397,11 +401,10 @@ begin
           Desktop^.Insert(P);
         end;
       If LN<>0 then
-       P^.Write(2, Copy(Strg(#219,((ArcFile^.GetPos+1)*25) div LN)+Strg(#177, 25), 1, 25))
+       P^.Write(2, Copy(Strg(#219,25 div (LN div (ArcFile^.GetPos+1)))+Strg(#177, 25), 1, 25))
       {$IFNDEF MINARCH}
       else if PLn<>0 then
-            P^.Write(2,Copy(Strg(#219,((FilePos(PTGZArchive(AType)^.gzf^.gzFile.F)+1)*25) div PLn )+Strg(#177, 25),
-                            1, 25))
+       P^.Write(2, Copy(Strg(#219,25 div (PLn div (FilePos(PTGZArchive(AType)^.gzf^.gzFile.F)+1)))+Strg(#177, 25), 1, 25))
       {$ENDIF}
       ;
       P^.Write(3, ItoS(Files^.Files)+GetString(dlFilesFound));
@@ -410,13 +413,19 @@ begin
   AType^.GetFile;
   if FileInfo.Last=0 then
      begin
-      DelLeft(FileInfo.FName);
-      if not (FileInfo.FName[1] in ['\','/']) then FileInfo.FName := '\' + FileInfo.FName;
-      Replace('/', '\', FileInfo.FName); UpStr(FileInfo.FName);
-      olf:=GetLFN(FileInfo.LFN);
-      DelLFN(FileInfo.LFN);
-      if not (olf[1] in ['\','/']) then olf:='\'+olf; Replace('/', '\', olf);
+      Replace('/', '\', FileInfo.FName);
+{piwamoto: it willn't work due to bugs in FName processing in flpanelx
+      if (FileInfo.FName[1] = '.') and (FileInfo.FName[2] = '\') then
+        begin
+(*         System.Delete(FileInfo.FName,1,2); *)
+         Files^.AddFile('\.\..', '\.\..', 0, 0, FileInfo.Date, 0);
+        end;
+}
+      if FileInfo.FName[1] <> '\' then FileInfo.FName := '\' + FileInfo.FName;
+      if FileInfo.Attr and Directory <> 0 then FileInfo.FName := FileInfo.FName + '\';
+      olf := FileInfo.FName;
       Replace('\.','\',FileInfo.FName);
+      UpStr(FileInfo.FName);
 {attribute "Hidden" means "with password"}
       Files^.AddFile(olf,  FileInfo.FName, FileInfo.USize,
                      FileInfo.PSize,FileInfo.Date,  FileInfo.Attr);
@@ -434,6 +443,7 @@ begin
  Dec(SkyEnabled);
  if P <> nil then P^.Free;
  FreeObject(ArcFile);
+ CDir := '';
  if FileInfo.Last=2 then StdMsg(6);
  ReadArchive:=On;
  if Files^.Files=0 then begin StdMsg(7);ReadArchive:=Off;end;
@@ -485,19 +495,14 @@ end;
 function TArcDrive.GetDirectory;
  var F: PFileRec;
      FA: PArcFile;
-     I: LongInt;
-     si:LongInt;
-     Dr: String;
-     Nm: String;
-     Xt: String;
-     DT: DateTime;
+     I,si: LongInt;
      AllFiles: Boolean;
      AFiles, FD: PFilesCollection;
      TTL, TPL: TSize;
      _USize, _PSize: TSize;
      FR: TFileRec;
      OW: Pointer;
-
+     Dr: String;
 begin
  AFiles := New(PFilesCollection, Init($10, $10));
  PFilesCollection(AFiles)^.Owner := Owner;
@@ -568,9 +573,9 @@ begin
 
  if CurDir = '' then OW := @ArcName else OW := @CurDir;
 
- F := NewFileRec('..',{$IFNDEF OS2}'..'{$ENDIF},Round(TTL), ArcDate, Directory, OW);
+ F := NewFileRec('..',{$IFNDEF OS2}'..'{$ENDIF},TTL{Round(TTL)}{2gb fix by piwamoto}, ArcDate, Directory, OW);
  F^.Attr := $8000 or F^.Attr;
- F^.PSize := Round(TPL);
+ F^.PSize := TPL{Round(TPL)}{2gb fix by piwamoto};
  AFiles^.AtInsert(0, F);
  FD^.DeleteAll; Dispose(FD, Done);
 end;
@@ -578,9 +583,10 @@ end;
 
         {-DataCompBoy-}
 procedure TArcDrive.UseFile;
- var SS, S, S2, Q: String;
+ var
      C: Char;
      ExecOK: Boolean;
+     SS, S, S2, Q: String;
 begin
    TempFile:=''; {-$VOL}
    if (Command = cmEditFile) or (Command = cmFileEdit) or
@@ -603,14 +609,11 @@ begin
     end;
    SS := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
    if SS[1] = '\' then DelFC(SS);
-   {$IFNDEF OS2}
-   if ArcName[Length(ArcName)]='.' then
-    S := CnvString(AType^.Extract)+' '+s+lfGetShortFileName(ArcName)+'. '+SquashesName(SS)+' '
-   else
-    S := CnvString(AType^.Extract)+' '+s+lfGetShortFileName(ArcName)+' '+SquashesName(SS)+' ';
-   {$ELSE}
-   S := CnvString(AType^.Extract)+' '+s+SquashesName(ArcName)+' '+SquashesName(SS)+' ';
-   {$ENDIF}
+   S := CnvString(AType^.Extract)+' '+s+
+        {$IFNDEF OS2}lfGetShortFileName{$ELSE}SquashesName{$ENDIF}(ArcName);
+   if (GetExt(ArcName) = '.') and (S[length(S)] <> '.')
+      then S := S + '.';{piwamoto: extracting from extensionless archives}
+   S := S +' '+SquashesName(SS)+' ';
    DelDoubles('  ',S);
    TempFile := C + MakeNormName(TempDir , GetLFN(P^.LFN));
    Q:='|' + GetRealName+':'+MakeNormName(CurDir, GetLFN(P^.LFN));
@@ -704,6 +707,7 @@ begin
 end;
 
 procedure TArcDrive.ChangeUp;
+ var Dir, Name, Ext: String; {JO}
 begin
   if CurDir <> '' then
    begin
@@ -726,7 +730,11 @@ begin
   GlobalMessage(evCommand, cmRereadInfo, nil);
   Prev := nil;
   S := GetName(ArcName);
-  if KillAfterUse then EraseFile(ArcName);
+  if KillAfterUse then
+                   begin
+                     lFSplit(ArcName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+                     if Dir = Tempdir then EraseFile(ArcName); {во временном каталоге не помешает}
+                   end;
   Dispose(PDrive(@Self), Done);
 end;
 
@@ -835,11 +843,11 @@ begin
     if (Password = '') and Pswd then
       if ExecResource(dlgSetPassword, Password) <> cmOK then Exit;
     if Password <> '' then S := ' ' + DelSpaces(CnvString(AType^.Garble) + Password) + ' ';
-    {$IFNDEF OS2}
-    S := ExtrChar+' '+s+lfGetShortFileName(ArcName)+' '+SS+' ';
-    {$ELSE}
-    S := ExtrChar+' '+s+SquashesName(ArcName)+' '+SS+' ';
-    {$ENDIF}
+    S := ExtrChar+' '+s+
+         {$IFNDEF OS2}lfGetShortFileName{$ELSE}SquashesName{$ENDIF}(ArcName);
+    if (Xt = '.') and (S[length(S)] <> '.')
+       then S := S + '.';{piwamoto: extracting from extensionless archives}
+    S := S +' '+SS+' ';
     lGetDir(0, DirToChange);
     CreateDirInheritance(ExtrDir, On);
     Advance2.lChDir(ExtrDir);
@@ -857,8 +865,6 @@ procedure TArcDrive.CopyFiles;
      DT: Record S: String; W: Word; Psw: String[30]; end;
      ExtrDir: String;
      ExtrChar: String;
-     Nm: String;
-     Xt: String;
 begin
   S := ' ';
   ExtrDir := '';
@@ -909,11 +915,11 @@ begin
     if (J <> cmYes) then Exit;
    end;
   SS := MakeListFile(AFiles);
-  {$IFNDEF OS2}
-  S := CnvString(AType^.Delete)+' '+lfGetShortFileName(ArcName)+' '+SS;
-  {$ELSE}
-  S := CnvString(AType^.Delete)+' '+SquashesName(ArcName)+' '+SS;
-  {$ENDIF}
+  S := CnvString(AType^.Delete)+' '+
+       {$IFNDEF OS2}lfGetShortFileName{$ELSE}SquashesName{$ENDIF}(ArcName);
+  if (GetExt(ArcName) = '.') and (S[length(S)] <> '.')
+     then S := S + '.';{piwamoto: deleting from extensionless archives}
+  S := S +' '+SS;
   ForceRescan := True;
   Exec(CnvString(AType^.Packer),s);
   ForceRescan := Off;
@@ -982,26 +988,28 @@ begin
      Hidden+SysFile : NFM:=nfmHiddenSystem;
     end{case};                                         { <- Pavel Anufrikov}
 
-    if P^.Attr and Directory <>0 then if DirFLP<>65535
-                                       then OPT:=OPT or DirFLP
-                                       else {$IFNDEF COMBINE_MIXED}
-                                            if (Length(GetSName(S))<=8) and
-                                               (Length(GetExt(S))<=4)
-                                            {$ELSE}
-                                            if (not IsMixedCase(S)) {JO}
-                                            {$ENDIF}
-                                             then OPT:=OPT or flnUpCase
-                                             else
-                                 else if FilFLP<>65535
-                                       then OPT:=OPT or FilFLP
-                                       else {$IFNDEF COMBINE_MIXED}
-                                            if (Length(GetSName(S))<=8) and
-                                               (Length(GetExt(S))<=4)
-                                            {$ELSE}
-                                            if (not IsMixedCase(S)) {JO}
-                                            {$ENDIF}
-                                             then OPT:=OPT or flnLowCase
-                                             else ;
+    if P^.Attr and Directory <> 0
+      then if DirFLP < 65534
+             then OPT:=OPT or DirFLP
+             else if DirFLP = 65535
+                    then if (Length(GetSName(S))<=8) and
+                            (Length(GetExt(S))<=4)
+                           then OPT:=OPT or flnUpCase
+                           else
+                    else if (not IsMixedCase(S))
+                           then OPT:=OPT or flnUpCase
+                           else
+      else if FilFLP < 65534
+             then OPT:=OPT or FilFLP
+             else if FilFLP = 65535
+                    then if (Length(GetSName(S))<=8) and
+                            (Length(GetExt(S))<=4)
+                           then OPT:=OPT or flnLowCase
+                           else
+                    else if (not IsMixedCase(S))
+                           then OPT:=OPT or flnLowCase
+                           else ;
+
     S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
    end
@@ -1073,8 +1081,8 @@ begin
    end;
   if Flags and psShowTime <> 0 then
    begin
-    MoveStr(TWordArray(B)[X], Copy(S1,10,6), C);
-    Inc(X, 7+CountryInfo.TimeFmt);
+    MoveStr(TWordArray(B)[X], Copy(S1,10,6-CountryInfo.TimeFmt), C);
+    Inc(X, 7 - CountryInfo.TimeFmt);
     TWordArray(B)[X-1]:=SC;
    end;
 end;
@@ -1107,7 +1115,7 @@ begin
    end;
   if Flags and psShowTime <> 0 then
    begin
-    Inc(X, 7+CountryInfo.TimeFmt);
+    Inc(X, 7 - CountryInfo.TimeFmt);
     TWordArray(B)[X-1]:=SC;
    end;
 end;
@@ -1185,8 +1193,6 @@ end;
 function ArcViewer;
  var P: PDrive;
      E: TEvent;
-     Dr: String;
-     Nm: String;
      Xt: String;
 begin
  ArcViewer := False;
@@ -1194,8 +1200,8 @@ begin
  if Abort then Exit;
  if P = nil then
    begin
-     lFSplit(AName, Dr, Nm, Xt);
-     if (UpStrg(XT) = '.TDR') or (UpStrg(XT) = '.AVT')
+     Xt:=UpStrg(GetExt(AName));
+     if (Xt = '.TDR') or (Xt = '.AVT')
       then P := New(PArvidDrive, Init(AName, num));
      if P = nil then Exit;
    end;

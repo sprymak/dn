@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_tar; {TAR}
 
 interface
- uses Archiver, Objects{, FViewer}, Advance, LFNCol, Dos, lfn, advance1, xtime;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos, xTime;
 
 type
     PTARArchive = ^TTARArchive;
@@ -152,17 +161,8 @@ begin
   GetSign := sigTAR;
 end;
 
-function FromOct(S: String): LongInt; {fixed by piwamoto}
- var I,L: LongInt;
-begin
-  L := 0;
-  for I := 1 to Length(S) do
-     if S[I] in['0'..'9'] then L := L shl 3 + Byte(S[I]) - 48;
-  FromOct := L;
-end;
-
 Procedure TTARArchive.GetFile;
-  var S: String;
+  var
       Buffer: Array [0..BlkSize - 1] of Char;
       Hdr: TARHdr absolute Buffer;
       DT: DateTime;
@@ -171,12 +171,9 @@ begin
   ArcFile^.Read(Buffer, BlkSize);
   if ArcFile^.Status <> stOK then begin FileInfo.Last := 2; Exit end;
   FileInfo.Last := 0;
-  S := Hdr.FName + #0; Byte(S[0]) := PosChar(#0, S)-1;
-  if S = '' then begin FileInfo.Last := 1; Exit end;
-  Replace('/', '\', S);
-  if Copy(S,1,2) = '.\' then System.Delete(S,1,2);
-  FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-  FileInfo.FName := S; {DataCompBoy}
+  FileInfo.FName := Hdr.FName + #0;
+  Byte(FileInfo.FName[0]) := PosChar(#0, FileInfo.FName)-1;
+  if FileInfo.FName = '' then begin FileInfo.Last := 1; Exit end;
   FileInfo.USize := FromOct(Hdr.Size);
   FileInfo.PSize := FileInfo.USize;
   GetUNIXDate(FromOct(Hdr.mTime), DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-resource_big_fix.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -456,7 +465,7 @@ uses LFN, Dos, tree, advance, advance1, advance2, advance3, FileCopy, DNApp,
       else D := PDialog( LoadResource( dlgSplitFile ));
     P := D^.LastThat( @IsLabel );
     R.Assign( P^.Origin.X + P^.Size.X-1, P^.Origin.Y, D^.Size.X - 1, P^.Origin.Y + 1 );
-    D^.Insert( New( PLabel, Init( R, '~'+LowStrg(aa+aaa)+'~'+
+    D^.Insert( New( PLabel, Init( R, LowStrg(aa+aaa)+
                GetString(dlSplit_To), PLabel(P)^.Link)));
     S := '';
     HistoryAdd(hsFBBCopy, lFExpand(a));

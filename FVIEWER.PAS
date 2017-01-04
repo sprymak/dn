@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,20 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-XLat_bugfix.patch
+//  dn16rc1-viewer_gotolabel.patch
+//  dn16rc1-viewer_backward_search.patch
+//  dn16rc1-deleting_temporary_files_safety_fix.patch
+//  dn16rc1-window-manager-changes.patch
+//  dn16rc1-Bugfix_for_dn16rc1-viewer_backward_search_patch-diff151byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -166,6 +180,9 @@ const
 type
   TViewSearch = record What: String[250]; Opts: Word; Dir: Word end;
 
+  {Dir = bit 0: [basic search] 0 - forward, 1 - backward
+         bit 1: [last search]  0 - forward, 1 - backward }
+
 const
   cmChangeValue = 9990;
   SearchString: TViewSearch = (What:''; Opts: 0; Dir: 0);
@@ -231,8 +248,13 @@ begin
    if Back then
      begin
        NextPos := I - BufLen + BPos;
-       if NextPos < 0 then begin NextPos := 0; BPos := 0; end;
-       J := I - NextPos;
+       J := I - NextPos + BPos;
+       if NextPos < 0 then
+         begin
+           NextPos := 0;
+           J := I + BPos;
+           BPos := 0; StPos := 0;
+         end;
        if J <= 0 then Break;
      end else
        begin
@@ -251,7 +273,9 @@ begin
      if Inserted then DispatchEvents(Info, CancelSearch);
     end;
    F^.Seek(NextPos);
-   F^.Read(Buf^[BPos], J-BPos); T := J-BPos;
+   if Back then F^.Read(Buf^[0], J-BPos)
+           else F^.Read(Buf^[BPos], J-BPos);
+   T := J-BPos;
  1:
    if J <= 0 then BufPos := 0 else
    begin {-$VIV 14.05.99}
@@ -272,24 +296,27 @@ begin
      if WholeWords and not (((BufPos = 1) or (Char(Buf^[BufPos-2+StPos]) in BreakChars)) and
          (Char(Buf^[BufPos+Length(What)-1+StPos]) in BreakChars)) then
            begin
-             if Back then Dec(J, StPos-BufPos)
+             if Back then J := BufPos + Length(What) - 2
                      else Inc(StPos, BufPos);
              Goto 1;
            end;
      FreeMem(Buf, BufLen); F^.Seek(OldPos);
-     SearchFileStr := NextPos - LongInt(BPos) + LongInt(BufPos) - 1 + StPos;
+     if Back then SearchFileStr := NextPos + LongInt(BufPos) - 1 + StPos
+             else SearchFileStr := NextPos - LongInt(BPos) + LongInt(BufPos) - 1 + StPos;
      goto LExit;
     end;
+   StPos := 1;
+   BPos := Length(What)+1;
    if Back then
      begin
        Dec(I,T);
-       if I < -T then Break;
-       if I < 0 then I := 0;
-     end else Inc(I,T);
-   StPos := 1;
-   BPos := Length(What)+1;
-   if I < L then Move(Buf^[J-BPos], Buf^[0], BPos);
- until  Back and (I < 0) or
+       if I > 0 then Move(Buf^[0], Buf^[J-BPos], BPos);
+     end else
+     begin
+       Inc(I,T);
+       if I < L then Move(Buf^[J-BPos], Buf^[0], BPos);
+     end;
+ until  Back and ((I <= 0) or CancelSearch) or
         not Back and ((I >= L) or (T <= 0) or CancelSearch or (F^.GetPos >= F^.GetSize));
  if CancelSearch then SearchFileStr := -2;
  FreeMem(Buf, BufLen); F^.Seek(OldPos);
@@ -413,7 +440,7 @@ begin
       if P.X < 16 then begin
         BookMark:=P.X-7;
         if (Event.Buttons and mbRightButton <> 0) or
-          (MarkPos[BookMark].Y<>-1) then
+          (MarkPos[BookMark+1].Y<>-1) then
         with Ev do
         begin
           What:=evCommand;
@@ -738,12 +765,14 @@ begin
 end;
 
 destructor TFileViewer.Done;
+ var Dir, Name, Ext: String; {JO}
 begin
   EnableCommands([cmUnwrap]);
   if Buf <> nil then FreeMem(Buf, BufSize); Buf:=nil;
   if Fl <> nil then Dispose(Fl,Done); Fl:=nil;
   If not (TottalExit or Exiting) and KillAfterUse Then Begin
-   EraseFile(FileName);
+   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
    KillAfterUse:=False;
    RereadDirectory(GetPath(FileName));
   End;
@@ -1449,11 +1478,22 @@ procedure TFileViewer.HandleEvent;
   NullXLAT(BXL);
   for i:=255 downto 1 do
    if XLat[Char(i)]<>Char(i) then BXL[XLat[Char(i)]]:=Char(i);
+
+  if (((SearchString.Dir and 2) = 2) <> (((SearchString.Dir and 1) = 1) xor Reverse)) then
+  begin
+    if (SearchString.Dir and 2 = 0) then
+      Inc(SearchX, LongInt(Byte(SearchString.What[0])) - 2)
+    else
+      Dec(SearchX, LongInt(Byte(SearchString.What[0])) - 2);
+    SearchString.Dir := SearchString.Dir xor 2;
+  end;
+
   SearchX := SearchFileStr(Fl, BXL,
                            SearchString.What, SearchX,
                            SearchString.Opts and 1 <> 0, On,
-                           SearchString.Opts and 2 <> 0, (SearchString.Dir = 1) xor Reverse,
+                           SearchString.Opts and 2 <> 0, ((SearchString.Dir and 1) = 1) xor Reverse,
                            SearchString.Opts and 4 <> 0);
+
   if SearchX >= 0 then
    begin
     if HexPos > 0 then JJ := (FilePos+BufPos) mod HexPos;
@@ -1477,8 +1517,11 @@ procedure TFileViewer.HandleEvent;
     MakeLines;
     SearchActive := On;
     DrawView;
-(*    Inc(Searchx{, LongInt(Byte(SearchString.What[0]))});*)
-    SearchActive := Off; Inc(SearchX);
+    SearchActive := Off;
+    if (((SearchString.Dir and 1) = 1) xor Reverse) then
+      Inc(SearchX, LongInt(Byte(SearchString.What[0]) - 1))
+    else
+      Inc(SearchX);
    end else if SearchX <> -2 then MessageBox(GetString(dlDBViewSearchNot), nil, mfError + mfOKButton);
  end;
 
@@ -1494,6 +1537,7 @@ procedure TFileViewer.HandleEvent;
   if LowMemory then Exit;
 
   D := PDialog( LoadResource( dlgViewerFind ));
+  SearchString.Dir := SearchString.Dir and 1;
   D^.SetData(SearchString);
   I := Desktop^.ExecView(D);
   D^.GetData(SR);
@@ -1501,6 +1545,7 @@ procedure TFileViewer.HandleEvent;
   if I = cmCancel then Exit;
   SearchString := SR;
   SearchX := 0;
+  Inc(SearchString.Dir, SearchString.Dir shl 1);
   ContinueSearch(Off);
  end;
 
@@ -1667,7 +1712,8 @@ DoSave:
               cmSave: begin WriteModify; CE end;
               cmSaveAll: Goto DoSave;
               cmGetName: if VFileName <> ''
-                          then PString(Event.InfoPtr)^ := GetString(dlViewFile)+' - '+VFileName
+                          then PString(Event.InfoPtr)^ := GetString(dlViewFile)
+                          + ' - ' + Cut(VFileName, 49 - Length(GetString(dlViewFile)))
                           else PString(Event.InfoPtr)^ := GetString(dlViewFile);
               cmLoadViewFile: if QuickView and
                                  (UpStrg(lFExpand(PString(Event.InfoPtr)^))

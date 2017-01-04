@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Could_not_open_resource_file_after_clean_install_diff142byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Advance7;
@@ -55,6 +64,8 @@ uses Advance3, Advance, Advance2, DnIni;
  function  LngId: string;
 
 implementation
+
+uses Dos, lfn;
 
 function ValidLngId(LI:string; CheckForHelp:boolean):boolean;
 var S1,S2:string;
@@ -89,9 +100,17 @@ end;
 
 function LngId: string;
 var S:string;
+    SR:lSearchRec;
 begin
     S:=ActiveLanguage;
     if not ValidLngId(S,False) then S:=GetEnv('DNLNG');
+    if not ValidLngId(S,False) then
+      begin
+       lFindFirst(StartupDir+'*.LNG',AnyFile - Directory,SR);
+       S := SR.FullName;
+       S[0]:=Char(Byte(S[0])-4);
+       lFindClose(SR);
+      end;
     if not ValidLngId(S,False) then S:='English';
     LngId:=S
 end;

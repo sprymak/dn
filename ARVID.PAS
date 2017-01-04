@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,17 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-move_COMBINE_MIXED_from_sources_to_Options_menu_diff140byMV.patch
+//  dn16rc1-deleting_temporary_files_safety_fix.patch
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -249,6 +260,7 @@ begin
     2: FilFLP := flnCapitalCase;
     3: FilFLP := flnUpCase;
     4: FilFLP := 65535;
+    5: FilFLP := 65534;
    end;
    case DirsCase of
     0: DirFLP := 0;
@@ -256,6 +268,7 @@ begin
     2: DirFLP := flnCapitalCase;
     3: DirFLP := flnUpCase;
     4: DirFLP := 65535;
+    5: DirFLP := 65534;
    end;
   end;
 end;
@@ -323,10 +336,12 @@ begin
 end;
 
 procedure TArvidDrive.Kill;
+ var Dir, Name1, Ext: String; {JO}
 begin
   if not KillAfterUse then Exit;
   if Stream <> nil then Dispose(Stream, Done); Stream := nil;
-  EraseFile(Name^);
+  lFSplit(Name^, Dir, Name1, Ext);        {JO: проверочка файла на нахождение}
+  if Dir = Tempdir then EraseFile(Name^); {во временном каталоге не помешает}
 end;
 
 function TArvidDrive.GetDirectory;
@@ -464,24 +479,24 @@ end;
 { CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual; }
 procedure TArvidDrive.CopyFiles;
 var
-    CopyDir: String;
-    Mask: String;
+    I,J:  Integer;
     CopyOpt: Word;
     CopyMode: Word;
     CopyPrn: Boolean;
+    CmdFileCreated: Boolean;
     OwnerPtr: PView;
-    I,J:  Integer;
+    P:  PView;
+    T:  lText;
     PF: PFileRec;
+    FC, FC2: TAvtFileCell;
+    Nam, Desc: String;
+    CopyDir: String;
+    Mask: String;
     S1, S2, S3:  String;
     CmdFileNam: String;
     Dr: String;
     Nm: String;
     Xt: String;
-    FC, FC2: TAvtFileCell;
-    Nam, Desc: String;
-    P:  PView;
-    T:  lText;
-    CmdFileCreated: Boolean;
 
    procedure CopyTree(Pos: LongInt);
    begin

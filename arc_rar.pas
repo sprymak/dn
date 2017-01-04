@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_RAR; {RAR}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos;
 
 type
     PRARArchive = ^TRARArchive;
@@ -88,11 +97,11 @@ begin
   FreeStr := SourceDir + DNARC;
   TObject.Init;
 {$IFNDEF OS2}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR32.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR32.EXE'));
 {$ELSE}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RA2.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RA2.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR32.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR32.EXE'));
 {$ENDIF}
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x'));
@@ -164,19 +173,14 @@ type
      end;
 
 Procedure TRARArchive.GetFile;
-var HS,i : AWord;
+var
     FP   : Longint;
+    Ps   : Integer;
     P    : LocRARHdr;
     P2   : LocRAR2Hdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
-    C    : Char;
-    Ps   : Integer;
-    IsDir: Boolean;
     label 1;
 begin
-1: if (ArcFile^.GetPos = ArcFile^.GetSize) or (ArcFile^.GetPos = 0) then
-     begin FileInfo.Last := 1; Exit end;
+1: if (ArcFile^.GetPos = ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;
    if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
    if RAR2 then begin
       FP := ArcFile^.GetPos;
@@ -191,26 +195,27 @@ begin
          FileInfo.PSize := P2.PSize;
          FileInfo.USize := P2.USize;
          FileInfo.Attr := Byte(P2.HeadFlags and $04 <> 0) * Hidden;
+         if ((P2.OSVer=3) {Unix} and (P2.Attr and $4000 <> 0) {directory})
+           or (P2.Attr and Directory <> 0) {DOS}
+           then FileInfo.Attr := FileInfo.Attr or Directory;
          if P2.NameLen > 255 then P2.NameLen := 255;
-         ArcFile^.Read(S[1], P2.NameLen); S[0] :=Char(P2.NameLen);
-         if P2.HeadFlags and $200 <> 0 then S[0] := Char(PosChar(#0, S) - 1);
+         ArcFile^.Read(FileInfo.FName[1], P2.NameLen);
+         FileInfo.FName[0] :=Char(P2.NameLen);
+         if P2.HeadFlags and $200 <> 0
             {piwamoto: skip unicode names from winrar2.80beta1+ archives}
+           then FileInfo.FName[0] := Char(PosChar(#0, FileInfo.FName) - 1);
          repeat
-           Ps := System.Pos('.\', S);
+           Ps := System.Pos('.\', FileInfo.FName);
            if Ps = 0 then Break;
-           System.Delete(S, Ps, 1);
+           System.Delete(FileInfo.FName, Ps, 1);
          until False;
-         if P2.OSVer=3 then (* Unix *) IsDir:=(P2.Attr and $4000 <> 0)
-         else                          IsDir:=(P2.Attr and Directory <> 0);
-         if IsDir then S:=S + '\';
-         FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-         FileInfo.FName := S; {DataCompBoy}
          if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
          ArcFile^.Seek(FP+P2.HeadSize+P2.PSize);
          Exit;
        end;
       if P2.HeadSize = 0 then P2.HeadSize := 7;
-      if P2.HeadFlags and $8000 <> 0 then begin ArcFile^.Read(FP, 4); Arcfile^.Seek(Arcfile^.GetPos-4) end
+      if P2.HeadFlags and $8000 <> 0
+         then begin ArcFile^.Read(FP,4);Arcfile^.Seek(Arcfile^.GetPos-4);end
          else FP := 0;
       ArcFile^.Seek(ArcFile^.GetPos + FP + P2.HeadSize - 7);
       Goto 1;
@@ -228,15 +233,10 @@ begin
         ArcFile^.Seek(ArcFile^.GetPos + P.CommLen);
         if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit; end;
        end;
-      Arcfile^.Read(S[1], P.NameLen);
+      FileInfo.FName[0] := Char(P.NameLen);
+      Arcfile^.Read(FileInfo.FName[1], P.NameLen);
       if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit; end;
-      S[0] := Char(P.NameLen);
-      FileInfo.LFN  := AddLFN(S);     {DataCompBoy}
-      if P.Attr and Directory <> 0         {DataCompBoy}
-       then FileInfo.FName := S+'\'        {DataCompBoy}
-       else FileInfo.FName := S;           {DataCompBoy}
-      FP := ArcFile^.GetPos;
-      ArcFile^.Seek(FP + P.PSize);
+      ArcFile^.Seek(ArcFile^.GetPos + P.PSize);
    end;
 end;
 

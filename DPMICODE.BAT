@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.6.RC1
+::  Dos Navigator Open Source
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,12 @@
 ::  (including the GNU Public Licence).
 ::
 :://///////////////////////////////////////////////////////////////////////
+::
+::  Version history:
+::
+::  2.0.0
+::
+:://///////////////////////////////////////////////////////////////////////
 @echo off
 break on
-%comspec% /e:2048 /c builddn.bat %1 swapdisk asm ver help resource
+%comspec% /e:2048 /c builddn.bat %1 dpmi swapdisk asm ver

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,18 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Files_were_lost_in_some_SortBy_modes_BugFix_diff136byMV.patch
+//  dn16rc1-vwr_ext_edt_incorrect_mask_bugfix.patch
+//  dn16rc1-sort_by_description_and_archives_before_exe.patch
+//  dn16rc1-workaround_for_QSort_bugs.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -210,7 +222,11 @@ function  CreateFileRec(Name: string): PFileRec;
      fr^.TType := GetFileType(lsr.FullName, fr^.Attr);
      dec(lsr.FullName[0]);
     end else fr^.TType := GetFileType(lsr.FullName, fr^.Attr);
-    if fr^.Attr and Directory <> 0 then UpStr(fr^.Name) else LowStr(fr^.Name);
+{Cat: это явно лишнее - для масок !\!.! для просмотрщиков и запуска по
+      расширению должны передаваться неискажённые имена файлов
+  PS  и следует ещё раз посмотреть и проверить - нужна ли вообще эта функция
+{    if fr^.Attr and Directory <> 0 then UpStr(fr^.Name) else LowStr(fr^.Name);}
+{/Cat}
    end
   else
    begin
@@ -396,6 +412,8 @@ function TFilesCollection.Compare;
      P1P, P2P: Boolean;
      PanelFlags: Word;
      OneIsFile: Boolean;
+     ST1, ST2: String; {JO}
+
 {$IFDEF SORTDEBUG}
  const NumCal: word = 0;
        States:Array[0..3] of char = '|/-\';
@@ -424,45 +442,75 @@ begin
 {    if (T1.Attr and Directory <> 0) and (Attr and Directory <> 0) then
        OneIsFile:=False;}
      SM := SortMode;
-     if (SM >= 7) and (SM <= 20) then begin
+
+     if (SM >= NumSortModes) and (SM <= NumSortModes + 15) then begin { условие используется для сравнения }
+                                                                      {  каталогов по Ctrl-C }
        C:=CmpLFN(T1.LFN,LFN);
        if (C=0) and ((T1.Attr or Attr) and Directory = 0) and
-          (((SM-7) and 1 = 0) or (T1.Size = Size)) and
-          (((SM-7) and 2 = 0) or (T1.Yr < Yr) or
+          (((SM-NumSortModes) and 1 = 0) or (T1.Size = Size)) and
+          (((SM-NumSortModes) and 2 = 0) or (T1.Yr < Yr) or
            ((T1.Yr = Yr) and (T1.FDate <= FDate)) or
            ((T1.Yr = Yr) and (T1.FDate = FDate) and (T1.Second < Second))) and
-          (((SM-7) and 4 = 0) or (T1.Attr = Attr)) and
-          (((SM-7) and 8 = 0) or
+          (((SM-NumSortModes) and 4 = 0) or (T1.Attr = Attr)) and
+          (((SM-NumSortModes) and 8 = 0) or
                   CompareFiles(MakeNormName(T1.Owner^, MakeFileName(T1.Name)),
                                MakeNormName(Owner^, MakeFileName(Name))) )
            then C := 0 else if (C=0) then C := 1;
        Compare := C;
        Exit;
-     end;
+     end; { конец куска для сравнения каталогов по Ctrl-C }
+          { дальше идёт кусок для сортировки файлов в панелях }
 
-     if (Owner <> nil) and (SM <> 5) and (SM <> 6) then
+     if (Owner <> nil) and not (SM in [psmSize, psmTime]) then
+     if PanelFlags and fmiExeBeforeArc <> 0 then
      begin
        if PanelFlags and fmiExeFirst <> 0 then
-       begin
-         if ((T1.Attr xor Attr) and Directory = 0) then
          begin
-           if (T1.TType = ttExec) and (TType <> ttExec) then begin Compare := -1; Exit; end;
-           if (T1.TType <> ttExec) and (TType = ttExec) then begin Compare := 1; Exit; end;
+           if ((T1.Attr xor Attr) and Directory = 0) then
+           begin
+             if (T1.TType = ttExec) and (TType <> ttExec) then begin Compare := -1; Exit; end;
+             if (T1.TType <> ttExec) and (TType = ttExec) then begin Compare := 1; Exit; end;
+           end;
          end;
-       end;
        if PanelFlags and fmiArchivesFirst <> 0 then
-       begin
-         if ((T1.Attr xor Attr) and Directory = 0) then
          begin
-           if (T1.TType = ttArc) and (TType <> ttArc) then begin Compare := -1; Exit; end;
-           if (T1.TType <> ttArc) and (TType = ttArc) then begin Compare := 1; Exit; end;
+           if ((T1.Attr xor Attr) and Directory = 0) then
+           begin
+             if (T1.TType = ttArc) and (TType <> ttArc) then begin Compare := -1; Exit; end;
+             if (T1.TType <> ttArc) and (TType = ttArc) then begin Compare := 1; Exit; end;
+           end;
          end;
+       end
+     else
+       begin
+         if PanelFlags and fmiArchivesFirst <> 0 then
+         begin
+           if ((T1.Attr xor Attr) and Directory = 0) then
+           begin
+             if (T1.TType = ttArc) and (TType <> ttArc) then begin Compare := -1; Exit; end;
+             if (T1.TType <> ttArc) and (TType = ttArc) then begin Compare := 1; Exit; end;
+           end;
+         end;
+         if PanelFlags and fmiExeFirst <> 0 then
+         begin
+           if ((T1.Attr xor Attr) and Directory = 0) then
+           begin
+             if (T1.TType = ttExec) and (TType <> ttExec) then begin Compare := -1; Exit; end;
+             if (T1.TType <> ttExec) and (TType = ttExec) then begin Compare := 1; Exit; end;
+           end;
        end;
      end;
 
-     c:=0;
+     {$IFDEF QSort}
+(*
+This is a workaround for QSort bugs.
+This code gives more memory, but loss files in some sortmodes.
+*)
+     c := 0;
+     {$ENDIF}
+
      case SM of
-      0: if T1.Owner^ = Owner^
+     psmUnsorted: if T1.Owner^ = Owner^
           then C := CmpLFN(T1.LFN,LFN)
           else if T1.Owner^ < Owner^ then C := -1 else C := 1;
       psmOrdered: begin
@@ -479,14 +527,13 @@ begin
                                     else if T1.Owner^ > Owner^ then C := 1;
                   end;
           end;
-{NAME}1: if (T1.Attr xor Attr) and Directory <> 0 then
+{NAME}psmName: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Name < Name then C := -1 else
            if T1.Name > Name then C := 1  else
            if T1.Owner^ < Owner^ then C := -1 else
-           if T1.Owner^ > Owner^ then C := 1
-           else C:=0;
-{LFN} 2: if (T1.Attr xor Attr) and Directory <> 0 then
+           if T1.Owner^ > Owner^ then C := 1;
+{LFN}psmLongName: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else begin
            C := CmpLFN(T1.LFN, LFN);
            If C = 0 then if T1.Owner^ < Owner^ then C := -1
@@ -498,7 +545,7 @@ begin
             else if (T1.Name > Name) or (GetLFN(T1.LFN)<>GetLFN(LFN))
                   then C := 1
                   else C := 0;
-{EXT} 3: if (T1.Attr xor Attr) and Directory <> 0 then
+{EXT}psmExtension: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C:=-1
           else                               C:=1
          else
@@ -512,7 +559,7 @@ begin
          if T1.Name   > Name   then C:= 1 else
          if T1.Owner^ < Owner^ then C:=-1 else
          if T1.Owner^ > Owner^ then C:= 1;
-{LEXT}4: if (T1.Attr xor Attr) and Directory <> 0 then
+{LEXT}psmLongExt: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C:=-1
           else                               C:=1
          else begin
@@ -521,7 +568,7 @@ begin
           If C = 0 then if T1.Owner^ < Owner^ then C:=-1 else
                         if T1.Owner^ > Owner^ then C:= 1;
          end;
-{SIZE}5: if (T1.Attr xor Attr) and Directory <> 0 then
+{SIZE}psmSize: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Size > Size then C := -1 else
            if T1.Size < Size then C := 1  else
@@ -529,7 +576,7 @@ begin
            if T1.Name > Name then C := 1  else
            if T1.Owner^ < Owner^ then C := -1 else
            if T1.Owner^ > Owner^ then C := 1;
-{DATE}6: begin
+{DATE}psmTime: begin
          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if (T1.Yr < Yr) then C := 1 else
@@ -543,6 +590,22 @@ begin
              else if T1.Owner^ < Owner^ then C := -1
                else if T1.Owner^ > Owner^ then C := 1;
          end;
+{JO}
+{DIZ}psmDIZ:
+         if (T1.Attr xor Attr) and Directory <> 0 then
+          if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
+          begin
+           if (T1.DIZ <> nil) and (T1.DIZ^.DIZ <> nil) then ST1 := UpStrg(CnvString(T1.DIZ^.DIZ)) else ST1 := '';
+           if (P2^.DIZ <> nil) and (P2^.DIZ^.DIZ <> nil) then ST2 := UpStrg(CnvString(DIZ^.DIZ)) else ST2 := '';
+           if (ST1 <> '') and (ST2 = '') then C := -1 else
+             if (ST1 = '') and (ST2 <> '') then C := 1 else
+               if ST1 > ST2 then C := +1 else
+                 if ST1 < ST2 then C := -1 else C := 0;
+           if C = 0 then C := CmpLFN(T1.LFN, LFN);
+           if C = 0 then if T1.Owner^ < Owner^ then C := -1
+                           else if T1.Owner^ > Owner^ then C := 1;
+          end;
+{/JO}
       else if (T1.Attr and $3F = Attr and $3F) and (T1.Yr=Yr) and (T1.FDate = FDate) and (T1.Second = Second)
               and (T1.Name=Name) and (T1.Owner^ = Owner^) and (GetLFN(T1.LFN)=GetLFN(LFN))
                then C := 0 else C := -1;

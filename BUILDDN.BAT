@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.6.RC1
+::  Dos Navigator Open Source
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,15 @@
 ::  (including the GNU Public Licence).
 ::
 :://///////////////////////////////////////////////////////////////////////
+::
+::  Version history:
+::
+::  1.6.RC1
+::  dn16rc1-Fix_rare_build_error_diff137byMV.patch
+::
+::  2.0.0
+::
+:://///////////////////////////////////////////////////////////////////////
 @echo off
 :: Set up the paths to your Borland tools or leave blank if they are in PATH
 set binpath=c:\bp\bin\
@@ -78,7 +87,7 @@ if .%1.==.. builddn asm help resource nolite
 
 set prg_packer=%real_packer%
 
-set dn_version=1.6.RC1
+set dn_version=2.0.0
 set diz_title=Real Mode Binary Package
 
 :Loop
@@ -150,14 +159,9 @@ copy exe\dn.mpp %outpath% >nul
 if not exist %outpath%\doc\nul mkdir %outpath%\doc >nul
 if not exist %outpath%\doc\english\nul mkdir %outpath%\doc\english >nul
 if not exist %outpath%\doc\russian\nul mkdir %outpath%\doc\russian >nul
-copy doc\english\history.txt %outpath%\doc\english >nul
-copy doc\english\dnosp.txt %outpath%\doc\english >nul
-copy doc\english\authors.txt %outpath%\doc\english >nul
-copy doc\russian\history.txt %outpath%\doc\russian >nul
-copy doc\russian\dnosp.txt %outpath%\doc\russian >nul
-copy doc\russian\authors.txt %outpath%\doc\russian >nul
-copy doc\ritlabs.txt %outpath%\doc >nul
-copy file_id.diz %outpath% >nul
+copy doc\russian\*.* %outpath%\doc\russian\*.* >nul
+copy doc\english\*.* %outpath%\doc\english\*.* >nul
+copy doc\*.* %outpath%\doc\*.* >nul
 echo Dos Navigator Open Source Project >%outpath%\file_id.diz
 echo Version %dn_version% >>%outpath%\file_id.diz
 echo %diz_title% >>%outpath%\file_id.diz
@@ -190,15 +194,15 @@ shift
 if errorlevel 1 goto Quit
 if not exist exe\tvhc.exe goto Quit
 
-exe\tvhc resource\english\dnhelp.htx exe\english.hlp dnhelp.pas /4DN_OSP
+exe\tvhc resource\english\dnhelp.htx exe\ENGLISH.HLP dnhelp.pas /4DN_OSP
 if errorlevel 1 goto Quit
 copy exe\english.hlp %outpath% >nul
 
-exe\tvhc resource\russian\dnhelp.htx exe\russian.hlp dnhelp.pas /4DN_OSP
+exe\tvhc resource\russian\dnhelp.htx exe\RUSSIAN.HLP dnhelp.pas /4DN_OSP
 if errorlevel 1 goto Quit
 copy exe\russian.hlp %outpath% >nul
 
-exe\tvhc resource\hungary\dnhelp.htx exe\hungary.hlp dnhelp.pas /4DN_OSP
+exe\tvhc resource\hungary\dnhelp.htx exe\HUNGARY.HLP dnhelp.pas /4DN_OSP
 if errorlevel 1 goto Quit
 copy exe\hungary.hlp %outpath% >nul
 
@@ -212,9 +216,11 @@ if .%GGD%.==.GGD. %binpath%tasm /t /x /m3 /zi dn.asm,exe\dn.obj -d_DPMI_
 if errorlevel 1 goto Quit
 %binpath%tasm -t -m3 -q -d__LARGE__ *.asl %ASMOPT%
 if errorlevel 1 goto Quit
+if not .%GGD%.==.GGD. goto SkipObp2Obj
 if exist exe\cpuspeed.obp copy exe\cpuspeed.obp exe\*.obj >nul
 if exist exe\p5speed.obp  copy exe\p5speed.obp  exe\*.obj >nul
 if exist exe\cachetst.obp copy exe\cachetst.obp exe\*.obj >nul
+:SkipObp2Obj
 if not ."%ASMOPT%".==."exe\*.obj". %binpath%tasm /t /x /m3 /zi *.asm %ASMOPT%
 if errorlevel 1 goto Quit
 %binpath%tlink /t /x exe\dn.obj, exe\dn.com

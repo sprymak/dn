@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.6.RC1
+;/  Dos Navigator Open Source
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 ;/  version or derivative of this code cannot be changed. i.e. this code
 ;/  cannot simply be copied and put under another distribution licence
 ;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+;/
+;/  Version history:
+;/
+;/  1.6.RC1
+;/  dn16rc1-Ctrl-N_hotkey_used_for_long-short_names_switching.patch
+;/
+;/  2.0.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -93,6 +102,7 @@ sc9             EQU     0AH
 sc0             EQU     0BH
 scZ             EQU     2CH
 scX             EQU     2DH
+scN             EQU     31H
 scTilde         EQU     29H
 scDownUp        EQU    0D0H
 scUpUp          EQU    0C8H
@@ -262,6 +272,8 @@ KeyConvertTab   LABEL   BYTE
         DW      2C0Ch
         DB      scX,            kbCtrlKey+kbAltKey
         DW      2D0Dh
+        DB      scN,            kbCtrlKey+kbAltKey
+        DW      3111h
         DB      scTilde,        kbCtrlKey+         kbShiftKey
         DW     0FE00h
         DB      scLSqBraket,    kbCtrlKey+kbAltKey

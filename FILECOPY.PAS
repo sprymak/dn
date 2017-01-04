@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,17 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Folder_description_copying_bugfix_diff141byMV.patch
+//  dn16rc1-Bugfix_for_unsuccessful_Move_operation.patch
+//  dn16rc1-rename_file_dpmi_lfn.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -1226,7 +1237,7 @@ lbStartWrite:
      begin
       DOSErrorCode := 0;
        RnFl(S1, S2);
-       if DOSErrorCode = 5 then
+       if (DOSErrorCode = 5) or (DOSErrorCode = 183) { Kirill } then
          begin
           lAssignFile(f, S2);
           ClrIO;
@@ -1235,7 +1246,7 @@ lbStartWrite:
           lEraseFile(F);
           RnFl(S1,S2);
          end;
-       if DOSErrorCode = 5 then
+       if (DOSErrorCode = 5) or (DOSErrorCode = 183) { Kirill } then
          begin
            lAssignFile(F, S1);
            lGetFAttr(F, W);
@@ -1771,7 +1782,8 @@ lbStartWrite:
               and (P^.DIZ <> nil)
               and (CopyOptions and cpoDesc <> 0)
             then
-              ImportDIZ(LowStrg(P^.Name), MkName(P^.Name), GetLFN(P^.LFN), P^.DIZ, P^.Owner);
+              ImportDIZ(LowStrg(P^.Name), MakeFileName(P^.Name),
+                        GetLFN(P^.LFN), P^.DIZ, P^.Owner);
          end else begin
              ToDo:=ToDo+P^.Size;
              if (CopyDir[1]<>P^.Owner^[1]) or (CopyOptions and cpoMove=0)
@@ -1819,15 +1831,15 @@ lbStartWrite:
              then CreateDirectory(MakeNormName(P^.Owner^, MakeFileName(P^.Name)), On)
              else CreateDirectory(MakeNormName(P^.Owner^, GetLFN(P^.LFN)), On);
            end;
-        if P^.Attr and $4000 = 0 then
-          begin
-            SSS := CnvString(P^.Owner);
-            if SSS[Length(SSS)] = '\' then Dec(SSS[0]);
-            if Copy(CopyDir, 1, Length(SSS))=SSS then Inhr := 0;
-            RRC^.Insert(NewStr(SSS));
-            if P^.Attr and Directory <> 0 then ReD := ReD + [UpCase(SSS[1])];
-            Files^.ForEach(@MakeMark);
-          end;
+      end;
+    if P^.Attr and $4000 = 0 then
+      begin
+        SSS := CnvString(P^.Owner);
+        if SSS[Length(SSS)] = '\' then Dec(SSS[0]);
+        if Copy(CopyDir, 1, Length(SSS))=SSS then Inhr := 0;
+        RRC^.Insert(NewStr(SSS));
+        if P^.Attr and Directory <> 0 then ReD := ReD + [UpCase(SSS[1])];
+        Files^.ForEach(@MakeMark);
       end;
  end;
 

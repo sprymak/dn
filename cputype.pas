@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,8 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+
 { --------------------------------------------------------------------------- }
 { CPUTYPE.PAS   Turbo Pascal TMi0SDGL 2 interface unit.         Version 2.12  }
 {                                                                             }
@@ -892,6 +899,15 @@ function cpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
                cd2M      : cpu_Type := 'Intel Pentium III Xeon';
               else
                cpu_Type := 'Intel Pentium III';
+              end;
+              exit;
+             end;
+         8 : begin { Rainbow }
+              case getL2CacheDesc of
+               cd128k    : cpu_Type := 'Intel Celeron II';
+               cd256k    : cpu_Type := 'Intel Pentium III (Coppermine)';
+              else
+               cpu_Type := 'Intel Pentium III (Coppermine)';
               end;
               exit;
              end;

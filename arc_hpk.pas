@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_hpk; {HPK}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, xTime,
-      collect, lfn;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos, xTime, collect;
 
 type
     PHPKArchive = ^THPKArchive;
@@ -132,7 +140,7 @@ begin
 end;
 
 Procedure THPKArchive.GetFile;
-var HS,i : AWord;
+var
     DT: DateTime;
     R: PHPKRec;
 begin
@@ -144,7 +152,6 @@ begin
  if PHPKRec(HPKCol^.At(0))^.Name <> nil                 {DataCompBoy}
   then FileInfo.FName := PHPKRec(HPKCol^.At(0))^.Name^  {DataCompBoy}
   else FileInfo.FName := '';                            {DataCompBoy}
- FileInfo.LFN  := AddLFN(FileInfo.FName);          {DataCompBoy}
  FileInfo.Last := 0;
  FileInfo.Attr := 0;
  HPKCol^.AtFree(0);

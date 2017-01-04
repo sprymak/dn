@@ -14,7 +14,7 @@ Dos Navigator Open Source Project Team:
   Mesaros Csaba (Gyor) <csablak@freemail.hu>
   Anton Fedorov (DataCompBoy) <2:5000/111.33; datacompboy@mail.ru>
   Alexey Feldgendler (X-Man) <2:5000/111.27; xman@beep.ru>
-  Vladimir Fonarev (VOL) <2:5020/1252.7>
+  Vladimir Fonarev (VOL) <2:5020/2160>
   Alexey Froloff (Sir Raorn) <2:5020/1437.4>
   Sergey Gazizyanov (DarkLord) <2:5004/43.50>
   Marcin Gryszkalis (dagoon) <dagoon@rs.math.uni.lodz.pl>
@@ -23,13 +23,16 @@ Dos Navigator Open Source Project Team:
   Sergey Klimov <2:5057/18.61>
   Vladimir Korablin (VK) <2:5025/3.86>
   Laszlo Kormoczi (KaeL) <kael@swi.hu>
+  Alexey Korop (AK155) <2:461/155><korop@online.kharkiv.net>
   Sergey Korshunoff (SeYKo) <2:5020/434.5>
   Sergei Koryakin <ksnk@bigfoot.com>
   Alexey Kostkin (Knave) <2:5020/968.67>
+  Aleksej Kozlov (Cat) <2:5030/997.33>
   Konstantin Kuznetsov (Dead Ded) <2:5020/549.22; dead@nm.ru>
   Aleksey Luzin <Aleksey@iis.nsk.su>
   Mike Lykov <2:5057/44; nelescon@samaramail.ru>
   Ilya Maryasov (IVM) <ivm1999@mail.ru>
+  Marcin Meinardi <mrowa@student.uci.agh.edu.pl>
   Michael Mercuryev (Mercury) <m_mercuryev@yahoo.com>
   Max Morozov <salary@overta.ru>
   Alexey Nemytov (Axel) <axx2000@mail.ru>
@@ -48,11 +51,13 @@ Dos Navigator Open Source Project Team:
   Igor Vagin (Antares19) <2:5020/1507.42>
   Max Vasilyev (Piwamoto) <2:5057/33.36; piwamoto@chat.ru>
   Ilya Vdovin (VIV)
+  Kirill Vodonosov (Kirill) <vodonosov@tut.by>
   Vladimir Zakharychev (Bobby Z.)
   Ondrej Zary (Rainbow) <rnbw@geocities.com>
   Pawel Ziemian <pawelz@aritech.com.pl>
   Valerij Zubov
   Eugeny Zvyagintzev <john@omsktyre.com>
+  Marinais <2:5020/2613.5>
 
 Dos Navigator II Team:
   Dmitry Dotsenko (AxoNSoft)

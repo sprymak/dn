@@ -3,7 +3,7 @@
             Based on Dos Navigator (C) 1991-1999 RIT Research Labs
 ==============================================================================
 
-    Last revision date: Tuesday February 20 2001
+    Last revision date: Wednesday November 28 2001
 
                               Table of Contents
 
@@ -11,8 +11,8 @@
  2. Creating patches
  3. Programming style
  4. Applying patches
- 5. New DN versions distribution
- 6. Project coordinators
+ 5. [CHANGED] New DN versions distribution
+ 6. [CHANGED] Project coordinators
 
                               1. General issues
 
@@ -185,9 +185,8 @@
     New DN versions are distributed by  the project coordinator. The NAVIGATOR
  fileecho serves for this purpose.  The new versions are also available at the
  following Internet addresses:
-        http://dn2.da.ru/
-        http://www.nsk.su/~dnosp/indexe.htm
-        http://dnosp.id.ru/ (the real name is http://www.hippo.ru/~nelescon/)
+        http://www.nsk.su/~dnosp/
+        http://dn.traktir.ru/
     Each new version is released as four packages:
         DN<version>S.RAR - source code (mainly for the project participants)
         DN<version>B.RAR - binary distribution for DOS  real-mode  environment
@@ -231,5 +230,7 @@
         2:5057/44@fidonet
         nelescon@samaramail.ru
         http://dnosp.id.ru/ (the real name is http://www.hippo.ru/~nelescon/)
+    Third coordinator:
+        check out our www pages and RU.SHELL.DN Fidonet echo area
 
 ==============================================================================

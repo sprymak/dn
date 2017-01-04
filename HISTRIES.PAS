@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-dirhist_del1.patch
+//  dn16rc1-view_and_edit_history_fix.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -488,6 +498,7 @@ type
      PTHistList = ^TTHistList;
      TTHistList = object(TListBox)
        EVHistory, CommandHistory: Boolean;
+       Dlg: TDlgIdx; {AK155}
        function ItemStr(I: LongInt): PString;
        function IsSelected(I: LongInt): Boolean; virtual;
        function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
@@ -511,7 +522,7 @@ end;
 
 function TTHistList.GetText;
 begin
-  FreeStr := Cut(CnvString(ItemStr(Item)), Size.X);
+  FreeStr := Cut(CnvString(ItemStr(Item)), Size.X - 1);
   if FreeStr[1] = '+' then FreeStr[1] := #254
                       else FreeStr[1] := ' ';
   GetText := FreeStr;
@@ -576,9 +587,13 @@ begin
              List^.AtReplace(Focused, NewStr(FreeStr));
              DrawView;
           end;
-    cmYes:
+    cmYes: { удаление }
 1:         begin
              ClearEvent(Event);
+             if  (Dlg=dlgDirectoryHistory) and (Focused = 0) then
+               Exit; {AK155: 0 - это текущий каталог,
+                  его удалять бесполезно: он опять вставится, но при этом
+                  собьет нумерацию элементов }
              if Focused >= List^.Count then Exit;
              if Copy(CnvString(ItemStr(Focused)),1,1) = '+' then
                begin
@@ -653,6 +668,7 @@ end;
 function GetDialog(Dlg: TDlgIdx; var List: Pointer): PDialog;
 var
   D: PDialog;
+  L: PTHistList; {AK155}
   P: PView;
   R: TRect;
 begin
@@ -663,8 +679,9 @@ begin
   D^.Insert(P);
 
   R.Assign(2, 2, D^.Size.X-3, 13);
-  P := New(PTHistList, Init(R, 1, PScrollBar(P)));
-  D^.Insert(P); List := P;
+  L := New(PTHistList, Init(R, 1, PScrollBar(P)));
+  L^.Dlg := Dlg; {AK155: см. TTHistList.HandleEvent, cmYes }
+  D^.Insert(L); List := L;
 
   GetDialog := D;
 end;

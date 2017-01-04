@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,18 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Novell_compatibility_related_fix_diff145byMV.patch
+//  dn16rc1-OS2_compatibility_related_fix_diff147byMV.patch
+//  dn16rc1-rename_file_dpmi_lfn.patch
+//  dn16rc1-W2K_compatibility_fix-diff156byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -215,9 +227,15 @@ begin
    else begin
          if (Length(Path) > 1) and (Path[2] = ':')
           then Drive := Upcase(Path[1])
+{$IFDEF DPMI}
+          else with RMR do begin
+                AH := $19;
+                SimulateRealModeInt($21, RMR);
+{$ELSE}
           else with Regs do begin
                 AH := $19;
                 Intr($21, Regs);
+{$ENDIF}
                 Drive := Char(AL + $41);
                end;
          if SystemData.Drives[Drive] and ossNoLFN <> 0 then exit;
@@ -233,18 +251,17 @@ begin
              es    := 0;
              di    := 0;
              cx    := 0;
+             bx    := 0;
              flags := fCarry;
              asm stc end;
              intr($21, regs);
-             if (flags and fCarry=0) and (ax<>$7100) then
-              LFNDisabled:=((Bx and $4000)=0);
+             if (flags and fCarry=0) then LFNDisabled:=((Bx and $4000)=0);
             end;
            end;
    {$IFDEF DPMI}
    lSIM95: begin
             DriveBuffer[1]:=Drive;
             Move(DriveBuffer, LowBuf^, SizeOf(DriveBuffer));
-            FillWord(RMR, SizeOf(RMR) shr 1, 0);
             with RMR do begin
              ax    := $71a0;
              ds    := LowSeg;
@@ -252,10 +269,11 @@ begin
              es    := 0;
              di    := 0;
              cx    := 0;
+             bx    := 0;
              flags := fCarry;
+             asm stc end;
              SimuLateRealModeInt($21, RMR);
-             if (flags and fCarry=0) and (ax<>$7100) then
-              LFNDisabled:=((Bx and $4000)=0);
+             if (flags and fCarry=0) then LFNDisabled:=((Bx and $4000)=0);
             end;
            end;
     {$ENDIF}
@@ -915,10 +933,10 @@ begin
     {$IFDEF DPMI}
     lSIM95:
       begin
-        if D = 0 then with Regs do
+        if D = 0 then with RMR do
         begin
           AH := $19;
-          Intr($21, Regs);
+          SimulateRealModeInt($21, RMR);
           D := AL + 1;
         end;
         if LFNDisabled(Char(D + $40) + ':') then
@@ -956,6 +974,7 @@ begin
       else if Copy(Path, 1, 2)='\\' then lFExpand :=Path
                                     else begin
        SIM95TrueName(Path, S);
+       if S = '' then lGetDir(0,S); { Kirill }
        lFExpand := S;
       end;
     {$ENDIF}

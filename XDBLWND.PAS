@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-use_ctrl-M_as_Maximize_diff133byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -121,7 +130,9 @@ begin
                kbCtrl6, kbCtrl7, kbCtrl8, kbCtrl9, kbCtrl0, {DataCompBoy}
                kbAltLeft,kbAltRight,
                kbCtrlAltZ,{Knave 11.09.99} {DataCompBoy}
-               $1A1B,$1B1D,$1A1A,$1B1B:
+               kbCtrlM,{piwamoto}
+               kbCtrlSqBracketL,kbCtrlSqBracketR,
+               kbAltCtrlSqBracketL,kbAltCtrlSqBracketR:
                 begin HandleCommand(Event); CE := Off; end;
               end;
    evBroadcast: case Event.Command of

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,19 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-move_COMBINE_MIXED_from_sources_to_Options_menu_diff140byMV.patch
+//  dn16rc1-Novell_and_empty_directory_fix_diff144byMV.patch
+//  dn16rc1-OS2_compatibility_related_fix2_diff148byMV.patch
+//  dn16rc1-file_masks_and_advanced_filter_fix.patch
+//  dn16rc1-W2K_compatibility_fix-diff156byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -117,9 +130,7 @@ FUNCTION  InOldMask(Name,Mask: string):Boolean;     {DataCompBoy}
 (*FUNCTION  InOldFilter(Name,Filter: string):Boolean; {DataCompBoy}*)
 FUNCTION  InSpaceMask(Name,Mask: string;ValidSpace: Boolean):Boolean;
 FUNCTION  InSpaceFilter(Name,Filter: string):Boolean;
-{$IFDEF COMBINE_MIXED}
-function  IsMixedCase(const Name: string): boolean; {JO}
-{$ENDIF}
+function  IsMixedCase(const Name: string): boolean; {JO}{piwamoto}
 
 FUNCTION  IsDir(const s: string): boolean; {is this a directory? }
 function  MkName(const Nm, Mask: String): String;{modifies name to fit Mask}
@@ -167,9 +178,11 @@ function  PackMask(const Mask: string; var PM: String; LFNDis: boolean): boolean
 function CompareFiles(const N1, N2: String): Boolean;
 
 implementation
-uses advance1, advance3, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
+uses advance1, advance3,
+     {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
      Commands, dnapp, memory, drivers, drvtypes, views
-{$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
+     {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
+     {$IFDEF DPMI}, Dpmi {$ENDIF}
      ;
 
 constructor TTempFile.Init(const AExt: String; ABufSize: SW_Word);
@@ -363,7 +376,7 @@ end;
 {$ELSE}
 var s,s1 : string[40];
     B,B1: Byte;
-    r: registers;
+    r: {$IFDEF DPMI}DPMIRegisters{$ELSE}Registers{$ENDIF};
 begin
  ValidDrive := Off;
  if dr='*' then begin ValidDrive:=On; exit end;
@@ -389,7 +402,7 @@ begin
  r.es:=seg(s1);
  r.di:=ofs(s1);
  NeedAbort:=True; (* X-Man *)
- intr($21,r);
+ {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($21,r);
  NeedAbort:=False; (* X-Man *)
  if r.ax<>$ff then ValidDrive:=true else ValidDrive:=false;
 {$ELSE}
@@ -573,19 +586,20 @@ FUNCTION InMask;
 Begin
  if (Mask=x_x) or (Mask='*') then begin InMask:=true; exit; end;
 
+ j := Mask[Length(Mask)] = '.';  {JO}
  UpStr(Mask); maskext:='';
  l:=length(mask); while (l>0) and (not (mask[l] in ['\','/'])) and (mask[l]<>'.') do dec(l);
  if mask[l]='.' then begin maskext:=copy(mask, l+1, 255);delete(mask, l, 255); end;
 
  ext:=''; UpStr(Name);
- if MaskExt<>'' then begin
-   l:=length(Name); while (l>0) and (not (Name[l] in ['\','/'])) and (Name[l]<>'.') do dec(l);
-   if Name[l]='.' then begin ext:=copy(Name, l+1, 255);delete(Name, l, 255); end;
-   if Ext='' then mask:=mask+'.'+maskext;
- end;
-
- if ext<>'' then InMask:=FnMatch(mask, Name) and FnMatch(maskext, ext)
-            else InMask:=FnMatch(mask, Name);
+ if (MaskExt<>'') or j then      {JO}
+   begin
+     l:=length(Name); while (l>0) and (not (Name[l] in ['\','/'])) and (Name[l]<>'.') do dec(l);
+     if Name[l]='.' then begin ext:=copy(Name, l+1, 255);delete(Name, l, 255); end;
+     if (Ext='') and not j then mask:=mask+'.'+maskext;  {JO}
+   end;
+ if ext<>'' then InMask := FnMatch(mask, Name) and FnMatch(maskext, ext)
+            else InMask := FnMatch(mask, Name);
 End;
         {-DataCompBoy-}
 
@@ -948,7 +962,6 @@ begin
 end;
 
 
-{$IFDEF COMBINE_MIXED}{JO}{piwamoto}
 function IsMixedCase(const Name: String): Boolean;
 var
  MixedDir, MixedName, MixedExt : string;
@@ -961,7 +974,6 @@ begin
  else
    IsMixedCase := True;
 end;
-{JO}{piwamoto}{$ENDIF}
 
         {-DataCompBoy-}
 function IsDir(const S: String): Boolean;
@@ -1179,6 +1191,12 @@ var lSR: lSearchRec;
 begin
  NeedAbort:=True; (* X-Man *)
  lFindFirst(MakeNormName(S,'*.*'), AnyFile, lSR);
+ if DosError<>0 then
+   begin
+     lFindClose(lSR);
+     {piwamoto: additional check for Novell compatibility}
+     lFindFirst(MakeNormName(S,'nul'), AnyFile, lSR);
+   end;
  NeedAbort:=False; (* X-Man *)
  PathExist:=DosError=0;
  lFindClose(lSR);

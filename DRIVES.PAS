@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,19 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-move_COMBINE_MIXED_from_sources_to_Options_menu_diff140byMV.patch
+//  dn16rc1-ctrl-Y_hotkey_used_for_current_to_full_columns_mode.patch
+//  dn16rc1-sort_by_description_and_archives_before_exe.patch
+//  dn16rc1-advanced_filter_fix_2.patch
+//  dn16rc1-Ctrl-N_hotkey_used_for_long-short_names_switching.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
@@ -68,7 +81,7 @@ type
    Flags: AWord;
    LFNLen: byte; EXTLen: byte;
    DirFLP, FilFLP: Aword;
-   Param: byte; innum: byte;
+   Param, OldParam: byte; innum: byte;
    SizeX: LongInt;
    constructor Init(ADrive: Byte; AOwner: Pointer; num: byte);
    constructor Load(var S: TStream);
@@ -114,9 +127,8 @@ function GetFilesColl(
     CurDir: PString;
     const FileMask: string;
     Owner: Pointer;
-    SortMode: Integer
-    ): PFilesCollection;
-
+    SortMode: Integer;
+    LFNActive: Boolean): PFilesCollection;
 
 const
   TempDirs: PSortedCollection = nil;
@@ -186,6 +198,7 @@ end;
         {-DataCompBoy-}
 procedure TDrive.GetParam;
 begin
+ OldParam := Param;
  Param:=n;
  with ColumnsDefaultsDisk do
   begin
@@ -198,6 +211,7 @@ begin
     2: FilFLP := flnCapitalCase;
     3: FilFLP := flnUpCase;
     4: FilFLP := 65535;
+    5: FilFLP := 65534;
    end;
    case DirsCase of
     0: DirFLP := 0;
@@ -205,6 +219,7 @@ begin
     2: DirFLP := flnCapitalCase;
     3: DirFLP := flnUpCase;
     4: DirFLP := 65535;
+    5: DirFLP := 65534;
    end;
   end;
 end;
@@ -222,6 +237,7 @@ begin
  lGetDir(ADrive, CurDir);
  DriveType := dtDisk;
  NoMemory := False;
+ OldParam := Param;
 end;
         {-DataCompBoy-}
 
@@ -240,6 +256,7 @@ begin
  S.Read(Param,  1);
  DriveType := dtDisk;
  NoMemory := False;
+ OldParam := Param;
 end;
         {-DataCompBoy-}
 
@@ -343,28 +360,31 @@ NE:  OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHa
     Hidden+SysFile : NFM:=nfmHiddenSystem;
    end{case};                                         { <- Pavel Anufrikov}
 
-    if P^.Attr and Directory <>0 then if DirFLP<>65535
-                                       then OPT:=OPT or DirFLP
-                                       else {$IFNDEF COMBINE_MIXED}
-                                            if (Length(GetSName(S))<=8) and
-                                               (Length(GetExt(S))<=4)
-                                            {$ELSE}
-                                            if (not IsMixedCase(S)) {JO}
-                                            {$ENDIF}
-                                             then OPT:=OPT or flnUpCase
-                                             else
-                                 else if FilFLP<>65535
-                                       then OPT:=OPT or FilFLP
-                                       else {$IFNDEF COMBINE_MIXED}
-                                            if (Length(GetSName(S))<=8) and
-                                               (Length(GetExt(S))<=4)
-                                            {$ELSE}
-                                            if (not IsMixedCase(S)) {JO}
-                                            {$ENDIF}
-                                             then OPT:=OPT or flnLowCase
-                                             else ;
+    if P^.Attr and Directory <> 0
+      then if DirFLP < 65534
+             then OPT:=OPT or DirFLP
+             else if DirFLP = 65535
+                    then if (Length(GetSName(S))<=8) and
+                            (Length(GetExt(S))<=4)
+                           then OPT:=OPT or flnUpCase
+                           else
+                    else if (not IsMixedCase(S))
+                           then OPT:=OPT or flnUpCase
+                           else
+      else if FilFLP < 65534
+             then OPT:=OPT or FilFLP
+             else if FilFLP = 65535
+                    then if (Length(GetSName(S))<=8) and
+                            (Length(GetExt(S))<=4)
+                           then OPT:=OPT or flnLowCase
+                           else
+                    else if (not IsMixedCase(S))
+                           then OPT:=OPT or flnLowCase
+                           else ;
+
     S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
+    X:=LFNLen;
    end
   else
    begin
@@ -383,8 +403,8 @@ NE:  OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHa
                                  else OPT:=OPT or flnLowCase;
     S:=FormatLongName(MakeFileName(P^.Name), 12, 3, OPT, NFM, nil);
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
+    X:=12;
    end;
-  X:=LFNLen;
   MoveCStr(TWordArray(B), S, C);
 {!!!!!!!!!!!}
   if P^.Selected and PView(Owner)^.GetState(sfFocused) then begin
@@ -663,7 +683,7 @@ begin
       )          and
       (NormMask or
        (SR.SR.Attr and Directory <> 0) or
-       (InFilter(SR.FullName, FileMask))
+       ((InFilter(SR.FullName, FileMask) and LFNActive) or (InFilter(SR.SR.Name, FileMask) and not LFNActive))
       )          and
       ((SR.SR.Attr and Directory = 0) or
        (SR.SR.Name[1] <> '.') or
@@ -703,7 +723,7 @@ begin
     Files^.AtInsert(0, NewFileRec('..',{$IFNDEF OS2}'..'{$ENDIF},L,0,Directory,CurDir));
    end;
   GetFilesColl := Files;
- if (SortMode <> -1) and (Files^.Count>0) then Files^.Sort;
+ if (SortMode <> -1) and (SortMode <> psmUnsorted) and (Files^.Count>0) then Files^.Sort;
 {$IFDEF CHDIRDEBUG}
  PanelState^:=StartChar;
 {$ENDIF}
@@ -751,9 +771,10 @@ begin
  Abort := Off;
  ShowD := (Flags and psShowDescript <> 0);
 
- if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) then PrepareDIZ(CurDir, DIZOwner, Descriptions);
+ if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) or (SortMode = psmDIZ)
+    then PrepareDIZ(CurDir, DIZOwner, Descriptions);
 
- Files := GetFilesColl(TotalLen, TFiles, PanelFlags, @CurDir, FileMask, Owner, SortMode);
+ Files := GetFilesColl(TotalLen, TFiles, PanelFlags, @CurDir, FileMask, Owner, SortMode, (Flags and psShowLongName <> 0));
 
  NoMemory := not MemOK;
 
@@ -764,7 +785,8 @@ begin
  if Descriptions <> nil then
  begin
    TossDescriptions(@DizOwner, Files, Descriptions);
-   Dispose(Descriptions,Done)
+   Dispose(Descriptions,Done);
+   if Files^.Sortmode = psmDIZ then Files^.Sort; {JO}
  end;
  GetDirectory := Files;
 end;

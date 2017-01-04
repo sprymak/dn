@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,17 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archives_without_extension_fix_diff131byMV.patch
+//  dn16rc1-improved_HA_AIN_ZXZip_and_SFX_detection_diff138byMV.patch
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -217,7 +228,9 @@ procedure MakeArchive(S: String; Files: PCollection; MoveMode: Boolean; Owner: P
 procedure UnarchiveFiles(const FName: String);
 procedure InsertUserSaver(ACheck: Boolean);
 procedure SkipSFX;
-procedure Check4WinZip;
+procedure Check4ArcId;
+Function  _Cardinal(L: LongInt): Real;
+Function  FromOct(S: String): LongInt; {fixed by piwamoto}
 
  const CDir: String = '';
 
@@ -412,8 +425,8 @@ begin
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -hf2 -v -jycv'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -hf2 -v -jycv'));
 {$ELSE}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ2.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ2.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ.EXE'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -v -jycv'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -v -jycv'));
 {$ENDIF}
@@ -463,11 +476,10 @@ const
    BACKUP_FLAG       = $20;
    SECURED_FLAG      = $40;
 
-var HS,i : AWord;
+var i    : AWord;
     FP   : Longint;
-    s    : String;
-    C    : Char;
     Extr : LongInt;
+    C    : Char;
     h    : record
              First_Hdr_Size  : Byte;
              Version         : Byte;
@@ -485,12 +497,11 @@ var HS,i : AWord;
              File_Acs_Mode   : AWord;
              Host_Data       : AWord;
            end;
-
 begin
    ArcFile^.Read(i,2);
    if (i<>60000) or (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-   ArcFile^.Read(HS,2);
-   if (HS=0) then begin FileInfo.Last:=1;Exit;end;
+   ArcFile^.Read(i,2);
+   if (i=0) then begin FileInfo.Last:=1;Exit;end;
    FP := ArcFile^.GetPos;
 
    ArcFile^.Read(h, SizeOf(h));
@@ -512,19 +523,15 @@ begin
      if Extr<>0 then with FileInfo do Attr := Attr or SysFile;
    end else Extr := 0;
 
-   S := '';
-{piwamoto.change.begin}
-   ArcFile^.Seek(FP + LongInt(h.First_Hdr_Size));
-   repeat ArcFile^.Read(C,1); if C <> #0 then S := S + C else Break
+   FileInfo.FName := '';
+   ArcFile^.Seek(FP + h.First_Hdr_Size);
+   repeat
+     ArcFile^.Read(C,1);
+     if C <> #0 then FileInfo.FName := FileInfo.FName + C else Break;
    until ArcFile^.Status <> stOK;
-   While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
    if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
-   if Fileinfo.Attr and Directory <> 0 then S := S + '\';
-{piwamoto.change.end}
-   FileInfo.LFN   := AddLFN(S); {DataCompBoy}
-   FileInfo.FName := S; {DataCompBoy}
    FileInfo.Last := 0;
-   ArcFile^.Seek(FP+HS+4);
+   ArcFile^.Seek(FP + i + 4);
    Repeat
     ArcFile^.Read(i,2);
     if i>0 then ArcFile^.Seek(ArcFile^.GetPos+i+4);
@@ -860,6 +867,7 @@ begin
    S := '';
    if DT.Psw <> '' then S := S + ' ' + DelSpaces(CnvString(AType^.Garble) + DT.Psw) + ' ';
    S := CnvString(AType^.unPacker)+' '+ExtrChar+' '+SquashesName(s+FName);
+   if Xt = '' then S := S + '.';{piwamoto: extracting from extensionless archives}
    lGetDir(0, DirToChange);
    Advance2.lChDir(ExtrDir);
    DelDoubles('  ', S);
@@ -890,17 +898,17 @@ end;
 
 procedure SkipSFX; {piwamoto}
 var
-   TempWord: Word;
+   TempWord: AWord;
    WinZipID: Array [0..7] of char;
    MZExeRec: record
               ExeID:   Array[0..1] of Char;
-              LastB:   Word;
-              TotalP:  Word;
-              RelOffs: Word;
+              LastB:   AWord;
+              TotalP:  AWord;
+              RelOffs: AWord;
               NewExe:  LongInt;
              end;
    PEhdrRec: record
-              ObjNum:  Word;
+              ObjNum:  AWord;
               ObjSize: Longint;
              end;
    LXhdrRec: record
@@ -908,18 +916,18 @@ var
               TableLenght : Byte;
              end;
    NEhdrRec: record
-              NumOfSegments   : Word;    {1c}
-              SegTableOffset  : Word;    {22}
-              ResTableOffset  : Word;    {24}
-              ResNamesOffset  : Word;    {26}
-              AlignShiftCount : Word;    {32}
-              SegmentSize     : Word;
+              NumOfSegments   : AWord;    {1c}
+              SegTableOffset  : AWord;    {22}
+              ResTableOffset  : AWord;    {24}
+              ResNamesOffset  : AWord;    {26}
+              AlignShiftCount : AWord;    {32}
+              SegmentSize     : AWord;
 
-              ResourceAlign   : Word;
-              ResourceType    : Word;
-              ResourceTypeNum : Word;
-              ResourceOffset  : Word;
-              ResourceLenght  : Word;
+              ResourceAlign   : AWord;
+              ResourceType    : AWord;
+              ResourceTypeNum : AWord;
+              ResourceOffset  : AWord;
+              ResourceLenght  : AWord;
              end;
    LEhdrRec: record
               PageCount       : Longint; {14}
@@ -936,7 +944,7 @@ begin
      ArcFile^.Seek($3c);
      ArcFile^.Read(MZExeRec.NewExe, SizeOf(MZExeRec.NewExe));
      ArcPos := LongInt(MZExeRec.TotalP - 1)*512 + MZExeRec.LastB;
-     if (MZExeRec.RelOffs >= $40) and (MZExeRec.NewExe < (ArcFile^.GetSize - $100)) then
+     if (MZExeRec.RelOffs >= $40) and (_Cardinal(MZExeRec.NewExe + $100) < ArcFile^.GetSize) then
       begin
        ArcFile^.Seek(MZExeRec.NewExe);
        ArcFile^.Read(TempWord, SizeOf(TempWord));
@@ -1008,28 +1016,49 @@ begin
        end;{Cas.e EXEtype}
       end;{??-EXE}
     end; {it isn't an EXE}
-   Check4WinZip;
+   Check4ArcId;
    ArcFile^.Seek(ArcPos);
 end; {SkipSFX}
 
-procedure Check4WinZip; {piwamoto}
+procedure Check4ArcId; {piwamoto}
 var
-   SfxId : Array [0..3] of Char;
+   ArcId : Array [0..3] of Char;
    ArcPosID : LongInt;
 begin
    ArcPosID := ArcPos;
    Repeat
     ArcFile^.Seek(ArcPosID);
-    ArcFile^.Read(SfxId, SizeOf(SfxId));
+    ArcFile^.Read(ArcId, SizeOf(ArcId));
     Inc (ArcPosID);
-   Until ((ArcPosID - ArcPos) = $1fd) or {1fch = SizeOf(DN's internal ArcFile^.Read cache size) - SizeOf(SfxId)}
+   Until ((ArcPosID - ArcPos) = $1fd) or {1fch = SizeOf(DN's internal ArcFile^.Read cache size) - SizeOf(ArcId)}
          (ArcFile^.EOF) or
-   {ZIP} (SfxId = 'PK'#3#4) or
-   {RAR} (SfxId = 'Rar!') or
-   {ARJ} ((SfxId[0]=#$60) and (SfxId[1]=#$EA) and (SfxId[3]<#$b)) or
-   {IS3} (SfxId = #$13#$5D#$65#$8C) or
-   {CAB} (SfxId = 'MSCF');
+   {ZIP} (ArcId = 'PK'#3#4) or
+   {RAR} (ArcId = 'Rar!') or
+   {ARJ} ((ArcId[0]=#$60) and (ArcId[1]=#$EA) and (ArcId[3]<#$b)) or
+   {IS3} (ArcId = #$13#$5D#$65#$8C) or
+   {ZOO} (ArcId = #$DC#$A7#$C4#$FD) or
+   {CHZ} (ArcId = 'SChF') or
+   {CHZ} (ArcId = 'SChD') or
+   {CAB} (ArcId = 'MSCF');
    if ((ArcPosID - ArcPos) < $1fd) and not (ArcFile^.EOF) then ArcPos := ArcPosID - 1;
-end; {Check4WinZip}
+end; {Check4ArcId}
+
+function _Cardinal(L : LongInt) : Real;
+  {-Return the unsigned equivalent of L as a real}
+begin
+  if L < 0 then
+    _Cardinal := 4294967296.0+L
+  else
+    _Cardinal := L;
+end; {_Cardinal}
+
+function FromOct(S: String): LongInt; {fixed by piwamoto}
+ var I,L: LongInt;
+begin
+  L := 0;
+  for I := 1 to Length(S) do
+    if S[I] in['0'..'7'] then L := L shl 3 + Byte(S[I]) - 48;
+  FromOct := L;
+end;
 
 end.

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,18 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-deleting_temporary_files_safety_fix.patch
+//  dn16rc1-dbf_scrollbar_colors_fix.patch
+//  dn16rc1-vp_noasm_compatible.patch
+//  dn16rc1-edit_long_db_field.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -147,7 +159,7 @@ type
     end;
 
 
- const CDBWindow = #166#167#168#169#170#171#205#206;
+ const CDBWindow = #166#167#168#169#170#171#212#213;
        CDBViewer = #4#5#6;
        CDBScrollBar = #7#8#8;
 
@@ -279,8 +291,6 @@ end;
 
         {-DataCompBoy-}
 constructor TDBViewer.Init;
- var I: Word;
-     F: lFile;
 begin
   inherited Init(R);
   KillAfterUse := TempFile <> '';
@@ -326,6 +336,7 @@ end;
 
 function TDBViewer.Failed: Boolean;
 var I : LongInt ;
+ var Dir, Name, Ext: String; {JO}
 begin
   Failed := False;
   New(DBFile, Init(CnvString(FileName)));
@@ -339,7 +350,11 @@ begin
 {     DisposeStr(SearchString);
       Dispose(DBFile,Done); DBFile:=nil;
 }     TempFile := '';
-      if KillAfterUse then EraseFile(CnvString(FileName));
+      if KillAfterUse then
+                        begin
+                          lFSplit(CnvString(FileName), Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+                          if Dir = Tempdir then EraseFile(CnvString(FileName)); {во временном каталоге не помешает}
+                        end;
 {     DisposeStr(FileName);}
       Failed := True;
       Exit;
@@ -374,11 +389,16 @@ begin
 end;
 
 destructor TDBViewer.Done;
+ var Dir, Name, Ext: String; {JO}
 begin
  DisposeStr(SearchString);
  if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
  if DBFile <> nil then Dispose(DBFile,Done); DBFile:=nil;
- if KillAfterUse then EraseFile(CnvString(FileName));
+ if KillAfterUse then
+                   begin
+                     lFSplit(CnvString(FileName), Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+                     if Dir = Tempdir then EraseFile(CnvString(FileName)); {во временном каталоге не помешает}
+                   end;
  DisposeStr(FileName);
  inherited Done;
 end;
@@ -670,14 +690,15 @@ procedure TDBViewer.HandleEvent;
        MM, DD, YY: Word;
        II, N1, N2, N3: Word;
        LL: Array [0..3] of LongInt;
+       FldLen : AWord; { Kirill }
 
    procedure StoreField;
    begin
-     S := AddSpace(S, PFR^.Len);
-     Move(S[1], P[PFR^.Pos], PFR^.Len);
+     S := AddSpace(S, FldLen);
+     Move(S[1], P[PFR^.Pos], FldLen);
      DBFile^.Seek(Delta.Y);
      DBFile^.BaseFile.Seek(DBFile^.BaseFile.GetPos + PFR^.Pos);
-     DBFile^.BaseFile.Write(S[1], PFR^.Len);
+     DBFile^.BaseFile.Write(S[1], FldLen);
    end;
 
    function GetDig: Word;
@@ -707,20 +728,25 @@ procedure TDBViewer.HandleEvent;
    PFR := DBFile^.GetFieldRec(Delta.X);
    if PFR^.Who = 'M' then Exit;
    P := GetRecord(Delta.Y);
-   Move(P[pfr^.pos], S[1], pfr^.Len); S[0] := Char(Pfr^.Len);
+   FldLen:=PFR^.Len;
+   if FldLen > 252 then { Больше чем 252 нельзя, иначе будет вылетать  }
+     FldLen:=252; { Kirill } { Здесь необходимо вывести предупреждение }
+                             { о том, что будут отредактированы только }
+                             { первые 252 символа длинного поля.       }
+   Move(P[pfr^.pos], S[1], FldLen); S[0] := Char(FldLen); { Kirill }
    if PFR^.Who <> 'D' then begin
     if PFR^.Who <> 'C' then DelLeft(S);
     DelRight(S); {Oleg Redut}
    end;
    case PFR^.Who of
-     'C','N': if InputBox(GetString(dlDBEditField), GetString(dlDBValue), S, PFR^.Len, hsEditDBF) = cmOK then
+     'C','N': if InputBox(GetString(dlDBEditField), GetString(dlDBValue), S, FldLen, hsEditDBF) = cmOK then
                 begin
                   if PFR^.Who = 'N' then
                     begin
                       DelSpace(S);
                       Val(S, R, I);
-                      Str(R:PFR^.Len:PFR^.Dec, S);
-                      S := PredSpace(S, PFR^.Len);
+                      Str(R:FldLen:PFR^.Dec, S);
+                      S := PredSpace(S, FldLen);
                     end;
                   StoreField;
                 end;
@@ -764,6 +790,7 @@ procedure TDBViewer.HandleEvent;
  var F: lFile; {DataCompBoy}
      P: TPoint;
      RD: Word;
+     Dir, Name, Ext: String; {JO}
 
 begin
  inherited HandleEvent(Event);
@@ -787,7 +814,8 @@ begin
                                           Buf := nil;
                                           dbFile := nil;
                                         end;
-                                      EraseFile( FileName^ );
+                                      lFSplit(FileName^, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+                                      if Dir = Tempdir then EraseFile( FileName^ ); {во временном каталоге не помешает}
                                       KillAfterUse := False;
                                       if Event.Command = cmClose then GlobalMessage(evCommand, cmPanelReread, nil);
                                     end;
@@ -852,6 +880,9 @@ procedure TDBViewer.Draw;
      C1, C2 ,C3: Word;
      C: Byte;
      I, J, K, NFN: Integer;
+     {$IFDEF NONBP}
+     FldLen : AWord; { Kirill }
+     {$ENDIF}
      Idx: LongInt;
      PFR: PFieldRec;
      P: PByteArray;
@@ -880,7 +911,8 @@ begin
     FN[NFN] := PFR;
     if PFR <> nil then
      begin
-      MoveStr(B[I], CenterStr(PFR^.Name, PFR^.Ln), C1);
+      K:=PFR^.Ln; if K > Size.X then K:=Size.X; { Kirill }
+      MoveStr(B[I], CenterStr(PFR^.Name, {PFR^.Ln} K), C1);
       Inc(I, PFR^.Ln+1);
      end;
     if I < Size.X then Inc(NFN);
@@ -917,6 +949,15 @@ begin
         MoveStr(B[I], DateToHuman(S), C);
         Inc(I, PFR^.Ln + 1);
       end else
+      {$IFDEF NONBP}
+      begin { Kirill }
+        FldLen:=PFR^.Len;
+        if FldLen > 255 then FldLen:=255;
+        Move(P^[PFR^.Pos], S[1], FldLen); S[0] := Char(FldLen);
+        MoveStr(B[I], S, C);
+        Inc(I, PFR^.Ln + 1);
+      end;
+      {$ELSE}
       asm
        les di, PFR
        mov cx, es:[di].FieldRec.Len
@@ -936,6 +977,7 @@ begin
        inc dx
        add I, dx
       end;
+      {$ENDIF}
      end;
     end;
    WriteLine(0,K,Size.X,1,B);

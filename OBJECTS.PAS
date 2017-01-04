@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,8 +43,18 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-TStreamCopyFromFix.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+
 {-----------------------------------------------------}
 { This module is based on Turbo Vision Objects Unit   }
 { Copyright (c) 1990 by Borland International         }
@@ -490,7 +500,9 @@ var
 begin
   BufSize:=32768;
   if BufSize > Count then BufSize:=Count;
-  GetMem(Buffer, BufSize);
+  Buffer := nil;
+  if not LowMemory and (MaxAvail > BufSize) then
+    GetMem(Buffer, BufSize);
   if Buffer = nil then begin
     Allocated:=False;
     Buffer:=PByteArray(@TTempBuf);

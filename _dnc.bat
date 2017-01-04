@@ -1,6 +1,6 @@
 ::////////////////////////////////////////////////////////////////////////
 ::
-::  Dos Navigator Open Source 1.6.RC1
+::  Dos Navigator Open Source
 ::  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ::
 ::  This programs is free for commercial and non-commercial use as long as
@@ -44,6 +44,12 @@
 ::  (including the GNU Public Licence).
 ::
 :://///////////////////////////////////////////////////////////////////////
+::
+::  Version history:
+::
+::  2.0.0
+::
+:://///////////////////////////////////////////////////////////////////////
 @Echo off
 if not exist exe\nul md exe
 
@@ -70,7 +76,7 @@ copy %vppath%\res.%os%\sysutils.*   exe\vp >nul
 
 Echo -------- Compiling VERSION.EXE
 if exist exe\version.exe goto dover
-vpc version /m /q
+vpc version /b /q
 if errorlevel 1 goto ex
 if exist exe\tvhc.exe del exe\thvc.exe
 :dover
@@ -78,7 +84,7 @@ exe\version.exe exe\version.inc
 
 if exist exe\tvhc.exe goto comphelp
 Echo -------- Compiling TVHC.EXE
-vpc tvhc /m /q
+vpc tvhc /b /q
 if errorlevel 1 goto ex
 del exe\*.vpi
 del exe\*.lib
@@ -91,7 +97,7 @@ exe\tvhc resource\hungary\dnhelp.htx exe\hungary.hlp exe\dnhelp.pas /4DN_OSP
 
 if exist exe\rcp.exe goto dores
 Echo -------- Compiling RCP.EXE
-vpc rcp /m /dRCP /q
+vpc rcp /b /dRCP /q
 if errorlevel 1 goto ex
 del exe\*.vpi
 del exe\*.lib
@@ -101,7 +107,7 @@ exe\rcp
 :endres
 
 Echo -------- Compiling DN.EXE
-vpc dn /m /dDN;DNPRG /q
+vpc dn /b /dDN;DNPRG /q
 if not %1.==debug. goto ex
 copy *.* exe\*.*
 copy vp.vpo exe\*.*

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,23 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-improved_HA_AIN_ZXZip_and_SFX_detection_diff138byMV.patch
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//  dn16rc1-ZXZip_fix-diff158byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_ZXZ; {ZXZ}
 
 interface
- uses Archiver, Objects{, FViewer}, Advance, LFNCol, Dos, lfn, advance1;
+ uses Archiver, Advance, Advance1, Objects, LFNCol;
 
 type
   PZXZArchive = ^TZXZArchive;
@@ -80,8 +91,13 @@ begin
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
+{$IFNDEF OS2}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZXZIP386.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ZXUNZIP.EXE'));
+{$ELSE}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZXZIP2.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ZXUNZIP2.EXE'));
+{$ENDIF}
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            ''));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          ''));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                '-start8224'));
@@ -124,26 +140,24 @@ Procedure TZXZArchive.GetFile;
 var FP  : Longint;
     P   : ZXZHdr;
     Len : AWord;
-    S   : String;
 begin
  ArcFile^.Read(P, SizeOf(P));
  FP := ArcFile^.GetPos;
+ if (ArcFile^.Status <> stOK) or (FP > 65280) then begin FileInfo.Last:=2;Exit;end;
  if (P.Name[0]<#32) or
     (P.PackedSize>P.SectorSize*256) or
-    (P.PackedSize+FP > ArcFile^.GetSize) or
+    ((P.PackedSize + FP - SizeOf(P) - 17 ) > ArcFile^.GetSize) or
     (P.MethodID>3) or
     (P.SectorSize=0)
    then begin FileInfo.Last:=1; Exit; end;
- if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- S := P.Name;
- DelRight(S);
+ FileInfo.FName := P.Name;
+ DelRight(FileInfo.FName);
  if (P.Extension[0]<>'B') and
     (P.Extension[1]>=#32) and (P.Extension[1]<=#127) and
     (P.Extension[2]>=#32) and (P.Extension[2]<=#127)
-  then S := S + '.' + P.Extension else S := S + '.' + P.Extension[0];
- DelRight(S);
- FileInfo.FName := S;
- FileInfo.LFN  := AddLFN(S); {DataCompBoy}
+  then FileInfo.FName := FileInfo.FName + '.' + P.Extension
+  else FileInfo.FName := FileInfo.FName + '.' + P.Extension[0];
+ DelRight(FileInfo.FName);
  FileInfo.Last := 0;
  FileInfo.Attr := 0;
  if (P.OriginSize and $ff) = 0 then Len:=0 else Len:=256;

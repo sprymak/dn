@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,12 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -260,7 +266,7 @@ end;
 
 
 begin
-  VolumeLabel := ''; fPos := 0; SearchVolume := True; DSKoffset := 0; 
+  VolumeLabel := ''; fPos := 0; SearchVolume := True; DSKoffset := 0;
   if F^.Status <> stOK then Exit;
   GetMem(BRec, 4096);
   fRead(BRec^, 4096);

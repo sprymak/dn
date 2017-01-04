@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Error_message_fix-diff157byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -148,8 +157,9 @@ begin
                      + 'h at address '+Hex4( ErrAdd shr 16 ) +
                        ':' + Hex4( ErrAdd );
 
-             5 : FreeStr := 'Report to RU.SHELL.DN';
-             6 : FreeStr := '( file DN.ERR )';
+             4 : FreeStr := 'Report to RU.SHELL.DN';
+             5 : FreeStr := '( convert DN.ERR with DNERROR.EXE )';
+             6 : FreeStr := '( and send us file DN2SEND.ERR )';
             else FreeStr := '';
         end;
       NewLine;

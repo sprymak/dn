@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,16 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn15112-enhanced_calendar.patch
+//  dn16rc1-vp_noasm_compatible.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
@@ -66,6 +76,7 @@ uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
      UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver,
      U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries,
      ExtraMem, Menus, VideoMan, extkbd, DnSvLd, filefind
+{$IFDEF Calendar},Calendar{$ENDIF}
 {$IFDEF CDPLAYER},CDPlayer{$ENDIF}
 {$IFDEF DPMI}, DPMI {$ENDIF}
 {$IFDEF DiskFormat}, FmtUnit {$ENDIF}
@@ -234,6 +245,7 @@ var
   begin
     ReadConfig := -1;
     INIdatapos := -1;
+    {$IFDEF VIRTUALPASCAL}StartupInitUnit;{$ENDIF} { Kirill }
     S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
     if ( S.Status <> stOK ) or ( S.GetSize = 0 ) then begin S.Done;
                 {.$IFDEF VIRTUALPASCAL PlaySound(1259, 550); $ENDIF} Exit; end;
@@ -886,6 +898,11 @@ GrabPalette;
   Clock^.MakeFirst;
   Unlock;
  end;
+
+ {$IFDEF Calendar}
+ if RunFirst and CalShowOnStartup then
+   InsertCalendar; {PZ}
+ {$ENDIF}
 
  MyApplication.Run;
  ClearIniErrors;

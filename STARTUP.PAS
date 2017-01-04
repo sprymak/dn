@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,17 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-move_COMBINE_MIXED_from_sources_to_Options_menu_diff140byMV.patch
+//  dn16rc1-sort_by_description_and_archives_before_exe.patch
+//  dn16rc1-version_upgrade.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -95,9 +106,9 @@ CONST
     (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:15106;HavVer:true));
                                                     {Configuration for 1.51.06+}
   DSKSign: TSignRec =
-{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#159#91;SignLen:22;SignVer:15991);
-{$ELSE}      (Sign:'DN OSP Desktop'#26#159#91;SignLen:17;SignVer:15991);{$ENDIF}
-                                                    {Desktop for 1.6.RC1}
+{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#200#00;SignLen:22;SignVer:20000);
+{$ELSE}      (Sign:'DN OSP Desktop'#26#200#00;SignLen:17;SignVer:20000);{$ENDIF}
+                                                    {Desktop for 2.0.0}
   Security: Boolean = True;
   ConfigModified: Boolean = Off;
   DateMode: Byte = 0;
@@ -325,13 +336,14 @@ procedure InitMaskData;
   );
 
   PanelDefaults: TPanelDefaultsData = (
-    Sort:  psmLongExt;
+    Sort:  psmLongExt-1;
     Show:  fmiCurrent +
            fmiSelected +
            fmiHiliteFiles +
            fmiFree +
            fmiExeFirst +
-           fmiArchivesFirst;
+           fmiArchivesFirst +
+           fmiExeBeforeArc;
     LeftPanel: fdoDriveDrive
   );
 
@@ -350,7 +362,7 @@ procedure InitMaskData;
             fmsDivider;
       Quick: pqsAlt;
       TagChar : #251;
-      RestChar: #16;
+      RestChar: #125;
       DIZ: 'descript.ion;files.bbs'
     );
 
@@ -444,8 +456,8 @@ procedure InitMaskData;
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param: 1; LFNLen: '12'; EXTLen: '3')
             );
-    FileCase:1;
-    DirsCase:0
+    FileCase:5;
+    DirsCase:5
   );
 
   ColumnsDefaultsFind: record
@@ -466,8 +478,8 @@ procedure InitMaskData;
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param: 1; LFNLen: '12'; EXTLen: '3')
             );
-    FileCase:1;
-    DirsCase:0
+    FileCase:5;
+    DirsCase:5
   );
   ColumnsFindLast: byte = 1;
 
@@ -489,8 +501,8 @@ procedure InitMaskData;
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param: 1; LFNLen: '12'; EXTLen: '3')
             );
-    FileCase:1;
-    DirsCase:0
+    FileCase:5;
+    DirsCase:5
   );
   ColumnsTempLast: byte = 1;
 
@@ -512,8 +524,8 @@ procedure InitMaskData;
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param: 1; LFNLen: '12'; EXTLen: '3')
             );
-    FileCase:1;
-    DirsCase:0
+    FileCase:5;
+    DirsCase:5
   );
 
   ColumnsDefaultsArvd: record
@@ -534,8 +546,8 @@ procedure InitMaskData;
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param: 1; LFNLen: '12'; EXTLen: '3')
             );
-    FileCase:1;
-    DirsCase:0
+    FileCase:5;
+    DirsCase:5
   );
 
   OldColumnsDefaults: record
@@ -644,7 +656,7 @@ begin
 
 {raw text}
  New(CustomMask2);  FillChar(CustomMask2^, SizeOf(CustomMask2^), 0);
- CustomMask2^.Filter := '.;asc;dok;txt;ans;me;1st;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][1-9]';
+ CustomMask2^.Filter := '.;asc;dok;txt;ans;me;1st;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][0-9]';
 
 {databases & speadsheets}
  New(CustomMask3);  FillChar(CustomMask3^, SizeOf(CustomMask3^), 0);

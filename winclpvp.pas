@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-vp_noasm_compatible.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {Writted by DataCompBoy at 29.07.2000 21:04:26}
@@ -125,6 +134,7 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
    Buf := SysClipPaste(Size);
 
    s:=''; ODOA:=false;
+   idx:=Buf; { Kirill }
    for i:=1 to size do begin
     if (idx^ in [#$0D, #$0A]) then begin
      if ODOA then begin

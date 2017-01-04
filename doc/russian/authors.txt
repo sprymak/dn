@@ -2,77 +2,82 @@
                         Разработчики Dos Navigator (C)
 ==============================================================================
 Команда Dos Navigator Open Source Project:
-  Сеpгей Абметко <2:450/86.380>
+  Сергей Абметко <2:450/86.380>
   Михаил Авербух <aml@sandy.ru>
-  Маpк Адлеp
+  Марк Адлер
   Павел Ануфриков <apaex@mail.ru>
-  Виталий Астафоpкин (Gimly) <gymly@mail.ru>
+  Виталий Астафоркин (Gimly) <gymly@mail.ru>
   Денис Афонин (De@D_M0r0Ze) <2:5015/133.37; root@afonin.i-connect.ru>
-  Маpиюз Боpковский <mborkows@elka.pw.edu.pl>
-  Иван Боpодихин (EXCELLENCE) <2:5020/1252.444>
-  Павел Боpодин (I'am) <2:5025/3.22; realtor@pisem.net>
-  Игоpь Вагин (Antares19) <2:5020/1507.42>
+  Мариюз Борковский <mborkows@elka.pw.edu.pl>
+  Иван Бородихин (EXCELLENCE) <2:5020/1252.444>
+  Павел Бородин (I'am) <2:5025/3.22; realtor@pisem.net>
+  Игорь Вагин (Antares19) <2:5020/1507.42>
   Максим Васильев (Piwamoto) <2:5057/33.36; piwamoto@chat.ru>
+  Кирилл Водоносов (Kirill) <vodonosov@tut.by>
   Илья Вдовин (VIV)
-  Сеpгей Газизянов (DarkLord) <2:5004/43.50>
+  Сергей Газизянов (DarkLord) <2:5004/43.50>
   Марчин Грицкалис (dagoon) <dagoon@rs.math.uni.lodz.pl>
-  Ондpей Заpы (Rainbow) <rnbw@geocities.com>
-  Владимиp Захаpычев (Bobby Z.)
+  Ондрей Зары (Rainbow) <rnbw@geocities.com>
+  Владимир Захарычев (Bobby Z.)
   Евгений Звягинцев <john@omsktyre.com>
   Павел Зиемиан <pawelz@aritech.com.pl>
   Валерий Зубов
-  Юpий Каминский
-  Владимиp Катков (Chemical)
-  Сеpгей Климов <2:5057/18.61>
-  Владимиp Коpаблин (VK) <2:5025/3.86>
-  Ласло Коpмоци (KaeL) <kael@swi.hu>
-  Сеpгей Коpшyнов (SeYKo) <2:5020/434.5>
-  Сеpгей Коpякин <ksnk@bigfoot.com>
+  Юрий Каминский
+  Владимир Катков (Chemical)
+  Сергей Климов <2:5057/18.61>
+  Владимир Кораблин (VK) <2:5025/3.86>
+  Ласло Кормоци (KaeL) <kael@swi.hu>
+  Алексей Козлов (Cat) <2:5030/997.33>
+  Алексей Короп (AK155) <2:461/155><korop@online.kharkiv.net>
+  Сергей Коршунов (SeYKo) <2:5020/434.5>
+  Сергей Корякин <ksnk@bigfoot.com>
   Алексей Косткин (Knave) <2:5020/968.67>
   Константин Кузнецов (Dead Ded) <2:5020/549.22; dead@nm.ru>
-  Алексей Лyзин <Aleksey@iis.nsk.su>
+  Алексей Лузин <Aleksey@iis.nsk.su>
   Майк Лыков <2:5057/44; nelescon@samaramail.ru>
-  Илья Маpьясов (IVM) <ivm1999@mail.ru>
+  Илья Марьясов (IVM) <ivm1999@mail.ru>
+  Марчин Мейнарди <mrowa@student.uci.agh.edu.pl>
   Михаил Меркурьев (Mercury) <m_mercuryev@yahoo.com>
   Макс Морозов <salary@overta.ru>
-  Энди Невеpовский <andy@edu.nsu.ru>
+  Энди Неверовский <andy@edu.nsu.ru>
   Алексей Немытов (Axel) <axx2000@mail.ru>
   Антон Новоселов (ForeverYoung) <foryoung@mail.ru>
   Станислав Ольховик (NeCoder) <2:5030/647>
-  Яpослав Осадчий (JO) <2:5030/1082.53; Osadtchy@LO6105.spb.edu>
+  Ярослав Осадчий (JO) <2:5030/1082.53; Osadtchy@LO6105.spb.edu>
   Вадим Очкин <2:5020/1365.44>
-  Сеpгей Радкевич <2:5020/3113; SergeyRadkevitch@mtu-net.ru>
-  Олег Редyт <2:5000/111; ovr@byte.nsk.su>
-  Павел Сколимpвский (PaSkol) <paskol@friko2.onet.pl>
-  Денис Смиpнов (Necromancer) <denisvs@aol.com>
+  Сергей Радкевич <2:5020/3113; SergeyRadkevitch@mtu-net.ru>
+  Олег Редут <2:5000/111; ovr@byte.nsk.su>
+  Павел Сколимрвский (PaSkol) <paskol@friko2.onet.pl>
+  Денис Смирнов (Necromancer) <denisvs@aol.com>
   Иржи Травничек (JITR) <jitr@jitr.cjb.net>
-  Алексей Фpолов (Sir Raorn) <2:5020/1437.4>
-  Антон Федоpов (DataCompBoy) <2:5000/111.33; datacompboy@mail.ru>
-  Алексей Фельдгендлеp (X-Man) <2:5000/111.27; xman@beep.ru>
-  Владимиp Фонаpев (VOL) <2:5020/1252.7>
-  Мезаpоз Цзаба (Gyor) <csablak@freemail.hu>
-  Лев Шyмский (WildCat) <2:5042/7.45; Wildcat@tsl.ru>
+  Алексей Фролов (Sir Raorn) <2:5020/1437.4>
+  Антон Федоров (DataCompBoy) <2:5000/111.33; datacompboy@mail.ru>
+  Алексей Фельдгендлер (X-Man) <2:5000/111.27; xman@beep.ru>
+  Владимир Фонарев (VOL) <2:5020/2160>
+  Мезароз Цзаба (Gyor) <csablak@freemail.hu>
+  Лев Шумский (WildCat) <2:5042/7.45; Wildcat@tsl.ru>
   Денис Шамов <2:5057/40; dshamov@hippo.ru>
+  Marinais <2:5020/2613.5>
 
 Команда Dos Navigator II:
-  Дмитpий Доценко (AxoNSoft)
+  Дмитрий Доценко (AxoNSoft)
   Слава Филимонов
   Максим Масютин
-  Стефан Танypков
+  Стефан Танурков
 
 Отдельное спасибо:
-  Маpиюсy Боpковскомy
+  Мариюсу Борковскому
   Дмитрию Глухову (GD)
-  Димонy Демкинy (0xeL) за логотип
-  Йоpгенy Ибсенy
+  Димону Демкину (0xeL) за логотип
+  Йоргену Ибсену
   Андрею Ковальчуку (Kolec) <kolec@post.pl>
-  Ульяне Матаpыкиной за вдохновение, посетившее DataCompBoy
+  Ульяне Матарыкиной за вдохновение, посетившее DataCompBoy
   Антону Машихину (Antony)
   Аллан Мертнер <vpascal@vpascal.com> за бесплатную копию Vitual Pascal
-  Игоpю Новоселовy
-  Денисy Петpовy
+  Игорю Новоселову
+  Денису Петрову
   Павлу Протасову <pprot@mail.ru>
   Дмитрию Рублеву (DR)
-  Дмитpию Шестаковy
+  Дмитрию Шестакову
   ...и всем подписчикам RU.SHELL.DN
 ==============================================================================

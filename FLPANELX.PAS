@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,20 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Shift_Del_erases_file_only_if_DEL_erases_files_switched_on.patch
+//  dn16rc1-sort_by_description_and_archives_before_exe.patch
+//  dn16rc1-Ctrl_Alt_Shift_Enter_bugfix-diff149byMV.patch
+//  dn16rc1-Ctrl-N_hotkey_used_for_long-short_names_switching.patch
+//  dn16rc1-Don't_remove_root_by_Ctrl-Del.patch
+//  dn16rc1-vp_noasm_compatible.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -178,8 +192,8 @@ begin
  {Drive^.Owner := @Self;}
  FileMask := x_x; Files := nil;
 
- if PanelDefaults.Sort < 6 then SortMode := PanelDefaults.Sort + 1 else
- if PanelDefaults.Sort = 6 then SortMode := 30
+ if PanelDefaults.Sort < NumSortModes-1 then SortMode := PanelDefaults.Sort+1 else
+ if PanelDefaults.Sort = NumSortModes-1 then SortMode := psmOrdered
                            else SortMode := 0;
  IncDrawDisabled; MSelect := Off;
  QuickSearch := Off; ViewEnabled := Off;
@@ -725,13 +739,13 @@ var
       BB: TRect;
  begin
   R.Sort := SortMode;
-  if R.Sort = 0 then R.Sort := 7 else
-    if R.Sort = 30 then R.Sort := 6 else Dec(R.Sort);
+  if R.Sort = 0 then R.Sort := NumSortModes else
+    if R.Sort = psmOrdered then R.Sort := NumSortModes-1 else Dec(R.Sort);
   R.Show := PanelFlags;
   R.S := FileMask;
   if ExecResource(dlgPanelSetup, R) <> cmOK then Exit;
-  if R.Sort = 7 then R.Sort := 0 else
-   if R.Sort = 6 then R.Sort := 30 else Inc(R.Sort);
+  if R.Sort = NumSortModes then R.Sort := 0 else
+   if R.Sort = NumSortModes-1 then R.Sort := psmOrdered else Inc(R.Sort);
 
   if (ActivePanel = @Self) and (Drive^.DriveType = dtDisk)
     then CurrentDirectory := DirectoryName;
@@ -1203,22 +1217,23 @@ var
       ) and OS2exec then begin _AltEnter; exit end;
    if (PF <> nil) then
    begin
-    if (ShiftState and kbAltShift <> 0)
-     then S:= GetLFN(PF^.LFN)
-     else S:= MakeFileName(PF^.Name);
+    S := GetLFN(PF^.LFN);
     if (PF^.Attr and Directory = 0) and
        (PosChar('.', S) = 0) then AddStr(S, '.');
-    if Copy(S, 1, 2) = '..'  then
+    if (S <> '..') and (ShiftState and kbAltShift = 0)
+     {piwamoto: get real short name instead of PF^.Name}
+     then S := GetName(lfGetShortFileName(GetLFN(PF^.LFN)));
+    if S = '..'  then
      {$IFNDEF OS2}
      if (ShiftState and kbAltShift = 0)
       then S := lfGetShortFileName(PF^.Owner^)+'\'
       else{$ENDIF} S := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(PF^.Owner^)+'\'
     else
-     if ShiftState and 3 <> 0 then
+     if ShiftState and (kbRightShift + kbLeftShift) <> 0 then
       {$IFNDEF OS2}
       if (ShiftState and kbAltShift <> 0)
-       then S := MakeNormName(lfGetShortFileName(PF^.Owner^), S)
-       else{$ENDIF} S := MakeNormName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(PF^.Owner^), S);
+       then S := MakeNormName(lfGetLongFileName(PF^.Owner^), S)
+       else{$ENDIF} S := MakeNormName({$IFNDEF OS2}lfGetShortFileName{$ENDIF}(PF^.Owner^), S);
     S:=SquashesName(S);
     Message(CommandLine, evCommand, cmInsertName, @S);
    end;
@@ -1454,7 +1469,20 @@ kbCtrlRight, kbCtrlLeft: _DoCtrl;
 kbCtrlDel: if Files^.Count > 0 then
             begin
               I := 0;
-              if SelNum = 0 then Files^.AtFree(CurPos) else
+              if SelNum = 0 then
+                begin
+{JO}         {$IFDEF OS2}
+                 if PFileRec(Files^.At(CurPos))^.Name <> '..' then
+             {$ELSE}
+               {$IFDEF OS_DOS}
+                 if PFileRec(Files^.At(CurPos))^.Name[1] <> '.' then
+               {$ELSE}
+                 if GetLFN(PFileRec(Files^.At(CurPos))^.LFN) <> '..' then { Kirill }
+               {$ENDIF}
+{/JO}        {$ENDIF}
+                                                  Files^.AtFree(CurPos);
+                end
+               else
                 while I < Files^.Count do
                  if PFileRec(Files^.At(I))^.Selected then
                   begin
@@ -1556,10 +1584,8 @@ kbCtrlEnter: _CtrlEnter;
     kbCtrlPgDn: _CtrlPgDn;
     kbDel: if ((CmdLine.Str = '') and (FMSetup.Options and fmoDelErase <> 0)) then
               Message(@Self, evCommand, cmPanelErase, nil);
-    {
     kbShiftDel: if ((CmdLine.Str = '') and (FMSetup.Options and fmoDelErase <> 0)) then
               Message(@Self, evCommand, cmSingleDel, nil);
-    }
     kbIns,kbSpace: if CurPos < Files^.Count then
            begin
             QuickSearch := Off;
@@ -1686,6 +1712,7 @@ begin
  case Event.What of
   evCommand: case Event.Command of
               cmToggleDescriptions: begin CM_ToggleDescriptions(@Self); CE end;
+              cmToggleLongNames: begin CM_ToggleLongNames(@Self); CE end;
               cmToggleShowMode: begin CM_ToggleShowMode(@Self); CE end;
               cmFastRename: begin
                              if QuickRenameInDialog xor

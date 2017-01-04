@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-vp_noasm_compatible.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -93,7 +102,13 @@ var
   CurId: Byte;
   CurString: PString;
 {$IFDEF NOASM}
-  CurPos: word;
+type
+   THistRec = record
+     Zero: byte;                                      { Start marker }
+     Id  : byte;                                      { History id }
+     Str : String;                                    { History string }
+   END;
+   PHistRec = ^THistRec;                              { History record ptr }
 {$ENDIF}
 
 implementation
@@ -156,18 +171,23 @@ procedure AdvanceStringPointer;
  end;
  {$ENDIF}
 {$ELSE NOASM}
+var
+  P : PHistRec;
 begin
-  If HistoryBlock=nil then exit;
-  repeat
-   CurPos:=CurPos+Length(CurString^)+3;
-   if CurPos>=HistoryUsed then begin
-    CurPos:=-1;
-    break;
-   end;
-  until HistoryBlock^[CurPos+1]=CurId;
-  if CurPos>=0
-   then CurString:=@(HistoryBlock^[CurPos])
-   else CurString:=nil;
+  while (CurString <> nil) do begin
+    Inc(PChar(CurString), PByte(CurString)^+1);      { Move to next string }
+    {$IFNDEF BIT_32}
+    if (PtrRec(CurString).Ofs >= HistoryUsed) then begin{ Last string check }
+    {$ELSE}
+    if (Word(CurString) >= HistoryUsed) then begin{ Last string check }
+    {$ENDIF}
+      CurString := nil;                              { Clear current string }
+      Exit;                                          { Now exit }
+    end;
+    P := PHistRec(CurString);                        { Transfer record ptr }
+    Inc(PChar(CurString), 2);                        { Move to string }
+    if (P^.Id = CurId) then exit;                    { Found the string }
+  end;
 end;
 {$ENDIF}
 
@@ -215,15 +235,20 @@ procedure DeleteString;
  end;
  {$ENDIF}
 {$ELSE}
-var q: word;
+var
+  Len : integer; P, P2 : PChar;
 begin
- Q:=CurPos+Length(CurString^)+3;
- if Q>=HistoryUsed then begin
-  HistoryUsed:=CurPos;
-  exit;
- end;
- move(HistoryBlock^[Q], HistoryBlock^[CurPos], HistoryUsed-Q);
- HistoryUsed:=Q;
+   P := PChar(CurString);                             { Current string }
+   P2 := PChar(CurString);                            { Current string }
+   Len := PByte(P2)^+3;                               { Length of data }
+   Dec(P, 2);                                         { Correct position }
+   Inc(P2, PByte(P2)^+1);                             { Next hist record }
+   {$IFNDEF BIT_32}
+   Move(P2^, P^, HistoryUsed - PtrRec(P2).Ofs);       { Shuffle history }
+   {$ELSE}
+   Move(P2^, P^, HistoryUsed - Word(P2));             { Shuffle history }
+   {$ENDIF}
+   Dec(HistoryUsed, Len);                             { Adjust history used }
 end;
 {$ENDIF}
 
@@ -342,22 +367,20 @@ procedure InsertString(Id: Byte; const Str: String);
  end;
  {$ENDIF}
 {$ELSE}
-var q: word;
+var
+  P1, P2: PChar;
 begin
- if HistoryUsed+length(Str)+3>=HistorySize then begin
-  q:=curpos;
-  while CurPos+Length(CurString^)+3<HistoryUsed do begin
-   CurPos:=CurPos+Length(CurString^)+3;
-   CurString:=@(HistoryBlock^[Q]);
-  end;
-  DeleteString;
-  CurPos:=q;
- end;
- Q:=HistorySize;
- HistoryBlock^[Q]:=0;
- HistoryBlock^[Q+1]:=Id;
- Move(Str, HistoryBlock^[Q+2], Length(Str)+1);
- HistoryUsed:=HistoryUsed+length(Str)+3;
+  P1 := PChar(HistoryBlock)+1;                     { First history record }
+  P2 := P1+Length(Str)+3;                          { History record after }
+  {$IFNDEF BIT_32}
+  Move(P1^,P2^,HistoryUsed-PtrRec(HistoryBlock).Ofs - 1);{ Shuffle history data }
+  {$ELSE}
+  Move(P1^,P2^,HistoryUsed-Word(HistoryBlock) - 1);{ Shuffle history data }
+  {$ENDIF}
+  PHistRec(P1)^.Zero := 0;                         { Set marker byte }
+  PHistRec(P1)^.Id := Id;                          { Set history id }
+  Move(Str[0], PHistRec(P1)^.Str, Length(Str)+1);  { Set history string }
+  Inc(HistoryUsed, Length(Str)+3);                 { Inc history used }
 end;
 {$ENDIF}
 
@@ -371,15 +394,16 @@ function HistoryCount(Id: Byte): Word;
 var
   Count: Word;
 begin
-  StartId(Id);
-  Count := 0;
-  AdvanceStringPointer;
-  while CurString <> nil do
-  begin
-    Inc(Count);
-    AdvanceStringPointer;
-  end;
-  HistoryCount := Count;
+  StartId(Id);                                       { Set to first record }
+  Count := 0;                                        { Clear count }
+  if (HistoryBlock <> nil) then begin                { History initalized }
+    AdvanceStringPointer;                            { Move to first string }
+    while (CurString <> nil) Do Begin
+      Inc(Count);                                    { Add one to count }
+      AdvanceStringPointer;                          { Move to next string }
+     End;
+  End;
+  HistoryCount := Count;                              { Return history count }
 end;
 
 procedure HistoryAdd(Id: Byte; const Str: String);

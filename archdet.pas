@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,16 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-improved_HA_AIN_ZXZip_and_SFX_detection_diff138byMV.patch
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit ArchDet;
@@ -81,14 +91,11 @@ begin
 end;
 
 Function RARDetect: Boolean;
-label 1;
 var
     M2: MainRAR2Hdr;
     K: Array[1..7] of Char absolute M2;
     M: MainRARHdr absolute M2;
-    C: Char;
     L: LongInt;
-    S: String;
 begin
  RAR2 := Off;
  RARDetect:=False;
@@ -98,20 +105,20 @@ begin
     then
      begin
       RARDetect := True;
-      ArcFile^.Seek(L + M.HeadLen);
-      Exit;
+      ArcPos := L + M.HeadLen;
      end;
  if (ArcFile^.Status = stOK) and (K = #$52#$61#$72#$21#$1A#$07#$00)
     then
      begin
       RAR2 := On;
       ArcFile^.Read(M2, SizeOf(M2));
-      if M2.HeadType <> $73 then Goto 1;
-      ArcFile^.Seek(ArcFile^.GetPos + M2.HeadLen - SizeOf(M2));
-      RARDetect := True;
-      Exit;
+      if M2.HeadType = $73 then
+        begin
+          RARDetect := True;
+          ArcPos := ArcFile^.GetPos + M2.HeadLen - SizeOf(M2);
+        end;
      end;
-1:ArcFile^.Seek(ArcPos);
+ ArcFile^.Seek(ArcPos);
 end;
 
 function ACEDetect: Boolean;
@@ -125,9 +132,9 @@ begin
  if (ACESign='**ACE**') and (P.HeadType=0) then
   begin
    ACEDetect:=True;
-   ArcFile^.Seek(ArcPos+P.HeadSize+4);
-  end
-  else ArcFile^.Seek(ArcPos);
+   ArcPos := ArcPos + P.HeadSize + 4;
+  end;
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function HADetect: Boolean;
@@ -141,12 +148,12 @@ begin
  if (ArcFile^.Status = stOK) and
     (S[0] = 'H') and
     (S[1] = 'A') and
-    (SizeOf(S) + SizeOf(P) + P.PackedSize <= ArcFile^.GetSize)
+    (_Cardinal(SizeOf(S) + SizeOf(P) + P.PackedSize) < ArcFile^.GetSize)
     then begin
           HADetect:=True;
-          ArcFile^.Seek(ArcPos+4);
-         end
-    else ArcFile^.Seek(ArcPos);
+          ArcPos := ArcPos + 4;
+         end;
+ ArcFile^.Seek(ArcPos);
 end;
 
 function ARJDetect: Boolean; {fixed by piwamoto}
@@ -173,7 +180,6 @@ var
   CFHEADER: TCFHEADER;
 begin
   CABDetect := false;
-{piwamoto.change.begin}
   ArcFile^.Read(CFHEADER,SizeOf(CFHEADER.signature));
   if (ArcFile^.Status = stOK) and (CFHEADER.signature = 'MSCF') then begin
    ArcFile^.Read(CFHEADER.reserved1, SizeOf(CFHEADER) - SizeOf(CFHEADER.signature));
@@ -186,7 +192,6 @@ begin
     CABDetect := true;
   end;
   ArcFile^.Seek(ArcPos);
-{piwamoto.change.end}
 end;
 
 {$IFNDEF MINARCH}
@@ -223,62 +228,54 @@ var
     M: Array[1..4] of Char;
 begin
  ArcFile^.Read(M, 4);
- BSADetect:=((ArcFile^.Status = stOK) and (M[4] in [#0,#7]) and (Copy(M,2,2) = #0#$AE));
+ BSADetect:=((ArcFile^.Status = stOK) and (M[4] in [#0,#7]) and (M[2]=#0) and (M[3]=#$AE));
  ArcFile^.Seek(ArcPos);
 end;
 
 Function BS2Detect: Boolean;
 var
-    M: Array[1..4] of Char;
+ ID: LongInt;
 begin
- ArcFile^.Read(M, 4);
- BS2Detect:=((ArcFile^.Status = stOK) and (M = #$D4#$03'SB'));
+ ArcFile^.Read(ID, SizeOf(ID));
+ BS2Detect:=((ArcFile^.Status = stOK) and (ID = $425303D4));
  ArcFile^.Seek(ArcPos);
 end;
 
 Function HYPDetect: boolean;
 var
-    M: Array[1..4] of Char;
+ ID: LongInt;
 begin
- ArcFile^.Read(M, 4);
- HYPDetect:=((ArcFile^.Status = stOK) and ((M = ^Z'HP%') OR (M = ^Z'ST%')));
+ ArcFile^.Read(ID, SizeOf(ID));
+ HYPDetect:=((ArcFile^.Status = stOK) and ((ID = $2550481A{^Z'HP%'}) OR (ID = $2554531A {^Z'ST%'})));
  ArcFile^.Seek(ArcPos);
 end;
 
 Function LIMDetect: Boolean;
 var
     M: Array[1..8] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
 begin
  LIMDetect:=False;
  ArcFile^.Read(M, 8);
  if (ArcFile^.Status = stOK) and (Copy(M,1,5) = 'LM'#26#8#0)
-    then
-     begin
-      ArcFile^.Read(M, 7);
-      if Copy(M, 6, 2) = #35#241 then
+   then begin
+     ArcFile^.Read(M, 7);
+     if (M[6] = #35) and (M[7] = #241) then
        begin
-        LIMDetect := True;
-        CDir := '';
-        ArcFile^.Seek(ArcPos+13);
-        Exit;
+         LIMDetect := True;
+         ArcPos:=ArcPos + 13;
        end;
      end;
-  ArcFile^.Seek(ArcPos);
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function HPKDetect: Boolean;
 var
-    M: Array[1..4] of Char;
     C: Char;
-    L,J,I: LongInt;
-    W: Word;
-    B: Byte;
-    S: String;
+    I: LongInt;
+    W,J: Word;
     P: Record NumFiles, Margin: LongInt; I,n,f: Byte; S: Array[1..4] of Char; end;
     R: PHPKRec;
+    S: String;
 
   function GetLong(Num4: Boolean): LongInt;
    var A: LongInt;
@@ -293,8 +290,8 @@ var
 
 begin
  HPKDetect:=False;
- ArcFile^.Read(M, 4);
- if (ArcFile^.Status = stOK) and (M = 'HPAK')
+ ArcFile^.Read(I, SizeOf(I));
+ if (ArcFile^.Status = stOK) and (I = $4B415048{'HPAK'})
     then
      begin
       ArcFile^.Seek(ArcFile^.GetSize - SizeOf(P));
@@ -329,98 +326,91 @@ begin
 end;
 
 Function TARDetect: Boolean;
-  var P: TARHdr;
+  var
       SumTar, SumCalc: LongInt;
       i : integer;
-
-   function FromOct(S: String): LongInt; {fixed by piwamoto}
-    var I,L: LongInt;
-   begin
-     L := 0;
-     for I := 1 to Length(S) do
-       if S[I] in['0'..'9'] then L := L shl 3 + Byte(S[I]) - 48;
-     FromOct := L;
-   end;
-
- begin
+      Buffer: Array [0..BlkSize - 1] of Char;
+      P: TARHdr absolute Buffer;
+begin
   TARDetect:=False;
   if ArcFile^.GetSize < SizeOf(P) then Exit;
   ArcFile^.Read(P, SizeOf(P));
   SumTar := FromOct(P.chksum);
   P.chksum := '        '; {8 spaces}
   SumCalc := 0;
-  for i:=0 to BLKSIZE-1 do SumCalc := SumCalc + mem[Seg(P.FName):Ofs(P.FName)+i];
+  for i:=0 to BLKSIZE-1 do SumCalc := SumCalc + Byte(Buffer[i]);
   TARDetect := (SumTar = SumCalc);
   ArcFile^.Seek(ArcPos);
- end;
+end;
 
 function TGZDetect: boolean;
-{changed by piwamoto}
 var
     W: AWord;
 begin
  ArcFile^.Read(W, SizeOf(W));
  TGZDetect := (ArcFile^.Status = stOK) and
               (W = $8b1f) and
-              (InFilter(ArcFileName, '*.TAZ;*.TGZ;*.GZ;*.Z;*.RPM'));
+              (InFilter(ArcFileName, '*.TAR;*.TAZ;*.TGZ;*.GZ;*.Z'));
  ArcFile^.Seek(ArcPos);
 end;
 
 function ZXZDetect: boolean;
 var
     P: ZXZHdr;
-    W: Word;
+    W: AWord;
 begin
  ArcFile^.Read(P.Name, SizeOf(P.Name) + SizeOf(P.Extension) + SizeOf(P.OriginSize));
  ArcFile^.Read(W, SizeOf(W));
  ZXZDetect:=False;
+ if (P.Extension = 'ZIP') and (W-P.OriginSize<=255) and
+    (W and $0ff = 0) and (ArcFile^.Status = stOK) then
+   begin
+    ArcPos := ArcPos + $11;
+    ZXZDetect:=True;
+   end;
  ArcFile^.Seek(ArcPos);
- if not ( (P.Extension = 'ZIP') and (W-P.OriginSize<=255) and (W and $0ff = 0) ) then Exit;
- ZXZDetect:=True;
- ArcFile^.Seek(ArcPos+$11);
 end;
 
 function QuArkDetect: boolean;
 var
-  ID : LongInt;
+ ID: LongInt;
 begin
+  QuArkDetect := false;
   ArcFile^.Read(ID, SizeOf(ID));
   if (ArcFile^.Status = stOK) and (ID=$100437) then
     begin
-      ArcFile^.Seek(ArcPos + 8);
+      ArcPos := ArcPos + 8;
       QuArkDetect := true;
-    end
-  else
-    begin
-      ArcFile^.Seek(ArcPos);
-      QuArkDetect := false;
     end;
+  ArcFile^.Seek(ArcPos);
 end;
 
 function UFADetect: boolean;
 var
-  ID : Array[1..3]of Char;
+ ID: LongInt;
 begin
-  ArcFile^.Read(ID, SizeOf(ID));
-  if (ArcFile^.Status = stOK) and (ID = 'UFA') then
+  UFADetect := false;
+  ID := 0;
+  ArcFile^.Read(ID, 3);{only 3 bytes!}
+  if (ArcFile^.Status = stOK) and (ID = $414655{'UFA'}) then
     begin
-      ArcFile^.Seek(ArcPos + 8);
-      UFADetect := true;
-    end
-  else
-    begin
-      ArcFile^.Seek(ArcPos);
-      UFADetect := false;
+      ArcFile^.Read(ID, SizeOf(ID));
+      if (ID and $1000000) = 0 then {archive <> solid}
+        begin
+          ArcPos := ArcPos + 8;
+          UFADetect := true;
+        end;
     end;
+  ArcFile^.Seek(ArcPos);
 end;
 
 function IS3Detect: boolean;
 var
-    IS3Sign: LongInt;
+ ID: LongInt;
 begin
  IS3Detect:=False;
- ArcFile^.Read(IS3Sign, SizeOf(IS3Sign));
- if IS3Sign=$8C655D13
+ ArcFile^.Read(ID, SizeOf(ID));
+ if ID = $8C655D13
   then IS3Detect:=True
   else ArcFile^.Seek(ArcPos);
 end;
@@ -434,109 +424,75 @@ begin
  if (ArcFile^.Status = stOK) and (S = 'HLSQZ')
     then begin
           SQZDetect := True;
-          ArcFile^.Seek(ArcPos+8);
-         end
-    else ArcFile^.Seek(ArcPos);
+          ArcPos := ArcPos + 8;
+         end;
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function HAPDetect: Boolean;
 var
-    S: Array[1..4] of Char;
-    P: HAHdr;
+ ID: LongInt;
 begin
- ArcFile^.Read(S, 4);
  HAPDetect:=False;
- if (ArcFile^.Status = stOK) and (S = #145#51#72#70)
-    then begin HAPDetect:=True; ArcFile^.Seek(ArcPos+14) end
-    else ArcFile^.Seek(ArcPos);
+ ArcFile^.Read(ID, SizeOf(ID));
+ if (ArcFile^.Status = stOK) and (ID = $46483391)
+   then begin
+     HAPDetect:=True;
+     ArcPos := ArcPos + 14;
+   end;
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function ZOODetect: Boolean;
-label 1;
 var
-    S: Array[1..3] of Char;
-    C: Char;
-    L: LongInt;
+ ID: LongInt;
 begin
- ArcFile^.Read(S, 3);
  ZOODetect:=False;
- if (ArcFile^.Status = stOK) and (S = 'ZOO')
-    then
-     begin
-      L := 0;
-      repeat Inc(L); ArcFile^.Read(C, 1) until (C = ^Z) or (L = 1024);
-      ArcFile^.Read(L,2);
-      ArcFile^.Read(L,4);
-      if L <> ZOOID then Goto 1;
-      ZOODetect := True;
-      ArcFile^.Read(L,4);
-      ArcFile^.Seek(L);
-      Exit;
-     end;
-1:ArcFile^.Seek(ArcPos);
+ ArcFile^.Read(ID, SizeOf(ID));
+ if (ArcFile^.Status = stOK) and (ID = ZOOID) then
+   begin
+    ArcFile^.Read(ArcPos,SizeOf(ArcPos));
+    ZOODetect := True;
+   end;
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function CHZDetect: Boolean;
-label 1;
 var
-    M: Array[1..3] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
+ ID: LongInt;
 begin
  CHZDetect:=False;
- if ArcPos > 0 then
-   begin
-    S[0] := #128;
-    ArcFile^.Read(S[1],128);
-    L := Pos('SChF', S);
-    if L = 0 then L := Pos('SChD', S);
-    if L = 0 then Goto 1;
-    Inc(ArcPos, L-1);
-    ArcFile^.Seek(ArcPos);
-   end;
- ArcFile^.Read(M, 3);
- if (ArcFile^.Status = stOK) and (M = 'SCh')
-    then
-     begin
-      CHZDetect := True;
-      CDir := '';
-      ArcFile^.Seek(ArcPos);
-      Exit;
-     end;
-1:ArcFile^.Seek(ArcPos);
+ ID := 0;
+ ArcFile^.Read(ID, 3);{last byte isn't needed, coz it checked in Check4ArcId}
+ if (ArcFile^.Status = stOK) and (ID = $684353{'SCh'}) then CHZDetect := True;
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function UC2Detect: Boolean;
 var
-    M: Array[1..4] of Char;
+ ID: LongInt;
 begin
  UC2Detect:=False;
- ArcFile^.Read(M, 4);
- if (ArcFile^.Status = stOK) and (M = 'UC2'#26) then
-     begin
-        UC2Detect:= True;
-        Exit;
-     end;
-  ArcFile^.Seek(ArcPos);
+ ArcFile^.Read(ID, SizeOf(ID));
+ if (ArcFile^.Status = stOK) and (ID = $1A324355{'UC2'#26})
+   then UC2Detect := True
+   else ArcFile^.Seek(ArcPos);
 end;
 
 Function AINDetect: Boolean;
 var
     AinHdr : Array[0..21] of Byte;
-    AinSum, ChkSum : Word;
-    I : Integer;
+    I, AinSum, ChkSum : AWord;
 begin
  AINdetect:=False;
  ArcFile^.Read(AinHdr, SizeOf(AinHdr));
  ArcFile^.Read(AinSum, SizeOf(AinSum));
  if (ArcFile^.Status = stOK) and
-    ((AinHdr[14] + 256*AinHdr[15] + 65536*AinHdr[16] + 16777216*AinHdr[17]) < ArcFile^.GetSize)
+    (_Cardinal(AinHdr[14] + 256*AinHdr[15] + 65536*AinHdr[16] + 16777216*AinHdr[17]) < ArcFile^.GetSize)
    then begin
      ChkSum := 0;
      for I:=0 to 21 do ChkSum := ChkSum + AinHdr[I];
-     ChkSum := ChkSum xor $5555;
-     AINDetect:=(ChkSum=AinSum);
+     AINDetect:=(ChkSum=(AinSum xor $5555));
    end;
  ArcFile^.Seek(ArcPos);
 end;

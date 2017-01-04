@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.6.RC1
+;/  Dos Navigator Open Source
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 ;/  version or derivative of this code cannot be changed. i.e. this code
 ;/  cannot simply be copied and put under another distribution licence
 ;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+;/
+;/  Version history:
+;/
+;/  1.6.RC1
+;/
+;/  dn16rc1-version_upgrade.patch
+;/
+;/  2.0.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -91,11 +101,11 @@ ClearKBD        MACRO
 ;size & speed optimizations by Max Piwamoto
 
                 IFDEF _DPMI_
-DNversionTXT    equ    'Open Source 1.6.RC1/DPMI'
+DNversionTXT    equ    'Open Source 2.0.0/DPMI'
                 ELSE
-DNversionTXT    equ    'Open Source 1.6.RC1/DOS'
+DNversionTXT    equ    'Open Source 2.0.0/DOS'
                 ENDIF
-DNversionBIN    equ    15991
+DNversionBIN    equ    20000
 DNversionSIGN   equ    'DN'
 
                 .model tiny

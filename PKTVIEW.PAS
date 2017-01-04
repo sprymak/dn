@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-deleting_temporary_files_safety_fix.patch
+//  dn16rc1-Bugfix_for_rc1-deleting_temporary_files_safety_fix_patch-diff152byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -448,13 +458,15 @@ begin
 end;
 
 Destructor TPktObj.Done;
+ var Dir, Name, Ext: String; {JO}
 begin
  DisposeStr(tu);
  DisposeStr(fu);
  DisposeStr(su);
  DisposeStr(dt);
  if KillAfterUse then begin
-   EraseFile(FileName);
+   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
    KillAfterUse:=False;
    TempFile:='';
  end;
@@ -796,13 +808,15 @@ begin
 end;
 
 Destructor TMsgViewer.Done;
+var Dir, Name, Ext: String;
 begin
  DisposeStr(FromUSer);
  DisposeStr(ToUser);
  DisposeStr(Date);
  DisposeStr(Subj);
  if KillAfterUse then begin
-   EraseFile(FileName);
+   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
    KillAfterUse:=False;
    TempFile:='';
  end;

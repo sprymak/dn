@@ -6,6 +6,202 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 2.0.0
+  ---------------------------------------------------------------------
+
+[!] Fixed occasional files deleting, hanging at file operations, 'missing'
+    files in file panels, improved Novell Netware compatibility. Changes
+    information added to the source codes.
+
+
+    >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed bug caused DOS Navigator could not work with empty catalogs in
+    Novell disks from DOS (Max Vasilyev).
+
+[-] Changed time sharing system in multitasking environments (removed
+    EnterCriticalSection and LeaveCriticalSection) (Max Vasilyev).
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] New DN.INI parameter: HistoryButtonChars = string[4], (section
+    [Interface]). In this case displaying the history button in dialogs will
+    use a limited chars set (like PoorFrames parameter) (Pawel Ziemian).
+
+[+] New DN.INI parameter: SundayFirst = byte (section [Calendar]).
+    Value 1 defines Sunday as the first day of week, 0 defines as the last
+    one. Value 2 defines automatic detection of this parameter (default)
+    (Max Vasilyev).
+
+[+] Added new filenames display mode. Set in menu Options -> File
+    Manager -> Column defaults -> (any item) -> Automatic detection.
+    The case of filenames in panels is defined so:
+    1. If there are letters of one case IN.a.name.BETWEEN.TWO.points,
+       then the files names are lowercased, and catalogs names are
+       uppercased.
+    2. If there are letters of different cases in.a.Name, then it is
+       displayed as is.
+    This displaying mode formerly was set only in the source codes by
+    specifying {$DEFINE COMBINE_MIXED} (Max Vasilyev).
+
+[*] Removed intersected hotkeys in archiving dialog. Some corrections in
+    search and replace dialogs in the editor and viewer. Added calling help
+    for files columns options dialogs. Added Ctrl-M hotkey for zooming
+    window. Added IniFile topic, describing DN.INI structure, to English help
+    files. (Pavel Borodin, Max Vasilyev).
+
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Added mode of sorting files by descriptions (Jaroslaw Osadtchiy).
+
+[*] Now Ctrl-N hotkey is used for toggling long and short names display in
+    file panel and Ctrl-Alt-N hotkey is used for network information display
+    (Jaroslaw Osadtchiy).
+
+[*] Option for sorting archives before executables in panels added to panel
+    options (Jaroslaw Osadtchiy).
+
+[*] If HandleChDirCommand=1 used, the catalog name in CD command will be
+    automatically transformed into long. CD /? command is now passed to
+    processing by the operation system (Max Vasilyev).
+
+[*] Changed function of hotkey Ctrl-Y: Now it serves for toggling between
+    the current (but not only the first one as formerly) and the second (full
+    by default) modes of file panels columns (Jaroslaw Osadtchiy).
+
+[*] Now hotkey Shift-Del (for deleting a single file) in file panel does not
+    work while '[ ] DEL erases file(s)' in File Manager options is off
+    (Jaroslaw Osadtchiy).
+
+[*] Now wildcards like '*.' and 'xxx*.' are interpreted as wildcards of files
+    without extensions while searching by a filter and in a file panel filter
+    (Jaroslaw Osadtchiy).
+
+[*] The file panel filter correctly accepts (and processes) wildcards with
+    extensions exceeding 3 chars length if such files exist
+    (Jaroslaw Osadtchiy).
+
+[*] The file panel filter works via long filenames in the long filenames
+    displaying mode and via short ones in the short filenames displaying mode
+    (Jaroslaw Osadtchiy).
+
+[-] Fixed processing cases of unsuccessful moving files to another disk
+    (Aleksej Kozlov).
+
+[-] Fixed processing hotkeys Ctrl(+Alt)(+Shift)+Enter (Max Vasilyev).
+
+[-] Now element '..' cannot be deleted by Ctrl-Del (Jaroslaw Osadtchiy).
+
+[-] Fixed bug caused impossibility of comparing catalogs using all the
+    4 comparison criteria simultaneously (Jaroslaw Osadtchiy).
+
+[-] Fixed hanging while viewing catalogs tree. Minor changes in the tree
+    displaying: Now catalogs names are not edged with zero chars (which are
+    often seen as vile small dots or something worse), now all catalogs of
+    one level display aligned by one vertical line not depending on the
+    catalogs presence in them (Jaroslaw Osadtchiy).
+
+[-] Fixed bug caused that deleting the zeroth element (current catalog) of
+    the catalogs history passed to the history element of the number smaller
+    than the selected one by 1 (and selecting the zeroth element simply
+    passed to the current catalog) (Alexey Korop).
+
+[-] Not all files displayed in some sorting modes (Max Vasilyev).
+
+[-] Fixed copying catalogs descriptions containing a point in their
+    names (Max Vasilyev).
+
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed back search in view (Marcin Meinardi).
+
+[-] Fixed hanging when changing xlt-table in view (Alexey Korop).
+
+[-] Fixed bug caused going to a bookmark by mouse was impossible if there are
+    no the bookmark of the number smaller by 1 (Alexey Korop).
+
+[-] Formerly '!\!.!' wildcards data for viewers, editors and launching by
+    extension were transferred in a wrong case. Irrespective of the real one,
+    the catalog was uppercase and the filename was lowercase causing problems
+    with Java (Aleksej Kozlov).
+
+[-] Fixed functioning of Undo/Redo after saving a file in the editor
+    (Max Vasilyev).
+
+
+    >>> Database viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed databases identification (Max Vasilyev).
+
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Operations with archivers optimized, fixed bugs in processing some
+    types of archivers and also processing archivers without extensions
+    (Max Vasilyev).
+
+[-] Fixed archive reading process indication (Max Vasilyev).
+
+
+    >>> System Information <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Changed detecting hard disks of large sizes (more than 8 Gb)
+    (Max Morozov, Max Vasilyev).
+
+
+    >>> Calculator <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Values may be entered in scientific form <a>E+<b>, <a>E-<b>
+    (Pavel Anufrikov).
+
+[+] Added support of logic functions && and || (Max Morozov).
+
+[*] In calculator entering values of bases 16, 8 and 2 interpreted as
+    signless, ie. entering value 0xFFFFFFFF displays not Overflow but
+    0xFFFFFFFF in HEX line. Also it works correctly with negative values
+    like -0xF8000001 (Max Morozov).
+
+[-] Fixed executing functions OR and XOR (Max Morozov).
+
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Calendar is completely rewritten. See the detailed information in
+    the help chapter about Calendar (Pawel Ziemian).
+
+[-] Fixed program crash after a message about COM port cannot be found
+    when opening the terminal window (Max Morozov).
+
+[-] Fixed program crash while copying files (Pawel Ziemian).
+
+[-] Being installed 'from scratch' DOS Navigator could not be launched
+    without its English resources (Max Vasilyev).
+
+[-] Fixed bug caused occasional deleting files (Jaroslaw Osadtchiy).
+
+[-] Fixed hanging and occasional creating files in some computers
+    (Marcin Meinardi).
+
+
+    >>> Source codes usage features <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] {$DEFINE COMBINE_MIXED} moved from the source codes to the panel options
+    (Max Vasilyev).
+
+[-] Fixed the processors detection library compilation (Max Vasilyev).
+
+[-] Now AsyncPro library may be used in source codes (Max Vasilyev).
+
+[-] Fixed 'broken' possibility of compiling with included PKTVIEW
+    (Pavel Borodin).
+
+[!] Changes information added to the source codes.
+    It is filled by the COORDINATOR only!
+
+
+
    Version 1.6.RC1 (Release Candidate 1)
   ---------------------------------------------------------------------
 

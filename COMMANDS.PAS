@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,18 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-pkview_some_dialogs_resources_fix.patch
+//  dn16rc1-piwcal22.patch
+//  dn16rc1-sort_by_description_and_archives_before_exe.patch
+//  dn16rc1-Ctrl-N_hotkey_used_for_long-short_names_switching.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -110,7 +122,7 @@ CONST
   kbCtrlY = $1519;  kbCtrlZ = $2C1A;  kbAltTilde = $2900;
 
         {-DataCompBoy-}
-  kbCtrlAltX = $2D0D; kbCtrlAltZ = $2C0C;
+  kbCtrlAltX = $2D0D; kbCtrlAltZ = $2C0C; kbCtrlAltN = $3111;
   kbCtrlAltF1 = $F100; kbCtrlAltF2 = $F200; kbCtrlAltF3 = $F300;
   kbCtrlAltF4 = $F400; kbCtrlAltF5 = $F500; kbCtrlAltF6 = $F600;
   kbCtrlAltF7 = $F700; kbCtrlAltF8 = $F800; kbCtrlAltF9 = $F900;
@@ -340,17 +352,6 @@ const
   ckMapTable      = 2;
   ckStatistic     = 4;
 
-{ Panel sort mode }
-  psmName      = 0;
-  psmLongName  = 1;
-  psmExtension = 2;
-  psmLongExt   = 3;
-  psmSize      = 4;
-  psmTime      = 5;
-  psmType      = 6;
-  psmUnsorted  = 7;
-  psmOrdered   = 30;
-
 { QuickSearch key }
   pqsAlt  = 0;
   pqsCtrl = 1;
@@ -365,6 +366,7 @@ const
   fmiHiliteFiles     = $0020;
   fmiExeFirst        = $0040;
   fmiArchivesFirst   = $0080;
+  fmiExeBeforeArc    = $0100;
 
 { Common panel interior, same for all instances }
   fmsColumnTitles    = $0001;
@@ -510,6 +512,10 @@ const
 { Dialog broadcast commands }
 
   cmRecordHistory = 60;
+
+{ System broadcasts }
+
+  cmDnIniChanged = 61; {PZ}
 
 { Standard messages }
 
@@ -741,6 +747,7 @@ const
   cmSaveSheetAs        = 10919;
   cmToggleDescriptions = 10920;
   cmToggleShowMode     = 10921;
+  cmToggleLongNames    = 10922;
 
   cmExtract            = 11000;
   cmSetPassword        = 11001;
@@ -1096,16 +1103,15 @@ const
   cmUnWrap            = 197;
   cmGotoCell          = 508;
 
-{ Sort commands }
-  cmSortName          = 13001;
-  cmSortLongName      = 13002;
-  cmSortExt           = 13003;
-  cmSortLongExt       = 13004;
-  cmSortSize          = 13005;
-  cmSortDate          = 13006;
-  cmSortType          = 13030;
-  cmSortUnsorted      = 13000;
-
+{$IFDEF OS_DOS}
+ {$I SORT_DOS.INC}
+{$ENDIF}
+{$IFDEF Win32}
+ {$I SORT_W32.INC}
+{$ENDIF}
+{$IFDEF OS2}
+ {$I SORT_OS2.INC}
+{$ENDIF}
 
 { DblWnd Commands }
 
@@ -1420,6 +1426,7 @@ TYPE
     dlSortLongExt,
     dlSortType,
     dlSortDate,
+    dlSortDIZ,
     dlSortSize,
     dlSortUnsorted,
     dlViewQuery,
@@ -1953,6 +1960,12 @@ TYPE
     dlTeam165,
     dlTeam166,
     dlTeam167,
+    dlTeam168,
+    dlTeam169,
+    dlTeam170,
+    dlTeam171,
+    dlTeam172,
+    dlTeam173,
 
     dlHelp,
     dlOutputTitle,
@@ -1996,7 +2009,6 @@ TYPE
 
     dlDITemporary,
     dlDIFileFind,
-    dlDIFFMask,
     dlBranch,
     dlDICurArchive,
     dlDIArcTotalFiles,

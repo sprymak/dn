@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,18 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-viewer_backward_search.patch
+//  dn16rc1-file_masks_and_advanced_filter_fix.patch
+//  dn16rc1-filesizestr_small_fix.patch
+//  dn16rc1-vp_noasm_compatible.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -127,6 +139,8 @@ Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boole
 Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV ::}
 
 procedure CompressString(var S: String);
+
+function PosLastDot(StrToMake: String): Byte; {JO}
 
 implementation
 uses advance2, advance3;
@@ -227,7 +241,7 @@ procedure Hex8Lo(L:longInt;var HexLo);
  end;
  {$ENDIF}
 {$ELSE}
-type ChArr: array[1..4] of char;
+type ChArr = array[1..4] of char;
 begin
  ChArr(HexLo)[1]:=LoHexChar[L shr 24];
  ChArr(HexLo)[2]:=LoHexChar[L and $00FF0000 shr 16];
@@ -484,7 +498,7 @@ Procedure DelRight;
 {$ELSE}
 var q: byte absolute S;
 begin
- for q:=q downto 1 do if S[q]<>' ' then break;
+  while (q > 0) and (S[q] = ' ') do dec(q); { Kirill } { For Compatible VP }
 end;
 {$ENDIF}
 
@@ -827,7 +841,9 @@ begin
     if X<0 then begin FileSizeStr:='?'; exit; end;
     IsMax:=X=MaxLongint; (* X-Man *)
     LV:=0;
-    while (X>=10000000) or (IsMax and (X>=100000)) do begin (* X-Man *)
+    while ((CountryInfo.ThouSep[0]=#0) and (X>=exp((9+CountryInfo.TimeFmt)*ln(10))))
+    or ((CountryInfo.ThouSep[0]>#0) and (X>=exp((7+CountryInfo.TimeFmt)*ln(10))))
+    or (IsMax and (X>=exp(5*ln(10)))) do begin (* X-Man *)
         Inc(LV);
         X:=X/1024
     end;
@@ -1155,7 +1171,7 @@ procedure MakeDateFull; {-$VOL modified}
   {$ENDIF}
  {$ELSE}
  begin
-  Word(S):=word(((R div 10)+ord('0')) + ((R mod 10)+ord('0')) shl 8);
+   AWord(S):=Aword(((R div 10)+ord('0')) + ((R mod 10)+ord('0')) shl 8); { Kirill }
  end;
  {$ENDIF}
 
@@ -1701,7 +1717,7 @@ begin
  BackSearchFor := 0;
  if S = '' then Exit;
  MakeCase(CaseSensitive);
- FillWord(D, 255, Length(S));
+ FillWord(D, 256, Length(S));
  for I := 1 to Length(S) do S[I] := Tran[S[I]];
  for I := Length(S) downto 1 do
    D[S[I]] := I - 1;
@@ -1933,5 +1949,17 @@ begin
   end;
   {$ENDIF}
 end;
+
+function PosLastDot(StrToMake: String): Byte;
+  var I: byte;
+  begin
+  for I := Length(StrToMake) downto 1 do
+    if StrToMake[I] = '.' then
+      begin
+      PosLastDot := I;
+      exit;
+      end;
+  PosLastDot := Length(StrToMake)+1;
+  end;
 
 end.

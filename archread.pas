@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit ArchRead;
@@ -59,13 +68,14 @@ implementation
 procedure ReadArcList; {changed & AIN added by piwamoto}
   const
     FuckName = 'U$~RESLT.OK';
-  var S,CurDir,ID: String;
+  var
       P:   PArcFile;
       PC:  PDirStorage;
       F:   PTextReader;
       DT:  DateTime;
       I,J: Integer;
       Drv: PArcDrive;
+      S,CurDir,ID: String;
   label 1,2;
  begin
   S := TempFile; ID := Copy(S,1,4); Delete(S, 1, 4);
@@ -156,17 +166,19 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
                      DT.Min := StoI(Copy(S,4,2));
                      DT.Sec := StoI(Copy(S,7,4));
                    end else
+{---> commented by piwamoto
                   if Id = 'ATTR' then
                    begin
                    end else
+                  if Id = 'VERS' then
+                     begin
+                     end else
+---> commented by piwamoto}
                   if Id = 'SIZE' then
                    begin
                      P^.USize := StoI(S);
                      P^.PSize := StoI(S);
-                   end else
-                  if Id = 'VERS' then
-                     begin
-                     end;
+                   end;
                 end;
          end;
       1:

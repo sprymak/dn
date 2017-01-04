@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-W2K_compatibility_fix-diff156byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1338,11 +1347,11 @@ end;
 
 Procedure SetBlink(Mode : boolean);
 {$IFDEF NOASM}
-var r: registers;
+var r: {$IFDEF DPMI}DPMIRegisters{$ELSE}Registers{$ENDIF};
 begin
  r.ax:=$1003;
  r.bl:=ord(Mode);
- intr($10, r);
+ {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($10, r);
 end;
 {$ELSE}
 assembler;

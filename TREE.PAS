@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-tree_view_change_drive_fix.patch
+//  dn16rc1-tree_view_cosmetical_changes.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1259,6 +1269,7 @@ begin
                                 LocateEnabled := Off;
                                 WasChanged := Off;
                                 CurPath := LastPath; Reread(Off);
+                                if DC = nil then begin CE; Exit; end; {JO}
                                 if Valid(0) then
                                 begin
                                   if Dirs = nil then Exit;
@@ -1470,7 +1481,7 @@ begin
     if P^.Attr and 1 = 1 then C := #195 else C := #192;
     if P^.Level = 0 then S := '' else
      begin
-      {if Parital then S := C + #196'[ ] ' else} S := C + #196#196#196;
+      {if Parital then S := C + #196'[ ] ' else} S := C + #196#196#196#196' ';
       if (P^.Attr and trHasBranch <> 0) and
        (PDirRec(Dirs^.At(P^.Number+1))^.Level > P^.Level) then
         if Parital then if Expanded(P, Idx+1) then S := C + #196'[-] '
@@ -1491,14 +1502,14 @@ begin
     if LFNPresent then q:=GetLFN(P^.LFN) else q:=P^.Name;
     if CurPos = Idx then
      begin
-      MoveStr(B[K+Length(S)-1],' '#0+q+#0' ', CC);
-      if QuickSearch then
-       begin
+      MoveStr(B[K+Length(S)],{' '#0+}q{+#0' '}, CC); {JO: зачем нужна была эта оторочка имён нулями - тайна,}
+      if QuickSearch then                            {    покрытая мраком, но из-за неё каталоги в панели}
+       begin                                         {    оторочены мерзкими точечками или чем ещё похуже}
         ShowCursor;
         NormalCursor;
         SetCursor(K + Length(S) + GetCursorPos(SearchParam, q, Size.X, 0, 0), I-1)
        end else HideCursor;
-     end else begin q:=#0+q+#0; MoveStr(B[K+Length(S)], q, CC) end;
+     end else begin {q:=#0+q+#0;} MoveStr(B[K+Length(S)], q, CC) end;
         {-DataCompBoy-}
    end;
    WriteLine(0, I-1, Size.X, 1, B[Delta.X]);

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,8 +43,20 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-highlite_win32.patch
+//  dn16rc1-Better_highilighting_C_numbers.patch
+//  dn16rc1-Better_highilighting_C_numbers_v1_1.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+
 (*****************************************************************
  *
  * SOURCE FILE: highlite.pas
@@ -80,6 +92,7 @@
  *              1.10  2000.06.10 PZ     Better strings and float
  *                                      handling.
  *              1.11  2000.07.16 DCB    Make unit 32-bit compatable
+ *              1.12  2001.11.16 PZ     Better handling C numbers
  *
  *****************************************************************)
 
@@ -91,14 +104,15 @@ const
 
 {General flags}
 
-  hoCaseSensitive     = $01;
-  hoNoNumbers         = $02;
-  hoNoSymbols         = $04;
-  hoNoStrings         = $08;
-  ho0xPrefixHex       = $10;  {   0x####  C-Style }
-  hoDollarPrefixHex   = $20;  {    $####  Pascal }
-  hoFloatNumbers      = $40;  {    #.#e#  C or Pascal }
-  hoAllowShortFloat   = $80;  {     .#e#  (option) C }
+  hoCaseSensitive     = $001;
+  hoNoNumbers         = $002;
+  hoNoSymbols         = $004;
+  hoNoStrings         = $008;
+  ho0xPrefixHex       = $010; {   0x####  C-Style }
+  hoDollarPrefixHex   = $020; {    $####  Pascal }
+  hoFloatNumbers      = $040; {    #.#e#  C or Pascal }
+  hoAllowShortFloat   = $080; {     .#e#  (option) C }
+  hoCSuffix           = $100; {    ###ul  (option) C }
 
 {Number flags}
 
@@ -130,7 +144,7 @@ type
     OctFlagsO      : Word;
     BinFlags       : Word;
     StrFlags       : Word;
-    RulesBuffer    : array [1..$400] of Char;
+    RulesBuffer    : array [1..$1000] of Char;
   end;
 
   THighliteRule = (
@@ -212,6 +226,7 @@ function GetHighliteRules ( const Params : THighliteParams; var Rules : array of
   end;
   {$ELSE}
   assembler;
+   {$IFNDEF BIT_32}
   asm
         MOV     BX,DS
         LDS     SI,P
@@ -227,6 +242,21 @@ function GetHighliteRules ( const Params : THighliteParams; var Rules : array of
         MOV     AX,SI
         MOV     DS,BX
   end;
+   {$ELSE BIT_32}{&Frame-}{&USES ESI, EDI}
+  asm                     { Kirill }
+        CLD
+        MOV     ESI,P
+        MOV     EDI,PEnd
+  @@1:
+        CMP     ESI,EDI
+        JAE     @@2
+        LODSB
+        OR      AL,AL
+        JNE     @@1
+  @@2:
+        MOV     EAX,ESI
+  end;
+   {$ENDIF}
   {$ENDIF}
 
 var
@@ -273,8 +303,6 @@ const
 
   function CheckEmpty ( Len : Integer; S : PChar ) : Boolean;
   {$IFDEF NOASM}
-  var
-    i : Integer;
   begin
     CheckEmpty := False;
     while Len > 0 do begin
@@ -308,12 +336,12 @@ const
         XCHG    AL,AH
         MOV     DS,DX
    end;
-   {$ELSE BIT_32}{&Frame-}{$USES ESI, ECX}
+   {$ELSE BIT_32}{&Frame-}{&USES ESI, ECX}
    asm
         CLD
         XOR     EAX,EAX
         MOV     ECX,Len
-        LEA     ESI,S
+        MOV     ESI,S     { Kirill } { LEA -> MOV }
         JCXZ    @@3
    @@1:
         LODSB
@@ -333,12 +361,10 @@ const
   function CheckStartComment ( Len : Integer; S : PChar; T : PChar ) : Boolean;
   {$IFDEF NOASM}
   var
-    i : Integer;
     j : Integer;
     c : Char;
   begin
     CheckStartComment := True;
-    i := 0;
     j := 0;
     repeat
       c := T^;
@@ -396,11 +422,11 @@ const
    @@5:
         POP     DS
    end;
-   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EBX, ECX}
+   {$ELSE BIT_32}{&Frame-}{&USES ESI, EDI, EBX, ECX}
    asm
         CLD
-        LEA     ESI,T
-        LEA     EDI,S
+        MOV     ESI,T     { Kirill } { LEA -> MOV }
+        MOV     EDI,S     { Kirill } { LEA -> MOV }
         MOV     ECX,Len
    @@0:
         XOR     EBX,EBX
@@ -493,15 +519,15 @@ const
         XCHG    AL,AH
         POP     DS
    end;
-   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EBX, ECX}
+   {$ELSE BIT_32}{&Frame-}{&USES ESI, EDI, EBX, ECX}
    asm
         CLD
         XOR     EAX,EAX
-        LEA     ESI,P
+        MOV     ESI,P     { Kirill } { LEA -> MOV }
         LODSB
         MOV     ECX,EAX
         JCXZ    @@3
-        LEA     EDI,S
+        MOV     EDI,S     { Kirill } { LEA -> MOV }
         MOV     EBX,Len
         ADD     EBX,EDI
         ADD     EDI,I
@@ -535,7 +561,6 @@ const
   var
     j : Integer;
     k : Integer;
-    t : string;
   begin
     ParseChars := 0;
     j          := I;
@@ -642,23 +667,48 @@ const
       ParseFloat := max;
     end;
 
+    function ParseCSuffix ( I : Integer ) : Integer;
+    var
+      suffix : set of ( sUnsigned, sLong );
+      j        : Integer;
+    begin
+      suffix := [];
+      j      := I;
+      while j <= Len do begin
+        case S[j] of
+
+          'U', 'u': begin
+            if sUnsigned in suffix then
+              Break;
+            Include ( suffix, sUnsigned );
+          end;
+
+          'L', 'l': begin
+            if sLong in suffix then
+              Break;
+            Include ( suffix, sLong );
+          end;
+
+        else Break;
+        end;
+        Inc ( j );
+      end;
+      ParseCSuffix := j - I;
+    end;
+
   var
     max : Integer;
     j   : Integer;
   begin
 
-  {Default is float or decimal}
+  { Default is decimal }
+    max := ParseChars ( I, '', DecDigits, '' );
 
-    if (hoFloatNumbers and Params.GenFlags) <> 0 then
-      max := ParseFloat
-    else
-      max := ParseChars ( I, '', DecDigits, '' );
-
-  {   0x####  C-Style }
+  {   0x####  C-Style including suffix }
 
     if (ho0xPrefixHex and Params.GenFlags) <> 0 then begin
       j := ParseChars ( I, '0X', HexDigits, '' );
-      if j >= max then
+      if j > max then
         max := j;
     end;
 
@@ -666,7 +716,19 @@ const
 
     if (hoDollarPrefixHex and Params.GenFlags) <> 0 then begin
       j := ParseChars ( I, '$', HexDigits, '' );
-      if j >= max then
+      if j > max then
+        max := j;
+    end;
+
+  { C numbers might be followed by type suffixes }
+    if (max > 0) and ((hoCSuffix and Params.GenFlags) <> 0) then begin
+      Inc ( max, ParseCSuffix ( I+max ) );
+    end;
+
+  { Float numbers }
+    if (hoFloatNumbers and Params.GenFlags) <> 0 then begin
+      j := ParseFloat;
+      if j > max then
         max := j;
     end;
 
@@ -704,11 +766,9 @@ const
     opts      : Word;
     j         : Integer;
     k         : Integer;
-    l         : Integer;
     term      : Char;
     esc       : Boolean;
   begin
-    CheckString := 0;
     opts        := Params.StrFlags;
     j           := I;
 
@@ -883,12 +943,12 @@ const
    @@4:
         POP     DS
    end;
-   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EDX, ECX}
+   {$ELSE BIT_32}{&Frame-}{&USES ESI, EDI, EDX, ECX, EBX} { Kirill } { Add Save EBX }
    asm
         CLD
         XOR     EAX,EAX
-        LEA     ESI,T
-        LEA     EDI,S
+        MOV     ESI,T           { Kirill } { LEA -> MOV }
+        MOV     EDI,S           { Kirill } { LEA -> MOV }
         MOV     EDX,Len
         ADD     EDX,EDI         { j }
         ADD     EDI,I           { k }
@@ -1037,12 +1097,12 @@ const
         SUB     AX,CX
         POP     DS
    end;
-   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EDX, EBX, ECX}
+   {$ELSE BIT_32}{&Frame-}{&USES ESI, EDI, EDX, EBX, ECX}
    asm
         CLD
         XOR     EAX,EAX
-        LEA     ESI,Keywords
-        LEA     EDI,S
+        MOV     ESI,Keywords    { Kirill } { LEA -> MOV }
+        MOV     EDI,S           { Kirill } { LEA -> MOV }
         MOV     EDX,Len
         ADD     EDX,EDI         { Length(S) }
         ADD     EDI,I           { k }
@@ -1088,7 +1148,6 @@ var
   max   : Integer;
   j     : Integer;
   k     : Integer;
-  l     : Integer;
   c     : Char;
   d     : Char;
   b     : Boolean;
@@ -1165,7 +1224,7 @@ begin
         if (Params.GenFlags and hoNoSymbols) <> 0 then
           c := hhNothing;
       end;
-      FillChar ( S[I], max, c );
+      FillChar ( S[i], max, c );
       Inc ( i, max );
     end;
   end;

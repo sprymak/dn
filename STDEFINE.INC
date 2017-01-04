@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,7 +43,16 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
-//////////////////////////////////////////////////////////////////////////}
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-move_COMBINE_MIXED_from_sources_to_Options_menu_diff140byMV.patch
+//
+//  2.0.0
+//
+/////////////////////////////////////////////////////////////////////////}
 
 {/$DEFINE LFNCache}
   {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$ENDIF}
@@ -53,7 +62,7 @@
   {$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
 {$DEFINE UUENCODE}
 {$DEFINE UUDECODE}
-{.$DEFINE Modem} {For enabling modem features you must have ASyncPro}
+{$DEFINE Modem} {For enabling modem features you must have ASyncPro}
 {$DEFINE Link}
 {$DEFINE SpreadSheet}
 {$DEFINE DiskEdit}
@@ -74,7 +83,7 @@
 {.$DEFINE DisAsm}
 {.$DEFINE PKTVIEW}
 {.$DEFINE UPLOWSTRSINDLG}
-{.$DEFINE COLUMNSMENU}
+{$DEFINE COLUMNSMENU}
 
 {$IFDEF DPMI}
  {$DEFINE BIGCOLLECTION}
@@ -147,11 +156,10 @@
 {$IFDEF BANK}
   {$UNDEF Modem}
   {$UNDEF DiskEdit}
+  {$UNDEF Reanimator}
   {$UNDEF DBView}
   {$UNDEF DisAsm}
 {$ENDIF}
-
-{.$DEFINE COMBINE_MIXED}
 
 {$DEFINE FULLOVR}
 {$DEFINE FULLOVR2}

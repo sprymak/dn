@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-GetLongFileName_for_internal_ChangeDir.patch
+//  dn16rc1-CD_help_hook_diff146byMV.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -353,9 +363,10 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
    begin
     DelLeft(S); DelRight(S);
     if (S[1] in ['c','C']) and (S[2] in ['d','D']) and (S[3]=' ')
+      and (S[4]<>'/')
     then
      begin
-      DelFC(S); DelFC(S); DelLeft(S); S:=DelSquashes(S);
+      DelFC(S); DelFC(S); DelLeft(S); lGetLongFileName(DelSquashes(S),S);
       if PathExist(S) then
        Message(Application, evBroadcast, cmChangeDirectory, @S);
       S:='';CommandLine^.SetData(S);CommandLine^.DrawView;

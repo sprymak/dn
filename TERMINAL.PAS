@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,15 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-fix_terminal_crash.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1694,7 +1703,8 @@ end;
    then Term^.Select
    else begin
     Application^.InsertWindow(New(PTerminalWindow, Init));
-    PWindow(Term^.Owner)^.Maxi;
+    if (Term <> nil) and (Term^.Owner <> nil) then { Max Morozov }
+       PWindow(Term^.Owner)^.Maxi;
    end;
  end;
 

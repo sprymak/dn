@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Bugfixed_8Gb_HDD_sysinfo.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
@@ -61,7 +70,9 @@ IMPLEMENTATION
 
 {$IFDEF SYSINFO}
 USES Dos,      Objects, Views,  DNApp,   Drivers,  Commands, RStrings,
-     Messages, Dialogs, DNHelp, Collect, Advance1, Advance3, ExtraMem;
+     Messages, Dialogs, DNHelp, Collect, Advance1, Advance3, ExtraMem
+     {$IFDEF DPMI},DPMI,DosMem{$ENDIF}
+     ;
 
 Var PCmodel,PCsubModel : byte ;
 
@@ -187,16 +198,89 @@ procedure GetHDDInfo(N: Byte; var S: String); {changed by piwamoto}
             end;
     {DataCompBoy: All "reserved" variables are defined for XT only, so I labeld}
     {             them as reserved                                             }
+ Type
+  PDriveInfo = ^TDriveInfo;
+  TDriveInfo = record
+     Size: Word;
+     Flags: Word;
+     Cylinders: LongInt;
+     Heads: LongInt;
+     Sectors: LongInt;
+     LowLBASectors: LongInt;
+     HiLBASectors: LongInt;
+     SectorSize: Word;
+  end;
 
  var
-     NumCylinders, NumSect, NumHeads : LongInt;
+     NumCylinders, NumSect, NumHeads, numLBASectors : LongInt;
      HDDint : Word;
      Param : ^tHDPT;
-     Reg : Registers;
+     Reg : {$IFDEF DPMI}DPMIRegisters{$ELSE}Registers{$ENDIF};
 {$IFDEF DPMI}
 type OS = record O, S : Word; end;
 Label Er;
 {$ENDIF}
+
+function GetExtendedInfo(N:Word; var numLBASectors : LongInt): Boolean;
+{ original version by Max Morozov }
+{ fixed by Max Piwamoto }
+{ get number of total sectors on drive }
+{ CHS information, returned by function 0x48 is useless }
+var
+{$IFDEF DPMI}
+   Info:  PDriveInfo;
+{$ELSE}
+   Info:  TDriveInfo;
+   Drive, Status: Byte;
+{$ENDIF}
+begin
+   GetExtendedInfo := False;
+   NumLBASectors := 0;
+{ test BIOS extension presence }
+   Reg.AX := $4100;
+   Reg.DL := $80 + N;
+   Reg.BX := $55aa;
+   Reg.Flags := fCarry;
+   asm stc end;
+   {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($13,Reg);
+   if ((Reg.Flags and fCarry)<>0) or (Reg.BX <> $aa55) then Exit;
+
+{$IFDEF DPMI}
+   Info := PDriveInfo(GetDosMem( SizeOf(TDriveInfo), Reg.DS ));
+   if Info = nil then Exit;
+   Info^.Size := sizeof(TDriveInfo);
+   Reg.AX := $4800;
+   Reg.DL := $80 + N;
+   Reg.SI := 0;
+   Reg.Flags := fCarry;
+   asm stc end;
+   SimulateRealModeInt( $13, Reg );
+   if (Reg.Flags and fCarry) = 0 then NumLBASectors := Info^.LowLBASectors;
+   FreeDosMem( Info );
+{$ELSE}
+   Info.Size := sizeof(TDriveInfo);
+   Drive:=$80 + N;
+   Status := 0;
+   asm
+      mov ax,4800h
+      mov dl,Drive
+      push ds
+      push ss
+      lea si, Info
+      pop  ds
+      stc
+      int 13h
+      pop ds
+      jnc @1
+      mov Status,ah
+   @1:
+   end;
+   if Status = 0 then NumLBASectors := Info.LowLBASectors;
+{$ENDIF}
+   GetExtendedInfo := (NumLBASectors <> 0);
+end;
+
+
 BEGIN
  Case N of
   1 : HDDint := $46
@@ -229,11 +313,14 @@ Er:
 {$ENDIF}
      Reg.AH := 8;
      Reg.DL := $80 + N;
-     Intr ($13, Reg);
+     {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($13,Reg);
      NumCylinders := LongInt(Reg.CH) + LongInt((Reg.CL shr 6))*256 + 1;
      NumSect := LongInt(Reg.CL and $3F);
      NumHeads := LongInt(Reg.DH) + 1;
     end;
+ if (NumCylinders*NumSect*NumHeads = $fb0400){8Gb limit} and
+    (GetExtendedInfo(N, NumLBASectors)) then
+    NumCylinders := NumLBASectors div NumHeads div NumSect;
  S := FStr(NumCylinders*NumSect*NumHeads div 2048);
  S := S + 'M, ' + ItoS(NumHeads)+GetString(dlSI_Heads)+ItoS(NumCylinders)+
       GetString(dlSI_Tracks)+ItoS(NumSect)+GetString(dlSI_SectTrack);

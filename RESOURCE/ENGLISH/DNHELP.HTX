@@ -1,6 +1,6 @@
 ;/////////////////////////////////////////////////////////////////////////
 ;/
-;/  Dos Navigator Open Source 1.6.RC1
+;/  Dos Navigator Open Source
 ;/  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 ;/
 ;/  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,20 @@
 ;/  version or derivative of this code cannot be changed. i.e. this code
 ;/  cannot simply be copied and put under another distribution licence
 ;/  (including the GNU Public Licence).
+;/
+;//////////////////////////////////////////////////////////////////////////
+;/
+;/  Version history:
+;/
+;/  1.6.RC1
+;/  dn15112-enhanced_calendar.patch
+;/  dn16rc1-Calendar_improvement_diff129byMV.patch
+;/  dn16rc1-piwcal22.patch
+;/  dn16rc1-help_fixes_n.patch
+;/  dn16rc1-piwcal23.patch
+;/  dn16rc1-resource_and_help_fixes_13112001.patch
+;/
+;/  2.0.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -421,25 +435,26 @@ executed when the batch is called.
 .topic OptionsMenu=18
 .title Menu Options
 
+ {Configuration:SubMenuConfig} - Configuration of DOS Navigator options.
+ {File Manager :SubMenuFileMgr} - File Manager configuration.
+ {Archives     :Archives} - Archives configuration.
 
-  {Configuration:Configuration} - Configuration of DOS Navigator options.
-  {File Manager :SubMenuFileMgr} - File Manager configuration.
-  {Archives     :Archives} - Archives configuration.
+ {Quick run file edit         :QuickRun} - Configure Quick-running programs.
+ {Extension file edit         :ExtFile} - Configure extensions.
+ {Highlight file edit         :EditorHilite} - Highlight file editor.
+ {Search path file (SPF) edit :_} - Edit search path's file.
+ {Ini file edit               :IniFile} - Edit ini-file.
+ {Global menu definition      :GUserMenu} - Edit the global user menu.
+ {Local menu definition       :LUserMenu} - Edit a local user menu.
+ {Viewers                     :ViewFile} - Configure external viewers.
+ {Editors                     :ViewFile} - Configure external editors.
 
-  {Quick run file edit   :QuickRun} - Configure Quick-running programs.
-  {Extension file edit   :ExtFile} - Configure extensions.
-  {Highlight groups      :Highlight} - Define groups of files to highlight.
-  {Global menu definition:GUserMenu} - Edit the global user menu.
-  {Local menu definition :LUserMenu} - Edit a local user menu.
-  {Viewers               :ViewFile} - Configure external viewers.
-  {Editors               :ViewFile} - Configure external editors.
+ {Save desktop:_} - Write DN configuration to file.
+ {Load desktop:_} - Read DN configuration from file.
 
-  {Save desktop:_} - Write DN configuration to file.
-  {Load desktop:_} - Read DN configuration from file.
-
-  {Colors      :_} - Edit the color palette of Navigator.
-  {Save palette:_} - Write current DN color palette to file.
-  {Load palette:_} - Read DN color palette from file.
+ {Colors      :_} - Edit the color palette of Navigator.
+ {Save palette:_} - Write current DN color palette to file.
+ {Load palette:_} - Read DN color palette from file.
 
 .topic NavigatorsWindows=19
                ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
@@ -3186,25 +3201,137 @@ compression methods.
 .title Calendar
 Calendar window looks like this:
 
-  ÉÍ[þ]ÍÍÍÍ Calendar ÍÍÍÍÍÍÍÍÍ»
-  ºApril, 2000             º
-  ºMo  Tu  We  Th  Fr  Sa  Su º
-  º                     1   2 º
-  º 3   4   5   6   7   8   9 º
-  º10  11  12  13  14  15  16 º
-  º17  18  19  20  21  22  23 º
-  º24  25  26  27  28  29  30 º
-  º                           º
-  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+  ÉÍ[þ]ÍÍÍÍÍ Calendar ÍÍÍÍÍÍÍÍÍ»
+  º April         2000      º
+  º Mo  Tu  We  Th  Fr  Sa  Su º
+  º                      1   2 º
+  º  3   4   5   6   7   8   9 º
+  º 10  11  12  13  14  15  16 º
+  º 17  18  19  20  21  22 23º
+  º 24  25  26  27  28  29  30 º
+  º                    [16/114]º <- [week/day] indicator
+  ºRoman°Easter°°°°°°°°°°°°°°°°º
+  º°°°°°°°°°°°°°°°°°°°°°°°°°°°°º
+  º°°°°°°°°°°°°°°°°°°°°°°°°°°°°º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
- Use cursor keys "Up" and "Down", or left mouse button click on
-"" and "" symbols (in line with the month name) to jump to next or
-previous month.
- Use Ctrl in combination with cursor keys "Up" and "Down", or right
-mouse button click on "" and "" symbols to jump to next or previous
+Use cursor keys "Left" and "Right" to jump to previous or next day.
+
+Use cursor keys "Up" and "Down" to jump to previous or next week.
+
+Use Ctrl in combination with cursor keys "Left" and "Right", or left
+mouse button click on "" and "" symbols (in line with the month name)
+to jump to previous or next month.
+
+Use Alt in combination with cursor keys "Left" and "Right", or right
+mouse button click on "" and "" symbols to jump to previous or next
 year.
- Space bar or any mouse button click on "" symbol will return you to
+
+Space bar or any mouse button click on "" symbol will return you to
 current date.
+
+The day between "" and "" is a selected day for which additional info
+can be displayed if it is defined in DN.INI file in [Calendar] section.
+
+The standard calendar configuration consists of the following parameters:
+
+  [Language]
+  ActiveLanguage=<string>
+
+  [Clock]
+  DaysOfWeek=<string>
+
+  [Calendar]
+  ShowOnStartup=<boolean>
+  SundayFirst=<byte>      ;0=False, 1=True, 2=Autodetect
+  DefaultInfo=<string>
+  OptionFlags=<integer>
+
+There can be more parameters in the [Calendar] section that define
+category and description for selected dates.
+
+The parameter grammar:
+
+  <parameter>::=<date_specification>=<date_description>
+  <date_specification>::=<day_ref>|<easter_ref>|<weekday_ref> [<language>]
+  <day_ref>::=<day> [<month>] [<year>]
+  <easter_ref>::=<easter> [<offset>]
+  <weekday_ref>::=<every_weekday>|<weekday_pivot>
+  <every_weekday>::=<day_of_week> [<month>] [<year>]
+  <weekday_pivot>::=<index> <day_of_week> [<day>] [<month>] [<year>] [<offset>]
+  <day_of_week>::=<clock_week_days>|<day_of_week_1>|<day_of_week_2>|<day_of_week_3>
+  <easter>::=orthodox|roman
+  <month>::=1|2|3|4|5|6|7|8|9|10|11|12|*|<short_month_name>
+  <day>::=<integer>|*
+  <year>::=<year_reference>[-<year_reference>]
+  <year_reference>::=<integer>|*
+  <index>::=[-|+]<integer>
+  <offset>::=[-|+]<integer>
+  <date_description>::=[<category>,]<title>
+  <category>::=<integer>
+  <title>::=<string>[,<title>]
+  <clock_week_days>::=<string>
+  <day_of_week_1>::=<string>
+  <day_of_week_2>::=Su|Mo|Tu|We|Th|Fr|Sa
+  <day_of_week_3>::=Sun|Mon|Tue|Wed|Thu|Fri|Sat
+  <short_month_name>::=Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec
+
+The <clock_week_days> is taken from DaysOfWeek item in [Clock] section in
+DN.INI file. The <day_of_week_1> is taken from DN's resource file.
+These two rules can be disabled via OptionFlags (see below).
+
+The grammar allows settings like these:
+
+  1 1             =1,Happy New Year
+  1 jan 2001      =Happy new 21'st century
+  orthodox        =Orthodox Easter
+  roman 39        =Ascension Thursday
+  roman -3        =1,Maundy Thursday
+  1  su * 3       =The first Sunday of May
+  1  su 3         =The first Sunday from the 3rd of every month
+     fr nov       =Every Friday In November
+  -1 mo    2000-* =Last Monday Of Each Month After Millenium
+     sa           =2,This defines each Saturday to the category 2
+  1  su           =The first Sunday of every month
+  1  su * 1       =The first Sunday of January
+  1  su       -1  =Saturday just before the first Sunday of current month
+  1  su * * *  1  =Monday just after the first Sunday of current month
+  1  su 1         =The first Sunday of every month
+
+The spaces in keys has no meaning and are ignored. They are used only
+to separate parts of key.
+
+The '*' character means "current"/"any" day, month or year. It can be placed
+instead of a particular value to avoid ambiguous definitions.
+This is a default setting if a day, month or year is not defined.
+
+Category is an integer value between 1 and 4. This means that the day is
+highlighted in calendar window. When category is not defined then this is
+an ordinary day, which is displayed as static text. If there is more
+that one category for a day, which is possible when the day is defined in
+more than one parameter, then the lowest is taken.
+
+Colors of categories can be freely defined in {Color Dialog:ColorDialog} box.
+
+The "OptionFlags" is a bitfield.
+
+If flag 1 is set then categories assigned to weekdays are always
+overwritten by other feasts, even if their categories have higher
+priorities than the feasts. This option is applied to such items:
+
+  su      = 1,Every Sunday is a category 1
+  sat Nov = 2,Every Saturday in November is a category 2
+
+If flag 2 is set then <clock_week_days> grammar rule is disabled.
+
+If flag 4 is set then <day_of_week_1> grammar rule is disabled.
+
+If flag 8 is set then [week/day] indicator is enabled. The indicator
+shows a week number and a day number in the year.
+
+If flag 16 is set then week number in the indicator is not compatible
+with international standard IS-8601 but rather with calendar itself
+and the week number is the same for whole row of seven days.
 
 .topic EditBlockMenu=48085
 .title Edit->Block Menu
@@ -3249,11 +3376,360 @@ only).
 .topic SrchFailed=48091
 .title Search Failed
 
+.topic IniFile=48092
+.title Dos Navigator Configuration (DN.INI)
+DN.INI is a text configuration file of DOS Navigator. There are many
+DOS Navigator global variables set in it such that most likely you
+will not need altering their values often. Be attentive while editing
+this file: enter correct values!
+
+DOS Navigator parameters may be of the following types:
+
+ * bool Ä boolean, accepts values false/true, 0/1, no/yes;
+ * long Ä integer, accepts values from 0 to 2147483647;
+ * str  Ä string, accepts values of a sequence up to 255 chars long.
+
+Below is the description of all the DN.INI parameters:
+
+[Interface]
+
+{HistoryButtonChars = str:_} - In this case displaying history button
+in dialogs will use a limited chars set.
+ (default: 'ÞÝ')
+
+{PoorFrames = bool:_} - Value 1 declares availability of not all the
+pseudographic chars in the used codepage. In this case displaying
+frames will use a limited chars set.
+ (default: 0)
+
+{UseF3InViewer = long:_} - When 0, pressing F3 in the file view makes
+no action. When 1, pressing F3 closes the view window. When 2,
+pressing F3 switches through view in text, hex and dump modes.
+ (default: 0)
+
+{UseEnterInViewer = long:_} - When 0, pressing Enter in the file view
+makes no action. When 1, pressing Enter closes the view window. When
+2, pressing Enter switches through view in text, hex and dump modes.
+ (default: 0)
+
+ {PanelDescrDrive = str:_} Â User descriptions for columns setup menu
+ {PanelDescrFind  = str:_} ´ items displayed by Alt-_. Descriptions
+ {PanelDescrTemp  = str:_} ´ for each columns number are separated by
+ {PanelDescrArc   = str:_} ´ `#' char.
+ {PanelDescrArvid = str:_} Ù
+ (default: '')
+
+{PreserveMenuPositions = bool:_} - If on, current positions in all
+menus between DOS Navigator launches are saved.
+ (default: 0)
+
+{HistoryErrorBeep = bool:_} - If on, pressing Del at a `frozen'
+element in the input history makes bell. Otherwise pressing Del at
+such an element is ignored.
+ (default: 1)
+
+ {ReuseEditors = long:_} - Specify actions made when a file opened
+ {ReuseViewers = long:_} - with the editor or viewer is tried opening
+ with one of them again. Accept values:
+ 0 Ä open the file once more in a new window;
+ 1 Ä request opening a new window;
+ 2 Ä show already open window.
+ ReuseEditors and ReuseViewers make this setting for the editor and
+the viewer respectively.
+ (default: 0)
+
+{ReflectCopyDirection = bool:_} - When 1, the copying process gauge
+grows from right to left while copying from the right panel to the
+left one.
+ (default: 0; ie. always from left to right)
+
+{FadeDelay = long:_} - Sets shadowing visual effects when
+starting/quitting DOS Navigator (tunes shadowing speed). Recommended
+value is 5.
+ (default: 0; ie. effects off)
+
+{VertScrollBarChars = str:_} - Specifies displaying a vertical scroll
+bar. Requires 5 chars: upper glyph, lower glyph, bar char, lift
+glyph, empty bar char. Written as a string of 5 chars.
+ (default: '±þ²')
+
+{HorizScrollBarChars = str:_} - Specifies displaying a vertical
+scroll bar. Requires 5 chars: left glyph, right glyph, bar char, lift
+glyph, empty bar char. Written as a string of 5 chars.
+ (default: '±þ²')
+
+{SystemMenuChar = long:_} - Specifies char used for denoting the
+first submenu of the main menu. The char is specified by its ASCII
+code.
+ Note: If you want `ð' instead of `', then set 240.
+ (default: 4)
+
+{DriveSelectVCenter = bool:_} - Sets displaying a disk change dialog
+(Alt-F1/F2) in the panel center.
+ (default: 0)
+
+{WinManagerSelectNext = bool:_} - Choosing window by Alt-0 does not
+select the current window but the next one.
+ (default: 1)
+
+{DriveInfoType = long:_} - Controls displaying the auxiliary
+information in the disk change dialog (Alt-F1/F2). Accepts a
+combination of the following values:
+ 1 Ä show the device type;
+ 2 Ä show the current catalog for local drives;
+ 4 Ä show the current catalog for CD-ROM's;
+ 8 Ä show server name/volume for network drives.
+ Note: You can also set the desired values in
+`Setup|Configuration|Interface' dialog.
+ (default: 2; ie. show the current catalog for local drives only)
+
+{CutDriveInfo = bool:_} - Shortening disks description in disk change
+catalog (Alt-F1/F2).
+ (default: 1)
+
+[Clock]
+
+{RightAlignClock = bool:_} - When 1, the clock is always placed close
+to the right screen edge.
+ (default: 0)
+
+{DaysOfWeek = str:_} - Specifies weekdays names displayed in the
+clock area while Ctrl pressed, and different from the current
+language defaults. If the value length equals 14 or 21, then a 2- or
+3-letter name of the weekday is taken respectively. Weekdays names
+are enumerated without spaces, starting from Sunday, eg.
+SunMonTueWedThuFriSat. If the value has another length, empty or
+omitted, then 2-letter names, defined in the resources for the
+current language separately, used.
+ (default: '(use language default)')
+
+{ShowDayOfWeek = bool:_} - Show weekday while Ctrl pressed.
+ (default: 1)
+
+{ShowCentury = bool:_} - Show 4 digits of the year while Ctrl
+pressed.
+ (default: 1)
+
+{ShowSeconds = bool:_} - Show seconds in the clock.
+ (default: 1)
+
+[SmartPad]
+
+{LineChar = long:_} - Specifies a char used for separation in
+SmartPad. The char is specified by its ASCII code. The default
+pseudographic char (Ä) may be inappropriate in some cases since it
+does not lend itself to codepages translation.
+ (default: 196)
+
+{InsertDate = bool:_} - Stamp the date when opening SmartPad.
+ (default: 1)
+
+[Game]
+
+{EnableGame = bool:_} - When 0, disable launching the built-in game.
+ (default: 1)
+
+[Clipboard]
+
+{MaxClipBoardSize = long:_} - The maximal accumulated ClipBoard size.
+ (default: 4096)
+
+{SaveClipBoardOnExit = bool:_} - When 1, save ClipBoard between
+launches.
+ (default: 1)
+
+[Kernel]
+
+{DoVESATest = bool:_} - When 1, the extended 132 columns wide VESA
+videomodes are available, but Windows will do annoying switching into
+full screen.
+ (default: 0)
+
+{SmartWindowsBoxClose = bool:_} - When 1, closing the console window
+in Windows 9x/2000 is equivalent to pressing Alt-X in DOS Navigator.
+ (default: 0)
+
+{StoreVideoMode = long:_} - When 0, the menu selected videomode is
+not saved. When 1, it is saved as videomode 1. When 2, it is saved as
+videomode 2.
+ (default: 0)
+
+{HandleChDirCommand = bool:_} - Enables processing pass command `cd
+path' and D: by DOS Navigator itself, without launching a command
+interpreter.
+ (default: 1)
+
+{CopyLimit = long:_} - Specifies OS copying buffer limitation in
+kilobytes. Value 0 denotes no limitation.
+ (default: 8192, ie. 8M)
+
+{ShowKeyCode = long:_} - Debug flag showing keyboard scan codes.
+Accepts values:
+ 0 Ä do not show scan codes;
+ 1 Ä show scan code/code pairs in a separate window;
+ 2 Ä show the scan code in the upper right corner;
+ 3 Ä 1 and 2 simultaneously.
+ (default: 0)
+
+{AutoSave = bool:_} - Resave all the DN.INI parameters at startup.
+ (default: 1)
+
+{UseLFN = bool:_} - Try using long filenames or work with short ones
+always.
+ (default: 1)
+
+[Editor]
+
+{RecombineLongLines = bool:_} - As formerly, strings more than 255
+chars long are anyway split by several parts when loaded. But now, if
+the option is on, any string exactly 255 or 254 chars long is
+concatenated with the next string when saving or writing a block to a
+file. This allows limited editing of files containing the long
+strings: You can edit the last part of a long string in the usual
+way, while in the previous parts only overwriting chars is possible
+without changing the string length. To display the specific status of
+such the strings, they are colored when cursor is placed on.
+ (default: 0)
+
+{AutoBracketPairs = str:_} - Specifies any number of chars pairs to
+be considered brackets for AutoBrackets function.
+ Note: This parameter bears no relation to the brackets pair search
+function.
+ (default: '()[]{{}<>')
+
+{WinManagerPosToEdit = bool:_} - When Alt-0 pressed in the editor,
+cursor is placed in the next window of the editor too but not any
+one.
+ Note: The flag effect is prior before WinManagerSelectNext.
+ (default: 1)
+
+{FastSearchDeep = long:_} - Searching begin/end &c. pairs may fail at
+comments containing these keywords (pairs count loses...). To avoid
+an unlimited search through a file (wait too long), you are
+recommended to set the maximal search depth (ca 300 lines).
+ (default: 0, ie. unlimited search)
+
+{CapitalCodePageName = bool:_} - Displaying the current codepage in
+the editor in Capitalize mode (for Chip).
+ (default: 0)
+
+{DefCodePage = str:_} - Specifying a codepage for new files. Accepts
+values Dos, Win, Koi and Auto Ä automatic detection of the codepage
+for a file newly opened in the editor (not present in the editing
+history).
+ Note: For successful recognition of WIN or KOI codepage, the text
+must contain uppercase, lowercase letters and vowels; at least 1
+uppercase letter must be per 500..999 lowercase ones, but no more
+then 1 uppercase letter must be per 5..9 lowercase ones; plus at
+least 1 letter per 5..9 lowercase ones must be a vowel ("ë", "í",
+"î", "ï" are not treated as vowels).
+ (default: Dos)
+
+{FastBookmark = bool:_} - Displaying the quick bookmarks access line
+below the editor window.
+ (default: 1)
+
+{ShowBookmarks = bool:_} - Display bookmarks in the editor.
+ (default: 1)
+
+{AutoScopeDetect = bool:_} - The editor search/replace area automatic
+detection: If block selected then in `Selected text' else `Global'.
+ (default: 1)
+
+{DrawRShift = bool:_} - When 1, LShift draws single line, and RShift
+draws double one. In the double line drawing mode do vice versa.
+ (default: 0)
+
+{Koi8rKeyMap = bool:_} - When 0, the switching through DOS/WIN/KOI by
+F8 in the editor is disabled and only switching DOS/WIN works.
+ Note: This parameter has no influence on the autodetection when
+opening a file in the editor and the viewer.
+ (default: 1)
+
+{UnlimitUnindent = bool:_} - When 0, a block is shifted left by
+Ctrl-K U while all the line can shift. When 1, the shift is done
+always.
+ (default: 0)
+
+[FilePanels]
+
+{QuickRenameInDialog = bool:_} - Do quick file renaming (by Alt-F6)
+in a separate window instead of the panel.
+ (default: 0)
+
+{ShowLongName = bool:_} - If a long filename exists, show it in the
+selected files information line if there are no them or a wildcard.
+ (default: 1)
+
+{ShowFileMask = bool:_} - If the panel has a wildcard other then *.*
+and no selected files then the show the wildcard in the bottom.
+ (default: 1)
+
+[NetInfo]
+
+{NoLevelsInfo = bool:_} - Do not display SFT/TTS Lev. network
+information.
+ (default: 0)
+
+[Language]
+
+{ShowLanguageMenu = bool:_} - When 1, selecting command `Change
+language' or pressing Alt-F12 displays a menu containing a list of
+the available languages (their set is determined by scanning the
+resource files in DOS Navigator and %DNDLG% catalogs). When 0,
+selecting command `Change language' or pressing Alt-F12 causes
+automatic cyclic switch to the next available language after the
+current one.
+ (default: 0)
+
+{HelpLanguageOverride = str:_} - Defines the language of the help.
+Its source is assumed a file named as the language specified in the
+parameter with .HLP extension.
+ (default: '', ie. the current language help file is used if exists,
+otherwise the English language help file is used)
+
+{ActiveLanguage = str:_} - Defines the current language. Its
+resources are assumed files named as the language specified in the
+parameter with the appropriate extension.
+ (default: '', ie. DNLNG Environment variable is used if exists,
+otherwise the English language is used)
+
+[Calendar]
+
+{OptionFlags = long:_} - Defines main calendar settings. Accepts a
+combination of the following values:
+  1 Ä messages falling on a day off will be overwritten with
+      another events even if their categories are higher;
+  2 Ä disables <clock_week_days> rule;
+  4 Ä disables <day_of_week_1> rule;
+  8 Ä enables the indicator showing the number of the week and day;
+ 16 Ä when SundayFirst = 1, the week number on the indicator will
+      be incompatible with IS-8601 international standard but
+      `correct' from the standpoint of the calendar itself since
+      the week number will be constant during all the week starting
+      from Sunday and finishing on Saturday.
+ (default: 0)
+
+{DefaultInfo = str:_} - Defines the default value for the dates
+belonging to none of the categories.
+ (default: '')
+
+{SundayFirst = long:_} - When 1, Sunday is considered the 1st day of
+week. When 0, Sunday is considered the last one. When 2, this
+parameter is detected automatically.
+ (default: 2)
+
+{ShowOnStartup = bool:_} - Display the calendar window immediately
+after DOS Navigator startup.
+ (default: 0, ie. do not display)
+
 .topic ChangeNameCase=48093 ; [C] /DataCompBoy/ 22-05-2000
 .title Changing file names case
 
 .topic Path=48094 ; [C] /DataCompBoy/  3-06-2000
 .title Select path
+
+Replace media and/or modify the path
 
 .topic Dialer=48095 ; [C] /DataCompBoy/  5.07.2000
 .title Dialer

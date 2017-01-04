@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,16 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-move_COMBINE_MIXED_from_sources_to_Options_menu_diff140byMV.patch
+//  dn16rc1-pkview_some_dialogs_resources_fix.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -93,7 +103,7 @@ const
      FindRec: TFindRec = ( Mask : '*.*';
                            What : '';
                            Options : 4;
-                           Where : 0;
+                           Where : 1;
                            AddChar : ''
                          );
 
@@ -743,6 +753,7 @@ begin
     2: FilFLP := flnCapitalCase;
     3: FilFLP := flnUpCase;
     4: FilFLP := 65535;
+    5: FilFLP := 65534;
    end;
    case DirsCase of
     0: DirFLP := 0;
@@ -750,6 +761,7 @@ begin
     2: DirFLP := flnCapitalCase;
     3: DirFLP := flnUpCase;
     4: DirFLP := 65535;
+    5: DirFLP := 65534;
    end;
   end;
 end;
@@ -1197,6 +1209,7 @@ begin
     2: FilFLP := flnCapitalCase;
     3: FilFLP := flnUpCase;
     4: FilFLP := 65535;
+    5: FilFLP := 65534;
    end;
    case DirsCase of
     0: DirFLP := 0;
@@ -1204,6 +1217,7 @@ begin
     2: DirFLP := flnCapitalCase;
     3: DirFLP := flnUpCase;
     4: DirFLP := 65535;
+    5: DirFLP := 65534;
    end;
   end;
 end;
@@ -1339,7 +1353,7 @@ procedure TFindDrive.GetDirInfo;
 
 begin
   B.Title := NewStr( GetString( dlDIFileFind ));
-  B.Dir := NewStr(GetString( dlDIFFMask )+Copy(CurDir, PosChar(':', CurDir)+1, 255)); {DataCompBoy}
+  B.Dir := NewStr(GetString( dlFileMask )+Copy(CurDir, PosChar(':', CurDir)+1, 255)); {DataCompBoy}
   Fl := 0; Sz := 0;
   if Files <> nil then Files^.ForEach(@DoCount);
 

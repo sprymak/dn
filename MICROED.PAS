@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,19 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Undo_after_save_diff132byMV.patch
+//  dn16rc1-Clipboard_and_SmartPad_fix.patch
+//  dn16rc1-Save-editor's-parameters.patch
+//  dn16rc1-Backspace_unindents_fix.patch
+//  dn16rc1-Editor_search_fix.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -119,12 +132,13 @@ type
     WorkString,LastShape: String;
     OldBlockValid, SearchOnDisplay,
     InsertMode,VertBlock,Modified,WorkModified,
+    JustSaved, {piwamoto}
     BlockVisible,SpecChar,WasDelete,MouseMark, UnMark,
     LineMarking,OptimalFill,RulerVisible,EnableMarking,
     TabReplace, SearchActive: Boolean;
     UndoInfo: PCollection;
     RedoInfo: PCollection; {-$VOL}
-    UndoTimes: LongInt;
+    UndoTimes, LastSaveUndoTimes: LongInt;
     ChPosition: Boolean;
     Macros: PCollection;
     Locker: PStream;
@@ -154,7 +168,7 @@ type
     procedure SetState(AState: Word; Enable: Boolean); virtual;
     function  ValidBlock: Boolean;
     procedure CalcMenu;
-    function  Search: Boolean;
+    function  Search(StartX, StartY: AWord): Boolean;
     procedure InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
     procedure ModifyLine(Index : LongInt; S : String; DelSpaces: Boolean);
     procedure SetLimits;
@@ -175,7 +189,7 @@ procedure OpenSmartpad;
 procedure OpenClipboard;
 
 const
-     ClipboardStream : PStream = nil; {-$VOL}
+    ClipboardStream : PStream = nil; {-$VOL}
 
 type
     TSearchData = record
@@ -200,15 +214,15 @@ var   EditCommands : Array [1..110] of TEditCommand;
 implementation
 
 uses Gauge, FViewer, Histlist, Macro, Editor, WinClp, DNUtil, Histries,
-     EdWin, xTime, FileCopy, ASCIItab, DnIni, U_SrchF, Microed2; {-$VIV}
+     xTime, FileCopy, ASCIItab, DnIni, U_SrchF, EdWin, Microed2; {-$VIV}
 
 const
     On          = True;
     Off         = False;
     cmNoCommand = 4000;
-    SmartWindow : PEditWindow = nil;
 
-    ClipboardWindow : PEditWindow = nil;
+   {SmartWindow: PEditWindow = nil;}      {Cat: перенёс эти переменные в модуль MicroEd2}
+   {ClipboardWindow: PEditWindow = nil;}  {Cat: внимание! появились указатели SmartWindowPtr и ClipboardWindowPtr}
 
 function MemAvail: LongInt; begin MemAvail := MemAdjust(System.MemAvail) end;
 
@@ -549,6 +563,10 @@ var
   I: Integer;
 begin
   inherited Init(Bounds);
+  InsertMode := True; {Cat}
+  DrawMode := 0; {Cat}
+  BlockVisible := Off; {Cat}
+  Mark.Assign(0,0,0,0); {Cat}
   LastDir := -1;
   HelpCtx := hcEditor;
   UndoInfo := nil;
@@ -606,8 +624,8 @@ begin
   if RedoInfo <>nil then Dispose(RedoInfo,Done);  RedoInfo :=nil;
   if Macros   <>nil then Dispose(Macros,Done);    Macros   :=nil;
   if Locker   <>nil then Dispose(Locker,Done);    Locker   :=nil;
-  if SmartPad then SmartWindow      :=nil;
-  if ClipBrd  then ClipboardWindow  :=nil;
+  if SmartPad then begin SmartWindowPtr     := @SmartWindow;     SmartWindow     := nil; end;
+  if ClipBrd  then begin ClipboardWindowPtr := @ClipboardWindow; ClipboardWindow := nil; end;
   inherited Done;
 end;
 
@@ -1036,7 +1054,7 @@ begin
  if (SearchData.Scope = 1) and not (BlockVisible and ValidBlock) then goto LExit;
  Search := Off; F := On;
  Prompt := (SearchData.What <> #0) and (SearchData.Options and 4 <> 0);
- D := Delta; W := SearchData.Line; if W = '' then goto LExit;
+ D.Assign(StartX, StartY); W := SearchData.Line; if W = '' then goto LExit;
  if SearchData.Options and 1 = 0 then UpStr(W);
  AllCP := (SearchData.What = #0) and (SearchData.Options and 8 <> 0);
  UnMark := Off;
@@ -1155,18 +1173,22 @@ begin
      if Dir > 0 then begin D.X := 0; Inc(D.Y); end
                 else begin D.X := 255; Dec(D.Y); end;
   end;
-  if F then MessageBox(GetString(dlDBViewSearchNot), nil, mfError+mfOKButton)
-    else
-      begin
-        Mark := OldMark;
-        _DrawViews;
-      end;
+  if F then
+    begin
+      SearchActive := Off;
+      MessageBox(GetString(dlDBViewSearchNot), nil, mfError+mfOKButton);
+    end
+  else
+    begin
+      Mark := OldMark;
+{      _DrawViews;}
+    end;
   UnMark := On;
   if NumRep > 0 then
     begin
       MessageBox(GetString(dlReplacesMade), @NumRep, mfOkButton+mfInformation);
       ScrollTo(Delta.X, Delta.Y);
-      _DrawViews;
+{      _DrawViews;}
     end;
 LExit:
  _DrawViews;
@@ -1560,9 +1582,8 @@ procedure TFileEditor.HandleEvent;
  end;
 
  procedure MakeBack;
-  var I, J : Byte;
+  var I, J, L: Longint;
       P: TPoint;
-      L: Longint;
  begin
   WorkModify; BlockOff; Modified := On;
   ClearEvent(Event);
@@ -2766,8 +2787,8 @@ begin
               cmReverseSearch: begin
                                  ChangeLine;
                                  SearchData.Dir := SearchData.Dir xor 1;
-                                 if SearchOnDisplay then Search;
-                                 Search;
+                                 if SearchOnDisplay then Search(Delta.X, Delta.Y);
+                                 Search(Delta.X, Delta.Y);
                                  SearchData.Dir := SearchData.Dir xor 1;
                                  ChangeLine; CE;
                                  SearchOnDisplay := Off;
@@ -2805,7 +2826,7 @@ begin
               cmSwitchKeyMapping,
               cmRusEngConv: {-$VIV}
                 begin if HandleCommand(Event) then DrawView; CE end;
-              cmContSearch: begin ChangeLine; Search; ChangeLine; CE end;
+              cmContSearch: begin ChangeLine; Search(Delta.X, Delta.Y); ChangeLine; CE end;
               cmSpecChar,cmAsciiTable: begin
                              ASCIITable;
                              CE
@@ -3140,6 +3161,8 @@ procedure OpenSmartpad;
      end;
 
 begin
+  SmartWindow := SmartWindowPtr^; {Cat}
+
   if (SmartWindow <> nil) and SmartWindow^.GetState(sfModal) then Exit;
   PV := Application^.TopView;
   Desktop^.GetExtent(R);
@@ -3172,6 +3195,8 @@ procedure OpenClipboard; {-$VOL begin}
   var R: TRect;
       PV: Pointer;
 begin
+  ClipboardWindow := ClipboardWindowPtr^; {Cat}
+
   if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
   if (ClipboardWindow <> nil) and ClipboardWindow^.GetState(sfModal) then Exit;
   PV := Application^.TopView;

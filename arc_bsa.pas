@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_bsa; {BSA}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
+ uses Archiver, Advance, Advance1, Objects, LFNCol;
 
 type
     PBSAArchive = ^TBSAArchive;
@@ -120,15 +129,9 @@ begin
 end;
 
 Procedure TBSAArchive.GetFile;
-var HS,i : AWord;
-    FP   : Longint;
+var
     P    : BSAHdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
-    C    : Char;
-    label 1;
 begin
-1:
  if ArcFile^.GetPos = ArcFile^.GetSize then begin FileInfo.Last := 1; Exit;end;
  ArcFile^.Read(P, 4);
  if (Copy(P.ID,1,2) = #0#0)
@@ -143,15 +146,9 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1;
- S[0] := Char(P.NameLen);
- ArcFile^.Read(S[1], P.NameLen and 255);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(CDir+S);    {DataCompBoy}
- FileInfo.FName := CDir + S; {DataCompBoy}
- FP := ArcFile^.GetPos;
- ArcFile^.Seek(FP + P.PackedSize + 1);
+ FileInfo.FName[0] := Char(P.NameLen);
+ ArcFile^.Read(FileInfo.FName[1], P.NameLen);
+ ArcFile^.Seek(ArcFile^.GetPos + P.PackedSize + 1);
 end;
 
 end.

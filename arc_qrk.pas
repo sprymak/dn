@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_QRK; {QuArk}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos;
 
 type
    PQuArkArchive = ^TQuArkArchive;
@@ -110,46 +119,32 @@ end;
 
 Procedure TQuArkArchive.GetFile;
 var
-  C:   Char;
-  S:   string;
-  Tmp  :AWord;
-  FH: record
-  Tmp:Array[1..3]of char;
-  LengthOfName:Byte;
-  End;
-  FH1:Record
-  Attr:AWord;
-  DateTime:LongInt;
-  RealSize:LongInt;
-  PackSize:LongInt;
-  Crc:AWord;
-  TPC:Byte;
-  end;
-var TTmp:longint;
+  FH:  record
+       Tmp: Array[1..3]of char;
+       LengthOfName: Byte;
+       end;
+  FH1: Record
+       Attr:     AWord;
+       DateTime: LongInt;
+       RealSize: LongInt;
+       PackSize: LongInt;
+       Crc:      AWord;
+       TPC:      Byte;
+       end;
 begin
-  TTmp:=ArcFile^.GetPos;
-  if (TTmp = ArcFile^.GetSize) or (TTmp = 0) then
-     begin FileInfo.Last := 1; Exit end;
-   if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
-   ArcFile^.Read(FH, SizeOf(FH));
-   if (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-   S[0] := #0;
-   Tmp:=0;
-   if FH.LengthOfName > 250 then FH.LengthOfName := 250;
-   ArcFile^.Read(S[1], FH.LengthOfName); S[0] :=Char(FH.LengthOfName);
-   if S = ''  then
-       begin FileInfo.Last := 2; Exit; end;
-   ArcFile^.Read(FH1, SizeOf(FH1));
-   FileInfo.Attr := FH1.Attr and not Hidden;
-   FileInfo.USize := FH1.RealSize;
-   FileInfo.PSize := FH1.PackSize;
-   FileInfo.Date := FH1.DateTime;
-   if (FileInfo.Attr and Directory <> 0)and(S[Length(S)]<>'\') then S := S + '\';
-   FileInfo.FName := S;
-   FileInfo.LFN := AddLFN(S);
-   TTmp:=ArcFile^.GetPos;
-   ArcFile^.Seek(TTmp+FH1.PackSize);
-   FileInfo.Last := 0;
+  if ArcFile^.GetPos = ArcFile^.GetSize then begin FileInfo.Last:=1;Exit;end;
+  ArcFile^.Read(FH, SizeOf(FH));
+  if (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
+  FileInfo.FName[0] :=Char(FH.LengthOfName);
+  ArcFile^.Read(FileInfo.FName[1], FH.LengthOfName);
+  if FileInfo.FName = '' then begin FileInfo.Last:= 2;Exit;end;
+  ArcFile^.Read(FH1, SizeOf(FH1));
+  FileInfo.Last := 0;
+  FileInfo.Date := FH1.DateTime;
+  FileInfo.Attr := FH1.Attr and not Hidden;
+  FileInfo.USize := FH1.RealSize;
+  FileInfo.PSize := FH1.PackSize;
+  ArcFile^.Seek(ArcFile^.GetPos+FH1.PackSize);
 end;
 
 end.

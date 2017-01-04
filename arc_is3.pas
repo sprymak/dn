@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_IS3; {IS3}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, lfn;
+ uses Archiver, Advance, Advance1, Objects, LFNCol;
 
 type
   PIS3Archive = ^TIS3Archive;
@@ -134,12 +143,12 @@ end;
 
 Procedure TIS3Archive.GetFile;
 var
-    S,S1  : String;
     P     : IS3FileHdr;
     P1    : IS3FolderHdr;
     FP,FO : Longint;
     C     : Char;
     I     : Integer;
+    S     : String;
 begin
  if FoldersOffs<0 then begin
    ArcFile^.Seek(ArcPos+$c);
@@ -157,12 +166,12 @@ begin
  if (FilesNumber = 0) then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P, SizeOf(P));
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- FO := FoldersOffs; S1 := ''; S := '';
+ FO := FoldersOffs; FileInfo.FName := ''; S := '';
 
  for I := 1 to P.NameLen do
   begin
    ArcFile^.Read(C,1);
-   S1 := S1 + C;
+   FileInfo.FName := FileInfo.FName + C;
   end;
 
  for I := 0 to P.FolderNum do
@@ -172,17 +181,15 @@ begin
    FO := FO + P1.SizeOfHdr;
   end;
  FO := FO - P1.SizeOfHdr + SizeOf(P1);
- S[0] := Char(P1.SizeOfName and $ff);
- if S[0] = #0 then S := S1
-   else
+ if P1.SizeOfName >255 then P1.SizeOfName := 255;
+ S[0] := Char(P1.SizeOfName);
+ if S <> '' then
     begin
      ArcFile^.Seek(FO);
-     ArcFile^.Read(S[1],P1.SizeOfName and $ff);
-     S := S + '\' + S1;
+     ArcFile^.Read(S[1],P1.SizeOfName);
+     FileInfo.FName := S + '\' + FileInfo.FName;
     end;
 
- FileInfo.FName := S;
- FileInfo.LFN   := AddLFN(S); {DataCompBoy}
  FileInfo.Last  := 0;
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;

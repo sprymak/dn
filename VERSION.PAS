@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,15 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-version_upgrade.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
@@ -52,7 +61,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '1.6.RC1/'+
+  VersionName:string = '2.0.0/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}
                        {$ELSE}        {$IFDEF WIN32}+'W32'
@@ -61,9 +70,10 @@ CONST
                                        {$ELSE}      +'32bit'{$ENDIF}
                                       {$ENDIF}
                        {$ENDIF}
+                       +'/Piwamoto'
                        ;
   VersionDate:string = '';
-  VersionWord:word   = 15991;
+  VersionWord:word   = 20000;
 
 var F : lText ;
     Day, Month, Year, DOW: word;
@@ -89,7 +99,7 @@ CONST
   lRewriteText(F);
   Writeln(F.T,'{/////////////////////////////////////////////////////////////////////////');
   Writeln(F.T,'//');
-  Writeln(F.T,'//  Dos Navigator Open Source '+VersionName);
+  Writeln(F.T,'//  Dos Navigator Open Source'{+' '+VersionName});
   Writeln(F.T,'//  Based on Dos Navigator (C) 1991-99 RIT Research Labs');
   Writeln(F.T,'//');
   Writeln(F.T,'//  This programs is free for commercial and non-commercial use as long as');

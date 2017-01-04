@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -42,6 +42,17 @@
 //  version or derivative of this code cannot be changed. i.e. this code
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
+//
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-pkview_some_dialogs_resources_fix.patch
+//  dn16rc1-Shift_Del_erases_file_only_if_DEL_erases_files_switched_on.patch
+//  dn16rc1-Error_cancel_button.patch
+//
+//  2.0.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -330,7 +341,15 @@ begin
                              DrawView;
                             end;
                      end;
-                   While MouseEvent(Event, evMouseMove + evMouseAuto) do begin
+{Cat: следующий кусок закомментировал, т.к. при его наличии в случае
+      возникновения ошибки (например, дискета не вставлена) после
+      нажатия в выскочившем окне кнопки "отмена" прекращается реакция
+      на клавиатуру до тех пор, пока не будет нажата кнопка мыши;
+      без этого куска для промотки строки дисков придётся нажимать
+      мышкой на фигурные скобки столько раз, на сколько позиций нужно
+      промотать (раньше можно было один раз нажать и удерживать мышку) }
+(*
+                   while MouseEvent(Event, evMouseMove + evMouseAuto) do begin
                     MakeLocal(Event.Where, P);
                     if ViewLine[P.X+1]=' ' then dec(P.X);
                     case ViewLine[P.X+1] of
@@ -348,6 +367,7 @@ begin
                           end;
                     end
                    end;
+*)
                    ClearEvent(Event);
                  end;
   end;
@@ -865,7 +885,7 @@ begin
         S := fReplace('*.', '', Panel^.FileMask);
         S := fReplace(' ', '', S);
         if Copy(S, 1, 1) = ';' then Delete(S, 1, 1);
-        S := GetString(dlFileMask) + S;
+        S := GetString(dlFileMask) + ' ' + S;
       end else
       if (Panel^.QuickSearch) and (ShowFileMask) then begin
         S := Panel^.SearchParam.Mask;
@@ -1299,10 +1319,8 @@ GotoKB:
                     case Event.KeyCode of
                      kbDel: if ((CmdLine.Str = '') and (FMSetup.Options and fmoDelErase <> 0)) then
                                Message(@Self, evCommand, cmPanelErase, nil);
-                     {
                      kbShiftDel: if ((CmdLine.Str = '') and (FMSetup.Options and fmoDelErase <> 0)) then
                                Message(@Self, evCommand, cmSingleDel, nil);
-                     }
                      kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); DrawView end;
                      kbEnd: begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
                      kbUp, kbDown, kbCtrlUp, kbCtrlDown, kbUpUp, kbDownUp

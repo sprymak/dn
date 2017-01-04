@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,6 +43,20 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-ctrl-Y_hotkey_used_for_current_to_full_columns_mode.patch
+//  dn16rc1-sort_by_description_and_archives_before_exe.patch
+//  dn16rc1-file_masks_and_advanced_filter_fix.patch
+//  dn16rc1-compare_directories_fix.patch
+//  dn16rc1-Ctrl-N_hotkey_used_for_long-short_names_switching.patch
+//  dn16rc1-Copy_with_drag_n_drop-diff153byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 UNIT FlTools;
@@ -65,6 +79,7 @@ procedure CM_ArchiveFiles(AFP: Pointer);
 procedure CM_Print(AFP: Pointer);
 {$ENDIF}
 procedure CM_ToggleDescriptions(AFP: Pointer);
+procedure CM_ToggleLongNames(AFP: Pointer); {JO}
 procedure CM_ToggleShowMode(AFP: Pointer);
 procedure CM_DragDropper(AFP: Pointer; CurPos: Integer; Ev: Pointer);
 procedure CM_Dropped(AFP, EI: Pointer);
@@ -197,19 +212,38 @@ function GetMaskSelection: String;
         begin
           AddStr(FreeStr, ';');
           if I = cmNo then AddStr(FreeStr, '-');
-          FreeStr := FreeStr + Copy(P^, 2, 5);
+          FreeStr := FreeStr + Copy(P^, 2, Length(P^)-1);
         end;
     end;
 
     procedure GetMasks;
 
-       procedure DoInsert(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF} {DataCompBoy}
+       procedure DoInsert(P1: PFileRec); {$IFDEF BIT_16}far;{$ENDIF} {DataCompBoy}
+         var
+           l, i: integer;
+           LFN1: String;
        begin
-         if (P <> nil) and (P^.Attr and Directory = 0) then
+         if (P1 <> nil) and (P1^.Attr and Directory = 0) then
            begin
-             FreeStr := Copy(P^.Name, 10, 3);
+{$IFDEF OS2}
+           l :=length(P1^.Name);
+           i := PosLastDot(P1^.Name);
+           FreeStr := Copy(P1^.Name, i+1, l-i);
+{$ELSE}
+           if (P^.Drive^.Flags and psShowLongName) <> 0 then
+             begin
+               LFN1 := GetLFN(P1^.LFN);
+               l := length(LFN1);
+               i := PosLastDot(LFN1);
+               FreeStr := Copy(LFN1, i+1, l-i);
+             end
+            else FreeStr := Copy(P1^.Name, 10, 3);
+{$ENDIF}
              DelRight(FreeStr); UpStr(FreeStr); Insert(' *.', FreeStr, 1);
-             if PC^.IndexOf(@FreeStr) < 0 then PC^.Insert(NewStr(FreeStr));
+{AK155: только лишние тормоза, поскольку Duplicate=false
+     if PC^.IndexOf(@FreeStr) < 0 then
+/AK155}
+           PC^.Insert(NewStr(FreeStr));
            end;
        end;
 
@@ -506,8 +540,8 @@ begin
  DD := IP;
  OSM1 := PFilesCollection(P^.Files)^.SortMode;
  OSM2 := DD^.SortMode;
- PFilesCollection(P^.Files)^.SortMode := 7+DT.O;
- DD^.SortMode := 7+DT.O;
+ PFilesCollection(P^.Files)^.SortMode := NumSortModes+DT.O;
+ DD^.SortMode := NumSortModes+DT.O;
 
  Info := NIL;
  If DT.O and 8 <> 0 then
@@ -841,12 +875,28 @@ begin
   end;
 end;
 
+{JO}
+procedure CM_ToggleLongNames;
+var P: PFilePanelRoot absolute AFP;
+begin
+{$IFNDEF OS2}
+  P^.Drive^.Flags := P^.Drive^.Flags xor psShowLongName;
+  P^.Drive^.Flags := P^.Drive^.Flags;
+{$ELSE}
+  P^.Drive^.ShowLogNames := not P^.Drive^.ShowLogNames;
+{$ENDIF}
+  P^.DeltaX := 0;
+  P^.RereadDir;
+  DrawViews(P);
+end;
+{/JO}
+
 procedure CM_ToggleShowMode;
 var P: PFilePanelRoot absolute AFP;
 begin
   P^.DeltaX := 0;
-  if P^.Drive^.Param = 1 then P^.Drive^.GetParam(2)
-                         else P^.Drive^.GetParam(1);
+  if P^.Drive^.Param <> 2 then P^.Drive^.GetParam(2)
+                         else P^.Drive^.GetParam(P^.Drive^.OldParam);
   P^.RereadDir;
   DrawViews(P);
 end;
@@ -983,7 +1033,7 @@ begin
      S := P^.DirectoryName;
      if ((MPos.Y > 0) or ((FMSetup.Show and fmsColumnTitles=0) and (MPos.Y=0)))
         and (PFileRec(P^.Files^.At(I))^.Attr and Directory <> 0)
-      then S := MakeNormName(S, MakeFileName(PFileRec(P^.Files^.At(I))^.Name));
+      then S := MakeNormName(S, GetLFN(PFileRec(P^.Files^.At(I))^.LFN));
      CopyDirName := S;
     end;
    SkipCopyDialog := Confirms and cfMouseConfirm = 0;
@@ -1333,10 +1383,11 @@ begin
     NewItem(GetString(dlSortLongExt), '',kbNoKey,cmSortLongExt ,0,
     NewItem(GetString(dlSortSize),    '',kbNoKey,cmSortSize    ,0,
     NewItem(GetString(dlSortDate),    '',kbNoKey,cmSortDate    ,0,
+    NewItem(GetString(dlSortDIZ),     '',kbNoKey,cmSortDIZ     ,0,
     NewItem(GetString(dlSortType),    '',kbNoKey,cmSortType    ,0,
     NewItem(GetString(dlSortUnsorted),'',kbNoKey,cmSortUnsorted,0,
-  nil)))))))));
-  N := 7; W := 15;
+  nil))))))))));
+  N := NumSortModes; W := 15;
   DeskTop^.GetExtent(R);
   R.A := P^.Origin; P^.Owner^.MakeGlobal(R.A, R.A); Desktop^.MakeLocal(R.A, R.A);
   if R.A.X < 0 then R.A.X := 0 else if R.A.X + W > R.B.X then R.A.X := R.B.X - W;
@@ -1350,12 +1401,12 @@ begin
   DisposeMenu(Menu);
   if (N >= cmSortUnsorted) and (P^.SortMode+cmSortUnsorted <> N) then begin
     P^.SortMode := N-cmSortUnsorted;
-{   P^.RereadDir;}
+    if P^.SortMode = psmUnsorted then P^.RereadDir;
     P^.Files^.SortMode := N-cmSortUnsorted;
     ScrollBarValue := P^.ScrollBar^.Value;
     if ScrollBarValue >= P^.Files^.Count then Exit;
     Cur := P^.Files^.At(ScrollBarValue);
-    P^.Files^.Sort;
+    if P^.Files^.SortMode <> psmUnsorted then P^.Files^.Sort;
     For ScrollBarValue:=0 to P^.Files^.Count-1 do
      if P^.Files^.At(ScrollBarValue) = Cur then begin
       P^.ScrollBar^.SetValue(ScrollBarValue);

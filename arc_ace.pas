@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,12 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_ACE; {ACE}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, LFN;
+ uses Archiver, Advance, Advance1, Objects, LFNCol, Dos;
 
 type
   PACEArchive = ^TACEArchive;
@@ -133,9 +142,7 @@ Procedure TACEArchive.GetFile;
 label 1;
 var FP  : Longint;
     P   : ACEFileHdr;
-    S   : String;
     C   : Char;
-    I   : Integer;
 begin
 1:
  FP := ArcFile^.GetPos;
@@ -144,16 +151,13 @@ begin
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
  if P.HeadType=1 then
   begin
-   I := P.NameLen;
-   S := '';
+   FileInfo.FName := '';
    repeat
     ArcFile^.Read(C,1);
-    I := I - 1;
-    S := S + C;
-   until I=0;
-   if P.Attr and Directory <> 0 then S := S + '\';
-   FileInfo.FName := S; FileInfo.Last := 0;
-   FileInfo.LFN   := AddLFN(S); {DataCompBoy}
+    Dec(P.NameLen);
+    FileInfo.FName := FileInfo.FName + C;
+   until P.NameLen=0;
+   FileInfo.Last := 0;
    FileInfo.USize := P.OriginSize;
    FileInfo.PSize := P.PackedSize;
    FileInfo.Date := P.DateTime;

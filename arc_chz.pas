@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.6.RC1
+//  Dos Navigator Open Source
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -43,13 +43,21 @@
 //  cannot simply be copied and put under another distribution licence
 //  (including the GNU Public Licence).
 //
+//////////////////////////////////////////////////////////////////////////
+//
+//  Version history:
+//
+//  1.6.RC1
+//  dn16rc1-Archivers_Optimization-diff154byMV.patch
+//
+//  2.0.0
+//
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_CHZ; {CHZ}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, LFNCol, Dos, Arc_ZOO,
-      lfn;
+ uses Archiver, Advance, Advance1, Objects, LFNCol;
 
 type
     PCHZArchive = ^TCHZArchive;
@@ -123,13 +131,10 @@ begin
 end;
 
 Procedure TCHZArchive.GetFile;
-var HS,i : AWord;
+var
     FP   : Longint;
     P    : CHZHdr;
-    Q    : Array [1..40] of Char absolute P;
-    P1   : ZOOPHdr;
     S    : String;
-    C    : Char;
     label 1;
 begin
 1:
@@ -140,7 +145,7 @@ begin
   then begin FileInfo.Last := 2;Exit;end;
  if P.ID[4] = 'D' then
   begin
-   ArcFile^.Seek(FP+4+5);
+   ArcFile^.Seek(FP+9);
    ArcFile^.Read(S[0],1);
    ArcFile^.Read(S[1],Length(S));
    CDir := CDir + S+'\';
@@ -162,13 +167,10 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1;
- S[0] := Char(P.NameLen);
- ArcFile^.Read(S[1], P.NameLen and 255);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- FileInfo.LFN  := AddLFN(CDir+S);    {DataCompBoy}
- FileInfo.FName := CDir + S; {DataCompBoy}
+ if P.NameLen > 255 then P.NameLen := 255;
+ FileInfo.FName[0] := Char(P.NameLen);
+ ArcFile^.Read(FileInfo.FName[1], P.NameLen);
+ FileInfo.FName := CDir + FileInfo.FName;
  ArcFile^.Seek(FP + P.PackedSize);
 end;
 
