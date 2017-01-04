@@ -59,6 +59,9 @@
 ::  dn230-version_upgrade.patch
 ::
 ::  2.7.0
+::  dn270-version_upgrade.patch
+::
+::  3.7.0
 ::
 :://///////////////////////////////////////////////////////////////////////
 @echo off
@@ -95,7 +98,7 @@ if .%1.==.. builddn asm help resource nolite
 
 set prg_packer=%real_packer%
 
-set dn_version=2.7.0
+set dn_version=3.7.0
 set diz_title=Real Mode Binary Package
 
 :Loop

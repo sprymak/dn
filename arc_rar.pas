@@ -54,6 +54,11 @@
 //  dn223-Archivers_Optimization.patch
 //
 //  2.3.0
+//  dn270-more_strict_RAR_processing.patch
+//  dn270-RAR_host_Unix_directory_bugfix.patch
+//  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -100,11 +105,11 @@ begin
   FreeStr := SourceDir + DNARC;
   TObject.Init;
 {$IFNDEF OS2}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR32.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR32.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR32'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR32'));
 {$ELSE}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR32.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR32.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR32'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR32'));
 {$ENDIF}
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x'));
@@ -181,6 +186,7 @@ var
     Ps   : Integer;
     P    : LocRARHdr;
     P2   : LocRAR2Hdr;
+    DirMask : Longint;
     label 1;
 begin
 1: if (ArcFile^.GetPos = ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;
@@ -189,6 +195,11 @@ begin
       FP := ArcFile^.GetPos;
       ArcFile^.Read(P2, 7);
       if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
+{piwamoto}
+{we must skip garbage (digital sign as example) at the end of archive}
+{check for valid HeadType: $72 can't be valid here, $7a..7f reserved for future RAR versions}
+      if not (P2.HeadType in [$73..$7f]) then begin FileInfo.Last:=1;Exit;end;
+{/piwamoto}
       if P2.HeadType = $74 then
        begin
          ArcFile^.Read(P2.PSize, SizeOf(P2)-7);
@@ -198,8 +209,9 @@ begin
          FileInfo.PSize := P2.PSize;
          FileInfo.USize := P2.USize;
          FileInfo.Attr := Byte(P2.HeadFlags and $04 <> 0) * Hidden;
-         if ((P2.OSVer=3) {Unix} and (P2.Attr and $4000 <> 0) {directory})
-           or (P2.Attr and Directory <> 0) {DOS}
+         if P2.OSVer = 3 then DirMask := $4000 {Unix}
+                         else DirMask := Directory {DOS compatible};
+         if P2.Attr and DirMask <> 0
            then FileInfo.Attr := FileInfo.Attr or Directory;
          if P2.NameLen > 255 then P2.NameLen := 255;
          ArcFile^.Read(FileInfo.FName[1], P2.NameLen);

@@ -48,9 +48,13 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn21013-dnerror_use_swap_file.patch
+//  dn3323-dnerror_cant_read_dn_err.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
-{$I STDEFINE.INC}
+{.$I STDEFINE.INC}
 
 {$i-}{$f+}
 unit mapengn;
@@ -64,10 +68,11 @@ procedure CloseMap;
 
 {Misc}
 const HexCh: Set Of Char = ['0'..'9','A'..'F', 'a'..'f'];
+
 function FromHex(S: string): longint;
 
 implementation
-uses Objects, Collect, Search, Advance1 {$IFNDEF DPMI}, ExtraMem{$ENDIF};
+uses Search, Objects; {Warning! You have to use original objects.pas}
 
 function FromHex(S: string): longint;
 var b: byte;
@@ -104,11 +109,8 @@ Type TSR = Record
             StrtAddrOfs: Word;
            End;
 
-var {$IFDEF DPMI}
-    MapDt: TMemoryStream;
-    {$ELSE}
-    MapDt: TEMSStream;
-    {$ENDIF}
+var
+    MapDt: TBufStream;
     Mpp: TBufStream;
     HasMap: Boolean;
     s: string;
@@ -137,12 +139,19 @@ function LoadMap;
 begin
  FileNames.Init($8, $8);
  {FuncNames.Init($8, $8);}
- Mpp.Init(MapName, stOpenPacked, $1000);
+ Mpp.Init(MapName, stOpenRead, $1000);
  if Mpp.Status<>stOk then begin
   LoadMap:=false;
   exit;
  end else begin
-  MapDt.Init($300000, $1000);
+  MapDt.Init('dnerror.swp', stCreate,3000);
+  If MapDt.Status<>stOk Then
+   Begin
+    FileNames.Done;
+    MapDt.Done;
+    WriteLn('Error creating swap file. Not enough free disk space?');
+    Halt(1);
+   End;
   repeat
    S:='';
    c:=' ';
@@ -159,12 +168,11 @@ begin
     Mpp.Read(C, SizeOf(C));
     if c<>#0 then S:=S+C;
    end;
-   {if s<>'' then FuncNames.AtInsert(FuncNames.Count, NewStr(S));}
   until s='';
   MapDt.CopyFrom(Mpp, Mpp.GetSize-Mpp.GetPos);
   Mpp.Done;
   NumEl:=MapDt.GetPos div SizeOf(TSR);
-  LoadMap:=(NumEl>0) and (Mpp.Status=stOk) and (MapDt.Status=stOk);
+  LoadMap:=(NumEl>0) and (MapDt.Status=stOk);
  end;
 end;
 
@@ -181,10 +189,12 @@ begin
 end;
 
 Procedure CloseMap;
+Var F: File;
 begin
  FileNames.Done;
- {FuncNames.Done;}
  MapDt.Done;
+ Assign(F,'dnerror.swp');
+ Erase(F);
 end;
 
 end.

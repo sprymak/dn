@@ -52,13 +52,32 @@
 //  dn16rc1-CD_help_hook_diff146byMV.patch
 //
 //  2.0.0
+//  dn270-too_long_command_line_warning.patch
+//  dn2825-quick_directories_list_improve.patch
+//  dn2911-cd_folder_command_put_in_history_fix.patch
+//  dn2911-dialogs_and_messages_displaying_fix.patch
+//  dn2911-add_quick_dir_fix.patch
+//  dn2106-quick_dir_menu_get_event_fix.patch
+//  dn21116-utils(fi)-quick_dirs.patch
+//  dn328-FilePanel(f)-CD_command_on_network_drives_fix.patch
+//  dn3216-FilePanel(f)-change_folder_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit DNUtil2;
 
 interface
-uses Menus, Objects;
+uses Menus, Objects, Drivers;
+
+{--- start -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+Type
+ PChangeDirMenu = ^TChangeDirMenu;
+ TChangeDirMenu = Object(TMenuBox)
+  Procedure GetEvent(Var Event: TEvent); Virtual;
+ End;
+{--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
 
  procedure OpenWindow(ChDrive: Boolean);
  procedure OpenTreeWindow;
@@ -89,12 +108,212 @@ uses Menus, Objects;
 
 implementation
 uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
-     lfn, Drivers, Videoman, DnHelp, DnIni, Startup, Advance1, DnStdDlg,
+     lfn, Videoman, DnHelp, DnIni, Startup, Advance1, DnStdDlg,
      ColorSel, advance2, Drives, DnSvLd, advance4, cmdline, dnutil, dnexec,
      flpanelx, messages, usermenu, winclp, microed, filefind, collect,
-     advance7
+     advance7, histries
      {$IFDEF SpreadSheet},Calc{$ENDIF}
      ;
+
+{--- start -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+ Function AddNewDirectory: Boolean;
+  Label 1;
+  Const
+      NewDir: Record
+       S1: String[1];   {Number Of Directory}
+       S2: String[255]; {Directory}
+      End = (S1:'';S2:'');
+  Var
+     S: String;
+     i: Byte;
+  Begin
+   i:=0;
+   AddNewDirectory:=False;
+   While (i <= 8) And (DirsToChange[i] <> Nil) Do Inc(i);
+   If I > 8 Then
+    MessageBox(GetString(dlNoFreeQuickDirNum),Nil,mfOkButton)
+   Else
+    Begin
+     NewDir.S1:=ItoS(i+1);
+     NewDir.S2:='';
+1:
+     i:=ExecResource(dlgAddQuickDir,NewDir);
+     If i = cmYes Then
+      Begin
+       NewDir.S2:=CurrentDirectory;
+       Goto 1;
+      End;
+
+     If (i <> cmOK) Or (NewDir.S2 = '') Then
+      Exit;
+     i:=StoI(NewDir.S1)-1;
+
+     If Not (i In [0..10]) Then
+      Begin
+       MessageBox(GetString(dlIncorrectDirNum),Nil,mfOkButton);
+       Goto 1;
+      End;
+
+     If DirsToChange[i] <> Nil Then
+      If MessageBox(GetString(dlQuickDirNumBusy),Nil,mfYesNoConfirm) <> cmYes Then
+       Exit;
+     DirsToChange[i]:=NewStr(NewDir.S2);
+     AddNewDirectory:=True;
+    End;
+  End;
+
+ Function EditCurDirectory(Var Number: Byte; Var DirName: String): Boolean;
+  Label 1;
+  Const
+      NewDir: Record
+       S1: String[1];   {Number Of Directory}
+       S2: String[255]; {Directory}
+      End = (S1:'';S2:'');
+  Var
+     S: String;
+     i: Byte;
+  Begin
+   EditCurDirectory:=False;
+   NewDir.S1:=ItoS(Number+1);
+   NewDir.S2:=DirName;
+1:
+   i:=ExecResource(dlgEditQuickDir,NewDir);
+   If i = cmYes Then
+    Begin
+     NewDir.S2:=CurrentDirectory;
+     Goto 1;
+    End;
+
+   If (i <> cmOK) Or (NewDir.S2 = '') Then
+    Exit;
+   i:=StoI(NewDir.S1)-1;
+   If Not (i In [0..10]) Then
+    Begin
+     MessageBox(GetString(dlIncorrectDirNum),Nil,mfOkButton);
+     Goto 1;
+    End;
+
+   If (Number <> i) And (DirsToChange[i] <> Nil) Then
+    If MessageBox(GetString(dlQuickDirNumBusy),Nil,mfYesNoConfirm) <> cmYes Then
+     Exit;
+
+   Number:=StoI(NewDir.S1)-1;
+   DirName:=NewDir.S2;
+   EditCurDirectory:=True;
+  End;
+
+ Procedure TChangeDirMenu.GetEvent(Var Event: TEvent);
+ Var DirListChanged: Boolean;
+
+ Procedure DisposeItems;
+ Var
+   P, Q: PMenuItem;
+ Begin
+  If Menu <> Nil Then
+   Begin
+    P := Menu^.Items;
+    While P <> Nil Do
+     Begin
+      If P^.Name <> Nil Then
+       Begin
+        DisposeStr(P^.Name);
+        DisposeStr(P^.Param);
+       End;
+      Q := P;
+      P := P^.Next;
+      Dispose(Q);
+     End;
+    Menu^.Items:=Nil;
+   End;
+ End;
+
+ Procedure UpdateItems;
+ Label Retry;
+ Var R: TRect;
+     I: PMenuItem;
+     N,Q,J: Integer;
+ Begin
+  DirListChanged:=True;
+  DisposeItems;
+Retry:
+  I:=Nil;
+  Q:=0; J:=0;
+  For N := 8 DownTo 0 Do
+   If DirsToChange[N] <> Nil Then
+    Begin
+     FreeStr:='~'+Itos(N+1)+'~ '+ CutH(DirsToChange[N]^,40);
+     I:=NewItem(FreeStr, 'Alt-'+Itos(N+1), kbAlt1, cmQuickChange1 + N,
+        hcNoContext, I);
+     J:=Max(CStrLen(FreeStr), J);
+     Inc(q);
+   End;
+  If I = Nil Then
+   Begin
+    If MessageBox(GetString(erNoQuickDirs), Nil, mfYesNoConfirm) <> cmYes Then
+     Exit
+    Else
+     If Not AddNewDirectory Then Exit;
+     Goto Retry;
+   End;
+  R.Assign(Application^.Size.X Div 2 - J Div 2,
+           Application^.Size.Y Div 2 - Q Div 2,
+           Application^.Size.X Div 2 + J Div 2 + J Mod 2,
+           Application^.Size.Y Div 2 + Q Div 2 + Q Mod 2);
+  Menu^.Items:=I;
+  Menu^.Default:=I;
+  TopItem:=I;
+  Current:=I;
+  RecalcBounds(R);
+  Draw;
+ End;
+
+ Var
+    S: String;
+    i,j: Byte;
+ Begin
+  DirListChanged:=False;
+  Inherited GetEvent(Event);
+  If Event.What = evCommand Then
+   Case Event.Command Of
+    cmAddQuickDir:
+     Begin
+      If AddNewDirectory Then UpdateItems;
+      ClearEvent(Event);
+     End;
+    cmChangeQuickDir:
+     Begin
+      i:=StoI(Copy(CnvString(Current^.Name),2,1))-1;
+      S:=CnvString(DirsToChange[i]);
+      j:=i;
+      If EditCurDirectory(i, S) Then
+       Begin
+        If i <> j Then DisposeStr(DirsToChange[j]);
+        DirsToChange[i]:=NewStr(S);
+        UpdateItems;
+       End;
+      ClearEvent(Event);
+     End;
+    cmDelQuickDir:
+     Begin
+      If MessageBox(GetString(dlQuickDirDel),Nil,mfYesNoConfirm) = cmYes Then
+       Begin
+        i:=StoI(Copy(CnvString(Current^.Name),2,1))-1;
+        DisposeStr(DirsToChange[i]);
+        DirsToChange[i]:=Nil;
+        UpdateItems;
+       End;
+      If Menu^.Items = Nil Then
+       Begin
+        If DirListChanged Then Message(Application, evCommand, cmUpdateConfig, nil);
+        Exit;
+       End;
+      ClearEvent(Event);
+     End;
+   End;
+  If DirListChanged Then Message(Application, evCommand, cmUpdateConfig, nil);
+  DirListChanged:=False;
+ End;
+{--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
 
  procedure OpenWindow(ChDrive: Boolean);
   var S: String;
@@ -351,7 +570,7 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
  end;
 
  function ExecCommandLine: Boolean;
-  var S: String;
+  var S,S1: String;
       up: TUserParams;
  begin
   ExecCommandLine := Off;
@@ -359,24 +578,38 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
   CommandLine^.GetData(S);
   if (DelSpaces(S) = '') then Exit;
   ExecCommandLine := On;
+  { Flash >>> }
+  if Length(S) > 126 then
+   begin
+   Msg( erTooLongCommandLine, NIL, mfWarning + mfCancelButton );
+   Exit;
+   end;
+  { Flash <<< }
   if HandleChDirCommand then
    begin
+    S1:=S;
     DelLeft(S); DelRight(S);
+
+{--- start -------- Eugeny Zvyagintzev ---- 01-03-2003 ----}
+{If we handle CD command then we must do it correctly and in one place!}
     if (S[1] in ['c','C']) and (S[2] in ['d','D']) and (S[3]=' ')
-      and (S[4]<>'/')
-    then
-     begin
-      DelFC(S); DelFC(S); DelLeft(S); lGetLongFileName(DelSquashes(S),S);
-      if PathExist(S) then
-       Message(Application, evBroadcast, cmChangeDirectory, @S);
+       and (S[4]<>'/') then
+     Begin
+      Delete(S,1,3);
+      Message(Application, evBroadcast, cmChangeDirectory, @S);
       S:='';CommandLine^.SetData(S);CommandLine^.DrawView;
+      AddCommand(S1); {John_SW 14-09-2002}
+      cmdline.CurString := CmdStrings^.Count; {John_SW 14-09-2002}
       exit;
-     end;
+     End;
+{--- finish -------- Eugeny Zvyagintzev ---- 01-03-2003 ----}
     if (S[0]=#2) and ValidDrive(UpCase(S[1])) and (S[2]=':') then
     begin
      if s[1]='*' then s:=cTEMP_;
      Message(Desktop, evBroadcast, cmChangeDrv, @S);
      S:='';CommandLine^.SetData(S);CommandLine^.DrawView;
+     AddCommand(S1); {John_SW 14-09-2002}
+     cmdline.CurString := CmdStrings^.Count; {John_SW 14-09-2002}
      exit;
     end;
     CommandLine^.GetData(S);
@@ -392,12 +625,21 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
    var Nm: String;
        Xt: String;
        ST: String;
+ label TryAgain;
  begin
    ST := '';
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
    lFSplit(CnvString(CurFileActive), FreeStr, Nm, Xt);
    if InExtFilter(CnvString(CurFileActive), Executables) then ST := Nm+Xt+' ';
+   TryAgain: { Flash }
    if InputBox(GetString(dlExecDOScmdHdr), GetString(dlExecDOScmdLine), ST, 128, hsExecDOSCmd) <> cmOK then Exit;
+   { Flash >>> }
+   if Length(ST) > 126 then
+    begin
+    Msg( erTooLongCommandLine, NIL, mfWarning + mfCancelButton );
+    goto TryAgain;
+    end;
+   { Flash <<< }
     if not TryRunOS2(@ST) and CheckExit
      then ExecString(@St, #13#10 + ActiveDir+'>' + ST);
    DisposeStr(CurFileActive); CurFileActive := nil;
@@ -454,13 +696,15 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
  end;
 
  procedure DoQuickChange;
+  Label Retry;
   var R: TRect;
-      P: PMenuBox;
+      P: PChangeDirMenu; {John_SW}
       Menu: PMenu;
       Items: PMenuItem;
       C: Char;
       N,Q,J: Integer;
  begin
+Retry:
   Items := nil;
   Q:=0; J:=0;
   for N := 8 downto 0 do
@@ -472,19 +716,22 @@ uses DnApp, filescol, advance, gauges, views, xdblwnd, Tree, commands, dos,
       inc(q);
     end;
   If Items = NIL then begin
-    Msg( erNoQuickDirs, NIL, mfWarning + mfCancelButton );
-    Exit;
+    If MessageBox(GetString(erNoQuickDirs), NIL, mfYesNoConfirm) <> cmYes Then
+     Exit;
+    If not AddNewDirectory Then Exit;
+    Message(Application, evCommand, cmUpdateConfig, nil);
+    Goto Retry;
   end;
   R.Assign(Application^.Size.X div 2 - J div 2,
            Application^.Size.Y div 2 - Q div 2,
            Application^.Size.X div 2 + J div 2 + J mod 2,
            Application^.Size.Y div 2 + Q div 2 + Q mod 2);
   Menu := NewMenu(Items);
-  P := New(PMenuBox, Init(R, Menu, nil));
+  P := New(PChangeDirMenu, Init(R, Menu, nil));
   P^.Options := P^.Options or ofCentered;
   P^.HelpCtx := hcQuickDirs;
 
-  N := Application^.ExecView(P);
+  N := Desktop^.ExecView(P);
   Dispose(P,Done);
   DisposeMenu(Menu);
   if N >= cmQuickChange1 then Message(Desktop, evCommand, N, nil);

@@ -54,6 +54,11 @@
 //  dn230-remove_GZip_compression_and_change_external_filter_view.patch
 //
 //  2.7.0
+//  dn270-gzip_in_any_archive_fix.patch
+//  dn21128-differ_GZ_and_Z_archives.patch
+//  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -83,10 +88,10 @@ begin
   TObject.Init;
 {$IFNDEF OS2}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             ''));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNTGZ.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNTGZ'));
 {$ELSE}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             ''));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNTGZOS2.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNTGZOS2'));
 {$ENDIF}
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            '-d'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-d'));
@@ -127,27 +132,35 @@ begin
 end;
 
 Procedure TTGZArchive.GetFile;
+type
+    GZipHdr = record
+     ID:   Aword;
+     Flag: AWord;
+     Time: Longint;
+    end;
 var
-    Time: Longint;
+    P:    GZipHdr;
     DT:   DateTime;
-    Flag: Byte;
     C:    Char;
 begin
- ArcFile^.Read(Time, SizeOf(Time));
+ ArcFile^.Read(P, SizeOf(P));
  if ArcFile^.EOF then begin FileInfo.Last := 1; Exit; end;
- Flag := Time shr 24;
- ArcFile^.Read(Time, SizeOf(Time));
- GetUNIXDate(Time, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
+ GetUNIXDate(P.Time, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
  PackTime(DT, FileInfo.Date);
  FileInfo.FName := '';
- if Flag and 8 = 0 then FileInfo.FName := GetSName(VArcFileName)
+ if (P.Flag and $800 = 0) or (P.ID = $9d1f)
+   then if {(UpStrg(GetExt(ArcFileName)) = '.GZ') or}
+           (UpCase(ArcFileName[Length(ArcFileName)]) = 'Z')
+{gzip changes last char of extension to 'z' or adds '.gz' extension}
+          then FileInfo.FName := GetSName(ArcFileName)
+          else FileInfo.FName := GetName(ArcFileName)
    else begin
-    if Flag and 4 = 0 then Time := 10{skip 10 bytes}
+    if P.Flag and $400 = 0 then P.Time := 10{skip 10 bytes}
       else begin
-       ArcFile^.Read(Time, SizeOf(Time));
-       Time := Time shr 16 + 12;
+       ArcFile^.Read(P.Time, SizeOf(P.Time));
+       P.Time := P.Time shr 16 + 12;
       end;
-    ArcFile^.Seek(ArcPos + Time);
+    ArcFile^.Seek(ArcPos + P.Time);
     repeat
      ArcFile^.Read(C, 1);
      if C <> #0 then FileInfo.FName := FileInfo.FName + C else Break;

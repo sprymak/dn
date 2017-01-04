@@ -48,6 +48,12 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2825-quick_directories_list_improve.patch
+//  dn2911-dialogs_and_messages_displaying_fix.patch
+//  dn2922-inputbox_displaying_fix.patch
+//  dn21013-msg_funct_crash_when_Desktop_does_not_exists_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -160,8 +166,28 @@ begin
 end;
 
 function Msg;
+Var s: String;
+    i: Integer;
 begin
-  Msg := MessageBox( GetString( Index ), Params, AOptions );
+{--- start -------- Eugeny Zvyagintzev ---- 19-10-2002 ----}
+{This procedure can be called at startup. But we can't display
+{MessageBox because Desktop does not exists. So write to screen}
+ If Desktop <> Nil Then Msg := MessageBox( GetString( Index ), Params, AOptions )
+ Else
+  Begin
+   Msg:=cmOk;
+   s:=GetString(Index);
+{Some resource strings contains special symbols such as ^M,^C etc}
+{So we have to strip them}
+   i:=1;
+   While i <= Length(S) Do
+    If S[i] < #32 Then
+     Delete(S,i,1)
+    Else
+     Inc(i);
+   Writeln(S);
+  End;
+{--- finish -------- Eugeny Zvyagintzev ---- 19-10-2002 ----}
 end;
 
 function Msg2;
@@ -431,7 +457,8 @@ begin
   end;
   Dialog^.SetData(S);
   Dialog^.HelpCtx := hcInputBox;
-  C := DeskTop^.ExecView(Dialog);
+  C := Desktop^.ExecView(Dialog);
+
   if C <> cmCancel then Dialog^.GetData(S);
   Dispose(Dialog,Done);
   InputBoxRect := C;

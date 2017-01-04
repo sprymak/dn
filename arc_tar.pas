@@ -51,6 +51,9 @@
 //  dn16rc1-Archivers_Optimization-diff154byMV.patch
 //
 //  2.0.0
+//  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -121,8 +124,8 @@ begin
   Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'TAR.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'TAR.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'TAR'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'TAR'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'xf'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'xf'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'cvf'));

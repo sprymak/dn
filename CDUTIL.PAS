@@ -51,6 +51,11 @@
 //  dn227-resource_and_help_fixes_14022002.patch
 //
 //  2.3.0
+//  dn270-cdplayer_help_windows_fix.patch
+//  dn270-add_cdplayer_help_topics.patch
+//  dn328-CDPlayer(i)-Tab_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -76,6 +81,7 @@ Unit CdUtil;
          advance2,
          advance3,
          Collect,
+         DNHelp,
          Tree;
 
     type
@@ -274,7 +280,7 @@ Unit CdUtil;
         Options := Options or ofCentered ;
 
       Songs := ASongs ;
-
+      HelpCtx := hcCDPlayerSelectTrack;
 
       Ent[1] := #254;
       Ent[2] := #254;
@@ -540,6 +546,7 @@ Unit CdUtil;
      var T : _OrderRec ;
          s : string ;
          I : byte ;
+         P : PDialog ;
       begin
 
       with CD^ do begin
@@ -552,9 +559,14 @@ Unit CdUtil;
                   pOrder := @S ;
                  end;
 
-        if Application^.ExecuteDialog(
-         New(POrder,Init(False,Succ(HighTrack-LowTrack),Self.order )),@T)=cmOk
+        { Flash >>> }
+        P := PDialog(New(POrder,Init(False,Succ(HighTrack-LowTrack),Self.order)));
+        P^.HelpCtx:=hcCDPlayerAddSong;
+        P^.SetData(T);
+        if Desktop^.ExecView(P)=cmOk
+        { Flash <<< }
           then begin
+                P^.GetData(T);
                 AddStr(Self.Order,S[T.Selection+1]{,BOX^.Focused+2});
                 List := MakeTrackList( CD , Self.order,'', On );
                 Box^.NewList( List );

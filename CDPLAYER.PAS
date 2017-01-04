@@ -51,6 +51,12 @@
 //  dn269-cdplayer_options_help_fix.patch
 //
 //  2.7.0
+//  dn270-cdplayer_help_windows_fix.patch
+//  dn270-add_cdplayer_help_topics.patch
+//  dn328-CDPlayer(i)-Tab_fix.patch
+//  dn368-cdplayer_crash_fix_for_WinXP.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -899,6 +905,7 @@ end;
      var T : _OrderRec ;
          s : string ;
          I : byte ;
+         P : PDialog ;
       begin
        if status=noDisk then Exit ;
        S := '';
@@ -910,15 +917,20 @@ end;
                   pOrder := @S ;
                  end;
 
-        if Application^.ExecuteDialog(
-         New(POrder,Init(False, Succ(HighTrack-LowTrack) ,'')),@T)=cmOk
-          then _Song( T.Selection+1 );
+        { Flash >>> }
+        P := PDialog(New(POrder,Init(False, Succ(HighTrack-LowTrack) ,'')));
+        P^.HelpCtx:=hcCDPlayerAddSong;
+        P^.SetData(T);
+        if Desktop^.ExecView(P)=cmOk
+        { Flash <<< }
+          then begin P^.GetData(T); _Song( T.Selection+1 ); end;
       end;
 
     Procedure TCdPlayer.SelectOrder ;
      var T : _OrderRec ;
          s : string ;
          I : byte ;
+         P : PDialog ;
       begin
        S := trkOrder ;
        {for  I:= LowTrack to HighTrack do AddStr(S, char(I));}
@@ -933,9 +945,14 @@ end;
                   pOrder := @S ;
                  end;
 
-        if Application^.ExecuteDialog(
-         New(POrder,Init(True,Length(S),'')),@T)=cmOk
+        { Flash >>> }
+        P := PDialog(New(POrder,Init(True,Length(S),'')));
+        P^.HelpCtx:=hcCDPlayerOrder;
+        P^.SetData(T);
+        if Desktop^.ExecView(P)=cmOk
+        { Flash <<< }
           then begin
+                 P^.GetData(T);
                  trkOrder := S;
                  trkPlay  := S;
                  {_Song( T.Selection+1 );}
@@ -1236,10 +1253,10 @@ begin
 
    if Info2<>nil then
     begin
-     if (Status in [play,paused])
+     if (Status in [play,paused]) and (Descr <> nil)
+        and (Descr^.Count <> 0) and (Qchannel.TNO-LowTrack >= 0)
      then Tdscr := CnvString(Descr^.At( Qchannel.TNO-LowTrack ))
      else Tdscr := '';
-      if (Descr=nil) or (Descr^.Count=0) then Tdscr := '';
      if Pos(';',Tdscr)>0 then system.Delete(Tdscr,Pos(';',Tdscr),255);
      ParmD := Longint( @TrkDescr );
      if TrkDescr<>Tdscr then
@@ -1695,8 +1712,7 @@ begin
   P2 := CDparams[ 2 ];
   P3 := CDmixer ;
 
-{  if Application^.ExecuteDialog( PDialog( LoadResource( dlgCDOptions )), @PRM ) = cmOk then begin } { Disabled by Flash }
-  if ExecResource( dlgCdOptions, PRM ) = cmOk then begin { Added by Flash }
+  if ExecResource( dlgCdOptions, PRM ) = cmOk then begin { Flash }
    CDmixer := P3;
    CDparams[ 1 ] := P1;
     if P2 <> CDparams[ 2 ]  then begin
@@ -1713,6 +1729,7 @@ end;
 
   Procedure TcdPlayer._Song ;
    var trk,trks : word ;
+       P : PDialog;
       begin
 
        if status=noDisk then  Exit ;
@@ -1722,9 +1739,12 @@ end;
        {trk := 42 ;}
        if ASong=0 then
          begin
-           if Application^.ExecuteDialog(
-              New( PSPad , Init( trk ) ) , @trk
-                                        ) <> cmOk then Exit;
+           { Flash >>> }
+           P := PDialog(New( PSPad , Init( trk ) ));
+           P^.SetData(trk);
+           if Desktop^.ExecView(P) <> cmOk then Exit;
+           P^.GetData(trk);
+           { Flash <<< }
          End
          Else trk := ASong ;
        if trk > trks then Exit ;
@@ -1781,6 +1801,7 @@ end;
 PROCEDURE TcdPlayer.Zoom;
 begin
   if Size.Y > 8 then begin
+    while  Current^.Origin.Y > 7 do SelectNext(False); { Flash 11-02-2003 }
     GrowTo( 36, 8 );
   end else begin
     GrowTo( 36, 15 );
@@ -1945,6 +1966,18 @@ begin
         KbPgDn:  _Prev;
         KbLeft:  _FRewind;
         KbRight: _FForward;
+               { Flash 11-02-2003 >>> }
+        KbTab: begin
+                if (Size.Y = 8) and (PButton(Current)^.Command = cdFFwd) then
+                 repeat SelectNext(False) until Current^.Origin.Y < 7
+                else SelectNext(False);
+               end;
+        KbShiftTab: begin
+                     if (Size.Y = 8) and (PButton(Current)^.Command = cdFRew) then
+                      repeat SelectNext(True) until Current^.Origin.Y < 7
+                     else SelectNext(True);
+                    end;
+               { Flash 11-02-2003 <<< }
        else
       begin
         inherited HandleEvent( Event );
@@ -1993,19 +2026,21 @@ begin
           if IsDriveCDROM(C) then begin
            FreeStr:='~'+C+'~:';
            Items := NewItem(FreeStr, '', kbNoKey, cmSelectMenuCommands + Ord(C) - Ord('A'),
-            hcNoContext, Items);
+            hcCDPlayerSelectCDROM, Items); { Flash }
            inc(cd);
           end;
-         R.Assign(Application^.Size.X div 2 - 1,
-                  Application^.Size.Y div 2 - CD div 2,
-                  Application^.Size.X div 2 + 1,
-                  Application^.Size.Y div 2 + CD div 2 + CD mod 2);
+         { Flash >>> }
+         R.Assign(Desktop^.Size.X div 2 - 1,
+                  Desktop^.Size.Y div 2 - CD div 2,
+                  Desktop^.Size.X div 2 + 1,
+                  Desktop^.Size.Y div 2 + CD div 2 + CD mod 2);
+         { Flash <<< }
          Menu := NewMenu(Items);
          P := New(PMenuBox, Init(R, Menu, nil));
          P^.Options := P^.Options or ofCentered;
-         P^.HelpCtx := hcNoContext;
+         P^.HelpCtx := hcCDPlayerSelectCDROM; { Flash }
 
-         N := Application^.ExecView(P);
+         N := Desktop^.ExecView(P); { Flash }
          Dispose(P,Done);
          DisposeMenu(Menu);
          if N >= cmSelectMenuCommands

@@ -54,6 +54,15 @@
 //  dn2522_change_text_case_in_dialogs_fix.patch
 //
 //  2.7.0
+//  dn2811_ctrl_back_slash_in_dialogs_fix.patch
+//  dn2825-wkz_big_improve_and_various_bugs_fix.patch
+//  dn2825-clipboard_operation_changed_in_dialogs.patch
+//  dn328-InputLine(fi)-new_shortkey_added_and_some_bugs_fixed.patch
+//  dn3323-InputLine(f)-Ctrl_BackSpace_fix.patch
+//  dn3323-history(i)-ak30327b.patch
+//  dn3421-InputLines(f)_Ctrl_B_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -192,6 +201,7 @@ type
     Validator: PValidator;
     DrawShift: Byte;
     CtrlK: Boolean;
+    CtrlQ: Boolean; {John_SW 09-02-2003}
     constructor Init(var Bounds: TRect; AMaxLen: AInt);
     constructor Load(var S: TStream);
     destructor Done; virtual;
@@ -499,7 +509,7 @@ function NewSItem(const Str: String; ANext: PSItem): PSItem;
 implementation
 
 uses AsciiTab, HistList, advance, advance1, advance2, advance3, Commands,
-     Startup, xTime, FlPanelX, dnapp
+     Startup, xTime, FlPanelX, dnapp, dnutil2,ccalc
      {$IFDEF VIRTUALPASCAL}, Crt{$ENDIF}
      ;
 
@@ -509,8 +519,6 @@ const
 
   cmGrabDefault    = 61;
   cmReleaseDefault = 62;
-  cmPutInClipboard  = 11027;
-  cmGetFromClipboard= 11028;
 
 { Utility functions }
 
@@ -636,6 +644,7 @@ begin
   MaxLen := AMaxLen;
   DrawShift := 1;
   CtrlK := False;
+  CtrlQ := False;
 end;
 
 constructor TInputLine.Load(var S: TStream);
@@ -741,7 +750,7 @@ const
 var
   Delta, Anchor, I: Integer;
   OldScanCode: Byte;
-  ExtendBlock: Boolean;
+  ExtendBlock,SelectBlockStay: Boolean; {John_SW 09-02-2003}
   OldData: string;
   OldCurPos, OldFirstPos,
   OldSelStart, OldSelEnd: Integer;
@@ -897,9 +906,46 @@ procedure ASCIITable;
 begin
   TView.HandleEvent(Event);
   if Data=nil then Exit;
+  SelectBlockStay:=False; {John_SW 09-02-2003}
   if State and sfSelected <> 0 then
   begin
     case Event.What of
+{--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 -----}
+{We have to process some commands}
+      evCommand:
+       case Event.KeyCode of
+         cmCopy: if Options and ofSecurity = 0 then begin
+                     S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
+                     if S <> '' then PutInClip(@S);
+                     ClearEvent(Event); Exit;
+                   end;
+         cmClear: begin
+                   DeleteSelect; SelEnd := SelStart; DrawView; ClearEvent(Event);
+                   Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+                   Exit;
+                  end;
+         cmCut: begin
+                 S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
+                 if S <> '' then PutInClip(@S);
+                 DeleteSelect; SelEnd := SelStart; DrawView; ClearEvent(Event);
+                 Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+                 Exit;
+                end;
+         cmPaste: begin
+                   ClearEvent(Event);
+                   S := ''; DeleteSelect;
+                   GetFromClip(@S);
+                   if S = '' then Exit;
+                   SelStart := CurPos; SelEnd := CurPos + Length(S);
+                   OldData := Data^;
+                   Insert(S, OldData, CurPos + 1);
+                   Data^ := Copy(OldData, 1, MaxLen);
+                   DrawView;
+                   Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+                   Exit;
+                  end;
+       end;
+{--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 -----}
       evMouseDown:
         begin
           Delta := MouseDelta;
@@ -943,35 +989,74 @@ begin
           end
           else
             ExtendBlock := False;
-          if CtrlK then begin
+          if CtrlK Or CtrlQ then
+           begin
+            If CtrlK Then
+             begin
+              case Event.KeyCode of
+               kbCtrlSqBracketL: begin
+                   if SelStart<SelEnd then
+                   For I:=SelStart+1 to SelEnd do Data^[I]:=UpCase(Data^[I]);
+                   if CurPos = SelEnd then Anchor := SelStart
+                   else Anchor := SelEnd;
+                   ExtendBlock:=True
+               end;
+               kbCtrlSqBracketR: begin
+                   if SelStart<SelEnd then
+                   For I:=SelStart+1 to SelEnd do Data^[I]:=LowCase(Data^[I]);
+                   if CurPos = SelEnd then Anchor := SelStart
+                   else Anchor := SelEnd;
+                   ExtendBlock:=True
+               end;
+               kbCtrlSlash,
+               kbCtrlBSlash: begin
+                   S := CapStrg(Copy(Data^, SelStart+1, SelEnd-SelStart));
+                   Delete(Data^, SelStart+1, SelEnd-SelStart);
+                   Insert(S, Data^, SelStart+1);
+                   if CurPos = SelEnd then Anchor := SelStart
+                   else Anchor := SelEnd;
+                   ExtendBlock:=True
+               end;
+              end;
+              CtrlK:=false;
+             end
+{--- start -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
+            Else
+             Begin
+              CtrlQ:=false;
+              If (UpCase(Event.CharCode) = 'D') Or (Event.KeyCode = kbCtrlD) Or
+                 (UpCase(Event.CharCode) = 'T') Or (Event.KeyCode = kbCtrlT) Then
+               Begin
+                If (UpCase(Event.CharCode) = 'D') Or (Event.KeyCode = kbCtrlD) Then
+                 S:=GetDateTime(False)
+                Else
+                 S:=GetDateTime(True);
+                If S = '' Then Exit;
+                DeleteSelect;
+                SelStart := CurPos; SelEnd := CurPos + Length(S);
+                OldData := Data^;
+                Insert(S, OldData, CurPos + 1);
+                Data^ := Copy(OldData, 1, MaxLen);
+                DrawView;
+                ClearEvent(Event);
+                Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+                Exit;
+               End;
+              If (UpCase(Event.CharCode) = 'Y') Or (Event.KeyCode = kbCtrlY) Then
+               Begin
+                OldData := Data^;
+                Data^ := Copy(OldData, 1, CurPos);
+                If SelEnd > CurPos Then SelEnd:=CurPos;
+                DrawView;
+                ClearEvent(Event);
+                Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+                Exit;
+               End;
+             End;
+           End
+{--- finish -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
+          Else
            case Event.KeyCode of
-            kbCtrlSqBracketL: begin
-                if SelStart<SelEnd then
-                For I:=SelStart+1 to SelEnd do Data^[I]:=UpCase(Data^[I]);
-                if CurPos = SelEnd then Anchor := SelStart
-                else Anchor := SelEnd;
-                ExtendBlock:=True
-            end;
-            kbCtrlSqBracketR: begin
-                if SelStart<SelEnd then
-                For I:=SelStart+1 to SelEnd do Data^[I]:=LowCase(Data^[I]);
-                if CurPos = SelEnd then Anchor := SelStart
-                else Anchor := SelEnd;
-                ExtendBlock:=True
-            end;
-            kbCtrlSlash,
-            kbCtrlBSlash: begin
-                S := CapStrg(Copy(Data^, SelStart+1, SelEnd-SelStart));
-                Delete(Data^, SelStart+1, SelEnd-SelStart);
-                Insert(S, Data^, SelStart+1);
-                if CurPos = SelEnd then Anchor := SelStart
-                else Anchor := SelEnd;
-                ExtendBlock:=True
-            end;
-           end;
-           CtrlK:=false;
-          end else
-          case Event.KeyCode of
                kbCtrlK: CtrlK:=True;
                kbAltF12: begin
                           OldData:=RusEngConv(Copy(Data^, SelStart+1, SelEnd-SelStart));
@@ -981,7 +1066,8 @@ begin
                           ExtendBlock:=True
                          end;
        kbAltCtrlSqBracketL,
-       kbCtrlSqBracketL: if ShiftState and (kbLeftShift+kbRightShift)<>0
+       kbCtrlSqBracketL: begin
+                          if ShiftState and (kbLeftShift+kbRightShift)<>0
                           then UpStr(Data^)
                           else begin
                            I:=CurPos;
@@ -991,8 +1077,11 @@ begin
                             inc(i);
                            until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
+                          SelectBlockStay:=True
+                         end;
        kbAltCtrlSqBracketR,
-       kbCtrlSqBracketR: if ShiftState and (kbLeftShift+kbRightShift)<>0
+       kbCtrlSqBracketR: begin
+                          if ShiftState and (kbLeftShift+kbRightShift)<>0
                           then LowStr(Data^)
                           else begin
                            I:=CurPos;
@@ -1002,6 +1091,8 @@ begin
                             inc(i);
                            until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
+                          SelectBlockStay:=True
+                         end;
 {--- start -------- Eugeny Zvyagintzev ---- 02-06-2002 -----}
             kbCtrlSlash : Begin
                            If Data^[CurPos+1] = UpCase(Data^[CurPos+1]) Then
@@ -1011,9 +1102,11 @@ begin
                            Inc(CurPos);
                            If CurPos > Length(Data^) Then
                             CurPos:=Length(Data^);
+                           SelectBlockStay:=True
                           End;
 {--- finish -------- Eugeny Zvyagintzev ---- 02-06-2002 -----}
-            kbCtrlBSlash: if ShiftState and (kbLeftShift+kbRightShift)<>0
+            kbCtrlBSlash: begin
+                          if ShiftState and (kbLeftShift+kbRightShift)<>0
                           then CapStr(Data^)
                           else begin
                            I:=CurPos;
@@ -1021,10 +1114,13 @@ begin
                            if (Data^[I] in BreakChars) then inc(I);
                            if i = 0 then i:=1; {John_SW}
                            Data^[I]:=UpCase(Data^[I]); inc(I);
-                           Repeat
+                           While (not (Data^[I] in BreakChars)) and (I<=Length(Data^)) do {John_SW}
+                           begin
                             Data^[I]:=LowCase(Data^[I]);
                             inc(i);
-                           until (Data^[I] in BreakChars) or (I>Length(Data^));
+                           end;
+                          end;
+                          SelectBlockStay:=True
                           end;
             kbCtrlBack: if CurPos > 0 then begin
                          if (Data^[CurPos] in BreakChars) then
@@ -1036,14 +1132,8 @@ begin
                           repeat
                            Delete(Data^, CurPos, 1);
                            Dec(CurPos)
-                          until (CurPos = 0) or (Data^[CurPos] in BreakChars)
+                          until (CurPos = 0) or (Data^[CurPos] in BreakChars);
                         end;
-            kbCtrlIns:
-                  if Options and ofSecurity = 0 then begin
-                    S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
-                    if S <> '' then Message(Owner^.Owner^.Owner, evCommand, cmPutInClipboard, @S);
-                    ClearEvent(Event); Exit;
-                  end;
             kbCtrlLeft: begin
                           if CurPos > 0 then
                           repeat Dec(CurPos)
@@ -1052,16 +1142,31 @@ begin
                        end;
             kbCtrlRight: begin
                           if CurPos < Length(Data^) then
-                          repeat Inc(CurPos)
-                          until (CurPos >= Length(Data^)) or (Data^[CurPos+1] in BreakChars);
+                           while (CurPos < Length(Data^)) and not (Data^[CurPos+1] in BreakChars) do
+                            Inc(CurPos);
                           if CurPos < Length(Data^) then
-                          repeat Inc(CurPos)
-                          until (CurPos >= Length(Data^)) or not (Data^[CurPos+1] in BreakChars);
+                           while (CurPos < Length(Data^)) and (Data^[CurPos+1] in BreakChars) do
+                            Inc(CurPos);
                         end;
+            kbCtrlIns:
+                  if Options and ofSecurity = 0 then begin
+                    S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
+                    if S <> '' then PutInClip(@S);
+                    ClearEvent(Event); Exit;
+                  end;
+{--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 -----}
+{We have to process standart selection delete key combination}
+            kbCtrlDel:
+                  begin
+                    DeleteSelect; SelEnd := SelStart; DrawView; ClearEvent(Event);
+                    Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+                    Exit;
+                  end;
+{--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 -----}
             kbShiftDel:
                   begin
                     S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
-                    if S <> '' then Message(Owner^.Owner^.Owner, evCommand, cmPutInClipboard, @S);
+                    if S <> '' then PutInClip(@S);
                     DeleteSelect; SelEnd := SelStart; DrawView; ClearEvent(Event);
                     Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
                     Exit;
@@ -1070,7 +1175,7 @@ begin
                   begin
                     ClearEvent(Event);
                     S := ''; DeleteSelect;
-                    Message(Owner^.Owner^.Owner, evCommand, cmGetFromClipboard, @S);
+                    GetFromClip(@S);
                     if S = '' then Exit;
                     SelStart := CurPos; SelEnd := CurPos + Length(S);
                     OldData := Data^;
@@ -1121,14 +1226,60 @@ begin
                 DeleteSelect;
                 CheckValid(True);
               end;
-            kbIns:
-              SetState(sfCursorIns, State and sfCursorIns = 0);
+            kbIns: SetState(sfCursorIns, State and sfCursorIns = 0);
+{--- start -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
+            kbCtrlQ : CtrlQ:=True;
+            kbCtrlLAngle: Begin
+                           If CurPos > 0 Then
+                            Repeat Dec(CurPos)
+                            Until (CurPos = 0) Or Not (Data^[CurPos+1] In BreakChars);
+                           While (CurPos > 0) And Not (Data^[CurPos] In BreakChars) Do Dec(CurPos);
+                           If CurPos >= SelStart Then
+                            SelEnd:=CurPos
+                           Else
+                            SelStart:=CurPos;
+                           DrawView;
+                           ClearEvent(Event);
+                           Exit;
+                          End;
+            kbCtrlRAngle: Begin
+                           If Curpos < Length(Data^) Then
+                            While (Curpos < Length(Data^)) And Not (Data^[Curpos+1] In Breakchars) Do
+                             Inc(Curpos);
+                           If Curpos < Length(Data^) Then
+                            While (Curpos < Length(Data^)) And (Data^[Curpos+1] In Breakchars) Do
+                             Inc(Curpos);
+                           If CurPos > SelEnd Then
+                            SelEnd:=CurPos
+                           Else
+                            SelStart:=CurPos;
+                           DrawView;
+                           ClearEvent(Event);
+                           Exit;
+                          End;
+            kbCtrlF6: Begin
+                       ClearEvent(Event);
+                       OldData:=Copy(Data^, SelStart + 1, SelEnd - SelStart);
+                       If OldData = '' Then OldData:=Data^;
+                       S:=InsertCalc(@OldData);
+                       if S = '' then Exit;
+                       DeleteSelect;
+                       SelStart := CurPos; SelEnd := CurPos + Length(S);
+                       OldData := Data^;
+                       Insert(S, OldData, CurPos + 1);
+                       Data^ := Copy(OldData, 1, MaxLen);
+                       DrawView;
+                       Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+                       Exit;
+                      End;
+{--- finish -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
           else
             case Event.CharCode of
               ' '..#254: InsChar(Event.CharCode);
               ^P, ^B: begin
                         ASCIITable;
                         ClearEvent(Event);
+                        SelectBlockStay:=False;
                       end;
               ^Y:
                 begin
@@ -1137,12 +1288,12 @@ begin
                 end;
             else
               Exit;
-            end
-
+            end;
           end;
-          If Not CtrlK then
+          If (Not CtrlK) And (Not CtrlQ) then
            if ExtendBlock then AdjustSelectBlock
-           else begin SelStart := CurPos; SelEnd := CurPos; end;
+           else If Not SelectBlockStay Then {John_SW 09-02-2003}
+            begin SelStart := CurPos; SelEnd := CurPos; end;
           if FirstPos > CurPos then FirstPos := CurPos;
           I := CurPos - Size.X + 2 * DrawShift;
           if FirstPos < I then FirstPos := I;
@@ -2349,17 +2500,53 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
  end;
  {- $ WildCat $ -}
 
+{AK155 27-03-2003 по мотивам ScanMarked из TTHistList.HandleEvent}
+ function SearchNonDeletableItem(D, Bound: integer): boolean;
+   var
+     i: integer;
+   begin
+   SearchNonDeletableItem := false;
+   i := Focused;
+   while true do
+     begin
+     inc(i, D);
+     if i = Bound then
+       exit;
+     HistoryStr(HistoryID, i);
+     if HistList.CurString^[length(HistList.CurString^)] <> ' ' then
+       begin
+       FocusItem(i); DrawView;
+       SearchNonDeletableItem := true;
+       exit;
+       end;
+     end;
+   end;
+{/AK155 27-03-2003}
+
  begin
     if ((Event.What = evBroadcast) and (Event.Command = cmReleaseDFocus))
     or (Event.What = evMouseDown) then begin
        SearchPos := 0;
        HideCursor
-   end else if Event.What=evKeyDown then case Event.KeyCode of
+   end else if Event.What=evKeyDown then
+     case Event.KeyCode of
        kbCtrlPgDn, kbCtrlPgUp, kbPgDn, kbPgUp,
        kbEnd, kbHome, kbDown, kbUp: begin
            SearchPos:=0;
            HideCursor
-       end
+         end;
+{AK155 27-03-2003}
+       kbAltUp, kbLeft:
+         begin
+         SearchNonDeletableItem(-1, -1);
+         exit;
+         end;
+       kbAltDown, kbRight:
+         begin
+         SearchNonDeletableItem(1, Range);
+         exit;
+         end;
+{/AK155 27-03-2003}
    end;
  if ((Event.What = evMouseDown) and (Event.Double)) or
      ((Event.What = evKeyDown) and (Event.KeyCode = kbEnter)) then

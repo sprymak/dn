@@ -56,6 +56,11 @@
 //  dn230-temp_folder_absent_fix.patch
 //
 //  2.7.0
+//  dn270-search_in_archives.patch
+//  dn2922-show_size_before_name_if_it_longer_250.patch
+//  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -63,6 +68,7 @@
 UNIT DN1;
 
 INTERFACE
+uses Objects;
 
 Procedure InvalidateTempDir;
 Procedure UpdateConfig;
@@ -75,7 +81,7 @@ procedure GrabPalette;
 procedure RUN_IT;
 
 IMPLEMENTATION
-uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
+uses Advance, Advance1, Advance2, Advance3, Advance4, Startup,
      Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
      UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver,
      U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries,
@@ -210,7 +216,6 @@ var
   function ReadConfig: LongInt;
   var
     S: TBufStream;
-    CFGVer: AWord;
     ID: AWord;
     L: AWord;
     p: pointer;
@@ -515,6 +520,63 @@ var
     cfgColumnsDefaultsTemp: S.Read(ColumnsDefaultsTemp,SizeOf(ColumnsDefaultsTemp));
     cfgColumnsDefaultsArch: S.Read(ColumnsDefaultsArch,SizeOf(ColumnsDefaultsArch));
     cfgColumnsDefaultsArvd: S.Read(ColumnsDefaultsArvd,SizeOf(ColumnsDefaultsArvd));
+{piwamoto: read columns defaults with LFNLen,EXTLen:string[2]}
+    cfgColumnsDef_270_Disk: begin
+                             S.Read(ColumnsDefaults270,SizeOf(ColumnsDefaults270));
+                             for i:=1 to 10 do
+                               begin
+                                ColumnsDefaultsDisk.Params[i].Param:=ColumnsDefaults270.Params[i].Param;
+                                ColumnsDefaultsDisk.Params[i].LFNLen:=ColumnsDefaults270.Params[i].LFNLen;
+                                ColumnsDefaultsDisk.Params[i].EXTLen:=ColumnsDefaults270.Params[i].EXTLen;
+                               end;
+                             ColumnsDefaultsDisk.FileCase:=ColumnsDefaults270.FileCase;
+                             ColumnsDefaultsDisk.DirsCase:=ColumnsDefaults270.DirsCase;
+                            end;
+    cfgColumnsDef_270_Find: begin
+                             S.Read(ColumnsDefaults270,SizeOf(ColumnsDefaults270));
+                             for i:=1 to 10 do
+                               begin
+                                ColumnsDefaultsFind.Params[i].Param:=ColumnsDefaults270.Params[i].Param;
+                                ColumnsDefaultsFind.Params[i].LFNLen:=ColumnsDefaults270.Params[i].LFNLen;
+                                ColumnsDefaultsFind.Params[i].EXTLen:=ColumnsDefaults270.Params[i].EXTLen;
+                               end;
+                             ColumnsDefaultsFind.FileCase:=ColumnsDefaults270.FileCase;
+                             ColumnsDefaultsFind.DirsCase:=ColumnsDefaults270.DirsCase;
+                            end;
+    cfgColumnsDef_270_Temp: begin
+                             S.Read(ColumnsDefaults270,SizeOf(ColumnsDefaults270));
+                             for i:=1 to 10 do
+                               begin
+                                ColumnsDefaultsTemp.Params[i].Param:=ColumnsDefaults270.Params[i].Param;
+                                ColumnsDefaultsTemp.Params[i].LFNLen:=ColumnsDefaults270.Params[i].LFNLen;
+                                ColumnsDefaultsTemp.Params[i].EXTLen:=ColumnsDefaults270.Params[i].EXTLen;
+                               end;
+                             ColumnsDefaultsTemp.FileCase:=ColumnsDefaults270.FileCase;
+                             ColumnsDefaultsTemp.DirsCase:=ColumnsDefaults270.DirsCase;
+                            end;
+    cfgColumnsDef_270_Arch: begin
+                             S.Read(ColumnsDefaults270,SizeOf(ColumnsDefaults270));
+                             for i:=1 to 10 do
+                               begin
+                                ColumnsDefaultsArch.Params[i].Param:=ColumnsDefaults270.Params[i].Param;
+                                ColumnsDefaultsArch.Params[i].LFNLen:=ColumnsDefaults270.Params[i].LFNLen;
+                                ColumnsDefaultsArch.Params[i].EXTLen:=ColumnsDefaults270.Params[i].EXTLen;
+                               end;
+                             ColumnsDefaultsArch.FileCase:=ColumnsDefaults270.FileCase;
+                             ColumnsDefaultsArch.DirsCase:=ColumnsDefaults270.DirsCase;
+                            end;
+    cfgColumnsDef_270_Arvd: begin
+                             S.Read(ColumnsDefaults270,SizeOf(ColumnsDefaults270));
+                             for i:=1 to 10 do
+                               begin
+                                ColumnsDefaultsArvd.Params[i].Param:=ColumnsDefaults270.Params[i].Param;
+                                ColumnsDefaultsArvd.Params[i].LFNLen:=ColumnsDefaults270.Params[i].LFNLen;
+                                ColumnsDefaultsArvd.Params[i].EXTLen:=ColumnsDefaults270.Params[i].EXTLen;
+                               end;
+                             ColumnsDefaultsArvd.FileCase:=ColumnsDefaults270.FileCase;
+                             ColumnsDefaultsArvd.DirsCase:=ColumnsDefaults270.DirsCase;
+                            end;
+{/piwamoto}
          cfgColumnDefaults: begin
                              SRead(OldColumnsDefaults);
                              with OldColumnsDefaults do
@@ -671,6 +733,7 @@ begin
   MakeTMaskData(CustomMask9^);
   MakeTMaskData(CustomMask10^);
   MakeTMaskData(Archives^);
+  MakeTMaskData(AddArchives); {JO: для поиска в архивах}
 
   RunMenu := (StartupData.Load and osuAutoMenu <> 0);
   SetOverlay;
@@ -687,6 +750,23 @@ begin
   {EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'.LST');}        {-JITR-}
   {EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST');}       {-JITR-}
   ReadINI;
+
+{--- start -------- Eugeny Zvyagintzev ---- 20-01-2003 ----}
+  If (CfgVer <> 0) And (CfgVer < 30200) Then
+   Begin
+    If ShowLongName > 0 Then
+     PanelDefaults.Show:=(PanelDefaults.Show Or fmiFullNameInBottom) Or
+                         (PanelDefaults.Show And (Not fmiFullNameInDivider))
+    Else
+     PanelDefaults.Show:=PanelDefaults.Show Or
+                         (PanelDefaults.Show And (Not fmiFullNameInBottom)) Or
+                         (PanelDefaults.Show And (Not fmiFullNameInDivider));
+    If (PanelDefaults.Show And fmiSelectedInBottom) <> fmiSelectedInBottom Then
+     PanelDefaults.Show:=PanelDefaults.Show Or fmiSelectedInDivider;
+    UpdateConfig;
+    WriteConfig;
+   End;
+{--- finish -------- Eugeny Zvyagintzev ---- 20-01-2003 ----}
 
   {$IFDEF OS_DOS}
   w95QuitInit; {Gimly}

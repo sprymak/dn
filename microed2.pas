@@ -63,6 +63,10 @@
 //  dn230-save_smartpad_edit_history.patch
 //
 //  2.7.0
+//  dn270-F3_ReuseEditors_check.patch
+//  dn21202-add_current_name_to_SaveAs_history.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -95,7 +99,7 @@ const
 IMPLEMENTATION
 uses DnStdDlg, Advance, DnApp, Commands, Lfn, Advance2, Ed2, Advance1, Views,
      Collect, WinClp, Dos, Messages, Startup, DnIni, SBlocks, u_keymap, Macro,
-     XTime, Memory, Drivers;
+     XTime, Memory, Drivers, DNUtil, HistList;
 
 type  ByteArray = Array[1..MaxBytes] of Byte;
 const FBufSize = 4096;
@@ -111,7 +115,11 @@ procedure MISaveFileAs(AED: PFileEditor);
  var
   FileName: String;
   S: PStream;
+  X: Integer;
+  T: String;
 begin with AED^ do begin
+ T:=GetName(EditName); X:=PosChar(':',T); T:=Copy(T,X+1,Length(T)-X);
+ HistoryAdd(hsEditSave, T); { Flash 05-12-2002 }
  FileName := GetFileNameDialog(x_x, GetString(dlSaveFileAs),
                                    GetString(dlSaveFileAsName),
                                fdOKButton + fdHelpButton, hsEditSave);
@@ -144,6 +152,11 @@ begin with AED^ do begin
  FileName := GetFileNameDialog(x_x, GetString(dlOpenFile),
                                GetString(dlOpenFileName),
                         fdOpenButton + fdHelpButton, hsEditOpen);
+ { Flash >>> }
+ if (lFExpand(FileName)=lFExpand(AED^.EditName)) then
+  begin PDNAppl(Application)^.EditFile(True, lFExpand(FileName)); Exit; end;
+ { Flash <<< }
+
  if FileName <> '' then
     begin
       MIUnlockFile(AED);

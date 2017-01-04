@@ -63,6 +63,18 @@
 //  dn269-NE_SFX_detection-jo20620b.patch
 //
 //  2.7.0
+//  dn270-delete_diz_after_moving_to_archive.patch
+//  dn270-password_with_spaces_warning.patch
+//  dn270-ACE_SFX_detection.patch
+//  dn21116-more_strict_ARJ_detection.patch
+//  dn21128-archive_name_depends_on_Use_LFN-jo20604a.patch
+//  dn21202-archive(i)-passwords_differ_warning.patch
+//  dn21225-PackageForTheWeb_(CAB-sfx)_detection.patch
+//  dn21225-WinZIP_SFX-detection.patch
+//  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
+//  dn3216-archives(f)-unselect_files_only_when_needed.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -70,7 +82,7 @@
 unit Archiver;
 
 interface uses Views, Objects, DOS, LFN, LFNCol, tree, ExtraMem,
-               collect, drivers, profile;
+               collect, drivers, profile, FileDIZ;
 
 Const DNARC = 'ARCHIVER.INI'#0;
 
@@ -242,6 +254,7 @@ procedure SkipSFX;
 procedure Check4ArcId;
 Function  _Cardinal(L: LongInt): Real;
 Function  FromOct(S: String): LongInt; {fixed by piwamoto}
+Function CheckForSpaces(S: string): boolean; { Flash }
 
  const CDir: String = '';
 
@@ -249,7 +262,7 @@ implementation
 
  uses DnUtil, advance, advance1, advance2, advance3, DNApp, Commands,
       Dialogs, FilesCol, FViewer, StartUp, RStrings, Memory, Messages,
-      ArcView, FileCopy, HistList,FStorage, Menus, ArchDet, DnSvLd;
+      ArcView, FileCopy, HistList,FStorage, Menus, ArchDet, DnSvLd, FlPanel;
 
 
 { ------------------------------- Collections ----------------------------- }
@@ -431,13 +444,13 @@ begin
   FreeStr := SourceDir + DNARC;
   inherited Init;
 {$IFNDEF OS2}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ.EXE'));
-  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -hf2 -v -jycv'));
-  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -hf2 -v -jycv'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -hf4 -v -jycv'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -hf4 -v -jycv'));
 {$ELSE}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ARJ'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ARJ'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -p1 -v -jycv'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -p1 -v -jycv'));
 {$ENDIF}
@@ -631,6 +644,13 @@ begin
   DefaultArchiver := deftmp;
 end;
 
+{ Flash >>> }
+function CheckForSpaces(S: string): boolean;
+begin
+CheckForSpaces:=(Pos(' ',S)=0);
+end;
+{ Flash <<< }
+
         {-DataCompBoy-}
 procedure MakeArchive;
 
@@ -648,6 +668,7 @@ procedure MakeArchive;
        Archiver : Word;
        Mode : Word;
      end;
+     Dlg: PDialog; { Flash 25-12-2002 }
 
 
   function MakeListFile: String;
@@ -715,6 +736,12 @@ procedure MakeArchive;
    for I := 0 to Files^.Count - 1 do
     begin
      PF := Files^.At(I);
+     { Flash >>> }
+     if (PF^.DIZ <> nil) and (FMSetup.Options and fmoPreserveDesc = 0)
+        and (MoveMode) then
+      DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name), GetLFN(PF^.LFN));
+     { Flash <<< }
+
  {$IFNDEF OS2}
      if Arc^.UseLFN
       then
@@ -752,7 +779,20 @@ procedure MakeArchive;
     end;
   end;
 
-label Ex;
+  { Flash 25-12-2002 >>> }
+  function AcceptedPassword: Boolean;
+  begin
+  if (ExecResource(dlgReenterPassword, S) = cmOK) and (S = D.Password) then
+   AcceptedPassword:=true
+  else
+   begin
+   MessageBox(GetString(dlPasswordsDiffer),nil,mfOKButton);
+   AcceptedPassword:=false;
+   end;
+  end;
+  { Flash 25-12-2002 <<< }
+
+label Ex,TryAgain;
 begin
   FillChar(D, SizeOf(D), 0);
   D.Name := S;
@@ -760,8 +800,14 @@ begin
   D.Options := (DefaultArcMode shr 8) and not 2 or (Byte(MoveMode)*2);
   D.Mode := DefaultArcMode and 255;
   D.Add := '';
+  { Flash 25-12-2002 >>> }
+  Dlg := PDialog(LoadResource(dlgArchiveFiles));
+  Dlg^.SetData(D);
   repeat
-    if ExecResource(dlgArchiveFiles, D) <> cmOK then Exit;
+TryAgain:
+    if Desktop^.ExecView(Dlg) <> cmOK then Exit
+     else Dlg^.GetData(D);
+  { Flash 25-12-2002 <<< }
     AID := (D.Mode and 255) or (D.Options shl 8);
     if (D.Archiver <> DefaultArchiver) or
        (AID <> DefaultArcMode)         then
@@ -771,11 +817,20 @@ begin
        Message(Application, evCommand, cmUpdateConfig, nil);
      end;
     S := '';
-  until (D.Password = '') or
-        ((ExecResource(dlgReenterPassword, S) = cmOK) and (S = D.Password));
-  AID := D.Archiver;
-  Arc := GetArchiveByTag(AID);
-  if Arc = nil then Exit;
+    AID := D.Archiver;
+    Arc := GetArchiveByTag(AID);
+    if Arc = nil then Exit;
+  { Flash >>> }
+  if D.Password <> '' then
+   if not CheckForSpaces(D.Password) then
+    if not Arc^.UseLFN then
+     begin
+     MessageBox(GetString(dlSpacesInPassword), nil, mfWarning + mfOkButton);
+     goto TryAgain;
+     end;
+  until (D.Password = '') or AcceptedPassword;
+  if (Arc^.UseLFN) and not CheckForSpaces(D.Password) then D.Password:='"'+D.Password+'"';
+  { Flash <<< }
   lGetDir(0, CurDir);
   if Abort then goto Ex;
   if CurDir[Length(CurDir)] <> '\' then CurDir := CurDir + '\';
@@ -821,10 +876,13 @@ begin
   S := CnvString(Arc^.Packer) + ' ' + S;
   DelDoubles('  ', S);
   GlobalMessage(evCommand, cmMakeForced, nil);
-  if Owner <> nil then Files^.ForEach(@Unselect);
+  if (Owner <> nil)
+     and (PFilePanel(ActivePanel)^.SelNum > 0) then { Flash 17-02-2003 }
+   Files^.ForEach(@Unselect);
   Message(Application, evCommand, cmExecString, @S);
 Ex:
   Dispose(Arc, Done);
+  Dispose(Dlg, Done); { Flash }
 end;
         {-DataCompBoy-}
 
@@ -838,7 +896,7 @@ procedure UnarchiveFiles;
       Dr: String;
       Nm: String;
       Xt: String;
-label ex;
+label ex,TryAgain;
 begin
    lFSplit(FName, Dr, Nm, Xt);
    ArcFileName := FName;
@@ -866,6 +924,7 @@ begin
    if DT.S = cTEMP_ then DT.S := '';
    if (DT.S[0] > #3) and (DT.S[Length(DT.S)] <> '\') then DT.S := DT.S + '\';
    CopyDirName := '';
+TryAgain:
    if ExecResource( dlgExtract, DT) <> cmOK then goto Ex;
 {
    if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
@@ -878,12 +937,32 @@ begin
    if DT.W and 1 = 0 then ExtrChar := CnvString(AType^.Extract);
    if DT.W and 2 <> 0 then ExtrChar := CnvString(AType^.Test);
    S := '';
-   if DT.Psw <> '' then S := S + ' ' + DelSpaces(CnvString(AType^.Garble) + DT.Psw) + ' ';
-   S := CnvString(AType^.unPacker)+' '+ExtrChar+' '+SquashesName(s+FName);
+   if DT.Psw <> '' then
+   { Flash >>> }
+    if CheckForSpaces(DT.Psw) then
+     S := S + ' ' + CnvString(AType^.Garble) + DT.Psw + ' '
+    else
+    if AType^.UseLFN then
+     S := S + ' ' + CnvString(AType^.Garble) + '"'+ DT.Psw + '"' + ' '
+    else
+     begin
+     MessageBox(GetString(dlSpacesInPassword), nil, mfWarning + mfOkButton);
+     goto TryAgain;
+     end;
+   { Flash <<< }
+{$IFNDEF OS2}
+   if AType^.UseLFN then
+{$ENDIF}
+     S := S + FName
+{$IFNDEF OS2}
+     else S := S + lfGetShortFileName(FName)
+{$ENDIF}
+     ;
+   S := CnvString(AType^.unPacker)+' '+ExtrChar+' '+SquashesName(S);
    if Xt = '' then S := S + '.';{piwamoto: extracting from extensionless archives}
    lGetDir(0, DirToChange);
    Advance2.lChDir(ExtrDir);
-   DelDoubles('  ', S);
+{   DelDoubles('  ', S);}
 
    Message(Application, evCommand, cmExecString, @S);
    Advance2.lChDir(DirToChange); DirToChange := '';
@@ -912,8 +991,7 @@ end;
 procedure SkipSFX; {piwamoto}
 var
    TempWord: AWord;
-{used for MZExeRec.RelOffs, MZExeRec.NewExe.Type, NEhdrRec.SegmentOffset}
-   WinZipID: Array [0..7] of char;
+{used for MZExeRec.RelOffs, MZExeRec.NewExe.Type, NEhdrRec.SegmentOffset, PEhdrRec.ObjNum}
    MZExeRec: record
               ExeID:   AWord;
               LastB:   AWord;
@@ -921,8 +999,20 @@ var
               NewExe:  LongInt;
              end;
    PEhdrRec: record
-              ObjNum:  AWord;
-              ObjSize: Longint;
+              ObjNum:    AWord;
+              MaxObjNum: AWord;
+              MaxOffset: Longint;
+             end;
+   PEobjRec: record
+              Name:        Array [0..7] of char;
+              VirtualSize: LongInt;
+              RVA:         LongInt;
+              Size:        Longint;
+              Offset:      Longint;
+              Reserved1:   Longint;
+              Reserved2:   Longint;
+              Reserved3:   Longint;
+              Reserved4:   Longint;
              end;
    LXhdrRec: record
               NonResTableOffs : Longint;
@@ -967,12 +1057,26 @@ begin
          begin {PE}
           ArcFile^.Seek(MZExeRec.NewExe + 6);
           ArcFile^.Read(PEhdrRec.ObjNum, SizeOf(PEhdrRec.ObjNum));
-          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.ObjNum + $0D0); {offset 2 last object}
-          ArcFile^.Read(WinZipID, SizeOf(WinZipID));
-          ArcFile^.Seek(ArcFile^.GetPos+8);
-          ArcFile^.Read(PEhdrRec.ObjSize, SizeOf(PEhdrRec.ObjSize));
-          ArcFile^.Read(ArcPos, SizeOf(ArcPos));
-          if WinZipID <> '_winzip_' then ArcPos := ArcPos + PEhdrRec.ObjSize;
+          PEhdrRec.MaxObjNum := 0;
+          PEhdrRec.MaxOffset := 0;
+          ArcFile^.Seek(MZExeRec.NewExe + $F8); {offset 2 first object}
+          for TempWord := 1 to PEhdrRec.ObjNum do
+           begin
+            ArcFile^.Read(PEobjRec, SizeOf(PEobjRec));
+            if PEobjRec.Offset > PEhdrRec.MaxOffset then
+              begin
+               PEhdrRec.MaxOffset := PEobjRec.Offset;
+               PEhdrRec.MaxObjNum := TempWord;
+              end;
+           end;
+          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.MaxObjNum + $0D0); {offset 2 object with MaxOffset}
+          ArcFile^.Read(PEobjRec, SizeOf(PEobjRec));
+          if PEobjRec.Name = '_winzip_' then
+            begin
+             ArcFile^.Seek(ArcFile^.GetPos - 2*SizeOf(PEobjRec));
+             ArcFile^.Read(PEobjRec, SizeOf(PEobjRec));
+            end;
+          ArcPos := PEobjRec.Offset + PEobjRec.Size;
          end;
         $454e :
          begin {NE}
@@ -1050,12 +1154,19 @@ begin
          (ArcFile^.EOF) or
    {ZIP} (ArcId = $04034b50 {'PK'#3#4}) or
    {RAR} (ArcId = $21726152 {'Rar!'}) or
-   {ARJ} (((ArcId and $ffff) = $ea60) and ((ArcId and $ff000000) < $b000000)) or
+   {ARJ} (((ArcId and $ffff) = $ea60) and (Byte(ArcId shr 24) < $b)) or
+
+{$IFNDEF MINARCH}
    {IS3} (ArcId = $8c655d13 {#$13#$5D#$65#$8C}) or
    {ZOO} (ArcId = $fdc4a7dc {#$DC#$A7#$C4#$FD}) or
    {CHZ} (ArcId = $46684353 {'SChF'}) or
    {CHZ} (ArcId = $44684353 {'SChD'}) or
+{$ENDIF}
+
   {COFF} (ArcId = $0003014c {#$4c#$01#$03#$00}) or {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
+   {ACE} (ArcID = $4543412a {'*ACE'}) or
+   {ACE} (ArcID = $78667321 {'!sfx'}) or {!sfx - ACE-SFX script}
+   {ACE} (ArcID = $5846532a {'*SFX'}) or {**SFX** - ACE-SFX script}
    {CAB} (ArcId = $4643534d {'MSCF'});
    if ((ArcPosID - ArcPos) < $1fd) and not (ArcFile^.EOF) then ArcPos := ArcPosID - 1;
    if ArcId = $0003014c {#$4c#$01#$03#$00} then
@@ -1064,6 +1175,47 @@ begin
       ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{DataOffset}
       ArcFile^.Read(ArcID, SizeOf(ArcID));{DataSize}
       ArcPos := ArcPos + ArcPosID + ArcID;
+      Exit;
+     end;
+   if ArcID = $78667321 {!sfx - ACE-SFX script} then
+     begin {must be before '*ACE' & '*SFX' ArcPos correction}
+      ArcFile^.Read(ArcPosID, 2);{skip 2 bytes}
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of !sfx! script}
+      ArcPos := ArcPos + ArcPosID + 8;
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{skip 4 bytes}
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{script is not empty?}
+      ArcFile^.Seek(ArcPos);
+      ArcFile^.Read(ArcId, SizeOf(ArcId));
+      if (ArcPosId <> 0) and (ArcId = $4543412a) then ArcID := $5846532a;
+     end;
+   if ArcID = $4543412a {'*ACE'} then ArcPos := ArcPos - 8;
+   if ArcID = $5846532a {**SFX** - ACE-SFX script} then
+     begin
+      ArcPos := ArcPos - 6;
+      ArcFile^.Seek(ArcPos);
+      ArcPosID := 0;
+      ArcFile^.Read(ArcPosID, 2);{only 2 bytes}
+      ArcPos := ArcPos + ArcPosID + 4;
+      ArcFile^.Seek(ArcPos);
+      ArcFile^.Read(ArcPosID, 2);{only 2 bytes}
+      ArcPos := ArcPos + ArcPosID + 2;
+      ArcFile^.Read(ArcPosID, 3);{skip 3 bytes}
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of **SFX** script}
+      ArcPos := ArcPos + ArcPosID;
+      Exit;
+     end;
+   if (ArcPosID - ArcPos) = $1fd then
+     begin {check for PackageForTheWeb script}
+      ArcFile^.Seek(ArcPos);
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of script}
+      if _Cardinal(ArcPosID) < $4000 then
+        begin {script?}
+         ArcPosID := ArcPosID + ArcPos + 4;
+         ArcFile^.Seek(ArcPosID);
+         ArcFile^.Read(ArcId, SizeOf(ArcId));
+         if ArcID = $4643534d {'MSCF'} then ArcPos := ArcPosID;
+         Exit;
+        end;
      end;
 end; {Check4ArcId}
 

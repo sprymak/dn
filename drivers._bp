@@ -51,6 +51,9 @@
 //  dn16rc1-Error_message_fix-diff157byMV.patch
 //
 //  2.0.0
+//  dn3421-Kernel(f)-8_and_2_on_key_pad_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -482,6 +485,16 @@ begin
   ShiftState2:=mem[Seg0040:$18];
   _GetKeyEvent(Event);
   if Event.What = evNothing then Exit;
+{--- start -------- Eugeny Zvyagintzev ---- 11-05-2003 -----}
+{KbUpUp,kbDownUp have to be inaccessible}
+{when NumLock is On}
+  If (ShiftState And 32 <> 0) And
+     (Event.ScanCode in [$C8,$D0]) Then
+   Begin
+    Event.What:=evNothing;
+    Exit;
+   End;
+{--- finish -------- Eugeny Zvyagintzev ---- 11-05-2003 -----}
   if (Event.KeyCode = kbCtrlTab) and (ShiftState and 3 <> 0) then Event.KeyCode := kbAltTab;
   if (Event.CharCode = #$e0) and
      (Event.ScanCode in [$52,$92,$A2,

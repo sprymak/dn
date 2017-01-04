@@ -59,6 +59,9 @@
 //  dn230-version_upgrade.patch
 //
 //  2.7.0
+//  dn270-version_upgrade.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -69,7 +72,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionWord:word   = 20700; {Last changed: Year-2000,Month,Day}
+  VersionWord:word   = 30700; {Last changed: Year-2000,Month,Day}
   VersionName:string = '/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}

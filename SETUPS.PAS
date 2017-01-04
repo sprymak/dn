@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn21202-fpanel(i)-setup_columns_check.patch
+//  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
+//  dn328-FilePanel(f)_jo30224a_crash_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -318,8 +323,36 @@ begin
 end;
 
 procedure FMDefaults;
+Var R: record Sort,Show,Info,Sel,LFN,LeftPanel: Integer; end; {John_SW 18-01-2003}
 begin
-  if ExecResource(dlgFMDefaults, Startup.PanelDefaults ) <> cmOK then Exit;
+{--- start -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+  R.Sort := PanelDefaults.Sort;
+  R.Show := (PanelDefaults.Show And
+             (fmiHiliteFiles+fmiExeFirst+fmiArchivesFirst+fmiExeBeforeArc)
+            ) Shr 5;
+  R.Info := PanelDefaults.Show And (fmiDirLen+fmiCurrent)+
+            ((PanelDefaults.Show And (fmiTotals+fmiFree)) Shr 1)+
+            ((PanelDefaults.Show And fmiDescriptionInBottom) Shr 6);
+  R.Sel:= ((PanelDefaults.Show And fmiSelectedInBottom) Shr 2)+
+          ((PanelDefaults.Show And fmiSelectedInDivider) Shr 10);
+  R.LFN:= ((PanelDefaults.Show And fmiFullNameInBottom) Shr 9)+
+          ((PanelDefaults.Show And fmiFullNameInDivider) Shr 11);
+  R.LeftPanel:=PanelDefaults.LeftPanel;
+{--- finish -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+
+  if ExecResource(dlgFMDefaults, R) <> cmOK then Exit;
+
+{--- start -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+  PanelDefaults.Sort := R.Sort;
+
+  PanelDefaults.Show:=R.Show Shl 5;
+  PanelDefaults.Show:=PanelDefaults.Show+(R.Info And $3)+((R.Info And $0C) Shl 1)+
+              ((R.Info And $10) Shl 6);
+  PanelDefaults.Show:=PanelDefaults.Show+((R.Sel And $1) Shl 2)+((R.Sel And $2) Shl 10);
+  PanelDefaults.Show:=PanelDefaults.Show+((R.LFN And $1) Shl 9)+((R.LFN And $2) Shl 11);
+  PanelDefaults.LeftPanel := R.LeftPanel;
+{--- finish -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmReboundPanel, nil);
 end;
@@ -362,36 +395,73 @@ begin
   end;
 end;
 
+{ Flash 25-12-2002 >>> }
+
+function SetupColumnDefaults(Idx: TDlgIdx; var CDR: ColumnsDefaultsRec): Word;
+var I,J,K: Integer;
+    D: PDialog;
+    Finished,Flag: Boolean;
+begin
+ SetupColumnDefaults := cmCancel;
+ D := PDialog(LoadResource(Idx));
+ D^.SetData(CDR);
+ Finished := false;
+ while not Finished do
+ begin
+ J := Desktop^.ExecView(D);
+ if J = cmOK then
+  begin
+  D^.GetData(CDR);
+  Flag:=true;
+  for I:=1 to 10 do
+   begin
+   J:=StoI(CDR.Params[I].LFNLen);
+   K:=StoI(CDR.Params[I].EXTLen);
+   if (J<K+5) or (J<0) or (K<0) or (J>253) then
+    begin
+    MessageBox(GetString(dlIncorrectPanelSettings),nil,mfOKButton);
+    Flag:=false;
+    break;
+    end;
+   end;
+  Finished:=Flag;
+  end else Finished:=true;
+ end;
+ SetupColumnDefaults := cmOK;
+ Dispose(D, Done); { Flash }
+end;
 
 function SetupColumnDefaultsDisk: Boolean;
 Begin
  SetupColumnDefaultsDisk :=
-  ExecResource(dlgSetupColumnsDisk, ColumnsDefaultsDisk) = cmOK;
+  SetupColumnDefaults(dlgSetupColumnsDisk, ColumnsDefaultsDisk) = cmOK;
 end;
 
 function SetupColumnDefaultsFind: Boolean;
 Begin
  SetupColumnDefaultsFind :=
-  ExecResource(dlgSetupColumnsFind, ColumnsDefaultsFind) = cmOK;
+  SetupColumnDefaults(dlgSetupColumnsFind, ColumnsDefaultsFind) = cmOK;
 end;
 
 function SetupColumnDefaultsTemp: Boolean;
 Begin
  SetupColumnDefaultsTemp :=
-  ExecResource(dlgSetupColumnsTemp, ColumnsDefaultsTemp) = cmOK;
+  SetupColumnDefaults(dlgSetupColumnsTemp, ColumnsDefaultsTemp) = cmOK;
 end;
 
 function SetupColumnDefaultsArch: Boolean;
 Begin
  SetupColumnDefaultsArch :=
-  ExecResource(dlgSetupColumnsArch, ColumnsDefaultsArch) = cmOK;
+  SetupColumnDefaults(dlgSetupColumnsArch, ColumnsDefaultsArch) = cmOK;
 end;
 
 function SetupColumnDefaultsArvd: Boolean;
 Begin
  SetupColumnDefaultsArvd :=
-  ExecResource(dlgSetupColumnsArvd, ColumnsDefaultsArvd) = cmOK;
+  SetupColumnDefaults(dlgSetupColumnsArvd, ColumnsDefaultsArvd) = cmOK;
 End;
+
+{ Flash 25-12-2002 <<< }
 
 PROCEDURE TCurrDriveInfo.HandleEvent;
 var

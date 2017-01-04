@@ -30,6 +30,7 @@ Dos Navigator Open Source Project Team:
   Konstantin Kuznetsov (Dead Ded) <2:5020/549.22; dead at nm.ru>
   Aleksey Luzin <Aleksey at iis.nsk.su>
   Mike Lykov <2:5057/44; nelescon at samaramail.ru>
+  Andrey Marshalko (ChimMAG) <chimmag at command-conquer.ru>
   Ilya Maryasov (IVM) <ivm1999 at mail.ru>
   Marcin Meinardi <mrowa at student.uci.agh.edu.pl>
   Michael Mercuryev (Mercury) <m_mercuryev at yahoo.com>
@@ -43,6 +44,7 @@ Dos Navigator Open Source Project Team:
   Vladimir Piven
   Sergey Radkevitch <2:5020/3113; SergeyRadkevitch at mtu-net.ru>
   Oleg Redut <2:5000/111; ovr at byte.nsk.su>
+  Dmitry Serzhankov (Sclex) <2:450/143.24; sclex at ring.by>
   Denis Shamov <2:5057/40; dshamov at hippo.ru>
   Lev Shumskii (WildCat) <2:5042/7.45; Wildcat at tsl.ru>
   Pawel Skolimowski (PaSkol) <paskol at friko2.onet.pl>
@@ -60,8 +62,7 @@ Dos Navigator Open Source Project Team:
   Eugeny Zvyagintzev (John_SW) <2:5004/18.60; dn_osp at pisem.net>
 
 Hungarian Localization:
-  Mesaros Csaba (Gyor) <csablak at freemail.hu>
-  Laszlo Kormoczi (KaeL) <kael at swi.hu>
+  M‚sz ros Csaba (csablak) <csablak at freemail.hu>
 
 Dos Navigator II Team:
   Stefan Tanurkov

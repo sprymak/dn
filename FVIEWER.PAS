@@ -65,6 +65,25 @@
 //  dn2510_file_viewer_change_xlt_fix.patch
 //
 //  2.7.0
+//  dn270-VertScrollBarChars_in_viewer_fix.patch
+//  dn270-search_files_window_title_update_fix.patch
+//  dn270-scrollbar_for_big_files-jo20524a.patch
+//  dn281-select_last_line_if_found.patch
+//  dn2811-enable_DefCodePage_for_viewer.patch
+//  dn2911-file_viewer_highlites_fix.patch
+//  dn2911-view_files_in_archive_from_history.patch
+//  dn2922-edit_file_when_viewing_from_archive_fix.patch
+//  dn270-small_disasm_fix-ak20927a.patch
+//  dn21013-add_flt_files_to_history_fix.patch
+//  dn270-disassembler_goto_line_fix-jo21023a.patch
+//  dn21202-add_current_name_to_SaveAs_history.patch
+//  dn21202-viewer(f)-adding_to_history_fix.patch
+//  dn328-Kernel(f)_sleep_when_Idle_fix.patch
+//  dn3216-viewer(f)-ReuseViewers_do_not_consider_QuickView.patch
+//  dn3216-viewer(f)-go_to_a_first_line.patch
+//  dn3617-viewer(f)_getsize_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -150,6 +169,7 @@ type
     procedure   DoHighlite ( var B; const S : String; const Attr : string );
   private
     procedure   AdjustBufSize;
+    function    DetectKeyMap: TKeyMap; { Flash }
   end;
 
   PHFileViewer = ^THFileViewer;
@@ -213,7 +233,7 @@ implementation
 uses LFN, {DataCompBoy}
      Memory, Messages, DNApp, Startup, Dialogs, RStrings,
      {$IFDEF DisAsm} Decoder, {$ENDIF} {piwamoto}
-     DNStdDlg, Histries, xTime, Drives, DnUtil, DNIni;
+     DNStdDlg, Histries, xTime, Drives, DnUtil, DNIni, TitleSet, HistList;
 
 function MaxAvail: LongInt;
 begin
@@ -253,6 +273,7 @@ Begin
     cmYes: CancelSearch:=True;
     cmNo: SkipFile:=True;
    End;
+  SetTitle(SF_In_Progress^.Top); { Flash }
   End;
  If (Event.What <> evNothing) And
     Not ((Event.What = evCommand) And (Event.Command = cmQuit)) Then
@@ -516,6 +537,8 @@ function TFileViewer.WriteModify;
      I: LongInt;
      S: TDOSStream;
      A: Word;
+     X: Integer;
+     T: String;
 begin
  B := BufModified; WriteModify := Off;
  if (Buf = nil) or (Fl = nil) or (Fl^.Status <> stOK) or not B then Exit;
@@ -525,6 +548,8 @@ begin
  if I = cmNo then begin Seek(FilePos); DrawView; end;
  if I <> cmYes then Exit;
  if VFileName='' then begin
+  T:=GetName(FileName); X:=PosChar(':',T); T:=Copy(T,X+1,Length(T)-X);
+  HistoryAdd(hsEditSave, T); { Flash 05-12-2002 }
   FreeStr := GetFileNameDialog(x_x, GetString(dlSaveFileAs),
                                GetString(dlSaveFileAsName),
                                fdOKButton + fdHelpButton, hsEditSave);
@@ -630,6 +655,16 @@ procedure TViewScroll.HandleEvent;
      Extent: TRect;
      Tracking : Boolean;
 
+  {JO}
+  function GetPrecValue: LongInt;
+   Var
+      Max1 : double;  {JO}
+  begin
+   Max1 := MaxV;
+   GetPrecValue := Trunc(Max1 * (SP-1) / (Size.Y-3)) + 1;
+  end;
+  {/JO}
+
 begin
  TView.HandleEvent(Event);
  case Event.What of
@@ -644,7 +679,7 @@ begin
                MakeLocal(Event.Where, P);
                GetExtent(Extent);
                {if LongDiv(LongMul(Value,Size.Y-2),MaxV)+1 = P.Y then}
-               if Longint( Longint(Longint(Value) * Longint(Size.Y-2)) div MaxV ) + 1 = P.Y then
+               if GetPartCode = P.Y then {JO}
                 begin
                 RD := P.Y;
                 repeat
@@ -659,27 +694,24 @@ begin
                   if SP <> RD then
                   begin
                     DrawPos(SP);
-                     RD := SP;
+                    RD := SP;
                   end;
                 until not MouseEvent(Event, evMouseMove+evMouseAuto);
-                  if SP = Size.Y - 2  then
-                     begin
-                        Value := MaxV - (Size.Y-10)*10;
-                        if Value > MaxV then Value := MaxV;
-                     end
-                  else if SP=1 then Value := 0
-                 { else Value := LongMul( LongDiv(MaxV,Size.Y-2),SP );}
-                  else Value := Longint( Longint( MaxV div Longint(Size.Y-2)) * SP );
-                if Size.Y*4 > MaxV then Value:=0;
-                DrawView;
+                if SP = 1 then
+                  Value := 0
+                else
+                 {Value := MaxV * (SP-1) div (Size.Y-3) + 1;}
+{JO: точности вычисления с Longint для очень больших файлов недостаточно}
+                  Value := GetPrecValue; {JO}
+{AK155: скроллер уже нарисован и еще дважды будет нарисован }
+{                DrawView; }
                 MessageL(Owner, evCommand, cmScrollBarChanged, Value);
                Exit;
                end;
 
 
                 MakeLocal(Event.Where,P); RD := RepeatDelay; RepeatDelay := 0;
-                if Value >= MaxV then SP := Size.Y - 2
-                                 else SP := GetPartCode;
+                SP := GetPartCode;
                 if P.Y = 0 then
                  begin
                   repeat
@@ -700,8 +732,7 @@ begin
                  begin
                   RepeatDelay := RD;
                   repeat
-                   if Value >= MaxV then SP := Size.Y - 2
-                                    else SP := GetPartCode;
+                   GetPartCode;
                    MakeLocal(Event.Where,P);
                    if (P.X>=-1) and (P.X<=1) and (P.Y<SP) then
                     Message(Owner, evKeyDown, kbPgUp, nil);
@@ -711,8 +742,7 @@ begin
                  begin
                   RepeatDelay := RD;
                   repeat
-                   if Value >= MaxV then SP := Size.Y - 2
-                                    else SP := GetPartCode;
+                   GetPartCode;
                    MakeLocal(Event.Where, P);
                    if (P.X>=-1) and (P.X<=1) and (P.Y>SP) then
                     Message(Owner, evKeyDown, kbPgDn, nil);
@@ -724,8 +754,21 @@ begin
 end;
 
 function TViewScroll.GetPartCode: LongInt;
+ Var
+    Val1, Max1 : double;  {JO}
 begin
-GetPartCode := 1+((Size.Y-2)*Value) div MaxV;
+if Value >= MaxV then
+  GetPartCode := Size.Y - 2
+else
+{JO}
+ begin
+   Val1 := Value;
+   Max1 := MaxV;
+  {GetPartCode := 1+((Size.Y-3)*Value) div MaxV}
+{JO: точности вычисления с Longint для очень больших файлов недостаточно}
+   GetPartCode := 1 + Trunc(((Size.Y-3)*Val1) / Max1);
+ end;
+{/JO}
 end;
 
 function TViewScroll.GetPalette;
@@ -740,11 +783,23 @@ procedure TViewScroll.Draw;
      C1, C2: Byte;
 begin
  C1 := GetColor(1); C2 := GetColor(2);
- MoveChar(B, #177, C1, Size.Y);
- if Value >= MaxV then B1[Size.Y-2] := 254+LongInt(C2*256)
-                  else B1[GetPartCode] := 254+LongInt(C2*256);
- B1[0] := 30+LongInt(C2*256);
- B1[Size.Y-1] := 31+LongInt(C2*256);
+ { Flash >>> }
+ if Length(VertScrollBarChars) = 5 then
+  begin
+  MoveChar(B, VertScrollBarChars[3], C1, Size.Y);
+  if Value >= MaxV then B1[Size.Y-2] := Ord(VertScrollBarChars[4])+LongInt(C2*256)
+                   else B1[GetPartCode] := Ord(VertScrollBarChars[4])+LongInt(C2*256);
+  B1[0] := Ord(VertScrollBarChars[1])+LongInt(C2*256);
+  B1[Size.Y-1] := Ord(VertScrollBarChars[2])+LongInt(C2*256);
+  end else
+  begin
+ { Flash <<< }
+  MoveChar(B, #177, C1, Size.Y);
+  if Value >= MaxV then B1[Size.Y-2] := 254+LongInt(C2*256)
+                   else B1[GetPartCode] := 254+LongInt(C2*256);
+  B1[0] := 30+LongInt(C2*256);
+  B1[Size.Y-1] := 31+LongInt(C2*256);
+  end;
  WriteBuf(0,0,1,Size.Y,B);
 end;
 
@@ -1180,7 +1235,8 @@ begin
           end;
          end;
          if SearchActive and (Lines[I].Pos <= SearchX - FilePos) and
-            (Lines[I+1].Pos >= SearchX - FilePos) then begin
+            ((Lines[I+1].Pos >= SearchX - FilePos) or
+             (I+1=NumLines)) then begin { Flash }
           K:=0; M:=Lines[I].Pos;
           While M < J + Lines[I].Pos do begin
            repeat Inc(K)
@@ -1200,15 +1256,53 @@ begin
   end;
 end;
 
-function DetectKeyMap(const FName: String): TKeyMap;
+{ Flash >>> }
+function TFileViewer.DetectKeyMap: TKeyMap;
+var  CodePageDetector: TCodePageDetector;
+     I: Integer;
+     S: string;
+     oldViewMode: AInt;
 begin
- DetectKeyMap:=kmAscii;
+KeyMap:=kmAnsi;
+CodePageDetector.Init;
+OldViewMode:=vmText;
+{ Other view modes don't have enough lines to perform detection }
+if ViewMode<>vmText then
+ begin
+ OldViewMode:=ViewMode;
+ ViewMode:=vmText;
+ end;
+if Buf = nil then
+ begin
+ ReadFile(FileName, VFileName, On);
+ BufPos:=0;
+ MakeLines;
+ end else
+if (BufPos < 0) or (BufPos > BufSize + 20000) or
+   (BufPos > 65000) then
+ begin
+ BufPos:=0;
+ MakeLines;
+ end;
+for I:=0 to MaxLines do begin
+ if (Lines[I].Pos >=0) then begin
+  Move(Buf^[Lines[I].Pos], S[1], Lines[I].Len);
+  S[0]:=Char(Lines[I].Len);
+  CodePageDetector.CheckString(S);
+ end;
 end;
+ViewMode:=OldViewMode;
+DetectKeyMap:=CodePageDetector.DetectedCodePage;
+CodePageDetector.Done;
+end;
+{ Flash <<< }
 
 function  TFileViewer.ReadFile;
  var I, J: Integer;
      P: Pointer;
      Macros: PCollection;
+     Nm: String; {John_SW 14-09-2002}
+     Xt: String; {John_SW 14-09-2002}
 begin
   ReadFile:=true;
   WriteModify;
@@ -1218,8 +1312,14 @@ begin
   FileName := FName;
   VFileName := VFName;
   if KeyMap=kmNone then begin
-    KeyMap:=DetectKeyMap(FName);
-    if not UseXLat then SetXlatFile('', Off);
+   { Flash <<< }
+   if UpStrg(DefCodePage) = 'DOS' then KeyMap:=kmAscii else
+   if UpStrg(DefCodePage) = 'WIN' then KeyMap:=kmAnsi  else
+   if UpStrg(DefCodePage) = 'KOI' then KeyMap:=kmKoi8r else
+   if UpStrg(DefCodePage) = 'AUTO' then KeyMap:=DetectKeyMap else
+   KeyMap:=kmAscii;
+   { Flash >>> }
+   if not UseXLat then SetXlatFile('', Off);
   end;
   if NewStream then
    begin
@@ -1230,9 +1330,10 @@ begin
   if (not ExistFile(FName) or isDir(FName)) and
      (FName <> '') and (FName <> ' ') then begin ReadFile:=false; Exit; end;
   Macros := nil;
+  lFSplit(VFName, FreeStr, Nm, Xt); {John_SW 14-09-2002}
   {PZ 2000.06.09 }
   if (ViewerDefaults.Options and vbfHlt) <> 0 then
-    HiLite := Macro.InitHighLight ( VFName, HiLitePar, Macros, nil );
+    HiLite := Macro.InitHighLight ( Nm+Xt, HiLitePar, Macros, nil );
   {PZ end}
   if Fl^.Status <> stOK then begin IsValid := False; ReadFile:=false; Exit end;
   FileSize := FL^.GetSize; FilePos := 0; I := 1; NumLines := 1;
@@ -1243,7 +1344,7 @@ begin
   Seek(0); XDelta := 0;
   if (UpStrg(VFileName) <> UpStrg(FileName)) then begin
    KillAfterUse:=true;
-   Filtr:=true;
+   Filtr:=on; { Flash }
   end else Filtr:=off;
 end;
 
@@ -1286,7 +1387,7 @@ end;
 
 procedure TFileViewer.Seek;
 begin
- if Buf = nil then Exit;
+ if (Buf = nil) or (Fl = nil) then Exit;
  FileSize := Fl^.GetSize;
  WriteModify;
  if APos < 0 then APos := 0;
@@ -1457,6 +1558,9 @@ procedure TFileViewer.HandleEvent;
      LLR,LFR: LongInt;
      F: lFile;
      Ch: Char;
+     Lin: Byte;
+     X: Integer;
+     T: String;
 
  procedure CE; begin ClearEvent(Event) end;
 
@@ -1529,11 +1633,13 @@ procedure TFileViewer.HandleEvent;
     SearchString.Dir := SearchString.Dir xor 2;
   end;
 
+  if StartupData.Slice2 and osuReleaseFind = 0 then Application^.BFSpeed; {John_SW 12-02-2003}
   SearchX := SearchFileStr(Fl, BXL,
                            SearchString.What, SearchX,
                            SearchString.Opts and 1 <> 0, On,
                            SearchString.Opts and 2 <> 0, ((SearchString.Dir and 1) = 1) xor Reverse,
                            SearchString.Opts and 4 <> 0,Nil);
+  if StartupData.Slice2 and osuReleaseFind = 0 then Application^.EFSpeed; {John_SW 12-02-2003}
 
   if SearchX >= 0 then
    begin
@@ -1656,7 +1762,7 @@ begin
                  cmFindView:
                    if (PString(Event.InfoPtr)^=FileName) or
                       (PString(Event.InfoPtr)^=VFileName) then
-                     if Owner<>nil then begin
+                     if (Owner<>nil) and not QuickView then begin
                        Owner^.Select;
                        ClearEvent(Event);
                      end;
@@ -1665,6 +1771,8 @@ DoSave:
                                if (Fl <> nil) and (Fl^.Status = stOK) then
                                  begin
                                    CE;
+                                   T:=GetName(VFileName); X:=PosChar(':',T); T:=Copy(T,X+1,Length(T)-X);
+                                   HistoryAdd(hsEditSave, T); { Flash 05-12-2002 }
                                    FreeStr := GetFileNameDialog(x_x, GetString(dlSaveFileAs),
                                                                 GetString(dlSaveFileAsName),
                                                                 fdOKButton + fdHelpButton, hsEditSave);
@@ -1738,6 +1846,7 @@ DoSave:
                             LLR := GetOffsetForLineNumber(FileName, LLR);
                             if LLR < 0 then exit;
                             Seek(LLR);
+                            if LLR = 1 then CountUp(1); { Flash 03-03-2003 }
                             MakeLines;
                             DrawView;
                            end else begin
@@ -1746,8 +1855,17 @@ DoSave:
                             if I <> 0 then exit;
                             LFR := LLR;
                             Cur.Assign(0,0);
-                            while ((LFR mod HexPos) <> ((BufPos+FilePos) mod HexPos)) and (LFR > 0) do
-                             begin Dec(LFR); Inc(Cur.X,2); end;
+                      {JO} {$IFDEF DisAsm}
+                            if ViewMode <> vmAsm then
+                              begin
+                           {$ENDIF}
+                               while ((LFR mod HexPos) <>
+                                ((BufPos+FilePos) mod HexPos)) and (LFR > 0) do
+                                  begin Dec(LFR); Inc(Cur.X,2); end;
+                           {$IFDEF DisAsm}
+                              end
+                             else Cur.X := 10;
+                     {/JO} {$ENDIF}
                             Seek(LFR); MakeLines;
                             DrawView;
                            end;
@@ -1782,7 +1900,7 @@ DoSave:
 {$IFDEF DisAsm}
                              vmDump: begin ViewMode := vmAsm; HexEdit := On; MakeLines; Cur.X:=10; end; {GRM!}
 {$ENDIF}
-                              else begin ViewMode := vmText; MakeLines end;
+                             else begin ViewMode := vmText; HideCursor; MakeLines end;
                            end;
                            if ViewMode <> vmDump then
                              begin
@@ -2071,9 +2189,25 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                    if Event.CharCode in ['A'..'F', '0'..'9'] then begin
                     BufModified:=On;
                     I:=PosChar(Event.CharCode, '0123456789ABCDEF')-1;
-                    P.X:=Cur.X div 2+Cur.Y*HexPos+BufPos;
+                   {$IFDEF DisAsm}
+                    if (ViewMode <> vmAsm) then {JO}
+                   {$ENDIF}
+                      P.X := Cur.X div 2+Cur.Y*HexPos+BufPos
+              {JO} {$IFDEF DisAsm}
+                     else
+                      begin
+                        MakeLines;
+                        P.X := 0;
+                        for Lin := 0 to (Cur.Y-1) do
+                          P.X := P.X + Lines[Lin].Len;
+                        P.X := P.X + ((Cur.X-10) div 2) + BufPos;
+                        if P.X < 0 then P.X := 0;
+                      end
+              {/JO} {$ENDIF}
+                      ;
                     if Odd(Cur.X) then Buf^[P.X]:=(Buf^[P.X] and $F0) or I
                                   else Buf^[P.X]:=(Buf^[P.X] and $F) or (I shl 4);
+                    if ViewMode = vmAsm then MakeLines; {JO}
                     Message(@Self, evKeyDown, kbRight, nil);
                     CE
                    end;
@@ -2370,13 +2504,31 @@ begin
  MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
 end;
 
+{ Flash >>> }
 function TFileViewer.Valid;
+var S: String;
+    X: Integer;
 begin
   Valid := IsValid or QuickView;
   if (Command = cmClose) or (Command = cmQuit) then
-   if (Owner <> nil) and (not QuickView) then
+   begin
+   S:=VFileName; X:=PosChar(':',S);
+   if X>2 then
+    begin
+    S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S);
+    if X>0 then
+     begin
+     S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S);
+     if X>0 then S:=Copy(S,X+1,Length(S)-X);
+     end;
+    if S[1]<>'\' then S:='\'+UpStrg(S);
+    end else S:=UpStrg(GetSName(VFileName)+GetExt(VFIleName));
+   if (Owner <> nil) and not QuickView and
+      (UpStrg(GetSName(FileName)+GetExt(FileName)) = UpStrg(GetSName(S)+GetExt(S))) then
     StoreViewInfo(Owner);
+   end;
 end;
+{ Flash <<< }
 
 { TFileWindow }
 constructor TFileWindow.Init;

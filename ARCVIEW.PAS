@@ -62,6 +62,25 @@
 //  dn230-remove_GZip_compression_and_change_external_filter_view.patch
 //
 //  2.7.0
+//  dn270-search_in_archives.patch
+//  dn270-password_with_spaces_warning.patch
+//  dn270-nameless_files_are_extension.patch
+//  dn270-view_file_with_2_spaces_in_filename_from_archive.patch
+//  dn2922-show_size_before_name_if_it_longer_250.patch
+//  dn270-arc_in_arc_fix.patch
+//  dn21029-highlight_250_fix-jo21104a.patch
+//  dn21116-Ctrl_Slash_Up_Down_fix.patch
+//  dn21201-copy_arcpanel_to_temppanel.patch
+//  dn21128-archive_name_depends_on_Use_LFN-jo20604a.patch
+//  dn21202-Find_file_and_branch_in_archive.patch
+//  dn21225-fpanel(if)-copy_files_from_archives_in_find_panel.patch
+//  dn21225-FilePanel(i)-change_SFN_look_in_archives.patch
+//  dn328-FilePanel(f)_jo30224a_crash_fix.patch
+//  dn3216-archives(f)-unselect_files_only_when_needed.patch
+//  dn3216-fplanel(i)-copy_to_temp_with_dialogs.patch
+//  dn368-find_LFN_inside_of_archive.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -101,9 +120,10 @@ type
      procedure   CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
      procedure   CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
      procedure   EraseFiles(AFiles: PCollection); virtual;
-     {procedure  GetDown(var B; C: Word; P: PFileRec); virtual;}
+     procedure   GetDown(var B; C: Word; P: PFileRec); virtual;
      procedure   GetFull(var B; P:PFileRec; C, SC:Word); virtual;{DataCompBoy}
      procedure   GetEmpty(var B; SC: Word); virtual;
+     function    CalcLengthWithoutName: Integer; virtual;
      function    CalcLength: Integer; virtual;
      function    GetRealName: String; virtual;
      procedure   MakeTop(var S: String); virtual;
@@ -120,6 +140,8 @@ type
      procedure   GetParam(n: byte); virtual; {DataCompBoy}
      destructor  Done; virtual;
      procedure   StdMsg4;
+     function    OpenDirectory(const Dir: String): PDrive; virtual;
+     procedure   FindFile;
     end;
 
     function ArcViewer(AName, VAName : String; num: byte): Boolean; {DataCompBoy}
@@ -142,14 +164,17 @@ type
                   { 2 - broken arc  }
                  end;
 
+const
+  Uncompleted: Boolean = False; {JO}
+  StopPoint:   Integer = 0; {JO}
+
 Implementation
  uses Menus, DnApp, Messages, Dialogs, Gauge, FileCopy, Memory, Startup,
-      Arvid, xTime, VideoMan;
+      Arvid, xTime, VideoMan, Filefind
+      ;
 
 const
   LowMemSize = $4000;  {Local setting}
-  Uncompleted: Boolean = False; {JO}
-  StopPoint:   Integer = 0; {JO}
 
 function MaxAvail: LongInt;
 begin
@@ -189,7 +214,9 @@ begin
   begin
    Flags := Params[n].Param;
    LFNLen:=StoI(Params[n].LFNLen);
+   if (LFNLen = 0) or (LFNLen > 252) then LFNLen := 252;
    EXTLen:=StoI(Params[n].EXTLen);
+   if EXTLen > 252 then EXTLen := 252;
    case FileCase of
     0: FilFLP := 0;
     1: FilFLP := flnLowCase;
@@ -221,15 +248,7 @@ begin
                else GetParam(viewmode);
  innum:=viewmode;
 
- I:=PosChar(':', Copy(VAName,3,255))+2;
- If I>2 then begin
-  Q := Copy(VAName, I+1, 255);
-  if Q[Length(Q)] in ['\','/'] then Dec(Q[0]);
-  VArcName := lFExpand(Copy(VAName,1,I-1));
- end else begin
-  VArcName := lFExpand(VAName);
-  Q:='\';
- end;
+ VArcName := lFExpand(VAName);
 
  I:=PosChar(':', Copy(AName,3,255))+2;
  If I>2 then begin
@@ -491,8 +510,8 @@ function TArcDrive.GetDir;
 begin
  While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do Dec(CurDir[0]);
  if (Length(CurDir)>0) and (not (CurDir[1] in ['\','/'])) then CurDir := '\' + CurDir;
- lFSplit(VArcName, Dr, Nm, Xt);
- GetDir := AType^.GetSign+Copy(Dr,1,2)+Nm+Xt+CurDir;
+ lFSplit(ArcName, Dr, Nm, Xt);
+ GetDir := AType^.GetSign+Nm+Xt+CurDir;
 end;
         {-DataCompBoy-}
 
@@ -592,6 +611,7 @@ procedure TArcDrive.UseFile;
      C: Char;
      ExecOK: Boolean;
      SS, S, S2, Q: String;
+label TryAgain;
 begin
    TempFile:=''; {-$VOL}
    if (Command = cmEditFile) or (Command = cmFileEdit) or
@@ -609,17 +629,31 @@ begin
    if P^.Attr and Hidden <> 0 then
     begin
      S := '';
+TryAgain:
      if ExecResource( dlgSetPassword, S ) <> cmOK then Exit;
-     S := ' ' + DelSpaces(CnvString(AType^.Garble) + S) + ' ';
+   { Flash >>> }
+    if CheckForSpaces(S) then
+     S := ' ' + CnvString(AType^.Garble) + S + ' '
+    else
+    if AType^.UseLFN then
+     S := ' ' + CnvString(AType^.Garble) + '"' + S + '"' + ' '
+    else
+     begin
+     MessageBox(GetString(dlSpacesInPassword), nil, mfWarning + mfOkButton);
+     goto TryAgain;
+     end;
+   { Flash <<< }
     end;
    SS := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
    if SS[1] = '\' then DelFC(SS);
-   S := CnvString(AType^.Extract)+' '+s+
-        {$IFNDEF OS2}lfGetShortFileName{$ELSE}SquashesName{$ENDIF}(ArcName);
+{$IFNDEF OS2}
+   if not AType^.UseLFN then ArcName := lfGetShortFileName(ArcName);
+{$ENDIF}
+   S := CnvString(AType^.Extract)+' '+s+SquashesName(ArcName);
    if (GetExt(ArcName) = '.') and (S[length(S)] <> '.')
       then S := S + '.';{piwamoto: extracting from extensionless archives}
    S := S +' '+SquashesName(SS)+' ';
-   DelDoubles('  ',S);
+{   DelDoubles('  ',S);}{piwamoto: files can have 2 spaces in names}
    TempFile := C + MakeNormName(TempDir , GetLFN(P^.LFN));
    Q:='|' + GetRealName+':'+MakeNormName(CurDir, GetLFN(P^.LFN));
    if C in ['<','-','|','+'] then TempFile := TempFile + Q;
@@ -729,13 +763,13 @@ begin
      {Prev^.Owner := Owner;}
    end;
   PFilePanel(Owner)^.Drive := Prev;
-  if TypeOf(Prev^)=TypeOf(TDrive) then Prev^.lChDir(GetPath(VArcName)); {???}
+  if TypeOf(Prev^)=TypeOf(TDrive) then Prev^.lChDir(GetPath(ArcName));
   if (Prev^.DriveType = dtDisk) and
      (PView(Owner)^.GetState(sfSelected+sfActive)) then
       ActivePanel := Owner;
   GlobalMessage(evCommand, cmRereadInfo, nil);
   Prev := nil;
-  S := GetName(VArcName); {???}
+  S := GetName(ArcName);
   if KillAfterUse then EraseTempFile(ArcName);
   Dispose(PDrive(@Self), Done);
 end;
@@ -753,6 +787,13 @@ function TArcDrive.MakeListFile;
      I: Integer;
      S, S1: String;
      B: Boolean;
+
+  function GetArcOwn(S: String): String;
+  begin
+    if Length(S) < 2 then begin GetArcOwn := ''; Exit; end;
+    S[2] := ';'; {JO: реально не важно на что меняем, лишь бы не ':'}
+    GetArcOwn := Copy(S, PosChar(':', S) + 1, 255);
+  end;
 
   procedure PutDir(SS: String);
    var I: Integer;
@@ -782,7 +823,11 @@ begin
  for I := StopPoint to PC^.Count - 1 do
   begin
    PF := PC^.At(I);
-   S1 := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
+{JO: проверка для разархивирования из панели поиска в архивах}
+   if PathFoundInArc(PF^.Owner^) then
+     S1 := MakeNormName(GetArcOwn(PF^.Owner^), GetLFN(PF^.LFN))
+    else
+     S1 := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
    if S1[1] in ['\','/'] then DelFC(S1);
    if PF^.Attr and Directory = 0
       then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1)
@@ -828,25 +873,34 @@ procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
 
 begin
   While ExtrDir[Length(ExtrDir)] = ' ' do Dec(ExtrDir[0]);
-  {$IFNDEF OS2}
-  if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(lfGetShortFileName(VArcName), ExtrDir, Nm, Xt);
-  {$ELSE}
-  if (ExtrDir = '') or (ExtrDir = '..') then lFSplit(VArcName, ExtrDir, Nm, Xt);
-  {$ENDIF}
+  if (ExtrDir = '') or (ExtrDir = '..') then
+{$IFNDEF OS2}
+  if AType^.UseLFN then
+{$ENDIF}
+              lFSplit(VArcName, ExtrDir, Nm, Xt) {JO: для распаковки по F4 архивов, просмотренных через фильтр}
+{$IFNDEF OS2}
+         else lFSplit(lfGetShortFileName(ArcName), ExtrDir, Nm, Xt)
+{$ENDIF}
+  ;
+
   if not (ExtrDir[Length(ExtrDir)] in ['\','/']) then ExtrDir := ExtrDir + '\';
   repeat   {JO}
     SS := MakeListFile(AFiles);
     S := ' '; Pswd := Off;
     AFiles^.ForEach(@IsPswd);
-    if not Uncompleted then AFiles^.ForEach(@Unselect);
+    if not Uncompleted
+       and (PFilePanel(ActivePanel)^.SelNum > 0) then { Flash 17-02-2003 }
+      AFiles^.ForEach(@Unselect);
     ExtrChar := CnvString(AType^.ExtractWP);
     if Options and 1 = 0 then ExtrChar := CnvString(AType^.Extract);
     if Options and 2 <> 0 then ExtrChar := CnvString(AType^.Test);
     if (Password = '') and Pswd then
       if ExecResource(dlgSetPassword, Password) <> cmOK then Exit;
     if Password <> '' then S := ' ' + DelSpaces(CnvString(AType^.Garble) + Password) + ' ';
-    S := ExtrChar+' '+s+
-         {$IFNDEF OS2}lfGetShortFileName{$ELSE}SquashesName{$ENDIF}(ArcName);
+{$IFNDEF OS2}
+   if not AType^.UseLFN then ArcName := lfGetShortFileName(ArcName);
+{$ENDIF}
+    S := ExtrChar + ' ' +s+ SquashesName(ArcName);
     if (Xt = '.') and (S[length(S)] <> '.')
        then S := S + '.';{piwamoto: extracting from extensionless archives}
     S := S +' '+SS+' ';
@@ -863,28 +917,32 @@ end;
 
         {-DataCompBoy-}
 procedure TArcDrive.CopyFiles;
- var SS, S: String;
+ var
      DT: Record S: String; W: Word; Psw: String[30]; end;
      ExtrDir: String;
      ExtrChar: String;
 begin
-  S := ' ';
   ExtrDir := '';
   DT.S := '';
   DT.Psw := Password;
   DT.W := byte(ExtractWithPathNames);
   Message(Application, evCommand, cmPushFirstName, @DT.S);
   if CopyDirName <> '' then DT.S := CopyDirName;
-  if DT.S = cTEMP_ then DT.S := '';
+{  if DT.S = cTEMP_ then DT.S := '';}
   if DT.S = '' then GlobalMessageL(evCommand, cmPushName, hsExtract);
   if DT.S = '' then DT.S := HistoryStr(hsExtract, 0);
-  if DT.S = cTEMP_ then DT.S := '';
+{  if DT.S = cTEMP_ then DT.S := '';}
   CopyDirName := '';
   if not SkipCopyDialog then
      if ExecResource( dlgExtract, DT) <> cmOK then Exit;
   if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
   ExtractWithPathNames:=(DT.W and 1) <> 0;
   SkipCopyDialog := Off;
+  if DT.S = cTEMP_ then
+    begin
+     CopyToTempDrive(AFiles, Own, ArcName);
+     Exit;
+    end;
   ExtrDir := DT.S;
   Password := DT.Psw;
   ExtractFiles(AFiles, ExtrDir, Own, DT.W);
@@ -917,8 +975,10 @@ begin
     if (J <> cmYes) then Exit;
    end;
   SS := MakeListFile(AFiles);
-  S := CnvString(AType^.Delete)+' '+
-       {$IFNDEF OS2}lfGetShortFileName{$ELSE}SquashesName{$ENDIF}(ArcName);
+{$IFNDEF OS2}
+  if not AType^.UseLFN then ArcName := lfGetShortFileName(ArcName);
+{$ENDIF}
+  S := CnvString(AType^.Delete)+' '+SquashesName(ArcName);
   if (GetExt(ArcName) = '.') and (S[length(S)] <> '.')
      then S := S + '.';{piwamoto: deleting from extensionless archives}
   S := S +' '+SS;
@@ -938,48 +998,123 @@ begin
 end;
         {-DataCompBoy-}
 
-function TArcDrive.CalcLength;
+function TArcDrive.CalcLengthWithoutName;
 begin
+  CalcLengthWithoutName := (10 + CountryInfo.TimeFmt) * Byte(Flags and psShowSize <> 0) +
+                11 * Byte(Flags and psShowPacked <> 0) +
+                 9 * Byte(Flags and psShowDate <> 0) +
+                (7 - CountryInfo.TimeFmt) * Byte(Flags and psShowTime <> 0) +
+                 4 * Byte(Flags and psShowRatio <> 0);
+end;
+
+function TArcDrive.CalcLength;
+ var B: Word;
+begin
+{$IFNDEF OS2}
  if Flags and psShowLongName <> 0 then
-  CalcLength := LFNLen + 1 +
-                (10 + CountryInfo.TimeFmt) * Byte(Flags and psShowSize <> 0) +
-                11 * Byte(Flags and psShowPacked <> 0) +
-                 9 * Byte(Flags and psShowDate <> 0) +
-                (7 - CountryInfo.TimeFmt) * Byte(Flags and psShowTime <> 0) +
-                 4 * Byte(Flags and psShowRatio <> 0)
+{$ENDIF}
+           B := LFNLen + 1 + CalcLengthWithoutName
+{$IFNDEF OS2}
  else
-  CalcLength := 13 +
-                (10 + CountryInfo.TimeFmt) * Byte(Flags and psShowSize <> 0) +
-                11 * Byte(Flags and psShowPacked <> 0) +
-                 9 * Byte(Flags and psShowDate <> 0) +
-                (7 - CountryInfo.TimeFmt) * Byte(Flags and psShowTime <> 0) +
-                 4 * Byte(Flags and psShowRatio <> 0)
+           B := 13 + CalcLengthWithoutName
+{$ENDIF}
+ ;
+ if B > MaxViewWidth then B := MaxViewWidth;
+ CalcLength := B;
 end;
 
 procedure TArcDrive.MakeTop;
 begin
- if Flags and psShowLongName <> 0 then S := CenterStr(GetString(dlTopLFN), LFNLen)+GetString(dlTopSplit)
-                                  else S:=GetString(dlTopName);
+if (LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName = 0){$ENDIF}then
+begin
+{$IFNDEF OS2}
+ if Flags and psShowLongName <> 0 then
+     begin
+{$ENDIF}
+       if LFNLen <= SizeX then
+       S := CenterStr(GetString(dlTopLFN), LFNLen)+GetString(dlTopSplit)
+         else S := AddSpace(CenterStr(GetString(dlTopLFN), SizeX), LFNLen)
+{$IFNDEF OS2}
+       ;
+     end
+   else S := GetString(dlTopName)
+{$ENDIF}
+end else S := '';
  if Flags and psShowSize     <> 0 then S := S + Copy(GetString(dlTopOriginal),2-CountryInfo.TimeFmt,255);
  if Flags and psShowPacked   <> 0 then S := S + GetString(dlTopPacked);
  if Flags and psShowRatio    <> 0 then S := S + GetString(dlTopRatio);
  if Flags and psShowDate     <> 0 then S := S + GetString(dlTopDate);
  if Flags and psShowTime     <> 0 then S := S + Copy(' '+GetString(dlTopTime),1+CountryInfo.TimeFmt,255);
+ if (LFNLen >= 250) {$IFNDEF OS2} and (Flags and psShowLongName <> 0){$ENDIF}
+         then S := S  + AddSpace(CenterStr(GetString(dlTopLFN), SizeX-Length(S)), LFNLen);
 end;
+
+        {-DataCompBoy-}
+procedure TArcDrive.GetDown;
+ var FR: TFileRec;
+     S,S1 {$IFDEF OS2} ,S2 {$ENDIF}: String;
+     {$IFNDEF OS2} S3,S4: String; {$ENDIF} { Flash 09-02-2003 }
+begin
+    if P=nil then exit;
+    FR := P^; FR.Name[9] := ' ';
+    if (FR.Attr and Directory = 0) or (FR.Attr and $8000 <> 0) and (FR.Size >= 0)
+    or (PFilePanel(Owner)^.PanelFlags and fmiDirLen <> 0)
+     {or (FR.Size >= 0)}
+      then S := FileSizeStr( FR.Size )
+      else if FR.TType = ttUpDir
+        then S := GetString( dlUpDir )
+        else S := GetString( dlSubDir );
+    MakeDate(DateMode, FR.Day, FR.Month, FR.Yr, FR.Hour, FR.Minute, S1);
+{$IFNDEF OS2} { Flash 09-02-2003 >>> }
+    S3 := GetExt(GetLFN(FR.LFN));
+    S3 := ' '+Copy(S3,2,Length(S3)-1);
+    if Length(S3)>4 then S3 := Copy(S3,1,3)+FMSetup.RestChar[1];
+    S4 := GetSName(GetLFN(FR.LFN));
+    if Length(S4)>8 then S4 := Copy(S4,1,7)+FMSetup.RestChar[1];
+    while Length(S4)<8 do S4 := S4+' ';
+    S3 := MakeFileName(S4+S3);
+    if FR.Attr and Directory = 0 then S3 := LowStrg(S3) else S3 := UpStrg(S3);
+    MoveStr(B, S3, C);
+{$ELSE}       { Flash 09-02-2003 <<< }
+    S2 := GetLFN(FR.LFN);
+    if Byte(S2[0]) > 14 then
+      begin
+        S2[0] := #14;
+        S2[14] := FMSetup.RestChar[1];
+      end;
+    MoveStr(B,S2,C);
+{$ENDIF}
+    MoveStr(TWordArray(B)[22-Length(S)+CountryInfo.TimeFmt],S , C);
+    MoveStr(TWordArray(B)[23+CountryInfo.TimeFmt],S1, C);
+end;
+        {-DataCompBoy-}
 
 procedure TArcDrive.GetFull;
 var
-  S: String;
   S1: String[40];
-  X: Byte;
+  X: AWord; LS: Byte;
   NFM: TNameFormatMode;
-  OPT: Word;
+  OPT,CO : Word;
+  S, Ext: String;
+  label Longer250, Longer250_1;
 begin
+X := 0;
+CO := C;
+if LFNLen < 250 then
+{JO: если ширина колонки имени больше 250 символов, её показываем после остальных колонок}
+Longer250:
+ begin
+{$IFNDEF OS2}
   if Flags and psShowLongName <> 0 then
    begin
     s:=GetLFN(P^.LFN);
+{$ELSE}
+    s:=P^.Name;
+{$ENDIF}
+    Ext := GetExt(S);
     NFM:=nfmNull;
-    if (EXTLen=0) or ((Flags and psVariableExtDA<>0) and (Length(GetExt(s))=1))
+    if (EXTLen=0) or ((Flags and psVariableExtDA<>0) and
+                      ((Length(Ext)=1) or (Length(S) = Length(Ext))))
      then OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes
      else OPT:=flnHardExtArea or flnAutoHideDot or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes;
     if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT or flnSelected;
@@ -995,7 +1130,7 @@ begin
              then OPT:=OPT or DirFLP
              else if DirFLP = 65535
                     then if (Length(GetSName(S))<=8) and
-                            (Length(GetExt(S))<=4)
+                            (Length(Ext)<=4)
                            then OPT:=OPT or flnUpCase
                            else
                     else if (not IsMixedCase(S))
@@ -1005,7 +1140,7 @@ begin
              then OPT:=OPT or FilFLP
              else if FilFLP = 65535
                     then if (Length(GetSName(S))<=8) and
-                            (Length(GetExt(S))<=4)
+                            (Length(Ext)<=4)
                            then OPT:=OPT or flnLowCase
                            else
                     else if (not IsMixedCase(S))
@@ -1014,6 +1149,7 @@ begin
 
     S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
+{$IFNDEF OS2}
    end
   else
    begin
@@ -1035,43 +1171,73 @@ begin
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
    end;
 
-  X:=LFNLen;
-  MoveCStr(TWordArray(B), S, C);
+{$ENDIF}
+
 {!!!!!!!!!!!}
-  if P^.Selected and PView(Owner)^.GetState(sfFocused) then begin
-   C:=C shr 8;
-   SC:=SC and $00FF + C shl 8;
-  end;
+
+  MoveCStr(TWordArray(B)[X], S, C);
+  {$IFNDEF OS2}if Flags and psShowLongName <> 0 then {$ENDIF} Inc(X, LFNLen)
+  {$IFNDEF OS2}  else Inc(X, 12) {$ENDIF}
+  ;
+{-----------}
+  if X >= 255 then Exit;
+  if LFNLen >= 250 then goto Longer250_1;
+{JO: не понял, зачем DataCompBoy ввёл условие                                }
+{    PView(Owner)^.GetState(sfFocused), приводившее к исчезновению выделения }
+{    цветом всего, что идёт после имени у помеченных файлов при переходе     }
+{    на противоположную панель; без этого условия всё работает нормально     }
+  if P^.Selected {and PView(Owner)^.GetState(sfFocused)} then
+    begin
+      C:=C shr 8;
+      SC:=SC and $00FF + C shl 8;
+    end;
   Inc(X);
+  if X >= 255 then Exit;
   TWordArray(B)[X-1]:=SC;
+ end {условие 250 символов}
+  else if P^.Selected then
+    begin
+      C := C shr 8;
+      SC := SC and $00FF + C shl 8;
+    end;
+
   MakeDate(DateMode, P^.Day, P^.Month, P^.Yr, P^.Hour, P^.Minute, S1);
   if (P^.Size > 0) or (P^.Attr and Directory = 0)
     then S := FileSizeStr( P^.Size ){!}
-    else if P^.Name[1]= '.'
+    else if P^.TType = ttUpDir
       then S := GetString( dlUpDir )
       else S := GetString( dlSubDir );
   if Flags and psShowSize <> 0 then
    begin
-    MoveStr(TWordArray(B)[X+9-Length(S)+CountryInfo.TimeFmt], S, C);
+    for LS := 1 to (9 - Length(S) + CountryInfo.TimeFmt) do S := ' ' + S; {JO}
+    MoveStr(TWordArray(B)[X], S, C);
     X := X+10+CountryInfo.TimeFmt;
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowPacked <> 0 then
    begin
+    if PosChar('<',S) = 0 then
+      begin
+        S := FStr(P^.PSize);
+        for LS := 1 to (10 - Length(S)) do S := ' ' + S; {JO}
+      end
+     else if (CountryInfo.TimeFmt = 0) then S := ' ' + S;
+    MoveStr(TWordArray(B)[X], S, C);
     Inc(X, 11);
-    if PosChar('<',S) = 0 then S := FileSizeStr(P^.PSize);
-    MoveStr(TWordArray(B)[X-Length(S)-1], S, C);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowRatio <> 0 then
    begin
     Inc(X, 4);
+    if X >= 255 then Exit;
     if PosChar('<',S) = 0 then
      begin
       if P^.Size <> 0 then S := ZtoS(Percent(P^.Size, P^.PSize))
                       else S := '100';
       S := PredSpace(S, 3);
-     end else S := '';
+     end else S := '   ';
     MoveStr(TWordArray(B)[X-Length(S)-1], S, C);
     TWordArray(B)[X-1]:=SC;
    end;
@@ -1079,45 +1245,65 @@ begin
    begin
     MoveStr(TWordArray(B)[X], Copy(S1,1,8), C);
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowTime <> 0 then
    begin
-    MoveStr(TWordArray(B)[X], Copy(S1,10,6-CountryInfo.TimeFmt), C);
-    Inc(X, 7 - CountryInfo.TimeFmt);
+    MoveStr(TWordArray(B)[X], Copy(S1,10,6), C);
+    Inc(X, 7+CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
+  if LFNLen >= 250 then begin C := CO; goto Longer250; end;
+Longer250_1:
 end;
 
 procedure TArcDrive.GetEmpty;
  var
-  X: Byte;
+  X: AWord;
 begin
-  if Flags and psShowLongName <> 0 then X:=LFNLen+1 else X:=13;
-  TWordArray(B)[X-1]:=SC;
+  if (LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName = 0){$ENDIF} then
+    begin
+{$IFNDEF OS2}
+      if Flags and psShowLongName <> 0 then
+{$ENDIF}
+         X:=LFNLen+1
+{$IFNDEF OS2}
+        else X:=13
+{$ENDIF}
+        ;
+      if X >= 255 then Exit;
+      TWordArray(B)[X-1]:=SC;
+    end else X := 0;
   if Flags and psShowSize <> 0 then
    begin
     X := X+10+CountryInfo.TimeFmt;
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowPacked <> 0 then
    begin
     Inc(X, 11);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowRatio <> 0 then
    begin
     Inc(X, 4);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowDate <> 0 then
    begin
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowTime <> 0 then
    begin
-    Inc(X, 7 - CountryInfo.TimeFmt);
+    Inc(X, 7+CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
 end;
@@ -1184,6 +1370,7 @@ begin
                        end;
                        PFilePanel(O)^.RereadDir;
                     end;
+   cmFindFile: FindFile;
  end;
 end;
 
@@ -1195,8 +1382,21 @@ end;
 function ArcViewer;
  var P: PDrive;
      E: TEvent;
+     I: Byte;
      Xt: String;
+     PathInside: String;
 begin
+{JO: дабы перейти к найденному файлу в архиве из панели поиска}
+  PathInside := AName;
+  if PathInside[2] = ':' then PathInside[2] := ';'; {JO: меняем двоеточие не важно на что }
+    I := PosChar(':', PathInside);
+    if I > 0 then
+      begin
+        PathInside := Copy(AName, I+1, 255);
+        AName := Copy(AName, 1, I-1);
+      end
+     else PathInside :=  '';
+{/JO}
  ArcViewer := False;
  P := New(PArcDrive, Init(AName, VAname, num));
  if Abort then Exit;
@@ -1211,7 +1411,24 @@ begin
  E.Command := cmInsertDrive;
  E.InfoPtr := P;
  Desktop^.HandleEvent(E);
- if E.What <> evNothing then Dispose(P, Done) else ArcViewer := True;
+ if E.What <> evNothing then
+   begin
+     Dispose(P, Done);
+     Exit;
+   end
+    else ArcViewer := True;
+{JO: переходим к найденному файлу в архиве}
+ if PathInside <> '' then
+   begin
+     if Copy(PathInside, Length(PathInside)-1, 2) = '\.'
+       then PathInside[0] := Char(Length(PathInside)-2);
+     if (GetPath(PathInside) <> '\') then
+       begin
+         P^.lChDir(Copy(GetPath(PathInside), 2, 255));
+         Message(Application, evCommand, cmPanelReread, nil);
+       end;
+    end;
+{/JO}
 end;
 
 function TArcDrive.GetFullFlags;
@@ -1257,5 +1474,187 @@ procedure TArcDrive.GetDirLength(PF: PFileRec);
 begin
 end;
 
+function ESC_Pressed: Boolean; var E: TEvent;
+begin
+  Application^.Idle;
+  GetKeyEvent(E); ESC_Pressed := (E.What = evKeyDown) and (E.KeyCode = kbEsc)
+end;
+
+function TArcDrive.OpenDirectory(const Dir: String): PDrive;
+  var PDrv: PDrive;
+      Dirs: PStringCollection;
+      Fils:PFilesCollection;
+      FR: PFileRec;
+      tmr: TEventTimer;
+      _USize, _PSize: TSize;
+      l: integer;
+      PDir: PString;
+      PI: PView;
+      Root: string;
+begin
+  NewTimer(Tmr,0);
+  Dirs := New(PStringCollection, Init($10,$10));
+  PI := WriteMsg(GetString(dlReadingList));
+  New(Fils, Init($10, $10)); Fils^.SortMode := psmOrdered;
+  Files^.ResetPointer('');
+  Root := UpStrg(CurDir) + '\'; l := length(Root);
+  While not Files^.Last and Files^.GetNextFile and (MaxAvail > LowMemSize)
+  do
+   begin
+     if (Root = Copy(UpStrg(Files^.LastDir), 1, l)) then
+       begin
+       with Files^.CurFile do
+         begin
+         if (Name = '') or (Name = '..') then Continue;
+         _USize := Size;
+         _PSize := CSize;
+         PDir := NewStr(Files^.LastDir);
+         FR := NewFileRec(LFN, {$IFNDEF OS2}GetURZ(Name), {$ENDIF}_USize, Date, Attr, PDir);
+         end;
+         if Dirs^.IndexOf(PDir) = -1 then Dirs^.Insert(PDir);
+       Fils^.AtInsert(Fils^.Count, FR);
+       if TimerExpired(Tmr) then
+         begin
+           NewTimer(Tmr, 1);
+           if ESC_Pressed then Break;
+         end;
+       end;
+   end;
+  PI^.Free;
+  PDrv := New(PFindDrive, Init(GetString( dlBranch )+Dir, Dirs, Fils, FreeByte));
+  OpenDirectory := PDrv;
+end;
+
+type
+    TArcFindRec = record
+     Mask: String; {DataCompBoy}
+     Options: Word;
+     AddChar: String[3];
+    end;
+
+const
+     ArcFindRec: TArcFindRec = ( Mask : '*.*';
+                                 Options : 2; {рекурсивный поиск}
+                                 AddChar : ''
+                                 );
+
+procedure TArcDrive.FindFile;
+  var
+      PDrv: PDrive;
+      Dirs: PStringCollection;
+      Fils:PFilesCollection;
+      FR: PFileRec;
+      tmr: TEventTimer;
+      _USize, _PSize: TSize;
+      L: Integer;
+      PDir: PString;
+      I, DateAfter, DateBefore, SizeGreat, SizeLess: LongInt;
+      Attr: Byte;
+      PI: PView;
+      LDir, DrName: String;
+      Root: String;
+
+begin
+  NewTimer(Tmr,0);
+  ArcFindRec.AddChar := '';
+  ArcFindRec.Options := (FindRec.Options and 1) +
+                         ((FindRec.Options and 4) shr 1);
+  if ExecResource(dlgArcFileFind, ArcFindRec) = cmCancel then Exit;
+  FindRec.Options := (FindRec.Options and $FFFA) or (ArcFindRec.Options and 1)
+                                        or ((ArcFindRec.Options and 2) shl 1);
+  ConfigModified := true;
+  DelLeft(ArcFindRec.Mask); DelRight(ArcFindRec.Mask);
+  if ArcFindRec.Mask = '' then ArcFindRec.Mask := x_x;
+  if (Pos('*', ArcFindRec.Mask)=0) and
+     (Pos('.', ArcFindRec.Mask)=0) and
+     (Pos(';', ArcFindRec.Mask)=0) and
+     (Pos('?', ArcFindRec.Mask)=0) then ArcFindRec.AddChar := '*.*'
+                                else ArcFindRec.AddChar := '';
+
+  if ArcFindRec.Options and ffoAdvanced <> 0 then
+   begin
+     DateAfter := ParseTime(AdvanceSearchData.After);
+     DateBefore := ParseTime(AdvanceSearchData.Before);
+     if DateBefore = 0 then DateBefore := $7FFFFFFF;
+     SizeGreat := Stoi(AdvanceSearchData.Greater);
+     SizeLess := Stoi(AdvanceSearchData.Less);
+     if SizeLess = 0 then SizeLess := $7FFFFFFF;
+     Attr := 0;
+     if AdvanceSearchData.Attr and 1 <> 0 then Attr := Archive;
+     if AdvanceSearchData.Attr and 2 <> 0 then Attr := Attr or SysFile;
+     if AdvanceSearchData.Attr and 4 <> 0 then Attr := Attr or Hidden;
+     if AdvanceSearchData.Attr and 8 <> 0 then Attr := Attr or ReadOnly;
+   end;
+
+  Dirs := New(PStringCollection, Init($10,$10));
+  PI := WriteMsg(^M^M^C + GetString(dlSearching) + '...');
+  New(Fils, Init($10, $10)); Fils^.SortMode := psmOrdered;
+  Files^.ResetPointer('');
+  Root := UpStrg(CurDir) + '\'; l := length(Root);
+  While not Files^.Last and Files^.GetNextFile and (MaxAvail > LowMemSize)
+  do
+   begin
+     if (Root = Copy(UpStrg(Files^.LastDir), 1, l)) then
+       begin
+        with Files^.CurFile do
+         begin
+          if ((ArcFindRec.Options and ffoAdvanced = 0) or
+                 (Date >= DateAfter) and (Date <= DateBefore)
+           and (Size >= SizeGreat)  and (Size <= SizeLess)
+           and ((Attr = 0) or (FileInfo.Attr and Attr <> 0)))
+           and ((ArcFindRec.Options and 2 <> 0) or
+                (Root = UpStrg(Files^.LastDir)))
+           and (Name <> '') and (Name <> '..')
+           and InFilter(LFN, ArcFindRec.Mask + ArcFindRec.AddChar) then
+            begin
+              _USize := Size;
+              _PSize := CSize;
+              PDir := NewStr(Files^.LastDir);
+              FR := NewFileRec(LFN, {$IFNDEF OS2}GetURZ(Name), {$ENDIF}_USize, Date, Attr, PDir);
+              if Dirs^.IndexOf(PDir) = -1 then Dirs^.Insert(PDir);
+              Fils^.AtInsert(Fils^.Count, FR);
+            end;
+         {JO: добавляем каталоги}
+          if Length(Files^.LastDir) > L then
+            begin
+              LDir := Files^.LastDir;
+              repeat
+                Dec(LDir[0]);
+                for I := Length(LDir) downto L do
+                  if LDir[I] = '\' then Break;
+                DrName := Copy(LDir, I+1, 255);
+                LDir[0] := Char(I);
+                if (DrName <> '')
+{
+             //JO: всё равно для каталогов дата и атрибуты показываются
+             //    весьма условно, размер равен нулю, так что при расширенном
+             //    поиске каталоги только мешают
+}
+                  and (ArcFindRec.Options and ffoAdvanced = 0)
+                  and ((ArcFindRec.Options and 2 <> 0) or
+                       (Root = UpStrg(LDir)))
+                  and InFilter(DrName, ArcFindRec.Mask+ ArcFindRec.AddChar)
+                  then
+                   begin
+                     PDir := NewStr(Copy(LDir, 1, I));
+                     FR := NewFileRec(DrName,{$IFNDEF OS2}GetURZ(DrName),{$ENDIF} 0, ArcDate, $80 or Directory, PDir);
+                     if Dirs^.IndexOf(PDir) = -1 then Dirs^.Insert(PDir);
+                     if Fils^.Search(FR,I) then DelFileRec(FR)
+                                else Fils^.AtInsert(I, FR);
+                   end;
+              until Length(LDir) <= L;
+            end; {конец добавления каталогов}
+          if TimerExpired(Tmr) then
+            begin
+              NewTimer(Tmr, 1);
+              if ESC_Pressed then Break;
+            end;
+         end;
+       end;
+   end;
+  PI^.Free;
+  PDrv := New(PFindDrive, Init(GetString(dlFindPanel) + ArcFindRec.Mask, Dirs, Fils, FreeByte));
+  Message(Owner, evCommand, cmInsertDrive, PDrv);
+end;
 
 end.

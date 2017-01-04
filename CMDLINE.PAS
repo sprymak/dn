@@ -51,6 +51,14 @@
 //  dn16rc1-cmdline_improve.patch
 //
 //  2.3.0
+//  dn270-last_command_from_history_fix.patch
+//  dn281-CmdHistory_items_protection.patch
+//  dn2911-command_line_improve.patch
+//  dn2922-command_line_short_prompt_improve.patch
+//  dn21013-short_command_prompt_fix.patch
+//  dn21116-cmdline(f)-short_prompt_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -64,6 +72,7 @@ Type
      PCommandLine = ^TCommandLine;
      TCommandLine = object(TView)
       Dir: String;
+      FullDir: String; {John_SW}
       DeltaX, CurX: LongInt;
       Overwrite: Boolean;
       LineType: (ltNormal, ltOS2Fullscreen, ltOS2Window, ltTimer);
@@ -166,6 +175,7 @@ begin
  NeedAbort := Off;
  if (Dir[0] > #3) and (Dir[Length(Dir)] = '\') then Dec(Dir[0]);
  ActiveDir := Dir;
+ FullDir:='';
  SetDirShape;
 end;
 
@@ -285,6 +295,23 @@ procedure TCommandLine.HandleEvent;
       end;
  end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 19-09-2002 ----}
+ Procedure ChangeDirMode(i: Byte);
+  Begin
+   If (i = 1) And (FullDir <> '') Then Exit;
+   If (i = 2) And (FullDir = '') Then Exit;
+   If FullDir <> '' Then Begin Dir:=FullDir; FullDir:=''; End
+   Else
+    Begin
+     FullDir:=Dir;
+     if Dir[1] in ['[','(','{'] then Dir:=Copy(Dir,2,2)
+     Else Dir:=Copy(Dir,1,2);
+    End;
+   SetDirShape;
+   CE2;
+  End;
+{--- finish -------- Eugeny Zvyagintzev ---- 19-09-2002 ----}
+
  var R: TRect;
      P: TPoint;
      S: String;
@@ -296,11 +323,17 @@ begin
  S := Str; Changed := False;
  case Event.What of
   evMouseDown, evMouseAuto: begin
-                if Event.Double then
-                 begin
-                   Message(Application, evCommand, cmHistoryList, nil); CE
-                 end;
+{--- start -------- Eugeny Zvyagintzev ---- 19-09-2002 ----}
                 MakeLocal(Event.Where, P);
+                If (Event.Double) Then
+                 If (P.X < 3) Or ((Dir[1] in ['[','(','{']) And (P.X < 4)) Then
+                  ChangeDirMode(0)
+                 Else
+{--- finish -------- Eugeny Zvyagintzev ---- 19-09-2002 ----}
+                  Begin
+                   Message(Application, evCommand, cmHistoryList, nil);
+                   CE;
+                  End;
                 if P.X >= Min(Length(Dir), 50) then
                   if Event.Buttons and mbRightButton <> 0 then
                    begin
@@ -329,8 +362,7 @@ begin
                                  begin
                                   if DelSpaces(Str) = '' then Exit;
                                   StrModified := True;
-                                  Message(@Self, evKeyDown, kbDown, nil);
-                                  Message(@Self, evKeyDown, kbUp, nil);
+                                  AddCommand(Str); { Flash }
                                  end;
              end;
   evKeyDown: if (DeskTop^.Current=nil)
@@ -360,6 +392,10 @@ begin
                        end;
                  else
                   case Event.KeyCode of
+{--- start -------- Eugeny Zvyagintzev ---- 19-09-2002 ----}
+                   kbCtrlLAngle: ChangeDirMode(1);
+                   kbCtrlRAngle: ChangeDirMode(2);
+{--- finish -------- Eugeny Zvyagintzev ---- 19-09-2002 ----}
                    kbAltSlash: begin
                                  if ShiftState and 3 <> 0 then Dec(LineType)
                                                           else Inc(LineType);
@@ -384,26 +420,26 @@ begin
                    kbESC: begin if (Str = '') and ( InterfaceData.Options and ouiEsc <> 0 )
                                             then Message(Application, evCommand, cmShowUserScreen, nil)
                                             else Str := ''; CurX := 0; DeltaX := 0; CE2 end;
-                   kbBack: begin
-                            if CurX > 0 then begin
+                   kbBack: if CurX > 0 then
+                            begin
                              Delete(Str, CurX, 1);
                              Dec(CurX);
-                             if CurX=0 then StrCleared:=true;
+                             if Length(Str)=0 then StrCleared:=true;
                              CE2
                             end;
-                           end;
-                   kbBackUp: StrCleared:=false;
+                   kbBackUp, kbDelUp: StrCleared:=false;
                    kbUp, kbCtrlE: begin
                                   if (Event.KeyCode=kbUp) and (ShiftState and kbCtrlShift<>0) then exit;
                                   if StrModified then
                                    begin
                                     AddCommand(Str);
-                                    CurString := CmdStrings^.Count-1;
+                                    CurString := CmdStrings^.Count; { Flash }
                                     StrModified := Off;
                                    end;
                                   if CurString > 0 then Dec(CurString);
                                   Str := GetCommand(CurString);
                                   Changed := True; CurX := Length(Str);
+                                  If CurX < Size.X-Min(Length(Dir), 50)-1 Then DeltaX := 0; {John_SW}
                                   CE2;
                                 end;
                    kbDown, kbCtrlX: begin
@@ -418,6 +454,7 @@ begin
                                      if Str <> '' then Inc(CurString);
                                      Str := GetCommand(CurString);
                                      Changed := True; CurX := Length(Str);
+                                     If CurX < Size.X-Min(Length(Dir), 50)-1 Then DeltaX := 0; {John_SW}
                                      CE2;
                                   end;
                    kbLeft, kbCtrlS: begin if CurX > 0 then Dec(CurX); CE2 end;
@@ -438,7 +475,12 @@ begin
                                  CE;
                                end;
                    kbIns: begin Overwrite := not Overwrite; CE2 end;
-                   kbDel: begin Delete(Str, CurX + 1, 1); CE2 end;
+                   kbDel: If Length(Str) > 0 Then                  {John_SW 21-09-2002}
+                           begin
+                            Delete(Str, CurX + 1, 1);
+                            if Length(Str)=0 then StrCleared:=true;{John_SW 21-09-2002}
+                            CE2
+                           end;
                    kbEnd, kbCtrlEnd: begin CurX := Length(Str); CE2 end;
                    kbHome, kbCtrlHome: begin CurX := 0; CE2 end;
                    kbCtrlLeft: begin

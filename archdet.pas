@@ -62,6 +62,10 @@
 //  dn269-rar3-hp-fix-jo20624a.patch
 //
 //  2.7.0
+//  dn270-more_strict_ZIP_detection.patch
+//  dn281-more_strict_ZIP_detection.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -99,7 +103,7 @@ begin
   ArcFile^.Read(FP, SizeOf(FP));
   if (ID = $04034b50) or ((FP = $06054b50) and (ArcFile^.GetPos > 4)) then
   begin
-    ZIPDetect := True;
+    if ID = $04034b50 then ZIPDetect := True;
     NullXLAT (NXL);
     FP := ArcFile^.GetPos;
     repeat
@@ -115,9 +119,16 @@ begin
           (ArcFile^.Status <> stOK);
     if (ID = $06054B50) or (ID = $06064B50) then
       begin {central directory found}
-        CentralDirRecPresent := True;
         ArcFile^.Seek(FP + 16 + 32*Byte(ID = $06064B50));{offset of start of central directory}
-        ArcFile^.Read(ArcPos, 4);
+        ArcFile^.Read(FP, 4);
+        ArcFile^.Seek(FP);
+        ArcFile^.Read(ID, SizeOf(ID));
+        if ID = $02014B50 then
+          begin {piwamoto: only if offset to Central Directory is correct}
+           ArcPos := FP;
+           ZIPDetect := True;
+           CentralDirRecPresent := True;
+          end;
       end;
   end;
   ArcFile^.Seek(ArcPos);

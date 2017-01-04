@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2825-quick_directories_list_improve.patch
+//  dn21225-calculator(if)-multilanguage.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -85,11 +89,11 @@ Uses
 {$ENDIF !RCP}
 {$IFDEF CHCOL}           Colorsel,                     {$ENDIF}
      Dialogs,  Menus,    Objects,  ObjType,  Scroller, Setups,
-     Validate, Views,    SWE;
+     Validate, Views,    SWE, dnutil2;
 
 const
   NumRElms =
-{$IFDEF RCP}31{$ELSE} 122
+{$IFDEF RCP}32{$ELSE} 124
   {$IFDEF MODEM}       +7 {$IFDEF LINK} +2 {$ENDIF} {$ENDIF}
   {$IFDEF SpreadSheet} +5 {$ENDIF}
   {$IFDEF Game}        +3 {$ENDIF}
@@ -301,6 +305,10 @@ const
        Store  : @Calendar.TCalendarWindow.Store)
 {$ENDIF Calendar}
       { CCalc }
+     ,(ObjType: otCCalcWindow;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(CCalc.TCCalcWindow){$IFDEF OFFS}^{$ENDIF});
+       Load   : @CCalc.TCCalcWindow.Load;
+       Store  : @CCalc.TCCalcWindow.Store)
      ,(ObjType: otCalcLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(CCalc.TCalcLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @CCalc.TCalcLine.Load;
@@ -623,6 +631,10 @@ const
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Menus.TMenuBox){$IFDEF OFFS}^{$ENDIF});
        Load   : @Menus.TMenuBox.Load;
        Store  : @Menus.TMenuBox.Store)
+     ,(ObjType: otChangeDirMenu;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(dnutil2.TChangeDirMenu){$IFDEF OFFS}^{$ENDIF});
+       Load   : @dnutil2.TChangeDirMenu.Load;
+       Store  : @dnutil2.TChangeDirMenu.Store)
      ,(ObjType: otStatusLine;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Menus.TStatusLine){$IFDEF OFFS}^{$ENDIF});
        Load   : @Menus.TStatusLine.Load;

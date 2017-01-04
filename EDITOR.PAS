@@ -56,6 +56,13 @@
 //  dn200-editor_calculate_selected_block.patch
 //
 //  2.3.0
+//  dn281-enable_QuickSort_for_RealMode.patch
+//  dn2811_editor_calculate_sum_fix.patch
+//  dn2811_editor_selected_block_operation_fix.patch
+//  dn2825-new_logic_for_viewers.patch
+//  dn328-Editor(f)-insert_date_time_overwrite_selected_block.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -823,7 +830,12 @@ var  LastX, LastY: LongInt;
 метод Шелла, который этого недостака не имеет. По быстродействию
 разницы особой не будет: при числе элементов до 20000 Шелл если
 и проигрывает, то не сильно.}
-(*
+
+{ Flash: I fixed the swapping of lines with equal keys in QuickSort
+         and turned in on for RealMode version because ShellSort
+         causes a crash in this case. }
+
+{$IFNDEF DPMI}
    procedure QuickSort(L, R: LongInt);
    var
      I, J: LongInt;
@@ -849,7 +861,8 @@ var  LastX, LastY: LongInt;
          while Cmpr(S,Ln(J)) do Dec(J);
          if I <= J then
          begin
-           if I <> J then FileLines^.SwapItems(I, J);
+           if (I <> J) and (Cmpr(Ln(I),Ln(J)) or Cmpr(Ln(J),Ln(I))) then { Flash }
+            FileLines^.SwapItems(I, J);
            Inc(I);
            Dec(J);
          end;
@@ -858,8 +871,7 @@ var  LastX, LastY: LongInt;
        L := I;
      until I >= R;
    end;
-*)
-
+{$ELSE}
    procedure ShellSort(L, R: LongInt);
    var
      i, j, step, n: longint;
@@ -904,6 +916,7 @@ var  LastX, LastY: LongInt;
        end;
      end;
    end;
+{$ENDIF}
 {/AK155}
 
   begin
@@ -921,10 +934,13 @@ var  LastX, LastY: LongInt;
     NewTimer(Tmr, 2);
     ChangeLine;
     BoundStart := Mark.A.X+1; BoundEnd := Mark.B.X - Mark.A.X;
-{AK155}
+{AK155} { Flash }
+    {$IFNDEF DPMI}
+    QuickSort(Mark.A.Y, Mark.B.Y);
+    {$ELSE}
     ShellSort(Mark.A.Y, Mark.B.Y);
-{    QuickSort(Mark.A.Y, Mark.B.Y);}
-{/AK155}
+    {$ENDIF}
+{/AK155} { Flash }
     if UndoInfo <> nil then UndoInfo^.FreeAll; Inc(UndoTimes); Modified := On;
     Dispose(Info,Done);
     {$IFNDEF DPMI}
@@ -959,7 +975,7 @@ var  LastX, LastY: LongInt;
     for I := Mark.A.Y to Mark.B.Y do
       begin
         R2:=EValue(DelSpaces(Copy(GetLine(I), BoundStart+1, BoundEnd)), Nil);
-        R1 := R1 + R2;
+        If Not EValueError Then R1 := R1 + R2; { Flash }
       end;
     Str(R1:0:20, S);
     While S[Length(S)] = '0' do Dec(S[0]);
@@ -976,24 +992,6 @@ var  LastX, LastY: LongInt;
    WorkModified := On; Modified := On; WasDelete := Off;
   end;
 
-
-  procedure InsertDateTime(Time: Boolean);
-   var S: String[30];
-       SS: Integer;
-  begin
-    S := GetDateTime(Time);
-    ChangeLine;
-    WorkModify;
-    WorkString := AddSpace(WorkString, LastX+1);
-    System.Insert(S, WorkString, LastX+1);
-    for SS := 1 to Length(S) do
-      begin
-        StoreUndoInfo(udInsChar, Delta, WorkString);
-        if Delta.X < 255 then Inc(Delta.X);
-      end;
-    ScrollTo(Delta.X, Delta.Y);
-    ChangeLine; DrawView;
-  end;
 
   procedure PlayMacro;
     var P: PEditMacros;
@@ -1088,14 +1086,16 @@ var  LastX, LastY: LongInt;
     if (Mark.A.Y > Mark.B.Y) or (Mark.A.Y = Mark.B.Y) and (Mark.A.X >= Mark.B.X) then Exit;
     ChangeLine;
     S := GetLine(Mark.A.Y);
-    while (Mark.A.X > 0) and not (S[Mark.A.X+1] in BreakChars) do Dec(Mark.A.X);
+{Commented by John_SW 20-08-2002}
+    {while (Mark.A.X > 0) and not (S[Mark.A.X+1] in BreakChars) do Dec(Mark.A.X);}
     SY := Mark.A.Y; SX := Mark.A.X+1;
     S1 := Copy(S, 1, SX-1);
     S := GetLine(Mark.B.Y);
     if Mark.B.X = 0 then begin EY := Mark.B.Y-1; EX := 255; end else
      begin
        EY := Mark.B.Y;
-       while (Mark.B.X < Length(S)) and not (S[Mark.B.X+1] in BreakChars) do Inc(Mark.B.X);
+{Commented by John_SW 20-08-2002}
+       {while (Mark.B.X < Length(S)) and not (S[Mark.B.X+1] in BreakChars) do Inc(Mark.B.X);}
        EX := Mark.B.X;
      end;
     P := GetSelection;
@@ -1354,7 +1354,6 @@ begin
      cmRevSortBlock: begin if ValidBlock then SortBlock(True); HandleCommand := On; end;
      cmSortBlock: begin if ValidBlock then SortBlock(False); HandleCommand := On; end;
      cmCalcBlock: begin if ValidBlock then CalcBlock; HandleCommand := On; end;
-     cmInsertDate, cmInsertTime: InsertDateTime(Event.Command = cmInsertTime);
      cmStartSearch: begin ChangeLine; StartSearch(Off); ChangeLine end;
      cmReplace: begin ChangeLine; StartSearch(On); ChangeLine end;
      cmUndo: begin MakeUndo; HandleCommand := On end;
@@ -1372,7 +1371,7 @@ begin
      cmViewFile: if Valid(cmClose) and (EditName<>'') then begin
                   {if Desktop<>nil then Desktop^.Lock;}
                   if Application<>nil then begin
-                    PDNAppl(Application)^.ViewFile(1, EditName); (* X-Man *)
+                    PDNAppl(Application)^.ViewFile(Off, Off, Off, EditName); (* X-Man *) { Flash }
                     MessageL(Application, evCommand, cmScrollBarChanged,
                       GetOffsetForLineNumber(EditName, Pos.Y+1));
                   end;

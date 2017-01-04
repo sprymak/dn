@@ -51,6 +51,13 @@
 //  dn200-screen_grabber_improve.patch
 //
 //  2.3.0
+//  dn270-do_not_write_echo_off_for_REXX_and_Perl_scripts-jo20707f.patch
+//  dn2911-command_history_in_dos_screen_fix.patch
+//  dn21116-Ctrl_Slash_Up_Down_fix.patch
+//  dn21202-screen_grabber_help.patch
+//  dn3421-Macros(f)-empty_or_network_drive_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -86,6 +93,7 @@ type
      end;
 
 const RunFrom2E : Boolean = False;
+      GrabberActive: Boolean = False; { Flash 30-12-2002 }
 
 implementation
 uses DOS, LFN, DNApp, advance, advance1, advance2, advance3, Startup, Messages,
@@ -194,6 +202,11 @@ begin
                             end;
              end;
   evKeyDown: begin
+              { Flash >>> }
+              if (ShiftState and (kbLeftShift+kbRightShift) <> 0)
+                 and ((Event.KeyCode=kbUp) or (Event.KeyCode=kbDown))
+              then CommandLine^.HandleEvent(Event);
+              { Flash <<< }
               if Size.X = ScreenWidth then CommandLine^.HandleEvent(Event);
              end;
  end;
@@ -210,6 +223,17 @@ function MakeString(S: String; UserParams: PUserParams; HandleTildes: boolean; T
 var ts: string;
     tz: string;
     zs: string[1];
+    Root: String;
+{--- start -------- Eugeny Zvyagintzev ---- 15-05-2003 ----}
+{To delete last slash}
+Function DelSlash(s: String): String;
+Begin
+ If (s[Length(s)] = '\') Or (s[Length(s)] = '/') Then
+  DelSlash:=Copy(s,1,Length(s)-1)
+ Else DelSlash:=s;
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 15-05-2003 ----}
+
 begin
   if HandleTildes then zs:=#0 else zs:='';
   Replace('!!',#1, S);
@@ -224,14 +248,15 @@ begin
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
-    if UserParams^.Active^.Name[1]='.'
+    if UserParams^.Active^.TType = ttUpDir
     then ts:=MakeNormName(lfGetShortFileName(UserParams^.Active^.Owner^),'')
     else ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
       UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    Replace('!:', Copy(ts,1,2), S);
-    Replace('!\', zs+Copy(ts,3,255)+zs, S);
-    Replace('!/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+    Root:=DelSlash(GetRoot(ts)); {John_SW 15-05-2003 GetRoot returns correct drive letter or network path}
+    Replace('!:', Root, S);
+    Replace('!\', zs+Copy(ts,Pos(Root,ts)+Length(Root),255)+zs, S);
+    Replace('!/', zs+Copy(ts,Pos(Root,ts)+Length(Root),Length(ts)-3)+zs, S);
    end;
   {$ENDIF}
 
@@ -239,14 +264,15 @@ begin
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
-    if UserParams^.Active^.Name[1]='.'
+    if UserParams^.Active^.TType = ttUpDir
     then ts:=MakeNormName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Active^.Owner^),'')
     else ts:=MakeNormName(GetPath({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(MakeNormName(
      UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    Replace('#:', Copy(ts,1,2), S);
-    Replace('#\', zs+Copy(ts,3,255)+zs, S);
-    Replace('#/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+    Root:=DelSlash(GetRoot(ts)); {John_SW 15-05-2003 GetRoot returns correct drive letter or network path}
+    Replace('#:', Root, S);
+    Replace('#\', zs+Copy(ts,Pos(Root,ts)+Length(Root),255)+zs, S);
+    Replace('#/', zs+Copy(ts,Pos(Root,ts)+Length(Root),Length(ts)-3)+zs, S);
    end;
 
   {$IFNDEF OS2}
@@ -254,14 +280,15 @@ begin
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
-    if UserParams^.Passive^.Name[1]='.'
+    if UserParams^.Passive^.TType = ttUpDir
     then ts:=MakeNormName(lfGetShortFileName(UserParams^.Passive^.Owner^),'')
     else ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    Replace('$:', Copy(ts,1,2), S);
-    Replace('$\', zs+Copy(ts,3,255)+zs, S);
-    Replace('$/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+    Root:=DelSlash(GetRoot(ts)); {John_SW 15-05-2003 GetRoot returns correct drive letter or network path}
+    Replace('$:', Root, S);
+    Replace('$\', zs+Copy(ts,Pos(Root,ts)+Length(Root),255)+zs, S);
+    Replace('$/', zs+Copy(ts,Pos(Root,ts)+Length(Root),Length(ts)-3)+zs, S);
    end;
   {$ENDIF}
 
@@ -269,14 +296,15 @@ begin
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
-    if UserParams^.Passive^.Name[1]='.'
+    if UserParams^.Passive^.TType = ttUpDir
     then ts:=MakeNormName({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Passive^.Owner^),'')
     else ts:=MakeNormName(GetPath({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(MakeNormName(
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    Replace('&:', Copy(ts,1,2), S);
-    Replace('&\', zs+Copy(ts,3,255)+zs, S);
-    Replace('&/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+    Root:=DelSlash(GetRoot(ts)); {John_SW 15-05-2003 GetRoot returns correct drive letter or network path}
+    Replace('&:', Root, S);
+    Replace('&\', zs+Copy(ts,Pos(Root,ts)+Length(Root),255)+zs, S);
+    Replace('&/', zs+Copy(ts,Pos(Root,ts)+Length(Root),Length(ts)-3)+zs, S);
    end;
 
   if {$IFNDEF OS2}Replace('!%', #5, S) or {$ENDIF}Replace('#%', #5, S) then
@@ -518,6 +546,7 @@ function ExecUserMenu;
      DefStr: String;
      RF2E: Boolean;
      Event: TEvent;
+     WriteEcho: Boolean;
 
  Label 1, 2;
 
@@ -680,7 +709,7 @@ begin
          lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD');
          {$ENDIF}
          lRewriteText(F1);
-         Writeln(F1.T, '@Echo off');
+         WriteEcho := On;
          I := I - 1001;
          if F<>nil then
          begin
@@ -708,6 +737,10 @@ begin
                      Continue;
                     end;
               EnterParms := EnterParms or (Pos('%3', S) > 0);
+              {JO: если строка на REXX'е или Perl'e, то не нужно добавлять @Echo off}
+              if WriteEcho and (Copy(S, 1, 2) <> '/*') and (S[1] <> '#')
+                then Writeln(F1.T, '@echo off');
+              WriteEcho := Off;
               WriteLn(F1.T, MakeString(S, @UserParams, off, nil));
               RunFrom2E := UI^.RunFrom2E;
             end;
@@ -766,7 +799,12 @@ begin
    end;
   B := MsgActive; MsgActive := Off;
   P := New(PGrabber, Init);
+  { Flash 30-12-2002 >>> }
+  GrabberActive:=True;
+  PView(P)^.HelpCtx:=hcScreenGrabber;
   Application^.ExecView(P);
+  GrabberActive:=False;
+  { Flash 30-12-2002 <<< }
   Dispose(P,Done);
   Here := Off;
   MsgActive := B;

@@ -64,6 +64,18 @@
 //  dn2628_wkz_import_fix.patch
 //
 //  2.7.0
+//  dn270_wkz_overflow_fix.patch
+//  dn281-dbf_wkz_view_from_archive_fix.patch
+//  dn2811-wkz_export_to_text_file_return.patch
+//  dn270_wkz_relative_addr.patch
+//  dn2821-wkz_cell_formula_auto_calculation.patch
+//  dn2825-wkz_big_improve_and_various_bugs_fix.patch
+//  dn21202-small_calc_fix_and_BP_optimization.patch
+//  dn3331-WKZ(f)-load_empty_wkz_fix.patch
+//  dn3421-DBF_WKZ(f)-find_settings_store_fix.patch
+//  dn3421-resource_and_help_fixes.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -85,7 +97,6 @@ type
     PCalcWindow = ^TCalcWindow;
     TCalcWindow = object(TUniWindow)
      CalcView: PCalcView;
-     RealName: String;
      constructor Init(Bounds: TRect; AName: String); {DataCompBoy}
 {--- start -------- Eugeny Zvyagintzev ---------}
      Procedure ChangeBounds(Var R: TRect); Virtual;
@@ -109,6 +120,8 @@ type
      CellWidth: Array[Byte] of Byte;
      CurrentCalc, SearchPos, ErrorCell: TPoint;
      SName: PString; {DataCompBoy}
+     KillAfterUse: Boolean;{JOHN_SW}
+     RealName: String;     {JOHN_SW}
      constructor Init(Bounds: TRect; AInfo, ACellInfo: PView;
                       AHScroll, AVScroll: PScrollBar);
      destructor Done; virtual;
@@ -141,7 +154,9 @@ type
     PCalcInfo = ^TCalcInfo;
     TCalcInfo = object(TInputLine)
      CalcView: PCalcView;
+     OldValue: String; {John_SW}
      constructor Load(var S: TStream);
+     procedure SetState(AState: Word; Enable: Boolean); virtual; {John_SW}
      procedure Store(var S: TStream);
      function GetPalette: PPalette; virtual;
      procedure HandleEvent(var Event: TEvent); virtual;
@@ -151,13 +166,16 @@ type
     TInfoView = object(TView)
       InfoStr: String;
       InfoAttr: Byte;
-      {constructor Load(var S: TStream);}
-      {procedure Store(var S: TStream); }
       procedure SetInfo(S: String; Attr: Byte);
       procedure Draw; virtual;
     end;
 
 function GetFileName(var FileName: String; Mask, Title, ALabel: String; Buttons: Word): Word;
+
+const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
+                    (S:''; CellOptions:0; TxtOptions:0);
+       ReplaceData: record S, S1: String[240]; CellOptions, TxtOptions: Word; end =
+                    (S:''; S1:''; CellOptions:0; TxtOptions:0);
 
 implementation
 
@@ -241,14 +259,11 @@ type
     procedure WriteEndOfFile;
   end;
 
-const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
-                    (S:''; CellOptions:0; TxtOptions:0);
-       ReplaceData: record S, S1: String[240]; CellOptions, TxtOptions: Word; end =
-                    (S:''; S1:''; CellOptions:0; TxtOptions:0);
-       WasReplace: Boolean = False;
+const  WasReplace: Boolean = False;
        ContSearch: Boolean = False;
        SearchCanceled: Boolean = False;
        CurCalcView: PCalcView = nil;
+       ReplaceAll: Boolean = False; {John_SW}
 
 function AGetCellValue(VarName: string; var Value: CReal): boolean;
 begin
@@ -278,12 +293,15 @@ end;
         {-DataCompBoy-}
 
 function ContainCell(Cell, Formula: String): Boolean;
- const Signs = ['#','+','-','=','*','&','^','(',')','<','>', ';', ' ',
-                '%','[',']','{','}','!','|','/','\',',','?'];
  var I, J: Integer;
      FR, T: String;
      FRX, CX, TX: byte;
      FRY, CY, TY: integer;
+{--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
+     SignOp: String[1];
+     DelimPos: Byte;
+     FirstOp,SecondOp: String;
+{--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
 begin
  ContainCell := False;
  UpStr(Formula);
@@ -291,53 +309,36 @@ begin
   I := Pos('SUM', Formula);
   if I=0 then I := Pos('MUL', Formula);
   if I>0 then begin
-    for J:=I+2 to Length(Formula) do if Formula[J]='(' then break;
-    FR:='';
-    for J:=J+1 to Length(Formula) do
-      if Formula[J]=':' then break else
-      if Formula[J]<>' ' then FR:=FR+Formula[J];
-    T:='';
-    for J:=J+1 to Length(Formula) do
-      if Formula[J]=')' then break else
-      if Formula[J]<>' ' then T:=T+Formula[J];
-    GetCellCoord(Cell, CX, CY);
-    GetCellCoord(FR, FRX, FRY);
-    GetCellCoord(T, TX, TY);
+   Delete(Formula, I, 4);
+   DelimPos:=Pos(':',Formula);
+   If DelimPos = 0 Then Break;
+
+   I:=DelimPos;
+   While (I > 0) And Not (Formula[I-1] In BreakChars) Do Dec(I);
+   If I = 0 Then I:=1;
+   FirstOp:=System.Copy(Formula,I,DelimPos-I);
+   J:=DelimPos;
+   While (J <= Length(Formula)) And Not (Formula[J+1] In BreakChars) Do Inc(J);
+   SecondOp:=System.Copy(Formula,DelimPos+1,J-DelimPos);
+   If GetCellCoord(Cell, CX, CY) And
+      GetCellCoord(FirstOp, FRX, FRY) And
+      GetCellCoord(SecondOp, TX, TY) Then
     if (CX>=FRX) and (CX<=TX) and (CY>=FRY) and (CY<=TY)
-      then begin ContainCell := true; exit end;
-    Delete(Formula, I, J-I);
+     then begin ContainCell := true; exit end;
+   Delete(Formula, I, J-I);
   end;
  until I=0;
  Repeat
   I := Pos(Cell, Formula);
-  if (I > 1) and (Formula[I-1] in Signs) and
-     ((I+Length(Cell)>Length(Formula)) or (Formula[I+Length(Cell)] in Signs))
+  if (I > 1) and (Formula[I-1] in BreakChars) and
+     ((I+Length(Cell)>Length(Formula)) or (Formula[I+Length(Cell)] in BreakChars))
    then begin ContainCell := true; exit end;
   Dec(Formula[0], I);
   Move(Formula[I], Formula[1], Byte(Formula[0]));
  Until I = 0;
 end;
 
-{--- start -------- Eugeny Zvyagintzev ---- 26-06-2002 -----}
-procedure SetLength(Var S: String;i: Integer); {JOHN_SW}
-begin
- Delete(S,i+1,Length(S));
-end;
-{--- finish -------- Eugeny Zvyagintzev ---- 26-06-2002 -----}
-
-
 {-------------------------       TInfoView       -------------------------}
-{
-constructor TInfoView.Load;
-begin
-  inherited Load(S);
-end;
-
-procedure TInfoView.Store;
-begin
-  inherited Store(S);
-end;
-}
 procedure TInfoView.SetInfo;
 begin
  InfoStr := Copy(S, 1, Size.X);
@@ -359,25 +360,8 @@ end;
 constructor TCalcWindow.Init;
  var R: TRect;
      P, P1: PView;
-     I  : Integer;
-     s  : String;
 begin
-{--- start -------- Eugeny Zvyagintzev ---------}
- I:=PosChar('|', AName);
- If I > 0 Then
-  begin
-   S:=Copy(AName, 1, I-1);
-   AName:=Copy(AName, I+1, 255);
-  end;
-{--- finish -------- Eugeny Zvyagintzev ---------}
- if AName = '' then AName := 'Untitled.WKZ'
-               else if GetFileAttr(AName+#0) and Directory<>0
-                     then AName := 'Untitled.WKZ'
-                     else AName := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(lFExpand(AName));
- If I <= 0 Then
-  S:=AName;
- TWindow.Init(Bounds, Cut(S,Bounds.B.X-Bounds.A.X-12), 0);
- RealName:=S;
+ TWindow.Init(Bounds, '', 0);
  Options := Options or ofTileable;
  Flags := Flags or wfMaxi;
  if LowMemory then Exit;
@@ -424,9 +408,19 @@ end;
         {-DataCompBoy-}
 
 constructor TCalcWindow.Load;
+ var R: TRect; {JOHN_SW}
+     P: PView; {JOHN_SW}
 begin
   inherited Load(S);
   GetSubViewPtr(S, CalcView);
+{--- start -------- Eugeny Zvyagintzev ---- 13-08-2002 -----}
+{Update MenuBar after change active language by Alt-F12 during view WKZ}
+  GetExtent(R); R.Grow(-1,-1); R.B.Y := R.A.Y + 1;
+  P := PView(LoadResource(dlgWkzMenuBar));
+  P^.Locate(R);
+  P^.GrowMode := gfGrowHiX;
+  Insert(P);
+{--- start -------- Eugeny Zvyagintzev ---- 13-08-2002 -----}
 end;
 
 {--- start -------- Eugeny Zvyagintzev ---------}
@@ -480,6 +474,15 @@ begin
   GetPeerViewPtr(S, CalcView);
 end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 -----}
+{We have to store previous value}
+procedure TCalcInfo.SetState;
+begin
+ Inherited SetState(AState, Enable);
+ If AState = sfSelected Then GetData(OldValue);
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 -----}
+
 procedure TCalcInfo.Store;
 begin
   inherited Store(S);
@@ -501,7 +504,9 @@ procedure TCalcInfo.HandleEvent;
       I: Integer;
  begin
   GetData(S); EndEdit := True;
+  If S = OldValue Then Exit; {John_SW: removed waste calculation}
   with CalcView^ do begin
+   Error:=false;
    Modified := On;
    CurrentCalc.X := Delta.X + Cur.X; CurrentCalc.Y := Delta.Y + Cur.Y;
    While S[Byte(S[0])] = ' ' do Dec(S[0]);
@@ -509,7 +514,6 @@ procedure TCalcInfo.HandleEvent;
    if (S1[1] = '=') and (S1[0] > #1) then
    begin
     DelFC(S1);
-    Error:=false;
     CurCalcView:=CalcView;
     R:=Evalue(S1, AGetCellValue);
     S1:='='+S1;
@@ -529,7 +533,7 @@ procedure TCalcInfo.HandleEvent;
       R:=1.7e38;
       MessageBox(GetString(dlOverflow)+': '+GetCellName(CurrentCalc.X,CurrentCalc.Y)+' '+S1, @Self, mfOKButton + mfError);
      end;
-    if R < 2.9e-39 then
+    if R < -1.7e38 then
      begin
       R:=2.9e-39;
       MessageBox(GetString(dlOverflow)+': '+GetCellName(CurrentCalc.X,CurrentCalc.Y)+' '+S1, @Self, mfOKButton + mfError);
@@ -596,6 +600,14 @@ begin
                kbLeft: if CurPos = 0 then Transfer;
                kbRight: if CurPos > Length(CnvString(Data)) - 1 then Transfer;
                kbTab: if not EndEdit then ClearEvent(Event);
+{--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 -----}
+{We have to restore previous value}
+               kbEsc: begin
+                       SetData(OldValue);
+                       PWindow(Owner)^.SelectNext(False);
+                       ClearEvent(Event);
+                      end;
+{--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 -----}
               end;
  end;
  TInputLine.HandleEvent(Event);
@@ -621,6 +633,7 @@ begin
  HScroll^.SetParams(0, 0, 255, 1, 1);
  VScroll^.SetParams(0, 0, MaxCellY - 1, Size.Y - 3, 1);
  SName:=nil;
+ KillAfterUse := TempFile <> '';  {JOHN_SW}
 end;
 
 constructor TCalcView.Load;
@@ -635,9 +648,9 @@ begin
   S.Read(CellWidth, SizeOf(CellWidth));
   S.Read(CurrentCalc, SizeOf(CurrentCalc)*3);
   SName:=S.ReadStr;
-  {Cells := PCellCollection(S.Get);}
-  New(Cells, ShortLoad(S));
+  S.Read(KillAfterUse, SizeOf(KillAfterUse)); {John_SW}
   FocusEvent.What := evNothing;
+  LoadSheet(SName^);
 end;
 
 procedure TCalcView.Store;
@@ -652,8 +665,7 @@ begin
   S.Write(CellWidth, SizeOf(CellWidth));
   S.Write(CurrentCalc, SizeOf(CurrentCalc)*3);
   S.WriteStr(SName);
-{  S.Put(Cells);}
-  Cells^.ShortStore(S);
+  S.Write(KillAfterUse, SizeOf(KillAfterUse)); {JOHN_SW}
 end;
 
 
@@ -678,12 +690,6 @@ begin
    HScroll^.GrowTo(HScroll^.Size.X, 0);
    VScroll^.GrowTo(0, VScroll^.Size.Y);
   end;
- if Owner<>nil then begin
-  GetBounds(Bounds);
-  DisposeStr(PWindow(Owner)^.Title);
-  If SName<>nil then
-   PWindow(Owner)^.Title:=NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
- end;
 end;
 
 function TCalcView.GetPalette;
@@ -955,8 +961,8 @@ type
 
   function kvFormatValue(P : PCellRec) : string; {KV}
   var
+    A1, A2 : integer;
     S1 : string;
-    i, A1, A2 : integer;
   begin
     S1:='';
     case (P^.Options shr 4) and 7 of
@@ -964,10 +970,10 @@ type
       1: Str(P^.Value:0:P^.Decimals, S1);
       2: begin
            Str(P^.Value:0:20, S1);
-           i:=Length(S1);
-           while (i > 0) and (S1[i] = '0') do dec(i);
-           SetLength(S1,i);
-           if S1[Length(S1)] = '.' then SetLength(S1, Length(S1));
+           A1:=Length(S1);
+           while (A1 > 0) and (S1[A1] = '0') do Dec(A1);
+           if S1[A1] = '.' then Dec(A1);
+           S1[0] := Char(A1);
            S1 := MakeComma(S1);
          end;
       3: begin
@@ -977,7 +983,7 @@ type
              A2 := A1 - 1;
              while (S1[A2] = '0') and (S1[A2 - 1] <> '.') do Dec(A2);
              Move(S1[A1], S1[A2 + 1], Length(S1) - A1 + 1);
-             SetLength(S1, Length(S1) - (A1 - A2 - 1));
+             S1[0] := Char(Length(S1) - (A1 - A2 - 1));
            end;
          end;
       4: if P^.Value = 0 then S1 := FalseStr else S1 := TrueStr;
@@ -993,16 +999,12 @@ type
 
   procedure ImportFromCsv; {KV}
   var
-    S : string;
-    FileName : string;
-    CellValue : string;
     ColSeparator : char;
     F : lText;
-    CurCol, CurRow : integer;
-    StartCh, EndCh : integer;
+    i, CurCol, CurRow, StartCh, EndCh : integer;
     P : PCellRec;
     R : CReal;
-    i : integer;
+    S, FileName, CellValue : string;
   begin
     if Cells^.Count > 0 then begin
       if MessageBox(GetString(dlWkzWarningClear),nil,
@@ -1128,7 +1130,6 @@ type
 
   procedure ExportToCsv; {KV}
   var
-    FileName : string;
     PS : PString;
     ColSeparator : char;
     UseFormatFlag : boolean;
@@ -1142,6 +1143,7 @@ type
       ValueFormat : Word;
       FormulaFormat : Word;
     end;
+    FileName : string;
   begin
     if GetFileName(FileName, '*.CSV', GetString(dlExportTitle), GetString(dlExportLabel),
                    fdOKButton+fdHelpButton) = cmCancel then Exit;
@@ -1182,8 +1184,8 @@ type
                   неправильно указан формат}
                 if P^.Decimals <= 5 then Str(P^.Value:0:5, S)
                 else Str(P^.Value:0:P^.Decimals, S);
-                while S[Length(S)] = '0' do SetLength(S, Length(S)-1);
-                if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
+                while S[Length(S)] = '0' do Dec(S[0]);
+                if S[Length(S)] = '.' then Dec(S[0]);
               end;
               Write(F.T,S);
             end
@@ -1201,7 +1203,6 @@ type
   procedure ExportToDbf; {KV}
   const Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var
-    FileName : FNameStr;
     PS : PString;
     TypeLenArr : TColTypeAndLengthArray;
     i, MaxCol, MaxRow, CurCol, CurRow : integer;
@@ -1212,6 +1213,7 @@ type
     FieldName : string;
     ColIndexArray : TColIndexArray;
     P : PCellRec;
+    FileName : FNameStr;
   begin
     if GetFileName(FileName, '*.DBF', GetString(dlExportTitle), GetString(dlExportLabel),
          fdOKButton+fdHelpButton) = cmCancel then Exit;
@@ -1272,6 +1274,104 @@ type
     S.Done;
     FileChanged(FileName); {JOHN_SW}
   end;
+
+ procedure ExportToText;
+  var FileName: FNameStr;
+      S1: String;
+      C: Array[0..255] of Integer;
+      P: PCellRec;
+      MaxLv, Maxr, I, J, K, L, A1, A2: Integer;
+      F: lText;
+ begin
+   if GetFileName(FileName, x_x, GetString(dlExportTitle), GetString(dlExportLabel),
+                     fdOKButton+fdHelpButton) = cmCancel then Exit;
+   lAssignText(F, FileName); lSetTAttr(F, Archive);
+   lRewriteText(F);
+   MaxLv := 0;
+   for I := 1 to Cells^.Count do
+    begin
+     P := Cells^.At(I-1);
+     if MaxLv < P^.Row then MaxLv := P^.Row;
+    end;
+   for J := 0 to MaxLv do
+    begin
+     FillChar(C, Sizeof(C), 255); MaxR := 0;
+     for I := 1 to Cells^.Count  do
+      begin P := Cells^.At(I-1); if J = P^.Row then C[P^.Col] := I-1;
+            if MaxR < P^.Col then MaxR := P^.Col; end;
+     for I := 0 to MaxR do
+      if C[I] >= 0 then
+       begin
+         P := Cells^.At(C[I]);
+         case (P^.Options shr 4) and 7 of
+          0: S1 := P^.S;
+          1: Str(P^.Value:0:P^.Decimals, S1);
+          2: begin
+              Str(P^.Value:0:20, S1);
+              While S1[Length(S1)] = '0' do Dec(S1[0]);
+              if S1[Length(S1)] = '.' then Dec(S1[0]);
+              S1 := MakeComma(S1);
+             end;
+          3: begin
+              Str(P^.Value, S1);
+              A1 := Pos('E', S1);
+              if A1 > 0 then
+              begin
+               A2 := A1 - 1;
+               While (S1[A2] = '0') and
+                     (S1[A2 - 1] <> '.') do Dec(A2);
+               Move(S1[A1], S1[A2 + 1], Length(S1) - A1 + 1);
+               Dec(S1[0], A1 - A2 - 1);
+              end;
+             end;
+           4:if P^.Value = 0 then S1 := FalseStr
+                             else S1 := TrueStr;
+           5:begin
+              MakeCurrency(P^.Value, S1);
+{              Str(P^.Value:0:2, S1);
+              S1 := '$'+MakeComma(S1);}
+             end;
+           6:begin
+              Str((P^.Value*100):0:2, S1);
+              S1 := MakeComma(S1)+'%';
+             end;
+           7:S1 := '';
+         end;
+         FillChar(S[1], 255, ' ');
+         if (P^.Options and $C = 0) or (Length(S1) >= CellWidth[I]) then Move(S1[1], S[1], Length(S1))
+          else if (P^.Options and $C = coLeft) then Move(S1[1],S[1 + CellWidth[I] - Length(S1)], Length(S1))
+               else Move(S1[1],S[1 + (CellWidth[I] - Length(S1)) div 2], Length(S1));
+         K := CellWidth[I]; S[0] := #255;
+         while (I < MaxR) and (C[I+1] < 0) do
+          begin Inc(I); Inc(K, CellWidth[I]); end;
+         if K < Length(S1) then Write(F.T, System.Copy(S, 1, K))
+         else begin
+                 if K > 255 then L := 255 else L := K;
+                 Write(F.T, System.Copy(S,1,L));
+                 repeat
+                  Dec(K, L); if K > 255 then L := 255 else L := K;
+                  if L <= 0 then Break;
+                  Write(F.T, Strg(' ', L));
+                 until K <= 0;
+              end;
+       end else
+        begin
+          K := CellWidth[I];
+          while (I < MaxR) and (C[I+1] < 0) do
+           begin Inc(I); Inc(K, CellWidth[I]); end;
+          if K > 255 then L := 255 else L := K;
+          Write(F.T, Strg(' ', L));
+          repeat
+           Dec(K, L); if K > 255 then L := 255 else L := K;
+           if L <= 0 then Break;
+           Write(F.T, Strg(' ', L));
+          until K <= 0;
+        end;
+      WriteLn(F.T);
+    end;
+   Close(F.T);
+   FileChanged(FileName); {JOHN_SW}
+ end;
 
  procedure SetMark;
  begin
@@ -1343,6 +1443,7 @@ begin
               cmImportFromDbf: begin ImportFromDbf; ClearEvent(Event); end;
               cmExportToCsv: begin ExportToCsv; ClearEvent(Event); end;
               cmExportToDbf: begin ExportToDbf; ClearEvent(Event); end;
+              cmExportToText: begin ExportToText; ClearEvent(Event) end;
               cmSaveSheetAs: begin
                        SaveSheetAs; CE;
                        Owner^.ReDraw;
@@ -1418,6 +1519,7 @@ begin
                                 SearchCanceled := False; ContSearch := L = cmYes;
                                 SearchPos.X := -1; SearchPos.Y := 0;
                                 WasReplace := True;
+                                ReplaceAll:=((SearchData.TxtOptions and 4) = 0); {John_SW}
                                 repeat SearchCell
                                  until not WasReplace or not ContSearch or SearchCanceled;
                                end;
@@ -1534,63 +1636,100 @@ function TCalcView.GetCellValue( S : String; var Value: CReal) : boolean;
      P: PCellRec;
      AFromX, AToX: Byte;
      AFromY, AToY: Integer;
+{--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
+     SignOp: String[1];
+     DelimPos: Byte;
+     FirstOp,SecondOp: String;
+{--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
 
  function IsNeeded(PP: PCellRec): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
  begin
   IsNeeded := (PP^.Row = Y) and (PP^.Col = X)
  end;
 
- procedure DoSum(PP: PCellRec); {$IFDEF BIT_16}far;{$ENDIF}
+ procedure DoCalcRange(PP: PCellRec); {$IFDEF BIT_16}far;{$ENDIF}
+ Var V: CReal;
  begin
   if (PP^.Row>=AFromY) and (PP^.Row<=AToY) and
      (PP^.Col>=AFromX) and (PP^.Col<=AToX) then
-   if (PP <> nil) and (PP^.Options and 3 <> 0)
-    then Value := Value + PP^.Value
- end;
-
- procedure DoMul(PP: PCellRec); {$IFDEF BIT_16}far;{$ENDIF}
- begin
-  if (PP^.Row>=AFromY) and (PP^.Row<=AToY) and
-     (PP^.Col>=AFromX) and (PP^.Col<=AToX) then
-   if (PP <> nil) and (PP^.Options and 3 <> 0)
-    then Value := Value * PP^.Value
+   if (PP <> nil) and (PP^.Options and 3 <> 0) then
+    if SignOp = '+' then Value:=Value+PP^.Value else Value:=Value*PP^.Value;
  end;
 
 begin
+{--- start -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
+{Calulation of SUM and MUL are modified. And now works more correctly}
  DelSpaces(S); UpStr(S);
- if (S[1]='S') and (S[2]='U') and (S[3]='M') and (S[4]='(') and
-    (S[length(s)]=')') and
-    ((CharCount(':', S)=1) or (CharCount(',', S)=1)) then begin
-  Dec(S[0], 5);
-  Move(S[5], S[1], Length(S));
-  I := Pos(':', S); If I=0 then I:=Pos(',', S);
-  if GetCellCoord(System.Copy(S, 1, I-1), AFromX, AFromY) and
-     GetCellCoord(System.Copy(S, I+1,255), AToX, AToY) then begin
-   Value:=0;
-   Cells^.ForEach(@DoSum);
-   GetCellValue:=True;
-  end else GetCellValue:=false
- end else
- if (S[1]='M') and (S[2]='U') and (S[3]='L') and (S[4]='(') and
-    (S[length(s)]=')') and
-    ((CharCount(':', S)=1) or (CharCount(',', S)=1)) then begin
-  Dec(S[0], 5);
-  Move(S[5], S[1], Length(S));
-  I := Pos(':', S); If I=0 then I:=Pos(',', S);
-  if GetCellCoord(System.Copy(S, 1, I-1), AFromX, AFromY) and
-     GetCellCoord(System.Copy(S, I+1,255), AToX, AToY) then begin
-   Value:=1;
-   Cells^.ForEach(@DoMul);
-   GetCellValue:=True;
-  end else GetCellValue:=false
- end else
-  if not GetCellCoord(S, X, Y) then GetCellValue:=false else begin
-   GetCellValue := True;
-   P := Cells^.FirstThat(@IsNeeded);
-   if (P <> nil) and (P^.Options and 3 <> 0)
-    then Value := P^.Value
-    else Value := 0;
-  end;
+ GetCellValue:=True; SignOp:=''; Value:=0;
+
+ If (System.Copy(S,1,3) = 'SUM') And (S[4]='(') And (S[length(s)]=')') Then
+  SignOp:='+';
+ If (System.Copy(S,1,3) = 'MUL') And (S[4]='(') And (S[length(s)]=')') Then
+  SignOp:='*';
+
+ If SignOp <> '' Then
+  Begin
+   S:=System.Copy(S,5,Length(S)-5);
+
+   If (Pos('SUM',S) <> 0) Or (Pos('MUL',S) <> 0) Then
+    Begin
+     GetCellValue:=False;
+     Exit;
+    End;
+   If (CharCount(':', S) > 1) And (SignOp <> '') Then
+    Begin
+     GetCellValue:=False;
+     Exit;
+    End;
+
+   Replace(',',SignOp,S);
+   If SignOp = '+' Then Value:=0 Else Value:=1;
+   DelimPos:=Pos(':',S);
+
+   If DelimPos = 0 Then
+    Begin
+     Value:=EValue(S, AGetCellValue);
+     Exit;
+    End;
+   If DelimPos < 2 Then
+    Begin
+     GetCellValue:=False;
+     Exit;
+    End;
+
+   I:=DelimPos;
+   While (I > 0) And Not (S[I-1] In BreakChars) Do Dec(I);
+   If I = 0 Then I:=1;
+   FirstOp:=System.Copy(S,I,DelimPos-I);
+
+   Y:=DelimPos;
+   While (Y <= Length(S)) And Not (S[Y+1] In BreakChars) Do Inc(Y);
+   SecondOp:=System.Copy(S,DelimPos+1,Y-DelimPos);
+   I:=DelimPos;
+   If GetCellCoord(FirstOp, AFromX, AFromY) And
+      GetCellCoord(SecondOp, AToX, AToY) Then
+    Cells^.ForEach(@DoCalcRange)
+   Else
+    Begin
+     GetCellValue:=False;
+     Exit;
+    End;
+   While (I > 0) And Not (S[I-1] In BreakChars) Do Dec(I);
+   S:=System.Copy(S,1,I-1)+RtoS(Value,0,20)+System.Copy(S,Y,Length(S));
+   Value:=EValue(S, AGetCellValue);
+  End
+ Else
+{--- finish -------- Eugeny Zvyagintzev ---- 27-08-2002 ----}
+  Begin
+   If S <> '' Then
+    if not GetCellCoord(S, X, Y) then GetCellValue:=false else begin
+     GetCellValue := True;
+     P := Cells^.FirstThat(@IsNeeded);
+     if (P <> nil) and (P^.Options and 3 <> 0)
+      then Value := P^.Value
+      else Value := 0;
+    end;
+  End;
 end;
 
 procedure TCalcView.CalcError;
@@ -1645,7 +1784,7 @@ var Err: Boolean;
          MessageBox(GetString(dlOverflow)+': '+GetCellName(CurrentCalc.X,CurrentCalc.Y)+' '+
                     System.Copy(P^.S, 2, 255), @Self, mfOKButton + mfError);
         end;
-       if R < 2.9e-39 then
+       if R < -1.7e38 then
         begin
          R:=2.9e-39;
          MessageBox(GetString(dlOverflow)+': '+GetCellName(CurrentCalc.X,CurrentCalc.Y)+' '+
@@ -1660,11 +1799,9 @@ var Err: Boolean;
  end;
 
 begin
- {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
  Modified := On;
  Err := False; ReError := False; NumRec := 0;
  Modify(X, Y); ReError := Err;
- {DrawView;}
 end;
 
 destructor TCalcView.Done;
@@ -1672,6 +1809,13 @@ begin
  If Cells<>nil then Dispose(Cells,Done); Cells:=nil;
  if Q <> nil then Dispose(Q);
  Q := nil;
+{--- start -------- Eugeny Zvyagintzev ---- 07-08-2002 -----}
+ if not (TottalExit or Exiting) and KillAfterUse then
+  begin
+   EraseTempFile(SName^);
+   KillAfterUse:=False;
+  end;
+{--- finish -------- Eugeny Zvyagintzev ---- 07-08-2002 -----}
  DisposeStr(SName);
  TView.Done;
 end;
@@ -1680,7 +1824,7 @@ function TCalcView.AskSave;
  var A: Word;
 begin
  AskSave := On; if not Modified then Exit;
- A := MessageBox(GetString(dlWorkSheet)+Cut(SName^,40)+GetString(dlNotSaved),
+ A := MessageBox(GetString(dlWorkSheet)+' '+Cut(SName^,30)+GetString(dlNotSaved),
                  nil, mfWarning+mfYesNoCancel);
  if A <> cmCancel then Modified := Off;
  if A = cmYes then SaveSheet else AskSave := A <> cmCancel;
@@ -1690,7 +1834,24 @@ end;
 procedure TCalcView.LoadSheet;
  var S: PStream;
      Bounds: TRect;
+     I  : Integer;
+     S1 : String;
 begin
+{--- start -------- Eugeny Zvyagintzev ---- 07-08-2002 -----}
+ I:=PosChar('|', FName);
+ S1:='';
+ If I > 0 Then
+  begin
+   S1:=System.Copy(FName, 1, I-1);
+   FName:=System.Copy(FName, I+1, 255);
+  end;
+ if FName = '' then FName := 'Untitled.WKZ'
+               else if GetFileAttr(FName+#0) and Directory<>0
+                     then FName := 'Untitled.WKZ'
+                     else FName := {$IFNDEF OS2}lfGetLongFileName{$ENDIF}(lFExpand(FName));
+ If I <= 0 Then S1:=FName;
+ RealName:=S1;
+{--- finish -------- Eugeny Zvyagintzev ---- 07-08-2002 -----}
  GetBounds(Bounds);
  if Modified and not AskSave then Exit;
  if Cells <> nil then Dispose(Cells,Done); Cells:=nil;
@@ -1708,13 +1869,13 @@ begin
  DisposeStr(SName); SName := NewStr(FName);
  if Owner<>nil then begin
   DisposeStr(PWindow(Owner)^.Title);
-  PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
+  PWindow(Owner)^.Title := NewStr(Cut(S1,Bounds.B.X-Bounds.A.X-12));
  end;
  if S^.Status <> stOK then
   begin
    Dispose(S,Done);
    New(Cells, Init(10,10));
-   Owner^.Redraw;
+   if Owner<>nil then Owner^.Redraw;
    Exit
   end;
  S^.Read(CellWidth, Sizeof(CellWidth));
@@ -1723,6 +1884,10 @@ begin
  Dispose(S,Done);
  if Cells = nil then
   begin
+{--- start -------- Eugeny Zvyagintzev ---- 07-08-2002 -----}
+   if KillAfterUse then EraseTempFile(CnvString(SName));
+   KillAfterUse:=False;
+{--- finish -------- Eugeny Zvyagintzev ---- 07-08-2002 -----}
    DisposeStr(SName);
    SName := NewStr('Untitled.WKZ');
    if Owner<>nil then begin
@@ -1734,17 +1899,17 @@ begin
    ErrMsg(erInvalidFileFormat);
   end;
  Modified := Off;
- Owner^.ReDraw;
+ if Owner<>nil then Owner^.ReDraw;
 end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
 procedure TCalcView.SaveSheetAs;
  var S: PStream;
-     FName: String;
      W: Word;
      PP: Pointer;
      Bounds: TRect;
+     FName: String;
 begin
  GetBounds(Bounds);
  PP := @FName;
@@ -1854,7 +2019,7 @@ procedure TCalcView.Paste;
       X, X1: Byte;
       I, Y, Y1: Integer;
  begin
-  if P^.Options and 3 = coFormula then
+  if (P^.Options and coFormula) <> 0 then
    begin
     S := '='; I := 2;
     While (I <= Length(P^.S)) do
@@ -1960,7 +2125,7 @@ begin
                     if P^.Col >= HScroll^.Max then Cells^.AtFree(I - 1)
                    end;
    end;
-   if P^.Options and 3 = coFormula then RewriteFormula;
+   if (P^.Options and coFormula) <> 0 then RewriteFormula;
   end;
   ReCalc;
 end;
@@ -2006,7 +2171,7 @@ begin
  for I := 1 to Cells^.Count do
   begin
    P := Cells^.At(I - 1);
-   if P^.Options and 3 = coFormula then RewriteFormula;
+   if (P^.Options and coFormula) <> 0 then RewriteFormula;
    case Command of
     cmDeleteLine:
      if P^.Row = L then begin Cells^.FreeItem(P); Cells^.AtPut(I - 1, nil) end else
@@ -2028,7 +2193,7 @@ begin
  for I := 1 to Cells^.Count do
   begin
    P := Cells^.At(I-1);
-   if P^.Options and coFormula <> 0 then
+   if (P^.Options and coFormula) <> 0 then
      begin
       CurrentCalc.X := P^.Col; CurrentCalc.Y := P^.Row;
       Error:=false;
@@ -2046,7 +2211,7 @@ begin
         MessageBox(GetString(dlOverflow)+': '+GetCellName(CurrentCalc.X,CurrentCalc.Y)+' '+
                    System.Copy(P^.S, 2, 255), @Self, mfOKButton + mfError);
        end;
-      if R < 2.9e-39 then
+      if R < -1.7e38 then
        begin
         R:=2.9e-39;
         MessageBox(GetString(dlOverflow)+': '+GetCellName(CurrentCalc.X,CurrentCalc.Y)+' '+
@@ -2094,7 +2259,6 @@ procedure TCalcView.SearchCell;
      I, J: Integer;
      V: CReal;
      K, L: Byte;
-     S,S1: String;
 {--- start -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
 {Now DN will display Search Progress Window}
      Tmr: TEventTimer;
@@ -2102,6 +2266,7 @@ procedure TCalcView.SearchCell;
      CancelSearch: Boolean;
      R: Trect;
 {--- finish -------- Eugeny Zvyagintzev ---- 12-04-2002 -----}
+     S,S1: String;
 
  function Found: Boolean;
  begin
@@ -2110,18 +2275,26 @@ procedure TCalcView.SearchCell;
   GotoCell(GetCellName(P^.Col, P^.Row));
   if WasReplace then
     begin
-     if (SearchData.TxtOptions and 4 <> 0) then
-      if (SearchData.CellOptions = 0) then
-       begin S := P^.S; Delete(S, K+L, Length(S1));
-             Insert(ReplaceData.S1, S, K+L);
-             Cells^.ReplaceItem(P^.Col, P^.Row, S); DrawView; Exit
-       end else
-       begin if P^.Options and 3 = coFormula then
-                begin Found := False; Exit end;
-             Val(ReplaceData.S1, V, J);
-             Cells^.ReplaceItem(P^.Col, P^.Row, ReplaceData.S1)^.Value := V;
-             DrawView; Exit
-       end;
+{--- start -------- Eugeny Zvyagintzev ---- 06-09-2002 -----}
+     If Not ReplaceAll Then
+      Case MessageBox(GetString(dlQueryReplace), nil,
+           mfQuery+mfYesButton+mfAllButton+mfNoButton+mfCancelButton) Of
+       cmOk: ReplaceAll:=True;
+       cmNo: Begin Found:=False; Exit; End;
+       cmCancel: CancelSearch:=True;
+      End;
+{--- finish -------- Eugeny Zvyagintzev ---- 06-09-2002 -----}
+     if (SearchData.CellOptions = 0) then
+      begin S := P^.S; Delete(S, K+L, Length(S1));
+            Insert(ReplaceData.S1, S, K+L);
+            Cells^.ReplaceItem(P^.Col, P^.Row, S); DrawView; Exit
+      end else
+      begin if (P^.Options and coFormula) <> 0 then
+               begin Found := False; Exit end;
+            Val(ReplaceData.S1, V, J);
+            Cells^.ReplaceItem(P^.Col, P^.Row, ReplaceData.S1)^.Value := V;
+            DrawView; Exit
+      end;
     end;
  end;
 
@@ -2163,6 +2336,7 @@ begin
          begin
           If Inf <> Nil Then Dispose(Inf,Done);
           Inf:=Nil;
+          Modified:=True; {John_SW}
           Exit
          end
        end
@@ -2177,6 +2351,7 @@ begin
                    begin
                     If Inf <> Nil Then Dispose(Inf,Done);
                     Inf:=Nil;
+                    Modified:=True; {John_SW}
                     Exit
                    end
                   else SearchSign;
@@ -2187,6 +2362,7 @@ begin
                  begin
                   If Inf <> Nil Then Dispose(Inf,Done);
                   Inf:=Nil;
+                  Modified:=True; {John_SW}
                   Exit
                  end
                 else SearchSign;
@@ -2197,6 +2373,7 @@ begin
                  begin
                   If Inf <> Nil Then Dispose(Inf,Done);
                   Inf:=Nil;
+                  Modified:=True; {John_SW}
                   Exit
                  end
                else SearchSign;
@@ -2207,6 +2384,7 @@ begin
         begin
          If Inf <> Nil Then Dispose(Inf,Done);
          Inf:=Nil;
+         Modified:=True; {John_SW}
          Exit
         end;
 {--- start -------- Eugeny Zvyagintzev ---- 13-04-2002 -----}
@@ -2337,8 +2515,8 @@ end;
 
 function TDbaseWriter.FieldAsString(FieldIndex : integer) : string; {KV}
 var
-  Buf : array[0..2047] of char;
   i : integer;
+  Buf : array[0..2047] of char;
 begin
   inherited Seek(FieldOffsetInFile(FieldIndex));
   FillChar(Buf,SizeOf(Buf),' ');
@@ -2366,9 +2544,9 @@ end;
 
 function TDbaseWriter.FieldAsFloat(FieldIndex : integer) : double; {KV}
 var
-  S : string;
   Value : double;
   i : integer;
+  S : string;
 begin
   S:=FieldAsString(FieldIndex);
   if S = '' then Value:=0.0

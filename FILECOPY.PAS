@@ -64,6 +64,32 @@
 //  dn2628-rename_and_copy_dir_fix.patch
 //
 //  2.7.0
+//  dn270-search_in_archives.patch
+//  dn270-copy_diz_to_the_same_directory_fix.patch
+//  dn270-adding_to_filecopy_history_fix.patch
+//  dn270-add_filename_to_history_temp.patch
+//  dn2825-copy_file_check_freespace_fix.patch
+//  dn2911-copy_file_check_freespace_fix.patch
+//  dn2922-copy_file_check_freespace_fix.patch
+//  dn21013-copy_file_fix_when_could_not_open_file.patch
+//  dn21029-title_update_when_copying.patch
+//  dn21029-move_files_fix.patch
+//  dn21029-skip_bad_files_improve.patch
+//  dn21116-fpanel-move_file_fix_1.patch
+//  dn21201-copy_arcpanel_to_temppanel.patch
+//  dn21225-FileCopy(f)-copy_more_then_2Gb_fix.patch
+//  dn328-FilePanel(f)-reread_directory_fix.patch
+//  dn3216-fpanel(i)-refresh_title_only_when_needed.patch
+//  dn3315-filecopy(i)-add_filename_to_history.patch
+//  dn3315-CopyFile(n)-show_time_and_speed_added.patch
+//  dn3323-temp(f)-copy_files_from_archives.patch
+//  dn3323-filecopy(f)-title_update_fix.patch
+//  dn3323-history(i)-add_directories.patch
+//  dn3331-FileFindPanel(f)-reread_directory_fix.patch
+//  dn3421-FileCopy(f)-copy_zero_files_fix.patch
+//  dn3421-FileCopy(i)-show_copy_time_cosmetic_improve.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -88,6 +114,7 @@ const
      SkipCopyDialog: Boolean = Off;
      CopyDirName:    String  =  '';{DataCompBoy}
      RevertBar:      boolean = Off;{DataCompBoy}
+     CopyFromTemp:   Boolean = Off;
 
 procedure CopyFiles(Files: PCollection; Owner: PView; MoveMode: Boolean; FromTemp: Byte);
 function  SelectDialog(Select: Boolean; var St: String; var XORSelect: Boolean): Boolean;
@@ -128,8 +155,6 @@ const
       cpoFitAll    = $10;
 
       NoCopyLFN: Boolean = True;
-
-var   SeekPos: LongInt;
 
 type
       PDir = ^TDir;
@@ -487,7 +512,7 @@ begin
 {piwamoto.change.end}
 {-DataCompBoy-}
       Pos := (Pos-1) * LongInt(16384);
-      if Pos > Round(ToDo+10240) then Pos := Round(ToDo+10240);
+      if Pos > ToDo+10240 then Pos := Round(ToDo+10240);
       New(EMSStream, Init(Pos, Pos));
       if EMSStream^.Status <> stOK then
         begin
@@ -526,7 +551,7 @@ begin
 {piwamoto.change.end}
 {-DataCompBoy-}
       Pos := LongInt(Pos-1) shl 10;
-      if Pos > Round(ToDo+10240) then Pos := Round(ToDo+10240);
+      if Pos > ToDo+10240 then Pos := Round(ToDo+10240);
       New(XMSStream, Init(Pos, Pos));
       if XMSStream^.Status <> stOK then
         begin
@@ -574,10 +599,12 @@ var  ReadStream:  lfile;
      WriteStream: lfile;
      ReadPos: TSize;
      CopyCancel: Boolean;
+     SkipAllBad: Boolean; {John_SW  05-11-2002}
      B: Pointer;
      BSize: Word;
      TRead, TWrite,
      ToRead, ToWrite: TSize;
+     StartTime: LongInt; {John_SW 20-03-2003}
      CopyQueue, Dirs: PCollection;
      Info: PWhileView;
      SoftMode: Boolean;
@@ -602,7 +629,7 @@ var  ReadStream:  lfile;
        T := ToDo; LowPrec(T, N);
        N := (N*100) / T;
      end;
-     GetPercent := ' ('+ZtoS(N)+'%)';
+     GetPercent := ZtoS(N)+'%'; { Flash 04-11-2002 }
    end;
 
    function MkName(const Nm: String): String;
@@ -673,6 +700,11 @@ var  ReadStream:  lfile;
       if (P<>nil) then NewDescription:=P^.DIZ;
       ReplaceDIZ(GetDIZOwner(CopyDir,S,Off), Name, LF,
                  @NewName, NewDescription);
+      { Flash >>> }
+      if GetPath(DizPath)=CopyDir then
+       ReplaceDIZ(GetDIZOwner(CopyDir,S,Off), Name, LF,
+                  @Name, NewDescription);
+      { Flash <<< }
       if (CopyOptions and cpoMove <> 0) and
          (FMSetup.Options and fmoPreserveDesc = 0) then
        DeleteDIZ(DizPath, Name, LF);
@@ -761,7 +793,7 @@ var  ReadStream:  lfile;
      var I: Integer;
          J: Word;
          P: PLine;
-         A: longint;
+         A,L: longint;
          BB: TSize;
          F: lFile;
          PS: Array[1..2] of Pointer;
@@ -878,11 +910,17 @@ const
      CantWrite(CnvString(P^.NewName));
    end;
 
+   { Flash >>> 04-11-2002 }
    function WriteCount: string;
+   var S: string;
    begin
-     WriteCount := FStr(ToWrite)+GetString(dlBytes)+GetPercent(ToWrite)+GetString(dlFC_Written);
-     SetTitle(GetPercent((ToWrite+ToRead)/2)+GetString(dlCopied));
+     WriteCount := FStr(ToWrite)+GetString(dlBytes)+' ('+GetPercent(ToWrite)+')'+GetString(dlFC_Written);
+     S:=GetPercent((ToWrite+ToRead)/2)+' '+GetString(dlCopied);
+     if OldTitle=S then Exit;
+     SetTitle(S);
+     OldTitle:=S;
    end;
+   { Flash <<< 04-11-2002 }
 
    procedure TrySetArch;
    begin
@@ -895,15 +933,53 @@ const
 
    var WPWas: Boolean;
 
+{--- start -------- Eugeny Zvyagintzev ---- 22-03-2003 -----}
+   Function TimeToStr(t: Comp): String;
+   Var i: longint;
+   Begin
+    Move(t,i,SizeOf(i));
+    FreeStr := SStr(i Div 360000, 2, '0')+CountryInfo.TimeSep;
+    i := i Mod 360000;
+    FreeStr := FreeStr+SStr(i Div 6000, 2, '0')+CountryInfo.TimeSep;
+    i := i Mod 6000;
+    TimeToStr := FreeStr+SStr(i Div 100, 2, '0');
+   End;
+
+   Function WriteTime: String;
+   Var
+       s,s1,s2,s3: String;
+       ElapsedTime: Longint;
+       M: Array [1..3] Of Pointer;
+       t: TSize;
+   Begin
+    If ToWrite = 0 Then Exit;
+    ElapsedTime:=Get100s-StartTime;
+    WriteTime:='';
+    If Not (ElapsedTime > 0) Then Exit;
+    s1:=TimeToStr(ElapsedTime);
+    s2:=TimeToStr(((ToDo-ToWrite)*ElapsedTime)/ToWrite);
+    t:=ToWrite/(ElapsedTime/100);
+    If t > 1024 Then s3:=ZtoS(t/1024)+' K'
+    Else s3:=ZtoS(t)+' ';
+    M[1]:=@s1; M[2]:=@s2; M[3]:=@s3;
+    FormatStr(s, GetString(dlCopyTimeSpeed), M);
+    WriteTime:=s;
+   End;
+{--- finish -------- Eugeny Zvyagintzev ---- 22-03-2003 -----}
+
    procedure WriteProgress;
    begin
      Info^.Write(6, StrGrd(P^.Size, Wrote, Info^.Size.X - 6, RevertBar));
      Info^.Write(7, WriteCount);
+     If ShowCopyTime Then Info^.Write(9, WriteTime); {John_SW 22-03-2003}
    end;
 
    { **************** }
    { *** FileCopy *** }
    { **************** }
+
+   Var NFBigger: Boolean;    {John_SW}
+       DirInfo : lSearchRec; {John_SW}
 
    begin
      SkipRequested := Off; I := -1; WPWas := False;
@@ -958,20 +1034,30 @@ const
                   If (Not CopyPrn) And (CopyOptions And cpoCheckFree <> 0)
                      And (GetDrInfo(Drv) < P^.Size) Then
                    begin
-                     PS[1] := Pointer(LongInt(Drv[1]));
-                     PS[2] := P^.OldName;
-                     lAssignFile(WriteStream, '');
-                     ForceDispatch;
-                     if CopyOptions and cpoFitAll = 0 then begin
-                        MsgResult:= Msg(erNoDiskSpace, @PS, mfError+mfYesButton+mfNoButton+mfAllButton);
-                        CopyCancel := (MsgResult <> cmYes) and (MsgResult <> cmOK);
-                        if MsgResult = cmOK then CopyOptions:=CopyOptions or cpoFitAll
-                     end else CopyCancel:=False;
-                     NewTimer(Timer, 0);
-                     DoSkip;
-                     if not SkipRequested then Goto 1;
-                     if (not CopyCancel) then Continue;
-                     Break;
+{--- start -------- Eugeny Zvyagintzev ---- 29-08-2002 ----}
+{We have to check for existing file's size when not enough free space}
+                    NFBigger:=True;
+                    lFindFirst(CnvString(P^.NewName),AnyFile-VolumeId,DirInfo);
+                    NFBigger:=(DosError = 0) And (P^.Size > DirInfo.FullSize+GetDrInfo(Drv));
+                    lFindClose(DirInfo);
+                    If NFBigger Then
+                     begin
+{--- finish -------- Eugeny Zvyagintzev ---- 29-08-2002 ----}
+                      PS[1] := Pointer(LongInt(Drv[1]));
+                      PS[2] := P^.OldName;
+                      lAssignFile(WriteStream, '');
+                      ForceDispatch;
+                      if CopyOptions and cpoFitAll = 0 then begin
+                         MsgResult:= Msg(erNoDiskSpace, @PS, mfError+mfYesButton+mfNoButton+mfAllButton);
+                         CopyCancel := (MsgResult <> cmYes) and (MsgResult <> cmOK);
+                         if MsgResult = cmOK then CopyOptions:=CopyOptions or cpoFitAll
+                      end else CopyCancel:=False;
+                      NewTimer(Timer, 0);
+                      DoSkip;
+                      if not SkipRequested then Goto 1;
+                      if (not CopyCancel) then Continue;
+                      Break;
+                     end;
                    end;
 
                   if P^.EOF and eoCheck <> 0 then
@@ -1092,7 +1178,7 @@ DoAppend:
                       case J of
                         0 : begin
                               ExAttr := $FD00;
-                              Seek(WriteStream.F, FileSize(WriteStream.F));
+                              lSeek(WriteStream,0,2);
                             end;
                         2 : Goto DoRewrite;
                         5 : begin
@@ -1107,7 +1193,7 @@ DoAppend:
                               ExAttr := ExAttr or $FE00;
                               {$IFDEF OS_DOS}DisableAppend;{$ENDIF}
                               lResetFile(WriteStream, 1);
-                              if IOResult = 0 then Seek(WriteStream.F, FileSize(WriteStream.F));
+                              if IOResult = 0 then lSeek(WriteStream, 0,2);
                             end;
                        end;
                     end else
@@ -1144,8 +1230,7 @@ lbStartWrite:
               ClrIO;
               Dispatch;
               if CopyCancel then Break;
-              If (CopyOptions And cpoVerify <> 0) And (Not CopyPrn) Then
-               SeekPos := FilePos(WriteStream.F);
+
               BlockWrite(WriteStream.F, B^, P^.Len, J); IOR := IOResult;
 
               Inc(BytesWrited,P^.Len);  {-NeCoder-}
@@ -1161,7 +1246,8 @@ lbStartWrite:
 
                    BufCRC := GetCrc( B^ , P^.Len );
 
-                   Seek( WriteStream.F, SeekPos ); ClrIO;
+                   L:=J;
+                   lSeek(WriteStream, 0-L, 2); ClrIO;
                    BlockRead(WriteStream.F, B^, P^.Len, J);
 
                    if CheckI24Abort then Break ;
@@ -1368,11 +1454,17 @@ lbStartWrite:
 
    label NoRename,NoRename1;
 
+   { Flash >>> 04-11-2002 }
    function ReadCount: string;
+   var S: string;
    begin
-     ReadCount := FStr(ToRead)+GetString(dlBytes)+GetPercent(ToRead)+GetString(dlFC_WasRead);
-     SetTitle(GetPercent((ToWrite+ToRead)/2)+GetString(dlCopied));
+     ReadCount := FStr(ToRead)+GetString(dlBytes)+' ('+GetPercent(ToRead)+')'+GetString(dlFC_WasRead);
+     S:=GetPercent((ToWrite+ToRead)/2)+' '+GetString(dlCopied);
+     if OldTitle=S then Exit;
+     SetTitle(S);
+     OldTitle:=S;
    end;
+   { Flash <<< 04-11-2002 }
 
    procedure ReadProgress;
    begin
@@ -1381,7 +1473,13 @@ lbStartWrite:
    end;
 
    var DE: integer;
+       D : PDialog; {John_SW}
+       R : TRect;   {John_SW}
+       S : String;  {John_SW}
    begin
+{JO: !!! не копируем файлы найденные в архивах  }
+      {if PathFoundInArc(FName) then Exit;} { Commented by Flash 26-03-2003 }
+{/JO}
       if CopyPrn then
       begin
         NName := CopyDir;
@@ -1439,9 +1537,20 @@ lbStartWrite:
            ClrIO;
            if CopyQueue^.Count > 0 then MaxWrite; if CopyCancel then Exit;
            ForceDispatch;
-           MessageBox(GetString(dlFBBNoOpen)+FName, nil, mfError+mfOKButton);
-           CopyCancel := On;
-           Exit;
+{--- start -------- Eugeny Zvyagintzev ---- 22-10-2002 ----}
+           If SkipAllBad Then Exit;
+           D := PDialog(LoadResource(dlgSkipBadFile));
+           D^.Options := D^.Options or ofCentered;
+           S:=Cut(FName,52);
+           R.A.X:=1; R.A.Y:=3; R.B.X:=53; R.B.Y:=4;
+           D^.Insert(New(PStaticText, Init(R,^C+S)));
+           Case Desktop^.ExecView(D) Of
+            cmOK: Goto 1;
+            cmYes: Begin SkipAllBad:=True; Exit; End;
+            cmNo: Exit;
+            cmCancel: CopyCancel:=True;
+           End;
+{--- finish -------- Eugeny Zvyagintzev ---- 22-10-2002 ----}
         end;
       Rd := 0;
       EOF := eoStart or eoCheck * Byte(CopyMode >= cpmAppend);
@@ -1531,11 +1640,13 @@ lbStartWrite:
       Info^.Write(3, ReadCount);
       Dispatch; GrdClick := False;
       {Info^.DrawView;}
-      Ln:=FileSize(ReadStream.F); {-$VOL}
+      {Ln:=lFileSize(ReadStream); {-$VOL}
+
       repeat
+        if CopyQueue^.Count > 400 then MaxWrite; {John_SW  06-11-2002}
         SkipRequested := Off;
-        WW := Round(Ln - Rd);
-        if WW > BSize then WW := BSize;
+        if Ln-Rd > BSize then WW := BSize
+        else ww:=Round(Ln-Rd);
         P := nil;
 {$IFNDEF NOEXTRA}
         if AdvCopy then
@@ -1599,7 +1710,6 @@ lbStartWrite:
         if Abort or CopyCancel then Break;
         EOF := EOF and not eoStart;
         Rd:=Rd+WW;
-        if CopyQueue^.Count > 400 then MaxWrite;
       until CopyCancel or Abort or (Rd = Ln) or System.EOF(ReadStream.F) or SkipRequested; {-$VOL}
       SkipRequested := Off;
       ClrIO;
@@ -1652,6 +1762,7 @@ lbStartWrite:
      end;
 
    begin
+     StartTime:=Get100s;
      for I := 0 to Files^.Count - 1 do
        begin
          P := Files^.At(I);
@@ -1968,6 +2079,33 @@ lbStartWrite:
      end;
  end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 10-02-2003 ----}
+Procedure EnableFFP(View: PView); {$IFDEF BIT_16}Far;{$ENDIF}
+Var Event: TEvent;
+Begin
+ Event.What:=evCommand; Event.Command:=cmEnableFileFindPanels;
+ Event.InfoPtr:=Nil;
+ View^.HandleEvent(Event);
+End;
+
+Procedure DisableFFP(View: PView); {$IFDEF BIT_16}Far;{$ENDIF}
+Var Event: TEvent;
+Begin
+ Event.What:=evCommand; Event.Command:=cmDisableFileFindPanels;
+ Event.InfoPtr:=Nil;
+ View^.HandleEvent(Event);
+End;
+
+Procedure RereadFFP(View: PView); {$IFDEF BIT_16}Far;{$ENDIF}
+Var Event: TEvent;
+Begin
+ Event.What:=evCommand; Event.Command:=cmReReadFileFindPanels;
+ Event.InfoPtr:=Nil;
+ View^.HandleEvent(Event);
+End;
+
+{--- finish -------- Eugeny Zvyagintzev ---- 10-02-2003 ----}
+
  label 1;
 
 var
@@ -2014,10 +2152,12 @@ qqqq:
   NewTimer(_Tmr, 0); GrdClick := True;
   FreeDisk := -1;
   CopyCancel := Off;
+  SkipAllBad:=False; {John_SW  05-11-2002}
   ReD := [];
   CD_Drives := [];
   ToRead := 0; ToWrite := 0; ToDo := 0; ToDoCopy := 0; ToDoClusCopy := 0;
-  R.Assign(0,0,40,13);
+  If ShowCopyTime Then R.Assign(0,0,60,15) {John_SW 22-03-2003}
+  Else R.Assign(0,0,40,13);
   New(Info, Init(R));
   if CopyOptions and cpoMove <> 0 then Info^.Top := GetString(dlFCMove)
                                   else Info^.Top := GetString(dlFCCopy);
@@ -2080,7 +2220,12 @@ qqqq:
     end;
   {$ENDIF}
   if Dirs <> nil then Dispose(Dirs,Done); Dirs:=nil;
+
+  Desktop^.ForEach(@DisableFFP); {John_SW 10-02-2003}
   if CopyOptions and cpoMove <> 0 then __Remove;
+  Desktop^.ForEach(@EnableFFP);  {John_SW 10-02-2003}
+  Desktop^.ForEach(@ReReadFFP);  {John_SW 11-04-2003}
+
   for C := 'A' to 'Z' do
     if C in ReD then
       begin
@@ -2181,7 +2326,18 @@ begin
           then if LFNDisabled(S4)
                 then S4 := MakeNormName(S4, MakeFileName(PFileRec(Files^.At(0))^.Name))
                 else S4 := MakeNormName(S4, GetLFN(PFileRec(Files^.At(0))^.LFN));
-      HistoryAdd(hsFileCopyName,GetName(S4));
+      { Flash >>> }
+      if (Files^.Count=1) and (Copy(S4,1,4)='TEMP')
+         and not isDir(GetLFN(PFileRec(Files^.At(0))^.LFN)) then
+       HistoryAdd(hsFileCopyName, GetLFN(PFileRec(Files^.At(0))^.LFN));
+      if (Pos(':',S4)>2) and (Copy(S4,1,4)<>'TEMP') then
+       begin
+       HistoryAdd(hsFileCopyName,Copy(S4,1,Pos(':',S4))+GetName(S4));
+       HistoryAdd(hsFileCopyName, GetLFN(PFileRec(Files^.At(0))^.LFN));
+       end else
+      if not isDir(S4) then HistoryAdd(hsFileCopyName,GetName(S4));
+      if Files^.Count=1 then HistoryAdd(hsFileCopyName,GetLFN(PF^.LFN));
+      { Flash <<< }
    end else if (Files^.Count = 1) then begin
     if LFNDisabled(S4)
      then S4 := MakeFileName(PFileRec(Files^.At(0))^.Name)
@@ -2219,7 +2375,7 @@ begin
         if CopyFilesToArvid(S, Files, MoveMode, Owner) then Exit;
         if UpStrg(Copy(S, 1, PosChar(':', S))) = cTEMP_ then
          begin
-           CopyToTempDrive(Files, Owner);
+           CopyToTempDrive(Files, Owner, '');
            Exit;
          end;
         {$IFDEF MODEM}
@@ -2278,6 +2434,7 @@ begin
             NoCopyLFN:=LFNDisabled(CopyDir);
           end;
    CopyDialog := True;
+   OldTitle := ''; { Flash 28-03-2003 }
 end;
         {-DataCompBoy-}
 
@@ -2293,6 +2450,7 @@ procedure CopyFiles;
 begin
    CtrlBreakHit := Off;
    Files^.Pack; if Files^.Count <= 0 then Exit;
+   if CopyFromTemp then FromTemp := 1;
    if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
                      MoveMode, Files, FromTemp, Owner, Off) then Exit;
    if (CopyDir[Length(CopyDir)] <> '\') and (CopyDir <> '') then

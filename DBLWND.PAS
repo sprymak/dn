@@ -59,6 +59,13 @@
 //  dn230_force_mouse_scroll.patch
 //
 //  2.7.0
+//  dn270_mouse_scroll_fix.patch
+//  dn270-ctrl-q_after_ctrl-l_fix.patch
+//  dn281-panel_resizing_fix_and_improve.patch
+//  dn2825-panel_zoom_fix.patch
+//  dn3216-FilePanel(f)-change_folder_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -298,11 +305,11 @@ begin
  S.Read(OldBounds, sizeof(OldBounds)*2+sizeof(LType)+sizeof(RType));
  GetSubViewPtr(S, Separator);
  GetSubViewPtr(S, LeftView);
- PSpecScroll(PFilePanel(LeftView)^.ScrollBar)^.Panel := PFilePanel(LeftView);
  GetSubViewPtr(S, RightView);
- PSpecScroll(PFilePanel(RightView)^.ScrollBar)^.Panel := PFilePanel(RightView);
  GetSubViewPtr(S, LPanel);
+ PSpecScroll(PFilePanel(LPanel)^.ScrollBar)^.Panel := PFilePanel(LPanel);
  GetSubViewPtr(S, RPanel);
+ PSpecScroll(PFilePanel(RPanel)^.ScrollBar)^.Panel := PFilePanel(RPanel);
  GetSubViewPtr(S, Info);
 {$IFDEF NETINFO}
  GetSubViewPtr(S, NetInfo); {-$VIV}
@@ -388,16 +395,15 @@ procedure TDoubleWindow.HandleCommand;
   if LVisible then
    begin
     GetBounds(R); OldBounds := R;
-    R.A.X := RightView^.Origin.X + R.A.X - 1;
+    { Flash >>> }
+    R.A.X := RightView^.Origin.X - R.A.X - 1;
+    if R.B.X - R.A.X <= 16 then
+     Dec(R.A.X, 16 - (R.B.X - R.A.X));
+    { Flash <<< }
     Lock; LeftView^.HideView; RightView^.Select; Locate(R); Redraw; UnLock;
    end else
    begin
-    GetBounds(R);
-    K := (Sp^.OldW - Sp^.OldX);
-    if K > 0 then
-       I := ((10 * (Size.X * Sp^.OldX)) div K) div 10
-     else I := 0;
-    Dec(R.A.X, I);
+    GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X; { Flash }
     Lock; LeftView^.ShowView; Redraw; Locate(R); UnLock;
     Owner^.Redraw;
    end
@@ -413,11 +419,7 @@ procedure TDoubleWindow.HandleCommand;
     Lock; RightView^.HideView; LeftView^.Select; Locate(R); Redraw; UnLock;
    end else
    begin
-    GetBounds(R); {R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X;}
-    if Sp^.OldX > 0 then
-       I := ((Size.X * 10 * (Sp^.OldW - Sp^.OldX)) div Sp^.OldX) div 10
-      else I := 1;
-    Inc(R.B.X, I);
+    GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X; { Flash }
     Lock; RightView^.ShowView; Redraw; Locate(R); UnLock;
     Owner^.Redraw;
    end
@@ -669,11 +671,9 @@ begin
                              then AP := RPanel
                              else AP := LPanel
                            ;
-                           if AP^.LineLength < AP^.Size.X
-                            then D:=AP^.LineLength
-                            else D:=10
+                           D:=AP^.LineLength; { Flash }
                           end;
-                          if Sp^.OldX > D-1 then Dec(Sp^.OldX, D);
+                          if Sp^.OldX > D then Dec(Sp^.OldX, D); { Flash }
                           Sp^.OldW := Size.X;
                           R.A := Origin;
                           R.B.X := Origin.X + Size.X;
@@ -694,9 +694,7 @@ begin
                              then AP := RPanel
                              else AP := LPanel
                            ;
-                           if AP^.LineLength < AP^.Size.X
-                            then D:=AP^.LineLength
-                            else D:=10
+                           D:=AP^.LineLength; { Flash }
                           end;
                           Sp^.OldW := Size.X;
                           if Sp^.OldX < Sp^.OldW - D then Inc(Sp^.OldX,D);
@@ -755,10 +753,12 @@ begin
                                    CE;
                                  end;
                 cmChangeDirectory: Begin
+{John_SW 01-03-2003 We have to proceed change folder operations in correct way!}
+                                    Event.What:=evCommand;            {John_SW 01-03-2003}
                                     If LSelected
-                                     then LPanel^.ChDir(PString(Event.InfoPtr)^)
-                                     else RPanel^.ChDir(PString(Event.InfoPtr)^);
-                                    CE;
+                                     then LPanel^.HandleEvent(Event)  {John_SW 01-03-2003}
+                                     else RPanel^.HandleEvent(Event); {John_SW 01-03-2003}
+                                    Exit;
                                    End;
                       cmChangeDrv: begin
                                     Event.What:=evCommand;
@@ -786,6 +786,10 @@ begin
               cmZoom: begin
                        if LSelected and (LType = dtView) then SwitchRight else
                          if not LSelected and (RType = dtView) then SwitchLeft;
+                       { Flash >>> }
+                       ChangeBounds(OldPanelBounds);
+                       GetBounds(OldPanelBounds);
+                       { Flash <<< }
                       end;
   {Knave 11.09.99 --------------- begin 1}
   {DataCompBoy} cmMaxi: if RVisible and LVisible then begin
@@ -900,7 +904,12 @@ begin
               cmChangeLeft: begin ChangeDrvLeft; CE end;
               cmChangeRight: begin ChangeDrvRight; CE end;
               cmDirTree: begin SwitchView(dtTree); CE end;
-              cmQuickView: If Not PanelZoomed Then
+              cmQuickView: If Not PanelZoomed
+                              { Flash >>> }
+                              And Not (((LType=dtInfo) And LSelected) or
+                                       ((RType=dtInfo) And Not LSelected))
+                              { Flash <<< }
+                           Then
                             begin SwitchView(dtView);
                                if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                                             else Message(RightView, evCommand, cmLViewFile, nil);

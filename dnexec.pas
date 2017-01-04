@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn270-do_not_write_echo_off_for_REXX_and_Perl_scripts-jo20707f.patch
+//  dn2825-new_logic_for_viewers.patch
+//  dn3216-archives(f)-too_long_command_line_message.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -58,17 +63,17 @@ uses UserMenu, Startup, Objects, FilesCol, Commands
      {$IFDEF DPMI}, DPMI {$ENDIF}
      ;
 
-type TCallback=procedure(var Param); (* X-Man *)
+type TCallback=procedure(var Param, AltExt); (* X-Man *) { Flash }
 
 procedure ExecString(S: PString; WS: String);
 function  SearchExt(FileRec: PFileRec; var HS: String): Boolean; {DataCompBoy}
 function  ExecExtFile(const ExtFName: string; UserParams: PUserParams;   (* X-Man *)
-    SIdx: TStrIdx; CallIfSuccess:TCallback; var CallbackParam): Boolean; (* X-Man *) {DataCompBoy}
+    SIdx: TStrIdx; CallIfSuccess:TCallback; var CallbackParam, AltExt): Boolean; (* X-Man *) {DataCompBoy} { Flash }
 procedure ExecFile(const FileName: string); {DataCompBoy}
 
 implementation
 uses DnSvLd, DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3,
-     FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4, Videoman
+     FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4, Videoman, Messages
 {$IFDEF VIRTUALPASCAL}
      , Memory
 {$ENDIF}
@@ -88,6 +93,13 @@ procedure ExecString(S: PString; WS: String);
 begin
  M:=S^;
  DelRight(M);
+ { Flash 17-02-2003 >>> }
+ if Length(M) > 126 then
+  begin
+  Msg(erTooLongCommandLine, NIL, mfWarning+mfCancelButton);
+  Exit;
+  end;
+ { Flash 17-02-2003 <<< }
  if {$IFDEF OS_DOS}not Chk4Dos and {$ENDIF}(Pos('||', M) <> 0) then
   begin
     lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
@@ -187,6 +199,8 @@ var
   FName,LFN: string;
   UserParam: TUserParams;
   D        : TMaskData;
+  WriteEcho: Boolean;
+
 label RL;
 
 begin
@@ -225,7 +239,7 @@ begin
        if InExtFilter(FName, D) or InExtFilter(LFN, D) then begin
         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
         lRewriteText(F1); if IOResult <> 0 then begin Dispose(F,Done); exit; end;
-        Writeln(F1.T, '@echo off');
+        WriteEcho := On;
         System.Delete(S, 1, PosChar(BgCh, S));
         repeat
          Replace(']]', #0, S);
@@ -240,6 +254,10 @@ begin
              Replace(#2, '}', S);
              S := MakeString(S, @UserParam, off, nil);
              HS := S;
+             {JO: если строка на REXX'е или Perl'e, то не нужно добавлять @Echo off}
+             if WriteEcho and (Copy(S, 1, 2) <> '/*') and (S[1] <> '#')
+               then Writeln(F1.T, '@echo off');
+             WriteEcho := Off;
              WriteLn(F1.T, S); Break
            end;
           end;
@@ -248,6 +266,10 @@ begin
            Replace(#0, ']', S);  Replace(#1, ')', S);  Replace(#2, '}', S);
            if (BgCh <> '[') then S := MakeString(S, @UserParam, off, nil);
            if First and (BgCh <> '[') then HS := S;
+           {JO: если строка на REXX'е или Perl'e, то не нужно добавлять @Echo off}
+           if WriteEcho and (Copy(S, 1, 2) <> '/*') and (S[1] <> '#')
+             then Writeln(F1.T, '@echo off');
+           WriteEcho := Off;
            WriteLn(F1.T, S);
            First := False;
           end;
@@ -276,7 +298,7 @@ end;
 
         {-DataCompBoy-}
 function ExecExtFile(const ExtFName: string; UserParams: PUserParams; (* X-Man *)
-SIdx: TStrIdx; CallIfSuccess: TCallback; var CallbackParam): Boolean; (* X-Man *)
+SIdx: TStrIdx; CallIfSuccess: TCallback; var CallbackParam, AltExt): Boolean; (* X-Man *) { Flash }
  var F: PTextReader;
      S,S1: String;
      FName, LFN: String;
@@ -355,7 +377,7 @@ RepeatLocal:
           lChDir({$IFNDEF OS2}lfGetLongFileName{$ENDIF}(UserParams^.Active^.Owner^));
          end;
    ExecExtFile := On;
-   if Addr(CallIfSuccess)<>nil then CallIfSuccess(CallbackParam); (* X-Man *)
+   if Addr(CallIfSuccess)<>nil then CallIfSuccess(CallbackParam,AltExt); (* X-Man *) { Flash }
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
    ExecString(@S, '');
 {$IFDEF VIRTUALPASCAL}

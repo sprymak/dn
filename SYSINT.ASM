@@ -51,6 +51,11 @@
 ;/  dn16rc1-Ctrl-N_hotkey_used_for_long-short_names_switching.patch
 ;/
 ;/  2.0.0
+;/  dn2911-command_line_improve.patch
+;/  dn3323-KeyboardDriver(f)-Right_Alt1_RightAlt9_fix.patch
+;/  dn3421-Kernel(i)_AltGr_works_like_Alt.patch
+;/
+;/  3.7.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -109,6 +114,7 @@ scUpUp          EQU    0C8H
 scSpaceKey      EQU     39H
 scInsKey        EQU     52H
 scDelKey        EQU     53H
+scDelUp         EQU    0D3H
 scBackKey       EQU     0EH
 scBackUp        EQU     8EH
 scUpArrow       EQU     48H
@@ -207,6 +213,7 @@ _DATA           SEGMENT WORD PUBLIC 'DATA'
         EXTRN   CtrlBreakHit  : BYTE
         EXTRN   SaveCtrlBreak : BYTE
         EXTRN   SysErrActive  : BYTE
+        EXTRN   AltGrAsAlt    : BYTE ;John_SW  01-05-2003 Declared in dnini.pas
 
     IF DPMIVersion
 
@@ -246,8 +253,31 @@ SaveInt24       DD      0       ;Saved INT 24H vector
 
 ; Keyboard conversion table
 
-KeyConvertTab   LABEL   BYTE
-
+;John_SW 24-03-2003
+KeyConvertTabAG   LABEL   BYTE
+        DB      sc1,            kbAltKey
+        DW     7800h
+        DB      sc2,            kbAltKey
+        DW     7900h
+        DB      sc3,            kbAltKey
+        DW     7A00h
+        DB      sc4,            kbAltKey
+        DW     7B00h
+        DB      sc5,            kbAltKey
+        DW     7C00h
+        DB      sc6,            kbAltKey
+        DW     7D00h
+        DB      sc7,            kbAltKey
+        DW     7E00h
+        DB      sc8,            kbAltKey
+        DW     7F00h
+        DB      sc9,            kbAltKey
+        DW     8000h
+        DB      sc0,            kbAltKey
+        DW     8100h
+KeyConvertCntAG   EQU     ($-KeyConvertTabAG)/4
+;John_SW
+KeyConvertTab     LABEL   BYTE
         DB      sc1,            kbCtrlKey
         DW     0D100h
         DB      sc2,            kbCtrlKey
@@ -280,6 +310,12 @@ KeyConvertTab   LABEL   BYTE
         DW      1A1Ah
         DB      scRSqBraket,    kbCtrlKey+kbAltKey
         DW      1B1Bh
+;John_SW 19-09-2002
+        DB      scLAngle,       kbCtrlKey
+        DW     0EA00h
+        DB      scRAngle,    kbCtrlKey
+        DW     0EB00h
+;John_SW
         DB      scDownUp,       0
         DW     0D000h
         DB      scUpUp,         0
@@ -370,6 +406,10 @@ KeyConvertTab   LABEL   BYTE
         DW      9B00h
         DB      scRightArrow,             kbAltKey
         DW      9D00h
+;John_SW 19-09-2002
+        DB      scDelUp,       0
+        DW     0E000h
+;John_SW
 KeyConvertCnt   EQU     ($-KeyConvertTab)/4
 
 ; DOS function call class table
@@ -749,7 +789,42 @@ Int09Handler:
         CALL    SaveInt09
         TEST    AL,80H
         JE      @@@
-        JMP     @@9
+        CMP     AL,38h or 80h
+        JNE     @@10
+        CMP     DS:PrevAlt,0
+        JE      @@8
+        MOV     SI,offset CS:AltCode-2
+        JMP     SHORT @@3_
+@@10:   CMP     AL,1Dh or 80h
+        JNE     @@0
+        CMP     byte ptr DS:PrevCtrl,0
+        JE      @@8
+        MOV     SI,offset CS:CtrlCode-2
+@@3_:
+        MOV     DS:KeyBufTail,DI
+        MOV     DS:KeyBufHead,BX
+        MOV     AX,DI
+        INC     AX
+        INC     AX
+        CMP     AX,DS:KeyBufEnd
+        JB      @@4
+        MOV     AX,DS:KeyBufOrg
+@@4:    CMP     AX,DS:KeyBufHead
+        JE      @@8
+        MOV     DS:KeyBufTail,AX
+        MOV     AX,CS:[SI+2]
+        MOV     DS:[DI],AX
+@@8:
+        POP     CX
+        POP     BX
+        POP     AX
+        POP     SI
+        POP     DI
+        POP     DS
+        IRET
+@@3:
+        POP     BX
+        JMP     SHORT @@3_
 
 @@@:    MOV     DS:PrevAlt,0
         MOV     DS:PrevCtrl,0
@@ -765,10 +840,22 @@ Int09Handler:
         CMP     AL,1DH
         JNE     @@0
         MOV     DS:PrevCtrl,1
-
-@@0:    MOV     SI,OFFSET CS:KeyConvertTab
+@@0:
+;--- start -------- Eugeny Zvyagintzev - Max Piwamoto --- 03-05-2003 ----
+        PUSH    DS
+        MOV     CX,DGROUP
+        MOV     DS,CX
+        CMP     DS:AltGrAsAlt, 0
+        POP     DS
+        MOV     SI,OFFSET CS:KeyConvertTab
         MOV     CX,KeyConvertCnt
-        JCXZ    @@8
+        JE      @@AltGr
+        MOV     SI,OFFSET CS:KeyConvertTabAG
+;CH = 0, KeyConvertCntAG + KeyConvertCnt =< $FF
+        MOV     CL,KeyConvertCntAG + KeyConvertCnt
+@@AltGr:
+;        JCXZ    @@8    ;piwamoto: CX always isn't zero
+;--- finish ------- Eugeny Zvyagintzev - Max Piwamoto --- 03-05-2003 ----
         PUSH    BX
         AND     AH,0Fh ; DataCompBoy: for comparing use only lower part of
                        ; ShiftState, to prevent NumLock comparing
@@ -794,41 +881,6 @@ Int09Handler:
         LOOP    @@1
         POP     BX
         JMP     SHORT @@8
-@@3:    POP     BX
-@@3_:   MOV     DS:KeyBufTail,DI
-        MOV     DS:KeyBufHead,BX
-        MOV     AX,DI
-        INC     AX
-        INC     AX
-        CMP     AX,DS:KeyBufEnd
-        JB      @@4
-        MOV     AX,DS:KeyBufOrg
-@@4:    CMP     AX,DS:KeyBufHead
-        JE      @@8
-        MOV     DS:KeyBufTail,AX
-        MOV     AX,CS:[SI+2]
-        MOV     DS:[DI],AX
-@@8:    POP     CX
-        POP     BX
-        POP     AX
-        POP     SI
-        POP     DI
-        POP     DS
-        IRET
-
-@@9:    CMP     AL,38h or 80h
-        JNE     @@10
-        CMP     DS:PrevAlt,0
-        JE      @@8
-        MOV     SI,offset CS:AltCode-2
-        JMP     @@3_
-@@10:   CMP     AL,1Dh or 80h
-        JNE     @@0
-        CMP     byte ptr DS:PrevCtrl,0
-        JE      @@8
-        MOV     SI,offset CS:CtrlCode-2
-        JMP     @@3_
-
 
 AltCode  DW      03800h
 CtrlCode DW      01D00h

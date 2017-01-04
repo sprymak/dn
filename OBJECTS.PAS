@@ -51,6 +51,9 @@
 //  dn16rc1-TStreamCopyFromFix.patch
 //
 //  2.0.0
+//  dn21202-help_showing_improve.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -250,6 +253,7 @@ type
 
   PObject = ^TObject;
   TObject = object(TEmptyObject)
+    ObjectID: Byte; { Flash 22-12-2002 }
     ObjectIsInited: Boolean;
     constructor Init;
     destructor  Done; virtual;
@@ -437,6 +441,7 @@ constructor TObject.Init;
 begin
   Inherited Init;
   ObjectIsInited:=True;
+  ObjectID:=0;
 end;
 
 destructor  TObject.Done;

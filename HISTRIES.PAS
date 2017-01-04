@@ -61,6 +61,23 @@
 //  dn2628-del_dir_from_history_fix.patch
 //
 //  2.7.0
+//  dn270-view_files_in_archive_from_history_fix.patch
+//  dn270-edit_files_from_history_fix.patch
+//  dn230-histories_for_network_resources.patch
+//  dn281-CmdHistory_items_protection.patch
+//  dn281-DirHistoryMenu_default_item.patch
+//  dn281-dbf_wkz_view_from_archive_fix.patch
+//  dn281-save_all_editor_options_to_history.patch
+//  dn2825-new_logic_for_viewers.patch
+//  dn2911-view_files_in_archive_from_history.patch
+//  dn21013-del_current_dir_from_history_improve.patch
+//  dn21013-add_flt_files_to_history_fix.patch
+//  dn21202-Find_file_and_branch_in_archive.patch
+//  dn3216-DBF_Viewer(fn)-change_code_page_ability_added.patch
+//  dn3315-DBF_Viewer(i)-indicator_and_code_page_improve.patch
+//  dn3323-history(i)-ak30327b.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -133,6 +150,13 @@ type
        fRightSide,
        fInSide: AInt;
        fKeyMap: TKeyMap; {-$VIV}
+       { Flash >>> }
+       fBackIndent: Boolean;
+       fAutoWrap: Boolean;
+       fOptimalFill: Boolean;
+       fTabReplace: Boolean;
+       fSmartTab: Boolean;
+       { Flash <<< }
      end;
 
      PEditHistoryCol = ^TEditHistoryCol;
@@ -157,12 +181,12 @@ procedure CmdHistory;
 {DataCompBoy
 procedure InitCommands;
 }
-function  DirHistoryMenu: String;
+function  DirHistoryMenu(DriveType: Integer): String;
 procedure EditHistoryMenu;
 procedure ViewHistoryMenu;
 procedure StoreEditInfo(P: Pointer);
 procedure StoreViewInfo(P: Pointer);
-procedure StoreExtViewer(const FileName: String);
+procedure StoreExtViewer(const FileName: String; AltExt: Boolean);
 procedure AddCommand(const LastCommand: String);
 function  GetCommand(Idx: Integer): String;
 procedure LoadHistories;
@@ -185,7 +209,7 @@ implementation
 {$IFDEF SS}
       Idlers,
 {$ENDIF}
-      FViewer, CmdLine;
+      FViewer, CmdLine, ArcView, FilesCol;
 
 procedure FreeLastUnmarked(C: PCollection);
 
@@ -313,14 +337,17 @@ begin
     with P^ do begin
      fdDelta   := Delta;
      fdPos     := Pos;
+     fKeyMap   := KeyMap;    {John_SW 14-03-2003}
+     fUseXLat  := UseXLat;
+     fXlatFile := CnvString(XlatFile);
     end;
    end
 {$ENDIF}
 {$IFDEF SpreadSheet}
   else if TypeOf((PObject(P)^))=TypeOf(TCalcWindow) then
    with SSView^, R^ do begin
-     if SSView^.RealName = '' then Goto Q;
-     fName         := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(CnvString(CalcView^.SName)));
+     if SSView^.CalcView^.RealName = '' then Goto Q;
+     fName         := NewStr(' '+SSView^.CalcView^.RealName);
      fOrigin       := Origin;
      fSize         := Size;
      fDeskSize     := Desktop^.Size;
@@ -349,7 +376,7 @@ Q:begin Dispose(R); R:=nil end;
   if ViewHistory^.Count > MaxEditHistorySize then FreeLastUnmarked(ViewHistory);
 end;
 
-procedure StoreExtViewer(const FileName: String);
+procedure StoreExtViewer(const FileName: String; AltExt: Boolean);
   var R: PViewRecord;
       I: Integer;
 begin
@@ -359,7 +386,11 @@ begin
 
   with R^ do begin
    fName     := NewStr(' '+{$IFNDEF OS2}lfGetLongFileName{$ENDIF}(FileName)); {DataCompBoy}
-   fViewMode := vmExternal;
+   { Flash >>> }
+   if not AltExt
+    then fViewMode := vmExternal
+    else fViewMode := vmAltExt;
+   { Flash <<< }
   end;
   I := ViewHistory^.IndexOf(R);
   if I >= 0 then begin
@@ -405,6 +436,13 @@ begin
        fInSide        := EdOpt.InSide;
        fInsMode       := InsertMode;
        fKeyMap        := KeyMap; {-$VIV}
+       { Flash >>> }
+       fBackIndent    := EdOpt.BackIndent;
+       fAutoWrap      := EdOpt.AutoWrap;
+       fOptimalFill   := OptimalFill;
+       fTabReplace    := TabReplace;
+       fSmartTab      := EdOpt.SmartTab;
+       { Flash <<< }
     end;
   I := EditHistory^.IndexOf(R);
   if I >= 0 then begin
@@ -437,7 +475,7 @@ begin
       CmdStrings^.Insert(NewStr(' '+LastCommand));
 1:
       I := 0;
-      while (CmdStrings^.Count > 50) and
+      while (CmdStrings^.Count >= 50) and { Flash }
             (I < CmdStrings^.Count) do
          begin
             FreeStr := CnvString(CmdStrings^.At(I));
@@ -554,8 +592,7 @@ procedure TTHistList.HandleEvent;
   var P: Pointer;
 
   procedure ScanMarked(D: Integer);
-    var P: PString;
-        I: Integer;
+    var I: Integer;
   begin
     ClearEvent(Event);
     I := Focused;
@@ -566,26 +603,31 @@ procedure TTHistList.HandleEvent;
     if (I >= 0) and (I < List^.Count) then begin FocusItem(I); DrawView end;
   end;
 
+  procedure SwapItems(i: integer);
+    var
+      P: Pointer;
+    begin
+    with List^ do
+      begin
+      P := At(i);
+      AtDelete(i);
+      AtInsert(i+1, P);
+      end;
+      DrawView;
+    end;
+
 begin
   if (Event.What = evKeyDown) and (List <> nil) then
     case Event.KeyCode of
       kbDel: Goto 1;
       kbDown: if (ShiftState and 3 <> 0) and (Focused < List^.Count - 1) then
-             begin
-               P := List^.At(Focused);
-               List^.AtDelete(Focused);
-               List^.AtInsert(Focused+1, P);
-               DrawView;
-             end;
+        SwapItems(Focused);
       kbUp: if (ShiftState and 3 <> 0) and (Focused > 0) then
-             begin
-               P := List^.At(Focused-1);
-               List^.AtDelete(Focused-1);
-               List^.AtInsert(Focused, P);
-               DrawView;
-             end;
-      kbRight: ScanMarked(1);
-      kbLeft: ScanMarked(-1);
+        SwapItems(Focused-1);
+      kbRight, kbAltDown:
+        ScanMarked(1);
+      kbLeft, kbAltUp:
+        ScanMarked(-1);
     end else
   if (Event.What = evBroadcast) then
    case Event.Command of
@@ -602,9 +644,12 @@ begin
 1:         begin
              ClearEvent(Event);
              if  (Dlg=dlgDirectoryHistory) and (Focused = 0) then
+              begin
+               MessageBox(GetString(dlHistDelCurDir),nil,mfOkButton); {John_SW}
                Exit; {AK155: 0 - это текущий каталог,
                   его удалять бесполезно: он опять вставится, но при этом
                   собьет нумерацию элементов }
+              end;
              if Focused >= List^.Count then Exit;
              if Copy(CnvString(ItemStr(Focused)),1,1) = '+' then
                begin
@@ -650,13 +695,14 @@ procedure AddToDirectoryHistory(S: String; DriveType:integer);
 
 begin
   if InterfaceData.Options and ouiTrackDirs = 0 then Exit;
-  if (S = '') or (S[2] <> ':') then Exit;
+  if (S = '') or not ((S[2] = ':') or (Copy(S, 1, 2) = '\\')) then Exit;
   {$IFNDEF OS2}
   S:=lfGetLongFileName(S);
   {$ENDIF}
   if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
   if (DriveType <> integer(dtList)) and
      (DriveType <> integer(dtFind)) and
+     (DriveType <> integer(dtArcFind)) and
      (DriveType <> integer(dtArvid)) and
      (DriveType <> integer(dtArc))
   then begin
@@ -719,7 +765,7 @@ begin
     begin
      If (PViewRecord(EditHistory^.At(I))^.fName = nil) then Exit;
      {A eto tak, na vsyakiy sluchay proverka, esli eto ne DPMI :}
-     PDNAppl(Application)^.EditFile(Off,
+     PDNAppl(Application)^.EditFile(On,
        Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, 255));
     end;
 end;
@@ -733,6 +779,12 @@ procedure ViewHistoryMenu;
       RealName: String;
       AxilName: String;
 {--- finish -------- Eugeny Zvyagintzev ---------}
+      { Flash >>> }
+      F: PFileRec;
+      ArcD: PDrive;
+      Drive: char;
+      ViewMode: word;
+      { Flash <<< }
 begin
   if InterfaceData.Options and ouiTrackViewers = 0 then
     begin
@@ -754,29 +806,55 @@ begin
 {We have to check that file is archive}
     RealName:=Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255);
     X:=PosChar(':', RealName);
-    If X > 0 Then
+    { Flash >>> }
+    If X > 2 Then
      Begin
-      RealName:=Copy(RealName,X+1,Length(RealName));
+     RealName:=Copy(RealName,X+1,Length(RealName)-X);
+     Drive:=RealName[1];
+     X:=PosChar(':', RealName);
+     If X > 0 Then
+      Begin
+      RealName:=Copy(RealName,X+1,Length(RealName)-X);
       X:=PosChar(':', RealName);
       If X > 0 Then
        Begin
-        AxilName:=Copy(RealName,1,X);
-        RealName:=Copy(RealName,X+1,Length(RealName));
-        X:=PosChar(':', RealName);
-        If X > 0 Then
-         RealName:=AxilName+Copy(RealName,1,X-1)
-        Else
-         RealName:=Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255);
+       If Pos('\',Copy(RealName,X+1,Length(RealName)-X))>0 then
+        begin
+        AxilName:=GetPath(Copy(RealName,X+1,Length(RealName)-X));
+        ArcD:=New(PArcDrive,Init(Drive+':'+GetPath(RealName),'', 0));
+        end
+       else
+        begin
+        AxilName:='';
+        ArcD:=New(PArcDrive,Init(Drive+':'+Copy(RealName,1,X-1),'', 0));
+        end;
+       If ArcD=nil then Exit;
+       F:=CreateFileRec(Copy(RealName,X+1,Length(RealName)-X));
+       If F=nil then Exit;
+       F^.Owner:=@AxilName;
+       case PViewRecord(ViewHistory^.At(I))^.fViewMode of
+        vmText    : ViewMode:=cmTextView;
+        vmHex     : ViewMode:=cmHexView;
+        vmInternal: ViewMode:=cmTextView;
+        vmExternal: ViewMode:=cmViewFile;
+        vmAltExt  : ViewMode:=cmIntFileView;
+        vmDB      : ViewMode:=cmViewDBF;
+        vmSpread  : ViewMode:=cmViewWKZ;
+       end;
+       ArcD^.UseFile(F,ViewMode);
+       DelFileRec(F);
+       Dispose(ArcD,Done);
+       Exit;
        End
-      Else
-       RealName:=Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255);
+      End
      End;
+    { Flash <<< }
 {--- finish -------- Eugeny Zvyagintzev ---------}
-    PDNAppl(Application)^.ViewFile(1, RealName);
+    PDNAppl(Application)^.ViewFile(On, Off, Off, RealName);
    end;
 end;
 
-function DirHistoryMenu: String;
+function DirHistoryMenu(DriveType: Integer): String; { Flash }
 var
   PC: PLineCollection;
   D: PDialog;
@@ -800,6 +878,12 @@ begin
 
   PListBox(P)^.NewList(DirHistory);
   if DirHistory^.Count>1 then PListBox(P)^.Focused := 1;
+
+  { Flash >>> }
+  if (DriveType = integer(dtFind)) or
+     (DriveType = integer(dtTemp)) then
+   PListBox(P)^.Focused := 0;
+  { Flash <<< }
 
   I := Desktop^.ExecView(D);
 

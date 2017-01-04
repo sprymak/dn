@@ -56,6 +56,14 @@
 //  dn269-make_del_dir_on_network_resource.patch
 //
 //  2.7.0
+//  dn2911-tree_quicksearch_fix.patch
+//  dn2922-show_size_before_name_if_it_longer_250.patch
+//  dn21128-show_LFN_and_desc_in_bottom.patch
+//  dn21225-Tree(i)-new_features.patch
+//  dn3216-tree(f)-memory_leak_fix.patch
+//  dn3323-tree(f)-destruction_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -109,7 +117,7 @@ type
     TTreeView = object(THideView)
      ScrollBar: PScrollBar;
      CurPtr: PDirRec;
-     isValid, QuickSearch: Boolean;
+     isValid{, QuickSearch}: Boolean;
      Drive, SearchPos: Byte;
      SearchParam: TQuickSearchData; {DataCompBoy}
      CurPath, LastPath: String; {DataCompBoy}
@@ -158,6 +166,7 @@ type
       constructor Load(var S: TStream);
       procedure Store(var S: TStream);
      function GetPalette: PPalette; virtual;
+     destructor Done; virtual;
     end;
 
     PDTreeInfoView = ^TDTreeInfoView;
@@ -176,6 +185,7 @@ type
      constructor Load(var S: TStream);
      procedure Store(var S: TStream);
      function GetPalette: PPalette; virtual;
+     destructor Done; virtual;
     end;
 
     PDirCollection = ^TDirCollection;
@@ -208,7 +218,7 @@ var   DrvTrees: Array['A'..'Z'] of record C: PCollection; Len: Boolean; end;
 
 implementation
 uses  FlPanelX, DNApp, Messages, Commands, Drives, Eraser, Menus, RStrings,
-      xTime, FileCopy;
+      xTime, FileCopy, FlPanel;
 
 const
       trExpanded   = $02;
@@ -743,6 +753,14 @@ begin
  ChangeDir := S;
 end;
 
+{ AK155 26-01-2003 - Flash 21-02-2003 >>> }
+destructor TTreeInfoView.Done;
+  begin
+  if Tree <> nil then PHTreeView(Tree)^.Info := nil;
+  inherited Done;
+  end;
+{ AK155 26-01-2003 - Flash 21-02-2003 <<< }
+
 constructor TTreeInfoView.Init;
 begin
  inherited Init(R); Tree := ATree;
@@ -1089,19 +1107,19 @@ procedure TTreeView.HandleCommand;
   I := ScrollBar^.Value + Delta; if I = 0 then Inc(I);
   if LFNPresent then
    While (I < DC^.Count) and
-        not InFilter(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
+        not InQSMask(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
   else
    While (I < DC^.Count) and
-        not InFilter(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
+        not InQSMask(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
   if I >= DC^.Count then
    begin
     I := 0;
     if LFNPresent then
      While (I < ScrollBar^.Value) and
-          not InFilter(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
+          not InQSMask(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
     else
      While (I < ScrollBar^.Value) and
-          not InFilter(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
+          not InQSMask(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
     if I >= ScrollBar^.Value then I := 0;
    end;
   if I > 0 then
@@ -1321,7 +1339,7 @@ begin
                            end;
         {-DataCompBoy-}
               kbBack: if QuickSearch then
-                        if SearchParam.Mask='*' then CancelSearch
+                        if SearchParam.Mask='' then CancelSearch
                         else begin
                          DoQuickSearch(SearchParam,Event.KeyCode);
                          ScrollBar^.SetValue(0);
@@ -1333,13 +1351,19 @@ begin
                   if (Event.CharCode = '\') and (SearchParam.Mask <> '*') then
                     begin
                       CE;
-                      PD := DC^.At(CurPos);
-                      while (PD^.Attr and trHasBranch = 0) do
+                      { Flash >>> }
+                      PD := DC^.At(CurPos); I := -1;
+                      while (PD^.Attr and trHasBranch = 0)
+                            and (I <> CurPos) do
                         begin
-                           if not SearchForMask(1) then Exit;
-                           PD := DC^.At(ScrollBar^.Value);
+                           if not SearchForMask(1) then break;
+                           I := ScrollBar^.Value;
+                           PD := DC^.At(I);
                         end;
-                      ScrollBar^.SetValue(ScrollBar^.Value+1);
+                      if PD^.Attr and trHasBranch <> 0 then
+                       ScrollBar^.SetValue(ScrollBar^.Value+1)
+                      else begin QuickSearch := Off; Exit end;
+                      { Flash <<< }
                       if Parital and (PD^.Attr and trExpanded = 0) then
                        CollapseBranch(PDirRec(DC^.At(CurPos))^.Number);
                       InitQuickSearch(SearchParam);
@@ -1355,7 +1379,7 @@ begin
                    InitQuickSearch(SearchParam);
                    DoQuickSearch(SearchParam,Event.KeyCode);
                    SearchForMask(0);
-                   if SearchParam.Mask='\*' then InitQuickSearch(SearchParam);
+                   if SearchParam.Mask='\' then InitQuickSearch(SearchParam);
                   end;
                 CE;
                end;
@@ -1511,7 +1535,8 @@ begin
        begin                                         {    оторочены мерзкими точечками или чем ещё похуже}
         ShowCursor;
         NormalCursor;
-        SetCursor(K + Length(S) + GetCursorPos(SearchParam, q, Size.X, 0, 0), I-1)
+        if I>1 then J:=1 else J:=0; { Flash }
+        SetCursor(K + Length(S)-J + GetCursorPos(SearchParam, q, Size.X, 0), I-1) { Flash }
        end else HideCursor;
      end else begin {q:=#0+q+#0;} MoveStr(B[K+Length(S)], q, CC) end;
         {-DataCompBoy-}
@@ -1708,11 +1733,28 @@ procedure TTreePanel.HandleEvent;
  end;
         {-DataCompBoy-}
 
+var I: LongInt;
+    DirectoryName: string;
 begin
+ case Event.KeyCode of
+  kbAlt1..kbAlt9: begin
+                    I := (Event.KeyCode shr 8)-(kbAlt1 shr 8);
+                    DirectoryName:=CurrentDirectory;
+                    if ShiftState and 7 <> 0 then
+                      begin
+                        if Msg( dlPromptForQDir, nil, mfQuery+mfYesButton+mfNoButton) <> cmYes then Exit;
+                        DisposeStr(DirsToChange[I]);
+                        DirsToChange[I] := NewStr(DirectoryName);
+                        Message(Application, evCommand, cmUpdateConfig, nil);
+                        ClearEvent(Event);
+                      end
+                  end;
+ end;
  inherited HandleEvent(Event);
  case Event.What of
   evCommand: case Event.Command of
               cmMoveFiles,cmCopyFiles: CopyDir;
+              cmDirHistory: if ActivePanel <> nil then PFilePanel(ActivePanel)^.HandleEvent(Event);
              end;
  end;
 end;
@@ -1760,6 +1802,16 @@ begin
  if ScrollBar <> nil then
   begin R :=Bounds; R.A.X := R.B.X; Inc(R.B.X); ScrollBar^.SetBounds(R) end
 end;
+
+{ AK155 26-01-2003 - Flash 21-02-2003 >>> }
+{ Раньше Info не освобождалось вообще }
+destructor THTreeView.Done;
+  begin
+  if Info <> nil then
+    Info^.Free;
+  inherited Done;
+  end;
+{ AK155 26-01-2003 - Flash 21-02-2003 <<< }
 
         {-DataCompBoy-}
 function CreateDirInheritance;

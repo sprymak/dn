@@ -51,6 +51,10 @@
 //  dn2628-format_disk_help_fix.patch
 //
 //  2.7.0
+//  dn2911-format_disk_options_fix.patch
+//  dn3315-format(i)-user_defined_type.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -302,8 +306,12 @@ begin
     FormatDialogData.Ftypes.Data := nil;
   end;
 }
-  FormatDialogData.Ftypes.Data := GetDriveCapacity(DrivesType[Item]);
-  FormatDialogData.Ftypes.Focused := FlStdType[DrivesType[Item]];
+  with FormatDialogData.Ftypes do
+   begin
+   Data := GetDriveCapacity(DrivesType[Item]);
+   if not FmtUserDefined then Focused := FlStdType[DrivesType[Item]]
+                         else Focused := Data^.Count;
+   end;
 end;
 
 procedure DisposeFormatDialogData;
@@ -1901,8 +1909,11 @@ begin
     P :=  Nil ;
     P := BuildFormatDialog ;
     if P = Nil then Exit ;
-    P^.SetData(FormatDialogData) ;  { Flash }
-    R := Desktop^.ExecView(P) ;     { Flash }
+    { Flash >>> }
+    P^.SetData(FormatDialogData) ;
+    R := Desktop^.ExecView(P) ;
+    if R <> cmCancel then P^.GetData(FormatDialogData) ;
+    { Flash <<< }
     DisposeFormatDialogData;
     case R of
        CMok  :  begin
@@ -1915,10 +1926,11 @@ begin
         else {if Registered and rfArchives <> 0 then}
              begin
                 P := BuildAdvFormatDialog ;
-                P^.SetData(AdvFormatDialogData) ;  { Flash }
-                R := Desktop^.ExecView(P) ;        { Flash }
+                P^.SetData(AdvFormatDialogData) ;    { Flash }
+                R := Desktop^.ExecView(P) ;          { Flash }
                 if R = CmOk then
                   begin
+                    P^.GetData(AdvFormatDialogData); { Flash }
                     FmtUserDefined := True;
                     AdvFormatWarning;
                   end;

@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn328-Editor(f)-highlight_option_AutoBrackets_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -834,7 +837,8 @@ var
         if Found('FORCECRLF ') then EdOptions^.ForcedCrLf:=cfCRLF else
         if Found('FORCECR ') then EdOptions^.ForcedCrLf:=cfCR else
         if Found('FORCELF ') then EdOptions^.ForcedCrLf:=cfLF else
-        if Found('FORCELFCR ') then EdOptions^.ForcedCrLf:=cfLFCR
+        if Found('FORCELFCR ') then EdOptions^.ForcedCrLf:=cfLFCR else
+        if Found('AUTOBRACKETS ') then EdOptions^.AutoBrackets:=IsOn {John_SW 12-02-2003}
       end
 {PZ - end }
     end

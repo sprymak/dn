@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn270-IsFilenameMatchesMask_fix_for_DOS_styled_anyfile_mask.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -145,9 +148,14 @@ Begin
        {!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!}
        Else
 Litera:  If (c<>Str[n]) or (N>length(Str))
-           Then Begin FnMatchFunc:=False; Exit; End;
+           Then Begin FnMatchFunc:=False; Exit; End
+           Else if Copy(Pattern, p, 255) = '*.*'
+                then begin FnMatchFunc:=True; Exit; end;
+           {checks only for '*.*', because '*' checked under Case (c) of '*'}
       End;
 
+      if (n = length(Str)) and (Copy(Pattern, p, 255) = '.*')
+        then begin FnMatchFunc:=True; Exit; end;
       Inc(n);
     End;
 

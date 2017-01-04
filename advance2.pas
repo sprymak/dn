@@ -61,6 +61,15 @@
 //  dn269-make_del_dir_on_network_resource.patch
 //
 //  2.7.0
+//  dn270-search_in_archives.patch
+//  dn270-mark_dirs-jo20707a.patch
+//  dn270-nameless_files_are_extension.patch
+//  dn2922-show_size_before_name_if_it_longer_250.patch
+//  dn21128-show_LFN_and_desc_in_bottom.patch
+//  dn3421-FileOpenDialog(f)-quick_search_fix.patch
+//  dn368-Kernel(f)-GetSName_function_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -107,6 +116,7 @@ FUNCTION  SquashesName(const s:string):string;      {quotes name if needed}
 FUNCTION  InMask(Name, Mask: string):Boolean;       {does Name match Mask? }
 FUNCTION  InFilter(Name, Filter: string):Boolean;   {does Name match Filter? }
 FUNCTION  InExtMask(Name, Mask: string):Boolean;    {does Ext match Mask? }
+FUNCTION  InDirFilter(Name, Filter: string):Boolean; {JO}{piwamoto}
 
 type TMaskPos = record
                  CurPos: Byte;
@@ -158,6 +168,7 @@ function  SetFileAttr(const S: String; Attr: Word):Word;
 function  CorrectFile(const N: String): Boolean;
 function  PathExist(s: string): boolean; {Is path exist}
 function  GetNormPath(s: string): string; {Get correct path}
+function  PathFoundInArc(S: String): Boolean; {JO}
 
 {-DataCompBoy-}
 type TQuickSearchData = record
@@ -166,10 +177,12 @@ type TQuickSearchData = record
       ExtD: Word;
      end;
 
+function  InQSMask(Name, Mask: string):Boolean; {JO}
+
 procedure InitQuickSearch(var QS: TQuickSearchData);
 procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
 function  GetCursorPos(const QS: TQuickSearchData; const Name: String;
-                       Size, ExtSize, Delta: word): word;
+                       Size, ExtSize: word): word;
 procedure FileChanged (const Name: String);
 {-DataCompBoy-}
 
@@ -188,6 +201,7 @@ implementation
 uses advance1, advance3,
      {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
      Commands, dnapp, memory, drivers, drvtypes, views
+     , DnIni
      {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      {$IFDEF DPMI}, Dpmi {$ENDIF}
      ;
@@ -393,6 +407,7 @@ begin
  ValidDrive := Off;
  if dr='*' then begin ValidDrive:=On; exit end;
  if dr<'A' then exit;
+ dr:=UpCase(dr); {John_SW  07-05-2003 drive letter may be in low case!}
  if (dr < 'C') then
    begin
      ValidDrive := (NumFloppy >= Byte(dr)-64);
@@ -517,14 +532,12 @@ end;
 begin SetDrive(Byte(C)-65) end;
 {$ENDIF}
 
-        {-DataCompBoy-}
-FUNCTION GetExt;
+FUNCTION GetExt;{DataCompBoy}{fixed by piwamoto}
 var i:byte;
 begin
  for i:=length(s) downto 1 do if s[i] in ['.','\','/'] then break;
- if (i>1) and not (s[i] in ['/','\']) then GetExt:=Copy(s, i, 255) else GetExt:='.';
+ if s[i] = '.' then GetExt:=Copy(s, i, 255) else GetExt:='.';
 end;
-        {-DataCompBoy-}
 
 {$IFNDEF OS2}
 FUNCTION Norm12;
@@ -690,6 +703,37 @@ R: dec(mp);
  end
 end;
         {-DataCompBoy-}
+
+{JO}
+function InDirFilter;
+var
+    B,J: Boolean;
+    I: byte;
+    S: string;
+begin
+  InDirFilter:=On;
+  while Length(Filter) > 0 do
+   begin
+    i := Length(Filter) + 1;
+    j := Off;
+    repeat
+     dec(i);
+     if Filter[i]='"' then j:=not j;
+    until (i=1) or ((Filter[i] in [';',',']) and not j);
+    if Filter[i] in [';',','] then S := Copy(Filter, i+1, 255)
+                              else S := Filter;
+    B := S[1] <> '-';
+    Filter[0] := Char(i-1);
+    InDirFilter := B;
+    if not B then Delete(S, 1, 1); {DelFC(S);}
+    DelLeft(S); DelRight(S);
+    if (S <> '') and (S[Length(S)] in ['\', '/']) and
+       InMask(Name, Copy(S, 1, Length(S)-1))
+      then Exit;
+   end;
+ InDirFilter:=Off;
+end;
+{/JO}
 
 procedure MakeTMaskData(var MD: TMaskData);
 var i, j, l, e, k, o, NumMP: byte;
@@ -1083,6 +1127,13 @@ FUNCTION GetSName;
 var B: Byte;
     Pe: byte;
 begin
+{--- start -------- Eugeny Zvyagintzev ---- 15-05-2003 ----}
+ If (Copy(S,Length(S)-2,2) = '..') Or (S[Length(S)] = '.') Then
+  Begin
+   GetSName:=S;
+   Exit;
+  End;
+{--- finish -------- Eugeny Zvyagintzev ---- 15-05-2003 ----}
  Pe:=Length(S)+1;
  For B:=length(S) downto 1 do
   begin
@@ -1228,86 +1279,148 @@ begin
   end;
 end;
 
+{JO}
+function  PathFoundInArc(S: String): Boolean;
+begin
+ if PosChar(':', Copy(S, 3, 255)) > 0 then
+   PathFoundInArc := True
+  else
+   PathFoundInArc := False;
+end;
+{/JO}
+
+function  InQSMask(Name, Mask: String):Boolean; {JO}
+begin
+  if QuickSearchType then
+    InQSMask:=InMask(Name, Mask)
+  else
+    InQSMask:=(UpStrg(Copy(Name, 1, Length(Mask)))=UpStrg(Mask));
+end;
+
 procedure InitQuickSearch(var QS: TQuickSearchData);
 begin
- QS.Mask:='*';
- QS.NumExt:=0;
- QS.ExtD:=0;
+  if QuickSearchType then
+    QS.Mask:='*'
+  else
+    QS.Mask:='';
+  QS.NumExt:=0;
+  QS.ExtD := 0;
 end;
 
 procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
 begin
- if Key=kbBack then if QS.Mask<>'*' then
-                     if QS.Mask[Length(QS.Mask)-1] <> '.' then begin
-                      if QS.Mask[Length(QS.Mask)-1] = '"'
-                       then Dec(QS.Mask[0],3)
-                       else Dec(QS.Mask[0]);
-                      QS.Mask[Length(QS.Mask)]:='*';
-                      Dec(QS.ExtD);
-                     end else begin
-                      Dec(QS.Mask[0],2); QS.Mask[Length(QS.Mask)]:='*';
-                      Dec(QS.NumExt);
-                      QS.ExtD:=0;
-                      For Key:=Length(QS.Mask)-1 downto 1 do
-                       if QS.Mask[Key]='.'
-                        then break
-                        else if QS.Mask[Key]<>'"' then Inc(QS.ExtD);
-                     end
-                    else
- else
-  case Char(Lo(Key)) of
-   '*': ;
-   '[',
-   ']': begin
-         QS.Mask[Length(QS.Mask)]:='"';
-         Inc(QS.Mask[0]);
-         QS.Mask[Length(QS.Mask)]:=Char(Lo(Key));
-         Inc(QS.Mask[0]);
-         QS.Mask[Length(QS.Mask)]:='"';
-         Inc(QS.Mask[0]);
-         QS.Mask[Length(QS.Mask)]:='*';
-         Inc(QS.ExtD);
-        end;
-   '.': begin
-         Inc(QS.NumExt);
-         Inc(QS.Mask[0]);
-         QS.Mask[Length(QS.Mask)]:='.';
-         Inc(QS.Mask[0]);
-         QS.Mask[Length(QS.Mask)]:='*';
-         QS.ExtD:=0;
-        end;
-   else begin
-         QS.Mask[Length(QS.Mask)]:=Char(Lo(Key));
-         Inc(QS.Mask[0]);
-         QS.Mask[Length(QS.Mask)]:='*';
-         Inc(QS.ExtD);
-        end;
-  end;
+  if QuickSearchType then
+    if Key=kbBack then
+      if QS.Mask<>'*' then
+        if QS.Mask[Length(QS.Mask)-1] <> '.' then
+          begin
+            if QS.Mask[Length(QS.Mask)-1] = '"' then
+              QS.Mask[0] := Char(Length(QS.Mask)-3)
+            else
+              Dec(QS.Mask[0]);
+            QS.Mask[Length(QS.Mask)]:='*';
+            Dec(QS.ExtD);
+          end
+        else
+          begin
+            QS.Mask[0] := Char(Length(QS.Mask)-2);
+            QS.Mask[Length(QS.Mask)]:='*';
+            Dec(QS.NumExt);
+            QS.ExtD:=0;
+            for Key:=Length(QS.Mask)-1 downto 1 do
+              if QS.Mask[Key]='.' then
+                break
+              else
+                if QS.Mask[Key]<>'"' then
+                  Inc(QS.ExtD);
+          end
+      else
+    else
+      case Char(Lo(Key)) of
+        '*':
+          ;
+        '[',']':
+          begin
+            Dec(QS.Mask[0]);
+            QS.Mask:=QS.Mask+'"'+Char(Lo(Key))+'"*';
+            Inc(QS.ExtD);
+          end;
+        '.':
+          begin
+            Inc(QS.NumExt);
+            QS.Mask:=QS.Mask+'.*';
+            QS.ExtD:=0;
+          end;
+        else
+          begin
+            Dec(QS.Mask[0]);
+            QS.Mask:=QS.Mask+Char(Lo(Key))+'*';
+            Inc(QS.ExtD);
+          end;
+      end
+
+  else
+    if Key=kbBack then
+      begin
+        if Length(QS.Mask) > 0 then
+          begin
+            Dec(QS.Mask[0]);
+            Dec(QS.ExtD);
+          end;
+      end
+    else
+      begin
+        QS.Mask := QS.Mask+Char(Lo(Key));
+        Inc(QS.ExtD);
+      end;
 end;
 
 function  GetCursorPos(const QS: TQuickSearchData; const Name: String;
-                       Size, ExtSize, Delta: word): word;
-var O: Word;
-    D: Word;
+                       Size, ExtSize: word): word;
+var
+  O: Word;
+  D: Word;
 begin
- if Not InMask(Name, QS.Mask) then begin GetCursorPos:=0; exit end;
- D:=1;
- for O:=1 to QS.NumExt do begin
-  while Name[D]<>'.' do inc(D);
-  Inc(D);
- end;
- D:=D+QS.ExtD;
- if ExtSize=0
-  then GetCursorPos:=Min(D, Size)
-  else begin
-        O:=Length(GetSName(Name));
-        if D>O+1
-         then begin
-               D:=D-O-1;
-               GetCursorPos:=Min(Size, Size-ExtSize+D);
-              end
-         else GetCursorPos:=Min(Size-ExtSize, D);
-       end;
+  D:=1;
+
+  if QuickSearchType then
+    begin
+      if not InMask(Name, QS.Mask) then
+        begin
+          GetCursorPos:=0;
+          exit
+        end;
+      for O:=1 to QS.NumExt do
+        begin
+          while Name[D]<>'.' do
+            Inc(D);
+          Inc(D);
+        end;
+    end
+
+  else
+    begin
+      if not InQSMask(Name, QS.Mask) then
+        begin
+          GetCursorPos:=QS.ExtD+1;
+          exit
+        end;
+    end;
+
+  D:=D+QS.ExtD;
+  if ExtSize=0 then
+    GetCursorPos:=Min(D, Size)
+  else
+    begin
+      O:=Length(GetSName(Name));
+      if D>O+1 then
+        begin
+          D:=D-O-1;
+          GetCursorPos:=Min(Size, Size-ExtSize+D);
+        end
+      else
+        GetCursorPos:=Min(Size-ExtSize, D);
+    end;
 end;
 
 {-DataCompBoy-}

@@ -57,10 +57,17 @@
 //  dn2628-calculator_error_messages_improve.patch
 //
 //  2.7.0
+//  dn2825-calculator_improve.patch
+//  dn21202-calculator(f)-bugs_fix.patch
+//  dn21225-calculator(if)-multilanguage.patch
+//  dn328-InputLine(fi)-new_shortkey_added_and_some_bugs_fixed.patch
+//  dn368-calculator_clipboard_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-
+{(c) Sergey Biryukov aka Flash, 2002}
 UNIT CCalc;
 
 interface
@@ -71,6 +78,7 @@ uses advance, advance1, advance2, advance3, calculat, RStrings, DNApp,
 type
      PCalcLine = ^TCalcLine;
      TCalcLine = object(TInputLine)
+        Radio: PRadioButtons; { Flash 02-02-2003 }
         ResultSelected: Boolean;
         procedure HandleEvent(var Event: TEvent); virtual;
         procedure SetData(var B); virtual;
@@ -89,10 +97,29 @@ type
        function GetPalette: PPalette; virtual;
      end;
 
-procedure InsertCalc;
+     PCCalcWindow = ^TCCalcWindow;
+     TCCalcWindow = object(TDialog)
+       CalcLine: PCalcLine;
+       Label1, Label2: PLabel;
+       Radio: PRadioButtons;
+       btnCalc, btnCopy, btnClose, btnHelp: PButton;
+       Histry: PHistory;
+       Indicator: PIndicator;
+       constructor Init(Modal: Boolean);
+       constructor Load(var S: TStream);
+       destructor Done; virtual;
+       procedure InsertControls;
+       procedure DeleteControls;
+       procedure CenterButtons;
+       procedure Store(var S: TStream);
+     end;
+
+Function InsertCalc(s: PString): String;
 function CTrunc(Value:Double): LongInt; { Max Morozov }
+procedure GetNValue(L: LongInt; A: Integer; var S: String);
 
 Const Calc: PView = nil;
+      ModalCalc: PCCalcWindow = Nil;
 
 implementation
 
@@ -186,7 +213,7 @@ begin
                   Owner^.GetData(D);
                   case D.N of
                     0: begin
-                         if Abs(Value)>=1E+14 then Str(Value, D.S) else Str(Value:0:20, D.S); { Flash }
+                         if Abs(Value)>=1E+14 then Str(Value, D.S) else Str(Value:0:15, D.S); { Flash }
                          if Pos('E',D.S)=0 then While D.S[Length(D.S)] = '0' do Dec(D.S[0]);  { Flash }
                          if D.S[Length(D.S)] = '.' then Dec(D.S[0]);
                          DelSpace(D.S);                                                       { Flash }
@@ -230,6 +257,7 @@ begin
 
         { Flash >>> }
         case ErrCode of
+        Stack_Overflow          : S:=GetString(clStack_Overflow);
         Too_Large_Number        : S:=GetString(clToo_Large_Number);
         Argument_Missing        : S:=GetString(clArgument_Missing);
         Syntax_Error            : S:=GetString(clSyntax_Error);
@@ -258,7 +286,7 @@ begin
      end else
      begin
        if Abs(Value)>=1E+14 then Str(Value, S)        { Flash }
-                            else Str(Value:0:20, S);  { Flash }
+                            else Str(Value:0:15, S);  { Flash }
        if PosChar('E', S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
        if S[Length(S)] = '.' then Dec(S[0]);
        Wrt(0);
@@ -302,7 +330,10 @@ begin
     end else
     if (Event.What = evCommand) then
       case Event.Command of
-        cmCalcValue: SetValues(On);
+        cmCalcValue: Begin
+                      SetValues(On);
+                      If Owner^.GetState(sfModal) Then EndModal(cmOk); {John_SW 09-02-2003}
+                     End;
         cmGetName: PString(Event.InfoPtr)^ := GetString(dlCalculator);
       end;
 end;
@@ -317,18 +348,19 @@ procedure TCalcLine.Awaken;
 begin
   inherited Awaken;
   SetValues(Off);
-  Calc := Owner;
+  If ModalCalc = Nil Then Calc := Owner Else PView(ModalCalc) := Owner;
 end;
 
 destructor TCalcLine.Done;
 begin
-  Calc := nil;
+  If ModalCalc = Nil Then Calc := nil;
   inherited Done;
 end;
 
 procedure TCalcLine.SetValues;
  var R: CReal;
      S: String;
+     N: Word;
 begin
   ResultSelected:=False;
   GetData(S);
@@ -341,11 +373,31 @@ begin
    Message(Owner, evBroadcast, cmSetValue, @R);
    if SetSelf then begin
     GetData(S);
+    { Flash 02-02-2003 >>> }
+    Radio^.GetData(N);
+    case N of
+     0: begin
+         if Abs(R)>=1E+14 then Str(R, S) else Str(R:0:15, S);
+         if Pos('E',S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
+         if S[Length(S)] = '.' then Dec(S[0]);
+        end;
+     1: begin
+         if Abs(R) < 4294967295.0 then GetNValue(CTrunc(R), 4, S) else Exit;
+         S:='$'+S;
+        end;
+     2: begin
+         if Abs(R) < 4294967295.0 then GetNValue(CTrunc(R), 1, S) else Exit;
+         S:=S+'b';
+        end;
+     3: begin
+         if Abs(R) < 4294967295.0 then GetNValue(CTrunc(R), 3, S) else Exit;
+         S:=S+'o';
+        end;
+     4: Str(R, S);
+    end;
+    DelSpace(S);
     HistoryAdd(hsCalcLine, S);
-    if Abs(R)>=1E+14 then Str(R, S) else Str(R:0:20, S);          { Flash }
-    if Pos('E', S)=0 then While S[Length(S)] = '0' do Dec(S[0]);  { Flash }
-    if S[Length(S)] = '.' then Dec(S[0]);
-    DelSpace(S);                                                  { Flash }
+    { Flash 02-02-2003 <<< }
     SetData(S);
     Message(@Self, evKeyDown, kbEnd, nil);
     SelStart:=0;
@@ -356,45 +408,185 @@ begin
   end;
 end;
 
-procedure InsertCalc;
-
-    function MakeDialog : PDialog;
-    var
-      Dlg: PDialog;
-      R: TRect;
-      Control, Labl, Histry: PView;
-    begin
-       Dlg := PDialog( LoadResource( dlgCalculator )); R.Move(10, 5);
-       Dlg^.Number := GetNum;
-
-       R.Assign(2,3,Dlg^.Size.X-6,4);
-       Control := New(PCalcLine, Init(R, 250));
-       Control^.Options := Control^.Options or ofFramed or ofPostProcess;
-       Dlg^.Insert(Control);
-
-       R.Assign(Dlg^.Size.X-5,3,Dlg^.Size.X-2,4);
-       Histry := New(PHistory, Init(R, PInputline(Control), hsCalcLine));
-       Histry^.Options := Histry^.Options or ofFramed;
-       Dlg^.Insert(Histry);
-
-       R.Assign(2,2,13,3);
-       Labl := New(PLabel, Init(R, GetString(dlCalcEx_p_ression), Control));
-       Dlg^.Insert(Labl);
-
-       R.Assign(12,6,Dlg^.Size.X-2,11);
-       Control := New(PIndicator, Init(R));
-       Control^.Options := Control^.Options or ofFramed;
-       Dlg^.Insert(Control);
-
-       MakeDialog := Dlg;
-    end;
-
+procedure TCCalcWindow.InsertControls;
+ var R: TRect;
+     P: Pointer;
+     T: String;
+     N: Word;
 begin
-  if Calc = nil then
-    begin
-      Calc := MakeDialog;
-      Application^.InsertWindow(PWindow(Calc));
-    end else Calc^.Select;
+  { Input line }
+  R.Assign(2,3,46,4);
+  CalcLine:= New(PCalcLine, Init(R, 250));
+  CalcLine^.Options := CalcLine^.Options or ofFramed or ofPostProcess;
+  Insert(CalcLine);
+
+  { Radio buttons }
+  R.Assign(2,6,11,11);
+  Radio := New(PRadioButtons, Init(R,
+  NewSItem('~D~EC',
+  NewSItem('~H~EX',
+  NewSItem('~B~IN',
+  NewSItem('~O~CT',
+  NewSItem('~E~XP',Nil)))))));
+  Insert(Radio); CalcLine^.Radio := Radio;
+
+  { Buttons }
+  T:=GetString(dlEvaluateButton);
+  R.Assign(1,12,Length(T)+3,14);
+  btnCalc :=New(PButton, Init(R, T, cmCalcValue, bfDefault));
+  N:=1+btnCalc^.Size.X;
+  T:=GetString(dlCalcCopyButton);
+  R.Assign(N,12,N+Length(T)+2,14);
+  btnCopy :=New(PButton, Init(R, T, cmCopyClip, bfBroadcast));
+  N:=N+btnCopy^.Size.X;
+  T:=GetString(dlCloseButton);
+  R.Assign(N,12,N+Length(T)+2,14);
+  btnClose:=New(PButton, Init(R, T, cmCancel, bfBroadcast));
+  N:=N+btnClose^.Size.X;
+  T:=GetString(dlHelpButton);
+  R.Assign(N,12,N+Length(T)+2,14);
+  btnHelp :=New(PButton, Init(R, T, cmHelp, bfNormal));
+  CenterButtons;
+  Insert(btnCalc);
+  Insert(btnCopy);
+  Insert(btnClose);
+  Insert(btnHelp);
+
+  { Label "Expression" }
+  T:=GetString(dlCalcEx_p_ression);
+  R.Assign(2,2,Length(T)+2,3);
+  Label1 := New(PLabel, Init(R, T, CalcLine));
+  Insert(Label1);
+
+  { Label "Copy as" }
+  T:=GetString(dlCalcCopy_a_s);
+  R.Assign(2,5,Length(T)+2,6);
+  Label2 := New(PLabel, Init(R, T, Radio));
+  Insert(Label2);
+
+  { History }
+  R.Assign(47,3,50,4);
+  Histry := New(PHistory, Init(R, PInputline(CalcLine), hsCalcLine));
+  Histry^.Options := Histry^.Options or ofFramed;
+  Insert(Histry);
+
+  { Evaluation indicator }
+  R.Assign(12,6,50,11);
+  Indicator:= New(PIndicator, Init(R));
+  Indicator^.Options := Indicator^.Options or ofFramed;
+  Insert(Indicator);
+
+  CalcLine^.MakeFirst;
 end;
+
+procedure TCCalcWindow.DeleteControls;
+Begin
+ Delete(CalcLine);
+ Delete(Label1);
+ Delete(Label2);
+ Delete(Radio);
+ Delete(btnCalc);
+ Delete(btnCopy);
+ Delete(btnClose);
+ Delete(btnHelp);
+ Delete(Histry);
+ Delete(Indicator);
+ DisposeStr(Title);
+End;
+
+procedure TCCalcWindow.CenterButtons;
+ var N: Word;
+begin
+  N:=btnCalc^.Size.X+btnCopy^.Size.X+btnClose^.Size.X+btnHelp^.Size.X;
+  N:=(Size.X-N) div 2;   btnCalc^.MoveTo(N, 12);
+  N:=N+btnCalc^.Size.X;  btnCopy^.MoveTo(N, 12);
+  N:=N+btnCopy^.Size.X;  btnClose^.MoveTo(N, 12);
+  N:=N+btnClose^.Size.X; btnHelp^.MoveTo(N, 12);
+end;
+
+constructor TCCalcWindow.Init;
+ var R: TRect;
+begin
+  { Main window }
+  R.Assign(0,0,52,15);
+  inherited Init(R, GetString(dlCalculator));
+  HelpCtx := hcCalculator;
+  if Modal and (Calc <> nil) then
+   begin
+   Origin.X := (Desktop^.Size.X - Size.X) div 2 + 1;
+   Origin.Y := (Desktop^.Size.Y - Size.Y) div 2 + 1;
+   end
+  else Options := Options or ofCentered;
+  if not Modal then Number := GetNum;
+  InsertControls;
+end;
+
+destructor TCCalcWindow.Done;
+begin
+  If ModalCalc = Nil Then Calc := nil;
+  inherited Done;
+end;
+
+constructor TCCalcWindow.Load(var S: TStream);
+ var R: TRect;
+     T: String;
+     C: Byte;
+     N: Word;
+begin
+  inherited Load(S);
+  T:=CnvString(S.ReadStr);
+  S.Read(N, SizeOf(N));
+  InsertControls;
+  CalcLine^.SetData(T);
+  Radio^.SetData(N);
+  Title:=NewStr(GetString(dlCalculator));
+  Calc:=@Self;
+end;
+
+procedure TCCalcWindow.Store(var S: TStream);
+Var T: String;
+    N: Word;
+begin
+  CalcLine^.GetData(T);
+  Radio^.GetData(N);
+  DeleteControls;
+  inherited Store(S);
+  S.WriteStr(@T);
+  S.Write(N, SizeOf(N));
+end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
+{Now calculator can be called from InputLine as Modal window}
+Function InsertCalc(S: PString): String;
+var R: CReal;
+begin
+  If (S <> Nil) Then
+   Begin
+    If (ModalCalc = Nil) Then
+     Begin
+      R:=Evalue(S^, nil);
+      ModalCalc:=New(PCCalcWindow, Init(True));
+      If Not EvalueError Then ModalCalc^.CalcLine^.SetData(S^);
+      If Desktop^.ExecView(ModalCalc) = cmOk Then
+       Begin
+        ModalCalc^.CalcLine^.GetData(FreeStr);
+        InsertCalc:=FreeStr;
+       End
+      Else
+       InsertCalc:='';
+      Dispose(ModalCalc,Done);
+      ModalCalc:=Nil;
+     End
+   End
+  Else
+   If Calc = Nil Then
+    Begin
+     Calc := New(PCCalcWindow, Init(False));
+     Desktop^.Insert(PWindow(Calc))
+    End
+   Else
+    Calc^.Select;
+end;
+{--- finish -------- Eugeny Zvyagintzev ---- 09-02-2003 ----}
 
 END.

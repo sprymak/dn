@@ -51,6 +51,10 @@
 //  dn2628_creating_file_list_improve.patch
 //
 //  2.7.0
+//  dn270_creating_file_list_fix.patch
+//  dn3421-FileList(i)-read_and_write_files_list_improve.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -65,7 +69,7 @@ function  ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boole
 implementation
 uses Startup, Lfn, Messages, objects, filescol, advance2, advance1, usermenu,
      advance, histlist, commands, dnapp, dnutil, tree, views, drivers, drives
-     {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}, FlPanelx;
+     {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}, FlPanelx, Gauge, xTime, DNHelp;
 
 function ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;
   var I,J: Integer;
@@ -117,6 +121,11 @@ procedure MakeListFile;
      FLD, Dr_: String;
      CurPos: integer;
      UPr: TUserParams;
+{--- start -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
+     PInfo: PWhileView;
+     TT: TEventTimer;
+     R: TRect;
+{--- finish -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
 
   function GetNextName(var TheString,TheName:string):boolean;
   var j: boolean;
@@ -150,23 +159,23 @@ procedure MakeListFile;
   label Fail;
     var Drr: Boolean;
   begin
-{--- start -------- Eugeny Zvyagintzev ---- 12-07-2002 -----}
-    If (S.Options and cmlUseLFN) = cmlUseLFN Then
-     Begin
-      Replace('!', '#', D);
-      Replace('$', '&', D);
-     End;
-{--- finish -------- Eugeny Zvyagintzev ---- 12-07-2002 -----}
+
   { BB means "Is filename occurs in Action?" }
     Replace('!!', #1, D);Replace('##', #2, D);
     Replace('$$', #3, D);Replace('&&', #4, D);
     if {$IFNDEF OS2}(PosChar('!',D)=0) and {$ENDIF}
        (PosChar('#',D)=0) then
      if (D[Length(D)] in [#8,' ']) or ((Length(D)=1) and (D[1] in ['^',#2]))
-      then D:=D+ '!.!'
-      else D:=D+' !.!';
+      then
+       If (S.Options and cmlUseLFN) = cmlUseLFN Then D:=D+'#.#'  {JOHN_SW}
+       Else D:=D+'!.!'
+      else
+       If (S.Options and cmlUseLFN) = cmlUseLFN Then D:=D+' #.#' {JOHN_SW}
+       Else D:=D+' !.!';
     {$IFDEF OS2}Replace('!', '#', D); Replace('$', '&', D);{$ENDIF}
-    If ( S.Options and cmlAutoDetermine = cmlAutoDetermine ) and
+    If (S.Options and cmlPathNames <> 0) or                {JOHN_SW}
+       ( S.Options and cmlAutoDetermine = cmlAutoDetermine ) Then
+     If
        {$IFNDEF OS2}
        ( lfGetShortFileName(Sr) <> lfGetShortFileName(Dr) ) and
        ( Pos( '!\', D ) = 0 ) and
@@ -199,7 +208,9 @@ procedure MakeListFile;
           If ( K <> 1 ) and ( D[ K - 1 ] in ['!','#'] ) then Dec( K )
                                                         else goto Fail;
           {$ENDIF}
-      Insert( '!:!\', D, K );
+      If (S.Options and cmlUseLFN) = cmlUseLFN Then Insert( '#:#\', D, K )   {JOHN_SW}
+      Else Insert( '!:!\', D, K );
+
     end;
   Fail: { Cannot find place to insert !\ }
     Replace(#1, '!!', D);Replace(#2, '##', D);
@@ -207,6 +218,24 @@ procedure MakeListFile;
     D:=MakeString(D, @UPr, off, nil);
     WriteLn(T.T, D);
   end;
+
+{--- start -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
+Procedure EnableFFP(View: PView); {$IFDEF BIT_16}Far;{$ENDIF}
+Var Event: TEvent;
+Begin
+ Event.What:=evCommand; Event.Command:=cmEnableFileFindPanels;
+ Event.InfoPtr:=Nil;
+ View^.HandleEvent(Event);
+End;
+
+Procedure DisableFFP(View: PView); {$IFDEF BIT_16}Far;{$ENDIF}
+Var Event: TEvent;
+Begin
+ Event.What:=evCommand; Event.Command:=cmDisableFileFindPanels;
+ Event.InfoPtr:=Nil;
+ View^.HandleEvent(Event);
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
 
 begin
  if Files^.Count = 0 then Exit;
@@ -334,8 +363,26 @@ AddrError:
      end;
  end;
  Message(Desktop, evBroadcast, cmGetUserParams, @UPr);
+{--- start -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
+ R.Assign(1, 1, 30, 9); Inc(SkyEnabled);
+ New(PInfo, Init(R)); PInfo^.Options := PInfo^.Options or ofSelectable or ofCentered;
+ PInfo^.HelpCtx := hcMakeListFile;
+ PInfo^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, 255));
+ Desktop^.Insert(PInfo);
+ NewTimer(TT, 0);
+{--- finish -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
  for I := 1 to Files^.Count do
   begin
+{--- start -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
+    if TimerExpired(TT) then
+     begin
+       DispatchEvents(PInfo,Abort);
+       NewTimer(TT, 1);
+     end;
+    If Abort And
+     (MessageBox(GetString(dlQueryAbort),Nil,mfYesNoConfirm)=cmYes) Then Break
+    Else Abort:=False;
+{--- finish -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
     P := Files^.At(I-1);
     UPr.Active:=P;
     Message(APP, evCommand, cmCopyUnselect, P);
@@ -357,8 +404,12 @@ AddrError:
       end else
     If (S.Options and cmlPathNames <> 0) or
        (S.Options and cmlAutoDetermine <> 0) and (SR <> FLD)
-      then MakeStr( '!:!\!.!' )
-      else MakeStr('!.!');
+      then
+       If (S.Options and cmlUseLFN) = cmlUseLFN Then MakeStr( '#:#\#.#' ){JOHN_SW}
+       Else MakeStr( '!:!\!.!' )
+      else
+       If (S.Options and cmlUseLFN) = cmlUseLFN Then MakeStr( '#.#' ){JOHN_SW}
+       Else MakeStr('!.!');
   end;
  if (S.Footer<>'') and not FidoMode then begin
      if (S.FooterMode=hfmInsertText) or
@@ -382,9 +433,15 @@ AddrError:
      end;
  end;
  Close(T.T);
+{--- start -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
+ Desktop^.Delete(PInfo); Dec(SkyEnabled);
+ Dispose(PInfo,Done);
+ Desktop^.ForEach(@DisableFFP);
+{--- finish -------- Eugeny Zvyagintzev ---- 11-05-2003 ----}
  RereadDirectory(Dr);
  GlobalMessage(evCommand, cmRereadInfo, nil);
  GlobalMessage(evCommand, cmRereadTree, @Dr);
+ Desktop^.ForEach(@EnableFFP);  {John_SW 11-05-2003}
 end;
         {-DataCompBoy-}
 

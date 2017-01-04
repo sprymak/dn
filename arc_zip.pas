@@ -58,6 +58,9 @@
 //  dn247-read_ZIP_central_directory.patch
 //
 //  2.7.0
+//  dn328-ARJ_ACE_defaults_remove_EXE_from_names.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -124,8 +127,8 @@ begin
   FreeStr := SourceDir + DNARC;
   TObject.Init;
 {$IFNDEF OS2}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'PKZIP.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'PKUNZIP.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'PKZIP'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'PKUNZIP'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            ''));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-d'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                '-a -wsh'));
@@ -149,8 +152,8 @@ begin
   q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
   if q<>'' then ListChar := q[1] else ListChar:=' ';
 {$ELSE}
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZIP.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNZIP.EXE'));
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZIP'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'UNZIP'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            '-j -C'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          '-C'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                '-S'));

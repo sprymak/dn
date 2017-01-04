@@ -51,6 +51,9 @@
 //  dn16rc1-user_menu_pgdn_fix.patch
 //
 //  2.3.0
+//  dn2825-quick_directories_list_improve.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -117,6 +120,7 @@ type
     Current: PMenuItem;
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
+    procedure RecalcBounds(R: TRect); {John_SW}
     function Execute: Word; virtual;
     function FindItem(Ch: Char): PMenuItem;
     procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;
@@ -405,6 +409,56 @@ begin
   Menu := DoLoadMenu;
 end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+{Bounds recalculation is common procedure now}
+procedure TMenuView.RecalcBounds(R: TRect);
+var
+  W, H, L: Integer;
+  R2: TRect;
+  P: PMenuItem;
+Begin
+ W := 10;
+ H := 2;
+ if Menu <> nil then begin
+   P := Menu^.Items;
+   while P <> nil do begin
+     if P^.Name <> nil then begin
+       L := CStrLen(P^.Name^) + 6;
+       if P^.Command = 0 then Inc(L, 3) else
+         if P^.Param <> nil then Inc(L, CStrLen(P^.Param^) + 2);
+       if L > W then W := L;
+     end;
+     Inc(H);
+     P := P^.Next;
+   end;
+ end;
+ GetBounds(R);
+ Owner^.GetExtent(R2);
+ if Options and ofCenterX <> 0 then begin
+  R.A.X := (R2.B.X - R2.A.X - W) div 2;
+ end;
+ R.B.X := R.A.X + W;
+
+ if Options and ofCenterY <> 0 then begin
+  R.A.Y := (R2.B.Y - R2.A.Y - H) div 2;
+ end;
+ R.B.Y := R.A.Y + H;
+
+ if R.B.Y > R2.B.Y then begin
+  R.A.Y := R2.B.Y-H;
+  If R.A.Y < 0 then R.A.Y:=0;
+  R.B.Y := R.A.Y + H;
+  if R.B.Y > R2.B.Y then R.B.Y := R2.B.Y;
+ end;
+ if R.B.X > R2.B.X then begin
+  R.A.X := R2.B.X - (R.B.X - R.A.X);
+  R.B.X := R2.B.X;
+ end;
+ SetBounds(R);
+ Owner^.Redraw;
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+
 function TMenuView.Execute: Word;
 type
   MenuAction = (DoNothing, DoSelect, DoReturn);
@@ -524,52 +578,10 @@ begin
 end;
 
 var Frst: Boolean;
+    W: Integer;
 
-var
-  W, H, L: Integer;
-  R2: TRect;
 begin
- If TypeOf(Self)=TypeOf(TMenuBox) then begin
-  W := 10;
-  H := 2;
-  if Menu <> nil then begin
-    P := Menu^.Items;
-    while P <> nil do begin
-      if P^.Name <> nil then begin
-        L := CStrLen(P^.Name^) + 6;
-        if P^.Command = 0 then Inc(L, 3) else
-          if P^.Param <> nil then Inc(L, CStrLen(P^.Param^) + 2);
-        if L > W then W := L;
-      end;
-      Inc(H);
-      P := P^.Next;
-    end;
-  end;
-  GetBounds(R);
-  Owner^.GetExtent(R2);
-  if Options and ofCenterX <> 0 then begin
-   R.A.X := (R2.B.X - R2.A.X - W) div 2;
-  end;
-  R.B.X := R.A.X + W;
-
-  if Options and ofCenterY <> 0 then begin
-   R.A.Y := (R2.B.Y - R2.A.Y - H) div 2;
-  end;
-  R.B.Y := R.A.Y + H;
-
-  if R.B.Y > R2.B.Y then begin
-   R.A.Y := R2.B.Y-H;
-   If R.A.Y < 0 then R.A.Y:=0;
-   R.B.Y := R.A.Y + H;
-   if R.B.Y > R2.B.Y then R.B.Y := R2.B.Y;
-  end;
-  if R.B.X > R2.B.X then begin
-   R.A.X := R2.B.X - (R.B.X - R.A.X);
-   R.B.X := R2.B.X;
-  end;
-  SetBounds(R);
-  Owner^.Redraw;
- end;
+  If TypeOf(Self) <> TypeOf(TMenuBar) then RecalcBounds(R); {John_SW: For centering MenuBox purpose}
   if TypeOf(Self) = TypeOf(TMenuBar) then Message(Owner, evCommand, cmMenuOn, @Self);
   AutoSelect := False;
   Result := 0;
@@ -1119,6 +1131,7 @@ begin
   FrameLine(0);
   DrawLine;
 
+  if Menu^.Items = nil then Exit; {John_SW: to prevent crash 04-09-2002}
   if Menu <> nil then
   begin
     P:=Menu^.Items;

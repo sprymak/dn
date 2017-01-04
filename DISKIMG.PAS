@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn270-DDI_unpack_fix.patch
+//  dn368-disk_unpacking_FAT_processing_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -206,54 +210,79 @@ begin
   if Error then EraseFile(FName) else SetFData;
 end;
 
-procedure ProcessDir(const Dir: String; Ofst: Word);
+procedure ProcessDir(const Dir: String; Ofst: Word; OfstIsCluster: Boolean);
 var
   _Dir : PByteArray;
   DR   : DirRec;
-  I    : Integer;
   Nm   : Str12;
-
-
+  I, FileCount, MemSize : Word;
 begin
-  fSeek(LongInt(Ofst)*SectLen+DSKoffset);
-  if (F^.Status <> stOK) then Exit;
-  GetMem(_Dir,RootEntries*32);
-  fRead(_Dir^,RootEntries*32);
-  for I := 0 to RootEntries-1 do
+  if OfstIsCluster then
+    begin{subdir}
+     MemSize := 0;
+     FileCount := Ofst;{use FileCount for counting subdir's FAT entries}
+     repeat{calc memsize for this subdir}
+       FileCount := NextFAT(FileCount);
+       Inc(MemSize);
+     until (FileCount > $ff7);
+     MemSize := MemSize * BytesPerClu;
+     GetMem(_Dir, MemSize);
+     if _Dir = Nil then Exit;
+     I := 0;
+     repeat
+       fSeek(Fat2Sec(Ofst)*SectLen+DSKoffset);
+       fRead(_Dir^[I], BytesPerClu);
+       if F^.Status <> stOK then Exit;
+       I := I + BytesPerClu;
+       Ofst := NextFAT(Ofst);
+     until (Ofst > $ff7);
+     FileCount := I div 32;
+    end
+  else begin{root dir}
+         fSeek(LongInt(Ofst)*SectLen+DSKoffset);
+         MemSize := RootEntries*32;
+         GetMem(_Dir, MemSize);
+         fRead(_Dir^, MemSize);
+         if F^.Status <> stOK then Exit;
+         FileCount := RootEntries;
+       end;
+  for I := 0 to FileCount - 1 do
   begin
     CheckCancel;
     if Error or Cancel then Break;
     Move(_Dir^[I*SizeOf(DR)], DR, SizeOf(DR));
     case DR.Name[0] of
       #$E5    : Continue;
-      #0..' ' : Break;
+      #0      : Break;
+      #5      : DR.Name[0] := #$E5;
     end;
-    Nm[0] := #12;
-    Nm[9] := '.';
-    Move(DR.Name[0], Nm[1], 8);
-    Move(DR.Name[8], Nm[10], 3);
-    Nm := MakeFileName(Nm);
     if DR.Attr and (VolumeID+SysFile+Hidden+ReadOnly) = VolumeID then {LFN bugfix by piwamoto}
      if SearchVolume then
       begin
-       Replace(' ','_',Nm);
-       Replace('.','_',Nm);
-       VolumeLabel := Nm+'\';
+       VolumeLabel[0] := #11;
+       Move(DR.Name[0], VolumeLabel[1], 11);
+       DelRight(VolumeLabel);
+       VolumeLabel := VolumeLabel + '\';
        Break;
       end
       else Continue;
     if SearchVolume then Continue;
     if DR.Attr and VolumeID <> 0 then Continue; {i'll skip VFAT names}
+    Nm[0] := #12;
+    Nm[9] := '.';
+    Move(DR.Name[0], Nm[1], 8);
+    Move(DR.Name[8], Nm[10], 3);
+    Nm := MakeFileName(Nm);
     if DR.Attr and Directory <> 0 then
     begin
-      if Nm[1]<>'.' then ProcessDir(Dir+Nm+'\', Fat2Sec(DR.Clus));
+      if Nm[1]<>'.' then ProcessDir(Dir+Nm+'\', DR.Clus, True);
       Continue;
     end;
     WriteFile(Dir, Nm, DR.Clus, DR.Len, DR.Date, DR.Attr);
   end;
-  FreeMem(_Dir,RootEntries*32);
+  FreeMem(_Dir, MemSize);
+  _Dir := Nil;
 end;
-        {-DataCompBoy-}
 
 procedure ChkValid;
 begin
@@ -271,14 +300,24 @@ begin
   GetMem(BRec, 4096);
   fRead(BRec^, 4096);
   if (BRec^.Jmp[0] = $49) and (BRec^.Jmp[1] = $4D) then {.DDI support by piwamoto}
-     begin
-       case Brec^.OEM[7] of
-        #3 : DSKoffset := $1200;
-        #4 : DSKoffset := $2400;
-       end;
-       fSeek(DSKoffset);
-       fRead(BRec^, 4096);
-     end;
+    case Brec^.OEM[7] of
+      #2 : DSKoffset := $1E00;
+      #4 : DSKoffset := $2400;
+      else DSKoffset := $1200;{#1,#3}
+    end;
+
+{IBM diskimages support by piwamoto}
+  if (BRec^.Jmp[0] = $AA) and
+     (BRec^.Jmp[1] in [$58..$5a]) and
+     (BRec^.Jmp[2] = $f0)
+    then DSKoffset := BRec^.ExtBootS + 256*BRec^.VolumeN[0];
+
+  if DSKoffset <> 0 then
+    begin
+      fSeek(DSKoffset);
+      fRead(BRec^, 4096);
+    end;
+
   SectPerFAT  := BRec^.SecFAT;
   SectLen     := BRec^.ByteSec;
   FatCopies   := BRec^.FATCps;
@@ -308,9 +347,9 @@ begin
   fRead(FAT^, FatSize);
   if F^.Status = stOK then
     begin {piwamoto}
-      ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);
+      ProcessDir(DestDir + '%s', SectPerFAT * FatCopies + Reserved, False);
       SearchVolume := False;
-      ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);
+      ProcessDir(DestDir + '%s', SectPerFAT * FatCopies + Reserved, False);
     end;
   FreeMem(FAT, FatSize);
 

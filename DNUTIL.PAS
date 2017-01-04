@@ -63,6 +63,31 @@
 //  dn2628_use_viewer_history_fix.patch
 //
 //  2.7.0
+//  dn270-search_in_archives.patch
+//  dn270-reuse_editor_and_viewers-jo20612a.patch
+//  dn281-dbf_wkz_view_from_archive_fix.patch
+//  dn281-store_viewer_and_editor_position_fix.patch
+//  dn281-save_all_editor_options_to_history.patch
+//  dn281-title_update_after_exit_from_help.patch
+//  dn281-open_editor_file_doesn't_exist_fix.patch
+//  dn2811-enable_DefCodePage_for_new_files.patch
+//  dn2825-delete_filtered_file_from_TEMP.patch
+//  dn2825-new_logic_for_viewers.patch
+//  dn2825-help_bug_fix.patch
+//  dn2911-help_bug_fix.patch
+//  dn2911-view_files_in_archive_from_history.patch
+//  dn2922-ChangeDirMenu_help_bug_fix.patch
+//  dn21013-add_flt_files_to_history_fix.patch
+//  dn21202-editor(f)-double_items_in_history.patch
+//  dn21202-help_showing_improve.patch
+//  dn21202-screen_grabber_help.patch
+//  dn328-util(f)-screen_grabber_help_fix.patch
+//  dn3216-DBF_Viewer(fn)-change_code_page_ability_added.patch
+//  dn3315-DBF_Viewer(i)-indicator_and_code_page_improve.patch
+//  dn328-InputLine(fi)-new_shortkey_added_and_some_bugs_fixed.patch
+//  dn3421-DiskEditor(f)-quit_from_DN_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -93,7 +118,7 @@ type
 
         Pk1,Pk2,Pk3,Pk4 : PView ;
 
-        procedure ViewFile(Intern: integer; FileName: String); {DataCompBoy} (* X-Man *)
+        procedure ViewFile(FromHistory, AltExt, NoExtFile: boolean; FileName: String); { Flash }
         procedure EditFile(Intern: Boolean; FileName: String); {DataCompBoy}
         procedure OutOfMemory; virtual;
         procedure EventError(var Event: TEvent); virtual;
@@ -113,10 +138,10 @@ const w95locked:boolean=FALSE; {Gimly}
 
 implementation
 uses Advance2, Commands, Idlers, Startup, Messages, FilesCol, Histries, Dnexec,
-     FViewer, Advance1, Dos, LFN, Advance, DnIni, Arcview,
-     Microed, EdWin, DnUtil2, usermenu, dnsvld, colors, archread,
+     FViewer, Advance1, Dos, LFN, Advance, DnIni, Arcview, u_keymap, flpanel,
+     Microed, EdWin, DnUtil2, usermenu, dnsvld, colors, archread, gauge,
      asciitab, ccalc, filefind, videoman, archset, archiver, dnhelp, diskinfo,
-     HelpKern, advance7, Setups,menus
+     HelpKern, advance7, Setups, menus, titleset
      {$IFDEF DiskFormat},DnFormat{$ENDIF}
      {$IFDEF SpreadSheet},Calc{$ENDIF}
      {$IFDEF DBView},DbView{$ENDIF}
@@ -151,6 +176,14 @@ end;
 
 function CheckExit: Boolean;
  var Event: TEvent;
+{--- start -------- Eugeny Zvyagintzev ---- 19-05-2003 ----}
+     b: Boolean;
+ procedure CloseDiskFixer(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
+ begin
+  If TypeOf(P^) = TypeOf(TFixerWindow) Then Dispose(P,Done);
+ end;
+{--- start -------- Eugeny Zvyagintzev ---- 19-05-2003 ----}
+
  function FindQuit(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
  begin
   P^.HandleEvent(Event);
@@ -159,7 +192,9 @@ function CheckExit: Boolean;
 begin
 { if FormatWindow <> nil then begin CheckExit := False; Exit; end;}
  Event.What := evCommand; Event.Command := cmQuit;
- CheckExit := Desktop^.FirstThat(@FindQuit) = nil;
+ b:=Desktop^.FirstThat(@FindQuit) = nil;
+ If b Then Desktop^.ForEach(@CloseDiskFixer); {John_SW 19-05-2003 Quit from DN when DiskFixer is active}
+ CheckExit := b;
 end;
 
 procedure TDNAppl.EventError;
@@ -175,15 +210,19 @@ begin
   Msg(erNotEnoughMemory, nil, mfError + mfOKButton);
 end;
 
+const
+  ExtFileName: array[boolean] of string[10] =
+    ('dn.vwr', 'dnalt.vwr');
+
 (* X-Man >>> *)
-procedure StoreCallback(var Param);
+procedure StoreCallback(var Param, AltExt);
 begin
-    StoreExtViewer(string(Param))
+    StoreExtViewer(string(Param), boolean(AltExt))
 end;
 (* X-Man <<< *)
 
-        {-DataCompBoy-}
-procedure TDNAppl.ViewFile;
+        {-DataCompBoy-} {AK155} { Flash }
+procedure TDNAppl.ViewFile(FromHistory, AltExt, NoExtFile: boolean; FileName: String); {AK155}
 var
   XT: String;
   W : PWindow;
@@ -195,22 +234,183 @@ var
   PS: PString;
   q : Integer;
   RN: String;
-  _M: Integer;
+  Ext: Boolean; { Flash }
+
+  function SpecialIntView: Boolean;
+    var
+      _M: Integer;
 {--- start -------- Eugeny Zvyagintzev ---------}
-  FileIsDBF: Boolean;
+      FileIsDBF: Boolean;
 {--- finish -------- Eugeny Zvyagintzev ---------}
+    label
+      db;
+    begin
+    SpecialIntView := false;
+    XT := ' '+RN;
+    UpStr(XT);
+    PS := @XT;
+    if (InterfaceData.Options and ouiTrackViewers <> 0) and
+       (ViewHistory <> nil)
+     then I := ViewHistory^.IndexOf(@PS) else I := -1;
+    if I >= 0 then begin
+     P := ViewHistory^.At(I);
+     Q := P^.fViewMode;
+     if Q and vmInternal = vmInternal then
+       Q := -1;
+    end else Q:=-1;
+    XT := UpStrg(GetExt(FileName));
+    {$IFDEF DBView}
+    if (XT = '.DBF') or (Q=vmDB) then begin
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Use history if possible}
+      XT := ' '+RN;
+      UpStr(XT);
+      PS := @XT;
+      Q:=-1;
+      if (InterfaceData.Options and ouiTrackViewers <> 0) and
+         (ViewHistory <> nil) then
+       I := ViewHistory^.IndexOf(@PS)
+      else
+       I := -1;
+      if I >= 0 then
+       begin
+        P := ViewHistory^.At(I);
+        Q:=P^.fViewMode;
+       End;
+      FileIsDBF:=False;
+      W := New(PDBWindow,Init(RN+'|'+FileName,FileIsDBF));
+{If file is not valid DBF and NOT empty DBF file then use internal viewer}
+      If (W = Nil) And (FileIsDBF = False) Then Exit; { Flash }
+{--- finish -------- Eugeny Zvyagintzev ---------}
+     if (Q=vmDB) and (W<>nil) then
+      with P^, W^ do begin
+        R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
+        AdjustToDesktopSize(R, fDeskSize);
+        Locate(R);
+       with PDBWindow(W)^.P^ do begin
+        Delta := fdDelta;
+        Pos   := fdPos;
+        KeyMap:= fKeyMap;    {John_SW 14-03-2003}
+        if XLatFile<>nil then DisposeStr(XLatFile);
+        XLatFile:= NewStr(fXlatFile);
+        UseXLat := fUseXLat;
+        if UseXLat
+         then SetXlatFile(XLatFile^, True)
+         else SetXlatFile('', True);
+       end;
+      end;
+    goto db;
+    end;
+    {$ENDIF}
 
-  function View: Boolean;
-  begin
-   if RN=FileName                                                        (* X-Man *)
-   then View:=ExecExtFile('DN.VWR',@up,dlLoadingViewer,StoreCallback,RN) (* X-Man *)
-   else View:=ExecExtFile('DN.VWR',@up,dlLoadingViewer,nil,RN);          (* X-Man *)
-  end;
+    {$IFDEF SpreadSheet}
+     if (XT = '.WKZ') or (Q=vmSpread) then begin
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Use history if possible}
+       XT := ' '+RN;
+       UpStr(XT);
+       PS := @XT;
+       if (InterfaceData.Options and ouiTrackViewers <> 0) and
+          (ViewHistory <> nil) then
+        I := ViewHistory^.IndexOf(@PS)
+       else
+        I := -1;
+       if I >= 0 then
+        begin
+         P := ViewHistory^.At(I);
+         _M:=P^.fViewMode;
+         Q:=vmSpread;
+        End;
+{--- finish -------- Eugeny Zvyagintzev ---------}
+      W := New(PCalcWindow,Init(R, RN+'|'+FileName));
+{--- start -------- Eugeny Zvyagintzev ---------}
+{If file is not valid WKZ then use internal viewer.}
+{But CalcWindow will always created.}
+       If W = Nil Then Exit; { Flash }
+{--- finish -------- Eugeny Zvyagintzev ---------}
+      if (Q=vmSpread) and (W<>nil) then
+       with P^, W^ do begin
+         R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
+         AdjustToDesktopSize(R, fDeskSize);
+         Locate(R);
+{--- start -------- Eugeny Zvyagintzev ---------}
+{If previous view mode is NOT vmSpread then position will NOT restored}
+         If _M = vmSpread Then
+{--- finish -------- Eugeny Zvyagintzev ---------}
+        with PCalcWindow(W)^.CalcView^ do begin
+         Delta       := fsDelta;
+         Cur         := fsCur;
+         Mark        := fsMark;
+         CurrentCalc := fsCurrentCalc;
+         SearchPos   := fsSearchPos;
+         ErrorCell   := fsErrorCell;
+         HScroll^.Value := Delta.X + Cur.X;{AK155}
+         VScroll^.Value := Delta.Y + Cur.Y;{AK155}
+         end;
+       end;
+     goto db;
+     end;
+    {$ENDIF}
 
-  procedure InternalView;
+    {$IFDEF PKTView}
+    if (IsPktFile(FileName) or (Q=vmPKT)) and (XT = '.PKT') then
+      begin
+      SpecialIntView := true;
+      ViewPktFile(FileName);
+      exit;
+      end;
+    if (IsMsgFile(FileName) or (Q=vmMSG)) and (XT = '.MSG') then
+      begin
+      SpecialIntView := true;
+      ViewMSGFile(FileName);
+      exit;
+      end;
+    {$ENDIF}
+    SpecialIntView := ArcViewer(FileName, RN, FreeByte);
+    exit;
+
+db:
+    if (W <> nil) and not W^.Valid(0) then
+      begin
+      Dispose(W,Done); exit;
+      end;
+{    StoreViewInfo(W);  AK155: сохранять бессмысленно (еще нечего)
+        и излишне (сохранит Done) }
+    InsertWindow(W);
+    SpecialIntView := true;
+    end;
+
+  procedure TextView;
    var S: String;
        V: PFileViewer;
+       X: Integer;
   begin
+    { Flash >>> }
+    S:=RN; X:=PosChar(':',S);
+    if X>2 then
+     begin
+     S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S);
+     if X>0 then
+      begin
+      S:=Copy(S,X+1,Length(S)-X); X:=PosChar(':',S);
+      if X>0 then S:=Copy(S,X+1,Length(S)-X);
+      end;
+     if S[1]<>'\' then S:='\'+UpStrg(S);
+     end else S:=UpStrg(GetSName(RN)+GetExt(RN));
+    if (UpStrg(GetExt(FileName))='.FLT') and
+       (UpStrg(GetSName(FileName)+GetExt(FileName)) <> S) then
+     begin
+     if (UpStrg(GetCurrentDir)+'\'<>UpStrg(TempDir)) and
+        (not ExistFile(GetCurrentDir+'\'+GetName(RN)) or
+         (FileTime(GetCurrentDir+'\'+GetName(RN))=FileTime(TempDir+GetName(RN)))) then
+      EraseTempFile(TempDir+GetName(RN));
+     if (InterfaceData.Options and ouiTrackViewers <> 0) and (ViewHistory <> nil) then
+      begin
+      S:=CnvString(PViewRecord(ViewHistory^.At(0))^.fName);
+      DelFC(S); RN:=S;
+      end;
+     end;
+    { Flash <<< }
     W := New(PFileWindow,Init(FileName, RN, ViewerDefaults.Options and vbfHex <> 0));
     if (W <> nil) and (W^.Valid(cmValid)) then
       begin
@@ -229,7 +429,8 @@ var
              W^.Locate(R);
              with V^, P^ do
               begin
-                if fPos+fBufPos > FileSize then
+                if (fPos+fBufPos > FileSize) or { Flash }
+                   (InterfaceData.Options and ouiStoreViewerPosition = 0) then
                 begin
                   fPos := 0;
                   fBufPos := 0;
@@ -255,10 +456,10 @@ var
                 MakeLines;
               end;
            end;
+        InsertWindow(W);
       end;
   end;
 
-label ex, int, ext; (* X-Man *)
 begin
    Q:=-1; {JOHN_SW}
    I:=PosChar('|', FileName);
@@ -271,137 +472,47 @@ begin
    fr:=CreateFileRec(FileName);
    fillchar(up, sizeof(up), 0);
    up.active:=fr;
-   UpStr(XT);
    Desktop^.GetExtent(R);
    Abort := False;
-   if (Message(DeskTop, evBroadcast, cmFindView, @FileName) <> nil)
+   if (ReuseViewers > 0)
+     and (Message(DeskTop, evBroadcast, cmFindView, @FileName) <> nil)
      and ((ReuseViewers=2) or
           ((ReuseViewers=1) and
            (MessageBox(GetString(dlOpenNewWindow), nil, mfYesButton+mfNoButton)<>cmYes)
           )
          )
      then begin TempFile:=''; Exit; end;
-   if Intern=1 then (* X-Man *)
-    begin
+
      XT := ' '+RN;
      UpStr(XT);
      PS := @XT;
      if (InterfaceData.Options and ouiTrackViewers <> 0) and
-        (ViewHistory <> nil)
+        (ViewHistory <> nil) and FromHistory
       then I := ViewHistory^.IndexOf(@PS) else I := -1;
      if I >= 0 then begin
       P := ViewHistory^.At(I);
       Q := P^.fViewMode;
-      if Q and vmInternal = vmInternal then goto Int;
-     end else Q:=-1;
-Ext:  if ((Intern>0) and (SystemData.Options and ossViewer = 0)) and View (* X-Man *)
-      then goto ex;
-     XT := UpStrg(GetExt(FileName));
-     {$IFDEF DBView}
-     if (UpStrg(XT) = '.DBF') or (Q=vmDB) then begin
-{--- start -------- Eugeny Zvyagintzev ---------}
-{Use history if possible}
-      XT := ' '+RN;
-      UpStr(XT);
-      PS := @XT;
-      Q:=-1;
-      if (InterfaceData.Options and ouiTrackViewers <> 0) and
-         (ViewHistory <> nil) then
-       I := ViewHistory^.IndexOf(@PS)
-      else
-       I := -1;
-      if I >= 0 then
-       begin
-        P := ViewHistory^.At(I);
-        Q:=vmDB;
-       End;
-      FileIsDBF:=False;
-      W := New(PDBWindow,Init(RN+'|'+FileName,FileIsDBF));
-{If file is not valid DBF and NOT empty DBF file then use internal viewer}
-      If (W = Nil) And (FileIsDBF = False) Then
-       Goto Int;
-{--- finish -------- Eugeny Zvyagintzev ---------}
-      if (Q=vmDB) and (W<>nil) then
-       with P^, W^ do begin
-         R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
-         AdjustToDesktopSize(R, fDeskSize);
-         Locate(R);
-        with PDBWindow(W)^.P^ do begin
-         Delta := fdDelta;
-         Pos   := fdPos;
-        end;
-       end;
-     end else
-     {$ENDIF}
-     {$IFDEF SpreadSheet}
-      if (UpStrg(XT) = '.WKZ') or (Q=vmSpread) then begin
-{--- start -------- Eugeny Zvyagintzev ---------}
-{Use history if possible}
-       XT := ' '+RN;
-       UpStr(XT);
-       PS := @XT;
-       if (InterfaceData.Options and ouiTrackViewers <> 0) and
-          (ViewHistory <> nil) then
-        I := ViewHistory^.IndexOf(@PS)
-       else
-        I := -1;
-       if I >= 0 then
-        begin
-         P := ViewHistory^.At(I);
-         _M:=P^.fViewMode;
-         Q:=vmSpread;
-        End;
-{--- finish -------- Eugeny Zvyagintzev ---------}
-       W := New(PCalcWindow,Init(R, FileName));
-{--- start -------- Eugeny Zvyagintzev ---------}
-{If file is not valid WKZ then use internal viewer.}
-{But CalcWindow will always created.}
-       If W = Nil Then
-        Goto Int;
-{--- finish -------- Eugeny Zvyagintzev ---------}
-       if (Q=vmSpread) and (W<>nil) then
-        with P^, W^ do begin
-          R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
-          AdjustToDesktopSize(R, fDeskSize);
-          Locate(R);
-{--- start -------- Eugeny Zvyagintzev ---------}
-{If previous view mode is NOT vmSpread then position will NOT restored}
-         If _M = vmSpread Then
-{--- finish -------- Eugeny Zvyagintzev ---------}
-         with PCalcWindow(W)^.CalcView^ do begin
-          Delta       := fsDelta;
-          Cur         := fsCur;
-          Mark        := fsMark;
-          CurrentCalc := fsCurrentCalc;
-          SearchPos   := fsSearchPos;
-          ErrorCell   := fsErrorCell;
-         end;
-        end;
-      end else
-     {$ENDIF}
-     {$IFDEF PKTView}
-     if IsPktFile(FileName) or (Q=vmPKT)
-      then begin
-      ViewPktFile(FileName);
-      goto ex;
-     end else
-     if IsMsgFile(FileName) or (Q=vmMSG)
-      then begin
-      ViewMSGFile(FileName);
-      goto ex;
-     end else
-     {$ENDIF}
-        if ArcViewer(FileName, RN, FreeByte) or Abort then goto ex
-         else if View then goto ex
-          else goto Int;
-    end else if Intern=2 then goto Ext else (* X-Man *)
-Int:InternalView;
-   if (W <> nil) and not W^.Valid(0) then begin Dispose(W,Done); InternalView end;
-   StoreViewInfo(W);
-   InsertWindow(W);
-ex: DelFileRec(fr);
+      end;
+
+{ Логика выбора просмотра такая:
+  - опция "Встроенный просмотр" включена -
+  по F3 (not AltExt) - специальный внутренний, затем согласно dn.vwr, затем текстовый;
+  - опция "Встроенный просмотр" выключена -
+  по F3 (not AltExt) - согласно dn.vwr, затем специальный внутренний, затем текстовый;
+  - вне зависимости от опции "Встроенный просмотр" -
+  по Alt-F3 (AltExt) - согласно dnalt.vwr, затем текстовый;
+  по Alt-Shift-F3 (это вообще не здесь) - безусловно текстовый. }
+
+   Ext:=(Q=vmAltExt) or AltExt;
+   if (not NoExtFile) and ((Q in [vmExternal, vmAltExt]) or (Q<0) or AltExt) then
+     if ExecExtFile(ExtFileName[Ext],@up,dlLoadingViewer,StoreCallback,RN,Ext) then exit;
+   if ((Q>vmAltExt) or (Q<0)) and not AltExt and SpecialIntView then exit;
+   if not FromHistory and not AltExt and NoExtFile then
+     if ExecExtFile(ExtFileName[Ext],@up,dlLoadingViewer,StoreCallback,RN,Ext) then exit;
+   TextView;
+   DelFileRec(fr); {Cat}
 end;
-        {-DataCompBoy-}
+        {-DataCompBoy-} {AK155} { Flash }
 
         {-DataCompBoy-}
 procedure TDNAppl.EditFile;
@@ -418,20 +529,29 @@ var
 
   function Edit: Boolean;
   begin
-    Edit := ExecExtFile('DN.EDT', @up, dlLoadingEditor, nil, I); (* X-Man *)
+    Edit := ExecExtFile('DN.EDT', @up, dlLoadingEditor, nil, I, s); (* X-Man *)
   end;
 
 label ex;
 begin
+{JO: редактирование найденных в архиве файлов из панели поиска не предусмотрено}
+  if PathFoundInArc(FileName) then Exit;
+{/JO}
   FileName:=lFExpand(FileName);
   fr:=CreateFileRec(FileName);
   fillchar(up, sizeof(up), 0);
   up.active:=fr;
+  { Flash >>> }
+  if not ExistFile(FileName) then
+   if (SystemData.Options and ossEditor <> 0) then
+    Intern := true else Intern := false;
+  { Flash <<< }
    if (Intern and (SystemData.Options and ossEditor <> 0)) or
       (not Intern and (SystemData.Options and ossEditor = 0)) or
      not Edit then
       begin
-        if (Message(DeskTop, evBroadcast, cmFindEdit, @FileName) <> nil)
+        if (ReuseEditors > 0)
+           and (Message(DeskTop, evBroadcast, cmFindEdit, @FileName) <> nil)
            and ((ReuseEditors=2) or
                 ((ReuseEditors=1) and
                  (MessageBox(GetString(dlOpenNewWindow), nil, mfYesButton+mfNoButton)<>cmYes)
@@ -451,6 +571,11 @@ begin
             V := PEditWindow(W)^.Intern;
             FreeStr := V^.EditName; System.Insert(' ', FreeStr, 1); UpStr(FreeStr);
             PS := @FreeStr;
+            { Flash >>> }
+            if UpStrg(DefCodePage) = 'DOS' then V^.KeyMap:=kmAscii else
+            if UpStrg(DefCodePage) = 'WIN' then V^.KeyMap:=kmAnsi  else
+            if UpStrg(DefCodePage) = 'KOI' then V^.KeyMap:=kmKoi8r;
+            { Flash <<< }
             if (InterfaceData.Options and ouiTrackEditors <> 0) and (EditHistory <> nil)
                 then I := EditHistory^.IndexOf(@PS) else I := -1;
             if I >= 0 then
@@ -461,6 +586,15 @@ begin
                 W^.Locate(R);
                 with V^, P^ do
                   begin
+                    { Flash >>> }
+                    if (InterfaceData.Options and ouiStoreEditorPosition = 0) then
+                     begin
+                     fPos.X := 0; fPos.Y := 0;
+                     fDelta.X := 0; fDelta.Y := 0;
+                     fBlockStart.X := 0; fBlockStart.Y := 0;
+                     fBlockEnd.X := 0; fBlockEnd.Y := 0;
+                     end;
+                    { Flash <<< }
                     MarkPos                := fMarks;
                     Mark.A                 := fBlockStart;
                     Mark.B                 := fBlockEnd;
@@ -479,10 +613,16 @@ begin
                     EdOpt.InSide           := fInSide;
                     InsertMode             := fInsMode;
                     KeyMap                 := fKeyMap; {-$VIV}
+                    { Flash >>> }
+                    EdOpt.BackIndent       := fBackIndent;
+                    EdOpt.AutoWrap         := fAutoWrap;
+                    OptimalFill            := fOptimalFill;
+                    TabReplace             := fTabReplace;
+                    EdOpt.SmartTab         := fSmartTab;
+                    { Flash <<< }
                     WorkString := GetLine(fDelta.Y); {-$VIV 11.05.99}
                   end;
-              end else StoreEditInfo(W);
-
+              end{ else StoreEditInfo(W)}; { Commented by Flash 21-12-2002 }
             InsertWindow(W);
           end;
       end;
@@ -505,6 +645,7 @@ PROCEDURE TDNAppl.HandleCommand;
      HFile: PHelpFile;
      HelpStrm: PDosStream;
      OldCtx  : Word;
+     Title : TTitleStr; { Flash }
 
 {$IFDEF VIRTUALPASCAL} {JO}
      CC: Word;
@@ -665,16 +806,19 @@ begin
                 MessageBoxAbout;
                 Exit;
               end;
-     cmCalculator: InsertCalc;
+     cmCalculator: InsertCalc(Event.InfoPtr);
 {$IFDEF Calendar}
      cmCalendar: InsertCalendar;    {JO}
 {$ENDIF}
      cmRefresh: Redraw;
      cmClearDesktop: GlobalMessage(evCommand, cmClose, nil);
-     cmFileView: ViewFile(2, CnvString(Event.InfoPtr)); (* X-Man *)
+     cmFileView:    if (SystemData.Options and ossViewer = 0) then
+                     ViewFile(Off, Off, Off, CnvString(Event.InfoPtr))
+                    else
+                     ViewFile(Off, Off, On, CnvString(Event.InfoPtr));
      cmFileEdit: EditFile(True, CnvString(Event.InfoPtr));
-     cmViewFilter: ViewFile(2, CnvString(Event.InfoPtr));{piwamoto}
-     cmIntFileView: ViewFile(0, CnvString(Event.InfoPtr)); (* X-Man *)
+     cmViewFilter: ViewFile(Off, On, On, CnvString(Event.InfoPtr));{piwamoto} { Flash }
+     cmIntFileView: ViewFile(Off, On, Off, CnvString(Event.InfoPtr)); (* X-Man *) { Flash }
      cmIntFileEdit: EditFile(False, CnvString(Event.InfoPtr));
      cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.XRN');
      cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'DN.EXT');
@@ -805,7 +949,18 @@ begin
 {Now DN will show help window more correctly}
         cmHelp,cmHelp2: Begin
                  ClearEvent(Event);
-
+                 { Flash >>> }
+                 if GrabberActive and HelpInUse then Exit;
+                 if Desktop^.Current <> nil then
+                  begin
+                  if TypeOf(Desktop^.Current^) = TypeOf(TWhileView) then
+                   Title:=PWhileView(Desktop^.Current)^.Top else
+                  if Desktop^.Current^.ObjectID <> TViewID then
+                   Title:=PWindow(DeskTop^.Current)^.GetTitle(255) else
+                  Title:=CurrentDirectory;
+                  end
+                  else Title:='';
+                 { Flash <<< }
                  if (not HelpInUse) or (HelpWnd=nil) then
                  begin
                   HelpInUse := True;
@@ -838,7 +993,7 @@ begin
                          (Desktop^.Current^.GetState(sfModal)) or
                          (Desktop^.Current^.GetState(sfDragging))
                         )
-                       ) or MenuActive
+                       ) or MenuActive or GrabberActive
                      then ExecView(HelpWnd)
                      else begin
                            HelpWnd^.SetState(sfModal, false);
@@ -875,6 +1030,7 @@ begin
                         end
                    else HelpWnd^.Focus;
                  end;
+                 SetTitle(Title); { Flash }
                 end;
 {--- finish -------- Eugeny Zvyagintzev ---- 06-06-2002 -----}
         cmTree: begin ExecTree; CE end;

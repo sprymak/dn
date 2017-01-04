@@ -56,6 +56,11 @@
 //  dn200-delete_file_from_temp_fix-diff161byMV.patch
 //
 //  2.3.0
+//  dn2922-show_size_before_name_if_it_longer_250.patch
+//  dn21202-Find_file_and_branch_in_archive.patch
+//  dn3331-Arvid_bugfix_and_TDR_detection.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -122,7 +127,7 @@ type
 
 Type
    TAvtHeader = record
-      Signature:     Array[1..4] of Char;        {AVTP}
+      Signature:     LongInt;{'AVTP' = $50545641}
       AvtFmt:        LongInt;
       CheckSum:      LongInt;
       AfterLastCell: LongInt;
@@ -209,7 +214,7 @@ type
       function GetDir: String; virtual;
       function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
                             var FreeSpace, TotalInfo: String ): PCollection; virtual;
-{      constructor Load(var S: TStream);}
+      constructor Load(var S: TStream);
       procedure Store(var S: TStream); virtual;
       procedure RereadDirectory(S: String); virtual;
       procedure KillUse; virtual;
@@ -230,6 +235,7 @@ type
       procedure GetParam(n: byte); virtual; {DataCompBoy}
       destructor Done; virtual;
       procedure SeekDirectory;
+      function OpenDirectory(const Dir: String): PDrive; virtual;
     private
       procedure Kill;
    end;
@@ -240,7 +246,7 @@ const
   ArvidWithDN: Boolean     = True;
 
 var
-  ArvidDeleteAllFiles: Boolean;
+  AllFiles: Boolean;
 
 IMPLEMENTATION
 uses
@@ -256,7 +262,9 @@ begin
   begin
    Flags := Params[n].Param;
    LFNLen:=StoI(Params[n].LFNLen);
+   if (LFNLen = 0) or (LFNLen > 252) then LFNLen := 252;
    EXTLen:=StoI(Params[n].EXTLen);
+   if EXTLen > 252 then EXTLen := 252;
    case FileCase of
     0: FilFLP := 0;
     1: FilFLP := flnLowCase;
@@ -288,6 +296,8 @@ var Attrb: Word;
   procedure SetAttr(A: Word);
   var F: lfile; begin lAssignFile(F, AName); lSetFAttr(F, A) end;
 
+label 1;
+
 begin
   TObject.Init;
   if num<1 then GetParam(1)
@@ -306,19 +316,24 @@ begin
     GetAttr; if Attrb and ReadOnly <> 0 then
     begin
       SetAttr(Archive);
-      if (IOResult <> 0 ) then begin Dispose(Stream, Done); Stream:=nil; Fail; end;
+      if (IOResult <> 0 ) then
+        begin
+1:
+          Dispose(Stream, Done);
+          Stream:=nil;
+          Fail;
+        end;
     end;
     if i>0
      then Stream:=New(PBufStream, Init(Copy(AName, 1, I-1), stOpen, 2048))
      else Stream:=New(PBufStream, Init(AName, stOpen, 2048));
-    if Stream^.Status <> stOK then begin Dispose(Stream, Done); Stream:=nil; Fail end;
+    if Stream^.Status <> stOK then goto 1;
   end;
-  FileType := avdAvt;
   Stream^.Read(AVT, SizeOf(AVT));
-  if Stream^.Status <> stOK then begin Dispose(Stream,Done); Fail end;
-  if AVT.Signature <> 'AVTP'
-   then if not TdrInit(@Self) then begin Dispose(Stream,Done); Fail end else
-   else if not AvtInit(@Self) then begin Dispose(Stream,Done); Fail end;
+  if Stream^.Status <> stOK then goto 1;
+  if AVT.Signature <> $50545641{'AVTP'}
+   then if not TdrInit(@Self) then goto 1 else
+   else if not AvtInit(@Self) then goto 1;
   Name:=NewStr(lFExpand(AName));
   DriveType:=dtArvid;
   KillAfterUse:=TempFile <> '';
@@ -332,10 +347,8 @@ end;
 
 procedure TArvidDrive.SeekDirectory;
 begin
-  case FileType of
-    avdTdr: TdrSeekDirectory(@Self);
-    avdAvt: AvtSeekDirectory(@Self);
-  end;
+  if FileType = avdTdr then TdrSeekDirectory(@Self)
+                       else AvtSeekDirectory(@Self);
 end;
 
 procedure TArvidDrive.Kill;
@@ -350,7 +363,6 @@ var
   FC: PFilesCollection;
   P: PString;
   DT: DateTime;
-  AllFiles, ShowD: Boolean;
   TAttr: Word;
 begin
   New(FC, Init($80, $40));
@@ -360,13 +372,10 @@ begin
   TotalInfo := ''; TotFiles := 0; TotLen := 0;
 
   GetDirectory := FC;
-  ShowD := (Flags and psShowDescript <> 0);
   AllFiles := (FileMask = x_x) or (FileMask='*');
 
-  case FileType of
-    avdTdr: TdrGetDirectory(@Self, CurDirPos, FC, ShowD, FileMask);
-    avdAvt: AvtGetDirectory(@Self, CurDirPos, FC, ShowD, FileMask);
-  end;
+  if FileType = avdTdr then TdrGetDirectory(@Self, CurDirPos, FC, FileMask)
+                       else AvtGetDirectory(@Self, CurDirPos, FC, FileMask);
 
   if CurDir = '' then P := Name else P := @CurDir;
 
@@ -416,7 +425,6 @@ begin
   else GetDir:= 'AVT:'+Nm+'\'+CurDir;
 end;
 
-{
 constructor TArvidDrive.Load;
   label 1;
 begin
@@ -429,23 +437,19 @@ begin
   if Stream^.Status <> stOK then
     begin
 1:
-      Dispose(Stream, Done);
-      Stream:=nil;
       Done;
+      Drives.DriveLoadingError:=True;
       Fail;
     end;
-  FileType := avdAvt;
   Stream^.Read(AVT, SizeOf(AVT));
-  if Stream^.Status <> stOK then begin Dispose(Stream,Done); Done; Fail end;
-  if AVT.Signature <> 'AVTP'
-   then if not TdrLoad(@Self, S) then goto 1
-   else if not AvtLoad(@Self, S) then goto 1;
-  if Stream^.Status <> stOK then Goto 1;
+  if Stream^.Status <> stOK then goto 1;
+  if AVT.Signature <> $50545641{'AVTP'}
+   then if not TdrInit(@Self) then goto 1 else
+   else if not AvtInit(@Self) then goto 1;
   SeekDirectory;
   if ArvidDrives = nil then New(ArvidDrives, Init($100, $100));
   ArvidDrives^.Insert(@Self);
 end;
-}
 
 procedure TArvidDrive.Store;
 begin
@@ -540,8 +544,7 @@ begin
    if FileType = avdTdr then
      S1:= Dr+'TDR:'+Nm+'\' else
      S1:= Dr+'AVT:'+Nm+'\';
-   CopyDirName:=S1+CurDir;
-   if CopyDirName[Length(CopyDirName)]<>'\' then CopyDirName:=CopyDirName+'\';
+   Message(Application, evCommand, cmPushFirstName, @CopyDirName);
    if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
                      MoveMode, AFiles, 0, Owner, On) then Exit;
 
@@ -816,10 +819,8 @@ begin
   Stream:=New(PBufStream, Init(Name^, stOpen, 2048));
   if Abort or (Stream^.Status <> stOK) then begin Err; Goto 1 end;
   Stream^.Seek(PF^.DIZ^.Line);
-  case FileType of
-    avdTdr: TdrEditDescription(@Self, S, Nam, PF);
-    avdAvt: AvtEditDescription(@Self, S, Nam);
-  end;
+  if FileType = avdTdr then TdrEditDescription(@Self, S, Nam, PF)
+                       else AvtEditDescription(@Self, S, Nam);
 1: ClrIO; Abort:=False;
   Stream^.Seek(0);
   if FileType = avdAvt then Stream^.Write(AVT, SizeOf(AVT))
@@ -1010,7 +1011,7 @@ procedure TArvidDrive.HandleCommand;
     WasTape:=Off; Dr:='\';
     St^.Seek(0);
     St^.Read(AA, SizeOf(AA));
-    if AA.Signature = 'AVTP' then begin
+    if AA.Signature = $50545641{'AVTP'} then begin
       St0:=St;
       NName:=Name;
       AvtSearchInStream(AA.RootDirCell);
@@ -1182,7 +1183,8 @@ begin
        P^.Free;
        if FindList = nil then
           begin
-            ErrMsg(dlNoFilesFound);
+            MessageBox(^C+GetString(dlNoFilesFound), nil,
+                        mfInformation + mfOkButton);
             Exit;
           end;
 1:
@@ -1202,15 +1204,16 @@ begin
   CurDir:=MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
   SeekDirectory;
   P:=WriteMsg(GetString(dlPleaseStandBy));
-  case FileType of
-    avdTdr: TdrCalcTotal(@Self, CurDirPos, LL);
-    avdAvt: AvtCalcTotal(@Self, CurDirPos, LL);
-  end;
+  if FileType = avdTdr then TdrCalcTotal(@Self, CurDirPos, LL)
+                       else AvtCalcTotal(@Self, CurDirPos, LL);
   P^.Free;
   PF^.Size:=LL;
   PF^.Attr:=PF^.Attr or $80;
   CurDir:=SaveDir;
   SeekDirectory;
 end;
+
+function TArvidDrive.OpenDirectory(const Dir: String): PDrive;
+  begin OpenDirectory := nil; end;
 
 END.

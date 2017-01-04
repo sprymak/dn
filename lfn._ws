@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn21225-FileCopy(f)-copy_more_then_2Gb_fix.patch
+//  dn21225-LFN_optimization.patch
+//  dn3323-RewriteFile(f)-rewrite_under_Windows_XP_on_Nowell_drive_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -86,7 +91,7 @@ begin
     DS := LowSeg;
     DX := Ofs(lFindDataRec((LowBuf^)).FullName)-Ofs((LowBuf^));
     ES := LowSeg;
-    DI := 0;
+{    DI := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -129,7 +134,7 @@ begin
     BX := R.FileHandle;
     SI := 1;
     ES := LowSeg;
-    DI := 0;
+{    DI := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -230,7 +235,7 @@ begin
     CL    := AFunction;
     CH    := $80;
     DS    := LowSeg;
-    SI    := 0;
+{    SI    := 0;}
     ES    := LowSeg;
     DI    := SizeOf(TNameZ);
     Flags := fCarry;
@@ -286,10 +291,10 @@ begin
   with RMR do
   begin
     AX    := $7160;
-    CL    := 0;
-    CH    := $00;
+{    CL    := 0;}
+{    CH    := $00;}
     DS    := LowSeg;
-    SI    := 0;
+{    SI    := 0;}
     ES    := LowSeg;
     DI    := SizeOf(TNameZ);
     Flags := fCarry;
@@ -340,11 +345,11 @@ begin
     Move(F.FullName, LowBuf^, SizeOf(F.FullName));
     AX    := $716C;
     BX    := FileMode;
-    CX    := 0;
+{    CX    := 0;}
     DX    := Action;
     DS    := LowSeg;
-    SI    := 0;
-    DI    := 0;
+{    SI    := 0;}
+{    DI    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -354,6 +359,7 @@ begin
       FileRec(F.F).Mode:=fmInOut;
       FileRec(F.F).Handle := AX;
       FileRec(F.F).RecSize := RecSize;
+      If Action = faRewrite Then Truncate(F.F); {John_SW 25-03-2003: Fix problem under Windows XP}
       InOutRes := 0;
     end;
   end;
@@ -386,8 +392,8 @@ begin
     Move(F.FullName, LowBuf^, SizeOf(F.FullName));
     AX    := $7141;
     DS    := LowSeg;
-    DX    := 0;
-    SI    := 0;
+{    DX    := 0;}
+{    SI    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -404,8 +410,8 @@ begin
     Move(T.FullName, LowBuf^, SizeOf(T.FullName));
     AX    := $7141;
     DS    := LowSeg;
-    DX    := 0;
-    SI    := 0;
+{    DX    := 0;}
+{    SI    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -444,7 +450,7 @@ begin
     DS    := LowSeg;
     DX    := SizeOf(TNameZ);
     ES    := LowSeg;
-    DI    := 0;
+{    DI    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -469,7 +475,7 @@ begin
     DS    := LowSeg;
     DX    := SizeOf(TNameZ);
     ES    := LowSeg;
-    DI    := 0;
+{    DI    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -526,7 +532,7 @@ begin
     BL    := Action;
     if Action = faSetAttr then CX := Attr;
     DS    := LowSeg;
-    DX    := 0;
+{    DX    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -549,7 +555,7 @@ begin
     BL    := Action;
     if Action = faSetAttr then CX := Attr;
     DS    := LowSeg;
-    DX    := 0;
+{    DX    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -593,7 +599,7 @@ begin
   begin
     AX    := AFunction;
     DS    := LowSeg;
-    DX    := 0;
+{    DX    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
@@ -656,24 +662,100 @@ end;
 *)
 
 procedure lSIM95GetDir(D: Byte; var Path: String);
-var
-  C: Char;
 begin
   FillWord(RMR, SizeOf(RMR) shr 1, 0);
   with RMR do
   begin
-    C := Char(D + $40);
-
     AX    := $7147;
     DL    := D;
     DS    := LowSeg;
-    SI    := 0;
+{    SI    := 0;}
     Flags := fCarry;
     asm stc end;
     SimulateRealModeInt($21, RMR);
     if (Flags and fCarry <> 0)  then Byte((LowBuf^)) := 0;
 
-    Path := Concat(C, ':\', StrPas(TNameZ((LowBuf^))));
+    Path := Char(D + $40) + ':\' + StrPas(TNameZ((LowBuf^)));
   end;
 end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+{Int 21/AX=71A6h
+
+Windows95 - LONG FILENAME - GET FILE INFO BY HANDLE
+AX = 71A6h
+BX = file handle
+DS:DX -> buffer for file information
+CF set
+Return:CF clear if successful
+file information record filled
+CF set on error
+AX = error code
+7100h if function not supported}
+
+Function lSIM95FileSize(F: lFile): TSize;
+Var
+  FileInfo: lFileInfoDataRec;
+  R: TSize;
+Begin
+ FillWord(RMR, SizeOf(RMR) Shr 1, 0);
+ With RMR Do
+  Begin
+   AX:=$71A6;
+   BX:=FileRec(F.F).Handle;
+   DS:=LowSeg;
+{   DX:=0;}
+   Flags:=fCarry;
+   Asm Stc End;
+   SimulateRealModeInt($21, RMR);
+   If Flags And fCarry <> 0 Then
+    Begin
+     lSIM95FileSize:=0;
+     InOutRes:=AX;
+    End
+   Else
+    Begin
+     Move(LowBuf^, FileInfo, SizeOf(FileInfo));
+     R:=0;
+     Move(FileInfo.LoSize,R,SizeOf(FileInfo.LoSize));
+     Move(FileInfo.HiSize,Ptr(Seg(R),Ofs(R)+SizeOf(FileInfo.LoSize)+1)^,SizeOf(FileInfo.HiSize));
+     lSIM95FileSize:=R;
+     InOutRes:=0;
+    End;
+  End;
+End;
+
+Function lSIM95Seek(F: lFile; NewPos: TSize; Direction: Byte): TSize;
+Var
+  R: TSize;
+  W: Record Lo,Hi: Word; End;
+Begin
+ Move(NewPos,W,SizeOf(W));
+ FillWord(RMR, SizeOf(RMR) Shr 1, 0);
+ With RMR Do
+  Begin
+   AH:=$42;
+   AL:=Direction;
+   BX:=FileRec(F.F).Handle;
+   CX:=W.Hi;
+   DX:=W.Lo;
+   Flags:=fCarry;
+   Asm Stc End;
+   SimulateRealModeInt($21, RMR);
+   If Flags And fCarry <> 0 Then
+    Begin
+     lSIM95Seek:=0;
+     InOutRes:=AX;
+    End
+   Else
+    Begin
+     R:=0;
+     W.Lo:=AX;
+     W.Hi:=DX;
+     Move(W,R,SizeOf(W));
+     lSIM95Seek:=R;
+     InOutRes:=0;
+    End;
+  End;
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}

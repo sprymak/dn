@@ -56,6 +56,11 @@
 //  dn269_invalid_dbf_header_detection.patch
 //
 //  2.7.0
+//  dn281-dbf_detect_fix.patch
+//  dn21029-dbf_structure_detection_fix.patch
+//  dn3323-DBFViewer(i)-header_corruption_warning_dialog_improve.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -159,11 +164,45 @@ type
     end;
 
 var FBuf: FRec;
-    I, J, RL: Integer;
-    S: String;
-    FieldLen : AWord;
-    FieldDec : byte;
+    RL: Integer;
     Par : TParams;    {JOHN_SW}
+
+ Function ReadFldStru(CharSizeWord: Boolean): Boolean;
+ var I, J: Integer;
+     S: String;
+     FieldLen : AWord;
+     FieldDec : byte;
+ begin
+  BaseFile.Seek(32);
+  If Fields <> Nil Then Dispose(Fields,Done);
+ {piwamoto.src.end}
+  Fields := New(PFieldCollection, Init(NumFields, NumFields));
+  RL := 1;
+  for I := 1 to NumFields do
+   begin
+    BaseFile.Read(FBuf, 32);
+    if (FBuf.Who = 'C') And (CharSizeWord) then begin { Kirill }
+      FieldLen:=FBuf.FldLen.CharFieldLen; { Kirill }
+      FieldDec:=0; { Kirill }
+    end
+    else begin
+      FieldLen:=FBuf.FldLen.Len; { Kirill }
+      FieldDec:=FBuf.FldLen.Dec; { Kirill }
+    end;
+    Inc(RL, FieldLen); { Kirill }
+    S := ''; J := 0;
+    While FBuf.Name[J] >= #32 do
+     begin
+      S := S + FBuf.Name[J];
+      Inc(J);
+     end;
+    S[0] := Char(J);
+    if (J = 0) or (BaseFile.Status <> stOk) then
+       begin ReadFldStru:=False; Exit; end;
+    with FBuf do Fields^.Insert(NewField(S, Who, FieldLen, FieldDec, RL - FieldLen));
+   end;
+ end;
+
 begin
  inherited Init;
  BaseName := lFExpand(FileName); {DataCompBoy}
@@ -171,6 +210,7 @@ begin
  if BaseFile.Status <> stOk then begin BaseFile.Done;Fail;end;
  BaseFile.Read(Date, 32);
  if BaseFile.Status <> stOk then begin BaseFile.Done;Fail;end;
+ if BaseFile.GetSize-HeaderLen < 0 then begin BaseFile.Done;Fail;end; {JOHN_SW}
 {piwamoto.src.begin}{bugfixed .DBF detection}
  NumFields := -1;
  repeat
@@ -183,49 +223,35 @@ begin
  if (NumFields < 1) or
     (FBuf.Name[0] <> #13)
    then begin BaseFile.Done;Fail;end;
- BaseFile.Seek(32);
-{piwamoto.src.end}
- Fields := New(PFieldCollection, Init(NumFields, NumFields));
- RL := 1;
- for I := 1 to NumFields do
+ if not ReadFldStru(True) then
   begin
-   BaseFile.Read(FBuf, 32);
-   if FBuf.Who = 'C' then begin { Kirill }
-     FieldLen:=FBuf.FldLen.CharFieldLen; { Kirill }
-     FieldDec:=0; { Kirill }
-   end
-   else begin
-     FieldLen:=FBuf.FldLen.Len; { Kirill }
-     FieldDec:=FBuf.FldLen.Dec; { Kirill }
-   end;
-   Inc(RL, FieldLen); { Kirill }
-   S := ''; J := 0;
-   While FBuf.Name[J] >= #32 do
-    begin
-     S := S + FBuf.Name[J];
-     Inc(J);
-    end;
-   S[0] := Char(J);
-   if (J = 0) or (BaseFile.Status <> stOk) then
-      begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
-   with FBuf do Fields^.Insert(NewField(S, Who, FieldLen, FieldDec, RL - FieldLen));
+   Dispose(Fields,Done);Fields:=nil;
+   BaseFile.Done;Fail;
   end;
 {--- start -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
 {Check for correct header}
- if RL <> RecLen then
-  begin
-   Par.InHeader:=RecLen;
-   Par.Actually:=RL;
-   MessageBox(GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecSize),
-              @Par,mfError+mfOkButton);
-  end;
+ if (RL <> RecLen) then
+  if not ReadFldStru(False) then
+   begin
+    Dispose(Fields,Done);Fields:=nil;
+    BaseFile.Done;Fail;
+   end
+  else
+   if (RL <> RecLen) then
+    begin
+     Par.InHeader:=RecLen;
+     Par.Actually:=RL;
+     MessageBox(GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecSize),
+                @Par,mfError+mfOkButton);
+    end
+   else
+    RL:=RecLen;
  if NumRec <> ((BaseFile.GetSize-HeaderLen) Div RL) then
   begin
-   Par.InHeader:=NumRec;
-   Par.Actually:=(BaseFile.GetSize-HeaderLen) Div RL;
-   MessageBox(GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecNumber),
-              @Par,mfError+mfOkButton);
-   NumRec:=(BaseFile.GetSize-HeaderLen) Div RL
+   If MessageBox(GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecNumber)+ItoS(NumRec)+
+      GetString(dlInvalidRecNumber1)+ItoS(((BaseFile.GetSize-HeaderLen) Div RL))+GetString(dlUseCalcRecNumber),
+      nil,mfError+mfYesNoConfirm) = cmNo Then
+    NumRec:=(BaseFile.GetSize-HeaderLen) Div RL;
   end;
 {--- finish -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
  Loc := 0;

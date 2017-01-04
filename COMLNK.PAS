@@ -48,13 +48,16 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn3421-NavigatorLink(f)-packets_compress_disbled.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
 unit ComLnk;
 
-{$DEFINE CL_PACK}
+{.$DEFINE CL_PACK} {John_SW 22-04-2003 DN crashes if packets compress enabled}
 
 interface
 

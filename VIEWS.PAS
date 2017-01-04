@@ -51,6 +51,14 @@
 //  dn2522-big_help_fix.patch
 //
 //  2.7.0
+//  dn21013-Menu_items_availability-jo21107b.patch
+//  dn21202-help_showing_improve.patch
+//  dn3216-fpanel(i)-refresh_title_only_when_needed.patch
+//  dn3216-window(f)-clear_title_when_desktop_is_empty.patch
+//  dn328-InputLine(fi)-new_shortkey_added_and_some_bugs_fixed.patch
+//  dn3421-Views(i)-dragging_and_resizing_terminates_by_ESC.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -177,6 +185,11 @@ const
 { TDrawBuffer maximum view width }
 
   MaxViewWidth = 256;
+
+{ TView identifyer }
+
+  TViewID   = 1; { Flash 22-12-2002 }
+  TWindowID = 2; { Flash 07-03-2003 }
 
 type
 
@@ -522,6 +535,8 @@ const
   CurCommandSet: TCommandSet =
     [0..255] - [cmZoom, cmClose, cmResize, cmNext, cmPrev, cmMaxi];
 
+  OldTitle: String = ''; { Flash 21-02-2003 }
+
 procedure RegisterToPrior(P: PView);
 procedure RegisterToBackground(P: PView);
 procedure Deregister(P: PView);
@@ -601,6 +616,7 @@ begin
   DragMode := dmLimitLoY;
   HelpCtx := hcNoContext;
   EventMask := evMouseDown + evKeyDown + evCommand;
+  ObjectID := TViewID;
 end;
 
 constructor TView.Load(var S: TStream);
@@ -807,6 +823,7 @@ end;
 
 begin
   SetState(sfDragging, True);
+  GetBounds(SaveBounds);
   if Event.What = evMouseDown then
   begin
     if Mode and dmDragMove <> 0 then
@@ -817,7 +834,17 @@ begin
         Inc(Event.Where.X, P.X);
         Inc(Event.Where.Y, P.Y);
         MoveGrow(Event.Where, Size);
-      until not MouseEvent(Event, evMouseMove);
+{--- start -------- Eugeny Zvyagintzev ---- 21-05-2003 ----}
+{It's allow to terminate dragging by ESC key pressing}
+        repeat
+         GetEvent(Event)
+        until (Event.What and (evMouseMove or evMouseUp) <> 0) Or
+              ((Event.What = evKeyDown) And (Event.KeyCode = kbEsc));
+      until not (Event.What <> evMouseUp) Or
+            ((Event.What = evKeyDown) And (Event.KeyCode = kbEsc));
+      If (Event.What = evKeyDown) And (Event.KeyCode = kbEsc) then
+       Locate(SaveBounds);
+{--- finish -------- Eugeny Zvyagintzev ---- 21-05-2003 ----}
     end else
     begin
       P.X := Size.X - Event.Where.X;
@@ -826,11 +853,20 @@ begin
         Inc(Event.Where.X, P.X);
         Inc(Event.Where.Y, P.Y);
         MoveGrow(Origin, Event.Where);
-      until not MouseEvent(Event, evMouseMove);
+{--- start -------- Eugeny Zvyagintzev ---- 21-05-2003 ----}
+{It's allow to terminate resizing by ESC key pressing}
+        repeat
+         GetEvent(Event)
+        until (Event.What and (evMouseMove or evMouseUp) <> 0) Or
+              ((Event.What = evKeyDown) And (Event.KeyCode = kbEsc));
+      until not (Event.What <> evMouseUp) Or
+            ((Event.What = evKeyDown) And (Event.KeyCode = kbEsc));
+      If (Event.What = evKeyDown) And (Event.KeyCode = kbEsc) then
+       Locate(SaveBounds);
+{--- finish -------- Eugeny Zvyagintzev ---- 21-05-2003 ----}
     end;
   end else
   begin
-    GetBounds(SaveBounds);
     repeat
       P := Origin;
       S := Size;
@@ -2606,6 +2642,7 @@ begin
   if Frame <> nil then Insert(Frame);
   GetBounds(ZoomRect);
   MaxiRect.A.X:=High(MaxiRect.A.X);
+  ObjectID:=TWindowID;
 end;
 
 constructor TWindow.Load(var S: TStream);
@@ -2624,6 +2661,8 @@ begin
   if Number in [1..9] then Numbers := Numbers and not (1 shl Number);
   inherited Done;
   DisposeStr(Title);
+  if (Desktop <> nil) and (Desktop^.Current = nil) then { Flash 10-03-2003 }
+   begin SetTitle(''); OldTitle:=''; end;
 end;
 
 procedure TWindow.Close;
@@ -2740,7 +2779,8 @@ begin
   begin
     SetState(sfActive, Enable);
     if GetState(sfActive) then if Title<>nil then SetTitle(GetTitle(255));
-    WindowCommands := [cmNext, cmPrev, cmTile, cmCascade, cmClearDesktop, cmWindowManager];
+    WindowCommands := [cmNext, cmPrev, cmNext2, cmPrev2, cmNext3, cmPrev3,
+                       cmTile, cmCascade, cmClearDesktop, cmWindowManager];
     if Flags and wfGrow + wfMove <> 0 then
       WindowCommands := WindowCommands + [cmResize];
     if Flags and wfClose <> 0 then
@@ -2821,7 +2861,11 @@ end;
 
 procedure TWindow.Draw;
 begin
- if GetState(sfActive) then if Title<>nil then SetTitle(GetTitle(255));
+ if GetState(sfActive) and (Title<>nil) then
+  begin
+  OldTitle:=''; { Flash 21-02-2003 }
+  SetTitle(GetTitle(255));
+  end;
  inherited Draw;
 end;
 

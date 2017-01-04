@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn270-save_dnerr_when_run_from_lfn_dir.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -109,6 +112,7 @@ var
 begin
     { Create Report File. DRIVERS.PAS contains full dupe of this routine }
 
+    SourceDir:=lfGetShortFileName(SourceDir);
     I := Byte(SourceDir[0]);
     SourceDir := SourceDir + 'DN.ERR'{$IFNDEF VIRTUALPASCAL}+#0{$ENDIF};
 

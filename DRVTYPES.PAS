@@ -52,12 +52,15 @@
 //  dn269-remove_IOmega_detection.patch
 //
 //  2.7.0
+//  dn270-fix_drivetype_detection.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
 { --------------------------------------------------------------------------- }
-{ DRVTYPES.PAS  Drive Type Decetion.                              Version 1.0 }
+{ DRVTYPES.PAS  Drive Type Detection.                             Version 1.0 }
 {                                                                             }
 { CopyRight (C) 1999 by Luzin Aleksey                                         }
 { E-Mail: Aleksey@iis.nsk.su                                                  }
@@ -92,7 +95,7 @@ function countValidDrives : Byte;
 
 implementation
 
-function checkStacker( Drive : Byte ) : Boolean; assembler;
+function checkStacker( Drive : Byte ) : Boolean; near; assembler;
 
 var
        StackerDriver : Pointer;
@@ -128,6 +131,7 @@ var
   Packet   : TDiskreetPacket;
 asm
         push    ds
+        push    es
         mov     ax,0FE00h
         mov     di,'NU'
         mov     si,'DC'
@@ -194,19 +198,20 @@ asm
         int     21h
         jc      @@DSKReetNotFound
         mov     bx,ax
-        mov     ax,seg [Packet]
-        mov     ds,ax
-        mov     dx,offset [Packet]
-        mov     es,ax
+        push    ss
+        push    ss
+        pop     ds
+        pop     es
+        lea     dx,[Packet]
         mov     di,dx
         mov     cx,type TDiskreetPacket
         sub     al,al
         cld
         rep     stosb
-        mov     di,offset [Packet.Header]
+        lea     di,[Packet.Header]
         mov     ax,12FFh
         stosw
-        mov     di,offset [Packet.Drive]
+        lea     di,[Packet.Drive]
         mov     al,Drive
         add     al,64
         stosb
@@ -217,7 +222,7 @@ asm
         int     21h
         mov     ah,3Eh
         int     21h
-        mov     si,offset [Packet.Size]
+        lea     si,[Packet.Size]
         lodsw
         or      ax,ax
         jnz     @@DSKReetFound
@@ -230,6 +235,7 @@ asm
 @@DSKReetNotFound:
         mov     al,False
 @@Exit:
+        pop     es
         pop     ds
 end; { checkDiskreet }
 
@@ -245,26 +251,33 @@ var
   Packet : TSSPacket;
 asm
         push    ds
-        mov     ax,seg [Packet]
-        mov     es,ax
-        mov     di,offset [Packet]
-        mov     cx,type TSSPacket
+        push    es
+
+        push    ss
+        push    ss
+        pop     es
+        pop     ds
+
         cld
-        rep     stosb
-        mov     di,offset [Packet.Sign]
+        lea     di,[Packet]
+        mov     dx,di
         mov     ax,0AA55h
         stosw
         mov     ax,0201h
         stosw
+        xor     ax,ax
+        stosw
+        stosw
+        stosw
+        stosw
+
+{        mov     dx,offset [Packet]}
         mov     ax,4404h
-        mov     dx,seg [Packet]
-        mov     ds,dx
-        mov     dx,offset [Packet]
-        mov     cx,12
+        mov     cx,type TSSPacket
         mov     bl,Drive
         int     21h
         jc      @@2
-        mov     si,offset [Packet.Sign]
+        lea     si,[Packet]
         lodsw
         or      ax,ax
         jnz     @@2
@@ -293,6 +306,7 @@ asm
 @@2:
         sub     al,al
 @@3:
+        pop     es
         pop     ds
 end; { checkSuperStor }
 

@@ -53,6 +53,9 @@
 //  dn16rc1-Better_highilighting_C_numbers_v1_1.patch
 //
 //  2.0.0
+//  dn270-^char_highlighting-jo21115e.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -131,7 +134,7 @@ const
   hoOctalCharacter    = $10;  { octal_numberC represents a character }
   hoNoSQuotedStrings  = $20;  { Do not highlight single quoted strings }
   hoNoDQuotedStrings  = $40;  { Do not highlight double quoted strings }
-  hoStrictCtrlChar    = $80;  { Do not highlight ^char followed by 'A..Z' }
+  hoStrictCtrlChar    = $80;  { Do not highlight ^char followed by '0..9' or 'A..Z' }
 
 type
 
@@ -800,7 +803,7 @@ const
       end else if ((hoCtrlCharacter and opts) <> 0) and (S[j] = '^') then begin
         k := j+1;
         if (k < Len) and (UpCase(S[k]) in ['@'..'_'])
-        and (((opts and hoStrictCtrlChar) = 0) or ((k+1) = Len) or not (UpCase(S[k+1]) in ['A'..'Z'])) then
+        and (((opts and hoStrictCtrlChar) = 0) or ((k+1) = Len) or not (UpCase(S[k+1]) in ['0'..'9','A'..'Z'])) then
           k := 2
         else
           k := 0;

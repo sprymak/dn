@@ -53,6 +53,14 @@
 //  dn269-make_del_dir_on_network_resource.patch
 //
 //  2.7.0
+//  dn270_erase_folders_interrupting_fast.patch
+//  dn270-search_in_archives.patch
+//  dn2922-erase_file_by_short_name.patch
+//  dn21029-erase_file_display_error_fix.patch
+//  dn21128-reread_after_delete.patch
+//  dn21225-erase-files(f)-erase_by_short_name_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -118,8 +126,9 @@ procedure EraseFiles;
       DirCluster, DirSize: Word;
       Dir: ^DirPtr;
       {$ENDIF}
-      DrivesSet: Set of Char;
       DeleteAllFiles: Boolean;
+      RereadCollection: PStringCollection; {Cat}
+      PS: PString; {Cat}
 
   procedure InfoWrite(N: Integer; const S: Str40);
   begin
@@ -174,7 +183,7 @@ procedure EraseFiles;
    new(TD, Init($10, $10));
    DC^.Insert(NewStr(FreeStr));
 
-   While DC^.Count>0 do
+   While (DC^.Count>0) and (not EraseCancel) and (not Abort) do
     begin
      FreeStr:=PString(DC^.At(0))^;
      DC^.AtFree(0);
@@ -186,7 +195,8 @@ procedure EraseFiles;
      lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
      while DosError=0 do
       begin
-       If Abort then break;
+       CalcCancel;                         {JOHN_SW}
+       If Abort or EraseCancel then break; {JOHN_SW}
        if (SR.FullName='.') or (SR.FullName='..') then
         begin lFindNext(SR); continue end;
        if (Word(Length(FreeStr))+Word(Length(SR.FullName))) > MaxPathLen-1
@@ -223,8 +233,9 @@ procedure EraseFiles;
    Dispose(DC,Done);
    DOSDelDir:=not Abort;
    If not Abort then
-    while TD^.Count>0 do
+    while (TD^.Count>0) and (not EraseCancel) and (not Abort)  do
      begin
+      CalcCancel; {JOHN_SW}
       lAssignFile(F,PString(TD^.At(0))^);
       lSetFAttr(F, 0);
       ClrIO;
@@ -253,6 +264,8 @@ procedure EraseFiles;
     Drv^.ClusterRead(Dir^, DirCL);
     for i:=0 to ((Drv^.SectLen div 32) * Drv^.SectPerClust)-1 do
      begin
+      CalcCancel;                         {JOHN_SW}
+      If Abort or EraseCancel then break; {JOHN_SW}
       if DirEnd or (Dir^[I].Name[0] = #0) then begin DirEnd := On; Break end;
       if (Dir^[i].Name[0]>#32) and (Dir^[i].Name[0]<>#$E5) and
          (Dir^[i].Name[0]<>'.') then
@@ -411,6 +424,9 @@ begin
     for I := 1 to Files^.Count do
      begin
       PF := Files^.At(I-1);
+{JO: файлы, найденные в архивах нельзя удалить из панели поиска}
+      if PathFoundInArc(PF^.Owner^) then Continue;
+{/JO}
       S := GetLFN(PF^.LFN);
       CalcCancel;
       if (PF <> nil) and not EraseCancel and not Abort then
@@ -434,6 +450,17 @@ begin
                    GlobalMessage(evBroadcast, cmReleaseFile, @S);
                    ClrIO; lEraseFile(F);
                  end;
+{--- start -------- Eugeny Zvyagintzev ---- 03-10-2002 -----}
+{Some program, for example PKUNZIP Version 2.06 01-24-94,   }
+{can create file with strange name ("example ").            }
+{Windows 9x can't operate with this file.                   }
+{So, we can delete it using short file's name               }
+               if IOResult <> 0 then
+                begin
+                 lAssignFile(F, MakeNormName(PF^.Owner^, MakeFileName(PF^.Name)));
+                 lEraseFile(F);
+                end;
+{--- finish ------- Eugeny Zvyagintzev ---- 03-10-2002 -----}
                if IOResult = 0 then
                begin
                  if (PF^.DIZ <> nil) and
@@ -517,7 +544,6 @@ begin
    FreeMem(Dir, DirSize);
   end;
   {$ENDIF}
-  DrivesSet := [];
 
   Flush := (SystemData.Options and ossFlushDsk <> 0);
 
@@ -527,18 +553,23 @@ begin
     InfoWrite(1, GetString(dlFlushingBuffers));
   end else Dispose(PInfo,Done);
 
+  RereadCollection := New(PStringCollection, Init(32, 32)); {сортированная, без повторов}
   for I := 0 to Files^.Count-1 do
-      DrivesSet := [UpCase(PFileRec(Files^.At(I))^.Owner^[1])] + DrivesSet;
-  S := 'A:\';
-  for ch := 'A' to 'Z' do
-    if ch in DrivesSet then
-      begin
-        S[1]:=ch;
-        GlobalMessage(evCommand, cmRereadTree, @S);
-        RereadDirectory(S);
-      end;
-  if '\' in DrivesSet {piwamoto: reread \\server\share}
-    then GlobalMessage(evCommand, cmPanelReread, nil);
+    RereadCollection^.Insert(PFileRec(Files^.At(I))^.Owner);
+  S := #0;
+  for I := 0 to RereadCollection^.Count-1 do
+    begin
+      PS := RereadCollection^.At(I);
+      if S <> Copy(PS^, 1, Length(S)) then {если уже перечитали вышележащий каталог, то этот перечитывать не надо}
+        begin
+          S := PS^;
+          GlobalMessage(evCommand, cmRereadTree, PS);
+          RereadDirectory(S);
+        end;
+    end;
+  RereadCollection^.DeleteAll;
+  Dispose(RereadCollection, Done);
+{/Cat}
   GlobalMessage(evCommand, cmRereadInfo, nil);
   if Flush then
   begin

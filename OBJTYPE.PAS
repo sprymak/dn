@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2825-quick_directories_list_improve.patch
+//  dn21225-calculator(if)-multilanguage.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -114,6 +118,7 @@ const
 
 { --- CCalc }
 
+   otCCalcWindow   =      9300;
    otCalcLine      =      9301;
    otIndicator     =      9302;
 
@@ -265,6 +270,7 @@ const
   otMenuBox         =       41;
   otStatusLine      =       42;
   otMenuPopup       =       43;
+  otChangeDirMenu   =       44;
 
 
 { --- MicroEd }

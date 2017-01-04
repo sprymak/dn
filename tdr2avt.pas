@@ -48,20 +48,27 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn3331-Arvid_bugfix_and_TDR_detection.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 program TDR2AVT;
 
-{$T+}
+{$T+}{$N+}
 {$M 45480,0,655350}
 
 Uses
+     Dos,
      LFN,       { lFSplit }
      Objects,   { PBufStream }
-     Advance3,  { ExistFile, CalcTmpFName }
+     Advance,   { x_x }
+     Advance1,  { UpStrg }
+     Advance2,  { ExistFile, CalcTmpFName }
      FilesCol,  { PFileRec }
      Commands,  { psShowDescript }
-     Arvid
+     Collect,   { PCollection }
+     Arvid,
      ArvidAvt;
 
  procedure Usage;
@@ -101,7 +108,7 @@ const
      PT:      array[1..4656] of char;
     const
      AVT: TAvtHeader =
-           (Signature:     'AVTP';
+           (Signature:      $50545641{'AVTP'};
             AvtFmt:         1;
             CheckSum:       0;
             AfterLastCell:  80+4656;
@@ -192,7 +199,7 @@ const
         if (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then Desc:=PF^.DIZ^.DIZ^;
         if (PF^.Attr and Directory) = 0 then begin
           PTDR^.Stream^.Seek(Round(PF^.PSize)); PTDR^.Stream^.Read(FC, SizeOf(FC));
-          AvtNewFile(PAVT, S2, Desc, False, PF^.Size, PackedDate(PF), FC.StartSector, PF^.Attr);
+          AvtNewFile(PAVT, S2, Desc, False, Round(PF^.Size), PackedDate(PF), FC.StartSector, PF^.Attr);
           Inc(FilesCounter);
         end else begin
           Nm:=MakeFileName(PF^.Name);
@@ -292,7 +299,7 @@ const
        Halt(254);
      end;
      IStream^.Seek(0); IStream^.Read(AVT, SizeOf(AVT));
-     if (AVT.Signature <> 'AVTP') or (AVT.AvtFmt <> 1) then begin
+     if (AVT.Signature <> $50545641{'AVTP'}) or (AVT.AvtFmt <> 1) then begin
        1:  WriteLn('Error: invalid format of input AVT "', Path,'"');
            Halt(254);
      end;
@@ -482,7 +489,7 @@ var
   Stream: PBufStream;
 const
   AVT: TAvtHeader =
-        (Signature:     'AVTP';
+        (Signature:      $50545641{'AVTP'};
          AvtFmt:         0;
          CheckSum:       0;
          AfterLastCell:  40;

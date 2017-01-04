@@ -6,6 +6,863 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 3.7.0
+  ---------------------------------------------------------------------
+
+    >>> Compatibility issues <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Now DN will try to delete file by its short name if unable to delete file
+    by LFN (Eugeny Zvyagintzev).
+
+[*] Function "Show server name/volume for network drives" now works with
+    Novell Network clients (Max Vasilyev).
+
+[*] "Free disk space" for \\server\share\ (under WinNT) is conditionally set
+    as 2 Gb instead of 0 byte (Max Vasilyev).
+
+[-] Drive type detection fixed (Max Vasilyev).
+
+[-] Now DN will not re-read current drive after displaying "Change Drive" menu
+    (Eugeny Zvyagintzev).
+
+[-] Now DN correctly re-writes files under Windows XP on Novell Netware drives
+    (Eugeny Zvyagintzev).
+
+[-] Now DN correctly copies and shows files with size more than 2Gb
+    (Eugeny Zvyagintzev).
+
+[-] Now DN correctly performs "Quick Rename" of files on network drives mapped
+    through "CD" command (Eugeny Zvyagintzev).
+
+[-] Now DN correctly performs "CD" command on network drives
+    (Eugeny Zvyagintzev).
+
+[-] Now DN correctly re-reads information about file (Eugeny Zvyagintzev).
+
+    >>> DN.INI parameters, setup and options <<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[!] Dialog layouts of "Interface Setup" and "New Manager Defaults" have been
+    changed. Implemented possibility of more flexible settings for showing
+    selected files and long file name on separator and on information panel
+    (Evgeny Zvyagintzev).
+
+[!] Parameter "ShowLongName" (section [FilePanels]) has been moved from DN.INI
+    into DN Options panels (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[!] Attention! Use of parameter "ShowLongName" (section [FilePanels]) has been
+    changed in DN.INI (Eugeny Zvyagintzev):
+    ShowLongName = 0 - do not show LFN;
+    ShowLongName = 1 - do not show LFN if it is not equal to short filename
+                       (case insensitive);
+    ShowLongName = 2 - show LFN if it is not equal to short file name
+                       (case insensitive);
+    ShowLongName = 3 - show LFN in any case;
+
+[+] New variables have been added in DN.INI (section [FilePanels])
+    (Eugeny Zvyagintzev):
+    AlignLFNInBottom = 0 - centre LFN;
+    AlignLFNInBottom = 1 - align LFN left;
+    AlignLFNInBottom = 2 - align LFN right.
+    LFNCutSide = 0 - show left part of LFN;
+    LFNCutSide = 1 - show right part of LFN;
+    LFNCutSide = 2 - show left part of LFN and file extension (if present).
+
+[+] "QuickSearchType" (section [FilePanels]) setting is added to DN.INI. This
+    option allows to complete file name mask (by pressing ".") in Quick search
+    (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[+] Now option AltGrAsAlt (section [Kernel]) added to dn.ini
+    (Eugeny Zvyagintzev):
+    AltGrAsAlt = 0  AltGr and Alt are different;
+    AltGrAsAlt = 1  AltGr and Alt are equal.
+
+[+] Now option "DefCodePage" (section [Editor]) from "dn.ini" works in
+    internal text viewer (Sergey Biryukov).
+
+[+] Now DN can show time and speed of File Copy process. New variable
+    "ShowCopyTime" (section [Interface]) added to DN.INI (Eugeny Zvyagintzev).
+
+[*] When checking "ReuseViewers" (section [Editor]) rule/option, Quick View
+    window is ignored (Sergey Biryukov).
+
+[*] When opening files from "Edit History" the option "Internal Editor" is
+    verified now (Sergey Biryukov).
+
+[-] "VertScrollBarChars" (section [Interface]) parameter from "dn.ini" did not
+    affect internal file viewer (Sergey Biryukov).
+
+[-] "ReuseViewers" (section [Interface]) parameter from "dn.ini" was not used
+    by internal viewer in viewing DBF files (Sergey Biryukov).
+
+[-] "ReuseEditors" (section [Interface]) parameter from "dn.ini" was not used
+    for opening files with internal editor (by <Ctrl-Enter> or from the "Open
+    File" dialog box) (Sergey Biryukov).
+
+[-] if "dn.ini" parameters ReuseEditors=0 and ReuseViewers=0 (section
+    [Interface]) were set, then order of opened windows will not change with
+    opening of other viewer or editor window with the file being already
+    opened in editor or viewer window (Jaroslaw Osadtchiy).
+
+[-] Fixed options "Store editor position" and "Store viewer position"
+    (Sergey Biryukov).
+
+[-] Not all editor options for a certain file were saved in history
+    (Sergey Biryukov).
+
+[-] Option "DefCodePage" (section [Editor]) from "dn.ini" had no effect on new
+    files created (Sergey Biryukov).
+
+[-] Now DN correctly performs "Sleep when inactive" function
+    (Eugeny Zvyagintzev).
+
+[-] The last position in dialog Options|Colors|Group was not preserved
+    (Sergey Biryukov).
+
+    >>> File manager <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[!] Added possibility to search files in archives (Jaroslaw Osadtchiy,
+    Max Vasilyev).
+
+[+] File selection/deselection <Grey+> and <Grey-> (in file selection dialog)
+    with mask ending with "\" selects/deselects directories instead of files
+    now (Jaroslaw Osadtchiy).
+
+[+] Now it is possible to modify Quick Directories list in interactive mode
+    (Eugeny Zvyagintzev).
+
+[+] DN shows file size before file name in file panel if LFN has length of 250
+    characters or more (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[+] Now DN will display warning if an attempt to delete current directory from
+    history of directories is made (Eugeny Zvyagintzev).
+
+[+] Now it is possible to skip all bad files during coping files
+    (Eugeny Zvyagintzev).
+
+[+] Now it is possible to show file description on bottom Information Panel
+    (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[+] Switching (with <Ctrl-Y> hotkey) between current and full modes of showing
+    files now works in archives as well (Pavel Borodin).
+
+[+] Path to file is shown in archive on panels of search/branch (with
+    <Ctrl-K>/<Alt-;> hotkeys) (Pavel Borodin).
+
+[+] Now a file name is added to history of File Copy dialog also in case when
+    there is an archive opened in passive file panel (Sergey Biryukov).
+
+[+] Now when copying a directory its name is added to File Copy history
+    (Sergey Biryukov).
+
+[+] Now combinations <Alt-BackSpace>, <Alt-Shift-0>, <Ctrl-Shift-Alt-1...9>
+    work on directory tree panel (Sergey Biryukov).
+
+[+] It is possible to use combination <Ctrl-Shift-Del> on file panels to hide
+    current file (Sergey Biryukov).
+
+[+] Now when performing the "Quick Rename" operation in file panel a new name
+    is added to history of copying/moving files (Sergey Biryukov).
+
+[*] Settings check has been added In "Setup columns" dialog for situations
+    when user enters more symbols for a file extension than for a file name.
+    Similar checking routine has been added for similar modes in setup options
+    (Sergey Biryukov).
+
+[*] Changed look of short file name which is shown in archives
+    (Sergey Biryukov).
+
+[*] Now unselecting of selected files while packing in and extracting from
+    archives occurs only when selected files do exist (Sergey Biryukov).
+
+[*] Now the title of DN window in operations with file panel is refreshed only
+    when it is necessary (Sergey Biryukov).
+
+[*] Now DN performs "Append files" and "Verify writes" operations at copying
+    files in more optimal way (Eugeny Zvyagintzev).
+
+[*] Now DN is more flexible in showing the line of Quick Search on separator
+    and information panel, and in accordance to long file name and settings of
+    selected files display (Eugeny Zvyagintzev).
+
+[*] Procedure of saving files (extracted from archives or after applying
+    filters) to be opened in editor has been revised. Now, after restarting DN
+    or after changing current language, DN asks for confirmation to save file
+    and saves it if the file was saved before or editor window was closed. In
+    addition, newer procedure allows to switch back to viewing the files after
+    editing these files (Sergey Biryukov).
+
+[*] Now size, description fields, as well as compression ratio in archives,
+    are highlighted completely; the path field in file find panel now is also
+    highlighted (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[*] Now archive, ARVID and list file panels respond to <Ctrl-\> hotkey
+    correctly: exiting from file (archive, ARVID list or list file), and
+    cursor bar is set on this file (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[*] "Associate File List" operation recognizes file names in list by the
+    following pattern (Alexey Korop, Max Vasilyev):
+    - if the first character is 'space' or ">" the whole line is ignored (this
+      option added for multiline comments);
+    - if the first character is ("), entire text is regarded as name up to
+      closing bracket;
+    - if the first character is none of the above - the whole line is regarded
+      as name;
+    - but if the file w/"name" not found and the line contains spaces, then
+      text from beginning of line to the very first "space" is regarded as
+      name;
+
+[*] File List Panel could contain multiple names of the same files
+    (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[*] Now File List ignores strings containinig wildcards "*" and "*.*"
+    (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[*] In deleting files DN re-reads only directories where files were deleted
+    (Alexei Kozlov).
+
+[*] If filename mask is set on file panel, then this mask is shown on bottom
+    information panel "as is", without "*." removed, which allows to avoid
+    incorrect display of masks different from "*.ext" (Jaroslaw Osadtchiy).
+
+[*] Now DN will put "CD directory" command in Command History more correctly
+    (Eugeny Zvyagintzev).
+
+[*] Title of "Copy File" window dialog was changed. Window title refresh will
+    occur only with actual changes (Sergey Biryukov).
+
+[*] File name was added to dialog history after copying/moving to "TEMP:'
+    (Sergey Biryukov).
+
+[*] If Directory History menu is called from "Search" panel or "TEMP:" cursor
+    bar is set to source directory (Sergey Biryukov).
+
+[*] Fixed and improved resizing of file panels with <Alt-Left/Right> and
+    <Ctrl-M/Ctrl-Alt-Z> (Sergey Biryukov).
+
+[*] Command "Window|Zoom" now works more correctly for file panels
+    (Sergey Biryukov).
+
+[*] Now DN will copy files correctly when "Check free disk space" option is
+    selected and 1) insufficient free disk space detected and 2) file already
+    exists and 3) file being copied can fit in space only by overwriting old
+    file (Eugeny Zvyagintzev).
+
+[*] Now DN will use LFN only if "Action" input field is empty when creating a
+    file list (Eugeny Zvyagintzev).
+
+[*] Now DN will terminate process of deleting directories much more faster
+    (Eugeny Zvyagintzev).
+
+[-] Quick search was not terminated by pressing "*" (Sergey Biryukov).
+
+[-] After moving file to archive its description was not deleted
+    (Sergey Biryukov).
+
+[-] After copying a file into the same directory under new file name its
+    description was deleted (Sergey Biryukov).
+
+[-] Fixed errors occurring while adding strings to the history of file copying
+    (Sergey Biryukov).
+
+[-] Now DN will perform "Make list file" operation more accurately
+    (Eugeny Zvyagintzev).
+
+[-] Dos Navigator window title was not updated, if the File Search operation
+    was stopped and then resumed (Sergey Biryukov).
+
+[-] Maximized file panel in archive incorrectly showed the string containing
+    information about size of compressed files and compression ratio. This
+    string was not centered after maximizing file panel; and background of the
+    element "Current file" overlapped this string (Sergey Biryukov).
+
+[-] Fixed recent bug that had caused DN freeze in entering archive with
+    Information panel open (Eugeny Zvyagintzev).
+
+[-] Now "Quick View" can not be invoked from manager if current panel is
+    Information panel (Sergey Biryukov).
+
+[-] Now Viewer History for files in archive works correctly (Sergey Biryukov).
+
+[-] Now Search Files with "DIR\*.*" mask works correctly (Sergey Biryukov).
+
+[-] Directories History works correctly now with "\\server\share" path
+    (Max Vasilyev).
+
+[-] Pressing <Ctrl-E> could retrieve other than the last command from history
+    (Sergey Biryukov).
+
+[-] Info Divider was not always redrawn after pressing "Home" button
+    (Sergey Biryukov).
+
+[-] In Command History records (even those marked as protected) were deleted
+    in case of overflow (Sergey Biryukov).
+
+[-] Fixed error with copying descriptions of the same file (Sergey Biryukov).
+
+[-] After viewing file from archive with an external filter, DN did not delete
+    file (extracted from archive) from temporary directory (Sergey Biryukov).
+
+[-] Fixed some bugs with viewing files in archives from File View History
+    (Sergey Biryukov).
+
+[-] Now in zoomed DOS ("User") screen the commands from command line history
+    can be called with Shift-Up/Down keys (Sergey Biryukov).
+
+[-] Now DN will display previous and next commands in command line more
+    correctly (Eugeny Zvyagintzev).
+
+[-] Now DN will not cancel process of copying files if it fails to read
+    current file (Eugeny Zvyagintzev).
+
+[-] Now DN will move file[s] more correctly (Eugeny Zvyagintzev).
+
+[-] When cursor bar was moved to opposite panel by <Tab> key, list dividers
+    between fields with information about current file had colour of file name
+    (Jaroslaw Osadtchiy).
+
+[-] The highlighting of size, date, time and description of selected files
+    disappeared after switching to opposite panel (Jaroslaw Osadtchiy,
+    Max Vasilyev).
+
+[-] When files were renamed in File Search panel or TEMP panel the colour
+    change did not occur whereas target files had different colour assigned
+    (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[-] In "Quick File Rename" process in Search panel or TEMP panel DN sometimes
+    showed false error messages (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[-] Directory changing (by <Alt-T>) from archive panel did not work correctly
+    (Jaroslaw Osadtchiy).
+
+[-] If current file panel displayed archive contents then, after an attempt to
+    choose a deleted archive or file list from "Directory History" some errors
+    occurred in the panel (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[-] In attempt to enter a deleted directory via "Directory History" DN moved
+    to parent directory without any warning (Jaroslaw Osadtchiy,
+    Max Vasilyev).
+
+[-] After entering file list through "Directories History" current directory
+    was not changed to directory containing the files from list. As a result,
+    the list contained files NOT from its original directory, but from active
+    directory at the moment of call (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[-] Pressing <Ctrl-\> hotkey in TEMP drive panel caused moving to root
+    directory of the drive which was in current panel before TEMP drive
+    (Jaroslaw Osadtchiy).
+
+[-] Panels of File Search, List, and TEMP were not re-read (refreshed) upon
+    pressing <Ctrl-R> (Jaroslaw Osadtchiy).
+
+[-] Fixed some errors in Drag-n-Drop operations (Jaroslaw Osadtchiy,
+    Max Vasilyev).
+
+[-] Fixed errors that occurred during File Search in switching to "Find" panel
+    (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[-] After file search (of files on disk) and after opening directory branch
+    (of disk File Tree) sorting of new file list occurred twice
+    (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[-] With some inappropriate column settings some malfunctioning and crashing
+    of DN could occur (Jaroslaw Osadtchiy, Sergey Biryukov,
+    Eugeny Zvyagintzev).
+
+[-] Sometimes description files were marked/selected even if option "Always
+    copy descriptions" was set active (Max Vasilyev).
+
+[-] When viewing files from an archive, if the length of a command line for
+    executing an archiver exceeds the limit value of 127 symbols, an error
+    message is shown and abnormal termination of DN does not occur
+    (Sergey Biryukov).
+
+[-] Now DN changes current drive correctly (Eugeny Zvyagintzev).
+
+[-] Now DN correctly re-reads directory while moving files
+    (Eugeny Zvyagintzev).
+
+[-] Now DN unselects files (removes selection tags/flags) upon returning files
+    to Temp Drive (Eugeny Zvyagintzev).
+
+[-] Now DN correctly copies directory name '..' to clipboard
+    (Eugeny Zvyagintzev).
+
+[-] Now DN correctly re-reads "File Find" Panels (Eugeny Zvyagintzev).
+
+[-] Now information about selected files on Find File panel is not lost after
+    viewing an archive with F3 (Sergey Biryukov).
+
+[-] Now DN will set current file's position after file deletion more
+    correctly (Eugeny Zvyagintzev).
+
+[-] Fixed error that occured when calling help for the "Quick Rename"
+    operation, leading to the situation when help window stayed in background
+    after pressing Esc (Sergey Biryukov).
+
+    >>> Editor and viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] The selection pattern of File View modes was altered (Sergey Biryukov):
+    -- internal Viewer is selected:
+    <F3> toggles modes 1) special internal 2) specified in "dn.vwr" 3) text;
+    -- internal Viewer is deselected:
+    <F3> toggles modes 1) specified in "dn.vwr" 2) special internal 3) text;
+    -- regardless of "Internal Viewer" option:
+    <Alt+F3> selects mode as specified in dnalt.vwr;
+    <Alt+Shift+F3> selects text mode only;
+    "Special Internal" mode implies viewing database, spreadsheet and messages
+    by internal DN tools.
+    When file is opened for viewing from "File View" History, the mode that
+    was used last is selected.
+
+[+] New hotkeys added in DN editor (Sergey Biryukov):
+    Ctrl-A, Ctrl-Numpad5 - select all text as continuous block;
+    Ctrl-F               - show/hide selection;
+    Ctrl-<               - select left word from cursor;
+    Ctrl->               - select right word from cursor;
+    Ctrl-Shift-Up        - select text from current line to beginning;
+    Ctrl-Shift-Down      - select text from current line to the end.
+    Operations previously assigned to hotkeys <Ctrl-A> and <Ctrl-F> are still
+    available by using <Ctrl-ArrowLeft> and <Ctrl-ArrowRight> hotkeys.
+
+[+] In history of the dialog "Save File As" for internal viewer and editor now
+    a current file name is added (Sergey Biryukov).
+
+[+] New hotkeys have been added to the editor (Sergey Biryukov):
+    Ctrl-Up   - single-line scrolling up;
+    Ctrl-Down - single-line scrolling down.
+    Same navigation is possible by pressing <Up> and <Down> with "Scroll Lock"
+    on. These functions differ from operations <Ctrl-W> and <Ctrl-Z> by the
+    fact that cursor does not change its position on the screen if end or
+    beginning of current file has not been reached.
+
+[+] Pressing <Alt-Left> in editor shifts selected block to the left, pressing
+    <Alt-Right> shifts selected block to the right. New hotkey combinations
+    duplicate functions of <Ctrl-K-U> and <Ctrl-K-I> hotkeys
+    (Sergey Biryukov).
+
+[+] For sorting block in reverse order <Alt-Shift-T> hotkey combination is
+    used now (made as synonym for <Ctrl-R> hotkey) (Sergey Biryukov).
+
+[*] Interpretation of "StringFLAGS" keyword (in DN.HGL) has been improved,
+    comments of DN.HGL file have been expanded and updated
+    (Jaroslaw Osadtchiy).
+
+[*] Fixed error that made cursor move by one position to the right at attempt
+    to undo operations of changing character case (Sergey Biryukov).
+
+[-] The scrollbar in viewer window did not work properly while viewing very
+    large files (Jaroslaw Osadtchiy).
+
+[-] RealMode version of DN crashed after "Sort Block" operation in internal
+    editor (Sergey Biryukov).
+
+[-] During search in DN internal viewer the word was not selected if it was in
+    the last line of a file (Sergey Biryukov).
+
+[-] Fixed error with calculating sum of block in editor (Sergey Biryukov).
+
+[-] Fixed error in opening non-exiting file by an external editor
+    (Sergey Biryukov).
+
+[-] Now DN will correctly perform operations with selected block in editor:
+    uppercase, lowercase, etc... (Eugeny Zvyagintzev).
+
+[-] Now DN will scroll editor window (Ctrl-W, Ctrl-Z) more correctly
+    (Eugeny Zvyagintzev).
+
+[-] Now SmartTab works correctly when cursor is placed before space character
+    in previous line (Eugeny Zvyagintzev).
+
+[-] Now DN will initialize files highlight in file viewer more correctly
+    (Eugeny Zvyagintzev).
+
+[-] Cursor remained visible after switching view mode from DisAsm to text mode
+    (Alexey Korop).
+
+[-] Fixed DN crash at attempt to go to some address by pressing <F5> key while
+    viewing file in disassembler mode (Jaroslaw Osadtchiy).
+
+[-] Editing in hexadecimal mode of file viewer (in disassembler view) changed
+    wrong bytes (other than those under cursor) (Jaroslaw Osadtchiy).
+
+[-] Fixed error in editor that appeared at pressing <Esc> after sorting a text
+    block (Sergey Biryukov).
+
+[-] In internal viewer, when going back to first line its first symbol used to
+    disappear (Sergey Biryukov).
+
+[-] Fixed bugs with text selection (Eugeny Zvyagintzev, Sergey Biryukov).
+
+[-] Now DN processes "AutoBrackets" option from Highlight Files configuration
+    file (DN.HGL) (Eugeny Zvyagintzev).
+
+[-] Fixed potential error while navigating in text viewer (Sergey Biryukov).
+
+    >>> System Information <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] HDD detection procedure has been improved (Max Vasilyev).
+
+[-] DN/DPMI displayed incorrect amount of 'memory for user' in 'Information
+    Panel' (Max Vasilyev).
+
+    >>> Database viewer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[!] Now DBF viewer works with different code pages and XLT-files
+    (Eugeny Zvyagintzev).
+
+[+] Now it is possible to go to row or collumn in DBF viewer through dialog
+    invoked by <F6> key (Eugeny Zvyagintzev).
+
+[*] Now DN finds empty fields in DBF viewer if search string (input line) was
+    empty (Eugeny Zvyagintzev).
+
+[*] Now DN displays a warning dialog upon detecting errors in DBF header
+    (Eugeny Zvyagintzev).
+
+[*] Now DN correctly loads empty WKZ spreadsheet file (Eugeny Zvyagintzev).
+
+[-] Fixed false warning of overflow in WKZ editor (Eugeny Zvyagintzev).
+
+[-] Fixed DBF file detection (Eugeny Zvyagintzev).
+
+[-] Now DN correctly displays empty memo fields created by Clipper
+    (Eugeny Zvyagintzev).
+
+[-] Restored option of WKZ editor to export WKZ file into text file
+    (Eugeny Zvyagintzev).
+
+[-] Now DN updates menu of WKZ editor if active language was changed by
+    <Alt+F12> key while viewing WKZ file (Eugeny Zvyagintzev).
+
+[-] Spreadsheet editor did not correct addresses in formulas after
+    inserting/deleting empty rows/columns or pasting cell contents from
+    clipboard (Alexey Korop).
+
+[-] Now DN correctly writes history of viewing WKZ files from archives
+    (Eugeny Zvyagintzev).
+
+[-] Now DN erases temporary files after viewing WKZ files from archive
+    (Eugeny Zvyagintzev).
+
+[-] Now DN uses history of viewing DBF files more correctly
+    (Eugeny Zvyagintzev).
+
+[-] Now DN correctly performs auto calculation of formulas when symbol ","
+    used (Eugeny Zvyagintzev).
+
+[-] Restored usage of ":" symbol in formulas (Eugeny Zvyagintzev).
+
+[-] Fixed 100% CPU load that occurred in resizing WKZ spreadsheet column
+    (Alexey Korop).
+
+[-] Now DN deletes rows and columns in WKZ editor more correctly
+    (Eugeny Zvyagintzev).
+
+[-] Now DN correctly performs SUM and MUL calculations with multiple operators
+    (Eugeny Zvyagintzev).
+
+[-] Now DN correctly performs auto update of linked cells containing SUM and
+    MUL functions with multiple operators (Eugeny Zvyagintzev).
+
+[-] Now DN correctly performs auto update of linked cells after an error
+    occurring in previous calculation (Eugeny Zvyagintzev).
+
+[-] Now DN allows to exit from cell editing mode by pressing <Esc>. Previous
+    value of cell will be restored (Eugeny Zvyagintzev).
+
+[-] Now DN does not save WKZ contents in dn.dsk (Eugeny Zvyagintzev).
+
+[-] Now DN uses only two operands in formulas like =SUM(a1,d1)
+    (Eugeny Zvyagintzev).
+
+[-] Now DN replaces values in WKZ editor more correctly (Eugeny Zvyagintzev).
+
+[-] While searching DBF file in viewer DN did not find data if they were in
+    current line only (Sergey Biryukov).
+
+[-] Now DN correctly searches data in DBF viewer (Eugeny Zvyagintzev).
+
+[-] Now DN updates DBF viewer if country settings were changed
+    (Eugeny Zvyagintzev).
+
+[-] Now DN performs text search in DBF viewer more correctly
+    (Eugeny Zvyagintzev).
+
+[-] Now DN detects DBF file structure more correctly.
+    Strange character fields C(10,3) are detected just as they are described
+    in header - at first structure detection.
+    Then length of entire record is calculated. If the length of calculated
+    record length does not match header record length, then the length of
+    character fields will be calculated as 10+3*256=778 (Eugeny Zvyagintzev).
+
+[-] Now indicator in DBF viewer is displayed correctly (Eugeny Zvyagintzev).
+
+[-] Now DN will remember Find Text dialog settings in DBF viewer and WKZ
+    editor (Eugeny Zvyagintzev).
+
+    >>> Archivers <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Added OS/2 fixpack diskimage unpacking (Max Vasilyev).
+
+[*] Arvid's streamer TDR file, Package for the WEB (CAB-sfx), WinZIP SFX and
+    ACE SFX archives detection improved (Max Vasilyev).
+
+[*] Now DN passes long or short archive name to an archive unpacker in
+    accordance to parameter "Use Long File Names" set in archiver options
+    (Jaroslaw Osadtchiy, Max Vasilyev).
+
+[*] Unpacking of DDI diskimages (Max Vasilyev).
+
+[*] Now ACE archiver is set to "Use long names" by default (Max Vasilyev).
+
+[*] ARJ archiver settings (be default) were changed for better compatibility
+    with LFN operations (newer ARJ archiver release may be required)
+    (Max Vasilyev).
+
+[*] Now archivers are called by 'NAME' instead of 'NAME.EXE' (Max Vasilyev).
+
+[*] If passwords do not match when creating protected archive an appropriate
+    message is displayed (Sergey Biryukov).
+
+[-] Fixed error occurring in attempt to make or extract an archive with a
+    password containing spaces (Sergey Biryukov).
+
+[-] More strict processing of ARJ, RAR, ZIP and GZIP archives (Max Vasilyev).
+
+[-] Processing of RAR archives created under Unix (Max Vasilyev).
+
+[-] Fixed problem with viewing files that contained 2 spaces in names - from
+    archive (Max Vasilyev).
+
+[-] Fixed cursor re-positioning at entering/leaving archives enclosed in
+    another archive volume (Max Vasilyev).
+
+[-] Fixed work with file descriptions inside AVT/TDR (Max Vasilyev).
+
+[-] DN crashed in attempt to read AVT/TDR (Max Vasilyev).
+
+[-] AnyFile.gz.rar contents were not shown properly in some cases
+    (Max Vasilyev).
+
+[-] Diskette images unpacker was unable to process more than 16 files
+    correctly in some cases (Max Vasilyev).
+
+    >>> Calculator <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Now all functions, except construction IF(...,...,...), can receive
+    parameters without brackets (Sergey Biryukov).
+
+[+] It is possible to write n! instead of fact(n) function for calculating
+    factorial of a number in calculator. However function "fact(n)" also works
+    as before (Sergey Biryukov).
+
+[+] Added new function "dfact(n)" (and similar/shorter notation "n!!")
+    calculating value of double factorial of number n (Sergey Biryukov).
+
+[+] In order to keep meaning of operation "!=" and to accommodate two
+    innovations (factorial functions "n!" and "n!!"), newer syntax has been
+    introduced (Sergey Biryukov):
+    n!=m    corresponds to n<>m;
+    n!!=m   corresponds to n!<>m;
+    n!!!=m  corresponds to n!!<>m.
+    For more obvious interpretation, one can use brackets, for example,
+    (n!)!=m.
+
+[+] Now pressing "Evaluate" button in calculator performs conversion of
+    number in the input line to selected form (Sergey Biryukov,
+    Eugeny Zvyagintzev).
+
+[+] Now calculator can be called from any input line as a modal window.
+    "Evaluate" button will calculate expression and return result to input
+    line (Eugeny Zvyagintzev, Sergey Biryukov).
+
+[*] Now the main menu can be called from calculator (Sergey Biryukov).
+
+[*] Algorythm of detecting repetetive operations and missing arguments was
+    rewritten and optimized. Some errors occurring in analysis of unary
+    operations were fixed. Operations with negative degrees were fixed.
+    (Sergey Biryukov).
+
+[-] Detection of missing operation sign and exponential form of the number was
+    improved (Sergey Biryukov).
+
+[-] Fixed XOR function (Sergey Biryukov).
+
+[-] Precision of calculations is increased. Work of unary minus was fixed.
+    Also number "ch" is recognized more correctly now (Sergey Biryukov).
+
+[-] Fixed error leading to incorrect output of some calculator results in
+    decimal system (Sergey Biryukov).
+
+[-] Fixed DN crash that occurred at entering large numbers in binary, octal
+    and hexadecimal scales of notation (Sergey Biryukov).
+
+    >>> Terminal <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[-] Fixed error that prevented re-activation of already opened terminal window
+    (Sergey Biryukov).
+
+[-] Temporably DN does not compress packets in Navigator Link
+    (Eugeny Zvyagintzev).
+
+    >>> Miscellanous <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[+] Directories sorting speed is slightly increased in DN/DPMI (Max Vasilyev).
+
+[+] Now it is possible to switch from displaying directory name in command
+    line to displaying first 3 characters (drive letter only) by mouse double
+    click or by pressing Ctrl-< and Ctrl-> (Eugeny Zvyagintzev).
+
+[+] Now in all histories <Alt-Up> and <Alt-Down> hotkeys are used for moving
+    to a nearest undeletable item in selected direction (Alexey Korop,
+    Sergey Biryukov).
+
+[+] Now at setting up advanced parameters of formatting diskettes an
+    appropriate item in Disk Capacity menu is selected automatically
+    (Sergey Biryukov).
+
+[+] New hotkeys have been added to operations in Input Line
+    (Eugeny Zvyagintzev, Sergey Biryukov):
+    Ctrl+Q D - insert date;
+    Ctrl+Q T - insert time;
+    Ctrl+Q Y - delete text from cursor to end;
+    Ctrl+<   - select word from cursor to left;
+    Ctrl+>   - select word from cursor to right.
+
+[*] Now changing current language affects opened calculator window and Tetris
+    Game window (Sergey Biryukov, Eugeny Zvyagintzev).
+
+[*] Optimized processes of moving of items in Directory, Viewer, Editor and
+    Command histories (with hotkeys <Shift-Up> and <Shift-Down>)
+    (Alexey Korop, Sergey Biryukov).
+
+[*] Now position of File Extention Filter panel (invoked by <Alt-BS>) is not
+    stored, and Window always opens in centre (Alexey Korop).
+
+[*] The size of help window now depends on video mode (Jaroslaw Osadtchiy).
+
+[*] "@echo off" string will not be added into temporary batch files, if the
+    first string of these files begins with "\*" or "#" (i.e. REXX and Perl
+    scripts) (Jaroslaw Osadtchiy).
+
+[*] Now keys <Ins> and <Del> work correctly in the environment variables
+    editor, and functions of "insert" and "delete" were moved to keys
+    <Alt-Ins> and <Alt-Del> (Ilya Malanyin).
+
+[*] Changed logic of adding the string with date and time in SmartPad Editor
+    (Sergey Biryukov).
+
+[*] DnError utility: compatibility with OS/2 VDM (Max Vasilyev).
+
+[*] Now "Make list file" and "Read file list" operations interface is
+    improved (Eugeny Zvyagintzev).
+
+[*] Now DN will terminate dragging or resizing windows on pressing Esc key
+    (Eugeny Zvyagintzev).
+
+[-] Now DN will quit correctly when Disk Editor is running
+    (Eugeny Zvyagintzev).
+
+[-] Now macroses !: #: $: &: work correctly on empty or network drives
+    (Eugeny Zvyagintzev).
+
+[-] Now macroses '#' and '&' work correctly on element '..'
+    (Eugeny Zvyagintzev).
+
+[-] DN did not save "dn.err" when it was run from a directory with a long name
+    (Sergey Biryukov).
+
+[-] If command string used in command line was too long, DN closed without any
+    warnings (Sergey Biryukov).
+
+[-] "Help" windows for all functions of CD Player are shown correctly now
+    (Sergey Biryukov).
+
+[-] Now DN shows "Drive Access Error" message more correctly
+    (Eugeny Zvyagintzev).
+
+[-] DN window title was not always updated after closing Help Window
+    (Sergey Biryukov).
+
+[-] Now <Ctrl-\> works correctly in dialogs (Eugeny Zvyagintzev).
+
+[-] Restored range of options of floppy disk formatting (Sergey Biryukov).
+
+[-] Fixed removal of nested archives from TEMP on exit from DN
+    (Sergey Biryukov).
+
+[-] Now DN wait for <Del> key to be released after command line was cleared
+    (Eugeny Zvyagintzev).
+
+[-] Fixed error occurring when "\" pressed on Directory tree after quick
+    search (Sergey Biryukov).
+
+[-] Now DN displays messages directly on screen if Desktop does not exist at
+    DN startup (Eugeny Zvyagintzev).
+
+[-] Now DNERROR uses "swap file" instead of using memory (Eugeny Zvyagintzev).
+
+[-] Menu items "Panel" => "Re-read", "Window" => "Next similar",
+    "Prev similar", "Next different", "Prev different" were not disabled even
+    when actions corresponding to them were not possible (Jaroslaw Osadtchiy).
+
+[-] Fixed bug occurring at UUE-decoding of multiple files (Alexey Korop).
+
+[-] '#0' symbols were shown in progression indicators instead of spaces
+    (Jaroslaw Osadtchiy).
+
+[-] When moving between CD Player buttons by <Tab> and <Shift-Tab> hotkeys,
+    only visible (active) buttons are used (Sergey Biryukov).
+
+[-] After closing all windows, DN still kept a window title of last window or
+    dialog (Sergey Biryukov).
+
+[-] Now selected text is overwritten with "Insert Date" or "Insert Time"
+    operations (Eugeny Zvyagintzev).
+
+[-] During the process of UU-coding files in case some sections already exist
+    skipping one section cancelled the whole process (Sergey Biryukov).
+
+[-] When UU-coding only one section and rewriting of existing file was chosen,
+    the question about rewriting appeared twice (Sergey Biryukov).
+
+[-] Now DN will perform quick file searching in File Open Dialogs correctly
+    (Eugeny Zvyagintzev).
+
+[-] Now DN will load current file from dn.dsk more correctly
+    (Eugeny Zvyagintzev).
+
+[-] Now DN works with "2" and "8" keys on KeyPad more correctly
+    (Eugeny Zvyagintzev).
+
+[-] Fixed crash of CD player when working under Windows XP (Sergey Biryukov,
+    Eugeny Zvyagintzev).
+
+    >>> Source codes usage features <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+[*] Small internal optimization of LFN module (Max Vasilyev).
+
+[*] Now TObject has additional field which allows to define the type of object
+    made from it. Procedure of identifying a type of current window when
+    invoking Help window has been changed to accommodate this feature
+    (Sergey Biryukov).
+
+[-] Now work with clipboard are changed in dialogs: use procedures from
+    dnutil2.pas GetFromClip and PutInClip (Eugeny Zvyagintzev).
+
+[-] uFnMatch.FnMatchFunc (aka "Is filename matches mask") function fixed for
+    DOS style "AnyFile" mask (aka "*.*") (Max Vasilyev).
+
+[-] Nameless files ".jpg" report ".jpg" as extension now (Max Vasilyev).
+
+[-] Memory leak in collections has been fixed (Eugeny Zvyagintzev).
+
+[-] Fixed memory leak which occurred while working with tree panel
+    (Alexey Korop, Sergey Biryukov).
+
+[-] Small memory leak fixed in CallUuDecode (Alexey Korop).
+
+
    Version 2.7.0
   ---------------------------------------------------------------------
 
@@ -776,7 +1633,7 @@
 
     >>> System Information <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-[*] Added Windows ME (Millenium Edition) detection (Ondrej Zary)
+[*] Added Windows ME (Millennium Edition) detection (Ondrej Zary)
 
 [*] OS/2 Warp Server for e-Business version is shown in System Information
     (Max Vasilyev)
@@ -3121,9 +3978,8 @@ Appendix: Dos Navigator startup options (DN.INI)
  ShowFileMask = bool        - display filter patterns other than *.*
                               default: 1
 
- ShowLongName = bool        - show long name of the current file when there
-                              is no selection or filter pattern
-                              default: 1
+ ShowLongName = bool        - obsolete, replaced by 'Long name in bottom'
+                              panel option
 
 ===========================================================================
 

@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn3331-colors(f)-preserve_groups_position.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1271,7 +1274,8 @@ begin
 
   SetIndexes(ColorIndexes);
 {  Display^.SetColor(Byte(Pal[Groups^.GetGroupIndex(GroupIndex)]));}
-{  Groups^.FocusItem(GroupIndex); } {PZ 2000.06.10}
+  Groups^.FocusItem(GroupIndex);  {PZ 2000.06.10}
+  { Uncommented by Flash 23-04-2003 }
   SwitchTypeSelector;
 end;
 

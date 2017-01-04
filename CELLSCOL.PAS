@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn2825-wkz_delete_row_and_column_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -220,6 +223,7 @@ begin
  for I := 1 to Count do
   begin
    P := At(I - 1);
+   If P = Nil Then Continue;
    if (P^.Row = Row) and (P^.Col = Col) then
     begin
      O := P^.Options; D := P^.Decimals;

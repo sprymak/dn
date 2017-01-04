@@ -60,6 +60,12 @@
 //  dn230-remove_useless_CapitalCodePageName_option.patch
 //
 //  2.7.0
+//  dn21128-show_LFN_and_desc_in_bottom.patch
+//  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
+//  dn3315-CopyFile(n)-show_time_and_speed_added.patch
+//  dn3421-Kernel(i)_AltGr_works_like_Alt.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -112,6 +118,7 @@ const
 {}UseF3InViewer            : Byte       = 0;                   (* X-Man *)
 {}PoorFrames               : Boolean    = False;                      {PZ}
 {}HistoryButtonChars       : string[4]  = #222#25#221;                {PZ}
+{}ShowCopyTime             : Boolean    = False;                      {John_SW 22-03-2003}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -150,6 +157,7 @@ const
 {}StoreVideoMode           : Byte       = 0;                      {PZ}{DataCompBoy}
 {}SmartWindowsBoxClose     : Boolean    = False;                      {DataCompBoy}
 {}DoVESATest               : Boolean    = False;                      {DataCompBoy}
+{}AltGrAsAlt               : Boolean    = True;                       {John_SW  01-05-2003}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -170,8 +178,11 @@ const
 {`.________________________;____________;____________________;___________________'}
 {}{FilePanels}
 {}ShowFileMask             : Boolean    = True;
-{}ShowLongName             : Boolean    = True;
+{}ShowLongName             : Byte       = 1;                  {John_SW 18-01-2003}
+{}AlignLFNInBottom         : Byte       = 1;                  {John_SW 18-01-2003}
+{}LFNCutSide               : Byte       = 1;                  {John_SW 18-01-2003}
 {}QuickRenameInDialog      : Boolean    = False;
+{}QuickSearchType          : Boolean    = False; {Cat}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -373,6 +384,7 @@ begin
   RV(CSInterface, 'UseF3InViewer',        ikUInt, SizeOf(UseF3InViewer),        @UseF3InViewer); (* X-Man *)
   RV(CSInterface, 'PoorFrames',           ikBool, SizeOf(PoorFrames),           @PoorFrames);         {PZ}
   RV(CSInterface, 'HistoryButtonChars',   ikStr,  SizeOf(HistoryButtonChars),   @HistoryButtonChars); {PZ}
+  RV(CSInterface, 'ShowCopyTime',         ikBool, SizeOf(ShowCopyTime),         @ShowCopyTime);       {John_SW 22-03-2003}
   {Clock}
   RV(CSClock,     'ShowSeconds',          ikBool, SizeOf(ShowSeconds),          @ShowSeconds);
   RV(CSClock,     'ShowCentury',          ikBool, SizeOf(ShowCentury),          @ShowCentury);
@@ -396,6 +408,7 @@ begin
   RV(CSKernel,    'StoreVideoMode',       ikUInt, SizeOf(StoreVideoMode),       @StoreVideoMode);       {PZ}{DataCompBoy}
   RV(CSKernel,    'SmartWindowsBoxClose', ikBool, SizeOf(SmartWindowsBoxClose), @SmartWindowsBoxClose); {DataCompBoy}
   RV(CSKernel,    'DoVESATest',           ikBool, SizeOf(DoVESATest),           @DoVESATest);           {DataCompBoy}
+  RV(CSKernel,    'AltGrAsAlt',           ikBool, SizeOf(AltGrAsAlt),           @AltGrAsAlt);           {John_SW  01-05-2003}
   {Editor}
   RV(CSEditor,    'UnlimitUnindent',      ikBool, SizeOf(UnlimitUnindent),      @UnlimitUnindent);
   RV(CSEditor,    'Koi8rKeyMap',          ikBool, SizeOf(Koi8rKeyMap),          @Koi8rKeyMap);
@@ -410,8 +423,11 @@ begin
   RV(CSEditor,    'RecombineLongLines',   ikBool, SizeOf(RecombineLongLines),   @RecombineLongLines); {JO}
   {FilePanels}
   RV(CSFilePanels,'ShowFileMask',         ikBool, SizeOf(ShowFileMask),         @ShowFileMask);
-  RV(CSFilePanels,'ShowLongName',         ikBool, SizeOf(ShowLongName),         @ShowLongName);
+  RV(CSFilePanels,'ShowLongName',         ikUInt, SizeOf(ShowLongName),         @ShowLongName);       {John_SW 18-01-2003}
+  RV(CSFilePanels,'AlignLFNInBottom',     ikUInt, SizeOf(AlignLFNInBottom),     @AlignLFNInBottom);   {John_SW 18-01-2003}
+  RV(CSFilePanels,'LFNCutSide',           ikUInt, SizeOf(LFNCutSide),           @LFNCutSide);         {John_SW 18-01-2003}
   RV(CSFilePanels,'QuickRenameInDialog',  ikBool, SizeOf(QuickRenameInDialog),  @QuickRenameInDialog);
+  RV(CSFilePanels,'QuickSearchType',      ikBool, SizeOf(QuickSearchType),      @QuickSearchType);
   {NetInfo}
   RV(CSNetInfo,   'NoLevelsInfo',         ikBool, SizeOf(NoLevelsInfo),         @NoLevelsInfo);
   {Language}

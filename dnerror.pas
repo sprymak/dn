@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn21013-dnerror_use_swap_file.patch
+//  dn3323-dnerror_cant_read_dn_err.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -68,7 +72,9 @@ var Err, TS: Text;
     i: integer;
 
 begin
- Writeln(' DNError v2.5 (c) Anton Fedorov aka DataCompBoy 1999-2000');
+ Writeln(' DNError v2.62 - converts DN.ERR to DN2SEND.ERR');
+ Writeln(' (c) Anton Fedorov aka DataCompBoy 1999-2000');
+ Writeln(' Modified by Eugeny Zvyagintzev aka John_SW 2002');
  Assign(Err, 'DN.ERR');
  Reset(Err);
  if IOResult<>0 then begin

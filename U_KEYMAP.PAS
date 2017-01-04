@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn3315-DBF_Viewer(i)-indicator_and_code_page_improve.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -96,6 +99,8 @@ type
  function  RusEngConv ( const S : string ) : string;
  function  GetToAsciiRecodeTable ( K : TKeyMap; var Buf ) : Boolean;
 
+ procedure CharsConvertBuf ( var Buf; Len : Word; const AllChars : string );
+ procedure CharsConvertBufBack ( var Buf; Len : Word; const AllChars : string );
  procedure XlatBuf(var B; Len: Integer; var XTable);
 
 implementation

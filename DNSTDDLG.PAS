@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn3421-FileOpenDialog(f)-quick_search_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -398,17 +401,20 @@ end;
 
         {-DataCompBoy-}
 function TFileCollection.Compare(Key1, Key2: Pointer): Integer;
+Var K1,K2: String;  {John_SW  07-05-2003 To remove case sensitive}
 begin
-  if PSearchRec(Key1)^.Name = PSearchRec(Key2)^.Name then Compare := 0
-  else if (PSearchRec(Key1)^.Name[1] = '[') then Compare := 1
-  else if (PSearchRec(Key2)^.Name[1] = '[') then Compare := -1
-  else if PSearchRec(Key1)^.Name = '..' then Compare := -1
-  else if PSearchRec(Key2)^.Name = '..' then Compare := 1
+  K1:=PSearchRec(Key1)^.Name; UpStr(K1);
+  K2:=PSearchRec(Key2)^.Name; UpStr(K2);
+  if K1 = K2 then Compare := 0
+  else if (K1[1] = '[') then Compare := 1
+  else if (K2[1] = '[') then Compare := -1
+  else if K1 = '..' then Compare := -1
+  else if K2 = '..' then Compare := 1
   else if (PSearchRec(Key1)^.Attr and Directory <> 0) and
      (PSearchRec(Key2)^.Attr and Directory = 0) then Compare := 1
   else if (PSearchRec(Key2)^.Attr and Directory <> 0) and
      (PSearchRec(Key1)^.Attr and Directory = 0) then Compare := -1
-  else if PSearchRec(Key1)^.Name > PSearchRec(Key2)^.Name then
+  else if K1 > K2 then
     Compare := 1
   else Compare := -1;
 end;
@@ -475,9 +481,10 @@ begin
 end;
 
 begin
-  OldValue := Focused;
+  OldValue := VScrollBar^.Value; {John_SW  07-05-2003}
   TListBox.HandleEvent(Event);
-  if OldValue <> Focused then SearchPos := 0;
+  if OldValue <> VScrollBar^.Value then SearchPos := 0;
+
   if Event.What = evKeyDown then
   begin
     if Event.CharCode <> #0 then
@@ -497,15 +504,16 @@ begin
       begin
         Inc(SearchPos);
         CurString[0] := Char(SearchPos);
-        CurString[SearchPos] := Event.CharCode;
+        CurString[SearchPos] := UpCase(Event.CharCode);
       end;
       K := GetKey(CurString);
       if List <> nil then T := PSortedCollection(List)^.Search(K, Value)
                      else Value := Range;
       if Value < Range then
       begin
-        if Value < Range then NewString := GetText(Value, 255)
-        else NewString := '';
+        NewString := GetText(Value, 255);
+        UpStr(NewString);  {John_SW  07-05-2003}
+
         if Equal(NewString, CurString, SearchPos) then
         begin
           if Value <> OldValue then
@@ -588,12 +596,7 @@ begin
   DelLFN(ST); ST:=AddLFN(s);
   SR.Attr := 0;
   SR.LFN := ST;
-  {$IFNDEF OS2}
-  SR.Name := lfGetShortFileName(S);
-  {$ELSE}
-  SR.Name := lfGetLongFileName(S);
-  {$ENDIF}
-  UpStr(SR.Name);
+  SR.Name := S;
   GetKey := @SR;
 end;
         {-DataCompBoy-}
@@ -692,13 +695,8 @@ const
 begin
   DelLFN(ST); ST:=AddLFN(S);
   SR.Attr := Directory;
-  {$IFNDEF OS2}
-  SR.Name := lfGetShortFileName(S);
-  {$ELSE}
   SR.Name := S;
-  {$ENDIF}
   SR.LFN  := ST;
-  UpStr(SR.Name);
   GetKey := @SR;
 end;
         {-DataCompBoy-}

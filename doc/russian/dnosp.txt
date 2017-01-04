@@ -232,12 +232,14 @@
     Первый координатор:
         Максим Васильев (Max Vasilyev)
         2:5057/33.36@fidonet
-        piwamoto at pisem.net
+        piwamoto(at)pisem.net
+        http://www.sama.ru/~piwamoto/
         http://dn.traktir.ru/
     Второй координатор:
         Евгений Звягинцев (Eugeny Zvyagintzev)
         2:5004/18.60@fidonet
-        dn_osp at pisem.net
+        dn_osp(at)pisem.net
+        http://dnosp.nm.ru
     Третий координатор:
         смотрите на наших www сайтах и в эхоконференции RU.SHELL.DN
 

@@ -51,6 +51,9 @@
 //  dn2522_manual_save_desktop.patch
 //
 //  2.7.0
+//  dn270_device_not_ready_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -673,7 +676,16 @@ if Abort then
   if (ErrorCode < 0) or (ErrorCode > CE_LastMsg) then ErrorCode := 12;
   S := CE_Messages[ErrorCode]^;
   I := Pos('%', S);
-  if I > 0 then begin S[I] := Char(Drive+65); S[I+1] := ':' end;
+  if I > 0 then
+{--- start -------- Eugeny Zvyagintzev ---- 26-07-2002 ----}
+   if Drive in [0..25]{'A'..'Z'}{piwamoto} then
+    begin
+     S[I] := Char(Drive+65);
+     S[I+1] := ':';
+    end
+   else
+    Delete(S,I-1,Length(S));
+{--- finish -------- Eugeny Zvyagintzev ---- 26-07-2002 ----}
   MoveStr(B^[42*2+1+(38-Length(S)) div 2], S, Byte(C));
   for I := 0 to 6 do
    Move(PByteArray(ScreenBuffer)^[GetCoord(0,I)], SW^[I*42], 84);

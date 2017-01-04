@@ -66,6 +66,38 @@
 //  dn2628-calculator_error_messages_improve.patch
 //
 //  2.7.0
+//  dn270-too_long_command_line_warning.patch
+//  dn270-password_with_spaces_warning.patch
+//  dn270_dbf_goto_row_column_added.patch
+//  dn281-dbf_detect_fix.patch
+//  dn2811-wkz_export_to_text_file_return.patch
+//  dn2825-new_logic_for_viewers.patch
+//  dn2825-quick_directories_list_improve.patch
+//  dn2825-calculator_improve.patch
+//  dn2911-command_line_improve.patch
+//  dn2922-new_editor_hotkeys.patch
+//  dn2922-goto_line_and_dbf_search_history_fix.patch
+//  dn281-warn_about_searching_text_inside_of_archives.patch
+//  dn21013-del_current_dir_from_history_improve.patch
+//  dn21013-copy_file_fix_when_could_not_open_file.patch
+//  dn21013-Menu_items_availability-jo21107b.patch
+//  dn21116-Ctrl_Slash_Up_Down_fix.patch
+//  dn21116-utils(fi)-quick_dirs.patch
+//  dn21116-histories_fix-jo21112a.patch
+//  dn21128-show_LFN_and_desc_in_bottom.patch
+//  dn21202-Find_file_and_branch_in_archive.patch
+//  dn21202-fpanel(i)-setup_columns_check.patch
+//  dn21202-archive(i)-passwords_differ_warning.patch
+//  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
+//  dn21225-calculator(if)-multilanguage.patch
+//  dn328-FilePanel(f)-reread_directory_fix.patch
+//  dn3315-resource_and_help_fixes.patch
+//  dn3315-CopyFile(n)-show_time_and_speed_added.patch
+//  dn3323-DBFViewer(i)-header_corruption_warning_dialog_improve.patch
+//  dn3323-HDD_in_sysinfo.patch
+//  dn3331-FileFindPanel(f)-reread_directory_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -147,14 +179,18 @@ CONST
   kbCtrlShiftTilde = $0FE00;    kbBackUp=$FD00; kbDownUp=$D000; kbUpUp=$C800;
   kbAltCtrlSqBracketL=$1A1A;    kbAltCtrlSqBracketR=$1B1B;
   kbCtrlSqBracketL=$1A1B;       kbCtrlSqBracketR=$1B1D;
-  kbAltMore=$3400;              kbAltLess=$3300;
+{  kbAltMore=$3400;              kbAltLess=$3300;}
   kbAltShiftBack=$9700;
   kbShiftGrayPlus=$CE00;        kbShiftGrayMinus=$CA00;
         {-DataCompBoy-}
 
+  kbDelUp=$0E000; {John_SW}
+  kbCtrlLAngle=$0EA00; {John_SW}
+  kbCtrlRAngle=$0EB00; {John_SW}
   kbAltQuote = $2800;
   kbAltSemicolon = $2700; {JO}
   kbMenu = $B8E0; { Michael Averbukh } { X-Man }
+  kbCtrlNumpad5 = $8F00; { Flash }
 
 const
 
@@ -195,6 +231,7 @@ const
   vmAsm       =   3;
   vmInternal  =  16;
   vmExternal  =  32;
+  vmAltExt    =  64; { Flash }
   vmDB        = 100;
   vmSpread    = 101;
   vmPKT       = 102;
@@ -351,6 +388,10 @@ const
   hsRenameFil       = 154;
   hsFBBCopySize     = 155;
   hsFBBCopyNum      = 156;
+  hsDBFGotoRow      = 157; {John_SW}
+  hsDBFGotoCol      = 158; {John_SW}
+  hsGotoLine        = 159; {John_SW}
+  hsGotoAddress     = 160; {John_SW}
 
 {UU Encode options}
 
@@ -370,15 +411,19 @@ const
   pqsCaps = 2;
 
 { Default interior for panels, may differs in instances }
-  fmiDirLen          = $0001;
-  fmiCurrent         = $0002;
-  fmiSelected        = $0004;
-  fmiTotals          = $0008;
-  fmiFree            = $0010;
-  fmiHiliteFiles     = $0020;
-  fmiExeFirst        = $0040;
-  fmiArchivesFirst   = $0080;
-  fmiExeBeforeArc    = $0100;
+  fmiDirLen              = $0001;
+  fmiCurrent             = $0002;
+  fmiSelectedInBottom    = $0004;
+  fmiTotals              = $0008;
+  fmiFree                = $0010;
+  fmiHiliteFiles         = $0020;
+  fmiExeFirst            = $0040;
+  fmiArchivesFirst       = $0080;
+  fmiExeBeforeArc        = $0100;
+  fmiFullNameInBottom    = $0200;
+  fmiDescriptionInBottom = $0400;
+  fmiSelectedInDivider   = $0800;
+  fmiFullNameInDivider   = $1000;
 
 { Common panel interior, same for all instances }
   fmsColumnTitles    = $0001;
@@ -477,6 +522,7 @@ const
   ttCust8        = 11;
   ttCust9        = 12;
   ttCust10       = 13; {JO}
+  ttUpDir        = 14; {AK155}
 
 {Phones}
   cmHold    = 11304;
@@ -499,6 +545,10 @@ const
 
   cmHelp    = 9;
   cmHelp2   = $DCB;
+  cmNext2   = 101;
+  cmPrev2   = 102;
+  cmNext3   = 103;
+  cmPrev3   = 104;
 
 { Application command codes }
 
@@ -633,10 +683,7 @@ const
   cmEditCrLfMode       = 12191;
   cmEditLfMode         = 12192;
   cmEditCrMode         = 12193;
-  cmNext2              = 12194;
-  cmPrev2              = 12195;
-  cmNext3              = 12196;
-  cmPrev3              = 12197;
+
   cmGotoLineNumber2    = 12198;
   cmSwitchSmartTab     = 12199;
   cmEditLfCrMode       = 12200;
@@ -740,6 +787,7 @@ const
   cmShowMemo           = 10806;
   cmEditDBField        = 10807;
   cmDeleteDBRec        = 10808;
+  cmDBFGoto            = 10809;
 
   cmNewTable           = 10901;
   cmChangeWidth        = 10904;
@@ -754,8 +802,7 @@ const
   cmReplaceCell        = 10913;
   cmSearchAgain        = 10914;
   cmGotoError          = 10916;
-{ cmImportToFile       = 10917;} {JOHN_SW}
-{ cmImportToClip       = 10918;} {JOHN_SW}
+  cmExportToText       = 10917;
   cmSaveSheetAs        = 10919;
   cmToggleDescriptions = 10920;
   cmToggleShowMode     = 10921;
@@ -819,8 +866,13 @@ const
   cmQuickChange7       = 11106;
   cmQuickChange8       = 11107;
   cmQuickChange9       = 11108;
+{--- start -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
+  cmAddQuickDir        = 11109;
+  cmChangeQuickDir     = 11110;
+  cmDelQuickDir        = 11111;
+{--- finish -------- Eugeny Zvyagintzev ---- 04-09-2002 ----}
 
-  cmUpdateHexViews     = 11111;
+  cmUpdateHexViews     = 11112;
 
   {  Additional Commands   }
   cmAddVariable        = 11205;
@@ -982,7 +1034,6 @@ const
   cmHiConfigArchiver  = 3125;
   cmUpdateArcFile     = 3200;
 
-  cmForceRescan       = 3217;
   cmGlobalUserMenu    = 3220;
   cmEditMenu          = 3221;
   cmClearData         = 3222;
@@ -1063,11 +1114,13 @@ const
   cmRusEngConv        = 137; {-$VIV 20.05.99--}
   cmChangeCaseBlock   = 138;
   cmRevSortBlock      = 139;
+  cmSelectAllText     = 140; { Flash }
 
 { Panel Commands }
 
-  PanelCommands = [150..199];
+  PanelCommands = [149..199];
 
+  cmForceRescan       = 149;
   cmViewFile          = 150;
   cmEditFile          = 151;
   cmIntViewFile       = 153;
@@ -1118,6 +1171,9 @@ const
   cmClearDeskTop      = 196;
   cmUnWrap            = 197;
   cmGotoCell          = 508;
+  cmEnableFileFindPanels = 152;  {John_SW 10-02-2003}
+  cmDisableFileFindPanels = 188; {John_SW 10-02-2003}
+  cmReReadFileFindPanels = 198;  {John_SW 11-04-2003}
 
 {$IFDEF OS_DOS}
  {$I SORT_DOS.INC}
@@ -1241,6 +1297,7 @@ TYPE
     erNoDiskSpacePre,
     erTextNotFound,
     erNoQuickDirs,
+    erTooLongCommandLine, { Flash }
     erInvalidOvrSize,
 
     eruuNoStuff,
@@ -1584,6 +1641,8 @@ TYPE
     dlCalculator,
     dlCalcEx_p_ression,
     dlCalcCopy_a_s,
+    dlEvaluateButton, { Flash }
+    dlCalcCopyButton, { Flash }
     dlUnknownWindowType,
     dlColorsTitle,
     dl_C_olor,
@@ -1659,8 +1718,7 @@ TYPE
     dlSI_MemAvail,
     dlSI_MaxAvail,
     dlSI_DiskDrivers,
-    dlSI_1stHard,
-    dlSI_2ndHard,
+    dlSI_HardDrive,
     dlSI_FloppyDrives,
     dlSI_Heads,
     dlSI_Tracks,
@@ -1958,6 +2016,7 @@ TYPE
     dlTeam173,
     dlTeam174,
     dlTeam175,
+    dlTeam176,
 
     dlHelp,
     dlOutputTitle,
@@ -2325,15 +2384,28 @@ TYPE
     sdtDiskreet,
     sdtSuperStor,
 {X-Man <<<}
+    dlDoes_Not_Exist, {JO}
     dlIniDataReadError, {PZ}
     dlIniDataTooLong,   {PZ}
     dlInvalidDBFHeader, {JOHN_SW}
     dlInvalidRecNumber, {JOHN_SW}
+    dlInvalidRecNumber1,{JOHN_SW}
     dlInvalidRecSize,   {JOHN_SW}
+    dlUseCalcRecNumber, {JOHN_SW}
+    dlNoFreeQuickDirNum,{John_SW}
+    dlQuickDirNumBusy,  {John_SW}
+    dlQuickDirDel,      {John_SW}
+    dlHistDelCurDir,    {John_SW}
+    dlIncorrectDirNum,  {John_SW}
+    dlCopyTimeSpeed,    {John_SW}
     dlWkzQuerySeparatorTitle, {KV}
     dlWkzQuerySeparatorLabel, {KV}
     dlWkzWarningClear, {KV}
     { Flash >>> }
+    dlIncorrectPanelSettings,
+    dlPasswordsDiffer,
+    dlSpacesInPassword,
+    clStack_Overflow,
     clToo_Large_Number,
     clArgument_Missing,
     clSyntax_Error,
@@ -2352,8 +2424,9 @@ TYPE
     clRoot_Wrong_Index,
     clWrong_Argument,
     clPower_Wrong_Argument,
-    clIncorrect_Form
+    clIncorrect_Form,
     { Flash <<< }
+    dlWarnIfSearchTextInsideOfArc{piwamoto}
   );
 
   TDlgIdx = (
@@ -2380,6 +2453,7 @@ TYPE
     dlgRenameDialog,
     dlgMkDir,
     dlgFileFind,
+    dlgArcFileFind,
     dlgEditorReplace,
     dlgEditorFind,
     dlgEditorFormat,
@@ -2392,6 +2466,10 @@ TYPE
     dlgFindCell,
     dlgReplaceCell,
     dlgDbFind,
+    dlgDBFGoto,    {John_SW}
+    dlgAddQuickDir,{John_SW}
+    dlgEditQuickDir,{John_SW}
+    dlgSkipBadFile,{John_SW}
     dlgFixerMenu,
     dlgGameSetup,
     dlgPrinterSetup,
@@ -2420,7 +2498,6 @@ TYPE
     dlgPhoneBook,
     dlgDenie,
     dlgManualDial,
-    dlgCalculator,
     dlgWindowManager,
     dlgVolumeLabel,
     dlgEditEnvironment,

@@ -73,6 +73,18 @@
 ;/  mask_e-mails.patch
 ;/
 ;/  2.7.0
+;/  dn270-add_cdplayer_help_topics.patch
+;/  dn270_dbf_goto_row_column_added.patch
+;/  dn2911-add_quick_dir_fix.patch
+;/  dn2922-new_editor_hotkeys.patch
+;/  dn21013-copy_file_fix_when_could_not_open_file.patch
+;/  dn21116-utils(fi)-quick_dirs.patch
+;/  dn21128-show_LFN_and_desc_in_bottom.patch
+;/  dn21202-fpanel(i)-setup_columns_check.patch
+;/  dn3315-resource_and_help_fixes.patch
+;/  dn3421-resource_and_help_fixes.patch
+;/
+;/  3.7.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -171,12 +183,14 @@ echo area or to these addresses:
 
  Max Vasilyev
  2:5057/33.36@fidonet
- piwamoto at pisem.net
+ piwamoto(at)pisem.net
+ http://www.sama.ru/~piwamoto/
  http://dn.traktir.ru/
 
  Eugeny Zvyagintzev
  2:5004/18.60@fidonet
- dn_osp at pisem.net
+ dn_osp(at)pisem.net
+ http://dnosp.nm.ru
 
  The Basic Dos Navigator is copyrighted by {RITLABS srl:_}.
 (Moldova. Kishinev. Shtefan chel Mare st 180, office 101)
@@ -282,7 +296,7 @@ was messed up.
 copy a portion of the screen to the Clipboard (mostly it is called
 via hotkey)
 
-{User screen:_} - Show user screen ( i.e. working screen of DOS ).
+{User screen:_} - Show user screen (i.e. working screen of DOS).
 
 {Output window:_} - Same as {User screen:_} but in separate window.
 
@@ -895,23 +909,28 @@ To mark a block of text, you can use the standard cursor keys, together
 with the <Shift> key. With the mouse you can select text by moving the
 mouse cursor while pressing the left mouse-button.
 
-        Action                      Key
- อออออออออออออออออออออออออออออออออัออออออออออ
-  Mark the beginning of a block   ณ Ctrl+K B
-  Mark the end of a block         ณ Ctrl+K K
-  Copy the block to Clipboard     ณ Ctrl+Ins
-  Move the block to Clipboard     ณ Shift+Del
-  Insert the copied block         ณ Shift+Ins
-  Delete the block                ณ Ctrl+Del
-  Read the block from file        ณ Ctrl+K R
-  Write the block to a file       ณ Ctrl+K W
-  Move the block left to right    ณ Ctrl+K I
-  Move the block to the left      ณ Ctrl+K U
-  Switch block-type (Vert./Hor.)  ณ Ctrl+B V
-  Align the block on end          ณ Ctrl+B J
-  Align the block on right end    ณ Ctrl+B R
-  Align the block on left end     ณ Ctrl+B L
-  Center the block                ณ Ctrl+B C
+        Action                         Key
+ ออออออออออออออออออออออออออออออออออออัออออออออออ
+  Mark the beginning of a block      ณ Ctrl+K B
+  Mark the end of a block            ณ Ctrl+K K
+  Copy the block to Clipboard        ณ Ctrl+Ins
+  Move the block to Clipboard        ณ Shift+Del
+  Insert the copied block            ณ Shift+Ins
+  Delete the block                   ณ Ctrl+Del
+  Read the block from file           ณ Ctrl+K R
+  Write the block to a file          ณ Ctrl+K W
+  Move the block left to right       ณ Ctrl+K I
+  Move the block to the left         ณ Ctrl+K U
+  Switch block-type (Vert./Hor.)     ณ Ctrl+B V
+  Align the block on end             ณ Ctrl+B J
+  Align the block on right end       ณ Ctrl+B R
+  Align the block on left end        ณ Ctrl+B L
+  Center the block                   ณ Ctrl+B C
+  Mark whole text as stream block    ณ Ctrl-A, Ctrl-Numpad5
+  Mark text to the beginning         ณ Ctrl-
+  Mark text to the end               ณ Ctrl-
+  Mark word to the left from cursor  ณ Ctrl-<
+  Mark word to the right from cursor ณ Ctrl->
 
 .topic MovementCommands=10003
 .title Moving on text
@@ -919,8 +938,8 @@ mouse cursor while pressing the left mouse-button.
   ออออออออออออออออออออออออออัออออออออออออออออออออออ
    One character to the leftณ Ctrl + S or 
    One character to right   ณ Ctrl + D or 
-   One word to the left     ณ Ctrl + A or Ctrl + 
-   One word to the right    ณ Ctrl + F or Ctrl + 
+   One word to the left     ณ Ctrl + 
+   One word to the right    ณ Ctrl + 
    One line upwards         ณ Ctrl + E or 
    One line downwards       ณ Ctrl + X or 
    Scroll upwards           ณ Ctrl + W
@@ -1084,7 +1103,11 @@ the /O switch!)
 
   Standard drag-and-drop - Interface with mouse.
 
-  Put executable first - Show the executable files
+  Files highlight - "Illumination" of files of various
+   types by different colors. It is possible to define
+   five groups of user files.
+
+  Executable first - Show the executable files
    (BAT, COM, EXE, BTM) at the beginning of the filelist,
    independent from the selected sorting order.
 
@@ -1092,9 +1115,16 @@ the /O switch!)
    (ZIP, ARJ, ZOO, etc.) at the beginning of the filelist,
    independent from the selected sorting order.
 
-  Files highlight - "Illumination" of files of various
-   types by different colors. It is possible to define
-   five groups of user files.
+  Exe before archives
+
+  Long name in bottom - show full long name of the current file in
+the info pane in panel bottom if (part of) this long name don't
+show in 'Current file' info line. This flag and 'Selected files'
+flag share one info line.
+
+  Descrition in bottom - show description of the current file in the
+info pane in panel bottom. This flag and 'Free space' flag split
+one info line.
 
  {File mask:_} - Filter for filenames. Every single files mask,
    is separated from the next one with a semi-colon (";").
@@ -1828,7 +1858,7 @@ and second the name of a file-list of files marked in this panel.
 .title Global User Menu
  See also {"User Menu":UserMenu}
 
-.topic MenuT้ps=16548
+.topic MenuTips=16548
 .title Menu Tips
 
 .topic MenuExample=16549
@@ -2129,7 +2159,10 @@ Enter password again to confirm.
 
 .topic ColumnsDefaults=16566
 .title Columns Defaults
-These is defaults for panels columns.
+These are defaults for panels columns.
+
+Remark: The value of "For name" is the width of columns.
+         The value of "For extension" must not exceed "For name"-5.
 
 .topic MouseSetup=16567
 .title Mouse Setup
@@ -2190,13 +2223,22 @@ Press {ESC:_} to cancel the operation or {ENTER:_} to repeat it.
 .title Setup Disk Columns
 Information to put in current panel columns.
 
+Remark: LFN is the width of columns.
+         The value of EXT must not exceed LFN-5.
+
 .topic SetupArcColumns=16581
 .title Setup Archive Columns
 Information to put in current panel columns.
 
+Remark: LFN is the width of columns.
+         The value of EXT must not exceed LFN-5.
+
 .topic SetupFindColumns=16582
 .title Setup Find Columns
 Information to put in current panel columns.
+
+Remark: LFN is the width of columns.
+         The value of EXT must not exceed LFN-5.
 
 .topic FileAttr=16583
 .title Set File Attributes
@@ -2355,7 +2397,7 @@ For example: 8w0422-123-456 ({W:_} means pause)
 
 .topic TetrisWinner=48016
 .title Tetris Winner
-Congratulations! Can you do it again ?
+Congratulations! Can you do it again?
 
 .topic MkDir=48017
 .title Make Directory
@@ -2412,6 +2454,8 @@ To store a current directory in Quick directories list press
 
  {Copy on Windows clipboard:_}
  {Copy from Windows clipboard:_}
+
+ {Select all:_} - mark whole text as stream block.
 
  {Clear:_} - remove the selected text.
 
@@ -3125,7 +3169,7 @@ The grammar allows settings like these:
   1  su * 3       =The first Sunday of May
   1  su 3         =The first Sunday from the 3rd of every month
      fr nov       =Every Friday In November
-  -1 mo    2000-* =Last Monday Of Each Month After Millenium
+  -1 mo    2000-* =Last Monday Of Each Month After Millennium
      sa           =2,This defines each Saturday to the category 2
   1  su           =The first Sunday of every month
   1  su * 1       =The first Sunday of January
@@ -3279,6 +3323,11 @@ Below is the description of all the DN.INI parameters:
 
 [Interface]
 
+{ShowCopyTime = bool:_} - COPY process timer switch (boolean expression).
+With ShowCopyTime=1 DN shows time and speed of copying files during the
+copy process.
+ (default: 0)
+
 {HistoryButtonChars = str:_} - In this case displaying history button
 in dialogs will use a limited chars set.
  (default: 'ÞÝ')
@@ -3327,19 +3376,19 @@ the viewer respectively.
 {ReflectCopyDirection = bool:_} - When 1, the copying process gauge
 grows from right to left while copying from the right panel to the
 left one.
- (default: 0; ie. always from left to right)
+ (default: 0; i.e. always from left to right)
 
 {FadeDelay = long:_} - Sets shadowing visual effects when
 starting/quitting DOS Navigator (tunes shadowing speed). Recommended
 value is 5.
- (default: 0; ie. effects off)
+ (default: 0; i.e. effects off)
 
 {VertScrollBarChars = str:_} - Specifies displaying a vertical scroll
 bar. Requires 5 chars: upper glyph, lower glyph, bar char, lift
 glyph, empty bar char. Written as a string of 5 chars.
  (default: 'ฑþฒ')
 
-{HorizScrollBarChars = str:_} - Specifies displaying a vertical
+{HorizScrollBarChars = str:_} - Specifies displaying a horizontal
 scroll bar. Requires 5 chars: left glyph, right glyph, bar char, lift
 glyph, empty bar char. Written as a string of 5 chars.
  (default: 'ฑþฒ')
@@ -3369,7 +3418,7 @@ combination of the following values:
  32 ฤ show number of files on TEMP drive.
  Note: You can also set the desired values in
 `Setup|Configuration|Interface' dialog.
- (default: 2; ie. show the current catalog for local drives only)
+ (default: 2; i.e. show the current catalog for local drives only)
 
 {CutDriveInfo = bool:_} - Shortening disks description in disk change
 catalog (Alt-F1/F2).
@@ -3428,6 +3477,9 @@ launches.
 
 [Kernel]
 
+{AltGrAsAlt = bool:_} - When 1, AltGr and Alt are equal.
+ (default: 1)
+
 {DoVESATest = bool:_} - When 1, the extended 132 columns wide VESA
 videomodes are available, but Windows will do annoying switching into
 full screen.
@@ -3449,7 +3501,7 @@ interpreter.
 
 {CopyLimit = long:_} - Specifies OS copying buffer limitation in
 kilobytes. Value 0 denotes no limitation.
- (default: 8192, ie. 8M)
+ (default: 8192; i.e. 8M)
 
 {ShowKeyCode = long:_} - Debug flag showing keyboard scan codes.
 Accepts values:
@@ -3495,12 +3547,12 @@ one.
 comments containing these keywords (pairs count loses...). To avoid
 an unlimited search through a file (wait too long), you are
 recommended to set the maximal search depth (ca 300 lines).
- (default: 0, ie. unlimited search)
+ (default: 0; i.e. unlimited search)
 
-{DefCodePage = str:_} - Specifying a codepage for new files. Accepts
-values Dos, Win, Koi and Auto ฤ automatic detection of the codepage
-for a file newly opened in the editor (not present in the editing
-history).
+{DefCodePage = str:_} - string to specify code page for files that
+are opened in built-in viewer or created in editor, but files that
+are absent in Viewer and Editor History. String value can be: DOS,
+Win, KOI8, Auto (code-page auto detect).
  Note: For successful recognition of WIN or KOI codepage, the text
 must contain uppercase, lowercase letters and vowels; at least 1
 uppercase letter must be per 500..999 lowercase ones, but no more
@@ -3537,16 +3589,45 @@ always.
 
 [FilePanels]
 
+{QuickSearchType = bool:_} - Quick Search mode switch (boolean
+expression). Values:
+ 0 - Quick Search highlights only files with precise beginning of
+     file name entered by user.
+ 1 - and upon pressing "." (period) DN automaticallly adds wildcard
+     "*." to mask of Quick Search, i.e. it is not necessary to enter
+     a complete file name.
+ (default: 0)
+
 {QuickRenameInDialog = bool:_} - Do quick file renaming (by Alt-F6)
 in a separate window instead of the panel.
  (default: 0)
 
-{ShowLongName = bool:_} - If a long filename exists, show it in the
-selected files information line if there are no them or a wildcard.
+{LFNCutSide = bool:_} - This string defines how LFN is shown on
+information panel if file name does not fit entirely in filename
+column. Boolean expression value can be:
+ 0 - show left part of LFN;
+ 1 - show right part of LFN;
+ 2 - show left part of LFN and file extention (if present).
  (default: 1)
 
-{ShowFileMask = bool:_} - If the panel has a wildcard other then *.*
-and no files selected then show the wildcard in the bottom.
+{AlignLFNInBottom = bool:_} - This string aligns LFN on information
+panel. Boolean expression value can be:
+ 0 - centre LFN on panel;
+ 1 - align LFN left;
+ 2 - align LFN right;
+ (default: 1)
+
+{ShowLongName = bool:_} - This string defines whether LFN is shown
+on panel or not. Boolean expression value can be:
+ 0 - do not show LFN;
+ 1 - do not show LFN if it is not equal to short file name (case
+     insensitive);
+ 2 - show LFN if it is not equal to short file name;
+ 3 - show LFN in any case.
+ (default: 0)
+
+{ShowFileMask = bool:_} - if panel has a file mask different from *.*, it
+will be shown instead of LFN.
  (default: 1)
 
 [NetInfo]
@@ -3569,14 +3650,14 @@ current one.
 {HelpLanguageOverride = str:_} - Defines the language of the help.
 Its source is assumed a file named as the language specified in the
 parameter with .HLP extension.
- (default: '', ie. the current language help file is used if exists,
+ (default: ''; i.e. the current language help file is used if exists,
 otherwise the English language help file is used)
 
 {ActiveLanguage = str:_} - Defines the current language. Its
 resources are assumed files named as the language specified in the
 parameter with the appropriate extension.
- (default: '', ie. DNLNG Environment variable is used if exists,
-otherwise the English language is used)
+ (default: ''; i.e. environment variable %DNLNG% [if it is set],
+then English language is the first from list of languages)
 
 [Calendar]
 
@@ -3605,7 +3686,7 @@ parameter is detected automatically.
 
 {ShowOnStartup = bool:_} - Display the calendar window immediately
 after DOS Navigator startup.
- (default: 0, ie. do not display)
+ (default: 0; i.e. do not display)
 
 .topic ChangeNameCase=48093 ; [C] /DataCompBoy/ 22-05-2000
 .title Changing file names case
@@ -3631,3 +3712,34 @@ Replace media and/or modify the path
 
 .topic ViewerDefaults=48100 ; [C] /DataCompBoy/ 11.08.2000
 .title Internal Viewer Defaults
+
+.topic DBFGoto=48101
+.title Go to row or column
+
+.topic CDPlayerOrder=49004 ; { Flash }
+.title Tracks
+Here you can make a list of tracks that CD Player will play,
+according to their order.
+
+.topic CDPlayerAddSong=49005 ; { Flash }
+.title Add track
+Select a track and press {OK:_} button.
+
+.topic CDPlayerSelectCDROM=49006 ; { Flash }
+.title Select CD-ROM
+Select CD-ROM drive which contains a musical CD and press {Enter:_}.
+
+.topic CDPlayerSelectTrack=49007 ; { Flash }
+.title Select track
+Choose the song that you want to listen
+by pressing the button with its number.
+To close the window, press {Cancel:_}.
+
+.topic AddQuickDir=49008   {John_SW}
+.title Add Quick Directory
+
+.topic SkipBadFile=49009   {John_SW}
+.title Could not open the file
+
+.topic EditQuickDir=49010  {John_SW}
+.title Changing Quick Directory

@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn270-UUdecode-fix.patch
+//  dn3421-uucode(f)-existing_files_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -848,6 +852,12 @@ end;
 procedure FlushBack;
 var s:string;
 begin
+ if POutBuf = nil then Exit;
+{AK155: такое бывает при массовом раскодировании, когда в одном файле был ююк
+без section, но с '`', затем встретился файл с 'M', а затем - файл с 'end',
+но без ююков (скажем, программа на Паскале). Так по этому end происходит
+вызов с POutBuf = nil. А предотвратить такое сложно, не разрушив при этом
+возможность раскодирования всяких не вполне корректных ююков}
  if KickBack=On then
  begin
   s:=StrT;StrT:=BackBuf;OutString;StrT:=s;SectCRC:=BackCRC;
@@ -1424,7 +1434,7 @@ type
       P: Pointer;
       PI: PWhileView;
       R: TRect;
-      Cancel, All: Boolean;
+      Cancel, All, Skip: Boolean; { Flash 30-04-2003 }
 
         Sec64Pn,
         SecCRC,
@@ -1638,6 +1648,7 @@ var LocalFreeStr, o:string;
     II: Integer;
 begin
  Inc(SectNo);
+ Skip:=False; { Flash 30-04-2003 }
  if NumSect=0 then LocalFreeStr := Xt
    else if SectNo < 10 then LocalFreeStr := Copy(Xt, 1, 3)+ItoS(SectNo)
      else if SectNo < 100 then LocalFreeStr := Copy(Xt, 1, 2)+ItoS(SectNo)
@@ -1646,7 +1657,7 @@ begin
  OutName:=Dr+Nm+LocalFreeStr;
  lAssignFile(t,OutName);
 {---------------------------------------------------------------}
-if not All then
+if not All and (NumSect>0) then { Flash 30-04-2003 }
  begin
    { FileMode:=$40;}
     ClrIO;
@@ -1657,9 +1668,11 @@ if not All then
         P := @OutName;
         II := MessageBox(GetString(dlFileExist)+^M, @P, mfQuery+mfYesButton+mfNoButton+mfCancelButton+mfAllButton);
         Case II of
-         cmOk: All := On;
-         cmCancel,cmNo:
-         begin Cancel := True; Exit; end;
+         cmOk:     All := On;
+         { Flash 29-04-2003 >>> }
+         cmCancel: begin Cancel := True; Exit; end;
+         cmNo:     begin Skip   := True; Exit; end;
+         { Flash 29-04-2003 <<< }
         end;
         NewTimer(Timer, 0);
        end;
@@ -1765,7 +1778,7 @@ begin WriteSection(Buf,StrPerSect) end;
 procedure Write_Section;
 begin
  StartSection;
- if Cancel then Exit;  {!! IB}
+ if Cancel or Skip then Exit;  {!! IB} { Flash 30-04-2003 }
  GetData(SouBuf^,SectSize);
  WriteCompleteSection(SouBuf^);
  EndSection;
@@ -1775,7 +1788,7 @@ procedure WriteLastSection;
 var i:word;
 begin
  StartSection;
- if Cancel then Exit;  {!! IB}
+ if Cancel or Skip then Exit;  {!! IB}
  GetData(SouBuf^,LastSectSize);
  i:=StrPerLastS-1;
  if i>0 then WriteSection(SouBuf^,i);

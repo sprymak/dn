@@ -54,6 +54,9 @@
 //  dn16rc1-W2K_compatibility_fix-diff156byMV.patch
 //
 //  2.0.0
+//  dn21225-FileCopy(f)-copy_more_then_2Gb_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -178,6 +181,11 @@ procedure lGetDir(D: Byte; var Path: String);
 function lFExpand(const Path: String): String;
 procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+function lFileSize(var F: lFile): TSize;
+Function lSeek(var F: lfile;NewPos: TSize;Direction: Byte): TSize;
+Function lFilePos(var F: lfile): TSize;
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
 
 const AnyFile = Dos.AnyFile and not VolumeID;
 
@@ -341,6 +349,25 @@ type
     ShortName: Array[0..13] of Char;
   end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+type
+  lFileInfoDataRec = record
+    Attr: Longint;
+    LoCreationTime: Longint;
+    HiCreationTime: Longint;
+    LoLastAccessTime: Longint;
+    HiLastAccessTime: Longint;
+    LoLastWriteTime: Longint;
+    HiLastWriteTime: Longint;
+    VolumeSerialNumber: Longint;
+    HiSize: Longint;
+    LoSize: Longint;
+    LinksNumber: Longint;
+    HiUniqueId: Longint;
+    LoUniqueId: Longint;
+  end;
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+
 procedure FindDataToSearchRec(var FindData: lFindDataRec; var R: lSearchRec);
 begin
   R.SR.Attr := FindData.LoAttr;
@@ -359,13 +386,47 @@ begin
   R.HiLastAccessTime:= FindData.HiLastAccessTime;
   R.LoLastModificationTime:= FindData.LoLastModificationTime;
   R.HiLastModificationTime:= FindData.HiLastModificationTime;
-  R.FullSize:=MaxLongInt;
-  R.FullSize:=R.FullSize*2;
-  R.FullSize:=R.FullSize*FindData.HiSize + FindData.LoSize;
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+{LoSize must be unsigned, but LongInt is signed}
+{So we have to write LoSize and HiSize to FullSize directly}
+  R.FullSize:=0;
+  Move(FindData.LoSize,R.FullSize,SizeOf(FindData.LoSize));
+  Move(FindData.HiSize,Ptr(Seg(R.FullSize),Ofs(R.FullSize)+SizeOf(FindData.LoSize)+1)^,SizeOf(FindData.HiSize));
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
 end;
 
 {$I LFN._WN}
 {$IFDEF DPMI}{$I LFN._WS}{$ENDIF}
+
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+Function lFileSize(var F: lfile): TSize;
+Begin
+ Case lApi Of
+  lDOS: lFileSize:=FileSize(F.F);
+  lWIN95: lFileSize:=lWIN95FileSize(F);
+  {$IFDEF DPMI}
+  lSIM95: lFileSize:=lSIM95FileSize(F);
+  {$ENDIF}
+  { Other APIs will be added later }
+ End;
+End;
+
+Function lSeek(var F: lfile;NewPos: TSize;Direction: Byte): TSize;
+Begin
+ Case lApi Of
+  lDOS,lWIN95: lSeek:=lWIN95Seek(F,NewPos,Direction);
+  {$IFDEF DPMI}
+  lSIM95: lSeek:=lSIM95Seek(F,NewPos,Direction);
+  {$ENDIF}
+  { Other APIs will be added later }
+ End;
+End;
+
+Function lFilePos(var F: lfile): TSize;
+Begin
+ lFilePos:=lSeek(F,0,1);
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
 
 procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 begin

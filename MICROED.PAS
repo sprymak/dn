@@ -64,6 +64,23 @@
 //  dn2421-text_replace_improve.patch
 //
 //  2.7.0
+//  dn270-ReuseEditors_check_fix.patch
+//  dn281-save_all_editor_options_to_history.patch
+//  dn281-adding_date_and_time_to_SmartPad.patch
+//  dn2825-scroll_editor_window_after_line_changed_fix.patch
+//  dn2911-editor_smart_tab_fix.patch
+//  dn2922-new_editor_hotkeys.patch
+//  dn21202-editor(i)-hotkeys_change.patch
+//  dn21225-Editor(i)-new_hotkeys_for_scrolling.patch
+//  dn328-Editor(f)-insert_date_time_overwrite_selected_block.patch
+//  dn3216-editor(f)-esc_after_sort_block_fix.patch
+//  dn3216-editor(n)-enable_Scroll_Lock.patch
+//  dn3216-editor(n)-use_Alt-Shift-T_for_cmRevSortBlock.patch
+//  dn3216-editor(i)-saving_filtered_and_archived_files.patch
+//  dn3331-editor(f)-cursor_bug.patch
+//  dn368-editor(f)-drawing_vertical_lines_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -807,7 +824,8 @@ begin
                   end;
    udStrModified:  begin
                       New(P); P^.What := What;
-                      P^.Where := Where; Inc(P^.Where.X);
+                      P^.Where := Where; {Inc(P^.Where.X);}
+                      { Commented by Flash at 22-04-2003 because of bug with cursor }
                       P^.Count := 1;
                       P^.Str := NewStr(String(Info));
                       P^.KeyMap := KeyMap; {-$VIV}
@@ -944,7 +962,8 @@ begin
  if S = '' then Exit;
  Desktop^.GetExtent(R);
  S := lFExpand(GetPath(S))+GetName(lFExpand(S));
- Application^.InsertWindow(New(PEditWindow, Init(R, S)));
+{ Application^.InsertWindow(New(PEditWindow, Init(R, S)));}
+ PDNAppl(Application)^.EditFile(True, S); { Flash }
 end;
         {-DataCompBoy-}
 
@@ -1008,15 +1027,29 @@ begin
 {--- finish -------- Eugeny Zvyagintzev ---------}
   if ((Command = cmClose) or (Command = cmQuit)) then
     begin
-      if Modified then
+      if (Modified) or ((EditName='') and not ClipBrd) then { Flash 08-03-2003 }
         begin
-          ModifyLine(Delta.Y, WorkString, On);
+          {ModifyLine(Delta.Y, WorkString, On);}
+          { Commented by Flash at 05-03-2003 because of bug
+            with pressing Esc button after sorting a block.
+            This could cause erasing of a current line and
+            copying of another one. }
           S := Cut(EditName, 30);
           P := @S;
-          I := MessageBox(GetString(dlQueryModified), @P, mfWarning+mfYesNoCancel);
+          { Flash 08-03-2003 >>> }
+          if S <> '' then
+           I := MessageBox(GetString(dlQueryModified), @P, mfWarning+mfYesNoCancel)
+          else
+           begin
+           if Command = cmClose then I := mfYesNoCancel
+                                else I := mfYesButton+mfCancelButton;
+           I := MessageBox(GetString(dlViewQuery), @P, mfWarning+I);
+           end;
+          { Flash 08-03-2003 <<< }
           if I = cmYes
            then Message(@Self, evCommand, cmSaveText, nil)
            else if I = cmNo then Modified := false;
+          if (I = cmYes) and not JustSaved then I := cmCancel; { Flash 08-03-2003 }
           V := not ((I = cmCancel) or (I = cmYes) and Modified);
          end;
       Valid := V;
@@ -1841,6 +1874,32 @@ L1:
   EnableMarking := On;
  end;
 
+ procedure InsertDateTime(Time: Boolean);
+  var S: String[30];
+      SS: Integer;
+ begin
+   S := GetDateTime(Time);
+   EnableMarking := Off; Marking := Off;
+   ChangeLine;
+   if EditorDefaults.GlobalOpt and (ebfPbl+ebfObl)=ebfObl
+    then DeleteBlock(On);
+   BlockOff;
+   WorkModify;
+   WorkString := AddSpace(WorkString, LastX+1);
+   System.Insert(S, WorkString, LastX+1);
+   for SS := 1 to Length(S) do
+     begin
+       StoreUndoInfo(udInsChar, Delta, WorkString);
+       if Delta.X < 255 then Inc(Delta.X);
+     end;
+   ScrollTo(Delta.X, Delta.Y);
+   ChangeLine; DrawView;
+   Mark.B := Delta; Mark.A := Delta; BlockVisible := On;
+   Dec(Mark.A.X, Length(S));
+   BlockVisible := On; EnableMarking := On;
+   DrawView;
+ end;
+
  procedure CopyBlock;
   var R: TRect;
  begin
@@ -1931,10 +1990,11 @@ L1:
      if (LastY > 0) and (LastX < Byte(S[0])) then
      begin
       WorkModify;
-      repeat InsertSpace until (s[LastX + 1] = ' ') or (LastX >= Byte(S[0]));
-      {WM := (s[LastX + 2] = ' ') and (LastX < Byte(s[0]));}
-      While (s[LastX + 2] = ' ') and (LastX < Byte(s[0])) do InsertSpace;
-      {if WM then }InsertSpace;
+{Commented and modified by John_SW     13-09-2002 }
+      {repeat InsertSpace until (s[LastX + 1] = ' ') or (LastX >= Byte(S[0]));}
+      repeat InsertSpace until (s[LastX] = ' ') or (LastX >= Byte(S[0]));
+      {While (s[LastX + 2] = ' ') and (LastX < Byte(s[0])) do InsertSpace;}
+      While (s[LastX + 1] = ' ') and (LastX < Byte(s[0])) do InsertSpace;
       ScrollTo(LastX, Delta.Y); DrawView;
      end else MakeTab;
    end else MakeTab;
@@ -2842,11 +2902,8 @@ begin
               cmSetMargins,
               cmGotoLineNumber,
               cmGotoLineNumber2,
-              cmSortBlock,
               cmRevSortBlock,
               cmCalcBlock,
-              cmInsertDate,
-              cmInsertTime,
               cmPrintBlock,
               cmViewFile,
               cmPrintFile,
@@ -2867,6 +2924,14 @@ begin
               cmSwitchKeyMapping,
               cmRusEngConv: {-$VIV}
                 begin if HandleCommand(Event) then DrawView; CE end;
+              { Flash 19-02-2003 >>> }
+              cmSortBlock: begin
+                            if (ShiftState and 3 <> 0) then
+                             Message(@Self, evCommand, cmRevSortBlock, nil)
+                            else if HandleCommand(Event) then DrawView;
+                            CE;
+                           end;
+              { Flash 19-02-2003 <<< }
               cmContSearch: begin ChangeLine; Search(Delta.X, Delta.Y); ChangeLine; CE end;
               cmSpecChar,cmAsciiTable: begin
                              ASCIITable;
@@ -2927,22 +2992,27 @@ begin
               cmMoveDown: begin UnMark := On; Event.What := evKeyDown; Event.KeyCode := kbDown end;
               cmMoveLeft: begin UnMark := On; Event.What := evKeyDown; Event.KeyCode := kbLeft end;
               cmMoveRight: begin UnMark := On; Event.What := evKeyDown; Event.KeyCode := kbRight end;
+              cmInsertDate, cmInsertTime: InsertDateTime(Event.Command = cmInsertTime);
               cmHideBlock: begin BlockVisible := not BlockVisible; UnMark := Off; CED end;
               cmScrollUp: if Pos.Y > 0 then
                           begin
                            UnMark := On;
                            if not (Delta.Y - Pos.Y + 1 < Size.Y) then Dec(Delta.Y);
                            Dec(Pos.Y);
+                           ChangeLine; {John_SW}
                            ScrollTo(Delta.X, Delta.Y);
                            Delta.Y := VScroll^.Value; DrawView;
+                           CED;        {John_SW}
                           end;
               cmScrollDn: if Pos.Y < FileLines^.Count - 1 then
                           begin
                            UnMark := On;
                            if not (Delta.Y > Pos.Y) then Inc(Delta.Y);
                            Inc(Pos.Y);
+                           ChangeLine; {John_SW}
                            ScrollTo(Delta.X, Delta.Y);
                            Delta.Y := VScroll^.Value; DrawView;
+                           CED;        {John_SW}
                           end;
               cmBlockStart: begin UnMark := On; Marking := Off; Mark.A := Delta;
                                   BlockVisible := On; DrawView; CE end;
@@ -3013,9 +3083,77 @@ begin
                                   Owner^.Redraw; LastDir := -1; CE;
                                 end;
               cmOpenFileAtCursor: OpenFileAtCursor; {-$VIV 18.05.99--}
+                               { Flash >>> }
+              cmSelectAllText: begin {AK155 выделить весь текст}
+                               with Sel, FileLines^ do
+                                begin
+                                A.X := 0; A.Y := 0; B.Y := Count-1;
+                                B.X := Length(CnvString(At(B.Y)));
+                                end;
+                               Mark := Sel; Marking := false; BlockVisible := true;
+                               VertBlock := false;
+                               CED;
+                               end {/AK155}
+                               { Flash <<< }
              end;
   evKeyDown:
-        if (Event.KeyCode <> kbCtrlAltX) then
+        { Flash >>> }
+        if (Event.KeyCode = kbCtrlLAngle) then
+         begin
+         ShiftState := 3;
+         Message(@Self, evCommand, cmWordLeft, nil);
+         ShiftState := 0;
+         end
+        else if Event.KeyCode = kbCtrlRAngle then
+         begin
+         ShiftState := 3;
+         Message(@Self, evCommand, cmWordRight, nil);
+         ShiftState := 0;
+         end
+        else if (Event.KeyCode = kbCtrlUp) and (ShiftState and 3 <> 0) then
+         begin
+         with Sel, FileLines^ do
+          begin
+          A.X := 0; A.Y := 0; B.Y := LastY;
+          B.X := Length(CnvString(At(B.Y)));
+          end;
+         Mark := Sel; Marking := false; BlockVisible := true;
+         VertBlock := false;
+         CED;
+         end
+        else if (Event.KeyCode = kbCtrlDown) and (ShiftState and 3 <> 0) then
+         begin
+         with Sel, FileLines^ do
+          begin
+          A.X := 0; A.Y := LastY; B.Y := Count-1;
+          B.X := Length(CnvString(At(B.Y)));
+          end;
+         Mark := Sel; Marking := false; BlockVisible := true;
+         VertBlock := false;
+         CED;
+         end
+        else if (Event.KeyCode = kbCtrlUp) or
+             ((ShiftState and kbScrollState <> 0) and
+              (ShiftState and kbAnyShift = 0) and
+              (Event.KeyCode = kbUp)) then
+         begin
+          UnMark:=On; Dec(Pos.Y);
+          ChangeLine; {John_SW}
+          ScrollTo(Delta.X, Delta.Y-1); DrawView;
+          CED;        {John_SW}
+         end
+        else if (Event.KeyCode = kbCtrlDown) or
+             ((ShiftState and kbScrollState <> 0) and
+              (ShiftState and kbAnyShift = 0) and
+              (Event.KeyCode = kbDown)) then
+         begin
+          UnMark:=On; Inc(Pos.Y);
+          ChangeLine; {John_SW}
+          ScrollTo(Delta.X, Delta.Y+1); DrawView;
+          CED;        {John_SW}
+         end
+        { Flash <<< }
+        else if (Event.KeyCode <> kbCtrlAltX) then
         if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
         begin
              if DrawMode > 0 then
@@ -3190,6 +3328,23 @@ procedure OpenSmartpad;
                  For Idx:=0 To 5 Do Str:=Str+Char(SPLineChar);
                  Str:=Str+'< '+GetDateTime(Off)+' '+GetDateTime(On)+' >';
                  For Idx:=0 To 35 Do Str:=Str+Char(SPLineChar);
+                 { Flash >>> }
+                 if (Copy(GetLine(FileLines^.Count-2),1,7)=Copy(Str,1,7)) and
+                    (Copy(GetLine(FileLines^.Count-2),29,37)=Copy(Str,29,37)) and
+                    (((((Delta.Y>FileLines^.Count-2) and (WorkString='')) or
+                       (Delta.Y=FileLines^.Count-2)) or
+                      (Delta.Y<FileLines^.Count-2))) and
+                    (GetLine(FileLines^.Count-1)='') then
+                 begin
+                     FileLines^.AtDelete(FileLines^.Count-2);
+                     FileLines^.AtDelete(FileLines^.Count-1);
+                 end;
+                 if ((Delta.Y>FileLines^.Count-2) and (WorkString<>'')) and not
+                    ((Copy(WorkString,1,7)=Copy(Str,1,7)) and
+                     (Copy(WorkString,29,37)=Copy(Str,29,37))) or
+                    (GetLine(FileLines^.Count-1)<>'') then
+                  FileLines^.Insert(nil);
+                 { Flash <<< }
                  FileLines^.Insert(NewStr(Str));
              end;
              FileLines^.Insert(nil);
@@ -3264,6 +3419,13 @@ begin
        EdOpt.InSide           := fInSide;
        InsertMode             := fInsMode;
        KeyMap                 := fKeyMap; {-$VIV}
+       { Flash >>> }
+       EdOpt.BackIndent       := fBackIndent;
+       EdOpt.AutoWrap         := fAutoWrap;
+       OptimalFill            := fOptimalFill;
+       TabReplace             := fTabReplace;
+       EdOpt.SmartTab         := fSmartTab;
+       { Flash <<< }
        WorkString := GetLine(fDelta.Y); {-$VIV 11.05.99}
       End;
    End

@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn21225-tetris(if)-multilanguage.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -74,11 +77,18 @@ type
      procedure Idle; virtual;
     end;
 {$endif}
+    { Flash 01-02-2003 >>> }
     PGameWindow = ^TGameWindow;
     TGameWindow = object(TDialog)
+     btnNew, btnSetup, btnTop10, btnPause: PButton;
      constructor Init;
+     constructor Load(var S: TStream);
+     procedure DeleteButtons;
      procedure HandleEvent(var Event: TEvent); virtual;
+     procedure InsertButtons;
+     procedure Store(var S: TStream);
     end;
+    { Flash 01-02-2003 <<< }
 
     PGameView = ^TGameView;
     TGameView = object(TView)
@@ -197,6 +207,26 @@ begin
 {$ENDIF}
 end;
 
+{ Flash 01-02-2003 >>> }
+procedure TGameWindow.InsertButtons;
+ var R: TRect;
+begin
+ R.Assign(4+Shi*2, 17, 15+Shi*2, 19);
+ btnNew:=New(PButton, Init(R, GetString(dlNewButton), cmNewGame, 0));
+ Insert(btnNew);
+ R.Assign(15+Shi*2, 17, 26+Shi*2, 19);
+ btnSetup:=New(PButton, Init(R, GetString(dlSetupButton), cmSetup, 0));
+ Insert(btnSetup);
+ R.Assign(4+Shi*2, 19, 15+Shi*2, 21);
+ btnTop10:=New(PButton, Init(R, GetString(dlTop10Button), cmShowHi, 0));
+ Insert(btnTop10);
+ R.Assign(15+Shi*2, 19, 26+Shi*2, 21);
+ btnPause:=New(PButton, Init(R, GetString(dlPauseButton), cmStop, 0));
+ Insert(btnPause);
+ SelectNext(False);
+end;
+{ Flash 01-02-2003 <<< }
+
 constructor TGameWindow.Init;
  var R: TRect;
      Gm: PGameView;
@@ -214,15 +244,7 @@ begin
  Info := New(PGameInfo, Init(R));
  Insert(Info);
  Info^.Gm := Gm; Gm^.Info := Info;
- R.Assign(4+Shi*2, 17, 15+Shi*2, 19);
- Insert(New(PButton, Init(R, GetString(dlNewButton), cmNewGame, 0)));
- R.Assign(15+Shi*2, 17, 26+Shi*2, 19);
- Insert(New(PButton, Init(R, GetString(dlSetupButton), cmSetup, 0)));
- R.Assign(4+Shi*2, 19, 15+Shi*2, 21);
- Insert(New(PButton, Init(R, GetString(dlTop10Button), cmShowHi, 0)));
- R.Assign(15+Shi*2, 19, 26+Shi*2, 21);
- Insert(New(PButton, Init(R, GetString(dlPauseButton), cmStop, 0)));
- SelectNext(False);
+ InsertButtons; { Flash 01-02-2003 }
 end;
 
 constructor TGameInfo.Load(var S: TStream);
@@ -245,8 +267,8 @@ end;
 
 procedure TGameInfo.Draw;
 var B: TDrawBuffer;
-    S: String;
-    C, I, J, K: Word;
+    S, T: String;
+    C, I, J, K, L: Word;
 begin
  C := GetColor($0201);
  MoveChar(B, #196, C, Size.X);
@@ -283,7 +305,7 @@ begin
  For I := 5 to 10 do
   begin
    MoveChar(B, ' ', 07, Size.X);
-   if not Gm^.Stop and Gm^.Preview then
+   if {not Gm^.Stop and} Gm^.Preview then { Commented by Flash 01-02-2003 }
     begin
      for J := 1 to ColPo[Gm^.NextFig] do
       if Figures[Gm^.NextFig*5+j,1]=I-4 then
@@ -306,11 +328,16 @@ begin
  MoveChar(B[Size.X-1], #191, C, 1);
  WriteLine(0,11,Size.X,1,B);
  MoveChar(B, ' ', C, Size.X);
- MoveCStr(B, GetString(dlTetName)+ Gm^.HiScores[1+10*byte(Gm^.Pentix)].Name, C);
+ { Flash 01-02-2003 >>> }
+ L := Gm^.HiScores[1+10*byte(Gm^.Pentix)].Score;
+ if L > 0 then T := Gm^.HiScores[1+10*byte(Gm^.Pentix)].Name
+          else T := GetString(dlAnonymous);
+ MoveCStr(B, GetString(dlTetName) + T, C);
  MoveChar(B[Size.X-1], #179, C, 1);
  WriteLine(0,12,Size.X,1,B);
  MoveChar(B, ' ', C, Size.X);
- MoveCStr(B,+GetString(dlGameScore) + ItoS(Gm^.HiScores[1+10*byte(Gm^.Pentix)].Score), C);
+ MoveCStr(B,+GetString(dlGameScore) + ItoS(L), C);
+ { Flash 01-02-2003 <<< }
  MoveChar(B[Size.X-1], #179, C, 1);
  WriteLine(0,13,Size.X,1,B);
  MoveChar(B, #196, C, Size.X);
@@ -614,7 +641,7 @@ begin
      WriteLine(0,I,Shi*2,1,B);
     end;
 
- if not Stop then
+ {if not Stop then} { Commented by Flash 01-02-2003 }
   begin
    K := (((15-CurFig mod 7) shl 8) + 219)*Byte(not HideFig);
    B[0] := K; B[1] := K;
@@ -748,5 +775,29 @@ begin
   Event.KeyCode := kbDown;
  inherited HandleEvent(Event);
 end;
+
+{ Flash 01-02-2003 >>> }
+procedure TGameWindow.DeleteButtons;
+begin
+Delete(btnNew);
+Delete(btnSetup);
+Delete(btnTop10);
+Delete(btnPause);
+DisposeStr(Title);
+end;
+
+constructor TGameWindow.Load(var S: TStream);
+begin
+inherited Load(S);
+Title := NewStr(GetString(dlTetris));
+InsertButtons;
+end;
+
+procedure TGameWindow.Store(var S: TStream);
+begin
+DeleteButtons;
+inherited Store(S);
+end;
+{ Flash 01-02-2003 <<< }
 
 end.

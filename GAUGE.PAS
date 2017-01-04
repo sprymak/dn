@@ -51,6 +51,9 @@
 //  dn2510_find_files_progress_window_close_fix.patch
 //
 //  2.7.0
+//  dn270-remove_#0_from_progress_indicators-jo21122a.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -255,7 +258,7 @@ begin
    DrawView;
   end else
    begin
-    FillChar(S1[1], Size.X - 2, 0);
+    FillChar(S1[1], Size.X - 2, ' '); {JO}
     S1[0] := Char(Size.X - 2);
     Move(S[1], S1[(Size.X - Byte(S[0])) div 2], Byte(S[0]));
     WriteStr(1, N+1, S1, 7);

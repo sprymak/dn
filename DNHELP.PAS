@@ -51,6 +51,7 @@ interface
 const
 
  hcAboutDialog          = 16553;
+ hcAddQuickDir          = 49008;
  hcAdvancedFilter       = 48029;
  hcAdvancedFloppyFormat = 48042;
  hcAdvanceSearch        = 21002;
@@ -70,7 +71,11 @@ const
  hcCancelSF             = 49000;
  hcCdDir                = 48508;
  hcCDPlayer             = 16555;
+ hcCDPlayerAddSong      = 49005;
  hcCDPlayerOptions      = 16556;
+ hcCDPlayerOrder        = 49004;
+ hcCDPlayerSelectCDROM  = 49006;
+ hcCDPlayerSelectTrack  = 49007;
  hcCDPlayerTitle        = 16557;
  hcChangeNameCase       = 48093;
  hcChLngId              = 48077;
@@ -91,6 +96,7 @@ const
  hcCopyInProgress       =    32;
  hcCountrySetup         = 16564;
  hcCustomVideo          = 48059;
+ hcDBFGoto              = 48101;
  hcDBSearch             = 16576;
  hcDBView               = 48048;
  hcDeleteFiles          =    25;
@@ -133,6 +139,7 @@ const
  hcEditorWindow         = 10000;
  hcEditPhoneDirectory   = 16573;
  hcEditPhoneNumber      = 16571;
+ hcEditQuickDir         = 49010;
  hcedOptions            = 48024;
  hcedParagraph          = 48023;
  hcedSearch             = 48022;
@@ -258,6 +265,7 @@ const
  hcSetupDiskColumns     = 16580;
  hcSetupFindColumns     = 16582;
  hcSetupTerminal        = 16569;
+ hcSkipBadFile          = 49009;
  hcSortBy               = 48018;
  hcSpecKeyCommands      = 48500;
  hcSplitDialog          =    28;

@@ -65,6 +65,20 @@
 ;/  mask_e-mails.patch
 ;/
 ;/  2.7.0
+;/  dn270-add_cdplayer_help_topics.patch
+;/  dn270_dbf_goto_row_column_added.patch
+;/  dn2911-add_quick_dir_fix.patch
+;/  dn2922-new_editor_hotkeys.patch
+;/  dn21013-copy_file_fix_when_could_not_open_file.patch
+;/  dn21116-utils(fi)-quick_dirs.patch
+;/  dn21202-fpanel(i)-setup_columns_check.patch
+;/
+;/  hungary message source CWI2 2003.02.23 by csablak
+;/  e-mail:csablak at freemail.hu
+;/
+;/  dn3315-resource_and_help_fixes.patch
+;/
+;/  3.7.0
 ;/
 ;//////////////////////////////////////////////////////////////////////////
 
@@ -879,14 +893,20 @@
   Blokk m sol sa a Windows v g¢lapra ......³ CTRL-Q-P    CTRL-INS
   Blokk besz£r sa a Windows v g¢lapr¢l ....³ CTRL-Q-C    SHIFT-INS
 
+  Mark whole text as stream block .........³ CTRL-A, CTRL-Numpad5
+  Mark text to the beginning ..............³ CTRL-
+  Mark text to the end ....................³ CTRL-
+  Mark word to the left from cursor .......³ CTRL-<
+  Mark word to the right from cursor ......³ CTRL->
+
 .topic MovementCommands=10003
 .title Kurzormozgat s
  {thelyez‚s:_}              ³ {Billenty–k:_}
  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
  Egy karaktert balra     ³ CTRL-S,     
  Egy karaktert jobbra    ³ CTRL-D,     
- Az el“z“ sz¢hoz         ³ CTRL-A,     CTRL 
- A k”vetkez“ sz¢hoz      ³ CTRL-F,     CTRL 
+ Az el“z“ sz¢hoz         ³ CTRL 
+ A k”vetkez“ sz¢hoz      ³ CTRL 
  Egy sorral feljebb      ³ CTRL-E,     
  Egy sorral lejjebb      ³ CTRL-X      
  A sor elej‚re           ³ HOME
@@ -2109,6 +2129,9 @@
   m s  inform ci¢s mez“ket tartalmaznak az oszlopok. Ezeket a mez“-
   ket tetsz“legesen kombin lhatjuk.
 
+Remark: The value of "For name" is the width of columns.
+         The value of "For extension" must not exceed "For name"-5.
+
 .topic MouseSetup=16567
 .title Eg‚r be ll¡t sok
     Itt  ll¡thatjuk be az eg‚r gyorsas g t, illetve cser‚lhetjk meg
@@ -2157,12 +2180,21 @@
  B“vebben:
  {Oszlopÿbe ll¡t sok:ColumnsSetup}.
 
+Remark: LFN is the width of columns.
+         The value of EXT must not exceed LFN-5.
+
 .topic SetupArcColumns=16581
 .title S˜RTETT megjelen¡t‚s be ll¡t sa
  B“vebben: Alap‚rtelmezettÿOszlopÿbe ll¡t sok.
 
+Remark: LFN is the width of columns.
+         The value of EXT must not exceed LFN-5.
+
 .topic SetupFindColumns=16582
 .title Tal lati panel megjelen¡t‚s be ll¡t sa
+
+Remark: LFN is the width of columns.
+         The value of EXT must not exceed LFN-5.
 
 .topic FileAttr=16583
 .title F jl Attrib£tum be ll¡t sok
@@ -3287,7 +3319,8 @@ only).
 .topic ViewerDefaults=48100
 .title F jln‚z“ opci¢k
 
-
+.topic DBFGoto=48101
+.title Go to row or column
 
 ; **********************
 ; Just hungary specified
@@ -3927,3 +3960,31 @@ MEGJEGYZS : X ‚s Y abszol£t koordin t k.
  ³ {Szerkeszt“k list ja  Alt-PgUp:EditHistory} ³
  ³ {F jln‚z“k list ja    Alt-PgDn:ViewHistory} ³
  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+.topic CDPlayerOrder=49004 ; { Flash }
+.title Tracks
+Here you can make a list of tracks that CD Player will play,
+according to their order.
+
+.topic CDPlayerAddSong=49005 ; { Flash }
+.title Add track
+Select a track and press {OK:_} button.
+
+.topic CDPlayerSelectCDROM=49006 ; { Flash }
+.title Select CD-ROM
+Select CD-ROM drive which contains a musical CD and press {Enter:_}.
+
+.topic CDPlayerSelectTrack=49007 ; { Flash }
+.title Select track
+Choose the song that you want to listen
+by pressing the button with its number.
+To close the window, press {Cancel:_}.
+
+.topic AddQuickDir=49008   {John_SW}
+.title Kedvencek b“v¡t‚se
+
+.topic SkipBadFile=49009   {John_SW}
+.title Nem tudom megnyitni a f jlt
+
+.topic EditQuickDir=49010  {John_SW}
+.title Kedvencek cser‚je

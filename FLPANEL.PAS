@@ -60,6 +60,25 @@
 //  dn230_force_mouse_scroll.patch
 //
 //  2.7.0
+//  dn270-maximize_panel_in_archive_fix.patch
+//  dn270-home_panel_divider_redraw_fix.patch
+//  dn2825-change_drive_menu_fix.patch
+//  dn2911-delete_archive_from_temp_fix.patch
+//  dn2911-command_line_improve.patch
+//  dn2922-show_size_before_name_if_it_longer_250.patch
+//  dn270-filepanel_separators_coloring-jo21104b.patch
+//  dn21116-Ctrl_Slash_Up_Down_fix.patch
+//  dn21128-show_LFN_and_desc_in_bottom.patch
+//  dn21202-Find_file_and_branch_in_archive.patch
+//  dn21202-show_selected_in_list_and_flickering_fix.patch
+//  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
+//  dn21225-use_LFNCutSide_when_needed.patch
+//  dn3216-fpanel(i)-refresh_title_only_when_needed.patch
+//  dn3216-tree(f)-quicksearch_fix.patch
+//  dn3216-archives(f)-unselect_files_only_when_needed.patch
+//  dn3216-flpanel_show_mask_fix-jo30309a.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -211,7 +230,11 @@ begin
      )))
      then Exit;
  if (Event.What = evMouseDown) then
+   begin
+    QuickSearch := false; {AK155}
     ForceScroll := true; {AK155}
+   end;
+
  inherited HandleEvent(Event);
 end;
 
@@ -500,6 +523,9 @@ var
 
 begin
   inherited SetState(AState, Enable);
+  If DrawDisableLvl > 0 Then Exit;              {John_SW}
+  If DrawDisableLvl < 0 Then DrawDisableLvl:=0; {John_SW}
+
   DoDraw := OFF;
   If QuickSearch and ( AState and ( sfFocused + sfActive + sfVisible + sfSelected ) <> 0 ) and not Enable then begin
     DoDraw := ON;
@@ -523,13 +549,13 @@ begin
       if InfoView <> nil then InfoView^.DrawView;
       if DirView <> nil then DirView^.DrawView;
       if (Drive^.DriveType = dtDisk) then begin
-        ActivePanel := @Self;
         AddToDirectoryHistory(DirectoryName,integer(dtDisk));
         if UpStrg(CurrentDirectory) <> UpStrg(DirectoryName)
           then MakeChange;
       end else
       if Drive^.DriveType = dtArc
         then Drive^.lChDir(#0);
+      ActivePanel := @Self;
       EnableCommands(PanelCommands);
     end;
   if GetState(sfFocused) then begin
@@ -564,7 +590,13 @@ begin
   end;
   if GetState(sfFocused) then
    begin
-    SetTitle(DirectoryName);
+    { Flash 21-02-2003 >>> }
+    if OldTitle <> DirectoryName then
+     begin
+     SetTitle(DirectoryName);
+     OldTitle:=DirectoryName;
+     end;
+    { Flash 21-02-2003 <<< }
     FreeByte:=Drive^.Param;
    end;
 end;
@@ -578,7 +610,7 @@ procedure TFilePanel.Draw;
      CS: AWord;
      PgS: AWord;
      S, S1: String;
-     HLC: Array[0..ttCust10] of Byte; {JO}
+     HLC: Array[0..ttUpDir] of Byte; {JO, AK155}
      PB: ^Byte;
      TagC: Char;
 
@@ -598,19 +630,36 @@ procedure TFilePanel.Draw;
       else if P^.Selected then begin C:=CC; CC:=C3 end else C:=CC;
       if QuickSearch then if (Idx = CurPos) then
         begin
-         if Drive^.Flags and psShowLongName <> 0
-          then SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
-                                         Drive^.LFNLen, Drive^.EXTLen, 0) - 1,
-                         I)
-          else SetCursor(JJ+GetCursorPos(SearchParam, MakeFileName(P^.Name),
-                                         Drive^.LFNLen, Drive^.EXTLen, 0) - 1,
-                         I);
+         {$IFNDEF OS2}
+         if Drive^.Flags and psShowLongName <> 0 then
+           begin
+             if Drive^.LFNLen < 250 then
+                 SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
+                                          Drive^.LFNLen, Drive^.EXTLen) - 1, I)
+               else
+                 SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
+                                          Drive^.LFNLen, Drive^.EXTLen) + Drive^.CalcLengthWithoutName - 1, I)
+
+           end
+         else SetCursor(JJ+GetCursorPos(SearchParam, MakeFileName(P^.Name),
+                                         Drive^.LFNLen, Drive^.EXTLen) - 1, I)
+         {$ELSE}
+
+         if Drive^.LFNLen < 250 then
+             SetCursor(JJ+GetCursorPos(SearchParam, P^.Name,
+                                    Drive^.LFNLen, Drive^.EXTLen) - 1, I)
+           else
+             SetCursor(JJ+GetCursorPos(SearchParam, P^.Name,
+                                    Drive^.LFNLen, Drive^.EXTLen) + Drive^.CalcLengthWithoutName - 1, I)
+         {$ENDIF}
+              ;
          ShowCursor;
          NormalCursor
         end;
       MoveChar(B[JJ], ' ', C, LineLength);
-      if Idx=CurPos then GetFull(B[JJ], P,  C shl 8+C, CS and $00FF + C shl 8)
-                    else GetFull(B[JJ], P, CC shl 8+C, CS);
+      if (Idx=CurPos) and GetState(sfFocused) then
+             GetFull(B[JJ], P,  C shl 8+C, CS and $00FF + C shl 8)
+        else GetFull(B[JJ], P, CC shl 8+C, CS);
     end else
      begin
       MoveChar(B[JJ], ' ', C1, LineLength);
@@ -648,7 +697,7 @@ begin
  C3 := GetColor(3);  { Selected }
  C4 := C1;
  C5 := C3;
- HLC[0] := C1;
+ HLC[0] := C1; HLC[ttUpDir] := C1;
  if FMSetup.TagChar <> '' then TagC := FMSetup.TagChar[1]
                           else TagC := #251;
  if PanelFlags and fmiHiliteFiles <> 0 then
@@ -723,7 +772,13 @@ begin
     end;
    WriteLine(0, I, Size.X, 1, B[DeltaX]);
   end;
-  if GetState(sfFocused) then SetTitle(DirectoryName);
+  { Flash 21-02-2003 >>> }
+  if GetState(sfFocused) and (OldTitle <> DirectoryName) then
+   begin
+   SetTitle(DirectoryName);
+   OldTitle := DirectoryName;
+   end;
+  { Flash 21-02-2003 <<< }
 end;
         {-DataCompBoy-}
 
@@ -789,17 +844,14 @@ procedure TInfoView.HandleEvent;
  end;
 
  procedure DragTotals;
-  var I: LongInt;
-      PF: PFileRec; {DataCompBoy}
+  var N, I: LongInt;
  begin
-  New(FC, Init(Panel^.SelNum, 100));
-  for I := 1 to Panel^.Files^.Count do
-   begin
-    PF := Panel^.Files^.At(I-1); {DataCompBoy}
-    if PF^.Name[1] <> '.' then FC^.Insert(CopyFileRec(PF)); {DataCompBoy}
-   end;
+  N := Panel^.Files^.Count-1;
+  New(FC, Init(N, 100));
+  for I := 1 to N do with Panel^.Files^ do
+    FC^.AtInsert(I-1, CopyFileRec(PFileRec(At(I))));
   MakeGlobal(P, P);
-  DragMover(@P, ItoS(FC^.Count)+' '+GetString(dlDIFiles), FC, @C);
+  DragMover(@P, ItoS(N)+' '+GetString(dlDIFiles), FC, @C);
   CE;
  end;
 
@@ -837,139 +889,289 @@ begin
             end;
           Inc(Y);
     end;
-   if Panel^.PanelFlags and fmiCurrent <> 0 then
-    begin if Y = P.Y then begin DragCurrent; Exit end; Inc(Y);end;
-   if Panel^.PanelFlags and fmiSelected <> 0 then
-    begin if Y = P.Y then begin DragSelected; Exit end; Inc(Y);end;
-   if Panel^.PanelFlags and fmiTotals <> 0 then
-    begin if Y = P.Y then begin DragTotals; Exit end; Inc(Y);end;
+   { D&D из подвала панели }
+   with Panel^ do
+    begin
+     if PanelFlags and fmiCurrent <> 0 then
+      begin
+       if Y = P.Y then begin DragCurrent; Exit end;
+       Inc(Y);
+       if TypeOf(Drive^) = TypeOf(TArcDrive) then
+        begin {сжатие, показывается только вместе с тек. файлом}
+         if Y = P.Y then begin DragCurrent; Exit end;
+         inc(Y);
+        end;
+       end;
+     if (PanelFlags And fmiFullNameInBottom) <> 0 then
+      begin {выделенные и длинное имя делят одну строку}
+       if Y = P.Y then
+         begin
+         if (PanelFlags and fmiSelectedInBottom <> 0) and (SelNum <> 0) then
+           DragSelected
+         else if (PanelFlags and fmiFullNameInBottom) <> 0 then
+           DragCurrent;
+         exit;
+         end;
+       Inc(Y);
+      end;
+     if PanelFlags and fmiTotals <> 0 then
+      begin if Y = P.Y then begin DragTotals; Exit end; Inc(Y);end;
+    end;
    CE;
   end;
 end;
 
         {-DataCompBoy-}
 procedure TInfoView.Draw;
- label 1;
  var B: TDrawBuffer;
      B1: Array[0..127] of record C: Char; A: Byte; end absolute B;
      I: LongInt;
-     C1, C2, C3: Word;
+     J, L, Y, C1, C2, C3: Word;
      PF, PPF: PFileRec;
      S, S1, S2, S3: String;
-     Y: LongInt;
+{--- start -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+     SelectedInDivider, SelectedInBottom,LFNInDivider,LFNInBottom,
+     ShowFree, DescriptionInBottom: boolean;
+{--- finish -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
 
- var FR: TFileRec;
-     P: PFileRec;
+ { построение строки информации об отмеченных файлах }
+ function SelString: string;
+  var result: string;
+  begin
+   with Panel^ do
+    begin
+     Result := '~'+FStr(SelectedLen);
+     if (Drive^.DriveType = dtArc) and (SelectedLen <> PackedLen) then
+       Result := Result + '('+FStr(PackedLen)+')';
+
+     Result := Result + GetString(dlBytesIn)+
+         +ItoS(SelNum)+'~'+ GetString(dlSelectedfiles);
+    end;
+   SelString := Result;
+  end;
+
+ { построение строки текущей маски быстрого поиска }
+ function QuickSearchString: string;
+  var
+    S: string;
+    result: string;
+  begin
+   S := Panel^.SearchParam.Mask;
+   if QuickSearchType then Dec(S[0]);
+   Result := GetString(dlFileSearch);
+   if Length(S)+Length(Result)>Size.X then
+     Result := Result + FMSetup.RestChar[1] + '~' +
+         Copy(S, Length(S) - Size.X - Length(S1) - 1, 255) + '~'
+   else
+     Result := Result + '~' + S + '~';
+   QuickSearchString := Result;
+  end;
+
+ { Flash 07-02-2003 >>> }
+ { настройка пути к текущему файлу согласно LFNCutSide }
+ procedure LFNCut;
+  begin
+   {--- start -------- Eugeny Zvyagintzev ---}
+   If CStrLen(S) > Size.X Then
+    Case LFNCutSide Of
+     0: Begin
+         System.Delete(S, Size.X+1,CStrLen(S));
+         S[Length(S)] := FMSetup.RestChar[1];
+         S := FormatLongName(S, Size.X, 0, flnPadRight+flnHandleTildes, nfmNull, Nil);
+        End;
+     1: Begin
+         System.Delete(S, 2, CStrLen(S)-Size.X);
+         S[1] := FMSetup.RestChar[1];
+         S := FormatLongName(S, Size.X, 0, flnHandleTildes, nfmNull, Nil);
+        End;
+     2: if S[Length(S)]='\' then
+         S:=FormatLongName(Copy(S,1,Length(S)-1), Size.X-1, 1, flnHandleTildes+flnUseCutChar, nfmNull, Nil)+'\'
+        else
+         S:=FormatLongName(S, Size.X, 1, flnHandleTildes+flnUseCutChar, nfmNull, Nil);
+    End
+   Else
+    S := FormatLongName(S, Size.X, 0, flnHandleTildes, nfmNull, Nil);
+   {--- finish -------- Eugeny Zvyagintzev ---}
+  end;
+ { Flash 07-02-2003 <<< }
 
 begin
  if Panel^.DrawDisableLvl > 0 then Exit;
- C2 := Panel^.GetColor(2); I := Size.X;
+{--- start -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+ SelectedInDivider := (Panel^.PanelFlags and fmiSelectedInDivider) <> 0;
+ SelectedInBottom := (Panel^.PanelFlags and fmiSelectedInBottom) <> 0;
+ LFNInDivider := (Panel^.PanelFlags and fmiFullNameInDivider) <> 0;
+ LFNInBottom := (Panel^.PanelFlags and fmiFullNameInBottom) <> 0;
+ ShowFree := Panel^.PanelFlags and fmiFree <> 0;
+ DescriptionInBottom := Panel^.PanelFlags and fmiDescriptionInBottom <> 0;
+{--- finish -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+ I := Size.X;
  C1 := Panel^.LineLength;
+ C2 := Panel^.GetColor(2);
  if I < C1 then I := C1;
  Dec(C1);
  Y := 0;
- if FMSetup.Show and fmsDivider <> 0 then
- begin
-  Y := 1;
-  MoveChar(B, #196, C2, Size.X+Panel^.DeltaX);
-  I := 0; C2 := (C2 shl 8) or 193;
-  While I < Size.X+Panel^.DeltaX do
-   begin
-    Panel^.Drive^.GetEmpty(B[I], C2);
-    Inc(I, Panel^.LineLength);
-    If I = Size.X+Panel^.DeltaX then B[I-1]:=(C2 and $FF00)+196;
-   end;
-  WriteLine(0,0,Size.X,1,B[Panel^.DeltaX]);
- end;
 
+ { описатель текущего файла }
+{John_SW 16-12-2002}
+ if Panel^.ScrollBar^.Value < Panel^.Files^.Count
+  then PF := Panel^.Files^.At(Panel^.ScrollBar^.Value)
+  else PF := nil;
+{/John_SW 16-12-2002}
+
+{ линия разделителя }
+ if FMSetup.Show and fmsDivider <> 0 then
+  begin
+   MoveChar(B, #196, C2, Size.X+Panel^.DeltaX);
+   I := 0; C2 := (C2 shl 8) or 193;
+   While I < Size.X+Panel^.DeltaX do
+    begin
+     Panel^.Drive^.GetEmpty(B[I], C2);
+     Inc(I, Panel^.LineLength);
+     If I = Size.X+Panel^.DeltaX then B[I-1]:=(C2 and $FF00)+196;
+    end;
+
+   I:=-1;
+   S := '';
+{--- start -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+{ информация о выделенных файлах }
+   If SelectedInDivider and (Panel^.SelNum > 0) Then S := SelString;
+   If (LFNInDivider Or (ShowFileMask And QuickSearch)) And (S = '') Then
+    Begin
+     If PF <> Nil Then S:=GetLFN(PF^.LFN);
+     If (PF = Nil) Or
+        (ShowLongName = 0) Or
+        ((ShowLongName = 1) And
+        (UpStrg(S) = UpStrg(MakeFileName(PF^.Name)))) Or
+        ((ShowLongName = 2) And (S = MakeFileName(PF^.Name))
+         And (S = UpStrg(S))) Or (PF^.TType = ttUpDir) Then S:=''
+     Else
+      Begin
+       LFNCut; { Flash 07-02-2003 }
+       If AlignLFNInBottom = 1 Then I := 0;
+       If AlignLFNInBottom = 2 Then I:=Size.X-CStrLen(S);
+      End;
+    End;
+{ маска быстрого поиска поверх }
+   If ((SelectedInBottom and (Panel^.SelNum > 0)) Or
+      (SelectedInDivider and (Panel^.SelNum = 0) And LFNInDivider))
+       And ShowFileMask And QuickSearch Then S := QuickSearchString;
+{--- finish -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+   if S <> '' then
+    Begin
+     C3 := GetColor($0302);
+     If I < 0 Then
+      Begin
+       I := (Size.X - CStrLen(S)) Div 2; If I < 0 Then I := 0;
+      End;
+     MoveCStr(B[I], S, C3);
+     WriteLine(0,Y,Size.X,1,B);
+    End
+   Else
+    WriteLine(0,Y,Size.X,1,B[Panel^.DeltaX]);
+   Inc(Y);
+  end;
+
+{ информация о текущем файле }
  C1 := GetColor(1);
  if Panel^.PanelFlags and fmiCurrent <> 0 then
- begin
-   if (Panel^.SelNum > 0) and (Panel^.PanelFlags and fmiSelected = 0) then Goto 1;
+  begin
    MoveChar(B, ' ', C1, Size.X);
-   if Panel^.ScrollBar^.Value < Panel^.Files^.Count then
-    begin
-      PF := Panel^.Files^.At(Panel^.ScrollBar^.Value);
-      Panel^.Drive^.GetDown(B, C1, PF);
-    end;
+   if PF <> nil then Panel^.Drive^.GetDown(B, C1, PF);
    WriteLine(0,Y,Size.X,1,B);
    Inc(Y);
-   if (Panel^.Drive^.DriveType = dtFind) or (Panel^.Drive^.DriveType = dtTemp)
-      or (Panel^.Drive^.DriveType = dtList) then
-    begin
-     MoveChar(B, ' ', C1, Size.X);
-     if (Panel^.ScrollBar^.Value < Panel^.Files^.Count) and
-        (PF^.Owner <> nil) then MoveStr(B, PF^.Owner^, C1);
-     WriteLine(0,Y,Size.X,1,B);
-     Inc(Y);
-    end else
-    if (Panel^.Drive^.DriveType = dtArc) then
-     begin
-      MoveChar(B, ' ', C1, Size.X);
-      C3 := GetColor($0302);
-      if Panel^.ScrollBar^.Value < Panel^.Files^.Count then begin
-       if PF^.Size = 0 then S := '100%' else S := ZtoS(Percent(PF^.Size, PF^.PSize))+'%';
-       MoveCStr(B, GetString(dlArcPSize) + ' ' + AddSpace(FStr(PF^.PSize),14) +
-                  GetString(dlArcRatio) + S, C3);
-      end;
-      WriteLine(0,Y,Size.X,1,B);
-      Inc(Y);
-     end;
- end;
-
- if Panel^.PanelFlags and fmiSelected <> 0 then
-  begin
-1:
-    I := -1;
-    C3 := GetColor($0302);
-    {Passing Word parameter to Byte argument again... -JITR-}
-    {MoveChar(B, ' ', C3, Size.X);}         {-JITR-}
-    MoveChar(B, ' ', C3 and $00FF, Size.X); {-JITR-}
-    if Panel^.SelNum = 0 then
-    begin
-      if ((x_x<>Panel^.FileMask) and ('*'<>Panel^.FileMask)) and
-         (ShowFileMask) then {-$VIV 19.05.99--}
+   case Panel^.Drive^.DriveType of
+    dtFind, dtTemp, dtList, dtArcFind:
       begin
-        S := fReplace('*.', '', Panel^.FileMask);
-        S := fReplace(' ', '', S);
-        if Copy(S, 1, 1) = ';' then Delete(S, 1, 1);
-        S := GetString(dlFileMask) + ' ' + S;
-      end else
-      if (Panel^.QuickSearch) and (ShowFileMask) then begin
-        S := Panel^.SearchParam.Mask;
-        Dec(S[0]);
-        S1 := GetString(dlFileSearch);
-        if Length(S)+Length(S1)>Size.X
-         then S := S1 + #17 + '~' + Copy(S, Length(S) - Size.X - Length(S1) - 1, 255) + '~'
-         else S := S1 + '~' + S + '~';
-        I := 0;
-      end else
-      begin
-        S := GetString(dlNoFilesSelected);
-        if ShowLongName and (Panel^.ScrollBar^.Value < Panel^.Files^.Count)
-        then begin
-          P:=PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value));
-          if P<>nil then begin
-           S2 := MakeFileName(P^.Name);
-           if S2 <> '..' then
-           begin
-             S3 := GetLFN(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.LFN); {DataCompBoy}
-             if (UpStrg(S2) <> UpStrg(S3)) and (Panel^.Files^.Count > 0)
-             then S := FormatLongName(GetName(S3),Size.X,0,
-             flnPreferName+flnHighlight+flnHandleTildes+flnUseCutChar,
-             nfmNull,nil);
-           end;
+      if not ((Panel^.Drive^.DriveType = dtList) and
+              not ShowFree and
+              ((Panel^.SelNum <> 0) and SelectedInBottom)) then
+        begin
+         MoveChar(B, ' ', C1, Size.X);
+         { Flash 07-02-2003 >>> }
+         if (PF <> nil) and (PF^.Owner <> nil) then
+          begin
+          S := PF^.Owner^;
+          LFNCut;
+          MoveStr(B, S, C1);
           end;
+         { Flash 07-02-2003 <<< }
+         WriteLine(0,Y,Size.X,1,B);
+         Inc(Y);
         end;
       end;
-    end
-     else begin
-           if (Panel^.SelectedLen = Panel^.PackedLen) or (Panel^.Drive^.DriveType <> dtArc) then
-            S := '~'+FStr(Panel^.SelectedLen)+GetString(dlBytesIn)+
-                 +ItoS(Panel^.SelNum)+'~'+ GetString(dlSelectedfiles) else
-            S := '~'+FStr(Panel^.SelectedLen)+'('+FStr(Panel^.PackedLen)+')'+GetString(dlBytesIn)+
-                +ItoS(Panel^.SelNum)+'~'+ GetString(dlSelectedfiles);
-          end;
+    dtArc:
+      begin
+      MoveChar(B, ' ', C1, Size.X);
+      C3 := GetColor($0302);
+      if PF <> nil then
+       begin
+        S := ZtoS(Percent(PF^.Size, PF^.PSize))+'%';
+        MoveCStr(B, GetString(dlArcPSize) + ' ' + AddSpace(FStr(PF^.PSize),14) +
+                 GetString(dlArcRatio) + S, C3);
+       end;
+      WriteLine(0,Y,Size.X,1,B);
+      Inc(Y);
+      end;
+   end;{ case}
+  end;
+
+{ Выделенные файлы, маска панели, маска быстрого поиска, длинное имя }
+ if SelectedInBottom or LFNInBottom then
+  begin
+    S := '';
+    I := -1; { по умолчанию - центрировать }
+    C3 := GetColor($0302);
+    MoveChar(B, ' ', C3 and $00FF, Size.X);
+    if SelectedInBottom and (Panel^.SelNum <> 0) then
+      S := SelString
+    else if ShowFileMask and (x_x<>Panel^.FileMask) and ('*'<>Panel^.FileMask) then {-$VIV 19.05.99--}
+     begin
+      S := fReplace(' ', '', Panel^.FileMask);
+      if Copy(S, 1, 1) = ';' then Delete(S, 1, 1);
+      S := GetString(dlFileMask) + S;
+     end
+    else if ShowFileMask and (Panel=ActivePanel) and ({Panel^.}QuickSearch)
+            and (TypeOf(Panel^)=TypeOf(TFilePanel)) then { Flash 05-03-2003 }
+     begin
+      S := QuickSearchString; I := 0; { прижать влево }
+     end
+    else if LFNInBottom and (PF <> nil) then
+     begin { длинное имя прижимаем влево и обрезаем слева }
+      if PF^.TType <> ttUpDir then
+       begin
+        S := GetLFN(PF^.LFN);
+{--- start -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
+        If (ShowLongName = 0) Or
+         ((ShowLongName = 1) And
+         (UpStrg(S) = UpStrg(MakeFileName(PF^.Name)))) Or
+         ((ShowLongName = 2) And (S = MakeFileName(PF^.Name))
+          And (S = UpStrg(S))) Then S:=''
+        Else
+         Begin
+          If length(S) > Size.X Then
+           Case LFNCutSide Of
+            0: Begin
+                system.delete(S, Size.X+1,Length(S));
+                S[Length(S)] := FMSetup.RestChar[1];
+                S := FormatLongName(S, Size.X, 0, flnPadRight+flnHandleTildes, nfmNull, Nil);
+               End;
+            1: Begin
+                system.delete(S, 2, length(S)-Size.X);
+                S[1] := FMSetup.RestChar[1];
+                S := FormatLongName(S, Size.X, 0, flnHandleTildes, nfmNull, Nil);
+               End;
+            2: S:=FormatLongName(S, Size.X, 1, flnHandleTildes+flnUseCutChar, nfmNull, Nil);
+           End
+          Else
+           S := FormatLongName(S, Size.X, 0, flnHandleTildes, nfmNull, Nil);
+          If AlignLFNInBottom = 1 Then I := 0;
+          If AlignLFNInBottom = 2 Then I:=Size.X-CStrLen(S);
+         End;
+       end;
+     end;
+    if (SelectedInBottom) And (S = '') then S := GetString(dlNoFilesSelected);
+{--- finish -------- Eugeny Zvyagintzev ---- 18-01-2003 -----}
     if I < 0 then I := (Size.X - CStrLen(S)) div 2;
     if I < 0 then I := 0;
     MoveCStr(B[I], S, C3);
@@ -987,20 +1189,92 @@ begin
     Inc(Y);
   end;
 
- if Panel^.PanelFlags and fmiFree <> 0 then
+{ Свободное место, описание текущего файла }
+ if DescriptionInBottom or ShowFree then
   begin
+  {S1: свободное место (цифры); S2: описание; S3: текст свободного места;
+   I: позиция начала выдачи S1 с учетом центрирования, когда нет описания;
+   L - ширина поля S1 вместе с одним пробелом }
+    L := 0; S1 := ''; S2 := ''; S3 := '';
+    if ShowFree then
+      begin
+      S1 := Panel^.FreeSpace;
+      L := CStrLen(S1)+1;
+      {Cat: 1) если возвращена пустая строка, то не должны ничего пририсовывать
+            2) если это не диск, а сетевой путь, то вместо буквы диска выводим имя ресурса}
+      if S1 = '' then
+        S3 := ''
+      else
+        begin
+          with Panel^.Drive^ do
+            if CurDir[2] = ':' then
+              S3 := GetString(dlDIFreeDisk)+CurDir[1]+':'
+            else
+              if (CurDir[1] = '\') and (CurDir[2] = '\') then
+                begin
+                  for I := 3 to Length(CurDir) do
+                    if CurDir[I] = '\' then
+                      begin
+                        for I := I+1 to Length(CurDir) do
+                          if CurDir[I] = '\' then
+                            begin
+                              Dec(I);
+                              Break;
+                            end;
+                        Break;
+                      end;
+                  S3 := GetString(dlDIFreeDisk)+Copy(CurDir, 1, I);
+                end
+              else
+                S3 := '';
+          System.Delete(S3, 1, 2); { убрать ненужные '~ '} {Cat:warn надо бы это с ресурсами увязать по-человечески}
+        end;
+      {/Cat}
+      I := (Size.X - (L-2+CStrLen(S3))) div 2 - 1;
+      if I < 0 then I := 0;
+        { центрируем обычный показ свободного места }
+      end;
+    if DescriptionInBottom then
+    begin
+      if (PF <> nil) and (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then
+      begin
+        S2 := PF^.DIZ^.DIZ^;
+        if Panel^.Drive^.Flags and psShowDescript <> 0 then
+          begin
+          { выводим в подвале то, что не поместилось в панели }
+  {$IFNDEF OS2} if Panel^.Drive^.Flags and psShowLongName <> 0 then {$ENDIF}
+                  J:=Panel^.Drive^.LFNLen
+              {$IFNDEF OS2} else J:=12{$ENDIF};
+          J := Size.X - J + Panel^.DeltaX - 1;
+          system.delete(S2, 1,  J);
+          end;
+        if length(S2) + L > Size.X then
+          begin
+          S2[0] := Char(Size.X - L);
+          S2[Size.X - L] := FMSetup.RestChar[1];
+          end;
+        if S2 <> '' then
+          begin
+          I := 0; { свободное место с описанием не центрируем }
+          for J := 1 to length(S2) do if S2[J]=#20 then S2[J] := ' ';
+            { #20 - это разделитель строк многострочного описания }
+          end;
+      end;
+    end;
+
     C3 := GetColor($0706);
-    {Passing Word parameter to Byte argument again... -JITR-}
-    {MoveChar(B, ' ', C3, Size.X);}         {-JITR-}
-    MoveChar(B, ' ', C3 and $00FF, Size.X); {-JITR-}
-    I := (Size.X - CStrLen(Panel^.FreeSpace)) div 2; if I < 0 then I := 0;
-    MoveCStr(B[I], Panel^.FreeSpace, C3);
+    MoveChar(B, ' ', C3 and $00FF, Size.X);
+    MoveCStr(B[I], S1, C3);
+    if S2 <> '' then
+      begin
+      C3 := GetColor($301);
+      MoveStr(B[L], S2, C3);
+      end
+    else
+      MoveCStr(B[I+L], S3, C3);
     WriteLine(0,Y,Size.X,1,B);
     Inc(Y);
   end;
-
- MoveChar(B, ' ', C1, Size.X);
- WriteLine(0, Y, Size.X, Size.Y - Y,B);
 end;
         {-DataCompBoy-}
 
@@ -1203,7 +1477,7 @@ var
    I := CurPos + B; If I >= Files^.Count then I := 0;
    if Drive^.Flags and psShowLongName <> 0 then
     repeat
-     If InMask(GetLFN(PFileRec(Files^.At(I))^.LFN), SearchParam.Mask) then begin
+     If InQSMask(GetLFN(PFileRec(Files^.At(I))^.LFN), SearchParam.Mask) then begin
       ScrollBar^.SetValue( I );
       Exit;
      end;
@@ -1211,7 +1485,7 @@ var
     until I = CurPos
    else
     repeat
-     If InMask(MakeFileName(PFileRec(Files^.At(I))^.Name), SearchParam.Mask) then begin
+     If InQSMask(MakeFileName(PFileRec(Files^.At(I))^.Name), SearchParam.Mask) then begin
       ScrollBar^.SetValue( I );
       Exit;
      end;
@@ -1240,7 +1514,7 @@ begin
  I := ShiftState;
  if (Event.What = evKeyDown) and (I and 3 <> 0) and
     ((Event.KeyCode = kbCtrlRight) or (Event.KeyCode = kbCtrlLeft) or
-     ((Event.KeyCode = kbBack) and not QuickSearch))
+     (((Event.KeyCode = kbBack) or (Event.KeyCode = kbDel)) and not QuickSearch))
       then begin CommandHandle(Event); Exit; end;
  if (Event.What = evKeyDown) and (CommandLine <> nil) then
   if ((I and (kbRightShift+kbLeftShift) <> 0) and
@@ -1274,7 +1548,7 @@ begin
                               PString(Event.InfoPtr)^ := PFileRec(Files^.At(ScrollBar^.Value))^.Owner^;
                   ClearEvent( Event );
                 end;
-              cmKillUsed: Drive^.KillUse;
+              cmKillUsed: if (StartupData.Unload and osuAutosave = 0) then Drive^.KillUse;
               cmClose: CommandEnabling := Off;
               cmCopyUnselect: begin CM_CopyUnselect; CE end;
               cmRecountDirs: begin
@@ -1296,6 +1570,8 @@ begin
                 CtrlWas := Off;
                 InitQuickSearch(SearchParam);
                 QuickSearch := not QuickSearch;
+                if not QuickSearch then
+                  InfoView^.DrawView; {Cat}
                 if (Event.CharCode >= #32) and (Event.CharCode <= #254) then
                  begin
                    if not ((ShiftState and 3 <> 0) and ( not CommandLine^.GetState(sfVisible))) then
@@ -1327,7 +1603,8 @@ begin
                     CtrlWas := Off;
                     if (Event.KeyCode = kbGrayPlus) or (Event.KeyCode = kbGrayMinus) or
                        (Event.KeyCode = kbGrayAst) or (Event.KeyCode = kbIns) or
-                       (Event.KeyCode = kbBackUp) then Goto GotoKb;
+                       (Event.KeyCode = kbBackUp) then
+                     Goto GotoKb;
                     case Event.CharCode of
                      #27: begin
                            QuickSearch := Off;
@@ -1349,7 +1626,10 @@ begin
                               Event.CharCode := SearchParam.Mask[I];
                               PutEvent(Event);
                             end;
-                           CE; QuickSearch := Off; Exit;
+                           CE;
+                           QuickSearch := Off;
+                           InfoView^.DrawView; {Cat}
+                           Exit;
                           end;
                      else
                       begin
@@ -1362,14 +1642,20 @@ begin
                    end else
                    begin
                     CtrlWas := Off;
-                    if QuickSearch then begin QuickSearch := Off; DrawView end;
+                    if QuickSearch then
+                     begin
+                      QuickSearch := false;
+                      InfoView^.DrawView;
+                     end;
 GotoKB:
                     case Event.KeyCode of
-                     kbDel: if ((CmdLine.Str = '') and (FMSetup.Options and fmoDelErase <> 0)) then
-                               Message(@Self, evCommand, cmPanelErase, nil);
                      kbShiftDel: if ((CmdLine.Str = '') and (FMSetup.Options and fmoDelErase <> 0)) then
                                Message(@Self, evCommand, cmSingleDel, nil);
-                     kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); DrawView end;
+                     { Flash >>> }
+                     kbCtrlHome: begin CE; DeltaX := 0; OldDelta := -1; Owner^.ReDraw end;
+                     kbCtrlEnd: begin CE; DeltaX := LineLength - Size.X - 1; OldDelta := -1; Owner^.ReDraw end;
+                     kbHome: begin CE; OldDelta := -1; ScrollBar^.SetValue(0); Owner^.ReDraw end;
+                     { Flash <<< }
                      kbEnd: begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
                      kbUp, kbDown, kbCtrlUp, kbCtrlDown, kbUpUp, kbDownUp
                           : begin
@@ -1386,7 +1672,7 @@ GotoKB:
                                 (FMSetup.Options and fmoSpaceToggle = 0)) then Exit;
                              CE; if Files^.Count = 0 then Exit;
                              PF := Files^.At(CurPos);
-                             if PF^.Name[1] <> '.' then
+                             if PF^.TType <> ttUpDir then
                              begin
                               PF^.Selected := not PF^.Selected;
                               SelectedLen := SelectedLen - (1-2*Integer(PF^.Selected))*PF^.Size;
@@ -1420,7 +1706,8 @@ GotoKB:
                                          if Files<>nil then begin
                                           if Files^.Count = 0 then Exit;
                                           PF := Files^.At(ScrollBar^.Value);
-                                          if (PF^.Name[1] <> '.') and (PF^.Selected xor SelectFlag) then
+                                          if (PF^.TType <> ttUpDir)
+                                                     and (PF^.Selected xor SelectFlag) then
                                            begin
                                             PF^.Selected := SelectFlag;
                                             if SelectFlag then begin Inc(SelNum); SelectedLen := SelectedLen + PF^.Size;

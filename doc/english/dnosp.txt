@@ -227,12 +227,14 @@
     First coordinator:
         Max Vasilyev
         2:5057/33.36@fidonet
-        piwamoto at pisem.net
+        piwamoto(at)pisem.net
+        http://www.sama.ru/~piwamoto/
         http://dn.traktir.ru/
     Second coordinator:
         Eugeny Zvyagintzev
         2:5004/18.60@fidonet
-        dn_osp at pisem.net
+        dn_osp(at)pisem.net
+        http://dnosp.nm.ru
     Third coordinator:
         check out our www pages and RU.SHELL.DN Fidonet echo area
 

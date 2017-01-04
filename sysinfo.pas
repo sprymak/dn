@@ -54,6 +54,9 @@
 //  dn200-remove_Machine_Type_and_CPU_flag_info_from_sysinfo.patch
 //
 //  2.3.0
+//  dn3323-HDD_in_sysinfo.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -64,7 +67,7 @@ INTERFACE
 
 {$IFDEF SYSINFO}
 USES
-  Startup, CPUType, Advance;
+  CPUType, Advance;
 {$ENDIF}
 
     PROCEDURE SystemInfo;
@@ -135,6 +138,7 @@ var
 begin
    GetExtendedInfo := False;
    NumLBASectors := 0;
+   {$IFDEF DPMI}FillChar(Reg, SizeOf(Reg), 0);{$ENDIF}
 { test BIOS extension presence }
    Reg.AX := $4100;
    Reg.DL := $80 + N;
@@ -185,52 +189,56 @@ BEGIN
   1 : HDDint := $46
  else HDDint := $41
  end;
-{$IFNDEF DPMI}
- GetIntVec(HDDint, Pointer(Param));
-{$ELSE}
- asm
-  mov  AX, 0200h
-  mov  BX, HDDint
-  int  31h
-  jc   Er
-  mov  Param.OS.O, DX
-  mov  BX, CX
-  mov  AX, 0002h
-  int  31h
-  jc   Er
-  mov  Param.OS.S, AX
- end;
-{$ENDIF}
- NumCylinders := Param^.Cyl;
- NumHeads := Param^.Hds;
- NumSect := Param^.Sct;
+ if N < 2 then
+ begin
+  {$IFNDEF DPMI}
+  GetIntVec(HDDint, Pointer(Param));
+  {$ELSE}
+  asm
+    mov  AX, 0200h
+    mov  BX, HDDint
+    int  31h
+    jc   Er
+    mov  Param.OS.O, DX
+    mov  BX, CX
+    mov  AX, 0002h
+    int  31h
+    jc   Er
+    mov  Param.OS.S, AX
+  end;
+  {$ENDIF}
+  NumCylinders := Param^.Cyl;
+  NumHeads := Param^.Hds;
+  NumSect := Param^.Sct;
+  {$IFDEF DPMI}
+  Er:
+  {$ENDIF}
+ end;{N<2}
 
- if (NumCylinders=0) or (NumSect=0) or (NumHeads=0) then
-    begin
-{$IFDEF DPMI}
-Er:
-{$ENDIF}
-     Reg.AH := 8;
-     Reg.DL := $80 + N;
-     {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($13,Reg);
-     NumCylinders := LongInt(Reg.CH) + LongInt((Reg.CL shr 6))*256 + 1;
-     NumSect := LongInt(Reg.CL and $3F);
-     NumHeads := LongInt(Reg.DH) + 1;
-    end;
+ Reg.AH := 8;
+ Reg.DL := $80 + N;
+ {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($13,Reg);
+ if Reg.AH <> 0 then begin S := ''; Exit; end {no HDD found}
+ else if (NumCylinders=0) or (NumSect=0) or (NumHeads=0) then
+        begin
+         NumCylinders := LongInt(Reg.CH) + LongInt((Reg.CL shr 6))*256 + 1;
+         NumSect := LongInt(Reg.CL and $3F);
+         NumHeads := LongInt(Reg.DH) + 1;
+        end;
  if (NumCylinders*NumSect*NumHeads = $fb0400){8Gb limit} and
     (GetExtendedInfo(N, NumLBASectors)) then
     NumCylinders := NumLBASectors div NumHeads div NumSect;
  S := FStr(NumCylinders*NumSect*NumHeads div 2048);
- S := S + 'M, ' + ItoS(NumHeads)+GetString(dlSI_Heads)+ItoS(NumCylinders)+
-      GetString(dlSI_Tracks)+ItoS(NumSect)+GetString(dlSI_SectTrack);
+ S := GetString(dlSI_HardDrive) + Chr($31{'1'} + N) + ' : ' + S + 'M, ' +
+      ItoS(NumHeads) + GetString(dlSI_Heads) +
+      ItoS(NumCylinders) + GetString(dlSI_Tracks) +
+      ItoS(NumSect) + GetString(dlSI_SectTrack);
 END;
 
 procedure GetDisks(var FDD: String);
- var NumFD: Byte;
-     NumHD, NumCyl, NumSect, NumHeads: Byte;
+ var
+     NumFD, NumHD, I: Byte;
      S: String;
-     NumCylinders: Word;
-     I: Byte;
 begin
  NumFD := (mem[seg0040:$10] and 1)*(1+mem[seg0040:$10] shr 6);
  FDD := '';
@@ -249,7 +257,8 @@ begin
     2: S := '5.25" 1.2M';
     3: S := '3.5" 720K';
     4: S := '3.5" 1.44M';
-    5: S := '3.5" 2.88M'; { Rainbow }
+    5,6 : S := '3.5" 2.88M'; { Rainbow }
+    $10 : S := 'ATAPI';
     else S := GetString(dlUnknownDiskDriverType);
    end;
    if FDD <> '' then FDD := FDD + ', ';
@@ -262,24 +271,22 @@ procedure SystemInfo;
 var
     EQList, Y, XMSSize: Word;
     LL: Array[1..6] of LongInt;
-    id : cpuid1Layout;
     D: PDialog;
     R: TRect;
     P: PView;
+    HDDcount: Byte;
     Mhz,
     CPU,
     CoCPU,
     Family,
     Model,
     Step,
-    stHD,
-    ndHD,
-    FDDs: String[80];
-    S, S2: String;
+    S2: String[64];
+    S: String;
 
 function DosVendor: string; {piwamoto}
 var
-     Reg         : Registers;
+     Reg   : Registers;
 begin
  Reg.AX := $3000;
  Intr ($21, Reg);
@@ -316,8 +323,8 @@ begin
  case Reg.AX of
   $0004 : Build := '95'; {OSR1=4.00.950B & OSR2=4.00.1111 returns same code}
   $0304 : Build := '95 OSR 2.1'; {4.00.1212}
-  $0a04 : Build := '98';         {4.10.1998}
-  $5a04 : Build := 'Millenium Edition';  {4.90.3000} { Rainbow }
+  $0a04 : Build := '98'; {4.10.1998}{4.10.2222}
+  $5a04 : Build := 'Millennium Edition'; {4.90.3000} { Rainbow }
  else
   Build := ItoS(LongInt(Reg.AL)) + '.';
   if Reg.AH < 10 then Build := Build + '0' + ItoS(LongInt(Reg.AH))
@@ -352,6 +359,7 @@ begin
  Model  := ItoS((cpuid1 and $00F0) shr 4);
  Step   := ItoS((cpuid1 and $000F));
  CoCPU  := fpu_Type;
+
  LL[1]  := LongInt(@CPU);
  LL[2]  := LongInt(@MHz);
  LL[3]  := LongInt(@Family);
@@ -360,7 +368,7 @@ begin
  LL[6]  := LongInt(@CoCPU);
 
  FormatStr(S, GetString(dlSI_Main), LL);
- R.Assign(3,2,69,7);
+ R.Assign(3,2,69,5);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
@@ -371,23 +379,24 @@ begin
  D^.Insert(P);
 
  Y := 1;
- GetDisks(FDDs); S := GetString(dlSI_FloppyDrives)+FDDs+^M;
- if mem[seg0040:$75] <> 0 then begin
-  GetHDDInfo(0, stHD);
-  S := S + GetString(dlSI_1stHard) + stHD+^M;
-  Inc(Y);
-  if mem[seg0040:$75] > 1 then begin
-   GetHDDInfo(1, ndHD);
-   S := S + GetString(dlSI_2ndHard) + ndHD;
-   Inc(Y);
-  end;
+ GetDisks(S2); S := GetString(dlSI_FloppyDrives) + S2;
+
+ for HDDcount := 0 to 3 do
+ begin
+   GetHDDInfo(HDDcount, S2);
+   if S2 <> '' then
+     begin
+      S := S + S2;
+      Inc(Y);
+     end;
  end;
- R.Assign(3,9,69,9+Y);
+
+ R.Assign(3,7,69,7+Y);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
  S := GetString(dlSI_DiskDrivers);
- R.Assign(4,8,6+Length(S),9);
+ R.Assign(4,6,6+Length(S),7);
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 
@@ -428,12 +437,12 @@ begin
  S := GetString(dlSI_TotalMem) + ItoS(LongInt(EQList)*64 + XMSSize + 1024) + 'K'^M;
  if XMSFound then S := S + GetString(dlSI_Extended) + ItoS(XMSFree) + 'K'^M;
  if EMSFound then S := S + GetString(dlSI_Expanded) + ItoS(EMSSize) + 'K';
- R.Assign(3,11+Y,25,14+Y);
+ R.Assign(3,9+Y,25,12+Y);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
  S := GetString(dlSI_Memory);
- R.Assign(4,10+Y,6+Length(S),11+Y);
+ R.Assign(4,8+Y,6+Length(S),9+Y);
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 
@@ -472,12 +481,12 @@ begin
     else S := S + DosVendor + 'DOS ' + ItoS(WordRec(EQList).Lo) + '.' +
               ItoS(WordRec(EQList).Hi)
  else S := S + S2;
- R.Assign(27,11+Y,69,14+Y);
+ R.Assign(27,9+Y,69,12+Y);
  P := New(PStaticText, Init(R, S));
  P^.Options := P^.Options or ofFramed;
  D^.Insert(P);
  S := GetString(dlSI_Ports);
- R.Assign(28,10+Y,30+Length(S),11+Y);
+ R.Assign(28,8+Y,30+Length(S),9+Y);
  P := New(PLabel, Init(R, S,P));
  D^.Insert(P);
 

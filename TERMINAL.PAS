@@ -51,6 +51,9 @@
 //  dn16rc1-fix_terminal_crash.patch
 //
 //  2.0.0
+//  dn328-Terminal(f)-enable_activization.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -1700,7 +1703,7 @@ end;
  procedure OpenTerminal;
  begin
   if Term <> nil
-   then Term^.Select
+   then Term^.Owner^.Select
    else begin
     Application^.InsertWindow(New(PTerminalWindow, Init));
     if (Term <> nil) and (Term^.Owner <> nil) then { Max Morozov }

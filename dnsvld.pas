@@ -51,6 +51,12 @@
 //  dn16rc1-load_desktop_size_fix.patch
 //
 //  2.3.0
+//  dn2922-show_size_before_name_if_it_longer_250.patch
+//  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
+//  dn3421-DBF_WKZ(f)-find_settings_store_fix.patch
+//  dn368-DBF_WKZ(f)-lite_version_find_settings_store_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -102,14 +108,14 @@ const
 {New Record Versions}
      cfgOldSystemData       = 36; {DataCompBoy}
      cfgNewSaversData       = 37;
-     cfgColumnsDefaultsDisk = 38;
-     cfgColumnsDefaultsFind = 39;
-     cfgColumnsDefaultsTemp = 40;
-     cfgColumnsDefaultsArch = 41;
+     cfgColumnsDef_270_Disk = 38; {LFNLen,EXTLen:string[2]}
+     cfgColumnsDef_270_Find = 39; {LFNLen,EXTLen:string[2]}
+     cfgColumnsDef_270_Temp = 40; {LFNLen,EXTLen:string[2]}
+     cfgColumnsDef_270_Arch = 41; {LFNLen,EXTLen:string[2]}
 {    cfgColumnsDefaultsArvd = 42; Do not use 42 - old version!!!}
      cfgNewFMSetup          = 43; {DataCompBoy}
      cfgOldArcCustomMasks   = 44; {DataCompBoy}
-     cfgColumnsDefaultsArvd = 45; {DataCompBoy}
+     cfgColumnsDef_270_Arvd = 45; {LFNLen,EXTLen:string[2]}
      cfgShowScrollBar       = 47; {DataCompBoy}
      cfgNewStartupData      = 48; {DataCompBoy}
      cfgDefaultArchiver     = 49; {DataCompBoy}
@@ -129,15 +135,20 @@ const
      cfgINIcrc              = 63; {DataCompBoy}
      cfgEditorDefaults      = 64; {DataCompBoy}
      cfgViewerDefaults      = 65; {DataCompBoy}
+     cfgColumnsDefaultsDisk = 66; {piwamoto}{LFNLen,EXTLen:string[3]}
+     cfgColumnsDefaultsFind = 67; {piwamoto}{LFNLen,EXTLen:string[3]}
+     cfgColumnsDefaultsTemp = 68; {piwamoto}{LFNLen,EXTLen:string[3]}
+     cfgColumnsDefaultsArch = 69; {piwamoto}{LFNLen,EXTLen:string[3]}
+     cfgColumnsDefaultsArvd = 70; {piwamoto}{LFNLen,EXTLen:string[3]}
 
      dlAbout = #13#3'Dos Navigator Open Source'#13+
      {$IFDEF LITE}+#3'Light version'+{$ELSE}+#13+{$ENDIF}
      +#13#3'Version %s, %s'+
      +#13#3#0'http://www.dnosp.ru'#0+
-     +#13#3#0'http://dnosp.fatal.ru'#0+
-{     +#13#3#0'http://dn.traktir.ru'#0+}
-     +#13#3#0'http://www.sama.ru/~piwamoto/'#0+
-     +#13#13+
+     +#13#3#0'http://dn.traktir.ru'#0+
+     +#13#3#0'http://dnosp.nm.ru'#0+
+{     +#13#3#0'http://www.sama.ru/~piwamoto/'#0+}
+     +#13{#13}+
      +#13#3'Based on Dos Navigator'+
      +#13#3'Copyright (C) 1991-99 RIT Research Labs'#13#13;
 
@@ -259,6 +270,9 @@ const
      dskViewerBounds = 5;
      dskTempContents = 6;
      dskTempContents2= 7;
+     dskDBFFind      = 8;  {John_SW 13-05-2003}
+     dskWKZFind      = 9;  {John_SW 13-05-2003}
+     dskWKZReplace   = 10; {John_SW 13-05-2003}
 
 constructor TDataSaver.Load;
   var D, L: AWord;
@@ -282,6 +296,13 @@ begin
       dskViewerBounds: S.Read(LastViewerBounds, L);
       dskViewerFind: S.Read(FViewer.SearchString, L);
       dskEditorFind: S.Read(MicroEd.SearchData, L);
+      {$IFDEF DBView}
+      dskDBFFind: S.Read(DBView.SearchData, L);   {John_SW 13-05-2003}
+      {$ENDIF}
+      {$IFDEF SpreadSheet}
+      dskWKZFind: S.Read(Calc.SearchData, L);     {John_SW 13-05-2003}
+      dskWKZReplace: S.Read(Calc.ReplaceData, L); {John_SW 13-05-2003}
+      {$ENDIF}
       dskHideCmdLine: begin
                         S.Read(HideCommandLine, L);
                         if (CommandLine <> nil) and (CommandLine^.GetState(sfVisible) and HideCommandLine) then
@@ -336,6 +357,13 @@ begin
   HideCommandLine := (CommandLine <> nil) and not CommandLine^.GetState(sfVisible);
   StoreBlock(dskViewerFind, FViewer.SearchString, SizeOf(FViewer.SearchString));
   StoreBlock(dskEditorFind, MicroEd.SearchData, SizeOf(MicroEd.SearchData));
+  {$IFDEF DBView}
+  StoreBlock(dskDBFFind, DBView.SearchData, SizeOf(DBView.SearchData));  {John_SW 13-05-2003}
+  {$ENDIF}
+  {$IFDEF SpreadSheet}
+  StoreBlock(dskWKZFind, Calc.SearchData, SizeOf(Calc.SearchData));      {John_SW 13-05-2003}
+  StoreBlock(dskWKZReplace, Calc.ReplaceData, SizeOf(Calc.ReplaceData)); {John_SW 13-05-2003}
+  {$ENDIF}
   StoreBlock(dskViewerBounds, LastViewerBounds, SizeOf(LastViewerBounds)+SizeOf(TPoint)*2);
   StoreBlock(dskHideCmdLine, HideCommandLine, SizeOf(HideCommandLine));
   if (TempFiles <> nil) and (TempFiles^.Count <> 0) then begin
@@ -523,7 +551,7 @@ begin
 end;
 
         {-DataCompBoy-}
-            procedure TDNApplication.LoadDesktop(var S: TStream);
+procedure TDNApplication.LoadDesktop(var S: TStream);
 var
   P: PView;
   PP: PView;
@@ -732,28 +760,14 @@ begin
       Desktop^.Show;
     end;
     LoadDesktop(S^);
-(*    If OldArchiveName<>NewArchiveName then
-     begin
-      lAssignFile(F, OldArchiveName);
-      lRenameFile(F, NewArchiveName);
-      OldArchiveName:=GetPath(OldArchiveName);
-      NewArchiveName:=GetPath(NewArchiveName);
-      RereadDirectory(OldArchiveName);
-      If UpStrg(OldArchiveName)<>UpStrg(OldArchiveName) then
-       RereadDirectory(NewArchiveName);
-      OldArchiveName:='';
-      NewArchiveName:='';
-     end;*)
     DisposeStr(PJ);
     S^.Read(TempBounds, SizeOf(TempBounds));
-    {S^.Read(ArcBounds, SizeOf(TempBounds));}
 {$IFDEF TrashCan}S^.Read(TrashCan^.ImVisible, 1);{$ENDIF}
     KeyMacroses := PCollection(S^.Get);
     S^.Read(R,SizeOf(R));
     if not ShowSeconds then
      if R.A.X>(ScreenWidth shr 1) then Inc(R.A.X,3) else Dec(R.B.X,3);
     Clock^.Locate(R);
-    {S^.Read(ArcFlags, 4);}
     If BB then
        begin
          R.Assign(0, Byte( InterfaceData.Options and ouiHideMenu = 0 ), Size.X, Size.Y
@@ -781,6 +795,14 @@ begin
       Clock^.Locate(R);
     end;
   Dispose(S,Done);
+{--- start -------- Eugeny Zvyagintzev ---- 20-01-2003 ----}
+ If (CfgVer <> 0) And (CfgVer < 30200) And (ShowLongName > 0) Then
+  Begin
+   ManualSave:=True;
+   SaveRealDsk;
+   ManualSave:=False;
+  End;
+{--- finish -------- Eugeny Zvyagintzev ---- 20-01-2003 ----}
   ActivateView(Desktop^.Current);
   GlobalMessage(evCommand, cmRereadForced, nil);
 end;

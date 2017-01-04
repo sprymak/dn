@@ -48,6 +48,10 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn270-search_in_archives.patch
+//  dn3331-Kernel(f)-collections_memory_leak_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -320,12 +324,13 @@ begin
   if (Index >= 0) and (Index < Count) and (Items<>nil) then
   begin
     Dec(Count);
-    if Count > Index then
-     {$IFDEF BIGCOLLECTION}
-     Items^.AtDelete(Index, 1, nil);
-     {$ELSE}
-     Move(Items^[Index+1],Items^[Index], (Count-Index)*Sizeof(Pointer));
-     {$ENDIF}
+    {if Count > Index then}
+{We have to delete last item in BigCollection! John_SW 16-04-2003}
+    {$IFDEF BIGCOLLECTION}
+     if Count >= Index then Items^.AtDelete(Index, 1, nil);
+    {$ELSE}
+    if Count > Index then Move(Items^[Index+1],Items^[Index], (Count-Index)*Sizeof(Pointer));
+    {$ENDIF}
   end else
     Error(coIndexError, Index);
 end;
@@ -580,7 +585,11 @@ begin
 end;
 
 procedure TCollection.DeleteAll;
+var
+  I: LongInt;
 begin
+{We have to delete items! John_SW 16-04-2003}
+  for I:=Count - 1 downto 0 do AtDelete(I);
   if @Self<>nil then Count:=0;
 end;
 
@@ -629,7 +638,9 @@ procedure TCollection.FreeAll;
 var
   I: LongInt;
 begin
-  for I:=Count - 1 downto 0 do FreeItem(At(I));
+{We have to delete items not only free it! John_SW 16-04-2003}
+  {for I:=Count - 1 downto 0 do FreeItem(At(I));}
+  for I:=Count - 1 downto 0 do AtFree(I);
   Count:=0;
 end;
 
@@ -1527,7 +1538,9 @@ function GetPos: longint; begin GetPos:=Posit end;
   begin
    Compare:=0;
    a:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(a);
-   b:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(b);
+{   b:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(b);}
+{changed by piwamoto according to JO's search in archives patch}
+   b:=0; for c:=1 to Length(PString(Key2)^) do if PString(Key2)^[c] in ['/','\'] then inc(b);
    If a>b then Compare:=-1 else Compare:=+1
   end;
         {-DataCompBoy-}

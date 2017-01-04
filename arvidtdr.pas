@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn3331-Arvid_bugfix_and_TDR_detection.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -60,14 +63,14 @@ uses Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
 
 procedure TdrSeekDirectory(AvtDr: PArvidDrive);
 procedure TdrGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;
-                          var FC: PFilesCollection; var ShowD: Boolean;
-                          const FileMask: string);
+                          var FC: PFilesCollection; const FileMask: string);
 procedure TdrEditDescription(AvtDr: PArvidDrive; var S, Nam: String; var PF: PFileRec);
 procedure TdrCalcTotal(AvtDr: PArvidDrive; const Offset: LongInt; var LL: TSize);
 Function  TdrInit(AvtDr: PArvidDrive): boolean;
-{Function  TdrLoad(AvtDr: PArvidDrive; var S: TStream): boolean;}
 
 IMPLEMENTATION
+uses Archiver{TdrInit:_Cardinal}{piwamoto}
+     ;
 
 {$IFDEF OS2}
 FUNCTION  Norm12(const s:string):Str12;
@@ -96,8 +99,8 @@ var
       I,J: LongInt;
       Lv: Integer;
       DD: TTdrDirCell;
-      S: String;
       SS: String[12];
+      S: String;
 begin with AvtDr^ do begin
   Stream^.Status := stOK;
   Stream^.Seek(D.DirTableOfs);
@@ -136,13 +139,11 @@ begin with AvtDr^ do begin
 end end;
 
 procedure TdrGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;
-                          var FC: PFilesCollection; var ShowD: Boolean;
-                          const FileMask: string);
+                          var FC: PFilesCollection; const FileMask: string);
 var
   FF: TTdrFileCell;
   DD: TTdrDirCell;
   I, J, SeekPos: LongInt;
-  AllFiles: boolean;
   F: PFileRec;
 
   procedure AddFile;
@@ -168,22 +169,19 @@ var
     and (AllFiles or (FF.Attr and Directory <> 0) or InFilter(S, FileMask)) then
         begin
           F := NewFileRec(MakeFileName(S), {$IFNDEF OS2}MakeFileName(S),{$ENDIF} FF.Size, FF.Time, FF.Attr, @CurDir);
-          if ShowD then
-          begin
-            New(F^.DIZ);
-            F^.DIZ^.Owner := nil;
-            F^.DIZ^.isDisposable := On;
-            F^.DIZ^.Line := SeekPos;
-            if FF.Description <> 0 then
-              begin
-                 J := Stream^.GetPos;
-                 Stream^.Seek(D.DescTableOfs+FF.Description-1);
-                 Stream^.Read(FreeStr, 2);
-                 Stream^.Read(FreeStr[1], Length(FreeStr));
-                 Stream^.Seek(J);
-                 F^.DIZ^.DIZ := NewStr(FreeStr);
-              end else F^.DIZ^.DIZ := nil;
-          end else F^.Diz := nil;
+          New(F^.DIZ);
+          F^.DIZ^.Owner := nil;
+          F^.DIZ^.isDisposable := On;
+          F^.DIZ^.Line := SeekPos;
+          if FF.Description <> 0 then
+            begin
+              J := Stream^.GetPos;
+              Stream^.Seek(D.DescTableOfs+FF.Description-1);
+              Stream^.Read(FreeStr, 2);
+              Stream^.Read(FreeStr[1], Length(FreeStr));
+              Stream^.Seek(J);
+              F^.DIZ^.DIZ := NewStr(FreeStr);
+            end else F^.DIZ^.DIZ := nil;
 
           if FF.Attr and Directory = 0 then
             begin
@@ -196,7 +194,6 @@ var
   end end;
 
 begin with AvtDr^ do begin
-  AllFiles := (FileMask=x_x) or (FileMask='*');
   Stream^.Seek(CurDirPos);
   repeat
     SeekPos := Stream^.GetPos+2;
@@ -227,9 +224,10 @@ procedure TdrEditDescription;
 var FF: TTdrFileCell;
     I, J: LongInt;
    procedure ExpandStream;
-     var B: Array [1..512] of Byte;
+     var
          I,J: LongInt;
          L: Word;
+         B: Array [1..512] of Byte;
    begin with AvtDr^ do begin
      J:=Stream^.GetSize;
      repeat
@@ -260,24 +258,22 @@ begin with AvtDr^ do begin
         end else
         begin
           Stream^.Seek(D.DescTableOfs+FF.Description-1);
-          Stream^.Write(S[0],1);
-          I:=0;
-          Stream^.Write(I, 1);
-          Stream^.Write(S[1], Length(S));
+          I := Length(S);
+          Stream^.Write(I, 2);
+          Stream^.Write(S[1], I);
         end;
     end else
     begin
       if D.PosTableOfs - D.DescTableOfs - D.DescTableLen < 2 + Length(S)
          then ExpandStream;
-      FF.Description:=D.DescTableLen;
+      FF.Description:=D.DescTableLen+1;{+1 by piwamoto:new desc creation fix}
       Stream^.Seek(PF^.DIZ^.Line);
       Stream^.Write(FF, SizeOf(FF));
       Inc(D.DescTableLen, Length(S)+2);
       Stream^.Seek(D.DescTableOfs+FF.Description-1);
-      Stream^.Write(S[0],1);
-      I:=0;
-      Stream^.Write(I, 1);
-      Stream^.Write(S[1], Length(S));
+      I := Length(S);
+      Stream^.Write(I, 2);
+      Stream^.Write(S[1], I);
     end;
 end end;
 
@@ -315,7 +311,8 @@ begin with AvtDr^ do begin
   FileType := avdTdr;
   Stream^.Seek(0);
   Stream^.Read(D, SizeOf(D));
-  if Stream^.Status <> stOK then exit;
+  if (Stream^.Status <> stOK) or
+     (_Cardinal(D.PosTableOfs) > Stream^.GetSize) then Exit;{piwamoto: reject invalid TDRs}
   TapeFmt:=D.TapeFmt;
   TapeTotalTime:=D.TapeLen;
   PosTableOfs:=D.PosTableOfs;
@@ -325,25 +322,5 @@ begin with AvtDr^ do begin
   TapeRecordedTime:=J*8;
   TdrInit:=True;
 end end;
-
-{
-Function TdrLoad;
-var J: Word;
-begin with AvtDr^ do begin
-  TdrLoad:=false;
-  FileType := avdTdr;
-  Stream^.Seek(0);
-  Stream^.Read(D, SizeOf(D));
-  if Stream^.Status <> stOK then Exit;
-  TapeTotalTime:=D.TapeLen;
-  PosTableOfs:=D.PosTableOfs;
-  Stream^.Seek(D.PosTableOfs);
-  Stream^.Read(J, SizeOf(J));
-  if Stream^.Status <> stOK then Exit;
-  TapeRecordedTime:=J*8;
-  TapeFmt:=D.TapeFmt;
-  TdrLoad:=True;
-end end;
-}
 
 END.

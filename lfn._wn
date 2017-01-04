@@ -48,6 +48,11 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn21225-FileCopy(f)-copy_more_then_2Gb_fix.patch
+//  dn21225-LFN_optimization.patch
+//  dn3323-RewriteFile(f)-rewrite_under_Windows_XP_on_Nowell_drive_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 
@@ -365,6 +370,7 @@ begin
       FileRec(F.F).Mode:=fmInOut;
       FileRec(F.F).Handle := AX;
       FileRec(F.F).RecSize := RecSize;
+      If Action = faRewrite Then Truncate(F.F); {John_SW 25-03-2003: Fix problem under Windows XP}
       InOutRes := 0;
     end;
   end;
@@ -669,14 +675,11 @@ end;
 
 procedure lWIN95GetDir(D: Byte; var Path: String);
 var
-  C: Char;
   Regs: Registers;
   NameZ: TNameZ;
 begin
   with Regs do
   begin
-    C := Char(D + $40);
-
     AX    := $7147;
     DL    := D;
     DS    := Seg(NameZ);
@@ -686,7 +689,86 @@ begin
     Intr($21, Regs);
     if (Flags and fCarry <> 0)  then NameZ[0] := #0;
 
-    Path := Concat(C, ':\', StrPas(NameZ));
+    Path := Char(D + $40) + ':\' + StrPas(NameZ);
   end;
 end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}
+{Int 21/AX=71A6h
+
+Windows95 - LONG FILENAME - GET FILE INFO BY HANDLE
+AX = 71A6h
+BX = file handle
+DS:DX -> buffer for file information
+CF set
+Return:CF clear if successful
+file information record filled
+CF set on error
+AX = error code
+7100h if function not supported}
+
+Function lWIN95FileSize(F: lFile): TSize;
+Var
+  FileInfo: lFileInfoDataRec;
+  R: TSize;
+  Regs: Registers;
+Begin
+ With Regs Do
+  Begin
+   AX:=$71A6;
+   BX:=FileRec(F.F).Handle;
+   DS:=Seg(FileInfo);
+   DX:=Ofs(FileInfo);
+   Flags:=fCarry;
+   Asm Stc End;
+   Intr($21, Regs);
+   If Flags And fCarry <> 0 Then
+    Begin
+     lWIN95FileSize:=0;
+     InOutRes:=AX;
+    End
+   Else
+    Begin
+     R:=0;
+     Move(FileInfo.LoSize,R,SizeOf(FileInfo.LoSize));
+     Move(FileInfo.HiSize,Ptr(Seg(R),Ofs(R)+SizeOf(FileInfo.LoSize)+1)^,SizeOf(FileInfo.HiSize));
+     lWIN95FileSize:=R;
+     InOutRes:=0;
+    End;
+  End;
+End;
+
+Function lWIN95Seek(F: lFile; NewPos: TSize; Direction: Byte): TSize;
+Var
+  R: TSize;
+  W: Record Lo,Hi: Word; End;
+  Regs: Registers;
+Begin
+ Move(NewPos,W,SizeOf(W));
+ With Regs Do
+  Begin
+   AH:=$42;
+   AL:=Direction;
+   BX:=FileRec(F.F).Handle;
+   CX:=W.Hi;
+   DX:=W.Lo;
+   Flags:=fCarry;
+   Asm Stc End;
+   Intr($21, Regs);
+   If Flags And fCarry <> 0 Then
+    Begin
+     lWIN95Seek:=0;
+     InOutRes:=AX;
+    End
+   Else
+    Begin
+     R:=0;
+     W.Lo:=AX;
+     W.Hi:=DX;
+     Move(W,R,SizeOf(W));
+     lWIN95Seek:=R;
+     InOutRes:=0;
+    End;
+  End;
+End;
+{--- finish -------- Eugeny Zvyagintzev ---- 01-02-2003 -----}

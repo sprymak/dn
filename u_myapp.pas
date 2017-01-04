@@ -48,6 +48,9 @@
 //  Version history:
 //
 //  1.6.RC1
+//  dn328-Kernel(f)_sleep_when_Idle_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -202,8 +205,10 @@ begin
 
   if not FullSpeed then TinySlice;
 
-  if StartupData.Slice and osuSleep <> 0 then
-  case LSliceCnt of
+{John_SW 12-02-2003}
+{If we work in Full Speed then we can't sleep!}
+  if (StartupData.Slice and osuSleep <> 0) And (Not FullSpeed) then
+   case LSliceCnt of
 
     -1 : if xTime.TimerExpired(L_Tmr) then SliceAwake else
          begin

@@ -56,6 +56,13 @@
 //  dn2215-windows_manager_changes_2.patch
 //
 //  2.3.0
+//  dn270-add_ACE_volumes_to_archives_group_remove_unsupported_archives.patch
+//  dn2922-show_size_before_name_if_it_longer_250.patch
+//  dn21128-show_LFN_and_desc_in_bottom.patch
+//  dn21202-fpanel(i)-setup_columns_check.patch
+//  dn21225-FilePanel(fi)-lfn_and_description_show_on_divider.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -90,7 +97,7 @@ Type TSignRec = Record
 
 CONST
   FBRPBSignature: Array[1..5] of Char = 'FBRPB';
-  NumSupportedConfigs = 9;
+  NumSupportedConfigs = 10;
   ConfigSigns: Array[1..NumSupportedConfigs] of TSignRec =
    ((Sign:'DN2 Configuration'#26#001#36;SignLen:20;SignVer:00136),
                                                     {Base configuration}
@@ -106,12 +113,15 @@ CONST
                                                     {Configuration for 1.51.05}
     (Sign:'DN OSP Configuration'#26#151#51;SignLen:23;SignVer:15105),
                                                     {Configuration for 1.51.05-2}
-    (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:15106;HavVer:true));
+    (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:15106;HavVer:true),
                                                     {Configuration for 1.51.06+}
+    (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:30200;HavVer:true));
+                                                    {Configuration for 3.00.00}
   DSKSign: TSignRec =
 {$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#200#00;SignLen:22;SignVer:20000);
 {$ELSE}      (Sign:'DN OSP Desktop'#26#200#00;SignLen:17;SignVer:20000);{$ENDIF}
                                                     {Desktop for 2.0.0}
+  CFGVer: AWord = 0; {John_SW 21-01-2003}
   Security: Boolean = True;
   ConfigModified: Boolean = Off;
   DateMode: Byte = 0;
@@ -341,12 +351,13 @@ procedure InitMaskData;
   PanelDefaults: TPanelDefaultsData = (
     Sort:  psmLongExt-1;
     Show:  fmiCurrent +
-           fmiSelected +
+           fmiSelectedInDivider +
            fmiHiliteFiles +
            fmiFree +
            fmiExeFirst +
            fmiArchivesFirst +
-           fmiExeBeforeArc;
+           fmiExeBeforeArc +
+           fmiFullNameInBottom;
     LeftPanel: fdoDriveDrive
   );
 
@@ -441,117 +452,124 @@ procedure InitMaskData;
     )
   );
 
-  ColumnsDefaultsDisk: record
+{ Flash 25-12-2002 >>> }
+type ColumnsDefaultsRec =
+  record
    Params: array [1..10] of
-            record Param: aword; LFNLen: string[2]; EXTLen: string[2]; end;
+            record Param: aword; LFNLen: string[3]; EXTLen: string[3]; end;
    FileCase: aword;
    DirsCase: aword;
-  end = (
+  end;
+{ Flash 25-12-2002 <<< }
+
+const ColumnsDefaultsDisk: ColumnsDefaultsRec = (
     Params: (
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param:63; LFNLen: '18'; EXTLen: '3'),
               (Param: 1; LFNLen: '18'; EXTLen: '4'),
               (Param: 1; LFNLen: '18'; EXTLen: '0'),
               (Param:65; LFNLen: '18'; EXTLen: '4'),
-              (Param:65; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '78'; EXTLen: '0'),
+              (Param: 3; LFNLen:'252'; EXTLen: '0'),
+              (Param:65; LFNLen: '38'; EXTLen: '4'),
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3')
-            );
+{$IFDEF OS2}
+              (Param: 1; LFNLen: '12'; EXTLen: '3'));
+{$ELSE}
+              (Param: 0; LFNLen: '12'; EXTLen: '3'));
+{$ENDIF}
     FileCase:5;
     DirsCase:5
   );
 
-  ColumnsDefaultsFind: record
-   Params: array [1..10] of
-            record Param: aword; LFNLen: string[2]; EXTLen: string[2]; end;
-   FileCase: aword;
-   DirsCase: aword;
-  end = (
+  ColumnsDefaultsFind: ColumnsDefaultsRec = (
     Params: (
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param:31; LFNLen: '18'; EXTLen: '3'),
               (Param: 1; LFNLen: '18'; EXTLen: '4'),
               (Param: 1; LFNLen: '18'; EXTLen: '0'),
               (Param:33; LFNLen: '18'; EXTLen: '4'),
-              (Param:33; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '78'; EXTLen: '0'),
+              (Param: 3; LFNLen:'252'; EXTLen: '0'),
+              (Param:33; LFNLen: '38'; EXTLen: '4'),
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3')
-            );
+{$IFDEF OS2}
+              (Param: 1; LFNLen: '12'; EXTLen: '3'));
+{$ELSE}
+              (Param: 0; LFNLen: '12'; EXTLen: '3'));
+{$ENDIF}
     FileCase:5;
     DirsCase:5
   );
   ColumnsFindLast: byte = 1;
 
-  ColumnsDefaultsTemp: record
-   Params: array [1..10] of
-            record Param: aword; LFNLen: string[2]; EXTLen: string[2]; end;
-   FileCase: aword;
-   DirsCase: aword;
-  end = (
+  ColumnsDefaultsTemp: ColumnsDefaultsRec = (
     Params: (
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param:31; LFNLen: '18'; EXTLen: '3'),
               (Param: 1; LFNLen: '18'; EXTLen: '4'),
               (Param: 1; LFNLen: '18'; EXTLen: '0'),
               (Param:33; LFNLen: '18'; EXTLen: '4'),
-              (Param:33; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '78'; EXTLen: '0'),
+              (Param: 3; LFNLen:'252'; EXTLen: '0'),
+              (Param:33; LFNLen: '38'; EXTLen: '4'),
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3')
-            );
+{$IFDEF OS2}
+              (Param: 1; LFNLen: '12'; EXTLen: '3'));
+{$ELSE}
+              (Param: 0; LFNLen: '12'; EXTLen: '3'));
+{$ENDIF}
     FileCase:5;
     DirsCase:5
   );
   ColumnsTempLast: byte = 1;
 
-  ColumnsDefaultsArch: record
-   Params: array [1..10] of
-            record Param: aword; LFNLen: string[2]; EXTLen: string[2]; end;
-   FileCase: aword;
-   DirsCase: aword;
-  end = (
+  ColumnsDefaultsArch: ColumnsDefaultsRec = (
     Params: (
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param:63; LFNLen: '18'; EXTLen: '3'),
               (Param: 1; LFNLen: '18'; EXTLen: '4'),
               (Param: 1; LFNLen: '18'; EXTLen: '0'),
               (Param:65; LFNLen: '18'; EXTLen: '4'),
-              (Param:65; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '78'; EXTLen: '0'),
+              (Param: 3; LFNLen:'252'; EXTLen: '0'),
+              (Param:33; LFNLen: '38'; EXTLen: '4'),
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3')
-            );
+{$IFDEF OS2}
+              (Param: 1; LFNLen: '12'; EXTLen: '3'));
+{$ELSE}
+              (Param: 0; LFNLen: '12'; EXTLen: '3'));
+{$ENDIF}
     FileCase:5;
     DirsCase:5
   );
 
-  ColumnsDefaultsArvd: record
-   Params: array [1..10] of
-            record Param: aword; LFNLen: string[2]; EXTLen: string[2]; end;
-   FileCase: aword;
-   DirsCase: aword;
-  end = (
+  ColumnsDefaultsArvd: ColumnsDefaultsRec = (
     Params: (
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
               (Param:31; LFNLen: '18'; EXTLen: '3'),
               (Param: 1; LFNLen: '18'; EXTLen: '4'),
               (Param: 1; LFNLen: '18'; EXTLen: '0'),
               (Param:33; LFNLen: '18'; EXTLen: '4'),
-              (Param:33; LFNLen: '78'; EXTLen: '0'),
+              (Param: 1; LFNLen: '78'; EXTLen: '0'),
+              (Param: 3; LFNLen:'252'; EXTLen: '0'),
+              (Param:33; LFNLen: '38'; EXTLen: '4'),
               (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3')
-            );
+{$IFDEF OS2}
+              (Param: 1; LFNLen: '12'; EXTLen: '3'));
+{$ELSE}
+              (Param: 0; LFNLen: '12'; EXTLen: '3'));
+{$ENDIF}
     FileCase:5;
     DirsCase:5
   );
+
+  ColumnsDefaults270: record
+   Params: array [1..10] of
+            record Param: aword; LFNLen: string[2]; EXTLen: string[2]; end;
+   FileCase: aword;
+   DirsCase: aword;
+  end = ();
 
   OldColumnsDefaults: record
     DiskDrive,
@@ -643,15 +661,15 @@ begin
 
  Archives^.Filter    :=
 {archive volumes for ace,ain,arj,rar,zxzip}
-                        'a[0-9][0-9];r[0-9][0-9];$z[0-9];'+
+                        'a[0-9][0-9];r[0-9][0-9];c[0-9][0-9];$z[0-9];'+
 {supported archives in order of appearance}
                         'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
                         'lha;ice;lzh;lim;ark;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
                         'zip;zoo;$z;zxz;'+
 {arvid}
-                        'avt;tdr;'+
+                        'avt;tdr;';
 {unsupported archives}
-                        'j;777;acb;boa;imp';
+{                        'j;777;acb;boa;imp';}
 
 {sources}
  New(CustomMask1);  FillChar(CustomMask1^, SizeOf(CustomMask1^), 0);

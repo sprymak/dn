@@ -51,6 +51,12 @@
 //  dn269-diskinfo.patch
 //
 //  2.7.0
+//  dn270-fake_free_disk_space_for_WinNT.patch
+//  dn270-get_drive_info_fix.patch
+//  dn3315-resource_and_help_fixes.patch
+//  dn368-Memory_for_user_DN_DPMI_fix.patch
+//
+//  3.7.0
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
@@ -167,7 +173,7 @@ uses Startup, ExtraMem, DNApp, Commands, DNHelp, Tree, xTime
      {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
-const MaxTeam = 175;
+const MaxTeam = 176;
 
 const
       Logo1 = '          ,     sSSs     s$$s   ' ;
@@ -247,7 +253,7 @@ begin
   FillChar(R,SizeOf(R),0);
   {$IFDEF DPMI}
   DiskInfo := GetDosMem(SizeOf(DiskInfo^), R.DS);
-  R.DX:=0;
+{  R.DX:=0;}{cleaned by fillchar}
   {$ELSE}
   New(DiskInfo);
   R.DS:=Seg(DiskInfo^);
@@ -255,8 +261,8 @@ begin
   {$ENDIF}
   FillChar(DiskInfo^,SizeOf(DiskInfo^),0);
   R.AH:=$69;
-  R.AL:=$0;
-  R.BX:=$0;
+{  R.AL:=$0;}{cleaned by fillchar}
+{  R.BX:=$0;}{cleaned by fillchar}
   R.Flags:=R.Flags or fCarry;
   {$IFDEF DPMI}SimulateRealModeInt{$ELSE}Intr{$ENDIF}($21,R);
   if R.Flags and fCarry=0 then
@@ -479,7 +485,8 @@ end;
 
 procedure TDiskInfo.ReadData;
  var
-     MemBlocks, I: Word;
+   MemBlocks: Word;
+   BaseAddress: LongInt;
 begin
  Abort:=Off;
  {$IFNDEF OS_DOS}
@@ -487,12 +494,17 @@ begin
  {$ELSE}
  asm
   int $12
-  mov word ptr memBlocks,ax
+  mov word ptr MemBlocks, ax
  end;
- TotalMemory := Longint(LongInt(MemBlocks) shl 10);
+ TotalMemory := LongInt(MemBlocks) shl 10;
  {$ENDIF}
 {$IFNDEF NONBP}
- FreeMemory := TotalMemory-Longint(PrefixSeg) shl 4;
+ {$IFNDEF DPMI}
+ BaseAddress := Longint(PrefixSeg) shl 4;
+ {$ELSE DPMI}
+ GetSegmentBaseAddr(PrefixSeg, BaseAddress);
+ {$ENDIF}
+ FreeMemory := TotalMemory - BaseAddress;
 {$ENDIF}
  DispInfo(Info);
  Message(Owner, evCommand, cmGetDirInfo, @Info);
@@ -787,8 +799,9 @@ var
   Reg: Registers;
 {$ENDIF}
 begin
-  if (Drive[length(Drive)] = '\') and (Drive[length(Drive) - 1] <> ':')
-    then Dec(Drive[0]);
+  if Copy(Drive, 2, 2) = ':\'
+   then Drive[0] := #3 {piwamoto: workaround for int21(ax=7303,'C:\1.2.3') bug}
+   else if Drive[length(Drive)] = '\' then Dec(Drive[0]);
   Drive := Drive + #0;
   FillChar(DriveData, SizeOf(DriveData), 0);
   FillChar(Reg, SizeOf(Reg), 0);
@@ -812,7 +825,8 @@ begin
   Reg.DI := Ofs(DriveData);
   Intr($21, Reg);
 {$ENDIF}
-  if (DriveData.RecSize = 0) and (Copy(Drive, 1, 2) <> '\\') then
+  if (DriveData.RecSize = 0) then
+   if (Copy(Drive, 1, 2) <> '\\') then
     begin
       FillChar(Reg, SizeOf(Reg), 0);
       Reg.AH := $36;
@@ -822,6 +836,17 @@ begin
       DriveData.BytesPerSector := Reg.CX;
       DriveData.AvailClusters := Reg.BX;
       DriveData.TotalClusters := Reg.DX;
+    end
+   else
+    begin
+      {piwamoto}
+      {fake free disk space - workaround for WinNT based OSes}
+      {int21(ax=7303) not supported, int21(ah=36) doesn't work with \\server\share}
+      {2GB should be enough for everyone =)}
+      DriveData.SectorsPerCluster := 64;
+      DriveData.BytesPerSector := 512;
+      DriveData.AvailClusters := 64;
+      DriveData.TotalClusters := 64;
     end;
   BytesPerCluster:=DriveData.SectorsPerCluster;
   BytesPerCluster:=BytesPerCluster*DriveData.BytesPerSector;

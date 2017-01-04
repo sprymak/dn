@@ -36,6 +36,7 @@
   Константин Кузнецов (Dead Ded) <2:5020/549.22; dead at nm.ru>
   Алексей Лузин <Aleksey at iis.nsk.su>
   Майк Лыков <2:5057/44; nelescon at samaramail.ru>
+  Андрей Маршалко (ХимМАГ) <chimmag at command-conquer.ru>
   Илья Марьясов (IVM) <ivm1999 at mail.ru>
   Марчин Мейнарди <mrowa at student.uci.agh.edu.pl>
   Михаил Меркурьев (Mercury) <m_mercuryev at yahoo.com>
@@ -49,6 +50,7 @@
   Владимир Пивен
   Сергей Радкевич <2:5020/3113; SergeyRadkevitch at mtu-net.ru>
   Олег Редут <2:5000/111; ovr at byte.nsk.su>
+  Дмитрий Сержанков (Sclex) <2:450/143.24; sclex at ring.by>
   Павел Сколимовский (PaSkol) <paskol at friko2.onet.pl>
   Денис Смирнов (Necromancer) <denisvs at aol.com>
   Иржи Травничек (JITR) <jitr at jitr.cjb.net>
@@ -60,8 +62,7 @@
   Лев Шумский (WildCat) <2:5042/7.45; Wildcat at tsl.ru>
 
 Локализация для Венгрии:
-  Мезароз Цзаба (Gyor) <csablak at freemail.hu>
-  Ласло Кормоци (KaeL) <kael at swi.hu>
+  MВszаros Csaba (csablak) <csablak at freemail.hu>
 
 Команда Dos Navigator II:
   Стефан Танурков
