@@ -52,7 +52,7 @@ interface
 
 uses
   Files,
-  Views, Defines, Objects2, Streams, Dos, Collect, Drivers, profile, Tree
+  Views, Defines, Objects2, Streams, Collect
   ;
 
 const
@@ -61,20 +61,26 @@ const
 type
   TStr4 = String[4];
   TStr5 = String[5];
+  CompRec = record lo, hi: Longint end;
 
   PArcFile = ^TArcFile;
   TArcFile = record
     FName: PString;
     Select: Boolean;
     Attr: AWord;
-    USize, PSize: TFileSize;
+    USize, PSize: Comp;
+      {AK155: размер в архиве - такой, какой он есть,
+        и он может быть большим, даже если текущая плаформа
+        не поддерживает больших файлов. Поэтому тут надо
+        использовать именно Comp, а не TFileSize }
     Date: LongInt;
     end;
 
   PFInfo = ^TFInfo;
   TFInfo = record
     FName: String; {DataCompBoy}
-    USize, PSize: TFileSize;
+    USize, PSize: Comp;
+      {AK155: см. выше }
     Date: LongInt;
     Attr: Byte;
     Last: Byte;
@@ -197,10 +203,12 @@ const
   sigZXZ {: TStr4} = 'ZXZ:';
   arc7Z  = 25;
   sig7Z  {: TStr4} = '7Z:';
+  arcBZ2 = 26;
+  sigBZ2 {: TStr4} = 'BZ2:';
   {$ENDIF}
   arcUNK = 255; {UNKNOWN Archiver}
 
-  NumSupportedArchs = 26;
+  NumSupportedArchs = 27;
 
   PPacker: PChar = 'Packer';
   PUnPacker: PChar = 'Unpacker';
@@ -262,7 +270,7 @@ procedure SkipSFX;
   Перед вызовом ArcFile^ должен быть уже открыт и позиционирован
   на начало. После вызова позиция в ArcFile^ не определена `}
 function _Cardinal(L: LongInt): Real; {piwamoto}
-function FromOct(S: String): LongInt; {fixed by piwamoto}
+function FromOct(S: String): TFileSize; {fixed by piwamoto}
 function CheckForSpaces(S: String): Boolean; { Flash }
 
 const
@@ -272,14 +280,15 @@ const
 implementation
 
 uses
-  Lfn, Advance, Advance1, Advance2, DNApp, Commands, Advance0,
-  Dialogs, FilesCol, FViewer, Startup, RStrings, {Memory, Messages,}
+  Lfn, Advance, Advance1, Advance2, DNApp, Commands,
+  Dialogs, FilesCol, FViewer, Startup,
   ArcView, FileCopy, HistList, {FStorage,}Menus, ArchDet,
    {UserSavr,}DnIni, Messages,
   {JO}Memory, VideoMan, DnExec {$IFDEF Win32}, VpSysLow {$ENDIF}
   {/JO:  добавил для функции ArcExec}
   , Eraser {JO: для разархивирования через временный подкаталог}
   , UserMenu {JO: для скрывания панелей при разархивировании }
+  , Dos, Drivers, profile, Tree
   ;
 
 { ------------------------------- Collections ----------------------------- }
@@ -743,7 +752,7 @@ procedure TARJArchive.GetFile;
     if i > 0 then
       ArcFile^.Seek(ArcFile^.GetPos+i+4);
   until (i = 0) or (ArcFile^.Status <> stOK);
-  ArcFile^.Seek(ArcFile^.GetPos+FileInfo.PSize);
+  ArcFile^.Seek(CompToFSize(ArcFile^.GetPos+FileInfo.PSize));
   end { TARJArchive.GetFile };
 
 function ArchiveFiles;
@@ -1937,15 +1946,14 @@ function _Cardinal(L: LongInt): Real; {piwamoto}
     _Cardinal := L;
   end; {_Cardinal}
 
-function FromOct(S: String): LongInt; {fixed by piwamoto}
+function FromOct(S: String): TFileSize; {fixed by piwamoto}
   var
-    I, L: LongInt;
+    I: Byte;
   begin
-  L := 0;
+  Result := 0;
   for I := 1 to Length(S) do
     if S[I] in ['0'..'7'] then
-      L := L shl 3+Byte(S[I])-48;
-  FromOct := L;
+      Result := Result * 8+Byte(S[I])-48;
   end;
 
 end.

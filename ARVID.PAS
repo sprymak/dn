@@ -53,7 +53,7 @@ interface
 uses
   Defines, Collect, Objects2, Streams, Dos, Drives, FilesCol, Views,
    DiskInfo, Tree, Histries,
-  Lfn, Files, FindObj
+  Lfn, Files
   ;
 
 type
@@ -243,7 +243,8 @@ uses
   Advance, Advance2, Advance1, FlPanel, Commands, Startup, DNApp,
   Drivers, Messages, Dialogs, Memory, FileFind, DNUtil, FileCopy, U_KeyMap,
   ArvidAvt, ArvidTdr
-  , PDSetup, Advance0
+  , PDSetup, FindObj{ не забыть прибить вместе с Арвидом}
+  , VPUtils
   ;
 
 constructor TArvidDrive.Init;

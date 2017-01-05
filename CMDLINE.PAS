@@ -52,8 +52,7 @@ unit CmdLine;
 interface
 
 uses
-  Lfn, CCalc, XDblWnd, UserMenu, Menus,
-  {$IFDEF TrashCan}Gauges, {$ENDIF}Drivers, Defines, Views
+  Drivers, Defines, Views
   ;
 
 type
@@ -104,11 +103,12 @@ const
 implementation
 uses
   Dos, Commands, DNApp, Dialogs, Advance, Advance1, Advance2,
-  Startup, RStrings, xTime, Messages, DNUtil
+  XDblWnd, {$IFDEF TrashCan}Gauges, {$ENDIF}
+  Startup, xTime, Messages, DNUtil
   , Microed, Histries, FViewer, FlPanelX
   {$IFDEF SS}, Idlers {$ENDIF}
-  , VpSysLow
-  , DnIni
+  , VpSysLow, Lfn, UserMenu, Menus
+  , DnIni, VPUtils
   ;
 
 const

@@ -66,6 +66,7 @@ type
 type
   PHPKRec = ^THPKRec;
   THPKRec = record
+    parentIndex: LongInt;
     PSize, USize: LongInt;
     Date: LongInt;
     Name: PString;

@@ -52,10 +52,8 @@ unit FilesCol;
 interface
 
 uses
-  Lfn, Files,
-  Defines, Objects2, Streams, Memory, Startup,
-  DNHelp, Advance, Advance1, Advance2, Collect, Drivers
-  , Hash
+  Files, Defines, Streams,
+  Collect, Drivers, Hash
   ;
 
 type
@@ -215,14 +213,15 @@ function SameFile(P1, P2: PFileRec): Boolean;
 
 implementation
 uses
-  DNApp, Menus, Views, FlPanelX, FlPanel, Drives,
-  Commands, Messages,
+  Lfn, DNApp, Menus, Views, FlPanelX, FlPanel, Drives,
+  Objects2, Commands, Messages,
   {!!}CmdLine
   {$IFDEF MODEM} {$IFDEF LINK}, NavyLink {$ENDIF} {$ENDIF}
   {$IFDEF NETINFO}, Novell {$ENDIF}
   , VpSysLow, VPUtils
   {$IFDEF PLUGIN}, Plugin {$ENDIF}
   , FlTl, DnIni, Dos, FileType, PDSetup, U_KeyMap
+  , DNHelp, Advance, Advance1, Advance2, Memory, Startup
   ;
 
 const

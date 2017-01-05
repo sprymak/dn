@@ -49,8 +49,7 @@ unit ArchSet;
 
 interface
 uses
-  Archiver, Defines, Advance, Startup, ArchDet, Dialogs, Views, Menus,
-  DNApp, Advance1, Commands, Drivers, profile
+  Archiver
   ;
 
 procedure SetupArchive(ArchCommand: Word);
@@ -59,7 +58,8 @@ procedure UpdateARH(Arch: PARJArchive);
 implementation
 
 uses
-  DnIni
+  Defines, Startup, ArchDet, Dialogs, Views, Menus,
+  DNApp, Advance1, Commands, profile, DnIni
   ;
 
 procedure UpdateARH(Arch: PARJArchive);

@@ -56,7 +56,7 @@ unit Validate;
 interface
 
 uses
-  Defines, Objects2, Streams, Advance, Advance1, Advance2
+  Defines, Objects2, Streams
   ;
 
 const
@@ -132,7 +132,7 @@ type
 implementation
 
 uses
-  RStrings, Commands, DNApp, Messages
+  Commands, DNApp, Messages, Advance1, Advance2
   ;
 
 { TValidator }

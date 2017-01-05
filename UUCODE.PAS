@@ -69,8 +69,7 @@ unit UUCode;
 interface
 
 uses
-  Files,
-  Defines, Tree
+  Defines
   {$IFDEF UUDECODE}
   , Collect
   {$ENDIF}
@@ -89,14 +88,13 @@ procedure UUEncode(const FName: String);
 implementation
 
 uses
-  VPUtils
+  Files, VPUtils, Tree
   , Dos, Lfn {DataCompBoy}
   , Advance, Advance1, Advance2, Views, Startup, Dialogs,
-  xTime, FilesCol, DNApp, Drivers, Gauge, Messages, Commands, RStrings,
+  xTime, FilesCol, DNApp, Drivers, Gauge, Messages, Commands,
   FileCopy, HistList, DNUtil
   , Events
   , use16
-  , Advance0
   ;
 
 function longmul(X, Y: LongInt): LongInt;

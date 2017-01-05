@@ -51,9 +51,8 @@ unit ASCIITab;
 interface
 
 uses
-  Advance, Advance1, Advance2, Defines, Streams, DNApp, Views,
-   Drivers,
-  RStrings
+  Defines, Views, Drivers, Streams
+
   ;
 
 const
@@ -100,7 +99,7 @@ var
 implementation
 
 uses
-  Commands, DNHelp
+  Advance, Advance1, DNApp, Commands, DNHelp
   ;
 
 const

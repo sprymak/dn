@@ -196,11 +196,11 @@ procedure MakeNoSlash(var S: String);
 
 implementation
 uses
-  Drivers, Dos, Lfn,
+  Drivers, Dos, Lfn, VPUtils,
   {$IFNDEF DPMI32}Streams,{$ENDIF}
   Advance1, Strings,
   Commands, DNApp, DnIni, Memory, FlPanelX, dnHelp
-  , VpSysLow, U_KeyMap, Advance0
+  , VpSysLow, U_KeyMap
   ;
 
 var

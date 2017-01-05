@@ -212,8 +212,8 @@ procedure TS7ZArchive.GetFile;
   DT.Min := StoI(Copy(S, 15, 2));
   DT.Sec := StoI(Copy(S, 18, 2));
   PackTime(DT, FileInfo.Date);
-  FileInfo.USize := StoI(fDelLeft(Copy(S, 27, 12)));
-  FileInfo.PSize := StoI(fDelLeft(Copy(S, 40, 12)));
+  FileInfo.USize := Str2Comp(fDelLeft(Copy(S, 27, 12)));
+  FileInfo.PSize := Str2Comp(fDelLeft(Copy(S, 40, 12)));
   if S[21] = 'D' then
     FileInfo.Attr := Directory
   else

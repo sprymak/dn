@@ -51,13 +51,8 @@ unit Filediz;
 interface
 
 uses
-  Files,
-  FilesCol, Startup, Advance1, Advance2, Advance, Defines, Objects2,
-   Lfn, Dos,
-  Messages, DNApp, Commands, Drives
-{$IFDEF DualName}
-  , dnini
-{$ENDIF}
+  FilesCol, Defines, Objects2,
+  Commands
   ;
 
 type
@@ -109,6 +104,14 @@ procedure ReadFileList(ProcessDizName: TDizNameProc;
     ProcessDizLine: TDizLineProc; ProcessDizEnd: TDizEndProc);
 
 implementation
+uses
+  files, Startup, Advance1, Advance2, Advance,
+  Lfn, Dos, Messages, DNApp, Drives
+{$IFDEF DualName}
+  , dnini
+{$ENDIF}
+  ;
+
 var
   NewContainerFile: Text;
   IgnoreDiz: Boolean;

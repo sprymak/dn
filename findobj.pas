@@ -46,12 +46,11 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit FindObj;
-
+{ Используется только для Арвида }
 interface
 
 uses
-  Defines, Objects2, Advance1, Dialogs, Collect, DNApp, Commands, Dos,
-   Startup
+  Defines, Objects2, Dialogs, Collect
   ;
 
 type
@@ -91,6 +90,10 @@ const
   FindList: PCollection = nil;
 
 implementation
+
+uses
+  Advance1, DNApp, Commands, Dos
+  ;
 
 constructor TFindObject.Init;
   begin

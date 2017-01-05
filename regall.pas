@@ -59,7 +59,7 @@ uses
   {$IFNDEF MINARCH}
   arc_ARC, arc_BSA, arc_BS2, arc_HYP, arc_LIM, arc_HPK, arc_TAR,
   arc_ZXZ, arc_QRK, arc_AIN, arc_CHZ, arc_HAP, arc_IS3, arc_SQZ,
-  arc_UC2, arc_UFA, arc_ZOO, arc_TGZ, arc_7Z,
+  arc_UC2, arc_UFA, arc_ZOO, arc_TGZ, arc_7Z,  arc_BZ2,
   {$ENDIF}
   {$IFDEF ARVID}
   Arvid,
@@ -82,6 +82,7 @@ uses
   ColorSel,
   Dialogs, Menus, Streams, ObjType, Scroller, Setups,
   Validate, Views, SWE {$IFDEF UserSaver}, UserSavr {$ENDIF}
+  , EdWin
   ;
 
 const
@@ -276,6 +277,12 @@ RS7ZArchiver : TStreamRec = (
       VmtLink: (TypeOf(arc_7Z.TS7ZArchive));
       Load: @Arc_7Z.TS7ZArchive.Load;
       Store: @Arc_7Z.TS7ZArchive.Store);
+    { Arc_BZ2 }
+RBZ2Archiver : TStreamRec = (
+      ObjType: otBZ2Archiver;
+      VmtLink: (TypeOf(Arc_BZ2.TBZ2Archive));
+      Load: @Arc_BZ2.TBZ2Archive.Load;
+      Store: @Arc_BZ2.TBZ2Archive.Store);
     {$ENDIF MINARCH}
     { Archiver }
 RARJArchiver : TStreamRec = (
@@ -946,9 +953,9 @@ RSaversListBox : TStreamRec = (
     { Startup }
 RTextCollection : TStreamRec = (
       ObjType: otTextCollection;
-      VmtLink: (TypeOf(Startup.TTextCollection));
-      Load: @Startup.TTextCollection.Load;
-      Store: @Startup.TTextCollection.Store);
+      VmtLink: (TypeOf(Startupp.TTextCollection));
+      Load: @Startupp.TTextCollection.Load;
+      Store: @Startupp.TTextCollection.Store);
     { Terminal }
     {$IFDEF Modem}
 RTerminalWindow : TStreamRec = (

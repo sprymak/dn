@@ -800,6 +800,7 @@ dlCE_Filename_Illegal 'Iм''я файла неможливе для диска %c'
 dlCE_ButAbort            '~В~iдмiна'
 dlCE_ButRetry            '~П~овтор'
 dlCE_ButIgnore           '~I~гнор.'
+dlCE_ButStop             '~С~топ'
 
 
 dlTeamHint 'Використовуйте стрiлки вгору та вниз для прокручування списку авторiв'

@@ -13,7 +13,7 @@ interface
 
 uses
   Drives, Objects2, Streams, Collect, Views, FilesCol, Windows, Messages,
-  Advance, Advance1, DiskInfo;
+  Defines, DiskInfo;
 
 type
   PNetResourceArray = ^TNetResourceArray;
@@ -92,8 +92,9 @@ const
 
 implementation
 
-uses Lfn, Drivers, Dos, Strings, Commands, PDSetup, Advance2,
-     DnApp, Dialogs, FlPanelX;
+uses
+  Lfn, Drivers, Dos, Strings, Commands, PDSetup, Advance, Advance2,
+  Advance1, DnApp, Dialogs, FlPanelX;
 
 procedure CopyNetResource(var Source, Dest: TNetResource);
 begin

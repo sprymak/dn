@@ -63,7 +63,7 @@ Echo        Compiling resource files for %Target% %rplugin%
 set RCP_Target=%Target%
 if [%Target%]==[OLF] set RCP_P=O OS2
 if [%Target%]==[WLF] set RCP_P=W Win32
-if [%Target%]==[D32] set RCP_P=W DPMI32
+if [%Target%]==[D32] set RCP_P=D DPMI32
 rem EXE.%Host%\rcp %T% %RCP_P% %rplugin%
 EXE.%Host%\rcp %RCP_P% %rplugin%
 :endres

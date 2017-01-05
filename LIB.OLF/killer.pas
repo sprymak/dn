@@ -14,7 +14,7 @@ const
 implementation
 uses
   Drivers
-  , DnIni, Commands, Startup, DnExec
+  , DnIni, Commands, Startup, DnExec, FileCopy
   ;
 
 {$S-}
@@ -52,6 +52,7 @@ function CtrlRoutine(
           if CtrlBreakKill and not fExec then
             begin
 lCtrlBreak:
+            CloseWriteStream;
             rc := DosUnsetExceptionHandler(P2^);
             if rc = NO_ERROR then
               Halt(-1);

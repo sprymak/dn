@@ -4,7 +4,7 @@ unit Country_;
 
 interface
 uses
-  U_KeyMap;
+  Defines;
 
 procedure QueryUpcaseTable;
 
@@ -17,7 +17,7 @@ function QueryABCSort(CP: Word; var ABCSortXlat: TXLat): Boolean;
 implementation
 
 uses
-  Windows, advance, strings
+  Windows, advance, advance1, strings, U_KeyMap
   ;
 
 { AK155 Чтобы получить таблицу перевода на верхний регистр для кодировки
@@ -72,7 +72,7 @@ procedure GetInfoElement(ElType: LCTYPE);
 
 procedure GetSysCountryInfo;
   begin
-  with advance.CountryInfo do
+  with CountryInfo do
     begin
     GetInfoElement(LOCALE_IDATE );
     DateFmt := byte(ResBuf[0]) - byte('0');

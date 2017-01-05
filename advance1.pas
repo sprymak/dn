@@ -60,8 +60,21 @@ unit Advance1; {String functions}
 interface
 
 uses
-  Defines, Advance, Dos, Lfn, U_KeyMap, Commands {Cat}
+  Defines, Dos {Cat}
   ;
+
+var
+ {Следующие три таблицы используются вместо XlatCP для "перекодировки"
+  Ascii-Ascii (см. первые элементы KeyMapDescr). Поэтому они должны
+  присутствовать все три, и именно в таком порядке. }
+  UpCaseArray: TXlat;
+    {` Перевод на верхний регистр в ASCII`}
+  NullXlatTable: TXlat;
+    {` Тождественная перекодировка `}
+  NullXlatTable1: TXlat;
+
+  LowCaseArray: TXlat;
+    {` Перевод на нижний регистр в ASCII`}
 
 function NewStr(const S: String): PString;
 function NewLongStr(const S: LongString): PLongString;
@@ -96,6 +109,9 @@ procedure DelLeft(var S: String);
 procedure LongDelLeft(var S: LongString);
 function fDelLeft(s: String): String;
 
+function Cut(p: String; len: Integer): String;
+function CutH(p: String; len: Integer): String;
+
 function Strg(C: Char; Num: Byte): String;
   {` Создать строку длиной Num, заполненную символом C `}
 
@@ -107,7 +123,7 @@ function UpCase(c: Char): Char;
 {AK155}
   inline;
   begin
-  UpCase := U_KeyMap.UpCaseArray[C]
+  UpCase := UpCaseArray[C]
   end;
 
 procedure UpStr(var s: String);
@@ -117,7 +133,7 @@ function LowCase(c: Char): Char;
 {AK155}
   inline;
   begin
-  LowCase := U_KeyMap.LowCaseArray[C]
+  LowCase := LowCaseArray[C]
   end;
 procedure LowStr(var s: String);
 function LowStrg(s: String): String;
@@ -149,6 +165,8 @@ function FileSizeStr(X: TSize): String;
 function Hex2(a: Byte): Str2;
 function Hex4(a: Word): Str4;
 function Hex8(a: LongInt): Str8;
+function HexFilePos(C: Comp): String;
+  {`9 hex-цифр`}
 function HexChar(a: Byte): Char;
 function Replace(const Pattern, ReplaceString: String; var S: String)
   : Boolean;
@@ -179,8 +197,11 @@ procedure MakeDateFull(const Day, Month: Word; {-$VOL moidfied}
     const Min: Word;
     var S: String;
     const YFull: Boolean);
-function DumpStr(var B; Addr: LongInt; Count: Integer; Filter: Byte)
-  : String;
+
+function DumpStr
+  {` Сформировать представление Hex+Text c 9-значным
+     адресом слева. Первый Hex-символ -  S[12]`}
+  (var B; Addr: Comp; Count: Integer; Filter: Byte): String;
 
 function MemEqual(var Buf1; var Buf2; Len: Word): Boolean;
 
@@ -244,10 +265,39 @@ procedure CopyShortString(const s1, s2: ShortString);
 function SPos(SubStr, S: String; Start: Integer): Integer;
   {` Аналог Pos, только поиск начинается с S[Start] `}
 
+function MinBufSize(x: TFileSize; y: LongInt): LongInt;
+  {` Меньшее число из размера файла и размера буфера `}
+
+function Positive(x: TFileSize): TFileSize;
+  {` Размер файла, ограниченный снизу нулём `}
+
+function i32(x: TFileSize): LongInt;
+  {` TFileSize -> LongInt `}
+{$ifndef LargeFileSupport}
+  inline;
+  begin
+  Result := x;
+  end;
+{$endif}
+
+function CompToFSize(x: Comp): TFileSize;
+  {` Comp -> TFileSize `}
+
+function FSizeMod(x: TFileSize; y: LongInt): LongInt;
+  {` Остаток от деления x на y `}
+{$ifndef LargeFileSupport}
+  inline;
+  begin
+  Result := x mod y;
+  end;
+{$endif}
+
+function Str2Comp(const s: String): Comp;
+
 implementation
 
 uses
-  DnIni, Startup
+  DnIni, Startup, Commands, Advance, U_KeyMap
   ;
 
 function Dec2(w: Word): Str2;
@@ -286,7 +336,7 @@ asm
         cld
         xor     dx,dx
         mov     edi,[HexLo]
-        lea     ebx,[LoHexChar]
+        lea     ebx,[HexStr]
         mov     dx,[word ptr L+2]
         call    @@OutWord
         mov     dx,[word ptr L+0]
@@ -321,7 +371,7 @@ asm
   var
     i: integer;
   begin { Hex8Lo }
-  for i := 1 to 8 do ChArr(HexLo)[i] := LoHexChar[L shr (32-(i*4)) and $F];
+  for i := 1 to 8 do ChArr(HexLo)[i] := HexStr[L shr (32-(i*4)) and $F];
   end { Hex8Lo };
 {$ENDIF}
 
@@ -735,6 +785,22 @@ procedure CapLongStr(var S: LongString; First, Last: Integer);
     end;
   end;
 
+function Cut;
+  begin
+  (* X-Man *)
+  if len < 0 then
+    len := 0;
+  Cut := FormatLongName(p, len, 0, 0, nfmNull)
+  end;
+
+function CutH;
+  begin
+  (* X-Man *)
+  if len < 0 then
+    len := 0;
+  CutH := FormatLongName(p, len, 0, flnHighlight+flnHandleTildes, nfmNull)
+  end;
+
 function Strg(C: Char; Num: Byte): String;
   begin
   SetLength(Result, Num);
@@ -883,6 +949,13 @@ function Hex8;
   s[0] := #8;
   Hex8Lo(a, s[1]);
   Hex8 := s;
+  end;
+
+function HexFilePos(C: Comp): String;
+  var
+    FilePosRec: record lo32, hi32: Longint end absolute C;
+  begin
+  Result := HexChar($0F and FilePosRec.hi32) + Hex8(FilePosRec.lo32);
   end;
 
 function HexChar(a: Byte): Char;
@@ -1325,162 +1398,6 @@ const
 
 
 function DumpStr;
-  {$IFNDEF NOASM}
-  var
-    S: String;
-  begin
-  DumpStr := '';
-  if Count <= 0 then
-    Exit;
-  SetLength(S, Count*4+12);
-  asm
-  push  edi
-  push  ebx
-  push  esi
-  push  edx
-  push  ecx
-  mov   edi, B
-  lea   ebx, S
-  inc   ebx
-  mov   ecx, Count
-  mov   al, byte ptr Addr+3
-  mov   edx, ecx
-  mov   ah, al
-  mov   ecx, 4
-  shr   al, cl
-  mov   ecx, edx
-  and   ah,0Fh
-  add   al,'0'
-  cmp   al,58
-  jc    @@01
-  add   al,7
-@@01:
-  add   ah,'0'
-  cmp   ah,58
-  jc    @@02
-  add   ah,7
-@@02:
-  mov   [ebx], ax
-  mov   al, byte ptr Addr+2
-  mov   edx, ecx
-  mov   ah, al
-  mov   ecx, 4
-  shr   al, cl
-  mov   ecx, edx
-  and   ah,0Fh
-  add   al,'0'
-  cmp   al,58
-  jc    @@11
-  add   al,7
-@@11:
-  add   ah,'0'
-  cmp   ah,58
-  jc    @@12
-  add   ah,7
-@@12:
-  mov   [ebx+2], eax
-  mov   al, byte ptr Addr+1
-  mov   edx, ecx
-  mov   ah, al
-  mov   ecx, 4
-  shr   al, cl
-  mov   ecx, edx
-  and   ah,0Fh
-  add   al,'0'
-  cmp   al,58
-  jc    @@21
-  add   al,7
-@@21:
-  add   ah,'0'
-  cmp   ah,58
-  jc    @@22
-  add   ah,7
-@@22:
-  mov   [ebx+4], eax
-  mov   al, byte ptr Addr
-  mov   edx, ecx
-  mov   ah, al
-  mov   ecx, 4
-  shr   al, cl
-  mov   ecx, edx
-  and   ah,0Fh
-  add   al,'0'
-  cmp   al,58
-  jc    @@31
-  add   al,7
-@@31:
-  add   ah,'0'
-  cmp   ah,58
-  jc    @@32
-  add   ah,7
-@@32:
-  mov   [ebx+6], ax
-  mov   ax,' :'
-  mov   [ebx+8], ax
-  add   bx, 10
-  mov   esi, ebx
-  add   esi, ecx
-  add   esi, ecx
-  add   esi, ecx
-  mov   ax, 0b320h
-  mov   [esi], ax
-  add   esi, 2
-@@2:
-  mov   al, [edi]
-  mov   dl, al
-
-    cmp  Filter, 0
-    jz   @@@2
-    cmp  dl, 32
-    jnc  @@@4
-@@@5:
-    mov  dl, 250
-    jmp  @@@2
-@@@4:
-    cmp  Filter, 1
-    jnz  @@@2
-    cmp  dl, 128
-    jnc  @@@5
-@@@2:
-
-
-  or    al, al
-  jnz   @@3
-  mov   dl, 0
-@@3:
-  mov   [esi], dl
-  mov   edx, ecx
-  mov   ah, al
-  mov   ecx, 4
-  shr   al, cl
-  mov   ecx, edx
-  and   ah,0Fh
-  add   al,'0'
-  cmp   al,58
-  jc    @@41
-  add   al,7
-@@41:
-  add   ah,'0'
-  cmp   ah,58
-  jc    @@42
-  add   ah,7
-@@42:
-  mov   [ebx], ax
-  mov   al, ' '
-  mov   [ebx+2], al
-  add   ebx, 3
-  inc   esi
-  inc   edi
-  loop  @@2
-  pop   ecx
-  pop   edx
-  pop   esi
-  pop   ebx
-  pop   edi
- end;
-  DumpStr := S;
-  end { DumpStr };
-  {$ELSE}
   var
     S: String;
     i, j, l, l0, l1: Byte;
@@ -1489,24 +1406,11 @@ function DumpStr;
   DumpStr := '';
   if Count <= 0 then
     Exit;
-  j := 1;
+  S := HexFilePos(Addr);
+  j := 10;
   SetLength(S, Count*4+12);
-  for i := 0 to 3 do
-    begin
-    l := Addr shr ((3-i)*8); { call }
-    l0 := (l shr 4)+$30;
-    l1 := (l and $0F)+$30;
-    if l0 > $39 then
-      Inc(l0, 7);
-    if l1 > $39 then
-      Inc(l1, 7);
-    S[j] := Char(l0);
-    Inc(j);
-    S[j] := Char(l1);
-    Inc(j);
-    end;
-  S[9] := ':';
-  S[10] := ' ';
+  S[j] := ':';
+  S[j+1] := ' ';
   Inc(j, 2);
   S[j+Count*3] := Char($B3);
   S[j+1+Count*3] := ' ';
@@ -1520,11 +1424,12 @@ function DumpStr;
     if l1 > $39 then
       Inc(l1, 7);
     if Filter <> 0 then
+      begin
       if l < $20 then
+        l := 250
+      else if (Filter = 1) and (l >= $80) then
         l := 250;
-    if Filter <> 1 then
-      if l > $80 then
-        l := 250;
+      end;
     S[j] := Char(l0);
     Inc(j);
     S[j] := Char(l1);
@@ -1535,7 +1440,6 @@ function DumpStr;
     end;
   DumpStr := S;
   end { DumpStr };
-{$ENDIF}
 
 {AK155: Выкинул ту муть, что здесь была, и заменил на
 нормальнй BM-поиск, сделанный на основе программы
@@ -2097,6 +2001,50 @@ asm
   xor eax,eax
 @@1:
 end;
+
+function MinBufSize(x: TFileSize; y: LongInt): LongInt;
+  begin
+  Result := y;
+  if Result > x then
+    Result := i32(x);
+  end;
+
+function Positive(x: TFileSize): TFileSize;
+  begin
+  Result := 0;
+  if x > 0 then
+    Result := x;
+  end;
+
+{$ifdef LargeFileSupport}
+function i32(x: TFileSize): LongInt;
+  begin
+  Result := Round(x);
+  end;
+
+function FSizeMod(x: TFileSize; y: LongInt): LongInt;
+  var
+    z: Comp;
+  begin
+  z := x / y;
+  Result := Round(x - z*y);
+  if Result < 0 then
+    Result := Result + y;
+  end;
+{$endif}
+
+function CompToFSize(x: Comp): TFileSize;
+  begin
+  Result := {$ifndef LargeFileSupport} Round {$endif} (x);
+  end;
+
+function Str2Comp(const s: String): Comp;
+  var
+    j: Integer;
+  begin
+  Val(s, result, j);
+  end;
+
 
 {/AK155}
 

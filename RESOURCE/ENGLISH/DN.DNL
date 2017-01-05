@@ -857,6 +857,7 @@ dlCE_Filename_Illegal 'File name is illegal for drive %c'
 dlCE_ButAbort            '~A~bort'
 dlCE_ButRetry            '~R~etry'
 dlCE_ButIgnore           '~I~gnore'
+dlCE_ButStop             '~S~top'
 
 
 

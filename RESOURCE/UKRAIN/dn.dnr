@@ -331,7 +331,7 @@ END
 
 DIALOG dlgGotoAddress, 34, 7, 'Пеpехiд на адpесу'
     HELPCTX hcGotoAddress
-    InputLine 12, 2, 28, 3, 8, hsdbSearch
+    InputLine 12, 2, 28, 3, 9, hsdbSearch
     Label 3, 2, '~А~дpеса', ofPostProcess, ofPreProcess
     Button 2, 4, 10, 6, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 10, 4, 21, 6, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
@@ -414,6 +414,7 @@ DIALOG dlgArchiveFiles, 68, 21, 'Архiвування файлiв'
       ITEM 'Z~O~O'
       ITEM 'Z~X~Z'
       ITEM '~7~Z'
+      ITEM 'BZ2'
     END
     Label 3, 7, 'Тип архiву', ofPostProcess, ofPreProcess
     RadioButtons 32, 13, 65, 16, ofPostProcess, ofPreProcess
@@ -1164,47 +1165,19 @@ DIALOG dlgRenFl, 70, 7, 'Швидке пеpейменування'
     Button 56, 4, 68, 6, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgRenameDialog, 78, 13, 'Перейменування/перемiщення'
+DIALOG dlgCopyDialog, 78, 15, 'Копiювання'
     HELPCTX hcCopyDialog
 #1  InputLine 2, 2, 74, 3, 255, hsFileCopyName
-    RadioButtons 2, 4, 44, 9, ofPostProcess, ofPreProcess
-      ITEM 'Переписати всi i~с~нуючi файли'
-      ITEM 'Додавати до ~в~сiх iснуючих файлiв'
-      ITEM 'Пiд~т~вердити запис'
-      ITEM 'П~р~опустити всi iснуючi файли'
-      ITEM 'Обновити старi ~ф~айли'
+    RadioButtons 2, 5, 44, 11, ofPostProcess, ofPreProcess
+      ITEM 'Переписувати'
+      ITEM 'Додавати'
+      ITEM 'Продовжувати'
+      ITEM 'П~р~опустити'
+      ITEM 'Обновити'
+      ITEM 'Запитати дiю'
     END
-#2  CheckBoxes 45, 4, 76, 9, ofPostProcess, ofPreProcess
-      ITEM 'Перевiряти ~м~iсце на диску'
-      ITEM 'Перевiряти ~з~апис на диск'
-      ITEM 'Копiювати ~о~писи'
-;$IFDEF EAOP
-;$IFDEF OS2
-      ITEM 'Перейм. в ~л~огiчнi iмена'
-;$ENDIF
-;$IFDEF WIN32
-      ITEM 'Копiювати права ~д~оступу'
-;$ENDIF
-;$ENDIF
-      ITEM '~В~идаляти початковi файли'
-    END
-    Button 8, 10, 20, 12, 'ОК', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 20, 10, 32, 12, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-    Button 32, 10, 44, 12, 'Дерево', cmTree, ofPostProcess, ofPreProcess
-    Button 44, 10, 56, 12, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
-END
-
-DIALOG dlgCopyDialog, 78, 13, 'Копiювання'
-    HELPCTX hcCopyDialog
-#1  InputLine 2, 2, 74, 3, 255, hsFileCopyName
-    RadioButtons 2, 4, 44, 9, ofPostProcess, ofPreProcess
-      ITEM 'Переписати всi i~с~нуючi файли'
-      ITEM 'Додавати до ~в~сiх iснуючих файлiв'
-      ITEM 'Пiд~т~вердити запис'
-      ITEM 'П~р~опустити всi iснуючi файли'
-      ITEM 'Обновити старi ~ф~айли'
-    END
-#2  CheckBoxes 45, 4, 76, 9, ofPostProcess, ofPreProcess
+    Label 2,4, 'Файли з однаковыми iменами:'
+#2  CheckBoxes 45, 5, 76, 10, ofPostProcess, ofPreProcess
       ITEM 'Перевiряти ~м~iсце на диску'
       ITEM 'Перевiряти ~з~апис на диск'
       ITEM 'Копiювати ~о~писи'
@@ -1218,10 +1191,10 @@ DIALOG dlgCopyDialog, 78, 13, 'Копiювання'
 ;$ENDIF
       ITEM 'В~и~даляти початковi файли'
     END
-    Button 8, 10, 20, 12, 'ОК', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 20, 10, 32, 12, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-    Button 32, 10, 44, 12, 'Дерево', cmTree, ofPostProcess, ofPreProcess
-    Button 44, 10, 56, 12, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
+    Button 8, 12, 20, 14, 'ОК', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 20, 12, 32, 14, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 32, 12, 44, 14, 'Дерево', cmTree, ofPostProcess, ofPreProcess
+    Button 44, 12, 56, 14, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgMakeList, 69, 20, 'Створити список файлiв'
@@ -2789,8 +2762,8 @@ MENU dlgMainMenu
       MenuItem 'IS~3~ - InstallShield 3.00.xxx',                        '', kbNoKey, cmConfigIS3, hcArchives,
       MenuItem '~L~HA - LHArc (C) Haruyasu Yoshizaki',                  '', kbNoKey, cmConfigLHA, hcArchives,
       MenuItem 'L~I~M - Limit (C) J Y Lim',                             '', kbNoKey, cmConfigLIM, hcArchives,
-      MenuItem 'QUARK - QUARK (C) Kunz Robert',                         '', kbNoKey, cmConfigQUARK, hcArchives,
-      MenuItem '~R~AR - RAR (C) E. Roshal',                             '', kbNoKey, cmConfigRAR, hcArchives,
+      MenuItem 'QRK   - QUARK (C) Kunz Robert',                         '', kbNoKey, cmConfigQUARK, hcArchives,
+      MenuItem '~R~AR - RAR (C) A. Roshal',                             '', kbNoKey, cmConfigRAR, hcArchives,
       MenuItem '~S~QZ - SQZ (C) J.I.Hammarberg',                        '', kbNoKey, cmConfigSQZ, hcArchives,
       MenuItem '~T~AR - Tape ARchiver для *NIX',                        '', kbNoKey, cmConfigTAR, hcArchives,
       MenuItem '~G~Z  - Компресор GZip',                                '', kbNoKey, cmConfigTGZ, hcArchives,
@@ -2799,7 +2772,8 @@ MENU dlgMainMenu
       MenuItem '~Z~IP - PKZIP (C) PKWARE Inc.',                         '', kbNoKey, cmConfigZIP, hcArchives,
       MenuItem 'ZO~O~ - Zoo (C) Rahul Dhesi',                           '', kbNoKey, cmConfigZOO, hcArchives,
       MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev',                  '', kbNoKey, cmConfigZXZ, hcArchives,
-      MenuItem '~7~Z - 7-Zip (C) Igor Pavlov',                          '', kbNoKey, cmConfig7Z,  hcArchives,
+      MenuItem '~7~Z  - 7-Zip (C) Igor Pavlov',                         '', kbNoKey, cmConfig7Z,  hcArchives,
+      MenuItem 'BZ2 - BZip2 (C) Julian Seward',                         '', kbNoKey, cmConfigBZ2, hcArchives,
      END
     MenuLine
     MenuItem 'Файл швидкого запуску...', ' ', kbNoKey, cmEditQuickRun, hcOptionsMenu,
@@ -3099,16 +3073,28 @@ DIALOG dlgUUEncode, 60, 17, 'UU-кодування'
     Button 43, 14, 55, 16, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgOverwriteQuery, 60, 13, 'Попеpедження'
+DIALOG dlgOverwriteQuery, 73, 13, 'Попеpедження'
     HELPCTX hcOverwriteQuery
-    CheckBoxes 3, 8, 58, 9, ofPostProcess
+    CheckBoxes 3, 8, 70, 9, ofPostProcess
       ITEM 'Пpийняти ~в~ибip для ~в~сiх файлiв'
     END
     Button  3, 10, 13, 12, ~П~оверх, cmYes, bfDefault, ofPostProcess
     Button 13, 10, 25, 12, ~Д~одати, cmNo, bfNormal, ofPostProcess
-    Button 25, 10, 32, 12, ~I~м''я, cmOK, bfNormal, ofPostProcess
-    Button 32, 10, 46, 12, П~р~опустити, cmSkip, bfNormal, ofPostProcess
-    Button 46, 10, 58, 12, Вiдмiна, cmCancel, bfNormal, ofPostProcess
+    Button 25, 10, 39, 12, Продовжити, cmSave, bfNormal, ofPostProcess
+    Button 39, 10, 47, 12, ~I~м''я, cmOK, bfNormal, ofPostProcess
+    Button 47, 10, 61, 12, П~р~опустити, cmSkip, bfNormal, ofPostProcess
+    Button 61, 10, 72, 12, Вiдмiна, cmCancel, bfNormal, ofPostProcess
+END
+
+DIALOG dlgQueryAbort, 40, 10, 'Пiдтвердження'
+    HELPCTX hcQueryAbort
+    StaticText 8, 2, 38, 3, 'Перервати операцiю?'
+    CheckBoxes 3, 6, 38, 8, ofPostProcess
+      ITEM 'Записати прочитане'
+      ITEM 'Зберiгти недописаний файл'
+    END
+    Button  6, 4, 16, 6, Да, cmYes, bfDefault, ofPostProcess
+    Button 24, 4, 34, 6, Нет, cmNo, bfNormal, ofPostProcess
 END
 
 DIALOG dlgAppendQuery, 60, 13, 'Вибiр'

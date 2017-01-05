@@ -51,7 +51,7 @@ unit U_KeyMap;
 interface
 
 uses
-  Objects2, Defines
+  Objects2, Defines, Advance1
   ;
 
 type
@@ -82,11 +82,6 @@ type
     end;
   {(c) SeYKo}
 
-  PXLat = ^TXlat;
-  TXlat = array[Char] of Char;
-    {`Таблица перекодировки. Символ в исходной кодировке - индекс,
-     соответствующий элемент - символ в новой кодировке `}
-
 const
   ToUpAscii = 0;
     {` Индекс для TXLatCP - перекодировка в ASCII c
@@ -112,8 +107,6 @@ type
     {`}
 
 var
-  LowCaseArray: TXlat;
-    {` Перевод на нижний регистр в ASCII`}
   ToggleCaseArray: TXlat;
     {` Переворот регистра в ASCII, типа "cAPS lOCK" <-> "Caps Lock"`}
   LayoutConvXlat: TXLat;
@@ -125,15 +118,6 @@ var
 
   ABCSortXlat: TXLat;
     {' Таблица весов для алфавитной сортировки; без одинаковых весов '}
-
- {Следующие три таблицы используются вместо XlatCP для "перекодировки"
-  Ascii-Ascii (см. первые элементы KeyMapDescr). Поэтому они должны
-  присутствовать все три, и именно в таком порядке. }
-  UpCaseArray: TXlat;
-    {` Перевод на верхний регистр в ASCII`}
-  NullXlatTable: TXlat;
-    {` Тождественная перекодировка `}
-  NullXlatTable1: TXlat;
 
   DosXlatCP: TXLatCP absolute UpCaseArray;
   WinXlatCP: TXLatCP;
@@ -226,7 +210,7 @@ function CharToOemStr(const CharS: String): String;
 
 implementation
   uses
-    Country_, advance, advance1, Streams, Advance0;
+    Country_, advance, Streams;
 
 procedure XLatBuf(var B; Len: Integer; const XTable: TXLat);
   assembler;

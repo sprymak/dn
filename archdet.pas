@@ -50,13 +50,7 @@ unit ArchDet;
 interface
 
 uses
-  Archiver, arc_Zip, arc_LHA, arc_RAR, arc_ACE, arc_HA, arc_CAB,
-  {$IFNDEF MINARCH}
-  arc_ARC, arc_BSA, arc_BS2, arc_HYP, arc_LIM, arc_HPK, arc_TAR, arc_TGZ,
-  arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
-  arc_UC2, arc_AIN, arc_7Z,
-  {$ENDIF}
-  profile, Defines, Streams, Advance, Advance1, Advance2
+  Archiver
   ;
 
 function DetectArchive: PARJArchive;
@@ -66,28 +60,40 @@ function GetArchiveByTag(ID: Byte): PARJArchive;
 implementation
 
 uses
+  arc_Zip, arc_LHA, arc_RAR, arc_ACE, arc_HA, arc_CAB,
+  {$IFNDEF MINARCH}
+  arc_ARC, arc_BSA, arc_BS2, arc_HYP, arc_LIM, arc_HPK, arc_TAR, arc_TGZ,
+  arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
+  arc_UC2, arc_AIN, arc_7Z,  arc_BZ2,
+  {$ENDIF}
+  profile, Defines, Streams, Advance1, Advance2,
   {$IFDEF PLUGIN}Plugin, {$ENDIF}Messages,
-  FViewer, U_KeyMap, DNApp, Commands
-  ; {JO}
-
+  FViewer, U_KeyMap, Commands
+  ;
 function ZIPDetect: Boolean;
   var
     ID: LongInt;
     FP: TFileSize;
+    FilePos64: Comp;
+    FirstTime: Boolean;
+  label 1;
   begin
+  FirstTime := True;
   ZIPDetect := False;
   CentralDirRecPresent := False;
   ArcFile^.Read(ID, SizeOf(ID));
   {somewhat lame code: check for span archive}
   {todo: look VC 4.99a8}
   ArcFile^.Seek(ArcFile^.GetSize-22);
-  ArcFile^.Read(FP, SizeOf(FP));
+  FP := 0;
+  ArcFile^.Read(FP, 4);
   if  (ID = $04034b50) or ((FP = $06054b50) and (ArcFile^.GetPos > 4))
   then
     begin
     if ID = $04034b50 then
       ZIPDetect := True;
     FP := ArcFile^.GetPos;
+1:
     repeat
       FP := SearchFileStr(@ArcFile^, NullXlatTable, 'PK', FP, False
           {piwamoto:we need it OFF}, True, False, True, False, False);
@@ -96,16 +102,35 @@ function ZIPDetect: Boolean;
     until (FP < 0) or
       (ArcFile^.GetSize-FP > $10016) or
     {bug: it wouldn't work with files without 'pk' string}
-      (ID = $02014B50) or
-      (ID = $04034B50) or
-      (ID = $06054B50) or
-      (ID = $06064B50) or
+      (ID = $02014B50) or {central file header signature}
+      (ID = $04034B50) or {local file header signature}
+      (ID = $06054B50) or {end of central dir signature}
+      (ID = $06064B50) or {zip64 end of central dir signature}
+      (ID = $07064b50) or {zip64 end of central directory locator}
       (ArcFile^.Status <> stOK);
+    if ID = $07064b50 then
+      begin {read pointer to 06064B50}
+        ArcFile^.Seek(FP + 8);
+        ArcFile^.Read(FilePos64, 8);
+        FP := CompToFSize(FilePos64);
+        ArcFile^.Seek(FP);
+        ArcFile^.Read(ID, SizeOf(ID));
+      end;
     if  (ID = $06054B50) or (ID = $06064B50) then
       begin {central directory found}
       ArcFile^.Seek(FP+16+32*Byte(ID = $06064B50));
       {offset of start of central directory}
-      ArcFile^.Read(FP, 4);
+      FilePos64 := 0;
+      ArcFile^.Read(FilePos64, 4 + 4*Byte(ID = $06064B50));
+      if FirstTime and
+         (ID = $06054B50) and
+         (CompRec(FilePos64).Lo = $FFFFFFFF) then
+        begin {search again for 06064B50 or 07064b50 in zip64 archive}
+          FirstTime := False;
+          FP := CompToFSize(ArcFile^.GetPos - 21);
+          goto 1;
+        end;
+      FP := CompToFSize(FilePos64);
       ArcFile^.Seek(FP);
       ArcFile^.Read(ID, SizeOf(ID));
       if ID = $02014B50 then
@@ -342,13 +367,17 @@ function LIMDetect: Boolean;
 
 function HPKDetect: Boolean;
   var
+    B: Byte;
     C: Char;
-    I: LongInt;
-    W, J: AWord;
+    I, DirDataLen: LongInt;
+    W: AWord;
     P: record
-      NumFiles, Margin: LongInt;
-      I, n, F: Byte;
-      S: array[1..4] of Char;
+      noDirHdrs: AWord;
+      noFileHdrs: AWord;
+      dirInfoSize: LongInt;
+      checksum: AWord;
+      specialInfo: Byte;
+      archiveID: LongInt;
       end;
     R: PHPKRec;
     S: String;
@@ -375,28 +404,66 @@ function HPKDetect: Boolean;
   if  (ArcFile^.Status = stOK) and (I = $4B415048 {'HPAK'})
   then
     begin
-    ArcFile^.Seek(ArcFile^.GetSize-SizeOf(P));
-    P.NumFiles := GetLong(True);
-    P.Margin := GetLong(True);
-    ArcFile^.Read(P.I, 7);
-    if P.S = 'HPAK' then
+    ArcFile^.Seek(ArcFile^.GetSize-7);
+    W := GetLong(False);{Authentication info.length if specialInfo=secured}
+    ArcFile^.Read(P.specialInfo, 5);
+    if P.archiveID = $4B415048 {'HPAK'} then
       begin
-      ArcFile^.Seek(ArcFile^.GetSize-SizeOf(P)-P.Margin);
+      if (P.specialInfo and 4) = 0
+        then W := 0{Authentication not present}
+        else W := W + 2;{2=size of W}
+      ArcFile^.Seek(ArcFile^.GetSize-SizeOf(P)-W);
+      P.noDirHdrs := GetLong(False);
+      P.noFileHdrs := GetLong(False);
+      P.dirInfoSize := GetLong(True);
+      ArcFile^.Seek(ArcFile^.GetPos-P.dirInfoSize-8{SizeOf(^^^)});
       HPKDetect := True;
-      New(HPKCol, Init(P.NumFiles, 10));
-      for I := 1 to P.NumFiles do
+      New(HPKCol, Init(P.noFileHdrs+P.noDirHdrs, 10));
+      for I := 1 to P.noDirHdrs do
         begin
         New(R);
         R^.Name := nil;
-        ArcFile^.Read(W, 2);
-        if W and $10 <> 0 then
-          ArcFile^.Read(J, 2);
+        ArcFile^.Read(B, 1);
+        Case (B and $C0) of
+          $00: begin
+               R^.parentIndex := 0;
+{               DirDataLen := 0;}
+               end;
+          $40: begin
+               ArcFile^.Read(B, 1);
+               R^.parentIndex := B;
+               ArcFile^.Read(B, 1);
+{               DirDataLen := B;}
+               end;
+          $80: begin
+               ArcFile^.Read(B, 1);
+               R^.parentIndex := B;
+               DirDataLen := GetLong(False);
+               end;
+          $C0: begin
+               R^.parentIndex := GetLong(False);
+               DirDataLen := GetLong(True);
+               end;
+        end;
         R^.Date := GetLong(True);
-        R^.USize := GetLong(W and $0080 <> 0);
-        R^.PSize := GetLong(W and $0040 <> 0);
+        R^.USize := 0;
+        R^.PSize := 0;
         HPKCol^.Insert(R);
         end;
-      for I := 0 to P.NumFiles-1 do
+      for I := 1 to P.noFileHdrs do
+        begin
+        New(R);
+        R^.Name := nil;
+        W := GetLong(False);
+        if W and $1000 <> 0
+          then R^.parentIndex := GetLong(False)
+          else R^.parentIndex := 0;
+        R^.Date := GetLong(True);
+        R^.USize := GetLong(W and $8000 <> 0);
+        R^.PSize := GetLong(W and $4000 <> 0);
+        HPKCol^.Insert(R);
+        end;
+      for I := 0 to P.noDirHdrs + P.noFileHdrs-1 do
         begin
         S := '';
         repeat
@@ -404,6 +471,8 @@ function HPKDetect: Boolean;
           if C <> #0 then
             S := S+C
         until C = #0;
+        if I < P.noDirHdrs
+          then S := S +'\';
         PHPKRec(HPKCol^.At(I))^.Name := NewStr(S);
         end;
       Exit;
@@ -423,7 +492,7 @@ function TARDetect: Boolean;
   if ArcFile^.GetSize < SizeOf(P) then
     Exit;
   ArcFile^.Read(P, SizeOf(P));
-  SumTar := FromOct(P.chksum);
+  SumTar := i32(FromOct(P.chksum));
   P.chksum := '        '; {8 spaces}
   SumCalc := 0;
   for i := 0 to BlkSize-1 do
@@ -614,6 +683,19 @@ Function S7ZDetect: Boolean;
     then S7ZDetect := True
     else ArcFile^.Seek(ArcPos);
   end;
+
+Function BZ2Detect: Boolean;
+  var
+    ID, PInumber: LongInt;
+  begin
+  BZ2Detect := False;
+  ArcFile^.Read(ID, SizeOf(ID));
+  ArcFile^.Read(PInumber, SizeOf(PInumber));
+  ID := ID and $F0FFFFFF;
+  if (ID = $30685a42) and (PInumber = $26594131)
+    then BZ2Detect := True;
+  ArcFile^.Seek(ArcPos);
+  end;
 {$ENDIF}
 
 function DetectArchive;
@@ -672,6 +754,8 @@ function DetectArchive;
     DetectArchive := New(PIS3Archive, Init)
   else if S7ZDetect then
     DetectArchive := New(PS7ZArchive, Init)
+  else if BZ2Detect then
+    DetectArchive := New(PBZ2Archive, Init)
   else
     {$ENDIF}
     {$IFDEF PLUGIN}
@@ -738,6 +822,8 @@ function GetArchiveTagBySign;
     GetArchiveTagBySign := arcIS3
   else if sign = sig7Z  then
     GetArchiveTagBySign := arc7Z
+  else if sign = sigBZ2 then
+    GetArchiveTagBySign := arcBZ2
   else
     {$ENDIF}
     {$IFDEF PLUGIN}
@@ -803,6 +889,8 @@ function GetArchiveByTag;
     GetArchiveByTag := New(PIS3Archive, Init)
   else if ID = arc7Z  then
     GetArchiveByTag := New(PS7ZArchive, Init)
+  else if ID = arcBZ2 then
+    GetArchiveByTag := New(PBZ2Archive, Init)
   else
     {$ENDIF}
     {$IFDEF PLUGIN}

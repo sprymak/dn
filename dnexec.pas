@@ -50,9 +50,7 @@ unit DnExec;
 interface
 
 uses
-  Files,
-  UserMenu, Startup, Defines, FilesCol, Commands, TitleSet
-  {$IFDEF OS2}, Dn2PmApi {$ENDIF} {AK155 для перерисовки иконки}
+  Defines, FilesCol, Commands
   ;
 
 procedure ExecString(const S: AnsiString; const WS: String);
@@ -89,7 +87,8 @@ uses
   {$IFDEF UserSaver}
   UserSavr,
   {$ENDIF}
-  Messages, Strings, filetype, lfnvp
+  Startup, UserMenu, Messages, Strings, filetype, lfnvp, TitleSet
+  {$IFDEF OS2}, Dn2PmApi {$ENDIF} {AK155 для перерисовки иконки}
   ;
 
 {JO}

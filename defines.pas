@@ -95,6 +95,13 @@ type
     function Empty: Boolean;
     end;
 
+  TSize = Comp; {64 bit integer type for file sizes}
+
+  PXLat = ^TXlat;
+  TXlat = array[Char] of Char;
+    {`Таблица перекодировки. Символ в исходной кодировке - индекс,
+     соответствующий элемент - символ в новой кодировке `}
+
 procedure Beep(Freq, Dur: LongInt);
   inline;
   begin

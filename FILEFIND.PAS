@@ -52,10 +52,8 @@ unit FileFind;
 interface
 
 uses
-  Defines, Objects2, Streams, Views, Dialogs, Drivers, Menus, FileCopy,
-   FilesCol, Eraser,
-  Drives, Dos, Gauge, DiskInfo, {FStorage,}Files, DnIni,
-  Collect, Advance
+  Defines, Objects2, Streams, Views, Dialogs, Drivers,
+  FilesCol, Drives, Gauge, DiskInfo, Collect
   ;
 
 type
@@ -222,16 +220,16 @@ var
 
 implementation
 uses
-  Lfn {DataCompBoy}, DNApp, Advance1, Advance2, Startup,
-  Memory, Messages, HistList, Commands, RStrings, FlPanelX, FlPanel
+  Lfn {DataCompBoy}, DNApp, Advance1, Advance2, Startup, Dos,
+  Memory, Messages, HistList, Commands, FlPanelX, FlPanel
   , FViewer, Microed,
   Tree, xTime, DNUtil, U_KeyMap, {!!}CmdLine, Histries,
   Archiver, ArchDet {JO},
   ArcView {JO: для разархивирования файлов найденных в архивах}
   , Events {AK155 для LongWorkBegin - LongWorkEnd}
   , FlTl {JO: для GetDriveTypeNew}
-  , filetype
-  , PDSetup
+  , filetype, Eraser, Advance, Files, DnIni, Menus, FileCopy
+  , PDSetup, VPUtils
   ;
 
 const

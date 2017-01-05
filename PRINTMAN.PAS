@@ -52,9 +52,8 @@ interface
 
 {$IFDEF PrintManager}
 uses
-  Lfn, {DataCompBoy}
-  Objects2, Streams, Defines, Views, Drivers, DNApp, Advance, Advance1,
-  Advance2, Dialogs, Dos, Messages, Commands, Collect
+  Streams, Defines, Views, Drivers,
+  Dialogs, Commands, Collect
   ;
 
 type
@@ -119,9 +118,10 @@ implementation
 
 {$IFDEF PrintManager}
 uses
-  RStrings, Startup, DNHelp
+  Startup, DNHelp, DNApp, Messages
+  , Advance, Advance1, Advance2
   , VpSysLow {для Open_Access_ReadOnly}
-  , Advance0
+  {$IFDEF DPMI32}, LfnVP {$ENDIF}
   ;
 
 procedure TStringCol.FreeItem;

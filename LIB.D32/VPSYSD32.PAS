@@ -5018,10 +5018,9 @@ procedure SysLowInitPostTLS;assembler;
     {$EndIf PE2LE_P2}
   end; (* SysLowInitPostTLS *)
 
-// Заглушка
 function PhysMemAvail: Longint;
   begin
-  result := 0;
+  Result := SysMemAvail;
   end;
 
 procedure SysLowInit;

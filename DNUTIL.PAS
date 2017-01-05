@@ -57,38 +57,12 @@ interface
 
 uses
   Defines, Objects2,
-  Dos, Lfn, {SBlocks,}Drivers, Streams, UniWin,
-  Views, Histries, Scroller, DNApp, Menus, FlPanel, FileCopy, Eraser,
-   DiskInfo,
-  {$IFDEF NETINFO}NetInfo, {$ENDIF}
-  Advance, Advance1, Advance2, Advance3, Advance4, Advance7,
-  Startup, Dialogs, Gauges, Memory, DblWnd, Messages, HistList, FileFind,
-  Commands, Tree, FViewer, CmdLine, FBB, DNStdDlg,
-  FilesCol, UserMenu, RStrings, Colors, Microed, ed2, Editor, EdWin,
-  {$IFDEF Calendar}Calendar, {$ENDIF} {JO}
-  {$IFDEF SpreadSheet}Calc, CellsCol, {$ENDIF}
-  {$IFDEF DBView}DBView, DBWatch, {$ENDIF}
-  ArcView, HelpFile, Validate, xTime,
-  {$IFDEF Modem}
-  {$IFDEF LINK}NavyLink, {$ENDIF}
-  Terminal, ScrollBk,
-  {$IFDEF PHONES}uDialer, {$ENDIF}
-  apPort, apUART,
-  {$ENDIF}
-  {$IFDEF PHONES}Phones, {$ENDIF}
-  ASCIITab,
-  {$IFDEF Game}Tetris, {$ENDIF}
-  Drives, Archiver, ArchSet,
-  {$IFNDEF MINARCH} {$IFNDEF OS2}ArchRead, {$ENDIF} {$ENDIF}
-  {$IFDEF ARVID}Arvid, {$ENDIF}
-  Idlers, FlPanelX, WinClp,
-  {$IFDEF Printer}PrintMan, {$ENDIF}
-  Setups, RegAll, XDblWnd,
-  {$IFDEF Tasklist}
-  TaskLst,
-  {$ENDIF}
-  CCalc, Collect, DnIni, {-$VIV}
-  DnExec
+   {SBlocks,}Drivers, Streams,
+  Views, Scroller, DNApp,
+  Dialogs, Gauges,
+  Commands, Tree,
+  FilesCol, UserMenu,
+  HelpFile, xTime
   ;
 
 const
@@ -278,15 +252,39 @@ procedure PutInClipLong(const S: LongString);
 implementation
 
 uses
-  HelpKern,
-  DNHelp,
-  VideoMan,
+  Dos, Lfn, HelpKern, Menus, FileCopy, VPUtils,
+  DNHelp, DnIni, DnIni_p, Histries,
+  VideoMan, Memory, DblWnd, Messages, HistList, FileFind,
   {$ifdef modem}
+  {$IFDEF LINK}NavyLink, {$ENDIF}
+  Terminal, ScrollBk,
+  apPort, apUART,
   modemio,
+  {$IFDEF PHONES}uDialer, {$ENDIF}
   {$endif}
-  ColorSel {, Crt}
+  {$IFDEF PHONES}Phones, {$ENDIF}
+  ASCIITab,
+  {$IFDEF Game}Tetris, {$ENDIF}
+  {$IFDEF Calendar}Calendar, {$ENDIF} {JO}
+  {$IFDEF SpreadSheet}Calc, CellsCol, {$ENDIF}
+  {$IFDEF DBView}DBView, DBWatch, {$ENDIF}
+  {$IFNDEF MINARCH} {$IFNDEF OS2}ArchRead, {$ENDIF} {$ENDIF}
+  {$IFDEF ARVID}Arvid, {$ENDIF}
+  {$IFDEF Printer}PrintMan, {$ENDIF}
+  {$IFDEF Tasklist}
+  TaskLst,
+  {$ENDIF}
+  CCalc, Collect, {-$VIV}
+  DnExec,
+  Setups, RegAll, XDblWnd,
+  Idlers, FlPanelX, WinClp,
+  Drives, Archiver, ArchSet,
+  ArcView, FViewer, CmdLine, FBB, DNStdDlg,
+  Colors, Microed, ed2, Editor, EdWin,
+  Advance, Advance1, Advance2, Advance3, Advance4, Advance7,
+  ColorSel, Eraser,  DiskInfo
   , FileType, PDSetup, U_KeyMap
-  , Advance0
+  , Startup, Startupp
   ;
 
 { Load and Store Palette routines }
@@ -2836,7 +2834,7 @@ procedure TDNApplication.HandleCommand;
     cmLoConfigArchiver..cmHiConfigArchiver:
       SetupArchive(Event.Command);
     cmFMSetup:
-      FMSetup;
+      DoFMSetup;
     cmDriveInfoSetup:
       DriveInfoSetup;
     cmExecuteDOScmd:

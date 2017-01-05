@@ -50,7 +50,7 @@ unit DefColl;
 interface
 
 uses
-  Collect, Lfn, Advance1, Advance, Defines
+  Collect
   ;
 
 type
@@ -81,6 +81,9 @@ type
     end;
 
 implementation
+uses
+  Lfn, Advance1, Advance
+  ;
 
 constructor TDefCollection.Init(ALimit, ADelta: LongInt);
   var

@@ -58,12 +58,10 @@
 {JO: временно заменил PLUGIN на несуществующий дефайн PLUGIN1 }
 library Tetris;
 
-uses VpSysLow
-  Defines, Streams, Drivers, Views, DNApp, Dialogs, Memory, Menus,
-   Messages,
-  Commands, Advance, Advance1, Advance2, RStrings,
-  xTime, Startup, DNHelp,
-  , Events
+uses
+  VpSysLow
+  Defines, Streams, Drivers, Views, Dialogs,
+  xTime, Startup, DNHelp, Events
   ;
 
 
@@ -73,9 +71,7 @@ unit Tetris;
 interface
 
 uses
-  Defines, Streams, Drivers, Views, DNApp, Dialogs, Memory, Menus,
-   Messages,
-  Commands, Advance, Advance1, Advance2, RStrings
+  Defines, Streams, Drivers, Views, Dialogs
   ;
 {$ENDIF}
 
@@ -157,7 +153,8 @@ const
 implementation
 
 uses
-  xTime, Startup, DNHelp, Events
+  xTime, Startup, DNHelp, Events, Advance, Advance1, Advance2
+  , DNApp, Messages, Commands, VPUtils
   ;
 {$ENDIF}
 

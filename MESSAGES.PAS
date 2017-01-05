@@ -52,7 +52,7 @@ unit Messages;
 interface
 
 uses
-  Defines, Commands, RStrings, Dos, Drivers
+  Defines, Commands, Drivers
   ;
 
 const
@@ -152,8 +152,8 @@ const
 implementation
 
 uses
-  Views, Dialogs, DNApp, DNHelp, Advance, Advance1, Advance2,
-  Drives, Startup
+  Views, Dialogs, DNApp, DNHelp, Advance1, Advance2,
+  Drives, Startup, VPUtils
   ;
 
 procedure ErrMsg(Index: TStrIdx);
@@ -420,8 +420,11 @@ function SysErrorMessageBoxRect(var R: TRect; Msg: String;
     {Params: Pointer;} ErrCode: Integer;
     AOptions: Word): Word;
   const
-    Cmds: array[0..2] of Word =
-      (cmYes, cmOK, cmNo {, cmOk, cmOK, cmYes, cmOK, cmCancel});
+    Cmds: array[0..3] of Word =
+      (cmYes, cmOK, cmNo, cmSkip {, cmOk, cmOK, cmYes, cmOK, cmCancel});
+    Idx:  array[0..3] of TStrIdx =
+      (dlCE_ButRetry, dlCE_ButAbort, dlCE_ButIgnore, dlCE_ButStop);
+
   var
     I, X, ButtonCount: Integer;
     Dialog: PDialog;
@@ -436,14 +439,7 @@ function SysErrorMessageBoxRect(var R: TRect; Msg: String;
     var
       s: String;
     begin
-    case i of
-      0:
-        s := GetString(dlCE_ButRetry);
-      1:
-        s := GetString(dlCE_ButAbort);
-      2:
-        s := GetString(dlCE_ButIgnore);
-    end {case};
+    s := GetString(Idx[i]);
     R.Assign(0, 0, Max(10, CStrLen(s)+4), 2);
     Control := New(PButton, Init(R, s, Cmds[i], bfNormal));
     Inc(X, Control^.Size.X+2);
@@ -468,7 +464,7 @@ function SysErrorMessageBoxRect(var R: TRect; Msg: String;
     Insert(Control);
     X := -2;
     ButtonCount := 0;
-    for I := 0 to 2 do
+    for I := 0 to 3 do
       if AOptions and ($0100 shl I) <> 0 then
         AddButton;
     X := (Size.X-X) shr 1;

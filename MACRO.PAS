@@ -51,7 +51,7 @@ unit Macro;
 interface
 
 uses
-  Advance, Advance1, Advance2, Defines, Objects2, Views, Collect,
+  Advance, Defines, Objects2, Views, Collect,
   Microed, highlite, Strings
   ;
 
@@ -108,7 +108,7 @@ function InitHighLight
 implementation
 uses
   Messages, Drivers, Dialogs, Commands, DNHelp, DNApp,
-  RStrings, Startup
+  Startup, Advance1, Advance2, VPUtils
   , VPSysLow {JO: for SysBeepEx}
   ;
 
@@ -992,7 +992,6 @@ function InitHighLight
   InitHighLight := False; {PZ 2000.06.09 Default is No Highlight }
   FillChar(HiLitePar, SizeOf(HiLitePar), 0);
   F := New(PTextReader, Init(SourceDir+'DN.HGL'));
-  F^.Done; //!!
   if F = nil then
     Exit;
   while not F^.Eof do

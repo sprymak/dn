@@ -53,9 +53,7 @@ unit DNStdDlg;
 interface
 
 uses
-  Lfn, Files, FilesCol,
-  Collect, Defines, Streams, Drivers, Views,
-  Dialogs, Dos, Memory, Messages, DNApp
+  FilesCol, Collect, Defines, Streams, Drivers, Views, Dialogs
   ;
 
 const
@@ -238,7 +236,8 @@ function GetFileNameMenu(Path, Mask, Default: String;
 implementation
 
 uses
-  HistList, Advance, Advance1, Advance2, RStrings, Commands,
+  Lfn, Dos, Memory, Messages, DNApp,
+  HistList, Advance, Advance1, Advance2, Commands,
   Startup, DNHelp, {JO}Menus {JO}
   ;
 

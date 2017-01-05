@@ -45,114 +45,118 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{AK155  3.06.2007 Для уменьшения циклических ссылок между модулями
+ бывший startupp.pas разбит на два маодуля: startupp.pas и startupp.pas,
+ при том первый из них содержит бОьшую часть того на что ссылаются
+ другие модулиЮ но имеет почти пустой uses-список }
 
-unit UniWin;
+unit Startupp;
 
 interface
 
 uses
-  Views
+  Defines, Startup, Collect, CCalc
   ;
 
 type
-  { TUniWindow }
 
-  PUniWindow = ^TUniWindow;
-  TUniWindow = object(TWindow)
-    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    function GetPalette: PPalette; virtual;
-    function MakeScrollBar(AOptions: Word): PScrollBar;
-    procedure InitFrame; virtual;
-    function ReactOnCmd: Boolean; virtual;
+  {Cat: выкинул, т.к. TTextCollection = TLineCollection}
+  (*
+  PTextCollection =^TTextCollection;
+  TTextCollection = Object( TCollection )
+    procedure FreeItem( Item: Pointer ); virtual;
+    procedure PutItem(var S: TStream; Item: Pointer); virtual;
+    function GetItem(var S: TStream): Pointer; virtual;
+  end;
+*)
+  PTextCollection = PLineCollection;
+  TTextCollection = TLineCollection;
+  {/Cat}
+
+  TListBoxRec = record
+    List: PCollection;
+    Focus: Integer
+    end;
+  TTextListboxRec = record
+    List: PTextCollection;
+    Focus: Integer
     end;
 
-  { TEditScrollBar }
-
-  PEditScrollBar = ^TEditScrollBar;
-  TEditScrollBar = object(TScrollBar)
-    function GetPalette: PPalette; virtual;
+  {$IFDEF SS}
+  TSaversData = record
+    Selected: TTextListboxRec;
+    Available: TTextListboxRec;
+    Time: String[3]; {DataCompBoy}
+    Mouse: Boolean;
+    _: Byte;
     end;
 
-  { TEditFrame }
-
-  PEditFrame = ^TEditFrame;
-  TEditFrame = object(TFrame)
-    function GetPalette: PPalette; virtual;
+  TOldSaversData = record
+    Selected: TTextListboxRec;
+    Available: TTextListboxRec;
+    Time: AWord;
+    Mouse: Boolean;
+    _: Byte;
     end;
-
+  {$ENDIF}
 const
-  CUniWindow = #70#64#65#66#67#68#69#71#72#73#74#75#76#77#78#164#182#183+
-  #184#185#189#190#191#197#198;
+  {$IFDEF SS}
+  SaversData: TSaversData = (
+    Selected: (List: nil; Focus: 0);
+    Available: (List: nil; Focus: 0);
+    Time: '5';
+    Mouse: True
+    );
+  {$ENDIF}
+
+  MaxCalcFormat: TCalcFormat =
+    (18, 8, 32, 11, 18, 9);
+  CalcFormat: TCalcFormat =
+    (18, 8, 32, 11, 18, 1);
 
 implementation
 uses
-  DnIni, Drivers, Defines;
+  VpSysLow, Advance, Advance1, Advance2,
+  Lfn
+  ;
 
-function TUniWindow.GetPalette;
-  const
-    p: String[Length(CUniWindow)] = CUniWindow;
+begin
+TempDir := '';
+TempFile := '';
+
+SourceDir := lFExpand(ParamStr(0));
+while SourceDir[Length(SourceDir)] <> '\' do
+  SetLength(SourceDir, Length(SourceDir)-1);
+StartupDir := SourceDir;
+{SourceDir := Dos.GetEnv('DN')}
+{Cat: заменил DNVP на DN2 - так намного логичнее}
+(*
+  if ExistDir(Dos.GetEnv('DNVP')) or (Dos.GetEnv('DNVP')='') then
+      SourceDir := Dos.GetEnv('DNVP')
+     else
+      Writeln('Warning! Path specified in DNVP environment variable does not exist!');
+*)
+SourceDir := Dos.GetEnv('DN2');
+DelLeft(SourceDir);
+if (SourceDir <> '') and not PathExist(SourceDir) then
   begin
-  GetPalette := @P;
+  Writeln(
+    'Warning! Path specified in DN2 environment variable does not exist!');
+  SourceDir := '';
   end;
 
-function TEditFrame.GetPalette;
-  const
-    p: String[9] = #1#1#8#9#10#10#10#9#15;
-  begin
-  GetPalette := @P;
-  end;
+if SourceDir = '' then
+  SourceDir := StartupDir;
+MakeSlash(SourceDir);
 
-function TEditScrollBar.GetPalette;
-  const
-    p: String[3] = #11#12#12;
-  begin
-  GetPalette := @P;
-  end;
+{$IFDEF DPMI32}
+StartupDir := lfGetLongFileName(StartupDir);
+SourceDir := lfGetLongFileName(SourceDir);
+TempDir := lfGetLongFileName(TempDir);
+TempFile := lfGetLongFileName(TempFile);
+{$ENDIF}
 
-procedure TUniWindow.InitFrame;
-  var
-    R: TRect;
-  begin
-  R.Assign(0, 0, Size.X, Size.Y);
-  Frame := New(PEditFrame, Init(R));
-  end;
-
-function TUniWindow.MakeScrollBar;
-  var
-    P: PEditScrollBar;
-    R: TRect;
-  begin
-  GetExtent(R);
-  if AOptions and sbVertical <> 0
-  then
-    begin
-    Inc(R.A.Y);
-    Dec(R.B.Y);
-    R.A.X := R.B.X-1;
-    end
-  else
-    begin
-    if FastBookmark
-    then
-      Inc(R.A.X, 52)
-    else
-      Inc(R.A.X, 39);
-    Dec(R.B.X, 2);
-    R.A.Y := R.B.Y-1;
-    end;
-  New(P, Init(R));
-  if AOptions and sbVertical = 0 then
-    P^.GrowMode := gfGrowLoY+gfGrowHiY+gfGrowHiX
-  else {p^.GrowMode:=gfGrowHiY+gfGrowHiX}
-    ;
-  P^.Options := P^.Options or ofPostProcess;
-  Insert(P);
-  MakeScrollBar := P;
-  end { TUniWindow.MakeScrollBar };
-
-function TUniWindow.ReactOnCmd;
-  begin
-  ReactOnCmd := True
-  end;
-
+if  (SysPlatformId <> -1) and (SysPlatformId <> 2) then
+  CmdExt := '.BAT'
 end.
+

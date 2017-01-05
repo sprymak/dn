@@ -66,17 +66,18 @@ uses
   {$IFDEF DEBUGMEM}DebugMem, {$ENDIF} {Cat}
   {$IFDEF OS2}Os2Def, Os2Base, {AK155 for killer} {$ENDIF}
   {$IFDEF WIN95_HIGHPRIORITY}Windows, {Cat for SetPriority} {$ENDIF}
-  Advance, Advance1, Advance2, Advance3, Advance4, Startup, Defines,
-   Streams,
+  Advance, Advance1, Advance2, Advance3, Advance4,
+  Startup, Startupp, Defines, Streams,
   Setups, DNUtil, Drivers, Commands, DNApp, Messages, Lfn, Dos, FlPanelX,
-  UserMenu, CmdLine, FilesCol, Views, ArcView, DnIni, CopyIni, Archiver,
+  UserMenu, CmdLine, FilesCol, Views, ArcView, FileFind,
+  DnIni, DnIni_p, CopyIni, Archiver,
   U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries, Menus,
    VideoMan, Events,
   fnotify,
   {$IFNDEF DPMI32}Killer, {$ENDIF}
   {$IFDEF DPMI32} lfnvp, Dpmi32, Dpmi32df, {$ENDIF}
   Tree
-  , filetype, PDSetup, Advance0
+  , filetype, PDSetup
   ;
 
 {AK155 Мало проверить, что имя временного каталога непусто, надо

@@ -51,17 +51,15 @@ unit U_SrchF;
 interface
 
 uses
-  Objects2, Collect, Gauge,
-  Lfn, {DataCompBoy}
-  Commands, {DataCompBoy}
-  DNApp
-  ; {DataCompBoy}
+  Gauge;
 
 function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
 
 implementation
 
 uses
+  Lfn, Objects2, Collect,
+  Commands, DNApp,
   Dos, Advance, Advance1, Advance2, Messages, DnIni
   ;
 

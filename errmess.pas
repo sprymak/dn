@@ -11,7 +11,7 @@ procedure MessFileNotRead(const Path: String; RC: LongInt);
 implementation
 
 uses
-  DNApp, Messages, Commands, Advance
+  DNApp, Messages, Commands, Advance1
   ;
 
 procedure MessFileNotOpen(const Path: String; RC: LongInt);

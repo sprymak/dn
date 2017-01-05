@@ -53,6 +53,7 @@ uses
   Arvid, Objects2, Streams, Advance1, Messages, DNApp, Commands, Collect,
   Views, Drivers, Startup, U_KeyMap, Advance, Lfn, Files, Dos, Tree,
   FilesCol, Advance2, Drives, FlPanel, Memory
+  , Defines
   ;
 
 procedure TdrSeekDirectory(AvtDr: PArvidDrive);
@@ -68,7 +69,6 @@ function TdrMakeFileName(S: String): String; {JO}
 implementation
 uses
   Archiver {TdrInit:_Cardinal} {piwamoto}
-  , Advance0
   ;
 
 function TdrMakeFileName(S: String): String;

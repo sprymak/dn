@@ -53,11 +53,9 @@ unit ArcView;
 interface
 
 uses
-  Lfn, Files, Tree, Dos, Defines, Objects2, Streams, Views, Drivers,
-  FViewer, FlPanel, FilesCol, DiskInfo, DblWnd, HistList,
-  RStrings, Drives, Commands, Archiver, FStorage, Histries,
-  Advance, Advance1, Advance2, ArchDet, Collect
-  , arc_RAR, arc_ACE
+  Collect, Defines, Objects2, Streams, Views,
+  FilesCol, DiskInfo,
+  Drives, Commands, Archiver, FStorage
   ;
 
 type
@@ -155,13 +153,16 @@ type
 implementation
 
 uses
-  VpSysLow,
+  VpSysLow, Eraser,
   Menus, DNApp, Messages, Dialogs, Gauge, FileCopy, Memory, Startup,
   {$IFDEF ARVID}Arvid, {$ENDIF}xTime, VideoMan, DnExec, FileFind
   , UserMenu {JO: для скрывания панелей при разархивировании }
   , arc_Zip {JO: для CentralDirRecPresent}
   , Events {AK155 для LongWorkBegin - LongWorkEnd}
-  , PDSetup, FlPanelX, fnotify
+  , PDSetup, FlPanelX, fnotify, Drivers
+  , Lfn, Files, Tree, Dos, Histries, HistList, FlPanel
+  , Advance, Advance1, Advance2, ArchDet
+  , arc_RAR, arc_ACE
   ;
 
 const
@@ -1781,7 +1782,7 @@ procedure TArcDrive.GetDirInfo;
   var
     Fl: Integer;
     PSz, USz: TSize;
-
+{
   procedure DoCount(P: PArcFile);
     begin
     if  (P <> nil)
@@ -1793,7 +1794,7 @@ procedure TArcDrive.GetDirInfo;
       PSz := PSz+P^.PSize;
       end;
     end;
-
+}
   begin
   B.Title := NewStr(GetString(dlDICurArchive));
   B.Dir := NewStr(ArcName);

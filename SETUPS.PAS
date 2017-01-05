@@ -51,8 +51,8 @@ unit Setups;
 interface
 
 uses
-  Dos, Lfn, {DataCompBoy}Defines, Drivers, Views, Dialogs, Collect, DNApp,
-  Commands, RStrings, Startup, Validate
+  Defines, Drivers, Views, Dialogs, Collect,
+  Commands, Startup, Startupp
   ;
 
 {                                System Setup                                }
@@ -119,7 +119,7 @@ function ApplyCodetables: Integer;
      3 - ошибка в WinCodeTable,
      4 - ошибка в Codetables,
      `}
-procedure FMSetup;
+procedure DoFMSetup;
 procedure DriveInfoSetup;
 procedure SetupEditorDefaults;
 procedure SystemSetup;
@@ -141,8 +141,9 @@ const
 
 implementation
 uses
-  Tree, Drives, Advance, Advance1, Advance2, Messages, DNHelp,
-  Advance6, DnIni, Country_, U_KeyMap, fnotify
+  Dos, Tree, Drives, Advance, Advance1, Advance2, Messages, DNHelp,
+  Advance6, DnIni, DnIni_p, Country_, U_KeyMap, fnotify
+  , lfn, DNApp, Validate
   ;
 
 procedure ConfirmSetup;
@@ -377,7 +378,7 @@ TryDialog:
   ConfigModified := True;
   end;
 
-procedure FMSetup;
+procedure DoFMSetup;
   begin
   if ExecResource(dlgFMSetup, Startup.FMSetup) <> cmOK then
     Exit;

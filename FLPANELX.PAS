@@ -54,11 +54,8 @@ FlPanelX;
 interface
 
 uses
-  Lfn, Files, Advance, Advance1, Advance2, Advance3, Defines, Streams,
-  fnotify,
-  Views, Drivers, Dos, FilesCol, PDSetup, Drives, Filediz, Collect
-  {$IFDEF ARVID}, Arvid {$ENDIF}, xTime
-  {$IFDEF NetBrowser}, NetBrwsr{$ENDIF}
+  Defines, Streams,
+  Views, Drivers, FilesCol, PDSetup, Drives, xTime
   ;
 
 type
@@ -218,11 +215,11 @@ function OtherFilePanel(P: PFilePanelRoot): PFilePanelRoot;
 implementation
 
 uses
-  VpSysLow,
+  Lfn, Files, Advance, Advance1, Advance2, Advance3, VpSysLow,
   Messages, DNApp, DNHelp, Startup, Commands, Histries, HistList, FLTools,
   FileFind, CmdLine, ArcView, Archiver, DiskImg, DiskInfo, FileCopy,
-   DNUtil, FlTl,
-  DnIni {-$VIV}
+  DNUtil, FlTl, Dos, Filediz, Collect, VPUtils,
+  DnIni_p, DnIni {-$VIV}
   {$IFDEF MODEM} {$IFDEF LINK}, NavyLink {$ENDIF} {$ENDIF}
   {$IFDEF UUENCODE}, UUCode {$ELSE}
   {$IFDEF UUDECODE}, UUCode {$ENDIF} {$ENDIF}
@@ -232,6 +229,8 @@ uses
   {$ENDIF}
   {$IFDEF PLUGIN}, Plugin {$ENDIF}
   , DblWnd, FlPanel, FileType
+  {$IFDEF NetBrowser}, NetBrwsr{$ENDIF}
+  {$IFDEF ARVID}, Arvid {$ENDIF}
   ;
 
 procedure TFilePanelRoot.IncDrawDisabled;
@@ -989,6 +988,7 @@ procedure TFilePanelRoot.CommandHandle;
       Exit;
       end;
 {/JO}
+    DriveLetter := Drive^.GetDriveLetter;
     DirectoryName := Drive^.GetDir;
 {JO: переходим с панельки Network на шару}
     if (Drive^.DriveType = dtNet)

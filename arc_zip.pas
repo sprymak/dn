@@ -263,6 +263,11 @@ procedure TZIPArchive.GetFile;
     P: TZIPLocalHdr;
     HCF: TZIPCentralFileRec;
     FP, FPP: TFileSize;
+    ExtraFieldHeader: record
+                       HeaderID: AWord;
+                       DataSize: AWord;
+                      end;
+
   label 1;
   begin
   if CentralDirRecPresent then
@@ -288,6 +293,19 @@ procedure TZIPArchive.GetFile;
     FileInfo.Date := HCF.LastModDate;
     FileInfo.USize := HCF.OriginalSize;
     FileInfo.PSize := HCF.CompressedSize;
+    if (HCF.ExtraField <> 0) and
+       (HCF.OriginalSize = $FFFFFFFF) and
+       (HCF.CompressedSize = $FFFFFFFF) then
+      begin {search for Zip64 extended information extra field}
+        FP := ArcFile^.GetPos;
+        ArcFile^.Read(ExtraFieldHeader, SizeOf(ExtraFieldHeader));
+        if ExtraFieldHeader.HeaderID = 1 then
+          begin
+            ArcFile^.Read(FileInfo.USize, 8);
+            ArcFile^.Read(FileInfo.PSize, 8);
+          end;
+        ArcFile^.Seek(FP);
+      end;
     ArcFile^.Seek(ArcFile^.GetPos+HCF.ExtraField+HCF.FileCommLength);
     end
   else {CentralDirRecPresent}

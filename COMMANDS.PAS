@@ -1580,7 +1580,8 @@ const
   cmConfigZOO = 3124;
   cmConfigZXZ = 3125;
   cmConfig7Z  = 3126;
-  cmHiConfigArchiver = 3126;
+  cmConfigBZ2 = 3127;
+  cmHiConfigArchiver = 3127;
   cmUpdateArcFile = 3200;
 
   cmGlobalUserMenu = 3220;
@@ -2776,6 +2777,7 @@ type
     dlCE_ButAbort,
     dlCE_ButRetry,
     dlCE_ButIgnore,
+    dlCE_ButStop,
 
     dlViewSaveXlat,
 
@@ -3087,7 +3089,6 @@ type
     dlgMakeList,
     dlgCopyDialog,
     dlgRenFl,
-    dlgRenameDialog,
     dlgMkDir,
     dlgFileFind,
     dlgArcFileFind,
@@ -3148,6 +3149,7 @@ type
     dlgUUEncode, {UUECNODE}
     dlgOverwriteQuery,
     dlgAppendQuery, {AK155}
+    dlgQueryAbort, {AK155}
     dlgViewerFind,
     dlgArvidFileFind,
     dlgArvidFindResults,

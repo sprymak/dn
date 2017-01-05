@@ -51,8 +51,7 @@ unit FStorage;
 interface
 
 uses
-  Lfn, Files,
-  Objects2, Streams, Advance, Advance1, Advance2, Dos, FilesCol
+  Objects2, Streams, Defines, FilesCol
   ;
 
 type
@@ -120,7 +119,7 @@ const
 
 implementation
 uses
-  DNApp, Startup, Advance0
+  Startup, Lfn, Files, VPUtils, Advance1, Advance2, Dos
   ;
 
 procedure __Error;

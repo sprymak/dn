@@ -250,7 +250,7 @@ implementation
 uses
   Memory,
   Strings,
-  Advance1, Advance0
+  Advance1
   ;
 
 constructor TCollection.Init(ALimit, ADelta: LongInt);

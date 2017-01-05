@@ -54,9 +54,8 @@ unit Calc;
 interface
 
 uses
-  Advance, Lfn, Defines, Streams, Views, CellsCol, Drivers, Dialogs,
-   Messages,
-  HistList, UniWin, Commands, DNHelp, RStrings, Calculat
+  Defines, Streams, Views, CellsCol, Drivers, Dialogs,
+  UniWin, Commands, DNHelp, Calculat
   ;
 
 const
@@ -154,6 +153,7 @@ function GetFileName(var FileName: String; Mask, Title, ALabel: String;
 implementation
 
 uses
+  Advance, Lfn, Messages, HistList, VPUtils,
   Collect, Strings, ErrMess,
   Memory, Dos, DNApp, DNStdDlg, Advance1, Advance2,
   MicroEd2, Histries

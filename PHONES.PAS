@@ -52,11 +52,8 @@ unit Phones;
 interface
 
 uses
-  xTime, Defines, Objects2, Streams, DNApp, Drivers, Dialogs, Menus,
-   Views, DNStdDlg, RStrings,
-  DNHelp, Advance, Advance1, Advance2, Messages, ObjType,
-   Collect,
-  StrView
+  Defines, Objects2, Streams, Drivers, Dialogs, Menus,
+  Views, DNStdDlg, Collect, StrView
   ;
 
 type
@@ -115,7 +112,9 @@ procedure PhoneBook(Manual: Boolean);
 
 implementation
 uses
-  Startup, Commands {$IFDEF Modem}, modemio, Terminal, uDialer {$ENDIF}
+  DNApp, Startup, Commands, Messages, ObjType
+  , DNHelp, Advance, Advance1, Advance2
+  {$IFDEF Modem}, modemio, Terminal, uDialer {$ENDIF}
   ;
 
 var

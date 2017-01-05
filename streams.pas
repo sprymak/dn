@@ -174,7 +174,7 @@ implementation
 
 uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
-  Strings, Memory, Advance0
+  Strings, Memory, Advance1
   {$IFDEF DPMI32}, LfnVP {$ENDIF}
   ;
 

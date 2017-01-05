@@ -51,7 +51,7 @@ unit ed2;
 interface
 
 uses
-  Commands, Advance1, U_KeyMap, Collect, Views, Drivers, Defines, Streams,
+  Commands, U_KeyMap, Collect, Views, Drivers, Defines, Streams,
   Lfn {, SBlocks}
   ;
 
@@ -133,7 +133,8 @@ procedure WriteBlock(Hint: String; S: PStream; C: PLineCollection
 
 implementation
 uses
-  Advance, Advance2, Messages, Dos, DNApp, Microed, Startup, DnIni, EdWin
+  Advance, Advance1, Advance2
+  , Messages, Dos, DNApp, Microed, Startup, DnIni, EdWin
   ;
 
 { TDoCollection }

@@ -74,7 +74,7 @@ implementation
 uses
   U_KeyMap, Country_,
   VpSysLow,
-  Advance, Lfn, VideoMan
+  Advance, Advance1, Lfn, VideoMan
   ;
 
 function GetLineNumberForOffset(const FName: String; Offset: LongInt)

@@ -92,8 +92,8 @@ implementation
 
 uses
   Advance, Advance1, Advance2,
-  RStrings, DNApp, DNUtil,
-  Commands, HistList, startup
+  DNApp, DNUtil,
+  Commands, HistList, startup, startupp
   , objects2
   ;
 
@@ -157,6 +157,8 @@ procedure TIndicator.HandleEvent;
     s: string;
     sCalcFormat: array[Low(TCalcFormat)..High(TCalcFormat)] of string[2];
     i, n, iErr: Integer;
+  label
+    TryFormatDlg;
 
   procedure CE;
     begin
@@ -197,6 +199,7 @@ procedure TIndicator.HandleEvent;
       cmChangeFormat:
         begin
         ClearEvent(Event);
+TryFormatDlg:
         for i := Low(TCalcFormat) to High(TCalcFormat) do
           begin
           Str(CalcFormat[i], s);
@@ -207,10 +210,14 @@ procedure TIndicator.HandleEvent;
           for i := Low(TCalcFormat) to High(TCalcFormat) do
             begin
             Val(sCalcFormat[i], n, iErr);
-            if (iErr = 0) and (n >= 0) and (n <= MaxCalcFormat[i]) then
+            if (iErr <> 0) or (n < 0) or (n > MaxCalcFormat[i]) then
+              goto TryFormatDlg;
+            if n <> CalcFormat[i] then
+              begin
               CalcFormat[i] := n;
+              ConfigModified := True;
+              end;
             end;
-          ConfigModified := True;
           Draw;
           end;
         end;

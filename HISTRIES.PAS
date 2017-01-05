@@ -52,11 +52,9 @@ unit Histries;
 interface
 
 uses
-  Lfn, Collect, Drivers, Defines, Objects2, Streams, Views, EdWin,
-   Drives, Advance, Advance1,
-  Advance2, U_KeyMap, Microed
-  {, Crt}
-  {$IFDEF DBView}, DBView {$ENDIF} {$IFDEF SpreadSheet}, Calc {$ENDIF}
+  Collect, Drivers, Defines, Objects2, Streams, Views,
+  Drives, Advance, U_KeyMap
+  {$IFDEF DBView}, DBView {$ENDIF}
   ;
 
 type
@@ -79,7 +77,7 @@ type
         fXDelta: AInt;
         fHexPos: AInt;
         fCur: TPoint;
-        fMarks: TPosArray;
+        fMarks: TFPosArray;
         );
       {$IFDEF DBView}
       1: (fdDelta: TDBPoint;
@@ -180,14 +178,15 @@ var
 
 implementation
 uses
-  Dos, Commands, DNApp, Dialogs, HistList,
-  Startup, RStrings, xTime, Messages, DNUtil, DnIni,
-  VpSysLow,
+  Lfn, Dos, Commands, DNApp, Dialogs, HistList,
+  Startup, xTime, Messages, DNUtil, DnIni,
+  VpSysLow, EdWin, Advance1,  Advance2,
   {$IFDEF SS}
   Idlers,
   {$ENDIF}
-  FViewer, CmdLine, PDSetup
+  FViewer, CmdLine, PDSetup, Microed
   , FlPanelX {для ActivePanel}
+  {$IFDEF SpreadSheet}, Calc {$ENDIF}
   ;
 
 procedure FreeLastUnmarked(C: PCollection);

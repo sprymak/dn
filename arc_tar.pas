@@ -225,6 +225,7 @@ procedure TTARArchive.GetFile;
     Buffer: array[0..BlkSize-1] of Char;
     Hdr: TARHdr absolute Buffer;
     DT: DateTime;
+    W: AWord;
   begin
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
@@ -238,7 +239,9 @@ procedure TTARArchive.GetFile;
     Exit
     end;
   FileInfo.Last := 0;
-  FileInfo.Attr := 0;
+  if Hdr.filetype = '5' {directory}
+    then FileInfo.Attr := Directory
+    else FileInfo.Attr := 0;
   FileInfo.FName := Hdr.FName+#0;
   SetLength(FileInfo.FName, PosChar(#0, FileInfo.FName)-1);
   if FileInfo.FName = '' then
@@ -248,11 +251,16 @@ procedure TTARArchive.GetFile;
     end;
   FileInfo.USize := FromOct(Hdr.Size);
   FileInfo.PSize := FileInfo.USize;
-  GetUNIXDate(FromOct(Hdr.mtime), DT.Year, DT.Month, DT.Day, DT.Hour,
+  GetUNIXDate(i32(FromOct(Hdr.mtime)), DT.Year, DT.Month, DT.Day, DT.Hour,
      DT.Min, DT.Sec);
   PackTime(DT, FileInfo.Date);
+(*
   ArcFile^.Seek(ArcFile^.GetPos+
      (Trunc((FileInfo.PSize+BlkSize-1) / BlkSize)*BlkSize));
+*)
+  W := Word(CompRec(FileInfo.PSize).Lo) and (BlkSize-1);
+  ArcFile^.Seek(CompToFSize(ArcFile^.GetPos + FileInfo.PSize -
+                            W + BlkSize*Byte(W<>0)));
   end { TTARArchive.GetFile };
 
 end.

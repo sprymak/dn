@@ -51,10 +51,8 @@ unit Tree;
 interface
 
 uses
-  Lfn, Files, Collect,
-  Drivers, Defines, Streams, Memory, Startup, Dos, DnIni,
-  Dialogs, Views, Advance, Advance1, Advance2, Advance3,
-  FilesCol, DNHelp
+  Collect, Drivers, Defines, Streams,
+  Dialogs, Views, FilesCol
   ;
 
 type
@@ -222,7 +220,9 @@ var
 
 implementation
 uses
-  FlPanelX, DNApp, Messages, Commands, Drives, Eraser, Menus, RStrings,
+  Lfn, Files, Memory, Startup, Dos, DnIni, DNHelp,
+  Advance, Advance1, Advance2, Advance3,
+  FlPanelX, DNApp, Messages, Commands, Drives, Eraser, Menus,
   xTime, FileCopy
   ;
 

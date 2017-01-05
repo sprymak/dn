@@ -51,10 +51,8 @@ unit DiskInfo;
 interface
 
 uses
-  Defines, Objects2, Streams, Drivers, Views, Dialogs, Dos, RStrings,
-  Advance, Advance1, Advance2, Collect
-  , VPUtils, TopView_
-  ; {JO}
+  Defines, Streams, Drivers, Views, Collect, TopView_
+  ;
 
 type
   PDiskInfoRec = ^TDiskInfoRec;
@@ -157,8 +155,9 @@ var
 implementation
 uses
   Startup, DNApp, Commands, DNHelp, Tree, xTime
-  , VpSysLow, Lfn, U_KeyMap, Events
-  , FlTl, FlPanelX, PDSetup
+  , Advance, Advance1, Advance2, VPUtils
+  , VpSysLow, Lfn, U_KeyMap, Events, Objects2
+  , FlTl, FlPanelX, PDSetup, Dos
   ;
 
 const

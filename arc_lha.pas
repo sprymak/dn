@@ -50,7 +50,7 @@ unit arc_LHA; {LHA}
 interface
 
 uses
-  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos, xTime
+  Archiver
   ;
 
 type
@@ -76,6 +76,9 @@ type
     end;
 
 implementation
+uses
+  Advance, Advance1, Defines, Objects2, Streams, Dos, xTime, VPUtils
+  ;
 
 { ----------------------------- LHA ------------------------------------}
 

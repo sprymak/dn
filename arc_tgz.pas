@@ -224,7 +224,7 @@ procedure TTGZArchive.GetFile;
     until ArcFile^.Status <> stOK;
     end;
   FileInfo.PSize := ArcFile^.GetSize;
-  ArcFile^.Seek(FileInfo.PSize-4);
+  ArcFile^.Seek(CompToFSize(FileInfo.PSize-4));
   ArcFile^.Read(FileInfo.USize, SizeOf(FileInfo.USize));
   FileInfo.Attr := 0;
   FileInfo.Last := 0;

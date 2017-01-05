@@ -51,8 +51,8 @@ unit Startup;
 interface
 
 uses
-  Defines, Dos, Commands, Advance,
-  Advance1, Advance2, Drivers, Collect, CCalc
+  Defines, Dos, Commands,
+  Drivers, Collect
   ;
 
 procedure FatalError(const S: String);
@@ -105,27 +105,6 @@ const
 
 type
 
-  {Cat: выкинул, т.к. TTextCollection = TLineCollection}
-  (*
-  PTextCollection =^TTextCollection;
-  TTextCollection = Object( TCollection )
-    procedure FreeItem( Item: Pointer ); virtual;
-    procedure PutItem(var S: TStream; Item: Pointer); virtual;
-    function GetItem(var S: TStream): Pointer; virtual;
-  end;
-*)
-  PTextCollection = PLineCollection;
-  TTextCollection = TLineCollection;
-  {/Cat}
-
-  TListBoxRec = record
-    List: PCollection;
-    Focus: Integer
-    end;
-  TTextListboxRec = record
-    List: PTextCollection;
-    Focus: Integer
-    end;
 
   TSystemData = record
     Options: Word;
@@ -167,24 +146,6 @@ type
     VSense: Word;
     Options: Word;
     end;
-
-  {$IFDEF SS}
-  TSaversData = record
-    Selected: TTextListboxRec;
-    Available: TTextListboxRec;
-    Time: String[3]; {DataCompBoy}
-    Mouse: Boolean;
-    _: Byte;
-    end;
-
-  TOldSaversData = record
-    Selected: TTextListboxRec;
-    Available: TTextListboxRec;
-    Time: AWord;
-    Mouse: Boolean;
-    _: Byte;
-    end;
-  {$ENDIF}
 
   TDriveInfoType = record
     ForDrives: Word;
@@ -372,15 +333,6 @@ const
     Options: omsCursor
     );
 
-  {$IFDEF SS}
-  SaversData: TSaversData = (
-    Selected: (List: nil; Focus: 0);
-    Available: (List: nil; Focus: 0);
-    Time: '5';
-    Mouse: True
-    );
-  {$ENDIF}
-
   SystemData: TSystemData = (
     Options: ossEditor+
     ossUseSysClip+
@@ -422,37 +374,10 @@ const
   SortCurPanTypeOnly: Boolean = False;
   FullMenuPanelSetup: Boolean = False;
 
-const
-  MaxCalcFormat: TCalcFormat =
-    (18, 8, 32, 11, 18, 9);
-  CalcFormat: TCalcFormat =
-    (18, 8, 32, 11, 18, 1);
-
 implementation
 uses
-  VpSysLow,
-  {$IFDEF DNPRG}
-  {$ENDIF}
-  Lfn
+  VpSysLow, Advance1, Advance2
   ;
-
-{Cat: выкинул, т.к. TTextCollection = TLineCollection}
-(*
-PROCEDURE TTextCollection.FreeItem;
-begin
-  DisposeStr( PString(Item) );
-end;
-
-PROCEDURE TTextCollection.PutItem;
-begin
-  S.WriteStr(Item);
-end;
-
-FUNCTION TTextCollection.GetItem;
-begin
-  GetItem := S.ReadStr
-end;
-*)
 
 procedure FatalError;
   begin
@@ -467,43 +392,6 @@ procedure FatalError;
 { becouse there is TOO MUCH filetypes with these extensions }
 
 begin
-StartupDir := '';
-SourceDir := '';
-TempDir := '';
-TempFile := '';
-
-SourceDir := lFExpand(ParamStr(0));
-while SourceDir[Length(SourceDir)] <> '\' do
-  SetLength(SourceDir, Length(SourceDir)-1);
-StartupDir := SourceDir;
-{SourceDir := Dos.GetEnv('DN')}
-{Cat: заменил DNVP на DN2 - так намного логичнее}
-(*
-  if ExistDir(Dos.GetEnv('DNVP')) or (Dos.GetEnv('DNVP')='') then
-      SourceDir := Dos.GetEnv('DNVP')
-     else
-      Writeln('Warning! Path specified in DNVP environment variable does not exist!');
-*)
-SourceDir := Dos.GetEnv('DN2');
-DelLeft(SourceDir);
-if (SourceDir <> '') and not PathExist(SourceDir) then
-  begin
-  Writeln(
-    'Warning! Path specified in DN2 environment variable does not exist!');
-  SourceDir := '';
-  end;
-
-if SourceDir = '' then
-  SourceDir := StartupDir;
-MakeSlash(SourceDir);
-
-{$IFDEF DPMI32}
-StartupDir := lfGetLongFileName(StartupDir);
-SourceDir := lfGetLongFileName(SourceDir);
-TempDir := lfGetLongFileName(TempDir);
-TempFile := lfGetLongFileName(TempFile);
-{$ENDIF}
-
 if  (SysPlatformId <> -1) and (SysPlatformId <> 2) then
   CmdExt := '.BAT'
 end.

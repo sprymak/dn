@@ -70,8 +70,8 @@ unit DBWatch;
 interface
 
 uses
-  Lfn, Collect, Objects2, Streams, Defines, Dos,
-  Advance, Advance1, Advance2, use16
+  Collect, Objects2, Streams, Defines,
+  use16
   ;
 
 type
@@ -114,7 +114,7 @@ type
 implementation
 
 uses
-  Messages, Commands, DNApp, Advance0
+  Messages, Commands, DNApp, Lfn, Advance1
   ;
 
 procedure TFieldCollection.FreeItem;

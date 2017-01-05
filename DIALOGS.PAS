@@ -56,10 +56,8 @@ unit Dialogs;
 interface
 
 uses
-  Lfn, {DataCompBoy}DnIni, Collect, Defines, Streams, Drivers, Views,
-   Advance6,
-  Scroller, Validate, U_KeyMap
-  , Menus
+  Collect, Defines, Streams, Drivers, Views,
+  Scroller, Validate, Menus
   ;
 
 const
@@ -647,7 +645,7 @@ implementation
 uses
   ASCIITab, HistList, Advance, Advance1, Advance2, Commands,
   Startup, xTime, FlPanelX, DNApp, Objects2, DNUtil
-  {, Crt}, VpSysLow
+  , VpSysLow, DnIni, Advance6, U_KeyMap
   ;
 
 const
@@ -3243,7 +3241,7 @@ procedure THexLine.Draw;
   C := InputLine^.GetColor(1);
   MoveChar(B, ' ', C, Size.X);
   S := Copy(InputLine^.Data, DeltaX+1, MaxStringLength);
-  S := Copy(DumpStr(S[1], 0, 16, 0), 11, Length(S)*3);
+  S := Copy(DumpStr(S[1], 0, 16, 0), 12, Length(S)*3);
   SetCursor(1+3*(CurX-DeltaX)+Byte(Sec), 0);
   ShowCursor;
   MoveStr(B[1], Copy(S, 1, Size.X-2), C);

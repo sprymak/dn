@@ -78,7 +78,7 @@ const
 implementation
 uses
   DNStdDlg, Advance, DNApp, Commands, Lfn, Advance2, ed2, Advance1, Views,
-  Collect, WinClp, Dos, Messages, Startup, DnIni, CopyIni,
+  Collect, WinClp, Dos, Messages, Startup, DnIni, DnIni_p, CopyIni,
   {SBlocks,}U_KeyMap, Macro,
   xTime, Memory, Drivers,
   FlTl,
@@ -86,7 +86,6 @@ uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
   ErrMess
   , Events {AK155 для LongWorkBegin - LongWorkEnd}
-  , Advance0
   ;
 
 type

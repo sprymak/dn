@@ -52,10 +52,8 @@ unit Gauges;
 interface
 
 uses
-  Dos, Defines, Objects2, Streams, Views, Drivers, FileCopy, Eraser,
-   Collect,
-  Commands, xTime
-  {$IFDEF Calendar}, Calendar {$ENDIF}
+  Dos, Defines, Objects2, Streams, Views, Drivers,
+  Collect, xTime
   ;
 
 type
@@ -125,8 +123,8 @@ implementation
 uses
   Memory, Tree, Messages, DNApp, Advance, Advance1, Advance2,
   {$IFDEF OS2}Dn2PmApi, {$ENDIF} {AK155}
-  {SysUtils,}
-  FilesCol, RStrings, Startup, DnIni
+  FilesCol, Startup, DnIni, FileCopy, Eraser, Commands
+  {$IFDEF Calendar}, Calendar {$ENDIF}
   ; {-$VIV}
 
 constructor TKeyMacros.Init;

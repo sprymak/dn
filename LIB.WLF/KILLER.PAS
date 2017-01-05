@@ -11,7 +11,7 @@ const
 implementation
 uses
   Windows,
-  DnIni, Commands, Startup, DnExec
+  DnIni, Commands, Startup, DnExec, FileCopy
   , VpSysLow, VideoMan, DNApp
   ;
 
@@ -56,7 +56,10 @@ function CtrlRoutine(dwCtrlType: DWord): Boolean;
         end
       else if CtrlBreakKill then
 lCtrlBreak:
+        begin
+        CloseWriteStream;
         Halt(-1);
+        end;
       CtrlRoutine := True;
       end;
   end {case};

@@ -65,7 +65,7 @@ interface
 
 uses
   VPSysLow, // см. комментарий в конце vpsysos2
-  VPSysLo2, Dos
+  VPSysLo2, Dos, Defines
   ;
 
 type
@@ -75,8 +75,6 @@ type
              Lo, Hi: LongInt
             end;
 {$ENDIF}
-
-  TSize = Comp; {64 bit integer type for file sizes}
 
   {Extended search structure to be used instead of SearchRec}
   lSearchRec = record
@@ -279,7 +277,7 @@ implementation
 uses
   {$IFDEF WIN32}Windows, {$ENDIF}
   Strings, Commands {Cat}
-  , Advance, Advance1, Advance2
+  , Advance1, Advance2, VPUtils
   {$IFDEF DPMI32} ,Startup ,Dpmi32 ,Dpmi32df {$ENDIF}
   , fnotify
   ;
@@ -1358,11 +1356,11 @@ procedure lRmDir(const Path: String);
     InOutRes := DosError;
     Exit;
     end;
+  NotifyDeleteWatcher(Path);
 {$IFDEF DPMI32}
   if lAPI = lWin95
   then lWIN95DirFunc(Path, $713A) else
 {$ENDIF}
-  NotifyDeleteWatcher(Path);
   RmDir(Path);
   end;
 {/AK155}

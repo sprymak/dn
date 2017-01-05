@@ -93,9 +93,9 @@ unit DBView;
 interface
 
 uses
-  Lfn, DBWatch, Defines, Objects2, Streams,
-  Views, Drivers, Dos, Memory, Dialogs,
-  RStrings, FViewer, Commands, U_KeyMap, XCode
+  DBWatch, Defines, Objects2, Streams,
+  Views, Drivers, Dialogs,
+  FViewer, Commands, XCode
   ;
 
 type
@@ -207,7 +207,7 @@ implementation
 uses
   Advance, Advance1, Advance2, Startup, DNHelp, DNApp, Messages,
   Histries, Gauge, xTime, DnIni
-  , Events, Advance0
+  , Events, lfn, Dos, Memory, U_KeyMap
   ;
 
 function MaxAvail: LongInt;

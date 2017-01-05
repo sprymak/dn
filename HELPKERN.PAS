@@ -164,9 +164,9 @@ const
   CrossRefHandler: TCrossRefHandler = NotAssigned;
 
 implementation
-
 uses
-  Advance0;
+  Advance1
+  ;
 
 { THelpTopic }
 

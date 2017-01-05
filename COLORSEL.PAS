@@ -56,8 +56,8 @@ unit ColorSel;
 interface
 
 uses
-  Defines, Streams, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
-  Advance, Advance1, Advance2, Drivers
+  Defines, Streams, Views, Dialogs, Scroller,
+  Advance, Drivers
   ;
 
 const
@@ -215,7 +215,8 @@ function ColorGroup(const Name: String; Items: PColorItem;
 
 implementation
 uses
-  Startup, DNApp, RStrings, Commands, DNUtil, VideoMan
+  Startup, DNApp, Commands, DNUtil, VideoMan
+  , ColorVGA, Memory, Advance1, Advance2, VPUtils
   ;
 
 type

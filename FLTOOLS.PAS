@@ -105,7 +105,7 @@ uses
   Views, DNApp, Commands, Drivers, FlPanel, Drives, FileCopy,
   Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DNHelp,
   FileFind, Tree, FBB, DNUtil, Filediz, Filelst, FlTl, DblWnd,
-  ErrMess, Objects2
+  ErrMess, Objects2, VPUtils
   ;
 
 type

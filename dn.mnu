@@ -2,17 +2,17 @@
   start /n /f  gfc !.! $:$\$.$
 >1 Сравнить !.! и $:$\!.!
   start /n /f  gfc !.! $:$\!.!
->1 Очистить exe.olf
-   for %%i in (vpi lib bak lnk obj dll exe lng dlg hlp inc pas) do del EXE.olf\*.%%i
->1 Очистить exe.wlf
-   for %%i in (vpi lib bak lnk obj dll exe lng dlg hlp inc pas) do del EXE.WLF\*.%%i
+>1 Очистить exe.os2
+   for %%i in (vpi lib bak lnk obj dll exe lng dlg hlp inc pas) do del EXE.OS2\*.%%i
+>1 Очистить exe.w32
+   for %%i in (vpi lib bak lnk obj dll exe lng dlg hlp inc pas) do del EXE.W32\*.%%i
 >1 Очистить exe.d32
    for %%i in (vpi lib bak lnk obj dll exe lng dlg hlp inc pas) do del EXE.D32\*.%%i
    del EXE.D32\dn.prg
 >1 ~C~ Перекомпилировать DN (OS/2)
- vpc dn /m /dDN /dDNPRG /q  /cO:OLF:OS2;LargeFileSupport
+ vpc dn /m /dDN /dDNPRG /q  /cO
 >1 Перекомпилировать DN (Win32)
- vpc dn /m /dDN /dDNPRG /q  /cW:WLF:Win32;LargeFileSupport
+ vpc dn /m /dDN /dDNPRG /q  /cW
 >1 ~R~ Перекомпилировать ресурсы (OS/2)
   exe.%HostOS%\rcp O OS2
 >1 Перекомпилировать ресурсы (Win32)
@@ -26,9 +26,7 @@ EXE.%HostOS%\tvhc resource\ukrain\dnhelp.htx EXE.OS2\ukrain.hlp EXE.OS2\dnhelp.p
 EXE.%HostOS%\tvhc resource\ukrain\dnhelp.htx EXE.W32\ukrain.hlp EXE.W32\dnhelp.pas /4DN_OSP
 
 >1 ~D~ Вызвать DN
-  set Host=OLF
-  if [%RUNWORKPLACE%]==[] set Host=WLF
-  start /n /i exe.%Host%\dn
+  start /n /i exe.%HostOS%\dn
 >1 ~V~P
   start /n /f vp
 >1 извлечь из архива файл !.!

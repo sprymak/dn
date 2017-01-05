@@ -6,7 +6,7 @@ unit Country_;
 interface
 
 uses
-  U_KeyMap;
+  Defines;
 
 procedure GetSysCountryInfo;
   {` Заполняет CountryInfo (advance) данными от системы `}
@@ -25,7 +25,7 @@ implementation
 
 uses
   dpmi32df, dpmi32, DosLow, VPSysLow,
-  advance, Strings;
+  advance, advance1, Strings, U_KeyMap;
 
 procedure QueryUpcaseTable;
   var

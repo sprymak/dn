@@ -67,9 +67,12 @@ type
     HeadCRC: AWord;
     HeadSize: AWord;
     HeadType: Byte;
+    //1 - file
+    //2 - recovery record
+    //3 - large file (4+ gb)
     HeadFlags: AWord;
-    PackedSize: LongInt;
-    OriginSize: LongInt;
+    PackedSize: LongInt; //qword for HeadType = 3
+    OriginSize: LongInt; //qword for HeadType = 3
     DateTime: LongInt;
     Attr: LongInt;
     CRC32: LongInt;
@@ -189,31 +192,39 @@ procedure TACEArchive.GetFile;
     FileInfo.Last := 1;
     Exit;
     end;
-  ArcFile^.Read(P, SizeOf(P));
+  ArcFile^.Read(P, 15);{HeadCRC..OriginSize}
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
     Exit;
     end;
-  if P.HeadType = 1 then
-    begin
-    FileInfo.FName := '';
-    repeat
-      ArcFile^.Read(C, 1);
-      Dec(P.NameLen);
-      FileInfo.FName := FileInfo.FName+C;
-    until P.NameLen = 0;
-    FileInfo.Last := 0;
-    FileInfo.USize := P.OriginSize;
-    FileInfo.PSize := P.PackedSize;
-    FileInfo.Date := P.DateTime;
-    FileInfo.Attr := Byte(P.Attr and not Hidden);
-    if  (P.HeadFlags and $4000) <> 0 then
-      FileInfo.Attr := FileInfo.Attr or Hidden;
+  if (P.HeadType <> 1) and
+     (P.HeadType <> 3) then
+    begin {it's not a file}
+      ArcFile^.Seek(FP + P.HeadSize +
+                    (P.PackedSize)*Byte(P.HeadFlags and 1) + 4);
+      goto 1;
     end;
-  ArcFile^.Seek(FP+P.HeadSize+P.PackedSize+4);
-  if P.HeadType <> 1 then
-    goto 1;
+  FileInfo.PSize := P.PackedSize;
+  FileInfo.USize := P.OriginSize;
+  if P.HeadType = 3 then
+    begin
+    CompRec(FileInfo.PSize).Hi := P.OriginSize;
+    ArcFile^.Read(FileInfo.USize, 8);
+    end;
+  ArcFile^.Read(P.DateTime, 20);{DateTime..NameLen}
+  FileInfo.FName := '';
+  repeat
+    ArcFile^.Read(C, 1);
+    Dec(P.NameLen);
+    FileInfo.FName := FileInfo.FName+C;
+  until P.NameLen = 0;
+  FileInfo.Last := 0;
+  FileInfo.Date := P.DateTime;
+  FileInfo.Attr := Byte(P.Attr and not Hidden);
+  if  (P.HeadFlags and $4000) <> 0 then
+    FileInfo.Attr := FileInfo.Attr or Hidden;
+  ArcFile^.Seek(CompToFSize(FP + P.HeadSize + FileInfo.PSize + 4));
   end { TACEArchive.GetFile };
 
 end.

@@ -52,10 +52,8 @@ unit FlPanel;
 interface
 
 uses
-  Files,
-  {Cat}VpSysLow, {/Cat}
-  Defines, Streams, Views, Drivers, Dos, Eraser, FilesCol, Drives,
-  FlPanelX, DNHelp, TitleSet, Collect, TopView_
+  Defines, Streams, Views, Drivers, FilesCol,
+  FlPanelX, Collect, TopView_
   ;
 
 type
@@ -168,9 +166,10 @@ var
 implementation
 
 uses
+  Files, VpSysLow, Dos, Eraser, Drives, DNHelp, TitleSet,
   Lfn, DNUtil, DNApp, Advance, Advance1, Advance2, Advance3, Startup,
   Memory, FileCopy, Messages, Menus, DiskInfo, Dialogs, Commands,
-  HistList, Tree, FBB, RStrings, ArcView, CmdLine, Histries, Archiver,
+  HistList, Tree, FBB, ArcView, CmdLine, Histries, Archiver,
   Gauges, Gauge, FileFind, FLTools, DnIni, XDblWnd, DblWnd, Filediz
   {$IFDEF UUENCODE}
   , UUCode
@@ -180,7 +179,7 @@ uses
   {$ENDIF}
   {$ENDIF} {, Crt}
   , xTime
-  , PDSetup
+  , PDSetup, VPUtils
   {$IFDEF UUENCODE}
   , netbrwsr
   {$ENDIF}
@@ -836,7 +835,8 @@ Scroll:
   ScrollBar^.PgStep := PgS;
   if Delta < 0 then
     Delta := 0;
-  if {GetState(sfSelected) and}(Files^.Count > 0)
+  if (Files <> nil {бывает, например, при входе в битый zip-архив} )
+    and (Files^.Count > 0)
   then
     begin
     CurPos := ScrollBar^.Value;

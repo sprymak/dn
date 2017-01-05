@@ -56,7 +56,7 @@ implementation
 uses
   Lfn, Dos, Tree, VPSysLow, Advance, Advance1, Advance2, FileCopy, DNApp,
   Messages, Views, Defines, Dialogs, Commands, Drivers, Memory, HistList,
-  Gauge, Startup, xTime, ErrMess, Advance0
+  Gauge, Startup, xTime, ErrMess, VPUtils
   ;
 
 type

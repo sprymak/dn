@@ -669,8 +669,8 @@ MENU dlgMainMenu
       MenuItem 'IS~3~ - InstallShield 3.00.xxx',                        '', kbNoKey, cmConfigIS3, hcArchives,
       MenuItem '~L~HA - LHArc (C) Haruyasu Yoshizaki',                  '', kbNoKey, cmConfigLHA, hcArchives,
       MenuItem 'L~I~M - Limit (C) J Y Lim',                             '', kbNoKey, cmConfigLIM, hcArchives,
-      MenuItem 'QUARK - QUARK (C) Kunz Robert',                         '', kbNoKey, cmConfigQUARK, hcArchives,
-      MenuItem '~R~AR - RAR (C) E. Roshal',                             '', kbNoKey, cmConfigRAR, hcArchives,
+      MenuItem 'QRK - QUARK (C) Kunz Robert',                           '', kbNoKey, cmConfigQUARK, hcArchives,
+      MenuItem '~R~AR - RAR (C) A. Roshal',                             '', kbNoKey, cmConfigRAR, hcArchives,
       MenuItem '~S~QZ - SQZ (C) J.I.Hammarberg',                        '', kbNoKey, cmConfigSQZ, hcArchives,
       MenuItem '~T~AR - Tape ARchiver for *NIX',                        '', kbNoKey, cmConfigTAR, hcArchives,
       MenuItem '~G~Z  - GZip compressor',                               '', kbNoKey, cmConfigTGZ, hcArchives,
@@ -679,7 +679,8 @@ MENU dlgMainMenu
       MenuItem '~Z~IP - PKZIP (C) PKWARE Inc.',                         '', kbNoKey, cmConfigZIP, hcArchives,
       MenuItem 'ZO~O~ - Zoo (C) Rahul Dhesi',                           '', kbNoKey, cmConfigZOO, hcArchives,
       MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev',                  '', kbNoKey, cmConfigZXZ, hcArchives,
-      MenuItem '~7~Z - 7-Zip (C) Igor Pavlov',                          '', kbNoKey, cmConfig7Z,  hcArchives,
+      MenuItem '~7~Z  - 7-Zip (C) Igor Pavlov',                         '', kbNoKey, cmConfig7Z,  hcArchives,
+      MenuItem 'BZ2 - BZip2 (C) Julian Seward',                         '', kbNoKey, cmConfigBZ2, hcArchives,
      END
     MenuLine
     MenuItem '~Q~uick run file edit...', ' ', kbNoKey, cmEditQuickRun, hcOptionsMenu,
@@ -1752,6 +1753,7 @@ DIALOG dlgArchiveFiles, 64, 21, 'Archive files'
       ITEM 'Z~O~O'
       ITEM 'Z~X~Z'
       ITEM '~7~Z'
+      ITEM 'BZ2'
     END
     Label 3, 7, 'Archive type', ofPostProcess, ofPreProcess
     RadioButtons 33, 13, 61, 16, ofPostProcess, ofPreProcess
@@ -2278,7 +2280,7 @@ END
 
 DIALOG dlgGotoAddress, 34, 7, 'Goto Address'
     HELPCTX hcGotoAddress
-    InputLine 12, 2, 28, 3, 8, hsdbSearch
+    InputLine 12, 2, 28, 3, 9, hsdbSearch
     Label 3, 2, '~A~ddress', ofPostProcess, ofPreProcess
     Button 2, 4, 12, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 12, 4, 22, 6, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -2509,17 +2511,19 @@ DIALOG dlgRenFl, 70, 7, 'Quick file rename'
     Button 58, 4, 68, 6, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgRenameDialog, 78, 13, 'Rename/move'
+DIALOG dlgCopyDialog, 78, 15, 'Copy'
     HELPCTX hcCopyDialog
 #1  InputLine 2, 2, 74, 3, 255, hsFileCopyName
-    RadioButtons 3, 4, 36, 9, ofPostProcess, ofPreProcess
-      ITEM '~O~verwrite all existing files'
-      ITEM 'A~p~pend to all existing files'
-      ITEM '~A~sk for overwrite'
-      ITEM '~S~kip all existing files'
-      ITEM 'Refresh o~l~d files'
+    RadioButtons 2, 5, 36, 11, ofPostProcess, ofPreProcess
+      ITEM '~O~verwrite'
+      ITEM 'A~p~pend'
+      ITEM 'Res~u~me'
+      ITEM '~S~kip'
+      ITEM '~R~efresh'
+      ITEM '~A~sk the action'
     END
-#2  CheckBoxes 38, 4, 70, 9, ofPostProcess, ofPreProcess
+    Label 2, 4, 'All files with the same names:', ofPostProcess, ofPreProcess
+#2  CheckBoxes 38, 5, 70, 10, ofPostProcess, ofPreProcess
       ITEM 'Check ~f~ree disk space'
       ITEM '~V~erify disk writes'
       ITEM 'Copy ~d~escriptions'
@@ -2533,41 +2537,10 @@ DIALOG dlgRenameDialog, 78, 13, 'Rename/move'
 ;$ENDIF
       ITEM 'Remove so~u~rce files'
     END
-    Button 12, 10, 22, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 22, 10, 32, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 32, 10, 42, 12, '~T~ree', cmTree, ofPostProcess, ofPreProcess
-    Button 42, 10, 52, 12, 'Help', cmHelp, ofPostProcess, ofPreProcess
-END
-
-DIALOG dlgCopyDialog, 78, 13, 'Copy'
-    HELPCTX hcCopyDialog
-#1  InputLine 2, 2, 74, 3, 255, hsFileCopyName
-    RadioButtons 3, 4, 36, 9, ofPostProcess, ofPreProcess
-      ITEM '~O~verwrite all existing files'
-      ITEM 'A~p~pend to all existing files'
-      ITEM '~A~sk for overwrite'
-      ITEM '~S~kip all existing files'
-      ITEM 'Refresh o~l~d files'
-    END
-    Label 2, 1, '*', ofPostProcess, ofPreProcess
-#2  CheckBoxes 38, 4, 70, 9, ofPostProcess, ofPreProcess
-      ITEM 'Check ~f~ree disk space'
-      ITEM '~V~erify disk writes'
-      ITEM 'Copy ~d~escriptions'
-;$IFDEF EAOP
-;$IFDEF OS2
-      ITEM 'Re~n~ame to logical names'
-;$ENDIF
-;$IFDEF WIN32
-      ITEM 'Copy access r~i~ghts'
-;$ENDIF
-;$ENDIF
-      ITEM 'Remove so~u~rce files'
-    END
-    Button 12, 10, 22, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 22, 10, 32, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 32, 10, 42, 12, '~T~ree', cmTree, ofPostProcess, ofPreProcess
-    Button 42, 10, 52, 12, 'Help', cmHelp, ofPostProcess, ofPreProcess
+    Button 17, 12, 27, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 27, 12, 37, 14, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 37, 12, 47, 14, '~T~ree', cmTree, ofPostProcess, ofPreProcess
+    Button 47, 12, 57, 14, 'Help', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgMakeList, 69, 20, 'Make List File'
@@ -3285,16 +3258,28 @@ DIALOG dlgTetrisTop10, 59, 18, 'Tetris Top Ten'
   Label 2,2, '~Name                           Start  End       Score~'
 END
 
-DIALOG dlgOverwriteQuery, 60, 13, 'Confirm'
+DIALOG dlgOverwriteQuery, 64, 13, 'Confirm'
     HELPCTX hcOverwriteQuery
-    CheckBoxes 4, 8, 57, 9, ofPostProcess
+    CheckBoxes 4, 8, 61, 9, ofPostProcess
       ITEM Accept choice for ~a~ll files
     END
     Button  3, 10, 16, 12, '~O~verwrite', cmYes, bfDefault, ofPostProcess
     Button 16, 10, 26, 12, 'A~p~pend', cmNo, bfNormal, ofPostProcess
-    Button 26, 10, 36, 12, '~R~ename', cmOK, bfNormal, ofPostProcess
-    Button 36, 10, 44, 12, '~S~kip', cmSkip, bfNormal, ofPostProcess
-    Button 44, 10, 54, 12, 'Cancel', cmCancel, bfNormal, ofPostProcess
+    Button 25, 10, 35, 12, 'Res~u~me', cmSave, bfNormal, ofPostProcess
+    Button 35, 10, 45, 12, '~R~ename', cmOK, bfNormal, ofPostProcess
+    Button 45, 10, 53, 12, '~S~kip', cmSkip, bfNormal, ofPostProcess
+    Button 53, 10, 63, 12, 'Cancel', cmCancel, bfNormal, ofPostProcess
+END
+
+DIALOG dlgQueryAbort, 40, 10, 'Confirm'
+    HELPCTX hcQueryAbort
+    StaticText 8, 2, 38, 3, 'Abort operation?'
+    CheckBoxes 3, 6, 38, 8, ofPostProcess
+      ITEM 'Write data that been read'
+      ITEM 'Save incomplete file'
+    END
+    Button  6, 4, 16, 6, Yes, cmYes, bfDefault, ofPostProcess
+    Button 24, 4, 34, 6, No, cmNo, bfNormal, ofPostProcess
 END
 
 DIALOG dlgAppendQuery, 60, 13, 'Select'

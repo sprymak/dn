@@ -52,9 +52,7 @@ GetConst;
 interface
 
 uses
-  Lfn, {DataCompBoy}
-  Collect,
-  Objects2
+  Collect, Objects2
   ;
 
 type
@@ -91,11 +89,8 @@ procedure ProcessFile(const FileName: String; Types: PValuesHolder);
 implementation
 
 uses
-  Dos,
-  Advance,
-  Advance1,
-  Advance2,
-  Commands
+  Dos, lfn,
+  Advance, Advance1, Advance2, Commands
   ;
 
 procedure Error(const S: String);

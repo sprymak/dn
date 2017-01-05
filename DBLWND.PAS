@@ -51,9 +51,9 @@ unit DblWnd;
 interface
 
 uses
-  Lfn, Views, Defines, Streams, Drivers, FlPanelX, FlPanel, Tree, FViewer
-  , PDSetup
+  Views, Defines, Streams, Drivers, FlPanelX, FlPanel
   ;
+
 type
   TPanelDescr = record
   {` Описатель одной (из двух) панелей }
@@ -166,9 +166,9 @@ const
 implementation
 uses
   DiskInfo, Commands, FileCopy, FilesCol, Advance, Advance1, Advance2,
-  Startup, DNApp, RStrings, TopView_
+  Startup, DNApp, TopView_, Tree, FViewer
   {$IFDEF NETINFO}, NetInfo {-$VIV} {$ENDIF}
-  , Dos
+  , Dos, VPUtils
   ;
 
 constructor TDoubleWindow.Init;

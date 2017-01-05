@@ -51,7 +51,7 @@ unit DiskImg;
 interface
 
 uses
-  FilesCol, Tree
+  FilesCol
   ;
 
 procedure UnpackDiskImages(AOwner: Pointer; Files: PFilesCollection);
@@ -60,9 +60,8 @@ implementation
 
 uses
   Dos, Lfn, Messages, Views, Commands, Defines, Streams, DNApp, Drivers,
-   Advance,
   Advance1, Advance2, FileCopy, Gauge, xTime
-  , Files
+  , Files, Tree, VPUtils
   ;
 
 {Cat: добавил сюда эти типы, вместо того, чтобы подключать модуль DiskTool}

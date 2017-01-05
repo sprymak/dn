@@ -51,7 +51,7 @@ unit Eraser;
 interface
 
 uses
-  Defines, Files, Filediz, Collect
+  Collect
   ;
 
 procedure EraseFiles(Files: PCollection);
@@ -60,9 +60,10 @@ function ValidErase(Files: PCollection): Boolean;
 
 implementation
 uses
+  Defines, Files, Filediz,
   Dos, Lfn {DataCompBoy}, FilesCol, Commands, Advance, Advance1, Advance2,
   Startup, Messages, xTime, Drivers, Tree, Memory,
-  DNApp, Gauge, Views, RStrings, Dialogs, Drives, FileCopy
+  DNApp, Gauge, Views, Dialogs, Drives, FileCopy
   , fnotify, Events
   {JO} {$IFDEF OS2}, VPUtils {$ENDIF}, FlTl
 

@@ -66,7 +66,7 @@ uses
   DiskInfo, Advance, Advance1, Advance2, Advance4, highlite,
   Startup, Dialogs, Gauges, Memory, DblWnd, Messages, HistList,
   FileFind, Commands, Tree, FViewer, CmdLine, FBB, DNStdDlg,
-  FilesCol, UserMenu, RStrings, Colors, Microed, Editor, Macro,
+  FilesCol, UserMenu, Colors, Microed, Editor, Macro,
   ArcView, HelpFile, Validate, ASCIITab, xTime, Drives, Archiver,
   ArchSet, ArchDet, Setups, DNUtil, XDblWnd, Histries, CCalc,
   DnIni, Collect, Objects2, Views, Scroller, Calculat,
@@ -127,9 +127,11 @@ except
     {Фактически это никакой не Ctrl-C, а Close через кнопку,
        или системное меню, или системный список задач. А Ctrl-Crek, Ctrl-C
        обрабатываются в killer и сюда не попадают.}
+    CloseWriteStream;
     end;
   on E: Exception do
     begin
+    CloseWriteStream;
     ClearScreen;
     SysTvShowBuf(0, ScreenWidth*ScreenHeight);
     SourceDir := SourceDir+'DN.ERR';

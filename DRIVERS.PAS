@@ -211,6 +211,16 @@ type
   { Default system error handler routine }
 
 function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
+  {` Выдать красный диалог о системной ошибке со стандартными кнопками,
+    а также с кнопкой "Стоп", если SysErrStopButton=True.
+   Дополнительно устанавливается переменная Abort.
+   Результат - какая кнопка нажата:
+     0 - Ignore (Abort = True), этого не бывает, так как кнопки нет
+     1 - Retry (Abort = False)
+     3 - Abort (Abort = True)
+     4 - Stop (Abort = False)
+   Если Abort=True или NeedAbort=True в момент вызова, то без всякого
+   диалога возвращается результат 3 с Abort=True `}
 
 const
 
@@ -223,6 +233,8 @@ const
   CtrlBreakHit: Boolean = False;
   SaveCtrlBreak: Boolean = False;
   SysErrActive: Boolean = False;
+  SysErrStopButton: Boolean = False;
+    {` В диалоге системной ошибки нужна кнопка "Стоп" `}
 
   { System error handler routines }
 
@@ -535,13 +547,12 @@ function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
     AOptions := mfYesButton+mfOKButton+mfNoButton+mfSysError
   else
     AOptions := mfYesButton+mfOKButton+mfSysError;
+  if SysErrStopButton then
+    AOptions := AOptions or $0800;
   Res := MessageBox(#03+S, Ptr(ErrorCode), AOptions);
   case Res of
     cmYes:
-      begin
-      Abort := False;
       SystemError := 1;
-      end;
     cmOK:
       begin
       Abort := True;
@@ -551,7 +562,9 @@ function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
       begin
       Abort := True;
       SystemError := 0;
-      end
+      end;
+    cmSkip:
+      SystemError := 4;
     else {case}
       begin
       Abort := True;

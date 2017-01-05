@@ -53,12 +53,9 @@ interface
 
 uses
   SysUtils,
-  Defines, Streams, Views, Dos, Drivers, Commands, DNHelp,
-  {SysUtils,} {AK155}
-  Advance,
-  Advance1, Advance2, highlite, U_KeyMap, Microed, xTime,
-  Collect, Macro, Advance6
-  , FilesCol, XCode
+  Defines, Streams, Views, Drivers,
+  Advance, highlite, xTime,
+  Collect, FilesCol, XCode
   ;
 
 const
@@ -121,7 +118,7 @@ type
     FakeKillAfterUse: Boolean; {временная пустышка}
     Filter: Byte;
     XCoder: TXCoder;
-    MarkPos: TPosArray;
+    MarkPos: TFPosArray;
     CtrlK: Boolean;
     CtrlQ: Boolean;
     HiLite: Boolean; {PZ 2000.06.09}
@@ -250,14 +247,15 @@ type
 implementation
 
 uses
-  Lfn, {DataCompBoy}
-  Memory, Messages, DNApp, Startup, Dialogs, RStrings,
+  Lfn, Dos, Commands, DNHelp, Advance1, Advance2, U_KeyMap
+  , Microed, Macro, Advance6, VPUtils
+  , Memory, Messages, DNApp, Startup, Dialogs,
   {$IFDEF DisAsm}Decoder, {$ENDIF} {piwamoto}
   {$IFDEF RegExp}RegExp, {$ENDIF} {Cat}
   ErrMess, {AK155}
   DiskInfo, Files,
   Gauge, DNStdDlg, Histries, Drives, DNUtil, DnIni
-  , FileDiz, Advance0
+  , FileDiz
   ;
 
 function MaxAvail: LongInt;
@@ -461,13 +459,6 @@ procedure TViewInfo.Store(var S: TStream);
   PutPeerViewPtr(S, Viewer);
   end;
 
-function trunc32(w: TFileSize): Longint;
-  var
-    q: record Lo,Hi: Longint end absolute w;
-  begin
-  Result := q.Lo;
-  end;
-
 procedure TViewInfo.Draw;
   var
     B: TDrawBuffer;
@@ -502,9 +493,9 @@ procedure TViewInfo.Draw;
       end;
     if ViewMode = vmHex then
       begin
-      S := Hex8(Cur.X div (1+Byte(HexEdit))+
-          Cur.Y* trunc32(HexPos+BufPos+FilePos))+' ';
-      J := trunc32(FilePos+BufPos) mod Max(1, HexPos);
+      S := HexFilePos(Cur.X div (1+Byte(HexEdit))+
+          Cur.Y* (HexPos+BufPos+FilePos))+' ';
+      J := FSizeMod(FilePos+BufPos, Max(1, HexPos));
       for I := 0 to HexPos-1 do
         S := S+Hex2(I+J)+#196;
       SetLength(S, Length(S)-1);
@@ -516,7 +507,7 @@ procedure TViewInfo.Draw;
       J := 0;
       for I := 0 to (Cur.Y-1) do
         Inc(J, Lines[I].len);
-      S := '['+Hex8(((Cur.X-10) div 2)+trunc32(J+BufPos+FilePos))+']';
+      S := '['+HexFilePos(((Cur.X-10) div 2)+J+BufPos+FilePos)+']';
       end
     else
       case Wrap of
@@ -531,10 +522,11 @@ procedure TViewInfo.Draw;
       begin
       S := S+Ch2+Ch2+'<';
       for I := 1 to 9 do
-        if not MarkPos[I].EqualsXY(-1, -1) then
-          S := S+Char(I+48)
-        else
-          S := S+#250;
+        with MarkPos[I] do
+          if not ((X=-1) and (Y=-1)) then
+            S := S+Char(I+48)
+          else
+            S := S+#250;
       S := S+'>';
       end;
     Insert(Ch2+Ch2, S, Length(S)+1);
@@ -1226,10 +1218,10 @@ procedure TFileViewer.Store;
   S.Write(MarkPos, SizeOf(MarkPos));
   end;
 
-procedure XDumpStr(var S: String; var B; Addr: LongInt; Count: Integer;
+procedure XDumpStr(var S: String; var B; Addr: Comp; Count: Integer;
      Filter: Byte);
   begin
-  S := Hex8(Addr)+' ';
+  S := HexFilePos(Addr)+' ';
   asm
     push ESI
     push EDI
@@ -1238,7 +1230,7 @@ procedure XDumpStr(var S: String; var B; Addr: LongInt; Count: Integer;
     mov  ESI, B
     mov  ECX, Count
     mov  EDI, S
-    mov  EBX, 10
+    mov  EBX, 11
     mov  AH, Filter
     jcxz @@3
 @@1:
@@ -1389,7 +1381,7 @@ procedure TFileViewer.Draw;
       L := FilePos+LongInt(BufPos);
       if HexEdit
       then
-        SetCursor(10+(Cur.X div 2)*3+Cur.X and 1, Cur.Y)
+        SetCursor(11+(Cur.X div 2)*3+Cur.X and 1, Cur.Y)
       else
         SetCursor(12+HexPos*3+Cur.X, Cur.Y);
       ShowCursor;
@@ -1405,14 +1397,10 @@ procedure TFileViewer.Draw;
         else
           WDH := Size.X;
         MoveChar(B[XDelta], ' ', C, WDH);
-        if L+LongInt(HexPos) > FileSize
-        then
-          J := trunc32(FileSize-L)
-        else
-          J := HexPos;
+        J := MinBufSize(FileSize-L, HexPos);
         if J > 0 then
           begin
-          S := DumpStr(Buf^[W], trunc32(L), J, Filter);
+          S := DumpStr(Buf^[W], L, J, Filter);
           W2 := Pos(#179, S);
           SetLength(SZ, Length(S)-W2);
           for IZ := 1 to Length(SZ) do
@@ -1457,19 +1445,19 @@ procedure TFileViewer.Draw;
               Cur.X := i32(SearchX-L)*2;
               if HexEdit
               then
-                SetCursor(10+(Cur.X div 2)*3+Cur.X and 1, Cur.Y)
+                SetCursor(11+(Cur.X div 2)*3+Cur.X and 1, Cur.Y)
               else
                 SetCursor(12+HexPos*3+Cur.X, Cur.Y);
               ShowCursor;
               Src := Min(i32(L+J-SearchX), Length(SearchString.What));
-              MoveColor(B[10+i32(SearchX-L)*3], Src*3-1, CC[2]);
+              MoveColor(B[11+i32(SearchX-L)*3], Src*3-1, CC[2]);
               MoveColor(B[12+HexPos*3+i32(SearchX-L)], Src, CC[2]);
               Src := Length(SearchString.What)-Src;
               end
             else if Src > 0 then
               begin
               K := Min(Src, J);
-              MoveColor(B[10], K*3-1, CC[2]);
+              MoveColor(B[11], K*3-1, CC[2]);
               MoveColor(B[12+HexPos*3], K, CC[2]);
               Dec(Src, J);
               end;
@@ -1478,7 +1466,7 @@ procedure TFileViewer.Draw;
            if I = Cur.Y then
             begin
             K := Cur.X div (1+Byte(HexEdit));
-            MoveColor(B[10+K*3], 2, CC[2]);
+            MoveColor(B[11+K*3], 2, CC[2]);
             MoveColor(B[12+HexPos*3+K], 1, CC[2]);
             end; {-piwamoto}
           Inc(W, J);
@@ -1492,7 +1480,7 @@ procedure TFileViewer.Draw;
       begin
       DisableCommands([cmUnWrap]);
       HideCursor;
-      HexPos := ((Size.X-9) div 16)*16;
+      HexPos := ((Size.X-10) div 16)*16;
       if HexPos < 16 then
         HexPos := 16;
       W := BufPos;
@@ -1513,7 +1501,7 @@ procedure TFileViewer.Draw;
         J := MinBufSize(FileSize-L, HexPos);
         if J > 0 then
           begin
-          XDumpStr(S, Buf^[W], trunc32(L), J, Filter); //!!s
+          XDumpStr(S, Buf^[W], L, J, Filter); //!!s
           XLatBuf(S[10], Length(S)-9, XCoder.XLatCP[ToAscii]);
           Drivers.MoveStr(B, S, C);
           if SearchActive then
@@ -1566,10 +1554,10 @@ procedure TFileViewer.Draw;
           begin
           if Cur.Y = I then
             HexPos := i32(L-FilePos-BufPos)+((Cur.X-10) div 2);
-          D.InstrMaxLen := i32(FileSize-L);
+          D.InstrMaxLen := MinBufSize(FileSize-L, 15);
           {Draw - doesn't matter}
           ScanCode(D);
-          S := UpStrg(Hex8(trunc32(L)))
+          S := HexFilePos(L)
                 +': '+D.CodeStr+Strg(' ', 29-Length(D.CodeStr))+
             D.Command+Strg(' ', 10-Length(D.Command))+
             D.Operands;
@@ -1939,7 +1927,7 @@ procedure TFileViewer.MakeLines;
       for K := 0 to MaxLines do
         begin
         Lines[K].Pos := X.Offset;
-        X.InstrMaxLen := i32(FileSize-X.Offset-FilePos-1);
+        X.InstrMaxLen := MinBufSize(FileSize-X.Offset-FilePos-1, 15);
         ScanCode(X);
         Lines[K].len := X.InstrLen;
         if X.InstrLen = 0 then
@@ -2159,7 +2147,7 @@ procedure TFileViewer.SeekEof;
     WC: TFileSize;
     WL: Longint absolute WC;
     OldLen1: LongInt;
-    Temp: LongInt;
+    Temp: TFileSize;
   label
     EndProc;
   begin
@@ -2192,13 +2180,14 @@ procedure TFileViewer.SeekEof;
         goto EndProc;
 
       OldFileSize := FileSize;
-      Seek(StreamSize);
+      SysFileSeek(Handle, 0, 2, StreamSize);
       FileSize := StreamSize;
       if FileSize < OldFileSize then
         begin { Файл сжался }
         if Position > FileSize then
           Position := StreamSize;
         end;
+      SysFileSeek(Handle, Position, 0, Temp);
       Seek(Position);
       end;
 
@@ -2213,7 +2202,9 @@ procedure TFileViewer.SeekEof;
   Seek(FileSize-BufSize);
   if  (ViewMode = vmHex) or (ViewMode = vmDump) then
     begin
-    BufPos := Max(I32(OldStart-FilePos), BufSize-Size.Y*HexPos);
+    BufPos := BufSize-Size.Y*HexPos;
+    if BufPos < OldStart-FilePos then
+      BufPos := i32(OldStart-FilePos);
     MakeLines;
     end
   else
@@ -2263,6 +2254,7 @@ procedure TFileViewer.HandleEvent;
     LR: Integer;
     I: Integer;
     LLR, LFR: LongInt;
+    ALLR, ALFR: TFileSize;
     F: lFile;
     Ch: Char;
     Lin: Byte;
@@ -2477,13 +2469,13 @@ DoSave:
                 end;
               WriteModify;
               {if Desktop<>nil then Desktop^.Lock;}
-              if Application <> nil then
+              if (Application <> nil) and (FileSize < $7FFFFFF) then
                 begin
                 if FileName <> VFileName then
                   TempFile := '*^&'+FileName;
                 PDNApplication(Application)^.EditFile(True, FileName);
                 MessageL(Application, evCommand, cmGotoLineNumber2,
-                  GetLineNumberForOffset(FileName, trunc32(FilePos+BufPos))
+                  GetLineNumberForOffset(FileName, i32(FilePos+BufPos))
                   );
                 end;
               {if Desktop<>nil then Desktop^.UnLock;}
@@ -2497,15 +2489,23 @@ DoSave:
             I := Event.Command-cmPlaceMarker1+1;
             if  (I >= 1) and (I <= 9) then
               begin
-              if  (MarkPos[I].Y = -1) or
-                  (MarkPos[I].Y <> FilePos+BufPos) or
-                  (MarkPos[I].X <> Byte(HexEdit)*256*256
-                  +Cur.Y*256+Cur.X)
-              then
-                MarkPos[I].Assign(Byte(HexEdit)*256*256
-                  +Cur.Y*256+Cur.X, trunc32(FilePos+BufPos))
-              else
-                MarkPos[I].Assign(-1, -1);
+              with MarkPos[I] do
+                begin
+                if  (Y = -1) or
+                    (Y <> FilePos+BufPos) or
+                    (X <> Byte(HexEdit)*256*256
+                    +Cur.Y*256+Cur.X)
+                then
+                  begin
+                  X := Byte(HexEdit)*256*256+Cur.Y*256+Cur.X;
+                  Y := FilePos+BufPos;
+                  end
+                else
+                  begin
+                  X := -1;
+                  Y := -1;
+                  end;
+                end;
               DrawView;
               end;
             CE;
@@ -2546,20 +2546,20 @@ DoSave:
               begin
               if ExecResource(dlgGotoAddress, FreeStr) <> cmOK then
                 Exit;
-              Val('$'+FreeStr, LLR, I);
-              if I <> 0 then
+              Val('$'+FreeStr, ALLR, I);
+              if (I <> 0) or (ALLR < 0) then
                 Exit;
-              LFR := LLR;
+              ALFR := ALLR;
               Cur.Assign(0, 0);
               {JO} {$IFDEF DisAsm}
               if ViewMode <> vmAsm then
                 begin
                 {$ENDIF}
                 WC := BufPos+FilePos;
-                while ((LFR mod HexPos) <> (WL mod HexPos)) and (LFR > 0)
+                while (FSizeMod(ALFR, HexPos) <> (WL mod HexPos)) and (LFR > 0)
                 do
                   begin
-                  Dec(LFR);
+                  ALFR := ALFR-1;
                   Inc(Cur.X, (1 + Byte(HexEdit)));
                   end;
                 {$IFDEF DisAsm}
@@ -2567,7 +2567,7 @@ DoSave:
               else
                 Cur.X := 10;
               {/JO} {$ENDIF}
-              Seek(LFR);
+              Seek(ALFR);
               MakeLines;
               DrawView;
               end;
@@ -3294,7 +3294,7 @@ procedure TFileViewer.CountDown;
       D.MemBuff := Buf;
       while (ANumber > 0) do
         begin
-        D.InstrMaxLen := i32(FileSize-FilePos-BufPos-1);
+        D.InstrMaxLen := MinBufSize(FileSize-FilePos-BufPos-1, 15);
         D.Offset := BufPos;
         ScanCode(D);
         if BufPos+D.InstrLen+15*Size.Y > BufSize then

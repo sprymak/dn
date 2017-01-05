@@ -176,14 +176,16 @@ function GetShare(Drive: Char): String; {AK155}
     Buf: array[0..4] of char = 'C:\'#0#0;
   begin
   Buf[0] := Drive;
-  move(Buf, segdossyslow32, 5);
+  move(Buf, Mem[segdossyslow32], 5);
   with Regs do
     begin
     AH_ := $60; // CANONICALIZE FILENAME OR PATH
     DS_ := segdossyslow16; SI_ := 0; // исходное имя
     ES_ := segdossyslow16; DI_ := 4; // результат
     intr_realmode(Regs, $21);
-    Result := StrPas(@Mem[segdossyslow32+4])
+    Result := StrPas(@Mem[segdossyslow32+4]);
+    if (Length(Result) <> 0) and (Result[1] = Drive) then
+      Result := '';
     end;
   end;
 
@@ -225,7 +227,12 @@ function GetDriveTypeNew(Drive: Char): TDrvTypeNew;
     if (regs.flags_ and fCarry = 0) then
       begin
       if (regs.dh_ and $10) <> 0 then
-        Result := dtnLAN
+        begin
+        if GetShare(Drive) = '' then
+          Result := dtnProgram
+        else
+          Result := dtnLAN;
+        end
       else if (regs.dh_ and $1) <> 0 then
         Result := dtnSubst
       else

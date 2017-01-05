@@ -53,7 +53,7 @@ unit Gauge;
 interface
 
 uses
-  Drivers, Defines, Views, Dialogs, Dos, TitleSet, Collect
+  Drivers, Defines, Views, Dialogs, Collect
   ;
 
 const
@@ -107,7 +107,7 @@ procedure DispatchEvents(InfoView: PWhileView; var CancelParam: Boolean);
 
 implementation
 uses
-  DNApp, RStrings, Commands, Advance, Advance1, Advance2
+  DNApp, Commands, Dos, TitleSet, Advance, Advance1, Advance2
   ;
 
 constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: LongInt);

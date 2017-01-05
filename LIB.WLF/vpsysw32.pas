@@ -171,6 +171,8 @@ begin
       @pExitThread := QueryProcAddr('ExitThread', True);
       @pInitializeCriticalSectionAndSpinCount := QueryProcAddr('InitializeCriticalSectionAndSpinCount', True);
       @pGetKBCodePage := QueryProcAddr('GetKBCodePage', False);
+      @pIsClipboardFormatAvailable :=
+        QueryProcAddr('IsClipboardFormatAvailable', False);
       @pOpenClipboard := QueryProcAddr('OpenClipboard', False);
       @pEmptyClipboard := QueryProcAddr('EmptyClipboard', False);
       @pCloseClipboard := QueryProcAddr('CloseClipboard', False);

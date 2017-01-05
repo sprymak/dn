@@ -49,14 +49,14 @@ unit ArchRead;
 
 interface
 
-uses
-  Archiver, FStorage, Dos, ArcView, Advance, Advance1, Advance2, Messages,
-  DNApp, Commands, Drivers, Lfn, Objects2, Views
-  ;
-
 procedure ReadArcList;
 
 implementation
+
+uses
+  Archiver, FStorage, Dos, ArcView, Advance, Advance1, Advance2, Messages,
+  DNApp, Commands, Lfn, Views
+  ;
 
 {-DataCompBoy-}
 procedure ReadArcList; {changed & AIN added by piwamoto}

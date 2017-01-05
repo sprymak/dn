@@ -4034,8 +4034,9 @@ directory.
 
 In target directory file with such name is already present. You can
   <{Overwrite>:_}> - overwrite him
-  <{Skip:_}>      - skip operation for a current file
   <{Append:_}>    - add a new file to the end of old file
+  <{Resume:_}> - {resume:QueryAbort} copy him
+  <{Skip:_}>      - skip operation for a current file
 
 You also can set a current choice as default for current operation:
 {Accept choice for all files:_}
@@ -4639,6 +4640,33 @@ command in command line:
 
 .topic SkipBadFile=49009   {John_SW}
 .title Could not open the file
+
+.topic QueryAbort=49010
+   If copying of a file is canceled by the user or by read errors, then
+(by default) the part of the file that has been copied is deleted.
+However, one can set on corresponding options in the cancel dialog,
+and the initial part of the file will be saved with its actual length
+(that has been written). The time and attributes of the partial file
+will be those of the source file.
+   One can resume copying of the file by setting an option "Resume"
+in the copy dialog or by pressing the "Resume" button in the dialog of the
+choice of action when the target name exists.
+   When resuming copying files, the initial part of the source file
+(with the length of the target file) is skipped and its remaining part
+is read and written to the end of the target file. There is no checking
+by DN of the content of the initial part of the source file and the
+target file, i.e. it is the user's responsibility to ensure that the
+target file is in fact the partial copy of the source file, and not
+just another file with the same name. DN checks only file lengths and
+the resumption of copying is possible only when the target file is
+smaller than the source file.
+   If "Resume" is done automatically and the target file is not smaller
+than the source file, then this operation is equivalent to the "Skip".
+For example, if you were copying a directory and interrupted the copy
+operation while keeping the partially written file, then you can
+continue copying of the directory using "Resume": all files that had
+been fully copied will be skipped, the partially copied file will be
+copied completely, and the remaining files will be copied as expected.
 
 .topic QuickSearch=01210
 .title Quick search

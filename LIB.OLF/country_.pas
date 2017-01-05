@@ -5,7 +5,7 @@ unit Country_;
 interface
 
 uses
-  U_KeyMap;
+  U_KeyMap, Defines;
 
 procedure GetSysCountryInfo;
   {` Заполняет CountryInfo (advance) данными от системы `}

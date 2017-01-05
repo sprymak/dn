@@ -306,6 +306,11 @@ procedure TRARArchive.GetFile;
         FileInfo.Attr := FileInfo.Attr or Directory;
       if P2.NameLen > 255 then
         P2.NameLen := 255;
+      if P2.HeadFlags and $100 <> 0 then
+        begin { HIGH_PACK_SIZE and HIGH_UNP_SIZE presents}
+        ArcFile^.Read(CompRec(FileInfo.PSize).Hi, 4);
+        ArcFile^.Read(CompRec(FileInfo.USize).Hi, 4);
+        end;
       ArcFile^.Read(FileInfo.FName[1], P2.NameLen);
       SetLength(FileInfo.FName, P2.NameLen);
       if P2.HeadFlags and $200 <> 0 then
@@ -322,7 +327,7 @@ procedure TRARArchive.GetFile;
         FileInfo.Last := 2;
         Exit;
         end;
-      ArcFile^.Seek(FP+P2.HeadSize+P2.PSize);
+      ArcFile^.Seek(CompToFSize(FP+P2.HeadSize+FileInfo.PSize));
       if P2.Ver > VersionToExtr then
         VersionToExtr := P2.Ver;
       Exit;

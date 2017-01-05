@@ -52,9 +52,8 @@ interface
 
 uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF} {Cat}
-  fnotify, Advance2,
-  DNUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
-  UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Defines, Objects2
+  DNUtil, Drivers, Views,
+  xTime, Defines, Objects2
   ;
 
 type
@@ -72,9 +71,10 @@ implementation
 
 uses
   {$IFNDEF DPMI32}Killer, {$ENDIF}
-  VpSysLow,
-  Drives,
-  DN1, Events
+  VpSysLow, fnotify, Advance2, DNApp, Gauges,
+  Drives, Advance, Advance3, Commands,
+  DN1, Events, UserMenu, Messages, Startup,
+  FlPanelX, Macro
   ;
 
 (*{$I  runcmd.inc}*)

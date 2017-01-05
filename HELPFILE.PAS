@@ -99,7 +99,7 @@ type
 
 implementation
 uses
-  DNApp, Commands, DNHelp, RStrings, DNUtil
+  DNApp, Commands, DNHelp, DNUtil
   ;
 
 { THelpViewer }

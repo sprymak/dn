@@ -51,9 +51,9 @@ unit DNApp;
 interface
 
 uses
-  Defines, Objects2, Streams, Drivers, Memory, HistList, Views, Menus,
-   Dialogs, Lfn,
-  RStrings, Commands, xTime, Messages, Collect, Advance7, Startup
+  Defines, Objects2, Streams, Drivers, Memory, Views, Menus,
+  Dialogs, RStrings, Commands, xTime, Collect
+  , Startup, Startupp
   ;
 
 const
@@ -302,9 +302,9 @@ uses
   UserMenu, Microed, FViewer, DblWnd, CmdLine,
   {$IFDEF DNPRG} Dn2PmApi, {$ENDIF} {AK155}
   {$IFDEF SS}Idlers, {$ENDIF}
-  VpSysLow,
+  VpSysLow, Lfn, HistList, Advance7,
   DnIni,
-  DnExec, Advance0
+  DnExec
   ;
 
 var

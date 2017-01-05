@@ -70,10 +70,9 @@ unit Microed;
 interface
 
 uses
-  Dos, Lfn {DataCompBoy}, Defines, Streams, Drivers, Memory, Views,
-   Messages, DNApp,
-  Advance, Advance1, Advance2, Startup, Menus, DNStdDlg, Dialogs,
-  Commands, UniWin, RStrings, DNHelp, {SBlocks,}ObjType, U_KeyMap, Collect,
+  Defines, Streams, Drivers, Views,
+  Advance, Menus,
+  Commands, {SBlocks,}ObjType, U_KeyMap, Collect,
   {$IFDEF REGEXP}RegExp, {$ENDIF}
   ed2, highlite
   ;
@@ -288,9 +287,10 @@ implementation
 
 uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
+  Messages, DNApp, Dos, Lfn, Memory, Advance1, Advance2, Startup,
   Gauge, FViewer, HistList, Macro, Editor, WinClp, DNUtil, Histries,
   xTime, FileCopy, ASCIITab, DnIni, U_SrchF, EdWin, MicroEd2 {-$VIV}
-  , Events, VpSysLow, Advance0
+  , Events, VpSysLow, DNStdDlg, Dialogs, DNHelp, VPUtils
   ;
 
 const

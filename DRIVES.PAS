@@ -51,10 +51,8 @@ unit Drives;
 interface
 
 uses
-  Lfn, Files, FlTl,
-  fnotify,
-  Dos, Defines, Objects2, Streams, Memory, Views, Drivers, DnIni,
-  FilesCol, DiskInfo, Advance, Advance1, Advance2, Collect
+  Defines, Objects2, Streams, Views, Drivers,
+  FilesCol, DiskInfo, Collect
   , PDSetup
   ;
 
@@ -152,11 +150,11 @@ const
 
 implementation
 uses
-  VPSysLow,
-  Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
+  VPSysLow, Lfn, Files, FlTl,
+  Startup, Tree, DNApp, FileCopy, Eraser, FlPanel, Commands,
   Dialogs, FileFind, FlPanelX, Filediz, CmdLine
-  , xTime, Messages, Events
-  , Gauge {для PWhileView}
+  , xTime, Messages, Events, fnotify, Dos
+  , Gauge {для PWhileView}, DnIni, Advance, Advance1, Advance2
   ;
 
 const

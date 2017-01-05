@@ -121,9 +121,6 @@ type
     ColorIndex: array[0..255] of Byte;
     end;
 
-type
-  TSize = Comp;
-
   { TCharImage = array [0..15] of Byte;}
 
 type
@@ -181,9 +178,6 @@ procedure ClrIO;
   Abort := False;
   end;
 
-function Cut(p: String; len: Integer): String;
-function CutH(p: String; len: Integer): String;
-
 function MemOK: Boolean;
   inline;
   begin
@@ -193,11 +187,6 @@ function GetMeMemoStream: PStream; {-$VOL}
 function MemAdjust(L: LongInt): LongInt;
 procedure FillWord(var B; Count, W: Word);
 procedure LocateCursor(X, Y: Byte);
-function XDiv1024(X: LongInt): LongInt;
-function LongRatio(X, Y: LongInt): Integer;
-function Min(x, y: LongInt): LongInt;
-function Max(x, y: LongInt): LongInt;
-function Sgn(x: Integer): Integer;
 procedure TinySlice;
   {` Отдача системе кванта времени. Эта процедура вызывается из
   цикла событий TGroup.Execute, а стало быть, в любой ситуации,
@@ -236,7 +225,6 @@ const
   '-', '+', '=', '|', '?', #13, #10, #9, #26, #12, '@'];
 
   HexStr: array[0..$F] of Char = '0123456789ABCDEF';
-  LoHexChar: array[0..$F] of Char = '0123456789abcdef';
   N_O_E_M_S: array[1..5] of Char = 'NOEMS';
   cTEMP_: String[5] = 'TEMP:';
   cLINK_: String[5] = 'LINK:';
@@ -327,29 +315,16 @@ const
 type
   TPosArray = array[1..9] of TPoint;
 
+  TFPos = record X: Integer; Y: TFileSize end;
+  TFPosArray = array [1..9] of TFPos;
+
 implementation
 
 uses
-  xTime, Startup, Advance1, Advance0,
+  xTime, Startup, Advance1, VPUtils,
   VpSysLow, Advance2,
   Commands
   ;
-
-function Cut;
-  begin
-  (* X-Man *)
-  if len < 0 then
-    len := 0;
-  Cut := FormatLongName(p, len, 0, 0, nfmNull)
-  end;
-
-function CutH;
-  begin
-  (* X-Man *)
-  if len < 0 then
-    len := 0;
-  CutH := FormatLongName(p, len, 0, flnHighlight+flnHandleTildes, nfmNull)
-  end;
 
 {-DataCompBoy-}
 constructor TTextReader.Init;
@@ -777,49 +752,6 @@ asm
 procedure LocateCursor(X, Y: Byte);
   begin
   SysTVSetCurPos {GotoXY}(X, Y)
-  end;
-
-{&Frame-}
-function XDiv1024;
-  assembler;
-asm
-  mov eax,X
-  shr eax,10
-end;
-
-function LongRatio;
-  begin
-  while X > (MaxLongInt div 100) do
-    begin
-    X := X div 128;
-    Y := Y div 128;
-    end;
-  LongRatio := 100*X div Y;
-  end;
-
-function Min;
-  begin
-  if x < y then
-    Min := x
-  else
-    Min := y
-  end;
-function Max;
-  begin
-  if x < y then
-    Max := y
-  else
-    Max := x
-  end;
-
-function Sgn;
-  begin
-  if x > 0 then
-    Sgn := 1
-  else if x < 0 then
-    Sgn := -1
-  else
-    Sgn := 0
   end;
 
 procedure TinySlice;
