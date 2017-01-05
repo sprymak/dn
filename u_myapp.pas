@@ -148,9 +148,9 @@ begin
                Exit;
              end;
            if (ShiftState and 7 <> 0) and ((ShiftState and 4 = 0) or (ShiftState and 3 = 0)) and
-              (Event.ScanCode >= kbAlt1 shr 8) and (Event.ScanCode <= kbAlt9 shr 8) then
+              (Event.ScanCode >= Hi(kbAlt1)) and (Event.ScanCode <= Hi(kbAlt9)) then
              begin
-              WW := Event.ScanCode - (kbAlt1 shr 8);
+              WW := Event.ScanCode - Hi(kbAlt1);
               if ShiftState and 3 <> 0 then
                 begin
                  if KeyMacroses = nil then
@@ -175,15 +175,17 @@ begin
              end;
 
 {AK155: Alt-Shift-F3 -> cmFileTextView}
-           if (Event.KeyCode = kbAltF3) and
+           {if (Event.KeyCode = kbAltF3) and
               (ShiftState and kbAltShift <> 0) and
-              (ShiftState and (kbRightShift or kbLeftShift) <> 0) then
+              (ShiftState and (kbRightShift or kbLeftShift) <> 0) then}
+            if Event.KeyCode = kbAltShiftF3 then {Cat}
              begin
              Event.What := evCommand; Event.Command := cmFileTextView;
              Exit;
              end;
 {/AK155}
-           if (Event.KeyCode = kbAlt0) and (ShiftState and 3 <> 0) then
+           {if (Event.KeyCode = kbAlt0) and (ShiftState and 3 <> 0) then}
+           if Event.KeyCode = kbAltShift0 then {Cat}
               begin Event.What := evCommand; Event.Command := cmListOfDirs; Exit; end;
            if MsgActive then
            if Event.KeyCode = kbLeft then Event.KeyCode := kbShiftTab

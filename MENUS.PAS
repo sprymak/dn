@@ -879,6 +879,15 @@ begin
     case Event.What of
       evMouseDown: DoSelect;
       evKeyDown:
+{ AK155 9-07-2002 То, что каждый символ протаскивается через все меню,
+не добавляет скорости. Реально тут хоткеи обрабатываются только для
+неактивного меню, поэтому имеет смысл анализировать только клавиши
+с Ctrl или Alt, а также Shift-GrayPlus, Shift-GrayMinus}
+        if ((Event.KeyCode and $C0000) <> 0)
+            or (Event.KeyCode = kbShiftGrayPlus)
+            or (Event.KeyCode = kbShiftGrayMinus)
+        then
+          begin {/AK155}
         if (FindItem(GetAltChar(Event.KeyCode)) <> nil) then
           DoSelect
         else
@@ -891,8 +900,9 @@ begin
             Event.InfoPtr := nil;
             PutEvent(Event);
             ClearEvent(Event);
-          end;
+{AK155}   end;  {/AK155}
         end;
+          end;
       evCommand:
         if Event.Command = cmMenu then DoSelect;
       evBroadcast:

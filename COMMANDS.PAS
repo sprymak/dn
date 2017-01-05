@@ -65,88 +65,292 @@ CONST
 {$ENDIF}
 
 CONST
-  kbEsc       = $011B;  kbAltSpace  = $C200;  kbCtrlIns    = $9200;
-  kbShiftIns  = $C300;  kbCtrlDel   = $9300;  kbShiftDel   = $C400;
-  kbBack      = $0E08;  kbCtrlBack  = $0E7F;  kbShiftTab   = $0F00;
-  kbTab       = $0F09;  kbAltQ      = $1000;  kbAltW       = $1100;
-  kbAltE      = $1200;  kbAltR      = $1300;  kbAltT       = $1400;
-  kbAltY      = $1500;  kbAltU      = $1600;  kbAltI       = $1700;
-  kbAltO      = $1800;  kbAltP      = $1900;  kbCtrlEnter  = $1C0A;
-  kbEnter     = $1C0D;  kbAltA      = $1E00;  kbAltS       = $1F00;
-  kbAltD      = $2000;  kbAltF      = $2100;  kbAltG       = $2200;
-  kbAltH      = $2300;  kbAltJ      = $2400;  kbAltK       = $2500;
-  kbAltL      = $2600;  kbAltZ      = $2C00;  kbAltX       = $2D00;
-  kbAltC      = $2E00;  kbAltV      = $2F00;  kbAltB       = $3000;
-  kbAltN      = $3100;  kbAltM      = $3200;  kbF1         = $3B00;
-  kbF2        = $3C00;  kbF3        = $3D00;  kbF4         = $3E00;
-  kbF5        = $3F00;  kbF6        = $4000;  kbF7         = $4100;
-  kbF8        = $4200;  kbF9        = $4300;  kbF10        = $4400;
-  kbHome      = $4700;  kbUp        = $4800;  kbPgUp       = $4900;
-  kbGrayMinus = $4A2D;  kbLeft      = $4B00;  kbRight      = $4D00;
-  kbGrayPlus  = $4E2B;  kbEnd       = $4F00;  kbDown       = $5000;
-  kbPgDn      = $5100;  kbIns       = $5200;  kbDel        = $5300;
-  kbShiftF1   = $5400;  kbShiftF2   = $5500;  kbShiftF3    = $5600;
-  kbShiftF4   = $5700;  kbShiftF5   = $5800;  kbShiftF6    = $5900;
-  kbShiftF7   = $5A00;  kbShiftF8   = $5B00;  kbShiftF9    = $5C00;
-  kbShiftF10  = $5D00;  kbCtrlF1    = $5E00;  kbCtrlF2     = $5F00;
-  kbCtrlF3    = $6000;  kbCtrlF4    = $6100;  kbCtrlF5     = $6200;
-  kbCtrlF6    = $6300;  kbCtrlF7    = $6400;  kbCtrlF8     = $6500;
-  kbCtrlF9    = $6600;  kbCtrlF10   = $6700;  kbAltF1      = $6800;
-  kbAltF2     = $6900;  kbAltF3     = $6A00;  kbAltF4      = $6B00;
-  kbAltF5     = $6C00;  kbAltF6     = $6D00;  kbAltF7      = $6E00;
-  kbAltF8     = $6F00;  kbAltF9     = $7000;  kbAltF10     = $7100;
-  kbCtrlPrtSc = $7200;  kbCtrlLeft  = $7300;  kbCtrlRight  = $7400;
-  kbCtrlEnd   = $7500;  kbCtrlPgDn  = $7600;  kbCtrlHome   = $7700;
-  kbAlt1      = $7800;  kbAlt2      = $7900;  kbAlt3       = $7A00;
-  kbAlt4      = $7B00;  kbAlt5      = $7C00;  kbAlt6       = $7D00;
-  kbAlt7      = $7E00;  kbAlt8      = $7F00;  kbAlt9       = $8000;
-  kbAlt0      = $8100;  kbAltMinus  = $8200;  kbAltEqual   = $8300;
-  kbCtrlPgUp  = $8400;  kbAltBack   = $0E00;  kbNoKey      = $0000;
-  kbDoubleAlt = $3800;  kbAltLeft   = $9B00;  kbAltRight   = $9D00;
-                        kbAltUp     = $9800;  kbAltDown    = $A000; {-$VIV}
-  kbAltTAB    = $A500;  kbCtrlTAB   = $9400;  kbCtrlESC    = $0E00;
-  kbAltEnter  = $1C00;  kbDoubleCtrl = $1D00; kbGrayAst    = $372A;
-  kbSpace     = $3920;  kbCtrlGPlus  = $9000; kbCtrlGMinus = $8E00;
-  kbCtrlGAst  = $9600;  kbAltSlash   = $A400; kbAltIns     = $A200;
-  kbShortCut  = $FFFF;  kbAltDel     = $A300; kbCtrlSlash  = $9500;
-  kbAltGPlus  = $4E00;  kbAltGMinus  = $4A00; kbAltPgUp    = $9900;
-  kbAltPgDn   = $A100;  kbF11        = $8500; kbF12        = $8600;
-  kbShiftF11  = $8700;  kbShiftF12   = $8800; kbAltHome    = $9A00;
-  kbCtrlF11   = $8900;  kbCtrlF12    = $8A00; kbAltEnd     = $9F00;
-  kbAltF11    = $8B00;  kbAltF12     = $8C00; kbCtrlBSlash = $2B1C;
-  kbCtrlUp    = $8D00;  kbCtrlDown   = $9100; kbCtrlSTab   = kbAltTab;
+{Cat: переделал все коды клавиш по следующему единому принципу:
+        kbNNNN = $XXYYZZ
+        XX - флажки сдвигов: 3 - Shift, 4 - Ctrl, 8 - Alt
+        YY - скан-код клавиши
+        ZZ - символьный код клавиши
+}
 
-  kbCtrlA = $1E01;  kbCtrlB = $3002;  kbCtrlC = $2E03;  kbCtrlD = $2004;
-  kbCtrlE = $1205;  kbCtrlF = $2106;  kbCtrlG = $2207;  kbCtrlH = $2308;
-  kbCtrlI = $1709;  kbCtrlJ = $240A;  kbCtrlK = $250B;  kbCtrlL = $260C;
-  kbCtrlM = $320D;  kbCtrlN = $310E;  kbCtrlO = $180F;  kbCtrlP = $1910;
-  kbCtrlQ = $1011;  kbCtrlR = $1312;  kbCtrlS = $1F13;  kbCtrlT = $1414;
-  kbCtrlU = $1615;  kbCtrlV = $2F16;  kbCtrlW = $1117;  kbCtrlX = $2D18;
-  kbCtrlY = $1519;  kbCtrlZ = $2C1A;  kbAltTilde = $2900;
+  kbEsc          = $00011B; kbAltEsc          = $080100;
+  kbShiftEsc     = $03011B; kbAltShiftEsc     = $0B0100;
+  kbCtrlEsc      = $04011B; kbCtrlAltEsc      = $0C0100;
+  kbCtrlShiftEsc = $07011B; kbCtrlAltShiftEsc = $0F0100;
 
-        {-DataCompBoy-}
-  kbCtrlAltX = $2D0D; kbCtrlAltZ = $2C0C;
-  kbCtrlAltF1 = $F100; kbCtrlAltF2 = $F200; kbCtrlAltF3 = $F300;
-  kbCtrlAltF4 = $F400; kbCtrlAltF5 = $F500; kbCtrlAltF6 = $F600;
-  kbCtrlAltF7 = $F700; kbCtrlAltF8 = $F800; kbCtrlAltF9 = $F900;
-  kbCtrlAltF10= $FA00; kbCtrlAltF11= $FB00; kbCtrlAltF12= $FC00;
-  kbCtrlShift1 = $E100; kbCtrlShift2 = $E200; kbCtrlShift3 = $E300;
-  kbCtrlShift4 = $E400; kbCtrlShift5 = $E500; kbCtrlShift6 = $E600;
-  kbCtrlShift7 = $E700; kbCtrlShift8 = $E800; kbCtrlShift9 = $E900;
-  kbCtrl1=$D100; kbCtrl2=$D200; kbCtrl3=$D300; kbCtrl4=$D400; kbCtrl5=$D500;
-  kbCtrl6=$D600; kbCtrl7=$D700; kbCtrl8=$D800; kbCtrl9=$D900; kbCtrl0=$DA00;
-  kbCtrlShiftTilde = $0FE00;    kbBackUp=$FD00; kbDownUp=$D000; kbUpUp=$C800;
-  kbAltCtrlSqBracketL=$1A1A;    kbAltCtrlSqBracketR=$1B1B;
-  kbCtrlSqBracketL=$1A1B;       kbCtrlSqBracketR=$1B1D;
-  kbAltMore=$3400;              kbAltLess=$3300;
-  kbAltShiftBack=$9700;
-  kbShiftGrayPlus=$CE00;        kbShiftGrayMinus=$CA00;
-  kbAltShiftIns=$A20A; {for VP-version}
+  kbF1  = $003B00; kbShiftF1  = $035400; kbCtrlF1  = $045E00; kbAltF1  = $086800;
+  kbF2  = $003C00; kbShiftF2  = $035500; kbCtrlF2  = $045F00; kbAltF2  = $086900;
+  kbF3  = $003D00; kbShiftF3  = $035600; kbCtrlF3  = $046000; kbAltF3  = $086A00;
+  kbF4  = $003E00; kbShiftF4  = $035700; kbCtrlF4  = $046100; kbAltF4  = $086B00;
+  kbF5  = $003F00; kbShiftF5  = $035800; kbCtrlF5  = $046200; kbAltF5  = $086C00;
+  kbF6  = $004000; kbShiftF6  = $035900; kbCtrlF6  = $046300; kbAltF6  = $086D00;
+  kbF7  = $004100; kbShiftF7  = $035A00; kbCtrlF7  = $046400; kbAltF7  = $086E00;
+  kbF8  = $004200; kbShiftF8  = $035B00; kbCtrlF8  = $046500; kbAltF8  = $086F00;
+  kbF9  = $004300; kbShiftF9  = $035C00; kbCtrlF9  = $046600; kbAltF9  = $087000;
+  kbF10 = $004400; kbShiftF10 = $035D00; kbCtrlF10 = $046700; kbAltF10 = $087100;
+  kbF11 = $008500; kbShiftF11 = $038700; kbCtrlF11 = $048900; kbAltF11 = $088B00;
+  kbF12 = $008600; kbShiftF12 = $038800; kbCtrlF12 = $048A00; kbAltF12 = $088C00;
 
-        {-DataCompBoy-}
+  kbCtrlShiftF1  = $075E00; kbAltShiftF1  = $0B6800;
+  kbCtrlShiftF2  = $075F00; kbAltShiftF2  = $0B6900;
+  kbCtrlShiftF3  = $076000; kbAltShiftF3  = $0B6A00;
+  kbCtrlShiftF4  = $076100; kbAltShiftF4  = $0B6B00;
+  kbCtrlShiftF5  = $076200; kbAltShiftF5  = $0B6C00;
+  kbCtrlShiftF6  = $076300; kbAltShiftF6  = $0B6D00;
+  kbCtrlShiftF7  = $076400; kbAltShiftF7  = $0B6E00;
+  kbCtrlShiftF8  = $076500; kbAltShiftF8  = $0B6F00;
+  kbCtrlShiftF9  = $076600; kbAltShiftF9  = $0B7000;
+  kbCtrlShiftF10 = $076700; kbAltShiftF10 = $0B7100;
+  kbCtrlShiftF11 = $078900; kbAltShiftF11 = $0B8B00;
+  kbCtrlShiftF12 = $078A00; kbAltShiftF12 = $0B8C00;
 
-  kbAltQuote = $2800;
-  kbAltSemicolon = $2700; {JO}
+  kbCtrlAltF1  = $0C6800; kbCtrlAltShiftF1  = $0F6800;
+  kbCtrlAltF2  = $0C6900; kbCtrlAltShiftF2  = $0F6900;
+  kbCtrlAltF3  = $0C6A00; kbCtrlAltShiftF3  = $0F6A00;
+  kbCtrlAltF4  = $0C6B00; kbCtrlAltShiftF4  = $0F6B00;
+  kbCtrlAltF5  = $0C6C00; kbCtrlAltShiftF5  = $0F6C00;
+  kbCtrlAltF6  = $0C6D00; kbCtrlAltShiftF6  = $0F6D00;
+  kbCtrlAltF7  = $0C6E00; kbCtrlAltShiftF7  = $0F6E00;
+  kbCtrlAltF8  = $0C6F00; kbCtrlAltShiftF8  = $0F6F00;
+  kbCtrlAltF9  = $0C7000; kbCtrlAltShiftF9  = $0F7000;
+  kbCtrlAltF10 = $0C7100; kbCtrlAltShiftF10 = $0F7100;
+  kbCtrlAltF11 = $0C8B00; kbCtrlAltShiftF11 = $0F8B00;
+  kbCtrlAltF12 = $0C8C00; kbCtrlAltShiftF12 = $0F8C00;
+
+  kbTilde = $002960; kbShiftTilde = $03297E; kbAltTilde  = $082900;
+  kbBack  = $000E08; kbShiftBack  = $030E08; kbCtrlBack  = $040E7F; kbAltBack  = $080E00;
+  kbTab   = $000F09; kbShiftTab   = $030F00; kbCtrlTab   = $049400; kbAltTab   = $08A500;
+  kbEnter = $001C0D; kbShiftEnter = $031C0D; kbCtrlEnter = $041C0A; kbAltEnter = $081C00;
+  kbSpace = $003920; kbShiftSpace = $033920; kbCtrlSpace = $043920; kbAltSpace = $083920;
+
+  kbAltShiftTilde  = $0B2900; kbCtrlAltTilde  = $0C2900;
+  kbCtrlShiftBack  = $070E7F; kbAltShiftBack  = $0B0E00;
+  kbCtrlShiftTab   = $079400; kbAltShiftTab   = $0BA500;
+  kbCtrlShiftEnter = $071C0A; kbAltShiftEnter = $0B1C00;
+  kbCtrlShiftSpace = $073920; kbAltShiftSpace = $0B3920;
+
+  kbCtrlAltShiftTilde  = $0F2900;
+  kbCtrlAltBack  = $0C0E00; kbCtrlAltShiftBack  = $0F0E00;
+  kbCtrlAltTab   = $0CA500; kbCtrlAltShiftTab   = $0FA500;
+  kbCtrlAltEnter = $0C1C00; kbCtrlAltShiftEnter = $0F1C00;
+  kbCtrlAltSpace = $0C3920; kbCtrlAltShiftSpace = $0F3920;
+
+  kbIns  = $005200; kbShiftIns  = $035200; kbCtrlIns  = $049200; kbAltIns  = $08A200;
+  kbDel  = $005300; kbShiftDel  = $035300; kbCtrlDel  = $049300; kbAltDel  = $08A300;
+  kbHome = $004700; kbShiftHome = $034700; kbCtrlHome = $047700; kbAltHome = $089700;
+  kbEnd  = $004F00; kbShiftEnd  = $034F00; kbCtrlEnd  = $047500; kbAltEnd  = $089F00;
+  kbPgUp = $004900; kbShiftPgUp = $034900; kbCtrlPgUp = $048400; kbAltPgUp = $089900;
+  kbPgDn = $005100; kbShiftPgDn = $035100; kbCtrlPgDn = $047600; kbAltPgDn = $08A100;
+
+  kbCtrlShiftIns  = $079200; kbAltShiftIns  = $0BA200;
+  kbCtrlShiftDel  = $079300; kbAltShiftDel  = $0BA300;
+  kbCtrlShiftHome = $077700; kbAltShiftHome = $0B9700;
+  kbCtrlShiftEnd  = $077500; kbAltShiftEnd  = $0B9F00;
+  kbCtrlShiftPgUp = $078400; kbAltShiftPgUp = $0B9900;
+  kbCtrlShiftPgDn = $077600; kbAltShiftPgDn = $0BA100;
+
+  kbCtrlAltIns  = $0CA200; kbCtrlAltShiftIns  = $0FA200;
+  kbCtrlAltDel  = $0CA300; kbCtrlAltShiftDel  = $0FA300;
+  kbCtrlAltHome = $0C9700; kbCtrlAltShiftHome = $0F9700;
+  kbCtrlAltEnd  = $0C9F00; kbCtrlAltShiftEnd  = $0F9F00;
+  kbCtrlAltPgUp = $0C9900; kbCtrlAltShiftPgUp = $0F9900;
+  kbCtrlAltPgDn = $0CA100; kbCtrlAltShiftPgDn = $0FA100;
+
+  kbLeft  = $004B00; kbShiftLeft  = $034B00; kbCtrlLeft  = $047300; kbAltLeft  = $089B00;
+  kbRight = $004D00; kbShiftRight = $034D00; kbCtrlRight = $047400; kbAltRight = $089D00;
+  kbUp    = $004800; kbShiftUp    = $034800; kbCtrlUp    = $048D00; kbAltUp    = $089800;
+  kbDown  = $005000; kbShiftDown  = $035000; kbCtrlDown  = $049100; kbAltDown  = $08A000;
+
+  kbCtrlShiftLeft  = $077300; kbAltShiftLeft  = $0B9B00;
+  kbCtrlShiftRight = $077400; kbAltShiftRight = $0B9D00;
+  kbCtrlShiftUp    = $078D00; kbAltShiftUp    = $0B9800;
+  kbCtrlShiftDown  = $079100; kbAltShiftDown  = $0BA000;
+
+  kbCtrlAltLeft  = $0C9B00; kbCtrlAltShiftLeft  = $0F9B00;
+  kbCtrlAltRight = $0C9D00; kbCtrlAltShiftRight = $0F9D00;
+  kbCtrlAltUp    = $0C9800; kbCtrlAltShiftUp    = $0F9800;
+  kbCtrlAltDown  = $0CA000; kbCtrlAltShiftDown  = $0FA000;
+
+  kbCtrl1 = $040200; kbAlt1 = $087800;
+  kbCtrl2 = $040300; kbAlt2 = $087900;
+  kbCtrl3 = $040400; kbAlt3 = $087A00;
+  kbCtrl4 = $040500; kbAlt4 = $087B00;
+  kbCtrl5 = $040600; kbAlt5 = $087C00;
+  kbCtrl6 = $040700; kbAlt6 = $087D00;
+  kbCtrl7 = $040800; kbAlt7 = $087E00;
+  kbCtrl8 = $040900; kbAlt8 = $087F00;
+  kbCtrl9 = $040A00; kbAlt9 = $088000;
+  kbCtrl0 = $040B00; kbAlt0 = $088100;
+  kbCtrlQ = $041011; kbAltQ = $081000;
+  kbCtrlW = $041117; kbAltW = $081100;
+  kbCtrlE = $041205; kbAltE = $081200;
+  kbCtrlR = $041312; kbAltR = $081300;
+  kbCtrlT = $041414; kbAltT = $081400;
+  kbCtrlY = $041519; kbAltY = $081500;
+  kbCtrlU = $041615; kbAltU = $081600;
+  kbCtrlI = $041709; kbAltI = $081700;
+  kbCtrlO = $04180F; kbAltO = $081800;
+  kbCtrlP = $041910; kbAltP = $081900;
+  kbCtrlA = $041E01; kbAltA = $081E00;
+  kbCtrlS = $041F13; kbAltS = $081F00;
+  kbCtrlD = $042004; kbAltD = $082000;
+  kbCtrlF = $042106; kbAltF = $082100;
+  kbCtrlG = $042207; kbAltG = $082200;
+  kbCtrlH = $042308; kbAltH = $082300;
+  kbCtrlJ = $04240A; kbAltJ = $082400;
+  kbCtrlK = $04250B; kbAltK = $082500;
+  kbCtrlL = $04260C; kbAltL = $082600;
+  kbCtrlZ = $042C1A; kbAltZ = $082C00;
+  kbCtrlX = $042D18; kbAltX = $082D00;
+  kbCtrlC = $042E03; kbAltC = $082E00;
+  kbCtrlV = $042F16; kbAltV = $082F00;
+  kbCtrlB = $043002; kbAltB = $083000;
+  kbCtrlN = $04310E; kbAltN = $083100;
+  kbCtrlM = $04320D; kbAltM = $083200;
+
+  kbCtrlShift1 = $070200; kbAltShift1 = $0B7800; kbCtrlAlt1 = $0C7800; kbCtrlAltShift1 = $0F7800;
+  kbCtrlShift2 = $070300; kbAltShift2 = $0B7900; kbCtrlAlt2 = $0C7900; kbCtrlAltShift2 = $0F7900;
+  kbCtrlShift3 = $070400; kbAltShift3 = $0B7A00; kbCtrlAlt3 = $0C7A00; kbCtrlAltShift3 = $0F7A00;
+  kbCtrlShift4 = $070500; kbAltShift4 = $0B7B00; kbCtrlAlt4 = $0C7B00; kbCtrlAltShift4 = $0F7B00;
+  kbCtrlShift5 = $070600; kbAltShift5 = $0B7C00; kbCtrlAlt5 = $0C7C00; kbCtrlAltShift5 = $0F7C00;
+  kbCtrlShift6 = $070700; kbAltShift6 = $0B7D00; kbCtrlAlt6 = $0C7D00; kbCtrlAltShift6 = $0F7D00;
+  kbCtrlShift7 = $070800; kbAltShift7 = $0B7E00; kbCtrlAlt7 = $0C7E00; kbCtrlAltShift7 = $0F7E00;
+  kbCtrlShift8 = $070900; kbAltShift8 = $0B7F00; kbCtrlAlt8 = $0C7F00; kbCtrlAltShift8 = $0F7F00;
+  kbCtrlShift9 = $070A00; kbAltShift9 = $0B8000; kbCtrlAlt9 = $0C8000; kbCtrlAltShift9 = $0F8000;
+  kbCtrlShift0 = $070B00; kbAltShift0 = $0B8100; kbCtrlAlt0 = $0C8100; kbCtrlAltShift0 = $0F8100;
+  kbCtrlShiftQ = $071011; kbAltShiftQ = $0B1000; kbCtrlAltQ = $0C1000; kbCtrlAltShiftQ = $0F1000;
+  kbCtrlShiftW = $071117; kbAltShiftW = $0B1100; kbCtrlAltW = $0C1100; kbCtrlAltShiftW = $0F1100;
+  kbCtrlShiftE = $071205; kbAltShiftE = $0B1200; kbCtrlAltE = $0C1200; kbCtrlAltShiftE = $0F1200;
+  kbCtrlShiftR = $071312; kbAltShiftR = $0B1300; kbCtrlAltR = $0C1300; kbCtrlAltShiftR = $0F1300;
+  kbCtrlShiftT = $071414; kbAltShiftT = $0B1400; kbCtrlAltT = $0C1400; kbCtrlAltShiftT = $0F1400;
+  kbCtrlShiftY = $071519; kbAltShiftY = $0B1500; kbCtrlAltY = $0C1500; kbCtrlAltShiftY = $0F1500;
+  kbCtrlShiftU = $071615; kbAltShiftU = $0B1600; kbCtrlAltU = $0C1600; kbCtrlAltShiftU = $0F1600;
+  kbCtrlShiftI = $071709; kbAltShiftI = $0B1700; kbCtrlAltI = $0C1700; kbCtrlAltShiftI = $0F1700;
+  kbCtrlShiftO = $07180F; kbAltShiftO = $0B1800; kbCtrlAltO = $0C1800; kbCtrlAltShiftO = $0F1800;
+  kbCtrlShiftP = $071910; kbAltShiftP = $0B1900; kbCtrlAltP = $0C1900; kbCtrlAltShiftP = $0F1900;
+  kbCtrlShiftA = $071E01; kbAltShiftA = $0B1E00; kbCtrlAltA = $0C1E00; kbCtrlAltShiftA = $0F1E00;
+  kbCtrlShiftS = $071F13; kbAltShiftS = $0B1F00; kbCtrlAltS = $0C1F00; kbCtrlAltShiftS = $0F1F00;
+  kbCtrlShiftD = $072004; kbAltShiftD = $0B2000; kbCtrlAltD = $0C2000; kbCtrlAltShiftD = $0F2000;
+  kbCtrlShiftF = $072106; kbAltShiftF = $0B2100; kbCtrlAltF = $0C2100; kbCtrlAltShiftF = $0F2100;
+  kbCtrlShiftG = $072207; kbAltShiftG = $0B2200; kbCtrlAltG = $0C2200; kbCtrlAltShiftG = $0F2200;
+  kbCtrlShiftH = $072308; kbAltShiftH = $0B2300; kbCtrlAltH = $0C2300; kbCtrlAltShiftH = $0F2300;
+  kbCtrlShiftJ = $07240A; kbAltShiftJ = $0B2400; kbCtrlAltJ = $0C2400; kbCtrlAltShiftJ = $0F2400;
+  kbCtrlShiftK = $07250B; kbAltShiftK = $0B2500; kbCtrlAltK = $0C2500; kbCtrlAltShiftK = $0F2500;
+  kbCtrlShiftL = $07260C; kbAltShiftL = $0B2600; kbCtrlAltL = $0C2600; kbCtrlAltShiftL = $0F2600;
+  kbCtrlShiftZ = $072C1A; kbAltShiftZ = $0B2C00; kbCtrlAltZ = $0C2C00; kbCtrlAltShiftZ = $0F2C00;
+  kbCtrlShiftX = $072D18; kbAltShiftX = $0B2D00; kbCtrlAltX = $0C2D00; kbCtrlAltShiftX = $0F2D00;
+  kbCtrlShiftC = $072E03; kbAltShiftC = $0B2E00; kbCtrlAltC = $0C2E00; kbCtrlAltShiftC = $0F2E00;
+  kbCtrlShiftV = $072F16; kbAltShiftV = $0B2F00; kbCtrlAltV = $0C2F00; kbCtrlAltShiftV = $0F2F00;
+  kbCtrlShiftB = $073002; kbAltShiftB = $0B3000; kbCtrlAltB = $0C3000; kbCtrlAltShiftB = $0F3000;
+  kbCtrlShiftN = $07310E; kbAltShiftN = $0B3100; kbCtrlAltN = $0C3100; kbCtrlAltShiftN = $0F3100;
+  kbCtrlShiftM = $07320D; kbAltShiftM = $0B3200; kbCtrlAltM = $0C3200; kbCtrlAltShiftM = $0F3200;
+
+  kbAltMinus      = $088200; kbAltShiftMinus      = $0B8200;
+  kbAltPlus       = $088300; kbAltShiftPlus       = $0B8300;
+  kbAltBSlash     = $082B00; kbAltShiftBSlash     = $0B2B00;
+  kbAltSqBracketL = $081A00; kbAltShiftSqBracketL = $0B1A00;
+  kbAltSqBracketR = $081B00; kbAltShiftSqBracketR = $0B1B00;
+  kbAltSemicolon  = $082700; kbAltShiftSemicolon  = $0B2700;
+  kbAltQuote      = $082800; kbAltShiftQuote      = $0B2800;
+  kbAltLess       = $083300; kbAltShiftLess       = $0B3300;
+  kbAltMore       = $083400; kbAltShiftMore       = $0B3400;
+  kbAltSlash      = $083500; kbAltShiftSlash      = $0B3500;
+
+  kbCtrlAltMinus      = $0C8200; kbCtrlAltShiftMinus      = $0F8200;
+  kbCtrlAltPlus       = $0C8300; kbCtrlAltShiftPlus       = $0F8300;
+  kbCtrlAltBSlash     = $0C2B00; kbCtrlAltShiftBSlash     = $0F2B00;
+  kbCtrlAltSqBracketL = $0C1A00; kbCtrlAltShiftSqBracketL = $0F1A00;
+  kbCtrlAltSqBracketR = $0C1B00; kbCtrlAltShiftSqBracketR = $0F1B00;
+  kbCtrlAltSemicolon  = $0C2700; kbCtrlAltShiftSemicolon  = $0F2700;
+  kbCtrlAltQuote      = $0C2800; kbCtrlAltShiftQuote      = $0F2800;
+  kbCtrlAltLess       = $0C3300; kbCtrlAltShiftLess       = $0F3300;
+  kbCtrlAltMore       = $0C3400; kbCtrlAltShiftMore       = $0F3400;
+  kbCtrlAltSlash      = $0C3500; kbCtrlAltShiftSlash      = $0F3500;
+
+  kbCtrlMinus  = $040C1F;
+  kbCtrlBSlash = $042B1C; kbCtrlShiftBSlash = $072B1C;
+  kbCtrlSqBracketL = $041A1B; kbCtrlShiftSqBracketL = $071A1B;
+  kbCtrlSqBracketR = $041B1D; kbCtrlShiftSqBracketR = $071B1D;
+  kbCtrlSqBracketL_ = $041A85; kbCtrlShiftSqBracketL_ = $071A85; {под OS/2 при включённой русской раскладке}
+  kbCtrlSqBracketR_ = $041B8A; kbCtrlShiftSqBracketR_ = $071B8A; {под OS/2 при включённой русской раскладке}
+
+  kbGrayPlus  = $004E2B; kbShiftGrayPlus  = $034E2B;
+  kbGrayMinus = $004A2D; kbShiftGrayMinus = $034A2D;
+  kbGrayAst   = $00372A; kbShiftGrayAst   = $03372A;
+  kbGraySlash = $00E02F; kbShiftGraySlash = $03E02F;
+
+  kbCtrlGrayPlus  = $049000; kbAltGrayPlus  = $084E00;
+  kbCtrlGrayMinus = $048E00; kbAltGrayMinus = $084A00;
+  kbCtrlGrayAst   = $049600; kbAltGrayAst   = $083700;
+  kbCtrlGraySlash = $049500; kbAltGraySlash = $08A400;
+
+  kbCtrlShiftGrayPlus  = $079000; kbAltShiftGrayPlus  = $0B4E00;
+  kbCtrlShiftGrayMinus = $078E00; kbAltShiftGrayMinus = $0B4A00;
+  kbCtrlShiftGrayAst   = $079600; kbAltShiftGrayAst   = $0B3700;
+  kbCtrlShiftGraySlash = $079500; kbAltShiftGraySlash = $0BA400;
+
+  kbCtrlAltGrayPlus  = $0C4E00; kbCtrlAltShiftGrayPlus  = $0F4E00;
+  kbCtrlAltGrayMinus = $0C4A00; kbCtrlAltShiftGrayMinus = $0F4A00;
+  kbCtrlAltGrayAst   = $0C3700; kbCtrlAltShiftGrayAst   = $0F3700;
+  kbCtrlAltGraySlash = $0CA400; kbCtrlAltShiftGraySlash = $0FA400;
+
+  kbCtrlPrtSc = $047200; kbCtrlShiftPrtSc = $077200;
+
+  kbLeftSuxx  = $00EC00; kbShiftLeftSuxx  = $03EC00;
+  kbRightSuxx = $00ED00; kbShiftRightSuxx = $03ED00;
+  kbMenuSuxx  = $00EE00; kbShiftMenuSuxx  = $03EE00;
+
+  kbCtrlLeftSuxx  = $04EC00; kbAltLeftSuxx  = $08EC00; kbCtrlMenuSuxx = $04EE00;
+  kbCtrlRightSuxx = $04ED00; kbAltRightSuxx = $08ED00; kbAltMenuSuxx  = $08EE00;
+
+  kbCtrlShiftLeftSuxx  = $07EC00; kbAltShiftLeftSuxx  = $0BEC00;
+  kbCtrlShiftRightSuxx = $07ED00; kbAltShiftRightSuxx = $0BED00;
+  kbCtrlShiftMenuSuxx  = $07EE00; kbAltShiftMenuSuxx  = $0BEE00;
+
+  kbCtrlAltLeftSuxx  = $0CEC00; kbCtrlAltShiftLeftSuxx  = $0FEC00;
+  kbCtrlAltRightSuxx = $0CED00; kbCtrlAltShiftRightSuxx = $0FED00;
+  kbAtrlAltMenuSuxx  = $0CEE00; kbCtrlAltShiftMenuSuxx  = $0FEE00;
+
+  { псевдо-коды }
+
+  kbNoKey      = $000000;
+  kbShortCut   = $F0FFFF;
+  kbDoubleAlt  = $040000;
+  kbDoubleCtrl = $020000;
+  kbBackUp     = $00FD00;
+  kbDownUp     = $00FE00;
+  kbUpUp       = $00FF00;
+
+  { дублирующиеся имена }
+
+  kbAltCtrlSqBracketL = kbCtrlAltSqBracketL;
+  kbAltCtrlSqBracketR = kbCtrlAltSqBracketR;
+
+  kbCtrlSlash      = kbCtrlGraySlash;
+  kbCtrlShiftSlash = kbCtrlShiftGraySlash;
+
+  kbGPlus  = kbGrayPlus;  kbShiftGPlus  = kbShiftGrayPlus;
+  kbGMinus = kbGrayMinus; kbShiftGMinus = kbShiftGrayMinus;
+  kbGAst   = kbGrayAst;   kbShiftGAst   = kbShiftGrayAst;
+  kbGSlash = kbGraySlash; kbShiftGSlash = kbShiftGraySlash;
+
+  kbCtrlGPlus  = kbCtrlGrayPlus;  kbAltGPlus  = kbAltGrayPlus;
+  kbCtrlGMinus = kbCtrlGrayMinus; kbAltGMinus = kbAltGrayMinus;
+  kbCtrlGAst   = kbCtrlGrayAst;   kbAltGAst   = kbAltGrayAst;
+  kbCtrlGSlash = kbCtrlGraySlash; kbAltGSlash = kbCtrlGraySlash;
+
+  kbCtrlShiftGPlus  = kbCtrlShiftGrayPlus;
+  kbCtrlShiftGMinus = kbCtrlShiftGrayMinus;
+  kbCtrlShiftGAst   = kbCtrlShiftGrayAst;
+  kbCtrlShiftGSlash = kbCtrlShiftGraySlash;
+  kbAltShiftGPlus   = kbAltShiftGrayPlus;
+  kbAltShiftGMinus  = kbAltShiftGrayMinus;
+  kbAltShiftGAst    = kbAltShiftGrayAst;
+  kbAltShiftGSlash  = kbAltShiftGraySlash;
+  kbCtrlAltGPlus  = kbCtrlAltGrayPlus;
+  kbCtrlAltGMinus = kbCtrlAltGrayMinus;
+  kbCtrlAltGAst   = kbCtrlAltGrayAst;
+  kbCtrlAltGSlash = kbCtrlAltGraySlash;
+{/Cat}
 
 const
 
@@ -2473,7 +2677,16 @@ TYPE
     dlWkzQuerySeparatorTitle, {KV}
     dlWkzQuerySeparatorLabel, {KV}
     dlWkzWarningClear,
-    dlZIPWithoutCentralDir    {JO}
+    dlZIPWithoutCentralDir,   {JO}
+    dlArcEncrypted,           {JO}
+{AK155}
+    dlMissingLeftBracket,
+    dlMissingRightBracket,
+    dlWrongText,
+    dlNoOperand,
+    dlMissingOperation,
+    dlWrongComma
+{/AK155}
       );
 
       TDlgIdx = (

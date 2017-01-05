@@ -817,10 +817,10 @@ begin
       S := Size;
       KeyEvent(Event);
       case Event.KeyCode of
-        kbLeft,kbShiftTab: Change(-1, 0);
-        kbRight,kbTab: Change(1, 0);
-        kbUp: Change(0, -1);
-        kbDown: Change(0, 1);
+        kbLeft,KbShiftLeft,kbShiftTab: Change(-1, 0);
+        kbRight,kbShiftRight,kbTab: Change(1, 0);
+        kbUp,kbShiftUp: Change(0, -1);
+        kbDown,kbShiftDown: Change(0, 1);
         kbCtrlLeft: Change(-8, 0);
         kbCtrlRight: Change(8, 0);
         kbHome: P.X := Limits.A.X;
@@ -1732,24 +1732,24 @@ begin
       begin
         ClickPart := sbIndicator;
         if Size.Y = 1 then
-          case CtrlToArrow(Event.KeyCode) of
+          case {CtrlToArrow}(Event.KeyCode) of
             kbLeft: ClickPart := sbLeftArrow;
             kbRight: ClickPart := sbRightArrow;
             kbCtrlLeft: ClickPart := sbPageLeft;
             kbCtrlRight: ClickPart := sbPageRight;
-            kbHome: I := Min;
-            kbEnd: I := Max;
+            kbHome, kbShiftHome: I := Min;
+            kbEnd, kbShiftEnd: I := Max;
           else
             Exit;
           end
         else
-          case CtrlToArrow(Event.KeyCode) of
+          case {CtrlToArrow}(Event.KeyCode) of
             kbUp: ClickPart := sbUpArrow;
             kbDown: ClickPart := sbDownArrow;
             kbPgUp: ClickPart := sbPageUp;
             kbPgDn: ClickPart := sbPageDown;
-            kbCtrlPgUp: I := Min;
-            kbCtrlPgDn: I := Max;
+            kbCtrlPgUp, kbCtrlShiftPgUp: I := Min;
+            kbCtrlPgDn, kbCtrlShiftPgDn: I := Max;
           else
             Exit;
           end;

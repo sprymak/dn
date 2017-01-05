@@ -473,9 +473,9 @@ begin
       SelectItem(Focused);
       NewItem := Focused;
     end
-    else case CtrlToArrow(Event.KeyCode) of
-      kbUp: NewItem := Focused - 1;
-      kbDown: NewItem := Focused + 1;
+    else case {CtrlToArrow}(Event.KeyCode) of
+      kbUp, kbShiftUp: NewItem := Focused - 1;
+      kbDown, kbShiftDown: NewItem := Focused + 1;
       kbRight: if NumCols > 1 then NewItem := Focused + Size.Y else Exit;
       kbLeft: if NumCols > 1 then NewItem := Focused - Size.Y else Exit;
       kbPgDn: NewItem := Focused + Size.Y * NumCols;

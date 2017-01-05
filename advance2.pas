@@ -87,6 +87,7 @@ function  IsSeparatingChars(const s:string):Boolean;{JO: проверяет на наличие }
 FUNCTION  SquashesName(const s:string):string;      {quotes name if needed}
 FUNCTION  InMask(Name, Mask: string):Boolean;       {does Name match Mask? }
 FUNCTION  InFilter(Name, Filter: string):Boolean;   {does Name match Filter? }
+FUNCTION  InDirFilter(Name, Filter: string):Boolean;  {JO}
 {FUNCTION  InExtMask(Name, Mask: string):Boolean;}  {does Ext match Mask? }
 
 type TMaskPos = packed record
@@ -144,6 +145,8 @@ function  SetFileAttr(const S: String; Attr: Word):Word;
 function  CorrectFile(const N: String): Boolean;
 function  PathExist(s: string): boolean; {Is path exist}
 
+function  PathFoundInArc(S: String): Boolean; {JO}
+
 {-DataCompBoy-}
 type TQuickSearchData = record
       Mask: string;
@@ -169,7 +172,7 @@ type
    end;
 {$ENDIF}
 
-function  PackMask(const Mask: string; var PM: String; LFNDis: boolean): boolean; {DataCompBoy}
+function  PackMask(const Mask: string; var PM: String {$IFDEF OS_DOS}; LFNDis: boolean {$ENDIF}): boolean; {DataCompBoy}
 
 function CompareFiles(const N1, N2: String): Boolean;
 
@@ -658,6 +661,33 @@ begin
  InFilter:=Off;
 end;
         {-DataCompBoy-}
+{JO}
+function InDirFilter;
+var i: byte;
+    S: string;
+    B: Boolean;
+    j:boolean;
+begin
+  InDirFilter:=On;
+  while Length(Filter) > 0 do
+   begin
+    i := Length(Filter) + 1;
+    j := Off;
+    repeat
+     dec(i);
+     if Filter[i]='"' then j:=not j;
+    until (i=1) or ((Filter[i] in [';',',']) and not j);
+    if Filter[i] in [';',','] then S := Copy(Filter,i+1,MaxStringLength)
+                              else S := Filter;
+    B := S[1] <> '-'; SetLength(Filter, i-1);
+    InDirFilter := B;
+    if not B then Delete(S, 1, 1); {DelFC(S);}
+    DelLeft(S); DelRight(S);
+    if (S <> '') and (S[Length(S)] = '\') and InMask(Name, Copy(S, 1, Length(S)-1)) then Exit;
+   end;
+ InDirFilter:=Off;
+end;
+{/JO}
 (*
         {-DataCompBoy-}
 FUNCTION  InExtMask(Name, Mask: string):Boolean;
@@ -1053,7 +1083,7 @@ function IsDir(const S: String): Boolean;
 var
   SR: lSearchRec;
 begin
-  lFindFirst(S, Directory+Hidden, SR);
+  lFindFirst(S, Directory shl 8 or AnyFile, SR);
   if DosError = 0 then
     IsDir := SR.SR.Attr and Directory <> 0
   else IsDir := False;
@@ -1267,6 +1297,15 @@ begin
 end;
         {-DataCompBoy-}
 
+{JO}
+function  PathFoundInArc(S: String): Boolean;
+begin
+ if PosChar(':', Copy(S, 3, MaxStringLength)) > 0 then
+   PathFoundInArc := True
+  else
+   PathFoundInArc := False;
+end;
+{/JO}
 
 function  InQSMask(Name, Mask: String):Boolean; {JO}
 begin
@@ -1403,7 +1442,7 @@ begin
 end;
 
 {-DataCompBoy-}
-function  PackMask(const Mask: string; var PM: String; LFNDis: boolean): boolean;
+function  PackMask(const Mask: string; var PM: String {$IFDEF OS_DOS}; LFNDis: boolean {$ENDIF}): boolean;
  label mc, fc;
  var k, k2, k3: byte;
  begin
@@ -1418,6 +1457,7 @@ function  PackMask(const Mask: string; var PM: String; LFNDis: boolean): boolean
       {!}
       if (PosChar(';', Mask)=0) and (PosChar('[', Mask)=0) then
         begin
+         {$IFDEF OS_DOS}
           if LFNDis then
             begin
             {Check for correct DOS mask}
@@ -1450,9 +1490,12 @@ mc:   {Place mask comressing here, but do not touch NormMask variable}
             end
            else {не LFNDis}
             begin
+         {$ENDIF}
               PM := Mask;
               PackMask := off;
+         {$IFDEF OS_DOS}
             end;
+         {$ENDIF}
         end
        else {в Mask есть ';' или '[' }
         begin

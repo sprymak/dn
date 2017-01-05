@@ -260,6 +260,7 @@ begin
   If AOptions and ( mfYesButton + mf2YesButton ) <> 0
     then Dialog^.HelpCtx := hcYesNoDialog + Byte( AOptions and mfCancelButton <> 0 )
     else Dialog^.HelpCtx := hcWarningDialog + ( AOptions and $7 );
+  if AOptions and $7 = mfError then Dialog^.Palette := dpRedDialog;
   with Dialog^ do
   begin
     R.Assign(3, 2, Size.X - 2, Size.Y - 3);
@@ -392,6 +393,7 @@ end;
 begin
   Dialog := New(PDialog, Init(R, GetString(dlCE_ErrWndTitle)));
   Dialog^.HelpCtx := hcNoContext;
+  Dialog^.Palette := dpRedDialog;
   with Dialog^ do
   begin
     R.Assign(3, 2, Size.X - 2, Size.Y - 3);

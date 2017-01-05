@@ -415,8 +415,15 @@ end;
 constructor THelpWindow.Init(HFile: PHelpFile; Context: AWord);
 var
   R: TRect;
+  X1, Y1: Byte;
 begin
-  R.Assign(0, 0, 72, 20);
+  X1 := ScreenWidth-8;
+  if X1 < 72 then
+    if ScreenWidth < 72 then X1 := ScreenWidth else X1 := 72;
+  Y1 := ScreenHeight-7;
+  if Y1 < 20 then
+    if ScreenHeight < 23 then Y1 := ScreenHeight-3 else Y1 := 20;
+  R.Assign(0, 0, X1, Y1);
   inherited Init(R, GetString( dlHelp ), 0);
   Options := Options or ofCentered;
   R.Grow(-2,-1);

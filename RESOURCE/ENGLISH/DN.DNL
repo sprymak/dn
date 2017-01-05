@@ -1449,4 +1449,13 @@ dlWkzWarningClear ^C'All data in the current spreadsheet will be removed.'^M^C'C
 ;KV-
 ;JO+
 dlZIPWithoutCentralDir ^C'ZIP archive without central directory'^M^C'use fixing utility (PKZIPFIX or ZIP with -F key) to fix archive'
+dlArcEncrypted ^C'Archive with encrypted headers'^M^C'use Shift-F2 to unpack entire archive'
 ;JO-
+;AK155+
+dlMissingLeftBracket '"(" missing'
+dlMissingRightBracket '")" missing'
+dlWrongText 'Uknown text'
+dlNoOperand 'Operand missing'
+dlMissingOperation 'Operation missing'
+dlWrongComma 'Wrong comma'
+;AK155-

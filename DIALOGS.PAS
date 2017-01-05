@@ -67,8 +67,9 @@ const
   CGrayDialog    = #32#33#34#35#36#37#38#39#40#41#42#43#44#45#46#47 +
                    #48#49#50#51#52#53#54#55#56#57#58#59#60#61#62#63 +
                    #178#179;
-  CBlueDialog    = #64#65#66#67#68#69#70#71#72#73#74#75#76#77#78#79 +
-                   #80#81#82#83#84#85#86#87#88#89#90#91#92#92#94#95;
+  CRedDialog     = #32#214#214#35#36#215#38#39#40#216#216#217#218#219#220#47 +
+                   #48#49#50#51#52#53#54#55#56#57#58#59#60#61#62#63 +
+                   #221#219;
   CCyanDialog    = #96#97#98#99#100#101#102#103#104#105#106#107#108 +
                    #109#110#111#112#113#114#115#116#117#118#119#120 +
                    #121#122#123#124#125#126#127;
@@ -86,7 +87,7 @@ const
 
 { TDialog palette entires }
 
-  dpBlueDialog = 1;
+  dpRedDialog  = 1;
   dpCyanDialog = 2;
   dpGrayDialog = 3;
 
@@ -144,6 +145,8 @@ type
   { 30 = InfoPane }
   { 31 = Cluster disabled }
   { 32 = Reserved }
+  { 33 = Shortcut selected }
+  { 34 = Shortcut default  }
 
   PDialog = ^TDialog;
   TDialog = object(TWindow)
@@ -531,8 +534,8 @@ end;
 
 function TDialog.GetPalette: PPalette;
 const
-  P: array[dpBlueDialog..dpGrayDialog] of string[Length(CDialog)] =
-    (CBlueDialog, CCyanDialog, CGrayDialog);
+  P: array[dpRedDialog..dpGrayDialog] of string[Length(CDialog)] =
+    (CRedDialog, CCyanDialog, CGrayDialog);
 begin
   GetPalette := @P[Palette];
 end;
@@ -922,7 +925,7 @@ begin
       evKeyDown:
         begin
           SaveState;
-          Event.KeyCode := CtrlToArrow(Event.KeyCode);
+          {Event.KeyCode := CtrlToArrow(Event.KeyCode);}
           if (Event.ScanCode in PadKeys) and
              (ShiftState and $03 <> 0) then
           begin
@@ -971,6 +974,7 @@ begin
                           ExtendBlock:=True
                          end;
        kbAltCtrlSqBracketL,
+       kbCtrlShiftSqBracketL,
        kbCtrlSqBracketL: if ShiftState and (kbLeftShift+kbRightShift)<>0
                           then UpStr(Data^)
                           else begin
@@ -982,6 +986,7 @@ begin
                            until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
        kbAltCtrlSqBracketR,
+       kbCtrlShiftSqBracketR,
        kbCtrlSqBracketR: if ShiftState and (kbLeftShift+kbRightShift)<>0
                           then LowStr(Data^)
                           else begin
@@ -992,6 +997,8 @@ begin
                             inc(i);
                            until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
+            kbCtrlShiftSlash,
+            kbCtrlShiftBSlash,
             kbCtrlSlash,
             kbCtrlBSlash:if ShiftState and (kbLeftShift+kbRightShift)<>0
                           then CapStr(Data^)
@@ -1063,7 +1070,7 @@ begin
                   begin
                     ClearEvent(Event);
                     S := ''; DeleteSelect;
-                    pS:=DirsToChange[Event.ScanCode-(kbAlt1 shr 8)];
+                    pS:=DirsToChange[Event.ScanCode-Hi(kbAlt1)];
                     if (pS=nil) or (Length(pS^) = 0) then Exit else S:=pS^;
                     if S = '' then Exit;
                     SelStart := CurPos; SelEnd := CurPos + Length(S);
@@ -1073,13 +1080,13 @@ begin
                     DrawView;
                     Exit;
                   end;
-            kbLeft:
+            kbLeft, kbShiftLeft:
               if CurPos > 0 then Dec(CurPos);
-            kbRight:
+            kbRight, kbShiftRight:
               if CurPos < Length(Data^) then Inc(CurPos);
-            kbHome:
+            kbHome, kbShiftHome:
               CurPos := 0;
-            kbEnd:
+            kbEnd, kbShiftEnd:
               CurPos := Length(Data^);
             kbBack:
               if CurPos > 0 then
@@ -1562,7 +1569,7 @@ var
 begin
   CNorm := GetColor($0301);
   CSel := GetColor($0402);
-  CDis := GetColor($0404); {JO: было $0505}
+  CDis := GetColor($0505);
   for I := 0 to Size.Y do
   begin
     MoveChar(B, ' ', Byte(CNorm), Size.X);
@@ -1658,7 +1665,7 @@ begin
   end else if Event.What = evKeyDown then
   begin
     S := Sel;
-    case CtrlToArrow(Event.KeyCode) of
+    case {CtrlToArrow}(Event.KeyCode) of
       kbUp:
         if State and sfFocused <> 0 then
         begin
@@ -2504,7 +2511,7 @@ var
 begin
   TView.HandleEvent(Event);
   if (Event.What = evMouseDown) or
-     ((Event.What = evKeyDown) and (CtrlToArrow(Event.KeyCode) = kbDown) and
+     ((Event.What = evKeyDown) and ({CtrlToArrow}(Event.KeyCode) = kbDown) and
       (Link^.State and sfFocused <> 0)) then
   begin
     if not Link^.Focus then

@@ -9,6 +9,7 @@
 // keyboard handler.
 // Some change for russian by Peter S. Voronov aka Chem O'Dun
 // Some change by Jaroslaw Osadtchiy (JO) and Alexey Korop (AK155)
+// Some change by Aleksej Kozlov (Cat)
 
 {$Ifdef KeyDll} library {$Else} unit {$Endif}
   VpKbdW32;
@@ -471,7 +472,6 @@ const
 const
   AltNumeric: Byte = 0;
   {Platform: Longint = -1;}
-  CtrlState: longint = 0; {AK155 for detection Ctrl release }
 var
   EventCount: DWord;
   InRec: TInputRecord;
@@ -496,6 +496,8 @@ begin
           if SysKeyCount <= High(SysKeyQue) then
           with SysKeyQue[SysKeyCount], KeyEvent do
           begin
+            {Cat: переделал так, чтобы при отпускании клавиш тоже обновлять ShiftState}
+            SysShiftState := CtrlKeysToShiftState(dwControlKeyState); {Cat}
             if bKeyDown then
               begin
                 skeKeyCode:=0;
@@ -508,67 +510,56 @@ begin
                    )
                 then
                   ReadConsoleInput(SysFileStdIn, InRec, 1, EventCount);
-                skeShiftState := CtrlKeysToShiftState(dwControlKeyState);
-                SysShiftState := skeShiftState;
-                case wVirtualKeyCode of
-                  VK_SHIFT,VK_MENU:
-                    ;
-                  VK_CONTROL:
-                    CtrlState := 4{kbCtrlShift};
-                  else
-                    // All other Virtual Key Codes:
+                {skeShiftState := CtrlKeysToShiftState(dwControlKeyState);} {Cat}
+                {SysShiftState := skeShiftState;} {Cat}
+                skeShiftState := SysShiftState; {Cat}
+
+                if  (wVirtualScanCode  = $1C) and (SysShiftState and 7 = 7) then
+                  AsciiChar   :=  #$A;  {AK155  Ctrl-Shift-Enter under NT}
+                {$IFDEF OLDCRT}
+                skeKeyCode := TranslateKeyCode(wVirtualKeyCode, wVirtualScanCode, Ord(AsciiChar), skeShiftState);
+                {$ELSE}
+                skeKeyCode := TranslateKeyCode(wVirtualKeyCode, wVirtualScanCode, Ord(AsciiChar), dwControlKeyState);
+                {$ENDIF}
+                if skeKeyCode = 0 then
+                  exit;                 // Do not report non-event
+
+                // If numeric keypad, Alt pressed: record keys
+                FoundAlt := False;
+                if (skeShiftState and $8 = $8) and (dwControlKeyState and $100 = 0) then
+                  if SysPlatform = 1 then // Windows 95
                     begin
-                    if  (wVirtualScanCode  = $1C) and (SysShiftState and 7 = 7) then
-                      AsciiChar   :=  #$A;  {AK155  Ctrl-Shift-Enter under NT}
-                    {$IFDEF OLDCRT}
-                    skeKeyCode := TranslateKeyCode(wVirtualKeyCode, wVirtualScanCode, Ord(AsciiChar), skeShiftState);
-                    {$ELSE}
-                    skeKeyCode := TranslateKeyCode(wVirtualKeyCode, wVirtualScanCode, Ord(AsciiChar), dwControlKeyState);
-                    {$ENDIF}
-                    if skeKeyCode = 0 then
-                      exit;                 // Do not report non-event
-                    end;
-
-                    // If numeric keypad, Alt pressed: record keys
-                    FoundAlt := False;
-                    if (skeShiftState and $8 = $8) and (dwControlKeyState and $100 = 0) then
-                      if SysPlatform = 1 then // Windows 95
+                      for i := 0 to 9 do
+                        if skeKeyCode = AltNumericKeys[I].VK then
                         begin
-                          for i := 0 to 9 do
-                            if skeKeyCode = AltNumericKeys[I].VK then
-                            begin
-                              AltNumeric := AltNumeric*10 + AltNumericKeys[I].Value;
-                              FoundAlt := True;
-                            end;
-                        end
-                      else // Windows NT
-                        if wVirtualKeyCode in [VK_NUMPAD0..VK_NUMPAD9] then
-                          begin
-                            AltNumeric := AltNumeric*10 + wVirtualKeyCode-VK_NUMPAD0;
-                            FoundAlt := True;
-                          end;
-
-                    if not FoundAlt then
+                          AltNumeric := AltNumeric*10 + AltNumericKeys[I].Value;
+                          FoundAlt := True;
+                        end;
+                    end
+                  else // Windows NT
+                    if wVirtualKeyCode in [VK_NUMPAD0..VK_NUMPAD9] then
                       begin
-                        Inc(SysKeyCount);
-                        AltNumeric := 0;
+                        AltNumeric := AltNumeric*10 + wVirtualKeyCode-VK_NUMPAD0;
+                        FoundAlt := True;
                       end;
-                end; // case
+
+                if not FoundAlt then
+                  begin
+                    Inc(SysKeyCount);
+                    AltNumeric := 0;
+                  end;
               end
             else
              begin
               case KeyEvent.wVirtualKeyCode of
-                VK_CONTROL:
-                  CtrlState := 0;
                 VK_MENU:
-              if (AltNumeric <> 0) then
-                begin
-                  skeKeyCode := AltNumeric;
-                  AltNumeric := 0;
-                  inc(SysKeyCount);
-                end;
+                  if (AltNumeric <> 0) then
+                    begin
+                      skeKeyCode := AltNumeric;
+                      AltNumeric := 0;
+                      inc(SysKeyCount);
+                    end;
               end {case};
-              SysShiftState:=CtrlState;  //AK155
               ReadConsoleInput(SysFileStdIn, InRec, 1, EventCount);
              end;
           end;

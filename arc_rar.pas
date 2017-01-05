@@ -79,8 +79,12 @@ type
      end;
 
 var RAR2: Boolean;
+    Encrypted: Boolean;
 
 implementation
+
+uses
+ Messages, Commands;
 
 { ----------------------------- RAR ------------------------------------}
 
@@ -189,7 +193,12 @@ var
     P2   : LocRAR2Hdr;
     label 1;
 begin
-1: if (ArcFile^.GetPos = ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;
+1: if (ArcFile^.GetPos = ArcFile^.GetSize) then
+     begin
+       if Encrypted then Msg(dlArcEncrypted, nil, mfOKButton);
+       FileInfo.Last:=1;
+       Exit;
+     end;
    if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
    if RAR2 then begin
       FP := ArcFile^.GetPos;

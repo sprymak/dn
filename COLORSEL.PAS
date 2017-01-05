@@ -326,7 +326,7 @@ begin
         if SelType = csBackground then
           MaxCol := 15 else
           MaxCol := 15;
-        case CtrlToArrow(Event.KeyCode) of
+        case {CtrlToArrow}(Event.KeyCode) of
           kbLeft:
             if Color > 0 then
               Dec(Color) else

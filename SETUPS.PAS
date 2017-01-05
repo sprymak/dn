@@ -160,7 +160,7 @@ begin
   ConfigModified := On;
 
   ConfirmsOpt        := Confirms;
-  SaveDnIniSettings(nil);
+  SaveDnIniSettings(@ConfirmsOpt);
   DoneIniEngine;
 end;
 
@@ -194,7 +194,10 @@ begin
  CopyLimit          := SystemData.CopyLimitBuf;
  ForceDefaultArchiver := SystemData.ForceDefArch;
 
- SaveDnIniSettings(nil);
+ SaveDnIniSettings(@HandleChDirCommand);
+ SaveDnIniSettings(@SystemDataOpt);
+ SaveDnIniSettings(@CopyLimit);
+ SaveDnIniSettings(@ForceDefaultArchiver);
  DoneIniEngine;
 end;
 
@@ -237,7 +240,8 @@ begin
   end;
   InterfaceDataOpt := InterfaceData.Options;
   DriveInfoType    := InterfaceData.DrvInfType;
-  SaveDnIniSettings(nil);
+  SaveDnIniSettings(@InterfaceDataOpt);
+  SaveDnIniSettings(@DriveInfoType);
   DoneIniEngine;
 end;
 
@@ -288,7 +292,9 @@ Retry:
     StartupDataLoad    := StartupData.Load;
     StartupDataUnload  := StartupData.Unload;
     StartupDataSlice2  := StartupData.Slice2;
-    SaveDnIniSettings(nil);
+    SaveDnIniSettings(@StartupDataLoad);
+    SaveDnIniSettings(@StartupDataUnload);
+    SaveDnIniSettings(@StartupDataSlice2);
     DoneIniEngine;
   end;
 end;
@@ -345,7 +351,7 @@ begin
   GlobalMessage(evCommand, cmReboundPanel, nil);
 
   FMSetupOpt := Startup.FMSetup.Options;
-  SaveDnIniSettings(nil);
+  SaveDnIniSettings(@FMSetupOpt);
   DoneIniEngine;
 end;
 
@@ -372,7 +378,9 @@ begin
     EditorDefaultsOpt  := EditorDefaults.EdOpt;
     EditorDefaultsOpt2 := EditorDefaults.EdOpt2;
     ViewerOpt          := EditorDefaults.ViOpt;
-    SaveDnIniSettings(nil);
+    SaveDnIniSettings(@EditorDefaultsOpt);
+    SaveDnIniSettings(@EditorDefaultsOpt2);
+    SaveDnIniSettings(@ViewerOpt);
     DoneIniEngine;
   end;
 end;

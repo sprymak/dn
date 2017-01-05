@@ -1549,6 +1549,7 @@ begin
   evKeyDown: case Event.KeyCode of
               kbDoubleAlt: CE;
               kbDel: begin Clear; EndMarking end;
+              kbShiftLeft,
               kbLeft: if Cur.X > 0 then
                       begin
                        CheckMark;
@@ -1556,6 +1557,7 @@ begin
                        DrawView;
                        CE; Exit
                       end else Exit;
+              kbShiftRight,
               kbRight: if (Cur.X < NumC)  then
                       begin
                        CheckMark;
@@ -1567,12 +1569,14 @@ begin
                        if (Delta.X + Cur.X = HScroll^.Max) then
                         begin CheckMark; if Cur.X > 0 then Dec(Cur.X); SetMark; Exit end
                          else Exit;
-                kbUp: if Cur.Y > 0 then
+              kbShiftUp,
+              kbUp:   if Cur.Y > 0 then
                       begin
                        CheckMark;
                        Dec(Cur.Y); SetMark; DrawView;
                        ClearEvent(Event); Exit
                       end else Exit;
+              kbShiftHome,
               kbHome: begin
                        CheckMark;
                        Cur.Y := 0; Cur.X := 0; SetMark;
@@ -1580,6 +1584,7 @@ begin
                        VScroll^.SetValue(0);
                        DrawView; ClearEvent(Event); Exit
                       end;
+              kbShiftEnd,
               kbEnd: begin
                       CheckMark;
                       MaxX := 0; MaxY := 0; Cur.Y := 0; Cur.X := 0;
@@ -1606,6 +1611,7 @@ begin
                       SetMark;
                       DrawView; ClearEvent(Event); Exit
                      end;
+              kbShiftDown,
               kbDown: if (Cur.Y < Size.Y - 3)  then
                       begin
                        CheckMark;

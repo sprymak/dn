@@ -126,7 +126,14 @@ begin
   TempDir := GetEnv('TMP');
   if not BadTemp(TempDir) then exit;
   TempDir := SourceDir;
-  if not BadTemp(TempDir) then exit;
+  if not BadTemp(TempDir) then
+    begin
+    if TempDir[Length(TempDir)] <> '\' then TempDir := TempDir + '\';
+    TempDir := TempDir + 'TEMP\';
+    mkdir(TempDir); ClrIO;
+    if not BadTemp(TempDir) then
+      exit;
+    end;
   NoTempDir := True;
 end;
         {-DataCompBoy-}
@@ -590,13 +597,13 @@ var
                                     S.Seek(S.GetPos+L-sizeof(INIstoredtime)-sizeof(INIstoredsize))
                                 end else S.Seek(S.GetPos+L);
                             end;
-         cfgExtractOptions: SRead(ExtractWithPathNames);
+         cfgExtractOptions: S.Read(UnarchiveOpt, sizeof(UnarchiveOpt)); {JO}
       cfgChangeCaseOptions: SRead(ChangeNamesCaseOptions);
+             cfgAppPalette: SRead(appPalette);
          cfgIgnoreOldFiles: IgnoreOldFiles:=True;
             else S.Seek(S.GetPos+L);
         end;
       end;
-
     S.Done;
     Security := SystemData.Options and ossShowHidden = 0;
     HandleChDirCommand := ((SystemData.Options{$IFDEF VIRTUALPASCAL}shl 3{$ENDIF}) and ossHandleChDirCommand) <> 0;
@@ -698,10 +705,10 @@ var
           S.Done;
       end;
 {$IFDEF Win32}
-      RecodeAnsiNames := RecodeCyrillicNames; {AK155}
+      RecodeAnsiNames := (RecodeCyrillicNames = 1); {AK155}
 
     {$IFNDEF RecodeWhenDraw}
-      if not RecodeAnsiNames then
+      if RecodeCyrillicNames = 0 then
         Windows.SetFileApisToOEM
            {AK155 18-10-2001
             Если не задано никаких фокусов, то с файлами работаем просто
@@ -741,6 +748,7 @@ begin
   MakeTMaskData(CustomMask9^);
   MakeTMaskData(CustomMask10^);
   MakeTMaskData(Archives^);
+  MakeTMaskData(AddArchives); {JO: для поиска в архивах}
 
   RunMenu := (StartupData.Load and osuAutoMenu <> 0);
   SetOverlay;
@@ -1008,6 +1016,7 @@ GrabPalette;
  FreeTMaskData(CustomMask9^);
  FreeTMaskData(CustomMask10^);
  FreeTMaskData(Startup.Archives^);
+ FreeTMaskData(AddArchives); {JO}
  Dispose(CustomMask1);
  Dispose(CustomMask2);
  Dispose(CustomMask3);

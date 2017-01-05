@@ -149,6 +149,7 @@ uses
    {$IFDEF WIN32} ,U_KeyMap {$ENDIF}
   {$ENDIF}
   {$IFDEF NETWORK} ,Network {$ENDIF}
+  , DblWnd , flpanel
   ;
 
 procedure TFilePanelRoot.IncDrawDisabled;
@@ -353,21 +354,21 @@ end;
 procedure TFilePanelRoot.SendLocated;
  var S: String;
      R: LongInt;
+     CurFileRec: PFileRec;
 begin
  if (Files^.Count = 0) or (Drive^.DriveType = dtArc) or
     (State and sfVisible = 0) then Exit;
  R := ScrollBar^.Value;
  if R >= Files^.Count then Exit;
  if not ViewEnabled and (Drive^.Flags and psShowLongDesc = 0) then Exit;
+ CurFileRec := PFileRec(Files^.At(R));
 {$IFNDEF OS2}
- S := MakeNormName(PFileRec(Files^.At(R))^.Owner^,
-                   GetLFN(PFileRec(Files^.At(R))^.LFN));
+ S := MakeNormName(CurFileRec^.Owner^, GetLFN(CurFileRec^.LFN));
 {$ELSE}
- S := MakeNormName(PFileRec(Files^.At(R))^.Owner^,
-                   PFileRec(Files^.At(R))^.Name);
+ S := MakeNormName(CurFileRec^.Owner^, CurFileRec^.Name);
 {$ENDIF}
- if ViewEnabled or (Drive^.Drivetype < dtArc)
-    then Message(Owner, evCommand, cmLoadViewFile, @S);
+ if ViewEnabled or (Drive^.Drivetype < dtArc) then
+   Message(Owner, evCommand, cmLoadViewFile, @S)
 end;
 
 
@@ -505,6 +506,8 @@ end;
         {-DataCompBoy-}
 procedure TFilePanelRoot.ReadDirectory;
 begin
+ if (Owner <> nil) and (PDoubleWindow(Owner)^.QView <> nil) then
+   NeedLocated := GetSTime; {чтобы сменить показ каталога}
  LineLength := Drive^.CalcLength;
  Drive^.Owner := @Self;
  case Drive^.DriveType of
@@ -651,8 +654,23 @@ var
       Xt: String;
       Name: String;
       A: LongInt;
+      I: Byte;
+      PathInside: String; {JO}
  begin
   if ChangeLocked then Exit;
+
+{JO: дабы перейти к найденному файлу в архиве из панели поиска}
+  PathInside := FileName;
+  if PathInside[2] = ':' then PathInside[2] := ';'; {JO: меняем двоеточие не важно на что }
+    I := PosChar(':', PathInside);
+    if I > 0 then
+      begin
+        PathInside := Copy(FileName, I+1, 255);
+        FileName := Copy(FileName, 1, I-1);
+      end
+     else PathInside :=  '';
+{/JO}
+
   lFSplit(FileName, Dr, Nm, Xt);
   if Copy(Dr, 1, 5) = cLINK_ then  Delete(Dr, 1, 5);
   if (Dr[Length(Dr)] = '\') and ((Dr[2] <> ':') or (Length(Dr) > 3)) then SetLength(Dr, Length(Dr)-1);
@@ -671,9 +689,22 @@ var
   ReadDirectory;
   AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
   DecDrawDisabled;
+{JO: переходим к найденному файлу в архиве}
+  if (PathInside <> '') and ArcViewer(FileName, FileName ,FreeByte) then
+    begin
+     {Message(@Self, evKeyDown, kbEnter, nil);}
+      if (GetPath(PathInside) <> '\') and (Drive^.DriveType = dtArc) then
+        begin
+          Drive^.lChDir(Copy(GetPath(PathInside), 2, 255));
+          ReadDirectory;
+        end;
+      GotoSingle(GetName(PathInside));
+      Exit;
+    end;
+{/JO}
   if (Nm = '') and (Xt='') then Name := '..'
                            else Name := Nm+Xt;
-   GotoSingle(Name);
+  GotoSingle(Name);
  end;
 
  function  isSeldir : boolean ;
@@ -1254,12 +1285,14 @@ var
        if Event.What = evKeyDown then
         begin
           case Event.KeyCode of
-            kbCtrlLeft: repeat
+            kbCtrlLeft, kbCtrlShiftLeft:
+                         repeat
                           if DirectoryName[1] > #65 then Dec(DirectoryName[1])
                            else if DirectoryName[1] = #65 then DirectoryName[1] := '*'
                                                     else DirectoryName[1] := 'Z';
                          until ValidDrive(DirectoryName[1]) or (DirectoryName[1] = '*');
-            kbCtrlRight: repeat
+            kbCtrlRight, kbCtrlShiftRight:
+                          repeat
                            if DirectoryName[1] in ['A'..'Y'] then INC(DirectoryName[1])
                             else if DirectoryName[1] = 'Z' then DirectoryName[1] := '*'
                                                      else DirectoryName[1] := 'A';
@@ -1305,7 +1338,7 @@ var
    Message(Application, evCommand, cmPutInClipboardLong, @S);
  end;
 
- function _AltEnter: boolean; forward;
+ {function _AltEnter: boolean; forward;} {Cat}
  procedure _CtrlEnter;
  var
    S: string;
@@ -1314,9 +1347,9 @@ var
    CE;
    if Files^.Count = 0 then Exit;
    PF := Files^.At(CurPos);
-   if (ShiftState and
+   {if (ShiftState and
       (kbAltShift+kbCtrlShift+kbLeftShift+kbRightShift)=kbAltShift+kbCtrlShift
-      ) and OS2exec then begin _AltEnter; exit end;
+      ) and OS2exec then begin _AltEnter; exit end;} {Cat}
    if (PF <> nil) then
    begin
 {$IFNDEF OS2}
@@ -1476,6 +1509,20 @@ var
 {$ELSE}
       S := MakeNormName(PF^.Owner^, PF^.Name);
 {$ENDIF}
+(*
+{JO: переходим к найденному файлу в архиве}
+      if PathFoundInArc(PF^.Owner^) and
+          ArcViewer(S, S, FreeByte) then
+            begin
+            {$IFNDEF OS2}
+              GotoSingle(GetLFN(PF^.LFN));
+            {$ELSE}
+              GotoSingle(PF^.Name);
+            {$ENDIF}
+              Exit;
+            end;
+{/JO}
+*)
       if ShiftState and 3 <> 0 then
         begin
           Message(Owner, evCommand, cmChangeInactive, @S);
@@ -1521,7 +1568,14 @@ var
    if (PF^.Attr and Directory = 0) then
      begin
        if not ArcViewer(S, S, FreeByte) {AK155: по CtrlPgDn входим в архив}
-       then _Enter;
+         then _Enter
+{JO: переходим к найденному файлу в архиве    }
+        else if PathFoundInArc(S)
+{$IFNDEF OS2}
+         then GotoSingle(GetLFN(PF^.LFN));
+{$ELSE}
+         then GotoSingle(PF^.Name);
+{$ENDIF}
      end
    else
      GotoFile(S);
@@ -1559,33 +1613,36 @@ var
 
  begin
    case Event.KeyCode of
-    kbAlt1..kbAlt9: begin
+     kbCtrlAltShift1, kbCtrlAltShift2, kbCtrlAltShift3,
+     kbCtrlAltShift4, kbCtrlAltShift5, kbCtrlAltShift6,
+     kbCtrlAltShift7, kbCtrlAltShift8, kbCtrlAltShift9:
+                    begin
+                      I := (Event.KeyCode shr 8)-(kbCtrlAltShift1 shr 8);
+                      CE;
+                      if Drive^.DriveType <> dtDisk then Exit;
+                      if Msg( dlPromptForQDir, nil, mfQuery+mfYesButton+mfNoButton) <> cmYes then Exit;
+                      DisposeStr(DirsToChange[I]);
+                      DirsToChange[I] := NewStr(DirectoryName);
+                      Message(Application, evCommand, cmUpdateConfig, nil);
+                      case I of
+                        0: begin QDirs1 := CnvString(DirsToChange[0]); SaveDnIniSettings(@QDirs1); end;
+                        1: begin QDirs2 := CnvString(DirsToChange[1]); SaveDnIniSettings(@QDirs2); end;
+                        2: begin QDirs3 := CnvString(DirsToChange[2]); SaveDnIniSettings(@QDirs3); end;
+                        3: begin QDirs4 := CnvString(DirsToChange[3]); SaveDnIniSettings(@QDirs4); end;
+                        4: begin QDirs5 := CnvString(DirsToChange[4]); SaveDnIniSettings(@QDirs5); end;
+                        5: begin QDirs6 := CnvString(DirsToChange[5]); SaveDnIniSettings(@QDirs6); end;
+                        6: begin QDirs7 := CnvString(DirsToChange[6]); SaveDnIniSettings(@QDirs7); end;
+                        7: begin QDirs8 := CnvString(DirsToChange[7]); SaveDnIniSettings(@QDirs8); end;
+                        8: begin QDirs9 := CnvString(DirsToChange[8]); SaveDnIniSettings(@QDirs9); end;
+                      end;
+                      DoneIniEngine;
+                    end;
+     kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt6, kbAlt7, kbAlt8, kbAlt9:
+                    begin
                       I := (Event.KeyCode shr 8)-(kbAlt1 shr 8);
                       CE;
-                      if ShiftState and 7 <> 0 then
-                        begin
-                          if Drive^.DriveType <> dtDisk then Exit;
-                          if Msg( dlPromptForQDir, nil, mfQuery+mfYesButton+mfNoButton) <> cmYes then Exit;
-                          DisposeStr(DirsToChange[I]);
-                          DirsToChange[I] := NewStr(DirectoryName);
-                          Message(Application, evCommand, cmUpdateConfig, nil);
-                          case I of
-                        0: QDirs1 := CnvString(DirsToChange[0]);
-                        1: QDirs2 := CnvString(DirsToChange[1]);
-                        2: QDirs3 := CnvString(DirsToChange[2]);
-                        3: QDirs4 := CnvString(DirsToChange[3]);
-                        4: QDirs5 := CnvString(DirsToChange[4]);
-                        5: QDirs6 := CnvString(DirsToChange[5]);
-                        6: QDirs7 := CnvString(DirsToChange[6]);
-                        7: QDirs8 := CnvString(DirsToChange[7]);
-                        8: QDirs9 := CnvString(DirsToChange[8]);
-                         end;
-                         SaveDnIniSettings(nil);
-                         DoneIniEngine;
-                        end else begin
                       if DirsToChange[I] <> nil then
-                           DoChange(CnvString(DirsToChange[I]));
-                      end;
+                        DoChange(CnvString(DirsToChange[I]));
                     end;
     kbCtrl1..kbCtrl0: Begin
                        Drive^.GetParam((Event.KeyCode shr 8)-(kbCtrl1 shr 8)+1);
@@ -1596,7 +1653,7 @@ var
                        CM_SelectColumn(@Self);
                       End;                             {JO}
 {$ENDIF}
-    kbAltIns: if ShiftState and kbCtrlShift <>0 then _CtrlIns else
+    kbAltIns: {if ShiftState and kbCtrlShift <>0 then _CtrlIns else}
               begin
                if (Drive^.Flags and psShowDescript = 0) and
                  (FMSetup.Options and fmoAlwaysCopyDesc = 0) and (PF^.DIZ = nil) then
@@ -1652,7 +1709,8 @@ var
                  Drive^.EditDescription(PF);
                 CE;
               end;
-    kbBack: if (FMSetup.Options and fmoBackGoesBack <> 0) and
+    kbBack, kbShiftBack:
+              if (FMSetup.Options and fmoBackGoesBack <> 0) and
                ((ShiftState and 3 <> 0) or ((CmdLine.Str = '') and
                 (not CmdLine.StrCleared) and (not QuickSearch))) then
                begin
@@ -1664,9 +1722,9 @@ var
                    end;
     kbCtrlR: begin Message(@Self, evCommand, cmForceRescan, nil); CE end;
     kbGrayAst, kbCtrlGAst: begin InvertSelection(@Self, Event.KeyCode = kbCtrlGAst); CE end;
-    kbAltGPlus, kbAltGMinus: begin SelectExt(Event.KeyCode = kbAltGPlus, 1, 8,
-                                             ShiftState and 3 <> 0); CE end;
-    kbCtrlGPlus, kbCtrlGMinus:
+    kbAltGPlus, kbAltGMinus, kbAltShiftGPlus, kbAltShiftGMinus, kbCtrlAltGPlus, kbCtrlAltGMinus:
+      begin SelectExt(Event.KeyCode = kbAltGPlus, 1, 8, ShiftState and 3 <> 0); CE end;
+    kbCtrlGPlus, kbCtrlGMinus, kbCtrlShiftGPlus, kbCtrlShiftGMinus:
        begin
          if ShiftState and 3 = 0 then SelecType(Event.KeyCode = kbCtrlGPlus)
                                    else SelectExt(Event.KeyCode = kbCtrlGPlus, 10, 3, Off); CE
@@ -1680,8 +1738,9 @@ var
                  if Drive^.DriveType = dtArc then {-$VOL}
                  begin _CtrlPgUp; Exit; end;{-$VOL}
                  Owner^.Redraw; CE end;
-kbCtrlRight, kbCtrlLeft: _DoCtrl;
-kbCtrlDel: if Files^.Count > 0 then
+    kbCtrlRight, kbCtrlLeft,
+    kbCtrlShiftRight, kbCtrlShiftLeft: _DoCtrl;
+    kbCtrlDel: if Files^.Count > 0 then
             begin
               I := 0;
               if SelNum = 0 then
@@ -1710,8 +1769,9 @@ kbCtrlDel: if Files^.Count > 0 then
               Recount;
               CE;
             end;
-kbCtrlIns,kbShiftIns: if ShiftState and kbCtrlShift<>0 then _CtrlIns;
-kbCtrlEnter: _CtrlEnter;
+kbCtrlIns, kbCtrlShiftIns, kbCtrlAltIns:
+    {if ShiftState and kbCtrlShift<>0 then} _CtrlIns;
+kbCtrlEnter, kbCtrlShiftEnter, kbCtrlAltEnter: _CtrlEnter;
     kbLeft: if (Size.X > LineLength) then
              if (Delta>0) or
                 (ScrollBar^.Value >
@@ -1748,12 +1808,12 @@ kbCtrlEnter: _CtrlEnter;
                        end;
     kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); Owner^.ReDraw end;
     kbEnd:  begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
-    kbAltEnter{$IFDEF Win32}, kbAltHome{$ENDIF}: if _AltEnter then Exit else
+    kbAltEnter, kbAltShiftEnter {$IFDEF Win32}, kbAltHome{$ENDIF}: if _AltEnter then Exit else
     begin
       _GotoExt;
       Exit;
     end;
-    kbEnter: if CurPos < Files^.Count then
+    kbEnter, kbShiftEnter: if CurPos < Files^.Count then
              begin
                PShootState := ShiftState;
                PF := Files^.At(CurPos);
@@ -1767,8 +1827,9 @@ kbCtrlEnter: _CtrlEnter;
                   (Msg(dlAutoexecWarning,nil,mfYesNoConfirm) <> cmYes) then Exit;
                if (Drive^.DriveType in [dtFind, dtTemp, dtList]) then
                   begin _Enter; Exit; end;
-               if (FMSetup.Options and fmoEnterArchives <> 0) and
-                  (Event.KeyCode = kbEnter) and (ShiftState and 3 = 0)
+               if (FMSetup.Options and fmoEnterArchives <> 0)
+                  and (((Event.KeyCode = kbEnter) and (ShiftState and 3 = 0))
+                {$IFDEF CHDIRTIMER} or ChDirTimer {$ENDIF})
                   and (PF^.Attr and Directory = 0) and (Drive^.DriveType <> dtArc )
                   and (Drive^.DriveType <> dtFind ) and (Drive^.DriveType <> dtArvid )
 {$IFNDEF OS2}
@@ -1839,8 +1900,8 @@ kbCtrlEnter: _CtrlEnter;
             if CurPos = ScrollBar^.Value then DrawView;
             if InfoView <> nil then InfoView^.DrawView;
            end;
-    kbGrayPlus: begin SelectFiles(@Self, On, ShiftState and 3 <> 0); CE end;
-    kbGrayMinus: begin SelectFiles(@Self, Off, ShiftState and 3 <> 0); CE end;
+    kbGrayPlus, kbShiftGPlus: begin SelectFiles(@Self, On, ShiftState and 3 <> 0); CE end;
+    kbGrayMinus, kbShiftGMinus: begin SelectFiles(@Self, Off, ShiftState and 3 <> 0); CE end;
     kbAltUp, kbAltDown: FindNextSelFile( Event.KeyCode = kbAltDown ); {-$VIV}
     else if ShowKeyCode and 1>0 then
           begin
@@ -1979,8 +2040,10 @@ end;
  {$IFDEF WIN32}
  procedure _OpenWPSWindow(DirName: String);
  begin
-  if RecodeCyrillicNames then
+  {$IFNDEF RecodeWhenDraw}
+  if RecodeCyrillicNames = 1 then
     DirName := OemToCharStr(DirName);
+  {$ENDIF}
   DirName := 'explorer.exe "'+ DirName + '"';
   Message(Application, evCommand, cmExecString, @DirName);
  end;
@@ -2249,6 +2312,10 @@ begin
                               end;
                               CE;
                             end;
+
+(*AK155 19-06-2002. Такого, вроде, не бывает никогда. Почти идентичный
+кусок есть в flpanel, так он действительно работает. И если тот кусок
+закоментарить, то DN глючит, но сюда управление все равно не попадает.
                  cmScrollBarChanged: if ScrollBar = Event.InfoPtr then begin
                                       if MSelect then
                                         begin
@@ -2279,7 +2346,7 @@ begin
                                       CED; PosChanged := Off;
                                       if (RepeatDelay <> 0) and ViewEnabled then
                                         NeedLocated := GetSTime;
-                                     end;
+                                     end; AK155*)
                end;
   evMouseDown: begin
                 if Files^.Count = 0 then Exit;
@@ -2298,6 +2365,7 @@ begin
                       SelectFlag := not PF^.Selected;
                      end;
                     repeat
+                     PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
                      Message(Owner, evKeyDown, kbUp, nil)
                     until not MouseEvent(Event, evMouseMove + evMouseAuto);
                     RepeatDelay := LastRDelay; CE; MSelect := Off;

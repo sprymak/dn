@@ -48,9 +48,7 @@
 unit Arc_Zip; {ZIP}
 
 interface
-uses Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos
-      , FViewer
-      ;
+uses Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
  PZIPArchive = ^TZIPArchive;
@@ -75,7 +73,6 @@ type
      ExtraField: AWord;
     end;
 
-{JO}
     TZIPCentralFileRec = record
      ID: Longint;
      VersionMade : AWord;
@@ -95,23 +92,11 @@ type
      OffsetLocHeader : LongInt;
     end;
 
-    TZIPCentralDirRec = record
-     ID: LongInt;
-     DiskNum : AWord;
-     StartDiskNum : AWord;
-     StartDisk : AWord;
-     Total : AWord;
-     SizeDir : LongInt;
-     OffsStart : LongInt;
-     CommLeng : AWord;
-    end;
-
 var
   CentralDirRecPresent: Boolean;
-{/JO}
 
 implementation
-uses U_Keymap;
+uses U_Keymap, FViewer;
 
 { ----------------------------- ZIP ------------------------------------}
 
@@ -206,48 +191,38 @@ begin
   GetSign := sigZIP;
 end;
 
-{JO}
+{JO}{piwamoto}
 Procedure TZIPArchive.GetFile;
 var
     P:   TZIPLocalHdr;
     HCF: TZIPCentralFileRec;
-    Pos: LongInt;
     FP, FPP: Longint;
     nxl: TXLat;
 label 1;
-
 begin
  if CentralDirRecPresent then
   begin
-   Pos := ArcFile^.GetPos;
-   ArcFile^.Read(HCF, SizeOf(HCF));
-   if ArcFile^.Status <> stOK then
-     begin
-       ArcFile^.Status := stOK;
-       ArcFile^.Seek(Pos);
-       ArcFile^.Read(HCF.ID,4);
-       if (ArcFile^.Status <> stOK) or (HCF.ID <> $06054B50) then
-         begin FileInfo.Last:=2;Exit; end
-           else begin FileInfo.Last:=1;Exit;end;
-     end;
-   if HCF.ID = $06054B50 then begin FileInfo.Last:=1; Exit; end;
-   if HCF.ID and $FFFF <> $4B50 then begin FileInfo.Last:=2; Exit; end;
+   ArcFile^.Read(HCF.ID, SizeOf(HCF.ID));
+   if (ArcFile^.Status <> stOK) or (HCF.ID and $FFFF <> $4B50) then
+     begin FileInfo.Last:=2; Exit; end;
+   if (HCF.ID = $06054B50) or (HCF.ID = $06064B50) then
+     begin FileInfo.Last:=1; Exit; end;
+   ArcFile^.Read(HCF.VersionMade, SizeOf(HCF) - SizeOf(HCF.ID));
    if HCF.FNameLength > 255 then HCF.FNameLength := 255;
-   ArcFile^.Read(FileInfo.FName[1], HCF.FNameLength);
    SetLength(FileInfo.FName, HCF.FNameLength);
+   ArcFile^.Read(FileInfo.FName[1], HCF.FNameLength);
    FileInfo.Last := 0;
    FileInfo.Attr := (HCF.GeneralPurpose and 1) * Hidden;
+   FileInfo.Date := HCF.LastModDate;
    FileInfo.USize := HCF.OriginalSize;
    FileInfo.PSize := HCF.CompressedSize;
-   FileInfo.Date := HCF.LastModDate;
-   ArcFile^.Seek(ArcFile^.GetPos + HCF.ExtraField);
+   ArcFile^.Seek(ArcFile^.GetPos + HCF.ExtraField + HCF.FileCommLength);
   end
  else {CentralDirRecPresent}
-{/JO}
   begin
  1:
    ArcFile^.Read(P.ID,4);
-   if {(P.ID = $06054B50) or }(P.ID = $02014b50) then begin FileInfo.Last:=1;Exit;end;
+   if P.ID = $02014b50 then begin FileInfo.Last:=1;Exit;end;
    if P.ID = $08074B50 then {skip Spanned/Split block}
      begin
       ArcFile^.Read(P.ID,12);
@@ -278,7 +253,7 @@ begin
    FileInfo.USize := P.OriginalSize;
    FileInfo.PSize := P.CompressedSize;
    ArcFile^.Seek(FP);
+  end;
  end;
-end;
 
 end.

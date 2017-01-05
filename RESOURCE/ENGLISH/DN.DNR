@@ -55,6 +55,16 @@ ColorDialog
          ColorItem 'Selected',          5,
          ColorItem 'Selected disabled', 6,
          ColorItem 'Shortcut selected', 7,
+    ColorGroup 'Help',
+         ColorItem 'Frame passive',     139,
+         ColorItem 'Frame active',      140,
+         ColorItem 'Frame icons',       141,
+         ColorItem 'Scroll bar page',   142,
+         ColorItem 'Scroll bar icons',  143,
+         ColorItem 'Normal text',       144,
+         ColorItem 'Selected text',     163,
+         ColorItem 'Link normal',       145,
+         ColorItem 'Link selected',     146,
     ColorGroup 'Dialogs',
          ColorItem 'Frame/background',  33
          ColorItem 'Frame icons',       34,
@@ -74,6 +84,7 @@ ColorDialog
          ColorItem 'Button shadow',     46,
          ColorItem 'Cluster normal',    47,
          ColorItem 'Cluster selected',  48,
+         ColorItem 'Cluster disabled',  62,
          ColorItem 'Cluster shortcut',  49,
          ColorItem 'Input normal',      50,
          ColorItem 'Input selected',    51,
@@ -95,6 +106,15 @@ ColorDialog
          ColorItem 'Selected default',   108,
          ColorItem 'Selected passive',   109,
          ColorItem 'Selected def. passive', 110,
+    ColorGroup 'Error messages dialog',
+         ColorItem 'Frame/background',               214,
+         ColorItem 'Static text',                    215,
+         ColorItem 'Button normal',                  216,
+         ColorItem 'Button selected',                217,
+         ColorItem 'Button disabled',                218,
+         ColorItem 'Button shortcut',                219,
+         ColorItem 'Shortcut selected',              221,
+         ColorItem 'Button shadow',                  220,
     ColorGroup 'File Manager',
          ColorItem 'Frame passive',     80,
          ColorItem 'Frame active',      81,
@@ -451,7 +471,7 @@ MENU dlgMainMenu
     MenuItem 'Custom video mode ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
     MenuItem 'Custom video mode ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
     MenuItem 'C~h~ange Screen  Mode', 'Shift-F12 ', kbShiftF12, cmChScreenMode, hcMenuBox,
-;$IFNDEF PLUGIN
+;$IFNDEF PLUGINRES
     MenuLine
     MenuItem '~G~ame', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
 ;$ENDIF
@@ -541,7 +561,7 @@ MENU dlgMainMenu
     MenuItem 'Commands ~H~istory', 'Alt-F8', kbAltF8, cmHistoryList, hcUtilMenu,
     MenuItem 'File ~E~dit History', 'Alt-PgUp', kbAltPgUp, cmEditHistory, hcUtilMenu,
     MenuItem 'File ~V~iew History', 'Alt-PgDn', kbAltPgDn, cmViewHistory, hcUtilMenu,
-;$IFDEF PLUGIN
+;$IFDEF PLUGINRES
     MenuLine
     MenuItem 'Plugin Manager', 'Alt-F11', kbAltF11, cmPlugins, hcPluginManager,
 ;$ENDIF
@@ -797,6 +817,7 @@ STATUSLINE
      StatusItem '-~S~etup', kbAltS, cmPanelSetup,
      StatusItem '-~L~ist', kbAltL, cmMakeList,
      StatusItem '-~F6~ Ren', kbAltF6, cmFastRename,
+     StatusItem ''    , kbAltShiftF6, cmFastRename,
      StatusItem '-~F7~ Find', kbNoKey, cmFindFile,
      StatusItem '-~R~e-read', kbAltR, cmForceRescan,
      StatusItem '-~;~ Desc', kbAltSemicolon, cmToggleDescriptions,
@@ -822,7 +843,7 @@ STATUSLINE
 ;$ELSE
      StatusItem '+Logical ~n~ames', kbCtrlN, cmToggleLongNames,
 ;$ENDIF
-     StatusItem '+~W~PS', kbCtrlW, cmOpenWPSWindow,
+     StatusItem '+~F~older', kbCtrlF, cmOpenWPSWindow,
 ;$IFDEF OS2
      StatusItem '+Ob~j~ect', kbCtrlJ, cmCreateWPSObject,
 ;$ENDIF
@@ -974,7 +995,7 @@ STATUSLINE
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~F2~ (Un)Wrap', kbF2, cmUnWrap,
-     StatusItem '~F3~ NextS', kbF3, cmNext2,
+;    StatusItem '~F3~ NextS', kbF3, cmNext2,
      StatusItem '~F4~ Hex/Asc/Dmp', kbF4, cmHexMode,
      StatusItem '~F5~ Goto', kbF5, cmGotoCell,
      StatusItem '~F6~ Filter', kbF6, cmAddFilter,
@@ -1095,8 +1116,8 @@ STATUSLINE
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp2,
      StatusItem '~F2~ Save', kbF2, cmSaveText,
-;    StatusItem '~F3~ Open', kbF3, cmLoadText,
-     StatusItem '~F3~ NextS', kbF3, cmNext2,
+     StatusItem '~F3~ Open', kbF3, cmLoadText,
+;    StatusItem '~F3~ NextS', kbF3, cmNext2,
      StatusItem '~F5~ Block', kbF5, cmSwitchBlock,
      StatusItem '~F6~ Fill', kbF6, cmDuplicateLine,
      StatusItem '~F7~ Search', kbF7, cmStartSearch,
@@ -2281,6 +2302,7 @@ DIALOG dlgFileFind, 52, 18, 'Find File'
       ITEM '~R~ecursive search'
       ITEM '~W~hole words'
       ITEM 'All c~o~de pages'
+      ITEM '~S~earch in archives'
 ;$IFDEF REGEXP
       ITEM '~R~egular expression'
 ;$ENDIF
@@ -2626,21 +2648,22 @@ DIALOG dlgSetPassword, 39, 7, 'Enter Password'
     Button 27, 4, 37, 6, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgExtract, 49, 12, 'Extract files'
+DIALOG dlgExtract, 49, 13, 'Extract files'
     HELPCTX hcExtract
     InputLine 14, 2, 45, 3, 255, 0
     History 45, 2, hsFileCopyName, ofPostProcess
     Label 2, 2, 'E~x~tract to', ofPostProcess, ofPreProcess
-    CheckBoxes 3, 4, 47, 6, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 4, 47, 7, ofPostProcess, ofPreProcess
       ITEM 'Extract with ~p~ath names'
       ITEM 'T~e~st only'
+      ITEM '~F~orce mode'
     END
-    InputLine 12, 7, 45, 8, 30, 0, ofSecurity
-    Label 2, 7, 'P~a~ssword', ofPostProcess, ofPreProcess
-    Button 8, 9, 18, 11, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 18, 9, 28, 11, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 28, 9, 38, 11, '~T~ree', cmTree, ofPostProcess, ofPreProcess
-    Button 38, 9, 48, 11, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 12, 8, 45, 9, 30, 0, ofSecurity
+    Label 2, 8, 'P~a~ssword', ofPostProcess, ofPreProcess
+    Button 8, 10, 18, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 10, 28, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 10, 38, 12, '~T~ree', cmTree, ofPostProcess, ofPreProcess
+    Button 38, 10, 48, 12, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgCommandsHistory, 59, 17, 'Commands history'
@@ -3425,108 +3448,107 @@ DIALOG dlgAdvancedCOMSetup, 45, 15, 'Advanced Port Setup'
 END
 
 EDITOR COMMANDS
-;Format is:  COMMAND  <Command>,  KeyCode1,  KeyCode2, CtrlCode1, CtrlCode2
-    COMMAND       cmDeleteLine,   0,             0,     ^Y#0,     #0#0
-    COMMAND       cmDelWordLeft,  kbCtrlBack,    0,     #0#0,     #0#0
-    COMMAND       cmDelWordRight, 0,             0,     ^T#0,     #0#0
-    COMMAND       cmSpecChar,     0,             0,     ^P#0,     #0#0
-    COMMAND       cmUndo,         kbAltBack,     0,     ^Q^L,     #0#0
-    COMMAND       cmCtrlHome,     kbCtrlHome,    0,     #0#0,     #0#0
-    COMMAND       cmCtrlEnd,      kbCtrlEnd,     0,     #0#0,     #0#0
-    COMMAND       cmDeltoEOLN,    0,             0,     ^Q^Y,     #0#0
-    COMMAND       cmStartSearch,  0,             0,     ^Q^F,     #0#0
-    COMMAND       cmReplace,      0,             0,     ^Q^A,     #0#0
-    COMMAND       cmMoveBlockStart, 0,           0,     ^Q^B,     #0#0
-    COMMAND       cmMoveBlockEnd, 0,             0,     ^Q^K,     #0#0
-    COMMAND       cmContSearch,   0,             0,     ^L#0,     #0#0
-    COMMAND       cmBlockRead,    0,             0,     ^K^R,     #0#0
-    COMMAND       cmBlockWrite,   0,             0,     ^K^W,     #0#0
-    COMMAND       cmSwitchIns,    kbIns,         0,     ^V,       #0#0
-    COMMAND       cmSwitchBlock,  0,             0,     ^B^V,     #0#0
-    COMMAND       cmFJustify,     kbAltJ,        0,     ^B^J,     #0#0
-    COMMAND       cmFRight,       kbAltR,        0,     ^B^R,     #0#0
-    COMMAND       cmFLeft,        kbAltL,        0,     ^B^L,     #0#0
-    COMMAND       cmFCenter,      kbAltC,        0,     ^B^C,     #0#0
-    COMMAND       cmEnter,        kbEnter,       0,     #13#0,    #0#0
-    COMMAND       cmPaste,        kbShiftIns,    0,     #0#0,     #0#0
-    COMMAND       cmCopy,         kbCtrlIns,     0,     #0#0,     #0#0
-    COMMAND       cmCut,          kbShiftDel,    0,     #0#0,     #0#0
-    COMMAND       cmInsLine,      0,             0,     ^N#0,     #0#0
-    COMMAND       cmEnd,          kbEnd,         0,     #0#0,     #0#0
-    COMMAND       cmTab,          kbTab,         0,     ^I#0,     #0#0
-    COMMAND       cmWordLeft,     kbCtrlLeft,    0,     ^A#0,     #0#0
-    COMMAND       cmWordRight,    kbCtrlRight,   0,     ^F#0,     #0#0
-    COMMAND       cmDelBackChar,  kbBack,        0,     ^H#0,     #0#0
-    COMMAND       cmDelChar,      kbDel,         0,     ^G#0,     #0#0
-    COMMAND       cmMoveRight,    kbRight,       0,     ^D#0,     #0#0
-    COMMAND       cmMoveLeft,     kbLeft,        0,     ^S#0,     #0#0
-    COMMAND       cmMoveDown,     kbDown,        0,     ^X#0,     #0#0
-    COMMAND       cmScrollUp,     0,             0,     ^W#0,     #0#0
-    COMMAND       cmScrollDn,     0,             0,     ^Z#0,     #0#0
-    COMMAND       cmMoveUp,       kbUp,          0,     ^E#0,     #0#0
-    COMMAND       cmPlaceMarker1, kbAlt1,        0,     ^K'1',    #0#0
-    COMMAND       cmPlaceMarker2, kbAlt2,        0,     ^K'2',    #0#0
-    COMMAND       cmPlaceMarker3, kbAlt3,        0,     ^K'3',    #0#0
-    COMMAND       cmPlaceMarker4, kbAlt4,        0,     ^K'4',    #0#0
-    COMMAND       cmPlaceMarker5, kbAlt5,        0,     ^K'5',    #0#0
-    COMMAND       cmPlaceMarker6, kbAlt6,        0,     ^K'6',    #0#0
-    COMMAND       cmPlaceMarker7, kbAlt7,        0,     ^K'7',    #0#0
-    COMMAND       cmPlaceMarker8, kbAlt8,        0,     ^K'8',    #0#0
-    COMMAND       cmPlaceMarker9, kbAlt9,        0,     ^K'9',    #0#0
-    COMMAND       cmGotoMarker1,  kbCtrl1,       0,     ^Q'1',    #0#0
-    COMMAND       cmGotoMarker2,  kbCtrl2,       0,     ^Q'2',    #0#0
-    COMMAND       cmGotoMarker3,  kbCtrl3,       0,     ^Q'3',    #0#0
-    COMMAND       cmGotoMarker4,  kbCtrl4,       0,     ^Q'4',    #0#0
-    COMMAND       cmGotoMarker5,  kbCtrl5,       0,     ^Q'5',    #0#0
-    COMMAND       cmGotoMarker6,  kbCtrl6,       0,     ^Q'6',    #0#0
-    COMMAND       cmGotoMarker7,  kbCtrl7,       0,     ^Q'7',    #0#0
-    COMMAND       cmGotoMarker8,  kbCtrl8,       0,     ^Q'8',    #0#0
-    COMMAND       cmGotoMarker9,  kbCtrl9,       0,     ^Q'9',    #0#0
-    COMMAND       cmPgUp,         kbPgUp,        0,     ^R#0,     #0#0
-    COMMAND       cmPgDn,         kbPgDn,        0,     ^C#0,     #0#0
-    COMMAND       cmClose,        kbESC,       kbAltF3, ^C#0,     #0#0
-    COMMAND       cmMenu,         kbF10,         0,     #0#0,     #0#0
-    COMMAND       cmUpWord,       $1A1B,         0,     #0#0,     #0#0
-    COMMAND       cmLowWord,      $1B1D,         0,     #0#0,     #0#0
-    COMMAND       cmCapWord,      0,             0,     ^\#0,     #0#0
-    COMMAND       cmPrintBlock,   0,             0,     ^K^P,     #0#0
-    COMMAND       cmClear,        kbCtrlDel,     0,     ^K^Y,     #0#0
-    COMMAND       cmCopyBlock,    0,             0,     ^K^C,     #0#0
-    COMMAND       cmMoveBlock,    0,             0,     ^K^V,     #0#0
-    COMMAND       cmHideBlock,    kbAltH,        0,     ^K^H,     #0#0
-    COMMAND       cmMarkWord,     0,             0,     ^K^T,     #0#0
-    COMMAND       cmMarkLine,     0,             0,     ^K^L,     #0#0
-    COMMAND       cmBlockStart,   0,             0,     ^K^B,     #0#0
-    COMMAND       cmBlockEnd,     0,             0,     ^K^K,     #0#0
-    COMMAND       cmIndentBlock,  0,             0,     ^K^I,     #0#0
-    COMMAND       cmUnindentBlock,0,             0,     ^K^U,     #0#0
-    COMMAND       cmSortBlock,    kbAltT,        0,     ^K^S,     #0#0
-    COMMAND       cmCalcBlock,    kbAltIns,      0,     ^K^U,     #0#0
-    COMMAND       cmInsertTime,   0,             0,     ^Q^T,     #0#0
-    COMMAND       cmInsertDate,   0,             0,     ^Q^D,     #0#0
-    COMMAND       cmMenu,         0,             0,     ^K^Q,     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'1'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'2'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'3'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'4'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'5'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'6'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'7'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'8'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'9'     #0#0
-    COMMAND       cmSelectMacro,  0,             0,     ^J'0'     #0#0
-    COMMAND       cmBracketPair,  kbAltLeft, kbAltRight,^Q'['     ^Q^]
-    COMMAND       cmUpcaseBlock,  0,             0,     ^K^[     #0#0
-    COMMAND       cmLowcaseBlock, 0,             0,     ^K^]     #0#0
-    COMMAND   cmCapitalizeBlock,  0,             0,     ^K^\     #0#0
-    COMMAND   cmChangeCaseBlock,  0,             0,     ^K^A     #0#0
-    COMMAND      cmSyncClipOut,   0,             0,     ^Q^O     #0#0
-    COMMAND       cmSyncClipIn,   0,             0,     ^Q^I     #0#0
-    COMMAND     cmWindowsPaste,   0,             0,     ^Q^P     #0#0
-    COMMAND      cmWindowsCopy,   0,             0,     ^Q^C     #0#0
-    COMMAND   cmSwitchDrawMode,   kbF4,          0,     ^Q^M     #0#0
-    COMMAND cmSwitchKeyMapping,   kbF8,          0,     #0#0     #0#0
-    COMMAND    cmReverseSearch,   kbAltF7,       0,     ^Q^R     #0#0
+;Format is:  COMMAND  <Command>,  KeyCode1,      KeyCode2,  CtrlCode1, CtrlCode2
+    COMMAND       cmDeleteLine,   0,             0,         ^Y#0,      #0#0
+    COMMAND       cmDelWordLeft,  kbCtrlBack,    0,         #0#0,      #0#0
+    COMMAND       cmDelWordRight, 0,             0,         ^T#0,      #0#0
+    COMMAND       cmSpecChar,     0,             0,         ^P#0,      #0#0
+    COMMAND       cmUndo,         kbAltBack,     0,         ^Q^L,      #0#0
+    COMMAND       cmCtrlHome,     kbCtrlHome, kbCtrlShiftHome, #0#0,   #0#0
+    COMMAND       cmCtrlEnd,      kbCtrlEnd,  kbCtrlShiftEnd,  #0#0,   #0#0
+    COMMAND       cmDeltoEOLN,    0,             0,         ^Q^Y,      #0#0
+    COMMAND       cmStartSearch,  0,             0,         ^Q^F,      #0#0
+    COMMAND       cmReplace,      0,             0,         ^Q^A,      #0#0
+    COMMAND       cmMoveBlockStart, 0,           0,         ^Q^B,      #0#0
+    COMMAND       cmMoveBlockEnd, 0,             0,         ^Q^K,      #0#0
+    COMMAND       cmContSearch,   0,             0,         ^L#0,      #0#0
+    COMMAND       cmBlockRead,    0,             0,         ^K^R,      #0#0
+    COMMAND       cmBlockWrite,   0,             0,         ^K^W,      #0#0
+    COMMAND       cmSwitchIns,    kbIns,         0,         ^V,        #0#0
+    COMMAND       cmSwitchBlock,  0,             0,         ^B^V,      #0#0
+    COMMAND       cmFJustify,     kbAltJ,        0,         ^B^J,      #0#0
+    COMMAND       cmFRight,       kbAltR,        0,         ^B^R,      #0#0
+    COMMAND       cmFLeft,        kbAltL,        0,         ^B^L,      #0#0
+    COMMAND       cmFCenter,      kbAltC,        0,         ^B^C,      #0#0
+    COMMAND       cmEnter,        kbEnter,       0,         #13#0,     #0#0
+    COMMAND       cmPaste,        kbShiftIns,    0,         #0#0,      #0#0
+    COMMAND       cmCopy,         kbCtrlIns,     0,         #0#0,      #0#0
+    COMMAND       cmCut,          kbShiftDel,    0,         #0#0,      #0#0
+    COMMAND       cmInsLine,      0,             0,         ^N#0,      #0#0
+    COMMAND       cmEnd,          kbEnd,      kbShiftEnd,   #0#0,      #0#0
+    COMMAND       cmTab,          kbTab,         0,         ^I#0,      #0#0
+    COMMAND       cmWordLeft,     kbCtrlLeft, kbCtrlShiftLeft, ^A#0,   #0#0
+    COMMAND       cmWordRight,    kbCtrlRight, kbCtrlShiftRight, ^F#0, #0#0
+    COMMAND       cmDelBackChar,  kbBack,        0,         ^H#0,      #0#0
+    COMMAND       cmDelChar,      kbDel,         0,         ^G#0,      #0#0
+    COMMAND       cmMoveRight,    kbRight,    kbShiftRight, ^D#0,      #0#0
+    COMMAND       cmMoveLeft,     kbLeft,     kbShiftLeft,  ^S#0,      #0#0
+    COMMAND       cmMoveDown,     kbDown,     kbShiftDown,  ^X#0,      #0#0
+    COMMAND       cmScrollUp,     0,             0,         ^W#0,      #0#0
+    COMMAND       cmScrollDn,     0,             0,         ^Z#0,      #0#0
+    COMMAND       cmMoveUp,       kbUp,       kbShiftUp,    ^E#0,      #0#0
+    COMMAND       cmPlaceMarker1, kbAlt1,        0,         ^K'1',     #0#0
+    COMMAND       cmPlaceMarker2, kbAlt2,        0,         ^K'2',     #0#0
+    COMMAND       cmPlaceMarker3, kbAlt3,        0,         ^K'3',     #0#0
+    COMMAND       cmPlaceMarker4, kbAlt4,        0,         ^K'4',     #0#0
+    COMMAND       cmPlaceMarker5, kbAlt5,        0,         ^K'5',     #0#0
+    COMMAND       cmPlaceMarker6, kbAlt6,        0,         ^K'6',     #0#0
+    COMMAND       cmPlaceMarker7, kbAlt7,        0,         ^K'7',     #0#0
+    COMMAND       cmPlaceMarker8, kbAlt8,        0,         ^K'8',     #0#0
+    COMMAND       cmPlaceMarker9, kbAlt9,        0,         ^K'9',     #0#0
+    COMMAND       cmGotoMarker1,  kbCtrl1,       0,         ^Q'1',     #0#0
+    COMMAND       cmGotoMarker2,  kbCtrl2,       0,         ^Q'2',     #0#0
+    COMMAND       cmGotoMarker3,  kbCtrl3,       0,         ^Q'3',     #0#0
+    COMMAND       cmGotoMarker4,  kbCtrl4,       0,         ^Q'4',     #0#0
+    COMMAND       cmGotoMarker5,  kbCtrl5,       0,         ^Q'5',     #0#0
+    COMMAND       cmGotoMarker6,  kbCtrl6,       0,         ^Q'6',     #0#0
+    COMMAND       cmGotoMarker7,  kbCtrl7,       0,         ^Q'7',     #0#0
+    COMMAND       cmGotoMarker8,  kbCtrl8,       0,         ^Q'8',     #0#0
+    COMMAND       cmGotoMarker9,  kbCtrl9,       0,         ^Q'9',     #0#0
+    COMMAND       cmPgUp,         kbPgUp,     kbShiftPgUp,  ^R#0,      #0#0
+    COMMAND       cmPgDn,         kbPgDn,     kbShiftPgDn,  ^C#0,      #0#0
+    COMMAND       cmClose,        kbESC,       kbAltF3,     ^C#0,      #0#0
+    COMMAND       cmMenu,         kbF10,         0,         #0#0,      #0#0
+    COMMAND       cmUpWord,       kbCtrlSqBracketL, kbCtrlSqBracketL_, #0#0, #0#0
+    COMMAND       cmLowWord,      kbCtrlSqBracketR, kbCtrlSqBracketR_, #0#0, #0#0
+    COMMAND       cmCapWord,      0,             0,         ^\#0,      #0#0
+    COMMAND       cmPrintBlock,   0,             0,         ^K^P,      #0#0
+    COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
+    COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0
+    COMMAND       cmMoveBlock,    0,             0,         ^K^V,      #0#0
+    COMMAND       cmHideBlock,    kbAltH,        0,         ^K^H,      #0#0
+    COMMAND       cmMarkWord,     0,             0,         ^K^T,      #0#0
+    COMMAND       cmMarkLine,     0,             0,         ^K^L,      #0#0
+    COMMAND       cmBlockStart,   0,             0,         ^K^B,      #0#0
+    COMMAND       cmBlockEnd,     0,             0,         ^K^K,      #0#0
+    COMMAND       cmIndentBlock,  kbAltRight,    0,         ^K^I,      #0#0
+    COMMAND       cmUnindentBlock,kbAltLeft,     0,         ^K^U,      #0#0
+    COMMAND       cmSortBlock,    kbAltT,        0,         ^K^S,      #0#0
+    COMMAND       cmCalcBlock,    kbAltIns,      0,         ^K^U,      #0#0
+    COMMAND       cmInsertTime,   0,             0,         ^Q^T,      #0#0
+    COMMAND       cmInsertDate,   0,             0,         ^Q^D,      #0#0
+    COMMAND       cmMenu,         0,             0,         ^K^Q,      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'1'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'2'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'3'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'4'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'5'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'6'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'7'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'8'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'9'      #0#0
+    COMMAND     cmSelectMacro,    0,             0,         ^J'0'      #0#0
+    COMMAND     cmBracketPair,    kbAltLeft,  kbAltRight,   ^Q'['      ^Q^]
+    COMMAND     cmUpcaseBlock,    0,             0,         ^K^[       #0#0
+    COMMAND    cmLowcaseBlock,    0,             0,         ^K^]       #0#0
+    COMMAND cmCapitalizeBlock,    0,             0,         ^K^\       #0#0
+    COMMAND  cmChangeCaseBlock,   0,             0,         ^K^A       #0#0
+    COMMAND     cmSyncClipOut,    0,             0,         ^Q^O       #0#0
+    COMMAND      cmSyncClipIn,    0,             0,         ^Q^I       #0#0
+    COMMAND    cmWindowsPaste,    0,             0,         ^Q^P       #0#0
+    COMMAND     cmWindowsCopy,    0,             0,         ^Q^C       #0#0
+    COMMAND  cmSwitchDrawMode,    0,             0,         ^Q^M       #0#0
+    COMMAND   cmReverseSearch,    kbAltF7,       0,         ^Q^R       #0#0
 END
 
 DIALOG dlgCpuFlagInfo, 60, 23, 'CPU Flag Info'

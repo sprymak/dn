@@ -237,7 +237,7 @@ function GetAltChar(KeyCode: Word): Char;
 function GetAltCode(Ch: Char): Word;
 function GetCtrlChar(KeyCode: Word): Char;
 function GetCtrlCode(Ch: Char): Word;
-function CtrlToArrow(KeyCode: Word): Word;
+{function CtrlToArrow(KeyCode: Word): Word;}
 
 { String routines }
 
@@ -789,6 +789,8 @@ end;
 
 { Keyboard support routines }
 
+{Cat:warn есть подозрение, что GetAltCode и GetCtrlCode не работают}
+
 const
   AltCodes2: array[$78..$83] of Char =
     '1234567890-=';
@@ -796,9 +798,9 @@ const
 function GetAltChar(KeyCode: Word): Char;
 begin
   GetAltChar := #0;
+  if KeyCode = kbAltSpace then GetAltChar := Char(SystemMenuChar);
   if Lo(KeyCode) = 0 then
     case Hi(KeyCode) of
-      $C2: GetAltChar := Char(SystemMenuChar);
       $10..$34: GetAltChar := AltCodes1[Hi(KeyCode)];
       $78..$83: GetAltChar := AltCodes2[Hi(KeyCode)];
     end;
@@ -842,6 +844,9 @@ begin
   GetCtrlCode := GetAltCode(Ch) or (Byte(UpCase(Ch)) - Byte('A') + 1);
 end;
 
+{Cat: а вот это абсолютно точно не работает, т.к. сразу происходит Exit }
+{     закомментировал также все вызовы этой функции }
+(*
 function CtrlToArrow(KeyCode: Word): Word;
 const
   NumCodes = 11;
@@ -860,6 +865,7 @@ begin
       Exit;
     end;
 end;
+*)
 
 {!SEE Drivers._??!}
 

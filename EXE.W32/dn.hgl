@@ -148,7 +148,7 @@ END
 ;
 ;================================================================
 
-FILES CONFIG.SYS; *.BAT; *.CMD
+FILES *.SYS; *.BAT; *.CMD
   CommentString REM ,::
   GeneralFLAGS   14
 END
@@ -545,7 +545,7 @@ FILES *.HTM; *.HTML
 ;         MoveUp
 ;         MoveLeft
 ;         MoveRight
-;         MoveDown 
+;         MoveDown
 ;         BlockStart
 ;         BlockEnd
 ;         MarkWord

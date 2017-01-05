@@ -100,6 +100,9 @@ type
 
     PSpecScroll = ^TSpecScroll;
     TSpecScroll = object(TMyScrollBar)
+     ForceScroll: boolean;{AK155}
+     Panel: PFilePanel;   {AK155}
+     function ScrollStep(Part: LongInt): LongInt; virtual;{AK155}
      procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -154,6 +157,39 @@ uses LFN, DnUtil, DNApp, advance, advance1, advance2, advance3, Startup,
 const
     chTempDrive = '*';
 
+{  ------- TSpecScroll Скроллбар файловой панели }
+{ AК155 23-06-2002
+ Это опредление шага отличается от стандартного тем, что мышиный
+шаг (флажок ForceScroll) на 1 вверх или вниз приводит не к
+мучительному перебору всех файлов в панели, а к скачку на шаг
+выше первого файла или на шаг ниже последнего файла панели. }
+function TSpecScroll.ScrollStep(Part: LongInt): LongInt;
+var Step: LongInt;
+begin
+  if Part and 2 = 0 then
+    begin
+    if not ForceScroll then
+      begin
+      Step := ArStep;
+      if Part and 1 = 0 then Step := -ArStep;
+      end
+    else
+      begin
+      if (Part and 1 = 0) then
+        Step := (Panel^.Delta - Value - ArStep)
+      else
+        Step := (Panel^.Delta + PgStep - Value)
+      end;
+    end
+  else
+    begin
+    Step := PgStep;
+    if Part and 1 = 0 then Step := -PgStep;
+    end;
+  ForceScroll := false;
+  ScrollStep := Step;
+end;
+
 procedure TSpecScroll.HandleEvent;
 begin
  if (Event.What = evKeyDown) and
@@ -165,7 +201,10 @@ begin
      )))
      then Exit;
  if (Event.What = evMouseDown) then
+   begin
     QuickSearch := false; {AK155}
+    ForceScroll := true; {AK155}
+   end;
 
  inherited HandleEvent(Event);
 end;
@@ -870,6 +909,8 @@ begin
                 end;
                RepeatDelay := 0;
                repeat
+                with Panel^ do
+                  PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
                 Message(Owner, evKeyDown, kbDown, nil);
                until not MouseEvent(Event, evMouseMove + evMouseAuto);
                RepeatDelay := 2; Panel^.MSelect := Off;
@@ -1310,6 +1351,7 @@ var
   LastRDelay: Word;
   I, J: LongInt;
   PDr: PDrive;
+  KeyCode: Word; {Cat}
 
  procedure CE;begin ClearEvent(Event) end;
  procedure CED;begin ClearEvent(Event); DrawView end;
@@ -1399,26 +1441,27 @@ begin
        else PF := nil
   else PF := nil;
  I := ShiftState;
+ KeyCode := Event.KeyCode and $FFFF; {Cat}
  if (Event.What = evKeyDown) and (I and 3 <> 0) and
-    ((Event.KeyCode = kbCtrlRight) or (Event.KeyCode = kbCtrlLeft) or
-     ((Event.KeyCode = kbBack) and not QuickSearch))
+    ((KeyCode = kbCtrlRight and $FFFF) or (KeyCode = kbCtrlLeft and $FFFF) or
+     ((KeyCode = kbBack and $FFFF) and not QuickSearch))
       then begin CommandHandle(Event); Exit; end;
  if (Event.What = evKeyDown) and (CommandLine <> nil) then
   if ((I and (kbRightShift+kbLeftShift) <> 0) and
-      ((Event.KeyCode = kbDown) or
-       (Event.KeyCode = kbUp) or
-       ((Event.KeyCode = kbCtrlIns) and (CmdLine.Str<>'')) or
-       (Event.KeyCode = kbGrayAst)
+      ((KeyCode = kbDown and $FFFF) or
+       (KeyCode = kbUp and $FFFF) or
+       ((KeyCode = kbCtrlIns and $FFFF) and (CmdLine.Str<>'')) or
+       (KeyCode = kbGrayAst and $FFFF)
       )
      ) or
-     (((Event.ScanCode < (kbAlt1 shr 8)) or
-       (Event.ScanCode > (kbAlt9 shr 8))
+     (((Event.ScanCode < Hi(kbAlt1)) or
+       (Event.ScanCode > Hi(kbAlt9))
       ) and
       (Event.CharCode = #0) and
       (CmdLine.Str <> '') and
       (((I and 3 <> 0) xor (FMSetup.Options and fmoUseArrows = 0)) and
-       ((Event.KeyCode = kbRight) or (Event.KeyCode = kbLeft) or
-        (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)
+       ((KeyCode = kbRight and $FFFF) or (KeyCode = kbLeft and $FFFF) or
+        (KeyCode = kbHome and $FFFF) or (KeyCode = kbEnd and $FFFF)
        )
       )
      )
@@ -1547,7 +1590,7 @@ GotoKB:
                                Message(@Self, evCommand, cmSingleDel, nil);
                      kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); DrawView end;
                      kbEnd: begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
-                     kbUp, kbDown, kbCtrlUp, kbCtrlDown, kbUpUp, kbDownUp
+                     kbUp, kbDown, kbCtrlUp, kbCtrlDown, kbCtrlShiftUp, kbCtrlShiftDown, kbUpUp, kbDownUp
                           : begin
                                CtrlWas := ShiftState and kbCtrlShift <> 0;
                                if Event.KeyCode = kbCtrlUp   then Event.KeyCode := kbUp;

@@ -1366,7 +1366,7 @@ begin
   if F then
     begin
       SearchActive := Off;
-      MessageBox(GetString(dlDBViewSearchNot), nil, mfError+mfOKButton);
+      MessageBox(GetString(dlDBViewSearchNot), nil, mfInformation+mfOKButton);
     end
   else
     Mark := OldMark;
@@ -2956,6 +2956,7 @@ procedure ASCIITable;
       Event.What := evKeyDown;
       Event.CharCode := charASCII;
       Event.ScanCode := 0;
+      Event.ShiftCode := 0; {Cat}
       PutEvent(E);
       ClearEvent(E);
       InputChar;
@@ -3361,53 +3362,38 @@ begin
              end;
   evKeyDown:
   {$IFDEF OS2}
-        if  ShiftState in [13,14] then  {JO: поскольку хоткеи Ctr-цифра в OS/2 не работают}
-          begin                        {    по непонятной причине, введены временные хоткеи}
+     (*if  ShiftState in [13,14] then*){JO: поскольку хоткеи Ctrl-цифра в OS/2 не работают}
+         {begin}                       {    по непонятной причине, введены временные хоткеи}
             case Event.KeyCode of      {    Ctrl-Alt-Shift-цифра для перехода к закладкам}
-           kbAlt1: Message(@Self, evCommand, cmGotoMarker1, nil);
-           kbAlt2: Message(@Self, evCommand, cmGotoMarker2, nil);
-           kbAlt3: Message(@Self, evCommand, cmGotoMarker3, nil);
-           kbAlt4: Message(@Self, evCommand, cmGotoMarker4, nil);
-           kbAlt5: Message(@Self, evCommand, cmGotoMarker5, nil);
-           kbAlt6: Message(@Self, evCommand, cmGotoMarker6, nil);
-           kbAlt7: Message(@Self, evCommand, cmGotoMarker7, nil);
-           kbAlt8: Message(@Self, evCommand, cmGotoMarker8, nil);
-           kbAlt9: Message(@Self, evCommand, cmGotoMarker9, nil);
-            end;
-          end else
+           kbCtrlAltShift1: Message(@Self, evCommand, cmGotoMarker1, nil);
+           kbCtrlAltShift2: Message(@Self, evCommand, cmGotoMarker2, nil);
+           kbCtrlAltShift3: Message(@Self, evCommand, cmGotoMarker3, nil);
+           kbCtrlAltShift4: Message(@Self, evCommand, cmGotoMarker4, nil);
+           kbCtrlAltShift5: Message(@Self, evCommand, cmGotoMarker5, nil);
+           kbCtrlAltShift6: Message(@Self, evCommand, cmGotoMarker6, nil);
+           kbCtrlAltShift7: Message(@Self, evCommand, cmGotoMarker7, nil);
+           kbCtrlAltShift8: Message(@Self, evCommand, cmGotoMarker8, nil);
+           kbCtrlAltShift9: Message(@Self, evCommand, cmGotoMarker9, nil);
+            {end;}
+          {end else}
+            else
+  {$ELSE}
+      begin
   {$ENDIF}
-{Cat}
-        if (Event.KeyCode = kbAltLeft) then
-          begin
-            Event.What := evCommand;
-            Event.Command := cmUnIndentBlock;
-            if HandleCommand(Event) then
-              DrawView;
-            CE;
-            Exit;
-          end
-        else
-        if (Event.KeyCode = kbAltRight) then
-          begin
-            Event.What := evCommand;
-            Event.Command := cmIndentBlock;
-            if HandleCommand(Event) then
-              DrawView;
-            CE;
-            Exit;
-          end
-        else
-{/Cat}
           if (Event.KeyCode <> kbCtrlAltX) then
           if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
             begin
              if DrawMode > 0 then
                begin
                  case Event.KeyCode of
-                    kbRight,kbCtrlD,kbCtrlRight: begin DrawLine(1); Exit end;
-                    kbLeft,kbCtrlS,kbCtrlLeft: begin DrawLine(3); Exit end;
-                    kbUp,kbCtrlE: begin DrawLine(0); Exit end;
-                    kbDown,kbCtrlX: begin DrawLine(2); Exit end;
+                    kbRight, kbCtrlD, kbShiftRight, kbCtrlRight:
+                      begin DrawLine(1); Exit end;
+                    kbLeft, kbCtrlS, kbShiftLeft, kbCtrlLeft:
+                      begin DrawLine(3); Exit end;
+                    kbUp, kbCtrlE, kbShiftUp:
+                      begin DrawLine(0); Exit end;
+                    kbDown, kbCtrlX, kbShiftDown:
+                      begin DrawLine(2); Exit end;
                  end;
                end;
      (*      if Event.KeyCode = kbCtrlEnter then ; *) {-$VIV 18.05.99--}
@@ -3438,8 +3424,18 @@ begin
              if CFind then
               begin CE; MessageL(Owner, evCommand, EditCommands[I].C,
                                 Byte(EvStr[2])); Exit end;
-             if (Event.CharCode>#31) and (Event.CharCode<#255) then InputChar;
+{ AK155 9-07-2002 После введения Козловым новой системы кодирования клавиш
+серые + и - с шифтом (перелистывание однотипных окон) стали иметь
+ненулевой CharCode, поэтому их приходится анализировать специально.
+Интересно, больше подобных ситуаций нет?}
+             with Event do if (CharCode>#31)
+                              and (KeyCode <> kbShiftGrayPlus)
+                              and (KeyCode <> kbShiftGrayMinus)
+ {Есть! Alt-BS. На всякий случай отсекаем все с Alt и Ctrl}
+                              and (KeyCode and $C0000 = 0)
+                           then InputChar;
             end;
+      end;
   evBroadcast: case Event.Command of
                 cmFindEdit:
                   if PString(Event.InfoPtr)^=EditName then begin

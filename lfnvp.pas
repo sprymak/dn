@@ -71,7 +71,7 @@ type
 
   TSize = Comp; {64 bit integer type for file sizes}
 
-  SearchRecNew = TOSSearchRecNew; {Cat: непонятно, зачем тут перечислять все поля ещё   }
+ {SearchRecNew = TOSSearchRecNew;}{Cat: непонятно, зачем тут перечислять все поля ещё   }
                                   {     раз, а глюки из этого могут возникнуть запросто }
 (*
   SearchRecNew = record        {JO: расширенный аналог SearchRec из Dos с        }
@@ -101,7 +101,7 @@ type
 
    {Extended search structure to be used instead of SearchRec}
   lSearchRec = record
-    SR: SearchRecNew;   {Basic field set}
+    SR: TOSSearchRecNew;   {Basic field set}
    {FileHandle: Word;}  {Search handle, undefined in lDOS mode}
     FullSize: TSize; {True file size}
 (*  LoCreationTime: Longint; {Time created (low-order byte)}
@@ -206,8 +206,14 @@ function lFExpand(const Path: String): String;
 procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 
 {$IFDEF WIN32}
-function OemToCharStr(const OemS: String): String;
-function CharToOemStr(const CharS: String): String;
+var
+  OemToCharArray: array[Char] of Char;
+  CharToOemArray: array[Char] of Char;
+
+procedure OemToCharSt(var OemS: String); {JO}
+procedure CharToOemSt(var CharS: String);{JO}
+function OemToCharStr(OemS: String): String;
+function CharToOemStr(CharS: String): String;
 {$ENDIF}
 
 implementation
@@ -215,6 +221,13 @@ implementation
 uses
   {$IFDEF WIN32} Windows, {$ENDIF}
   Strings, Commands{Cat};
+
+{$IFDEF WIN32}
+const
+  NoShortName: string[12] = #22#22#22#22#22#22#22#22'.'#22#22#22;
+    {AK155: это выводится вместо коротокого имени для файлов,
+      у которых короткого имени нет }
+{$ENDIF}
 
  Function StrPas_(S: Array Of Char): String;
   var ss: string;
@@ -237,21 +250,45 @@ end;
 {$ENDIF}
 {&Delphi+}
 {$IFDEF Win32}
-function OemToCharStr(const OemS: String): String;
-var l: integer;
+{JO}
+procedure OemToCharSt(var OemS: String);
+ var I: Byte;
+begin
+  for I := 1 to Length(OemS) do
+    OemS[I] := OemToCharArray[OemS[I]];
+end;
+
+procedure CharToOemSt(var CharS: String);
+ var I: Byte;
+begin
+  for I := 1 to Length(CharS) do
+    CharS[I] := CharToOemArray[CharS[I]];
+end;
+
+function OemToCharStr(OemS: String): String;
+{var l: integer;
 begin
 l := length(OemS);
 Setlength(Result, l);
 OemToCharBuff(@OemS[1], @Result[1], l);
+end;}
+begin
+ OemToCharSt(OemS);
+ OemToCharStr := OemS;
 end;
 
-function CharToOemStr(const CharS: String): String;
-var l: integer;
+function CharToOemStr(CharS: String): String;
+{var l: integer;
 begin
 l := length(CharS);
 Setlength(Result, l);
 CharToOemBuff(@CharS[1], @Result[1], l);
+end;}
+begin
+ CharToOemSt(CharS);
+ CharToOemStr := CharS;
 end;
+{/JO}
 {$ENDIF}
 
 procedure CheckColonAndSlash(const Name: String; var S: String);
@@ -299,7 +336,7 @@ end;
 
 {JO: функции, аналогичные FindFirst, FindNext и FindClose из модуля DOS, }
 {    но предназначенные для работы с SearchRecNew}
-
+(*
 procedure FindFirstNew(const Path: PathStr; Attr: Word; var F: SearchRecNew);
 var
   PathBuf: array [0..SizeOf(PathStr)-1] of Char;
@@ -316,13 +353,46 @@ procedure FindCloseNew(var F: SearchRecNew);
 begin
   SetDosError(SysFindCloseNew(TOSSearchRecNew(F)));
 end;
+*)
+
+{AK155}
+{$IFDEF Win32}
+function NotShortName(const S: string): boolean;
+  var
+    i, l: integer;
+    iPoint: integer;
+  begin
+  NotShortName := true;
+  if S[1] = '.' then exit;
+  l := length(S);
+  if l > 12 then exit;
+  iPoint := 0;
+  for I := 1 to l do
+   begin
+    if S[i] = '.' then
+     begin
+      if (iPoint <> 0) or (I>9) then exit;
+      iPoint := i;
+     end
+    else if S[I] in IllegalCharSet then Exit; {DataCompBoy}
+   end;
+  if (iPoint = 0) and (l > 8) then exit;
+  if (iPoint <> 0) and (l-iPoint > 3) then exit;
+  NotShortName := false;
+  end;
+{$ENDIF}
 
 procedure CorrectSearchRec(var R: lSearchRec);
 begin
   R.FullName := R.SR.Name;
 {$IFDEF Win32}
-  if (R.SR.Name <> '.') and (R.SR.Name <> '..') and (R.SR.ShortName <> '') then
-     R.SR.Name := R.SR.ShortName;
+  if (R.SR.Name <> '.') and (R.SR.Name <> '..') then
+    begin
+    if (R.SR.ShortName <> '') then
+      R.SR.Name := R.SR.ShortName
+    else if NotShortName(R.FullName) then
+      R.SR.Name := NoShortName;
+    end;
 {$ENDIF}
 (*R.LoCreationTime:= R.SR.Time;
   R.HiCreationTime:= 0;
@@ -334,9 +404,11 @@ begin
 end;
 
 procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
+var
+  PathBuf: array [0..SizeOf(PathStr)-1] of Char;
 begin
   R.FullName := '';
-  FindFirstNew(Path, Attr, R.SR);
+  SetDosError(SysFindFirstNew(StrPCopy(PathBuf, Path), Attr, R.SR, False));
   CorrectSearchRec(R);
 {$IFDEF OS2}
   R.PrevName := R.FullName;
@@ -346,9 +418,11 @@ end;
 procedure lFindNext(var R: lSearchRec);
 begin
   R.FullName := '';
-  FindNextNew(R.SR);                    {JO: ошибка 49 в оси зарезервирована}
-  CorrectSearchRec(R);                  {    мы её будем использовать для}
-{$IFDEF OS2}                            {    отлова дупов на HPFS}
+  SetDosError(SysFindNextNew(R.SR, False));
+  CorrectSearchRec(R);
+ {JO: ошибка 49 в оси зарезервирована; мы её будем использовать для}
+ {    отлова дупов на HPFS}
+{$IFDEF OS2}
   if (DOSError = 0) and (R.FullName <> '') and (R.FullName <> '.') and (R.FullName <> '..') then
     begin
       if R.PrevName = R.FullName then DOSError := 49;
@@ -361,7 +435,7 @@ procedure lFindClose(var R: lSearchRec);
  var DEr: Longint;
 begin
  DEr := DOSError; {JO}
- FindCloseNew(R.SR);
+ SysFindCloseNew(R.SR);
  DOSError := DEr; {JO}
 end;
 
@@ -369,11 +443,13 @@ end;
 {$IFDEF WIN32}
 function lfGetShortFileName(const Name: String): String;
 var NZ, NZ2: TNameZ;
+  l: longint;
 begin
   if (Name = '.') or (Name = '..') then begin lfGetShortFileName := Name; Exit; end;
   NameToNameZ(Name, NZ2);
-  GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
-  lfGetShortFileName := StrPas_(NZ);
+  l := GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
+  if l = 0 then lfGetShortFileName := NoShortName
+    else lfGetShortFileName := StrPas_(NZ);
 end;
 {$ENDIF}
 {$IFDEF DPMI32}
@@ -489,7 +565,7 @@ procedure lChangeFileName(const Name, NewName: String);
  begin
   {$IFDEF Win32}
    {$IFNDEF RecodeWhenDraw}
-  if RecodeCyrillicNames then
+  if RecodeCyrillicNames = 1 then
     begin
       Assign(F, OemToCharStr(Name));
       Rename(F, OemToCharStr(NewName));
@@ -583,4 +659,22 @@ begin
 end;
 {/Cat}
 
-end.
+{JO}
+{$IFDEF Win32}
+procedure PrepareArrays;
+ var I: Char;
+ begin
+  for I := #0 to #255 do
+   begin
+    OemToCharArray[I] := I;
+    CharToOemArray[I] := I;
+   end;
+  OemToCharBuff(@OemToCharArray, @OemToCharArray, 256);
+  CharToOemBuff(@CharToOemArray, @CharToOemArray, 256);
+ end;
+
+Begin {инициализация модуля}
+ PrepareArrays;
+{$ENDIF}
+{/JO}
+End.

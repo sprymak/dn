@@ -799,7 +799,10 @@ end;
 
 Function UpLowStrg(s : string) : string; {JO}
 begin
- if UpperCaseSorting then UpLowStrg := UpStrg(s) else UpLowStrg := LowStrg(s);
+ if UpperCaseSorting then
+   begin  UpStr(s); UpLowStrg:=s; end
+  else
+   begin LowStr(s); UpLowStrg:=s; end;
 end;
 
 (*

@@ -67,31 +67,22 @@ END;
 FUNCTION AFileRead(Handle: Word; Var Buf; Count: Sw_Word;
                    Var Actual: Sw_Word): Word;
 BEGIN
- SysFileRead(Handle, Buf, Count, Actual);
- If Actual < 0 then begin
-  AFileRead := 1;
-  Actual := 0;
- end else AFileRead := 0;
+ Actual := 0;
+ AFileRead := SysFileRead(Handle, Buf, Count, Actual);
 END;
 
 FUNCTION AFileWrite (Handle: Word; Var Buf; Count: Sw_Word;
                      Var Actual: Sw_Word): Word;
 BEGIN
- SysFileWrite(Handle, Buf, Count, Actual);
- If Actual < 0 then begin
-  AFileWrite := 1;
-  Actual := 0;
- end else AFileWrite := 0;
+ Actual := 0;
+ AFileWrite := SysFileWrite(Handle, Buf, Count, Actual);
 END;
 
 FUNCTION ASetFilePos (Handle: Word; Pos: LongInt; MoveType: Word;
                       Var Actual: LongInt): Word;
 BEGIN
- SysFileSeek(Handle, Pos, MoveType, Actual);
- If Actual<0 then begin
-  Actual := 0;
-  ASetFilePos := 1;
- end else ASetFilePos := 0;
+ Actual := 0;
+ ASetFilePos := SysFileSeek(Handle, Pos, MoveType, Actual);
 END;
 
 {AK155}

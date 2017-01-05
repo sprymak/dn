@@ -4,10 +4,9 @@
  {$IFDEF FPC}{$DEFINE NONBP}{$ENDIF}
 
  {$IFNDEF VIRTUALPASCAL} {$IFNDEF DPMI} {$DEFINE REALMODE} {$ENDIF} {$ENDIF}
- {$IFNDEF REALMODE} {.$DEFINE TGZ} {$ENDIF}
 
  {$IFDEF VIRTUALPASCAL}
-  {.$DEFINE USESYSUTILS}   {Cat: если хочется подключать модуль SysUtils или использовать механизм исключений; в плагинной версии ни на что не влияет}
+  {$DEFINE USESYSUTILS}   {Cat: если хочется подключать модуль SysUtils или использовать механизм исключений; в плагинной версии ни на что не влияет}
   {.$DEFINE PLUGIN}        {Cat: плагинская версия}
   {.$DEFINE COLORER}       {Cat: плагин Colorer - может использоваться и не в плагинской версии тоже}
   {$DEFINE USELONGSTRING}  {Cat: использование длинных строк кое-где (в частности, в редакторе)}
@@ -80,7 +79,6 @@
  {.$DEFINE StreamDebug}
  {.$DEFINE SORTDEBUG}
  {.$DEFINE CHDIRDEBUG}
- {.$DEFINE CHDIRTIMER}
  {$DEFINE UserSaver}
 
 {$ELSE VIRTUALPASCAL}
@@ -101,7 +99,7 @@
  {$IFDEF USELFN}
   {$DEFINE STRINGLFN} {включает более быстрый, но жрущий много памяти алгоритм работы с виндовыми LFN}
  {$ENDIF}
- {.$DEFINE VPBETA}     {включает создание DN.ERR при критических ошибках}
+ {$DEFINE VPBETA}     {включает создание DN.ERR при критических ошибках}
                       {влияет на вариант подключения dn2cat.dll в виндовой плагинной версии}
  {.$DEFINE OldCollection} {старые ассемблерные методы *Collection}
  {$DEFINE NoCallspcb} {внимание! конфиги версий, скомпилённых с и без NoCallspcb несовместимы!}
@@ -120,8 +118,12 @@
  {.$DEFINE PKTVIEW} {нормально компилится и работает, но надо ли}
  {$DEFINE DisAsm}  {нормально компилится и работает, но надо ли}
  {$DEFINE PHONES}
+ {$DEFINE ARVID}
  {.$DEFINE NETINFO}
  {$DEFINE FileNotify}
+ {$DEFINE CHDIRTIMER}
+ {.$DEFINE SORTTIMER}
+ {.$DEFINE COPYTIMER}
 {$ENDIF VIRTUALPASCAL}
 
 {$IFDEF BPIDE}
@@ -166,8 +168,6 @@
  {$UNDEF DisAsm}
 {$ENDIF}
 
-{$DEFINE COMBINE_MIXED} {это чтобы case filter работал по-человечески}
-
 {$DEFINE FULLOVR}
 {$DEFINE FULLOVR2}
 {$DEFINE VIEWSOVR}
@@ -194,6 +194,8 @@
 
 {.$DEFINE PACKFILE}
 
+{$IFDEF PLUGIN} {$DEFINE PLUGINRES} {$ENDIF}
+{$IFNDEF DNPRG} {$UNDEF PLUGIN} {$ENDIF}
 {$IFDEF PLUGIN} {$IFDEF OS2} {$DEFINE PLUGIN_OS2} {$DEFINE TRUE_DYNAMIC} {$ENDIF} {$IFDEF WIN32} {$DEFINE PLUGIN_WIN32} {$IFNDEF VPBETA} {$DEFINE TRUE_DYNAMIC} {$ENDIF} {$ENDIF} {$ENDIF} {Cat}
 
 {$IFDEF PLUGIN} {$UNDEF GAME} {$ENDIF} {Cat}

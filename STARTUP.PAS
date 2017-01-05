@@ -326,13 +326,12 @@ procedure InitMaskData;
  const
   InterfaceData: TInterfaceData = (
     Options: ouiClock +
-             ouiEsc
-          {+ ouiStoreEditorPosition +
+             ouiEsc +
+             ouiStoreEditorPosition +
              ouiStoreViewerPosition +
              ouiTrackEditors +
              ouiTrackViewers +
-             ouiTrackDirs +
-             ouiHideMenu};
+             ouiTrackDirs;
     DrvInfType: 0
   );
 
@@ -354,7 +353,7 @@ procedure InitMaskData;
                fmoSpaceToggle +
                fmoUseArrows +
                fmoBackGoesBack +
-               fmoPreserveDesc +
+               fmoKillContainer +
                fmoAlwaysCopyDesc;
       Show: fmsColumnTitles +
             fmsDriveLine +
@@ -427,18 +426,15 @@ procedure InitMaskData;
    FileCase: Word;
    DirsCase: Word;
   end = (
-{$IFDEF OS2}
     Params: ( (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:1023; LFNLen: '12'; EXTLen: '3'),
-              (Param:  1; LFNLen: '18'; EXTLen: '3'),(Param:   1; LFNLen: '18'; EXTLen: '0'),
+              (Param:  1; LFNLen: '18'; EXTLen: '4'),(Param:   1; LFNLen: '18'; EXTLen: '0'),
               (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:   1; LFNLen:'252'; EXTLen: '0'),
-              (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:   3; LFNLen:'252'; EXTLen: '0'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:   1; LFNLen: '12'; EXTLen: '3'));
+              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param: 257; LFNLen: '12'; EXTLen: '3'),
+              (Param:  1; LFNLen: '12'; EXTLen: '3'),
+{$IFDEF OS2}
+              (Param:   1; LFNLen: '12'; EXTLen: '3'));
 {$ELSE}
-    Params: ( (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:1023; LFNLen: '13'; EXTLen: '3'),
-              (Param:  0; LFNLen: '12'; EXTLen: '3'),(Param:   1; LFNLen: '18'; EXTLen: '3'),
-              (Param:  1; LFNLen: '18'; EXTLen: '0'),(Param:   1; LFNLen: '38'; EXTLen: '4'),
-              (Param:  1; LFNLen:'252'; EXTLen: '0'),(Param: 257; LFNLen: '12'; EXTLen: '3'),
-              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:   1; LFNLen: '12'; EXTLen: '3'));
+              (Param:   0; LFNLen: '12'; EXTLen: '3'));
 {$ENDIF}
     FileCase:4;
     DirsCase:4
@@ -450,18 +446,15 @@ procedure InitMaskData;
    FileCase: Word;
    DirsCase: Word;
   end = (
-{$IFDEF OS2}
     Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
-              (Param:257; LFNLen: '18'; EXTLen: '0'),(Param:  1; LFNLen: '18'; EXTLen: '3'),
-              (Param:  1; LFNLen: '18'; EXTLen: '0'),(Param:  1; LFNLen: '38'; EXTLen: '4'),
-              (Param:  1; LFNLen:'252'; EXTLen: '0'),(Param:  3; LFNLen:'252'; EXTLen: '0'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
-{$ELSE}
-    Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
-              (Param:  0; LFNLen: '12'; EXTLen: '3'),(Param:257; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '18'; EXTLen: '3'),(Param:  1; LFNLen: '18'; EXTLen: '0'),
+              (Param:  1; LFNLen: '18'; EXTLen: '4'),(Param:  1; LFNLen: '18'; EXTLen: '0'),
               (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:  1; LFNLen:'252'; EXTLen: '0'),
-              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
+              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:257; LFNLen: '18'; EXTLen: '0'),
+              (Param:  1; LFNLen: '12'; EXTLen: '3'),
+{$IFDEF OS2}
+              (Param:  1; LFNLen: '12'; EXTLen: '3'));
+{$ELSE}
+              (Param:  0; LFNLen: '12'; EXTLen: '3'));
 {$ENDIF}
     FileCase:4;
     DirsCase:4
@@ -474,18 +467,15 @@ procedure InitMaskData;
    FileCase: Word;
    DirsCase: Word;
   end = (
-{$IFDEF OS2}
     Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
-              (Param:257; LFNLen: '18'; EXTLen: '0'),(Param:  1; LFNLen: '18'; EXTLen: '3'),
-              (Param:  1; LFNLen: '18'; EXTLen: '0'),(Param:  1; LFNLen: '38'; EXTLen: '4'),
-              (Param:  1; LFNLen:'252'; EXTLen: '0'),(Param:  3; LFNLen:'252'; EXTLen: '0'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
-{$ELSE}
-    Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
-              (Param:  0; LFNLen: '12'; EXTLen: '3'),(Param:257; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '18'; EXTLen: '3'),(Param:  1; LFNLen: '18'; EXTLen: '0'),
+              (Param:  1; LFNLen: '18'; EXTLen: '4'),(Param:  1; LFNLen: '18'; EXTLen: '0'),
               (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:  1; LFNLen:'252'; EXTLen: '0'),
-              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
+              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:257; LFNLen: '18'; EXTLen: '0'),
+              (Param:  1; LFNLen: '12'; EXTLen: '3'),
+{$IFDEF OS2}
+              (Param:  1; LFNLen: '12'; EXTLen: '3'));
+{$ELSE}
+              (Param:  0; LFNLen: '12'; EXTLen: '3'));
 {$ENDIF}
     FileCase:4;
     DirsCase:4
@@ -498,19 +488,11 @@ procedure InitMaskData;
    FileCase: Word;
    DirsCase: Word;
   end = (
-{$IFDEF OS2}
     Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '3'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
+              (Param: 1; LFNLen: '18'; EXTLen: '4'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
               (Param: 1; LFNLen: '38'; EXTLen: '4'),(Param: 1; LFNLen:'252'; EXTLen: '0'),
-              (Param:51; LFNLen: '12'; EXTLen: '3'),(Param:33; LFNLen: '12'; EXTLen: '3'),
-              (Param:51; LFNLen:'252'; EXTLen: '0'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
-{$ELSE}
-    Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '13'; EXTLen: '3'),
-              (Param: 0; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '18'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '0'),(Param: 1; LFNLen: '38'; EXTLen: '4'),
-              (Param: 1; LFNLen:'252'; EXTLen: '0'),(Param:51; LFNLen: '12'; EXTLen: '3'),
-              (Param:33; LFNLen: '12'; EXTLen: '3'),(Param:51; LFNLen:'252'; EXTLen: '0'));
-{$ENDIF}
+              (Param:51; LFNLen:'252'; EXTLen: '0'),(Param:51; LFNLen: '12'; EXTLen: '3'),
+              (Param:33; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
     FileCase:4;
     DirsCase:4
   );
@@ -521,11 +503,11 @@ procedure InitMaskData;
    FileCase: Word;
    DirsCase: Word;
   end = (
-    Params: ( (Param:   1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '12'; EXTLen: '3'),
-              (Param:   1; LFNLen: '18'; EXTLen: '3'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param:   1; LFNLen: '38'; EXTLen: '4'),(Param: 1; LFNLen:'252'; EXTLen: '0'),
-              (Param: 257; LFNLen: '12'; EXTLen: '3'),(Param: 3; LFNLen:'252'; EXTLen: '0'),
-              (Param:   1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+    Params: ( (Param:   1; LFNLen: '12'; EXTLen: '3'),(Param: 271; LFNLen: '12'; EXTLen: '3'),
+              (Param:   1; LFNLen: '18'; EXTLen: '4'),(Param:   1; LFNLen: '18'; EXTLen: '0'),
+              (Param:   1; LFNLen: '38'; EXTLen: '4'),(Param:   1; LFNLen:'252'; EXTLen: '0'),
+              (Param:   3; LFNLen:'252'; EXTLen: '0'),(Param: 257; LFNLen: '12'; EXTLen: '3'),
+              (Param:   1; LFNLen: '12'; EXTLen: '3'),(Param:   1; LFNLen: '12'; EXTLen: '3'));
     FileCase:4;
     DirsCase:4
   );
@@ -609,6 +591,10 @@ end;
 {$ENDIF}
 {$ENDIF NO_OVERLAY}
 
+{-DataCompBoy-}{piwamoto}{JO}
+{ note: BIN, DAT, RAW are NOT included in any group, }
+{ becouse there is TOO MUCH filetypes with these extensions }
+
 procedure InitMaskData;
 begin
  New(Archives); FillChar(Archives^, SizeOf(Archives^), 0);
@@ -617,7 +603,7 @@ begin
                         'a[0-9][0-9];r[0-9][0-9];c[0-9][0-9];$z[0-9];'+
 {supported archives in order of appearance}
                         'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
-                        'lha;ice;lzh;lim;qrk;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
+                        'lha;ice;lzh;lim;ark;qrk;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
                         'zip;zoo;$z;zxz;'+
 {arvid}
                         'avt;tdr;'+
@@ -626,15 +612,15 @@ begin
 
 {sources}
  New(CustomMask1);  FillChar(CustomMask1^, SizeOf(CustomMask1^), 0);
- CustomMask1^.Filter := 'pas;asm;inc;c;cpp;hdr;def;pp;h;rc;idb';
+ CustomMask1^.Filter := 'pas;asm;inc;c;cpp;cc;cxx;hdr;def;pp;h;hpp;hxx;rc;idb;bas;js;jav;java';
 
 {raw text}
  New(CustomMask2);  FillChar(CustomMask2^, SizeOf(CustomMask2^), 0);
- CustomMask2^.Filter := '.;asc;dok;txt;ans;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][1-9]';
+ CustomMask2^.Filter := '.;asc;dok;txt;ans;me;1st;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][0-9]';
 
 {databases & speadsheets}
  New(CustomMask3);  FillChar(CustomMask3^, SizeOf(CustomMask3^), 0);
- CustomMask3^.Filter := 'dbf;wkz;wks;123;wk1;xls;mdb;mde';
+ CustomMask3^.Filter := 'dbf;db;wkz;wks;123;wk1;xls;mdb;mde';
 
 {kill'em!}
  New(CustomMask4);  FillChar(CustomMask4^, SizeOf(CustomMask4^), 0);
@@ -643,11 +629,11 @@ begin
 {graphics}
  New(CustomMask5);  FillChar(CustomMask5^, SizeOf(CustomMask5^), 0);
  CustomMask5^.Filter := 'pcx;bmp;gif;rle;ico;jpg;jpe;jpeg;png;tif;tga;wpg;psd;'+
-                       'pcd';
+                       'pcd;cur;ani;dib';
 
 {config}
  New(CustomMask6);  FillChar(CustomMask6^, SizeOf(CustomMask6^), 0);
- CustomMask6^.Filter := 'ini;cfg;ctl;nif;lst;m3u;pls;reg';
+ CustomMask6^.Filter := 'ini;cfg;ctl;nif;lst;m3u;pls;reg;mak';
 
 {audio & video}
  New(CustomMask7);  FillChar(CustomMask7^, SizeOf(CustomMask7^), 0);
@@ -659,15 +645,15 @@ begin
   {sampled music}
                         'mod;stm;s3m;xm;it;mdl;mtm;mid;cmf;sid;'+
   {video}
-                        'avi;mpeg;mpe;smk;bik;gl;mvy;mve;fli;flc;tgv';
+                        'avi;mpeg;mpe;smk;bik;gl;mvy;mve;mov;fli;flc;tgv';
 
 {fonts}
  New(CustomMask8);  FillChar(CustomMask8^, SizeOf(CustomMask8^), 0);
- CustomMask8^.Filter := 'fon;fot;fnt;ttf;ofm;pfm;afm;sft;eft;pft;xft';
+ CustomMask8^.Filter := 'fon;fot;fnt;ttf;ofm;pfm;afm;sft;eft;pft;xft;chr';
 
 {Office documents}
  New(CustomMask9);  FillChar(CustomMask9^, SizeOf(CustomMask9^), 0);
- CustomMask9^.Filter := 'doc;rtf;sdw;lwp;sam;html;htm';
+ CustomMask9^.Filter := 'doc;wp;rtf;sdw;lwp;sam;html;htm';
 
 {system}
  New(CustomMask10); FillChar(CustomMask10^,SizeOf(CustomMask10^),0);

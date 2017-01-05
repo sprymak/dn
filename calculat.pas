@@ -45,747 +45,720 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-{(c) Anton Fedorov aka DataCompBoy, 2000}
+{(c) Alexey Korop aka AK155, 2002}
+{GetValue - (c) Anton Fedorov aka DataCompBoy, 2000}
 UNIT Calculat;
+{&Delphi+}
 
 INTERFACE
+uses
+  Commands;
 
 Type CReal = Extended;
      PCReal = ^CReal;
 
 Type VarGetFunc = Function (VarName: string; var Value: CReal): boolean;
 
-function GetValue(S: String; var Value: CReal): boolean;
+function Evalue(const s: string; aVGF: VarGetFunc): CReal;
+function GetErrOp(var x: integer): string;
 
-function Evalue(const as: string; aVGF: VarGetFunc): CReal;
-
-Const EvalueError: Boolean = False;
+var
+  EvalueError: Boolean;
+  CalcErrMess: TStrIdx;
+  CalcErrPos: longint;
 
 IMPLEMENTATION
 
 uses
-  Dos, Advance1;
+  Advance1
+  , math
+  ;
 
-(*{$IFDEF DPMI}{$L Int10.obp}procedure Exc10Handler; external;{$ENDIF}*)
+var
+  Expression: string;
+  Res: CReal;
 
+
+function GetV(S: String; Base: integer; var Value: CReal): boolean;
 const
-  Epsilon = 1e-200;
-
-function Sin (x:CReal):CReal;
+  HexDigits = '0123456789ABCDEFG';
+var RR, DegValue: CReal;
+    j: byte;
+    c, MaxC: char;
+    d: longint;
 begin
- if (not EvalueError)
-  then Sin := System.Sin(x)
-  else Sin := 1;
+ result := false;
+ if Length(S) = 0 then
+   exit;
+ RR:=0;
+ UpStr(S);
+ for j:=1 to Length(S) do
+   begin
+   c := system.Upcase(S[j]);
+   if c = '.' then break;
+   d := Pos(c, HexDigits)-1;
+   if (d < 0) or (d >= Base) then exit;
+   RR:=RR*Base + d;
+   end;
+ Delete(S, 1, j);
+ if (Length(S) < 1) then begin
+  Value:=RR;
+  result:=true;
+  exit
+ end;
+ DegValue:=1;
+ for j:=1 to Length(S) do
+   begin
+   DegValue := DegValue / Base;
+   d := Pos(S[j], HexDigits)-1;
+   if (d < 0) or (d >= Base) then exit;
+   end;
+ Value:=RR;
+ result:=True;
 end;
 
-function Cos (x:CReal):CReal;
+{ После числа без проблела может быть десятичный множитель
+(всякие кило- микро- и т.п. Множители распознаются английские
+(u=микро) и русские.  }
+function GetDec(S: String; var Value: CReal): boolean;
+const
+    MultE = ' d  с  m  u  p  n  f  da h  k  M  G  T  P ';
+    MultR = ' д  с  м  мк п  н  ф  да г  к  М  Г  Т  П ';
+//            -1 -2 -3 -6 -9-12-15 1  2  3  6  9  12 15
+  MultV: array [1..length(MultE) div 3] of CReal =
+   (1e-1, 1e-2, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15
+   , 1e1, 1e2,  1e3,  1e6,  1e9,  1e12,  1e15);
+var
+  R: Integer;
+  l: longint;
+  m: string;
 begin
- if (not EvalueError)
-  then Cos := System.Cos(x)
-  else Cos := 1;
-end;
-
-function ArcTan (x:CReal):CReal;
-begin
- if (not EvalueError)
-  then ArcTan := System.ArcTan(x)
-  else ArcTan := 1;
-end;
-
-function Sh  (x:CReal):CReal;
-begin
- if (not EvalueError)
-  then Sh := (Exp(x) - Exp(-x)) / 2
-  else Sh := 1;
-end;
-
-function Ch  (x:CReal):CReal;
-begin
- if (not EvalueError)
-  then Ch := (Exp(x) + Exp(-x)) / 2
-  else Ch := 1;
-end;
-
-function Th  (x:CReal):CReal;
-var K:CReal;
-begin
- if (not EvalueError)
-  then begin
-        K := (Exp(x) + Exp(-x));
-        If Abs(K) > Epsilon
-         then Th := (Exp(x) - Exp(-x)) / K
-         else begin Th := 1; EvalueError := true; end;
-       end
-  else Th := 1;
-end;
-
-function Cth (x:CReal):CReal;
-var K:CReal;
-begin
- if (not EvalueError)
-  then begin
-        K := (Exp(x) - Exp(-x));
-        If Abs(K) > Epsilon
-         then Cth := (Exp(x) + Exp(-x)) / K
-         else begin Cth := 1; EvalueError := true; end;
-       end
-  else Cth := 1;
-end;
-
-function Arsh(x:CReal):CReal;
-begin
- if (not EvalueError) and (x >= 0)
-  then Arsh := Ln(x + Sqrt(Sqr(x)+1))
-  else begin Arsh := 1; EvalueError := true end;
-end;
-
-function Arch(x:CReal):CReal;
-begin
- if (not EvalueError) and (x >= 1)
-  then Arch := Ln(x + Sqrt(Sqr(x)-1))
-  else begin Arch := 1; EvalueError := true end;
-end;
-
-function Arth(x:CReal):CReal;
-begin
- if (not EvalueError) and (Abs(X) < 1-Epsilon)
-  then Arth := Ln( (1+x) / (1-x) ) / 2
-  else begin Arth := 1; EvalueError := true end;
-end;
-
-function Arcth(x:CReal):CReal;
-begin
- if (not EvalueError) and (Abs(X) > 1+Epsilon)
-  then Arcth := Ln( (x+1) / (x-1) ) / 2
-  else begin Arcth := 1; EvalueError := true end;
-end;
-
-function Sec (x:CReal):CReal;
-begin
- if (not EvalueError) and (Abs(Cos(X)) > Epsilon)
-  then Sec := 1 / Cos(x)
-  else begin Sec := 1; EvalueError := true end;
-end;
-
-function Rad (x:CReal):CReal;
-begin
- if (not EvalueError)
-  then Rad := (x*180) / PI
-  else Rad := 1;
-end;
-
-function Tan (x:CReal):CReal;
-begin
- if (not EvalueError) and (Abs(Cos(X)) > Epsilon)
-  then Tan := Sin(x) / Cos(x)
-  else begin Tan := 1; EvalueError := true end;
-end;
-
-function Grad (x:CReal):CReal;
-begin
- if (not EvalueError)
-  then Grad := (x*PI) / 180
-  else Grad := 1;
-end;
-
-function Fact (x:CReal):CReal;
- var R: CReal; I: longint;
-begin
- if (not EvalueError) and (x >= 1) and (x <= 1750)
-  then begin
-        R := 1;
-        for I := 1 to Trunc(x) do R := R * I;
-        Fact := R;
-       end
-  else begin Fact := 1; EvalueError := true end;
-end;
-
-function CoSec (x:CReal):CReal;
-begin
- if (not EvalueError) and (Abs(Sin(X)) > Epsilon)
-  then CoSec := 1 / Sin(x)
-  else begin CoSec := 1; EvalueError := true end;
-end;
-
-function CoTan (x:CReal):CReal;
-begin
- if (not EvalueError) and (Abs(Sin(X)) > Epsilon)
-  then CoTan := Cos(x) / Sin(x)
-  else begin CoTan := 1; EvalueError := true end;
-end;
-
-function ArcCoTan (x:CReal):CReal;
-begin
- if (not EvalueError)
-  then ArcCoTan := Pi/2 - ArcTan(x)
-  else ArcCoTan := 1;
-end;
-
-function ArcSin (x:CReal):CReal;
-begin
- if (not EvalueError) and (x >= -1) and (x <= 1) then
-  if Abs(x+1) < Epsilon then
-   ArcSin := -(pi/2)
-  else
-   if Abs(x-1) < Epsilon then
-    ArcSin := (pi/2)
-   else
-    ArcSin := ArcTan ( x / sqrt(1-sqr(x)))
- else begin ArcSin := 1; EvalueError := true end;
-end;
-
-function ArcCos (x:CReal):CReal;
-begin
- if (not EvalueError) and (x >= -1) and (x <= 1) then
-  if Abs(x+1) < Epsilon then
-   ArcCos := pi
-  else
-   if Abs(x-1) < Epsilon then
-    ArcCos := 0
-   else
-    ArcCos := ArcCoTan ( x / sqrt(1-sqr(x)))
- else begin ArcCos := 1; EvalueError := true end;
-end;
-
-function ArcSec (x:CReal):CReal;
-begin
- if (not EvalueError) and (Abs(x) > Epsilon)
-  then ArcSec := ArcCos(1/x)
-  else begin ArcSec := 1; EvalueError := true end;
-end;
-
-function ArcCoSec (x:CReal):CReal;
-begin
- if (not EvalueError) and (Abs(x) > Epsilon)
-  then ArcCoSec := ArcSin(1/x)
-  else begin ArcCoSec := 1; EvalueError := true end;
-end;
-
-function Step (x,a:CReal):CReal;
-var S: CReal;
-begin
- if ((Abs(x) < Epsilon) and (Abs(a) < Epsilon)) or (EvalueError)
-  then begin Step := 1; EvalueError := true end
-  else if (Abs(a) < Epsilon) then Step := 1
-        else if (Abs(Frac(a)) < Epsilon) then begin
-              if Abs(x) > Epsilon then begin
-               S:=Exp(a*Ln(Abs(x)));
-               if (Abs(Trunc(a)) mod 2 = 1) and (x < 0)
-                then Step := -S
-                else Step := S;
-              end else begin Step := 1; EvalueError := true end;
-             end else if x > Epsilon
-                       then Step := Exp(a*Ln(x))
-                       else begin Step := 1; EvalueError := true end;
-end;
-
-function Root(x,a:CReal):CReal;
-var S: CReal;
-begin
- if (a < 1-Epsilon) or (Abs(Frac(a)) > Epsilon) or (EvalueError)
- then begin Root := 1; EvalueError := true end
- else if (Trunc(a) mod 2 = 1)
-       then begin
-             if Abs(x) > Epsilon
-              then S := Exp((1/a)*Ln(Abs(x)))
-              else begin Root := 1; EvalueError := true end;
-             if x < 0 then Root := -S
-                      else Root := S
-            end
-       else if x > Epsilon then Root := Exp((1/a)*Ln(x))
-                           else begin Root := 1; EvalueError := true end;
-end;
-
-function Log(a,x:CReal):CReal;
-begin
- if (a < Epsilon) or (Abs(a-1) < Epsilon) or (x < Epsilon) or (EvalueError)
-  then begin Log := 1; EvalueError := true end
-  else Log := Ln(x)/Ln(a);
-end;
-
-function Ln(x:CReal):CReal;
-begin
- if (x < Epsilon) or (EvalueError)
-  then begin Ln := 1; EvalueError := true end
-  else Ln := System.Ln(x);
+ Val(S, Value, R);
+ if (R <> 0) then
+   begin
+   m := ' ' + Copy(S, R, 255) + ' ';
+   l := Pos(m, MultE);
+   if l = 0 then
+     l := Pos(m, MultR);
+   if l <> 0 then
+     begin
+     SetLength(S, R-1);
+     Val(S, Value, R);
+     Value := Value*MultV[(l+2)div 3];
+     end;
+   end;
+ result := R=0;
 end;
 
 function GetValue(S: String; var Value: CReal): boolean;
-
- function GetHex(var S: String; var Value: CReal): boolean;
- var RR, RRR: CReal;
-     j: byte;
-     Invert: boolean;
- begin
-  GetHex := false;
-  if S[1] in ['-','+'] then begin
-   Invert:=S[1]='-';
-   Delete(S, 1, 1); {DelFC(S);}
-  end else Invert:=False;
-
-  RR:=0;
-  for j:=1 to Length(S) do
-   Case S[j] of
-    '0'..'9': RR:=RR*$10 + Ord(S[j])-48;
-    'A'..'F': RR:=RR*$10 + Ord(S[j])-55;
-    '.': break;
-    else exit;
-   end;
-  Delete(S, 1, j);
-  if (Length(S) < 1) then begin
-   GetHex:=true;
-   If Invert then Value:=-RR else Value:=RR;
-   exit
-  end;
-  RRR:=RR; RR:=0;
-  for j:=1 to Length(S) do
-   Case S[j] of
-    '0'..'9': RR:=RR*$10 + Ord(S[j])-48;
-    'A'..'F': RR:=RR*$10 + Ord(S[j])-55;
-    else exit;
-   end;
-  If Invert
-   then Value:=-(RRR + RR/Step($10, Length(S)))
-   else Value:=RRR + RR/Step($10, Length(S));
-  GetHex:=True;
- end;
-
- function GetOct(var S: String; var Value: CReal): boolean;
- var RR, RRR: CReal;
-     j: byte;
-     Invert: boolean;
- begin
-  GetOct := false;
-  if S[1] in ['-','+'] then begin
-   Invert:=S[1]='-';
-   Delete(S, 1, 1); {DelFC(S);}
-  end else Invert:=False;
-
-  RR:=0;
-  for j:=1 to Length(S) do
-   Case S[j] of
-    '0'..'7': RR:=RR*8 + Ord(S[j])-48;
-    '.': break;
-    else exit;
-   end;
-  Delete(S, 1, j);
-  if (Length(S) < 1) then begin
-   GetOct:=true;
-   If Invert then Value:=-RR else Value:=RR;
-   exit
-  end;
-  RRR:=RR; RR:=0;
-  for j:=1 to Length(S) do
-   Case S[j] of
-    '0'..'7': RR:=RR*8 + Ord(S[j])-48;
-    else exit;
-   end;
-  If Invert
-   then Value:=-(RRR + RR/Step(8, Length(S)))
-   else Value:=RRR + RR/Step(8, Length(S));
-  GetOct:=True;
- end;
-
- function GetBin(var S: String; var Value: CReal): boolean;
- var RR, RRR: CReal;
-     j: byte;
-     Invert: boolean;
- begin
-  GetBin := false;
-  if S[1] in ['-','+'] then begin
-   Invert:=S[1]='-';
-   Delete(S, 1, 1); {DelFC(S);}
-  end else Invert:=False;
-
-  RR:=0;
-  for j:=1 to Length(S) do
-   Case S[j] of
-    '0': RR:=RR*2;
-    '1': RR:=RR*2 + 1;
-    '.': break;
-    else exit;
-   end;
-  Delete(S, 1, j);
-  if (Length(S) < 1) then begin
-   GetBin:=true;
-   If Invert then Value:=-RR else Value:=RR;
-   exit
-  end;
-  RRR:=RR; RR:=0;
-  for j:=1 to Length(S) do
-   Case S[j] of
-    '0': RR:=RR*2;
-    '1': RR:=RR*2 + 1;
-    else exit;
-   end;
-  If Invert
-   then Value:=-(RRR + RR/Step(2, Length(S)))
-   else Value:=RRR + RR/Step(2, Length(S));
-  GetBin:=True;
- end;
-
- function GetDec(var S: String; var Value: CReal): boolean;
- var R: Integer;
- begin
-  Val(S, Value, R);
-  GetDec := R=0;
- end;
-
 begin
  GetValue:=false;
- if (S[Length(S)] = 'H') and (S[1] in ['0'..'9']) then begin
+ if (S[Length(S)] = 'H') {and (S[1] in ['0'..'9'])} then begin
   SetLength(S, Length(S)-1);
-  GetValue:=GetHex(S, Value);
+  GetValue:=GetV(S, 16, Value);
  end else
  if S[1] = '$' then begin
   Delete(S, 1, 1); {DelFC(S);}
-  GetValue:=GetHex(S, Value)
+  GetValue:=GetV(S, 16, Value)
  end else
  if (Length(S) > 2) and (S[1] = '0') and (S[2] = 'X') then begin
   Delete(S, 1, 2); {DelFC(S);}
                    {DelFC(S);}
-  GetValue:=GetHex(S, Value)
+  GetValue:=GetV(S, 16, Value)
  end else
  if (S[Length(S)] in ['O','Q']) then begin
   SetLength(S, Length(S)-1);
-  GetValue:=GetOct(S, Value)
+  GetValue:=GetV(S, 8, Value)
  end else
  if (S[Length(S)] = 'B') then begin
   SetLength(S, Length(S)-1);
-  GetValue:=GetBin(S, Value)
+  GetValue:=GetV(S, 2, Value)
  end else
  GetValue:=GetDec(S, Value);
 end;
 
-Var S: ^String;
-    VGF: VarGetFunc;
-    FreeByte: byte;
+var
+  Operand: CReal;
+  Sym: string;
+  SymType, PrevSymType: integer;
+  CurrOp: integer; { текущая операция (для ошибок)}
+  t: byte; { индекс необработанного символа строки выражения }
 
-{$IFNDEF BIT_32}
- {Sergey Abmetko - Unhanled exception bug fix start}
-Procedure       Int75Handler;Interrupt;
-Begin
-  Asm
-  (* FPU *)
-    mov     al,00h
-    out     0F0h,al
-  (* PICs *)
-    mov     al,20h
-    out     20h,al
-    out     0A0h,al
-  End;
-  EvalueError := true;
-End;
+const
+  delimiters:  string[50] = '()*/+-=^<>:#,!|\&%~ '#3;
+    { Лексические разделители. }
 
-Var Int75Old:Pointer;
+  MaxOp = 127;
+  prio1:  string[MaxOp] = '1924455673332344453333559';  { приоритеты в тексте}
+  prio2:  string[MaxOp] = '00 4455673332344453333558';  { приоритеты в стеке }
+  OpChars =              #3'()+-*/^:=<>,#|\&%<<<<<<~'#1#2;
+    { #1 представляет унарный минус, #2 - унарный плюс,
+      #3 - конец выражения; Повторные '<' - это двухсимвольные оп. }
 
-Procedure SetInt75Handler;
-Begin
-  GetIntVec($75,Int75Old);
-  SetIntVec($75,Addr(Int75Handler));
-End;
+//  ops:    string[50] = OpChars; { односимвольные операции }
 
-Procedure RestoreInt75Handler;
-Begin
-  SetIntVec($75,Int75Old);
-End;
- {Sergey Abmetko - Unhanled exception bug fix stop}
-{$ENDIF}
+  Op2Chars = '<>!';
+  Op2 = '>= <= <> != << >>'; {двухсимвольные операции}
+  Op2Base = 19;
+  LetterBinOp =    ' DIV OR  XOR AND MOD SHL SHR ';
+  LetterBinOpType: array[1..7] of integer =
+                   (7,  15, 16, 17, 18, Op2Base+4, Op2Base+5);
 
-function DoEval(start, stop: byte): CReal; forward;
+  FnBase = Length(OpChars)+1;
 
-function Evalue(const as: string; aVGF: VarGetFunc): CReal;
+type
+  FnEval = procedure (var d: CReal);
+  FnEval2 = procedure (var d: CReal; d2: CReal);
+  FnEval3 = procedure (var d: CReal; d2, d3: CReal);
+  PFnDesc = ^TFnDesc;
+  TFnDesc = object
+    N{ame}: string[8];
+    E{val}: pointer{FnEval};
+    A{rguments}: integer;
+    end;
+
+procedure SinEv(var d: CReal);
+  begin d := sin(d); end;
+
+
+procedure CosEv(var d: CReal);
+  begin d := cos(d); end;
+
+procedure TgEv(var d: CReal);
+  begin d := Tan(d); end;
+
+procedure CtgEv(var d: CReal);
+  begin d := Cotan(d); end;
+
+procedure CosecEv(var d: CReal);
+  begin d := 1/sin(d); end;
+
+procedure SecEv(var d: CReal);
+  begin d := 1/cos(d); end;
+
+procedure ArcSinEv(var d: CReal);
+  begin d := ArcSin(d); end;
+
+procedure ArcCosEv(var d: CReal);
+  begin d := ArcCos(d); end;
+
+procedure ArcSecEv(var d: CReal);
+  begin d := ArcCos(1/d); end;
+
+procedure ArcCoSecEv(var d: CReal);
+  begin d := ArcSin(1/d); end;
+
+procedure ArcTanEv(var d: CReal);
+  begin d := ArcTan(d); end;
+
+procedure ArcCoTanEv(var d: CReal);
+  begin d := Pi/2 - ArcTan(d); end;
+
+procedure LnEv(var d: CReal);
+  begin d := Ln(d); end;
+
+procedure LgEv(var d: CReal);
+  begin d := Ln(d)/ln(10); end;
+
+procedure ExpEv(var d: CReal);
+  begin d := Exp(d); end;
+
+procedure SqrtEv(var d: CReal);
+  begin d := Sqrt(d); end;
+
+procedure SinhEv(var d: CReal);
+  begin d := Sinh(d); end;
+
+procedure CoshEv(var d: CReal);
+  begin d := Sinh(d); end;
+
+procedure TanhEv(var d: CReal);
+  begin d := Tanh(d); end;
+
+procedure CotanhEv(var d: CReal);
+  begin d := 1 / Tanh(d); end;
+
+procedure ArcSinhEv(var d: CReal);
+  begin d := ArcSinh(d); end;
+
+procedure ArcCoshEv(var d: CReal);
+  begin d := ArcCosh(d); end;
+
+procedure ArcTanhEv(var d: CReal);
+  begin d := Ln( (1+d) / (1-d) ) / 2; end;
+
+procedure SignEv(var d: CReal);
+  begin
+  if d < 0 then d := -1
+  else if d > 0 then d := 1
+  end;
+
+procedure AbsEv(var d: CReal);
+  begin d := Abs(d); end;
+
+procedure RadEv(var d: CReal);
+  begin d := (d*PI) / 180; end;
+
+procedure RadGEv(var d: CReal);
+  begin d := (d*PI) / 200; end;
+
+procedure DegEv(var d: CReal);
+  begin d := (d*180) / PI; end;
+
+procedure GradEv(var d: CReal);
+  begin d := (d*200) / PI; end;
+
+procedure RoundEv(var d: CReal);
+  begin d := Round(d); end;
+
+procedure FactEv(var d: CReal);
+  var
+    i: integer;
+    r: CReal;
+  begin
+  r := 1;
+  for i := 1 to Trunc(d) do r := r*i;
+  d := r;
+  end;
+
+procedure PiEv(var d: CReal);
+  begin d := Pi; end;
+
+procedure LogEv(var d: CReal; d2: CReal);
+  begin d := logN(d, d2); end;
+
+procedure RootEv(var d: CReal; d2: CReal);
+  begin d := Exp(Ln(d2)/d); end;
+
+procedure IfEv(var d: CReal; d2, d3: CReal);
+  begin
+  if d <> 0 then d := d2
+  else d := d3;
+  end;
+
+const
+  FnMax = 51;
+  FnTab: array[0..FnMax-1] of TFnDesc =
+   (
+    (N:'SIN'; E: @SinEv; A:1)
+   ,(N:'COS'; E: @CosEv; A:1)
+   ,(N:'TG';  E: @TgEv; A:1)
+   ,(N:'TAN';  E: @TgEv; A:1)
+   ,(N:'CTG'; E: @CtgEv; A:1)
+   ,(N:'COTAN'; E: @CtgEv; A:1)
+   ,(N:'SEC'; E: @SecEv; A:1)
+   ,(N:'COSEC'; E: @CosecEv; A:1)
+   ,(N:'ASIN'; E: @ArcSinEv; A:1)
+   ,(N:'ARCSIN'; E: @ArcSinEv; A:1)
+   ,(N:'ACOS'; E: @ArcCosEv; A:1)
+   ,(N:'ARCCOS'; E: @ArcCosEv; A:1)
+   ,(N:'ARCSEC'; E: @ArcSecEv; A:1)
+   ,(N:'ARCCOSEC'; E: @ArcCosecEv; A:1)
+   ,(N:'ATAN'; E: @ArcTanEv; A:1)
+   ,(N:'ARCTAN'; E: @ArcTanEv; A:1)
+   ,(N:'ACTG'; E: @ArcCoTanEv; A:1)
+   ,(N:'ARCCOTAN'; E: @ArcCoTanEv; A:1)
+   ,(N:'LN';  E: @LnEv; A:1)
+   ,(N:'LG';  E: @LgEv; A:1)
+   ,(N:'EXP'; E: @ExpEv; A:1)
+   ,(N:'SQR'; E: @SqrtEv; A:1)
+   ,(N:'SQRT'; E: @SqrtEv; A:1)
+   ,(N:'SH'; E: @SinhEv; A:1)
+   ,(N:'SINH'; E: @SinhEv; A:1)
+   ,(N:'CH'; E: @CoshEv; A:1)
+   ,(N:'COSH'; E: @CoshEv; A:1)
+   ,(N:'TH'; E: @TanhEv; A:1)
+   ,(N:'TANH'; E: @TanhEv; A:1)
+   ,(N:'CTH'; E: @CotanhEv; A:1)
+   ,(N:'COTANH'; E: @CotanhEv; A:1)
+   ,(N:'ARCSINH'; E: @ArcSinhEv; A:1)
+   ,(N:'ASH'; E: @ArcSinEv; A:1)
+   ,(N:'ARCCOSH'; E: @ArcCoshEv; A:1)
+   ,(N:'ACOSH'; E: @ArcCosEv; A:1)
+   ,(N:'ACH'; E: @ArcCosEv; A:1)
+   ,(N:'ATH'; E: @ArcTanhEv; A:1)
+   ,(N:'ARTH'; E: @ArcTanhEv; A:1)
+   ,(N:'ARCTANH'; E: @ArcTanhEv; A:1)
+   ,(N:'FACT'; E: @FactEv; A:1)
+   ,(N:'SIGN'; E: @SignEv; A:1)
+   ,(N:'ABS'; E: @AbsEv; A:1)
+   ,(N:'RAD'; E: @RadEv; A:1)
+   ,(N:'RADG'; E: @RadGEv; A:1)
+   ,(N:'DEG'; E: @DegEv; A:1)
+   ,(N:'GRAD'; E: @GradEv; A:1)
+   ,(N:'ROUND'; E: @RoundEv; A:1)
+   ,(N:'PI'; E: @PiEv; A:0)
+   ,(N:'LOG'; E: @LogEv; A:2)
+   ,(N:'ROOT'; E: @RootEv; A:2)
+   ,(N:'IF'; E: @IfEv; A:3)
+   );
+
+  procedure ScanSym;
+  var
+    t0: integer;
+    i: integer;
+    c: char;
+  begin
+  while Expression[t] =  ' ' do inc(t);
+  t0 := t;
+  while Pos(Expression[t], delimiters) = 0 do inc(t);
+  SymType := 0;
+  c := Expression[t0];
+  if t = t0 then
+    begin {операция - разделитель}
+    inc(t);
+    if Pos(c, Op2Chars) <> 0 then
+      begin
+      Sym := Copy(Expression, t0, 2);
+      i := Pos(Sym, Op2);
+      if i <> 0 then
+        begin
+        inc(t); SymType := Op2Base + i div 3;
+        exit;
+        end
+      end;
+    Sym := c;
+    SymType := Pos(Sym, OpChars);
+    end
+  else if (c = '$') or ((c >= '0') and (c <= '9')) then
+    begin {число}
+    if (c <> '$') and (system.UpCase(Expression[t-1]) = 'E')
+       and (Expression[t] = '-')
+    then
+      begin {похоже на число вида 5e-3}
+      repeat inc(t) until Pos(Expression[t], delimiters) <> 0;
+      end;
+    Sym := {UpStrg(}copy(Expression, t0, t-t0){)};
+    end
+  else
+    begin {должна быть функция или буквенная операция вроде AND}
+    Sym := UpStrg(copy(Expression, t0, t-t0));
+    i := Pos (' ' + Sym + ' ', LetterBinOp);
+    if i <> 0 then
+      begin
+      SymType := LetterBinOpType[(3+i) div 4];
+      exit;
+      end;
+
+    for i := 0 to FnMax-1 do
+      begin
+      if Sym = FnTab[i].N then
+        begin
+        SymType := FnBase + i;
+        break;
+        end;
+      end;
+    end;
+  end;
+
+procedure SetError(Id: TStrIdx);
+  begin
+  EvalueError := true; CalcErrMess := Id;
+  CalcErrPos := t-2;
+  end;
+
+{ Классический алгоритм с двумя стеками и двумя приоритетами }
+var
+  DataStack: array[1..20] of CReal;
+  TDS: integer; { указатель вершины }
+  OpStack: array[1..20] of
+    record Infix: boolean; Op, PrefixCount, Pos: integer end;
+  TOS: integer; { указатель вершины }
+  i: integer;
+
+procedure RegisterOperand; forward;
+
+procedure EvalPrefixOp;
+  begin
+  CurrOp := OpStack[TOS].Op; CalcErrPos := OpStack[TOS].Pos;
+  case CurrOp of
+    FnBase-3: { ~ }
+      DataStack[TDS] := not Round(DataStack[TDS]);
+    FnBase-2: {Унарный плюс}
+      begin  end;
+    FnBase-1: {Унарный минус}
+      DataStack[TDS] := - DataStack[TDS];
+   else with FnTab[CurrOp-FnBase] do
+     begin
+     if TDS < A then
+       begin SetError(dlNoOperand); exit; end;
+     case A of
+ {     0: не бывает }
+      1: FnEval(E)(DataStack[TDS]);
+      2: begin
+         FnEval2(E)(DataStack[TDS-1], DataStack[TDS]);
+         Dec(TDS);
+         end;
+      3: begin
+         FnEval3(E)(DataStack[TDS-2], DataStack[TDS-1], DataStack[TDS]);
+         Dec(TDS, 2);
+         end;
+     end {case};
+     end;
+  end {case};
+  dec(TOS);
+  CurrOp := 0;
+  RegisterOperand;
+  end;
+
+procedure RegisterOperand;
+  begin
+  with OpStack[TOS] do
+    begin
+    dec(PrefixCount);
+    if PrefixCount < 0 then
+      begin SetError(dlMissingOperation); exit; end;
+    if not Infix and (PrefixCount=0) then
+      EvalPrefixOp;
+    end;
+  SymType := 0;
+  end;
+
+procedure EvalText;
+
+
+label ExprEnd;
+
+begin
+t := 1; Expression := Expression + #3;
+
+TOS := 1; with OpStack[1] do
+  begin Infix := true; Op := 1; PrefixCount := 1; end;
+
+SymType := 1;
+TDS := 0;
+
+while true do
+  begin
+  PrevSymType := SymType;
+  ScanSym;
+  if SymType = 0 then
+    begin { разобрать операнд и положить на стек данных }
+    Inc(TDS);
+    if not GetValue(Sym, DataStack[TDS]) then
+      begin SetError(dlWrongText); exit; end;
+    RegisterOperand;
+    end
+  else if (SymType >= FnBase) and (FnTab[SymType-FnBase].A = 0) then
+    begin
+    inc(TDS); FnEval(FnTab[SymType-FnBase].E)(DataStack[TDS]);
+    RegisterOperand;
+    end
+  else
+    begin { разобраться с операцией }
+    if (OpStack[TOS].PrefixCount > 0) then { ожидается источник значения }
+      case SymType of
+        2: { выражение в скобках годится };
+        4,5:  { превращаем в унарные плюс и минус }
+           SymType := FnBase - 6 + SymType;
+        FnBase-3..MaxOp: { унарные операции и функции } ;
+        else
+          begin SetError(dlNoOperand); dec(t); exit; end;
+      end { case }
+    else
+      case SymType of
+        2,FnBase-3..MaxOp:
+          begin SetError(dlMissingOperation); exit; end;
+      end { case };
+    while prio1[SymType] <= prio2[OpStack[TOS].Op] do
+      { выполнять инфиксные операции со стека; префиксные и унарные
+        выполняются не тут, а в RegisterOperand }
+      begin
+        CurrOp := OpStack[TOS].Op; CalcErrPos := OpStack[TOS].Pos;
+        case CurrOp of
+          4: {+}
+            begin
+            DataStack[TDS-1] := DataStack[TDS-1] + DataStack[TDS];
+            Dec(TDS);
+            end;
+          5: {-}
+            begin
+            DataStack[TDS-1] := DataStack[TDS-1] - DataStack[TDS];
+            Dec(TDS);
+            end;
+          6: {*}
+            begin
+            DataStack[TDS-1] := DataStack[TDS-1] * DataStack[TDS];
+            Dec(TDS);
+            end;
+          7: {/}
+            begin
+            DataStack[TDS-1] := DataStack[TDS-1] / DataStack[TDS];
+            Dec(TDS);
+            end;
+          8: {^ - возведение в степень }
+            begin
+            DataStack[TDS-1] := exp(ln(DataStack[TDS-1])*DataStack[TDS]);
+            Dec(TDS);
+            end;
+          9: { время }
+            begin
+            DataStack[TDS-1] := DataStack[TDS-1]*60 + DataStack[TDS];
+            Dec(TDS);
+            end;
+          10: { = }
+            begin
+            if DataStack[TDS-1] = DataStack[TDS] then
+              DataStack[TDS-1] := -1
+            else DataStack[TDS-1] := 0;
+            dec(TDS);
+            end;
+          11: { < }
+            begin
+            if DataStack[TDS-1] < DataStack[TDS] then
+              DataStack[TDS-1] := -1
+            else DataStack[TDS-1] := 0;
+            dec(TDS);
+            end;
+          12: { > }
+            begin
+            if DataStack[TDS-1] > DataStack[TDS] then
+              DataStack[TDS-1] := -1
+            else DataStack[TDS-1] := 0;
+            dec(TDS);
+            end;
+          {13 ',' в стек не попадает }
+          15: { |  or }
+            begin
+            DataStack[TDS-1] := Round(DataStack[TDS-1]) or Round(DataStack[TDS]);
+            Dec(TDS);
+            end;
+          16: { \  xor }
+            begin
+            DataStack[TDS-1] := Round(DataStack[TDS-1]) xor Round(DataStack[TDS]);
+            Dec(TDS);
+            end;
+          17: { &  and }
+            begin
+            DataStack[TDS-1] := Round(DataStack[TDS-1]) and Round(DataStack[TDS]);
+            Dec(TDS);
+            end;
+          18: { %  mod }
+            begin
+            DataStack[TDS-1] := Round(DataStack[TDS-1]) mod Round(DataStack[TDS]);
+            Dec(TDS);
+            end;
+          Op2Base: { >= }
+            begin
+            if DataStack[TDS-1] >= DataStack[TDS] then
+              DataStack[TDS-1] := -1
+            else DataStack[TDS-1] := 0;
+            dec(TDS);
+            end;
+          Op2Base+1: { <= }
+            begin
+            if DataStack[TDS-1] <= DataStack[TDS] then
+              DataStack[TDS-1] := -1
+            else DataStack[TDS-1] := 0;
+            dec(TDS);
+            end;
+          14, Op2Base+2, Op2Base+3: { <> }
+            begin
+            if DataStack[TDS-1] <> DataStack[TDS] then
+              DataStack[TDS-1] := -1
+            else DataStack[TDS-1] := 0;
+            dec(TDS);
+            end;
+          Op2Base+4: { <<  shl }
+            begin
+            DataStack[TDS-1] := Round(DataStack[TDS-1]) shl Round(DataStack[TDS]);
+            Dec(TDS);
+            end;
+          Op2Base+5: { >>  shr }
+            begin
+            DataStack[TDS-1] := Round(DataStack[TDS-1]) shr Round(DataStack[TDS]);
+            Dec(TDS);
+            end;
+          else
+            begin SetError(dlNoOperand); exit; end;
+        end {case};
+        CurrOp := 0;
+        Dec(TOS); //PrevSymType := 0;
+      end;
+    case SymType of
+     1: goto ExprEnd;
+     3:
+      begin { закрывающую скобку сокращаем с открывающей }
+      if OpStack[TOS].Op <> 2 then
+        begin SetError(dlMissingLeftBracket); exit; end;
+      dec(TOS);
+      SymType := 0; { выр. в скобках - операнд }
+      RegisterOperand;
+      end;
+     13: { , }
+      begin
+      if (TOS < 3) or (OpStack[TOS].Op <> 2)
+        or (OpStack[TOS-1].PrefixCount = 0)
+      then begin SetError(dlWrongComma); exit; end;
+      inc(OpStack[TOS].PrefixCount);
+      dec(OpStack[TOS-1].PrefixCount);
+      end;
+     else
+      begin { положить операцию на стек }
+      inc(TOS);
+      with OpStack[TOS] do
+        begin
+        Op := SymType; Infix := SymType < FnBase-3;
+        if SymType < FnBase then
+          PrefixCount := 1
+        else PrefixCount := FnTab[SymType-FnBase].A;
+        Pos := t-2;
+        end;
+      end;
+    end{case};
+    end
+  end;
+
+ExprEnd:
+if EvalueError then
+  exit;
+if Expression[t-2] <> ' ' then inc(t);
+if (TOS <> 1) or (TDS <> 1) then
+  begin EvalueError := true;
+  SetError(dlMissingRightBracket);
+  end
+else
+  Res := DataStack[1];
+end;
+
+function GetErrOp(var x: integer): string;
+  var
+    OpName: string;
+  begin
+  x := t;;
+  case CurrOp of
+   0: begin result := ''; exit;  end;
+   1..Op2Base-1:
+     OpName := Copy(OpChars, CurrOp, 1);
+   Op2Base..FnBase:
+     OpName := Copy(Op2, 1 + 3*(CurrOp-Op2Base), 2);
+   else
+     OpName := FnTab[CurrOp-FnBase].N
+  end {case};
+  result := ' ' + OpName;
+  end;
+
+
+function Evalue(const s: string; aVGF: VarGetFunc): CReal;
 var o: pointer;
 begin
- New(S);
- S^:=UpStrg(DelSpaces(as));
- VGF:=aVGF;
- EvalueError:=false;
-{$IFNDEF BIT_32} SetInt75Handler; {$ENDIF}
- Evalue:=DoEval(1, Length(S^));
-{$IFNDEF BIT_32} RestoreInt75Handler; {$ENDIF}
- Dispose(S);
+ EvalueError:=false; CurrOp := 0;
+ Expression := s;
+ EvalText;
+ Evalue:=Res;
 end;
 
-const cmd: string[10] = 'CALCULATOR';
-      CmdSign: Set of char = ['>', '<', '=', '!', '#', '+', '-', '|',
-                              '\', '/', '*', '&', '~', '%', '^',':'];
+procedure InitUnopPrio;
+  var
+    l, i: integer;
+  begin
+  l := length(prio1); setlength(prio1, MaxOp); setlength(prio2, MaxOp);
+  for i := l+1 to length(prio1) do
+    if prio1[i] = #0 then
+      begin prio1[i] := '9'; prio2[i] := '8'; end;
+  end;
 
-{Pavel Anufrikov --> }
-
-function TestSignE(start,i : byte) : boolean;
 begin
- TestSignE:=false;
- if (s^[i-1]<>'E') then exit;
- dec(i,2);
- while (i>start) and (s^[i] in ['0'..'9','A'..'F']) do dec(i);
- TestSignE := ((s^[i-1]<>'0') or (s^[i]<>'X'))
-           and (s^[i]<>'$'); {AK155}
-{AK155 Обращение к s^[i-1] при i=1 некорректно, но вроде, безобидно }
-end;
-
-{ <-- Pavel Anufrikov}
-
-function DoEval(start, stop: byte): CReal;
- var i: byte;
-     value: CReal;
-     ll: longint;
- Begin
-  if EvalueError then begin DoEval:=1; exit end;
-
-  {Ignore unfinished operator}
-  while s^[stop] in CmdSign do dec(stop);
-
-  {Proceed level 6... '>' '>=' '<' '<=' '<>' '!=' '#' '=' - Relational}
-
-  for i:=stop downto start do begin
-   if s^[i]='(' then begin DoEval:=1; EvalueError:=True; exit end;
-   if s^[i]=')' then begin
-    FreeByte:=0;
-    for i:=i downto start do
-     case s^[i] of
-      '(': begin dec(FreeByte); if FreeByte=0 then break end;
-      ')': inc(FreeByte);
-     end;
-    if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;
-    continue;
-   end;
-   if (s^[i]='>') and (i>start) and
-      (((i<stop) and (s^[i+1]<>'>')) or ((i>start+1) and (s^[i-1]<>'>'))) then
-    begin DoEval:=Byte(DoEval(start, i-1) >  DoEval(i+1, stop)); exit end;
-   if (s^[i]='>') and (i<stop) and (s^[i+1]='=') and (i>1) then
-    begin DoEval:=Byte(DoEval(start, i-1) >= DoEval(i+2, stop)); exit end;
-   if (s^[i]='<') and (i>start) and
-      (((i<stop) and (s^[i+1]<>'<')) or ((i>start+1) and (s^[i-1]<>'<'))) then
-    begin DoEval:=Byte(DoEval(start, i-1) <  DoEval(i+1, stop)); exit end;
-   if (s^[i]='<') and (i<stop) and (s^[i+1]='=') and (i>1) then
-    begin DoEval:=Byte(DoEval(start, i-1) <= DoEval(i+2, stop)); exit end;
-   if (s^[i]='<') and (i<stop) and (s^[i+1]='>') and (i>1) then
-    begin DoEval:=Byte(DoEval(start, i-1) <> DoEval(i+2, stop)); exit end;
-   if (s^[i]='!') and (i<stop) and (s^[i+1]='=') and (i>1) then
-    begin DoEval:=Byte(DoEval(start, i-1) <> DoEval(i+2, stop)); exit end;
-   if (s^[i]='#') and (i>start) then
-    begin DoEval:=Byte(DoEval(start, i-1) <> DoEval(i+1, stop)); exit end;
-   if (s^[i]='=') and (i>start) then
-    begin DoEval:=Byte(DoEval(start, i-1) =  DoEval(i+1, stop)); exit end;
-  end;
-
-  {Proceed level 5... '+' '-' 'or' 'xor' '||' '|' '\' - Adding}
-
-  for i:=stop downto start do begin
-   if s^[i]='(' then begin DoEval:=1; EvalueError:=True; exit end;
-   if s^[i]=')' then begin
-    FreeByte:=0;
-    for i:=i downto start do
-     case s^[i] of
-      '(': begin dec(FreeByte); if FreeByte=0 then break end;
-      ')': inc(FreeByte);
-     end;
-    if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;
-    continue;
-   end;
-   if (s^[i]='+') and (i>start) and not (s^[i-1] in CmdSign) and not TestSignE(start,i) then
-    begin DoEval:=DoEval(start, i-1) + DoEval(i+1, stop); exit end;
-   if (s^[i]='-') and (i>start) and not (s^[i-1] in CmdSign) and not TestSignE(start,i) then
-    begin DoEval:=DoEval(start, i-1) - DoEval(i+1, stop); exit end;
-   if (s^[i]='-') and (i=start) and not (s^[i-1] in CmdSign) then
-    begin DoEval:= - DoEval(i+1, stop); exit end;
-   if (s^[i]='o') and (i<stop) and (s^[i+1]='r') and (i>1) then
-    begin DoEval:=Round(DoEval(start, i-1)) or Round(DoEval(i+2, stop)); exit end;
-   if (s^[i]='|') and (i<stop) and (s^[i+1]='|') and (i>1) then
-    begin DoEval:=Round(DoEval(start, i-1)) or Round(DoEval(i+2, stop)); exit end;
-   if (s^[i]='|') and (i>1) then
-    begin DoEval:=Round(DoEval(start, i-1)) or Round(DoEval(i+1, stop)); exit end;
-   if (s^[i]='x') and (i<stop-1) and (s^[i+1]='o') and (s^[i+2]='r') and (i>1) then
-    begin DoEval:=Round(DoEval(start, i-1)) xor Round(DoEval(i+3, stop)); exit end;
-   if (s^[i]='\') and (i>1) then
-    begin DoEval:=Round(DoEval(start, i-1)) xor Round(DoEval(i+1, stop)); exit end;
-  end;
-
-  {Proceed level 4... '*' '/' 'div' 'mod' '%' 'and' '&&' '&' 'shr' 'shl' '<<' '>>' - Multiplying}
-  for i:=stop downto start do begin
-   if s^[i]='(' then begin DoEval:=1; EvalueError:=True; exit end;
-   if s^[i]=')' then begin
-    FreeByte:=0;
-    for i:=i downto start do
-     case s^[i] of
-      '(': begin dec(FreeByte); if FreeByte=0 then break end;
-      ')': inc(FreeByte);
-     end;
-    if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;
-    continue;
-   end;
-   if s^[i]='*' then
-    begin DoEval:=DoEval(start, i-1) * DoEval(i+1, stop); exit end;
-   if s^[i]='/' then begin
-    value:=DoEval(i+1, stop);
-    if value<>0 then DoEval:=DoEval(start, i-1) / value
-                else begin EvalueError:=True; DoEval:=1; end;
-    exit
-   end;
-   if (s^[i]='&') and (i<stop) and (s^[i+1]='&') then
-    begin DoEval:=Round(DoEval(start, i-1)) and Round(DoEval(i+2, stop)); exit end;
-   if (s^[i]='<') and (i<stop) and (s^[i+1]='<') then
-    begin DoEval:=Round(DoEval(start, i-1)) shl Round(DoEval(i+2, stop)); exit end;
-   if (s^[i]='>') and (i<stop) and (s^[i+1]='>') then
-    begin DoEval:=Round(DoEval(start, i-1)) shr Round(DoEval(i+2, stop)); exit end;
-   if s^[i]='%' then begin
-    value:=DoEval(i+1, stop);
-    if value<>0 then DoEval:=Round(DoEval(start, i-1)) mod Round(value)
-                else begin EvalueError:=True; DoEval:=1; end;
-    exit
-   end;
-   if Length(s^) > 3 then begin
-    cmd:=copy(s^, i, 3);
-    if Cmd = 'DIV' then begin
-     value:=DoEval(i+1, stop);
-     if value<>0 then DoEval:=Round(DoEval(start, i-1)) div Round(value)
-                 else begin EvalueError:=True; DoEval:=1; end;
-     exit
-    end;
-    if Cmd = 'MOD' then begin
-     value:=DoEval(i+1, stop);
-     if value<>0 then DoEval:=Round(DoEval(start, i-1)) mod Round(value)
-                 else begin EvalueError:=True; DoEval:=1; end;
-     exit
-    end;
-    if Cmd = 'AND' then begin LL:=Round(DoEval(start, i-1));
-                              DoEval:=LL and Round(DoEval(i+3, stop)); exit end;
-    if Cmd = 'SHL' then begin LL:=Round(DoEval(start, i-1));
-                              DoEval:=LL shl Round(DoEval(i+3, stop)); exit end;
-    if Cmd = 'SHR' then begin LL:=Round(DoEval(start, i-1));
-                              DoEval:=LL shr Round(DoEval(i+3, stop)); exit end;
-   end;
-  end;
-
-  {Proceed level 3... '^' }
-  for i:=stop downto start do begin
-   if s^[i]='(' then begin DoEval:=1; EvalueError:=True; exit end;
-   if s^[i]=')' then begin
-    FreeByte:=0;
-    for i:=i downto start do
-     case s^[i] of
-      '(': begin dec(FreeByte); if FreeByte=0 then break end;
-      ')': inc(FreeByte);
-     end;
-    if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;
-    continue;
-   end;
-   if s^[i]='^' then
-    begin DoEval:=Step(DoEval(start, i-1), DoEval(i+1, stop)); exit end;
-   if s^[i]=':' then
-    begin DoEval:=DoEval(start, i-1) * 60 + DoEval(i+1, stop); exit end;
-  end;
-
-  {Proceed level 2... 'sin' 'cos' and other - Functions}
-  If stop-start>1 then begin
-   cmd:=copy(s^,start,2);
-   if cmd = 'SH'       then begin DoEval:=Sh(DoEval(start+2,stop));       exit end else
-   if cmd = 'CH'       then begin DoEval:=Ch(DoEval(start+2,stop));       exit end else
-   if cmd = 'TH'       then begin DoEval:=Th(DoEval(start+2,stop));       exit end else
-   if cmd = 'LN'       then begin DoEval:=Ln(DoEval(start+2,stop));       exit end else
-   if cmd = 'LG'       then begin DoEval:=Ln(DoEval(start+2,stop))/Ln(10);exit end else
-   if cmd = 'TG'       then begin DoEval:=Tan(DoEval(start+2,stop));      exit end else
-   if cmd = 'IF'       then begin
-    if (S^[start+2]<>'(') or (S^[stop]<>')')
-     then begin DoEval:=1; EvalueError:=True; exit end;
-    ll:=0; for i:=start+3 to stop-1 do if s^[i]=',' then inc(ll);
-    if (ll<1) or (ll>2) then begin DoEval:=1; EvalueError:=True; exit end;
-    for i:=start+3 to stop-1 do if s^[i]=',' then break;
-    dec(i);
-    if ll=2 then begin
-     for ll:=i+2 to stop-1 do if s^[ll]=',' then break;
-     dec(ll);
-    end else ll:=stop-1;
-    if DoEval(start+3,i)<>0 then DoEval:=DoEval(i+2,ll)
-    else if ll<stop-1 then DoEval:=DoEval(ll+2,stop-1) else DoEval:=0;
-                                                                                exit end else
-   if stop-start>2 then begin
-    cmd:=copy(s^,start,3);
-    if cmd = 'NOT'      then begin DoEval:=not Round(DoEval(start+3,stop));exit end else
-    if cmd = 'SIN'      then begin DoEval:=Sin(DoEval(start+3,stop));      exit end else
-    if cmd = 'COS'      then begin DoEval:=Cos(DoEval(start+3,stop));      exit end else
-    if cmd = 'TAN'      then begin DoEval:=Tan(DoEval(start+3,stop));      exit end else
-    if cmd = 'CTG'      then begin DoEval:=CoTan(DoEval(start+3,stop));    exit end else
-    if cmd = 'SEC'      then begin DoEval:=Sec(DoEval(start+3,stop));      exit end else
-    if cmd = 'ABS'      then begin DoEval:=Abs(DoEval(start+3,stop));      exit end else
-    if (cmd = 'SQR')       { Mercury }
-       and (copy(s^,start,4)<>'SQRT')
-                        then begin DoEval:=Sqr(DoEval(start+3,stop));      exit end else
-    if cmd = 'RAD'      then begin DoEval:=Rad(DoEval(start+3,stop));      exit end else
-    if cmd = 'EXP'      then begin DoEval:=Exp(DoEval(start+3,stop));      exit end else
-    if cmd = 'CTH'      then begin DoEval:=Cth(DoEval(start+3,stop));      exit end else
-    if cmd = 'LOG'      then begin
-     for i:=start+3 to stop do if s^[i]=',' then break;
-     if (s^[i]<>',') or (S^[Start+3]<>'(') or (S^[stop]<>')') then
-      begin DoEval:=1; EvalueError:=True; exit end;
-     DoEval:=Log(DoEval(start+4,i-1), DoEval(i+1,stop-1));
-                                                                                 exit end else
-    if stop-start>3 then begin
-     cmd:=copy(s^,start,4);
-     if cmd = 'ATAN'     then begin DoEval:=ArcTan(DoEval(start+4,stop));   exit end else
-     if cmd = 'CTAN'     then begin DoEval:=CoTan(DoEval(start+4,stop));    exit end else
-     if cmd = 'ACOS'     then begin DoEval:=ArcCos(DoEval(start+4,stop));   exit end else
-     if cmd = 'ASIN'     then begin DoEval:=ArcSin(DoEval(start+4,stop));   exit end else
-     if cmd = 'FACT'     then begin DoEval:=Fact(DoEval(start+4,stop));     exit end else
-     if cmd = 'SQRT'     then begin DoEval:=Sqrt(DoEval(start+4,stop));     exit end else
-     if cmd = 'GRAD'     then begin DoEval:=Grad(DoEval(start+4,stop));     exit end else
-     if cmd = 'ARSH'     then begin DoEval:=Arsh(DoEval(start+4,stop));     exit end else
-     if cmd = 'ARCH'     then begin DoEval:=Arch(DoEval(start+4,stop));     exit end else
-     if cmd = 'ARTH'     then begin DoEval:=Arth(DoEval(start+4,stop));     exit end else
-     if cmd = 'SIGN'     then begin Value:=DoEval(start+4,stop);
-                               if Value = 0 then DoEval:=0 else
-                                if Value < 0 then DoEval := -1
-                                 else DoEval := 1;                                exit end else
-     if cmd = 'ROOT'     then begin
-      for i:=start+4 to stop do if s^[i]=',' then break;
-      if (s^[i]<>',') or (S^[Start+4]<>'(') or (S^[stop]<>')') then
-       begin DoEval:=1; EvalueError:=True; exit end;
-      DoEval:=Root(DoEval(i+1,stop-1), DoEval(start+5,i-1));
-                   {Root(x,a) => "ROOT (A,X)"}
-                                                                                  exit end else
-     if stop-start>4 then begin
-      cmd:=copy(s^,start,5);
-      if cmd = 'COTAN'    then begin DoEval:=CoTan(DoEval(start+5,stop));    exit end else
-      if cmd = 'COSEC'    then begin DoEval:=CoSec(DoEval(start+5,stop));    exit end else
-      if cmd = 'ARCTH'    then begin DoEval:=Arcth(DoEval(start+5,stop));    exit end else
-      if cmd = 'ROUND'    then begin DoEval:=Int(DoEval(start+5,stop)+0.5);  exit end else
-      if stop-start>5 then begin
-       cmd:=copy(s^,start,6);
-       if cmd = 'ARCSIN'   then begin DoEval:=ArcSin(DoEval(start+6,stop));   exit end else
-       if cmd = 'ARCCOS'   then begin DoEval:=ArcCos(DoEval(start+6,stop));   exit end else
-       if cmd = 'ARCSEC'   then begin DoEval:=ArcSec(DoEval(start+6,stop));   exit end else
-       if cmd = 'ARCTAN'   then begin DoEval:=ArcTan(DoEval(start+6,stop));   exit end else
-       if cmd = 'ARCCTG' then begin DoEval:=ArcCoTan(DoEval(start+6,stop));   exit end else  {Mercury}
-       if stop-start>6 then begin
-        cmd:=copy(s^,start,7);
-        if cmd = 'ARCCOTAN' then begin DoEval:=ArcCoTan(DoEval(start+7,stop)); exit end else
-        if cmd = 'ARCCOSEC' then begin DoEval:=ArcCoSec(DoEval(start+7,stop)); exit end;
-       end;
-      end;
-     end;
-    end;
-   end;
-  end;
-
-  {Proceed level 1... Brackets}
-  if (s^[start]='(') then
-   if s^[stop]=')' then begin DoEval:=DoEval(start+1, stop-1); exit end
-                  else begin DoEval:=1; EvalueError:=True; exit end;
-
-  {Proceed level 0... simple value or variable}
-  if copy(s^,start,2) = 'PI' then begin DoEval:=Pi; exit end;
-
-  if EvalueError then begin DoEval:=1; exit; end;
-
-  if @VGF<>nil then
-   If VGF(Copy(s^,start,stop-start+1), value) then
-    begin DoEval:=value; exit end;
-
-  if s^[Start]='~' then begin LL := 1; inc(Start); end else LL := 0;
-  if GetValue(Copy(s^, Start, stop-start+1), Value) then
-   if LL<>0 then DoEval:=not Round(value) else DoEval:=Value
-  else begin EvalueError:=True; DoEval:=1 end;
- end;
-
+InitUnopPrio;
 END.
+

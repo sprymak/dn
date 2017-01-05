@@ -601,14 +601,14 @@ begin
       kbCtrlEnter: {AK155: делаем как у всех: CtrlEnter = Drop}
          begin EndModal(cmYes); ClearEvent(Event); exit; end;
       kbDel: Goto 1;
-      kbDown: if (ShiftState and 3 <> 0) and (Focused < List^.Count - 1) then
+      kbShiftDown: if {(ShiftState and 3 <> 0) and} (Focused < List^.Count - 1) then
              begin
                P := List^.At(Focused);
                List^.AtDelete(Focused);
                List^.AtInsert(Focused+1, P);
                DrawView;
              end;
-      kbUp: if (ShiftState and 3 <> 0) and (Focused > 0) then
+      kbShiftUp: if {(ShiftState and 3 <> 0) and} (Focused > 0) then
              begin
                P := List^.At(Focused-1);
                List^.AtDelete(Focused-1);

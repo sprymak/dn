@@ -82,8 +82,7 @@ Const Calc: PView = nil;
 
 implementation
 uses
- {SysUtils} {AK155 „«ï try - except}
-  Excepts
+ SysUtils, Math {AK155 „«ï try - except}
   ;
 
 
@@ -220,7 +219,7 @@ begin
         MoveChar(B, ' ', C, Size.X);
         WriteLine(0,0,Size.X,2,B);
         WriteLine(0,3,Size.X,3,B);
-        S:=GetString(dlMsgError);
+        S:=GetString(CalcErrMess) + GetErrOp(L);
         MoveStr(B[(Size.X - Length(S)) div 2], S, C);
         WriteLine(0,2,Size.X,1,B);
      end else
@@ -300,7 +299,7 @@ procedure TCalcLine.SetValues;
 begin
   ResultSelected:=False;
   GetData(S);
-  DelSpace(S);
+//  DelSpace(S);
   if S = '' then
    begin R := 0; Message(Owner, evBroadcast, cmSetValue, @R); Exit end;
   EvalueError := False;
@@ -309,11 +308,18 @@ begin
 try
   R := Evalue(S, nil);
 except
-  on {EMathError} EAnyException do
+  on E: EMathError do
+    EvalueError := true;
+  on E: EInvalidArgument do
     EvalueError := true;
 end;
 {&delphi-}
-  if EvalueError then Message(Owner, evBroadcast, cmSetError, nil)
+  if EvalueError then
+   begin
+   if not SetSelf then CalcErrMess := dlMsgError
+   else begin CurPos := CalcErrPos; DrawView; end;
+   Message(Owner, evBroadcast, cmSetError, nil)
+   end
   else begin
    Message(Owner, evBroadcast, cmSetValue, @R);
    if SetSelf then begin
@@ -323,9 +329,9 @@ end;
     While S[Length(S)] = '0' do SetLength(S, Length(S)-1);
     if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
     SetData(S);
-    Message(@Self, evKeyDown, kbEnd, nil);
     SelStart:=0;
     SelEnd:=Length(Data^);
+    CurPos := SelEnd;
     DrawView;
     ResultSelected:=True;
    end;

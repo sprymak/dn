@@ -277,7 +277,9 @@ uses
   {$IFNDEF NONBP} BStrings, {$ELSE} Strings, {$ENDIF}
   {$IFNDEF NoCallspcb} CallSpcb, {$ENDIF}
   {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
-  Advance1;
+  Advance1
+  {$IFDEF SORTTIMER}, Drivers, CmdLine, Advance3, Commands, DNApp {$ENDIF}
+  ;
 
 {$IFDEF Windows} {$DEFINE NewExeFormat} {$ENDIF}
 {$IFDEF DPMI}    {$DEFINE NewExeFormat} {$ENDIF}
@@ -1457,8 +1459,14 @@ begin
 end;
 
 procedure TSortedCollection.Sort;
+{$IFDEF SORTTIMER}
+ var  ev: TEvent;
+{$ENDIF}
 begin
 if Count <= 0 then Exit; {JO не удалять! иначе падаем по Ctrl-H и т.п.}
+{$IFDEF SORTTIMER}
+ DDTimer:=Get100s;
+{$ENDIF}
 {$IFDEF QSort}
  QSort;
 {$ELSE}
@@ -1467,6 +1475,13 @@ if Count <= 0 then Exit; {JO не удалять! иначе падаем по Ctrl-H и т.п.}
  {$ELSE}
   KPutSort;
  {$ENDIF}
+{$ENDIF}
+{$IFDEF SORTTIMER}
+  DDTimer:=Get100s-DDTimer;
+  ev.what:=evCommand;
+  ev.command:=cmShowTimeInfo;
+  ev.infoptr:=nil;
+  Application^.PutEvent(ev);
 {$ENDIF}
 end;
 
@@ -1508,11 +1523,18 @@ end;
 
 {--------------------------------------------------------}
 procedure TSortedCollection.PoglSort;
-type TSR = pointer; Label 1;
- Const r=SizeOf(TSR); mm=65520 div r; nseg=20; mr=mm*r;
- Type mas = Array[1..mm] of TSR;
- Var A:Array[1..nseg] of ^mas; c,cc,cr,cw,n,np:longint;
-     i,j,k,mk,ni,nw,q,u,v,w,z:longint; x:TSR;
+ type TSR = pointer;
+ label 1;
+ const
+     r  = SizeOf(TSR);
+     mm = 65520 div r;
+     nseg = 20;
+     mr = mm * r;
+ type mas = Array[1..mm] of TSR;
+ var A: Array[1..nseg] of ^mas;
+     c, cc, cr, cw, n, np: Longint;
+     i, j, k, mk, ni, nw, q, u, v, w, z: Longint;
+     x: TSR;
 
 {$IFDEF COLLECTION_IN_STREAM}
 function GetSize: longint; begin GetSize:=CStream^.GetSize end;
@@ -1522,9 +1544,10 @@ procedure Write(var A; count: word);begin CStream^.Write(A, count*r) end;
 function GetPos: longint; begin GetPos:=CStream^.GetPos end;
 {$ELSE}
 var Posit: longint;
-function  GetSize: longint; begin GetSize:=Count*r; end;
-procedure Seek(Pos: longint);begin Posit:=Pos end;
-procedure Read(var A; count: word);
+ function  GetSize: longint; begin GetSize:=Count*r; end;
+ procedure Seek(Pos: longint);begin Posit:=Pos end;
+
+ procedure Read(var A; count: word);
  begin
   {$IFDEF BIGCOLLECTION}
   Items^.AtGet(Posit, count, @A);
@@ -1533,7 +1556,8 @@ procedure Read(var A; count: word);
   {$ENDIF}
   inc(Posit, count);
  end;
-procedure Write(var A; count: word);
+
+ procedure Write(var A; count: word);
  begin
   {$IFDEF BIGCOLLECTION}
   Items^.AtReplace(Posit, count, @A);
@@ -1542,79 +1566,188 @@ procedure Write(var A; count: word);
   {$ENDIF}
   inc(Posit, count);
  end;
-function GetPos: longint; begin GetPos:=Posit*r end;
+ function GetPos: longint; begin GetPos:=Posit*r end;
 {$ENDIF}
 
- Procedure Vnut(c,cc:longint; m:byte);
+ procedure Vnut(c,cc:longint; m:byte);
   Var og: Array[1..nseg] of word;  i,j,u: word;
-  Procedure Merg; Label 1;
-   Begin x:= A[u]^[1]; i:=j+j;
-    Repeat If i < q-m Then
-     If Compare(A[og[i+1]]^[1], A[og[i]]^[1])>0 Then i:=i+1;
-     If Compare(A[og[i]]^[1],x)>0 Then og[j]:= og[i] Else Goto 1;
-     j:=i; i:=j+j
-    Until i > q-m;  1: og[j]:=u
-   End;
-  Procedure Init; Var k:word;
-   Begin For k:= 1 to q-m do og[k]:=k+m;
-    For k:= (q-m) div 2 downto 1 do
-     Begin u:= og[k]; j:=k; Merg End
-   End;
-  Procedure Sipka(var A:mas; k,n1:word); Label 1;
-   Begin If n1 < 2 Then Exit;
-    Repeat x:= A[k]; j:=k; i:=j+j;
-     While i <= n1 do
-      Begin If i < n1 Then If Compare(A[i+1], A[i])>0 Then i:=i+1;
-      If Compare(A[i],x)>0 Then A[j]:= A[i] Else Goto 1; j:=i; i:=j+j
-      End;  1: A[j]:=x; k:=k-1
-    Until k = 0
-   End;
-  Begin q:=m; Seek(c);
-   Repeat mk:=mm; If cc-c < mm Then mk:= cc-c; q:=q+1; z:=q;
-    Read(A[q]^,mk); c:= c+mk; Sipka(A[q]^,mk div 2, mk)
-   Until c = cc;          Init; np:= mk;
-   Repeat  u:=og[1];
-    x:=A[q]^[np]; A[q]^[np]:=A[u]^[1]; A[u]^[1]:=x;
-    np:=np-1; If u=q Then ni:=np Else ni:=mm; Sipka(A[u]^,1,ni);
-    j:=1;  If np = 0 Then Begin np:=mm; q:=q-1; Init End
-           Else If q > m+1 Then Merg
-   Until q = m
-  End;
- Procedure Sli(var B,D,G:mas);
-  Begin Repeat If k=mm Then Begin Seek(cw); Write(G,mm); cw:= cw+mm; k:=0 End;
-         k:=k+1; If Compare(B[i],D[j])>0 Then Begin G[k]:=D[j]; j:=j+1 End
-                 Else Begin G[k]:=B[i]; i:=i+1 End
-        Until (i > ni) Or (j > mk)
-  End;
- BEGIN
-  n:= GetSize div r; q:=n div mm; w:=1; v:=0; c:=0;
-  While (MaxAvail >= mr) And (w < nseg) do
-   Begin  v:=v+mm; GetMem(A[w], mr); nw:=n-q*mm;
-    w:=w+1; If (w > q) And (MaxAvail >= nw*r) Then Goto 1
-   End;
-  nw:= MaxAvail div r; v:=v+nw-2*mm;  c:= n mod v;
-  If c <= 2*mm Then c:= c+v; c:= n-c;
-1:If nw > 0 Then GetMem(A[w],nw*r) Else Begin w:=w-1; nw:=mm End;
-  Vnut(c,n,0); Seek(c); cw:=c;
-  For q:=1 to z do If q=z Then Write(A[q]^, mk)
-                   Else Write(A[q]^, mm);
-  While c <> 0 do
-   Begin cc:=c; c:=c-v; Vnut(c,cc,2); Read(A[1]^,mm); k:=0;
-    cr:= GetPos div r; cw:=c; q:=3; ni:=mm; mk:=mm; i:=1; j:=1;
-    Repeat If q=w Then ni:=nw;           Sli(A[q]^,A[1]^,A[2]^);
-     If i > ni Then Begin i:=1; q:=q+1 End
-     Else Begin j:=1; Seek(cr); If n-cr < mm Then mk:=n-cr;
-           If mk > 0 Then Read(A[1]^,mk); cr:=cr+mk End
-    Until (q > w) Or (mk=0); Seek(cw); Write(A[2]^,k);
-    If mk=0 Then
-           Begin For j:=i to ni do A[q]^[j-i+1]:= A[q]^[j];
-            Write(A[q]^,ni-i+1);
-            For u:=q+1 to w do If u=w Then Write(A[w]^,nw)
-                               Else Write(A[u]^,mm)
-           End
-   End;
-  FreeMem(A[w], nw*r); For u:= w-1 downto 1 do FreeMem(A[u], mr)
-END;
+
+   procedure Merg;
+    Label 1;
+   begin
+     x:= A[u]^[1];
+     i:=j+j;
+     repeat
+       if i < q-m then
+         if Compare(A[og[i+1]]^[1], A[og[i]]^[1])>0 then i:=i+1;
+         if Compare(A[og[i]]^[1],x)>0 then og[j]:= og[i]
+           else Goto 1;
+       j:=i; i:=j+j
+     until i > q-m;
+ 1:  og[j]:=u
+   end;
+
+   procedure Init;
+     Var k:word;
+   begin
+     for k:= 1 to q-m do og[k]:=k+m;
+     for k:= (q-m) div 2 downto 1 do
+      begin
+        u:= og[k];
+        j:=k;
+        Merg
+      end
+   end;
+
+   procedure Sipka(var A:mas; k,n1:word);
+     Label 1;
+   begin
+     if n1 < 2 then Exit;
+     repeat
+       x:= A[k];
+       j:=k;
+       i:=j+j;
+       while i <= n1 do
+         begin
+           if i < n1 then
+             if Compare(A[i+1], A[i]) > 0 then i:=i+1;
+           if Compare(A[i],x) > 0 then A[j]:= A[i] else Goto 1;
+           j:=i;
+           i:=j+j
+         end;
+ 1:    A[j]:=x;
+       k:=k-1
+     until k = 0
+   end;
+
+ begin {Vnut}
+   q:=m;
+   Seek(c);
+   repeat
+     mk:=mm;
+     if cc-c < mm then mk:= cc-c;
+     q:=q+1;
+     z:=q;
+     Read(A[q]^,mk);
+     c:= c+mk;
+     Sipka(A[q]^,mk div 2, mk)
+   until c = cc;
+   Init;
+   np:= mk;
+   repeat
+     u:=og[1];
+     x:=A[q]^[np];
+     A[q]^[np]:=A[u]^[1];
+     A[u]^[1]:=x;
+     np:=np-1;
+     if u=q then ni:=np else ni:=mm;
+     Sipka(A[u]^,1,ni);
+     j:=1;
+     if np = 0 then
+       begin
+         np:=mm;
+         q:=q-1;
+         Init
+       end
+      else if q > m+1 then Merg
+   until q = m
+ end; {Vnut}
+
+ procedure Sli(var B,D,G:mas);
+  begin
+    repeat
+      if k=mm then
+        begin
+          Seek(cw);
+          Write(G,mm);
+          cw:= cw+mm;
+          k:=0
+        end;
+      k:=k+1;
+      if Compare(B[i],D[j]) > 0 then
+        begin
+          G[k]:=D[j];
+          j:=j+1
+        end
+       else
+        begin
+          G[k]:=B[i];
+          i:=i+1
+        end
+    until (i > ni) or (j > mk)
+  end;
+
+ BEGIN {PoglSort}
+  n:= GetSize div r;
+  q:=n div mm;
+  w:=1;
+  v:=0;
+  c:=0;
+  while (MaxAvail >= mr) and (w < nseg) do
+    begin
+      v:=v+mm;
+      getmem(A[w], mr);
+      nw:=n-q*mm;
+      w:=w+1;
+      if (w > q) and (MaxAvail >= nw*r) then Goto 1
+    end;
+  nw:= MaxAvail div r;
+  v:=v+nw-2*mm;
+  c:= n mod v;
+  if c <= 2*mm then c := c+v;
+  c := n-c;
+1:if nw > 0 then GetMem(A[w],nw*r)
+    else begin w:=w-1; nw:=mm end;
+  Vnut(c,n,0);
+  Seek(c);
+  cw:=c;
+  for q:=1 to z do
+    if q=z then Write(A[q]^, mk)
+             else Write(A[q]^, mm);
+  while c <> 0 do
+    begin
+      cc:=c;
+      c:=c-v;
+      Vnut(c,cc,2);
+      Read(A[1]^,mm);
+      k:=0;
+      cr:= GetPos div r;
+      cw:=c; q:=3;
+      ni:=mm;
+      mk:=mm;
+      i:=1;
+      j:=1;
+      repeat
+        if q=w then ni:=nw;
+        Sli(A[q]^,A[1]^,A[2]^);
+        if i > ni then
+          begin
+            i:=1;
+            q:=q+1
+          end
+         else
+          begin
+            j:=1;
+            Seek(cr);
+            if n-cr < mm then mk:=n-cr;
+            if mk > 0 then Read(A[1]^,mk);
+            cr:=cr+mk
+          End
+      until (q > w) or (mk=0);
+      Seek(cw);
+      Write(A[2]^,k);
+      if mk=0 then
+        begin
+          for j := i to ni do A[q]^[j-i+1] := A[q]^[j];
+          Write(A[q]^, ni-i+1);
+          for u := q+1 to w do
+            if u=w Then Write(A[w]^,nw)
+              else Write(A[u]^,mm)
+        end
+    end;
+  FreeMem(A[w], nw*r);
+  for u:= w-1 downto 1 do FreeMem(A[u], mr)
+ END; {PoglSort}
 {--------------------------------------------------------}
 
 {$ELSE}{Not PoglSort}
@@ -1758,7 +1891,7 @@ function GetPos: longint; begin GetPos:=Posit end;
   begin
    Compare:=0;
    a:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(a);
-   b:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(b);
+   b:=0; for c:=1 to Length(PString(Key2)^) do if PString(Key2)^[c] in ['/','\'] then inc(b);
    If a>b then Compare:=-1 else Compare:=+1
   end;
         {-DataCompBoy-}
@@ -2865,7 +2998,7 @@ end;
   var a, b, c: byte;
   begin
    a:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(a);
-   b:=0; for c:=1 to Length(PString(Key1)^) do if PString(Key1)^[c] in ['/','\'] then inc(b);
+   b:=0; for c:=1 to Length(PString(Key2)^) do if PString(Key2)^[c] in ['/','\'] then inc(b);
    If a>b then Compare:=-1 else Compare:=+1
   end;
         {-DataCompBoy-}

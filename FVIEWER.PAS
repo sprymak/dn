@@ -52,6 +52,7 @@ unit FViewer;
 interface
 
 uses
+     SysUtils,
   Objects, Views, Dos, Drivers, HideView, Commands, DNHelp,
   {$IFDEF VIRTUALPASCAL} {SysUtils,} {$ENDIF} {AK155}
   advance,
@@ -143,6 +144,7 @@ type
     procedure   Update; virtual; {AK155}
     procedure   SeekEOF;
     procedure   SeekBOF;
+    function    BreakOnStreamReadError: boolean;
   private
     procedure   AdjustBuf;
   end;
@@ -200,12 +202,22 @@ function SearchFileStr(F: PStream; var Xlat: TXLAT;
                        CaseSensitive, Display, WholeWords, Back,
                        AllCP, IsRegExp: Boolean): LongInt;
 
+{&Delphi+}
+type
+  eFileError = class(Exception)
+    public
+      RC: longint;
+    end;
+{&Delphi-}
+
 implementation
 
 uses LFN, {DataCompBoy}
      Memory, Messages, DNApp, Startup, Dialogs, RStrings,
      {$IFDEF DisAsm} Decoder, {$ENDIF} {piwamoto}
      {$IFDEF RegExp} RegExp, {$ENDIF} {Cat}
+     ErrMess, {AK155}
+     diskinfo,
      Gauge, DNStdDlg, Histries, Drives, DnUtil, DNIni;
 
 function MaxAvail: LongInt;
@@ -815,8 +827,8 @@ begin
   if Fl = nil
    then if Not ReadFile(AFileName, AVFileName, On) then IsValid:=off else
    else if (Fl <> nil) and (Fl^.Status = stOK)
-         then ReadFile(' ', ' ', Off)
-         else IsValid := Off;
+         then ReadFile(' ', ' ', Off);
+  BreakOnStreamReadError;
   TempFile:='';
 {AK155 Это для автодочитывания файла с изменяющейся длиной,
     см. Update }
@@ -839,7 +851,6 @@ begin
      RereadDirectory(GetPath(FileName));
   End;
   Info:=nil;
-  DeRegister(@Self); {AK155}
   inherited Done;
 end;
 
@@ -871,8 +882,20 @@ begin
  S.Read(MarkPos, Sizeof(MarkPos));
  Fl := nil; Buf := nil; IsValid := True; Loaded := On;
  if (FileName = '') and (VFileName = '') then IsValid:=off
-  else IsValid:=ReadFile(FileName, VFileName, On);
- Seek(I)
+  else
+   begin
+{&Delphi+}
+   try
+     ReadFile(FileName, VFileName, true);
+     Seek(I);
+     IsValid:= true;
+   except
+   on E: eFileError do
+     IsValid := false; {AK155 так бывает, например, при перезапуске DN
+       с запомненным просмотром на отсутствующей дискете }
+   end;
+{&Delphi-}
+   end;
 end;
 
 procedure TFileViewer.Store;
@@ -1328,6 +1351,11 @@ function  TFileViewer.ReadFile;
  var I, J: Integer;
      P: Pointer;
      Macros: PCollection;
+     ClusterLen: TSize;
+     NumFiles, NumDirs: Integer;
+     DirLen: TSize;
+     DirString: string;
+     ReadDir: boolean;
 begin
   ReadFile:=true;
   WriteModify;
@@ -1346,8 +1374,46 @@ begin
     if FName = '' then Exit;
     Fl := New(PDosStream, Init(FName, stOpenRead));
    end;
-  if (not ExistFile(FName) or isDir(FName)) and
+
+ { Если FName - имя каталога, то формируем буфер (без Stream) с
+текстовыми данными о содержимом каталога. Это используется в QuickView,
+если куросор стоит на каталоге AK155}
+  ReadDir := true;
+  i := length(FName);
+  if Copy(FName, i-2, 3) = '\..' then
+    begin
+    SetLength(FileName, i-3);
+    DirString := FileName;
+    end
+  else if (i=2) and (FileName[2] = ':') then
+    DirString := FileName {так бывает, например, при перезапуске
+     DN с запомненным состоянием с Branch в корне диска }
+  else if (isDir(FileName)) then
+    begin
+    DirLen := CountDirLen(FileName, true, ClusterLen, NumFiles, NumDirs);
+    DirString := FileName + #$0D#$0A#$0D#$0A +
+        GetString(dlDirectories) + ': ' +  FStr(NumDirs) + #$0D#$0A#$0D#$0A +
+        GetString(dlDIFiles) + ': ' +  FStr(NumFiles-NumDirs) + #$0D#$0A#$0D#$0A +
+        GetString(dlDIBytes) + ': ' + FStr(DirLen);
+    end
+  else
+    ReadDir := false;
+  if ReadDir then
+    begin
+    BufSize := length(DirString);
+    BufPos := 0; FilePos := 0; FileSize := BufSize;
+    GetMem(Buf, 100);
+    Move(DirString[1], Buf^, length(DirString));
+    MakeLines;
+    Fl^.Status := stOK; { сбрасываем stInitError }
+    Exit;
+    end;
+  BreakOnStreamReadError;
+    {см. flpanelx, TFilePanelRoot.SendLocated;}
+
+(*  if (not ExistFile(FName) or isDir(FName)) and
      (FName <> '') and (FName <> ' ') then begin ReadFile:=false; Exit; end;
+*)
   Macros := nil;
   {PZ 2000.06.09 }
   if (EditorDefaults.ViOpt and vbfHlt) <> 0 then
@@ -1427,6 +1493,7 @@ begin
  BufPos := APos - FilePos; if BufPos < 0 then BufPos := 0;
  if BufPos >= BufSize then BufPos := BufSize - 1;
  Fl^.Read(Buf^, BufSize);
+ BreakOnStreamReadError;
  MakeLines;
  MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
 end;
@@ -1600,6 +1667,7 @@ end;
      end;
    P := _WriteMsg(^M^M^C+GetString(dlWritingFile));
    Fl^.Seek(0);
+   BreakOnStreamReadError;
    if Xl then
      begin
        PS := MemAlloc(4096);
@@ -1610,6 +1678,7 @@ end;
            if Sz - Fl^.GetPos < 4096 then L := Sz - Fl^.GetPos
                                      else L := 4096;
            Fl^.Read(PS^, L);
+           BreakOnStreamReadError;
            XlatBuf(PS^, L, Xlat);
            S.Write(PS^, L);
          end;
@@ -1638,6 +1707,37 @@ procedure TFileViewer.SeekBOF;
   XDelta := 0;
   DrawView
   end;
+
+{AK155}
+{ Выдача сообщения, закрытие окна и возбуждение исключения }
+function TFileViewer.BreakOnStreamReadError: boolean;
+  var
+    E: eFileError;
+  begin
+  BreakOnStreamReadError := false;
+  if Fl^.Status <> stOK then
+    begin
+    if Fl^.Status = stInitError then
+      MessFileNotOpen(Filename, Fl^.ErrorInfo)
+    else
+      MessFileNotRead(Filename, Fl^.ErrorInfo);
+    BreakOnStreamReadError := true;
+    E := eFileError.Create('TFileViewer stream read error');
+    E.RC := Fl^.ErrorInfo;
+      { на самом деле это собщение и RC никому не нужны, но это может
+      пригодиться, если не все вызовы BreakOnStreamReadError обложены
+      try - except и исключение окажется фатальным}
+
+{ При QuickView просмотрщик вставлен не в самостоятельное окно,
+а прямо в менеджер файлов, так что при QuickView закрывать владельца
+не просто не нужно, а недопустимо }
+    if not QuickView then Owner^.Free;
+{&Delphi+}
+    raise E at ReturnAddr;
+{&Delphi-}
+    end;
+  end;
+{/AK155}
 
 procedure TFileViewer.SeekEOF;
   var i, j: Integer;
@@ -1795,7 +1895,7 @@ procedure TFileViewer.HandleEvent;
     DrawView;
     SearchActive := Off; Inc(SearchX);
    end else if SearchX <> -2 then
-    MessageBox(GetString(dlDBViewSearchNot), nil, mfError + mfOKButton);
+    MessageBox(GetString(dlDBViewSearchNot), nil, mfInformation + mfOKButton);
  end;
 
  procedure StartSearch;
@@ -1869,6 +1969,11 @@ SkipMenu:
 var
   ScrollerPos: longint;
 begin
+
+{&Delphi+}
+try
+{&Delphi-}
+
  inherited HandleEvent(Event);
  case ViewMode of
   vmText,
@@ -2002,13 +2107,12 @@ DoSave:
                                    <>
                                   UpStrg(lFExpand(FileName))
                                  ) then
-                               begin ReadFile(PString(Event.InfoPtr)^, PString(Event.InfoPtr)^, On);
-                                     DrawView; CE end;
+                               begin ReadFile(PString(Event.InfoPtr)^,
+                                              PString(Event.InfoPtr)^, On);
+                               DrawView; CE;
+                               end;
               cmClose, cmQuit, cmKillUsed:
-                if WriteModify then CE else begin
-                 if FL<>nil then Dispose(Fl,Done);
-                 Fl:=nil;
-                end;
+                if WriteModify then CE;
               cmSearchFor: begin StartSearch; CE end;
               cmReverseSearch,
               cmContinueSearch: begin ContinueSearch(Event.Command = cmReverseSearch); CE end;
@@ -2264,23 +2368,24 @@ KBCheck:       if Event.What<>evNothing then begin
                  end;
                  CtrlK:=False; CE;
                 end else begin
-                {$IFDEF OS2}                    {JO: поскольку хоткеи Ctr-цифра в OS/2 не работают}
-                 if ShiftState and 7 <> 0 then  {    по непонятной причине, введены временные хоткеи}
+               (*{$IFDEF OS2}*)                 {JO: поскольку хоткеи Ctr-цифра в OS/2 не работают}
+               (*if ShiftState and 7 <> 0 then*){    по непонятной причине, введены временные хоткеи}
                  case Event.KeyCode of          {    Ctrl-Alt-Shift-цифра для перехода к закладкам}
-                  kbAlt1: Event.Command := cmGotoMarker1;
-                  kbAlt2: Event.Command := cmGotoMarker2;
-                  kbAlt3: Event.Command := cmGotoMarker3;
-                  kbAlt4: Event.Command := cmGotoMarker4;
-                  kbAlt5: Event.Command := cmGotoMarker5;
-                  kbAlt6: Event.Command := cmGotoMarker6;
-                  kbAlt7: Event.Command := cmGotoMarker7;
-                  kbAlt8: Event.Command := cmGotoMarker8;
-                  kbAlt9: Event.Command := cmGotoMarker9;
-                  else goto NotKb;
-                 end
-                 else
+                 {$IFDEF OS2}
+                  kbCtrlAltShift1: Event.Command := cmGotoMarker1;
+                  kbCtrlAltShift2: Event.Command := cmGotoMarker2;
+                  kbCtrlAltShift3: Event.Command := cmGotoMarker3;
+                  kbCtrlAltShift4: Event.Command := cmGotoMarker4;
+                  kbCtrlAltShift5: Event.Command := cmGotoMarker5;
+                  kbCtrlAltShift6: Event.Command := cmGotoMarker6;
+                  kbCtrlAltShift7: Event.Command := cmGotoMarker7;
+                  kbCtrlAltShift8: Event.Command := cmGotoMarker8;
+                  kbCtrlAltShift9: Event.Command := cmGotoMarker9;
+                  {else goto NotKb;}
+                 {end}
+                 {else}
                 {$ENDIF}
-                 case Event.KeyCode of
+                 {case Event.KeyCode of}
                   kbAlt1: Event.Command:=cmPlaceMarker1;
                   kbAlt2: Event.Command:=cmPlaceMarker2;
                   kbAlt3: Event.Command:=cmPlaceMarker3;
@@ -2391,6 +2496,14 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                 CE
                end;
  end;
+{&Delphi+}
+except
+  on E: eFileError do
+    begin
+    Ch := ' ';
+    end;
+end;
+{&Delphi-}
 end;
 
         {-DataCompBoy-}
@@ -2721,6 +2834,7 @@ begin
         move(buf^[0], buf^[ReadLen], BufSize-ReadLen);
         FL^.Seek(NewFilePos);
         Fl^.Read(Buf^, ReadLen);
+        BreakOnStreamReadError;
         FilePos := NewFilePos;
         BufPos := ReadLen;
         for i := 0 to MaxLines do
@@ -2784,7 +2898,9 @@ begin
   GetExtent(R);
   R.Grow(-1, -1);
   PV := New(PFileViewer, Init(R, nil, Filename, VFileName, P, False, Hex));
-  Insert(PV);
+  Insert(PV); {Вставить надо даже при ошибке для последующего контроля }
+  if not PV^.IsValid then {AK155}
+    exit;
   GetExtent(R);
   Inc(R.A.X); R.A.Y := R.B.Y - 1; Dec(R.B.X, 2);
   P := New(PViewInfo, Init(R, PV));

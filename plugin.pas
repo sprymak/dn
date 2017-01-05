@@ -136,7 +136,11 @@ implementation
 
 uses
   Commands, ObjType, Messages, DNApp, Advance, Advance2,
-  DNFuncs;
+  DNFuncs, Objects;
+
+{$IFNDEF DNPRG}
+{$I Version.Inc}
+{$ENDIF}
 
 (*** EVENT CATCHER ***)
 

@@ -1355,7 +1355,7 @@ begin
                             end;
              end;
   evKeyDown: case Event.KeyCode of
-                kbAlt1..kbAlt9: begin QuickChange(CnvString(DirsToChange[Event.ScanCode-(kbAlt1 shr 8)])); CE end;
+                kbAlt1..kbAlt9: begin QuickChange(CnvString(DirsToChange[Event.ScanCode-Hi(kbAlt1)])); CE end;
                 kbEnter: if Parital then begin SendLocated; CE end;
                 kbDel: if (FMSetup.Options and fmoDelErase <> 0) then EraseDir;
                 kbGrayAst: begin

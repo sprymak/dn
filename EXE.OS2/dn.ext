@@ -1,6 +1,9 @@
 ;
 exe[ >1 Просмотреть File Analyzer'ом
-         @fa2 !:!\!.!]
+         @fa2 !:!\!.!
+; Пример использования REXX'а
+     >1 Создать объект
+        /* */ RC=SysCreateObject('WPProgram', '!', '<WP_DESKTOP>','EXENAME=!:\!.!')]
 ; ~~~~~~~~~~~~~~~~   Programming  Languages   ~~~~~~~~~~~~~~~~~~~~~~~~~
 pas{    @setvidm 3
         @c:\tp7\turbo.exe !.!}

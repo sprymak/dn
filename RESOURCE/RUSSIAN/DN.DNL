@@ -1359,4 +1359,13 @@ dlWkzWarningClear ^C'Все данные в текущей электронной таблице будут удалены.'^M^
 ;KV-
 ;JO+
 dlZIPWithoutCentralDir ^C'ZIP архив без центрального каталога'^M^C'используйте ремонтную утилиту (PKZIPFIX или ZIP с параметром -F)'^M^C' для восстановления архива'
+dlArcEncrypted ^C'Архив с зашифрованными заголовками'^M^C'используйте Shift-F2 для распаковки архива целиком'
 ;JO-
+;AK155+
+dlMissingLeftBracket 'Пропущена "("'
+dlMissingRightBracket 'Пропущена ")"'
+dlWrongText 'Непонятный текст'
+dlNoOperand 'Мало операндов'
+dlMissingOperation 'Пропущена операция'
+dlWrongComma 'Лишняя запятая'
+;AK155-

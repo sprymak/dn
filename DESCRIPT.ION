@@ -1,20 +1,35 @@
-DOC Documentation for DN/2
-RESOURCE Resource source for DN/2
-STORED Units from DN, currently not used in DN/2
-SYS System unit
+_dncw.bat Batch for compilation under Windows 9x
+_dnco.cmd Batch for compilation under OS/2
+_dncow.cmd Batch for compilation Win32 version under OS/2
+_dncw.cmd Batch for compilation under Windows NT
+_dncwo.cmd Batch for compilation OS/2 version under Win32
+_rcpo.cmd Batch for compilation Resources
 drivers._vp Drivers for VP
 fio._vp File Input/Output for VP
 views._vp Views for VP
 vpc.cfg VPC Configutation file
-vpc.cfo VPC Configutation file for OS/2 wersion
-vpc.cfw VPC Configutation file for Win32 wersion
 file_id.diz Logo
 sort_dos.inc Sorting types for DOS versions
 sort_os2.inc Sorting types for OS/2 versions
 sort_w32.inc Sorting types for Win32 versions
 stdefine.inc Defines for project
+rcpvpd.ini Resource compiler options for DPMI
 rcpvpo.ini Resource compiler options for OS/2
 rcpvpw.ini Resource compiler options for Win32
+_apps.pas DN/2 Plugin Interface - object model
+_collect.pas DN/2 Plugin Interface - object model
+_defines.pas DN/2 Plugin Interface - object model
+_dialogs.pas DN/2 Plugin Interface - object model
+_dnfuncs.pas DN/2 Plugin Interface - object model
+_drives.pas DN/2 Plugin Interface - object model
+_editors.pas DN/2 Plugin Interface - object model
+_menus.pas DN/2 Plugin Interface - object model
+_model1.pas DN/2 Plugin Interface - object model
+_objects.pas DN/2 Plugin Interface - object model
+_regexp.pas DN/2 Plugin Interface - object model
+_streams.pas DN/2 Plugin Interface - object model
+_views.pas DN/2 Plugin Interface - object model
+_vmtreg.pas DN/2 Plugin Interface - object model
 advance.pas Advanced procedures: startup
 advance1.pas Advanced procedures: String functions
 advance2.pas Advanced procedures: File related functions
@@ -77,10 +92,10 @@ diskimg.pas Disk image unpacker
 diskinfo.pas Disk info
 dn.pas Main program module
 dn1.pas Main program module, Part 2
-dn2cat.pas Main DLL for plugin version
 dn2pmapi.pas OS/2 Presentation Manager API interface
 dnapp.pas DN Application unit
 dnexec.pas Execution functions
+dnfuncs.pas Interface with plugins - functions & objects to export
 dnhelp.pas Help constants
 dnini.pas Ini Configuration
 dnpmapil.pas OS/2 Presentation Manager API interface
@@ -95,6 +110,7 @@ editor.pas Part of editor
 edwin.pas Part of editor
 eraser.pas File eraser
 errmess.pas Error messages
+excepts.pas Exception Handling unit
 fbb.pas LongCopy
 filecopy.pas Files copyer
 filediz.pas Files descriptions support
@@ -108,6 +124,8 @@ flpanel.pas Files panel
 flpanelx.pas Files panel
 fltools.pas Files tools
 flw32tl.pas Win32 specific files tools
+fnoteos2.pas Directory Change Notifier - OS/2 version
+fnotew32.pas Directory Change Notifier - Win32 version
 fstorage.pas Files storage
 fviewer.pas File viewer
 gauge.pas Gauges: Bar, Percent
@@ -138,6 +156,8 @@ packf_rs.pas Pack file read/seek
 phones.pas Phones book
 pktview.pas Fido PKT viewer
 plugin.pas Interface with plugins
+plugman.pas Plugin Manager
+plugrez.pas Access to plugin's resources
 printman.pas Print manager
 profile.pas .INI file parser
 rcp.pas DN Resource Compiler
@@ -145,7 +165,6 @@ regall.pas Registration of all objects
 regexp.pas Regular Expression Engine
 rspfile.pas Access to packed files
 rstrings.pas Strings cashe
-scrollbk.pas Scrollback
 scroller.pas Scrollers
 setups.pas Setups DN
 starsky.pas StarSky screen saver
@@ -171,35 +190,9 @@ version.pas Version.Inc generator
 videoman.pas Video mode manager
 views.pas Standard views
 vpsyslo2.pas VPSysLow extension unit for VP
+vpsyslow.pas основная часть VPSysLow
 winclpvp.pas Windows clipboard connection for VP
 xdblwnd.pas Double Window
 xtime.pas Extended time support
-dn.ini Main configuration file
-plugman.pas Plugin Manager
-plugrez.pas Access to plugin's resources
-rcpvpd.ini Resource compiler options for DPMI
-excepts.pas Exception Handling unit
-fnoteos2.pas Directory Change Notifier - OS/2 version
-fnotew32.pas Directory Change Notifier - Win32 version
-dnfuncs.pas Interface with plugins - functions & objects to export
-_apps.pas DN/2 Plugin Interface - object model
-_collect.pas DN/2 Plugin Interface - object model
-_defines.pas DN/2 Plugin Interface - object model
-_dialogs.pas DN/2 Plugin Interface - object model
-_dnfuncs.pas DN/2 Plugin Interface - object model
-_drives.pas DN/2 Plugin Interface - object model
-_editors.pas DN/2 Plugin Interface - object model
-_menus.pas DN/2 Plugin Interface - object model
-_model1.pas DN/2 Plugin Interface - object model
-_objects.pas DN/2 Plugin Interface - object model
-_regexp.pas DN/2 Plugin Interface - object model
-_streams.pas DN/2 Plugin Interface - object model
-_views.pas DN/2 Plugin Interface - object model
-_vmtreg.pas DN/2 Plugin Interface - object model
-_dnco.cmd Batch for compilation under OS/2
-_dncw.cmd Batch for compilation under Windows NT
-_dnc.bat 
-_dncw.bat Batch for compilation under Windows 9x
-_dncow.cmd Batch for compilation Win32 version under OS/2
-_dncwo.cmd Batch for compilation OS/2 version under Win32
-_rcpo.cmd Batch for compilation Resources
+RESOURCE Resource source for DN/2
+DOC Documentation for DN/2

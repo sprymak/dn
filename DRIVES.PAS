@@ -1082,7 +1082,6 @@ var
   q: Longint;
   fm: string;
 {$IFDEF CHDIRDEBUG}
-  ev: TEvent;
  const NumCal: word = 0;
        States:Array[0..3] of char = '|/-\';
        PanelState: PChar = Ptr($B800, 0);
@@ -1093,9 +1092,6 @@ begin
 {$ELSE}
 begin
 {$ENDIF}
-  {$IFDEF CHDIRTIMER}
-  if ShiftState and (kbLeftShift+kbRightShift) <> 0 then DDTimer:=Get100s;
-  {$ENDIF}
   TFiles:=0;
   Files := New(PFilesCollection, Init($10, $20));
   PFilesCollection(Files)^.Owner := Owner;
@@ -1106,11 +1102,11 @@ begin
 {$IFNDEF VIRTUALPASCAL}
   NormMask := not PackMask(FileMask, fm, LFNDisabled(CurDir^));
 {$ELSE}
-  NormMask := not PackMask(FileMask, fm, False);
+  NormMask := not PackMask(FileMask, fm {$IFDEF OS_DOS}, False {$ENDIF});
 {$ENDIF}
 
   lFindFirst(MakeNormName(CurDir^,fm),{$IFDEF OS2} Anyfile {$ELSE} $FF XOR VolumeID{$ENDIF}, SR); {JO}
-  While (DosError = 0) and not Abort and (IOResult = 0) and MemOK do
+  While (DosError = 0) and not Abort and (IOResult = 0) {$IFNDEF VIRTUALPASCAL} and MemOK {$ENDIF} do
   begin
 {$IFDEF CHDIRDEBUG}
    PanelState^:=States[NumCal];
@@ -1155,7 +1151,7 @@ begin
        begin
          if PanelFlags and fmiDirLen <> 0 then
           begin
-{$IFNDEF OS2}
+{$IFDEF OS_DOS}
             if SR.SR.Name[1] = '.'
 {$ELSE}
             if SR.FullName = '..'
@@ -1167,7 +1163,16 @@ begin
             ClrIO;
           end;
         end;
-       with Files^ do AtInsert(Count, P)
+      {with Files^ do AtInsert(Count, P)}
+     {JO: это условие было в ритлабовской версии и позволяло не делать      }
+     {    Files^.Sort в конце GetFilesColl ;                                }
+     {    при переходе от 1.51.05 к 1.51.05a DataCompBoy зачем-то убрал     }
+     {    это условие и сделал вместо него Files^.Sort в конце, что заметно }
+     {    уменьшило скорость вхождения в каталоги, особенно учитывая нашу   }
+     {    тормозную процедуру  PoglSort                                     }
+      if (SortMode = -1) or (SortMode = psmUnsorted) then with Files^ do AtInsert(Count, P)
+       else Files^.Insert(P);
+     {/JO}
     end;
    DosError := 0;
    lFindNext(SR);
@@ -1176,9 +1181,14 @@ begin
   if (Length(CurDir^) > 3) then
   if ((Files^.Count=0) or
 {$IFNDEF OS2}
-      ({$IFDEF OS_DOS} (PFileRec(Files^.At(0))^.Name[1] <> '.') and {$ENDIF}
+  {$IFDEF OS_DOS}
+      ((PFileRec(Files^.At(0))^.Name[1] <> '.') and
       (GetLFN(PFileRec(Files^.At(0))^.LFN) <> '.') and
       (GetLFN(PFileRec(Files^.At(0))^.LFN) <> '..'))) then
+  {$ELSE}
+      ((PFileRec(Files^.At(0))^.LFN <> '.') and
+      (PFileRec(Files^.At(0))^.LFN <> '..'))) then
+  {$ENDIF}
 {$ELSE}
       (PFileRec(Files^.At(0))^.Name <> '..')) then
 {$ENDIF}
@@ -1195,18 +1205,11 @@ begin
 {$ENDIF}
    end;
   GetFilesColl := Files;
- if (SortMode <> -1) and (SortMode <> psmUnsorted) and (Files^.Count>0) then Files^.Sort;
+{JO: см. выше комментарий к строке, начинающейся с "if SortMode = -1" }
+{if (SortMode <> -1) and (SortMode <> psmUnsorted) and (Files^.Count>0) then Files^.Sort;}
+{/JO}
 {$IFDEF CHDIRDEBUG}
  PanelState^:=StartChar;
-{$ENDIF}
-{$IFDEF CHDIRTIMER}
- if ShiftState and (kbLeftShift+kbRightShift) <> 0 then begin
-  DDTimer:=Get100s-DDTimer;
-  ev.what:=evCommand;
-  ev.command:=cmShowTimeInfo;
-  ev.infoptr:=nil;
-  Application^.PutEvent(ev);
- end;
 {$ENDIF}
 end;
         {-DataCompBoy-}
@@ -1221,6 +1224,10 @@ function TDrive.GetDirectory;
      FreeSpc, TotalLen: TSize;
      TFiles: Word;
      Descriptions: PDIZCol;
+   {$IFDEF CHDIRTIMER}
+     ev: TEvent;
+   {$ENDIF}
+
 {DataCompBoy
   function Get32(S: String): LongInt;
    var I, J, K: LongInt;
@@ -1236,6 +1243,10 @@ function TDrive.GetDirectory;
   end;
 }
 begin
+{$IFDEF CHDIRTIMER}
+ if ChDirTimer and (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
+   DDTimer := Get100s;
+{$ENDIF}
  ClrIO;
  TFiles := 0; DOSError := 0; TotalLen := 0;
  DIZOwner := ''; FreeSpace := ''; TotalInfo := '';
@@ -1262,6 +1273,16 @@ begin
    if Files^.Sortmode = psmDIZ then Files^.Sort; {JO}
  end;
  GetDirectory := Files;
+{$IFDEF CHDIRTIMER}
+ if ChDirTimer and (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
+  begin
+   DDTimer := Get100s-DDTimer;
+   ev.what := evCommand;
+   ev.command := cmShowTimeInfo;
+   ev.infoptr := nil;
+   Application^.PutEvent(ev);
+  end;
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -1461,6 +1482,7 @@ procedure TDrive.GetDirLength(PF: PFileRec);
  var S: String;
      I: TSize;
      J: LongInt;
+     NumDirs: Integer;
 begin
   if (PF^.Attr and $8000 <> 0) or (PF^.Attr and Directory = 0) then Exit;
   S := PF^.Owner^;
@@ -1475,7 +1497,7 @@ begin
   if PF^.Name <> '..' then S := MakeNormName(S, PF^.Name);
 {$ENDIF}
   I := 1;
-  PF^.Size := CountDirLen(S, On, I, Integer(J));
+  PF^.Size := CountDirLen(S, On, I, Integer(J), NumDirs);
   if not Abort then PF^.Attr := PF^.Attr or $8000;
 end;
         {-DataCompBoy-}

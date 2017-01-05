@@ -115,15 +115,16 @@ begin
   case Event.What of
    evKeyDown: case Event.KeyCode of
                {kbCtrlP,}
-               kbCtrlLeft,
-               kbCtrlRight,
+               kbCtrlLeft, kbCtrlRight,
+               kbCtrlShiftLeft, kbCtrlShiftRight,
                kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5,
                kbAlt6, kbAlt7, kbAlt8, kbAlt9, kbAlt0,
                kbCtrl1, kbCtrl2, kbCtrl3, kbCtrl4, kbCtrl5, {DataCompBoy}
                kbCtrl6, kbCtrl7, kbCtrl8, kbCtrl9, kbCtrl0, {DataCompBoy}
                kbAltLeft,kbAltRight,
+               kbAltShiftLeft,kbAltShiftRight,
                kbCtrlAltZ,{Knave 11.09.99} {DataCompBoy}
-               $1A1B,$1B1D,$1A1A,$1B1B:
+               kbCtrlSqBracketL, kbCtrlSqBracketR:
                 begin HandleCommand(Event); CE := Off; end;
               end;
    evBroadcast: case Event.Command of

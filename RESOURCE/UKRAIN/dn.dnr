@@ -55,6 +55,16 @@ ColorDialog
          ColorItem 'Видiлене',                      5,
          ColorItem 'Видiлене недоступне',           6,
          ColorItem 'Видiлене подсвiчування',        7,
+    ColorGroup 'Допомога',
+         ColorItem  'Рамка пасивна',              139,
+         ColorItem  'Рамка активна',              140,
+         ColorItem  'Пiктограми вiкна',           141,
+         ColorItem  'Бiгунок прокрутки',          142,
+         ColorItem  'Кнопки прокрутки',           143,
+         ColorItem  'Нормальний текст',           144,
+         ColorItem  'Видiлений текст',            163,
+         ColorItem  'Посилання звичайне',         145,
+         ColorItem  'Посилання вибране',          146,
     ColorGroup 'Дiалог',
          ColorItem 'Рамка/фон',                    33,
          ColorItem 'Пiктограми вiкна',             34,
@@ -65,8 +75,8 @@ ColorDialog
          ColorItem 'Мiтка видiлена',               39,
          ColorItem 'Мiтка пiдсвiчена',             40,
          ColorItem 'Кнопка нормальна',             41,
-         ColorItem 'Кнопка за замовчуванням',       42,
-         ColorItem 'Кнопка вiдмiчена',             43,
+         ColorItem 'Кнопка за замовчуванням',      42,
+         ColorItem 'Кнопка видiлена',              43,
          ColorItem 'Кнопка недоступна',            44,
          ColorItem 'Пiдсвiчування кнопки',         45,
          ColorItem 'Пiдсвiчування видiленого',    178,
@@ -74,6 +84,7 @@ ColorDialog
          ColorItem 'Тiнь кнопки',                  46,
          ColorItem 'Поле нормальне',               47,
          ColorItem 'Поле видiлене',                48,
+         ColorItem 'Поле недоступне',              62,
          ColorItem 'Пiдсвiчування поля',           49,
          ColorItem 'Рядок вводу нормальний',       50,
          ColorItem 'Рядок вводу видiлений',        51,
@@ -95,8 +106,17 @@ ColorDialog
          ColorItem 'Вузол по замовчуванню',        107,
          ColorItem 'Видiлений пасивний',           109,
          ColorItem '└─ за замовчуванням',          110,
+    ColorGroup 'Дiалог повiдомлень про помилки',
+         ColorItem 'Рамка/фон',                      214,
+         ColorItem 'Статичний текст',                215,
+         ColorItem 'Кнопка нормальна',               216,
+         ColorItem 'Кнопка видiлена',                217,
+         ColorItem 'Кнопка недоступна',              218,
+         ColorItem 'Пiдсвiчування кнопки',           219,
+         ColorItem 'Пiдсвiчування видiленого',       221,
+         ColorItem 'Тiнь кнопки',                    220,
     ColorGroup 'Менеджер файлiв',
-         ColorItem 'Рамка пассивна',               80,
+         ColorItem 'Рамка пасивна',                80,
          ColorItem 'Рамка активна',                81,
          ColorItem 'Пiктограми вiкна',             82,
          ColorItem 'Бiгунок прокрутки',            83,
@@ -147,32 +167,32 @@ ColorDialog
          ColorItem 'Вiкно iнфоpмацiї',                 101,
     ColorGroup '├──Швидкий перегляд',
          ColorItem 'Нормальний текст',                  92,
-         ColorItem 'Вiдмiчений текст',                  93,
+         ColorItem 'Видiлений текст',                   93,
     ColorGroup '└──Iнформацiя про диск',
          ColorItem 'Нормальний текст',                  103,
-         ColorItem 'Пiдсвiчений текст',                102,
+         ColorItem 'Пiдсвiчений текст',                 102,
     ColorGroup 'Корзина',
-         ColorItem 'Пасивна',                         24,
-         ColorItem 'Активна',                          25,
+         ColorItem 'Пасивна',                           24,
+         ColorItem 'Активна',                           25,
          ColorItem 'При перемiщеннi',                   26,
     ColorGroup 'Перегляд файла',
-         ColorItem 'Рамка пасивна',                      112,
-         ColorItem 'Рамка активна',                       113,
+         ColorItem 'Рамка пасивна',                     112,
+         ColorItem 'Рамка активна',                     113,
          ColorItem 'Пiктограми вiкна',                  114,
          ColorItem 'Бiгунок прокрутки',                 115,
          ColorItem 'Кнопки прокрутки',                  116,
          ColorItem 'Нормальний текст',                  117,
          ColorItem 'Видiлений текст',                   118,
     ColorGroup '└──Пiдсвiчування',
-         ColorItem 'Коментаpi',                       199,
+         ColorItem 'Коментаpi',                         199,
          ColorItem 'Символи',                           200,
          ColorItem 'Рядки',                             201,
          ColorItem 'Числа',                             202,
-         ColorItem 'Ключовi слова 1',                  203,
-         ColorItem 'Ключовi слова 2',                  204,
+         ColorItem 'Ключовi слова 1',                   203,
+         ColorItem 'Ключовi слова 2',                   204,
     ColorGroup 'Редактор/Ел. Таблиця',
-         ColorItem 'Рамка пасивна',                   70,
-         ColorItem 'Рамка активна',                    71,
+         ColorItem 'Рамка пасивна',                     70,
+         ColorItem 'Рамка активна',                     71,
          ColorItem 'Пiктограми вiкна',                  73,
          ColorItem 'Заголовок рамки',                   72,
          ColorItem 'Бiгунок прокрутки',                 74,
@@ -180,12 +200,12 @@ ColorDialog
          ColorItem 'Нормальний текст',                  76,
          ColorItem 'Текст в блоцi',                     77,
     ColorGroup '├──Пiдсвiчування',
-         ColorItem 'Коментар',                         164,
+         ColorItem 'Коментар',                          164,
          ColorItem 'Символи',                           189,
          ColorItem 'Рядки',                             190,
          ColorItem 'Числа',                             191,
-         ColorItem 'Ключовi слова 1',                  197,
-         ColorItem 'Ключовi слова 2',                  198,
+         ColorItem 'Ключовi слова 1',                   197,
+         ColorItem 'Ключовi слова 2',                   198,
          ColorItem 'Поточна лiнiя',                     182,
          ColorItem '├─ в блоцi',                        183,
          ColorItem '└─ коментар',                       184,
@@ -195,35 +215,35 @@ ColorDialog
          ColorItem 'Недоступне',                        65,
          ColorItem 'Подсвiчування',                     66,
          ColorItem 'Видiлене',                          67,
-         ColorItem '├─ недоступне',                    68,
-         ColorItem '└─ пiдсвiчування',                      69,
+         ColorItem '├─ недоступне',                     68,
+         ColorItem '└─ пiдсвiчування',                  69,
     ColorGroup 'Диск редактор',
-         ColorItem 'Рамка пасивна',                      153,
-         ColorItem 'Рамка активна',                       154,
+         ColorItem 'Рамка пасивна',                     153,
+         ColorItem 'Рамка активна',                     154,
          ColorItem 'Пiктограми вiкна',                  156,
-         ColorItem 'Заголовок вiкна',                    155,
+         ColorItem 'Заголовок вiкна',                   155,
          ColorItem 'Бiгунок прокрутки',                 157,
          ColorItem 'Кнопки прокрутки',                  158,
          ColorItem 'Нормальний текст',                  159,
-         ColorItem 'Видiлений текст',                  160,
-         ColorItem 'Опис сектора',                     161,
-         ColorItem 'Рядок редактора',                  162,
+         ColorItem 'Видiлений текст',                   160,
+         ColorItem 'Опис сектора',                      161,
+         ColorItem 'Рядок редактора',                   162,
     ColorGroup '└──Меню ',
-         ColorItem 'Нормальне',                        147,
-         ColorItem 'Недоступне',                       148,
+         ColorItem 'Нормальне',                         147,
+         ColorItem 'Недоступне',                        148,
          ColorItem 'Пiдсвiчування',                     149,
-         ColorItem 'Видiлене',                        150,
+         ColorItem 'Видiлене',                          150,
          ColorItem '├─ недоступне',                     151,
          ColorItem '└─ пiдсвiчування',                  152,
     ColorGroup 'Терминал',
-         ColorItem 'Рамка пасивна',                       8,
-         ColorItem 'Рамка активна',                        9,
+         ColorItem 'Рамка пасивна',                     8,
+         ColorItem 'Рамка активна',                     9,
          ColorItem 'Пiктограми вiкна',                  10,
          ColorItem 'Бiгунок прокрутки',                 11,
          ColorItem 'Кнопки прокрутки',                  12,
     ColorGroup 'Перегляд DBF',
-         ColorItem 'Рамка пасивна',                       166,
-         ColorItem 'Рамка активна',                        167,
+         ColorItem 'Рамка пасивна',                     166,
+         ColorItem 'Рамка активна',                     167,
          ColorItem 'Пiктограми вiкна',                  168,
          ColorItem 'Заголовок поля',                    169,
          ColorItem 'Нормальний текст',                  170,
@@ -1015,6 +1035,7 @@ DIALOG dlgFileFind, 54, 18, 'Пошук файла'
       ITEM 'Р~е~куpсивний пошук'
       ITEM 'Повнi ~с~лова'
       ITEM 'У всiх к~о~дуваннях'
+      ITEM '~П~ошук в архiвах'
 ;$IFDEF REGEXP
       ITEM 'Ре~г~улярний вираз'
 ;$ENDIF
@@ -1022,7 +1043,7 @@ DIALOG dlgFileFind, 54, 18, 'Пошук файла'
     Label 3, 6, 'Опцiї', ofPostProcess, ofPreProcess
     RadioButtons 3, 12, 49, 14, ofPostProcess, ofPreProcess
       ITEM '~Д~иск'
-      ITEM '~П~оточний каталог'
+      ITEM 'По~т~очний каталог'
       ITEM '~В~сi диски'
     END
     Label 3, 11, 'Область', ofPostProcess, ofPreProcess
@@ -1359,21 +1380,22 @@ DIALOG dlgSetPassword, 39, 7, 'Введи пароль'
     Button 26, 4, 38, 6, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgExtract, 49, 12, 'Добути файли'
+DIALOG dlgExtract, 51, 13, 'Добути файли'
     HELPCTX hcExtract
-    InputLine 13, 2, 44, 3, 255, 0
-    History 44, 2, hsFileCopyName, ofPostProcess
+    InputLine 13, 2, 46, 3, 255, 0
+    History 46, 2, hsFileCopyName, ofPostProcess
     Label 2, 2, '~Д~обути в', ofPostProcess, ofPreProcess
-    CheckBoxes 3, 4, 47, 6, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 4, 47, 7, ofPostProcess, ofPreProcess
       ITEM 'Добути з iменем ~ш~ляху'
       ITEM 'Тiльки ~т~естування'
+      ITEM 'П~р~искорено'
     END
-    InputLine 10, 7, 44, 8, 30, 0, ofSecurity
-    Label 2, 7, '~П~ароль', ofPostProcess, ofPreProcess
-    Button  2, 9, 13, 11, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 13, 9, 25, 11, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-    Button 25, 9, 37, 11, '~Д~ерево', cmTree, ofPostProcess, ofPreProcess
-    Button 37, 9, 49, 11, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 10, 8, 46, 9, 30, 0, ofSecurity
+    Label 2, 8, '~П~ароль', ofPostProcess, ofPreProcess
+    Button  2, 10, 13, 12, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 10, 25, 12, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 25, 10, 37, 12, '~Д~ерево', cmTree, ofPostProcess, ofPreProcess
+    Button 37, 10, 49, 12, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgCommandsHistory, 69, 17, 'Iстоpiя команд'
@@ -1550,6 +1572,7 @@ STATUSLINE
      StatusItem '~F10~ Меню', kbF10, cmMenu,
      StatusItem '', kbF1, cmHelp,
      StatusItem '-~F6~ Iм''я', kbAltF6, cmFastRename,
+     StatusItem ''    , kbAltShiftF6, cmFastRename,
      StatusItem '-~F7~ Пошук', kbNoKey, cmFindFile,
      StatusItem '+~F3~ Нова панель', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F6~ Калькулятор', kbCtrlF6, cmCalculator,
@@ -1573,7 +1596,7 @@ STATUSLINE
 ;$ELSE
      StatusItem '+~N~ Лог. iмена', KbCtrlN, cmToggleLongNames,
 ;$ENDIF
-     StatusItem '+~W~PS', kbCtrlW, cmOpenWPSWindow,
+     StatusItem '+П~а~пка', kbCtrlF, cmOpenWPSWindow,
 ;$IFDEF OS2
      StatusItem '+~О~б''єкт', kbCtrlJ, cmCreateWPSObject,
 ;$ENDIF
@@ -2300,7 +2323,7 @@ MENU dlgMainMenu
     MenuItem 'Вiдеорежим ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
     MenuItem 'Вiдеорежим ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
     MenuItem 'Зм~i~нити вiдеорежим', 'Shift-F12', kbShiftF12, cmChScreenMode, hcMenuBox,
-;$IFNDEF PLUGIN
+;$IFNDEF PLUGINRES
     MenuLine
     MenuItem '~Г~pа', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
 ;$ENDIF
@@ -2390,7 +2413,7 @@ MENU dlgMainMenu
     MenuItem '~П~ам''ять команд', 'Alt-F8', kbAltF8, cmHistoryList, hcUtilMenu,
     MenuItem 'Пам''ять ~р~едагування файлiв', 'Alt-PgUp', kbAltPgUp, cmEditHistory, hcUtilMenu,
     MenuItem 'Пам''ять перегляду ~ф~айлiв', 'Alt-PgDn', kbAltPgDn, cmViewHistory, hcUtilMenu,
-;$IFDEF PLUGIN
+;$IFDEF PLUGINRES
     MenuLine
     MenuItem 'Керуваня плагiнами', 'Alt-F11', kbAltF11, cmPlugins, hcPluginManager,
 ;$ENDIF
@@ -2957,7 +2980,7 @@ DIALOG dlgFMDefaults, 63, 19, 'Установки за замовчуванням для панелiв'
 END
 
 DIALOG dlgFMSetup, 69, 22, 'Установки Менеджера Файлiв'
-    HELPCTX hcPanelSetup
+    HELPCTX hcFileMgrSetup
     CheckBoxes 2, 2, 40, 16, ofPostProcess, ofPreProcess
       ITEM 'Авто~-~змiна каталогiв'
       ITEM 'Пере~т~ягування файлiв iз панелiв'
@@ -3234,108 +3257,109 @@ DIALOG dlgAdvancedCOMSetup, 45, 15, 'Pозшиpенi установки поpту'
 END
 
 EDITOR COMMANDS
-;Format is:  COMMAND  <Command>,  KeyCode1,  KeyCode2, CtrlCode1, CtrlCode2
-    COMMAND       cmDeleteLine,   0,             0,     ^Y#0,     #0#0
-    COMMAND       cmDelWordLeft,  kbCtrlBack,    0,     #0#0,     #0#0
-    COMMAND       cmDelWordRight, 0,             0,     ^T#0,     #0#0
-    COMMAND       cmSpecChar,     0,             0,     ^P#0,     #0#0
-    COMMAND       cmUndo,         kbAltBack,     0,     ^Q^L,     #0#0
-    COMMAND       cmCtrlHome,     kbCtrlHome,    0,     #0#0,     #0#0
-    COMMAND       cmCtrlEnd,      kbCtrlEnd,     0,     #0#0,     #0#0
-    COMMAND       cmDeltoEOLN,    0,             0,     ^Q^Y,     #0#0
-    COMMAND       cmStartSearch,  0,             0,     ^Q^F,     #0#0
-    COMMAND       cmReplace,      0,             0,     ^Q^A,     #0#0
-    COMMAND       cmMoveBlockStart, 0,           0,     ^Q^B,     #0#0
-    COMMAND       cmMoveBlockEnd, 0,             0,     ^Q^K,     #0#0
-    COMMAND       cmContSearch,   0,             0,     ^L#0,     #0#0
-    COMMAND       cmBlockRead,    0,             0,     ^K^R,     #0#0
-    COMMAND       cmBlockWrite,   0,             0,     ^K^W,     #0#0
-    COMMAND       cmSwitchIns,    kbIns,         0,     ^V,       #0#0
-    COMMAND       cmSwitchBlock,  0,             0,     ^B^V,     #0#0
-    COMMAND       cmFJustify,     kbAltJ,        0,     ^B^J,     #0#0
-    COMMAND       cmFRight,       kbAltR,        0,     ^B^R,     #0#0
-    COMMAND       cmFLeft,        kbAltL,        0,     ^B^L,     #0#0
-    COMMAND       cmFCenter,      kbAltC,        0,     ^B^C,     #0#0
-    COMMAND       cmEnter,        kbEnter,       0,     #13#0,    #0#0
-    COMMAND       cmPaste,        kbShiftIns,    0,     #0#0,     #0#0
-    COMMAND       cmCopy,         kbCtrlIns,     0,     #0#0,     #0#0
-    COMMAND       cmCut,          kbShiftDel,    0,     #0#0,     #0#0
-    COMMAND       cmInsLine,      0,             0,     ^N#0,     #0#0
-    COMMAND       cmEnd,          kbEnd,         0,     #0#0,     #0#0
-    COMMAND       cmTab,          kbTab,         0,     ^I#0,     #0#0
-    COMMAND       cmWordLeft,     kbCtrlLeft,    0,     ^A#0,     #0#0
-    COMMAND       cmWordRight,    kbCtrlRight,   0,     ^F#0,     #0#0
-    COMMAND       cmDelBackChar,  kbBack,        0,     ^H#0,     #0#0
-    COMMAND       cmDelChar,      kbDel,         0,     ^G#0,     #0#0
-    COMMAND       cmMoveRight,    kbRight,       0,     ^D#0,     #0#0
-    COMMAND       cmMoveLeft,     kbLeft,        0,     ^S#0,     #0#0
-    COMMAND       cmMoveDown,     kbDown,        0,     ^X#0,     #0#0
-    COMMAND       cmScrollUp,     0,             0,     ^W#0,     #0#0
-    COMMAND       cmScrollDn,     0,             0,     ^Z#0,     #0#0
-    COMMAND       cmMoveUp,       kbUp,          0,     ^E#0,     #0#0
-    COMMAND       cmPlaceMarker1, kbAlt1,        0,     ^K'1',    #0#0
-    COMMAND       cmPlaceMarker2, kbAlt2,        0,     ^K'2',    #0#0
-    COMMAND       cmPlaceMarker3, kbAlt3,        0,     ^K'3',    #0#0
-    COMMAND       cmPlaceMarker4, kbAlt4,        0,     ^K'4',    #0#0
-    COMMAND       cmPlaceMarker5, kbAlt5,        0,     ^K'5',    #0#0
-    COMMAND       cmPlaceMarker6, kbAlt6,        0,     ^K'6',    #0#0
-    COMMAND       cmPlaceMarker7, kbAlt7,        0,     ^K'7',    #0#0
-    COMMAND       cmPlaceMarker8, kbAlt8,        0,     ^K'8',    #0#0
-    COMMAND       cmPlaceMarker9, kbAlt9,        0,     ^K'9',    #0#0
-    COMMAND       cmGotoMarker1,  kbCtrl1,       0,     ^Q'1',    #0#0
-    COMMAND       cmGotoMarker2,  kbCtrl2,       0,     ^Q'2',    #0#0
-    COMMAND       cmGotoMarker3,  kbCtrl3,       0,     ^Q'3',    #0#0
-    COMMAND       cmGotoMarker4,  kbCtrl4,       0,     ^Q'4',    #0#0
-    COMMAND       cmGotoMarker5,  kbCtrl5,       0,     ^Q'5',    #0#0
-    COMMAND       cmGotoMarker6,  kbCtrl6,       0,     ^Q'6',    #0#0
-    COMMAND       cmGotoMarker7,  kbCtrl7,       0,     ^Q'7',    #0#0
-    COMMAND       cmGotoMarker8,  kbCtrl8,       0,     ^Q'8',    #0#0
-    COMMAND       cmGotoMarker9,  kbCtrl9,       0,     ^Q'9',    #0#0
-    COMMAND       cmPgUp,         kbPgUp,        0,     ^R#0,     #0#0
-    COMMAND       cmPgDn,         kbPgDn,        0,     ^C#0,     #0#0
-    COMMAND       cmClose,        kbESC,         0,     ^C#0,     #0#0
-    COMMAND       cmMenu,         kbF10,         0,     #0#0,     #0#0
-    COMMAND       cmUpWord,       $1A1B,         0,     #0#0,     #0#0
-    COMMAND       cmLowWord,      $1B1D,         0,     #0#0,     #0#0
-    COMMAND       cmCapWord,      0,             0,     ^\#0,     #0#0
-    COMMAND       cmPrintBlock,   0,             0,     ^K^P,     #0#0
-    COMMAND       cmClear,        kbCtrlDel,     0,     ^K^Y,     #0#0
-    COMMAND       cmCopyBlock,    0,             0,     ^K^C,     #0#0
-    COMMAND       cmMoveBlock,    0,             0,     ^K^V,     #0#0
-    COMMAND       cmHideBlock,    kbAltH,        0,     ^K^H,     #0#0
-    COMMAND       cmMarkWord,     0,             0,     ^K^T,     #0#0
-    COMMAND       cmMarkLine,     0,             0,     ^K^L,     #0#0
-    COMMAND       cmBlockStart,   0,             0,     ^K^B,     #0#0
-    COMMAND       cmBlockEnd,     0,             0,     ^K^K,     #0#0
-    COMMAND       cmIndentBlock,  0,             0,     ^K^I,     #0#0
-    COMMAND       cmUnindentBlock,0,             0,     ^K^U,     #0#0
-    COMMAND       cmSortBlock,    kbAltT,        0,     ^K^S,     #0#0
-    COMMAND       cmCalcBlock,    kbAltIns,      0,     ^K^U,     #0#0
-    COMMAND       cmInsertTime,   0,             0,     ^Q^T,     #0#0
-    COMMAND       cmInsertDate,   0,             0,     ^Q^D,     #0#0
-    COMMAND       cmMenu,         0,             0,     ^K^Q,     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'1'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'2'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'3'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'4'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'5'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'6'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'7'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'8'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'9'     #0#0
-    COMMAND     cmSelectMacro,    0,             0,     ^J'0'     #0#0
-    COMMAND     cmBracketPair,    kbAltLeft, kbAltRight,^Q'['     ^Q^]
-    COMMAND     cmUpcaseBlock,    0,             0,     ^K^[      #0#0
-    COMMAND    cmLowcaseBlock,    0,             0,     ^K^]      #0#0
-    COMMAND cmCapitalizeBlock,    0,             0,     ^K^\      #0#0
-    COMMAND  cmChangeCaseBlock,   0,             0,     ^K^A      #0#0
-    COMMAND     cmSyncClipOut,    0,             0,     ^Q^O      #0#0
-    COMMAND      cmSyncClipIn,    0,             0,     ^Q^I      #0#0
-    COMMAND    cmWindowsPaste,    0,             0,     ^Q^P      #0#0
-    COMMAND     cmWindowsCopy,    0,             0,     ^Q^C      #0#0
-    COMMAND  cmSwitchDrawMode,    0,             0,     ^Q^M      #0#0
-    COMMAND   cmReverseSearch,    kbAltF7,       0,     ^Q^R      #0#0
+;Format is:  COMMAND  <Command>,  KeyCode1,      KeyCode2,  CtrlCode1, CtrlCode2
+    COMMAND       cmDeleteLine,   0,             0,         ^Y#0,      #0#0
+    COMMAND       cmDelWordLeft,  kbCtrlBack,    0,         #0#0,      #0#0
+    COMMAND       cmDelWordRight, 0,             0,         ^T#0,      #0#0
+    COMMAND       cmSpecChar,     0,             0,         ^P#0,      #0#0
+    COMMAND       cmUndo,         kbAltBack,     0,         ^Q^L,      #0#0
+    COMMAND       cmCtrlHome,     kbCtrlHome, kbCtrlShiftHome, #0#0,   #0#0
+    COMMAND       cmCtrlEnd,      kbCtrlEnd,  kbCtrlShiftEnd,  #0#0,   #0#0
+    COMMAND       cmDeltoEOLN,    0,             0,         ^Q^Y,      #0#0
+    COMMAND       cmStartSearch,  0,             0,         ^Q^F,      #0#0
+    COMMAND       cmReplace,      0,             0,         ^Q^A,      #0#0
+    COMMAND       cmMoveBlockStart, 0,           0,         ^Q^B,      #0#0
+    COMMAND       cmMoveBlockEnd, 0,             0,         ^Q^K,      #0#0
+    COMMAND       cmContSearch,   0,             0,         ^L#0,      #0#0
+    COMMAND       cmBlockRead,    0,             0,         ^K^R,      #0#0
+    COMMAND       cmBlockWrite,   0,             0,         ^K^W,      #0#0
+    COMMAND       cmSwitchIns,    kbIns,         0,         ^V,        #0#0
+    COMMAND       cmSwitchBlock,  0,             0,         ^B^V,      #0#0
+    COMMAND       cmFJustify,     kbAltJ,        0,         ^B^J,      #0#0
+    COMMAND       cmFRight,       kbAltR,        0,         ^B^R,      #0#0
+    COMMAND       cmFLeft,        kbAltL,        0,         ^B^L,      #0#0
+    COMMAND       cmFCenter,      kbAltC,        0,         ^B^C,      #0#0
+    COMMAND       cmEnter,        kbEnter,       0,         #13#0,     #0#0
+    COMMAND       cmPaste,        kbShiftIns,    0,         #0#0,      #0#0
+    COMMAND       cmCopy,         kbCtrlIns,     0,         #0#0,      #0#0
+    COMMAND       cmCut,          kbShiftDel,    0,         #0#0,      #0#0
+    COMMAND       cmInsLine,      0,             0,         ^N#0,      #0#0
+    COMMAND       cmEnd,          kbEnd,      kbShiftEnd,   #0#0,      #0#0
+    COMMAND       cmTab,          kbTab,         0,         ^I#0,      #0#0
+    COMMAND       cmWordLeft,     kbCtrlLeft, kbCtrlShiftLeft, ^A#0,   #0#0
+    COMMAND       cmWordRight,    kbCtrlRight, kbCtrlShiftRight, ^F#0, #0#0
+    COMMAND       cmDelBackChar,  kbBack,        0,         ^H#0,      #0#0
+    COMMAND       cmDelChar,      kbDel,         0,         ^G#0,      #0#0
+    COMMAND       cmMoveRight,    kbRight,    kbShiftRight, ^D#0,      #0#0
+    COMMAND       cmMoveLeft,     kbLeft,     kbShiftLeft,  ^S#0,      #0#0
+    COMMAND       cmMoveDown,     kbDown,     kbShiftDown,  ^X#0,      #0#0
+    COMMAND       cmScrollUp,     0,             0,         ^W#0,      #0#0
+    COMMAND       cmScrollDn,     0,             0,         ^Z#0,      #0#0
+    COMMAND       cmMoveUp,       kbUp,       kbShiftUp,    ^E#0,      #0#0
+    COMMAND       cmPlaceMarker1, kbAlt1,        0,         ^K'1',     #0#0
+    COMMAND       cmPlaceMarker2, kbAlt2,        0,         ^K'2',     #0#0
+    COMMAND       cmPlaceMarker3, kbAlt3,        0,         ^K'3',     #0#0
+    COMMAND       cmPlaceMarker4, kbAlt4,        0,         ^K'4',     #0#0
+    COMMAND       cmPlaceMarker5, kbAlt5,        0,         ^K'5',     #0#0
+    COMMAND       cmPlaceMarker6, kbAlt6,        0,         ^K'6',     #0#0
+    COMMAND       cmPlaceMarker7, kbAlt7,        0,         ^K'7',     #0#0
+    COMMAND       cmPlaceMarker8, kbAlt8,        0,         ^K'8',     #0#0
+    COMMAND       cmPlaceMarker9, kbAlt9,        0,         ^K'9',     #0#0
+    COMMAND       cmGotoMarker1,  kbCtrl1,       0,         ^Q'1',     #0#0
+    COMMAND       cmGotoMarker2,  kbCtrl2,       0,         ^Q'2',     #0#0
+    COMMAND       cmGotoMarker3,  kbCtrl3,       0,         ^Q'3',     #0#0
+    COMMAND       cmGotoMarker4,  kbCtrl4,       0,         ^Q'4',     #0#0
+    COMMAND       cmGotoMarker5,  kbCtrl5,       0,         ^Q'5',     #0#0
+    COMMAND       cmGotoMarker6,  kbCtrl6,       0,         ^Q'6',     #0#0
+    COMMAND       cmGotoMarker7,  kbCtrl7,       0,         ^Q'7',     #0#0
+    COMMAND       cmGotoMarker8,  kbCtrl8,       0,         ^Q'8',     #0#0
+    COMMAND       cmGotoMarker9,  kbCtrl9,       0,         ^Q'9',     #0#0
+    COMMAND       cmPgUp,         kbPgUp,     kbShiftPgUp,  ^R#0,      #0#0
+    COMMAND       cmPgDn,         kbPgDn,     kbShiftPgDn,  ^C#0,      #0#0
+    COMMAND       cmClose,        kbESC,       kbAltF3,     ^C#0,      #0#0
+    COMMAND       cmMenu,         kbF10,         0,         #0#0,      #0#0
+    COMMAND       cmUpWord,       kbCtrlSqBracketL, kbCtrlSqBracketL_, #0#0, #0#0
+    COMMAND       cmLowWord,      kbCtrlSqBracketR, kbCtrlSqBracketR_, #0#0, #0#0
+    COMMAND       cmCapWord,      0,             0,         ^\#0,      #0#0
+    COMMAND       cmPrintBlock,   0,             0,         ^K^P,      #0#0
+    COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
+    COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0
+    COMMAND       cmMoveBlock,    0,             0,         ^K^V,      #0#0
+    COMMAND       cmHideBlock,    kbAltH,        0,         ^K^H,      #0#0
+    COMMAND       cmMarkWord,     0,             0,         ^K^T,      #0#0
+    COMMAND       cmMarkLine,     0,             0,         ^K^L,      #0#0
+    COMMAND       cmBlockStart,   0,             0,         ^K^B,      #0#0
+    COMMAND       cmBlockEnd,     0,             0,         ^K^K,      #0#0
+    COMMAND       cmIndentBlock,  kbAltRight,    0,         ^K^I,      #0#0
+    COMMAND       cmUnindentBlock,kbAltLeft,     0,         ^K^U,      #0#0
+    COMMAND       cmSortBlock,    kbAltT,        0,         ^K^S,      #0#0
+    COMMAND       cmCalcBlock,    kbAltIns,      0,         ^K^U,      #0#0
+    COMMAND       cmInsertTime,   0,             0,         ^Q^T,      #0#0
+    COMMAND       cmInsertDate,   0,             0,         ^Q^D,      #0#0
+    COMMAND       cmMenu,         0,             0,         ^K^Q,      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'1'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'2'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'3'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'4'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'5'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'6'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'7'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'8'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'9'      #0#0
+    COMMAND     cmSelectMacro,    0,             0,         ^J'0'      #0#0
+    COMMAND     cmBracketPair,    kbAltLeft,  kbAltRight,   ^Q'['      ^Q^]
+    COMMAND     cmUpcaseBlock,    0,             0,         ^K^[       #0#0
+    COMMAND    cmLowcaseBlock,    0,             0,         ^K^]       #0#0
+    COMMAND cmCapitalizeBlock,    0,             0,         ^K^\       #0#0
+    COMMAND  cmChangeCaseBlock,   0,             0,         ^K^A       #0#0
+    COMMAND     cmSyncClipOut,    0,             0,         ^Q^O       #0#0
+    COMMAND      cmSyncClipIn,    0,             0,         ^Q^I       #0#0
+    COMMAND    cmWindowsPaste,    0,             0,         ^Q^P       #0#0
+    COMMAND     cmWindowsCopy,    0,             0,         ^Q^C       #0#0
+    COMMAND  cmSwitchDrawMode,    0,             0,         ^Q^M       #0#0
+    COMMAND   cmReverseSearch,    kbAltF7,       0,         ^Q^R       #0#0
 END
+
 DIALOG dlgCpuFlagInfo, 60, 23, 'CPU Flag Info'
     HELPCTX hcCpuFlagInfo
     ParamText 2,  1, 50,  2, 'FPU on chip                       %s',1

@@ -162,6 +162,7 @@ begin
  B := R; B.A.X := B.B.X; Inc(B.B.X); Inc(B.A.Y); Dec(B.B.Y, 3);
  New(PV, Init(B));
  New(P, Init(R, LDrive, PV));
+ PV^.Panel := P;
  if Abort then begin Dispose(P,Done); Dispose(PV,Done); Exit end;
 
  New(P1, Init(R)); P1^.Panel := P; P^.InfoView := P1;
@@ -197,6 +198,7 @@ begin
  New(PS, Init(RR));
 
  New(P, Init(R, RDrive, PS));
+ PS^.Panel := P;
  if Abort then begin Dispose(P,Done); Dispose(PS,Done); Exit end;
 
  New(P1, Init(R)); P1^.Panel := P; P^.InfoView := P1;
@@ -280,7 +282,13 @@ begin
  S.Read(OldBounds, sizeof(OldBounds)*2+sizeof(LType)+sizeof(RType));
  GetSubViewPtr(S, Separator);
  GetSubViewPtr(S, LeftView);
+ if TypeOf(LeftView^) = TypeOf(TFilePanel) then
+   PSpecScroll(PFilePanel(LeftView)^.ScrollBar)^.Panel :=
+     PFilePanel(LeftView);
  GetSubViewPtr(S, RightView);
+ if TypeOf(RightView^) = TypeOf(TFilePanel) then
+   PSpecScroll(PFilePanel(RightView)^.ScrollBar)^.Panel :=
+     PFilePanel(RightView);
  GetSubViewPtr(S, LPanel);
  GetSubViewPtr(S, RPanel);
  GetSubViewPtr(S, Info);
@@ -610,8 +618,8 @@ begin
  Sp := Separator;
  case Event.What of
   evKeyDown: case Event.KeyCode of
-              kbCtrlLeft,
-              kbCtrlRight:
+              kbCtrlLeft, kbCtrlRight,
+              kbCtrlShiftLeft, kbCtrlShiftRight:
                      if (FMSetup.Options and fmoCtrlDifference <> 0) then
                       if (LVisible and RVisible) then
                        if FMSetup.Options and fmoAlternCtrlDiff <> 0 then begin
@@ -652,7 +660,9 @@ begin
                              Exit;
                            end;
 }
-              kbAltLeft: if RVisible and LVisible then begin
+              kbAltLeft,
+              kbAltShiftLeft:
+                         if RVisible and LVisible then begin
                           D := 1;
                           if ShiftState and (kbLeftShift+kbRightShift) <> 0 then begin
                            if LSelected then
@@ -677,7 +687,9 @@ begin
                           CE;
                          end;
 
-             kbAltRight: if RVisible and LVisible then begin
+             kbAltRight,
+             kbAltShiftRight:
+                         if RVisible and LVisible then begin
                           D := 1;
                           if ShiftState and (kbLeftShift+kbRightShift) <> 0 then begin
                            if LSelected then
@@ -830,14 +842,14 @@ begin
                                if LSelected then RPanel^.HandleEvent(Event)
                                             else LPanel^.HandleEvent(Event);
                               end;
-              cmDiskInfo: If Not PanelZoomed Then
-                          begin
-                            if isPanel then {AK155}
-                              SwitchView(dtInfo);
-                            CE;
+              cmDiskInfo: begin  CE;
+                          if isPanel and Not PanelZoomed then {AK155}
+                            begin
+                            SwitchView(dtInfo);
                             if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
-                                         else Message(RightView, evCommand, cmLViewFile, nil);
-                           end;
+                            else Message(RightView, evCommand, cmLViewFile, nil);
+                            end;
+                          end;
 {$IFDEF NETINFO}
               cmNetInfo: If Not PanelZoomed Then
                            begin {-$VIV start}
@@ -889,10 +901,9 @@ begin
                     SwitchView(dtTree);
                     CE
                 end;
-              cmQuickView: If Not PanelZoomed Then
+              cmQuickView: if isPanel and Not PanelZoomed then {AK155}
                 begin
-                  if isPanel then {AK155}
-                    SwitchView(dtView);
+                  SwitchView(dtView);
                   if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                   else Message(RightView, evCommand, cmLViewFile, nil);
                   CE

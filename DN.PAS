@@ -49,7 +49,7 @@
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 program DN;
-{$IFDEF OS2}
+{$IFNDEF DPMI32}
 {$R DN.res}
 {$ENDIF}
 
@@ -296,37 +296,37 @@ SysCtrlSetCBreakHandler;}
      end;
    on E: exception do
      begin
+     SysTvClrScr;
+     SysTvShowBuf(0, ScreenWidth*ScreenHeight);
  {$IFDEF VPBETA}
-       ErrorAddr := ExceptAddr;
-       EndFatalError;
+//       EndFatalError;
+      Writeln('Fatal Error'^M^J'-----------'^M^J^M^J+
+              'Exception 0',Hex2(ExitCode),'h at address ',Hex8(LongInt(ExceptAddr)));
+      Writeln(E.Message);
+      if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
+          Writeln('Source location: ' + FileName + ' line ', LineNo );
+      Writeln('Report to RU.SHELL.DN'^M^J+
+          '( file DN.ERR )'^M^J^M^J+
+          'Press any key...');
        SourceDir := SourceDir + 'DN.ERR';
        Assign(DNErrFile, SourceDir);
        Append(DNErrFile);
        Writeln(DNErrFile,'');
-      {ClrEol;}
        Writeln(DNErrFile, 'Exception at addr ' + Ptr2Hex(ExceptAddr));
-      {ClrEol;}
        Writeln(DNErrFile, E.Message);
        if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
-         begin
-          {ClrEol;}
-           Writeln(DNErrFile, 'Source location: ' + FileName + ' line ', LineNo );
-         end;
+         Writeln(DNErrFile, 'Source location: ' + FileName + ' line ', LineNo );
        Close(DNErrFile);
  {$ELSE}
        SysTVClrScr;
-       ClrEol;
        Writeln('Exception at addr ' + Ptr2Hex(ExceptAddr));
-       ClrEol;
        Writeln(E.Message);
        if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
-         begin
-           ClrEol;
-           Writeln('Source location: ' + FileName + ' line ', LineNo );
-         end;
-       repeat
-       until keypressed;
+          Writeln('Source location: ' + FileName + ' line ', LineNo );
  {$ENDIF}
+     repeat until SysKeyPressed;
+     while SysKeyPressed do SysReadKey;
+     SysTVInitCursor;
      end;
  end;
 {$ENDIF}

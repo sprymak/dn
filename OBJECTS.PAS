@@ -407,6 +407,8 @@ procedure ReRegisterType( var S: TStreamRec );
 function  GetAnyMemoryStream: PStream;
 procedure Abstract;
 
+procedure Beep(Freq,Dur: LongInt); {JO}
+
 const
   { Stream error procedure }
   StreamError: Pointer = nil;
@@ -1833,6 +1835,11 @@ var
   OP: Pointer absolute O;
 begin
   if OP <> nil then begin Dispose(OO, Done); OP:=nil end;
+end;
+
+procedure Beep(Freq,Dur: LongInt); {JO}
+begin
+  SysBeepEx(Freq,Dur);
 end;
 
 end.

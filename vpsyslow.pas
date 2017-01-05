@@ -12,7 +12,7 @@
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 unit VPSysLow;
-{$I ..\STDEFINE.INC}
+{$I STDEFINE.INC}
 
 interface
 
@@ -326,13 +326,11 @@ const
   open_share_DenyRead           = $0030; { ---- ---- -011 ---- }
   open_share_DenyNone           = $0040; { ---- ---- -100 ---- }
 
-(*
   xcpt_Signal_Ctrl_C =
     {$IFDEF OS2}   xcpt_Signal;               {$ENDIF}
     {$IFDEF WIN32} xcpt_Control_C_exit;       {$ENDIF}
     {$IFDEF DPMI32}xcpt_Ctrl_Break;           {$ENDIF}
     {$IFDEF LINUX} xcpt_Ctrl_Break;           {$ENDIF}
-*)
 
 type
   TQuadRec = record

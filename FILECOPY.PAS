@@ -94,6 +94,9 @@ uses DNApp, Startup, Memory, Messages, HistList, Commands,
      , ErrMess
      , FlPanelx {JO: PFilePanelRoot нужен чтобы делать недоступным }
                 {    копирование описаний }
+    {$IFDEF COPYTIMER}
+     , CmdLine
+    {$ENDIF}
      ;
 
 const
@@ -812,26 +815,31 @@ var  ReadStream:  lfile;
          I_LW: Byte;
 
       procedure TryToReset;
+      var
+        OldAttr: Word;
       begin
-        if CopyMode = cpmOverwrite  then
+{AK155 2-02-2002
+Раньше наличие файла проверялось  при помощи lResetFile, что не
+вполне корректно. На CD RW под RSJ и, кажется, на некоторых сетевых дисках,
+эта операция приводит к созданию файла и ложному запросу о перезаписи
+файла. Более того, при отрицательном ответе созданный файл остается
+(с нулевой длиной). Проверка при помощи lGetFAttr более чистая.
+}
+        if CopyMode <> cpmOverwrite  then
          Begin
-          lRewriteFile(WriteStream,1);
-          Opened := IOResult;
-          if Opened=0 then Created:=True;
-         End
-        else
-         Begin
-          lResetFile(WriteStream,1);
-          Opened:=IOResult;
-          if Opened=0 then
+          ClrIO;
+          lGetFAttr(WriteStream, OldAttr);
+          if (DosError = 0) then
            Begin
-            Created:=false;
+            lResetFile(WriteStream,1);
+            Opened := IOResult;
+            Created := false;
             Exit;
            End;
-          lRewriteFile(WriteStream,1);
-          Opened:=IOResult;
-          Created:=true;
          End;
+        lRewriteFile(WriteStream,1);
+        Opened := IOResult;
+        Created := Opened = 0;
       end;
 
       procedure DoSkip;
@@ -1467,6 +1475,9 @@ lbStartWrite:
    end;
 
    begin
+{JO: !!! не копируем файлы найденные в архивах  }
+      if PathFoundInArc(FName) then Exit;
+{/JO}
       if CopyPrn then
       begin
         NName := CopyDir;
@@ -2036,7 +2047,7 @@ FileRead:
       S := CopyDir;
       Inhr := CreateDirInheritance(S, On);
       if Inhr = 0 then Inhr := Length(S);
-      Drv := Byte(S[1])-64; ReD := [S[1]];
+      Drv := Byte(Upcase(S[1]))-64; ReD := [S[1]];
     end;
 
     if CopyPrn or (S[1] = '\') then
@@ -2686,7 +2697,9 @@ procedure CopyFiles;
      CopyOpt: Word;
      CopyMode: Word;
      CopyPrn: Boolean;
-
+   {$IFDEF COPYTIMER}
+     ev: TEvent;
+   {$ENDIF}
 begin
    CtrlBreakHit := Off;
    Files^.Pack; if Files^.Count <= 0 then Exit;
@@ -2699,6 +2712,9 @@ begin
        CopyOpt := CopyOpt or cpoFromTemp;
        if CopyOpt and cpoDirEmpty <> 0 then CopyDir := '';
      end;
+{$IFDEF COPYTIMER}
+   DDTimer:=Get100s;
+{$ENDIF}
    Inc(SkyEnabled);
    if (StartupData.Slice2 and osuReleaseCopy = 0) then Application^.BFSpeed;
 {$IFDEF FileNotify}
@@ -2710,6 +2726,13 @@ begin
 {$ENDIF}
    if (StartupData.Slice2 and osuReleaseCopy = 0) then Application^.EFSpeed;
    Dec(SkyEnabled);
+{$IFDEF COPYTIMER}
+   DDTimer:=Get100s-DDTimer;
+   ev.what:=evCommand;
+   ev.command:=cmShowTimeInfo;
+   ev.infoptr:=nil;
+   Application^.PutEvent(ev);
+{$ENDIF}
 end;
 
 end.

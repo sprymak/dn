@@ -47,6 +47,10 @@
 {$I STDEFINE.INC}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
+{JO: этот дефайн позволяет при загрузке новой палитры принудительно сделать }
+{    цвета диалога сообщений об ошибках стандартными                        }
+{.$DEFINE ForceErrPal}
+
 unit DNUtil;
 
 interface
@@ -211,6 +215,7 @@ const
      cfgSavers              = 61; {DataCompBoy}
      cfgChangeCaseOptions   = 62; {DataCompBoy}
      cfgINIcrc              = 63; {DataCompBoy}
+     cfgAppPalette          = 64; {JO}
 
      dlAbout = {$IFDEF VIRTUALPASCAL} #13#3'DN/2 Open Source'+
      #13#3'Version %s, %s'+
@@ -849,12 +854,11 @@ begin
  StoreBlock(cfgBlink, CurrentBlink, SizeOf(CurrentBlink)) ;
  StoreBlock(cfgFFindOptions, FileFind.FindRec.Options, SizeOf(Word) * 2);
  StoreBlock(cfgDriveInfoData, DriveInfoData, SizeOf(DriveInfoData));
- StoreBlock(cfgExtractOptions, ExtractWithPathNames, sizeof(ExtractWithPathNames));
+ StoreBlock(cfgExtractOptions, UnarchiveOpt, sizeof(UnarchiveOpt)); {JO}
  StoreBlock(cfgDefaultArchiver, DefaultArchiver, SizeOf(DefaultArchiver));
  StoreBlock(cfgDefaultArchiverMode, DefaultArcMode, SizeOf(DefaultArcMode));
- StoreBlock(cfgExtractOptions, ExtractWithPathNames, sizeof(ExtractWithPathNames));
+ StoreBlock(cfgExtractOptions, UnarchiveOpt, sizeof(UnarchiveOpt)); {JO: два раза???}
  StoreBlock(cfgChangeCaseOptions, ChangeNamesCaseOptions, Sizeof(ChangeNamesCaseOptions));
-
  {StoreBlock(cfgINIcrc, INIstoredcrc, SizeOf(INIstoredcrc));}
  MarkP(cfgINIdata);
  S.Write(INIstoredtime,sizeof(INIstoredtime));
@@ -865,6 +869,7 @@ begin
  if IgnoreOldFiles then StoreBlock(cfgIgnoreOldFiles,IgnoreOldFiles,0);
 
  MarkP(cfgDirsToChange);for I := 0 to 8 do S.WriteStr(DirsToChange[I]);UnMark;
+ StoreBlock(cfgAppPalette, appPalette, Sizeof(appPalette));
 
  StoreBlock(0,I,0);
  S.Done;
@@ -903,7 +908,9 @@ begin
        Desktop^.InsertView(P, DeskTop^.Last);
        if SaveState and sfVisible <> 0 then P^.Show;
       end;
-    until P = nil;
+    until{ P = nil;} S.GetPos = S.GetSize;
+     {AK155: P = nil бывает, например, при невозможности открыть
+      запомненный просмотр; это не повод терять все остальные настройки }
   end;
  P := DeskTop^.Current;
  if P <> nil then P^.SetState(sfActive, On);
@@ -1397,7 +1404,8 @@ begin
    up.active:=fr;
    Desktop^.GetExtent(R);
    Abort := Off;
-   if (Message(DeskTop, evBroadcast, cmFindView, @FileName) <> nil)
+   if (ReuseViewers > 0)
+     and (Message(DeskTop, evBroadcast, cmFindView, @FileName) <> nil)
      and ((ReuseViewers=2) or
           ((ReuseViewers=1) and
            (MessageBox(GetString(dlOpenNewWindow), nil, mfYesButton+mfNoButton)<>cmYes)
@@ -1440,6 +1448,9 @@ var
 
 label ex;
 begin
+{JO: редактирование найденных в архиве файлов из панели поиска не предусмотрено}
+  if PathFoundInArc(FileName) then Exit;
+{/JO}
   FileName:=lFExpand(FileName);
   fr:=CreateFileRec(FileName);
   fillchar(up, sizeof(up), 0);
@@ -1448,7 +1459,8 @@ begin
       (not Intern and (SystemData.Options and ossEditor = 0)) or
      not Edit then
       begin
-        if (Message(DeskTop, evBroadcast, cmFindEdit, @FileName) <> nil)
+        if (ReuseEditors > 0)
+           and (Message(DeskTop, evBroadcast, cmFindEdit, @FileName) <> nil)
            and ((ReuseEditors=2) or
                 ((ReuseEditors=1) and
                  (MessageBox(GetString(dlOpenNewWindow), nil, mfYesButton+mfNoButton)<>cmYes)
@@ -1575,6 +1587,11 @@ procedure LoadPalFromFile(const FN: String);
       St: String;
       S: TDOSStream;
       Pal: PString;
+{$IFDEF ForceErrPal}
+      I: Byte;
+const
+      ErrStr: String = #$4F#$4F#$70#$0F#$78#$7E#$48#$0E;
+{$ENDIF}
 begin
   LoadPalette    := Off;
   LoadVGAPalette := Off;
@@ -1586,6 +1603,9 @@ begin
     begin
       St := Pal^; DisposeStr(Pal);
       While Length(St) < Length(CColor) do St := St + #$3F;
+    {$IFDEF ForceErrPal}
+      for I := 1 to 8 do St[213+I] := ErrStr[I];
+    {$ENDIF}
       Application^.GetPalette^ := Copy(St,1,Length(CColor));
       SetSysColors(Application^.GetPalette^);
       LoadPalette := On;

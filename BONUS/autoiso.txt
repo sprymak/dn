@@ -1,0 +1,10 @@
+
+ AutoISO - small programm which makes easyer the process of creating
+ISO-image of certain directory with MKISOFS utility for CDRecord/2 CD-burner.
+It eliminates the necessity of manual detection of last session beginning and
+end on CD aimed to be burn.
+
+ AutoISO - небольшая программка, которая облегчает процесс создания ISO-образа
+какого-либо каталога с помощью утилиты MKISOFS для записи CD с помощью
+CDRecord/2 . Эта утилита устраняет необходимость ручного определения начала и
+конца предыдущей сессии на CD, который предполагается дописывать.

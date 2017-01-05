@@ -396,6 +396,9 @@ var
   FName{$IFNDEF OS2},LFN{$ENDIF}: string;
   UserParam: TUserParams;
   D        : TMaskData;
+ {$IFDEF OS2}
+  WriteEcho: Boolean;
+ {$ENDIF}
 label RL;
 
 begin
@@ -445,7 +448,11 @@ begin
             FreeTMaskData(D); {Cat}
             Exit;
           end;
+       {$IFNDEF OS2}
         Writeln(F1.T, '@echo off');
+       {$ELSE}
+        WriteEcho := On;
+       {$ENDIF}
         System.Delete(S, 1, PosChar(BgCh, S));
         repeat
          Replace(']]', #0, S);
@@ -460,6 +467,11 @@ begin
              Replace(#2, '}', S);
              S := MakeString(S, @UserParam, off, nil);
              HS := S;
+             {$IFDEF OS2}
+             {JO: под осью если строка на REXX'е или Perl'е, то не нужно добавлять @Echo off}
+              if WriteEcho and (Copy(S, 1, 2) <> '/*') and (Copy(S, 1, 2) <> '#!') then Writeln(F1.T, '@Echo off');
+              WriteEcho := Off;
+             {$ENDIF}
              WriteLn(F1.T, S); Break
            end;
           end;
@@ -468,6 +480,11 @@ begin
            Replace(#0, ']', S);  Replace(#1, ')', S);  Replace(#2, '}', S);
            if (BgCh <> '[') then S := MakeString(S, @UserParam, off, nil);
            if First and (BgCh <> '[') then HS := S;
+             {$IFDEF OS2}
+             {JO: под осью если строка на REXX'е или Perl'е, то не нужно добавлять @Echo off}
+              if WriteEcho and (Copy(S, 1, 2) <> '/*') and (Copy(S, 1, 2) <> '#!') then Writeln(F1.T, '@Echo off');
+              WriteEcho := Off;
+             {$ENDIF}
            WriteLn(F1.T, S);
            First := False;
           end;

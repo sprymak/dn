@@ -3,8 +3,8 @@
 
  DN/2 project - it is attempt to transfer DN OSP project on 32-bit platform
 using Virtual Pascal compiler. The main goal of the project to create viable
-native OS/2-version, and it's possible also that WIN32 and DPMI32-version
-will arise as secondary products.
+native OS/2-version, and the development of WIN32 and DPMI32-version is
+possible as secondary products.
  At the moment the project is in state of beta-testing and the product
 proposed has quite a lot of bugs and limitations. Use it on your own risk.
 The authors do not responsible for any possible disadvantage or damage,
@@ -13,8 +13,8 @@ caused by this product.
  Known bugs and limitations:
 
  - Some hotkeys are not working now, such as:
-   - file panel modes switching with <Ctrl-1> - <Ctrl-0> (you can however use
-     menu called with <Alt-_> instead);
+   - file panel modes switching with <Ctrl-1> - <Ctrl-0> in OS/2 version (you
+     can however use menu called with <Alt-_> instead);
    - switching between windows with <Ctrl-Shift-1> - <Ctrl-Shift-0>;
    - incremental search of file in file panel could not be called with single
       Ctrl;

@@ -109,6 +109,7 @@ const
 {`.________________________;____________;____________________;___________________'}
 {}{Clock}
 {}ShowSeconds              : Boolean    = True;
+{}BlinkSeparator           : Boolean    = True; {JO}
 {}ShowCentury              : Boolean    = True;
 {}ShowDayOfWeek            : Boolean    = True;
 {}DaysOfWeek               : String[23] = '(use language default)';
@@ -144,10 +145,11 @@ const
 {}CtrlBreakKill            : Boolean    = False;                      {AK155}
 //DoVESATest               : Boolean    = False;                      {DataCompBoy}
 {}ForceDefaultArchiver     : String[3]  = '';                         {JO}
-{$IFNDEF RecodeWhenDraw}
-{}RecodeCyrillicNames      : Boolean    = False;  {JO} {Cat: эта переменная дублируется в VpSysLow}
-{$ELSE}
-{}Non866AsciiSorting       : Boolean    = False;                      {JO}
+{$IFDEF WIN32}
+{}RecodeCyrillicNames      : Byte       = 0;  {JO} {Cat: эта переменная дублируется в VpSysLow}
+{$ENDIF}
+{$IFDEF CHDIRTIMER}
+{}ChDirTimer               : Boolean    = False; {JO: временно ввели возможность измерять скорость входа в каталоги}
 {$ENDIF}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
@@ -211,7 +213,7 @@ const
 {}{SetupStorage}
 {}SystemDataOpt            : Longint = 75;         {SystemData.Options}
 {}InterfaceDataOpt         : Longint = 8201;       {InterfaceData.Options}
-{}DriveInfoType            : Longint = 2;          {InterfaceData.DrvInfType}
+{}DriveInfoType            : Longint = 0;          {InterfaceData.DrvInfType}
 {}FMSetupOpt               : Longint = 11358;      {FMSetup.Options}
 {}EditorDefaultsOpt        : Longint = 8194;       {EditorDefaults.EdOpt}
 {}EditorDefaultsOpt2       : Longint = 3;          {EditorDefaults.EdOpt2}
@@ -414,6 +416,7 @@ begin
   RegisterVar(CSInterface, 'EscForOutputWindow',   ikBool, SizeOf(EscForOutputWindow),   @EscForOutputWindow); {JO}
   {Clock}
   RegisterVar(CSClock,     'ShowSeconds',          ikBool, SizeOf(ShowSeconds),          @ShowSeconds);
+  RegisterVar(CSClock,     'BlinkSeparator',       ikBool, SizeOf(BlinkSeparator),       @BlinkSeparator);
   RegisterVar(CSClock,     'ShowCentury',          ikBool, SizeOf(ShowCentury),          @ShowCentury);
   RegisterVar(CSClock,     'ShowDayOfWeek',        ikBool, SizeOf(ShowDayOfWeek),        @ShowDayOfWeek);
   RegisterVar(CSClock,     'DaysOfWeek',           ikStr,  SizeOf(DaysOfWeek),           @DaysOfWeek);
@@ -438,11 +441,10 @@ begin
 //RegisterVar(CSKernel,    'DoVESATest',           ikBool, SizeOf(DoVESATest),           @DoVESATest);           {DataCompBoy}
   RegisterVar(CSKernel,    'ForceDefaultArchiver', ikStr,  SizeOf(ForceDefaultArchiver), @ForceDefaultArchiver); {JO}
 {$IFDEF WIN32}
-{$IFNDEF RecodeWhenDraw}
-  RegisterVar(CSKernel,    'RecodeCyrillicNames',  ikBool, SizeOf(RecodeCyrillicNames),  @RecodeCyrillicNames);  {JO}
-{$ELSE}
-  RegisterVar(CSKernel,    'Non866AsciiSorting',   ikBool, SizeOf(Non866AsciiSorting),   @Non866AsciiSorting);   {JO}
+  RegisterVar(CSKernel,    'RecodeCyrillicNames',  ikUInt, SizeOf(RecodeCyrillicNames),  @RecodeCyrillicNames);  {JO}
 {$ENDIF}
+{$IFDEF CHDIRTIMER}
+  RegisterVar(CSKernel,    'ChDirTimer',           ikBool, SizeOf(ChDirTimer),           @ChDirTimer); {JO: временно}
 {$ENDIF}
   {Editor}
   RegisterVar(CSEditor,    'UnlimitUnindent',      ikBool, SizeOf(UnlimitUnindent),      @UnlimitUnindent);

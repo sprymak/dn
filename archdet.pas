@@ -58,7 +58,7 @@ uses
 {$ENDIF}
      profile, objects, advance, advance1, advance2;
 
-function DetectArchive: PARJArchive;
+function DetectArchive(Silent: Boolean): PARJArchive;
 function GetArchiveTagBySign(Sign: TStr4): Byte;
 function GetArchiveByTag (ID: Byte): PARJArchive;
 
@@ -68,56 +68,44 @@ implementation
 uses {$IFDEF PLUGIN} Plugin, {$ENDIF} Messages,
      FViewer, U_Keymap, DNApp, Commands; {JO}
 
-{JO}
-function ZIPDetect: Boolean;
-  var i: LongInt;
-      HC: TZIPCentralDirRec;
-      NXL: TXLat;
-      FP: Longint;
- label NoCentralDirRec, RepeatSearch;
-
+function ZIPDetect(Silent: Boolean): Boolean;
+var
+ ID, FP: LongInt;
+    nxl: TXLat;
 begin
-  ArcFile^.Read(i,4);
-  if i <> $04034b50 then
-    begin
-      ZIPDetect := False;
-      ArcFile^.Seek(ArcPos);
-      Exit;
-    end;
-  ZIPDetect := True;
-  NullXLAT (NXL);
-  FP := ArcFile^.GetSize - 1;
-RepeatSearch:
-  FP := SearchFileStr(@ArcFile^, NXL, 'PK'{#05#06}, FP, On, On, Off, On, Off, Off);
-    if FP > 0 then
-      begin
-        ArcFile^.Seek(FP);
-        ArcFile^.Read(HC, SizeOf(TZIPCentralDirRec));
-        if (ArcFile^.Status <> stOK) {or (HC.ID and $FFFF <> $4B50)} then
-          GoTo NoCentralDirRec;
-
-        case HC.ID of
-  $06054B50: begin
-               CentralDirRecPresent := True;
-               ArcFile^.Seek(HC.OffsStart);
-               ArcPos := ArcFile^.GetPos;
-             end;
-  $02014B50, $04034B50: GoTo NoCentralDirRec;
-        else begin
-               ArcFile^.Seek(FP);
-               GoTo RepeatSearch;
-             end;
-        end; {case}
+  ZIPDetect := False;
+  CentralDirRecPresent := False;
+  ArcFile^.Read(ID, SizeOf(ID));
+{somewhat lame code: check for span archive}
+{todo: look VC 4.99a8}
+  ArcFile^.Seek(ArcFile^.GetSize - 22);
+  ArcFile^.Read(FP, SizeOf(FP));
+  if (ID = $04034b50) or ((FP = $06054b50) and (ArcFile^.GetPos > 4)) then
+  begin
+    ZIPDetect := True;
+    NullXLAT (NXL);
+    FP := ArcFile^.GetPos;
+    repeat
+     FP := SearchFileStr(@ArcFile^, NXL, 'PK', FP, Off{piwamoto:we need it OFF}, On, Off, On, Off, Off);
+     ArcFile^.Seek(FP);
+     ArcFile^.Read(ID, SizeOf(ID));
+    until (FP < 0) or
+          (ArcFile^.GetSize - FP > $10016) or {bug: it wouldn't work with files without 'pk' string}
+          (ID = $02014B50) or
+          (ID = $04034B50) or
+          (ID = $06054B50) or
+          (ID = $06064B50) or
+          (ArcFile^.Status <> stOK);
+    if (ID = $06054B50) or (ID = $06064B50) then
+      begin {central directory found}
+        CentralDirRecPresent := True;
+        ArcFile^.Seek(FP + 16 + 32*Byte(ID = $06064B50));{offset of start of central directory}
+        ArcFile^.Read(ArcPos, 4);
       end
-     else
-      begin
- NoCentralDirRec:
-        messagebox(GetString(dlZIPWithoutCentralDir), nil, mfOKButton);
-        CentralDirRecPresent := False;
-        ArcFile^.Seek(ArcPos);
-      end;
+    else if not Silent then messagebox(GetString(dlZIPWithoutCentralDir), nil, mfOKButton);
+  end;
+  ArcFile^.Seek(ArcPos);
 end;
-{/JO}
 
 function LHADetect: Boolean;
 var
@@ -134,7 +122,8 @@ var
  M2: MainRAR2Hdr;
 begin
  RAR2 := Off;
- RARDetect:=False;
+ Encrypted := False;
+ RARDetect := False;
  ArcFile^.Read(ID, SizeOf(ID));
  if (ArcFile^.Status = stOK) and (ID = $5e7e4552{'RE~^'}{RAR until v1.50})
     then
@@ -153,6 +142,11 @@ begin
           RARDetect := True;
           RAR2 := On;
           ArcPos := ArcPos + M2.HeadLen + 7{Rar ID};
+          if M2.HeadFlags and $80 <> 0 {headers are encrypted} then
+            begin
+             Encrypted := True;
+             ArcPos := ArcFile^.GetSize;
+            end;
         end;
      end;
  ArcFile^.Seek(ArcPos);
@@ -545,7 +539,7 @@ begin
  if  HADetect   then DetectArchive:=New(PHAArchive,   Init) else
  if LHADetect   then DetectArchive:=New(PLHAArchive,  Init) else
  if RARDetect   then DetectArchive:=New(PRARArchive,  Init) else
- if ZIPDetect   then DetectArchive:=New(PZIPArchive,  Init) else
+ if ZIPDetect(Silent) then DetectArchive:=New(PZIPArchive,  Init) else
 {$IFNDEF MINARCH}
  if AINDetect   then DetectArchive:=New(PAINArchive,  Init) else
  if ARCDetect   then DetectArchive:=New(PARCArchive,  Init) else

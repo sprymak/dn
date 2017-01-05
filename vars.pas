@@ -103,6 +103,7 @@ type
     EscForOutputWindow       : Boolean;
     {Clock}
     ShowSeconds              : Boolean;
+    BlinkSeparator           : Boolean;
     ShowCentury              : Boolean;
     ShowDayOfWeek            : Boolean;
     DaysOfWeek               : String[23];
@@ -125,6 +126,9 @@ type
     SmartWindowsBoxClose     : LongInt;
 //  DoVESATest               : Boolean;
     ForceDefaultArchiver     : String[3];
+   {$IFDEF CHDIRTIMER}
+    ChDirTimer               : Boolean;
+   {$ENDIF}
     {Editor}
     UnlimitUnindent          : Boolean;
     Koi8rKeyMap              : Boolean;

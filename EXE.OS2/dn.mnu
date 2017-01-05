@@ -1,6 +1,3 @@
->1 Captain Nemo Full Screen
-   @d:\nemo\nemo.exe
->1
 >1 А~p~хивы
   >2 ZIP - архивировать все файлы и подкаталоги
   < Введите имя архива
@@ -71,6 +68,29 @@
       pause
       @format a: /t:80 /n:15
 >1
+>1 Запись CD с помощью CDRecord/2
+   >2 Посмотреть размер получившейся ФС
+      mkisofs -print-size -J -R !:!\
+   >2 Создать образ текущего каталога в E:\TEMP для записи чистого CD
+      mkisofs -o E:\temp\session.iso -J -R !:!\
+   >2 Создать образ текущего каталога в E:\TEMP для дописывания текущего CD
+      autoiso /t:E:\TEMP\ dev=0,1,0 -J -R !:!\
+   >2 Записать CD используя E:\temp\session.iso как образ
+      < Введите скорость записи (4, 8, 12, 16):
+      cdrecord dev=0,1,0 driveropts=burnfree speed=%3 -multi -v E:\temp\session.iso
+   >2 Симулировать запись CD используя E:\temp\session.iso как образ
+      < Введите скорость записи (4, 8, 12, 16):
+      cdrecord dev=0,1,0 driveropts=burnfree speed=%3 -multi -v -dummy E:\temp\session.iso
+   >2 Удалить образ E:\temp\session.iso
+      @echo Y | del E:\temp\session.iso
+   >2 Посмотреить тип болванки
+      cdrecord.exe dev=0,1,0 -atip
+   >2 Быстрая очистка CD-RW
+      cdrecord.exe dev=0,1,0 speed=12 -v blank=fast
+   >2 Запись одного текущего файла (например, DivX)
+      < Введите скорость записи (4, 8, 12, 16):
+      mkisofs.exe -national -hpfsnames -pad !.! | cdrecord.exe -v fs=16m dev=0,1,0 speed=%3
+>1
 >1 Выр~e~зать дамп из файла в *.??1
    >2 Вырезать с начала до ...
       < Введите адрес конца дампа:
@@ -89,11 +109,13 @@
       @C:\UTIL\VIDEO\smonitor c
    >2
    >2 ~С~р. ~!:!\!.!~ и ~$:$\$.$~ как текст
-      fc !:!\!.!  $:$\$.$
+      fc.bat !:!\!.!  $:$\$.$
    >2 ~С~р. ~!:!\!.!~ и ~$:$\$.$~ как текст >> файл !.dif
       fc !:!\!.!  $:$\$.$ >> !.dif
+   >2 ~С~р. ~$:$\$.$~ и ~!:!\!.!~ diff-ом >> файл !.dif
+      diff -u $:$\$.$ !:!\!.! >> !.dif
    >2 ~С~р. ~!:!\!.!~ и ~$:$\$.$~ как двоичные
-      fc /b !:!\!.!  $:$\$.$
+      fc.bat /b !:!\!.!  $:$\$.$
    >2 ~С~р. ~!:!\!.!~ и ~$:$\$.$~ как двоичные >> файл FC.
       fc /b !:!\!.!  $:$\$.$ >> fc
    >2

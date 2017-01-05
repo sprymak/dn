@@ -1572,11 +1572,19 @@ begin
   SysTVSetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
   if WordRec(OldCursorPos).Hi > ScreenHeight - 1 then WordRec(OldCursorPos).Hi := ScreenHeight - 1; {KV}
   if WordRec(OldCursorPos).Lo > ScreenWidth - 1 then WordRec(OldCursorPos).Lo := ScreenWidth - 1; {KV}
-  SysTVSetCurPos(WordRec(OldCursorPos).Lo,WordRec(OldCursorPos).Hi); {KV}
+ {JO: под OS/2 после смены видеорежима SysGetCurPos даёт нулевые координаты}
+ {    как с этим бороться - пока не знаю                                   }
+  if OldCursorPos <> 0 then
+    SysTVSetCurPos(WordRec(OldCursorPos).Lo,WordRec(OldCursorPos).Hi); {KV}
 {$IFDEF Win32}
   SysCtrlSleep(1); {KV}
 {$ENDIF}
   FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);
+{$IFDEF OS2}
+ {JO: это работает действеннее, чем SysTVSetCurPos, который }
+ {перестаёт нормально работать после смены видеорежима      }
+  if OldCursorPos = 0 then Writeln;
+{$ENDIF}
 end;
 
 // Clears the screen, moves cursor to the top left corner
@@ -1738,12 +1746,18 @@ Procedure SetBlink(Mode : boolean);                  begin end;
  end;
 {$IFDEF OS2}
  if not PMWindowed then
+   begin
 {$ENDIF}
-   NonVIOScreenMode := ScreenMode
+     NonVIOScreenMode := ScreenMode;
+     SaveDnIniSettings(@NonVIOScreenMode)
 {$IFDEF OS2}
-   else VIOScreenMode := ScreenMode
+   end
+  else
+   begin
+    VIOScreenMode := ScreenMode;
+    SaveDnIniSettings(@VIOScreenMode);
+   end
 {$ENDIF};
- SaveDnIniSettings(nil);
  DoneIniEngine;
  end;
 

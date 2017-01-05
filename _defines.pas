@@ -192,7 +192,7 @@ const
 
 { TDialog palette entires }
 
-  dpBlueDialog = 1;
+  dpRedDialog  = 1;
   dpCyanDialog = 2;
   dpGrayDialog = 3;
 

@@ -790,16 +790,26 @@ begin
                                 else begin Inc(Delta.Y); Delta.X := 0; end;
                              CED
                        end;
-              kbLeft: begin if Delta.X > 0 then Dec(Delta.X); CED; end;
-              kbRight: begin if Delta.X < DBFile^.NumFields - 1 then Inc(Delta.X); CED; end;
-              kbHome: begin Delta.X := 0; CED end;
-              kbEnd: begin Delta.X := DBFile^.NumFields - 1; CED end;
-              kbUp: begin Dec(Delta.Y); CED end;
-              kbDown: begin Inc(Delta.Y); CED end;
-              kbPgUp: begin Dec(Delta.Y, Size.Y - 2); CED end;
-              kbPgDn: begin Inc(Delta.Y, Size.Y - 2); CED end;
-              kbCtrlPgUp: begin Delta.Y := 0; CED end;
-              kbCtrlPgDn: begin Delta.Y := DBFile^.NumRec - 1; CED end;
+              kbLeft, kbShiftLeft:
+                begin if Delta.X > 0 then Dec(Delta.X); CED; end;
+              kbRight, kbShiftRight:
+                begin if Delta.X < DBFile^.NumFields - 1 then Inc(Delta.X); CED; end;
+              kbHome, kbShiftHome:
+                begin Delta.X := 0; CED end;
+              kbEnd, kbShiftEnd:
+                begin Delta.X := DBFile^.NumFields - 1; CED end;
+              kbUp, kbShiftUp:
+                begin Dec(Delta.Y); CED end;
+              kbDown, kbShiftDown:
+                begin Inc(Delta.Y); CED end;
+              kbPgUp, kbShiftPgUp:
+                begin Dec(Delta.Y, Size.Y - 2); CED end;
+              kbPgDn, kbShiftPgDn:
+                begin Inc(Delta.Y, Size.Y - 2); CED end;
+              kbCtrlPgUp, kbCtrlShiftPgUp:
+                begin Delta.Y := 0; CED end;
+              kbCtrlPgDn, kbCtrlShiftPgDn:
+                begin Delta.Y := DBFile^.NumRec - 1; CED end;
               kbESC: begin Message(Owner, evCommand, cmClose, nil); CE end;
              end;
   evMouseDown: begin

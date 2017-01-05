@@ -182,8 +182,15 @@ Procedure TUC2Archive.GetFile;
   if TextRec(ListFile).Handle = 0 then
     begin { первый вызов: вызов архиватора для вывода оглавления }
     ListFileName := MakeNormName(TempDir,'!!!DN!!!.TMP');
-    S := '/C ' + SourceDir + 'dndosout.bat ' + ListFileName + ' '
-       + UNPACKER^ + ' ~D '+ArcFileName;
+    S := '/C '
+{$IFDEF OS2}
+       + SourceDir + 'dndosout.bat ' + ListFileName + ' '
+{$ENDIF}
+       + UNPACKER^ + ' ~D ' + ArcFileName
+{$IFNDEF OS2}
+       + ' > ' + ListFileName
+{$ENDIF}
+       ;
     if Length(S) < 100 then
       AnsiExec(GetEnv('COMSPEC'), S)
     else

@@ -1,0 +1,127 @@
+===== Dos Navigator What's new?..  =========================================
+
+  [!] Major news
+  [+] New feature
+  [-] A bug fixed
+  [*] A bug fixed and/or functionality improved
+
+
+
+   Version 1.51.10b7
+  ---------------------------------------------------------------------
+
+Alexey Korop:
+
+
+[*] The generation of fatal error message is little bit simplified
+[*] The unit calculat rewritten from scratch
+[*] Calculator program is simplified due to using of exception technique
+    and math.pas unit from VP RTL
+[-] When the path with low-case drive letter was entered into copy dialog,
+    the message appeared about device error anf file was not copied
+[-] The message about error in file vieved will be more adequate
+[-] Now on file panel mouse scrolling (except selection) cursor not
+    move file-by-file, but jump to first file not shown
+[-] Under OS/2 wrong quotes generation and trailing spaces removing
+    by '!', '.!', '$', '.$' macros is removed. Now these macros are
+    equvivalent to '#', '.#', '&', '.&'
+[*] Some small optimizations
+[-] File viewer did not check any file errors
+[+] Now in Quick View panel is shown some information about directory: number
+    of subdirectories, number of files and total size of files
+[-] Function IsDir return 'false' for hidden directories
+
+
+Aleksej Kozlov:
+
+[!] All keycodes are redesigned based on the unified scheme:
+        kbNNNN = $XXYYZZ
+        XX - shift flags: 3 - Shift, 4 - Ctrl, 8 - Alt
+        YY - scan-code of the key
+        ZZ - symbol keycode
+[*] In OS/2-version the Alt-tilde will work properly
+[*] In OS/2-version the Ctrl-[, Ctrl-] combinations become working with Russian
+    keyboard layout
+[*] In Win32-version no status line blinking occure any more after pressing of
+    key combimations with Shift or Alt
+
+
+Jaroslaw Osadtchiy:
+
+[!] File search inside archives is added; it is possible to go to files found
+    with Enter or with Ctrl-PgDg and to view files found with F3; when go to
+    files found with Enter, after leaving archive we go to directory
+    containing archive, whereas when go to files found with Ctrl-PgDn, after
+    leaving archive we go back to search panel
+[-] After videomode change in OS/2 version the console cursor vas positioned
+    to upper left corner befor executing any external program
+[*] In OS/2 version the "@echo off" string will not be added to temporary
+    batch (.cmd) files, if the first string of these files begins from "\*"
+    or "#!" (sign of REXX and Perl scripts)
+[*] Now when attempt to enter RAR-archive with encrypted headers was done the
+    explaining message will bw shown
+[*] Now in the dialog of file selection/deselection (Grey+ and Grey-) the mask
+    ended by "\" will select directories instead files (for example mask
+    "*.os2;*.os2\" will select files and directories with extension ".os2"
+[*] The new dn.ini key BlinkSeparator added to section [Clock] to switch
+    on/off the separator blinking in clock with seconds switched off
+[*] Now in OS/2 version the string "@echo off" will not be added to temporary
+    CMD-file, created to execute user menu command if the first line of this
+    command begins with "/*" (the REXX-script sign) or "#!" (the Perl-script
+    sign)
+[*] The reading of directory is optimized for Win32 versions, compiled with
+    define {$DEFINE RecodeWhenDraw}
+[*] The file search in directory procedures are simplified
+[*] The size of the help window now depends from videomode
+[*] The speed of entering directories increased noticeable (up to 2 times)
+[*] The dn.ini file variable RecodeCyrillicNames now has type Byte instead
+    Boolean; with values 2 or more DN/2 works with file names in ANSI code
+    table without any recoding
+[*] Now DN/2 does not warn about ZIP-archives without central directory during
+    search files inside archives
+[*] The error messages dialog now have default red color like in classical DN
+    and DN OSP; In the "Colors" dialog the "Help" and "Error messages dialog"
+    color group added, the item "Cluster disabled" added to color group
+    "Dialog"
+[-] While attempting to detect some NE-executables as SFX-archives DN/2 had
+    gone to endless cycle
+[-] in Win32 version the removable disk devices could be shown as hard drives
+[-] Sometimes DN/2 halted during help windov viewing
+[*] Now if in dn.ini ReuseEditors=0 and ReuseViewers=0 had been set, then the
+    order of already opened windows will not be changed before the opening of
+    second viewer or editor window with file, which had already been opened in
+    editor or viewer window
+[*] The option "Force mode" added to "Extract files" dialog appearing when
+    unpacking files from archive
+[*] The saving of some settings to dn.ini optimized
+[-] While archiving files by Shift-F1, if in passive panel the subdirectory
+    inside archive was shown, and in archiver settings the "Set path inside"
+    option was set, then the archive was created with subdirectory with path
+    the same is in archive shown in passive panel, and files were placed in
+    this directory
+[-] Under systems without Video Device Handler (bvhvga.dll or analogous), i.e.
+    when OS/2 booted from diskette, the OS/2 version of DN/2 halted on attempt
+    to set videomode different from 80x25
+[*] Now the unpacker will have long or short archive name as command line
+    parameter depending of "Use long file names" option in archiver settings
+[*] Now in RAR archiver settings in "Unpacker" input line it is possible to
+    set two unpackers, separated by ";" symbol; in this case the first
+    unpacker will be used for unpacking archives with version 2.0 and lower,
+    the second one - for archives with version 2.90 and higher
+[*] Now in information panel (called by Ctrl-L) in information about archive
+    the version of archiver necessary to extract from archive is shown not
+    only for RAR, but also for ACE
+[*] If current panel contains RAR-archive contents, then in information panel
+    (called by Ctrl-L) in information about archive the version of archiver
+    necessary to extract from archive is shown
+
+
+Max Vasilyev:
+
+[*] Some default settings changed to be more close to DN OSP,
+    also some columns settings changed to eliminate discrepancy between OS/2
+    and Win32 versions
+[+] the lists of highlited file groups expanded up to DN OSP state
+[*] Bugfixed .ZIP's central directory detection and reading
+[+] partial .ZIP span disks support added
+[*] DN willn't hang on RAR 3.0 archives with encrypted headers anymore

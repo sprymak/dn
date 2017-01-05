@@ -155,8 +155,15 @@ Procedure TAINArchive.GetFile;
     FileInfo.Last := 2;
     ArcFile^.Close;
     ListFileName := MakeNormName(TempDir,'!!!DN!!!.TMP');
-    S := '/C ' + SourceDir + 'dndosout.bat ' + ListFileName + ' '
-       + UNPACKER^ + ' v '+ArcFileName;
+    S := '/C '
+{$IFDEF OS2}
+       + SourceDir + 'dndosout.bat ' + ListFileName + ' '
+{$ENDIF}
+       + UNPACKER^ + ' v ' + ArcFileName
+{$IFNDEF OS2}
+       + ' > ' + ListFileName
+{$ENDIF}
+       ;
     if Length(S) < 100 then
       AnsiExec(GetEnv('COMSPEC'), S)
     else

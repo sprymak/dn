@@ -94,8 +94,8 @@ type
 
  procedure DispInfo(var Info: TDiskInfoRec); {DataCompBoy}
 
- function CountDirLen(const Dir: String; Recurse: Boolean; {DataCompBoy}
-                      var ClusterLen: TSize; var NumFiles: Integer): TSize;
+ function CountDirLen(const Dir: String; Recurse: Boolean; {DataCompBoy, AK155}
+    var ClusterLen: TSize; var NumFiles, NumDirs: Integer): TSize;
  procedure GetDrInfo(Drv: Byte);
  procedure ReadDiskInfo(const Dr: String; var B: TDiskInfoRec; ShowFlags: Integer);
  {$IFNDEF VIRTUALPASCAL} function  GetVolumeLabel: Str12; {$ENDIF}   {JO}
@@ -685,6 +685,8 @@ begin
 end;
 
         {-DataCompBoy-}
+{AK155: NumFiles включает в себя NumDirs, то есть число
+чисто файлов равно NumFiles-NumDirs}
 function CountDirLen;
 var
   Tmr: TEventTimer;
@@ -695,7 +697,7 @@ begin
   NewTimer(Tmr, 1);
   ClusterLen:=0;
   L:=0;
-  NumFiles:=0;
+  NumFiles:=0; NumDirs := 0;
 
   new(DC, Init($10, $10, False));
   DC^.Insert(NewStr(Dir));
@@ -724,6 +726,7 @@ begin
        Inc(NumFiles);
        if SR.SR.Attr and Directory <> 0 then
         begin
+         inc(NumDirs); {AK155}
          if Recurse then
           begin
            If (Word(Length(FreeStr))+Word(Length(SR.FullName))>MaxPathLen-1)
@@ -862,7 +865,7 @@ procedure ReadDiskInfo;
       Drv: Byte;
       F: PTextReader;
       DirLen: TSize;
-      NumFiles: Integer;
+      NumFiles, NumDirs: Integer;
 begin
   ClrIO;
   if Dr = '' then lGetDir(0, S) {GetDir(0, S)} {Cat}
@@ -888,7 +891,7 @@ begin
 {$ENDIF}
 
   DirLen := 0; NumFiles := 0;
-  CountDirLen(S, False, DirLen, NumFiles);
+  CountDirLen(S, False, DirLen, NumFiles, NumDirs);
 
   B.Total := NewStr('~'+FStr(TotalSpc)+GetString(dlDITotalDisk)+Copy(S,1,2)+'~');
   B.Free := NewStr('~'+FStr(FreeSpc)+GetString(dlDIFreeDisk)+Copy(S,1,2)+'~');

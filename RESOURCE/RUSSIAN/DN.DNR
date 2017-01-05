@@ -55,6 +55,16 @@ ColorDialog
          ColorItem 'Выделенное',                    5,
          ColorItem 'Выделенное недоступное',        6,
          ColorItem 'Выделенная подсветка',          7,
+    ColorGroup 'Помощь',
+         ColorItem  'Рамка пассивная',            139,
+         ColorItem  'Рамка активная',             140,
+         ColorItem  'Пиктограммы окна',           141,
+         ColorItem  'Бегунок прокрутки',          142,
+         ColorItem  'Кнопки прокрутки',           143,
+         ColorItem  'Нормальный текст',           144,
+         ColorItem  'Выделенный текст',           163,
+         ColorItem  'Ссылка обычная',             145,
+         ColorItem  'Ссылка выбранная',           146,
     ColorGroup 'Диалог',
          ColorItem 'Рамка/фон',                    33,
          ColorItem 'Пиктограммы окна',             34,
@@ -66,7 +76,7 @@ ColorDialog
          ColorItem 'Метка подсвеченная',           40,
          ColorItem 'Кнопка нормальная',            41,
          ColorItem 'Кнопка по умолчанию',          42,
-         ColorItem 'Кнопка отмеченная',            43,
+         ColorItem 'Кнопка выделенная',            43,
          ColorItem 'Кнопка недоступная',           44,
          ColorItem 'Подсветка кнопки',             45,
          ColorItem 'Подсветка выделенного',        178,
@@ -74,6 +84,7 @@ ColorDialog
          ColorItem 'Тень кнопки',                  46,
          ColorItem 'Поле нормальное',              47,
          ColorItem 'Поле выделенное',              48,
+         ColorItem 'Поле недоступное',             62,
          ColorItem 'Подсветка поля',               49,
          ColorItem 'Строка ввода нормальная',      50,
          ColorItem 'Строка ввода выделенная',      51,
@@ -95,6 +106,15 @@ ColorDialog
          ColorItem 'Узел по умолчанию',              107,
          ColorItem 'Выделенный пассивный',           109,
          ColorItem '└─ по умолчанию',                110,
+    ColorGroup 'Диалог сообщений об ошибках',
+         ColorItem 'Рамка/фон',                      214,
+         ColorItem 'Статический текст',              215,
+         ColorItem 'Кнопка нормальная',              216,
+         ColorItem 'Кнопка выделенная',              217,
+         ColorItem 'Кнопка недоступная',             218,
+         ColorItem 'Подсветка кнопки',               219,
+         ColorItem 'Подсветка выделенного',          221,
+         ColorItem 'Тень кнопки',                    220,
     ColorGroup 'Менеджер файлов',
          ColorItem 'Рамка пассивная',                      80,
          ColorItem 'Рамка активная',                       81,
@@ -147,7 +167,7 @@ ColorDialog
          ColorItem 'Окно инфоpмации',                   101,
     ColorGroup '├──Быстрый просмотр',
          ColorItem 'Нормальный текст',                  92,
-         ColorItem 'Отмеченный текст',                  93,
+         ColorItem 'Выделенный текст',                  93,
     ColorGroup '└──Информация о диске',
          ColorItem 'Нормальный текст',                  103,
          ColorItem 'Подсвеченный текст',                102,
@@ -1016,6 +1036,7 @@ DIALOG dlgFileFind, 54, 18, 'Поиск файла'
       ITEM 'Р~е~куpсивный поиск'
       ITEM 'Полные ~с~лова'
       ITEM 'Во всех к~о~дировках'
+      ITEM '~П~оиск в архивах'
 ;$IFDEF REGEXP
       ITEM 'Ре~г~улярное выражение'
 ;$ENDIF
@@ -1360,21 +1381,22 @@ DIALOG dlgSetPassword, 39, 7, 'Введи пароль'
     Button 27, 4, 37, 6, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgExtract, 49, 12, 'Извлечь файлы'
+DIALOG dlgExtract, 49, 13, 'Извлечь файлы'
     HELPCTX hcExtract
     InputLine 13, 2, 44, 3, 255, 0
     History 44, 2, hsFileCopyName, ofPostProcess
     Label 2, 2, '~И~звлечь в', ofPostProcess, ofPreProcess
-    CheckBoxes 3, 4, 47, 6, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 4, 47, 7, ofPostProcess, ofPreProcess
       ITEM 'Извлечь с именем ~п~ути'
       ITEM 'Только ~т~естирование'
+      ITEM '~У~скоренно'
     END
-    InputLine 10, 7, 44, 8, 30, 0, ofSecurity
-    Label 2, 7, '~П~ароль', ofPostProcess, ofPreProcess
-    Button  7, 9, 17, 11, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 17, 9, 27, 11, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 27, 9, 37, 11, '~Д~ерево', cmTree, ofPostProcess, ofPreProcess
-    Button 37, 9, 47, 11, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 10, 8, 44, 9, 30, 0, ofSecurity
+    Label 2, 8, '~П~ароль', ofPostProcess, ofPreProcess
+    Button  7, 10, 17, 12, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 17, 10, 27, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 27, 10, 37, 12, '~Д~ерево', cmTree, ofPostProcess, ofPreProcess
+    Button 37, 10, 47, 12, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgCommandsHistory, 69, 17, 'Истоpия команд'
@@ -1551,6 +1573,7 @@ STATUSLINE
      StatusItem '~F10~ Меню', kbF10, cmMenu,
      StatusItem '', kbF1, cmHelp,
      StatusItem '-~F6~ Имя', kbAltF6, cmFastRename,
+     StatusItem ''    , kbAltShiftF6, cmFastRename,
      StatusItem '-~F7~ Поиск', kbNoKey, cmFindFile,
      StatusItem '+~F3~ Новая панель', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F6~ Калькулятор', kbCtrlF6, cmCalculator,
@@ -1574,7 +1597,7 @@ STATUSLINE
 ;$ELSE
      StatusItem '+~N~ Лог. имена', KbCtrlN, cmToggleLongNames,
 ;$ENDIF
-     StatusItem '+~W~PS', kbCtrlW, cmOpenWPSWindow,
+     StatusItem '+П~а~пка', kbCtrlF, cmOpenWPSWindow,
 ;$IFDEF OS2
      StatusItem '+~О~бъект', kbCtrlJ, cmCreateWPSObject,
 ;$ENDIF
@@ -1597,7 +1620,7 @@ STATUSLINE
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
      StatusItem '^~F5~ Pезать/Клеить', kbCtrlAltF5, cmPanelLongCopy,
-     StatusItem '^~F6~ Изменить pегистp имен', kbCtrlAltF6, cmChangeNameCase,
+     StatusItem '^~F6~ Изменить pегистp имён', kbCtrlAltF6, cmChangeNameCase,
   StatusDef hcLinkPanel, hcLinkPanel,
      StatusItem '~F2~ Польз', kbF2, cmUserMenu,
      StatusItem '~F3~ Смотри', kbF3, cmViewFile,
@@ -1629,7 +1652,7 @@ STATUSLINE
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
-     StatusItem '^~F6~ Изменить pегистp имен', kbCtrlAltF6, cmChangeNameCase,
+     StatusItem '^~F6~ Изменить pегистp имён', kbCtrlAltF6, cmChangeNameCase,
   StatusDef hcArchives, hcArchives,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
      StatusItem '~F2~ Меню', kbF2, cmUserMenu,
@@ -2300,7 +2323,7 @@ MENU dlgMainMenu
     MenuItem 'Видеорежим ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
     MenuItem 'Видеорежим ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
     MenuItem 'См~е~нить видеорежим', 'Shift-F12', kbShiftF12, cmChScreenMode, hcMenuBox,
-;$IFNDEF PLUGIN
+;$IFNDEF PLUGINRES
     MenuLine
     MenuItem '~И~гpа', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
 ;$ENDIF
@@ -2323,7 +2346,7 @@ MENU dlgMainMenu
     MenuItem '~И~скать...', 'Alt-F7', kbAltF7, cmFindFile, hcFileMenu,
     MenuItem '~К~опировать...', 'F5', kbF5, cmCopyFiles, hcFileMenu,
     MenuItem '~П~ереименовать/перенести...', 'F6', kbF6, cmMoveFiles, hcFileMenu,
-    MenuItem 'Сменить pе~г~истp имен...', 'Ctrl-Alt-F6', kbCtrlAltF6, cmChangeNameCase, hcFileMenu,
+    MenuItem 'Сменить pе~г~истp имён...', 'Ctrl-Alt-F6', kbCtrlAltF6, cmChangeNameCase, hcFileMenu,
     MenuItem 'К~о~пировать в архив...', 'Shift-F1', kbShiftF1, cmPanelArcFiles, hcFileMenu,
     MenuItem 'Из~в~лечь из архива...', 'Shift-F2', kbShiftF2, cmExtractArchive, hcFileMenu,
     MenuItem 'Разре~з~ать/склеить...', 'Ctrl-Alt-F5', kbCtrlAltF5, cmPanelLongCopy, hcFileMenu,
@@ -2390,7 +2413,7 @@ MENU dlgMainMenu
     MenuItem '~П~амять команд', 'Alt-F8', kbAltF8, cmHistoryList, hcUtilMenu,
     MenuItem 'Память ~р~едактирования файлов', 'Alt-PgUp', kbAltPgUp, cmEditHistory, hcUtilMenu,
     MenuItem 'Память просмотра ~ф~айлов', 'Alt-PgDn', kbAltPgDn, cmViewHistory, hcUtilMenu,
-;$IFDEF PLUGIN
+;$IFDEF PLUGINRES
     MenuLine
     MenuItem 'Управление плагинами', 'Alt-F11', kbAltF11, cmPlugins, hcPluginManager,
 ;$ENDIF
@@ -2956,7 +2979,7 @@ DIALOG dlgFMDefaults, 63, 19, 'Установки по умолчанию для панелей'
 END
 
 DIALOG dlgFMSetup, 69, 22, 'Установки Менеджера Файлов'
-    HELPCTX hcPanelSetup
+    HELPCTX hcFileMgrSetup
     CheckBoxes 2, 2, 40, 16, ofPostProcess, ofPreProcess
       ITEM 'Авто~-~смена каталогов'
       ITEM 'Пере~т~аскивание файлов из панелей'
@@ -3232,108 +3255,109 @@ DIALOG dlgAdvancedCOMSetup, 45, 15, 'Pасшиpенные установки поpта'
 END
 
 EDITOR COMMANDS
-;Format is:  COMMAND  <Command>,  KeyCode1,  KeyCode2, CtrlCode1, CtrlCode2
-    COMMAND       cmDeleteLine,   0,             0,     ^Y#0,     #0#0
-    COMMAND       cmDelWordLeft,  kbCtrlBack,    0,     #0#0,     #0#0
-    COMMAND       cmDelWordRight, 0,             0,     ^T#0,     #0#0
-    COMMAND       cmSpecChar,     0,             0,     ^P#0,     #0#0
-    COMMAND       cmUndo,         kbAltBack,     0,     ^Q^L,     #0#0
-    COMMAND       cmCtrlHome,     kbCtrlHome,    0,     #0#0,     #0#0
-    COMMAND       cmCtrlEnd,      kbCtrlEnd,     0,     #0#0,     #0#0
-    COMMAND       cmDeltoEOLN,    0,             0,     ^Q^Y,     #0#0
-    COMMAND       cmStartSearch,  0,             0,     ^Q^F,     #0#0
-    COMMAND       cmReplace,      0,             0,     ^Q^A,     #0#0
-    COMMAND       cmMoveBlockStart, 0,           0,     ^Q^B,     #0#0
-    COMMAND       cmMoveBlockEnd, 0,             0,     ^Q^K,     #0#0
-    COMMAND       cmContSearch,   0,             0,     ^L#0,     #0#0
-    COMMAND       cmBlockRead,    0,             0,     ^K^R,     #0#0
-    COMMAND       cmBlockWrite,   0,             0,     ^K^W,     #0#0
-    COMMAND       cmSwitchIns,    kbIns,         0,     ^V,       #0#0
-    COMMAND       cmSwitchBlock,  0,             0,     ^B^V,     #0#0
-    COMMAND       cmFJustify,     kbAltJ,        0,     ^B^J,     #0#0
-    COMMAND       cmFRight,       kbAltR,        0,     ^B^R,     #0#0
-    COMMAND       cmFLeft,        kbAltL,        0,     ^B^L,     #0#0
-    COMMAND       cmFCenter,      kbAltC,        0,     ^B^C,     #0#0
-    COMMAND       cmEnter,        kbEnter,       0,     #13#0,    #0#0
-    COMMAND       cmPaste,        kbShiftIns,    0,     #0#0,     #0#0
-    COMMAND       cmCopy,         kbCtrlIns,     0,     #0#0,     #0#0
-    COMMAND       cmCut,          kbShiftDel,    0,     #0#0,     #0#0
-    COMMAND       cmInsLine,      0,             0,     ^N#0,     #0#0
-    COMMAND       cmEnd,          kbEnd,         0,     #0#0,     #0#0
-    COMMAND       cmTab,          kbTab,         0,     ^I#0,     #0#0
-    COMMAND       cmWordLeft,     kbCtrlLeft,    0,     ^A#0,     #0#0
-    COMMAND       cmWordRight,    kbCtrlRight,   0,     ^F#0,     #0#0
-    COMMAND       cmDelBackChar,  kbBack,        0,     ^H#0,     #0#0
-    COMMAND       cmDelChar,      kbDel,         0,     ^G#0,     #0#0
-    COMMAND       cmMoveRight,    kbRight,       0,     ^D#0,     #0#0
-    COMMAND       cmMoveLeft,     kbLeft,        0,     ^S#0,     #0#0
-    COMMAND       cmMoveDown,     kbDown,        0,     ^X#0,     #0#0
-    COMMAND       cmScrollUp,     0,             0,     ^W#0,     #0#0
-    COMMAND       cmScrollDn,     0,             0,     ^Z#0,     #0#0
-    COMMAND       cmMoveUp,       kbUp,          0,     ^E#0,     #0#0
-    COMMAND       cmPlaceMarker1, kbAlt1,        0,     ^K'1',    #0#0
-    COMMAND       cmPlaceMarker2, kbAlt2,        0,     ^K'2',    #0#0
-    COMMAND       cmPlaceMarker3, kbAlt3,        0,     ^K'3',    #0#0
-    COMMAND       cmPlaceMarker4, kbAlt4,        0,     ^K'4',    #0#0
-    COMMAND       cmPlaceMarker5, kbAlt5,        0,     ^K'5',    #0#0
-    COMMAND       cmPlaceMarker6, kbAlt6,        0,     ^K'6',    #0#0
-    COMMAND       cmPlaceMarker7, kbAlt7,        0,     ^K'7',    #0#0
-    COMMAND       cmPlaceMarker8, kbAlt8,        0,     ^K'8',    #0#0
-    COMMAND       cmPlaceMarker9, kbAlt9,        0,     ^K'9',    #0#0
-    COMMAND       cmGotoMarker1,  kbCtrl1,       0,     ^Q'1',    #0#0
-    COMMAND       cmGotoMarker2,  kbCtrl2,       0,     ^Q'2',    #0#0
-    COMMAND       cmGotoMarker3,  kbCtrl3,       0,     ^Q'3',    #0#0
-    COMMAND       cmGotoMarker4,  kbCtrl4,       0,     ^Q'4',    #0#0
-    COMMAND       cmGotoMarker5,  kbCtrl5,       0,     ^Q'5',    #0#0
-    COMMAND       cmGotoMarker6,  kbCtrl6,       0,     ^Q'6',    #0#0
-    COMMAND       cmGotoMarker7,  kbCtrl7,       0,     ^Q'7',    #0#0
-    COMMAND       cmGotoMarker8,  kbCtrl8,       0,     ^Q'8',    #0#0
-    COMMAND       cmGotoMarker9,  kbCtrl9,       0,     ^Q'9',    #0#0
-    COMMAND       cmPgUp,         kbPgUp,        0,     ^R#0,     #0#0
-    COMMAND       cmPgDn,         kbPgDn,        0,     ^C#0,     #0#0
-    COMMAND       cmClose,        kbESC,         0,     ^C#0,     #0#0
-    COMMAND       cmMenu,         kbF10,         0,     #0#0,     #0#0
-    COMMAND       cmUpWord,       $1A1B,         0,     #0#0,     #0#0
-    COMMAND       cmLowWord,      $1B1D,         0,     #0#0,     #0#0
-    COMMAND       cmCapWord,      0,             0,     ^\#0,     #0#0
-    COMMAND       cmPrintBlock,   0,             0,     ^K^P,     #0#0
-    COMMAND       cmClear,        kbCtrlDel,     0,     ^K^Y,     #0#0
-    COMMAND       cmCopyBlock,    0,             0,     ^K^C,     #0#0
-    COMMAND       cmMoveBlock,    0,             0,     ^K^V,     #0#0
-    COMMAND       cmHideBlock,    kbAltH,        0,     ^K^H,     #0#0
-    COMMAND       cmMarkWord,     0,             0,     ^K^T,     #0#0
-    COMMAND       cmMarkLine,     0,             0,     ^K^L,     #0#0
-    COMMAND       cmBlockStart,   0,             0,     ^K^B,     #0#0
-    COMMAND       cmBlockEnd,     0,             0,     ^K^K,     #0#0
-    COMMAND       cmIndentBlock,  0,             0,     ^K^I,     #0#0
-    COMMAND       cmUnindentBlock,0,             0,     ^K^U,     #0#0
-    COMMAND       cmSortBlock,    kbAltT,        0,     ^K^S,     #0#0
-    COMMAND       cmCalcBlock,    kbAltIns,      0,     ^K^U,     #0#0
-    COMMAND       cmInsertTime,   0,             0,     ^Q^T,     #0#0
-    COMMAND       cmInsertDate,   0,             0,     ^Q^D,     #0#0
-    COMMAND       cmMenu,         0,             0,     ^K^Q,     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'1'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'2'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'3'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'4'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'5'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'6'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'7'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'8'     #0#0
-    COMMAND       cmPlayMacro,    0,             0,     ^J'9'     #0#0
-    COMMAND     cmSelectMacro,    0,             0,     ^J'0'     #0#0
-    COMMAND     cmBracketPair,    kbAltLeft, kbAltRight,^Q'['     ^Q^]
-    COMMAND     cmUpcaseBlock,    0,             0,     ^K^[      #0#0
-    COMMAND    cmLowcaseBlock,    0,             0,     ^K^]      #0#0
-    COMMAND cmCapitalizeBlock,    0,             0,     ^K^\      #0#0
-    COMMAND  cmChangeCaseBlock,   0,             0,     ^K^A      #0#0
-    COMMAND     cmSyncClipOut,    0,             0,     ^Q^O      #0#0
-    COMMAND      cmSyncClipIn,    0,             0,     ^Q^I      #0#0
-    COMMAND    cmWindowsPaste,    0,             0,     ^Q^P      #0#0
-    COMMAND     cmWindowsCopy,    0,             0,     ^Q^C      #0#0
-    COMMAND  cmSwitchDrawMode,    0,             0,     ^Q^M      #0#0
-    COMMAND   cmReverseSearch,    kbAltF7,       0,     ^Q^R      #0#0
+;Format is:  COMMAND  <Command>,  KeyCode1,      KeyCode2,  CtrlCode1, CtrlCode2
+    COMMAND       cmDeleteLine,   0,             0,         ^Y#0,      #0#0
+    COMMAND       cmDelWordLeft,  kbCtrlBack,    0,         #0#0,      #0#0
+    COMMAND       cmDelWordRight, 0,             0,         ^T#0,      #0#0
+    COMMAND       cmSpecChar,     0,             0,         ^P#0,      #0#0
+    COMMAND       cmUndo,         kbAltBack,     0,         ^Q^L,      #0#0
+    COMMAND       cmCtrlHome,     kbCtrlHome, kbCtrlShiftHome, #0#0,   #0#0
+    COMMAND       cmCtrlEnd,      kbCtrlEnd,  kbCtrlShiftEnd,  #0#0,   #0#0
+    COMMAND       cmDeltoEOLN,    0,             0,         ^Q^Y,      #0#0
+    COMMAND       cmStartSearch,  0,             0,         ^Q^F,      #0#0
+    COMMAND       cmReplace,      0,             0,         ^Q^A,      #0#0
+    COMMAND       cmMoveBlockStart, 0,           0,         ^Q^B,      #0#0
+    COMMAND       cmMoveBlockEnd, 0,             0,         ^Q^K,      #0#0
+    COMMAND       cmContSearch,   0,             0,         ^L#0,      #0#0
+    COMMAND       cmBlockRead,    0,             0,         ^K^R,      #0#0
+    COMMAND       cmBlockWrite,   0,             0,         ^K^W,      #0#0
+    COMMAND       cmSwitchIns,    kbIns,         0,         ^V,        #0#0
+    COMMAND       cmSwitchBlock,  0,             0,         ^B^V,      #0#0
+    COMMAND       cmFJustify,     kbAltJ,        0,         ^B^J,      #0#0
+    COMMAND       cmFRight,       kbAltR,        0,         ^B^R,      #0#0
+    COMMAND       cmFLeft,        kbAltL,        0,         ^B^L,      #0#0
+    COMMAND       cmFCenter,      kbAltC,        0,         ^B^C,      #0#0
+    COMMAND       cmEnter,        kbEnter,       0,         #13#0,     #0#0
+    COMMAND       cmPaste,        kbShiftIns,    0,         #0#0,      #0#0
+    COMMAND       cmCopy,         kbCtrlIns,     0,         #0#0,      #0#0
+    COMMAND       cmCut,          kbShiftDel,    0,         #0#0,      #0#0
+    COMMAND       cmInsLine,      0,             0,         ^N#0,      #0#0
+    COMMAND       cmEnd,          kbEnd,      kbShiftEnd,   #0#0,      #0#0
+    COMMAND       cmTab,          kbTab,         0,         ^I#0,      #0#0
+    COMMAND       cmWordLeft,     kbCtrlLeft, kbCtrlShiftLeft, ^A#0,   #0#0
+    COMMAND       cmWordRight,    kbCtrlRight, kbCtrlShiftRight, ^F#0, #0#0
+    COMMAND       cmDelBackChar,  kbBack,        0,         ^H#0,      #0#0
+    COMMAND       cmDelChar,      kbDel,         0,         ^G#0,      #0#0
+    COMMAND       cmMoveRight,    kbRight,    kbShiftRight, ^D#0,      #0#0
+    COMMAND       cmMoveLeft,     kbLeft,     kbShiftLeft,  ^S#0,      #0#0
+    COMMAND       cmMoveDown,     kbDown,     kbShiftDown,  ^X#0,      #0#0
+    COMMAND       cmScrollUp,     0,             0,         ^W#0,      #0#0
+    COMMAND       cmScrollDn,     0,             0,         ^Z#0,      #0#0
+    COMMAND       cmMoveUp,       kbUp,       kbShiftUp,    ^E#0,      #0#0
+    COMMAND       cmPlaceMarker1, kbAlt1,        0,         ^K'1',     #0#0
+    COMMAND       cmPlaceMarker2, kbAlt2,        0,         ^K'2',     #0#0
+    COMMAND       cmPlaceMarker3, kbAlt3,        0,         ^K'3',     #0#0
+    COMMAND       cmPlaceMarker4, kbAlt4,        0,         ^K'4',     #0#0
+    COMMAND       cmPlaceMarker5, kbAlt5,        0,         ^K'5',     #0#0
+    COMMAND       cmPlaceMarker6, kbAlt6,        0,         ^K'6',     #0#0
+    COMMAND       cmPlaceMarker7, kbAlt7,        0,         ^K'7',     #0#0
+    COMMAND       cmPlaceMarker8, kbAlt8,        0,         ^K'8',     #0#0
+    COMMAND       cmPlaceMarker9, kbAlt9,        0,         ^K'9',     #0#0
+    COMMAND       cmGotoMarker1,  kbCtrl1,       0,         ^Q'1',     #0#0
+    COMMAND       cmGotoMarker2,  kbCtrl2,       0,         ^Q'2',     #0#0
+    COMMAND       cmGotoMarker3,  kbCtrl3,       0,         ^Q'3',     #0#0
+    COMMAND       cmGotoMarker4,  kbCtrl4,       0,         ^Q'4',     #0#0
+    COMMAND       cmGotoMarker5,  kbCtrl5,       0,         ^Q'5',     #0#0
+    COMMAND       cmGotoMarker6,  kbCtrl6,       0,         ^Q'6',     #0#0
+    COMMAND       cmGotoMarker7,  kbCtrl7,       0,         ^Q'7',     #0#0
+    COMMAND       cmGotoMarker8,  kbCtrl8,       0,         ^Q'8',     #0#0
+    COMMAND       cmGotoMarker9,  kbCtrl9,       0,         ^Q'9',     #0#0
+    COMMAND       cmPgUp,         kbPgUp,     kbShiftPgUp,  ^R#0,      #0#0
+    COMMAND       cmPgDn,         kbPgDn,     kbShiftPgDn,  ^C#0,      #0#0
+    COMMAND       cmClose,        kbESC,       kbAltF3,     ^C#0,      #0#0
+    COMMAND       cmMenu,         kbF10,         0,         #0#0,      #0#0
+    COMMAND       cmUpWord,       kbCtrlSqBracketL, kbCtrlSqBracketL_, #0#0, #0#0
+    COMMAND       cmLowWord,      kbCtrlSqBracketR, kbCtrlSqBracketR_, #0#0, #0#0
+    COMMAND       cmCapWord,      0,             0,         ^\#0,      #0#0
+    COMMAND       cmPrintBlock,   0,             0,         ^K^P,      #0#0
+    COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
+    COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0
+    COMMAND       cmMoveBlock,    0,             0,         ^K^V,      #0#0
+    COMMAND       cmHideBlock,    kbAltH,        0,         ^K^H,      #0#0
+    COMMAND       cmMarkWord,     0,             0,         ^K^T,      #0#0
+    COMMAND       cmMarkLine,     0,             0,         ^K^L,      #0#0
+    COMMAND       cmBlockStart,   0,             0,         ^K^B,      #0#0
+    COMMAND       cmBlockEnd,     0,             0,         ^K^K,      #0#0
+    COMMAND       cmIndentBlock,  kbAltRight,    0,         ^K^I,      #0#0
+    COMMAND       cmUnindentBlock,kbAltLeft,     0,         ^K^U,      #0#0
+    COMMAND       cmSortBlock,    kbAltT,        0,         ^K^S,      #0#0
+    COMMAND       cmCalcBlock,    kbAltIns,      0,         ^K^U,      #0#0
+    COMMAND       cmInsertTime,   0,             0,         ^Q^T,      #0#0
+    COMMAND       cmInsertDate,   0,             0,         ^Q^D,      #0#0
+    COMMAND       cmMenu,         0,             0,         ^K^Q,      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'1'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'2'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'3'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'4'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'5'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'6'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'7'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'8'      #0#0
+    COMMAND       cmPlayMacro,    0,             0,         ^J'9'      #0#0
+    COMMAND     cmSelectMacro,    0,             0,         ^J'0'      #0#0
+    COMMAND     cmBracketPair,    kbAltLeft,  kbAltRight,   ^Q'['      ^Q^]
+    COMMAND     cmUpcaseBlock,    0,             0,         ^K^[       #0#0
+    COMMAND    cmLowcaseBlock,    0,             0,         ^K^]       #0#0
+    COMMAND cmCapitalizeBlock,    0,             0,         ^K^\       #0#0
+    COMMAND  cmChangeCaseBlock,   0,             0,         ^K^A       #0#0
+    COMMAND     cmSyncClipOut,    0,             0,         ^Q^O       #0#0
+    COMMAND      cmSyncClipIn,    0,             0,         ^Q^I       #0#0
+    COMMAND    cmWindowsPaste,    0,             0,         ^Q^P       #0#0
+    COMMAND     cmWindowsCopy,    0,             0,         ^Q^C       #0#0
+    COMMAND  cmSwitchDrawMode,    0,             0,         ^Q^M       #0#0
+    COMMAND   cmReverseSearch,    kbAltF7,       0,         ^Q^R       #0#0
 END
+
 DIALOG dlgCpuFlagInfo, 60, 23, 'CPU Flag Info'
     HELPCTX hcCpuFlagInfo
     ParamText 2,  1, 50,  2, 'FPU on chip                       %s',1
@@ -3564,7 +3588,7 @@ DIALOG dlgSetupColumnsDisk, 70, 22, 'Установки колонок - Диск'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 15, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+    Label 2, 15, 'Регистp имён файлов:', ofPostProcess, ofPreProcess
 
     RadioButtons 2, 18, 68, 19, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
@@ -3573,7 +3597,7 @@ DIALOG dlgSetupColumnsDisk, 70, 22, 'Установки колонок - Диск'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 17, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+    Label 2, 17, 'Регистр имён каталогов:', ofPostProcess, ofPreProcess
 
     Button 17, 19, 27, 21, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 29, 19, 39, 21, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -3745,7 +3769,7 @@ DIALOG dlgSetupColumnsFind, 70, 21, 'Установки колонок - Поиск'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 14, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+    Label 2, 14, 'Регистp имён файлов:', ofPostProcess, ofPreProcess
 
     RadioButtons 2, 17, 68, 18, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
@@ -3754,7 +3778,7 @@ DIALOG dlgSetupColumnsFind, 70, 21, 'Установки колонок - Поиск'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 16, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+    Label 2, 16, 'Регистр имён каталогов:', ofPostProcess, ofPreProcess
 
     Button 17, 18, 27, 20, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 29, 18, 39, 20, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -3926,7 +3950,7 @@ DIALOG dlgSetupColumnsTemp, 70, 21, 'Установки колонок - TEMP'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 14, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+    Label 2, 14, 'Регистp имён файлов:', ofPostProcess, ofPreProcess
 
     RadioButtons 2, 17, 68, 18, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
@@ -3935,7 +3959,7 @@ DIALOG dlgSetupColumnsTemp, 70, 21, 'Установки колонок - TEMP'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 16, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+    Label 2, 16, 'Регистр имён каталогов:', ofPostProcess, ofPreProcess
 
     Button 17, 18, 27, 20, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 29, 18, 39, 20, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -4074,7 +4098,7 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 11, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+    Label 2, 11, 'Регистp имён файлов:', ofPostProcess, ofPreProcess
 
     RadioButtons 2, 14, 68, 15, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
@@ -4083,7 +4107,7 @@ DIALOG dlgSetupColumnsArch, 70, 18, 'Установки колонок - Аpхив'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 13, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+    Label 2, 13, 'Регистр имён каталогов:', ofPostProcess, ofPreProcess
 
     Button 17, 15, 27, 17, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 29, 15, 39, 17, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -4211,7 +4235,7 @@ DIALOG dlgSetupColumnsArvd, 70, 17, 'Установки колонок - ARVID'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 10, 'Регистp имен файлов:', ofPostProcess, ofPreProcess
+    Label 2, 10, 'Регистp имён файлов:', ofPostProcess, ofPreProcess
 
     RadioButtons 2, 13, 68, 14, ofPostProcess, ofPreProcess
       ITEM 'КаК еСтЬ'
@@ -4220,7 +4244,7 @@ DIALOG dlgSetupColumnsArvd, 70, 17, 'Установки колонок - ARVID'
       ITEM 'БОЛЬШИЕ'
       ITEM 'Смешано'
     END
-    Label 2, 12, 'Регистр имен каталогов:', ofPostProcess, ofPreProcess
+    Label 2, 12, 'Регистр имён каталогов:', ofPostProcess, ofPreProcess
 
     Button 17, 14, 27, 16, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 29, 14, 39, 16, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -4231,7 +4255,7 @@ END
 ;DataCompBoy
 
 ;DataCompBoy
-DIALOG dlgNameCase, 40, 12, 'Изменение регистpа имен'
+DIALOG dlgNameCase, 40, 12, 'Изменение регистpа имён'
     HelpCtx hcChangeNameCase
     RadioButtons 2, 3, 22, 8, ofPostProcess, ofPreProcess
       ITEM 'LoNg FIle nAMe'

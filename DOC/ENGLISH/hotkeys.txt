@@ -13,3 +13,6 @@
  <Alt-Home> - in Win32 version acts the same as <Alt-Enter>, i.e. calls
               context user menus for file with given file name extension;
  <Alt-F11> - in plugin version - calls Plugin Manager;
+ <Ctrl-F> - open WPS (in OS/2 version) or Explorer (in Win32 version) folder
+ <Ctrl-J> - create program object for current executable on desktop (OS/2
+            version)

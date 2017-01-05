@@ -146,7 +146,11 @@ Implementation
 uses
   {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
   Menus, DnApp, Messages, Dialogs, Gauge, FileCopy, Memory, Startup,
-  {$IFDEF ARVID} Arvid, {$ENDIF} xTime, VideoMan, DNExec;
+  {$IFDEF ARVID} Arvid, {$ENDIF} xTime, VideoMan, DNExec
+  {$IFDEF CHDIRTIMER}
+  , CmdLine, DNIni
+  {$ENDIF}
+  ;
 
 const
   LowMemSize = $4000;  {Local setting}
@@ -164,13 +168,13 @@ begin
  case MsgNo of
   4 : MessageBox(GetString(dlArcMsg4)+''''+{$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Cut(ArcFileName,40))+'''',NIL,mfOkButton or mfError);
   5 : Msg(dlArcMsg5,NIL,mfOkButton or mfInformation);
-  1, 6, 7:
+  7 : Msg(dlArcMsg7,NIL,mfOkButton or mfInformation);
+  1, 6:
    begin
      case MsgNo of
        1: si := dlArcMsg1;
        6: si := dlArcMsg6;
-       7: si := dlArcMsg7;
-     end;
+            end;
      ErrMsg(si);
    end;
  end;
@@ -286,7 +290,7 @@ begin
  TempFile := '';
  Password := '';
  if ExistFile(ArcName) then
-  New(ArcFile,Init(ArcName, stOpenRead, 512))
+  New(ArcFile,Init(ArcName, stOpenRead, ArcBufSize))
  else ArcFile:=nil;
  ArcFileName := ArcName;
  VArcFileName := VArcName;
@@ -298,7 +302,7 @@ begin
  end;
  ArcPos := 0;
  SkipSFX;
- AType := DetectArchive;
+ AType := DetectArchive(Off);
  FreeObject(ArcFile);
 end;
         {-DataCompBoy-}
@@ -329,7 +333,7 @@ begin
  lFindClose(SR);
  if DosError <> 0 then goto Failure;
  ArcDate := SR.SR.Time;
- New(ArcFile,Init(ArcName, stOpenRead, 512));
+ New(ArcFile,Init(ArcName, stOpenRead, ArcBufSize));
  if (ArcFile=nil) or (ArcFile^.Status <> stOK) then begin
    Dispose(ArcFile, Done); ArcFile:=nil;
 Failure:
@@ -340,7 +344,7 @@ Failure:
  end;
  ArcPos := 0;
  SkipSFX;
- AType := DetectArchive;
+ AType := DetectArchive(Off);
  FreeObject(ArcFile);
  if AType = nil then goto Failure;
  S.Read(ForceRescan, 1);
@@ -380,10 +384,17 @@ var PF : PArcFile;
     Cancel: Boolean;
     T: TEventTimer;
     olf: String;
+   {$IFDEF CHDIRTIMER}
+     ev: TEvent;
+   {$ENDIF}
 begin
+{$IFDEF CHDIRTIMER}
+ if ChDirTimer and (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
+   DDTimer := Get100s;
+{$ENDIF}
  CtrlBreakHit := False;
  ReadArchive:=Off;
- New(ArcFile,Init(ArcName, stOpenRead, 512));
+ New(ArcFile,Init(ArcName, stOpenRead, ArcBufSize));
  ArcFileName := ArcName;
  VArcFileName := VArcName;
  if (ArcFile=nil) or (ArcFile^.Status <> stOK) then
@@ -397,7 +408,7 @@ begin
  ArcPos := 0;
  SkipSFX;
  If AType <> nil then Dispose(AType, Done); AType:=nil; {DataCompBoy}
- AType := DetectArchive;
+ AType := DetectArchive(Off);
  if AType = nil then begin FreeObject(ArcFile); Exit; end;
  New(Files, Init);
  if Files = nil then Exit; P := nil;
@@ -466,6 +477,16 @@ begin
  if FileInfo.Last=2 then StdMsg(6);
  ReadArchive:=On;
  if Files^.Files=0 then begin StdMsg(7);ReadArchive:=Off;end;
+{$IFDEF CHDIRTIMER}
+ if ChDirTimer and (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
+  begin
+   DDTimer := Get100s-DDTimer;
+   ev.what := evCommand;
+   ev.command := cmShowTimeInfo;
+   ev.infoptr := nil;
+   Application^.PutEvent(ev);
+  end;
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -1016,6 +1037,8 @@ begin
     else ArchiveName := SquashesName(lfGetShortFileName(ArcName))
 {$ENDIF}
   ;
+  if (Options and 4 <> 0) and (CnvString(AType^.ForceMode) <> '') then
+    S := S + CnvString(AType^.ForceMode) + ' ';
   if (CnvString(AType^.SetPathInside) <> '') and (CurDir <> '') then
     begin
       SCurDir := CurDir;
@@ -1051,7 +1074,7 @@ begin
   ExtrDir := '';
   DT.S := '';
   DT.Psw := Password;
-  DT.W := byte(ExtractWithPathNames);
+  DT.W := UnarchiveOpt and not 2; {JO}
   Message(Application, evCommand, cmPushFirstName, @DT.S);
   if CopyDirName <> '' then DT.S := CopyDirName;
   if DT.S = cTEMP_ then DT.S := '';
@@ -1061,8 +1084,11 @@ begin
   CopyDirName := '';
   if not SkipCopyDialog then
      if ExecResource( dlgExtract, DT) <> cmOK then Exit;
-  if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
-  ExtractWithPathNames:=(DT.W and 1) <> 0;
+{JO}
+  if ((DT.W and 1) <> (UnarchiveOpt and 1)) or
+     ((DT.W and 4) <> (UnarchiveOpt and 4)) then ConfigModified := True;
+  UnarchiveOpt := DT.W and not 2;
+{/JO}
   SkipCopyDialog := Off;
   ExtrDir := DT.S;
   Password := DT.Psw;
@@ -1443,10 +1469,27 @@ function ArcViewer;
  var P: PDrive;
      E: TEvent;
      Xt: String;
+     I: Byte;
+     PathInside: String;
 begin
+{JO: дабы перейти к найденному файлу в архиве из панели поиска}
+  PathInside := AName;
+  if PathInside[2] = ':' then PathInside[2] := ';'; {JO: меняем двоеточие не важно на что }
+    I := PosChar(':', PathInside);
+    if I > 0 then
+      begin
+        PathInside := Copy(AName, I+1, 255);
+        AName := Copy(AName, 1, I-1);
+      end
+     else PathInside :=  '';
+{/JO}
  ArcViewer := False;
  P := New(PArcDrive, Init(AName, VAName, num));
- if Abort then Exit;
+ if Abort then
+   begin ArcViewer := True; Exit; end; { AK155 21-06-2002
+    Если файл не прочитался в качестве архива, то он и любым другим
+    спосбом не прочитается, так что ArcViewer берет ответственность
+    на себя, чтобы во вьювере не продолжать бессмысленные попытки. }
  if P = nil then
    begin
      {$IFDEF ARVID}
@@ -1461,7 +1504,23 @@ begin
  E.Command := cmInsertDrive;
  E.InfoPtr := P;
  Desktop^.HandleEvent(E);
- if E.What <> evNothing then Dispose(P, Done) else ArcViewer := True;
+ if E.What <> evNothing then
+   begin
+     Dispose(P, Done);
+     Exit;
+   end
+    else ArcViewer := True;
+{JO: переходим к найденному файлу в архиве}
+ if PathInside <> '' then
+   begin
+     if Copy(PathInside, Length(PathInside)-1, 2) = '\.' then SetLength(PathInside, Length(PathInside)-2);
+     if (GetPath(PathInside) <> '\') then
+       begin
+         P^.lChDir(Copy(GetPath(PathInside), 2, 255));
+         Message(Application, evCommand, cmPanelReread, nil);
+       end;
+    end;
+{/JO}
 end;
 
 function TArcDrive.GetFullFlags;

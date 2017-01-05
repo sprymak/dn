@@ -211,12 +211,9 @@ const
 
     DefaultArchiver: AWord = arcRAR;
     DefaultArcMode:  AWord = 256*(64+1)+5;
-    ExtractWithPathNames: boolean=true;
+    UnarchiveOpt: Byte = 1; {JO}
     DefaultAddArchiver: AWord = arcUNK;
-(*
-    OldArchiveName: String = '';
-    NewArchiveName: String = '';
-*)
+
 const ArcFile    : PBufStream = nil;
 var   FileInfo   : TFInfo;
       ArcPos     : LongInt;
@@ -227,7 +224,7 @@ const
     PReader: PView = nil;
 
 Function  ArchiveFiles(const S: String; Files: PCollection; MoveMode: Boolean; Owner: Pointer): Boolean;
-procedure MakeArchive(S: String; Files: PCollection; MoveMode: Boolean; Owner: Pointer);
+procedure MakeArchive(S: String; Files: PCollection; MoveMode, AddToExisting: Boolean; Owner: Pointer);
 procedure UnarchiveFiles(const FName: String);
 procedure SkipSFX;
 procedure Check4ArcId;
@@ -235,6 +232,7 @@ Function  _Cardinal(L: LongInt): Real; {piwamoto}
 Function  FromOct(S: String): LongInt; {fixed by piwamoto}
 
  const CDir: String = '';
+       ArcBufSize = 512;
 
 implementation
 
@@ -599,7 +597,7 @@ begin
   if q=arcUNK then exit;
   DefaultAddArchiver := q;
   ArchiveFiles := On;
-  MakeArchive(Copy(S, PosChar(':',S)+1, 255), Files, MoveMode, Owner);
+  MakeArchive(Copy(S, PosChar(':',S)+1, 255), Files, MoveMode, On, Owner);
   DefaultAddArchiver := arcUNK;
 end;
 
@@ -930,7 +928,7 @@ begin
   if D.Mode = 5 then C := C + AddString(Arc^.UltraCompression);
 
   SIntern := '';
-  if (CnvString(Arc^.SetPathInside) <> '') then
+  if AddToExisting and (CnvString(Arc^.SetPathInside) <> '') then
     begin
       if Owner <> nil then Message(PView(Owner)^.Owner, evCommand, cmPushInternalName, @SIntern);
       if SIntern <> '' then
@@ -965,11 +963,12 @@ procedure UnarchiveFiles;
       Nm: String;
       Xt: String;
       Unp: String;
+      FMod:  String;
 label ex;
 begin
    lFSplit(FName, Dr, Nm, Xt);
    ArcFileName := FName;
-   New(ArcFile,Init(FName, stOpenRead, 512));
+   New(ArcFile,Init(FName, stOpenRead, ArcBufSize));
    if (ArcFile=nil) or (ArcFile^.Status <> stOK) then
     begin
       if TempFile <> '' then TempFile := '';
@@ -977,14 +976,14 @@ begin
     end;
    ArcPos := 0;
    SkipSFX;
-   AType := DetectArchive;
+   AType := DetectArchive(Off);
    FreeObject(ArcFile);
    if AType = nil then Exit;
    ExtrDir := '';
    DT.S := '';
    DT.Psw := '';
-{   DT.W := byte(ExtractWithPathNames);}
-   DT.W := 1;
+{  DT.W := UnarchiveOpt and not 2;}
+   DT.W := 1 or (UnarchiveOpt and not 2); {JO}
    Message(Application, evCommand, cmPushFullName, @DT.S);
    if CopyDirName <> '' then DT.S := CopyDirName;
    if DT.S = cTEMP_ then DT.S := '';
@@ -995,9 +994,12 @@ begin
    CopyDirName := '';
    if ExecResource( dlgExtract, DT) <> cmOK then goto Ex;
 {
-   if ((DT.W and 1)<>0)<>ExtractWithPathNames then ConfigModified:=True;
-   ExtractWithPathNames:=(DT.W and 1) <> 0;
+   if (DT.W and 1) <> (UnarchiveOpt and 1) then ConfigModified := True;
 }
+{JO}
+   if (DT.W and 4) <> (UnarchiveOpt and 4) then ConfigModified := True;
+   UnarchiveOpt := DT.W and not 2;
+{/JO}
    if (DT.S = '') or (DT.S = '.') then DT.S := GetPath(FName);
    CreateDirInheritance(DT.S, On);
    ExtrDir := DT.S;
@@ -1013,13 +1015,18 @@ begin
              Unp := Copy(Unp, PosChar(';', Unp)+1, 255)
        {else Unp := Copy(Unp, 1, PosChar(';', Unp)-1);
      end};
+   FMod := CnvString(AType^.ForceMode);
+{JO}
+   if (DT.W and 4 <> 0) and (FMod <> '') then FMod := FMod + ' '
+     else FMod := '';
+{/JO}
 {$IFNDEF OS2}
    if AType^.UseLFN then
 {$ENDIF}
-     S := Unp + ' ' + ExtrChar + ' ' + SquashesName(s + FName)
+     S := Unp + ' ' + ExtrChar + ' ' + FMod + SquashesName(s + FName)
 {$IFNDEF OS2}
     else
-     S := Unp + ' ' + ExtrChar + ' ' + SquashesName(s + lfGetShortFileName(FName))
+     S := Unp + ' ' + ExtrChar + ' ' + FMod + SquashesName(s + lfGetShortFileName(FName))
 {$ENDIF}
      ;
    if Xt = '' then S := S + '.';{piwamoto: extracting from extensionless archives}
@@ -1131,12 +1138,12 @@ begin
              ArcPos := ArcPos + NEhdrRec.ResourceTypeNum*12 + 8;
              ArcFile^.Seek(ArcPos);
              ArcFile^.Read(NEhdrRec.ResourceType, SizeOf(NEhdrRec.ResourceType) + SizeOf(NEhdrRec.ResourceTypeNum));
-            Until NEhdrRec.ResourceType = 0;
+            Until (NEhdrRec.ResourceType = 0) or (ArcFile^.Status <> stOK);
             Repeat {search for non-empty resource}
              ArcPos := ArcPos - 12;
              ArcFile^.Seek(ArcPos);
              ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
-            Until NEhdrRec.ResourceOffset <> 0;
+            Until (NEhdrRec.ResourceOffset <> 0) or (ArcFile^.Status <> stOK);
             ArcPos := LongInt(NEhdrRec.ResourceOffset + NEhdrRec.ResourceLenght) shl NEhdrRec.ResourceAlign;
            end;
         end;

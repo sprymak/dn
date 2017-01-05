@@ -220,6 +220,10 @@ begin
   Replace('##',#3, S);
   Replace('$$',#4, S);
 
+{$IFDEF OS2}
+  Replace('!', '#', S); Replace('$', '&', S);
+{$ENDIF}
+
   if (Pos('!\',S)>0) or (Pos('!:',S)>0) or (Pos('!/',S)>0) then
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
@@ -500,33 +504,12 @@ begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
     ts:=UserParams^.Active^.Name;
-{$IFNDEF OS2}
     ts[9]:='.';
-{$ENDIF}
     if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-{$IFNDEF OS2}
     tz:=fDelRight(Copy(ts, 9, 4));
-{$ELSE}
-    tz:=fDelRight(Copy(ts, PosLastDot(ts), (Length(ts)-PosLastDot(ts)+1)));
-{$ENDIF}
-    if tz='.' then tz:='';
-{AK155}
-{$IFDEF OS2}
-  if IsSeparatingChars(ts) or (pos( #2, ts)<>0) or
-     IsSeparatingChars(tz) or (pos( #2, tz)<>0) then
-      begin
-        ts := '"' + ts + '"';
-        if tz <> '' then tz := tz + '"';
-      end;
-{$ENDIF}
-    Replace('.!',tz, S); {JO: причём здесь OS/2 ?! под виндами без этого ничего не работает}
-{/AK155}
-{$IFNDEF OS2}
+    if tz='.' then tz:=''; Replace('.!',tz, S);
     Replace('!', fDelRight(Copy(ts, 1, 8)), S);
-{$ELSE}
-    Replace('!', fDelRight(Copy(ts, 1,(PosLastDot(ts)-1))), S);
-{$ENDIF}
    end;
 
   if (PosChar('$', S)>0) then
@@ -534,23 +517,12 @@ begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
     ts:=UserParams^.Passive^.Name;
-{$IFNDEF OS2}
     ts[9]:='.';
-{$ENDIF}
     if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-{$IFNDEF OS2}
     tz:=fDelRight(Copy(ts, 9, 4));
-{$ELSE}
-    tz:=fDelRight(Copy(ts, PosLastDot(ts), (Length(ts)-PosLastDot(ts)+1)));
-{$ENDIF}
-    if tz='.' then tz:='';
-    Replace('.$',tz, S);
-{$IFNDEF OS2}
+    if tz='.' then tz:=''; Replace('.$',tz, S);
     Replace('$', fDelRight(Copy(ts, 1, 8)), S);
-{$ELSE}
-    Replace('$', fDelRight(Copy(ts, 1,(PosLastDot(ts)-1))), S);
-{$ENDIF}
    end;
 
   if (PosChar('#', S)>0) then
@@ -613,7 +585,9 @@ function ExecUserMenu;
      DefStr: String;
      RF2E: Boolean;
      Event: TEvent;
-
+    {$IFDEF OS2}
+     WriteEcho: Boolean;
+    {$ENDIF}
  Label 1, 2;
 
  function CheckFKeys(S: String): Word;
@@ -775,7 +749,11 @@ begin
          lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD');
          {$ENDIF}
          lRewriteText(F1);
+         {$IFNDEF OS2}
          Writeln(F1.T, '@Echo off');
+         {$ELSE}
+         WriteEcho := On;
+         {$ENDIF}
          I := I - 1001;
          if F<>nil then
          begin
@@ -803,6 +781,11 @@ begin
                      Continue;
                     end;
               EnterParms := EnterParms or (Pos('%3', S) > 0);
+             {$IFDEF OS2}
+             {JO: под осью если в меню строка на REXX'е или Perl'е, то не нужно добавлять @Echo off}
+              if WriteEcho and (Copy(S, 1, 2) <> '/*') and (Copy(S, 1, 2) <> '#!') then Writeln(F1.T, '@Echo off');
+              WriteEcho := Off;
+             {$ENDIF}
               WriteLn(F1.T, MakeString(S, @UserParams, off, nil));
               RunFrom2E := UI^.RunFrom2E;
             end;
@@ -1013,35 +996,39 @@ begin
       begin
         Sh := ShiftState and 3 <> 0;
         if ShiftState and 4 <> 0 then Stp := 8 else Stp := 1;
-        case Event.KeyCode of
-          kbPgUp, kbCtrlPgUp:  if Sh then R.A.Y := 0 else R.Move(0, -R.A.Y);
-          kbHome, kbCtrlHome:  if Sh then R.A.X := 0 else R.Move(-R.A.X, 0);
-          kbEnd,  kbCtrlEnd:   if Sh then R.B.X := Size.X else R.Move(Size.X, 0);
-          kbPgDn, kbCtrlPgDn:  if Sh then R.B.Y := Size.Y else R.Move(0, Size.Y);
-          kbRight,kbCtrlRight: if Sh then begin Inc(R.B.X,Stp);R.B.X := Min(R.B.X, Size.X) end else R.Move(Stp,0);
-          kbLeft, kbCtrlLeft:  if Sh then
+        case Event.KeyCode and $FFFF of {Cat}
+          kbPgUp and $FFFF,  kbCtrlPgUp and $FFFF:  if Sh then R.A.Y := 0 else R.Move(0, -R.A.Y);
+          kbHome and $FFFF,  kbCtrlHome and $FFFF:  if Sh then R.A.X := 0 else R.Move(-R.A.X, 0);
+          kbEnd and $FFFF,   kbCtrlEnd and $FFFF:   if Sh then R.B.X := Size.X else R.Move(Size.X, 0);
+          kbPgDn and $FFFF,  kbCtrlPgDn and $FFFF:  if Sh then R.B.Y := Size.Y else R.Move(0, Size.Y);
+          kbRight and $FFFF, kbCtrlRight and $FFFF: if Sh then begin Inc(R.B.X,Stp);R.B.X := Min(R.B.X, Size.X) end else R.Move(Stp,0);
+          kbLeft and $FFFF,  kbCtrlLeft and $FFFF:  if Sh then
                                begin
                                  if R.B.X > R.A.X+Stp then Dec(R.B.X, Stp)
                                                       else R.B.X := R.A.X+1;
                                end else R.Move(-Stp,0);
-          kbEnter: begin
+          kbEnter and $FFFF:
+                   begin
                      ModalEnd := On;
                      MakeClip;
                    end;
-          kbESC: begin
+          kbESC and $FFFF:
+                   begin
                      ModalEnd := On;
                    end;
           else
           begin
             if Stp>1 then Stp := Stp div 2;
-            case Event.KeyCode of
-              kbUp,   kbCtrlUp:    if Sh then
+            case Event.KeyCode and $FFFF of {Cat}
+              kbUp and $FFFF, kbCtrlUp and $FFFF:
+                                 if Sh then
                                    begin
                                      if R.B.Y > R.A.Y+Stp then Dec(R.B.Y,Stp)
                                                           else R.B.Y := R.A.Y+1;
                                    end else R.Move(0, -Stp);
-              kbDown, kbCtrlDown : if Sh then begin Inc(R.B.Y,Stp);R.B.Y := Min(R.B.Y, Size.Y) end else R.Move(0,Stp);
-              else B := Off;
+              kbDown and $FFFF, kbCtrlDown and $FFFF:
+                if Sh then begin Inc(R.B.Y,Stp);R.B.Y := Min(R.B.Y, Size.Y) end else R.Move(0,Stp);
+                else B := Off;
             end;
           end;
         end;
@@ -1097,7 +1084,7 @@ begin
   Exit;
 1:
   I := DNNumber;
-  if OS2 = #0 then FreeStr := 'BAT'
+  if OS2 = #0 then FreeStr := {$IFNDEF OS2} 'BAT' {$ELSE} 'CMD' {$ENDIF}
     else
     begin
        I := 0;

@@ -485,29 +485,31 @@ EndLFN:
                        end;
                  else
                   case Event.KeyCode of
-                   kbAltSlash: begin
-                                 if ShiftState and 3 <> 0 then Dec(LineType)
-                                                          else Inc(LineType);
-                                if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
-                                   if ShiftState and 3 <> 0 then Dec(LineType)
-                                                            else Inc(LineType);
+                   kbAltSlash,
+                   kbAltShiftSlash:
+                               begin
+                                 if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
+                                                                    else Inc(LineType);
                                  if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
-                                   if ShiftState and 3 <> 0 then Dec(LineType)
-                                                              else Inc(LineType);
+                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
+                                                                      else Inc(LineType);
+                                 if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
+                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
+                                                                      else Inc(LineType);
 
 (*                              if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
-                                   if ShiftState and 3 <> 0 then Dec(LineType)
-                                                            else Inc(LineType);
+                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
+                                                                      else Inc(LineType);
                                  if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
-                                   if ShiftState and 3 <> 0 then Dec(LineType)
-                                                              else Inc(LineType);
+                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
+                                                                      else Inc(LineType);
 
                                 if not (OS2exec or (CmdLineWINPrefix = '')) and (LineType = ltOS2Window) then
-                                   if ShiftState and 3 <> 0 then Dec(LineType)
-                                                            else Inc(LineType);
+                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
+                                                                      else Inc(LineType);
                                  if not (OS2exec or (CmdLineWINPrefix = '')) and (LineType = ltOS2Window) then
-                                   if ShiftState and 3 <> 0 then Dec(LineType)
-                                                              else Inc(LineType); *)
+                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
+                                                                      else Inc(LineType); *)
 
                                  if LineType > ltTimer then LineType := ltNormal;
                                  if LineType < ltNormal then LineType := ltTimer;
@@ -539,7 +541,7 @@ EndLFN:
                             end;
                            end;
                    kbBackUp: StrCleared:=false;
-                   kbUp, kbCtrlE: begin
+        kbUp, kbShiftUp, kbCtrlE: begin
                                   if (Event.KeyCode=kbUp) and (ShiftState and kbCtrlShift<>0) then exit;
                                   if StrModified then
                                    begin
@@ -552,8 +554,8 @@ EndLFN:
                                   Changed := True; CurX := Length(Str);
                                   CE2;
                                 end;
-                   kbDown, kbCtrlX: begin
-                                  if (Event.KeyCode=kbDown) and (ShiftState and kbCtrlShift<>0) then exit;
+      kbDown, kbShiftDown, kbCtrlX: begin
+                                   if (Event.KeyCode=kbDown) and (ShiftState and kbCtrlShift<>0) then exit;
                                     if StrModified then
                                      begin
                                        AddCommand(Str);
@@ -566,27 +568,33 @@ EndLFN:
                                      Changed := True; CurX := Length(Str);
                                      CE2;
                                   end;
-                   kbLeft, kbCtrlS: begin if CurX > 0 then Dec(CurX); CE2 end;
-                   kbRight, kbCtrlD: begin if CurX < Length(Str) then Inc(CurX); CE2 end;
-                   kbCtrlIns: if Str<>'' then begin
-                               Message(Application, evCommand, cmPutInClipboard, @Str);
-                               CE;
-                              end;
-                   kbShiftIns: if ShiftState and 4 = 0 then begin
+                   kbLeft, kbCtrlS, kbShiftLeft:
+                     begin if CurX > 0 then Dec(CurX); CE2 end;
+                   kbRight, kbCtrlD, kbShiftRight:
+                     begin if CurX < Length(Str) then Inc(CurX); CE2 end;
+                   kbCtrlIns, kbCtrlShiftIns:
+                     if Str<>'' then
+                       begin
+                         Message(Application, evCommand, cmPutInClipboard, @Str);
+                         CE;
+                       end;
+                   kbShiftIns: {if ShiftState and 4 = 0 then} {Cat} begin
                                  S := '';
                                  Message(Application, evCommand, cmGetFromClipboard, @S);
                                  if S <> '' then
                                     Message(@Self, evCommand, cmInsertName, @S);
                                  CE2;
-                               end else
+                               end {else
                                begin
                                  Message(Application, evCommand, cmPutInClipboard, @Str);
                                  CE;
-                               end;
+                               end};
                    kbIns: begin Overwrite := not Overwrite; CE2 end;
                    kbDel: begin Delete(Str, CurX + 1, 1); CE2 end;
-                   kbEnd, kbCtrlEnd: begin CurX := Length(Str); CE2 end;
-                   kbHome, kbCtrlHome: begin CurX := 0; CE2 end;
+                   kbEnd, kbShiftEnd, kbCtrlEnd:
+                     begin CurX := Length(Str); CE2 end;
+                   kbHome, kbShiftHome, kbCtrlHome:
+                     begin CurX := 0; CE2 end;
                    kbCtrlLeft: begin
                                 if not (Str[CurX] in Separators) then
                                    While (CurX > 0) and not (Str[CurX] in Separators) do Dec(CurX)

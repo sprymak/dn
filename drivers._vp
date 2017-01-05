@@ -328,24 +328,28 @@ procedure GetKeyEvent(var Event: TEvent);
 var
   I: Integer;
   SysKeyEvent: TSysKeyEvent;
-// Keyboard scan codes
-const
-  scSpace    = $39;  scIns      = $52;  scDel      = $53;
-  scBack     = $0E;  scUp       = $48;  scDown     = $50;
-  scLeft     = $4B;  scRight    = $4D;  scHome     = $47;
-  scEnd      = $4F;  scPgUp     = $49;  scPgDn     = $51;
-  scCtrlIns  = $92;  scCtrlDel  = $93;  scCtrlUp   = $8D;
-  scCtrlDown = $91;  kbShift    = kbLeftShift + kbRightShift;
-  scZ        = $2C;  scSlash    = $35;  scAltF5    = $6C;
-  scAltF6    = $6D;  scAltIns   = $A2;  scGrPlus   = $4E;
-  scGrMinus  = $4A;  scAltGrEnter = $A6; scAltHome = $97;
 
-type
-  KeyTransEntry = record
-    Scan:  Byte;
-    Shift: Byte;
-    Code:  SmallWord;
+  {Cat}
+  {$IFDEF KEYLOG}
+  F: Text;
+
+  {&Delphi+}
+  function Hex(L: LongInt): String;
+  const
+    H: array[0..15] of Char = '0123456789ABCDEF';
+  var
+    I: Integer;
+  begin
+    SetLength(Result, 6);
+    for I := 6 downto 1 do
+      begin
+        Result[I] := H[L and 15];
+        L := L shr 4;
+      end;
   end;
+  {&Delphi-}
+  {$ENDIF}
+  {/Cat}
 
 {AK155 Поскольку под OS/2 я не умею ловить событие отпускания
 клавиши, то проходится распознавать это через контроль времени
@@ -359,101 +363,67 @@ const
   PrevKey: SmallWord = 0;
 {/AK155}
 
-const
-  NumOfKeyTransEntries = 26 {$IFDEF Win32} + 11 {$ENDIF};
-  KeyTranslateTable : array [1..NumOfKeyTransEntries] of KeyTransEntry =
-    (( Scan: scSpace   ; Shift: $08 ; Code: kbAltSpace    ), // Alt-Space
-     ( Scan: scIns     ; Shift: $04 ; Code: kbCtrlIns     ), // Ctrl-Ins
-     ( Scan: scCtrlIns ; Shift: $04 ; Code: kbCtrlIns     ), // Ctrl-Ins
-     ( Scan: scIns     ; Shift: $01 ; Code: kbShiftIns    ), // Shift-Ins
-     ( Scan: scIns     ; Shift: $02 ; Code: kbShiftIns    ), // Shift-Ins
-     ( Scan: scIns     ; Shift: $03 ; Code: kbShiftIns    ), // Shift-Ins
-     ( Scan: scDel     ; Shift: $04 ; Code: kbCtrlDel     ), // Ctrl-Del
-     ( Scan: scCtrlDel ; Shift: $04 ; Code: kbCtrlDel     ), // Ctrl-Del
-     ( Scan: scDel     ; Shift: $01 ; Code: kbShiftDel    ), // Shift-Del
-     ( Scan: scDel     ; Shift: $02 ; Code: kbShiftDel    ), // Shift-Del
-     ( Scan: scDel     ; Shift: $03 ; Code: kbShiftDel    ), // Shift-Del
-     ( Scan: scBack    ; Shift: $09 ; Code: kbAltShiftBack), // Alt-Shift-Backspace
-     ( Scan: scBack    ; Shift: $0A ; Code: kbAltShiftBack), // Alt-Shift-Backspace
-     ( Scan: scBack    ; Shift: $0B ; Code: kbAltShiftBack), // Alt-Shift-Backspace
-     ( Scan: scBack    ; Shift: $08 ; Code: kbAltBack     ), // Alt-Backspace
-     ( Scan: scZ       ; Shift: $0C ; Code: kbCtrlAltZ    ), // Ctrl-Alt-Z
-     ( Scan: scSlash   ; Shift: $08 ; Code: kbAltSlash    ), // Alt-/
-     ( Scan: scAltF5   ; Shift: $0C ; Code: kbCtrlAltF5   ), // Ctrl-Alt-F5
-     ( Scan: scAltF6   ; Shift: $0C ; Code: kbCtrlAltF6   ), // Ctrl-Alt-F6
-{$IFDEF Win32}
-     ( Scan: $02       ; Shift: $04 ; Code: kbCtrl1       ),  {под OS/2 не работает для цифр кроме 2 и 6}
-     ( Scan: $03       ; Shift: $04 ; Code: kbCtrl2       ),
-     ( Scan: $04       ; Shift: $04 ; Code: kbCtrl3       ),
-     ( Scan: $05       ; Shift: $04 ; Code: kbCtrl4       ),
-     ( Scan: $06       ; Shift: $04 ; Code: kbCtrl5       ),
-     ( Scan: $07       ; Shift: $04 ; Code: kbCtrl6       ),
-     ( Scan: $08       ; Shift: $04 ; Code: kbCtrl7       ),
-     ( Scan: $09       ; Shift: $04 ; Code: kbCtrl8       ),
-     ( Scan: $0A       ; Shift: $04 ; Code: kbCtrl9       ),
-     ( Scan: $0B       ; Shift: $04 ; Code: kbCtrl0       ),
-     ( Scan: scAltHome ; Shift: $08 ; Code: kbAltHome ),     // Alt-Home
-{$ENDIF}
-     ( Scan: scAltIns  ; Shift: $09 ; Code: kbAltShiftIns ), // Alt-Shift-Ins
-     ( Scan: scAltIns  ; Shift: $0A ; Code: kbAltShiftIns ), // Alt-Shift-Ins
-     ( Scan: scGrPlus  ; Shift: $01 ; Code: kbShiftGrayPlus  ), // Shift-Gray "+"
-     ( Scan: scGrPlus  ; Shift: $02 ; Code: kbShiftGrayPlus  ), // Shift-Gray "+"
-     ( Scan: scGrMinus ; Shift: $01 ; Code: kbShiftGrayMinus ), // Shift-Gray "-"
-     ( Scan: scGrMinus ; Shift: $02 ; Code: kbShiftGrayMinus ), // Shift-Gray "-"        {/JO}
-     ( Scan: scAltGrEnter ; Shift: $08 ; Code: kbAltEnter )  // Alt-GrayEnter            {/JO}
-    );
 label
   WriteKey; {AK155}
 begin
   with Event do
-    if not SysTVGetKeyEvent(SysKeyEvent) then begin
-      ShiftState := SysTVGetShiftState;
-      ShiftState2 := SysTVGetShiftState2; {JO}
+    if not SysTVGetKeyEvent(SysKeyEvent) then
+      begin
+        ShiftState := SysTVGetShiftState;
+        ShiftState2 := SysTVGetShiftState2; {JO}
 {JO}    if ((ShiftState and kbAltShift) = 0) and ((OldShiftState and kbAltShift) <> 0)
-          and DoubleAltUnlock then
+        and DoubleAltUnlock then
           begin
             What := evKeyDown;
             KeyCode := kbDoubleAlt;
           end
-        else {AK155} if (PrevKey = kbBack) and
-                        (GetTimemSec-PrevKeyTime > 500) then
-          begin
-            PrevKey := 0;
-            SysKeyEvent.skeKeyCode := kbBackUp;
-            goto WriteKey;
-          end {/AK155}
-        else
-          begin
-            What := evNothing;
-            if ((ShiftState and kbAltShift) = 0) then DoubleAltUnlock := True;
-          end;
-{/JO} OldShiftState := ShiftState
-    end else
+        else {AK155}
+          if (PrevKey = kbBack) and (GetTimemSec-PrevKeyTime > 500) then
+            begin
+              PrevKey := 0;
+              SysKeyEvent.skeKeyCode := kbBackUp;
+              goto WriteKey;
+            end {/AK155}
+          else
+            begin
+              What := evNothing;
+              if ((ShiftState and kbAltShift) = 0) then
+                DoubleAltUnlock := True;
+            end;
+{/JO}   OldShiftState := ShiftState
+      end
+    else
       begin
 WriteKey:
         OldShiftState := 0; {JO}
         What       := evKeyDown;
-        KeyCode    := SysKeyEvent.skeKeyCode;
+        KeyCode    := SysKeyEvent.skeKeyCode or ((SysKeyEvent.skeShiftState and $0F) shl 16); {Cat}
         ShiftState := SysKeyEvent.skeShiftState;
+        {Cat}
+        {$IFDEF KEYLOG}
+        Assign(F, 'c:\dnkeys.log');
+        Append(F);
+        if IOResult <> 0 then
+          Rewrite(F);
+        Writeln(F, CharCode, Hex(KeyCode):8);
+        Close(F);
+        if IOResult <> 0 then
+          ;
+        {$ENDIF}
+        if (KeyCode and $030000) <> 0 then
+          KeyCode := KeyCode or $030000;
+        {/Cat}
         if ((ShiftState and kbAltShift) <> 0) then DoubleAltUnlock := False; {JO}
-        for I := Low(KeyTranslateTable) to High(KeyTranslateTable) do
-          with KeyTranslateTable[I] do
-          begin
-            if (Scan = ScanCode) and ((Shift and ShiftState) = Shift) then
-            begin
-              KeyCode := Code;
-              Break;
-            end;
-          end;
         if (CharCode = #$E0) and (ScanCode in
-          [scUp,scDown,scLeft,scRight,scIns,scDel,scHome,scEnd,scPgUp,scPgDn,
-          Hi(kbCtrlHome), Hi(kbCtrlEnd)  , Hi(kbCtrlPgUp), Hi(kbCtrlPgDn),
-          Hi(kbCtrlLeft), Hi(kbCtrlRight),  scCtrlUp,       scCtrlDown]) then
-            CharCode := #0;      // Grey Keys
-        if KeyCode = $E00D then  // Grey Enter
+          [Hi(kbLeft), Hi(kbRight), Hi(kbUp), Hi(kbDown),
+           Hi(kbIns), Hi(kbDel), Hi(kbHome), Hi(kbEnd), Hi(kbPgUp), Hi(kbPgDn),
+           Hi(kbCtrlLeft), Hi(kbCtrlRight), Hi(kbCtrlUp), Hi(kbCtrlDown),
+           Hi(kbCtrlIns), Hi(kbCtrlDel), Hi(kbCtrlHome), Hi(kbCtrlEnd), Hi(kbCtrlPgUp), Hi(kbCtrlPgDn)]) then
+             CharCode := #0;      // Gray Keys
+        if KeyCode = $E00D then   // Gray Enter
           KeyCode := kbEnter;
-      PrevKey := KeyCode;
-      PrevKeyTime := GetTimemSec;
+        PrevKey := KeyCode;
+        PrevKeyTime := GetTimemSec;
       end;
 end;
 

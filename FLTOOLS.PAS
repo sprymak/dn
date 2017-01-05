@@ -456,7 +456,7 @@ begin
 {$ELSE}
    SN := PF^.Name;
 {$ENDIF}
-   if ((PF^.Attr and Directory = 0) or not Select) and
+   if ((PF^.Attr and Directory = 0){ or not Select}) and
       (((InFilter(UpStrg(SN), S) xor XORs)
        {$IFNDEF OS2} and ((P^.Drive^.Flags and psShowLongName) <> 0) {$ENDIF})
 {$IFNDEF OS2}
@@ -464,7 +464,16 @@ begin
 {$ENDIF}
       )
       then PF^.Selected := Select;
-
+{JO}
+   if (PF^.Attr and Directory <> 0) and
+      (((InDirFilter(UpStrg(SN), S) xor XORs)
+       {$IFNDEF OS2} and ((P^.Drive^.Flags and psShowLongName) <> 0) {$ENDIF})
+{$IFNDEF OS2}
+      or ((InDirFilter(MakeFileName(PF^.Name), S) xor XORs) and ((P^.Drive^.Flags and psShowLongName) = 0))
+{$ENDIF}
+      )
+      then PF^.Selected := Select;
+{/JO}
 (* {работает, но тормозит}
    if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) then
      begin
@@ -1244,12 +1253,8 @@ begin
   else
     S := '';
 {Cat}
-(*
-  FSplit(S, Dir, S, Ext); {AK155: не уверен, что это нужно }
-  MakeArchive(S, PC, Off, P);
-*)
   FSplit(S, Dir, Name, Ext); {AK155: не уверен, что это нужно }
-  MakeArchive(Name, PC, Off, P);
+  MakeArchive(Name, PC, Off, Off, P);
 {/Cat}
   PC^.DeleteAll;
 end;
@@ -1517,6 +1522,9 @@ begin
 {$ELSE}
   if (PF^.Name = '..') or
 {$ENDIF}
+{JO: для найденных в архиве файлов в панели поиска}
+   PathFoundInArc(PF^.Owner^) or
+{/JO}
      not (P^.Drive^.DriveType in [dtDisk, dtTemp, dtFind, dtList]) then Exit;
  {$IFNDEF OS2}
   S:= GetLFN(PF^.LFN);
@@ -1811,6 +1819,9 @@ begin
 {$ELSE}
   if (PF^.Name = '..') or
 {$ENDIF}
+{JO: для найденных в архиве файлов в панели поиска}
+   PathFoundInArc(PF^.Owner^) or
+{/JO}
      not (P^.Drive^.DriveType in [dtDisk, dtTemp, dtFind, dtList]) then Exit;
 {$IFNDEF OS2}
   S:= GetLFN(PF^.LFN);
@@ -1995,7 +2006,11 @@ procedure CM_LongCopy;
 begin
  if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
  PF := P^.Files^.At(P^.ScrollBar^.Value);
- if PF^.Attr and Directory <> 0 then Exit;
+ if (PF^.Attr and Directory <> 0)
+{JO: для найденных в архиве файлов в панели поиска}
+   or PathFoundInArc(PF^.Owner^)
+{/JO}
+       then Exit;
 {$IFNDEF OS2}
  S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
 {$ELSE}
@@ -2091,6 +2106,9 @@ procedure CM_ChangeCase(AFP: Pointer);
   end;
   DoChangeCase := Abort;
   if Abort then exit;
+{JO: для найденных в архиве файлов в панели поиска}
+  if PathFoundInArc(PF^.Owner^) then Exit;
+{/JO}
   {$IFNDEF OS2}
   S := GetLFN(PF^.LFN);
   NM := MakeFileName(PF^.Name);
@@ -2416,7 +2434,11 @@ var  P: PFilePanelRoot absolute AFP;
 begin
  if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
  PF := P^.Files^.At(CurPos);
- If PF^.Name = '..' then Exit;
+ If (PF^.Name = '..')
+{JO: для найденных в архиве файлов в панели поиска}
+   or PathFoundInArc(PF^.Owner^)
+{/JO}
+     then Exit;
  S := MakeNormName(PF^.Owner^, PF^.Name);
  SetEALongname(S);
 end;

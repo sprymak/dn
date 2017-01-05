@@ -448,6 +448,9 @@ begin
     for I := 1 to Files^.Count do
      begin
       PF := Files^.At(I-1);
+{JO: файлы, найденные в архивах нельзя удалить из панели поиска}
+      if PathFoundInArc(PF^.Owner^) then Continue;
+{/JO}
 {$IFNDEF OS2}
       S := GetLFN(PF^.LFN);
 {$ELSE}
