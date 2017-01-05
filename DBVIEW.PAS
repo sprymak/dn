@@ -548,6 +548,7 @@ procedure TDBViewer.HandleEvent;
 (с учетом шага) поля.  }
  procedure ContSearch;
   var I: LongInt; { сквозной номер текущего поля }
+      j: longint;
       PFR: PFieldRec;
       S, SS: String;
       P: PByteArray;
@@ -620,6 +621,8 @@ procedure TDBViewer.HandleEvent;
       end;
     PFR := DBFile^.GetFieldRec(CurField);
     GetFrField(PFR, P^, S);
+
+    XlatBuf(S[1], Length(S), XLat);
     if SearchRec.Opt and 1 = 0 then UpStr(S);
     if System.Pos(SS, S) > 0 then
       begin
@@ -880,7 +883,6 @@ begin
          'D':
             S := DateToHuman(S);
         end {case};
-        {AK155: тут надо бы вставить перекодировку}
         XlatBuf(S[1], Length(S), XLat);
         MoveStr(B[I], S, C);
         Inc(I, PFR^.Ln + 1);

@@ -52,7 +52,7 @@ unit FViewer;
 interface
 
 uses Objects, Views, Dos, Drivers, HideView, Commands, DNHelp,
-     {$IFDEF VIRTUALPASCAL} SysUtils, {$ENDIF} {AK155}
+     {$IFDEF VIRTUALPASCAL} {SysUtils,} {$ENDIF} {AK155}
      advance,
      advance1, advance2, advance3, highlite, U_KeyMap, microed, xTime,
      collect, macro, Advance6;
@@ -1004,6 +1004,7 @@ begin
            DisableCommands([cmUnwrap]);
            HexPos:=(Size.X - 12) div 4; if HexPos <= 0 then HexPos:=1;
            XDelta:=0;
+           Src:=0;
            if not ScrollEOF then {AK155}
            begin
              while (LongInt(Cur.Y * HexPos) + BufPos + FilePos >= FileSize) do
@@ -1218,20 +1219,11 @@ begin
                    S[W-XDelta] := ' ';
                until W mod TS = 0
              else
-             begin
-               Inc(W);
-               if W > XDelta then
                begin
-                {AK155: перенесен сюда и упрощен код фильтра DataCompBoy }
-                 case Filter of
-                  1:
-                    if not (Byte(C2) in [32..127]) then C2:=#250;
-                  2:
-                    if not (Byte(C2) in [32..255]) then C2:=#250;
-                 end {case};
-                 S[W-XDelta] := C2;
+                 Inc(W);
+                 if W > XDelta then
+                   S[W-XDelta] := C2;
                end;
-             end;
              if W-XDelta > Size.X then
                break;
            end;
@@ -1239,6 +1231,17 @@ begin
            begin
              SetLength(S, W-XDelta);
              XLatBuf(S[1], Length(S), XLat);
+{Cat: фильтр перенесён сюда - он должен быть использован
+      уже после применения таблицы перекодировки}
+             case Filter of
+               1:
+                 for W := 1 to Length(S) do
+                   if not (Byte(S[W]) in [32..127]) then S[W]:=#250;
+               2:
+                 for W := 1 to Length(S) do
+                   if not (Byte(S[W]) in [32..255]) then S[W]:=#250;
+             end {case};
+{/Cat}
              MoveStr(B, S, C(*, Filter, TS*));
              if Hilite and not QuickView  then
              begin
@@ -1593,6 +1596,7 @@ procedure TFileViewer.SeekEOF;
   var i, j: Integer;
       OldFileSize: longint;
       OldStart, OldLen1: longint;
+      Temp: LongInt;
 begin
  if Lines[Cur.Y].Pos < 0 then Exit;
  if ViewMode = vmText then
@@ -1616,14 +1620,14 @@ begin
        exit;
 
      OldFileSize := FileSize;
-     StreamSize := FileSeek(Handle, 0, 2);
+     SysFileSeek(Handle, 0, 2, StreamSize);
      FileSize := StreamSize;
      if FileSize < OldFileSize then
        begin { Файл сжался }
        if Position > FileSize then
          Position := StreamSize;
        end;
-     FileSeek(Handle, Position, 0);
+     SysFileSeek(Handle, Position, 0, Temp);
      end;
 
    if (OldFileSize < FileSize) and (BufSize < FileSize) then
@@ -1727,7 +1731,7 @@ procedure TFileViewer.HandleEvent;
      then SearchX := FilePos+BufPos;
   NullXLAT(BXL);
   for i:=255 downto 1 do
-   if XLat[Char(i)]<>Char(i) then BXL[XLat[Char(i)]]:=Char(i);
+    BXL[XLat[Char(i)]]:=Char(i);
   SearchX := SearchFileStr(Fl, BXL,
                            SearchString.What, SearchX,
                            SearchString.Opts and 1 <> 0, Off,

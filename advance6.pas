@@ -158,8 +158,9 @@ begin
   if IOResult <> 0 then
     ;
   Writeln('Resource access error');
+  Halt(219);
 {/Cat}
-  RunError(219);
+ {RunError(219);}
 end;
 
 function HotKey(const S: String): Char;

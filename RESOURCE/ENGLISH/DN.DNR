@@ -805,8 +805,8 @@ STATUSLINE
 ;$ELSE
      StatusItem '+Logical ~n~ames', kbCtrlN, cmToggleLongNames,
 ;$ENDIF
-;$IFDEF OS2
      StatusItem '+~W~PS', kbCtrlW, cmOpenWPSWindow,
+;$IFDEF OS2
      StatusItem '+Ob~j~ect', kbCtrlJ, cmCreateWPSObject,
 ;$ENDIF
 ;{-$VIV}

@@ -119,8 +119,8 @@ begin
     R.A.X:=R.B.X-1;
   end else begin
    if FastBookmark
-    then Inc(R.A.X,49)
-    else Inc(R.A.X,31);
+    then Inc(R.A.X,52)
+    else Inc(R.A.X,34);
    Dec(R.B.X,2);
    R.A.Y:=R.B.Y-1;
   end;

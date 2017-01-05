@@ -333,15 +333,14 @@ type
 {$IFDEF OS2}
 const
   PMWindowed: Boolean = False;
-    {Устанавливается в IsBGWin }
+    {Устанавливается в dn2pmapi}
 {$ENDIF}
 
 implementation
 
 uses Dos, DNHelp, advance, advance1, advance2, VideoMan,
      ExtraMem, UserMenu, MicroEd, FViewer, DblWnd, CmdLine
-  {$IFDEF OS2} ,IsBGWin {$ENDIF} {AK155}
-     , xdblwnd, flTools {AK155: для восстановления курсора комстроки }
+  {$IFDEF OS2} ,dn2pmapi {$ENDIF} {AK155}
 {$IFDEF SS},Idlers{$ENDIF}
 {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}, DNExec
      ;
@@ -862,9 +861,7 @@ var
     P: Procedure;
     R: TRect;
     A1, A2, CursorY: {$IFNDEF VIRTUALPASCAL}Word{$ELSE}SmallWord{$ENDIF};
-    CursorStartScanLine, CursorEndScanLine: integer; //ak155
     y1, y2: integer;
-    CursorVisible: boolean;
 label 11;
 begin
 11:
@@ -885,9 +882,9 @@ begin
     if Event.What = evNothing then
     begin
 {$IFDEF OS2}
-   {AK155 В неактивном состоянии не надо реагировать на
+   {AK155 В неактивном оконном состоянии не надо реагировать на
           Shift, Alt, Ctrl}
-    if (not IsBGWindow) then
+    if (not DN_IsBGWindow) then
 {$ENDIF}
       GetKeyEvent(Event);
       if Event.What = evNothing then
@@ -941,7 +938,6 @@ begin
     IdleWas := False;
     {$IFDEF VIRTUALPASCAL}
      SysGetCurPos(A2, CursorY); {AK155}
-     SysTVGetCurType(CursorStartScanLine, CursorEndScanLine, CursorVisible);
     {$ELSE}
     asm
      mov ah,3
@@ -950,21 +946,10 @@ begin
      mov A1, dx
      mov A2, cx
     end;
-    CursorVisible := Hi(A2) <> $20;
     CursorY := Hi(A1);
     {$ENDIF}
-    if (not CursorVisible or (CursorY = Size.Y - 1 - Byte( InterfaceData.Options and ouiHideStatus = 0 )))
-       then
-         begin
-         if not CursorVisible then
-           begin
-           SysTVSetCurType(0, -100, true);
-           SysTVGetCurType(y1, y2, CursorVisible);
-           SysTVSetCurType(y2-CursorEndScanLine, y2-CursorStartScanLine, true);
-//           SysTVSetCurType(-99, -100, true);
-           end;
-         CommandLine^.Update;
-         end;
+    if CursorY = Size.Y - 1 - Byte( InterfaceData.Options and ouiHideStatus = 0 )
+    then CommandLine^.Update;
   end;
 end;
 
@@ -1006,9 +991,9 @@ procedure TProgram.Idle;
      A1, A2: Word;
 begin
 {$IFDEF OS2}
-   {AK155 В неактивном состоянии не надо реагировать на
+   {AK155 В неактивном оконном состоянии не надо реагировать на
           Shift, Alt, Ctrl}
-  if not IsBGWindow then
+  if not DN_IsBGWindow then
 {$ENDIF}
   if StatusLine <> nil then StatusLine^.Update;
   if CommandSetChanged then
@@ -1219,7 +1204,7 @@ begin
 end;
 
 procedure TApplication.ShowUserScreen;
- var B, BB: Word;
+ var (* B, BB: Word; *)
      PV: PView;
      R: TRect;
 begin
@@ -1312,27 +1297,34 @@ end;
 
 procedure ResourceFail(const S: string);
 begin
-  WriteLn('FATAL: Could not open resource file ('+S+')');
-  Halt(0);
+  WriteLn('Could not open resource file ('+S+')');
+  Halt(219);
 end;
 
+function OpenResourceStream(Ext: ExtStr): PBufStream;
+  var
+    S: String;
+    PS: PBufStream;
+  begin
+  S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
+  if S[Length(S)] <> '\' then S := S + '\';
+  PS := New(PBufStream,
+        Init(S + LngId + Ext,
+          Open_Share_DenyWrite+Open_Access_ReadOnly, 1024));
+  if PS^.Status <> stOK then begin
+   Dispose(PS, Done);
+   PS := New(PBufStream,
+        Init(StartupDir + LngId + Ext,
+          Open_Share_DenyWrite+Open_Access_ReadOnly, 1024));
+   if PS^.Status <> stOK then ResourceFail(LngId + Ext);
+  end;
+  OpenResourceStream := PS;
+  end;
 
 procedure OpenResource;
- var S: String;
 begin
  if Resource <> nil then Exit;
- S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
- if S[Length(S)] <> '\' then S := S + '\';
- ResourceStream := New(PBufStream,
-                       Init(S + LngId + '.DLG', open_share_denyWrite+stOpenPacked, 1024)
-                      );
- if ResourceStream^.Status <> stOK then begin
-  Dispose(ResourceStream,Done);
-  ResourceStream := New(PBufStream,
-                        Init(StartupDir + LngId + '.DLG', open_share_denyWrite+stOpenPacked, 1024)
-                       );
- end;
- if ResourceStream^.Status <> stOK then ResourceFail(LngId + '.DLG');
+ ResourceStream := OpenResourceStream('.DLG');
  New(Resource, Init(ResourceStream));
 end;
 
@@ -1507,19 +1499,7 @@ var PS,XS: PStream;
     S: String;
 
 begin
-   S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
-   if S[Length(S)] <> '\' then S := S + '\';
-
-   PS := New(PBufStream,
-             Init(S + LngId + '.LNG', stOpenPacked, 4096)
-            );
-   if PS^.Status <> stOK then
-     begin
-       Dispose(PS,Done);
-       PS := New(PBufStream, Init(StartupDir + LngId + '.LNG', stOpenRead, 4096));
-     end;
-   if PS^.Status <> stOK then ResourceFail(LngId + '.LNG');
-
+   PS := OpenResourceStream('.LNG');
    XS := nil;
    {$IFNDEF NOEXTRA} {DataCompBoy: In DPMI EMS and XMS no needed}
    if XMSFound then

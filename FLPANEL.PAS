@@ -146,7 +146,7 @@ uses LFN, DnUtil, DNApp, advance, advance1, advance2, advance3, Startup,
 {$IFDEF  UUDECODE}
   ,UUCode
 {$ENDIF}
-{$ENDIF}, Crt
+{$ENDIF}{, Crt}
      ;
 
 const
@@ -257,6 +257,8 @@ begin
       then MoveCStr(B, Copy(ViewLine, 1, I-1)+'~'+
                        ViewLine[I]+'~'+Copy(ViewLine, I+1, MaxStringLength),
                     GetColor($0301))
+{Cat: по-моему, это бред}
+(*
       else begin
        if (Panel^.Drive^.DriveType = dtTemp) and (Panel^.DirectoryName = cTEMP_)
         then I := PosChar(chTempDrive, DriveLine)
@@ -267,6 +269,10 @@ begin
        end else MoveCStr(B, ViewLine, GetColor($0301))
       end;
     end else MoveCStr(B, ViewLine, GetColor($0301));
+*)
+     else MoveCStr(B, ViewLine, GetColor($0301));
+    end else MoveCStr(B, ViewLine, GetColor($0301));
+{/Cat}
   WordRec(B[0]).Hi := GetColor(2);
   WordRec(B[Size.X-1]).Hi := GetColor(2);
   WriteLine(0,0,Size.X,1,B);
@@ -356,7 +362,15 @@ begin
                              DrawView;
                             end;
                      end;
-                   While MouseEvent(Event, evMouseMove + evMouseAuto) do begin
+{Cat: следующий кусок закомментировал, т.к. при его наличии в случае
+      возникновения ошибки (например, дискета не вставлена) после
+      нажатия в выскочившем окне кнопки "отмена" прекращается реакция
+      на клавиатуру до тех пор, пока не будет нажата кнопка мыши;
+      без этого куска для промотки строки дисков придётся нажимать
+      мышкой на фигурные скобки столько раз, на сколько позиций нужно
+      промотать (раньше можно было один раз нажать и удерживать мышку) }
+(*
+                   while MouseEvent(Event, evMouseMove + evMouseAuto) do begin
                     MakeLocal(Event.Where, P);
                     if ViewLine[P.X+1]=' ' then dec(P.X);
                     case ViewLine[P.X+1] of
@@ -374,6 +388,7 @@ begin
                           end;
                     end
                    end;
+*)
                    ClearEvent(Event);
                  end;
   end;
@@ -929,9 +944,11 @@ begin
              begin
                C3 := GetColor($0302);
                S := Panel^.SearchParam.Mask;
+               if QuickSearchType=1 then
+                 SetLength(S, Length(S)-1);
                S1 := GetString(dlFileSearch);
                if Length(S)+Length(S1)>Size.X
-         then S := S1 + #17 + '~' + Copy(S, Length(S) - Size.X - Length(S1) - 1, MaxStringLength) + '~'
+                then S := S1 + #17 + '~' + Copy(S, Length(S) - Size.X - Length(S1) - 1, MaxStringLength) + '~'
                 else S := S1 + '~' + S + '~';
                I := 0;
                MoveCStr(B[I], S, C3);
@@ -987,7 +1004,8 @@ begin
       end else
       if (Panel^.QuickSearch) and (ShowFileMask) then begin
         S := Panel^.SearchParam.Mask;
-       {SetLength(S, Length(S)-1);}
+        if QuickSearchType=1 then
+          SetLength(S, Length(S)-1);
         S1 := GetString(dlFileSearch);
         if Length(S)+Length(S1)>Size.X
          then S := S1 + #17 + '~' + Copy(S, Length(S) - Size.X - Length(S1) - 1, 255) + '~'
@@ -1368,8 +1386,7 @@ begin
               0..3,5..100:;
                 else CommandHandle(Event);
              end;
-  evKeyDown: if (((Event.KeyCode = kbDoubleAlt))
-                                                   and (FMSetup.Quick = pqsAlt)) or
+  evKeyDown: if (((Event.KeyCode = kbDoubleAlt)) and (FMSetup.Quick = pqsAlt)) or
                 ((Event.KeyCode = kbDoubleCtrl) and (FMSetup.Quick = pqsCtrl)) or
                 ((Event.CharCode >= #32) and (Event.CharCode <= #254) and
                  (Event.CharCode <> '\') and (FMSetup.Quick = pqsCaps) and
@@ -1382,6 +1399,8 @@ begin
                 CtrlWas := Off;
                 InitQuickSearch(SearchParam);
                 QuickSearch := not QuickSearch;
+                if not QuickSearch then
+                  InfoView^.DrawView; {Cat}
                 if (Event.CharCode >= #32) and (Event.CharCode <= #254) then
                  begin
                    if not ((ShiftState and 3 <> 0) and ( not CommandLine^.GetState(sfVisible))) then
@@ -1397,10 +1416,12 @@ begin
                         Mem[Seg0040:$17] := ShiftState and not kbCapsState;
                         ShiftState := Mem[Seg0040:$17];
                         {$ENDIF}
-                     (* {$IFDEF VIRTUALPASCAL}
+                        (*
+                        {$IFDEF VIRTUALPASCAL}
                         SysTVSetShiftState(ShiftState and not kbCapsState);
                         ShiftState := SysTVGetShiftState;
-                        {$ENDIF} *)
+                        {$ENDIF}
+                        *)
                      end;
                      if not MaskSearch(0) then DoQuickSearch(SearchParam, kbBack);
                     end;
@@ -1439,7 +1460,10 @@ begin
                               Event.CharCode := SearchParam.Mask[I];
                               PutEvent(Event);
                             end;
-                           CE; QuickSearch := Off; Exit;
+                           CE;
+                           QuickSearch := Off;
+                           InfoView^.DrawView; {Cat}
+                           Exit;
                           end;
                      else
                       begin
@@ -1452,7 +1476,11 @@ begin
                    end else
                    begin
                     CtrlWas := Off;
-                    if QuickSearch then begin QuickSearch := Off; DrawView end;
+                    if QuickSearch then
+                     begin
+                      QuickSearch := Off;
+                      InfoView^.DrawView;
+                     end;
 GotoKB:
                     case Event.KeyCode of
                      kbDel: if ((CmdLine.Str = '') and (FMSetup.Options and fmoDelErase <> 0)) then

@@ -175,7 +175,7 @@ procedure OpenSmartpad;
 procedure OpenClipboard;
 
 const
-     ClipboardStream : PStream = nil; {-$VOL}
+    ClipboardStream : PStream = nil; {-$VOL}
 
 type
     TSearchData = record
@@ -200,15 +200,15 @@ var   EditCommands : Array [1..110] of TEditCommand;
 implementation
 
 uses Gauge, FViewer, Histlist, Macro, Editor, WinClp, DNUtil, Histries,
-     EdWin, xTime, FileCopy, ASCIItab, DnIni, U_SrchF, Microed2; {-$VIV}
+     xTime, FileCopy, ASCIItab, DnIni, U_SrchF, EdWin, Microed2; {-$VIV}
 
 const
     On          = True;
     Off         = False;
     cmNoCommand = 4000;
-    SmartWindow : PEditWindow = nil;
 
-    ClipboardWindow : PEditWindow = nil;
+   {SmartWindow: PEditWindow = nil;}      {Cat: перенёс эти переменные в модуль MicroEd2}
+   {ClipboardWindow: PEditWindow = nil;}  {Cat: внимание! появились указатели SmartWindowPtr и ClipboardWindowPtr}
 
 function MemAvail: LongInt; begin MemAvail := MemAdjust(System.MemAvail) end;
 
@@ -549,6 +549,10 @@ var
   I: Integer;
 begin
   inherited Init(Bounds);
+  InsertMode := True; {Cat}
+  DrawMode := 0; {Cat}
+  BlockVisible := Off; {Cat}
+  Mark.Assign(0,0,0,0); {Cat}
   LastDir := -1;
   HelpCtx := hcEditor;
   UndoInfo := nil;
@@ -606,8 +610,8 @@ begin
   if RedoInfo <>nil then Dispose(RedoInfo,Done);  RedoInfo :=nil;
   if Macros   <>nil then Dispose(Macros,Done);    Macros   :=nil;
   if Locker   <>nil then Dispose(Locker,Done);    Locker   :=nil;
-  if SmartPad then SmartWindow      :=nil;
-  if ClipBrd  then ClipboardWindow  :=nil;
+  if SmartPad then begin SmartWindowPtr     := @SmartWindow;     SmartWindow     := nil; end;
+  if ClipBrd  then begin ClipboardWindowPtr := @ClipboardWindow; ClipboardWindow := nil; end;
   inherited Done;
 end;
 
@@ -1801,7 +1805,7 @@ L1:
 
  procedure PasteBlock;
  begin
-  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
+  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(On)};
   EnableMarking := Off; Marking := Off;
   ChangeLine;
   if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
@@ -2251,14 +2255,16 @@ var qwe: byte;
     then DeleteBlock(On);
   BlockOff;
 
-  GetWinClip(PLineCollection(Clipboard), On);
-  InsertBlock(Clipboard, On);
+  if GetWinClip(PLineCollection(Clipboard){, On}) then
+    begin
+      InsertBlock(Clipboard, On);
 
-  ChangeLine;
-  {$IFNDEF NONBP}
-  memw[seg0040:$1C] := memw[seg0040:$1A];
-  {$ENDIF}
-  EnableMarking := On;
+      ChangeLine;
+      {$IFNDEF NONBP}
+      memw[seg0040:$1C] := memw[seg0040:$1A];
+      {$ENDIF}
+      EnableMarking := On;
+    end;
  end;
 
  procedure DrawLine(Dir: Byte);
@@ -2431,109 +2437,118 @@ var qwe: byte;
      Info: PWhileView;
      R: TRect;
  label Ex;
- procedure Chk;
- begin
-  DelLeft(S); DelRight(S);
-  if S='' then exit;
-  if Res='' then Res:=FindFileWithSPF(S, Info);                            if Abort then exit;
-  if Res='' then Res:=FindFileWithSPF(GetName(S), Info);                   if Abort then exit;
-  if Res='' then Res:=FindFileWithSPF(GetSName(S), Info);                  if Abort then exit;
-  if Res='' then Res:=FindFileWithSPF(GetSName(S)+GetExt(EditName), Info); if Abort then exit;
- end;
+
+   procedure Chk;
+   begin
+     DelLeft(S); DelRight(S);
+     if S='' then exit;
+     if Res='' then Res:=FindFileWithSPF(S, Info);                            if Abort then exit;
+     if Res='' then Res:=FindFileWithSPF(GetName(S), Info);                   if Abort then exit;
+     if Res='' then Res:=FindFileWithSPF(GetSName(S), Info);                  if Abort then exit;
+     if Res='' then Res:=FindFileWithSPF(GetSName(S)+GetExt(EditName), Info); if Abort then exit;
+   end;
 
  begin
-   Res:='';
-   S:='';
-   R.Assign(0, 0, 20, 7);
-   New(Info, Init(R));
-   Info^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, MaxStringLength));
-   Application^.Insert(Info);
-   Abort:=False;
+   if WorkString <> '' then {Cat: работаем только на непустой строчке}
+     begin
+       Res:='';
+       S:='';
+       R.Assign(0, 0, 20, 7);
+       New(Info, Init(R));
+       Info^.Write(1, Copy(GetString(dlPleaseStandBy), 4, MaxStringLength));
+       Application^.Insert(Info);
+       Abort:=False;
 
-   P:=Delta.X+1;
+       P:=Delta.X+1;
 
-   Min1:=1;
-   For i:=P downto 1 do
-    if WorkString[i] in IllegalCharSet+['*','?']
-     then begin Min1:=i+1; break end;
-   DispatchEvents(Info, Abort);
-   if Abort then goto ex;
+       Min1:=1;
+       For i:=P downto 1 do
+        if WorkString[i] in IllegalCharSet+['*','?']
+         then begin Min1:=i+1; break end;
+       DispatchEvents(Info, Abort);
+       if Abort then goto ex;
 
-   Min2:=1;
-   For i:=P downto 1 do
-    if WorkString[i] in IllegalCharSet-['\']
-     then begin Min2:=i+1; break end;
-   DispatchEvents(Info, Abort);
-   if Abort then goto ex;
+       Min2:=1;
+       For i:=P downto 1 do
+        if WorkString[i] in IllegalCharSet-['\']
+         then begin Min2:=i+1; break end;
+       DispatchEvents(Info, Abort);
+       if Abort then goto ex;
 
-   Min3:=1;
-   For i:=P downto 1 do
-    if WorkString[i] in IllegalCharSetDos+['*','?']
-     then begin Min3:=i+1; break end;
-   DispatchEvents(Info, Abort);
-   if Abort then goto ex;
+       Min3:=1;
+       For i:=P downto 1 do
+        if WorkString[i] in IllegalCharSetDos+['*','?']
+         then begin Min3:=i+1; break end;
+       DispatchEvents(Info, Abort);
+       if Abort then goto ex;
 
-   Min4:=1;
-   For i:=P downto 1 do
-    if WorkString[i] in IllegalCharSetDos-['\']
-     then begin Min4:=i+1; break end;
-   DispatchEvents(Info, Abort);
-   if Abort then goto ex;
+       Min4:=1;
+       For i:=P downto 1 do
+        if WorkString[i] in IllegalCharSetDos-['\']
+         then begin Min4:=i+1; break end;
+       DispatchEvents(Info, Abort);
+       if Abort then goto ex;
 
-   Max1:=length(WorkString)+1;
-   For i:=P to length(WorkString) do
-    if WorkString[i] in IllegalCharSet+['*','?']
-     then begin Max1:=i; break end;
-   DispatchEvents(Info, Abort);
-   if Abort then goto ex;
+       Max1:=length(WorkString)+1;
+       For i:=P to length(WorkString) do
+        if WorkString[i] in IllegalCharSet+['*','?']
+         then begin Max1:=i; break end;
+       DispatchEvents(Info, Abort);
+       if Abort then goto ex;
 
-   Max2:=length(WorkString)+1;
-   For i:=P to length(WorkString) do
-    if WorkString[i] in IllegalCharSet-['\']
-     then begin Max2:=i; break end;
-   DispatchEvents(Info, Abort);
-   if Abort then goto ex;
+       Max2:=length(WorkString)+1;
+       For i:=P to length(WorkString) do
+        if WorkString[i] in IllegalCharSet-['\']
+         then begin Max2:=i; break end;
+       DispatchEvents(Info, Abort);
+       if Abort then goto ex;
 
-   Max3:=length(WorkString)+1;
-   For i:=P to length(WorkString) do
-    if WorkString[i] in IllegalCharSetDos+['*','?']
-     then begin Max3:=i; break end;
-   DispatchEvents(Info, Abort);
-   if Abort then goto ex;
+       Max3:=length(WorkString)+1;
+       For i:=P to length(WorkString) do
+        if WorkString[i] in IllegalCharSetDos+['*','?']
+         then begin Max3:=i; break end;
+       DispatchEvents(Info, Abort);
+       if Abort then goto ex;
 
-   Max4:=length(WorkString)+1;
-   For i:=P to length(WorkString) do
-    if WorkString[i] in IllegalCharSetDos-['\']
-     then begin Max4:=i; break end;
-   DispatchEvents(Info, Abort);
-   if Abort then goto ex;
+       Max4:=length(WorkString)+1;
+       For i:=P to length(WorkString) do
+        if WorkString[i] in IllegalCharSetDos-['\']
+         then begin Max4:=i; break end;
+       DispatchEvents(Info, Abort);
+       if Abort then goto ex;
 
-   Res:='';
-   S:=Copy(WorkString, Min1, Max1-Min1); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min1, Max2-Min1); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min2, Max1-Min2); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min2, Max2-Min2); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min3, Max3-Min3); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min3, Max4-Min3); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min4, Max3-Min4); Chk; if Abort then goto ex;
-   S:=Copy(WorkString, Min4, Max4-Min4); Chk; if Abort then goto ex;
+       Res:='';
+       S:=Copy(WorkString, Min1, Max1-Min1); Chk; if Abort then goto ex;
+       S:=Copy(WorkString, Min1, Max2-Min1); Chk; if Abort then goto ex;
+       S:=Copy(WorkString, Min2, Max1-Min2); Chk; if Abort then goto ex;
+       S:=Copy(WorkString, Min2, Max2-Min2); Chk; if Abort then goto ex;
+       S:=Copy(WorkString, Min3, Max3-Min3); Chk; if Abort then goto ex;
+       S:=Copy(WorkString, Min3, Max4-Min3); Chk; if Abort then goto ex;
+       S:=Copy(WorkString, Min4, Max3-Min4); Chk; if Abort then goto ex;
+       S:=Copy(WorkString, Min4, Max4-Min4); Chk; if Abort then goto ex;
 
-   S:=Copy(WorkString, Min4, Max4-Min4); DelLeft(S); DelRight(S);
-   If (PosChar('.',S)=0) Then S:=S+GetExt(EditName);
+       S:=Copy(WorkString, Min4, Max4-Min4); DelLeft(S); DelRight(S);
+       If (PosChar('.',S)=0) Then S:=S+GetExt(EditName);
 
-   if Res = '' then begin
-    Info^.Hide;
-    Res:=Cut(S, 20);
-    Q:=@Res;
-    case ExecResource(dlgSrchFailed, Q) of
-          cmYes: PDNApplication(Application)^.EditFile(On, SourceDir + 'DN.SPF');
-          cmNo: PDNApplication(Application)^.EditFile(On, S);
+       if Res = '' then
+         begin
+           Info^.Hide;
+           Res:=Cut(S, 20);
+           Q:=@Res;
+           case ExecResource(dlgSrchFailed, Q) of
+             cmYes:
+               PDNApplication(Application)^.EditFile(On, SourceDir + 'DN.SPF');
+             cmNo:
+               PDNApplication(Application)^.EditFile(On, S);
+           end
          end
-   end else PDNApplication(Application)^.EditFile(On, Res);
+       else
+         PDNApplication(Application)^.EditFile(On, Res);
 
-ex:
-   Info^.Free;
-   Abort:=false;
+       ex:
+       Info^.Free;
+       Abort:=false;
+     end;
  end;
         {-DataCompBoy-}
 
@@ -3195,6 +3210,8 @@ procedure OpenSmartpad;
      end;
 
 begin
+  SmartWindow := SmartWindowPtr^; {Cat}
+
   if (SmartWindow <> nil) and SmartWindow^.GetState(sfModal) then Exit;
   PV := Application^.TopView;
   Desktop^.GetExtent(R);
@@ -3227,7 +3244,9 @@ procedure OpenClipboard; {-$VOL begin}
   var R: TRect;
       PV: Pointer;
 begin
-  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
+  ClipboardWindow := ClipboardWindowPtr^; {Cat}
+
+  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(On)};
   if (ClipboardWindow <> nil) and ClipboardWindow^.GetState(sfModal) then Exit;
   PV := Application^.TopView;
   Desktop^.GetExtent(R);

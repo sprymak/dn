@@ -49,8 +49,10 @@
 Unit U_MyApp;
 
 interface
-uses DnUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
-     UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects;
+uses
+  {$IFDEF PLUGIN} Plugin, {$ENDIF} {Cat}
+  DnUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
+  UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects;
 
 type
    MyApp = object (TDNApplication)
@@ -193,6 +195,13 @@ begin
               cmQuit : HandleCommand(Event);
        end;
 end;
+
+{Cat: проверяем, не пора ли запускать плагины - EventCatcher-ы}
+{$IFDEF PLUGIN}
+  if Event.What <> evNothing then
+    CatchersHandleEvent(Event);
+{$ENDIF}
+{/Cat}
 end;
 
 var

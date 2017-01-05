@@ -1364,6 +1364,7 @@ end;
 
 {$ELSE VIRTUALPASCAL}
 Uses {$IFDEF WIN32}Windows,{$ENDIF} Dos, VpSysLow, Drivers, Objects, DnApp, DnIni, Startup,
+     crt, {AK155 - временно}
      Commands, VPUtils {$IFDEF OS2}, os2base, messages{$ENDIF};
 
 var
@@ -1452,6 +1453,7 @@ end;
 
 procedure SetVideoMode(Mode: Word);
 var Cols, Rows: Word;
+  CursorSize: word;
 begin
  {GetVideoModeInfo(Cols1,Rows1,Rows);} {вводить отдельную переменную для цветов впадлу}
  Cols := 80;
@@ -1480,6 +1482,14 @@ begin
      ScreenHeight := Rows;
      ScreenWidth := Cols;
      ScreenMode := Mode;
+{AK155 Число видеострок курсора зависит от видеорежима, а в окне - еще и
+от операционки. Но сразу после установки режима курсор прижат к нижнему
+краю знакоместа, так что lo(Drivers.CursorLines) равно максимальному
+номеру видеостроки знака. Это используется при изменениях вида курсора.}
+     Drivers.CursorLines := GetCursorSize;
+     Crt.GetLastMode;  {AK155 временно}
+     Crt.SetWindowPos; {AK155 временно}
+{/AK155}
    end;
 end;
 

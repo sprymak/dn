@@ -49,7 +49,6 @@
 { This module is based on Turbo Vision Objects Unit   }
 { Copyright (c) 1990 by Borland International         }
 {-----------------------------------------------------}
-{$DEFINE PACKFILE}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 {Cat
@@ -60,7 +59,7 @@
 unit Objects;
 
 interface
-uses {$IFDEF VIRTUALPASCAL}SysUtils,{$ENDIF}
+uses {$IFDEF VIRTUALPASCAL} {SysUtils,} VpSysLow, {$ENDIF}
      LFN;
 
 { Common defines }
@@ -181,27 +180,27 @@ const
   fmDenyChild = $0080;           { Don't give right's to child }
 
  {$ELSE VP}
-  stCreate    = $DC0B;           { Create new file }
-  stOpenRead  = fmOpenRead;      { Read access only }
-  stOpenWrite = fmOpenWrite;     { Write access only }
-  stOpen      = fmOpenReadWrite; { Read and write access }
-  stOpenPacked= fmOpenReadWrite+1;{Read access only, packed files too }
+  stCreate    = $FFFF { $DC0B };                              { Create new file }
+  stOpenRead  = Open_Access_ReadOnly or Open_Share_DenyNone;  { Read access only }
+  stOpenWrite = Open_Access_WriteOnly or Open_Share_DenyNone; { Write access only }
+  stOpen      = Open_Access_ReadWrite or Open_Share_DenyNone; { Read and write access }
+  stOpenPacked= Open_Access_ReadWrite+1;                      { Read access only, packed files too }
 
 { File share mode constants }
-  fmClean     = $FF00;           { Mask to clean low byte of file mode constatns }
+  fmClean     = $FF00;                    { Mask to clean low byte of file mode constatns }
 
-  fmOpenMode  = $FFF0;           { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
-  fmReadOnly  = fmOpenRead;      { Open read-only file }
-  fmWriteOnly = fmOpenWrite;     { Open file for write only }
-  fmReadWrite = fmOpenReadWrite; { Open file as for read, as for write }
-  fmPacked    = fmOpenReadWrite+1;{Open a packed file, if can }
+  fmOpenMode  = $FFF0;                    { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
+  fmReadOnly  = Open_Access_ReadOnly;     { Open read-only file }
+  fmWriteOnly = Open_Access_WriteOnly;    { Open file for write only }
+  fmReadWrite = Open_Access_ReadWrite;    { Open file as for read, as for write }
+  fmPacked    = Open_Access_ReadWrite+1;  { Open a packed file, if can }
 
-  fmDeny      = $FF0F;           { Mask to apply fmDenyXXX }
-  fmDenyAll   = fmShareExclusive;{ Exclusive file use }
-  fmDenyWrite = fmShareDenyWrite;{ Deny write access }
-  fmDenyRead  = fmShareDenyRead; { Deny read access }
-  fmDenyNone  = fmShareDenyNone; { Deny no access }
-  fmDenyChild = fmShareDenyNone; { Don't give right's to child }
+  fmDeny      = $FF0F;                    { Mask to apply fmDenyXXX }
+  fmDenyAll   = Open_Share_DenyReadWrite; { Exclusive file use }
+  fmDenyWrite = Open_Share_DenyWrite;     { Deny write access }
+  fmDenyRead  = Open_Share_DenyRead;      { Deny read access }
+  fmDenyNone  = Open_Share_DenyNone;      { Deny no access }
+  fmDenyChild = Open_Share_DenyNone;      { Don't give right's to child }
 
  {$ENDIF}
 
@@ -720,7 +719,10 @@ begin
 {$IFDEF StreamDebug}
       PApplication(Application)^.DoDump(212);
 {$ENDIF}
-      Error(stPutError, LongInt(P)); Exit;
+{Cat: не следует так пугаться, если попался не зарегистрированный
+      объект, просто не будем его записывать}
+      {Error(stPutError, LongInt(P));} Exit;
+{/Cat}
     end else
       ObjType:=Q^.ObjType;
   end;
@@ -766,10 +768,15 @@ procedure TStream.Put(P: PObject); assembler; {$USES None} {$FRAME+}
               @@2:
                 test    edx,edx
         JNE     @@1
+{Cat: не следует так пугаться, если попался не зарегистрированный
+      объект, просто не будем его записывать}
+(*
                 mov     ecx,Self
                 mov     dl,stPutError
         CALL    DoStreamError
+*)
         JMP     @@5
+{/Cat}
               @@3:
                 mov     ecx,[edx].TStreamRec.ObjType
               @@4:
@@ -1074,16 +1081,20 @@ begin
   {$IFDEF PACKFILE}
 1:
   {$ENDIF}
-    Handle:=AFileOpen(FName, FMode);
-    If Handle <> 0 then begin
-      Success:=ASetFilePos(Handle, 0, 2, StreamSize);
-      If Success = 0 then Success:=ASetFilePos(Handle, 0, 0, Position);
-    end else Success:=103;
+    Success := AFileOpen(FName, FMode, Handle);
+    if Success = 0 then
+      begin
+        Success := ASetFilePos(Handle, 0, 2, StreamSize);
+        if Success = 0 then
+          Success := ASetFilePos(Handle, 0, 0, Position);
+      end;
   end;
-  if (Handle = 0) or (Success <> 0) then begin
-    if Handle=0 then Handle:=-1;
-    Error(stInitError, Success);
-  end;
+  if (Handle = 0) or (Success <> 0) then
+    begin
+      if Handle = 0 then
+        Handle := -1;
+      Error(stInitError, Success);
+    end;
 end;
 
 procedure TDosStream.Open(FileName: FNameStr; Mode: Word);
@@ -1119,16 +1130,21 @@ begin
   end else
   {$ENDIF}
   begin
-1:  Handle:=AFileOpen(FName, FMode);
-    If Handle <> 0 then begin
-      Success:=ASetFilePos(Handle, 0, 2, StreamSize);
-      If Success = 0 then Success:=ASetFilePos(Handle, 0, 0, Position);
-    end else Success:=103;
+    1:
+    Success := AFileOpen(FName, FMode, Handle);
+    if Success = 0 then
+      begin
+        Success := ASetFilePos(Handle, 0, 2, StreamSize);
+        if Success = 0 then
+          Success := ASetFilePos(Handle, 0, 0, Position);
+      end;
   end;
-  if (Handle = 0) or (Success <> 0) then begin
-    if Handle=0 then Handle:=-1;
-    Error(stInitError, Success);
-  end;
+  if (Handle = 0) or (Success <> 0) then
+    begin
+      if Handle = 0 then
+        Handle := -1;
+      Error(stInitError, Success);
+    end;
 end;
 
 destructor TDosStream.Done;
@@ -1293,35 +1309,43 @@ begin
   end;
 end;
 
+{Cat:warn правильно ли это работает?}
 procedure TDosStream.DoOpen (OpenMode: Word);
-  {$IFDEF PACKFILE}
+{$IFDEF PACKFILE}
 label 1;
-  {$ENDIF}
+{$ENDIF}
+var
+  Success: Integer;
 begin
-  if Status = stOk then begin
-    if Handle = -1 then begin
-  {$IFDEF PACKFILE}
-1:
-  {$ENDIF}
-    FMode:=OpenMode;
-  {$IFDEF PACKFILE}
-      if (FMode and $000F)=fmPacked
-       then begin
-             Handle:=pOpen(@FName, FMode and $FFF0);
-             if Handle = 0 then begin
-              FMode := FMode and $FFF0;
-              goto 1;
-             end;
+  if Status = stOk then
+    begin
+      if Handle = -1 then
+        begin
+{$IFDEF PACKFILE}
+          1:
+{$ENDIF}
+          FMode:=OpenMode;
+{$IFDEF PACKFILE}
+          if (FMode and $000F)=fmPacked then
+            begin
+              Handle:=pOpen(@FName, FMode and $FFF0);
+              if Handle = 0 then
+                begin
+                  FMode := FMode and $FFF0;
+                  goto 1;
+                 end;
             end
-       else
-  {$ENDIF}
-            Handle:=AFileOpen(FName, FMode);
-      Position:=0;
-      if Handle=0 then begin
-        Handle:=-1;
-        Error(stOpenError, 103);
-      end;
-    end else Error(stOpenError, 104); { File already open }
+          else
+{$ENDIF}
+            Success := AFileOpen(FName, FMode, Handle);
+          Position := 0;
+          if Handle = 0 then
+            begin
+              Handle:=-1;
+              Error(stOpenError, Success);
+            end;
+        end
+      else Error(stOpenError, 104); { File already open }
   end;
 end;
 

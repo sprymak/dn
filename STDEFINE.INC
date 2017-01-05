@@ -8,6 +8,8 @@
  {$IFNDEF REALMODE} {.$DEFINE TGZ} {$ENDIF}
 
  {$IFDEF VIRTUALPASCAL}
+  {$DEFINE DONTCATCHEXCEPTIONS} {Cat: чтобы не использовать SysUtils}
+  {.$DEFINE PLUGIN} {Cat: плагинская версия}
   {$DEFINE USELONGSTRING}  {Cat: использование длинных строк кое-где (в частности, в редакторе)}
   {.$DEFINE USEANSISTRING} {Cat: использование длинных строк везде ($H+); уже компилируется,     }
                            {     но ещё не работает; доделаю, если будет нужно, что вряд ли  ;-) }
@@ -98,8 +100,8 @@
 {$DEFINE NoCallspcb} {внимание! конфиги версий, скомпилённых с и без NoCallspcb несовместимы!}
 {$IFDEF OS2}
  {$DEFINE EAOP}      {операции с расширенными атрибутами}
- {$DEFINE USEWPS}    {открытие фолдеров WPS}
 {$ENDIF}
+{$DEFINE USEWPS}     {открытие фолдеров WPS}
 {$Use32+}
 {.$DEFINE QSORT}
 {$DEFINE POGLSORT}
@@ -180,6 +182,9 @@
   {$ENDIF}
 {$ENDIF}
 
+{$DEFINE PACKFILE}
+
+{$IFDEF PLUGIN} {$UNDEF GAME} {$ENDIF} {Cat}
 {$IFNDEF BIT_32} {$UNDEF USEANSISTRING} {$UNDEF USELONGSTRING} {$ENDIF} {Cat}
 {$IFDEF LOGOBJLOADSTORE} {$UNDEF NoCallspcb} {$ENDIF} {Cat}
 {$IFDEF USEANSISTRING} {$H+} {$DEFINE USELONGSTRING} {$ELSE} {$H-} {$ENDIF} {Cat}

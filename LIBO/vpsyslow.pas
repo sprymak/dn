@@ -389,7 +389,7 @@ implementation
 uses
   {$Ifdef Win32} {$Ifndef KeyDll}
   VpKbdW32,  // Statically linked default Win32 keyboard handler
-  {$Endif} DnIni, {$Endif}
+  {$Endif} {$Endif}
   {$Ifdef DPMI32}
   Dpmi32, Resource, // Dpmi support files
   {$Endif}

@@ -276,7 +276,7 @@ uses
   Startup,
   DnApp,
   DnUtil,
-  {$IFDEF VIRTUALPASCAL}VPUtils, VpSysLow, VPSysLo2, Crt,{}Messages,{}{$ENDIF}
+  {$IFDEF VIRTUALPASCAL}VPUtils, VpSysLow, VPSysLo2, {Crt,} Messages,{$ENDIF}
   FlPanelX
   ;
 

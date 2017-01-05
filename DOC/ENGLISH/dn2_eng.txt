@@ -14,10 +14,11 @@ caused by this product.
    - file panel modes switching with <Ctrl-1> - <Ctrl-0> (you can however use
      menu called with <Alt-_> instead);
    - switching between windows with <Ctrl-Shift-1> - <Ctrl-Shift-0>;
-    - incremental search of file in file panel could not be called with single
+   - incremental search of file in file panel could not be called with single
       Ctrl;
-    - in Win32 version incremental search of file in file panel could not be
-      called with single Alt, use <Alt-.> instead;
+   - in Win9x <Shift-Tab> doesn't work in dialog windows. Use <Shift-Tab>,
+     <Tab> instead;
+   - in WinNT <Ctrl-Shift-Enter> doesn't work.
  - There is no and not planned in closest future built-in utilities, working
    through the direct access to disk;
 
@@ -27,7 +28,7 @@ caused by this product.
 
  Jaroslaw Osadtchiy (JO) <2:5030/1082.53 aka 2:5030/415.17; Osadtchy@LO6105.spb.edu>
  Alexey Korop (AK155) <Alexey Korop, 2:461/155; korop@online.kharkiv.net>
- Aleksej Kozlov (Cat) <Aleksej Kozlov, 2:5030/1326.13>
+ Aleksej Kozlov (Cat) <Aleksej Kozlov, 2:5030/1326.13; cat@os2.ru>
 
  All persons who take an interest in this project are welcome to participate
 in project!

@@ -4,7 +4,7 @@ dnhgl.grp    Highlight groups configuration file
 dn.hgl       Syntax highlite configuration file
 dnalt.vwr    External viewers configuration file
 dn.ext       Extention file configuration file
-dn.ini       Main configuration file
+dn.ini Main configuration file
 dn.mnu       Global Menu file
 dn.vwr       External viewers configuration file
 dn.xrn       Quick run configuration file

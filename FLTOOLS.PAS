@@ -314,7 +314,7 @@ end;
 
  procedure MakeMask(P: PString); {$IFDEF BIT_16}far;{$ENDIF}
  begin
-   if FileMask <> '' then AddStr(FileMask,';');
+   if FileMask <> '' then FileMask := FileMask + ';' ;
    FileMask := FileMask + P^;
  end;
 

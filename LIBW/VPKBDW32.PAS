@@ -177,6 +177,10 @@ begin
 
   // No printable character. Return an extended keystroke based on the scan code
   case ScanCode of
+     1: {AK155 под Win9x при CapsLock почему-то по Esc приходит CharCode=0 }
+      if ShiftState = CAPSLOCK_ON then
+        Result := $11B;
+
     2..13: // ALT + number keys, ALT + EQ, ALT + MINUS, ALT + =
      if ShiftState and Alt_Pressed <> 0 then
        Result := (ScanCode + 118) shl 8

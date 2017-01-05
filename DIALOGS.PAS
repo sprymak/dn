@@ -488,7 +488,7 @@ implementation
 
 uses AsciiTab, HistList, advance, advance1, advance2, advance3, Commands,
      Startup, xTime, FlPanelX, dnapp
-     {$IFDEF VIRTUALPASCAL}, Crt{$ENDIF}
+     {$IFDEF VIRTUALPASCAL}{, Crt}, VpSysLow{$ENDIF}
      ;
 
 const
@@ -2368,7 +2368,7 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
          begin
            if HistoryErrorBeep then begin
             {$IFDEF VIRTUALPASCAL}
-            PlaySound(500,110);
+            SysBeepEx{PlaySound}(500,110);
             {$ELSE}
             Sound(500); DelayTics(2); NoSound;
             {$ENDIF}

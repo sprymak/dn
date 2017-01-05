@@ -363,7 +363,8 @@ uses xTime,
      Startup,
      advance3, advance1,
      {$IFDEF VIRTUALPASCAL}
-     advance2, crt,
+     advance2,
+     {crt,} VpSysLow,
      {$ENDIF}
      ExtraMem,
      Commands
@@ -988,7 +989,7 @@ end;
 
 procedure LocateCursor(X, Y: Byte);
 {$IFDEF VIRTUALPASCAL}
-begin GotoXY(X, Y) end;
+begin SysTVSetCurPos{GotoXY}(X, Y) end;
 {$ELSE}
 assembler;
 asm
@@ -1040,8 +1041,8 @@ var Released: boolean;
  {$ENDIF}
 begin
  {$IFNDEF OS_DOS}
- if (StartupData.Slice2 and osuOnceRelease <> 0) then Delay(1) {Delay(32)}
-   else Delay(0);
+ if (StartupData.Slice2 and osuOnceRelease <> 0) then SysCtrlSleep{Delay}(1) {Delay(32)}
+   else SysCtrlSleep{Delay}(0);
  {$ELSE}
  Released:=false;
  if (StartupData.Slice  and osuInt15 <> 0) and

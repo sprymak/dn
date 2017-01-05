@@ -107,7 +107,8 @@ var  LastX, LastY: LongInt;
    label Ex;
   begin
     if not WorkModified then goto Ex;
-    While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
+    while (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do
+      SetLength(WorkString, Length(WorkString)-1);
     if WorkModified then ModifyLine(LastLine, WorkString,On);
     Modified := Modified or WorkModified;
     WorkModified := Off;
@@ -528,18 +529,19 @@ var  LastX, LastY: LongInt;
    Modified := On;
    if not (BlockVisible and ValidBlock) then Exit;
    ChangeLine;
-   for I := Mark.A.Y to Mark.B.Y-Integer(Mark.B.X = 0) do {-$VIV 13.05.99}
-   begin
-     S[1] := ' ';
-     S := GetLine(I);
-     if (S[1] <> ' ') and (not UnlimitUnindent) then Exit;
-   end;
+   if not UnlimitUnindent then
+     for I := Mark.A.Y to Mark.B.Y-Integer(Mark.B.X = 0) do {-$VIV 13.05.99}
+     begin
+       S := GetLine(I);
+       if (S <> '') and (S[1] <> ' ') then
+         Exit;
+     end;
    T.X := 0; T.Y := Mark.A.Y;
    if Undo then StoreUndoInfo(udUnindentBlock, T, Mark);
    for I := Mark.A.Y to Mark.B.Y-Integer(Mark.B.X = 0) do {-$VIV 13.05.99}
    begin
      S := GetLine(I);
-     if (Length(S) = 0) or (S[1] <> ' ') then Continue;
+     if (S = '') or (S[1] <> ' ') then Continue;
      Delete(S, 1, 1); {DelFC(S);}
      ModifyLine(I, S, On);
    end;
@@ -1279,7 +1281,7 @@ begin
                       ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-1, 0));
                      CopyLines2Stream(Clipboard, ClipBoardStream);
                    end;
-     cmSyncClipOut: SyncClipOut(On);
+     cmSyncClipOut: SyncClipOut{(On)};
      cmRusEngConv, {-$VIV}
      cmUpcaseBlock,
      cmLowcaseBlock,

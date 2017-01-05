@@ -54,6 +54,18 @@ program DN;
 {$M 40000,0,655350}
 {$ENDIF}
 
+{Cat: версия с поддержкой плагинов:
+      весь ДН лежит в DLL-ке, которую и подключаем через $DYNAMIC.
+      стараемся использовать в Uses только то, что реально нужно,
+      тогда уменьшаются размер EXE-шника и количество глюков}
+{$IFDEF PLUGIN}
+uses
+  {$IFDEF LINEPOSIT} VPUtils, {$ENDIF}
+  VpSysLow, Drivers, DN1;
+
+{$DYNAMIC DN2CAT.LIB}
+
+{$ELSE}
 uses
      {$IFNDEF VIRTUALPASCAL}ExtKBD, {$ENDIF}
      Drivers,  LFN,      {$IFNDEF OS2}LFNCol,{$ENDIF}   DN1,
@@ -87,10 +99,10 @@ uses
 {$IFDEF NETINFO}       ,Novell                         {$ENDIF}
 {$IFDEF DiskEdit}      ,Fixer                          {$ENDIF}
 {$IFDEF REANIMATOR}    ,Reanimat                       {$ENDIF}
-{$IFDEF LINEPOSIT} , SysUtils, VPUtils, CRT            {$ENDIF}
-{$IFDEF EAOP} , EAOper                                 {$ENDIF}
-{$IFDEF VIRTUALPASCAL}, VPSysLow                       {$ENDIF}
-      ;
+{$IFDEF LINEPOSIT} {$IFNDEF DONTCATCHEXCEPTIONS} ,SysUtils {$ENDIF} ,VPUtils {$ENDIF}
+{$IFDEF EAOP}          ,EAOper                         {$ENDIF}
+{$IFDEF VIRTUALPASCAL} ,VPSysLow                       {$ENDIF}
+     ;
 
 {$IFNDEF NO_OVERLAY}
 
@@ -169,37 +181,35 @@ uses
 
 {$ENDIF NO_OVERLAY}
 
+{$ENDIF PLUGIN}
+
+
 {$IFDEF LINEPOSIT}
 
 {&Delphi+}
 var
   SaveExitProc: pointer;
-  FileName: ShortString;
-  LineNo: Longint;
-  E: exception;
-{$IFDEF VPBETA}
-  DNErrFile: Text;
-{$ENDIF}
 {$IFDEF LOGOBJLOADSTORE}
   F: Text;
 {$ENDIF}
-(*
+{$IFNDEF DONTCATCHEXCEPTIONS}
+  E: Exception;
+  FileName: ShortString;
+  LineNo: LongInt;
+{$IFDEF VPBETA}
+  DNErrFile: Text;
+{$ENDIF}
+{$ELSE}
 procedure DebugInfoExitProc;
-  begin
+begin
   ExitProc := SaveExitProc;
-  Writeln;
-  ClrEol;
-  if exitCode <> 0 then
+  if ErrorAddr <> nil then
     begin
-    if GetLocationInfo(ErrorAddr, FileName, LineNo ) <> nil then
-      begin
-     {SysTVClrScr;}
-      ClrEol;
-      Writeln( 'Error in ', FileName,' line ', LineNo );
-      end;
+      ErrAdd := Longint(ErrorAddr);
+      EndFatalError;
     end;
-  end;
-*)
+end;
+{$ENDIF}
 
 (*
 {$IFDEF EAOP}
@@ -220,9 +230,10 @@ SysDisableHardErrors;
 SysCtrlSetCBreakHandler;}
 {$ENDIF}
 {$IFDEF LINEPOSIT}
-{SaveExitProc := ExitProc;
- ExitProc := @DebugInfoExitProc;}
-{$IFNDEF DONTCATCHEXCEPTIONS}
+{$IFDEF DONTCATCHEXCEPTIONS}
+ SaveExitProc := ExitProc;
+ ExitProc := @DebugInfoExitProc;
+{$ELSE}
  try
 {$ENDIF}
   {Init09Handler;}

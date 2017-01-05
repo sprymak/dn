@@ -6,37 +6,37 @@ advance7.pas Advanced procedures: Help oriented
 archdet.pas Archiver detectors
 archiver.pas Archivators access
 archread.pas Archivers output list reader
-archset.pas  Archivers setups manager
-arcview.pas  View archives as drives
-arc_ace.pas  Support for ACE
-arc_ain.pas  Support for AIN
-arc_arc.pas  Support for ARC
-arc_bs2.pas  Support for BS2
-arc_bsa.pas  Support for BSA
-arc_cab.pas  Support for CAB
-arc_chz.pas  Support for CHZ
-arc_ha.pas   Support for HA
-arc_hap.pas  Support for HAP
-arc_hpk.pas  Support for HPK
-arc_hyp.pas  Support for HYP
-arc_is3.pas  Support for IS3
-arc_lha.pas  Support for LHA
-arc_lim.pas  Support for LIM
-arc_qrk.pas  Support for QuArk
-arc_rar.pas  Support for RAR
-arc_sqz.pas  Support for SQZ
-arc_tar.pas  Support for TAR
-arc_tgz.pas  Support for TGZ
-arc_uc2.pas  Support for UC2
-arc_ufa.pas  Support for UFA
-arc_zip.pas  Support for ZIP
-arc_zoo.pas  Support for ZOO
-arc_zxz.pas  Support for ZXZ
+archset.pas Archivers setups manager
+arcview.pas View archives as drives
+arc_ace.pas Support for ACE
+arc_ain.pas Support for AIN
+arc_arc.pas Support for ARC
+arc_bs2.pas Support for BS2
+arc_bsa.pas Support for BSA
+arc_cab.pas Support for CAB
+arc_chz.pas Support for CHZ
+arc_ha.pas Support for HA
+arc_hap.pas Support for HAP
+arc_hpk.pas Support for HPK
+arc_hyp.pas Support for HYP
+arc_is3.pas Support for IS3
+arc_lha.pas Support for LHA
+arc_lim.pas Support for LIM
+arc_qrk.pas Support for QuArk
+arc_rar.pas Support for RAR
+arc_sqz.pas Support for SQZ
+arc_tar.pas Support for TAR
+arc_tgz.pas Support for TGZ
+arc_uc2.pas Support for UC2
+arc_ufa.pas Support for UFA
+arc_zip.pas Support for ZIP
+arc_zoo.pas Support for ZOO
+arc_zxz.pas Support for ZXZ
 arvid.pas Access to ARVID tapes
 arvidavt.pas Support for AVT format
 arvidtdr.pas Support for TDR format
 asciitab.pas ASCII table
-calc.pas     Spreadsheet's cells
+calc.pas Spreadsheet's cells
 calculat.pas Main calculator module
 calendar.pas Calendar
 callspcb.pas Compiler-independent mechanisms to call special functions
@@ -45,47 +45,47 @@ cdplayer.pas CD Player
 cdutil.pas CD Player utilites
 cellscol.pas Cells collection for spreadsheet
 cmdline.pas Command line
-colors.pas   Colors
+colors.pas Colors
 colorsel.pas Color selector
 colorvga.pas VGA Color
 commands.pas Constants
 cputype.pas part of CPU/FPU detection library by B-coolWare
-dblwnd.pas   Double Window
+dblwnd.pas Double Window
 dbview.pas .DBF Viewer
 dbwatch.pas .DBF access
 defcoll.pas Defines collection
 dialogs.pas Basic dialogs
-diskimg.pas  Disk image unpacker
+diskimg.pas Disk image unpacker
 DISKINFO.PA8 Disk info
 disktool.pas Disk editor
-dn.pas       Main program module
-dn1.pas      Main program module, Part 2
+dn.pas Main program module
+dn1.pas Main program module, Part 2
 DNEXEC.PA1   Execution functions
 dnformat.pas Format Disk
 dnhelp.pas Help constants
 DNINI1.PAS    Ini Configuration
 dnstddlg.pas DN Standard dialogs
-dnutil.pas   DN Utilites: About & other
-DRIVERS.PAS Low-level device drivers
+dnutil.pas DN Utilites: About & other
+drivers.pas Low-level device drivers
 drivers2.pas Fail information
 DRIVES.PA8   Drive access
 drvtypes.pas Drive type identification
-ed2.pas      Part of editor
-editor.pas   Part of editor
-edwin.pas    Part of editor
-eraser.pas   File eraser
+ed2.pas Part of editor
+editor.pas Part of editor
+edwin.pas Part of editor
+eraser.pas File eraser
 extkbd.pas   Access to extended keyboard (temporary unit)
 extramem.pas Access to extra memory
 fbb.pas LongCopy
-filediz.pas  Files descriptions support
+filediz.pas Files descriptions support
 filelist.pas Files lister
-filelst.pas  Files list creating
+filelst.pas Files list creating
 FILESCOL.PA1 Files collection
 file_id.diz Logo
 findobj.pas Find objects (for ARVID support)
-flpanel.pas  Files panel
+flpanel.pas Files panel
 flpanelx.pas Files panel
-fltools.pas  Files tools
+fltools.pas Files tools
 fmtunit.pas format disk utils
 format.pas formatter kernel
 fstorage.pas Files storage
@@ -97,7 +97,7 @@ helpkern.pas Help kernel
 hideview.pas Hide view
 highlite.pas Syntax highliter
 histlist.pas History list
-idlers.pas   Idle (screen savers)
+idlers.pas Idle (screen savers)
 inifiles.pas Access to .INI files
 LFNCOL.PA1 EMS & Memory LFN collection
 listmakr.pas Part of Resource Compiler
@@ -106,34 +106,34 @@ meminfo.pas Memory information
 memory.pas Memory access
 menus.pas Menus
 messages.pas Message boxes
-microed.pas  Editor
+microed.pas Editor
 microed2.pas Microed: Read/Write/Store/Load methods
-objects.pas  Main objects: TObject, Streams, other.
+objects.pas Main objects: TObject, Streams, other.
 objtype.pas Object types
 packmap.pas MAP file packer
 phones.pas Phones book
-PKTVIEW.PAS Fido PKT viewer
+pktview.pas Fido PKT viewer
 printman.pas Print manager
-profile.pas  .INI file parser
+profile.pas .INI file parser
 rcp.pas DN Resource Compiler
 rcpvp.ini Resource compiler options
 regall.pas Registration of all objects
 rspfile.pas Access to packed files
 rstrings.pas Strings cashe
-sblocks.pas  Collectors
+sblocks.pas Collectors
 scrollbk.pas Scrollback
 scroller.pas Scrollers
 search.pas   Part of packmap & dnerror - binary search
 setups.pas Setups DN
 stakdump.pas A unit for dumping the stack chain
 starsky.pas StarSky screen saver
-startup.pas  Startup configuration
+startup.pas Startup configuration
 stdefine.inc defines for project
 strview.pas TDStringView
 swe.pas Inputs
 sysinfo.pas System information
 titleset.pas Application title changing support
-tree.pas     View of disk tree
+tree.pas View of disk tree
 tvhc.pas TV Help Compiler
 ufnmatch.pas Filename matches the UNIX style mask
 uniwin.pas Uni Window
@@ -148,18 +148,18 @@ views.pas Standard views
 xdblwnd.pas Double Window
 xtime.pas Extended time support
 usermenu.pas User menu routines
-filelst.pas  Files list creating
+filelst.pas Files list creating
 FILESCOL.PA1 Files collection
 filescol.pas Files collection
-lfncol.pas   EMS & Memory LFN collection
+lfncol.pas EMS & Memory LFN collection
 vpsysw32.dif патч к системному модулю vpsysw32.pas, позволяющий избежать проблем с кириллическими именами файлов в Win32 версии
 advance6.pa5 Advanced procedures
 dn2pmapi.pas OS/2 Presentation Manager API interface
-DNPMAPIL.PAS OS/2 Presentation Manager API interface
-openobj.pas  WPS file object opening utility for DN/2
-dnini.pas    Ini Configuration
+dnpmapil.pas OS/2 Presentation Manager API interface
+openobj.pas WPS file object opening utility for DN/2
+dnini.pas Ini Configuration
 diskinfo.pas Disk info
-drives.pas   Drive access
+drives.pas Drive access
 dnini.pa9    Ini Configuration
 drives.pa9   Drive access
 eraser.pa9   File eraser
@@ -167,48 +167,48 @@ filediz.pa9  Files descriptions support
 flpanel.pa9  Files panel
 flpanelx.pa9 Files panel
 fltools.pa9  Files tools
-dnexec.pas   Execution functions
-_dnc.bat     Batch to build Win32 wersion
-_dnc.cmd     Batch to build OS/2 wersion
-drivers._vp  Drivers for VP
-views._vp    Views for VP
-fio._vp      File Input/Output for VP
-vpc.cfg      VPC Configutation file
-vpc.cfo      VPC Configutation file for OS/2 wersion
-vpc.cfw      VPC Configutation file for Win32 wersion
+dnexec.pas Execution functions
+_dnc.bat Batch to build Win32 wersion
+_dnc.cmd Batch to build OS/2 wersion
+drivers._vp Drivers for VP
+views._vp Views for VP
+fio._vp File Input/Output for VP
+vpc.cfg VPC Configutation file
+vpc.cfo VPC Configutation file for OS/2 wersion
+vpc.cfw VPC Configutation file for Win32 wersion
 sort_dos.inc Sorting types for DOS versions
 sort_os2.inc Sorting types for OS/2 versions
-advance.pas  Advanced procedures: startup
+advance.pas Advanced procedures: startup
 advance1.pas Advanced procedures: String functions
 advance2.pas Advanced procedures: File related functions
 advance6.pas Advanced procedures
-collect.pas  Collections
-decoder.pas  Part of DisAsm
-dnapp.pas    DN Application unit
-eaoper.pas   Enhanced Attributes handling (OS/2 only)
-errmess.pas  Error messages
+collect.pas Collections
+decoder.pas Part of DisAsm
+dnapp.pas DN Application unit
+eaoper.pas Enhanced Attributes handling (OS/2 only)
+errmess.pas Error messages
 filecopy.pas Files copyer
 filefind.pas Files finder
-flos2tl.pas  OS/2 specific files tools
-flw32tl.pas  Win32 specific files tools
-fviewer.pas  File viewer
+flos2tl.pas OS/2 specific files tools
+flw32tl.pas Win32 specific files tools
+fviewer.pas File viewer
 histries.pas Histories
-lfnvp.pas    LFN Support for VP
-macro.pas    Macro editor & environment editor
+lfnvp.pas LFN Support for VP
+macro.pas Macro editor & environment editor
 pack_lzw.pas LZW compression
 packf_rs.pas Pack file read/seek
-tetris.pas   Tetris
+tetris.pas Tetris
 u_keymap.pas Keyboard map
 usersavr.pas User saver
 videoman.pas Video mode manager
 vpsyslo2.pas VPSysLow extension unit for VP
 winclpvp.pas Windows clipboard connection for VP
-uue2inc.pas  UU encode/decode
+uue2inc.pas UU encode/decode
 DOC Documentation for DN/2
 EXEO Destination directory for OS/2 binaries
 EXEW Destination directory for Win32 binaries
 LIBO OS/2 libraries directory
 LIBW Win32 libraries directory
-rcpvp.in2    Resource compiler options for OS/2
-rcpvp.inw    Resource compiler options for Win32
+rcpvp.in2 Resource compiler options for OS/2
+rcpvp.inw Resource compiler options for Win32
 sort_w32.inc Sorting types for Win32 versions

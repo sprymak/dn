@@ -66,13 +66,14 @@ implementation
 uses DnUtil, Advance, DnApp, Advance1, Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Advance3, FlPanelX,
      CmdLine, Views, Advance2, Drivers, Advance4
 {$IFDEF VIRTUALPASCAL}
+     ,crt {AK155 временно }
      ,Videoman, Memory
 {$ENDIF}
 {$IFDEF UserSaver}
      , UserSavr
 {$ENDIF}
 {AK155}
-     , Crt
+{     , Crt}
 {/AK155}
 {Cat}
 {$IFDEF VIRTUALPASCAL}
@@ -116,6 +117,8 @@ procedure ExecString(S: PString; WS: String);
 {$ELSE}
      SM: Word;
      EV: TEvent;
+     X, Y: SmallWord; {Cat}
+     ScreenSize: TSysPoint; {Cat}
 {$ENDIF}
 {$IFNDEF VIRTUALPASCAL}
  label 1;
@@ -186,12 +189,18 @@ begin
 {Cat: боремся с интерпретацией Ctrl-C как Ctrl-Break}
   SysTVKbdInit;
 {/Cat}
-{AK155: чтобы комстрока и меню не налазили на вывод }
-  if WhereX <> 1 then
+{AK155, Cat: чтобы комстрока и меню не налазили на вывод}
+  SysGetCurPos(X, Y);
+  if InterfaceData.Options and ouiHideStatus = 0 then
+    inc(Y);
+  if X <> 0 then
     writeln;
-  if WhereY > Hi(WindMax) then
+  SysTvGetScrMode(@ScreenSize);
+  Crt.GetLastMode;  {AK155 временно}
+  Crt.SetWindowPos; {AK155 временно}
+  if Y >= ScreenSize.Y then
     writeln;
-{/AK155}
+{/AK155, Cat}
   if TimerMark then begin
    DDTimer := Get100s-DDTimer;
    ev.what:=evCommand;

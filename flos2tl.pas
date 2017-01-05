@@ -32,7 +32,7 @@ function GetDriveTypeString(Drive: Char): string; {AK155}
 
 implementation
 
-uses SysUtils, os2base, Strings{, Crt, Messages}
+uses {SysUtils,} os2base, Strings{, Crt, Messages}
 {для CopyEAs} {$IFDEF EAOP} , Collect, Messages, EAOper, Advance1, Commands, DNApp{$ENDIF};
 
 (*
@@ -273,7 +273,7 @@ function GetDriveTypeString(Drive: Char): string;
     Ordinal   : SmallWord;
     name      : pChar;
     rc        : Word;
-    DiskSize  : Word;
+   {DiskSize  : Word;}
   begin
   GetDriveTypeString := '';
   BufLen := 100;

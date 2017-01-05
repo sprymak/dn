@@ -46,15 +46,31 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-{$define dn}
-{$ifdef dn}
+{Cat
+   05/10/2001 - переписал этот модуль так, чтобы при задании директивы
+   $DEFINE PLUGIN он компилировался в библиотеку, представляющую собой
+   плагин типа EventCatcher
+}
+
+{$IFDEF PLUGIN}
+library Tetris;
+
+uses
+  Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
+  Commands, Advance, Advance1, Advance2, Advance3, RStrings,
+  xTime, StartUp, DNHelp, VPUtils;
+
+{$DYNAMIC DN2CAT.LIB}
+
+{$ELSE}
 unit Tetris;
 
 interface
-{$endif}
 
-USES Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
-     Commands, advance, advance1, advance2, advance3, RStrings;
+uses
+  Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
+  Commands, Advance, Advance1, Advance2, Advance3, RStrings;
+{$ENDIF}
 
 const
   Shi      = 12;
@@ -63,11 +79,6 @@ const
   T        = True;
 
 type
-{$ifndef dn}
-    TApp = object(TApplication)
-     procedure Idle; virtual;
-    end;
-{$endif}
     PGameWindow = ^TGameWindow;
     TGameWindow = object(TDialog)
      constructor Init;
@@ -128,10 +139,13 @@ type
 
 const Game : PGameView = nil;
 
-{$ifdef dn}
+{$IFNDEF PLUGIN}
 implementation
-uses xTime,StartUp, DNHelp{$IFDEF VIRTUALPASCAL},VPUtils{$ENDIF};
-{$endif}
+
+uses
+  xTime, StartUp, DNHelp {$IFDEF VIRTUALPASCAL} ,VPUtils {$ENDIF};
+{$ENDIF}
+
 const
   MaxFig   = 28;
   Figures  : array[1..5*MaxFig,1..2] of byte=
@@ -222,14 +236,18 @@ end;
 
 constructor TGameInfo.Load(var S: TStream);
 begin
+{$IFNDEF PLUGIN}
  inherited Load(S);
  GetPeerViewPtr(S, Gm);
+{$ENDIF}
 end;
 
 procedure TGameInfo.Store(var S: TStream);
 begin
+{$IFNDEF PLUGIN}
  inherited Store(S);
  PutPeerViewPtr(S, Gm);
+{$ENDIF}
 end;
 
 function TGameInfo.GetPalette;
@@ -336,7 +354,7 @@ begin
    HiScores[I].StLv := 1;
    HiScores[I].EndLv := 1;
   end;
- S.Init(SourceDir+'dn.tet', stOpenRead); {DataCompBoy}
+ S.Init(SourceDir+'TETRIS.CFG', stOpenRead); {DataCompBoy}
  if S.Status = stOK then S.Read(B, sizeof(HiScores));
  S.Done;
  I := SizeOf(HiScores);
@@ -374,7 +392,7 @@ begin
     HiScores[I].StLv := 1;
     HiScores[I].EndLv := 1;
    end;
-   S.Init(SourceDir+'dn.tet', stCreate); {DataCompBoy}
+   S.Init(SourceDir+'TETRIS.CFG', stCreate); {DataCompBoy}
    S.Write(HiScores, sizeof(HiScores));
    S.Done;
    Break;
@@ -427,17 +445,21 @@ end;
 
 constructor TGameView.Load(var S: TStream);
 begin
+{$IFNDEF PLUGIN}
  inherited Load(S);
  GetPeerViewPtr(S, Info);
  S.Read(Glass, SizeOf(Self) - SizeOf(TView) - SizeOf(PView));
  Game := @Self;
+{$ENDIF}
 end;
 
 procedure TGameView.Store(var S: TStream);
 begin
+{$IFNDEF PLUGIN}
  inherited Store(S);
  PutPeerViewPtr(S, Info);
  S.Write(Glass, SizeOf(Self) - SizeOf(TView) - SizeOf(PView));
+{$ENDIF}
 end;
 
 destructor TGameView.Done;
@@ -519,7 +541,7 @@ function TGameView.MoveDown;
   HiScores[I+10*Byte(Pentix)].StLv := StartLevel;
   HiScores[I+10*Byte(Pentix)].EndLv := Level;
   HiScores[I+10*Byte(Pentix)].Score := Score;
-  S.Init(SourceDir+'dn.tet',stCreate); {DataCompBoy}
+  S.Init(SourceDir+'TETRIS.CFG',stCreate); {DataCompBoy}
   Move(HiScores, B, SizeOf(HiScores));
   J := SizeOf(HiScores);
   {$IFNDEF BIT_32}
@@ -751,4 +773,20 @@ begin
  inherited HandleEvent(Event);
 end;
 
+{$IFDEF PLUGIN}
+{&Cdecl+}
+procedure CatchHandleEvent(var Event:TEvent);
+begin
+  if Game=nil then
+    Application^.InsertWindow(New(PGameWindow,Init))
+  else
+    Game^.Owner^.Select;
+end;
+{&Cdecl-}
+
+exports
+  CatchHandleEvent name 'CatchHandleEvent';
+{$ENDIF}
+
+begin
 end.

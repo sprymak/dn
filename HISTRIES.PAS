@@ -51,7 +51,7 @@ unit Histries;
 interface
 uses LFN, Collect, Drivers, Objects, Views, EdWin, Drives, advance, advance1,
      advance2, advance3, U_KeyMap, microed
-     {$IFDEF VIRTUALPASCAL}, Crt{$ENDIF}
+     {$IFDEF VIRTUALPASCAL}{, Crt}{$ENDIF}
 {$IFDEF DBView},DBView{$ENDIF} {$IFDEF SpreadSheet},Calc{$ENDIF}
      ;
 
@@ -165,6 +165,9 @@ const
 implementation
  uses Dos, Commands, DNApp, DNStdDlg, Dialogs, HistList,
       Startup, RStrings, xTime, Messages, DNUtil, DnIni,
+{$IFDEF VIRTUALPASCAL}
+      VpSysLow,
+{$ENDIF}
 {$IFDEF SS}
       Idlers,
 {$ENDIF}
@@ -631,7 +634,7 @@ begin
                begin
                 If HistoryErrorBeep then begin
                  {$IFDEF VIRTUALPASCAL}
-                 PlaySound(500, 110);
+                 SysBeepEx{PlaySound}(500, 110);
                  {$ELSE}
                  Sound(500);DelayTics(2);NoSound;
                  {$ENDIF}

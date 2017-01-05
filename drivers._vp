@@ -62,7 +62,7 @@ begin
              ((ScreenWidth-42) div 2+X)*2;
 end;
 
-
+{$IFNDEF DONTCATCHEXCEPTIONS}
 procedure NewLine;
 var CO : SmallWord ;
   begin
@@ -105,45 +105,66 @@ var CO : SmallWord ;
 
     SysTVShowBuf(CO, CO+ScreenWidth*2);
   end;
+{$ENDIF}
 
 begin
- SysTvClrScr;
- SysTvShowBuf(0, ScreenWidth*ScreenHeight);
- SysBuf := SysTVGetSrcBuf;
+  SysTvClrScr;
+  SysTvShowBuf(0, ScreenWidth*ScreenHeight);
+  SysBuf := SysTVGetSrcBuf;
 
- { Create Report File }
- DoDump(ExitCode, Pointer(ErrAdd));
+  { Create Report File }
+  DoDump(ExitCode, Pointer(ErrAdd));
 
+{Cat: если выходим через Exception, то всё нормально, а если через
+      ExitProc, то красивое окошко почему-то не рисуется; разбираться
+      в причинах, на мой взгляд, незачем - сойдёт и вывод через Writeln}
+{$IFDEF DONTCATCHEXCEPTIONS}
+  Writeln('Fatal Error'^M^J'───────────'^M^J^M^J+
+          'Exception 0',Hex2(ExitCode),'h at address ',Hex8(ErrAdd),^M^J+
+{$IFDEF OS2}
+          'Report to 2:5030/1082.53 or to 2:461/155 or to 2:5030/1326.13'^M^J+
+          'or to RU.SHELL.DN'^M^J+
+{$ELSE}
+          'Report to RU.SHELL.DN'^M^J+
+{$ENDIF}
+          '( file DN.ERR )'^M^J^M^J+
+          'Press any key...');
+{$ELSE}
+{/Cat}
   { Display Error Box }
   if Lo(ScreenMode) = smMono then
     begin C := SysMonoAttr; AC := $0F07 end else
     begin C := SysColorAttr; AC := SysColorButtonAttr end;
 
-   I := 0 ;
-     for I:=0 to 9
-      do
-       begin
-        case I of
-             0 : FreeStr := ' Fatal Error ';
-             2 : FreeStr := 'Exception 0' + Hex2(ExitCode)
-                            + 'h at address '+Hex8(ErrAdd);
+  for I:=0 to 9 do
+    begin
+      case I of
+        0 : FreeStr := ' Fatal Error ';
+        2 : FreeStr := 'Exception 0' + Hex2(ExitCode)
+                     + 'h at address '+Hex8(ErrAdd);
 {$IFDEF OS2}
-             4 : FreeStr := 'Report to 2:5030/1082.53 or to 2:461/155';
-             5 : FreeStr := 'or to RU.SHELL.DN';
+        4 : FreeStr := 'Report to 2:5030/1082.53 or to 2:461/155';
+        5 : FreeStr := 'or to RU.SHELL.DN';
 {$ELSE}
-             4 : FreeStr := 'Report to RU.SHELL.DN';
+        4 : FreeStr := 'Report to RU.SHELL.DN';
 {$ENDIF}
-             7 : FreeStr := '( file DN.ERR )';
-            else FreeStr := '';
-        end;
+        7 : FreeStr := '( file DN.ERR )';
+        else FreeStr := '';
+      end;
       NewLine;
     end;
-  repeat
-  until keypressed;
-end;
 {$ENDIF}
 
-
+{Cat}
+  repeat
+    TinySlice;
+  until SysKeyPressed;
+  while SysKeyPressed do
+    SysReadKey;
+  SysTVInitCursor;
+{/Cat}
+end;
+{$ENDIF}
 
 // Detects mouse driver, moves mouse pointer to the top left corner
 

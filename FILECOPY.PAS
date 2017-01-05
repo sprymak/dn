@@ -82,7 +82,7 @@ uses DNApp, Startup, Memory, Messages, HistList, Commands,
     {$IFNDEF NOEXTRA}ExtraMem,{$ENDIF}
     {$IFDEF MODEM}{$IFDEF LINK}NavyLink,{$ENDIF}{$ENDIF}
     {$IFNDEF NONBP} DiskTool,{$ENDIF}
-    {$IFDEF VIRTUALPASCAL} Crt, {$ENDIF}
+    {$IFDEF VIRTUALPASCAL} {Crt,} VpSysLow, {$ENDIF}
      Gauge, FileFind,
      DNUtil, RStrings, Tree, Archiver, Drives, DiskInfo
      , ErrMess
@@ -209,8 +209,8 @@ begin
   for C := 'A' to 'D' do
     begin
        {$IFDEF VIRTUALPASCAL}
-       PlaySound(1259, 55);
-       PlaySound(1400, 55);
+       SysBeepEx{PlaySound}(1259, 55);
+       SysBeepEx{PlaySound}(1400, 55);
        {$ELSE}
        Sound(1259);
        DelayTics(1);
@@ -223,7 +223,7 @@ begin
    DelayTics(2);
    NoSound;
    {$ELSE}
-   PlaySound(1259, 110);
+   SysBeepEx{PlaySound}(1259, 110);
    {$ENDIF}
 end;
 
@@ -1593,10 +1593,9 @@ lbStartWrite:
         Dispatch;
 FileRead:
         if WW > 0 then BlockRead(ReadStream.F, B^, WW, J);
-
 {AK155}
-{$IFDEF OS2}
- { Под OS/2 не вызывается, как в ДОС, обработчик критических ошибок,
+{$IFNDEF OS_DOS}
+ { Под OS/2 и Win32 не вызывается, как в ДОС, обработчик критических ошибок,
  так что надо самим анализировать результат и вызывать обработчик }
         I := IOResult;
         if I <> 0 then
@@ -1931,6 +1930,17 @@ FileRead:
           Dispatch;
           if not CopyCancel then lFindNext(SR);
         end;
+{AK155 Если при копировании каталога или выделенных файлов
+ возникает ошибка чтения, то надо выдать сообщение, а не
+ просто молча прекратить копирование. Но цикл нормально
+ завершается, когда больше нет файлов, при этом под всеми
+ операционками DosError=18.
+ }
+      if (DosError = 18{ERROR_NO_MORE_FILES}) then
+        DosError := 0;
+      if DosError <> 0 then
+        SystemError(DosError, 0); {при этом будет установлен Abort}
+{/AK155}
       lFindClose(SR);
     end;
 
@@ -2028,6 +2038,7 @@ FileRead:
       end;
 1:  repeat
       FrPos := -1;
+      if Abort then break; {AK155 Abort может установить SystemError}
       PD := Dirs^.FirstThat(@NoCheck);
       if PD = nil then Break;
       CopyF(PD^.DNew, PD^.DOld, PD^.CopyIt, PD^.Attr and $3FFF);
@@ -2202,7 +2213,7 @@ qqqq:
            CD_Drives := CD_Drives - [c];
     end else CD_Drives := [];
   MakeDirectories;
-  if CopyCancel then Goto 1;
+  if (DosError <> 0){AK155} or CopyCancel then Goto 1;
   MemStream := nil;
 {$IFNDEF NOEXTRA}
   EMSStream := nil; NoUseEMS := Off;
@@ -2515,10 +2526,31 @@ begin
          end;
       end;
     end;
+{$IFDEF VIRTUALPASCAL}
+   if Nm[Length(Nm)]=':'
+     then S := UpStrg(Copy(Nm,1,Length(Nm)-1))+#0
+     else S := UpStrg(Nm)+#0;
+   if SysFileOpen(@S[1], open_access_ReadOnly or open_share_DenyNone, I) = 0 then
+     begin
+       if SysFileIsDevice(I) <> 0 then
+         begin
+           SysFileClose(I);
+           I := 1;
+         end
+       else
+         begin
+           SysFileClose(I);
+           I := 0;
+         end;
+     end
+   else
+     I := 0;
+{$ELSE}
    S := #0'NUL'#0'PRN'#0'LPT1'#0'LPT2'#0'LPT3'#0'LPT4'#0'COM1'#0'COM2'#0'COM3'#0'COM4';
    if Nm[Length(Nm)]=':'
     then I := Pos(UpStrg(#0+Copy(Nm,1,Length(Nm)-1)+#0), S)
     else I := Pos(UpStrg(#0+Nm+#0), S);
+{$ENDIF}
    if (I <> 0) then
      begin
        CopyMode := cpmOverwrite;

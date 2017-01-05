@@ -1098,6 +1098,7 @@ procedure InitialiseKeyboardHandler;
 begin
   if hKbdDll = -1 then // First try - attempt load
     begin
+(* {AK155 ни к чему загружать неизвестно какую VpKbdW32.dll}
       hKbdDll := LoadLibrary(KbdDllName);
       if hKbdDll <> 0 then
         begin
@@ -1107,6 +1108,7 @@ begin
       // If any of the entry points were not found in the DLL, point them
       // to statically linked default handlers
       if not assigned(pKbdInit) or not assigned(pKbdUpdateEventQueues) then
+*)
         begin
           @pKbdInit := @VpKbdW32.KbdInit;
           @pKbdUpdateEventQueues := @VpKbdW32.KbdUpdateEventQueues;
@@ -2190,11 +2192,11 @@ begin
       MemHandle := GlobalAlloc(gmem_Moveable or gmem_DDEShare, Size+1);
       Q := GlobalLock(MemHandle);
       // Copy clipboard data across and translate to ANSI charset
-      Result := OemToCharBuff(P, Q, Size);
+      Result := OemToCharBuff(P, Q, Size); 
       Q[Size]:=#0;
       GlobalUnlock(MemHandle);
       // Insert data into clipboard
-      if Result then
+      if Result then 
         Result := SetClipboardData(cf_Text, MemHandle) <> 0;
       // Do not free memory: Windows does this!
       // GlobalFree(MemHandle);

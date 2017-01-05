@@ -52,7 +52,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '1.51.10b2/'+
+  VersionName:string = '1.51.10b3/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}
                        {$ELSE}        {$IFDEF WIN32}+'W32'

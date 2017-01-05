@@ -17,6 +17,6 @@ begin
  PS := StrPCopy (PS, Paramstr(1));
  Handle :=  WinQueryObject(PS);
 {Writeln('Handle = ', Handle);}
- If WinOpenObject(Handle, OPEN_DEFAULT, False) then Writeln('object successfully opened')
+ If WinOpenObject(Handle, OPEN_DEFAULT, True) then Writeln('object successfully opened')
    else Writeln('failed to open object');
 end.

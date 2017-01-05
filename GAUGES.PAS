@@ -123,7 +123,8 @@ procedure PrintFiles(Files: PCollection; Own: PView);
 
 implementation
 uses Memory, Tree, Messages, DNApp, advance, advance1, advance2, advance3,
-     {$IFDEF VIRTUALPASCAL}SysUtils, {$ENDIF}
+  {$IFDEF OS2} dn2pmapi, {$ENDIF} {AK155}
+     {$IFDEF VIRTUALPASCAL} {SysUtils,} {$ENDIF}
      FilesCol, RStrings, Startup, DnIni; {-$VIV}
 
 constructor TKeyMacros.Init;
@@ -290,7 +291,13 @@ begin
   if (Abs(s - LastTime.sec) >= Refresh) or (Semi<>LastSemi) then
   begin
     GetDate(y,mn,d,hund);
-    if ShiftState and 7 <> 0 then
+    if (ShiftState and 7 <> 0)
+{$IFDEF OS2}
+   {AK155 В неактивном оконном состоянии не надо реагировать на
+          Shift, Alt, Ctrl}
+     and not DN_IsBGWindow
+{$ENDIF}
+    then
       begin
         if ShiftState and 3 <> 0 then TimeStr := ' '+FStr(MemAvail)+' '
           else begin
@@ -305,7 +312,7 @@ begin
                       mov DayWeek, al
                   end;
                   {$ELSE}
-                  DayWeek := DayOfWeek(Date)-1;
+                  DayWeek := hund;{DayOfWeek(Date)-1;} {Cat: странные какие-то проблемы...}
                   {$ENDIF}
                   if (Length(DaysOfWeek)<>14) and (Length(DaysOfWeek)<>21)
                   then TimeStr:=' '+Copy(GetString(stDaysWeek),1+DayWeek*2,2)

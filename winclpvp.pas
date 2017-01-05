@@ -52,6 +52,7 @@
 {Cat
    28/08/2001 - переделал функции для совместимости с типами AnsiString и
    LongString, а также для поддержки коллекций с длинными строками
+   05/09/2001 - выкинул NeedStream из GetWinClip и SyncClipOut
 }
 
 Unit WinClpVp ;
@@ -60,17 +61,19 @@ interface
  Uses Objects, Collect ;
 
  Function SetWinClip( PC : PLineCollection ):boolean;
- Function GetWinClip( Var PCL : PLineCollection; NeedStream: boolean ):boolean;
+ Function GetWinClip( Var PCL : PLineCollection{; NeedStream: boolean} ):boolean;
  Function GetWinClipSize : boolean ;
  procedure SyncClipIn;
- procedure SyncClipOut(NeedStream: boolean);
+ procedure SyncClipOut{(NeedStream: boolean)};
 
  procedure CopyLines2Stream( PC: PCollection; var PCS: PStream);
  procedure CopyStream2Lines( PCS: PStream; var PC: PCollection);
 
 
 Implementation
-uses VpSysLow, Microed, Advance, Advance1, DnIni;
+uses
+  {$IFDEF OS2} Os2Base, Dn2PmApi, {$ELSE} VpSysLow, {$ENDIF}
+  Microed, Advance, Advance1, DnIni;
 
  procedure SyncClipIn;
  begin
@@ -78,9 +81,9 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
       SetWinClip(PLineCollection(Clipboard));
  end;
 
- procedure SyncClipOut(NeedStream: boolean);
+ procedure SyncClipOut{(NeedStream: boolean)};
  begin
-    GetWinClip(PLineCollection(Clipboard), NeedStream);
+    GetWinClip(PLineCollection(Clipboard){, NeedStream});
  end;
 
 {Cat: добавил обработку коллекций с длинными строками}
@@ -94,6 +97,9 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
      S: LongString;
  begin
   Size:=0;
+
+  if PC = nil then
+    Exit; {Cat: коллекции может и не быть}
 
   if PC^.LongStrings then
     begin
@@ -139,7 +145,11 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
       inc(idx, Length(S));
     end;
   byte(idx^):=0;
+{$IFDEF OS2}
+  SetWinClip:=DN_XClipCopy(B, Size);
+{$ELSE}
   SetWinClip:=SysClipCopy(B, Size);
+{$ENDIF}
   FreeMem(B, Size);
  end;
 {/Cat}
@@ -148,7 +158,7 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
 {AK155 GetWinClip переписан почти полностью, так как та версия,
 которая мне досталась, во-первых, не работала, а во-вторых,
 делала это очень медленно :) }
- Function GetWinClip( Var PCL : PLineCollection; NeedStream: boolean ):boolean;
+ Function GetWinClip( Var PCL : PLineCollection{; NeedStream: boolean} ):boolean;
   var Size : longint;
       Buf : PChar;
      {idx : PChar;
@@ -203,15 +213,28 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
 {/Cat}
 
   begin
-   if not SysClipCanPaste then begin
-    GetWinClip := false;
-    exit
-   end else GetWinClip := true;
+{$IFDEF OS2}
+   if not DN_XClipCanPaste then
+{$ELSE}
+   if not SysClipCanPaste then
+{$ENDIF}
+     begin
+       GetWinClip := false;
+       Exit;
+     end
+   else
+     GetWinClip := true;
 
-   if PCL<>nil then PCL^.FreeAll
-   else New(PCL, Init($10, $10, True));
+   if PCL<>nil then
+     PCL^.FreeAll
+   else
+     New(PCL, Init($10, $10, True));
 
+{$IFDEF OS2}
+   Buf := DN_XClipPaste(Size);
+{$ELSE}
    Buf := SysClipPaste(Size);
+{$ENDIF}
    Start := Buf;
    Stop := Start;
 
@@ -238,21 +261,36 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
    Str2Collection;
 {/AK155}
 
+{$IFDEF OS2}
+ DosFreeMem(Buf);
+{$ELSE}
  FreeMem(Buf, Size);
+{$ENDIF}
  Buf := nil;
  Size := 0;
 
+{Cat: приводит к дублированию строк в Clipboard-е
+      в случае использования "текстового буфера системы"
+      в результате выкидывания возможно появление новых
+      глюков, т.к. я абсолютно не понимаю, какой способ
+      работы Clipboard-а надлежит считать правильным...}
+(*
    if NeedStream then begin
      I := 0;
      if ClipBoardStream<>nil then
       ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-{$IFDEF USELONGSTRING} 4 {$ELSE} 1 {$ENDIF}, 0));
      CopyLines2Stream( PCL, ClipBoardStream );
    end;
+*)
   end;
 
  Function GetWinClipSize : boolean ;
  begin
+{$IFDEF OS2}
+  GetWinClipSize := DN_XClipCanPaste;
+{$ELSE}
   GetWinClipSize := SysClipCanPaste;
+{$ENDIF}
  end;
 
 {Cat: добавил обработку коллекций с длинными строками}
@@ -342,14 +380,21 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
      if P^.LongStrings then
        begin {пишем длинные строки из коллекции в длинные строки потока}
          for i := 0 to P^.Count-1 do
-           PCS^.WriteLongStr(P^.At(i));
+           begin
+             TempLongString := CnvLongString(P^.At(i));
+             if TempLongString = '' then
+               TempLongString := ' ';
+             PCS^.WriteLongStr(@TempLongString);
+           end;
          PCS^.WriteLongStr(nil);
        end
      else
        begin {пишем короткие строки из коллекции в длинные строки потока}
          for i := 0 to P^.Count-1 do
            begin
-             TempLongString := PString(P^.At(i))^;
+             TempLongString := CnvString(P^.At(i));
+             if TempLongString = '' then
+               TempLongString := ' ';
              PCS^.WriteLongStr(@TempLongString);
            end;
          PCS^.WriteLongStr(nil);
@@ -359,7 +404,9 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
        begin {пишем длинные строки из коллекции в короткие строки потока}
          for i := 0 to P^.Count-1 do
            begin
-             TempString := PLongString(P^.At(i))^;
+             TempString := CnvLongString(P^.At(i));
+             if TempString = '' then
+               TempString := ' ';
              PCS^.WriteStr(@TempString);
            end;
          PCS^.WriteStr(nil);
@@ -367,7 +414,12 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
      else
        begin {пишем короткие строки из коллекции в короткие строки потока}
          for i := 0 to P^.Count-1 do
-           PCS^.WriteStr(P^.At(i));
+           begin
+             TempString := CnvString(P^.At(i));
+             if TempString = '' then
+               TempString := ' ';
+             PCS^.WriteStr(@TempString);
+           end;
          PCS^.WriteStr(nil);
        end;
    if (PCS^.GetSize > CBSize) and (P^.Count > 1) then
@@ -393,7 +445,9 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
        PLS:=PCS^.ReadLongStr;
        while (PLS<>nil) and not PCS^.EOF do
          begin
-           PC^.AtInsert( 0, PLS );
+           if PLS^=' ' then
+             PLS^:='';
+           PC^.AtInsert(0, PLS);
            if (PCS^.GetPos > CBSize) and (PC^.Count > 1) then
              PC^.AtFree(0);
            PLS:=PCS^.ReadLongStr;
@@ -404,7 +458,9 @@ uses VpSysLow, Microed, Advance, Advance1, DnIni;
        PS:=PCS^.ReadStr;
        while (PS<>nil) and not PCS^.EOF do
          begin
-           PC^.AtInsert( 0, PS );
+           if PS^=' ' then
+             PS^:='';
+           PC^.AtInsert(0, PS);
            if (PCS^.GetPos > CBSize) and (PC^.Count > 1) then
              PC^.AtFree(0);
            PS:=PCS^.ReadStr;

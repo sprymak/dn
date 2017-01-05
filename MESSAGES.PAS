@@ -45,6 +45,7 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{&Delphi+}
 
 unit Messages;
 
@@ -158,16 +159,20 @@ end;
 
 function Msg;
 begin
-  Msg := MessageBox( GetString( Index ), Params, AOptions );
+  if Desktop <> nil then {Cat: здесь надо проверять, существует ли
+                               уже к этому моменту Desktop}
+    Msg := MessageBox( GetString( Index ), Params, AOptions );
 end;
 
 function Msg2;
 begin
-  Msg2 := MessageBox2( GetString( Index1 ),
-                       GetString( Index2 ),
-                       Params1,
-                       Params2,
-                       AOptions );
+  if Desktop <> nil then {Cat: здесь надо проверять, существует ли
+                               уже к этому моменту Desktop}
+    Msg2 := MessageBox2( GetString( Index1 ),
+                         GetString( Index2 ),
+                         Params1,
+                         Params2,
+                         AOptions );
 end;
 
 function MessageBox2;

@@ -176,7 +176,12 @@ end;
 procedure TCommandLine.Update;
  var P: TPoint;
      A1,A2: {$IFNDEF VIRTUALPASCAL}Integer{$ELSE}SmallWord{$ENDIF};
-     BB: Boolean;
+//     BB: Boolean;
+    CursorStartScanLine, CursorEndScanLine: integer; //ak155
+    CursorVisible: boolean;//ak155
+    CursorMaxY: integer;
+ const
+   OldOverwrite: longint = 2;
 begin
  if GetState(sfDisabled) then Exit;
   {$IFNDEF VIRTUALPASCAL}
@@ -189,6 +194,7 @@ begin
   end;
   {$ELSE}
   SysGetCurPos(A1, A2);
+  SysTVGetCurType(CursorStartScanLine, CursorEndScanLine, CursorVisible);
   {$ENDIF}
   if
 {$IFDEF SS} (SSaver <> nil) or {$ENDIF}
@@ -202,7 +208,7 @@ begin
   P.X := CurX + Min(Length(Dir), 50) - DeltaX;
   P.Y := 0;
   MakeGlobal(P, P);
-  BB := not Overwrite  xor (InterfaceData.Options and ouiBlockInsertCursor <> 0);
+//AK155  BB := not Overwrite  xor (InterfaceData.Options and ouiBlockInsertCursor <> 0);
   {$IFNDEF VIRTUALPASCAL}
   asm
         MOV     CX,CursorLines
@@ -222,10 +228,22 @@ begin
         INT     10H
   end;
   {$ELSE}
-  if BB
-   then SysTVSetCurType(hi(CursorLines), lo(CursorLines), true)
-   else SysTVSetCurType(0, 7, true);
-  SysTVSetCurPos(P.X, P.Y);
+{AK155 вызовы программ установки режимов курсора безобидны под OS/2,
+но под Win32 приводят к мерзкому миганию курсора. Поэтому я попытался
+не вызывать их без надобности. 18.10.2001 }
+if (OldOverwrite <> ord(Overwrite)) or
+   not CursorVisible
+then
+   begin
+   CursorMaxY := Lo(Drivers.CursorLines);
+   if not Overwrite then
+     SysTVSetCurType(CursorMaxY-1, CursorMaxY, true)
+   else SysTVSetCurType(0, CursorMaxY, true);
+   OldOverwrite := ord(Overwrite);
+   end;
+if (A1 <> P.X) or (A2 <> Origin.Y) then
+  SysTVSetCurPos(P.X, Origin.Y);
+{/AK155}
   {$ENDIF}
 end;
 

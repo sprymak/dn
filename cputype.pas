@@ -236,7 +236,7 @@ function isV86 : Boolean; {$IFNDEF VER60}far;{$ENDIF}
 implementation
 
 {$IFDEF VIRTUALPASCAL}
-uses Windows, SysUtils, Advance, Commands, DNApp;
+uses Windows, {SysUtils,} Advance, Commands, DNApp;
 {$ELSE}
  {$IFDEF Windows}
  uses WinDos, Strings;

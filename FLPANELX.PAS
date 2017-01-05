@@ -131,11 +131,14 @@ IMPLEMENTATION
 uses
   Messages, DnApp, DnHelp, Startup, Commands, Histries, HistList, FlTools,
   FileFind, CmdLine, ArcView, Archiver, DiskImg, DiskInfo, FileCopy, DnUtil,
-  dnini {-$VIV}
-  {$IFDEF MODEM}{$IFDEF LINK}, NavyLink{$ENDIF}{$ENDIF}
-{$IFDEF UUENCODE},UUCode{$ELSE}
-{$IFDEF UUDECODE},UUCode{$ENDIF}{$ENDIF}
-{$IFDEF USEWPS}, Dn2PmApi ,Strings{$ENDIF} {JO}
+  DnIni {-$VIV}
+  {$IFDEF MODEM} {$IFDEF LINK} ,NavyLink {$ENDIF} {$ENDIF}
+  {$IFDEF UUENCODE} ,UUCode {$ELSE}
+  {$IFDEF UUDECODE} ,UUCode {$ENDIF} {$ENDIF}
+  {$IFDEF USEWPS} ,Strings
+  {$IFDEF OS2} ,Dn2PmApi {$ENDIF}
+  {$IFDEF WIN32} ,U_KeyMap {$ENDIF}
+  {$ENDIF}
   ;
 
 procedure TFilePanelRoot.IncDrawDisabled;
@@ -1895,6 +1898,7 @@ end;
 
 {JO}
  {$IFDEF USEWPS}
+ {$IFDEF OS2}
  procedure _OpenWPSWindow(DirName: String);
   var Handle: LongInt;
           PS: PChar;
@@ -1903,7 +1907,7 @@ end;
   PS := PSArr;
   PS := StrPCopy (PS, DirName);
   Handle :=  DN_WinQueryObject(PS);
-  DN_WinOpenObject(Handle, {OPEN_DEFAULT}0, False)
+  DN_WinOpenObject(Handle, {OPEN_DEFAULT}0, True)
  end;
 
  procedure _CreateWPSObject(FileName: String; Prog: Boolean);
@@ -1935,6 +1939,16 @@ end;
  end;
  {$ENDIF}
 {/JO}
+{Cat}
+ {$IFDEF WIN32}
+ procedure _OpenWPSWindow(DirName: String);
+ begin
+  DirName := 'start "'+Ascii_Ansi(DirName)+'"';
+  Message(Application, evCommand, cmExecString, @DirName);
+ end;
+ {$ENDIF}
+ {$ENDIF}
+{/Cat}
 
 var
   FC: PFilesCollection;
@@ -2167,10 +2181,12 @@ begin
               cmAdvFilter: begin CM_AdvancedFilter(@Self); CE end;
 {$IFDEF USEWPS}
               cmOpenWPSWindow: begin _OpenWPSWindow(DirectoryName); CE; end; {JO}
+{$IFDEF OS2} {Cat: в windows содание ярлыка пока не работает}
               cmCreateWPSObject: begin if (PF <> nil) and (Drive^.DriveType < dtArc) then
                                  _CreateWPSObject(MakeNormName(PF^.Owner^, PF^.Name), (InExtFilter(PF^.Name, Executables) and (PF^.Attr and Directory = 0)));
                                  CE;
                                  end;
+{$ENDIF}
 {$ENDIF}
              end;
   evKeyDown: _CheckKB;

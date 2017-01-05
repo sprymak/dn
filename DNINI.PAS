@@ -96,7 +96,6 @@ const
 {}PanelDescrDrive          : String     = '';                         {JO}
 {}UseEnterInViewer         : Byte       = 0;                          {JO}
 {}SkipXLatMenu             : Boolean    = False;                      {JO}
-{}AutoRefreshDriveLine     : Boolean    = False;                      {Cat}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -165,6 +164,8 @@ const
 {}ShowLongName             : Boolean    = True;
 {}QuickRenameInDialog      : Boolean    = False;
 {}UpperCaseSorting         : Boolean    = True; {JO}
+{}AutoRefreshDriveLine     : Boolean    = False; {Cat}
+{}QuickSearchType          : Byte       = 0; {Cat}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -382,7 +383,6 @@ begin
   RegisterVar(CSInterface, 'PanelDescrDrive',      ikStr,  SizeOf(PanelDescrDrive),      @PanelDescrDrive);    {JO}
   RegisterVar(CSInterface, 'UseEnterInViewer',     ikUInt, SizeOf(UseEnterInViewer),     @UseEnterInViewer);   {JO}
   RegisterVar(CSInterface, 'SkipXLatMenu',         ikBool, SizeOf(SkipXLatMenu),         @SkipXLatMenu);       {JO}
-  RegisterVar(CSInterface, 'AutoRefreshDriveLine', ikBool, SizeOf(AutoRefreshDriveLine), @AutoRefreshDriveLine); {Cat}
   {Clock}
   RegisterVar(CSClock,     'ShowSeconds',          ikBool, SizeOf(ShowSeconds),          @ShowSeconds);
   RegisterVar(CSClock,     'ShowCentury',          ikBool, SizeOf(ShowCentury),          @ShowCentury);
@@ -429,7 +429,9 @@ begin
   RegisterVar(CSFilePanels,'ShowFileMask',         ikBool, SizeOf(ShowFileMask),         @ShowFileMask);
   RegisterVar(CSFilePanels,'ShowLongName',         ikBool, SizeOf(ShowLongName),         @ShowLongName);
   RegisterVar(CSFilePanels,'QuickRenameInDialog',  ikBool, SizeOf(QuickRenameInDialog),  @QuickRenameInDialog);
-  RegisterVar(CSFilePanels, 'UpperCaseSorting',    ikBool, SizeOf(UpperCaseSorting),     @UpperCaseSorting);   {JO}
+  RegisterVar(CSFilePanels,'UpperCaseSorting',     ikBool, SizeOf(UpperCaseSorting),     @UpperCaseSorting);   {JO}
+  RegisterVar(CSFilePanels,'AutoRefreshDriveLine', ikBool, SizeOf(AutoRefreshDriveLine), @AutoRefreshDriveLine); {Cat}
+  RegisterVar(CSFilePanels,'QuickSearchType',      ikUInt, SizeOf(QuickSearchType),      @QuickSearchType); {Cat}
   {NetInfo}
   RegisterVar(CSNetInfo,   'NoLevelsInfo',         ikBool, SizeOf(NoLevelsInfo),         @NoLevelsInfo);
   {Language}

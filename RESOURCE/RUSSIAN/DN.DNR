@@ -1507,8 +1507,8 @@ STATUSLINE
 ;$ELSE
      StatusItem '+~N~ Лог. имена', KbCtrlN, cmToggleLongNames,
 ;$ENDIF
-;$IFDEF OS2
      StatusItem '+~W~PS', kbCtrlW, cmOpenWPSWindow,
+;$IFDEF OS2
      StatusItem '+~О~бъект', kbCtrlJ, cmCreateWPSObject,
 ;$ENDIF
 ;{-$VIV}

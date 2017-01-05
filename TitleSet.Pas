@@ -51,8 +51,61 @@ Interface
  Procedure SetTitle(Text: String);
 
 Implementation
-{$IFDEF NONBP}Procedure SetTitle(Text: String); begin end;{$ELSE}
- uses Advance {$IFDEF DPMI}, DPMI, DosMem{$ENDIF}, Dos;
+
+{$IFDEF VIRTUALPASCAL}
+{$IFDEF OS2}
+uses
+  Dn2PmApi;
+
+var
+  CurrentTitle: String;
+
+Procedure SetTitle(Text: String);
+begin
+  Text := 'DN/2: '+Text;
+  if Text = CurrentTitle then
+    exit;
+  CurrentTitle := Text;
+
+  DN_XSetTitle(Text);
+end;
+
+begin
+{$ENDIF}
+{$IFDEF WIN32}
+uses
+  Windows,
+  vpsyslow, U_KeyMap;
+
+var
+  CurrentTitle: String;
+
+Procedure SetTitle(Text: String);
+begin
+  Text := 'DN/2: '+Text;
+  if Text = CurrentTitle then
+    exit;
+  CurrentTitle := Text;
+
+{AK155 Под Win NT заголовок окна отображается в кодировке OEM,
+а  в  Win 9x - в кодировке ANSI. Поэтому флаг перекодировки
+устанавливается в зависимости от типа операционной системы
+}
+  if (SysPlatformID = 1{Win 9x}) then
+    Text := Ascii_Ansi(Text)+#0
+  else
+    Text := Text+#0;
+  SetConsoleTitle(@Text[1]);
+end;
+{$ENDIF}
+{$ELSE}
+{$IFDEF NONBP}
+Procedure SetTitle(Text: String);
+begin
+end;
+{$ELSE}
+uses
+  Advance {$IFDEF DPMI}, DPMI, DosMem{$ENDIF}, Dos;
 
 const DNTITL: String[3] = 'DN'#0;
 {$IFDEF DPMI}
@@ -62,8 +115,15 @@ var r: DPMIRegisters;
 var r: registers;
 {$ENDIF}
 
+var
+  CurrentTitle: String;
+
  Procedure SetTitle(Text: String);
   begin
+   if Text = CurrentTitle then
+     exit;
+   CurrentTitle := Text;
+
       {Setting Win9x application title}
    Text:=Advance.FormatLongName(Text,79,0,flnUseCutChar,nfmNull,nil)+#0;
    r.ax:=$168E;
@@ -190,4 +250,6 @@ begin
  oep:=ExitProc;
  ExitProc:=@exp;
 {$ENDIF NONBP}
+{$ENDIF VIRTUALPASCAL}
+
 end.

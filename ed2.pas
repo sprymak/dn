@@ -263,7 +263,7 @@ begin
   C := P^.KeyMapConvertStr(C, false); {-$VIV start}
   CharNum := Byte(C[1]); {-$VIV e.nd}
   if P^.Modified then S := #15+Ch2 else S := Ch2+Ch2;
-  S := S + SStr(Y, 7, Ch2) + ':' + SSt2(X, 3, Ch2) + Ch2+'['+SStr(CharNum,3,'0')+']'+Ch2; {-$VIV}
+  S := S + SStr(Y, 5, Ch2) + ':' + SSt2(X, 4, Ch2) + Ch2+'['+SStr(CharNum,3,'0')+'ú'+Hex2(CharNum)+']'+Ch2; {-$VIV}
   if P^.DrawMode = 1 then S := S + '{Å' else
     if P^.DrawMode = 2 then S := S + '{Î' else
       if P^.VertBlock then S := S + '('#18 else S := S + '('#29;

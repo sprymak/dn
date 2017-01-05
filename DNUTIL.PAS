@@ -635,7 +635,7 @@ begin
     if (LoadStream <> nil) and (ClipBoardStream <> nil) then begin
       LoadStream^.Seek(0);
       ClipBoardStream^.CopyFrom(LoadStream^, LoadStream^.GetSize);
-      if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(Off);
+      if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(Off)};
     end;
     FreeObject( LoadStream );
   end;
@@ -1383,9 +1383,9 @@ var
          CurrentCalc := fsCurrentCalc;
          SearchPos   := fsSearchPos;
          ErrorCell   := fsErrorCell;
-         HScroll^.SetValue(Delta.X + Cur.X); {AK155}
-         VScroll^.SetValue(Delta.Y + Cur.Y); {AK155}
-        end;
+         HScroll^.Value := Delta.X + Cur.X;{AK155}
+         VScroll^.Value := Delta.Y + Cur.Y;{AK155}
+         end;
        end;
      goto db;
      end;
@@ -2156,7 +2156,7 @@ $140A..$FFFE: R.VM := 6;
  procedure GetFromClip;
  begin
    if SystemData.Options and ossUseSysClip <> 0 then
-     SyncClipOut(On);
+     SyncClipOut{(On)};
    if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
      PString(Event.InfoPtr)^ := ''
    else
@@ -2166,7 +2166,7 @@ $140A..$FFFE: R.VM := 6;
  procedure GetFromClipLong;
  begin
    if SystemData.Options and ossUseSysClip <> 0 then
-     SyncClipOut(On);
+     SyncClipOut{(On)};
    if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
      PLongString(Event.InfoPtr)^ := ''
    else
@@ -2729,13 +2729,13 @@ begin
                   begin
                    HelpInUse := True;
                    HelpStrm := New(PDosStream,
-                                   Init(SourceDir+HelpLngId + '.HLP', stOpenPacked)
+                                   Init(SourceDir+HelpLngId + '.HLP', stOpenRead{stOpenPacked})
                                   );
                    if HelpStrm^.Status <> stOk then
                      begin
                        Dispose(HelpStrm,Done);
                        HelpStrm := New(PDosStream,
-                                       Init(StartupDir+HelpLngId + '.HLP', stOpenPacked)
+                                       Init(StartupDir+HelpLngId + '.HLP', stOpenRead{stOpenPacked})
                                       );
                      end;
                    HFile := New(PHelpFile, Init(HelpStrm));

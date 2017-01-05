@@ -60,27 +60,29 @@ procedure DoDump(Er: byte; ErrAdd: Pointer);
 
 IMPLEMENTATION
 Uses Dos, Advance, LFN, {$IFNDEF NONBP}StakDump, {$ENDIF}Advance1, Drivers
-     {$IFDEF VIRTUALPASCAL}, SysUtils{$ENDIF}
+     {$IFDEF VIRTUALPASCAL} {, SysUtils} , VpSysLow {$ENDIF}
      ;
 
 {$S-}
 procedure DoDump(Er: byte; ErrAdd: Pointer);
-{$IFNDEF DNPRG}begin{$ELSE}
+{$IFNDEF DNPRG}
+begin
+{$ELSE}
 type PByteArray = ^TByteArray;
      TByteArray = array [0..65528] of byte;
 var
   C,AC,PP,FH : Word;
-  {!!!!!}
   PPP: TByteArray absolute FreeStr;
   PhysAddr : pointer;
-
   I : Byte;
   PExit, ActiveButton: Byte;
+  Temp: LongInt;
+  FileName: String;
 
   Function StoreBuffer(var Buf; Size:word ; FH : word ):word;
     {$IFDEF VIRTUALPASCAL}
   begin
-   StoreBuffer := FileWrite(FH, Buf, Size);
+   StoreBuffer := SysFileWrite(FH, Buf, Size, Size);
   end;
     {$ELSE}
     assembler;
@@ -104,12 +106,13 @@ begin
     { Create Report File. DRIVERS.PAS contains full dupe of this routine }
 
     I := Length(SourceDir);
-    SourceDir := SourceDir + 'DN.ERR'{$IFNDEF VIRTUALPASCAL}+#0{$ENDIF};
+    SourceDir := SourceDir + 'DN.ERR'#0;
 
     {$IFDEF VIRTUALPASCAL}
-    FH := FileOpen(SourceDir, fmOpenWrite);
-    if FH<0 then FH := FileCreate(SourceDir);
-    if FH>=0 then FileSeek(FH, 0, 2);
+    if SysFileOpen(@SourceDir[1], Open_Access_ReadWrite or Open_Share_DenyNone, FH) <> 0 then
+      if SysFileCreate(@SourceDir[1], Open_Access_ReadWrite or Open_Share_DenyNone, $20{Archive}, FH) <> 0 then
+        FH := Word(-1);
+    SysFileSeek(FH, 0, 2, Temp);
     {$ELSE}
     FH := Word(-1) ;
  asm
@@ -144,9 +147,11 @@ begin
 
  if FH<>Word(-1) then
    begin
+(*
      {$IFNDEF NONBP}
      AssignOutput(FH);
      {$ENDIF}
+*)
      FreeStr :=
           ^M^J +
        '----<'+ GetDateTime(false) +' '+ GetDateTime(true)+'>'^M^J +
@@ -190,6 +195,14 @@ begin
            end
       else *)DumpStack;
 {$ENDIF}
+{Cat}
+     if GetLocationInfo(ErrorAddr, FileName, Temp) <> nil then
+       begin
+         Str(Temp, FreeStr);
+         FreeStr := 'Source location: ' + FileName + ' line ' + FreeStr +^M^J;
+         StoreBuffer(FreeStr[1] , length(FreeStr), FH);
+       end;
+{/Cat}
      FreeStr :=
        'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;
      StoreBuffer( FreeStr[1] , length(FreeStr), FH );
@@ -207,7 +220,7 @@ begin
           if StoreBuffer(TempFile[1], Length(TempFile), FH) <> 0 then Break;
       end; { for lines }
      {$IFDEF VIRTUALPASCAL}
-     FileClose(FH);
+     SysFileClose(FH);
      {$ELSE}
      asm
        mov  ah,3Eh     { close file }

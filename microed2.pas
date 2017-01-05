@@ -48,7 +48,7 @@
 UNIT Microed2;
 
 INTERFACE
-uses Objects, MicroEd;
+uses Objects, MicroEd, EdWin;
 
 const TabStep     : Integer = 8;
 
@@ -64,6 +64,12 @@ procedure MIUnLockFile(AED: PFileEditor);
 procedure MIStore     (AED: PFileEditor; var S: TStream);
 procedure MILoad      (AED: PFileEditor; var S: TStream);
 procedure MIAwaken    (AED: PFileEditor);
+
+const
+  SmartWindow: PEditWindow = nil;
+  ClipboardWindow: PEditWindow = nil;
+  SmartWindowPtr: ^PEditWindow = @SmartWindow;
+  ClipboardWindowPtr: ^PEditWindow = @ClipboardWindow;
 
 IMPLEMENTATION
 uses DnStdDlg, Advance, DnApp, Commands, Lfn, Advance2, Ed2, Advance1, Views,
@@ -123,6 +129,8 @@ begin with AED^ do begin
     begin
       MIUnlockFile(AED);
       MILoadFile(AED, lFExpand(FileName));
+      BlockVisible := Off; {Cat}
+      Mark.Assign(0,0,0,0); {Cat}
       if not isValid then
         begin
           isValid := On;
@@ -194,14 +202,23 @@ begin with AED^ do begin
     end;
    New(S, Init(EditName, stCreate, 4096));
    if S = nil then Exit;
+{Cat: раньше почему-то проверка статуса происходила в этом месте,
+      т.е. считалось, что если поток создан успешно, то и записан
+      он также успешно, что неверно (например, когда место на диске
+      заканчивается); теперь проверка осуществляется после записи блока
+      кроме того, добавил вызов FileChanged - в случае неуспешной записи
+      содержимое файла может поменяться}
+   WriteBlock(EditName, S, FileLines, EdOpt.ForcedCrLf, OptimalFill);
    if S^.Status <> stOK then
      begin
       CantWrite(EditName);
       Dispose(S,Done);
       MILockFile(AED);
+      if not(SmartPad or ClipBrd) then
+        FileChanged(EditName);
       Exit;
      end;
-   WriteBlock(EditName, S, FileLines, EdOpt.ForcedCrLf, OptimalFill);
+{/Cat}
    Dispose(S,Done);
    lAssignFile(F, EditName); ClrIO;
    if (OldAttr <> Archive) and (OldAttr <> $FFFF) then
@@ -257,7 +274,7 @@ begin with AED^ do begin
   If FileLines<>nil then Dispose(FileLines,Done); FileLines:=nil;
   If UndoInfo <>nil then Dispose(UndoInfo,Done);  UndoInfo :=nil;
   If RedoInfo <>nil then Dispose(RedoInfo,Done);  RedoInfo :=nil;
-  UndoTimes := 0; LastDir := -1; DrawMode := 0;
+  UndoTimes := 0; LastDir := -1; {DrawMode := 0;}
   LastSaveUndoTimes := 0; JustSaved := Off; {piwamoto}
   SearchOnDisplay := Off; EdOpt.ForcedCrLf := cfNone;
 1:
@@ -292,10 +309,10 @@ begin with AED^ do begin
   SetLimits;
   Pos.X := 0; Pos.Y := 0;
   Delta := Pos;
-  InsertMode := On;
-  BlockVisible := Off;
-  Mark.Assign(0,0,0,0);
-  Modified := Off; DrawMode := 0; WorkModified := Off; LastLine:=-1; LastShape := '';
+  {InsertMode := On;}
+  {BlockVisible := Off;}
+  {Mark.Assign(0,0,0,0);}
+  Modified := Off; {DrawMode := 0;} WorkModified := Off; LastLine:=-1; LastShape := '';
   SpecChar := Off; WasDelete := Off;
   Marking := Off; MouseMark := Off;
   RulerVisible := Off;
@@ -606,8 +623,7 @@ begin with AED^ do begin
          mov K, ax
       end;
       {$ELSE}
-     {K := DosError;}
-      K := -(S^.Handle);
+      K := S^.ErrorInfo;
       {$ENDIF}
       isValid := (K = 2) or (K = 3) or (K = 110);
       if (K <> 2) and (K <> 3) and (K <> 110) then
@@ -772,6 +788,12 @@ begin with AED^ do begin
  S.Write(KeyMap, SizeOf(KeyMap)); {-$VIV}
  S.Write(TabReplace, SizeOf(TabReplace)); {-$VOL}
  S.Write(EdOpt.SmartTab, SizeOf(EdOpt.SmartTab)); {-$VOL}
+ S.Write(Pos, SizeOf(Pos)); {Cat}
+ S.Write(InsertMode, SizeOf(InsertMode)); {Cat}
+ S.Write(DrawMode, SizeOf(DrawMode)); {Cat}
+ S.Write(Mark, SizeOf(Mark)); {Cat}
+ S.Write(BlockVisible, SizeOf(BlockVisible)); {Cat}
+ S.Write(EdOpt.ForcedCrLf, SizeOf(EdOpt.ForcedCrLf)); {Cat}
 end end;
 
 procedure MILoad(AED: PFileEditor; var S: TStream);
@@ -782,10 +804,21 @@ begin with AED^ do begin
  GetPeerViewPtr(S, InfoL);
  GetPeerViewPtr(S, BMrk);
  SS := S.ReadStr;
- EditName := SS^;
- DisposeStr(SS);
+ if SS = nil then
+   EditName := ''
+ else
+   begin
+     EditName := SS^;
+     DisposeStr(SS);
+   end;
  S.Read(SmartPad, Sizeof(SmartPad));
  S.Read(ClipBrd, Sizeof(ClipBrd));
+{Cat}
+ if SmartPad then
+   SmartWindowPtr := @Owner;
+ if ClipBrd then
+   ClipboardWindowPtr := @Owner;
+{/Cat}
  S.Read(MarkPos, Sizeof(MarkPos));
  S.Read(EdOpt.LeftSide, 6);
  S.Read(EdOpt.HiLite, 1);
@@ -801,6 +834,12 @@ begin with AED^ do begin
  S.Read(KeyMap, SizeOf(KeyMap)); {-$VIV}
  S.Read(TabReplace, SizeOf(TabReplace)); {-$VOL}
  S.Read(EdOpt.SmartTab, SizeOf(EdOpt.SmartTab)); {-$VOL}
+ S.Read(Pos, SizeOf(Pos)); {Cat}
+ S.Read(InsertMode, SizeOf(InsertMode)); {Cat}
+ S.Read(DrawMode, SizeOf(DrawMode)); {Cat}
+ S.Read(Mark, SizeOf(Mark)); {Cat}
+ S.Read(BlockVisible, SizeOf(BlockVisible)); {Cat}
+ S.Read(EdOpt.ForcedCrLf, SizeOf(EdOpt.ForcedCrLf)); {Cat}
  isValid := True;
  Macros := New(PCollection, Init(10,10));
  LastDir := -1;
@@ -812,12 +851,18 @@ procedure MIAwaken(AED: PFileEditor);
  var X, Y: LongInt;
      XD: TPoint;
      Hi: Boolean;
+     _KeyMap: TKeyMap;
+     _ForcedCrLf: TCrLf;
 begin with AED^ do begin
  X := HScroll^.Value;
  Y := VScroll^.Value;
  XD := Pos;
  Hi := EdOpt.HiLite;
+ _KeyMap := KeyMap; {Cat}
+ _ForcedCrLf := EdOpt.ForcedCrLf; {Cat}
  MILoadFile(AED, EditName);
+ KeyMap := _KeyMap; {Cat}
+ EdOpt.ForcedCrLf := _ForcedCrLf; {Cat}
  EdOpt.HiLite := Hi;
  ScrollTo(X,Y);
  Pos := XD;
