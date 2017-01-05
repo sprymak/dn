@@ -711,7 +711,16 @@ procedure CheckMkDir(const Path: String);
 Start:
   lMkDir(Path);
   rc := IOResult;
-  if (rc <> 0) and (rc <> 5 {каталог уже существует}) {$IFDEF Win32} and (rc <> 183) {$ENDIF} then
+{AK155 29-05-2002
+При создании существующего каталога (что не есть ошибка)
+под OS/2 rc=5, а под WinNT - rc=183.
+При создании каталога на CD (что есть ошибка)
+под OS/2 rc=19, а под WinNT - rc=5.
+Как оно будет под Win9x или DPMI - тоже еще вопрос.
+Поэтому проще и аккуратнее проверить фактическое наличие, а не
+анализировать rc }
+  if not PathExist(Path) then
+(*  if (rc <> 0) and (rc <> 5 {каталог уже существует}) {$IFDEF Win32} and (rc <> 183) {$ENDIF} then*)
    begin
      if SysErrorFunc(rc, byte(Path[1]) - byte('A')) = 1 then
        goto Start;
@@ -883,20 +892,20 @@ begin
  Insert(P);
 
 
- R1.Assign(R.B.X - 12, R.A.Y + 1, R.B.X -1, R.A.Y + 3);
+ R1.Assign(R.B.X - 13, R.A.Y + 1, R.B.X -1, R.A.Y + 3);
  P := New(PButton, Init(R1, GetString(dlOkButton), cmOK, bfDefault));
  Insert(P);
- R1.Assign(R.B.X - 12, R.A.Y + 4, R.B.X -1, R.A.Y + 6);
+ R1.Assign(R.B.X - 13, R.A.Y + 4, R.B.X -1, R.A.Y + 6);
  P := New(PButton, Init(R1, GetString(dlDriveButton), cmChangeDrive, bfBroadcast));
  {P^.Options := P^.Options and not ofSelectable;}
  Insert(P);
- R1.Assign(R.B.X - 12, R.A.Y + 7, R.B.X -1, R.A.Y + 9);
+ R1.Assign(R.B.X - 13, R.A.Y + 7, R.B.X -1, R.A.Y + 9);
  P := New(PButton, Init(R1, GetString(dlRereadButton), cmPanelReread, bfBroadcast));
  Insert(P);
- R1.Assign(R.B.X - 12, R.A.Y + 10, R.B.X -1, R.A.Y + 12);
+ R1.Assign(R.B.X - 13, R.A.Y + 10, R.B.X -1, R.A.Y + 12);
  P := New(PButton, Init(R1, GetString(dlMkDirButton), cmPanelMkDir, bfBroadcast));
  Insert(P);
- R1.Assign(R.B.X - 12, R.A.Y + 13, R.B.X -1, R.A.Y + 15);
+ R1.Assign(R.B.X - 13, R.A.Y + 13, R.B.X -1, R.A.Y + 15);
  P := New(PButton, Init(R1, GetString(dlCancelButton), cmCancel, 0));
  Insert(P);
  SelectNext(False);
@@ -1353,7 +1362,7 @@ begin
                         if Parital then ExpandBranches;
                         CE;
                        end;
-                kbGrayPlus,kbGrayMinus:
+                kbSpace,kbGrayPlus,kbGrayMinus:
                      begin
                        QuickSearch := Off;
                        if Parital then

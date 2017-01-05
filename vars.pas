@@ -14,7 +14,10 @@ interface
 
 uses
   Dos, Objects, Collect, FilesCol, RStrings, Advance, Views, Dialogs, Menus,
-  DnApp, Archiver, XDblWnd, DnIni, Startup, Plugin;
+  DnApp, Archiver, XDblWnd, DnIni, Startup, Calculat, Plugin;
+
+type
+  PBoolean = ^Boolean;
 
 
 {Global variables}
@@ -23,6 +26,7 @@ function FileMode: PLongInt;
 function DosError: Integer;
 function Application: PProgram;
 function Desktop: PDesktop;
+function CommandLine: PView;
 function StatusLine: PStatusLine;
 function MenuBar: PMenuView;
 function LngStream: PStream;
@@ -41,21 +45,29 @@ function ArcFile: PStream;
 function FileInfo: PFInfo;
 function ArcFileName: String;
 function VArcFileName: String;
+function EvalueError: PBoolean;
 
 
 {Create some objects}
 
 function NewCollection(A1, A2: LongInt): PCollection;
 function NewStringCollection(A1, A2: LongInt; LS: Boolean): PStringCollection;
+function NewLineCollection(A1, A2: LongInt; LS: Boolean): PLineCollection;
 function NewFilesCollection(A1, A2: LongInt): PFilesCollection;
 function NewDosStream(FileName: FNameStr; Mode: Word): PDosStream;
 function NewBufStream(FileName: FNameStr; Mode: Word; Size: Word): PBufStream;
 function NewView(X1, Y1, X2, Y2: SmallWord): PView;
 function NewWindow(X1, Y1, X2, Y2: SmallWord; Title: String; Number: SmallWord): PWindow;
+function NewDialog(X1, Y1, X2, Y2: SmallWord; Title: String): PDialog;
 function NewButton(X1, Y1, X2, Y2: SmallWord; Title: String; cm_, bf_: SmallWord): PButton;
 function NewLabel(X1, Y1, X2, Y2: SmallWord; S: String; P:PView): PLabel;
 function NewStaticText(X1, Y1, X2, Y2: SmallWord; S: String): PStaticText;
+function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: Word): PInputLine;
+function NewCheckBoxes(X1, Y1, X2, Y2: SmallWord; Items: PSItem): PCheckBoxes;
+function NewRadioButtons(X1, Y1, X2, Y2: SmallWord; Items: PSItem): PRadioButtons;
+function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: Word; ScrollBar: PScrollBar): PListBox;
 function NewScrollBar(X1, Y1, X2, Y2: SmallWord): PScrollBar;
+function NewMenuBox(X1, Y1, X2, Y2: SmallWord; Menu: PMenu; ParentMenu: PMenuView): PMenuBox;
 
 
 {TypeOf}
@@ -75,14 +87,12 @@ type
     SystemMenuChar           : Byte;
     HorizScrollBarChars      : String[6];
     VertScrollBarChars       : String[6];
-    FadeDelay                : LongInt;
     ReflectCopyDirection     : Boolean;
     ReuseViewers             : Byte;
     ReuseEditors             : Byte;
     HistoryErrorBeep         : Boolean;
     PreserveMenuPositions    : Boolean;
     LFNinBottom              : Boolean;
-//    DescriptionInBottom      : Boolean;
     PanelDescrArvid          : String[255];
     PanelDescrArc            : String[255];
     PanelDescrTemp           : String[255];
@@ -90,6 +100,7 @@ type
     PanelDescrDrive          : String[255];
     UseEnterInViewer         : Byte;
     SkipXLatMenu             : Boolean;
+    EscForOutputWindow       : Boolean;
     {Clock}
     ShowSeconds              : Boolean;
     ShowCentury              : Boolean;
@@ -105,14 +116,14 @@ type
     CBSize                   : LongInt;
     CBAutoSave               : Boolean;
     {Kernel}
-    CanUseLFN                : Boolean;
+//  CanUseLFN                : Boolean;
     AutoSave                 : Boolean;
     ShowKeyCode              : Byte;
     CopyLimit                : LongInt;
     HandleChDirCommand       : Boolean;
     StoreVideoMode           : Byte;
     SmartWindowsBoxClose     : LongInt;
-    DoVESATest               : Boolean;
+//  DoVESATest               : Boolean;
     ForceDefaultArchiver     : String[3];
     {Editor}
     UnlimitUnindent          : Boolean;
@@ -126,13 +137,17 @@ type
     FastSearchDeep           : LongInt;
     WinManagerPosToEdit      : Boolean;
     AutoBracketPairs         : String[255];
+{$IFNDEF USELONGSTRING}
     RecombineLongLines       : Boolean;
+{$ENDIF}
+    F6_DuplicatesLine        : Boolean;
     {FilePanels}
     ShowFileMask             : Boolean;
     ShowLongName             : Boolean;
     QuickRenameInDialog      : Boolean;
     UpperCaseSorting         : Boolean;
     AutoRefreshDriveLine     : Boolean;
+    AutoRefreshPanels        : Boolean;
     QuickSearchType          : Byte;
     {NetInfo}
     NoLevelsInfo             : Boolean;
@@ -249,6 +264,11 @@ begin
   Desktop := DnApp.Desktop;
 end;
 
+function CommandLine: PView;
+begin
+  CommandLine := DnApp.CommandLine;
+end;
+
 function StatusLine: PStatusLine;
 begin
   StatusLine := DnApp.StatusLine;
@@ -340,6 +360,11 @@ begin
   VArcFileName := Archiver.VArcFileName;
 end;
 
+function EvalueError: PBoolean;
+begin
+  EvalueError := @Calculat.EvalueError;
+end;
+
 (*** Create some objects ***)
 
 function NewCollection(A1, A2: LongInt): PCollection;
@@ -350,6 +375,11 @@ end;
 function NewStringCollection(A1, A2: LongInt; LS: Boolean): PStringCollection;
 begin
   NewStringCollection := New(PStringCollection, Init(A1, A2, LS));
+end;
+
+function NewLineCollection(A1, A2: LongInt; LS: Boolean): PLineCollection;
+begin
+  NewLineCollection := New(PLineCollection, Init(A1, A2, LS));
 end;
 
 function NewFilesCollection(A1, A2: LongInt): PFilesCollection;
@@ -383,6 +413,14 @@ begin
   NewWindow := New(PWindow, Init(R, Title, Number));
 end;
 
+function NewDialog(X1, Y1, X2, Y2: SmallWord; Title: String): PDialog;
+var
+  R: TRect;
+begin
+  R.Assign(X1, Y1, X2, Y2);
+  NewDialog := New(PDialog, Init(R, Title));
+end;
+
 function NewButton(X1, Y1, X2, Y2: SmallWord; Title: String; cm_, bf_: SmallWord): PButton;
 var
   R: TRect;
@@ -407,12 +445,52 @@ begin
   NewStaticText := New(PStaticText, Init(R, S));
 end;
 
+function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: Word): PInputLine;
+var
+  R: TRect;
+begin
+  R.Assign(X1, Y1, X2, Y2);
+  NewInputLine := New(PInputLine, Init(R, MaxLen));
+end;
+
+function NewCheckBoxes(X1, Y1, X2, Y2: SmallWord; Items: PSItem): PCheckBoxes;
+var
+  R: TRect;
+begin
+  R.Assign(X1, Y1, X2, Y2);
+  NewCheckBoxes := New(PCheckBoxes, Init(R, Items));
+end;
+
+function NewRadioButtons(X1, Y1, X2, Y2: SmallWord; Items: PSItem): PRadioButtons;
+var
+  R: TRect;
+begin
+  R.Assign(X1, Y1, X2, Y2);
+  NewRadioButtons := New(PRadioButtons, Init(R, Items));
+end;
+
+function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: Word; ScrollBar: PScrollBar): PListBox;
+var
+  R: TRect;
+begin
+  R.Assign(X1, Y1, X2, Y2);
+  NewListBox := New(PListBox, Init(R, NumCols, ScrollBar));
+end;
+
 function NewScrollBar(X1, Y1, X2, Y2: SmallWord): PScrollBar;
 var
   R: TRect;
 begin
   R.Assign(X1, Y1, X2, Y2);
   NewScrollBar := New(PScrollBar, Init(R));
+end;
+
+function NewMenuBox(X1, Y1, X2, Y2: SmallWord; Menu: PMenu; ParentMenu: PMenuView): PMenuBox;
+var
+  R: TRect;
+begin
+  R.Assign(X1, Y1, X2, Y2);
+  NewMenuBox := New(PMenuBox, Init(R, Menu, ParentMenu));
 end;
 
 (*** TypeOf ***)
@@ -442,7 +520,6 @@ end.
 (** Cat:todo
 dnapp
   AppPalette: Integer;
-  CommandLine: PView;
   SkyVisible: Boolean;
 
 dnutil

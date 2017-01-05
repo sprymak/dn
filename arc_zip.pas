@@ -47,14 +47,10 @@
 {$I STDEFINE.INC}
 unit Arc_Zip; {ZIP}
 
- {.$DEFINE DeadCode}{piwamoto}
-
 interface
- uses Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos
- {$IFDEF DeadCode}
-       , FViewer
- {$ENDIF}
-       ;
+uses Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos
+      , FViewer
+      ;
 
 type
  PZIPArchive = ^TZIPArchive;
@@ -78,6 +74,41 @@ type
      FNameLength: AWord;
      ExtraField: AWord;
     end;
+
+{JO}
+    TZIPCentralFileRec = record
+     ID: Longint;
+     VersionMade : AWord;
+     Version2Extr : AWord;
+     GeneralPurpose: AWord;
+     Method : AWord;
+     LastModDate : LongInt;
+     CRC32 : LongInt;
+     CompressedSize: LongInt;
+     OriginalSize: LongInt;
+     FNameLength : AWord;
+     ExtraField : AWord;
+     FileCommLength : AWord;
+     DiskNumStart : AWord;
+     InternalFAttr : AWord;
+     ExternalFAttr : LongInt;
+     OffsetLocHeader : LongInt;
+    end;
+
+    TZIPCentralDirRec = record
+     ID: LongInt;
+     DiskNum : AWord;
+     StartDiskNum : AWord;
+     StartDisk : AWord;
+     Total : AWord;
+     SizeDir : LongInt;
+     OffsStart : LongInt;
+     CommLeng : AWord;
+    end;
+
+var
+  CentralDirRecPresent: Boolean;
+{/JO}
 
 implementation
 uses U_Keymap;
@@ -108,6 +139,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-e0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-es'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-ef'));
@@ -174,45 +206,79 @@ begin
   GetSign := sigZIP;
 end;
 
+{JO}
 Procedure TZIPArchive.GetFile;
 var
     P:   TZIPLocalHdr;
-{$IFDEF DeadCode}
+    HCF: TZIPCentralFileRec;
+    Pos: LongInt;
     FP, FPP: Longint;
     nxl: TXLat;
 label 1;
-{$ENDIF}
+
 begin
-{$IFDEF DeadCode}
-   FP := ArcFile^.GetPos;
-1:
-{$ENDIF}
+ if CentralDirRecPresent then
+  begin
+   Pos := ArcFile^.GetPos;
+   ArcFile^.Read(HCF, SizeOf(HCF));
+   if ArcFile^.Status <> stOK then
+     begin
+       ArcFile^.Status := stOK;
+       ArcFile^.Seek(Pos);
+       ArcFile^.Read(HCF.ID,4);
+       if (ArcFile^.Status <> stOK) or (HCF.ID <> $06054B50) then
+         begin FileInfo.Last:=2;Exit; end
+           else begin FileInfo.Last:=1;Exit;end;
+     end;
+   if HCF.ID = $06054B50 then begin FileInfo.Last:=1; Exit; end;
+   if HCF.ID and $FFFF <> $4B50 then begin FileInfo.Last:=2; Exit; end;
+   if HCF.FNameLength > 255 then HCF.FNameLength := 255;
+   ArcFile^.Read(FileInfo.FName[1], HCF.FNameLength);
+   SetLength(FileInfo.FName, HCF.FNameLength);
+   FileInfo.Last := 0;
+   FileInfo.Attr := (HCF.GeneralPurpose and 1) * Hidden;
+   FileInfo.USize := HCF.OriginalSize;
+   FileInfo.PSize := HCF.CompressedSize;
+   FileInfo.Date := HCF.LastModDate;
+   ArcFile^.Seek(ArcFile^.GetPos + HCF.ExtraField);
+  end
+ else {CentralDirRecPresent}
+{/JO}
+  begin
+ 1:
    ArcFile^.Read(P.ID,4);
-{$IFDEF DeadCode}
-   if (P.ID and $FFFF <> $4B50) or (ArcFile^.Status <> stOK) then
-    begin
-      FPP := FP;
-      NullXLAT ( NXL );
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FP, On, Off, Off, Off, Off, Off);
-      if FP > 0 then begin ArcFile^.Seek(FP); Goto 1 end;
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off, Off);
-      if FP > 0 then begin ArcFile^.Seek(FP); Goto 1 end;
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#05#06, FPP, On, Off, Off, Off, Off, Off);
-      FileInfo.Last:=2;Exit;
-    end;
-{$ENDIF}
-   if (P.ID = $06054B50) or (P.ID = $02014b50) then begin FileInfo.Last:=1;Exit;end;
+   if {(P.ID = $06054B50) or }(P.ID = $02014b50) then begin FileInfo.Last:=1;Exit;end;
+   if P.ID = $08074B50 then {skip Spanned/Split block}
+     begin
+      ArcFile^.Read(P.ID,12);
+      Goto 1;
+     end;
    ArcFile^.Read(P.Extract,SizeOf(P)-4);
-   if (ArcFile^.Status <> stOK) or (P.ID and $FFFF <> $4B50) then begin FileInfo.Last:=2;Exit;end;
+   if (ArcFile^.Status <> stOK) or (P.ID <> $04034B50) then begin FileInfo.Last:=2;Exit;end;
    if P.FNameLength > 255 then P.FNameLength := 255;
    ArcFile^.Read(FileInfo.FName[1], P.FNameLength);
    SetLength(FileInfo.FName, P.FNameLength);
    FileInfo.Last := 0;
    FileInfo.Attr := (P.GeneralPurpose and 1) * Hidden;
+   FileInfo.Date := P.LastModDate;
+   FP := ArcFile^.GetPos + P.ExtraField + P.CompressedSize;
+   if ((P.GeneralPurpose and 8) <> 0) and (P.CompressedSize = 0) then
+     begin
+      FPP := FP;
+      NullXLAT ( NXL );
+      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FPP, On, Off, Off, Off, Off, Off);{local file header signature}
+      if FP < 0 then
+        begin
+         FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off, Off);{central file header signature}
+         if FP < 0 then begin FileInfo.Last:=2;Exit;end;
+        end;
+      ArcFile^.Seek(FP - 8);
+      ArcFile^.Read(P.CompressedSize, 8);
+     end;
    FileInfo.USize := P.OriginalSize;
    FileInfo.PSize := P.CompressedSize;
-   FileInfo.Date := P.LastModDate;
-   ArcFile^.Seek(ArcFile^.GetPos + P.ExtraField + P.CompressedSize);
+   ArcFile^.Seek(FP);
+ end;
 end;
 
 end.

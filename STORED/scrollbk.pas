@@ -690,6 +690,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
     R.A.X := CutRect.A.X - Delta.X;
     R.A.Y := CutRect.A.Y - Delta.Y;
     MakeGlobal(R.A, R.A); R.B.X := R.A.X+40; R.B.Y := R.A.Y + 10;
+{Cat:warn memory leak?}
     W := Application^.ExecView(New(PMenuBox, Init(R,
              NewMenu(
                 NewItem(DNApp.GetString(dlCopyToTerminal ),'', kbNoKey, 1000, hcNoContext,

@@ -50,7 +50,7 @@ unit Arc_hyp; {HYP}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+  Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, LFNCol{$ENDIF};
 
 type
     PHYPArchive = ^THYPArchive;
@@ -63,21 +63,16 @@ type
 
 type
      HYPHdr = record
-      ID: Array [1..4] of Char;
+      ID: LongInt;
       PackedSize: LongInt;
       OriginSize: LongInt;
       Date: LongInt;
-      Data: Array[1..4] of Byte;
+      Data: LongInt;
       Attr: Byte;
       NameLen: Byte;
      end;
 
 implementation
-
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
 
 { ----------------------------- HYP ------------------------------------}
 
@@ -104,6 +99,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-r'));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
@@ -146,8 +142,9 @@ var
 begin
  if ArcFile^.GetPos = ArcFile^.GetSize then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P, 4);
- if (Copy(P.ID,1,2) = #0#0) then begin FileInfo.Last := 1;Exit;end;
- if (ArcFile^.Status <> stOK) or ((P.ID <> ^Z'HP%') and (P.ID <> ^Z'ST%'))
+ if (P.ID and $ffff = 0) then begin FileInfo.Last := 1;Exit;end;
+ if (ArcFile^.Status <> stOK) or
+    ((P.ID <> $2550481A{^Z'HP%'}) and (P.ID <> $2554531A{^Z'ST%'}))
    then begin FileInfo.Last := 2;Exit;end;
  ArcFile^.Read(P.PackedSize, Sizeof(P)-4);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;

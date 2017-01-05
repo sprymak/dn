@@ -18,5 +18,4 @@ mp3,wav:D:\OS2APPS\QU2\quvio.exe !:!\!.!
 htm,html,doc,rtf,wri:C:\VC\view160 !.! /C!%F
 mpg,mpe: mpg.bat !:!\!.!
 avi: qv.exe /W3,530,7,0 /O10 /Q0 !.!
-gz,tgz:untgz -d !.! !%F
 cr3:koi_cyr.exe !.! !%F 3

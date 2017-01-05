@@ -63,12 +63,8 @@ type
 
 implementation
 
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
-
 { ---------------------- UFA (by Luzin Aleksey)---------------------------}
+
 constructor TUFAArchive.Init;
 var Sign: TStr5;
     q: String;
@@ -92,6 +88,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              '-s'));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-mq'));

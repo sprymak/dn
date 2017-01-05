@@ -52,7 +52,7 @@ interface
 uses
      archiver, Arc_Zip, Arc_LHA, arc_RAR, arc_ACE, arc_HA, arc_CAB,
 {$IFNDEF MINARCH}
-     arc_arc, arc_bsa, arc_bs2, arc_hyp, arc_lim, arc_hpk, arc_TAR, {$IFDEF TGZ} arc_TGZ, {$ENDIF}
+     arc_arc, arc_bsa, arc_bs2, arc_hyp, arc_lim, arc_hpk, arc_TAR, arc_TGZ,
      arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
      arc_UC2, arc_AIN,
 {$ENDIF}
@@ -65,15 +65,59 @@ function GetArchiveByTag (ID: Byte): PARJArchive;
 
 implementation
 
-uses {$IFDEF PLUGIN} Plugin, {$ENDIF} Messages;
+uses {$IFDEF PLUGIN} Plugin, {$ENDIF} Messages,
+     FViewer, U_Keymap, DNApp, Commands; {JO}
 
+{JO}
 function ZIPDetect: Boolean;
   var i: LongInt;
+      HC: TZIPCentralDirRec;
+      NXL: TXLat;
+      FP: Longint;
+ label NoCentralDirRec, RepeatSearch;
+
 begin
   ArcFile^.Read(i,4);
-  ZIPDetect:=(i=$04034b50);
-  ArcFile^.Seek(ArcPos);
+  if i <> $04034b50 then
+    begin
+      ZIPDetect := False;
+      ArcFile^.Seek(ArcPos);
+      Exit;
+    end;
+  ZIPDetect := True;
+  NullXLAT (NXL);
+  FP := ArcFile^.GetSize - 1;
+RepeatSearch:
+  FP := SearchFileStr(@ArcFile^, NXL, 'PK'{#05#06}, FP, On, On, Off, On, Off, Off);
+    if FP > 0 then
+      begin
+        ArcFile^.Seek(FP);
+        ArcFile^.Read(HC, SizeOf(TZIPCentralDirRec));
+        if (ArcFile^.Status <> stOK) {or (HC.ID and $FFFF <> $4B50)} then
+          GoTo NoCentralDirRec;
+
+        case HC.ID of
+  $06054B50: begin
+               CentralDirRecPresent := True;
+               ArcFile^.Seek(HC.OffsStart);
+               ArcPos := ArcFile^.GetPos;
+             end;
+  $02014B50, $04034B50: GoTo NoCentralDirRec;
+        else begin
+               ArcFile^.Seek(FP);
+               GoTo RepeatSearch;
+             end;
+        end; {case}
+      end
+     else
+      begin
+ NoCentralDirRec:
+        messagebox(GetString(dlZIPWithoutCentralDir), nil, mfOKButton);
+        CentralDirRecPresent := False;
+        ArcFile^.Seek(ArcPos);
+      end;
 end;
+{/JO}
 
 function LHADetect: Boolean;
 var
@@ -86,30 +130,29 @@ end;
 
 Function RARDetect: Boolean;
 var
-    M2: MainRAR2Hdr;
-    K: Array[1..7] of Char absolute M2;
-    M: MainRARHdr absolute M2;
-    L: LongInt;
+ ID: LongInt;
+ M2: MainRAR2Hdr;
 begin
  RAR2 := Off;
  RARDetect:=False;
- L := ArcFile^.GetPos;
- ArcFile^.Read(K, SizeOf(K));
- if (ArcFile^.Status = stOK) and (M.ID = #$52#$45#$7E#$5E)
+ ArcFile^.Read(ID, SizeOf(ID));
+ if (ArcFile^.Status = stOK) and (ID = $5e7e4552{'RE~^'}{RAR until v1.50})
     then
      begin
       RARDetect := True;
-      ArcPos := L + M.HeadLen;
+      ArcFile^.Read(ID, 2);{MainRARHdr.HeadLen: AWord;}
+      ArcPos := ArcPos + ID and $ffff;
      end;
- if (ArcFile^.Status = stOK) and (K = #$52#$61#$72#$21#$1A#$07#$00)
+ if (ArcFile^.Status = stOK) and (ID = $21726152{Rar!}{RAR 1.50+})
     then
      begin
-      RAR2 := On;
+      ArcFile^.Read(ID, 3);{skip 3 bytes}
       ArcFile^.Read(M2, SizeOf(M2));
       if M2.HeadType = $73 then
         begin
           RARDetect := True;
-          ArcPos := ArcFile^.GetPos + M2.HeadLen - SizeOf(M2);
+          RAR2 := On;
+          ArcPos := ArcPos + M2.HeadLen + 7{Rar ID};
         end;
      end;
  ArcFile^.Seek(ArcPos);
@@ -123,6 +166,7 @@ begin
  ACEDetect:=False;
  ArcFile^.Read(P, 7);
  ArcFile^.Read(ACESign, SizeOf(ACESign));
+ ArcFile^.Read(ACEVerToExtr, 1);
  if (ACESign='**ACE**') and (P.HeadType=0) then
   begin
    ACEDetect:=True;
@@ -175,7 +219,8 @@ var
 begin
   CABDetect := false;
   ArcFile^.Read(CFHEADER,SizeOf(CFHEADER.signature));
-  if (ArcFile^.Status = stOK) and (CFHEADER.signature = 'MSCF') then begin
+  if (ArcFile^.Status = stOK) and (CFHEADER.signature = $4643534d {'MSCF'})
+   then begin
    ArcFile^.Read(CFHEADER.reserved1, SizeOf(CFHEADER) - SizeOf(CFHEADER.signature));
    if (CFHeader.cbCabinet > sizeof(TCFHeader)) and
       (CFHeader.coffFiles > sizeof(TCFHeader)) and
@@ -213,7 +258,7 @@ end;
 begin
  ArcFile^.Read(P,SizeOf(P));
  ARCDetect := False;
- if (ArcFile^.Status = stOK) and (P.Mark = ^Z) and (P.Version < 20) then More;
+ if (ArcFile^.Status = stOK) and (P.Mark = $1a{^Z}) and (P.Version < 20) then More;
  ArcFile^.Seek(ArcPos);
 end;
 
@@ -337,8 +382,6 @@ begin
   ArcFile^.Seek(ArcPos);
 end;
 
-{$IFDEF TGZ}
-
 function TGZDetect: boolean;
 var
     W: AWord;
@@ -349,8 +392,6 @@ begin
               (InFilter(VArcFileName, '*.TAR;*.TAZ;*.TGZ;*.GZ;*.Z'));
  ArcFile^.Seek(ArcPos);
 end;
-
-{$ENDIF}
 
 function ZXZDetect: boolean;
 var
@@ -447,7 +488,7 @@ var
 begin
  ZOODetect:=False;
  ArcFile^.Read(ID, SizeOf(ID));
- if (ArcFile^.Status = stOK) and (ID = ZOOID) then
+ if (ArcFile^.Status = stOK) and (ID = $FDC4A7DC) then
    begin
     ArcFile^.Read(ArcPos,SizeOf(ArcPos));
     ZOODetect := True;
@@ -518,9 +559,7 @@ begin
  if QuarkDetect then DetectArchive:=New(PQuarkArchive,Init) else
  if SQZDetect   then DetectArchive:=New(PSQZArchive,  Init) else
  if TARDetect   then DetectArchive:=New(PTARArchive,  Init) else
-{$IFDEF TGZ}
  if TGZDetect   then DetectArchive:=New(PTGZArchive,  Init) else
-{$ENDIF}
  if UC2Detect   then DetectArchive:=New(PUC2Archive,  Init) else
  if UFADetect   then DetectArchive:=New(PUFAArchive,  Init) else
  if ZOODetect   then DetectArchive:=New(PZOOArchive,  Init) else
@@ -557,9 +596,7 @@ begin
   if sign=sigQUARK then GetArchiveTagBySign := arcQUARK else
   if sign=sigSQZ   then GetArchiveTagBySign := arcSQZ   else
   if sign=sigTAR   then GetArchiveTagBySign := arcTAR   else
-{$IFDEF TGZ}
   if sign=sigTGZ   then GetArchiveTagBySign := arcTGZ   else
-{$ENDIF}
   if sign=sigUC2   then GetArchiveTagBySign := arcUC2   else
   if sign=sigUFA   then GetArchiveTagBySign := arcUFA   else
   if sign=sigZOO   then GetArchiveTagBySign := arcZOO   else
@@ -595,9 +632,7 @@ begin
  if ID=arcQUARK then GetArchiveByTag:=New(PQuarkArchive,Init) else
  if ID=arcSQZ   then GetArchiveByTag:=New(PSQZArchive,  Init) else
  if ID=arcTAR   then GetArchiveByTag:=New(PTARArchive,  Init) else
-{$IFDEF TGZ}
  if ID=arcTGZ   then GetArchiveByTag:=New(PTGZArchive,  Init) else
-{$ENDIF}
  if ID=arcUC2   then GetArchiveByTag:=New(PUC2Archive,  Init) else
  if ID=arcUFA   then GetArchiveByTag:=New(PUFAArchive,  Init) else
  if ID=arcZOO   then GetArchiveByTag:=New(PZOOArchive,  Init) else

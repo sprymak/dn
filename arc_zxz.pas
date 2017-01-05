@@ -74,11 +74,6 @@ type ZXZHdr = record
 
 implementation
 
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
-
 { ------------------------------ ZXZip aka $Z ----------------------------- }
 
 constructor TZXZArchive.Init;
@@ -109,6 +104,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));

@@ -187,6 +187,7 @@ begin
                cmDisableView,
                cmPushFullName,
                cmPushFirstName,
+               cmPushInternalName,
                cmFindTree,
                cmRereadTree,
                cmHideLeft,

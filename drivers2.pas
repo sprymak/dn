@@ -219,7 +219,7 @@ begin
        'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;
      StoreBuffer( FreeStr[1] , length(FreeStr), FH );
 
-     for C:=0 to Pred(ScreenHeight) do
+{    for C:=0 to Pred(ScreenHeight) do
       begin
           TempFile:='';
           PP := (ScreenWidth*C) shl 1;
@@ -230,7 +230,7 @@ begin
           TempFile := TempFile+#13#10 ;
           if StoreBuffer(PPP,         ScreenWidth,      FH) <> 0 then Break;
           if StoreBuffer(TempFile[1], Length(TempFile), FH) <> 0 then Break;
-      end; { for lines }
+      end;} { for lines }
      {$IFDEF VIRTUALPASCAL}
      SysFileClose(FH);
      {$ELSE}

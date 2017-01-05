@@ -26,6 +26,7 @@ uses
 {$Ifndef KeyDll}
 procedure KbdInit(var _pSysKeyCount, _pSysKeyQue, _pSysShiftState, _pSysMouCount, _pSysMouQue);
 procedure KbdUpdateEventQueues;
+function GetWinShiftState2: byte;
 
 implementation
 {$Endif}
@@ -110,8 +111,30 @@ end;
   15  8000 SysReq down
 }
 
+const
+  WinShiftState2: byte = 0; {как старший байт KbdGetStatus для OS/2}
+const
+  AdvShiftKeys: array[0..6] of byte =
+    ( LEFT_CTRL_PRESSED
+    , LEFT_ALT_PRESSED
+    , RIGHT_CTRL_PRESSED
+    , RIGHT_ALT_PRESSED
+    , SCROLLLOCK_ON
+    , NUMLOCK_ON
+    , CAPSLOCK_ON
+    );
+
+function GetWinShiftState2: byte;
+  begin Result := WinShiftState2 end;
+
 function CtrlKeysToShiftState(CtrlKeys: Integer): Byte;
+var
+  i: integer;
 begin
+  WinShiftState2 := 0;
+  for i := 0 to High(AdvShiftKeys) do
+    if CtrlKeys and AdvShiftKeys[i] <> 0 then
+      WinShiftState2 := WinShiftState2 or (1 shl i);
   Result := 0;
   if CtrlKeys and (RIGHT_ALT_PRESSED + LEFT_ALT_PRESSED) <> 0 then
     Result := $0008;
@@ -447,7 +470,7 @@ const
     (VK:$4C00; Value: 5));
 const
   AltNumeric: Byte = 0;
-  Platform: Longint = -1;
+  {Platform: Longint = -1;}
   CtrlState: longint = 0; {AK155 for detection Ctrl release }
 var
   EventCount: DWord;

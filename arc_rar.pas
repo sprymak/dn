@@ -55,6 +55,7 @@ uses
 type
     PRARArchive = ^TRARArchive;
     TRARArchive = object(TARJArchive)
+        VersionToExtr: Byte;
         constructor Init;
         procedure GetFile; virtual;
         function GetID: Byte; virtual;
@@ -63,7 +64,7 @@ type
 
 type
      MainRARHdr = record
-      ID: Array [1..4] of Char;
+      ID: Longint;
       HeadLen: AWord;
       HeadFlags: Byte;
      end;
@@ -95,7 +96,7 @@ begin
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR.EXE'));
 {$ELSE}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR.EXE;RAR32.EXE'));
 {$ENDIF}
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -c-'));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -c-'));
@@ -106,11 +107,12 @@ begin
   Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               't'));
   IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
   ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-ep'));
-  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
+  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-y'));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        '-rr'));
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-sfx'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              '-s'));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-r0'));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      '-ap'));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-m1'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m2'));
@@ -135,6 +137,7 @@ begin
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   UseLFN := q <> '0';
 {$ENDIF}
+  VersionToExtr := 0;
 end;
 
 function TRARArchive.GetID;
@@ -216,6 +219,7 @@ begin
          until False;
          if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
          ArcFile^.Seek(FP+P2.HeadSize+P2.PSize);
+         if P2.Ver > VersionToExtr then VersionToExtr := P2.Ver;
          Exit;
        end;
       if P2.HeadSize = 0 then P2.HeadSize := 7;
@@ -242,6 +246,7 @@ begin
       Arcfile^.Read(FileInfo.FName[1], P.NameLen);
       if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit; end;
       ArcFile^.Seek(ArcFile^.GetPos + P.PSize);
+      if P.Ver > VersionToExtr then VersionToExtr := P.Ver;
    end;
 end;
 

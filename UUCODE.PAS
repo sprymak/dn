@@ -1352,9 +1352,9 @@ begin
  Message(Application, evCommand, cmCopyUnselect, PF);
 end;
 
-var
+{var
     PP,P1 : PView;
-    PL : PSortedListBox;
+    PL : PSortedListBox;}
 
 begin { Uu_Decode }
  POutBuf:=NIL;NFileArr:=0;BadSection:=Off;KickBack:=Off;

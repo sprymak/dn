@@ -991,7 +991,7 @@ var
   Opt: Word;
   ACurDir: String;
 begin
-  R.Assign(15,1,62,21);
+  R.Assign(15,1,63,21);
   TDialog.Init(R, ATitle);
   Options := Options or ofCentered;
   if AOptions and fdOpenButton <> 0
@@ -1035,7 +1035,7 @@ begin
   Insert(Control);
 
 
-  R.Assign(35,3,45,5);
+  R.Assign(35,3,47,5);
   Opt := bfDefault;
   if AOptions and fdOpenButton <> 0 then
   begin
@@ -1076,7 +1076,7 @@ begin
     Inc(R.A.Y,3); Inc(R.B.Y,3);
   end;
 
-  R.Assign(1,16,46,19);
+  R.Assign(2,16,46,19);
   Control := New(PFileInfoPane, Init(R));
   Insert(Control);
 

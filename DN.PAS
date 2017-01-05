@@ -49,7 +49,7 @@
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 program DN;
-{$IFNDEF DPMI32}
+{$IFDEF OS2}
 {$R DN.res}
 {$ENDIF}
 
@@ -57,6 +57,10 @@ program DN;
 {$M 40000,0,655350}
 {$ENDIF}
 
+{Cat: методы поддержки плагинов поменялись, поэтому этот кусок
+      закомментировал; прежний код убивать пока жалко}
+
+(*
 {Cat: версия с поддержкой плагинов:
       TRUE_DYNAMIC (для OS/2): весь ДН лежит в DLL-ке, которую и подключаем
       через директиву $DYNAMIC. Стараемся использовать в Uses только то, что
@@ -72,17 +76,11 @@ program DN;
 {$IFDEF PLUGIN}
   {$IFDEF TRUE_DYNAMIC}
   uses
-    {$IFDEF DEBUGMEM} DebugMem, {$ENDIF}
     DN1;
 
   {$DYNAMIC DN2CAT.LIB}
 
   {$ELSE}
-  {$IFDEF DEBUGMEM}
-  uses
-    DebugMem;
-  {$ENDIF}
-
   procedure Run_It;
     external 'dn2cat' name 'DN1@RUN_IT';
   procedure Error(const SourceFileName: String; SourceLineNo, Addr, Code: LongInt);
@@ -108,8 +106,8 @@ program DN;
   {end.}
 
 {$ELSE PLUGIN}
+*)
 uses
-    {$IFDEF DEBUGMEM} DebugMem, {$ENDIF}
     {$IFNDEF VIRTUALPASCAL} ExtKBD, {$ENDIF}
      Drivers,  LFN,     {$IFNDEF OS2} LFNCol, {$ENDIF}
      DN1,      Dos,      DnApp,
@@ -171,10 +169,12 @@ uses
   {$O Arc_arc}  {$O Arc_bsa}  {$O Arc_bs2}  {$O Arc_hyp}  {$O Arc_lim}
   {$O Arc_hpk}  {$O Arc_TAR}  {$O Arc_ZXZ}  {$O Arc_QRK}  {$O Arc_UFA}
   {$O Arc_IS3}  {$O Arc_SQZ}  {$O Arc_HAP}  {$O Arc_ZOO}  {$O Arc_CHZ}
-  {$O Arc_UC2}  {$O Arc_AIN}  {$O Archread} {$IFDEF TGZ} {$O Arc_TGZ}
+  {$O Arc_UC2}  {$O Arc_AIN}  {$O Arc_TGZ}  {$O Archread}
+(* we do NOT need GZip compression inside
   {$O GZIO}     {$O ZUtil}    {$O ZInflate} {$O ZLib}
-   {$O ADler}    {$O InfBlock} {$O InfCodes} {$O InfFast}
-  {$O InfTrees} {$O InfUtil}  {$IFNDEF NO_DEFLATE}{$O Trees}{$ENDIF} {$ENDIF}
+  {$O ADler}    {$O InfBlock} {$O InfCodes} {$O InfFast}
+  {$O InfTrees} {$O InfUtil}  {$IFNDEF NO_DEFLATE}{$O Trees}{$ENDIF}
+*)
 {$ENDIF !MINARCH}
   {$O ASCIITab} {$O DNStdDlg} (*{$O SBlocks}*)  {$O FBB}      {$O Tree}
   {$O Messages} {$O Colors}   {$O UserMenu} {$O HelpFile} {$O Validate}
@@ -337,5 +337,6 @@ SysCtrlSetCBreakHandler;}
  RUN_IT;
 {$ENDIF}
 
-{$ENDIF PLUGIN}
+(*{$ENDIF PLUGIN}*)
+
 end.

@@ -588,9 +588,13 @@ begin
   begin
    UpdateWriteView(PP);
    P := C^.At(I-1); if P <> nil then                    {JO}{!!!}
+                      {$IFNDEF USELONGSTRING}
                        if (Length(P^) < MaxLongStringLength) or not RecombineLongLines then
+                      {$ENDIF}
                           SST := P^ + CrLf
+                      {$IFNDEF USELONGSTRING}
                        else SST := P^
+                      {$ENDIF}
                     else SST := CrLf;                   {JO}
    if AOptimalFill then CompressString(SST);
    S^.Write(SST[1], Length(SST));

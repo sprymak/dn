@@ -65,7 +65,7 @@ type
 type
   PCFHEADER = ^TCFHEADER;
   TCFHEADER = record
-    signature:  array [0..3] of Char;
+    signature:  LongInt;
     reserved1:  LongInt;
     cbCabinet:  LongInt;
     reserved2:  LongInt;
@@ -107,6 +107,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
@@ -161,8 +162,7 @@ var
   CFHEADER: TCFHEADER;
 begin
   if (FilesNumber < 0) then begin
-   ArcFile^.Read(CFHEADER,SizeOf(CFHEADER.signature));
-   ArcFile^.Read(CFHEADER.reserved1, SizeOf(CFHEADER) - SizeOf(CFHEADER.signature));
+   ArcFile^.Read(CFHEADER,SizeOf(CFHEADER));
    FilesNumber := CFHeader.cFiles;
    ArcFile^.Seek(ArcPos+CFHeader.coffFiles);
   end;

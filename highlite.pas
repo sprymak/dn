@@ -83,6 +83,9 @@
  *              1.11  2000.07.16 DCB    Make unit 32-bit compatable
  *
  *****************************************************************)
+{$IFDEF VIRTUALPASCAL}
+ {$DEFINE NOASM}
+{$ENDIF}
 
 unit Highlite;
 

@@ -294,7 +294,6 @@ end;
 
 function TDBViewer.Failed: Boolean;
 var I : LongInt ;
- var Dir, Name, Ext: String; {JO}
 begin
   Failed := False;
   New(DBFile, Init(CnvString(FileName)));
@@ -308,11 +307,7 @@ begin
 {     DisposeStr(SearchString);
       Dispose(DBFile,Done); DBFile:=nil;
 }     TempFile := '';
-      if KillAfterUse then
-                        begin
-                          lFSplit(CnvString(FileName), Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-                          if Dir = Tempdir then EraseFile(CnvString(FileName)); {во временном каталоге не помешает}
-                        end;
+      if KillAfterUse then EraseTempFile(CnvString(FileName));
 {     DisposeStr(FileName);}
       Failed := True;
       Exit;
@@ -349,16 +344,11 @@ begin
 end;
 
 destructor TDBViewer.Done;
- var Dir, Name, Ext: String; {JO}
 begin
  DisposeStr(SearchString);
  if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
  if DBFile <> nil then Dispose(DBFile,Done); DBFile:=nil;
- if KillAfterUse then
-                   begin
-                     lFSplit(CnvString(FileName), Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-                     if Dir = Tempdir then EraseFile(CnvString(FileName)); {во временном каталоге не помешает}
-                   end;
+ if KillAfterUse then EraseTempFile(CnvString(FileName));
  DisposeStr(FileName);
  inherited Done;
 end;
@@ -738,7 +728,6 @@ procedure TDBViewer.HandleEvent;
  var F: lFile; {DataCompBoy}
      P: TPoint;
      RD: Word;
-     Dir, Name, Ext: String; {JO}
 
 begin
  inherited HandleEvent(Event);
@@ -762,8 +751,7 @@ begin
                                           Buf := nil;
                                           dbFile := nil;
                                         end;
-                                      lFSplit(FileName^, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-                                      if Dir = Tempdir then EraseFile( FileName^ ); {во временном каталоге не помешает}
+                                      EraseTempFile(FileName^);
                                       KillAfterUse := False;
                                       if Event.Command = cmClose then GlobalMessage(evCommand, cmPanelReread, nil);
                                     end;

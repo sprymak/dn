@@ -205,6 +205,7 @@ type
       procedure CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
       procedure EraseFiles(AFiles: PCollection); virtual;
       function  GetRealName: String; virtual;
+      function  GetInternalName: String; virtual;
       procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
       procedure MakeDir; virtual;
       function  isUp: Boolean; virtual;
@@ -326,12 +327,10 @@ begin
 end;
 
 procedure TArvidDrive.Kill;
- var Dir, Name1, Ext: String; {JO}
 begin
   if not KillAfterUse then Exit;
   if Stream <> nil then Dispose(Stream, Done); Stream := nil;
-  lFSplit(Name^, Dir, Name1, Ext);        {JO: проверочка файла на нахождение}
-  if Dir = Tempdir then EraseFile(Name^); {во временном каталоге не помешает}
+  EraseTempFile(Name^);
 end;
 
 function TArvidDrive.GetDirectory;
@@ -729,6 +728,11 @@ var
 begin
  lFSplit(Name^, Dr, Nm, Xt);
  GetRealName:=Dr+GetDir;
+end;
+
+function  TArvidDrive.GetInternalName;
+begin
+ GetInternalName := '';
 end;
 
 procedure TArvidDrive.GetDirInfo;

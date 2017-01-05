@@ -46,6 +46,7 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 {AK155 = Alexey Korop, 2:461/155@fidonet}
+{KV = Kirill Vodonosov}
 unit Calc;
 
 interface
@@ -137,8 +138,95 @@ function GetFileName(var FileName: String; Mask, Title, ALabel: String; Buttons:
 
 implementation
 
-uses Memory, Dos, DNApp, DNStdDlg, advance1, advance2,
+uses Collect, Strings, ErrMess,
+     Memory, Dos, DNApp, DNStdDlg, advance1, advance2,
      MicroEd2, Histries;
+
+type
+  THeaderDBF = record     {KV}
+    DBFIdent : char;      { $03 - Нет MEMO; $83 - Есть MEMO }
+                          { FoxBase+, FoxPro, dBaseIII+, dBaseIV, no memo - 0x03 }
+                          { FoxBase+, dBaseIII+ with memo - 0x83 }
+                          { FoxPro with memo - 0xF5 }
+                          { dBaseIV with memo - 0x8B }
+                          { dBaseIV with SQL Table - 0x8E }
+
+    Yar : byte;           { две последние цифры года }
+    Month : byte;         { month number }
+    Day : byte;           { day number }
+    LastRecord : longint; { номер последней записи }
+    DataOffset : AWord;   { смещение первой записи относительно начала файла}
+    RecSize : AWord;      { размер записи с учетом символа удаления }
+    Reserv1     : AWord;
+    WaitTrans  : Byte;       { dB IV }
+    Reserv2     : Array[0..12] of Byte;
+    Multiindex  : Byte;
+    Reserv3     : Array[0..2] of Byte;
+  end;
+  TDBFLength = record { длина поля DBF }     {KV}
+    case integer of
+      0: (FieldLength   : AWord);
+      1: (NumericLength : byte; Decimals : byte);
+  end;
+  PDBFField = ^TDBFField;                    {KV}
+  TDBFField = record        { dB field descriptor Length = 32 bytes }
+    FieldName : Array[0..10] of char; { имя поля }
+    FieldType : char; { тип: C=$43, D=$44, L=$4C, $M=$4D, N=$4E }
+    Reserved  : Array[0..3] of char; { Расположение поля внутри записи }
+    FLength   : TDBFLength; { длина поля }
+    Reserved2 : Array[0..12] of Byte;
+    Tag       : Byte; { for multiindex, only dB IV }
+  end;
+
+  PDbfFieldCollection = ^TDbfFieldCollection;
+  TDbfFieldCollection = object(TCollection) {KV}
+    procedure FreeItem(Item : pointer); virtual;
+  end;
+
+  TDbaseWriter = object(TBufStream) {KV}
+    Header : THeaderDbf;
+    Fields : PDbfFieldCollection;
+    CurRecord : longint;
+    EofFlag : boolean;
+    constructor Init(FileName: FNameStr; Mode: Word; Size: Sw_Word);
+    destructor Done; virtual;
+    procedure AddField(const NameField : string; TypeField : char;
+                       LenField : integer; DecField : integer);
+    procedure AddRecord;
+    procedure CreateFile;
+    procedure DeleteRecord;
+    function FCount : integer;
+    function FieldAsString(FieldIndex : integer) : string;
+    function FieldAsInteger(FieldIndex : integer) : integer;
+    function FieldAsFloat(FieldIndex : integer) : double;
+    procedure FieldPutString(FieldIndex : integer; FieldValue : string);
+    procedure FieldPutInteger(FieldIndex : integer; FieldValue : integer);
+    procedure FieldPutFloat(FieldIndex : integer; FieldValue : double);
+    function FieldName(FieldIndex : integer) : string; // Warning! FieldIndex from 1
+    function FieldDec(FieldIndex : integer) : byte; // FieldIndex >= 1
+    function FieldLen(FieldIndex : integer) : AWord; // Warning! FieldIndex from 1
+    function FieldPos(NameField : string) : integer; // FieldIndex >= 1
+    function FieldType(FieldIndex : integer) : char;
+    function FieldOffsetInBuffer(FieldIndex : integer) : integer; // FieldIndex >= 1
+    function FieldOffsetInFile(FieldIndex : integer) : longint; // FieldIndex >= 1
+    procedure First;
+    procedure DBGoTo(NewRecord : integer);
+    procedure Next;
+    procedure ReadFile;
+    procedure RecallRecord;
+    procedure WriteEndOfFile;
+  end;
+
+  TExcelWriter = object(TBufStream) {KV}
+    procedure WriteBOF;
+    procedure WriteEOF;
+    procedure WriteBLANK(const Col, Row: AWord; const XF: AWord);
+    procedure WriteLABEL(const Data: string; const Col, Row: AWord; const XF: AWord);
+    procedure WriteNUMBER(const Data: Double; const Col, Row: AWord; const XF: AWord);
+    procedure WriteBOOL(const Data: Boolean; const Col, Row: AWord; const XF: AWord);
+    procedure WriteERROR(const Data: Byte; const Col, Row: AWord; const XF: AWord);
+  end;
+
 
 const  SearchData: record S: String[240]; CellOptions, TxtOptions: Word; end =
                     (S:''; CellOptions:0; TxtOptions:0);
@@ -397,8 +485,22 @@ procedure TCalcInfo.HandleEvent;
       EndEdit := False;
       Goto 1;
      end;
-    Str(R:20:2, S);
-    While S[1] = ' ' do Delete(S, 1, 1);
+{--- start -------- Eugeny Zvyagintzev ---- 22-05-2002 -----}
+{To prevent overflow}
+{R: CReal = Extended}
+{Value: Real}
+{R may be large then Value}
+    if R > 1.7e38 then
+     begin
+      R:=1.7e38;
+      MessageBox(GetString(dlOverflow)+': '+GetCellName(CurrentCalc.X,CurrentCalc.Y)+' '+S1, @Self, mfOKButton + mfError);
+     end;
+    if R < 2.9e-39 then
+     begin
+      R:=2.9e-39;
+      MessageBox(GetString(dlOverflow)+': '+GetCellName(CurrentCalc.X,CurrentCalc.Y)+' '+S1, @Self, mfOKButton + mfError);
+     end;
+{--- finish -------- Eugeny Zvyagintzev ---- 22-05-2002 -----}
     with Cells^.ReplaceItem(Delta.X + Cur.X, Delta.Y + Cur.Y, S1)^ do
      begin
       Value := R;
@@ -728,6 +830,16 @@ end;
 
         {-DataCompBoy-}
 procedure TCalcView.HandleEvent;
+type
+  TColIndexArray = array[0..255] of integer; {KV}
+  TColTypeAndLengthRec = record              {KV}
+    T : char;
+    L : AWord;
+    D : byte;
+  end;
+  PColTypeAndLengthArray = ^TColTypeAndLengthArray;
+  TColTypeAndLengthArray = array[0..255] of TColTypeAndLengthRec; {KV}
+
  var Inf: PCalcInfo;
      S: String;
      St: PStream;
@@ -735,6 +847,448 @@ procedure TCalcView.HandleEvent;
      P: PCellRec;
      FName: String;
      X1, X2, Y1, Y2: Integer;
+
+  procedure kvGetMaxColRow(var MaxCol, MaxRow : integer); {KV}
+  var
+    i : integer; P : PCellRec;
+  begin
+    MaxCol:=0; MaxRow:=0;
+    for i:=0 to Cells^.Count-1 do begin
+      P:=Cells^.At(i);
+      if MaxCol < P^.Col then MaxCol:=P^.Col;
+      if MaxRow < P^.Row then MaxRow:=P^.Row;
+    end;
+  end;
+
+  procedure kvFillColIndexArray(CurRow : integer; var ColIndexArray : TColIndexArray); {KV}
+  var
+    i : integer; P : PCellRec;
+  begin
+    FillChar(ColIndexArray,SizeOf(ColIndexArray),255);
+    for i:=0 to Cells^.Count-1 do begin
+      P:=Cells^.At(i);
+      if P^.Row = CurRow then ColIndexArray[P^.Col]:=i;
+    end;
+  end;
+
+  function kvFormatValue(P : PCellRec) : string; {KV}
+  var
+    S1 : string;
+    i, A1, A2 : integer;
+  begin
+    S1:='';
+    case (P^.Options shr 4) and 7 of
+      0: S1 := P^.S;
+      1: Str(P^.Value:0:P^.Decimals, S1);
+      2: begin
+           Str(P^.Value:0:20, S1);
+           i:=Length(S1);
+           while (i > 0) and (S1[i] = '0') do dec(i);
+           SetLength(S1,i);
+           if S1[Length(S1)] = '.' then SetLength(S1, Length(S1)-1);
+           S1 := MakeComma(S1);
+         end;
+      3: begin
+           Str(P^.Value, S1);
+           A1 := Pos('E', S1);
+           if A1 > 0 then begin
+             A2 := A1 - 1;
+             while (S1[A2] = '0') and (S1[A2 - 1] <> '.') do Dec(A2);
+             Move(S1[A1], S1[A2 + 1], Length(S1) - A1 + 1);
+             SetLength(S1, Length(S1) - (A1 - A2 - 1));
+           end;
+         end;
+      4: if P^.Value = 0 then S1 := FalseStr else S1 := TrueStr;
+      5: MakeCurrency(P^.Value, S1);
+      6: begin
+           Str((P^.Value*100):0:2, S1);
+           S1 := MakeComma(S1)+'%';
+         end;
+      7: S1 := '';
+    end;
+    kvFormatValue:=S1;
+  end;
+
+  procedure ImportFromCsv; {KV}
+  var
+    S : string;
+    FileName : string;
+    CellValue : string;
+    ColSeparator : char;
+    F : lText;
+    CurCol, CurRow : integer;
+    StartCh, EndCh : integer;
+    P : PCellRec;
+    R : CReal;
+    i : integer;
+  begin
+    if Cells^.Count > 0 then begin
+      if MessageBox(GetString(dlWkzWarningClear),nil,
+           mfYesNoCancel or mfConfirmation) <> cmYes then Exit;
+    end;
+    if GetFileName(FileName, '*.CSV', GetString(dlOpenFile), GetString(dlOpenFileName),
+                   fdOKButton+fdHelpButton) = cmCancel then Exit;
+    {KV: разделитель колонок можно определить автоматически, однако при этом
+         возникает несколько проблем: если в файле только одна строка нельзя
+         определить какие символы встречаются во второй строке столько-же раз
+         сколько и в первой. Выполнять проверку только на ',',';' неправильно}
+    S:=';';
+    if InputBox(GetString(dlWkzQuerySeparatorTitle),GetString(dlWkzQuerySeparatorLabel),
+         S,1,hcSpreadSheet) <> cmOk then Exit;
+    if S = '' then ColSeparator:=';'
+    else ColSeparator:=S[1];
+
+    lAssignText(F,FileName);
+    lSetTAttr(F,Archive);
+    lResetTextReadOnly(F);
+    i:=IOResult;
+    if i <> 0 then begin
+      MessFileNotOpen(FileName,i);
+      Exit;
+    end;
+    Cells^.FreeAll;
+    CurRow:=0;
+    while not Eof(F.T) do begin
+      Readln(F.T,S);
+      if S <> '' then begin {KV: Просто на всякий случай}
+        CurCol:=0;
+        StartCh:=1;
+        while StartCh <= Length(S) do begin
+          EndCh:=StartCh;
+          while (EndCh <= Length(S)) and (S[EndCh] <> ColSeparator) do inc(EndCh);
+          if EndCh > StartCh then begin
+            CellValue:=System.Copy(S,StartCh,EndCh-StartCh);
+            P:=Cells^.NewItem(CurCol,CurRow,CellValue);
+            if (Length(CellValue) > 2) and (CellValue[1] = '=') then
+              P^.Options:=P^.Options or coValue or coDec or coFormula
+            else begin
+              Val(CellValue, R, I);
+              if I = 0 then begin
+                P^.Options:=P^.Options or coValue or coDec;
+                if Pos('.',CellValue) > 0 then
+                  P^.Decimals:=Length(CellValue)-Pos('.',CellValue);
+                P^.Value:=R;
+              end
+              else P^.Options:=P^.Options or coText;
+            end;
+          end;
+          StartCh:=EndCh+1;
+          inc(CurCol);
+        end;
+      end;
+      inc(CurRow);
+    end;
+    Close(F.T);
+    ReCalc;
+    Owner^.Redraw;
+  end;
+
+  procedure ImportFromDbf; {KV}
+  var
+    S : TDbaseWriter;
+    FileName : FNameStr;
+    CellValue : string;
+    P : PCellRec;
+    R : CReal;
+    i : integer;
+  begin
+    if Cells^.Count > 0 then begin
+      if MessageBox(GetString(dlWkzWarningClear),nil,
+           mfYesNoCancel or mfConfirmation) <> cmYes then Exit;
+    end;
+    if GetFileName(FileName, '*.DBF', GetString(dlOpenFile), GetString(dlOpenFileName),
+                   fdOKButton+fdHelpButton) = cmCancel then Exit;
+    S.Init(FileName,stOpenRead,16384);
+    if S.Status <> stOk then begin
+      MessFileNotOpen(FileName,S.ErrorInfo);
+      S.Done;
+      Exit;
+    end;
+
+    Cells^.FreeAll;
+    S.First;
+    while not S.EofFlag do begin
+      for i:=1 to S.FCount do begin
+        CellValue:=S.FieldAsString(i);
+        DelRight(CellValue);
+        if CellValue <> '' then begin
+          P:=Cells^.NewItem(i-1,S.CurRecord-1,CellValue);
+          case S.FieldType(i) of
+            'N' : begin
+                    DelLeft(P^.S);
+                    P^.Options:=P^.Options or coValue or coDec;
+                    P^.Decimals:=S.FieldDec(i);
+                    P^.Value:=S.FieldAsFloat(i);
+                  end;
+            'L' : begin
+                    if System.Copy(UpStrg(CellValue),1,1) = 'T' then begin
+                      P^.S:='1'; P^.Value:=1;
+                    end
+                    else begin
+                      P^.S:='0'; P^.Value:=0;
+                    end;
+                  end;
+          else
+            if (Length(CellValue) > 2) and (CellValue[1] = '=') then
+              P^.Options:=P^.Options or coValue or coDec or coFormula
+            else P^.Options:=P^.Options or coText;
+          end;
+        end;
+      end;
+      S.Next;
+    end;
+    S.Done;
+    ReCalc;
+    Owner^.Redraw;
+  end;
+
+  function FileExists(const FileName : FNameStr) : boolean; {KV}
+  var
+    F : lFile;
+    Attr : Word;
+  begin
+    lAssignFile(F, FileName); ClrIO; lGetFAttr(F, Attr);
+    FileExists:=(DosError = 0);
+  end;
+
+  procedure ExportToCsv; {KV}
+  var
+    S : string;
+    PS : PString;
+    ColSeparator : char;
+    UseFormatFlag : boolean;
+    CalcFormulaFlag : boolean;
+    F : lText;
+    MaxCol, MaxRow, CurCol, CurRow : integer;
+    P : PCellRec;
+    ColIndexArray : TColIndexArray;
+    R : record
+      Separator : string[1];
+      ValueFormat : Word;
+      FormulaFormat : Word;
+    end;
+  begin
+    if GetFileName(S, '*.CSV', GetString(dlExportTitle), GetString(dlExportLabel),
+                   fdOKButton+fdHelpButton) = cmCancel then Exit;
+    if FileExists(S) then begin
+      PS:=@S;
+      if MessageBox(GetString(dlED_OverQuery),@PS,
+           mfYesNoCancel+mfWarning) <> cmYes then Exit;
+    end;
+
+    FillChar(R,SizeOf(R),0);
+    R.Separator:=';';
+    if ExecResource(dlgSetExportCsvFormat, R) = cmOK then begin
+      if Length(R.Separator) > 0 then ColSeparator:=R.Separator[1]
+      else ColSeparator:=';';
+      UseFormatFlag:=(R.ValueFormat = 1);
+      CalcFormulaFlag:=(R.FormulaFormat = 1);
+      lAssignText(F,S);
+      lSetTAttr(F,Archive);
+      lRewriteText(F);
+      if IOResult <> 0 then begin
+        PS:=@S; Msg(erCantCreateFile, @PS, mfError+mfOKButton); Exit;
+      end;
+      kvGetMaxColRow(MaxCol,MaxRow);
+      for CurRow:=0 to MaxRow do begin
+        kvFillColIndexArray(CurRow, ColIndexArray); {KV}
+        for CurCol:=0 to MaxCol do begin
+          if ColIndexArray[CurCol] >= 0 then begin
+            P:=Cells^.At(ColIndexArray[CurCol]);
+            if ((P^.Options and 3) = coText) or
+               (((P^.Options and 3) = coFormula) and (not CalcFormulaFlag)) then
+              Write(F.T,P^.S)
+            else
+            if ((P^.Options and 3) = coValue) or
+               (((P^.Options and 3) = (coFormula or coValue)) and CalcFormulaFlag) then begin
+              if UseFormatFlag then S:=kvFormatValue(P)
+              else begin
+                // Оставляем 5 знаков после запятой, на случай если
+                // неправильно указан формат
+                if P^.Decimals <= 5 then Str(P^.Value:0:5, S)
+                else Str(P^.Value:0:P^.Decimals, S);
+                while S[Length(S)] = '0' do SetLength(S, Length(S)-1);
+                if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
+              end;
+              Write(F.T,S);
+            end
+            else Write(F.T,P^.S); {This code not use}
+          end;
+          if CurCol < MaxCol then Write(F.T,ColSeparator);
+        end;
+        Writeln(F.T);
+      end;
+      Close(F.T);
+    end;
+  end;
+
+  procedure kvCalcFieldTypeAndLength(var TypeLenArr : TColTypeAndLengthArray);
+  var
+    i : integer;
+    P : PCellRec;
+    S1 : string;
+  begin
+    FillChar(TypeLenArr,SizeOf(TypeLenArr),0);
+    for i:=0 to Cells^.Count-1 do begin
+      P:=Cells^.At(i);
+      with TypeLenArr[P^.Col] do begin
+        if (P^.Options and coValue) <> coValue then
+          // Если в колонке текст или ошибка в формуле,
+          // то эта колонка сохраняется как текстовая
+          T:='C'
+        else
+        if (T = #0) and ((P^.Options and $F0) = coBool) then
+          // Если тип колонки еще не оределен и первое найденное значение
+          // имеет формат Boolean, то устанавливаем тип Boolean
+          T:='L'
+        else
+        if T = #0 then T:='N'; // По умолчанию - число
+      end;
+    end;
+    // Делаем второй проход когда типы полей уже известны
+    // для определения размерности
+    for i:=0 to Cells^.Count-1 do begin
+      P:=Cells^.At(i);
+      with TypeLenArr[P^.Col] do begin
+        case T of
+          'C': begin
+                 if L < Length(P^.S) then L:=Length(P^.S);
+               end;
+          'N': begin
+                 Str(P^.Value:0:P^.Decimals, S1);
+                 if D < P^.Decimals then begin
+                   if L > 0 then inc(L,P^.Decimals-D);
+                   D:=P^.Decimals;
+                 end;
+                 if L < Length(S1) then L:=Length(S1);
+               end;
+          'L': begin L:=1; D:=0; end;
+        end; { case }
+      end; { with }
+    end; { for }
+  end;
+
+  procedure ExportToDbf; {KV}
+  const Dig : String [26] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var
+    FileName : FNameStr;
+    PS : PString;
+    TypeLenArr : TColTypeAndLengthArray;
+    i, MaxCol, MaxRow, CurCol, CurRow : integer;
+    DbfHeader : THeaderDbf;
+    S : TDbaseWriter;
+    Buf : PByteArray;
+    TmpS : string;
+    FieldName : string;
+    ColIndexArray : TColIndexArray;
+    P : PCellRec;
+  begin
+    if GetFileName(FileName, '*.DBF', GetString(dlExportTitle), GetString(dlExportLabel),
+         fdOKButton+fdHelpButton) = cmCancel then Exit;
+
+    if FileExists(FileName) then begin
+      PS:=@FileName;
+      if MessageBox(GetString(dlED_OverQuery),@PS,
+           mfYesNoCancel+mfWarning) <> cmYes then Exit;
+    end;
+
+    S.Init(FileName, stCreate, 16384);
+    if S.Status <> stOK then begin
+      PS:=@FileName;
+      Msg(erCantCreateFile, @PS, mfError+mfOKButton); S.Done; Exit;
+    end;
+
+    kvGetMaxColRow(MaxCol,MaxRow);
+    kvCalcFieldTypeAndLength(TypeLenArr);
+
+    for i:=0 to MaxCol do begin
+      with TypeLenArr[i] do begin
+        if i < 26 then FieldName:=Dig[i+1]
+        else begin
+          FieldName:=Dig[i div 26]+Dig[i mod 26 + 1];
+        end;
+        if T = #0 then begin T:='N'; L:=5; D:=0; end;
+        if L = 0 then L:=1;
+        if (T = 'L') and (L > 1) then L:=1;
+        if (T <> 'N') and (D <> 0) then D:=0;
+        S.AddField(FieldName,T,L,D);
+      end;
+    end;
+
+    S.CreateFile;
+
+    for CurRow:=0 to MaxRow do begin
+      kvFillColIndexArray(CurRow, ColIndexArray);
+      i:=1; // Номер текущего поля внутри записи
+      S.AddRecord; // Добавляем новую пустую запись
+      for CurCol:=0 to MaxCol do begin
+        if ColIndexArray[CurCol] >= 0 then begin
+          P:=Cells^.At(ColIndexArray[CurCol]);
+          if TypeLenArr[CurCol].T = 'L' then begin
+            if P^.Value = 0 then TmpS:='F'
+            else TmpS:='T';
+            S.FieldPutString(i,TmpS);
+          end
+          else
+          if TypeLenArr[CurCol].T = 'N' then
+            S.FieldPutFloat(i,P^.Value)
+          else
+            S.FieldPutString(i,P^.S);
+        end;
+        inc(i);
+      end;
+    end;
+    S.WriteEndOfFile;
+    S.Done;
+  end;
+
+  procedure ExportToXls; {KV}
+  var
+    FileName : FNameStr;
+    PS : PString;
+    i, MaxCol, MaxRow, CurCol, CurRow : integer;
+    S : TExcelWriter;
+    ColIndexArray : TColIndexArray;
+    P : PCellRec;
+  begin
+    if GetFileName(FileName, '*.XLS', GetString(dlExportTitle), GetString(dlExportLabel),
+                   fdOKButton+fdHelpButton) = cmCancel then Exit;
+    if FileExists(FileName) then begin
+      PS:=@FileName;
+      if MessageBox(GetString(dlED_OverQuery),@PS,
+           mfYesNoCancel+mfWarning) <> cmYes then Exit;
+    end;
+
+    S.Init(FileName, stCreate, 16384);
+    if S.Status <> stOK then begin
+      PS:=@FileName;
+      Msg(erCantCreateFile, @PS, mfError+mfOKButton); S.Done; Exit;
+    end;
+
+    kvGetMaxColRow(MaxCol,MaxRow);
+    S.WriteBof;
+    for CurRow:=0 to MaxRow do begin
+      kvFillColIndexArray(CurRow, ColIndexArray);
+      for CurCol:=0 to MaxCol do begin
+        if ColIndexArray[CurCol] < 0 then
+          S.WriteBlank(CurCol,CurRow,0)
+        else begin
+          P:=Cells^.At(ColIndexArray[CurCol]);
+          if (P^.Options and coFormula) = coFormula then
+            S.WriteLabel(P^.S,CurCol,CurRow,0)
+          else
+          if (P.Options and coValue) = coValue then begin
+            if (P^.Options and $F0) = coBool then
+              S.WriteBool(P^.Value <> 0,CurCol,CurRow,0)
+            else S.WriteNumber(P^.Value,CurCol,CurRow,0);
+          end
+          else S.WriteLabel(P^.S,CurCol,CurRow,0);
+        end;
+      end;
+    end;
+    S.WriteEof;
+    S.Done;
+  end;
 
  procedure ExportToFile;
   var S, S1: String;
@@ -897,6 +1451,11 @@ begin
   evCommand: case Event.Command of
               cmGetName: PString(Event.InfoPtr)^ := 'Speadsheet - '+SName^;
               cmImportToFile: begin ExportToFile; ClearEvent(Event) end;
+              cmImportFromCsv: begin ImportFromCsv; ClearEvent(Event); end;
+              cmImportFromDbf: begin ImportFromDbf; ClearEvent(Event); end;
+              cmExportToCsv: begin ExportToCsv; ClearEvent(Event); end;
+              cmExportToDbf: begin ExportToDbf; ClearEvent(Event); end;
+              cmExportToXls: begin ExportToXls; ClearEvent(Event); end;
               cmSaveSheetAs: begin
                        SaveSheetAs; CE;
                        Owner^.ReDraw;
@@ -1220,7 +1779,7 @@ function TCalcView.AskSave;
  var A: Word;
 begin
  AskSave := On; if not Modified then Exit;
- A := MessageBox(GetString(dlWorkSheet)+Cut(SName^,40)+GetString(dlNotSaved),
+ A := MessageBox(GetString(dlWorkSheet)+' '+Cut(SName^,40)+GetString(dlNotSaved),
                  nil, mfWarning+mfYesNoCancel);
  if A <> cmCancel then Modified := Off;
  if A = cmYes then SaveSheet else AskSave := A <> cmCancel;
@@ -1253,12 +1812,13 @@ begin
  if Owner<>nil then begin
   DisposeStr(PWindow(Owner)^.Title);
   PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
-  Owner^.Redraw;
  end;
  if S^.Status <> stOK then
   begin
    Dispose(S,Done);
-   New(Cells, Init(10,10)); Exit
+   New(Cells, Init(10,10));
+   Owner^.Redraw;
+   Exit
   end;
  S^.Read(CellWidth, Sizeof(CellWidth));
 { Cells := PCellCollection(S^.Get);}
@@ -1272,7 +1832,6 @@ begin
    if Owner<>nil then begin
     DisposeStr(PWindow(Owner)^.Title);
     PWindow(Owner)^.Title := NewStr(Cut(SName^,Bounds.B.X-Bounds.A.X-12));
-    Owner^.Redraw;
    end;
    New(Cells, Init(10,10));
    FillChar(CellWidth, Sizeof(CellWidth), 11);
@@ -1606,11 +2165,11 @@ begin
  VScroll^.SetValue(Delta.Y);
  Delta.Y := VScroll^.Value;
  Cur.X := 0; Cur.Y := Y - Delta.Y;
- L := 7;
+ L := 0;
  repeat
+  Inc(L, CellWidth[Cur.X]);
   if Delta.X > 0 then begin Inc(Cur.X); Dec(Delta.X) end;
-  Inc(L, CellWidth[Cur.X + Delta.X]);
- until (Delta.X = 0) or (L > Size.X div 2);
+ until (Delta.X = 0) or (L > Size.X);
  if L > Size.X div 2 then begin Dec(Cur.X); Inc(Delta.X) end;
  HScroll^.SetValue(Delta.X);
  BlockDraw := False;
@@ -1695,5 +2254,515 @@ begin
     ErrMsg(erTextNotFound);
  SearchCanceled := True;
 end;
+
+{------------------------------------------------------------------------------}
+{ Write dBase Dbf }
+
+procedure TDbfFieldCollection.FreeItem(Item : pointer); {KV}
+begin
+  if Item <> nil then Dispose(PDBFField(Item));
+end;
+
+constructor TDbaseWriter.Init(FileName: FNameStr; Mode: Word; Size: Sw_Word); {KV}
+begin
+  inherited Init(FileName,Mode,Size);
+  CurRecord:=0;
+  EofFlag:=false;
+  New(Fields,Init(10,10));
+  FillChar(Header,SizeOf(Header),0);
+  Header.DBFIdent:=#3;
+  if (Mode = stOpen) or (Mode = stOpenRead) then ReadFile;
+end;
+
+destructor TDbaseWriter.Done; {KV}
+begin
+  if Fields <> nil then Dispose(Fields,Done);
+  Fields:=nil;
+  inherited Done;
+end;
+
+procedure TDbaseWriter.AddField(const NameField : string; TypeField : char;
+                                LenField : integer; DecField : integer); {KV}
+var
+  P : PDBFField;
+begin
+  New(P);
+  FillChar(P^,SizeOf(TDBFField),0);
+  StrPCopy(P^.FieldName,System.Copy(NameField,1,10));
+  P^.FieldType:=TypeField;
+  if TypeField = 'C' then
+    P^.FLength.FieldLength:=LenField
+  else begin
+    P^.FLength.NumericLength:=LenField;
+    P^.FLength.Decimals:=DecField;
+  end;
+  Fields^.Insert(P);
+end;
+
+procedure TDbaseWriter.AddRecord; {KV}
+var
+  Buf : PChar;
+begin
+  if Status <> stOk then Exit;
+  with Header do begin
+    inherited Seek(DataOffset+RecSize*LastRecord);
+    GetMem(Buf,RecSize);
+    FillChar(Buf^,RecSize,' ');
+    inherited Write(Buf^,RecSize);
+    FreeMem(Buf,RecSize);
+    if Status = stOk then begin
+      inc(LastRecord);
+      inherited Seek(0);
+      inherited Write(Header,SizeOf(Header));
+    end;
+    CurRecord:=LastRecord;
+    EofFlag:=false;
+  end;
+end;
+
+procedure TDbaseWriter.CreateFile; {KV}
+var
+  i : integer;
+begin
+  Header.RecSize:=1;
+  for i:=0 to Fields^.Count-1 do begin
+    with PDBFField(Fields^.At(i))^ do begin
+      if FieldType = 'C' then inc(Header.RecSize,FLength.FieldLength)
+      else inc(Header.RecSize,FLength.NumericLength);
+    end;
+  end;
+  Header.DataOffset:=SizeOf(THeaderDbf)+(Fields^.Count)*SizeOf(TDbfField)+1;
+  inherited Seek(0);
+  inherited Write(Header,SizeOf(Header));
+  for i:=0 to Fields^.Count-1 do begin
+    inherited Write(PDBFField(Fields^.At(i))^,SizeOf(TDBFField));
+  end;
+  i:=$1A0D;
+  inherited Write(i,2);
+end;
+
+procedure TDbaseWriter.DeleteRecord; {KV}
+var
+  Ch : char;
+begin
+  if (CurRecord < 1) or (CurRecord > Header.LastRecord) then Exit;
+  inherited Seek(FieldOffsetInFile(1)-1);
+  Ch:=#$2A;
+  inherited Write(Ch,1);
+end;
+
+function TDbaseWriter.FCount : integer;
+begin
+  FCount:=Fields^.Count;
+end;
+
+function TDbaseWriter.FieldAsString(FieldIndex : integer) : string; {KV}
+var
+  Buf : array[0..2047] of char;
+  i : integer;
+begin
+  inherited Seek(FieldOffsetInFile(FieldIndex));
+  FillChar(Buf,SizeOf(Buf),' ');
+  inherited Read(Buf,FieldLen(FieldIndex));
+  i:=FieldLen(FieldIndex)-1;
+  while (i >= 0) and (Buf[i] = ' ') do dec(i);
+  Buf[i+1]:=#0;
+  FieldAsString:=StrPas(Buf);
+end;
+
+function TDbaseWriter.FieldAsInteger(FieldIndex : integer) : integer; {KV}
+var
+  S : string;
+  Value : integer;
+  i : integer;
+begin
+  S:=FieldAsString(FieldIndex);
+  if S = '' then Value:=0
+  else begin
+    Val(S,Value,i);
+    if i <> 0 then Value:=0;
+  end;
+  FieldAsInteger:=Value;
+end;
+
+function TDbaseWriter.FieldAsFloat(FieldIndex : integer) : double; {KV}
+var
+  S : string;
+  Value : double;
+  i : integer;
+begin
+  S:=FieldAsString(FieldIndex);
+  if S = '' then Value:=0.0
+  else begin
+    Val(S,Value,i);
+    if i <> 0 then Value:=0.0;
+  end;
+  FieldAsFloat:=Value;
+end;
+
+procedure TDbaseWriter.FieldPutString(FieldIndex : integer; FieldValue : string); {KV}
+var
+  P : PDBFField;
+  Buf : array[0..2047] of char;
+  L : AWord;
+  StrLen : integer;
+begin
+  if (FieldIndex < 1) or (FieldIndex > Fields^.Count) then Exit;
+  P:=PDBFField(Fields^.At(FieldIndex-1));
+  FillChar(Buf,SizeOf(Buf),' ');
+  L:=FieldLen(FieldIndex);
+  if L > 2047 then L:=2047;
+  StrLen:=Length(FieldValue);
+  if StrLen > L then begin
+    StrLen:=L;
+    FieldValue:=System.Copy(FieldValue,1,StrLen);
+  end;
+  StrPCopy(Buf,FieldValue); // Можно было использовать Move,
+                               // но при работе с длинными строками
+                               // так безопаснее
+  Buf[StrLen]:=' '; // Для удаления #0, который вставляет StrPCopy
+  inherited Seek(FieldOffsetInFile(FieldIndex));
+  inherited Write(Buf,L);
+end;
+
+procedure TDbaseWriter.FieldPutInteger(FieldIndex : integer; FieldValue : integer); {KV}
+var
+  S : string;
+  L : AWord;
+  D : byte;
+  R : AWord;
+begin
+  if (FieldIndex < 1) or (FieldIndex > Fields^.Count) then Exit;
+  L:=FieldLen(FieldIndex);
+  D:=FieldDec(FieldIndex);
+  if D > 0 then R:=L-D-1 else R:=L;
+  Str(FieldValue:L,S);
+  if D > 0 then begin
+    S:=S+'.'; inc(R);
+    while R < L do begin S:=S+'0'; inc(R); end;
+  end;
+  FieldPutString(FieldIndex,S);
+end;
+
+procedure TDbaseWriter.FieldPutFloat(FieldIndex : integer; FieldValue : double); {KV}
+var
+  S : string;
+begin
+  if (FieldIndex < 1) or (FieldIndex > Fields^.Count) then Exit;
+  Str(FieldValue:FieldLen(FieldIndex):FieldDec(FieldIndex),S);
+  FieldPutString(FieldIndex,S);
+end;
+
+function TDbaseWriter.FieldName(FieldIndex : integer) : string; {KV}
+begin
+  FieldName:=StrPas(PDBFField(Fields^.At(FieldIndex-1))^.FieldName);
+end;
+
+function TDbaseWriter.FieldLen(FieldIndex : integer) : AWord; {KV}
+begin
+  with PDBFField(Fields^.At(FieldIndex-1))^ do begin
+    if FieldType = 'C' then FieldLen:=FLength.FieldLength
+    else FieldLen:=FLength.NumericLength;
+  end;
+end;
+
+function TDbaseWriter.FieldDec(FieldIndex : integer) : byte; {KV}
+begin
+  with PDBFField(Fields^.At(FieldIndex-1))^ do begin
+    if FieldType = 'C' then FieldDec:=0
+    else FieldDec:=FLength.Decimals;
+  end;
+end;
+
+function TDbaseWriter.FieldPos(NameField : string) : integer; {KV}
+var
+  FieldIndex, i : integer;
+begin
+  UpStr(NameField);
+  FieldIndex:=0;
+  for i:=0 to Fields^.Count-1 do begin
+    if UpStrg(StrPas(PDBFField(Fields^.At(i))^.FieldName)) = NameField then begin
+      FieldIndex:=i+1;
+      break;
+    end;
+  end;
+  FieldPos:=FieldIndex;
+end;
+
+function TDbaseWriter.FieldType(FieldIndex : integer) : char; {KV}
+begin
+  FieldType:=PDBFField(Fields^.At(FieldIndex-1))^.FieldType;
+end;
+
+function TDbaseWriter.FieldOffsetInBuffer(FieldIndex : integer) : integer; {KV}
+var
+  Offset : integer;
+  i : integer;
+begin
+  Offset:=1;
+  for i:=0 to FieldIndex-2 do begin
+    with PDBFField(Fields^.At(i))^ do begin
+      if FieldType = 'C' then inc(Offset,FLength.FieldLength)
+      else inc(Offset,FLength.NumericLength);
+    end;
+  end;
+  FieldOffsetInBuffer:=Offset;
+end;
+
+function TDbaseWriter.FieldOffsetInFile(FieldIndex : integer) : longint; {KV}
+begin
+  FieldOffsetInFile:=Header.DataOffset+(CurRecord-1)*Header.RecSize+
+    FieldOffsetInBuffer(FieldIndex);
+end;
+
+procedure TDbaseWriter.First; {KV}
+begin
+  CurRecord:=1;
+  EofFlag:=(Header.LastRecord = 0);
+end;
+
+procedure TDbaseWriter.DBGoTo(NewRecord : integer); {KV}
+begin
+  CurRecord:=NewRecord;
+  EofFlag:=(Header.LastRecord = 0) or (Header.LastRecord < CurRecord);
+end;
+
+procedure TDbaseWriter.Next; {KV}
+begin
+  if CurRecord < Header.LastRecord then begin
+    inc(CurRecord);
+    EofFlag:=false;
+  end
+  else EofFlag:=true;
+end;
+
+procedure TDbaseWriter.ReadFile; {KV}
+var
+  R : TDBFField;
+  P : PDBFField;
+begin
+  inherited Seek(0);
+  FillChar(Header,SizeOf(Header),0);
+  Fields^.FreeAll;
+  inherited Read(Header,SizeOf(Header));
+  if Status <> stOk then Exit;
+  inherited Seek(SizeOf(Header));
+  repeat
+    inherited Read(R,1);
+    if R.FieldName[0] <> #$0D then begin
+      inherited Read(R.FieldName[1],SizeOf(R)-1);
+      New(P);
+      Move(R,P^,SizeOf(R));
+      Fields^.Insert(P);
+    end;
+  until (R.FieldName[0] = #$0D) or (Status <> stOk);
+  EofFlag:=(Header.LastRecord = 0);
+  CurRecord:=1;
+end;
+
+procedure TDbaseWriter.RecallRecord; {KV}
+var
+  Ch : char;
+begin
+  if (CurRecord < 1) or (CurRecord > Header.LastRecord) then Exit;
+  inherited Seek(FieldOffsetInFile(1)-1);
+  Ch:=#$20;
+  inherited Write(Ch,1);
+end;
+
+procedure TDbaseWriter.WriteEndOfFile; {KV}
+var
+  Ch : char;
+begin
+  Ch:=#$1A;
+  inherited Seek(Header.DataOffset+Header.LastRecord*Header.RecSize);
+  inherited Write(Ch,1);
+end;
+
+{------------------------------------------------------------------------------}
+{ Write Excel Xls }
+
+type
+  TXlsBOF = packed record
+    recNo: AWord;       // Record number
+    recSize: AWord;     // Record size
+    vers: AWord;        // Version number (0500 for BIFF5 and BIFF7)
+    dt: AWord;          // Substream type: 0005h = Workbook globals
+                        //                 0006h = Visual Basic module
+                        //                 0010h = Worksheet or dialog sheet
+                        //                 0020h = Chart
+                        //                 0040h = Microsoft Excel 4.0 macro sheet
+                        //                 0100h = Workspace file
+    rupBuild: AWord;    // Build identifier (internal use only)
+    rupYear: AWord;     // Build year (internal use only)
+  end;
+
+  TXlsEOF = packed record
+    recNo: AWord;       // Record number
+    res1: AWord;
+  end;
+
+// LABEL: Cell Value, String Constant (204h)
+// A LABEL record describes a cell that contains a string constant.
+// The rw field contains the 0-based row number.
+// The col field contains the 0-based column number.
+// The string length is contained in the cch field and must be in the range of
+// 0000h..00FFh (0..255). The string itself is contained in the rgch field.
+  TXlsLABEL = packed record
+    recNo: AWord;       // Record number
+    recSize: AWord;     // Record size
+    rw: AWord;          // Cell Row
+    col: AWord;         // Cell Col
+    ixfe: AWord;        // Index to the XF record
+    cch: AWord;         // Length of the string
+   (* rgch: var *)      // The string
+  end;
+
+// BLANK: Cell Value, Blank Cell (201h)
+// A BLANK record describes an empty cell.
+// The rw field contains the 0-based row number.
+// The col field contains the 0-based column number.
+  TXlsBLANK = packed record
+    recNo: AWord;       // Record number
+    recSize: AWord;     // Record size
+    rw: AWord;          // Cell Row
+    col: AWord;         // Cell Col
+    ixfe: AWord;        // Index to the XF record
+  end;
+
+// NUMBER: Cell Value, Floating-Point Number (203h)
+// A NUMBER record describes a cell containing a constant floating-point number.
+// The rw field contains the 0-based row number.
+// The col field contains the 0-based column number.
+// The number is contained in the num field in 8-byte IEEE floating-point format.
+  TXlsNUMBER = packed record
+    recNo: AWord;       // Record number
+    recSize: AWord;     // Record size
+    rw: AWord;          // Cell Row
+    col: AWord;         // Cell Col
+    ixfe: AWord;        // Index to the XF record
+    num: Double;        // Floating-point number value
+  end;
+
+// BOOLERR: Cell Value, Boolean or Error (205h)
+// A BOOLERR record describes a cell that contains a constant Boolean or error value.
+// The rw field contains the 0-based row number.
+// The col field contains the 0-based column number.
+  TXlsBOOLERR = packed record
+    recNo: AWord;       // Record number
+    recSize: AWord;     // Record size
+    rw: AWord;          // Cell Row
+    col: AWord;         // Cell Col
+    ixfe: AWord;        // Index to the XF record
+    bBoolErr: Byte;     // Boolean value or error value
+    fError: Byte;       // Boolean/error flag
+  end;
+
+const
+  CXlsBOF = $809;
+  CXlsEOF = $0A;
+  CXlsLABEL = $204;
+  CXlsBLANK = $201;
+  CXlsNUMBER = $203;
+  CXlsBOOLERR = $205;
+
+procedure TExcelWriter.WriteBLANK(const Col, Row, XF: AWord); {KV}
+var
+  CDefXlsBLANK: TXlsBLANK;
+begin
+  CDefXlsBLANK.recNo := CXlsBLANK;
+  CDefXlsBLANK.recSize := SizeOf(TXlsBLANK) - 2 * SizeOf(AWord);
+  CDefXlsBLANK.rw := Row;
+  CDefXlsBLANK.col := Col;
+  CDefXlsBLANK.ixfe := XF;
+  inherited Write(CDefXlsBLANK, SizeOf(CDefXlsBLANK));
+end;
+
+procedure TExcelWriter.WriteBOF; {KV}
+const
+  CDefXlsBOF: TXlsBOF =
+    (recNo: CXlsBOF;
+     recSize: SizeOf(TXlsBOF) - 2 * SizeOf(AWord);
+     vers: 0;
+     dt: $10;
+     rupBuild: 0;
+     rupYear: 0);
+begin
+  inherited Write(CDefXlsBOF, SizeOf(CDefXlsBOF));
+end;
+
+procedure TExcelWriter.WriteBOOL(const Data: Boolean; const Col, Row, XF: AWord); {KV}
+const
+  Values: array [Boolean] of Byte = (0, 1);
+var
+  CDefXlsBOOLERR: TXlsBOOLERR;
+begin
+  CDefXlsBOOLERR.recNo := CXlsBOOLERR;
+  CDefXlsBOOLERR.recSize := SizeOf(TXlsBOOLERR) - 2 * SizeOf(AWord);
+  CDefXlsBOOLERR.rw  := Row;
+  CDefXlsBOOLERR.col := Col;
+  CDefXlsBOOLERR.ixfe := XF;
+  CDefXlsBOOLERR.bBoolErr := Values[Data];
+  CDefXlsBOOLERR.fError := 0;
+  inherited Write(CDefXlsBOOLERR, SizeOf(CDefXlsBOOLERR));
+end;
+
+procedure TExcelWriter.WriteEOF;
+const
+  CDefXlsEOF: TXlsEOF =
+    (recNo: CXlsEOF;
+     res1: 0);
+begin
+  inherited Write(CDefXlsEOF, SizeOf(CDefXlsEOF));
+end;
+
+procedure TExcelWriter.WriteERROR(const Data: Byte; const Col, Row, XF: AWord); {KV}
+var
+  CDefXlsBOOLERR: TXlsBOOLERR;
+begin
+  CDefXlsBOOLERR.recNo := CXlsBOOLERR;
+  CDefXlsBOOLERR.recSize := SizeOf(TXlsBOOLERR) - 2 * SizeOf(AWord);
+  CDefXlsBOOLERR.rw := Row;
+  CDefXlsBOOLERR.col := Col;
+  CDefXlsBOOLERR.ixfe := XF;
+  CDefXlsBOOLERR.bBoolErr := Data;
+  CDefXlsBOOLERR.fError := 1;
+  inherited Write(CDefXlsBOOLERR, SizeOf(CDefXlsBOOLERR));
+end;
+
+procedure TExcelWriter.WriteLABEL(const Data: string; const Col, Row, XF: AWord); {KV}
+var
+  S: string;
+  CDefXlsLABEL: TXlsLABEL;
+begin
+  CDefXlsLABEL.recNo := CXlsLABEL;
+  S := Data;
+  CDefXlsLABEL.cch := Length(S);
+  if CDefXlsLABEL.cch > 255 then
+  begin
+    CDefXlsLABEL.cch := 255;
+    SetLength(S, CDefXlsLABEL.cch);
+  end;
+  CDefXlsLABEL.rw := Row;
+  CDefXlsLABEL.col := Col;
+  CDefXlsLABEL.ixfe := XF;
+  CDefXlsLABEL.recSize := (SizeOf(TXlsLABEL) - 2 * SizeOf(AWord)) + CDefXlsLABEL.cch;
+  inherited Write(CDefXlsLABEL, SizeOf(CDefXlsLABEL));
+  inherited Write(S[1], CDefXlsLABEL.cch);
+end;
+
+procedure TExcelWriter.WriteNUMBER(const Data: Double; const Col, Row, XF: AWord); {KV}
+var
+  CDefXlsNUMBER: TXlsNUMBER;
+begin
+  CDefXlsNUMBER.recNo := CXlsNUMBER;
+  CDefXlsNUMBER.recSize := SizeOf(TXlsNUMBER) - 2 * SizeOf(AWord);
+  CDefXlsNUMBER.rw := Row;
+  CDefXlsNUMBER.col := Col;
+  CDefXlsNUMBER.ixfe := XF;
+  CDefXlsNUMBER.num := Data;
+  inherited Write(CDefXlsNUMBER, SizeOf(CDefXlsNUMBER));
+end;
+
 
 end.

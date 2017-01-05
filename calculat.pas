@@ -509,7 +509,7 @@ end;
 
 const cmd: string[10] = 'CALCULATOR';
       CmdSign: Set of char = ['>', '<', '=', '!', '#', '+', '-', '|',
-                              '\', '/', '*', '&', '~', '%', '^'];
+                              '\', '/', '*', '&', '~', '%', '^',':'];
 
 {Pavel Anufrikov --> }
 
@@ -673,6 +673,8 @@ function DoEval(start, stop: byte): CReal;
    end;
    if s^[i]='^' then
     begin DoEval:=Step(DoEval(start, i-1), DoEval(i+1, stop)); exit end;
+   if s^[i]=':' then
+    begin DoEval:=DoEval(start, i-1) * 60 + DoEval(i+1, stop); exit end;
   end;
 
   {Proceed level 2... 'sin' 'cos' and other - Functions}

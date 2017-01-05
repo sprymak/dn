@@ -164,6 +164,9 @@ begin
       (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)
      )))
      then Exit;
+ if (Event.What = evMouseDown) then
+    QuickSearch := false; {AK155}
+
  inherited HandleEvent(Event);
 end;
 
@@ -1033,7 +1036,7 @@ begin
       if Copy(S, 1, 1) = ';' then Delete(S, 1, 1);
       S := GetString(dlFileMask) + S;
      end
-    else if ShowFileMask and ({Panel^.}QuickSearch) then
+    else if ShowFileMask and (Panel=ActivePanel) and ({Panel^.}QuickSearch) then
      begin
       S := QuickSearchString;
       I := 0;

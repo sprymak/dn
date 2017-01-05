@@ -1234,11 +1234,19 @@ FUNCTION  PosChar;
  end;
  {$ENDIF}
 {$ELSE}
-var i: byte;
+{Cat}
+var
+  I: Integer;
 begin
- for i:=1 to length(s) do if s[i]=c then break;
- if s[i]<>c then PosChar:=0 else PosChar:=i;
+  for I := 1 to Length(S) do
+    if S[I] = C then
+      begin
+        PosChar := I;
+        Exit;
+      end;
+  PosChar := 0;
 end;
+{/Cat}
 {$ENDIF}
 
 FUNCTION  CharCount(C: Char; const S: string): Byte; {DataCompBoy}

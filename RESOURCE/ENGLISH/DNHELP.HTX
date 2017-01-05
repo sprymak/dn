@@ -1700,6 +1700,8 @@ The window of installations of achiever contains the following fields:
  {Self-extracting:_} - create self-extracting archive (executable)
  {Solid:_} - create solid archive (valid for RAR, ACE)
  {Recurse SubDirs:_} - recurse tree of subdirectories
+ {Set path inside:_} - set internal path inside archive (useful for correct
+                       operations with files in subdirectories inside archive)
 
  {Compress list char:_} - symbol of list of files for packer
  {Extract list char:_}  - symbol of list of files for unpacker
@@ -2307,11 +2309,9 @@ Press {ESC:_} to cancel the operation or {ENTER:_} to repeat it.
 .title Set File Attributes
 You can see and edit attributes, date and time of current file.
 
- Attention! Attribute "execute-only" for Novell NetWare only!
-
 .topic FilesAttr=16584
 .title Set Files Attributes
-You can set or cleat attributes of selected files.
+You can set or clear attributes of selected files.
 
 .topic SetPassword=16585
 .title Set Password

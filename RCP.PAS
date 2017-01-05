@@ -293,7 +293,7 @@ end;
 
 type
   TEditCommand = record
-    C,C1,C2: AWord;
+    C, C1, C2: Word;
     CC1, CC2: Array[1..2] of Char;
   end;
 

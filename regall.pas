@@ -59,7 +59,7 @@ Uses
     {$IFNDEF MINARCH}
     Arc_ARC,  Arc_BSA,  Arc_BS2,  Arc_HYP,  Arc_LIM,  Arc_HPK,  Arc_TAR,
     Arc_ZXZ,  Arc_QRK,  Arc_AIN,  Arc_CHZ,  Arc_HAP,  Arc_IS3,  Arc_SQZ,
-    Arc_UC2,  Arc_UFA,  Arc_ZOO,  {$IFDEF TGZ} Arc_TGZ, {$ENDIF}
+    Arc_UC2,  Arc_UFA,  Arc_ZOO,  Arc_TGZ,
     {$ENDIF}
     {$IFDEF ARVID}
     Arvid,
@@ -86,7 +86,7 @@ Uses
 
 const
   NumRElms =
-{$IFDEF RCP} 31 {$ELSE} 119
+{$IFDEF RCP} 31 {$ELSE} 120
   {$IFDEF MODEM}       +7 {$IFDEF LINK} +2 {$ENDIF} {$ENDIF}
   {$IFDEF NETWORK}     +1 {$ENDIF}
   {$IFDEF SpreadSheet} +5 {$ENDIF}
@@ -97,8 +97,7 @@ const
   {$IFDEF Calendar}    +2 {$ENDIF}   {JO}
   {$IFDEF TrashCan}    +1 {$ENDIF}
   {$IFDEF NETINFO}     +1 {$ENDIF}
-  {$IFDEF TGZ}         +1 {$ENDIF}
-  {$IFDEF MINARCH}    -17 {$ENDIF}
+  {$IFDEF MINARCH}    -18 {$ENDIF}
   {$IFDEF ARVID}       +1 {$ENDIF}
   {$IFDEF PHONES}      +4 {$ENDIF}
   {$IFDEF UserSaver}   +1 {$ENDIF}
@@ -187,14 +186,12 @@ const
        {$IFDEF LOGOBJLOADSTORE} ObjName : 'otTARArchiver'; {$ENDIF}
        Load   : @Arc_TAR.TTARArchive.Load;
        Store  : @Arc_TAR.TTARArchive.Store)
-{$IFDEF TGZ}
       { Arc_TGZ }
      ,(ObjType: otTGZArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_TGZ.TTGZArchive){$IFDEF OFFS}^{$ENDIF});
        {$IFDEF LOGOBJLOADSTORE} ObjName : 'otTGZArchiver'; {$ENDIF}
        Load   : @Arc_TGZ.TTGZArchive.Load;
        Store  : @Arc_TGZ.TTGZArchive.Store)
-{$ENDIF}
       { Arc_ZXZ }
      ,(ObjType: otZXZArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_ZXZ.TZXZArchive){$IFDEF OFFS}^{$ENDIF});

@@ -18,4 +18,6 @@ english.lng  English language resource file
 russian.lng  Russian language resource file
 dn.exe       DN/2 executable file for OS/2
 openobj.exe  Utility to open WPS objects for files
-dn.res       Иконка для dn.exe Win32
+dn.in! Main configuration file
+dn.in2 Main configuration file
+dn.in3 Main configuration file

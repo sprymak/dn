@@ -140,6 +140,7 @@ type
    procedure CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
    function Disposable: Boolean; virtual;
    function GetRealName: String; virtual;
+   function GetInternalName: String; virtual;
    function GetDir: string; virtual;
    procedure MakeDir; virtual;
    destructor Done; virtual;
@@ -165,6 +166,7 @@ type
    procedure   Store(var S: TStream); virtual;
    procedure   CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
    function    GetRealName: String; virtual;
+   function    GetInternalName: String; virtual;
    procedure   CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
    procedure   EraseFiles(AFiles: PCollection); virtual;
    procedure   GetDirInfo(var B: TDiskInfoRec); virtual;
@@ -369,7 +371,7 @@ function FindFiles;
               { Back          }      Off,
               { AllCP         }      FindRec.Options and ffoAllCP <> 0, {-$VIV 14.05.99}
               { IsRegExp      }      FindRec.Options and ffoRegExp <> 0) {Cat 06.12.01}
-              >= 0); 
+              >= 0);
    S.Done;
  end;
 
@@ -1332,6 +1334,12 @@ begin
  GetRealName := '';
 end;
 
+function TFindDrive.GetInternalName;
+begin
+ GetInternalName := '';
+end;
+
+
 function TFindDrive.GetDir: string;
 var S: String;
     SX: LongInt;
@@ -1542,6 +1550,11 @@ end;
 function TTempDrive.GetRealName;
 begin
  GetRealName := cTEMP_;
+end;
+
+function  TTempDrive.GetInternalName;
+begin
+ GetInternalName := '';
 end;
 
 destructor TTempDrive.Done;

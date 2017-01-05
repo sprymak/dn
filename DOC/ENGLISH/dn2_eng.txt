@@ -1,4 +1,6 @@
 
+ Briefly about the project:
+
  DN/2 project - it is attempt to transfer DN OSP project on 32-bit platform
 using Virtual Pascal compiler. The main goal of the project to create viable
 native OS/2-version, and it's possible also that WIN32 and DPMI32-version
@@ -29,28 +31,36 @@ caused by this product.
  Jaroslaw Osadtchiy (JO) <2:5030/1082.53 aka 2:5030/415.17; Osadtchy@LO6105.spb.edu>
  Alexey Korop (AK155) <Alexey Korop, 2:461/155; korop@online.kharkiv.net>
  Aleksej Kozlov (Cat) <Aleksej Kozlov, 2:5030/1326.13; cat@os2.ru>
+ Kirill Vodonosov (KV) <Kirill Vodonosov, vodonosov@tut.by>
+
+ Author of the Ukrainian resources - Victor Klochko <Victor Klochko, 2:461/155.1>
 
  All persons who take an interest in this project are welcome to participate
 in project!
 
  New versions of DN/2 could be found at:
 
- ftp://cdl.bmstu.ru/contrib/dnosp/
+ http://www.dnosp.ru/files/dn2/
  http://os2.ru/projects/dn2/
- http://ecomstation.ru/dn2
 
  DNOS2Bxx.RAR  (where xx - wersion number) - archives with OS/2 executables of
                beta-versions;
+ DNOS2Uxx.RAR  (where xx - wersion number) - archives with ukrainian resource
+               binaries for OS/2;
  DNOS2Sxx.RAR  (where xx - wersion number) - archives with sources of the
                programm package;
+ DNOS2Rxx.RAR  (where xx - wersion number) - archives with source texts of
+               resources and resource compiler for OS/2 and Win32;
 
  New Win32 versions of DN/2 could be found at:
 
- ftp://cdl.bmstu.ru/contrib/dnosp/
+ http://www.dnosp.ru/files/dn2/
  http://os2.ru/projects/dn2/
 
- DNW32Bxx.RAR  (where xx - wersion number) - archives with Win32 executables of
-               beta-versions;
+ DNW32Bxx.RAR  (where xx - wersion number) - archives with Win32 executables
+               of beta-versions;
+ DNW32Uxx.RAR  (where xx - wersion number) - archives with ukrainian resource
+               binaries for Win32;
 
  Autrors of DN/2 express a lot of thanks to all authors of DN OSP (see
 ..\DNOSP\authors.txt), and especial thanks to:

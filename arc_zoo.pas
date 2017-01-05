@@ -47,10 +47,12 @@
 {$I STDEFINE.INC}
 unit Arc_ZOO; {ZOO}
 
+{.$DEFINE DeadCode}{piwamoto}
+
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+  Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, LFNCol{$ENDIF};
 
 type
     PZOOArchive = ^TZOOArchive;
@@ -83,15 +85,7 @@ type
      end;
 {$ENDIF}
 
-const ZOOID = $FDC4A7DC;
-
-
 implementation
-
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
 
 { ----------------------------- ZOO ------------------------------------}
 
@@ -118,6 +112,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '+f'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
@@ -169,7 +164,7 @@ var
     S    : String;
 begin
  ArcFile^.Read(P, 4);
- if (ArcFile^.Status <> stOK) or (P.ID <> ZOOID) then begin FileInfo.Last:=2;Exit;end;
+ if (ArcFile^.Status <> stOK) or (P.ID <> $FDC4A7DC) then begin FileInfo.Last:=2;Exit;end;
  ArcFile^.Read(P.Info, 2);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
  {if (P.Info = $0002) then begin FileInfo.Last := 1;Exit;end;}

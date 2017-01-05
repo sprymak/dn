@@ -995,7 +995,6 @@ procedure TGrabber.HandleEvent;
       S:='';
       for J:=R.A.X to R.B.X-1 do begin
         C:=Char(WordRec(Screen^[I*Size.X+J]).Lo);
-        if C=#0 then C:=' ';
         S:=S+C;
       end;
       Clipboard^.Insert(NewLongStr(S));

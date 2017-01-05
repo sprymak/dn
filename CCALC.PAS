@@ -72,6 +72,7 @@ type
        constructor Init(var R: TRect);
        procedure HandleEvent(var Event: TEvent); virtual;
        procedure Draw; virtual;
+       procedure WrtT(X: CReal; var S: String);
        function GetPalette: PPalette; virtual;
      end;
 
@@ -80,6 +81,11 @@ procedure InsertCalc;
 Const Calc: PView = nil;
 
 implementation
+uses
+ {SysUtils} {AK155 Для try - except}
+  Excepts
+  ;
+
 
 constructor TIndicator.Init;
 begin
@@ -152,10 +158,36 @@ begin
                     2: if Abs(Value) < $7FFFFFFF then GetNValue(Trunc(Value), 1, D.S) else Exit;
                     3: if Abs(Value) < $7FFFFFFF then GetNValue(Trunc(Value), 3, D.S) else Exit;
                     4: Str(Value, D.S);
+                    5: WrtT(Value, D.S);
                   end;
                   Message(Application, evCommand, cmPutInClipboard, @D.S);
                end;
     end;
+end;
+
+procedure TIndicator.WrtT(X: CReal; var S: String);
+  var Hour, Min: LongInt;
+      Sec: CReal;
+      Negative: Boolean;
+  {$IFDEF USEANSISTRING}
+      sHour, sMin: String;
+  {$ELSE}
+      sHour, sMin: String[20];
+  {$ENDIF}
+begin
+  if X<0 then begin Negative:= true; X:= -X; end else Negative:= false;
+  Hour := Trunc(X / 3600);
+  Min  := Trunc((X - Hour * 3600)/60);
+  Sec  := X - Hour * 3600 - Min * 60;
+  Str(Hour, sHour);
+  if Negative then sHour:= '-' + sHour;
+  Str(Min, sMin);
+  if Length(sMin)<2 then sMin := '0' + sMin;
+  Str(Sec:0:8, S);
+  if PosChar('E', S)=0 then While S[Length(S)] = '0' do SetLength(S, Length(S)-1);
+  if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
+  if (Length(S)<2) or (PosChar('.', S)=2) then S:= '0' + S;
+  S := sHour + ':' + sMin + ':' + S;
 end;
 
 procedure TIndicator.Draw;
@@ -187,7 +219,7 @@ begin
      begin
         MoveChar(B, ' ', C, Size.X);
         WriteLine(0,0,Size.X,2,B);
-        WriteLine(0,3,Size.X,2,B);
+        WriteLine(0,3,Size.X,3,B);
         S:=GetString(dlMsgError);
         MoveStr(B[(Size.X - Length(S)) div 2], S, C);
         WriteLine(0,2,Size.X,1,B);
@@ -200,11 +232,12 @@ begin
        if Abs(Value) > $7FFFFFFF then
          begin
             S := GetString(dlOverflow);
-            Wrt(1); Wrt(2); Wrt(3);
+            Wrt(1); Wrt(2); Wrt(3); Wrt(5);
          end
          else begin
                 LL := Trunc(Value);
                 WrtN(1, 4); WrtN(2, 1); WrtN(3, 3);
+                WrtT(Value, S); Wrt(5);
               end;
        Str(Value, S);
        Wrt(4);
@@ -271,7 +304,15 @@ begin
   if S = '' then
    begin R := 0; Message(Owner, evBroadcast, cmSetValue, @R); Exit end;
   EvalueError := False;
+{&delphi+} {AK155 Для try - except.
+Отлов ошибок надо вставлять сюда, а не в Evalue, т.к. Evalue - рекурсивная}
+try
   R := Evalue(S, nil);
+except
+  on {EMathError} EAnyException do
+    EvalueError := true;
+end;
+{&delphi-}
   if EvalueError then Message(Owner, evBroadcast, cmSetError, nil)
   else begin
    Message(Owner, evBroadcast, cmSetValue, @R);
@@ -316,7 +357,7 @@ procedure InsertCalc;
        Labl := New(PLabel, Init(R, GetString(dlCalcEx_p_ression), Control));
        Dlg^.Insert(Labl);
 
-       R.Assign(12,6,Dlg^.Size.X-2,11);
+       R.Assign(12,6,Dlg^.Size.X-2,12);
        Control := New(PIndicator, Init(R));
        Control^.Options := Control^.Options or ofFramed;
        Dlg^.Insert(Control);

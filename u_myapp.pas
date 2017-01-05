@@ -52,6 +52,9 @@ interface
 
 uses
   {$IFDEF PLUGIN} Plugin, {$ENDIF} {Cat}
+ {$IFDEF FileNotify}
+  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, Advance2, {$ENDIF} {Cat}
+ {$ENDIF}
   DnUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
   UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects;
 
@@ -70,6 +73,7 @@ implementation
 uses
   {$IFNDEF DPMI32} Killer, {$ENDIF}
   {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
+  {$IFDEF FileNotify}Drives,{$ENDIF}
   Dn1;
 
 (*{$I  runcmd.inc}*)
@@ -217,6 +221,9 @@ end;
 
 var
      L_Tmr: TEventTimer;
+{$IFDEF FileNotify}
+     OldNotify, NewNotify: String; {Cat}
+{$ENDIF}
 
 
 procedure MyApp.Idle;
@@ -284,6 +291,23 @@ begin
  begin
    TApplication.Idle;
  end;
+{$IFDEF FileNotify}
+{Cat}
+  if DNIni.AutoRefreshPanels {and TrueIdle}
+     and xTime.TimerExpired(NotifyTmr) then {JO}
+    begin
+      NewNotify := NotifyAsk;
+      if (NewNotify <> OldNotify) and (OldNotify <> '') then
+     {$IFDEF OS2}
+        FileChanged(OldNotify);
+     {$ELSE}
+        RereadDirectory(OldNotify);
+     {$ENDIF}
+      OldNotify := NewNotify;
+      xTime.NewTimerSecs(NotifyTmr, 1); {JO}
+    end;
+{/Cat}
+{$ENDIF}
 
  UpdateAll(On);
 

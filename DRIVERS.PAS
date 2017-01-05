@@ -102,9 +102,10 @@ type
         Where: TPoint);
       evKeyDown: (
         case Integer of
-          0: (KeyCode: Word);
+          0: (KeyCode: LongInt);
           1: (CharCode: Char;
-              ScanCode: Byte));
+              ScanCode: Byte;
+              ShiftCode: Byte));
       evMessage: (
         Command: Word;
         case Word of

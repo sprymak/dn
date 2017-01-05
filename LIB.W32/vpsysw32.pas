@@ -13,19 +13,19 @@
 {AK155 = Alexey Korop, 2:261/155@fidonet}
 
 {Cat
-   18/10/2001 - изменил функции работы с Clipboard-ом, теперь
+   18-10-2001 - изменил функции работы с Clipboard-ом, теперь
    вместо описателя данных cf_Text и перекодировок Ansi-Oem
    используется описатель cf_OemText
 
-   19/10/2001 - теперь используется собственный RecodeCyrillicNames,
+   19-10-2001 - теперь используется собственный RecodeCyrillicNames,
    который должен быть проинициализирован в модуле DnIni
 
-   09/12/2001 - окончательно вычистил загрузку VPKBDW32.DLL;
+   09-12-2001 - окончательно вычистил загрузку VPKBDW32.DLL;
    убрал вызовы InitialiseKeyboardHandler из всех мест, кроме
    InitialiseConsole, вызов которой происходит при инициализации
    модуля
 
-   10/12/2001 - раньше установка позиции курсора происходила в
+   10-12-2001 - раньше установка позиции курсора происходила в
    отдельной нитке, теперь в эту же нитку добавил ещё и изменение
    вида курсора (SetCurType, GetCurType); идея такая: после запроса
    на изменение ждём 0.1 секунды перед тем, как на самом деле
@@ -33,12 +33,20 @@
    запрос на изменение - старый запрос игнорируем
 }
 {AK155
-  10-01-2002 - изменил функции работы с Clipboard-ом, теперь
+   10-01-2002 - изменил функции работы с Clipboard-ом, теперь
    под WinNT вместо описателя cf_OemText используется cf_UnicodeText
    и выполняются соответствующие перекодировки. Без этого не удается
    получить одновременно корректную работу с русскими буквами и
    с псевдографикой, притом, чтобы взятое в буфер в DN нормально
    вставлялось и в консоль, и в GUI.
+}
+{Cat
+   20-03-2002 - теперь для получения размера диска и размера
+   свободного места на диске там, где это возможно, используется
+   функция GetDiskFreeSpaceExA. Это нужно для устранения проблемы
+   с неправильным показом этих параметров под Win9x (раньше если
+   размер диска или размер свободного места на диске превышал 2Г,
+   то он показывался равным 2Г)
 }
 
 var
@@ -68,7 +76,7 @@ const
   CurYPos:     Longint = -1;
   LastX:       Longint = -1;
   LastY:       Longint = -1;
-  SysPlatform: Longint = -1;  // Platform ID, from SysPlatformID
+
  {SysSpecialKeys: Set of Byte = [0, $e0];}
   SysSpecialKeys: Set of Byte = [0]; {JO}
 
@@ -80,6 +88,9 @@ const
 {$IFDEF AutoKbdUpdateEventQueues}
   tidKbdUpdateEventQueues: Longint = -1; {Cat}
 {$ENDIF}
+
+  SysPlatform: Longint = -1; {Cat: теперь это значение хранится в переменной, вместо того, чтобы каждый раз
+                             {     вызывать функцию; сама функция вызывается только один раз при инициализации}
 
 type
   PStandardCell = ^TStandardCell;
@@ -103,6 +114,8 @@ const
 *)
   pKbdInit : TKbdInit = VpKbdW32.KbdInit; {Cat}
   pKbdUpdateEventQueues : TKbdUpdateEventQueues = VpKbdW32.KbdUpdateEventQueues; {Cat}
+
+  GetDiskFreeSpaceEx: function(Drive: PChar; var AvailableForCaller, Total, Free): LongBool stdcall = nil; {Cat}
 
 function QueryProcAddr(Name: PChar; IsKernel: Boolean): Pointer;
 const
@@ -648,6 +661,8 @@ begin
   Result := SmallWord(GetVersion);
 end;
 
+{Cat: SysPlatformID хранится в переменной, а содержимое этой функции перенесено в раздел инициализации}
+(*
 function SysPlatformID: Longint;
 var
   OSVersionInfo: TOSVersionInfo;
@@ -656,6 +671,12 @@ begin
   GetVersionEx(OSVersionInfo);
   Result := OSVersionInfo.dwPlatformId;
 end;
+*)
+function SysPlatformID: Longint;
+begin
+  SysPlatformID := SysPlatform;
+end;
+{/Cat}
 
 procedure SysGetDateTime(Year,Month,Day,DayOfWeek,Hour,Minute,Second,MSec: PLongint);
 var
@@ -697,6 +718,7 @@ var
   RootPath: array[0..3] of Char;
   RootPtr: PChar;
   SectorsPerCluster,BytesPerSector,FreeClusters,TotalClusters: DWord;
+  AvailableForCaller, Total, Free: TQuad; {Cat}
 begin
   RootPtr := nil;
   if Drive > 0 then
@@ -707,10 +729,18 @@ begin
     RootPath[3] := #0;
     RootPtr := RootPath;
   end;
-  if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
-    Result := 1.0 * SectorsPerCluster * BytesPerSector * FreeClusters
+  {Cat}
+  if Assigned(GetDiskFreeSpaceEx) then
+     if GetDiskFreeSpaceEx(RootPtr, AvailableForCaller, Total, Free) then
+       Result := Free
+     else
+       Result := -1
   else
-    Result := -1;
+  {/Cat}
+    if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
+      Result := 1.0 * SectorsPerCluster * BytesPerSector * FreeClusters
+    else
+      Result := -1;
 end;
 
 function SysDiskSizeLong(Drive: Byte): TQuad;
@@ -718,6 +748,7 @@ var
   RootPath: array[0..3] of Char;
   RootPtr: PChar;
   SectorsPerCluster,BytesPerSector,FreeClusters,TotalClusters: DWord;
+  AvailableForCaller, Total, Free: TQuad; {Cat}
 begin
   RootPtr := nil;
   if Drive > 0 then
@@ -728,10 +759,18 @@ begin
     RootPath[3] := #0;
     RootPtr := RootPath;
   end;
-  if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
-    Result := 1.0 *SectorsPerCluster * BytesPerSector * TotalClusters
+  {Cat}
+  if Assigned(GetDiskFreeSpaceEx) then
+     if GetDiskFreeSpaceEx(RootPtr, AvailableForCaller, Total, Free) then
+       Result := Total
+     else
+       Result := -1
   else
-    Result := -1;
+  {/Cat}
+    if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
+      Result := 1.0 * SectorsPerCluster * BytesPerSector * TotalClusters
+    else
+      Result := -1;
 end;
 
 function SysGetFileAttr(FileName: PChar; var Attr: Longint): Longint;
@@ -1404,8 +1443,8 @@ var
   Fill: TWin32Cell;
   i: Integer;
 begin
-  if SysPlatform = -1 then
-    SysPlatform := SysPlatformID;
+  {if SysPlatform = -1 then
+    SysPlatform := SysPlatformID;}
   Fill.ch := Lo(Cell);
   Fill.Attr := Hi( Cell );
   ScrollRect.Left := X1;
@@ -1553,6 +1592,7 @@ procedure SysTVSetCurPos(X,Y: Integer);
 var
   CurPos: TCoord;
 begin
+  if (CurXPos = X) and (CurYPos = Y) then Exit; {KV}
   CurXPos := X;
   CurYPos := Y;
   {$IFDEF RouteConsoleToStdInOut}
@@ -1565,6 +1605,7 @@ begin
     // Record cursor position; tell cursor thread to update
     SemPostEvent(semCursor);
   {$ENDIF}
+  WaitForSingleObjectEx(SysConOut,16,true); {KV}
 end;
 
 {Cat}
@@ -1946,8 +1987,8 @@ function SysFileUNCExpand(Dest,Name: PChar): PChar;
   end;
 
 begin
-  if SysPlatform = -1 then
-    SysPlatform := SysPlatformID;
+  {if SysPlatform = -1 then
+    SysPlatform := SysPlatformID;}
   SysFileExpand(Dest, Name);
   if (UpCase(Dest[0]) in ['A'..'Z']) and (Dest[1] = ':') and (Dest[2] = '\') then
     GetUNCPath(Dest);
@@ -2382,14 +2423,14 @@ begin
       EmptyClipboard;
       // Allocate a shared block of memory
       MSize := Size+1;
-      if SysPlatformID <> 1{Win 9x} then
+      if SysPlatform <> 1{Win 9x} then
         MSize := 2*MSize; {for unicode string}
       MemHandle := GlobalAlloc(gmem_Moveable or gmem_DDEShare, MSize);
       Q := GlobalLock(MemHandle);
       Result := Q <> nil;
       if Result then
         begin // Copy clipboard data across
-        if SysPlatformID = 1{Win 9x} then
+        if SysPlatform = 1{Win 9x} then
           move(P^, Q^, MSize)
         else
           begin // Copy clipboard data across and translate to unicode
@@ -2404,6 +2445,24 @@ begin
         Result := SetClipboardData(ClipFormat, MemHandle) <> 0;
       // Do not free memory: Windows does this!
       // GlobalFree(MemHandle);
+
+{AK155 14/05/2002
+Без нижеследующего заклинания русские буквы превращаются в вопросики
+при вставке в Delphi или MS VC или в написанной на них программе.
+Интересно, какая локаль им мерещится вместо LOCALE_SYSTEM_DEFAULT?
+}
+      if Result and (SysPlatform <> 1) then
+        begin
+        MemHandle := GlobalAlloc(gmem_Moveable or gmem_DDEShare, 8);
+        Q := GlobalLock(MemHandle);
+        Result := Q <> nil;
+        if Result then
+          begin
+          PDWORD(Q)^ := LOCALE_SYSTEM_DEFAULT;
+          GlobalUnlock(MemHandle);
+          Result := SetClipboardData(CF_LOCALE, MemHandle) <> 0;
+          end;
+        end;
     end;
     CloseClipboard;
   end;
@@ -2412,6 +2471,7 @@ end;
 function SysClipPaste(var Size: Integer): Pointer;
 var
   P: Pointer;
+  ActualClipFormat: UINT;
   MemHandle: HGlobal;
   OpenClipboard: function(Wnd: hWnd): Bool stdcall;
   CloseClipboard: function: Bool stdcall;
@@ -2426,17 +2486,33 @@ begin
   begin
     if OpenClipboard(0) then
     begin
-      MemHandle := GetClipboardData(ClipFormat);
+{AK155 14/05/2002
+  Оказалось, что некоторые символы (например, номер) криво перекодируются
+из ANSI хоть в OEM, хоть в юникод, если в буфер данные клал Delphi или
+MS VC или написанная на них программа. Но, к счастью они кладут в буфер
+первым пакетом прямо текст ANSI, так что если, как положено, использовать
+первый же текстовый формат, то получается нормально. Цикл перебора
+форматов нужен для пропуска CF_LOCALE.
+}
+      ActualClipFormat := 0;
+      while true do
+      begin
+        ActualClipFormat := EnumClipboardFormats(ActualClipFormat);
+        case ActualClipFormat of
+         CF_UNICODETEXT:
+          break;
+         CF_OEMTEXT:
+          break;
+         CF_TEXT:
+          break;
+        end {case};
+      end;
+      MemHandle := GetClipboardData(ActualClipFormat);
       P := GlobalLock(MemHandle);
       if Assigned(P) then
       begin
-        if SysPlatformID = 1{Win 9x} then
-          begin
-          Size := StrLen(P) + 1;
-          GetMem(Result, Size);
-          Move(P^, Result^, Size);
-          end
-        else
+        case ActualClipFormat of
+         CF_UNICODETEXT:
           begin
           Size := WideCharToMultiByte(
               CP_OEMCP, 0, P, -1, nil, 0, nil, nil);
@@ -2444,6 +2520,21 @@ begin
           WideCharToMultiByte(
               CP_OEMCP, 0, P, -1, Result, Size, nil, nil);
           end;
+         CF_OEMTEXT:
+          begin
+          Size := StrLen(P) + 1;
+          GetMem(Result, Size);
+          Move(P^, Result^, Size);
+          end;
+         CF_TEXT:
+          begin
+          Size := StrLen(P) + 1;
+          GetMem(Result, Size);
+          CharToOem(P, Result);
+          end;
+        end {case};
+
+
       end;
       GlobalUnlock(MemHandle);
       CloseClipBoard;
@@ -2476,11 +2567,32 @@ begin
     Result := Result OR 1;
 end;
 
-begin {main}
+procedure Init;
+var
+  OSVersionInfo: TOSVersionInfo;
+begin
+  {Cat}
+  OSVersionInfo.dwOSVersionInfoSize := SizeOf(OSVersionInfo);
+  GetVersionEx(OSVersionInfo);
+  SysPlatform := OSVersionInfo.dwPlatformId;
+
+  if ((OSVersionInfo.dwPlatformId = 1{Win9x}) and (OSVersionInfo.dwBuildNumber >= 1000)) {Cat:warn}
+  or (OSVersionInfo.dwPlatformId = 2{WinNT}) then
+    @GetDiskFreeSpaceEx := QueryProcAddr('GetDiskFreeSpaceExA', True)
+  else
+    @GetDiskFreeSpaceEx := nil;
+
+  {WriteLn('Platform Id = ',OSVersionInfo.dwPlatformId,',  Build Number = ',OSVersionInfo.dwBuildNumber,',  GetDiskFreeSpaceExA loaded = ',Assigned(GetDiskFreeSpaceEx));}
+  {/Cat}
+
   InitialiseConsole; {Cat}
-  if SysPlatformID = 1{Win 9x} then
+  SysPlatform := SysPlatformID; {AK155 делаем это безусловно и в одном месте}
+  if SysPlatform = 1{Win 9x} then
     ClipFormat := cf_OemText
   else
     ClipFormat := cf_UnicodeText;
+end;
 
+begin {main}
+  Init;
 {end.} {in vpsyslow.pas}

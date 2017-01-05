@@ -55,6 +55,9 @@ INTERFACE
 
 USES
   LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} advance, advance1, advance2, advance3, Objects,
+{$IFDEF FileNotify}
+  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF} {Cat}
+{$ENDIF}
   Views, Drivers, Dos, FilesCol, HideView, Drives, FileDiz, Collect
   {$IFDEF ARVID}, Arvid {$ENDIF}
   ;
@@ -436,14 +439,12 @@ begin
               P^ := TF;}
               if B then begin
                TF := PP^;
+               TF.UsageCount := 1; { заведомо P^.UsageCount=1 }
+               P^.UsageCount := PP^.UsageCount;
                PP^ := P^;
                P^ := TF;
-               PP^.Selected := TF.Selected; {AK155 я не понимаю смысла этого
-               присвоения, но вне условия оно совершенно абсурдно, так как
-               в TF просто мусор. Раньше этого условия не было, оно было
-               введено в Alpha5 или немного раньше, причем не мною }
+               PP^.Selected := TF.Selected;
               end;
-{AK155              PP^.Selected := TF.Selected; }
               FC^.AtPut(I,P); {-$VOL}
               Files^.AtPut(J,PP); {-$VOL}
 {$IFNDEF OS2}
@@ -1037,7 +1038,7 @@ var
  procedure _DoPush(a: Boolean);
  var
    S: string;
-   B,C: Boolean;
+  {B,C: Boolean;}
  begin
    if not GetState(sfVisible) then Exit;
    if a and (Drive^.DriveType<>dtDisk) then PString(Event.InfoPtr)^ := CurrentDirectory
@@ -1047,6 +1048,15 @@ var
      if (S <> '') and (S <> CurrentDirectory) then PString(Event.InfoPtr)^ := S;
    end;
  end;
+
+ procedure _DoPushIntern;
+ var
+   S: string;
+ begin
+     S := Drive^.GetInternalName;
+     if (S <> '') then PString(Event.InfoPtr)^ := S;
+ end;
+
         {-DataCompBoy-}
  procedure _DoRereadDir;
  var
@@ -1471,10 +1481,9 @@ var
           Message(Owner, evCommand, cmChangeInactive, @S);
           Exit;
         end;
+      FreeByte := Drive^.Param;
       Dispose(Drive,Done);
-{Cat:warn непонятно, почему это работает, поскольку в предыдущей строке
-          Drive уничтожается, а в следующей к нему идёт обращение}
-      New(Drive, Init(Byte(S[1])-64, @Self, Drive^.Param));
+      New(Drive, Init(Byte(S[1])-64, @Self, FreeByte));
       {Drive^.Owner := @Self;}
       DeltaX := 0;
       {if WasFull then Drive^.Flags := Drive^.GetFullFlags
@@ -1739,7 +1748,7 @@ kbCtrlEnter: _CtrlEnter;
                        end;
     kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); Owner^.ReDraw end;
     kbEnd:  begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
-    kbAltEnter: if _AltEnter then Exit else
+    kbAltEnter{$IFDEF Win32}, kbAltHome{$ENDIF}: if _AltEnter then Exit else
     begin
       _GotoExt;
       Exit;
@@ -1970,7 +1979,9 @@ end;
  {$IFDEF WIN32}
  procedure _OpenWPSWindow(DirName: String);
  begin
-  DirName := 'explorer.exe "'+Ascii_Ansi(DirName)+'"';
+  if RecodeCyrillicNames then
+    DirName := OemToCharStr(DirName);
+  DirName := 'explorer.exe "'+ DirName + '"';
   Message(Application, evCommand, cmExecString, @DirName);
  end;
  {$ENDIF}
@@ -2036,7 +2047,7 @@ begin
                                       (PF <> nil) and
                                       (PF^.Attr and Directory = 0) then
                                      {$IFNDEF OS2}
-                                     UnarchiveFiles(MakeNormName(PF^.Owner^, MakeFileName(PF^.Name)));
+                                     UnarchiveFiles(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)));
                                      {$ELSE}
                                      UnarchiveFiles(MakeNormName(PF^.Owner^, PF^.Name));
                                      {$ENDIF}
@@ -2115,6 +2126,7 @@ begin
               cmPushName: if UpStrg(CurrentDirectory) <> UpStrg(Drive^.GetRealName) then _PushName;
               cmPushFirstName: _DoPush(False);
               cmPushFullName: _DoPush(True);
+              cmPushInternalName: _DoPushIntern;
               cmPanelCompare: begin CM_CompareDirs(@Self, Event.InfoPtr); Recount; CE end;
               cmPanelSelect: begin SelectFiles(@Self, On,Off); CE end;
               cmPanelUnselect: begin SelectFiles(@Self, Off,Off); CE end;
@@ -2226,7 +2238,7 @@ begin
                                 CE;
                               end;
                  cmCopyCollection: if Drive^.DriveType < dtArc then begin
-                                Drive^.CopyFiles(Event.InfoPtr, @Self, ShiftState and 4 = 0);
+                                Drive^.CopyFiles(Event.InfoPtr, @Self, ShiftState and 7 <> 0);
                                 CE;
                               end;
                  cmDropped: if MouseInView(PCopyRec(Event.InfoPtr)^.Where) then
@@ -2271,6 +2283,7 @@ begin
                end;
   evMouseDown: begin
                 if Files^.Count = 0 then Exit;
+                QuickSearch := false; {AK155}
                 MSelect := Event.Buttons and mbRightButton <> 0;
                 MakeLocal(Event.Where, MPos);
                 if {$IFNDEF OS2}(Drive^.Flags and psShowLongName = 0)

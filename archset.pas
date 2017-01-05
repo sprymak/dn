@@ -97,12 +97,13 @@ procedure SetupArchive;
           Test     : String[20]; {Inputline}
           Force    : String[20]; {Inputline}
           IncludeP : String[20]; {Inputline}
-          Password : String[20]; {Inputline}
           ExcludeP : String[20]; {Inputline}
+          Password : String[20]; {Inputline}
           RecovRec : String[20]; {Inputline}
           SelfExtr : String[20]; {Inputline}
           Solid    : String[20]; {Inputline}
           Recurse  : String[20]; {Inputline}
+          PthInside: String[20]; {Inputline}
           StoreC   : String[20]; {Inputline}
           FastestC : String[20]; {Inputline}
           FastC    : String[20]; {Inputline}
@@ -162,6 +163,7 @@ begin
     DT.SelfExtr := CnvString(SelfExtract);
     DT.Solid    := CnvString(Solid);
     DT.Recurse  := CnvString(RecurseSubDirs);
+    DT.PthInside := CnvString(SetPathInside);
     DT.StoreC   := CnvString(StoreCompression);
     DT.FastestC := CnvString(FastestCompression);
     DT.FastC    := CnvString(FastCompression);
@@ -209,6 +211,7 @@ begin
      SelfExtract        := NewStr(DT.SelfExtr);
      Solid              := NewStr(DT.Solid);
      RecurseSubDirs     := NewStr(DT.Recurse);
+     SetPathInside      := NewStr(DT.PthInside);
      StoreCompression   := NewStr(DT.StoreC);
      FastestCompression := NewStr(DT.FastestC);
      FastCompression    := NewStr(DT.FastC);

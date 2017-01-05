@@ -11,24 +11,24 @@ Written by Cat 2:5030/1326.13
 {$I STDEFINE.INC}
 
 {Cat
-   05/10/2001 - начато добавление плагинов к ДН-у
-   19/10/2001 - плагины типа EventCatcher
-   21/10/2001 - плагины используют индексы в файлах ресурсов (Lng и Dlg)
-   27/10/2001 - плагины используют индекс в файле помощи (Hlp)
-   17/01/2002 - решил, что не следует изменять языковой файл и файл
+   05-10-2001 - начато добавление плагинов к ДН-у
+   19-10-2001 - плагины типа EventCatcher
+   21-10-2001 - плагины используют индексы в файлах ресурсов (Lng и Dlg)
+   27-10-2001 - плагины используют индекс в файле помощи (Hlp)
+   17-01-2002 - решил, что не следует изменять языковой файл и файл
                 ресурсов (за исключением добавления/удаления строк меню),
                 поэтому индексы в Lng, Dlg, Hlp файлах более не используются,
                 а ресурсы плагинов теперь будут содержаться в файлах *.REZ,
                 к которым Plugin Manager не будет иметь никакого отношения
                 Версия плагинов EventCatcher - 2.0
-   23/01/2002 - плагины типа ArchiveViewer
-   28/01/2002 - плагины могут регистрировать объекты для операций с потоками
+   23-01-2002 - плагины типа ArchiveViewer
+   28-01-2002 - плагины могут регистрировать объекты для операций с потоками
+   10-05-2002 - вся структура плагинов переделана заново, без использования
+                DN2CAT.DLL
 }
 
-{$IFNDEF OS2}
-{$IFNDEF WIN32}
-{$ERROR Only OS2 or WIN32!}
-{$ENDIF}
+{$IFNDEF PLUGIN}
+{$ERROR This unit is for use only in plugin version of DN/2!}
 {$ENDIF}
 
 interface
@@ -36,40 +36,62 @@ interface
 uses
   {$IFDEF OS2} Os2Def, Os2Base, {$ENDIF}
   {$IFDEF WIN32} Windows, {$ENDIF}
-  Archiver;
+  Drivers, Archiver;
 
 (*** EVENT CATCHER ***)
 
 type
   {&Cdecl+}
-  {THandleCommandProc=procedure(Command, LngIndex, DlgIndex, HlpIndex: SmallWord);} {1.0}
-  THandleCommandProc=procedure(Command, ObjType: SmallWord; const PluginName: ShortString);
+  THandleCommandProc=procedure(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer; var Finalization: Pointer);
   {&Cdecl-}
   PEventCatcherInfo=^TEventCatcherInfo;
-  TEventCatcherInfo=record
-    FirstCatchedCommand: SmallWord;
-    LastCatchedCommand: SmallWord;
-    {FirstLngIndex: SmallWord;}
-    {LastLngIndex: SmallWord;}
-    {FirstDlgIndex: SmallWord;}
-    {LastDlgIndex: SmallWord;}
-    {FirstHlpIndex: SmallWord;}
-    {LastHlpIndex: SmallWord;}
-    FirstObjType: SmallWord;
-    LastObjType: SmallWord;
+  TEventCatcherInfo=packed record
+    FirstCatchedCommand: Word;
+    LastCatchedCommand: Word;
+    {FirstLngIndex: Word;}
+    {LastLngIndex: Word;}
+    {FirstDlgIndex: Word;}
+    {LastDlgIndex: Word;}
+    {FirstHlpIndex: Word;}
+    {LastHlpIndex: Word;}
+    FirstObjType: Word;
+    LastObjType: Word;
     PluginPath: String[8];
+    Reserved: packed array[0..2] of Byte;
     LibHandle: HModule;
     Entry: THandleCommandProc;
   end;
   PEventCatcherArray=^TEventCatcherArray;
-  TEventCatcherArray=array[1..1] of TEventCatcherInfo;
+  TEventCatcherArray=packed array[1..1] of TEventCatcherInfo;
 
-var
-  EventCatchers: PEventCatcherArray;
-  EventCatchersCount: SmallWord;
+procedure CatchersHandleCommand(Command: Word);
+procedure CatchersRegisterObject(ObjType: Word);
 
-procedure CatchersHandleCommand(Command: SmallWord);
-procedure CatchersRegisterObject(ObjType: SmallWord);
+
+(*** EDITOR EVENT HOOKS ***)
+
+{ помимо обычных отлавливаются следующие специальные события: }
+{   65001 - начало перерисовки                                }
+{   65002 - хотим получить данные подсветки                   }
+{   65003 - после загрузки файла                              }
+{   65004 - перед сохранением файла                           }
+{   65005 - перед "сохранением как"                           }
+{ в случае 65002 поле InfoPtr содержит указатель на структуру }
+{ TFillColorsData                                             }
+
+type
+  PFillColorsData=^TFillColorsData;
+  TFillColorsData=record
+    DrawBuffer: Pointer;
+    StrNum, StartPos, EndPos: LongInt;
+  end;
+
+type
+  TEditorEventHook=function(var Event: TEvent; Editor: Pointer): Boolean;
+
+function SetEditorEventHook(EditorEventHook: TEditorEventHook): Boolean;
+procedure RemoveEditorEventHook(EditorEventHook: TEditorEventHook);
+function ProcessEditorEventHook(var Event: TEvent; Editor: Pointer): Boolean;
 
 
 (*** ARCHIVE VIEWER ***)
@@ -80,15 +102,16 @@ const
 
 type
   {&Cdecl+}
-  TFormatsCountProc = function: SmallWord;
-  TArchiveSignProc = function(Id: SmallWord): TStr4;
-  TCreateArchiveObjectProc = function(Id: SmallWord): PARJArchive;
-  TDetectCreateArchiveObjectProc = function: PARJArchive;
+  TFormatsCountProc=function: Word;
+  TArchiveSignProc=function(Id: Word): TStr4;
+  TCreateArchiveObjectProc=function(Id: Word): PARJArchive;
+  TDetectCreateArchiveObjectProc=function: PARJArchive;
   {&Cdecl-}
   PArchiveViewerInfo=^TArchiveViewerInfo;
-  TArchiveViewerInfo=record
+  TArchiveViewerInfo=packed record
     FirstTag: Byte;
     PluginPath: String[8];
+    Reserved: SmallWord;
     LibHandle: HModule;
     FormatsCount: TFormatsCountProc;
     ArchiveSign: TArchiveSignProc;
@@ -96,9 +119,13 @@ type
     DetectCreateArchiveObject: TDetectCreateArchiveObjectProc;
   end;
   PArchiveViewerArray=^TArchiveViewerArray;
-  TArchiveViewerArray=array[arcFirst-1..arcLast+1] of PArchiveViewerInfo;
+  TArchiveViewerArray=packed array[arcFirst-1..arcLast+1] of PArchiveViewerInfo;
+
+{Cat: порядок переменных не менять, иначе будут проблемы с плагинами}
 
 var
+  EventCatchers: PEventCatcherArray;
+  EventCatchersCount: Integer;
   ArchiveViewers: TArchiveViewerArray;
 
 function DetectCreateArchiveObject: PARJArchive;
@@ -108,14 +135,14 @@ function GetArchiveByTag(ID: Byte): PARJArchive;
 implementation
 
 uses
-  Commands, ObjType, Advance, Messages, DnApp;
+  Commands, ObjType, Messages, DNApp, Advance, Advance2,
+  DNFuncs;
 
-const
-  Initialized: Boolean = False;
+(*** EVENT CATCHER ***)
 
 procedure DonePlugins;
 var
-  I: SmallWord;
+  I: Integer;
 begin
   for I:=1 to EventCatchersCount do
     with EventCatchers^[I] do
@@ -139,19 +166,39 @@ var
   F: File;
   I, J, K: Integer;
   Len: Byte;
-  ArchiveViewersCount: SmallWord;
+  ArchiveViewersCount: Integer;
   FullPath: String;
+const
+  Initialized: Boolean = False;
+  PLUGINS_CFG: array[0..31] of Char =
+    #$01#$00#$00#$00#$00#$7D#$00#$00#$00#$7D#$00#$00#$FF#$FF#$00#$00#$FF#$FF#$00#$00#$07#$50#$4C#$55#$47#$4D#$41#$4E#$00#$00#$00#$00;
 begin
   if Initialized then
     Exit;
   Initialized:=True;
 
-  Assign(F, SourceDir+'PLUGINS.CFG');
+  DNFunctions.DN2Version:=VersionWord;
+
+  FullPath:=SourceDir+'PLUGINS.CFG';
+
+  if not ExistFile(FullPath) then
+    begin
+      Assign(F, FullPath);
+      Rewrite(F, 1);
+      BlockWrite(F, PLUGINS_CFG, SizeOf(PLUGINS_CFG));
+      Close(F);
+      if IOResult=0 then
+        ;
+    end;
+
+  Assign(F, FullPath);
   Reset(F, 1);
   BlockRead(F, EventCatchersCount, SizeOf(EventCatchersCount));
-  if IOResult<>0 then
+  if (IOResult<>0) or (EventCatchersCount<0) or (EventCatchersCount>60000) then
     begin
-      FreeMem(EventCatchers, EventCatchersCount*SizeOf(TEventCatcherInfo));
+      Close(F);
+      if IOResult=0 then
+        ;
       EventCatchers:=nil;
       Writeln('Error reading file PLUGINS.CFG');
       Exit;
@@ -185,6 +232,9 @@ begin
   FillChar(ArchiveViewers, SizeOf(ArchiveViewers), #0);
   if IOResult<>0 then
     begin
+      Close(F);
+      if IOResult=0 then
+        ;
       FreeMem(EventCatchers, EventCatchersCount*SizeOf(TEventCatcherInfo));
       EventCatchers:=nil;
       Writeln('Error reading file PLUGINS.CFG');
@@ -205,6 +255,9 @@ begin
           BlockRead(F, PluginPath[1], Len);
           if IOResult<>0 then
             begin
+              Close(F);
+              if IOResult=0 then
+                ;
               FreeMem(EventCatchers, EventCatchersCount*SizeOf(TEventCatcherInfo));
               EventCatchers:=nil;
               Dispose(ArchiveViewers[J]);
@@ -269,10 +322,11 @@ begin
     end;
 end;
 
-procedure CatchersHandleCommand(Command: SmallWord);
+procedure CatchersHandleCommand(Command: Word);
 var
-  I: SmallWord;
+  I: Integer;
   FullPath: String;
+  Finalization: Pointer;
 begin
   if EventCatchers<>nil then
     for I:=1 to EventCatchersCount do
@@ -280,8 +334,11 @@ begin
         if (Command>=FirstCatchedCommand) and (Command<=LastCatchedCommand) then
           begin
             if Assigned(Entry) then
-              {Entry(Command-FirstCatchedCommand, FirstLngIndex, FirstDlgIndex, FirstHlpIndex)} {1.0}
-              Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath)
+              begin
+                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
+                if Finalization<>nil then
+                  AddExitProc(Finalization);
+              end
             else
               begin
                 FullPath:=SourceDir+PluginPath+'.DLL'#0;
@@ -312,26 +369,32 @@ begin
                       end;
                   end;
                 {$ENDIF}
-                {Entry(Command-FirstCatchedCommand, FirstLngIndex, FirstDlgIndex, FirstHlpIndex);} {1.0}
-                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath);
+                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
+                if Finalization<>nil then
+                  AddExitProc(Finalization);
               end;
             Exit;
           end;
 end;
 
-procedure CatchersRegisterObject(ObjType: SmallWord);
+procedure CatchersRegisterObject(ObjType: Word);
 var
-  I: SmallWord;
+  I: Integer;
   FullPath: String;
+  Finalization: Pointer;
 begin
-  if ObjType>=otPlugins then
+  if (ObjType>=otPlugins) and (ObjType<=otPluginsEnd) then
     if EventCatchers<>nil then
       for I:=1 to EventCatchersCount do
         with EventCatchers^[I] do
           if (ObjType>=FirstObjType) and (ObjType<=LastObjType) then
             begin
               if Assigned(Entry) then
-                Entry($FFFF, FirstObjType, PluginPath)
+                begin
+                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
+                  if Finalization<>nil then
+                    AddExitProc(Finalization);
+                end
               else
                 begin
                   FullPath:=SourceDir+PluginPath+'.DLL'#0;
@@ -362,16 +425,73 @@ begin
                         end;
                     end;
                   {$ENDIF}
-                  Entry($FFFF, FirstObjType, PluginPath);
+                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
+                  if Finalization<>nil then
+                    AddExitProc(Finalization);
                 end;
               Exit;
             end;
 end;
 
+
+
+(*** EDITOR EVENT HOOKS ***)
+
+{&Delphi+}
+const
+  MaxEditorEventHookCount = 32;
+
+var
+  EditorEventHookArray: array[1..MaxEditorEventHookCount] of Pointer{TEditorEventHook};
+  EditorEventHookCount: Integer;
+
+function SetEditorEventHook(EditorEventHook: TEditorEventHook): Boolean;
+begin
+  if EditorEventHookCount<MaxEditorEventHookCount then
+    begin
+      Result:=True;
+      Inc(EditorEventHookCount);
+      EditorEventHookArray[EditorEventHookCount]:=@EditorEventHook;
+    end
+  else
+    Result:=False;
+end;
+
+procedure RemoveEditorEventHook(EditorEventHook: TEditorEventHook);
+var
+  I: Integer;
+begin
+  for I:=1 to EditorEventHookCount do
+    if EditorEventHookArray[I]=@EditorEventHook then
+      begin
+        for I:=I+1 to EditorEventHookCount do
+          EditorEventHookArray[I-1]:=EditorEventHookArray[I];
+        Dec(EditorEventHookCount);
+        Exit;
+      end;
+end;
+
+function ProcessEditorEventHook(var Event: TEvent; Editor: Pointer): Boolean;
+var
+  I: Integer;
+begin
+  for I:=1 to EditorEventHookCount do
+    if TEditorEventHook(EditorEventHookArray[I])(Event, Editor) then
+      begin
+        Result:=True;
+        Exit;
+      end;
+  Result:=False;
+end;
+{&Delphi-}
+
+
+(*** ARCHIVE VIEWER ***)
+
 {&Delphi+}
 function DetectCreateArchiveObject: PARJArchive;
 var
-  J: SmallWord;
+  J: Integer;
 begin
   for J:=arcFirst to arcLast do
     if ArchiveViewers[J]<>nil then
@@ -385,7 +505,7 @@ end;
 
 function GetArchiveTagBySign(Sign: TStr4): Byte;
 var
-  J: SmallWord;
+  J: Integer;
 begin
   for J:=arcFirst to arcLast do
     if ArchiveViewers[J]<>nil then

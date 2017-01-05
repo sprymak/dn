@@ -50,7 +50,7 @@ unit Arc_bsa; {BSA}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+  Archiver, Advance, Advance1, Objects{$IFNDEF OS2}, LFNCol{$ENDIF};
 
 type
     PBSAArchive = ^TBSAArchive;
@@ -72,11 +72,6 @@ type
      end;
 
 implementation
-
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
 
 { ----------------------------- BSA ------------------------------------}
 
@@ -103,6 +98,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '+s'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '+q'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));

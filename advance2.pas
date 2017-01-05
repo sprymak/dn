@@ -66,6 +66,7 @@ function  IsDriveCDROM(Drive : Char) : Boolean;
 procedure lChDir(S: string); {DataCompBoy}
 procedure EraseByName(const FName: String); {DataCompBoy}
 Procedure EraseFile(const N: String); {DataCompBoy}
+procedure EraseTempFile(S: String); {piwamoto}{JO}
 Function  ValidDrive(dr : char) : Boolean;
 Function  GetDrive : byte;
 Procedure SetDrive(a : byte);
@@ -376,6 +377,16 @@ TryDel:
   ClrIO;
 end;
 
+procedure EraseTempFile;
+ var Dir: String;
+begin
+ {JO: проверочка файла на нахождение во временном каталоге не помешает}
+ Dir := GetPath(S);
+ if (Tempdir[Length(Tempdir)] <> '\') and (Dir[Length(Dir)] = '\') then
+   SetLength(Dir, Length(Dir) - 1);
+ if UpStrg(Dir) = UpStrg(Tempdir) then EraseFile(S);
+end;
+
 function ValidDrive(dr : char) : Boolean;
 {$IFDEF VIRTUALPASCAL}
 var
@@ -531,8 +542,8 @@ end;
 FUNCTION Norm12;
 var R: string[12]; I: Byte;
 begin
-  System.FillChar(R[1],12,' '); R[0]:=#12;
   if s[1]='.' then begin Norm12:=AddSpace(s,12); Exit end;
+  System.FillChar(R[1],12,' '); R[0]:=#12;
   R[9]:='.'; i:=PosChar('.',s);
   if i=0 then i:=succ(Length(S)) else move(s[succ(i)],r[10],Min(Length(S)-i,3));
   if i>8 then i:=8 else dec(i);
@@ -1330,8 +1341,11 @@ begin
   else
     if Key=kbBack then
       begin
-        SetLength(QS.Mask, Length(QS.Mask)-1);
-        Dec(QS.ExtD);
+        if Length(QS.Mask) > 0 then
+          begin
+            SetLength(QS.Mask, Length(QS.Mask)-1);
+            Dec(QS.ExtD);
+          end;
       end
     else
       begin

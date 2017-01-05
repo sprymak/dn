@@ -101,7 +101,7 @@
  {$IFDEF USELFN}
   {$DEFINE STRINGLFN} {включает более быстрый, но жрущий много памяти алгоритм работы с виндовыми LFN}
  {$ENDIF}
- {$DEFINE VPBETA}     {включает создание DN.ERR при критических ошибках}
+ {.$DEFINE VPBETA}     {включает создание DN.ERR при критических ошибках}
                       {влияет на вариант подключения dn2cat.dll в виндовой плагинной версии}
  {.$DEFINE OldCollection} {старые ассемблерные методы *Collection}
  {$DEFINE NoCallspcb} {внимание! конфиги версий, скомпилённых с и без NoCallspcb несовместимы!}
@@ -121,6 +121,7 @@
  {$DEFINE DisAsm}  {нормально компилится и работает, но надо ли}
  {$DEFINE PHONES}
  {.$DEFINE NETINFO}
+ {$DEFINE FileNotify}
 {$ENDIF VIRTUALPASCAL}
 
 {$IFDEF BPIDE}

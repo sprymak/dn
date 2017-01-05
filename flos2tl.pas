@@ -14,7 +14,27 @@ const
   ageAll         = 4;
 
 function GetFileAge(S: String; AgeType: Byte): Longint;
+  {JO: возвращает время и дату файла или каталога по полному пути (S); }
+  {    тип времени и даты задаётся в AgeType и может принимать         }
+  {    значение трёх стандартных переменных  ageLastWrite,             }
+  {    ageCreation и ageLastAccess                                     }
+
 function SetFileAge(S: String; Age: longint; AgeType: Byte): Longint;
+  {JO: устанавливает время и дату файла или каталога по полному пути (S);}
+  {    тип времени и даты задаётся в AgeType и может принимать           }
+  {    значение трёх стандартных переменных  ageLastWrite,               }
+  {    ageCreation и ageLastAccess                                       }
+
+function GetFileAges(S: String; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+  {JO: возвращает время и дату последней модификации (Age_LWr),                   }
+  {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
+  {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
+
+function SetFileAges(S: String; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+  {JO: устанавливает время и дату последней модификации (Age_LWr),                }
+  {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
+  {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
+
 function GetVolSer(DriveNum: Longint; Var Serial: Longint; VolLab: String): Longint;
 function SetVolume(DriveNum: Longint; VolLab: String): Longint;
 function GetBytesPerCluster (DriveNum: Longint): Longint;
@@ -121,6 +141,76 @@ begin
       0);
    SetFileAge := rc;
 end;
+
+function GetFileAges(S: String; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+  Var
+   fsts3ConfigInfo : FileStatus3;
+   ulBufSize       : Longint;
+   rc              : Longint;
+   PS              : PChar;
+   PSArr: array[0..255] of Char;
+begin
+   ulBufSize := sizeof(FileStatus3);
+   PS := PSArr;
+   PS := StrPCopy (PS, S);
+   rc := DosQueryPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize);
+   if rc > 0 then
+     begin
+       Age_LWr := 0;
+       Age_Cr  := 0;
+       Age_LAc := 0;
+     end
+    else
+     begin
+       Age_LWr := (fsts3ConfigInfo.fdateLastWrite  shl 16) + fsts3ConfigInfo.ftimeLastWrite;
+       Age_Cr  := (fsts3ConfigInfo.fdateCreation   shl 16) + fsts3ConfigInfo.ftimeCreation;
+       Age_LAc := (fsts3ConfigInfo.fdateLastAccess shl 16) + fsts3ConfigInfo.ftimeLastAccess;
+     end;
+   GetFileAges := rc;
+end;
+
+
+
+function SetFileAges(S: String; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+  Var
+   fsts3ConfigInfo : FileStatus3;
+   ulBufSize       : Longint;
+   rc              : Longint;
+   PS              : PChar;
+   PSArr: array[0..255] of Char;
+begin
+   ulBufSize := sizeof(FileStatus3);
+   PS := PSArr;
+   PS := StrPCopy (PS, S);
+   rc := DosQueryPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize);
+
+   fsts3ConfigInfo.fdateLastWrite  := Age_LWr shr 16;
+   fsts3ConfigInfo.ftimeLastWrite  := Age_LWr and $FFFF;
+   fsts3ConfigInfo.fdateCreation   := Age_Cr  shr 16;
+   fsts3ConfigInfo.ftimeCreation   := Age_Cr  and $FFFF;
+   fsts3ConfigInfo.fdateLastAccess := Age_LAc shr 16;
+   fsts3ConfigInfo.ftimeLastAccess := Age_LAc and $FFFF;
+
+  {ulBufSize := sizeof(FileStatus3);}
+   rc := DosSetPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize,
+      0);
+   SetFileAges := rc;
+end;
+
+
+
 
 function GetVolSer(DriveNum: Longint; Var Serial: Longint; VolLab: String): Longint;
   type

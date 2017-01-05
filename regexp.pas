@@ -85,7 +85,7 @@
  *****************************************************************)
 
 {$I STDEFINE.INC}
-{.DEFINE DEBUG}
+{$UNDEF DEBUG}
 {$DEFINE ComplexBraces} { define for beta-version of braces                  }
                         { (in stable version it works only for simple cases) }
 

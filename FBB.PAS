@@ -703,10 +703,16 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
     if (Abort or CopyCancelled) and Tuda then lEraseFile(F2);
     ClearMem;
     Abort := Off;
-    {RereadDirectory(CopyDir);}
-    GlobalMessage(evCommand, cmPanelReread, @CopyDir);
-{    GlobalMessage(evCommand, cmRereadInfo, nil);}
-    GlobalMessage(evCommand, cmRereadTree, @CopyDir);
+{$IFDEF FileNotify}
+    if not DNIni.AutoRefreshPanels then
+      begin
+{$ENDIF}
+        GlobalMessage(evCommand, cmPanelReread, @CopyDir);
+       {GlobalMessage(evCommand, cmRereadInfo, nil);}
+        GlobalMessage(evCommand, cmRereadTree, @CopyDir);
+{$IFDEF FileNotify}
+      end;
+{$ENDIF}
     if not (Abort or CopyCancelled) then
 
     if (FMSetup.Options and fmoBeep <> 0) and

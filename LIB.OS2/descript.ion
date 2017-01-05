@@ -1,2 +1,3 @@
 vpsyslow.pas основная часть VPSysLow
+vpsysos2.pas исправленная OS/2 часть VPSysLow
 killer.pas обработчик кнопки закрытия окна и Ctrl-Break

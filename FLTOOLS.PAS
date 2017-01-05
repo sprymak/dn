@@ -92,11 +92,15 @@ procedure CM_SetEALongname(AFP: Pointer; CurPos: Integer); {JO}
 
 IMPLEMENTATION
 uses
+{$IFDEF FileNotify}
+  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF} {Cat}
+{$ENDIF}
   LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} collect, xtime, dnini,
   advance, advance1, advance2, advance3, Dos, Objects, Dialogs, FilesCol,
   Views, DnApp, Commands, Drivers, FlPanel, FlPanelX, Drives, FileCopy,
   Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DnHelp,
   FileFind, Tree, FBB, DnUtil, filediz, filelst, {$IFDEF OS2} FlOS2Tl, {$ENDIF}
+  {$IFDEF WIN32} FlW32Tl, {$ENDIF}
   ErrMess
   ;
 
@@ -414,7 +418,7 @@ begin
       Goto Sel;
      end;
    New(FC, Init(1,1));
-   FC^.Insert(P^.Files^.At(P^.ScrollBar^.Value));
+   FC^.Insert(CopyFileRec(P^.Files^.At(P^.ScrollBar^.Value))); {AK155: вставил CopyFileRec}
   end else
 sel:  begin
        if All then New(FC, Init(P^.Files^.Count,1))
@@ -422,7 +426,7 @@ sel:  begin
        FC^.SortMode := 200;
        for I := FirstNameNum(P) to P^.Files^.Count do
         if All or PFileRec(P^.Files^.At(I-1))^.Selected then
-          FC^.Insert(P^.Files^.At(I-1));
+          FC^.Insert(CopyFileRec(P^.Files^.At(I-1))); {AK155: вставил CopyFileRec}
       end;
  GetSelection := FC;
 end;
@@ -722,11 +726,14 @@ end;
 procedure CM_SetAttributes;
  var D: record
 {$IFDEF USEANSISTRING}
-          T: String;
-          D: String;
+          T, D, T_Cr, D_Cr, T_LAc, D_LAc:: String;
 {$ELSE}
-          T: String[8];
-          D: String[10];
+          T    : String[8];
+          D    : String[10];
+          T_Cr : String[8];
+          D_Cr : String[10];
+          T_LAc: String[8];
+          D_LAc: String[10];
 {$ENDIF}
           S, C: Word;
         end;
@@ -736,14 +743,16 @@ procedure CM_SetAttributes;
      F: lFile;
      R: TRect;
      PInfo: PWhileView;
-     DTT, DTT1: LongInt;
-     DT, DT1: DateTime;
-     DateSet,TimeSet : boolean ;
+     DTT, DTT1, DTT_Cr, DTT1_Cr, DTT_LAc, DTT1_LAc : LongInt;
+     DT, DT1, DT_Cr, DT1_Cr, DT_LAc, DT1_LAc: DateTime;
+     DateSet,TimeSet,CrDateSet,CrTimeSet,LAcDateSet,LAcTimeSet : boolean ;
      Res: Word;
      Dlg: PDialog;
      P: PFilePanelRoot absolute AFP;
      PF: PFileRec;
      ok: Boolean;
+     CmdDlg: Word; {JO}
+ label CurTime, CurTime1;    {JO}
 
   Function CutNumber( var S : String ): word ;
   var S1  : string[10];
@@ -767,30 +776,94 @@ procedure CM_SetAttributes;
         ok := j=0;
         CutNumber := I;
       end ;
+{$IFNDEF OS2}
   procedure DoHideInputLines( AP: PView ); {$IFDEF BIT_16}far;{$ENDIF}
   begin
     If ( TypeOf( AP^ ) = TypeOf( TInputLine ))
-    or ( TypeOf( AP^ ) = TypeOf( TLabel )) then AP^.State := ( AP^.State or sfDisabled ) and not sfVisible;
+    or ( TypeOf( AP^ ) = TypeOf( TLabel ))
+    or ( TypeOf( AP^ ) = TypeOf( TStaticText )) then AP^.State := ( AP^.State or sfDisabled ) and not sfVisible;
   end;
+{$ENDIF}
 begin
  if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
+{$IFDEF FileNotify}
+ NotifySuspend; {Cat}
+{$ENDIF}
  FillChar(D, Sizeof(D), 0);
  if (P^.SelNum > 0) and not Single then
-  begin if ExecResource( dlgFilesAttr, D) <> cmOK then Exit end
-  else
+  begin
+    Dlg := PDialog(LoadResource(dlgFilesAttr));
+CurTime1:
+    Dlg^.SetData(D);
+    CmdDlg := Desktop^.ExecView(Dlg);
+    case CmdDlg of
+  cmYes:
+       begin
+         D.T     := GetDateTime(On);
+         D.D     := GetDateTime(Off);
+         D.T_Cr  := GetDateTime(On);
+         D.D_Cr  := GetDateTime(Off);
+         D.T_LAc := GetDateTime(On);
+         D.D_LAc := GetDateTime(Off);
+         goto CurTime1;
+       end;
+ cmNo:
+       begin
+         D.T     := '';
+         D.D     := '';
+         D.T_Cr  := '';
+         D.D_Cr  := '';
+         D.T_LAc := '';
+         D.D_LAc := '';
+         goto CurTime1;
+       end;
+ cmCancel:
+      begin
+       Dispose(Dlg, Done);
+{$IFDEF FileNotify}
+       NotifyResume; {Cat}
+{$ENDIF}
+       Exit;
+      end;
+   end;
+   Dlg^.GetData(D);
+   Dispose(Dlg, Done);
+{$IFDEF FileNotify}
+       NotifyResume; {Cat}
+{$ENDIF}
+  end
+ else
   begin
    Single := On;
    PF := P^.Files^.At(CurPos);
 {$IFNDEF OS2}
   {$IFDEF OS_DOS}
-   If PF^.Name[1] = '.' then Exit;
+   if PF^.Name[1] = '.' then
+    begin
+   {$IFDEF FileNotify}
+     NotifyResume; {Cat}
+   {$ENDIF}
+     Exit;
+    end;
    S := MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
   {$ELSE}
-   If PF^.LFN = '..' then Exit;
+   If PF^.LFN = '..' then
+    begin
+   {$IFDEF FileNotify}
+     NotifyResume; {Cat}
+   {$ENDIF}
+     Exit;
+    end;
    S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
   {$ENDIF}
 {$ELSE}
-   If PF^.Name = '..' then Exit;
+   If PF^.Name = '..' then
+    begin
+  {$IFDEF FileNotify}
+     NotifyResume; {Cat}
+  {$ENDIF}
+     Exit;
+    end;
    S := MakeNormName(PF^.Owner^, PF^.Name);
 {$ENDIF}
    AddStr(S, #0); SetLength(S, Length(S)-1);
@@ -802,33 +875,99 @@ begin
      lAssignFile(F, S);
      FileMode := $40;
      ClrIO; lResetFile(F,1);
-     if IOResult <> 0 then Exit;
-     GetFTime(F.F, DTT); Close(F.F);
+     if IOResult <> 0 then
+      begin
+     {$IFDEF FileNotify}
+       NotifyResume; {Cat}
+     {$ENDIF}
+       Exit;
+      end;
+     GetHFileAges(FileRec(F.F).Handle, DTT, DTT_Cr, DTT_LAc); Close(F.F);
 {$ELSE}
-    DTT := GetFileAge (S, ageLastWrite);
+    if GetFileAges(S, DTT, DTT_Cr, DTT_LAc) <> 0 then Exit;
 {$ENDIF}
      UnpackTime(DTT, DT);
+     UnpackTime(DTT_Cr, DT_Cr);
+     UnpackTime(DTT_LAc, DT_LAc);
      D.T := SStr(DT.Hour, 2, '0')+':'+SStr(DT.Min, 2, '0')+':'+SStr(DT.Sec, 2, '0');
      D.D := ItoS(DT.Day)+'-'+SStr(DT.Month, 2, '0')+'-'+ItoS(DT.Year);
+     D.T_Cr := SStr(DT_Cr.Hour, 2, '0')+':'+SStr(DT_Cr.Min, 2, '0')+':'+SStr(DT_Cr.Sec, 2, '0');
+     D.D_Cr := ItoS(DT_Cr.Day)+'-'+SStr(DT_Cr.Month, 2, '0')+'-'+ItoS(DT_Cr.Year);
+     D.T_LAc := SStr(DT_LAc.Hour, 2, '0')+':'+SStr(DT_LAc.Min, 2, '0')+':'+SStr(DT_LAc.Sec, 2, '0');
+     D.D_LAc := ItoS(DT_LAc.Day)+'-'+SStr(DT_LAc.Month, 2, '0')+'-'+ItoS(DT_LAc.Year);
 {$IFNDEF OS2}
-    end else Dlg^.ForEach(@DoHideInputLines)
+    end
+   else
+    begin
+      Dlg^.ForEach(@DoHideInputLines);
+      Dlg^.DisableCommands([cmYes, cmNo]);
+    end;
 {$ENDIF}
    ;
    D.S:=D.C;
-   Dlg^.SetData( D );
-   if Desktop^.ExecView( Dlg ) <> cmOK then begin
-     Dispose( Dlg, Done );
-     Exit;
+CurTime:
+   Dlg^.SetData(D);
+   CmdDlg := Desktop^.ExecView( Dlg );
+   case CmdDlg of
+ cmYes:
+       begin
+         D.T     := GetDateTime(On);
+         D.D     := GetDateTime(Off);
+         D.T_Cr  := GetDateTime(On);
+         D.D_Cr  := GetDateTime(Off);
+         D.T_LAc := GetDateTime(On);
+         D.D_LAc := GetDateTime(Off);
+         goto CurTime;
+       end;
+ cmNo:
+       begin
+         D.T     := '';
+         D.D     := '';
+         D.T_Cr  := '';
+         D.D_Cr  := '';
+         D.T_LAc := '';
+         D.D_LAc := '';
+         goto CurTime;
+       end;
+(*  работает, но падает после n-ного кол-ва раз
+ cmSkip:
+      begin
+      {$IFNDEF OS2}
+       Dlg^.EnableCommands([cmYes, cmNo]);
+      {$ENDIF}
+       Dispose( Dlg, Done );
+      {$IFDEF FileNotify}
+       NotifyResume; {Cat}
+      {$ENDIF}
+       Message(Application, evKeyDown, kbDown, nil);
+       Message(Application, evCommand, cmSingleAttr, nil);
+       Exit;
+      end;
+*)
+ cmCancel:
+      begin
+      {$IFNDEF OS2}
+       Dlg^.EnableCommands([cmYes, cmNo]);
+      {$ENDIF}
+       Dispose( Dlg, Done );
+      {$IFDEF FileNotify}
+       NotifyResume; {Cat}
+      {$ENDIF}
+       Exit;
+      end;
    end;
-   Dlg^.GetData( D );
-   Dispose( Dlg, Done );
+   Dlg^.GetData(D);
+  {$IFNDEF OS2}
+   Dlg^.EnableCommands([cmYes, cmNo]);
+  {$ENDIF}
+   Dispose(Dlg, Done);
    D.C :={39}$FF;
   end;
 
- DTT1 := $FFFFFF;
+ DTT1 := $FFFFFF; DTT1_Cr := $FFFFFF; DTT1_LAc := $FFFFFF;
 
- DateSet := D.D <>'';
- TimeSet := D.T <>'';
+ DateSet := (D.D <>''); CrDateSet := (D.D_Cr <>''); LAcDateSet := (D.D_LAc <>'');
+ TimeSet := (D.T <>''); CrTimeSet := (D.T_Cr <>''); LAcTimeSet := (D.T_LAc <>'');
 
  with DT1 do
   begin
@@ -850,6 +989,56 @@ begin
    DateSet := ok and not ((Day>31 ) or ( Day<1 ) or (Month>12) or (Month<1));
 
    if DateSet then
+     if Year < 80 then Inc(Year,2000)
+        else if Year < 100 then Inc(Year,1900) ;
+
+  end;
+
+ with DT1_Cr do
+  begin
+   ok := CrTimeSet;
+   Hour := CutNumber(D.T_Cr);
+   Min  := CutNumber(D.T_Cr);
+   if ok then
+     begin
+       Sec := CutNumber(D.T_Cr);
+       ok := True;
+     end;
+   CrTimeSet := ok and not ((Hour > 24) or (Min>59) or (sec>59));
+
+
+   ok := CrDateSet;
+   Day  := CutNumber(D.D_Cr);
+   Month:= CutNumber(D.D_Cr);
+   Year := CutNumber(D.D_Cr);
+   CrDateSet := ok and not ((Day>31 ) or ( Day<1 ) or (Month>12) or (Month<1));
+
+   if CrDateSet then
+     if Year < 80 then Inc(Year,2000)
+        else if Year < 100 then Inc(Year,1900) ;
+
+  end;
+
+ with DT1_LAc do
+  begin
+   ok := LAcTimeSet;
+   Hour := CutNumber(D.T_LAc);
+   Min  := CutNumber(D.T_LAc);
+   if ok then
+     begin
+       Sec := CutNumber(D.T_LAc);
+       ok := True;
+     end;
+   LAcTimeSet := ok and not ((Hour > 24) or (Min>59) or (sec>59));
+
+
+   ok := LAcDateSet;
+   Day  := CutNumber(D.D_LAc);
+   Month:= CutNumber(D.D_LAc);
+   Year := CutNumber(D.D_LAc);
+   LAcDateSet := ok and not ((Day>31 ) or ( Day<1 ) or (Month>12) or (Month<1));
+
+   if LAcDateSet then
      if Year < 80 then Inc(Year,2000)
         else if Year < 100 then Inc(Year,1900) ;
 
@@ -889,27 +1078,71 @@ begin
      {$ENDIF}
      AddStr(S, #0); SetLength(S, Length(S)-1);
      K := (GetFileAttr(S) and (not D.C)) or D.S;
-     if {$IFNDEF OS2} (K and Directory = 0) and {$ENDIF} TimeSet or DateSet then
+     if {$IFNDEF OS2} (K and Directory = 0) and {$ENDIF} TimeSet or DateSet or
+                                                         CrTimeSet or CrDateSet or
+                                                         LAcTimeSet or LAcDateSet then
       begin
        {$IFNDEF OS2}
        FileMode := $42 ;
        lSetFAttr(F,Archive);
        lResetFile(F,1);
-       GetFTime(F.F, DTT);
+       GetHFileAges(FileRec(F.F).Handle, DTT, DTT_Cr, DTT_LAc);
        {$ELSE}
-       DTT := GetFileAge (S, ageLastWrite);
+       GetFileAges(S, DTT, DTT_Cr, DTT_LAc);
        {$ENDIF}
        UnPackTime(DTT, DT);
-       if TimeSet then begin DT.Hour := DT1.Hour; DT.Sec := DT1.Sec; DT.Min := DT1.Min; end;
-       if DateSet then begin DT.Year := DT1.Year; DT.Day := DT1.Day; DT.Month := DT1.Month; end;
+       UnpackTime(DTT_Cr, DT_Cr);
+       UnpackTime(DTT_LAc, DT_LAc);
+       if TimeSet then
+         begin
+           DT.Hour := DT1.Hour;
+           DT.Sec := DT1.Sec;
+           DT.Min := DT1.Min;
+         end;
+       if CrTimeSet then
+         begin
+           DT_Cr.Hour := DT1_Cr.Hour;
+           DT_Cr.Sec := DT1_Cr.Sec;
+           DT_Cr.Min := DT1_Cr.Min;
+         end;
+       if LAcTimeSet then
+         begin
+           DT_LAc.Hour := DT1_LAc.Hour;
+           DT_LAc.Sec := DT1_LAc.Sec;
+           DT_LAc.Min := DT1_LAc.Min;
+         end;
+       if DateSet then
+         begin
+           DT.Year := DT1.Year;
+           DT.Day := DT1.Day;
+           DT.Month := DT1.Month;
+         end;
+       if CrDateSet then
+         begin
+           DT_Cr.Year := DT1_Cr.Year;
+           DT_Cr.Day := DT1_Cr.Day;
+           DT_Cr.Month := DT1_Cr.Month;
+         end;
+       if LAcDateSet then
+         begin
+           DT_LAc.Year := DT1_LAc.Year;
+           DT_LAc.Day := DT1_LAc.Day;
+           DT_LAc.Month := DT1_LAc.Month;
+         end;
+
        PackTime(DT, DTT1);
-       DT.Sec := 0;
+       PackTime(DT_Cr, DTT1_Cr);
+       PackTime(DT_LAc, DTT1_LAc);
+       DT.Sec := 0; DT_Cr.Sec := 0; DT_LAc.Sec := 0;
        UnPackTime(DTT1, DT);
+       UnPackTime(DTT1_Cr, DT_Cr);
+       UnPackTime(DTT1_LAc, DT_LAc);
        {$IFNDEF OS2}
-       SetFTime(F.F, DTT1);
+      {SetFTime(F.F, DTT1);}
+       SetHFileAges(FileRec(F.F).Handle, DTT1, DTT1_Cr, DTT1_LAc);
        Close(F.F);
        {$ELSE}
-       SetFileAge(S, DTT1, ageLastWrite);
+       SetFileAges(S, DTT1, DTT1_Cr, DTT1_LAc);
        {$ENDIF}
       end;
      SetFileAttr(S, K and not Directory and not VolumeID);
@@ -924,11 +1157,14 @@ begin
  if P^.Drive^.DriveType = dtDisk then GlobalMessage(evCommand, cmRereadInfo, nil);
  GlobalMessage(evCommand, cmRereadTree, @P^.DirectoryName);
  P^.SetDirName;
+{$IFDEF FileNotify}
+ NotifyResume; {Cat}
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
 procedure CM_SetShowParms;
- var I: Record Prm: Word; LFNLen: String[2]; EXTLen: String[2] end;
+ var I: Record Prm: Word; LFNLen: String[3]; EXTLen: String[3] end;
      J,K,Old: Word;
      Idx: TDlgIdx;
      P: PFilePanelRoot absolute AFP;
@@ -1162,8 +1398,8 @@ begin
     if PFileRec(P^.Files^.At(CurPos))^.Name <> '..'
 {$ENDIF}
     then begin
-        New(FC, Init(10,10));
-        FC^.Insert(P^.Files^.At(CurPos));
+        New(FC, Init(1,1)); {AK155: заменил 10,10 на 1,1}
+        FC^.Insert(CopyFileRec(P^.Files^.At(CurPos))); {AK155: вставил CopyFileRec}
        end else Exit;
  for I := 1 to FC^.Count do FC^.AtPut(I-1, CopyFileRec(FC^.At(I-1)));
  if FC^.Count = 1 then
@@ -1366,30 +1602,34 @@ begin
                PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
                DelLFN(PF^.LFN);
                PF^.LFN := AddLFN(S);
-               {$ELSE}
-               PF^.Name := {GetName(}S{)};
-               {$ENDIF}
                if PF^.Attr and Directory <> 0 then UpStr(PF^.Name)
                    else begin
                           LowStr(PF^.Name);
                           if PF^.Attr and SysFile <> 0 then PF^.Name[1] := UpCase(PF^.Name[1]);
                         end;
-               {$IFNDEF OS2}
                PF^.Name[9] := ' ';
                Sn := MakeFileName(PF^.Name);
                {$ELSE}
+               PF^.Name := {GetName(}S{)};
                Sn := PF^.Name;
                {$ENDIF}
                S2 := GetPossibleDizOwner(1);
                if S2 <> '' then begin
                 S2 := GetDizOwner(PF^.Owner^, S2, Off);
-                ReplaceDIZ(S2, Nm, @Sn, nil);
+                if (PF^.DIZ <> nil) then
+                  begin
+                    ReplaceDIZ(S2, Nm, @Sn, PF^.DIZ^.DIZ);
+                    DeleteDIZ(S2, Nm);
+                  end;
                end;
              end;
       lChDir(SSS);
       P^.Owner^.Delete(PIF);
       Dispose(PIF,Done);
-      GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
+     {$IFDEF FileNotify}
+      if not DNIni.AutoRefreshPanels then
+     {$ENDIF}
+        GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
       if R.A.X <> cmOK then
          begin
            Event^.What := evKeyDown; Event^.KeyCode := R.A.X;
@@ -1525,7 +1765,10 @@ begin
       lChDir(SSS); {ChDir(SSS);} {Cat}
       P^.Owner^.Delete(PIF);
       Dispose(PIF,Done);
-      GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
+     {$IFDEF FileNotify}
+      if not DNIni.AutoRefreshPanels then
+     {$ENDIF}
+        GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
       if R.A.X <> cmOK then
          begin
            Event^.What := evKeyDown; Event^.KeyCode := R.A.X;
@@ -1604,28 +1847,32 @@ begin
                PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
                DelLFN(PF^.LFN);
                PF^.LFN := AddLFN(S);
-               {$ELSE}
-               PF^.Name := GetName(S);
-               {$ENDIF}
                if PF^.Attr and Directory <> 0 then UpStr(PF^.Name)
                    else begin
                           LowStr(PF^.Name);
                           if PF^.Attr and SysFile <> 0 then PF^.Name[1] := UpCase(PF^.Name[1]);
                         end;
-             {$IFNDEF OS2}
                PF^.Name[9] := ' ';
                Sn := MakeFileName(PF^.Name);
-             {$ELSE}
+               {$ELSE}
+               PF^.Name := GetName(S);
                Sn := PF^.Name;
-             {$ENDIF}
+               {$ENDIF}
                S2 := GetPossibleDizOwner(1);
                if S2 <> '' then begin
                 S2 := GetDizOwner(PF^.Owner^, S2, Off);
-                ReplaceDIZ(S2, Nm, @Sn, nil);
+                if (PF^.DIZ <> nil) then
+                  begin
+                    ReplaceDIZ(S2, Nm, @Sn, PF^.DIZ^.DIZ);
+                    DeleteDIZ(S2, Nm);
+                  end;
                end;
              end;
       lChDir(SSS);
-      GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
+     {$IFDEF FileNotify}
+      if not DNIni.AutoRefreshPanels then
+     {$ENDIF}
+        GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
       if R.A.X <> cmOK then
          begin
            Event^.What := evKeyDown; Event^.KeyCode := R.A.X;

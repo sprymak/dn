@@ -162,6 +162,7 @@ begin
 {Cat}
   if IOResult <> 0 then
     ;
+  SysTVClrScr;
   Writeln('Resource access error');
   SysTVInitCursor;
   Halt(219);

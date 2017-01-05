@@ -122,32 +122,7 @@ uses DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
 {$IFDEF NETINFO}, NetInfo {-$VIV}{$ENDIF}
 {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}
      ;
-{
-constructor TCloseBox.Init;
-begin
-  inherited Init(R);
-  Command := ACommand;
-end;
 
-procedure TCloseBox.Draw;
- var B: TDrawBuffer;
-begin
-  if Owner^.GetState(sfSelected+sfActive) then
-    if Size.X > 0 then GrowTo(0,1) else Exit
-    else if Size.X = 0 then GrowTo(0,3);
-  MoveChar(B, ' ', Owner^.GetColor(1), Size.X);
-  MoveCStr(B, '[~'#254'~]', Owner^.GetColor($0302));
-  WriteLine(0,0,Size.X,Size.Y,B);
-end;
-
-procedure TCloseBox.HandleEvent;
-begin
-  inherited HnadleEvent(Event);
-  if Event.What = evMouseDown then
-    Message(Owner, evCommand, cm
-end;
-
-}
 constructor TDoubleWindow.Init;
  var P: PFilePanel;
      P1: PInfoView;
@@ -399,7 +374,7 @@ procedure TDoubleWindow.HandleCommand;
        I := ((10 * (Size.X * Sp^.OldX)) div K) div 10
      else I := 0;
     Dec(R.A.X, I);
-    Lock; LeftView^.ShowView; Redraw; ChangeBounds(R); UnLock;
+    Lock; LeftView^.ShowView; Redraw; Locate(R); UnLock;
     Owner^.Redraw;
    end
  end;
@@ -419,7 +394,7 @@ procedure TDoubleWindow.HandleCommand;
        I := ((Size.X * 10 * (Sp^.OldW - Sp^.OldX)) div Sp^.OldX) div 10
       else I := 1;
     Inc(R.B.X, I);
-    Lock; RightView^.ShowView; Redraw; ChangeBounds(R); UnLock;
+    Lock; RightView^.ShowView; Redraw; Locate(R); UnLock;
     Owner^.Redraw;
    end
  end;
@@ -783,7 +758,9 @@ begin
                end;
   evCommand: case Event.Command of
 
-              cmSwitchOther: begin CE; if LSelected then SwitchRight else SwitchLeft end;
+              cmSwitchOther: If Not PanelZoomed Then
+                             begin CE; if LSelected then SwitchRight else SwitchLeft end;
+
 
               cmGetDirInfo: begin
                               if LSelected then
@@ -853,7 +830,8 @@ begin
                                if LSelected then RPanel^.HandleEvent(Event)
                                             else LPanel^.HandleEvent(Event);
                               end;
-              cmDiskInfo: begin
+              cmDiskInfo: If Not PanelZoomed Then
+                          begin
                             if isPanel then {AK155}
                               SwitchView(dtInfo);
                             CE;
@@ -861,13 +839,15 @@ begin
                                          else Message(RightView, evCommand, cmLViewFile, nil);
                            end;
 {$IFDEF NETINFO}
-              cmNetInfo: begin {-$VIV start}
+              cmNetInfo: If Not PanelZoomed Then
+                           begin {-$VIV start}
                             SwitchView(dtNetInfo); CE;
                             if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                                          else Message(RightView, evCommand, cmLViewFile, nil);
                            end;{-$VIV end}
 {$ENDIF}
-              cmLoadViewFile: begin
+              cmLoadViewFile: If Not PanelZoomed Then
+                              begin
                                if (QView <> nil) and ((LType = dtView) or (RType = dtView))
                                  then QView^.HandleEvent(Event) else
                                   if (Info <> nil) and Info^.GetState(sfVisible) then
@@ -884,11 +864,12 @@ begin
                               Message(RPanel, evCommand, cmDisableView, nil);
                              end;
               cmPushFullName,
-              cmPushFirstName:begin LeftView^.HandleEvent(Event);
+              cmPushFirstName,
+              cmPushInternalName: begin LeftView^.HandleEvent(Event);
                                      RightView^.HandleEvent(Event);
                                      CE;
                                      Exit;
-                               end;
+                                  end;
               cmFindTree,
               cmRereadTree: if LTree <> nil then
                     LTree^.HandleEvent(Event);
@@ -908,7 +889,7 @@ begin
                     SwitchView(dtTree);
                     CE
                 end;
-              cmQuickView:
+              cmQuickView: If Not PanelZoomed Then
                 begin
                   if isPanel then {AK155}
                     SwitchView(dtView);
@@ -916,7 +897,8 @@ begin
                   else Message(RightView, evCommand, cmLViewFile, nil);
                   CE
                 end;
-              cmSwapPanels: begin
+              cmSwapPanels: If Not PanelZoomed Then
+                           begin
                              Lock;
                              if not RVisible then
                               Message(@Self, evCommand, cmHideRight, nil) else

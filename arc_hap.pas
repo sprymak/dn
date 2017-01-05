@@ -50,7 +50,7 @@ unit Arc_HAP; {HAP}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_HA;
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
     PHAPArchive = ^THAPArchive;
@@ -64,7 +64,7 @@ type
 type
      HAPHdr = record
       C: Char;
-      ID: Array[1..4] of Char;
+      ID: LongInt;
       PackedSize: LongInt;
       Reserved: Array[1..9] of Byte;
       Attr: Byte;
@@ -73,11 +73,6 @@ type
      end;
 
 implementation
-
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
 
 { ----------------------------- HAP ------------------------------------}
 
@@ -104,6 +99,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
@@ -148,7 +144,7 @@ begin
  ArcFile^.Read(P,1);
  if (ArcFile^.GetPos = ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P.ID,SizeOf(P)-1);
- if (ArcFile^.Status <> stOK) or (P.ID <> #142#104#74#87)
+ if (ArcFile^.Status <> stOK) or (P.ID <> $574a688e{#142#104#74#87})
    then begin FileInfo.Last := 2;Exit;end;
  {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
  FileInfo.Last := 0;

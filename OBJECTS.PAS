@@ -433,12 +433,17 @@ type
     Data: record end;
   end;
 
+const
+  LinkSize = SizeOf(DummyObject);
+
 constructor TEmptyObject.Init;
+{
 var
   LinkSize: LongInt;
   Dummy: DummyObject;
+}
 begin
-  LinkSize := LongInt(@Dummy.Data)-LongInt(@Dummy); { VMT link size }
+//LinkSize := LongInt(@Dummy.Data)-LongInt(@Dummy); { VMT link size }
   FillChar(Pointer(LongInt(@Self)+LinkSize)^,
    SizeOf(Self)-LinkSize, #0);                      { Clear data fields }
 end;
@@ -1536,7 +1541,19 @@ begin
   if ABlockSize = 0 then BlkSize:=8192 else BlkSize:=ABlockSize;
   if ALimit <= 0 then W:=1 else W:=(ALimit + BlkSize - 1) div BlkSize;
   if not ChangeListSize(W) then Error(stInitError, 0);
+(*
   StreamSize:=MemSize;
+{AK155 2-03-2002
+   При работе с Clipboard StreamSize используется в качестве укзателя
+конца потока, поэтому у свежесозданного потока он должен быть равен нулю.
+А это присвоение создает возможость чтения мусора за пределами фактически
+записанного потока. Например, если в dn.ini указать MaxClipboardSize=0,
+то DN почти гарантировано виснет при первом же взятии в буфер в редакторе.
+   Но в FileCopy GetSize (то есть StreamSize) используется в качестве
+размера потока (что неестественно), поэтому там тоже есть соответствующая
+коррекция. Других мест, где используется StreamSize для TMemoryStream,
+я не нашел.}
+*)
 end;
 
 destructor TMemoryStream.Done;

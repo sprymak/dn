@@ -296,7 +296,6 @@ end;
 procedure MouseSetup;
 begin
   if ExecResource( dlgMouseSetup, MouseData ) <> cmOK then Exit;
-  messagebox(ItoS(MouseData.Options), nil, mfOKButton);
   if MouseVisible xor (MouseData.Options and omsCursor <> 0) then begin
     DoneEvents;
     InitEvents;
@@ -625,15 +624,15 @@ begin
     NewSItem(GetString(dlSSUse_M_ouse),Nil)));
   Insert(Control);
 
-  R.Assign(10,17,20,19);
+  R.Assign(7,17,17,19);
   Control := New(PButton, Init(R, GetString(dlOKButton), cmOK, bfDefault));
   Insert(Control);
 
-  R.Assign(20,17,30,19);
+  R.Assign(17,17,28,19);
   Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
   Insert(Control);
 
-  R.Assign(30,17,40,19);
+  R.Assign(28,17,40,19);
   Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
   Insert(Control);
 

@@ -793,13 +793,22 @@ begin
            If C = 0 then if T1.Owner^ < Owner^ then C := -1
                            else if T1.Owner^ > Owner^ then C := 1;
          end;
+
      141: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
+{$IFDEF OS2}
            if Name1 < Name2 then C := -1
-            else if (Name1 > Name2) {$IFNDEF OS2} or (GetLFN(T1.LFN)<>GetLFN(LFN)) {$ENDIF}
-                  then C := 1
+            else if (Name1 > Name2) then C := 1
                   else C := 0;
+{$ELSE}
+  {$IFDEF STRINGLFN}
+           C := CmpName(T1.LFN, LFN);
+  {$ELSE}
+           C := CmpLFN(T1.LFN, LFN);
+  {$ENDIF}
+{$ENDIF}
 {$IFNDEF OS2}
+
 {EXT}psmExtension:
          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C:=-1
@@ -808,7 +817,7 @@ begin
          if OneIsFile and (Copy(Name1, 10, 3) < Copy(Name2, 10, 3)) then
            C:=-1
          else
-         if OneIsFile and (Copy(Name2, 10, 3) < Copy(Name2, 10, 3)) then
+         if OneIsFile and (Copy(Name1, 10, 3) > Copy(Name2, 10, 3)) then
            C:=1
          else
          if Name1 < Name2 then C:=-1 else
@@ -1206,7 +1215,7 @@ function NewFileRec;
   var PR: PFileRec;
       T:  TFileRec;
       D: DateTime;
-  {$IFDEF Win32}
+  {$IFNDEF OS2}
       Name12: Str12;
   {$ENDIF}
 begin

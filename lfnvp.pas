@@ -216,13 +216,6 @@ uses
   {$IFDEF WIN32} Windows, {$ENDIF}
   Strings, Commands{Cat};
 
-{$IFDEF WIN32}
-const
-  NoShortName: string[12] = #22#22#22#22#22#22#22#22'.'#22#22#22;
-    {AK155: это выводится вместо коротокого имени для файлов,
-      у которых короткого имени нет }
-{$ENDIF}
-
  Function StrPas_(S: Array Of Char): String;
   var ss: string;
       i: word;
@@ -242,22 +235,22 @@ begin
   NameZ[Length(Name)] := #0;
 end;
 {$ENDIF}
-
+{&Delphi+}
 {$IFDEF Win32}
 function OemToCharStr(const OemS: String): String;
- var NZ, NZ2: TNameZ;
+var l: integer;
 begin
-  NameToNameZ(OemS, NZ2);
-  OemToChar(NZ2, NZ);
-  OemToCharStr := StrPas_(NZ);
+l := length(OemS);
+Setlength(Result, l);
+OemToCharBuff(@OemS[1], @Result[1], l);
 end;
 
 function CharToOemStr(const CharS: String): String;
- var NZ, NZ2: TNameZ;
+var l: integer;
 begin
-  NameToNameZ(CharS, NZ2);
-  CharToOem(NZ2, NZ);
-  CharToOemStr := StrPas_(NZ);
+l := length(CharS);
+Setlength(Result, l);
+CharToOemBuff(@CharS[1], @Result[1], l);
 end;
 {$ENDIF}
 
@@ -324,44 +317,12 @@ begin
   SetDosError(SysFindCloseNew(TOSSearchRecNew(F)));
 end;
 
-{AK155}
-{$IFNDEF OS2}
-function NotShortName(const S: string): boolean;
-  var
-    i, l: integer;
-    iPoint: integer;
-  begin
-  NotShortName := true;
-  if S[1] = '.' then exit;
-  l := length(S);
-  if l > 12 then exit;
-  iPoint := 0;
-  for I := 1 to l do
-   begin
-    if S[i] = '.' then
-     begin
-      if (iPoint <> 0) or (I>9) then exit;
-      iPoint := i;
-     end
-    else if S[I] in IllegalCharSet then Exit; {DataCompBoy}
-   end;
-  if (iPoint = 0) and (l > 8) then exit;
-  if (iPoint <> 0) and (l-iPoint > 3) then exit;
-  NotShortName := false;
-  end;
-{$ENDIF}
-
 procedure CorrectSearchRec(var R: lSearchRec);
 begin
   R.FullName := R.SR.Name;
 {$IFDEF Win32}
-  if (R.SR.Name <> '.') and (R.SR.Name <> '..') then
-    begin
-    if (R.SR.ShortName <> '') then
-      R.SR.Name := R.SR.ShortName
-    else if NotShortName(R.FullName) then
-      R.SR.Name := NoShortName;
-    end;
+  if (R.SR.Name <> '.') and (R.SR.Name <> '..') and (R.SR.ShortName <> '') then
+     R.SR.Name := R.SR.ShortName;
 {$ENDIF}
 (*R.LoCreationTime:= R.SR.Time;
   R.HiCreationTime:= 0;
@@ -408,13 +369,11 @@ end;
 {$IFDEF WIN32}
 function lfGetShortFileName(const Name: String): String;
 var NZ, NZ2: TNameZ;
-  l: longint;
 begin
   if (Name = '.') or (Name = '..') then begin lfGetShortFileName := Name; Exit; end;
   NameToNameZ(Name, NZ2);
-  l := GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
-  if l = 0 then lfGetShortFileName := NoShortName
-  else lfGetShortFileName := StrPas_(NZ);
+  GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
+  lfGetShortFileName := StrPas_(NZ);
 end;
 {$ENDIF}
 {$IFDEF DPMI32}

@@ -52,9 +52,9 @@ interface
 
 uses
   LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} TitleSet, UserMenu, {DataCompBoy} collect,
-  advance, advance1, advance2, advance3, Objects, Views, Dialogs, Drivers,
   FilesCol, Dos, DnIni, filediz, {$IFDEF ARVID} ArvidAvt, {$ENDIF}
-  {$IFDEF EAOP} {$IFDEF OS2} FlOS2Tl {$ENDIF} {$IFDEF WIN32} FlW32Tl {$ENDIF} {$ENDIF};
+  {$IFDEF EAOP} {$IFDEF OS2} FlOS2Tl, {$ENDIF} {$IFDEF WIN32} FlW32Tl, {$ENDIF} {$ENDIF}
+  Advance, Advance1, Advance2, Advance3, Objects, Views, Dialogs, Drivers;
 
 type
     PCopyRec = ^TCopyRec;
@@ -86,6 +86,9 @@ uses DNApp, Startup, Memory, Messages, HistList, Commands,
     {$IFDEF MODEM}{$IFDEF LINK}NavyLink,{$ENDIF}{$ENDIF}
     {$IFNDEF NONBP} DiskTool,{$ENDIF}
     {$IFDEF VIRTUALPASCAL} {Crt,} VpSysLow, {$ENDIF}
+  {$IFDEF FileNotify}
+    {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF} {Cat}
+  {$ENDIF}
      Gauge, FileFind,
      DNUtil, RStrings, Tree, Archiver, Drives, DiskInfo
      , ErrMess
@@ -451,7 +454,17 @@ begin
      New(MemStream, Init(Pos, 32768));
     end;
   Pos := Stream^.GetPos;
+
+{AK155 2-03-2002.
+    Эта коррекция связана с коррекцией в object.pas, TMemoryStream.Init.
+В DN/2 никакие другие потоки, кроме MemoryStream, не используются и
+не будут использоваться никогда, поэтому все можно сделать просто.}
+(*
   if Pos + Len > Stream^.GetSize then Len := Stream^.GetSize - Pos;
+*)
+  if Pos + Len > MemStream^.MemSize then Len := MemStream^.MemSize - Pos;
+{/AK155}
+
 {$ENDIF}
 end;
 
@@ -799,31 +812,26 @@ var  ReadStream:  lfile;
          I_LW: Byte;
 
       procedure TryToReset;
-      var
-        OldAttr: Word;
       begin
-{AK155 2-02-2002
-Раньше наличие файла проверялось  при помощи lResetFile, что не
-вполне корректно. На CD RW под RSJ и, кажется, на некоторых сетевых дисках,
-эта операция приводит к созданию файла и ложному запросу о перезаписи
-файла. Более того, при отрицательном ответе созданный файл остается
-(с нулевой длиной). Проверка при помощи lGetFAttr более чистая.
-}
-        if CopyMode <> cpmOverwrite  then
+        if CopyMode = cpmOverwrite  then
          Begin
-          ClrIO;
-          lGetFAttr(WriteStream, OldAttr);
-          if (DosError = 0) then
+          lRewriteFile(WriteStream,1);
+          Opened := IOResult;
+          if Opened=0 then Created:=True;
+         End
+        else
+         Begin
+          lResetFile(WriteStream,1);
+          Opened:=IOResult;
+          if Opened=0 then
            Begin
-            lResetFile(WriteStream,1);
-            Opened:=IOResult;
             Created:=false;
             Exit;
            End;
+          lRewriteFile(WriteStream,1);
+          Opened:=IOResult;
+          Created:=true;
          End;
-        lRewriteFile(WriteStream,1);
-        Opened:=IOResult;
-        Created:=Opened=0;
       end;
 
       procedure DoSkip;
@@ -1321,6 +1329,7 @@ lbStartWrite:
 {$ENDIF}
    end;
 
+{Cat:warn}
    procedure MakeBuffer;
      var I: LongInt;
    begin
@@ -1485,14 +1494,20 @@ lbStartWrite:
         S2 := lFExpand(NName);
         if S1 = S2 then
            begin
-             if CopyOptions and cpoMove = 0 then
-              begin
+{--- start -------- Eugeny Zvyagintzev ---------------------------------}
+{This 2 line was commented to allow DN display error message            }
+{during _move_ file to itself                                           }
+{Before this comment DN displayed error message only                    }
+{during _copy_ file to itself                                           }
+{            if CopyOptions and cpoMove = 0 then
+               begin}
+{--- finish -------- Eugeny Zvyagintzev --------------------------------}
                 if CopyQueue^.Count > 0 then MaxWrite; if CopyCancel then Exit;
                 ForceDispatch;
                 MessageBox(^C+GetString(dlFile)+' '+FName + GetString(dlFCItself), nil,
                    mfError + mfOKButton);
                 CopyCancel := On;
-              end;
+{             end;} {Eugeny Zvyagintzev}
              Exit;
            end;
       end;
@@ -1525,18 +1540,30 @@ lbStartWrite:
         end;
       Rd := 0;
       EOF := eoStart or eoCheck * Byte(CopyMode >= cpmAppend);
-      if (CopyMode >= cpmAppend) and (CopyOptions and cpoMove <> 0)  and
+{--- start -------- Eugeny Zvyagintzev -----------------------------------}
+{This 3 line was commented to prevent DN first coping files to buffer     }
+{and _then_ check for file already exists                                 }
+{Now DN will first check for file exists                                  }
+
+     {if (CopyMode >= cpmAppend) and (CopyOptions and cpoMove <> 0)  and
          (S1[1] = S2[1]) then
-        begin
+        begin}
+{--- finish -------- Eugeny Zvyagintzev ----------------------------------}
+
+{AK155 чтобы можно было файлы и каталоги копировать на nul и другие
+устройства, чуть ниже вставлено 3 анализа CopyPrn. }
            ClrIO; EOF := eoStart or eoCheck;
-           lFindFirst(S2, $3F {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
-           DEr := (DOSError <> 0);
-           lFindClose(SR);
-           if not DEr then
+           if not CopyPrn then {AK155 на устройстве незачем искать файлы}
+             begin
+             lFindFirst(S2, $3F {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
+             DEr := (DOSError <> 0);
+             lFindClose(SR);
+             end;
+           if CopyPrn{AK155} or not DEr then
              begin
                EOF := eoStart;
                Was := SR.FullSize;
-               if SR.SR.Attr and Directory <> 0 then
+               if not CopyPrn{AK155: для одиночного файла} and (SR.SR.Attr and Directory <> 0) then
                    begin
                       if CopyQueue^.Count > 0 then MaxWrite; if CopyCancel then Exit;
                       ForceDispatch;
@@ -1573,7 +1600,7 @@ lbStartWrite:
                  cpmAppend: EOF := EOF or eoAppend;
                end;
              end;
-        end;
+{       end;} {Eugeny Zvyagintzev}
       if (CopyOptions and cpoMove <> 0) and (EOF and eoAppend = 0) and
          (S1[1] = S2[1]) then
          begin
@@ -1665,7 +1692,7 @@ FileRead:
         if WW <> J then
           begin
             {AK155 А здесь надо бы проанализировать IOResult
-               и выдать врвзумительное сообщение! }
+               и выдать вразумительное сообщение! }
             CopyCancel := On;
             Break;
           end;
@@ -1996,10 +2023,14 @@ FileRead:
       NoCheck := not P^.Check;
     end;
 
+    function IsNetworkPath(const Path : string) : boolean; {KV}
+    begin
+      IsNetworkPath:=((Length(Path) > 2) and (Path[1] = '\') and (Path[2] = '\'));
+    end;
 
+  label
+    TryGetInfo;
   begin
-    New(Dirs, Init(10, 10));
-
     if not CopyPrn then
     begin
       S := CopyDir;
@@ -2007,7 +2038,22 @@ FileRead:
       if Inhr = 0 then Inhr := Length(S);
       Drv := Byte(S[1])-64; ReD := [S[1]];
     end;
-    GetDrInfo(Drv);
+
+    if CopyPrn or (S[1] = '\') then
+      FreeSpc := 0 // устройство или сетевой адрес
+    else
+      begin
+TryGetInfo:
+      GetDrInfo(Drv);
+      if FreeSpc < 0 then
+        case SysErrorFunc(21, Drv-1) of
+         1:
+          goto TryGetInfo;
+         3:
+          exit;
+        end {case};
+      end {if};
+    New(Dirs, Init(10, 10));
     for I := 0 to Files^.Count - 1 do
       begin
         P := Files^.At(I);
@@ -2264,7 +2310,8 @@ qqqq:
            CD_Drives := CD_Drives - [c];
     end else CD_Drives := [];
   MakeDirectories;
-  if CopyCancel then Goto 1;
+  if Abort then CopyCancel := true; if CopyCancel then
+    Goto 1;
   MemStream := nil;
 {$IFNDEF NOEXTRA}
   EMSStream := nil; NoUseEMS := Off;
@@ -2474,7 +2521,7 @@ begin
    end;
 
    if not SkipCopyDialog then
-    begin {AK155 6-12-2001. Собрал до кучи всю работу с диаолгом }
+    begin {AK155 6-12-2001. Собрал до кучи всю работу с диалогом }
     D := PDialog(Application^.ValidView(PView(LoadResource(Idx))));
     if D = nil then Exit;
     R.Assign(2,1,D^.Size.X-1,2);
@@ -2654,7 +2701,13 @@ begin
      end;
    Inc(SkyEnabled);
    if (StartupData.Slice2 and osuReleaseCopy = 0) then Application^.BFSpeed;
+{$IFDEF FileNotify}
+   NotifySuspend; {Cat}
+{$ENDIF}
    FilesCopy(Files, Owner, CopyDir, Mask, CopyMode, CopyOpt, CopyPrn);
+{$IFDEF FileNotify}
+   NotifyResume; {Cat}
+{$ENDIF}
    if (StartupData.Slice2 and osuReleaseCopy = 0) then Application^.EFSpeed;
    Dec(SkyEnabled);
 end;

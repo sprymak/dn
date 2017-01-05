@@ -63,7 +63,7 @@ Type
 
 type
      ARCHdr = record
-      Mark: Char;
+      Mark: Byte;
       Version: Byte;
       Name: Array[1..13] of Char;
       PackedSize: LongInt;
@@ -73,11 +73,6 @@ type
      end;
 
 implementation
-
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
 
 { ----------------------------- ARC ------------------------------------}
 
@@ -104,6 +99,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '/EXE'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '/I'));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '/C'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '/S'));
@@ -145,7 +141,8 @@ var i    : AWord;
     P    : ARCHdr;
 begin
  ArcFile^.Read(P,2);
- if (P.Mark = ^Z) and (P.Version <> 0) and (ArcFile^.Status = stOK) then ArcFile^.Read(P.Name,SizeOf(P)-2);
+ if (P.Mark = $1a{^Z}) and (P.Version <> 0) and (ArcFile^.Status = stOK)
+   then ArcFile^.Read(P.Name,SizeOf(P)-2);
  if (P.Version = 0) then begin FileInfo.Last:=1;Exit;end;
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
  i := 1;

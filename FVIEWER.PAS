@@ -188,12 +188,12 @@ const
   cmChangeValue = 9990;
   SearchString: TViewSearch = (What:''; Opts: 0; Dir: 0);
 
+{Cat: порядок переменных не менять, сохраняются подряд в DSK-файл}
+
 var
   LastViewerBounds: TRect;
-
-const
-  LastViewerDeskSize: TPoint = (X:0;Y:0);
-  LastEditDeskSize: TPoint = (X:0;Y:0);
+  LastViewerDeskSize: TPoint {= (X:0;Y:0)};
+  LastEditDeskSize: TPoint {= (X:0;Y:0)};
 
 function SearchFileStr(F: PStream; var Xlat: TXLAT;
                        const What: String; Pos: LongInt;
@@ -523,7 +523,10 @@ begin
    Fl^.Seek(FilePos); Fl^.Write(Buf^, BufSize);
   end;
   NeedAbort:=false;
-  RereadDirectory(GetPath(FileName));
+{$IFDEF FileNotify}
+  if not DNIni.AutoRefreshPanels then
+{$ENDIF}
+    RereadDirectory(GetPath(FileName));
 end;
 
 const SCViewer: String[Length(CViewer)] = CViewer;
@@ -591,6 +594,17 @@ procedure TViewScroll.HandleEvent;
      Extent: TRect;
      Tracking : Boolean;
 
+
+  {JO}
+  function GetPrecValue: LongInt;
+   Var
+      Max1 : double;  {JO}
+  begin
+   Max1 := MaxV;
+   GetPrecValue := Trunc(Max1 * (SP-1) / (Size.Y-3)) + 1;
+  end;
+  {/JO}
+
 begin
  TView.HandleEvent(Event);
  case Event.What of
@@ -604,8 +618,8 @@ begin
 
                MakeLocal(Event.Where, P);
                GetExtent(Extent);
-               {if LongDiv(LongMul(Value,Size.Y-2),MaxV)+1 = P.Y then}
-               if (Value * (Size.Y-3)) div MaxV + 1 = P.Y then
+               {if (Value * (Size.Y-3)) div MaxV + 1 = P.Y then}
+                if GetPartCode = P.Y then {JO}
                 begin
                 RD := P.Y;
                 repeat
@@ -626,7 +640,9 @@ begin
                 if SP = 1 then
                   Value := 0
                 else
-                  Value := MaxV * (SP-1) div (Size.Y-3) + 1;
+                 {Value := MaxV * (SP-1) div (Size.Y-3) + 1;}
+{JO: точности вычисления с Longint для очень больших файлов недостаточно}
+                  Value := GetPrecValue; {JO}
 {AK155: скроллер уже нарисован и еще дважды будет нарисован }
 {                DrawView; }
                 MessageL(Owner, evCommand, cmScrollBarChanged, Value);
@@ -678,11 +694,21 @@ begin
 end;
 
 function TViewScroll.GetPartCode: LongInt;
+ Var
+    Val1, Max1 : double;  {JO}
 begin
 if Value >= MaxV then
   GetPartCode := Size.Y - 2
 else
-  GetPartCode := 1+((Size.Y-3)*Value) div MaxV;
+{JO}
+ begin
+   Val1 := Value;
+   Max1 := MaxV;
+  {GetPartCode := 1+((Size.Y-3)*Value) div MaxV}
+{JO: точности вычисления с Longint для очень больших файлов недостаточно}
+   GetPartCode := 1 + Trunc(((Size.Y-3)*Val1) / Max1);
+ end;
+{/JO}
 end;
 
 function TViewScroll.GetPalette;
@@ -800,16 +826,17 @@ begin
 end;
 
 destructor TFileViewer.Done;
- var Dir, Name, Ext: String; {JO}
 begin
   EnableCommands([cmUnwrap]);
   if Buf <> nil then FreeMem(Buf, BufSize); Buf:=nil;
   if Fl <> nil then Dispose(Fl,Done); Fl:=nil;
   If not (TottalExit or Exiting) and KillAfterUse Then Begin
-   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
+   EraseTempFile(FileName);
    KillAfterUse:=False;
-   RereadDirectory(GetPath(FileName));
+ {$IFDEF FileNotify}
+   if not DNIni.AutoRefreshPanels then
+ {$ENDIF}
+     RereadDirectory(GetPath(FileName));
   End;
   Info:=nil;
   DeRegister(@Self); {AK155}
@@ -1594,7 +1621,10 @@ end;
    S.Truncate; {AK155 на случай записи короткого файла поверх длинного}
    S.Done;
    FN := GetPath(FN); if (Length(FN) > 3) and (FN[Length(FN)] = '\') then SetLength(FN, Length(FN)-1);
-   GlobalMessage(evCommand, cmRereadDir, @FN);
+ {$IFDEF FileNotify}
+   if not DNIni.AutoRefreshPanels then
+ {$ENDIF}
+     GlobalMessage(evCommand, cmRereadDir, @FN);
  end;
 
 
@@ -2554,15 +2584,44 @@ begin
   прямо сейчас нельзя, так как правильный учет табуляций возможен
   только при просмотре от самого начала строки.}
   LineStart := LineEnd;
-  while (LineStart > 0) and not (Buf^[LineStart-1] in [$0D, $0A])
-        and (LineEnd-LineStart < MaxWrapW)
-         { > MaxWrapW бывает при просмотре файла без CR и LF. В этом
+  while (LineStart > 0) and not (Buf^[LineStart-1] in [$0D, $0A]) do
+    begin
+    if (LineEnd-LineStart >= MaxWrapW) then
+      begin
+      if Wrap = wmNone then
+        exit;
+         { Так бывает при просмотре файла без CR и LF. В этом
          случае границы строк чисто условные, так что нет никакого
          смысла сканировать на неизвестную глубину назад, а потом
          снова сканировать вперед, нарезая на куски максимальной
-         длины }
-  do
+         длины. Так что теперь просто ищем от текущей точки назад
+         начало экранной строки.}
+      LineStart := LineEnd;
+      W := MaxX;
+      while W > 0 do
+        begin
+        dec(LineStart); dec(W);
+        if Buf^[LineStart-1] = 9 then
+          dec(W, W mod TS);
+        end;
+      if Wrap = wmWords then
+        begin
+        if (Char(Buf^[LineStart])) in BreakChars then exit;
+        if (Char(Buf^[LineStart-1])) in BreakChars then exit;
+        { граница экранной строки лежит внутри слова }
+        i := LineStart; inc(LineStart, 2);
+        while LineStart < LineEnd do
+          begin
+          if (Char(Buf^[LineStart])) in BreakChars then
+            exit;
+          inc(LineStart);
+          end;
+        LineStart := i; { ну очень длинное слово }
+        end;
+      exit;
+      end;
     dec(LineStart);
+    end;
 
   { Сейчас LineStart - настоящее начало строчки в буфере. Но с учетом wrap
    она может разделиться на несколько строчек экрана. Ниже это проверяется
@@ -2628,7 +2687,6 @@ begin
   {$ENDIF}
     end;
     {GRM!}
-    if Wrap>wmNone then MaxX := Size.X else MaxX := MaxWrapW;
     if (ViewMode = vmText) and (LineEnd = Lines[0].Pos) and
       (LineEnd <> 0) {AK155 такое бывает в самом начале буфера}
       and (Lines[0].Len + Lines[0].Pos-LineStart <= MaxX)

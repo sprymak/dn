@@ -1,0 +1,68 @@
+В объектную модель плагинов к DN/2 вынесены следующие объекты:
+
+
+  TEmptyObject
+  └─TObject
+    ├─TRegExp
+    ├─TStream
+    │ ├─TDosStream
+    │ │ └─TBufStream
+    │ └─TMemoryStream
+    ├─TCollection
+    │ ├─TSortedCollection
+    │ │ ├─TStringCollection
+    │ │ ├─TStrCollection
+    │ │ └─TFilesCollection
+    │ └─TLineCollection
+    └─TView
+      ├─TFrame
+      ├─TScrollBar
+      ├─TInputLine
+      ├─TButton
+      ├─TCluster
+      │ ├─TRadioButtons
+      │ ├─TCheckBoxes
+      │ └─TMultiCheckBoxes
+      ├─TScroller
+      ├─TListViewer
+      │ ├─TListBox
+      │ └─THistoryViewer
+      ├─TStaticText
+      │ ├─TParamText
+      │ └─TLabel
+      ├─THistory
+      ├─TBackground
+      ├─TXFileEditor
+      └─TGroup
+        ├─TWindow
+        │ ├─TDialog
+        │ ├─THistoryWindow
+        │ └─TUniWindow
+        │   └─TEditWindow
+        ├─TDesktop
+        └─TProgram
+          └─TApplication
+            └─TDNApplication
+
+
+
+
+Памятка написателям плагинов с использованием объектной модели.
+
+1) при инициализации плагина необходимы следующие действия
+   (причём обязательно в указанном порядке):
+
+   инициализация функциональной модели:
+     InitDNFunctions(Functions, Methods);
+
+   если делали какие-нибудь объекты-наследники стандартных, то для каждого
+   надо сделать следующее (пример для TMyObject=object(TObject)):
+     TransportVMT(_TObject^.VMT, TypeOf(TObject), TypeOf(TMyObject), TObject_VMTSize);
+
+   регистрация используемых стандартных объектов:
+     VMTRegisterAll;
+   а лучше просто надёргать нужных строчек из модуля _VMTReg
+
+2) забудьте про слово "inherited" в объектах-наследниках стандартных
+   соответствующие процедуры должны вызываться напрямую из _DNFuncs
+

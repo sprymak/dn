@@ -97,7 +97,7 @@ uses
  var B: PChar;
      idx: PChar;
      Size: Longint;
-     i: Longint;
+     I, J: Longint;
      P: PString; {AK155}
      PL: PLongString;
      S: LongString;
@@ -147,6 +147,10 @@ uses
         S:=CnvLongString(PC^.At(I))
       else
         S:=CnvString(PC^.At(I));
+{JO}
+      for J := 1 to Length(S) do
+        if S[J] = #0 then S[J] := ' ';
+{/JO}
       move(S[1], idx^, Length(S));
       inc(idx, Length(S));
     end;

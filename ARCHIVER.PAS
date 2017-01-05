@@ -105,6 +105,7 @@ type
         SelfExtract,
         Solid,
         RecurseSubDirs,
+        SetPathInside,
         StoreCompression,
         FastestCompression,
         FastCompression,
@@ -193,6 +194,7 @@ const
     PSelfExtract:PChar =        'SFX';
     PSolid:PChar =              'Solid';
     PRecurseSubDirs:PChar =     'RecurseSubDirs';
+    PSetPathInside:PChar =      'SetPathInsideArchive';
     PStoreCompression:PChar =   'StoreCompression';
     PFastestCompression:PChar = 'FastestCompression';
     PFastCompression:PChar =    'FastCompression';
@@ -238,7 +240,8 @@ implementation
 
  uses LFN, {DnUtil, }advance, advance1, advance2, advance3, DNApp, Commands,
       Dialogs, FilesCol, FViewer, StartUp, RStrings, {Memory, Messages,}
-      ArcView, FileCopy, HistList,{FStorage,} Menus, ArchDet, {UserSavr,} dnini, messages;
+      ArcView, FileCopy, HistList,{FStorage,} Menus, ArchDet, {UserSavr,} dnini, messages,
+{JO}  Memory, Videoman, DNExec{$IFDEF Win32}, VPSysLow{$ENDIF}; {/JO:  добавил для функции ArcExec}
 
 
 { ------------------------------- Collections ----------------------------- }
@@ -304,6 +307,7 @@ begin
   SelfExtract       := S.ReadStr;
   Solid             := S.ReadStr;
   RecurseSubDirs    := S.ReadStr;
+  SetPathInside     := S.ReadStr;
   StoreCompression  := S.ReadStr;
   FastestCompression:= S.ReadStr;
   FastCompression   := S.ReadStr;
@@ -337,6 +341,7 @@ begin
   S.WriteStr(SelfExtract);
   S.WriteStr(Solid);
   S.WriteStr(RecurseSubDirs);
+  S.WriteStr(SetPathInside);
   S.WriteStr(StoreCompression);
   S.WriteStr(FastestCompression);
   S.WriteStr(FastCompression);
@@ -389,6 +394,7 @@ begin
  WritePrivateProfileString(@Sign[1], PFastCompression, StoS(FastCompression), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PFastestCompression, StoS(FastestCompression), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PStoreCompression, StoS(StoreCompression), @FreeStr[1]);
+ WritePrivateProfileString(@Sign[1], PSetPathInside, StoS(SetPathInside), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PRecurseSubDirs, StoS(RecurseSubDirs), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PSolid, StoS(Solid), @FreeStr[1]);
  WritePrivateProfileString(@Sign[1], PRecoveryRec, StoS(RecoveryRec), @FreeStr[1]);
@@ -432,6 +438,7 @@ begin
   DisposeStr(SelfExtract);
   DisposeStr(Solid);
   DisposeStr(RecurseSubDirs);
+  DisposeStr(SetPathInside);
   DisposeStr(StoreCompression);
   DisposeStr(FastestCompression);
   DisposeStr(FastCompression);
@@ -471,6 +478,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-je1'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-m4'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m3'));
@@ -612,14 +620,17 @@ procedure MakeArchive;
        Archiver : Word;
        Mode : Word;
      end;
+     ST1: Ansistring;
+     B: Boolean;
+     SIntern: String;
 
 
-  function MakeListFile: String;
+  function MakeListFile(Var B: Boolean): Ansistring;
    var F: lText;
        PF: PFileRec;
        I: Integer;
-       S, S1: String;
-       B: Boolean;
+       S: Ansistring;
+       S1: String;
        SR: lSearchRec; {JO}
 
     procedure PutDir(const SS: String);
@@ -629,12 +640,13 @@ procedure MakeArchive;
     begin
        ClrIO;
 {piwamoto.src.begin}
+   {JO:  используем символ #$14 для временного разделения имён файлов}
        if not ((PF^.Attr and Directory <> 0) and (D.Options and 1 = 0))
-          then if B then S := S + ' ' + SS else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(SS));
+          then if B then S := S + #$14 + SS else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(SS));
 {piwamoto.src.end}
        ClrIO;
        lFindFirst(MakeNormName(SS, x_x), {$IFDEF OS2} Anyfile {$ELSE} $FF XOR VolumeID{$ENDIF}, SR); {JO}
-       While (DOSError = 0) and not Abort and (Length(S) < 100) do
+       While (DOSError = 0) and not Abort {and (Length(S) < 100)} do
         begin
  {$IFNDEF OS2}
          if Arc^.UseLFN
@@ -643,9 +655,9 @@ procedure MakeArchive;
  {$ELSE}
          S1:=GetLongRelPath(MakeNormName(SS,SR.FullName));
  {$ENDIF}
-
+       {JO:  используем символ #$14 для временного разделения имён файлов}
          if (SR.SR.Attr and (Directory {$IFNDEF OS2} + VolumeID{$ENDIF}) = 0) then   {JO}
-           if B then S := S + ' ' + SquashesName(S1)
+           if B then S := S + #$14 + SquashesName(S1)
                 else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1));
 {piwamoto.src.begin}
          if (SR.SR.Attr and Directory <> 0)
@@ -692,11 +704,11 @@ procedure MakeArchive;
  {$ELSE}
      S1 := GetLongRelPath(MakeNormName(PF^.Owner^, PF^.Name));
  {$ENDIF}
-
+       {JO:  используем символ #$14 для временного разделения имён файлов}
      if PF^.Attr and Directory = 0
-      then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1))
+      then if B then S := S + #$14 + SquashesName(S1) else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1))
 {piwamoto.src.begin}
-      else if B then S := S + ' ' + SquashesName(S1+'\*.*') else
+      else if B then S := S + #$14 + SquashesName(S1+'\*.*') else
         if Arc^.PutDirs then PutDir(S1) else    {JO} {для пустых каталогов надо обязательно подставлять имя без маски, иначе}
                                          begin       {архиваторы их игнорируют; для непустых каталогов такая подстановка приводит}
                                            ClrIO;    {с некоторыми архиваторами (ZIP) к тому, что файлы попадают в архив дважды}
@@ -710,7 +722,7 @@ procedure MakeArchive;
                                          end;   {/JO}
 {piwamoto.src.end}
      MakeListFile := S;
-     if Length(S) > 100 then Exit;
+    {if Length(S) > 100 then Exit;}
     end;
    MakeListFile := S;
    if not B then Close(F.T);
@@ -730,6 +742,135 @@ procedure MakeArchive;
                                else AddString := ' '+Copy(P^,2,MaxStringLength)
        else AddString := ' '+P^;
     end;
+  end;
+
+{JO: ввёл функцию ArcExec по аналогии с TArcDrive.Exec в Arcview для разбора}
+{    длинной командной строки                                               }
+  function ArcExec(Prg, Cmd: String; Lst: AnsiString; B: Boolean): Boolean;
+   var S: String;
+       SS1: AnsiString;
+       SM: Word;
+       DE: Word;
+       CmdLineLim, ListLineLim: AWord;
+       CmdLineOK: Boolean;
+       I, J: Longint;
+
+  procedure StdMsg8;
+  var
+    L: array[0..1] of LongInt;
+    ST: String;
+  begin
+    Application^.Redraw;
+    ST := S;
+    Pointer(L[0]) := @ST; L[1] := DE;
+    Msg(dlArcMsg8, @L, mfOkButton or mfError);
+  end;
+
+  {AK155 20/12/2001 Если под Win32 пытаться в отладчике прошагать
+  эту функцию, то получается полная блокировка клавиатуры и мыши
+  сразу на входе (даже с begin сойти не получается).
+  Этот эффект исчезает, если параметр AnsiString заменить на String.
+  Под OS/2 все шагается без проблем. Интересно, чей это глюк -
+  виндового отладчика или виндовой RTL? Хорошо, если первое. }
+  begin
+    ArcExec := True;
+    S := Prg+' '+Cmd;
+  {$IFDEF OS_DOS}
+    if Arc^.Swap then
+    begin
+      ArcExec := Message(Application, evCommand, cmExecString, @S) = nil;
+      Exit;
+    end;
+  {$ENDIF}
+    DoneSysError;
+    DoneEvents;
+    DoneVideo;
+    DoneDOSMem;
+    DoneMemory;
+    {$IFDEF OS_DOS}asm cld; mov ax,3; int $10; end;{$ENDIF}
+  {$IFDEF OS_DOS} //AK155
+    {AK155, дописано позже, чем комментарий к OS/2.
+  Под Win32 тоже не следует заниматься самодеятельностью.
+  Во-первых, мы отдаем консоль в каком-то не таком состоянии,
+  так что консольный rar не может вводить с клавиатуры.
+  Во-вторых, стОило ли работать с ansistring, чтобы потом вызвать
+  Dos.Exec?}
+    S := GetEnv('PATH');
+    S := FSearch(Prg,S);
+    SwapVectors;
+    if InFilter(S, '*.EXE;*.COM')
+     then DOS.Exec(S,Cmd)
+     else DOS.Exec(GetEnv('COMSPEC'),'/c '+S+' '+Cmd);
+  {$ELSE}
+     {AK155 Под OS/2, во-первых, PATH обычно не умещается
+      в 255 символов, во-вторых, нет проблем с памятью,
+      в третьих архиватор может оказаться ДОСовым.
+      Так что пускай PATH просматривает cmd.exe, а мы не
+      будем заниматься самодеятельностью }
+    if B then
+      begin
+  {JO: разбираем ту часть командной строки, которая содержит список файлов    }
+  {    на куски удобоваримой для командного процессора длины                  }
+        if Arc^.ShortCmdLine then CmdLineLim := {$IFDEF OS2}95{$ELSE}127{$ENDIF} else CmdLineLim := {$IFDEF OS2}1000{$ELSE}250{$ENDIF};
+        ListLineLim := CmdLineLim - Length(Prg+Cmd) - 7;
+        CmdLineOK := False;
+        SS1 := Lst; {для перестраховки}
+        repeat
+          if Length(Lst) >= ListLineLim then
+            begin
+              for I := ListLineLim downto 1 do
+                if Lst[I] = #$14 then
+                  begin
+                    SS1 := Copy(Lst, 1, I-1);
+                    Delete (Lst, 1, I);
+                    Break;
+                  end;
+            end
+           else
+            begin
+              SS1 := Lst;
+              CmdLineOK := True;
+            end;
+          for J := 1 to Length(SS1) do
+            if SS1[J] = #$14 then SS1[J] := #$20; {JO: заменяем временный символ на пробелы}
+          DelDoubles('  ', S);
+          AnsiDelDoubles('  ', SS1);
+  {JO: AnsiExec - процедура из модуля DNExec , которая }
+  {    используется вместо DOS.Exec и в качестве       }
+  {    коммандлайна использует строку типа Ansistring  }
+          SwapVectors;
+          AnsiExec(GetEnv('COMSPEC'),'/c ' + S + ' ' + SS1 + ' ');
+          DE := DosError; ClrIO;
+          SwapVectors;
+        until CmdLineOK;
+      end
+     else
+      begin
+        DelDoubles('  ', S);
+        AnsiDelDoubles('  ', Lst);
+        SwapVectors;
+        AnsiExec(GetEnv('COMSPEC'),'/c ' + S + ' ' + Lst + ' ');
+        DE := DosError; ClrIO;
+        SwapVectors;
+        EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {DataCompBoy}
+      end;
+  {$ENDIF}
+    InitDOSMem;
+    InitMemory;
+    SetVideoMode(ScreenMode); SM := ScreenMode;
+    SetBlink(On);
+    InitVideo; ScreenMode := SM;
+    {$IFDEF Win32}SysTVInitCursor; {$ENDIF} {AK155, см.комментарий к SysTVInitCursor}
+    if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
+    InitEvents;
+    InitSysError;
+    case DE of
+       0 : Application^.Redraw;
+       8 : StdMsg(1);
+      else StdMsg8;
+    end;
+    GlobalMessage(evCommand, cmPanelReread, nil);
+    GlobalMessage(evCommand, cmRereadInfo, nil);
   end;
 
 label Ex;
@@ -788,12 +929,26 @@ begin
   if D.Mode = 4 then C := C + AddString(Arc^.GoodCompression) else
   if D.Mode = 5 then C := C + AddString(Arc^.UltraCompression);
 
-  S := C + ' ' + D.Add + ' ' + SquashesName({$IFDEF RecodeWhenDraw}OemToCharStr{$ENDIF}(D.Name)) + ' ' + MakeListFile;
-  S := CnvString(Arc^.Packer) + ' ' + S;
-  DelDoubles('  ', S);
-  GlobalMessage(evCommand, cmMakeForced, nil);
+  SIntern := '';
+  if (CnvString(Arc^.SetPathInside) <> '') then
+    begin
+      if Owner <> nil then Message(PView(Owner)^.Owner, evCommand, cmPushInternalName, @SIntern);
+      if SIntern <> '' then
+        begin
+          While (SIntern[Length(SIntern)] = '.') do SetLength(SIntern, Length(SIntern)-1);
+          While (SIntern[1] = '\') do Delete(SIntern, 1, 1);
+          if (SIntern[Length(SIntern)] <> '\') then SIntern := SIntern + '\';
+          SIntern := CnvString(Arc^.SetPathInside) + SIntern + ' ';
+        end;
+    end;
+  S := C + ' ' + D.Add + ' ' + SIntern + SquashesName({$IFDEF RecodeWhenDraw}OemToCharStr{$ENDIF}(D.Name));
+  ST1 := MakeListFile(B);
+
+{ DelDoubles('  ', S);}
+{ GlobalMessage(evCommand, cmMakeForced, nil);}
   if Owner <> nil then Files^.ForEach(@Unselect);
-  Message(Application, evCommand, cmExecString, @S);
+{ Message(Application, evCommand, cmExecString, @S);}
+  ArcExec(CnvString(Arc^.Packer), S, ST1, B);
 Ex:
   Dispose(Arc, Done);
 end;
@@ -809,6 +964,7 @@ procedure UnarchiveFiles;
       Dr: String;
       Nm: String;
       Xt: String;
+      Unp: String;
 label ex;
 begin
    lFSplit(FName, Dr, Nm, Xt);
@@ -850,7 +1006,22 @@ begin
    if DT.W and 2 <> 0 then ExtrChar := CnvString(AType^.Test);
    S := '';
    if DT.Psw <> '' then S := S + ' ' + DelSpaces(CnvString(AType^.Garble) + DT.Psw) + ' ';
-   S := CnvString(AType^.unPacker)+' '+ExtrChar+' '+SquashesName(s+FName);
+   Unp := CnvString(AType^.unPacker);
+   if (AType^.GetID = arcRAR) and (PosChar(';', Unp) > 0) then
+    {begin
+       if PRARArchive(AType)^.VersionToExtr > 20 then }
+             Unp := Copy(Unp, PosChar(';', Unp)+1, 255)
+       {else Unp := Copy(Unp, 1, PosChar(';', Unp)-1);
+     end};
+{$IFNDEF OS2}
+   if AType^.UseLFN then
+{$ENDIF}
+     S := Unp + ' ' + ExtrChar + ' ' + SquashesName(s + FName)
+{$IFNDEF OS2}
+    else
+     S := Unp + ' ' + ExtrChar + ' ' + SquashesName(s + lfGetShortFileName(FName))
+{$ENDIF}
+     ;
    if Xt = '' then S := S + '.';{piwamoto: extracting from extensionless archives}
    lGetDir(0, DirToChange);
    Advance2.lChDir(ExtrDir);
@@ -870,12 +1041,12 @@ end;
 procedure SkipSFX; {piwamoto}
 var
    TempWord: AWord;
+{used for MZExeRec.RelOffs, MZExeRec.NewExe.Type, NEhdrRec.SegmentOffset}
    WinZipID: Array [0..7] of char;
    MZExeRec: record
-              ExeID:   Array[0..1] of Char;
+              ExeID:   AWord;
               LastB:   AWord;
               TotalP:  AWord;
-              RelOffs: AWord;
               NewExe:  LongInt;
              end;
    PEhdrRec: record
@@ -908,14 +1079,15 @@ var
              end;
 begin
    ArcFile^.Read(MZExeRec.ExeID, SizeOf(MZExeRec.ExeID) + SizeOf(MZExeRec.LastB) + SizeOf(MZExeRec.TotalP));
-   if (MZExeRec.ExeID = 'MZ') or (MZExeRec.ExeID = 'ZM') then
+   if (MZExeRec.ExeID = $5a4d{'MZ'}) or (MZExeRec.ExeID = $4d5a{'ZM'}) then
     begin {MZ}
      ArcFile^.Seek($18);
-     ArcFile^.Read(MZExeRec.RelOffs, SizeOf(MZExeRec.RelOffs));
+     ArcFile^.Read(TempWord, SizeOf(TempWord));
      ArcFile^.Seek($3c);
      ArcFile^.Read(MZExeRec.NewExe, SizeOf(MZExeRec.NewExe));
-     ArcPos := LongInt(MZExeRec.TotalP - 1)*512 + MZExeRec.LastB;
-     if (MZExeRec.RelOffs >= $40) and (_Cardinal(MZExeRec.NewExe + $100) < ArcFile^.GetSize) then
+     if MZExeRec.LastB <> 0 then Dec(MZExeRec.TotalP);
+     ArcPos := LongInt(MZExeRec.TotalP)*512 + MZExeRec.LastB;
+     if (TempWord >= $40) and (_Cardinal(MZExeRec.NewExe + $100) < ArcFile^.GetSize) then
       begin
        ArcFile^.Seek(MZExeRec.NewExe);
        ArcFile^.Read(TempWord, SizeOf(TempWord));
@@ -945,7 +1117,7 @@ begin
           if NEhdrRec.ResTableOffset = NEhdrRec.ResNamesOffset then
            begin {no resources present: search 4 last segment}
             ArcFile^.Seek(LongInt(NEhdrRec.SegTableOffset) + MZExeRec.NewExe + 8*NEhdrRec.NumOfSegments - 8);{last segment}
-            ArcFile^.Read(TempWord, SizeOf(TempWord));
+            ArcFile^.Read(TempWord, SizeOf(TempWord));{NEhdrRec.SegmentOffset}
             ArcFile^.Read(NEhdrRec.SegmentSize, SizeOf(NEhdrRec.SegmentSize));
             ArcPos := LongInt(TempWord) shl NEhdrRec.AlignShiftCount + NEhdrRec.SegmentSize;
            end
@@ -960,8 +1132,11 @@ begin
              ArcFile^.Seek(ArcPos);
              ArcFile^.Read(NEhdrRec.ResourceType, SizeOf(NEhdrRec.ResourceType) + SizeOf(NEhdrRec.ResourceTypeNum));
             Until NEhdrRec.ResourceType = 0;
-            ArcFile^.Seek(ArcPos - 12);
-            ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
+            Repeat {search for non-empty resource}
+             ArcPos := ArcPos - 12;
+             ArcFile^.Seek(ArcPos);
+             ArcFile^.Read(NEhdrRec.ResourceOffset, SizeOf(NEhdrRec.ResourceOffset) + SizeOf(NEhdrRec.ResourceLenght));
+            Until NEhdrRec.ResourceOffset <> 0;
             ArcPos := LongInt(NEhdrRec.ResourceOffset + NEhdrRec.ResourceLenght) shl NEhdrRec.ResourceAlign;
            end;
         end;
@@ -993,8 +1168,7 @@ end; {SkipSFX}
 
 procedure Check4ArcId; {piwamoto}
 var
-   ArcId : Array [0..3] of Char;
-   ArcPosID : LongInt;
+   ArcId, ArcPosID : LongInt;
 begin
    ArcPosID := ArcPos;
    Repeat
@@ -1003,15 +1177,23 @@ begin
     Inc (ArcPosID);
    Until ((ArcPosID - ArcPos) = $1fd) or {1fch = SizeOf(DN's internal ArcFile^.Read cache size) - SizeOf(ArcId)}
          (ArcFile^.EOF) or
-   {ZIP} (ArcId = 'PK'#3#4) or
-   {RAR} (ArcId = 'Rar!') or
-   {ARJ} ((ArcId[0]=#$60) and (ArcId[1]=#$EA) and (ArcId[3]<#$b)) or
-   {IS3} (ArcId = #$13#$5D#$65#$8C) or
-   {ZOO} (ArcId = #$DC#$A7#$C4#$FD) or
-   {CHZ} (ArcId = 'SChF') or
-   {CHZ} (ArcId = 'SChD') or
-   {CAB} (ArcId = 'MSCF');
+   {ZIP} (ArcId = $04034b50 {'PK'#3#4}) or
+   {RAR} (ArcId = $21726152 {'Rar!'}) or
+   {ARJ} (((ArcId and $ffff) = $ea60) and ((ArcId and $ff000000) < $b000000)) or
+   {IS3} (ArcId = $8c655d13 {#$13#$5D#$65#$8C}) or
+   {ZOO} (ArcId = $fdc4a7dc {#$DC#$A7#$C4#$FD}) or
+   {CHZ} (ArcId = $46684353 {'SChF'}) or
+   {CHZ} (ArcId = $44684353 {'SChD'}) or
+  {COFF} (ArcId = $0003014c {#$4c#$01#$03#$00}) or {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
+   {CAB} (ArcId = $4643534d {'MSCF'});
    if ((ArcPosID - ArcPos) < $1fd) and not (ArcFile^.EOF) then ArcPos := ArcPosID - 1;
+   if ArcId = $0003014c {#$4c#$01#$03#$00} then
+     begin {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
+      ArcFile^.Seek(ArcPos + $68);
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{DataOffset}
+      ArcFile^.Read(ArcID, SizeOf(ArcID));{DataSize}
+      ArcPos := ArcPos + ArcPosID + ArcID;
+     end;
 end; {Check4ArcId}
 
 function _Cardinal(L : LongInt) : Real; {piwamoto}

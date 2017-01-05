@@ -50,7 +50,7 @@ unit Arc_bs2; {BS2}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+  Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, LFNCol{$ENDIF};
 
 type
     PBS2Archive = ^TBS2Archive;
@@ -68,16 +68,11 @@ type
       Date: LongInt;
       OriginSize: LongInt;
       PackedSize: LongInt;
-      Data: Array[1..4] of Byte;
+      Data: LongInt;
       NameLen: Byte;
      end;
 
 implementation
-
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
 
 { ----------------------------- BS2 ------------------------------------}
 
@@ -104,6 +99,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '+s'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));

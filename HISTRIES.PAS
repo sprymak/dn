@@ -517,9 +517,13 @@ begin
  ViewHistory := PCollection(S.Get);
 
  if CmdStrings<>nil then CurString := CmdStrings^.Count else CurString:=0;
+{AK155 Перерисовка комстроки не нужна, а очистка даже мешает}
+(*
  StrModified := False;
  if CommandLine <> nil then CommandLine^.DrawView;
  Str := '';
+*)
+{/AK155}
 end;
 
 function GetCommand(Idx: Integer): String;

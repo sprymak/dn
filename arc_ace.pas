@@ -76,6 +76,8 @@ type ACEFileHdr = record
       NameLen    : AWord;
      end;
 
+var ACEVerToExtr: Byte;
+
 implementation
 { ---------------------------------- ACE --------------------------------- }
 
@@ -107,6 +109,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        '-sfx'));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              '-s'));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-m1'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m2'));

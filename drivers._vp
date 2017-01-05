@@ -148,13 +148,8 @@ begin
     end;
 *)
   Writeln('Fatal Error'^M^J'컴컴컴컴컴�'^M^J^M^J+
-          'Exception 0',Hex2(ExitCode),'h at address ',Hex8(LongInt(ErrorAddr)));
-{$IFDEF LINEPOSIT}
-  if (SourceLineNo <> 0) and (SourceFileName <> nil) then
-    Writeln('Source location: ' + SourceFileName^ + ' line ', SourceLineNo);
-{$ENDIF}
-
-  Writeln('Report to RU.SHELL.DN'^M^J+
+          'Exception 0',Hex2(ExitCode),'h at address ',Hex8(LongInt(ErrorAddr)),^M^J+
+          'Report to RU.SHELL.DN'^M^J+
           '( file DN.ERR )'^M^J^M^J+
           'Press any key...');
 {/Cat}
@@ -343,7 +338,7 @@ const
   scCtrlDown = $91;  kbShift    = kbLeftShift + kbRightShift;
   scZ        = $2C;  scSlash    = $35;  scAltF5    = $6C;
   scAltF6    = $6D;  scAltIns   = $A2;  scGrPlus   = $4E;
-  scGrMinus  = $4A;  scAltGrEnter = $A6;
+  scGrMinus  = $4A;  scAltGrEnter = $A6; scAltHome = $97;
 
 type
   KeyTransEntry = record
@@ -365,7 +360,7 @@ const
 {/AK155}
 
 const
-  NumOfKeyTransEntries = 26 {$IFDEF Win32} + 10 {$ENDIF};
+  NumOfKeyTransEntries = 26 {$IFDEF Win32} + 11 {$ENDIF};
   KeyTranslateTable : array [1..NumOfKeyTransEntries] of KeyTransEntry =
     (( Scan: scSpace   ; Shift: $08 ; Code: kbAltSpace    ), // Alt-Space
      ( Scan: scIns     ; Shift: $04 ; Code: kbCtrlIns     ), // Ctrl-Ins
@@ -397,6 +392,7 @@ const
      ( Scan: $09       ; Shift: $04 ; Code: kbCtrl8       ),
      ( Scan: $0A       ; Shift: $04 ; Code: kbCtrl9       ),
      ( Scan: $0B       ; Shift: $04 ; Code: kbCtrl0       ),
+     ( Scan: scAltHome ; Shift: $08 ; Code: kbAltHome ),     // Alt-Home
 {$ENDIF}
      ( Scan: scAltIns  ; Shift: $09 ; Code: kbAltShiftIns ), // Alt-Shift-Ins
      ( Scan: scAltIns  ; Shift: $0A ; Code: kbAltShiftIns ), // Alt-Shift-Ins

@@ -1027,13 +1027,16 @@ begin // SysFileExpand
       begin                     // Path is already in form 'X:\Path' or 'X:/Path'
         if (L >= Length('X:\')) and (Name[2] in ['\','/']) then
           StrCopy(Dest, Name)
-        else
+        else if SysDirGetCurrent(Ord(UpCase(Name[0])) - (Ord('A') - 1),
+                 CurDir) = 0
+        then
           begin                 // Path is in form 'X:Path'
-            SysDirGetCurrent(Ord(UpCase(Name[0])) - (Ord('A') - 1), CurDir);
             if StrLen(CurDir) > Length('X:\') then
               StrCat(CurDir, '\');
             StrLCat(StrCopy(Dest, CurDir), @Name[2], 259);
-          end;
+          end
+        else
+          StrCopy(Dest, Name); {AK155} // SysDirGetCurrent fail
       end
     else
       begin                         // Path is without drive letter

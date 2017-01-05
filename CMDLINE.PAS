@@ -106,6 +106,7 @@ implementation
       , MicroEd, Histries, FViewer, flpanelx
 {$IFDEF SS} ,Idlers{$ENDIF}
 {$IFDEF VIRTUALPASCAL}, VpSysLow{$ENDIF}
+      , DNIni
       ;
 
 const
@@ -521,7 +522,13 @@ EndLFN:
                                  CE2
                                end;
                    kbESC: begin if (Str = '') and ( InterfaceData.Options and ouiEsc <> 0 )
-                                            then Message(Application, evCommand, cmShowUserScreen, nil)
+                                            then
+                                              begin
+                                                if EscForOutputWindow then
+                                                    Message(Application, evCommand, cmShowOutput, nil)
+                                                  else
+                                                    Message(Application, evCommand, cmShowUserScreen, nil);
+                                              end
                                             else Str := ''; CurX := 0; DeltaX := 0; CE2 end;
                    kbBack: begin
                             if CurX > 0 then begin

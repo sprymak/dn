@@ -309,20 +309,22 @@ const
 
 { Public variables }
 
-  StringCache: PCollection = nil;
+{Cat: порядок переменных не менять, иначе будут проблемы с плагинами}
+
   Application: PProgram = nil;
   Desktop: PDesktop = nil;
   StatusLine: PStatusLine = nil;
   MenuBar: PMenuView = nil;
+  CommandLine: PView = nil;
   ResourceStream: PStream = nil;
   LngStream: PStream = nil;
   LStringList : PStringList = nil;
   Resource:  PIdxResource = nil;
+  StringCache: PCollection = nil;
   AppPalette: Integer = apColor;
-  CommandLine: PView = nil;
-{  HintString: String[80] = '';}
 
-const SkyVisible: Boolean = False;
+const
+  SkyVisible: Boolean = False;
 
 type
    PWriteWin = ^TWriteWin;

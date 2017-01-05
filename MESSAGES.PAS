@@ -104,7 +104,7 @@ function MessageBoxRect( var R: TRect; Msg: String; Params: Pointer;
 
 function MessageBox2Rect(var R: TRect;
                              Msg1,Msg2: String;
-                             Lines1: byte;
+                             Lines1: Word;
                              Params1,Params2 : Pointer;
                              AOptions: Word ): Word;
 
@@ -112,16 +112,16 @@ function MessageBox2Rect(var R: TRect;
 { type in a string.                                             }
 
 function InputBox(Title: String; ALabel: String; var S: String;
-  Limit: Byte; HistoryID: Word): Word;
+  Limit: Word; HistoryID: Word): Word;
 
 function BigInputBox(Title: String; ALabel: String; var S: String;
-  Limit: Byte; HistoryID: Word): Word;
+  Limit: Word; HistoryID: Word): Word;
 
 { InputBoxRect is like InputBox but allows the specification of }
 { a rectangle.                                                  }
 
 function InputBoxRect(var Bounds: TRect; Title: String; ALabel: String;
-  var S: String;  Limit: Byte; HistoryID: Word): Word;
+  var S: String;  Limit: Word; HistoryID: Word): Word;
 
 
 function Msg( Index: TStrIdx; Params: Pointer; AOptions: Word ): Word;

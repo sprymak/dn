@@ -1,13 +1,27 @@
-RESOURCE Resource source for DN OSP
+DOC Documentation for DN/2
+RESOURCE Resource source for DN/2
+STORED Units from DN, currently not used in DN/2
+SYS System unit
+drivers._vp Drivers for VP
+fio._vp File Input/Output for VP
+views._vp Views for VP
+vpc.cfg VPC Configutation file
+vpc.cfo VPC Configutation file for OS/2 wersion
+vpc.cfw VPC Configutation file for Win32 wersion
+file_id.diz Logo
+sort_dos.inc Sorting types for DOS versions
+sort_os2.inc Sorting types for OS/2 versions
+sort_w32.inc Sorting types for Win32 versions
+stdefine.inc Defines for project
+rcpvpo.ini Resource compiler options for OS/2
+rcpvpw.ini Resource compiler options for Win32
+advance.pas Advanced procedures: startup
+advance1.pas Advanced procedures: String functions
+advance2.pas Advanced procedures: File related functions
 advance3.pas Advanced procedures: Misc stuff
 advance4.pas Advanced procedures: OS/2 support
-advance6.pa7 Advanced procedures
+advance6.pas Advanced procedures
 advance7.pas Advanced procedures: Help oriented
-archdet.pas Archiver detectors
-archiver.pas Archivators access
-archread.pas Archivers output list reader
-archset.pas Archivers setups manager
-arcview.pas View archives as drives
 arc_ace.pas Support for ACE
 arc_ain.pas Support for AIN
 arc_arc.pas Support for ARC
@@ -32,6 +46,11 @@ arc_ufa.pas Support for UFA
 arc_zip.pas Support for ZIP
 arc_zoo.pas Support for ZOO
 arc_zxz.pas Support for ZXZ
+archdet.pas Archiver detectors
+archiver.pas Archivators access
+archread.pas Archivers output list reader
+archset.pas Archivers setups manager
+arcview.pas View archives as drives
 arvid.pas Access to ARVID tapes
 arvidavt.pas Support for AVT format
 arvidtdr.pas Support for TDR format
@@ -41,55 +60,57 @@ calculat.pas Main calculator module
 calendar.pas Calendar
 callspcb.pas Compiler-independent mechanisms to call special functions
 ccalc.pas Calculator
-cdplayer.pas CD Player
-cdutil.pas CD Player utilites
 cellscol.pas Cells collection for spreadsheet
 cmdline.pas Command line
+collect.pas Collections
 colors.pas Colors
 colorsel.pas Color selector
 colorvga.pas VGA Color
 commands.pas Constants
-cputype.pas part of CPU/FPU detection library by B-coolWare
 dblwnd.pas Double Window
 dbview.pas .DBF Viewer
 dbwatch.pas .DBF access
+decoder.pas Part of DisAsm
 defcoll.pas Defines collection
 dialogs.pas Basic dialogs
 diskimg.pas Disk image unpacker
-DISKINFO.PA8 Disk info
-disktool.pas Disk editor
+diskinfo.pas Disk info
 dn.pas Main program module
 dn1.pas Main program module, Part 2
-DNEXEC.PA1   Execution functions
-dnformat.pas Format Disk
+dn2cat.pas Main DLL for plugin version
+dn2pmapi.pas OS/2 Presentation Manager API interface
+dnapp.pas DN Application unit
+dnexec.pas Execution functions
 dnhelp.pas Help constants
-DNINI1.PAS    Ini Configuration
+dnini.pas Ini Configuration
+dnpmapil.pas OS/2 Presentation Manager API interface
 dnstddlg.pas DN Standard dialogs
 dnutil.pas DN Utilites: About & other
 drivers.pas Low-level device drivers
 drivers2.pas Fail information
-DRIVES.PA8   Drive access
-drvtypes.pas Drive type identification
+drives.pas Drive access
+eaoper.pas Enhanced Attributes handling (OS/2 only)
 ed2.pas Part of editor
 editor.pas Part of editor
 edwin.pas Part of editor
 eraser.pas File eraser
-extkbd.pas   Access to extended keyboard (temporary unit)
-extramem.pas Access to extra memory
+errmess.pas Error messages
 fbb.pas LongCopy
+filecopy.pas Files copyer
 filediz.pas Files descriptions support
+filefind.pas Files finder
 filelist.pas Files lister
 filelst.pas Files list creating
-FILESCOL.PA1 Files collection
-file_id.diz Logo
+filescol.pas Files collection
 findobj.pas Find objects (for ARVID support)
+flos2tl.pas OS/2 specific files tools
 flpanel.pas Files panel
 flpanelx.pas Files panel
 fltools.pas Files tools
-fmtunit.pas format disk utils
-format.pas formatter kernel
+flw32tl.pas Win32 specific files tools
 fstorage.pas Files storage
-gauge.pas Gauges: Bar, Percent.
+fviewer.pas File viewer
+gauge.pas Gauges: Bar, Percent
 gauges.pas Gauges: Clock, Heap, TrashCan, Macros
 getconst.pas Getting constants
 helpfile.pas Access to help file
@@ -97,12 +118,13 @@ helpkern.pas Help kernel
 hideview.pas Hide view
 highlite.pas Syntax highliter
 histlist.pas History list
+histries.pas Histories
 idlers.pas Idle (screen savers)
 inifiles.pas Access to .INI files
-LFNCOL.PA1 EMS & Memory LFN collection
+lfncol.pas EMS & Memory LFN collection
+lfnvp.pas LFN Support for VP
 listmakr.pas Part of Resource Compiler
-MACRO.PA1    Macro editor & environment editor
-meminfo.pas Memory information
+macro.pas Macro editor & environment editor
 memory.pas Memory access
 menus.pas Menus
 messages.pas Message boxes
@@ -110,121 +132,74 @@ microed.pas Editor
 microed2.pas Microed: Read/Write/Store/Load methods
 objects.pas Main objects: TObject, Streams, other.
 objtype.pas Object types
-packmap.pas MAP file packer
+openobj.pas WPS file object opening utility for DN/2
+pack_lzw.pas LZW compression
+packf_rs.pas Pack file read/seek
 phones.pas Phones book
 pktview.pas Fido PKT viewer
+plugin.pas Interface with plugins
 printman.pas Print manager
 profile.pas .INI file parser
 rcp.pas DN Resource Compiler
-rcpvp.ini Resource compiler options
 regall.pas Registration of all objects
+regexp.pas Regular Expression Engine
 rspfile.pas Access to packed files
 rstrings.pas Strings cashe
-sblocks.pas Collectors
 scrollbk.pas Scrollback
 scroller.pas Scrollers
-search.pas   Part of packmap & dnerror - binary search
 setups.pas Setups DN
-stakdump.pas A unit for dumping the stack chain
 starsky.pas StarSky screen saver
 startup.pas Startup configuration
-stdefine.inc defines for project
 strview.pas TDStringView
 swe.pas Inputs
-sysinfo.pas System information
+tetris.pas Tetris
 titleset.pas Application title changing support
 tree.pas View of disk tree
 tvhc.pas TV Help Compiler
+u_keymap.pas Keyboard map
+u_myapp.pas Main aplication object
+u_srchf.pas Search File Names
 ufnmatch.pas Filename matches the UNIX style mask
 uniwin.pas Uni Window
 usermenu.pas User menu routines
-uucode.pas UU Encode/Decode
-u_keymap.pa7 Keyboard map
-u_myapp.pas Main aplication object
-u_srchf.pas Search File Names
-validate.pas Validators
-version.pas Version.Inc generator
-views.pas Standard views
-xdblwnd.pas Double Window
-xtime.pas Extended time support
-usermenu.pas User menu routines
-filelst.pas Files list creating
-FILESCOL.PA1 Files collection
-filescol.pas Files collection
-lfncol.pas EMS & Memory LFN collection
-vpsysw32.dif патч к системному модулю vpsysw32.pas, позволяющий избежать проблем с кириллическими именами файлов в Win32 версии
-advance6.pa5 Advanced procedures
-dn2pmapi.pas OS/2 Presentation Manager API interface
-dnpmapil.pas OS/2 Presentation Manager API interface
-openobj.pas WPS file object opening utility for DN/2
-dnini.pas Ini Configuration
-diskinfo.pas Disk info
-drives.pas Drive access
-dnini.pa9    Ini Configuration
-drives.pa9   Drive access
-eraser.pa9   File eraser
-filediz.pa9  Files descriptions support
-flpanel.pa9  Files panel
-flpanelx.pa9 Files panel
-fltools.pa9  Files tools
-dnexec.pas Execution functions
-_dnc.bat Batch to build Win32 wersion
-_dnc.cmd Не запускайте этот файл!
-drivers._vp Drivers for VP
-views._vp Views for VP
-fio._vp File Input/Output for VP
-vpc.cfg Настройки VPC
-vpc.cfo VPC Configutation file for OS/2 wersion
-vpc.cfw VPC Configutation file for Win32 wersion
-sort_dos.inc Sorting types for DOS versions
-sort_os2.inc Sorting types for OS/2 versions
-advance.pas Advanced procedures: startup
-advance1.pas Advanced procedures: String functions
-advance2.pas Advanced procedures: File related functions
-advance6.pas Advanced procedures
-collect.pas Collections
-decoder.pas Part of DisAsm
-dnapp.pas DN Application unit
-eaoper.pas Enhanced Attributes handling (OS/2 only)
-errmess.pas Error messages
-filecopy.pas Files copyer
-filefind.pas Files finder
-flos2tl.pas OS/2 specific files tools
-flw32tl.pas Win32 specific files tools
-fviewer.pas File viewer
-histries.pas Histories
-lfnvp.pas LFN Support for VP
-macro.pas Macro editor & environment editor
-pack_lzw.pas LZW compression
-packf_rs.pas Pack file read/seek
-tetris.pas Tetris
-u_keymap.pas Keyboard map
 usersavr.pas User saver
+uucode.pas UU Encode/Decode
+uue2inc.pas UU encode/decode
+validate.pas Validators
+vars.pas Access to global variables from Win32 plugins
+version.pas Version.Inc generator
 videoman.pas Video mode manager
+views.pas Standard views
 vpsyslo2.pas VPSysLow extension unit for VP
 winclpvp.pas Windows clipboard connection for VP
-uue2inc.pas UU encode/decode
-DOC Documentation for DN/2
-EXEO Destination directory for OS/2 binaries
-EXEW Destination directory for Win32 binaries
-LIBO OS/2 libraries directory
-LIBW Win32 libraries directory
-rcpvp.in2 Resource compiler options for OS/2
-rcpvp.inw Resource compiler options for Win32
-sort_w32.inc Sorting types for Win32 versions
-_dnco.cmd Компиляция под OS/2 для OS/2
-_dncow.cmd Компиляция под OS/2 для Win32
-_dncw.cmd Компиляция под Win32 для Win32
-_dncwo.cmd Компиляция под Win32 для OS/2
-READ.ME Как скомпилировать DN2
-_dnc.cmd     Не запускайте этот файл!
-_dnco.cmd    Компиляция под OS/2 для OS/2
-_dncow.cmd   Компиляция под OS/2 для Win32
-_dncwo.cmd   Компиляция под Win32 для OS/2
-_dncw.cmd    Компиляция под Win32 для Win32
-vp.vpo настройки VP для OS/2
-vpw.vpo настройки VP для Win32
-vpc.cfg Настройки VPC
-rcpvpd.ini Настройки rcp для DPMI
-rcpvpo.ini Настройки rcp для OS/2
-rcpvpw.ini Настройки rcp для Win32
+xdblwnd.pas Double Window
+xtime.pas Extended time support
+dn.ini Main configuration file
+plugman.pas Plugin Manager
+plugrez.pas Access to plugin's resources
+rcpvpd.ini Resource compiler options for DPMI
+excepts.pas Exception Handling unit
+fnoteos2.pas Directory Change Notifier - OS/2 version
+fnotew32.pas Directory Change Notifier - Win32 version
+dnfuncs.pas Interface with plugins - functions & objects to export
+_apps.pas DN/2 Plugin Interface - object model
+_collect.pas DN/2 Plugin Interface - object model
+_defines.pas DN/2 Plugin Interface - object model
+_dialogs.pas DN/2 Plugin Interface - object model
+_dnfuncs.pas DN/2 Plugin Interface - object model
+_drives.pas DN/2 Plugin Interface - object model
+_editors.pas DN/2 Plugin Interface - object model
+_menus.pas DN/2 Plugin Interface - object model
+_model1.pas DN/2 Plugin Interface - object model
+_objects.pas DN/2 Plugin Interface - object model
+_regexp.pas DN/2 Plugin Interface - object model
+_streams.pas DN/2 Plugin Interface - object model
+_views.pas DN/2 Plugin Interface - object model
+_vmtreg.pas DN/2 Plugin Interface - object model
+_dnco.cmd Batch for compilation under OS/2
+_dncw.cmd Batch for compilation under Windows NT
+_dnc.bat 
+_dncw.bat Batch for compilation under Windows 9x
+_dncow.cmd Batch for compilation Win32 version under OS/2
+_dncwo.cmd Batch for compilation OS/2 version under Win32
+_rcpo.cmd Batch for compilation Resources

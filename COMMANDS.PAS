@@ -111,7 +111,7 @@ CONST
   kbShortCut  = $FFFF;  kbAltDel     = $A300; kbCtrlSlash  = $9500;
   kbAltGPlus  = $4E00;  kbAltGMinus  = $4A00; kbAltPgUp    = $9900;
   kbAltPgDn   = $A100;  kbF11        = $8500; kbF12        = $8600;
-  kbShiftF11  = $8700;  kbShiftF12   = $8800; kbAltHome    = $9900;
+  kbShiftF11  = $8700;  kbShiftF12   = $8800; kbAltHome    = $9A00;
   kbCtrlF11   = $8900;  kbCtrlF12    = $8A00; kbAltEnd     = $9F00;
   kbAltF11    = $8B00;  kbAltF12     = $8C00; kbCtrlBSlash = $2B1C;
   kbCtrlUp    = $8D00;  kbCtrlDown   = $9100; kbCtrlSTab   = kbAltTab;
@@ -689,6 +689,7 @@ const
   cmPanelCompare       = 10211;
   cmPushFirstName      = 10214;
   cmPushFullName       = 10215;
+  cmPushInternalName   = 10216;
 
   cmInsertName         = 10301;
   cmInfoPresent        = 10302;
@@ -760,6 +761,11 @@ const
   cmToggleLongNames    = 10922;
   cmOpenWPSWindow      = 10923;
   cmCreateWPSObject    = 10924;
+  cmExportToCsv        = 10925; {KV}
+  cmExportToDbf        = 10926; {KV}
+  cmExportToXls        = 10927; {KV}
+  cmImportFromCsv      = 10928; {KV}
+  cmImportFromDbf      = 10929; {KV}
 
   cmExtract            = 11000;
   cmSetPassword        = 11001;
@@ -1846,6 +1852,11 @@ TYPE
     dlTeam2_002,
     dlTeam2_003,
     dlTeam2_004,
+    dlTeam2_005,
+    dlTeam2_006,
+    dlTeam2_007,
+    dlTeam2_008,
+    dlTeam2_009,
     dlTeam000,
     dlTeam001,
     dlTeam002,
@@ -2047,6 +2058,7 @@ TYPE
     dlDIArcTotalFiles,
     dlDIPackedSize,
     dlDIUnpackedSize,
+    dlDIVersionToExtract, {JO}
     dlUpDir,
     dlSubDir,
     dlWKZ_Empty,
@@ -2457,7 +2469,11 @@ TYPE
     dlPlugins6,       {Cat}
     dlPlugins7,       {Cat}
     dlPlugins8,       {Cat}
-    dlPlugins9        {Cat}
+    dlPlugins9,       {Cat}
+    dlWkzQuerySeparatorTitle, {KV}
+    dlWkzQuerySeparatorLabel, {KV}
+    dlWkzWarningClear,
+    dlZIPWithoutCentralDir    {JO}
       );
 
       TDlgIdx = (
@@ -2558,7 +2574,8 @@ TYPE
     dlgNextSection,
     dlgNameCase,
     dlgChScreenMode, {JO}
-    dlgPlugins0      {Cat}
+    dlgPlugins0,      {Cat}
+    dlgSetExportCsvFormat {KV}
   );
 
 IMPLEMENTATION END.

@@ -224,6 +224,9 @@ dlDICurArchive        'Current archive:'
 dlDIArcTotalFiles     'Total files: ~'
 dlDIPackedSize        'Packed size total: ~'
 dlDIUnpackedSize      'Unpacked size total: ~'
+;JO+
+dlDIVersionToExtract  'Version to extract: ~'
+;JO-
 
 dlStdDlgManyFiles,    ^C'Too many files.'
 dlDirectory,          'Directory'
@@ -978,10 +981,16 @@ dlTeamHint 'Use up and down arrows to scroll the authors list'
 
 dlTeamAll  ^Z'~Dos Navigator (C) Team:~'
 dlTeam2_000  ^Z'~Dos Navigator/2 (C) Open Source Team:~'
-dlTeam2_001  ^Z'~Programming:~'
-dlTeam2_002  ^Z'Alexey Korop'
-dlTeam2_003  ^Z'Aleksej Kozlov'
-dlTeam2_004  ^Z'Jaroslaw Osadtchiy'
+dlTeam2_001  ^Z'~Programming (by alphabet order):~'
+dlTeam2_002  ^Z'Oleg Antoshkiv'
+dlTeam2_003  ^Z'Victor Klochko'
+dlTeam2_004  ^Z'Alexey Korop'
+dlTeam2_005  ^Z'Aleksej Kozlov'
+dlTeam2_006  ^Z'Jaroslaw Osadtchiy'
+dlTeam2_007  ^Z'Max Vasilyev'
+dlTeam2_008  ^Z'Kirill Vodonosov'
+dlTeam2_009  ^Z'Eugeny Zvyagintzev'
+
 dlTeam000  ^Z'~Dos Navigator (C) Open Source Team:~'
 dlTeam001  ^Z'~Programming:~'
 dlTeam002  ^Z'Sergey Abmetko'
@@ -1433,3 +1442,11 @@ dlPlugins7 ''
 dlPlugins8 '~I~nstall'
 dlPlugins9 '~R~emove '
 ;Cat-
+;KV+
+dlWkzQuerySeparatorTitle 'Column separator'
+dlWkzQuerySeparatorLabel '~S~eparator'
+dlWkzWarningClear ^C'All data in the current spreadsheet will be removed.'^M^C'Continue?'
+;KV-
+;JO+
+dlZIPWithoutCentralDir ^C'ZIP archive without central directory'^M^C'use fixing utility (PKZIPFIX or ZIP with -F key) to fix archive'
+;JO-

@@ -1,0 +1,601 @@
+unit _Dialogs;
+(******
+
+DN/2 Plugin Interface - object model
+Copyright (C) 2002 Aleksej Kozlov (Cat)
+2:5030/1326.13
+
+******)
+
+{&Delphi+}
+
+interface
+
+uses
+  {Use32,} _Defines, _Streams, _Collect, _Views;
+
+type
+  PDialog = ^TDialog;
+  TDialog = object(TWindow)
+    constructor Init(var Bounds: TRect; const ATitle: String);
+    constructor Load(var S: TStream);
+    {function GetPalette: PPalette; virtual;}
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    {function Valid(Command: Word): Boolean; virtual;}
+  end;
+
+  PInputLine = ^TInputLine;
+  TInputLine = object(TView)
+    Data: PString;
+    MaxLen: AInt;
+    CurPos: AInt;
+    FirstPos: AInt;
+    SelStart: AInt;
+    SelEnd: AInt;
+    Validator: Pointer{PValidator};
+    DrawShift: Byte;
+    CtrlK: Boolean;
+    constructor Init(var Bounds: TRect; AMaxLen: AInt);
+    constructor Load(var S: TStream);
+    {destructor Done; virtual;}
+    {function DataSize: Word; virtual;}
+    {procedure Draw; virtual;}
+    {procedure GetData(var Rec); virtual;}
+    {function GetPalette: PPalette; virtual;}
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    procedure SelectAll(Enable: Boolean);
+    {procedure SetData(var Rec); virtual;}
+    {procedure SetState(AState: Word; Enable: Boolean); virtual;}
+    procedure SetValidator(AValid: Pointer{PValidator});
+    procedure Store(var S: TStream);
+    {function Valid(Command: Word): Boolean; virtual;}
+    function CanScroll(Delta: Integer): Boolean;
+  end;
+
+  PButton = ^TButton;
+  TButton = object(TView)
+    Title: PString;
+    Command: AWord;
+    Flags: Byte;
+    AmDefault: Boolean;
+    constructor Init(var Bounds: TRect; const ATitle: String; ACommand: Word; AFlags: Word);
+    constructor Load(var S: TStream);
+    {destructor Done; virtual;}
+    {procedure Draw; virtual;}
+    procedure DrawState(Down: Boolean);
+    {function GetPalette: PPalette; virtual;}
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    procedure MakeDefault(Enable: Boolean);
+    procedure Press; virtual;
+    {procedure SetState(AState: Word; Enable: Boolean); virtual;}
+    procedure Store(var S: TStream);
+  end;
+
+  PCluster = ^TCluster;
+  TCluster = object(TView)
+    Value: LongInt;
+    Sel: AInt;
+    EnableMask: LongInt;
+    Strings: TStringCollection;
+    constructor Init(var Bounds: TRect; AStrings: PSItem);
+    constructor Load(var S: TStream);
+    {destructor Done; virtual;}
+    function ButtonState(Item: Integer): Boolean;
+    {function DataSize: Word; virtual;}
+    procedure DrawBox(const Icon: String; Marker: Char);
+    procedure DrawMultiBox(const Icon, Marker: String);
+    {procedure GetData(var Rec); virtual;}
+    {function GetHelpCtx: Word; virtual;}
+    {function GetPalette: PPalette; virtual;}
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    function Mark(Item: Integer): Boolean; virtual;
+    function MultiMark(Item: Integer): Byte; virtual;
+    procedure Press(Item: Integer); virtual;
+    procedure MovedTo(Item: Integer); virtual;
+    procedure SetButtonState(AMask: Longint; Enable: Boolean);
+    {procedure SetData(var Rec); virtual;}
+    {procedure SetState(AState: Word; Enable: Boolean); virtual;}
+    procedure Store(var S: TStream);
+  end;
+
+  PRadioButtons = ^TRadioButtons;
+  TRadioButtons = object(TCluster)
+    {procedure Draw; virtual;}
+    {function Mark(Item: Integer): Boolean; virtual;}
+    {procedure MovedTo(Item: Integer); virtual;}
+    {procedure Press(Item: Integer); virtual;}
+    {procedure SetData(var Rec); virtual;}
+  end;
+
+  PCheckBoxes = ^TCheckBoxes;
+  TCheckBoxes = object(TCluster)
+    {procedure Draw; virtual;}
+    {function Mark(Item: Integer): Boolean; virtual;}
+    {procedure Press(Item: Integer); virtual;}
+  end;
+
+  PMultiCheckBoxes = ^TMultiCheckBoxes;
+  TMultiCheckBoxes = object(TCluster)
+    SelRange: Byte;
+    Flags: AWord;
+    States: PString;
+    constructor Init(var Bounds: TRect; AStrings: PSItem; ASelRange: Byte; AFlags: Word; const AStates: String);
+    constructor Load(var S: TStream);
+    {destructor Done; virtual;}
+    {function DataSize: Word; virtual;}
+    {procedure Draw; virtual;}
+    {procedure GetData(var Rec); virtual;}
+    {function MultiMark(Item: Integer): Byte; virtual;}
+    {procedure Press(Item: Integer); virtual;}
+    {procedure SetData(var Rec); virtual;}
+    procedure Store(var S: TStream);
+  end;
+
+  PScroller = ^TScroller;
+  TScroller = object(TView)
+    HScrollBar: PScrollBar;
+    VScrollBar: PScrollBar;
+    Delta: TPoint;
+    Limit: TPoint;
+    DrawLock: Byte;
+    DrawFlag: Boolean;
+    constructor Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar);
+    constructor Load(var S: TStream);
+    {procedure ChangeBounds(var Bounds: TRect); virtual;}
+    {function GetPalette: PPalette; virtual;}
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    procedure ScrollDraw; virtual;
+    procedure ScrollTo(X, Y: LongInt);
+    procedure SetLimit(X, Y: LongInt);
+    {procedure SetState(AState: Word; Enable: Boolean); virtual;}
+    procedure Store(var S: TStream);
+  end;
+
+  PListViewer = ^TListViewer;
+  TListViewer = object(TView)
+    HScrollBar: PScrollBar;
+    VScrollBar: PScrollBar;
+    NumCols: LongInt;
+    TopItem: LongInt;
+    Focused: LongInt;
+    Range: LongInt;
+    constructor Init(var Bounds: TRect; ANumCols: LongInt; AHScrollBar, AVScrollBar: PScrollBar);
+    constructor Load(var S: TStream);
+    {procedure ChangeBounds(var Bounds: TRect); virtual;}
+    {procedure Draw; virtual;}
+    procedure FocusItem(Item: LongInt); virtual;
+    {function GetPalette: PPalette; virtual;}
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function IsSelected(Item: LongInt): Boolean; virtual;
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    procedure SelectItem(Item: LongInt); virtual;
+    procedure SetRange(ARange: LongInt);
+    {procedure SetState(AState: Word; Enable: Boolean); virtual;}
+    procedure Store(var S: TStream);
+    procedure FocusItemNum(Item: LongInt); virtual;
+  end;
+
+  PListBox = ^TListBox;
+  TListBox = object(TListViewer)
+    List: PCollection;
+    constructor Init(var Bounds: TRect; ANumCols: Word; AScrollBar: PScrollBar);
+    constructor Load(var S: TStream);
+    {function DataSize: Word; virtual;}
+    {procedure GetData(var Rec); virtual;}
+    {function GetText(Item: LongInt; MaxLen: Integer): String; virtual;}
+    procedure NewList(AList: PCollection); virtual;
+    {procedure SetData(var Rec); virtual;}
+    procedure Store(var S: TStream);
+  end;
+
+  PStaticText = ^TStaticText;
+  TStaticText = object(TView)
+    Text: PString;
+    constructor Init(var Bounds: TRect; const AText: String);
+    constructor Load(var S: TStream);
+    {destructor Done; virtual;}
+    {procedure Draw; virtual;}
+    {function GetPalette: PPalette; virtual;}
+    procedure GetText(var S: String); virtual;
+    procedure Store(var S: TStream);
+  end;
+
+  PParamText = ^TParamText;
+  TParamText = object(TStaticText)
+    ParamCount: AInt;
+    ParamList: Pointer;
+    constructor Init(var Bounds: TRect; const AText: String; AParamCount: AInt);
+    constructor Load(var S: TStream);
+    {function DataSize: Word; virtual;}
+    {procedure GetText(var S: String); virtual;}
+    {procedure SetData(var Rec); virtual;}
+    procedure Store(var S: TStream);
+  end;
+
+  PLabel = ^TLabel;
+  TLabel = object(TStaticText)
+    Link: PView;
+    Light: Boolean;
+    constructor Init(var Bounds: TRect; const AText: String; ALink: PView);
+    constructor Load(var S: TStream);
+    {procedure Draw; virtual;}
+    {function GetPalette: PPalette; virtual;}
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    procedure Store(var S: TStream);
+  end;
+
+  PHistoryViewer = ^THistoryViewer;
+  THistoryViewer = object(TListViewer)
+    HistoryId: AWord;
+    SearchPos: AWord;
+    constructor Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar; AHistoryId: AWord);
+    {function GetPalette: PPalette; virtual;}
+    {function GetText(Item: LongInt; MaxLen: Integer): String; virtual;}
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    function HistoryWidth: Integer;
+  end;
+
+  PHistoryWindow = ^THistoryWindow;
+  THistoryWindow = object(TWindow)
+    Viewer: PListViewer;
+    constructor Init(var Bounds: TRect; HistoryId: AWord);
+    {function GetPalette: PPalette; virtual;}
+    function GetSelection: String; virtual;
+    procedure InitViewer(HistoryId: AWord); virtual;
+  end;
+
+  PHistory = ^THistory;
+  THistory = object(TView)
+    Link: PInputLine;
+    HistoryId: AWord;
+    constructor Init(var Bounds: TRect; ALink: PInputLine; AHistoryId: AWord);
+    constructor Load(var S: TStream);
+    {procedure Draw; virtual;}
+    {function GetPalette: PPalette; virtual;}
+    {procedure HandleEvent(var Event: TEvent); virtual;}
+    function InitHistoryWindow(var Bounds: TRect): PHistoryWindow; virtual;
+    procedure RecordHistory(const S: String); virtual;
+    procedure Store(var S: TStream);
+  end;
+
+implementation
+
+uses
+  _DNFuncs;
+
+constructor TDialog.Init(var Bounds: TRect; const ATitle: String);
+begin
+  _TDialog^.Init(Bounds, ATitle, nil, @Self);
+end;
+
+constructor TDialog.Load(var S: TStream);
+begin
+  _TDialog^.Load(S, nil, @Self);
+end;
+
+constructor TInputLine.Init(var Bounds: TRect; AMaxLen: AInt);
+begin
+  _TInputLine^.Init(Bounds, AMaxLen, nil, @Self);
+end;
+
+constructor TInputLine.Load(var S: TStream);
+begin
+  _TInputLine^.Load(S, nil, @Self);
+end;
+
+procedure TInputLine.SelectAll(Enable: Boolean);
+begin
+  _TInputLine^.SelectAll(Enable, @Self);
+end;
+
+procedure TInputLine.SetValidator(AValid: Pointer{PValidator});
+begin
+  _TInputLine^.SetValidator(AValid, @Self);
+end;
+
+procedure TInputLine.Store(var S: TStream);
+begin
+  _TInputLine^.Store(S, @Self);
+end;
+
+function TInputLine.CanScroll(Delta: Integer): Boolean;
+begin
+  Result := _TInputLine^.CanScroll(Delta, @Self);
+end;
+
+constructor TButton.Init(var Bounds: TRect; const ATitle: String; ACommand: Word; AFlags: Word);
+begin
+  _TButton^.Init(Bounds, ATitle, ACommand, AFlags, nil, @Self);
+end;
+
+constructor TButton.Load(var S: TStream);
+begin
+  _TButton^.Load(S, nil, @Self);
+end;
+
+procedure TButton.DrawState(Down: Boolean);
+begin
+  _TButton^.DrawState(Down, @Self);
+end;
+
+procedure TButton.MakeDefault(Enable: Boolean);
+begin
+  _TButton^.MakeDefault(Enable, @Self);
+end;
+
+procedure TButton.Press;
+assembler;{&Frame-}
+asm
+end;
+
+procedure TButton.Store(var S: TStream);
+begin
+  _TButton^.Store(S, @Self);
+end;
+
+constructor TCluster.Init(var Bounds: TRect; AStrings: PSItem);
+begin
+  _TCluster^.Init(Bounds, AStrings, nil, @Self);
+end;
+
+constructor TCluster.Load(var S: TStream);
+begin
+  _TCluster^.Load(S, nil, @Self);
+end;
+
+function TCluster.ButtonState(Item: Integer): Boolean;
+begin
+  Result := _TCluster^.ButtonState(Item, @Self);
+end;
+
+procedure TCluster.DrawBox(const Icon: String; Marker: Char);
+begin
+  _TCluster^.DrawBox(Icon, Marker, @Self);
+end;
+
+procedure TCluster.DrawMultiBox(const Icon, Marker: String);
+begin
+  _TCluster^.DrawMultiBox(Icon, Marker, @Self);
+end;
+
+function TCluster.Mark(Item: Integer): Boolean;
+assembler;{&Frame-}
+asm
+end;
+
+function TCluster.MultiMark(Item: Integer): Byte;
+assembler;{&Frame-}
+asm
+end;
+
+procedure TCluster.Press(Item: Integer);
+assembler;{&Frame-}
+asm
+end;
+
+procedure TCluster.MovedTo(Item: Integer);
+assembler;{&Frame-}
+asm
+end;
+
+procedure TCluster.SetButtonState(AMask: Longint; Enable: Boolean);
+begin
+  _TCluster^.SetButtonState(AMask, Enable, @Self);
+end;
+
+procedure TCluster.Store(var S: TStream);
+begin
+  _TCluster^.Store(S, @Self);
+end;
+
+constructor TMultiCheckBoxes.Init(var Bounds: TRect; AStrings: PSItem; ASelRange: Byte; AFlags: Word; const AStates: String);
+begin
+  _TMultiCheckBoxes^.Init(Bounds, AStrings, ASelRange, AFlags, AStates, nil, @Self);
+end;
+
+constructor TMultiCheckBoxes.Load(var S: TStream);
+begin
+  _TMultiCheckBoxes^.Load(S, nil, @Self);
+end;
+
+procedure TMultiCheckBoxes.Store(var S: TStream);
+begin
+  _TMultiCheckBoxes^.Store(S, @Self);
+end;
+
+constructor TScroller.Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar);
+begin
+  _TScroller^.Init(Bounds, AHScrollBar, AVScrollBar, nil, @Self);
+end;
+
+constructor TScroller.Load(var S: TStream);
+begin
+  _TScroller^.Load(S, nil, @Self);
+end;
+
+procedure TScroller.ScrollDraw;
+assembler;{&Frame-}
+asm
+end;
+
+procedure TScroller.ScrollTo(X, Y: LongInt);
+begin
+  _TScroller^.ScrollTo(X, Y, @Self);
+end;
+
+procedure TScroller.SetLimit(X, Y: LongInt);
+begin
+  _TScroller^.SetLimit(X, Y, @Self);
+end;
+
+procedure TScroller.Store(var S: TStream);
+begin
+  _TScroller^.Store(S, @Self);
+end;
+
+constructor TListViewer.Init(var Bounds: TRect; ANumCols: LongInt; AHScrollBar, AVScrollBar: PScrollBar);
+begin
+  _TListViewer^.Init(Bounds, ANumCols, AHScrollBar, AVScrollBar, nil, @Self);
+end;
+
+constructor TListViewer.Load(var S: TStream);
+begin
+  _TListViewer^.Load(S, nil, @Self);
+end;
+
+procedure TListViewer.FocusItem(Item: LongInt);
+assembler;{&Frame-}
+asm
+end;
+
+function TListViewer.GetText(Item: LongInt; MaxLen: Integer): String;
+assembler;{&Frame-}
+asm
+end;
+
+function TListViewer.IsSelected(Item: LongInt): Boolean;
+assembler;{&Frame-}
+asm
+end;
+
+procedure TListViewer.SelectItem(Item: LongInt);
+assembler;{&Frame-}
+asm
+end;
+
+procedure TListViewer.SetRange(ARange: LongInt);
+begin
+  _TListViewer^.SetRange(ARange, @Self);
+end;
+
+procedure TListViewer.Store(var S: TStream);
+begin
+  _TListViewer^.Store(S, @Self);
+end;
+
+procedure TListViewer.FocusItemNum(Item: LongInt);
+assembler;{&Frame-}
+asm
+end;
+
+constructor TListBox.Init(var Bounds: TRect; ANumCols: Word; AScrollBar: PScrollBar);
+begin
+  _TListBox^.Init(Bounds, ANumCols, AScrollBar, nil, @Self);
+end;
+
+constructor TListBox.Load(var S: TStream);
+begin
+  _TListBox^.Load(S, nil, @Self);
+end;
+
+procedure TListBox.NewList(AList: PCollection);
+assembler;{&Frame-}
+asm
+end;
+
+procedure TListBox.Store(var S: TStream);
+begin
+  _TListBox^.Store(S, @Self);
+end;
+
+constructor TStaticText.Init(var Bounds: TRect; const AText: String);
+begin
+  _TStaticText^.Init(Bounds, AText, nil, @Self);
+end;
+
+constructor TStaticText.Load(var S: TStream);
+begin
+  _TStaticText^.Load(S, nil, @Self);
+end;
+
+procedure TStaticText.GetText(var S: String);
+assembler;{&Frame-}
+asm
+end;
+
+procedure TStaticText.Store(var S: TStream);
+begin
+  _TStaticText^.Store(S, @Self);
+end;
+
+constructor TParamText.Init(var Bounds: TRect; const AText: String; AParamCount: AInt);
+begin
+  _TParamText^.Init(Bounds, AText, AParamCount, nil, @Self);
+end;
+
+constructor TParamText.Load(var S: TStream);
+begin
+  _TParamText^.Load(S, nil, @Self);
+end;
+
+procedure TParamText.Store(var S: TStream);
+begin
+  _TParamText^.Store(S, @Self);
+end;
+
+constructor TLabel.Init(var Bounds: TRect; const AText: String; ALink: PView);
+begin
+  _TLabel^.Init(Bounds, AText, ALink, nil, @Self);
+end;
+
+constructor TLabel.Load(var S: TStream);
+begin
+  _TLabel^.Load(S, nil, @Self);
+end;
+
+procedure TLabel.Store(var S: TStream);
+begin
+  _TLabel^.Store(S, @Self);
+end;
+
+constructor THistoryViewer.Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar; AHistoryId: AWord);
+begin
+  _THistoryViewer^.Init(Bounds, AHScrollBar, AVScrollBar, AHistoryId, nil, @Self);
+end;
+
+function THistoryViewer.HistoryWidth: Integer;
+begin
+  Result := _THistoryViewer^.HistoryWidth(@Self);
+end;
+
+constructor THistoryWindow.Init(var Bounds: TRect; HistoryId: AWord);
+begin
+  _THistoryWindow^.Init(Bounds, HistoryId, nil, @Self);
+end;
+
+function THistoryWindow.GetSelection: String;
+assembler;{&Frame-}
+asm
+end;
+
+procedure THistoryWindow.InitViewer(HistoryId: AWord);
+assembler;{&Frame-}
+asm
+end;
+
+constructor THistory.Init(var Bounds: TRect; ALink: PInputLine; AHistoryId: AWord);
+begin
+  _THistory^.Init(Bounds, ALink, AHistoryId, nil, @Self);
+end;
+
+constructor THistory.Load(var S: TStream);
+begin
+  _THistory^.Load(S, nil, @Self);
+end;
+
+function THistory.InitHistoryWindow(var Bounds: TRect): PHistoryWindow;
+assembler;{&Frame-}
+asm
+end;
+
+procedure THistory.RecordHistory(const S: String);
+assembler;{&Frame-}
+asm
+end;
+
+procedure THistory.Store(var S: TStream);
+begin
+  _THistory^.Store(S, @Self);
+end;
+
+end.

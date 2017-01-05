@@ -307,6 +307,8 @@ var
 {/Cat}
     Tran: array[Char] of Char;
 
+{Cat: порядок переменных не менять, иначе будут проблемы с плагинами}
+
        {-DataCompBoy-}
   StartupDir: String;
   SourceDir:  String;

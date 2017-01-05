@@ -199,7 +199,10 @@ begin
   ReplaceDIZ(DIZOwner, PF^.Name, nil, @DIZ);
 {$ENDIF}
   { if IOResult <> 0 then CantWrite(DIZOwner); }
-  RereadDirectory(PF^.Owner^);
+{$IFDEF FileNotify}
+  if not DNIni.AutoRefreshPanels then
+{$ENDIF}
+    RereadDirectory(PF^.Owner^);
 end;
         {-DataCompBoy-}
 

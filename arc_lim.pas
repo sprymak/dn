@@ -63,22 +63,17 @@ type
 
 type
      LIMHdr = record
-      ID: Array [1..2] of Char;
+      ID: AWord;
       Method: Byte;
       ThreeZeros: Array [1..3] of Byte;
       Date: LongInt;
       ThreeSym: Array [1..3] of Byte;
       OriginSize: LongInt;
       PackedSize: LongInt;
-      Data: Array[1..4] of Byte;
+      Data: LongInt;
      end;
 
 implementation
-
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
 
 { ----------------------------- LIM ------------------------------------}
 
@@ -105,6 +100,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-r'));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-ms'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-ms'));
@@ -161,16 +157,16 @@ end;
 begin
 1:
  ArcFile^.Read(P, 4);
- if (ArcFile^.Status = stOK) and (P.ID = #$13#$F8) and (P.Method = 5)
+ if (ArcFile^.Status = stOK) and (P.ID = $F813) and (P.Method = 5)
   then begin FileInfo.Last := 1;Exit;end;
- if (ArcFile^.Status = stOK) and (P.ID = #$80#$D1)
+ if (ArcFile^.Status = stOK) and (P.ID = $D180)
   then
    begin
     GetName;
     CDir := FileInfo.FName;
     Goto 1;
    end;
- if (ArcFile^.Status <> stOK) or (P.ID <> #35#241) then begin FileInfo.Last:=2;Exit;end;
+ if (ArcFile^.Status <> stOK) or (P.ID <> $f123) then begin FileInfo.Last:=2;Exit;end;
  ArcFile^.Read(P.ThreeZeros[2], Sizeof(P)-4);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
  {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}

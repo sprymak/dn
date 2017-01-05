@@ -52,7 +52,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '1.51.10b5';
+  VersionName:string = '1.51.10b6';
   VersionDate:string = '';
   VersionWord:Aword   = 15198;
 

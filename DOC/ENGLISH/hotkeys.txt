@@ -9,3 +9,7 @@
  <Alt-F7> - back search in text viewer;
  <F8> - switch character mapping in dbf viewer;
  <Ctrl-Enter> - in command history - copy command to the command line;
+ <F6> - in editor: see DN.INI key F6_DuplicatesLine , section [Editor]
+ <Alt-Home> - in Win32 version acts the same as <Alt-Enter>, i.e. calls
+              context user menus for file with given file name extension;
+ <Alt-F11> - in plugin version - calls Plugin Manager;

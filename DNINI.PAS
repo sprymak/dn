@@ -89,7 +89,6 @@ const
 {}SystemMenuChar           : Byte       = 4;
 {}HorizScrollBarChars      : String[6]  = #17#16#177#254#178;         {DataCompBoy}
 {}VertScrollBarChars       : String[6]  = #30#31#177#254#178;         {DataCompBoy}
-{}FadeDelay                : Longint    = 0;                                {Knave}
 {}ReflectCopyDirection     : Boolean    = False;
 {}ReuseViewers             : Byte       = 0;                 { 0 - always open new}
 {}ReuseEditors             : Byte       = 0;                 { 1 - prompt for open}
@@ -97,7 +96,6 @@ const
 {}HistoryErrorBeep         : Boolean    = True;                       {DataCompBoy}
 {}PreserveMenuPositions    : Boolean    = False;                      {DataCompBoy}
 {}LFNinBottom              : Boolean = False;                         {JO}
-//{}DescriptionInBottom      : Boolean = False;                         {JO}
 {}PanelDescrArvid          : String     = '';                         {JO}
 {}PanelDescrArc            : String     = '';                         {JO}
 {}PanelDescrTemp           : String     = '';                         {JO}
@@ -105,6 +103,7 @@ const
 {}PanelDescrDrive          : String     = '';                         {JO}
 {}UseEnterInViewer         : Byte       = 0;                          {JO}
 {}SkipXLatMenu             : Boolean    = False;                      {JO}
+{}EscForOutputWindow       : Boolean    = False;                      {JO}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -135,7 +134,7 @@ const
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
 {}{Kernel}
-{}CanUseLFN                : Boolean    = True;
+//CanUseLFN                : Boolean    = True;
 {}AutoSave                 : Boolean    = True;
 {}ShowKeyCode              : Byte       = 0;
 {}CopyLimit                : LongInt    = 8192;             {DataCompBoy}{piwamoto}
@@ -143,7 +142,7 @@ const
 {}StoreVideoMode           : Byte       = 0;                      {PZ}{DataCompBoy}
 {}SmartWindowsBoxClose     : LongInt    = 0;                   {DataCompBoy, AK155}
 {}CtrlBreakKill            : Boolean    = False;                      {AK155}
-{}DoVESATest               : Boolean    = False;                      {DataCompBoy}
+//DoVESATest               : Boolean    = False;                      {DataCompBoy}
 {}ForceDefaultArchiver     : String[3]  = '';                         {JO}
 {$IFNDEF RecodeWhenDraw}
 {}RecodeCyrillicNames      : Boolean    = False;  {JO} {Cat: эта переменная дублируется в VpSysLow}
@@ -165,7 +164,10 @@ const
 {}FastSearchDeep           : Longint    = 0;
 {}WinManagerPosToEdit      : Boolean    = True;
 {}AutoBracketPairs         : String     = '()[]{}<>';
+{$IFNDEF USELONGSTRING}
 {}RecombineLongLines       : Boolean    = False; {JO}
+{$ENDIF}
+{}F6_DuplicatesLine        : Boolean    = False; {JO}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -175,6 +177,7 @@ const
 {}QuickRenameInDialog      : Boolean    = False;
 {}UpperCaseSorting         : Boolean    = True; {JO}
 {}AutoRefreshDriveLine     : Boolean    = False; {Cat}
+{}AutoRefreshPanels        : Boolean    = False; {Cat}
 {}QuickSearchType          : Byte       = 0; {Cat}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
@@ -394,7 +397,6 @@ begin
   RegisterVar(CSInterface, 'SystemMenuChar',       ikUInt, SizeOf(SystemMenuChar),       @SystemMenuChar);
   RegisterVar(CSInterface, 'HorizScrollBarChars',  ikStr,  SizeOf(HorizScrollBarChars),  @HorizScrollBarChars);
   RegisterVar(CSInterface, 'VertScrollBarChars',   ikStr,  SizeOf(VertScrollBarChars),   @VertScrollBarChars);
-  RegisterVar(CSInterface, 'FadeDelay',            ikSInt, SizeOf(FadeDelay),            @FadeDelay);
   RegisterVar(CSInterface, 'ReflectCopyDirection', ikBool, SizeOf(ReflectCopyDirection), @ReflectCopyDirection);
   RegisterVar(CSInterface, 'ReuseViewers',         ikUInt, SizeOf(ReuseViewers),         @ReuseViewers);
   RegisterVar(CSInterface, 'ReuseEditors',         ikUInt, SizeOf(ReuseEditors),         @ReuseEditors);
@@ -409,6 +411,7 @@ begin
   RegisterVar(CSInterface, 'PanelDescrDrive',      ikStr,  SizeOf(PanelDescrDrive),      @PanelDescrDrive);    {JO}
   RegisterVar(CSInterface, 'UseEnterInViewer',     ikUInt, SizeOf(UseEnterInViewer),     @UseEnterInViewer);   {JO}
   RegisterVar(CSInterface, 'SkipXLatMenu',         ikBool, SizeOf(SkipXLatMenu),         @SkipXLatMenu);       {JO}
+  RegisterVar(CSInterface, 'EscForOutputWindow',   ikBool, SizeOf(EscForOutputWindow),   @EscForOutputWindow); {JO}
   {Clock}
   RegisterVar(CSClock,     'ShowSeconds',          ikBool, SizeOf(ShowSeconds),          @ShowSeconds);
   RegisterVar(CSClock,     'ShowCentury',          ikBool, SizeOf(ShowCentury),          @ShowCentury);
@@ -424,7 +427,7 @@ begin
   RegisterVar(CSClipboard, 'SaveClipboardOnExit',  ikBool, SizeOf(CBAutoSave),           @CBAutoSave);
   RegisterVar(CSClipboard, 'MaxClipboardSize',     ikSInt, SizeOf(CBSize),               @CBSize);
   {Kernel}
-  RegisterVar(CSKernel,    'UseLFN',               ikBool, SizeOf(CanUseLFN),            @CanUseLFN);
+//RegisterVar(CSKernel,    'UseLFN',               ikBool, SizeOf(CanUseLFN),            @CanUseLFN);
   RegisterVar(CSKernel,    'AutoSave',             ikBool, SizeOf(AutoSave),             @AutoSave);
   RegisterVar(CSKernel,    'ShowKeyCode',          ikUInt, SizeOf(ShowKeyCode),          @ShowKeyCode);
   RegisterVar(CSKernel,    'CopyLimit',            ikSInt, SizeOf(CopyLimit),            @CopyLimit);
@@ -432,7 +435,7 @@ begin
   RegisterVar(CSKernel,    'StoreVideoMode',       ikUInt, SizeOf(StoreVideoMode),       @StoreVideoMode);       {PZ}{DataCompBoy}
   RegisterVar(CSKernel,    'SmartWindowsBoxClose', ikSInt, SizeOf(SmartWindowsBoxClose), @SmartWindowsBoxClose); {DataCompBoy}
   RegisterVar(CSKernel,    'CtrlBreakKill',        ikBool, SizeOf(CtrlBreakKill),        @CtrlBreakKill);        {AK155}
-  RegisterVar(CSKernel,    'DoVESATest',           ikBool, SizeOf(DoVESATest),           @DoVESATest);           {DataCompBoy}
+//RegisterVar(CSKernel,    'DoVESATest',           ikBool, SizeOf(DoVESATest),           @DoVESATest);           {DataCompBoy}
   RegisterVar(CSKernel,    'ForceDefaultArchiver', ikStr,  SizeOf(ForceDefaultArchiver), @ForceDefaultArchiver); {JO}
 {$IFDEF WIN32}
 {$IFNDEF RecodeWhenDraw}
@@ -453,13 +456,17 @@ begin
   RegisterVar(CSEditor,    'FastSearchDeep',       ikSInt, SizeOf(FastSearchDeep),       @FastSearchDeep);
   RegisterVar(CSEditor,    'WinManagerPosToEdit',  ikBool, SizeOf(WinManagerPosToEdit),  @WinManagerPosToEdit);
   RegisterVar(CSEditor,    'AutoBracketPairs',     ikStr,  SizeOf(AutoBracketPairs),     @AutoBracketPairs);
+{$IFNDEF USELONGSTRING}
   RegisterVar(CSEditor,    'RecombineLongLines',   ikBool, SizeOf(RecombineLongLines),   @RecombineLongLines); {JO}
+{$ENDIF}
+  RegisterVar(CSEditor,    'F6_DuplicatesLine',    ikBool, SizeOf(F6_DuplicatesLine),    @F6_DuplicatesLine);  {JO}
   {FilePanels}
   RegisterVar(CSFilePanels,'ShowFileMask',         ikBool, SizeOf(ShowFileMask),         @ShowFileMask);
   RegisterVar(CSFilePanels,'ShowLongName',         ikBool, SizeOf(ShowLongName),         @ShowLongName);
   RegisterVar(CSFilePanels,'QuickRenameInDialog',  ikBool, SizeOf(QuickRenameInDialog),  @QuickRenameInDialog);
   RegisterVar(CSFilePanels,'UpperCaseSorting',     ikBool, SizeOf(UpperCaseSorting),     @UpperCaseSorting);   {JO}
   RegisterVar(CSFilePanels,'AutoRefreshDriveLine', ikBool, SizeOf(AutoRefreshDriveLine), @AutoRefreshDriveLine); {Cat}
+  RegisterVar(CSFilePanels,'AutoRefreshPanels',    ikBool, SizeOf(AutoRefreshPanels),    @AutoRefreshPanels); {Cat}
   RegisterVar(CSFilePanels,'QuickSearchType',      ikUInt, SizeOf(QuickSearchType),      @QuickSearchType); {Cat}
   {NetInfo}
   RegisterVar(CSNetInfo,   'NoLevelsInfo',         ikBool, SizeOf(NoLevelsInfo),         @NoLevelsInfo);

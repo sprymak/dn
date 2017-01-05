@@ -68,12 +68,9 @@ type
 implementation
 
 uses
-  objects, advance2, advance, dnapp
-  , commands, Advance1, messages
-  , Dos, dnexec
-  {$IFDEF MIRRORVARS} ,Vars {$ENDIF}
-  {$IFDEF VIRTUALPASCAL}, VPSysLow {$ENDIF}
-;
+  Objects, Advance2, Advance, DNApp, DNExec, Commands, Advance1, Messages,
+  Dos;
+
 { ----------------------------- UC2 ------------------------------------}
 
 constructor TUC2Archive.Init;
@@ -99,6 +96,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-TF'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-TF'));
@@ -143,22 +141,22 @@ Procedure TUC2Archive.GetFile;
     s1: string;
 
   procedure ReadName;
-    var
-      FName: string;
-    begin
+  var
+    FName: string;
+  begin
     system.readln(ListFile, s); {NAME=[*]}
     FName := Copy(s, 13, length(s)-13);
     system.readln(ListFile, s);
     if s[7] = 'L' then
       begin
-{$IFNDEF OS2}
-      if UseLFN then
-        FName := Copy(s, 17, length(s)-17);
-{$ENDIF}
-      system.readln(ListFile, s);
+        {$IFNDEF OS2}
+        if UseLFN then
+          FName := Copy(s, 17, length(s)-17);
+        {$ENDIF}
+        system.readln(ListFile, s);
       end;
     FileInfo.FName := BaseDir + FName;
-    end;
+  end;
 
   procedure ReadDTA;
     var
@@ -184,23 +182,12 @@ Procedure TUC2Archive.GetFile;
   if TextRec(ListFile).Handle = 0 then
     begin { первый вызов: вызов архиватора для вывода оглавления }
     ListFileName := MakeNormName(TempDir,'!!!DN!!!.TMP');
-    S := '/C '
-{$IFDEF OS2}
-       + SourceDir + 'dndosout.bat ' + ListFileName + ' '
-{$ENDIF}
-       + UNPACKER^ + ' ~D '+ArcFileName
-{$IFNDEF OS2}
-       + ' > ' + ListFileName
-{$ENDIF}
-       ;
+    S := '/C ' + SourceDir + 'dndosout.bat ' + ListFileName + ' '
+       + UNPACKER^ + ' ~D '+ArcFileName;
     if Length(S) < 100 then
-      begin
-        AnsiExec(GetEnv('COMSPEC'), S);
-       {$IFDEF VIRTUALPASCAL}
-        SysTVKbdInit;
-       {$ENDIF}
-      end
-        else messagebox(^C+GetString(dlCmdLineTooLong), nil, mfOKButton+mfError);
+      AnsiExec(GetEnv('COMSPEC'), S)
+    else
+      MessageBox(^C+GetString(dlCmdLineTooLong), nil, mfOKButton+mfError);
     if not ExistFile(FuckName) then
     begin
       FileInfo.Last := 1;
@@ -261,9 +248,9 @@ NextRecord:
         S := '0'+S;
       FileInfo.FName := FileInfo.FName + ';' + s;
       end;
-{$IFNDEF OS2}
+    {$IFNDEF OS2}
     FileInfo.LFN := FileInfo.FName;
-{$ENDIF}
+    {$ENDIF}
     {SIZE=}
     system.readln(ListFile, s);
     system.delete(s, 1, 11);

@@ -1427,6 +1427,13 @@ var
 begin
   DetectVideoType;
   ScreenMode := SysTVGetScrMode(@SrcSize);
+{AK155 при SrcSize.Y=300 (w2k, wXP) DN падает}
+  if (SrcSize.Y > 100) or (SrcSize.X * SrcSize.Y * 2 > 32768) then
+    begin
+    SysTVSetScrMode(3);
+    SysTVGetScrMode(@SrcSize);
+    end;
+{/AK155}
   ScreenHeight := SrcSize.Y;
   ScreenWidth := SrcSize.X;
   ShowMouse;
@@ -1454,6 +1461,7 @@ procedure SetVideoMode(Mode: Word);
 var Cols, Rows: Word;
   CursorSize: word;
 begin
+ if VideoType < vtEGA then Exit;
  {GetVideoModeInfo(Cols1,Rows1,Rows);} {вводить отдельную переменную для цветов впадлу}
  Cols := 80;
  Rows := 0;
@@ -1476,8 +1484,8 @@ begin
 {$ENDIF}
  end;
  if Rows <> 0 then
-   begin
-     VPUtils.SetVideoMode(Cols,Rows);
+   if SysSetVideoMode(Cols,Rows) then
+    begin
      ScreenHeight := Rows;
      ScreenWidth := Cols;
      ScreenMode := Mode;
@@ -1487,7 +1495,7 @@ begin
 номеру видеостроки знака. Это используется при изменениях вида курсора.}
      Drivers.CursorLines := GetCursorSize;
 {/AK155}
-   end;
+    end;
 end;
 
 // Initializes Turbo Vision's video manager. Saves the current screen
@@ -1497,11 +1505,14 @@ end;
 // automatically by TApplication.Init.
 
 procedure InitVideo;
-{$IFDEF WIN32}var s, c: TCOORD; r: TSMALLRECT;
+var
+  X, Y : SmallWord; {KV}
+{$IFDEF WIN32}    s, c: TCOORD; r: TSMALLRECT;
                   Bf: Pointer;
 
   procedure Rebuf(Bf: pointer); assembler; {$USES ESI, EDI, ECX}
   asm
+   cld
    mov esi,Bf
    mov edi,UserScreen
    mov ecx,UserScreenSize
@@ -1513,6 +1524,10 @@ procedure InitVideo;
 {$ENDIF}
  begin
   SysTVGetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
+  SysTVInitCursor; {KV}
+  SysGetCurPos(X,Y); {KV}
+  WordRec(OldCursorPos).Lo:=X; {KV}
+  WordRec(OldCursorPos).Hi:=Y; {KV}
   if StartupMode <> ScreenMode then
     SetVideoMode({ScreenMode}StartupMode);
   SetCrtData;
@@ -1555,6 +1570,12 @@ begin
   ScreenSaved := False; {Cat}
   SysTVShowBuf(0, UserScreenSize);
   SysTVSetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
+  if WordRec(OldCursorPos).Hi > ScreenHeight - 1 then WordRec(OldCursorPos).Hi := ScreenHeight - 1; {KV}
+  if WordRec(OldCursorPos).Lo > ScreenWidth - 1 then WordRec(OldCursorPos).Lo := ScreenWidth - 1; {KV}
+  SysTVSetCurPos(WordRec(OldCursorPos).Lo,WordRec(OldCursorPos).Hi); {KV}
+{$IFDEF Win32}
+  SysCtrlSleep(1); {KV}
+{$ENDIF}
   FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);
 end;
 

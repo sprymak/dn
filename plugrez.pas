@@ -53,15 +53,12 @@ var
   S: PStream;
   SC, OC: SmallWord;
   L: String;
-  LngCount: SmallWord;
-  LngId: String;
   OffsetTableOffset: LongInt;
 begin
-  S := New(PBufStream, Init(SourceDir+PluginName+'.REZ', stOpenRead, 16384));
+  S := New(PBufStream, Init(SourceDir+PluginName+'\'+LngId+'.REZ', stOpenRead, 16384));
   S^.Read(L[1], Length(RezLabel));
   S^.Read(SC, SizeOf(SC));
   S^.Read(OC, SizeOf(OC));
-  S^.Read(LngCount, SizeOf(LngCount));
   L[0] := Char(Length(RezLabel));
   if (S^.Status <> stOk) or (L <> RezLabel) or (MaxAvail < SizeOf(TPluginRezData)+(SC+OC)*SizeOf(LongInt)) then
     begin
@@ -76,18 +73,7 @@ begin
       Stream := S;
       StringsCount := SC;
       ObjectsCount := OC;
-
-      LngId:=UpStrg(Advance7.LngId);
-      while LngCount > 0 do
-        begin
-          S^.ReadStrV(L);
-          UpStr(L);
-          S^.Read(OffsetTableOffset, SizeOf(OffsetTableOffset));
-          if LngId = L then
-            Break;
-          Dec(LngCount);
-        end;
-
+      S^.Read(OffsetTableOffset, SizeOf(OffsetTableOffset));
       S^.Seek(OffsetTableOffset);
       S^.Read(Offset, (SC+OC)*SizeOf(LongInt));
       if S^.Status <> stOk then

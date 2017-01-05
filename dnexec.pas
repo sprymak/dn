@@ -79,7 +79,7 @@ uses
   DnUtil, Advance, DnApp, Advance1, LFN, {$IFNDEF OS2} LFNCol, {$ENDIF}
   Dos, Advance3, FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4,
 {$IFDEF VIRTUALPASCAL}
-  Videoman, Memory, VPSysLow,
+  Videoman, Memory, VPSysLow, VpSysLo2,
 {$ENDIF}
 {$IFDEF UserSaver}
   UserSavr,
@@ -107,6 +107,13 @@ var
   Ans1: AnsiString;
 begin
   Ans1 := ComLine + #0;
+
+  SysTVKbdDone; {JO: см. VpSysLo2 ; если этого не делать - при вызове     }
+                {    консольных программ вроде архиваторов без командного }
+                {    процессора или с "неправильным" командным процессором}
+                {    (например, 4OS2) внешние программы не видят ввода с  }
+                {    клавиатуры                                           }
+
   {Cat: чтобы ДН в Win9x не тормозил, повышаем ему приоритет. Однако, незачем
         оставлять этот повышенный приоритет при запуске внешних программ}
   {$IFDEF WIN95_HIGHPRIORITY}

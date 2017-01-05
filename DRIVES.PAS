@@ -52,6 +52,9 @@ interface
 
 uses
   LFN, {$IFNDEF OS2} LFNCol, {$ELSE} {$IFDEF EAOP} FlOs2Tl, {$ENDIF} {$ENDIF}
+{$IFDEF FileNotify}
+  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF} {Cat}
+{$ENDIF}
   Dos, Objects, Memory, Views, Drivers, DnIni, FilesCol, DiskInfo, {FStorage,}
   Advance, Advance1, Advance2, Advance3, Collect;
 
@@ -91,6 +94,7 @@ type
    procedure GetFreeSpace(var S: String); virtual;
    function  Disposable: Boolean; virtual;
    function  GetRealName: String; virtual;
+   function  GetInternalName: String; virtual;
    procedure GetFull(var B; P:PFileRec; C, SC:Word); virtual; {DataCompBoy}
    procedure GetEmpty(var B; SC: Word); virtual;
    function  CalcLengthWithoutName: Integer; virtual;
@@ -224,6 +228,12 @@ begin
  innum:=num;
  ClrIO;
  lGetDir(ADrive, CurDir);
+{$IFDEF FileNotify}
+ {$IFDEF Win32}
+ if DNIni.AutoRefreshPanels then {JO}
+   NotifyAddWatcher(CurDir); {Cat}
+ {$ENDIF}
+{$ENDIF}
  DriveType := dtDisk;
  NoMemory := False;
 {$IFDEF OS2}
@@ -248,6 +258,12 @@ begin
  S.Read(OldParam, 1);
 {$IFDEF OS2}
  S.Read(ShowLogNames, 1);
+{$ENDIF}
+{$IFDEF FileNotify}
+ {$IFDEF Win32}
+ if DNIni.AutoRefreshPanels then {JO}
+   NotifyAddWatcher(CurDir); {Cat}
+ {$ENDIF}
 {$ENDIF}
  DriveType := dtDisk;
  NoMemory := False;
@@ -319,13 +335,15 @@ begin
 {/Cat}
     begin
       lChDir(CurDir[1] + ':\');
+      {
       if Abort then
         Exit;
+      }
       lGetDir(0, CurDir);
-      (*
+      {
       if Abort then
         Exit;
-      *)
+      }
     end;
 end;
         {-DataCompBoy-}
@@ -706,19 +724,49 @@ var
   end;
 
 begin
+{$IFDEF FileNotify}
+  {$IFDEF Win32}
+  if DNIni.AutoRefreshPanels then {JO}
+    NotifyDeleteWatcher(CurDir); {Cat}
+  {$ENDIF}
+{$ENDIF}
   NeedAbort:=True;
   if ValidPath(ADir,True) then begin
+  {$IFDEF FileNotify}
+    {$IFDEF Win32}
+    if DNIni.AutoRefreshPanels then {JO}
+      NotifyAddWatcher(ADir); {Cat}
+    {$ENDIF}
+  {$ENDIF}
     CurDir:=ADir; Exit;
   end;
   if ValidPath(CurDir,False) then begin
-    CurDir:=CurDir; Exit;
+  {$IFDEF FileNotify}
+    {$IFDEF Win32}
+    if DNIni.AutoRefreshPanels then {JO}
+      NotifyAddWatcher(CurDir); {Cat}
+    {$ENDIF}
+  {$ENDIF}
+    {CurDir:=CurDir;} Exit;
   end;
   ADir:='C:\';
   if ValidPath(ADir,False) then begin
+  {$IFDEF FileNotify}
+    {$IFDEF Win32}
+    if DNIni.AutoRefreshPanels then {JO}
+      NotifyAddWatcher(ADir); {Cat}
+    {$ENDIF}
+  {$ENDIF}
     CurDir:=ADir; Exit;
   end;
   ADir:='A:\';
   if ValidPath(ADir,False) then begin
+  {$IFDEF FileNotify}
+    {$IFDEF Win32}
+    if DNIni.AutoRefreshPanels then {JO}
+      NotifyAddWatcher(ADir); {Cat}
+    {$ENDIF}
+  {$ENDIF}
     CurDir:=ADir; Exit;
   end;
   CurDir:='';
@@ -897,12 +945,18 @@ begin
           goto ReadNextLine; { пустое описание никого не интересует }
         S1 := Copy(S, 2, NameEnd-2);
       end
-    else {имя не в кавычках - ищем пробел. При этом
+    else {имя не в кавычках - ищем пробел или Tab. При этом
         благодаря DelRight после него что-то должно быть }
       begin
-      NameEnd := Pos(' ', S);
-      if NameEnd = 0 then
-        goto ReadNextLine; { пустое описание никого не интересует }
+      NameEnd := Pos(' ', S); j := Pos(#9, S);
+      if (j <> 0) and (j < NameEnd) then
+        NameEnd := j // заведомо не 0
+      else
+        begin
+        if NameEnd = 0 then NameEnd := j; // может быть и 0
+        if NameEnd = 0 then
+          goto ReadNextLine; { пустое описание никого не интересует }
+        end;
       S1 := Copy(S, 1, NameEnd-1);
       end;
     if PD = nil then New(PD);
@@ -1274,16 +1328,11 @@ begin
         SetLength(S2, 14);
         S2[14] := FMSetup.RestChar[1];
       end;
-    {$IFNDEF OS2} if LFNinBottom then {$ENDIF}
+    {$IFNDEF OS2} if LFNinBottom or (DriveType in [dtArc, dtArvid]) then {$ENDIF}
           MoveStr(B,S2,C)
            {$IFNDEF OS2}
              else
-              {$IFDEF RecodeWhenDraw}
-               if not (DriveType in [dtArc, dtArvid]) then
-                   MoveStr(B, CharToOemStr(MakeFileName(FR.Name)), C)
-                 else
-              {$ENDIF}
-                       MoveStr(B, MakeFileName(FR.Name), C)
+              MoveStr(B, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(MakeFileName(FR.Name)), C)
            {$ENDIF};
     MoveStr(TWordArray(B)[22-Length(S)+CountryInfo.TimeFmt],S , C);
     MoveStr(TWordArray(B)[23+CountryInfo.TimeFmt],S1, C);
@@ -1295,6 +1344,11 @@ end;
 function TDrive.GetRealName;
 begin
  GetRealName := GetDir;
+end;
+
+function  TDrive.GetInternalName;
+begin
+ GetInternalName := '';
 end;
 
         {-DataCompBoy-}

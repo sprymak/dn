@@ -67,12 +67,16 @@ procedure ERROR(const FileName: String; LineNo, Addr, Code: LongInt);
 
 IMPLEMENTATION
 uses
+  {$IFDEF DEBUGMEM} DebugMem, {$ENDIF} {Cat}
   {$IFDEF OS2} Os2Def, Os2Base,  {AK155 for killer} {$ENDIF}
   {$IFDEF WIN95_HIGHPRIORITY} Windows,  {Cat for SetPriority} {$ENDIF}
   Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
   Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
   UserMenu, cmdline, filescol, views, {$IFNDEF OS2}LFNCol,{$ENDIF} arcview, dnini, archiver,
   U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries, Menus, VideoMan,
+{$IFDEF FileNotify}
+  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF} {Cat}
+{$ENDIF}
   {$IFNDEF DPMI32} Killer, {$ENDIF}
   {$IFDEF CDPLAYER} CDPlayer, {$ENDIF}
   {$IFDEF DPMI} DPMI, {$ENDIF}
@@ -89,7 +93,7 @@ function BadTemp(var s: string): boolean;
   begin
   BadTemp := true;
   if (s = '') then exit;
-  if not (s[Length(SwpDir)] in ['\','/']) then s := s+'\';
+  if not (s[Length(s)] in ['\','/']) then s := s+'\';
   ClrIO;
   if not PathExist(s) then exit;
   Assign(f, s + '$DNTEST.SWP'); rewrite(f);
@@ -122,14 +126,7 @@ begin
   TempDir := GetEnv('TMP');
   if not BadTemp(TempDir) then exit;
   TempDir := SourceDir;
-  if not BadTemp(TempDir) then
-    begin
-    if TempDir[Length(TempDir)] <> '\' then TempDir := TempDir + '\';
-    TempDir := TempDir + 'TEMP\';
-    mkdir(TempDir); ClrIO;
-    if not BadTemp(TempDir) then
-      exit;
-    end;
+  if not BadTemp(TempDir) then exit;
   NoTempDir := True;
 end;
         {-DataCompBoy-}
@@ -758,6 +755,12 @@ begin
 {$IFDEF SS}Val(SaversData.Time, SkyDelay, Integer(SPos1));{$ENDIF}
   if SkyDelay=0 then SkyDelay:=255; { X-Man }
  {ExecDNAutoexec;}
+{$IFDEF FileNotify}
+{Cat}
+  if DNIni.AutoRefreshPanels then
+    NotifyInit;
+{/Cat}
+{$ENDIF}
 end;
         {-DataCompBoy-}
 

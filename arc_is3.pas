@@ -50,7 +50,7 @@ unit Arc_IS3; {IS3}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+  Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, LFNCol{$ENDIF};
 
 type
   PIS3Archive = ^TIS3Archive;
@@ -84,11 +84,6 @@ type IS3FolderHdr = record
 
 implementation
 
-{$IFDEF MIRRORVARS}
-uses
-  Vars;
-{$ENDIF}
-
 { --- Z --- aka LIB --- aka InstallShield 3.00.xxx --- by piwamoto ------- }
 
 constructor TIS3Archive.Init;
@@ -114,6 +109,7 @@ begin
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
   Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-i'));
+  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
   StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-sn'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, '-sl'));
   FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-sm'));

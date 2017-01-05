@@ -10,6 +10,7 @@ jpe:c:\utl\DVPEG.bat !.! +exit
 pcx,ico,tif,vgl,RLE,fli,flc,tga:pv !.! $C0103
 ;bmp,png:c:\utl\qpv\qpv.exe !.!
 ; используйте bat-файлы чтобы вызывать DPMI-программы из OS/2 сессии
+; use bat-files to call DPMI-programms from OS/2 session
 bmp,png:sea.bat !:!\!.!
 tgp:C:\TP7\TURBOGRA\tgview.exe !.!
 wmf:vector !.!
@@ -20,5 +21,4 @@ htm,html,doc,rtf,wri:C:\VC\view160 !.! /C!%F
 ;Use HSTART utility by Henk Kelder if you need to run DOS programs with big memory requirements
 mpg,mpe: hstart /C /DOS mpg.bat !:!\!.!
 avi: hstart /C /DOS qv.exe /W3,530,7,0 /O10 /Q0 !.!
-gz,tgz:untgz -d !.! !%F
 cr3:koi_cyr.exe !.! !%F 3

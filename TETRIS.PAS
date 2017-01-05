@@ -64,7 +64,7 @@ uses
   {$IFDEF MIRRORVARS} Vars, {$ENDIF}
   VPUtils;
 
-{$DYNAMIC DN2CAT.LIB}
+
 
 {$ELSE}
 unit Tetris;

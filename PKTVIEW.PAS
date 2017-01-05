@@ -453,15 +453,13 @@ begin
 end;
 
 Destructor TPktObj.Done;
- var Dir, Name, Ext: String; {JO}
 begin
  DisposeStr(tu);
  DisposeStr(fu);
  DisposeStr(su);
  DisposeStr(dt);
  if KillAfterUse then begin
-   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
+   EraseTempFile(FileName);
    KillAfterUse:=False;
    TempFile:='';
  end;
@@ -809,8 +807,7 @@ begin
  DisposeStr(Date);
  DisposeStr(Subj);
  if KillAfterUse then begin
-   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
-   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
+   EraseTempFile(FileName);
    KillAfterUse:=False;
    TempFile:='';
  end;

@@ -212,7 +212,7 @@ const
       SearchData: TSearchData = (Options:4; Dir: 0; Scope:0; Origin:0; Line:''; What:'');
 
 type TEditCommand = record
-      C,C1,C2: AWord;
+      C, C1, C2: Word;
       CC1, CC2: Array[1..2] of Char;
      end;
 
@@ -222,6 +222,7 @@ var   EditCommands : Array [1..110] of TEditCommand;
 implementation
 
 uses
+  {$IFDEF PLUGIN} Plugin, {$ENDIF}
   Gauge, FViewer, Histlist, Macro, Editor, WinClp, DNUtil, Histries,
   xTime, FileCopy, ASCIItab, DnIni, U_SrchF, EdWin, Microed2{-$VIV};
 
@@ -1341,7 +1342,8 @@ begin
                       goto 1;
                     Mark := OldMark;
                     goto EndReplace;
-                  end;
+                  end
+                else begin Mark := OldMark; goto LExit; end;
             end
           else
             begin
@@ -1478,6 +1480,10 @@ var
   Ch: Char;
   B: TDrawBuffer;
   BB: TPoint;
+  {$IFDEF PLUGIN}
+  Event: TEvent; {Cat}
+  FillColorsData: TFillColorsData; {Cat}
+  {$ENDIF}
 
   procedure DrawBlock;
   begin
@@ -1500,6 +1506,14 @@ var
   end;
 
 begin
+  {Cat}
+  {$IFDEF PLUGIN}
+  Event.What := evCommand;
+  Event.Command := 65001;
+  ProcessEditorEventHook(Event, @Self);
+  {$ENDIF}
+  {/Cat}
+
   BB := Pos;
   SearchOnDisplay := Off;
   if Pos.X < 0 then Pos.X := 0;
@@ -1566,7 +1580,11 @@ begin
          end;
      end;
     if ChPosition and not ((A = Delta.Y) or (A = LastPos.Y)) then Continue;
-    if EdOpt.HiliteLine or ((Length(WorkString) >= MaxLongStringLength) and RecombineLongLines) then  {JO}{!!!}
+    if EdOpt.HiliteLine
+     {$IFNDEF USELONGSTRING}
+       or ((Length(WorkString) >= MaxLongStringLength) and RecombineLongLines) {JO}{!!!}
+     {$ENDIF}
+         then
      if A = Delta.Y then
      begin
        C:=CC[4];
@@ -1582,11 +1600,23 @@ begin
       if WM or (A <> Delta.Y) then S := GetLine(A) else S := WorkString;
       MoveStr(B, Copy(S, Pos.X + 1, Size.X), C);
       if EdOpt.HiLite then begin
-        {$IFDEF COLORER} {Cat}
+        {Cat}
+        {$IFDEF PLUGIN}
+        Event.What := evCommand;
+        Event.Command := 65002;
+        Event.InfoPtr := @FillColorsData;
+        FillColorsData.DrawBuffer := @B;
+        FillColorsData.StrNum := A;
+        FillColorsData.StartPos := Pos.X+1;
+        FillColorsData.EndPos := Pos.X+Size.X+1;
+        if not ProcessEditorEventHook(Event, @Self) then
+        {$ENDIF}
+        {$IFDEF COLORER}
         if UseExternalColorer then
           ColorerCollection^.Highlites(B, A, Pos.X+1, Pos.X+Size.X+1)
         else
-        {$ENDIF} {/Cat}
+        {$ENDIF}
+        {/Cat}
           begin
             {$IFDEF USELONGSTRING}
             SetLength(S, Length(S)); {Cat: ...Kreks...Feks...Peks...Suxx...}
@@ -2406,7 +2436,11 @@ var qwe: byte;
                      else SST := GetLine(I);
       if OptimalFill then CompressString(SST);
       R^.Write(SST[1], Length(SST));
-      if (I <> Mark.B.Y) and ((Length(SST) < MaxLongStringLength) or not RecombineLongLines) then R^.Write(CrLf[1], Length(CrLf)); {JO}{!!!}
+      if (I <> Mark.B.Y)
+          {$IFNDEF USELONGSTRING}
+            and ((Length(SST) < MaxLongStringLength) or not RecombineLongLines) {JO}{!!!}
+          {$ENDIF}
+                then R^.Write(CrLf[1], Length(CrLf));
     end;
 
   if PI<>nil then PI^.Free;
@@ -2947,6 +2981,7 @@ procedure ASCIITable;
 
 begin
  if (Event.What = evCommand) and (Event.Command=cmHelp2) then begin
+{Cat:warn почему закомментировали?}
 { if UpStrg(EditName)=UpStrg(SourceDir+'dn.ini')
    then HelpCtx:=hcDNIni
    else}HelpCtx:=hcEditor;
@@ -2957,6 +2992,12 @@ begin
   exit;
  end;
  inherited HandleEvent(Event);
+ {Cat}
+ {$IFDEF PLUGIN}
+ if ProcessEditorEventHook(Event, @Self) then
+   Exit;
+ {$ENDIF}
+ {/Cat}
  DelWord := Off;
 1:
  LastY := Delta.Y;
@@ -2969,15 +3010,21 @@ begin
                             Message(DNApp.MenuBar, evCommand, cmMenu, nil);
                             CE;
                           end;
-              cmDuplicateLine: begin
-                                 ChangeLine;
-                                 WorkModify;
-                                 KeyMapAtInsert(LastY+1, NewLongStr(GetLine(LastY))); {-$VIV}
-                                 StoreUndoInfo(udDupeLine, Delta, S);
-                                 SetLimits;
-                                 for L:=1 to 9 do if MarkPos[L].Y >= Delta.Y then Inc(MarkPos[L].Y);
-                                 CED;
-                               end;
+              cmDuplicateLine: if F6_DuplicatesLine then
+                                 begin
+                                   ChangeLine;
+                                   WorkModify;
+                                   KeyMapAtInsert(LastY+1, NewLongStr(GetLine(LastY))); {-$VIV}
+                                   StoreUndoInfo(udDupeLine, Delta, S);
+                                   SetLimits;
+                                   for L:=1 to 9 do if MarkPos[L].Y >= Delta.Y then Inc(MarkPos[L].Y);
+                                   CED;
+                                 end
+                                else
+                                 begin
+                                   OptimalFill := not OptimalFill;
+                                   DrawView; CE
+                                 end;
               cmClose: begin
                          if (SmartPad or ClipBrd) then
                            begin

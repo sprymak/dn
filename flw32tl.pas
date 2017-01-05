@@ -18,6 +18,15 @@ procedure CopySAs (FFromName, FToName: String);
 {$ENDIF}
 {$ENDIF}
 
+function GetHFileAges(Handle: Longint; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint; {JO}
+  {JO: возвращает время и дату последней модификации (Age_LWr),                   }
+  {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
+  {    файла по хэндлу файла (Handle), принимает значение кода ошибки             }
+function SetHFileAges(Handle: Longint; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;     {JO}
+  {JO: устанавливает время и дату последней модификации (Age_LWr),                }
+  {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
+  {    файла по хэндлу файла (Handle), принимает значение кода ошибки             }
+
 implementation
 
 uses
@@ -190,6 +199,51 @@ begin
 end;
 {$ENDIF}
 {/Cat}
+
+{JO}
+type
+  TDateTimeRec = record
+    FTime,FDate: SmallWord;
+  end;
+
+function SetResult(Success: Boolean): Longint;
+begin
+  SetResult := 0;
+  if not Success then
+    SetResult := GetLastError;
+end;
+
+function GetHFileAges(Handle: Longint; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+var
+  FileTime_LWr, LocalFileTime_LWr,
+  FileTime_Cr,  LocalFileTime_Cr,
+  FileTime_LAc, LocalFileTime_LAc : TFileTime;
+begin
+  GetHFileAges := SetResult(GetFileTime(Handle, @FileTime_Cr, @FileTime_LAc, @FileTime_LWr) and
+    FileTimeToLocalFileTime(FileTime_LWr, LocalFileTime_LWr) and
+    FileTimeToDosDateTime(LocalFileTime_LWr, TDateTimeRec(Age_LWr).FDate, TDateTimeRec(Age_LWr).FTime) and
+    FileTimeToLocalFileTime(FileTime_Cr, LocalFileTime_Cr) and
+    FileTimeToDosDateTime(LocalFileTime_Cr, TDateTimeRec(Age_Cr).FDate, TDateTimeRec(Age_Cr).FTime) and
+    FileTimeToLocalFileTime(FileTime_LAc, LocalFileTime_LAc) and
+    FileTimeToDosDateTime(LocalFileTime_LAc, TDateTimeRec(Age_LAc).FDate, TDateTimeRec(Age_LAc).FTime));
+end;
+
+function SetHFileAges(Handle: Longint; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+var
+  LocalFileTime_LWr, FileTime_LWr,
+  LocalFileTime_Cr,  FileTime_Cr,
+  LocalFileTime_LAc, FileTime_LAc : TFileTime;
+begin
+  SetHFileAges := SetResult(
+    DosDateTimeToFileTime(TDateTimeRec(Age_LWr).FDate, TDateTimeRec(Age_LWr).FTime, LocalFileTime_LWr) and
+    LocalFileTimeToFileTime(LocalFileTime_LWr, FileTime_LWr) and
+    DosDateTimeToFileTime(TDateTimeRec(Age_Cr).FDate, TDateTimeRec(Age_Cr).FTime, LocalFileTime_Cr) and
+    LocalFileTimeToFileTime(LocalFileTime_Cr, FileTime_Cr) and
+    DosDateTimeToFileTime(TDateTimeRec(Age_LAc).FDate, TDateTimeRec(Age_LAc).FTime, LocalFileTime_LAc) and
+    LocalFileTimeToFileTime(LocalFileTime_LAc, FileTime_LAc) and
+    SetFileTime(Handle, @FileTime_Cr, @FileTime_LAc, @FileTime_LWr));
+end;
+{/JO}
 
 begin
 end.

@@ -11,18 +11,12 @@ interface
 uses
   VPSysLow
   {$IFDEF OS2}, Os2Def, Os2Base {$Undef KeyDll} {$ENDIF}
-  {$IFDEF WIN32}, Windows                       {$ENDIF};
+  {$IFDEF WIN32}, Windows , VpKbdW32            {$ENDIF};
 
 function SysTVGetShiftState2: Byte;
 {$IFNDEF OS2}
-inline; begin SysTVGetShiftState2 := 0; end;
+inline; begin Result := VpKbdW32.GetWinShiftState2; end;
 {$ENDIF}
-(*
-function SysTVSetShiftState(DShiftState: SmallWord): Byte;
-{$IFNDEF OS2}
-inline; begin SysTVSetShiftState := 0; end;
-{$ENDIF}
-*)
 
 type
   POSSearchRec = ^TOSSearchRec;
@@ -67,6 +61,9 @@ function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
 function SysFindCloseNew(var F: TOSSearchRecNew): Longint;
 {$IFDEF DPMI32} inline; begin SysFindCloseNew := SysFindClose(POSSearchRec(@F)^); end; {$ENDIF}
 
+procedure SysTVKbdDone;
+{$IFNDEF OS2} inline; begin end; {$ENDIF}
+
 implementation
 
 {&OrgName-}
@@ -86,19 +83,6 @@ begin
   KbdGetStatus(Key^, 0);
   Result := Hi(Key^.fsState);
 end;
-
-(*
-function SysTVSetShiftState(DShiftState: SmallWord): Byte;
-var
-  Key  : ^KbdInfo;
-  LKey : Array[1..2] of KbdInfo;
-begin
-  Key := Fix_64k(@LKey, SizeOf(Key^));
-  Key^.cb := SizeOf(KbdInfo);
-  Key^.fsState := {(Hi(Key^.fsState) shl 16) +} DShiftState;
-  Result := KbdSetStatus(Key^, 0);
-end;
-*)
 {$ENDIF}
 
 type
@@ -288,6 +272,21 @@ begin
     Result := 0
   else
     Result := DosFindClose(F.Handle);
+end;
+{$ENDIF}
+
+{$IFDEF OS2}
+procedure SysTVKbdDone;
+var
+  Key  : ^KbdInfo;
+  LKey : Array[1..2] of KbdInfo;
+
+begin
+  Key := Fix_64k(@LKey, SizeOf(Key^));
+  Key^.cb := SizeOf(KbdInfo);
+  KbdGetStatus(Key^, 0);        { Disable ASCII & Enable raw (binary) mode}
+  Key^.fsMask := (Key^.fsMask and (not keyboard_Binary_Mode)) or keyboard_Ascii_Mode;
+  KbdSetStatus(Key^, 0);
 end;
 {$ENDIF}
 

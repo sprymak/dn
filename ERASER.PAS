@@ -61,6 +61,9 @@ implementation
 uses Dos, LFN{DataCompBoy}, FilesCol, Commands, advance, advance1, advance2,
      advance3, Startup, Messages, xTime, Drivers, Tree, Memory,
      DNApp, Gauge, Views, RStrings, Dialogs, Drives, FileCopy
+{$IFDEF FileNotify}
+     {$IFDEF Win32}, FNoteW32 {$ENDIF} {$IFDEF OS2}, FNoteOS2 {$ENDIF} {Cat}
+{$ENDIF}
      {$IFNDEF NONBP},DiskTool{$ENDIF}
 {JO} {$IFDEF OS2}, VPUtils, FlOS2Tl{$ENDIF}
 
@@ -373,6 +376,9 @@ TryDel:
 
 begin
   if not ValidErase(Files) then Exit;
+{$IFDEF FileNotify}
+  NotifySuspend; {Cat}
+{$ENDIF}
   DeleteAllFiles := Off; Abort := Off; ClrIO;
   CtrlBreakHit := Off; {JO}
   R.Assign(1,1,26,9);
@@ -424,7 +430,14 @@ begin
     end;
    end;
   {$ENDIF}
-  if Abort then begin Dispose(PInfo,Done); Exit end;
+  if Abort then
+    begin
+      Dispose(PInfo,Done);
+    {$IFDEF FileNotify}
+      NotifyResume; {Cat}
+    {$ENDIF}
+      Exit;
+    end;
   Inc(SkyEnabled);
   Desktop^.Insert(PInfo);
 
@@ -597,6 +610,7 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
 
   for I := 0 to Files^.Count-1 do
       DrivesSet := [UpCase(PFileRec(Files^.At(I))^.Owner^[1])] + DrivesSet;
+{Cat:warn интересно, а зачем перечитывать _все_ диски?}
   S := 'A:\';
   for ch := 'A' to 'Z' do
     if ch in DrivesSet then
@@ -617,6 +631,9 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
   end;
 {$ENDIF}
   Dec(SkyEnabled);
+{$IFDEF FileNotify}
+  NotifyResume; {Cat}
+{$ENDIF}
 end;
         {-DataCompBoy-}
 

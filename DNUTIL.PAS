@@ -221,7 +221,7 @@ const
      {$IFNDEF VIRTUALPASCAL}
      +#3'Version %s, %s'#13+
      {$ENDIF}
-     +#3'http://www.nsk.su/~dnosp/'+
+     +#3'http://www.dnosp.ru'+
      {$IFDEF VIRTUALPASCAL}
      +#13+
      +#13#3'Thanks to fPrint (UK) Ltd for copy of VP'+
@@ -315,16 +315,15 @@ const
      dskTempContents = 6;
      dskTempContents2= 7;
 
-constructor TDataSaver.Load;
-  var D, L: AWord;
-     {fs: PDirStorage;} {??? зачем нужно - непонятно}
-{ var P: PFileRec;}     { куча лишних переменных}
-     {DT: DateTime;}
-     {I,} Q, Q2: LongInt;
-     {DrNm: String;}
-     {OW: PString;}
-     {AS: String;}
+{Cat:warn потенциально глюкавое место: нельзя читать в память больше, чем
+          туда может поместиться; кроме того, нежелательно одной операцией
+          читать несколько подряд расположенных переменных - это у нас в
+          исходнике они подряд, а компилятор может думать иначе}
 
+constructor TDataSaver.Load;
+var
+  D, L: AWord;
+  Q, Q2: LongInt;
 begin
   if DataSaver <> nil then Dispose(DataSaver,Done); DataSaver:=nil;
   inherited Load(S);
@@ -696,6 +695,7 @@ begin
   {$IFNDEF VIRTUALPASCAL}else SaveDsk{$ENDIF};
  {AK155 SaveHistories;} {все запоминалось по ходу дела, притом с чтением,}
                         {а теперь можно только напортить}
+ SaveHistories; {JO: пока вернул назад, а то история совсем не запоминается}
  HideCommandLine := (CommandLine <> nil) and not CommandLine^.GetState(sfVisible);
  B := $8000 or (Byte(HideCommandLine));
  {$IFNDEF NONBP}
@@ -1891,7 +1891,10 @@ $140A..$FFFE: R.VM := 6;
    end;
  {else PlaySound(1559, 30);}
   S.Done;
-  FN := GetPath(FN); RereadDirectory(FN);
+{$IFDEF FileNotify}
+  if not DNIni.AutoRefreshPanels then
+{$ENDIF}
+    RereadDirectory(GetPath(FN));
  end;
 
 { procedure LoadColors;

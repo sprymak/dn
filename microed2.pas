@@ -78,7 +78,11 @@ uses DnStdDlg, Advance, DnApp, Commands, Lfn, Advance2, Ed2, Advance1, Views,
      Collect, WinClp, Dos, Messages, Startup, DnIni, {SBlocks,} U_KeyMap, Macro,
      XTime, Memory, Drivers,
      {$IFDEF EAOP} {$IFDEF OS2} FlOS2Tl, {$ENDIF} {$IFDEF WIN32} FlW32Tl, {$ENDIF} {$ENDIF}
+{$IFDEF FileNotify}
+  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF}
+{$ENDIF}
      {$IFDEF COLORER} Colorer, {$ENDIF}
+     {$IFDEF PLUGIN} Plugin, {$ENDIF}
      ErrMess;
 
 type  ByteArray = Array[1..MaxBytes] of Byte;
@@ -92,10 +96,22 @@ end;
 
         {-DataCompBoy-}
 procedure MISaveFileAs(AED: PFileEditor);
- var
+var
   FileName: String;
   S: PStream;
-begin with AED^ do begin
+  {$IFDEF PLUGIN}
+  Event: TEvent; {Cat}
+  {$ENDIF}
+begin
+  {Cat}
+  {$IFDEF PLUGIN}
+  Event.What := evCommand;
+  Event.Command := 65005;
+  ProcessEditorEventHook(Event, AED);
+  {$ENDIF}
+  {/Cat}
+
+ with AED^ do begin
  FileName := GetFileNameDialog(x_x, GetString(dlSaveFileAs),
                                    GetString(dlSaveFileAsName),
                                fdOKButton + fdHelpButton, hsEditSave);
@@ -148,22 +164,34 @@ end end;
 
         {-DataCompBoy-}
 procedure MISaveFile(AED: PFileEditor);
- var S: PBufStream;
-     I: Longint;
-     F: lFile;
-     Dr: String;
-     Nm: String;
-     Xt: String;
-     OldAttr: Word;
-     L: array[0..0] of LongInt;
-     PC: PLineCollection;
-     FileExist: Boolean;
-{$IFDEF EAOP}
-     TempEAContainerName: String;
-     TempEAContainer: lFile;
-{$ENDIF}
+var
+  S: PBufStream;
+  I: Longint;
+  F: lFile;
+  Dr: String;
+  Nm: String;
+  Xt: String;
+  OldAttr: Word;
+  L: array[0..0] of LongInt;
+  PC: PLineCollection;
+  FileExist: Boolean;
+  {$IFDEF EAOP}
+  TempEAContainerName: String;
+  TempEAContainer: lFile;
+  {$ENDIF}
+  {$IFDEF PLUGIN}
+  Event: TEvent; {Cat}
+  {$ENDIF}
+begin
+  {Cat}
+  {$IFDEF PLUGIN}
+  Event.What := evCommand;
+  Event.Command := 65004;
+  ProcessEditorEventHook(Event, AED);
+  {$ENDIF}
+  {/Cat}
 
-begin with AED^ do begin
+ with AED^ do begin
  MIUnlockFile(AED);
  if ClipBrd then begin {-$VOL begin}
    if ClipboardStream<>nil then Dispose(ClipboardStream,Done);
@@ -272,6 +300,9 @@ begin with AED^ do begin
 
    if HandleChDirCommand then SystemData.Options := SystemData.Options or (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF})
      else SystemData.Options := SystemData.Options xor (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF});
+{$IFDEF FileNotify}
+   if DNIni.AutoRefreshPanels then NotifyInit; {JO}
+{$ENDIF}
    ConfigModified:=True;
    ShowIniErrors;
  end;
@@ -280,12 +311,17 @@ end end;
 
         {-DataCompBoy-}
 procedure MILoadFile(AED: PFileEditor; Name: String);
- label 1;
- var { S: String; }
-     Nm: String;
-     Xt: String;
-      PC: PCollection; {-$VOL}
-begin with AED^ do begin
+label
+  1;
+var
+  Nm: String;
+  Xt: String;
+  PC: PCollection; {-$VOL}
+  {$IFDEF PLUGIN}
+  Event: TEvent; {Cat}
+  {$ENDIF}
+begin
+ with AED^ do begin
   If FileLines<>nil then Dispose(FileLines,Done); FileLines:=nil;
   If UndoInfo <>nil then Dispose(UndoInfo,Done);  UndoInfo :=nil;
   If RedoInfo <>nil then Dispose(RedoInfo,Done);  RedoInfo :=nil;
@@ -359,8 +395,17 @@ begin with AED^ do begin
   if EdOpt.HiLite then
     { check if highlighting is not disabled }
     EdOpt.HiLite := (EditorDefaults.EdOpt2 and ebfHlt) <> 0;
-{PZ e,nd}
-end end;
+{PZ end}
+  end;
+
+  {Cat}
+  {$IFDEF PLUGIN}
+  Event.What := evCommand;
+  Event.Command := 65003;
+  ProcessEditorEventHook(Event, AED);
+  {$ENDIF}
+  {/Cat}
+end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}

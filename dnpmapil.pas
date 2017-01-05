@@ -22,7 +22,7 @@ uses
   Os2Def, Os2Base, OS2PMApi, Strings;
 
 {$IFDEF PLUGIN}
-{$DYNAMIC DN2CAT.LIB}
+(*{$DYNAMIC DN2CAT.LIB}*)
 {$ENDIF}
 
 const
