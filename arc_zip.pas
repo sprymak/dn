@@ -48,7 +48,7 @@
 unit Arc_Zip; {ZIP}
 
 interface
-uses Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+uses Archiver, Advance, Advance1, Objects, Dos;
 
 type
  PZIPArchive = ^TZIPArchive;
@@ -241,10 +241,10 @@ begin
      begin
       FPP := FP;
       NullXLAT ( NXL );
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FPP, On, Off, Off, Off, Off, Off);{local file header signature}
+      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FPP, true, false, false, false, false, false);{local file header signature}
       if FP < 0 then
         begin
-         FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off, Off);{central file header signature}
+         FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, true, false, false, false, false, false);{central file header signature}
          if FP < 0 then begin FileInfo.Last:=2;Exit;end;
         end;
       ArcFile^.Seek(FP - 8);

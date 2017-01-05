@@ -51,6 +51,7 @@ unit FileDiz;
 interface
 
 uses
+  files,
   filescol, startup, advance1, advance2, advance, objects, lfn, dos,
   messages, dnapp, commands, drives, advance3;
 
@@ -64,14 +65,10 @@ procedure ReplaceDIZ(const DPath, Name: String;
                 {When (ANewName<>nil) and (ANewDesc= nil) - change a name}
                 {When (ANewName<>nil) and (ANewDesc<>nil) - change a name & desc}
 procedure DeleteDIZ(const DPath, Name: String); {DataCompBoy}
-function  GetDIZ(const DPath: string; var Line: longint; const Name{$IFNDEF OS2}, Name2{$ENDIF}: String): string; {DataCompBoy}
+function  GetDIZ(const DPath: string; var Line: longint; const Name: String): string; {DataCompBoy}
 procedure SetDescription(PF: PFileRec; DIZOwner: String);
 
 implementation
-
-{$IFDEF Win32}
-uses lfncol;
-{$ENDIF}
 
 function GetPossibleDizOwner(N: Integer): String;
   var DIZ: String;
@@ -186,7 +183,7 @@ begin
    DIZOwner:=DIZ;
   end else
     DIZOwner:=GetName(DizOwner);
-  DIZOwner := GetDizOwner(PF^.Owner^, DIZOwner, Off);
+  DIZOwner := GetDizOwner(PF^.Owner^, DIZOwner, false);
   if (PF^.DIZ = nil) or (PF^.DIZ^.DIZ = nil) then DIZ := ''
                                              else DIZ := PF^.DIZ^.DIZ^;
   K := Poschar(#20, DIZ);  {JO: проверяем на наличие "дочитанных" кусков в описании}
@@ -194,10 +191,11 @@ begin
   if BigInputBox(GetString(dlEditDesc),GetString(dl_D_escription), DIZ, 255, hsEditDesc) <> cmOK then Exit;
   DelLeft(DIZ);
 {$IFNDEF OS2}
-  ReplaceDIZ(DIZOwner, MakeFileName(PF^.Name), nil, @DIZ);
-{$ELSE}
-  ReplaceDIZ(DIZOwner, PF^.Name, nil, @DIZ);
+  if DNIni.DescrByShortNames then
+    ReplaceDIZ(DIZOwner, PF^.FlName[False], nil, @DIZ)
+   else
 {$ENDIF}
+    ReplaceDIZ(DIZOwner, PF^.FlName[True], nil, @DIZ);
   { if IOResult <> 0 then CantWrite(DIZOwner); }
 {$IFDEF FileNotify}
   if not DNIni.AutoRefreshPanels then
@@ -224,10 +222,10 @@ var
   FNd: Boolean;
   K: Byte;
 begin
-  NewName := SquashesName(Name);
-  if ANewName<>nil then begin
+  if ANewName=nil then
+    NewName := SquashesName(Name)
+  else
     NewName := SquashesName(ANewName^);
-  end;
   if (ANewDescription<>nil) then
     begin
       K := Poschar(#20, ANewDescription^);
@@ -241,11 +239,7 @@ begin
      ClrIO; lAssignText(F2, DPath); lRewriteText(F2);
      if Abort then begin Close(F2.T); Exit; end;
      if IOResult <> 0 then { begin CantWrite(DPath); } Exit; { end; }
-{$IFNDEF OS2}
-     WriteLn(F2.T, AddSpace(NewName,13)+ANewDescription^);
-{$ELSE}
      WriteLn(F2.T, NewName+' '+ANewDescription^);
-{$ENDIF}
      Close(F2.T);
     end;
     Exit;
@@ -254,7 +248,7 @@ begin
   {$IFNDEF NONBP}DisableAppend;{$ENDIF}
   lRewriteText(F2);
   if IOResult <> 0 then begin Dispose(F1,Done); Exit; end;
-  Fnd := Off; WasFilesInDIZ:=off;
+  Fnd := false; WasFilesInDIZ:=false;
   repeat
     S := F1^.GetStr;
     if s='' then continue;
@@ -269,7 +263,7 @@ begin
 
      if UpStrg(Copy(S, 1, i))=UpStrg(NewName) then {JO: было UpStrg(Name), что приводило к потере}
       begin                                        {    описаний у исходного файла при копировании}
-       Fnd:=On;                                    {    файла в собственный каталог с другим именем}
+       Fnd:=true;                                    {    файла в собственный каталог с другим именем}
 
        if ((ANewDescription=nil) or (ANewDescription^='')) and
           (ANewName=nil) and
@@ -286,13 +280,8 @@ begin
        Delete(S, 1, j-1);
 
        if ANewDescription<>nil
-{$IFNDEF OS2}
-        then S:=AddSpace(NewName,12)+' '+ANewDescription^
-        else S:=AddSpace(NewName,12)+' '+S;
-{$ELSE}
         then S:=NewName+' '+ANewDescription^
         else S:=NewName+' '+S;
-{$ENDIF}
 
       end;
     end;
@@ -301,11 +290,7 @@ begin
   until F1^.EOF or (IOResult <> 0);
   if not Fnd then begin
    if ANewDescription<>nil
-{$IFNDEF OS2}
-    then WriteLn(F2.T, AddSpace(NewName,12)+' '+ANewDescription^);
-{$ELSE}
     then WriteLn(F2.T, NewName+' '+ANewDescription^);
-{$ENDIF}
    WasFilesInDIZ:=True;
   end;
   ReplaceT(F1, F2, (not WasFilesInDIZ) and (FMSetup.Options and fmoKillContainer <> 0));
@@ -317,7 +302,7 @@ begin
   ReplaceDIZ(DPath, Name, nil, nil);
 end;
 
-function  GetDIZ(const DPath: string; var Line: longint; const Name {$IFNDEF OS2}, Name2{$ENDIF}: String): string; {DataCompBoy}
+function  GetDIZ(const DPath: string; var Line: longint; const Name: String): string; {DataCompBoy}
 var
   F1: PTextReader;
   S: string;
@@ -326,7 +311,6 @@ var
 begin
  GetDIZ:='';
  Line:=0;
- {$IFNDEF NONBP}DisableAppend;{$ENDIF}
  F1 := New(PTextReader, Init(DPath));
  if F1 = nil then exit;
  repeat
@@ -342,7 +326,7 @@ begin
     if s[i] in [' ',#9] then dec(i);
     j:=i+1; while (s[j] in [' ',#9]) do inc(j);
 
-    if (UpStrg(Copy(S, 1, i))=SquashesName(UpStrg(Name))) {$IFNDEF OS2} or (UpStrg(Copy(S, 1, i))=SquashesName(UpStrg(Name2))) {$ENDIF}
+    if (UpStrg(Copy(S, 1, i))=SquashesName(UpStrg(Name)))
      then begin
       Delete(S, 1, j-1);
       While S[1] in [' ', #9] do Delete(S, 1, 1); {DelFC(S);}

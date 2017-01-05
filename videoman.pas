@@ -1228,7 +1228,7 @@ begin
 (*    TEST    StartupData.Unload,osuBlinking {///////////}
     JNZ     @@1*)
   end;
- If (FadeDelay > 0) then ResetVgaPalette(ON); {Knave}
+ If (FadeDelay > 0) then ResetVgaPalette(true); {Knave}
 end;
 
 procedure ClearScreen; assembler;
@@ -1461,18 +1461,20 @@ procedure SetVideoMode(Mode: Word);
 var Cols, Rows: Word;
   CursorSize: word;
 begin
+{$IFDEF OS2}
  if VideoType < vtEGA then Exit;
+{$ENDIF}
  {GetVideoModeInfo(Cols1,Rows1,Rows);} {вводить отдельную переменную для цветов впадлу}
  Cols := 80;
  Rows := 0;
  case Mode of
   sm80x25: Rows := 25;
-  sm80x30: Rows := 30;
-  sm80x34: Rows := 34;
   sm80x43: Rows := 43;
   sm80x50: Rows := 50;
-  sm80x60: Rows := 60;
 {$IFDEF OS2}
+  sm80x30: Rows := 30;
+  sm80x34: Rows := 34;
+  sm80x60: Rows := 60;
  $140A..$FFFE: begin {минимальный размер окна 20x10, меньше просто нет смысла}
                  Rows := Lo(Mode); Cols := Hi(Mode);
                  if Rows < 10 then Rows := 10;

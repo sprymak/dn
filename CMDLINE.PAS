@@ -141,7 +141,7 @@ var MM: record
 begin
  Inc(SkyEnabled);
  repeat
-  Abort := Off; NeedAbort := On;
+  Abort := false; NeedAbort := true;
   lGetDir(0, Dir); {DataCompBoy}
   if Abort then
    begin
@@ -159,11 +159,11 @@ begin
       if ValidDrive(MM.S[1]) then
        begin SetCurDrive(MM.S[1]); Break; end;
     until False;
-    Abort := On;
+    Abort := true;
    end;
  until not Abort;
  Dec(SkyEnabled);
- NeedAbort := Off;
+ NeedAbort := false;
  if (Length(Dir) > 3) and (Dir[Length(Dir)] = '\') then SetLength(Dir, Length(Dir)-1);
  ActiveDir := Dir;
  SetDirShape;
@@ -321,7 +321,7 @@ procedure TCommandLine.HandleEvent;
  begin
    if not GetState(sfVisible) and (Str <> '') then
       begin
-        ToggleCommandLine(On);
+        ToggleCommandLine(true);
       end;
  end;
 
@@ -457,7 +457,7 @@ EndLFN:
 }
                          AddCommand(Str);
                          CurString := CmdStrings^.Count;
-                         StrModified := Off;
+                         StrModified := false;
 {/AK155}
                         end;
     end;
@@ -518,7 +518,7 @@ EndLFN:
                                     not GetState(sfVisible) and (Str = '')
                                       then begin
                                              Str := ' ';
-                                             ToggleCommandLine(On);
+                                             ToggleCommandLine(true);
                                              Str := '';
                                            end;
                                  CE2
@@ -547,7 +547,7 @@ EndLFN:
                                    begin
                                     AddCommand(Str);
                                     CurString := CmdStrings^.Count-1;
-                                    StrModified := Off;
+                                    StrModified := false;
                                    end;
                                   if CurString > 0 then Dec(CurString);
                                   Str := GetCommand(CurString);
@@ -560,7 +560,7 @@ EndLFN:
                                      begin
                                        AddCommand(Str);
                                        CurString := CmdStrings^.Count;
-                                       StrModified := Off;
+                                       StrModified := false;
                                      end;
                                      Str := GetCommand(CurString);
                                      if Str <> '' then Inc(CurString);

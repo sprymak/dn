@@ -157,7 +157,7 @@ begin
              (Confirms and cfFmtOs2Warning) shr 1 +
              (Confirms and cfExitConfirm)   shl 1;
   If D <> cmOK then Exit;
-  ConfigModified := On;
+  ConfigModified := true;
 
   ConfirmsOpt        := Confirms;
   SaveDnIniSettings(@ConfirmsOpt);
@@ -166,9 +166,9 @@ end;
 
 function TerminalSetup;
 begin
-  TerminalSetup := Off;
+  TerminalSetup := false;
   If ExecResource( dlgSetupTerminal, TerminalDefaults ) <> cmOK then Exit;
-  TerminalSetup := On;
+  TerminalSetup := true;
   Message(Application, evCommand, cmUpdateConfig, nil);
 end;
 
@@ -334,7 +334,7 @@ begin
   if ExecResource(dlgCountrySetup, CountryInfo) <> cmOK then Exit;
   Initupcase;
   GlobalMessage(evCommand, cmReboundPanel, nil);
-  ConfigModified := On;
+  ConfigModified := true;
 end;
 
 procedure FMDefaults;

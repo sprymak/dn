@@ -52,7 +52,8 @@ unit DNStdDlg;
 interface
 
 uses
-  LFN, {$IFNDEF OS2}LFNCol, {$ENDIF} Collect, Objects, Drivers, Views,
+  LFN, files, filescol,
+  Collect, Objects, Drivers, Views,
   Dialogs, Dos, Memory, Messages, DNApp;
 
 const
@@ -83,12 +84,7 @@ type
     Attr: Byte;
     Time: Longint;
     Size: TSize;
-{$IFNDEF OS2}
-    Name: string[12];
-    LFN:  TLFNIndex;
-{$ELSE}
-    Name: string;
-{$ENDIF}
+    Name: String;
   end;
        {DataCompBoy}
 
@@ -383,21 +379,13 @@ begin
   if (Event.What = evBroadcast) and (Event.Command = cmFileFocused) and
     (State and sfSelected = 0) then
   begin
-{$IFNDEF OS2}
-     Dir := GetLFN(PSearchRec(Event.InfoPtr)^.LFN) + '\';
-{$ELSE}
      Dir := PSearchRec(Event.InfoPtr)^.Name + '\';
-{$ENDIF}
-     if PSearchRec(Event.InfoPtr)^.Name[1] = '[' then Dir := Dir[3] + ':';
+     if Dir[1] = '[' then Dir := Dir[3] + ':';
      if PSearchRec(Event.InfoPtr)^.Attr and Directory <> 0 then
         Data^ := Dir +
           PFileDialog(Owner)^.WildCard^
      else
-{$IFNDEF OS2}
-         Data^ := GetLFN(PSearchRec(Event.InfoPtr)^.LFN);
-{$ELSE}
-         Data^ := PSearchRec(Event.InfoPtr)^.Name;
-{$ENDIF}
+       Data^ := PSearchRec(Event.InfoPtr)^.Name;
      DrawView;
   end;
 end;
@@ -407,18 +395,23 @@ end;
 
         {-DataCompBoy-}
 function TFileCollection.Compare(Key1, Key2: Pointer): Integer;
+var
+  K1: PSearchRec absolute Key1;
+  K2: PSearchRec absolute Key2;
+  S1, S2: string;
 begin
-  if UpLowStrg(PSearchRec(Key1)^.Name) = UpLowStrg(PSearchRec(Key2)^.Name) then Compare := 0
-  else if (PSearchRec(Key1)^.Name[1] = '[') then Compare := 1
-  else if (PSearchRec(Key2)^.Name[1] = '[') then Compare := -1
-  else if PSearchRec(Key1)^.Name = '..' then Compare := -1
-  else if PSearchRec(Key2)^.Name = '..' then Compare := 1
-  else if (PSearchRec(Key1)^.Attr and Directory <> 0) and
-     (PSearchRec(Key2)^.Attr and Directory = 0) then Compare := 1
-  else if (PSearchRec(Key2)^.Attr and Directory <> 0) and
-     (PSearchRec(Key1)^.Attr and Directory = 0) then Compare := -1
-  else if UpLowStrg(PSearchRec(Key1)^.Name) > UpLowStrg(PSearchRec(Key2)^.Name) then
-    Compare := 1
+  S1 := UpLowStrg(K1^.Name);
+  S2 := UpLowStrg(K2^.Name);
+  if S1 = S2 then Compare := 0
+  else if S1[1] = '[' then Compare := 1
+  else if S2[1] = '[' then Compare := -1
+  else if S1 = '..' then Compare := -1
+  else if S2 = '..' then Compare := 1
+  else if (K1^.Attr and Directory <> 0) and
+     (K2^.Attr and Directory = 0) then Compare := 1
+  else if (K2^.Attr and Directory <> 0) and
+     (K1^.Attr and Directory = 0) then Compare := -1
+  else if S1 > S2 then  Compare := 1
   else Compare := -1;
 end;
         {-DataCompBoy-}
@@ -426,9 +419,6 @@ end;
         {-DataCompBoy-}
 procedure TFileCollection.FreeItem(Item: Pointer);
 begin
-{$IFNDEF OS2}
-  DelLFN(PSearchRec(Item)^.LFN);
-{$ENDIF}
   Dispose(PSearchRec(Item));
 end;
         {-DataCompBoy-}
@@ -441,9 +431,6 @@ var
 begin
   New(Item);
   S.Read(Item^, SizeOf(TSearchRec));
-{$IFNDEF OS2}
-  Item^.LFN:=LoadLFN(S);
-{$ENDIF}
   GetItem := Item;
 end;
         {-DataCompBoy-}
@@ -452,9 +439,6 @@ end;
 procedure TFileCollection.PutItem(var S: TStream; Item: Pointer);
 begin
   S.Write(Item^, SizeOf(TSearchRec));
-{$IFNDEF OS2}
-  StoreLFN(S, PSearchRec(Item)^.LFN);
-{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -598,21 +582,8 @@ end;
 function TFileList.GetKey(var S: String): Pointer;
 const
   SR: TSearchRec = ();
-{$IFNDEF OS2}
-  {$IFNDEF STRINGLFN}
-   ST: TLFNIndex = nil;
-  {$ELSE}
-   ST: TLFNIndex = '';
-  {$ENDIF}
-{$ENDIF}
 begin
-{$IFNDEF OS2}
-  DelLFN(ST); ST:=AddLFN(s);
-  SR.LFN := ST;
-  SR.Name := lfGetShortFileName(S);
-{$ELSE}
   SR.Name := S;
-{$ENDIF}
   SR.Attr := 0;
   UpStr(SR.Name);
   GetKey := @SR;
@@ -626,11 +597,7 @@ var
   S: string;
 begin
   SR := PSearchRec(List^.At(Item));
-{$IFDEF OS2}
   if IsMixedCase(SR^.Name) then S := SR^.Name else S := LowStrg(SR^.Name);
-{$ELSE}
-  if IsMixedCase(GetLFN(SR^.LFN)) then S := GetLFN(SR^.LFN) else S := LowStrg(GetLFN(SR^.LFN));
-{$ENDIF}
   if Length(S) > 13 then begin SetLength(S, 13); S[13] := FMSetup.RestChar[1]; end;
   GetText := S;
 end;
@@ -679,9 +646,6 @@ begin
           Time:= S.SR.Time;
           Size:= S.FullSize;
           Name:= S.SR.Name;
-{$IFNDEF OS2}
-          LFN := AddLFN(GetName(S.FullName));
-{$ENDIF}
          End;
         FileList^.Insert(P);
       end;
@@ -718,21 +682,8 @@ end;
 function TDirectoryList.GetKey(var S: String): Pointer;
 const
   SR: TSearchRec = ();
-{$IFNDEF OS2}
-  {$IFNDEF STRINGLFN}
-  ST: TLFNIndex = nil;
-  {$ELSE}
-  ST: TLFNIndex = '';
-  {$ENDIF}
-{$ENDIF}
 begin
-{$IFNDEF OS2}
-  DelLFN(ST); ST:=AddLFN(S);
-  SR.LFN  := ST;
-  SR.Name := lfGetShortFileName(S);
-{$ELSE}
   SR.Name := S;
-{$ENDIF}
   SR.Attr := Directory;
   UpStr(SR.Name);
   GetKey := @SR;
@@ -746,11 +697,7 @@ var
   S: String;
 begin
   SR := PSearchRec(List^.At(Item));
-{$IFDEF OS2}
   if IsMixedCase(SR^.Name) then S := SR^.Name else S := UpStrg(SR^.Name);
-{$ELSE}
-  if IsMixedCase(GetLFN(SR^.LFN)) then S := GetLFN(SR^.LFN) else S := UpStrg(GetLFN(SR^.LFN));
-{$ENDIF}
   if Length(S) > 12 then begin SetLength(S, 12); S[12] := FMSetup.RestChar[1]; end;
   if SR^.Name[1] <> '[' then GetText := S+'\'
                         else GetText := SR^.Name;
@@ -792,12 +739,7 @@ begin
           Attr:= S.SR.Attr;
           Time:= S.SR.Time;
           Size:= S.FullSize;
-{$IFNDEF OS2}
-          Name:= S.SR.Name;
-          LFN := AddLFN(GetName(S.FullName));
-{$ELSE}
           Name:= S.FullName;
-{$ENDIF}
          End;
         FileList^.Insert(PObject(P));
       end;
@@ -819,19 +761,11 @@ begin
          Attr:= S.SR.Attr;
          Time:= S.SR.Time;
          Size:= S.FullSize;
-{$IFNDEF OS2}
-         Name:= S.SR.Name;
-         LFN := AddLFN(GetName(S.FullName));
-{$ELSE}
          Name:= S.FullName;
-{$ENDIF}
         End
       else
       begin
         P^.Name := PrevDir;
-{$IFNDEF OS2}
-        P^.LFN  := AddLFN(PrevDir);
-{$ENDIF}
         P^.Size := 0;
         P^.Time := $210000;
         P^.Attr := Directory;
@@ -844,9 +778,6 @@ begin
      begin
        P := MemAlloc(SizeOf(P^));
        P^.Name := '[-'+C+'-]';
-{$IFNDEF OS2}
-       P^.LFN  := AddLFN('[-'+C+'-]');
-{$ENDIF}
        P^.Size := 0;
        P^.Time := $210000;
        P^.Attr := Directory;
@@ -946,11 +877,7 @@ begin
   if CountryInfo.TimeFmt = 1 then SetLength(Str, Length(Str)-1);
   MoveStr(B, Str, Color);
   WriteLine(0, 2, Size.X, 1, B);
-{$IFNDEF OS2}
-  Path := Cut(GetName(GetLFN(S.LFN)), Size.X-1);
-{$ELSE}
   Path := Cut(GetName(S.Name), Size.X-1);
-{$ENDIF}
   Color := GetColor($01);
   MoveChar(B, ' ', Color, Size.X);
   MoveStr(B[1], Path, Color);
@@ -1202,7 +1129,6 @@ end;
 глючившее под VP. Эта функция вызывается в единственном месте
 в связи с диалогом, так что ассемблер здесь совершенно не нужен.
 Поэтому переписал на Паскале: и понятно, и платформонезависимо.}
-{&Delphi+}
 function NoWildChars(S: String): String;
   var
     i, j: integer;
@@ -1223,7 +1149,6 @@ function NoWildChars(S: String): String;
     Result := ''; {Cat: чтобы к именам без расширения не добавлялась точка}
   {NoWildChars := Result;}
   end;
-{&Delphi-}
 {/AK155}
 
 begin
@@ -1487,7 +1412,7 @@ function GetFileNameDialog(Mask, Title, Name: String; Buttons, HistoryID: Word):
      D: PFileDialog;
      B: Boolean;
 begin
-  S := ''; B := Off; if Mask = '' then begin Mask := x_x; B := On end;
+  S := ''; B := false; if Mask = '' then begin Mask := x_x; B := true end;
   D := PFileDialog(Application^.ValidView(New(PFileDialog,
         Init(Mask, Title, Name, Buttons, HistoryID))));
   if D = nil then Exit;

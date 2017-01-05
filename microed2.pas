@@ -77,10 +77,8 @@ IMPLEMENTATION
 uses DnStdDlg, Advance, DnApp, Commands, Lfn, Advance2, Ed2, Advance1, Views,
      Collect, WinClp, Dos, Messages, Startup, DnIni, {SBlocks,} U_KeyMap, Macro,
      XTime, Memory, Drivers,
-     {$IFDEF EAOP} {$IFDEF OS2} FlOS2Tl, {$ENDIF} {$IFDEF WIN32} FlW32Tl, {$ENDIF} {$ENDIF}
-{$IFDEF FileNotify}
-  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF}
-{$ENDIF}
+     {$IFDEF EAOP} FlTl, {$ENDIF}
+     fnotify,
      {$IFDEF COLORER} Colorer, {$ENDIF}
      {$IFDEF PLUGIN} Plugin, {$ENDIF}
      ErrMess;
@@ -130,7 +128,7 @@ begin
        then PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle))
        else PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle)+' - '+{$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(EditName));
       Owner^.Redraw;
-      Modified := Off;
+      Modified := false;
       MILockFile(AED);
     end;
 end end;
@@ -148,11 +146,11 @@ begin with AED^ do begin
     begin
       MIUnlockFile(AED);
       MILoadFile(AED, lFExpand(FileName));
-      BlockVisible := Off; {Cat}
+      BlockVisible := false; {Cat}
       Mark.Assign(0,0,0,0); {Cat}
       if not isValid then
         begin
-          isValid := On;
+          isValid := true;
           Message(Owner, evCommand, cmClose, nil);
           MILockFile(AED); Exit;
         end;
@@ -275,8 +273,8 @@ begin
 {$ENDIF}
  end;
  MILockFile(AED);
- Modified := Off;
- JustSaved := On; LastSaveUndoTimes := UndoTimes; {piwamoto}
+ Modified := false;
+ JustSaved := true; LastSaveUndoTimes := UndoTimes; {piwamoto}
  Owner^.Redraw;
  if not(SmartPad or ClipBrd) then FileChanged(EditName);
  if UpStrg(EditName)=UpStrg(MakeNormName(SourceDir, 'DN.INI')) then begin
@@ -326,8 +324,8 @@ begin
   If UndoInfo <>nil then Dispose(UndoInfo,Done);  UndoInfo :=nil;
   If RedoInfo <>nil then Dispose(RedoInfo,Done);  RedoInfo :=nil;
   UndoTimes := 0; LastDir := -1; {DrawMode := 0;}
-  LastSaveUndoTimes := 0; JustSaved := Off; {piwamoto}
-  SearchOnDisplay := Off; EdOpt.ForcedCrLf := cfNone;
+  LastSaveUndoTimes := 0; JustSaved := false; {piwamoto}
+  SearchOnDisplay := false; EdOpt.ForcedCrLf := cfNone;
 1:
   if Name = '' then begin
    {FileLines := GetCollector(1000, 100);}
@@ -347,7 +345,7 @@ begin
     if FileLines^.Count = 0 then FileLines^.Insert(NewLongStr(''))
   end else begin
     if (StartupData.Slice2 and osuReleaseOpen) = 0 then Application^.BFSpeed;
-    FileLines := MIReadBlock(AED, Name, On);
+    FileLines := MIReadBlock(AED, Name, true);
     {$IFDEF COLORER} {Cat}
     SwitchExternalColorer(EdOpt.HiLite);
     {$ENDIF} {/Cat}
@@ -365,14 +363,14 @@ begin
   SetLimits;
   Pos.X := 0; Pos.Y := 0;
   Delta := Pos;
-  {InsertMode := On;}
-  {BlockVisible := Off;}
+  {InsertMode := true;}
+  {BlockVisible := false;}
   {Mark.Assign(0,0,0,0);}
-  Modified := Off; {DrawMode := 0;} WorkModified := Off; LastLine:=-1; LastShape := '';
-  SpecChar := Off; WasDelete := Off;
-  Marking := Off; MouseMark := Off;
-  RulerVisible := Off;
-  EnableMarking := On;
+  Modified := false; {DrawMode := 0;} WorkModified := false; LastLine:=-1; LastShape := '';
+  SpecChar := false; WasDelete := false;
+  Marking := false; MouseMark := false;
+  RulerVisible := false;
+  EnableMarking := true;
   WorkString := GetLine(0);
   if Name <> '' then Name := lFExpand(Name);
   EditName := Name; DisposeStr(PWindow(Owner)^.Title);
@@ -671,7 +669,7 @@ L2:{$IFDEF USELONGSTRING}
      ep : Boolean;
      tmr: TEventTimer;
 begin with AED^ do begin
- MIReadBlock := nil; Abort := Off;
+ MIReadBlock := nil; Abort := false;
  if LowMemory then begin
    FileName:=''; IsValid:=False; Exit;
  end;
@@ -699,7 +697,7 @@ begin with AED^ do begin
  if (S^.GetSize > MemAvail - $4000)
 {$IFDEF OS_DOS}and (EditorDefaults.EdOpt and (ebfEMS+ebfXMS) = 0) {$ENDIF}then
  begin
-   Application^.OutOfMemory; Dispose(S,Done); FileName := ''; isValid := Off;
+   Application^.OutOfMemory; Dispose(S,Done); FileName := ''; isValid := false;
    Exit
  end;
  B := MemAlloc(FBufSize); if B = nil then
@@ -743,7 +741,7 @@ begin with AED^ do begin
     Dispose(S,Done);
     FileName := '';
     Info^.Free;
-    isValid := Off;
+    isValid := false;
     CodePageDetector.Done;
     Exit
   end;
@@ -784,7 +782,7 @@ begin with AED^ do begin
          Info^.Free;
          CodePageDetector.Done;
          Application^.OutOfMemory;
-         isValid := Off;
+         isValid := false;
          Exit
        end;
      if (B^[J] = 13) and (S^.GetPos < S^.GetSize) then begin Dec(J); S^.Seek(S^.GetPos-1); end;
@@ -935,7 +933,7 @@ begin with AED^ do begin
  EdOpt.HiLite := Hi;
  ScrollTo(X,Y);
  Pos := XD;
- ChPosition := Off;
+ ChPosition := false;
  Owner^.Redraw;
 end end;
 

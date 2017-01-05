@@ -601,8 +601,8 @@ begin
  if NeedAbort then
   begin
    SystemError := 3;
-   Abort := On;
-   NeedAbort := Off;
+   Abort := true;
+   NeedAbort := false;
    Exit;
   end;
 
@@ -727,8 +727,8 @@ begin
  if NeedAbort then
   begin
     SystemError := 3;
-    Abort := On;
-    NeedAbort := Off;
+    Abort := true;
+    NeedAbort := false;
     Exit;
   end;
 

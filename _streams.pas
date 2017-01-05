@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines, _Objects;
+  _Defines, _Objects;
 
 type
   PStream = ^TStream;
@@ -107,7 +107,7 @@ end;
 
 procedure TStream.CopyFrom(var S: TStream; Count: LongInt);
 begin
-  _TStream^.CopyFrom(S, Count, @Self);
+  _TStream^.CopyFrom(_Model1.TStream(S), Count, @Self);
 end;
 
 procedure TStream.Error(Code, Info: Integer);
@@ -122,7 +122,7 @@ end;
 
 function TStream.Get: PObject;
 begin
-  Result := _TStream^.Get(@Self);
+  Result := PObject(_TStream^.Get(@Self));
 end;
 
 function TStream.GetPos: LongInt;
@@ -137,7 +137,7 @@ end;
 
 procedure TStream.Put(P: PObject);
 begin
-  _TStream^.Put(P, @Self);
+  _TStream^.Put(_Model1.PObject(P), @Self);
 end;
 
 procedure TStream.Read(var Buf; Count: LongInt);

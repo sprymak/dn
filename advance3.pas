@@ -55,7 +55,6 @@ uses
   {$IFNDEF VIRTUALPASCAL}, ExtraMem {$ENDIF}
   ;
 
- procedure LowPrec(var A, B: TSize);
  function  Get100s: LongInt;
 
 {$IFNDEF VIRTUALPASCAL}
@@ -88,7 +87,7 @@ uses Advance1, Advance2, Advance6, Commands{Cat};
 {$IFDEF OS_DOS}
 procedure AppendCheck;
  begin
-  AppendInstalled := Off;
+  AppendInstalled := false;
   if Dos40 then
     asm
       mov  ax, $B700
@@ -120,15 +119,6 @@ begin
    end
 end;
 {$ENDIF}
-
-procedure LowPrec(var A, B: TSize);
-begin
-  while (A > $FFFF) or (B > $FFFF) do
-  begin
-    A := A / 2;
-    B := B / 2;
-  end;
-end;
 
 function Get100s: LongInt;
   var DD,MM,YY, HH, Mn, Sc, Sc100: Word;

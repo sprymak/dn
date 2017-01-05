@@ -86,7 +86,7 @@ begin
     NullXLAT (NXL);
     FP := ArcFile^.GetPos;
     repeat
-     FP := SearchFileStr(@ArcFile^, NXL, 'PK', FP, Off{piwamoto:we need it OFF}, On, Off, On, Off, Off);
+     FP := SearchFileStr(@ArcFile^, NXL, 'PK', FP, false{piwamoto:we need it OFF}, true, false, true, false, false);
      ArcFile^.Seek(FP);
      ArcFile^.Read(ID, SizeOf(ID));
     until (FP < 0) or
@@ -121,7 +121,7 @@ var
  ID: LongInt;
  M2: MainRAR2Hdr;
 begin
- RAR2 := Off;
+ RAR2 := false;
  Encrypted := False;
  RARDetect := False;
  ArcFile^.Read(ID, SizeOf(ID));
@@ -140,7 +140,7 @@ begin
       if M2.HeadType = $73 then
         begin
           RARDetect := True;
-          RAR2 := On;
+          RAR2 := true;
           ArcPos := ArcPos + M2.HeadLen + 7{Rar ID};
           if M2.HeadFlags and $80 <> 0 {headers are encrypted} then
             begin
@@ -328,8 +328,8 @@ begin
     then
      begin
       ArcFile^.Seek(ArcFile^.GetSize - SizeOf(P));
-      P.NumFiles := GetLong(On);
-      P.Margin := GetLong(On);
+      P.NumFiles := GetLong(true);
+      P.Margin := GetLong(true);
       ArcFile^.Read(P.I,7);
       if P.S = 'HPAK' then
        begin
@@ -341,7 +341,7 @@ begin
           New(R); R^.Name := nil;
           ArcFile^.Read(W,2);
           if W and $10 <> 0 then ArcFile^.Read(J,2);
-          R^.Date := GetLong(On);
+          R^.Date := GetLong(true);
           R^.USize := GetLong(W and $0080 <> 0);
           R^.PSize := GetLong(W and $0040 <> 0);
           HPKCol^.Insert(R);
@@ -382,7 +382,7 @@ var
 begin
  ArcFile^.Read(W, SizeOf(W));
  TGZDetect := (ArcFile^.Status = stOK) and
-              (W = $8b1f) and
+              ((W = $8b1f) or (W = $9d1f)) and
               (InFilter(VArcFileName, '*.TAR;*.TAZ;*.TGZ;*.GZ;*.Z'));
  ArcFile^.Seek(ArcPos);
 end;

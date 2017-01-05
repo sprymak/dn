@@ -50,7 +50,7 @@ unit Arc_HA; {HA}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime;
+  Archiver, Advance, Advance1, Objects, Dos, xTime;
 
 type
     PHAArchive = ^THAArchive;

@@ -2626,10 +2626,10 @@ begin
                           If Sec
                             then begin
                               Delete( InputLine^.Data^, CurX+1, 1 );
-                              Sec := OFF;
+                              Sec := false;
                             end else begin
                               Delete(InputLine^.Data^, CurX, 1);
-                              Dec(CurX); Sec := Off;
+                              Dec(CurX); Sec := false;
                             end;
                         CED
                       end;
@@ -2637,7 +2637,7 @@ begin
                        if CurX < Length(InputLine^.Data^) then
                           begin
                              Delete( InputLine^.Data^, CurX+1, 1 );
-                             Sec := OFF;
+                             Sec := false;
                           end;
                         CED
                       end;

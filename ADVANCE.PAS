@@ -173,9 +173,6 @@ CONST
   kbCapsState   = $0040;
   kbInsState    = $0080;
 
-  On  = True;
-  Off = False;
-
   NumFloppy:      Byte    = 0;
 
   opUnk  = 0;  { Unknown  }
@@ -201,13 +198,13 @@ inline {DataCompBoy}
 ($33/$C0/          { XOR ax, ax       }
  $3E/$A2/>InOutRes/{ mov InOutRes, al }{ InOutRes := 0;  }
  $3E/$A2/>DosError/{ mov DosError, al }{ DosError := 0;  }
- $3E/$A2/>Abort    { mov Abort,    al }{ Abort    := Off;}
+ $3E/$A2/>Abort    { mov Abort,    al }{ Abort    := false;}
 );
 {$ELSE}inline;
 begin
  InOutRes := 0;
  DosError := 0;
- Abort    := Off;
+ Abort    := false;
 end;
 {$ENDIF}
 
@@ -349,7 +346,7 @@ const
 
 Type TCrc_Table = array[0..255] of LongInt;
 const
-  crc_table_empty : boolean = on;
+  crc_table_empty : boolean = true;
   Crc_Table : ^TCrc_Table = nil;
 
 {$IFNDEF NONBP}
@@ -631,6 +628,7 @@ begin
             end
         end
     end;
+
     FillR(1,Size+1,#32);
     Hi1:=0; Hi2:=0; Hi3:=0;
     if ExtSize>0 then begin

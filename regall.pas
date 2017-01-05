@@ -322,10 +322,10 @@ const
        Load   : @Calc.TCalcView.Load;
        Store  : @Calc.TCalcView.Store)
      ,(ObjType: otCalcInfo;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calc.TCalcInfo){$IFDEF OFFS}^{$ENDIF});
-       {$IFDEF LOGOBJLOADSTORE} ObjName : 'otCalcInfo'; {$ENDIF}
-       Load   : @Calc.TCalcInfo.Load;
-       Store  : @Calc.TCalcInfo.Store)
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calc.TCalcInput){$IFDEF OFFS}^{$ENDIF});
+       {$IFDEF LOGOBJLOADSTORE} ObjName : 'otCalcInput'; {$ENDIF}
+       Load   : @Calc.TCalcInput.Load;
+       Store  : @Calc.TCalcInput.Store)
      ,(ObjType: otInfoView;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Calc.TInfoView){$IFDEF OFFS}^{$ENDIF});
        {$IFDEF LOGOBJLOADSTORE} ObjName : 'otInfoView'; {$ENDIF}

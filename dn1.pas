@@ -72,11 +72,9 @@ uses
   {$IFDEF WIN95_HIGHPRIORITY} Windows,  {Cat for SetPriority} {$ENDIF}
   Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
   Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
-  UserMenu, cmdline, filescol, views, {$IFNDEF OS2}LFNCol,{$ENDIF} arcview, dnini, archiver,
+  UserMenu, cmdline, filescol, views, arcview, dnini, archiver,
   U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries, Menus, VideoMan,
-{$IFDEF FileNotify}
-  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF} {Cat}
-{$ENDIF}
+  fnotify,
   {$IFNDEF DPMI32} Killer, {$ENDIF}
   {$IFDEF CDPLAYER} CDPlayer, {$ENDIF}
   {$IFDEF DPMI} DPMI, {$ENDIF}
@@ -966,7 +964,7 @@ begin
     FreeStr[1] := Char(FindParam('/P'));
     if (FreeStr[1] > #0) then LoadPalFromFile(Copy(ParamStr(Byte(FreeStr[1])), 3, MaxStringLength));
     if Virgin then Message( @MyApplication, evCommand, cmAbout , nil ); {JO}
-    if NoTempDir then begin CreateDirInheritance(TempDir, Off); NoTempDir := False; end; {JO}
+    if NoTempDir then begin CreateDirInheritance(TempDir, false); NoTempDir := False; end; {JO}
     ExecDNAutoexec;
    end;
 
@@ -1001,7 +999,7 @@ GrabPalette;
  {$ENDIF}
  ClearIniErrors;
  GlobalMessage(evCommand, cmKillUsed, nil);
- TottalExit := On;
+ TottalExit := true;
  MyApplication.Done;
 {Cat}
  FreeTMaskData(Executables);

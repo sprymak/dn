@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines;
+  _Defines;
 
 type
   PEmptyObjectVMT = ^TEmptyObjectVMT;
@@ -62,6 +62,16 @@ type
   PUniWindowVMT = ^TUniWindowVMT;
   PXFileEditorVMT = ^TXFileEditorVMT;
   PEditWindowVMT = ^TEditWindowVMT;
+  PPercentGaugeVMT = ^TPercentGaugeVMT;
+  PBarGaugeVMT = ^TBarGaugeVMT;
+  PWhileViewVMT = ^TWhileViewVMT;
+  PViewScrollVMT = ^TViewScrollVMT;
+  PFileViewerVMT = ^TFileViewerVMT;
+  PDriveVMT = ^TDriveVMT;
+  PFindDriveVMT = ^TFindDriveVMT;
+  PTempDriveVMT = ^TTempDriveVMT;
+  PArcDriveVMT = ^TArcDriveVMT;
+  PArvidDriveVMT = ^TArvidDriveVMT;
 
 
 
@@ -1075,7 +1085,7 @@ type
     HiLitePar: THighliteParams;
     InfoL, BMrk: PView;
     MenuItemStr: array[Boolean] of PString;
-    RegExp: Pointer{PRegExp};
+    RegExp: PRegExp;
   end;
 
   PEditWindow = ^TEditWindow;
@@ -1115,6 +1125,308 @@ type
     MenuBar: PMenuBar;
     UpMenu: PMenu;
     ModalEnd: Boolean;
+  end;
+
+  PPercentGauge = ^TPercentGauge;
+  TPercentGauge = packed record
+    VMT: PPercentGaugeVMT;
+    ObjectIsInited: Boolean;
+    Owner: PGroup;
+    Next: PView;
+    Origin: TPoint;
+    Size: TPoint;
+    Cursor: TPoint;
+    GrowMode: Byte;
+    DragMode: Byte;
+    HelpCtx: AWord;
+    State: AWord;
+    Options: AWord;
+    EventMask: AWord;
+    UpTmr: TEventTimer;
+    UpdTicks: LongInt;
+    MaxValue: LongInt;
+    CurValue: LongInt;
+  end;
+
+  PBarGauge = ^TBarGauge;
+  TBarGauge = packed record
+    VMT: PBarGaugeVMT;
+    ObjectIsInited: Boolean;
+    Owner: PGroup;
+    Next: PView;
+    Origin: TPoint;
+    Size: TPoint;
+    Cursor: TPoint;
+    GrowMode: Byte;
+    DragMode: Byte;
+    HelpCtx: AWord;
+    State: AWord;
+    Options: AWord;
+    EventMask: AWord;
+    UpTmr: TEventTimer;
+    UpdTicks: LongInt;
+    MaxValue: LongInt;
+    CurValue: LongInt;
+  end;
+
+  PWhileView = ^TWhileView;
+  TWhileView = packed record
+    VMT: PWhileViewVMT;
+    ObjectIsInited: Boolean;
+    Owner: PGroup;
+    Next: PView;
+    Origin: TPoint;
+    Size: TPoint;
+    Cursor: TPoint;
+    GrowMode: Byte;
+    DragMode: Byte;
+    HelpCtx: AWord;
+    State: AWord;
+    Options: AWord;
+    EventMask: AWord;
+    UpTmr: TEventTimer;
+    UpdTicks: LongInt;
+    Last: PView;
+    Current: PView;
+    Phase: TPhase;
+    Buffer: PVideoBuf;
+    Clip: TRect;
+    LockFlag: Byte;
+    EndState: Word;
+    Lines: PCollection;
+    But: PButton;
+    QuitNormal: Boolean;
+    Top, Bottom: String[255];
+    Side: (sdLeft, sdRight);
+  end;
+
+  PViewScroll = ^TViewScroll;
+  TViewScroll = packed record
+    VMT: PViewScrollVMT;
+    ObjectIsInited: Boolean;
+    Owner: PGroup;
+    Next: PView;
+    Origin: TPoint;
+    Size: TPoint;
+    Cursor: TPoint;
+    GrowMode: Byte;
+    DragMode: Byte;
+    HelpCtx: AWord;
+    State: AWord;
+    Options: AWord;
+    EventMask: AWord;
+    UpTmr: TEventTimer;
+    UpdTicks: LongInt;
+    MaxV, Value: LongInt;
+  end;
+
+  PFileViewer = ^TFileViewer;
+  TFileViewer = packed record
+    VMT: PFileViewerVMT;
+    ObjectIsInited: Boolean;
+    Owner: PGroup;
+    Next: PView;
+    Origin: TPoint;
+    Size: TPoint;
+    Cursor: TPoint;
+    GrowMode: Byte;
+    DragMode: Byte;
+    HelpCtx: AWord;
+    State: AWord;
+    Options: AWord;
+    EventMask: AWord;
+    UpTmr: TEventTimer;
+    UpdTicks: LongInt;
+    OldSizeX: Integer;
+    Filtr: Boolean;
+    NoEdit: Boolean;
+    FileName: String;
+    VFileName: String;
+    Buf: PByteArray;
+    Fl: PStream;
+    UpdateViewTmr: TEventTimer;
+    XDelta, ViewMode, HexPos: AInt;
+    SearchActive: Boolean;
+    SearchResultVisible: Boolean;
+    SearchX: LongInt;
+    SB: PView;
+    Wrap: Byte;
+    Lines: array[0..200] of
+      record
+        Pos: LongInt;
+        Len: Word;
+      end;
+    FilePos, FileSize, NumLines: LongInt;
+    ExposedPos, ExposedLine: longInt;
+    Cur: TPoint;
+    Info: PView;
+    BufPos: LongInt;
+    BufSize, MaxLines: LongInt;
+    BufLines: AInt;
+    KillAfterUse, IsValid, QuickView, Loaded, HexEdit, BufModified: Boolean;
+    FakeKillAfterUse: Boolean;
+    Filter: Byte;
+    Xlat: array[Char] of Char;
+    UseXlat: Boolean;
+    XlatFile: PString;
+    KeyMap: TKeyMap;
+    MarkPos: TPosArray;
+    CtrlK: Boolean;
+    CtrlQ: Boolean;
+    HiLite: Boolean;
+    ScrollEof: Boolean;
+    HiLitePar: THighliteParams;
+  end;
+
+  PDrive = ^TDrive;
+  TDrive = packed record
+    VMT: PDriveVMT;
+    ObjectIsInited: Boolean;
+    Owner: Pointer;
+    Prev: PDrive;
+    DriveType: TDriveType;
+    CurDir: String;
+    DIZOwner: String;
+    NoMemory: Boolean;
+    Flags: AWord;
+    LFNLen: Byte;
+    EXTLen: Byte;
+    DirFLP, FilFLP: AWord;
+    Param, OldParam: Byte;
+    Innum: Byte;
+    SizeX: LongInt;
+    {$IFDEF OS2}
+    ShowLogNames: Boolean;
+    {$ENDIF}
+  end;
+
+  PFindDrive = ^TFindDrive;
+  TFindDrive = packed record
+    VMT: PFindDriveVMT;
+    ObjectIsInited: Boolean;
+    Owner: Pointer;
+    Prev: PDrive;
+    DriveType: TDriveType;
+    CurDir: String;
+    DIZOwner: String;
+    NoMemory: Boolean;
+    Flags: AWord;
+    LFNLen: Byte;
+    EXTLen: Byte;
+    DirFLP, FilFLP: AWord;
+    Param, OldParam: Byte;
+    Innum: Byte;
+    SizeX: LongInt;
+    {$IFDEF OS2}
+    ShowLogNames: Boolean;
+    {$ENDIF}
+    IsDisposable: Boolean;
+    Files: PFilesCollection;
+    Dirs: PSortedCollection;
+    ListFile: PString;
+    UpFile: PFileRec;
+    AllowPack: Boolean;
+    AMask, AWhat: PString;
+  end;
+
+  PTempDrive = ^TTempDrive;
+  TTempDrive = packed record
+    VMT: PTempDriveVMT;
+    ObjectIsInited: Boolean;
+    Owner: Pointer;
+    Prev: PDrive;
+    DriveType: TDriveType;
+    CurDir: String;
+    DIZOwner: String;
+    NoMemory: Boolean;
+    Flags: AWord;
+    LFNLen: Byte;
+    EXTLen: Byte;
+    DirFLP, FilFLP: AWord;
+    Param, OldParam: Byte;
+    Innum: Byte;
+    SizeX: LongInt;
+    {$IFDEF OS2}
+    ShowLogNames: Boolean;
+    {$ENDIF}
+    IsDisposable: Boolean;
+    Files: PFilesCollection;
+    Dirs: PSortedCollection;
+    ListFile: PString;
+    UpFile: PFileRec;
+    AllowPack: Boolean;
+    AMask, AWhat: PString;
+  end;
+
+  PArcDrive = ^TArcDrive;
+  TArcDrive = packed record
+    VMT: PArcDriveVMT;
+    ObjectIsInited: Boolean;
+    Owner: Pointer;
+    Prev: PDrive;
+    DriveType: TDriveType;
+    CurDir: String;
+    DIZOwner: String;
+    NoMemory: Boolean;
+    Flags: AWord;
+    LFNLen: Byte;
+    EXTLen: Byte;
+    DirFLP, FilFLP: AWord;
+    Param, OldParam: Byte;
+    Innum: Byte;
+    SizeX: LongInt;
+    {$IFDEF OS2}
+    ShowLogNames: Boolean;
+    {$ENDIF}
+    ArcName: String;
+    VArcName: String;
+    AType: Pointer{PARJArchive};
+    Files: Pointer{PDirStorage};
+    KillAfterUse: Boolean;
+    FakeKillAfterUse: Boolean;
+    ArcDate: LongInt;
+    ForceRescan: Boolean;
+    Password: String;
+  end;
+
+  PArvidDrive = ^TArvidDrive;
+  TArvidDrive = packed record
+    VMT: PArvidDriveVMT;
+    ObjectIsInited: Boolean;
+    Owner: Pointer;
+    Prev: PDrive;
+    DriveType: TDriveType;
+    CurDir: String;
+    DIZOwner: String;
+    NoMemory: Boolean;
+    Flags: AWord;
+    LFNLen: Byte;
+    EXTLen: Byte;
+    DirFLP, FilFLP: AWord;
+    Param, OldParam: Byte;
+    Innum: Byte;
+    SizeX: LongInt;
+    {$IFDEF OS2}
+    ShowLogNames: Boolean;
+    {$ENDIF}
+    Name: PString;
+    Stream: PStream;
+    CurFile: LongInt;
+    CurDirPos: LongInt;
+    PosTableOfs: LongInt;
+    CurFileNum: AWord;
+    CurLevel: AWord;
+    CurDate: LongInt;
+    KillAfterUse: Boolean;
+    FileType: TAvdType;
+    D: TTdrHeader;
+    AVT: TAvtHeader;
+    TapeFmt: AWord;
+    TapeTotalTime: AWord;
+    TapeRecordedTime: AWord;
+    TotFiles: LongInt;
+    TotLen: LongInt;
+    CurDirCellPos: LongInt;
   end;
 
 
@@ -2327,6 +2639,335 @@ type
     ReactOnCmd: function(Obj: Pointer): Boolean;
   end;
 
+  TPercentGaugeVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Awaken: procedure(Obj: Pointer);
+    CalcBounds: procedure(var Bounds: TRect; Delta: TPoint; Obj: Pointer);
+    ChangeBounds: procedure(var Bounds: TRect; Obj: Pointer);
+    DataSize: function(Obj: Pointer): Word;
+    Draw: procedure(Obj: Pointer);
+    EndModal: procedure(Command: Word; Obj: Pointer);
+    Execute: function(Obj: Pointer): Word;
+    GetData: procedure(var Rec; Obj: Pointer);
+    GetEvent: procedure(var Event: TEvent; Obj: Pointer);
+    GetHelpCtx: function(Obj: Pointer): Word;
+    GetPalette: function(Obj: Pointer): PPalette;
+    HandleEvent: procedure(var Event: TEvent; Obj: Pointer);
+    PutEvent: procedure(var Event: TEvent; Obj: Pointer);
+    SetData: procedure(var Rec; Obj: Pointer);
+    SetState: procedure(AState: Word; Enable: Boolean; Obj: Pointer);
+    SizeLimits: procedure(var Min, Max: TPoint; Obj: Pointer);
+    Valid: function(Command: Word; Obj: Pointer): Boolean;
+    Update: procedure(Obj: Pointer);
+    ResetCursor: procedure(Obj: Pointer);
+    UpdateView: procedure(Progress: LongInt; Obj: Pointer);
+  end;
+
+  TBarGaugeVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Awaken: procedure(Obj: Pointer);
+    CalcBounds: procedure(var Bounds: TRect; Delta: TPoint; Obj: Pointer);
+    ChangeBounds: procedure(var Bounds: TRect; Obj: Pointer);
+    DataSize: function(Obj: Pointer): Word;
+    Draw: procedure(Obj: Pointer);
+    EndModal: procedure(Command: Word; Obj: Pointer);
+    Execute: function(Obj: Pointer): Word;
+    GetData: procedure(var Rec; Obj: Pointer);
+    GetEvent: procedure(var Event: TEvent; Obj: Pointer);
+    GetHelpCtx: function(Obj: Pointer): Word;
+    GetPalette: function(Obj: Pointer): PPalette;
+    HandleEvent: procedure(var Event: TEvent; Obj: Pointer);
+    PutEvent: procedure(var Event: TEvent; Obj: Pointer);
+    SetData: procedure(var Rec; Obj: Pointer);
+    SetState: procedure(AState: Word; Enable: Boolean; Obj: Pointer);
+    SizeLimits: procedure(var Min, Max: TPoint; Obj: Pointer);
+    Valid: function(Command: Word; Obj: Pointer): Boolean;
+    Update: procedure(Obj: Pointer);
+    ResetCursor: procedure(Obj: Pointer);
+    UpdateView: procedure(Progress: LongInt; Obj: Pointer);
+  end;
+
+  TWhileViewVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Awaken: procedure(Obj: Pointer);
+    CalcBounds: procedure(var Bounds: TRect; Delta: TPoint; Obj: Pointer);
+    ChangeBounds: procedure(var Bounds: TRect; Obj: Pointer);
+    DataSize: function(Obj: Pointer): Word;
+    Draw: procedure(Obj: Pointer);
+    EndModal: procedure(Command: Word; Obj: Pointer);
+    Execute: function(Obj: Pointer): Word;
+    GetData: procedure(var Rec; Obj: Pointer);
+    GetEvent: procedure(var Event: TEvent; Obj: Pointer);
+    GetHelpCtx: function(Obj: Pointer): Word;
+    GetPalette: function(Obj: Pointer): PPalette;
+    HandleEvent: procedure(var Event: TEvent; Obj: Pointer);
+    PutEvent: procedure(var Event: TEvent; Obj: Pointer);
+    SetData: procedure(var Rec; Obj: Pointer);
+    SetState: procedure(AState: Word; Enable: Boolean; Obj: Pointer);
+    SizeLimits: procedure(var Min, Max: TPoint; Obj: Pointer);
+    Valid: function(Command: Word; Obj: Pointer): Boolean;
+    Update: procedure(Obj: Pointer);
+    ResetCursor: procedure(Obj: Pointer);
+    EventError: procedure(var Event: TEvent; Obj: Pointer);
+    Redraw: procedure(Obj: Pointer);
+  end;
+
+  TViewScrollVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Awaken: procedure(Obj: Pointer);
+    CalcBounds: procedure(var Bounds: TRect; Delta: TPoint; Obj: Pointer);
+    ChangeBounds: procedure(var Bounds: TRect; Obj: Pointer);
+    DataSize: function(Obj: Pointer): Word;
+    Draw: procedure(Obj: Pointer);
+    EndModal: procedure(Command: Word; Obj: Pointer);
+    Execute: function(Obj: Pointer): Word;
+    GetData: procedure(var Rec; Obj: Pointer);
+    GetEvent: procedure(var Event: TEvent; Obj: Pointer);
+    GetHelpCtx: function(Obj: Pointer): Word;
+    GetPalette: function(Obj: Pointer): PPalette;
+    HandleEvent: procedure(var Event: TEvent; Obj: Pointer);
+    PutEvent: procedure(var Event: TEvent; Obj: Pointer);
+    SetData: procedure(var Rec; Obj: Pointer);
+    SetState: procedure(AState: Word; Enable: Boolean; Obj: Pointer);
+    SizeLimits: procedure(var Min, Max: TPoint; Obj: Pointer);
+    Valid: function(Command: Word; Obj: Pointer): Boolean;
+    Update: procedure(Obj: Pointer);
+    ResetCursor: procedure(Obj: Pointer);
+  end;
+
+  TFileViewerVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Awaken: procedure(Obj: Pointer);
+    CalcBounds: procedure(var Bounds: TRect; Delta: TPoint; Obj: Pointer);
+    ChangeBounds: procedure(var Bounds: TRect; Obj: Pointer);
+    DataSize: function(Obj: Pointer): Word;
+    Draw: procedure(Obj: Pointer);
+    EndModal: procedure(Command: Word; Obj: Pointer);
+    Execute: function(Obj: Pointer): Word;
+    GetData: procedure(var Rec; Obj: Pointer);
+    GetEvent: procedure(var Event: TEvent; Obj: Pointer);
+    GetHelpCtx: function(Obj: Pointer): Word;
+    GetPalette: function(Obj: Pointer): PPalette;
+    HandleEvent: procedure(var Event: TEvent; Obj: Pointer);
+    PutEvent: procedure(var Event: TEvent; Obj: Pointer);
+    SetData: procedure(var Rec; Obj: Pointer);
+    SetState: procedure(AState: Word; Enable: Boolean; Obj: Pointer);
+    SizeLimits: procedure(var Min, Max: TPoint; Obj: Pointer);
+    Valid: function(Command: Word; Obj: Pointer): Boolean;
+    Update: procedure(Obj: Pointer);
+    ResetCursor: procedure(Obj: Pointer);
+    HideView: procedure(Obj: Pointer);
+    ShowView: procedure(Obj: Pointer);
+    CountDown: procedure(Obj: Pointer; ANumber: Integer);
+    CountUp: procedure(Obj: Pointer; ANumber: Integer);
+    MakeLines: procedure(Obj: Pointer);
+  end;
+
+  TDriveVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
+    KillUse: procedure(Obj: Pointer);
+    lChDir: procedure(ADir: String; Obj: Pointer);
+    GetDir: function(Obj: Pointer): String;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    EraseFiles: procedure(Files: PCollection; Obj: Pointer);
+    UseFile: procedure(P: PFileRec; Command: Word; Obj: Pointer);
+    GetFreeSpace: procedure(var S: String; Obj: Pointer);
+    Disposable: function(Obj: Pointer): Boolean;
+    GetRealName: function(Obj: Pointer): String;
+    GetInternalName: function(Obj: Pointer): String;
+    GetFull: procedure(var B; P: PFileRec; C, SC: Word; Obj: Pointer);
+    GetEmpty: procedure(var B; SC: Word; Obj: Pointer);
+    CalcLengthWithoutName: function(Obj: Pointer): Integer;
+    CalcLength: function(Obj: Pointer): Integer;
+    RereadDirectory: procedure(S: String; Obj: Pointer);
+    MakeTop: procedure(var S: String; Obj: Pointer);
+    GetDown: procedure(var B; C: Word; P: PFileRec; Obj: Pointer);
+    HandleCommand: procedure(Command: Word; InfoPtr: Pointer; Obj: Pointer);
+    GetDirInfo: procedure(var B: TDiskInfoRec; Obj: Pointer);
+    GetRealDir: function(Obj: Pointer): String;
+    MakeDir: procedure(Obj: Pointer);
+    IsUp: function(Obj: Pointer): Boolean;
+    ChangeUp: procedure(var S: String; Obj: Pointer);
+    ChangeRoot: procedure(Obj: Pointer);
+    GetFullFlags: function(Obj: Pointer): Word;
+    EditDescription: procedure(PF: PFileRec; Obj: Pointer);
+    GetDirLength: procedure(PF: PFileRec; Obj: Pointer);
+    GetParam: procedure(N: Byte; Obj: Pointer);
+  end;
+
+  TFindDriveVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
+    KillUse: procedure(Obj: Pointer);
+    lChDir: procedure(ADir: String; Obj: Pointer);
+    GetDir: function(Obj: Pointer): String;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    EraseFiles: procedure(Files: PCollection; Obj: Pointer);
+    UseFile: procedure(P: PFileRec; Command: Word; Obj: Pointer);
+    GetFreeSpace: procedure(var S: String; Obj: Pointer);
+    Disposable: function(Obj: Pointer): Boolean;
+    GetRealName: function(Obj: Pointer): String;
+    GetInternalName: function(Obj: Pointer): String;
+    GetFull: procedure(var B; P: PFileRec; C, SC: Word; Obj: Pointer);
+    GetEmpty: procedure(var B; SC: Word; Obj: Pointer);
+    CalcLengthWithoutName: function(Obj: Pointer): Integer;
+    CalcLength: function(Obj: Pointer): Integer;
+    RereadDirectory: procedure(S: String; Obj: Pointer);
+    MakeTop: procedure(var S: String; Obj: Pointer);
+    GetDown: procedure(var B; C: Word; P: PFileRec; Obj: Pointer);
+    HandleCommand: procedure(Command: Word; InfoPtr: Pointer; Obj: Pointer);
+    GetDirInfo: procedure(var B: TDiskInfoRec; Obj: Pointer);
+    GetRealDir: function(Obj: Pointer): String;
+    MakeDir: procedure(Obj: Pointer);
+    IsUp: function(Obj: Pointer): Boolean;
+    ChangeUp: procedure(var S: String; Obj: Pointer);
+    ChangeRoot: procedure(Obj: Pointer);
+    GetFullFlags: function(Obj: Pointer): Word;
+    EditDescription: procedure(PF: PFileRec; Obj: Pointer);
+    GetDirLength: procedure(PF: PFileRec; Obj: Pointer);
+    GetParam: procedure(N: Byte; Obj: Pointer);
+  end;
+
+  TTempDriveVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
+    KillUse: procedure(Obj: Pointer);
+    lChDir: procedure(ADir: String; Obj: Pointer);
+    GetDir: function(Obj: Pointer): String;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    EraseFiles: procedure(Files: PCollection; Obj: Pointer);
+    UseFile: procedure(P: PFileRec; Command: Word; Obj: Pointer);
+    GetFreeSpace: procedure(var S: String; Obj: Pointer);
+    Disposable: function(Obj: Pointer): Boolean;
+    GetRealName: function(Obj: Pointer): String;
+    GetInternalName: function(Obj: Pointer): String;
+    GetFull: procedure(var B; P: PFileRec; C, SC: Word; Obj: Pointer);
+    GetEmpty: procedure(var B; SC: Word; Obj: Pointer);
+    CalcLengthWithoutName: function(Obj: Pointer): Integer;
+    CalcLength: function(Obj: Pointer): Integer;
+    RereadDirectory: procedure(S: String; Obj: Pointer);
+    MakeTop: procedure(var S: String; Obj: Pointer);
+    GetDown: procedure(var B; C: Word; P: PFileRec; Obj: Pointer);
+    HandleCommand: procedure(Command: Word; InfoPtr: Pointer; Obj: Pointer);
+    GetDirInfo: procedure(var B: TDiskInfoRec; Obj: Pointer);
+    GetRealDir: function(Obj: Pointer): String;
+    MakeDir: procedure(Obj: Pointer);
+    IsUp: function(Obj: Pointer): Boolean;
+    ChangeUp: procedure(var S: String; Obj: Pointer);
+    ChangeRoot: procedure(Obj: Pointer);
+    GetFullFlags: function(Obj: Pointer): Word;
+    EditDescription: procedure(PF: PFileRec; Obj: Pointer);
+    GetDirLength: procedure(PF: PFileRec; Obj: Pointer);
+    GetParam: procedure(N: Byte; Obj: Pointer);
+  end;
+
+  TArcDriveVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
+    KillUse: procedure(Obj: Pointer);
+    lChDir: procedure(ADir: String; Obj: Pointer);
+    GetDir: function(Obj: Pointer): String;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    EraseFiles: procedure(Files: PCollection; Obj: Pointer);
+    UseFile: procedure(P: PFileRec; Command: Word; Obj: Pointer);
+    GetFreeSpace: procedure(var S: String; Obj: Pointer);
+    Disposable: function(Obj: Pointer): Boolean;
+    GetRealName: function(Obj: Pointer): String;
+    GetInternalName: function(Obj: Pointer): String;
+    GetFull: procedure(var B; P: PFileRec; C, SC: Word; Obj: Pointer);
+    GetEmpty: procedure(var B; SC: Word; Obj: Pointer);
+    CalcLengthWithoutName: function(Obj: Pointer): Integer;
+    CalcLength: function(Obj: Pointer): Integer;
+    RereadDirectory: procedure(S: String; Obj: Pointer);
+    MakeTop: procedure(var S: String; Obj: Pointer);
+    GetDown: procedure(var B; C: Word; P: PFileRec; Obj: Pointer);
+    HandleCommand: procedure(Command: Word; InfoPtr: Pointer; Obj: Pointer);
+    GetDirInfo: procedure(var B: TDiskInfoRec; Obj: Pointer);
+    GetRealDir: function(Obj: Pointer): String;
+    MakeDir: procedure(Obj: Pointer);
+    IsUp: function(Obj: Pointer): Boolean;
+    ChangeUp: procedure(var S: String; Obj: Pointer);
+    ChangeRoot: procedure(Obj: Pointer);
+    GetFullFlags: function(Obj: Pointer): Word;
+    EditDescription: procedure(PF: PFileRec; Obj: Pointer);
+    GetDirLength: procedure(PF: PFileRec; Obj: Pointer);
+    GetParam: procedure(N: Byte; Obj: Pointer);
+  end;
+
+  TArvidDriveVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure(DP: Integer; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
+    KillUse: procedure(Obj: Pointer);
+    lChDir: procedure(ADir: String; Obj: Pointer);
+    GetDir: function(Obj: Pointer): String;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
+    EraseFiles: procedure(Files: PCollection; Obj: Pointer);
+    UseFile: procedure(P: PFileRec; Command: Word; Obj: Pointer);
+    GetFreeSpace: procedure(var S: String; Obj: Pointer);
+    Disposable: function(Obj: Pointer): Boolean;
+    GetRealName: function(Obj: Pointer): String;
+    GetInternalName: function(Obj: Pointer): String;
+    GetFull: procedure(var B; P: PFileRec; C, SC: Word; Obj: Pointer);
+    GetEmpty: procedure(var B; SC: Word; Obj: Pointer);
+    CalcLengthWithoutName: function(Obj: Pointer): Integer;
+    CalcLength: function(Obj: Pointer): Integer;
+    RereadDirectory: procedure(S: String; Obj: Pointer);
+    MakeTop: procedure(var S: String; Obj: Pointer);
+    GetDown: procedure(var B; C: Word; P: PFileRec; Obj: Pointer);
+    HandleCommand: procedure(Command: Word; InfoPtr: Pointer; Obj: Pointer);
+    GetDirInfo: procedure(var B: TDiskInfoRec; Obj: Pointer);
+    GetRealDir: function(Obj: Pointer): String;
+    MakeDir: procedure(Obj: Pointer);
+    IsUp: function(Obj: Pointer): Boolean;
+    ChangeUp: procedure(var S: String; Obj: Pointer);
+    ChangeRoot: procedure(Obj: Pointer);
+    GetFullFlags: function(Obj: Pointer): Word;
+    EditDescription: procedure(PF: PFileRec; Obj: Pointer);
+    GetDirLength: procedure(PF: PFileRec; Obj: Pointer);
+    GetParam: procedure(N: Byte; Obj: Pointer);
+  end;
+
 const
   TEmptyObject_VMTSize              = SizeOf(TEmptyObjectVMT) div 4 - 3;
   TObject_VMTSize                   = SizeOf(TObjectVMT) div 4 - 3;
@@ -2375,6 +3016,16 @@ const
   TUniWindow_VMTSize                = SizeOf(TUniWindowVMT) div 4 - 3;
   TEditWindow_VMTSize               = SizeOf(TEditWindowVMT) div 4 - 3;
   TXFileEditor_VMTSize              = SizeOf(TXFileEditorVMT) div 4 - 3;
+  TPercentGauge_VMTSize             = SizeOf(TPercentGaugeVMT) div 4 - 3;
+  TBarGauge_VMTSize                 = SizeOf(TBarGaugeVMT) div 4 - 3;
+  TWhileView_VMTSize                = SizeOf(TWhileViewVMT) div 4 - 3;
+  TViewScroll_VMTSize               = SizeOf(TViewScrollVMT) div 4 - 3;
+  TFileViewer_VMTSize               = SizeOf(TFileViewerVMT) div 4 - 3;
+  TDrive_VMTSize                    = SizeOf(TDriveVMT) div 4 - 3;
+  TFindDrive_VMTSize                = SizeOf(TFindDriveVMT) div 4 - 3;
+  TTempDrive_VMTSize                = SizeOf(TTempDriveVMT) div 4 - 3;
+  TArcDrive_VMTSize                 = SizeOf(TArcDriveVMT) div 4 - 3;
+  TArvidDrive_VMTSize               = SizeOf(TArvidDriveVMT) div 4 - 3;
 
 implementation
 

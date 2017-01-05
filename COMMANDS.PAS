@@ -121,6 +121,7 @@ CONST
   kbTab   = $000F09; kbShiftTab   = $030F00; kbCtrlTab   = $049400; kbAltTab   = $08A500;
   kbEnter = $001C0D; kbShiftEnter = $031C0D; kbCtrlEnter = $041C0A; kbAltEnter = $081C00;
   kbSpace = $003920; kbShiftSpace = $033920; kbCtrlSpace = $043920; kbAltSpace = $083920;
+  kbAltGrayEnter = $08A600;
 
   kbAltShiftTilde  = $0B2900; kbCtrlAltTilde  = $0C2900;
   kbCtrlShiftBack  = $070E7F; kbAltShiftBack  = $0B0E00;
@@ -277,6 +278,7 @@ CONST
   kbGrayMinus = $004A2D; kbShiftGrayMinus = $034A2D;
   kbGrayAst   = $00372A; kbShiftGrayAst   = $03372A;
   kbGraySlash = $00E02F; kbShiftGraySlash = $03E02F;
+  kbNumPad5   = $008F00; kbCtrlNumPad5  = $048F00; {AK155}
 
   kbCtrlGrayPlus  = $049000; kbAltGrayPlus  = $084E00;
   kbCtrlGrayMinus = $048E00; kbAltGrayMinus = $084A00;
@@ -393,6 +395,7 @@ const
   vmExternal  =  32;
   vmDB        = 100;
   vmSpread    = 101;
+  vmSpreadSL  = 111; {AK155: это с линиями между колонками}
   vmPKT       = 102;
   vmMSG       = 103;
 
@@ -685,7 +688,7 @@ const
   ttCust8        = 11;
   ttCust9        = 12;
   ttCust10       = 13; {JO}
-
+  ttUpDir        = 14; {AK155}
 {Phones}
   cmHold    = 11304;
   cmUnhold  = 11005;
@@ -1338,20 +1341,29 @@ const
   cmSingleRename      = 199; {JO}
   cmGotoCell          = 508;
 
+  NumSortModes = 8;
 
-{$IFDEF OS_DOS}
- {$I SORT_DOS.INC}
-{$ELSE}
- {$IFDEF DPMI32}
-  {$I SORT_DOS.INC}
- {$ENDIF}
- {$IFDEF Win32}
-  {$I SORT_W32.INC}
- {$ENDIF}
- {$IFDEF OS2}
-  {$I SORT_OS2.INC}
- {$ENDIF}
-{$ENDIF}
+{ Sort commands }
+  cmSortName          = 13001;
+  cmSortExt           = 13002;
+  cmSortSize          = 13003;
+  cmSortDate          = 13004;
+  cmSortCrDate        = 13005;
+  cmSortLADate        = 13006;
+  cmSortDIZ           = 13007;
+  cmSortType          = 13060;
+  cmSortUnsorted      = 13000;
+
+{ Panel sort mode }
+  psmLongName  = 1;
+  psmLongExt   = 2;
+  psmSize      = 3;
+  psmTime      = 4;
+  psmCrTime    = 5;
+  psmLATime    = 6;
+  psmDIZ       = 7;
+  psmUnsorted  = 0;
+  psmOrdered   = 60;
 
 { DblWnd Commands }
 
@@ -1670,9 +1682,7 @@ TYPE
     dlChangeDir,
     dlSetAttr,
     dlSortName,
-    dlSortLongName,
     dlSortExt,
-    dlSortLongExt,
     dlSortType,
     dlSortDate,
     dlSortCrDate,
@@ -2616,6 +2626,7 @@ TYPE
     dl_Failed_to_enumerate_EA, {JO - Extended Attributes}
     dl_Failed_to_retrieve_EA,
     dl_Failed_to_store_EA,
+    dl_Critical_EA_Copy_Fail,
     dlEditEALongname,
     dl_EALongname, {/JO}
     dlChangeLngWarning, {JO}
@@ -2677,6 +2688,8 @@ TYPE
     dlWkzQuerySeparatorTitle, {KV}
     dlWkzQuerySeparatorLabel, {KV}
     dlWkzWarningClear,
+    dlWkzWarningClearCell, {AK155}
+    dlWkzWarningCellTypeChange, {AK155}
     dlZIPWithoutCentralDir,   {JO}
     dlArcEncrypted,           {JO}
 {AK155}
@@ -2685,8 +2698,9 @@ TYPE
     dlWrongText,
     dlNoOperand,
     dlMissingOperation,
-    dlWrongComma
+    dlWrongComma,
 {/AK155}
+    dlOperationNotValidForDdrive {JO}
       );
 
       TDlgIdx = (

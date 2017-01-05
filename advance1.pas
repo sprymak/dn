@@ -173,6 +173,7 @@ procedure CompressString(var S: LongString);
 {AK155}
 function PosLastDot(StrToMake: String): Byte;
 function IsDummyDir(const DirName: string): boolean;
+procedure CopyShortString(const s1, s2: ShortString);
 {/AK155}
 
 implementation
@@ -191,7 +192,6 @@ function StrGrd(AMax, ACur: TSize; Wide: {$IFDEF USEANSISTRING} LongInt {$ELSE} 
 var
   A: Byte;
 begin
-  LowPrec(AMax, ACur);
   if AMax = 0 then A := Wide else A := Round((ACur*Wide) / AMax);
   if Rev then StrGrd := Strg(#177, Wide-A)+Strg(#219,A)
          else StrGrd := Strg(#219,A)+Strg(#177, Wide-A);
@@ -199,7 +199,6 @@ end;
 
 function Percent(AMax, ACur: TSize): TSize;
 begin
-  LowPrec(AMax, ACur);
   if AMax = 0 then Percent := 0 else Percent := (ACur*100) / AMax;
 end;
 
@@ -502,59 +501,25 @@ begin
 end;
 
 {$IFNDEF USEANSISTRING}
-Procedure DelRight;
+Procedure DelRight(var S: string);
 {$IFNDEF NOASM}
  assembler ;
- {$IFNDEF BIT_32}
- asm
-     mov  dx, ds
-     lds  si, S
-     mov  di, si
-     xor  ax, ax
-     mov  al, byte ptr ds:si
-     inc  al
-     add  si, ax
- @@SearchNoSpace:
-     dec  si
-     cmp  si, di
-     je   @@Exit
-     mov  al, DS:[SI]
-     cmp  al, ' '
-     je   @@SearchNoSpace
-     cmp  al, 9
-     je   @@SearchNoSpace
- @@Exit:
-     mov ax, si
-     sub ax, di
-     mov byte ptr ds:di, al
- @@Exit2:
-     mov ds, dx
- end;
- {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI}
+ {&Frame-}{$USES ESI, EBX}
  asm
      mov  esi, S
-     mov  edi, S
-     xor  eax, eax
-     mov  al, byte ptr [esi]
-     inc  al
-     add  esi, eax
- @@SearchNoSpace:
-     dec  esi
-     cmp  esi, edi
-     je   @@Exit
-     mov  al, [ESI]
+     movzx ebx, byte ptr [esi] {длина}
+     inc  ebx
+ @@Next:
+     dec  ebx
+{специальный анализ длины на 0 не нужен, так как 0 - это не пробел и не Tab}
+     mov  al, byte ptr [esi+ebx]
      cmp  al, ' '
-     je   @@SearchNoSpace
+     je   @@Next
      cmp  al, 9
-     je   @@SearchNoSpace
- @@Exit:
-     mov eax, esi
-     sub eax, edi
-     mov byte ptr [edi], al
- @@Exit2:
+     je   @@Next
+     mov  byte ptr[esi], bl
  end;
- {$ENDIF}
-{$ELSE}
+{$ELSE NoAsm}
 var L: Byte absolute S;
 begin
   while L > 0 do
@@ -1280,7 +1245,7 @@ FUNCTION  CharCount(C: Char; const S: string): Byte; {DataCompBoy}
  end;
  {$ELSE BIT_32}{&Frame-}{$USES ESI, EBX, ECX}
  asm
-  lea esi, S
+  mov esi, S
   xor ebx, ebx
   mov bl, byte ptr [esi]
   xor ecx, ecx
@@ -2719,12 +2684,26 @@ function PosLastDot(StrToMake: String): Byte;
 
 function IsDummyDir(const DirName: string): boolean;
   begin
-{$IFNDEF OS_DOS}
   IsDummyDir := (DirName = '.') or (DirName = '..');
-{$ELSE}
-  IsDummyDir := (DirName[1] = '.');
-{$ENDIF}
   end;
+
+procedure CopyShortString(const s1, s2: ShortString);
+   {&Frame-} {$USES ebx,ecx,edi,esi}
+asm
+  mov esi,s1
+  mov edi,s2
+  xor ecx,ecx
+  mov cl,[esi]
+  mov [edi],cl
+  jecxz @@0
+@@1:
+  inc esi
+  inc edi
+  mov al,[esi]
+  mov [edi],al
+  loop @@1
+@@0:
+end;
 
 {/AK155}
 

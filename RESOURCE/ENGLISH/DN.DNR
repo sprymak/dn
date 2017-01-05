@@ -747,6 +747,7 @@ MENU dlgWkzMenuBar
   SubMenu '~T~able', hcSpreadTableMenu,
        MenuItem '~C~ell format', '', kbNoKey, cmChangeFormat, hcSpreadSheet,
        MenuItem 'C~o~lumn width...', '', kbNoKey, cmChangeWidth, hcSpreadSheet,
+       MenuItem '~T~oggle column separators', '', kbNoKey, cmToggleShowMode, hcSpreadSheet,
        MenuLine
        MenuItem '~I~nsert row', '', kbNoKey, cmInsertLine, hcSpreadSheet,
        MenuItem 'I~n~sert column', '', kbNoKey, cmInsertColumn, hcSpreadSheet,
@@ -771,8 +772,8 @@ STATUSLINE
      StatusItem '', kbCtrlF5, cmResize,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
-     StatusItem '~Ins~ Append', kbIns, cmAddVariable,
-     StatusItem '~Del~ Delete', kbDel, cmDelVariable,
+     StatusItem '-~Ins~ Append', kbAltIns, cmAddVariable,
+     StatusItem '-~Del~ Delete', kbAltDel, cmDelVariable,
      StatusItem '~F6~ Rename', kbF6, cmRenVariable,
 
   StatusDef hcHelp, hcHelp,
@@ -1292,6 +1293,7 @@ STATUSLINE
      StatusItem '-De~L~ Row', kbAltL, cmDeleteLine,
      StatusItem '-~D~el Col', kbAltD, cmDeleteColumn,
      StatusItem '-~O~ Cell Format', kbAltO, cmChangeFormat,
+     StatusItem '-~S~eparators', kbAltS, cmToggleShowMode,
      StatusItem '-~Y~ Memory Info', kbAltY, cmMemoryInfo,
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
 ;{CTRL}
@@ -3087,13 +3089,7 @@ DIALOG dlgPanelSetup, 59, 21, 'Panel Options'
     HELPCTX hcPanelSetup
     RadioButtons 2, 3, 26, 14, ofPostProcess, ofPreProcess
       ITEM '~N~ame'
-;$IFNDEF OS2
-      ITEM '~L~ong name'
-;$ENDIF
       ITEM '~E~xtension'
-;$IFNDEF OS2
-      ITEM 'Long e~x~tension'
-;$ENDIF
       ITEM '~S~ize'
       ITEM '~T~ime'
       ITEM 'C~r~eation time'
@@ -3129,13 +3125,7 @@ DIALOG dlgFMDefaults, 60, 20, 'Panel Defaults'
     HELPCTX hcPanelDefaults
     RadioButtons 2, 3, 58, 6, ofPostProcess, ofPreProcess
       ITEM '~N~ame'
-;$IFNDEF OS2
-      ITEM '~L~ong name'
-;$ENDIF
       ITEM '~E~xtension'
-;$IFNDEF OS2
-      ITEM 'Long e~x~tension'
-;$ENDIF
       ITEM '~S~ize'
       ITEM '~T~ime'
       ITEM 'C~r~eation time'

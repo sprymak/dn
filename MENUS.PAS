@@ -407,7 +407,6 @@ var
   AutoSelect: Boolean;
   Action: MenuAction;
   Ch: Char;
-  Result: Word;
   ItemShown, P: PMenuItem;
   Target: PMenuView;
   R: TRect;
@@ -776,7 +775,6 @@ begin
   end;
   if TypeOf(Self) = TypeOf(TMenuBar) then Message(Owner, evCommand, cmMenuOff, @Self);
   MenuActive:=False;
-  Execute := Result;
 end;
 
 function TMenuView.FindItem(Ch: Char): PMenuItem;
@@ -882,13 +880,12 @@ begin
 { AK155 9-07-2002 То, что каждый символ протаскивается через все меню,
 не добавляет скорости. Реально тут хоткеи обрабатываются только для
 неактивного меню, поэтому имеет смысл анализировать только клавиши
-с Ctrl или Alt, а также Shift-GrayPlus, Shift-GrayMinus}
-        if ((Event.KeyCode and $C0000) <> 0)
-            or (Event.KeyCode = kbShiftGrayPlus)
-            or (Event.KeyCode = kbShiftGrayMinus)
-        then
-          begin {/AK155}
-        if (FindItem(GetAltChar(Event.KeyCode)) <> nil) then
+с Ctrl или Alt, а также некоторые с Shift (те, которые не светятся
+в StatusLine). Hо поскольку выискивать все шифтовые клавиши не хочется,
+пусть проверяются все. Реально есть, как минимум, такие:
+GrayPlus, GrayMinus, F2, F10, F11, F12 }
+        if ((Event.KeyCode and $F0000) <> 0){AK155} and
+         (FindItem(GetAltChar(Event.KeyCode)) <> nil) then
           DoSelect
         else
         begin
@@ -900,9 +897,8 @@ begin
             Event.InfoPtr := nil;
             PutEvent(Event);
             ClearEvent(Event);
-{AK155}   end;  {/AK155}
-        end;
           end;
+        end;
       evCommand:
         if Event.Command = cmMenu then DoSelect;
       evBroadcast:

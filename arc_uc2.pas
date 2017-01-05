@@ -255,9 +255,6 @@ NextRecord:
         S := '0'+S;
       FileInfo.FName := FileInfo.FName + ';' + s;
       end;
-    {$IFNDEF OS2}
-    FileInfo.LFN := FileInfo.FName;
-    {$ENDIF}
     {SIZE=}
     system.readln(ListFile, s);
     system.delete(s, 1, 11);

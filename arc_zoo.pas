@@ -52,7 +52,7 @@ unit Arc_ZOO; {ZOO}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, LFNCol{$ENDIF};
+  Archiver, Advance, Advance1, Objects;
 
 type
     PZOOArchive = ^TZOOArchive;

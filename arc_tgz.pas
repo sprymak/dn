@@ -49,7 +49,7 @@ unit Arc_tgz; {TGZ & TAZ & TAR.GZ}
 
 interface
 
-uses Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime, Advance2;
+uses Archiver, Advance, Advance1, Objects, Dos, xTime, Advance2;
 
 type
     PTGZArchive = ^TTGZArchive;

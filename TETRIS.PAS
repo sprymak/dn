@@ -466,7 +466,7 @@ begin
     {$ENDIF}
   end;
   PP := Stop;
-  Stop := On;
+  Stop := true;
   DeskTop^.ExecView(D);
   Stop := PP;
   Dispose(D,Done);
@@ -532,7 +532,7 @@ begin
   inherited SetState(AState, Enable);
   if not Enable and (AState and (sfActive + sfFocused) <> 0) and
      (Owner^.State and sfActive <> 0) and not Stop and
-     ValidMove(0,0) then Stop := On;
+     ValidMove(0,0) then Stop := true;
 end;
 
 function TGameView.MoveFig;
@@ -721,7 +721,7 @@ procedure TGameView.HandleEvent;
 
  procedure Setup;
  begin
-  Stop := On;
+  Stop := true;
   with TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF} do
    begin
     L := Level - 1;

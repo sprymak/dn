@@ -183,7 +183,7 @@ begin
     end else
     if IsSec then begin
       DelLeft(S);
-      InSq:=Off;
+      InSq:=false;
       P:=1;
       For i:=1 to length(S)+1 do
        if ((i>length(s)) and (P<length(s))) or

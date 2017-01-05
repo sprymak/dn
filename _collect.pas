@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines, _Objects, _Streams;
+  _Defines, _Objects, _Streams;
 
 type
   PCollection = ^TCollection;
@@ -117,7 +117,7 @@ end;
 
 constructor TCollection.Load(var S: TStream);
 begin
-  _TCollection^.Load(S, nil, @Self);
+  _TCollection^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 function TCollection.At(Index: LongInt): Pointer;
@@ -227,7 +227,7 @@ end;
 
 procedure TCollection.Store(var S: TStream);
 begin
-  _TCollection^.Store(S, @Self);
+  _TCollection^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TSortedCollection.Init(ALimit, ADelta: LongInt);
@@ -237,7 +237,7 @@ end;
 
 constructor TSortedCollection.Load(var S: TStream);
 begin
-  _TSortedCollection^.Load(S, nil, @Self);
+  _TSortedCollection^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 function TSortedCollection.Compare(Key1, Key2: Pointer): Integer;
@@ -257,7 +257,7 @@ end;
 
 procedure TSortedCollection.Store(var S: TStream);
 begin
-  _TSortedCollection^.Store(S, @Self);
+  _TSortedCollection^.Store(_Model1.TStream(S), @Self);
 end;
 
 procedure TSortedCollection.Sort;
@@ -282,7 +282,7 @@ end;
 
 constructor TFilesCollection.Load(var S: TStream);
 begin
-  _TFilesCollection^.Load(S, nil, @Self);
+  _TFilesCollection^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TFilesCollection.Store(var S: TStream);

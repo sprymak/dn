@@ -1227,7 +1227,7 @@ procedure TApplication.ShowUserScreen;
 begin
  GetExtent(R);
  PV := New(PBackground, Init(R, ' '));
- if CommandLine <> nil then CommandLine^.SetState(sfDisabled, On);
+ if CommandLine <> nil then CommandLine^.SetState(sfDisabled, true);
  {$IFDEF OS_DOS}
  asm
     mov cx, $2020
@@ -1242,7 +1242,7 @@ begin
  if (StartupData.Load and osuResetPalette <> 0) and VGASystem
   then SetPalette(vga_default);
  WhenShow;
- if CommandLine <> nil then CommandLine^.SetState(sfDisabled, Off);
+ if CommandLine <> nil then CommandLine^.SetState(sfDisabled, false);
  if (StartupData.Load and osuResetPalette <> 0) and VGASystem
   then SetPalette(vga_palette);
  PV^.Free;
@@ -1250,11 +1250,11 @@ begin
  (*
  B := ScreenMode; BB := CursorLines;
  HideMouse;
- Inc(SkyEnabled); SkyVisible := On;
+ Inc(SkyEnabled); SkyVisible := true;
  DoneVideo;
 
  WhenShow;
- InitVideo; SetBlink(Off); Dec(SkyEnabled); SkyVisible := Off;
+ InitVideo; SetBlink(false); Dec(SkyEnabled); SkyVisible := false;
 
  InitVideo; CursorLines := BB;
  Redraw; ShowCursor; ShowMouse;

@@ -208,10 +208,10 @@ end;
 function CorrectFile(const N: String): Boolean;
    var I: Integer;
 begin
-   CorrectFile := Off;
+   CorrectFile := false;
    for I := 1 to Length(N) do
        if N[I] in IllegalCharSet then Exit; {DataCompBoy}
-   CorrectFile := On;
+   CorrectFile := true;
 end;
 
         {-DataCompBoy-}
@@ -403,8 +403,8 @@ var s,s1 : string[40];
     B,B1: Byte;
     r: registers;
 begin
- ValidDrive := Off;
- if dr='*' then begin ValidDrive:=On; exit end;
+ ValidDrive := false;
+ if dr='*' then begin ValidDrive:=true; exit end;
  if dr<'A' then exit;
  if (dr < 'C') then
    begin
@@ -483,7 +483,7 @@ begin
  i:=Pos('.',m);
  if i>0 then if i>9 then Delete(m,9,i-9) else Insert(Copy('        ',1,9-i),m,i)
    else m:=Copy(m+Strg(' ',8),1,8)+'.   ';
- i:=1;b:=On;
+ i:=1;b:=true;
  while m[i]<>'.' do
  begin
   if b then
@@ -494,7 +494,7 @@ begin
    Inc(i);
  end;
  Delete(m,1,i);
- i:=1;b:=On;
+ i:=1;b:=true;
  while (i <= 3) and (Length(m) >= i) do
  begin
   if b then
@@ -641,11 +641,11 @@ var i: byte;
     B: Boolean;
     j:boolean;
 begin
-  InFilter:=On;
+  InFilter:=true;
   while Length(Filter) > 0 do
    begin
     i := Length(Filter) + 1;
-    j := Off;
+    j := false;
     repeat
      dec(i);
      if Filter[i]='"' then j:=not j;
@@ -658,7 +658,7 @@ begin
     DelLeft(S); DelRight(S);
     if (S <> '') and InMask(Name, S) then Exit;
    end;
- InFilter:=Off;
+ InFilter:=false;
 end;
         {-DataCompBoy-}
 {JO}
@@ -668,11 +668,11 @@ var i: byte;
     B: Boolean;
     j:boolean;
 begin
-  InDirFilter:=On;
+  InDirFilter:=true;
   while Length(Filter) > 0 do
    begin
     i := Length(Filter) + 1;
-    j := Off;
+    j := false;
     repeat
      dec(i);
      if Filter[i]='"' then j:=not j;
@@ -685,7 +685,7 @@ begin
     DelLeft(S); DelRight(S);
     if (S <> '') and (S[Length(S)] = '\') and InMask(Name, Copy(S, 1, Length(S)-1)) then Exit;
    end;
- InDirFilter:=Off;
+ InDirFilter:=false;
 end;
 {/JO}
 (*
@@ -983,8 +983,8 @@ begin
     dec(i);
     if (Mask[i]<>'?') and (UpCase(Mask[i])<>UpCase(Name[i]))
       and (I <> 9)
-      then begin InOldMask:=Off; Exit end
-  until i=0; InOldMask:=On
+      then begin InOldMask:=false; Exit end
+  until i=0; InOldMask:=true
 end;
         {-DataCompBoy-}
 
@@ -994,7 +994,7 @@ var i:byte;
     S: string[13];
     B: Boolean;
 begin
-  InOldFilter:=On; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
+  InOldFilter:=true; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
   if Filter='' then Exit;
 {$IFNDEF OS2}
@@ -1014,7 +1014,7 @@ begin
 {$ENDIF}
       SetLength(Filter, pred(i));
     end
-  until Length(Filter) = 0; InOldFilter:=Off
+  until Length(Filter) = 0; InOldFilter:=false
 end;
         {-DataCompBoy-}
 *)
@@ -1026,8 +1026,8 @@ begin
   repeat
     dec(i);
     if (Mask[i]='?') or ((Mask[I]=' ') and ValidSpace) or (UpCase(Mask[i])=UpCase(Name[i]))
-      or (I = 9) then else begin InSpaceMask:=Off; Exit end
-  until i=0; InSpaceMask:=On
+      or (I = 9) then else begin InSpaceMask:=false; Exit end
+  until i=0; InSpaceMask:=true
 end;
 
 FUNCTION InSpaceFilter;
@@ -1039,7 +1039,7 @@ var i:byte;
 {$ENDIF}
     B: Boolean;
 begin
-  InSpaceFilter:=On; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
+  InSpaceFilter:=true; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
   if Filter='' then Exit;
 {$IFNDEF OS2}
@@ -1053,13 +1053,13 @@ begin
       if B then Delete(S, 1, 1); {DelFC(S);}
       DelLeft(S);
 {$IFNDEF OS2}
-      if (S <> '') and InSpaceMask(Name, Norm12(S), On) then Exit;
+      if (S <> '') and InSpaceMask(Name, Norm12(S), true) then Exit;
 {$ELSE}
-      if (S <> '') and InSpaceMask(Name, S, On) then Exit;
+      if (S <> '') and InSpaceMask(Name, S, true) then Exit;
 {$ENDIF}
       SetLength(Filter, pred(i));
     end
-  until Length(Filter) = 0; InSpaceFilter:=Off
+  until Length(Filter) = 0; InSpaceFilter:=false
 end;
 
 
@@ -1093,59 +1093,53 @@ end;
 
         {-DataCompBoy-}
 function MkName(const Nm, Mask: String): String;
- var aa,aaa: pstring;
-     bb,bbb: pstring;
-     os: pstring;
+ var aa,aaa: string;
+     bb,bbb: string;
+     os: string;
      i:byte;
      fp:byte;
 begin
- new(aa); new(aaa);
- new(bb); new(bbb);
- new(os);
- lFSplit(Nm,   os^, aa^, aaa^);
- lFSplit(Mask, os^, bb^, bbb^);
- os^:='';
+ lFSplit(Nm,   os, aa, aaa);
+ lFSplit(Mask, os, bb, bbb);
+ os:='';
  fp:=0;
- for i:=1 to length(bb^) do begin
+ for i:=1 to length(bb) do begin
   inc(fp);
-  case bb^[i] of
-   '?': if fp <= Length(aa^) then os^:=os^+aa^[fp];
+  case bb[i] of
+   '?': if fp <= Length(aa) then os:=os+aa[fp];
    '*': begin
-         os^:=os^+copy(aa^, fp, MaxStringLength)+copy(bb^,i+1,MaxStringLength);
-          if pos('*', os^)<>0 then                        {Pavel Anufrikov -> }
+         os:=os+copy(aa, fp, MaxStringLength)+copy(bb,i+1,MaxStringLength);
+          if pos('*', os)<>0 then                        {Pavel Anufrikov -> }
            begin
-            insert(copy(aaa^,2,MaxStringLength),os^,pos('*', os^));
-            aaa^:='';
+            insert(copy(aaa,2,MaxStringLength),os,pos('*', os));
+            aaa:='';
            end;                                           { <- Pavel Anufrikov}
-         while pos('?', os^)<>0 do delete(os^, pos('?', os^), 1);
-         while pos('*', os^)<>0 do delete(os^, pos('*', os^), 1);
+         while pos('?', os)<>0 do delete(os, pos('?', os), 1);
+         while pos('*', os)<>0 do delete(os, pos('*', os), 1);
          break;
         end;
    '>': if fp>2 then dec(fp,2);
    '<': ;
-   else os^:=os^+bb^[i];
+   else os:=os+bb[i];
   end;
  end;
  fp:=0;
- for i:=1 to length(bbb^) do begin
+ for i:=1 to length(bbb) do begin
   inc(fp);
-  case bbb^[i] of
-   '?': if fp <= Length(aaa^) then os^:=os^+aaa^[fp];
+  case bbb[i] of
+   '?': if fp <= Length(aaa) then os:=os+aaa[fp];
    '*': begin
-         os^:=os^+copy(aaa^, fp, MaxStringLength)+copy(bbb^,i+1,MaxStringLength);
-         while pos('?', os^)<>0 do delete(os^, pos('?', os^), 1);
-         while pos('*', os^)<>0 do delete(os^, pos('*', os^), 1);
+         os:=os+copy(aaa, fp, MaxStringLength)+copy(bbb,i+1,MaxStringLength);
+         while pos('?', os)<>0 do delete(os, pos('?', os), 1);
+         while pos('*', os)<>0 do delete(os, pos('*', os), 1);
          break;
         end;
    '>': if fp>2 then dec(fp,2);
    '<': ;
-   else os^:=os^+bbb^[i];
+   else os:=os+bbb[i];
   end;
  end;
- MkName:=os^;
- dispose(os);
- dispose(bbb);dispose(bb);
- dispose(aaa);dispose(aa);
+ MkName:=os;
 end;
         {-DataCompBoy-}
 
@@ -1162,7 +1156,6 @@ end;
 FUNCTION GetName;
 var B: Byte;
 begin
- B:=Length(S);
  For B:=length(S) downto 1 do If S[B] in ['\','/']
    then begin GetName:=Copy(S, B+1, MaxStringLength); Exit end;
  GetName:=S;
@@ -1243,11 +1236,7 @@ FUNCTION GetLongRelPath(Path: string): string;
 Function MakeFileName(S: string): string;
  var I: Integer;
 begin
- S[9] := '.';
- I := 8;
- While (I > 0) and (S[I] = ' ') do begin Delete(S, I, 1); Dec(I); end;
- While S[Length(S)] = ' ' do SetLength(S, Length(S)-1);
- if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
+ if (S <> '..') and (S[Length(S)] = '.') then SetLength(S, Length(S)-1);
  MakeFileName := S;
 end;
 
@@ -1449,11 +1438,11 @@ function  PackMask(const Mask: string; var PM: String {$IFDEF OS_DOS}; LFNDis: b
   if (Mask = x_x) or (Mask='*') then
     begin
       PM:=x_x;
-      PackMask:=off;
+      PackMask:=false;
     end
    else
     begin
-      PackMask:=on;
+      PackMask:=true;
       {!}
       if (PosChar(';', Mask)=0) and (PosChar('[', Mask)=0) then
         begin
@@ -1478,7 +1467,7 @@ function  PackMask(const Mask: string; var PM: String {$IFDEF OS_DOS}; LFNDis: b
                   ) then
                       begin
                         PM := Mask;
-                        PackMask := off;
+                        PackMask := false;
                       end
                      else goto mc;
                 end
@@ -1492,7 +1481,7 @@ mc:   {Place mask comressing here, but do not touch NormMask variable}
             begin
          {$ENDIF}
               PM := Mask;
-              PackMask := off;
+              PackMask := false;
          {$IFDEF OS_DOS}
             end;
          {$ENDIF}
@@ -1512,7 +1501,7 @@ procedure FileChanged(const Name: String);
      Nm: String;
      Xt: String;
 begin
- lFSplit(Name, Dr, Nm, Xt); Abort := Off;
+ lFSplit(Name, Dr, Nm, Xt); Abort := false;
  GlobalMessage(evCommand, cmRereadDir, @Dr);
  GlobalMessage(evCommand, cmRereadInfo, nil);
  GlobalMessage(evCommand, cmRereadTree, @Dr);
@@ -1527,8 +1516,8 @@ function CompareFiles(const N1, N2: String): Boolean;
       B: Boolean;
       I: LongInt;
 begin
-  CompareFiles := Off;
-  B := Off;
+  CompareFiles := false;
+  B := false;
   B1 := nil; B2 := nil;
   S1.Init(N1, stOpenRead);
   if S1.Status <> stOK then begin S1.Done; Exit end;
@@ -1537,7 +1526,7 @@ begin
   B1 := MemAlloc(BufSize); if B1 = nil then Goto Finish;
   B2 := MemAlloc(BufSize); if B2 = nil then Goto Finish;
   I := BufSize;
-  CompareFiles := On;
+  CompareFiles := true;
   while (S1.Status = stOK) and (S2.Status = stOK) and (I > 0) and not B do
     begin
       I := BufSize;

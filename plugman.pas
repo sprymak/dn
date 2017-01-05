@@ -34,7 +34,7 @@ Written by Cat 2:5030/1326.13
 uses
   {$IFDEF OS2} Os2Base, {$ENDIF}
   {$IFDEF WIN32} Windows, {$ENDIF}
-  {Use32,} Dos, VPSysLow, Commands, ObjType,
+  Dos, VPSysLow, Commands, ObjType,
   _Defines, _DNFuncs, _Model1,
   _Objects, _Streams, _Collect, _Views, _Menus, _Dialogs, _Apps;
 

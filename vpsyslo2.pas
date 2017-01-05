@@ -14,8 +14,11 @@ uses
   {$IFDEF WIN32}, Windows , VpKbdW32            {$ENDIF};
 
 function SysTVGetShiftState2: Byte;
-{$IFNDEF OS2}
+{$IFDEF Win32}
 inline; begin Result := VpKbdW32.GetWinShiftState2; end;
+{$ENDIF}
+{$IFDEF DPMI32}
+inline; begin Result := 0; end;
 {$ENDIF}
 
 type
@@ -26,7 +29,7 @@ type
     NameLStr: Pointer;
     Attr: Byte;
     Time: Longint;
-    Size: Longint;
+    Size: Comp; {AK155 то есть TSize}
     Name: ShortString;
     CreationTime: Longint;
     LastAccessTime: Longint;
@@ -103,6 +106,8 @@ var
   LocalFileTime: TFileTime;
   ExclAttr: Longint;
   InclAttr: Longint;
+type
+  CompRec = record Lo, Hi: longint end;
 begin
   // Extract Include/Exclude attributes from F.ExcludeAttr field
   ExclAttr := not F.ExcludeAttr and (file_Attribute_Hidden or file_Attribute_System or $8 or file_Attribute_Directory or file_Attribute_Archive);
@@ -127,7 +132,8 @@ begin
     FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(CreationTime).FDate, TDateTimeRec(CreationTime).FTime);
     FileTimeToLocalFileTime(FindData.ftLastAccessTime, LocalFileTime);
     FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(LastAccessTime).FDate, TDateTimeRec(LastAccessTime).FTime);
-    Size := FindData.nFileSizeLow;
+    CompRec(Size).Lo := FindData.nFileSizeLow;
+    CompRec(Size).Hi := FindData.nFileSizeHigh;
     Attr := FindData.dwFileAttributes;
 {$IFNDEF RecodeWhenDraw}
     if RecodeCyrillicNames = 1 then
@@ -231,7 +237,7 @@ begin
       TDateTimeRec(CreationTime).FDate := fdateCreation;
       TDateTimeRec(LastAccessTime).FTime := ftimeLastAccess;
       TDateTimeRec(LastAccessTime).FDate := fdateLastAccess;
-      Size := cbFile;
+      Size := 0; move(cbFile, Size, 4);
       if IsPChar then
         StrPCopy(PChar(@Name), achName)
       else

@@ -4,6 +4,7 @@
 {  Extended Attributes handling library (c) 2000 by Alexander Trunov [2:5069/10, jnc@os2.ru]}
 
 {$Use32+}
+{$Delphi-}
 { Optimise-}
 
 unit EAOper;
@@ -53,7 +54,12 @@ begin
   PS := PSArr;
   PS := StrPCopy (PS, FName);
   Result := DosQueryPathInfo(PS, FIL_QUERYEASIZE, fst4, SizeOf(fst4));
-  if Result = NO_ERROR then
+  if (Result = NO_ERROR)
+     and (fst4.cbList > 0) then {JO: 30-07-2002 - добавил это условие, т.к.  }
+                                {    например при копировании с ISO-образов, }
+                                {    подмонтированных через NDFS шла         }
+                                {    бессмысленная ругань на невозможность   }
+                                {    прочитать список EA                     }
   begin
     ulSize := fst4.cbList * 2;
     GetMem(pvBuf, ulSize);
@@ -94,11 +100,19 @@ begin
 
   Result := DosQueryPathInfo(PS, FIL_QUERYEASIZE, fst4, SizeOf(fst4));
 
-  if Result = NO_ERROR then
+  if (Result = NO_ERROR)
+     and (fst4.cbList > 0) then
   begin
 
     ulFEASize := 4 + StrLen(pszName) + 1 + fst4.cbList * 2; // approx. :)
     ulGEASize := 4 + 4 + 1 + StrLen(pszName) + 1;
+
+{JO: 31-07-2002  нижележащая строка - багфикс падений при попытке           }
+{    редактировать .LONGNAME на NDFS . Похоже, проблема в том что           }
+{    DosQueryPathInfo на нетдрайвовских дисках для файлов без EA выдаёт     }
+{    значение fst4.cbList не 4, как для нормальных дисков, а 2              }
+
+    if ulFEASize < ulGEASize then ulFEASize := ulGEASize + 4;
 
     GetMem(eaop.fpFEA2List, ulFEASize);
     GetMem(eaop.fpGEA2List, ulGEASize);
@@ -137,6 +151,7 @@ begin
   end
   else
   begin
+    if fst4.cbList = 0 then Result := 48; {JO: ошибка 48 в оси зарезервирована}
     if not Silent then MessageBox(#3'Failed to QUERY EA SIZE for '+ FName+ ' , rc ::= %d.', @result, mfError or mfOkButton);
   end;
 

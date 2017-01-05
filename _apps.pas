@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines, _Streams, _Views, _Dialogs;
+  _Defines, _Streams, _Views, _Dialogs;
 
 type
   PBackground = ^TBackground;
@@ -116,12 +116,12 @@ end;
 
 constructor TBackground.Load(var S: TStream);
 begin
-  _TBackGround^.Load(S, nil, @Self);
+  _TBackGround^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TBackground.Store(var S: TStream);
 begin
-  _TBackGround^.Store(S, @Self);
+  _TBackGround^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TDesktop.Init(var Bounds: TRect);
@@ -131,7 +131,7 @@ end;
 
 constructor TDesktop.Load(var S: TStream);
 begin
-  _TDesktop^.Load(S, nil, @Self);
+  _TDesktop^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TDesktop.Cascade(var R: TRect);
@@ -151,7 +151,7 @@ end;
 
 procedure TDesktop.Store(var S: TStream);
 begin
-  _TDesktop^.Store(S, @Self);
+  _TDesktop^.Store(_Model1.TStream(S), @Self);
 end;
 
 procedure TDesktop.Tile(var R: TRect);
@@ -176,7 +176,7 @@ end;
 
 function TProgram.ExecuteDialog(P: PDialog; Data: Pointer): Word;
 begin
-  Result := _TProgram^.ExecuteDialog(P, Data, @Self);
+  Result := _TProgram^.ExecuteDialog(_Model1.PDialog(P), Data, @Self);
 end;
 
 procedure TProgram.Idle;
@@ -211,12 +211,12 @@ end;
 
 function TProgram.InsertWindow(P: PWindow): PWindow;
 begin
-  Result := _TProgram^.InsertWindow(P, @Self);
+  Result := PWindow(_TProgram^.InsertWindow(_Model1.PWindow(P), @Self));
 end;
 
 procedure TProgram.ActivateView(P: PView);
 begin
-  _TProgram^.ActivateView(P, @Self);
+  _TProgram^.ActivateView(_Model1.PView(P), @Self);
 end;
 
 procedure TProgram.OutOfMemory;
@@ -236,7 +236,7 @@ end;
 
 function TProgram.ValidView(P: PView): PView;
 begin
-  Result := _TProgram^.ValidView(P, @Self);
+  Result := PView(_TProgram^.ValidView(_Model1.PView(P), @Self));
 end;
 
 constructor TApplication.Init;
@@ -291,7 +291,7 @@ end;
 
 procedure TDNApplication.RetrieveDesktop(const FileName: String; LS: PStream; LoadColors: Boolean);
 begin
-  _TDNApplication^.RetrieveDesktop(FileName, LS, LoadColors, @Self);
+  _TDNApplication^.RetrieveDesktop(FileName, _Model1.PStream(LS), LoadColors, @Self);
 end;
 
 procedure TDNApplication.SaveDesktop(const FileName: String);
@@ -301,12 +301,12 @@ end;
 
 procedure TDNApplication.LoadDesktop(var S: TStream);
 begin
-  _TDNApplication^.LoadDesktop(S, @Self);
+  _TDNApplication^.LoadDesktop(_Model1.TStream(S), @Self);
 end;
 
 procedure TDNApplication.StoreDesktop(var S: TStream);
 begin
-  _TDNApplication^.StoreDesktop(S, @Self);
+  _TDNApplication^.StoreDesktop(_Model1.TStream(S), @Self);
 end;
 
 procedure TDNApplication.ChgColors;

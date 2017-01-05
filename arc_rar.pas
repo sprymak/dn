@@ -50,7 +50,7 @@ unit Arc_RAR; {RAR}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+  Archiver, Advance, Advance1, Objects, Dos;
 
 type
     PRARArchive = ^TRARArchive;

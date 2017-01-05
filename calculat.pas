@@ -45,8 +45,7 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-{(c) Alexey Korop aka AK155, 2002}
-{GetValue - (c) Anton Fedorov aka DataCompBoy, 2000}
+{(c) Alexey Korop (AK155), 2002}
 UNIT Calculat;
 {&Delphi+}
 
@@ -57,32 +56,37 @@ uses
 Type CReal = Extended;
      PCReal = ^CReal;
 
-Type VarGetFunc = Function (VarName: string; var Value: CReal): boolean;
+function Evalue(const s: string; CCV: Pointer): CReal;
+{Параметр CCV равен nil для простого вычислителя. При вызове
+из электронной таблицы - это PCalcView. В этом случае
+к функциям добавлятся SUM и MUL, а к операндам
+добавляются имена ячеек }
 
-function Evalue(const s: string; aVGF: VarGetFunc): CReal;
 function GetErrOp(var x: integer): string;
 
 var
-  EvalueError: Boolean;
+  EvalueError: boolean;
   CalcErrMess: TStrIdx;
   CalcErrPos: longint;
+  Res: CReal;
+  CalcSym: string;
 
 IMPLEMENTATION
 
 uses
-  Advance1
-  , math
+  Advance1, Advance
+  , math, sysutils, calc
   ;
 
 var
   Expression: string;
-  Res: CReal;
+  CurCalcView: PCalcView;
 
-
+{ Число в указанной системе счичления }
 function GetV(S: String; Base: integer; var Value: CReal): boolean;
 const
   HexDigits = '0123456789ABCDEFG';
-var RR, DegValue: CReal;
+var RR, FractValue: CReal;
     j: byte;
     c, MaxC: char;
     d: longint;
@@ -92,6 +96,7 @@ begin
    exit;
  RR:=0;
  UpStr(S);
+ {целая часть}
  for j:=1 to Length(S) do
    begin
    c := system.Upcase(S[j]);
@@ -106,28 +111,32 @@ begin
   result:=true;
   exit
  end;
- DegValue:=1;
+ {дробная часть}
+ FractValue:=1;
  for j:=1 to Length(S) do
    begin
-   DegValue := DegValue / Base;
+   FractValue := FractValue / Base;
    d := Pos(S[j], HexDigits)-1;
    if (d < 0) or (d >= Base) then exit;
+   RR := RR + d*FractValue;
    end;
  Value:=RR;
  result:=True;
 end;
 
-{ После числа без проблела может быть десятичный множитель
-(всякие кило- микро- и т.п. Множители распознаются английские
-(u=микро) и русские.  }
+{ После десятичного числа без пробела может быть десятичный множитель
+(всякие кило- микро- и т.п.). Множители распознаются международные
+(u=микро) и русские. Множитель 'гекто' отсутствует, так как его
+международное обозначение 'h' конфликтует с ассемблерной формой
+шестнадцатеричного числа }
 function GetDec(S: String; var Value: CReal): boolean;
 const
-    MultE = ' d  с  m  u  p  n  f  da h  k  M  G  T  P ';
-    MultR = ' д  с  м  мк п  н  ф  да г  к  М  Г  Т  П ';
-//            -1 -2 -3 -6 -9-12-15 1  2  3  6  9  12 15
+    MultE = ' d  с  m  u  p  n  f  da k  M  G  T  P ';
+    MultR = ' д  с  м  мк п  н  ф  да к  М  Г  Т  П ';
+//            -1 -2 -3 -6 -9-12-15 1  3  6  9  12 15
   MultV: array [1..length(MultE) div 3] of CReal =
    (1e-1, 1e-2, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15
-   , 1e1, 1e2,  1e3,  1e6,  1e9,  1e12,  1e15);
+   , 1e1, 1e3,  1e6,  1e9,  1e12,  1e15);
 var
   R: Integer;
   l: longint;
@@ -151,35 +160,38 @@ begin
 end;
 
 function GetValue(S: String; var Value: CReal): boolean;
-begin
- GetValue:=false;
- if (S[Length(S)] = 'H') {and (S[1] in ['0'..'9'])} then begin
-  SetLength(S, Length(S)-1);
-  GetValue:=GetV(S, 16, Value);
- end else
- if S[1] = '$' then begin
-  Delete(S, 1, 1); {DelFC(S);}
-  GetValue:=GetV(S, 16, Value)
- end else
- if (Length(S) > 2) and (S[1] = '0') and (S[2] = 'X') then begin
-  Delete(S, 1, 2); {DelFC(S);}
-                   {DelFC(S);}
-  GetValue:=GetV(S, 16, Value)
- end else
- if (S[Length(S)] in ['O','Q']) then begin
-  SetLength(S, Length(S)-1);
-  GetValue:=GetV(S, 8, Value)
- end else
- if (S[Length(S)] = 'B') then begin
-  SetLength(S, Length(S)-1);
-  GetValue:=GetV(S, 2, Value)
- end else
- GetValue:=GetDec(S, Value);
-end;
+  var
+    BaseChar: char;
+  begin
+  BaseChar := Upcase(S[Length(S)]);
+  if (BaseChar = 'H') then
+    begin
+    SetLength(S, Length(S)-1);
+    GetValue:=GetV(S, 16, Value);
+    end
+  else if S[1] = '$' then
+    begin
+    Delete(S, 1, 1); {DelFC(S);}
+    GetValue:=GetV(S, 16, Value)
+    end
+  else if (UpStrg(Copy(S, 1, 2)) = '0X') then
+    GetValue:=GetV(Copy(S, 3, 255), 16, Value)
+  else if (BaseChar in ['O','Q']) then
+    begin
+    SetLength(S, Length(S)-1);
+    GetValue:=GetV(S, 8, Value)
+    end
+  else if (BaseChar = 'B') then
+    begin
+    SetLength(S, Length(S)-1);
+    GetValue:=GetV(S, 2, Value)
+    end
+  else
+    GetValue:=GetDec(S, Value);
+  end;
 
 var
   Operand: CReal;
-  Sym: string;
   SymType, PrevSymType: integer;
   CurrOp: integer; { текущая операция (для ошибок)}
   t: byte; { индекс необработанного символа строки выражения }
@@ -194,8 +206,6 @@ const
   OpChars =              #3'()+-*/^:=<>,#|\&%<<<<<<~'#1#2;
     { #1 представляет унарный минус, #2 - унарный плюс,
       #3 - конец выражения; Повторные '<' - это двухсимвольные оп. }
-
-//  ops:    string[50] = OpChars; { односимвольные операции }
 
   Op2Chars = '<>!';
   Op2 = '>= <= <> != << >>'; {двухсимвольные операции}
@@ -263,6 +273,9 @@ procedure LgEv(var d: CReal);
 procedure ExpEv(var d: CReal);
   begin d := Exp(d); end;
 
+procedure SqrEv(var d: CReal);
+  begin d := d*d; end;
+
 procedure SqrtEv(var d: CReal);
   begin d := Sqrt(d); end;
 
@@ -270,7 +283,7 @@ procedure SinhEv(var d: CReal);
   begin d := Sinh(d); end;
 
 procedure CoshEv(var d: CReal);
-  begin d := Sinh(d); end;
+  begin d := Cosh(d); end;
 
 procedure TanhEv(var d: CReal);
   begin d := Tanh(d); end;
@@ -292,6 +305,9 @@ procedure SignEv(var d: CReal);
   if d < 0 then d := -1
   else if d > 0 then d := 1
   end;
+
+procedure NotEv(var d: CReal);
+  begin d := not Round(d); end;
 
 procedure AbsEv(var d: CReal);
   begin d := Abs(d); end;
@@ -337,7 +353,8 @@ procedure IfEv(var d: CReal; d2, d3: CReal);
   end;
 
 const
-  FnMax = 51;
+  FnMax = 52;
+  CalcBase = FnBase + FnMax; { довески от электронной таблицы }
   FnTab: array[0..FnMax-1] of TFnDesc =
    (
     (N:'SIN'; E: @SinEv; A:1)
@@ -361,7 +378,7 @@ const
    ,(N:'LN';  E: @LnEv; A:1)
    ,(N:'LG';  E: @LgEv; A:1)
    ,(N:'EXP'; E: @ExpEv; A:1)
-   ,(N:'SQR'; E: @SqrtEv; A:1)
+   ,(N:'SQR'; E: @SqrEv; A:1)
    ,(N:'SQRT'; E: @SqrtEv; A:1)
    ,(N:'SH'; E: @SinhEv; A:1)
    ,(N:'SINH'; E: @SinhEv; A:1)
@@ -381,6 +398,7 @@ const
    ,(N:'ARCTANH'; E: @ArcTanhEv; A:1)
    ,(N:'FACT'; E: @FactEv; A:1)
    ,(N:'SIGN'; E: @SignEv; A:1)
+   ,(N:'NOT'; E: @NotEv; A:1)
    ,(N:'ABS'; E: @AbsEv; A:1)
    ,(N:'RAD'; E: @RadEv; A:1)
    ,(N:'RADG'; E: @RadGEv; A:1)
@@ -393,7 +411,7 @@ const
    ,(N:'IF'; E: @IfEv; A:3)
    );
 
-  procedure ScanSym;
+procedure ScanSym;
   var
     t0: integer;
     i: integer;
@@ -409,16 +427,16 @@ const
     inc(t);
     if Pos(c, Op2Chars) <> 0 then
       begin
-      Sym := Copy(Expression, t0, 2);
-      i := Pos(Sym, Op2);
+      CalcSym := Copy(Expression, t0, 2);
+      i := Pos(CalcSym, Op2);
       if i <> 0 then
         begin
         inc(t); SymType := Op2Base + i div 3;
         exit;
         end
       end;
-    Sym := c;
-    SymType := Pos(Sym, OpChars);
+    CalcSym := c;
+    SymType := Pos(CalcSym, OpChars);
     end
   else if (c = '$') or ((c >= '0') and (c <= '9')) then
     begin {число}
@@ -428,12 +446,12 @@ const
       begin {похоже на число вида 5e-3}
       repeat inc(t) until Pos(Expression[t], delimiters) <> 0;
       end;
-    Sym := {UpStrg(}copy(Expression, t0, t-t0){)};
+    CalcSym := {UpStrg(}copy(Expression, t0, t-t0){)};
     end
   else
     begin {должна быть функция или буквенная операция вроде AND}
-    Sym := UpStrg(copy(Expression, t0, t-t0));
-    i := Pos (' ' + Sym + ' ', LetterBinOp);
+    CalcSym := UpStrg(copy(Expression, t0, t-t0));
+    i := Pos (' ' + CalcSym + ' ', LetterBinOp);
     if i <> 0 then
       begin
       SymType := LetterBinOpType[(3+i) div 4];
@@ -442,19 +460,36 @@ const
 
     for i := 0 to FnMax-1 do
       begin
-      if Sym = FnTab[i].N then
+      if CalcSym = FnTab[i].N then
         begin
         SymType := FnBase + i;
-        break;
+        exit;
         end;
       end;
-    end;
+    if CurCalcView <> nil then with PCalcView(CurCalcView)^ do
+      begin
+      if Expression[t] = '(' then
+        begin { что-то вроде sum(a1:a30) в wkz}
+        for i := t+1 to length(Expression) do
+          if Expression[i] = ')' then
+            begin
+            if GetFuncValue(CalcSym+system.Copy(Expression, t, i-t+1))
+            then
+              begin t := i+1; SymType := CalcBase; exit end
+            else break;
+            end;
+        end
+      else if GetCellValue(CalcSym) then
+        begin SymType := CalcBase; exit end;
+      end;
+      end;
   end;
 
 procedure SetError(Id: TStrIdx);
   begin
-  EvalueError := true; CalcErrMess := Id;
+  CalcErrMess := Id;
   CalcErrPos := t-2;
+  raise eMathError.Create('');
   end;
 
 { Классический алгоритм с двумя стеками и двумя приоритетами }
@@ -481,7 +516,7 @@ procedure EvalPrefixOp;
    else with FnTab[CurrOp-FnBase] do
      begin
      if TDS < A then
-       begin SetError(dlNoOperand); exit; end;
+       SetError(dlNoOperand);
      case A of
  {     0: не бывает }
       1: FnEval(E)(DataStack[TDS]);
@@ -507,15 +542,32 @@ procedure RegisterOperand;
     begin
     dec(PrefixCount);
     if PrefixCount < 0 then
-      begin SetError(dlMissingOperation); exit; end;
+      SetError(dlMissingOperation);
     if not Infix and (PrefixCount=0) then
       EvalPrefixOp;
     end;
   SymType := 0;
   end;
 
-procedure EvalText;
+procedure ToInt; {возведение в небольшую целую степень }
+  var
+    N: integer;
+    R: CReal;
+    neg: boolean;
+  begin
+  N := Round(DataStack[TDS]); R := DataStack[TDS-1];
+  DataStack[TDS-1] := 1;
+  neg := N < 0;
+    if neg then begin N := -N; R := 1/R; end;
+  while N <> 0 do
+    begin
+    if odd(N) then
+      DataStack[TDS-1] := DataStack[TDS-1]*R;
+    R := R*R; N := N shr 1;
+    end;
+  end;
 
+procedure EvalText;
 
 label ExprEnd;
 
@@ -535,8 +587,13 @@ while true do
   if SymType = 0 then
     begin { разобрать операнд и положить на стек данных }
     Inc(TDS);
-    if not GetValue(Sym, DataStack[TDS]) then
-      begin SetError(dlWrongText); exit; end;
+    if not GetValue(CalcSym, DataStack[TDS]) then
+      SetError(dlWrongText);
+    RegisterOperand;
+    end
+  else if (SymType = CalcBase) then
+    begin {положить на стек значение переменной}
+    inc(TDS); DataStack[TDS] := Res;
     RegisterOperand;
     end
   else if (SymType >= FnBase) and (FnTab[SymType-FnBase].A = 0) then
@@ -553,12 +610,12 @@ while true do
            SymType := FnBase - 6 + SymType;
         FnBase-3..MaxOp: { унарные операции и функции } ;
         else
-          begin SetError(dlNoOperand); dec(t); exit; end;
+          SetError(dlNoOperand);
       end { case }
     else
       case SymType of
         2,FnBase-3..MaxOp:
-          begin SetError(dlMissingOperation); exit; end;
+          SetError(dlMissingOperation);
       end { case };
     while prio1[SymType] <= prio2[OpStack[TOS].Op] do
       { выполнять инфиксные операции со стека; префиксные и унарные
@@ -588,7 +645,10 @@ while true do
             end;
           8: {^ - возведение в степень }
             begin
-            DataStack[TDS-1] := exp(ln(DataStack[TDS-1])*DataStack[TDS]);
+            if (abs(DataStack[TDS]) < $7FFFFFFF)
+              and (Trunc(DataStack[TDS]) = DataStack[TDS])
+            then ToInt
+            else DataStack[TDS-1] := exp(ln(DataStack[TDS-1])*DataStack[TDS]);
             Dec(TDS);
             end;
           9: { время }
@@ -670,7 +730,7 @@ while true do
             Dec(TDS);
             end;
           else
-            begin SetError(dlNoOperand); exit; end;
+            SetError(dlNoOperand);
         end {case};
         CurrOp := 0;
         Dec(TOS); //PrevSymType := 0;
@@ -680,7 +740,7 @@ while true do
      3:
       begin { закрывающую скобку сокращаем с открывающей }
       if OpStack[TOS].Op <> 2 then
-        begin SetError(dlMissingLeftBracket); exit; end;
+        SetError(dlMissingLeftBracket);
       dec(TOS);
       SymType := 0; { выр. в скобках - операнд }
       RegisterOperand;
@@ -689,7 +749,7 @@ while true do
       begin
       if (TOS < 3) or (OpStack[TOS].Op <> 2)
         or (OpStack[TOS-1].PrefixCount = 0)
-      then begin SetError(dlWrongComma); exit; end;
+      then SetError(dlWrongComma);
       inc(OpStack[TOS].PrefixCount);
       dec(OpStack[TOS-1].PrefixCount);
       end;
@@ -710,24 +770,27 @@ while true do
   end;
 
 ExprEnd:
-if EvalueError then
-  exit;
 if Expression[t-2] <> ' ' then inc(t);
 if (TOS <> 1) or (TDS <> 1) then
-  begin EvalueError := true;
   SetError(dlMissingRightBracket);
-  end
-else
-  Res := DataStack[1];
+Res := DataStack[1];
+
+{ Для extended +0 и -0 имеют разные представления, и -0 потом так
+и отображается, удивляя юзера. Вот на этот случай заменяем любой 0,
+на просто 0, который есть +0}
+if Res = 0 then Res := 0;
+
 end;
 
 function GetErrOp(var x: integer): string;
   var
     OpName: string;
   begin
-  x := t;;
+  x := t;
+  result := '';
   case CurrOp of
-   0: begin result := ''; exit;  end;
+   0:
+     begin result := ''; exit;  end;
    1..Op2Base-1:
      OpName := Copy(OpChars, CurrOp, 1);
    Op2Base..FnBase:
@@ -739,13 +802,21 @@ function GetErrOp(var x: integer): string;
   end;
 
 
-function Evalue(const s: string; aVGF: VarGetFunc): CReal;
+function Evalue(const s: string; CCV: Pointer): CReal;
 var o: pointer;
 begin
- EvalueError:=false; CurrOp := 0;
+CurCalcView := CCV;
+try
+ EvalueError:=false; CurrOp := 0; CalcErrMess := dlMsgError;
  Expression := s;
  EvalText;
  Evalue:=Res;
+except
+  on E: EMathError do
+    EvalueError := true;
+  on E: EInvalidArgument do
+    EvalueError := true;
+end {except};
 end;
 
 procedure InitUnopPrio;

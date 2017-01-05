@@ -51,10 +51,8 @@ unit Drives;
 interface
 
 uses
-  LFN, {$IFNDEF OS2} LFNCol, {$ELSE} {$IFDEF EAOP} FlOs2Tl, {$ENDIF} {$ENDIF}
-{$IFDEF FileNotify}
-  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF} {Cat}
-{$ENDIF}
+  LFN, files,{$IFDEF EAOP} FlTl, {$ENDIF}
+  fnotify,
   Dos, Objects, Memory, Views, Drivers, DnIni, FilesCol, DiskInfo, {FStorage,}
   Advance, Advance1, Advance2, Advance3, Collect;
 
@@ -140,12 +138,7 @@ type
         {-DataCompBoy-}
        PDesc = ^TDesc;
        TDesc = record
-{$IFNDEF OS2}
-         Name: String[12];
-         LFN: TLFNIndex;
-{$ELSE}
          Name: String;
-{$ENDIF}
          DIZ: PString;
          Line: LongInt;
        end;
@@ -163,9 +156,6 @@ begin
  if P <> nil then
   begin
     DisposeStr(PDesc(P)^.DIZ);
-    {$IFNDEF OS2}
-    DelLFN(PDesc(P)^.LFN);
-    {$ENDIF}
     Dispose(PDesc(P));
   end;
 end;
@@ -296,7 +286,7 @@ end;
 
 function TDrive.Disposable;
 begin
- Disposable := On;
+ Disposable := true;
 end;
 
         {-DataCompBoy-}
@@ -419,9 +409,9 @@ Longer250:
 {$IFNDEF OS2}
   if Flags and psShowLongName <> 0 then
    begin
-    S := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(GetLFN(P^.LFN));
+    S := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(P^.FlName[true]);
 {$ELSE}
-    S := P^.Name;
+    S := P^.FlName[true];
 {$ENDIF}
     NFM:=nfmNull;
     if EXTLen=0
@@ -471,11 +461,13 @@ Longer250:
      SysFile :        NFM:=nfmSystem;
      Hidden+SysFile : NFM:=nfmHiddenSystem;
     end{case};                                         { <- Pavel Anufrikov}
+
     if P^.Attr and SysFile<>0 then OPT:=OPT or flnCapitalCase;
 
     if P^.Attr and Directory <>0 then OPT:=OPT or flnUpCase
                                  else OPT:=OPT or flnLowCase;
-    S:=FormatLongName({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(MakeFileName(P^.Name)), 12, 3, OPT, NFM, nil);
+    S:=FormatLongName({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}
+        (MakeFileName(P^.FlName[false])), 12, 3, OPT, NFM, nil);
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
    end;
 {$ENDIF}
@@ -495,23 +487,16 @@ Longer250:
   if (P^.Size > 0) or (P^.Attr and Directory = 0) or (P^.Attr and $8000 <> 0)
      and (P^.Size >= 0)
     then S := FileSizeStr( P^.Size )
-    else if {$IFNDEF OS2}
-              {$IFDEF OS_DOS}
-             P^.Name[1]= '.'
-              {$ELSE}
-             P^.LFN = '..'
-              {$ENDIF}
-            {$ELSE}
-             P^.Name = '..'
-            {$ENDIF}
+    else if P^.TType = ttUpDir
       then S := GetString( dlUpDir )
       else S := GetString( dlSubDir );
-  MakeDate(DateMode, P^.Day, P^.Month, P^.Yr, P^.Hour, P^.Minute, S1);
-  if P^.YrCreat <> 0 then
-      MakeDate(DateMode, P^.DayCreat, P^.MonthCreat, P^.YrCreat, P^.HourCreat, P^.MinuteCreat, S2)
+  with TDate4(P^.FDate) do
+    MakeDate(DateMode, Day, Month, P^.Yr, Hour, Minute, S1);
+  if P^.YrCreat <> 0 then with TDate4(P^.FDateCreat) do
+      MakeDate(DateMode, Day, Month, P^.YrCreat, Hour, Minute, S2)
     else S2 := '';
-  if P^.YrLAcc <> 0 then
-      MakeDate(DateMode, P^.DayLAcc, P^.MonthLAcc, P^.YrLAcc, P^.HourLAcc, P^.MinuteLAcc, S3)
+  if P^.YrLAcc <> 0 then with TDate4(P^.FDateLAcc) do
+      MakeDate(DateMode, Day, Month, P^.YrLAcc, Hour, Minute, S2)
     else S3 := '';
   if Flags and psShowSize <> 0 then
    begin
@@ -798,11 +783,7 @@ end;
 procedure TDrive.UseFile;
  var S: String;
 begin
-{$IFNDEF OS2}
- if P^.Owner<>nil then S := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
-{$ELSE}
- if P^.Owner<>nil then S := MakeNormName(P^.Owner^, P^.Name);
-{$ENDIF}
+ if P^.Owner<>nil then S := MakeNormName(P^.Owner^, P^.FlName[uLfn]);
  Message(Application, evCommand, Command, @S);
 end;
         {-DataCompBoy-}
@@ -960,19 +941,7 @@ begin
       S1 := Copy(S, 1, NameEnd-1);
       end;
     if PD = nil then New(PD);
-{JO}
-{$IFNDEF OS2}
-    PD^.Name := LowStrg(Norm12(S1));
-    PD^.Name[9] := ' ';
-  {$IFDEF OS_DOS}
-    PD^.LFN := AddLFN(lfGetLongFileName(MakeNormName(CurDir, S1)));
-  {$ELSE}
-    PD^.LFN := S1;
-  {$ENDIF}
-{$ELSE}
     PD^.Name := S1;
-{$ENDIF}
-{/JO}
     PD^.Line := CurLine;
     if Descriptions^.Search(PD, I) then
       goto ReadNextLine;
@@ -1025,7 +994,7 @@ var
   FName: String;
 begin
   ClrIO;
-  S := GetDizOwner(CurDir, '', On);
+  S := GetDizOwner(CurDir, '', true);
   if S <> '' then
      begin
        FName := GetName(S);
@@ -1045,17 +1014,16 @@ procedure TossDescriptions(
 var
   I, J: CondInt;
   P: PFileRec;
-{$IFNDEF OS2}
-  FName: Str12;
-{$ELSE}
   FName: String;
-{$ENDIF}
   PD: PDesc;
+  iLFN: TUseLFN;
 begin
  for I := 1 to Files^.Count do
   begin
-    P := Files^.At(I-1);
-    FName := P^.Name;
+   P := Files^.At(I-1);
+   for iLFN := High(TUseLFN) downto Low(TUseLFN) do
+    begin
+    FName := P^.FlName[iLFN];
    {if P^.Attr and (Directory+SysFile) <> 0 then LowStr(FName);}
     if Descriptions^.Search(@FName, J) then begin
                                         PD := PDesc(Descriptions^.At(J));
@@ -1063,10 +1031,11 @@ begin
                                         P^.DIZ^.DIZ := PD^.DIZ;
                                         P^.DIZ^.Owner := PDIZOwner;
                                         P^.DIZ^.Line := PD^.Line;
-                                        P^.DIZ^.isDisposable := On;
+                                        P^.DIZ^.isDisposable := true;
                                         PD^.DIZ := nil;
+                                        break;
                                        end
-                                  else P^.DIZ := nil;
+    end;
   end;
 end;
         {-DataCompBoy-}
@@ -1099,13 +1068,9 @@ begin
 {$IFDEF Win32}
   PFilesCollection(Files)^.LFNActive := LFNActive; {JO}
 {$ENDIF}
-{$IFNDEF VIRTUALPASCAL}
-  NormMask := not PackMask(FileMask, fm, LFNDisabled(CurDir^));
-{$ELSE}
   NormMask := not PackMask(FileMask, fm {$IFDEF OS_DOS}, False {$ENDIF});
-{$ENDIF}
 
-  lFindFirst(MakeNormName(CurDir^,fm),{$IFDEF OS2} Anyfile {$ELSE} $FF XOR VolumeID{$ENDIF}, SR); {JO}
+  lFindFirst(MakeNormName(CurDir^,fm),AnyFile, SR); {JO}
   While (DosError = 0) and not Abort and (IOResult = 0) {$IFNDEF VIRTUALPASCAL} and MemOK {$ENDIF} do
   begin
 {$IFDEF CHDIRDEBUG}
@@ -1134,15 +1099,13 @@ begin
        ((InFilter(SR.FullName, FileMask){$IFNDEF OS2} and LFNActive) or (InFilter(SR.SR.Name, FileMask) and not LFNActive{$ENDIF}))
       )          and
       ((SR.SR.Attr and Directory = 0) or
-       {$IFNDEF OS2}(SR.SR.Name[1] <> '.'){$ELSE}(SR.Fullname <> '..'){$ENDIF}or
+       not IsDummyDir(SR.SR.Name) or
        (Length(CurDir^) > 3)
       )        then
     begin
-{$IFNDEF OS2}
-      P := NewFileRec(SR.FullName, SR.SR.Name, SR.FullSize, SR.SR.Time, SR.SR.CreationTime, SR.SR.LastAccessTime, SR.SR.Attr, CurDir);
-{$ELSE}
-      P := NewFileRec(SR.FullName, SR.FullSize, SR.SR.Time, SR.SR.CreationTime, SR.SR.LastAccessTime, SR.SR.Attr, CurDir);
-{$ENDIF}
+      P := NewFileRec(SR.FullName {$IFNDEF OS2}, SR.SR.Name {$ENDIF}
+         , SR.FullSize, SR.SR.Time, SR.SR.CreationTime
+         , SR.SR.LastAccessTime, SR.SR.Attr, CurDir);
       if SR.SR.Attr and Directory = 0 then
        begin
         TotalLen := TotalLen + P^.Size;
@@ -1151,14 +1114,8 @@ begin
        begin
          if PanelFlags and fmiDirLen <> 0 then
           begin
-{$IFDEF OS_DOS}
-            if SR.SR.Name[1] = '.'
-{$ELSE}
-            if SR.FullName = '..'
-{$ENDIF}
-                                   then P^.Size := GetDirLen(CurDir^)
-
-                                   else P^.Size := GetDirLen(MakeNormName(CurDir^,SR.FullName));
+            if SR.FullName = '..' then P^.Size := GetDirLen(CurDir^)
+             else P^.Size := GetDirLen(MakeNormName(CurDir^,SR.FullName));
             if Abort then begin PanelFlags := PanelFlags and not fmiDirLen end;
             ClrIO;
           end;
@@ -1180,18 +1137,7 @@ begin
   lFindClose(SR);
   if (Length(CurDir^) > 3) then
   if ((Files^.Count=0) or
-{$IFNDEF OS2}
-  {$IFDEF OS_DOS}
-      ((PFileRec(Files^.At(0))^.Name[1] <> '.') and
-      (GetLFN(PFileRec(Files^.At(0))^.LFN) <> '.') and
-      (GetLFN(PFileRec(Files^.At(0))^.LFN) <> '..'))) then
-  {$ELSE}
-      ((PFileRec(Files^.At(0))^.LFN <> '.') and
-      (PFileRec(Files^.At(0))^.LFN <> '..'))) then
-  {$ENDIF}
-{$ELSE}
-      (PFileRec(Files^.At(0))^.Name <> '..')) then
-{$ENDIF}
+      (PFileRec(Files^.At(0))^.TType <> ttUpDir)) then
    begin
     if PanelFlags and fmiDirLen <> 0 then
     begin
@@ -1228,20 +1174,6 @@ function TDrive.GetDirectory;
      ev: TEvent;
    {$ENDIF}
 
-{DataCompBoy
-  function Get32(S: String): LongInt;
-   var I, J, K: LongInt;
-  begin
-    J := 0;
-    for I := Length(S) downto 1 do
-     begin
-       if (S[I] >= '0') and (S[I] <= '9') then K := Byte(S[I])-48
-                                          else K := Byte(S[I])-55;
-       Inc(J, K * LongInt(1 shl (5*(Length(S)-I))));
-     end;
-     Get32 := J;
-  end;
-}
 begin
 {$IFDEF CHDIRTIMER}
  if ChDirTimer and (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
@@ -1251,7 +1183,7 @@ begin
  TFiles := 0; DOSError := 0; TotalLen := 0;
  DIZOwner := ''; FreeSpace := ''; TotalInfo := '';
  Descriptions := nil;
- Abort := Off;
+ Abort := false;
  ShowD := (Flags and psShowDescript <> 0);
 
  if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) or (SortMode = psmDIZ)
@@ -1314,47 +1246,40 @@ procedure TDrive.GetDown;
      S, S1, S2, SCreat, SLAcc: String;
 begin
     if P=nil then exit;
-    FR := P^; {$IFNDEF OS2} FR.Name[9] := ' '; {$ENDIF}
+    move(P^, FR, TFileRecFixedSize+length(P^.FlName[true]));
     if (FR.Attr and Directory = 0) or (FR.Attr and $8000 <> 0) and (FR.Size >= 0)
     or (PFilePanel(Owner)^.PanelFlags and fmiDirLen <> 0)
      {or (FR.Size >= 0)}
       then S := FileSizeStr( FR.Size )
-      else if {$IFNDEF OS2}FR.Name[1] = '.'{$ELSE}FR.Name = '..'{$ENDIF}
+      else if FR.TType = ttUpDir
         then S := GetString( dlUpDir )
         else S := GetString( dlSubDir );
-    MakeDate(DateMode, FR.Day, FR.Month, FR.Yr, FR.Hour, FR.Minute, S1);
-    if FR.YrCreat <> 0 then
+    with TDate4(FR.FDate) do MakeDate(DateMode, Day, Month, FR.Yr, Hour, Minute, S1);
+    if FR.YrCreat <> 0 then with TDate4(FR.FDateCreat) do
       begin
-        MakeDate(DateMode, FR.DayCreat, FR.MonthCreat, FR.YrCreat, FR.HourCreat, FR.MinuteCreat, SCreat);
+        MakeDate(DateMode, Day, Month, FR.YrCreat, Hour, Minute, SCreat);
         SCreat := GetString(dlCre)+SCreat;
       end
      else SCreat := AddSpace('', 19 - CountryInfo.TimeFmt);
-    if FR.YrLAcc <> 0 then
+    if FR.YrLAcc <> 0 then with TDate4(FR.FDateLAcc) do
       begin
-        MakeDate(DateMode, FR.DayLAcc, FR.MonthLAcc, FR.YrLAcc, FR.HourLAcc, FR.MinuteLAcc, SLAcc);
+        MakeDate(DateMode, Day, Month, FR.YrLAcc, Hour, Minute, SLAcc); {???}
         SLAcc := GetString(dlLac)+ SLAcc;
       end
      else SLAcc := '';
-{$IFNDEF OS2}
- {$IFDEF RecodeWhenDraw}
-    if not (DriveType in [dtArc, dtArvid]) then  S2 := CharToOemStr(GetLFN(FR.LFN))
-      else
- {$ENDIF}
-            S2 := GetLFN(FR.LFN);
-{$ELSE}
-    S2 := FR.Name;
-{$ENDIF}
+    {$IFNDEF OS2} uLFN := Flags and psShowLongName <> 0;
+    if not LFNinBottom then
+      S2 := FR.FlName[uLFN xor InvLFN]
+     else
+    {$ENDIF}
+      S2 := FR.FlName[True];
     if Length(S2) > 14 then
       begin
         SetLength(S2, 14);
         S2[14] := FMSetup.RestChar[1];
       end;
-    {$IFNDEF OS2} if LFNinBottom or (DriveType in [dtArc, dtArvid]) then {$ENDIF}
-          MoveStr(B,S2,C)
-           {$IFNDEF OS2}
-             else
-              MoveStr(B, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(MakeFileName(FR.Name)), C)
-           {$ENDIF};
+    MoveStr(B, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S2), C);
+
     MoveStr(TWordArray(B)[22-Length(S)+CountryInfo.TimeFmt],S , C);
     MoveStr(TWordArray(B)[23+CountryInfo.TimeFmt],S1, C);
     MoveStr(TWordArray(B)[25+Length(S1)+CountryInfo.TimeFmt],SCreat, C);
@@ -1389,11 +1314,11 @@ begin
    if C = CurDir[1] then
     begin
       ClrIO;
-      NeedAbort := On;
+      NeedAbort := true;
       lGetDir(0, S); if Abort then S := CurrentDirectory;
-      NeedAbort := On; Advance2.lChDir(CurDir);
+      NeedAbort := true; Advance2.lChDir(CurDir);
       repeat
-       Abort := Off; NeedAbort := On;
+       Abort := false; NeedAbort := true;
        lGetDir(0, CurDir);
        if Abort then
         begin
@@ -1411,10 +1336,10 @@ begin
            if ValidDrive(MM.S[1]) then
             begin SetCurDrive(MM.S[1]); Break; end;
          until False;
-         Abort := On;
+         Abort := true;
         end;
       until not Abort;
-      NeedAbort := Off;
+      NeedAbort := false;
       lGetDir(0,CurDir);
       Advance2.lChDir(S);
     end else
@@ -1422,7 +1347,7 @@ begin
       Advance2.lChDir(CurDir);
       if not Abort then
        repeat
-        Abort := Off; NeedAbort := On;
+        Abort := false; NeedAbort := true;
         lGetDir(0, CurDir);
         if Abort then
          begin
@@ -1440,14 +1365,14 @@ begin
             if ValidDrive(MM.S[1]) then
              begin SetCurDrive(MM.S[1]); Break; end;
           until False;
-          Abort := On;
+          Abort := true;
          end;
        until not Abort;
       SetCurDrive(C);
     end;
    GetRealDir := CurDir;
   end else GetRealDir := GetDir;
-  NeedAbort := Off;
+  NeedAbort := false;
 end;
         {-DataCompBoy-}
 
@@ -1463,18 +1388,8 @@ end;
 
 procedure TDrive.EditDescription;
 begin
-  if (DriveType = dtDisk) and
-                             {$IFNDEF OS2}
-                               {$IFDEF OS_DOS}
-                               (PF^.Name[1] <> '.')
-                               {$ELSE}
-                               (PF^.LFN <> '..')
-                               {$ENDIF}
-                             {$ELSE}
-                               (PF^.Name <> '..')
-                             {$ENDIF}
-                                 then
-    SetDescription(PF, DIZOwner);
+  if (DriveType = dtDisk) and (PF^.TType <> ttUpDir)
+    then SetDescription(PF, DIZOwner);
 end;
 
         {-DataCompBoy-}
@@ -1486,18 +1401,9 @@ procedure TDrive.GetDirLength(PF: PFileRec);
 begin
   if (PF^.Attr and $8000 <> 0) or (PF^.Attr and Directory = 0) then Exit;
   S := PF^.Owner^;
-{$IFNDEF OS2}
-  {$IFDEF OS_DOS}
-  if PF^.Name[1] <> '.'
-  {$ELSE}
-  if PF^.LFN <> '..'
-  {$ENDIF}
-                 then S := MakeNormName(S, GetLFN(PF^.LFN));
-{$ELSE}
-  if PF^.Name <> '..' then S := MakeNormName(S, PF^.Name);
-{$ENDIF}
+  if (PF^.TType <> ttUpDir) then S := MakeNormName(S, PF^.FlName[true]);
   I := 1;
-  PF^.Size := CountDirLen(S, On, I, Integer(J), NumDirs);
+  PF^.Size := CountDirLen(S, true, I, Integer(J), NumDirs);
   if not Abort then PF^.Attr := PF^.Attr or $8000;
 end;
         {-DataCompBoy-}

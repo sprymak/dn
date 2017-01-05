@@ -192,7 +192,7 @@ var
     DelLeft(S);
     if S = '' then Exit;
     I := 0;
-    B := Off;
+    B := false;
     A := '';
   1:
     while I < Length(S) do
@@ -439,7 +439,7 @@ var A: String;
     M: String;
     J: LongInt;
 begin
-   Token := ''; A := ''; B := False; Cmd := Off;
+   Token := ''; A := ''; B := False; Cmd := false;
    while (S[Pos] = ' ') and (Length(S) >= Pos) do Inc(Pos);
    while Pos <= Length(S) do
      begin
@@ -479,8 +479,8 @@ begin
                  A := A+S[Pos] {AddStr(A, S[Pos])}
                else
                  begin
-                   B := On;
-                   Cmd := On;
+                   B := true;
+                   Cmd := true;
                    A := A+S[Pos] {AddStr(A, S[Pos])}
                  end;
        end;
@@ -1008,13 +1008,13 @@ var
              if IsThis(idStaticText) then MakeStaticText else
              if IsThis(idParamText) then MakeParamText else
              if IsThis(idListBox) then MakeListBox else
-             if IsThis(idScrollBar) then MakeScrollBar(Off) else
-             if IsThis(idMScrollBar) then MakeScrollBar(On) else
+             if IsThis(idScrollBar) then MakeScrollBar(false) else
+             if IsThis(idMScrollBar) then MakeScrollBar(true) else
              if IsThis(idUpperTable) then MakeUpperTable else
              if IsThis(idCheckBoxes) then MakeCheckBoxes else
              if IsThis(idDriveCheckBox) then MakeDriveCheckBoxes else
-             if IsThis(idSelectForward) then D^.SelectNext(Off) else
-             if IsThis(idSelectBack) then D^.SelectNext(On) else
+             if IsThis(idSelectForward) then D^.SelectNext(false) else
+             if IsThis(idSelectBack) then D^.SelectNext(true) else
              if IsThis(idRadioButtons) then MakeRadioButtons else
              if IsThis(idButton) then MakeButton else
              if IsThis(idHistory) then MakeHistory else

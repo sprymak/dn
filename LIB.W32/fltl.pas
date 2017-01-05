@@ -7,7 +7,7 @@
    04/12/2001 - в WinNT поддерживается копирование Security Attributes
 }
 
-unit FlW32Tl;
+unit FlTl;
 interface
 
 function GetBytesPerCluster(Drive: Byte): Longint;
@@ -27,10 +27,12 @@ function SetHFileAges(Handle: Longint; Age_LWr, Age_Cr, Age_LAc: Longint): Longi
   {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
   {    файла по хэндлу файла (Handle), принимает значение кода ошибки             }
 
+function GetFSString(Dr: Char): String; {JO}
+
 implementation
 
 uses
-  Windows;
+  Windows, Strings;
 
 function GetBytesPerCluster(Drive: Byte): Longint;
 var
@@ -243,6 +245,21 @@ begin
     LocalFileTimeToFileTime(LocalFileTime_LAc, FileTime_LAc) and
     SetFileTime(Handle, @FileTime_Cr, @FileTime_LAc, @FileTime_LWr));
 end;
+
+function GetFSString(Dr: Char): String;
+  const
+    Root: Array[0..4] of char = 'C:\'#0;
+  var
+    FSName: Array[0..255] of char;
+    MaxLength: Longint;
+    FSFlags: Longint;
+begin
+  GetFSString := '';
+  Root[0] := Dr;
+  if GetVolumeInformation(Root, nil, 0, nil, MaxLength, FSFlags, FSName, sizeof(FSName))
+    then GetFSString := StrPas(FSName);
+end;
+
 {/JO}
 
 begin

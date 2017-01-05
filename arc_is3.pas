@@ -50,7 +50,7 @@ unit Arc_IS3; {IS3}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, LFNCol{$ENDIF};
+  Archiver, Advance, Advance1, Objects;
 
 type
   PIS3Archive = ^TIS3Archive;

@@ -335,8 +335,11 @@ begin
      fOrigin       := Origin;
      fSize         := Size;
      fDeskSize     := Desktop^.Size;
-     fViewMode     := vmSpread;
     with CalcView^ do begin
+     if ShowSeparators then
+       fViewMode     := vmSpreadSL {AK155}
+     else
+       fViewMode     := vmSpread;
      fsDelta       := Delta;
      fsCur         := Cur;
      fsMark        := Mark;
@@ -743,7 +746,7 @@ begin
 {  if EditHistory^.Count = 0 then Exit;}
   D := GetDialog(dlgEditHistory, Pointer(P));
   P^.NewList(EditHistory);
-  P^.EVHistory := On;
+  P^.EVHistory := true;
   if Desktop^.ExecView(D) = cmOK then I := P^.Focused else I := -1;
   Dispose(D,Done);
   if EditHistory^.Count = 0 then Exit; {Proverka, esli udalyali, zarazy:}
@@ -751,7 +754,10 @@ begin
     begin
      If (PViewRecord(EditHistory^.At(I))^.fName = nil) then Exit;
      {A eto tak, na vsyakiy sluchay proverka, esli eto ne DPMI :}
-     PDNApplication(Application)^.EditFile(Off,
+     PDNApplication(Application)^.EditFile(
+            SystemData.Options and ossEditor <> 0, {AK155 28.09.2002:
+             это чтобы через историю всегда вызывался внутренний
+             редактор, поскольку вызов внешнего в историю не попадает}
        Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, MaxStringLength));
     end;
 end;
@@ -771,7 +777,7 @@ begin
 {  if ViewHistory^.Count = 0 then Exit;}
   D := GetDialog(dlgViewHistory, Pointer(P));
   P^.NewList(ViewHistory);
-  P^.EVHistory := On;
+  P^.EVHistory := true;
   if Desktop^.ExecView(D) = cmOK then I := P^.Focused else I := -1;
   Dispose(D,Done);
   if ViewHistory^.Count = 0 then Exit; {Proverim, esli udalyali, pa**y}
@@ -834,7 +840,7 @@ begin
 
   PListBox(P)^.NewList(CmdStrings);
   PListBox(P)^.FocusItem(CmdStrings^.Count-1);
-  PTHistList(P)^.CommandHistory := On;
+  PTHistList(P)^.CommandHistory := true;
   if CmdStrings^.Count > 0 then PListBox(P)^.FocusItem(CmdStrings^.Count - 1);
 
   I := Desktop^.ExecView(D);

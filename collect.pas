@@ -3435,7 +3435,7 @@ asm
                 jmp     @@4
               @@3:
                 push    edi                     { [1]:Pointer = String  }
-                push    eax                     { [2]:DWord   = Offset  }
+                push    eax                     { [2]:DWord   = offset  }
                 push    edx                     { [3]:DWord   = Skip    }
                 push    Self                    { [4]:Pointer = Self    }
                 Call    TStringList.ReadStr

@@ -85,10 +85,10 @@ uses LFN, {DataCompBoy}
      Timer: TEventTimer;
  const NBf   : Byte = 0;
 
- function MaxAvail: LongInt;
- begin
-   MaxAvail := MemAdjust(System.MaxAvail);
- end;
+function IsLabel( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
+begin
+  IsLabel := TypeOf( P^ ) = TypeOf( TLabel );
+end;
 
  procedure GetMaxMem;
   var l : LongInt;
@@ -175,7 +175,7 @@ uses LFN, {DataCompBoy}
    var  i : Byte;
         b : Boolean;
   begin
-    b:=On;
+    b:=true;
     DsplInfo;
     for i:=1 to NBf do
      begin
@@ -185,7 +185,7 @@ uses LFN, {DataCompBoy}
       if IOResult <> 0 then
        begin
         MessageBox(GetString(dlFBBNotReadSource)+Fn1, nil, mfError+mfOKButton);
-        Abort := On;
+        Abort := true;
         NewTimer(Timer, 0);
         NewTimerSecs(AlarmTimer, 20);
        end;
@@ -208,8 +208,8 @@ uses LFN, {DataCompBoy}
        lF  : lFile;
   begin
    FreeSpc:=Disk_Free(Byte(d[1])-64);
-   DosError:=0; OverWr:=On; Abort := Off;
-   lFindFirst(d+n+'.d??',Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF},SR);             {JO}
+   DosError:=0; OverWr:=true; Abort := false;
+   lFindFirst(d+n+'.d??',AnyFile,SR);             {JO}
    while (DOSError=0) and not (SR.FullName[Length(SR.FullName)] in ['0'..'9'])
    and not (SR.FullName[Length(SR.FullName)-1] in ['0'..'9']) do lFindNext(SR);
    if (DOSError=0) and ((PartSize=0) or (FreeSpc<PartSize)) then
@@ -259,13 +259,13 @@ uses LFN, {DataCompBoy}
      FreeSpc:=Disk_Free(Byte(d[1])-64);
      if i<>cmOK then
        begin
-        Abort:=On;
+        Abort:=true;
         Exit;
        end;
 {DataCompBoy     DskOn;}
     end;
 {DataCompBoy   DskOn;}
-   CreateDirInheritance(d, Off);
+   CreateDirInheritance(d, false);
    lAssignFile(F2,Fn2); PInfo^.Write(3,  {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn2));
    ClrIO; lReWriteFile(F2,1);
    if not BinarySplit then
@@ -280,7 +280,7 @@ uses LFN, {DataCompBoy}
     NewTimerSecs(AlarmTimer, 20);
     if i<>cmOK then
        begin
-        Abort:=On;
+        Abort:=true;
         Exit;
        end;
      GoTo 1;
@@ -319,7 +319,7 @@ uses LFN, {DataCompBoy}
       if (IOResult <> 0) then
        begin
         MessageBox(GetString(dlFBBNoWrite)+Fn2, nil, mfError+mfOKButton);
-        Abort := On;
+        Abort := true;
         NewTimer(Timer, 0);
        end;
       if Abort then Goto 33;
@@ -337,7 +337,7 @@ uses LFN, {DataCompBoy}
       DispatchEvents(PInfo, CopyCancelled);
       if Abort or CopyCancelled then
          begin
-33:       CopyCancelled := On;
+33:       CopyCancelled := true;
           Close(F2.f);
           lEraseFile(F2);
           Exit;
@@ -346,7 +346,7 @@ uses LFN, {DataCompBoy}
        if Tuda then begin
         MessageBox(GetString(dlFBBDiskFull2), nil, mfError+mfOKButton);
         NewTimer(Timer, 0);
-        Abort:=On;
+        Abort:=true;
         Exit;
        end else begin
         if TimerExpired(AlarmTimer) and
@@ -384,10 +384,6 @@ uses LFN, {DataCompBoy}
    var D: PDialog;
        V: PLabel;
        S, K, L: String;
-    function IsLabel( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
-    begin
-      IsLabel := TypeOf( P^ ) = TypeOf( TLabel );
-    end;
   begin
    D := PDialog( LoadResource( dlgNextSection ));
    V := PLabel(D^.FirstThat(@IsLabel));
@@ -432,7 +428,7 @@ uses LFN, {DataCompBoy}
    var i : Byte;
        b : Boolean;
   begin
-   b:=Off;
+   b:=false;
    for i:=1 to NBF do b:=b or (BF[i].NR=0);
    if b and (cd<ls) then InsCor;
   end;
@@ -452,13 +448,9 @@ uses LFN, {DataCompBoy}
        a,aa,aaa:string;
 
    const x_x = '*.';
-    function IsLabel( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
-    begin
-      IsLabel := TypeOf( P^ ) = TypeOf( TLabel );
-    end;
   begin
     lFSplit(Fn1, a, aa, aaa);
-    CopyDialog := Off;
+    CopyDialog := false;
     If Tuda
       then D := PDialog( LoadResource( dlgCombineFile ))
       else D := PDialog( LoadResource( dlgSplitFile ));
@@ -572,13 +564,13 @@ uses LFN, {DataCompBoy}
       csv: byte;
   begin
     NewTimer(Timer, 0);
-    LongCopy := On;
+    LongCopy := true;
     Count:=0;
-    Tuda:=Off;
-    Abort:=Off;
+    Tuda:=false;
+    Abort:=false;
     CopyCancelled := False;
-    BinarySplit := Off;
-    NewMode := On;
+    BinarySplit := false;
+    NewMode := true;
     Fn1:=lFExpand(Fn1);
     lFSplit(Fn1,d,n,x);
     dr1:=Byte(Fn1[1])-64;
@@ -588,7 +580,7 @@ uses LFN, {DataCompBoy}
     lResetFile(F1,1);
     RC := IOResult;
     if RC<>0 then
-     begin MessFileNotOpen(Fn1, RC); LongCopy := Off; Exit; end;
+     begin MessFileNotOpen(Fn1, RC); LongCopy := false; Exit; end;
     GetFTime(F1.F, OldDate);
     lFSplit(Fn1,d,n,x);
 
@@ -598,7 +590,7 @@ uses LFN, {DataCompBoy}
            begin
             Close(F1.f);
             Message(Desktop, evCommand, cmSingleCopy, nil);
-            LongCopy := Off;
+            LongCopy := false;
             Exit;
            end;
 
@@ -611,7 +603,7 @@ uses LFN, {DataCompBoy}
        Count := 1;
        RequirePath;
        lAssignFile(F1, Fn1);
-       if Abort then begin LongCopy := Off; Exit; end;
+       if Abort then begin LongCopy := false; Exit; end;
        FileMode := 0;
        lResetFile(F1,1);
        csv := CheckSvoi;
@@ -628,7 +620,7 @@ uses LFN, {DataCompBoy}
                 else Ls:=ohd.Ln;
 
     if (not CopyDialog) or Abort then
-_Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
+_Abort_:    begin Close(F1.F); LongCopy := false; Exit; end;
 
     if NewMode then nhd.Ln:=Ls
                else ohd.Ln:=Ls;
@@ -644,7 +636,7 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
     if Tuda then PInfo^.Top := GetString(dlFBBDeFragment)
             else PInfo^.Top := GetString(dlFBBFragment);
     PInfo^.Bottom := '';
-    PInfo^.SetState(sfShadow, On);
+    PInfo^.SetState(sfShadow, true);
     Desktop^.Insert(PInfo);
     PInfo^.Write(1, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn1));
     lFSplit(Fn2,d,n,x);
@@ -660,7 +652,7 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
     if not Tuda then RequireNew
                 else
                  begin
-                  CreateDirInheritance(d, Off);
+                  CreateDirInheritance(d, false);
                   lResetFile(F2,1);
                   if IOResult=0 then
                    begin
@@ -702,7 +694,7 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
     Close(F2.F);
     if (Abort or CopyCancelled) and Tuda then lEraseFile(F2);
     ClearMem;
-    Abort := Off;
+    Abort := false;
 {$IFDEF FileNotify}
     if not DNIni.AutoRefreshPanels then
       begin

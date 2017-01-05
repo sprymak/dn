@@ -52,7 +52,7 @@ INTERFACE
 
 uses
   Collect, Objects, DOS, Drives, FilesCol, Views, DiskInfo, Tree, Histries,
-  Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} FindObj;
+  Lfn, Files, FindObj;
 
 type
    TTdrHeader = record
@@ -526,7 +526,7 @@ var
 
 { CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual; }
 begin
-   CtrlBreakHit:=Off;
+   CtrlBreakHit:=false;
    AFiles^.Pack; if AFiles^.Count <= 0 then Exit;
    lFSplit(Name^, Dr, Nm, Xt);
    if FileType = avdTdr then
@@ -535,7 +535,7 @@ begin
    CopyDirName:=S1+CurDir;
    if CopyDirName[Length(CopyDirName)]<>'\' then CopyDirName:=CopyDirName+'\';
    if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
-                     MoveMode, AFiles, 0, Owner, On) then Exit;
+                     MoveMode, AFiles, 0, Owner, true) then Exit;
 
    if CopyDir[Length(CopyDir)] <> '\' then CopyDir:=CopyDir+'\';
    if Pos(S1, CopyDir) = 1 then begin
@@ -551,13 +551,8 @@ begin
        Stream^.Seek({Cat:warn} Round(PF^.PSize));
        Stream^.Read(FC, SizeOf(FC));
        Desc:=AvtCellDesc(FC, Stream^);
-{$IFNDEF OS2}
-       S1:=MakeNormName('\'+CurDir, GetLFN(PF^.LFN));
-       S2:=MakeNormName(CopyDir, MkName(GetLFN(PF^.LFN), Mask));
-{$ELSE}
-       S1:=MakeNormName('\'+CurDir, PF^.Name);
-       S2:=MakeNormName(CopyDir, MkName(PF^.Name, Mask));
-{$ENDIF}
+       S1:=MakeNormName('\'+CurDir, PF^.FlName[true]);
+       S2:=MakeNormName(CopyDir, MkName(PF^.FlName[true], Mask));
        if Pos(S1,S2)=1 then begin
          MessageBox(GetString(erIntoItself), nil, mfError + mfOKButton);
        end
@@ -628,12 +623,8 @@ begin
      P:=WriteMsg(GetString(dlPleaseStandBy));
      for I:=0 to AFiles^.Count - 1 do begin
        PF:=AFiles^.at(i);
-{$IFNDEF OS2}
-       S1:=MakeNormName('\'+CurDir, GetLFN(PF^.LFN));
-{$ELSE}
-       S1:=MakeNormName('\'+CurDir, PF^.Name);
-{$ENDIF}
-       S2:=MakeNormName(CopyDir, MkName(Mask, PF^.Name));
+       S1:=MakeNormName('\'+CurDir, PF^.FlName[true]);
+       S2:=MakeNormName(CopyDir, MkName(Mask, PF^.FlName[true]));
        if (PF^.Attr and Directory) = 0 then
          WriteLn(T.T, 'COPY TP:'+SquashesName(S1)+' '+SquashesName(S2)+' /O/R/C/H')
        else begin
@@ -812,7 +803,7 @@ begin
   S:=CnvString(PF^.Diz^.Diz);
   if BigInputBox(GetString(dlEditDesc),GetString(dl_D_escription), S, 255, hsEditDesc) <> cmOK then Exit;
   Dispose(Stream,Done); Stream:=nil; RealAttr:=$FFFF;
-  ClrIO; Abort:=Off;
+  ClrIO; Abort:=false;
   GetAttr; if Attrb and ReadOnly <> 0 then
   begin
     SetAttr(Archive);
@@ -874,7 +865,7 @@ procedure TArvidDrive.HandleCommand;
     end;
     if not WasTape then FindList^.Insert(New(PFindObject, Init(Name)));
     if not WasDir then FindList^.Insert(New(PFindDir, Init(Dr, LP)));
-    WasTape:=On; WasDir:=On;
+    WasTape:=true; WasDir:=true;
     FindList^.Insert(P);
   end;
 
@@ -891,14 +882,14 @@ procedure TArvidDrive.HandleCommand;
         SS: String;
         {$ENDIF}
   begin
-    Lv0:=Off; LastLv:=0;
+    Lv0:=false; LastLv:=0;
     LP:=D.DirTableOfs;
     repeat
       St^.Seek(LP);
       St^.Read(DD, SizeOf(DD));
       if DD.Level = 0 then
          if Lv0 then Break
-                else Lv0:=On;
+                else Lv0:=true;
 {$IFDEF USEANSISTRING}
       SetLength(SS, SizeOf(DD.Name));
       Move(DD.Name, SS[1], SizeOf(DD.Name));
@@ -926,7 +917,7 @@ procedure TArvidDrive.HandleCommand;
                   {$ENDIF}
                 end;
       LastLv:=DD.Level;
-      WasDir:=Off;
+      WasDir:=false;
       if InSpaceFilter(SS, DT.Mask) then
         begin
           if SDesc and (DD.Description <> 0) then
@@ -943,7 +934,7 @@ procedure TArvidDrive.HandleCommand;
                   (FF.Size >= SizeGreat) and (FF.Size <=SizeLess) and
                   ((Attr = 0) or (FF.Attr and Attr <> 0))) then
               begin
-                WasDir:=On;
+                WasDir:=true;
                 Add(New(PFindDir, Init(Dr, LP)), Name);
               end;
         end;
@@ -1043,7 +1034,7 @@ procedure TArvidDrive.HandleCommand;
         DD: TTdrHeader;
         AA: TAvtHeader;
   begin
-    WasTape:=Off; Dr:='\';
+    WasTape:=false; Dr:='\';
     St^.Seek(0);
     St^.Read(AA, SizeOf(AA));
     if AA.Signature = 'AVTP' then begin
@@ -1235,11 +1226,7 @@ begin
   if (PF^.Attr and $80 <> 0) or (PF^.Attr and Directory = 0) then Exit;
   SaveDir:=CurDir;
   LL:=0;
-{$IFNDEF OS2}
-  CurDir:=MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
-{$ELSE}
-  CurDir:=MakeNormName(PF^.Owner^, PF^.Name);
-{$ENDIF}
+  CurDir:=MakeNormName(PF^.Owner^, PF^.FlName[true]);
   SeekDirectory;
   P:=WriteMsg(GetString(dlPleaseStandBy));
   case FileType of

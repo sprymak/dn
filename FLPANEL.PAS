@@ -52,9 +52,10 @@ unit FlPanel;
 interface
 
 uses
+  files,
   {Cat} {$IFDEF VIRTUALPASCAL} VPSysLow, {$ENDIF} {/Cat}
   Objects, Views, Drivers, Dos, Eraser, FilesCol, HideView, Drives,
-  FLPanelX, DNHelp, {$IFNDEF OS2}LFNCol,{$ENDIF} TitleSet, collect;
+  FLPanelX, DNHelp, TitleSet, collect;
 
 type
     PSeparator=^TSeparator;
@@ -346,7 +347,7 @@ begin
                                   Message(PCopyRec(Event.InfoPtr)^.Owner,
                                           evBroadcast, cmCopyCollection,
                                           PCopyRec(Event.InfoPtr)^.FC);
-                                  SkipCopyDialog := Off;
+                                  SkipCopyDialog := false;
                                 end;
                  end;
     evMouseDown: begin
@@ -552,10 +553,10 @@ var
 
 begin
   inherited SetState(AState, Enable);
-  DoDraw := OFF;
+  DoDraw := false;
   If QuickSearch and ( AState and ( sfFocused + sfActive + sfVisible + sfSelected ) <> 0 ) and not Enable then begin
     DoDraw := True;
-    QuickSearch := OFF
+    QuickSearch := false
   end;
   if (AState and sfActive <> 0) then
     if not Enable then begin
@@ -611,7 +612,7 @@ begin
       if DirView <> nil then DirView^.DrawView;
     end;
   If DoDraw then begin
-    PosChanged := OFF;
+    PosChanged := false;
     DrawView;
   end;
   if GetState(sfFocused) then
@@ -630,7 +631,7 @@ procedure TFilePanel.Draw;
      CS: AWord;
      PgS: AWord;
      S, S1: String;
-     HLC: Array[0..ttCust10] of Byte; {JO}
+     HLC: Array[0..ttUpDir] of Byte; {JO, AK155}
      PB: ^Byte;
      TagC: Char;
 
@@ -650,28 +651,16 @@ procedure TFilePanel.Draw;
       else if P^.Selected then begin C:=CC; CC:=C3 end else C:=CC;
       if QuickSearch then if (Idx = CurPos) then
         begin
-         {$IFNDEF OS2}
-         if Drive^.Flags and psShowLongName <> 0 then
-           begin
-             if Drive^.LFNLen < 250 then
-                 SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
-                                          Drive^.LFNLen, Drive^.EXTLen) - 1, I)
-               else
-                 SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
-                                          Drive^.LFNLen, Drive^.EXTLen) + Drive^.CalcLengthWithoutName - 1, I)
-
-           end
-         else SetCursor(JJ+GetCursorPos(SearchParam, MakeFileName(P^.Name),
-                                         Drive^.LFNLen, Drive^.EXTLen) - 1, I)
-         {$ELSE}
-
-         if Drive^.LFNLen < 250 then
-             SetCursor(JJ+GetCursorPos(SearchParam, P^.Name,
+         if (Drive^.LFNLen < 250)
+       {$IFNDEF OS2}
+           or (Drive^.Flags and psShowLongName = 0)
+       {$ENDIF}
+           then
+             SetCursor(JJ+GetCursorPos(SearchParam, P^.FlName[uLfn],
                                     Drive^.LFNLen, Drive^.EXTLen) - 1, I)
            else
-             SetCursor(JJ+GetCursorPos(SearchParam, P^.Name,
+             SetCursor(JJ+GetCursorPos(SearchParam, P^.FlName[uLfn],
                                     Drive^.LFNLen, Drive^.EXTLen) + Drive^.CalcLengthWithoutName - 1, I)
-         {$ENDIF}
               ;
          ShowCursor;
          NormalCursor
@@ -708,7 +697,7 @@ begin
   begin
    if (UpStrg(OldDirectory[1]) <> UpStrg(DirectoryName[1])) and (OldDirectory <> '')
       then ScrollBar^.SetValue(0);
-   PosChanged := Off;
+   PosChanged := false;
    DecDrawDisabled; OldDirectory := DirectoryName;
   end;
  C1 := GetColor(1);  { Normal }
@@ -716,7 +705,7 @@ begin
  C3 := GetColor(3);  { Selected }
  C4 := C1;
  C5 := C3;
- HLC[0] := C1;
+ HLC[0] := C1; HLC[ttUpDir] := C1;
  if FMSetup.TagChar <> '' then TagC := FMSetup.TagChar[1]
                           else TagC := #251;
  if PanelFlags and fmiHiliteFiles <> 0 then
@@ -765,13 +754,13 @@ begin
          end;
        end;
     end else Goto 1;
-   PosChanged := Off;
+   PosChanged := false;
    OldDelta := Delta; OldPos := CurPos;
    Exit;
   end;
 1:
  OldDelta := Delta; OldPos := CurPos;
- PosChanged := Off;
+ PosChanged := false;
  if (FMSetup.Show and fmsColumnTitles <> 0) then
   begin
     DrawTop(B);
@@ -829,13 +818,8 @@ procedure TInfoView.HandleEvent;
  begin
   with Panel^ do
    begin
-   {$IFNDEF OS2}
-    S:=Cut(GetLFN(PFileRec(Files^.At(ScrollBar^.Value))^.LFN), 20); {DataCompBoy}
-    if S[1] = '.' then Exit;
-   {$ELSE}
-    S:=Cut(PFileRec(Files^.At(ScrollBar^.Value))^.Name, 20); {DataCompBoy}
+    S:=Cut(PFileRec(Files^.At(ScrollBar^.Value))^.FlName[uLfn], 20); {DataCompBoy}
     if S = '..' then Exit;
-   {$ENDIF}
    end;
   New(FC, Init(1, 100));
   FC^.Insert(CopyFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value)));
@@ -869,16 +853,8 @@ procedure TInfoView.HandleEvent;
   for I := 1 to Panel^.Files^.Count do
    begin
     PF := Panel^.Files^.At(I-1); {DataCompBoy}
-    if {$IFNDEF OS2}
-         {$IFDEF OS_DOS}
-         PF^.Name[1] <> '.'
-         {$ELSE}
-         PF^.LFN <> '..'
-         {$ENDIF}
-       {$ELSE}
-         PF^.Name <> '..'
-       {$ENDIF}
-           then FC^.Insert(CopyFileRec(PF)); {DataCompBoy}
+    if PF^.TType <> ttUpDir
+    then FC^.Insert(CopyFileRec(PF)); {DataCompBoy}
    end;
   MakeGlobal(P, P);
   DragMover(@P, ItoS(Panel^.Files^.Count)+' '+GetString(dlDIFiles), FC, @C);
@@ -913,7 +889,7 @@ begin
                   PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
                 Message(Owner, evKeyDown, kbDown, nil);
                until not MouseEvent(Event, evMouseMove + evMouseAuto);
-               RepeatDelay := 2; Panel^.MSelect := Off;
+               RepeatDelay := 2; Panel^.MSelect := false;
               end;
              Exit
             end;
@@ -944,8 +920,6 @@ procedure TInfoView.Draw;
      ShowFree, DescriptionInBottom: boolean;
 
 
- var FR: TFileRec;
-     P: PFileRec;
 
  { построение строки информации об отмеченных файлах }
  function SelString: string;
@@ -1032,6 +1006,7 @@ begin
  if Panel^.PanelFlags and fmiCurrent <> 0 then
   begin
    MoveChar(B, ' ', C1, Size.X);
+   PF := nil;
    if Panel^.ScrollBar^.Value < Panel^.Files^.Count then
     begin
       PF := Panel^.Files^.At(Panel^.ScrollBar^.Value);
@@ -1082,29 +1057,22 @@ begin
       S := QuickSearchString;
       I := 0;
      end
-    else if ShowFullName and (Panel^.ScrollBar^.Value < Panel^.Files^.Count)then
+    else if ShowFullName and (PF <> nil) then
      begin
-      P:=PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value));
-      if P<>nil then begin
-{$IFNDEF OS2}
-        S2 := MakeFileName(P^.Name);
-{$ELSE}
-        S2 := P^.Name;
-{$ENDIF}
+        S2 := PF^.FlName[true];
         if (S2 <> '..') and (S2 <> '.') then
-         begin
-{$IFDEF OS2}
+          begin
           S3 := S2;
-          if length(S2) > 14
-{$ELSE}
-          S3 := GetLFN(P^.LFN); {DataCompBoy}
-          if (UpStrg(S2) <> UpStrg(S3)) or (length(S2) > 14)
-{$ENDIF}
-          then S := FormatLongName(GetName(S3),Size.X,0,
-          flnPreferName+flnHighlight+flnHandleTildes+flnUseCutChar,
-          nfmNull,nil);
-         end;
-       end
+//          if length(S2) > 14 then
+ { На самом деле такое условие плохо работает под виндой. Например,
+при панелях 12.3, но с включенными длинными именами "Program files" не
+помещается в колонке, в текущем файле показано короткое имя, но длина
+меньше 14. Усложнять программу не хочется, и к тому же от юзеров было
+прямое пожелание выводить длинное имя безусловно. AK155}
+            S := FormatLongName(GetName(S3),Size.X,0,
+              flnPreferName+flnHighlight+flnHandleTildes+flnUseCutChar,
+              nfmNull,nil);
+          end;
      end
     else if ShowSelected then
       S := GetString(dlNoFilesSelected);
@@ -1375,7 +1343,7 @@ var
   with PF^ do
    if Selected then
    begin
-    Selected := Off;
+    Selected := false;
     SelectedLen := SelectedLen - Size;
     PackedLen := PackedLen - PSize;
     Dec(SelNum)
@@ -1390,35 +1358,14 @@ var
  begin
    MaskSearch := true;
    I := CurPos + B; If I >= Files^.Count then I := 0;
-{$IFNDEF OS2}
-   if Drive^.Flags and psShowLongName <> 0 then
-{$ENDIF}
     repeat
-{$IFNDEF OS2}
-     If InQSMask(GetLFN(PFileRec(Files^.At(I))^.LFN), SearchParam.Mask) then
-{$ELSE}
-     If InQSMask(PFileRec(Files^.At(I))^.Name, SearchParam.Mask) then
-{$ENDIF}
+     If InQSMask(PFileRec(Files^.At(I))^.FlName[uLfn], SearchParam.Mask) then
      begin
       ScrollBar^.SetValue( I );
       Exit;
      end;
      Inc( I ); If I >= Files^.Count then I := 0;
     until I = CurPos
-{$IFNDEF OS2}
-   else
-    repeat
-  {$IFDEF OS_DOS}
-     If InQSMask(MakeFileName(PFileRec(Files^.At(I))^.Name), SearchParam.Mask) then begin
-  {$ELSE}
-     If InQSMask(lfGetShortFileName(GetLFN(PFileRec(Files^.At(I))^.LFN)), SearchParam.Mask) then begin
-  {$ENDIF}
-      ScrollBar^.SetValue( I );
-      Exit;
-     end;
-     Inc( I ); If I >= Files^.Count then I := 0;
-    until I = CurPos
-{$ENDIF}
  ;
    MaskSearch := false;
  end;
@@ -1432,6 +1379,7 @@ var
  label lbMakeUp, GotoExt, GotoKb, lbMakeDown;
 
 begin
+ {$IFNDEF OS2} uLFN := Drive^.Flags and psShowLongName <> 0; {$ENDIF}
  inherited HandleEvent(Event);
  if Event.What = evNothing then Exit;
  CurPos := ScrollBar^.Value;
@@ -1479,7 +1427,7 @@ begin
                   ClearEvent( Event );
                 end;
               cmKillUsed: Drive^.KillUse;
-              cmClose: CommandEnabling := Off;
+              cmClose: CommandEnabling := false;
               cmCopyUnselect: begin CM_CopyUnselect; CE end;
               cmRecountDirs: begin
                                if Files <> nil then files^.ForEach(@DoMakeDirs); CED;
@@ -1497,7 +1445,7 @@ begin
                  (not CommandLine^.GetState(sfVisible)) and
                  (InterfaceData.Options and ouiHideCmdLine <> 0)) then
                 begin
-                CtrlWas := Off;
+                CtrlWas := false;
                 InitQuickSearch(SearchParam);
                 QuickSearch := not QuickSearch;
                 if not QuickSearch then
@@ -1536,13 +1484,13 @@ begin
                                       (Event.KeyCode = kbBackUp) or
                                       (Event.KeyCode = kbIns)) then
                    begin
-                    CtrlWas := Off;
+                    CtrlWas := false;
                     if (Event.KeyCode = kbGrayPlus) or (Event.KeyCode = kbGrayMinus) or
                        (Event.KeyCode = kbGrayAst) or (Event.KeyCode = kbIns) or
                        (Event.KeyCode = kbBackUp) then Goto GotoKb;
                     case Event.CharCode of
                      #27: begin
-                           QuickSearch := Off;
+                           QuickSearch := false;
                            InitQuickSearch(SearchParam);
                            InfoView^.DrawView;
                            CED;
@@ -1562,7 +1510,7 @@ begin
                               PutEvent(Event);
                             end;
                            CE;
-                           QuickSearch := Off;
+                           QuickSearch := false;
                            InfoView^.DrawView; {Cat}
                            Exit;
                           end;
@@ -1576,10 +1524,10 @@ begin
                     CED;
                    end else
                    begin
-                    CtrlWas := Off;
+                    CtrlWas := false;
                     if QuickSearch then
                      begin
-                      QuickSearch := Off;
+                      QuickSearch := false;
                       InfoView^.DrawView;
                      end;
 GotoKB:
@@ -1600,20 +1548,12 @@ GotoKB:
                             end;
                      kbIns,kbSpace: if CurPos < Files^.Count then
                             begin
-                             QuickSearch := Off;
+                             QuickSearch := false;
                              if (Event.CharCode = ' ') and ((CmdLine.Str <> '') or
                                 (FMSetup.Options and fmoSpaceToggle = 0)) then Exit;
                              CE; if Files^.Count = 0 then Exit;
                              PF := Files^.At(CurPos);
-                             {$IFNDEF OS2}
-                               {$IFDEF OS_DOS}
-                             if PF^.Name[1] <> '.' then
-                               {$ELSE}
-                             if PF^.LFN <> '..' then
-                               {$ENDIF}
-                             {$ELSE}
-                             if PF^.Name <> '..' then
-                             {$ENDIF}
+                             if PF^.TType <> ttUpDir then
                              begin
                               PF^.Selected := not PF^.Selected;
                               SelectedLen := SelectedLen - (1-2*Integer(PF^.Selected))*PF^.Size;
@@ -1647,15 +1587,7 @@ GotoKB:
                                          if Files<>nil then begin
                                           if Files^.Count = 0 then Exit;
                                           PF := Files^.At(ScrollBar^.Value);
-                                          if {$IFNDEF OS2}
-                                               {$IFDEF OS_DOS}
-                                              (PF^.Name[1] <> '.')
-                                               {$ELSE}
-                                              (PF^.LFN <> '..')
-                                               {$ENDIF}
-                                             {$ELSE}
-                                              (PF^.Name <> '..')
-                                             {$ENDIF}
+                                          if (PF^.TType <> ttUpDir)
                                                      and (PF^.Selected xor SelectFlag) then
                                            begin
                                             PF^.Selected := SelectFlag;
@@ -1668,7 +1600,7 @@ GotoKB:
                                         end;
                                       PosChanged := True;
                                       if InfoView <> nil then InfoView^.DrawView;
-                                      CED; PosChanged := Off;
+                                      CED; PosChanged := false;
                                       if (RepeatDelay <> 0) and (ViewEnabled or
                                          (Drive^.Flags and psShowLongDesc <> 0) and
                                          (Drive^.DriveType < dtArc)) then

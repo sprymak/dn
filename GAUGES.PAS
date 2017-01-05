@@ -53,7 +53,7 @@ interface
 
 uses
   Dos, Objects, Views, Drivers, FileCopy, Eraser, Collect,
-  Commands, xTime {$IFNDEF OS2}, LFNCol {$ENDIF}
+  Commands, xTime
   {$IFDEF Calendar} ,calendar {$ENDIF}
   ;
 

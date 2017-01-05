@@ -89,10 +89,10 @@ CONST
 {$ELSE}      (Sign:'DN OSP Desktop'#26#151#80;SignLen:17;SignVer:15180);{$ENDIF}
                                                     {Desktop for 1.51.08}
   Security: Boolean = True;
-  ConfigModified: Boolean = Off;
+  ConfigModified: Boolean = false;
   DateMode: Byte = 0;
   SkyDelay: Byte = 1;
-
+  CmdExt: string[4] = '.CMD'; {расширение командных файлов}
 
 TYPE
 
@@ -709,4 +709,6 @@ begin
  SetOverlay;
 {$ENDIF}
 {$ENDIF NO_OVERLAY}
+if (SysPlatformId <> -1) and (SysPlatformId <> 2) then
+  CmdExt := '.BAT'
 END.

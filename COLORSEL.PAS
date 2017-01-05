@@ -1091,7 +1091,7 @@ begin
                else DisableCommands([cmPalVGA]);
   {!! IB}
   for len := apColor to apMonochrome do OldColors[len] := NewStr(SystemColors[len]);
-  DefaultColorsFlag := off;
+  DefaultColorsFlag := false;
   len := Byte(CurrentBlink)*2;
   if DefaultColors <> nil then DefaultColors^.SetData(len);
 end;
@@ -1113,7 +1113,7 @@ begin
   begin
    CurrentBlink := not CurrentBlink;
    SetBlink(CurrentBlink);
-   ConfigModified := On;
+   ConfigModified := true;
   end;
 
  if DefaultColors^.Mark(0) <> DefaultColorsFlag then

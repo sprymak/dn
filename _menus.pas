@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines, _Streams, _Views;
+  _Defines, _Streams, _Views;
 
 type
   PMenuView = ^TMenuView;
@@ -82,7 +82,7 @@ end;
 
 constructor TMenuView.Load(var S: TStream);
 begin
-  _TMenuView^.Load(S, nil, @Self);
+  _TMenuView^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 function TMenuView.FindItem(Ch: Char): PMenuItem;
@@ -107,7 +107,7 @@ end;
 
 procedure TMenuView.Store(var S: TStream);
 begin
-  _TMenuView^.Store(S, @Self);
+  _TMenuView^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TMenuBar.Init(var Bounds: TRect; AMenu: PMenu);
@@ -117,7 +117,7 @@ end;
 
 constructor TMenuBox.Init(var Bounds: TRect; AMenu: PMenu; AParentMenu: PMenuView);
 begin
-  _TMenuBox^.Init(Bounds, AMenu, AParentMenu, nil, @Self);
+  _TMenuBox^.Init(Bounds, AMenu, _Model1.PMenuView(AParentMenu), nil, @Self);
 end;
 
 constructor TMenuPopup.Init(var Bounds: TRect; AMenu: PMenu);
@@ -132,7 +132,7 @@ end;
 
 constructor TStatusLine.Load(var S: TStream);
 begin
-  _TStatusLine^.Load(S, nil, @Self);
+  _TStatusLine^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 function TStatusLine.Hint(AHelpCtx: Word): String;
@@ -142,7 +142,7 @@ end;
 
 procedure TStatusLine.Store(var S: TStream);
 begin
-  _TStatusLine^.Store(S, @Self);
+  _TStatusLine^.Store(_Model1.TStream(S), @Self);
 end;
 
 end.

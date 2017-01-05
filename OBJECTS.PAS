@@ -1197,9 +1197,6 @@ begin
   else begin
     while (Count > 0) and (Status = stOk) do begin
       W:=Count;
-      {$IFDEF OS2}
-      If (Count > $FFFE) Then W := $FFFE; { Cant read >64K bytes }
-      {$ENDIF}
       {$IFDEF PACKFILE}
       if (FMode and $000F)=fmPacked then begin
         BytesMoved:=pRead(Handle, W, P);
@@ -1234,9 +1231,6 @@ begin
   else begin
     while (Count > 0) and (Status = stOk) do begin
       W:=Count;
-      {$IFDEF OS2}
-      If (Count > $FFFE) Then W := $FFFE; { Cant read >64K bytes }
-      {$ENDIF}
       {$IFDEF PACKFILE}
       if (FMode and $000F)=fmPacked then begin
         BytesMoved:=pRead(Handle, W, P);

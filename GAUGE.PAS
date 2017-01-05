@@ -297,7 +297,7 @@ procedure TWhileView.HandleEvent;
  begin
   DeskTop^.GetExtent(R);
   Inc(R.A.Y, Size.Y - 1);
-  SetState(sfDragging, On);
+  SetState(sfDragging, true);
   DrawView;
   DragView(Event, dmDragMove, R, Size, Size);
   ClearEvent(Event);
@@ -422,7 +422,7 @@ end;
 function TWhileView.Valid;
 begin
   if (C <> cmQuit) then Valid := inherited Valid(C)
-                   else Valid := Off;
+                   else Valid := false;
 end;
 
 destructor TWhileView.Done;
@@ -442,7 +442,7 @@ begin
     then
      begin
       InfoView^.ClearEvent(Event);
-      CancelParam := On;
+      CancelParam := true;
      end;
  if (Event.What <> evNothing){ and not ((Event.What = evKeyDown) and
     (Event.KeyCode = kbEnter))}

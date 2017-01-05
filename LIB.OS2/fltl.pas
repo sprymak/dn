@@ -2,7 +2,7 @@
 { Optimise-}
 
 {$I STDEFINE.INC}
-unit FlOS2Tl;
+unit FlTl;
 
 interface
 
@@ -273,6 +273,7 @@ begin
   ulrc := EnumEAs(FFromName, coll);
   if ulrc = 0 then
   begin
+   if (coll^.Count > 0) then {JO: см. комментарий от 30-07-2002 к EAOper.EnumEAs }
     for i := coll^.Count - 1 downto 0 do
     begin
       PszName := PChar(coll^.At(i));
@@ -282,13 +283,19 @@ begin
       if ulrc = 0 then
       begin
         ulrc := StoreEA(FToName, PszName, ea, ulEASize);
-        if ulrc <> 0 then
+        if (ulrc <> 0)
+          and (ulrc <> 282) { Destination file system does not support EAs }
+          and (ulrc <> 283) { Destination file system does not support EAs }
+                            { and the source file's EAs contain a need EA  }
+        then
         begin
           params[0] := coll^.At(i);
           params[1] := Pointer(ulrc);
           MessageBox(#3 + GetString(dl_Failed_to_store_EA) + ' "%s"' {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF}, @params,
             mfError or mfOkButton);
         end;
+        if ulrc = 283 then
+          MessageBox(GetString(dl_Critical_EA_Copy_Fail) + FFromName, nil, mfOKButton);
         FreeMem(ea);
       end
       else
@@ -301,6 +308,8 @@ begin
     end;
   end
   else
+   if ulrc <> 124 then {JO: ошибка 124 - не предусмотренный для данного      }
+                       {    устройства уровень получения/задания информации  }
     MessageBox(#3 + GetString(dl_Failed_to_enumerate_EA) {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF},
       @ulrc, mfError or mfOkButton);
   Dispose(coll, Done);
@@ -312,10 +321,10 @@ var
   ulEASize, ulSize: Cardinal;
   szName: array [0..255] of Char;
   pszValue: PChar;
-  Result: Integer;
 begin
+  Value := '';
   Result := RetrieveEA(Filename, StrPCopy(szName, Name), ea, ulEASize, Silent);
-  if Result = 0 then
+  if (Result = 0) and (ea <> nil) then
     begin
       ulSize := RetrieveStringSize(ea);
       GetMem(pszValue, Succ(ulSize));
@@ -323,7 +332,6 @@ begin
       FreeMem(pszValue);
       FreeMem(ea);
     end;
-  GetEAString := Result;
 end;
 
 function SetEAString(const Filename, Name, Value: String): Integer;
@@ -339,19 +347,26 @@ end;
 
 procedure SetEALongname(Filename: String);
 var LNValue: String;
-    Result: Integer;
+    Result_: Integer;
 begin
-  Result := GetEAString(Filename, '.LONGNAME', LNValue, False);
-  if Result = 0 then
+  Result_ := GetEAString(Filename, '.LONGNAME', LNValue, True);
+  if Result_ = 0 then
     begin
       if BigInputBox(GetString(dlEditEALongname), GetString(dl_EALongname), LNValue, 255, hsEditEALongname) <> cmOK then Exit;
-      Result := SetEAString(Filename, '.LONGNAME', LNValue);
-      if Result <> 0 then
+      Result_ := SetEAString(Filename, '.LONGNAME', LNValue);
+      if Result_ <> 0 then
         MessageBox(#3'Failed to write .LONGNAME extended attribute' {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF},
-            @Result, mfError or mfOkButton);
+            @Result_, mfError or mfOkButton);
     end
   else
-    MessageBox(#3'Failed to read .LONGNAME extended attribute' {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF}, @Result, mfError or mfOkButton);
+   if Result_ <> 48 then {JO: ошибку 48, которая в оси зарезервирована      }
+                         {    мы используем, когда DosQueryPathInfo выдаёт  }
+                         {    fst4.cbList (величина списка EA) равным нулю, }
+                         {    что строго говоря не ошибка, но является      }
+                         {    поводом прервать дальнейшую работу с EA , т.к.}
+                         {    наблюдается на дисках, не поддерживающих EA   }
+    MessageBox(#3'Failed to read .LONGNAME extended attribute' {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF}, @Result_, mfError or mfOkButton)
+     else MessageBox(GetString(dlOperationNotValidForDdrive), nil, mfOKButton);
 end;
 
 {$ENDIF}

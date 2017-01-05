@@ -51,7 +51,7 @@ interface
 
 uses
   Archiver, FStorage, Dos, ArcView, Advance, Advance1, Advance2, Messages,
-  DnApp, Commands, Drivers, LFN, {$IFNDEF OS2} LFNCol, {$ENDIF} Objects, Views;
+  DnApp, Commands, Drivers, LFN, Objects, Views;
 
 Procedure ReadArcList;
 
@@ -108,12 +108,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
                  if P <> nil then
                    begin
                      PackTime(DT, P^.Date);
-{$IFNDEF OS2}
-                     PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-                     DelLFN(P^.LFN);
-{$ELSE}
                      PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-{$ENDIF}
                      DisposeStr(P^.FName); Dispose(P);
                    end;
                  New(P);
@@ -131,12 +126,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
                     if P <> nil then
                       begin
                         PackTime(DT, P^.Date);
-{$IFNDEF OS2}
-                        PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-                        DelLFN(P^.LFN);
-{$ELSE}
                         PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-{$ENDIF}
                         DisposeStr(P^.FName); Dispose(P);
                       end;
                     Break
@@ -154,9 +144,6 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
                      if P^.Attr = Directory then S := S + '\';
                      P^.Attr := 0;
                      P^.FName := NewStr(CurDir + S);
-{$IFNDEF OS2}
-                     P^.LFN := AddLFN(P^.FName^);
-{$ENDIF}
                    end else
                   if Id = 'DATE' then
                    begin
@@ -212,18 +199,12 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
            if I=0 then
              begin
               P^.FName := NewStr('\'+S);
-{$IFNDEF OS2}
-              P^.LFN   := AddLFN(P^.FName^);
-{$ENDIF}
               S := F^.GetStr;
               DelLeft(S);DelRight(S);
              end
            else
              begin
               P^.FName := NewStr('\'+Copy(S, 1, I-1));
-{$IFNDEF OS2}
-              P^.LFN   := AddLFN(P^.FName^);
-{$ENDIF}
               Delete (S, 1, I);
               DelLeft(S);
              end;
@@ -244,12 +225,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
            DT.Min := StoI(Copy(S,4,2));
            DT.Sec := StoI(Copy(S,7,2));
            PackTime(DT, P^.Date);
-{$IFNDEF OS2}
-           PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-           DelLFN(P^.LFN);
-{$ELSE}
            PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-{$ENDIF}
            DisposeStr(P^.FName); Dispose(P); P:=nil;
            J:=J-1;
          end;

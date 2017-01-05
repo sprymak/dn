@@ -405,7 +405,7 @@ begin
 end;
 
 begin
- CheckForOver := nil; Abort := Off; S := nil;
+ CheckForOver := nil; Abort := false; S := nil;
  lAssignFile(F, Name); ClrIO; lGetFAttr(F, Attr); if Abort then Exit;
  if (DosError = 0) and (Attr and ReadOnly <> 0 ) then
  begin

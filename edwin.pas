@@ -66,7 +66,7 @@ type
     ModalEnd: Boolean;
     constructor Init(R: TRect; FileName: String);
     constructor Load(var S: TStream);
-    procedure ChangeBounds(var R: TRect); virtual;
+//    procedure ChangeBounds(var R: TRect); virtual;
     procedure Store(var S: TStream);
     function Execute: Word; virtual;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
@@ -91,7 +91,7 @@ const
        Load: @TEditSaver.Load;
        Store: @TEditSaver.Store);
 
-       Registered: Boolean = Off;
+       Registered: Boolean = false;
 
 constructor TEditSaver.Load(var S: TStream);
 begin
@@ -111,7 +111,7 @@ begin
   if MaxCommands = 0 then
     begin
       if not Registered then RegisterType(REditSaver);
-      Registered := On;
+      Registered := true;
       P := PEditSaver(LoadResource(dlgEditorCommands));
       P^.Free;
     end;
@@ -148,7 +148,7 @@ begin
  LoadCommands;
 end;
 
-procedure TEditWindow.ChangeBounds;
+{procedure TEditWindow.ChangeBounds;
 var rr: TRect;
 begin
  inherited ChangeBounds(R);
@@ -160,11 +160,11 @@ begin
       LastEditDeskSize := Desktop^.Size;
     end;
 end;
-
+}
 function TEditWindow.Execute;
  var Event: TEvent;
 begin
-  ModalEnd := Off;
+  ModalEnd := false;
   repeat
     GetEvent(Event);
     if Event.What <> evNothing then HandleEvent(Event);

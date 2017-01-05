@@ -333,7 +333,6 @@ var
   {$IFDEF KEYLOG}
   F: Text;
 
-  {&Delphi+}
   function Hex(L: LongInt): String;
   const
     H: array[0..15] of Char = '0123456789ABCDEF';
@@ -347,7 +346,6 @@ var
         L := L shr 4;
       end;
   end;
-  {&Delphi-}
   {$ENDIF}
   {/Cat}
 
@@ -434,14 +432,12 @@ end;
 function GetShiftState: Byte;
 var
   Handled: Boolean;
-  Result : Byte;
 begin
   Handled := False;
 {  if @GetShiftStateHandler <> nil then
     Handled := GetShiftStateHandler(Result);
   if not Handled then}
     Result := SysTVGetShiftState;
-  GetShiftState := Result;
 end;
 
 {--------------------------------------------------}

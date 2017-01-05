@@ -554,9 +554,7 @@ dlSetupButton,             '~В~ст.'
 dlSkipButton,              'П~р~oп.'
 dlSometh,                  'th'
 dlSortName,                '~I~менi'
-dlSortLongName,            '~Д~овгомy iменi'
 dlSortExt,                 '~Р~озширенню'
-dlSortLongExt,             'До~в~гомy pозширенню'
 dlSortSize,                'Ро~з~мiру'
 dlSortDate,                '~Ч~асу'
 dlSortCrDate,              'Часу ~с~творення'
@@ -785,9 +783,9 @@ dlleFailedFinal        'Не вдалось декодувати'
 
 dlSelectXLT            'Виберiть таблицю переводу'
 
-dlSetDirHistory       ^C'Повинна бути включена установка iнтерфейсу'^M^C'"Iсторiя змiни каталогiв"'
-dlSetEditHistory      ^C'Повинна бути включена установка iнтерфейсу'^M^C'"Iсторiя редагування файлiв"'
-dlSetViewHistory      ^C'Повинна бути включена установка iнтерфейсу'^M^C'"Iсторiя перегляду файлiв"'
+dlSetDirHistory       ^C'Повинна бути вiмкнута установка iнтерфейсу'^M^C'"Iсторiя змiни каталогiв"'
+dlSetEditHistory      ^C'Повинна бути вiмкнута установка iнтерфейсу'^M^C'"Iсторiя редагування файлiв"'
+dlSetViewHistory      ^C'Повинна бути вiмкнута установка iнтерфейсу'^M^C'"Iсторiя перегляду файлiв"'
 
 dlColorsColors,       '~К~олiр'
 dlColorsBlack,        'Чорний'
@@ -1281,6 +1279,7 @@ dlAutodetect            'Автовизн. '
 dl_Failed_to_enumerate_EA    'Не можу зчитати список Розширених Атрибутiв'
 dl_Failed_to_retrieve_EA     'Не можу вiдновити EA'
 dl_Failed_to_store_EA        'Не можу зберегти EA'
+dl_Critical_EA_Copy_Fail     'Не можу зберегти критичнi EA на диск призначення для файла:'^M
 dlEditEALongname             'Змiнити логiчне iм''я (Розширений атрибут .LONGNAME )'
 dl_EALongname                'Логiчне iм''я:'
 dlChangeLngWarning           ^C'Мова iнтерфейсу буде змiнена пiсля перезапуску'^M+
@@ -1357,6 +1356,10 @@ dlWkzQuerySeparatorTitle 'Роздiлювач  колонок'
 dlWkzQuerySeparatorLabel '~Р~оздiлювач'
 dlWkzWarningClear ^C'Усi данi у поточнiй електроннiй таблицi буде видалено.'^M^C'Продовжити?'
 ;KV-
+;AK155+
+dlWkzWarningClearCell ^C'Справдi очистити клiтину?'
+dlWkzWarningCellTypeChange ^C'Справдi змiнити тип клiтини?'
+;AK155-
 ;JO+
 dlZIPWithoutCentralDir ^C'ZIP архiв без центрального каталогу'^M^C'застосуйте ремонтну утiлiту (PKZIPFIX або ZIP з параметром -F)'^M^C'для вiдновлення архiву'
 dlArcEncrypted ^C'Архiв з зашифрованими заголовками'^M^C'застосуйте Shift-F2 для розпаковки архiву цiлком'
@@ -1369,3 +1372,6 @@ dlNoOperand 'Замало операндiв'
 dlMissingOperation 'Пропущено операцию'
 dlWrongComma 'Зайва кома'
 ;AK155-
+;JO+
+dlOperationNotValidForDdrive 'Дана операцiя є неможливою для поточного диску'
+;JO-

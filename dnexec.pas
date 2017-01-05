@@ -50,6 +50,7 @@ unit DNExec;
 interface
 
 uses
+  files,
   UserMenu, Startup, Objects, FilesCol, Commands, TitleSet
   {$IFDEF DPMI}, DPMI {$ENDIF}
   ;
@@ -76,7 +77,7 @@ uses
 {$IFDEF WIN32}
   Windows,
 {$ENDIF}
-  DnUtil, Advance, DnApp, Advance1, LFN, {$IFNDEF OS2} LFNCol, {$ENDIF}
+  DnUtil, Advance, DnApp, Advance1, LFN,
   Dos, Advance3, FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4,
 {$IFDEF VIRTUALPASCAL}
   Videoman, Memory, VPSysLow, VpSysLo2,
@@ -393,7 +394,7 @@ var
   EF, First: Boolean;
   I        : Integer;
   Local    : Boolean;
-  FName{$IFNDEF OS2},LFN{$ENDIF}: string;
+  FName: string;
   UserParam: TUserParams;
   D        : TMaskData;
  {$IFDEF OS2}
@@ -406,23 +407,19 @@ begin
   First := True;
   Message(Desktop, evBroadcast, cmGetUserParams, @UserParam);
   UserParam.Active:=FileRec;
-  FName:=FileRec^.Name;
-{$IFNDEF OS2}
-  LFN  := GetLFN(FileRec^.LFN);
-  if CharCount('.', LFN)=0 then LFN:=LFN+'.';
-{$ENDIF}
+  FName:=FileRec^.FlName[true];
   {lGetDir(0, ActiveDir);} {Cat:warn закомментировал это в процессе отлова багов, но надо будет проверить, не добавил ли новых}
   SearchExt:=False;
-  Local := On;
+  Local := true;
   f := New(PTextReader, Init('DN.EXT'));
   if f=nil then
    begin
   RL:
-     Local := Off;
+     Local := false;
      f := New(PTextReader, Init(SourceDir+'DN.EXT'));
    end;
   if f=nil then exit; AllRight:=False;
-  BgCh:='{';EnCh:='}'; Abort := Off; EF:=Off;
+  BgCh:='{';EnCh:='}'; Abort := false; EF:=false;
   if PShootState and 8 > 0 then begin BgCh:='[';EnCh:=']';end else
   if PShootState and 3 > 0 then begin BgCh:='(';EnCh:=')';end;
   While (not f^.EOF) and (not AllRight) do begin
@@ -436,12 +433,8 @@ begin
       if S1[1]<>';' then begin
        D.Filter := S1;
        MakeTMaskData(D);
-       if InExtFilter(FName, D) {$IFNDEF OS2}or InExtFilter(LFN, D) {$ENDIF}then begin
-{$IFNDEF OS2}
-        lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
-{$ELSE}
-        lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD'); ClrIO;
-{$ENDIF}
+       if InExtFilter(FName, D) then begin
+        lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$'+CmdExt); ClrIO;
         lRewriteText(F1); if IOResult <> 0 then
           begin
             Dispose(F,Done);
@@ -451,7 +444,7 @@ begin
        {$IFNDEF OS2}
         Writeln(F1.T, '@echo off');
        {$ELSE}
-        WriteEcho := On;
+        WriteEcho := true;
        {$ENDIF}
         System.Delete(S, 1, PosChar(BgCh, S));
         repeat
@@ -460,17 +453,17 @@ begin
          Replace('}}', #2, S);
          DelLeft(S); DelRight(S);
          if S[Length(S)] = EnCh then
-          begin SetLength(S, Length(S)-1); EF := On; if S <> '' then
+          begin SetLength(S, Length(S)-1); EF := true; if S <> '' then
            begin
              Replace(#0, ']', S);
              Replace(#1, ')', S);
              Replace(#2, '}', S);
-             S := MakeString(S, @UserParam, off, nil);
+             S := MakeString(S, @UserParam, false, nil);
              HS := S;
              {$IFDEF OS2}
              {JO: под осью если строка на REXX'е или Perl'е, то не нужно добавлять @Echo off}
               if WriteEcho and (Copy(S, 1, 2) <> '/*') and (Copy(S, 1, 2) <> '#!') then Writeln(F1.T, '@Echo off');
-              WriteEcho := Off;
+              WriteEcho := false;
              {$ENDIF}
              WriteLn(F1.T, S); Break
            end;
@@ -478,12 +471,12 @@ begin
          if S <> '' then
           begin
            Replace(#0, ']', S);  Replace(#1, ')', S);  Replace(#2, '}', S);
-           if (BgCh <> '[') then S := MakeString(S, @UserParam, off, nil);
+           if (BgCh <> '[') then S := MakeString(S, @UserParam, false, nil);
            if First and (BgCh <> '[') then HS := S;
              {$IFDEF OS2}
              {JO: под осью если строка на REXX'е или Perl'е, то не нужно добавлять @Echo off}
               if WriteEcho and (Copy(S, 1, 2) <> '/*') and (Copy(S, 1, 2) <> '#!') then Writeln(F1.T, '@Echo off');
-              WriteEcho := Off;
+              WriteEcho := false;
              {$ENDIF}
            WriteLn(F1.T, S);
            First := False;
@@ -492,7 +485,7 @@ begin
          if not EF then S := F^.GetStr;
         until (IOResult <> 0) or Abort or EF;
         Close(F1.T);
-        AllRight := On;
+        AllRight := true;
        end;
       end;
      end;
@@ -505,7 +498,7 @@ begin
    begin
     EraseFile( SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU' );
     lRenameText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU');
-    EF := ExecUserMenu(Off);
+    EF := ExecUserMenu(false);
     if not EF then lEraseText(F1);
    end;
   SearchExt:=not Abort and EF;
@@ -530,23 +523,19 @@ function ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStr
 
 begin
  FillChar(D, sizeof(D), 0);
- ExecExtFile := Off;
+ ExecExtFile := false;
  FileMode := $40;
- Local := On;
-{$IFNDEF OS2}
- LFN := GetLFN(UserParams^.Active^.LFN);
-{$ELSE}
- LFN := UserParams^.Active^.Name;
-{$ENDIF}
+ Local := true;
+ LFN := UserParams^.Active^.FlName[true];
  if CharCount('.', LFN)=0 then LFN:=LFN+'.';
- FName := UserParams^.Active^.Name;
+ FName := UserParams^.Active^.FlName[true xor InvLFN];
 
  F := New(PTextReader, Init(ExtFName));
 
  if F = nil then
   begin
 RepeatLocal:
-    Local := Off;
+    Local := false;
     F := New(PTextReader, Init(SourceDir+ExtFName));
   end;
  if F = nil then Exit;
@@ -559,7 +548,7 @@ RepeatLocal:
       D.Filter := S1; MakeTMaskData(D);
       if InExtFilter(FName, D) or InExtFilter(LFN, D) then goto 1111;
    end;
-   ExecExtFile := Off;
+   ExecExtFile := false;
    Dispose(F, Done);
    {D.Filter := ''; MakeTMaskData(D);}
    FreeTMaskData(D); {Cat}
@@ -576,7 +565,7 @@ RepeatLocal:
      end;
    ClrIO;
    S1:='';
-   S:=MakeString(S, UserParams, off, @S1);
+   S:=MakeString(S, UserParams, false, @S1);
    if S1<>''
     then TempFile:='!'+S1+'|'+MakeNormName(UserParams^.Active^.Owner^, LFN)
     else if TempFile<>''
@@ -617,10 +606,10 @@ RepeatLocal:
           lChDir(UserParams^.Active^.Owner^);
          end;
 {$ENDIF}
-   ExecExtFile := On;
+   ExecExtFile := true;
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
 {$IFDEF UserSaver}
-   InsertUserSaver(Off); {JO}
+   InsertUserSaver(false); {JO}
 {$ENDIF}
    ExecString(@S, '');
 {$IFDEF VIRTUALPASCAL}
@@ -642,7 +631,7 @@ procedure ExecFile(const FileName: string);
  begin
   if M = '' then Exit;
   CmdLine.Str := M;
-  CmdLine.StrModified := On;
+  CmdLine.StrModified := true;
   CmdDisabled := B;
   Message(CommandLine, evKeyDown, kbDown, nil);
   Message(CommandLine, evKeyDown, kbUp, nil);
@@ -658,8 +647,8 @@ procedure ExecFile(const FileName: string);
        if PCommandLine(CommandLine)^.LineType = ltOS2FullScreen then
          ST := stOS2FullScreen
        else ST := stOS2Windowed;
-       RunOS2Command(M, Off, ST);
-       CmdLine.StrModified := On;
+       RunOS2Command(M, false, ST);
+       CmdLine.StrModified := true;
        Message(CommandLine, evKeyDown, kbDown, nil);
        Exit;
      end;
@@ -674,12 +663,9 @@ procedure ExecFile(const FileName: string);
 label ex;
 begin
  fr:= CreateFileRec(FileName);
+ S := fr^.FlName[true];
 {$IFNDEF OS2}
- L := GetLFN(fr^.LFN);
- S := MakeFileName(fr^.Name);
- if CharCount('.', L)=0 then L:=L+'.';
-{$ELSE}
- S := fr^.Name;
+ L := S;
 {$ENDIF}
  FreeStr := '';
  M := '';
@@ -689,15 +675,11 @@ begin
   begin
    if SearchExt(fr, M) then
    begin
-   {PutHistory(On);}
-{$IFNDEF OS2}
-    M := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + FreeStr;
-{$ELSE}
-    M := SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD ' + FreeStr;
-{$ENDIF}
-    RunCommand(Off);
-   {M := S; PutHistory(Off);}
-   {CmdDisabled := Off;}
+   {PutHistory(true);}
+    M := SwpDir+'$DN'+ItoS(DNNumber)+'$' + CmdExt + ' ' + FreeStr;
+    RunCommand(false);
+   {M := S; PutHistory(false);}
+   {CmdDisabled := false;}
     GlobalMessage(evCommand, cmClearCommandLine, nil);
    end;
    goto ex;
@@ -707,7 +689,7 @@ begin
 {$ELSE}
  M := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(L);
 {$ENDIF}
- PutHistory(Off);
+ PutHistory(false);
 {$IFNDEF Win32}
  M := S;
 {$ELSE}
@@ -721,7 +703,7 @@ begin
    M := '"' + M + '"';
 {$ENDIF}
 
- RunCommand(On);
+ RunCommand(true);
 ex:
  DelFileRec(fr);
 end;

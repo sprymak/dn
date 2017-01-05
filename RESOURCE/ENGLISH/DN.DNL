@@ -311,9 +311,7 @@ dlFilesFound,         ' files found'
 dlChangeDir,          'Change directory'
 dlSetAttr,            ' Setting Attributes '
 dlSortName,           '~N~ame'
-dlSortLongName,       '~L~ong name'
 dlSortExt,            '~E~xtension'
-dlSortLongExt,        'Long e~x~tension'
 dlSortType,           '~G~roup'
 dlSortDate,           '~T~ime'
 dlSortCrDate,         '~C~reation time'
@@ -571,7 +569,7 @@ dlFmtNonDos                 ^C'NON - DOS format mode.'^M^C'All DOS-related proce
 dlFmtQuickFormat            ^C'This Disk can''t be '^M^C'Quick formatted.'
 dlFmtTrack0Bad              ^C' Track 0 bad.'^M^M+
                             ^C'This Disk can''t be '^M^C'formatted.'
-dlFmtNoSysFiles             ^C'Ooops! Can''t find system files'^M+
+dlFmtNoSysFiles             ^C'Can''t find system files'^M+
                             ^C'on drive C:'
 dlFmtBadInterleave          ^C'Invalid Interleave factor'^M+
                             ^C'or hardware / software'^M^C'incompatibility.'^M^M+
@@ -1371,6 +1369,7 @@ dlAutodetect            'Autodetect'
 dl_Failed_to_enumerate_EA    'Failed to enumerate Extended Attributes'
 dl_Failed_to_retrieve_EA     'Failed to retrieve EA'
 dl_Failed_to_store_EA        'Failed to store EA'
+dl_Critical_EA_Copy_Fail     'Can''t store critical EA to destination drive for file:'^M
 dlEditEALongname             'Edit file logical name (.LONGNAME Extended attribute)'
 dl_EALongname                'Logical name:'
 dlChangeLngWarning           ^C'Interface language will be changed after restart' ^M+
@@ -1447,6 +1446,10 @@ dlWkzQuerySeparatorTitle 'Column separator'
 dlWkzQuerySeparatorLabel '~S~eparator'
 dlWkzWarningClear ^C'All data in the current spreadsheet will be removed.'^M^C'Continue?'
 ;KV-
+;AK155+
+dlWkzWarningClearCell ^C'Really clear cell?'
+dlWkzWarningCellTypeChange ^C'Really cell type is changed?'
+;AK155-
 ;JO+
 dlZIPWithoutCentralDir ^C'ZIP archive without central directory'^M^C'use fixing utility (PKZIPFIX or ZIP with -F key) to fix archive'
 dlArcEncrypted ^C'Archive with encrypted headers'^M^C'use Shift-F2 to unpack entire archive'
@@ -1459,3 +1462,6 @@ dlNoOperand 'Operand missing'
 dlMissingOperation 'Operation missing'
 dlWrongComma 'Wrong comma'
 ;AK155-
+;JO+
+dlOperationNotValidForDdrive 'This operation is not valid for current drive'
+;JO-

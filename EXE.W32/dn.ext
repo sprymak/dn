@@ -149,5 +149,4 @@ bbs[  >1 Переименовать в descript.ion
         @ren !.! descript.ion]
 wri[  >1 Просмотреть view160
         @view160 !.!]
-bat(    hstart /C /DOS !.!)
-*(      openobj "!:!\!.!")
+*(      start "!:!\!.!")

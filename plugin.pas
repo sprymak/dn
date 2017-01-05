@@ -42,7 +42,7 @@ uses
 
 type
   {&Cdecl+}
-  THandleCommandProc=procedure(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer; var Finalization: Pointer);
+  THandleCommandProc=procedure(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer; var _Finalization: Pointer);
   {&Cdecl-}
   PEventCatcherInfo=^TEventCatcherInfo;
   TEventCatcherInfo=packed record
@@ -330,7 +330,7 @@ procedure CatchersHandleCommand(Command: Word);
 var
   I: Integer;
   FullPath: String;
-  Finalization: Pointer;
+  _Finalization: Pointer;
 begin
   if EventCatchers<>nil then
     for I:=1 to EventCatchersCount do
@@ -339,9 +339,9 @@ begin
           begin
             if Assigned(Entry) then
               begin
-                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
-                if Finalization<>nil then
-                  AddExitProc(Finalization);
+                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, _Finalization);
+                if _Finalization<>nil then
+                  AddExitProc(_Finalization);
               end
             else
               begin
@@ -373,9 +373,9 @@ begin
                       end;
                   end;
                 {$ENDIF}
-                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
-                if Finalization<>nil then
-                  AddExitProc(Finalization);
+                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, _Finalization);
+                if _Finalization<>nil then
+                  AddExitProc(_Finalization);
               end;
             Exit;
           end;
@@ -385,7 +385,7 @@ procedure CatchersRegisterObject(ObjType: Word);
 var
   I: Integer;
   FullPath: String;
-  Finalization: Pointer;
+  _Finalization: Pointer;
 begin
   if (ObjType>=otPlugins) and (ObjType<=otPluginsEnd) then
     if EventCatchers<>nil then
@@ -395,9 +395,9 @@ begin
             begin
               if Assigned(Entry) then
                 begin
-                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
-                  if Finalization<>nil then
-                    AddExitProc(Finalization);
+                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, _Finalization);
+                  if _Finalization<>nil then
+                    AddExitProc(_Finalization);
                 end
               else
                 begin
@@ -429,9 +429,9 @@ begin
                         end;
                     end;
                   {$ENDIF}
-                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
-                  if Finalization<>nil then
-                    AddExitProc(Finalization);
+                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, _Finalization);
+                  if _Finalization<>nil then
+                    AddExitProc(_Finalization);
                 end;
               Exit;
             end;

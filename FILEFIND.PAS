@@ -52,7 +52,7 @@ interface
 
 uses
   Objects, Views, Dialogs, Drivers, Menus, FileCopy, FilesCol, Eraser,
-  Drives, HideView, DOS, Gauge, DiskInfo, {FStorage,} {$IFNDEF OS2}LFNCol,{$ENDIF} DNIni,
+  Drives, HideView, DOS, Gauge, DiskInfo, {FStorage,}files, DNIni,
   collect;
 
 type
@@ -212,7 +212,7 @@ begin
  FindRec.AddChar:='';
 
  if ExecResource(dlgFileFind, FindRec) = cmCancel then Exit;
- ConfigModified := On;
+ ConfigModified := true;
  DelLeft(FindRec.Mask); DelRight(FindRec.Mask);
  if FindRec.Mask = '' then FindRec.Mask := x_x;
  if (Pos('*', FindRec.Mask)=0) and
@@ -332,7 +332,7 @@ function FindFiles;
  procedure InitPanel;
  begin
   Pnl := Message(Desktop, evBroadcast, cmInsertDrive, Drv);
-  if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := On;
+  if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := true;
  end;
 
  procedure DispatchEvents;
@@ -375,9 +375,9 @@ function FindFiles;
    SearchF := (S.Status = stOK) and
               (FViewer.SearchFileStr(@S, XL, FindRec.What, 0,
               { CaseSensitive }      FindRec.Options and ffoCaseSens <> 0, {-$VIV 14.05.99}
-              { Display       }      Off,
+              { Display       }      false,
               { WholeWords    }      FindRec.Options and ffoWholeWords <> 0,
-              { Back          }      Off,
+              { Back          }      false,
               { AllCP         }      FindRec.Options and ffoAllCP <> 0, {-$VIV 14.05.99}
               { IsRegExp      }      FindRec.Options and ffoRegExp <> 0) {Cat 06.12.01}
               >= 0);
@@ -407,7 +407,7 @@ function FindFiles;
     end;
     if Path[Length(Path)] <> '|' then {JO}
       begin {начало поиска не в архиве}
-        lFindFirst(Path + Mask, AnyFile {$IFNDEF OS2} and not VolumeID{$ENDIF}, SR); {JO}
+        lFindFirst(Path + Mask, AnyFile, SR); {JO}
 
         While (DosError = 0) {and not LowMemory} and not CancelSearch and MemOK do
          begin
@@ -458,7 +458,7 @@ function FindFiles;
         if (ArcFile = nil) or (ArcFile^.Status <> stOK) then Goto NotArchive;
         ArcPos := 0;
         SkipSFX;
-        AType := DetectArchive(On);
+        AType := DetectArchive(true);
         if (AType = nil)
           or (AType^.GetID in [arcAIN, arcUC2]) {временно! - надо решить проблему с лочкой dndosout.bat}
             then Goto NotArchive;
@@ -570,7 +570,7 @@ begin
      if AdvanceSearchData.Attr and 4 <> 0 then Attr := Attr or Hidden;
      if AdvanceSearchData.Attr and 8 <> 0 then Attr := Attr or ReadOnly;
    end;
- CancelSearch := Off; FFResult := ffSeFnd;
+ CancelSearch := false; FFResult := ffSeFnd;
  SearchString.What := FindRec.What;
  SearchString.Opts := ((FindRec.Options and ffoCaseSens) shr 1) or
                       ((FindRec.Options and ffoWholeWords) shr 2) or
@@ -588,7 +588,7 @@ begin
  New(Drv, Init(GetString(dlFindPanel) + FindRec.Mask, Directories, Files, FreeByte));
  if FindRec.What<>'' then Drv^.AWhat:=NewStr(FindRec.What);
  Drv^.AMask := NewStr(FindRec.Mask);
- Drv^.isDisposable := Off;
+ Drv^.isDisposable := false;
  Pnl := nil;
  {FN := DelSpaces(lFExpand(FindRec.Mask));
  lFSplit(FN, Dr, Nm, Xt);}
@@ -605,8 +605,8 @@ begin
  if not MemOK then Drv^.NoMemory := True;
  if Pnl <> nil then
   begin
-    if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := Off;
-    Drv^.isDisposable := On;
+    if Pnl <> nil then PFilePanel(Pnl)^.ChangeLocked := false;
+    Drv^.isDisposable := true;
     Dispose(PFilePanel(Pnl)^.Files, Done);
     PFilePanel(Pnl)^.Files := New(PFilesCollection, Init($10,$10));
     Application^.Redraw;
@@ -635,7 +635,7 @@ function ReadList;
       D: DateTime;
       WW: PView;
 begin
-  ReadList := Off;
+  ReadList := false;
 
   F := New(PTextReader, Init(AName));
   if F = nil then Exit;
@@ -656,7 +656,7 @@ begin
      if S <> '' then
        begin
          ClrIO;
-         lFindFirst(S, AnyFile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
+         lFindFirst(S, AnyFile, SR); {JO}
          if (DOSError = 0) and not Abort then
           begin
             lFSplit(lFExpand(S), Dir, Nm, Xt);
@@ -707,7 +707,7 @@ begin
       MessageBox(^C+GetString(dlNoFilesFound), nil, mfInformation+mfOKButton);
       Exit
     end;
-  ReadList := On;
+  ReadList := true;
 end;
         {-DataCompBoy-}
 
@@ -745,7 +745,7 @@ function OpenDirectory(const Dir: String): PDrive;
         D: DateTime;
   begin
      ClrIO;
-     lFindFirst(Dr^+x_x, AnyFile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
+     lFindFirst(Dr^+x_x, AnyFile, SR); {JO}
      while not Abort and (DOSError = 0) and MemOk do
        begin
 {$IFDEF CHDIRDEBUG}
@@ -893,7 +893,7 @@ begin
  innum:=num;
  AllowPack := True;
  ListFile := nil;
- isDisposable := On;
+ isDisposable := true;
  DriveType := dtFind;
  CurDir := AName;
  Dirs := PSortedCollection(ADirs);
@@ -919,7 +919,7 @@ constructor TFindDrive.Load(var S: TStream);
 begin
  inherited Load(S);
  AllowPack := True;
- isDisposable := On;
+ isDisposable := true;
  S.Read(DriveType,SizeOf(DriveType));
  AMask:=S.ReadStr;
  AWhat:=S.ReadStr;
@@ -1027,11 +1027,13 @@ begin
  if ChDirTimer and (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
    DDTimer := Get100s;
 {$ENDIF}
+{$IFNDEF OS2} uLFN := Flags and psShowLongName <> 0; {$ENDIF}
+
 LLL:
 
  OOM := False;
  DOSError := 0;
- Abort := Off; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO;
+ Abort := false; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO;
  FreeSpc := 0;
  FreeSpace := ''; TotalInfo := ''; TotalLen := 0;
 
@@ -1065,11 +1067,7 @@ LLL:
    P := CopyFileRec(CR);
 
    if AllFiles or (P^.Attr and Directory <> 0) or
-{$IFNDEF OS2}
-                                  InFilter(GetLFN(P^.LFN), FileMask)
-{$ELSE}
-                                  InFilter(P^.Name, FileMask)
-{$ENDIF}
+              InFilter(P^.FlName[uLfn], FileMask)
     then with AFiles^ do AtInsert(Count, P)
     else begin DelFileRec(P); Continue end;
    TotalLen := TotalLen + P^.Size;
@@ -1079,16 +1077,11 @@ LLL:
        P^.Size := 0;
        if PanelFlags and fmiDirLen <> 0 then
         begin
-{$IFNDEF OS2}
-          if (SR.SR.Name[1] <> '.') and (SR.FullName <> '.') and (SR.FullName <> '..')
-            then P^.Size := GetDirLen(MakeNormName(P^.Owner^, GetLFN(P^.LFN)));
-{$ELSE}
           if (SR.SR.Name <> '..') and (SR.SR.Name <> '.')
-            then P^.Size := GetDirLen(MakeNormName(P^.Owner^, P^.Name));
-{$ENDIF}
+            then P^.Size := GetDirLen(MakeNormName(P^.Owner^, P^.FlName[uLfn]));
 
 
-          if Abort then begin PanelFlags := PanelFlags and (not fmiDirLen); Abort := Off; end;
+          if Abort then begin PanelFlags := PanelFlags and (not fmiDirLen); Abort := false; end;
         end;
     end;
   end;
@@ -1160,7 +1153,7 @@ LLL:
 
  OOM := False;
  DOSError := 0;
- Abort := Off; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO;
+ Abort := false; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO;
  FreeSpc := 0;
  FreeSpace := ''; TotalInfo := ''; TotalLen := 0;
 
@@ -1211,7 +1204,7 @@ LLL:
           if (SR.SR.Name <> '..') and (SR.SR.Name <> '.') then
              P^.Size := GetDirLen(MakeNormName(P^.Owner^, P^.Name));
 {$ENDIF}
-          if Abort then begin PanelFlags := PanelFlags and (not fmiDirLen); Abort := Off; end;
+          if Abort then begin PanelFlags := PanelFlags and (not fmiDirLen); Abort := false; end;
         end;
     end;
   end;
@@ -1466,6 +1459,7 @@ begin
  if (DriveType in [dtFind, dtTemp]) and (P^.Owner <> nil) and
    PathFoundInArc(P^.Owner^) then
     begin {просмотр файла найденного в архиве}
+   {$IFNDEF OS2} uLFN := Flags and psShowLongName <> 0; {$ENDIF}
       TempFile:='';
       if (Command = cmEditFile) or (Command = cmFileEdit) or
          (Command = cmIntEditFile) or (Command = cmIntFileEdit) then Exit;
@@ -1480,11 +1474,11 @@ begin
       New(ArcFile,Init(OwnArc, stOpenRead, 512));
       if (ArcFile=nil) or (ArcFile^.Status <> stOK) then
         begin
-          FreeObject(ArcFile); {Abort := On;} Exit;
+          FreeObject(ArcFile); {Abort := true;} Exit;
         end;
       ArcPos := 0;
       SkipSFX;
-      AType := DetectArchive(Off);
+      AType := DetectArchive(false);
       FreeObject(ArcFile);
       if AType = nil then Exit;
 
@@ -1503,25 +1497,19 @@ begin
         if ExecResource( dlgSetPassword, S ) <> cmOK then Exit;
         S := ' ' + DelSpaces(CnvString(AType^.Garble) + S) + ' ';
        end;
+      SS := MakeNormName(PathInside, P^.FlName[uLfn]);
+      if SS[1] = '\' then Delete(SS, 1, 1);
+      S2 := OwnArc;
      {$IFNDEF OS2}
-      SS := MakeNormName(PathInside, GetLFN(P^.LFN));
-      if SS[1] = '\' then Delete(SS, 1, 1);
-      if AType^.UseLFN then S2 := OwnArc
-        else S2 := lfGetShortFileName(OwnArc);
+      if not AType^.UseLFN then
+        S2 := lfGetShortFileName(OwnArc);
       if OwnArc[Length(OwnArc)]='.' then S2 := S2 + '.';
-      S := CnvString(AType^.Extract)+' '+ s +
-         SquashesName(S2) + ' ' + SquashesName(SS)+' ';
-      DelDoubles('  ',S);
-      TempFile := C + MakeNormName(TempDir , GetLFN(P^.LFN));
-      Q:='|' + MakeNormName(P^.Owner^, GetLFN(P^.LFN));
-     {$ELSE}
-      SS := MakeNormName(PathInside, P^.Name);
-      if SS[1] = '\' then Delete(SS, 1, 1);
-       S := CnvString(AType^.Extract)+' '+s+SquashesName(OwnArc)+' '+SquashesName(SS)+' ';
-      DelDoubles('  ',S);
-      TempFile := C + MakeNormName(TempDir , P^.Name);
-      Q:='|' + MakeNormName(P^.Owner^, P^.Name);
      {$ENDIF}
+      S := CnvString(AType^.Extract)+' '+ s +
+         SquashesName(OwnArc)+' '+SquashesName(SS)+' ';
+      DelDoubles('  ',S);
+      TempFile := C + MakeNormName(TempDir , P^.FlName[uLfn]);
+      Q:='|' + MakeNormName(P^.Owner^, P^.FlName[uLfn]);
       if C in ['<','-','|','+'] then TempFile := TempFile + Q;
       S2:=Copy(TempFile,2,MaxStringLength);
       if not ExistFile(S2) or (PackedDate(P)<>FileTime(S2)) then
@@ -1545,11 +1533,7 @@ begin
     end {конец просмотра файла найденного в архиве}
   else
     begin
-     {$IFNDEF OS2}
-      if P^.Owner<>nil then S := MakeNormName(P^.Owner^, GetLFN(P^.LFN));
-     {$ELSE}
-      if P^.Owner<>nil then S := MakeNormName(P^.Owner^, P^.Name);
-     {$ENDIF}
+      if P^.Owner<>nil then S := MakeNormName(P^.Owner^, P^.FlName[uLfn]);
       Message(Application, evCommand, Command, @S);
     end;
 end;
@@ -1570,26 +1554,21 @@ procedure CopyToTempDrive;
  var Info: PView;
 
  procedure AddRec(P: PFileRec); {$IFDEF BIT_16}far;{$ENDIF}
-   var {$IFNDEF OS2}Nmm: String;{$ENDIF}
+   var
        DT: DateTime;
        I, J: CondInt;
        l: Pointer;
  begin
    UpdateWriteView(Info);
    if TempFiles^.Search(P, J) then exit;
-{$IFNDEF OS2}
-   Nmm:= GetLFN(P^.LFN);
-{$ENDIF}
    I  := TempDirs^.IndexOf(P^.Owner);
    if I >= 0 then L := TempDirs^.At(I)
              else begin
               L := NewStr(P^.Owner^);
               TempDirs^.Insert(L);
              end;
-   TempFiles^.AtInsert(J, NewFileRec({$IFNDEF OS2}Nmm,
-                                     MakeFileName(P^.Name),
-                                     {$ELSE}P^.Name,
-                                     {$ENDIF}
+   TempFiles^.AtInsert(J, NewFileRec(P^.FlName[true],
+     {$IFNDEF OS2} P^.FlName[false], {$ENDIF}
                                      P^.Size,
                                      PackedDate(P),
                                      PackedCreationDate(P),
@@ -1649,7 +1628,7 @@ begin
  innum:=num;
  if TempDirs = nil then TempDirs := New(PStringCollection, Init(10, 10, False));
  if TempFiles = nil then NewTemp;
- isDisposable := On;
+ isDisposable := true;
  Dirs := TempDirs;
  Files := TempFiles;
  CurDir := cTEMP_;
@@ -1696,7 +1675,7 @@ begin
  TDrive.Load(S);
  if TempDirs = nil then TempDirs := New(PStringCollection, Init(10, 10, False));
  if TempFiles = nil then NewTemp;
- isDisposable := On;
+ isDisposable := true;
  Dirs  := TempDirs;
  Files := TempFiles;
  CurDir := cTEMP_;

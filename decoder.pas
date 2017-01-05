@@ -1,3 +1,4 @@
+{&Delphi-}
 {/////////////////////////////////////////////////////////////////////////
 //
 //  Dos Navigator Open Source 1.51.08
@@ -620,7 +621,7 @@ begin
       if (MemBuff=nil) or (Offset<=0) then Exit; { No more code }
       if Offset>25 then MaxUpBytes:=25 else MaxUpBytes:=offset;
       Tmp:=pointer(longint(MemBuff)+offset-MaxUpBytes); {Start of decoding block}
-      OldOffset:=Offset;
+      OldOffset:=offset;
       OldMemBuff:=MemBuff;
       COfs:=0;
       i:=COfs;
@@ -1630,7 +1631,7 @@ Use_Segment:
        Command:=S+Com;
        Operands:=Op;
        InstrLen:=Cur;
-       Offset:=Offset+InstrLen;
+       Offset:=offset+InstrLen;
        for i:=0 to Cur-1 do
          CodeStr:=CodeStr+HexB(M[i]);
      end;

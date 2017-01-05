@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines;
+  _Defines;
 
 type
   PEmptyObject = ^TEmptyObject;

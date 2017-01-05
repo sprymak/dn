@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines, _Streams, _Collect, _Views;
+  _Defines, _Streams, _Collect, _Views;
 
 type
   PDialog = ^TDialog;
@@ -270,7 +270,7 @@ end;
 
 constructor TDialog.Load(var S: TStream);
 begin
-  _TDialog^.Load(S, nil, @Self);
+  _TDialog^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 constructor TInputLine.Init(var Bounds: TRect; AMaxLen: AInt);
@@ -280,7 +280,7 @@ end;
 
 constructor TInputLine.Load(var S: TStream);
 begin
-  _TInputLine^.Load(S, nil, @Self);
+  _TInputLine^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TInputLine.SelectAll(Enable: Boolean);
@@ -295,7 +295,7 @@ end;
 
 procedure TInputLine.Store(var S: TStream);
 begin
-  _TInputLine^.Store(S, @Self);
+  _TInputLine^.Store(_Model1.TStream(S), @Self);
 end;
 
 function TInputLine.CanScroll(Delta: Integer): Boolean;
@@ -310,7 +310,7 @@ end;
 
 constructor TButton.Load(var S: TStream);
 begin
-  _TButton^.Load(S, nil, @Self);
+  _TButton^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TButton.DrawState(Down: Boolean);
@@ -330,7 +330,7 @@ end;
 
 procedure TButton.Store(var S: TStream);
 begin
-  _TButton^.Store(S, @Self);
+  _TButton^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TCluster.Init(var Bounds: TRect; AStrings: PSItem);
@@ -340,7 +340,7 @@ end;
 
 constructor TCluster.Load(var S: TStream);
 begin
-  _TCluster^.Load(S, nil, @Self);
+  _TCluster^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 function TCluster.ButtonState(Item: Integer): Boolean;
@@ -385,7 +385,7 @@ end;
 
 procedure TCluster.Store(var S: TStream);
 begin
-  _TCluster^.Store(S, @Self);
+  _TCluster^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TMultiCheckBoxes.Init(var Bounds: TRect; AStrings: PSItem; ASelRange: Byte; AFlags: Word; const AStates: String);
@@ -395,22 +395,22 @@ end;
 
 constructor TMultiCheckBoxes.Load(var S: TStream);
 begin
-  _TMultiCheckBoxes^.Load(S, nil, @Self);
+  _TMultiCheckBoxes^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TMultiCheckBoxes.Store(var S: TStream);
 begin
-  _TMultiCheckBoxes^.Store(S, @Self);
+  _TMultiCheckBoxes^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TScroller.Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar);
 begin
-  _TScroller^.Init(Bounds, AHScrollBar, AVScrollBar, nil, @Self);
+  _TScroller^.Init(Bounds, _Model1.PScrollBar(AHScrollBar), _Model1.PScrollBar(AVScrollBar), nil, @Self);
 end;
 
 constructor TScroller.Load(var S: TStream);
 begin
-  _TScroller^.Load(S, nil, @Self);
+  _TScroller^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TScroller.ScrollDraw;
@@ -430,17 +430,17 @@ end;
 
 procedure TScroller.Store(var S: TStream);
 begin
-  _TScroller^.Store(S, @Self);
+  _TScroller^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TListViewer.Init(var Bounds: TRect; ANumCols: LongInt; AHScrollBar, AVScrollBar: PScrollBar);
 begin
-  _TListViewer^.Init(Bounds, ANumCols, AHScrollBar, AVScrollBar, nil, @Self);
+  _TListViewer^.Init(Bounds, ANumCols, _Model1.PScrollBar(AHScrollBar), _Model1.PScrollBar(AVScrollBar), nil, @Self);
 end;
 
 constructor TListViewer.Load(var S: TStream);
 begin
-  _TListViewer^.Load(S, nil, @Self);
+  _TListViewer^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TListViewer.FocusItem(Item: LongInt);
@@ -470,7 +470,7 @@ end;
 
 procedure TListViewer.Store(var S: TStream);
 begin
-  _TListViewer^.Store(S, @Self);
+  _TListViewer^.Store(_Model1.TStream(S), @Self);
 end;
 
 procedure TListViewer.FocusItemNum(Item: LongInt);
@@ -480,12 +480,12 @@ end;
 
 constructor TListBox.Init(var Bounds: TRect; ANumCols: Word; AScrollBar: PScrollBar);
 begin
-  _TListBox^.Init(Bounds, ANumCols, AScrollBar, nil, @Self);
+  _TListBox^.Init(Bounds, ANumCols, _Model1.PScrollBar(AScrollBar), nil, @Self);
 end;
 
 constructor TListBox.Load(var S: TStream);
 begin
-  _TListBox^.Load(S, nil, @Self);
+  _TListBox^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TListBox.NewList(AList: PCollection);
@@ -495,7 +495,7 @@ end;
 
 procedure TListBox.Store(var S: TStream);
 begin
-  _TListBox^.Store(S, @Self);
+  _TListBox^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TStaticText.Init(var Bounds: TRect; const AText: String);
@@ -505,7 +505,7 @@ end;
 
 constructor TStaticText.Load(var S: TStream);
 begin
-  _TStaticText^.Load(S, nil, @Self);
+  _TStaticText^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TStaticText.GetText(var S: String);
@@ -515,7 +515,7 @@ end;
 
 procedure TStaticText.Store(var S: TStream);
 begin
-  _TStaticText^.Store(S, @Self);
+  _TStaticText^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TParamText.Init(var Bounds: TRect; const AText: String; AParamCount: AInt);
@@ -525,32 +525,32 @@ end;
 
 constructor TParamText.Load(var S: TStream);
 begin
-  _TParamText^.Load(S, nil, @Self);
+  _TParamText^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TParamText.Store(var S: TStream);
 begin
-  _TParamText^.Store(S, @Self);
+  _TParamText^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TLabel.Init(var Bounds: TRect; const AText: String; ALink: PView);
 begin
-  _TLabel^.Init(Bounds, AText, ALink, nil, @Self);
+  _TLabel^.Init(Bounds, AText, _Model1.PView(ALink), nil, @Self);
 end;
 
 constructor TLabel.Load(var S: TStream);
 begin
-  _TLabel^.Load(S, nil, @Self);
+  _TLabel^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TLabel.Store(var S: TStream);
 begin
-  _TLabel^.Store(S, @Self);
+  _TLabel^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor THistoryViewer.Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar; AHistoryId: AWord);
 begin
-  _THistoryViewer^.Init(Bounds, AHScrollBar, AVScrollBar, AHistoryId, nil, @Self);
+  _THistoryViewer^.Init(Bounds, _Model1.PScrollBar(AHScrollBar), _Model1.PScrollBar(AVScrollBar), AHistoryId, nil, @Self);
 end;
 
 function THistoryViewer.HistoryWidth: Integer;
@@ -575,12 +575,12 @@ end;
 
 constructor THistory.Init(var Bounds: TRect; ALink: PInputLine; AHistoryId: AWord);
 begin
-  _THistory^.Init(Bounds, ALink, AHistoryId, nil, @Self);
+  _THistory^.Init(Bounds, _Model1.PInputLine(ALink), AHistoryId, nil, @Self);
 end;
 
 constructor THistory.Load(var S: TStream);
 begin
-  _THistory^.Load(S, nil, @Self);
+  _THistory^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 function THistory.InitHistoryWindow(var Bounds: TRect): PHistoryWindow;
@@ -595,7 +595,7 @@ end;
 
 procedure THistory.Store(var S: TStream);
 begin
-  _THistory^.Store(S, @Self);
+  _THistory^.Store(_Model1.TStream(S), @Self);
 end;
 
 end.

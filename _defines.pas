@@ -11,7 +11,7 @@ interface
 
 uses
   {$IFDEF WIN32} Windows, {$ENDIF}
-  {Use32,} VpSysLow;
+  VpSysLow;
 
 const
 
@@ -435,7 +435,7 @@ type
   end;
 
   {&Cdecl+}
-  THandleCommandProc = procedure(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer; var Finalization: Pointer);
+  THandleCommandProc = procedure(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer; var _Finalization: Pointer);
   TFormatsCountProc = function: Word;
   TArchiveSignProc = function(Id: Word): Str4;
   TCreateArchiveObjectProc = function(Id: Word): Pointer;
@@ -614,6 +614,56 @@ type
   TUserParams = packed record
     Active, Passive: PFileRec;
     ActiveList, PassiveList: String;
+  end;
+
+  TDiskInfoRec = record
+    Title: PString;
+    Dir: PString;
+    Files: PString;
+    Free: PString;
+    Total: PString;
+    VolumeID: PString;
+    SerialNo: PString;
+    FileSys: PString;
+    DirInfo: Pointer{PCollection};
+    Limit: TPoint;
+    InfoFile: Byte;
+  end;
+
+  TDriveType = (dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArc, dtLink, dtArvid);
+  TAvdType = (avdTdr, avdAvt);
+
+  TTdrHeader = record
+    FileTableOfs: LongInt;
+    DirTableOfs: LongInt;
+    PosTableOfs: LongInt;
+    FileTableLen: LongInt;
+    DirTableLen: LongInt;
+    PosTableLen: LongInt;
+    TapeFmt: AWord;
+    TapeID: AWord;
+    TapeLen: AWord;
+    RecordLen: AWord;
+    NewRecordSector: LongInt;
+    DescTableOfs: LongInt;
+    Res01: array[1..16] of Byte;
+    DescTableLen: LongInt;
+    Res02: array[1..16] of Byte;
+    LastNewRecordSector: LongInt;
+    Res03: array[1..36] of Byte;
+  end;
+
+  TAvtHeader = record
+    Signature: array[1..4] of Char;
+    AvtFmt: LongInt;
+    CheckSum: LongInt;
+    AfterLastCell: LongInt;
+    FreeCell: LongInt;
+    RootDirCell: LongInt;
+    NewSector: LongInt;
+    LastNewSector: LongInt;
+    AvtMediaCell: LongInt;
+    Undefined1: LongInt;
   end;
 
 implementation

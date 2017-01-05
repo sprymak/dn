@@ -301,6 +301,8 @@ begin
   if DBFile <> nil then
   begin
     I := 65520;
+    (* KV: Пустой DBF не является ошибкой,
+           поэтому никакой специальной обработки не требуется
     if DBFile^.NumRec = 0 then
     begin
       GetInfo(dlDBEmptyStruc);
@@ -312,6 +314,7 @@ begin
       Failed := True;
       Exit;
     end;
+    *)
     if MaxAvail < I then I := MaxAvail;
     if LongInt(I) > DBFile^.NumRec*LongInt(DBFile^.RecLen) then
     I := DBFile^.NumRec*LongInt(DBFile^.RecLen);
@@ -320,7 +323,7 @@ begin
     StartRec := 0;
     if I <> 0 then GetMem(Buf, I);
   end;
-  IsValid := (DBFile <> nil) and (Buf <> nil);
+  IsValid := (DBFile <> nil) and ((Buf <> nil) or (I = 0)); {KV}
   if IsValid then
   begin
     DBFile^.Seek(0);
@@ -346,7 +349,7 @@ end;
 destructor TDBViewer.Done;
 begin
  DisposeStr(SearchString);
- if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
+ if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen); Buf:=nil;
  if DBFile <> nil then Dispose(DBFile,Done); DBFile:=nil;
  if KillAfterUse then EraseTempFile(CnvString(FileName));
  DisposeStr(FileName);
@@ -515,7 +518,7 @@ procedure TDBViewer.HandleEvent;
   PV^.GetPalette^ := CScrollBar;
 
   R.Assign(2, 2, D^.Size.X-2, D^.Size.Y-4);
-  PV := New(PNFileViewer, Init(R, MemoStream, '', '', PV, False, Off));
+  PV := New(PNFileViewer, Init(R, MemoStream, '', '', PV, False, false));
   D^.Insert(PV);
 
   R.Assign(30, D^.Size.Y - 3, 40, D^.Size.Y - 1);
@@ -756,7 +759,17 @@ begin
                                       if Event.Command = cmClose then GlobalMessage(evCommand, cmPanelReread, nil);
                                     end;
               cmGetName: PString(Event.InfoPtr)^ := GetString(dlDBViewName) + FileName^;
-              cmShowFields: begin GetInfo(dlDBViewInfo); CE end;
+              cmShowFields: begin
+                              if NumRec = 0 then begin {KV}
+                                GetInfo(dlDBEmptyStruc);
+                                Event.What:=evCommand;
+                                Event.Command:=cmClose;
+                                Event.InfoPtr:=Owner;
+                                PutEvent(Event);
+                              end
+                              else GetInfo(dlDBViewInfo);
+                              CE;
+                            end;
               cmShowMemo: begin ViewMemo; CE end;
               cmSearchFor:
                  begin
@@ -925,7 +938,7 @@ begin
 end;
 
 constructor TDBWindow.Init;
- var R: TRect;
+ var R: TRect; Event : TEvent;
 begin
  DeskTop^.GetExtent(R);
  FName := lFExpand(FName);
@@ -945,9 +958,18 @@ begin
  P1^.GrowMode := gfGrowHiY;
  Insert(P1);
  P^.Indicator := P1;
+
+ if P^.NumRec = 0 then begin {KV}
+   Event.What:=evCommand;
+   Event.Command:=cmShowFields;
+   Event.InfoPtr:=@Self;
+   Application^.PutEvent(Event);
+ end;
 end;
 
 constructor TDBWindow.Load;
+var
+  Event : TEvent;
  begin
   inherited Load( S );
    GetSubViewPtr( S, P );
@@ -955,6 +977,17 @@ constructor TDBWindow.Load;
    P1^.DBViewer := P;
    P^.Indicator := P1;
    Redraw ;
+
+   if P^.NumRec = 0 then begin {KV}
+     {KV : Если DBF был не пустой и при выходе из DN было открыто окно его 
+      просмотра, затем в другой программе удалили из DBF все записи и запустили
+      DN, то нужно показывать только структуру файла}
+     Event.What:=evCommand;
+     Event.Command:=cmShowFields;
+     Event.InfoPtr:=@Self;
+     Application^.PutEvent(Event);
+   end;
+
  end;
 
 Procedure TDBWindow.Store;

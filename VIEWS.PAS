@@ -624,21 +624,21 @@ end;
 procedure TView.CalcBounds(var Bounds: TRect; Delta: TPoint);
 var
   S, D: LongInt;
-  Min, Max: TPoint;
+{  Min, Max: TPoint;}
 
 procedure Grow(var I: LongInt);
 begin
   if GrowMode and gfGrowRel = 0 then Inc(I, D) else
     I := (I * S + (S - D) shr 1) div (S - D);
 end;
-
+{
 function Range(Val, Min, Max: LongInt): LongInt;
 begin
   if Val < Min then Range := Min else
     if Val > Max then Range := Max else
       Range := Val;
 end;
-
+}
 begin
   GetBounds(Bounds);
   S := Owner^.Size.X;
@@ -651,9 +651,13 @@ begin
   D := Delta.Y;
   if GrowMode and gfGrowLoY <> 0 then Grow(Bounds.A.Y);
   if GrowMode and gfGrowHiY <> 0 then Grow(Bounds.B.Y);
+{AK155 IMHO от коррекции по Min и Max может быть только вред.
+Из-за этого гориз. скроллбар, который свели на нет, потом при
+обратной растяжке накрывает угол окна.
   SizeLimits(Min, Max);
   Bounds.B.X := Bounds.A.X + Range(Bounds.B.X - Bounds.A.X, Min.X, Max.X);
   Bounds.B.Y := Bounds.A.Y + Range(Bounds.B.Y - Bounds.A.Y, Min.Y, Max.Y);
+}
   if (Origin.X < 0) and (Origin.Y < 0) then Bounds.A := Origin;
 end;
 
@@ -928,8 +932,6 @@ begin
 end;
 
 function TView.Focus: Boolean;
-var
-  Result: Boolean;
 begin
   Result := True;
   if State and (sfSelected + sfModal) = 0 then
@@ -946,7 +948,6 @@ begin
           Result := False;
     end;
   end;
-  Focus := Result;
 end;
 
 procedure TView.GetClipRect(var Clip: TRect);
@@ -1733,10 +1734,10 @@ begin
         ClickPart := sbIndicator;
         if Size.Y = 1 then
           case {CtrlToArrow}(Event.KeyCode) of
-            kbLeft: ClickPart := sbLeftArrow;
-            kbRight: ClickPart := sbRightArrow;
-            kbCtrlLeft: ClickPart := sbPageLeft;
-            kbCtrlRight: ClickPart := sbPageRight;
+            kbLeft, kbShiftLeft: ClickPart := sbLeftArrow;
+            kbRight, kbShiftRight: ClickPart := sbRightArrow;
+            kbCtrlLeft, kbCtrlShiftLeft: ClickPart := sbPageLeft;
+            kbCtrlRight, kbCtrlShiftRight: ClickPart := sbPageRight;
             kbHome, kbShiftHome: I := Min;
             kbEnd, kbShiftEnd: I := Max;
           else
@@ -1744,10 +1745,10 @@ begin
           end
         else
           case {CtrlToArrow}(Event.KeyCode) of
-            kbUp: ClickPart := sbUpArrow;
-            kbDown: ClickPart := sbDownArrow;
-            kbPgUp: ClickPart := sbPageUp;
-            kbPgDn: ClickPart := sbPageDown;
+            kbUp, kbShiftUp: ClickPart := sbUpArrow;
+            kbDown, kbShiftDown: ClickPart := sbDownArrow;
+            kbPgUp, kbShiftPgUp: ClickPart := sbPageUp;
+            kbPgDn, kbShiftPgDn: ClickPart := sbPageDown;
             kbCtrlPgUp, kbCtrlShiftPgUp: I := Min;
             kbCtrlPgDn, kbCtrlShiftPgDn: I := Max;
           else

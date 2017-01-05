@@ -855,7 +855,7 @@ var
 begin
   New(P);
   P^.Topic := NewStr(XRef);
-  P^.Offset := Offset;
+  P^.Offset := offset;
   P^.Length := Length;
   P^.Next := nil;
   PP := @XRefs;
@@ -998,13 +998,13 @@ begin
   If Pos( '.TITLE', RemoveLeadSpaces( UpStr( Line ))) = 1 then begin
     Line := RemoveLeadSpaces( Copy( RemoveLeadSpaces( Line ), 7, MaxStringLength ));
     FreeStr := #218 + Strg(#196, Length( Line ) + 2 );
-    AddToBuffer( FreeStr, OFF );
+    AddToBuffer( FreeStr, false );
     FreeStr := #179#32 + Line + #32#219;
-    AddToBuffer( FreeStr, OFF );
+    AddToBuffer( FreeStr, false );
     FreeStr := #192 + Strg( #220, Length( Line ) + 2 ) + #219;
-    AddToBuffer( FreeStr, OFF );
+    AddToBuffer( FreeStr, false );
     FreeStr := '';
-    AddToBuffer( FreeStr, OFF );
+    AddToBuffer( FreeStr, false );
     Line := GetLine( TextFile );
   end else
   if IsEndParagraph then begin

@@ -1,4 +1,4 @@
-unit FNoteOS2;
+unit fnotify {OS2};
 (******
 
 Directory Change Notifier - OS/2 version
@@ -10,7 +10,7 @@ Written by Cat 2:5030/1326.13
 { Содержит шаманские штуки, без бубна не влезать! }
 
 {&Delphi+}
-
+{$I stdefine.inc}
 interface
 
  uses xTime;
@@ -19,12 +19,26 @@ interface
 Var
  NotifyTmr: TEventTimer;       {JO}
 
+procedure NotifyAddWatcher(const Path: String); inline; begin end;
+procedure NotifyDeleteWatcher(const Path: String); inline; begin end;
+
+{$IFDEF FileNotify}
 procedure NotifyInit;
-function NotifyAsk: String;
+procedure NotifyAsk(var S: String);
 procedure NotifySuspend;
 procedure NotifyResume;
 
+{$ELSE}
+
+procedure NotifyInit; inline; begin end;
+procedure NotifyAsk(var S: String); inline; begin end;
+procedure NotifySuspend; inline; begin end;
+procedure NotifyResume; inline; begin end;
+{$ENDIF}
+
 implementation
+
+{$IFDEF FileNotify}
 
 uses
   Os2Def, Os2Base;
@@ -125,11 +139,11 @@ begin
   until False;
 end;
 
-function NotifyAsk: String;
+procedure NotifyAsk(var S: String);
 var
   P: Byte;
 begin
-  if DataReady then
+  if DataReady {AK155} and (SuspendCount = 0) {/AK155} then
     with DataPtr^ do
       begin
         if cbName > 255 then
@@ -137,8 +151,8 @@ begin
         else
           P := cbName;
 
-        SetLength(Result, P);
-        Move(szName, Result[1], P);
+        SetLength(S, P);
+        Move(szName, S[1], P);
 
         if oNextEntryOffset = 0 then
           DataReady := False
@@ -146,7 +160,7 @@ begin
           DataPtr:=Pointer(LongInt(DataPtr)+oNextEntryOffset);
 
         {$IFDEF DEBUGLOG}
-        DebugLog(Char(Byte(bAction)+Byte('0'))+' '+Result);
+        DebugLog(Char(Byte(bAction)+Byte('0'))+' '+S);
         {$ENDIF}
        {
         while (P <> 0) and (Result[P] <> '\') do
@@ -156,7 +170,7 @@ begin
         }
       end
   else
-    Result := '';
+    S := '';
 end;
 
 procedure NotifySuspend;
@@ -213,5 +227,6 @@ begin
   DebugLog('');
   {$ENDIF}
 end;
+{$ENDIF}
 
 end.

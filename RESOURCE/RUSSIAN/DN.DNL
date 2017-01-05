@@ -554,9 +554,7 @@ dlSetupButton,             '~У~ст.'
 dlSkipButton,              'П~р~oп.'
 dlSometh,                  'th'
 dlSortName,                '~И~мени'
-dlSortLongName,            '~Д~линномy имени'
 dlSortExt,                 '~Р~асширению'
-dlSortLongExt,             'Д~л~инномy pасширению'
 dlSortSize,                'Р~а~змеру'
 dlSortDate,                '~В~ремени'
 dlSortCrDate,              'Времени ~с~оздания'
@@ -1281,6 +1279,7 @@ dlAutodetect            'Автоопред.'
 dl_Failed_to_enumerate_EA    'Не могу считать список Расширенных Атрибутов'
 dl_Failed_to_retrieve_EA     'Не могу восстановить EA'
 dl_Failed_to_store_EA        'Не могу сохранить EA'
+dl_Critical_EA_Copy_Fail     'Не могу сохранить критические EA на диск назначения для файла:'^M
 dlEditEALongname             'Изменить логическое имя (Расширенный атрибут .LONGNAME )'
 dl_EALongname                'Логическое имя:'
 dlChangeLngWarning           ^C'Язык интерфейса будет изменён после перезапуска'^M+
@@ -1357,6 +1356,10 @@ dlWkzQuerySeparatorTitle 'Разделитель колонок'
 dlWkzQuerySeparatorLabel '~Р~азделитель'
 dlWkzWarningClear ^C'Все данные в текущей электронной таблице будут удалены.'^M^C'Продолжить?'
 ;KV-
+;AK155+
+dlWkzWarningClearCell ^C'Действительно очистить ячейку?'
+dlWkzWarningCellTypeChange ^C'Действительно изменить тип ячейки?'
+;AK155-
 ;JO+
 dlZIPWithoutCentralDir ^C'ZIP архив без центрального каталога'^M^C'используйте ремонтную утилиту (PKZIPFIX или ZIP с параметром -F)'^M^C' для восстановления архива'
 dlArcEncrypted ^C'Архив с зашифрованными заголовками'^M^C'используйте Shift-F2 для распаковки архива целиком'
@@ -1369,3 +1372,6 @@ dlNoOperand 'Мало операндов'
 dlMissingOperation 'Пропущена операция'
 dlWrongComma 'Лишняя запятая'
 ;AK155-
+;JO+
+dlOperationNotValidForDdrive 'Данная операция невозможна для текущего диска'
+;JO-

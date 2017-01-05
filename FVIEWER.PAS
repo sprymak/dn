@@ -202,13 +202,11 @@ function SearchFileStr(F: PStream; var Xlat: TXLAT;
                        CaseSensitive, Display, WholeWords, Back,
                        AllCP, IsRegExp: Boolean): LongInt;
 
-{&Delphi+}
 type
   eFileError = class(Exception)
     public
       RC: longint;
     end;
-{&Delphi-}
 
 implementation
 
@@ -273,7 +271,7 @@ begin
    Info^.Top := GetString(dlSearching) + '"' + Cut(SearchString.What, 40) + '"';
    NewTimer(Tmr, 2); Inserted := False;
   end;
- GetMem(Buf, BufLen); I := Pos; BPos := 0; CancelSearch := Off;
+ GetMem(Buf, BufLen); I := Pos; BPos := 0; CancelSearch := false;
  repeat
    if Back then
      begin
@@ -490,11 +488,11 @@ function TFileViewer.WriteModify;
      S: TDOSStream;
      A: Word;
 begin
- B := BufModified; WriteModify := Off;
+ B := BufModified; WriteModify := false;
  if (Buf = nil) or (Fl = nil) or (Fl^.Status <> stOK) or not B then Exit;
  I := MessageBox(GetString(dlViewQuery), nil, mfWarning+mfYesNoCancel);
  WriteModify := I = cmCancel;
- if I <> cmCancel then BufModified := Off;
+ if I <> cmCancel then BufModified := false;
  if I = cmNo then begin Seek(FilePos); DrawView; end;
  if I <> cmYes then Exit;
  if VFileName='' then begin
@@ -810,13 +808,13 @@ var
 begin
   inherited Init(Bounds); ViewMode := vmText;
   XlatFile := nil;
-  NullXLAT(XLat); UseXLat:=Off; KeyMap:=kmNone;
+  NullXLAT(XLat); UseXLat:=false; KeyMap:=kmNone;
   FillChar(MarkPos, SizeOf(MarkPos), $FF);
   HelpCtx := hcView;
   GrowMode := gfGrowHiX + gfGrowHiY;
   Options := Options or ofSelectable or (LongInt(Quick)*ofTopSelect);
   EventMask := $FFFF; SB := ASB; QuickView := Quick;
-  Buf := nil; IsValid := True; Loaded := Off;
+  Buf := nil; IsValid := True; Loaded := false;
   KillAfterUse := False;
   Wrap:=0;
   if EditorDefaults.ViOpt and vbfWrap <> 0 then Wrap:=1;
@@ -824,12 +822,16 @@ begin
   ViewMode := {EditorDefaults.ViOpt and}Byte(Hex);
   Fl := AStream;
   if (AFileName = '') and (Fl = nil) then Exit;
-  if Fl = nil
-   then if Not ReadFile(AFileName, AVFileName, On) then IsValid:=off else
-   else if (Fl <> nil) and (Fl^.Status = stOK)
-         then ReadFile(' ', ' ', Off);
-  BreakOnStreamReadError;
   TempFile:='';
+  try
+    if Fl = nil then
+      ReadFile(AFileName, AVFileName, true)
+    else if Fl^.Status = stOK then
+      ReadFile(' ', ' ', false);
+  except
+     on E: eFileError do
+       exit;
+  end;
 {AK155 Это для автодочитывания файла с изменяющейся длиной,
     см. Update }
   NewTimer(UpdateViewTmr, 9);
@@ -858,8 +860,8 @@ constructor TFileViewer.Load;
  var I: LongInt;
 begin
  inherited Load(S);
- NoEdit := Off;
- BufModified := Off;
+ NoEdit := false;
+ BufModified := false;
  GetPeerViewPtr(S, SB);
  GetPeerViewPtr(S, Info);
  S.ReadStrV(FileName); {S.Read(FileName[0], 1); S.Read(FileName[1], Length(FileName));}
@@ -880,21 +882,19 @@ begin
  S.Read(UseXLAT, SizeOf(UseXLAT));
  S.Read(KeyMap, SizeOf(KeyMap));
  S.Read(MarkPos, Sizeof(MarkPos));
- Fl := nil; Buf := nil; IsValid := True; Loaded := On;
- if (FileName = '') and (VFileName = '') then IsValid:=off
+ Fl := nil; Buf := nil; IsValid := True; Loaded := true;
+ if (FileName = '') and (VFileName = '') then IsValid:=false
   else
    begin
-{&Delphi+}
    try
      ReadFile(FileName, VFileName, true);
      Seek(I);
      IsValid:= true;
    except
    on E: eFileError do
-     IsValid := false; {AK155 так бывает, например, при перезапуске DN
+     ; {AK155 так бывает, например, при перезапуске DN
        с запомненным просмотром на отсутствующей дискете }
    end;
-{&Delphi-}
    end;
 end;
 
@@ -1050,7 +1050,7 @@ begin
   ExpandTabs := (EditorDefaults.EdOpt{$IFNDEF OS_DOS} shl 2 {$ENDIF}and ebfTRp) <> 0;
   if Buf = nil then
   begin
-    ReadFile(FileName, VFileName, On);
+    ReadFile(FileName, VFileName, true);
     BufPos:=0;
     MakeLines;
   end else
@@ -1360,13 +1360,13 @@ begin
   ReadFile:=true;
   WriteModify;
   if Buf <> nil then FreeMem(Buf, BufSize); Buf := nil;
-  BufModified := Off;
+  BufModified := false;
   IsValid := True;
   FileName := FName;
   VFileName := VFName;
   if KeyMap=kmNone then begin
     KeyMap:=DetectKeyMap(FName);
-    if not UseXLat then SetXlatFile('', Off);
+    if not UseXLat then SetXlatFile('', false);
   end;
   if NewStream then
    begin
@@ -1388,7 +1388,10 @@ begin
   else if (i=2) and (FileName[2] = ':') then
     DirString := FileName {так бывает, например, при перезапуске
      DN с запомненным состоянием с Branch в корне диска }
-  else if (isDir(FileName)) then
+  else if (FileName <> ' ') and (IsDir(FileName)) then
+  {Cat: проверка на пробел нужна, т.к. IsDir вернёт для него True, что нас
+        не устраивает, поскольку пробел означает использование просмотрщика
+        не для конкретного файла, а для заданного конструктору потока}
     begin
     DirLen := CountDirLen(FileName, true, ClusterLen, NumFiles, NumDirs);
     DirString := FileName + #$0D#$0A#$0D#$0A +
@@ -1420,7 +1423,6 @@ begin
     HiLite := Macro.InitHighLight ( VFName, HiLitePar, Macros, nil );
   {PZ end}
   ScrollEOF := (EditorDefaults.ViOpt and vbfScrollAfterEOF) <> 0; {AK155}
-  if Fl^.Status <> stOK then begin IsValid := False; ReadFile:=false; Exit end;
   FileSize := FL^.GetSize; FilePos := 0; I := 1; NumLines := 1;
   if FileSize < 0 then FileSize := 0;
   AdjustBuf;
@@ -1429,7 +1431,8 @@ begin
   If (UpStrg(VFileName) <> UpStrg(FileName)) then begin
    KillAfterUse:=true;
    Filtr:=true;
-  end else Filtr:=off;
+  end else Filtr:=false;
+  BreakOnStreamReadError;
 end;
 
 procedure TFileViewer.SetState;
@@ -1731,10 +1734,9 @@ function TFileViewer.BreakOnStreamReadError: boolean;
 { При QuickView просмотрщик вставлен не в самостоятельное окно,
 а прямо в менеджер файлов, так что при QuickView закрывать владельца
 не просто не нужно, а недопустимо }
-    if not QuickView then Owner^.Free;
-{&Delphi+}
+    if (Owner <> nil) and not QuickView then Owner^.Free;
+    IsValid := false;
     raise E at ReturnAddr;
-{&Delphi-}
     end;
   end;
 {/AK155}
@@ -1881,7 +1883,7 @@ procedure TFileViewer.HandleEvent;
     BXL[XLat[Char(i)]]:=Char(i);
   SearchX := SearchFileStr(Fl, BXL,
                            SearchString.What, SearchX,
-                           SearchString.Opts and 1 <> 0, On,
+                           SearchString.Opts and 1 <> 0, true,
                            SearchString.Opts and 2 <> 0, (SearchString.Dir = 1) xor Reverse,
                            SearchString.Opts and 4 <> 0,
                            SearchString.Opts and 8 <> 0);
@@ -1890,10 +1892,10 @@ procedure TFileViewer.HandleEvent;
     {if HexPos > 0 then JJ := (FilePos+BufPos) mod HexPos;}
     Seek(SearchX);
     CountUp(3);
-    SearchActive := On;
+    SearchActive := true;
     BufPos := Lines[0].Pos; MakeLines;
     DrawView;
-    SearchActive := Off; Inc(SearchX);
+    SearchActive := false; Inc(SearchX);
    end else if SearchX <> -2 then
     MessageBox(GetString(dlDBViewSearchNot), nil, mfInformation + mfOKButton);
  end;
@@ -1926,7 +1928,7 @@ procedure TFileViewer.HandleEvent;
     SearchX := FilePos + Lines[i].Pos + Lines[i].Len;
   end;
 {/AK155}
-  ContinueSearch(Off);
+  ContinueSearch(false);
  end;
 
  procedure LoadXlatTable;  {JO}
@@ -1941,12 +1943,12 @@ procedure TFileViewer.HandleEvent;
    if SkipXLatMenu then goto SkipMenu;
    FN := CnvString(XlatFile);
    if FN <> '' then FN := FN + '.xlt';
-   FN := GetFileNameMenu(SourceDir+'XLT\','*.XLT', FN, On, More, None);
+   FN := GetFileNameMenu(SourceDir+'XLT\','*.XLT', FN, true, More, None);
 SkipMenu:
    if None then begin
     KeyMap:=kmAscii;
-    SetXlatFile('', On);
-    UseXlat := Off;
+    SetXlatFile('', true);
+    UseXlat := false;
     {DrawView;}
     Exit;
    end;
@@ -1955,13 +1957,13 @@ SkipMenu:
                                         GetString(dlOpenFileName),
                                         fdOKButton + fdHelpButton,
                                         hsOpenXLT);
-   if FN <> '' then SetXlatFile(FN, On);
+   if FN <> '' then SetXlatFile(FN, true);
  end; {JO}
 
  procedure NextXLat;
  begin
    KeyMap := RollKeyMap[KeyMap];
-   SetXlatFile('', On);
+   SetXlatFile('', true);
  end;
 
  label 1,2,DoSave, KBCheck, NotKb;
@@ -1970,9 +1972,7 @@ var
   ScrollerPos: longint;
 begin
 
-{&Delphi+}
 try
-{&Delphi-}
 
  inherited HandleEvent(Event);
  case ViewMode of
@@ -1987,7 +1987,7 @@ try
          end;
  end;
  if Loaded then begin
-   Loaded := Off;
+   Loaded := false;
    if SB<>nil then begin
     PViewScroll(SB)^.MaxV := FileSize;
     PViewScroll(SB)^.Value:= FilePos+BufPos;
@@ -2016,7 +2016,7 @@ DoSave:
                  cmReleaseFile: begin
                                   if UpStrg(FileName) = UpStrg(PString(Event.InfoPtr)^) then
                                       begin
-                                        ReadFile('', '', On);
+                                        ReadFile('', '', true);
                                         {if not QuickView then Message(Owner, evCommand, cmClose, nil);}
                                       end;
                                 end;
@@ -2108,7 +2108,7 @@ DoSave:
                                   UpStrg(lFExpand(FileName))
                                  ) then
                                begin ReadFile(PString(Event.InfoPtr)^,
-                                              PString(Event.InfoPtr)^, On);
+                                              PString(Event.InfoPtr)^, true);
                                DrawView; CE;
                                end;
               cmClose, cmQuit, cmKillUsed:
@@ -2118,14 +2118,14 @@ DoSave:
               cmContinueSearch: begin ContinueSearch(Event.Command = cmReverseSearch); CE end;
               cmHexMode:  begin
                            case ViewMode of
-                             vmText: begin ViewMode := vmHex; HexEdit := On; end;
+                             vmText: begin ViewMode := vmHex; HexEdit := true; end;
                              vmHex : begin ViewMode := vmDump; end;
 {$IFDEF DisAsm}
                              vmDump: if ((EditorDefaults.ViOpt and vbfDisAsm) <> 0) then
-                                 begin ViewMode := vmAsm; HexEdit := On; MakeLines; Cur.X:=10; end {GRM!}
+                                 begin ViewMode := vmAsm; HexEdit := true; MakeLines; Cur.X:=10; end {GRM!}
                                    else begin ViewMode := vmText; MakeLines end;
 {$ENDIF}
-                              else begin ViewMode := vmText; MakeLines end;
+                              else begin ViewMode := vmText; HideCursor; MakeLines end;
                            end;
                            if ViewMode <> vmDump then
                              begin
@@ -2450,7 +2450,7 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                   if HexEdit then begin
                    Event.CharCode:=UpCase(Event.CharCode);
                    if Event.CharCode in ['A'..'F', '0'..'9'] then begin
-                    BufModified:=On;
+                    BufModified:=true;
                     I:=PosChar(Event.CharCode, '0123456789ABCDEF')-1;
                     P.X:=Cur.X div 2+Cur.Y*HexPos+BufPos;
                     if Odd(Cur.X) then Buf^[P.X]:=(Buf^[P.X] and $F0) or I
@@ -2459,7 +2459,7 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                     CE
                    end;
                   end else begin
-                   BufModified:=On; I:=0;
+                   BufModified:=true; I:=0;
                    while I < 256 do begin
                     if XLat[Char(I)] = Char(Event.CharCode) then begin
                      Event.CharCode:=Char(I);
@@ -2496,14 +2496,12 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                 CE
                end;
  end;
-{&Delphi+}
 except
   on E: eFileError do
     begin
     Ch := ' ';
     end;
 end;
-{&Delphi-}
 end;
 
         {-DataCompBoy-}
@@ -2517,7 +2515,7 @@ procedure TFileViewer.SetXlatFile;
       I,J: Integer;
 {      PC: PChar;}
 begin
-  UseXLat:=Off;
+  UseXLat:=false;
   if aFName <> '' then
   begin
     lFSplit(aFName, Dr, Nm, Xt);
@@ -2920,7 +2918,7 @@ end;
 
 function TFileWindow.ReactOnCmd;
 begin
-  ReactOnCmd := On
+  ReactOnCmd := true
 end;
 
 

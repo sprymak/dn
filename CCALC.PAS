@@ -81,16 +81,12 @@ procedure InsertCalc;
 Const Calc: PView = nil;
 
 implementation
-uses
- SysUtils, Math {AK155 Для try - except}
-  ;
-
 
 constructor TIndicator.Init;
 begin
   inherited Init(R);
   EventMask := evBroadcast;
-  CalcError := Off;
+  CalcError := false;
   Value := 0;
 end;
 
@@ -129,12 +125,12 @@ begin
   if (Event.What = evBroadcast) then
     case Event.Command of
        cmSetValue: begin
-                     CalcError := Off;
+                     CalcError := false;
                      Value := PCReal(Event.InfoPtr)^;
                      CE
                    end;
        cmSetError: begin
-                     CalcError := On;
+                     CalcError := true;
                      CE
                    end;
        cmCancel: begin
@@ -255,7 +251,7 @@ begin
    inherited HandleEvent(Event);
    if WasKey then
     begin
-     SetValues(Off);
+     SetValues(false);
      if Event.KeyCode = kbESC then
       begin
         GetData(FreeStr);
@@ -269,7 +265,7 @@ begin
     end else
     if (Event.What = evCommand) then
       case Event.Command of
-        cmCalcValue: SetValues(On);
+        cmCalcValue: SetValues(true);
         cmGetName: PString(Event.InfoPtr)^ := GetString(dlCalculator);
       end;
 end;
@@ -277,13 +273,13 @@ end;
 procedure TCalcLine.SetData;
 begin
   inherited SetData(B);
-  SetValues(Off);
+  SetValues(false);
 end;
 
 procedure TCalcLine.Awaken;
 begin
   inherited Awaken;
-  SetValues(Off);
+  SetValues(false);
   Calc := Owner;
 end;
 
@@ -302,23 +298,13 @@ begin
 //  DelSpace(S);
   if S = '' then
    begin R := 0; Message(Owner, evBroadcast, cmSetValue, @R); Exit end;
-  EvalueError := False;
-{&delphi+} {AK155 Для try - except.
-Отлов ошибок надо вставлять сюда, а не в Evalue, т.к. Evalue - рекурсивная}
-try
   R := Evalue(S, nil);
-except
-  on E: EMathError do
-    EvalueError := true;
-  on E: EInvalidArgument do
-    EvalueError := true;
-end;
-{&delphi-}
   if EvalueError then
    begin
    if not SetSelf then CalcErrMess := dlMsgError
    else begin CurPos := CalcErrPos; DrawView; end;
-   Message(Owner, evBroadcast, cmSetError, nil)
+   Message(Owner, evBroadcast, cmSetError, nil);
+   EvalueError := false;
    end
   else begin
    Message(Owner, evBroadcast, cmSetValue, @R);

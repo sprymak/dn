@@ -59,7 +59,7 @@ implementation
 
 uses Dos, LFN, Messages, Views, Commands, Objects, DnApp, Drivers, Advance,
      Advance1, Advance2, Advance3, FileCopy, {DiskTool,} Gauge, xTime
-     {$IFNDEF OS2}, LFNCol {$ENDIF}
+     , files
      ;
 
 {Cat: добавил сюда эти типы, вместо того, чтобы подключать модуль DiskTool}
@@ -111,7 +111,7 @@ begin
   begin
     DispatchEvents(PInfo, Cancel);
     Cancel := (Cancel or CtrlBreakHit) and (MessageBox(GetString(dlQueryAbort), nil, mfYesNoConfirm) = cmYes);
-    CtrlBreakHit := Off;
+    CtrlBreakHit := false;
     NewTimer(Tmr, 1);
   end;
 end;
@@ -173,7 +173,7 @@ var
   B: PBufStream;
   Dir, FName: string;
 
-procedure Try;
+procedure TryInit;
 begin
   B := New(PBufStream, Init(FName, stCreate, $8000));
   if B^.Status <> stOK then begin Dispose(B,Done); B:=nil; end;
@@ -188,7 +188,7 @@ var
   LocErr: Boolean;
 begin
   if Error or Cancel then Exit;
-  CtrlBreakHit := Off;
+  CtrlBreakHit := false;
   LocErr := True;
   repeat
     CheckCancel;
@@ -224,11 +224,11 @@ begin
   Dir := FmtStr(ADir, VolumeLabel);
   FName := MakeNormName(Dir, ANm);
   PInfo^.Write(3, LowStrg(GetName(FName)));
-  Try;
+  TryInit;
   if B = nil then
   begin
-    CreateDirInheritance(Dir, Off);
-    Try;
+    CreateDirInheritance(Dir, false);
+    TryInit;
     if B = nil then Exit;
   end;
   GetMem(CpyBuf, BytesPerClu);
@@ -251,7 +251,7 @@ var
   J: Integer;
 
 begin
-  CtrlBreakHit := Off;
+  CtrlBreakHit := false;
   fSeek(LongInt(Ofst)*SectLen);
   if (F^.Status <> stOK) then Exit;
   GetMem(_Dir,RootEntries*32);
@@ -395,15 +395,7 @@ begin
   for I := 0 to AFiles^.Count-1 do
   begin
     PF := AFiles^.At(I);
-{$IFNDEF OS2}
-  {$IFDEF OS_DOS}
-    if not UnpackImage(MakeNormName(CnvString(PF^.Owner), MakeFileName(PF^.Name)), ADestPath, PInfo) then Break;
-  {$ELSE}
-    if not UnpackImage(MakeNormName(CnvString(PF^.Owner), GetLFN(PF^.LFN)), ADestPath, PInfo) then Break;
-  {$ENDIF}
-{$ELSE}
-    if not UnpackImage(MakeNormName(CnvString(PF^.Owner), PF^.Name), ADestPath, PInfo) then Break;
-{$ENDIF}
+    if not UnpackImage(MakeNormName(CnvString(PF^.Owner), PF^.FlName[true]), ADestPath, PInfo) then Break;
     if AOwner <> nil then Message(AOwner, evCommand, cmCopyUnselect, PF);
   end;
 

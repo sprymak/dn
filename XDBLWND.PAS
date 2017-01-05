@@ -111,7 +111,7 @@ begin
    LVisible := false;
    LSelected := false;
   end;
-  CE := On;
+  CE := true;
   case Event.What of
    evKeyDown: case Event.KeyCode of
                {kbCtrlP,}
@@ -125,12 +125,12 @@ begin
                kbAltShiftLeft,kbAltShiftRight,
                kbCtrlAltZ,{Knave 11.09.99} {DataCompBoy}
                kbCtrlSqBracketL, kbCtrlSqBracketR:
-                begin HandleCommand(Event); CE := Off; end;
+                begin HandleCommand(Event); CE := false; end;
               end;
    evBroadcast: case Event.Command of
                   cmLookForPanels, cmGetUserParams, cmGetUserParamsWL,
                 cmChangeDirectory, cmChangeDrv,
-                   cmIsRightPanel: begin HandleCommand(Event); CE := Off end;
+                   cmIsRightPanel: begin HandleCommand(Event); CE := false end;
                 end;
    evCommand: case Event.Command of
                 cmChangeDirectory:
@@ -198,7 +198,7 @@ begin
                cmDirTree,
                cmQuickView,
                cmSwapPanels,
-               cmSwitchOther: begin HandleCommand(Event); CE := Off end;
+               cmSwitchOther: begin HandleCommand(Event); CE := false end;
               end;
   end;
 

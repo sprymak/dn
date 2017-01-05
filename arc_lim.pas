@@ -50,7 +50,7 @@ unit Arc_lim; {LIM}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+  Archiver, Advance, Advance1, Objects, Dos;
 
 type
     PLIMArchive = ^TLIMArchive;

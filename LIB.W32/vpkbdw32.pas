@@ -216,7 +216,9 @@ begin
 
     15: // AK155 TurboVision code for Ctrl-Tab
      if ShiftState and Ctrl_Pressed <> 0 then
-       Result := $9400;
+       Result := $9400
+     else if ShiftState and Alt_Pressed <> 0 then {JO: Alt-Tab}
+       Result := $A500;
 
 {
   // Test code; should not be necessary
@@ -262,6 +264,10 @@ begin
         Result := $9600
       else
         Result := ScanCode shl 8;
+
+    57: // JO: Alt-Space
+     if ShiftState and Alt_Pressed <> 0 then
+       Result := $3920;
 
     59..68:
       // FN keys 1 to 10

@@ -51,7 +51,7 @@ unit Archiver;
 interface
 
 uses
-  {$IFNDEF OS2} LFNCol, {$ENDIF}
+  Files,
   {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
   Views, Objects, Dos, Collect, Drivers, Profile, Tree;
 
@@ -63,9 +63,6 @@ type
 
     PArcFile   = ^TArcFile;
     TArcFile   = Record
-                  {$IFNDEF OS2}
-                  LFN    : TLFNIndex; {DataCompBoy}
-                  {$ENDIF}
                   FName  : PString;
                   Select : boolean;
                   Attr   : AWord;
@@ -75,9 +72,6 @@ type
 
     PFInfo     = ^TFInfo;
     TFInfo     = Record
-                  {$IFNDEF OS2}
-                  LFN     : TLFNIndex; {DataCompBoy}
-                  {$ENDIF}
                   FName   : String; {DataCompBoy}
                   USize   : LongInt;
                   PSize   : LongInt;
@@ -248,9 +242,6 @@ Procedure TFileInfo.FreeItem;
 begin
   if Item <> nil then
    begin
-    {$IFNDEF OS2}
-    DelLFN(PArcFile(Item)^.LFN);
-    {$ENDIF}
     DisposeStr(PArcFile(Item)^.FName);
     Dispose(PArcFile(Item));
    end;
@@ -266,9 +257,6 @@ end;
 
 Procedure TFileInfo.PutItem;
 begin
-{$IFNDEF OS2}
- StoreLFN(S, PArcFile(Item)^.LFN);
-{$ENDIF}
  S.WriteStr(PArcFile(Item)^.FName);
  S.Write(PArcFile(Item)^.Select, SizeOf(Boolean)+SizeOf(AWord)+3*SizeOf(Longint));
 end;
@@ -277,9 +265,6 @@ function TFileInfo.GetItem;
  var P: PArcFile;
 begin
  New(P);
- {$IFNDEF OS2}
- P^.LFN:=LoadLFN(S);
- {$ENDIF}
  P^.FName := S.ReadStr;
  S.Read(P^.Select, SizeOf(Boolean)+SizeOf(AWord)+3*SizeOf(Longint));
  GetItem := P;
@@ -590,14 +575,14 @@ function ArchiveFiles;
   var C: TStr4;
       q: byte;
 begin
-  ArchiveFiles := Off;
+  ArchiveFiles := false;
   if PosChar(':',S) < 3 then Exit;
   C := UpStrg(Copy(S,1,PosChar(':', S)));
   q:=GetArchiveTagBySign(C);
   if q=arcUNK then exit;
   DefaultAddArchiver := q;
-  ArchiveFiles := On;
-  MakeArchive(Copy(S, PosChar(':',S)+1, 255), Files, MoveMode, On, Owner);
+  ArchiveFiles := true;
+  MakeArchive(Copy(S, PosChar(':',S)+1, 255), Files, MoveMode, true, Owner);
   DefaultAddArchiver := arcUNK;
 end;
 
@@ -643,7 +628,7 @@ procedure MakeArchive;
           then if B then S := S + #$14 + SS else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(SS));
 {piwamoto.src.end}
        ClrIO;
-       lFindFirst(MakeNormName(SS, x_x), {$IFDEF OS2} Anyfile {$ELSE} $FF XOR VolumeID{$ENDIF}, SR); {JO}
+       lFindFirst(MakeNormName(SS, x_x), AnyFile, SR); {JO}
        While (DOSError = 0) and not Abort {and (Length(S) < 100)} do
         begin
  {$IFNDEF OS2}
@@ -693,15 +678,12 @@ procedure MakeArchive;
  {$IFNDEF OS2}
      if Arc^.UseLFN
       then
-           S1 := GetLongRelPath(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)))
-   {$IFDEF OS_DOS}
-      else S1 := GetShortRelPath(MakeNormName(PF^.Owner^, MakeFileName(PF^.Name)));
-   {$ELSE}
-      else S1 := GetShortRelPath(MakeNormName(PF^.Owner^, GetLFN(PF^.LFN)));
-   {$ENDIF}
- {$ELSE}
-     S1 := GetLongRelPath(MakeNormName(PF^.Owner^, PF^.Name));
  {$ENDIF}
+        S1 := GetLongRelPath(MakeNormName(PF^.Owner^, PF^.FlName[true]))
+ {$IFNDEF OS2}
+      else S1 := GetShortRelPath(MakeNormName(PF^.Owner^, PF^.FlName[true]))
+ {$ENDIF}
+      ;
        {JO:  используем символ #$14 для временного разделения имён файлов}
      if PF^.Attr and Directory = 0
       then if B then S := S + #$14 + SquashesName(S1) else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1))
@@ -710,7 +692,7 @@ procedure MakeArchive;
         if Arc^.PutDirs then PutDir(S1) else    {JO} {для пустых каталогов надо обязательно подставлять имя без маски, иначе}
                                          begin       {архиваторы их игнорируют; для непустых каталогов такая подстановка приводит}
                                            ClrIO;    {с некоторыми архиваторами (ZIP) к тому, что файлы попадают в архив дважды}
-                                           lFindFirst(MakeNormName(S1, x_x), {$IFDEF OS2} Anyfile{$ELSE}Anyfile XOR VolumeID{$ENDIF}, SR);
+                                           lFindFirst(MakeNormName(S1, x_x), Anyfile, SR);
                                            if IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF}) then lFindNext(SR);
                                            if IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF}) then lFindNext(SR);
                                            if (DOSError <> 0) then WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1));
@@ -856,7 +838,7 @@ procedure MakeArchive;
     InitDOSMem;
     InitMemory;
     SetVideoMode(ScreenMode); SM := ScreenMode;
-    SetBlink(On);
+    SetBlink(true);
     InitVideo; ScreenMode := SM;
     {$IFDEF Win32}SysTVInitCursor; {$ENDIF} {AK155, см.комментарий к SysTVInitCursor}
     if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
@@ -972,11 +954,11 @@ begin
    if (ArcFile=nil) or (ArcFile^.Status <> stOK) then
     begin
       if TempFile <> '' then TempFile := '';
-      StdMsg(4); FreeObject(ArcFile); Abort := On; Exit;
+      StdMsg(4); FreeObject(ArcFile); Abort := true; Exit;
     end;
    ArcPos := 0;
    SkipSFX;
-   AType := DetectArchive(Off);
+   AType := DetectArchive(false);
    FreeObject(ArcFile);
    if AType = nil then Exit;
    ExtrDir := '';
@@ -1001,7 +983,7 @@ begin
    UnarchiveOpt := DT.W and not 2;
 {/JO}
    if (DT.S = '') or (DT.S = '.') then DT.S := GetPath(FName);
-   CreateDirInheritance(DT.S, On);
+   CreateDirInheritance(DT.S, true);
    ExtrDir := DT.S;
    ExtrChar := CnvString(AType^.ExtractWP);
    if DT.W and 1 = 0 then ExtrChar := CnvString(AType^.Extract);

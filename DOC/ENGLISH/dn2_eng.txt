@@ -43,13 +43,13 @@ in project!
  http://www.dnosp.ru/files/dn2/
  http://os2.ru/projects/dn2/
 
- DNOS2Bxx.RAR  (where xx - wersion number) - archives with OS/2 executables of
+ dnos2bXX.rar  (where XX - wersion number) - archives with OS/2 executables of
                beta-versions;
- DNOS2Uxx.RAR  (where xx - wersion number) - archives with ukrainian resource
+ dnos2uXX.rar  (where XX - wersion number) - archives with ukrainian resource
                binaries for OS/2;
- DNOS2Sxx.RAR  (where xx - wersion number) - archives with sources of the
+ dnos2sXX.rar  (where XX - wersion number) - archives with sources of the
                programm package;
- DNOS2Rxx.RAR  (where xx - wersion number) - archives with source texts of
+ dnos2rXX.rar  (where XX - wersion number) - archives with source texts of
                resources and resource compiler for OS/2 and Win32;
 
  New Win32 versions of DN/2 could be found at:
@@ -57,9 +57,9 @@ in project!
  http://www.dnosp.ru/files/dn2/
  http://os2.ru/projects/dn2/
 
- DNW32Bxx.RAR  (where xx - wersion number) - archives with Win32 executables
+ dnw32bXX.rar  (where XX - wersion number) - archives with Win32 executables
                of beta-versions;
- DNW32Uxx.RAR  (where xx - wersion number) - archives with ukrainian resource
+ dnw32uXX.rar  (where XX - wersion number) - archives with ukrainian resource
                binaries for Win32;
 
  Autrors of DN/2 express a lot of thanks to all authors of DN OSP (see

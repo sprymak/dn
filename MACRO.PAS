@@ -129,7 +129,7 @@ function Token(const S: String; var Pos: CondInt): String;
       M: String;
       J: Integer;
 begin
-   Token := ''; A := ''; B := False; Cmd := Off;
+   Token := ''; A := ''; B := False; Cmd := false;
    while (S[Pos] = ' ') and (Length(S) >= Pos) do Inc(Pos);
    while Pos <= Length(S) do
      begin
@@ -155,7 +155,7 @@ begin
                      end;
            else if B then AddStr(A, S[Pos])
                   else begin
-                         B := On; Cmd := On;
+                         B := true; Cmd := true;
                          AddStr(A, S[Pos])
                        end;
        end;
@@ -211,10 +211,10 @@ constructor TEditMacros.Init;
    begin
      if UpStrg(Copy(S, 1, Length(SS))) = SS then
        begin
-         Found := On;
+         Found := true;
          Delete(S, 1, Length(SS));
          DelLeft(S);
-       end else Found := Off;
+       end else Found := false;
    end;
 
    procedure MakePrint;
@@ -355,8 +355,8 @@ begin
             if Found('GOTOXY ') then MakeGotoXY(GetID(Token(S,I)), GetID(Token(S,I))) else
             if Found('GOTOX ') then MakeGotoXY(GetID(Token(S,I)), -1) else
             if Found('GOTOY ') then MakeGotoXY(-1, GetID(Token(S,I))) else
-            if Found('GOTO ') then Commands^.Insert(New(PMacroMark, Init(GetID(Token(S,I)), Off))) else
-            if Found('MARK ') then Commands^.Insert(New(PMacroMark, Init(GetID(Token(S,I)), On))) else
+            if Found('GOTO ') then Commands^.Insert(New(PMacroMark, Init(GetID(Token(S,I)), false))) else
+            if Found('MARK ') then Commands^.Insert(New(PMacroMark, Init(GetID(Token(S,I)), true))) else
               begin
                 J := GetId(Token(S,I));
                 if J > 0 then
@@ -731,13 +731,13 @@ var
   begin
     if Copy(FreeStr, 1, Length(S)) = S then
     begin
-      Found:=On;
+      Found:=true;
       Delete(FreeStr, 1, Length(S));
       DelLeft(FreeStr);
       Delete(CaseStr, 1, Length(S));  {PZ - 2000.04.11}
       DelLeft(CaseStr);               {PZ}
     end else
-      Found:=Off;
+      Found:=false;
   end;
 
   procedure InsertMacro;

@@ -1,4 +1,4 @@
-unit FNoteW32;
+unit fnotify {W32};
 (******
 
 Directory Change Notifier - Win32 version
@@ -8,6 +8,7 @@ Written by Cat 2:5030/1326.13
 ******)
 
 interface
+{$I stdefine.inc}
 
  uses xTime;
 
@@ -15,14 +16,25 @@ interface
 Var
  NotifyTmr: TEventTimer;       {JO}
 
+{$IFDEF FileNotify}
+
 procedure NotifyInit;
 procedure NotifyAddWatcher(const Path: String);
 procedure NotifyDeleteWatcher(const Path: String);
-function NotifyAsk: String;
+procedure NotifyAsk(var S: String);
 procedure NotifySuspend;
 procedure NotifyResume;
+{$ELSE}
+procedure NotifyInit; inline; begin end;
+procedure NotifyAddWatcher(const Path: String); inline; begin end;
+procedure NotifyDeleteWatcher(const Path: String); inline; begin end;
+procedure NotifyAsk(var S: String); inline; begin end;
+procedure NotifySuspend; inline; begin end;
+procedure NotifyResume; inline; begin end;
+{$ENDIF}
 
 implementation
+{$IFDEF FileNotify}
 
 uses
   Windows, Objects, Collect, Advance1;
@@ -146,16 +158,15 @@ begin
   {$ENDIF}
 end;
 
-function NotifyAsk: String;
+procedure NotifyAsk(var S: String);
 var
   I: LongInt;
 begin
 {JO}
-  if NotifierCollection = nil then
-     begin
-       NotifyAsk := '';
-       Exit;
-     end;
+  if (NotifierCollection = nil)
+     {AK155} or (SuspendCount <> 0) {/AK155}
+  then
+     begin S := ''; Exit; end;
 {/JO}
   for I := 0 to NotifierCollection^.Count-1 do
     with PNotifierRec(NotifierCollection^.At(I))^ do
@@ -164,12 +175,12 @@ begin
           if FindNextChangeNotification(Handle) then
             ;
           if SuspendCount > 0 then
-            NotifyAsk := ''
+            S := ''
           else
-            NotifyAsk := Path^;
+            S := Path^;
           Exit;
         end;
-  NotifyAsk := '';
+  S := '';
 end;
 
 procedure NotifySuspend;
@@ -191,4 +202,5 @@ begin
   {$ENDIF}
 end;
 
+{$ENDIF}
 end.

@@ -51,7 +51,7 @@ INTERFACE
 
 uses
   Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
-  Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, {$IFNDEF OS2} LfnCol, {$ENDIF} Dos, Tree,
+  Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, Files, Dos, Tree,
   FilesCol, Advance2, Drives, FlPanel, Memory;
 
 procedure TdrSeekDirectory(AvtDr: PArvidDrive);
@@ -163,7 +163,7 @@ var
           begin
             New(F^.DIZ);
             F^.DIZ^.Owner := nil;
-            F^.DIZ^.isDisposable := On;
+            F^.DIZ^.isDisposable := true;
             F^.DIZ^.Line := SeekPos;
             if FF.Description <> 0 then
               begin

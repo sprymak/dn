@@ -26,13 +26,16 @@ procedure VMTRegisterMenus;
 procedure VMTRegisterDialogs;
 procedure VMTRegisterApps;
 procedure VMTRegisterEditors;
+procedure VMTRegisterGauge;
+procedure VMTRegisterFViewer;
+procedure VMTRegisterDrives;
 
 implementation
 
 uses
   _DNFuncs, _Model1,
   _Objects, _RegExp, _Streams, _Collect,
-  _Views, _Menus, _Dialogs, _Apps, _Editors;
+  _Views, _Menus, _Dialogs, _Apps, _Editors, _Gauge, _FViewer, _Drives;
 
 procedure VMTRegisterObjects;
 begin
@@ -117,6 +120,28 @@ begin
   TransportVMT(_TEditWindow^.VMT, TypeOf(TEditWindow), TypeOf(TEditWindow), TEditWindow_VMTSize);
 end;
 
+procedure VMTRegisterGauge;
+begin
+  TransportVMT(_TPercentGauge^.VMT, TypeOf(TPercentGauge), TypeOf(TPercentGauge), TPercentGauge_VMTSize);
+  TransportVMT(_TBarGauge^.VMT, TypeOf(TBarGauge), TypeOf(TBarGauge), TBarGauge_VMTSize);
+  TransportVMT(_TWhileView^.VMT, TypeOf(TWhileView), TypeOf(TWhileView), TWhileView_VMTSize);
+end;
+
+procedure VMTRegisterFViewer;
+begin
+  TransportVMT(_TViewScroll^.VMT, TypeOf(TViewScroll), TypeOf(TViewScroll), TViewScroll_VMTSize);
+  TransportVMT(_TFileViewer^.VMT, TypeOf(TFileViewer), TypeOf(TFileViewer), TFileViewer_VMTSize);
+end;
+
+procedure VMTRegisterDrives;
+begin
+  TransportVMT(_TDrive^.VMT, TypeOf(TDrive), TypeOf(TDrive), TDrive_VMTSize);
+  TransportVMT(_TFindDrive^.VMT, TypeOf(TFindDrive), TypeOf(TFindDrive), TFindDrive_VMTSize);
+  TransportVMT(_TTempDrive^.VMT, TypeOf(TTempDrive), TypeOf(TTempDrive), TTempDrive_VMTSize);
+  TransportVMT(_TArcDrive^.VMT, TypeOf(TArcDrive), TypeOf(TArcDrive), TArcDrive_VMTSize);
+  TransportVMT(_TArvidDrive^.VMT, TypeOf(TArvidDrive), TypeOf(TArvidDrive), TArvidDrive_VMTSize);
+end;
+
 procedure VMTRegisterAll;
 begin
   VMTRegisterObjects;
@@ -128,6 +153,9 @@ begin
   VMTRegisterDialogs;
   VMTRegisterApps;
   VMTRegisterEditors;
+  VMTRegisterGauge;
+  VMTRegisterFViewer;
+  VMTRegisterDrives;
 end;
 
 end.

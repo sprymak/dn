@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines, _Streams, _Collect, _Views, _Menus;
+  _Defines, _Streams, _Collect, _Views, _Menus;
 
 type
   PUniWindow = ^TUniWindow;
@@ -114,22 +114,22 @@ uses
 
 function TUniWindow.MakeScrollBar(AOptions: Word): PScrollBar;
 begin
-  Result := _TUniWindow^.MakeScrollBar(AOptions, @Self);
+  Result := PScrollBar(_TUniWindow^.MakeScrollBar(AOptions, @Self));
 end;
 
 constructor TXFileEditor.Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar; var FileName: String);
 begin
-  _TXFileEditor^.Init(Bounds, AHScrollBar, AVScrollBar, FileName, nil, @Self);
+  _TXFileEditor^.Init(Bounds, _Model1.PScrollBar(AHScrollBar), _Model1.PScrollBar(AVScrollBar), FileName, nil, @Self);
 end;
 
 constructor TXFileEditor.Load(var S: TStream);
 begin
-  _TXFileEditor^.Load(S, nil, @Self);
+  _TXFileEditor^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TXFileEditor.Store(var S: TStream);
 begin
-  _TXFileEditor^.Store(S, @Self);
+  _TXFileEditor^.Store(_Model1.TStream(S), @Self);
 end;
 
 procedure TXFileEditor.DoHighlite(var B; const S: LongString; const Attr: String);
@@ -144,7 +144,7 @@ end;
 
 function TXFileEditor.GetSelection: PCollection;
 begin
-  Result := _TXFileEditor^.GetSelection(@Self);
+  Result := PCollection(_TXFileEditor^.GetSelection(@Self));
 end;
 
 function TXFileEditor.ValidBlock: Boolean;
@@ -164,7 +164,7 @@ end;
 
 procedure TXFileEditor.InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
 begin
-  _TXFileEditor^.InsertBlock(ABlock, SaveUndo, @Self);
+  _TXFileEditor^.InsertBlock(_Model1.PCollection(ABlock), SaveUndo, @Self);
 end;
 
 procedure TXFileEditor.ModifyLine(Index: LongInt; S: LongString; DelSpaces: Boolean);
@@ -224,12 +224,12 @@ end;
 
 constructor TEditWindow.Load(var S: TStream);
 begin
-  _TEditWindow^.Load(S, nil, @Self);
+  _TEditWindow^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TEditWindow.Store(var S: TStream);
 begin
-  _TEditWindow^.Store(S, @Self);
+  _TEditWindow^.Store(_Model1.TStream(S), @Self);
 end;
 
 end.

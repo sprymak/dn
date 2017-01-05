@@ -16,3 +16,4 @@
  <Ctrl-F> - open WPS (in OS/2 version) or Explorer (in Win32 version) folder
  <Ctrl-J> - create program object for current executable on desktop (OS/2
             version)
+ <Ctrl-Num5> - Select whole text in editor

@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines, _Objects, _Streams;
+  _Defines, _Objects, _Streams;
 
 type
   PView = ^TView;
@@ -223,7 +223,7 @@ end;
 
 constructor TView.Load(var S: TStream);
 begin
-  _TView^.Load(S, nil, @Self);
+  _TView^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TView.Awaken;
@@ -358,7 +358,7 @@ end;
 
 procedure TView.GetPeerViewPtr(var S: TStream; var P);
 begin
-  _TView^.GetPeerViewPtr(S, P, @Self);
+  _TView^.GetPeerViewPtr(_Model1.TStream(S), P, @Self);
 end;
 
 function TView.GetState(AState: Word): Boolean;
@@ -428,7 +428,7 @@ end;
 
 function TView.NextView: PView;
 begin
-  Result := _TView^.NextView(@Self);
+  Result := PView(_TView^.NextView(@Self));
 end;
 
 procedure TView.NormalCursor;
@@ -438,12 +438,12 @@ end;
 
 function TView.Prev: PView;
 begin
-  Result := _TView^.Prev(@Self);
+  Result := PView(_TView^.Prev(@Self));
 end;
 
 function TView.PrevView: PView;
 begin
-  Result := _TView^.PrevView(@Self);
+  Result := PView(_TView^.PrevView(@Self));
 end;
 
 procedure TView.PutEvent(var Event: TEvent);
@@ -453,12 +453,12 @@ end;
 
 procedure TView.PutInFrontOf(Target: PView);
 begin
-  _TView^.PutInFrontOf(Target, @Self);
+  _TView^.PutInFrontOf(_Model1.PView(Target), @Self);
 end;
 
 procedure TView.PutPeerViewPtr(var S: TStream; P: PView);
 begin
-  _TView^.PutPeerViewPtr(S, P, @Self);
+  _TView^.PutPeerViewPtr(_Model1.TStream(S), _Model1.PView(P), @Self);
 end;
 
 procedure TView.Select;
@@ -508,12 +508,12 @@ end;
 
 procedure TView.Store(var S: TStream);
 begin
-  _TView^.Store(S, @Self);
+  _TView^.Store(_Model1.TStream(S), @Self);
 end;
 
 function TView.TopView: PView;
 begin
-  Result := _TView^.TopView(@Self);
+  Result := PView(_TView^.TopView(@Self));
 end;
 
 function TView.Valid(Command: Word): Boolean;
@@ -558,22 +558,22 @@ end;
 
 procedure TView.DrawHide(LastView: PView);
 begin
-  _TView^.DrawHide(LastView, @Self);
+  _TView^.DrawHide(_Model1.PView(LastView), @Self);
 end;
 
 procedure TView.DrawShow(LastView: PView);
 begin
-  _TView^.DrawShow(LastView, @Self);
+  _TView^.DrawShow(_Model1.PView(LastView), @Self);
 end;
 
 procedure TView.DrawUnderRect(var R: TRect; LastView: PView);
 begin
-  _TView^.DrawUnderRect(R, LastView, @Self);
+  _TView^.DrawUnderRect(R, _Model1.PView(LastView), @Self);
 end;
 
 procedure TView.DrawUnderView(DoShadow: Boolean; LastView: PView);
 begin
-  _TView^.DrawUnderView(DoShadow, LastView, @Self);
+  _TView^.DrawUnderView(DoShadow, _Model1.PView(LastView), @Self);
 end;
 
 procedure TView.ResetCursor;
@@ -593,7 +593,7 @@ end;
 
 constructor TScrollBar.Load(var S: TStream);
 begin
-  _TScrollBar^.Load(S, nil, @Self);
+  _TScrollBar^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TScrollBar.ScrollDraw;
@@ -628,7 +628,7 @@ end;
 
 procedure TScrollBar.Store(var S: TStream);
 begin
-  _TScrollBar^.Store(S, @Self);
+  _TScrollBar^.Store(_Model1.TStream(S), @Self);
 end;
 
 constructor TGroup.Init(var Bounds: TRect);
@@ -638,12 +638,12 @@ end;
 
 constructor TGroup.Load(var S: TStream);
 begin
-  _TGroup^.Load(S, nil, @Self);
+  _TGroup^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TGroup.Delete(P: PView);
 begin
-  _TGroup^.Delete(P, @Self);
+  _TGroup^.Delete(_Model1.PView(P), @Self);
 end;
 
 procedure TGroup.EventError(var Event: TEvent);
@@ -653,22 +653,22 @@ end;
 
 function TGroup.ExecView(P: PView): Word;
 begin
-  Result := _TGroup^.ExecView(P, @Self);
+  Result := _TGroup^.ExecView(_Model1.PView(P), @Self);
 end;
 
 function TGroup.First: PView;
 begin
-  Result := _TGroup^.First(@Self);
+  Result := PView(_TGroup^.First(@Self));
 end;
 
 function TGroup.FirstThat(P: Pointer): PView;
 begin
-  Result := _TGroup^.FirstThat(P, @Self);
+  Result := PView(_TGroup^.FirstThat(P, @Self));
 end;
 
 function TGroup.LastThat(P: Pointer): PView;
 begin
-  Result := _TGroup^.LastThat(P, @Self);
+  Result := PView(_TGroup^.LastThat(P, @Self));
 end;
 
 function TGroup.FocusNext(Forwards: Boolean): Boolean;
@@ -683,17 +683,17 @@ end;
 
 procedure TGroup.GetSubViewPtr(var S: TStream; var P);
 begin
-  _TGroup^.GetSubViewPtr(S, P, @Self);
+  _TGroup^.GetSubViewPtr(_Model1.TStream(S), P, @Self);
 end;
 
 procedure TGroup.Insert(P: PView);
 begin
-  _TGroup^.Insert(P, @Self);
+  _TGroup^.Insert(_Model1.PView(P), @Self);
 end;
 
 procedure TGroup.InsertBefore(P, Target: PView);
 begin
-  _TGroup^.InsertBefore(P, Target, @Self);
+  _TGroup^.InsertBefore(_Model1.PView(P), _Model1.PView(Target), @Self);
 end;
 
 procedure TGroup.Lock;
@@ -703,7 +703,7 @@ end;
 
 procedure TGroup.PutSubViewPtr(var S: TStream; P: PView);
 begin
-  _TGroup^.PutSubViewPtr(S, P, @Self);
+  _TGroup^.PutSubViewPtr(_Model1.TStream(S), _Model1.PView(P), @Self);
 end;
 
 procedure TGroup.Redraw;
@@ -718,7 +718,7 @@ end;
 
 procedure TGroup.Store(var S: TStream);
 begin
-  _TGroup^.Store(S, @Self);
+  _TGroup^.Store(_Model1.TStream(S), @Self);
 end;
 
 procedure TGroup.Unlock;
@@ -738,12 +738,12 @@ end;
 
 procedure TGroup.InsertView(P, Target: PView);
 begin
-  _TGroup^.InsertView(P, Target, @Self);
+  _TGroup^.InsertView(_Model1.PView(P), _Model1.PView(Target), @Self);
 end;
 
 procedure TGroup.SetCurrent(P: PView; Mode: TSelectMode);
 begin
-  _TGroup^.SetCurrent(P, Mode, @Self);
+  _TGroup^.SetCurrent(_Model1.PView(P), Mode, @Self);
 end;
 
 constructor TWindow.Init(var Bounds: TRect; const ATitle: String; ANumber: Integer);
@@ -753,7 +753,7 @@ end;
 
 constructor TWindow.Load(var S: TStream);
 begin
-  _TWindow^.Load(S, nil, @Self);
+  _TWindow^.Load(_Model1.TStream(S), nil, @Self);
 end;
 
 procedure TWindow.Close;
@@ -773,12 +773,12 @@ end;
 
 function TWindow.StandardScrollBar(AOptions: Word): PScrollBar;
 begin
-  Result := _TWindow^.StandardScrollBar(AOptions, @Self)
+  Result := PScrollBar(_TWindow^.StandardScrollBar(AOptions, @Self));
 end;
 
 procedure TWindow.Store(var S: TStream);
 begin
-  _TWindow^.Store(S, @Self)
+  _TWindow^.Store(_Model1.TStream(S), @Self);
 end;
 
 procedure TWindow.Zoom;

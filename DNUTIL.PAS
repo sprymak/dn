@@ -56,7 +56,7 @@ unit DNUtil;
 interface
 
 uses
-  Dos, Lfn, {$IFNDEF OS2} LfnCol, {$ENDIF} {SBlocks,} Drivers, Objects, UniWin,
+  Dos, Lfn, {SBlocks,} Drivers, Objects, UniWin,
   Views, Histries, Scroller, DNApp, Menus, FlPanel, FileCopy, Eraser, DiskInfo,
   {$IFDEF NETINFO} NetInfo, {$ENDIF}
   advance, advance1, advance2, advance3, advance4, advance7,
@@ -97,7 +97,7 @@ const
 {$IFDEF TrashCan}TrashCan: PTrashCan = nil;{$ENDIF}
   HelpWnd: PHelpWindow = nil;
   HelpInUse: Boolean = False;
-  RunMenu: Boolean = Off;
+  RunMenu: Boolean = false;
   IdleCounter: Word = 0;
   StartTicks: Word = 0;
   NullStr: byte=0;
@@ -305,7 +305,7 @@ constructor TDataSaver.Init;
 begin
   R.Assign(0,0,0,0);
   inherited Init(R);
-  SetState(sfVisible, Off);
+  SetState(sfVisible, false);
   Options := Options and not ofSelectable;
   EventMask := 0;
   DataSaver := @Self;
@@ -543,7 +543,7 @@ begin
     if (LoadStream <> nil) and (ClipBoardStream <> nil) then begin
       LoadStream^.Seek(0);
       ClipBoardStream^.CopyFrom(LoadStream^, LoadStream^.GetSize);
-      if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(Off)};
+      if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(false)};
     end;
     FreeObject( LoadStream );
   end;
@@ -557,7 +557,7 @@ begin
    begin
     if flj then FileName := FileName + ParamStr(I) else FileName := ParamStr(I);
     if Pos('"',FileName)<>0 then flj:=not flj;
-    if (FileName[1] <> '/') and not flj then EditFile(On, DelSquashes(FileName));
+    if (FileName[1] <> '/') and not flj then EditFile(true, DelSquashes(FileName));
    end;
 
  if RunMenu then begin
@@ -573,7 +573,7 @@ end;
 
 {$IFDEF DiskFormat}
 procedure TDNApplication.RunFormat;
-  const FormatInit: Boolean = Off;
+  const FormatInit: Boolean = false;
   type PR  = record
             OFS,SG : word ;
            end;
@@ -596,7 +596,7 @@ begin
 
  if not FormatInit then
    begin
-      FormatInit := Off;
+      FormatInit := false;
       DrivesType[0] := DrvType(0); { 5'25 HD }
       DrivesType[1] := DrvType(1); { 3'5  HD }
 
@@ -716,7 +716,7 @@ begin
 {$IFDEF Modem}
  SetBlink(StartupData.Unload and osuBlinking <> 0);
  DeallocateScrollBk ;
- if StartupData.Unload and osuRestorePal <> 0 then ResetVGApalette(On);
+ if StartupData.Unload and osuRestorePal <> 0 then ResetVGApalette(true);
  if COMPort <> nil then
   begin
     B := COMPort^.GetBaseAddr;
@@ -725,7 +725,7 @@ begin
       COMPort^.ptOptionsOff(ptRestoreOnClose);
     end;
     Dispose(COMPort,Done);
-    SetFIFOBuffering(B, Off, 0);
+    SetFIFOBuffering(B, false, 0);
   end;
 {$ENDIF}
  DoneDrivers;
@@ -800,7 +800,7 @@ var
   end;
 
 begin
- ConfigModified := Off;
+ ConfigModified := false;
  S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stCreate, 16384);
  if S.Status <> stOK then begin Msg(erCantOpenConfig, nil, mfError+mfOKButton); S.Done; Exit; end;
  S.Write(ConfigSigns[NumSupportedConfigs].Sign[1], ConfigSigns[NumSupportedConfigs].SignLen);
@@ -913,7 +913,7 @@ begin
       запомненный просмотр; это не повод терять все остальные настройки }
   end;
  P := DeskTop^.Current;
- if P <> nil then P^.SetState(sfActive, On);
+ if P <> nil then P^.SetState(sfActive, true);
 end;
         {-DataCompBoy-}
 
@@ -1065,7 +1065,7 @@ begin
                       Event.InfoPtr := @TempFile;
                       PutEvent(Event);
                      end;
-        RunMenu := Off;
+        RunMenu := false;
        end;
     S^.ReadStrV(FreeStr); {S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));} {Cat}
     S^.ReadStrV(FreeStr); {S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));} {Cat}
@@ -1282,9 +1282,9 @@ var
     {$ENDIF}
 
     {$IFDEF SpreadSheet}
-     if (XT = '.WKZ') or (Q=vmSpread) then begin
+     if (XT = '.WKZ') or (Q=vmSpread) or (Q=vmSpreadSL)  then begin
       W := New(PCalcWindow,Init(R, FileName));
-      if (Q=vmSpread) and (W<>nil) then
+      if ((Q=vmSpread) or (Q=vmSpreadSL)) and (W<>nil) then
        with P^, W^ do begin
          R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
          AdjustToDesktopSize(R, fDeskSize);
@@ -1296,8 +1296,9 @@ var
          CurrentCalc := fsCurrentCalc;
          SearchPos   := fsSearchPos;
          ErrorCell   := fsErrorCell;
-         HScroll^.Value := Delta.X + Cur.X;{AK155}
-         VScroll^.Value := Delta.Y + Cur.Y;{AK155}
+         HScroll^.Value := Delta.X;{AK155}
+         VScroll^.Value := Delta.Y;{AK155}
+         ShowSeparators := Q = vmSpreadSL; {AK155}
          end;
        end;
      goto db;
@@ -1337,7 +1338,11 @@ db:
        V: PFileViewer;
   begin
     W := New(PFileWindow,Init(FileName, RN, EditorDefaults.ViOpt and 1 <> 0));
-    if (W <> nil) and (W^.Valid(cmValid)) then
+    if W = nil then
+      exit;
+    if not (W^.Valid(cmValid)) then
+      W^.Free
+    else
       begin
         V := PFileViewer(W^.Current); S := V^.VFileName; System.Insert(' ', S, 1); UpStr(S);
         PS := @S;
@@ -1374,8 +1379,8 @@ db:
                 UseXLat    := fUseXLat;
                 KeyMap     := fKeyMap;
                 if UseXLat
-                 then SetXlatFile(XLatFile^, On)
-                 else SetXlatFile('', On);
+                 then SetXlatFile(XLatFile^, true)
+                 else SetXlatFile('', true);
                 MarkPos   := fMarks;
                 Loaded    := true;
                 MakeLines;
@@ -1403,7 +1408,7 @@ begin
    fillchar(up, sizeof(up), 0);
    up.active:=fr;
    Desktop^.GetExtent(R);
-   Abort := Off;
+   Abort := false;
    if (ReuseViewers > 0)
      and (Message(DeskTop, evBroadcast, cmFindView, @FileName) <> nil)
      and ((ReuseViewers=2) or
@@ -1455,8 +1460,7 @@ begin
   fr:=CreateFileRec(FileName);
   fillchar(up, sizeof(up), 0);
   up.active:=fr;
-   if (Intern and (SystemData.Options and ossEditor <> 0)) or
-      (not Intern and (SystemData.Options and ossEditor = 0)) or
+   if (Intern xor (SystemData.Options and ossEditor = 0)) or
      not Edit then
       begin
         if (ReuseEditors > 0)
@@ -1593,8 +1597,8 @@ const
       ErrStr: String = #$4F#$4F#$70#$0F#$78#$7E#$48#$0E;
 {$ENDIF}
 begin
-  LoadPalette    := Off;
-  LoadVGAPalette := Off;
+  LoadPalette    := false;
+  LoadVGAPalette := false;
   S.Init(FN, stOpenRead);
   if S.Status = 0 then
    begin
@@ -1608,7 +1612,7 @@ begin
     {$ENDIF}
       Application^.GetPalette^ := Copy(St,1,Length(CColor));
       SetSysColors(Application^.GetPalette^);
-      LoadPalette := On;
+      LoadPalette := true;
     end;
     LoadIndexes(S);
     P := 0;
@@ -1622,7 +1626,7 @@ begin
             S.Read( CurrentBlink, SizeOf( CurrentBlink ) );
             SetBlink( CurrentBlink );
           end;
-       LoadVGAPalette := On;
+       LoadVGAPalette := true;
        if StartupData.Load and osuResetPalette <> 0 then SetPalette( VGA_Palette );
 
      end;{ else
@@ -1662,7 +1666,7 @@ PROCEDURE TDNApplication.HandleCommand;
   S[1] := #0;
   if ChDrive then
    begin
-    S := SelectDrive(R.A.X + (R.B.X - R.A.X) div 2, R.A.Y, #0, Off);
+    S := SelectDrive(R.A.X + (R.B.X - R.A.X) div 2, R.A.Y, #0, false);
     if S = '' then Exit;
     S[1] := Char(Byte(S[1])-64);
    end;
@@ -1932,7 +1936,7 @@ $140A..$FFFE: R.VM := 6;
  begin
   More := True;
   None := False;
-  FN := GetFileNameMenu(SourceDir+'COLORS\', '*.PAL', '', On, More, None);
+  FN := GetFileNameMenu(SourceDir+'COLORS\', '*.PAL', '', true, More, None);
      if More then
        FN := GetFileNameDialog(SourceDir+'COLORS\*.PAL', GetString(dlLoadColorPal), GetString(dlFileName),
                               fdOKButton + fdHelpButton, hsColors);
@@ -1945,17 +1949,17 @@ $140A..$FFFE: R.VM := 6;
   var B: Boolean;
       ST: SessionType;
  begin
-   TryRunOS2 := On;
+   TryRunOS2 := true;
    DelLeft(S^); DelRight(S^);
    if S^ = '' then Exit;
    if S^ = '' then Exit;
-   TryRunOS2 := Off;
+   TryRunOS2 := false;
    if not OS2exec then Exit;
    case S^[1] of
-    '>': begin B := Off; ST := stOS2FullScreen end;
-    '<': begin B := On;  ST := stOS2FullScreen end;
-    ']': begin B := Off; ST := stOS2Windowed end;
-    '[': begin B := On;  ST := stOS2Windowed end;
+    '>': begin B := false; ST := stOS2FullScreen end;
+    '<': begin B := true;  ST := stOS2FullScreen end;
+    ']': begin B := false; ST := stOS2Windowed end;
+    '[': begin B := true;  ST := stOS2Windowed end;
      else if (CmdLine.Str <> '') and (PCommandLine(CommandLine)^.LineType in [ltOS2Window,ltOS2FullScreen]) then
             begin
               S^ := ' '+S^; B := ShiftState and 3 <> 0;
@@ -1964,9 +1968,9 @@ $140A..$FFFE: R.VM := 6;
             end else
              Exit;
    end;
-   TryRunOS2 := On;
+   TryRunOS2 := true;
    RunOS2Command(Copy(S^,2,MaxStringLength), B, ST);
-   CmdLine.StrModified := On;
+   CmdLine.StrModified := true;
    Message(CommandLine, evKeyDown, kbDown, nil);
    ClearEvent(Event);
  end;
@@ -1976,7 +1980,7 @@ $140A..$FFFE: R.VM := 6;
   var S, {$IFDEF RecodeWhenDraw}S1,{$ENDIF}SD: String; {AK155}
       up: TUserParams;
  begin
-  ExecCommandLine := Off;
+  ExecCommandLine := false;
  {S := '';}
   CommandLine^.GetData(S);
 
@@ -1985,7 +1989,7 @@ $140A..$FFFE: R.VM := 6;
       SD:=''; CommandLine^.SetData(SD); CommandLine^.DrawView; {JO}
       Exit;
     end;
-  ExecCommandLine := On;
+  ExecCommandLine := true;
   if HandleChDirCommand then
    begin
     SD := S; {AK155}
@@ -2094,7 +2098,7 @@ $140A..$FFFE: R.VM := 6;
  procedure GetFromClip;
  begin
    if SystemData.Options and ossUseSysClip <> 0 then
-     SyncClipOut{(On)};
+     SyncClipOut{(true)};
    if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
      PString(Event.InfoPtr)^ := ''
    else
@@ -2104,7 +2108,7 @@ $140A..$FFFE: R.VM := 6;
  procedure GetFromClipLong;
  begin
    if SystemData.Options and ossUseSysClip <> 0 then
-     SyncClipOut{(On)};
+     SyncClipOut{(true)};
    if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
      PLongString(Event.InfoPtr)^ := ''
    else
@@ -2368,7 +2372,7 @@ begin
      {$ENDIF}
      cmOpenSmartpad: OpenSmartpad;
      cmOpenClipBoard: OpenClipBoard; {-$VOL}
-     cmExecGrabber: ScreenGrabber(On);
+     cmExecGrabber: ScreenGrabber(true);
      {$IFDEF MODEM}
      cmTerminalDefaults: if TerminalSetup and (Term <> nil) then
                            Move(TerminalDefaults, Term^.Emulator, 4);
@@ -2393,14 +2397,14 @@ begin
                    end;
      {$ENDIF}
      {$IFDEF PHONES}
-        cmPhoneBook: PhoneBook(Off);
+        cmPhoneBook: PhoneBook(false);
      {$ENDIF}
      {$IFDEF Modem}
      {$IFDEF LINK}
         cmNavyLink: StartLink;
      {$ENDIF}
      {$IFDEF PHONES}
-        cmUndial: PhoneBook(On);
+        cmUndial: PhoneBook(true);
      {$ENDIF}
         cmSetupModem: SetupModem;
         cmTerminal: OpenTerminal;
@@ -2470,11 +2474,7 @@ begin
                   ST := FreeStr;
                   {$IFDEF OS_DOS} if CheckExit then {$ENDIF} {JO}
                   begin
-                  {$IFNDEF OS2}
-                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + ST;
-                  {$ELSE}
-                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD ' + ST;
-                  {$ENDIF}
+                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$' + CmdExt + ' ' + ST;
                    ExecString(@ST,'');
                   end;
                 end;
@@ -2499,12 +2499,12 @@ begin
 {$ENDIF}
      cmRefresh: Redraw;
      cmClearDesktop: GlobalMessage(evCommand, cmClose, nil);
-     cmFileView: ViewFile(Off, Off, CnvString(Event.InfoPtr));
-     cmFileEdit: EditFile(On, CnvString(Event.InfoPtr));
-    {cmViewFilter: ViewFile(On, On, CnvString(Event.InfoPtr));}
-     cmViewFilter: ViewFile(Off, On, CnvString(Event.InfoPtr)); {JO для распознания фильтрованных файлов как архивов}
-     cmIntFileView: ViewFile(On, Off, CnvString(Event.InfoPtr));
-     cmIntFileEdit: EditFile(Off, CnvString(Event.InfoPtr));
+     cmFileView: ViewFile(false, false, CnvString(Event.InfoPtr));
+     cmFileEdit: EditFile(true, CnvString(Event.InfoPtr));
+    {cmViewFilter: ViewFile(true, true, CnvString(Event.InfoPtr));}
+     cmViewFilter: ViewFile(false, true, CnvString(Event.InfoPtr)); {JO для распознания фильтрованных файлов как архивов}
+     cmIntFileView: ViewFile(true, false, CnvString(Event.InfoPtr));
+     cmIntFileEdit: EditFile(false, CnvString(Event.InfoPtr));
      cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*MaxStringLength)+'dn.xrn');
      cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*MaxStringLength)+'dn.ext');
      cmMenuFileEdit: EditFile(True, SourceDir+'dn.mnu');
@@ -2576,7 +2576,7 @@ begin
                       Event.InfoPtr := @TempFile;
                       PutEvent(Event);
                      end;
-        RunMenu := Off;
+        RunMenu := false;
        end;
 {$ENDIF}
      cmSaveDesk: SaveRealDsk;
@@ -2596,7 +2596,7 @@ begin
 {$ENDIF}
      cmChangeMode: begin
                      case ScreenMode of
-                       sm80x25: if VideoType = vtEGA then
+                       3,sm80x25: if VideoType = vtEGA then
                                   SetScrMode ( sm80x43 )
                                 else
                                   SetScrMode ( sm80x50 );
@@ -2747,6 +2747,7 @@ begin
    AddStr(FreeStr, '.');
    Insert(SStr(DDTimer mod 100, 2, '0'), FreeStr, Length(FreeStr)+1);
    MessageBox(GetString(dlElapsedTime)+FreeStr, nil, mfOKButton+mfInformation);
+   DDTimer := 0; {JO}
 end;
 
 Procedure SetSysColors( var Pal);

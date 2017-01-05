@@ -358,21 +358,15 @@ type
  end;
 
  function Ascii_Ansi ( const S : longstring ) : longstring;
- var
-   result : longstring;
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), AnsiAllChars );
-   Ascii_Ansi := result;
  end;
 
  function Ansi_Ascii ( const S : longstring ) : longstring;
- var
-   result : longstring;
  begin
    result := S;
    CharsConvertBufBack ( result[1], Length(result), AnsiAllChars );
-   Ansi_Ascii := result;
  end;
 
  procedure Ascii_Ansi_Buf ( var Buf; L : Word );
@@ -386,21 +380,15 @@ type
  end;
 
  function Ascii_Koi8r ( const S : longstring ): longstring;
- var
-   result : longstring;
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), Koi8rAllChars );
-   Ascii_Koi8r := result;
  end;
 
  function Koi8r_Ascii ( const S : longstring ) : longstring;
- var
-   result : longstring;
  begin
    result := S;
    CharsConvertBufBack ( result[1], Length(result), Koi8rAllChars );
-   Koi8r_Ascii := result;
  end;
 
  procedure Ascii_Koi8r_Buf ( var Buf; L : Word );
@@ -414,12 +402,9 @@ type
  end;
 
  function RusEngConv ( const S : longstring ): longstring;
- var
-   result : longstring;
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), RusEngAllChars );
-   RusEngConv := result;
  end;
 
  function GetToAsciiRecodeTable ( K : TKeyMap; var Buf ) : Boolean;

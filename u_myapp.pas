@@ -52,9 +52,7 @@ interface
 
 uses
   {$IFDEF PLUGIN} Plugin, {$ENDIF} {Cat}
- {$IFDEF FileNotify}
-  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, Advance2, {$ENDIF} {Cat}
- {$ENDIF}
+  FNotify, Advance2,
   DnUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
   UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects;
 
@@ -135,7 +133,7 @@ begin
                                      {$ELSE}                 kbAltShiftIns)
                                      {$ENDIF}
                 and (ShiftState and kbCtrlShift = 0) then
-                 begin Event.What := evNothing; ScreenGrabber(Off); Exit end;
+                 begin Event.What := evNothing; ScreenGrabber(false); Exit end;
            if (Event.ScanCode >= Hi(kbCtrlF1)) and (Event.ScanCode <= Hi(kbCtrlF10))
              and (Pointer(Current) = Pointer(Desktop)) and (ShiftState and 3 <> 0) then
              begin
@@ -295,10 +293,10 @@ begin
  end;
 {$IFDEF FileNotify}
 {Cat}
-  if DNIni.AutoRefreshPanels {and TrueIdle}
+  if DNIni.AutoRefreshPanels
      and xTime.TimerExpired(NotifyTmr) then {JO}
     begin
-      NewNotify := NotifyAsk;
+      NotifyAsk(NewNotify);
       if (NewNotify <> OldNotify) and (OldNotify <> '') then
      {$IFDEF OS2}
         FileChanged(OldNotify);
@@ -311,12 +309,12 @@ begin
 {/Cat}
 {$ENDIF}
 
- UpdateAll(On);
+ UpdateAll(true);
 
  if CtrlWas then
    if ShiftState and kbCtrlShift = 0 then
      begin
-       CtrlWas := Off;
+       CtrlWas := false;
        {if DelSpaces(CmdLine.Str) = '' then}
          Message(@Self, evCommand, cmTouchFile, nil);
      end;

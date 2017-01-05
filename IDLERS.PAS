@@ -359,7 +359,7 @@ begin
   DY := 1 - Random(3);
   DDY := 3 + Random(10);
   Clr := $09;            {JO}
-  SetBlink( ON );
+  SetBlink(true);
   Update;
 end;
 

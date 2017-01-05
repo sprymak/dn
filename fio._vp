@@ -47,13 +47,14 @@
 {AK155 = Alexey Korop, 2:461/155@fidonet}
 {&Delphi+}
 
+{Cat: здесь раньше не анализировались коды возврата функций SysFileXXX;
+            переделал так, чтобы всё было по-человечески }
 FUNCTION AFileClose (Handle: Word): Boolean;
 BEGIN
- SysFileClose(Handle);
- AFileClose := Handle>-1;
+ AFileClose := (SysFileClose(Handle) = 0);
 END;
 
-{Cat:почему-то для DPMI32 SysFileOpen_Create у меня не заработал}
+{Cat: почему-то для DPMI32 SysFileOpen_Create у меня не заработал}
 FUNCTION AFileOpen (Var FileName: AsciiZ; Mode: Word; Var Handle: Word): Word;
 BEGIN
   if Mode=stCreate then
@@ -67,23 +68,27 @@ END;
 FUNCTION AFileRead(Handle: Word; Var Buf; Count: Sw_Word;
                    Var Actual: Sw_Word): Word;
 BEGIN
- Actual := 0;
- AFileRead := SysFileRead(Handle, Buf, Count, Actual);
+  AFileRead := SysFileRead(Handle, Buf, Count, Actual);
+  if Actual < 0 then
+    Actual := 0;
 END;
 
 FUNCTION AFileWrite (Handle: Word; Var Buf; Count: Sw_Word;
                      Var Actual: Sw_Word): Word;
 BEGIN
- Actual := 0;
- AFileWrite := SysFileWrite(Handle, Buf, Count, Actual);
+  AFileWrite := SysFileWrite(Handle, Buf, Count, Actual);
+  if Actual < 0 then
+    Actual := 0;
 END;
 
 FUNCTION ASetFilePos (Handle: Word; Pos: LongInt; MoveType: Word;
                       Var Actual: LongInt): Word;
 BEGIN
- Actual := 0;
- ASetFilePos := SysFileSeek(Handle, Pos, MoveType, Actual);
+  ASetFilePos := SysFileSeek(Handle, Pos, MoveType, Actual);
+  if Actual<0 then
+    Actual := 0;
 END;
+{/Cat}
 
 {AK155}
 FUNCTION ASetFileSize (Handle: Word; FileSize: LongInt): Word;

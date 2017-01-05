@@ -155,7 +155,7 @@ implementation
 uses Startup, DNApp, Commands, DNHelp, Tree, xTime
      {$IFDEF DPMI}, Dpmi, Dosmem {$ENDIF}
      {$IFDEF VIRTUALPASCAL}, VpSysLow {$ELSE}, ExtraMem {$ENDIF}
-     {$IFDEF OS2}, FlOS2Tl {$ENDIF} {$IFDEF WIN32}, FlW32Tl {$ENDIF}
+     , FlTl
      ;
 
 const MaxTeam = 158;
@@ -279,22 +279,13 @@ begin
     else SerialNo := '';
   FileSys := GetDriveTypeString(GetCurDrive);
   SerFileSys := rc = 0;
-{$ELSE}
-  case SysGetDriveType(GetCurDrive) of
-    dtFloppy    : FileSys := 'FAT12';
-    dtHDFAT     : FileSys := 'FAT';
-    dtHDHPFS    : FileSys := 'HPFS';
-    dtInvalid   : FileSys := '';
-    dtNovellNet : FileSys := 'Novell';
-    dtCDROM     : FileSys := 'CDFS';
-    dtLAN       : FileSys := 'Remote';
-    dtHDNTFS    : FileSys := 'NTFS';
-    dtTVFS      : FileSys := 'TVFS';
-    dtHDExt2    : FileSys := 'ext2fs';
-    dtJFS       : FileSys := 'JFS';
-  else FileSys := '';
-  end;
+{$ELSE}{$IFDEF Win32}
+  FileSys := GetFSString(GetCurDrive);
   SerFileSys := FileSys <> '';
+{$ELSE} {DPMI32}
+  FileSys := '';
+  SerFileSys := false;
+{$ENDIF}
 {$ENDIF}
 end;
 {$ENDIF}               {/JO}
@@ -416,7 +407,7 @@ end;
 
 procedure TDiskInfo.ShowView;
 begin
- ReadData(Off);
+ ReadData(false);
  inherited ShowView;
 end;
 
@@ -430,7 +421,7 @@ procedure TDiskInfo.ReadData;
  var
      MemBlocks, I: Word;
 begin
- Abort:=Off;
+ Abort:=false;
  {$IFNDEF OS_DOS}
  TotalMemory := MemAvail;
  {$ELSE}
@@ -510,7 +501,7 @@ begin
    kbLeft : begin
              if Delta.X>0 then begin
               dec(Delta.X);
-              SetState(sfExposed, On);
+              SetState(sfExposed, true);
               DrawView
              end;
              ClearEvent(Event);
@@ -518,7 +509,7 @@ begin
    kbRight: begin
              if Delta.X+Size.X-2<Info.Limit.X then begin
               Inc(Delta.X);
-              SetState(sfExposed, On);
+              SetState(sfExposed, true);
               DrawView
              end;
              ClearEvent(Event);
@@ -526,7 +517,7 @@ begin
    kbDown : begin
              if Delta.Y<Info.Limit.Y then begin
               inc(Delta.Y);
-              SetState(sfExposed, On);
+              SetState(sfExposed, true);
               DrawView
              end;
              ClearEvent(Event);
@@ -534,7 +525,7 @@ begin
    kbUp   : begin
              if Delta.Y>0 then begin
               Dec(Delta.Y);
-              SetState(sfExposed, On);
+              SetState(sfExposed, true);
               DrawView
              end;
              ClearEvent(Event);
@@ -558,10 +549,10 @@ begin
                 end;
     cmInfoPresent: begin ClearEvent(Event); Event.InfoPtr := Owner end;
      cmRereadInfo: begin
-                    ReadData(Off); DrawView; ClearEvent(Event);
+                    ReadData(false); DrawView; ClearEvent(Event);
                   end;
     cmLocalReread: begin
-                    ReadData(On); DrawView; ClearEvent(Event);
+                    ReadData(true); DrawView; ClearEvent(Event);
                    end;
     cmLoadViewFile: begin
                       S := PString(Event.InfoPtr)^; {DataCompBoy}
@@ -609,7 +600,7 @@ end;
   end;
 
 begin
- C := (GetColor(1) shl 8) or (GetColor(2) and 255); Y := 0; CC := Off;
+ C := (GetColor(1) shl 8) or (GetColor(2) and 255); Y := 0; CC := false;
  if ((Info.Title <> Info.Dir) or (Info.Title <> Info.Dir)) and
     (DriveInfoData and (fdiTitle+fdiTotals) <> 0) then
    begin
@@ -674,7 +665,7 @@ begin
      Move(S1[1], FreeStr[X+1], Length(S1));
      Wrt(FreeStr);
      C := (GetColor(1) shl 8) or (GetColor(2) and 255);
-     CC := On;
+     CC := true;
      for X := Delta.Y to Info.DirInfo^.Count - 1 do begin
       Wrt(#0+Copy(CnvString(Info.DirInfo^.At(X)), Delta.X, MaxStringLength)+#0);
       if Y > Size.Y then Break;
@@ -716,9 +707,9 @@ begin
 
     If Word(Length(FreeStr))>MaxPathLen-1 then Begin Abort := True; Break End;
 
-    DosError := 0; Abort := Off;
+    DosError := 0; Abort := false;
 
-    lFindFirst(MakeNormName(FreeStr, x_x), Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
+    lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
     While (DOSError = 0) and not Abort do
     begin
      if not IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF}) then

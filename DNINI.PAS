@@ -147,6 +147,7 @@ const
 {}ForceDefaultArchiver     : String[3]  = '';                         {JO}
 {$IFDEF WIN32}
 {}RecodeCyrillicNames      : Byte       = 0;  {JO} {Cat: эта переменная дублируется в VpSysLow}
+{}DescrByShortNames        : Boolean    = True; {JO}
 {$ENDIF}
 {$IFDEF CHDIRTIMER}
 {}ChDirTimer               : Boolean    = False; {JO: временно ввели возможность измерять скорость входа в каталоги}
@@ -442,6 +443,7 @@ begin
   RegisterVar(CSKernel,    'ForceDefaultArchiver', ikStr,  SizeOf(ForceDefaultArchiver), @ForceDefaultArchiver); {JO}
 {$IFDEF WIN32}
   RegisterVar(CSKernel,    'RecodeCyrillicNames',  ikUInt, SizeOf(RecodeCyrillicNames),  @RecodeCyrillicNames);  {JO}
+  RegisterVar(CSKernel,    'DescrByShortNames',    ikBool, SizeOf(DescrByShortNames),    @DescrByShortNames);    {JO}
 {$ENDIF}
 {$IFDEF CHDIRTIMER}
   RegisterVar(CSKernel,    'ChDirTimer',           ikBool, SizeOf(ChDirTimer),           @ChDirTimer); {JO: временно}
@@ -516,7 +518,6 @@ end;
 
 function IniVarToStr ( Kind : TIniItemKind; Size : Word; PVar : Pointer ) : string;
 var
-  result : string;
   b      : Boolean;
   i      : Integer;
 begin
@@ -569,7 +570,6 @@ begin
     end;
 
   end;
-  IniVarToStr := result;
 end;
 
 function IniStrToVar ( Text : string; Kind : TIniItemKind; Size : Word; PVar : Pointer ) : Boolean;
@@ -767,7 +767,7 @@ begin
     if (DosError=0) and ((SR.SR.Attr and Directory)=0) then begin
         ProbeINI:=True;
         INItime:=SR.SR.Time;
-        INIsize:=SR.SR.Size;
+        move(SR.SR.Size, INIsize, SizeOf(INIsize));{AK155 Size: comp}
         INIcrc :=0;
         {F.Init(SourceDir+'DN.INI', stOpenRead);
         S := Min(INIsize, 32767);

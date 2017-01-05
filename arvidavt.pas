@@ -51,7 +51,7 @@ INTERFACE
 
 uses
   Arvid, Objects, Advance1, Messages, DnApp, Commands, Collect,
-  Views, Drivers, Startup, U_KeyMap, Advance, Lfn, {$IFNDEF OS2} LfnCol, {$ENDIF} Dos, Tree,
+  Views, Drivers, Startup, U_KeyMap, Advance, Lfn, Files, Dos, Tree,
   FilesCol, Advance2, Drives, FlPanel, Memory;
 
 function  AvtCMP(S1, S2: String): Integer;
@@ -1116,7 +1116,7 @@ procedure AvtGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;
       begin
         New(F^.DIZ);
         F^.DIZ^.Owner:=nil;
-        F^.DIZ^.isDisposable:=On;
+        F^.DIZ^.isDisposable:=true;
         F^.DIZ^.Line:=ALocation;
         F^.DIZ^.DIZ:=NewStr(Ansi_Ascii(AvtCellDesc(Cell, Stream^)));
       end else F^.Diz:=nil;
@@ -1212,24 +1212,15 @@ var
    PC:=PD^.GetDirectory(141, 0, x_x, FreeStr, FreeStr);
    for I:=0 to PC^.Count - 1 do begin
      PF:=PC^.at(i);
-{$IFNDEF OS2}
-     S3:=MakeNormName(S1, GetLFN(PF^.LFN));
-     S4:=MakeNormName(S2, GetLFN(PF^.LFN));
-{$ELSE}
-     S3:=MakeNormName(S1, PF^.Name);
-     S4:=MakeNormName(S2, PF^.Name);
-{$ENDIF}
+     S3 := MakeNormName(S1, PF^.FlName[true]);
+     S4 := MakeNormName(S2, PF^.FlName[true]);
 
      Desc:='';
      if (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then Desc:=PF^.DIZ^.DIZ^;
      if (PF^.Attr and Directory) = 0 then
        AvtNewFile(AvtDr, S3, Desc, False, {Cat:warn} Round(PF^.Size), PackedDate(PF), 0, PF^.Attr)
      else begin
-{$IFNDEF OS2}
-       Nm:=GetLFN(PF^.LFN);
-{$ELSE}
-       Nm:=PF^.Name;
-{$ENDIF}
+       Nm := PF^.FlName[true];
        if (Nm <> '.') and (Nm <> '..') then begin
          if AvtNewFile(AvtDr, S3, Desc, True, 0, PackedDate(PF), 0, PF^.Attr) <> 0 then begin
            S1:=S3+'\';
@@ -1281,13 +1272,8 @@ begin with AvtDr^ do begin
      P:=WriteMsg(GetString(dlPleaseStandBy));
      for I:=0 to AFiles^.Count - 1 do begin
         PF:=AFiles^.at(i);
-{$IFNDEF OS2}
-        S1:=MakeNormName('\'+CurDir, GetLFN(PF^.LFN));
-        S2:=MakeNormName(From, GetLFN(PF^.LFN));
-{$ELSE}
-        S1:=MakeNormName('\'+CurDir, PF^.Name);
-        S2:=MakeNormName(From, PF^.Name);
-{$ENDIF}
+        S1:=MakeNormName('\'+CurDir, PF^.FlName[true]);
+        S2:=MakeNormName(From, PF^.FlName[true]);
         if (PF^.Attr and Directory) = 0 then
           WriteLn(T.T, 'COPY '+SquashesName(S2)+' TP:'+SquashesName(S1)+' /O/R/C/H')
         else begin
@@ -1311,13 +1297,8 @@ begin with AvtDr^ do begin
      P:=WriteMsg(GetString(dlPleaseStandBy));
      for I:=0 to AFiles^.Count - 1 do begin
         PF:=AFiles^.at(i);
-{$IFNDEF OS2}
-        S1:=MakeNormName('\'+CurDir, GetLFN(PF^.LFN));
-        S2:=MakeNormName(From, GetLFN(PF^.LFN));
-{$ELSE}
-        S1:=MakeNormName('\'+CurDir, PF^.Name);
-        S2:=MakeNormName(From, PF^.Name);
-{$ENDIF}
+        S1:=MakeNormName('\'+CurDir, PF^.FlName[true]);
+        S2:=MakeNormName(From, PF^.FlName[true]);
         Desc:='';
         if (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then Desc:=PF^.DIZ^.DIZ^;
         if (PF^.Attr and Directory) = 0 then
@@ -1356,13 +1337,8 @@ begin with AvtDr^ do begin
   begin
     PF:=AFiles^.At(0);
     if (PF^.Attr and Directory) <> 0
-{$IFNDEF OS2}
-     then S:=GetString(dlEraseConfirmDir)+Cut(GetLFN(PF^.LFN),40) + ' ?'
-     else S:=GetString(dlEraseConfirm1) + Cut(GetLFN(PF^.LFN),40) + ' ?';
-{$ELSE}
-     then S:=GetString(dlEraseConfirmDir)+Cut(PF^.Name,40) + ' ?'
-     else S:=GetString(dlEraseConfirm1) + Cut(PF^.Name,40) + ' ?';
-{$ENDIF}
+     then S:=GetString(dlEraseConfirmDir)+Cut(PF^.FlName[true],40) + ' ?'
+     else S:=GetString(dlEraseConfirm1) + Cut(PF^.FlName[true],40) + ' ?';
   end
   else  S:=GetString(dlEraseConfirms1);
   I:=MessageBox(S,nil,mfConfirmation+mfYesButton+mfNoButton{+mfFastButton});
@@ -1377,11 +1353,7 @@ begin with AvtDr^ do begin
   P:=WriteMsg(GetString(dlPleaseStandBy));
   for I:=0 to AFiles^.Count-1 do begin
     PF:=AFiles^.At(I);
-{$IFNDEF OS2}
-    S:=GetLFN(PF^.LFN);
-{$ELSE}
-    S:=PF^.Name;
-{$ENDIF}
+    S:=PF^.FlName[true];
     R:=AvtDelFile(AvtDr, S);
     if R = False then
       MessageBox(GetString(dlErasingNoFile) + S, nil, mfError + mfOKButton);

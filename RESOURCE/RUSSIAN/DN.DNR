@@ -1541,8 +1541,8 @@ STATUSLINE
       StatusItem '~Esc~ Отмена', kbNoKey, cmNo,
   StatusDef hcEnvEditor, hcEnvEditor,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
-     StatusItem '~Ins~ Добавить', kbIns, cmAddVariable,
-     StatusItem '~Del~ Удалить', kbDel, cmDelVariable,
+     StatusItem '-~Ins~ Добавить', kbAltIns, cmAddVariable,
+     StatusItem '-~Del~ Удалить', kbAltDel, cmDelVariable,
      StatusItem '~F6~ Перем', kbF6, cmRenVariable,
      StatusItem '', kbCtrlF5, cmResize,
   StatusDef hcHelp, hcHelp,
@@ -1731,7 +1731,7 @@ STATUSLINE
      StatusItem '+~F3~ Новая панель', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Закрыть', kbCtrlF4, cmClose,
      StatusItem '+~F6~ Калькулятоp', kbCtrlF6, cmCalculator,
-     StatusItem '+~F7~ Обpатный поиск', kbAltF7, cmReverseSearch,
+     StatusItem '+~F7~ Обpатный поиск', kbCtrlF7, cmReverseSearch,
      StatusItem ':~F2~ Запись', kbShiftF2, cmSave,
      StatusItem ':~F4~ Редактоp', kbShiftF4, cmXEditFile,
      StatusItem ':~F5~ Записать как...', kbShiftF5, cmSaveAll,
@@ -1974,13 +1974,14 @@ STATUSLINE
      StatusItem '~F5~ Вычислить', kbF5, cmRecalc,
      StatusItem '~F6~ Перейти', kbF6, cmGotoCell,
      StatusItem '~F7~ Поиск', kbF7, cmFindCell,
-     StatusItem '-~I~ Встав. стр', kbAltI, cmInsertLine,
-     StatusItem '-~C~ Встав. кол', kbAltC, cmInsertColumn,
-     StatusItem '-~L~ Удалить стр', kbAltL, cmDeleteLine,
-     StatusItem '-~D~ Удалить кол', kbAltD, cmDeleteColumn,
+     StatusItem '-~I~ Вст.стр', kbAltI, cmInsertLine,
+     StatusItem '-~C~ Вст.кол', kbAltC, cmInsertColumn,
+     StatusItem '-~L~ Удал.стр', kbAltL, cmDeleteLine,
+     StatusItem '-~D~ Удал.кол', kbAltD, cmDeleteColumn,
      StatusItem '~F10~ Меню', kbF10, cmMenu,
      StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '-~O~ Формат ячейки', kbAltO, cmChangeFormat,
+     StatusItem '-~O~ Формат яч.', kbAltO, cmChangeFormat,
+     StatusItem '-~S~ Разделит.', kbAltS, cmToggleShowMode,
      StatusItem '+~F3~ Новая панель', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Закрыть', kbCtrlF4, cmClose,
      StatusItem '+~F6~ Калькулятор', kbCtrlF6, cmCalculator,
@@ -2599,6 +2600,7 @@ Menu dlgWkzMenuBar
   SubMenu '~Т~аблица', hcSpreadTableMenu,
        MenuItem '~Ф~орматирование ячейки', '', kbNoKey, cmChangeFormat, hcSpreadSheet,
        MenuItem 'Ш~и~рина колонки...', '', kbNoKey, cmChangeWidth, hcSpreadSheet,
+       MenuItem '~Р~азделители вкл/выкл', '', kbNoKey, cmToggleShowMode, hcSpreadSheet,
        MenuLine
        MenuItem '~В~ставить строку', '', kbNoKey, cmInsertLine, hcSpreadSheet,
        MenuItem 'В~с~тавить колонку', '', kbNoKey, cmInsertColumn, hcSpreadSheet,
@@ -2894,13 +2896,7 @@ DIALOG dlgPanelSetup, 62, 21, 'Установки панели'
     HELPCTX hcPanelSetup
     RadioButtons 2, 3, 28, 14, ofPostProcess, ofPreProcess
       ITEM '~И~мени'
-;$IFNDEF OS2
-      ITEM '~Д~линномy имени'
-;$ENDIF
       ITEM '~Р~асширению'
-;$IFNDEF OS2
-      ITEM 'Д~л~инномy расширению'
-;$ENDIF
       ITEM 'Ра~з~меру'
       ITEM '~В~ремени'
       ITEM 'Времени создани~я~'
@@ -2936,13 +2932,7 @@ DIALOG dlgFMDefaults, 63, 19, 'Установки по умолчанию для панелей'
     HELPCTX hcPanelDefaults
     RadioButtons 2, 2, 28, 13, ofPostProcess, ofPreProcess
       ITEM '~И~мени'
-;$IFNDEF OS2
-      ITEM '~Д~линномy имени'
-;$ENDIF
       ITEM '~Р~асширению'
-;$IFNDEF OS2
-      ITEM 'Д~л~инномy расширению'
-;$ENDIF
       ITEM 'Ра~з~меру'
       ITEM '~В~ремени'
       ITEM 'Времени создани~я~'

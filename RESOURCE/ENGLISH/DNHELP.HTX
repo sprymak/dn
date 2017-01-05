@@ -910,6 +910,7 @@ mouse cursor while pressing the left mouse-button.
   Align the block on right end    ³ Ctrl+B R
   Align the block on left end     ³ Ctrl+B L
   Center the block                ³ Ctrl+B C
+  Mark whole text as stream block ³ Ctrl-Numpad5
 
 .topic MovementCommands=10003
 .title Moving on text

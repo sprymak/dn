@@ -48,9 +48,13 @@
 UNIT FlTools;
 
 INTERFACE
+uses
+  FilesCol, FlPanelx
+  ;
 
 procedure CM_AdvancedFilter(AFP: Pointer);
-function  GetSelection(AFP: Pointer; Single: Boolean): Pointer;
+function  GetSelection(P: PFilePanelRoot; Single: Boolean):
+   PFilesCollection;
 function  SelectFiles(AFP: Pointer; Select,XORs: Boolean): Boolean;
 procedure CM_CopyFiles(AFP: Pointer; MoveMode, Single: Boolean);
 procedure InvertSelection(AFP: Pointer; Dr: Boolean);
@@ -71,9 +75,6 @@ procedure CM_DragDropper(AFP: Pointer; CurPos: Integer; Ev: Pointer);
 procedure CM_Dropped(AFP, EI: Pointer);
 procedure DragMover(AP: Pointer; Text: String; AFC, AC: Pointer);
 procedure CM_RenameSingleL(AFP, PEV: Pointer);
-{$IFNDEF OS2}
-procedure CM_RenameSingleS(AFP, PEV: Pointer);
-{$ENDIF}
 procedure CM_RenameSingleDialog(AFP, PEV: Pointer);
 procedure CM_SortBy(AFP: Pointer);
 function  CM_ChangeDirectory(AFP: Pointer): string;
@@ -92,15 +93,12 @@ procedure CM_SetEALongname(AFP: Pointer; CurPos: Integer); {JO}
 
 IMPLEMENTATION
 uses
-{$IFDEF FileNotify}
-  {$IFDEF Win32} FNoteW32, {$ENDIF} {$IFDEF OS2} FNoteOS2, {$ENDIF} {Cat}
-{$ENDIF}
-  LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} collect, xtime, dnini,
-  advance, advance1, advance2, advance3, Dos, Objects, Dialogs, FilesCol,
-  Views, DnApp, Commands, Drivers, FlPanel, FlPanelX, Drives, FileCopy,
+  FNotify,
+  LFN, files, collect, xtime, dnini,
+  advance, advance1, advance2, advance3, Dos, Objects, Dialogs,
+  Views, DnApp, Commands, Drivers, FlPanel, Drives, FileCopy,
   Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DnHelp,
-  FileFind, Tree, FBB, DnUtil, filediz, filelst, {$IFDEF OS2} FlOS2Tl, {$ENDIF}
-  {$IFDEF WIN32} FlW32Tl, {$ENDIF}
+  FileFind, Tree, FBB, DnUtil, filediz, filelst, FlTl,
   ErrMess
   ;
 
@@ -227,19 +225,9 @@ function GetMaskSelection: String;
        begin
          if (P1 <> nil) and (P1^.Attr and Directory = 0) then
            begin
-{$IFDEF OS2}
-           l :=length(P1^.Name);
-           i := PosLastDot(P1^.Name);
-           FreeStr := Copy(P1^.Name, i+1, l-i);
-{$ELSE}
-           if (P^.Drive^.Flags and psShowLongName) <> 0 then
-             begin
-               l :=length(P1^.LFN);
-               i := PosLastDot(P1^.LFN);
-               FreeStr := Copy(P1^.LFN, i+1, l-i);
-             end
-            else FreeStr := Copy(P1^.Name, 10, 3);
-{$ENDIF}
+           l :=length(P1^.FlName[uLfn]);
+           i := PosLastDot(P1^.FlName[uLfn]);
+           FreeStr := Copy(P1^.FlName[uLfn], i+1, l-i);
              DelRight(FreeStr); UpStr(FreeStr); Insert(' *.', FreeStr, 1);
 {AK155: только лишние тормоза, поскольку Duplicate=false
      if PC^.IndexOf(@FreeStr) < 0 then
@@ -379,56 +367,45 @@ function FirstNameNum(P: PFilePanelRoot): longint;
   begin
   FirstNameNum := 1;
   with P^.Files^ do
-{$IFDEF OS2}
-    if (Count > 0) and (PFileRec(At(0))^.Name = '..') then
-{$ELSE}
-  {$IFDEF Win32}
-    if (Count > 0) and (PFileRec(At(0))^.LFN = '..') then
-  {$ELSE}
-    if (Count > 0) and (PFileRec(At(0))^.Name[0] = '.') then
-  {$ENDIF}
-{$ENDIF}
+    if (Count > 0) and (PFileRec(At(0))^.TType = ttUpDir) then
       FirstNameNum := 2;
   end;
 {/AK155}
 
-function GetSelection;
- var FC: PFilesCollection;
-     P: PFilePanelRoot absolute AFP;
-     I: LongInt;
-     all: boolean;
-label Sel;
+{AK155: оформил эту процедуру по-человечески }
+function  GetSelection(P: PFilePanelRoot; Single: Boolean):
+   PFilesCollection;
+ var FC: PFilesCollection absolute result;
+     SourceFiles: PFilesCollection;
+     I, N: LongInt;
+     CurFile, FileI: PFileRec;
 begin
-  GetSelection := nil;
-  if P^.Files^.Count = 0 then Exit;
-  All:=false;
+  FC := nil; N := P^.Files^.Count;
+  if N = 0 then Exit;
+  SourceFiles := P^.Files;
   if (P^.SelNum = 0) or Single then
-  begin
-{$IFNDEF OS2}
- {$IFNDEF Win32}
-   if PFileRec(P^.Files^.At(P^.ScrollBar^.Value))^.Name[1] = '.'
- {$ELSE}
-   if PFileRec(P^.Files^.At(P^.ScrollBar^.Value))^.LFN = '..'
- {$ENDIF}
-{$ELSE}
-   if PFileRec(P^.Files^.At(P^.ScrollBar^.Value))^.Name = '..'
-{$ENDIF} then
-     begin
-      All:=true;
-      Goto Sel;
-     end;
-   New(FC, Init(1,1));
-   FC^.Insert(CopyFileRec(P^.Files^.At(P^.ScrollBar^.Value))); {AK155: вставил CopyFileRec}
-  end else
-sel:  begin
-       if All then New(FC, Init(P^.Files^.Count,1))
-              else New(FC, Init(P^.SelNum, 1));
-       FC^.SortMode := 200;
-       for I := FirstNameNum(P) to P^.Files^.Count do
-        if All or PFileRec(P^.Files^.At(I-1))^.Selected then
-          FC^.Insert(CopyFileRec(P^.Files^.At(I-1))); {AK155: вставил CopyFileRec}
+    begin
+    CurFile := SourceFiles^.At(P^.ScrollBar^.Value);
+    if CurFile^.TType = ttUpDir
+    then
+      begin {все файлы, кроме элемента 0, который есть UpDir}
+      New(FC, Init(N-1,1)); FC^.Count := N-1;
+      Move(SourceFiles^.Items^[1], FC^.Items^, (N-1)*SizeOf(Pointer));
+      end
+    else
+      begin New(FC, Init(1,1)); FC^.Insert(CurFile); end;
+    end
+  else
+    begin
+    New(FC, Init(P^.SelNum, 1));
+    for I := FirstNameNum(P)-1 to N-1 do
+      begin
+      FileI := SourceFiles^.At(I);
+      if FileI^.Selected then
+        FC^.AtInsert(FC^.Count, FileI);
       end;
- GetSelection := FC;
+    end;
+//  FC^.SortMode := 200; {вроде, это не нужно}
 end;
 
         {-DataCompBoy-}
@@ -451,27 +428,13 @@ begin
  for I := FirstNameNum(P) to P^.Files^.Count do
   begin
    PF := P^.Files^.At(I-1);
-{$IFNDEF OS2}
-   SN := GetLFN(PF^.LFN);
-{$ELSE}
-   SN := PF^.Name;
-{$ENDIF}
+   SN := PF^.FlName[uLfn];
    if ((PF^.Attr and Directory = 0){ or not Select}) and
-      (((InFilter(UpStrg(SN), S) xor XORs)
-       {$IFNDEF OS2} and ((P^.Drive^.Flags and psShowLongName) <> 0) {$ENDIF})
-{$IFNDEF OS2}
-      or ((InFilter(MakeFileName(PF^.Name), S) xor XORs) and ((P^.Drive^.Flags and psShowLongName) = 0))
-{$ENDIF}
-      )
+       (InFilter(UpStrg(SN), S) xor XORs)
       then PF^.Selected := Select;
 {JO}
    if (PF^.Attr and Directory <> 0) and
-      (((InDirFilter(UpStrg(SN), S) xor XORs)
-       {$IFNDEF OS2} and ((P^.Drive^.Flags and psShowLongName) <> 0) {$ENDIF})
-{$IFNDEF OS2}
-      or ((InDirFilter(MakeFileName(PF^.Name), S) xor XORs) and ((P^.Drive^.Flags and psShowLongName) = 0))
-{$ENDIF}
-      )
+      (InDirFilter(UpStrg(SN), S) xor XORs)
       then PF^.Selected := Select;
 {/JO}
 (* {работает, но тормозит}
@@ -484,7 +447,7 @@ begin
       {$ELSE}
       if (LowStrg(PF^.Name)
       {$ENDIF}
-        = LowStrg(GetName(GetDizOwner(PF^.Owner^, SD, Off)))) then PF^.Selected := Off;
+        = LowStrg(GetName(GetDizOwner(PF^.Owner^, SD, false)))) then PF^.Selected := false;
      end;
 *)
    if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) and (FMSetup.DIZ <> '')
@@ -495,27 +458,11 @@ begin
       begin
         if (FMSetup.DIZ[J] = ';') then
           begin
-         {$IFNDEF OS2}
-           {$IFDEF OS_DOS}
-           if (LowStrg(MakeFileName(PF^.Name)) = LowStrg(Copy(FMSetup.DIZ,K,J-K))) then PF^.Selected := Off;
-           {$ELSE}
-           if (LowStrg(GetLFN(PF^.LFN)) = LowStrg(Copy(FMSetup.DIZ,K,J-K))) then PF^.Selected := Off;
-           {$ENDIF}
-         {$ELSE}
-           if (LowStrg(PF^.Name) = LowStrg(Copy(FMSetup.DIZ,K,J-K))) then PF^.Selected := Off;
-         {$ENDIF}
+           if (LowStrg(PF^.FlName[true]) = LowStrg(Copy(FMSetup.DIZ,K,J-K))) then PF^.Selected := false;
            K:=J+1;
           end;
         if J = Length(FMSetup.DIZ) then
-         {$IFNDEF OS2}
-           {$IFDEF OS_DOS}
-           if (LowStrg(MakeFileName(PF^.Name)) = LowStrg(Copy(FMSetup.DIZ,K,J-K+1))) then PF^.Selected := Off;
-           {$ELSE}
-           if (LowStrg(GetLFN(PF^.LFN)) = LowStrg(Copy(FMSetup.DIZ,K,J-K+1))) then PF^.Selected := Off;
-           {$ENDIF}
-         {$ELSE}
-           if (LowStrg(PF^.Name) = LowStrg(Copy(FMSetup.DIZ,K,J-K+1))) then PF^.Selected := Off;
-         {$ENDIF}
+           if (LowStrg(PF^.FlName[true]) = LowStrg(Copy(FMSetup.DIZ,K,J-K+1))) then PF^.Selected := false;
       end;
      end;
 {JO}
@@ -568,7 +515,7 @@ begin
       {$ELSE}
       if (LowStrg(PF^.Name)
       {$ENDIF}
-        = LowStrg(GetName(GetDizOwner(PF^.Owner^, SD, Off)))) then PF^.Selected := Off;
+        = LowStrg(GetName(GetDizOwner(PF^.Owner^, SD, false)))) then PF^.Selected := false;
      end;
 *)
    if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) and (FMSetup.DIZ <> '')
@@ -579,27 +526,11 @@ begin
       begin
         if (FMSetup.DIZ[J] = ';') then
           begin
-         {$IFNDEF OS2}
-           {$IFDEF OS_DOS}
-           if (LowStrg(MakeFileName(PF^.Name)) = LowStrg(Copy(FMSetup.DIZ,K,J-K))) then PF^.Selected := Off;
-           {$ELSE}
-           if (LowStrg(GetLFN(PF^.LFN)) = LowStrg(Copy(FMSetup.DIZ,K,J-K))) then PF^.Selected := Off;
-           {$ENDIF}
-         {$ELSE}
-           if (LowStrg(PF^.Name) = LowStrg(Copy(FMSetup.DIZ,K,J-K))) then PF^.Selected := Off;
-         {$ENDIF}
+           if (LowStrg(PF^.FlName[true]) = LowStrg(Copy(FMSetup.DIZ,K,J-K))) then PF^.Selected := false;
            K:=J+1;
           end;
         if J = Length(FMSetup.DIZ) then
-         {$IFNDEF OS2}
-           {$IFDEF OS_DOS}
-           if (LowStrg(MakeFileName(PF^.Name)) = LowStrg(Copy(FMSetup.DIZ,K,J-K+1))) then PF^.Selected := Off;
-           {$ELSE}
-           if (LowStrg(GetLFN(PF^.LFN)) = LowStrg(Copy(FMSetup.DIZ,K,J-K+1))) then PF^.Selected := Off;
-           {$ENDIF}
-         {$ELSE}
-           if (LowStrg(PF^.Name) = LowStrg(Copy(FMSetup.DIZ,K,J-K+1))) then PF^.Selected := Off;
-         {$ENDIF}
+           if (LowStrg(PF^.FlName[true]) = LowStrg(Copy(FMSetup.DIZ,K,J-K+1))) then PF^.Selected := false;
       end;
      end;
 {JO}
@@ -647,13 +578,9 @@ procedure CM_CompareDirs(AFP, IP: Pointer);
    end;
  begin
   UpdateWriteView(Info);
-  if DT.S = 0 then PF^.Selected := Off;
+  if DT.S = 0 then PF^.Selected := false;
   if (PF^.Attr and Directory = 0) and
-{$IFNDEF OS2}
-     (InFilter(GetLFN(PF^.LFN),DT.FMask)) and {-$VOL}
-{$ELSE}
-     (InFilter(PF^.Name ,DT.FMask)) and {-$VOL}
-{$ENDIF}
+     (InFilter(PF^.FlName[uLfn] ,DT.FMask)) and {-$VOL}
      (InThat^.FirstThat(@Cmp) = nil) then PF^.Selected := DT.S = 0;
  end;
 
@@ -720,11 +647,11 @@ procedure CM_MakeList;
 begin
  if (P^.Files^.Count = 0) then Exit;
  if (P^.SelNum = 0) then
-  while SelectFiles(P, On,Off) do;
+  while SelectFiles(P, true,false) do;
  if (P^.SelNum = 0) then Exit;
  if (ActivePanel = P) and (P^.Drive^.DriveType = dtDisk)
    then CurrentDirectory := P^.DirectoryName;
- FC := GetSelection(P, Off); if FC = nil then Exit;
+ FC := GetSelection(P, false); if FC = nil then Exit;
  MakeListFile(P, FC);
  FC^.DeleteAll;
  Dispose(FC,Done);
@@ -795,9 +722,7 @@ procedure CM_SetAttributes;
 {$ENDIF}
 begin
  if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
-{$IFDEF FileNotify}
  NotifySuspend; {Cat}
-{$ENDIF}
  FillChar(D, Sizeof(D), 0);
  if (P^.SelNum > 0) and not Single then
   begin
@@ -808,12 +733,12 @@ CurTime1:
     case CmdDlg of
   cmYes:
        begin
-         D.T     := GetDateTime(On);
-         D.D     := GetDateTime(Off);
-         D.T_Cr  := GetDateTime(On);
-         D.D_Cr  := GetDateTime(Off);
-         D.T_LAc := GetDateTime(On);
-         D.D_LAc := GetDateTime(Off);
+         D.T     := GetDateTime(true);
+         D.D     := GetDateTime(false);
+         D.T_Cr  := GetDateTime(true);
+         D.D_Cr  := GetDateTime(false);
+         D.T_LAc := GetDateTime(true);
+         D.D_LAc := GetDateTime(false);
          goto CurTime1;
        end;
  cmNo:
@@ -829,55 +754,28 @@ CurTime1:
  cmCancel:
       begin
        Dispose(Dlg, Done);
-{$IFDEF FileNotify}
        NotifyResume; {Cat}
-{$ENDIF}
        Exit;
       end;
    end;
    Dlg^.GetData(D);
    Dispose(Dlg, Done);
-{$IFDEF FileNotify}
-       NotifyResume; {Cat}
-{$ENDIF}
+   NotifyResume; {Cat}
   end
  else
   begin
-   Single := On;
+   Single := true;
    PF := P^.Files^.At(CurPos);
-{$IFNDEF OS2}
-  {$IFDEF OS_DOS}
-   if PF^.Name[1] = '.' then
+   If PF^.TType = ttUpDir then
     begin
-   {$IFDEF FileNotify}
      NotifyResume; {Cat}
-   {$ENDIF}
      Exit;
     end;
-   S := MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
-  {$ELSE}
-   If PF^.LFN = '..' then
-    begin
-   {$IFDEF FileNotify}
-     NotifyResume; {Cat}
-   {$ENDIF}
-     Exit;
-    end;
-   S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
-  {$ENDIF}
-{$ELSE}
-   If PF^.Name = '..' then
-    begin
-  {$IFDEF FileNotify}
-     NotifyResume; {Cat}
-  {$ENDIF}
-     Exit;
-    end;
-   S := MakeNormName(PF^.Owner^, PF^.Name);
-{$ENDIF}
+   S := MakeNormName(PF^.Owner^, PF^.FlName[uLfn]);
    AddStr(S, #0); SetLength(S, Length(S)-1);
    Dlg := PDialog( LoadResource( dlgFileAttr ));
    D.C := GetFileAttr(S);
+{$IFNDEF DPMI32}{!}
 {$IFNDEF OS2}
    if D.C and Directory = 0 then
     begin
@@ -886,9 +784,7 @@ CurTime1:
      ClrIO; lResetFile(F,1);
      if IOResult <> 0 then
       begin
-     {$IFDEF FileNotify}
        NotifyResume; {Cat}
-     {$ENDIF}
        Exit;
       end;
      GetHFileAges(FileRec(F.F).Handle, DTT, DTT_Cr, DTT_LAc); Close(F.F);
@@ -912,6 +808,7 @@ CurTime1:
       Dlg^.DisableCommands([cmYes, cmNo]);
     end;
 {$ENDIF}
+{$ENDIF}{DPMI32!}
    ;
    D.S:=D.C;
 CurTime:
@@ -920,12 +817,12 @@ CurTime:
    case CmdDlg of
  cmYes:
        begin
-         D.T     := GetDateTime(On);
-         D.D     := GetDateTime(Off);
-         D.T_Cr  := GetDateTime(On);
-         D.D_Cr  := GetDateTime(Off);
-         D.T_LAc := GetDateTime(On);
-         D.D_LAc := GetDateTime(Off);
+         D.T     := GetDateTime(true);
+         D.D     := GetDateTime(false);
+         D.T_Cr  := GetDateTime(true);
+         D.D_Cr  := GetDateTime(false);
+         D.T_LAc := GetDateTime(true);
+         D.D_LAc := GetDateTime(false);
          goto CurTime;
        end;
  cmNo:
@@ -945,9 +842,7 @@ CurTime:
        Dlg^.EnableCommands([cmYes, cmNo]);
       {$ENDIF}
        Dispose( Dlg, Done );
-      {$IFDEF FileNotify}
        NotifyResume; {Cat}
-      {$ENDIF}
        Message(Application, evKeyDown, kbDown, nil);
        Message(Application, evCommand, cmSingleAttr, nil);
        Exit;
@@ -959,9 +854,7 @@ CurTime:
        Dlg^.EnableCommands([cmYes, cmNo]);
       {$ENDIF}
        Dispose( Dlg, Done );
-      {$IFDEF FileNotify}
        NotifyResume; {Cat}
-      {$ENDIF}
        Exit;
       end;
    end;
@@ -1057,7 +950,7 @@ CurTime:
  New(PInfo, Init(R));
  PInfo^.Top := GetString(dlSetAttr);
  PInfo^.Bottom := '';
- PInfo^.SetState(sfShadow, On);
+ PInfo^.SetState(sfShadow, true);
  Desktop^.Insert(PInfo);
 
  if Single then begin UU := CurPos+1; DD := UU end
@@ -1067,21 +960,9 @@ CurTime:
    PF := P^.Files^.At(I-1);
    if PF^.Selected or Single then
     begin
-     {$IFNDEF OS2}
-     S := Cut(GetLFN(PF^.LFN), 40);
-     {$ELSE}
-     S := Cut(PF^.Name, 40);
-     {$ENDIF}
+     S := Cut(PF^.FlName[uLfn], 40);
      PInfo^.Write(1, S);
-     {$IFNDEF OS2}
-       {$IFDEF OS_DOS}
-     S := MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
-       {$ELSE}
-     S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
-       {$ENDIF}
-     {$ELSE}
-     S := MakeNormName(PF^.Owner^, PF^.Name);
-     {$ENDIF}
+     S := MakeNormName(PF^.Owner^, PF^.FlName[uLfn]);
      {$IFNDEF OS2}
      lAssignFile(F, S);
      {$ENDIF}
@@ -1155,7 +1036,7 @@ CurTime:
        {$ENDIF}
       end;
      SetFileAttr(S, K and not Directory and not VolumeID);
-     if not Single then PF^.Selected := Off;
+     if not Single then PF^.Selected := false;
     end;
   end;
  Desktop^.Delete(PInfo);
@@ -1166,9 +1047,7 @@ CurTime:
  if P^.Drive^.DriveType = dtDisk then GlobalMessage(evCommand, cmRereadInfo, nil);
  GlobalMessage(evCommand, cmRereadTree, @P^.DirectoryName);
  P^.SetDirName;
-{$IFDEF FileNotify}
  NotifyResume; {Cat}
-{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -1178,43 +1057,34 @@ procedure CM_SetShowParms;
      Idx: TDlgIdx;
      P: PFilePanelRoot absolute AFP;
 begin
- Old := P^.Drive^.Flags;
- case P^.Drive^.DriveType of
-   dtFind, dtTemp: Idx := dlgFindParms;
-   dtArc: Idx := dlgArcParms;
-   else Idx := dlgDiskParms;
- end;
- I.Prm := P^.Drive^.Flags;
- I.LFNLen := ItoS(P^.Drive^.LFNLen);
- I.EXTLen := ItoS(P^.Drive^.EXTLen);
- J := ExecResource( Idx, I );
- case J of
-  cmOK: begin
-         P^.Drive^.Flags := I.Prm;
-         J:=StoI(I.LFNLen);
-         K:=StoI(I.EXTLen);
-         if J>=5 then
-          begin
-           if (J-K>=5) then
-            begin
-             P^.Drive^.LFNLen:=J;
-             P^.Drive^.EXTLen:=K;
-            end
-           else
-            begin
-             P^.Drive^.LFNLen:=J;
-             P^.Drive^.EXTLen:=J-5;
-            end;
-          end;
-        end;
-  cmYes: P^.Drive^.GetParam(1);
-  cmNo:  P^.Drive^.GetParam(2);
-  else Exit;
- end;
- P^.DeltaX := 0;
- P^.Drive^.Flags := P^.Drive^.Flags;
- if ((P^.Drive^.DriveType = dtDisk) or (P^.Drive^.DriveType = dtArvid))
-     and ((P^.Drive^.Flags xor Old) and (psShowDescript+psShowLongDesc) <> 0) then P^.RereadDir;
+ with P^.Drive^ do
+   begin
+   Old := Flags;
+   case DriveType of
+    dtFind, dtTemp: Idx := dlgFindParms;
+    dtArc: Idx := dlgArcParms;
+    else Idx := dlgDiskParms;
+   end;
+   I.Prm := Flags; I.LFNLen := ItoS(LFNLen); I.EXTLen := ItoS(EXTLen);
+   J := ExecResource( Idx, I );
+   case J of
+    cmOK:
+      begin
+      J:=StoI(I.LFNLen);
+      if J < 5 then exit;
+      LFNLen:=J; K:=StoI(I.EXTLen);
+      if (J-K>=5) then EXTLen:=K else EXTLen:=J-5;
+      Flags := I.Prm;
+      end;
+    cmYes: GetParam(1);
+    cmNo:  GetParam(2);
+    else Exit;
+   end;
+   P^.DeltaX := 0;
+   if ((DriveType = dtDisk) or (DriveType = dtArvid))
+       and ((Flags xor Old) and (psShowDescript+psShowLongDesc) <> 0)
+   then P^.RereadDir;
+   end;
  DrawViews(P);
  P^.SendLocated;
  DrawViews(P);
@@ -1225,7 +1095,7 @@ procedure CM_CopyTemp;
      C: TCopyRec;
      P: PFilePanelRoot absolute AFP;
 begin
- FC := GetSelection(P, Off);
+ FC := GetSelection(P, false);
  C.Owner := P;
  C.FC := FC;
  if FC = nil then Exit;
@@ -1244,17 +1114,17 @@ procedure CM_ArchiveFiles;
     Ext: ExtStr;
 begin
   if P^.Drive^.DriveType >= dtArc then Exit;
-  PC := GetSelection(P, Off);
+  PC := GetSelection(P, false);
   if PC = nil then Exit;
   if PC^.Count = 1 then
-    S := {$IFNDEF OS2}MakeFileName{$ENDIF}(PFileRec(PC^.At(0))^.Name)
+    S := PFileRec(PC^.At(0))^.FlName[uLfn]
   else if P^.Drive^.DriveType = dtDisk then
     S := GetName(P^.DirectoryName)
   else
     S := '';
 {Cat}
   FSplit(S, Dir, Name, Ext); {AK155: не уверен, что это нужно }
-  MakeArchive(Name, PC, Off, Off, P);
+  MakeArchive(Name, PC, false, false, P);
 {/Cat}
   PC^.DeleteAll;
 end;
@@ -1288,14 +1158,24 @@ end;
 procedure CM_ToggleLongNames;
 var P: PFilePanelRoot absolute AFP;
 begin
+with P^.Drive^ do
+  begin
 {$IFNDEF OS2}
-  P^.Drive^.Flags := P^.Drive^.Flags xor psShowLongName;
-  P^.Drive^.Flags := P^.Drive^.Flags;
+  Flags := Flags xor psShowLongName;
 {$ELSE}
-  P^.Drive^.ShowLogNames := not P^.Drive^.ShowLogNames;
+  ShowLogNames := not ShowLogNames;
 {$ENDIF}
+  end;
   P^.DeltaX := 0;
-  P^.RereadDir;
+{  P^.RereadDir; } {AK155 22-07-2002
+Само по себе перечитывание абсолютно не нужно. Может иметь смысл
+только входящая в него сортировка. При сортировке не по имени.расширению,
+а также если сортировки по длинным и коротким именам/расширениям
+отделены, то перечитывание не дает ничего, кроме тормозов. А если
+сортировки унифицированы, то есть отдельных сортировок по длинным и
+коротким именам/расширениям нет, то при отсутствии перечитывания
+все имена на панели остаются на тех же местах и переключение происходит
+мгновенно. Ну а если хочется пересортировать - надо нажать Ctrl-R. }
   DrawViews(P);
 end;
 
@@ -1395,26 +1275,16 @@ begin
 {if (StartupData.Slice2 and osuReleaseDrag = 0) then Application^.BFSpeed;}
  if (PFileRec(P^.Files^.At(CurPos))^.Selected) or
     (typeof(P^) <> typeof(TFilePanel))
-  then FC := GetSelection(P, Off)
+  then FC := GetSelection(P, false)
   else
-{$IFNDEF OS2}
-    if PFileRec(P^.Files^.At(CurPos))^.Name[1] <> '.'
-{$ELSE}
-    if PFileRec(P^.Files^.At(CurPos))^.Name <> '..'
-{$ENDIF}
+    if not (PFileRec(P^.Files^.At(CurPos))^.TType = ttUpDir)
     then begin
         New(FC, Init(1,1)); {AK155: заменил 10,10 на 1,1}
-        FC^.Insert(CopyFileRec(P^.Files^.At(CurPos))); {AK155: вставил CopyFileRec}
+        FC^.Insert(P^.Files^.Items^[CurPos]);
        end else Exit;
- for I := 1 to FC^.Count do FC^.AtPut(I-1, CopyFileRec(FC^.At(I-1)));
+ for I := 1 to FC^.Count do FC^.AtPut(I-1, CopyFileRec(PFileRec(FC^.Items^[I-1])));
  if FC^.Count = 1 then
-  {$IFNDEF OS2}
-   if P^.Drive^.Flags and psShowLongName >0  then
-       S := Cut(GetLFN(PFileRec(FC^.At(0))^.LFN),20)
-   else S := MakeFileName(PFileRec(FC^.At(0))^.Name)
-  {$ELSE}
-   S := Cut(PFileRec(FC^.At(0))^.Name,20)
-  {$ENDIF}
+   S := Cut(PFileRec(FC^.At(0))^.FlName[uLfn],20)
   else S := ItoS(FC^.Count)+GetString(dlSelectedFiles);
  DragMover(@TEvent(Ev^).Where, S, FC, @C);
 {if (StartupData.Slice2 and osuReleaseDrag = 0) then Application^.EFSpeed;}
@@ -1448,7 +1318,7 @@ begin
           SkipCopyDialog := Confirms and cfMouseConfirm = 0;
           Message(PCopyRec(EI)^.Owner, evBroadcast, cmCopyCollection,
                   PCopyRec(EI)^.FC);
-          SkipCopyDialog := Off;
+          SkipCopyDialog := false;
           Exit;
        end;
    Ev.What := evBroadcast;
@@ -1463,15 +1333,7 @@ begin
      if ((MPos.Y > 0) or ((FMSetup.Show and fmsColumnTitles=0) and (MPos.Y=0)))
         and (PFileRec(P^.Files^.At(I))^.Attr and Directory <> 0)
       then
-    {$IFNDEF OS2}
-      {$IFDEF OS_DOS}
-      S := MakeNormName(S, MakeFileName(PFileRec(P^.Files^.At(I))^.Name));
-      {$ELSE}
-      S := MakeNormName(S, GetLFN(PFileRec(P^.Files^.At(I))^.LFN));
-      {$ENDIF}
-    {$ELSE}
-      S := MakeNormName(S, PFileRec(P^.Files^.At(I))^.Name);
-    {$ENDIF}
+      S := MakeNormName(S, PFileRec(P^.Files^.At(I))^.FlName[uLfn]);
      CopyDirName := S;
     end;
    SkipCopyDialog := Confirms and cfMouseConfirm = 0;
@@ -1481,11 +1343,11 @@ begin
        UpStr(S);
        for J := 0 to PCopyRec(EI)^.FC^.Count-1 do
          with PFileRec(PCopyRec(EI)^.FC^.At(J))^ do
-           if (Attr and Directory <> 0) and (UpStrg(MakeNormName(Owner^, Name)) = S) then Exit;
+           if (Attr and Directory <> 0) and (UpStrg(MakeNormName(Owner^, FlName[uLfn])) = S) then Exit;
      end;
    P^.Drive^.CopyFilesInto(PCopyRec(EI)^.FC, PCopyRec(EI)^.Owner,
                            ShiftState and 7 <> 0);
-   SkipCopyDialog := Off;
+   SkipCopyDialog := false;
 end;
 
         {-DataCompBoy-}
@@ -1496,48 +1358,38 @@ procedure CM_RenameSingleL;
       DosE: Word;
       SSS: String;
       PF: PFileRec;
-{$IFNDEF OS2}
-      Nm: Str12;
-      Sn: Str12;
-{$ELSE}
       Nm: String;
       Sn: String;
-{$ENDIF}
       P: PFilePanelRoot absolute AFP;
       Event: PEvent absolute PEV;
       ScrollBarValue: Integer;
       ReEnableCmdLine: boolean;
+      DlgRes: word;
 
 begin
   if (P^.Files = nil) then Exit;
   ScrollBarValue := P^.ScrollBar^.Value;
   if ScrollBarValue >= P^.Files^.Count then Exit;
   PF := P^.Files^.At(ScrollBarValue);
-{$IFNDEF OS2}
-  {$IFDEF OS_DOS}
-  if (PF^.Name[1] = '.') or
-  {$ELSE}
-  if (PF^.LFN = '..') or
-  {$ENDIF}
-{$ELSE}
-  if (PF^.Name = '..') or
-{$ENDIF}
+  if (PF^.TType = ttUpDir) or
 {JO: для найденных в архиве файлов в панели поиска}
    PathFoundInArc(PF^.Owner^) or
 {/JO}
      not (P^.Drive^.DriveType in [dtDisk, dtTemp, dtFind, dtList]) then Exit;
- {$IFNDEF OS2}
-  S:= GetLFN(PF^.LFN);
-  Nm := MakeFileName(PF^.Name);
- {$ELSE}
-  S:= PF^.Name;
-  Nm := S;
- {$ENDIF}
+  S:= PF^.FlName[uLfn];
   S2 := S;
-  if P^.Drive^.LFNLen < 250 then
-      R.Assign(0,0,P^.Drive^.LFNLen+1,1)
-    else
-      R.Assign(P^.Drive^.CalcLengthWithoutName,0,255,1);
+ {$IFNDEF OS2}
+  if DescrByShortNames then Nm := PF^.FlName[false]
+                else Nm := PF^.FlName[true];
+  if (P^.Drive^.Flags and psShowLongName = 0)
+    then R.Assign(0,0,13,1)
+   else
+ {$ENDIF}
+    if (P^.Drive^.LFNLen < 250)
+      then
+        R.Assign(0,0,P^.Drive^.LFNLen+1,1)
+      else
+        R.Assign(P^.Drive^.CalcLengthWithoutName,0,255,1);
   R.Move(P^.LastCurPos.X, P^.LastCurPos.Y);
   R.Move(P^.Origin.X, 0); dec(R.A.X);
   if R.B.X > P^.Size.X+P^.Origin.X+1 then R.B.X := P^.Size.X+P^.Origin.X+1;
@@ -1584,19 +1436,19 @@ begin
     end;
 
   P^.Owner^.Insert(PIF);
-  R.A.X := P^.Owner^.ExecView(PIF); PIF^.GetData(S);
+  DlgRes := P^.Owner^.ExecView(PIF); PIF^.GetData(S);
 
   if ReEnableCmdLine then
     CommandLine^.SetState(sfDisabled, false);
 
   if S[Length(S)]='.' then SetLength(S, Length(S)-1);
   {$IFDEF RecodeWhenDraw}
-  if S = CharToOemStr(S2) then R.A.X := cmCancel;
+  if S = CharToOemStr(S2) then DlgRes := cmCancel;
   S := OemToCharStr(S);
   {$ELSE}
-  if S = S2 then R.A.X := cmCancel;
+  if S = S2 then DlgRes := cmCancel;
   {$ENDIF}
-  if R.A.X <> cmCancel then
+  if DlgRes <> cmCancel then
     begin
       lGetDir(0, SSS);
       lChDir(PF^.Owner^);
@@ -1606,24 +1458,17 @@ begin
           MessFileNotRename(S2, S, DOSE)
 
         else begin
-               {$IFNDEF OS2}
-               PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
-               DelLFN(PF^.LFN);
-               PF^.LFN := AddLFN(S);
-               if PF^.Attr and Directory <> 0 then UpStr(PF^.Name)
-                   else begin
-                          LowStr(PF^.Name);
-                          if PF^.Attr and SysFile <> 0 then PF^.Name[1] := UpCase(PF^.Name[1]);
-                        end;
-               PF^.Name[9] := ' ';
-               Sn := MakeFileName(PF^.Name);
-               {$ELSE}
-               PF^.Name := {GetName(}S{)};
-               Sn := PF^.Name;
-               {$ENDIF}
+{AK155 Так делать нельзя и не нужно  CopyShortString(S, PF^.FlName[uLfn]);}
+{AK155 А таки нужно. Глючит, например, при переименовании в ветви каталога.}
+             CopyShortString(S, PF^.FlName[uLfn]);
+              {$IFNDEF OS2}
+               if DescrByShortNames then
+                 Sn := LowStrg(GetName(lfGetShortFileName(S)))
+               else {$ENDIF} Sn := S;
+
                S2 := GetPossibleDizOwner(1);
                if S2 <> '' then begin
-                S2 := GetDizOwner(PF^.Owner^, S2, Off);
+                S2 := GetDizOwner(PF^.Owner^, S2, false);
                 if (PF^.DIZ <> nil) then
                   begin
                     ReplaceDIZ(S2, Nm, @Sn, PF^.DIZ^.DIZ);
@@ -1634,157 +1479,16 @@ begin
       lChDir(SSS);
       P^.Owner^.Delete(PIF);
       Dispose(PIF,Done);
-     {$IFDEF FileNotify}
       if not DNIni.AutoRefreshPanels then
-     {$ENDIF}
         GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
-      if R.A.X <> cmOK then
+      if DlgRes <> cmOK then
          begin
-           Event^.What := evKeyDown; Event^.KeyCode := R.A.X;
+           Event^.What := evKeyDown; Event^.KeyCode := DlgRes;
            Event^.InfoPtr := nil; P^.PutEvent(Event^);
          end;
     end else PIF^.Free;
 end;
         {-DataCompBoy-}
-
-{$IFNDEF OS2}
-procedure CM_RenameSingleS;
-  var PIF: PInputSFName;
-      R: TRect;
-      S, S2: String[13];
-      N1,N2: Array [0..12] of Char;
-      DosE: Word;
-      SSS: String;
-      PF: PFileRec;
-      Nm: String[20];
-      P: PFilePanelRoot absolute AFP;
-      Event: PEvent absolute PEV;
-      ScrollBarValue: Integer;
-      {$IFDEF BIT_32}FFFF: File;{$ENDIF}
-
-  procedure UpdateDesc;
-    var F, F1: lText;
-        I: Integer;
-        S: String;
-        N: String[20];
-  begin
-    N := MakeFileName(PF^.Name); UpStr(N);
-    lAssignText(F, PF^.DIZ^.Owner^); ClrIO;
-    lResetText(F);
-    if IOResult <> 0 then Exit;
-    lAssignText(F1, GetPath(PF^.DIZ^.Owner^)+'$@$DN$@$.$$$');
-    lRewriteText(F1);
-    if IOResult = 0 then
-      begin
-        while not EOF(F.T) do
-          begin
-            ReadLn(F.T, S);
-            if (S <> '') and (S[1] <> ' ') then
-              begin
-                I := Pos(' ', S); if I = 0 then I := Length(S)+1;
-                if UpStrg(Copy(S, 1, I-1)) = Nm then
-                  begin
-                    Delete(S, 1, I-1);
-                    Insert(N, S, 1);
-                  end;
-              end;
-            WriteLn(F1.T, S);
-          end;
-        Close(F1.T); ClrIO; Close(F.T);
-        lEraseText(F); lRenameText(F1, PF^.DIZ^.Owner^);
-      end;
-    Close(F.T); ClrIO;
-  end;
-
-begin
-  if (P^.Files = nil) then Exit;
-  ScrollBarValue := P^.ScrollBar^.Value;
-  if ScrollBarValue >= P^.Files^.Count then Exit;
-  PF := P^.Files^.At(ScrollBarValue);
-  if (PF^.Name = '..') or
-     not (P^.Drive^.DriveType in [dtDisk, dtTemp, dtFind, dtList]) then Exit;
-  Nm := MakeFileName(PF^.Name); UpStr(Nm);
-  R.Assign(0,0,12,1);
-  R.Move(P^.LastCurPos.X, P^.LastCurPos.Y);
-  R.Move(P^.Origin.X, 0);
-  S := MakeFileName(PF^.Name); S2 := S;
-  New(PIF, Init(R, 13)); PIF^.DrawShift := 0; P^.Owner^.Insert(PIF);
-  S := PF^.Name; S[9] := '.';
-  {$IFDEF RecodeWhenDraw}
-  S := CharToOemStr(S);
-  {$ENDIF}
-  PIF^.SetData(S);{PIF^.State := PIF^.State xor sfCursorIns;}
-  PIF^.SetValidator(New(PFilterValidator, Init([#32..#255]-
-                                              ['+','|','>','<',']','[','*','?'])));
-  R.A.X := P^.Owner^.ExecView(PIF); PIF^.GetData(S);
-  {$IFDEF RecodeWhenDraw}
-  if UpStrg(MakeFileName(S)) = UpStrg(CharToOemStr(S2)) then R.A.X := cmCancel;
-  S := OemToCharStr(S);
-  {$ELSE}
-  if UpStrg(MakeFileName(S)) = UpStrg(S2) then R.A.X := cmCancel;
-  {$ENDIF}
-  S := MakeFileName(S);
-  if R.A.X <> cmCancel then
-    begin
-      lGetDir(0, SSS); {GetDir(0, SSS);} {Cat}
-      lChDir(PF^.Owner^); {ChDir(PF^.Owner^);} {Cat}
-      {$IFNDEF BIT_32}
-      FillChar(N1, SizeOf(N1), 0);
-      FillChar(N2, SizeOf(N2), 0);
-      Move(S[1], N2, Length(S));
-      Move(S2[1], N1, Length(S2));
-      asm
-       push ds
-       push bp
-       push ss
-       mov  ax, ss
-       mov  es, ax
-       mov  ds, ax
-       lea  di,n2
-       lea  dx,n1
-       mov  ah,$56
-       int  $21
-       jc   @@1
-       xor  ax, ax
-      @@1:
-       mov  DOSE, ax
-       pop  ss
-       pop  bp
-       pop  ds
-      end;
-      {$ELSE}
-      Assign(FFFF, S2);
-      Rename(FFFF, S);
-      DOSE := DosError;
-      {$ENDIF}
-      if DOSE <> 0 then
-          MessFileNotRename(S2, S, DOSE)
-
-        else begin
-               PF^.Name := Norm12(S);
-               if PF^.Attr and Directory <> 0 then UpStr(PF^.Name)
-                   else begin
-                          LowStr(PF^.Name);
-                          if PF^.Attr and SysFile <> 0 then PF^.Name[1] := UpCase(PF^.Name[1]);
-                        end;
-               PF^.Name[9] := ' ';
-               if PF^.DIZ <> nil then UpdateDesc;
-             end;
-      lChDir(SSS); {ChDir(SSS);} {Cat}
-      P^.Owner^.Delete(PIF);
-      Dispose(PIF,Done);
-     {$IFDEF FileNotify}
-      if not DNIni.AutoRefreshPanels then
-     {$ENDIF}
-        GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
-      if R.A.X <> cmOK then
-         begin
-           Event^.What := evKeyDown; Event^.KeyCode := R.A.X;
-           Event^.InfoPtr := nil; P^.PutEvent(Event^);
-         end;
-    end else PIF^.Free;
-end;
-{$ENDIF OS2}
 
         {-DataCompBoy-}
 procedure CM_RenameSingleDialog;
@@ -1793,13 +1497,9 @@ procedure CM_RenameSingleDialog;
       DosE: Word;
       SSS: String;
       PF: PFileRec;
-{$IFNDEF OS2}
-      Nm: Str12;
-      Sn: Str12;
-{$ELSE}
       Nm: String;
       Sn: String;
-{$ENDIF}
+      DlgRes: word;
       P: PFilePanelRoot absolute AFP;
       Event: PEvent absolute PEV;
       ScrollBarValue: Integer;
@@ -1810,41 +1510,31 @@ begin
   ScrollBarValue := P^.ScrollBar^.Value;
   if ScrollBarValue >= P^.Files^.Count then Exit;
   PF := P^.Files^.At(ScrollBarValue);
-{$IFNDEF OS2}
-  {$IFDEF OS_DOS}
-  if (PF^.Name[1] = '.') or
-  {$ELSE}
-  if (PF^.LFN = '..') or
-  {$ENDIF}
-{$ELSE}
-  if (PF^.Name = '..') or
-{$ENDIF}
+  if (PF^.TType = ttUpDir) or
 {JO: для найденных в архиве файлов в панели поиска}
    PathFoundInArc(PF^.Owner^) or
 {/JO}
      not (P^.Drive^.DriveType in [dtDisk, dtTemp, dtFind, dtList]) then Exit;
+  S:= PF^.FlName[uLfn];
 {$IFNDEF OS2}
-  S:= GetLFN(PF^.LFN);
-  Nm := MakeFileName(PF^.Name);
-{$ELSE}
-  S:= PF^.Name;
-  Nm := S;
-{$ENDIF}
+  if DescrByShortNames then Nm := PF^.FlName[false]
+  else {$ENDIF}
+    Nm := PF^.FlName[true];
   S2 := S;
   {$IFDEF RecodeWhenDraw}
   S := CharToOemStr(S);
   {$ENDIF}
-  R.A.X := ExecResource(dlgRenFl, S);
+  DlgRes := ExecResource(dlgRenFl, S);
   {$IFDEF RecodeWhenDraw}
   S := OemToCharStr(S);
   {$ENDIF}
-  If R.A.X = cmCancel then Exit;
-  If R.A.X = cmYes then UpStr(S);
-  If R.A.X = cmNo then LowStr(S);
+  If DlgRes = cmCancel then Exit;
+  If DlgRes = cmYes then UpStr(S);
+  If DlgRes = cmNo then LowStr(S);
   if S[Length(S)]='.' then SetLength(S, Length(S)-1);
 
-  if S = S2 then R.A.X := cmCancel;
-  if R.A.X <> cmCancel then
+  if S = S2 then DlgRes := cmCancel;
+  if DlgRes <> cmCancel then
     begin
       lGetDir(0, SSS);
       lChDir(PF^.Owner^);
@@ -1854,24 +1544,14 @@ begin
           MessFileNotRename(S2, S, DOSE)
 
         else begin
-               {$IFNDEF OS2}
-               PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
-               DelLFN(PF^.LFN);
-               PF^.LFN := AddLFN(S);
-               if PF^.Attr and Directory <> 0 then UpStr(PF^.Name)
-                   else begin
-                          LowStr(PF^.Name);
-                          if PF^.Attr and SysFile <> 0 then PF^.Name[1] := UpCase(PF^.Name[1]);
-                        end;
-               PF^.Name[9] := ' ';
-               Sn := MakeFileName(PF^.Name);
-               {$ELSE}
-               PF^.Name := GetName(S);
-               Sn := PF^.Name;
-               {$ENDIF}
+               CopyShortString(S, PF^.FlName[uLfn]);
+              {$IFNDEF OS2}
+               if DescrByShortNames then
+                 Sn := LowStrg(GetName(lfGetShortFileName(S)))
+               else {$ENDIF} Sn := S;
                S2 := GetPossibleDizOwner(1);
                if S2 <> '' then begin
-                S2 := GetDizOwner(PF^.Owner^, S2, Off);
+                S2 := GetDizOwner(PF^.Owner^, S2, false);
                 if (PF^.DIZ <> nil) then
                   begin
                     ReplaceDIZ(S2, Nm, @Sn, PF^.DIZ^.DIZ);
@@ -1880,13 +1560,11 @@ begin
                end;
              end;
       lChDir(SSS);
-     {$IFDEF FileNotify}
       if not DNIni.AutoRefreshPanels then
-     {$ENDIF}
         GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
-      if R.A.X <> cmOK then
+      if DlgRes <> cmOK then
          begin
-           Event^.What := evKeyDown; Event^.KeyCode := R.A.X;
+           Event^.What := evKeyDown; Event^.KeyCode := DlgRes;
            Event^.InfoPtr := nil; P^.PutEvent(Event^);
          end;
     end;
@@ -1905,13 +1583,7 @@ procedure CM_SortBy;
 begin
   Menu := NewMenu(
     NewItem(GetString(dlSortName),    '',kbNoKey,cmSortName    ,0,
-{$IFNDEF OS2}
-    NewItem(GetString(dlSortLongName),'',kbNoKey,cmSortLongName,0,
-{$ENDIF}
     NewItem(GetString(dlSortExt),     '',kbNoKey,cmSortExt     ,0,
-{$IFNDEF OS2}
-    NewItem(GetString(dlSortLongExt), '',kbNoKey,cmSortLongExt ,0,
-{$ENDIF}
     NewItem(GetString(dlSortSize),    '',kbNoKey,cmSortSize    ,0,
     NewItem(GetString(dlSortDate),    '',kbNoKey,cmSortDate    ,0,
 {$IFNDEF DPMI32}
@@ -1921,7 +1593,7 @@ begin
     NewItem(GetString(dlSortDIZ),     '',kbNoKey,cmSortDIZ     ,0,
     NewItem(GetString(dlSortType),    '',kbNoKey,cmSortType    ,0,
     NewItem(GetString(dlSortUnsorted),'',kbNoKey,cmSortUnsorted,0,
-  nil)))))))){$IFNDEF DPMI32})){$ENDIF}{$IFNDEF OS2})){$ENDIF};
+  nil)))))))){$IFNDEF DPMI32})){$ENDIF};
   N := NumSortModes; W := 15;
   DeskTop^.GetExtent(R);
   R.A := P^.Origin; P^.Owner^.MakeGlobal(R.A, R.A); Desktop^.MakeLocal(R.A, R.A);
@@ -1986,11 +1658,7 @@ begin
  DN:=UpStrg(GetName(CreatedDir));
  for I := 1 to P^.Files^.Count do
   begin PF := P^.Files^.At(I-1);
-{$IFNDEF OS2}
-        if UpStrg(GetLFN(PF^.LFN)) = GetName(DN) then
-{$ELSE}
-        if UpStrg(PF^.Name) = GetName(DN) then
-{$ENDIF}
+        if UpStrg(PF^.FlName[true]) = GetName(DN) then
            begin J := I - 1; Break end;
   end;
  if J >= 0 then P^.ScrollBar^.SetValue(J);
@@ -2011,11 +1679,7 @@ begin
    or PathFoundInArc(PF^.Owner^)
 {/JO}
        then Exit;
-{$IFNDEF OS2}
- S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
-{$ELSE}
- S := MakeNormName(PF^.Owner^, PF^.Name);
-{$ENDIF}
+ S := MakeNormName(PF^.Owner^, PF^.FlName[uLfn]);
  LongCopy(S);
  if (ActivePanel = P) and (P^.Drive^.DriveType = dtDisk)
    then CurrentDirectory := P^.DirectoryName;
@@ -2037,7 +1701,8 @@ begin
   if P^.Drive^.DriveType = dtDisk then
     begin
       PP := OpenDirectory(P^.DirectoryName);
-      if PP <> nil then Message(P, evCommand, cmInsertDrive, PP);
+      if PP <> nil then
+      Message(P, evCommand, cmInsertDrive, PP);
     end;
 end;
 {/AK155}
@@ -2092,11 +1757,7 @@ procedure CM_ChangeCase(AFP: Pointer);
  function DoChangeCase(PF: PFileRec):Boolean; {$IFDEF BIT_16}far;{$ENDIF}
  var S: String;
      SSS: String;
-{$IFNDEF OS2}
-     NM, Sn: Str12;
-{$ELSE}
      NM, Sn: String;
-{$ENDIF}
      i: integer;
      U: lFile;
  begin
@@ -2109,13 +1770,8 @@ procedure CM_ChangeCase(AFP: Pointer);
 {JO: для найденных в архиве файлов в панели поиска}
   if PathFoundInArc(PF^.Owner^) then Exit;
 {/JO}
-  {$IFNDEF OS2}
-  S := GetLFN(PF^.LFN);
-  NM := MakeFileName(PF^.Name);
-  {$ELSE}
-  S := PF^.Name;
+  S := PF^.FlName[true];
   NM := S;
-  {$ENDIF}
   for I:=length(s) downto 1 do if s[i]='.' then break;
   {$IFDEF RecodeWhenDraw}
   if OemToCharStr(CharToOemStr(S)) = S then
@@ -2130,7 +1786,7 @@ procedure CM_ChangeCase(AFP: Pointer);
   S := OemToCharStr(S);
   end;
   {$ENDIF}
-  if S = {$IFNDEF OS2} GetLFN(PF^.LFN) {$ELSE} PF^.Name {$ENDIF} then
+  if S = PF^.FlName[true] then
     I := 0
   else
     begin
@@ -2142,46 +1798,36 @@ procedure CM_ChangeCase(AFP: Pointer);
     end;
   if I <> 0 then begin
    Info^.Hide;
-{$IFNDEF OS2}
-   MessFileNotRename(GetLFN(PF^.LFN), S, I);
-   MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)+^M^C+Cut(GetLFN(PF^.LFN),20)
+   MessFileNotRename(PF^.FlName[true], S, I);
+   MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)+^M^C+Cut(PF^.FlName[true],20)
              +GetString(dlFCNoRename2)+Cut(S,20), nil, mfError+mfOKButton);
-{$ELSE}
-   MessFileNotRename(PF^.Name, S, I);
-   MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)+^M^C+Cut(PF^.Name,20)
-             +GetString(dlFCNoRename2)+Cut(S,20), nil, mfError+mfOKButton);
-{$ENDIF}
    DoChangeCase := true;
   end else begin
-{$IFNDEF OS2}
-   PF^.Name := Norm12(GetName(lfGetShortFileName(S)));
-   DelLFN(PF^.LFN);
-   PF^.LFN := AddLFN(S);
-   if PF^.Attr and Directory <> 0
-    then UpStr(PF^.Name)
-    else begin
-          LowStr(PF^.Name);
-          if PF^.Attr and SysFile <> 0
-           then PF^.Name[1] := UpCase(PF^.Name[1]);
+   CopyShortString(GetName(S), PF^.FlName[true]);
+ {JO: при изменении регистра файла имеет хоть какой-то смысл менять регистр }
+ {    его имени в файле описаний только если описания даются по длинным     }
+ {    именам, так как для коротких имён регистр не меняется                 }
+  {$IFNDEF OS2}
+   if not DescrByShortNames then
+     begin
+  {$ENDIF}
+       Sn := PF^.FlName[true];
+       S := GetPossibleDizOwner(1);
+       if S <> '' then
+         begin
+           S := GetDizOwner(PF^.Owner^, S, false);
+           ReplaceDIZ(S, Nm, @Sn, nil);
          end;
-   PF^.Name[9] := ' ';
-   Sn := MakeFileName(PF^.Name);
-{$ELSE}
-   PF^.Name := GetName(S);
-   Sn := PF^.Name;
-{$ENDIF}
-   S := GetPossibleDizOwner(1);
-   if S <> '' then begin
-    S := GetDizOwner(PF^.Owner^, S, Off);
-    ReplaceDIZ(S, Nm, @Sn, nil);
-   end;
+  {$IFNDEF OS2}
+     end;
+  {$ENDIF}
    Message(P, evCommand, cmCopyUnselect, PF);
   end;
  end;
 
 begin
  if (P^.Drive = nil) then Exit;
- FC := GetSelection(P, Off);
+ FC := GetSelection(P, false);
  if (FC = nil) then exit;
 
  L := ChangeNamesCaseOptions;
@@ -2193,7 +1839,7 @@ begin
  end;
 
  if (L.Name <> ChangeNamesCaseOptions.Name)
-    and (L.Ext <> ChangeNamesCaseOptions.Ext) then ConfigModified := On;
+    and (L.Ext <> ChangeNamesCaseOptions.Ext) then ConfigModified := true;
 
  if (ChangeNamesCaseOptions.Name = 0) and (ChangeNamesCaseOptions.Ext = 0) then
    begin
@@ -2225,9 +1871,9 @@ begin
  Info^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, MaxStringLength));
  DeskTop^.Insert(Info);
  NewTimer(TT, 18);
- Abort := off;
+ Abort := false;
  FC^.FirstThat(@DoChangeCase);
- Abort := off;
+ Abort := false;
  MessageL(P, evCommand, cmPanelReread, 0);
  Info^.Free;
  FC^.DeleteAll;
@@ -2434,12 +2080,12 @@ var  P: PFilePanelRoot absolute AFP;
 begin
  if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
  PF := P^.Files^.At(CurPos);
- If (PF^.Name = '..')
+ If (PF^.TType = ttUpDir)
 {JO: для найденных в архиве файлов в панели поиска}
    or PathFoundInArc(PF^.Owner^)
 {/JO}
      then Exit;
- S := MakeNormName(PF^.Owner^, PF^.Name);
+ S := MakeNormName(PF^.Owner^, PF^.FlName[true]);
  SetEALongname(S);
 end;
 

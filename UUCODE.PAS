@@ -70,6 +70,7 @@ unit UUCode;
 interface
 
 uses
+  files,
   Objects, tree
 {$IFDEF UUDECODE}
    , collect
@@ -116,8 +117,8 @@ var Timer: TEventTimer;
 function ApplicationIdle(Info: PWhileView): Boolean;
    var C: Boolean;
    begin
-     C := Off;
-     ApplicationIdle := off;
+     C := false;
+     ApplicationIdle := false;
      DispatchEvents(Info, C);
      C:= C or CtrlBreakHit;
      if C then
@@ -125,7 +126,7 @@ function ApplicationIdle(Info: PWhileView): Boolean;
         ApplicationIdle := Msg(dlQueryAbort, nil, mfYesNoConfirm) = cmYes;
         NewTimer(Timer, 0);
       end;
-     CtrlBreakHit := Off;
+     CtrlBreakHit := false;
    end;
 
 procedure RereadGlobal(OutputDir:String); {DataCompBoy}
@@ -384,7 +385,7 @@ begin DelLeft(s);DelRight(s) end;
 
 function EndOfFile:Boolean;
 begin
- if ForceEOF then begin EndOfFile:=On; Exit end;
+ if ForceEOF then begin EndOfFile:=true; Exit end;
  EndOfFile:=InputStream^.Eof;
 end;
 
@@ -503,23 +504,23 @@ begin Val(AuxT,Num,NumErr);ValidLNumber:=NumErr=0 end;
 
 procedure ClearEX;
 begin
- NumSectKnown:=Off;
- MaxSectKnown:=Off;
- FileNameKnown:=Off;
- SectionGo:=Off;
- FileTimeKnown:=Off;
- exFileTime:=Off;
- exEnd:=Off;
- exBegin:=On;
- exTable:=Off;
+ NumSectKnown:=false;
+ MaxSectKnown:=false;
+ FileNameKnown:=false;
+ SectionGo:=false;
+ FileTimeKnown:=false;
+ exFileTime:=false;
+ exEnd:=false;
+ exBegin:=true;
+ exTable:=false;
 end;
 
 function Complete__File:Boolean;
 begin
- Complete__File:=Off;
+ Complete__File:=false;
  if not CurPFile^.s.MaxSectKnw then Exit;
  if CurPFile^.s.TotSect<>CurPFile^.NSect then Exit;
- Complete__File:=On;
+ Complete__File:=true;
 end;
 
 procedure Local_Error(const s:string; Severe: Boolean);
@@ -673,8 +674,8 @@ begin
 end;
 
 begin { CompileFile }
- ClearFAPA;MissS:='';SingleMiss:=On;
- OutFName:=CurPFile^.FName^;CurPFile^.Flushed:=On;
+ ClearFAPA;MissS:='';SingleMiss:=true;
+ OutFName:=CurPFile^.FName^;CurPFile^.Flushed:=true;
  FileRewrite(OutputDir+OutFName);
  if ErrorFCode<>0 then
  begin
@@ -710,7 +711,7 @@ begin
 end;
 
 begin
- KickBack:=Off;
+ KickBack:=false;
  if BadSection then
  begin
   CancelOutFile;Exit;
@@ -742,12 +743,12 @@ function SetSection:Boolean;
 
 procedure SetCurFName;
 begin
- GetWord;SetFN;CurFileName:=AuxT;SetSection:=On;FileNameKnown:=On;
- exFileTime:=On;
+ GetWord;SetFN;CurFileName:=AuxT;SetSection:=true;FileNameKnown:=true;
+ exFileTime:=true;
 end;
 
 begin
- SetSection:=Off;
+ SetSection:=false;
  if StrT='' then Exit;
  GetWord;
  if StrT='' then Exit;
@@ -761,7 +762,7 @@ begin
  if StrT='' then Exit;
  if AuxT='file' then
  begin
-  NumSectKnown:=On;
+  NumSectKnown:=true;
   SetCurFName;
   Exit;
  end;
@@ -770,8 +771,8 @@ begin
  GetWord;
  if StrT='' then Exit;
  SetCurFName;
- NumSectKnown:=On;
- if MaxSectNum>0 then MaxSectKnown:=On;
+ NumSectKnown:=true;
+ if MaxSectNum>0 then MaxSectKnown:=true;
 end;
 
 procedure SetBegin;
@@ -781,17 +782,17 @@ begin
  GetWord;
  SetFN;
  if (AuxT<>CurFileName) and FileNameKnown then LocalError(GetString(dlleFileNamesMismatch));
- CurFileName:=AuxT;FileNameKnown:=On;
- exFileTime:=Off;
+ CurFileName:=AuxT;FileNameKnown:=true;
+ exFileTime:=false;
 end;
 
 function SetFileTime:Boolean;
 begin
- SetFileTime:=Off;
+ SetFileTime:=false;
  if StrT='' then begin LocalError(GetString(dlleFileTimeExp));Exit end;
  GetWord;
  if not ValidLNumber(CurFileTime) then begin LocalError(GetString(dlleInvFileTimeNum));Exit end;
- FileTimeKnown:=On;
+ FileTimeKnown:=true;
 end;
 
 procedure CalcLnCRC(var Strng:string;var CRC:word);assembler;
@@ -823,7 +824,7 @@ var Num:string;
 function CheckS:Boolean;
 var c:Word;s:LongInt;
 begin
- CheckS:=Off;
+ CheckS:=false;
  GetN(Num,StrT);
  if Num='' then Exit;
  if AuxT='section' then
@@ -840,7 +841,7 @@ begin
   begin
    LocalError(GetString(dlleSizeMism)+' '#196' '+CurPFile^.FName^+', '+GetString(dlleSection)+' '+ItoS(CurSectNo));
   end;
-  CheckS:=On;
+  CheckS:=true;
  end else
  if AuxT='entire' then
  begin
@@ -848,7 +849,7 @@ begin
   if not ValidWNumber(c) then Exit;
   AuxT:=Num;
   if not ValidLNumber(s) then Exit;
-  CheckS:=On;
+  CheckS:=true;
   if CurPFile^.Flushed then
   begin
    CheckFileSize(s,CurPFile^.Size);
@@ -857,7 +858,7 @@ begin
   begin
    CurPFile^.RealCRC:=c;
    CurPFile^.RealSize:=s;
-   CurPFile^.CrcKnown:=On;
+   CurPFile^.CrcKnown:=true;
   end;
  end;
 end;
@@ -872,18 +873,18 @@ end;
 
 procedure CalcCRC;
 begin
- KickBack:=Off;
+ KickBack:=false;
  CalcLnCRC(OrgT,SectCRC);Inc(SectSSz,OrgTLen+1);
 end;
 
 procedure FlushBack;
 var s:string;
 begin
- if KickBack=On then
+ if KickBack=true then
  begin
   s:=StrT;StrT:=BackBuf;OutString;StrT:=s;SectCRC:=BackCRC;
   Inc(SectSSz,BackSize);
-  KickBack:=Off;
+  KickBack:=false;
  end;
 end;
 
@@ -922,7 +923,7 @@ begin
   StrT:=OrgT;
   if StrT[1]='M' then
   begin
-   TmpCRC:=SectCRC;KickBack:=Off;
+   TmpCRC:=SectCRC;KickBack:=false;
    if UUString(StrT,TmpCRC) then
     begin SectCRC:=TmpCRC;Inc(SectSSz,OrgTLen+1);Break end;
   end else
@@ -931,27 +932,27 @@ begin
    begin
     if BadSection then
     begin
-     ExSUM:=Off;
+     ExSUM:=false;
      ClearEX;
      Continue;
     end else
     begin
      if CurPFile <> nil then
      begin
-      CurPFile^.EndFound:=On;
-      CurPFile^.s.MaxSectKnw:=On;
+      CurPFile^.EndFound:=true;
+      CurPFile^.s.MaxSectKnw:=true;
       CurPFile^.s.TotSect:=CurSectNo;
      end;
      FlushBack;
      CalcCRC;
      TerminateSection;
-     ClearEX;exEnd:=On;
+     ClearEX;exEnd:=true;
      Continue
     end;
    end ;
    if exSUM     then if StrTBegins('sum -r/size ') then
    begin
-    ExEnd:=Off;
+    ExEnd:=false;
     if BadSection then
     begin
      ClearEX;
@@ -974,7 +975,7 @@ begin
    if exBegin then if StrTBegins('begin ') then
    begin
     if SectionGo then begin TerminateSection;ClearEX end;
-    if ExTable then exTable:=Off else ClearCRC;
+    if ExTable then exTable:=false else ClearCRC;
     SetBegin;
     CalcCRC;
     Continue
@@ -983,7 +984,7 @@ begin
    begin
     FlushBack;
     CalcCRC;
-    WholeSectCRC:=SectCRC;ExEnd:=Off;
+    WholeSectCRC:=SectCRC;ExEnd:=false;
     if CurPFile<>NIL then
     if not CurPFile^.EndFound then LocalError(GetString(dlleUnexpEND));
     Continue
@@ -994,11 +995,11 @@ begin
     if not SetSection then
     begin
      LocalError(GetString(dlleSectionHdr));
-     BadSection:=On;
+     BadSection:=true;
     end else
     begin
-     if CurSectNo>1 then exBegin:=Off;
-     exTable:=On;
+     if CurSectNo>1 then exBegin:=false;
+     exTable:=true;
      ClearCRC;
     end;
     Continue;
@@ -1013,7 +1014,7 @@ begin
    begin
      if SectionGo then
      begin
-       KickBack:=On;continue
+       KickBack:=true;continue
      end else
      if FileNameKnown then
      begin
@@ -1023,7 +1024,7 @@ begin
      end
    end;
   end;
- until Off;
+ until false;
 end;
 
 procedure DecodeStr(var Src,Dst);assembler;
@@ -1068,7 +1069,7 @@ begin
 end;
 
 procedure GoSect;
-begin exBegin:=On;exEnd:=On;SectionGo:=On end;
+begin exBegin:=true;exEnd:=true;SectionGo:=true end;
 
 procedure OpenOutFile;
 begin
@@ -1077,7 +1078,7 @@ begin
  FileRewrite(OutFName);
  if ErrorFCode<>0 then
  begin
-  LocalError(GetString(dlleCantCreate)+' '+OutFName);BadSection:=On;
+  LocalError(GetString(dlleCantCreate)+' '+OutFName);BadSection:=true;
  end;
 end;
 
@@ -1098,9 +1099,9 @@ begin
   begin
    Case MessageBox(GetString(dlFileExist)+^M, @P, mfQuery+mfYesButton+mfNoButton+mfCancelButton+mfAllButton) of
    { cmYes:;}
-    cmOk:begin ChkOvr := Off; end;
-    cmNo:begin BadSection:=On; ForceSkip:=On end;
-    cmCancel: begin BadSection:=On; ForceEOF:=On end;
+    cmOk:begin ChkOvr := false; end;
+    cmNo:begin BadSection:=true; ForceSkip:=true end;
+    cmCancel: begin BadSection:=true; ForceEOF:=true end;
     end;
    NewTimer(Timer, 0);
   end;
@@ -1161,7 +1162,7 @@ procedure MakeTmpFile;
 
 procedure MaxSectNumMism;
 begin
- LocalError(GetString(dlleMaxSectNumMism));BadSection:=On;
+ LocalError(GetString(dlleMaxSectNumMism));BadSection:=true;
 end;
 
 var j:Longint;
@@ -1206,7 +1207,7 @@ begin
   SetTotSect(s);
   FName:=NewStr(CurFileName);
   Size:=0;Crc:=0;NSect:=0;
-  Broken:=False;CrcKnown:=Off;EndFound:=Off;ForceSkp:=ForceSkip;Flushed:=ForceSkip;
+  Broken:=False;CrcKnown:=false;EndFound:=false;ForceSkp:=ForceSkip;Flushed:=ForceSkip;
   if FileTimeKnown then FileTime:=CurFileTime else FileTime:=0;
   CurPFile:=@f;
   if not ForceSkip then
@@ -1220,7 +1221,7 @@ end;
 procedure DuplicateSection;
 begin
  LocalWarning(GetString(dlleDuplicateSection)+' '+ItoS(CurSectNo)+' '+GetString(dlleOfFile)+' '+CurFileName);
- BadSection:=On;
+ BadSection:=true;
 end;
 
 procedure AddNewSItem(var f:TFile);
@@ -1265,7 +1266,7 @@ begin
  CheckExist;
  MakeTmpFile;
  OpenOutFile;
- exSum:=On;
+ exSum:=true;
  while SectionGo do
  begin
   OutString;
@@ -1280,7 +1281,7 @@ begin
  MakeTmpFile;
  OpenOutFile;
  GoSect;
- exSum:=On;
+ exSum:=true;
  while SectionGo do
  begin
   OutString;
@@ -1311,11 +1312,7 @@ var
  IdleTimer: TEventTimer;
 begin
  if (PF^.Attr and Directory <> 0) then Exit;
-{$IFDEF Win32}
- InputFileName:=MakeNormName(PF^.Owner^, PF^.LFN);
-{$ELSE}
- InputFileName:=MakeNormName(PF^.Owner^, PF^.Name);
-{$ENDIF}
+ InputFileName:=MakeNormName(PF^.Owner^, PF^.FlName[uLfn]);
  if not ExistFile(InputFileName) then Exit;
  InputStream := New(PTextReader, Init(InputFileName));
  if (InputStream = nil) then Exit;
@@ -1336,7 +1333,7 @@ begin
   PI^.Write(3,CurFileName);
   PI^.Write(5,GetString(dlUUDecodeFiles)+SSStr(GoodNumber,3,' '));
   PI^.Write(6,GetString(dlUUDecodeErrors)+SSStr(ErrorNumber,3,' '));
-  BadSection:=Off;KickBack:=Off;ForceSkip:=Off;ExSum:=Off;CurPFile:=NIL;
+  BadSection:=false;KickBack:=false;ForceSkip:=false;ExSum:=false;CurPFile:=NIL;
 
   if not NumSectKnown then DecodeUnheadered
    else if MaxSectKnown then WriteHeadered else WriteOrphanedSection;
@@ -1357,9 +1354,9 @@ end;
     PL : PSortedListBox;}
 
 begin { Uu_Decode }
- POutBuf:=NIL;NFileArr:=0;BadSection:=Off;KickBack:=Off;
- ForceEOF:=Off;
- UUfound:=Off;CurFileName:='';GoodNumber:=0;ErrorNumber:=0;
+ POutBuf:=NIL;NFileArr:=0;BadSection:=false;KickBack:=false;
+ ForceEOF:=false;
+ UUfound:=false;CurFileName:='';GoodNumber:=0;ErrorNumber:=0;
  CurPFile:=NIL;PI:=NIL;
  ClearEX;ClearCRC;
  AFileCollection^.ForEach(@DoUuDecode);
@@ -1389,7 +1386,7 @@ begin
      UUDecodeOptions := Dr.Opt;
      if Dr.S='' then Dr.S :='.\' else if Dr.S[Length(Dr.S)]<>'\' then
        if not ((Length(Dr.S)=2) and (Dr.S[2]=':')) then Dr.S:=Dr.S+'\';
-     CreateDirInheritance(Dr.S, Off);
+     CreateDirInheritance(Dr.S, false);
     NewTimer(Timer, 0);
     BeepDisabled := UU_Decode(AFileCollection,Dr.S, Dr.Opt and 1 <> 0, Dr.Opt and 2 <> 0, Dr.Opt and 4 <> 0);
      RereadGlobal(Dr.S);
@@ -1569,7 +1566,7 @@ procedure ClrIO;
 begin
  InOutRes := 0;
  DosError := 0;
- Abort    := Off;
+ Abort    := false;
 end;
 
 
@@ -1710,7 +1707,7 @@ begin
         P := @OutName;
         II := MessageBox(GetString(dlFileExist)+^M, @P, mfQuery+mfYesButton+mfNoButton+mfCancelButton+mfAllButton);
         Case II of
-         cmOk: All := On;
+         cmOk: All := true;
          cmCancel,cmNo:
          begin Cancel := True; Exit; end;
         end;
@@ -1956,7 +1953,7 @@ beg:
      Xt := '.uue';
    end else Dr := S;
 
- CreateDirInheritance(Dr, Off);
+ CreateDirInheritance(Dr, false);
 
  lAssignFile(ST,FName);
  FileMode:=$40;

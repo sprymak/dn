@@ -125,14 +125,13 @@ uses DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
 
 constructor TDoubleWindow.Init;
  var P: PFilePanel;
-     P1: PInfoView;
      P2: PTopView;
      R: TRect;
      PV: PView;
 begin
- inherited Init(Bounds, '', ANumber); isValid := On;
+ inherited Init(Bounds, '', ANumber); isValid := true;
  Options := Options or ofTileAble;
- EventMask := $FFFF; Abort := Off;
+ EventMask := $FFFF; Abort := false;
  if (ADrive <= 0) or not ValidDrive(Char(ADrive+64)) then ADrive := 0;
  LDrive := ADrive; RDrive := ADrive;
  GetExtent(R); R.Grow(-1, 0);
@@ -433,7 +432,7 @@ procedure TDoubleWindow.HandleCommand;
               P.X := (OldBounds.A.X + ((OldBounds.B.X - OldBounds.A.X) * Separator^.OldX) div Separator^.OldW) div 2
              else P.X := 1;
    P.Y := Origin.Y + 3;
-   S := SelectDrive(P.X, P.Y, LPanel^.DirectoryName[1], On);
+   S := SelectDrive(P.X, P.Y, LPanel^.DirectoryName[1], true);
    if S = '' then Exit; ClrIO;
    Message(LPanel, evCommand, cmChangeDrv, @S);
    if LType <> dtPanel then
@@ -468,7 +467,7 @@ procedure TDoubleWindow.HandleCommand;
                                             Separator^.OldX) div Separator^.OldW) div 2
                      else P.X := OldBounds.B.X + OldBounds.A.X;
    P.Y := Origin.Y + 3;
-   S := SelectDrive(P.X, P.Y, RPanel^.DirectoryName[1], On);
+   S := SelectDrive(P.X, P.Y, RPanel^.DirectoryName[1], true);
    if S = '' then Exit; ClrIO;
    Message(RPanel, evCommand, cmChangeDrv, @S);
    if RType <> dtPanel then
@@ -816,12 +815,12 @@ begin
               (55-Length(PString(Event.InfoPtr)^)) div 2); CE end;
               cmPostHideRight: begin
                                  if not RVisible then SwitchRight;
-                                 RVisible := On;
+                                 RVisible := true;
                                  if LVisible then SwitchLeft;
                                end;
               cmPostHideLeft: begin
                                  if not LVisible then SwitchLeft;
-                                 LVisible := On;
+                                 LVisible := true;
                                  if RVisible then SwitchRight;
                                end;
               cmChangeInactive: begin

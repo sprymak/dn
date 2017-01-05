@@ -141,8 +141,6 @@ const
 *)
   MaxPathLen: Byte = 255;  { Maximum name length for the present moment }
 
-  LFNPresent: Boolean = true; { Are LFNs available }
-
   Const IllegalChars:String[15] = '<>|:'; { Characters invalid for short names }
       IllegalCharSet:Set Of Char = ['<','>','|',':']; { Characters invalid for short names }
 
@@ -225,8 +223,22 @@ uses
 {$IFDEF WIN32}
 const
   NoShortName: string[12] = #22#22#22#22#22#22#22#22'.'#22#22#22;
-    {AK155: это выводится вместо коротокого имени для файлов,
-      у которых короткого имени нет }
+{JO, AK155: зачем нужны эти #22:
+  В виндах функции API FindFileFirst и FindFileNext отдают два имени
+файла: основное и альтернативное (короткое).
+  Под НТ возможна ненормальная (с моей точки зрения,
+по крайней мере) ситуация, когда для файла с длинным (не укладывающимся
+в 8.3) имением файла альтернатвное имя недоступно. Так бывает, если
+файловая система в принципе не поддерживает двухименности (HPFS), или
+если формирование коротких имен отключено (на NTFS и FAT32).
+  Тогда в режиме показа коротких имён мы будем иметь для таких файлов
+обрезанные как попало имена в панели, не соответствующие
+действительности. Для этого JO и придумал этот условный заменитель
+недоступного короткого имени, так как символ #22 заведомо не
+может быть в принципе в реальном имени файла. Так показывать в
+режиме коротких имён файлы, для которых доступно только длинное имя, -
+честнее, чем с обрезанным именем, под которым файл недоступен.
+}
 {$ENDIF}
 
  Function StrPas_(S: Array Of Char): String;
@@ -248,7 +260,7 @@ begin
   NameZ[Length(Name)] := #0;
 end;
 {$ENDIF}
-{&Delphi+}
+
 {$IFDEF Win32}
 {JO}
 procedure OemToCharSt(var OemS: String);
@@ -356,7 +368,7 @@ end;
 *)
 
 {AK155}
-{$IFDEF Win32}
+{$IFNDEF OS2}
 function NotShortName(const S: string): boolean;
   var
     i, l: integer;

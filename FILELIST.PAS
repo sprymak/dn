@@ -168,7 +168,7 @@ begin
  Descriptions := nil;
  Hilite := PFilePanel(Owner)^.PanelFlags and pfHiliteFiles <> 0;
  DOSError := 0;
- Abort := Off; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO; FreeSpc := 0;
+ Abort := false; AllFiles := (FileMask = x_x) or (FileMask='*'); ClrIO; FreeSpc := 0;
  FreeSpace := ''; TotalInfo := ''; TotalLen := 0;
  Files := New(PFilesCollection, Init(10, 20));
  PFilesCollection(Files)^.Owner := Owner;
@@ -183,9 +183,9 @@ begin
 {$IFDEF Win32}
  PFilesCollection(Files)^.LFNActive := Flags and psShowLongName <> 0; {JO}
 {$ENDIF}
- DosError := 0; ClrIO; Abort := Off;
+ DosError := 0; ClrIO; Abort := false;
  DrNm := MakeNormName(CurDir,x_x);
- lFindFirst(DrNm, Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
+ lFindFirst(DrNm, AnyFile, SR); {JO}
  While (DosError = 0) and not Abort and (IOResult = 0) and (MemAvail > LowMemSize) do
  With SR do
  begin
@@ -194,7 +194,7 @@ begin
    if AllFiles or (SR.Attr and Directory <> 0) or (InFilter(FullName, FileMask)) then
    begin
     New(P);
-    if {$IFNDEF OS2}SR.Name[1] <> '.'{$ELSE}SR.Name <> '..'{$ENDIF} then
+    if not IsDummyDir(SR.Name then
     begin
      I := Pos('.', SR.Name);
      if I = 0 then P^.Name := SR.Name + Strg(32,12)
@@ -213,7 +213,7 @@ begin
     P^.Attr := SR.Attr;
     P^.Size := FullSize;
     P^.DIZ := nil;
-    P^.Selected := Off;
+    P^.Selected := false;
     if SR.Attr and Directory = 0 then
      begin
       if (Descriptions = nil) and InFilter(FullName, FMSetup.DIZ) then
@@ -235,14 +235,10 @@ begin
           if SR.Name = '..'  then P^.Size := GetDirLen(CurDir)
                               else P^.Size := GetDirLen(CurDir+'\'+Fullname);
 {$ENDIF}
-          if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := Off; end;
+          if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := false; end;
         end;
       end;
-{$IFNDEF OS2}
-    if P^.Name[1] <> '.' then Inc(TotalLen, P^.Size);
-{$ELSE}
-    if P^.Name <> '..' then Inc(TotalLen, P^.Size);
-{$ENDIF}
+    if not IsDummyDir(P^.Name) then Inc(TotalLen, P^.Size);
     P^.Owner := @CurDir;
 {$IFNDEF OS2}
     if P^.Attr and Hidden <> 0 then P^.Name[9] := #177;
@@ -285,11 +281,11 @@ begin
     P^.Attr := Directory;
     P^.Size := 0;
     P^.DIZ := nil;
-    P^.Selected := Off;
+    P^.Selected := false;
     if PanelFlags and pfShowLength <> 0 then
      begin
        P^.Size := GetDirLen(CurDir);
-       if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := Off; end;
+       if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := false; end;
      end;
     P^.Owner := @CurDir;
     Files^.Insert(P);

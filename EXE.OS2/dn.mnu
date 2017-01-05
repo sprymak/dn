@@ -70,11 +70,11 @@
 >1
 >1 Запись CD с помощью CDRecord/2
    >2 Посмотреть размер получившейся ФС
-      mkisofs -print-size -J -R !:!\
+      mkisofs -print-size -J -T !:!\
    >2 Создать образ текущего каталога в E:\TEMP для записи чистого CD
-      mkisofs -o E:\temp\session.iso -J -R !:!\
+      mkisofs -o E:\temp\session.iso -J -T !:!\
    >2 Создать образ текущего каталога в E:\TEMP для дописывания текущего CD
-      autoiso /t:E:\TEMP\ dev=0,1,0 -J -R !:!\
+      autoiso /t:E:\TEMP\ dev=0,1,0 -J -T !:!\
    >2 Записать CD используя E:\temp\session.iso как образ
       < Введите скорость записи (4, 8, 12, 16):
       cdrecord dev=0,1,0 driveropts=burnfree speed=%3 -multi -v E:\temp\session.iso
@@ -89,7 +89,7 @@
       cdrecord.exe dev=0,1,0 speed=12 -v blank=fast
    >2 Запись одного текущего файла (например, DivX)
       < Введите скорость записи (4, 8, 12, 16):
-      mkisofs.exe -national -hpfsnames -pad !.! | cdrecord.exe -v fs=16m dev=0,1,0 speed=%3
+      mkisofs.exe -J -pad !.! | cdrecord.exe -v fs=16m dev=0,1,0 speed=%3
 >1
 >1 Выр~e~зать дамп из файла в *.??1
    >2 Вырезать с начала до ...

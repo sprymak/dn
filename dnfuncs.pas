@@ -11,10 +11,12 @@ Written by Cat 2:5030/1326.13
 interface
 
 uses
-  {Use32,} Dos, Advance, Advance1, Advance7, Commands,
+  Dos, Advance, Advance1, Advance7, Commands,
   Objects, RegExp, Collect, FilesCol, FLTools, LFN,
-  Views, Menus, Scroller, Dialogs, Messages, DNApp,
-  DNUtil, UniWin, Editor, EdWin, Calculat, Plugin, PlugRez;
+  Views, Menus, Scroller, Dialogs, Gauge, Messages, DNApp,
+  DNUtil, UniWin, Editor, EdWin, FViewer, Calculat, FLPanelX,
+  Drives, FileFind, ArcView, Arvid,
+  Plugin, PlugRez;
 
 type
   PSomeObjects1 = ^TSomeObjects1;
@@ -52,27 +54,64 @@ type
     RemoveEditorEventHook: procedure(EditorEventHook: TEditorEventHook);
   end;
 
+  {&AlignRec+}
+  PSystemVars = ^TSystemVars;
+  TSystemVars = record
+    ExitCode: LongInt;
+    ErrorAddr: Pointer;
+    ExceptionNo: LongInt;
+    TlsSharedMem: Pointer;
+    TlsSharedMemSize: LongInt;
+    DebugHook: Boolean;
+    IsConsole: Boolean;
+    IsMultiThread: Boolean;
+    ExitProc: Pointer;
+    XcptProc: Pointer;
+    ExceptProc: Pointer;
+    ErrorProc: Pointer;
+    SmHeapList: Pointer;
+    LgHeapList: Pointer;
+    HeapError: Pointer;
+    Environment: Pointer;
+    ExceptClsProc: Pointer;
+    ExceptObjProc: Pointer;
+    ExceptionClass: TClass;
+    CmdLine: PChar;
+    ModuleHandle: LongInt;
+    RandSeed: LongInt;
+    AllocMemCount: LongInt;
+    AllocMemSize: LongInt;
+    SmHeapBlock: LongInt;
+    LgHeapBlock: LongInt;
+    HeapLimit: LongInt;
+    HeapAllocFlags: LongInt;
+    HeapSemaphore: LongInt;
+    Test8086: Byte;
+    Test8087: Byte;
+  end;
+  {&AlignRec-}
+
   PDNFunctions = ^TDNFunctions;
   TDNFunctions = packed record
     DN2Version: Integer;
     APIVersion: Integer;
     Reserved1: Integer;
-    Reserved2: Integer;
+    SystemVars: PSystemVars;
 
     SomeObjects1: PSomeObjects1;
     SomeObjects2: PSomeObjects2;
     SomeObjects3: PSomeObjects3;
+    Reserved2: Integer;
     Reserved3: Integer;
     Reserved4: Integer;
-    Reserved5: Integer;
-    Reserved6: Integer;
+    TryExcept: function(Proc: TProcedure): Pointer;
     SimpleHooks: PSimpleHooks;
 
     MemoryManager: TMemoryManager;
 
     TinySlice: procedure;
 
-    Evalue: function(const S: String; VGF: VarGetFunc): CReal;
+    Evalue: function(const s: String; CCV: Pointer): CReal;
     EvalueError: ^Boolean;
 
     DosError: function: Integer;
@@ -92,7 +131,7 @@ type
 
     GetActivePanel: function: Pointer;
     GetPassivePanel: function: Pointer;
-    GetSelection: function(AFP: Pointer; Single: Boolean): Pointer;
+    GetSelection: function(P: PFilePanelRoot; Single: Boolean): PFilesCollection;
     ClearSelection: procedure(AFP: Pointer; FC: Pointer);
 
     NewStr: function(const S: String): PString;
@@ -169,9 +208,11 @@ type
     InputBoxRect: function(var Bounds: TRect; Title: String; ALabel: String; var S: String; Limit: Word; HistoryID: Word): Word;
   end;
 
+function TryExcept(Proc: TProcedure): Pointer;
 function DosError: Integer;
 function ExecView(P: PView): Integer;
 function ExecAndDisposeMenu(Menu: PMenu): Integer;
+function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem; ANext: PStatusDef): PStatusDef;
 function GetActivePanel: Pointer;
 function GetPassivePanel: Pointer;
 procedure ClearSelection(AFP: Pointer; FC: Pointer);
@@ -187,17 +228,17 @@ const
   DNFunctions: TDNFunctions =
     (
      DN2Version:            0;
-     APIVersion:            1;
+     APIVersion:            3;
      Reserved1:             0;
-     Reserved2:             0;
+     SystemVars:            @System.ExitCode;
 
      SomeObjects1:          @DNApp.Application;
      SomeObjects2:          @Advance.StartupDir;
      SomeObjects3:          @Plugin.EventCatchers;
+     Reserved2:             0;
      Reserved3:             0;
      Reserved4:             0;
-     Reserved5:             0;
-     Reserved6:             0;
+     TryExcept:             TryExcept;
      SimpleHooks:           @SimpleHooks;
 
      MemoryManager:         (
@@ -277,7 +318,7 @@ const
      LookUpMenu:            Menus.LookUpMenu;
      MenuIndexOf:           Menus.MenuIndexOf;
 
-     NewStatusDef:          Menus.NewStatusDef;
+     NewStatusDef:          NewStatusDef;
      NewStatusKey:          Menus.NewStatusKey;
 
      LngId:                 Advance7.LngId;
@@ -795,6 +836,96 @@ type
     Store: Pointer;
   end;
 
+  PTPercentGauge = ^TTPercentGauge;
+  TTPercentGauge = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    AddProgress: Pointer;
+    SolveForX: Pointer;
+    SolveForY: Pointer;
+  end;
+
+  PTBarGauge = ^TTBarGauge;
+  TTBarGauge = packed record
+    VMT: Pointer;
+  end;
+
+  PTWhileView = ^TTWhileView;
+  TTWhileView = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    Write: Pointer;
+    ClearInterior: Pointer;
+  end;
+
+  PTViewScroll = ^TTViewScroll;
+  TTViewScroll = packed record
+    VMT: Pointer;
+    GetPartCode: Pointer;
+    GetSize: Pointer;
+    DrawPos: Pointer;
+  end;
+
+  PTFileViewer = ^TTFileViewer;
+  TTFileViewer = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    Load: Pointer;
+    Store: Pointer;
+    SetXlatFile: Pointer;
+    ReadFile: Pointer;
+    WriteModify: Pointer;
+    Seek: Pointer;
+    SaveToFile: Pointer;
+    DoHighlite: Pointer;
+    SeekEof: Pointer;
+    SeekBof: Pointer;
+    BreakOnStreamReadError: Pointer;
+  end;
+
+  PTDrive = ^TTDrive;
+  TTDrive = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    Load: Pointer;
+  end;
+
+  PTFindDrive = ^TTFindDrive;
+  TTFindDrive = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    InitList: Pointer;
+    Load: Pointer;
+    NewUpFile: Pointer;
+  end;
+
+  PTTempDrive = ^TTTempDrive;
+  TTTempDrive = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    Load: Pointer;
+  end;
+
+  PTArcDrive = ^TTArcDrive;
+  TTArcDrive = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    InitCol: Pointer;
+    Load: Pointer;
+    ReadArchive: Pointer;
+    Exec: Pointer;
+    MakeListFile: Pointer;
+    ExtractFiles: Pointer;
+    StdMsg4: Pointer;
+  end;
+
+  PTArvidDrive = ^TTArvidDrive;
+  TTArvidDrive = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    SeekDirectory: Pointer;
+  end;
+
   PDNMethods = ^TDNMethods;
   TDNMethods = packed record
     RecordSize: Integer;
@@ -849,7 +980,17 @@ type
     _TDNApplication: PTDNApplication;
     _TUniWindow: PTUniWindow;
     _TXFileEditor: PTXFileEditor;
-    _TEditWindow: PTEditWindow
+    _TEditWindow: PTEditWindow;
+    _TPercentGauge: PTPercentGauge;
+    _TBarGauge: PTBarGauge;
+    _TWhileView: PTWhileView;
+    _TViewScroll: PTViewScroll;
+    _TFileViewer: PTFileViewer;
+    _TDrive: PTDrive;
+    _TFindDrive: PTFindDrive;
+    _TTempDrive: PTTempDrive;
+    _TArcDrive: PTArcDrive;
+    _TArvidDrive: PTArvidDrive
   end;
 
 const
@@ -1342,6 +1483,96 @@ const
      Store:                 @TEditWindow.Store
     );
 
+  _TPercentGauge: TTPercentGauge =
+    (
+     VMT:                   TypeOf(TPercentGauge);
+     Init:                  @TPercentGauge.Init;
+     AddProgress:           @TPercentGauge.AddProgress;
+     SolveForX:             @TPercentGauge.SolveForX;
+     SolveForY:             @TPercentGauge.SolveForY
+    );
+
+  _TBarGauge: TTBarGauge =
+    (
+     VMT:                   TypeOf(TBarGauge)
+    );
+
+  _TWhileView: TTWhileView =
+    (
+     VMT:                   TypeOf(TWhileView);
+     Init:                  @TWhileView.Init;
+     Write:                 @TWhileView.Write;
+     ClearInterior:         @TWhileView.ClearInterior
+    );
+
+  _TViewScroll: TTViewScroll =
+    (
+     VMT:                   TypeOf(TViewScroll);
+     GetPartCode:           @TViewScroll.GetPartCode;
+     GetSize:               @TViewScroll.GetSize;
+     DrawPos:               @TViewScroll.DrawPos
+    );
+
+  _TFileViewer: TTFileViewer =
+    (
+     VMT:                   TypeOf(TFileViewer);
+     Init:                  @TFileViewer.Init;
+     Load:                  @TFileViewer.Load;
+     Store:                 @TFileViewer.Store;
+     SetXlatFile:           @TFileViewer.SetXlatFile;
+     ReadFile:              @TFileViewer.ReadFile;
+     WriteModify:           @TFileViewer.WriteModify;
+     Seek:                  @TFileViewer.Seek;
+     SaveToFile:            @TFileViewer.SaveToFile;
+     DoHighlite:            @TFileViewer.DoHighlite;
+     SeekEof:               @TFileViewer.SeekEof;
+     SeekBof:               @TFileViewer.SeekBof;
+     BreakOnStreamReadError:@TFileViewer.BreakOnStreamReadError
+    );
+
+  _TDrive: TTDrive =
+    (
+     VMT:                   TypeOf(TDrive);
+     Init:                  @TDrive.Init;
+     Load:                  @TDrive.Load
+    );
+
+  _TFindDrive: TTFindDrive =
+    (
+     VMT:                   TypeOf(TFindDrive);
+     Init:                  @TFindDrive.Init;
+     InitList:              @TFindDrive.InitList;
+     Load:                  @TFindDrive.Load;
+     NewUpFile:             @TFindDrive.NewUpFile
+    );
+
+  _TTempDrive: TTTempDrive =
+    (
+     VMT:                   TypeOf(TTempDrive);
+     Init:                  @TTempDrive.Init;
+     Load:                  @TTempDrive.Load
+    );
+
+  _TArcDrive: TTArcDrive =
+    (
+     VMT:                   TypeOf(TArcDrive);
+     Init:                  @TArcDrive.Init;
+     InitCol:               @TArcDrive.InitCol;
+     Load:                  @TArcDrive.Load;
+     ReadArchive:           @TArcDrive.ReadArchive;
+     Exec:                  @TArcDrive.Exec;
+     MakeListFile:          @TArcDrive.MakeListFile;
+     ExtractFiles:          @TArcDrive.ExtractFiles;
+     StdMsg4:               @TArcDrive.StdMsg4
+    );
+
+  _TArvidDrive: TTArvidDrive =
+    (
+     VMT:                   TypeOf(TArvidDrive);
+     Init:                  @TArvidDrive.Init;
+     SeekDirectory:         @TArvidDrive.SeekDirectory
+    );
+
   DNMethods: TDNMethods =
     (
      RecordSize:            SizeOf(TDNMethods);
@@ -1396,13 +1627,34 @@ const
      _TDNApplication:       @_TDNApplication;
      _TUniWindow:           @_TUniWindow;
      _TXFileEditor:         @_TXFileEditor;
-     _TEditWindow:          @_TEditWindow
-    );
+     _TEditWindow:          @_TEditWindow;
+     _TPercentGauge:        @_TPercentGauge;
+     _TBarGauge:            @_TBarGauge;
+     _TWhileView:           @_TWhileView;
+     _TViewScroll:          @_TViewScroll;
+     _TFileViewer:          @_TFileViewer;
+     _TDrive:               @_TDrive;
+     _TFindDrive:           @_TFindDrive;
+     _TTempDrive:           @_TTempDrive;
+     _TArcDrive:            @_TArcDrive;
+     _TArvidDrive:          @_TArvidDrive
+     );
 
 implementation
 
 uses
-  XDblWnd, FlPanelX;
+  SysUtils, XDblWnd;
+
+function TryExcept(Proc: TProcedure): Pointer;
+begin
+  Result := nil;
+  try
+    Proc
+  except
+    on E: Exception do
+      Result := E;
+  end;
+end;
 
 function DosError: Integer;
 begin
@@ -1424,6 +1676,47 @@ begin
   ExecAndDisposeMenu := Desktop^.ExecView(MenuBox);
   DisposeMenu(Menu);
   Dispose(MenuBox, Done);
+end;
+
+function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem; ANext: PStatusDef): PStatusDef;
+type
+  PBuffer = ^TBuffer;
+  TBuffer = array[SmallWord] of Boolean;
+var
+  PP: ^PStatusDef;
+  Buffer: PBuffer;
+  I: SmallWord;
+begin
+  if (AMin = 0) and (AMax = 0) then
+    begin
+      New(Buffer);
+      FillChar(Buffer^, SizeOf(TBuffer), #0);
+      PP := @StatusLine^.Defs;
+      while PP^ <> nil do
+        begin
+          if (PP^^.Min = 0) and (PP^^.Max = $FFFF) then
+            begin
+              for I := $FFFF downto 0 do
+                if not Buffer^[I] then
+                  begin
+                    PP^ := Menus.NewStatusDef(I, I, AItems, PP^);
+                    NewStatusDef := Pointer(I);
+                    Break;
+                  end;
+              Dispose(Buffer);
+              Exit;
+            end
+          else
+            for I := PP^^.Min to PP^^.Max do
+              Buffer^[I] := True;
+
+          PP := @PP^^.Next;
+        end;
+      NewStatusDef := nil;
+      Dispose(Buffer);
+    end
+  else
+    NewStatusDef := Menus.NewStatusDef(Amin, AMax, AItems, ANext);
 end;
 
 function GetActivePanel: Pointer;
@@ -1487,7 +1780,6 @@ begin
     end;
 end;
 
-{&Delphi+}
 function OpenRezX(const PluginName: String): LongInt;
 var
   P: PString;
@@ -1499,6 +1791,5 @@ begin
       MessageBox(GetString(dlPlugins6), @P, mfError+mfOkButton);
     end;
 end;
-{&Delphi-}
 
 end.

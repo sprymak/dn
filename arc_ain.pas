@@ -179,7 +179,7 @@ Procedure TAINArchive.GetFile;
       readln(ListFile, s);
       if IOResult <> 0 then
         exit;
-    until Pos('File name', s) <> 0;
+    until (Pos('File name', s) <> 0) or (Pos('Имя файла', s) <> 0);
     repeat
       if eof(ListFile) then
         exit;

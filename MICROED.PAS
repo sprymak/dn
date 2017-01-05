@@ -227,8 +227,6 @@ uses
   xTime, FileCopy, ASCIItab, DnIni, U_SrchF, EdWin, Microed2{-$VIV};
 
 const
-    On          = True;
-    Off         = False;
     cmNoCommand = 4000;
 
    {SmartWindow: PEditWindow = nil;}      {Cat: перенёс эти переменные в модуль MicroEd2}
@@ -617,7 +615,7 @@ begin
   inherited Init(Bounds);
   InsertMode := True; {Cat}
   DrawMode := 0; {Cat}
-  BlockVisible := Off; {Cat}
+  BlockVisible := false; {Cat}
   Mark.Assign(0,0,0,0); {Cat}
   LastDir := -1;
   HelpCtx := hcEditor;
@@ -627,7 +625,7 @@ begin
   VScroll := AVScrollBar;
   GrowMode := gfGrowHiX + gfGrowHiY;
   Options := Options or ofSelectable;
-  SearchActive := Off; UnMark := On;
+  SearchActive := false; UnMark := true;
   EventMask := $FFFF;
   IsValid := True;
 
@@ -978,7 +976,7 @@ function GetFileNameDialog(Mask, Title, Name: String; Buttons, HistoryID: Word):
      D: PFileDialog;
      B: Boolean;
 begin
-  S := ''; B := Off; if Mask = '' then begin Mask := x_x; B := On end;
+  S := ''; B := false; if Mask = '' then begin Mask := x_x; B := true end;
   D := PFileDialog(Application^.ValidView(New(PFileDialog,
         Init(Mask, Title, Name, Buttons, HistoryID))));
   if D = nil then Exit;
@@ -1031,7 +1029,7 @@ function TFileEditor.GetSelection;
       S: LongString;
       I: LongInt;
 begin
- GetSelection := Nil; MemEnough := On ;
+ GetSelection := Nil; MemEnough := true ;
  if not (BlockVisible and ValidBlock) or LowMemory then Exit;
  P := New(PLineCollection, Init(Mark.B.Y-Mark.A.Y+1, 5, True));
  for I := Mark.A.Y to Mark.B.Y do
@@ -1057,7 +1055,7 @@ begin
    if LowMemory { or not MemOK} then
     begin
      Dispose(P,Done);
-     MemEnough := Off ;
+     MemEnough := false ;
      Exit;
     End;
   end;
@@ -1070,7 +1068,7 @@ function TFileEditor.Valid(Command: Word): Boolean;
      S: String;
      V: Boolean;
 begin
-  Valid := On; V := On;
+  Valid := true; V := true;
   if Command = cmValid then Valid := isValid;
   if (SmartPad or ClipBrd) then
    begin
@@ -1082,7 +1080,7 @@ begin
     begin
       if Modified then
         begin
-          ModifyLine(Delta.Y, WorkString, On);
+          ModifyLine(Delta.Y, WorkString, true);
           S := Cut(EditName, 30);
           P := @S;
           I := MessageBox(GetString(dlQueryModified), @P, mfWarning+mfYesNoCancel);
@@ -1128,12 +1126,12 @@ var
   end;
 
 begin
-  SearchActive := On;
+  SearchActive := true;
   NewTimer(Tmr, 0);
-  Marking := Off; OldMark := Mark;
+  Marking := false; OldMark := Mark;
   if (SearchData.Scope = 1 {отмеченный текст}) and not (BlockVisible and ValidBlock) then
     goto LExit;
-  Search := Off; F := On;
+  Search := false; F := true;
   Prompt := (SearchData.What <> #0) and (SearchData.Options and efoReplacePrompt <> 0); {запрос на замену}
   D.Assign(StartX, StartY);
   W := SearchData.Line;
@@ -1142,7 +1140,7 @@ begin
   if SearchData.Options and efoCaseSens = 0 then {не различать регистр}
     UpLongStr(W);
   AllCP := (SearchData.What = #0) and (SearchData.Options and efoAllCP <> 0 {во всех кодировках});
-  UnMark := Off;
+  UnMark := false;
   NumRep := 0;
   Dir := 1 - 2 * SearchData.Dir; {направление поиска: +1 вперёд, -1 назад}
   while (Dir > 0) and (D.Y < FileLines^.Count) or
@@ -1246,7 +1244,7 @@ begin
 
       if I > 0 then {что-то нашли, надо нарисовать это на экране}
         begin
-          Search := On; F := Off;
+          Search := true; F := false;
           DD.Y := D.Y; DD.X := StX + I - 2; D := DD;
           if Dir > 0 then
             {$IFDEF REGEXP}
@@ -1295,13 +1293,13 @@ begin
                   if J = cmOK then
                     begin
                       J := cmYes;
-                      ReplaceAll := On;
-                      Prompt := Off;
+                      ReplaceAll := true;
+                      Prompt := false;
                     end;
                 end;
               if J = cmYes then
                 begin
-                  Modified := On;
+                  Modified := true;
                   Inc(NumRep); {piwamoto}
                   {$IFDEF REGEXP}
                   if SearchData.Options and efoRegExp <> 0 then
@@ -1321,8 +1319,8 @@ begin
                   {$ENDIF}
                     Delete(S1, DD.X+1, Length(W));
                   Insert(SearchData.What, S1, DD.X+1);
-                  ModifyLine(Delta.Y, S1, On);
-                  WorkModified := Off;
+                  ModifyLine(Delta.Y, S1, true);
+                  WorkModified := false;
                   if Dir > 0 then
                     {$IFDEF REGEXP}
                     if SearchData.Options and efoRegExp <> 0 then
@@ -1365,12 +1363,12 @@ begin
 
   if F then
     begin
-      SearchActive := Off;
+      SearchActive := false;
       MessageBox(GetString(dlDBViewSearchNot), nil, mfInformation+mfOKButton);
     end
   else
     Mark := OldMark;
-  UnMark := On;
+  UnMark := true;
 
 EndReplace:
   if NumRep > 0 then
@@ -1383,7 +1381,7 @@ LExit:
   _DrawViews;
 
 _LExit:
-  SearchActive := Off;
+  SearchActive := false;
 end;
 {/Cat}
 
@@ -1395,10 +1393,10 @@ procedure TFileEditor.InsertBlock;
      LL: PCollection;
 begin
  if (ABlock = nil) or (ABlock^.Count = 0) then Exit;
- Modified := On;
+ Modified := true;
  if SaveUndo then
   begin
-    Mark.B := Delta; Mark.A := Delta; BlockVisible := On;
+    Mark.B := Delta; Mark.A := Delta; BlockVisible := true;
     Inc(Mark.B.Y, Max(0, ABlock^.Count - 1));
   end;
  if VertBlock then
@@ -1438,7 +1436,7 @@ begin
      if not InsertMode then Delete(S2, Delta.X + 1, Length(S1));
      if Length(S2) < Delta.X then S2 := S2 + LongStrg(' ', Delta.X - Length(S2));
      Insert(S1, S2, Delta.X + 1);
-     ModifyLine(I+Delta.Y-1, S2, On);
+     ModifyLine(I+Delta.Y-1, S2, true);
     end
    end
    else
@@ -1515,7 +1513,7 @@ begin
   {/Cat}
 
   BB := Pos;
-  SearchOnDisplay := Off;
+  SearchOnDisplay := false;
   if Pos.X < 0 then Pos.X := 0;
   if Pos.Y < 0 then Pos.Y := 0;
   if Delta.X < 0 then Delta.X := 0;
@@ -1526,10 +1524,10 @@ begin
   if Delta.X - Pos.X >= Size.X then Pos.X := Delta.X - Size.X + 8;
   if Pos.Y > Delta.Y then Pos.Y := Delta.Y;
   if Delta.Y - Pos.Y >= Size.Y then Pos.Y := Delta.Y - Size.Y + 1;
-  if (BB.X <> Pos.X) or (BB.Y <> Pos.Y) then ChPosition := Off;
+  if (BB.X <> Pos.X) or (BB.Y <> Pos.Y) then ChPosition := false;
   if Marking then
      begin
-       ChPosition := Off;
+       ChPosition := false;
        Sel.B.X := Delta.X; Sel.B.Y := Delta.Y;
        if LineMarking and (Sel.B.Y < FileLines^.Count - 1) then
         begin
@@ -1671,7 +1669,7 @@ begin
           X1 := 0;
         end;
       MoveColor(B[X1], X2, BC);
-      SearchOnDisplay := On;
+      SearchOnDisplay := true;
     end;
     if EdOpt.HiliteColumn then WordRec(B[Delta.X - Pos.X]).Hi := CC[7];
 {$IFDEF OS2}
@@ -1689,7 +1687,7 @@ begin
  ShowCursor;
  LastPos.X := Delta.X;
  LastPos.Y := Delta.Y;
- ChPosition := Off;
+ ChPosition := false;
  if (InfoL<>nil) then InfoL^.Draw;
  if (BMrk<>nil)  then BMrk^.Draw;
 end;
@@ -1739,9 +1737,9 @@ procedure TFileEditor.HandleEvent;
 
  procedure BlockOff;
  begin
-  UnMark := On; Marking := Off; ChPosition := Off;
+  UnMark := true; Marking := false; ChPosition := false;
   if EditorDefaults.EdOpt and ebfPbl <> 0 then Exit;
-  Mark.B := Mark.A; BlockVisible := Off;
+  Mark.B := Mark.A; BlockVisible := false;
  end;
 
  procedure InsertSpace;
@@ -1771,7 +1769,7 @@ procedure TFileEditor.HandleEvent;
   if WorkModified then Exit;
   LastLine := Delta.Y;
   LastShape := GetLine(LastLine);
-  WorkModified := On; Modified := On; WasDelete := Off;
+  WorkModified := true; Modified := true; WasDelete := false;
  end;
 
  procedure ChangeLine;
@@ -1779,9 +1777,9 @@ procedure TFileEditor.HandleEvent;
  begin
    if not WorkModified then goto Ex;
    While (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do SetLength(WorkString, Length(WorkString)-1);
-   if WorkModified then ModifyLine(LastLine, WorkString,On);
+   if WorkModified then ModifyLine(LastLine, WorkString,true);
    Modified := Modified or WorkModified;
-   WorkModified := Off;
+   WorkModified := false;
  Ex:
    WorkString := GetLine(Delta.Y);
  end;
@@ -1807,8 +1805,8 @@ procedure TFileEditor.HandleEvent;
    end else
        begin
         ChangeLine;
-        Modified := On;
-        WorkModified := Off;
+        Modified := true;
+        WorkModified := false;
         OldS := WorkString;
         WAY := Bl and (Delta.Y = Mark.A.Y) and (Delta.X <= Mark.A.X);
         WBY := Bl and (Delta.Y = Mark.B.Y) and (Delta.X <= Mark.B.X);
@@ -1817,7 +1815,7 @@ procedure TFileEditor.HandleEvent;
         S1 := WorkString; S2 := Copy(S1, 1, LastX);
         While (S2 <> '') and (S2[Length(S2)] = ' ') do SetLength(S2, Length(S2)-1);
         WorkString := S2; Delete(S1, 1, LastX);
-        ModifyLine(LastY,S2,On);
+        ModifyLine(LastY,S2,true);
         WorkString := S1;
         if EdOpt.AutoIndent then
          begin
@@ -1853,28 +1851,28 @@ procedure TFileEditor.HandleEvent;
    P: TPoint;
    L: Longint;
  begin
-  WorkModify; BlockOff; Modified := On;
+  WorkModify; BlockOff; Modified := true;
   ClearEvent(Event);
   if LastX = 0 then
    begin
     if (LastY = 0) or not InsertMode then Exit;
-    EnableMarking := Off;
+    EnableMarking := false;
     FileLines^.AtFree(LastY);
     S := GetLine(LastY - 1);
     P.X := Length(S); P.Y := Delta.Y - 1;
     StoreUndoInfo(udSubDelLine, P, WorkString);
-    WorkString := S + WorkString; ModifyLine(LastY - 1, WorkString, On);
-    WorkModified := Off; WorkModify; WorkModified := Off;
+    WorkString := S + WorkString; ModifyLine(LastY - 1, WorkString, true);
+    WorkModified := false; WorkModify; WorkModified := false;
     Delta.X := Length(S);
     ScrollTo(Delta.X, Delta.Y - 1);
     SetLimits;
     ChangeLine;
     DrawView;
-    EnableMarking := On;
+    EnableMarking := true;
     for L:=1 to 9 do if MarkPos[L].Y >= Delta.Y then Dec(MarkPos[L].Y);
     Exit;
    end;
-  EnableMarking := Off;
+  EnableMarking := false;
   if Length(WorkString) < LastX then WorkString := LongAddSpace(WorkString, LastX + 1);
 {Cat:warn проверить, нет ли тут ошибки}
   if EdOpt.BackIndent and ((WorkString[LastX + 1] <> ' ') or (DelSpaces(WorkString) = ''))
@@ -1897,7 +1895,7 @@ procedure TFileEditor.HandleEvent;
           ScrollTo(LastX, Delta.Y);
           ChangeLine;
           DrawView;
-          EnableMarking := On;
+          EnableMarking := true;
           Exit;
          end;
       end;
@@ -1916,7 +1914,7 @@ procedure TFileEditor.HandleEvent;
       end;
   ScrollTo(Delta.X - 1, Delta.Y);
   ChangeLine;
-  EnableMarking := On;
+  EnableMarking := true;
  end;
 
  procedure BlockDelete(ChangePos: Boolean);
@@ -1924,7 +1922,7 @@ procedure TFileEditor.HandleEvent;
       S, S1, S2: LongString;
       L, K: Longint;
  begin
-  Modified := On;
+  Modified := true;
   if VertBlock then
    begin
     if ChangePos and InsertMode then
@@ -1940,7 +1938,7 @@ procedure TFileEditor.HandleEvent;
      S := GetLine(I);
      Delete(S, Mark.A.X + 1, Mark.B.X - Mark.A.X);
      if not InsertMode then Insert(LongStrg(' ', Mark.B.X - Mark.A.X), S, Mark.A.X + 1);
-     ModifyLine(I, S, On);
+     ModifyLine(I, S, true);
     end;
    end else
    begin
@@ -1962,7 +1960,7 @@ procedure TFileEditor.HandleEvent;
          else Delta := Mark.A;
      end;
     ModifyLine(Mark.A.Y, Copy(GetLine(Mark.A.Y),1,Mark.A.X) +
-                         Copy(GetLine(Mark.B.Y),Mark.B.X+1,MaxLongStringLength), On);
+                         Copy(GetLine(Mark.B.Y),Mark.B.X+1,MaxLongStringLength), true);
     for I := Mark.A.Y to Mark.B.Y - 1 do
         FileLines^.AtFree(Mark.A.Y + 1);
     K:=Mark.B.Y - Mark.A.Y - 1;
@@ -1988,7 +1986,7 @@ procedure TFileEditor.HandleEvent;
   label L1;
  begin
   if not BlockVisible then Exit;
-  EnableMarking := Off; Marking := Off;
+  EnableMarking := false; Marking := false;
   ChangeLine;
   L := GetSelection;
      if (L = nil) then
@@ -2002,7 +2000,7 @@ procedure TFileEditor.HandleEvent;
   if VertBlock and not InsertMode then StoreUndoInfo(udClearBlock, Mark.A, L)
     else StoreUndoInfo(udDelBlock, Mark.A, L);
 L1:
-  BlockDelete({not ChangePos} On);
+  BlockDelete({not ChangePos} true);
   if ChangePos then
     begin
       Delta := Mark.A;
@@ -2014,7 +2012,7 @@ L1:
   ScrollTo(LastX, LastY);
   DrawView;
   ChangeLine;
-  EnableMarking := On;
+  EnableMarking := true;
  end;
 
  procedure BMarking;
@@ -2024,8 +2022,8 @@ L1:
   begin
    if not Marking then begin Sel.A := LastPos; Sel.B := Delta end
                   else Sel.B := Delta;
-   Marking := On;
-   BlockVisible := On;
+   Marking := true;
+   BlockVisible := true;
   end else begin Marking := MouseMark; if Marking then Sel.B := Delta; end;
   if not Marking and UnMark then BlockOff;
  end;
@@ -2038,7 +2036,7 @@ L1:
   WorkModify;
   ChangeLine;
   BlockOff;
-  Modified := On;
+  Modified := true;
   if LastX < Length(WorkString) then
    begin WorkModify; P.X := LastX; P.Y := LastY;
          StoreUndoInfo(udDelChar, P, WorkString[LastX+1]);
@@ -2057,18 +2055,18 @@ L1:
 
  procedure PasteBlock;
  begin
-  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(On)};
-  EnableMarking := Off; Marking := Off;
+  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(true)};
+  EnableMarking := false; Marking := false;
   ChangeLine;
   if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
-    then DeleteBlock(On);
+    then DeleteBlock(true);
   BlockOff;
-  InsertBlock(Clipboard, On);
+  InsertBlock(Clipboard, true);
   ChangeLine;
   {$IFNDEF NONBP}
   memw[seg0040:$1C] := memw[seg0040:$1A];
   {$ENDIF}
-  EnableMarking := On;
+  EnableMarking := true;
  end;
 
  procedure CopyBlock;
@@ -2102,16 +2100,16 @@ L1:
  procedure DeleteLine;
  var L: longint;
  begin
-  Modified := On;
+  Modified := true;
   T.Y := LastY; T.X := LastX;
   if Delta.Y + 1 = FileLines^.Count then
    begin
     StoreUndoInfo(udSubDel, T, WorkString);
-    ModifyLine(Delta.Y, '', On); SetLength(WorkString, 0);
+    ModifyLine(Delta.Y, '', true); SetLength(WorkString, 0);
    end else
    begin
     StoreUndoInfo(udDelLine, T, WorkString);
-    WorkModified := Off; FileLines^.AtFree(Delta.Y); ChangeLine
+    WorkModified := false; FileLines^.AtFree(Delta.Y); ChangeLine
    end;
   for L:=1 to 9 do if MarkPos[L].Y >= Delta.Y then Dec(MarkPos[L].Y);
   SetLimits; ScrollTo(0, Delta.Y); DrawView; ChangeLine;
@@ -2237,7 +2235,7 @@ L1:
 
  procedure DoTab;
  begin
-  Modified := On;
+  Modified := true;
   {-$VOL begin}
   if not TabReplace then begin
     Event.CharCode:=#09;
@@ -2271,10 +2269,10 @@ L1:
                               fdOKButton + fdHelpButton, hsEditPasteFrom);
   if S = '' then Exit;
   S := lFExpand(S);
-  P := MIReadBlock(@Self, S, Off);
-  if not IsValid then begin isValid := On; Exit; end;
-  VertBlock := Off;
-  if P <> nil then begin InsertBlock(P, On); Dispose(P,Done) end;
+  P := MIReadBlock(@Self, S, false);
+  if not IsValid then begin isValid := true; Exit; end;
+  VertBlock := false;
+  if P <> nil then begin InsertBlock(P, true); Dispose(P,Done) end;
  end;
         {-DataCompBoy-}
 
@@ -2506,7 +2504,7 @@ var qwe: byte;
     LongDelLeft(S);
     S := LongStrg(' ', EdOpt.LeftSide)+S;
    end;
-   ModifyLine(LastY, WorkString, On);
+   ModifyLine(LastY, WorkString, true);
    KeyMapAtInsert(LastY+1, NewLongStr(S)); {-$VIV}
    S := #2#0;
    StoreUndoInfo(udFormatBlock, TP, S);
@@ -2539,13 +2537,13 @@ var qwe: byte;
         end;
     end;
 
-   EnableMarking := Off;
+   EnableMarking := false;
    if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
-     then DeleteBlock(On);
+     then DeleteBlock(true);
    LastY := Delta.Y;
    LastX := Delta.X;
    BlockOff;
-   EnableMarking := Off;
+   EnableMarking := false;
    T := Delta; Inc(T.X);
    if LastX < MaxLongStringLength then
     begin
@@ -2572,7 +2570,7 @@ var qwe: byte;
              end;
     end;
   CE;
-  EnableMarking := On;
+  EnableMarking := true;
  end;
 
  function AskSave: Word;
@@ -2586,21 +2584,21 @@ var qwe: byte;
 
  procedure PasteWinBlock;
  begin
-  EnableMarking := Off; Marking := Off;
+  EnableMarking := false; Marking := false;
   ChangeLine;
   if EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl
-    then DeleteBlock(On);
+    then DeleteBlock(true);
   BlockOff;
 
   if GetWinClip(PLineCollection(Clipboard){, On}) then
     begin
-      InsertBlock(Clipboard, On);
+      InsertBlock(Clipboard, true);
 
       ChangeLine;
       {$IFNDEF NONBP}
       memw[seg0040:$1C] := memw[seg0040:$1A];
       {$ENDIF}
-      EnableMarking := On;
+      EnableMarking := true;
     end;
  end;
 
@@ -2642,7 +2640,7 @@ var qwe: byte;
    function Modify(C: Char; Mask: Byte): Boolean;
      var I: Integer;
    begin
-     Modify := Off;
+     Modify := false;
      VL := Line00; I := PosChar(C, VL);
      if I = 0 then begin VL := Line01; I := PosChar(C, VL); end;
      if I = 0 then begin VL := Line10; I := PosChar(C, VL); end;
@@ -2650,7 +2648,7 @@ var qwe: byte;
      if not (I in [7,11,13,14,15]) then Exit;
      Mask := I and not Mask; if Mask = I then Exit;
      if Mask > 0 then ResChar := VL[Mask] else ResChar := ' ';
-     Modify := On;
+     Modify := true;
    end;
 
  var WasShift: Boolean; {-$VIV 18.05.99--}
@@ -2712,14 +2710,14 @@ var qwe: byte;
            begin
              Dec(Delta.Y);
              StoreUndoInfo(udReplaceChar, Delta, _Up[LastX+1]);
-             _Up[LastX+1] := ResChar; ModifyLine(Delta.Y, _Up, On);
+             _Up[LastX+1] := ResChar; ModifyLine(Delta.Y, _Up, true);
              Inc(Delta.Y);
            end;
          if Modify(_Down[LastX+1], 1) then
            begin
              Inc(Delta.Y);
              StoreUndoInfo(udReplaceChar, Delta, _Down[LastX+1]);
-             _Down[LastX+1] := ResChar; ModifyLine(Delta.Y, _Down, On);
+             _Down[LastX+1] := ResChar; ModifyLine(Delta.Y, _Down, true);
              Dec(Delta.Y);
            end;
          if (LastX > 0) and Modify(WorkString[LastX], 2) then
@@ -2740,7 +2738,7 @@ var qwe: byte;
            end;
        end;
    end;
-   EnableMarking := Off;
+   EnableMarking := false;
    case Dir of
      0: ScrollTo(LastX, LastY-1);
      2: begin
@@ -2757,7 +2755,7 @@ var qwe: byte;
    CED;
    if DMode > 0 then LastDir := (Dir + 2) mod 4
                 else LastDir := -1;
-   EnableMarking := On;
+   EnableMarking := true;
 
    if WasShift then {-$VIV 18.05.99--}
    begin
@@ -2874,13 +2872,13 @@ var qwe: byte;
            Q:=@Res;
            case ExecResource(dlgSrchFailed, Q) of
              cmYes:
-               PDNApplication(Application)^.EditFile(On, SourceDir + 'DN.SPF');
+               PDNApplication(Application)^.EditFile(true, SourceDir + 'DN.SPF');
              cmNo:
-               PDNApplication(Application)^.EditFile(On, S);
+               PDNApplication(Application)^.EditFile(true, S);
            end
          end
        else
-         PDNApplication(Application)^.EditFile(On, Res);
+         PDNApplication(Application)^.EditFile(true, Res);
 
        ex:
        Info^.Free;
@@ -2999,12 +2997,12 @@ begin
    Exit;
  {$ENDIF}
  {/Cat}
- DelWord := Off;
+ DelWord := false;
 1:
  LastY := Delta.Y;
  LastX := Delta.X;
  i := FileLines^.Count;
- ChPos:=Off;
+ ChPos:=false;
  case Event.What of
   evCommand: case Event.Command of
               cmMainMenu: begin
@@ -3033,7 +3031,7 @@ begin
                              if Modified then MISaveFile(@Self);
                              if not Owner^.GetState(sfModal) then Exit;
                              CE; Owner^.Redraw;
-                             PEditWindow(Owner)^.ModalEnd := On;
+                             PEditWindow(Owner)^.ModalEnd := true;
                              ClearEvent(Event);
                            end;
                        end;
@@ -3085,7 +3083,7 @@ begin
                             While (Mark.B.X < Length(WorkString)) and not (WorkString[Mark.B.X+1] in BreakChars) do Inc(Mark.B.X);
                             R := Mark;
                             ScrollTo(LastX, LastY);
-                            BlockVisible := On;
+                            BlockVisible := true;
                             Mark := R;
                             CED;
                           end;
@@ -3094,7 +3092,7 @@ begin
                             if Delta.Y >= FileLines^.Count-1 then
                               begin Mark.B.Y := Delta.Y; Mark.B.X := Length(WorkString) end
                               else begin Mark.B.Y := Delta.Y+1; Mark.B.X := 0 end;
-                            BlockVisible := On; CED
+                            BlockVisible := true; CED
                            end;
               cmMoveBlockStart: begin ScrollTo(Mark.A.X, Mark.A.Y); CE end;
               cmMoveBlockEnd: begin ScrollTo(Mark.B.X, Mark.B.Y); CE end;
@@ -3146,7 +3144,7 @@ begin
                                end else
                                begin
                                  ChangeLine;
-                                 InsertBlock(PC, On);
+                                 InsertBlock(PC, true);
                                  Dispose(PC,Done);
                                end;
                              ChangeLine;
@@ -3158,13 +3156,13 @@ begin
                              if PC = nil then
                                begin
                                   Message(@Self, evCommand, cmCopy, nil);
-                                  DeleteBlock(Off);
+                                  DeleteBlock(false);
                                   Message(@Self, evCommand, cmPaste, nil);
                                end else
                                begin
                                  ChangeLine;
-                                 DeleteBlock(Off);
-                                 InsertBlock(PC, On);
+                                 DeleteBlock(false);
+                                 InsertBlock(PC, true);
                                  Dispose(PC,Done);
                                end;
                                ChangeLine;
@@ -3176,7 +3174,7 @@ begin
                                  Search(Delta.X, Delta.Y);
                                  SearchData.Dir := SearchData.Dir xor 1;
                                  ChangeLine; CE;
-                                 SearchOnDisplay := Off;
+                                 SearchOnDisplay := false;
                                end;
               cmWindowsPaste: PasteWinBlock;
               cmChangeCharCase: ChangeCharCaseDirect; {-$VIV}
@@ -3241,7 +3239,7 @@ begin
               cmBlockWrite: begin BlockWrite; CE end;
               cmDelChar: begin
                            if (EditorDefaults.EdOpt and (ebfPbl+ebfObl)=ebfObl)
-                             and ValidBlock then DeleteBlock(On) else MakeDel;
+                             and ValidBlock then DeleteBlock(true) else MakeDel;
                            CED
                          end;
               cmEnter: begin
@@ -3250,7 +3248,7 @@ begin
                         ScrollTo(Delta.X, Delta.Y);
                         CED
                        end;
-              cmEnd: begin UnMark := On;
+              cmEnd: begin UnMark := true;
                            while (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do SetLength(WorkString, Length(WorkString)-1);
                            ScrollTo(Length(WorkString), Delta.Y); CED end;
               cmInsLine: begin
@@ -3258,25 +3256,25 @@ begin
                           PP := Delta; MakeEnter; Delta := PP;
                           ChangeLine; ScrollTo(PP.X, PP.Y); CED end;
               cmTab: begin BlockOff; DoTab; CE end;
-              cmWordRight: begin UnMark := On; WordRight; ScrollTo(LastX, LastY); CED end;
-              cmWordLeft: begin UnMark := On; WordLeft; ScrollTo(LastX, LastY); CED end;
+              cmWordRight: begin UnMark := true; WordRight; ScrollTo(LastX, LastY); CED end;
+              cmWordLeft: begin UnMark := true; WordLeft; ScrollTo(LastX, LastY); CED end;
               cmDeleteLine: begin BlockOff; DeleteLine; CE end;
-              cmSwitchBlock: begin UnMark := On; VertBlock := not VertBlock; DrawView; CE end;
-              cmClear: begin UnMark := On; if BlockVisible and ValidBlock then DeleteBlock(On); CE end;
-              cmCopy: begin UnMark := On; if BlockVisible and ValidBlock then CopyBlock; CE end;
-              cmCut: begin UnMark := On; if BlockVisible and ValidBlock then
-                            begin CopyBlock; DeleteBlock(On) end; CE end;
-              cmPaste: begin UnMark := On; PasteBlock; CE end;
-              cmMoveUp: begin UnMark := On; Event.What := evKeyDown; Event.KeyCode := kbUp end;
-              cmPgUp: begin UnMark := On; Dec(Pos.Y, Size.Y); VScroll^.SetValue(Delta.Y-Size.Y); DrawView; CE end;
-              cmPgDn: begin UnMark := On; Inc(Pos.Y, Size.Y); VScroll^.SetValue(Delta.Y+Size.Y); DrawView; CE end;
-              cmMoveDown: begin UnMark := On; Event.What := evKeyDown; Event.KeyCode := kbDown end;
-              cmMoveLeft: begin UnMark := On; Event.What := evKeyDown; Event.KeyCode := kbLeft end;
-              cmMoveRight: begin UnMark := On; Event.What := evKeyDown; Event.KeyCode := kbRight end;
-              cmHideBlock: begin BlockVisible := not BlockVisible; UnMark := Off; CED end;
+              cmSwitchBlock: begin UnMark := true; VertBlock := not VertBlock; DrawView; CE end;
+              cmClear: begin UnMark := true; if BlockVisible and ValidBlock then DeleteBlock(true); CE end;
+              cmCopy: begin UnMark := true; if BlockVisible and ValidBlock then CopyBlock; CE end;
+              cmCut: begin UnMark := true; if BlockVisible and ValidBlock then
+                            begin CopyBlock; DeleteBlock(true) end; CE end;
+              cmPaste: begin UnMark := true; PasteBlock; CE end;
+              cmMoveUp: begin UnMark := true; Event.What := evKeyDown; Event.KeyCode := kbUp end;
+              cmPgUp: begin UnMark := true; Dec(Pos.Y, Size.Y); VScroll^.SetValue(Delta.Y-Size.Y); DrawView; CE end;
+              cmPgDn: begin UnMark := true; Inc(Pos.Y, Size.Y); VScroll^.SetValue(Delta.Y+Size.Y); DrawView; CE end;
+              cmMoveDown: begin UnMark := true; Event.What := evKeyDown; Event.KeyCode := kbDown end;
+              cmMoveLeft: begin UnMark := true; Event.What := evKeyDown; Event.KeyCode := kbLeft end;
+              cmMoveRight: begin UnMark := true; Event.What := evKeyDown; Event.KeyCode := kbRight end;
+              cmHideBlock: begin BlockVisible := not BlockVisible; UnMark := false; CED end;
               cmScrollUp: if Pos.Y > 0 then
                           begin
-                           UnMark := On;
+                           UnMark := true;
                            if not (Delta.Y - Pos.Y + 1 < Size.Y) then Dec(Delta.Y);
                            Dec(Pos.Y);
                            ScrollTo(Delta.X, Delta.Y);
@@ -3284,19 +3282,19 @@ begin
                           end;
               cmScrollDn: if Pos.Y < FileLines^.Count - 1 then
                           begin
-                           UnMark := On;
+                           UnMark := true;
                            if not (Delta.Y > Pos.Y) then Inc(Delta.Y);
                            Inc(Pos.Y);
                            ScrollTo(Delta.X, Delta.Y);
                            Delta.Y := VScroll^.Value; DrawView;
                           end;
-              cmBlockStart: begin UnMark := On; Marking := Off; Mark.A := Delta;
-                                  BlockVisible := On; DrawView; CE end;
-              cmBlockEnd: begin UnMark := On; Marking := Off; Mark.B := Delta;
-                                BlockVisible := On; DrawView; CE end;
+              cmBlockStart: begin UnMark := true; Marking := false; Mark.A := Delta;
+                                  BlockVisible := true; DrawView; CE end;
+              cmBlockEnd: begin UnMark := true; Marking := false; Mark.B := Delta;
+                                BlockVisible := true; DrawView; CE end;
               cmPlaceMarker1..cmPlaceMarker9:
                 begin
-                  UnMark := On;
+                  UnMark := true;
                   Event.InfoByte:=Event.Command-cmPlaceMarker1+1;
                   if (MarkPos[Event.InfoByte].Y = Delta.Y) then
                     FillChar(MarkPos[Event.InfoByte], SizeOf(TPoint), $FF)
@@ -3305,13 +3303,13 @@ begin
                 end; {-$VIV}
               cmGotoMarker1..cmGotoMarker9:
                 begin ChangeLine;
-                      UnMark := On;
+                      UnMark := true;
                       Event.InfoByte:=Event.Command-cmGotoMarker1+1;
                       if not MarkPos[Event.InfoByte].EqualsXY(-1, -1) then
                         begin
                           Delta := MarkPos[Event.InfoByte];
                           Pos.X := Delta.X - Size.X div 2;
-                          Pos.Y := Delta.Y - Size.Y div 2; ChangeLine; {WorkModify := Off;}
+                          Pos.Y := Delta.Y - Size.Y div 2; ChangeLine; {WorkModify := false;}
                           ScrollTo(Delta.X, Delta.Y); DrawView; CenterScreen;
                         end;
                       CE
@@ -3380,7 +3378,18 @@ begin
   {$ELSE}
       begin
   {$ENDIF}
-          if (Event.KeyCode <> kbCtrlAltX) then
+          if (Event.KeyCode = kbCtrlNumPad5) then
+            begin {AK155 выделить весь текст}
+            with Sel, FileLines^ do
+              begin
+              A.X := 0; A.Y := 0; B.Y := Count-1;
+              B.X := Length(CnvLongString(At(B.Y)));
+              end;
+            Mark := Sel; Marking := false; BlockVisible := true;
+            VertBlock := false;
+            CED;
+            end {/AK155}
+          else if (Event.KeyCode <> kbCtrlAltX) then
           if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
             begin
              if DrawMode > 0 then
@@ -3398,7 +3407,7 @@ begin
                end;
      (*      if Event.KeyCode = kbCtrlEnter then ; *) {-$VIV 18.05.99--}
      (*      begin BlockOff; MakeEnter; ScrollTo(Delta.X, Delta.Y); CED; Exit end; *)
-             CFind := Off; EvStr := #0#0;
+             CFind := false; EvStr := #0#0;
              for I := 1 to MaxCommands do
               with EditCommands[I] do
                begin
@@ -3465,7 +3474,7 @@ begin
                     end;
                   LineMarking := ShiftState and 4 <> 0;
                   ChangeLine;
-                  EnableMarking := Off;
+                  EnableMarking := false;
                   MakeLocal(Event.Where, Delta);
                   Delta.X := Pos.X + Delta.X;
                   Delta.Y := Pos.Y + Delta.Y;
@@ -3473,10 +3482,10 @@ begin
                   Sel.A := Delta; Sel.B := Delta;
                   ScrollTo(Delta.X, Delta.Y);
                   Sel.A := Delta; Sel.B := Delta;
-                  EnableMarking := On;
+                  EnableMarking := true;
                   if Event.Buttons and mbLeftButton <> 0 then
-                   begin BlockVisible := On; MouseMark := On; end
-                    else begin RulerVisible := On; DrawView; end;
+                   begin BlockVisible := true; MouseMark := true; end
+                    else begin RulerVisible := true; DrawView; end;
                   I := RepeatDelay; RepeatDelay := 0;
                   if LineMarking then
                     begin
@@ -3510,7 +3519,7 @@ begin
                      OldDelta := Delta;
                     end;
                   until not MouseEvent(Event, evMouseAuto + evMouseMove);
-                  MouseMark := Off; RulerVisible := Off;
+                  MouseMark := false; RulerVisible := false;
                   RepeatDelay := I;
                   ScrollTo(Delta.X, Delta.Y);
                   ChangeLine;
@@ -3567,7 +3576,7 @@ procedure OpenSmartpad;
              begin
                  Str:='';
                  For Idx:=0 To 5 Do Str:=Str+Char(SPLineChar);
-                 Str:=Str+'< '+GetDateTime(Off)+' '+GetDateTime(On)+' >';
+                 Str:=Str+'< '+GetDateTime(false)+' '+GetDateTime(true)+' >';
                  For Idx:=0 To 35 Do Str:=Str+Char(SPLineChar);
                  FileLines^.Insert(NewLongStr(Str));
              end;
@@ -3617,7 +3626,7 @@ procedure OpenClipboard; {-$VOL begin}
 begin
   ClipboardWindow := ClipboardWindowPtr^; {Cat}
 
-  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(On)};
+  if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut{(true)};
   if (ClipboardWindow <> nil) and ClipboardWindow^.GetState(sfModal) then Exit;
   PV := Application^.TopView;
   Desktop^.GetExtent(R);

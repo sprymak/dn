@@ -186,8 +186,8 @@ begin
     PC^.Pack;
     PL^.Phones := PC;
     PL^.Active := nil;
-    PL^.AlphaMode := Off;
-    PL^.SearchMode := Off;
+    PL^.AlphaMode := false;
+    PL^.SearchMode := false;
     PL^.NewList(PC);
 
     D^.Insert(PL);
@@ -265,7 +265,7 @@ procedure TPhoneBox.SetList;
             PP := PC^.At(I);
           end else PC^.AtInsert(I, PP);
          if PP^.Phones = nil then PP^.Phones := New(PPhoneCollection, Init(10,10));
-         PSortedCollection(PP^.Phones)^.Duplicates := On;
+         PSortedCollection(PP^.Phones)^.Duplicates := true;
          PP^.Phones^.Insert(P);
         end;
     end;
@@ -425,7 +425,7 @@ procedure TPhoneBox.HandleEvent;
   List := nil; I := Focused;
 
   P1 :=New(PPhoneDir, Init(DT.Password, Dt.Name, Dt.Memo1, Dt.Memo2));
-  P1^.Encrypted := Off;
+  P1^.Encrypted := false;
   C^.Insert(P1);
   Owner^.Lock; NewList(C); FocusItem(I); Owner^.UnLock;
   Stream.Init(SourceDir+'DN.PHN', stCreate, 1024);
@@ -541,7 +541,7 @@ procedure TPhoneBox.HandleEvent;
         Dispose(List,Done);
         List:=nil;
        end;
-      SearchMode := Off;
+      SearchMode := false;
       List := nil;
       NewList(Phones);
       FocusItem(Phones^.IndexOf(Active));
@@ -572,7 +572,7 @@ procedure TPhoneBox.HandleEvent;
    if InputBox(GetString(dlPB_SearchPhone), GetString(dlPB_S_earchString), S, 30, 0) <> cmOK then Exit;
    UpStr(S);
    New(PC, Init(10,10));
-   PC^.Duplicates := On;
+   PC^.Duplicates := true;
    Phones^.ForEach(@SearchDir);
    if PC^.Count = 0 then
     begin
@@ -641,7 +641,7 @@ procedure TPhoneBox.HandleEvent;
    if F=nil then
     begin MessageBox(GetString(dlFBBNoOpen)+S, nil, mfError+mfOKButton); Exit end;
    PV := WriteMsg(GetString(dlPB_Working));
-   Fr := On;
+   Fr := true;
    while not F^.EOF do
     begin
       UpdateWriteView(PV);
@@ -650,7 +650,7 @@ procedure TPhoneBox.HandleEvent;
         begin
           if Fr and (S[1] = '|') then
             begin
-             Fr := Off;
+             Fr := false;
              Template := S;
              Continue;
             end;
@@ -705,9 +705,9 @@ begin
                       if (EnterButton^.State and sfVisible) = 0 then Focused:=0;
                       EnterDir; CE
                     end;
-              cmInsertPhone: begin if not AlphaMode or SearchMode then EditNumber(On); CE end;
+              cmInsertPhone: begin if not AlphaMode or SearchMode then EditNumber(true); CE end;
               cmEditPhone: begin if List^.Count > 0 then if not AlphaMode or SearchMode then
-                                if not((Active <> nil) and ( focused=0 )) then EditNumber(Off); CE end;
+                                if not((Active <> nil) and ( focused=0 )) then EditNumber(false); CE end;
               cmPhoneBookMode: begin SetList(not AlphaMode); CE end;
               cmDeletePhone: begin
                         CE;
@@ -802,13 +802,13 @@ end;
 constructor TPhoneCollection.Init;
 begin
  inherited Init(ALimit, ADelta);
- Duplicates := On;
+ Duplicates := true;
 end;
 
 constructor TPhoneCollection.Load;
 begin
  if not inherited Load(S) then fail;
- Duplicates := On;
+ Duplicates := true;
  Sort;
 end;
 

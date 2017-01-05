@@ -52,7 +52,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '1.51.10b7';
+  VersionName:string = '1.51.10b8';
   VersionDate:string = '';
   VersionWord:Aword   = 15198;
 
@@ -95,7 +95,7 @@ CONST
                            {$ENDIF}
                          {$ENDIF}
   else
-    VersionName := VersionName + ParamStr(2);
+    VersionName := VersionName + '/' + ParamStr(2);
   {Cat: компиляция плагинской версии:
         - либо если задан параметр PLUGIN (компиляция посредством _DNC.CMD)
         - либо если в STDEFINE.INC установлена директива PLUGIN (компиляция вручную)}

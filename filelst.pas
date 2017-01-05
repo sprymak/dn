@@ -65,7 +65,7 @@ uses Startup, Lfn, Messages, objects, filescol, advance2, advance1, usermenu,
 function ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;
   var I,J: Integer;
 begin
-  ParseAddress := Off;
+  ParseAddress := false;
   Point := 0;
   I := PosChar('@', Address);
   if I > 0 then Delete(Address, I, 255);
@@ -91,7 +91,7 @@ begin
    Val(Address, Node, J);
    If J<>0 then exit;
   end;
-  ParseAddress := On;
+  ParseAddress := true;
 end;
 
 
@@ -187,7 +187,7 @@ procedure MakeListFile;
   Fail: { Cannot find place to insert !\ }
     Replace(#1, '!!', D);Replace(#2, '##', D);
     Replace(#3, '$$', D);Replace(#4, '&&', D);
-    D:=MakeString(D, @UPr, off, nil);
+    D:=MakeString(D, @UPr, false, nil);
     WriteLn(T.T, D);
   end;
 
@@ -196,11 +196,7 @@ begin
  Message(APP, evBroadcast, cmGetUserParams, @UPr);
  FillChar(S, SizeOf(S), 0);
  S.FileName := HistoryStr(hsMakeList, 0);
-{$IFNDEF OS2}
- if S.FileName = '' then S.FileName := 'DNLIST.BAT';
-{$ELSE}
- if S.FileName = '' then S.FileName := 'DNLIST.CMD';
-{$ENDIF}
+ if S.FileName = '' then S.FileName := 'DNLIST' + CmdExt;
  S.Action := HistoryStr(hsExecDOSCmd, 0);
  S.Header := HistoryStr(hsMakeListHeader, 0); {JO}
 {S.Header := '';} S.HeaderMode:=hfmAuto;
@@ -209,7 +205,7 @@ begin
  S.Options := MakeListFileOptions;
  if S.Options and cmlPathNames <> 0 then
  begin
-   BB := Off;
+   BB := false;
    PP := PFileRec(Files^.At(0))^.Owner;
    for I := 1 to Files^.Count - 1 do
    begin
@@ -225,7 +221,7 @@ begin
  while S.Header[Length(S.Header)] = ' ' do SetLength(S.Header, Length(S.Header)-1);
  while S.Footer[Length(S.Footer)] = ' ' do SetLength(S.Footer, Length(S.Footer)-1);
  if S.Action <> '' then S.Action := S.Action + ' '; FileMode := 2;
- Abort := Off;
+ Abort := false;
  if S.FileName[1] in ['+', '%', '/'] then
    begin
 Retry:
@@ -274,7 +270,7 @@ AddrError:
    end else FidoMode:=False;
  D := lFExpand(S.FileName); lFSplit(D, Dr, Nm, Xt); ClrIO;
  FLD := Dr;
- CreateDirInheritance(Dr, Off);
+ CreateDirInheritance(Dr, false);
  if Abort then Exit;
  lAssignText(T, D); ClrIO;
  lResetText(T);

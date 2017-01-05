@@ -12,7 +12,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  {Use32,} _Defines, _Model1;
+  _Defines, _Model1;
 
 procedure InitDNFunctions(Functions, Methods: Pointer);
 procedure TransportVMT(DNObjVMT, OldVMT, NewVMT: Pointer; VMTSize: Integer);
@@ -58,19 +58,65 @@ type
     RemoveEditorEventHook: procedure(EditorEventHook: TEditorEventHook);
   end;
 
+  {&AlignRec+}
+  PSystemVars = ^TSystemVars;
+  TSystemVars = record
+    ExitCode: LongInt;
+    ErrorAddr: Pointer;
+    ExceptionNo: LongInt;
+    TlsSharedMem: Pointer;
+    TlsSharedMemSize: LongInt;
+    DebugHook: Boolean;
+    IsConsole: Boolean;
+    IsMultiThread: Boolean;
+    ExitProc: Pointer;
+    XcptProc: Pointer;
+    ExceptProc: Pointer;
+    ErrorProc: Pointer;
+    SmHeapList: Pointer;
+    LgHeapList: Pointer;
+    HeapError: Pointer;
+    Environment: Pointer;
+    ExceptClsProc: Pointer;
+    ExceptObjProc: Pointer;
+    ExceptionClass: TClass;
+    CmdLine: PChar;
+    ModuleHandle: LongInt;
+    RandSeed: LongInt;
+    AllocMemCount: LongInt;
+    AllocMemSize: LongInt;
+    SmHeapBlock: LongInt;
+    LgHeapBlock: LongInt;
+    HeapLimit: LongInt;
+    HeapAllocFlags: LongInt;
+    HeapSemaphore: LongInt;
+    Test8086: Byte;
+    Test8087: Byte;
+    {additional}
+    HInstance: LongInt;
+    HPrevInst: LongInt;
+    CmdShow: LongInt;
+    NotForYou: LongInt;
+    HeapBlockList: Pointer;
+    hblNext: LongInt;
+    hblAlloc: LongInt;
+    MemoryManager: TMemoryManager;
+  end;
+  {&AlignRec-}
+
   TDNFunctions = packed record
     DN2Version: Integer;
     APIVersion: Integer;
     Reserved1: Integer;
-    Reserved2: Integer;
+    SystemVars: PSystemVars;
 
     SomeObjects1: PSomeObjects1;
     SomeObjects2: PSomeObjects2;
     SomeObjects3: PSomeObjects3;
+    Reserved2: Integer;
     Reserved3: Integer;
     Reserved4: Integer;
-    Reserved5: Integer;
-    Reserved6: Integer;
+    TryExcept: function(Proc: TProcedure): Pointer;
     SimpleHooks: PSimpleHooks;
 
     MemoryManager: packed record
@@ -129,7 +175,7 @@ type
 
     GetString: function(Index: Integer): String;
     ExecResource: function(Key: Integer; var Data): Word;
-    LoadResource: function(Key: Integer): Pointer{PObject};
+    LoadResource: function(Key: Integer): PObject;
 
     OpenRez: function(const PluginName: String): LongInt;
     OpenRezX: function(const PluginName: String): LongInt;
@@ -145,8 +191,8 @@ type
     NewMenu: function(Items: PMenuItem): PMenu;
     DisposeMenu: procedure(Menu: PMenu);
     ExecAndDisposeMenu: function(Menu: PMenu): Integer;
-    StoreMenuDefaults: procedure(Menu: PMenu; var S {TStream});
-    LoadMenuDefaults: procedure(Menu: PMenu; var S {TStream});
+    StoreMenuDefaults: procedure(Menu: PMenu; var S: TStream);
+    LoadMenuDefaults: procedure(Menu: PMenu; var S: TStream);
     LookUpMenu: function(Menu: PMenu; idCheckItem: Word; Flags: Word): PMenuItem;
     MenuIndexOf: function(Menu: PMenu; idCheckItem: PMenuItem): Word;
 
@@ -159,14 +205,13 @@ type
     RegisterType: procedure(var S: TStreamRec);
     ReregisterType: procedure(var S: TStreamRec);
 
-    Message: function(Receiver: Pointer{PView}; What, Command: Word; InfoPtr: Pointer): Pointer;
-    MessageL: function(Receiver: Pointer{PView}; What, Command: Word; InfoLng: LongInt): Pointer;
+    Message: function(Receiver: PView; What, Command: Word; InfoPtr: Pointer): Pointer;
+    MessageL: function(Receiver: PView; What, Command: Word; InfoLng: LongInt): Pointer;
 
-    RegisterToPrior: procedure(P: Pointer{PView});
-    RegisterToBackground: procedure(P: Pointer{PView});
-    Deregister: procedure(P: Pointer{PView});
+    RegisterToPrior: procedure(P: PView);
+    RegisterToBackground: procedure(P: PView);
+    Deregister: procedure(P: PView);
     UpdateAll: procedure(All: Boolean);
-
 
     GetWinNumber: function: AInt;
 
@@ -210,9 +255,9 @@ type
   PTStream = ^TTStream;
   TTStream = packed record
     VMT: PStreamVMT;
-    CopyFrom: procedure(var S {TStream}; Count: Longint; Obj: Pointer);
-    Get: function(Obj: Pointer): Pointer{PObject};
-    Put: procedure(P: Pointer{PObject}; Obj: Pointer);
+    CopyFrom: procedure(var S: TStream; Count: Longint; Obj: Pointer);
+    Get: function(Obj: Pointer): PObject;
+    Put: procedure(P: PObject; Obj: Pointer);
     ReadStr: function(Obj: Pointer): PString;
     ReadLongStr: function(Obj: Pointer): PLongString;
     ReadStrV: procedure(var S: String; Obj: Pointer);
@@ -248,7 +293,7 @@ type
   TTCollection = packed record
     VMT: PCollectionVMT;
     Init: function(ALimit, ADelta: LongInt; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     At: function(Index: LongInt; Obj: Pointer): Pointer;
     AtDelete: procedure(Index: LongInt; Obj: Pointer);
     AtFree: procedure(Index: LongInt; Obj: Pointer);
@@ -263,15 +308,15 @@ type
     FreeAll: procedure(Obj: Pointer);
     LastThat: function(Test: Pointer; Obj: Pointer): Pointer;
     Pack: procedure(Obj: Pointer);
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
   end;
 
   PTSortedCollection = ^TTSortedCollection;
   TTSortedCollection = packed record
     VMT: PSortedCollectionVMT;
     Init: function(ALimit, ADelta: LongInt; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj: Pointer);
     Sort: procedure(Obj: Pointer);
   end;
 
@@ -296,14 +341,14 @@ type
   PTFilesCollection = ^TTFilesCollection;
   TTFilesCollection = packed record
     VMT: PFilesCollectionVMT;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
   end;
 
   PTView = ^TTView;
   TTView = packed record
     VMT: PViewVMT;
     Init: function(var Bounds: TRect; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     BlockCursor: procedure(Obj: Pointer);
     ClearEvent: procedure(var Event: TEvent; Obj: Pointer);
     CommandEnabled: function(Command: Word; Obj: Pointer): Boolean;
@@ -319,7 +364,7 @@ type
     GetColor: function(Color: Word; Obj: Pointer): Word;
     GetCommands: procedure(var Commands: TCommandSet; Obj: Pointer);
     GetExtent: procedure(var Extent: TRect; Obj: Pointer);
-    GetPeerViewPtr: procedure(var S {TStream}; var P; Obj: Pointer);
+    GetPeerViewPtr: procedure(var S: TStream; var P; Obj: Pointer);
     GetState: function(AState: Word; Obj: Pointer): Boolean;
     GrowTo: procedure(X, Y: LongInt; Obj: Pointer);
     Hide: procedure(Obj: Pointer);
@@ -332,30 +377,30 @@ type
     MouseEvent: function(var Event: TEvent; Mask: Word; Obj: Pointer): Boolean;
     MouseInView: function(Mouse: TPoint; Obj: Pointer): Boolean;
     MoveTo: procedure(X, Y: LongInt; Obj: Pointer);
-    NextView: function(Obj: Pointer): Pointer{PView};
+    NextView: function(Obj: Pointer): PView;
     NormalCursor: procedure(Obj: Pointer);
-    Prev: function(Obj: Pointer): Pointer{PView};
-    PrevView: function(Obj: Pointer): Pointer{PView};
-    PutInFrontOf: procedure(Target: Pointer{PView}; Obj: Pointer);
-    PutPeerViewPtr: procedure(var S {TStream}; P: Pointer{PView}; Obj: Pointer);
+    Prev: function(Obj: Pointer): PView;
+    PrevView: function(Obj: Pointer): PView;
+    PutInFrontOf: procedure(Target: PView; Obj: Pointer);
+    PutPeerViewPtr: procedure(var S: TStream; P: PView; Obj: Pointer);
     Select: procedure(Obj: Pointer);
     SetBounds: procedure(var Bounds: TRect; Obj: Pointer);
     SetCommands: procedure(Commands: TCommandSet; Obj: Pointer);
     SetCursor: procedure(X, Y: LongInt; Obj: Pointer);
     Show: procedure(Obj: Pointer);
     ShowCursor: procedure(Obj: Pointer);
-    Store: procedure(var S {TStream}; Obj: Pointer);
-    TopView: function(Obj: Pointer): Pointer{PView};
+    Store: procedure(var S: TStream; Obj: Pointer);
+    TopView: function(Obj: Pointer): PView;
     WriteBuf: procedure(X, Y, W, H: Integer; var Buf; Obj: Pointer);
     WriteChar: procedure(X, Y: Integer; C: Char; Color: Byte; Count: Integer; Obj: Pointer);
     WriteLine: procedure(X, Y, W, H: Integer; var Buf; Obj: Pointer);
     WriteStr: procedure(X, Y: Integer; Str: String; Color: Byte; Obj: Pointer);
     MenuEnabled: function(Command: Word; Obj: Pointer): Boolean;
     DrawCursor: procedure(Obj: Pointer);
-    DrawHide: procedure(LastView: Pointer{PView}; Obj: Pointer);
-    DrawShow: procedure(LastView: Pointer{PView}; Obj: Pointer);
-    DrawUnderRect: procedure(var R: TRect; LastView: Pointer{PView}; Obj: Pointer);
-    DrawUnderView: procedure(DoShadow: Boolean; LastView: Pointer{PView}; Obj: Pointer);
+    DrawHide: procedure(LastView: PView; Obj: Pointer);
+    DrawShow: procedure(LastView: PView; Obj: Pointer);
+    DrawUnderRect: procedure(var R: TRect; LastView: PView; Obj: Pointer);
+    DrawUnderView: procedure(DoShadow: Boolean; LastView: PView; Obj: Pointer);
   end;
 
   PTFrame = ^TTFrame;
@@ -368,57 +413,57 @@ type
   TTScrollBar = packed record
     VMT: PScrollBarVMT;
     Init: function(var Bounds: TRect; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     SetParams: procedure(AValue, AMin, AMax, APgStep, AArStep: LongInt; Obj: Pointer);
     SetRange: procedure(AMin, AMax: LongInt; Obj: Pointer);
     SetStep: procedure(APgStep, AArStep: LongInt; Obj: Pointer);
     SetValue: procedure(AValue: LongInt; Obj: Pointer);
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
   end;
 
   PTGroup = ^TTGroup;
   TTGroup = packed record
     VMT: PGroupVMT;
     Init: function(var Bounds: TRect; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Delete: procedure(P: Pointer{PView}; Obj: Pointer);
-    ExecView: function(P: Pointer{PView}; Obj: Pointer): Word;
-    First: function(Obj: Pointer): Pointer{PView};
-    FirstThat: function(P: Pointer; Obj: Pointer): Pointer{PView};
-    LastThat: function(P: Pointer; Obj: Pointer): Pointer{PView};
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Delete: procedure(P: PView; Obj: Pointer);
+    ExecView: function(P: PView; Obj: Pointer): Word;
+    First: function(Obj: Pointer): PView;
+    FirstThat: function(P: Pointer; Obj: Pointer): PView;
+    LastThat: function(P: Pointer; Obj: Pointer): PView;
     FocusNext: function(Forwards: Boolean; Obj: Pointer): Boolean;
     ForEach: procedure(P: Pointer; Obj: Pointer);
-    GetSubViewPtr: procedure(var S {TStream}; var P; Obj: Pointer);
-    Insert: procedure(P: Pointer{PView}; Obj: Pointer);
-    InsertBefore: procedure(P, Target: Pointer{PView}; Obj: Pointer);
+    GetSubViewPtr: procedure(var S: TStream; var P; Obj: Pointer);
+    Insert: procedure(P: PView; Obj: Pointer);
+    InsertBefore: procedure(P, Target: PView; Obj: Pointer);
     Lock: procedure(Obj: Pointer);
-    PutSubViewPtr: procedure(var S {TStream}; P: Pointer{PView}; Obj: Pointer);
+    PutSubViewPtr: procedure(var S: TStream; P: PView; Obj: Pointer);
     SelectNext: procedure(Forwards: Boolean; Obj: Pointer);
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
     Unlock: procedure(Obj: Pointer);
     FreeBuffer: procedure(Obj: Pointer);
     GetBuffer: procedure(Obj: Pointer);
-    InsertView: procedure(P, Target: Pointer{PView}; Obj: Pointer);
-    SetCurrent: procedure(P: Pointer{PView}; Mode: TSelectMode; Obj: Pointer);
+    InsertView: procedure(P, Target: PView; Obj: Pointer);
+    SetCurrent: procedure(P: PView; Mode: TSelectMode; Obj: Pointer);
   end;
 
   PTWindow = ^TTWindow;
   TTWindow = packed record
     VMT: PWindowVMT;
     Init: function(var Bounds: TRect; const ATitle: String; ANumber: Integer; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    StandardScrollBar: function(AOptions: Word; Obj: Pointer): Pointer{PScrollBar};
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    StandardScrollBar: function(AOptions: Word; Obj: Pointer): PScrollBar;
+    Store: procedure(var S: TStream; Obj: Pointer);
   end;
 
   PTMenuView = ^TTMenuView;
   TTMenuView = packed record
     VMT: PMenuViewVMT;
     Init: function(var Bounds: TRect; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     FindItem: function(Ch: Char; Obj: Pointer): PMenuItem;
     HotKey: function(KeyCode: Word; Obj: Pointer): PMenuItem;
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
   end;
 
   PTMenuBar = ^TTMenuBar;
@@ -430,7 +475,7 @@ type
   PTMenuBox = ^TTMenuBox;
   TTMenuBox = packed record
     VMT: PMenuBoxVMT;
-    Init: function(var Bounds: TRect; AMenu: PMenu; AParentMenu: Pointer{PMenuView}; VMT, Obj: Pointer): Pointer;
+    Init: function(var Bounds: TRect; AMenu: PMenu; AParentMenu: PMenuView; VMT, Obj: Pointer): Pointer;
   end;
 
   PTMenuPopup = ^TTMenuPopup;
@@ -443,25 +488,25 @@ type
   TTStatusLine = packed record
     VMT: PStatusLineVMT;
     Init: function(var Bounds: TRect; ADefs: PStatusDef; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj: Pointer);
   end;
 
   PTDialog = ^TTDialog;
   TTDialog = packed record
     VMT: PDialogVMT;
     Init: function(var Bounds: TRect; const ATitle: String; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
   end;
 
   PTInputLine = ^TTInputLine;
   TTInputLine = packed record
     VMT: PInputLineVMT;
     Init: function(var Bounds: TRect; AMaxLen: AInt; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     SelectAll: procedure(Enable: Boolean; Obj:Pointer);
     SetValidator: procedure(AValid: Pointer{PValidator}; Obj:Pointer);
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Store: procedure(var S: TStream; Obj:Pointer);
     CanScroll: function(Delta: Integer; Obj:Pointer): Boolean;
   end;
 
@@ -469,22 +514,22 @@ type
   TTButton = packed record
     VMT: PButtonVMT;
     Init: function(var Bounds: TRect; const ATitle: String; ACommand: Word; AFlags: Word; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     DrawState: procedure(Down: Boolean; Obj:Pointer);
     MakeDefault: procedure(Enable: Boolean; Obj:Pointer);
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTCluster = ^TTCluster;
   TTCluster = packed record
     VMT: PClusterVMT;
     Init: function(var Bounds: TRect; AStrings: PSItem; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     ButtonState: function(Item: Integer; Obj:Pointer): Boolean;
     DrawBox: procedure(const Icon: String; Marker: Char; Obj:Pointer);
     DrawMultiBox: procedure(const Icon, Marker: String; Obj:Pointer);
     SetButtonState: procedure(AMask: Longint; Enable: Boolean; Obj:Pointer);
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTRadioButtons = ^TTRadioButtons;
@@ -501,65 +546,65 @@ type
   TTMultiCheckBoxes = packed record
     VMT: PMultiCheckBoxesVMT;
     Init: function(var Bounds: TRect; AStrings: PSItem; ASelRange: Byte; AFlags: Word; const AStates: String; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTScroller = ^TTScroller;
   TTScroller = packed record
     VMT: PScrollerVMT;
-    Init: function(var Bounds: TRect; AHScrollBar, AVScrollBar: Pointer{PScrollBar}; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Init: function(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     ScrollTo: procedure(X, Y: LongInt; Obj:Pointer);
     SetLimit: procedure(X, Y: LongInt; Obj:Pointer);
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTListViewer = ^TTListViewer;
   TTListViewer = packed record
     VMT: PListViewerVMT;
-    Init: function(var Bounds: TRect; ANumCols: LongInt; AHScrollBar, AVScrollBar: Pointer{PScrollBar}; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Init: function(var Bounds: TRect; ANumCols: LongInt; AHScrollBar, AVScrollBar: PScrollBar; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     SetRange: procedure(ARange: LongInt; Obj:Pointer);
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTListBox = ^TTListBox;
   TTListBox = packed record
     VMT: PListBoxVMT;
-    Init: function(var Bounds: TRect; ANumCols: Word; AScrollBar: Pointer{PScrollBar}; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Init: function(var Bounds: TRect; ANumCols: Word; AScrollBar: PScrollBar; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTStaticText = ^TTStaticText;
   TTStaticText = packed record
     VMT: PStaticTextVMT;
     Init: function(var Bounds: TRect; const AText: String; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTParamText = ^TTParamText;
   TTParamText = packed record
     VMT: PParamTextVMT;
     Init: function(var Bounds: TRect; const AText: String; AParamCount: AInt; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTLabel = ^TTLabel;
   TTLabel = packed record
     VMT: PLabelVMT;
-    Init: function(var Bounds: TRect; const AText: String; ALink: Pointer{PView}; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Init: function(var Bounds: TRect; const AText: String; ALink: PView; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTHistoryViewer = ^TTHistoryViewer;
   TTHistoryViewer = packed record
     VMT: PHistoryViewerVMT;
-    Init: function(var Bounds: TRect; AHScrollBar, AVScrollBar: Pointer{PScrollBar}; AHistoryId: AWord; VMT, Obj: Pointer): Pointer;
+    Init: function(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar; AHistoryId: AWord; VMT, Obj: Pointer): Pointer;
     HistoryWidth: function(Obj:Pointer): Integer;
   end;
 
@@ -572,27 +617,27 @@ type
   PTHistory = ^TTHistory;
   TTHistory = packed record
     VMT: PHistoryVMT;
-    Init: function(var Bounds: TRect; ALink: Pointer{PInputLine}; AHistoryId: AWord; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj:Pointer);
+    Init: function(var Bounds: TRect; ALink: PInputLine; AHistoryId: AWord; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj:Pointer);
   end;
 
   PTBackground = ^TTBackground;
   TTBackground = packed record
     VMT: PBackgroundVMT;
     Init: function(var Bounds: TRect; APattern: Char; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj: Pointer);
   end;
 
   PTDesktop = ^TTDesktop;
   TTDesktop = packed record
     VMT: PDesktopVMT;
     Init: function(var Bounds: TRect; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
     Cascade: procedure(var R: TRect; Obj: Pointer);
     Clear: procedure(Obj: Pointer);
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Store: procedure(var S: TStream; Obj: Pointer);
     Tile: procedure(var R: TRect; Obj: Pointer);
   end;
 
@@ -601,11 +646,11 @@ type
     VMT: PProgramVMT;
     Init: function(VMT, Obj: Pointer): Pointer;
     CanMoveFocus: function(Obj: Pointer): Boolean;
-    ExecuteDialog: function(P: Pointer{PDialog}; Data: Pointer; Obj: Pointer): Word;
-    InsertWindow: function(P: Pointer{PWindow}; Obj: Pointer): Pointer{PWindow};
-    ActivateView: procedure(P: Pointer{PView}; Obj: Pointer);
+    ExecuteDialog: function(P: PDialog; Data: Pointer; Obj: Pointer): Word;
+    InsertWindow: function(P: PWindow; Obj: Pointer): PWindow;
+    ActivateView: procedure(P: PView; Obj: Pointer);
     SetScreenMode: procedure(Mode: Word; Obj: Pointer);
-    ValidView: function(P: Pointer{PView}; Obj: Pointer): Pointer{PView};
+    ValidView: function(P: PView; Obj: Pointer): PView;
    end;
 
   PTApplication = ^TTApplication;
@@ -624,32 +669,32 @@ type
     ViewFile: procedure(AltExt, NoExtFile: Boolean; FileName: String; Obj: Pointer);
     AddFormat: procedure(Obj: Pointer);
     EditFile: procedure(Intern: Boolean; FileName: String; Obj: Pointer);
-    RetrieveDesktop: procedure(const FileName: String; LS: Pointer{PStream}; LoadColors: Boolean; Obj: Pointer);
+    RetrieveDesktop: procedure(const FileName: String; LS: PStream; LoadColors: Boolean; Obj: Pointer);
     SaveDesktop: procedure(const FileName: String; Obj: Pointer);
-    LoadDesktop: procedure(var S {TStream}; Obj: Pointer);
-    StoreDesktop: procedure(var S {TStream}; Obj: Pointer);
+    LoadDesktop: procedure(var S: TStream; Obj: Pointer);
+    StoreDesktop: procedure(var S: TStream; Obj: Pointer);
     ChgColors: procedure(Obj: Pointer);
   end;
 
   PTUniWindow = ^TTUniWindow;
   TTUniWindow = packed record
     VMT: PUniWindowVMT;
-    MakeScrollBar: function(AOptions: Word; Obj: Pointer): Pointer{PScrollBar};
+    MakeScrollBar: function(AOptions: Word; Obj: Pointer): PScrollBar;
   end;
 
   PTXFileEditor = ^TTXFileEditor;
   TTXFileEditor = packed record
     VMT: PXFileEditorVMT;
-    Init: function(var Bounds: TRect; AHScrollBar, AVScrollBar: Pointer{PScrollBar}; var FileName: String; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Init: function(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar; var FileName: String; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj: Pointer);
     DoHighlite: procedure(var B; const S: LongString; const Attr: String; Obj: Pointer);
     GetLine: function(Index: LongInt; Obj: Pointer): LongString;
-    GetSelection: function(Obj: Pointer): Pointer{PCollection};
+    GetSelection: function(Obj: Pointer): PCollection;
     ValidBlock: function(Obj: Pointer): Boolean;
     CalcMenu: procedure(Obj: Pointer);
     Search: function(StartX, StartY: Word; Obj: Pointer): Boolean;
-    InsertBlock: procedure(ABlock: Pointer{PCollection}; SaveUndo: Boolean; Obj: Pointer);
+    InsertBlock: procedure(ABlock: PCollection; SaveUndo: Boolean; Obj: Pointer);
     ModifyLine: procedure(Index: LongInt; S: LongString; DelSpaces: Boolean; Obj: Pointer);
     SetLimits: procedure(Obj: Pointer);
     ScrollTo: procedure(DeltaX, DeltaY: LongInt; Obj: Pointer);
@@ -665,8 +710,98 @@ type
   TTEditWindow = packed record
     VMT: PEditWindowVMT;
     Init: function(R: TRect; FileName: String; VMT, Obj: Pointer): Pointer;
-    Load: function(var S {TStream}; VMT, Obj: Pointer): Pointer;
-    Store: procedure(var S {TStream}; Obj: Pointer);
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj: Pointer);
+  end;
+
+  PTPercentGauge = ^TTPercentGauge;
+  TTPercentGauge = packed record
+    VMT: PPercentGaugeVMT;
+    Init: function(var Bounds: TRect; AMaxValue: LongInt; VMT, Obj: Pointer): Pointer;
+    AddProgress: procedure(Progress: Longint; Obj: Pointer);
+    SolveForX: function(Y, Z: Longint; Obj: Pointer): Integer;
+    SolveForY: function(X, Z: Longint; Obj: Pointer): Integer;
+  end;
+
+  PTBarGauge = ^TTBarGauge;
+  TTBarGauge = packed record
+    VMT: PBarGaugeVMT;
+  end;
+
+  PTWhileView = ^TTWhileView;
+  TTWhileView = packed record
+    VMT: PWhileViewVMT;
+    Init: function(Bounds: TRect; VMT, Obj: Pointer): Pointer;
+    Write: procedure(N: Integer; S: String; Obj: Pointer);
+    ClearInterior: procedure(Obj: Pointer);
+  end;
+
+  PTViewScroll = ^TTViewScroll;
+  TTViewScroll = packed record
+    VMT: PViewScrollVMT;
+    GetPartCode: function(Obj: Pointer): LongInt;
+    GetSize: function(Obj: Pointer): Integer;
+    DrawPos: procedure(Pos: Integer; Obj: Pointer);
+  end;
+
+  PTFileViewer = ^TTFileViewer;
+  TTFileViewer = packed record
+    VMT: PFileViewerVMT;
+    Init: function(var Bounds: TRect; AStream: PStream; const AFileName, AVFileName: String; ASB: PView; Quick, Hex: Boolean; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure(var S: TStream; Obj: Pointer);
+    SetXlatFile: procedure(const FName: String; DoRedraw: Boolean; Obj: Pointer);
+    ReadFile: function(const FName, VFName: String; NewStream: Boolean; Obj: Pointer): Boolean;
+    WriteModify: function(Obj: Pointer): Boolean;
+    Seek: procedure(APos: LongInt; Obj: Pointer);
+    SaveToFile: procedure(FN: String; Obj: Pointer);
+    DoHighlite: procedure(var B; const S: String; const Attr: String; Obj: Pointer);
+    SeekEOF: procedure(Obj: Pointer);
+    SeekBOF: procedure(Obj: Pointer);
+    BreakOnStreamReadError: function(Obj: Pointer): Boolean;
+  end;
+
+  PTDrive = ^TTDrive;
+  TTDrive = packed record
+    VMT: PDriveVMT;
+    Init: function(ADrive: Byte; AOwner: Pointer; Num: Byte; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+  end;
+
+  PTFindDrive = ^TTFindDrive;
+  TTFindDrive = packed record
+    VMT: PFindDriveVMT;
+    Init: function(const AName: String; ADirs: PCollection; AFiles: PFilesCollection; Num: Byte; VMT, Obj: Pointer): Pointer;
+    InitList: function(const AName: String; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    NewUpFile: procedure(Obj: Pointer);
+  end;
+
+  PTTempDrive = ^TTTempDrive;
+  TTTempDrive = packed record
+    VMT: PTempDriveVMT;
+    Init: function(Num: Byte; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+  end;
+
+  PTArcDrive = ^TTArcDrive;
+  TTArcDrive = packed record
+    VMT: PArcDriveVMT;
+    Init: function(const AName, VAName: String; ViewMode: Byte; VMT, Obj: Pointer): Pointer;
+    InitCol: function(PC: Pointer{PDirStorage}; const AName, VAName: String; VMT, Obj: Pointer): Pointer;
+    Load: function(var S: TStream; VMT, Obj: Pointer): Pointer;
+    ReadArchive: function(Obj: Pointer): Boolean;
+    Exec: function(Prg, Cmd: String; Lst: AnsiString; B: Boolean; Obj: Pointer): Boolean;
+    MakeListFile: function(PC: PCollection; UseUnp: Boolean; Var B: Boolean; Obj: Pointer): AnsiString;
+    ExtractFiles: procedure(AFiles: PCollection; ExtrDir: String; Own: PView; Options: Byte; Obj: Pointer);
+    StdMsg4: procedure(Obj: Pointer);
+  end;
+
+  PTArvidDrive = ^TTArvidDrive;
+  TTArvidDrive = packed record
+    VMT: PArvidDriveVMT;
+    Init: function(const AName: String; Num: Byte; VMT, Obj: Pointer): Pointer;
+    SeekDirectory: procedure(Obj: Pointer);
   end;
 
 var
@@ -728,6 +863,16 @@ var
   _TUniWindow: ^TTUniWindow;
   _TXFileEditor: ^TTXFileEditor;
   _TEditWindow: ^TTEditWindow;
+  _TPercentGauge: ^TTPercentGauge;
+  _TBarGauge: ^TTBarGauge;
+  _TWhileView: ^TTWhileView;
+  _TViewScroll: ^TTViewScroll;
+  _TFileViewer: ^TTFileViewer;
+  _TDrive: ^TTDrive;
+  _TFindDrive: ^TTFindDrive;
+  _TTempDrive: ^TTTempDrive;
+  _TArcDrive: ^TTArcDrive;
+  _TArvidDrive: ^TTArvidDrive;
   {end of DNMethods}
 
 implementation

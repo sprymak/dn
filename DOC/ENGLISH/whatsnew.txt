@@ -7,6 +7,91 @@
 
 
 
+   Version 1.51.10b8
+  ---------------------------------------------------------------------
+
+
+Pavel Borodin:
+
+[-] Left and Right keys did not work in file panel when column width was
+    equal or 1-symbol less then panel width
+
+
+Alexey Korop:
+
+[!] The work with file names was redesigned radically with simplifying the
+    dual file names treatment in Win32 version
+[*] The two types of files sorting by long or short names are replaced with
+    sorting by names, currently shown in panel
+[-] First Shift-F10 hit didn't switch videomode
+[-] Hotkeys Shift-F10, Shift-F11, Shift-F12 didn't processing
+[-] Some bugfixes in calculator; the calculator become more integrated with
+    the spreadsheet
+[*] Some big changes in spreadsheet (see Russian whatsnew for details)
+[-] Small memory leek fixed in CallUuDecode
+[-] File size will shown incorrectly for large files (>2G)
+[+] Now Ctrl-Numpad5 in editor select whole text.
+[+] Small additions to ak20915b.dif
+[-] Cursor did not hide in case switch view mode from disasm to text
+[-] Now alway internal editor used on edit history pickup
+
+
+Aleksej Kozlov:
+
+[!] new version of plugins model
+[*] the error message after DN/2 halt will not cause 100% CPU usage
+[*] in FIO._VP the error codes of SysFileXXX functions was not analized,
+    causing possibility of bugs in work with streams. Some accompanying
+    changes in Objects madule;
+
+
+Ilya Malanyin:
+
+[*] Now keys Ins and Del in the env-editor work correctly, and functions of
+    insert and delete environment variables moved on keys Alt-Ins and Alt-Del.
+
+
+Jaroslaw Osadtchiy:
+
+[-] The measuring of time required to enter archives vas understimated
+[-] the critical error message after DN/2 halt will not cause 100% CPU usage
+[-] Ctrl-Shift-Grey+ hotkey (selecting files and directories with extension
+    same as current) did not work
+[-] During file copying from some drive types (i.e., ISO-images of CD, mounted
+    through ISOFS plugin for NDFS) the error message "Failed to enumerate
+    Extended Attributes" appeared
+[-] During the attempt to edit logical name ( EA .LONGNAME ) for files, which
+    had no EA and had been located on NDFS-drives, and for files located on
+    drives which don't support EA DN/2 crashed
+[*] Some EA-copying error messages will not appear any more during files
+    copying from drives, which don't support EA and during EA-posessing files
+    copying to such drives (if file has critical EA - the warning message will
+    appear with the name of source file)
+[*] The EA .LONGNAME reading is optimized in OS/2 version
+[-] Now the file system type for current drive will be shown correct in
+    information panel in Win32 version
+[-] Hotkeys Alt-Space and Alt-Tab did not work in Win32 version
+[-] AIN archives vas not viewed with Russian version of AIN archiver
+[-] The Alt-Enter hotkey on numpad in OS/2 and normal Alt-Enter in Win32
+    version did not work
+
+
+Kirill Vodonosov:
+
+[-] Vhen empty DBF file was viewed, the built-in text file viewer was called
+    after DBF file structure was shown
+[-] Vhen empty DBF file was viewed in archive, the "RC=32 Sharing violation"
+    error message appeared and DN/2 halted with "TFileViewer stream read
+    error" message;
+
+
+Max Vasilyev:
+
+[-] bugfixed .GZ detection
+
+
+
+
    Version 1.51.10b7
   ---------------------------------------------------------------------
 
