@@ -47,7 +47,7 @@
 
 CursorHidden: Boolean = True;
 
-procedure ShowBuffer(BufOfs, Len: Word);
+procedure ShowBuffer(BufOfs, Len: word);
   begin
   asm
                 push    esi
@@ -510,7 +510,7 @@ end;
               @@30:
 end;
 
-      function TView.GetColor(Color: Word): Word; {&USES None}
+      function TView.GetColor(Color: word): word; {&USES None}
         {&FRAME+}
       asm
                 mov     eax,Color
@@ -598,13 +598,13 @@ end;
                 Call    SysTVSetCurType
 end;
 
-      procedure TView.WriteBuf(X, Y, W, H: Integer; var Buf);
+      procedure TView.WriteBuf(X, Y, W, H: integer; var Buf);
         assembler; {&USES ebx,esi,edi}
         {&FRAME+}
         var
           Target: Pointer; {Variables used by WriteView}
           Buffer: Pointer;
-          Offset: Word;
+          Offset: word;
           asm
                 cmp     H,0
                 jle     @@2
@@ -623,14 +623,14 @@ end;
               @@2:
 end;
 
-        procedure TView.WriteChar(X, Y: Integer; C: Char; Color: Byte;
-            Count: Integer);
+        procedure TView.WriteChar(X, Y: integer; C: Char; Color: Byte;
+            Count: integer);
           assembler; {&USES ebx,esi,edi}
           {&FRAME+}
           var
             Target: Pointer; {Variables used by WriteView}
             Buffer: Pointer;
-            Offset: Word;
+            Offset: word;
             asm
                 mov     al,Color
                 Call    MapColor
@@ -667,13 +667,13 @@ end;
               @@2:
 end;
 
-          procedure TView.WriteLine(X, Y, W, H: Integer; var Buf);
+          procedure TView.WriteLine(X, Y, W, H: integer; var Buf);
             assembler; {&USES ebx,esi,edi}
             {&FRAME+}
             var
               Target: Pointer; {Variables used by WriteView}
               Buffer: Pointer;
-              Offset: Word;
+              Offset: word;
               asm
                 cmp     H,0
                 jle     @@2
@@ -690,14 +690,14 @@ end;
 end;
 
 
-            procedure TView.WriteStr(X, Y: Integer; Str: String;
+            procedure TView.WriteStr(X, Y: integer; Str: String;
                  Color: Byte);
               assembler; {&USES ebx,esi,edi}
               {&FRAME+}
               var
                 Target: Pointer; {Variables used by WriteView}
                 Buffer: Pointer;
-                Offset: Word;
+                Offset: word;
                 asm
                 mov     al,Color
                 Call    MapColor

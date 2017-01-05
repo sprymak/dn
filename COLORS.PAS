@@ -62,7 +62,7 @@ type
 
   PWindowList = ^TWindowList;
   TWindowList = object(TListBox)
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     end;
 
   PWindowCol = ^TWindowCol;
@@ -72,8 +72,8 @@ type
 
 implementation
 uses
-  Messages, RStrings, Drives, Startup, DnIni, VideoMan, Objects, DNApp,
-  Drivers, Views, Memory, Commands, DNStdDlg, Advance, DNHelp, Advance2
+  Messages, RStrings, Drives, Startup, DnIni, VideoMan, Defines, DNApp,
+  Drivers, Views, Memory, Commands, DNStdDlg, advance, DNHelp, advance2
   ;
 
 procedure SetHighlightGroups;
@@ -129,7 +129,7 @@ procedure SetHighlightGroups;
       S11 := Copy(Filter, 2, Length(Filter)-2)
       end;
     if ExecResource(dlgHighlightGroups, D) <> cmOK then
-      Exit;
+      exit;
     while S1[Length(S1)] in [' ', ';'] do
       SetLength(S1, Length(S1)-1);
     CustomMask1^.Filter := S1;
@@ -219,14 +219,14 @@ procedure WindowManager;
     S: String;
     DT: record
       P: PCollection;
-      n: Word;
+      n: word;
       end;
-    I, Num: Integer;
+    I, Num: integer;
 
   procedure InsView(P: PView);
     begin
     if P = nil then
-      Exit;
+      exit;
     S := '';
     if  (P^.GetState(sfVisible)) then
       begin
@@ -242,7 +242,7 @@ procedure WindowManager;
   if PC^.Count = 0 then
     begin
     Dispose(PC, Done);
-    Exit
+    exit
     end;
 
   D := PDialog(LoadResource(dlgWindowManager));
@@ -271,7 +271,7 @@ procedure WindowManager;
       then
         begin
         Num := I;
-        Break;
+        break;
         end;
   if  (WinManagerSelectNext) and (Num = 0) and (PC^.Count > 1) then
     Num := 1;

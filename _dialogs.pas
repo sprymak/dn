@@ -51,7 +51,7 @@ type
     procedure SetValidator(AValid: Pointer {PValidator});
     procedure Store(var S: TStream);
     {function Valid(Command: Word): Boolean; virtual;}
-    function CanScroll(Delta: Integer): Boolean;
+    function CanScroll(Delta: integer): Boolean;
     end;
 
   PButton = ^TButton;
@@ -61,7 +61,7 @@ type
     Flags: Byte;
     AmDefault: Boolean;
     constructor Init(var Bounds: TRect; const ATitle: String;
-         ACommand: Word; AFlags: Word);
+         ACommand: word; AFlags: word);
     constructor Load(var S: TStream);
     {destructor Done; virtual;}
     {procedure Draw; virtual;}
@@ -83,7 +83,7 @@ type
     constructor Init(var Bounds: TRect; AStrings: PSItem);
     constructor Load(var S: TStream);
     {destructor Done; virtual;}
-    function ButtonState(Item: Integer): Boolean;
+    function ButtonState(Item: integer): Boolean;
     {function DataSize: Word; virtual;}
     procedure DrawBox(const Icon: String; Marker: Char);
     procedure DrawMultiBox(const Icon, Marker: String);
@@ -91,10 +91,10 @@ type
     {function GetHelpCtx: Word; virtual;}
     {function GetPalette: PPalette; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function Mark(Item: Integer): Boolean; virtual;
-    function MultiMark(Item: Integer): Byte; virtual;
-    procedure Press(Item: Integer); virtual;
-    procedure MovedTo(Item: Integer); virtual;
+    function Mark(Item: integer): Boolean; virtual;
+    function MultiMark(Item: integer): Byte; virtual;
+    procedure Press(Item: integer); virtual;
+    procedure MovedTo(Item: integer); virtual;
     procedure SetButtonState(AMask: LongInt; Enable: Boolean);
     {procedure SetData(var Rec); virtual;}
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
@@ -123,7 +123,7 @@ type
     Flags: AWord;
     States: PString;
     constructor Init(var Bounds: TRect; AStrings: PSItem;
-         ASelRange: Byte; AFlags: Word; const AStates: String);
+         ASelRange: Byte; AFlags: word; const AStates: String);
     constructor Load(var S: TStream);
     {destructor Done; virtual;}
     {function DataSize: Word; virtual;}
@@ -171,7 +171,7 @@ type
     {procedure Draw; virtual;}
     procedure FocusItem(Item: LongInt); virtual;
     {function GetPalette: PPalette; virtual;}
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     function IsSelected(Item: LongInt): Boolean; virtual;
     {procedure HandleEvent(var Event: TEvent); virtual;}
     procedure SelectItem(Item: LongInt); virtual;
@@ -184,7 +184,7 @@ type
   PListBox = ^TListBox;
   TListBox = object(TListViewer)
     List: PCollection;
-    constructor Init(var Bounds: TRect; ANumCols: Word;
+    constructor Init(var Bounds: TRect; ANumCols: word;
          AScrollBar: PScrollBar);
     constructor Load(var S: TStream);
     {function DataSize: Word; virtual;}
@@ -241,7 +241,7 @@ type
     {function GetPalette: PPalette; virtual;}
     {function GetText(Item: LongInt; MaxLen: Integer): String; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function HistoryWidth: Integer;
+    function HistoryWidth: integer;
     end;
 
   PHistoryWindow = ^THistoryWindow;
@@ -309,13 +309,13 @@ procedure TInputLine.Store(var S: TStream);
   _TInputLine^.Store(_Model1.TStream(S), @Self);
   end;
 
-function TInputLine.CanScroll(Delta: Integer): Boolean;
+function TInputLine.CanScroll(Delta: integer): Boolean;
   begin
   Result := _TInputLine^.CanScroll(Delta, @Self);
   end;
 
 constructor TButton.Init(var Bounds: TRect; const ATitle: String;
-     ACommand: Word; AFlags: Word);
+     ACommand: word; AFlags: word);
   begin
   _TButton^.Init(Bounds, ATitle, ACommand, AFlags, nil, @Self);
   end;
@@ -355,7 +355,7 @@ constructor TCluster.Load(var S: TStream);
   _TCluster^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
-function TCluster.ButtonState(Item: Integer): Boolean;
+function TCluster.ButtonState(Item: integer): Boolean;
   begin
   Result := _TCluster^.ButtonState(Item, @Self);
   end;
@@ -370,22 +370,22 @@ procedure TCluster.DrawMultiBox(const Icon, Marker: String);
   _TCluster^.DrawMultiBox(Icon, Marker, @Self);
   end;
 
-function TCluster.Mark(Item: Integer): Boolean;
+function TCluster.Mark(Item: integer): Boolean;
   assembler; {&Frame-}
 asm
 end;
 
-function TCluster.MultiMark(Item: Integer): Byte;
+function TCluster.MultiMark(Item: integer): Byte;
   assembler; {&Frame-}
 asm
 end;
 
-procedure TCluster.Press(Item: Integer);
+procedure TCluster.Press(Item: integer);
   assembler; {&Frame-}
 asm
 end;
 
-procedure TCluster.MovedTo(Item: Integer);
+procedure TCluster.MovedTo(Item: integer);
   assembler; {&Frame-}
 asm
 end;
@@ -401,7 +401,7 @@ procedure TCluster.Store(var S: TStream);
   end;
 
 constructor TMultiCheckBoxes.Init(var Bounds: TRect; AStrings: PSItem;
-     ASelRange: Byte; AFlags: Word; const AStates: String);
+     ASelRange: Byte; AFlags: word; const AStates: String);
   begin
   _TMultiCheckBoxes^.Init(Bounds, AStrings, ASelRange, AFlags, AStates,
      nil, @Self);
@@ -466,7 +466,7 @@ procedure TListViewer.FocusItem(Item: LongInt);
 asm
 end;
 
-function TListViewer.GetText(Item: LongInt; MaxLen: Integer): String;
+function TListViewer.GetText(Item: LongInt; MaxLen: integer): String;
   assembler; {&Frame-}
 asm
 end;
@@ -496,7 +496,7 @@ procedure TListViewer.FocusItemNum(Item: LongInt);
 asm
 end;
 
-constructor TListBox.Init(var Bounds: TRect; ANumCols: Word;
+constructor TListBox.Init(var Bounds: TRect; ANumCols: word;
      AScrollBar: PScrollBar);
   begin
   _TListBox^.Init(Bounds, ANumCols, _Model1.PScrollBar(AScrollBar), nil,
@@ -577,7 +577,7 @@ constructor THistoryViewer.Init(var Bounds: TRect;
      _Model1.PScrollBar(AVScrollBar), AHistoryId, nil, @Self);
   end;
 
-function THistoryViewer.HistoryWidth: Integer;
+function THistoryViewer.HistoryWidth: integer;
   begin
   Result := _THistoryViewer^.HistoryWidth(@Self);
   end;

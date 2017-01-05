@@ -50,7 +50,7 @@ unit arc_BSA; {BSA}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects
+  Archiver, advance, advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -157,27 +157,27 @@ procedure TBSAArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P, 4);
   if  (Copy(P.Id, 1, 2) = #0#0)
   then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   if  (ArcFile^.Status <> stOK)
            or not ((P.Id[4] in [#0, #7]) and (Copy(P.Id, 2, 2) = #0#$AE))
   then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P.PackedSize, SizeOf(P)-4);
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;

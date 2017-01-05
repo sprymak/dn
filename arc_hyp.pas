@@ -50,7 +50,7 @@ unit arc_HYP; {HYP}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects
+  Archiver, advance, advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -159,26 +159,26 @@ procedure THYPArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P, 4);
   if  (P.Id and $ffff = 0) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   if  (ArcFile^.Status <> stOK) or
       ( (P.Id <> $2550481A {^Z'HP%'}) and (P.Id <> $2554531A {^Z'ST%'}))
   then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P.PackedSize, SizeOf(P)-4);
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;

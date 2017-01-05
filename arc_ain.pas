@@ -65,7 +65,7 @@ type
 implementation
 
 uses
-  Objects, Advance2, Advance, DNApp, DnExec, Commands, Advance1, Messages,
+  Objects2, advance2, advance, DNApp, DnExec, Commands, advance1, Messages,
   Dos
   ;
 
@@ -186,21 +186,21 @@ procedure TAINArchive.GetFile;
     System.Assign(ListFile, ListFileName);
     System.Reset(ListFile);
     if IOResult <> 0 then
-      Exit;
+      exit;
     { Пропуск шапки и чтение первой строки файлов }
     repeat
       if Eof(ListFile) then
-        Exit;
+        exit;
       Readln(ListFile, s);
       if IOResult <> 0 then
-        Exit;
+        exit;
     until (Pos('File name', s) <> 0) or (Pos('Имя файла', s) <> 0);
     repeat
       if Eof(ListFile) then
-        Exit;
+        exit;
       Readln(ListFile, s);
       if IOResult <> 0 then
-        Exit;
+        exit;
     until s <> '';
     end
   else
@@ -212,7 +212,7 @@ procedure TAINArchive.GetFile;
     EraseFile(ListFileName);
     TextRec(ListFile).Handle := 0;
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   FileInfo.Last := 0;
 

@@ -54,7 +54,7 @@ interface
 
 uses
   Lfn, Files, FilesCol,
-  Collect, Objects, Drivers, Views,
+  Collect, Defines, Streams, Drivers, Views,
   Dialogs, Dos, Memory, Messages, DNApp
   ;
 
@@ -99,7 +99,7 @@ type
 
   PFileInputLine = ^TFileInputLine;
   TFileInputLine = object(TInputLine)
-    constructor Init(var Bounds: TRect; AMaxLen: Integer);
+    constructor Init(var Bounds: TRect; AMaxLen: integer);
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -107,7 +107,7 @@ type
 
   PFileCollection = ^TFileCollection;
   TFileCollection = object(TSortedCollection)
-    function Compare(Key1, Key2: Pointer): Integer; virtual;
+    function Compare(Key1, Key2: Pointer): integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
     function GetItem(var S: TStream): Pointer; virtual;
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
@@ -119,8 +119,8 @@ type
 
   PSortedListBox = ^TSortedListBox;
   TSortedListBox = object(TListBox)
-    SearchPos: Word;
-    constructor Init(var Bounds: TRect; ANumCols: Word;
+    SearchPos: word;
+    constructor Init(var Bounds: TRect; ANumCols: word;
         AScrollBar: PScrollBar);
     procedure HandleEvent(var Event: TEvent); virtual;
     function GetKey(var S: String): Pointer; virtual;
@@ -138,9 +138,9 @@ type
         {DataCompBoy}
         AScrollBar: PScrollBar);
     destructor Done; virtual;
-    function DataSize: Word; virtual;
+    function DataSize: word; virtual;
     procedure FocusItem(Item: LongInt); virtual;
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     function GetKey(var S: String): Pointer; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure ReadDirectory(AWildCard: String);
@@ -151,7 +151,7 @@ type
   { TDirectoryList }
   PDirectoryList = ^TDirectoryList;
   TDirectoryList = object(TFileList)
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     function GetKey(var S: String): Pointer; virtual;
     procedure ReadDirectory(AWildCard: String);
     end;
@@ -193,7 +193,7 @@ type
     WildCard: PString; {DataCompBoy}
     Directory: PString;
     constructor Init(const AWildCard: String; ATitle: String;
-        InputName: String; AOptions: Word; HistoryId: Byte);
+        InputName: String; AOptions: word; HistoryId: Byte);
     {DataCompBoy}
     constructor Load(var S: TStream);
     destructor Done; virtual;
@@ -202,7 +202,7 @@ type
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure SetData(var Rec); virtual;
     procedure Store(var S: TStream);
-    function Valid(Command: Word): Boolean; virtual;
+    function Valid(Command: word): Boolean; virtual;
   private
     procedure ReadDirectory;
     end;
@@ -230,7 +230,7 @@ const
   CInfoPane = #30;
 
 function GetFileNameDialog(Mask, Title, Name: String;
-     Buttons, HistoryId: Word): String; {DataCompBoy}
+     Buttons, HistoryId: word): String; {DataCompBoy}
 function GetFileNameMenu(Path, Mask, Default: String;
      PutNumbers: Boolean; var More, None: Boolean): String; {JO}
 {DataCompBoy: Mask now an standard DN filter, like "*.Ops;-Pas.*;p*.d"}
@@ -238,7 +238,7 @@ function GetFileNameMenu(Path, Mask, Default: String;
 implementation
 
 uses
-  HistList, Advance, Advance1, Advance2, Advance3, RStrings, Commands,
+  HistList, advance, advance1, advance2, advance3, RStrings, Commands,
   Startup, DNHelp, {JO}Menus {JO}
   ;
 
@@ -252,17 +252,12 @@ function PathValid(var Path: String): Boolean;
   ClrIO;
   ExpPath := lFExpand(Path);
   if Abort then
-    Exit;
+    exit;
   if ExpPath[Length(ExpPath)] = '\' then
     SetLength(ExpPath, Length(ExpPath)-1);
-  if (Length(ExpPath) = 2) and (ExpPath[2] = ':') then
-    PathValid := ValidDrive(ExpPath[1])
-  else
-    begin
-    lFindFirst(ExpPath+'\*.*', AnyFile, SR);
-    PathValid := DosError = 0;
-    lFindClose(SR);
-    end;
+  lFindFirst(ExpPath+'\*.*', AnyFile, SR);
+  PathValid := DosError = 0;
+  lFindClose(SR);
   end;
 {-DataCompBoy-}
 
@@ -306,12 +301,12 @@ function ValidFileName(var FileName: String): Boolean;
  end;
     {$ELSE}
     var
-      q: Integer;
+      q: integer;
     begin { Contains }
     Contains := True;
     for q := 1 to Length(S2) do
       if PosChar(S2[q], S1) > 0 then
-        Exit;
+        exit;
     Contains := False;
     end { Contains };
   {$ENDIF}
@@ -353,7 +348,7 @@ function IsWild(var S: String): Boolean;
 
 { TFileInputLine }
 
-constructor TFileInputLine.Init(var Bounds: TRect; AMaxLen: Integer);
+constructor TFileInputLine.Init(var Bounds: TRect; AMaxLen: integer);
   begin
   TInputLine.Init(Bounds, AMaxLen);
   EventMask := EventMask or evBroadcast;
@@ -385,7 +380,7 @@ procedure TFileInputLine.HandleEvent(var Event: TEvent);
 { TFileCollection }
 
 {-DataCompBoy-}
-function TFileCollection.Compare(Key1, Key2: Pointer): Integer;
+function TFileCollection.Compare(Key1, Key2: Pointer): integer;
   var
     K1: PSearchRec absolute Key1;
     K2: PSearchRec absolute Key2;
@@ -447,7 +442,7 @@ procedure TFileCollection.PutItem(var S: TStream; Item: Pointer);
 
 { TSortedListBox }
 
-constructor TSortedListBox.Init(var Bounds: TRect; ANumCols: Word;
+constructor TSortedListBox.Init(var Bounds: TRect; ANumCols: word;
     AScrollBar: PScrollBar);
   begin
   TListBox.Init(Bounds, ANumCols, AScrollBar);
@@ -463,16 +458,16 @@ procedure TSortedListBox.HandleEvent(var Event: TEvent);
     Value, OldPos, OldValue: CondInt;
     T: Boolean;
 
-  function Equal(var S1: String; var S2: String; Count: Word): Boolean;
+  function Equal(var S1: String; var S2: String; Count: word): Boolean;
     var
-      I: Word;
+      I: word;
     begin
     Equal := False;
     if  (Length(S1) < Count) or (Length(S2) < Count) then
-      Exit;
+      exit;
     for I := 1 to Count do
       if UpCase(S1[I]) <> UpCase(S2[I]) then
-        Exit;
+        exit;
     Equal := True;
     end;
 
@@ -494,7 +489,7 @@ procedure TSortedListBox.HandleEvent(var Event: TEvent);
       if Event.KeyCode = kbBack then
         begin
         if SearchPos = 0 then
-          Exit;
+          exit;
         Dec(SearchPos);
         SetLength(CurString, SearchPos);
         end
@@ -588,7 +583,7 @@ procedure TFileList.Select;
     ;
   end;
 
-function TFileList.DataSize: Word;
+function TFileList.DataSize: word;
   begin
   DataSize := 0;
   end;
@@ -612,7 +607,7 @@ function TFileList.GetKey(var S: String): Pointer;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function TFileList.GetText(Item: LongInt; MaxLen: Integer): String;
+function TFileList.GetText(Item: LongInt; MaxLen: integer): String;
   var
     SR: PSearchRec;
     S: String;
@@ -721,7 +716,7 @@ function TDirectoryList.GetKey(var S: String): Pointer;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function TDirectoryList.GetText(Item: LongInt; MaxLen: Integer): String;
+function TDirectoryList.GetText(Item: LongInt; MaxLen: integer): String;
   var
     SR: PSearchRec;
     S: String;
@@ -763,7 +758,7 @@ procedure TDirectoryList.ReadDirectory(AWildCard: String);
   FileList := New(PFileCollection, Init(5, 5));
 
   { Диски помещаем в список заранее на случай проблем с памятью }
-  for C := 'Z' downto 'A' do
+  for C := 'Z' DownTo 'A' do
     if ValidDrive(C) then
       begin
       P := MemAlloc(SizeOf(P^));
@@ -794,7 +789,7 @@ procedure TDirectoryList.ReadDirectory(AWildCard: String);
       if P = nil then
         begin
         Msg(dlStdDlgManyFiles, nil, mfOKButton+mfWarning);
-        Break;
+        break;
         end;
       with P^ do
         begin
@@ -827,7 +822,7 @@ procedure TFileInfoPane.Draw;
     D: String[10];
     M: String[20];
     PM: Boolean;
-    Color: Word;
+    Color: word;
     Time: DateTime;
     Path: String;
     FmtId: String;
@@ -937,7 +932,7 @@ constructor TFileDialog.Init;
     Control: PView;
     R: TRect;
     S: String;
-    Opt: Word;
+    Opt: word;
     ACurDir: String;
   begin
   R.Assign(15, 1, 63, 21);
@@ -1089,7 +1084,7 @@ procedure TFileDialog.GetFileName(var S: String);
 
   function LTrim(S: String): String;
     var
-      I: Integer;
+      I: integer;
     begin
     I := 1;
     while (I < Length(S)) and (S[I] = ' ') do
@@ -1099,7 +1094,7 @@ procedure TFileDialog.GetFileName(var S: String);
 
   function RTrim(S: String): String;
     var
-      I: Integer;
+      I: integer;
     begin
     while S[Length(S)] = ' ' do
       SetLength(S, Length(S)-1);
@@ -1108,7 +1103,7 @@ procedure TFileDialog.GetFileName(var S: String);
 
   function RelativePath(var S: String): Boolean;
     var
-      I, J: Integer;
+      I, J: integer;
       P: String;
     begin
     S := LTrim(RTrim(S));
@@ -1171,7 +1166,7 @@ procedure TFileDialog.GetFileName(var S: String);
 Поэтому переписал на Паскале: и понятно, и платформонезависимо.}
   function NoWildChars(S: String): String;
     var
-      i, j: Integer;
+      i, j: integer;
       c: Char;
       {Result: string;}
     begin
@@ -1201,7 +1196,7 @@ procedure TFileDialog.GetFileName(var S: String);
   else
     S := lFExpand(S);
   if Abort then
-    Exit;
+    exit;
   lFSplit(S, Path, Name, Ext);
   if  (Ext = '') and not IsDir(S) then
     begin
@@ -1228,7 +1223,7 @@ procedure TFileDialog.GetFileName(var S: String);
 procedure TFileDialog.HandleEvent(var Event: TEvent);
 
   procedure Go;
-    procedure SuperFocus(var List: PCollection; curent: Integer);
+    procedure SuperFocus(var List: PCollection; curent: integer);
       begin
       if List^.Count > 0 then
         begin
@@ -1348,7 +1343,7 @@ procedure TFileDialog.Store(var S: TStream);
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function TFileDialog.Valid(Command: Word): Boolean;
+function TFileDialog.Valid(Command: word): Boolean;
   var
     T: Boolean;
     lFName: String;
@@ -1373,7 +1368,7 @@ function TFileDialog.Valid(Command: Word): Boolean;
   if Command = 0 then
     begin
     Valid := True;
-    Exit;
+    exit;
     end
   else
     Valid := False;
@@ -1382,13 +1377,13 @@ function TFileDialog.Valid(Command: Word): Boolean;
     if Command = cmCancel then
       begin
       Valid := True;
-      Exit;
+      exit;
       end;
     GetFileName(lFName);
     if Abort then
       begin
       Valid := False;
-      Exit;
+      exit;
       end;
     if  (Command <> cmCancel) and (Command <> cmFileClear) then
       begin
@@ -1488,7 +1483,7 @@ procedure TDirCollection.PutItem(var S: TStream; Item: Pointer);
 
 {-DataCompBoy-}
 function GetFileNameDialog(Mask, Title, Name: String;
-     Buttons, HistoryId: Word): String;
+     Buttons, HistoryId: word): String;
   var
     S: String;
     D: PFileDialog;
@@ -1504,7 +1499,7 @@ function GetFileNameDialog(Mask, Title, Name: String;
   D := PFileDialog(Application^.ValidView(New(PFileDialog,
           Init(Mask, Title, Name, Buttons, HistoryId))));
   if D = nil then
-    Exit;
+    exit;
   if B then
     D^.SetData(S);
   if Desktop^.ExecView(D) <> cmCancel then
@@ -1530,13 +1525,13 @@ function GetFileNameMenu(Path, Mask, Default: String;
     Current, Def: PMenuItem;
     Menu: PMenu;
     HMB: PMenuBox;
-    CurIdx, i: Integer;
+    CurIdx, i: integer;
     R: TRect;
-    W: Word;
+    W: word;
 
   function LngMixCase(P: String): String;
     var
-      i: Integer;
+      i: integer;
     begin
     for i := 1 to Length(P) do
       if  (i = 1) or not (P[i-1] in ['a'..'z',
@@ -1571,7 +1566,7 @@ function GetFileNameMenu(Path, Mask, Default: String;
   Current := nil;
   if L.Count > 0 then
     begin
-    for i := L.Count-1 downto 0 do
+    for i := L.Count-1 DownTo 0 do
       begin
       if PutNumbers then
         case i of

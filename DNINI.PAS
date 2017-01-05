@@ -142,7 +142,6 @@ const
   {}ShowKeyCode: Byte = 0;
   {}CopyLimit: LongInt = 8192; {DataCompBoy}
   {piwamoto}
-  {}HandleChDirCommand: Boolean = True; {DataCompBoy}
   {}StoreVideoMode: Byte = 0; {PZ}
   {DataCompBoy}
   {}SmartWindowsBoxClose: LongInt = 0; {DataCompBoy, AK155}
@@ -165,6 +164,7 @@ const
   {}AutoScopeDetect: Boolean = True;
   {}ShowBookmarks: Boolean = True;
   {}FastBookmark: Boolean = True;
+  {}DefCodePageView: String[9] = 'Dos';
   {}DefCodePage: String[9] = 'Dos';
   {}CapitalCodePageName: Boolean = False;
   {}FastSearchDeep: LongInt = 0;
@@ -290,7 +290,7 @@ procedure ClearIniErrors;
 
 implementation
 uses
-  Dos, Lfn, profile, Advance, Advance1, Collect, Messages, DNApp,
+  Dos, Lfn, profile, advance, advance1, Collect, Messages, DNApp,
   {$IFDEF WIN32}VpSysLow, {$ENDIF}
   Strings
   ;
@@ -301,7 +301,7 @@ type
   TSInt16 = SmallInt;
   TSInt32 = LongInt;
   TUInt8 = Byte;
-  TUInt16 = Word;
+  TUInt16 = word;
 
   TIniItemKind = (
     ikBool,
@@ -313,7 +313,7 @@ type
     );
 
   TDoProc = procedure (Group, Parameter: PChar; Kind: TIniItemKind;
-     Size: Word; PVar: Pointer);
+     Size: word; PVar: Pointer);
 
 const
   {Group names}
@@ -382,12 +382,12 @@ procedure ShowIniErrors;
       sg: String[10];
       sp: String[21];
       id: TStrIdx;
-      flg: Word;
+      flg: word;
       q: Pointer;
       par: TParams;
     begin
     if P = nil then
-      Exit;
+      exit;
     sg := StrPas(I^.Group);
     sp := StrPas(I^.Parameter);
     flg := mfOKButton;
@@ -509,8 +509,6 @@ procedure Proceed(RegisterVar: TDoProc);
      @ShowKeyCode);
   RegisterVar(CSKernel, 'CopyLimit', ikSInt, SizeOf(CopyLimit),
      @CopyLimit);
-  RegisterVar(CSKernel, 'HandleChDirCommand', ikBool,
-       SizeOf(HandleChDirCommand), @HandleChDirCommand); {DataCompBoy}
   RegisterVar(CSKernel, 'StoreVideoMode', ikUInt,
      SizeOf(StoreVideoMode), @StoreVideoMode); {PZ}
   {DataCompBoy}
@@ -543,6 +541,8 @@ procedure Proceed(RegisterVar: TDoProc);
      @ShowBookmarks);
   RegisterVar(CSEditor, 'FastBookmark', ikBool, SizeOf(FastBookmark),
      @FastBookmark);
+  RegisterVar(CSEditor, 'DefCodePageView', ikStr,
+   SizeOf(DefCodePageView), @DefCodePageView);
   RegisterVar(CSEditor, 'DefCodePage', ikStr, SizeOf(DefCodePage),
      @DefCodePage);
   RegisterVar(CSEditor, 'CapitalCodePageName', ikBool,
@@ -665,11 +665,11 @@ procedure Proceed(RegisterVar: TDoProc);
        SizeOf(VIOScreenMode), @VIOScreenMode);
   end { Proceed };
 
-function IniVarToStr(Kind: TIniItemKind; Size: Word; PVar: Pointer)
+function IniVarToStr(Kind: TIniItemKind; Size: word; PVar: Pointer)
   : String;
   var
     b: Boolean;
-    i: Integer;
+    i: integer;
   begin
   Result := '';
 
@@ -685,7 +685,7 @@ function IniVarToStr(Kind: TIniItemKind; Size: Word; PVar: Pointer)
         4:
           b := Longbool(PVar^);
         else {case}
-          Exit;
+          exit;
       end {case};
       if b then
         Result := '1'
@@ -737,10 +737,10 @@ function IniVarToStr(Kind: TIniItemKind; Size: Word; PVar: Pointer)
   end {case};
   end { IniVarToStr };
 
-function IniStrToVar(Text: String; Kind: TIniItemKind; Size: Word;
+function IniStrToVar(Text: String; Kind: TIniItemKind; Size: word;
      PVar: Pointer): Boolean;
   var
-    i: Integer;
+    i: integer;
     buffer: array[0..3] of Byte;
     b: Boolean absolute buffer;
     i32: TSInt32 absolute buffer;
@@ -764,7 +764,7 @@ function IniStrToVar(Text: String; Kind: TIniItemKind; Size: Word;
       then
         b := False
       else
-        Exit;
+        exit;
       IniStrToVar := True;
       case Size of
         1:
@@ -839,7 +839,7 @@ function IniStrToVar(Text: String; Kind: TIniItemKind; Size: Word;
     ikChar:
       begin
       if Text = '' then
-        Exit;
+        exit;
       i := Size;
       if Length(Text) < Size then
         begin
@@ -855,7 +855,7 @@ function IniStrToVar(Text: String; Kind: TIniItemKind; Size: Word;
   end { IniStrToVar };
 
 procedure Loader(Group, Parameter: PChar; Kind: TIniItemKind;
-     Size: Word; PVar: Pointer);
+     Size: word; PVar: Pointer);
   var
     s: String;
     b: Byte;
@@ -881,14 +881,14 @@ procedure Loader(Group, Parameter: PChar; Kind: TIniItemKind;
 const
   SaveVar: Pointer = nil;
 
-procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size: Word;
+procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size: word;
      PVar: Pointer);
   var
     s: String;
     b: array[0..255] of Char;
   begin
   if  (SaveVar <> nil) and (SaveVar <> PVar) then
-    Exit;
+    exit;
   s := IniVarToStr(Kind, Size, PVar)+#0;
   { This code is provided only to not cut longer string if only a part }
   { was read in Loader procedure.                                      }
@@ -906,7 +906,7 @@ procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size: Word;
       @FreeStr[1]
       );
     if StrLComp(@b, @s[1], Length(s)) = 0 then
-      Exit;
+      exit;
     end;
   StrPCopy(b, s);
   WritePrivateProfileString(
@@ -944,7 +944,7 @@ function ProbeINI(var INItime, INIsize, INIcrc: LongInt): Boolean;
     {F: TDosStream;}
     {B: PByteArray;}
     Pos: LongInt;
-    S: Word;
+    S: word;
   begin
   INItime := 0;
   INIsize := 0;

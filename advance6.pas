@@ -47,12 +47,12 @@
 {$I STDEFINE.INC}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
-unit Advance6;
+unit advance6;
 
 interface
 
 uses
-  Objects
+  Defines
   ;
 
 procedure InitUpcase;
@@ -68,7 +68,7 @@ implementation
 uses
   {Cat}U_KeyMap, {/Cat}
   VpSysLow,
-  Advance, Lfn, VideoMan
+  advance, Lfn, VideoMan
   ;
 
 procedure InitUpcase;
@@ -118,7 +118,7 @@ function GetLineNumberForOffset(const FName: String; Offset: LongInt)
   var
     F: lFile;
     q: PByteArray;
-    bl: Integer;
+    bl: integer;
     ln: LongInt;
     fp: LongInt;
     bp: LongInt;
@@ -148,7 +148,7 @@ function GetOffsetForLineNumber(const FName: String; LineNm: LongInt)
   var
     F: lFile;
     q: PByteArray;
-    bl: Integer;
+    bl: integer;
     ln: LongInt;
     fp: LongInt;
     bp: LongInt;
@@ -192,7 +192,7 @@ procedure ResourceAccessError;
 
 function HotKey(const S: String): Char;
   var
-    P: Word;
+    P: word;
   begin
   P := Pos('~', S);
   if P <> 0 then
@@ -204,7 +204,7 @@ function HotKey(const S: String): Char;
 procedure MakeCRCTable;
   var
     c: LongInt;
-    n, k: Integer;
+    n, k: integer;
     poly: LongInt; { polynomial exclusive-or pattern }
 
   const

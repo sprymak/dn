@@ -49,24 +49,24 @@
 uses
   Lfn, {DataCompBoy}
   Dos,
-  Advance1, Advance, Objects
+  advance1, advance, Defines
   ;
 
 const
-  VersionName: String = '1.51.10b16';
+  VersionName: String = '2.04alpha';
   VersionDate: String = '';
   VersionWord: AWord = 15198;
 
 var
   F: lText;
-  Day, Month, Year, dow: Word;
+  Day, Month, Year, dow: word;
 
 const
   DOWs: array[0..6] of String[3] =
     ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat');
   Months: array[1..12] of String[3] =
     ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
-     'Oct', 'Nov', 'Dec');
+    'Oct', 'Nov', 'Dec');
   Days: array[1..31] of String[2] =
     ('01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
     '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
@@ -104,11 +104,8 @@ Writeln(' '#254' Creating ', ParamStr(1)+' '+VersionName);
 
 GetDate(Year, Month, Day, dow);
 Str(Year, VersionDate);
-VersionDate :=
-
-
-     DOWs[dow]+', '+Days[Day]+' '+Months[Month]+' '+VersionDate+' at '+GetDateTime
-    (True);
+VersionDate := DOWs[dow]+', '+Days[Day]+' '+Months[Month]+' '+
+  VersionDate+' at '+GetDateTime(True);
 lAssignText(F, ParamStr(1));
 ClrIO;
 lRewriteText(F);
@@ -117,7 +114,8 @@ Writeln(F.T,
   );
 Writeln(F.T, '//');
 Writeln(F.T, '//  Dos Navigator Open Source '+VersionName);
-Writeln(F.T, '//  Based on Dos Navigator (C) 1991-99 RIT Research Labs');
+Writeln(F.T,
+  '//  Based on Dos Navigator (C) 1991-99 RIT Research Labs');
 Writeln(F.T, '//');
 Writeln(F.T,
   '//  This programs is free for commercial and non-commercial use as long as'
@@ -128,7 +126,8 @@ Writeln(F.T,
   '//  Copyright remains RIT Research Labs, and as such any Copyright notices'
   );
 Writeln(F.T,
-   '//  in the code are not to be removed. If this package is used in a');
+  '//  in the code are not to be removed. If this package is used in a'
+  );
 Writeln(F.T,
   '//  product, RIT Research Labs should be given attribution as the RIT Research'
   );
@@ -149,9 +148,10 @@ Writeln(F.T,
 Writeln(F.T, '//  met:');
 Writeln(F.T, '//');
 Writeln(F.T,
-   '//  1. Redistributions of source code must retain the copyright');
+  '//  1. Redistributions of source code must retain the copyright');
 Writeln(F.T,
-  '//     notice, this list of conditions and the following disclaimer.');
+  '//     notice, this list of conditions and the following disclaimer.'
+  );
 Writeln(F.T,
   '//  2. Redistributions in binary form must reproduce the above copyright'
   );
@@ -165,13 +165,15 @@ Writeln(F.T,
   '//  3. All advertising materials mentioning features or use of this software'
   );
 Writeln(F.T, '//     must display the following acknowledgement:');
-Writeln(F.T, '//     "Based on Dos Navigator by RIT Research Labs.');
+Writeln(F.T,
+  '//     "Based on Dos Navigator by RIT Research Labs.');
 Writeln(F.T, '//');
 Writeln(F.T,
   '//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS'
   );
 Writeln(F.T,
-  '//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED');
+  '//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED'
+  );
 Writeln(F.T,
   '//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE'
   );
@@ -182,21 +184,25 @@ Writeln(F.T,
   '//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL'
   );
 Writeln(F.T,
-  '//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE');
+  '//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE'
+  );
 Writeln(F.T,
-   '//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS');
+  '//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS')
+;
 Writeln(F.T,
   '//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER'
   );
 Writeln(F.T,
-   '//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR');
+  '//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR'
+  );
 Writeln(F.T,
   '//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF'
   );
 Writeln(F.T, '//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.');
 Writeln(F.T, '//');
 Writeln(F.T,
-   '//  The licence and distribution terms for any publically available');
+  '//  The licence and distribution terms for any publically available'
+  );
 Writeln(F.T,
   '//  version or derivative of this code cannot be changed. i.e. this code'
   );

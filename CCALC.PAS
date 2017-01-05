@@ -51,8 +51,8 @@ unit CCalc;
 interface
 
 uses
-  Advance, Advance1, Advance2, Advance3, Calculat, RStrings, DNApp,
-  Dialogs, Views, Objects, Drivers, Commands, HistList, DNHelp
+  advance, advance1, advance2, advance3, Calculat, RStrings, DNApp,
+  Dialogs, Views, Defines, Drivers, Commands, HistList, DNHelp
   ;
 
 type
@@ -99,7 +99,7 @@ function TIndicator.GetPalette;
   GetPalette := @S;
   end;
 
-procedure GetNValue(L: LongInt; A: Integer; var S: String);
+procedure GetNValue(L: LongInt; A: integer; var S: String);
   begin
   S := '';
   if L = 0 then
@@ -115,7 +115,7 @@ procedure GetNValue(L: LongInt; A: Integer; var S: String);
 procedure TIndicator.HandleEvent;
   var
     D: record
-      n: Word;
+      n: word;
       S: String[250];
       end;
 
@@ -165,17 +165,17 @@ procedure TIndicator.HandleEvent;
             if Abs(Value) < $7FFFFFFF then
               GetNValue(Trunc(Value), 4, D.S)
             else
-              Exit;
+              exit;
           2:
             if Abs(Value) < $7FFFFFFF then
               GetNValue(Trunc(Value), 1, D.S)
             else
-              Exit;
+              exit;
           3:
             if Abs(Value) < $7FFFFFFF then
               GetNValue(Trunc(Value), 3, D.S)
             else
-              Exit;
+              exit;
           4:
             Str(Value, D.S);
           5:
@@ -227,14 +227,14 @@ procedure TIndicator.Draw;
     C: Byte;
     L, LL: LongInt;
 
-  procedure Wrt(N: Integer);
+  procedure Wrt(N: integer);
     begin
     MoveChar(B, ' ', C, Size.X);
     MoveStr(B[Size.X-Length(S)-1], S, C);
     WriteLine(0, N, Size.X, 1, B);
     end;
 
-  procedure WrtN(N, A: Integer);
+  procedure WrtN(N, A: integer);
     begin
     GetNValue(LL, A, S);
     Wrt(N);
@@ -347,7 +347,7 @@ procedure TCalcLine.SetValues;
     begin
     R := 0;
     Message(Owner, evBroadcast, cmSetValue, @R);
-    Exit
+    exit
     end;
   R := Evalue(S, nil);
   if EvalueError then

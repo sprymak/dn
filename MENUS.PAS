@@ -56,7 +56,7 @@ unit Menus;
 interface
 
 uses
-  Objects, Drivers, Views
+  Defines, Streams, Drivers, Views
   ;
 
 const
@@ -78,11 +78,11 @@ type
   TMenuItem = record
     Next: PMenuItem;
     Name: PString;
-    Command: Word;
+    Command: word;
     Disabled: Boolean;
-    KeyCode: Word;
-    HelpCtx: Word;
-    case Integer of
+    KeyCode: word;
+    HelpCtx: word;
+    case integer of
       0: (Param: PString);
       1: (SubMenu: PMenu);
     end;
@@ -109,13 +109,13 @@ type
     Current: PMenuItem;
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
-    function Execute: Word; virtual;
+    function Execute: word; virtual;
     function FindItem(Ch: Char): PMenuItem;
     procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;
-    function GetHelpCtx: Word; virtual;
+    function GetHelpCtx: word; virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function HotKey(KeyCode: Word): PMenuItem;
+    function HotKey(KeyCode: word): PMenuItem;
     function NewSubView(var Bounds: TRect; AMenu: PMenu;
         AParentMenu: PMenuView): PMenuView; virtual;
     procedure Store(var S: TStream);
@@ -180,8 +180,8 @@ type
   TStatusItem = record
     Next: PStatusItem;
     Text: PString;
-    KeyCode: Word;
-    Command: Word;
+    KeyCode: word;
+    Command: word;
     end;
 
   { TStatusDef }
@@ -189,7 +189,7 @@ type
   PStatusDef = ^TStatusDef;
   TStatusDef = record
     Next: PStatusDef;
-    Min, Max: Word;
+    Min, Max: word;
     Items: PStatusItem;
     end;
 
@@ -213,7 +213,7 @@ type
     procedure Draw; virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function Hint(AHelpCtx: Word): String; virtual;
+    function Hint(AHelpCtx: word): String; virtual;
     procedure Store(var S: TStream);
     procedure Update; virtual;
   private
@@ -223,10 +223,10 @@ type
 
   { TMenuItem routines }
 
-function NewItem(Name, Param: TMenuStr; KeyCode: Word; Command: Word;
-    AHelpCtx: Word; Next: PMenuItem): PMenuItem;
+function NewItem(Name, Param: TMenuStr; KeyCode: word; Command: word;
+    AHelpCtx: word; Next: PMenuItem): PMenuItem;
 function NewLine(Next: PMenuItem): PMenuItem;
-function NewSubMenu(Name: TMenuStr; AHelpCtx: Word; SubMenu: PMenu;
+function NewSubMenu(Name: TMenuStr; AHelpCtx: word; SubMenu: PMenu;
     Next: PMenuItem): PMenuItem;
 
 { TMenu routines }
@@ -236,18 +236,18 @@ procedure DisposeMenu(Menu: PMenu);
 
 { TStatusLine routines }
 
-function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem;
+function NewStatusDef(AMin, AMax: word; AItems: PStatusItem;
     ANext: PStatusDef): PStatusDef;
-function NewStatusKey(const AText: String; AKeyCode: Word; ACommand: Word;
+function NewStatusKey(const AText: String; AKeyCode: word; ACommand: word;
     ANext: PStatusItem): PStatusItem;
 
 const
   dfByCommand = $000;
   dfByPosition = $100;
 
-function LookUpMenu(Menu: PMenu; idCheckItem: Word; Flags: Word)
+function LookUpMenu(Menu: PMenu; idCheckItem: word; Flags: word)
   : PMenuItem;
-function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): Word;
+function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): word;
 
 procedure StoreMenuDefaults(Menu: PMenu; var S: TStream);
 procedure LoadMenuDefaults(Menu: PMenu; var S: TStream);
@@ -257,7 +257,7 @@ const
 
 implementation
 uses
-  Advance, Advance1, Advance2, Advance3, Commands, DNHelp, DNApp
+  advance, advance1, advance2, advance3, Commands, DNHelp, DNApp
   ;
 
 const
@@ -265,8 +265,8 @@ const
 
   { TMenuItem routines }
 
-function NewItem(Name, Param: TMenuStr; KeyCode: Word; Command: Word;
-    AHelpCtx: Word; Next: PMenuItem): PMenuItem;
+function NewItem(Name, Param: TMenuStr; KeyCode: word; Command: word;
+    AHelpCtx: word; Next: PMenuItem): PMenuItem;
   const
     T: PView = nil;
   var
@@ -300,7 +300,7 @@ function NewLine(Next: PMenuItem): PMenuItem;
   NewLine := P;
   end;
 
-function NewSubMenu(Name: TMenuStr; AHelpCtx: Word; SubMenu: PMenu;
+function NewSubMenu(Name: TMenuStr; AHelpCtx: word; SubMenu: PMenu;
     Next: PMenuItem): PMenuItem;
   var
     P: PMenuItem;
@@ -411,7 +411,7 @@ constructor TMenuView.Load(var S: TStream);
   Menu := DoLoadMenu;
   end { TMenuView.Load };
 
-function TMenuView.Execute: Word;
+function TMenuView.Execute: word;
   type
     MenuAction = (DoNothing, DoSelect, DoReturn);
   var
@@ -471,7 +471,7 @@ function TMenuView.Execute: Word;
       Action := DoNothing;
       MouseWalk := True;
       MouseActive := True;
-      Exit;
+      exit;
       end;
 q:
     MouseWalk := False;
@@ -482,7 +482,7 @@ q:
       if R.Contains(Mouse) then
         begin
         MouseActive := True;
-        Exit;
+        exit;
         end;
       Current := Current^.Next;
       end;
@@ -558,7 +558,7 @@ q:
     Frst: Boolean;
 
   var
-    W, H, L: Integer;
+    W, H, L: integer;
     R2: TRect;
   begin { TMenuView.Execute: }
   if TypeOf(Self) = TypeOf(TMenuBox) then
@@ -735,7 +735,7 @@ q:
                   begin
                   for W := 1 to Size.Y-2 do
                     if Current = Menu^.Items then
-                      Break
+                      break
                     else
                       begin
                       P := Current;
@@ -762,7 +762,7 @@ q:
                       then
                       begin
                       TrackKey(False);
-                      Break
+                      break
                       end
                     else
                       begin
@@ -908,7 +908,7 @@ q:
 function TMenuView.FindItem(Ch: Char): PMenuItem;
   var
     P: PMenuItem;
-    I: Integer;
+    I: integer;
   begin
   Ch := UpCaseArray[Ch];
   P := Menu^.Items;
@@ -920,7 +920,7 @@ function TMenuView.FindItem(Ch: Char): PMenuItem;
       if  (I <> 0) and (Ch = UpCaseArray[P^.Name^[I+1]]) then
         begin
         FindItem := P;
-        Exit;
+        exit;
         end;
       end;
     P := P^.Next;
@@ -932,7 +932,7 @@ procedure TMenuView.GetItemRect(Item: PMenuItem; var R: TRect);
   begin
   end;
 
-function TMenuView.GetHelpCtx: Word;
+function TMenuView.GetHelpCtx: word;
   var
     C: PMenuView;
   label
@@ -942,11 +942,11 @@ function TMenuView.GetHelpCtx: Word;
   GetHelpCtx := hcNoContext;
 Loop:
   if C = nil then
-    Exit;
+    exit;
   if  (C^.Current <> nil) and (C^.Current^.HelpCtx <> hcNoContext) then
     begin
     GetHelpCtx := C^.Current^.HelpCtx;
-    Exit;
+    exit;
     end;
   GetHelpCtx := C^.HelpCtx;
   C := C^.ParentMenu;
@@ -1047,7 +1047,7 @@ GrayPlus, GrayMinus, F2, F10, F11, F12 }
     end {case};
   end { TMenuView.HandleEvent };
 
-function TMenuView.HotKey(KeyCode: Word): PMenuItem;
+function TMenuView.HotKey(KeyCode: word): PMenuItem;
 
   function FindHotKey(P: PMenuItem): PMenuItem;
     var
@@ -1062,7 +1062,7 @@ function TMenuView.HotKey(KeyCode: Word): PMenuItem;
           if T <> nil then
             begin
             FindHotKey := T;
-            Exit;
+            exit;
             end;
           end
         else if not P^.Disabled and (P^.KeyCode <> kbNoKey) and
@@ -1070,7 +1070,7 @@ function TMenuView.HotKey(KeyCode: Word): PMenuItem;
         then
           begin
           FindHotKey := P;
-          Exit;
+          exit;
           end;
       P := P^.Next;
       end;
@@ -1143,8 +1143,8 @@ destructor TMenuBar.Done;
 
 procedure TMenuBar.Draw;
   var
-    X, L: Integer;
-    CNormal, CSelect, CNormDisabled, CSelDisabled, Color: Word;
+    X, L: integer;
+    CNormal, CSelect, CNormDisabled, CSelDisabled, Color: word;
     P: PMenuItem;
     B: TDrawBuffer;
   begin
@@ -1197,7 +1197,7 @@ procedure TMenuBar.GetItemRect(Item: PMenuItem; var R: TRect);
     if P^.Name <> nil then
       Inc(R.B.X, CStrLen(P^.Name^)+2);
     if P = Item then
-      Exit;
+      exit;
     P := P^.Next;
     end;
   end;
@@ -1218,16 +1218,16 @@ constructor TMenuBox.Init(var Bounds: TRect; AMenu: PMenu;
 
 procedure TMenuBox.Draw;
   var
-    CNormal, CSelect, CNormDisabled, CSelDisabled, Color: Word;
-    Y: Integer;
+    CNormal, CSelect, CNormDisabled, CSelDisabled, Color: word;
+    Y: integer;
     P: PMenuItem;
     B: TDrawBuffer;
-    TopIndex: Integer;
+    TopIndex: integer;
 
   function PastEnd: Boolean;
     var
       P: PMenuItem;
-      H: Integer;
+      H: integer;
     begin
     H := 1;
     P := TopItem;
@@ -1239,7 +1239,7 @@ procedure TMenuBox.Draw;
     PastEnd := H > Size.Y-1;
     end;
 
-  procedure FrameLine(N: Integer);
+  procedure FrameLine(N: integer);
     const
       FrameChars: array[0..19] of Char =
       #32#218#196#191#32#32#192#196#217#32#32#179#32#179#32#32#195#196#180#32
@@ -1331,7 +1331,7 @@ procedure TMenuBox.Draw;
 
 procedure TMenuBox.GetItemRect(Item: PMenuItem; var R: TRect);
   var
-    Y: Integer;
+    Y: integer;
     P: PMenuItem;
   begin
   Y := 1;
@@ -1418,7 +1418,7 @@ constructor TStatusLine.Load(var S: TStream);
 
   function DoLoadStatusDefs: PStatusDef;
     var
-      AMin: Word;
+      AMin: word;
       Cur, First: PStatusDef;
       Last: ^PStatusDef;
       Count: AInt;
@@ -1430,7 +1430,7 @@ constructor TStatusLine.Load(var S: TStream);
       New(Cur);
       Last^:= Cur;
       Last := @Cur^.Next;
-      S.Read(Cur^.Min, 2*SizeOf(Word));
+      S.Read(Cur^.Min, 2*SizeOf(word));
       Cur^.Items := DoLoadStatusItems;
       Dec(Count);
       end;
@@ -1481,9 +1481,9 @@ procedure TStatusLine.DrawSelect(Selected: PStatusItem);
   var
     B: TDrawBuffer;
     T: PStatusItem;
-    I, L: Integer;
-    CSelect, CNormal, CSelDisabled, CNormDisabled: Word;
-    Color: Word;
+    I, L: integer;
+    CSelect, CNormal, CSelDisabled, CNormDisabled: word;
+    Color: word;
     HintBuf: String;
     FirstChar: Char;
   begin
@@ -1577,13 +1577,13 @@ procedure TStatusLine.HandleEvent(var Event: TEvent);
 
   function ItemMouseIsIn: PStatusItem;
     var
-      I, K: Word;
+      I, K: word;
       T: PStatusItem;
       FirstChar: Char;
     begin
     ItemMouseIsIn := nil;
     if Mouse.Y <> 0 then
-      Exit;
+      exit;
     I := 0;
     T := Items;
     if OldKbdState and 12 = 12 then
@@ -1609,7 +1609,7 @@ procedure TStatusLine.HandleEvent(var Event: TEvent);
         if  (Mouse.X >= I) and (Mouse.X < K) then
           begin
           ItemMouseIsIn := T;
-          Exit;
+          exit;
           end;
         I := K;
         end;
@@ -1660,7 +1660,7 @@ procedure TStatusLine.HandleEvent(var Event: TEvent);
           Event.What := evCommand;
           Event.Command := T^.Command;
           Event.InfoPtr := nil;
-          Exit;
+          exit;
           end;
         T := T^.Next;
         end;
@@ -1671,7 +1671,7 @@ procedure TStatusLine.HandleEvent(var Event: TEvent);
   end {case};
   end { TStatusLine.HandleEvent };
 
-function TStatusLine.Hint(AHelpCtx: Word): String;
+function TStatusLine.Hint(AHelpCtx: word): String;
   begin
   if AHelpCtx = hcTeam then
     Hint := GetString(dlTeamHint)
@@ -1720,7 +1720,7 @@ procedure TStatusLine.Store(var S: TStream);
       begin
       with Cur^ do
         begin
-        S.Write(Min, SizeOf(Word)*2);
+        S.Write(Min, SizeOf(word)*2);
         DoStoreStatusItems(Items);
         end;
       Cur := Cur^.Next;
@@ -1734,7 +1734,7 @@ procedure TStatusLine.Store(var S: TStream);
 
 procedure TStatusLine.Update;
   var
-    H: Word;
+    H: word;
     P: PView;
   begin
   P := TopView;
@@ -1751,7 +1751,7 @@ procedure TStatusLine.Update;
     end;
   end;
 
-function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem;
+function NewStatusDef(AMin, AMax: word; AItems: PStatusItem;
     ANext: PStatusDef): PStatusDef;
   var
     T: PStatusDef;
@@ -1767,7 +1767,7 @@ function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem;
   NewStatusDef := T;
   end;
 
-function NewStatusKey(const AText: String; AKeyCode: Word; ACommand: Word;
+function NewStatusKey(const AText: String; AKeyCode: word; ACommand: word;
     ANext: PStatusItem): PStatusItem;
   var
     T: PStatusItem;
@@ -1780,11 +1780,11 @@ function NewStatusKey(const AText: String; AKeyCode: Word; ACommand: Word;
   NewStatusKey := T;
   end;
 
-function LookUpMenu(Menu: PMenu; idCheckItem: Word; Flags: Word)
+function LookUpMenu(Menu: PMenu; idCheckItem: word; Flags: word)
   : PMenuItem;
   var
     Item, LookedUp: PMenuItem;
-    i: Integer;
+    i: integer;
   begin
   LookUpMenu := nil;
   if Menu <> nil then
@@ -1798,7 +1798,7 @@ function LookUpMenu(Menu: PMenu; idCheckItem: Word; Flags: Word)
           begin
           Item := Item^.Next;
           if Item = nil then
-            Break
+            break
           end;
         LookUpMenu := Item
         end
@@ -1821,10 +1821,10 @@ function LookUpMenu(Menu: PMenu; idCheckItem: Word; Flags: Word)
       end
   end { LookUpMenu };
 
-function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): Word; {new}
+function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): word; {new}
   var
     Item: PMenuItem;
-    I: Word;
+    I: word;
   begin
   MenuIndexOf := 0;
   if Menu <> nil then
@@ -1847,7 +1847,7 @@ function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): Word; {new}
 procedure StoreMenuDefaults(Menu: PMenu; var S: TStream); {new}
   var
     Item: PMenuItem;
-    I: Word;
+    I: word;
   begin
   if Menu <> nil then
     with Menu^ do
@@ -1869,7 +1869,7 @@ procedure StoreMenuDefaults(Menu: PMenu; var S: TStream); {new}
 procedure LoadMenuDefaults(Menu: PMenu; var S: TStream); {new}
   var
     Item: PMenuItem;
-    I: Word;
+    I: word;
   begin
   if Menu <> nil then
     with Menu^ do

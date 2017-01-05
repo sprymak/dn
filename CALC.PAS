@@ -54,7 +54,8 @@ unit Calc;
 interface
 
 uses
-  Advance, Lfn, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
+  advance, Lfn, Defines, Streams, Views, CellsCol, Drivers, Dialogs,
+   Messages,
   HistList, UniWin, Commands, DNHelp, RStrings, Calculat
   ;
 
@@ -105,8 +106,8 @@ type
     procedure Store(var S: TStream);
 
     procedure Draw; virtual;
-    function Valid(Command: Word): Boolean; virtual;
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    function Valid(Command: word): Boolean; virtual;
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     function GetCellValue(const S: String): Boolean;
@@ -129,7 +130,7 @@ type
     procedure DeleteCol;
     procedure GotoCell(Cell: String);
     procedure SearchCell;
-    procedure RewriteFormula(var P: PCellrec; LX, LY, DX, DY: Integer);
+    procedure RewriteFormula(var P: PCellrec; LX, LY, DX, DY: integer);
     end;
 
   TCalcInput = object(TInputLine)
@@ -148,13 +149,13 @@ type
     end;
 
 function GetFileName(var FileName: String; Mask, Title, ALabel: String;
-     Buttons: Word): Word;
+     Buttons: word): word;
 
 implementation
 
 uses
   Collect, Strings, ErrMess,
-  Memory, Dos, DNApp, DNStdDlg, Advance1, Advance2,
+  Memory, Dos, DNApp, DNStdDlg, advance1, advance2,
   MicroEd2, Histries
   ;
 
@@ -183,7 +184,7 @@ type
     end;
   TDBFLength = record
     { длина поля DBF } {KV}
-    case Integer of
+    case integer of
       0: (FieldLength: AWord);
       1: (NumericLength: Byte; Decimals: Byte);
     end;
@@ -210,33 +211,33 @@ type
     Fields: PDbfFieldCollection;
     CurRecord: LongInt;
     EofFlag: Boolean;
-    constructor Init(FileName: FNameStr; Mode: Word; Size: SW_Word);
+    constructor Init(FileName: FNameStr; Mode: word; Size: SW_Word);
     destructor Done; virtual;
     procedure AddField(const NameField: String; TypeField: Char;
-        LenField: Integer; DecField: Integer);
+        LenField: integer; DecField: integer);
     procedure AddRecord;
     procedure CreateFile;
     procedure DeleteRecord;
-    function FCount: Integer;
-    function FieldAsString(FieldIndex: Integer): String;
-    function FieldAsInteger(FieldIndex: Integer): Integer;
-    function FieldAsFloat(FieldIndex: Integer): Double;
-    procedure FieldPutString(FieldIndex: Integer; FieldValue: String);
-    procedure FieldPutInteger(FieldIndex: Integer; FieldValue: Integer);
-    procedure FieldPutFloat(FieldIndex: Integer; FieldValue: Double);
-    function FieldName(FieldIndex: Integer): String;
+    function FCount: integer;
+    function FieldAsString(FieldIndex: integer): String;
+    function FieldAsInteger(FieldIndex: integer): integer;
+    function FieldAsFloat(FieldIndex: integer): Double;
+    procedure FieldPutString(FieldIndex: integer; FieldValue: String);
+    procedure FieldPutInteger(FieldIndex: integer; FieldValue: integer);
+    procedure FieldPutFloat(FieldIndex: integer; FieldValue: Double);
+    function FieldName(FieldIndex: integer): String;
     // Warning! FieldIndex from 1
-    function FieldDec(FieldIndex: Integer): Byte; // FieldIndex >= 1
-    function FieldLen(FieldIndex: Integer): AWord;
+    function FieldDec(FieldIndex: integer): Byte; // FieldIndex >= 1
+    function FieldLen(FieldIndex: integer): AWord;
     // Warning! FieldIndex from 1
-    function FieldPos(NameField: String): Integer; // FieldIndex >= 1
-    function FieldType(FieldIndex: Integer): Char;
-    function FieldOffsetInBuffer(FieldIndex: Integer): Integer;
+    function FieldPos(NameField: String): integer; // FieldIndex >= 1
+    function FieldType(FieldIndex: integer): Char;
+    function FieldOffsetInBuffer(FieldIndex: integer): integer;
     // FieldIndex >= 1
-    function FieldOffsetInFile(FieldIndex: Integer): LongInt;
+    function FieldOffsetInFile(FieldIndex: integer): LongInt;
     // FieldIndex >= 1
     procedure First;
-    procedure DBGoTo(NewRecord: Integer);
+    procedure DBGoTo(NewRecord: integer);
     procedure Next;
     procedure ReadFile;
     procedure RecallRecord;
@@ -261,12 +262,12 @@ type
 const
   SearchData: record
     S: String[240];
-    CellOptions, TxtOptions: Word;
+    CellOptions, TxtOptions: word;
     end =
     (S: ''; CellOptions: 0; TxtOptions: 0);
   ReplaceData: record
     S, S1: String[240];
-    CellOptions, TxtOptions: Word;
+    CellOptions, TxtOptions: word;
     end =
     (S: ''; S1: ''; CellOptions: 0; TxtOptions: 0);
   WasReplace: Boolean = False;
@@ -277,12 +278,12 @@ const
 
   {-DataCompBoy-}
 function GetFileName(var FileName: String; Mask, Title, ALabel: String;
-     Buttons: Word): Word;
+     Buttons: word): word;
   var
     S: String;
     D: PFileDialog;
     B: Boolean;
-    C: Word;
+    C: word;
   begin
   S := '';
   B := False;
@@ -294,7 +295,7 @@ function GetFileName(var FileName: String; Mask, Title, ALabel: String;
   D := PFileDialog(Application^.ValidView(New(PFileDialog,
           Init(Mask, Title, ALabel, Buttons, 211))));
   if D = nil then
-    Exit;
+    exit;
   if B then
     D^.SetData(S);
   C := Desktop^.ExecView(D);
@@ -345,7 +346,7 @@ constructor TCalcWindow.Init;
   Options := Options or ofTileable;
   Flags := Flags or wfMaxi;
   if LowMemory then
-    Exit;
+    exit;
 
   R.A.X := 1;
   R.A.Y := 5;
@@ -471,7 +472,7 @@ function TCalcInput.GetPalette;
 procedure MakeDefaultOptions(const S: String;
     var o: AWord; var D: Byte; var R: CReal);
   var
-    I: Integer;
+    I: integer;
   begin
   Val(S, R, I);
   D := 2; { 2 десятичных знака по умолчанию }
@@ -497,7 +498,7 @@ procedure TCalcInput.HandleEvent;
       O: AWord;
       D: Byte;
       R: CReal;
-      I: Integer;
+      I: integer;
       P: PCellrec;
       TypeChanged: Boolean;
     begin
@@ -511,17 +512,17 @@ procedure TCalcInput.HandleEvent;
       DelRight(NewS);
       P := Cells^.Get(Delta.X+Cur.X, Delta.Y+Cur.Y);
       if  (P <> nil) and (NewS = P^.S) then
-        Exit;
+        exit;
       if NewS = '' then
         begin
         if  (P = nil) then
-          Exit;
+          exit;
         if MessageBox(GetString(dlWkzWarningClearCell),
             nil, mfOKCancel) <> cmOK
         then
           begin
           EndEdit := False;
-          Exit;
+          exit;
           end;
         Cells^.DelItem(Delta.X+Cur.X, Delta.Y+Cur.Y);
         goto 2;
@@ -542,7 +543,7 @@ procedure TCalcInput.HandleEvent;
             then
               begin
               EndEdit := False;
-              Exit;
+              exit;
               end;
             end;
           end;
@@ -593,7 +594,7 @@ procedure TCalcInput.HandleEvent;
 
 constructor TCalcView.Init;
   var
-    I, J: Integer;
+    I, J: integer;
   begin
   TView.Init(Bounds);
   HelpCtx := hcSpreadSheet;
@@ -691,7 +692,7 @@ function TCalcView.GetPalette;
   end;
 
 type
-  TQArray = array[0..80, 0..60] of Integer;
+  TQArray = array[0..80, 0..60] of integer;
   PQArray = ^TQArray;
 
 const
@@ -700,7 +701,7 @@ const
 function MakeCellText(P: PCellrec): String; {KV}
   var
     S1: String absolute Result;
-    i, A1, A2: Integer;
+    i, A1, A2: integer;
   begin
   S1 := '';
   case (P^.Options shr 4) and 7 of
@@ -749,11 +750,11 @@ function MakeCellText(P: PCellrec): String; {KV}
   end {case};
   end { MakeCellText };
 
-procedure FormatCellText(const S1: String; k: Integer;
+procedure FormatCellText(const S1: String; k: integer;
     ShowSeparators: Boolean;
     Options: AWord; var S: String);
   var
-    T: Integer;
+    T: integer;
   begin
   if Length(S1) >= k then
     begin
@@ -785,18 +786,18 @@ procedure TCalcView.Draw;
       C: Char;
       A: Byte;
       end absolute B;
-    I, J, K, L, T: Integer;
+    I, J, K, L, T: integer;
     C1, C2, C3: Byte;
     S, S1: String;
     P: PCellrec;
-    X1, X2, Y1, Y2: Integer;
+    X1, X2, Y1, Y2: integer;
     CurPos: TPoint;
     StX, EnX, A1, A2: Byte;
-    Wrk: Integer;
+    Wrk: integer;
     EmptyLine: String;
   begin
   if BlockDraw then
-    Exit;
+    exit;
   C1 := GetColor(1);
   C2 := GetColor(2);
   C3 := GetColor(3);
@@ -813,14 +814,14 @@ procedure TCalcView.Draw;
     J := Cur.Y;
     Cur.Y := 0;
     VScroll^.SetValue(Delta.Y+J);
-    Exit
+    exit
     end;
   if Cur.X < 0 then
     begin
     J := Cur.X;
     Cur.X := 0;
     HScroll^.SetValue(Delta.X+J);
-    Exit
+    exit
     end;
   CurPos.X := Delta.X+Cur.X;
   CurPos.Y := Delta.Y+Cur.Y;
@@ -885,7 +886,7 @@ procedure TCalcView.Draw;
     Cur.X := NumC-1;
     HScroll^.SetValue(Delta.X+J);
     Delta.X := HScroll^.Value;
-    Exit;
+    exit;
     end;
   PInfoView(CellInfo)^.SetInfo(GetCellName(CurPos.X, CurPos.Y),
      Owner^.GetColor(9));
@@ -970,7 +971,7 @@ procedure TCalcView.Draw;
 {-DataCompBoy-}
 procedure TCalcView.HandleEvent;
   type
-    TColIndexArray = array[0..255] of Integer; {KV}
+    TColIndexArray = array[0..255] of integer; {KV}
     TColTypeAndLengthRec = record
       {KV}
       T: Char;
@@ -984,21 +985,21 @@ procedure TCalcView.HandleEvent;
     Inf: PCalcInput;
     S: String;
     St: PStream;
-    MaxX, MaxY, K, L: Integer;
+    MaxX, MaxY, K, L: integer;
     P: PCellrec;
     FName: String;
-    X1, X2, Y1, Y2: Integer;
+    X1, X2, Y1, Y2: integer;
     R: record
-      Display, Justify: Word;
+      Display, Justify: word;
       Dec: String[2];
-      Protect: Word;
+      Protect: word;
       end;
-    I: Integer;
-    Wrk: Integer;
+    I: integer;
+    Wrk: integer;
 
-  procedure kvGetMaxColRow(var MaxCol, MaxRow: Integer); {KV}
+  procedure kvGetMaxColRow(var MaxCol, MaxRow: integer); {KV}
     var
-      i: Integer;
+      i: integer;
       P: PCellrec;
     begin
     MaxCol := 0;
@@ -1013,10 +1014,10 @@ procedure TCalcView.HandleEvent;
       end;
     end;
 
-  procedure kvFillColIndexArray(CurRow: Integer;
+  procedure kvFillColIndexArray(CurRow: integer;
        var ColIndexArray: TColIndexArray); {KV}
     var
-      i: Integer;
+      i: integer;
       P: PCellrec;
     begin
     FillChar(ColIndexArray, SizeOf(ColIndexArray), 255);
@@ -1035,24 +1036,24 @@ procedure TCalcView.HandleEvent;
       CellValue: String;
       ColSeparator: Char;
       F: lText;
-      CurCol, CurRow: Integer;
-      StartCh, EndCh: Integer;
+      CurCol, CurRow: integer;
+      StartCh, EndCh: integer;
       P: PCellrec;
       R: CReal;
-      i: Integer;
+      i: integer;
     begin
     if Cells^.Count > 0 then
       begin
       if MessageBox(GetString(dlWkzWarningClear), nil,
           mfYesNoCancel or mfConfirmation) <> cmYes
       then
-        Exit;
+        exit;
       end;
     if GetFileName(FileName, '*.CSV', GetString(dlOpenFile),
            GetString(dlOpenFileName),
         fdOKButton+fdHelpButton) = cmCancel
     then
-      Exit;
+      exit;
     {KV: разделитель колонок можно определить автоматически, однако при этом
          возникает несколько проблем: если в файле только одна строка нельзя
          определить какие символы встречаются во второй строке столько-же раз
@@ -1062,7 +1063,7 @@ procedure TCalcView.HandleEvent;
            GetString(dlWkzQuerySeparatorLabel),
         S, 1, hcSpreadSheet) <> cmOK
     then
-      Exit;
+      exit;
     if S = '' then
       ColSeparator := ';'
     else
@@ -1075,7 +1076,7 @@ procedure TCalcView.HandleEvent;
     if i <> 0 then
       begin
       MessFileNotOpen(FileName, i);
-      Exit;
+      exit;
       end;
     Cells^.FreeAll;
     CurRow := 0;
@@ -1118,26 +1119,26 @@ procedure TCalcView.HandleEvent;
       CellValue: String;
       P: PCellrec;
       R: CReal;
-      i: Integer;
+      i: integer;
     begin
     if Cells^.Count > 0 then
       begin
       if MessageBox(GetString(dlWkzWarningClear), nil,
           mfYesNoCancel or mfConfirmation) <> cmYes
       then
-        Exit;
+        exit;
       end;
     if GetFileName(FileName, '*.DBF', GetString(dlOpenFile),
            GetString(dlOpenFileName),
         fdOKButton+fdHelpButton) = cmCancel
     then
-      Exit;
+      exit;
     DBF.Init(FileName, stOpenRead, 16384);
     if DBF.Status <> stOK then
       begin
       MessFileNotOpen(FileName, DBF.ErrorInfo);
       DBF.Done;
-      Exit;
+      exit;
       end;
 
     Cells^.FreeAll;
@@ -1190,27 +1191,27 @@ procedure TCalcView.HandleEvent;
       UseFormatFlag: Boolean;
       CalcFormulaFlag: Boolean;
       F: lText;
-      MaxCol, MaxRow, CurCol, CurRow: Integer;
+      MaxCol, MaxRow, CurCol, CurRow: integer;
       P: PCellrec;
       ColIndexArray: TColIndexArray;
       R: record
         Separator: String[1];
-        ValueFormat: Word;
-        FormulaFormat: Word;
+        ValueFormat: word;
+        FormulaFormat: word;
         end;
     begin
     if GetFileName(S, '*.CSV', GetString(dlExportTitle),
            GetString(dlExportLabel),
         fdOKButton+fdHelpButton) = cmCancel
     then
-      Exit;
+      exit;
     if ExistFile(S) then
       begin
       PS := @S;
       if MessageBox(GetString(dlED_OverQuery), @PS,
           mfYesNoCancel+mfWarning) <> cmYes
       then
-        Exit;
+        exit;
       end;
 
     FillChar(R, SizeOf(R), 0);
@@ -1230,7 +1231,7 @@ procedure TCalcView.HandleEvent;
         begin
         PS := @S;
         Msg(erCantCreateFile, @PS, mfError+mfOKButton);
-        Exit;
+        exit;
         end;
       kvGetMaxColRow(MaxCol, MaxRow);
       for CurRow := 0 to MaxRow do
@@ -1283,7 +1284,7 @@ procedure TCalcView.HandleEvent;
   procedure kvCalcFieldTypeAndLength(var TypeLenArr:
        TColTypeAndLengthArray);
     var
-      i: Integer;
+      i: integer;
       P: PCellrec;
       S1: String;
     begin
@@ -1345,7 +1346,7 @@ procedure TCalcView.HandleEvent;
       FileName: FNameStr;
       PS: PString;
       TypeLenArr: TColTypeAndLengthArray;
-      i, MaxCol, MaxRow, CurCol, CurRow: Integer;
+      i, MaxCol, MaxRow, CurCol, CurRow: integer;
       DbfHeader: THeaderDBF;
       S: TDbaseWriter;
       Buf: PByteArray;
@@ -1358,7 +1359,7 @@ procedure TCalcView.HandleEvent;
            GetString(dlExportLabel),
         fdOKButton+fdHelpButton) = cmCancel
     then
-      Exit;
+      exit;
 
     if ExistFile(FileName) then
       begin
@@ -1366,7 +1367,7 @@ procedure TCalcView.HandleEvent;
       if MessageBox(GetString(dlED_OverQuery), @PS,
           mfYesNoCancel+mfWarning) <> cmYes
       then
-        Exit;
+        exit;
       end;
 
     S.Init(FileName, stCreate, 16384);
@@ -1375,7 +1376,7 @@ procedure TCalcView.HandleEvent;
       PS := @FileName;
       Msg(erCantCreateFile, @PS, mfError+mfOKButton);
       S.Done;
-      Exit;
+      exit;
       end;
 
     kvGetMaxColRow(MaxCol, MaxRow);
@@ -1438,7 +1439,7 @@ procedure TCalcView.HandleEvent;
     var
       FileName: FNameStr;
       PS: PString;
-      i, MaxCol, MaxRow, CurCol, CurRow: Integer;
+      i, MaxCol, MaxRow, CurCol, CurRow: integer;
       S: TExcelWriter;
       ColIndexArray: TColIndexArray;
       P: PCellrec;
@@ -1447,14 +1448,14 @@ procedure TCalcView.HandleEvent;
            GetString(dlExportLabel),
         fdOKButton+fdHelpButton) = cmCancel
     then
-      Exit;
+      exit;
     if ExistFile(FileName) then
       begin
       PS := @FileName;
       if MessageBox(GetString(dlED_OverQuery), @PS,
           mfYesNoCancel+mfWarning) <> cmYes
       then
-        Exit;
+        exit;
       end;
 
     S.Init(FileName, stCreate, 16384);
@@ -1463,7 +1464,7 @@ procedure TCalcView.HandleEvent;
       PS := @FileName;
       Msg(erCantCreateFile, @PS, mfError+mfOKButton);
       S.Done;
-      Exit;
+      exit;
       end;
 
     kvGetMaxColRow(MaxCol, MaxRow);
@@ -1499,16 +1500,16 @@ procedure TCalcView.HandleEvent;
   procedure ExportToFile;
     var
       S, S1: String;
-      C: array[0..255] of Integer;
+      C: array[0..255] of integer;
       P: PCellrec;
-      MaxLv, Maxr, I, J, K, L, L1: Integer;
+      MaxLv, Maxr, I, J, K, L, L1: integer;
       F: lText;
     begin
     if GetFileName(S, x_x, GetString(dlExportTitle),
            GetString(dlExportLabel),
         fdOKButton+fdHelpButton) = cmCancel
     then
-      Exit;
+      exit;
     lAssignText(F, S);
     lSetTAttr(F, Archive);
     lRewriteText(F);
@@ -1569,7 +1570,7 @@ procedure TCalcView.HandleEvent;
             else
               L := K;
             if L <= 0 then
-              Break;
+              break;
             Write(F.T, Strg(' ', L));
           until K <= 0;
           end;
@@ -1582,7 +1583,7 @@ procedure TCalcView.HandleEvent;
   procedure SetMark;
     begin
     if Marking then
-      Exit;
+      exit;
     Mark.X := Delta.X+Cur.X;
     Mark.Y := Delta.Y+Cur.Y;
     end;
@@ -1602,7 +1603,7 @@ procedure TCalcView.HandleEvent;
 
   procedure ChangeFormat;
     const
-      J: Integer = 0;
+      J: integer = 0;
       NewOptions: AWord = 0; {см. комментарий к ForRectangle}
     procedure SetFormat(Item: PCellrec);
       begin
@@ -1661,7 +1662,7 @@ procedure TCalcView.HandleEvent;
     ClearEvent(Event)
     end;
 
-  procedure ExpandCol(CurCol: Integer);
+  procedure ExpandCol(CurCol: integer);
     begin
     if ColWidth[CurCol] < ScreenWidth then
       begin
@@ -1671,7 +1672,7 @@ procedure TCalcView.HandleEvent;
     Modified := True;
     end;
 
-  procedure ShrinkCol(CurCol: Integer);
+  procedure ShrinkCol(CurCol: integer);
     begin
     if ColWidth[CurCol] > 1 then
       begin
@@ -1749,7 +1750,7 @@ procedure TCalcView.HandleEvent;
               GetString(dlOpenFileName), fdOpenButton
               { + fdReplaceButton, hsLoadSheet, 0});
           if K = cmCancel then
-            Exit;
+            exit;
           LoadSheet(FName);
           end;
         cmChangeWidth:
@@ -1766,12 +1767,12 @@ procedure TCalcView.HandleEvent;
                 kbRight:
                   ExpandCol(CurCol);
                 kbEnter:
-                  Break;
+                  break;
                 kbESC:
                   begin
                   ColWidth[CurCol] := SaveCellWidth;
                   DrawView;
-                  Break;
+                  break;
                   end;
               end {case};
             Application^.Idle;
@@ -1846,7 +1847,7 @@ procedure TCalcView.HandleEvent;
           then
             GotoCell(S);
           ClearEvent(Event);
-          Exit
+          exit
           end;
         cmFindCell:
           begin
@@ -1912,10 +1913,10 @@ procedure TCalcView.HandleEvent;
             SetMark;
             DrawView;
             CE;
-            Exit
+            exit
             end
           else
-            Exit;
+            exit;
         kbShiftRight,
         kbRight:
           if  (Cur.X < NumC) then
@@ -1926,13 +1927,13 @@ procedure TCalcView.HandleEvent;
               if Cur.X > 0 then
                 Dec(Cur.X);
               SetMark;
-              Exit
+              exit
               end;
             Inc(Cur.X);
             SetMark;
             DrawView;
             ClearEvent(Event);
-            Exit
+            exit
             end
           else if (CurCol = HScroll^.Max) then
             begin
@@ -1940,10 +1941,10 @@ procedure TCalcView.HandleEvent;
             if Cur.X > 0 then
               Dec(Cur.X);
             SetMark;
-            Exit
+            exit
             end
           else
-            Exit;
+            exit;
         kbShiftUp, kbUp:
           if Cur.Y > 0 then
             begin
@@ -1952,10 +1953,10 @@ procedure TCalcView.HandleEvent;
             SetMark;
             DrawView;
             ClearEvent(Event);
-            Exit
+            exit
             end
           else
-            Exit;
+            exit;
         kbShiftHome, kbHome:
           begin
           CheckMark;
@@ -1966,7 +1967,7 @@ procedure TCalcView.HandleEvent;
           VScroll^.SetValue(0);
           DrawView;
           ClearEvent(Event);
-          Exit
+          exit
           end;
         kbShiftEnd, kbEnd:
           begin
@@ -2007,7 +2008,7 @@ procedure TCalcView.HandleEvent;
           SetMark;
           DrawView;
           ClearEvent(Event);
-          Exit
+          exit
           end;
         kbShiftDown, kbDown:
           if  (Cur.Y < Size.Y-3) then
@@ -2018,23 +2019,23 @@ procedure TCalcView.HandleEvent;
               if Cur.Y > 0 then
                 Dec(Cur.Y);
               SetMark;
-              Exit
+              exit
               end;
             Inc(Cur.Y);
             SetMark;
             DrawView;
             ClearEvent(Event);
-            Exit
+            exit
             end
           else if (Delta.Y+Cur.Y >= VScroll^.Max) then
             begin
             if Cur.Y > 0 then
               Dec(Cur.Y);
             SetMark;
-            Exit
+            exit
             end
           else
-            Exit;
+            exit;
         kbEnter:
           begin
           Marking := False;
@@ -2073,7 +2074,7 @@ procedure TCalcView.HandleEvent;
             Delta.X := HScroll^.Value;
             SetMark;
             DrawView;
-            Exit
+            exit
             end
           else if Event.InfoPtr = VScroll then
             begin
@@ -2081,7 +2082,7 @@ procedure TCalcView.HandleEvent;
             Delta.Y := VScroll^.Value;
             SetMark;
             DrawView;
-            Exit
+            exit
             end
       end {case};
   end {case};
@@ -2091,7 +2092,7 @@ procedure TCalcView.HandleEvent;
 
 function TCalcView.GetCellValue(const S: String): Boolean;
   var
-    I: Integer;
+    I: integer;
     SR: TCellSearcRec;
   begin
   Result := False;
@@ -2134,12 +2135,12 @@ function TCalcView.GetFuncValue(S: String): Boolean;
     end;
 
   var
-    I: Integer;
+    I: integer;
     AFromX, AToX: Byte;
     AFromY, AToY: AInt;
     Op: Pointer;
     SR: TCellSearcRec;
-    t0, t: Integer;
+    t0, t: integer;
     S1: String;
     R: CReal;
   begin {TCalcView.GetFuncValue}
@@ -2157,7 +2158,7 @@ function TCalcView.GetFuncValue(S: String): Boolean;
     Res := 1;
     end
   else
-    Exit;
+    exit;
   t := 5;
   while t <= Length(S) do
     begin
@@ -2165,7 +2166,7 @@ function TCalcView.GetFuncValue(S: String): Boolean;
     while not (S[t] in [',', ')']) do
       Inc(t);
     if t = t0 then
-      Exit;
+      exit;
     S1 := System.Copy(S, t0, t-t0);
     I := Pos(':', S1);
     if I <> 0 then
@@ -2173,13 +2174,13 @@ function TCalcView.GetFuncValue(S: String): Boolean;
       if not GetCellCoord(System.Copy(S1, 1, I-1), AFromX, AFromY) or
         not GetCellCoord(System.Copy(S1, I+1, MaxStringLength), AToX, AToY)
       then
-        Exit;
+        exit;
       Cells^.ForRectangle(AFromX, AFromY, AToX, AToY, Op);
       end
     else
       begin
       if not GetCellCoord(S1, AFromX, AFromY) then
-        Exit;
+        exit;
       Cells^.ForRectangle(AFromX, AFromY, AFromX, AFromY, Op);
       end;
     Inc(t); { пропустить запятую или скобку }
@@ -2189,10 +2190,10 @@ function TCalcView.GetFuncValue(S: String): Boolean;
 
 procedure TCalcView.CalcError;
   var
-    L: Integer;
+    L: integer;
     S: String;
     err: String;
-    c: Word;
+    c: word;
   begin
   S := GetString(Index)+' '+GetCellName(CurrentCalc.X, CurrentCalc.Y);
   if EvalueError then
@@ -2220,11 +2221,11 @@ destructor TCalcView.Done;
 
 function TCalcView.AskSave;
   var
-    A: Word;
+    A: word;
   begin
   AskSave := True;
   if not Modified then
-    Exit;
+    exit;
   A := MessageBox(GetString(dlWorkSheet)+' '+Cut(SName^,
          40)+GetString(dlNotSaved),
       nil, mfWarning+mfYesNoCancel);
@@ -2244,7 +2245,7 @@ procedure TCalcView.LoadSheet;
   begin
   GetBounds(Bounds);
   if Modified and not AskSave then
-    Exit;
+    exit;
   if Cells <> nil then
     Dispose(Cells, Done);
   Cells := nil;
@@ -2260,7 +2261,7 @@ procedure TCalcView.LoadSheet;
       Owner^.Redraw;
       end;
     New(Cells, Init(10, 10));
-    Exit
+    exit
     end;
   {$IFDEF OS_DOS}
   FName := lfGetLongFileName(lFExpand(FName));
@@ -2281,7 +2282,7 @@ procedure TCalcView.LoadSheet;
     New(Cells, Init(10, 10));
     FillChar(ColWidth, SizeOf(ColWidth), DefaultColWidth);
     //   Owner^.Redraw;
-    Exit
+    exit
     end;
   S^.Read(ColWidth, SizeOf(ColWidth));
   { Cells := PCellCollection(S^.Get);}
@@ -2299,7 +2300,7 @@ procedure TCalcView.LoadSheet;
              Bounds.B.X-Bounds.A.X-12));
       end;
     New(Cells, Init(10, 10));
-    FillChar(ColWidth, SizeOf(ColWidth), DefaultColWidth);
+    FillChar(ColWidth, SizeOf(ColWidth), 1);
     end;
   Modified := False;
   ReCalc(True);
@@ -2311,7 +2312,7 @@ procedure TCalcView.SaveSheetAs;
   var
     S: PStream;
     FName: String;
-    W: Word;
+    W: word;
     PP: Pointer;
     Bounds: TRect;
   begin
@@ -2321,7 +2322,7 @@ procedure TCalcView.SaveSheetAs;
       GetString(dlSaveFileAs), fdOKButton {, hsSaveSheetAs, 0})
      = cmCancel
   then
-    Exit;
+    exit;
   {$IFDEF OS_DOS}
   FName := lfGetLongFileName(lFExpand(FName));
   {$ELSE}
@@ -2334,7 +2335,7 @@ procedure TCalcView.SaveSheetAs;
     begin
     if Msg(dlFileExist, @PP, mfYesButton+mfNoButton+mfWarning) <> cmYes
     then
-      Exit;
+      exit;
     end;
   DisposeStr(SName);
   SName := NewStr(FName);
@@ -2366,7 +2367,7 @@ procedure TCalcView.SaveSheet;
   if SName^ = UntitledName then
     begin
     SaveSheetAs;
-    Exit
+    exit
     end;
   {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
   S := New(PBufStream, Init(SName^, stCreate, 2048));
@@ -2383,8 +2384,8 @@ procedure TCalcView.SaveSheet;
 
 procedure TCalcView.Copy;
   var
-    X1, Y1, X2, Y2: Integer;
-    Wrk: Integer;
+    X1, Y1, X2, Y2: integer;
+    Wrk: integer;
 
   procedure ToClip(P: PCellrec);
     begin
@@ -2425,7 +2426,7 @@ procedure TCalcView.Copy;
   end { TCalcView.Copy };
 
 {В формуле S ссылки на ячейки (>=LX,>=LY) сдвигать на (DX,DY) }
-function ReformFormula(const S: String; LX, LY, DX, DY: Integer): String;
+function ReformFormula(const S: String; LX, LY, DX, DY: integer): String;
   const
     Signs = [';', '[', ']', '{', '}', #39, ':', '"', '.', '<',
     '>', ',', '/', '?', '\', '-', '=', '|', '_', '(',
@@ -2433,7 +2434,7 @@ function ReformFormula(const S: String; LX, LY, DX, DY: Integer): String;
   var
     S1, S2: String;
     X, X1: Byte;
-    I, l: Integer;
+    I, l: integer;
     Y, Y1: AInt;
   label EndRowName;
   begin
@@ -2483,9 +2484,9 @@ EndRowName: { сейчас S1 - имя строки }
 
 procedure TCalcView.Paste;
   var
-    I, J: Integer;
+    I, J: integer;
 
-  procedure RewriteFormulaClip(P: PCellrec; DX, DY: Integer);
+  procedure RewriteFormulaClip(P: PCellrec; DX, DY: integer);
     var
       S: String;
     begin
@@ -2503,7 +2504,7 @@ procedure TCalcView.Paste;
 
   begin
   if CellClipboard = nil then
-    Exit;
+    exit;
   Mark.X := Delta.X+Cur.X+ClipRect.B.X-ClipRect.A.X;
   Mark.Y := Delta.Y+Cur.Y+ClipRect.B.Y-ClipRect.A.Y;
   Clear;
@@ -2517,8 +2518,8 @@ procedure TCalcView.Paste;
 
 procedure TCalcView.Clear;
   var
-    X1, X2, Y1, Y2, K, L: Integer;
-    Wrk: Integer;
+    X1, X2, Y1, Y2, K, L: integer;
+    Wrk: integer;
   begin
   X1 := Delta.X+Cur.X;
   X2 := Mark.X;
@@ -2544,14 +2545,14 @@ procedure TCalcView.Clear;
   end { TCalcView.Clear };
 
 procedure TCalcView.RewriteFormula(var P: PCellrec;
-     LX, LY, DX, DY: Integer);
+     LX, LY, DX, DY: integer);
   var
     S: String;
-    O, D: Integer;
+    O, D: integer;
     V: CReal;
   begin
   if  (P^.Options and coFormula) = 0 then
-    Exit;
+    exit;
   S := ReformFormula(P^.S, LX, LY, DX, DY);
   O := P^.Options;
   D := P^.Decimals;
@@ -2567,7 +2568,7 @@ procedure TCalcView.RewriteFormula(var P: PCellrec;
 
 procedure TCalcView.InsertLine;
   var
-    I, L: Integer;
+    I, L: integer;
     P: PCellrec;
   begin
   L := Delta.Y+Cur.Y;
@@ -2589,7 +2590,7 @@ procedure TCalcView.InsertLine;
 
 procedure TCalcView.DeleteLine;
   var
-    I, L: Integer;
+    I, L: integer;
     P: PCellrec;
   begin
   L := Delta.Y+Cur.Y+1;
@@ -2612,7 +2613,7 @@ procedure TCalcView.DeleteLine;
 
 procedure TCalcView.InsertCol;
   var
-    I, J, L: Integer;
+    I, J, L: integer;
     P: PCellrec;
   begin
   L := Delta.X+Cur.X;
@@ -2637,7 +2638,7 @@ procedure TCalcView.InsertCol;
 
 procedure TCalcView.DeleteCol;
   var
-    I, J, L: Integer;
+    I, J, L: integer;
     P: PCellrec;
   begin
   L := Delta.X+Cur.X+1;
@@ -2685,8 +2686,8 @@ function TCalcView.CalcEval(const s: String; var Value: CReal): Boolean;
 
 procedure TCalcView.ReCalc(Full: Boolean);
   var
-    StartRecalc: Integer;
-    ierr: Integer;
+    StartRecalc: integer;
+    ierr: integer;
   begin
   if not Cells^.TSort(StartRecalc) then
     begin
@@ -2696,7 +2697,7 @@ procedure TCalcView.ReCalc(Full: Boolean);
       CurrentCalc.Y := Row;
       end;
     CalcError(erRecurseTooDeep);
-    Exit;
+    exit;
     end;
   while StartRecalc <> 0 do
     begin
@@ -2707,7 +2708,7 @@ procedure TCalcView.ReCalc(Full: Boolean);
       if  (Options and coFormula) <> 0 then
         begin
         if not CalcEval(S, Value) then
-          Exit;
+          exit;
         end
       else if Full and ((Options and coValue) <> 0) then
         if S[1] = '=' then
@@ -2723,7 +2724,7 @@ procedure TCalcView.ReCalc(Full: Boolean);
           begin
           Val(S, Value, ierr);
           if ierr <> 0 then
-            Exit;
+            exit;
           end;
       StartRecalc := NextC;
       end;
@@ -2734,12 +2735,12 @@ procedure TCalcView.GotoCell;
   var
     X: Byte;
     Y: AInt;
-    L: Integer;
+    L: integer;
   begin
   if not GetCellCoord(Cell, X, Y) then
     begin
     ErrMsg(erGotoInvalidNumber);
-    Exit;
+    exit;
     end;
   Marking := False;
   BlockDraw := True;
@@ -2775,7 +2776,7 @@ procedure TCalcView.SearchCell;
     Signs = [#0..#128]-['A'..'Z', 'a'..'z', '0'..'9', '_'];
   var
     P: PCellrec;
-    I, J: Integer;
+    I, J: integer;
     V: CReal;
     K, L: Byte;
     S, S1: String;
@@ -2796,19 +2797,19 @@ procedure TCalcView.SearchCell;
           Insert(ReplaceData.S1, S, k+l);
           Cells^.ReplaceItem(P^.Col, P^.Row, S);
           DrawView;
-          Exit
+          exit
           end
         else
           begin
           if  (P^.Options and coFormula) <> 0 then
             begin
             Found := False;
-            Exit
+            exit
             end;
           Val(ReplaceData.S1, V, j);
           Cells^.ReplaceItem(P^.Col, P^.Row, ReplaceData.S1)^.Value := V;
           DrawView;
-          Exit
+          exit
           end;
       end;
     end { Found: };
@@ -2823,7 +2824,7 @@ procedure TCalcView.SearchCell;
 
   begin { TCalcView.SearchCell }
   if SearchData.S = '' then
-    Exit;
+    exit;
   Val(SearchData.S, V, I);
   if SearchData.TxtOptions and 1 = 0 then
     S1 := UpStrg(SearchData.S)
@@ -2846,7 +2847,7 @@ procedure TCalcView.SearchCell;
           if K > 0 then
             begin
             if Found then
-              Exit
+              exit
             end
           end
         else
@@ -2861,7 +2862,7 @@ procedure TCalcView.SearchCell;
               then
                 begin
                 if Found then
-                  Exit
+                  exit
                 end
               else
                 SearchSign;
@@ -2871,7 +2872,7 @@ procedure TCalcView.SearchCell;
               if  (S[K-1] in Signs) then
                 begin
                 if Found then
-                  Exit
+                  exit
                 end
               else
                 SearchSign;
@@ -2880,7 +2881,7 @@ procedure TCalcView.SearchCell;
             then
               begin
               if Found then
-                Exit
+                exit
               end
             else
               SearchSign;
@@ -2889,7 +2890,7 @@ procedure TCalcView.SearchCell;
       else if (P^.Options and 3 <> 0) and (V = P^.Value) then
         begin
         if Found then
-          Exit
+          exit
         end;
     end;
   if not ContSearch and not WasReplace then
@@ -2906,7 +2907,7 @@ procedure TDbfFieldCollection.FreeItem(Item: Pointer); {KV}
     Dispose(PDBFField(Item));
   end;
 
-constructor TDbaseWriter.Init(FileName: FNameStr; Mode: Word;
+constructor TDbaseWriter.Init(FileName: FNameStr; Mode: word;
      Size: SW_Word); {KV}
   begin
   inherited Init(FileName, Mode, Size);
@@ -2928,7 +2929,7 @@ destructor TDbaseWriter.Done; {KV}
   end;
 
 procedure TDbaseWriter.AddField(const NameField: String; TypeField: Char;
-    LenField: Integer; DecField: Integer); {KV}
+    LenField: integer; DecField: integer); {KV}
   var
     P: PDBFField;
   begin
@@ -2951,7 +2952,7 @@ procedure TDbaseWriter.AddRecord; {KV}
     Buf: PChar;
   begin
   if Status <> stOK then
-    Exit;
+    exit;
   with Header do
     begin
     inherited Seek(DataOffset+RecSize*LastRecord);
@@ -2972,7 +2973,7 @@ procedure TDbaseWriter.AddRecord; {KV}
 
 procedure TDbaseWriter.CreateFile; {KV}
   var
-    i: Integer;
+    i: integer;
   begin
   Header.RecSize := 1;
   for i := 0 to Fields^.Count-1 do
@@ -3002,21 +3003,21 @@ procedure TDbaseWriter.DeleteRecord; {KV}
     Ch: Char;
   begin
   if  (CurRecord < 1) or (CurRecord > Header.LastRecord) then
-    Exit;
+    exit;
   inherited Seek(FieldOffsetInFile(1)-1);
   Ch := #$2A;
   inherited Write(Ch, 1);
   end;
 
-function TDbaseWriter.FCount: Integer;
+function TDbaseWriter.FCount: integer;
   begin
   FCount := Fields^.Count;
   end;
 
-function TDbaseWriter.FieldAsString(FieldIndex: Integer): String; {KV}
+function TDbaseWriter.FieldAsString(FieldIndex: integer): String; {KV}
   var
     Buf: array[0..2047] of Char;
-    i: Integer;
+    i: integer;
   begin
   inherited Seek(FieldOffsetInFile(FieldIndex));
   FillChar(Buf, SizeOf(Buf), ' ');
@@ -3028,12 +3029,12 @@ function TDbaseWriter.FieldAsString(FieldIndex: Integer): String; {KV}
   FieldAsString := StrPas(Buf);
   end;
 
-function TDbaseWriter.FieldAsInteger(FieldIndex: Integer): Integer;
+function TDbaseWriter.FieldAsInteger(FieldIndex: integer): integer;
   {KV}
   var
     S: String;
-    Value: Integer;
-    i: Integer;
+    Value: integer;
+    i: integer;
   begin
   S := FieldAsString(FieldIndex);
   if S = '' then
@@ -3047,11 +3048,11 @@ function TDbaseWriter.FieldAsInteger(FieldIndex: Integer): Integer;
   FieldAsInteger := Value;
   end;
 
-function TDbaseWriter.FieldAsFloat(FieldIndex: Integer): Double; {KV}
+function TDbaseWriter.FieldAsFloat(FieldIndex: integer): Double; {KV}
   var
     S: String;
     Value: Double;
-    i: Integer;
+    i: integer;
   begin
   S := FieldAsString(FieldIndex);
   if S = '' then
@@ -3065,16 +3066,16 @@ function TDbaseWriter.FieldAsFloat(FieldIndex: Integer): Double; {KV}
   FieldAsFloat := Value;
   end;
 
-procedure TDbaseWriter.FieldPutString(FieldIndex: Integer;
+procedure TDbaseWriter.FieldPutString(FieldIndex: integer;
      FieldValue: String); {KV}
   var
     P: PDBFField;
     Buf: array[0..2047] of Char;
     L: AWord;
-    StrLen: Integer;
+    StrLen: integer;
   begin
   if  (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
-    Exit;
+    exit;
   P := PDBFField(Fields^.At(FieldIndex-1));
   FillChar(Buf, SizeOf(Buf), ' ');
   L := FieldLen(FieldIndex);
@@ -3094,8 +3095,8 @@ procedure TDbaseWriter.FieldPutString(FieldIndex: Integer;
   inherited Write(Buf, L);
   end { TDbaseWriter.FieldPutString };
 
-procedure TDbaseWriter.FieldPutInteger(FieldIndex: Integer;
-     FieldValue: Integer); {KV}
+procedure TDbaseWriter.FieldPutInteger(FieldIndex: integer;
+     FieldValue: integer); {KV}
   var
     S: String;
     L: AWord;
@@ -3103,7 +3104,7 @@ procedure TDbaseWriter.FieldPutInteger(FieldIndex: Integer;
     R: AWord;
   begin
   if  (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
-    Exit;
+    exit;
   L := FieldLen(FieldIndex);
   D := FieldDec(FieldIndex);
   if D > 0 then
@@ -3124,23 +3125,23 @@ procedure TDbaseWriter.FieldPutInteger(FieldIndex: Integer;
   FieldPutString(FieldIndex, S);
   end { TDbaseWriter.FieldPutInteger };
 
-procedure TDbaseWriter.FieldPutFloat(FieldIndex: Integer;
+procedure TDbaseWriter.FieldPutFloat(FieldIndex: integer;
      FieldValue: Double); {KV}
   var
     S: String;
   begin
   if  (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
-    Exit;
+    exit;
   Str(FieldValue: FieldLen(FieldIndex): FieldDec(FieldIndex), S);
   FieldPutString(FieldIndex, S);
   end;
 
-function TDbaseWriter.FieldName(FieldIndex: Integer): String; {KV}
+function TDbaseWriter.FieldName(FieldIndex: integer): String; {KV}
   begin
   FieldName := StrPas(PDBFField(Fields^.At(FieldIndex-1))^.FieldName);
   end;
 
-function TDbaseWriter.FieldLen(FieldIndex: Integer): AWord; {KV}
+function TDbaseWriter.FieldLen(FieldIndex: integer): AWord; {KV}
   begin
   with PDBFField(Fields^.At(FieldIndex-1))^ do
     begin
@@ -3151,7 +3152,7 @@ function TDbaseWriter.FieldLen(FieldIndex: Integer): AWord; {KV}
     end;
   end;
 
-function TDbaseWriter.FieldDec(FieldIndex: Integer): Byte; {KV}
+function TDbaseWriter.FieldDec(FieldIndex: integer): Byte; {KV}
   begin
   with PDBFField(Fields^.At(FieldIndex-1))^ do
     begin
@@ -3162,9 +3163,9 @@ function TDbaseWriter.FieldDec(FieldIndex: Integer): Byte; {KV}
     end;
   end;
 
-function TDbaseWriter.FieldPos(NameField: String): Integer; {KV}
+function TDbaseWriter.FieldPos(NameField: String): integer; {KV}
   var
-    FieldIndex, i: Integer;
+    FieldIndex, i: integer;
   begin
   UpStr(NameField);
   FieldIndex := 0;
@@ -3174,22 +3175,22 @@ function TDbaseWriter.FieldPos(NameField: String): Integer; {KV}
     then
       begin
       FieldIndex := i+1;
-      Break;
+      break;
       end;
     end;
   FieldPos := FieldIndex;
   end;
 
-function TDbaseWriter.FieldType(FieldIndex: Integer): Char; {KV}
+function TDbaseWriter.FieldType(FieldIndex: integer): Char; {KV}
   begin
   FieldType := PDBFField(Fields^.At(FieldIndex-1))^.FieldType;
   end;
 
-function TDbaseWriter.FieldOffsetInBuffer(FieldIndex: Integer): Integer;
+function TDbaseWriter.FieldOffsetInBuffer(FieldIndex: integer): integer;
   {KV}
   var
-    Offset: Integer;
-    i: Integer;
+    Offset: integer;
+    i: integer;
   begin
   Offset := 1;
   for i := 0 to FieldIndex-2 do
@@ -3205,7 +3206,7 @@ function TDbaseWriter.FieldOffsetInBuffer(FieldIndex: Integer): Integer;
   FieldOffsetInBuffer := Offset;
   end;
 
-function TDbaseWriter.FieldOffsetInFile(FieldIndex: Integer): LongInt;
+function TDbaseWriter.FieldOffsetInFile(FieldIndex: integer): LongInt;
   {KV}
   begin
   FieldOffsetInFile := Header.DataOffset+(CurRecord-1)*Header.RecSize+
@@ -3218,7 +3219,7 @@ procedure TDbaseWriter.First; {KV}
   EofFlag := (Header.LastRecord = 0);
   end;
 
-procedure TDbaseWriter.DBGoTo(NewRecord: Integer); {KV}
+procedure TDbaseWriter.DBGoTo(NewRecord: integer); {KV}
   begin
   CurRecord := NewRecord;
   EofFlag := (Header.LastRecord = 0) or (Header.LastRecord < CurRecord);
@@ -3245,7 +3246,7 @@ procedure TDbaseWriter.ReadFile; {KV}
   Fields^.FreeAll;
   inherited Read(Header, SizeOf(Header));
   if Status <> stOK then
-    Exit;
+    exit;
   inherited Seek(SizeOf(Header));
   repeat
     inherited Read(R, 1);
@@ -3266,7 +3267,7 @@ procedure TDbaseWriter.RecallRecord; {KV}
     Ch: Char;
   begin
   if  (CurRecord < 1) or (CurRecord > Header.LastRecord) then
-    Exit;
+    exit;
   inherited Seek(FieldOffsetInFile(1)-1);
   Ch := #$20;
   inherited Write(Ch, 1);

@@ -193,13 +193,6 @@
                               2 - store as user-defined video mode 2
                               (default: 0)
 
- HandleChDirCommand = bool  - Defines how to handle command line change
-                              directory commands "cd path" and "D:"
-                              0 - call command processor to handle these
-                                  commands
-                              1 - DN/2 handles these commands internally
-                              (default: 1)
-
  CoàyLimit = long           - Sets the limit of copying buffer in kilobytes.
                               Value 0 means no buffer limitation.
                               (default: 8192)
@@ -221,15 +214,6 @@
                               archiver defined by this key will be always
                               chosen in archiving dialog as default archiver
                               (default: empty)
-
-AltGrAsAlt = bool           - Allows to use Right Alt key for national symbols
-                              input (0) or as usual Alt (1). In some national
-                              keyboard layouts Right Alt key is used for natio
-                              symbols input. If you need to use Right Alt in
-                              such way then set this parameter to 0, but it
-                              makes impossible to use Right Alt in a lot of
-                              hotkeys.
-                              (default: 1)
 
 ==============================================================================
 

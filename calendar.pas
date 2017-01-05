@@ -53,7 +53,8 @@ unit Calendar;
 interface
 
 uses
-  Commands, Drivers, Objects, DNApp, Views, Dos, Dialogs, Advance1,
+  Commands, Drivers, Defines, Streams, DNApp, Views, Dos, Dialogs,
+   advance1,
   DNHelp, DnIni
   ;
 
@@ -65,7 +66,7 @@ type
   PCalendarView = ^TCalendarView;
   TCalendarView = object(TView)
     Year, Month, Days: AWord;
-    CurYear, CurMonth, CurDay: Word;
+    CurYear, CurMonth, CurDay: word;
     constructor Init(Bounds: TRect);
     constructor Load(var S: TStream);
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -78,7 +79,7 @@ type
     constructor Init;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Awaken; virtual;
-    function GetTitle(MaxSize: Integer): TTitleStr; virtual;
+    function GetTitle(MaxSize: integer): TTitleStr; virtual;
     destructor Done; virtual;
     end;
 
@@ -114,7 +115,7 @@ constructor TCalendarWindow.Init;
   HelpCtx := hcCalendar;
   end { TCalendarWindow.Init };
 
-function TCalendarWindow.GetTitle(MaxSize: Integer): TTitleStr;
+function TCalendarWindow.GetTitle(MaxSize: integer): TTitleStr;
   begin
   GetTitle := GetString(dlcTitle);
   end;
@@ -127,7 +128,7 @@ procedure TCalendarWindow.HandleEvent(var Event: TEvent);
         cmGetName:
           PString(Event.InfoPtr)^:= GetString(dlcTitle);
         else {case}
-          Break;
+          break;
       end {case};
 
       ClearEvent(Event);
@@ -160,7 +161,7 @@ destructor TCalendarWindow.Done;
 { TCalendarView }
 constructor TCalendarView.Init(Bounds: TRect);
   var
-    H: Word;
+    H: word;
   begin
   inherited Init(Bounds);
   Options := Options or ofSelectable;
@@ -173,7 +174,7 @@ constructor TCalendarView.Init(Bounds: TRect);
 
 constructor TCalendarView.Load(var S: TStream);
   var
-    {H: AWord;}H: Word;
+    {H: AWord;}H: word;
   begin
   inherited Load(S);
   GetDate(CurYear, CurMonth, CurDay, H);
@@ -181,9 +182,9 @@ constructor TCalendarView.Load(var S: TStream);
   S.Read(Month, SizeOf(Month));
   end;
 
-function DayOfWeek(Day, Month, Year: Integer): Integer;
+function DayOfWeek(Day, Month, Year: integer): integer;
   var
-    century, yr, dw: Integer;
+    century, yr, dw: integer;
   begin
   if Month < 3 then
     begin
@@ -206,12 +207,12 @@ procedure TCalendarView.Draw;
   const
     Width = 27; {JO}
   var
-    i, j, DayOf, CurDays: Integer;
+    i, j, DayOf, CurDays: integer;
     S, D: String;
     B: TDrawBuffer;
     Color, BoldColor, SpecialColor: Byte;
 
-  function Num2Str(I: Integer): String;
+  function Num2Str(I: integer): String;
     var
       S: String;
     begin
@@ -306,7 +307,7 @@ procedure TCalendarView.Draw;
 procedure TCalendarView.HandleEvent(var Event: TEvent);
   var
     Point: TPoint;
-    SelectDay: Word;
+    SelectDay: word;
   begin
   inherited HandleEvent(Event);
   if  (State and sfSelected <> 0) then

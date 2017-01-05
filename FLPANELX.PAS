@@ -54,17 +54,17 @@ FlPanelX;
 interface
 
 uses
-  Lfn, Files, Advance, Advance1, Advance2, Advance3, Objects,
+  Lfn, Files, advance, advance1, advance2, advance3, Defines, Streams,
   fnotify,
-  Views, Drivers, Dos, FilesCol, HideView, Drives, Filediz, Collect
+  Views, Drivers, Dos, FilesCol, Drives, Filediz, Collect
   {$IFDEF ARVID}, Arvid {$ENDIF}, xTime
   ;
 
 type
   PFilePanelRoot = ^TFilePanelRoot;
-  TFilePanelRoot = object(THideView)
+  TFilePanelRoot = object(TView)
     isValid, MSelect, SelectFlag, Loaded, ChangeLocked: Boolean;
-    InfoView, DirView, DriveLine: PHideView;
+    InfoView, DirView, DriveLine: PView;
     Delta, OldDelta, OldPos, DeltaX: LongInt;
     Files: PFilesCollection;
     SortMode: Byte;
@@ -75,30 +75,28 @@ type
     DrawDisableLvl, SelNum, LineLength: LongInt;
     SelectedLen, PackedLen: TSize;
     WasActive, PosChanged, CommandEnabling,
-    {QuickSearch,}ViewEnabled: Boolean;
+    {QuickSearch,}QuickViewEnabled: Boolean;
     TotalInfo: TSize;
     FreeSpace: String[50];
-    PanelFlags: Word;
-    LastDriveFlags: Word;
+    PanelFlags: word;
+    LastDriveFlags: word;
     Drive: PDrive;
     ForceReading: Boolean;
-    DriveState: Word;
+    DriveState: word;
     LastCurPos: TPoint;
-    SelectedInfoInDividerMin, SelectedInfoInDividerMax: Word; {AK155}
-    TotalInfoInDividerMin, TotalInfoInDividerMax: Word; {AK155}
+    SelectedInfoInDividerMin, SelectedInfoInDividerMax: word; {AK155}
+    TotalInfoInDividerMin, TotalInfoInDividerMax: word; {AK155}
     _Tmr1: TEventTimer;
-    constructor Init(var Bounds: TRect; ADrive: Integer;
+    constructor Init(var Bounds: TRect; ADrive: integer;
          AScrBar: PMyScrollBar);
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
     destructor Done; virtual;
     procedure Awaken; virtual;
     procedure ChDirName;
-    procedure ShowView; virtual;
-    procedure HideView; virtual;
     procedure CommandHandle(var Event: TEvent);
     procedure ChangeBounds(var Bounds: TRect); virtual;
-    function Valid(Command: Word): Boolean; virtual;
+    function Valid(Command: word): Boolean; virtual;
     procedure GetUserParams(var FileRec: PFileRec; var List: String;
          BuildList: Boolean);
     procedure ReadDirectory;
@@ -109,6 +107,7 @@ type
     procedure DecDrawDisabled;
     procedure ChkNoMem;
     procedure ChDir(Dir: String);
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     end;
 
   {                                                                        }
@@ -132,7 +131,7 @@ QuickSearch может быть только один, естественным решением является
 
 var
   CurrentDirectory: String;
-  PShootState: Word;
+  PShootState: word;
 
 implementation
 
@@ -202,7 +201,7 @@ constructor TFilePanelRoot.Init;
   if Abort then
     begin
     isValid := False;
-    Exit
+    exit
     end;
   {GetDir(ADrive, DirectoryName);}
 
@@ -219,7 +218,7 @@ constructor TFilePanelRoot.Init;
   IncDrawDisabled;
   MSelect := False;
   QuickSearch := False;
-  ViewEnabled := False;
+  QuickViewEnabled := False;
   if not Abort then
     ReadDirectory;
   isValid := isValid and not Abort;
@@ -279,7 +278,7 @@ constructor TFilePanelRoot.Load;
   MSelect := False;
   isValid := True;
   QuickSearch := False;
-  ViewEnabled := False;
+  QuickViewEnabled := False;
   CommandEnabling := True;
   end { TFilePanelRoot.Load };
 
@@ -344,28 +343,18 @@ destructor TFilePanelRoot.Done;
   inherited Done;
   end;
 
-procedure TFilePanelRoot.ShowView;
+procedure TFilePanelRoot.SetState(AState: word; Enable: Boolean);
   begin
-  if InfoView <> nil then
-    InfoView^.ShowView;
-  if DirView <> nil then
-    DirView^.ShowView;
-  if  (ScrollBar <> nil) and GetState(sfActive+sfSelected) then
-    ScrollBar^.Show;
-  if Loaded then
-    RereadDir;
-  inherited ShowView;
-  end;
-
-procedure TFilePanelRoot.HideView;
-  begin
-  if InfoView <> nil then
-    InfoView^.HideView;
-  if DirView <> nil then
-    DirView^.HideView;
-  if  (ScrollBar <> nil) then
-    ScrollBar^.Hide;
-  inherited HideView;
+  inherited SetState(AState, Enable);
+  if AState = sfVisible then
+    begin
+    if DirView <> nil then
+      DirView^.SetState(AState, Enable);
+    if DriveLine <> nil then
+      DriveLine^.SetState(AState, Enable);
+    if Enable and Loaded then
+      RereadDir;
+    end;
   end;
 
 procedure TFilePanelRoot.ChangeBounds;
@@ -440,15 +429,15 @@ procedure TFilePanelRoot.SendLocated;
   if  (Files^.Count = 0) or (Drive^.DriveType = dtArc) or
       (State and sfVisible = 0)
   then
-    Exit;
+    exit;
   R := ScrollBar^.Value;
   if R >= Files^.Count then
-    Exit;
-  if not ViewEnabled and (Drive^.Flags and psShowLongDesc = 0) then
-    Exit;
+    exit;
+  if not QuickViewEnabled and (Drive^.Flags and psShowLongDesc = 0) then
+    exit;
   CurFileRec := PFileRec(Files^.At(R));
   S := MakeNormName(CurFileRec^.Owner^, CurFileRec^.FlName[uLfn]);
-  if ViewEnabled or (Drive^.DriveType < dtArc) then
+  if QuickViewEnabled or (Drive^.DriveType < dtArc) then
     Message(Owner, evCommand, cmLoadViewFile, @S)
   end;
 
@@ -485,7 +474,7 @@ procedure TFilePanelRoot.RereadDir;
       DirectoryName := ActiveDir;
       ReadDirectory;
       ScrollBar^.SetValue(0);
-      Exit
+      exit
       end;
     end;
   if  (Files = nil) or (Files^.Count = 0) then
@@ -501,7 +490,7 @@ procedure TFilePanelRoot.RereadDir;
     Dispose(Files, Done);
     New(Files, Init(10, 10));
     Abort := False;
-    Exit;
+    exit;
     end;
   NewDir := Drive^.GetRealDir;
   if Abort then
@@ -509,7 +498,7 @@ procedure TFilePanelRoot.RereadDir;
     Dispose(Files, Done);
     New(Files, Init(10, 10));
     Abort := False;
-    Exit;
+    exit;
     end;
   if GetState(sfFocused) then
     CurrentDirectory := DirectoryName;
@@ -518,7 +507,7 @@ procedure TFilePanelRoot.RereadDir;
     DirectoryName := NewDir;
     ReadDirectory;
     ChDirName;
-    Exit
+    exit
     end;
   FC := PFilesCollection(Files);
   Files := nil;
@@ -577,7 +566,7 @@ procedure TFilePanelRoot.RereadDir;
               PackedLen := PackedLen+PP^.PSize;
               Inc(SelNum);
               end;
-            Break;
+            break;
             end;
           end;
       end;
@@ -591,7 +580,7 @@ procedure TFilePanelRoot.RereadDir;
         then
           begin
           Pos := I;
-          Break;
+          break;
           end;
         end;
       end;
@@ -663,10 +652,10 @@ procedure TFilePanelRoot.ReadDirectory;
   PackedLen := 0;
   PFilesCollection(Files)^.SortMode := SortMode;
   if Abort then
-    Exit;
+    exit;
 
   if DriveState and dsInvalid > 0 then
-    Exit;
+    exit;
 
   Drive^.SizeX := Size.X;
   if Drive^.DriveType = dtDisk
@@ -705,7 +694,7 @@ procedure TFilePanelRoot.GetUserParams;
   FileRec := nil;
   List := '';
   if not GetState(sfVisible) or (Files = nil) or (Files^.Count = 0) then
-    Exit;
+    exit;
   FileRec := Files^.At(ScrollBar^.Value);
   if BuildList then
     begin
@@ -728,7 +717,7 @@ procedure TFilePanelRoot.GetUserParams;
     ClrIO;
     lRewriteText(T);
     if Abort then
-      Exit;
+      exit;
     if  (SelNum = 0) then
       begin
       PF := Files^.At(ScrollBar^.Value);
@@ -755,7 +744,7 @@ procedure TFilePanelRoot.CommandHandle;
     PF: PFileRec;
     CurPos: LongInt;
     MPos: TPoint;
-    LastRDelay: Word;
+    LastRDelay: word;
 
   procedure CE;
     begin
@@ -804,16 +793,16 @@ procedure TFilePanelRoot.CommandHandle;
       S: String;
     begin
     if ChangeLocked then
-      Exit;
+      exit;
     ChangeUp := Drive^.isUp;
     DeltaX := 0;
     if Drive^.isUp then
       Drive^.ChangeUp(S)
     else
-      Exit;
+      exit;
     IncDrawDisabled;
     ReadDirectory;
-    AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
+    AddToDirectoryHistory(DirectoryName, integer(Drive^.DriveType));
     if S <> '' then
       GotoSingle(S);
     DecDrawDisabled;
@@ -829,7 +818,7 @@ procedure TFilePanelRoot.CommandHandle;
     if Abort then
       begin
       Dispose(PDr, Done);
-      Exit;
+      exit;
       end;
     Dispose(Drive, Done);
     Drive := PDr;
@@ -857,7 +846,7 @@ procedure TFilePanelRoot.CommandHandle;
     label WrongArc;
     begin
     if ChangeLocked then
-      Exit;
+      exit;
 
     {JO: дабы перейти к найденному файлу в архиве из панели поиска}
     PathInside := FileName;
@@ -897,7 +886,7 @@ procedure TFilePanelRoot.CommandHandle;
     OldDelta := -1;
     Delta := 0;
     ReadDirectory;
-    AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
+    AddToDirectoryHistory(DirectoryName, integer(Drive^.DriveType));
     DecDrawDisabled;
 
     {JO: переходим к найденному файлу в архиве}
@@ -917,7 +906,7 @@ procedure TFilePanelRoot.CommandHandle;
         ReadDirectory;
         end;
       GotoSingle(GetName(PathInside));
-      Exit;
+      exit;
       end;
 WrongArc:
     {/JO}
@@ -933,25 +922,25 @@ WrongArc:
     begin
     isSeldir := False;
     if Files^.Count = 0 then
-      Exit;
+      exit;
     if CurPos >= Files^.Count then
-      Exit;
+      exit;
     isSeldir := PFileRec(Files^.At(CurPos))^.Attr and Directory <> 0;
     end;
 
-  procedure ViewFile(Command: Word);
+  procedure ViewFile(Command: word);
     var
       S: String;
       P: PFileRec;
     begin
     if Files^.Count = 0 then
-      Exit;
+      exit;
     CE;
     if CurPos >= Files^.Count then
-      Exit;
+      exit;
     P := Files^.At(CurPos);
     if P^.Attr and Directory <> 0 then
-      Exit;
+      exit;
     {&Frame-}
     asm
    mov eax,Command
@@ -1008,7 +997,7 @@ WrongArc:
   procedure Setup;
     var
       R: record
-        Sort, Show: Integer;
+        Sort, Show: integer;
         S: String;
         end;
       BB: TRect;
@@ -1023,7 +1012,7 @@ WrongArc:
     R.Show := PanelFlags;
     R.S := FileMask;
     if ExecResource(dlgPanelSetup, R) <> cmOK then
-      Exit;
+      exit;
     if R.Sort = NumSortModes then
       R.Sort := 0
     else if R.Sort = NumSortModes-1 then
@@ -1055,7 +1044,7 @@ WrongArc:
     CE;
     if  (PF = nil) or ((PF^.Attr and Directory = 0) and (SelNum = 0))
     then
-      Exit;
+      exit;
     if PF^.Attr and Directory <> 0 then
       Drive^.GetDirLength(PF);
     if SelNum > 0 then
@@ -1075,13 +1064,13 @@ WrongArc:
       PDir: PString;
     begin
     if ChangeLocked or (Event.InfoPtr = nil) then
-      Exit;
+      exit;
     if  (PDrive(Event.InfoPtr)^.DriveType = dtTemp) and
         (Drive^.DriveType = dtTemp)
     then
       begin
       CE;
-      Exit
+      exit
       end;
     if PDrive(Event.InfoPtr)^.DriveType in [dtDisk, dtLink] then
       begin
@@ -1116,7 +1105,7 @@ WrongArc:
     CE;
     DeltaX := 0;
     ReadDirectory;
-    AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
+    AddToDirectoryHistory(DirectoryName, integer(Drive^.DriveType));
     ScrollBar^.SetValue(0);
     Rebound;
     end { InsertDrive };
@@ -1141,7 +1130,7 @@ WrongArc:
     if  (CurPos >= Files^.Count)
       {or (PanelFlags and fmiHiliteFiles = 0)}
     then
-      Exit;
+      exit;
     PF := Files^.At(CurPos);
     if PF^.TType <> ttUpDir then
       Files^.ForEach(@Sel)
@@ -1179,7 +1168,7 @@ WrongArc:
 
     begin { SelectExt }
     if  (CurPos >= Files^.Count) then
-      Exit;
+      exit;
     PF := Files^.At(CurPos);
     if G1 = 10 then
       a := True
@@ -1197,7 +1186,7 @@ WrongArc:
   procedure HandleCommand;
     var
       FC: PCollection;
-      W: Word;
+      W: word;
     begin
     W := Event.Command;
     CE;
@@ -1207,7 +1196,7 @@ WrongArc:
         begin
         FC := GetSelection(@Self, False);
         if FC = nil then
-          Exit;
+          exit;
         end;
     end {case};
     Drive^.HandleCommand(W, FC);
@@ -1284,17 +1273,17 @@ WrongArc:
     lFindFirst(SS, AnyFile, SR); {JO}
     lFindClose(SR);
     if Abort then
-      Exit;
+      exit;
     if  ( (DosError <> 0) or (SR.SR.Attr and Directory = 0)) and
         (Copy(SS, Length(SS)-1, 2) <> ':\')
     then
-      Exit;
+      exit;
     if SS = '' then
-      Exit;
+      exit;
     if Drive^.DriveType <> dtDisk then
       begin
       if not ReplaceDrive(SS[1]) then
-        Exit;
+        exit;
       end;
     SS := MakeNormName(SS, '.');
     OldDelta := -1;
@@ -1324,7 +1313,7 @@ WrongArc:
       {B,C: Boolean;}
     begin
     if not GetState(sfVisible) then
-      Exit;
+      exit;
     if a and (Drive^.DriveType <> dtDisk) then
       PString(Event.InfoPtr)^:= CurrentDirectory
     else
@@ -1394,7 +1383,7 @@ WrongArc:
       S: String;
     begin
     if ChangeLocked then
-      Exit;
+      exit;
     CE;
     Abort := False;
     OldDelta := -1;
@@ -1417,7 +1406,7 @@ WrongArc:
       begin
       Event.InfoPtr := New(PTempDrive, Init(Drive^.Param));
       InsertDrive;
-      Exit;
+      exit;
       end
     else
       {$IFDEF PLUGIN}
@@ -1426,7 +1415,7 @@ WrongArc:
       Event.InfoPtr := CreateDriveObject(Byte(S[2]), @Self, Drive^.Param);
       if Event.InfoPtr <> nil then
         InsertDrive;
-      Exit;
+      exit;
       end
     else
       {$ENDIF}
@@ -1436,7 +1425,7 @@ WrongArc:
       begin
       Event.InfoPtr := NewLinkDrive(S[2], @Self, Drive^.Param);
       InsertDrive;
-      Exit;
+      exit;
       end
     else
       {$ENDIF}
@@ -1448,7 +1437,7 @@ WrongArc:
       if Drive^.DriveType <> dtDisk then
         begin
         if not ReplaceDrive(S[1]) then
-          Exit;
+          exit;
         end
       else
         begin
@@ -1458,7 +1447,7 @@ WrongArc:
           ClrIO;
           SetDirName;
           Lfn.lChDir(CurrentDirectory);
-          Exit;
+          exit;
           end;
         Drive^.SizeX := Size.X;
         S := Drive^.GetDir;
@@ -1466,7 +1455,7 @@ WrongArc:
       IncDrawDisabled;
       DirectoryName := S;
       ReadDirectory;
-      AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
+      AddToDirectoryHistory(DirectoryName, integer(Drive^.DriveType));
       DecDrawDisabled;
       SetDirName;
       end;
@@ -1478,7 +1467,7 @@ WrongArc:
       S: String;
     begin
     if ChangeLocked then
-      Exit;
+      exit;
     QuickSearch := False;
     S := CnvString(Event.InfoPtr);
     CE;
@@ -1486,7 +1475,7 @@ WrongArc:
       begin
       Event.InfoPtr := New(PTempDrive, Init(Drive^.Param));
       InsertDrive;
-      Exit;
+      exit;
       end
       {$IFDEF MODEM}
       {$IFDEF LINK}
@@ -1494,7 +1483,7 @@ WrongArc:
       begin
       Event.InfoPtr := NewLinkDrive(S[2], @Self, Drive^.Param);
       InsertDrive;
-      Exit;
+      exit;
       end
       {$ENDIF};
     {$ENDIF};
@@ -1542,7 +1531,7 @@ WrongArc:
           Dr := New(PArvidDrive, Init(S, Drive^.innum));
         {$ENDIF}
         if Dr = nil then
-          Exit;
+          exit;
         if Drive^.DriveType <> dtDisk then
           ReplaceDrive(S[1]);
         Message(@Self, evCommand, cmInsertDrive, Dr);
@@ -1555,7 +1544,7 @@ WrongArc:
           begin
           MessageBox(^C+GetString(dlDirectory)+' '+S
             +^M^C+GetString(dlDoes_Not_Exist), nil, mfError+mfOKButton);
-          Exit;
+          exit;
           end;
         if Drive^.DriveType <> dtDisk then
           ReplaceDrive(S[1]);
@@ -1567,7 +1556,7 @@ WrongArc:
           begin
           MessageBox(^C+GetString(dlFile)+' '+S
             +^M^C+GetString(dlDoes_Not_Exist), nil, mfError+mfOKButton);
-          Exit;
+          exit;
           end;
         FreeByte := Drive^.innum;
         if Drive^.DriveType <> dtDisk then
@@ -1690,7 +1679,7 @@ WrongArc:
     CE;
     b := False;
     if  (Files = nil) or (Files^.Count <= 0) then
-      Exit;
+      exit;
     if SelNum = 0
     then
       S := MakeFName(CurPos, False, False)
@@ -1716,7 +1705,7 @@ WrongArc:
     begin
     CE;
     if Files^.Count = 0 then
-      Exit;
+      exit;
     PF := Files^.At(CurPos);
     if  (PF <> nil) then
       begin
@@ -1792,7 +1781,7 @@ WrongArc:
 
   function _AltEnter: Boolean;
     var
-      ExecLFN: Integer;
+      ExecLFN: integer;
       S: String;
     begin
 
@@ -1832,7 +1821,7 @@ WrongArc:
       else
         begin
         CE;
-        Exit;
+        exit;
         end;
       {$IFDEF OS_DOS}
       if OS2exec and (Copy(PF^.Name, 10, 3) = 'cmd') then
@@ -1843,7 +1832,7 @@ WrongArc:
         else
           S := '>'+S;
         Message(Application, evCommand, cmExecString, @S);
-        Exit;
+        exit;
         end;
       {$ENDIF}
       Message(Application, evCommand, cmExecFile, @S);
@@ -1857,7 +1846,7 @@ WrongArc:
     begin
     CE;
     if ChangeLocked then
-      Exit;
+      exit;
     if not ChangeUp then
       if Drive^.DriveType in [dtDisk, dtLink] then
         GotoFile(DirectoryName)
@@ -1870,11 +1859,11 @@ WrongArc:
     if PF^.FlName[True] = '..' then
       begin
       _CtrlPgUp;
-      Exit;
+      exit;
       end;
     if not (Drive^.DriveType in [dtFind, dtTemp, dtList, dtArcFind])
     then
-      Exit;
+      exit;
     if Drive^.DriveType <= dtArcFind then
       begin
       if Drive^.DriveType = dtArcFind
@@ -1900,7 +1889,7 @@ WrongArc:
       if ShiftState and 3 <> 0 then
         begin
         Message(Owner, evCommand, cmChangeInactive, @S);
-        Exit;
+        exit;
         end;
       FreeByte := Drive^.Param;
       Dispose(Drive, Done);
@@ -1920,19 +1909,19 @@ WrongArc:
     begin
     CE;
     if ChangeLocked then
-      Exit;
+      exit;
     if  (Files^.Count = 0) then
-      Exit;
+      exit;
     PF := Files^.At(CurPos);
     if PF^.TType = ttUpDir then
       begin
       _CtrlPgUp;
-      Exit;
+      exit;
       end;
     if Drive^.DriveType = dtArcFind then
       begin
       _Enter;
-      Exit;
+      exit;
       end;
     S := MakeNormName(MakeNormName(PF^.Owner^, PF^.FlName[uLfn]), '.');
     if  (PF^.Attr and Directory = 0) then
@@ -1967,25 +1956,25 @@ WrongArc:
 
     begin
     if Files = nil then
-      Exit;
+      exit;
     if pNext then
       begin
       for I := CurPos+1 to Files^.Count-1 do
         if CheckIt(I) then
-          Break;
+          break;
       end
     else
       begin
-      for I := CurPos-1 downto 0 do
+      for I := CurPos-1 DownTo 0 do
         if CheckIt(I) then
-          Break;
+          break;
       end;
     end { FindNextSelFile };
 
   procedure _CheckKB;
     var
       I: LongInt;
-      aaa: Word;
+      aaa: word;
       bbb, ccc: Byte;
       l: LongInt;
       FC: PFilesCollection;
@@ -2003,11 +1992,11 @@ WrongArc:
         I := (Event.KeyCode shr 8)-(kbCtrlAltShift1 shr 8);
         CE;
         if Drive^.DriveType <> dtDisk then
-          Exit;
+          exit;
         if Msg(dlPromptForQDir, nil, mfQuery+mfYesButton+mfNoButton)
            <> cmYes
         then
-          Exit;
+          exit;
         DisposeStr(DirsToChange[I]);
         DirsToChange[I] := NewStr(DirectoryName);
         Message(Application, evCommand, cmUpdateConfig, nil);
@@ -2131,7 +2120,7 @@ WrongArc:
         then
           begin
           _CtrlPgUp;
-          Exit;
+          exit;
           end;
       kbUp, kbDown, kbUpUp, kbDownUp:
         begin
@@ -2179,14 +2168,14 @@ WrongArc:
           s := '';
         Drive^.ChangeRoot;
         ReadDirectory;
-        AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
+        AddToDirectoryHistory(DirectoryName, integer(Drive^.DriveType));
         ScrollBar^.SetValue(0);
         DecDrawDisabled;
         if Drive^.DriveType in [dtArc, dtArvid, dtList] then
           {-$VOL}
           begin
           _CtrlPgUp;
-          Exit;
+          exit;
           end; {-$VOL}
         if s <> '' then
           GotoSingle(s);
@@ -2294,11 +2283,11 @@ WrongArc:
       kbAltEnter, kbAltGrayEnter, kbAltShiftEnter {$IFDEF Win32},
        kbAltHome {$ENDIF}:
         if _AltEnter then
-          Exit
+          exit
         else
           begin
           _GotoExt;
-          Exit;
+          exit;
           end;
       kbEnter, kbShiftEnter:
         if CurPos < Files^.Count then
@@ -2310,7 +2299,7 @@ WrongArc:
           then
             begin
             CE;
-            Exit;
+            exit;
             end;
           CE;
           FreeStr := 'AUTOEXEC.BAT';
@@ -2319,13 +2308,13 @@ WrongArc:
               (UpStrg(PF^.FlName[True]) = FreeStr) and
               (Msg(dlAutoexecWarning, nil, mfYesNoConfirm) <> cmYes)
           then
-            Exit;
+            exit;
           if  (Drive^.DriveType in [dtFind, dtTemp, dtArcFind]) or
               ( (Drive^.DriveType = dtList) and (PF^.TType <> ttUpDir))
           then
             begin
             _Enter;
-            Exit;
+            exit;
             end;
           if  (FMSetup.Options and fmoEnterArchives <> 0)
             and (((Event.KeyCode = kbEnter) and (ShiftState and 3 = 0))
@@ -2338,7 +2327,7 @@ WrongArc:
           then
             begin
             CE;
-            Exit;
+            exit;
             end;
           if  (PF <> nil) then
             if  (PF^.Attr and Directory <> 0) then
@@ -2354,7 +2343,7 @@ WrongArc:
                 GotoFile(MakeNormName(MakeNormName(PF^.Owner^,
                        PF^.FlName[True]), '.'));
                 end;
-              Exit;
+              exit;
               end
             else
               _GotoExt;
@@ -2380,18 +2369,18 @@ WrongArc:
           if  (Event.CharCode = ' ') and ((CmdLine.Str <> '') or
                 (FMSetup.Options and fmoSpaceToggle = 0))
           then
-            Exit;
+            exit;
           CE;
           if Files^.Count = 0 then
-            Exit;
+            exit;
           PF := Files^.At(CurPos);
           if PF^.TType <> ttUpDir then
             begin
             PF^.Selected := not PF^.Selected;
-            SelectedLen := SelectedLen-(1-2*Integer(PF^.Selected))
+            SelectedLen := SelectedLen-(1-2*integer(PF^.Selected))
               *PF^.Size;
-            PackedLen := PackedLen-(1-2*Integer(PF^.Selected))*PF^.PSize;
-            Dec(SelNum, 1-2*Integer(PF^.Selected));
+            PackedLen := PackedLen-(1-2*integer(PF^.Selected))*PF^.PSize;
+            Dec(SelNum, 1-2*integer(PF^.Selected));
             end;
           ScrollBar^.SetValue(CurPos+1);
           if CurPos = ScrollBar^.Value then
@@ -2468,7 +2457,7 @@ WrongArc:
         Drive^.SizeX := Size.X;
         DirectoryName := Drive^.GetDir;
         ReadDirectory;
-        AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
+        AddToDirectoryHistory(DirectoryName, integer(Drive^.DriveType));
         Rebound;
         end;
       end
@@ -2503,7 +2492,7 @@ WrongArc:
     begin
     FC := GetSelection(@Self, False);
     if FC = nil then
-      Exit;
+      exit;
     if FC^.Count <> 0 then
       begin
       UUDecode(FC);
@@ -2543,7 +2532,7 @@ WrongArc:
              GetString(dlObjectTitle), Title, 255, hsCreateWPSObject)
          <> cmOK
       then
-        Exit;
+        exit;
       ObjID := 'WPProgram';
       FileName := 'EXENAME='+FileName;
       end
@@ -2553,7 +2542,7 @@ WrongArc:
       if MessageBox(GetString(dlCreateObject)+Title+' ?', nil,
            mfOKButton+mfCancelButton+mfConfirmation) <> cmOK
       then
-        Exit;
+        exit;
       ObjID := 'WPShadow';
       FileName := 'SHADOWID='+FileName;
       end;
@@ -2956,15 +2945,6 @@ WrongArc:
           CM_LongCopy(@Self);
           CE
           end;
-        cmEnableView:
-          begin
-          ViewEnabled := True;
-          SendLocated;
-          end;
-        cmDisableView:
-          begin
-          ViewEnabled := False;
-          end;
         cmLViewFile:
           begin
           SendLocated;
@@ -3043,7 +3023,10 @@ WrongArc:
             CE;
             end;
         cmDropped:
-          if MouseInView(PCopyRec(Event.InfoPtr)^.Where) then
+        if MouseInView(PCopyRec(Event.InfoPtr)^.Where) or
+          DirView^.MouseInView(PCopyRec(Event.InfoPtr)^.Where)
+            //AK155 5-02-2004
+        then
             begin
             case Drive^.DriveType of
               dtFind, dtArcFind:
@@ -3077,14 +3060,14 @@ WrongArc:
                                       PosChanged := true;
                                       if InfoView <> nil then InfoView^.DrawView;
                                       CED; PosChanged := false;
-                                      if (RepeatDelay <> 0) and ViewEnabled then
+                                      if (RepeatDelay <> 0) and QuickViewEnabled then
                                         NeedLocated := GetSTime;
                                      end; AK155*)
       end {case};
     evMouseDown:
       begin
       if Files^.Count = 0 then
-        Exit;
+        exit;
       QuickSearch := False; {AK155}
       MSelect := Event.Buttons and mbRightButton <> 0;
       MakeLocal(Event.Where, MPos);
@@ -3109,7 +3092,7 @@ WrongArc:
           RepeatDelay := LastRDelay;
           CE;
           MSelect := False;
-          Exit;
+          exit;
           end;
         MakeLocal(Event.Where, MPos);
         CurPos := Delta+(MPos.X div LineLength)
@@ -3120,7 +3103,7 @@ WrongArc:
           MSelect := False;
           CE;
           if Files^.Count = 0 then
-            Exit;
+            exit;
           if CurPos < Files^.Count then
             begin
             if ScrollBar^.Value <> CurPos then
@@ -3132,7 +3115,7 @@ WrongArc:
                 begin
                 Message(@Self, evKeyDown, kbCtrlPgDn, nil);
                 CE;
-                Exit
+                exit
                 end;
               if ShiftState and kbCtrlShift <> 0 then
                 Message(@Self, evKeyDown, kbCtrlEnter, nil)
@@ -3181,7 +3164,7 @@ WrongArc:
                 CM_DragDropper(@Self, CurPos, @Event);
               end;
             CE;
-            Exit;
+            exit;
             end;
           repeat
             MakeLocal(Event.Where, MPos);
@@ -3245,13 +3228,13 @@ WrongArc:
 procedure TFilePanelRoot.ChDir;
   begin
   if Drive^.DriveType <> dtDisk then
-    Exit;
+    exit;
   if  (Length(Dir) > 3) and (Dir[Length(Dir)] = '\') then
     SetLength(Dir, Length(Dir)-1);
   Drive^.lChDir(Dir);
   IncDrawDisabled;
   ReadDirectory;
-  AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
+  AddToDirectoryHistory(DirectoryName, integer(Drive^.DriveType));
   ScrollBar^.SetValue(0);
   DecDrawDisabled;
   DrawView;

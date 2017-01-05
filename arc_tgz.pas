@@ -50,7 +50,8 @@ unit arc_TGZ; {TGZ & TAZ & TAR.GZ}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos, xTime, Advance2
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime,
+   advance2
   ;
 
 type
@@ -191,7 +192,7 @@ procedure TTGZArchive.GetFile;
   if ArcFile^.Eof then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   GetUNIXDate(P.Time, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
   PackTime(DT, FileInfo.Date);
@@ -220,7 +221,7 @@ procedure TTGZArchive.GetFile;
       if C <> #0 then
         FileInfo.FName := FileInfo.FName+C
       else
-        Break;
+        break;
     until ArcFile^.Status <> stOK;
     end;
   FileInfo.PSize := ArcFile^.GetSize;

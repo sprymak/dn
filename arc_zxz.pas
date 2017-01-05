@@ -50,7 +50,7 @@ unit arc_ZXZ; {ZXZ}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects
+  Archiver, advance, advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -169,7 +169,7 @@ procedure TZXZArchive.GetFile;
   if  (ArcFile^.Status <> stOK) or (FP > 65280) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   if  (P.Name[0] < #32) or
       (P.PackedSize > P.SectorSize*256) or
@@ -179,7 +179,7 @@ procedure TZXZArchive.GetFile;
   then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   FileInfo.FName := P.Name;
   DelRight(FileInfo.FName);

@@ -50,7 +50,7 @@ unit arc_SQZ; {SQZ}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -163,12 +163,12 @@ procedure TSQZArchive.GetFile;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   if  (P.Size = 0) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   { if P.Size < $19 then} {changed by piwamoto}
   if P.Size < 18 then
@@ -189,7 +189,7 @@ procedure TSQZArchive.GetFile;
   if Length(FileInfo.FName) > 79 then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   ArcFile^.Seek(ArcFile^.GetPos+P.PackedSize);
   end { TSQZArchive.GetFile };

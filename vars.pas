@@ -12,7 +12,7 @@ Written by Cat 2:5030/1326.13
 interface
 
 uses
-  Dos, Objects, Collect, FilesCol, RStrings, Advance, Views, Dialogs,
+  Dos, Objects, Collect, FilesCol, RStrings, advance, Views, Dialogs,
    Menus,
   DNApp, Archiver, XDblWnd, DnIni, Startup, Calculat, Plugin
   ;
@@ -23,7 +23,7 @@ type
   {Global variables}
 
 function FileMode: PLongInt;
-function DosError: Integer;
+function DosError: integer;
 function Application: PProgram;
 function Desktop: PDesktop;
 function CommandLine: PView;
@@ -54,8 +54,8 @@ function NewStringCollection(A1, A2: LongInt; LS: Boolean)
   : PStringCollection;
 function NewLineCollection(A1, A2: LongInt; LS: Boolean): PLineCollection;
 function NewFilesCollection(A1, A2: LongInt): PFilesCollection;
-function NewDosStream(FileName: FNameStr; Mode: Word): PDosStream;
-function NewBufStream(FileName: FNameStr; Mode: Word; Size: Word)
+function NewDosStream(FileName: FNameStr; Mode: word): PDosStream;
+function NewBufStream(FileName: FNameStr; Mode: word; Size: word)
   : PBufStream;
 function NewView(X1, Y1, X2, Y2: SmallWord): PView;
 function NewWindow(X1, Y1, X2, Y2: SmallWord; Title: String;
@@ -65,12 +65,12 @@ function NewButton(X1, Y1, X2, Y2: SmallWord; Title: String;
      cm_, bf_: SmallWord): PButton;
 function NewLabel(X1, Y1, X2, Y2: SmallWord; S: String; P: PView): PLabel;
 function NewStaticText(X1, Y1, X2, Y2: SmallWord; S: String): PStaticText;
-function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: Word): PInputline;
+function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: word): PInputline;
 function NewCheckBoxes(X1, Y1, X2, Y2: SmallWord; Items: PSItem)
   : PCheckBoxes;
 function NewRadioButtons(X1, Y1, X2, Y2: SmallWord; Items: PSItem)
   : PRadioButtons;
-function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: Word;
+function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: word;
      ScrollBar: PScrollBar): PListBox;
 function NewScrollBar(X1, Y1, X2, Y2: SmallWord): PScrollBar;
 function NewMenuBox(X1, Y1, X2, Y2: SmallWord; Menu: PMenu;
@@ -126,7 +126,6 @@ type
     AutoSave: Boolean;
     ShowKeyCode: Byte;
     CopyLimit: LongInt;
-    HandleChDirCommand: Boolean;
     StoreVideoMode: Byte;
     SmartWindowsBoxClose: LongInt;
     //  DoVESATest               : Boolean;
@@ -138,6 +137,7 @@ type
     AutoScopeDetect: Boolean;
     ShowBookmarks: Boolean;
     FastBookmark: Boolean;
+    DefCodePageView: String[9];
     DefCodePage: String[9];
     CapitalCodePageName: Boolean;
     FastSearchDeep: LongInt;
@@ -251,7 +251,7 @@ function FileMode: PLongInt;
   FileMode := @System.FileMode;
   end;
 
-function DosError: Integer;
+function DosError: integer;
   begin
   DosError := Dos.DosError;
   end;
@@ -330,17 +330,17 @@ function ArchiveViewers: PArchiveViewerArray;
 
 function StartupDir: String;
   begin
-  StartupDir := Advance.StartupDir;
+  StartupDir := advance.StartupDir;
   end;
 
 function SourceDir: String;
   begin
-  SourceDir := Advance.SourceDir;
+  SourceDir := advance.SourceDir;
   end;
 
 function TempDir: String;
   begin
-  TempDir := Advance.TempDir;
+  TempDir := advance.TempDir;
   end;
 
 function ArcFile: PStream;
@@ -391,12 +391,12 @@ function NewFilesCollection(A1, A2: LongInt): PFilesCollection;
   NewFilesCollection := New(PFilesCollection, Init(A1, A2));
   end;
 
-function NewDosStream(FileName: FNameStr; Mode: Word): PDosStream;
+function NewDosStream(FileName: FNameStr; Mode: word): PDosStream;
   begin
   NewDosStream := New(PDosStream, Init(FileName, Mode));
   end;
 
-function NewBufStream(FileName: FNameStr; Mode: Word; Size: Word)
+function NewBufStream(FileName: FNameStr; Mode: word; Size: word)
   : PBufStream;
   begin
   NewBufStream := New(PBufStream, Init(FileName, Mode, Size));
@@ -452,7 +452,7 @@ function NewStaticText(X1, Y1, X2, Y2: SmallWord; S: String): PStaticText;
   NewStaticText := New(PStaticText, Init(R, S));
   end;
 
-function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: Word): PInputline;
+function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: word): PInputline;
   var
     R: TRect;
   begin
@@ -478,7 +478,7 @@ function NewRadioButtons(X1, Y1, X2, Y2: SmallWord; Items: PSItem)
   NewRadioButtons := New(PRadioButtons, Init(R, Items));
   end;
 
-function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: Word;
+function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: word;
      ScrollBar: PScrollBar): PListBox;
   var
     R: TRect;

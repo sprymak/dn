@@ -229,7 +229,7 @@ const
 
 const
   MaxBytes = 128*1024*1024;
-  MaxWords = MaxBytes div SizeOf(Word);
+  MaxWords = MaxBytes div SizeOf(word);
   MaxPtrs = MaxBytes div SizeOf(Pointer);
 
 type
@@ -316,7 +316,7 @@ type
   TWordArray = packed array[0..0] of AWord;
 
   PIntegerArray = ^TIntegerArray;
-  TIntegerArray = packed array[0..0] of Integer;
+  TIntegerArray = packed array[0..0] of integer;
 
   PPointerArray = ^TPointerArray;
   TPointerArray = packed array[0..0] of Pointer;
@@ -346,7 +346,7 @@ type
 
   PStreamRec = ^TStreamRec;
   TStreamRec = packed record
-    ObjType: Word;
+    ObjType: word;
     VmtLink: Pointer;
     Load: Pointer;
     Store: Pointer;
@@ -378,8 +378,8 @@ type
 
   PEvent = ^TEvent;
   TEvent = packed record
-    What: Word;
-    case Word of
+    What: word;
+    case word of
       evNothing:
         ();
       evMouse:
@@ -390,9 +390,9 @@ type
         );
       evKeyDown:
         (
-        case Integer of
+        case integer of
           0:
-            (KeyCode: Word);
+            (KeyCode: word);
           1:
             (
             CharCode: Char;
@@ -402,16 +402,16 @@ type
         );
       evMessage:
         (
-        Command: Word;
-        case Word of
+        Command: word;
+        case word of
           0:
             (InfoPtr: Pointer);
           1:
             (InfoLong: LongInt);
           2:
-            (InfoWord: Word);
+            (InfoWord: word);
           3:
-            (InfoInt: Integer);
+            (InfoInt: integer);
           4:
             (InfoByte: Byte);
           5:
@@ -430,11 +430,11 @@ type
   TMenuItem = packed record
     Next: PMenuItem;
     Name: PString;
-    Command: Word;
+    Command: word;
     Disabled: Boolean;
-    KeyCode: Word;
-    HelpCtx: Word;
-    case Integer of
+    KeyCode: word;
+    HelpCtx: word;
+    case integer of
       0: (Param: PString);
       1: (SubMenu: PMenu);
     end;
@@ -448,14 +448,14 @@ type
   TStatusItem = packed record
     Next: PStatusItem;
     Text: PString;
-    KeyCode: Word;
-    Command: Word;
+    KeyCode: word;
+    Command: word;
     end;
 
   PStatusDef = ^TStatusDef;
   TStatusDef = packed record
     Next: PStatusDef;
-    Min, Max: Word;
+    Min, Max: word;
     Items: PStatusItem;
     end;
 
@@ -463,21 +463,21 @@ type
   THandleCommandProc = procedure (Command, ObjType: SmallWord;
      const PluginName: ShortString; DNFuncs, DNMethods: Pointer;
      var _Finalization: Pointer);
-  TFormatsCountProc = function : Word;
-  TArchiveSignProc = function (Id: Word): Str4;
-  TCreateArchiveObjectProc = function (Id: Word): Pointer;
+  TFormatsCountProc = function : word;
+  TArchiveSignProc = function (Id: word): Str4;
+  TCreateArchiveObjectProc = function (Id: word): Pointer;
   TDetectCreateArchiveObjectProc = function : Pointer;
   {&Cdecl-}
 
   PEventCatcherInfo = ^TEventCatcherInfo;
   TEventCatcherInfo = packed record
-    FirstCatchedCommand: Word;
-    LastCatchedCommand: Word;
-    FirstObjType: Word;
-    LastObjType: Word;
+    FirstCatchedCommand: word;
+    LastCatchedCommand: word;
+    FirstObjType: word;
+    LastObjType: word;
     PluginPath: String[8];
     Reserved: packed array[0..2] of Byte;
-    LibHandle: Integer;
+    LibHandle: integer;
     Entry: THandleCommandProc;
     end;
 
@@ -489,7 +489,7 @@ type
     FirstTag: Byte;
     PluginPath: String[8];
     Reserved: SmallWord;
-    LibHandle: Integer;
+    LibHandle: integer;
     FormatsCount: TFormatsCountProc;
     ArchiveSign: TArchiveSignProc;
     CreateArchiveObject: TCreateArchiveObjectProc;
@@ -535,7 +535,7 @@ type
     //JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
     //    переменной в VpSysLo2.TOSSearchRecNew
     FindBuf: array[0..2*1024-1] of Byte;
-    FindCount: Integer;
+    FindCount: integer;
     FindPtr: Pointer;
     {$ENDIF}
     {$IFDEF WIN32}
@@ -577,9 +577,9 @@ type
     HiliteColumn: Boolean;
     JustifyOnWrap: Boolean;
     AutoWrap: Boolean;
-    LeftMargin: Word;
-    RightMargin: Word;
-    Paragraph: Word;
+    LeftMargin: word;
+    RightMargin: word;
+    Paragraph: word;
     ForcedCRLF: TCRLF;
     SmartTab: Boolean;
     end;
@@ -592,13 +592,13 @@ type
 
   PHighliteParams = ^THighliteParams;
   THighliteParams = packed record
-    GenFlags: Word;
-    HexFlags: Word;
-    DecFlags: Word;
-    OctFlagsQ: Word;
-    OctFlagsO: Word;
-    BinFlags: Word;
-    StrFlags: Word;
+    GenFlags: word;
+    HexFlags: word;
+    DecFlags: word;
+    OctFlagsQ: word;
+    OctFlagsO: word;
+    BinFlags: word;
+    StrFlags: word;
     RulesBuffer: packed array[1..$800] of Char;
     end;
 
@@ -624,11 +624,11 @@ type
     Owner: PString;
     OwnerDisposible: Boolean;
     DIZ: PDiz;
-    Yr: Word;
-    YrCreat: Word;
-    YrLAcc: Word;
+    Yr: word;
+    YrCreat: word;
+    YrLAcc: word;
     TType: Byte;
-    Attr: Word;
+    Attr: word;
     Second: Byte;
     SecondCreat: Byte;
     SecondLAcc: Byte;
@@ -642,23 +642,23 @@ type
   TMakeListRec = packed record
     FileName: String;
     Header: String;
-    HeaderMode: Word;
+    HeaderMode: word;
     Action: String;
     Footer: String;
-    FooterMode: Word;
-    Options: Word;
+    FooterMode: word;
+    Options: word;
     end;
 
   PUserParams = ^TUserParams;
-  TUserParams = packed record
+  tUserParams = packed record
     Active, Passive: PFileRec;
     ActiveList, PassiveList: String;
     end;
 
   TQuickSearchData = packed record
     Mask: String;
-    NumExt: Word;
-    ExtD: Word;
+    NumExt: word;
+    ExtD: word;
     end;
 
   TDiskInfoRec = packed record
@@ -715,16 +715,16 @@ type
 
   PMenuStringsRet = ^TMenuStringsRet;
   TMenuStringsRet = packed record
-    Reserved0: Integer;
+    Reserved0: integer;
     Count: Byte;
     Cacheable: Boolean;
     Reserved1: SmallWord;
     Strings1: PPCharArray;
     Strings2: PPCharArray;
     Keys: PIntegerArray;
-    Reserved2: Integer;
-    Reserved3: Integer;
-    Reserved4: Integer;
+    Reserved2: integer;
+    Reserved3: integer;
+    Reserved4: integer;
     end;
 
 implementation

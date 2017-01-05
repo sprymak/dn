@@ -245,6 +245,8 @@ ColorDialog
          ColorItem 'Frame passive',     166,
          ColorItem 'Frame active',      167,
          ColorItem 'Frame icons',       168,
+         ColorItem 'Scroll bar page',   212,
+         ColorItem 'Scroll bar icons',  213,
          ColorItem 'Fields titles',     169,
          ColorItem 'Normal text',       170,
          ColorItem 'Cursor',            171,
@@ -3003,7 +3005,7 @@ DIALOG dlgSplitFile, 50, 15, 'Split file'
   HELPCTX hcSplitDialog
   InputLine 2, 3, 46, 2, 255, hsFBBCopy
   History 46, 3, hsFBBCopy, ofPostProcess
-  Label 2, 2, '~S~plit', ofPostProcess, ofPreProcess
+  Label 2, 2, 'To ~d~irectory/file', ofPostProcess, ofPreProcess
   CheckBoxes 2, 5, 48, 8, ofPostProcess, ofPreProcess
     ITEM '~B~inary splitting only'
     ITEM '~V~erify disk writes'
@@ -3027,7 +3029,7 @@ DIALOG dlgCombineFile, 50, 8, 'Combine file'
   HELPCTX hcCombineDialog
   InputLine 2, 3, 46, 4, 255, hsFBBCopy
   History 46, 3, hsFBBCopy, ofPostProcess
-  Label 2, 2, '~C~ombine', ofPostProcess, ofPreProcess
+  Label 2, 2, 'To ~d~irectory/file', ofPostProcess, ofPreProcess
   Button 8, 5, 18, 7, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 18,5, 28, 7, 'Cancel', cmCancel, bfNormal, ofPostProcess, ofPreProcess
   Button 28,5, 38, 7, '~T~ree', cmTree, bfNormal, ofPostProcess, ofPreProcess
@@ -3389,7 +3391,6 @@ DIALOG dlgSystemSetup, 72, 21, 'System Setup'
 ;$IFDEF OS_DOS
       ITEM 'F~l~ush disk buffers'
 ;$ENDIF
-      ITEM 'Handle "CD" Command'
     END
     Label 3, 1, '~O~ptions', ofPostProcess, ofPreProcess
 

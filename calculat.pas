@@ -64,7 +64,7 @@ function Evalue(const s: String; CCV: Pointer): CReal;
 к функциям добавлятся SUM и MUL, а к операндам
 добавляются имена ячеек }
 
-function GetErrOp(var x: Integer): String;
+function GetErrOp(var x: integer): String;
 
 var
   EvalueError: Boolean;
@@ -76,7 +76,7 @@ var
 implementation
 
 uses
-  Advance1, Advance
+  advance1, advance
   , math, sysutils, Calc
   ;
 
@@ -85,7 +85,7 @@ var
   CurCalcView: PCalcView;
 
   { Число в указанной системе счичления }
-function GetV(S: String; Base: Integer; var Value: CReal): Boolean;
+function GetV(S: String; Base: integer; var Value: CReal): Boolean;
   const
     HexDigits = '0123456789ABCDEFG';
   var
@@ -96,7 +96,7 @@ function GetV(S: String; Base: Integer; var Value: CReal): Boolean;
   begin
   Result := False;
   if Length(S) = 0 then
-    Exit;
+    exit;
   RR := 0;
   UpStr(S);
   {целая часть}
@@ -104,10 +104,10 @@ function GetV(S: String; Base: Integer; var Value: CReal): Boolean;
     begin
     c := System.UpCase(S[j]);
     if c = '.' then
-      Break;
+      break;
     d := Pos(c, HexDigits)-1;
     if  (d < 0) or (d >= Base) then
-      Exit;
+      exit;
     RR := RR*Base+d;
     end;
   Delete(S, 1, j);
@@ -115,7 +115,7 @@ function GetV(S: String; Base: Integer; var Value: CReal): Boolean;
     begin
     Value := RR;
     Result := True;
-    Exit
+    exit
     end;
   {дробная часть}
   FractValue := 1;
@@ -124,7 +124,7 @@ function GetV(S: String; Base: Integer; var Value: CReal): Boolean;
     FractValue := FractValue/Base;
     d := Pos(S[j], HexDigits)-1;
     if  (d < 0) or (d >= Base) then
-      Exit;
+      exit;
     RR := RR+d*FractValue;
     end;
   Value := RR;
@@ -145,7 +145,7 @@ function GetDec(S: String; var Value: CReal): Boolean;
       (1e-1, 1e-2, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15
       , 1e1, 1e3, 1e6, 1e9, 1e12, 1e15);
   var
-    R: Integer;
+    R: integer;
     l: LongInt;
     m: String;
   begin
@@ -199,8 +199,8 @@ function GetValue(S: String; var Value: CReal): Boolean;
 
 var
   Operand: CReal;
-  SymType, PrevSymType: Integer;
-  CurrOp: Integer; { текущая операция (для ошибок)}
+  SymType, PrevSymType: integer;
+  CurrOp: integer; { текущая операция (для ошибок)}
   T: Byte; { индекс необработанного символа строки выражения }
 
 const
@@ -230,7 +230,7 @@ const
   OpDiv = 19;
   Op2Base = OpDiv + 1;
   LetterBinOp = ' DIV OR  XOR AND MOD SHL SHR ';
-  LetterBinOpType: array[1..7] of Integer =
+  LetterBinOpType: array[1..7] of integer =
     (OpDiv, 15, 16, 17, 18, Op2Base+4, Op2Base+5);
 
   FnBase = Length(OpChars)+1;
@@ -243,7 +243,7 @@ type
   TFnDesc = object
     n {ame}: String[8];
     E {val}: Pointer {FnEval};
-    A {rguments}: Integer;
+    A {rguments}: integer;
     end;
 
 procedure SinEv(var d: CReal);
@@ -411,7 +411,7 @@ procedure RoundEv(var d: CReal);
 
 procedure FactEv(var d: CReal);
   var
-    i: Integer;
+    i: integer;
     r: CReal;
   begin
   r := 1;
@@ -504,8 +504,8 @@ const
 
 procedure ScanSym;
   var
-    t0: Integer;
-    i: Integer;
+    t0: integer;
+    i: integer;
     c: Char;
   begin
   while Expression[T] = ' ' do
@@ -526,7 +526,7 @@ procedure ScanSym;
         begin
         Inc(T);
         SymType := Op2Base+i div 3;
-        Exit;
+        exit;
         end
       end;
     CalcSym := c;
@@ -551,7 +551,7 @@ procedure ScanSym;
     if i <> 0 then
       begin
       SymType := LetterBinOpType[(3+i) div 4];
-      Exit;
+      exit;
       end;
 
     for i := 0 to FnMax-1 do
@@ -559,7 +559,7 @@ procedure ScanSym;
       if CalcSym = FnTab[i].n then
         begin
         SymType := FnBase+i;
-        Exit;
+        exit;
         end;
       end;
     if CurCalcView <> nil then
@@ -575,16 +575,16 @@ procedure ScanSym;
                 begin
                 T := i+1;
                 SymType := CalcBase;
-                Exit
+                exit
                 end
               else
-                Break;
+                break;
               end;
           end
         else if GetCellValue(CalcSym) then
           begin
           SymType := CalcBase;
-          Exit
+          exit
           end;
         end;
     end;
@@ -600,14 +600,14 @@ procedure SetError(Id: TStrIdx);
 { Классический алгоритм с двумя стеками и двумя приоритетами }
 var
   DataStack: array[1..20] of CReal;
-  TDS: Integer; { указатель вершины }
+  TDS: integer; { указатель вершины }
   OpStack: array[1..20] of
   record
     Infix: Boolean;
-    Op, PrefixCount, Pos: Integer
+    Op, PrefixCount, Pos: integer
     end;
-  TOS: Integer; { указатель вершины }
-  i: Integer;
+  TOS: integer; { указатель вершины }
+  i: integer;
 
 procedure RegisterOperand;forward;
 
@@ -665,7 +665,7 @@ procedure RegisterOperand;
 
 procedure ToInt; {возведение в небольшую целую степень }
   var
-    N: Integer;
+    N: integer;
     R: CReal;
     neg: Boolean;
   begin
@@ -940,7 +940,7 @@ ExprEnd:
 
   end { EvalText };
 
-function GetErrOp(var x: Integer): String;
+function GetErrOp(var x: integer): String;
   var
     OpName: String;
   begin
@@ -950,7 +950,7 @@ function GetErrOp(var x: Integer): String;
     0:
       begin
       Result := '';
-      Exit;
+      exit;
       end;
     1..Op2Base-1:
       OpName := Copy(OpChars, CurrOp, 1);
@@ -984,7 +984,7 @@ function Evalue(const s: String; CCV: Pointer): CReal;
 
 procedure InitUnopPrio;
   var
-    l, i: Integer;
+    l, i: integer;
   begin
   l := Length(prio1);
   SetLength(prio1, MaxOp);

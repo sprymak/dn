@@ -58,7 +58,7 @@ unit Drivers;
 interface
 
 uses
-  Lfn, Objects, xTime, DnIni, Advance6, Commands
+  Lfn, Defines, xTime, DnIni, advance6, Commands
   ;
 
 var
@@ -92,26 +92,26 @@ type
 
   PEvent = ^TEvent;
   TEvent = record
-    What: Word;
-    case Word of
+    What: word;
+    case word of
       evNothing: ();
       evMouse: (
         Buttons: Byte;
         Double: Boolean;
         Where: TPoint);
       evKeyDown: (
-        case Integer of
+        case integer of
           0: (KeyCode: LongInt);
           1: (CharCode: Char;
             ScanCode: Byte;
             ShiftCode: Byte));
       evMessage: (
-        Command: Word;
-        case Word of
+        Command: word;
+        case word of
           0: (InfoPtr: Pointer);
           1: (InfoLong: LongInt);
-          2: (InfoWord: Word);
-          3: (InfoInt: Integer);
+          2: (InfoWord: word);
+          3: (InfoInt: integer);
           4: (InfoByte: Byte);
           5: (InfoChar: Char));
     end;
@@ -125,9 +125,9 @@ const
   MouseEvents: Boolean = False;
   MouseReverse: Boolean = False;
   MouseButtons: Byte = 0;
-  DoubleDelay: Word = 8;
-  RepeatDelay: Word = 8;
-  AutoRepeat: Word = 1;
+  DoubleDelay: word = 8;
+  RepeatDelay: word = 8;
+  AutoRepeat: word = 1;
   UserScreen: Pointer = nil;
   {DataCompBoy
   GraphMouse  : Boolean = False;
@@ -149,10 +149,10 @@ var
   OldBlink: Boolean;
 
   MouseIntFlag: Byte;
-  UserScreenSize: Word;
-  UserScreenWidth: Word;
+  UserScreenSize: word;
+  UserScreenWidth: word;
   MouseX, MouseY,
-  OldMouseX, OldMouseY: Word;
+  OldMouseX, OldMouseY: word;
   ShowMouseProc,
   HideMouseProc: Pointer;
 
@@ -173,8 +173,8 @@ const
 
   { Initialized variables }
 
-  StartupMode: Word = $FFFF;
-  SkyEnabled: Integer = 0;
+  StartupMode: word = $FFFF;
+  SkyEnabled: integer = 0;
   TottalExit: Boolean = False;
   { Set it only when leaving your program }
   Exiting: Boolean = False;
@@ -182,9 +182,9 @@ const
 
   MouseVisible: Boolean = True;
 
-  ScreenMode: Word = $92; { sm80x25 }
-  ScreenWidth: Word = 80;
-  ScreenHeight: Word = 25;
+  ScreenMode: word = $92; { sm80x25 }
+  ScreenWidth: word = 80;
+  ScreenHeight: word = 25;
 
 var
 
@@ -194,8 +194,8 @@ var
   CheckSnow: Boolean;
   ScreenBuffer: Pointer;
   CursorLines: SmallWord;
-  OldCursorShape: Word;
-  OldCursorPos: Word;
+  OldCursorShape: word;
+  OldCursorPos: word;
 
   { ******** SYSTEM ERROR HANDLER ******** }
 
@@ -203,20 +203,20 @@ type
 
   { System error handler function type }
 
-  TSysErrorFunc = function (ErrorCode: Integer; Drive: Byte): Integer;
+  TSysErrorFunc = function (ErrorCode: integer; Drive: Byte): integer;
 
   { Default system error handler routine }
 
-function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
+function SystemError(ErrorCode: integer; Drive: Byte): integer;
 
 const
 
   { Initialized variables }
 
   SysErrorFunc: TSysErrorFunc = SystemError;
-  SysColorAttr: Word = $4E4F;
-  SysColorButtonAttr: Word = $0E0F;
-  SysMonoAttr: Word = $7070;
+  SysColorAttr: word = $4E4F;
+  SysColorButtonAttr: word = $0E0F;
+  SysMonoAttr: word = $7070;
   CtrlBreakHit: Boolean = False;
   SaveCtrlBreak: Boolean = False;
   SysErrActive: Boolean = False;
@@ -230,10 +230,10 @@ procedure DoneSysError;
 
 { Keyboard support routines }
 
-function GetAltChar(KeyCode: Word): Char;
-function GetAltCode(Ch: Char): Word;
-function GetCtrlChar(KeyCode: Word): Char;
-function GetCtrlCode(Ch: Char): Word;
+function GetAltChar(KeyCode: word): Char;
+function GetAltCode(Ch: Char): word;
+function GetCtrlChar(KeyCode: word): Char;
+function GetCtrlCode(Ch: Char): word;
 {function CtrlToArrow(KeyCode: Word): Word;}
 
 { String routines }
@@ -243,12 +243,12 @@ procedure PrintStr(const S: String);
 
 { Buffer move routines }
 
-procedure MoveColor(var Buf; Num: Word; Attr: Byte);
-procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: Word);
-procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: Word);
-procedure MoveCStr(var Dest; const Str: String; Attrs: Word);
+procedure MoveColor(var Buf; Num: word; Attr: Byte);
+procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: word);
+procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: word);
+procedure MoveCStr(var Dest; const Str: String; Attrs: word);
 procedure MoveStr(var Dest; const Str: String; Attr: Byte);
-function CStrLen(const S: String): Integer;
+function CStrLen(const S: String): integer;
 
 {$IFDEF DNPRG}
 {$IFDEF LINEPOSIT}
@@ -266,10 +266,10 @@ uses
   Drivers2,
   VideoMan,
   Dos,
-  Advance,
-  Advance1,
-  Advance2,
-  Advance3,
+  advance,
+  advance1,
+  advance2,
+  advance3,
   Views,
   Startup,
   DNApp,
@@ -327,12 +327,12 @@ const
   LastWhere: TPoint = (X: 0; Y: 0);
   DownWhere: TPoint = (X: 0; Y: 0);
 var
-  DownTicks: Word;
-  AutoTicks: Word;
-  AutoDelay: Word;
-  EventCount: Word;
-  EventQHead: Word;
-  EventQTail: Word;
+  DownTicks: word;
+  AutoTicks: word;
+  AutoDelay: word;
+  EventCount: word;
+  EventQHead: word;
+  EventQTail: word;
   EventQueue: array[0..EventQSize-1] of TEvent;
   EventQLast: record
     end;
@@ -460,26 +460,26 @@ asm     cld
         loop    @@4
 end;
 
-function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
+function SystemError(ErrorCode: integer; Drive: Byte): integer;
   var
     Res: LongInt;
     S: String[63];
     I: Byte;
-    AOptions: Word;
-    MsgCode: Word;
+    AOptions: word;
+    MsgCode: word;
   begin
   if NeedAbort then
     begin
     SystemError := 3;
     Abort := True;
     NeedAbort := False;
-    Exit;
+    exit;
     end;
 
   if Abort then
     begin
     SystemError := 3;
-    Exit;
+    exit;
     end;
 
   {AK155}
@@ -560,7 +560,7 @@ const
   AltCodes2: array[$78..$83] of Char =
   '1234567890-=';
 
-function GetAltChar(KeyCode: Word): Char;
+function GetAltChar(KeyCode: word): Char;
   begin
   GetAltChar := #0;
   if KeyCode = kbAltSpace then
@@ -576,34 +576,34 @@ function GetAltChar(KeyCode: Word): Char;
       end {case};
   end;
 
-function GetAltCode(Ch: Char): Word;
+function GetAltCode(Ch: Char): word;
   var
-    I: Word;
+    I: word;
   begin
   GetAltCode := 0;
   if Ch = #0 then
-    Exit;
+    exit;
   Ch := UpCase(Ch);
   if Ch = Char(SystemMenuChar) then
     begin
     GetAltCode := $0200;
-    Exit;
+    exit;
     end;
   for I := $10 to $34 do
     if AltCodes1[I] = Ch then
       begin
       GetAltCode := I shl 8;
-      Exit;
+      exit;
       end;
   for I := $78 to $83 do
     if AltCodes2[I] = Ch then
       begin
       GetAltCode := I shl 8;
-      Exit;
+      exit;
       end;
   end { GetAltCode };
 
-function GetCtrlChar(KeyCode: Word): Char;
+function GetCtrlChar(KeyCode: word): Char;
   begin
   GetCtrlChar := #0;
   if  (KeyCode shr 16) in [0, 4] then
@@ -613,7 +613,7 @@ function GetCtrlChar(KeyCode: Word): Char;
       GetCtrlChar := Char(Lo(KeyCode)+Byte('A')-1);
   end;
 
-function GetCtrlCode(Ch: Char): Word;
+function GetCtrlCode(Ch: Char): word;
   begin
   GetCtrlCode := GetAltCode(Ch) or (Byte(UpCase(Ch))-Byte('A')+1);
   end;
@@ -650,11 +650,11 @@ const
 
 procedure InitDrivers;
   var
-    I: Integer;
+    I: integer;
     S: String;
   begin
   if DriversInit then
-    Exit;
+    exit;
   DriversInit := True;
 
   S := GetString(dlAltTable);
@@ -678,7 +678,7 @@ procedure InitDrivers;
 {Cat}
 procedure DoneDrivers;
   var
-    I: Integer;
+    I: integer;
   begin
   for I := 0 to CE_LastMsg do
     DisposeStr(CE_Messages[I]);

@@ -50,7 +50,7 @@ unit arc_UFA; {UFA}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -152,13 +152,13 @@ procedure TUFAArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(FH, SizeOf(FH));
   if  (ArcFile^.Status <> 0) or (FH.FileNameSize > 512) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   if FH.FileNameSize > 250 then
     FH.FileNameSize := 250;
@@ -167,7 +167,7 @@ procedure TUFAArchive.GetFile;
   if FileInfo.FName = '' then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   FileInfo.Attr := 0;
   FileInfo.Last := 0;

@@ -50,7 +50,7 @@ unit arc_HAP; {HAP}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -159,14 +159,14 @@ procedure THAPArchive.GetFile;
   if  (ArcFile^.GetPos = ArcFile^.GetSize) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P.Id, SizeOf(P)-1);
   if  (ArcFile^.Status <> stOK) or (P.Id <> $574a688e {#142#104#74#87})
   then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;
@@ -186,7 +186,7 @@ procedure THAPArchive.GetFile;
   if  (ArcFile^.Status <> stOK) or (Length(FileInfo.FName) > 79) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   ArcFile^.Seek(ArcFile^.GetPos+P.PackedSize-1);
   end { THAPArchive.GetFile };

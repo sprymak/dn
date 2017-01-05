@@ -67,10 +67,11 @@ uses
   {$IFDEF DEBUGMEM}DebugMem, {$ENDIF} {Cat}
   {$IFDEF OS2}Os2Def, Os2Base, {AK155 for killer} {$ENDIF}
   {$IFDEF WIN95_HIGHPRIORITY}Windows, {Cat for SetPriority} {$ENDIF}
-  Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
+  advance, advance1, advance2, advance3, advance4, Startup, Defines,
+   Streams,
   Setups, DNUtil, Drivers, Commands, DNApp, Messages, Lfn, Dos, FlPanelX,
   UserMenu, CmdLine, FilesCol, Views, ArcView, DnIni, CopyIni, Archiver,
-  U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries, Menus,
+  U_MyApp, Microed, ArchSet, advance6, RegAll, DnExec, Histries, Menus,
    VideoMan,
   fnotify,
   {$IFNDEF DPMI32}Killer, {$ENDIF}
@@ -86,12 +87,12 @@ function BadTemp(var s: String): Boolean;
   begin
   BadTemp := True;
   if  (s = '') then
-    Exit;
+    exit;
   if not (s[Length(s)] in ['\', '/']) then
     s := s+'\';
   ClrIO;
   if not PathExist(s) then
-    Exit;
+    exit;
   Assign(f, s+'$DNTEST.SWP');
   Rewrite(f);
   if IOResult = 0 then
@@ -107,7 +108,7 @@ function BadTemp(var s: String): Boolean;
 {-DataCompBoy-}
 procedure InvalidateTempDir;
   var
-    I: Integer;
+    I: integer;
   begin
   NoTempDir := False;
   TempDir := SystemData.Temp;
@@ -121,13 +122,13 @@ procedure InvalidateTempDir;
     TempDir := GetEnv(TempDir);
     end;
   if not BadTemp(TempDir) then
-    Exit;
+    exit;
   TempDir := GetEnv('TEMP');
   if not BadTemp(TempDir) then
-    Exit;
+    exit;
   TempDir := GetEnv('TMP');
   if not BadTemp(TempDir) then
-    Exit;
+    exit;
   TempDir := SourceDir;
   if not BadTemp(TempDir) then
     begin
@@ -137,7 +138,7 @@ procedure InvalidateTempDir;
     MkDir(TempDir);
     ClrIO;
     if not BadTemp(TempDir) then
-      Exit;
+      exit;
     end;
   NoTempDir := True;
   end { InvalidateTempDir };
@@ -146,7 +147,7 @@ procedure InvalidateTempDir;
 procedure UpdateConfig;
   var
     OldSecurity: Boolean;
-    TempInteger: Integer; {DataCompBoy}
+    TempInteger: integer; {DataCompBoy}
     R: TRect;
   begin
   InvalidateTempDir;
@@ -184,13 +185,13 @@ procedure CheckForOldFiles;
   var
     OldFiles: array[0..8] of String;
     OldFileSearchDirs: array[0..8] of TSearchDirSet;
-    OldFilesCount: Integer;
+    OldFilesCount: integer;
     Dirs: array[0..2] of String;
     S: String;
-    i, j: Integer;
+    i, j: integer;
   procedure ProbeOldFile(Name: String; SearchDirs: TSearchDirSet);
     var
-      k: Integer;
+      k: integer;
     begin
     for k := 0 to 2 do
       if  (k in SearchDirs) and ExistFile(Dirs[k]+Name)
@@ -199,7 +200,7 @@ procedure CheckForOldFiles;
         OldFiles[OldFilesCount] := Name;
         OldFileSearchDirs[OldFilesCount] := SearchDirs;
         Inc(OldFilesCount);
-        Break
+        break
         end;
     end;
   begin { CheckForOldFiles }
@@ -226,7 +227,7 @@ procedure CheckForOldFiles;
   ProbeOldFile('DNENG.HLP', [1, 2]);
   ProbeOldFile('DNRUS.HLP', [1, 2]);
   if OldFilesCount = 0 then
-    Exit;
+    exit;
   S := '';
   for i := 0 to OldFilesCount-1 do
     S := S+#3+OldFiles[i]+#13;
@@ -261,7 +262,7 @@ procedure DoStartup;
     FileMode := $40;
     F := New(PTextReader, Init(SourceDir+'dnhgl.grp'));
     if F = nil then
-      Exit;
+      exit;
     if not F^.Eof then
       CustomMask1^.Filter := F^.GetStr;
     if not F^.Eof then
@@ -295,7 +296,7 @@ procedure DoStartup;
       ID: AWord;
       L: AWord;
       p: Pointer;
-      I: Integer;
+      I: integer;
 
     procedure SRead(var Buf);
       begin
@@ -308,7 +309,7 @@ procedure DoStartup;
         Chk: String;
       begin
       CFGVer := 0;
-      for i := NumSupportedConfigs downto 1 do
+      for i := NumSupportedConfigs DownTo 1 do
         begin
         S.Seek(0);
         S.Read(Chk[1], ConfigSigns[i].SignLen);
@@ -319,7 +320,7 @@ procedure DoStartup;
           CFGVer := ConfigSigns[i].SignVer;
           if ConfigSigns[i].HavVer then
             S.Read(CFGVer, SizeOf(VersionWord));
-          Break;
+          break;
           end;
         end;
       end;
@@ -332,7 +333,7 @@ procedure DoStartup;
       begin
       S.Done;
       Virgin := True;
-      Exit;
+      exit;
       end;
     GetVer;
     {If (CfgVer=0) or (CfgVer>VersionWord) then begin}
@@ -341,7 +342,7 @@ procedure DoStartup;
       begin
       S.Done;
       Virgin := True;
-      Exit
+      exit
       end;
     while S.GetPos < S.GetSize do
       begin
@@ -355,7 +356,7 @@ procedure DoStartup;
         0:
           begin
           {Virgin := True;}
-          Break;
+          break;
           end;
         cfgNewSystemData:
           SRead(SystemData);
@@ -729,8 +730,6 @@ procedure DoStartup;
       end;
     S.Done;
     Security := SystemData.Options and ossShowHidden = 0;
-    HandleChDirCommand := ((SystemData.Options shl 3) and
-         ossHandleChDirCommand) <> 0;
 
     SystemDataOpt := SystemData.Options;
     InterfaceDataOpt := InterfaceData.Options;
@@ -790,7 +789,7 @@ procedure DoStartup;
       if  (INIdatapos >= 0) and
           (INIavailtime = INIstoredtime) and (INIavailsize = INIstoredsize)
       then
-        Exit; { ini не изменился, читать не нужно }
+        exit; { ini не изменился, читать не нужно }
       if DnIni.AutoSave then
         SaveDnIniSettings(nil);
       ConfigModified := True;
@@ -843,7 +842,7 @@ procedure DoStartup;
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD');
   {$ENDIF}
   ReadIni;
-  {$IFDEF SS}Val(SaversData.Time, SkyDelay, Integer(SPos1)); {$ENDIF}
+  {$IFDEF SS}Val(SaversData.Time, SkyDelay, integer(SPos1)); {$ENDIF}
   if SkyDelay = 0 then
     SkyDelay := 255; { X-Man }
   {ExecDNAutoexec;}

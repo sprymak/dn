@@ -50,7 +50,7 @@ unit arc_HA; {HA}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos, xTime
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime
   ;
 
 type
@@ -164,7 +164,7 @@ procedure THAArchive.GetFile;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   FileInfo.Last := 0;
   FileInfo.Attr := 0;
@@ -187,7 +187,7 @@ procedure THAArchive.GetFile;
   if Length(FileInfo.FName) > 79 then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   Replace(#255, '\', FileInfo.FName);
   if P.Method and $0f = $0e then
@@ -198,7 +198,7 @@ procedure THAArchive.GetFile;
   then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   ArcFile^.Seek(FP);
   end { THAArchive.GetFile };

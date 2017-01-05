@@ -50,7 +50,7 @@ unit arc_QRK; {QuArk}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -158,20 +158,20 @@ procedure TQuArkArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(FH, SizeOf(FH));
   if  (ArcFile^.Status <> 0) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   SetLength(FileInfo.FName, FH.LengthOfName);
   ArcFile^.Read(FileInfo.FName[1], FH.LengthOfName);
   if FileInfo.FName = '' then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(FH1, SizeOf(FH1));
   FileInfo.Last := 0;

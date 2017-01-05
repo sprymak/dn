@@ -242,12 +242,14 @@ ColorDialog
          ColorItem 'Бегунок прокрутки',                 11,
          ColorItem 'Кнопки прокрутки',                  12,
     ColorGroup 'Просмотр DBF',
-         ColorItem 'Рамка пассивная',                      166,
-         ColorItem 'Рамка активная',                       167,
-         ColorItem 'Пиктограммы окна',                  168,
-         ColorItem 'Заголовок поля',                    169,
-         ColorItem 'Нормальный текст',                  170,
-         ColorItem 'Курсор',                            171,
+         ColorItem 'Рамка пассивная',             166,
+         ColorItem 'Рамка активная',              167,
+         ColorItem 'Пиктограммы окна',            168,
+         ColorItem 'Бегунок прокрутки',           212,
+         ColorItem 'Кнопки прокрутки',            213,
+         ColorItem 'Заголовок поля',              169,
+         ColorItem 'Нормальный текст',            170,
+         ColorItem 'Курсор',                      171,
 END
 
 DIALOG dlgCountrySetup, 51, 20, 'Информация о стране'
@@ -2759,10 +2761,11 @@ DIALOG dlgTetrisWinner, 55, 7, 'Вы попали в десятку лучших!'
 END
 
 DIALOG dlgSplitFile, 50, 15, 'Рассечь файл'
+; Строка 1 должна быть пустой - туда вставляется имя файла
   HELPCTX hcSplitDialog
   InputLine 2, 3, 46, 2, 255, hsFBBCopy
   History 46, 3, hsFBBCopy, ofPostProcess
-  Label 2, 2, '~Р~ассечь', ofPostProcess, ofPreProcess
+  Label 2, 2, 'В к~а~талог/файл', ofPostProcess, ofPreProcess
 
   CheckBoxes 2, 5, 48, 8, ofPostProcess, ofPreProcess
     ITEM Д~в~оичное рассечение
@@ -2785,10 +2788,11 @@ DIALOG dlgSplitFile, 50, 15, 'Рассечь файл'
 END
 
 DIALOG dlgCombineFile, 50, 8, 'Склеить файл'
+; Строка 1 должна быть пустой - туда вставляется имя файла
   HELPCTX hcCombineDialog
   InputLine 2, 3, 46, 4, 255, hsFBBCopy
   History 46, 3, hsFBBCopy, ofPostProcess
-  Label 2, 2, '~С~клеить'
+  Label 2, 2, 'В к~а~талог/файл', ofPostProcess, ofPreProcess
   Button 8, 5, 18, 7, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 18,5, 28, 7, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
   Button 28,5, 38, 7, '~Д~ерево', cmTree, bfNormal, ofPostProcess, ofPreProcess
@@ -3202,7 +3206,6 @@ DIALOG dlgSystemSetup, 72, 21, 'Системные установки'
 ;$IFDEF OS_DOS
       ITEM 'Сбрасывать дисковые буфера'
 ;$ENDIF
-      ITEM 'Обрабатывать команду "CD"'
     END
     Label 3, 1, '~У~становки', ofPostProcess, ofPreProcess
 

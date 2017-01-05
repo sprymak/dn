@@ -64,7 +64,7 @@ procedure SetTitle(Text: String);
   begin
   Text := 'DN/2: '+Text;
   if Text = CurrentTitle then
-    Exit;
+    exit;
   CurrentTitle := Text;
 
   DN_XSetTitle(Text);
@@ -85,7 +85,7 @@ procedure SetTitle(Text: String);
   begin
   Text := 'DN/2: '+Text;
   if Text = CurrentTitle then
-    Exit;
+    exit;
   CurrentTitle := Text;
 
   {AK155 Под Win NT заголовок окна отображается в кодировке OEM,

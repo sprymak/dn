@@ -51,8 +51,8 @@ unit Startup;
 interface
 
 uses
-  Objects, Dos, Commands, Advance,
-  Advance1, Advance2, Advance3, Drivers, Collect
+  Defines, Dos, Commands, advance,
+  advance1, advance2, advance3, Drivers, Collect
   ;
 
 procedure FatalError(const S: String);
@@ -121,19 +121,19 @@ type
 
   TListBoxRec = record
     List: PCollection;
-    Focus: Integer
+    Focus: integer
     end;
   TTextListboxRec = record
     List: PTextCollection;
-    Focus: Integer
+    Focus: integer
     end;
 
   TSystemData = record
-    Options: Word;
+    Options: word;
     Mode1: String[5];
     Mode2: String[5];
     Temp: String;
-    CopyLimitBuf: Word;
+    CopyLimitBuf: word;
     ForceDefArch: String[3];
     Drives: array['A'..'Z'] of Byte;
     end;
@@ -164,9 +164,9 @@ type
     end;
 
   TMouseData = record
-    HSense: Word;
-    VSense: Word;
-    Options: Word;
+    HSense: word;
+    VSense: word;
+    Options: word;
     end;
 
   {$IFDEF SS}
@@ -188,20 +188,20 @@ type
   {$ENDIF}
 
   TInterfaceData = record
-    Options: Word;
-    DrvInfType: Word;
+    Options: word;
+    DrvInfType: word;
     end;
 
   TPanelDefaultsData = record
-    Sort: Word;
-    Show: Word;
-    LeftPanel: Word;
+    Sort: word;
+    Show: word;
+    LeftPanel: word;
     end;
 
   TFMSetup = record
-    Options: Word;
-    Show: Word;
-    Quick: Word;
+    Options: word;
+    Show: word;
+    Quick: word;
     TagChar: String[1];
     RestChar: String[1];
     DIZ: String;
@@ -216,13 +216,13 @@ type
     end;
 
   TEditorDefaultsData = record
-    EdOpt: Word;
-    EdOpt2: Word;
-    ViOpt: Word;
+    EdOpt: word;
+    EdOpt2: word;
+    ViOpt: word;
     LM,
     RM,
     PM: String[3];
-    NewLine: Word;
+    NewLine: word;
     TabSize: String[3];
     end;
 
@@ -237,8 +237,8 @@ type
     end;
 
   TTerminalDefaults = record
-    Emulation: Word;
-    Options: Word;
+    Emulation: word;
+    Options: word;
     end;
 
   TOldStartupData = record
@@ -246,31 +246,31 @@ type
     end;
 
   TStartupData = record
-    Load, Unload, Slice2: Word;
+    Load, Unload, Slice2: word;
     end;
 
   TUUEncodeData = record
     Name: String;
-    Prefix, CheckSum: Word;
+    Prefix, CheckSum: word;
     NLines: String[5];
-    Format: Word;
+    Format: word;
     end;
 
   TNamesCaseOptions = record
-    Name: Word;
-    ext: Word;
+    Name: word;
+    ext: word;
     end;
 
   TTetrisRec = record
-    l: Word;
-    S: Word;
-    P: Word;
+    l: word;
+    S: word;
+    P: word;
     end;
 
   TComareDirsOptions = record
-    o: Word;
+    o: word;
     FMask: String;
-    S: Word;
+    S: word;
     end;
 
 var
@@ -299,7 +299,7 @@ const
     Slice2: osuOnceRelease
     );
 
-  Confirms: Word = cfSingleErase+cfMultiErase+cfEraseReadonly+
+  Confirms: word = cfSingleErase+cfMultiErase+cfEraseReadonly+
   cfEraseSubDir+cfMouseConfirm+cfExitConfirm+cfChaneLngWarning;
 
   TerminalDefaults: TTerminalDefaults = (Emulation: emANSIBBS;
@@ -435,12 +435,12 @@ const
   ColumnsDefaultsDisk: record
     Params: array[1..10] of
     record
-      Param: Word;
+      Param: word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: Word;
-    DirsCase: Word;
+    FileCase: word;
+    DirsCase: word;
     end = (
     Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 1023;
          LFNLen: '12'; EXTLen: '3'),
@@ -451,11 +451,9 @@ const
         (Param: 3; LFNLen: '252'; EXTLen: '0'), (Param: 257;
          LFNLen: '12'; EXTLen: '3'),
         (Param: 1; LFNLen: '12'; EXTLen: '3'),
-      {$IFDEF OS2}
-        (Param: 1; LFNLen: '12'; EXTLen: '3'));
-      {$ELSE}
-        (Param: 0; LFNLen: '12'; EXTLen: '3'));
-    {$ENDIF}
+
+        (Param: {$IFDEF OS2}1 {$ELSE}0 {$ENDIF};
+        LFNLen: '12'; EXTLen: '3'));
     FileCase: 4;
     DirsCase: 4
     );
@@ -463,12 +461,12 @@ const
   ColumnsDefaultsFind: record
     Params: array[1..10] of
     record
-      Param: Word;
+      Param: word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: Word;
-    DirsCase: Word;
+    FileCase: word;
+    DirsCase: word;
     end = (
     Params: ((Param: 257; LFNLen: '12'; EXTLen: '3'), (Param: 511;
          LFNLen: '12'; EXTLen: '3'),
@@ -492,12 +490,12 @@ const
   ColumnsDefaultsTemp: record
     Params: array[1..10] of
     record
-      Param: Word;
+      Param: word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: Word;
-    DirsCase: Word;
+    FileCase: word;
+    DirsCase: word;
     end = (
     Params: ((Param: 257; LFNLen: '12'; EXTLen: '3'), (Param: 511;
          LFNLen: '12'; EXTLen: '3'),
@@ -521,12 +519,12 @@ const
   ColumnsDefaultsArch: record
     Params: array[1..10] of
     record
-      Param: Word;
+      Param: word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: Word;
-    DirsCase: Word;
+    FileCase: word;
+    DirsCase: word;
     end = (
     Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 63;
          LFNLen: '12'; EXTLen: '3'),
@@ -545,12 +543,12 @@ const
   ColumnsDefaultsArvd: record
     Params: array[1..10] of
     record
-      Param: Word;
+      Param: word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: Word;
-    DirsCase: Word;
+    FileCase: word;
+    DirsCase: word;
     end = (
     Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 271;
          LFNLen: '12'; EXTLen: '3'),
@@ -742,7 +740,7 @@ else
 
 for FreeByte := 1 to Length(SourceDir) do
   if SourceDir[FreeByte] <> ' ' then
-    Break;
+    break;
 if  (SourceDir <> '') and (SourceDir[FreeByte] <> ' ') then
   SourceDir := Copy(SourceDir, FreeByte, MaxStringLength);
 if SourceDir = '' then

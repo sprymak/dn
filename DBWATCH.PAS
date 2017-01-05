@@ -70,8 +70,8 @@ unit DBWatch;
 interface
 
 uses
-  Lfn, Collect, Objects, Dos, Advance, Advance1, Advance2, Advance3
-  , use16
+  Lfn, Collect, Objects2, Streams, Defines, Dos,
+  advance, advance1, advance2, advance3, use16
   ;
 
 type
@@ -98,17 +98,17 @@ type
     Date, NumRec: LongInt;
     HeaderLen, RecLen: AWord;
     Unused: array[0..31] of Byte;
-    NumFields: Integer;
+    NumFields: integer;
     Loc: LongInt;
     Fields: PCollection;
     constructor Init(FileName: String); {DataCompBoy}
     destructor Done; virtual;
-    procedure Read(var Buf; Num: Word);
+    procedure Read(var Buf; Num: word);
     procedure Seek(NewLoc: LongInt);
     function GetField(Name: String; var Buf): String;
-    function GetNField(N: Word; var Buf): String;
-    function GetFieldRec(N: Integer): PFieldRec;
-    procedure OpenMode(Mode: Word);
+    function GetNField(N: word; var Buf): String;
+    function GetFieldRec(N: integer): PFieldRec;
+    procedure OpenMode(Mode: word);
     end;
 
 implementation
@@ -122,8 +122,8 @@ procedure TFieldCollection.FreeItem;
   Dispose(PFieldRec(P));
   end;
 
-function NewField(Name: String; Who: Char; len: Word; Dec: Byte;
-     Pos: Word): PFieldRec; { Kirill }
+function NewField(Name: String; Who: Char; len: word; Dec: Byte;
+     Pos: word): PFieldRec; { Kirill }
   var
     P: PFieldRec;
   begin
@@ -154,7 +154,7 @@ function NewField(Name: String; Who: Char; len: Word; Dec: Byte;
     P^.ln := 255; { Kirill }
   end { NewField };
 
-procedure TDBFile.OpenMode(Mode: Word);
+procedure TDBFile.OpenMode(Mode: word);
   begin
   BaseFile.Init(BaseName, Mode, 16384);
   end;
@@ -171,7 +171,7 @@ constructor TDBFile.Init;
   type
     TFldLenRec = record
       { Kirill }
-      case Integer of
+      case integer of
         0: (len, Dec: Byte);
         1: (CharFieldLen: AWord);
       end;
@@ -185,12 +185,12 @@ constructor TDBFile.Init;
 
   var
     FBuf: frec;
-    RL: Integer;
+    RL: integer;
     Par: TParams; {JOHN_SW}
 
   function ReadFldStru(CharSizeWord: Boolean): Boolean;
     var
-      I, J: Integer;
+      I, J: integer;
       S: String;
       FieldLen: AWord;
       FieldDec: Byte;
@@ -227,7 +227,7 @@ constructor TDBFile.Init;
       if  (J = 0) or (BaseFile.Status <> stOK) then
         begin
         ReadFldStru := False;
-        Exit;
+        exit;
         end;
       with FBuf do
         Fields^.Insert(NewField(S, Who, FieldLen, FieldDec, RL-FieldLen));
@@ -338,10 +338,10 @@ function TDBFile.GetFieldRec;
 
 function TDBFile.GetField;
   var
-    I, K, N: Integer;
+    I, K, N: integer;
     B: array[0..65000] of Char absolute Buf;
     S: String;
-    L: Word;
+    L: word;
   begin
   I := 0;
   K := 1;
@@ -358,10 +358,10 @@ function TDBFile.GetField;
 
 function TDBFile.GetNField;
   var
-    I, K, J: Integer;
+    I, K, J: integer;
     B: array[0..65000] of Char absolute Buf;
     S: String;
-    L: Word;
+    L: word;
   begin
   K := GetFieldRec(N)^.Pos;
   S := '';

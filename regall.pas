@@ -79,7 +79,7 @@ uses
   {$IFDEF PHONES}Phones, {$ENDIF}
   {$ENDIF !RCP}
   ColorSel,
-  Dialogs, Menus, Objects, ObjType, Scroller, Setups,
+  Dialogs, Menus, Streams, ObjType, Scroller, Setups,
   Validate, Views, SWE {$IFDEF UserSaver}, UserSavr {$ENDIF}
   ;
 
@@ -874,7 +874,7 @@ const
 
 procedure RegisterAll;
   var
-    I: Integer;
+    I: integer;
   begin
   for I := 1 to NumRElms do
     RegisterType(RegArray[I]);

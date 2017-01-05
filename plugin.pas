@@ -40,7 +40,7 @@ Written by Cat 2:5030/1326.13
 interface
 
 uses
-  Modules, Objects, Drivers, Menus, Archiver
+  Defines, Modules, Objects2, Drivers, Menus, Archiver
   ;
 
 (*** RUNTIME PATCH ***)
@@ -48,7 +48,7 @@ uses
 type
   {&Cdecl+}
   TRuntimePatch = function (const PluginName: ShortString;
-     DNFuncs, DNMethods: Pointer; var finalization: Pointer): Boolean;
+     DNFuncs, DNMethods: Pointer; var Finalization: Pointer): Boolean;
   {&Cdecl-}
 
   (*** EVENT CATCHER ***)
@@ -57,29 +57,29 @@ type
   {&Cdecl+}
   THandleCommandProc = procedure (Command, ObjType: SmallWord;
      const PluginName: ShortString; DNFuncs, DNMethods: Pointer;
-     var finalization: Pointer);
+     var Finalization: Pointer);
   {&Cdecl-}
   PEventCatcherInfo = ^TEventCatcherInfo;
   TEventCatcherInfo = packed record
-    FirstCatchedCommand: Word;
-    LastCatchedCommand: Word;
+    FirstCatchedCommand: word;
+    LastCatchedCommand: word;
     {FirstLngIndex: Word;}
     {LastLngIndex: Word;}
     {FirstDlgIndex: Word;}
     {LastDlgIndex: Word;}
     {FirstHlpIndex: Word;}
     {LastHlpIndex: Word;}
-    FirstObjType: Word;
-    LastObjType: Word;
+    FirstObjType: word;
+    LastObjType: word;
     PluginPath: String[8];
     Reserved: packed array[0..2] of Byte;
-    LibHandle: Integer;
+    LibHandle: integer;
     Entry: THandleCommandProc;
     end;
   PEventCatcherArray = ^TEventCatcherArray;
   TEventCatcherArray = packed array[1..1] of TEventCatcherInfo;
 
-procedure CatchersHandleCommand(Command: Word);
+procedure CatchersHandleCommand(Command: word);
 
 (*** DRIVE PANELS ***)
 
@@ -88,23 +88,23 @@ const
 
 type
   PIntegerArray = ^TIntegerArray;
-  TIntegerArray = packed array[0..0] of Integer;
+  TIntegerArray = packed array[0..0] of integer;
 
   PPCharArray = ^TPCharArray;
   TPCharArray = packed array[0..0] of PChar;
 
   PMenuStringsRet = ^TMenuStringsRet;
   TMenuStringsRet = packed record
-    Reserved0: Integer;
+    Reserved0: integer;
     Count: Byte;
     Cacheable: Boolean;
     Reserved1: SmallWord;
     Strings1: PPCharArray;
     Strings2: PPCharArray;
     Keys: PIntegerArray;
-    Reserved2: Integer;
-    Reserved3: Integer;
-    Reserved4: Integer;
+    Reserved2: integer;
+    Reserved3: integer;
+    Reserved4: integer;
     end;
 
   {&Cdecl+}
@@ -113,21 +113,21 @@ type
   : PMenuStringsRet;
   TCreateDriveObjectProc = function (Command, ObjType: SmallWord;
      const PluginName: ShortString; DNFuncs, DNMethods: Pointer;
-     AOwner: Pointer; Num: Integer): Pointer;
+     AOwner: Pointer; Num: integer): Pointer;
   TRegisterDriveObjectProc = function (Command, ObjType: SmallWord;
-     const PluginName: ShortString; DNFuncs, DNMethods: Pointer): Integer;
+     const PluginName: ShortString; DNFuncs, DNMethods: Pointer): integer;
   {&Cdecl-}
 
   PDrivePanelsInfo = ^TDrivePanelsInfo;
   TDrivePanelsInfo = packed record
     PluginPath: PString;
-    LibHandle: Integer;
+    LibHandle: integer;
     CreateDriveObject: TCreateDriveObjectProc;
     RegisterDriveObject: TRegisterDriveObjectProc;
-    ObjType: Word;
+    ObjType: word;
     MenuString1: PString;
     MenuString2: PString;
-    MenuKey: Integer;
+    MenuKey: integer;
     end;
 
   PDrivePanelsInfoArray = ^TDrivePanelsInfoArray;
@@ -137,10 +137,10 @@ type
   PDrivePanelsInfo2 = ^TDrivePanelsInfo2;
   TDrivePanelsInfo2 = packed record
     PluginPath: PString;
-    LibHandle: Integer;
+    LibHandle: integer;
     CreateDriveObject: TCreateDriveObjectProc;
     RegisterDriveObject: TRegisterDriveObjectProc;
-    ObjType: Word;
+    ObjType: word;
     MenuStrings: PMenuStringsRet;
     end;
 
@@ -148,9 +148,9 @@ type
   TDrivePanelsInfoArray2 = packed array[1..MaxDrivePanelsInfo] of
    PDrivePanelsInfo2;
 
-function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
-  : Integer;
-function CreateDriveObject(I: Integer; AOwner: Pointer; Num: Integer)
+function CreateDriveMenus(var Items: PMenuItem; var MaxL: integer)
+  : integer;
+function CreateDriveObject(I: integer; AOwner: Pointer; Num: integer)
   : Pointer;
 
 (*** EDITOR EVENT HOOKS ***)
@@ -188,9 +188,9 @@ const
 
 type
   {&Cdecl+}
-  TFormatsCountProc = function : Word;
-  TArchiveSignProc = function (Id: Word): TStr4;
-  TCreateArchiveObjectProc = function (Id: Word): PARJArchive;
+  TFormatsCountProc = function : word;
+  TArchiveSignProc = function (Id: word): TStr4;
+  TCreateArchiveObjectProc = function (Id: word): PARJArchive;
   TDetectCreateArchiveObjectProc = function : PARJArchive;
   {&Cdecl-}
   PArchiveViewerInfo = ^TArchiveViewerInfo;
@@ -198,7 +198,7 @@ type
     FirstTag: Byte;
     PluginPath: String[8];
     Reserved: SmallWord;
-    LibHandle: Integer;
+    LibHandle: integer;
     FormatsCount: TFormatsCountProc;
     ArchiveSign: TArchiveSignProc;
     CreateArchiveObject: TCreateArchiveObjectProc;
@@ -216,12 +216,12 @@ function GetArchiveByTag(ID: Byte): PARJArchive;
 
 var
   EventCatchers: PEventCatcherArray;
-  EventCatchersCount: Integer;
+  EventCatchersCount: integer;
   ArchiveViewers: TArchiveViewerArray;
   DrivePanelsInfo: TDrivePanelsInfoArray;
-  DrivePanelsInfoCount: Integer;
+  DrivePanelsInfoCount: integer;
   DrivePanelsInfo2: TDrivePanelsInfoArray2;
-  DrivePanelsInfo2Count: Integer;
+  DrivePanelsInfo2Count: integer;
 
 const
   ProcNamesArchiveViewer: array[0..3] of PChar =
@@ -236,13 +236,13 @@ const
     'CreateDriveObject',
     'RegisterDriveObject');
 
-procedure PluginRegisterObject(ObjType: Word);
+procedure PluginRegisterObject(ObjType: word);
 
 implementation
 
 uses
   Dos, Strings, Commands,
-  ObjType, Messages, DNApp, Advance, Advance1, Advance2, Lfn, DNFuncs
+  ObjType, Messages, DNApp, advance, advance1, advance2, Lfn, DNFuncs
   ;
 
 const
@@ -269,7 +269,7 @@ procedure ApllyRuntimePatches;
   var
     PlugDir: String;
     SR: lSearchRec;
-    LibHandle: Integer;
+    LibHandle: integer;
     RuntimePatch: TRuntimePatch;
     Finalization: Pointer;
 
@@ -279,11 +279,11 @@ procedure ApllyRuntimePatches;
       and GetProcAddress(LibHandle, 'RuntimePatch', @RuntimePatch)
     then
       begin
-      if RuntimePatch(FullPath, @DNFunctions, @DNMethods, finalization)
+      if RuntimePatch(FullPath, @DNFunctions, @DNMethods, Finalization)
       then
         FreeModule(LibHandle)
-      else if finalization <> nil then
-        AddExitProc(finalization);
+      else if Finalization <> nil then
+        AddExitProc(Finalization);
       end
     else
       begin
@@ -316,14 +316,14 @@ procedure DoneDrivePanels(NeedWriteConfig: Boolean);forward;
 
 procedure DonePlugins;
   var
-    I: Integer;
+    I: integer;
   begin
   for I := 1 to EventCatchersCount do
     with EventCatchers^[I] do
       FreeModule(LibHandle);
   FreeMem(EventCatchers, EventCatchersCount*SizeOf(TEventCatcherInfo));
 
-  for I := arcLast downto ArcFirst do
+  for I := arcLast DownTo ArcFirst do
     if ArchiveViewers[I] <> nil then
       if I = ArchiveViewers[I]^.FirstTag then
         Dispose(ArchiveViewers[I]);
@@ -336,8 +336,8 @@ procedure InitPlugins;
     Plugins2;
   var
     F: file;
-    I, J, K: Integer;
-    ArchiveViewersCount: Integer;
+    I, J, K: integer;
+    ArchiveViewersCount: integer;
     FullPath: String;
 
     {&Delphi+}
@@ -358,7 +358,7 @@ procedure InitPlugins;
     ;
   begin { InitPlugins }
   if Initialized then
-    Exit;
+    exit;
   Initialized := True;
 
   DNFunctions.DN2Version := VersionWord;
@@ -455,14 +455,14 @@ procedure InitPlugins;
         Writeln(s_Cannot_load_module, PluginPath);
         Dispose(ArchiveViewers[J]);
         ArchiveViewers[J] := nil;
-        Continue;
+        continue;
         end;
       end;
     for K := 1 to ArchiveViewers[J]^.FormatsCount do
       begin
       Inc(J);
       if J > arcLast then
-        Break;
+        break;
       ArchiveViewers[J] := ArchiveViewers[J-1];
       end;
     end;
@@ -490,7 +490,7 @@ Plugins2:
       begin
       Inc(DrivePanelsInfoCount);
       if DrivePanelsInfoCount > MaxDrivePanelsInfo then
-        Break;
+        break;
       New(DrivePanelsInfo[DrivePanelsInfoCount]);
       with DrivePanelsInfo[DrivePanelsInfoCount]^ do
         begin
@@ -505,7 +505,7 @@ Plugins2:
           begin
           DoneDrivePanels(False);
           Writeln(s_Error_reading_file_PLUGINS2_CFG);
-          Break;
+          break;
           end;
         end;
       end;
@@ -513,9 +513,9 @@ Plugins2:
     end;
   end { InitPlugins };
 
-procedure CatchersHandleCommand(Command: Word);
+procedure CatchersHandleCommand(Command: word);
   var
-    I: Integer;
+    I: integer;
     Finalization: Pointer;
   begin
   if EventCatchers <> nil then
@@ -542,20 +542,20 @@ procedure CatchersHandleCommand(Command: Word);
               begin
               MessageBox(GetString(dlCantLoad)+PluginPath, nil,
                  mfError+mfOKButton);
-              Exit;
+              exit;
               end;
             Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath,
                @DNFunctions, @DNMethods, Finalization);
             if Finalization <> nil then
               AddExitProc(Finalization);
             end;
-          Exit;
+          exit;
           end;
   end { CatchersHandleCommand };
 
-procedure CatchersRegisterObject(ObjType: Word);
+procedure CatchersRegisterObject(ObjType: word);
   var
-    I: Integer;
+    I: integer;
     Finalization: Pointer;
   begin
   if  (ObjType >= otPlugins) and (ObjType <= otPluginsEnd) then
@@ -582,14 +582,14 @@ procedure CatchersRegisterObject(ObjType: Word);
                 begin
                 MessageBox(GetString(dlCantLoad)+PluginPath, nil,
                    mfError+mfOKButton);
-                Exit;
+                exit;
                 end;
               Entry($FFFF, FirstObjType, PluginPath, @DNFunctions,
                  @DNMethods, Finalization);
               if Finalization <> nil then
                 AddExitProc(Finalization);
               end;
-            Exit;
+            exit;
             end;
   end { CatchersRegisterObject };
 
@@ -597,11 +597,11 @@ procedure CatchersRegisterObject(ObjType: Word);
 
 procedure DoneDrivePanels(NeedWriteConfig: Boolean);
   var
-    I: Integer;
+    I: integer;
 
   procedure WriteConfig;
     var
-      I, J, K: Integer;
+      I, J, K: integer;
       F: file;
 
     procedure WriteStr(S: String);
@@ -629,9 +629,9 @@ procedure DoneDrivePanels(NeedWriteConfig: Boolean);
           WriteStr(PluginPath^);
           WriteStr(StrPas(Strings1^[J]));
           WriteStr(StrPas(Strings2^[J]));
-          BlockWrite(F, Keys^[J], SizeOf(Integer));
+          BlockWrite(F, Keys^[J], SizeOf(integer));
           K := ObjType+J;
-          BlockWrite(F, K, SizeOf(Integer));
+          BlockWrite(F, K, SizeOf(integer));
           end;
     Close(F);
     if IOResult <> 0 then
@@ -669,10 +669,10 @@ procedure DoneDrivePanels(NeedWriteConfig: Boolean);
   end { DoneDrivePanels };
 
 {&Delphi+}
-function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
-  : Integer;
+function CreateDriveMenus(var Items: PMenuItem; var MaxL: integer)
+  : integer;
   var
-    I, J: Integer;
+    I, J: integer;
     S1, S2: String;
 
   procedure LoadLibs;
@@ -709,7 +709,7 @@ function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
 
     function Ok: Boolean;
       var
-        I: Integer;
+        I: integer;
       begin
       if  (SR.SR.Attr and (Directory or Hidden)) = 0 then
         begin
@@ -720,13 +720,13 @@ function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
           if DrivePanelsInfo[I]^.PluginPath^ = S then
             begin
             Result := False;
-            Exit;
+            exit;
             end;
         for I := 1 to DrivePanelsInfo2Count do
           if DrivePanelsInfo2[I]^.PluginPath^ = S then
             begin
             Result := False;
-            Exit;
+            exit;
             end;
         end
       else
@@ -748,7 +748,7 @@ function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
   Result := 0;
   LoadLibs;
 
-  for I := DrivePanelsInfoCount downto 1 do
+  for I := DrivePanelsInfoCount DownTo 1 do
     with DrivePanelsInfo[I]^ do
       begin
       Items := NewItem(CnvString(MenuString1), CnvString(MenuString2),
@@ -757,11 +757,11 @@ function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
       Inc(Result);
       end;
 
-  for I := DrivePanelsInfo2Count downto 1 do
+  for I := DrivePanelsInfo2Count DownTo 1 do
     with DrivePanelsInfo2[I]^, MenuStrings^ do
       if MenuStrings <> nil then
         begin
-        for J := Count-1 downto 0 do
+        for J := Count-1 DownTo 0 do
           begin
           S1 := StrPas(Strings1^[J]);
           S2 := StrPas(Strings2^[J]);
@@ -773,16 +773,16 @@ function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
         end;
   end { CreateDriveMenus };
 
-function CreateDriveObject(I: Integer; AOwner: Pointer; Num: Integer)
+function CreateDriveObject(I: integer; AOwner: Pointer; Num: integer)
   : Pointer;
   type
     PDrivePanelsInfoShort = ^TDrivePanelsInfoShort;
     TDrivePanelsInfoShort = record
       PluginPath: PString;
-      LibHandle: Integer;
+      LibHandle: integer;
       CreateDriveObject: TCreateDriveObjectProc;
       RegisterDriveObject: TRegisterDriveObjectProc;
-      ObjType: Word;
+      ObjType: word;
       end;
   var
     P: PDrivePanelsInfoShort;
@@ -819,9 +819,9 @@ function CreateDriveObject(I: Integer; AOwner: Pointer; Num: Integer)
       end;
   end { CreateDriveObject };
 
-procedure DrivePanelsRegisterObject(AObjType: Word);
+procedure DrivePanelsRegisterObject(AObjType: word);
   var
-    I: Integer;
+    I: integer;
     GetMenuStrings: TGetMenuStringsProc;
   begin
   for I := 1 to DrivePanelsInfoCount do
@@ -853,7 +853,7 @@ const
 var
   EditorEventHookArray: array[1..MaxEditorEventHookCount] of Pointer
   {TEditorEventHook};
-  EditorEventHookCount: Integer;
+  EditorEventHookCount: integer;
 
 function SetEditorEventHook(EditorEventHook: TEditorEventHook): Boolean;
   begin
@@ -869,7 +869,7 @@ function SetEditorEventHook(EditorEventHook: TEditorEventHook): Boolean;
 
 procedure RemoveEditorEventHook(EditorEventHook: TEditorEventHook);
   var
-    I: Integer;
+    I: integer;
   begin
   for I := 1 to EditorEventHookCount do
     if EditorEventHookArray[I] = @EditorEventHook then
@@ -877,20 +877,20 @@ procedure RemoveEditorEventHook(EditorEventHook: TEditorEventHook);
       for I := I+1 to EditorEventHookCount do
         EditorEventHookArray[I-1] := EditorEventHookArray[I];
       Dec(EditorEventHookCount);
-      Exit;
+      exit;
       end;
   end;
 
 function ProcessEditorEventHook(var Event: TEvent; Editor: Pointer)
   : Boolean;
   var
-    I: Integer;
+    I: integer;
   begin
   for I := 1 to EditorEventHookCount do
     if TEditorEventHook(EditorEventHookArray[I])(Event, Editor) then
       begin
       Result := True;
-      Exit;
+      exit;
       end;
   Result := False;
   end;
@@ -901,21 +901,21 @@ function ProcessEditorEventHook(var Event: TEvent; Editor: Pointer)
 {&Delphi+}
 function DetectCreateArchiveObject: PARJArchive;
   var
-    J: Integer;
+    J: integer;
   begin
   for J := ArcFirst to arcLast do
     if ArchiveViewers[J] <> nil then
       begin
       Result := ArchiveViewers[J]^.DetectCreateArchiveObject;
       if Result <> nil then
-        Exit;
+        exit;
       end;
   Result := nil;
   end;
 
 function GetArchiveTagBySign(Sign: TStr4): Byte;
   var
-    J: Integer;
+    J: integer;
   begin
   for J := ArcFirst to arcLast do
     if ArchiveViewers[J] <> nil then
@@ -923,7 +923,7 @@ function GetArchiveTagBySign(Sign: TStr4): Byte;
         if ArchiveSign(J-FirstTag) = Sign then
           begin
           Result := J;
-          Exit;
+          exit;
           end;
   Result := arcUNK;
   end;
@@ -938,7 +938,7 @@ function GetArchiveByTag(ID: Byte): PARJArchive;
   end;
 {&Delphi-}
 
-procedure PluginRegisterObject(ObjType: Word);
+procedure PluginRegisterObject(ObjType: word);
   begin
   CatchersRegisterObject(ObjType);
   DrivePanelsRegisterObject(ObjType);

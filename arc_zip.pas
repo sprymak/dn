@@ -49,7 +49,7 @@ unit arc_Zip; {ZIP}
 
 interface
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -237,12 +237,12 @@ procedure TZIPArchive.GetFile;
     if  (ArcFile^.Status <> stOK) or (HCF.Id and $FFFF <> $4B50) then
       begin
       FileInfo.Last := 2;
-      Exit;
+      exit;
       end;
     if  (HCF.Id = $06054B50) or (HCF.Id = $06064B50) then
       begin
       FileInfo.Last := 1;
-      Exit;
+      exit;
       end;
     ArcFile^.Read(HCF.VersionMade, SizeOf(HCF)-SizeOf(HCF.Id));
     if HCF.FNameLength > 255 then
@@ -263,7 +263,7 @@ procedure TZIPArchive.GetFile;
     if P.Id = $02014b50 then
       begin
       FileInfo.Last := 1;
-      Exit;
+      exit;
       end;
     if P.Id = $08074B50 then
       {skip Spanned/Split block}
@@ -275,7 +275,7 @@ procedure TZIPArchive.GetFile;
     if  (ArcFile^.Status <> stOK) or (P.Id <> $04034B50) then
       begin
       FileInfo.Last := 2;
-      Exit;
+      exit;
       end;
     if P.FNameLength > 255 then
       P.FNameLength := 255;
@@ -299,7 +299,7 @@ procedure TZIPArchive.GetFile;
         if FP < 0 then
           begin
           FileInfo.Last := 2;
-          Exit;
+          exit;
           end;
         end;
       ArcFile^.Seek(FP-8);

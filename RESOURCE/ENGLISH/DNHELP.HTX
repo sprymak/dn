@@ -2794,10 +2794,6 @@ These are global options for all drives
                      of current dialog). If this option switched off,
                      files will be copied subsequently one-by-one.
 
- {[X] Handle "CD" Command:_} - DN will treat the "cd path" and "D:"
-                           commands directly without command
-                           processor running.
-
 
  {Video Mode 1:_} Â User-defined videomodes, which can be
  {Video Mode 2:_} Ù switched by <Alt-F10> and <Ctrl-F10>.

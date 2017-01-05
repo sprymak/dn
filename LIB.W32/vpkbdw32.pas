@@ -190,7 +190,7 @@ begin
       if (CharCode = 8) and (ScanCode = 0) then
         begin // Special treatment for BackSpace
           Result := $E08;
-          Exit;
+          exit;
         end;
       if (CharCode = 9) and (ShiftState and Shift_Pressed <> 0) then
         begin

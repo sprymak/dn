@@ -91,12 +91,12 @@ var
   Dos32OpenChangeNotify: function (PathBuf: PCNPath;
     LogSize: ULong;
     var hdir: lHandle;
-    ulReserved: ULong): ApiRet cdecl;
+    ulReserved: ULong): apiret cdecl;
   Dos32ResetChangeNotify: function (LogBuf: PCNInfo;
     BufferSize: ULong;
     var LogCount: ULong;
-    hdir: lHandle): ApiRet cdecl;
-  Dos32CloseChangeNotify: function (hdir: lHandle): ApiRet cdecl;
+    hdir: lHandle): apiret cdecl;
+  Dos32CloseChangeNotify: function (hdir: lHandle): apiret cdecl;
 
 var
   NotifyHandle: lHandle;
@@ -129,7 +129,7 @@ procedure DebugLog(const S: String);
   end;
 {$ENDIF}
 
-function NotifyThreadFunction(P: ULong): ApiRet;
+function NotifyThreadFunction(P: ULong): apiret;
   cdecl;
   var
     LogCount: LongInt;

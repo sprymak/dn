@@ -45,12 +45,12 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit Advance7;
+unit advance7;
 
 interface
 
 uses
-  Advance3, Advance, Advance2, DnIni
+  advance3, advance, advance2, DnIni
   ;
 
 function ValidLngId(LI: String; CheckForHelp: Boolean): Boolean;
@@ -75,11 +75,11 @@ function ValidLngId(LI: String; CheckForHelp: Boolean): Boolean;
   if  (not CheckForHelp) and (not ExistFile(S1+LI+'.DLG')) and
       (not ExistFile(S2+LI+'.DLG'))
   then
-    Exit;
+    exit;
   if  (not CheckForHelp) and (not ExistFile(S1+LI+'.LNG')) and
       (not ExistFile(S2+LI+'.LNG'))
   then
-    Exit;
+    exit;
   if CheckForHelp then
     begin
     S1 := SourceDir;
@@ -87,7 +87,7 @@ function ValidLngId(LI: String; CheckForHelp: Boolean): Boolean;
       S1 := S1+'\';
     if  (not ExistFile(S1+LI+'.HLP')) and (not ExistFile(S2+LI+'.HLP'))
     then
-      Exit
+      exit
     end;
   ValidLngId := True;
   end { ValidLngId };

@@ -24,13 +24,13 @@ type
     {procedure HandleEvent(var Event: TEvent); virtual;}
     function GetPartCode: LongInt;
     {procedure Draw; virtual;}
-    function GetSize: Integer;
-    procedure DrawPos(Pos: Integer);
+    function GetSize: integer;
+    procedure DrawPos(Pos: integer);
     end;
 
   PFileViewer = ^TFileViewer;
   TFileViewer = object(TView)
-    OldSizeX: Integer;
+    OldSizeX: integer;
     Filtr: Boolean;
     NoEdit: Boolean;
     FileName: String;
@@ -47,7 +47,7 @@ type
     Lines: array[0..200] of
     record
       Pos: LongInt;
-      len: Word;
+      len: word;
       end;
     FilePos, FileSize, NumLines: LongInt;
     ExposedPos, ExposedLine: LongInt;
@@ -85,8 +85,8 @@ type
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
     function WriteModify: Boolean;
-    procedure CountDown(ANumber: Integer); virtual;
-    procedure CountUp(ANumber: Integer); virtual;
+    procedure CountDown(ANumber: integer); virtual;
+    procedure CountUp(ANumber: integer); virtual;
     procedure Seek(APos: LongInt);
     procedure MakeLines; virtual;
     procedure SaveToFile(FN: String);
@@ -111,12 +111,12 @@ function TViewScroll.GetPartCode: LongInt;
   Result := _TViewScroll^.GetPartCode(@Self);
   end;
 
-function TViewScroll.GetSize: Integer;
+function TViewScroll.GetSize: integer;
   begin
   Result := _TViewScroll^.GetSize(@Self);
   end;
 
-procedure TViewScroll.DrawPos(Pos: Integer);
+procedure TViewScroll.DrawPos(Pos: integer);
   begin
   _TViewScroll^.DrawPos(Pos, @Self);
   end;
@@ -165,12 +165,12 @@ function TFileViewer.WriteModify: Boolean;
   Result := _TFileViewer^.WriteModify(@Self);
   end;
 
-procedure TFileViewer.CountDown(ANumber: Integer);
+procedure TFileViewer.CountDown(ANumber: integer);
   assembler; {&Frame-}
 asm
 end;
 
-procedure TFileViewer.CountUp(ANumber: Integer);
+procedure TFileViewer.CountUp(ANumber: integer);
   assembler; {&Frame-}
 asm
 end;

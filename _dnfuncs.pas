@@ -18,8 +18,8 @@ uses
 
 procedure InitDNFunctions(Functions, Methods: Pointer);
 procedure TransportVMT(DNObjVMT, OldVMT, NewVMT: Pointer;
-     VMTSize: Integer);
-function DuplicateVMT(VMT: Pointer; VMTSize: Integer): Pointer;
+     VMTSize: integer);
+function DuplicateVMT(VMT: Pointer; VMTSize: integer): Pointer;
 procedure SetVmt(Obj, VMT: Pointer);
 
 type
@@ -51,7 +51,7 @@ type
   PSomeObjects3 = ^TSomeObjects3;
   TSomeObjects3 = packed record
     EventCatchers: PEventCatcherArray;
-    EventCatchersCount: Integer;
+    EventCatchersCount: integer;
     ArchiveViewers: TArchiveViewerArray;
     end;
 
@@ -114,16 +114,16 @@ type
   {&AlignRec-}
 
   TDNFunctions = packed record
-    DN2Version: Integer;
-    APIVersion: Integer;
-    Reserved1: Integer;
+    DN2Version: integer;
+    APIVersion: integer;
+    Reserved1: integer;
     SystemVars: PSystemVars;
 
     SomeObjects1: PSomeObjects1;
     SomeObjects2: PSomeObjects2;
     SomeObjects3: PSomeObjects3;
-    Reserved2: Integer;
-    Reserved3: Integer;
+    Reserved2: integer;
+    Reserved3: integer;
     SpecialFunctions: PSpecialFunctions;
     TryExcept: function (Proc: TProcedure): Pointer;
     SimpleHooks: PSimpleHooks;
@@ -139,9 +139,9 @@ type
     Evalue: function (const S: String; CCV: Pointer): Extended;
     EvalueError: ^Boolean;
 
-    DosError: function : Integer;
+    DosError: function : integer;
 
-    lFindFirst: procedure (const Path: String; Attr: Word;
+    lFindFirst: procedure (const Path: String; Attr: word;
        var R: lSearchRec);
     lFindNext: procedure (var R: lSearchRec);
     lFindClose: procedure (var R: lSearchRec);
@@ -150,7 +150,7 @@ type
     CreateFileRec: function (Name: String): PFileRec;
     NewFileRec: function (const {$IFNDEF OS2}Lfn, {$ENDIF}Name: String;
        Size: TSize; Date, CreationDate, LastAccDate: LongInt;
-       Attr: Word; AOwner: PString): PFileRec;
+       Attr: word; AOwner: PString): PFileRec;
     DelFileRec: procedure (var fr: PFileRec);
     LoadFileRec: function (var S: TStream): PFileRec;
     StoreFileRec: procedure (var S: TStream; fr: PFileRec);
@@ -177,19 +177,19 @@ type
 
     FormatStr: procedure (var Result: String; const Format: String;
        var Params);
-    MoveColor: procedure (var Buf; Num: Word; Attr: Byte);
-    MoveBuf: procedure (var Dest; var Source; Attr: Byte; Count: Word);
-    MoveChar: procedure (var Dest; C: Char; Attr: Byte; Count: Word);
-    MoveCStr: procedure (var Dest; const Str: String; Attrs: Word);
+    MoveColor: procedure (var Buf; Num: word; Attr: Byte);
+    MoveBuf: procedure (var Dest; var Source; Attr: Byte; Count: word);
+    MoveChar: procedure (var Dest; C: Char; Attr: Byte; Count: word);
+    MoveCStr: procedure (var Dest; const Str: String; Attrs: word);
     MoveStr: procedure (var Dest; const Str: String; Attr: Byte);
-    CStrLen: function (const S: String): Integer;
+    CStrLen: function (const S: String): integer;
 
-    ExecView: function (P: Pointer): Integer;
-    Reserved4: Integer;
+    ExecView: function (P: Pointer): integer;
+    Reserved4: integer;
 
-    GetString: function (Index: Integer): String;
-    ExecResource: function (Key: Integer; var Data): Word;
-    LoadResource: function (Key: Integer): PObject;
+    GetString: function (Index: integer): String;
+    ExecResource: function (Key: integer; var Data): word;
+    LoadResource: function (Key: integer): PObject;
 
     OpenRez: function (const PluginName: String): LongInt;
     OpenRezX: function (const PluginName: String): LongInt;
@@ -199,24 +199,24 @@ type
 
     NewSItem: function (const Str: String; ANext: PSItem): PSItem;
 
-    NewItem: function (Name, Param: TMenuStr; KeyCode: Word;
-       Command: Word; AHelpCtx: Word; Next: PMenuItem): PMenuItem;
+    NewItem: function (Name, Param: TMenuStr; KeyCode: word;
+       Command: word; AHelpCtx: word; Next: PMenuItem): PMenuItem;
     NewLine: function (Next: PMenuItem): PMenuItem;
-    NewSubMenu: function (Name: TMenuStr; AHelpCtx: Word;
+    NewSubMenu: function (Name: TMenuStr; AHelpCtx: word;
        SubMenu: PMenu; Next: PMenuItem): PMenuItem;
     NewMenu: function (Items: PMenuItem): PMenu;
     DisposeMenu: procedure (Menu: PMenu);
-    ExecAndDisposeMenu: function (Menu: PMenu): Integer;
+    ExecAndDisposeMenu: function (Menu: PMenu): integer;
     StoreMenuDefaults: procedure (Menu: PMenu; var S: TStream);
     LoadMenuDefaults: procedure (Menu: PMenu; var S: TStream);
-    LookUpMenu: function (Menu: PMenu; idCheckItem: Word; Flags: Word)
+    LookUpMenu: function (Menu: PMenu; idCheckItem: word; Flags: word)
     : PMenuItem;
-    MenuIndexOf: function (Menu: PMenu; idCheckItem: PMenuItem): Word;
+    MenuIndexOf: function (Menu: PMenu; idCheckItem: PMenuItem): word;
 
-    NewStatusDef: function (AMin, AMax: Word; AItems: PStatusItem;
+    NewStatusDef: function (AMin, AMax: word; AItems: PStatusItem;
        ANext: PStatusDef): PStatusDef;
-    NewStatusKey: function (const AText: String; AKeyCode: Word;
-       ACommand: Word; ANext: PStatusItem): PStatusItem;
+    NewStatusKey: function (const AText: String; AKeyCode: word;
+       ACommand: word; ANext: PStatusItem): PStatusItem;
 
     LngId: function : String;
     HelpLngId: function : String;
@@ -224,9 +224,9 @@ type
     RegisterType: procedure (var S: TStreamRec);
     ReRegisterType: procedure (var S: TStreamRec);
 
-    Message: function (Receiver: PView; What, Command: Word;
+    Message: function (Receiver: PView; What, Command: word;
        InfoPtr: Pointer): Pointer;
-    MessageL: function (Receiver: PView; What, Command: Word;
+    MessageL: function (Receiver: PView; What, Command: word;
        InfoLng: LongInt): Pointer;
 
     RegisterToPrior: procedure (P: PView);
@@ -236,51 +236,51 @@ type
 
     GetWinNumber: function : AInt;
 
-    MessageBox: function (Msg: String; Params: Pointer; AOptions: Word)
-    : Word;
+    MessageBox: function (Msg: String; Params: Pointer; AOptions: word)
+    : word;
     MessageBox2: function (Msg1, Msg2: String;
-       Params1, Params2: Pointer; AOptions: Word): Word;
+       Params1, Params2: Pointer; AOptions: word): word;
     MessageBoxRect: function (var R: TRect; Msg: String;
-       Params: Pointer; AOptions: Word): Word;
+       Params: Pointer; AOptions: word): word;
     MessageBox2Rect: function (var R: TRect; Msg1, Msg2: String;
-       Lines1: Word; Params1, Params2: Pointer; AOptions: Word): Word;
+       Lines1: word; Params1, Params2: Pointer; AOptions: word): word;
     InputBox: function (Title: String; ALabel: String; var S: String;
-       Limit: Word; HistoryId: Word): Word;
+       Limit: word; HistoryId: word): word;
     BigInputBox: function (Title: String; ALabel: String; var S: String;
-       Limit: Word; HistoryId: Word): Word;
+       Limit: word; HistoryId: word): word;
     InputBoxRect: function (var Bounds: TRect; Title: String;
-       ALabel: String; var S: String; Limit: Word; HistoryId: Word): Word;
+       ALabel: String; var S: String; Limit: word; HistoryId: word): word;
 
     GetFileNameDialog: function (Mask, Title, Name: String;
-       Buttons, HistoryId: Word): String;
+       Buttons, HistoryId: word): String;
     GetFileNameMenu: function (Path, Mask, Default: String;
        PutNumbers: Boolean; var More, None: Boolean): String;
 
-    Reserved5: Integer;
-    Reserved6: Integer;
+    Reserved5: integer;
+    Reserved6: integer;
 
     UpdateWriteView: procedure (P: Pointer);
-    GlobalMessage: function (What, Command: Word; InfoPtr: Pointer)
+    GlobalMessage: function (What, Command: word; InfoPtr: Pointer)
     : Pointer;
-    GlobalMessageL: function (What, Command: Word; InfoLng: LongInt)
+    GlobalMessageL: function (What, Command: word; InfoLng: LongInt)
     : Pointer;
-    GlobalEvent: procedure (What, Command: Word; InfoPtr: Pointer);
-    ViewPresent: function (Command: Word; InfoPtr: Pointer): PView;
+    GlobalEvent: procedure (What, Command: word; InfoPtr: Pointer);
+    ViewPresent: function (Command: word; InfoPtr: Pointer): PView;
     WriteMsg: function (Text: String): PView;
     ForceWriteShow: procedure (P: Pointer);
     ToggleCommandLine: procedure (OnOff: Boolean);
     AdjustToDesktopSize: procedure (var R: TRect; OldDeskSize: TPoint);
 
-    Reserved7: Integer;
-    Reserved8: Integer;
+    Reserved7: integer;
+    Reserved8: integer;
 
     HistoryAdd: procedure (Id: Byte; const Str: String);
-    HistoryCount: function (Id: Byte): Word;
-    HistoryStr: function (Id: Byte; Index: Integer): String;
-    DeleteHistoryStr: procedure (Id: Byte; Index: Integer);
+    HistoryCount: function (Id: Byte): word;
+    HistoryStr: function (Id: Byte; Index: integer): String;
+    DeleteHistoryStr: procedure (Id: Byte; Index: integer);
 
-    Reserved9: Integer;
-    Reserved10: Integer;
+    Reserved9: integer;
+    Reserved10: integer;
 
     GetMouseEvent: procedure (var Event: TEvent);
     GetKeyEvent: procedure (var Event: TEvent);
@@ -288,7 +288,7 @@ type
     DispWhileViewEvents: procedure (InfoView: PWhileView;
        var CancelParam: Boolean);
 
-    Reserved11: Integer;
+    Reserved11: integer;
 
     SetTitle: procedure (Text: String);
 
@@ -306,7 +306,7 @@ type
     ElapsedTime: function (ET: TEventTimer): LongInt;
     ElapsedTimeInSecs: function (ET: TEventTimer): LongInt;
 
-    GetPossibleDizOwner: function (n: Integer): String;
+    GetPossibleDizOwner: function (n: integer): String;
     GetDizOwner: function (const Path, LastOwner: String; Add: Boolean)
     : String;
     CalcDizPath: function (P: PDiz; Owen: PString): String;
@@ -317,8 +317,8 @@ type
        const Name: String): String;
     SetDescription: procedure (PF: PFileRec; DizOwner: String);
 
-    Reserved12: Integer;
-    Reserved13: Integer;
+    Reserved12: integer;
+    Reserved13: integer;
 
     SelectFiles: function (AFP: Pointer; Select, XORs: Boolean): Boolean;
     InvertSelection: procedure (AFP: Pointer; dr: Boolean);
@@ -331,7 +331,7 @@ type
     CM_CompareDirs: procedure (AFP, IP: Pointer);
     CM_CopyFiles: procedure (AFP: Pointer; MoveMode, Single: Boolean);
     CM_CopyTemp: procedure (AFP: Pointer);
-    CM_DragDropper: procedure (AFP: Pointer; CurPos: Integer; EV: Pointer);
+    CM_DragDropper: procedure (AFP: Pointer; CurPos: integer; EV: Pointer);
     CM_Dropped: procedure (AFP, EI: Pointer);
     CM_EraseFiles: procedure (AFP: Pointer; Single: Boolean);
     CM_LongCopy: procedure (AFP: Pointer);
@@ -341,29 +341,29 @@ type
     CM_RenameSingleDialog: procedure (AFP, PEV: Pointer);
     CM_SelectColumn: procedure (AFP: Pointer);
     CM_SetAttributes: procedure (AFP: Pointer; Single: Boolean;
-       CurPos: Integer);
+       CurPos: integer);
     CM_SetShowParms: procedure (AFP: Pointer);
     CM_SortBy: procedure (AFP: Pointer);
     CM_ToggleLongNames: procedure (AFP: Pointer);
     CM_ToggleShowMode: procedure (AFP: Pointer);
     CM_ToggleDescriptions: procedure (AFP: Pointer);
 
-    Reserved14: Integer;
-    Reserved15: Integer;
+    Reserved14: integer;
+    Reserved15: integer;
 
     ExecString: procedure (S: PString; WS: String);
     SearchExt: function (FileRec: PFileRec; var HS: String): Boolean;
     ExecExtFile: function (const ExtFName: String;
-       UserParams: PUserParams; SIdx: Integer): Boolean;
+       UserParams: PUserParams; SIdx: integer): Boolean;
     ExecFile: procedure (const FileName: String);
     AnsiExec: procedure (const Path: String; const ComLine: AnsiString);
 
-    Reserved16: Integer;
-    Reserved17: Integer;
+    Reserved16: integer;
+    Reserved17: integer;
 
-    SelectDrive: function (X, Y: Integer; Default: Char;
+    SelectDrive: function (X, Y: integer; Default: Char;
        IncludeTemp: Boolean): String;
-    GetFileType: function (const S: String; Attr: Byte): Integer;
+    GetFileType: function (const S: String; Attr: Byte): integer;
     DosReread: procedure (Files: PFilesCollection);
 
     FnMatch: function (Pattern, Str: String): Boolean;
@@ -403,16 +403,16 @@ type
     CompileString: function (const AExpression: String; Obj: Pointer)
     : Boolean;
     CompileStr: function (AExpression: PChar; Obj: Pointer): Boolean;
-    Compile: function (AExpression: PChar; ALength: Integer; Obj: Pointer)
+    Compile: function (AExpression: PChar; ALength: integer; Obj: Pointer)
     : Boolean;
-    Execute: function (AString: PChar; ALength: Integer; Obj: Pointer)
+    Execute: function (AString: PChar; ALength: integer; Obj: Pointer)
     : Boolean;
     SubstituteString: function (ASrc: PChar; const AReplace: String;
        var ADest: String; Obj: Pointer): Boolean;
     SubstituteStr: function (ASrc, AReplace: PChar; ADest: PChar;
-       var ALength: Integer; Obj: Pointer): Boolean;
-    Substitute: function (ASrc, AReplace: PChar; ARLen: Integer;
-       ADest: PChar; var ADLen: Integer; Obj: Pointer): Boolean;
+       var ALength: integer; Obj: Pointer): Boolean;
+    Substitute: function (ASrc, AReplace: PChar; ARLen: integer;
+       ADest: PChar; var ADLen: integer; Obj: Pointer): Boolean;
     end;
 
   PTStream = ^TTStream;
@@ -436,22 +436,22 @@ type
   PTDosStream = ^TTDosStream;
   TTDosStream = packed record
     VMT: PDosStreamVMT;
-    Init: function (FileName: String; Mode: Word; VMT, Obj: Pointer)
+    Init: function (FileName: String; Mode: word; VMT, Obj: Pointer)
     : Pointer;
-    Open: procedure (FileName: String; Mode: Word; Obj: Pointer);
+    Open: procedure (FileName: String; Mode: word; Obj: Pointer);
     end;
 
   PTBufStream = ^TTBufStream;
   TTBufStream = packed record
     VMT: PBufStreamVMT;
-    Init: function (FileName: String; Mode: Word; Size: LongInt;
+    Init: function (FileName: String; Mode: word; Size: LongInt;
        VMT, Obj: Pointer): Pointer;
     end;
 
   PTMemoryStream = ^TTMemoryStream;
   TTMemoryStream = packed record
     VMT: PMemoryStreamVMT;
-    Init: function (ALimit: LongInt; ABlockSize: Word; VMT, Obj: Pointer)
+    Init: function (ALimit: LongInt; ABlockSize: word; VMT, Obj: Pointer)
     : Pointer;
     end;
 
@@ -519,7 +519,7 @@ type
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     BlockCursor: procedure (Obj: Pointer);
     ClearEvent: procedure (var Event: TEvent; Obj: Pointer);
-    CommandEnabled: function (Command: Word; Obj: Pointer): Boolean;
+    CommandEnabled: function (Command: word; Obj: Pointer): Boolean;
     DisableCommands: procedure (Commands: TCommandSet; Obj: Pointer);
     DragView: procedure (Event: TEvent; Mode: Byte; var Limits: TRect;
        MinSize, MaxSize: TPoint; Obj: Pointer);
@@ -530,11 +530,11 @@ type
     Focus: function (Obj: Pointer): Boolean;
     GetBounds: procedure (var Bounds: TRect; Obj: Pointer);
     GetClipRect: procedure (var Clip: TRect; Obj: Pointer);
-    GetColor: function (Color: Word; Obj: Pointer): Word;
+    GetColor: function (Color: word; Obj: Pointer): word;
     GetCommands: procedure (var Commands: TCommandSet; Obj: Pointer);
     GetExtent: procedure (var extent: TRect; Obj: Pointer);
     GetPeerViewPtr: procedure (var S: TStream; var P; Obj: Pointer);
-    GetState: function (AState: Word; Obj: Pointer): Boolean;
+    GetState: function (AState: word; Obj: Pointer): Boolean;
     GrowTo: procedure (X, Y: LongInt; Obj: Pointer);
     Hide: procedure (Obj: Pointer);
     HideCursor: procedure (Obj: Pointer);
@@ -543,7 +543,7 @@ type
     MakeFirst: procedure (Obj: Pointer);
     MakeGlobal: procedure (Source: TPoint; var Dest: TPoint; Obj: Pointer);
     MakeLocal: procedure (Source: TPoint; var Dest: TPoint; Obj: Pointer);
-    MouseEvent: function (var Event: TEvent; Mask: Word; Obj: Pointer)
+    MouseEvent: function (var Event: TEvent; Mask: word; Obj: Pointer)
     : Boolean;
     MouseInView: function (Mouse: TPoint; Obj: Pointer): Boolean;
     MoveTo: procedure (X, Y: LongInt; Obj: Pointer);
@@ -561,13 +561,13 @@ type
     ShowCursor: procedure (Obj: Pointer);
     Store: procedure (var S: TStream; Obj: Pointer);
     TopView: function (Obj: Pointer): PView;
-    WriteBuf: procedure (X, Y, W, H: Integer; var Buf; Obj: Pointer);
-    WriteChar: procedure (X, Y: Integer; C: Char; Color: Byte;
-       Count: Integer; Obj: Pointer);
-    WriteLine: procedure (X, Y, W, H: Integer; var Buf; Obj: Pointer);
-    WriteStr: procedure (X, Y: Integer; Str: String; Color: Byte;
+    WriteBuf: procedure (X, Y, W, H: integer; var Buf; Obj: Pointer);
+    WriteChar: procedure (X, Y: integer; C: Char; Color: Byte;
+       Count: integer; Obj: Pointer);
+    WriteLine: procedure (X, Y, W, H: integer; var Buf; Obj: Pointer);
+    WriteStr: procedure (X, Y: integer; Str: String; Color: Byte;
        Obj: Pointer);
-    MenuEnabled: function (Command: Word; Obj: Pointer): Boolean;
+    MenuEnabled: function (Command: word; Obj: Pointer): Boolean;
     DrawCursor: procedure (Obj: Pointer);
     DrawHide: procedure (LastView: PView; Obj: Pointer);
     DrawShow: procedure (LastView: PView; Obj: Pointer);
@@ -601,10 +601,9 @@ type
     Init: function (var Bounds: TRect; VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     Delete: procedure (P: PView; Obj: Pointer);
-    ExecView: function (P: PView; Obj: Pointer): Word;
+    ExecView: function (P: PView; Obj: Pointer): word;
     First: function (Obj: Pointer): PView;
     FirstThat: function (P: Pointer; Obj: Pointer): PView;
-    LastThat: function (P: Pointer; Obj: Pointer): PView;
     FocusNext: function (Forwards: Boolean; Obj: Pointer): Boolean;
     ForEach: procedure (P: Pointer; Obj: Pointer);
     GetSubViewPtr: procedure (var S: TStream; var P; Obj: Pointer);
@@ -625,9 +624,9 @@ type
   TTWindow = packed record
     VMT: PWindowVMT;
     Init: function (var Bounds: TRect; const ATitle: String;
-       ANumber: Integer; VMT, Obj: Pointer): Pointer;
+       ANumber: integer; VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
-    StandardScrollBar: function (AOptions: Word; Obj: Pointer): PScrollBar;
+    StandardScrollBar: function (AOptions: word; Obj: Pointer): PScrollBar;
     Store: procedure (var S: TStream; Obj: Pointer);
     end;
 
@@ -637,7 +636,7 @@ type
     Init: function (var Bounds: TRect; VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     FindItem: function (Ch: Char; Obj: Pointer): PMenuItem;
-    HotKey: function (KeyCode: Word; Obj: Pointer): PMenuItem;
+    HotKey: function (KeyCode: word; Obj: Pointer): PMenuItem;
     Store: procedure (var S: TStream; Obj: Pointer);
     end;
 
@@ -688,14 +687,14 @@ type
     SelectAll: procedure (Enable: Boolean; Obj: Pointer);
     SetValidator: procedure (AValid: Pointer {PValidator}; Obj: Pointer);
     Store: procedure (var S: TStream; Obj: Pointer);
-    CanScroll: function (Delta: Integer; Obj: Pointer): Boolean;
+    CanScroll: function (Delta: integer; Obj: Pointer): Boolean;
     end;
 
   PTButton = ^TTButton;
   TTButton = packed record
     VMT: PButtonVMT;
     Init: function (var Bounds: TRect; const ATitle: String;
-       ACommand: Word; AFlags: Word; VMT, Obj: Pointer): Pointer;
+       ACommand: word; AFlags: word; VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     DrawState: procedure (Down: Boolean; Obj: Pointer);
     MakeDefault: procedure (Enable: Boolean; Obj: Pointer);
@@ -708,7 +707,7 @@ type
     Init: function (var Bounds: TRect; AStrings: PSItem;
        VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
-    ButtonState: function (Item: Integer; Obj: Pointer): Boolean;
+    ButtonState: function (Item: integer; Obj: Pointer): Boolean;
     DrawBox: procedure (const Icon: String; Marker: Char; Obj: Pointer);
     DrawMultiBox: procedure (const Icon, Marker: String; Obj: Pointer);
     SetButtonState: procedure (AMask: LongInt; Enable: Boolean;
@@ -730,7 +729,7 @@ type
   TTMultiCheckBoxes = packed record
     VMT: PMultiCheckBoxesVMT;
     Init: function (var Bounds: TRect; AStrings: PSItem;
-       ASelRange: Byte; AFlags: Word; const AStates: String;
+       ASelRange: Byte; AFlags: word; const AStates: String;
        VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     Store: procedure (var S: TStream; Obj: Pointer);
@@ -760,7 +759,7 @@ type
   PTListBox = ^TTListBox;
   TTListBox = packed record
     VMT: PListBoxVMT;
-    Init: function (var Bounds: TRect; ANumCols: Word;
+    Init: function (var Bounds: TRect; ANumCols: word;
        AScrollBar: PScrollBar; VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     Store: procedure (var S: TStream; Obj: Pointer);
@@ -799,7 +798,7 @@ type
     Init: function (var Bounds: TRect;
        AHScrollBar, AVScrollBar: PScrollBar; AHistoryId: AWord;
        VMT, Obj: Pointer): Pointer;
-    HistoryWidth: function (Obj: Pointer): Integer;
+    HistoryWidth: function (Obj: Pointer): integer;
     end;
 
   PTHistoryWindow = ^TTHistoryWindow;
@@ -844,10 +843,10 @@ type
     Init: function (VMT, Obj: Pointer): Pointer;
     CanMoveFocus: function (Obj: Pointer): Boolean;
     ExecuteDialog: function (P: PDialog; Data: Pointer; Obj: Pointer)
-    : Word;
+    : word;
     InsertWindow: function (P: PWindow; Obj: Pointer): PWindow;
     ActivateView: procedure (P: PView; Obj: Pointer);
-    SetScreenMode: procedure (Mode: Word; Obj: Pointer);
+    SetScreenMode: procedure (Mode: word; Obj: Pointer);
     ValidView: function (P: PView; Obj: Pointer): PView;
     end;
 
@@ -879,7 +878,7 @@ type
   PTUniWindow = ^TTUniWindow;
   TTUniWindow = packed record
     VMT: PUniWindowVMT;
-    MakeScrollBar: function (AOptions: Word; Obj: Pointer): PScrollBar;
+    MakeScrollBar: function (AOptions: word; Obj: Pointer): PScrollBar;
     end;
 
   PTXFileEditor = ^TTXFileEditor;
@@ -896,7 +895,7 @@ type
     GetSelection: function (Obj: Pointer): PCollection;
     ValidBlock: function (Obj: Pointer): Boolean;
     CalcMenu: procedure (Obj: Pointer);
-    Search: function (StartX, StartY: Word; Obj: Pointer): Boolean;
+    Search: function (StartX, StartY: word; Obj: Pointer): Boolean;
     InsertBlock: procedure (ABlock: PCollection; SaveUndo: Boolean;
        Obj: Pointer);
     ModifyLine: procedure (Index: LongInt; S: LongString;
@@ -905,7 +904,7 @@ type
     ScrollTo: procedure (DeltaX, DeltaY: LongInt; Obj: Pointer);
     LimitX: function (Obj: Pointer): LongInt;
     LimitY: function (Obj: Pointer): LongInt;
-    StoreUndoInfo: procedure (What: Word; Where: TPoint; var Info;
+    StoreUndoInfo: procedure (What: word; Where: TPoint; var Info;
        Obj: Pointer);
     KeyMapConvertStr: function (S: LongString; toAscii: Boolean;
        Obj: Pointer): LongString;
@@ -928,8 +927,8 @@ type
     Init: function (var Bounds: TRect; AMaxValue: LongInt;
        VMT, Obj: Pointer): Pointer;
     AddProgress: procedure (Progress: LongInt; Obj: Pointer);
-    SolveForX: function (Y, Z: LongInt; Obj: Pointer): Integer;
-    SolveForY: function (X, Z: LongInt; Obj: Pointer): Integer;
+    SolveForX: function (Y, Z: LongInt; Obj: Pointer): integer;
+    SolveForY: function (X, Z: LongInt; Obj: Pointer): integer;
     end;
 
   PTBarGauge = ^TTBarGauge;
@@ -941,7 +940,7 @@ type
   TTWhileView = packed record
     VMT: PWhileViewVMT;
     Init: function (Bounds: TRect; VMT, Obj: Pointer): Pointer;
-    Write: procedure (n: Integer; S: String; Obj: Pointer);
+    Write: procedure (n: integer; S: String; Obj: Pointer);
     ClearInterior: procedure (Obj: Pointer);
     end;
 
@@ -949,8 +948,8 @@ type
   TTViewScroll = packed record
     VMT: PViewScrollVMT;
     GetPartCode: function (Obj: Pointer): LongInt;
-    GetSize: function (Obj: Pointer): Integer;
-    DrawPos: procedure (Pos: Integer; Obj: Pointer);
+    GetSize: function (Obj: Pointer): integer;
+    DrawPos: procedure (Pos: integer; Obj: Pointer);
     end;
 
   PTFileViewer = ^TTFileViewer;
@@ -1032,9 +1031,9 @@ var
   DNMethods: packed record
     end;
   {begin of DNMethods}
-  RecordSize: Integer;
-  Reserved1: Integer;
-  Reserved2: Integer;
+  RecordSize: integer;
+  Reserved1: integer;
+  Reserved2: integer;
   _TEmptyObject: ^TTEmptyObject;
   _TObject: ^TTObject;
   _TRegExp: ^TTRegExp;
@@ -1107,11 +1106,11 @@ procedure InitDNFunctions(Functions, Methods: Pointer);
   end;
 
 procedure TransportVMT(DNObjVMT, OldVMT, NewVMT: Pointer;
-     VMTSize: Integer);
+     VMTSize: integer);
   const
     FirstMethodInVMT = 3;
   var
-    I: Integer;
+    I: integer;
     Ptr1: PPointerArray absolute DNObjVMT;
     Ptr2: PPointerArray absolute OldVMT;
     Ptr3: PPointerArray absolute NewVMT;
@@ -1121,7 +1120,7 @@ procedure TransportVMT(DNObjVMT, OldVMT, NewVMT: Pointer;
       Ptr3^[I] := Ptr1^[I];
   end;
 
-function DuplicateVMT(VMT: Pointer; VMTSize: Integer): Pointer;
+function DuplicateVMT(VMT: Pointer; VMTSize: integer): Pointer;
   begin
   GetMem(Result, VMTSize*4);
   if Result <> nil then

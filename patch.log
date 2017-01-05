@@ -1,0 +1,144 @@
+ 
+I:\DN2-2DIF\02\ak40125a.dif 
+patching file `Drivers._vp'
+ 
+I:\DN2-2DIF\02\ak40125c.dif 
+patching file `FLTools.pas'
+Hunk #1 succeeded at 1651 (offset -14 lines).
+Hunk #2 succeeded at 1725 (offset -1 lines).
+ 
+I:\DN2-2DIF\02\ak40201c.dif 
+patching file `CopyIni.pas'
+patching file `DnIni.pas'
+Hunk #1 succeeded at 149 (offset -2 lines).
+Hunk #2 succeeded at 524 (offset -2 lines).
+patching file `EXE.W32/DN.INI'
+patching file `LIB.W32/VpKbdW32.pas'
+ 
+I:\DN2-2DIF\02\ak40203b.dif 
+patching file `FlPanel.pas'
+Hunk #1 succeeded at 618 with fuzz 2 (offset -5 lines).
+ 
+I:\DN2-2DIF\02\ak40204a.dif 
+patching file `Calculat.pas'
+Hunk #1 succeeded at 208 (offset -4 lines).
+Hunk #2 succeeded at 777 (offset -3 lines).
+patching file `RESOURCE/RUSSIAN/DNHelp.htx'
+patching file `RESOURCE/UKRAIN/DNHelp.htx'
+ 
+I:\DN2-2DIF\02\ak40205a.dif 
+patching file `CopyIni.pas'
+patching file `FViewer.pas'
+Hunk #1 succeeded at 1617 (offset -39 lines).
+Hunk #3 succeeded at 1719 (offset -43 lines).
+patching file `MicroEd2.pas'
+Hunk #1 succeeded at 669 (offset -10 lines).
+Hunk #3 succeeded at 717 (offset -10 lines).
+Hunk #5 succeeded at 763 (offset -10 lines).
+Hunk #7 succeeded at 835 (offset -10 lines).
+Hunk #8 succeeded at 866 with fuzz 1.
+Hunk #9 succeeded at 871 (offset -16 lines).
+patching file `U_KeyMap.pas'
+Hunk #4 succeeded at 219 (offset -2 lines).
+Hunk #5 succeeded at 268 (offset -1 lines).
+ 
+I:\DN2-2DIF\02\ak40205b.dif 
+patching file `FlPanelX.pas'
+Hunk #1 succeeded at 3023 (offset -53 lines).
+patching file `FLTools.pas'
+Hunk #1 succeeded at 1498 with fuzz 1 (offset -12 lines).
+ 
+I:\DN2-2DIF\02\ak40209a.dif 
+patching file `Microed.pas'
+Hunk #1 succeeded at 234 (offset -1 lines).
+Hunk #2 succeeded at 4546 (offset -41 lines).
+ 
+I:\DN2-2DIF\02\as40115a.dif 
+patching file `RESOURCE/ENGLISH/dnhelp.htx'
+patching file `RESOURCE/RUSSIAN/dnhelp.htx'
+ 
+I:\DN2-2DIF\02\as40119a.dif 
+patching file `RESOURCE/ENGLISH/dnhelp.htx'
+patching file `RESOURCE/RUSSIAN/dnhelp.htx'
+ 
+I:\DN2-2DIF\02\jo40206a.dif 
+patching file `CopyIni.pas'
+Hunk #1 succeeded at 13 with fuzz 2 (offset 3 lines).
+Hunk #2 succeeded at 52 (offset -10 lines).
+patching file `DnIni.pas'
+Hunk #1 succeeded at 165 (offset 1 line).
+Hunk #2 succeeded at 543 with fuzz 1 (offset 2 lines).
+patching file `FViewer.pas'
+Hunk #1 succeeded at 1719 (offset -21 lines).
+patching file `MicroEd2.pas'
+Hunk #1 succeeded at 695 (offset -10 lines).
+patching file `U_KeyMap.pas'
+Hunk #1 succeeded at 91 with fuzz 2 (offset 1 line).
+Hunk #2 succeeded at 259 (offset -2 lines).
+Hunk #3 succeeded at 275 (offset 1 line).
+patching file `Vars.pas'
+Hunk #1 succeeded at 138 (offset -4 lines).
+ 
+I:\DN2-2DIF\02\sb40121.dif 
+patching file `ArcView.pas'
+Hunk #1 succeeded at 1379 with fuzz 2 (offset 467 lines).
+ 
+I:\DN2-2DIF\02\sb40125b.dif 
+patching file `FlPanel.pas'
+Hunk #1 succeeded at 1251 (offset -22 lines).
+ 
+I:\DN2-2DIF\02\sb40205c.dif 
+patching file `ArcView.pas'
+Hunk #1 succeeded at 1550 (offset -16 lines).
+ 
+I:\DN2-2DIF\02\sb40205d.dif 
+patching file `DblWnd.pas'
+Hunk #1 succeeded at 1117 (offset -20 lines).
+ 
+I:\DN2-2DIF\03\ak40213a.dif 
+patching file `commands.pas'
+Hunk #1 succeeded at 810 (offset 1 line).
+patching file `copyini.pas'
+patching file `dn1.pas'
+Hunk #1 succeeded at 730 with fuzz 2 (offset -10 lines).
+patching file `dnini.pas'
+Hunk #1 succeeded at 142 (offset -2 lines).
+Hunk #2 succeeded at 511 (offset -1 lines).
+patching file `dnutil.pas'
+Hunk #1 succeeded at 2106 with fuzz 2 (offset -16 lines).
+patching file `DOC/ENGLISH/dnini.txt'
+patching file `DOC/RUSSIAN/dnini.txt'
+patching file `EXE.OS2/dn.ini'
+patching file `EXE.W32/dn.ini'
+patching file `RESOURCE/ENGLISH/dn.dnr'
+patching file `RESOURCE/ENGLISH/dnhelp.htx'
+patching file `RESOURCE/RUSSIAN/dn.dnr'
+patching file `RESOURCE/RUSSIAN/dnhelp.htx'
+patching file `RESOURCE/UKRAIN/dn.dnr'
+patching file `RESOURCE/UKRAIN/dnhelp.htx'
+patching file `setups.pas'
+Hunk #1 succeeded at 202 (offset 1 line).
+patching file `vars.pas'
+Hunk #1 succeeded at 126 (offset -5 lines).
+ 
+I:\DN2-2DIF\03\ak40402a.dif 
+patching file `LIB.W32/vpkbdw32.pas'
+Hunk #2 succeeded at 179 (offset 2 lines).
+ 
+I:\DN2-2DIF\03\ak40402b.dif 
+patching file `dnutil.pas'
+patching file `RESOURCE/ENGLISH/dn.dnr'
+ 
+I:\DN2-2DIF\03\ak40402á.dif 
+patching file `cellscol.pas'
+ 
+I:\DN2-2DIF\03\jo40301a.dif 
+patching file `arcview.pas'
+Hunk #1 succeeded at 1283 with fuzz 1 (offset -20 lines).
+ 
+I:\DN2-2DIF\03\kv40212a.dif 
+patching file `LIB.W32/vpsysw32.pas'
+ 
+I:\DN2-2DIF\03\ver.dif 
+patching file `version.pas'
+

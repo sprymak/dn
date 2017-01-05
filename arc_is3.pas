@@ -50,7 +50,7 @@ unit arc_IS3; {IS3}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects
+  Archiver, advance, advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -172,7 +172,7 @@ procedure TIS3Archive.GetFile;
     P1: IS3FolderHdr;
     FP, FO: LongInt;
     C: Char;
-    I: Integer;
+    I: integer;
     S: String;
   begin
   if FoldersOffs < 0 then
@@ -192,13 +192,13 @@ procedure TIS3Archive.GetFile;
   if  (FilesNumber = 0) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P, SizeOf(P));
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   FO := FoldersOffs;
   FileInfo.FName := '';

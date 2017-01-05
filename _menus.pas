@@ -30,7 +30,7 @@ type
     {function GetHelpCtx: Word; virtual;}
     {function GetPalette: PPalette; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function HotKey(KeyCode: Word): PMenuItem;
+    function HotKey(KeyCode: word): PMenuItem;
     function NewSubView(var Bounds: TRect; AMenu: PMenu;
          AParentMenu: PMenuView): PMenuView; virtual;
     procedure Store(var S: TStream);
@@ -69,7 +69,7 @@ type
     {procedure Draw; virtual;}
     {function GetPalette: PPalette; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function Hint(AHelpCtx: Word): String; virtual;
+    function Hint(AHelpCtx: word): String; virtual;
     procedure Store(var S: TStream);
     {procedure Update; virtual;}
     end;
@@ -100,7 +100,7 @@ procedure TMenuView.GetItemRect(Item: PMenuItem; var R: TRect);
 asm
 end;
 
-function TMenuView.HotKey(KeyCode: Word): PMenuItem;
+function TMenuView.HotKey(KeyCode: word): PMenuItem;
   begin
   Result := _TMenuView^.HotKey(KeyCode, @Self);
   end;
@@ -143,7 +143,7 @@ constructor TStatusLine.Load(var S: TStream);
   _TStatusLine^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
-function TStatusLine.Hint(AHelpCtx: Word): String;
+function TStatusLine.Hint(AHelpCtx: word): String;
   assembler; {&Frame-}
 asm
 end;

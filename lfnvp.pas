@@ -130,7 +130,7 @@ const
    '"', '[', ']']; { Characters invalid for DOS names }
 
   { File searching routines. lFindClose must be called /in all cases/ }
-procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
+procedure lFindFirst(const Path: String; Attr: word; var R: lSearchRec);
 procedure lFindNext(var R: lSearchRec);
 procedure lFindClose(var R: lSearchRec);
 
@@ -149,16 +149,16 @@ function lfGetLongFileName(const Name: String): String;
 procedure lTrueName(const Name: String; var S: String);
 
 {AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь}
-function GetShareEnd(const S: String): Integer;
+function GetShareEnd(const S: String): integer;
 
 { Basic file operation routines. To use IO functions from standard units,
               specify lFile.F or lText.T }
 
 procedure lAssignFile(var F: lFile; const Name: String);
 procedure lAssignText(var T: lText; const Name: String);
-procedure lResetFile(var F: lFile; RecSize: Word);
-procedure lResetFileReadOnly(var F: lFile; RecSize: Word);
-procedure lReWriteFile(var F: lFile; RecSize: Word);
+procedure lResetFile(var F: lFile; RecSize: word);
+procedure lResetFileReadOnly(var F: lFile; RecSize: word);
+procedure lReWriteFile(var F: lFile; RecSize: word);
 procedure lResetText(var F: lText);
   inline;
   begin
@@ -188,10 +188,10 @@ function lFileNameOf(var lF: lFile): String;
 function lTextNameOf(var lT: lText): String;
 
 { File attributes manipulation }
-procedure lGetFAttr(var F: lFile; var Attr: Word);
-procedure lSetFAttr(var F: lFile; Attr: Word);
-procedure lGetTAttr(var T: lText; var Attr: Word);
-procedure lSetTAttr(var T: lText; Attr: Word);
+procedure lGetFAttr(var F: lFile; var Attr: word);
+procedure lSetFAttr(var F: lFile; Attr: word);
+procedure lGetTAttr(var T: lText; var Attr: word);
+procedure lSetTAttr(var T: lText; Attr: word);
 
 { Directory manipulation }
 procedure lMkDir(const Path: String);
@@ -245,7 +245,7 @@ uses
 function StrPas_(S: array of Char): String;
   var
     ss: String;
-    i: Word;
+    i: word;
   begin
   ss := '';
   for i := Low(S) to High(S) do
@@ -253,7 +253,7 @@ function StrPas_(S: array of Char): String;
     then
       ss := ss+S[i]
     else
-      Break;
+      break;
   StrPas_ := ss;
   end;
 
@@ -313,7 +313,7 @@ function CharToOemStr(CharS: String): String;
  130h 14 BYTEs   ASCIZ short filename (for backward compatibility)
 *)
 
-function SetDosError(ErrCode: Integer): Integer;
+function SetDosError(ErrCode: integer): integer;
   begin
   DosError := ErrCode;
   SetDosError := ErrCode;
@@ -323,31 +323,31 @@ function SetDosError(ErrCode: Integer): Integer;
 {$IFNDEF OS2}
 function NotShortName(const S: String): Boolean;
   var
-    i, l: Integer;
-    iPoint: Integer;
+    i, l: integer;
+    iPoint: integer;
   begin
   NotShortName := True;
   if S[1] = '.' then
-    Exit;
+    exit;
   l := Length(S);
   if l > 12 then
-    Exit;
+    exit;
   iPoint := 0;
   for i := 1 to l do
     begin
     if S[i] = '.' then
       begin
       if  (iPoint <> 0) or (i > 9) then
-        Exit;
+        exit;
       iPoint := i;
       end
     else if S[i] in IllegalCharSet then
-      Exit; {DataCompBoy}
+      exit; {DataCompBoy}
     end;
   if  (iPoint = 0) and (l > 8) then
-    Exit;
+    exit;
   if  (iPoint <> 0) and (l-iPoint > 3) then
-    Exit;
+    exit;
   NotShortName := False;
   end { NotShortName };
 {$ENDIF}
@@ -373,7 +373,7 @@ procedure CorrectSearchRec(var R: lSearchRec);
   R.FullSize := R.SR.Size;
   end;
 
-procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
+procedure lFindFirst(const Path: String; Attr: word; var R: lSearchRec);
   var
     PathBuf: array[0..SizeOf(PathStr)-1] of Char;
   begin
@@ -422,7 +422,7 @@ function lfGetShortFileName(const Name: String): String;
   if  (Name = '.') or (Name = '..') then
     begin
     lfGetShortFileName := Name;
-    Exit;
+    exit;
     end;
   NameToNameZ(Name, NZ2);
   if SysPlatformId = 1 then
@@ -462,13 +462,13 @@ procedure lTrueName(const Name: String; var S: String);
 
 {AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь
 }
-function GetShareEnd(const S: String): Integer;
+function GetShareEnd(const S: String): integer;
   var
     SlashFound: Boolean;
   begin
   Result := 0;
   if Copy(S, 1, 2) <> '\\' then
-    Exit;
+    exit;
   { ищем '\' после '\\', и далее до конца или до второго '\' }
   Result := 3;
   SlashFound := False;
@@ -477,7 +477,7 @@ function GetShareEnd(const S: String): Integer;
     if S[Result+1] = '\' then
       begin
       if SlashFound then
-        Exit; // Успех. Сейчас Copy(S, 1, i) - это '\\server\share'
+        exit; // Успех. Сейчас Copy(S, 1, i) - это '\\server\share'
       SlashFound := True;
       end;
     Inc(Result);
@@ -493,7 +493,7 @@ function GetShareEnd(const S: String): Integer;
 {AK155 22-11-2003 Доработано с учётом UNC-путей }
 procedure lFSplit(const Path: String; var Dir, Name, ext: String);
   var
-    DriveEnd: Integer;
+    DriveEnd: integer;
     DotPos, SlashPos, B: Byte;
     D: String;
     N: String;
@@ -510,19 +510,19 @@ procedure lFSplit(const Path: String; var Dir, Name, ext: String);
   else
     DriveEnd := GetShareEnd(Path);
 
-  for B := Length(Path) downto DriveEnd+1 do
+  for B := Length(Path) DownTo DriveEnd+1 do
     begin
     if  (Path[B] = '.') and (DotPos = 0) then
       begin
       DotPos := B; {JO: имена могут состоять только из расширения}
       if SlashPos <> 0 then
-        Break;
+        break;
       end;
     if  (Path[B] = '\') and (SlashPos = 0) then
       begin
       SlashPos := B;
       if DotPos <> 0 then
-        Break;
+        break;
       end;
     end;
 
@@ -556,7 +556,7 @@ function lTextNameOf(var lT: lText): String;
   lTextNameOf := StrPas_(TextRec(lT.T).Name);
   end;
 
-procedure lResetFileReadOnly(var F: lFile; RecSize: Word);
+procedure lResetFileReadOnly(var F: lFile; RecSize: word);
   var
     SaveMode: Byte;
   begin
@@ -566,7 +566,7 @@ procedure lResetFileReadOnly(var F: lFile; RecSize: Word);
   FileMode := SaveMode;
   end;
 
-procedure lReWriteFile(var F: lFile; RecSize: Word);
+procedure lReWriteFile(var F: lFile; RecSize: word);
   var
     OldMode: Byte;
   begin
@@ -607,7 +607,7 @@ procedure lAssignText(var T: lText; const Name: String);
   begin
   Assign(T.T, Name);
   end;
-procedure lResetFile(var F: lFile; RecSize: Word);
+procedure lResetFile(var F: lFile; RecSize: word);
   begin
   Reset(F.F, RecSize);
   end;
@@ -626,19 +626,19 @@ procedure lChangeFileName(const Name, NewName: String);
   Assign(F, Name);
   Rename(F, NewName);
   end;
-procedure lGetFAttr(var F: lFile; var Attr: Word);
+procedure lGetFAttr(var F: lFile; var Attr: word);
   begin
   Dos.GetFAttr(F.F, Attr);
   end;
-procedure lSetFAttr(var F: lFile; Attr: Word);
+procedure lSetFAttr(var F: lFile; Attr: word);
   begin
   Dos.SetFAttr(F.F, Attr);
   end;
-procedure lGetTAttr(var T: lText; var Attr: Word);
+procedure lGetTAttr(var T: lText; var Attr: word);
   begin
   Dos.GetFAttr(T.T, Attr);
   end;
-procedure lSetTAttr(var T: lText; Attr: Word);
+procedure lSetTAttr(var T: lText; Attr: word);
   begin
   Dos.SetFAttr(T.T, Attr);
   end;
@@ -653,7 +653,7 @@ procedure lMkDir(const Path: String);
 procedure lRmDir(const Path: String);
   var
     f: file;
-    Attr: Word;
+    Attr: word;
   begin
   Assign(f, Path);
   Dos.GetFAttr(f, Attr);
@@ -662,7 +662,7 @@ procedure lRmDir(const Path: String);
   if DosError <> 0 then
     begin
     InOutRes := DosError;
-    Exit;
+    exit;
     end;
   RmDir(Path);
   end;
@@ -709,7 +709,7 @@ procedure lGetDir(D: Byte; var Path: String);
     begin
     GetDir(0, Path);
     if Path[1] = '\' then
-      Exit;
+      exit;
     D := Byte(UpCase(Path[1]))-Byte('A')+1;
     end;
   if CurrentPaths[D] = '' then

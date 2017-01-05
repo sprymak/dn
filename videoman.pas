@@ -53,7 +53,7 @@ var
   ScreenMirror: array[0..16383] of Byte;
 procedure DetectVideo;
 
-procedure SetScrMode(Mode: Word);
+procedure SetScrMode(Mode: word);
 procedure SetBlink(Mode: Boolean);
 
 { ******** SCREEN MANAGER ******** }
@@ -151,14 +151,14 @@ const
 
 const
 
-  smSVGALo: Word = $109;
-  smSVGAHi: Word = $10C;
+  smSVGALo: word = $109;
+  smSVGAHi: word = $10C;
 
   { Screen manager routines }
 
 procedure InitVideo;
 procedure DoneVideo;
-function SetVideoMode(Mode: Word): Boolean;
+function SetVideoMode(Mode: word): Boolean;
 procedure ClearScreen;
 
 procedure ResetVGApalette(Update: Boolean); { reset palette to default}
@@ -181,14 +181,14 @@ const
 
 implementation
 uses
-  {$IFDEF WIN32}Windows, {$ENDIF}Dos, VpSysLow, Drivers, Objects, DNApp,
+  {$IFDEF WIN32}Windows, {$ENDIF}Dos, VpSysLow, Drivers, Defines, DNApp,
    DnIni, Startup,
   Commands, VPUtils {$IFDEF OS2}, Os2Base {$ENDIF}, Messages
   ;
 
 var
-  StrtCurY1: Integer;
-  StrtCurY2: Integer;
+  StrtCurY1: integer;
+  StrtCurY2: integer;
   StrtCurVisible: Boolean;
 
   { ******** SCREEN MANAGER ******** }
@@ -231,7 +231,7 @@ procedure DetectVideoType; {JO}
 
 // Fixes the CRT mode if required
 
-function FixCrtMode(Mode: Word): Word;
+function FixCrtMode(Mode: word): word;
   begin
   case Lo(Mode) of
     smMono, smCO80, smBW80:
@@ -251,7 +251,7 @@ function FixCrtMode(Mode: Word): Word;
 procedure SetCrtData;
   var
     BufSize: SmallWord;
-    Y1, Y2: Integer;
+    Y1, Y2: integer;
     Visible: Boolean;
     SrcSize: TSysPoint;
   begin
@@ -307,15 +307,15 @@ procedure DetectVideo;
 // VGA. SetVideoMode initializes the same variables as InitVideo (except for
 // the StartupMode variable, which isn't affected).
 
-function SetVideoMode(Mode: Word): Boolean;
+function SetVideoMode(Mode: word): Boolean;
   var
-    Cols, Rows: Word;
-    CursorSize: Word;
+    Cols, Rows: word;
+    CursorSize: word;
   begin
   Result := False;
   {$IFDEF OS2}
   if VideoType < vtEGA then
-    Exit;
+    exit;
   {$ENDIF}
   Cols := 80;
   Rows := 0;
@@ -576,7 +576,7 @@ procedure GetPalette(var Buf);
     I: Byte;
   begin
   if not (VGASystem and not PMWindowed) then
-    Exit;
+    exit;
   PAL := vga_default;
   SetGetVGAPal(curpal, True);
   for I := 0 to 15 do
@@ -595,7 +595,7 @@ procedure SetPalette(var Buf);
     I: Byte;
   begin
   if not (VGASystem and not PMWindowed) then
-    Exit;
+    exit;
   SetGetVGAPal(curpal, True);
   for I := 0 to 15 do
     with curpal[SL[I]] do
@@ -649,7 +649,7 @@ procedure SetBlink(Mode: Boolean);
 
 {Procedure GetCrtMode;                                begin end;}
 
-procedure SetScrMode(Mode: Word);
+procedure SetScrMode(Mode: word);
   var
     R, R1, A: TRect;
   label Ex;
@@ -669,7 +669,7 @@ procedure SetScrMode(Mode: Word);
       Redraw;
       MessageBox(GetString(dlNotValidForCurSession), nil,
          mfError+mfOKButton);
-      Exit;
+      exit;
       end;
     GetExtent(R);
     A.A.X := Round(A.A.X*R.B.X/R1.B.X);

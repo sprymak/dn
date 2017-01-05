@@ -69,7 +69,7 @@ type
 implementation
 
 uses
-  Objects, Advance2, Advance, DNApp, DnExec, Commands, Advance1, Messages,
+  Objects2, advance2, advance, DNApp, DnExec, Commands, advance1, Messages,
   Dos
   ;
 
@@ -215,7 +215,7 @@ procedure TUC2Archive.GetFile;
       begin
       FileInfo.Last := 1;
       MessageBox(GetString(dlArcMsg6), nil, mfOKButton or mfError);
-      Exit;
+      exit;
       end;
     EraseFile(FuckName);
     System.Assign(ListFile, ListFileName);
@@ -245,7 +245,7 @@ NextRecord:
     EraseFile(ListFileName);
     TextRec(ListFile).Handle := 0;
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   if s1 = '   DIR' then
     begin

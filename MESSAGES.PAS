@@ -52,7 +52,7 @@ unit Messages;
 interface
 
 uses
-  Objects, Commands, RStrings, Dos, Drivers
+  Defines, Commands, RStrings, Dos, Drivers
   ;
 
 const
@@ -90,7 +90,7 @@ const
   { are passed to FormatStr.  The resulting string is displayed   }
   { as a TStaticText view in the dialog.                          }
 
-function MessageBox(Msg: String; Params: Pointer; AOptions: Word): Word;
+function MessageBox(Msg: String; Params: Pointer; AOptions: word): word;
 
 (* function SysErrorMessageBox( Msg: String; {Params: Pointer;} AOptions: Word ): Word; *)
 
@@ -98,43 +98,43 @@ function MessageBox(Msg: String; Params: Pointer; AOptions: Word): Word;
 { message box to occupy.                                        }
 
 function MessageBox2(Msg1, Msg2: String; Params1, Params2: Pointer;
-     AOptions: Word): Word;
+     AOptions: word): word;
 
 function MessageBoxRect(var R: TRect; Msg: String; Params: Pointer;
-    AOptions: Word): Word;
+    AOptions: word): word;
 
 function MessageBox2Rect(var R: TRect;
     Msg1, Msg2: String;
-    Lines1: Word;
+    Lines1: word;
     Params1, Params2: Pointer;
-    AOptions: Word): Word;
+    AOptions: word): word;
 
 { InputBox displays a simple dialog that allows the user to     }
 { type in a string.                                             }
 
 function InputBox(Title: String; ALabel: String; var S: String;
-    Limit: Word; HistoryId: Word): Word;
+    Limit: word; HistoryId: word): word;
 
 function BigInputBox(Title: String; ALabel: String; var S: String;
-    Limit: Word; HistoryId: Word): Word;
+    Limit: word; HistoryId: word): word;
 
 { InputBoxRect is like InputBox but allows the specification of }
 { a rectangle.                                                  }
 
 function InputBoxRect(var Bounds: TRect; Title: String; ALabel: String;
-    var S: String; Limit: Word; HistoryId: Word): Word;
+    var S: String; Limit: word; HistoryId: word): word;
 
-function Msg(Index: TStrIdx; Params: Pointer; AOptions: Word): Word;
+function Msg(Index: TStrIdx; Params: Pointer; AOptions: word): word;
 
 function Msg2(Index1, Index2: TStrIdx;
     Params1, Params2: Pointer;
-    AOptions: Word): Word;
+    AOptions: word): word;
 
 procedure ErrMsg(Index: TStrIdx);
 
 procedure CantWrite(const FName: String);
 
-function FmtFile(const Fmt: String; const FName: String; len: Integer)
+function FmtFile(const Fmt: String; const FName: String; len: integer)
   : String;
 function FmtStr(const Fmt: String; const S: String): String;
 function FmtStrId(Id: TStrIdx; const S: String): String;
@@ -142,7 +142,7 @@ function FmtFileId(Id: TStrIdx; const FName: String): String;
 
 const
   MsgActive: Boolean = False;
-  MsgHelpCtx: Word = 0; {AK155}
+  MsgHelpCtx: word = 0; {AK155}
   {Это контекст хелпа, устанавливаемый заранее извне для
 использования вместо подразумеваемого контекста. 'Пустое'
 значение - нулевое. При выполнении MessageBoxRect (и,
@@ -152,8 +152,8 @@ const
 implementation
 
 uses
-  Views, Dialogs, DNApp, DNHelp, Advance, Advance1, Advance2,
-  Advance3, {Tree, }Drives, Startup
+  Views, Dialogs, DNApp, DNHelp, advance, advance1, advance2,
+  advance3, {Tree, }Drives, Startup
   ;
 
 procedure ErrMsg(Index: TStrIdx);
@@ -264,10 +264,10 @@ function MessageBox2;
 
 function MessageBoxRect;
   const
-    Cmds: array[0..7] of Word =
+    Cmds: array[0..7] of word =
       (cmYes, cmOK, cmNo, cmOK, cmOK, cmYes, cmOK, cmCancel);
   var
-    I, X, ButtonCount: Integer;
+    I, X, ButtonCount: integer;
     Dialog: PDialog;
     Control: PView;
     T: TRect;
@@ -280,7 +280,7 @@ function MessageBoxRect;
     var
       s: String;
     begin
-    s := GetString(TStrIdx(Integer(dlYesButton)+i));
+    s := GetString(TStrIdx(integer(dlYesButton)+i));
     R.Assign(0, 0, Max(10, CStrLen(s)+4), 2);
     Control := New(PButton, Init(R, s, Cmds[i], bfNormal));
     Inc(X, Control^.Size.X+2);
@@ -291,7 +291,7 @@ function MessageBoxRect;
 
   begin { MessageBoxRect }
   Dialog := New(PDialog,
-      Init(R, GetString(TStrIdx(Integer(dlMsgWarning)+AOptions and $7))));
+      Init(R, GetString(TStrIdx(integer(dlMsgWarning)+AOptions and $7))));
   if MsgHelpCtx <> 0 then
     begin
     Dialog^.HelpCtx := MsgHelpCtx;
@@ -350,10 +350,10 @@ function MessageBoxRect;
 
 function MessageBox2Rect;
   const
-    Cmds: array[0..7] of Word =
+    Cmds: array[0..7] of word =
       (cmYes, cmOK, cmNo, cmOK, cmOK, cmYes, cmOK, cmCancel);
   var
-    I, X, ButtonCount: Integer;
+    I, X, ButtonCount: integer;
     Dialog: PDialog;
     Control: PView;
     T: TRect;
@@ -363,7 +363,7 @@ function MessageBox2Rect;
     Event: TEvent;
   begin
   Dialog := New(PDialog,
-      Init(R, GetString(TStrIdx(Integer(dlMsgWarning)+AOptions and $7))));
+      Init(R, GetString(TStrIdx(integer(dlMsgWarning)+AOptions and $7))));
   if AOptions and $7 = mfAbout then
     Dialog^.HelpCtx := hcAboutDialog;
   with Dialog^ do
@@ -387,7 +387,7 @@ function MessageBox2Rect;
         begin
         R.Assign(0, 0, 10, 2);
         Control := New(PButton, Init(R,
-                     GetString(TStrIdx(Integer(dlYesButton)+I)),
+                     GetString(TStrIdx(integer(dlYesButton)+I)),
                Cmds[I], bfNormal));
         Inc(X, Control^.Size.X+2);
         ButtonList[ButtonCount] := Control;
@@ -418,12 +418,12 @@ function MessageBox2Rect;
 
 function SysErrorMessageBoxRect(var R: TRect; Msg: String;
     {Params: Pointer;}
-    AOptions: Word): Word;
+    AOptions: word): word;
   const
-    Cmds: array[0..2] of Word =
+    Cmds: array[0..2] of word =
       (cmYes, cmOK, cmNo {, cmOk, cmOK, cmYes, cmOK, cmCancel});
   var
-    I, X, ButtonCount: Integer;
+    I, X, ButtonCount: integer;
     Dialog: PDialog;
     Control: PView;
     T: TRect;
@@ -545,7 +545,7 @@ function InputBoxRect;
     Dialog: PDialog;
     Control: PView;
     R: TRect;
-    C: Word;
+    C: word;
   begin
   Dialog := New(PDialog, Init(Bounds, Title));
   with Dialog^ do

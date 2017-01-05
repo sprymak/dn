@@ -228,10 +228,10 @@ procedure DoneEvents;
 procedure GetMouseEvent(var Event: TEvent);
   var
     SysMouseEvent: TSysMouseEvent;
-    CurTicks: Word;
+    CurTicks: word;
     B: Byte;
 
-  procedure StoreEvent(MouWhat: Word);
+  procedure StoreEvent(MouWhat: word);
     begin
     LastButtons := MouseButtons;
     MouseWhere.X := SysMouseEvent.smePos.X;
@@ -332,7 +332,7 @@ procedure UpdateMouseWhere;
 
 procedure GetKeyEvent(var Event: TEvent);
   var
-    I: Integer;
+    I: integer;
     SysKeyEvent: TSysKeyEvent;
 
     {Cat}
@@ -380,7 +380,7 @@ procedure GetKeyEvent(var Event: TEvent);
         begin
         PrevKey := 0;
         SysKeyEvent.skeKeyCode := kbBackUp;
-              SysKeyEvent.skeShiftState := 0;
+        SysKeyEvent.skeShiftState := 0;
         goto WriteKey;
         end {/AK155}
       else
@@ -770,7 +770,7 @@ procedure PrintStr(const S: String);
 // high bytes of the words in Dest are set to Attr, or remain unchanged
 // if Attr is zero.
 
-procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: Word);
+procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: word);
   {&USES esi,edi} {&FRAME-}
 asm
                 mov     ecx,Count
@@ -794,7 +794,7 @@ asm
               @@4:
 end;
 
-procedure MoveColor(var Buf; Num: Word; Attr: Byte);
+procedure MoveColor(var Buf; Num: word; Attr: Byte);
   assembler; {$USES EBX, ECX}
 asm
    mov    EBX,Buf
@@ -814,7 +814,7 @@ end;
 // bytes of the words are set to Attr, or remain unchanged if Attr is
 // zero.
 
-procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: Word);
+procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: word);
   {&USES edi} {&FRAME-}
 asm
                 mov     ecx,Count
@@ -856,7 +856,7 @@ end;
 Это согласовано с advance.FormatLongName.MakeResult
 06.01.2001}
 
-procedure MoveCStr(var Dest; const Str: String; Attrs: Word);
+procedure MoveCStr(var Dest; const Str: String; Attrs: word);
   {&USES esi,edi} {&FRAME-}
 asm
                 xor     ecx,ecx
@@ -925,7 +925,7 @@ end;
 // are excluded from the length of the string, as they will not appear
 // on the screen.
 
-function CStrLen(const S: String): Integer; {&USES edi}
+function CStrLen(const S: String): integer; {&USES edi}
   {&FRAME-}
 asm
                 xor     ecx,ecx

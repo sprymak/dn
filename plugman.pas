@@ -54,13 +54,13 @@ const
 }
 
 var
-  KilledEventCatchersCount: Integer;
+  KilledEventCatchersCount: integer;
 
 type
   PStringArray = ^TStringArray;
   PWordArray = ^TWordArray;
   TStringArray = array[0..0] of ShortString;
-  TWordArray = array[0..0] of Word;
+  TWordArray = array[0..0] of word;
 
   PCommandUsed = ^TCommandUsed;
   {PLngIndexUsed=^TLngIndexUsed;}
@@ -76,19 +76,19 @@ type
   PPluginListItem = ^TPluginListItem;
   TPluginListItem = object(TObject)
     PluginType: LongInt;
-    FirstCatchedCommand: Word;
-    LastCatchedCommand: Word;
+    FirstCatchedCommand: word;
+    LastCatchedCommand: word;
     {FirstLngIndex: Word;}
     {LastLngIndex: Word;}
     {FirstDlgIndex: Word;}
     {LastDlgIndex: Word;}
     {FirstHlpIndex: Word;}
     {LastHlpIndex: Word;}
-    FirstObjType: Word;
-    LastObjType: Word;
+    FirstObjType: word;
+    LastObjType: word;
     PluginPath: String[8];
     Description: String[255];
-    Installed: Word;
+    Installed: word;
     RegFilePresent: Boolean;
     MenuStr1: PStringArray;
     MenuStr2: PStringArray;
@@ -97,15 +97,15 @@ type
     MenuType: PWordArray;
     MenuWantBeAfter: PWordArray;
     constructor Init(PT: LongInt; FCC, LCC,
-        {FLI, LLI, FDI, LDI, FHI, LHI,}FOT, LOT: Word; RFP: Boolean;
+        {FLI, LLI, FDI, LDI, FHI, LHI,}FOT, LOT: word; RFP: Boolean;
          PP: String);
     destructor Done; virtual;
     end;
 
   PPluginList = ^TPluginList;
   TPluginList = object(TListBox)
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
-    procedure FocusItem(Item: Integer); virtual;
+    function GetText(Item: integer; MaxLen: integer): String; virtual;
+    procedure FocusItem(Item: integer); virtual;
     end;
 
   PPluginManager = ^TPluginManager;
@@ -135,7 +135,7 @@ const
 function OverwriteConfigFile: Boolean;
   var
     Stream: PStream;
-    I, W: Integer;
+    I, W: integer;
   begin
   with DNFunctions^, SomeObjects2^, SomeObjects3^ do
     begin
@@ -183,10 +183,10 @@ function OverwriteConfigFile: Boolean;
 
 { дубликат этой функции находится в MenuEdit.pas, изменения согласовывать }
 function ChangeMenuResource(MenuChanger: TMenuChanger; Item: Pointer;
-     MenuView: PMenuView; dlgMenu: Integer; CurMenuType: Byte): Boolean;
+     MenuView: PMenuView; dlgMenu: integer; CurMenuType: Byte): Boolean;
   var
     P: Pointer;
-    I: Integer;
+    I: integer;
     NextResourceOffset: LongInt;
     MenuResourceOffset: LongInt;
     RestResourceSize: LongInt;
@@ -196,7 +196,7 @@ function ChangeMenuResource(MenuChanger: TMenuChanger; Item: Pointer;
   if  (PPluginListItem(Item)^.PluginType and type_EventCatcher) = 0 then
     begin
     Result := True;
-    Exit;
+    exit;
     end;
 
   { изменяем меню }
@@ -227,8 +227,8 @@ function ChangeMenuResource(MenuChanger: TMenuChanger; Item: Pointer;
       PStream(ResourceStream)^.DoOpen(Open_Access_ReadWrite or
          Open_Share_DenyWrite);
       if PStream(ResourceStream)^.Status = stOK then
-        Break;
-      MessageBox(GetString(Integer(dlPlugins5)), nil, mfError+mfOKButton);
+        break;
+      MessageBox(GetString(integer(dlPlugins5)), nil, mfError+mfOKButton);
     until False;
 
     if NextResourceOffset <> MaxLongInt then
@@ -244,7 +244,7 @@ function ChangeMenuResource(MenuChanger: TMenuChanger; Item: Pointer;
       if MaxAvail < RestResourceSize then
         begin
         Result := False;
-        Exit;
+        exit;
         end;
       GetMem(P, RestResourceSize);
       PStream(ResourceStream)^.Seek(NextResourceOffset);
@@ -253,7 +253,7 @@ function ChangeMenuResource(MenuChanger: TMenuChanger; Item: Pointer;
         begin
         FreeMem(P {, RestResourceSize});
         Result := False;
-        Exit;
+        exit;
         end;
       PStream(ResourceStream)^.Seek(0);
       PStream(ResourceStream)^.Write(Resource^.Count, 2);
@@ -281,13 +281,13 @@ procedure InstallMenu(Item: PPluginListItem; MenuView: PMenuView;
   var
     S: String;
     SubMenuPtr, MenuItemPtr: ^PMenuItem;
-    Command: Word;
-    Count: Word;
+    Command: word;
+    Count: word;
 
   procedure WalkMenu(var MenuItem: PMenuItem);
     var
       MenuItemPtr: ^PMenuItem;
-      Command: Word;
+      Command: word;
     begin
     with Item^ do
       begin
@@ -334,12 +334,12 @@ procedure InstallMenu(Item: PPluginListItem; MenuView: PMenuView;
 
   { если всё, что надо, уже добавлено, то тихо выходим }
   if Count = 0 then
-    Exit;
+    exit;
 
   { в противном случае... }
   with DNFunctions^, SomeObjects1^ do
     begin
-    S := GetString(Integer(dlPlugins4));
+    S := GetString(integer(dlPlugins4));
     SubMenuPtr := @PMenuBar(MenuView)^.Menu^.Items;
 
     { ищем подменю "плагины", если такого нету - создаём }
@@ -347,7 +347,7 @@ procedure InstallMenu(Item: PPluginListItem; MenuView: PMenuView;
       if  (SubMenuPtr^^.Name <> nil) and (SubMenuPtr^^.Name^ = S)
            and (SubMenuPtr^^.Command = 0)
       then
-        Break
+        break
       else
         SubMenuPtr := @SubMenuPtr^^.Next;
     if SubMenuPtr^ = nil then
@@ -438,7 +438,7 @@ function Install(Item: PPluginListItem): Boolean;
   var
     FullPath: String;
     P: PArchiveViewerInfo;
-    I, J, K: Integer;
+    I, J, K: integer;
     B: Boolean;
   begin
   with DNFunctions^, SomeObjects2^, SomeObjects3^ do
@@ -450,7 +450,7 @@ function Install(Item: PPluginListItem): Boolean;
       if not Item^.RegFilePresent or (EventCatchersCount >= 60000) then
         begin
         Result := False;
-        Exit;
+        exit;
         end;
 
       { добавляем плагин в список установленных }
@@ -501,22 +501,22 @@ function Install(Item: PPluginListItem): Boolean;
              0)
         then
           begin
-          MessageBox(GetString(Integer(dlCantLoad))+PluginPath, nil,
+          MessageBox(GetString(integer(dlCantLoad))+PluginPath, nil,
              mfError+mfOKButton);
           Dispose(P);
           Result := False;
-          Exit;
+          exit;
           end;
         {$ENDIF}
         {$IFDEF WIN32}
         LibHandle := LoadLibrary(@FullPath[1]);
         if LibHandle < HINSTANCE_ERROR then
           begin
-          MessageBox(GetString(Integer(dlCantLoad))+PluginPath, nil,
+          MessageBox(GetString(integer(dlCantLoad))+PluginPath, nil,
              mfError+mfOKButton);
           Dispose(P);
           Result := False;
-          Exit;
+          exit;
           end;
         @FormatsCount := GetProcAddress(LibHandle, 'FormatsCount');
         @ArchiveSign := GetProcAddress(LibHandle, 'ArchiveSign');
@@ -529,11 +529,11 @@ function Install(Item: PPluginListItem): Boolean;
              or not Assigned(DetectCreateArchiveObject)
         then
           begin
-          MessageBox(GetString(Integer(dlCantLoad))+PluginPath, nil,
+          MessageBox(GetString(integer(dlCantLoad))+PluginPath, nil,
              mfError+mfOKButton);
           Dispose(P);
           Result := False;
-          Exit;
+          exit;
           end;
         {$ENDIF}
         end;
@@ -548,10 +548,10 @@ function Install(Item: PPluginListItem): Boolean;
           begin
           B := B or (ArchiveViewers[J] <> nil);
           if B then
-            Break;
+            break;
           end;
         if not B then
-          Break;
+          break;
         end;
       if B then
         begin
@@ -563,7 +563,7 @@ function Install(Item: PPluginListItem): Boolean;
         {$ENDIF}
         Dispose(P);
         Result := False;
-        Exit;
+        exit;
         end;
       P^.FirstTag := I;
       for J := I to I+K-1 do
@@ -593,7 +593,7 @@ function Install(Item: PPluginListItem): Boolean;
 
 function UnInstall(Item: PPluginListItem): Boolean;
   var
-    I, J: Integer;
+    I, J: integer;
   begin
   with DNFunctions^, SomeObjects2^, SomeObjects3^ do
     begin
@@ -621,7 +621,7 @@ function UnInstall(Item: PPluginListItem): Boolean;
       then
         begin
         Result := False;
-        Exit;
+        exit;
         end;
 
       { выгружаем плагин }
@@ -652,10 +652,10 @@ function UnInstall(Item: PPluginListItem): Boolean;
   end { UnInstall };
 
 constructor TPluginListItem.Init(PT: LongInt; FCC, LCC,
-    {FLI, LLI, FDI, LDI, FHI, LHI,}FOT, LOT: Word; RFP: Boolean;
+    {FLI, LLI, FDI, LDI, FHI, LHI,}FOT, LOT: word; RFP: Boolean;
      PP: String);
   var
-    CommandCount: Word;
+    CommandCount: word;
   begin
   _TObject^.Init(nil, @Self);
   PluginType := PT;
@@ -677,21 +677,21 @@ constructor TPluginListItem.Init(PT: LongInt; FCC, LCC,
   CommandCount := LastCatchedCommand-FirstCatchedCommand+1;
   GetMem(MenuStr1, CommandCount*SizeOf(String));
   GetMem(MenuStr2, CommandCount*SizeOf(String));
-  GetMem(MenuKey, CommandCount*SizeOf(Word));
-  GetMem(MenuHelpCtx, CommandCount*SizeOf(Word));
-  GetMem(MenuType, CommandCount*SizeOf(Word));
-  GetMem(MenuWantBeAfter, CommandCount*SizeOf(Word));
+  GetMem(MenuKey, CommandCount*SizeOf(word));
+  GetMem(MenuHelpCtx, CommandCount*SizeOf(word));
+  GetMem(MenuType, CommandCount*SizeOf(word));
+  GetMem(MenuWantBeAfter, CommandCount*SizeOf(word));
   FillChar(MenuStr1^, CommandCount*SizeOf(String), #0);
   FillChar(MenuStr2^, CommandCount*SizeOf(String), #0);
-  FillChar(MenuKey^, CommandCount*SizeOf(Word), #0);
-  FillChar(MenuHelpCtx^, CommandCount*SizeOf(Word), #0);
-  FillChar(MenuType^, CommandCount*SizeOf(Word), #0);
-  FillChar(MenuWantBeAfter^, CommandCount*SizeOf(Word), #0);
+  FillChar(MenuKey^, CommandCount*SizeOf(word), #0);
+  FillChar(MenuHelpCtx^, CommandCount*SizeOf(word), #0);
+  FillChar(MenuType^, CommandCount*SizeOf(word), #0);
+  FillChar(MenuWantBeAfter^, CommandCount*SizeOf(word), #0);
   end { TPluginListItem.Init };
 
 destructor TPluginListItem.Done;
   var
-    CommandCount: Word;
+    CommandCount: word;
   begin
   CommandCount := LastCatchedCommand-FirstCatchedCommand+1;
   FreeMem(MenuStr1 {, CommandCount*SizeOf(String)});
@@ -703,7 +703,7 @@ destructor TPluginListItem.Done;
   _TObject^.VMT^.Done(0, @Self);
   end;
 
-function TPluginList.GetText(Item: Integer; MaxLen: Integer): String;
+function TPluginList.GetText(Item: integer; MaxLen: integer): String;
   begin
   with PPluginListItem(List^.At(Item))^ do
     begin
@@ -728,9 +728,9 @@ procedure TPluginList.FocusItem(Item: LongInt);
       begin
       DisposeStr(Title);
       if PPluginListItem(List^.At(Item))^.Installed = 0 then
-        Title := NewStr(GetString(Integer(dlPlugins8)))
+        Title := NewStr(GetString(integer(dlPlugins8)))
       else
-        Title := NewStr(GetString(Integer(dlPlugins9)));
+        Title := NewStr(GetString(integer(dlPlugins9)));
       DrawView;
       end;
   end;
@@ -739,18 +739,18 @@ function TPluginManager.MakeCollection: PCollection;
   label
     1, 2, 3, L1, L2, L3, L4, L5;
   var
-    I, J: Integer;
-    WW: array[1..16] of Word;
-    FirstCatchedCommand: Word;
-    LastCatchedCommand: Word;
+    I, J: integer;
+    WW: array[1..16] of word;
+    FirstCatchedCommand: word;
+    LastCatchedCommand: word;
     {FirstLngIndex: Word;}
     {LastLngIndex: Word;}
     {FirstDlgIndex: Word;}
     {LastDlgIndex: Word;}
     {FirstHlpIndex: Word;}
     {LastHlpIndex: Word;}
-    FirstObjType: Word;
-    LastObjType: Word;
+    FirstObjType: word;
+    LastObjType: word;
     Name: String[8];
     Description: String[255];
     Item: PPluginListItem;
@@ -826,7 +826,7 @@ function TPluginManager.MakeCollection: PCollection;
       if  (Stream^.Status <> stOK) or (WW[7] <> $777A {Magic})
            or (WW[8] <> $DEF2 {Magic})
       then
-        MessageBox(GetString(Integer(dlCantLoad))+SR.FullName, nil,
+        MessageBox(GetString(integer(dlCantLoad))+SR.FullName, nil,
            mfError+mfOKButton)
       else
         begin
@@ -845,7 +845,7 @@ function TPluginManager.MakeCollection: PCollection;
           begin
           for J := I to I+WW[1] do
             if CommandUsed^[J] then
-              Break;
+              break;
           if not CommandUsed^[J] then
             begin
             FirstCatchedCommand := I;
@@ -855,7 +855,7 @@ function TPluginManager.MakeCollection: PCollection;
             goto L1;
             end;
           end;
-        MessageBox(GetString(Integer(dlPlugins1)), nil,
+        MessageBox(GetString(integer(dlPlugins1)), nil,
            mfError+mfOKButton);
         Dispose(Stream, Done);
         goto 2;
@@ -963,7 +963,7 @@ L1:
             begin
             for J := I to I+WW[9] do
               if ObjTypeUsed^[J] then
-                Break;
+                break;
             if not ObjTypeUsed^[J] then
               begin
               FirstObjType := I;
@@ -973,7 +973,7 @@ L1:
               goto L5;
               end;
             end;
-          MessageBox(GetString(Integer(dlPlugins1)), nil,
+          MessageBox(GetString(integer(dlPlugins1)), nil,
              mfError+mfOKButton);
           Dispose(Stream, Done);
           goto 2;
@@ -1005,22 +1005,22 @@ L5:
               begin
               ReadStrV(MenuStr1^[I]);
               ReadStrV(MenuStr2^[I]);
-              Read(MenuKey^[I], SizeOf(Word));
-              Read(MenuHelpCtx^[I], SizeOf(Word));
-              Read(MenuType^[I], SizeOf(Word));
-              Read(MenuWantBeAfter^[I], SizeOf(Word));
+              Read(MenuKey^[I], SizeOf(word));
+              Read(MenuHelpCtx^[I], SizeOf(word));
+              Read(MenuType^[I], SizeOf(word));
+              Read(MenuWantBeAfter^[I], SizeOf(word));
               end;
 
             if Stream^.Status <> stOK then
               begin
-              MessageBox(GetString(Integer(dlCantLoad))+SR.FullName,
+              MessageBox(GetString(integer(dlCantLoad))+SR.FullName,
                  nil, mfError+mfOKButton);
               Dispose(Item, Done);
               goto 3;
               end;
 
             if PluginLngId = MyLngId then
-              Break;
+              break;
             end;
 
         Item^.Description := Description;
@@ -1044,7 +1044,7 @@ constructor TPluginManager.Init;
     PluginManager := @Self;
 
     R.Assign(0, 0, 58, 20);
-    _TDialog^.Init(R, GetString(Integer(dlPlugins0)), nil, @Self);
+    _TDialog^.Init(R, GetString(integer(dlPlugins0)), nil, @Self);
 
     New(CommandUsed);
     {New(LngIndexUsed);}
@@ -1061,10 +1061,10 @@ constructor TPluginManager.Init;
     Options := Options or ofCentered;
     R.Assign(5, 17, 22, 19);
     InstallButton := New(PButton, Init(R,
-           GetString(Integer(dlPlugins9)), cmOK, bfDefault));
+           GetString(integer(dlPlugins9)), cmOK, bfDefault));
     Insert(InstallButton);
     R.Assign(24, 17, 41, 19);
-    Insert(New(PButton, Init(R, GetString(Integer(dlCloseButton)),
+    Insert(New(PButton, Init(R, GetString(integer(dlCloseButton)),
            cmCancel, bfNormal)));
     R.Assign(55, 1, 56, 16);
     ScrollBar := New(PScrollBar, Init(R));
@@ -1078,7 +1078,7 @@ constructor TPluginManager.Init;
 
 constructor TPluginManager.Load(var S: TStream);
   var
-    FocusOn: Integer;
+    FocusOn: integer;
   begin
   Init;
   S.Read(Origin, SizeOf(Origin));
@@ -1092,7 +1092,7 @@ constructor TPluginManager.Load(var S: TStream);
 
 procedure TPluginManager.Store(var S: TStream);
   var
-    FocusOn: Integer;
+    FocusOn: integer;
   begin
   FocusOn := ListBox^.Focused;
   S.Write(Origin, SizeOf(Origin));
@@ -1140,39 +1140,39 @@ procedure TPluginManager.HandleEvent(var Event: TEvent);
             if  (PluginListItem^.PluginPath <> 'PLUGMAN')
               and UnInstall(PluginListItem)
               and ChangeMenuResource(UnInstallMenu, PluginListItem,
-                 MenuBar, Integer(dlgMainMenu), 0)
+                 MenuBar, integer(dlgMainMenu), 0)
               and ChangeMenuResource(UnInstallMenu, PluginListItem,
-                 PMenuView(LoadResource(Integer(dlgEditorMenu))),
-                   Integer(dlgEditorMenu), 1)
+                 PMenuView(LoadResource(integer(dlgEditorMenu))),
+                   integer(dlgEditorMenu), 1)
               and ChangeMenuResource(UnInstallMenu, PluginListItem,
-                 PMenuView(LoadResource(Integer(dlgWkzMenuBar))),
-                   Integer(dlgWkzMenuBar), 2)
+                 PMenuView(LoadResource(integer(dlgWkzMenuBar))),
+                   integer(dlgWkzMenuBar), 2)
             then
               ListBox^.DrawView
             else
-              MessageBox(GetString(Integer(dlPlugins3)), @P,
+              MessageBox(GetString(integer(dlPlugins3)), @P,
                  mfError+mfOKButton)
           else if Install(PluginListItem)
             and ChangeMenuResource(InstallMenu, PluginListItem, MenuBar,
-               Integer(dlgMainMenu), 0)
+               integer(dlgMainMenu), 0)
             and ChangeMenuResource(InstallMenu, PluginListItem,
-                 PMenuView(LoadResource(Integer(dlgEditorMenu))),
-                 Integer(dlgEditorMenu), 1)
+                 PMenuView(LoadResource(integer(dlgEditorMenu))),
+                 integer(dlgEditorMenu), 1)
             and ChangeMenuResource(InstallMenu, PluginListItem,
-                 PMenuView(LoadResource(Integer(dlgWkzMenuBar))),
-                 Integer(dlgWkzMenuBar), 2)
+                 PMenuView(LoadResource(integer(dlgWkzMenuBar))),
+                 integer(dlgWkzMenuBar), 2)
           then
             ListBox^.DrawView
           else
-            MessageBox(GetString(Integer(dlPlugins2)), @P,
+            MessageBox(GetString(integer(dlPlugins2)), @P,
                mfError+mfOKButton);
           with InstallButton^ do
             begin
             DisposeStr(Title);
             if Installed = 0 then
-              Title := NewStr(GetString(Integer(dlPlugins8)))
+              Title := NewStr(GetString(integer(dlPlugins8)))
             else
-              Title := NewStr(GetString(Integer(dlPlugins9)));
+              Title := NewStr(GetString(integer(dlPlugins9)));
             DrawView;
             end;
           end;
@@ -1181,7 +1181,7 @@ procedure TPluginManager.HandleEvent(var Event: TEvent);
         Close;
       cmGetName:
         PString(Event.InfoPtr)^:= DNFunctions^.GetString
-              (Integer(dlPlugins0));
+              (integer(dlPlugins0));
     end {case};
   end { TPluginManager.HandleEvent };
 
@@ -1215,7 +1215,7 @@ procedure CatchCommand(Command, ObjType: SmallWord;
           ('Newer version of DN/2 is required for start this plugin'^M^M+
           'Для запуска этого плагина требуется более новая версия DN/2',
            nil, mfError+mfOKButton);
-        Exit;
+        exit;
         end;
 
     Initialized := True;

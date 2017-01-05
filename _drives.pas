@@ -41,7 +41,7 @@ type
     procedure KillUse; virtual;
     procedure lChDir(ADir: String); virtual;
     function GetDir: String; virtual;
-    function GetDirectory: function (SortMode, PanelFlags: Integer;
+    function GetDirectory: function (SortMode, PanelFlags: integer;
          const FileMask: String;
         var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
       : PCollection; virtual;
@@ -50,26 +50,26 @@ type
     procedure CopyFilesInto(Files: PCollection; Own: PView;
          MoveMode: Boolean); virtual;
     procedure EraseFiles(Files: PCollection); virtual;
-    procedure UseFile(P: PFileRec; Command: Word); virtual;
+    procedure UseFile(P: PFileRec; Command: word); virtual;
     procedure GetFreeSpace(var S: String); virtual;
     function Disposable: Boolean; virtual;
     function GetRealName: String; virtual;
     function GetInternalName: String; virtual;
-    procedure GetFull(var B; P: PFileRec; C, Sc: Word); virtual;
-    procedure GetEmpty(var B; SC: Word); virtual;
-    function CalcLengthWithoutName: Integer; virtual;
-    function CalcLength: Integer; virtual;
+    procedure GetFull(var B; P: PFileRec; C, Sc: word); virtual;
+    procedure GetEmpty(var B; SC: word); virtual;
+    function CalcLengthWithoutName: integer; virtual;
+    function CalcLength: integer; virtual;
     procedure RereadDirectory(S: String); virtual;
     procedure MakeTop(var S: String); virtual;
-    procedure GetDown(var B; C: Word; P: PFileRec); virtual;
-    procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
+    procedure GetDown(var B; C: word; P: PFileRec); virtual;
+    procedure HandleCommand(Command: word; InfoPtr: Pointer); virtual;
     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
     function GetRealDir: String; virtual;
     procedure MakeDir; virtual;
     function isUp: Boolean; virtual;
     procedure ChangeUp(var S: String); virtual;
     procedure ChangeRoot; virtual;
-    function GetFullFlags: Word; virtual;
+    function GetFullFlags: word; virtual;
     procedure EditDescription(PF: PFileRec); virtual;
     procedure GetDirLength(PF: PFileRec); virtual;
     procedure GetParam(N: Byte); virtual;
@@ -297,7 +297,7 @@ function TDrive.GetDir: String;
 asm
 end;
 
-function TDrive.GetDirectory: function (SortMode, PanelFlags: Integer;
+function TDrive.GetDirectory: function (SortMode, PanelFlags: integer;
      const FileMask: String;
     var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
   : PCollection;
@@ -322,7 +322,7 @@ procedure TDrive.EraseFiles(Files: PCollection);
 asm
 end;
 
-procedure TDrive.UseFile(P: PFileRec; Command: Word);
+procedure TDrive.UseFile(P: PFileRec; Command: word);
   assembler; {&Frame-}
 asm
 end;
@@ -347,22 +347,22 @@ function TDrive.GetInternalName: String;
 asm
 end;
 
-procedure TDrive.GetFull(var B; P: PFileRec; C, Sc: Word);
+procedure TDrive.GetFull(var B; P: PFileRec; C, Sc: word);
   assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.GetEmpty(var B; SC: Word);
+procedure TDrive.GetEmpty(var B; SC: word);
   assembler; {&Frame-}
 asm
 end;
 
-function TDrive.CalcLengthWithoutName: Integer;
+function TDrive.CalcLengthWithoutName: integer;
   assembler; {&Frame-}
 asm
 end;
 
-function TDrive.CalcLength: Integer;
+function TDrive.CalcLength: integer;
   assembler; {&Frame-}
 asm
 end;
@@ -377,12 +377,12 @@ procedure TDrive.MakeTop(var S: String);
 asm
 end;
 
-procedure TDrive.GetDown(var B; C: Word; P: PFileRec);
+procedure TDrive.GetDown(var B; C: word; P: PFileRec);
   assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.HandleCommand(Command: Word; InfoPtr: Pointer);
+procedure TDrive.HandleCommand(Command: word; InfoPtr: Pointer);
   assembler; {&Frame-}
 asm
 end;
@@ -417,7 +417,7 @@ procedure TDrive.ChangeRoot;
 asm
 end;
 
-function TDrive.GetFullFlags: Word;
+function TDrive.GetFullFlags: word;
   assembler; {&Frame-}
 asm
 end;

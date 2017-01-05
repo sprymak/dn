@@ -51,7 +51,7 @@ unit Editor;
 interface
 
 uses
-  Lfn, Views, Objects, Drivers, Microed, U_KeyMap, Collect, ed2
+  Lfn, Views, Defines, Streams, Drivers, Microed, U_KeyMap, Collect, ed2
   ;
 
 type
@@ -64,16 +64,16 @@ type
 implementation
 
 uses
-  Advance, Advance1, Advance2, Advance3, Dos, Dialogs, DNApp, RStrings,
+  advance, advance1, advance2, advance3, Dos, Dialogs, DNApp, RStrings,
   {SBlocks,}Memory, Gauge, Startup, WinClp, Messages, Commands, Macro,
-  EdWin, xTime, DnIni, DNUtil, Advance6, Calculat, FViewer {AK155}
+  EdWin, xTime, DnIni, DNUtil, advance6, Calculat, FViewer {AK155}
   {$IFDEF REGEXP}, RegExp {$ENDIF}
   ;
 
 type
   PSortCollection = ^TSortCollection;
   TSortCollection = object(TSortedCollection)
-    function Compare(Key1, Key2: Pointer): Integer; virtual;
+    function Compare(Key1, Key2: Pointer): integer; virtual;
     end;
 
 var
@@ -137,7 +137,7 @@ Ex:
       Y: LongInt;
       S: LongString;
 
-    procedure Mix2And3(var M: Word);
+    procedure Mix2And3(var M: word);
       const
         SwapBits = $14; { swap bits: (...X.Y..) -> (...Y.X..) }
         {Cat:  efoCaseSens       =  1;}
@@ -174,7 +174,7 @@ Ex:
     SearchData.Line := S;
     if AutoScopeDetect then
       {-$VIV 19.05.99--}
-      SearchData.Scope := Word(Marking and ((Mark.A.X <> Mark.B.X) or
+      SearchData.Scope := word(Marking and ((Mark.A.X <> Mark.B.X) or
                (Mark.A.Y <> Mark.B.Y)));
     if not Replace then
       SearchData.What := #0
@@ -190,7 +190,7 @@ Ex:
       end;
 
     if Y = cmCancel then
-      Exit;
+      exit;
     ReplaceAll := Replace and (Y = cmYes);
     {$IFDEF REGEXP}
     if SearchData.Options and {efoRegExp}16 = 0 then
@@ -209,7 +209,7 @@ Ex:
       if not RegExp^.Compile(@SearchData.Line[1],
            Length(SearchData.Line))
       then
-        Exit;
+        exit;
       Search(0, 0);
       end;
     {$ENDIF}
@@ -233,13 +233,13 @@ Ex:
       BlockVisible := False;
       UnMark := True;
       if  (UndoInfo = nil) or (UndoInfo^.Count = 0) then
-        Exit;
+        exit;
       P := UndoInfo^.At(UndoInfo^.Count-1);
       if  (P^.Where.X <> Delta.X) or (P^.Where.Y <> Delta.Y) then
         begin
         ScrollTo(P^.Where.X, P^.Where.Y);
         if P^.What <> udReplaceAll then
-          Exit;
+          exit;
         end;
       KeyMap := P^.KeyMap;
       Convert4Do(P, dkRedo); {-$VOL}
@@ -449,7 +449,7 @@ Ex:
       BlockVisible := False;
       UnMark := True;
       if  (RedoInfo = nil) or (RedoInfo^.Count = 0) then
-        Exit;
+        exit;
       P := RedoInfo^.At(RedoInfo^.Count-1);
       if  (P^.Where.X <> Delta.X) or (P^.Where.Y <> Delta.Y) then
         begin
@@ -678,26 +678,26 @@ Ex:
     begin
     Modified := True;
     if not (BlockVisible and ValidBlock) then
-      Exit;
+      exit;
     ChangeLine;
     if not UnlimitUnindent then
-      for I := Mark.A.Y to Mark.B.Y-Integer(Mark.B.X = 0) do
+      for I := Mark.A.Y to Mark.B.Y-integer(Mark.B.X = 0) do
         {-$VIV 13.05.99}
         begin
         S := GetLine(I);
         if  (S <> '') and (S[1] <> ' ') then
-          Exit;
+          exit;
         end;
     T.X := 0;
     T.Y := Mark.A.Y;
     if Undo then
       StoreUndoInfo(udUnindentBlock, T, Mark);
-    for I := Mark.A.Y to Mark.B.Y-Integer(Mark.B.X = 0) do
+    for I := Mark.A.Y to Mark.B.Y-integer(Mark.B.X = 0) do
       {-$VIV 13.05.99}
       begin
       S := GetLine(I);
       if  (S = '') or (S[1] <> ' ') then
-        Continue;
+        continue;
       Delete(S, 1, 1); {DelFC(S);}
       ModifyLine(I, S, True);
       end;
@@ -719,13 +719,13 @@ Ex:
     begin
     Modified := True;
     if not (BlockVisible and ValidBlock) then
-      Exit;
+      exit;
     ChangeLine;
     T.X := 0;
     T.Y := Mark.A.Y;
     if Undo then
       StoreUndoInfo(udIndentBlock, T, Mark);
-    for I := Mark.A.Y to Mark.B.Y-Integer(Mark.B.X = 0) do
+    for I := Mark.A.Y to Mark.B.Y-integer(Mark.B.X = 0) do
       begin
       S := ' '+GetLine(I);
       ModifyLine(I, S, True)
@@ -758,7 +758,7 @@ Ex:
     while (S <> '') and (S[Length(S)] = ' ') do
       SetLength(S, Length(S)-1);
     if S = '' then
-      Exit;
+      exit;
     while (S[1] = ' ') do
       Delete(S, 1, 1); {DelFC(S);}
     NextBreak(S, I);
@@ -767,7 +767,7 @@ Ex:
     FirstToken := SS;
     end;
 
-  procedure FormatBlock(Command: Word);
+  procedure FormatBlock(Command: word);
     var
       S, Left, W: LongString;
       P: PLineCollection;
@@ -816,7 +816,7 @@ Ex:
             if I < Length(Left) then
               Insert(' ', Left, I)
             else if j = 2 then
-              Break
+              break
             else
               I := 1;
             end;
@@ -830,19 +830,19 @@ Ex:
       if PS = nil then
         begin
         Abort := True;
-        Exit
+        exit
         end;
       P^.Insert(PS);
       if LowMemory then
         begin
         Abort := True;
-        Exit
+        exit
         end;
       Left := W;
       LS := EdOpt.RightSide-EdOpt.LeftSide;
       end { WriteLeft };
 
-    procedure CompressLine(N: Integer);
+    procedure CompressLine(N: integer);
       var
         MS: LongString;
       begin
@@ -872,26 +872,26 @@ Ex:
     Modified := True;
     Q := 0;
     if not (ValidBlock and BlockVisible) or VertBlock then
-      Exit;
+      exit;
     if LowMemory then
-      Exit;
+      exit;
     ChangeLine;
     {if UndoInfo <> nil then UndoInfo^.FreeAll; Inc(UndoTimes);}
     New(P, Init((Mark.B.Y-Mark.A.Y+1)*2, 10, True));
-    for I := Mark.A.Y to Mark.B.Y-Integer(Mark.B.X = 0) do
+    for I := Mark.A.Y to Mark.B.Y-integer(Mark.B.X = 0) do
       P^.Insert(NewLongStr(GetLine(I)));
     TP.Y := Mark.A.Y;
     TP.X := 0;
     StoreUndoInfo(udDelBlock, TP, P);
     New(P, Init((Mark.B.Y-Mark.A.Y+1)*2, 10, True));
     if P = nil then
-      Exit;
+      exit;
     Left := '';
     LS := EdOpt.RightSide-EdOpt.LeftSide;
     W := '';
     if  (Command = cmFJustify) or (Command = cmLJustify) then
       LS := EdOpt.RightSide-EdOpt.InSide;
-    LG := Mark.B.Y-Integer(Mark.B.X = 0);
+    LG := Mark.B.Y-integer(Mark.B.X = 0);
     I := Mark.A.Y;
     CompressLine(I);
     repeat
@@ -904,7 +904,7 @@ Ex:
         Inc(I);
         goto 1
         end;
-      J := Integer((Left <> '') and (Left[Length(Left)] = ' '));
+      J := integer((Left <> '') and (Left[Length(Left)] = ' '));
       LongDelRight(W);
       LongDelDoubles('  ', W);
       if W[1] = ' ' then
@@ -922,7 +922,7 @@ Ex:
       if Abort then
         begin
         Dispose(P, Done);
-        Exit
+        exit
         end;
     until I > LG+1;
     LastLine := True;
@@ -930,7 +930,7 @@ Ex:
     if Abort then
       begin
       Dispose(P, Done);
-      Exit
+      exit
       end;
     Marking := False;
     EnableMarking := False;
@@ -1000,7 +1000,7 @@ Ex:
       begin
       if Block then
         Dispose(L, Done);
-      Exit;
+      exit;
       end;
     R.Assign(1, 1, 30, 10);
     New(P, Init(R));
@@ -1066,7 +1066,7 @@ Ex:
         S1, S2, S3: String[6];
         end;
       I: LongInt;
-      J: Integer;
+      J: integer;
     begin
     Data.S1 := ItoS(EdOpt.LeftSide);
     Data.S2 := ItoS(EdOpt.RightSide);
@@ -1099,10 +1099,10 @@ Ex:
       S: String = '';
     var
       I: LongInt;
-      J: Integer;
+      J: integer;
     begin
     if ExecResource(dlgGotoLine, S) <> cmOK then
-      Exit;
+      exit;
     Val(S, I, J);
     if  (J = 0) and (I > 0) then
       ScrollTo(Delta.X, I-1);
@@ -1222,7 +1222,7 @@ Ex:
     if not VertBlock then
       begin
       ErrMsg(dlED_VertNeed);
-      Exit;
+      exit;
       end;
     if Reverse then
       Cmpr := Bigger
@@ -1246,7 +1246,7 @@ Ex:
   procedure CalcBlock;
     var
       I: LongInt;
-      J: Integer;
+      J: integer;
       R1, R2: Extended;
       S: LongString;
       R: Real;
@@ -1295,7 +1295,7 @@ Ex:
   procedure WorkModify;
     begin
     if WorkModified then
-      Exit;
+      exit;
     LastLine := Delta.Y;
     LastShape := GetLine(LastLine);
     WorkModified := True;
@@ -1306,7 +1306,7 @@ Ex:
   procedure InsertDateTime(Time: Boolean);
     var
       S: String[30];
-      SS: Integer;
+      SS: integer;
     begin
     S := GetDateTime(Time);
     ChangeLine;
@@ -1379,7 +1379,7 @@ Ex:
           begin
           ScrollTo(LastX, LastY);
           HandleCommand := True;
-          Exit;
+          exit;
           end;
         Inc(LastX);
         end;
@@ -1419,7 +1419,7 @@ Ex:
           begin
           ScrollTo(LastX, LastY);
           HandleCommand := True;
-          Exit;
+          exit;
           end;
         Dec(LastX);
         end;
@@ -1429,9 +1429,9 @@ Ex:
       end;
     end { SearchBwd };
 
-  procedure ChangeVertBlockCase(C: Word);forward;
+  procedure ChangeVertBlockCase(C: word);forward;
 
-  procedure ChangeBlockCase(C: Word; Show: Boolean);
+  procedure ChangeBlockCase(C: word; Show: Boolean);
     var
       I, J, K, L, SX, EX, SY, EY: LongInt;
       S, S1: LongString;
@@ -1441,7 +1441,7 @@ Ex:
     if  (Mark.A.Y > Mark.B.Y) or (Mark.A.Y = Mark.B.Y)
          and (Mark.A.X >= Mark.B.X)
     then
-      Exit;
+      exit;
     ChangeLine;
     S := GetLine(Mark.A.Y);
     while (Mark.A.X > 0) and not (S[Mark.A.X+1] in BreakChars) do
@@ -1540,7 +1540,7 @@ Ex:
   function CurrentWordIs(pWord: LongString): Boolean;
     var
       S: LongString;
-      Max, I: Integer;
+      Max, I: integer;
     begin
     CurrentWordIs := False;
     S := WorkString;
@@ -1550,18 +1550,18 @@ Ex:
     else if Max = 0 then
       Max := 1;
     if  (S[Max] in BreakChars) then
-      Exit;
-    for I := Max downto 1 do
+      exit;
+    for I := Max DownTo 1 do
       if  (S[I] in BreakChars) then
         begin
         S := Copy(S, I+1, MaxLongStringLength);
-        Break;
+        break;
         end;
     for I := 1 to Length(S) do
       if  (S[I] in BreakChars) then
         begin
         S := Copy(S, 1, I-1);
-        Break;
+        break;
         end;
     CurrentWordIs := WordsIsEqual(S, pWord);
     end { CurrentWordIs };
@@ -1579,7 +1579,7 @@ Ex:
     begin
     GetPrevWordViv := False;
     if  (FromPos.Y > FileLines^.Count-1) or (FromPos.Y < 0) then
-      Exit;
+      exit;
     Buf := '';
     S := GetLine(FromPos.Y);
     MakeExit := False;
@@ -1648,7 +1648,7 @@ Ex:
     begin
     GetNextWordViv := False;
     if  (FromPos.Y > FileLines^.Count-1) or (FromPos.Y < 0) then
-      Exit;
+      exit;
     Buf := '';
     S := GetLine(FromPos.Y);
     MakeExit := False;
@@ -1742,7 +1742,7 @@ Ex:
         begin
         ScrollTo(Wrd.X, Wrd.Y);
         HandleCommand := True;
-        Break;
+        break;
         end;
       if IsDeepRange and (DeepLevel <= 0) then
         begin
@@ -1751,7 +1751,7 @@ Ex:
         then
           IsDeepRange := False
         else
-          Break;
+          break;
         end;
     until (not Res);
     end { SearchWordViv };
@@ -1896,7 +1896,7 @@ Ex:
         Message(Owner, evCommand, cmClose, nil);
         if Desktop <> nil then
           Desktop^.UnLock;
-        Exit;
+        exit;
         end;
     cmPrintBlock:
       Print(True);

@@ -16,9 +16,9 @@ type
   PPointer = ^Pointer;
 
   { обёртки для вызова системных функций }
-function LoadModule(ModuleName: PChar; var LibHandle: Integer): Boolean;
-procedure FreeModule(LibHandle: Integer);
-function GetProcAddress(LibHandle: Integer; ProcName: PChar;
+function LoadModule(ModuleName: PChar; var LibHandle: integer): Boolean;
+procedure FreeModule(LibHandle: integer);
+function GetProcAddress(LibHandle: integer; ProcName: PChar;
      var ProcAddr: Pointer): Boolean;
 
 { сначала пытается загрузить DLL из каталога ДН-а, если не удаётся, }
@@ -27,9 +27,9 @@ function GetProcAddress(LibHandle: Integer; ProcName: PChar;
 {    C:\DN\PLUGIN.DLL           }
 {    C:\DN\PLUGIN\PLUGIN.DLL    }
 function LoadPluginModule(const ModuleName: String;
-     var LibHandle: Integer): Boolean;
+     var LibHandle: integer): Boolean;
 function LoadPluginModuleAndGetProcAddress(const ModuleName: String;
-     var LibHandle: Integer; ProcNames: array of PChar;
+     var LibHandle: integer; ProcNames: array of PChar;
      ProcAddrs: array of PPointer): Boolean;
 
 implementation
@@ -37,17 +37,17 @@ implementation
 {$IFDEF OS2}
 uses
   Os2Def, Os2Base,
-  Advance
+  advance
   ;
 
-function LoadModule(ModuleName: PChar; var LibHandle: Integer): Boolean;
+function LoadModule(ModuleName: PChar; var LibHandle: integer): Boolean;
   begin
   Result := (DosLoadModule(nil, 0, ModuleName, LibHandle) = 0);
   if not Result then
     LibHandle := 0;
   end;
 
-procedure FreeModule(LibHandle: Integer);
+procedure FreeModule(LibHandle: integer);
   begin
   if LibHandle <> 0 then
     begin
@@ -56,7 +56,7 @@ procedure FreeModule(LibHandle: Integer);
     end;
   end;
 
-function GetProcAddress(LibHandle: Integer; ProcName: PChar;
+function GetProcAddress(LibHandle: integer; ProcName: PChar;
      var ProcAddr: Pointer): Boolean;
   begin
   Result := (DosQueryProcAddr(LibHandle, 0, ProcName, ProcAddr) = 0);
@@ -68,10 +68,10 @@ function GetProcAddress(LibHandle: Integer; ProcName: PChar;
 {$IFDEF Win32}
 uses
   Windows,
-  Advance
+  advance
   ;
 
-function LoadModule(ModuleName: PChar; var LibHandle: Integer): Boolean;
+function LoadModule(ModuleName: PChar; var LibHandle: integer): Boolean;
   begin
   LibHandle := Windows.LoadLibrary(ModuleName);
   Result := (LibHandle > HINSTANCE_ERROR);
@@ -97,7 +97,7 @@ function GetProcAddress(LibHandle: Handle; ProcName: PChar;
 {$ENDIF}
 
 function LoadPluginModule(const ModuleName: String;
-     var LibHandle: Integer): Boolean;
+     var LibHandle: integer): Boolean;
   var
     S: String;
   begin
@@ -111,10 +111,10 @@ function LoadPluginModule(const ModuleName: String;
   end;
 
 function LoadPluginModuleAndGetProcAddress(const ModuleName: String;
-     var LibHandle: Integer; ProcNames: array of PChar;
+     var LibHandle: integer; ProcNames: array of PChar;
      ProcAddrs: array of PPointer): Boolean;
   var
-    I: Integer;
+    I: integer;
   begin
   Result := LoadPluginModule(ModuleName, LibHandle);
   if Result then

@@ -50,7 +50,7 @@ unit arc_CHZ; {CHZ}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects
+  Archiver, advance, advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -165,14 +165,14 @@ procedure TCHZArchive.GetFile;
   if FP = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P, 4);
   if  (ArcFile^.Status <> stOK) or (Copy(P.Id, 1, 3) <> 'SCh')
   then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   if P.Id[4] = 'D' then
     begin
@@ -196,7 +196,7 @@ procedure TCHZArchive.GetFile;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;

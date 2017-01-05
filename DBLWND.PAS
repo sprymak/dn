@@ -51,7 +51,7 @@ unit DblWnd;
 interface
 
 uses
-  Lfn, Views, Objects, Drivers, FlPanel, HideView, Tree, FViewer
+  Lfn, Views, Defines, Streams, Drivers, FlPanel, Tree, FViewer
   ;
 
 type
@@ -67,27 +67,29 @@ type
   PDoubleWindow = ^TDoubleWindow;
   TDoubleWindow = object( {TStd}TWindow)
     isValid: Boolean;
-    LeftView, RightView: PHideView;
+    LeftView, RightView: PView;
     RDrive, LDrive: Byte;
     Separator: PSeparator;
     LPanel, RPanel: PFilePanel;
-    Info: PHideView;
+    Info: PView;
     {$IFDEF NETINFO}
     NetInfo: PHideView; {-$VIV}
     {$ENDIF}
     LTree: PHTreeView;
     QView: PFileViewer;
+    NonFilePanelType: Byte; {тип нефайловой панели; 0 если таковой нет}
+    pNonFilePanel: ^PView; {адрес указателя на нее, например, @QView}
     OldBounds: TRect;
     OldPanelBounds: TRect;
     PanelZoomed: Boolean;
     LType, RType: AInt;
-    constructor Init(Bounds: TRect; ANumber, ADrive: Integer);
+    constructor Init(Bounds: TRect; ANumber, ADrive: integer);
     procedure InitLeftView(R: TRect);
     procedure InitRightView(R: TRect);
     procedure InitInterior;
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
-    function Valid(C: Word): Boolean; virtual;
+    function Valid(C: word): Boolean; virtual;
     procedure ChangeBounds(var Bounds: TRect); virtual;
     procedure HandleCommand(var Event: TEvent);
     end;
@@ -120,8 +122,8 @@ const
 
 implementation
 uses
-  DiskInfo, Commands, FileCopy, FilesCol, Advance, Advance1, Advance2,
-  Advance3, Startup, DNApp, RStrings, {DataCompBoy}Messages
+  DiskInfo, Commands, FileCopy, FilesCol, advance, advance1, advance2,
+  advance3, Startup, DNApp, RStrings, {DataCompBoy}Messages
   {$IFDEF NETINFO}, NetInfo {-$VIV} {$ENDIF}
   , Dos
   ;
@@ -174,7 +176,7 @@ procedure TDoubleWindow.InitLeftView;
     B: TRect;
   begin
   if Abort then
-    Exit;
+    exit;
   B := R;
   B.A.X := B.B.X;
   Inc(B.B.X);
@@ -187,7 +189,7 @@ procedure TDoubleWindow.InitLeftView;
     begin
     Dispose(P, Done);
     Dispose(PV, Done);
-    Exit
+    exit
     end;
 
   New(P1, Init(R));
@@ -222,7 +224,7 @@ procedure TDoubleWindow.InitRightView;
     RR: TRect;
   begin
   if Abort then
-    Exit;
+    exit;
   RR.B.X := RR.A.X+1;
   New(PS, Init(RR));
 
@@ -232,7 +234,7 @@ procedure TDoubleWindow.InitRightView;
     begin
     Dispose(P, Done);
     Dispose(PS, Done);
-    Exit
+    exit
     end;
 
   New(P1, Init(R));
@@ -389,8 +391,10 @@ constructor TDoubleWindow.Load;
     PNetInfo(NetInfo)^.ReadData(False); {-$VIV}
     end;
   {$ENDIF}
-  if  (RType = dtView) or (LType = dtView) then
-    Message(@Self, evCommand, cmEnableView, nil);
+  if  (RType = dtView) then
+    LPanel^.QuickViewEnabled := True
+  else if (LType = dtView) then
+    RPanel^.QuickViewEnabled := True;
   isValid := True;
   end { TDoubleWindow.Load };
 
@@ -434,7 +438,7 @@ procedure TDoubleWindow.InitInterior;
   R.A.X := R.B.X div 2+2;
   InitRightView(R);
   if Abort then
-    Exit;
+    exit;
 
   GetExtent(R);
   R.Grow(-1, -1);
@@ -442,7 +446,7 @@ procedure TDoubleWindow.InitInterior;
   InitLeftView(R);
 
   if Abort then
-    Exit;
+    exit;
   RightView^.Select;
   RPanel := PFilePanel(RightView);
   LType := dtPanel;
@@ -463,26 +467,17 @@ procedure TDoubleWindow.InitInterior;
 procedure TDoubleWindow.HandleCommand;
   var
     R, R1, R2: TRect;
-    I, K: Integer;
+    I, K: integer;
     LVisible, RVisible, LSelected: Boolean;
     Sp: PSeparator;
     EV: TEvent;
     P: PView;
     S: String;
 
-  procedure UnLck;
-    begin
-    Dec(R.A.X);
-    ChangeBounds(R);
-    Inc(R.A.X);
-    ChangeBounds(R);
-    UnLock;
-    end;
-
   procedure SwitchLeft;
     begin
     if not RVisible or PanelZoomed then
-      Exit;
+      exit;
     if LVisible then
       begin
       GetBounds(R);
@@ -493,7 +488,7 @@ procedure TDoubleWindow.HandleCommand;
         Dec(R.A.X, 16-(R.B.X-R.A.X));
       { Flash <<< }
       Lock;
-      LeftView^.HideView;
+      LeftView^.Hide;
       RightView^.Select;
       Locate(R);
       Redraw;
@@ -505,7 +500,7 @@ procedure TDoubleWindow.HandleCommand;
       R.A.X := OldBounds.A.X;
       R.B.X := OldBounds.B.X; { Flash }
       Lock;
-      LeftView^.ShowView;
+      LeftView^.Show;
       Redraw;
       Locate(R);
       UnLock;
@@ -516,14 +511,14 @@ procedure TDoubleWindow.HandleCommand;
   procedure SwitchRight;
     begin
     if not LVisible or PanelZoomed then
-      Exit;
+      exit;
     if RVisible then
       begin
       GetBounds(R);
       OldBounds := R;
       R.B.X := Separator^.Origin.X+R.A.X+1;
       Lock;
-      RightView^.HideView;
+      RightView^.Hide;
       LeftView^.Select;
       Locate(R);
       Redraw;
@@ -535,7 +530,7 @@ procedure TDoubleWindow.HandleCommand;
       R.A.X := OldBounds.A.X;
       R.B.X := OldBounds.B.X; { Flash }
       Lock;
-      RightView^.ShowView;
+      RightView^.Show;
       Redraw;
       Locate(R);
       UnLock;
@@ -577,7 +572,7 @@ procedure TDoubleWindow.HandleCommand;
       P.Y := Origin.Y+3;
       S := SelectDrive(P.X, P.Y, LPanel^.DirectoryName[1], True);
       if S = '' then
-        Exit;
+        exit;
       ClrIO;
       Message(LPanel, evCommand, cmChangeDrv, @S);
       if LType <> dtPanel then
@@ -586,14 +581,16 @@ procedure TDoubleWindow.HandleCommand;
         if not LVisible then
           SwitchLeft;
         LeftView^.GetBounds(R1);
-        LeftView^.HideView;
+        pNonFilePanel^.Free;
+        pNonFilePanel^:= nil;
+        NonFilePanelType := 0;
         R1.A.Y := 1;
         R1.B.Y := Size.Y-1;
         LPanel^.Locate(R1);
         LeftView := LPanel;
         LType := dtPanel;
-        LPanel^.ShowView;
-        UnLck;
+        LPanel^.Show;
+        UnLock;
         end
       else if not LVisible then
         SwitchLeft;
@@ -632,7 +629,7 @@ procedure TDoubleWindow.HandleCommand;
       P.Y := Origin.Y+3;
       S := SelectDrive(P.X, P.Y, RPanel^.DirectoryName[1], True);
       if S = '' then
-        Exit;
+        exit;
       ClrIO;
       Message(RPanel, evCommand, cmChangeDrv, @S);
       if RType <> dtPanel then
@@ -641,14 +638,16 @@ procedure TDoubleWindow.HandleCommand;
         if not RVisible then
           SwitchRight;
         RightView^.GetBounds(R1);
-        RightView^.HideView;
+        pNonFilePanel^.Free;
+        pNonFilePanel^:= nil;
+        NonFilePanelType := 0;
         R1.A.Y := 1;
         R1.B.Y := Size.Y-1;
         RPanel^.Locate(R1);
         RightView := RPanel;
         RType := dtPanel;
-        RPanel^.ShowView;
-        UnLck;
+        RPanel^.Show;
+        UnLock;
         end
       else if not RVisible then
         SwitchRight;
@@ -676,14 +675,14 @@ procedure TDoubleWindow.HandleCommand;
       Dispose(S, Done);
       Dispose(QView, Done);
       QView := nil;
-      Exit
+      exit
       end
     else
       begin
       Lock;
       Insert(QView);
       Insert(S);
-      QView^.HideView;
+      QView^.Hide;
       UnLock;
       end;
     end { ViewInsert };
@@ -694,42 +693,53 @@ procedure TDoubleWindow.HandleCommand;
       S: PMyScrollBar;
       P: PView;
     begin
-    R2.Assign(1, 1, 2, 5);
+    R2 := R1;
+    R2.A.X := R2.B.X;
+    Inc(R2.B.X);
     S := New(PMyScrollBar, Init(R2));
     S^.Options := S^.Options or ofPostProcess;
+    { Область делим по вертикали между подвалом (2 строки) и деревом}
+    Dec(R1.B.Y, 2);
     LTree := New(PHTreeView, Init(R1, 0, False, S));
     if not LTree^.Valid(0) then
       begin
       Dispose(S, Done);
       Dispose(LTree, Done);
       LTree := nil;
-      Exit
+      exit
       end
     else
       begin
+      R1.A.Y := R1.B.Y;
+      Inc(R1.B.Y, 2);
       P := New(PTreeInfoView, Init(R1, LTree));
       LTree^.Info := P;
-      Lock;
+      Insert(P);
       Insert(LTree);
       Insert(S);
-      Insert(P);
-      LTree^.HideView;
-      UnLock;
       end;
     end { InsertTree };
 
-  type
-    PPView = ^PView;
-
   procedure SwitchView(dtType: Byte);
     var
-      V: PHideView;
+      V: PView;
+      pViewToFree: ^PView;
+    label Ex;
     begin
+    Lock;
     GetBounds(R);
     if LSelected then
       RightView^.GetBounds(R1)
     else
       LeftView^.GetBounds(R1);
+
+    { Если нефайловая панель была - ее надо в любом случае уничтожить.
+Если она была, и притом именно типа dtType, то надо восстановить
+файловую панель; в осальных случаях создать панель dtType}
+    pViewToFree := nil;
+    if NonFilePanelType <> 0 then
+      pViewToFree := Pointer(pNonFilePanel);
+
     case dtType of
       dtTree:
         begin
@@ -740,26 +750,31 @@ procedure TDoubleWindow.HandleCommand;
           {if StartupData.Slice2 and osuReleaseTree = 0 then Application^.EFSpeed;}
           end;
         if LTree = nil then
-          Exit;
+          goto Ex;
         V := LTree;
+        pNonFilePanel := @LTree;
         end;
       dtView:
         begin
         if QView = nil then
           ViewInsert;
         if QView = nil then
-          Exit;
+          goto Ex;
         V := QView;
+        pNonFilePanel := @QView;
         end;
       dtInfo:
         begin
         if Info = nil then
           begin
           Info := New(PDiskInfo, Init(R));
-          Info^.HideView;
+          Info^.Hide;
           Insert(Info);
+          PDiskInfo(Info)^.ReadData(False);
+          // Это надо делать после Insert
           end;
         V := Info;
+        pNonFilePanel := @Info;
         end;
       {$IFDEF NETINFO}
       dtNetInfo:
@@ -772,37 +787,43 @@ procedure TDoubleWindow.HandleCommand;
           Insert(NetInfo);
           end;
         V := NetInfo;
+        pNonFilePanel := @NetInfo;
         end; {-$VIV end}
       {$ENDIF}
     end {case};
+    if NonFilePanelType <> dtType then
+      NonFilePanelType := dtType
+    else
+      NonFilePanelType := 0;
+
     V^.GetBounds(R1);
     if  (LType = dtType) and LVisible then
       begin
       LeftView := LPanel;
       Lock;
-      V^.HideView;
       R1.A.Y := 1;
       R1.B.Y := Size.Y-1;
       LPanel^.Locate(R1);
-      LPanel^.ShowView;
+      LPanel^.Show;
       LType := dtPanel;
+      RPanel.QuickViewEnabled := False;
       if LSelected then
         LPanel^.Select;
-      UnLck
+      UnLock
       end
     else if (RType = dtType) and RVisible then
       begin
       RightView := RPanel;
       Lock;
-      V^.HideView;
       R1.A.Y := 1;
       R1.B.Y := Size.Y-1;
       RPanel^.Locate(R1);
-      RPanel^.ShowView;
+      RPanel^.Show;
       RType := dtPanel;
+      LPanel.QuickViewEnabled := False;
       if not LSelected then
         RPanel^.Select;
-      UnLck
+      UnLock
       end
     else if (RType = dtType) and not RVisible then
       SwitchRight
@@ -810,56 +831,47 @@ procedure TDoubleWindow.HandleCommand;
       SwitchLeft
     else if LSelected then
       begin
-      Lock;
       RightView^.GetBounds(R1);
-      RightView^.HideView;
+      RightView^.Hide;
       RightView := V;
       R1.A.Y := 1;
       R1.B.Y := Size.Y-1;
       V^.Locate(R1);
-      V^.ShowView;
+      V^.Show;
       RType := dtType;
       if not RVisible then
         SwitchRight;
       {begin GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X;end;}
       LeftView^.Select;
+      if dtType = dtView then
+        LPanel.QuickViewEnabled := True;
       Redraw;
-      UnLock;
       end
     else
       begin
-      Lock;
       LeftView^.GetBounds(R1);
-      LeftView^.HideView;
+      LeftView^.Hide;
       LeftView := V;
       R1.A.Y := 1;
       R1.B.Y := Size.Y-1;
       V^.Locate(R1);
-      V^.ShowView;
+      V^.Show;
       LType := dtType;
       if not LVisible then
         SwitchLeft;
       { begin GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X end;}
       RightView^.Select;
+      if dtType = dtView then
+        RPanel.QuickViewEnabled := True;
       Redraw;
-      UnLock;
       end;
-    if not V^.GetState(sfVisible) then
+    if pViewToFree <> nil then
       begin
-      V^.Free;
-      case dtType of
-        dtTree:
-          LTree := nil;
-        dtView:
-          QView := nil;
-        dtInfo:
-          Info := nil;
-        {$IFDEF NETINFO}
-        dtNetInfo:
-          NetInfo := nil;
-        {$ENDIF}
-      end {case};
+      pViewToFree^.Free;
+      pViewToFree^:= nil;
       end;
+Ex:
+    UnLock;
     end { SwitchView };
 
   procedure CE;
@@ -874,7 +886,7 @@ procedure TDoubleWindow.HandleCommand;
 
   var
     AP, PP: PFilePanel;
-    D: Word;
+    D: word;
   begin { TDoubleWindow.HandleCommand }
   if RightView <> nil
   then
@@ -912,7 +924,7 @@ procedure TDoubleWindow.HandleCommand;
                   LeftView^.HandleEvent(Event)
                 else
                   RightView^.HandleEvent(Event);
-                Exit;
+                exit;
                 end
               else
                 begin
@@ -921,7 +933,7 @@ procedure TDoubleWindow.HandleCommand;
                   LeftView^.HandleEvent(Event)
                 else
                   RightView^.HandleEvent(Event);
-                Exit;
+                exit;
                 end;
 
         kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt0,
@@ -932,7 +944,7 @@ procedure TDoubleWindow.HandleCommand;
               LeftView^.HandleEvent(Event)
             else
               RightView^.HandleEvent(Event);
-            Exit;
+            exit;
             end;
         {
               kbCtrl1, kbCtrl2, kbCtrl3, kbCtrl4, kbCtrl5, kbCtrl6, kbCtrl7,
@@ -1238,16 +1250,6 @@ procedure TDoubleWindow.HandleCommand;
             end;
         cmGLoadViewFile:
           CE;
-        cmEnableView:
-          begin
-          Message(LPanel, evCommand, cmEnableView, nil);
-          Message(RPanel, evCommand, cmEnableView, nil);
-          end;
-        cmDisableView:
-          begin
-          Message(LPanel, evCommand, cmDisableView, nil);
-          Message(RPanel, evCommand, cmDisableView, nil);
-          end;
         cmPushFullName,
         cmPushFirstName,
         cmPushInternalName:
@@ -1255,7 +1257,7 @@ procedure TDoubleWindow.HandleCommand;
           LeftView^.HandleEvent(Event);
           RightView^.HandleEvent(Event);
           CE;
-          Exit;
+          exit;
           end;
         cmFindTree,
         cmRereadTree:
@@ -1331,7 +1333,7 @@ procedure TDoubleWindow.HandleCommand;
             RightView^.ChangeBounds(R1);
             P := LeftView;
             LeftView := RightView;
-            RightView := PHideView(P);
+            RightView := PView(P);
             Redraw;
             UnLock;
             if not LVisible then

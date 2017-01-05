@@ -65,8 +65,8 @@ program RCP;
 {file                                                                 }
 
 uses
-  Lfn, Collect, Drivers, Dos, Objects, Advance, Advance1, Advance2,
-   Advance3,
+  Lfn, Collect, Drivers, Dos, Defines, Objects2, Streams, advance,
+   advance1, advance2, advance3,
   RStrings, GetConst, Menus, Commands, Setups, DNHelp, Views, DNApp,
    Startup,
   Dialogs, Validate, IniFiles, Scroller, ListMakr, ObjType, RegAll,
@@ -109,7 +109,7 @@ function RemoveLeadSpaces(S: String): String;
 const
   BreakChars = [#9, #10, #13, #12, ' ', #0];
 
-function wSkipBlank(const S: String; i: Integer): Integer;
+function wSkipBlank(const S: String; i: integer): integer;
   near;
   begin
   while (i <= Length(S)) and (S[i] in BreakChars) do
@@ -117,7 +117,7 @@ function wSkipBlank(const S: String; i: Integer): Integer;
   wSkipBlank := i;
   end;
 
-function wSkipText(const S: String; i: Integer): Integer;
+function wSkipText(const S: String; i: integer): integer;
   near;
   begin
   while (i <= Length(S)) and not (S[i] in BreakChars) do
@@ -125,10 +125,10 @@ function wSkipText(const S: String; i: Integer): Integer;
   wSkipText := i;
   end;
 
-function SeekWord(const S: String; No: Integer): Integer;
+function SeekWord(const S: String; No: integer): integer;
   { Pos of word #No in S }
   var
-    I: Integer;
+    I: integer;
   begin
   I := 1;
   SeekWord := 0;
@@ -136,22 +136,22 @@ function SeekWord(const S: String; No: Integer): Integer;
     repeat
       I := wSkipBlank(S, I);
       if I > Length(S) then
-        Break;
+        break;
       Dec(No);
       if No <= 0 then
         begin
         SeekWord := I;
-        Break;
+        break;
         end;
       I := wSkipText(S, I);
       if I > Length(S) then
-        Break;
+        break;
     until False;
   end { SeekWord };
 
-function GetWord(S: String; No: Integer): String; { Word #No of S }
+function GetWord(S: String; No: integer): String; { Word #No of S }
   var
-    I: Integer;
+    I: integer;
   begin
   I := SeekWord(S, No);
   if I > 0 then
@@ -200,14 +200,14 @@ procedure ProcessDLs(Enable: Boolean);
     label 1, 2;
     var
       A, M: String;
-      I, J: Integer;
+      I, J: integer;
       B: Boolean;
       NotFlag: Boolean;
     begin
     MakeStr := '';
     DelLeft(S);
     if S = '' then
-      Exit;
+      exit;
     I := 0;
     B := False;
     A := '';
@@ -290,7 +290,7 @@ procedure ProcessDLs(Enable: Boolean);
       while (S1 <> '') and (S1[Length(S1)] = ',') do
         SetLength(S1, Length(S1)-1);
       if  (S1 = '') or (S1[1] = ';') then
-        Continue;
+        continue;
       P := DLs^.FirstThat(@DoSeekID);
       if P = nil then
         Error('Unknown identifier "'+GetWord(S, 1)+'"');
@@ -333,7 +333,7 @@ procedure ProcessDLs(Enable: Boolean);
 
 type
   TEditCommand = record
-    C, C1, C2: Word;
+    C, C1, C2: word;
     CC1, CC2: array[1..2] of Char;
     end;
 
@@ -443,7 +443,7 @@ procedure StoreResource(P: PObject; Id: TDlgIdx);
   begin
   W := DLGs^.FirstThat(@HaveThisID);
   if W = nil then
-    Error('*ERROR*: Index #'+ItoS(Word(Id))+' out of range.');
+    Error('*ERROR*: Index #'+ItoS(word(Id))+' out of range.');
   if  (TheRF^.Empty(TDlgIdx(Id))) and (W^.Mark = 0)
   then
     if P <> nil then
@@ -459,7 +459,7 @@ function GetID(const S: String): LongInt;
     T: TLngWord;
     I: CondInt; {???}
     L: LongInt;
-    k: Integer;
+    k: integer;
   begin
   FreeStr := S;
   DelRight(FreeStr);
@@ -506,7 +506,7 @@ function Token(const S: String; var Pos: LongInt): String;
           B := not B;
       ',':
         if not B or Cmd then
-          Break
+          break
         else
           A := A+S[Pos]; {AddStr( A, S[Pos] );}
       '^':
@@ -597,7 +597,7 @@ procedure MakeColorDialog;
       else if Copy(FreeStr, 1, Length(idColorItem)) = idColorItem then
         MakeItem
       else if Copy(FreeStr, 1, Length(idEND)) = idEND then
-        Break
+        break
       else
         Error('Unknown identifier in line '+ItoS(Line));
     end;
@@ -646,7 +646,7 @@ procedure MakeEditorCommands;
       if Copy(FreeStr, 1, Length(idCommand)) = idCommand then
         MakeCommand
       else if Copy(FreeStr, 1, Length(idEND)) = idEND then
-        Break
+        break
       else
         Error('Unknown identifier in line '+ItoS(Line));
     end;
@@ -663,7 +663,7 @@ procedure ProcessDLGs;
   function GetID(const S: String): LongInt;
     var
       T: TLngWord;
-      I: Integer;
+      I: integer;
       L: CondInt;
     begin
     FreeStr := S;
@@ -755,7 +755,7 @@ procedure ProcessDLGs;
         then
           MakeStatusItem
         else if UpStrg(Copy(S, 1, Length(idEND))) = idEND then
-          Break
+          break
         else if (S <> '') and (S[1] <> ';') then
           Error('Unknown identifier in line '+ItoS(Line));
       end;
@@ -801,7 +801,7 @@ procedure ProcessDLGs;
 
     procedure MakeMenuItem;
       var
-        HK, Cmd, Ctx: Word;
+        HK, Cmd, Ctx: word;
       begin
       i := Length(idMenuItem);
       AddItem(NewItem(Token(S, i), Token(S, i), GetID(Token(S, i)),
@@ -832,7 +832,7 @@ procedure ProcessDLGs;
         else if UpStrg(Copy(S, 1, Length(idMenuLine))) = idMenuLine then
           MakeMenuLine
         else if UpStrg(S) = idEND then
-          Break
+          break
         else if (S <> '') and (S[1] <> ';') then
           Error('Unknown identifier in line '+ItoS(Line));
       end;
@@ -942,7 +942,7 @@ procedure ProcessDLGs;
       var
         P, PP: PSItem;
         S: String;
-        K: Integer;
+        K: integer;
       begin
       PP := nil;
       K := i;
@@ -969,7 +969,7 @@ procedure ProcessDLGs;
             end;
           end
         else if IsThis(idEND) then
-          Break
+          break
         else if (S <> '') and (S[1] <> ';') then
           Error('Unknown identifier in line '+ItoS(Line));
         end;
@@ -1010,8 +1010,8 @@ procedure ProcessDLGs;
     procedure MakeButton;
       var
         B, K: String;
-        Flags, Options: Word;
-        CmD: Word;
+        Flags, Options: word;
+        CmD: word;
       begin
       R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
          i)), GetID(Token(S, i)));
@@ -1184,7 +1184,7 @@ procedure ProcessDLGs;
         else if IsThis(idColorPoint) then
           MakeColorPoint
         else if IsThis(idEND) then
-          Break
+          break
         else if (S <> '') and (S[1] <> ';') then
           Error('Unknown identifier in line '+ItoS(Line));
         while I < Length(S) do
@@ -1322,14 +1322,14 @@ function ReplaceChar(A, B: Char; S: String): String;
 
 var
   INI: TIniFile;
-  INIs: Integer;
+  INIs: integer;
   Lng: String;
   LList: String;
 
 procedure InitParser;
   var
     Sec: PIniSection;
-    I: Integer;
+    I: integer;
     K, S: String;
   begin
   Sec := INI.GetSection('Parser');
@@ -1354,10 +1354,10 @@ procedure InitParser;
     end;
   end { InitParser };
 
-function CutWord(const S: String; No: Integer): String;
+function CutWord(const S: String; No: integer): String;
   { S without word #No }
   var
-    I, K: Integer;
+    I, K: integer;
   label
     Same;
   begin
@@ -1437,7 +1437,7 @@ repeat
     LList := CutWord(LList, 1);
     end
   else
-    Break
+    break
 until False;
 {-DataCompBoy-}
 
@@ -1450,7 +1450,7 @@ repeat
     LList := CutWord(LList, 1);
     end
   else
-    Break
+    break
 until False;
 
 LList := INI.Get('Controls', 'Languages');
@@ -1491,7 +1491,7 @@ repeat
     LList := CutWord(LList, 1);
     end
   else
-    Break;
+    break;
 until False;
 Dispose(Types, Done);
 end.

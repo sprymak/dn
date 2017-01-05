@@ -28,7 +28,7 @@ procedure NotifyResume;
 implementation
 
 uses
-  Windows, Objects, Collect, Advance1
+  Windows, Defines, Objects2, Collect, advance1
   ;
 
 type
@@ -105,7 +105,7 @@ procedure NotifyAddWatcher(const Path: String);
     P: PNotifierRec;
   begin
   if  (Path = '') or (NotifierCollection = nil) then
-    Exit;
+    exit;
   {$IFDEF DEBUGLOG}
   DebugLog('+ '+Path);
   {$ENDIF}
@@ -138,7 +138,7 @@ procedure NotifyDeleteWatcher(const Path: String);
     I: LongInt;
   begin
   if  (Path = '') or (NotifierCollection = nil) then
-    Exit;
+    exit;
   {$IFDEF DEBUGLOG}
   DebugLog('- '+Path);
   {$ENDIF}
@@ -161,7 +161,7 @@ procedure NotifyAsk(var S: String);
     then
     begin
     S := '';
-    Exit;
+    exit;
     end;
   {/JO}
   for I := 0 to NotifierCollection^.Count-1 do
@@ -174,7 +174,7 @@ procedure NotifyAsk(var S: String);
           S := ''
         else
           S := Path^;
-        Exit;
+        exit;
         end;
   S := '';
   end { NotifyAsk };

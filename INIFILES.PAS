@@ -52,7 +52,7 @@ IniFiles;
 interface
 
 uses
-  Objects, Collect
+  Defines, Streams, Collect
   ;
 
 type
@@ -68,11 +68,11 @@ type
     TheName: PString;
     constructor Init(const AName: String);
     destructor Done; virtual;
-    function GetIndexOf(Key: String): Integer;
+    function GetIndexOf(Key: String): integer;
     function Get(const Key: String): String;
     procedure Put(const Key, Value: String; var Modified: Boolean);
-    function GetKeyAt(const Index: Integer): String;
-    function GetValueAt(const Index: Integer): String;
+    function GetKeyAt(const Index: integer): String;
+    function GetValueAt(const Index: integer): String;
     function Name: String;
     procedure FreeItem(Item: Pointer); virtual;
     procedure Insert(Item: Pointer); virtual;
@@ -85,7 +85,7 @@ type
   TIniFile = object(TCollection)
     Modified: Boolean;
     Name: PString;
-    constructor Init(FileName: String; var AStatus: Integer);
+    constructor Init(FileName: String; var AStatus: integer);
     destructor Done; virtual;
     function Get(const Section, Key: String): String;
     procedure Put(const Section, Key, Value: String);
@@ -95,7 +95,7 @@ type
 implementation
 
 uses
-  Advance, Advance1, Advance2, Advance3, Commands {Cat}
+  advance, advance1, advance2, advance3, Commands {Cat}
   ;
 
 const
@@ -130,7 +130,7 @@ Loop:
 Failure:
     begin
     Stream.Reset;
-    Exit;
+    exit;
     end;
   Stream.Read(C, 1);
   if  (C <> #10) or (Stream.Status <> stOK) then
@@ -150,7 +150,7 @@ constructor TIniSection.Init;
 
 function RemoveLeadSpaces(const S: String): String;
   var
-    I: Integer;
+    I: integer;
   begin
   I := 1;
   while (I <= Length(S)) and (S[I] = ' ') do
@@ -175,7 +175,7 @@ constructor TIniSection.Load;
     Str: String;
   function Simplify(S: String): String;
     var
-      I: Integer;
+      I: integer;
     begin
     I := Pos('=', S);
     if I <> 0 then
@@ -271,11 +271,11 @@ function TIniSection.GetIndexOf;
   var
     P: PString;
     S: String;
-    I: Integer;
+    I: integer;
   function Search(P: PString): Boolean;
     var
       S: String;
-      I: Integer;
+      I: integer;
     begin
     S := UpStrg(PStr2Str(P));
     I := Pos(Key, S);
@@ -288,7 +288,7 @@ function TIniSection.GetIndexOf;
 
 function TIniSection.Get;
   var
-    I: Integer;
+    I: integer;
     S: String;
   begin
   I := GetIndexOf(Key);
@@ -299,7 +299,7 @@ function TIniSection.Get;
     if I > 0 then
       begin
       Get := Copy(S, I+1, MaxStringLength);
-      Exit
+      exit
       end;
     end;
   Get := ''
@@ -307,14 +307,14 @@ function TIniSection.Get;
 
 procedure TIniSection.Put;
   var
-    I: Integer;
+    I: integer;
     S: String;
     NewValue: String;
   begin
   if Key = '' then
     begin
     Insert(NewStr(Value));
-    Exit;
+    exit;
     end;
   I := GetIndexOf(Key);
   NewValue := Key+'='+Value;
@@ -337,7 +337,7 @@ procedure TIniSection.Put;
 function TIniSection.GetKeyAt;
   var
     S: String;
-    I: Integer;
+    I: integer;
   begin
   S := PStr2Str(At(Index));
   I := PosChar('=', S);
@@ -351,7 +351,7 @@ function TIniSection.GetKeyAt;
 function TIniSection.GetValueAt;
   var
     S: String;
-    I: Integer;
+    I: integer;
   begin
   S := PStr2Str(At(Index));
   I := PosChar('=', S);

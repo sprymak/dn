@@ -52,11 +52,12 @@ interface
 
 uses
   Files,
-  FilesCol, Startup, Advance1, Advance2, Advance, Objects, Lfn, Dos,
-  Messages, DNApp, Commands, Drives, Advance3
+  FilesCol, Startup, advance1, advance2, advance, Defines, Objects2,
+   Lfn, Dos,
+  Messages, DNApp, Commands, Drives, advance3
   ;
 
-function GetPossibleDizOwner(N: Integer): String;
+function GetPossibleDizOwner(N: integer): String;
 function GetDizOwner(const Path, LastOwner: String; Add: Boolean): String;
 function CalcDPath(P: PDiz; Owen: PString): String;
 procedure ReplaceDiz(const DPath, Name: String;
@@ -72,10 +73,10 @@ procedure SetDescription(PF: PFileRec; DizOwner: String);
 
 implementation
 
-function GetPossibleDizOwner(N: Integer): String;
+function GetPossibleDizOwner(N: integer): String;
   var
     DIZ: String;
-    I: Integer;
+    I: integer;
   begin
   GetPossibleDizOwner := '';
   DIZ := FMSetup.DIZ;
@@ -90,7 +91,7 @@ function GetPossibleDizOwner(N: Integer): String;
       if N = 0 then
         begin
         GetPossibleDizOwner := Copy(DIZ, 1, I-1);
-        Exit;
+        exit;
         end;
       end;
     Delete(DIZ, 1, I);
@@ -102,7 +103,7 @@ function GetPossibleDizOwner(N: Integer): String;
 function GetDizOwner;
   var
     SR: lSearchRec;
-    I: Integer;
+    I: integer;
     lAdd: Boolean;
     DEr: Boolean;
 
@@ -110,16 +111,16 @@ function GetDizOwner;
     var
       F: lFile;
       C: Char;
-      I, J: Word;
+      I, J: word;
     begin
     if lAdd then
-      Exit;
+      exit;
     lAssignFile(F, MakeNormName(Path, SR.FullName));
     ClrIO;
     FileMode := $42;
     lResetFile(F, 1);
     if IOResult <> 0 then
-      Exit;
+      exit;
     System.Seek(F.F, FileSize(F.F)-1);
     BlockRead(F.F, C, 1, J);
     if  (IOResult = 0) and (C <> #13) and (C <> #10) then
@@ -152,7 +153,7 @@ function GetDizOwner;
     if not DEr then
       begin
       Prepare;
-      Exit;
+      exit;
       end;
     I := 1;
     end;
@@ -160,7 +161,7 @@ function GetDizOwner;
     SR.FullName := GetPossibleDizOwner(I);
     Inc(I);
     if SR.FullName = '' then
-      Exit;
+      exit;
     lFindFirst(MakeNormName(Path, SR.FullName),
        Archive+ReadOnly+Hidden+SysFile, SR);
     DEr := (DosError <> 0);
@@ -169,7 +170,7 @@ function GetDizOwner;
       begin
       Prepare;
       GetDizOwner := MakeNormName(Path, SR.FullName);
-      Exit
+      exit
       end;
   until False;
   end { GetDizOwner };
@@ -178,9 +179,9 @@ function GetDizOwner;
 {-DataCompBoy-}
 procedure ReplaceT(P: PTextReader; var F: lText; Del: Boolean);
   var
-    I: Integer;
+    I: integer;
     FName: String;
-    Attr: Word;
+    Attr: word;
   begin
   FName := P^.FileName;
   Dispose(P, Done);
@@ -217,14 +218,14 @@ procedure SetDescription(PF: PFileRec; DizOwner: String);
     K: Byte;
   begin
   if  (PF = nil) then
-    Exit;
+    exit;
   if DizOwner = '' then
     begin
     DIZ := GetPossibleDizOwner(1);
     if DIZ = '' then
       begin
       MessageBox(GetString(dlNoPossibleName), nil, mfError);
-      Exit;
+      exit;
       end;
     DizOwner := DIZ;
     end
@@ -242,7 +243,7 @@ procedure SetDescription(PF: PFileRec; DizOwner: String);
   if BigInputBox(GetString(dlEditDesc), GetString(dl_D_escription), DIZ,
        255, hsEditDesc) <> cmOK
   then
-    Exit;
+    exit;
   DelLeft(DIZ);
   {$IFNDEF OS2}
   if DnIni.DescrByShortNames then
@@ -266,7 +267,7 @@ procedure ReplaceDiz(const DPath, Name: String;
   var
     F1: PTextReader;
     F2: lText;
-    I, j: Integer;
+    I, j: integer;
     zz: Boolean;
     S, NewName: String;
     WasFilesInDIZ: Boolean;
@@ -296,35 +297,35 @@ procedure ReplaceDiz(const DPath, Name: String;
       if Abort then
         begin
         Close(F2.T);
-        Exit;
+        exit;
         end;
       if IOResult <> 0 then
-        { begin CantWrite(DPath); }Exit; { end; }
+        { begin CantWrite(DPath); }exit; { end; }
       Writeln(F2.T, NewName+' '+ANewDescription^);
       Close(F2.T);
       end;
-    Exit;
+    exit;
     end;
   lAssignText(F2, GetPath(DPath)+'$DN'+ItoS(DNNumber)+'$.DIZ');
   lRewriteText(F2);
   if IOResult <> 0 then
     begin
     Dispose(F1, Done);
-    Exit;
+    exit;
     end;
   FNd := False;
   WasFilesInDIZ := False;
   repeat
     S := F1^.GetStr;
     if S = '' then
-      Continue;
+      continue;
     if not (S[1] in [' ', #9]) then
       begin
       zz := False;
       for I := 1 to Length(S) do
         if  (S[I] in [' ', #9]) and not zz
         then
-          Break
+          break
         else if S[I] = '"' then
           zz := not zz;
       if S[I] in [' ', #9] then
@@ -352,7 +353,7 @@ procedure ReplaceDiz(const DPath, Name: String;
             WasFilesInDIZ := True;
             Writeln(F2.T, S);
             end;
-          Continue;
+          continue;
           end;
 
         Delete(S, 1, j-1);
@@ -391,25 +392,25 @@ function GetDiz(const DPath: String; var Line: LongInt;
     F1: PTextReader;
     S: String;
     zz: Boolean;
-    i, j: Integer;
+    i, j: integer;
   begin
   GetDiz := '';
   Line := 0;
   F1 := New(PTextReader, Init(DPath));
   if F1 = nil then
-    Exit;
+    exit;
   repeat
     S := F1^.GetStr;
     Inc(Line);
     if S = '' then
-      Continue;
+      continue;
     if not (S[1] in [' ', #9]) then
       begin
       zz := False;
       for i := 1 to Length(S) do
         if  (S[i] in [' ', #9]) and not zz
         then
-          Break
+          break
         else if S[i] = '"' then
           zz := not zz;
       if S[i] in [' ', #9] then
@@ -425,7 +426,7 @@ function GetDiz(const DPath: String; var Line: LongInt;
         while S[1] in [' ', #9] do
           Delete(S, 1, 1); {DelFC(S);}
         GetDiz := S;
-        Break;
+        break;
         end;
       end;
   until F1^.Eof or (IOResult <> 0);
@@ -434,7 +435,7 @@ function GetDiz(const DPath: String; var Line: LongInt;
 {-DataCompBoy-}
 function CalcDPath(P: PDiz; Owen: PString): String;
   var
-    I: Integer;
+    I: integer;
     DPath: String;
     SR: lSearchRec;
   begin
@@ -444,12 +445,12 @@ function CalcDPath(P: PDiz; Owen: PString): String;
       begin
       DPath := GetPossibleDizOwner(I);
       if DPath = '' then
-        Exit;
+        exit;
       DPath := MakeNormName(CnvString(Owen), DPath);
       lFindFirst(DPath, Archive+ReadOnly+Hidden, SR);
       lFindClose(SR);
       if DosError = 0 then
-        Break;
+        break;
       end;
     end
   else

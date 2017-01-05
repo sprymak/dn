@@ -50,7 +50,7 @@ unit arc_TAR; {TAR}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos, xTime
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime
   ;
 
 type
@@ -229,13 +229,13 @@ procedure TTARArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    Exit
+    exit
     end;
   ArcFile^.Read(Buffer, BlkSize);
   if ArcFile^.Status <> stOK then
     begin
     FileInfo.Last := 2;
-    Exit
+    exit
     end;
   FileInfo.Last := 0;
   FileInfo.FName := Hdr.FName+#0;
@@ -243,7 +243,7 @@ procedure TTARArchive.GetFile;
   if FileInfo.FName = '' then
     begin
     FileInfo.Last := 1;
-    Exit
+    exit
     end;
   FileInfo.USize := FromOct(Hdr.Size);
   FileInfo.PSize := FileInfo.USize;

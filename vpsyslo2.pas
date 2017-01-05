@@ -48,7 +48,7 @@ type
     //JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
     //    переменной в _Defines.lSearchRec
     FindBuf: array[0..2*1024-1] of Byte;
-    FindCount: Integer; {число необработанных записей}
+    FindCount: integer; {число необработанных записей}
     FindPtr: ^FileFindBuf3; {первая необработанная запись}
     {$ENDIF}
     {$IFDEF WIN32}
@@ -160,7 +160,7 @@ function DoFindFileNew(var F: TOSSearchRecNew; IsPChar: Boolean): LongInt;
       if not FindNextFile(Handle, FindData) then
         begin
         Result := GetLastError;
-        Exit;
+        exit;
         end;
     FileTimeToLocalFileTime(FindData.ftLastWriteTime, LocalFileTime);
     FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(Time).FDate,
@@ -287,7 +287,7 @@ function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): LongInt;
     Result := DosFindNext(F.Handle, F.FindBuf,
         SizeOf(F.FindBuf), F.FindCount);
     if Result <> 0 then
-      Exit;
+      exit;
     F.FindPtr := @F.FindBuf;
     end;
   with F, F.FindPtr^ do

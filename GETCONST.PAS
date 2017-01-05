@@ -54,7 +54,7 @@ interface
 uses
   Lfn, {DataCompBoy}
   Collect,
-  Objects
+  Objects2
   ;
 
 type
@@ -66,7 +66,7 @@ type
   { Collection of PTypeHolders }
   TValuesHolder = object(TCollection)
     function GetType(ID: String): PTypeHolder;
-    function GetValue(S: String; var Complete: Boolean): Word;
+    function GetValue(S: String; var Complete: Boolean): word;
     procedure Show;
     end;
 
@@ -75,15 +75,15 @@ type
     TypeID: String[10];
     Mode: TTypeMode;
     constructor Init(ID: String; AMode: TTypeMode);
-    function Compare(P1, P2: Pointer): Integer; virtual;
+    function Compare(P1, P2: Pointer): integer; virtual;
     procedure Show;
     end;
 
   TLngWord = object(TObject)
     Name: String[30];
-    l: Word;
+    l: word;
     Mark: Byte;
-    constructor Init(AL: Word; const AName: String);
+    constructor Init(AL: word; const AName: String);
     end;
 
 procedure ProcessFile(const FileName: String; Types: PValuesHolder);
@@ -92,10 +92,10 @@ implementation
 
 uses
   Dos,
-  Advance,
-  Advance1,
-  Advance2,
-  Advance3,
+  advance,
+  advance1,
+  advance2,
+  advance3,
   Commands
   ;
 
@@ -175,7 +175,7 @@ constructor TTypeHolder.Init;
 constructor TLngWord.Init;
   begin
   Name := UpStrg(Copy(AName, 1, 30));
-  l := Word(AL);
+  l := word(AL);
   Mark := 0;
   end;
 
@@ -193,20 +193,20 @@ procedure ProcessFile;
   var
     F: lText;
     US, S, ID: String;
-    Eq: Integer;
+    Eq: integer;
     P: PTypeHolder;
     CurrentType: PTypeHolder;
-    TypeCount: Word;
+    TypeCount: word;
     CmtMode, Mode: TParseMode;
-    CmtB, CmtE: Integer;
+    CmtB, CmtE: integer;
     CmtS: String[2];
 
-  function CalcValue(var S: String): Word;
+  function CalcValue(var S: String): word;
     var
-      W: Word;
+      W: word;
       V: String;
       ParseMode: (pmNone, pmAlpha, pmWord, pmHex);
-      I: Integer;
+      I: integer;
       Complete: Boolean;
     label Loop;
     begin
@@ -220,7 +220,7 @@ Loop:
       case ParseMode of
         pmNone:
           if S[I] in Blank then
-            Continue
+            continue
           else if S[I] in Digits then
             begin
             ParseMode := pmWord;
@@ -241,26 +241,26 @@ Loop:
             begin
             S := Copy(S, I+1, MaxStringLength);
             W := W+CalcValue(S);
-            Break;
+            break;
             end
           else if S[I] = '-' then
             begin
             S := Copy(S, I+1, MaxStringLength);
             W := W-CalcValue(S);
-            Break;
+            break;
             end;
         pmWord:
           if S[I] in Digits
           then
             W := W*10+Ord(S[I])-Ord('0')
           else
-            Break;
+            break;
         pmHex:
           if S[I] in Hexs
           then
             W := W*16+Ord(UpCase(S[I]))-Ord('0')-7*Byte(S[I] > '9')
           else
-            Break;
+            break;
         pmAlpha:
           if S[I] in (Alpha+Digits)
           then
@@ -273,7 +273,7 @@ Loop:
               Writeln('Undefined variable ', V);
               end
             else
-              Break;
+              break;
             end;
       end { case };
       end { while };
@@ -294,7 +294,7 @@ Loop:
 
   function RemoveLeadSpaces(const S: String): String;
     var
-      I: Integer;
+      I: integer;
     begin
     I := 1;
     while (I <= Length(S)) and (S[I] = ' ') do
@@ -302,16 +302,16 @@ Loop:
     RemoveLeadSpaces := Copy(S, I, MaxStringLength);
     end;
 
-  function Ident(N: Integer): String;
+  function Ident(N: integer): String;
     var
       R: String;
-      I: Integer;
+      I: integer;
     begin
     I := N;
     if not (S[I] in Alpha) then
       begin
       Ident := '';
-      Exit;
+      exit;
       end;
     while (I <= Length(S)) and (S[I] in (Alpha+Digits)) do
       Inc(I);
@@ -349,7 +349,7 @@ Reparse:
     S := RemoveLeadSpaces(TruncSpace(S));
     DelDoubles('  ', S);
     if S = '' then
-      Continue;
+      continue;
     US := UpStrg(S);
 
     CmtB := Pos('{', S);
@@ -431,12 +431,12 @@ StartType:
           if Eq = 0 then
             begin
             Mode := pmSkip;
-            Continue;
+            continue;
             end;
           ID := Ident(1);
           P := Types^.FirstThat(@LookForType);
           if P = nil then
-            Continue;
+            continue;
           Eq := Pos('=', S);
           S := RemoveLeadSpaces(Copy(S, Eq+1, MaxStringLength));
           US := RemoveLeadSpaces(Copy(US, Eq+1, MaxStringLength));
@@ -457,7 +457,7 @@ StartType:
             while not Eof(F.T) do
               if Pos(')', S) > 0
               then
-                Break
+                break
               else
                 Readln(F.T, S);
           Mode := pmSeekType;

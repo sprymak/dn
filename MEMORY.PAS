@@ -64,9 +64,9 @@ procedure DoneMemory;
 procedure InitDOSMem;
 procedure DoneDOSMem;
 function LowMemory: Boolean;
-function MemAlloc(Size: Word): Pointer;
-function MemAllocSeg(Size: Word): Pointer;
-procedure NewCache(var P: Pointer; Size: Word);
+function MemAlloc(Size: word): Pointer;
+function MemAllocSeg(Size: word): Pointer;
+procedure NewCache(var P: Pointer; Size: word);
 procedure DisposeCache(P: Pointer);
 
 implementation
@@ -81,7 +81,7 @@ type
   TCache = record
     Next: PCache;
     Master: ^Pointer;
-    Size: Word;
+    Size: word;
     Data: record
       end;
     end;
@@ -89,7 +89,7 @@ type
   PBuffer = ^TBuffer;
   TBuffer = record
     Next: PBuffer;
-    Size: Word;
+    Size: word;
     Data: record
       end;
     end;
@@ -98,7 +98,7 @@ const
   CacheList: PCache = nil;
   SafetyPool: Pointer = nil;
   BufferList: PBuffer = nil;
-  SafetyPoolSize: Word = 0;
+  SafetyPoolSize: word = 0;
   DisablePool: Boolean = False;
 
 function FreeCache: Boolean;
@@ -122,7 +122,7 @@ function FreeSafetyPool: Boolean;
     end;
   end;
 
-function HeapNotify(Size: Word): Integer;
+function HeapNotify(Size: word): integer;
   begin
   if FreeCache then
     HeapNotify := 2
@@ -167,7 +167,7 @@ function LowMemory: Boolean;
     end;
   end;
 
-function MemAlloc(Size: Word): Pointer;
+function MemAlloc(Size: word): Pointer;
   var
     P: Pointer;
   begin
@@ -177,7 +177,7 @@ function MemAlloc(Size: Word): Pointer;
   MemAlloc := P;
   end;
 
-procedure NewCache(var P: Pointer; Size: Word);
+procedure NewCache(var P: Pointer; Size: word);
   var
     Cache: PCache;
   begin
@@ -226,7 +226,7 @@ procedure DisposeCache(P: Pointer);
     end;
   end;
 
-procedure NewBuffer(var P: Pointer; Size: Word);
+procedure NewBuffer(var P: Pointer; Size: word);
   var
     Buffer: PBuffer;
   begin
@@ -267,7 +267,7 @@ procedure DisposeBuffer(P: Pointer);
     end;
   end { DisposeBuffer };
 
-function GetBufferSize(P: Pointer): Word;
+function GetBufferSize(P: Pointer): word;
   begin
   if P = nil then
     GetBufferSize := 0
@@ -278,12 +278,12 @@ function GetBufferSize(P: Pointer): Word;
     end;
   end;
 
-function SetBufferSize(P: Pointer; Size: Word): Boolean;
+function SetBufferSize(P: Pointer; Size: word): Boolean;
   begin
   SetBufferSize := False;
   end;
 
-function MemAllocSeg(Size: Word): Pointer;
+function MemAllocSeg(Size: word): Pointer;
   begin
   MemAllocSeg := MemAlloc(Size);
   end;

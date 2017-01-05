@@ -50,12 +50,12 @@ unit ArvidAvt;
 interface
 
 uses
-  Arvid, Objects, Advance1, Messages, DNApp, Commands, Collect,
-  Views, Drivers, Startup, U_KeyMap, Advance, Lfn, Files, Dos, Tree,
-  FilesCol, Advance2, Drives, FlPanel, Memory
+  Arvid, Objects2, Streams, advance1, Messages, DNApp, Commands, Collect,
+  Views, Drivers, Startup, U_KeyMap, advance, Lfn, Files, Dos, Tree,
+  FilesCol, advance2, Drives, FlPanel, Memory
   ;
 
-function AvtCMP(S1, S2: String): Integer;
+function AvtCMP(S1, S2: String): integer;
 function AvtCellText(Offset: LongInt; var S: TStream): String;
 function AvtCellName(const C: TAvtFileCell; var AStream: TStream): String;
 function AvtCellDesc(const C: TAvtFileCell; var AStream: TStream): String;
@@ -73,7 +73,7 @@ function AvtNewFile(AvtDr: PArvidDrive;
     AChildOrSize: LongInt;
     ATime: LongInt;
     AStartSector: LongInt;
-    AAttr: Word): Word;
+    AAttr: word): word;
 procedure AvtSeekDirectory(AvtDr: PArvidDrive);
 procedure AvtGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
     var FC: PFilesCollection; const FileMask: String);
@@ -94,7 +94,7 @@ var
   FCtemp, FCLtemp, FCRtemp: TAvtFileCell;
   ArvidDeleteAllFiles: Boolean;
 
-function AvtCMP(S1, S2: String): Integer;
+function AvtCMP(S1, S2: String): integer;
   begin
   UpStr(S1);
   UpStr(S2);
@@ -117,7 +117,7 @@ function AvtCellText(Offset: LongInt; var S: TStream): String;
     S.Seek(Offset);
     S.Read(T, SizeOf(T));
     if S.Status <> stOK then
-      Break;
+      break;
     S1 := S1+Copy(T.Data, 1, 36);
     Offset := T.NextTextCell;
     end;
@@ -205,7 +205,7 @@ procedure AvtFreeCell(AvtDr: PArvidDrive; const l: LongInt);
   with AvtDr^ do
     begin
     if l = 0 then
-      Exit;
+      exit;
     T.NextTextCell := AVT.FreeCell;
     Stream^.Seek(l);
     Stream^.Write(T, SizeOf(T));
@@ -355,7 +355,7 @@ function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
     FCL: TAvtFileCell;
     FCR: TAvtFileCell;
     NewCurDirPos: LongInt;
-    DelDirAnswer: Word;
+    DelDirAnswer: word;
 
   label 1;
 
@@ -405,7 +405,7 @@ function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
     with AvtDr^ do
       begin
       if Loc = 0 then
-        Exit;
+        exit;
       Stream^.Seek(Loc);
       Stream^.Read(FC, SizeOf(FC));
       if FC.Flags and AvtIsDir <> 0 then
@@ -554,7 +554,7 @@ function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
           begin
           l0 := Loc;
           AvtTreeRemoveLeftmost := FC.RightFileCell;
-          Exit;
+          exit;
           end;
         L1 := FC.LeftFileCell;
         Stream^.Seek(L1);
@@ -586,7 +586,7 @@ function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
           begin
           l0 := Loc;
           AvtTreeRemoveRightmost := FC.LeftFileCell;
-          Exit;
+          exit;
           end;
         L1 := FC.RightFileCell;
         Stream^.Seek(L1);
@@ -611,7 +611,7 @@ function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
       begin
       AvtTreeNodeRemove := Loc;
       if Loc = 0 then
-        Exit;
+        exit;
       Stream^.Seek(Loc);
       Stream^.Read(FC, SizeOf(FC));
       SN := AvtCellName(FC, Stream^);
@@ -696,7 +696,7 @@ function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
             Abort := DelDirAnswer = cmCancel;
             end;
           if not (DelDirAnswer in [cmYes, cmOK]) then
-            Exit;
+            exit;
           AvtFreeTree(FC.ChildOrSize);
           Stream^.Seek(Loc);
           Stream^.Read(FC, SizeOf(FC));
@@ -818,7 +818,7 @@ function AvtNewFile(
     AChildOrSize: LongInt;
     ATime: LongInt;
     AStartSector: LongInt;
-    AAttr: Word): Word;
+    AAttr: word): word;
 
   var
     SaveCurDir: String;
@@ -831,7 +831,7 @@ function AvtNewFile(
     FC: TAvtFileCell;
     NewCurDirPos: LongInt;
     NewCell: LongInt;
-    Lv: Integer;
+    Lv: integer;
     NewCellFailed: Boolean;
     FailedCellIsDir: Boolean;
     CreatedCellIsDir: Boolean;
@@ -842,14 +842,14 @@ function AvtNewFile(
     var
       T: TAvtTextCell;
       L, L2: LongInt;
-      I: Integer;
+      I: integer;
     begin
     with AvtDr^ do
       begin
       if S = '' then
         begin
         AvtPutText := 0;
-        Exit;
+        exit;
         end;
       L := AvtGetCell(AvtDr);
       AvtPutText := L;
@@ -878,7 +878,7 @@ function AvtNewFile(
 
   procedure AvtPutName(S: String);
     var
-      I: Integer;
+      I: integer;
     begin
     with AvtDr^ do
       begin
@@ -963,7 +963,7 @@ function AvtNewFile(
         begin
         AvtNewCell;
         AvtTreeNodeInsert := NewCell;
-        Exit;
+        exit;
         end;
       Stream^.Seek(APos);
       Stream^.Read(FCtemp, SizeOf(FCtemp));
@@ -973,7 +973,7 @@ function AvtNewFile(
         begin
         FailedCellIsDir := (FCtemp.Flags and AvtIsDir) <> 0;
         NewCellFailed := True;
-        Exit;
+        exit;
         end;
       if AvtCMP(SS, SN) < 0 then
         begin
@@ -1118,7 +1118,7 @@ function AvtNewFile(
     var
       NewCurDirPos: LongInt;
       DD: TAvtFileCell;
-      I: Integer;
+      I: integer;
     begin
     with AvtDr^ do
       begin
@@ -1135,7 +1135,7 @@ function AvtNewFile(
           AddStr(SS, AName[1]);
           Delete(AName, 1, 1); {DelFC(AName);}
           if Length(SS) = 12 then
-            Break;
+            break;
           end;
         if Length(SS) = 12 then
           while (AName[1] <> '\') and (AName <> '') do
@@ -1148,7 +1148,7 @@ function AvtNewFile(
           begin
           MessageBox(GetString(dlFCNoCreateDir)+SN, nil,
              mfError+mfOKButton);
-          Exit;
+          exit;
           end;
         NewCurDirPos := AvtTreeNodeInsert(CurDirPos);
         NewCellIsDir := (AName[1] = '\') or AIsDir;
@@ -1164,7 +1164,7 @@ function AvtNewFile(
             else
               MessageBox(GetString(dlleCantCreate)+SN, nil,
                  mfError+mfOKButton);
-            Exit;
+            exit;
             end;
           end;
         if FirstNameProcessed = False then
@@ -1217,7 +1217,7 @@ function AvtNewFile(
     begin
     AvtNewFile := 0;
     if  (filetype <> avdAvt) or (Length(AName) = 0) then
-      Exit;
+      exit;
     NewCell := 0;
     CurDir2 := CurDir;
     if  (CurDir2[Length(CurDir2)] <> '\') then
@@ -1281,7 +1281,7 @@ function AvtNewFile(
 procedure AvtSeekDirectory(AvtDr: PArvidDrive);
   var
     I, J: LongInt;
-    Lv: Integer;
+    Lv: integer;
     DD: TAvtFileCell;
     SavedCurDirPos: LongInt;
     SeekFailed: Boolean;
@@ -1319,12 +1319,12 @@ procedure AvtSeekDirectory(AvtDr: PArvidDrive);
         if CurDirPos = 0 then
           begin
           SeekFailed := True;
-          Break;
+          break;
           end;
         Stream^.Seek(CurDirPos);
         Stream^.Read(DD, SizeOf(DD));
         if Stream^.Status <> stOK then
-          Break;
+          break;
         S2 := AvtCellName(DD, Stream^);
         if AvtCMP(SS, S2) < 0 then
           begin
@@ -1343,20 +1343,20 @@ procedure AvtSeekDirectory(AvtDr: PArvidDrive);
           if  (DD.Flags and AvtIsDir) = 0 then
             begin
             SeekFailed := True;
-            Break;
+            break;
             end;
           CurDirCellPos := CurDirPos;
           CurDirPos := DD.ChildOrSize;
           SavedCurDirPos := CurDirPos;
-          Break;
+          break;
           end;
         end;
       if Stream^.Status <> stOK then
-        Break;
+        break;
       if SeekFailed then
         begin
         CurDirPos := SavedCurDirPos;
-        Break;
+        break;
         end;
       if  (CurDir[Length(CurDir)] <> '\') and
           (CurDir <> '')
@@ -1374,7 +1374,7 @@ procedure AvtSeekDirectory(AvtDr: PArvidDrive);
 procedure AvtGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
     var FC: PFilesCollection; const FileMask: String);
   var
-    TAttr: Word;
+    TAttr: word;
     F: PFileRec;
     Cell: TAvtFileCell;
     IsDir: Boolean;
@@ -1383,14 +1383,14 @@ procedure AvtGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
   with AvtDr^ do
     begin
     if ALocation = 0 then
-      Exit;
+      exit;
     Stream^.Status := stOK;
     Stream^.Seek(ALocation);
     if Stream^.Status <> stOK then
-      Exit;
+      exit;
     Stream^.Read(Cell, SizeOf(Cell));
     if Stream^.Status <> stOK then
-      Exit;
+      exit;
     AvtGetDirectory(AvtDr, Cell.LeftFileCell, FC, FileMask);
     Str := Ansi_Ascii(AvtCellName(Cell, Stream^));
     IsDir := Cell.Flags and AvtIsDir <> 0;
@@ -1429,7 +1429,7 @@ procedure AvtGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
 function CopyFilesToArvid(const S: String; Files: PCollection;
      MoveMode: Boolean; Owner: Pointer): Boolean;
   var
-    I, J: Integer;
+    I, J: integer;
     PF: PFileRec;
     PD: PDrive;
     PAD: PArvidDrive;
@@ -1445,18 +1445,18 @@ function CopyFilesToArvid(const S: String; Files: PCollection;
   begin
   CopyFilesToArvid := False;
   if Owner = nil then
-    Exit;
+    exit;
   PD := PFilePanel(Owner)^.Drive;
   if PD^.DriveType = dtArvid then
-    Exit;
+    exit;
   if ArvidDrives = nil then
-    Exit;
+    exit;
   I := Pos('\AVT:', S);
   J := Pos('\TDR:', S);
   if  ( (I = 0) and (J = 0)) or
       ( (I <> 0) and (J <> 0))
   then
-    Exit;
+    exit;
   if I = 0 then
     I := J; {TDR found}
   S2 := Copy(S, 1, I);
@@ -1472,7 +1472,7 @@ function CopyFilesToArvid(const S: String; Files: PCollection;
     S2 := S2+'.AVT';
   PAD := ArvidDrives^.FirstThat(@FindDrive);
   if PAD = nil then
-    Exit;
+    exit;
   CopyFilesToArvid := True;
   ToStr := Copy(S, I, 256);
   if ToStr = '' then
@@ -1489,7 +1489,7 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
     Own: PView; MoveMode: Boolean);
   var
     PD: PDrive;
-    I, J: Integer;
+    I, J: integer;
     PF: PFileRec;
     T: lText;
     CmdFileCreated: Boolean;
@@ -1503,7 +1503,7 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
 
   procedure AvtWalkTree;
     var
-      I: Integer;
+      I: integer;
       PC: PCollection;
       Dummy: TSize;
     begin
@@ -1554,10 +1554,10 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
   with AvtDr^ do
     begin
     if Own = nil then
-      Exit;
+      exit;
     PD := PFilePanel(Own)^.Drive;
     if PD^.DriveType = dtArvid then
-      Exit;
+      exit;
     From := PD^.GetRealName;
     S2 := From;
     J := 0;
@@ -1571,14 +1571,14 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
     if  (J > 1) or MoveMode then
       begin
       MessageBox(GetString(dlArvidNeedDisk), nil, mfError+mfOKButton);
-      Exit;
+      exit;
       end;
     S2 := UpStrg(From);
     I := Pos(':', S2);
     if  (I <> 2) or (S2[1] < 'A') or (S2[1] > 'Z') then
       begin
       MessageBox(GetString(dlArvidNeedDisk), nil, mfError+mfOKButton);
-      Exit;
+      exit;
       end;
     if TapeFmt <> 0 then
       begin
@@ -1628,7 +1628,7 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
            mfInformation+mfOKButton);
         MessageBox(GetString(dlArvidCanChangeOnlyAVT), nil,
            mfInformation+mfOKButton);
-        Exit;
+        exit;
         end;
       P := WriteMsg(GetString(dlPleaseStandBy));
       for I := 0 to AFiles^.Count-1 do
@@ -1666,7 +1666,7 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
 procedure AvtEraseFiles(AvtDr: PArvidDrive; AFiles: PCollection);
   var
     PF: PFileRec;
-    I: Word;
+    I: word;
     P: PView;
     R: Boolean;
     S: String;
@@ -1677,10 +1677,10 @@ procedure AvtEraseFiles(AvtDr: PArvidDrive; AFiles: PCollection);
       begin
       MessageBox(GetString(dlArvidCanChangeOnlyAVT), nil,
          mfInformation+mfOKButton);
-      Exit;
+      exit;
       end;
     if AFiles^.Count = 0 then
-      Exit;
+      exit;
     if AFiles^.Count = 1 then
       begin
       PF := AFiles^.At(0);
@@ -1695,14 +1695,14 @@ procedure AvtEraseFiles(AvtDr: PArvidDrive; AFiles: PCollection);
     I := MessageBox(S, nil, mfConfirmation+mfYesButton+mfNoButton
         {+mfFastButton});
     if  (I <> cmYes) then
-      Exit;
+      exit;
     if AFiles^.Count > 1 then
       begin
       S := GetString(dlEraseConfirm2)+ItoS(AFiles^.Count)
           +' '+GetString(dlDIFiles)+' ?';
       I := MessageBox(S, nil, mfConfirmation+mfYesButton+mfNoButton);
       if  (I <> cmYes) then
-        Exit;
+        exit;
       end;
     ArvidDeleteAllFiles := False;
     P := WriteMsg(GetString(dlPleaseStandBy));
@@ -1731,20 +1731,20 @@ procedure AvtMakeDir(AvtDr: PArvidDrive);
   with AvtDr^ do
     begin
     if LowMemory then
-      Exit;
+      exit;
     if filetype <> avdAvt then
       begin
       MessageBox(GetString(dlArvidCanChangeOnlyAVT), nil,
          mfInformation+mfOKButton);
-      Exit;
+      exit;
       end;
     S := '';
     if ExecResource(dlgMkDir, S) <> cmOK then
-      Exit;
+      exit;
     DelLeft(S);
     DelRight(S);
     if S = '' then
-      Exit;
+      exit;
     if  (S[Length(S)] <> '\') then
       S := S+'\';
     AvtNewFile(AvtDr, S, '', True, 0, 0, 0, 0);
@@ -1762,20 +1762,20 @@ procedure AvtEditDescription(AvtDr: PArvidDrive; var S, Nam: String);
     C: TAvtFileCell;
     T: TAvtTextCell;
     L1, L2, L3, L: LongInt;
-    I: Word;
+    I: word;
 
   function AvtPutText(S: String): LongInt;
     var
       T: TAvtTextCell;
       L, L2: LongInt;
-      I: Integer;
+      I: integer;
     begin
     with AvtDr^ do
       begin
       if S = '' then
         begin
         AvtPutText := 0;
-        Exit;
+        exit;
         end;
       L := AvtGetCell(AvtDr);
       AvtPutText := L;
@@ -1804,7 +1804,7 @@ procedure AvtEditDescription(AvtDr: PArvidDrive; var S, Nam: String);
 
   procedure AvtPutName(S: String);
     var
-      I: Integer;
+      I: integer;
     begin
     with AvtDr^ do
       begin
@@ -1837,7 +1837,7 @@ procedure AvtEditDescription(AvtDr: PArvidDrive; var S, Nam: String);
     L1 := Stream^.GetPos;
     Stream^.Read(C, SizeOf(C));
     if Stream^.Status <> stOK then
-      Exit;
+      exit;
     case C.Flags and AvtCellFormat of
       avtCell2:
         L := C.DescPtr2;
@@ -1851,7 +1851,7 @@ procedure AvtEditDescription(AvtDr: PArvidDrive; var S, Nam: String);
       Stream^.Seek(L);
       Stream^.Read(T, SizeOf(T));
       if Stream^.Status <> stOK then
-        Exit;
+        exit;
       AvtFreeCell(AvtDr, L);
       L := T.NextTextCell;
       end;
@@ -1910,11 +1910,11 @@ procedure AvtCalcTotal(AvtDr: PArvidDrive; const Offset: LongInt;
   with AvtDr^ do
     begin
     if Offset = 0 then
-      Exit;
+      exit;
     Stream^.Seek(Offset);
     Stream^.Read(AA, SizeOf(AA));
     if Stream^.Status <> stOK then
-      Exit;
+      exit;
     AvtCalcTotal(AvtDr, AA.LeftFileCell, LL);
     if AA.Flags and AvtIsDir <> 0
     then
@@ -1929,7 +1929,7 @@ function AvtInit;
   var
     A: TAvtMediaCell;
     I: LongInt;
-    J: Word;
+    J: word;
   begin
   with AvtDr^ do
     begin
@@ -1938,7 +1938,7 @@ function AvtInit;
     Stream^.Seek(AVT.AvtMediaCell);
     Stream^.Read(A, SizeOf(A));
     if Stream^.Status <> stOK then
-      Exit;
+      exit;
     TapeFmt := A.TapeFmt;
     if TapeFmt <> 0 then
       begin
@@ -1949,14 +1949,14 @@ function AvtInit;
         begin
         Stream^.Read(I, SizeOf(I));
         if Stream^.Status <> stOK then
-          Exit;
+          exit;
         TapeRecordedTime := I*4;
         end
       else
         begin
         Stream^.Read(J, SizeOf(J));
         if Stream^.Status <> stOK then
-          Exit;
+          exit;
         TapeRecordedTime := J*8;
         end;
       end

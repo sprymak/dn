@@ -51,7 +51,8 @@ unit ASCIITab;
 interface
 
 uses
-  Advance, Advance1, Advance2, Advance3, Objects, DNApp, Views, Drivers,
+  advance, advance1, advance2, advance3, Defines, Streams, DNApp, Views,
+   Drivers,
   RStrings
   ;
 
@@ -65,7 +66,7 @@ type
   TTable = object(TView)
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function DataSize: Word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Data); virtual;
     procedure SetData(var Data); virtual;
     end;
@@ -82,7 +83,7 @@ type
   PASCIIChart = ^TASCIIChart;
   TASCIIChart = object(TWindow)
     constructor Init(var R: TRect);
-    function Execute: Word; virtual;
+    function Execute: word; virtual;
     end;
 
 procedure ASCIITable;
@@ -99,7 +100,7 @@ const
 procedure TTable.Draw;
   var
     Buf: TDrawBuffer;
-    X, Y: Integer;
+    X, Y: integer;
     Color: Byte;
   begin
   Color := GetColor(6);
@@ -116,7 +117,7 @@ procedure TTable.Draw;
 procedure ASCIITable;
   var
     P: PWindow;
-    W: Word;
+    W: word;
     E: TEvent;
     R: TRect;
     CR: PView;
@@ -157,7 +158,7 @@ procedure TTable.HandleEvent(var Event: TEvent);
     end;
 
   var
-    cX, cY: Integer;
+    cX, cY: integer;
   begin
   if Event.What = evMouseDown then
     begin
@@ -168,7 +169,7 @@ procedure TTable.HandleEvent(var Event: TEvent);
       Event.KeyCode := Byte(C);
       PutEvent(Event);
       ClearEvent(Event);
-      Exit;
+      exit;
       end;
     repeat
       if MouseInView(Event.Where) then
@@ -363,7 +364,7 @@ constructor TASCIIChart.Init;
   Control^.Select;
   end { TASCIIChart.Init };
 
-function TASCIIChart.Execute: Word;
+function TASCIIChart.Execute: word;
   var
     Event: TEvent;
   begin

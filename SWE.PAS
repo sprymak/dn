@@ -51,12 +51,12 @@ unit SWE;
 interface
 
 uses
-  Drivers, Objects, Views, Dialogs
+  Drivers, Defines, Streams, Views, Dialogs
   ;
 
 type
   TDate = record
-    Year: Word;
+    Year: word;
     Month, Day: Byte;
     end;
 
@@ -78,7 +78,7 @@ const
     Day: 1
     );
 
-procedure AssignDate(Year: Word; Month, Day: Byte; var D: TDate);
+procedure AssignDate(Year: word; Month, Day: Byte; var D: TDate);
 procedure CopyDate(S: TDate; var D: TDate);
 function MoreThat(D1, D2: TDate): Boolean;
 function LessThat(D1, D2: TDate): Boolean;
@@ -94,10 +94,10 @@ type
   PInputByte = ^TInputByte;
   TInputByte = object(TInpLine)
     MinValue, MaxValue, Value: Byte;
-    EndView: Word;
+    EndView: word;
     constructor Init(var Bounds: TRect; AMinValue, AMaxValue: Byte);
-    function Execute: Word; virtual;
-    function DataSize: Word; virtual;
+    function Execute: word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Rec); virtual;
     procedure SetData(var Rec); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -105,11 +105,11 @@ type
 
   PInputWord = ^TInputWord;
   TInputWord = object(TInpLine)
-    MinValue, MaxValue, Value: Word;
-    EndView: Word;
-    constructor Init(var Bounds: TRect; AMinValue, AMaxValue: Word);
-    function Execute: Word; virtual;
-    function DataSize: Word; virtual;
+    MinValue, MaxValue, Value: word;
+    EndView: word;
+    constructor Init(var Bounds: TRect; AMinValue, AMaxValue: word);
+    function Execute: word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Rec); virtual;
     procedure SetData(var Rec); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -117,11 +117,11 @@ type
 
   PInputInteger = ^TInputInteger;
   TInputInteger = object(TInpLine)
-    MinValue, MaxValue, Value: Integer;
-    EndView: Word;
-    constructor Init(var Bounds: TRect; AMinValue, AMaxValue: Integer);
-    function Execute: Word; virtual;
-    function DataSize: Word; virtual;
+    MinValue, MaxValue, Value: integer;
+    EndView: word;
+    constructor Init(var Bounds: TRect; AMinValue, AMaxValue: integer);
+    function Execute: word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Rec); virtual;
     procedure SetData(var Rec); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -130,10 +130,10 @@ type
   PInputLongInt = ^TInputLongInt;
   TInputLongInt = object(TInpLine)
     MinValue, MaxValue, Value: LongInt;
-    EndView: Word;
+    EndView: word;
     constructor Init(var Bounds: TRect; AMinValue, AMaxValue: LongInt);
-    function Execute: Word; virtual;
-    function DataSize: Word; virtual;
+    function Execute: word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Rec); virtual;
     procedure SetData(var Rec); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -142,10 +142,10 @@ type
   PInputDate = ^TInputDate;
   TInputDate = object(TInpLine)
     MinValue, MaxValue, Value: TDate;
-    EndView: Word;
+    EndView: word;
     constructor Init(var Bounds: TRect; AMinValue, AMaxValue: TDate);
-    function Execute: Word; virtual;
-    function DataSize: Word; virtual;
+    function Execute: word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Rec); virtual;
     procedure SetData(var Rec); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -155,11 +155,11 @@ type
   TInputReal = object(TInpLine)
     MinValue, MaxValue, Value: Real;
     Decimals: Byte;
-    EndView: Word;
+    EndView: word;
     constructor Init(var Bounds: TRect; AMinValue, AMaxValue: Real;
          D: Byte);
-    function Execute: Word; virtual;
-    function DataSize: Word; virtual;
+    function Execute: word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Rec); virtual;
     procedure SetData(var Rec); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -167,8 +167,8 @@ type
 
   PInputString = ^TInputString;
   TInputString = object(TInpLine)
-    EndView: Word;
-    function Execute: Word; virtual;
+    EndView: word;
+    function Execute: word; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -176,8 +176,8 @@ type
   TInputFName = object(TInputString)
     LC: Char;
     RC: Char;
-    C1, C2, C3: Word;
-    CR, CL: Word;
+    C1, C2, C3: word;
+    CR, CL: word;
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
@@ -199,7 +199,7 @@ type
 implementation
 
 uses
-  Advance, Advance1, Advance2, Advance3, Commands, DNApp
+  advance, advance1, advance2, advance3, Commands, DNApp
   ;
 
 function TInpLine.GetPalette;
@@ -210,7 +210,7 @@ function TInpLine.GetPalette;
   GetPalette := @S[DrawShift];
   end;
 
-procedure AssignDate(Year: Word; Month, Day: Byte; var D: TDate);
+procedure AssignDate(Year: word; Month, Day: Byte; var D: TDate);
   begin
   D.Year := Year;
   D.Month := Month;
@@ -252,7 +252,7 @@ procedure SetInLimits(var D: TDate; Min, Max: TDate);
 
 function DateInStr(D: TDate): String;
   var
-    A, B, C: Integer;
+    A, B, C: integer;
     S, S1, S2: String[10];
   begin
   Str(D.Day: 2, S);
@@ -279,7 +279,7 @@ constructor TInputByte.Init;
   EndView := 0;
   end;
 
-function TInputByte.Execute: Word;
+function TInputByte.Execute: word;
   var
     Event: TEvent;
   begin
@@ -324,7 +324,7 @@ procedure TInputByte.SetData;
 
 procedure TInputByte.HandleEvent;
   var
-    C: Integer;
+    C: integer;
   begin
   case Event.What of
     evKeyDown:
@@ -369,7 +369,7 @@ constructor TInputWord.Init;
   EndView := 0;
   end;
 
-function TInputWord.Execute: Word;
+function TInputWord.Execute: word;
   var
     Event: TEvent;
   begin
@@ -413,7 +413,7 @@ procedure TInputWord.SetData;
 
 procedure TInputWord.HandleEvent;
   var
-    C: Integer;
+    C: integer;
   begin
   SelStart := SelEnd;
   case Event.What of
@@ -461,7 +461,7 @@ constructor TInputInteger.Init;
   EndView := 0;
   end;
 
-function TInputInteger.Execute: Word;
+function TInputInteger.Execute: word;
   var
     Event: TEvent;
   begin
@@ -505,7 +505,7 @@ procedure TInputInteger.SetData;
 
 procedure TInputInteger.HandleEvent;
   var
-    C: Integer;
+    C: integer;
   begin
   case Event.What of
     evKeyDown:
@@ -552,7 +552,7 @@ constructor TInputLongInt.Init;
   EndView := 0;
   end;
 
-function TInputLongInt.Execute: Word;
+function TInputLongInt.Execute: word;
   var
     Event: TEvent;
   begin
@@ -596,7 +596,7 @@ procedure TInputLongInt.SetData;
 
 procedure TInputLongInt.HandleEvent;
   var
-    C: Integer;
+    C: integer;
   begin
   SelStart := SelEnd;
   case Event.What of
@@ -644,7 +644,7 @@ constructor TInputDate.Init;
   BlockCursor;
   end;
 
-function TInputDate.Execute: Word;
+function TInputDate.Execute: word;
   var
     Event: TEvent;
   begin
@@ -670,10 +670,10 @@ function TInputDate.DataSize;
   DataSize := SizeOf(Value);
   end;
 
-function SStr(Value, C: Word): String;
+function SStr(Value, C: word): String;
   var
     S: String;
-    I: Integer;
+    I: integer;
   begin
   Str(Value: C, S);
   for I := 1 to C do
@@ -700,7 +700,7 @@ procedure TInputDate.SetData;
 
 procedure TInputDate.HandleEvent;
   var
-    C: Integer;
+    C: integer;
     S: String;
   begin
   case Event.What of
@@ -774,7 +774,7 @@ constructor TInputReal.Init;
   EndView := 0;
   end;
 
-function TInputReal.Execute: Word;
+function TInputReal.Execute: word;
   var
     Event: TEvent;
   begin
@@ -815,7 +815,7 @@ procedure TInputReal.SetData;
 
 procedure TInputReal.HandleEvent;
   var
-    C: Integer;
+    C: integer;
   begin
   case Event.What of
     evKeyDown:
@@ -853,7 +853,7 @@ procedure TInputReal.HandleEvent;
 {-------------------------------  TInputString  ----------------------------}
 {---------------------------------------------------------------------------}
 
-function TInputString.Execute: Word;
+function TInputString.Execute: word;
   var
     Event: TEvent;
   begin
@@ -877,7 +877,7 @@ function TInputString.Execute: Word;
 
 procedure TInputString.HandleEvent;
   var
-    C: Integer;
+    C: integer;
   begin
   { SelStart := SelEnd;}
   case Event.What of
@@ -932,7 +932,7 @@ procedure TInputFName.HandleEvent;
 procedure TInputFName.Draw;
   var
     Color: Byte;
-    L, R: Integer;
+    L, R: integer;
     B: TDrawBuffer;
     S: String;
   begin
@@ -987,7 +987,7 @@ procedure TInputFName.Draw;
 
 procedure TInputSFName.HandleEvent;
   var
-    Dir, I: Integer;
+    Dir, I: integer;
   begin
   Dir := 1;
   if  (Event.What = evKeyDown) then
@@ -1059,7 +1059,7 @@ procedure TColorPoint.Store(var S: TStream);
 
 procedure TColorPoint.Draw;
   var
-    B: Word;
+    B: word;
   begin
   B := Application^.GetColor(Color) shl 8+$00FE {*};
   WriteLine(0, 0, 1, 1, B);

@@ -56,7 +56,7 @@ uses
   arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
   arc_UC2, arc_AIN,
   {$ENDIF}
-  profile, Objects, Advance, Advance1, Advance2
+  profile, Defines, Streams, advance, advance1, advance2
   ;
 
 function DetectArchive: PARJArchive;
@@ -270,16 +270,16 @@ function ArcDetect: Boolean;
       Inc(i);
       c := P.Name[i];
       if c = #0 then
-        Break;
+        break;
       if c < #32 then
-        Exit;
+        exit;
       end;
     if i <= 2 then
-      Exit;
+      exit;
     if P.PackedSize < 0 then
-      Exit;
+      exit;
     if P.OriginSize < 0 then
-      Exit;
+      exit;
     ArcDetect := True;
     end { More };
 
@@ -407,7 +407,7 @@ function HPKDetect: Boolean;
         until C = #0;
         PHPKRec(HPKCol^.At(I))^.Name := NewStr(S);
         end;
-      Exit;
+      exit;
       end;
     end;
   ArcFile^.Seek(ArcPos);
@@ -416,13 +416,13 @@ function HPKDetect: Boolean;
 function TARDetect: Boolean;
   var
     SumTar, SumCalc: LongInt;
-    i: Integer;
+    i: integer;
     Buffer: array[0..BlkSize-1] of Char;
     P: TARHdr absolute Buffer;
   begin
   TARDetect := False;
   if ArcFile^.GetSize < SizeOf(P) then
-    Exit;
+    exit;
   ArcFile^.Read(P, SizeOf(P));
   SumTar := FromOct(P.chksum);
   P.chksum := '        '; {8 spaces}

@@ -51,7 +51,7 @@ unit EdWin;
 interface
 
 uses
-  Objects, Microed, Menus, ed2, UniWin
+  Defines, Streams, Objects2, Microed, Menus, ed2, UniWin
   ;
 
 type
@@ -70,14 +70,14 @@ type
     constructor Load(var S: TStream);
     //    procedure ChangeBounds(var R: TRect); virtual;
     procedure Store(var S: TStream);
-    function Execute: Word; virtual;
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    function Execute: word; virtual;
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     end;
 
 implementation
 uses
   MicroEd2, DNApp, Commands, DNHelp, Views,
-  Startup, Advance1, FViewer, Drivers, Editor, Advance
+  Startup, advance1, FViewer, Drivers, Editor, advance
   {$IFDEF RecodeWhenDraw}, Lfn {$ENDIF}
   ;
 

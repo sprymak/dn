@@ -56,8 +56,8 @@ unit ColorSel;
 interface
 
 uses
-  Objects, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
-  Advance, Advance1, Advance2, Advance3, Drivers
+  Defines, Streams, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
+  advance, advance1, advance2, advance3, Drivers
   ;
 
 const
@@ -110,10 +110,10 @@ type
     constructor Init(var Bounds: TRect; AStrings: PSItem);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function Mark(Item: Integer): Boolean; virtual;
+    function Mark(Item: integer): Boolean; virtual;
     procedure NewColor; virtual;
-    procedure Press(Item: Integer); virtual;
-    procedure MovedTo(Item: Integer); virtual;
+    procedure Press(Item: integer); virtual;
+    procedure MovedTo(Item: integer); virtual;
     end;
 
   { T_BWSelector }
@@ -151,7 +151,7 @@ type
     constructor Load(var S: TStream);
     destructor Done; virtual;
     procedure FocusItem(Item: LongInt); virtual;
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Store(var S: TStream);
     procedure SetGroupIndex(GroupNum, ItemNum: Byte);
@@ -168,7 +168,7 @@ type
     constructor Init(var Bounds: TRect; AScrollBar: PScrollBar;
         AItems: PColorItem);
     procedure FocusItem(Item: LongInt); virtual;
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -194,7 +194,7 @@ type
     constructor Init( {APalette: TPalette;}AGroups: PColorGroup);
     destructor Done; virtual;
     constructor Load(var S: TStream);
-    function DataSize: Word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Rec); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure GetEvent(var Event: TEvent); virtual;
@@ -264,7 +264,7 @@ constructor TColorSelector.Load(var S: TStream);
 procedure TColorSelector.Draw;
   var
     B: TDrawBuffer;
-    C, I, J: Integer;
+    C, I, J: integer;
     a: Boolean;
   begin
   a := PColorDialog(Owner)^.BakSel = @Self;
@@ -303,7 +303,7 @@ procedure TColorSelector.HandleEvent(var Event: TEvent);
 
   procedure ColorChanged;
     var
-      Msg: Integer;
+      Msg: integer;
     begin
     if SelType = csForeground then
       Msg := cmColorForegroundChanged
@@ -362,7 +362,7 @@ procedure TColorSelector.HandleEvent(var Event: TEvent);
           else
             Dec(Color, MaxCol-Width);
         else {case}
-          Exit;
+          exit;
       end {case};
       end;
     evBroadcast:
@@ -373,12 +373,12 @@ procedure TColorSelector.HandleEvent(var Event: TEvent);
         else
           Color := Event.InfoByte and $0F;
         DrawView;
-        Exit;
+        exit;
         end
       else
-        Exit;
+        exit;
     else {case}
-      Exit;
+      exit;
   end {case};
   DrawView;
   ColorChanged;
@@ -426,14 +426,14 @@ procedure TMonoSelector.HandleEvent(var Event: TEvent);
           begin
           MovedTo(i);
           DrawView;
-          Exit
+          exit
           end;
       MovedTo(-1);
       end;
   end;
 
 
-function TMonoSelector.Mark(Item: Integer): Boolean;
+function TMonoSelector.Mark(Item: integer): Boolean;
   begin
   Mark := MonoColors[Item] = Value;
   end;
@@ -445,20 +445,20 @@ procedure TMonoSelector.NewColor;
      and $0F);
   end;
 
-procedure TMonoSelector.Press(Item: Integer);
+procedure TMonoSelector.Press(Item: integer);
   begin
   Value := MonoColors[Item];
   NewColor;
   end;
 
-procedure TMonoSelector.MovedTo(Item: Integer);
+procedure TMonoSelector.MovedTo(Item: integer);
   const
     Button = ' ( ) ';
   begin
   if Item = -1 then
     begin
     DrawBox(Button, ' ');
-    Exit;
+    exit;
     end;
   Value := MonoColors[Item];
   NewColor;
@@ -492,7 +492,7 @@ procedure T_BWSelector.HandleEvent(var Event: TEvent);
               begin
               MovedTo(i);
               DrawView;
-              Exit
+              exit
               end;
         csBackground:
           for i := 0 to 3 do
@@ -500,7 +500,7 @@ procedure T_BWSelector.HandleEvent(var Event: TEvent);
               begin
               MovedTo(i);
               DrawView;
-              Exit
+              exit
               end;
       end {case};
       MovedTo(-1);
@@ -541,7 +541,7 @@ destructor TColorDisplay.Done;
 procedure TColorDisplay.Draw;
   var
     B: TDrawBuffer;
-    I: Integer;
+    I: integer;
     C: Byte;
   begin
   C := Color^;
@@ -589,7 +589,7 @@ procedure TColorDisplay.Store(var S: TStream);
 constructor TColorGroupList.Init(var Bounds: TRect; AScrollBar: PScrollBar;
     AGroups: PColorGroup);
   var
-    I: Integer;
+    I: integer;
   begin
   TListViewer.Init(Bounds, 1, nil, AScrollBar);
   Groups := AGroups;
@@ -608,10 +608,10 @@ constructor TColorGroupList.Load(var S: TStream);
     var
       Itms: PColorItem;
       CurItm: ^PColorItem;
-      Count: Integer;
-      I: Integer;
+      Count: integer;
+      I: integer;
     begin
-    S.Read(Count, SizeOf(Integer));
+    S.Read(Count, SizeOf(integer));
     Itms := nil;
     CurItm := @Itms;
     for I := 1 to Count do
@@ -632,9 +632,9 @@ constructor TColorGroupList.Load(var S: TStream);
     var
       Grps: PColorGroup;
       CurGrp: ^PColorGroup;
-      Count, I: Integer;
+      Count, I: integer;
     begin
-    S.Read(Count, SizeOf(Integer));
+    S.Read(Count, SizeOf(integer));
     Grps := nil;
     CurGrp := @Grps;
     for I := 1 to Count do
@@ -705,10 +705,10 @@ procedure TColorGroupList.FocusItem(Item: LongInt);
   Message(Owner, evBroadcast, cmNewColorItem, CurGroup);
   end;
 
-function TColorGroupList.GetText(Item: LongInt; MaxLen: Integer): String;
+function TColorGroupList.GetText(Item: LongInt; MaxLen: integer): String;
   var
     CurGroup: PColorGroup;
-    I: Integer;
+    I: integer;
   begin
   CurGroup := Groups;
   while Item > 0 do
@@ -724,7 +724,7 @@ procedure TColorGroupList.Store(var S: TStream);
   procedure WriteItems(Items: PColorItem);
     var
       CurItm: PColorItem;
-      Count: Integer;
+      Count: integer;
     begin
     Count := 0;
     CurItm := Items;
@@ -733,7 +733,7 @@ procedure TColorGroupList.Store(var S: TStream);
       CurItm := CurItm^.Next;
       Inc(Count);
       end;
-    S.Write(Count, SizeOf(Integer));
+    S.Write(Count, SizeOf(integer));
     CurItm := Items;
     while CurItm <> nil do
       begin
@@ -749,7 +749,7 @@ procedure TColorGroupList.Store(var S: TStream);
   procedure WriteGroups(Groups: PColorGroup);
     var
       CurGrp: PColorGroup;
-      Count: Integer;
+      Count: integer;
     begin
     Count := 0;
     CurGrp := Groups;
@@ -758,7 +758,7 @@ procedure TColorGroupList.Store(var S: TStream);
       CurGrp := CurGrp^.Next;
       Inc(Count);
       end;
-    S.Write(Count, SizeOf(Integer));
+    S.Write(Count, SizeOf(integer));
     CurGrp := Groups;
     while CurGrp <> nil do
       begin
@@ -837,7 +837,7 @@ function TColorGroupList.GetNumGroups: Byte;
 constructor TColorItemList.Init(var Bounds: TRect; AScrollBar: PScrollBar;
     AItems: PColorItem);
   var
-    I: Integer;
+    I: integer;
   begin
   TListViewer.Init(Bounds, 1, nil, AScrollBar);
   EventMask := EventMask or evBroadcast;
@@ -869,7 +869,7 @@ procedure TColorItemList.FocusItem(Item: LongInt);
     MessageL(Owner, evBroadcast, cmNewColorIndex, CurItem^.Index);
   end;
 
-function TColorItemList.GetText(Item: LongInt; MaxLen: Integer): String;
+function TColorItemList.GetText(Item: LongInt; MaxLen: integer): String;
   var
     CurItem: PColorItem;
   begin
@@ -886,7 +886,7 @@ procedure TColorItemList.HandleEvent(var Event: TEvent);
   var
     CurItem: PColorItem;
     Group: PColorGroup;
-    I: Integer;
+    I: integer;
   begin
   TListViewer.HandleEvent(Event);
   if Event.What = evBroadcast then
@@ -915,10 +915,10 @@ constructor TColorDialog.Init(AGroups: PColorGroup);
   var
     R: TRect;
     P: PView;
-    GroupWidth, ItemsWidth: Integer;
+    GroupWidth, ItemsWidth: integer;
     G: PColorGroup;
     I: PColorItem;
-    IX, IW: Integer;
+    IX, IW: integer;
 
   begin
   GroupWidth := 0;
@@ -1259,7 +1259,7 @@ procedure TColorDialog.Store(var S: TStream);
   S.WriteStr(@Pal) {S.Write(Pal, Length(Pal)+1);}
   end;
 
-function TColorDialog.DataSize: Word;
+function TColorDialog.DataSize: word;
   begin
   DataSize := SizeOf(TPalette);
   end;

@@ -51,21 +51,21 @@ unit XDblWnd;
 interface
 
 uses
-  DblWnd, Drivers, Views, Objects
+  DblWnd, Drivers, Views, Objects2
   ;
 
 type
 
   PXDoubleWindow = ^TXDoubleWindow;
   TXDoubleWindow = object(TDoubleWindow)
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
 implementation
 uses
-  Commands, Advance, Advance1, Advance2, Advance3, DNApp, DNUtil
+  Commands, advance, advance1, advance2, advance3, DNApp, DNUtil
   ;
 
 function TXDoubleWindow.GetPalette;
@@ -75,7 +75,7 @@ function TXDoubleWindow.GetPalette;
   GetPalette := @S;
   end;
 
-procedure TXDoubleWindow.SetState(AState: Word; Enable: Boolean);
+procedure TXDoubleWindow.SetState(AState: word; Enable: Boolean);
   begin
   inherited SetState(AState, Enable);
   if  (AState and sfDragging <> 0) or
@@ -171,7 +171,7 @@ procedure TXDoubleWindow.HandleEvent;
             else
               RightView^.HandleEvent(Event);
             end;
-          Exit;
+          exit;
           end;
         cmChangeTree:
           if LTree <> nil then
@@ -182,7 +182,7 @@ procedure TXDoubleWindow.HandleEvent;
             LeftView^.HandleEvent(Event);
           if RightView <> nil then
             RightView^.HandleEvent(Event);
-          Exit;
+          exit;
           end;
         cmCloseLinked,
         cmMakeForced,
@@ -204,7 +204,7 @@ procedure TXDoubleWindow.HandleEvent;
             LeftView^.HandleEvent(Event);
           if RType = dtPanel then
             RightView^.HandleEvent(Event);
-          Exit
+          exit
           end;
         cmGetDirInfo,
         cmZoom,
@@ -218,8 +218,6 @@ procedure TXDoubleWindow.HandleEvent;
         {$IFDEF NETINFO}cmNetInfo, {-$VIV} {$ENDIF}
         cmLoadViewFile,
         cmGLoadViewFile,
-        cmEnableView,
-        cmDisableView,
         cmPushFullName,
         cmPushFirstName,
         cmPushInternalName,

@@ -52,7 +52,7 @@ Scroller;
 interface
 
 uses
-  Views, Objects, Drivers
+  Views, Defines, Streams, Drivers
   ;
 
 type
@@ -78,7 +78,7 @@ type
     procedure ScrollDraw; virtual;
     procedure ScrollTo(X, Y: LongInt);
     procedure SetLimit(X, Y: LongInt);
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     procedure Store(var S: TStream);
   private
     DrawLock: Byte;
@@ -111,12 +111,12 @@ type
     procedure Draw; virtual;
     procedure FocusItem(Item: LongInt); virtual;
     function GetPalette: PPalette; virtual;
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     function IsSelected(Item: LongInt): Boolean; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure SelectItem(Item: LongInt); virtual;
     procedure SetRange(ARange: LongInt);
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     procedure Store(var S: TStream);
   private
     procedure FocusItemNum(Item: LongInt); virtual;
@@ -233,7 +233,7 @@ procedure TScroller.SetLimit(X, Y: LongInt);
   CheckDraw;
   end;
 
-procedure TScroller.SetState(AState: Word; Enable: Boolean);
+procedure TScroller.SetState(AState: word; Enable: Boolean);
 
   procedure ShowSBar(SBar: PScrollBar);
     begin
@@ -314,7 +314,7 @@ procedure TListViewer.ChangeBounds(var Bounds: TRect);
 procedure TListViewer.Draw;
   var
     I, J, Item: LongInt;
-    NormalColor, SelectedColor, FocusedColor, Color: Word;
+    NormalColor, SelectedColor, FocusedColor, Color: word;
     ColWidth, CurCol, Indent: LongInt;
     B: TDrawBuffer;
     Text: String;
@@ -413,9 +413,8 @@ function TListViewer.GetPalette: PPalette;
   GetPalette := @P;
   end;
 
-function TListViewer.GetText(Item: LongInt; MaxLen: Integer): String;
+function TListViewer.GetText(Item: LongInt; MaxLen: integer): String;
   begin
-  Abstract;
   end;
 
 function TListViewer.IsSelected(Item: LongInt): Boolean;
@@ -428,7 +427,7 @@ procedure TListViewer.HandleEvent(var Event: TEvent);
     MouseAutosToSkip = 4;
   var
     Mouse: TPoint;
-    ColWidth: Word;
+    ColWidth: word;
     OldItem, NewItem: LongInt;
     Count: LongInt;
   begin
@@ -453,7 +452,7 @@ procedure TListViewer.HandleEvent(var Event: TEvent);
       begin
       Message(Owner, evBroadcast, cmDefault, nil);
       ClearEvent(Event);
-      Exit;
+      exit;
       end;
     repeat
       if NewItem <> OldItem then
@@ -522,12 +521,12 @@ procedure TListViewer.HandleEvent(var Event: TEvent);
           if NumCols > 1 then
             NewItem := Focused+Size.Y
           else
-            Exit;
+            exit;
         kbLeft:
           if NumCols > 1 then
             NewItem := Focused-Size.Y
           else
-            Exit;
+            exit;
         kbPgDn:
           NewItem := Focused+Size.Y*NumCols;
         kbPgUp:
@@ -541,7 +540,7 @@ procedure TListViewer.HandleEvent(var Event: TEvent);
         kbCtrlPgUp:
           NewItem := 0;
         else {case}
-          Exit;
+          exit;
       end {case};
     FocusItemNum(NewItem);
     DrawView;
@@ -584,7 +583,7 @@ procedure TListViewer.SetRange(ARange: LongInt);
     end;
   end;
 
-procedure TListViewer.SetState(AState: Word; Enable: Boolean);
+procedure TListViewer.SetState(AState: word; Enable: Boolean);
 
   procedure ShowSBar(SBar: PScrollBar);
     begin

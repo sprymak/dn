@@ -23,7 +23,7 @@ Written by Cat 2:5030/1326.13
 interface
 
 uses
-  Objects
+  Objects2
   ;
 
 function OpenRez(const PluginName: ShortString): LongInt;
@@ -34,7 +34,7 @@ function GetRezObject(RezId: LongInt; ItemId: SmallWord): PObject;
 implementation
 
 uses
-  Advance, Advance1, Advance7
+  Streams, advance, advance1, advance7
   ;
 
 type
@@ -68,7 +68,7 @@ function OpenRez(const PluginName: ShortString): LongInt;
     begin
     Dispose(S, Done);
     OpenRez := 0;
-    Exit;
+    exit;
     end;
 
   GetMem(P,
@@ -88,7 +88,7 @@ function OpenRez(const PluginName: ShortString): LongInt;
         {, SizeOf(TPluginRezData)-SizeOf(LongInt)+(SC+OC)*SizeOf(LongInt)}
         );
       OpenRez := 0;
-      Exit;
+      exit;
       end;
     end;
 

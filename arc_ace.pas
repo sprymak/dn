@@ -50,7 +50,7 @@ unit arc_ACE; {ACE}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -187,13 +187,13 @@ procedure TACEArchive.GetFile;
   if  (FP = ArcFile^.GetSize) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P, SizeOf(P));
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   if P.HeadType = 1 then
     begin

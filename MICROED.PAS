@@ -70,8 +70,9 @@ unit Microed;
 interface
 
 uses
-  Dos, Lfn {DataCompBoy}, Objects, Drivers, Memory, Views, Messages, DNApp,
-  Advance, Advance1, Advance2, Advance3, Startup, Menus, DNStdDlg, Dialogs,
+  Dos, Lfn {DataCompBoy}, Defines, Streams, Drivers, Memory, Views,
+   Messages, DNApp,
+  advance, advance1, advance2, advance3, Startup, Menus, DNStdDlg, Dialogs,
   Commands, UniWin, RStrings, DNHelp, {SBlocks,}ObjType, U_KeyMap, Collect,
   {$IFDEF REGEXP}RegExp, {$ENDIF}
   ed2, highlite
@@ -93,9 +94,9 @@ type
     HiliteColumn: Boolean;
     AutoJustify: Boolean; {WRAPJUSTIFY}
     AutoWrap: Boolean; {AUTOWRAP}
-    LeftSide: Word; {LEFTMARGIN}
-    RightSide: Word; {RIGHTMARGIN}
-    InSide: Word; {PARAGRAPH}
+    LeftSide: word; {LEFTMARGIN}
+    RightSide: word; {RIGHTMARGIN}
+    InSide: word; {PARAGRAPH}
     ForcedCRLF: TCRLF;
     SmartTab: Boolean;
     end;
@@ -119,7 +120,7 @@ type
     MarkPos: TPosArray;
     LastLine: LongInt;
     {Cat: на первый взгляд кажется, что это номер последней строки файла, а на самом деле это номер текущей строки}
-    DrawMode: Integer;
+    DrawMode: integer;
     WorkString, LastShape: LongString;
     OldBlockValid, SearchOnDisplay,
     InsertMode, VertBlock, Modified, WorkModified,
@@ -133,7 +134,7 @@ type
     ChPosition: Boolean;
     Macros: PCollection;
     Locker: PStream;
-    LastDir: Integer;
+    LastDir: integer;
     MemEnough: Boolean;
     KeyMap: TKeyMap; {-$VIV}
     EdOpt: TEditOptions;
@@ -156,14 +157,14 @@ type
     procedure DoHighlite(var B; const S: LongString; const Attr: String);
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Draw; virtual;
-    function Valid(Command: Word): Boolean; virtual;
+    function Valid(Command: word): Boolean; virtual;
     function GetPalette: PPalette; virtual;
     function GetLine(Index: LongInt): LongString;
     function GetSelection: PCollection;
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     function ValidBlock: Boolean;
     procedure CalcMenu;
-    function Search(StartX, StartY: Word): Boolean;
+    function Search(StartX, StartY: word): Boolean;
     procedure InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
     procedure ModifyLine(Index: LongInt; S: LongString;
          DelSpaces: Boolean);
@@ -172,7 +173,7 @@ type
     procedure ScrollTo(DeltaX, DeltaY: LongInt);
     function LimitX: LongInt;
     function LimitY: LongInt;
-    procedure StoreUndoInfo(What: Word; Where: TPoint; var Info);
+    procedure StoreUndoInfo(What: word; Where: TPoint; var Info);
     function HandleCommand(var Event: TEvent): Boolean; virtual;
     function KeyMapConvertStr(S: LongString; toAscii: Boolean)
       : LongString; {-$VIV}
@@ -190,10 +191,10 @@ const
 
 type
   TSearchData = record
-    Options: Word;
-    Dir: Word;
-    Scope: Word;
-    Origin: Word;
+    Options: word;
+    Dir: word;
+    Scope: word;
+    Origin: word;
     Line, What: String[250];
     end;
 
@@ -213,7 +214,7 @@ const
 
 type
   TEditCommand = record
-    C, C1, C2: Word;
+    C, C1, C2: word;
     CC1, CC2: array[1..2] of Char;
     end;
 
@@ -236,7 +237,7 @@ const
   {AK155 Тут коды с Ctrl и без него должны обязательно стоять рядом,
  чтобы их позиции отличались только младшим битом индекса }
 const
-  UpDnKey: array[0..7] of Word =
+  UpDnKey: array[0..7] of word =
   (kbUp, kbCtrlUp,
   kbShiftUp, kbCtrlShiftUp,
   kbDown, kbCtrlDown,
@@ -297,7 +298,7 @@ procedure TFileEditor.Convert4Do(iP: PUndoRec; DoKind: TDoKind);
     S: LongString;
   begin
   if iP = nil then
-    Exit;
+    exit;
   New(P);
   Move(iP^, P^, SizeOf(TUndoRec));
   case DoKind of
@@ -628,7 +629,7 @@ constructor TFileEditor.Init;
     { p: PString; }
     { Nm: String; }
     { Xt: String; }
-    I: Integer;
+    I: integer;
   begin
   inherited Init(Bounds);
   InsertMode := True; {Cat}
@@ -1045,7 +1046,7 @@ procedure TFileEditor.CalcMenu;
       G: LongString;
     begin
     if MI = nil then
-      Exit;
+      exit;
     G := MenuItemStr[B]^;
     if MI^.Param^ <> G then
       begin
@@ -1060,7 +1061,7 @@ procedure TFileEditor.CalcMenu;
 
   begin { TFileEditor.CalcMenu }
   if  (Owner = nil) or (PEditWindow(Owner)^.MenuBar = nil) then
-    Exit;
+    exit;
   BlkC := [cmCopy, cmCut, cmClear, cmBlockWrite, cmFJustify,
      cmCopyBlock, cmMoveBlock,
     cmFRight, cmFLeft, cmFCenter, cmPrintBlock, cmCalcBlock, cmSortBlock,
@@ -1206,7 +1207,7 @@ procedure OpenEditor;
       GetString(dlOpenFileName),
       fdOpenButton+fdHelpButton, hsEditOpen);
   if S = '' then
-    Exit;
+    exit;
   Desktop^.GetExtent(R);
   S := lFExpand(GetPath(S))+GetName(lFExpand(S));
   Application^.InsertWindow(New(PEditWindow, Init(R, S)));
@@ -1236,7 +1237,7 @@ function TFileEditor.GetSelection;
   GetSelection := nil;
   MemEnough := True;
   if not (BlockVisible and ValidBlock) or LowMemory then
-    Exit;
+    exit;
   P := New(PLineCollection, Init(Mark.B.Y-Mark.A.Y+1, 5, True));
   for I := Mark.A.Y to Mark.B.Y do
     begin
@@ -1265,15 +1266,15 @@ function TFileEditor.GetSelection;
       begin
       Dispose(P, Done);
       MemEnough := False;
-      Exit;
+      exit;
       end;
     end;
   GetSelection := P;
   end { TFileEditor.GetSelection };
 
-function TFileEditor.Valid(Command: Word): Boolean;
+function TFileEditor.Valid(Command: word): Boolean;
   var
-    I: Word;
+    I: word;
     P: Pointer;
     S: String;
     V: Boolean;
@@ -1287,7 +1288,7 @@ function TFileEditor.Valid(Command: Word): Boolean;
     if Modified then
       Message(@Self, evCommand, cmSaveText, nil);
     PEditWindow(Owner)^.ModalEnd := True;
-    Exit;
+    exit;
     end;
   if  ( (Command = cmClose) or (Command = cmQuit)) then
     begin
@@ -1336,7 +1337,7 @@ function TFileEditor.Search;
     F, Prompt: Boolean;
     OldMark: TRect;
     NumRep: LongInt;
-    Dir: Integer;
+    Dir: integer;
     OldCache: Boolean;
     Tmr: TEventTimer;
     AllCP: Boolean; {-$VIV 14.05.99}
@@ -1410,12 +1411,12 @@ function TFileEditor.Search;
         begin
         Mark := OldMark;
         if D.Y < Mark.A.Y then
-          Break;
+          break;
         if D.Y > Mark.B.Y then
           begin
           Dec(D.Y);
           D.X := MaxLongStringLength;
-          Continue;
+          continue;
           end;
         if  (D.Y = Mark.B.Y) and (D.Y = Mark.A.Y) or VertBlock then
           if StX < Mark.A.X then
@@ -1455,10 +1456,10 @@ function TFileEditor.Search;
           begin
           Inc(D.Y);
           D.X := 0;
-          Continue;
+          continue;
           end;
         if D.Y > Mark.B.Y then
-          Break;
+          break;
         if  (D.Y = Mark.B.Y) and (D.Y = Mark.A.Y) or VertBlock then
           if StX < Mark.A.X then
             StX := Mark.A.X+1;
@@ -1672,7 +1673,7 @@ procedure TFileEditor.InsertBlock;
     LL: PCollection;
   begin
   if  (ABlock = nil) or (ABlock^.Count = 0) then
-    Exit;
+    exit;
   Modified := True;
   if SaveUndo then
     begin
@@ -1785,7 +1786,7 @@ procedure TFileEditor.Draw;
     P: PString;
     WM, BV: Boolean;
     X1, X2: LongInt;
-    LPos: Integer;
+    LPos: integer;
     Ch: Char;
     B: TDrawBuffer;
     BB: TPoint;
@@ -1805,7 +1806,7 @@ procedure TFileEditor.Draw;
     if VertBlock or (Mark.A.Y = Mark.B.Y) then
       begin
       if  (X1 = X2) or (X1 > Size.X) then
-        Exit;
+        exit;
       if  (X2 > Size.X) then
         X2 := Size.X;
       MoveColor(B[X1], X2-X1, BC);
@@ -1929,7 +1930,7 @@ procedure TFileEditor.Draw;
         end;
       end;
     if ChPosition and not ((A = Delta.Y) or (A = LastPos.Y)) then
-      Continue;
+      continue;
     if EdOpt.HiliteLine
     then
       if A = Delta.Y then
@@ -2089,7 +2090,7 @@ procedure TFileEditor.ModifyLine(Index: LongInt; S: LongString;
      DelSpaces: Boolean);
   begin
   if  (Index < 0) or (Index >= FileLines^.Count) then
-    Exit;
+    exit;
   if DelSpaces then
     LongDelRight(S);
   KeyMapAtReplace(Index, NewLongStr(S)); {-$VIV}
@@ -2117,7 +2118,7 @@ procedure TFileEditor.HandleEvent;
     Marking := False;
     ChPosition := False;
     if EditorDefaults.EdOpt and ebfPBl <> 0 then
-      Exit;
+      exit;
     Mark.B := Mark.A;
     BlockVisible := False;
     end;
@@ -2151,7 +2152,7 @@ procedure TFileEditor.HandleEvent;
   procedure WorkModify;
     begin
     if WorkModified then
-      Exit;
+      exit;
     LastLine := Delta.Y;
     LastShape := GetLine(LastLine);
     WorkModified := True;
@@ -2268,7 +2269,7 @@ Ex:
     if LastX = 0 then
       begin
       if  (LastY = 0) or not InsertMode then
-        Exit;
+        exit;
       EnableMarking := False;
       FileLines^.AtFree(LastY);
       S := GetLine(LastY-1);
@@ -2289,7 +2290,7 @@ Ex:
       for L := 1 to 9 do
         if MarkPos[L].Y >= Delta.Y then
           Dec(MarkPos[L].Y);
-      Exit;
+      exit;
       end;
     EnableMarking := False;
     if Length(WorkString) < LastX then
@@ -2301,7 +2302,7 @@ Ex:
       and (LastY > 0)
     then
       begin
-      for I := LastY-1 downto 0 do
+      for I := LastY-1 DownTo 0 do
         begin
         S := GetLine(I);
         J := 0;
@@ -2320,7 +2321,7 @@ Ex:
             ChangeLine;
             DrawView;
             EnableMarking := True;
-            Exit;
+            exit;
             end;
         end;
       end;
@@ -2424,7 +2425,7 @@ Ex:
     label L1;
     begin
     if not BlockVisible then
-      Exit;
+      exit;
     EnableMarking := False;
     Marking := False;
     ChangeLine;
@@ -2432,7 +2433,7 @@ Ex:
     if  (L = nil) then
       begin
       if MemEnough then
-        Exit;
+        exit;
       if UndoInfo <> nil then
         UndoInfo^.FreeAll;
       L := GetSelection;
@@ -2464,7 +2465,7 @@ L1:
   procedure BMarking;
     begin
     if not EnableMarking or (DrawMode > 0) then
-      Exit;
+      exit;
     if  (ShiftState and 3 <> 0) and not MouseMark then
       begin
       if not Marking then
@@ -2504,10 +2505,10 @@ L1:
       P.Y := LastY;
       StoreUndoInfo(udDelChar, P, WorkString[LastX+1]);
       Delete(WorkString, LastX+1, 1);
-      Exit
+      exit
       end;
     if LastY+1 >= FileLines^.Count then
-      Exit;
+      exit;
     WorkModify;
     P.X := LastX;
     P.Y := LastY;
@@ -2643,7 +2644,7 @@ L1:
 
     begin
     if  (LastX = 0) and (LastY = 0) then
-      Exit;
+      exit;
     if LastX > Length(WorkString) then
       LastX := Length(WorkString);
 
@@ -2657,7 +2658,7 @@ L1:
         if LastX = 0 then
           JumpUp
         else
-          Break;
+          break;
         end;
 
     if LastY >= 0 then
@@ -2682,7 +2683,7 @@ L1:
     if  (LastY = FileLines^.Count-1)
          and (LastX >= Length(GetLine(LastY)))
     then
-      Exit;
+      exit;
 
     if LastX >= Length(WorkString) then
       JumpDown;
@@ -2701,7 +2702,7 @@ L1:
              and (WorkString[LastX+1] in BreakChars)
         do
           Inc(LastX);
-        Break;
+        break;
         end;
 
     if LastY >= FileLines^.Count then
@@ -2775,13 +2776,13 @@ L1:
         GetString(dlPasteFromLabel),
         fdOKButton+fdHelpButton, hsEditPasteFrom);
     if S = '' then
-      Exit;
+      exit;
     S := lFExpand(S);
     P := MIReadBlock(@Self, S, False);
     if not isValid then
       begin
       isValid := True;
-      Exit;
+      exit;
       end;
     VertBlock := False;
     if P <> nil then
@@ -2803,7 +2804,7 @@ L1:
       CRLF: String[2];
       VB: Boolean;
       PI: PView;
-      A: Word;
+      A: word;
 
       {Cat: эта процедура теперь умеет работать с длинными строками
       и находится в модуле Advance1}
@@ -2915,18 +2916,18 @@ L1:
       qwe: Byte;
     begin { BlockWrite }
     if not (BlockVisible and ValidBlock) then
-      Exit;
+      exit;
     ChangeLine;
     S := GetFileNameDialog(x_x, GetString(dlCopyTo),
         GetString(dlFileName),
         fdOKButton+fdHelpButton, hsEditPasteFrom);
     if S = '' then
-      Exit;
+      exit;
     S := lFExpand(S);
     A := GetFileAttr(S+#0);
     R := CheckForOver(S);
     if R = nil then
-      Exit;
+      exit;
 
     VB := VertBlock or (Mark.A.Y = Mark.B.Y);
 
@@ -3117,7 +3118,7 @@ L1:
         if Ch = AutoBracketPairs[i*2-1] then
           begin
           S1 := Copy(AutoBracketPairs, i*2-1, 2);
-          Break
+          break
           end;
       end;
 
@@ -3172,7 +3173,7 @@ L1:
     EnableMarking := True;
     end { InputChar };
 
-  function AskSave: Word;
+  function AskSave: word;
     var
       S: Pointer;
       P: String;
@@ -3221,7 +3222,7 @@ L1:
     var
       _Up, _In, _Down: LongString;
       VL: String[32];
-      A, B: Word;
+      A, B: word;
       I, J, K: LongInt;
       ResChar, C: Char;
       DMode: Byte;
@@ -3258,7 +3259,7 @@ L1:
 
     function Modify(C: Char; Mask: Byte): Boolean;
       var
-        I: Integer;
+        I: integer;
       begin
       Modify := False;
       VL := Line00;
@@ -3279,10 +3280,10 @@ L1:
         I := PosChar(C, VL);
         end;
       if not (I in [7, 11, 13, 14, 15]) then
-        Exit;
+        exit;
       Mask := I and not Mask;
       if Mask = I then
-        Exit;
+        exit;
       if Mask > 0 then
         ResChar := VL[Mask]
       else
@@ -3469,7 +3470,7 @@ L1:
   procedure OpenFileAtCursor;
     var
       Res, S: String;
-      I, Min1, Max1, Min2, Max2, Min3, Max3, Min4, Max4, P: Integer;
+      I, Min1, Max1, Min2, Max2, Min3, Max3, Min4, Max4, P: integer;
       Q: Pointer;
       Info: PWhileView;
       R: TRect;
@@ -3480,23 +3481,23 @@ L1:
       DelLeft(S);
       DelRight(S);
       if S = '' then
-        Exit;
+        exit;
       if Res = '' then
         Res := FindFileWithSPF(S, Info);
       if Abort then
-        Exit;
+        exit;
       if Res = '' then
         Res := FindFileWithSPF(GetName(S), Info);
       if Abort then
-        Exit;
+        exit;
       if Res = '' then
         Res := FindFileWithSPF(GetSName(S), Info);
       if Abort then
-        Exit;
+        exit;
       if Res = '' then
         Res := FindFileWithSPF(GetSName(S)+GetExt(EditName), Info);
       if Abort then
-        Exit;
+        exit;
       end { Chk };
 
     begin { OpenFileAtCursor }
@@ -3514,48 +3515,48 @@ L1:
       P := Delta.X+1;
 
       Min1 := 1;
-      for I := P downto 1 do
+      for I := P DownTo 1 do
         if WorkString[I] in IllegalCharSet+['*', '?']
         then
           begin
           Min1 := I+1;
-          Break
+          break
           end;
       DispatchEvents(Info, Abort);
       if Abort then
         goto Ex;
 
       Min2 := 1;
-      for I := P downto 1 do
+      for I := P DownTo 1 do
         if WorkString[I] in IllegalCharSet-['\']
         then
           begin
           Min2 := I+1;
-          Break
+          break
           end;
       DispatchEvents(Info, Abort);
       if Abort then
         goto Ex;
 
       Min3 := 1;
-      for I := P downto 1 do
+      for I := P DownTo 1 do
         if WorkString[I] in IllegalCharSetDos+['*', '?']
         then
           begin
           Min3 := I+1;
-          Break
+          break
           end;
       DispatchEvents(Info, Abort);
       if Abort then
         goto Ex;
 
       Min4 := 1;
-      for I := P downto 1 do
+      for I := P DownTo 1 do
         if WorkString[I] in IllegalCharSetDos-['\']
         then
           begin
           Min4 := I+1;
-          Break
+          break
           end;
       DispatchEvents(Info, Abort);
       if Abort then
@@ -3567,7 +3568,7 @@ L1:
         then
           begin
           Max1 := I;
-          Break
+          break
           end;
       DispatchEvents(Info, Abort);
       if Abort then
@@ -3579,7 +3580,7 @@ L1:
         then
           begin
           Max2 := I;
-          Break
+          break
           end;
       DispatchEvents(Info, Abort);
       if Abort then
@@ -3591,7 +3592,7 @@ L1:
         then
           begin
           Max3 := I;
-          Break
+          break
           end;
       DispatchEvents(Info, Abort);
       if Abort then
@@ -3603,7 +3604,7 @@ L1:
         then
           begin
           Max4 := I;
-          Break
+          break
           end;
       DispatchEvents(Info, Abort);
       if Abort then
@@ -3704,17 +3705,17 @@ Ex:
   procedure WordEnd;
     var
       S: LongString;
-      NewX: Integer;
+      NewX: integer;
     begin
     S := WorkString;
     if  (Delta.X < 0) or (Delta.X >= Length(S)) then
-      Exit;
+      exit;
     NewX := Delta.X;
     if not (S[NewX+1] in BreakChars) then
       repeat
         Inc(NewX);
         if  (NewX >= Length(S)) or (S[NewX+1] in BreakChars) then
-          Break;
+          break;
       until False
     else
       repeat
@@ -3722,7 +3723,7 @@ Ex:
         if  (NewX < 0) or not (S[NewX+1] in BreakChars) then
           begin
           Inc(NewX);
-          Break;
+          break;
           end;
       until False;
     ScrollTo(NewX, Delta.Y);
@@ -3731,7 +3732,7 @@ Ex:
   procedure ASCIITable;
     var
       P: PWindow;
-      W: Word;
+      W: word;
       E: TEvent;
       R: TRect;
       CR: PView;
@@ -3801,13 +3802,13 @@ Ex:
     Application^.HandleEvent(Event);
     HelpCtx := hcEditor;
     ClearEvent(Event);
-    Exit;
+    exit;
     end;
   inherited HandleEvent(Event);
   {Cat}
   {$IFDEF PLUGIN}
   if ProcessEditorEventHook(Event, @Self) then
-    Exit;
+    exit;
   {$ENDIF}
   {/Cat}
   DelWord := False;
@@ -3852,7 +3853,7 @@ Ex:
             if Modified then
               MISaveFile(@Self);
             if not Owner^.GetState(sfModal) then
-              Exit;
+              exit;
             CE;
             Owner^.Redraw;
             PEditWindow(Owner)^.ModalEnd := True;
@@ -4072,7 +4073,7 @@ Ex:
           begin
           CE;
           if not ValidBlock then
-            Exit;
+            exit;
           ChangeLine;
           PC := GetSelection;
           if PC = nil then
@@ -4093,7 +4094,7 @@ Ex:
           ChangeLine;
           CE;
           if not ValidBlock then
-            Exit;
+            exit;
           PC := GetSelection;
           if PC = nil then
             begin
@@ -4183,10 +4184,10 @@ Ex:
             if i = cmYes then
               Message(@Self, evCommand, cmSaveText, nil);
             if i = cmCancel then
-              Exit;
+              exit;
             end;
           MIOpenFile(@Self);
-          Exit;
+          exit;
           end;
         cmInsertOn, cmInsertOff:
           begin
@@ -4465,14 +4466,14 @@ Ex:
             do
               MakeDel;
             CED;
-            Exit;
+            exit;
             end;
           WorkModify;
           if  (WorkString[LastX+1] in BreakChars-[' ']) then
             begin
             MakeDel;
             CED;
-            Exit;
+            exit;
             end;
           if  (WorkString[LastX+1] = ' ') then
             while (LastX < Length(WorkString))
@@ -4499,7 +4500,7 @@ Ex:
             begin
             MakeBack;
             CED;
-            Exit
+            exit
             end;
           if LastX >= Length(WorkString)
           then
@@ -4510,14 +4511,14 @@ Ex:
               begin
               MakeBack;
               CED;
-              Exit
+              exit
               end;
           if  (WorkString[LastX] in BreakChars-[' '])
           then
             begin
             MakeBack;
             CED;
-            Exit;
+            exit;
             end;
           WorkModify;
           if  (LastX > 0) and (WorkString[LastX] = ' ') then
@@ -4551,7 +4552,7 @@ Ex:
           if Event.KeyCode = UpDnKey[i] then
             begin
               Event.KeyCode := UpDnKey[i xor 1];
-              Break;
+              break;
             end;
       case Event.KeyCode of
 
@@ -4610,22 +4611,22 @@ Ex:
                   kbRight, kbCtrlD, kbShiftRight, kbCtrlRight:
                     begin
                     DrawLine(1);
-                    Exit
+                    exit
                     end;
                   kbLeft, kbCtrlS, kbShiftLeft, kbCtrlLeft:
                     begin
                     DrawLine(3);
-                    Exit
+                    exit
                     end;
                   kbUp, kbCtrlE, kbShiftUp:
                     begin
                     DrawLine(0);
-                    Exit
+                    exit
                     end;
                   kbDown, kbCtrlX, kbShiftDown:
                     begin
                     DrawLine(2);
-                    Exit
+                    exit
                     end;
                 end {case};
                 end;
@@ -4645,7 +4646,7 @@ Ex:
                       KeyEvent(Event);
                       EvStr[2] := Event.CharCode
                       end;
-                    Break;
+                    break;
                     end;
                   if  (CC2[1] = Event.CharCode) then
                     begin
@@ -4655,7 +4656,7 @@ Ex:
                       KeyEvent(Event);
                       EvStr[2] := Event.CharCode
                       end;
-                    Break;
+                    break;
                     end;
                   end;
               if EvStr[2] in ['A'..']', 'a'..'z'] then
@@ -4669,14 +4670,14 @@ Ex:
                   then
                     begin
                     CFind := True;
-                    Break
+                    break
                     end;
               if CFind then
                 begin
                 CE;
                 MessageL(Owner, evCommand, EditCommands[i].C,
                   Byte(EvStr[2]));
-                Exit
+                exit
                 end;
               { AK155 9-07-2002 После введения Козловым новой системы кодирования клавиш
 серые + и - с шифтом (перелистывание однотипных окон) стали иметь
@@ -4723,13 +4724,13 @@ Ex:
     evMouseDown:
       begin
       if MouseButtons = 0 then
-        Exit;
+        exit;
       LineMarking := False;
       if Event.Double then
         begin
         Message(@Self, evCommand, cmMarkWord, nil);
         CE;
-        Exit;
+        exit;
         end;
       LineMarking := ShiftState and 4 <> 0;
       ChangeLine;
@@ -4816,7 +4817,7 @@ Ex:
           Mark.A.X := 0;
         CED;
         LineMarking := False;
-        Exit;
+        exit;
         end;
       CED;
       end;
@@ -4826,10 +4827,10 @@ Ex:
 procedure TFileEditor.DoHighlite
     (var B; const S: LongString; const Attr: String);
   var
-    i: Integer;
-    j: Integer;
-    k: Integer;
-    l: Integer;
+    i: integer;
+    j: integer;
+    k: integer;
+    l: integer;
     c: Char;
   begin
   i := Pos.X+1;
@@ -4857,7 +4858,7 @@ procedure OpenSmartpad;
     {SYR}
     var
       Str: LongString;
-      Idx: Integer;
+      Idx: integer;
     begin
     with SmartWindow^.Intern^ do
       begin
@@ -4904,14 +4905,14 @@ procedure OpenSmartpad;
   var
     PS: PString;
     V: PFileEditor;
-    I: Integer;
+    I: integer;
     P: PEditRecord;
     {--- finish -------- Eugeny Zvyagintzev ---------}
   begin { OpenSmartpad }
   SmartWindow := SmartWindowPtr^; {Cat}
 
   if  (SmartWindow <> nil) and SmartWindow^.GetState(sfModal) then
-    Exit;
+    exit;
   PV := Application^.TopView;
   Desktop^.GetExtent(R);
   R.Grow(-2, -2);
@@ -4929,7 +4930,7 @@ procedure OpenSmartpad;
       end
     else
       SmartWindow^.Select;
-    Exit;
+    exit;
     end;
   New(SmartWindow, Init(R, 'SmartPad'));
   {--- start -------- Eugeny Zvyagintzev ---------}
@@ -5008,7 +5009,7 @@ procedure OpenClipBoard; {-$VOL begin}
     SyncClipOut {(true)};
   if  (ClipboardWindow <> nil) and ClipboardWindow^.GetState(sfModal)
   then
-    Exit;
+    exit;
   PV := Application^.TopView;
   Desktop^.GetExtent(R);
   if  (ClipboardWindow <> nil) then
@@ -5022,7 +5023,7 @@ procedure OpenClipBoard; {-$VOL begin}
       end
     else
       ClipboardWindow^.Select;
-    Exit;
+    exit;
     end;
   New(ClipboardWindow, Init(R, 'Clipboard'));
   if  (PV <> Application) then

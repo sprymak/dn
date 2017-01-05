@@ -51,8 +51,9 @@ unit DNApp;
 interface
 
 uses
-  Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, Lfn,
-  RStrings, Commands, xTime, Messages, Collect, Advance7, Startup
+  Defines, Objects2, Streams, Drivers, Memory, HistList, Views, Menus,
+   Dialogs, Lfn,
+  RStrings, Commands, xTime, Messages, Collect, advance7, Startup
   ;
 
 const
@@ -250,11 +251,11 @@ type
     constructor Init;
     destructor Done; virtual;
     function CanMoveFocus: Boolean;
-    function ExecuteDialog(P: PDialog; Data: Pointer): Word;
+    function ExecuteDialog(P: PDialog; Data: Pointer): word;
     {$IFDEF SS}
     procedure InsertIdler;
-    procedure InsertIdlerN(N: Integer);
-    procedure InsertAvIdlerN(Data: TSaversData; n: Integer);
+    procedure InsertIdlerN(N: integer);
+    procedure InsertAvIdlerN(Data: TSaversData; n: integer);
     {$ENDIF}
     procedure GetEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
@@ -270,7 +271,7 @@ type
     procedure OutOfMemory; virtual;
     procedure PutEvent(var Event: TEvent); virtual;
     procedure Run; virtual;
-    function SetScreenMode(Mode: Word): Boolean;
+    function SetScreenMode(Mode: word): Boolean;
     function ValidView(P: PView): PView;
     procedure Redraw; virtual;
     procedure bfSpeed; {DataCompBoy}
@@ -298,12 +299,12 @@ type
 procedure UpdateWriteView(P: Pointer);
 procedure InitStringCache;
 procedure OpenResource;
-function ExecResource(Key: TDlgIdx; var Data): Word;
+function ExecResource(Key: TDlgIdx; var Data): word;
 function LoadResource(Key: TDlgIdx): PObject;
-function GlobalMessage(What, Command: Word; InfoPtr: Pointer): Pointer;
-function GlobalMessageL(What, Command: Word; InfoLng: LongInt): Pointer;
-procedure GlobalEvent(What, Command: Word; InfoPtr: Pointer);
-function ViewPresent(Command: Word; InfoPtr: Pointer): PView;
+function GlobalMessage(What, Command: word; InfoPtr: Pointer): Pointer;
+function GlobalMessageL(What, Command: word; InfoLng: LongInt): Pointer;
+procedure GlobalEvent(What, Command: word; InfoPtr: Pointer);
+function ViewPresent(Command: word; InfoPtr: Pointer): PView;
 function WriteMsg(Text: String): PView;
 function _WriteMsg(const Text: String): PView;
 procedure ForceWriteShow(P: Pointer);
@@ -327,7 +328,7 @@ const
   LStringList: PStringList = nil;
   Resource: PIdxResource = nil;
   StringCache: PCollection = nil;
-  appPalette: Integer = apColor;
+  appPalette: integer = apColor;
 
 const
   SkyVisible: Boolean = False;
@@ -348,7 +349,7 @@ const
 implementation
 
 uses
-  Dos, DNHelp, Advance, Advance1, Advance2, VideoMan,
+  Dos, DNHelp, advance, advance1, advance2, VideoMan,
   UserMenu, Microed, FViewer, DblWnd, CmdLine,
   {$IFDEF DNPRG} {$IFDEF OS2}Dn2PmApi, {$ENDIF} {$ENDIF} {AK155}
   {$IFDEF SS}Idlers, {$ENDIF}
@@ -380,7 +381,7 @@ procedure AdjustToDesktopSize(var R: TRect; OldDeskSize: TPoint);
   if OldDeskSize.Y = 0 then
     OldDeskSize.Y := Desktop^.Size.Y;
   if Desktop^.Size.Equals(OldDeskSize) then
-    Exit;
+    exit;
   KX := Desktop^.Size.X/OldDeskSize.X;
   R.A.X := Trunc(R.A.X*KX);
   R.B.X := Trunc(R.B.X*KX);
@@ -413,7 +414,7 @@ constructor TBackground.Load(var S: TStream);
 procedure TBackground.Draw;
   var
     B, B1: TDrawBuffer;
-    I, H, Src: Integer;
+    I, H, Src: integer;
   begin
   MoveChar(B, ' ', $07, Size.X);
 
@@ -495,7 +496,7 @@ procedure TDesktop.Clear;
 
 procedure TDesktop.Cascade(var R: TRect);
   var
-    CascadeNum: Integer;
+    CascadeNum: integer;
     LastView: PView;
     Min, Max: TPoint;
 
@@ -627,7 +628,7 @@ procedure TDesktop.HandleEvent(var Event: TEvent);
       cmPrev3:
         _PrevOther;
       else {case}
-        Exit;
+        exit;
     end {case};
     ClearEvent(Event);
     end;
@@ -641,7 +642,7 @@ procedure TDesktop.InitBackground;
   New(Background, Init(R, #176));
   end;
 
-function ISqr(X: Integer): Integer;
+function ISqr(X: integer): integer;
   assembler;
   {&Frame-} {$USES EBX, ECX}
 asm
@@ -656,10 +657,10 @@ asm
         DEC     EAX
 end;
 
-procedure MostEqualDivisors(N: Integer; var X, Y: Integer;
+procedure MostEqualDivisors(N: integer; var X, Y: integer;
      FavorY: Boolean);
   var
-    I: Integer;
+    I: integer;
   begin
   I := ISqr(N);
   if  ( (N mod I) <> 0) then
@@ -688,7 +689,7 @@ procedure TDesktop.Store(var S: TStream);
 
 procedure TDesktop.Tile(var R: TRect);
   var
-    NumCols, NumRows, NumTileable, LeftOver, TileNum: Integer;
+    NumCols, NumRows, NumTileable, LeftOver, TileNum: integer;
 
   procedure DoCountTileable(P: PView);
     begin
@@ -696,14 +697,14 @@ procedure TDesktop.Tile(var R: TRect);
       Inc(NumTileable);
     end;
 
-  function DividerLoc(Lo, Hi, Num, Pos: Integer): Integer;
+  function DividerLoc(Lo, Hi, Num, Pos: integer): integer;
     begin
-    DividerLoc := LongDiv(longmul(Hi-Lo, Pos), Num)+Lo;
+    DividerLoc := (((Hi-Lo)*Pos) div Num)+Lo;
     end;
 
-  procedure CalcTileRect(Pos: Integer; var NR: TRect);
+  procedure CalcTileRect(Pos: integer; var NR: TRect);
     var
-      X, Y, D: Integer;
+      X, Y, D: integer;
     begin
     D := (NumCols-LeftOver)*NumRows;
     if Pos < D then
@@ -818,9 +819,9 @@ function TProgram.CanMoveFocus: Boolean;
   CanMoveFocus := Desktop^.Valid(cmReleasedFocus);
   end;
 
-function TProgram.ExecuteDialog(P: PDialog; Data: Pointer): Word;
+function TProgram.ExecuteDialog(P: PDialog; Data: Pointer): word;
   var
-    C: Word;
+    C: word;
   begin
   ExecuteDialog := cmCancel;
   if ValidView(P) <> nil then
@@ -862,17 +863,17 @@ procedure TProgram.InsertIdler;
       (SaversData.Selected.List^.Count = 0) or
       (SSaver <> nil)
   then
-    Exit;
+    exit;
   InsertIdlerN(Random(SaversData.Selected.List^.Count));
   end;
 
 procedure TProgram.InsertIdlerN;
   var
-    I: Integer;
+    I: integer;
     S: String;
     R: TRect;
     Event: TEvent;
-    MX, MY: Word;
+    MX, MY: word;
   begin
   if  (SkyEnabled > 0) or SaversData.Mouse and
       (MouseWhere.Y = Size.Y-1) and (MouseWhere.X = Size.X-1)
@@ -880,7 +881,7 @@ procedure TProgram.InsertIdlerN;
       (SaversData.Selected.List^.Count = 0) or
       (SSaver <> nil)
   then
-    Exit;
+    exit;
 
   S := PString(SaversData.Selected.List^.At(N))^;
   if S[1] = #249 then
@@ -912,11 +913,11 @@ procedure TProgram.InsertIdlerN;
 
 procedure TProgram.InsertAvIdlerN;
   var
-    I: Integer;
+    I: integer;
     S: String;
     R: TRect;
     Event: TEvent;
-    MX, MY: Word;
+    MX, MY: word;
   begin
   if  (SkyEnabled > 0) or SaversData.Mouse and
       (MouseWhere.Y = Size.Y-1) and (MouseWhere.X = Size.X-1)
@@ -924,7 +925,7 @@ procedure TProgram.InsertAvIdlerN;
       (Data.Available.List^.Count = 0) or
       (SSaver <> nil)
   then
-    Exit;
+    exit;
 
   S := PString(Data.Available.List^.At(n))^;
   if S[1] = #249 then
@@ -965,7 +966,7 @@ procedure TProgram.GetEvent(var Event: TEvent);
     P: procedure;
     R: TRect;
     A1, A2, CursorY: SmallWord;
-    y1, y2: Integer;
+    y1, y2: integer;
   label 11;
   begin
 11:
@@ -1087,7 +1088,7 @@ procedure TProgram.Redraw;
 
 procedure TProgram.HandleEvent(var Event: TEvent);
   var
-    I: Word;
+    I: word;
     C: Char;
   begin
   if  (Event.What = evKeyDown) and
@@ -1112,7 +1113,7 @@ procedure TProgram.Idle;
   var
     P: PView;
     E: TEvent;
-    A1, A2: Word;
+    A1, A2: word;
   begin
   {$IFDEF DNPRG} {$IFDEF OS2}
   {AK155 В неактивном оконном состоянии не надо реагировать на
@@ -1214,7 +1215,7 @@ procedure TProgram.ActivateView;
     PP: TPoint;
   begin
   if P = nil then
-    Exit;
+    exit;
   EV.What := evMouseDown;
   PP.X := P^.Origin.X;
   PP.Y := P^.Origin.Y+P^.Size.Y-2;
@@ -1230,7 +1231,7 @@ procedure TProgram.OutOfMemory;
 procedure TProgram.PutEvent(var Event: TEvent);
   begin
   if  (Event.What = evNothing) then
-    Exit;
+    exit;
   if  (EventsLen = MaxEvents) then
     Move(EventQueue[2], EventQueue[1], (MaxEvents-1)*SizeOf(Event))
   else
@@ -1243,7 +1244,7 @@ procedure TProgram.Run;
   Execute;
   end;
 
-function TProgram.SetScreenMode(Mode: Word): Boolean;
+function TProgram.SetScreenMode(Mode: word): Boolean;
   var
     R: TRect;
   begin
@@ -1289,12 +1290,12 @@ function TProgram.ValidView(P: PView): PView;
       begin
       Dispose(P, Done);
       OutOfMemory;
-      Exit;
+      exit;
       end;
     if not P^.Valid(cmValid) then
       begin
       Dispose(P, Done);
-      Exit;
+      exit;
       end;
     ValidView := P;
     end;
@@ -1442,7 +1443,7 @@ procedure TApplication.HandleEvent(var Event: TEvent);
         cmCascade:
           Cascade;
         else {case}
-          Exit;
+          exit;
       end {case};
       ClearEvent(Event);
       end;
@@ -1499,7 +1500,7 @@ function OpenResourceStream(Ext: ExtStr): PBufStream;
 procedure OpenResource;
   begin
   if Resource <> nil then
-    Exit;
+    exit;
   ResourceStream := OpenResourceStream('.DLG');
   New(Resource, Init(ResourceStream));
   end;
@@ -1507,16 +1508,16 @@ procedure OpenResource;
 function ExecResource;
   var
     D: PDialog;
-    W: Word;
+    W: word;
   begin
   ExecResource := cmCancel;
   OpenResource;
   if Resource = nil then
-    Exit;
+    exit;
   D := PDialog(Resource^.Get(Key));
   D := PDialog(Application^.ValidView(D));
   if D = nil then
-    Exit;
+    exit;
   D^.SetData(Data);
   W := Desktop^.ExecView(D);
   if W <> cmCancel then
@@ -1530,7 +1531,7 @@ function LoadResource;
   LoadResource := nil;
   OpenResource;
   if Resource = nil then
-    Exit;
+    exit;
   LoadResource := Resource^.Get(Key);
   end;
 
@@ -1618,7 +1619,7 @@ function ViewPresent;
   procedure FAction(View: PView);
     begin
     if ActInt then
-      Exit;
+      exit;
     View^.HandleEvent(Event);
     if Event.What = evNothing then
       V := Event.InfoPtr;
@@ -1638,7 +1639,7 @@ function ViewPresent;
 procedure UpdateWriteView(P: Pointer);
   begin
   if P = nil then
-    Exit;
+    exit;
   with PWriteWin(P)^ do
     begin
     case IState of
@@ -1646,14 +1647,14 @@ procedure UpdateWriteView(P: Pointer);
         if TimerExpired(Tmr) then
           Desktop^.Insert(P)
         else
-          Exit;
+          exit;
       1:
         if TimerExpired(Tmr) then
           Application^.Insert(P)
         else
-          Exit;
+          exit;
       2:
-        Exit;
+        exit;
     end {case};
     IState := 2;
     end;
@@ -1687,7 +1688,7 @@ function WriteMsg;
 procedure ForceWriteShow;
   begin
   if P = nil then
-    Exit;
+    exit;
   NewTimer(PWriteWin(P)^.Tmr, 0);
   UpdateWriteView(P);
   end;
@@ -1794,9 +1795,9 @@ function TCacheCollection.GetItem(var S: TStream): Pointer;
   GetItem := P;
   end;
 
-function CacheIndexOf(Id: TStrIdx): Integer;
+function CacheIndexOf(Id: TStrIdx): integer;
   var
-    A: Integer;
+    A: integer;
   begin
   CacheIndexOf := -1;
   StringCache^.Pack;
@@ -1804,7 +1805,7 @@ function CacheIndexOf(Id: TStrIdx): Integer;
     if PCacheRec(StringCache^.At(A))^.Id = Id then
       begin
       CacheIndexOf := A;
-      Exit;
+      exit;
       end;
   end;
 
@@ -1818,7 +1819,7 @@ procedure InitStringCache;
 function GetString;
   var
     S: String;
-    I: Integer;
+    I: integer;
     P: PCacheRec;
   begin
   if StringCache = nil then
@@ -1829,7 +1830,7 @@ function GetString;
     begin
     if LStringList = nil then
       InitLngStream;
-    S := LStringList^.Get(Word(Index));
+    S := LStringList^.Get(word(Index));
     P := NewCacheRec(S, Index);
     if StringCache^.Count = CacheSize then
       StringCache^.AtFree(CacheSize-1);

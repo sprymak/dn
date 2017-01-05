@@ -60,13 +60,13 @@ uses
   Drivers, Lfn, Files,
   DN1, Dos, DNApp,
   Menus, FlPanelX, FlPanel, FileCopy, Filediz, Filelst, Eraser,
-  DiskInfo, Advance, Advance1, Advance2, Advance3, Advance4, highlite,
+  DiskInfo, advance, advance1, advance2, advance3, advance4, highlite,
   Startup, Dialogs, Gauges, Memory, DblWnd, Messages, HistList,
   FileFind, Commands, Tree, FViewer, CmdLine, FBB, DNStdDlg,
   FilesCol, UserMenu, RStrings, Colors, Microed, Editor, Macro,
   ArcView, HelpFile, Validate, ASCIITab, xTime, Drives, Archiver,
   ArchSet, ArchDet, Setups, DNUtil, XDblWnd, Histries, CCalc,
-  DnIni, Collect, UFNMatch, Objects, Views, Scroller, Calculat,
+  DnIni, Collect, UFNMatch, Objects2, Views, Scroller, Calculat,
   HelpKern, VideoMan
   {$IFDEF SpreadSheet}, Calc, CellsCol {$ENDIF}
   {$IFDEF DBView}, DBView, DBWatch {$ENDIF}

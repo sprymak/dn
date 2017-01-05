@@ -45,7 +45,7 @@ function GetBytesPerCluster(DriveNum: LongInt): LongInt;
 procedure CopyEAs(FFromName, FToName: String);
 
 function GetEAString(const Filename, Name: String; var Value: String;
-     Silent: Boolean): Integer;
+     Silent: Boolean): integer;
 (*
 function SetEAString(const Filename, Name, Value: string): Integer;
 *)
@@ -56,7 +56,7 @@ implementation
 
 uses
   {SysUtils,}Os2Base, Strings {, Crt, Messages}
-  {для CopyEAs}, Collect, Messages, EAOper, Advance1, Commands, DNApp
+  {для CopyEAs}, Collect, Messages, EAOper, advance1, Commands, DNApp
   ;
 
 (*
@@ -146,7 +146,7 @@ function SetFileAge(S: String; Age: LongInt; AgeType: Byte): LongInt;
     else {case}
       begin
       SetFileAge := 1;
-      Exit;
+      exit;
       end;
   end {case};
 
@@ -299,7 +299,7 @@ procedure CopyEAs(FFromName, FToName: String);
     begin
     if  (coll^.Count > 0) then
       {JO: см. комментарий от 30-07-2002 к EAOper.EnumEAs }
-      for i := coll^.Count-1 downto 0 do
+      for i := coll^.Count-1 DownTo 0 do
         begin
         PszName := PChar(coll^.At(i));
         Inc(PszName);
@@ -349,7 +349,7 @@ procedure CopyEAs(FFromName, FToName: String);
   end { CopyEAs };
 
 function GetEAString(const Filename, Name: String; var Value: String;
-     Silent: Boolean): Integer;
+     Silent: Boolean): integer;
   var
     ea: Pointer;
     ulEASize, ulSize: Cardinal;
@@ -369,7 +369,7 @@ function GetEAString(const Filename, Name: String; var Value: String;
     end;
   end;
 
-function SetEAString(const Filename, Name, Value: String): Integer;
+function SetEAString(const Filename, Name, Value: String): integer;
   var
     ea: Pointer;
     szValue, szName: array[0..255] of Char;
@@ -383,7 +383,7 @@ function SetEAString(const Filename, Name, Value: String): Integer;
 procedure SetEALongname(Filename: String);
   var
     LNValue: String;
-    Result_: Integer;
+    Result_: integer;
   begin
   Result_ := GetEAString(Filename, '.LONGNAME', LNValue, True);
   if Result_ = 0 then
@@ -392,7 +392,7 @@ procedure SetEALongname(Filename: String);
          GetString(dl_EALongname), LNValue, 255, hsEditEALongname)
        <> cmOK
     then
-      Exit;
+      exit;
     Result_ := SetEAString(Filename, '.LONGNAME', LNValue);
     if Result_ <> 0 then
       MessageBox
@@ -416,12 +416,12 @@ procedure SetEALongname(Filename: String);
 {AK155}
 function GetDriveTypeString(Drive: Char): String;
   var
-    BufLen: Word;
+    BufLen: word;
     FSQb: pFSQBuffer2;
     DrvName: String[3];
     Ordinal: SmallWord;
     name: PChar;
-    rc: Word;
+    rc: word;
     {DiskSize  : Word;}
   begin
   GetDriveTypeString := '';

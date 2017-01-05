@@ -59,8 +59,8 @@ function LongCopy(Fn1: String): Boolean; {DataCompBoy}
 implementation
 uses
   Lfn, {DataCompBoy}
-  Advance, Advance1, Advance2, Advance3, FileCopy, DNApp, Messages, Views,
-  Objects, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
+  advance, advance1, advance2, advance3, FileCopy, DNApp, Messages, Views,
+  Defines, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
   HistList, Gauge, Startup, DNUtil, xTime, DiskInfo
   , ErrMess
   ;
@@ -70,9 +70,9 @@ type
   ArPtr = ^Ar65000;
 
   HRec = record
-    Num: Word;
-    NR: Word;
-    NW: Word;
+    Num: word;
+    NR: word;
+    NW: word;
     Buf: ArPtr;
     end;
 
@@ -153,9 +153,9 @@ function LongCopy(Fn1: String): Boolean;
     Ls: LongInt;
     Tuda: Boolean;
     i: Byte;
-    NumW: Word;
+    NumW: word;
     Count: Byte;
-    wx, wy: Integer;
+    wx, wy: integer;
     wl: Byte;
     d, Fn2: String;
     n, x: String;
@@ -208,7 +208,7 @@ function LongCopy(Fn1: String): Boolean;
         begin
         Close(F2.F);
         lEraseFile(F2);
-        Exit;
+        exit;
         end;
       Bf[i].NW := 0;
       Inc(Cs, Bf[i].NR);
@@ -278,7 +278,7 @@ function LongCopy(Fn1: String): Boolean;
       Fn2 := D+n+'.d'+SStr(Count, 2, '0');
     until OverWr or Abort or CopyCancelled;
     if Abort or CopyCancelled then
-      Exit;
+      exit;
     FreeSpc := Disk_Free(Byte(D[1])-64);
     while (FreeSpc < 512) do
       begin
@@ -289,7 +289,7 @@ function LongCopy(Fn1: String): Boolean;
       if i <> cmOK then
         begin
         Abort := True;
-        Exit;
+        exit;
         end;
       {DataCompBoy     DskOn;}
       end;
@@ -314,7 +314,7 @@ function LongCopy(Fn1: String): Boolean;
       if i <> cmOK then
         begin
         Abort := True;
-        Exit;
+        exit;
         end;
       goto 1;
       end;
@@ -328,7 +328,7 @@ function LongCopy(Fn1: String): Boolean;
     begin
 Rep:
     if Abort or CopyCancelled then
-      Exit;
+      exit;
     for i := 1 to NBf do
       if Bf[i].NW < Bf[i].NR then
         begin
@@ -341,7 +341,7 @@ Rep:
           BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], Min(wr,
                PartSize-PartWrt), NumW)
         else
-          BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], Word(wr), NumW);
+          BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], word(wr), NumW);
         if DiskVerify then
           begin
           {$IFDEF OS_DOS}
@@ -356,7 +356,7 @@ Rep:
             BlockRead(F2.F, Bf[i].Buf^[Bf[i].NW+1], Min(wr,
                  PartSize-PartWrt), NumW)
           else
-            BlockRead(F2.F, Bf[i].Buf^[Bf[i].NW+1], Word(wr), NumW);
+            BlockRead(F2.F, Bf[i].Buf^[Bf[i].NW+1], word(wr), NumW);
           end;
         if  (IOResult <> 0) then
           begin
@@ -388,7 +388,7 @@ Rep:
           CopyCancelled := True;
           Close(F2.F);
           lEraseFile(F2);
-          Exit;
+          exit;
           end;
 1:
         if  (NumW = 0) or ((PartWrt = PartSize) and (PartSize <> 0))
@@ -398,7 +398,7 @@ Rep:
             MessageBox(GetString(dlFBBDiskFull2), nil, mfError+mfOKButton);
             NewTimer(Timer, 0);
             Abort := True;
-            Exit;
+            exit;
             end
           else
             begin
@@ -460,7 +460,7 @@ Rep:
       begin
       Dispose(D, Done);
       Abort := True;
-      Exit
+      exit
       end;
     Abort := False;
     D^.GetData(S);
@@ -483,7 +483,7 @@ Rep:
         ClrIO;
         RequirePath;
         if Abort then
-          Exit;
+          exit;
         end;
       Inc(j);
       ClrIO;
@@ -520,12 +520,12 @@ Rep:
       R: TRect;
       S, Mask: String;
       SR: lSearchRec;
-      I: Integer;
+      I: integer;
       L: LongInt;
       F: lFile;
       DTA: record
         S: String;
-        W: Word;
+        W: word;
         SPLSiz, NumSect: String[10]
         end;
       a, aa, aaa: String;
@@ -540,12 +540,14 @@ Rep:
       D := PDialog(LoadResource(dlgCombineFile))
     else
       D := PDialog(LoadResource(dlgSplitFile));
-    P := D^.LastThat(@IsLabel);
-    R.Assign(P^.Origin.X+P^.Size.X-1, P^.Origin.Y, (D^.Size.X-1),
-       P^.Origin.Y+1);
-    D^.Insert(New(PLabel, Init(R, '~'+LowStrg(
-             {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(aa+aaa))+'~'+
-          GetString(dlSplit_to), PLabel(P)^.Link)));
+
+    // Строка 1 в диалоге должна быть пустой - туда вставляется имя файла
+    R.Assign(0, 1, Length(aa)+Length(aaa), 2);
+    P := New(PStaticText, Init(R,
+          {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(aa+aaa)));
+    P^.Options := P^.Options or ofCenterX;
+    D^.Insert(P);
+
     S := '';
     HistoryAdd(hsFBBCopy, lFExpand(a));
     GlobalMessage(evCommand, cmPushFirstName, @S);
@@ -572,7 +574,7 @@ Rep:
     if Desktop^.ExecView(D) = cmCancel then
       begin
       Dispose(D, Done);
-      Exit
+      exit
       end;
     D^.GetData(DTA);
     BinarySplit := DTA.W and 1 <> 0;
@@ -639,7 +641,7 @@ Rep:
       {JO}
       lFindClose(SR);
       if Abort or CopyCancelled then
-        Exit;
+        exit;
       if  (DosError = 0)
       then
         begin
@@ -716,7 +718,7 @@ Rep:
     begin
     MessFileNotOpen(Fn1, RC);
     LongCopy := False;
-    Exit;
+    exit;
     end;
   GetFtime(F1.F, Olddate);
   lFSplit(Fn1, d, n, x);
@@ -729,7 +731,7 @@ Rep:
     Close(F1.F);
     Message(Desktop, evCommand, cmSingleCopy, nil);
     LongCopy := False;
-    Exit;
+    exit;
     end;
 
   if Tuda then
@@ -748,7 +750,7 @@ Rep:
       if Abort then
         begin
         LongCopy := False;
-        Exit;
+        exit;
         end;
       FileMode := 0;
       lResetFile(F1, 1);
@@ -774,7 +776,7 @@ _Abort_:
     begin
     Close(F1.F);
     LongCopy := False;
-    Exit;
+    exit;
     end;
 
   if NewMode then

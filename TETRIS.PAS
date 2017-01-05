@@ -59,8 +59,9 @@
 library Tetris;
 
 uses
-  Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
-  Commands, Advance, Advance1, Advance2, Advance3, RStrings,
+  Defines, Streams, Drivers, Views, DNApp, Dialogs, Memory, Menus,
+   Messages,
+  Commands, advance, advance1, advance2, advance3, RStrings,
   xTime, Startup, DNHelp,
   VPUtils
   ;
@@ -72,8 +73,9 @@ unit Tetris;
 interface
 
 uses
-  Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
-  Commands, Advance, Advance1, Advance2, Advance3, RStrings
+  Defines, Streams, Drivers, Views, DNApp, Dialogs, Memory, Menus,
+   Messages,
+  Commands, advance, advance1, advance2, advance3, RStrings
   ;
 {$ENDIF}
 
@@ -97,8 +99,8 @@ type
 
     Glass: array[-2..Vis+2, -1..Shi+2] of Byte;
 
-    Delay: Word;
-    CurFig: Integer;
+    Delay: word;
+    CurFig: integer;
     Fig, OldF: array[1..5, 1..2] of Byte;
 
     Pos: TPoint;
@@ -111,7 +113,7 @@ type
 
     TMaxFig: Byte;
 
-    Level, StartLevel: Integer;
+    Level, StartLevel: integer;
     Preview: Boolean;
     Pentix: Boolean;
     HiScores: array[1..20] of record
@@ -128,12 +130,12 @@ type
     procedure Rotate;
     procedure ReadFig;
     procedure Update; virtual;
-    function MoveFig(DeltaX, DeltaY: Integer): Boolean;
-    function ValidMove(DeltaX, DeltaY: Integer): Boolean;
+    function MoveFig(DeltaX, DeltaY: integer): Boolean;
+    function ValidMove(DeltaX, DeltaY: integer): Boolean;
     function MoveDown: Boolean;
     procedure MakeTime;
-    procedure ShowScores(HighLight: Integer);
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure ShowScores(HighLight: integer);
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     destructor Done; virtual;
     end;
 
@@ -197,9 +199,9 @@ const
     (4, 4, 4, 4, 3, 4, 4, 1, 2, 3, 2, 5, 3, 4, 4, 3, 3, 4, 4, 3, 3, 3, 3,
      3, 4, 4, 3, 4);
 
-function LevelDelay(Level: Byte): Word;
+function LevelDelay(Level: Byte): word;
   var
-    Delay: Word;
+    Delay: word;
   begin
   case Level of
     1:
@@ -279,7 +281,7 @@ procedure TGameInfo.Draw;
   var
     B: TDrawBuffer;
     S: String;
-    C, I, J, K: Word;
+    C, I, J, K: word;
   begin
   C := GetColor($0201);
   MoveChar(B, #196, C, Size.X);
@@ -364,9 +366,9 @@ procedure TGameInfo.Draw;
 
 constructor TGameView.Init;
   var
-    I, J: Integer;
+    I, J: integer;
     S: PDosStream;
-    C: Word;
+    C: word;
     B: array[0..1024] of Byte;
   begin
   Randomize;
@@ -418,7 +420,7 @@ constructor TGameView.Init;
       S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stCreate));
       S^.Write(HiScores, SizeOf(HiScores));
       Dispose(S, Done);
-      Break;
+      break;
       end;
   NewGame;
   RegisterToBackground(@Self);
@@ -497,7 +499,7 @@ destructor TGameView.Done;
 
 procedure TGameView.NewGame;
   var
-    I, J: Integer;
+    I, J: integer;
   begin
   TMaxFig := 7;
 
@@ -525,12 +527,12 @@ procedure TGameView.NewGame;
 
 function TGameView.ValidMove;
   var
-    I: Integer;
+    I: integer;
   begin
   ValidMove := False;
   for I := 1 to ColPo[CurFig] do
     if Glass[Fig[I, 1]+Y+DeltaY, Fig[I, 2]+X+DeltaX+1] <> 0 then
-      Exit;
+      exit;
   ValidMove := True;
   end;
 
@@ -547,11 +549,11 @@ procedure TGameView.SetState;
 function TGameView.MoveFig;
   label 1;
   var
-    I, J: Integer;
+    I, J: integer;
   begin
   MoveFig := False;
   if not ValidMove(DeltaX, DeltaY) then
-    Exit;
+    exit;
   MoveFig := True;
   ChPos := True;
   HideFig := True;
@@ -565,12 +567,12 @@ function TGameView.MoveFig;
 
 function TGameView.MoveDown;
   var
-    I, J, K, L, W, BW: Integer;
+    I, J, K, L, W, BW: integer;
     B, BB, BBW: Boolean;
 
   procedure CheckHiScores;
     var
-      I, J: Integer;
+      I, J: integer;
       S: PDosStream;
       Nm: String;
       B: array[0..1024] of Byte;
@@ -579,9 +581,9 @@ function TGameView.MoveDown;
     for I := 1 to 10 do
       if HiScores[I+10*Byte(Pentix)].Score < Score then
         goto 1;
-    Exit;
+    exit;
 1:
-    for J := 10 downto I+1 do
+    for J := 10 DownTo I+1 do
       HiScores[J+10*Byte(Pentix)] := HiScores[J-1+10*Byte(Pentix)];
     Nm := GetString(dlAnonymous);
     ExecResource(dlgTetrisWinner, Nm);
@@ -610,7 +612,7 @@ function TGameView.MoveDown;
 
   begin { TGameView.MoveDown }
   if Stop then
-    Exit;
+    exit;
   if MoveFig(0, 1) then
     MoveDown := True
   else
@@ -633,7 +635,7 @@ function TGameView.MoveDown;
       Inc(BW, Byte(BBW));
       if B then
         begin
-        for K := I downto 1 do
+        for K := I DownTo 1 do
           for J := 1 to Shi do
             begin
             Glass[K, J] := Glass[K-1, J];
@@ -686,7 +688,7 @@ function TGameView.MoveDown;
 procedure TGameView.Draw;
   var
     B: TDrawBuffer;
-    I, J, K: Integer;
+    I, J, K: integer;
   begin
   if not ChPos then
     for I := 0 to Vis do
@@ -719,7 +721,7 @@ procedure TGameView.MakeTime;
     A, B, C: Byte;
   begin
   if Stop then
-    Exit;
+    exit;
   {$IFDEF OS_DOS}
   asm
   mov ah, 2Ch
@@ -739,7 +741,7 @@ procedure TGameView.Update;
     A, B, C: Byte;
   begin
   if Stop then
-    Exit;
+    exit;
   {$IFDEF OS_DOS}
   asm
   mov ah, 2Ch
@@ -748,7 +750,7 @@ procedure TGameView.Update;
   mov B, DL
   mov C, CL
  end;
-  if LongInt(LongInt(C)*60+Word(A))*100+B > LastT+Delay then
+  if LongInt(LongInt(C)*60+word(A))*100+B > LastT+Delay then
   {$ELSE}
   if GetTimemSec*10 > LastT+Delay then
     {$ENDIF}
@@ -774,7 +776,7 @@ procedure TGameView.HandleEvent;
       P := Byte(Preview);
       end;
     if ExecResource(dlgGameSetup, TetrisRec) <> cmOK then
-      Exit;
+      exit;
     with TetrisRec do
       begin
       StartLevel := l+1;
@@ -890,7 +892,7 @@ procedure TGameView.HandleEvent;
 
 procedure TGameView.Rotate;
   var
-    i: Integer;
+    i: integer;
   begin
   for i := 1 to ColPo[CurFig] do
     begin
@@ -901,7 +903,7 @@ procedure TGameView.Rotate;
 
 procedure TGameView.ReadFig;
   var
-    I: Integer;
+    I: integer;
   begin
   for I := 1 to ColPo[CurFig] do
     begin

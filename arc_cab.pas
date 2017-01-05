@@ -50,7 +50,7 @@ unit arc_CAB; {CAB}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -185,14 +185,14 @@ procedure TCABArchive.GetFile;
   if  (FilesNumber = 0) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   Dec(FilesNumber);
   ArcFile^.Read(FH, SizeOf(FH));
   if  (ArcFile^.Status <> 0) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   FileInfo.FName := '';
   repeat
@@ -204,7 +204,7 @@ procedure TCABArchive.GetFile;
   then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   FileInfo.Attr := FH.attribs and not Hidden;
   FileInfo.USize := FH.cbFile;

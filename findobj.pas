@@ -50,7 +50,8 @@ unit FindObj;
 interface
 
 uses
-  Objects, Advance1, Dialogs, Collect, DNApp, Commands, Dos, Startup
+  Defines, Objects2, advance1, Dialogs, Collect, DNApp, Commands, Dos,
+   Startup
   ;
 
 type
@@ -82,7 +83,7 @@ type
 
   PFindBox = ^TFindBox;
   TFindBox = object(TListBox)
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     function IsSelected(Item: LongInt): Boolean; virtual;
     end;
 

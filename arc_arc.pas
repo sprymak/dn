@@ -50,7 +50,7 @@ unit arc_ARC; {ARC}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects
+  Archiver, advance, advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -163,12 +163,12 @@ procedure TARCArchive.GetFile;
   if  (P.Version = 0) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   i := 1;
   FileInfo.FName := '';

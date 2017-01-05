@@ -23,7 +23,7 @@ function CtrlRoutine(
     p3: PContextRecord; PV: Pointer): ULong;
   cdecl;
   var
-    rc: ApiRet;
+    rc: apiret;
   label
     lCtrlBreak;
   begin
@@ -64,7 +64,7 @@ lCtrlBreak:
 
 procedure SetKillHandler(var RegRec: ExceptionRegistrationRecord);
   var
-    rc: ApiRet;
+    rc: apiret;
   begin
   FillChar(RegRec, SizeOf(RegRec), 0);
   RegRec.ExceptionHandler := CtrlRoutine;
@@ -75,7 +75,7 @@ procedure SetKillHandler(var RegRec: ExceptionRegistrationRecord);
 
 procedure UnsetKillHandler(var RegRec: ExceptionRegistrationRecord);
   var
-    rc: ApiRet;
+    rc: apiret;
   begin
   rc := DosUnsetExceptionHandler(RegRec);
   end;

@@ -50,7 +50,7 @@ unit arc_RAR; {RAR}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -248,7 +248,7 @@ type
 procedure TRARArchive.GetFile;
   var
     FP: LongInt;
-    Ps: Integer;
+    Ps: integer;
     P: LocRarHdr;
     P2: LocRar2Hdr;
     DirMask: LongInt;
@@ -260,12 +260,12 @@ procedure TRARArchive.GetFile;
     if Encrypted then
       Msg(dlArcEncrypted, nil, mfOKButton);
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   if RAR2 then
     begin
@@ -274,7 +274,7 @@ procedure TRARArchive.GetFile;
     if  (ArcFile^.Status <> stOK) then
       begin
       FileInfo.Last := 2;
-      Exit;
+      exit;
       end;
     {piwamoto}
     {we must skip garbage (digital sign as example) at the end of archive}
@@ -282,7 +282,7 @@ procedure TRARArchive.GetFile;
     if not (P2.HeadType in [$73..$7f]) then
       begin
       FileInfo.Last := 1;
-      Exit;
+      exit;
       end;
     {/piwamoto}
     if P2.HeadType = $74 then
@@ -291,7 +291,7 @@ procedure TRARArchive.GetFile;
       if  (ArcFile^.Status <> stOK) then
         begin
         FileInfo.Last := 2;
-        Exit;
+        exit;
         end;
       FileInfo.Last := 0;
       FileInfo.Date := P2.Date;
@@ -315,18 +315,18 @@ procedure TRARArchive.GetFile;
       repeat
         Ps := System.Pos('.\', FileInfo.FName);
         if Ps = 0 then
-          Break;
+          break;
         System.Delete(FileInfo.FName, Ps, 1);
       until False;
       if  (ArcFile^.Status <> stOK) then
         begin
         FileInfo.Last := 2;
-        Exit;
+        exit;
         end;
       ArcFile^.Seek(FP+P2.HeadSize+P2.PSize);
       if P2.Ver > VersionToExtr then
         VersionToExtr := P2.Ver;
-      Exit;
+      exit;
       end;
     if P2.HeadSize = 0 then
       P2.HeadSize := 7;
@@ -347,7 +347,7 @@ procedure TRARArchive.GetFile;
     if  (ArcFile^.Status <> stOK) or (P.NameLen = 0) then
       begin
       FileInfo.Last := 2;
-      Exit;
+      exit;
       end;
     FileInfo.Last := 0;
     FileInfo.Date := P.Date;
@@ -361,7 +361,7 @@ procedure TRARArchive.GetFile;
       if  (ArcFile^.Status <> stOK) then
         begin
         FileInfo.Last := 2;
-        Exit;
+        exit;
         end;
       end;
     SetLength(FileInfo.FName, P.NameLen);
@@ -369,7 +369,7 @@ procedure TRARArchive.GetFile;
     if  (ArcFile^.Status <> stOK) then
       begin
       FileInfo.Last := 2;
-      Exit;
+      exit;
       end;
     ArcFile^.Seek(ArcFile^.GetPos+P.PSize);
     if P.Ver > VersionToExtr then

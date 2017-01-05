@@ -12,7 +12,7 @@ unit EAOper;
 interface
 
 uses
-  Collect, Os2Def, Advance1
+  Collect, Os2Def, advance1
   ;
 
 type
@@ -22,12 +22,12 @@ type
     C_ulEASize: Cardinal;
     end;
 
-function EnumEAs(FName: String; var coll: PStringCollection): Integer;
+function EnumEAs(FName: String; var coll: PStringCollection): integer;
 
 function RetrieveEA(FName: String; pszName: PChar; var ea: Pointer;
-    var ulEASize: Cardinal; Silent: Boolean): Integer;
+    var ulEASize: Cardinal; Silent: Boolean): integer;
 function StoreEA(FName: String; pszName: PChar; ea: Pointer;
-    ulEASize: ULong): Integer;
+    ulEASize: ULong): integer;
 
 (*  {нужно для EABrowser'а}
 function GetEAType(ea: Pointer): SmallWord;
@@ -42,17 +42,17 @@ implementation
 
 uses
 
-  Strings, Os2Base, Messages, Advance2, FlTl
+  Strings, Os2Base, Messages, advance2, FlTl
   ;
 
-function EnumEAs(FName: String; var coll: PStringCollection): Integer;
+function EnumEAs(FName: String; var coll: PStringCollection): integer;
   var
     fst4: FILESTATUS4;
     ulEntry, ulCount, ulSize: ULong;
     pvBuf: PFEA2;
     PS: PChar;
     PSArr: array[0..255] of Char;
-    Result: Integer;
+    Result: integer;
   begin
   PS := PSArr;
   PS := StrPCopy(PS, FName);
@@ -77,13 +77,13 @@ function EnumEAs(FName: String; var coll: PStringCollection): Integer;
       if Result = NO_ERROR then
         begin
         if ulCount = 0 then
-          Break;
+          break;
         coll^.AtInsert(coll^.Count,
              NewStr(StrPas(PChar(@pvBuf^.szName))+#0));
         Inc(ulEntry, ulCount);
         end
       else
-        Break;
+        break;
       end;
     FreeMem(pvBuf);
     end;
@@ -91,7 +91,7 @@ function EnumEAs(FName: String; var coll: PStringCollection): Integer;
   end { EnumEAs };
 
 function RetrieveEA(FName: String; pszName: PChar; var ea: Pointer;
-    var ulEASize: Cardinal; Silent: Boolean): Integer;
+    var ulEASize: Cardinal; Silent: Boolean): integer;
   var
     ulFEASize, ulGEASize, ulOffset: ULong;
     eaop: EAOP2;
@@ -178,14 +178,14 @@ function RetrieveEA(FName: String; pszName: PChar; var ea: Pointer;
   end { RetrieveEA };
 
 function StoreEA(FName: String; pszName: PChar; ea: Pointer;
-    ulEASize: ULong): Integer;
+    ulEASize: ULong): integer;
   var
     eaop: EAOP2;
     ulFEASize, ulOffset: ULong;
     PS: PChar;
     PSArr: array[0..255] of Char;
     Result: LongInt;
-    FAttr: Word;
+    FAttr: word;
     LWr, Cr, LAc: LongInt;
   begin
 

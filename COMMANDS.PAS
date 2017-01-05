@@ -810,7 +810,6 @@ const
   ossRemoveCD_RO = $40;
   ossAdvCopy = $80;
   { ossFlushDsk    = $100; }
-  ossHandleChDirCommand = $100;
 
   ossDirectAccess = $01;
   ossTree = $02;
@@ -1207,8 +1206,6 @@ const
   cmFileView = 10011;
   cmFileEdit = 10013;
   cmInsertBlock = 10014;
-  cmEnableView = 10016;
-  cmDisableView = 10017;
   cmDisableSky = 10018;
   cmChangeDrv = 10019;
   cmInsertDrive = 10021;

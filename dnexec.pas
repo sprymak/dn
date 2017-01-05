@@ -51,7 +51,7 @@ interface
 
 uses
   Files,
-  UserMenu, Startup, Objects, FilesCol, Commands, TitleSet
+  UserMenu, Startup, Defines, FilesCol, Commands, TitleSet
   {$IFDEF OS2}, Dn2PmApi {$ENDIF} {AK155 для перерисовки иконки}
   ;
 
@@ -80,8 +80,8 @@ uses
   {$IFDEF WIN32}
   Windows,
   {$ENDIF}
-  DNUtil, Advance, DNApp, Advance1, Lfn,
-  Dos, Advance3, FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4,
+  DNUtil, advance, DNApp, advance1, Lfn,
+  Dos, advance3, FlPanelX, CmdLine, Views, advance2, Drivers, advance4,
   VideoMan, Memory, VpSysLow, VPSysLo2,
   {$IFDEF UserSaver}
   UserSavr,
@@ -187,7 +187,7 @@ function Win32Program(S: PString): SmallWord;
   FSplit(RealName, Dir, Name, Ext);
   UpStr(Ext);
   if Ext <> '.EXE' then
-    Exit;
+    exit;
   FileMode := Open_Access_ReadOnly or open_share_DenyNone;
   ClrIO;
   Assign(f, RealName);
@@ -197,18 +197,18 @@ function Win32Program(S: PString): SmallWord;
     PathEnv := GetEnv('PATH');
     RealName := FSearch(S^, PathEnv);
     if RealName = '' then
-      Exit;
+      exit;
     Assign(f, RealName);
     Reset(f, 1);
     if IOResult <> 0 then
-      Exit; {вообще-то, так быть не должно, раз мы ее нашли}
+      exit; {вообще-то, так быть не должно, раз мы ее нашли}
     end;
   Seek(f, $3C);
   BlockRead(f, NewExeOffs, 2, l);
   if  (NewExeOffs = 0) or (l <> 2) then
     begin
     Close(f); {Cat}
-    Exit;
+    exit;
     end;
   Seek(f, NewExeOffs);
   BlockRead(f, NewHeader, SizeOf(NewHeader), l);
@@ -246,7 +246,7 @@ function GUIProgram(S: PString): Boolean;
   var
     SS: String;
     Flags: LongInt;
-    l: Integer;
+    l: integer;
   begin
   SS := S^;
   l := 0;
@@ -283,7 +283,7 @@ function GUIProgram(S: PString): Boolean;
 {-DataCompBoy-}
 procedure ExecStringRR(S: PString; WS: String; RR: Boolean);
   var
-    I: Integer;
+    I: integer;
     EV: TEvent;
     X, Y: SmallWord; {Cat}
     ScreenSize: TSysPoint; {Cat}
@@ -395,10 +395,10 @@ function SearchExt(FileRec: PFileRec; var HS: String): Boolean;
     s, s1: String;
     BgCh, EnCh: Char;
     EF, First: Boolean;
-    I: Integer;
+    I: integer;
     Local: Boolean;
     FName: String;
-    UserParam: TUserParams;
+    UserParam: tUserParams;
     D: TMaskData;
     {$IFDEF OS2}
     WriteEcho: Boolean;
@@ -423,7 +423,7 @@ RL:
     f := New(PTextReader, Init(SourceDir+'DN.EXT'));
     end;
   if f = nil then
-    Exit;
+    exit;
   AllRight := False;
   BgCh := '{';
   EnCh := '}';
@@ -446,7 +446,7 @@ RL:
       begin
       I := PosChar(BgCh, s);
       if  (I = 0) or (s[I+1] = BgCh) then
-        Continue;
+        continue;
       s1 := Copy(s, 1, I-1);
       DelLeft(s1);
       DelRight(s1);
@@ -463,7 +463,7 @@ RL:
             begin
             Dispose(f, Done);
             FreeTMaskData(D); {Cat}
-            Exit;
+            exit;
             end;
           {$IFNDEF OS2}
           Writeln(F1.T, '@echo off');
@@ -497,7 +497,7 @@ RL:
                 WriteEcho := False;
                 {$ENDIF}
                 Writeln(F1.T, s);
-                Break
+                break
                 end;
               end;
             if s <> '' then
@@ -521,7 +521,7 @@ RL:
               First := False;
               end;
             if  (f^.Eof) then
-              Break;
+              break;
             if not EF then
               s := f^.GetStr;
           until (IOResult <> 0) or Abort or EF;
@@ -557,7 +557,7 @@ function ExecExtFile(const ExtFName: String; UserParams: PUserParams;
     S, S1: String;
     FName, LFN: String;
     Event: TEvent;
-    I, J: Integer;
+    I, J: integer;
     Success, CD: Boolean;
     Local: Boolean;
     D: TMaskData;
@@ -582,14 +582,14 @@ RepeatLocal:
     F := New(PTextReader, Init(SourceDir+ExtFName));
     end;
   if F = nil then
-    Exit;
+    exit;
   while not F^.Eof do
     begin
     S := F^.GetStr;
     DelLeft(S);
     S1 := fDelLeft(Copy(S, 1, pred(PosChar(':', S))));
     if  (S1 = '') or (S1[1] = ';') then
-      Continue;
+      continue;
     D.Filter := S1;
     MakeTMaskData(D);
     if InExtFilter(FName, D) or InExtFilter(LFN, D) then
@@ -602,14 +602,14 @@ RepeatLocal:
   if Local then
     goto RepeatLocal;
   FreeTMaskData(D); {Cat}
-  Exit;
+  exit;
 1111:
   Delete(S, 1, Succ(Length(S1)));
   Dispose(F, Done);
   if not Application^.Valid(cmQuit) then
     begin
     FreeTMaskData(D); {Cat}
-    Exit;
+    exit;
     end;
   ClrIO;
   S1 := '';
@@ -626,7 +626,7 @@ RepeatLocal:
   if Abort then
     begin
     FreeTMaskData(D); {Cat}
-    Exit;
+    exit;
     end;
   if S[1] = '*' then
     Delete(S, 1, 1); {DelFC(S);}
@@ -673,7 +673,7 @@ procedure ExecFile(const FileName: String);
   procedure PutHistory(B: Boolean);
     begin
     if M = '' then
-      Exit;
+      exit;
     CmdLine.Str := M;
     CmdLine.StrModified := True;
     CmdDisabled := B;
@@ -698,7 +698,7 @@ procedure ExecFile(const FileName: String);
       RunOS2Command(M, False, ST);
       CmdLine.StrModified := True;
       Message(CommandLine, evKeyDown, kbDown, nil);
-      Exit;
+      exit;
       end;
     {$ENDIF}
     {AK155, см. dnutil.ExecCommandLine}

@@ -66,7 +66,7 @@ type
     NextEntryOffset: DWord;
     Flags: Byte;
     EaNameLength: Byte;
-    EaValueLength: Word;
+    EaValueLength: word;
     EaName: array[0..0] of Char;
     end;
 
@@ -236,7 +236,7 @@ function GetFileAges(S: ShortString;
   if SH = invalid_Handle_Value then
     begin
     Result := GetLastError;
-    Exit;
+    exit;
     end;
   FindClose(SH);
   with FindData do

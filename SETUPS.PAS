@@ -51,7 +51,7 @@ unit Setups;
 interface
 
 uses
-  Dos, Lfn, {DataCompBoy}Objects, Drivers, Views, Dialogs, Collect, DNApp,
+  Dos, Lfn, {DataCompBoy}Defines, Drivers, Views, Dialogs, Collect, DNApp,
   Commands, RStrings, Startup, Validate
   ;
 
@@ -59,12 +59,12 @@ uses
 {----------------------------------------------------------------------------}
 type
   TSysData = record
-    Options: Word;
+    Options: word;
     Mode1: String[5];
     Mode2: String[5];
     Temp: String;
     Drives: TTextListboxRec;
-    Current: Word;
+    Current: word;
     CopyLimitBuf: String[5];
     ForceDefArch: String[3];
     end;
@@ -82,7 +82,7 @@ type
   PCurrDriveInfo = ^TCurrDriveInfo;
   TCurrDriveInfo = object(TCheckBoxes)
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure Press(Item: Integer); virtual;
+    procedure Press(Item: integer); virtual;
     end;
 
   PMouseBar = ^TMouseBar;
@@ -90,7 +90,7 @@ type
     constructor Init(var Bounds: TRect);
     procedure SetData(var Rec); virtual;
     procedure GetData(var Rec); virtual;
-    function DataSize: Word; virtual;
+    function DataSize: word; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -112,12 +112,12 @@ type
   PUpperTable = ^TUpperTable;
   TUpperTable = object(TView)
     Table: array[0..127] of Char;
-    CurrentChar: Integer;
-    Delta: Integer;
+    CurrentChar: integer;
+    Delta: integer;
     constructor Init(var R: TRect);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function DataSize: Word; virtual;
+    function DataSize: word; virtual;
     procedure GetData(var Rec); virtual;
     procedure SetData(var Rec); virtual;
     function GetPalette: PPalette; virtual;
@@ -145,13 +145,13 @@ function MakeSaversDialog: PDialog;
 {$ENDIF}
 implementation
 uses
-  Tree, Drives, Advance, Advance1, Advance2, Advance3, Messages, DNHelp,
-  Advance6, DnIni
+  Tree, Drives, advance, advance1, advance2, advance3, Messages, DNHelp,
+  advance6, DnIni
   ;
 
 procedure ConfirmSetup;
   var
-    D: Word;
+    D: word;
   begin
   Confirms := Confirms and $7F+
       (Confirms and cfFmtOs2Warning) shr 1+
@@ -161,7 +161,7 @@ procedure ConfirmSetup;
       (Confirms and cfFmtOs2Warning) shr 1+
       (Confirms and cfExitConfirm) shl 1;
   if D <> cmOK then
-    Exit;
+    exit;
   ConfigModified := True;
 
   ConfirmsOpt := Confirms;
@@ -173,14 +173,14 @@ function TerminalSetup;
   begin
   TerminalSetup := False;
   if ExecResource(dlgSetupTerminal, TerminalDefaults) <> cmOK then
-    Exit;
+    exit;
   TerminalSetup := True;
   Message(Application, evCommand, cmUpdateConfig, nil);
   end;
 
 procedure SystemSetup;
   var
-    W: Word;
+    W: word;
     D: PDialog;
     B: Boolean;
     Data: TSysData;
@@ -188,12 +188,12 @@ procedure SystemSetup;
   begin
   OpenResource;
   if Resource = nil then
-    Exit;
+    exit;
   D := PDialog
             (Application^.ValidView(PDialog(Resource^.Get(dlgSystemSetup))
         ));
   if D = nil then
-    Exit;
+    exit;
   W := Desktop^.ExecView(D);
   if W <> cmCancel then
     begin
@@ -202,13 +202,10 @@ procedure SystemSetup;
     Message(Application, evCommand, cmUpdateConfig, nil);
     end;
   Dispose(D, Done);
-  HandleChDirCommand := ((SystemData.Options shl 3) and
-       ossHandleChDirCommand) <> 0;
   SystemDataOpt := SystemData.Options;
   CopyLimit := SystemData.CopyLimitBuf;
   ForceDefaultArchiver := SystemData.ForceDefArch;
 
-  SaveDnIniSettings(@HandleChDirCommand);
   SaveDnIniSettings(@SystemDataOpt);
   SaveDnIniSettings(@CopyLimit);
   SaveDnIniSettings(@ForceDefaultArchiver);
@@ -278,7 +275,7 @@ procedure InterfaceSetup;
 procedure StartupSetup;
   var
     Data: record
-      Load, Unload, Slice2: Word;
+      Load, Unload, Slice2: word;
       end;
   begin
   Data.Load := StartupData.Load;
@@ -305,7 +302,7 @@ procedure StartupSetup;
 procedure MouseSetup;
   begin
   if ExecResource(dlgMouseSetup, MouseData) <> cmOK then
-    Exit;
+    exit;
   if MouseVisible xor (MouseData.Options and omsCursor <> 0) then
     begin
     DoneEvents;
@@ -319,18 +316,18 @@ procedure MouseSetup;
 {$IFDEF SS}
 procedure SaversSetup;
   var
-    W: Word;
+    W: word;
     D: PDialog;
     B: Boolean;
   begin
   OpenResource;
   if Resource = nil then
-    Exit;
+    exit;
   D := PDialog
             (Application^.ValidView(PDialog(Resource^.Get(dlgSaversSetup))
         ));
   if D = nil then
-    Exit;
+    exit;
   W := Desktop^.ExecView(D);
   if W <> cmCancel then
     begin
@@ -344,7 +341,7 @@ procedure SaversSetup;
 procedure SetupCountryInfo;
   begin
   if ExecResource(dlgCountrySetup, CountryInfo) <> cmOK then
-    Exit;
+    exit;
   InitUpcase;
   GlobalMessage(evCommand, cmReboundPanel, nil);
   ConfigModified := True;
@@ -353,7 +350,7 @@ procedure SetupCountryInfo;
 procedure FMDefaults;
   begin
   if ExecResource(dlgFMDefaults, Startup.PanelDefaults) <> cmOK then
-    Exit;
+    exit;
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmReboundPanel, nil);
   end;
@@ -361,7 +358,7 @@ procedure FMDefaults;
 procedure FMSetup;
   begin
   if ExecResource(dlgFMSetup, Startup.FMSetup) <> cmOK then
-    Exit;
+    exit;
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmReboundPanel, nil);
 
@@ -372,14 +369,14 @@ procedure FMSetup;
 
 procedure DriveInfoSetup;
   var
-    W: Word;
+    W: word;
   begin
   Startup.DriveInfoData := Startup.DriveInfoData and $001F+
     Startup.DriveInfoData and $07E0 shl 2+
     Startup.DriveInfoData and $1800 shr 6;
 
   if ExecResource(dlgDriveInfoSetup, Startup.DriveInfoData) <> cmOK then
-    Exit;
+    exit;
   Startup.DriveInfoData := Startup.DriveInfoData and $001F+
     Startup.DriveInfoData and $FF80 shr 2+
     Startup.DriveInfoData and $0060 shl 6;
@@ -503,7 +500,7 @@ function SetupColumnDefaultsArvd: Boolean;
 
 procedure TCurrDriveInfo.HandleEvent;
   var
-    W: Word;
+    W: word;
     Data: TSysData;
   begin
   inherited HandleEvent(Event);
@@ -591,12 +588,12 @@ asm mov eax,4 end;
 
 procedure TMouseBar.SetData;
   begin
-  SetValue(Integer(Rec))
+  SetValue(integer(Rec))
   end;
 
 procedure TMouseBar.GetData;
   begin
-  Integer(Rec) := Value
+  integer(Rec) := Value
   end;
 
 procedure TMouseBar.HandleEvent;
@@ -611,7 +608,7 @@ procedure TMouseBar.HandleEvent;
 procedure TSaversListBox.HandleEvent;
   var
     PS: PString;
-    F: Integer;
+    F: integer;
     A, S: PCollection;
     LocalData: TSaversData;
   function SeekStr(P: PString): Boolean;
@@ -808,7 +805,7 @@ function MakeSaversDialog: PDialog;
 
 constructor TUpperTable.Init;
   var
-    I: Integer;
+    I: integer;
   begin
   inherited Init(R);
   for I := 0 to 127 do
@@ -842,8 +839,8 @@ procedure TUpperTable.SetData;
 procedure TUpperTable.Draw;
   var
     B: TDrawBuffer;
-    I: Integer;
-    C: Word;
+    I: integer;
+    C: word;
   begin
   if CurrentChar < Delta then
     Delta := CurrentChar;

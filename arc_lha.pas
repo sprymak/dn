@@ -50,7 +50,7 @@ unit arc_LHA; {LHA}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos, xTime
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime
   ;
 
 type
@@ -203,7 +203,7 @@ procedure TLHAArchive.GetFile;
   if  (P.Size = 0) then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P.Sum, P.Size-SizeOf(P.Size));
   if  (ArcFile^.Status <> stOK) or (P.MethodID[1] <> '-')
@@ -211,7 +211,7 @@ procedure TLHAArchive.GetFile;
   then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   FP := ArcFile^.GetPos+2;
   if P.Level = 2 then

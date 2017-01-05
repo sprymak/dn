@@ -51,7 +51,7 @@ unit Macro;
 interface
 
 uses
-  Advance, Advance1, Advance2, Advance3, Objects, Views, Collect,
+  advance, advance1, advance2, advance3, Defines, Objects2, Views, Collect,
   Microed, highlite, Strings
   ;
 
@@ -67,9 +67,9 @@ type
 
   PMacroCommand = ^TMacroCommand;
   TMacroCommand = object(TObject)
-    Command: Integer;
-    Repetitions: Integer;
-    constructor Init(ACommand, ARepetitions: Word);
+    Command: integer;
+    Repetitions: integer;
+    constructor Init(ACommand, ARepetitions: word);
     procedure ExecCommand(Editor: PView); virtual;
     end;
 
@@ -81,21 +81,21 @@ type
   PMacroMark = ^TMacroMark;
   TMacroMark = object(TMacroCommand)
     Mark: Boolean;
-    constructor Init(AN: Integer; AMark: Boolean);
+    constructor Init(AN: integer; AMark: Boolean);
     procedure ExecCommand(Editor: PView); virtual;
     end;
 
   PMacroString = ^TMacroString;
   TMacroString = object(TMacroCommand)
     S: PString;
-    constructor Init(const AString: String; ARepetitions: Word);
+    constructor Init(const AString: String; ARepetitions: word);
     procedure ExecCommand(Editor: PView); virtual;
     destructor Done; virtual;
     end;
 
   PIDCollection = ^TIDCollection;
   TIDCollection = object(TSortedCollection)
-    function Compare(P1, P2: Pointer): Integer; virtual;
+    function Compare(P1, P2: Pointer): integer; virtual;
     end;
 
 procedure EditDOSEnvironment(Env: PByteArray);
@@ -115,8 +115,8 @@ type
   PLngWord = ^TLngWord;
   TLngWord = object(TObject)
     Name: String[30];
-    l: Word;
-    constructor Init(AL: Word; const AName: String);
+    l: word;
+    constructor Init(AL: word; const AName: String);
     end;
 
 function Token(const S: String; var Pos: CondInt): String;
@@ -124,7 +124,7 @@ function Token(const S: String; var Pos: CondInt): String;
     A: String;
     B, Cmd: Boolean;
     M: String;
-    J: Integer;
+    J: integer;
   begin
   Token := '';
   A := '';
@@ -145,7 +145,7 @@ function Token(const S: String; var Pos: CondInt): String;
           B := not B;
       ',', ' ':
         if not B or Cmd then
-          Break
+          break
         else if B then
           AddStr(A, S[Pos]);
       '^':
@@ -213,7 +213,7 @@ constructor TEditMacros.Init;
       T: TLngWord;
       I: CondInt;
       L: LongInt;
-      qq: Integer;
+      qq: integer;
     begin
     FreeStr := S;
     DelRight(FreeStr);
@@ -251,14 +251,14 @@ constructor TEditMacros.Init;
              i)))));
     end;
 
-  procedure MakeGotoXY(X, Y: Integer);
+  procedure MakeGotoXY(X, Y: integer);
     begin
     Commands^.Insert(New(PMacroGoto, Init(X, Y)));
     end;
 
   procedure MakeIDs;
 
-    procedure Add(N: Word; const S: String);
+    procedure Add(N: word; const S: String);
       begin
       IDs^.Insert(New(PLngWord, Init(N, S)))
       end;
@@ -384,7 +384,7 @@ constructor TEditMacros.Init;
       begin
       I := 1;
       if Found('ENDMACRO') then
-        Break;
+        break;
       if Found('PRINT ') then
         MakePrint
       else if Found('GOTOXY ') then
@@ -437,7 +437,7 @@ constructor TMacroCommand.Init;
 
 procedure TMacroCommand.ExecCommand;
   var
-    I: Integer;
+    I: integer;
   begin
   for I := 1 to Max(1, Repetitions) do
     Message(Editor^.Owner, evCommand, Command, nil);
@@ -480,10 +480,10 @@ constructor TMacroString.Init;
 
 procedure TMacroString.ExecCommand;
   var
-    I, J: Integer;
+    I, J: integer;
   begin
   if S = nil then
-    Exit;
+    exit;
   for J := 1 to Max(1, Repetitions) do
     for I := 1 to Length(S^) do
       Message(Application, evKeyDown, Byte(S^[I]), nil);
@@ -509,9 +509,9 @@ type
   PVarList = ^TVarList;
   TVarList = object(TListBox)
     Line: PInputline;
-    PrevFocused: Integer;
+    PrevFocused: integer;
     procedure FocusItem(Item: LongInt); virtual;
-    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -519,7 +519,7 @@ type
 
 constructor TDOSVar.Init;
   var
-    I: Integer;
+    I: integer;
   begin
   inherited Init;
   I := PosChar('=', S);
@@ -533,7 +533,7 @@ constructor TDOSVar.Init;
 procedure TDOSVar.SetValue;
   begin
   if  (S = '') and (Value = nil) then
-    Exit;
+    exit;
   if  (Value = nil) or (Length(Value^) <> Length(S)) then
     begin
     DisposeStr(Value);
@@ -622,7 +622,7 @@ procedure TVarList.HandleEvent;
     if InputBox(GetString(dlEnvAddTitle), GetString(dlEnvVariable), S,
          255, hsNewVariable) <> cmOK
     then
-      Exit;
+      exit;
     PrevFocused := -1;
     List^.AtInsert(Focused, New(PDOSVar, Init(S)));
     SetRange(List^.Count);
@@ -636,13 +636,13 @@ procedure TVarList.HandleEvent;
     begin
     ClearEvent(Event);
     if  (P = nil) then
-      Exit;
+      exit;
     S := CnvString(P^.Name);
     FormatStr(FreeStr, GetString(dlEnvRenVar), P^.Name);
     if InputBox(FreeStr, GetString(dlFCRenameNew), S, 255, hsNewVariable)
        <> cmOK
     then
-      Exit;
+      exit;
     UpStr(S);
     DisposeStr(P^.Name);
     P^.Name := NewStr(S);
@@ -690,7 +690,7 @@ procedure EditDOSEnvironment;
     P: PView;
     R: TRect;
     PC: PCollection;
-    I: Integer;
+    I: integer;
 
   procedure MakeDialog;
     var
@@ -737,7 +737,7 @@ procedure EditDOSEnvironment;
 
   procedure DoPut(P: PDOSVar);
     var
-      J: Integer;
+      J: integer;
 
     procedure Put(C: Char);
       begin
@@ -830,7 +830,7 @@ function InitHighLight
     EdOptions: PEditOptions): Boolean;
   var
     F: PTextReader;
-    I: Integer;
+    I: integer;
     CaseStr: String; {PZ - 2000.04.11}
 
   function Found(const S: String): Boolean;
@@ -852,7 +852,7 @@ function InitHighLight
       P: PEditMacros;
     begin
     if Macros = nil then
-      Exit;
+      exit;
     New(P, Init(FreeStr, F));
     if  (P^.Commands^.Count = 0) or (Macros^.IndexOf(P) >= 0)
     then
@@ -866,9 +866,9 @@ function InitHighLight
     IsOn := (FreeStr = 'YES') or (FreeStr = 'ON');
     end;
 
-  procedure MakeValue(var V: Word);
+  procedure MakeValue(var V: word);
     var
-      J: Integer;
+      J: integer;
     begin
     System.Val(FreeStr, J, i);
     if  (J >= 0) and (i = 0) then
@@ -893,16 +893,16 @@ function InitHighLight
 
   procedure MakeDefaults;
     var
-      j: Integer;
+      j: integer;
     begin
     while not F^.Eof do
       begin
       CaseStr := fDelLeft(fDelRight(F^.GetStr));
       FreeStr := UpStrg(CaseStr);
       if  (FreeStr = '') or (FreeStr[1] = ';') then
-        Continue;
+        continue;
       if Found('FILES ') or Found('END') then
-        Break;
+        break;
       if Found('MACRO ') then
         InsertMacro
       else
@@ -992,19 +992,19 @@ function InitHighLight
   FillChar(HiLitePar, SizeOf(HiLitePar), 0);
   F := New(PTextReader, Init(SourceDir+'DN.HGL'));
   if F = nil then
-    Exit;
+    exit;
   while not F^.Eof do
     begin
     FreeStr := UpStrg(fDelLeft(fDelRight(F^.GetStr)));
     if  (FreeStr = '') or (FreeStr[1] = ';') then
-      Continue;
+      continue;
     if Found('FILES ') and InFilter(FName, FreeStr) then
       begin
       InitHighLight := True;
       {PZ 2000.06.09 Default is ON if file is defined }
       MakeDefaults;
       FixHighliteParams(HiLitePar); {PZ - 2000.04.11}
-      Break;
+      break;
       end
     else if Found('DEFAULT') then
       begin

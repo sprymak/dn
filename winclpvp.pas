@@ -61,7 +61,7 @@ unit WinClpVp;
 interface
 
 uses
-  Objects, Collect
+  Defines, Streams, Collect
   ;
 
 function SetWinClip(PC: PLineCollection): Boolean; {$IFDEF DPMI32}
@@ -101,7 +101,7 @@ implementation
 
 uses
   {$IFDEF OS2}Os2Base, Dn2PmApi, {$ELSE}VpSysLow, {$ENDIF}
-  Microed, Advance, Advance1, DnIni
+  Microed, advance, advance1, DnIni
   ;
 
 procedure SyncClipIn;
@@ -129,7 +129,7 @@ function SetWinClip(PC: PLineCollection): Boolean;
   Size := 0;
 
   if PC = nil then
-    Exit; {Cat: коллекции может и не быть}
+    exit; {Cat: коллекции может и не быть}
 
   if PC^.LongStrings then
     begin
@@ -247,7 +247,7 @@ function GetWinClip(var PCL: PLineCollection {; NeedStream: boolean})
     {$ENDIF}
     begin
     GetWinClip := False;
-    Exit;
+    exit;
     end
   else
     GetWinClip := True;
@@ -356,7 +356,7 @@ procedure PackLinesStream(var PCS: PStream); {-$VOL begin}
 
   MS := GetMeMemoStream;
   if MS = nil then
-    Exit;
+    exit;
   MS^.Write(LongStrings, 1); {пишем флажок "длинноты" строк}
   if LongStrings then
     while (PCS^.GetPos < PCS^.GetSize) do
@@ -387,11 +387,11 @@ procedure CopyLines2Stream(PC: PCollection; var PCS: PStream);
     TempLongString: LongString;
   begin
   if PC = nil then
-    Exit;
+    exit;
   if PCS = nil then
     PCS := GetMeMemoStream;
   if PCS = nil then
-    Exit;
+    exit;
   Pos := PCS^.GetPos;
   if Pos = 0 then
     begin
@@ -463,13 +463,13 @@ procedure CopyStream2Lines(PCS: PStream; var PC: PCollection);
     LongStrings: Boolean;
   begin
   if PCS = nil then
-    Exit;
+    exit;
   PCS^.Seek(0);
   PCS^.Read(LongStrings, 1); {читаем флажок "длинноты" строк}
   if PC = nil then
     PC := New(PLineCollection, Init(50, 5, LongStrings));
   if PC = nil then
-    Exit;
+    exit;
   if LongStrings then
     begin
     PLS := PCS^.ReadLongStr;

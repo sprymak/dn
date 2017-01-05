@@ -54,7 +54,8 @@ uses
   Lfn, Files, TitleSet, UserMenu, {DataCompBoy}Collect,
   FilesCol, Dos, DnIni, Filediz, {$IFDEF ARVID}ArvidAvt, {$ENDIF}
   FlTl,
-  Advance, Advance1, Advance2, Advance3, Objects, Views, Dialogs, Drivers
+  advance, advance1, advance2, advance3, Defines, Objects2, Streams,
+   Views, Dialogs, Drivers
   ;
 
 type
@@ -78,7 +79,7 @@ procedure BeepAftercopy;
 
 function CopyDialog(var CopyDir: String; var Mask: String;
     {DataCompBoy}
-    var CopyOpt: Word; var CopyMode: Word;
+    var CopyOpt: word; var CopyMode: word;
     var CopyPrn: Boolean; {var Inheread: Byte;}
     MoveMode: Boolean; Files: PCollection;
     FromTemp: Byte; Owner: PView; Link: Boolean): Boolean;
@@ -154,7 +155,7 @@ type
   PDirCollection = ^TDirCollection;
   TDirCollection = object(TSortedCollection)
     procedure FreeItem(P: Pointer); virtual;
-    function Compare(P1, P2: Pointer): Integer; virtual;
+    function Compare(P1, P2: Pointer): integer; virtual;
     end;
 
 function MemAvail: LongInt;
@@ -236,7 +237,7 @@ procedure BeepAftercopy;
 {-DataCompBoy-}
 function SelectDialog;
   var
-    I: Integer;
+    I: integer;
     P: record
       S: String;
       XorSel: Boolean;
@@ -257,14 +258,14 @@ function SelectDialog;
     XorSel := XORSelect;
     SelectDialog := False;
     if LowMemory then
-      Exit;
+      exit;
     if Select then
       Idx := dlgSelect
     else
       Idx := dlgUnselect;
     D := PDialog(Application^.ValidView(PDialog(LoadResource(Idx))));
     if D = nil then
-      Exit;
+      exit;
     S := HistoryStr(hsSelectBox, 0);
     if S = '' then
       S := x_x;
@@ -278,7 +279,7 @@ function SelectDialog;
       begin
       Dispose(D, Done);
       HistoryAdd(hsSelectBox, S);
-      Exit;
+      exit;
       end;
     SelectDialog := True;
     D^.GetData(S);
@@ -291,7 +292,7 @@ function SelectDialog;
 
 type
   TBlock = record
-    len: Word;
+    len: word;
     Time: LongInt;
     Eof: Boolean;
     Last: Boolean;
@@ -319,7 +320,7 @@ type
     Size: TSize;
     Pos: LongInt;
     Date: LongInt;
-    len: Word;
+    len: word;
     Eof: Byte;
     Attr: Byte;
     constructor Init(var ALen: LongInt; AOwner: Pointer;
@@ -471,7 +472,7 @@ function CDRomInstalled: Boolean;
   end;
 
 {AK155}
-function AppendQuery(const S: String): Word;
+function AppendQuery(const S: String): word;
   var
     D: PDialog;
     P: PStaticText;
@@ -498,7 +499,7 @@ function GetPercent(N: TSize): Str12;
 
 {-DataCompBoy-}
 procedure FilesCopy(Files: PCollection; Owner: PView;
-    const CopyDir, Mask: String; CopyMode, CopyOptions: Word;
+    const CopyDir, Mask: String; CopyMode, CopyOptions: word;
     CopyPrn, RR: Boolean);
 
   var
@@ -507,7 +508,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     ReadPos: TSize;
     CopyCancel: Boolean;
     B: Pointer;
-    BSize: Word;
+    BSize: word;
     TRead, TWrite,
     ToRead, ToWrite: TSize;
     CopyQueue, Dirs: PCollection;
@@ -522,7 +523,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     CD_Drives: set of Char;
     AdvCopy, Use40: Boolean;
     _Tmr: TEventTimer;
-    IOR: Integer;
+    IOR: integer;
     SSS: String;
     TargetDirName: String;
     RC: LongInt;
@@ -532,7 +533,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     var
       S: String;
     begin
-    S := Advance2.MkName(Nm, Mask);
+    S := advance2.MkName(Nm, Mask);
     if  (S[Length(S)] = '.') and (Length(S) > 1) then
       SetLength(S, Length(S)-1); {JO}
     MkName := S;
@@ -555,7 +556,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     if CopyCancel then
       begin
       DE;
-      Exit
+      exit
       end;
     if TimerExpired(_Tmr) then
       begin
@@ -587,7 +588,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     var
       DizPath: String;
       S: String;
-      I: Integer;
+      I: integer;
       NewDescription: PString;
     begin
     DizPath := CalcDPath(P, Owen);
@@ -635,10 +636,10 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     end;
 
   function Overwrite(const NName: String; OldS, NewS: TSize;
-       OldT, NewT: LongInt): Word;
+       OldT, NewT: LongInt): word;
     var
-      AcceptAll: Word;
-      I: Word;
+      AcceptAll: word;
+      I: word;
       D: PDialog;
       P: PView;
       R: TRect;
@@ -718,10 +719,10 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
 
   var
     SkipRequested: Boolean;
-    ExAttr: Word;
+    ExAttr: word;
 
   var
-    DOSErrorCode: Word;
+    DOSErrorCode: word;
 
   procedure RnFl(N1, N2: String);
     begin
@@ -733,19 +734,19 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     label DoRewrite, DoAppend, 1, 2, lbStartWrite, lbStartCheck, DoNotUse40
       , lRetryToReset;
     var
-      I: Integer;
-      J: Word;
+      I: integer;
+      J: word;
       P: pLine;
       A: LongInt;
       BB: TSize;
       F: lFile;
       PS: array[1..2] of Pointer;
       S1: String;
-      BufCrc: Word;
+      BufCrc: word;
       Created: Boolean;
-      Opened: Integer;
-      MsgResult: Integer;
-      Ask: Integer;
+      Opened: integer;
+      MsgResult: integer;
+      Ask: integer;
       {$IFDEF OS2}
       {JO - для переименования файла в .LONGNAME исходного файла}
       LogName, NewDir, NewPrName, NewExt: String;
@@ -756,7 +757,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
 
     procedure TryToReset;
       var
-        OldAttr: Word;
+        OldAttr: word;
       begin
       {AK155 2-02-2002
 Раньше наличие файла проверялось  при помощи lResetFile, что не
@@ -774,7 +775,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
           lResetFile(WriteStream, 1);
           Opened := IOResult;
           Created := False;
-          Exit;
+          exit;
           end;
         end;
       lReWriteFile(WriteStream, 1);
@@ -795,11 +796,11 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
       begin
       CheckI24Abort := Abort;
       if not Abort then
-        Exit;
+        exit;
       CopyCancel := True;
       end;
     const
-      CrcTable: array[0..255] of Word = (
+      CrcTable: array[0..255] of word = (
         $0000, $1021, $2042, $3063, $4084, $50a5, $60c6, $70e7,
         $8108, $9129, $a14a, $b16b, $c18c, $d1ad, $e1ce, $f1ef,
         $1231, $0210, $3273, $2252, $52b5, $4294, $72f7, $62d6,
@@ -834,23 +835,23 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
         $6e17, $7e36, $4e55, $5e74, $2e93, $3eb2, $0ed1, $1ef0
         );
 
-    function UpdateCrc(CurByte: Byte; CurCrc: Word): Word;
+    function UpdateCrc(CurByte: Byte; CurCrc: word): word;
       {-Returns an updated CRC16}
       begin
       UpdateCrc := CrcTable[((CurCrc shr 8) and 255)] xor
           (CurCrc shl 8) xor CurByte;
       end;
 
-    function GetCrc(var Buf; BfLen: Word): Word;
+    function GetCrc(var Buf; BfLen: word): word;
       var
         Data: array[0..$FFF] of Byte absolute Buf;
-        I: Word;
-        Crc: Word;
+        I: word;
+        Crc: word;
       begin
       GetCrc := 0;
       Crc := $1972;
       if BfLen = 0 then
-        Exit;
+        exit;
       for I := 0 to pred(BfLen) do
         Crc := UpdateCrc(Data[I], Crc);
       GetCrc := Crc;
@@ -909,7 +910,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
           begin
           if WPWas then
             WriteProgress;
-          Break;
+          break;
           end;
         P := CopyQueue^.At(I);
         if P^.Attr and Directory <> 0 then
@@ -928,7 +929,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
             if  (Owner <> nil) then
               Message(Owner, evCommand, cmCopyUnselect, P^.Owner);
             end;
-          Continue;
+          continue;
           end
           {$IFDEF OS2}
           {JO - для переименования файла в .LONGNAME исходного файла}
@@ -1003,8 +1004,8 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
               if not SkipRequested then
                 goto 1;
               if  (not CopyCancel) then
-                Continue;
-              Break;
+                continue;
+              break;
               end;
             end;
 
@@ -1056,7 +1057,7 @@ lRetryToReset:
                         DoSkip;
                         if not SkipRequested then
                           goto 1;
-                        Break;
+                        break;
                         end;
                       DisposeStr(P^.NewName);
                       P^.NewName := NewStr(S1);
@@ -1068,13 +1069,13 @@ lRetryToReset:
                       DoSkip;
                       if not SkipRequested then
                         goto 1;
-                      Break;
+                      break;
                       end;
                     else {case}
                       begin
                       CopyCancel := True;
                       ForceDispatch;
-                      Break;
+                      break;
                       end;
                   end {case};
                   end;
@@ -1085,7 +1086,7 @@ lRetryToReset:
                   if Ask = 1 then
                     goto lRetryToReset;
                   NoWrite;
-                  Break;
+                  break;
                   end;
               end {case};
               end
@@ -1112,7 +1113,7 @@ lbStartCheck:
                   DoSkip;
                   if not SkipRequested then
                     goto 1;
-                  Break;
+                  break;
                   end;
                 cpmRefresh:
                   begin
@@ -1124,7 +1125,7 @@ lbStartCheck:
                     DoSkip;
                     if not SkipRequested then
                       goto 1;
-                    Break;
+                    break;
                     end;
                   end;
                 else {case}
@@ -1136,7 +1137,7 @@ lbStartCheck:
                   if DosError <> 0 then
                     begin
                     NoWrite;
-                    Break;
+                    break;
                     end;
                   case Overwrite(CnvString(P^.NewName), BB, P^.Size, A,
                      P^.Date) of
@@ -1145,7 +1146,7 @@ lbStartCheck:
                       DoSkip;
                       if not SkipRequested then
                         goto 1;
-                      Break;
+                      break;
                       end;
                     cmOK:
                       begin
@@ -1158,7 +1159,7 @@ lbStartCheck:
                         DoSkip;
                         if not SkipRequested then
                           goto 1;
-                        Break;
+                        break;
                         end;
                       DisposeStr(P^.NewName);
                       P^.NewName := NewStr(S1);
@@ -1172,7 +1173,7 @@ lbStartCheck:
                     else {case}
                       begin
                       CopyCancel := True;
-                      Break;
+                      break;
                       end;
                   end {case};
                   end;
@@ -1207,7 +1208,7 @@ DoAppend:
                 else
                   TrySetArch;
                 if CheckI24Abort then
-                  Break;
+                  break;
                 ExAttr := ExAttr or $FE00;
                 {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
                 lResetFile(WriteStream, 1);
@@ -1223,7 +1224,7 @@ DoRewrite:
             {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
             lReWriteFile(WriteStream, 1);
             if CheckI24Abort then
-              Break;
+              break;
             if  (InOutRes = 5) then
               begin
               ClrIO;
@@ -1237,14 +1238,14 @@ DoRewrite:
               else
                 TrySetArch;
               if CheckI24Abort then
-                Break;
+                break;
               {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
               lReWriteFile(WriteStream, 1);
               end;
             end;
 
           if CheckI24Abort then
-            Break;
+            break;
           Opened := IOResult;
           if Opened <> 0 then
             begin
@@ -1274,7 +1275,7 @@ DoRewrite:
                     DoSkip;
                     if not SkipRequested then
                       goto 1;
-                    Break;
+                    break;
                     end;
                   DisposeStr(P^.NewName);
                   P^.NewName := NewStr(S1);
@@ -1282,12 +1283,12 @@ DoRewrite:
                   goto 2;
                   end;
                 cmNo:
-                  Break;
+                  break;
                 else {case}
                   begin
                   CopyCancel := True; {вместо NoWrite}
                   ForceDispatch;
-                  Break;
+                  break;
                   end;
               end {case};
               end
@@ -1297,7 +1298,7 @@ DoRewrite:
             if Ask = 1 then
               goto DoRewrite;
             NoWrite;
-            Break;
+            break;
             end;
           end;
 lbStartWrite:
@@ -1305,7 +1306,7 @@ lbStartWrite:
         ClrIO;
         Dispatch;
         if CopyCancel then
-          Break;
+          break;
         if CopyOptions and cpoVerify <> 0 then
           SeekPos := FilePos(WriteStream.F);
         BlockWrite(WriteStream.F, B^, P^.len, J);
@@ -1328,7 +1329,7 @@ lbStartWrite:
           BlockRead(WriteStream.F, B^, P^.len, J);
 
           if CheckI24Abort then
-            Break;
+            break;
 
           if  (IOResult <> 0) or
               (J <> P^.len) or
@@ -1339,13 +1340,13 @@ lbStartWrite:
             MessageBox(GetString(dlFCVerifyFailed), nil,
                mfError+mfOKButton);
             CopyCancel := True;
-            Break;
+            break;
             end;
           end;
 
         Dispatch;
         if Abort or CopyCancel then
-          Break;
+          break;
         Wrote := Wrote+J;
         ToWrite := ToWrite+J;
 
@@ -1369,7 +1370,7 @@ lbStartWrite:
             NoWrite
           else
             ErrMsg(dlFBBDiskFull2);
-          Break;
+          break;
           end;
         if P^.Eof and eoEnd <> 0 then
           begin
@@ -1443,7 +1444,7 @@ lbStartWrite:
     if I > MaxAvail-$2000 then
       I := MaxAvail-$2000;
     if I < 512 then
-      Exit;
+      exit;
     if I > $E000 then
       I := $C000
     else if I > $C000 then
@@ -1461,13 +1462,13 @@ lbStartWrite:
     end { MakeBuffer };
 
   procedure CopyFile(const FName, AddDir: String; Own: PFileRec;
-       ln: TSize; Dtt: LongInt; Attr: Word);
+       ln: TSize; Dtt: LongInt; Attr: word);
     label 1;
     var
       P: pLine;
       A, BB, WW: LongInt;
       Rd: TSize;
-      I, J: Word;
+      I, J: word;
       FFF: Boolean;
       Was: TSize;
       EOF: Byte;
@@ -1480,7 +1481,7 @@ lbStartWrite:
     procedure RenameFile;
       var
         F: lFile;
-        W: Word;
+        W: word;
         SR: lSearchRec;
       begin
       DosErrorCode := 0;
@@ -1523,7 +1524,7 @@ lbStartWrite:
     procedure DoRename;
       var
         A: array[0..10] of PString;
-        I, J: Integer;
+        I, J: integer;
       begin
       for I := 0 to Min(10, Info^.Lines^.Count-1) do
         begin
@@ -1627,14 +1628,14 @@ lbStartWrite:
         if CopyQueue^.Count > 0 then
           MaxWrite;
         if CopyCancel then
-          Exit;
+          exit;
         ForceDispatch;
         MessageBox(^C+GetString(dlFile)+' '+FName+GetString(dlFCItself),
            nil,
           mfError+mfOKButton);
         CopyCancel := True;
         {             end;} {Eugeny Zvyagintzev}
-        Exit;
+        exit;
         end;
       end;
 
@@ -1655,7 +1656,7 @@ lbStartWrite:
       if CopyQueue^.Count > 0 then
         MaxWrite;
       CopyCancel := True;
-      Exit;
+      exit;
       end;
 
     RC := IOResult;
@@ -1665,11 +1666,11 @@ lbStartWrite:
       if CopyQueue^.Count > 0 then
         MaxWrite;
       if CopyCancel then
-        Exit;
+        exit;
       ForceDispatch;
       MessFileNotOpen(FName, RC);
       CopyCancel := True;
-      Exit;
+      exit;
       end;
     Rd := 0;
     EOF := eoStart or eoCheck*Byte(CopyMode >= cpmAppend);
@@ -1705,11 +1706,11 @@ lbStartWrite:
         if CopyQueue^.Count > 0 then
           MaxWrite;
         if CopyCancel then
-          Exit;
+          exit;
         ForceDispatch;
         MessageBox(GetString(dlFCNotOverDir)+Cut(S2, 40), nil,
            mfError+mfOKButton);
-        Exit;
+        exit;
         end;
       case CopyMode of
         cpmAskOver:
@@ -1720,7 +1721,7 @@ NoRename:
                 ClrIO;
                 Close(ReadStream.F);
                 ClrIO;
-                Exit;
+                exit;
                 end;
               cmOK:
                 begin
@@ -1748,7 +1749,7 @@ NoRename:
             ClrIO;
             Close(ReadStream.F);
             ClrIO;
-            Exit;
+            exit;
             end;
         cpmSkipAll:
           begin
@@ -1757,7 +1758,7 @@ NoRename:
           ClrIO;
           Close(ReadStream.F);
           ClrIO;
-          Exit;
+          exit;
           end;
         cpmAppend:
           EOF := EOF or eoAppend;
@@ -1772,7 +1773,7 @@ NoRename:
       Close(ReadStream.F);
       ClrIO;
       DoRename;
-      Exit
+      exit
       end;
     if B = nil then
       MakeBuffer;
@@ -1783,7 +1784,7 @@ NoRename:
       ClrIO;
       Close(ReadStream.F);
       ClrIO;
-      Exit;
+      exit;
       end;
     Info^.Write(1, GetString(dlFC_Reading)+Cut(FName, 40)+' ');
     Info^.Write(2, Strg(#177, Info^.Size.X-6));
@@ -1814,13 +1815,13 @@ NoRename:
             FreeMem(B, BSize);
           B := nil;
           Application^.OutOfMemory;
-          Exit;
+          exit;
           end;
         ReadProgress;
         MaxWrite;
         if SkipRequested then
-          Break;
-        Continue
+          break;
+        continue
         end;
       J := 0;
       Dispatch;
@@ -1841,21 +1842,21 @@ FileRead:
         if I = 1 then
           goto FileRead;
         CopyCancel := True;
-        Break;
+        break;
         end;
       {$ENDIF}
       {/AK155}
       ReadPos := ReadPos+J;
       Dispatch;
       if CopyCancel then
-        Break;
+        break;
       if Abort then
         begin
         ClrIO;
         if CopyQueue^.Count > 0 then
           MaxWrite;
         CopyCancel := True;
-        Break;
+        break;
         end;
       if ReadPos >= ln then
         begin
@@ -1869,7 +1870,7 @@ FileRead:
         {AK155 А здесь надо бы проанализировать IOResult
                и выдать вразумительное сообщение! }
         CopyCancel := True;
-        Break;
+        break;
         end;
 
       ToRead := ToRead+J;
@@ -1884,7 +1885,7 @@ FileRead:
       P^.Write(B^);
       CopyQueue^.Insert(P);
       if Abort or CopyCancel then
-        Break;
+        break;
       EOF := EOF and not eoStart;
       Rd := Rd+WW;
     until CopyCancel or Abort or (Rd = ln) or System.EOF(ReadStream.F)
@@ -1917,14 +1918,14 @@ FileRead:
       if CopyCancel or Abort then
         begin
         lFindClose(SR);
-        Exit;
+        exit;
         end;
       ClrIO;
       lFindNext(SR);
       end;
     lFindClose(SR);
     if CopyCancel or Abort then
-      Exit;
+      exit;
     L := 0;
     P := New(pLine, Init(L, Own, DirName, '', 0, 0, Directory,
            eoStart+eoDir));
@@ -1934,7 +1935,7 @@ FileRead:
 
   procedure MaxRead;
     var
-      I: Integer;
+      I: integer;
       P: PFileRec;
       S: String;
 
@@ -1952,10 +1953,10 @@ FileRead:
       if P^.Attr and Directory = 0 then
         CopyFile(S, '', P, P^.Size, PackedDate(P), P^.Attr);
       if Abort or CopyCancel then
-        Exit;
+        exit;
       end;
     if Abort or CopyCancel then
-      Exit;
+      exit;
     if Dirs <> nil then
       Dirs^.ForEach(@DoCopyDirectory);
     MaxWrite;
@@ -1976,9 +1977,9 @@ FileRead:
     var
       P: PFileRec;
       PD: PDirName;
-      I: Integer;
+      I: integer;
       S: String;
-      FrPos: Integer;
+      FrPos: integer;
       {$IFDEF OS2}
       LogName, NewDir, NewPrName, NewExt: String;
       I_LN: Byte;
@@ -1990,7 +1991,7 @@ FileRead:
         Attr: Byte);
       label 1, 2;
       var
-        JJ: Integer;
+        JJ: integer;
       var
         q: String;
         SSS: String;
@@ -2020,7 +2021,7 @@ FileRead:
         MessageBox(^C+GetString(dlDirectory)+' '+Cut(Source, 40)+
           GetString(erIntoItself), nil, mfError+mfOKButton);
         CopyCancel := True;
-        Exit;
+        exit;
         end;
       SetLength(SSS, Length(SSS)-1);
       if  (o <> nil) and (CopyOptions and cpoMove <> 0)
@@ -2043,9 +2044,9 @@ FileRead:
           {$ENDIF}
           begin
           lGetDir(0, ActiveDir);
-          Advance2.lChDir(GetPath(SSS));
+          advance2.lChDir(GetPath(SSS));
           RnFl(GetName(SSS), Name);
-          Advance2.lChDir(ActiveDir);
+          advance2.lChDir(ActiveDir);
           end;
         if Abort then
           begin
@@ -2258,7 +2259,7 @@ TryGetInfo:
 1:
             goto TryGetInfo;
           3:
-            Exit;
+            exit;
         end {case};
       end {if};
     New(Dirs, Init(10, 10));
@@ -2335,16 +2336,16 @@ TryGetInfo:
           end;
         end;
       if CopyCancel then
-        Break;
+        break;
       end;
 1:
     repeat
       FrPos := -1;
       if Abort then
-        Break; {AK155 Abort может установить SysErrorFunc}
+        break; {AK155 Abort может установить SysErrorFunc}
       PD := Dirs^.FirstThat(@NoCheck);
       if PD = nil then
-        Break;
+        break;
       CopyF(PD^.DNew, PD^.DOld, PD^.CopyIt, PD^.Attr and $3FFF);
       {JO EAs - dirs }
       {$IFNDEF DPMI32}
@@ -2413,7 +2414,7 @@ TryGetInfo:
   procedure DoReset(P: PFileRec);
     var
       s, s2: String;
-      i: Integer;
+      i: integer;
       Line: LongInt;
     begin
     P^.Attr := P^.Attr and $3FFF;
@@ -2448,7 +2449,7 @@ TryGetInfo:
     {$IFDEF OS_DOS}
     Flush: Boolean;
     {$ENDIF}
-    DrvC: Integer;
+    DrvC: integer;
     DriveChar: String[1];
 
     { ***************** }
@@ -2624,8 +2625,8 @@ function CopyDialog;
     S, S1, S4: String;
     DT: record
       S3: String;
-      WW: Word;
-      WW1: Word;
+      WW: word;
+      WW1: word;
       end;
     Nm: String;
     Xt: String;
@@ -2633,7 +2634,7 @@ function CopyDialog;
     hFile: LongInt;
     SR: lSearchRec;
     Idx: TDlgIdx;
-    I, l: Integer;
+    I, l: integer;
     SSS: String;
     C: Char;
     DEr: Boolean;
@@ -2674,7 +2675,7 @@ function CopyDialog;
   if  (FMSetup.Options and fmoAlwaysCopyDesc <> 0) then
     DT.WW1 := DT.WW1 or cpoDesc; {JO}
   if LowMemory then
-    Exit;
+    exit;
   if MoveMode then
     S := GetString(dlFCMove1)
   else
@@ -2774,7 +2775,7 @@ function CopyDialog;
     begin {AK155 6-12-2001. Собрал до кучи всю работу с диалогом }
     D := PDialog(Application^.ValidView(PView(LoadResource(Idx))));
     if D = nil then
-      Exit;
+      exit;
     R.Assign(2, 1, D^.Size.X-1, 2);
     P1 := New(PLabel, Init(R, DialogLabel, D^.Current));
     D^.Insert(P1);
@@ -2793,7 +2794,7 @@ function CopyDialog;
     if Desktop^.ExecView(D) = cmCancel then
       begin
       Dispose(D, Done);
-      Exit
+      exit
       end;
     D^.GetData(DT);
     Dispose(D, Done);
@@ -2833,14 +2834,14 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
   while True do
     begin
     if GetName(S) = '..' then
-      Break;
+      break;
     l := I;
     while S[I] = '.' do
       Dec(I);
     while S[I] = '\' do
       Dec(I);
     if l = I then
-      Break;
+      break;
     SetLength(S, I);
     end;
   {/AK155 22-12-2002}
@@ -2867,19 +2868,19 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
 
   lFSplit(S, CopyDir, Nm, Xt);
   if S = '' then
-    Exit;
+    exit;
   if not Link then
     begin
     if ArchiveFiles(S, Files, MoveMode, Owner) then
-      Exit;
+      exit;
     {$IFDEF ARVID}
     if CopyFilesToArvid(S, Files, MoveMode, Owner) then
-      Exit;
+      exit;
     {$ENDIF}
     if UpStrg(Copy(S, 1, PosChar(':', S))) = cTEMP_ then
       begin
       CopyToTempDrive(Files, Owner, '');
-      Exit;
+      exit;
       end;
     {$IFDEF MODEM}
     {$IFDEF LINK}
@@ -2893,14 +2894,14 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
         end;
       Delete(CopyDir, 1, 5);
       CopyToLinkDrive(Files, Owner, CopyDir, Mask);
-      Exit;
+      exit;
       end;
     {$ENDIF}
     {$ENDIF}
     end;
   SSS := lFExpand(S);
   if Abort then
-    Exit;
+    exit;
   Mask := Nm+Xt;
   if  (Mask = '') then
     Mask := x_x
@@ -2922,7 +2923,7 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
         DEr := (DosError <> 0);
         lFindClose(SR);
         if Abort then
-          Exit;
+          exit;
         {/AK155
      Если  при  копировании/перемещении  нескольких  файлов в строке
 ввода  ввести  несуществующее  имя,  и  не  ввести флажок дополнения
@@ -2951,7 +2952,7 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
             else {case}
               begin
               CopyDialog := False;
-              Exit;
+              exit;
               end;
           end {case};
           end
@@ -3003,8 +3004,8 @@ procedure CopyFiles;
   var
     CopyDir: String;
     Mask: String;
-    CopyOpt: Word;
-    CopyMode: Word;
+    CopyOpt: word;
+    CopyMode: word;
     CopyPrn: Boolean;
     {$IFDEF COPYTIMER}
     ev: TEvent;
@@ -3013,11 +3014,11 @@ procedure CopyFiles;
   CtrlBreakHit := False;
   Files^.Pack;
   if Files^.Count <= 0 then
-    Exit;
+    exit;
   if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
       MoveMode, Files, FromTemp, Owner, False)
   then
-    Exit;
+    exit;
   if  (CopyDir[Length(CopyDir)] <> '\') and (CopyDir <> '') then
     CopyDir := CopyDir+'\';
   if  (FromTemp > 0) and MoveMode then
@@ -3081,7 +3082,7 @@ procedure CopyDirContent(Source, Destination: String;
   if FC^.Count <= 0 then
     begin
     Dispose(FC, Done);
-    Exit;
+    exit;
     end;
 
   if  (Destination[Length(Destination)] <> '\') and (Destination <> '')

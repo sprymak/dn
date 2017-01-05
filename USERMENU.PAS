@@ -52,13 +52,13 @@ unit UserMenu;
 interface
 
 uses
-  Objects, Views, Scroller, Drivers, FilesCol, Files, Collect
+  Defines, Views, Scroller, Drivers, FilesCol, Files, Collect
   ;
 
 var
   QuickExecExternalStr: String;
 
-function QuickExecExternal(N: Integer): Boolean;
+function QuickExecExternal(N: integer): Boolean;
 function ExecUserMenu(DoGlobal: Boolean): Boolean;
 procedure ScreenGrabber(ShowMessage: Boolean);
 function MakeString(S: String; UserParams: PUserParams;
@@ -76,10 +76,10 @@ type
 
   PUserWindow = ^TUserWindow;
   TUserWindow = object(TWindow)
-    OldScreenWidth: Word;
+    OldScreenWidth: word;
     constructor Init;
     procedure CalcBounds(var Bounds: TRect; Delta: TPoint); virtual;
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure SetState(AState: word; Enable: Boolean); virtual;
     end;
 
 const
@@ -88,7 +88,7 @@ const
 implementation
 uses
   Lfn, {DataCompBoy}
-  DNApp, Advance, Advance1, Advance2, Advance3, Startup, Messages, Menus,
+  DNApp, advance, advance1, advance2, advance3, Startup, Messages, Menus,
   Commands, Microed, WinClp, DNHelp, Dos, Memory, Dialogs, Tree, RStrings
   ;
 
@@ -96,8 +96,8 @@ type
   PUserMenuItem = ^TUserMenuItem;
   TUserMenuItem = record
     Text: PString;
-    Level: Word;
-    Line: Word;
+    Level: word;
+    Line: word;
     RunFrom2E: Boolean;
     end;
 
@@ -126,7 +126,7 @@ procedure TUserWindow.CalcBounds(var Bounds: TRect; Delta: TPoint);
   if  (Size.X <= ScreenWidth) and (ScreenWidth = OldScreenWidth) then
     begin
     inherited CalcBounds(Bounds, Delta);
-    Exit
+    exit
     end;
   Desktop^.GetExtent(Bounds);
   Bounds.Grow(1, 2);
@@ -134,7 +134,7 @@ procedure TUserWindow.CalcBounds(var Bounds: TRect; Delta: TPoint);
   OldScreenWidth := ScreenWidth;
   end;
 
-procedure TUserWindow.SetState(AState: Word; Enable: Boolean);
+procedure TUserWindow.SetState(AState: word; Enable: Boolean);
   var
     WindowCommands: TCommandSet;
   begin
@@ -172,7 +172,7 @@ procedure TUserView.ChangeBounds;
 
 procedure TUserView.Draw;
   var
-    I: Integer;
+    I: integer;
     B: TDrawBuffer;
   begin
   for I := 0 to Size.Y-1 do
@@ -236,7 +236,7 @@ procedure TUserCollection.FreeItem(P: Pointer);
 procedure NameAndExt(HandleTildes: Boolean;
     TS: String; Macro: Char; var S: String);
   var
-    l: Integer;
+    l: integer;
   begin
   if HandleTildes then
     Replace('~', #0'~', TS);
@@ -648,12 +648,12 @@ function ExecUserMenu;
     S, S1: String;
     I: LongInt;
     UI: PUserMenuItem;
-    StartPos: Integer;
+    StartPos: integer;
     Items, OItems, SItems: PMenuItem;
     Menu: PMenu;
     PV: PView;
     R: TRect;
-    NI, NW, LL: Word;
+    NI, NW, LL: word;
     EnterParms: Boolean;
     TitleStr: String[30];
     DefStr: String;
@@ -664,9 +664,9 @@ function ExecUserMenu;
     {$ENDIF}
   label 1, 2;
 
-  function CheckFKeys(S: String): Word;
+  function CheckFKeys(S: String): word;
     var
-      I: Integer;
+      I: integer;
       S1: String;
     begin
     CheckFKeys := kbNoKey;
@@ -676,7 +676,7 @@ function ExecUserMenu;
       if UpStrg(Copy(S, 1, Length(S1))) = S1 then
         begin
         CheckFKeys := kbF1+(I-1) shl 8;
-        Exit
+        exit
         end;
       end;
     end;
@@ -688,11 +688,11 @@ function ExecUserMenu;
     var
       P1, P2: PMenuItem;
       UI, PU: PUserMenuItem;
-      KB: Word;
+      KB: word;
     begin
     DoSubMenu := nil;
     if i = P^.Count then
-      Exit;
+      exit;
     UI := P^.At(i);
     {if UI^.Text = nil then begin DoSubMenu := NewLine(DoSubMenu); Exit end;}
     KB := kbNoKey;
@@ -712,7 +712,7 @@ function ExecUserMenu;
       if PU^.Level < UI^.Level then
         begin
         Dec(i);
-        Exit;
+        exit;
         end;
       if PU^.Level > UI^.Level then
         begin
@@ -737,7 +737,7 @@ function ExecUserMenu;
 
   {-DataCompBoy-}
   var
-    UserParams: TUserParams;
+    UserParams: tUserParams;
 
   begin { ExecUserMenu }
   FillChar(UserParams, SizeOf(UserParams), 0);
@@ -781,7 +781,7 @@ function ExecUserMenu;
   if F = nil then
     begin
     ErrMsg(dlMNUNotFound);
-    Exit;
+    exit;
     end;
 1:
   Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams);
@@ -836,7 +836,7 @@ function ExecUserMenu;
       NI := 3;
       SItems := DoSubMenu(True);
       if SItems = nil then
-        Break;
+        break;
       Menu := NewMenu(SItems);
       Application^.GetExtent(R);
       R.A.X := 0;
@@ -861,7 +861,7 @@ function ExecUserMenu;
           Event.InfoPtr := nil;
           Application^.PutEvent(Event);
           end;
-        Break;
+        break;
         end;
       StartPos := I-999;
       if  (StartPos >= P^.Count-1) or
@@ -898,9 +898,9 @@ function ExecUserMenu;
             DelRight(S);
             if  (S <> '') then
               if  (S[1] = '>') then
-                Break
+                break
               else if (S[1] = ';') then
-                Continue
+                continue
               else if (S[1] = '<') then
                 begin
                 EnterParms := True;
@@ -917,7 +917,7 @@ function ExecUserMenu;
                   DelLeft(S);
                   TitleStr := S;
                   end;
-                Continue;
+                continue;
                 end;
             EnterParms := EnterParms or (Pos('%3', S) > 0);
             {$IFDEF OS2}
@@ -934,7 +934,7 @@ function ExecUserMenu;
           end;
         Close(F1.T);
         Dispose(F, Done);
-        Break;
+        break;
         end;
     until False;
     end;
@@ -963,12 +963,12 @@ type
     ModalEnd: Boolean;
     Screen: PWordArray;
     R: TRect;
-    BufSize: Word;
+    BufSize: word;
     constructor Init;
     destructor Done; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Draw; virtual;
-    function Execute: Word; virtual;
+    function Execute: word; virtual;
     end;
 
 const
@@ -983,7 +983,7 @@ procedure ScreenGrabber(ShowMessage: Boolean);
     B: Boolean;
   begin
   if Here then
-    Exit;
+    exit;
   Here := True;
   if NotMessage and ShowMessage then
     begin
@@ -1032,10 +1032,10 @@ procedure TGrabber.Draw;
 
   var
     B: TDrawBuffer;
-    I: Integer;
+    I: integer;
 
     {$IFNDEF NOASM}
-  procedure Invert(var B; K: Integer);
+  procedure Invert(var B; K: integer);
     assembler;
     {&Frame-} {$USES EBX, ECX}
   asm
@@ -1053,9 +1053,9 @@ procedure TGrabber.Draw;
          loop @@1
        end;
     {$ELSE}
-  procedure Invert(K1, K2: Integer);
+  procedure Invert(K1, K2: integer);
     var
-      I: Integer;
+      I: integer;
     begin
     for I := K1 to K1+K2-1 do
       begin
@@ -1111,7 +1111,7 @@ procedure TGrabber.HandleEvent;
   var
     B: Boolean;
     Sh: Boolean;
-    Stp: Integer;
+    Stp: integer;
   procedure CED;
     begin
     ClearEvent(Event);
@@ -1120,7 +1120,7 @@ procedure TGrabber.HandleEvent;
 
   procedure MakeClip;
     var
-      I, J: Integer;
+      I, J: integer;
       S: String;
       C: Char;
     begin
@@ -1242,16 +1242,16 @@ procedure TGrabber.HandleEvent;
     CED;
   end { TGrabber.HandleEvent };
 
-function QuickExecExternal(N: Integer): Boolean;
+function QuickExecExternal(N: integer): Boolean;
 
   label 1;
 
   var
-    UserParams: TUserParams;
+    UserParams: tUserParams;
     TitleStr, DefStr, S: String;
     F: PTextReader;
     F1: lText;
-    I: Integer;
+    I: integer;
     OS2: Char;
     SR: lSearchRec;
     EnterParms, Local: Boolean;
@@ -1269,7 +1269,7 @@ RL:
     F := New(PTextReader, Init(SourceDir+'DN.XRN'));
     end;
   if F = nil then
-    Exit;
+    exit;
   while not F^.Eof do
     begin
     OS2 := #0;
@@ -1292,7 +1292,7 @@ RL:
   Dispose(F, Done);
   if Local then
     goto RL;
-  Exit;
+  exit;
 1:
   I := DNNumber;
   if OS2 = #0 then
@@ -1318,7 +1318,7 @@ RL:
   if IOResult <> 0 then
     begin
     Dispose(F, Done);
-    Exit
+    exit
     end;
   Writeln(F1.T, '@Echo off');
 
@@ -1341,10 +1341,10 @@ RL:
     DelRight(S);
     DelLeft(S);
     if  (S <> '') and (S[1] = ';') then
-      Continue; {!!SF}
+      continue; {!!SF}
     if  (S <> '') then
       if  (S[1] = '>') then
-        Break
+        break
       else if (S[1] = '<') then
         begin
         EnterParms := True;
@@ -1360,7 +1360,7 @@ RL:
           DelLeft(S);
           TitleStr := S;
           end;
-        Continue;
+        continue;
         end;
     EnterParms := EnterParms or (Pos('%3', S) > 0);
     Writeln(F1.T, MakeString(S, @UserParams, False, nil));

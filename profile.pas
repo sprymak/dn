@@ -71,10 +71,10 @@ unit profile;
 interface
 
 function GetPrivateProfileInt(ApplicationName, KeyName: PChar;
-    Default: Integer; FileName: PChar): Word;
+    Default: integer; FileName: PChar): word;
 function GetPrivateProfileString(ApplicationName, KeyName: PChar;
-    Default: PChar; ReturnedString: PChar; Size: Integer;
-    FileName: PChar): Integer;
+    Default: PChar; ReturnedString: PChar; Size: integer;
+    FileName: PChar): integer;
 function WritePrivateProfileString(ApplicationName, KeyName, Str,
     FileName: PChar): Boolean;
 procedure CloseProfile;
@@ -82,7 +82,7 @@ procedure CloseProfile;
 implementation
 
 uses
-  Strings, Objects
+  Strings, Streams
   ;
 
 { The most expensive operation with buffered streams is seeking --
@@ -94,7 +94,7 @@ uses
 type
   PModBufStream = ^TModBufStream;
   TModBufStream = object(TBufStream)
-    procedure SeekRel(Delta: Integer);
+    procedure SeekRel(Delta: integer);
     end;
 
 procedure TModBufStream.SeekRel;
@@ -135,7 +135,7 @@ function OpenFile(FileName: PChar): Boolean;
     begin
     CloseFile;
     if FileName = nil then
-      Exit;
+      exit;
     CurFileName := StrNew(FileName);
     CurFile := New(PModBufStream, Init(StrPas(FileName), stOpen, 4096));
     Res := (CurFile <> nil) and (CurFile^.Status = 0);
@@ -153,7 +153,7 @@ function CreateFile(FileName: PChar): Boolean;
   begin
   CreateFile := False;
   if FileName = nil then
-    Exit;
+    exit;
   CurFileName := StrNew(FileName);
   CurFile := New(PModBufStream, Init(StrPas(FileName), stCreate, 4096));
   Res := (CurFile <> nil) and (CurFile^.Status = 0);
@@ -166,7 +166,7 @@ procedure ReadLine(Buf: PChar);
   var
     c: Char;
     c2: Char; {DataCompBoy}
-    Count: Word;
+    Count: word;
   begin
   Count := 0;
   with CurFile^ do
@@ -202,7 +202,7 @@ function FindApplication(AppName: PChar): Boolean;
   begin
   FindApplication := False;
   if AppName = nil then
-    Exit;
+    exit;
   if  (CurAppName <> nil) and (StrIComp(CurAppName, AppName) = 0)
   then
     begin
@@ -226,7 +226,7 @@ function FindApplication(AppName: PChar): Boolean;
           FindApplication := True;
           CurFile^.Reset;
           CurApp := CurFile^.GetPos;
-          Exit
+          exit
           end
         end
     until CurFile^.Status <> 0;
@@ -276,7 +276,7 @@ function FindKey(KeyName: PChar; Dest: PChar): Boolean;
   begin
   FindKey := False;
   if KeyName = nil then
-    Exit;
+    exit;
   repeat
     pos := CurFile^.GetPos;
     ReadLine(Buf);
@@ -294,7 +294,7 @@ function FindKey(KeyName: PChar; Dest: PChar): Boolean;
         else
           StrCopy(Dest, P+1);
         FindKey := True;
-        Exit
+        exit
         end;
       end;
   until IsAppLine(Buf) or (CurFile^.Status <> 0);
@@ -337,7 +337,7 @@ procedure DeleteLine;
   DeleteBuf(pos, CurFile^.GetPos);
   end;
 
-procedure InsertLine(Size: Word);
+procedure InsertLine(Size: word);
   var
     pos, Count, Source, Dest: LongInt;
     Buf: array[0..255] of Char;
@@ -405,7 +405,7 @@ function GetPrivateProfileString;
         CurFile^.Reset;
       Copy[0] := #0;
       GetPrivateProfileString := Copy-ReturnedString-1;
-      Exit
+      exit
       end
     else if FindKey(KeyName, Buf) then
       if InQuotes(Buf)
@@ -420,10 +420,10 @@ function GetPrivateProfileString;
   GetPrivateProfileString := StrLen(ReturnedString)
   end { GetPrivateProfileString };
 
-function GetInt(Str: PChar): Word;
+function GetInt(Str: PChar): word;
   var
-    Res: Word;
-    E: Integer;
+    Res: word;
+    E: integer;
   begin
   { auch Hex erkennen (C-Format) }
   Val(Str, Res, E);

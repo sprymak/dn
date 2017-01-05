@@ -50,7 +50,7 @@ unit arc_LIM; {LIM}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -183,7 +183,7 @@ procedure TLIMArchive.GetFile;
   then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   if  (ArcFile^.Status = stOK) and (P.Id = $D180)
   then
@@ -195,13 +195,13 @@ procedure TLIMArchive.GetFile;
   if  (ArcFile^.Status <> stOK) or (P.Id <> $f123) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P.ThreeZeros[2], SizeOf(P)-4);
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;

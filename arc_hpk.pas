@@ -50,7 +50,7 @@ unit arc_HPK; {HPK}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects, Dos, xTime,
+  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime,
   Collect
   ;
 
@@ -176,7 +176,7 @@ procedure THPKArchive.GetFile;
     FileInfo.Last := 1;
     Dispose(HPKCol, Done);
     HPKCol := nil;
-    Exit;
+    exit;
     end;
   FileInfo.USize := PHPKRec(HPKCol^.At(0))^.USize;
   FileInfo.PSize := PHPKRec(HPKCol^.At(0))^.PSize;

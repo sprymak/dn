@@ -2324,7 +2324,9 @@ begin
     0, 1            : Result := dtInvalid;
   else                Result := dtUnknown;
   end;
-  if (Result <> dtFloppy) and (Result <> dtCDROM) then
+  if (Result <> dtFloppy) and (Result <> dtCDRom) and (Result <> dtLan) then
+    {KV: Если диск сетевой и в данный момент не подключен - будет задержка }
+    {    при вызове GetVolumeInformation. Поэтому добавил Result <> tLan  }
     if GetVolumeInformation(Root, nil, 0, nil, MaxLength, FSFlags, FSName, sizeof(FSName)) then
       begin
         if StrLComp(FSName, 'FAT', 3) = 0 then
@@ -2341,9 +2343,12 @@ begin
           Result := dtNovellNet;
       end;
 
+  {KV: Данная проверка больше не нужна, так как для сетевых дисков
+       теперь не вызывается GetVolumeInformation
   if Result = dtHDNTFS then // Fix network drive detection in Win2k/XP
     if GetDriveType(Root) = Drive_Remote then
       Result := dtLAN;
+  }
 end;
 
 function SysGetVideoModeInfo( Var Cols, Rows, Colours : Word ): Boolean;

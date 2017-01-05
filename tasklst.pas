@@ -21,7 +21,7 @@ interface
 uses
   {$IFDEF OS2}Proc_Os2, {$ENDIF}
   {$IFDEF WIN32}Proc_W32, {$ENDIF}
-  Objects, Collect, Views, Drivers, Dialogs
+  Defines, Collect, Views, Drivers, Dialogs
   ;
 
 const
@@ -30,7 +30,7 @@ const
 type
   PProcessList = ^TProcessList;
   TProcessList = object(TListBox)
-    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
+    function GetText(Item: integer; MaxLen: integer): String; virtual;
     end;
 
   PProcessDialog = ^TProcessDialog;
@@ -48,7 +48,7 @@ uses
   DNApp, Commands, DnIni, DNHelp
   ;
 
-function TProcessList.GetText(Item: Integer; MaxLen: Integer): String;
+function TProcessList.GetText(Item: integer; MaxLen: integer): String;
   begin
   GetText := PProcessItem(List^.At(Item))^.GetString;
   end;

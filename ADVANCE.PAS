@@ -48,15 +48,15 @@
 {AK155 = Alexey Korop, 2:461/155@fidonet}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
-unit Advance;
+unit advance;
 
 interface
 
 uses
   Dos, {DnIni}
   Strings,
-  Objects, Lfn {DataCompBoy}
-  {Cat}, U_KeyMap {/Cat}
+  Objects2, Lfn {DataCompBoy}
+  , U_KeyMap, Defines, Streams
   ;
 
 {$IFDEF DNPRG}
@@ -100,8 +100,8 @@ type
     destructor Done; virtual;
   private
     Handle: lFile; {DataCompBoy}
-    BufSz: Integer;
-    BufPos: Integer;
+    BufSz: integer;
+    BufPos: integer;
     Buf: TTextReaderBuf;
     Skip1: Boolean;
     end;
@@ -125,8 +125,8 @@ type
   {PZ - 2000.03.26 - begin}
 
   TCountryInfoEx = record
-    CountryCode: Word;
-    DateFormat: Word;
+    CountryCode: word;
+    DateFormat: word;
     MoneySymbol: array[0..4] of Char;
     ThousandsSeparator: array[0..1] of Char;
     DecimalSeparator: array[0..1] of Char;
@@ -143,15 +143,15 @@ type
   {PZ - end}
 
   TCountryInfo = record
-    DateFmt: Word; {Radiobuttons}
-    TimeFmt: Word; {Radiobuttons}
+    DateFmt: word; {Radiobuttons}
+    TimeFmt: word; {Radiobuttons}
     DateSep: String[1]; {Inputline}
     TimeSep: String[1]; {Inputline}
     ThouSep: String[1]; {Inputline}
     DecSep: String[1]; {Inputline}
     DecSign: String[1]; {Inputline}
     Currency: String[4]; {Inputline}
-    CurrencyFmt: Word; {Radiobuttons}
+    CurrencyFmt: word; {Radiobuttons}
     UpperTable: array[#128..#255] of Char;
     end;
 
@@ -202,8 +202,8 @@ procedure ClrIO;
   Abort := False;
   end;
 
-function Cut(p: String; len: Integer): String;
-function CutH(p: String; len: Integer): String;
+function Cut(p: String; len: integer): String;
+function CutH(p: String; len: integer): String;
 
 function MemOK: Boolean;
   inline;
@@ -212,17 +212,17 @@ function MemOK: Boolean;
   end; {JO}
 function GetMeMemoStream: PStream; {-$VOL}
 function MemAdjust(L: LongInt): LongInt;
-procedure FillWord(var B; Count, W: Word);
+procedure FillWord(var B; Count, W: word);
 procedure LocateCursor(X, Y: Byte);
 function XDiv1024(X: LongInt): LongInt;
-function LongRatio(X, Y: LongInt): Integer;
+function LongRatio(X, Y: LongInt): integer;
 function Min(x, y: LongInt): LongInt;
 function Max(x, y: LongInt): LongInt;
-function Sgn(x: Integer): Integer;
+function Sgn(x: integer): integer;
 procedure TinySlice;
 
 function FormatLongName(const Name: String; Size, ExtSize: Byte;
-     Options: Word;
+     Options: word;
     FormatMode: TNameFormatMode; Delim: PChar): String; (* X-Man *)
 
 {-DataCompBoy-}
@@ -336,8 +336,8 @@ type
 implementation
 
 uses
-  xTime, Startup, Advance1, Advance3,
-  VpSysLow, Advance2,
+  xTime, Startup, advance1, advance3,
+  VpSysLow, advance2,
   Commands
   ;
 
@@ -364,7 +364,7 @@ function CutH;
 constructor TTextReader.Init;
   var
     FileSz: LongInt;
-    ToRead: Integer;
+    ToRead: integer;
   begin
   ClrIO;
   FileMode := $40;
@@ -403,12 +403,12 @@ function TTextReader.FileName: String;
 function TTextReader.GetStr: String;
   var
     CurStr: String;
-    BufBeg: Integer;
+    BufBeg: integer;
     Was: Boolean;
 
-  procedure aStr(D: Integer);
+  procedure aStr(D: integer);
     var
-      Grow: Integer;
+      Grow: integer;
     begin
     Grow := Min((BufPos-BufBeg)-D-Byte(Was), 255-Length(CurStr));
     if Grow > 0 then
@@ -419,7 +419,7 @@ function TTextReader.GetStr: String;
     end;
 
   var
-    PrevC: Integer;
+    PrevC: integer;
     C: Char;
 
   begin { TTextReader.GetStr: }
@@ -439,14 +439,14 @@ function TTextReader.GetStr: String;
         if BufSz = 0 then
           begin
           Eof := True;
-          Break;
+          break;
           end;
         BufPos := 0;
         BufBeg := 0;
         if Was then
           begin
           Skip1 := True;
-          Break
+          break
           end;
         end;
       C := Buf[BufPos];
@@ -458,17 +458,17 @@ function TTextReader.GetStr: String;
             begin
             BufBeg := BufPos;
             Skip1 := False;
-            Continue;
+            continue;
             end;
           if Was then
             begin
             aStr(1);
-            Dec(BufPos, Integer(PrevC = Integer(C)));
-            Break;
+            Dec(BufPos, integer(PrevC = integer(C)));
+            break;
             end
           else
             Was := True;
-          PrevC := Integer(C);
+          PrevC := integer(C);
           end;
         else {case}
           begin
@@ -476,7 +476,7 @@ function TTextReader.GetStr: String;
             begin
             aStr(1);
             Dec(BufPos);
-            Break;
+            break;
             end;
           Skip1 := False
           end;
@@ -497,12 +497,12 @@ destructor TTextReader.Done;
 {-DataCompBoy-}
 
 function FormatLongName(const Name: String; Size, ExtSize: Byte;
-     Options: Word;
+     Options: word;
     FormatMode: TNameFormatMode; Delim: PChar): String;
 
   var
     P, N, E, R: ^String;
-    PSize, NSize, ESize: Integer;
+    PSize, NSize, ESize: integer;
     Hi1, Hi2, Hi3, DotPos, EFlag, i: Byte;
 
   procedure FillR(A, B: Byte; Value: Char);
@@ -617,7 +617,7 @@ function FormatLongName(const Name: String; Size, ExtSize: Byte;
     Dispose(E);
     Dispose(N);
     Dispose(P);
-    Exit
+    exit
     end;
   PSize := Length(P^);
   NSize := Length(N^);
@@ -849,7 +849,7 @@ function MemAdjust(L: LongInt): LongInt;
   MemAdjust := L;
   end;
 
-procedure FillWord(var B; Count, W: Word);
+procedure FillWord(var B; Count, W: word);
   assembler;
   {&Frame-} {$USES EDI, ECX}
 asm

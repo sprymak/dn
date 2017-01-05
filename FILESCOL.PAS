@@ -53,8 +53,8 @@ interface
 
 uses
   Lfn, Files,
-  Objects, Memory, Startup,
-  DNHelp, Advance, Advance1, Advance2, Advance3, Collect, Drivers
+  Defines, Objects2, Streams, Memory, Startup,
+  DNHelp, advance, advance1, advance2, advance3, Collect, Drivers
   ;
 
 type
@@ -81,11 +81,11 @@ type
     Owner: PString;
     OwnerDisposible: Boolean;
     DIZ: PDiz;
-    Yr: Word;
-    YrCreat: Word;
-    YrLAcc: Word;
+    Yr: word;
+    YrCreat: word;
+    YrLAcc: word;
     TType: Byte;
-    Attr: Word;
+    Attr: word;
     Second: Byte;
     SecondCreat: Byte;
     SecondLAcc: Byte;
@@ -113,16 +113,16 @@ type
   TMakeListRec = record
     FileName: String; {DataCompBoy}
     Header: String;
-    HeaderMode: Word;
+    HeaderMode: word;
     Action: String;
     Footer: String;
-    FooterMode: Word;
-    Options: Word;
+    FooterMode: word;
+    Options: word;
     end;
 
   {-DataCompBoy-}
   PUserParams = ^TUserParams;
-  TUserParams = record
+  tUserParams = record
     Active, Passive: PFileRec;
     ActiveList, PassiveList: String;
     end;
@@ -146,7 +146,7 @@ type
     constructor Load(var S: TStream);
     procedure Store(var S: TStream); virtual;
     procedure FreeItem(Item: Pointer); virtual;
-    function Compare(Key1, Key2: Pointer): Integer; virtual;
+    function Compare(Key1, Key2: Pointer): integer; virtual;
     end;
 
 const
@@ -157,17 +157,17 @@ const
   hfmInsertText = 1;
   hfmInsertFiles = 2;
 
-function SelectDrive(X, Y: Integer; Default: Char; IncludeTemp: Boolean)
+function SelectDrive(X, Y: integer; Default: Char; IncludeTemp: Boolean)
   : String;
 function CopyFileRec(FR: PFileRec): PFileRec; {DataCompBoy}
 function CreateFileRec(Name: String): PFileRec;
 {$IFNDEF OS2}
 function NewFileRec(const LFN, Name: String; Size: TSize;
-     Date, CreationDate, LastAccDate: LongInt; Attr: Word;
+     Date, CreationDate, LastAccDate: LongInt; Attr: word;
      AOwner: PString): PFileRec; {DataCompBoy}
 {$ELSE}
 function NewFileRec(const Name: String; Size: TSize;
-     Date, CreationDate, LastAccDate: LongInt; Attr: Word;
+     Date, CreationDate, LastAccDate: LongInt; Attr: word;
      AOwner: PString): PFileRec; {DataCompBoy}
 {$ENDIF}
 procedure DelFileRec(var FR: PFileRec); {DataCompBoy}
@@ -180,7 +180,7 @@ procedure StoreFileRecOwn(var s: TStream; fr: PFileRec; Dirs: PCollection)
 function PackedDate(P: PFileRec): LongInt; {DataCompBoy}
 function PackedCreationDate(P: PFileRec): LongInt; {JO}
 function PackedLastAccDate(P: PFileRec): LongInt; {JO}
-function GetFileType(const S: String; Attr: Byte): Integer;
+function GetFileType(const S: String; Attr: Byte): integer;
 procedure DosReread(Files: PFilesCollection);
 {procedure ReplaceLongName(var fr: PFileRec; const NewName: string);}
 
@@ -517,16 +517,16 @@ function TFilesCollection.Compare;
     {T1: TFileRec;}
     P1: PFileRec absolute Key1;
     P2: PFileRec absolute Key2;
-    C: Integer;
-    SM, I1, I2: Integer;
+    C: integer;
+    SM, I1, I2: integer;
     P1P, P2P: Boolean;
-    PanelFlags: Word;
+    PanelFlags: word;
     {OneIsFile: Boolean;}
     ST1, ST2: String;
 
     {$IFNDEF OS_DOS}
   function CmpName(const S1: String; const S2: String;
-      const owner1: String; const owner2: String): Integer;
+      const owner1: String; const owner2: String): integer;
     begin
     if S1 > S2 then
       CmpName := +1
@@ -544,16 +544,16 @@ function TFilesCollection.Compare;
       CmpName := 0;
     end;
 
-  function CmpEXT(S1, S2: String): Integer;
+  function CmpEXT(S1, S2: String): integer;
     var
       E1, E2: PString;
       B: Byte;
     const
       D1: Char = #0;
     begin
-    for B := Length(S1) downto 1 do
+    for B := Length(S1) DownTo 1 do
       if S1[B] = '.' then
-        Break;
+        break;
     if  (B > 1) or (S1[1] = '.') then
       begin
       E1 := @S1[B];
@@ -563,9 +563,9 @@ function TFilesCollection.Compare;
     else
       E1 := @D1;
 
-    for B := Length(S2) downto 1 do
+    for B := Length(S2) DownTo 1 do
       if S2[B] = '.' then
-        Break;
+        break;
     if  (B > 1) or (S2[1] = '.') then
       begin
       E2 := @S2[B];
@@ -589,7 +589,7 @@ function TFilesCollection.Compare;
 
   {$ELSE}
 
-  function CmpLFN(LFN1, LFN2: TLFNIndex): Integer;
+  function CmpLFN(LFN1, LFN2: TLFNIndex): integer;
     var
       S1, S2: String;
     begin
@@ -607,16 +607,16 @@ function TFilesCollection.Compare;
     end;
     end;
 
-  function CmpLEX(LFN1, LFN2: TLFNIndex): Integer;
+  function CmpLEX(LFN1, LFN2: TLFNIndex): integer;
     var
       S1, S2: String;
       E1, E2: String;
       B, K: Byte;
     begin
     S1 := UpLowStrg(GetLFN(LFN1)); {JO}
-    for B := Length(S1) downto 1 do
+    for B := Length(S1) DownTo 1 do
       if S1[B] = '.' then
-        Break;
+        break;
     if  (B > 1) or (S1[1] = '.') then
       begin
       K := Length(S1)-B+1;
@@ -625,11 +625,11 @@ function TFilesCollection.Compare;
       SetLength(S1, B-1);
       end
     else
-      Word(((@E1)^)) := $2E01; {E1 := '.'}
+      word(((@E1)^)) := $2E01; {E1 := '.'}
     S2 := UpLowStrg(GetLFN(LFN2)); {JO}
-    for B := Length(S2) downto 1 do
+    for B := Length(S2) DownTo 1 do
       if S2[B] = '.' then
-        Break;
+        break;
     if  (B > 1) or (S2[1] = '.') then
       begin
       K := Length(S2)-B+1;
@@ -638,7 +638,7 @@ function TFilesCollection.Compare;
       SetLength(S2, B-1);
       end
     else
-      Word(((@E2)^)) := $2E01; {E2 := '.'}
+      word(((@E2)^)) := $2E01; {E2 := '.'}
     if E1 > E2 then
       CmpLEX := +1
     else if E1 < E2 then
@@ -654,7 +654,7 @@ function TFilesCollection.Compare;
   {$ENDIF}
 
   var
-    C1: Integer; { результат сравнения имён   // AK155}
+    C1: integer; { результат сравнения имён   // AK155}
     Name1, Name2: String; {UpStrg(P2^.Name)  // AK155}
 
   begin { TFilesCollection.Compare }
@@ -670,12 +670,12 @@ function TFilesCollection.Compare;
     if P1P and not P2P then
       begin
       Compare := -1;
-      Exit;
+      exit;
       end;
     if P2P and not P1P then
       begin
       Compare := +1;
-      Exit;
+      exit;
       end;
 
     Name1 := P1^.FlName[uLfn];
@@ -746,7 +746,7 @@ function TFilesCollection.Compare;
       else
         C := 1;
       Compare := C;
-      Exit;
+      exit;
       end; { конец куска для сравнения каталогов по Ctrl-C }
     { дальше идёт кусок для сортировки файлов в панелях }
 
@@ -776,12 +776,12 @@ function TFilesCollection.Compare;
             if  (P1^.TType = ttExec) and (TType <> ttExec) then
               begin
               Compare := -1;
-              Exit;
+              exit;
               end;
             if  (P1^.TType <> ttExec) and (TType = ttExec) then
               begin
               Compare := 1;
-              Exit;
+              exit;
               end;
             end;
           end;
@@ -792,12 +792,12 @@ function TFilesCollection.Compare;
             if  (P1^.TType = ttArc) and (TType <> ttArc) then
               begin
               Compare := -1;
-              Exit;
+              exit;
               end;
             if  (P1^.TType <> ttArc) and (TType = ttArc) then
               begin
               Compare := 1;
-              Exit;
+              exit;
               end;
             end;
           end;
@@ -811,12 +811,12 @@ function TFilesCollection.Compare;
             if  (P1^.TType = ttArc) and (TType <> ttArc) then
               begin
               Compare := -1;
-              Exit;
+              exit;
               end;
             if  (P1^.TType <> ttArc) and (TType = ttArc) then
               begin
               Compare := 1;
-              Exit;
+              exit;
               end;
             end;
           end;
@@ -827,12 +827,12 @@ function TFilesCollection.Compare;
             if  (P1^.TType = ttExec) and (TType <> ttExec) then
               begin
               Compare := -1;
-              Exit;
+              exit;
               end;
             if  (P1^.TType <> ttExec) and (TType = ttExec) then
               begin
               Compare := 1;
-              Exit;
+              exit;
               end;
             end;
           end;
@@ -1065,9 +1065,9 @@ function SelectDrive;
     Menu: PMenu;
     Items, Lnk: PMenuItem;
     C: Char;
-    N, MaxRY: Integer;
+    N, MaxRY: integer;
     SC: TCharSet;
-    Server_Num, Handle_Num, RetCode, DriveNum, MaxL: Integer;
+    Server_Num, Handle_Num, RetCode, DriveNum, MaxL: integer;
     {-$VIV start}
     FullS, Server, PathName, TmpS: String; {-$VIV end}
     pSaveNeedAbort, ShowDir: Boolean;
@@ -1075,12 +1075,12 @@ function SelectDrive;
 
   function CutLongString(S: String): String;
     var
-      P, L: Integer;
+      P, L: integer;
       S1: String;
     begin
     CutLongString := #0+S+#0;
     if not CutDriveInfo then
-      Exit;
+      exit;
     (* X-Man *)
     CutLongString := FormatLongName(S, 30, 0, flnPreferName+flnHighlight+
         flnUseCutChar+flnHandleTildes, nfmNull, nil)
@@ -1120,7 +1120,7 @@ function SelectDrive;
   then
     begin
     C := ' ';
-    for DriveNum := 8 downto 0 do
+    for DriveNum := 8 DownTo 0 do
       if DirsToChange[DriveNum] <> nil then
         begin
         FreeStr := '~'+ItoS(DriveNum+1)
@@ -1142,7 +1142,7 @@ function SelectDrive;
     CL_GetLinkDrives(SC);
     if SC <> [] then
       begin
-      for C := 'Z' downto 'A' do
+      for C := 'Z' DownTo 'A' do
         if C in SC then
           Items := NewItem('~'+C+':~ ', '', kbNoKey, 2000+Byte(C),
               hcNoContext, Items);
@@ -1182,7 +1182,7 @@ function SelectDrive;
     Inc(N)
     end;
 
-  for C := 'Z' downto 'A' do
+  for C := 'Z' DownTo 'A' do
     if ValidDrive(C) then
       begin
       FullS := '~'+C+':~ '; {-$VIV start}
@@ -1380,7 +1380,7 @@ function SelectDrive;
     SelectDrive := CnvString(DirsToChange[N-cmQuickChange1]);
   end { SelectDrive };
 
-function GetFileType(const S: String; Attr: Byte): Integer;
+function GetFileType(const S: String; Attr: Byte): integer;
   begin
   if S = '..' then
     GetFileType := ttUpDir
@@ -1609,7 +1609,7 @@ procedure DosReread(Files: PFilesCollection);
     S: String;
   begin
   if Files = nil then
-    Exit;
+    exit;
   i := 0;
   while i < Files^.Count do
     begin

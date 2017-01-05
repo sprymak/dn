@@ -52,7 +52,7 @@ unit arc_ZOO; {ZOO}
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects
+  Archiver, advance, advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -170,13 +170,13 @@ procedure TZOOArchive.GetFile;
   if  (ArcFile^.Status <> stOK) or (P.Id <> $FDC4A7DC) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   ArcFile^.Read(P.Info, 2);
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    Exit;
+    exit;
     end;
   {if (P.Info = $0002) then begin FileInfo.Last := 1;Exit;end;}
   ArcFile^.Read(P.NextHDR, SizeOf(P)-6);
@@ -204,7 +204,7 @@ procedure TZOOArchive.GetFile;
   if FileInfo.FName = '' then
     begin
     FileInfo.Last := 1;
-    Exit;
+    exit;
     end;
   ArcFile^.Seek(P.NextHDR);
   end { TZOOArchive.GetFile };

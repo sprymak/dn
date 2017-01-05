@@ -7,7 +7,7 @@ procedure CopyIniVarsToCfgVars;
 
 implementation
 uses
-  DnIni, Startup, Advance1, FlPanelX
+  DnIni, Startup, advance1, FlPanelX
   , fnotify
   {$IFDEF Win32}
   , VpKbdW32 {for AltGreyAsAlt}
@@ -17,8 +17,7 @@ uses
 
 procedure CopyIniVarsToCfgVars;
   var
-    i: Integer;
-    hcd: Word;
+    i: integer;
   begin
   SystemData.Options := SystemDataOpt;
   InterfaceData.Options := InterfaceDataOpt;
@@ -44,12 +43,6 @@ procedure CopyIniVarsToCfgVars;
   DirsToChange[6] := NewStr(QDirs7);
   DirsToChange[7] := NewStr(QDirs8);
   DirsToChange[8] := NewStr(QDirs9);
-  hcd := ossHandleChDirCommand shr 3;
-  with SystemData do
-    if HandleChDirCommand then
-      Options := Options or hcd
-    else
-      Options := Options and not hcd;
     {$IFDEF Win32}
     AltGreyAsAlt := AltGrAsAlt; {JO}
     {$ENDIF}

@@ -66,7 +66,7 @@ type
     end;
 
   {For internal date/time manipulations}
-  Date = Word;
+  Date = word;
   Time = LongInt;
 
   DateTimeRec =
@@ -77,7 +77,7 @@ type
 
 function xYMTimeStampToPack(YMTime: LongInt): LongInt;
 function xPackToYMTimeStamp(RawTime: LongInt): LongInt;
-procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: Integer;
+procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: integer;
      Secs: LongInt);
 
 procedure NewTimerSecs(var ET: TEventTimer; Secs: LongInt);
@@ -90,7 +90,7 @@ function ElapsedTimeInSecs(ET: TEventTimer): LongInt;
 procedure DelayTics(Tics: LongInt);
 
 procedure GetUNIXDate(Julian: LongInt;
-     var Year, Month, Day, Hour, Min, Sec: Word);
+     var Year, Month, Day, Hour, Min, Sec: word);
 
 implementation
 uses
@@ -103,8 +103,8 @@ type
 const
   {Set to 1/1/1970 00:00 GMT}
   StartDate: DateTimeRec = (D: 25567; T: 0);
-  GmtHourOffset: Integer = 0; {Default no GMT adjustments}
-  Threshold2000: Integer = 1900;
+  GmtHourOffset: integer = 0; {Default no GMT adjustments}
+  Threshold2000: integer = 1900;
 
   MinYear = 1900;
   MaxYear = 2078;
@@ -119,17 +119,17 @@ const
   TicsFreq = 1675;
   SecsFreq = 92;
 
-function IsLeapYear(Year: Integer): Boolean;
+function IsLeapYear(Year: integer): Boolean;
   {-Return True if Year is a leap year}
   begin
   IsLeapYear := (Year mod 4 = 0) and (Year mod 4000 <> 0) and
       ( (Year mod 100 <> 0) or (Year mod 400 = 0));
   end;
 
-function DaysInMonth(Month, Year: Integer): Integer;
+function DaysInMonth(Month, Year: integer): integer;
   {-Return the number of days in the specified month of a given year}
   begin
-  if Word(Year) < 100 then
+  if word(Year) < 100 then
     begin
     Inc(Year, 1900);
     if Year < Threshold2000 then
@@ -148,10 +148,10 @@ function DaysInMonth(Month, Year: Integer): Integer;
   end {case};
   end;
 
-function ValidDate(Day, Month, Year: Integer): Boolean;
+function ValidDate(Day, Month, Year: integer): Boolean;
   {-Verify that day, month, year is a valid date}
   begin
-  if Word(Year) < 100 then
+  if word(Year) < 100 then
     begin
     Inc(Year, 1900);
     if Year < Threshold2000 then
@@ -169,10 +169,10 @@ function ValidDate(Day, Month, Year: Integer): Boolean;
     end
   end;
 
-function DMYtoDate(Day, Month, Year: Integer): Date;
+function DMYtoDate(Day, Month, Year: integer): Date;
   {-Convert from day, month, year to a julian date}
   begin
-  if Word(Year) < 100 then
+  if word(Year) < 100 then
     begin
     Inc(Year, 1900);
     if Year < Threshold2000 then
@@ -202,7 +202,7 @@ function DMYtoDate(Day, Month, Year: Integer): Date;
     end;
   end { DMYtoDate };
 
-procedure DateToDMY(Julian: Date; var Day, Month, Year: Integer);
+procedure DateToDMY(Julian: Date; var Day, Month, Year: integer);
   {-Convert from a julian date to month, day, year}
   var
     I: LongInt;
@@ -245,7 +245,7 @@ procedure DateToDMY(Julian: Date; var Day, Month, Year: Integer);
     end;
   end { DateToDMY };
 
-procedure DateTimeDiff(DT1, DT2: DateTimeRec; var Days: Word;
+procedure DateTimeDiff(DT1, DT2: DateTimeRec; var Days: word;
      var Secs: LongInt);
   {-Return the difference in days and seconds between two points in time}
   var
@@ -302,7 +302,7 @@ function HMStoTime(Hours, Minutes, Seconds: Byte): Time;
   HMStoTime := T mod SecondsInDay;
   end;
 
-procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: Integer;
+procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: integer;
      Secs: LongInt);
   {-Increment (or decrement) DT1 by the specified number of days and seconds
       and put the result in DT2}
@@ -310,7 +310,7 @@ procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: Integer;
   DT2 := DT1;
 
   {date first}
-  Inc(Integer(DT2.D), Days);
+  Inc(integer(DT2.D), Days);
 
   if Secs < 0 then
     begin
@@ -361,7 +361,7 @@ function xYMTimeStampToPack(YMTime: LongInt): LongInt;
   {Convert to DT format}
   with DT do
     begin
-    DateToDMY(DTR.D, Integer(Day), Integer(Month), Integer(Year));
+    DateToDMY(DTR.D, integer(Day), integer(Month), integer(Year));
     TimeToHMS(DTR.T, H, M, S);
     Hour := H;
     Min := M;
@@ -412,11 +412,11 @@ function TimerExpired(ET: TEventTimer): Boolean;
 
     {Check normal expiration}
     if CurTics > ExpireTics then
-      Exit;
+      exit;
     {Check wrapped CurTics}
     if  (CurTics < StartTics) and ((CurTics+TicsPerDay) > ExpireTics)
     then
-      Exit;
+      exit;
 
     {If we get here, timer hasn't expired yet}
     TimerExpired := False;
@@ -458,7 +458,7 @@ procedure DelayTics(Tics: LongInt);
     ET: TEventTimer;
   begin
   if Tics <= 0 then
-    Exit
+    exit
   else if Tics > TicsPerDay then
     Tics := TicsPerDay;
 
@@ -473,7 +473,7 @@ function xPackToYMTimeStamp(RawTime: LongInt): LongInt;
   var
     DT: DateTime;
     DTR: DateTimeRec;
-    DiffDays: Word;
+    DiffDays: word;
     DiffSecs: LongInt;
   begin
   {Convert to julian date}
@@ -493,7 +493,7 @@ function xPackToYMTimeStamp(RawTime: LongInt): LongInt;
   end { xPackToYMTimeStamp };
 
 procedure GetUNIXDate(Julian: LongInt;
-     var Year, Month, Day, Hour, Min, Sec: Word);
+     var Year, Month, Day, Hour, Min, Sec: word);
   var
     L: LongInt;
     DT: DateTime;

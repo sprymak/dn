@@ -52,9 +52,9 @@ interface
 
 uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF} {Cat}
-  fnotify, Advance2,
-  DNUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
-  UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects
+  fnotify, advance2,
+  DNUtil, DNApp, Drivers, Gauges, advance, advance3, Views, Commands,
+  UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Defines, Objects2
   ;
 
 type
@@ -96,13 +96,13 @@ procedure PostQuitMessage;
 
 procedure MyApp.GetEvent;
   var
-    W: Word;
-    WW: Word;
+    W: word;
+    WW: word;
     PM: PKeyMacros;
 
   const
     MacroPlaying: Boolean = False;
-    MacroKey: Integer = 0;
+    MacroKey: integer = 0;
     CurrentMacro: PKeyMacros = nil;
     QuitEvent: TEvent = (What: evKeyDown; KeyCode: kbAltX);
   begin
@@ -141,7 +141,7 @@ procedure MyApp.GetEvent;
       if Event.KeyCode = kbNoKey then
         begin
         Event.What := evNothing;
-        Exit
+        exit
         end
       else if (not MacroPlaying)
         and (Event.KeyCode = kbAltShiftIns)
@@ -150,7 +150,7 @@ procedure MyApp.GetEvent;
         begin
         Event.What := evNothing;
         ScreenGrabber(False);
-        Exit
+        exit
         end;
       if  (Event.ScanCode >= Hi(kbCtrlF1))
              and (Event.ScanCode <= Hi(kbCtrlF10))
@@ -166,7 +166,7 @@ procedure MyApp.GetEvent;
           end
         else
           Event.What := evNothing;
-        Exit;
+        exit;
         end;
       if  (ShiftState and 7 <> 0)
              and ((ShiftState and 4 = 0) or (ShiftState and 3 = 0)) and
@@ -187,7 +187,7 @@ procedure MyApp.GetEvent;
             begin
             MacroRecord := False;
             ClearEvent(Event);
-            Exit;
+            exit;
             end;
           MacroRecord := True;
           KeyMacroses^.AtFree(WW);
@@ -201,7 +201,7 @@ procedure MyApp.GetEvent;
             begin
             MacroRecord := False;
             ClearEvent(Event);
-            Exit;
+            exit;
             end;
           CurrentMacro := KeyMacroses^.At(WW);
           MacroPlaying := CurrentMacro <> nil;
@@ -219,7 +219,7 @@ procedure MyApp.GetEvent;
         begin
         Event.What := evCommand;
         Event.Command := cmFileTextView;
-        Exit;
+        exit;
         end;
       {/AK155}
       {if (Event.KeyCode = kbAlt0) and (ShiftState and 3 <> 0) then}
@@ -228,7 +228,7 @@ procedure MyApp.GetEvent;
         begin
         Event.What := evCommand;
         Event.Command := cmListOfDirs;
-        Exit;
+        exit;
         end;
       if MsgActive then
         if Event.KeyCode = kbLeft then
@@ -342,7 +342,7 @@ procedure MyApp.Idle;
 
 procedure MyApp.HandleEvent;
   var
-    s: Word;
+    s: word;
 
   procedure UpView(P: PView);
     begin

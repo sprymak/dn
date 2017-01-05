@@ -5,7 +5,7 @@ unit UserSavr;
 interface
 
 uses
-  Views, Objects
+  Views, Objects2
   ;
 
 type
@@ -21,7 +21,7 @@ type
     destructor Done; virtual;
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
-    function Valid(Command: Word): Boolean; virtual;
+    function Valid(Command: word): Boolean; virtual;
     end;
 
 procedure InsertUserSaver(ACheck: Boolean);

@@ -46,12 +46,12 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit Advance2; {File related functions}
+unit advance2; {File related functions}
 
 interface
 
 uses
-  Advance, Dos, Lfn, UFNMatch, Objects
+  Defines, Streams, advance, Dos, Lfn, UFNMatch
   ;
 
 var
@@ -138,7 +138,7 @@ function GetPath(const S: String): String;
 function GetName(const S: String): String;
 function GetSName(const S: String): String;
 function GetIName(const S: String): String;
-function GetAttrStr(Attr: Word): Str6;
+function GetAttrStr(Attr: word): Str6;
 {$IFNDEF OS2}
 function GetShortRelPath(Path: String): String;
 {$ENDIF}
@@ -147,8 +147,8 @@ function GetLongRelPath(Path: String): String;
 {-DataCompBoy-}
 function MakeFileName(S: String): String;
 function MakeNormName(const S, S1: String): String; {DataCompBoy}
-function GetFileAttr(const S: String): Word;
-function SetFileAttr(const S: String; Attr: Word): Word;
+function GetFileAttr(const S: String): word;
+function SetFileAttr(const S: String; Attr: word): word;
 function CorrectFile(const N: String): Boolean;
 function PathExist(s: String): Boolean; {Is path exist}
 
@@ -156,23 +156,23 @@ function PathFoundInArc(S: String): Boolean; {JO}
 
 {-DataCompBoy-}
 procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
-    var ASize: TSize; var AAttr: Word);
+    var ASize: TSize; var AAttr: word);
 {-DataCompBoy-}
 
 {-DataCompBoy-}
 type
   TQuickSearchData = record
     Mask: String;
-    NumExt: Word;
-    ExtD: Word;
+    NumExt: word;
+    ExtD: word;
     end;
 
 function InQSMask(Name, Mask: String): Boolean; {JO}
 
 procedure InitQuickSearch(var QS: TQuickSearchData);
-procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
+procedure DoQuickSearch(var QS: TQuickSearchData; Key: word);
 function GetCursorPos(const QS: TQuickSearchData; const Name: String;
-    Size, ExtSize: Word): Word;
+    Size, ExtSize: word): word;
 procedure FileChanged(const Name: String);
 {-DataCompBoy-}
 
@@ -193,7 +193,7 @@ function CompareFiles(const N1, N2: String): Boolean;
 implementation
 uses
   Drivers,
-  Advance1, Advance3, Strings,
+  advance1, advance3, Strings,
   Commands, DNApp, DnIni, Memory
   , VpSysLow, VPUtils
   ;
@@ -222,12 +222,12 @@ destructor TTempFile.Done;
 
 function CorrectFile(const N: String): Boolean;
   var
-    I: Integer;
+    I: integer;
   begin
   CorrectFile := False;
   for I := 1 to Length(N) do
     if N[I] in IllegalCharSet then
-      Exit; {DataCompBoy}
+      exit; {DataCompBoy}
   CorrectFile := True;
   end;
 
@@ -288,7 +288,7 @@ function FileNewer(FileA, FileB: String): Boolean;
 {-DataCompBoy-}
 function CalcTmpFName;
   var
-    I: Integer;
+    I: integer;
     S: String;
   begin
   I := 0;
@@ -296,7 +296,7 @@ function CalcTmpFName;
     begin
     S := MakeNormName(SwpDir, Hex8(Id)+'.'+AExt);
     if not ExistFile(S) or not ANew then
-      Break;
+      break;
     Inc(Id);
     Inc(I);
     end;
@@ -310,7 +310,7 @@ const
 function GetTmpId: LongInt;
   var
     IdL, lm, ld, lh, lmin: LongInt;
-    y, m, d, dow, h, min, s, hund: Word;
+    y, m, d, dow, h, min, s, hund: word;
   begin
   GetDate(y, m, d, dow);
   GetTime(h, min, s, hund);
@@ -351,7 +351,7 @@ procedure lChDir;
   if PosChar(':', S) > 2 then
     begin
     InOutRes := 666;
-    Exit;
+    exit;
     end;
   Lfn.lChDir(S);
   end;
@@ -506,9 +506,9 @@ function GetExt;
   var
     i: Byte;
   begin
-  for i := Length(s) downto 1 do
+  for i := Length(s) DownTo 1 do
     if s[i] in ['.', '\', '/'] then
-      Break;
+      break;
   if  ( (i > 1) or (s[1] = '.')) and not (s[i] in ['/', '\']) then
     GetExt := Copy(s, i, MaxStringLength)
   else
@@ -524,7 +524,7 @@ function Norm12;
   if s[1] = '.' then
     begin
     Norm12 := AddSpace(s, 12);
-    Exit
+    exit
     end;
   System.FillChar(R[1], 12, ' ');
   R[0] := #12;
@@ -623,7 +623,7 @@ function InMask;
   if  (Mask = x_x) or (Mask = '*') then
     begin
     InMask := True;
-    Exit;
+    exit;
     end;
 
   j := Mask[Length(Mask)] = '.';
@@ -692,7 +692,7 @@ function InFilter;
     DelLeft(S);
     DelRight(S);
     if  (S <> '') and InMask(Name, S) then
-      Exit;
+      exit;
     end;
   InFilter := False;
   end { InFilter };
@@ -729,7 +729,7 @@ function InDirFilter;
     if  (S <> '') and (S[Length(S)] = '\')
            and InMask(Name, Copy(S, 1, Length(S)-1))
     then
-      Exit;
+      exit;
     end;
   InDirFilter := False;
   end { InDirFilter };
@@ -817,7 +817,7 @@ procedure MakeTMaskData(var MD: TMaskData);
     FreeTMaskData(MD);
 
     if Filter = '' then
-      Exit;
+      exit;
     if Filter[1] in [' ', #9] then
       DelLeft(Filter);
     if not (Filter[1] in [';', ',']) then
@@ -842,7 +842,7 @@ procedure MakeTMaskData(var MD: TMaskData);
     Dina1[0].CurPos := 0;
     NumMP := 0;
 
-    for i := Length(Filter) downto 2 do
+    for i := Length(Filter) DownTo 2 do
       if  (Filter[i] in [';', ',']) and not InSq then
         if not (Filter[i-1] in [';', ',']) then
           begin
@@ -879,10 +879,10 @@ procedure MakeTMaskData(var MD: TMaskData);
                 begin
                 Dec(e);
                 InS := False;
-                for k := e downto 1 do
+                for k := e DownTo 1 do
                   if  (Filter[k] = '[') and not InS
                   then
-                    Break
+                    break
                   else if Filter[k] = '"' then
                     InS := not InS;
                 o := k-1;
@@ -960,7 +960,7 @@ function InExtFilter;
   if Byte(Name[Length(Name)]) < 32 then
     begin
     InExtFilter := False;
-    Exit
+    exit
     end;
   InExtFilter := True; {JO}
   Num1 := F.MP[Byte(UpCaseArray[Name[Length(Name)]])].Num;
@@ -994,7 +994,7 @@ Try2:
       then
         begin
         if Name[j] = '.' then
-          Exit;
+          exit;
         end
       else if (F.Filter[Dina1[i].CurPos] = '-') and
           (F.Filter[Dina1[i].CurPos-1] in [';', ',']) and
@@ -1004,7 +1004,7 @@ Try2:
         if Name[j] = '.' then
           begin
           InExtFilter := False;
-          Exit;
+          exit;
           end
         end
       else if (F.Filter[Dina1[i].CurPos] = '.') and
@@ -1013,22 +1013,22 @@ Try2:
       then
         begin
         if  (PosChar('.', Name) = 0) then
-          Exit;
+          exit;
         end
       else if (F.Filter[Dina1[i].CurPos] = ']') and
         not Dina1[i].InSq
       then
         begin
         InSq := Dina1[i].InSq;
-        for l := Dina1[i].CurPos-1 downto 1 do
+        for l := Dina1[i].CurPos-1 DownTo 1 do
           if F.Filter[l] = '"' then
             InSq := not InSq
           else if not InSq and (F.Filter[l] = '[') then
-            Break
+            break
           else if F.Filter[l] = ';' then
-            Break;
+            break;
         if F.Filter[l] <> '[' then
-          Continue;
+          continue;
         e := Dina1[i].CurPos-1;
         Inc(Num2);
         Dina2[Num2].CurPos := l-1;
@@ -1044,10 +1044,10 @@ Try2:
             then
               begin
               Dec(Num2);
-              Break
+              break
               end
             else
-              Break
+              break
           else
             begin
             if Dina2[Num2].InSq xor
@@ -1055,11 +1055,11 @@ Try2:
                   (UpCaseArray[Name[j]] <= UpCaseArray[F.Filter[l+2]])
                 )
             then
-              Break
+              break
             else
               begin
               Dec(Num2);
-              Break
+              break
               end;
             Inc(l, 2);
             end;
@@ -1084,28 +1084,28 @@ q:
     if F.MP[Byte('*')].Num <= 2 then
       for i := 1 to F.MP[Byte('*')].Num do
         begin
-        for j := F.MP[Byte('*')].A[i].CurPos downto 1 do
+        for j := F.MP[Byte('*')].A[i].CurPos DownTo 1 do
           if F.Filter[j] = ';' then
-            Break;
+            break;
         if F.Filter[j] = ';' then
           Inc(j);
         if InMask(Name, '*.'+Copy(F.Filter, j,
               F.MP[Byte('*')].A[i].CurPos-j+1))
         then
-          Exit;
+          exit;
         end
     else
       for i := 1 to F.MP[Byte('*')].Num do
         begin
-        for j := PMasksPos(F.MP[Byte('*')].P)^[i].CurPos downto 1 do
+        for j := PMasksPos(F.MP[Byte('*')].P)^[i].CurPos DownTo 1 do
           if F.Filter[j] = ';' then
-            Break;
+            break;
         if F.Filter[j] = ';' then
           Inc(j);
         if InMask(Name, '*.'+Copy(F.Filter, j,
               PMasksPos(F.MP[Byte('*')].P)^[i].CurPos-j))
         then
-          Exit;
+          exit;
         end;
   InExtFilter := False
   end { InExtFilter };
@@ -1170,7 +1170,7 @@ function InSpaceMask;
     else
       begin
       InSpaceMask := False;
-      Exit
+      exit
       end
   until i = 0;
   InSpaceMask := True
@@ -1188,7 +1188,7 @@ function InSpaceFilter;
   UpStr(Filter);
   UpStr(Name);
   if Filter = '' then
-    Exit;
+    exit;
   Name := Norm12(Name);
   repeat
     if Filter[Length(Filter)] = ';' then
@@ -1205,7 +1205,7 @@ function InSpaceFilter;
         Delete(S, 1, 1); {DelFC(S);}
       DelLeft(S);
       if  (S <> '') and InSpaceMask(Name, Norm12(S), True) then
-        Exit;
+        exit;
       SetLength(Filter, pred(i));
       end
   until Length(Filter) = 0;
@@ -1276,7 +1276,7 @@ function MkName(const Nm, Mask: String): String;
           Delete(os, Pos('?', os), 1);
         while Pos('*', os) <> 0 do
           Delete(os, Pos('*', os), 1);
-        Break;
+        break;
         end;
       '>':
         if fp > 2 then
@@ -1303,7 +1303,7 @@ function MkName(const Nm, Mask: String): String;
           Delete(os, Pos('?', os), 1);
         while Pos('*', os) <> 0 do
           Delete(os, Pos('*', os), 1);
-        Break;
+        break;
         end;
       '>':
         if fp > 2 then
@@ -1338,12 +1338,12 @@ function GetName;
   var
     B: Byte;
   begin
-  for B := Length(S) downto 1 do
+  for B := Length(S) DownTo 1 do
     if S[B] in ['\', '/']
     then
       begin
       GetName := Copy(S, B+1, MaxStringLength);
-      Exit
+      exit
       end;
   GetName := S;
   end;
@@ -1356,12 +1356,12 @@ function GetSName;
     Pe: Byte;
   begin
   Pe := Length(S)+1;
-  for B := Length(S) downto 1 do
+  for B := Length(S) DownTo 1 do
     begin
     if  (S[B] = '.') and (Pe = Length(S)+1) then
       Pe := B;
     if S[B] in ['\', '/'] then
-      Break;
+      break;
     end;
   if S[B] in ['\', '/'] then
     B := B+1
@@ -1379,7 +1379,7 @@ function GetIName;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function GetAttrStr(Attr: Word): Str6;
+function GetAttrStr(Attr: word): Str6;
   var
     AttrStr: Str6;
   begin
@@ -1445,7 +1445,7 @@ function GetLongRelPath(Path: String): String;
 
 function MakeFileName(S: String): String;
   var
-    I: Integer;
+    I: integer;
   begin
   if  (S <> '..') and (S[Length(S)] = '.') then
     SetLength(S, Length(S)-1);
@@ -1476,7 +1476,7 @@ function MakeNormName(const S, S1: String): String;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function SetFileAttr(const S: String; Attr: Word): Word;
+function SetFileAttr(const S: String; Attr: word): word;
   var
     F: lFile;
   begin
@@ -1487,10 +1487,10 @@ function SetFileAttr(const S: String; Attr: Word): Word;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function GetFileAttr(const S: String): Word;
+function GetFileAttr(const S: String): word;
   var
     F: lFile;
-    Attr: Word;
+    Attr: word;
   begin
   Attr := 0;
   lAssignFile(F, S);
@@ -1522,7 +1522,7 @@ function PathFoundInArc(S: String): Boolean;
 
 {-DataCompBoy-}
 procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
-    var ASize: TSize; var AAttr: Word);
+    var ASize: TSize; var AAttr: word);
   var
     SR: lSearchRec;
   begin
@@ -1554,7 +1554,7 @@ procedure InitQuickSearch(var QS: TQuickSearchData);
   QS.ExtD := 0;
   end;
 
-procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
+procedure DoQuickSearch(var QS: TQuickSearchData; Key: word);
   begin
   if QuickSearchType = 1 then
     if Key = kbBack then
@@ -1574,9 +1574,9 @@ procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
           QS.Mask[Length(QS.Mask)] := '*';
           Dec(QS.NumExt);
           QS.ExtD := 0;
-          for Key := Length(QS.Mask)-1 downto 1 do
+          for Key := Length(QS.Mask)-1 DownTo 1 do
             if QS.Mask[Key] = '.' then
-              Break
+              break
             else if QS.Mask[Key] <> '"' then
               Inc(QS.ExtD);
           end
@@ -1621,10 +1621,10 @@ procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
   end { DoQuickSearch };
 
 function GetCursorPos(const QS: TQuickSearchData; const Name: String;
-    Size, ExtSize: Word): Word;
+    Size, ExtSize: word): word;
   var
-    O: Word;
-    D: Word;
+    O: word;
+    D: word;
   begin
   D := 1;
 
@@ -1633,7 +1633,7 @@ function GetCursorPos(const QS: TQuickSearchData; const Name: String;
     if not InMask(Name, QS.Mask) then
       begin
       GetCursorPos := 0;
-      Exit
+      exit
       end;
     for O := 1 to QS.NumExt do
       begin
@@ -1648,7 +1648,7 @@ function GetCursorPos(const QS: TQuickSearchData; const Name: String;
     if not InQSMask(Name, QS.Mask) then
       begin
       GetCursorPos := QS.ExtD+1;
-      Exit
+      exit
       end;
     end;
 
@@ -1775,7 +1775,7 @@ function CompareFiles(const N1, N2: String): Boolean;
   if S1.Status <> stOK then
     begin
     S1.Done;
-    Exit
+    exit
     end;
   S2.Init(N2, stOpenRead);
   if  (S2.Status <> stOK) or (S1.GetSize <> S2.GetSize) then
@@ -1795,7 +1795,7 @@ function CompareFiles(const N1, N2: String): Boolean;
     if S1.GetSize-S1.GetPos < I then
       I := S1.GetSize-S1.GetPos;
     if I = 0 then
-      Break;
+      break;
     S1.Read(B1^, I);
     S2.Read(B2^, I);
     asm

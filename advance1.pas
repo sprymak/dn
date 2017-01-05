@@ -55,12 +55,12 @@
    LongInt вместо Word
 }
 
-unit Advance1; {String functions}
+unit advance1; {String functions}
 
 interface
 
 uses
-  Objects, Advance, Dos, Lfn, U_KeyMap, Commands {Cat}
+  Defines, advance, Dos, Lfn, U_KeyMap, Commands {Cat}
   ;
 
 function NewStr(const S: String): PString;
@@ -136,14 +136,14 @@ function CapLongStrg(S: LongString): LongString;
 
 function ItoS(a: LongInt): String;
 function ZtoS(a: TSize): String;
-function RtoS(a: Real; M, F: Integer): String;
+function RtoS(a: Real; M, F: integer): String;
 function StoI(const s: String): LongInt;
 function SStr(a: LongInt; B: Byte; C: Char): String;
 function SSt2(a: LongInt; B: Byte; C: Char): String;
 function FStr(a: TSize): String;
 function FileSizeStr(X: TSize): String;
 function Hex2(a: Byte): Str2;
-function Hex4(a: Word): Str4;
+function Hex4(a: word): Str4;
 function Hex8(a: LongInt): Str8;
 function HexChar(a: Byte): Char;
 function Replace(const Pattern, ReplaceString: String; var S: String)
@@ -151,24 +151,24 @@ function Replace(const Pattern, ReplaceString: String; var S: String)
 function fReplace(const SubFrom, SubTo: String; S: String): String;
 function PosChar(C: Char; const S: String): Byte;
 function CharCount(C: Char; const S: String): Byte; {DataCompBoy}
-function FormatTimeStr(H, M, SS: Word): String; {DataCompBoy}
+function FormatTimeStr(H, M, SS: word): String; {DataCompBoy}
 procedure MakeCurrency(R: Real; var S: String);
 function GetDateTime(Time: Boolean): String;
 function Real2Str(X: Real; n: Byte): String;
 function Long2Str(X: LongInt; l: Byte): String;
 function Long0Str(X: LongInt; l: Byte): String;
-function ToHex(I: Word): String;
+function ToHex(I: word): String;
 procedure DelDoubles(const St: String; var Source: String);
 procedure AnsiDelDoubles(const St: String; var Source: AnsiString);
 procedure LongDelDoubles(const St: LongString; var Source: LongString);
-procedure MakeDate(const Mode, Day, Month, Year, Hour, Min: Word;
+procedure MakeDate(const Mode, Day, Month, Year, Hour, Min: word;
      var S: String);
-procedure MakeDateFull(const Mode, Day, Month: Word; {-$VOL moidfied}
-    Year, Hour: Word;
-    const Min: Word;
+procedure MakeDateFull(const Mode, Day, Month: word; {-$VOL moidfied}
+    Year, Hour: word;
+    const Min: word;
     var S: String;
     const YFull: Boolean);
-function DumpStr(var B; Addr: LongInt; Count: Integer; Filter: Byte)
+function DumpStr(var B; Addr: LongInt; Count: integer; Filter: Byte)
   : String;
 
 function BackSearchFor(const S: String; var B; l: LongInt;
@@ -190,10 +190,10 @@ procedure CopyShortString(const s1, s2: ShortString);
 implementation
 
 uses
-  Advance2, Advance3, DnIni, Startup {Cat}
+  advance2, advance3, DnIni, Startup {Cat}
   ;
 
-function LeadingZero(w: Word): String;
+function LeadingZero(w: word): String;
   var
     s: String;
   begin
@@ -397,7 +397,7 @@ asm
     a, b, j: Byte;
   begin { DelSpace }
   if s = '' then
-    Exit;
+    exit;
   b := 1;
   j := Length(s);
   s[0] := #0;
@@ -442,7 +442,7 @@ asm
   while L > 0 do
     begin
     if S[L] <> ' ' then
-      Break;
+      break;
     Dec(L);
     end;
   end { DelRight };
@@ -728,7 +728,7 @@ procedure CapStr(var S: String);
     while (I <= Length(S)) and (S[I] in BreakChars) do
       Inc(I);
     if I > Length(S) then
-      Break;
+      break;
     S[I] := UpCase(S[I]);
     while (I < Length(S)) and (not (S[I] in BreakChars)) do
       begin
@@ -747,7 +747,7 @@ procedure CapLongStr(var S: LongString);
     while (I <= Length(S)) and (S[I] in BreakChars) do
       Inc(I);
     if I > Length(S) then
-      Break;
+      break;
     S[I] := UpCase(S[I]);
     while (I < Length(S)) and (not (S[I] in BreakChars)) do
       begin
@@ -792,7 +792,7 @@ function ZtoS(a: TSize): String;
   ZtoS := s;
   end;
 
-function RtoS(a: Real; M, F: Integer): String;
+function RtoS(a: Real; M, F: integer): String;
   var
     s: String[20];
   begin
@@ -803,7 +803,7 @@ function RtoS(a: Real; M, F: Integer): String;
 function StoI(const s: String): LongInt;
   var
     i: LongInt;
-    j: Integer;
+    j: integer;
   begin
   Val(s, i, j);
   StoI := i;
@@ -812,7 +812,7 @@ function StoI(const s: String): LongInt;
 function SStr(a: LongInt; B: Byte; C: Char): String;
   var
     s: String[40];
-    i: Integer;
+    i: integer;
   begin
   Str(a: B, s);
   i := 1;
@@ -852,7 +852,7 @@ function FStr(a: TSize): String;
   var
     s, s1: String[40];
     s1l: Byte absolute s1;
-    i: Integer;
+    i: integer;
     {$IFNDEF NOASM}C: Char; {$ENDIF}
   begin
   Str(a: 0: 0, s);
@@ -907,7 +907,7 @@ function FStr(a: TSize): String;
        pop esi
       end;
     {$ELSE}
-    for i := Length(s) downto 1 do
+    for i := Length(s) DownTo 1 do
       begin
       s1 := s[i]+s1;
       if  (i > 1) and ((Byte(s[0])-i+1) mod 3 = 0) then
@@ -957,7 +957,7 @@ function FileSizeStr;
         if Length(S) > 3 then
           Insert(',', S, Length(S)-2);
         FileSizeStr := S+'M';
-        Exit;
+        exit;
         end;
         Str(J:
           0:
@@ -1017,13 +1017,13 @@ end;
 
 function Replace;
   var
-    I, J, K: Integer;
+    I, J, K: integer;
   begin
   J := 1;
   K := 1;
   Replace := False;
   if  (Pattern = '') or (S = '') then
-    Exit;
+    exit;
   repeat
     I := Pos(Pattern, Copy(S, J, MaxStringLength));
     if I > 0 then
@@ -1039,7 +1039,7 @@ function Replace;
 
 function fReplace(const SubFrom, SubTo: String; S: String): String;
   var
-    P: Integer;
+    P: integer;
   begin
   repeat
     P := Pos(SubFrom, S);
@@ -1075,13 +1075,13 @@ asm
   {$ELSE}
   {Cat}
   var
-    I: Integer;
+    I: integer;
   begin { PosChar }
   for I := 1 to Length(S) do
     if S[I] = C then
       begin
       PosChar := I;
-      Exit;
+      exit;
       end;
   PosChar := 0;
   end { PosChar };
@@ -1127,8 +1127,8 @@ asm
 function GetDateTime(Time: Boolean): String;
   var
     S: String[30];
-    Y, M, D, DW: Word;
-    H, Mn, SS, S100: Word;
+    Y, M, D, DW: word;
+    H, Mn, SS, S100: word;
 
   begin
   GetDate(Y, M, D, DW);
@@ -1141,7 +1141,7 @@ function GetDateTime(Time: Boolean): String;
   GetDateTime := S;
   end;
 
-function FormatTimeStr(H, M, SS: Word): String;
+function FormatTimeStr(H, M, SS: word): String;
   var
     N: String[3];
     S: String[20];
@@ -1170,7 +1170,7 @@ function FormatTimeStr(H, M, SS: Word): String;
 
 procedure MakeCurrency;
   var
-    I: Integer;
+    I: integer;
   begin
   with CountryInfo do
     begin
@@ -1326,7 +1326,7 @@ procedure MakeDateFull; {-$VOL modified}
   end;
     {$ELSE}
     begin
-    Word(S) := Word(((R div 10)+Ord('0'))+((R mod 10)+Ord('0')) shl 8);
+    word(S) := word(((R div 10)+Ord('0'))+((R mod 10)+Ord('0')) shl 8);
     end;
   {$ENDIF}
 
@@ -1439,7 +1439,7 @@ function DumpStr;
   begin
   DumpStr := '';
   if Count <= 0 then
-    Exit;
+    exit;
   SetLength(S, Count*4+12);
   asm
   push  edi
@@ -1596,7 +1596,7 @@ function DumpStr;
   begin { DumpStr }
   DumpStr := '';
   if Count <= 0 then
-    Exit;
+    exit;
   j := 1;
   SetLength(S, Count*4+12);
   for i := 0 to 3 do
@@ -1797,7 +1797,7 @@ function BMsearch( {input } var BMT: BMTable;
   if PatSize > BuffSize then
     begin
     BMsearch := 0;
-    Exit;
+    exit;
     end;
   Index1 := PatSize;
   Index2 := PatSize;
@@ -1841,7 +1841,7 @@ procedure Create_BackBMTable
   if not ExactCase then
     for Index := 1 to Length(Pattern) do
       Pattern[Index] := UpCaseArray[Pattern[Index]];
-  for Index := Length(Pattern) downto 1 do
+  for Index := Length(Pattern) DownTo 1 do
     BMT[Ord(Pattern[Index])] := (Index-1)
   end;
 
@@ -1864,7 +1864,7 @@ function BackBMsearch( {input } var BMT: BMTable;
   if PatSize > BuffSize then
     begin
     BackBMsearch := 0;
-    Exit;
+    exit;
     end;
   Index1 := BuffSize-PatSize+1;
   Index2 := 1;
@@ -2112,8 +2112,8 @@ function CnvLongString(P: PLongString): LongString;
       добавил процедуры NewLongStr, DisposeLongStr
       вариант не окончательный, возможны изменения
       при изменении обязательно согласовать со следующими процедурами:
-        Objects.TStream.ReadAnsiStr
-        Objects.TStream.WriteAnsiStr
+        Streams.TStream.ReadAnsiStr
+        Streams.TStream.WriteAnsiStr
         WinClpVP.Str2Collection}
 
 function NewLongStr(const S: LongString): PLongString;
@@ -2142,7 +2142,7 @@ procedure DisposeLongStr(var P: PLongString);
 procedure CompressShortStr(var S: String);
   var
     PP: Pointer;
-    TSt: Integer;
+    TSt: integer;
   begin
   PP := @S;
   TSt := StoI(EditorDefaults.TabSize);
@@ -2203,7 +2203,7 @@ procedure CompressString(var S: LongString);
   var
     S1: String;
     S2: LongString;
-    I: Word;
+    I: word;
   begin
   I := 1;
   S2 := '';
@@ -2362,11 +2362,11 @@ function PosLastDot(StrToMake: String): Byte;
   var
     I: Byte;
   begin
-  for I := Length(StrToMake) downto 1 do
+  for I := Length(StrToMake) DownTo 1 do
     if StrToMake[I] = '.' then
       begin
       PosLastDot := I;
-      Exit;
+      exit;
       end;
   PosLastDot := Length(StrToMake)+1;
   end;
