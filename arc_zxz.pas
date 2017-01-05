@@ -48,7 +48,7 @@
 unit Arc_ZXZ; {ZXZ}
 
 interface
- uses Archiver, Objects, FViewer, Advance, LFNCol, Dos, advance1;
+ uses Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, advance1;
 
 type
   PZXZArchive = ^TZXZArchive;
@@ -62,9 +62,9 @@ type
 type ZXZHdr = record
       Name       : Array[0..7] of Char;
       Extension  : Array[0..2] of Char;
-      OriginSize : Word;
+      OriginSize : AWord;
       SectorSize : Byte;
-      PackedSize : Word;
+      PackedSize : AWord;
       CRC32      : Longint;
       MethodID   : Byte;
       Flags      : Byte;
@@ -77,7 +77,7 @@ constructor TZXZArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZXZIP386.EXE'));
@@ -102,12 +102,24 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   ''));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  if q='0' then UseLFN := False else UseLFN := True;
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function TZXZArchive.GetID;
@@ -123,14 +135,14 @@ end;
 Procedure TZXZArchive.GetFile;
 var FP  : Longint;
     P   : ZXZHdr;
-    Len : Word;
+    Len : AWord;
     S   : String;
 begin
  ArcFile^.Read(P, SizeOf(P));
  FP := ArcFile^.GetPos;
  if (P.Name[0]<#32) or
     (P.PackedSize>P.SectorSize*256) or
-    (P.PackedSize+FP > ArcFile^.GetSize) or
+    (VCardinal(P.PackedSize + FP) > ArcFile^.GetSize) or
     (P.MethodID>3) or
     (P.SectorSize=0)
    then begin FileInfo.Last:=1; Exit; end;
@@ -143,7 +155,9 @@ begin
   then S := S + '.' + P.Extension else S := S + '.' + P.Extension[0];
  DelRight(S);
  FileInfo.FName := S;
+{$IFNDEF OS2}
  FileInfo.LFN  := AddLFN(S); {DataCompBoy}
+{$ENDIF}
  FileInfo.Last := 0;
  FileInfo.Attr := 0;
  if (P.OriginSize and $ff) = 0 then Len:=0 else Len:=256;

@@ -48,7 +48,7 @@
 UNIT DefColl;
 
 INTERFACE
-uses Collect, LFN, Advance1, Advance;
+uses Collect, LFN, Advance1, Advance, Objects;
 
 Type
  PDefCollection = ^TDefCollection;
@@ -151,14 +151,14 @@ begin
 end;
 
 function  TDefCollection.IsDef(Name: String): boolean;
-var I: LongInt;
+var I: CondInt;
 begin
  UpStr(Name);
  IsDef:=Search(@Name, I);
 end;
 
 procedure TDefCollection.Def  (Name: String);
-var I: LongInt;
+var I: CondInt;
 begin
  UpStr(Name);
  if not Search(@Name, I) then
@@ -166,7 +166,7 @@ begin
 end;
 
 procedure TDefCollection.UnDef(Name: String);
-var I: LongInt;
+var I: CondInt;
 begin
  UpStr(Name);
  If Search(@Name, I) then AtFree(I);

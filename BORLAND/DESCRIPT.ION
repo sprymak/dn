@@ -1,0 +1,34 @@
+dpmi.ash     part of CPU/FPU detection library by B-coolWare
+header.ash   part of CPU/FPU detection library by B-coolWare
+se.ash	     Part of Long File Names Support
+cachetst.asl part of CPU/FPU detection library by B-coolWare
+cpuspeed.asl part of CPU/FPU detection library by B-coolWare
+p5speed.asl  part of CPU/FPU detection library by B-coolWare
+dn.asm	     resident part of DN
+format.asm   function FormatStr
+lzwc2.asm    Lempel-Ziv Welch Compression routine
+lzwd2.asm    Lempel-Ziv Welch Decompression routine
+sysint.asm   System interrupt vectors
+uue2inc.asm  UU encode/decode
+w95expn.asm  Win95 file Expand routine
+w95tctl.asm  Win95 file access routines
+w95tfio.asm  Win95 file access routines
+bpc.cfg      BPC Config
+pci.inc      part of CPU/FPU detection library by B-coolWare
+pcip.inc     part of CPU/FPU detection library by B-coolWare
+tmi0sdgl.inc part of CPU/FPU detection library by B-coolWare
+zconf.inc    Part of the 'zlib' compression library
+rcp.ini      Resource compiler options
+rcpd.ini     Resource compiler options
+bigarr.pas   Big Array
+bstrings.pas Strings access
+dnerror.pas  DN.ERR parser
+dosmem.pas   Real-Mode memory allocation
+dpmi.pas     Primitive routines for DPMI management
+extkbd.pas   Access to extended keyboard (temporary unit)
+keyboard.pas Part of packmap routine
+lfn.pas      LFN Support
+overlays.pas Overlay's support
+winclp.pas   Windows clipboard connection
+bigarray.pas Big Array
+search.pas   Part of packmap & dnerror - binary search

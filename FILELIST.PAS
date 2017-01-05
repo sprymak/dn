@@ -50,12 +50,16 @@ unit FileList;
 
 interface
   uses Drives, Drivers, Views, Objects, FilesCol, DOS, advance, advance1,
-  advance2, advance3, RStrings, LFNCol;
+  advance2, advance3, RStrings {$IFNDEF OS2}, LFNCol {$ENDIF};
 
 type
        PDesc = ^TDesc;
        TDesc = record
+{$IFNDEF OS2}
          Name: String[12];
+{$ELSE}
+         Name: String;
+{$ENDIF}
          DIZ: PString;
        end;
 
@@ -120,7 +124,9 @@ function TListDrive.GetDirectory;
   procedure ReadList;
    var T: lText;
        S: String;
+{$IFNDEF OS2}
        S1: String[12];
+{$ENDIF}
        I: Integer;
   begin
     ClrIO;
@@ -134,12 +140,18 @@ function TListDrive.GetDirectory;
         S1 := '';
         if S <> '' then
          begin
-           While (S1[0] < #12) and (S[1] <> ' ') do
+{$IFNDEF OS2}
+           While (Length(S1) < 12) and (S[1] <> ' ') do
              begin S1 := S1 + S[1]; DelFC(S) end;
            DelLeft(S);
+{$ENDIF}
            New(PD);
+{$IFNDEF OS2}
            PD^.Name := LowStrg(Norm12(S1));
            PD^.Name[9] := ' ';
+{$ELSE}
+           PD^.Name := S;
+{$ENDIF}
            PD^.DIZ := NewStr(S);
            if not Descriptions^.Search(PD, I) then Descriptions^.AtInsert(I, PD)
             else Descriptions^.FreeItem(PD);
@@ -161,25 +173,30 @@ begin
  if PanelFlags and pfFreeSpace <> 0 then FreeSpc := DiskFree(Byte(CurDir[1])-64);
 
  PFilesCollection(Files)^.SortMode := SortMode;
+{$IFDEF Win32}
+ PFilesCollection(Files)^.LFNActive := Flags and psShowLongName <> 0; {JO}
+{$ENDIF}
  DosError := 0; ClrIO; Abort := Off;
  DrNm := MakeNormName(CurDir,x_x);
- lFindFirst(DrNm, $3F xor VolumeID, SR);
+ lFindFirst(DrNm, Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
  While (DosError = 0) and not Abort and (IOResult = 0) and (MemAvail > LowMemSize) do
  With SR do
  begin
-  if (SR.Attr and VolumeID = 0) and (SR.Name <> '.') then
-   if (SR.Name[1] = '.') or (not Security or (Security and (SR.Attr and Hidden=0))) then
+  if {$IFNDEF OS2}(SR.Attr and VolumeID = 0) and{$ENDIF}(SR.Name <> '.') then
+   if {$IFNDEF OS2}(SR.Name[1] = '.'){$ELSE}SR.Name = '..'{$ENDIF} or (not Security or (Security and (SR.Attr and Hidden=0))) then
    if AllFiles or (SR.Attr and Directory <> 0) or (InFilter(FullName, FileMask)) then
    begin
     New(P);
-    if SR.Name[1] <> '.' then
+    if {$IFNDEF OS2}SR.Name[1] <> '.'{$ELSE}SR.Name <> '..'{$ENDIF} then
     begin
      I := Pos('.', SR.Name);
      if I = 0 then P^.Name := SR.Name + Strg(32,12)
              else P^.Name := Copy(Copy(SR.Name, 1, I - 1) + '        ', 1, 9) + Copy(SR.Name, I + 1, 3) + '   ';
-    end else P^.Name := '..          ';
+    end else {$IFNDEF OS2}P^.Name := '..          '{$ELSE}P^.Name := '..'{$ENDIF};
     UnpackTime(SR.Time, D);
+{$IFNDEF OS2}
     P^.LFN := AddLFN(FullName);
+{$ENDIF}
     P^.TType := Byte(Hilite);
     P^.Year := D.Year mod 100;
     P^.Month := D.Month;
@@ -204,15 +221,26 @@ begin
        P^.Size := 0;
        if PanelFlags and pfShowLength <> 0 then
         begin
+{$IFNDEF OS2}
           if SR.Name[1] = '.' then P^.Size := GetDirLen(CurDir)
                               else P^.Size := GetDirLen(CurDir+'\'+SR.Name);
+{$ELSE}
+          if SR.Name = '..'  then P^.Size := GetDirLen(CurDir)
+                              else P^.Size := GetDirLen(CurDir+'\'+Fullname);
+{$ENDIF}
           if Abort then begin PanelFlags := PanelFlags and (not pfShowLength); Abort := Off; end;
         end;
       end;
+{$IFNDEF OS2}
     if P^.Name[1] <> '.' then Inc(TotalLen, P^.Size);
+{$ELSE}
+    if P^.Name <> '..' then Inc(TotalLen, P^.Size);
+{$ENDIF}
     P^.Owner := @CurDir;
+{$IFNDEF OS2}
     if P^.Attr and Hidden <> 0 then P^.Name[9] := #177;
     if P^.Attr and SysFile <> 0 then P^.Name[9] := #178;
+{$ENDIF}
     if Hilite then P^.TType := GetFileType(FullName, P^.Attr) else P^.TType := 0;
     Files^.Insert(P);
    end;
@@ -232,11 +260,15 @@ begin
        end;
  TotalInfo := S;
  FreeSpace := '~'+FStr(FreeSpc)+GetString(dlDIFreeDisk)+Copy(CurDir, 1, 2);
- if (CurDir[0] > #3) and (PFileRec(Files^.At(0))^.Name <> '..          ') then
+ if (Length(CurDir) > 3) and (PFileRec(Files^.At(0))^.Name <> '..          ') then
   begin
     New(P);
+{$IFNDEF OS2}
     P^.Name := '..          ';
     P^.LFN := AddLFN('..');
+{$ELSE}
+    P^.Name := '..';
+{$ENDIF}
     P^.TType := Byte(Hilite);
     P^.Year := 80;
     P^.Month := 1;

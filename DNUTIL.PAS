@@ -53,7 +53,7 @@ uses
      Dos,
 
      LFN,    {DataCompBoy}
-     LFNCol, {DataCompBoy}
+     {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy}
 
      SBlocks,
      Drivers,
@@ -109,7 +109,7 @@ uses
 {$IFDEF Calendar}
      Calendar,    {JO}
 {$ENDIF}
-     FStorage,
+    {FStorage,}
 
 {$IFDEF SpreadSheet}
      Calc,
@@ -160,7 +160,9 @@ uses
      Archiver,
      Archset,
 {$IFNDEF MINARCH}
+{$IFNDEF OS2}
      Archread,
+{$ENDIF}
 {$ENDIF}
      Idlers,
      Arvid,
@@ -168,8 +170,8 @@ uses
      WinClp,
 
 
-{$IFDEF PrintManager}
-     PrintManager,
+{$IFDEF Printer}
+     PrintMan,
 {$ENDIF}
 
      Setups,
@@ -197,6 +199,9 @@ var
   CommandOfs: Word;
   RunFirst: Boolean;
   IgnoreOldFiles: Boolean;
+const
+  Virgin: Boolean = False; {JO}
+  NoTempDir: Boolean = False; {JO}
 
 type
      PDNApplication = ^TDNApplication;
@@ -213,8 +218,7 @@ type
         procedure InitCommandLine; virtual;
         procedure InitDesktop; virtual;
         procedure InitStatusLine; virtual;
-        procedure ViewFile(Intern: Boolean; FileName: String); {DataCompBoy}
-        procedure ViewFilter(FileName: String); {DataCompBoy}
+        procedure ViewFile(AltExt, NoExtFile: boolean; FileName: String); {AK155}
         procedure AddFormat;
         procedure EditFile(Intern: Boolean; FileName: String); {DataCompBoy}
         procedure OutOfMemory; virtual;
@@ -296,7 +300,7 @@ const
      cfgCustomMasks2        = 54; {DataCompBoy}
      cfgArcCustomMasks      = 55; {DataCompBoy}
      cfgFMSetup             = 56; {DataCompBoy}
-     {{{{{{{{{{{{{{{{{{{{{{ = 57; !DO NOT USE!}
+     {                      = 57; !DO NOT USE!}
      cfgNewSystemData       = 58; {DataCompBoy}
      cfgEditorDefaults      = 59; {DataCompBoy}
      cfgNewPanelDefaults    = 60; {DataCompBoy}
@@ -304,19 +308,25 @@ const
      cfgChangeCaseOptions   = 62; {DataCompBoy}
      cfgINIcrc              = 63; {DataCompBoy}
 
-     dlAbout = #13#3'Dos Navigator Open Source'#13+
-     {$IFDEF LITE}+#3'Light version'+{$ELSE}+#13+{$ENDIF}
-     +#13#3'Version %s, %s'+
-     +#13#3#0'http://dn_osp.web.com/'#0+
+     dlAbout = {$IFDEF VIRTUALPASCAL} #13#3'DN/2 Open Source'+
+     #13#3'Version %s, %s'+
+     #13#3'http://os2.ru/projects/dn2/'#13+
+     #13#3'Based on: '+ {$ELSE}#13#3+{$ENDIF}
+     'Dos Navigator Open Source 1.51.08'#13+
+     {$IFDEF LITE}+#3'Light version'#13+{$ENDIF}
+     {$IFNDEF VIRTUALPASCAL}
+     +#3'Version %s, %s'#13+
+     {$ENDIF}
+     +#3'http://www.nsk.su/~dnosp/'+
      {$IFDEF VIRTUALPASCAL}
      +#13+
      +#13#3'Thanks to fPrint (UK) Ltd for copy of VP'+
-     +#13#3#0'http://www.vpascal.com'#0#13+
+     +#13#3'http://www.vpascal.com'#13
      {$ELSE}
-     +#13#13+
+     +#13#13
      {$ENDIF}
-     +#13#3'Based on Dos Navigator'+
-     +#13#3'Copyright (C) 1991-99 RIT Research Labs'#13#13;
+     +#13#13 {#3'Based on Dos Navigator' +
+     +#13#3'Copyright (C) 1991-99 RIT Research Labs'#13#13};
 
 
 type
@@ -330,6 +340,8 @@ type
 
 const
        DataSaver: PDataSaver = nil;
+
+procedure ExecDNAutoexec;
 
 implementation
 
@@ -346,7 +358,7 @@ uses
 {$IFDEF PKTVIEW}
   PktView,
 {$ENDIF}
-  UFNMatch;
+  UFNMatch{, Crt};
 
 { Load and Store Palette routines }
 
@@ -401,13 +413,13 @@ const
 
 constructor TDataSaver.Load;
   var D, L: AWord;
-      fs: PDirStorage;
-  var P: PFileRec;
-      DT: DateTime;
-      I, Q, Q2: LongInt;
-      DrNm: String;
-      OW: PString;
-      AS: String;
+     {fs: PDirStorage;} {??? зачем нужно - непонятно}
+{ var P: PFileRec;}     { куча лишних переменных}
+     {DT: DateTime;}
+     {I,} Q, Q2: LongInt;
+     {DrNm: String;}
+     {OW: PString;}
+     {AS: String;}
 
 begin
   if DataSaver <> nil then Dispose(DataSaver,Done); DataSaver:=nil;
@@ -432,10 +444,13 @@ begin
                            if TempDirs = nil then continue;
                            S.Read(Q, SizeOf(Q));
                            If Q >= 0 then begin
-                            TempFiles := New(PFilesCollection, Init(Q, $10));
+                            TempFiles := New(PFilesCollection, Init(Q+1, $10));
                             TempFiles^.SortMode := psmOrdered;
                             TempFiles^.Duplicates := False;
-                            TempFiles^.Owner := @Self;
+                         {$IFDEF Win32}
+                            TempFiles^.LFNActive := True;
+                         {$ENDIF}
+                           {TempFiles^.Owner := @Self;}
                             for Q2:=0 to Q do TempFiles^.AtInsert(Q2, LoadFileRecOwn(S, TempDirs));
                            end;
                          end else S.Seek(S.GetPos + L);
@@ -551,7 +566,9 @@ begin
   PackTime(DT, L);
   SetFileAttr(SwpDir+'DN.FLG', 0);
   ClrIO;
+{$IFDEF OS_DOS}
   ClearFiles('DN*.SWP');
+{$ENDIF}
   ClearFiles('$DN*.*');
   ClearFiles('$$DN*.*');
   ClearFiles('$$$DN*.*');
@@ -603,8 +620,11 @@ begin
     NewArchiveName:='';
    end;
 *)
+  {$IFDEF OS_DOS}
   LoadStream := PresentFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-  if LoadStream = nil then LoadStream := PresentFile(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK');
+  if LoadStream = nil then
+  {$ENDIF}
+    LoadStream := PresentFile(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK');
   if LoadStream <> nil then RetrieveDesktop('', LoadStream, True);
   InitDrivers;
 
@@ -637,8 +657,9 @@ begin
    Event.Command := cmUserMenu;
    PutEvent(Event);
  end;
-
+{$IFDEF OS_DOS}
  If ExistFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP') then EraseByName(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -680,9 +701,11 @@ begin
        FillChar( AdvFDDR, 0 , SizeOf(AdvFDDR));
    end;
 
+{$IFNDEF VIRTUALPASCAL}
   if (opSys and opOS2 <> 0) and
      (Confirms and cfFmtOs2Warning <> 0) then
-          Msg(dlFmtOs2Warning, nil , mfWarning or mfOkButton ) ;
+          Msg(dlFmtOs2Warning, nil , mfWarning or mfOkButton);
+{$ENDIF}
 
   FmtUserDefined := False;
 
@@ -766,7 +789,7 @@ begin
  if ConfigModified then WriteConfig;
  if (StartupData.Unload and osuAutosave <> 0)
   then SaveRealDsk
-  else SaveDsk;
+  {$IFNDEF VIRTUALPASCAL}else SaveDsk{$ENDIF};
  SaveHistories;
  HideCommandLine := (CommandLine <> nil) and not CommandLine^.GetState(sfVisible);
  B := $8000 or (Byte(HideCommandLine));
@@ -813,6 +836,27 @@ begin
  WriteConfig;
 {$ENDIF}
 end;
+
+{JO}
+procedure WriteHighlite;
+ var F: lText;
+begin
+ lAssignText(F,SourceDir+'dnhgl.grp');
+ lRewriteText(F);
+ Writeln(F.T, CustomMask1^.Filter);
+ Writeln(F.T, CustomMask2^.Filter);
+ Writeln(F.T, CustomMask3^.Filter);
+ Writeln(F.T, CustomMask4^.Filter);
+ Writeln(F.T, CustomMask5^.Filter);
+ Writeln(F.T, CustomMask6^.Filter);
+ Writeln(F.T, CustomMask7^.Filter);
+ Writeln(F.T, CustomMask8^.Filter);
+ Writeln(F.T, CustomMask9^.Filter);
+ Writeln(F.T, CustomMask10^.Filter);
+ Writeln(F.T, Startup.Archives^.Filter);
+ Close(F.T);
+end;
+{JO}
 
         {-DataCompBoy-}
 procedure WriteConfig;
@@ -918,6 +962,7 @@ begin
 
  StoreBlock(0,I,0);
  S.Done;
+ WriteHighlite; {JO}
 {$ELSE}{!DNPRG}
 begin
 {$ENDIF}{DNPRG}
@@ -1008,7 +1053,8 @@ var
   S: PStream;
   Sign: String[MaxSignLen];
   B, BB: Boolean;
-  SM,CC: Word;
+  SM: Word;
+  CC: Word;
   R: TRect;
   SaveBounds: TRect;
   PS: PString;
@@ -1051,6 +1097,7 @@ FUNCTION GetfURZ2(const s: string): string;
 label
   Err;
 begin
+  CC := 0;
   HideCommandLine := (CommandLine <> nil) and (not CommandLine^.GetState(sfVisible));
   SetState(sfActive, True);
   if LS = nil
@@ -1107,9 +1154,7 @@ begin
                      end;
         RunMenu := Off;
        end;
-(*  S^.Read(NewArchiveName, 1); S^.Read(NewArchiveName[1],length(NewArchiveName));
-    S^.Read(OldArchiveName, 1); S^.Read(OldArchiveName[1],length(OldArchiveName));
-*)S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));
+  S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));
   S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));
     S^.Read(SM, Sizeof(SM));
     S^.Read( OldAppSize, SizeOf( Size ));
@@ -1118,10 +1163,23 @@ begin
     LoadIndexes(S^);
     GetExtent( SaveBounds );
     Desktop^.Clear;
+{$IFDEF OS2}
+    if not PMWindowed then
+        begin
+{$ENDIF}
+          if NonVIOScreenMode <> $FFFF then SM := NonVIOScreenMode;
+{$IFDEF OS2}
+        end
+      else
+        if VIOScreenMode <> $FFFF then SM := VIOScreenMode;
+{$ENDIF}
     if BB and ((SM <> ScreenMode) and
        (StartupData.Load and osuRestoreScrMode <> 0))
       then begin
       SetScrMode(SM);
+      {$IFDEF DPMI}
+      SetScrMode(SM);
+      {$ENDIF}
       SetBlink(CurrentBlink);
     end;
     BB := not (OldDskSize.Equals(Desktop^.Size));
@@ -1133,18 +1191,6 @@ begin
       Desktop^.ChangeBounds(R);
     end;
     LoadDesktop(S^);
-(*    If OldArchiveName<>NewArchiveName then
-     begin
-      lAssignFile(F, OldArchiveName);
-      lRenameFile(F, NewArchiveName);
-      OldArchiveName:=GetPath(OldArchiveName);
-      NewArchiveName:=GetPath(NewArchiveName);
-      RereadDirectory(OldArchiveName);
-      If UpStrg(OldArchiveName)<>UpStrg(OldArchiveName) then
-       RereadDirectory(NewArchiveName);
-      OldArchiveName:='';
-      NewArchiveName:='';
-     end;*)
     DisposeStr(PJ);
     S^.Read(TempBounds, SizeOf(TempBounds));
     {S^.Read(ArcBounds, SizeOf(TempBounds));}
@@ -1265,26 +1311,115 @@ begin
   Msg(erNotEnoughMemory, nil, mfError + mfOKButton);
 end;
 
-        {-DataCompBoy-}
-procedure TDNApplication.ViewFile;
+const
+  ExtFileName: array[boolean] of string[10] =
+    ('dn.vwr', 'dnalt.vwr');
+
+        {-DataCompBoy-} {AK155}
+procedure TDNApplication.ViewFile(AltExt, NoExtFile: boolean; FileName: String); {AK155}
 var
-  XT: String;
   W : PWindow;
   R : TRect;
   fr: PFileRec;
   up: tUserParams;
   P : PViewRecord;
-  I : Integer;
+  I,J : Integer;
   PS: PString;
   q : Integer;
   RN: String;
 
-  function View: Boolean;
-  begin
-   View := ExecExtFile('DN.VWR', @up, dlLoadingViewer);
-  end;
+  function SpecialIntView: Boolean;
+    var
+      XT: String;
+    label
+      db;
+    begin
+    SpecialIntView := false;
+    XT := ' '+RN;
+    UpStr(XT);
+    PS := @XT;
+    if (InterfaceData.Options and ouiTrackViewers <> 0) and
+       (ViewHistory <> nil)
+     then I := ViewHistory^.IndexOf(@PS) else I := -1;
+    if I >= 0 then begin
+     P := ViewHistory^.At(I);
+     Q := P^.fViewMode;
+     if Q and vmInternal = vmInternal then
+       Q := -1;
+    end else Q:=-1;
+    XT := UpStrg(GetExt(FileName));
+    {$IFDEF DBView}
+    if (XT = '.DBF') or (Q=vmDB) then begin
+     W := New(PDBWindow,Init(FileName));
+     if W = nil then
+       exit;
+     if (Q=vmDB) and (W<>nil) then
+      with P^, W^ do begin
+        R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
+        AdjustToDesktopSize(R, fDeskSize);
+        Locate(R);
+       with PDBWindow(W)^.P^ do begin
+        Delta := fdDelta;
+        Pos   := fdPos;
+        KeyMap := fdKeyMap; SetKeyMap; {AL155}
+       end;
+      end;
+    goto db;
+    end;
+    {$ENDIF}
 
-  procedure InternalView;
+    {$IFDEF SpreadSheet}
+     if (XT = '.WKZ') or (Q=vmSpread) then begin
+      W := New(PCalcWindow,Init(R, FileName));
+      if (Q=vmSpread) and (W<>nil) then
+       with P^, W^ do begin
+         R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
+         AdjustToDesktopSize(R, fDeskSize);
+         Locate(R);
+        with PCalcWindow(W)^.CalcView^ do begin
+         Delta       := fsDelta;
+         Cur         := fsCur;
+         Mark        := fsMark;
+         CurrentCalc := fsCurrentCalc;
+         SearchPos   := fsSearchPos;
+         ErrorCell   := fsErrorCell;
+         HScroll^.SetValue(Delta.X + Cur.X); {AK155}
+         VScroll^.SetValue(Delta.Y + Cur.Y); {AK155}
+        end;
+       end;
+     goto db;
+     end;
+    {$ENDIF}
+
+    {$IFDEF PKTView}
+    if (IsPktFile(FileName) or (Q=vmPKT)) and (XT = '.PKT') then
+      begin
+      SpecialIntView := true;
+      ViewPktFile(FileName);
+      exit;
+      end;
+    if (IsMsgFile(FileName) or (Q=vmMSG)) and (XT = '.MSG') then
+      begin
+      SpecialIntView := true;
+      ViewMSGFile(FileName);
+      exit;
+      end;
+    {$ENDIF}
+    SpecialIntView := ArcViewer(FileName, RN, FreeByte);
+    exit;
+
+db:
+    if (W <> nil) and not W^.Valid(0) then
+      begin
+      Dispose(W,Done); exit;
+      end;
+{    StoreViewInfo(W);  AK155: сохранять бессмысленно (еще нечего)
+        и излишне (сохранит Done) }
+    InsertWindow(W);
+    SpecialIntView := true;
+    end;
+
+  procedure TextView;
    var S: String;
        V: PFileViewer;
   begin
@@ -1295,7 +1430,8 @@ var
         PS := @S;
         if (InterfaceData.Options and ouiTrackViewers <> 0) and (ViewHistory <> nil)
           then I := ViewHistory^.IndexOf(@PS) else I := -1;
-        If I>=0 then if (PViewRecord(ViewHistory^.At(I))^.fViewMode and not vmInternal)>vmAsm then I:=-1;
+        If I>=0 then
+          if (PViewRecord(ViewHistory^.At(I))^.fViewMode and not vmInternal)>vmAsm then I:=-1;
         if I >= 0 then
            begin
              P := ViewHistory^.At(I);
@@ -1332,22 +1468,24 @@ var
                 MakeLines;
               end;
            end;
+      InsertWindow(W);
       end;
   end;
 
-label ex, int;
 begin
    I:=PosChar('|', FileName);
    If I>0 then begin
     RN:=Copy(FileName, I+1, 255);
-    FileName[0]:=Char(I-1);
+    SetLength(FileName, I-1);
+    J:=PosChar(';', FileName);
+    If J>0 then
+     SetLength(FileName, J-1); {AK155 удалить номер версии файла в uc2-архиве }
    end;
    FileName:=lFExpand(FileName);
    if I<=0 then RN:=FileName;
    fr:=CreateFileRec(FileName);
    fillchar(up, sizeof(up), 0);
    up.active:=fr;
-   UpStr(XT);
    Desktop^.GetExtent(R);
    Abort := Off;
    if (Message(DeskTop, evBroadcast, cmFindView, @FileName) <> nil)
@@ -1357,145 +1495,21 @@ begin
           )
          )
      then begin TempFile:=''; Exit; end;
-   if Intern then
-    begin
-     XT := ' '+RN;
-     UpStr(XT);
-     PS := @XT;
-     if (InterfaceData.Options and ouiTrackViewers <> 0) and
-        (ViewHistory <> nil)
-      then I := ViewHistory^.IndexOf(@PS) else I := -1;
-     if I >= 0 then begin
-      P := ViewHistory^.At(I);
-      Q := P^.fViewMode;
-      if Q and vmInternal = vmInternal then goto Int;
-     end else Q:=-1;
-     if (Intern and (SystemData.Options and ossViewer = 0)) and View
-      then goto ex;
-     XT := UpStrg(GetExt(FileName));
-     {$IFDEF DBView}
-     if (UpStrg(XT) = '.DBF') or (Q=vmDB) then begin
-      W := New(PDBWindow,Init(FileName));
-      if (Q=vmDB) and (W<>nil) then
-       with P^, W^ do begin
-         R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
-         AdjustToDesktopSize(R, fDeskSize);
-         Locate(R);
-        with PDBWindow(W)^.P^ do begin
-         Delta := fdDelta;
-         Pos   := fdPos;
-        end;
-       end;
-     end else
-     {$ENDIF}
-     {$IFDEF SpreadSheet}
-      if (UpStrg(XT) = '.WKZ') or (Q=vmSpread) then begin
-       W := New(PCalcWindow,Init(R, FileName));
-       if (Q=vmDB) and (W<>nil) then
-        with P^, W^ do begin
-          R.Assign(fOrigin.X, fOrigin.Y, fOrigin.X + fSize.X, fOrigin.Y + fSize.Y);
-          AdjustToDesktopSize(R, fDeskSize);
-          Locate(R);
-         with PCalcWindow(W)^.CalcView^ do begin
-          Delta       := fsDelta;
-          Cur         := fsCur;
-          Mark        := fsMark;
-          CurrentCalc := fsCurrentCalc;
-          SearchPos   := fsSearchPos;
-          ErrorCell   := fsErrorCell;
-         end;
-        end;
-      end else
-     {$ENDIF}
-     {$IFDEF PKTView}
-     if IsPktFile(FileName) or (Q=vmPKT)
-      then begin
-      ViewPktFile(FileName);
-     end else
-     if IsMsgFile(FileName) or (Q=vmMSG)
-      then begin
-      ViewMSGFile(FileName);
-     end else
-     {$ENDIF}
-        if ArcViewer(FileName, FreeByte) or Abort then goto ex
-         else if View then goto ex
-          else goto Int;
-    end else
-Int:InternalView;
-   if (W <> nil) and not W^.Valid(0) then begin Dispose(W,Done); InternalView end;
-   StoreViewInfo(W);
-   InsertWindow(W);
-ex: DelFileRec(fr);
-end;
-        {-DataCompBoy-}
 
-        {-DataCompBoy-}
-procedure TDNApplication.ViewFilter;
-var
-  W : PWindow;
-  R : TRect;
-  up: tUserParams;
-  P : PViewRecord;
-  S: String;
-  V: PFileViewer;
-  PS: PString;
-  I: longint;
+{ Логика выбора просмотра такая:
+  по F3 (not AltExt) - согласно dn.vwr, затем специальный внутренний, затем текстовый;
+  по Alt-F3 (AltExt) - согласно dnalt.vwr, затем текстовый;
+  по Alt-Shift-F3 (это вообще не здесь) - безусловно текстовый. }
 
-begin
- I:=PosChar('|', FileName);
- if I=0 then exit;
- S:=lFExpand(Copy(FileName, I+1, 255));
- FileName[0]:=Chr(I-1);
- FileName:=lFExpand(FileName);
- W := New(PFileWindow,Init(FileName, S, EditorDefaults.ViOpt and 1 <> 0));
- if (W <> nil) and (W^.Valid(cmValid)) then begin
-  V := PFileViewer(W^.Current);
-  S := V^.VFileName; System.Insert(' ', S, 1); UpStr(S); PS := @S;
-  if (InterfaceData.Options and ouiTrackViewers <> 0) and (ViewHistory <> nil)
-   then I := ViewHistory^.IndexOf(@PS) else I := -1;
-  If I>=0 then
-   if (PViewRecord(ViewHistory^.At(I))^.fViewMode and not vmInternal)>3
-    then I:=-1;
-  if I >= 0 then begin
-   P := ViewHistory^.At(I);
-   R.Assign(P^.fOrigin.X, P^.fOrigin.Y,
-            P^.fOrigin.X + P^.fSize.X,
-            P^.fOrigin.Y + P^.fSize.Y);
-   AdjustToDesktopSize(R, P^.fDeskSize);
-   W^.Locate(R);
-   with V^, P^ do begin
-    if fPos+fBufPos > FileSize then begin
-     fPos := 0;
-     fBufPos := 0;
-    end;
-    Seek(fPos);
-    BufPos     := fBufPos;
-    if XLatFile<>nil then DisposeStr(XLatFile);
-    XLatFile   := NewStr(fXlatFile);
-    ViewMode   := fViewMode and not vmInternal;
-    Filter     := fFilter;
-    HexEdit    := fHexEdit;
-    Wrap       := fWrap;
-    XDelta     := fXDelta;
-    HexPos     := fHexPos;
-    Cur        := fCur;
-    UseXLat    := fUseXLat;
-    KeyMap     := fKeyMap;
-    if UseXLat
-     then SetXlatFile(XLatFile^, On)
-     else SetXlatFile('', On);
-    MarkPos   := fMarks;
-    Loaded    := true;
-    MakeLines;
-   end;
-  end;
- end;
- if (W <> nil) and W^.Valid(0) then begin
-  StoreViewInfo(W);
-  InsertWindow(W);
- end else Dispose(W,Done);
+   if not NoExtFile and
+       ExecExtFile(ExtFileName[AltExt], @up, dlLoadingViewer) then
+     exit;
+   if not AltExt and SpecialIntView then
+     exit;
+   TextView;
+
 end;
-        {-DataCompBoy-}
+        {-DataCompBoy-} {AK155}
 
         {-DataCompBoy-}
 procedure TDNApplication.EditFile;
@@ -1518,7 +1532,7 @@ var
 label ex;
 begin
   FileName:=lFExpand(FileName);
-  fr:=CreateFileRec(lFExpand(FileName));
+  fr:=CreateFileRec(FileName);
   fillchar(up, sizeof(up), 0);
   up.active:=fr;
    if (Intern and (SystemData.Options and ossEditor <> 0)) or
@@ -1659,7 +1673,7 @@ begin
     if Pal <> nil then
     begin
       St := Pal^; DisposeStr(Pal);
-      While St[0] < Char(Length(CColor)) do St := St + #$3F;
+      While Length(St) < Length(CColor) do St := St + #$3F;
       Application^.GetPalette^ := Copy(St,1,Length(CColor));
       SetSysColors(Application^.GetPalette^);
       LoadPalette := On;
@@ -1704,7 +1718,11 @@ PROCEDURE TDNApplication.HandleCommand;
      HFile: PHelpFile;
      HelpStrm: PDosStream;
      T : Tevent ;
-
+{$IFDEF VIRTUALPASCAL}
+     CC: Word;
+     F: lFile;
+     PJ,Q: String; QQ: integer;
+{$ENDIF}
  procedure OpenWindow(ChDrive: Boolean);
   var S: String;
  begin
@@ -1758,14 +1776,22 @@ PROCEDURE TDNApplication.HandleCommand;
 
  procedure SelectVideoModeDialog;
  var
+{$IFNDEF OS2}
    P: PMenuBox;
    M: PMenu;
    R: TRect;
-   W: Word;
    I: PMenuItem;
+{$ELSE}
+   R: record
+        VM: Integer;
+        Cols, Rows: String[3];
+      end;
+{$ENDIF}
+   W: Word;
  begin
-   I := nil;
-   if VideoType < vtVGA then begin
+{$IFNDEF VIRTUALPASCAL}
+  I := nil;
+  if VideoType < vtVGA then begin
      if VideoType = vtEGA then begin
        I := NewItem ( '~1~ 80 x 43', '', kbNoKey, sm80x43+cmSwitch, hcNoContext,
             nil);
@@ -1833,8 +1859,53 @@ PROCEDURE TDNApplication.HandleCommand;
    DisposeMenu(M);
    if (W=0) or (W=cmCancel) then exit;
    Dec(W, cmSwitch);
+{$ELSE}
+ {$IFNDEF OS2}
+   I := nil;
+   M := NewVideoMenu (
+          NewItem ( '~1~ 80 x 25', '', kbNoKey, sm80x25+cmSwitch, hcNoContext,
+          NewItem ( '~2~ 80 x 30', '', kbNoKey, sm80x30+cmSwitch, hcNoContext,
+          NewItem ( '~3~ 80 x 34', '', kbNoKey, sm80x34+cmSwitch, hcNoContext,
+          NewItem ( '~4~ 80 x 43', '', kbNoKey, sm80x43+cmSwitch, hcNoContext,
+          NewItem ( '~5~ 80 x 50', '', kbNoKey, sm80x50+cmSwitch, hcNoContext,
+          NewItem ( '~6~ 80 x 60', '', kbNoKey, sm80x60+cmSwitch, hcNoContext,
+          I))))))
+        );
+   R.Assign(1,1,20,4);
+   P:=New(PMenuBox, Init(R, M, nil));
+   P^.Options:=P^.Options or ofCentered;
+   P^.HelpCtx:=hcCustomVideo;
+   W:=Application^.ExecView(P);
+   Dispose(P);
+   DisposeMenu(M);
+   if (W=0) or (W=cmCancel) then exit;
+   Dec(W, cmSwitch);
+ {$ELSE}
+   case ScreenMode of
+ sm80x30: R.VM := 1;
+ sm80x34: R.VM := 2;
+ sm80x43: R.VM := 3;
+ sm80x50: R.VM := 4;
+ sm80x60: R.VM := 5;
+$140A..$FFFE: R.VM := 6;
+     else R.VM := 0;
+   end;
+   R.Cols := ItoS(ScreenWidth);
+   R.Rows := ItoS(ScreenHeight);
+   if ExecResource(dlgChScreenMode, R) <> cmOK then Exit;
+   case R.VM of
+ 0: W := sm80x25;
+ 1: W := sm80x30;
+ 2: W := sm80x34;
+ 3: W := sm80x43;
+ 4: W := sm80x50;
+ 5: W := sm80x60;
+ 6: W := StoI(R.Cols) * 256 + StoI(R.Rows);
+   end;
+ {$ENDIF}
+{$ENDIF}
    {PZ begin 2000.06.29}
-   SetScrMode ( W );
+   SetScrMode (W);
    if StoreVideoMode <> 0 then begin
      case StoreVideoMode of
        1: smSVGALo := W;
@@ -1854,7 +1925,9 @@ PROCEDURE TDNApplication.HandleCommand;
  begin
  {$IFDEF DNPRG}
    D[1]:=NewStr(VersionName); D[2]:=NewStr(#13+#3+'Compiled '+VersionDate);
-   MessageBox2( dlAbout , ^C'This product is a FREEWARE'#13,@D,Nil, mfAbout + mfOKButton );
+   MessageBox2( dlAbout , ^C'Based on Dos Navigator'#13+
+                + ^C'Copyright (C) 1991-99 RIT Research Labs'#13#13+
+                + ^C'This product is a FREEWARE',@D,Nil, mfAbout + mfOKButton );
    DisposeStr(D[1]);          DisposeStr(D[2]);
  {$ENDIF}
  end;
@@ -1882,8 +1955,8 @@ PROCEDURE TDNApplication.HandleCommand;
      FN: String;
      Pal: PString;
      W: Word;
-     WW: Word;
-     PW: PWindow;
+    {WW: Word;
+     PW: PWindow;}
      vId: LongInt;
 
  procedure StoreColors;
@@ -1904,6 +1977,7 @@ PROCEDURE TDNApplication.HandleCommand;
     S.Write( vID , SizeOF( vID )) ;
     S.Write( CurrentBlink , SizeOf( CurrentBlink ) );
    end;
+ {else PlaySound(1559, 30);}
   S.Done;
   FN := GetPath(FN); RereadDirectory(FN);
  end;
@@ -1962,16 +2036,23 @@ PROCEDURE TDNApplication.HandleCommand;
  end;
 
  function ExecCommandLine: Boolean;
-  var S: String;
+  var S, SD: String; {AK155}
       up: TUserParams;
  begin
   ExecCommandLine := Off;
-  S := '';
+ {S := '';}
   CommandLine^.GetData(S);
+{AK155 очистка комстроки нужна всегда, поэтому она вынесена в общую
+часть. Очищать лучше перед выполнением, а не после, так как в
+ExecString она запоминается и восстанавливается. Аналогичная вставка
+сделана в dnexec.ExecFile.RunCommand }
+  SD:=''; CommandLine^.SetData(SD); CommandLine^.DrawView;
+{AK155}
   if (DelSpaces(S) = '') then Exit;
   ExecCommandLine := On;
   if HandleChDirCommand then
    begin
+    SD := S; {AK155}
     DelLeft(S); DelRight(S);
     if (S[1] in ['c','C']) and (S[2] in ['d','D']) and (S[3]=' ')
     then
@@ -1979,26 +2060,26 @@ PROCEDURE TDNApplication.HandleCommand;
       DelFC(S); DelFC(S); DelLeft(S); S:=DelSquashes(S);
       if PathExist(S) then
        Message(Application, evBroadcast, cmChangeDirectory, @S);
-      S:='';CommandLine^.SetData(S);CommandLine^.DrawView;
+{AK155      S:='';CommandLine^.SetData(S);CommandLine^.DrawView;}
       exit;
      end;
-    if (S[0]=#2) and ValidDrive(UpCase(S[1])) and (S[2]=':') then
+    if (Length(S) = 2) and ValidDrive(UpCase(S[1])) and (S[2]=':') then
     begin
      if s[1]='*' then s:=cTEMP_;
+     {Cat} S[1]:=UpCase(S[1]); {/Cat}
      Message(Desktop, evBroadcast, cmChangeDrv, @S);
-     S:='';CommandLine^.SetData(S);CommandLine^.DrawView;
+{AK155     S:='';CommandLine^.SetData(S);CommandLine^.DrawView;}
      exit;
     end;
-    CommandLine^.GetData(S);
+    S := SD; {AK155 CommandLine^.GetData(S);}
    end;
+{$IFDEF OS_DOS} {AK155}
   if not CheckExit then begin ClearEvent(Event); Exit end;
+{$ENDIF}
   if TryRunOS2(@S) then Exit;
   Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
-  SaveDsk;
-  Exiting:=True;
-  Application^.Done;
-  DosWrite(#13 + ActiveDir+'>' + S +#13#10);
-  ExecString(@S);
+  ExecString(@S, #13 + ActiveDir+'>' + S);
+{AK155     S:='';CommandLine^.SetData(S);CommandLine^.DrawView;}
  end;
 
  procedure ExecDOSCmd;
@@ -2010,14 +2091,8 @@ PROCEDURE TDNApplication.HandleCommand;
    lFSplit(CnvString(CurFileActive), FreeStr, Nm, Xt);
    if InExtFilter(CnvString(CurFileActive), Executables) then ST := Nm+Xt+' ';
    if InputBox(GetString(dlExecDOScmdHdr), GetString(dlExecDOScmdLine), ST, 128, hsExecDOSCmd) <> cmOK then Exit;
-    if not TryRunOS2(@ST) and CheckExit then
-                      begin
-                        SaveDsk;
-                        Exiting:=True;
-                        Done;
-                        WriteLn(#13#10 + ActiveDir+'>' + ST +#13#10);
-                        ExecString(@St);
-                      end;
+    if not TryRunOS2(@ST) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
+     then ExecString(@St, #13#10 + ActiveDir+'>' + ST);
    DisposeStr(CurFileActive); CurFileActive := nil;
    DisposeStr(CurFilePassive); CurFilePassive := nil;
  end;
@@ -2156,20 +2231,15 @@ PROCEDURE TDNApplication.HandleCommand;
 
     procedure DoExecFile;
     begin
-      if not TryRunOS2(PString(Event.InfoPtr)) and CheckExit and
-             not ExecCommandLine then ExecFile(PString(Event.InfoPtr)^);
+      if not TryRunOS2(PString(Event.InfoPtr)) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
+         and not ExecCommandLine then ExecFile(PString(Event.InfoPtr)^);
       CE;
     end;
 
     procedure DoExecString;
     begin
-      if not TryRunOS2(PString(Event.InfoPtr)) and CheckExit then
-                      begin
-                        SaveDsk;
-                        Exiting:=True;
-                        Done;
-                        ExecString(PString(Event.InfoPtr));
-                      end;
+      if not TryRunOS2(PString(Event.InfoPtr)) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
+       then ExecString(PString(Event.InfoPtr), '');
       CE;
     end;
 
@@ -2186,8 +2256,12 @@ PROCEDURE TDNApplication.HandleCommand;
             LngMixCase:=P
         end;
     begin
+{$IFDEF VIRTUALPASCAL}
+       if (Confirms and cfChaneLngWarning <> 0) then
+          Msg(dlChangeLngWarning, nil , mfWarning or mfOkButton);
+{$ENDIF}
         L.Init(5,5);
-        S:=SourceDir; if S[Byte(S[0])]<>'\' then S:=S+'\';
+        S:=SourceDir; if S[Length(S)]<>'\' then S:=S+'\';
         lFindFirst(S+'*.LNG',AnyFile,SR);
         while DosError=0 do begin
             if ((SR.SR.Attr and Directory)=0) and (SR.FullSize>0) then begin
@@ -2200,7 +2274,7 @@ PROCEDURE TDNApplication.HandleCommand;
             lFindNext(SR)
         end;
         lFindClose(SR);
-        S:=StartupDir; if S[Byte(S[0])]<>'\' then S:=S+'\';
+        S:=StartupDir; if S[Length(S)]<>'\' then S:=S+'\';
         lFindFirst(S+'*.LNG',AnyFile,SR);
         while DosError=0 do begin
             if ((SR.SR.Attr and Directory)=0) and (SR.FullSize>0) then begin
@@ -2247,24 +2321,40 @@ PROCEDURE TDNApplication.HandleCommand;
                 DisposeMenu(Menu)
             end else CurIdx:=(CurIdx+1) mod L.Count;
             if (CurIdx>=0) and (PString(L.At(CurIdx))^<>
-            LngMixCase(ActiveLanguage)) and CheckExit then begin
+            LngMixCase(ActiveLanguage)) {$IFDEF OS_DOS} and CheckExit {$ENDIF}{JO} then begin
                 ActiveLanguage:=PString(L.At(CurIdx))^;
                 if ActiveLanguage=LngMixCase(GetEnv('DNLNG'))
                 then ActiveLanguage:='';
-                SaveDnIniSettings;
+                SaveDnIniSettings(@ActiveLanguage);
                 DoneIniEngine;
                 ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
                 ConfigModified:=True;
+{$IFNDEF VIRTUALPASCAL}
                 StringCache^.FreeAll;
-                SaveDsk;
-                Exiting:=true;
-                Done;
-                ExecString(@NullStr);
+                ExecString(@NullStr,'');
+{$ENDIF}
             end;
         end;
         L.FreeAll;
         L.Done;
     end;
+
+{$IFDEF VIRTUALPASCAL}
+function GetGLUKName(s: string):string;
+ Begin
+  GetGLUKName:=GetPath(s)+Copy(GetName(s), 1, 12);
+ end;
+
+FUNCTION GetfURZ2(const s: string): string;
+ var a,aa,aaa:string;
+ Begin
+  lFSplit(S, a, aa, aaa);
+  aa:=aa+aaa;
+  GetfURZ2:=a+Copy(aa, 1, 8)+'.'+Copy(aaa, 9, 3);
+ End;
+
+{$ENDIF}
+
 begin
    case Event.Command of
      cmFirstTimePanel: OpenWindow( False );
@@ -2275,8 +2365,10 @@ begin
      {$IFDEF DiskFormat}
        cmFormatDisk: RunFormat;
      {$ENDIF}
-     {$IFDEF PrintManager}
+     {$IFDEF Printer}
        cmFilePrint: PrintFile(PString(Event.InfoPtr)^);
+     {$ENDIF}
+     {$IFDEF PrintManager}
        cmSetupPrinter: SetupPrinter;
      {$ENDIF}
      cmOpenSmartpad: OpenSmartpad;
@@ -2373,22 +2465,28 @@ begin
 {$IFDEF DiskEdit}
      cmSetVolumeLabel: if CheckDisk(GetCurDrive) then SetVLabel else Denie;
 {$ENDIF}
+{$IFDEF OS2}
+     cmSetVolumeLabel: SetVLabel;
+{$ENDIF}
      cmXEditFile: OpenEditor;
      cmWindowManager: WindowManager;
      cmUserMenu, cmGlobalUserMenu: if (ExecUserMenu(Event.Command=cmGlobalUserMenu)) then
                 begin
                   ST := FreeStr;
-                  if CheckExit then
+                  {$IFDEF OS_DOS} if CheckExit then {$ENDIF} {JO}
                   begin
-                   SaveDsk;
-                   Exiting:=True;
-                   Application^.Done;
+                  {$IFNDEF OS2}
                    ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + ST;
-                   ExecString(@ST);
+                  {$ELSE}
+                   ST:=SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD ' + ST;
+                  {$ENDIF}
+                   ExecString(@ST,'');
                   end;
                 end;
 {$IFNDEF MINARCH}
+{$IFNDEF OS2}
      cmReadArchive: begin ReadArcList; end;
+{$ENDIF}
 {$ENDIF}
 {$IFDEF SS}
      cmScreenRest: InsertIdler;
@@ -2406,10 +2504,11 @@ begin
 {$ENDIF}
      cmRefresh: Redraw;
      cmClearDesktop: GlobalMessage(evCommand, cmClose, nil);
-     cmFileView: ViewFile(On, CnvString(Event.InfoPtr));
+     cmFileView: ViewFile(Off, Off, CnvString(Event.InfoPtr));
      cmFileEdit: EditFile(On, CnvString(Event.InfoPtr));
-     cmViewFilter: ViewFilter(CnvString(Event.InfoPtr));
-     cmIntFileView: ViewFile(Off, CnvString(Event.InfoPtr));
+    {cmViewFilter: ViewFile(On, On, CnvString(Event.InfoPtr));}
+     cmViewFilter: ViewFile(Off, On, CnvString(Event.InfoPtr)); {JO для распознания фильтрованных файлов как архивов}
+     cmIntFileView: ViewFile(On, Off, CnvString(Event.InfoPtr));
      cmIntFileEdit: EditFile(Off, CnvString(Event.InfoPtr));
      cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.xrn');
      cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.ext');
@@ -2421,17 +2520,16 @@ begin
      cmExternalViewers: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.vwr');
      cmExternalEditors: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.edt');
      cmShowUserScreen: ShowUserScreen;
+{$IFDEF OS_DOS}
       {-DataCompBoy-}
      cmRestart: if not CheckExit
                  then begin ClearEvent(Event); Exit end
                  else begin
                   StringCache^.FreeAll;
-                  SaveDsk;
-                  Exiting:=true;
-                  Done;
-                  ExecString(@NullStr);
+                  ExecString(@NullStr,'');
                  end;
       {-DataCompBoy-}
+{$ENDIF}
      cmCreatePanel: OpenWindow(True);
      cmCreateTree: OpenTreeWindow;
      cmFormatDisk: AddFormat;
@@ -2444,7 +2542,48 @@ begin
 {$ENDIF}
      cmShowOutput: GetUserScreen;
      cmHistoryList: CmdHistory;
-     cmLoadDesk: RetrieveDesktop(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK', nil, True);
+     cmLoadDesk:  RetrieveDesktop(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK', nil, True);
+{$IFDEF VIRTUALPASCAL}
+     cmRetrieveSwp: {begin
+                     LoadStream := PresentFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+                     if LoadStream <> nil then RetrieveDesktop('', LoadStream, True);
+                     If ExistFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP') then EraseByName(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+                    end;}
+     if PosChar(TempFileSWP[1], '+-=<>|[!') = 0  then
+      begin lAssignFile(F, TempFileSWP); lSetFAttr(F, $20);  lEraseFile(F); end
+      else
+  begin
+        CC := 0;
+        PJ := TempFileSWP;
+        TempFile := Copy(PJ,2,255);
+        QQ := Pos('|', TempFile); Dec(QQ);
+        if QQ>0 then Q:=Copy(TempFile, QQ+2, 255) else Q:='';
+        QQ := QQ and 255; {BP bugfix by piwamoto}
+        If Not ExistFile(TempFile) then TempFile:=GetfURZ(Copy(PJ,2,QQ));
+        If Not ExistFile(TempFile) then TempFile:=GetfURZ2(Copy(PJ,2,QQ));
+        If Not ExistFile(TempFile) then TempFile:=GetGLUKName(Copy(PJ,2,QQ));
+        If Not ExistFile(TempFile) then TempFile:=Copy(PJ,2,QQ);
+        case PJ[1] of
+          '-': CC := cmIntFileView;
+          '=': CC := cmDBFView;
+          '>': CC := cmWKZView;
+          '<': CC := cmTextView;
+          '|': CC := cmHexView;
+          '[': CC := cmReadArchive;
+          '!': CC := cmViewFilter;
+          else CC := cmFileView;
+        end;
+        if CC <> 0 then
+                    begin
+                      if Q<>'' then TempFile:=TempFile+'|'+Q;
+                      Event.What := evCommand;
+                      Event.Command := CC;
+                      Event.InfoPtr := @TempFile;
+                      PutEvent(Event);
+                     end;
+        RunMenu := Off;
+       end;
+{$ENDIF}
      cmSaveDesk: SaveRealDsk;
      cmExecFile: DoExecFile;
      cmExecString: DoExecString;
@@ -2453,8 +2592,13 @@ begin
      {$IFDEF CHCOL}
      cmChangeColors: ChgColors;
      {$ENDIF}
+{$IFNDEF VIRTUALPASCAL}
      cmChangeUserMode1: if ScreenMode <> smSVGALo then SetScrMode(smSVGALo) else SetScrMode(StartupMode);
      cmChangeUserMode2: if ScreenMode <> smSVGAHi then SetScrMode(smSVGAHi) else SetScrMode(StartupMode);
+{$ELSE}
+     cmChangeUserMode1: if ScreenMode <> smSVGALo then SetScrMode(smSVGALo) else SetScrMode(sm80x25);
+     cmChangeUserMode2: if ScreenMode <> smSVGAHi then SetScrMode(smSVGAHi) else SetScrMode(sm80x25);
+{$ENDIF}
      cmChangeMode: begin
                      case ScreenMode of
                        sm80x25: if VideoType = vtEGA then
@@ -2552,7 +2696,10 @@ begin
                      else HelpWnd := PHelpWindow(ValidView(New(PHelpWindow,Init(HFile, Word(Event.InfoWord)))));
                     if HelpWnd<>nil then begin
                      if ((DeskTop^.Current<>nil)
-                         and (Desktop^.Current^.GetState(sfModal))
+                         and (
+                          (Desktop^.Current^.GetState(sfModal)) or
+                          (Desktop^.Current^.GetState(sfDragging))
+                         )
                         ) or MenuActive
                       then ExecView(HelpWnd)
                       else begin
@@ -2701,5 +2848,19 @@ begin
 end;
      {Gimly}
 {$ENDIF}
+
+procedure ExecDNAutoexec;
+var I:integer; S: String;
+begin
+ if RunFirst then
+ begin
+  I := FindParam('/E');
+  if I > 0 then
+   begin
+    S := Copy(ParamStr(I), 3, 255);
+    ExecString(@S, '');
+   end
+ end;
+end;
 
 end.

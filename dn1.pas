@@ -45,7 +45,7 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-
+{.$DEFINE GRABPalette}
 UNIT DN1;
 
 INTERFACE
@@ -63,11 +63,13 @@ procedure RUN_IT;
 IMPLEMENTATION
 uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
      Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
-     UserMenu, cmdline, filescol, views, lfncol, arcview, dnini, archiver,
+     UserMenu, cmdline, filescol, views, {$IFNDEF OS2}LFNCol,{$ENDIF} arcview, dnini, archiver,
      U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries,
      ExtraMem, Menus, VideoMan
 {$IFDEF CDPLAYER},CDPlayer{$ENDIF}
 {$IFDEF DPMI}, DPMI {$ENDIF}
+{.$IFDEF VIRTUALPASCAL  ,Crt $ENDIF}
+     ,Tree
      ;
 
 
@@ -87,8 +89,15 @@ begin
    end;
   if TempDir = '' then TempDir := GetEnv('TEMP');
   if TempDir = '' then TempDir := GetEnv('TMP');
-  if TempDir = '' then TempDir := SourceDir;
-  if (TempDir <> '') and (not (TempDir[Byte(TempDir[0])] in ['\','/'])) then TempDir := TempDir + '\';
+  if TempDir = '' then
+    begin
+      TempDir := SourceDir;
+      if TempDir[Length(TempDir)] <> '\' then TempDir := TempDir + '\';
+      TempDir := TempDir + 'TEMP\';
+    end;
+  if (TempDir <> '') and (not (TempDir[Length(TempDir)] in ['\','/'])) then TempDir := TempDir + '\';
+  if not ExistDir(TempDir) then NoTempDir := True;
+  SystemData.Temp := TempDir;
 end;
         {-DataCompBoy-}
 
@@ -149,7 +158,7 @@ begin
     Dirs[1]:=SourceDir;
     Dirs[2]:=StartupDir;
     if Dirs[0]='' then Dirs[0]:=Dirs[1];
-    for i:=0 to 2 do if not (Dirs[i][Byte(dirs[i][0])]in['\','/'])
+    for i:=0 to 2 do if not (Dirs[i][Length(dirs[i])]in['\','/'])
                       then Dirs[i]:=Dirs[i]+'\';
     OldFilesCount:=0;
     ProbeOldFile('DN.DLG',[0,2]);
@@ -168,7 +177,8 @@ begin
     mfWarning+mfYesButton+mfNoButton)=cmYes then begin
         for i:=0 to OldFilesCount-1 do for j:=0 to 2
         do if j in OldFileSearchDirs[i] then EraseFile(Dirs[j]+OldFiles[i]);
-        SaveDsk; Exiting:=true; Application^.Done; ExecString(@NullStr)
+       {SaveDsk; Exiting:=true; Application^.Done; ExecString(@NullStr)}
+        ExecString(@NullStr,'')
     end else MessageBox(GetString(dlOldFilesNoWarn),nil,
     mfInformation+mfOkButton);
  end;
@@ -179,11 +189,34 @@ PROCEDURE DoStartup;
 var
   SavePos, SPos1, INIdatapos: LongInt;
 
+{JO}
+  procedure ReadHighlite;
+   var F: PTextReader;
+  begin
+   FileMode := $40;
+   F := New(PTextReader, Init(SourceDir+'dnhgl.grp'));
+   if F = nil then Exit;
+   if not F^.EOF then CustomMask1^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask2^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask3^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask4^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask5^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask6^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask7^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask8^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask9^.Filter := F^.GetStr;
+   if not F^.EOF then CustomMask10^.Filter := F^.GetStr;
+   if not F^.EOF then Startup.Archives^.Filter := F^.GetStr;
+   Dispose(F, Done);
+  end;
+{JO}
+
   function ReadConfig: LongInt;
   var
     S: TBufStream;
-    CFGVer: Word;
-    ID,L: Word;
+    CFGVer: AWord;
+    ID: AWord;
+    L: AWord;
     p: pointer;
     I: integer;
 
@@ -214,19 +247,33 @@ var
     ReadConfig := -1;
     INIdatapos := -1;
     S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
-    if ( S.Status <> stOK ) or ( S.GetSize = 0 ) then begin S.Done; Exit; end;
+    if ( S.Status <> stOK ) or ( S.GetSize = 0 ) then
+      begin
+        S.Done;
+        {$IFDEF VIRTUALPASCAL}
+        Virgin := True;
+        {$ENDIF}
+        Exit;
+      end;
     GetVer;
-    If (CfgVer=0) or (CfgVer>VersionWord) then begin
+   {If (CfgVer=0) or (CfgVer>VersionWord) then begin} {JO - временно, в релизе вернём}
+    If (CfgVer=0) or (CfgVer<>VersionWord) then begin
      S.Done;
+     {$IFDEF VIRTUALPASCAL} Virgin := True; {$ENDIF}
      Exit
     end;
     while S.GetPos < S.GetSize do
       begin
         S.Status := stOK;
-        S.Read(ID, SizeOf(Word));
-        S.Read(L, SizeOf(Word));
+       {S.Read(ID, SizeOf(Word));
+        S.Read(L, SizeOf(Word));}
+        S.Read(ID, SizeOf(AWord));
+        S.Read(L, SizeOf(AWord));
+
         case ID of
-          0: Break;
+          0: begin {$IFDEF VIRTUALPASCAL}
+                  {Virgin := True;}
+                   {$ENDIF} Break; end;
           cfgNewSystemData: SRead(SystemData);
          cfgOld2SystemData: Begin
                              GetMem(p, SizeOf(TOld2SystemData));
@@ -271,8 +318,10 @@ var
                              With TOldStartupData(p^) do begin
                               StartupData.Load:=Load;
                               StartupData.Unload:=Unload;
+                              {$IFNDEF VIRTUALPASCAL}
                               StartupData.Slice:=Slice;
                               StartupData.OvrSize:=OvrSize;
+                              {$ENDIF}
                              end;
                              FreeMem(p, SizeOf(TOldStartupData));
                             end;
@@ -336,31 +385,31 @@ var
                                      SizeOf(CustomMask1^.Filter));
                               Replace(#0,';',CustomMask1^.Filter);
                               DelFC(CustomMask1^.Filter);
-                              Dec(CustomMask1^.Filter[0]);
+                              SetLength(CustomMask1^.Filter, Length(CustomMask1^.Filter)-1);
 
                               S.Read(CustomMask2^.Filter,
                                      SizeOf(CustomMask2^.Filter));
                               Replace(#0,';',CustomMask2^.Filter);
                               DelFC(CustomMask2^.Filter);
-                              Dec(CustomMask2^.Filter[0]);
+                              SetLength(CustomMask2^.Filter, Length(CustomMask2^.Filter)-1);
 
                               S.Read(CustomMask3^.Filter,
                                      SizeOf(CustomMask3^.Filter));
                               Replace(#0,';',CustomMask3^.Filter);
                               DelFC(CustomMask3^.Filter);
-                              Dec(CustomMask3^.Filter[0]);
+                              SetLength(CustomMask3^.Filter, Length(CustomMask3^.Filter)-1);
 
                               S.Read(CustomMask4^.Filter,
                                      SizeOf(CustomMask4^.Filter));
                               Replace(#0,';',CustomMask4^.Filter);
                               DelFC(CustomMask4^.Filter);
-                              Dec(CustomMask4^.Filter[0]);
+                              SetLength(CustomMask4^.Filter, Length(CustomMask4^.Filter)-1);
 
                               S.Read(CustomMask5^.Filter,
                                      SizeOf(CustomMask5^.Filter));
                               Replace(#0,';',CustomMask5^.Filter);
                               DelFC(CustomMask5^.Filter);
-                              Dec(CustomMask5^.Filter[0]);
+                              SetLength(CustomMask5^.Filter, Length(CustomMask5^.Filter)-1);
                             end;
 
         cfgOldCustomMasks2: begin
@@ -368,31 +417,31 @@ var
                                      SizeOf(CustomMask6^.Filter)); {JO}
                               Replace(#0,';',CustomMask6^.Filter);
                               DelFC(CustomMask6^.Filter);
-                              Dec(CustomMask6^.Filter[0]);
+                              SetLength(CustomMask6^.Filter, Length(CustomMask6^.Filter)-1);
 
                               S.Read(CustomMask7^.Filter,
                                      SizeOf(CustomMask7^.Filter));
                               Replace(#0,';',CustomMask7^.Filter);
                               DelFC(CustomMask7^.Filter);
-                              Dec(CustomMask7^.Filter[0]);
+                              SetLength(CustomMask7^.Filter, Length(CustomMask7^.Filter)-1);
 
                               S.Read(CustomMask8^.Filter,
                                      SizeOf(CustomMask8^.Filter));
                               Replace(#0,';',CustomMask8^.Filter);
                               DelFC(CustomMask8^.Filter);
-                              Dec(CustomMask8^.Filter[0]);
+                              SetLength(CustomMask8^.Filter, Length(CustomMask8^.Filter)-1);
 
                               S.Read(CustomMask9^.Filter,
                                      SizeOf(CustomMask9^.Filter));
                               Replace(#0,';',CustomMask9^.Filter);
                               DelFC(CustomMask9^.Filter);
-                              Dec(CustomMask9^.Filter[0]);
+                              SetLength(CustomMask9^.Filter, Length(CustomMask9^.Filter)-1);
 
                               S.Read(CustomMask10^.Filter,
                                      SizeOf(CustomMask10^.Filter));{JO}
                               Replace(#0,';',CustomMask10^.Filter);
                               DelFC(CustomMask10^.Filter);
-                              Dec(CustomMask10^.Filter[0]);
+                              SetLength(CustomMask10^.Filter, Length(CustomMask10^.Filter)-1);
                             end;
 
             cfgCustomMasks: begin
@@ -452,8 +501,8 @@ var
                             end;
                cfgConfirms: begin
                              S.Read(Confirms, SizeOf(Confirms));
-                             if CfgVer<$15106 then
-                              Confirms:=Confirms or cfFmtOs2Warning;
+                            {if CfgVer<$15106 then
+                              Confirms:=Confirms or cfFmtOs2Warning;}
                             end;
                 cfgUUEData: SRead(UUDecodeOptions);
            cfgMakeListFile: SRead(MakeListFileOptions);
@@ -520,6 +569,28 @@ var
 
     S.Done;
     Security := SystemData.Options and ossShowHidden = 0;
+    DriveInfoType := InterfaceData.DrvInfType;
+    HandleChDirCommand := ((SystemData.Options{$IFDEF VIRTUALPASCAL}shl 3{$ENDIF}) and ossHandleChDirCommand) <> 0;
+
+    SystemDataOpt      := SystemData.Options;
+    InterfaceDataOpt   := InterfaceData.Options;
+    FMSetupOpt         := Startup.FMSetup.Options;
+    EditorDefaultsOpt  := EditorDefaults.EdOpt;
+    EditorDefaultsOpt2 := EditorDefaults.EdOpt2;
+    ViewerOpt          := EditorDefaults.ViOpt;
+    StartupDataLoad    := StartupData.Load;
+    StartupDataUnload  := StartupData.Unload;
+    StartupDataSlice2  := StartupData.Slice2;
+    ConfirmsOpt        := Confirms;
+    QDirs1             := CnvString(DirsToChange[0]);
+    QDirs2             := CnvString(DirsToChange[1]);
+    QDirs3             := CnvString(DirsToChange[2]);
+    QDirs4             := CnvString(DirsToChange[3]);
+    QDirs5             := CnvString(DirsToChange[4]);
+    QDirs6             := CnvString(DirsToChange[5]);
+    QDirs7             := CnvString(DirsToChange[6]);
+    QDirs8             := CnvString(DirsToChange[7]);
+    QDirs9             := CnvString(DirsToChange[8]);
   end;
 
   procedure SetOverlay;
@@ -534,12 +605,15 @@ var
       end;
     if SwpDir = '' then SwpDir := TempDir;
     if not (SwpDir[Length(SwpDir)] in ['\','/']) then SwpDir := SwpDir+'\'; ClrIO;
+    {$IFDEF OS_DOS}
     if RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+    {$ENDIF}
   end;
 
   procedure ReadINI;
   var INIavailtime,INIavailsize,INIavailcrc:longint;
       S:TBufStream;
+      I: Byte;
   begin
       if (not ProbeINI(INIavailtime,INIavailsize,INIavailcrc)) or
          (INIdatapos<0) or
@@ -548,9 +622,37 @@ var
          (INIavailcrc <>INIstoredcrc )} then begin
           {-$VIV start}
           LoadDnIniSettings;
-          if DnIni.AutoSave then SaveDnIniSettings;
+          if DnIni.AutoSave then SaveDnIniSettings(nil);
           DoneIniEngine; {-$VIV stop}
           ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
+          InterfaceData.DrvInfType := DriveInfoType;
+
+          if Virgin then
+            begin
+              SystemData.Options        := SystemDataOpt;
+              InterfaceData.Options     := InterfaceDataOpt;
+              Startup.FMSetup.Options   := FMSetupOpt;
+              EditorDefaults.EdOpt      := EditorDefaultsOpt;
+              EditorDefaults.EdOpt2     := EditorDefaultsOpt2;
+              EditorDefaults.ViOpt      := ViewerOpt;
+              StartupData.Load          := StartupDataLoad;
+              StartupData.Unload        := StartupDataUnload;
+              StartupData.Slice2        := StartupDataSlice2;
+              Confirms                  := ConfirmsOpt;
+              for I := 0 to 8 do DisposeStr(DirsToChange[I]);
+              DirsToChange[0]           := NewStr(QDirs1);
+              DirsToChange[1]           := NewStr(QDirs2);
+              DirsToChange[2]           := NewStr(QDirs3);
+              DirsToChange[3]           := NewStr(QDirs4);
+              DirsToChange[4]           := NewStr(QDirs5);
+              DirsToChange[5]           := NewStr(QDirs6);
+              DirsToChange[6]           := NewStr(QDirs7);
+              DirsToChange[7]           := NewStr(QDirs8);
+              DirsToChange[8]           := NewStr(QDirs9);
+            end;
+
+          if HandleChDirCommand then SystemData.Options := SystemData.Options or (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF})
+            else SystemData.Options := SystemData.Options xor (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF});
           UpdateConfig; WriteConfig
       end else begin
           S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
@@ -566,6 +668,7 @@ begin
   IgnoreOldFiles:=False;
 
   SavePos := ReadConfig;
+  ReadHighlite; {JO}
   UpdateConfig;
 
   MouseVisible := MouseData.Options and omsCursor <> 0;
@@ -594,9 +697,13 @@ begin
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.MNU');
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'.LST');
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST');
+{$IFDEF OS2}
+  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD');
+{$ENDIF}
   ReadINI;
-
 {$IFDEF SS}Val(SaversData.Time, SkyDelay, Integer(SPos1));{$ENDIF}
+  if SkyDelay=0 then SkyDelay:=255; { X-Man }
+ {ExecDNAutoexec;}
 end;
         {-DataCompBoy-}
 
@@ -605,7 +712,7 @@ procedure GrabPalette;
   var F: Text;
       I: Integer;
 begin
-  Assign(F, 'Pallete.PAS');
+  Assign(F, MakeNormName(Tempdir, 'Pallete.PAS'));
   Rewrite(F);
   Write(F, '    ');
   FreeStr := Application^.GetPalette^;
@@ -645,7 +752,13 @@ begin
     WriteLn(#10#13'Not enough memory for Navigator.');
     WriteLn(      'Please check if 400K memory is available');
     Halt(203);
- end;
+ end
+{$IFDEF VIRTUALPASCAL}
+  else
+     WriteLn('Dos Navigator Open Source '+ VersionName + ' Based on DN (C) 1991-99 RIT Labs')
+{$ENDIF}
+;
+
  Randomize;
 
  LoaderSeg := 0;
@@ -706,6 +819,10 @@ begin
 {$ENDIF}
 
 {$ENDIF}
+
+{$IFDEF VIRTUALPASCAL} RunFirst:=true; {$ENDIF}
+
+
  if DDTimer > 0 then DDTimer := Get100s-DDTimer;
 
  TempBounds.Assign(0,0,0,0);
@@ -725,6 +842,8 @@ begin
    MOV  ShiftRec.CurY,DH
    CALL GetCrtMode { DL - ScreenHeight }
    MOV  ShiftRec.ScrH,DL
+   {PZ 2000.07.31 check for VESA when DN's configuration is read }
+   MOV  VideoType,vtUnknown
  end;
 {$ENDIF}
 
@@ -752,16 +871,17 @@ begin
 
  SetBlink(CurrentBlink);
 
- {$IFNDEF VIRTUALPASCAL}NoSound;{$ENDIF}
+ {$IFNDEF VIRTUALPASCAL}NoSound;
  if (FadeDelay > 0) and RunFirst then BlackPalette;{Knave}
- InitLFNCol;
+ {$ENDIF}
+ (* InitLFNCol; *)
  MyApplication.Init;
 
  if RunFirst then
   if (StartupData.Load and osuKillHistory <> 0) then ClearHistories;
-
+ {$IFDEF OS_DOS}
  if not RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-
+ {$ENDIF}
  If RunFirst then
    begin
     if (Message( @MyApplication, evBroadcast, cmLookForPanels, NIL ) = NIL)
@@ -769,9 +889,14 @@ begin
 
     FreeStr[1] := Char(FindParam('/P'));
     if (FreeStr[1] > #0) then LoadPalFromFile(Copy(ParamStr(Byte(FreeStr[1])), 3, 255));
+    if Virgin then Message( @MyApplication, evCommand, cmAbout , nil ); {JO}
+    if NoTempDir then begin CreateDirInheritance(TempDir, Off); NoTempDir := False; end; {JO}
+    ExecDNAutoexec;
    end;
 
+ {$IFNDEF VIRTUALPASCAL}
  if (FadeDelay >0) and RunFirst then GlowPalette;{Knave}
+ {$ENDIF}
 
 {$IFDEF GRABPalette}
 GrabPalette;

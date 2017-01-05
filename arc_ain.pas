@@ -48,12 +48,13 @@
 unit Arc_AIN; {AIN}
 
 interface
-uses Objects, Archiver, advance2, advance, dnapp, commands, drivers,
-     Advance1, advance3, startup, views;
+uses
+  Archiver, arc_uc2
+     ;
 
 Type
      PAINArchive = ^TAINArchive;
-     TAINArchive = object(TARJArchive)
+     TAINArchive = object(TUC2Archive)
       constructor Init;
       procedure GetFile; virtual;
       function GetID: Byte; virtual;
@@ -61,13 +62,23 @@ Type
     end;
 
 implementation
+
+uses
+  objects, advance2, advance, dnapp
+  , commands, Advance1, messages
+  , Dos
+{$IFDEF VIRTUALPASCAL}
+  , VPSysLow
+{$ENDIF}
+;
+
 { ------------------------------- AIN ------------------------------------- }
 
 constructor TAINArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'AIN.EXE'));
@@ -92,12 +103,24 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-m2'));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-m1'));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-m1'));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      '@'));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       '@'));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '1');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  if q='0' then UseLFN := False else UseLFN := True;
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function TAINArchive.GetID;
@@ -110,19 +133,102 @@ begin
   GetSign := sigAIN;
 end;
 
+{
+Модуль настраивался на ain 2.2
+
+Для файлов с не очень длинными именами формат однострочный.
+В этом же примере видно 'решение' проблемы y2k
+
+TEMP\WINL                   5883  18.01.101  20:35:50
+
+Для файлов с более длинными именами формат двухстрочный:
+
+TEMP\KBM35012\KMBR.BIN
+                             338  20.08.97  20:43:38
+
+}
 Procedure TAINArchive.GetFile;
- var S: String;
-     P: PView;
-begin
-  S := UNPACKER^+' v '+ArcFileName+' >'+MakeNormName(TempDir,'!!!DN!!!.TMP');
-  if PReader <> nil then PReader^.Free;
-  P := WriteMsg(' '+GetString(dlPleaseStandBy));
-  if UserScreen <> nil then InsertUserSaver(Off);
-  TempFile := '[AIN:'+MakeNormName(TempDir,'!!!DN!!!.TMP')+']'+ArcFileName;
-  LocateCursor(0,0);
-  StartupData.Unload := StartupData.Unload and not osuBlinking;
-  {P^.Free;}
-  Message(Application, evCommand, cmExecString, @S);
-end;
+  var
+    l: longint;
+    DT:  DateTime;
+    s: string;
+    s1: string;
+  begin
+  if TextRec(ListFile).Handle = 0 then
+    begin { первый вызов: вызов архиватора для вывода оглавления }
+    FileInfo.Last := 2;
+    ArcFile^.Close;
+    ListFileName := MakeNormName(TempDir,'!!!DN!!!.TMP');
+    S := '/C ' + SourceDir + 'dndosout.bat ' + ListFileName + ' '
+       + UNPACKER^ + ' v '+ArcFileName;
+    if Length(S) < 100 then
+      begin
+        exec(GetEnv('COMSPEC'), S);
+   {$IFDEF VIRTUALPASCAL}
+        SysTVKbdInit;
+   {$ENDIF}
+      end
+        else messagebox(^C+GetString(dlCmdLineTooLong), nil, mfOKButton+mfError);
+    system.Assign(ListFile, ListFileName);
+    system.Reset(ListFile);
+    if IOResult <> 0 then
+      exit;
+    { Пропуск шапки и чтение первой строки файлов }
+    repeat
+      if eof(ListFile) then
+        exit;
+      readln(ListFile, s);
+      if IOResult <> 0 then
+        exit;
+    until Pos('File name', s) <> 0;
+    repeat
+      if eof(ListFile) then
+        exit;
+      readln(ListFile, s);
+      if IOResult <> 0 then
+        exit;
+    until s <> '';
+    end
+  else
+    system.readln(ListFile, s);
+  l := Pos(' ', s);
+  if l = 1 then
+    begin
+    Close(ListFile);
+    EraseFile(ListFileName);
+    TextRec(ListFile).Handle := 0;
+    FileInfo.Last := 1;
+    exit;
+    end;
+  FileInfo.Last := 0;
+
+  { чтение данных об очередном файле}
+  if l = 0 then
+    begin { длина и прочее в следующей строке }
+    FileInfo.FName := s;
+    readln(ListFile, s);
+    end
+  else
+    begin
+    FileInfo.FName := Copy(s, 1, l-1);
+    system.delete(s, 1, l);
+    end;
+  DelLeft(s);
+  l := Pos(' ', s);
+  FileInfo.USize := StoI(Copy(s, 1, l-1));
+  FileInfo.PSize := FileInfo.USize;
+  system.delete(s, 1, l); DelLeft(s);
+  DT.Day := StoI(Copy(S,1,2));
+  DT.Month := StoI(Copy(S,4,2));
+  s1 := Copy(S,7,4); DelRight(s1);
+  DT.Year := StoI(s1);
+  if DT.Year < 1900 then
+    inc(DT.Year, 1900);
+  system.delete(s, 1, 10); DelLeft(s);
+  DT.Hour := StoI(Copy(S,1,2));
+  DT.Min := StoI(Copy(S,4,2));
+  DT.Sec := StoI(Copy(S,7,4));
+  PackTime(DT, FileInfo.Date);
+  end;
 
 end.

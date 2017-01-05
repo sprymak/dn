@@ -45,43 +45,49 @@
 ::
 :://///////////////////////////////////////////////////////////////////////
 @Echo off
-if not exist exe md exe
+if not exist exew md exew
 
 Echo        Compiling VERSION.EXE
-if exist exe\version.exe goto dover
-vpc version /m /q
+if exist exew\version.exe goto dover
+vpc version /m /dWIN32 /q
 if errorlevel 1 goto ex
-if exist exe\tvhc.exe del exe\thvc.exe
+if exist exew\tvhc.exe del exew\thvc.exe
 :dover
-exe\version.exe exe\version.inc
+exew\version.exe exew\version.inc
 
-if exist exe\tvhc.exe goto comphelp
+if exist exew\tvhc.exe goto comphelp
 Echo        Compiling TVHC.EXE
-vpc tvhc /m /q
+vpc tvhc /m /dWIN32 /q
 if errorlevel 1 goto ex
-del exe\*.vpi
-del exe\*.lib
+del exew\*.vpi
+del exew\*.lib
 :comphelp
-if exist exe\*.hlp goto endcomp
-exe\tvhc resource\english\dnhelp.htx exe\english.hlp exe\dnhelp.pas /4DN_OSP
-exe\tvhc resource\russian\dnhelp.htx exe\russian.hlp exe\dnhelp.pas /4DN_OSP
-exe\tvhc resource\hungary\dnhelp.htx exe\hungary.hlp exe\dnhelp.pas /4DN_OSP
+if exist exew\*.hlp goto endcomp
+exew\tvhc resource\english\dnhelp.htx exew\english.hlp exew\dnhelp.pas /4DN_OSP
+exew\tvhc resource\russian\dnhelp.htx exew\russian.hlp exew\dnhelp.pas /4DN_OSP
 :endcomp
 
-if exist exe\rcp.exe goto dores
+if exist exew\rcp.exe goto dores
 Echo        Compiling RCP.EXE
-vpc rcp /m /dRCP /q
+vpc rcp /m /dRCP /dWIN32 /q
 if errorlevel 1 goto ex
-del exe\*.vpi
-del exe\*.lib
+del exew\*.vpi
+del exew\*.lib
 :dores
-if exist exe\*.dlg goto endres
-exe\rcp
+if exist exew\*.dlg goto endres
+exew\rcp
 :endres
 
 
 Echo        Compiling DN.EXE
-vpc dn /m /dDN /dDNPRG /q
-if %1.==debug. copy *.* exe\*.*
+vpc dn -CW /m /dDN /dDNPRG /dWIN32 /q
+if not %1.==debug. goto ex
+copy *.* exew\*.*
+cd exe
+vp
 
 :ex
+del exew\*.vpi
+del exew\*.lib
+del exew\*.lnk
+del exew\*.obj

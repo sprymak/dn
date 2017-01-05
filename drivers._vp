@@ -44,13 +44,14 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
 
 {$IFDEF DNPRG}
-Procedure FatalError ;
+Procedure EndFatalError ;
 
 var
   C,AC : SmallWord;
-  B : array[0..42] of SmallWord;
+  B : array[0..44] of SmallWord;
   SysBuf: PByteArray;
   I : Byte;
   t : text;
@@ -58,7 +59,7 @@ var
 function GetCoord(X, Y: LongInt): SmallWord;
 begin
  GetCoord := ((ScreenHeight-8) div 2+Y)*(ScreenWidth*2)+
-             ((ScreenWidth-40) div 2+X)*2;
+             ((ScreenWidth-42) div 2+X)*2;
 end;
 
 
@@ -66,40 +67,40 @@ procedure NewLine;
 var CO : SmallWord ;
   begin
 
-   MoveChar(B, ' ', Byte(C), 42 );
+   MoveChar(B, ' ', Byte(C), 44 );
 
-   if  I in [0,8] then
-      MoveChar(B, #205, Byte(C), 42)
+   if  I in [0,9] then
+      MoveChar(B, #205, Byte(C), 44)
        else
          begin
            MoveChar(B,     #186, Byte(C), 1);
-           MoveChar(B[41], #186, Byte(C), 1);
+           MoveChar(B[43], #186, Byte(C), 1);
          end;
 
    if  I = 0 then
         begin
          MoveChar(B, #201, Byte(C), 1);
-         MoveChar(B[41], #187, Byte(C), 1);
+         MoveChar(B[43], #187, Byte(C), 1);
         end;
 
          CO := C;
 
-   if  I = 8 then
+   if  I = 9 then
         begin
          MoveChar(B,     #200, Byte(C), 1);
-         MoveChar(B[41], #188, Byte(C), 1);
+         MoveChar(B[43], #188, Byte(C), 1);
         end;
 
-   if I = 7 then CO := AC;
+   if I = 8 then CO := AC;
 
     if FreeStr<>'' then
-         MoveStr(B[ ( 42 - Length(FreeStr)) div 2], FreeStr , Byte(CO));
+         MoveStr(B[ ( 44 - Length(FreeStr)) div 2], FreeStr , Byte(CO));
     CO := GetCoord(0,I);
-    Move(B, SysBuf^[CO], 84);
+    Move(B, SysBuf^[CO], 88);
     if I > 0 then
      begin
-       SysBuf^[GetCoord(42,I)+1] := 8;
-       SysBuf^[GetCoord(43,I)+1] := 8;
+       SysBuf^[GetCoord(44,I)+1] := 8;
+       SysBuf^[GetCoord(45,I)+1] := 8;
      end;
 
     SysTVShowBuf(CO, CO+ScreenWidth*2);
@@ -119,28 +120,26 @@ begin
     begin C := SysColorAttr; AC := SysColorButtonAttr end;
 
    I := 0 ;
-     for I:=0 to 8
+     for I:=0 to 9
       do
        begin
         case I of
              0 : FreeStr := ' Fatal Error ';
              2 : FreeStr := 'Exception 0' + Hex2(ExitCode)
                             + 'h at address '+Hex8(ErrAdd);
-             5 : FreeStr := 'Report to RU.SHELL.DN';
-             6 : FreeStr := '( file DN.ERR )';
+{$IFDEF OS2}
+             4 : FreeStr := 'Report to 2:5030/1082.53 or to 2:461/155';
+             5 : FreeStr := 'or to RU.SHELL.DN';
+{$ELSE}
+             4 : FreeStr := 'Report to RU.SHELL.DN';
+{$ENDIF}
+             7 : FreeStr := '( file DN.ERR )';
             else FreeStr := '';
         end;
       NewLine;
     end;
-
-  GotoXY(0, 20);
-  Writeln; Writeln('Enter description of problem:');
-  Readln(FreeStr);
-  SourceDir := SourceDir + 'DN.ERR';
-  Assign(T, SourceDir);
-  Append(T);
-  Writeln(T, 'DESC:'+FreeStr);
-  Close(T);
+  repeat
+  until keypressed;
 end;
 {$ENDIF}
 
@@ -315,7 +314,10 @@ const
   scEnd      = $4F;  scPgUp     = $49;  scPgDn     = $51;
   scCtrlIns  = $92;  scCtrlDel  = $93;  scCtrlUp   = $8D;
   scCtrlDown = $91;  kbShift    = kbLeftShift + kbRightShift;
-  scZ        = $2C;
+  scZ        = $2C;  scSlash    = $35;  scAltF5    = $6C;
+  scAltF6    = $6D;  scAltIns   = $A2;  scGrPlus   = $4E;
+  scGrMinus  = $4A;  scAltGrEnter = $A6;
+
 type
   KeyTransEntry = record
     Scan:  Byte;
@@ -323,8 +325,21 @@ type
     Code:  SmallWord;
   end;
 
+{AK155 Поскольку под OS/2 я не умею ловить событие отпускания
+клавиши, то проходится распознавать это через контроль времени
+отсутствия нажатой клавиши. По-хорошему, надо было бы контролировать,
+что время превышает время автоповтора клавиатуры, но я по-простому
+сделал контроль на превышение 500 мс. Нужно это для генерации
+'клавиши' kbBackUp (отпускание BackSpace), которая переключает
+обработку kbBack с редактирования комстроки на выход из каталога}
 const
-  KeyTranslateTable : array [1..16] of KeyTransEntry =
+  PrevKeyTime: longint = 0;
+  PrevKey: SmallWord = 0;
+{/AK155}
+
+const
+  NumOfKeyTransEntries = 26 {$IFDEF Win32} + 10 {$ENDIF};
+  KeyTranslateTable : array [1..NumOfKeyTransEntries] of KeyTransEntry =
     (( Scan: scSpace   ; Shift: $08 ; Code: kbAltSpace    ), // Alt-Space
      ( Scan: scIns     ; Shift: $04 ; Code: kbCtrlIns     ), // Ctrl-Ins
      ( Scan: scCtrlIns ; Shift: $04 ; Code: kbCtrlIns     ), // Ctrl-Ins
@@ -340,18 +355,64 @@ const
      ( Scan: scBack    ; Shift: $0A ; Code: kbAltShiftBack), // Alt-Shift-Backspace
      ( Scan: scBack    ; Shift: $0B ; Code: kbAltShiftBack), // Alt-Shift-Backspace
      ( Scan: scBack    ; Shift: $08 ; Code: kbAltBack     ), // Alt-Backspace
-     ( Scan: scZ       ; Shift: $0C ; Code: kbCtrlAltZ    )  // Ctrl-Alt-Z
+     ( Scan: scZ       ; Shift: $0C ; Code: kbCtrlAltZ    ), // Ctrl-Alt-Z
+     ( Scan: scSlash   ; Shift: $08 ; Code: kbAltSlash    ), // Alt-/
+     ( Scan: scAltF5   ; Shift: $0C ; Code: kbCtrlAltF5   ), // Ctrl-Alt-F5
+     ( Scan: scAltF6   ; Shift: $0C ; Code: kbCtrlAltF6   ), // Ctrl-Alt-F6
+{$IFDEF Win32}
+     ( Scan: $02       ; Shift: $04 ; Code: kbCtrl1       ),  {под OS/2 не работает для цифр кроме 2 и 6}
+     ( Scan: $03       ; Shift: $04 ; Code: kbCtrl2       ),
+     ( Scan: $04       ; Shift: $04 ; Code: kbCtrl3       ),
+     ( Scan: $05       ; Shift: $04 ; Code: kbCtrl4       ),
+     ( Scan: $06       ; Shift: $04 ; Code: kbCtrl5       ),
+     ( Scan: $07       ; Shift: $04 ; Code: kbCtrl6       ),
+     ( Scan: $08       ; Shift: $04 ; Code: kbCtrl7       ),
+     ( Scan: $09       ; Shift: $04 ; Code: kbCtrl8       ),
+     ( Scan: $0A       ; Shift: $04 ; Code: kbCtrl9       ),
+     ( Scan: $0B       ; Shift: $04 ; Code: kbCtrl0       ),
+{$ENDIF}
+     ( Scan: scAltIns  ; Shift: $09 ; Code: kbAltShiftIns ), // Alt-Shift-Ins
+     ( Scan: scAltIns  ; Shift: $0A ; Code: kbAltShiftIns ), // Alt-Shift-Ins
+     ( Scan: scGrPlus  ; Shift: $01 ; Code: kbShiftGrayPlus  ), // Shift-Gray "+"
+     ( Scan: scGrPlus  ; Shift: $02 ; Code: kbShiftGrayPlus  ), // Shift-Gray "+"
+     ( Scan: scGrMinus ; Shift: $01 ; Code: kbShiftGrayMinus ), // Shift-Gray "-"
+     ( Scan: scGrMinus ; Shift: $02 ; Code: kbShiftGrayMinus ), // Shift-Gray "-"        {/JO}
+     ( Scan: scAltGrEnter ; Shift: $08 ; Code: kbAltEnter )  // Alt-GrayEnter            {/JO}
     );
+label
+  WriteKey; {AK155}
 begin
   with Event do
     if not SysTVGetKeyEvent(SysKeyEvent) then begin
       ShiftState := SysTVGetShiftState;
-      What := evNothing
+      ShiftState2 := SysTVGetShiftState2; {JO}
+{JO}    if ((ShiftState and kbAltShift) = 0) and ((OldShiftState and kbAltShift) <> 0)
+          and DoubleAltUnlock then
+          begin
+            What := evKeyDown;
+            KeyCode := kbDoubleAlt;
+          end
+        else {AK155} if (PrevKey = kbBack) and
+                        (GetTimemSec-PrevKeyTime > 500) then
+          begin
+            PrevKey := 0;
+            SysKeyEvent.skeKeyCode := kbBackUp;
+            goto WriteKey;
+          end {/AK155}
+        else
+          begin
+            What := evNothing;
+            if ((ShiftState and kbAltShift) = 0) then DoubleAltUnlock := True;
+          end;
+{/JO} OldShiftState := ShiftState
     end else
       begin
+WriteKey:
+        OldShiftState := 0; {JO}
         What       := evKeyDown;
         KeyCode    := SysKeyEvent.skeKeyCode;
         ShiftState := SysKeyEvent.skeShiftState;
+        if ((ShiftState and kbAltShift) <> 0) then DoubleAltUnlock := False; {JO}
         for I := Low(KeyTranslateTable) to High(KeyTranslateTable) do
           with KeyTranslateTable[I] do
           begin
@@ -364,10 +425,12 @@ begin
         if (CharCode = #$E0) and (ScanCode in
           [scUp,scDown,scLeft,scRight,scIns,scDel,scHome,scEnd,scPgUp,scPgDn,
           Hi(kbCtrlHome), Hi(kbCtrlEnd)  , Hi(kbCtrlPgUp), Hi(kbCtrlPgDn),
-          Hi(kbCtrlLeft), Hi(kbCtrlRight),    scCtrlUp,       scCtrlDown]) then
+          Hi(kbCtrlLeft), Hi(kbCtrlRight),  scCtrlUp,       scCtrlDown]) then
             CharCode := #0;      // Grey Keys
         if KeyCode = $E00D then  // Grey Enter
           KeyCode := kbEnter;
+      PrevKey := KeyCode;
+      PrevKeyTime := GetTimemSec;
       end;
 end;
 
@@ -392,12 +455,23 @@ end;
 
 // Ctrl-Break handler
 
-function TVCtrlBreak: Boolean;
+function TVCtrlBreak: Boolean; {JO}
+{Var Res: Longint;}
 begin
-  CtrlBreakHit := True;
-  Abort := True;
+ {Res := messagebox('Do you wish to terminate DN/2 ?',nil, mfYesButton+mfNoButton);
+  if Res = cmYes then
+    begin
+      CtrlBreakHit := True;
+      Abort := True;
+      TVCtrlBreak := False;
+    end
+  else
+    begin}
+      CtrlBreakHit := True;
+     {Abort := True;}
+      TVCtrlBreak := True;
+   {end;}
 end;
-
 
 {--------------------------------------------------}
 
@@ -419,7 +493,7 @@ end;
 //   '#' sets the parameter index to nnn.
 
 procedure FormatStr(var Result: String; const Format: String; var Params);
-  assembler; {&USES ebx,esi,edi} {&FRAME+}
+//AK155  assembler; {&USES ebx,esi,edi} {&FRAME+}
 var
   ParOfs: Longint;
   Filler,Justify: Byte;
@@ -496,7 +570,16 @@ end;
 
 // FormatStr body
 
-asm
+begin  {AK155: без анализа @Params = nil FormatStr падает, например,
+ на подтверждении удаления каталога с именем %F. В классическорм DN
+ эта проверка была, в DN OSP RC1 Dos - тоже есть, а тут куда-то делась. }
+if @Params = nil then
+  Result := Format
+else
+ asm
+ push ebx
+ push esi
+ push edi
                 mov     eax,Params
                 mov     ParOfs,eax
                 xor     eax,eax
@@ -613,6 +696,10 @@ asm
                 pop     esi
                 jmp     @@1
               @@Done:
+ pop edi
+ pop esi
+ pop ebx
+ end;
 end;
 
 // Prints the string on the screen
@@ -654,9 +741,9 @@ asm
               @@4:
 end;
 
-procedure MoveColor(var Buf; Num, Attr: Byte);assembler;
+procedure MoveColor(var Buf; Num, Attr: Byte);assembler; {$USES EBX, ECX}
 asm
-   lea    EBX,Buf
+   mov    EBX,Buf
    xor    ECX,ECX
    mov    CL,Num
    or     CL,CL
@@ -710,6 +797,11 @@ end;
 // (~) in the string toggle between the two attribute bytes passed in
 // the Attr word.
 
+{AK155: добавлено использование символа #0 в качестве авторегистра:
+следующий за ним символ отображается безусловно (даже если это '~').
+Это согласовано с advance.FormatLongName.MakeResult
+06.01.2001}
+
 procedure MoveCStr(var Dest; const Str: String; Attrs: Word); {&USES esi,edi} {&FRAME-}
 asm
                 xor     ecx,ecx
@@ -723,8 +815,17 @@ asm
                 mov     ah,dl
               @@1:
                 lodsb
+                cmp     al,0
+                jne     @@6
+                loop    @@5
+                jmp     @@3
+              @@5:
+                lodsb
+                jmp     @@7
+              @@6:
                 cmp     al,'~'
                 je      @@2
+              @@7:
                 stosw
                 loop    @@1
                 jmp     @@3
@@ -804,12 +905,12 @@ begin
   if ErrorAddr <> nil then begin
    ErrAdd := Longint(ErrorAddr);
    ErrorAddr := Nil;
-   {FatalError;}{?}
+  {FatalError;}{?}
   end;
   {$ENDIF}
 end;
 
 procedure SetMouseSpeed(XS, YS: Byte);begin end; {?}
-procedure InitSysError; begin end; {?}
-procedure DoneSysError; begin end; {?}
+procedure InitSysError; begin SysErrActive := True end; {?}
+procedure DoneSysError; begin SysErrActive := False end; {?}
 

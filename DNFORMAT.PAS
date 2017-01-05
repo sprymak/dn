@@ -226,7 +226,7 @@ Const
    AStdDrives = 5;
 
    ATitles : array [0..AStdDrives] of string [10] = (
-   'Autodetect','360k  5''25','720k  3''5','1.2M  5''25','1.44M 3''5','2.88M 3''5' );
+   '','360k  5''25','720k  3''5','1.2M  5''25','1.44M 3''5','2.88M 3''5' );
 
    ALimits : array [1..AStdDrives,1..2] of byte =
    ((43,10),(83,10),(83,18),(83,22),(83,38)); { MAX tracks,MAX sectors }
@@ -1128,6 +1128,7 @@ var I  : integer;
 
       P := New(PMediaCollection,Init(5,2));
 
+      ATitles[0] := GetString(dlAutodetect);
       For I:= 0 to AStdDrives do
           begin
             S := NewStr (ATitles[I]);
@@ -1199,6 +1200,7 @@ var
   Control, Labl, Histry, History : PView;
 begin
   BuildFormatDialog := NIL;
+  ATitles[0] := GetString(dlAutodetect);
 
   if NumFloppy = 0 then begin
     ErrMsg(dlFmtNoFloppy);
@@ -1322,7 +1324,7 @@ function BuildAdvFormatDialog : PDialog;
    begin
 
       R.Assign(3,0,75,23);
-      New(Dlg, Init(R, 'Advanced Format Parameters for drive '
+      New(Dlg, Init(R, GetString(dlAdvancedFormat)
       +char(65+FormatDialogData.Drive)+':' ));
 
       Dlg^.Options := Dlg^.Options or ofCentered;
@@ -1344,7 +1346,7 @@ function BuildAdvFormatDialog : PDialog;
       Dlg^.Insert(Control);
 
         R.Assign(4,2,13,3);
-        Labl := New(PLabel, Init(R, 'Drive ~A~:', Control));
+        Labl := New(PLabel, Init(R, GetString(dlDrive)+ ' ~A~:', Control));
         Dlg^.Insert(Labl);
 
       R.Assign(29,3,30,8);
@@ -1356,7 +1358,7 @@ function BuildAdvFormatDialog : PDialog;
       Dlg^.Insert(Control);
 
         R.Assign(18,2,27,3);
-        Labl := New(PLabel, Init(R, 'Drive ~B~:', Control));
+        Labl := New(PLabel, Init(R, GetString(dlDrive)+ ' ~B~:', Control));
         Dlg^.Insert(Labl);
 
       { DOS options }
@@ -1374,8 +1376,8 @@ function BuildAdvFormatDialog : PDialog;
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-        R.Assign(35,2,47,3);
-        Labl := New(PLabel, Init(R, 'Boot Secto~r~', Control));
+        R.Assign(34,2,49,3);
+        Labl := New(PLabel, Init(R, GetString(dlBootSector1), Control));
         Dlg^.Insert(Labl);
 
       R.Assign(66,3,67,6);
@@ -1387,11 +1389,11 @@ function BuildAdvFormatDialog : PDialog;
       Dlg^.Insert(Control);
 
       {  R.Assign(47,3,55,4);
-        Labl := New(PLabel, Init(R, 'Entries', Control));
+        Labl := New(PLabel, Init(R, GetString(dlEntries), Control));
         Dlg^.Insert(Labl); }
 
         R.Assign(49,2,69,3);
-        Labl := New(PLabel, Init(R, '~D~irectory Entries', Control));
+        Labl := New(PLabel, Init(R, GetString(dlDirEntries), Control));
         Dlg^.Insert(Labl);
 
       { Disk options }
@@ -1410,12 +1412,12 @@ function BuildAdvFormatDialog : PDialog;
       Dlg^.Insert(Control);
 
 {        R.Assign(47,6,52,7);
-        Labl := New(PLabel, Init(R, 'Size', Control));
+        Labl := New(PLabel, Init(R, GetString(dlSize), Control));
         Dlg^.Insert(Labl);                   }
 
-        R.Assign(37,7,50,8);
+        R.Assign(34,7,50,8);
        { R.Assign(45,4,58,5);}
-        Labl := New(PLabel, Init(R, 'Cluster Si~z~e', Control));
+        Labl := New(PLabel, Init(R, GetString(dlClusterSize), Control));
         Dlg^.Insert(Labl);
 
 
@@ -1430,7 +1432,7 @@ function BuildAdvFormatDialog : PDialog;
       Dlg^.Insert(Control);
 
         R.Assign(3,10,10,11);
-        Labl := New(PLabel, Init(R, '~T~racks', Control));
+        Labl := New(PLabel, Init(R, GetString(dlTracks), Control));
         Dlg^.Insert(Labl);
 
       R.Assign(27,10,28,13);
@@ -1441,20 +1443,24 @@ function BuildAdvFormatDialog : PDialog;
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-        R.Assign(17,10,23,11);
-        Labl := New(PLabel, Init(R, '~H~eads', Control));
+        R.Assign(16,10,23,11);
+        Labl := New(PLabel, Init(R, GetString(dlHeads), Control));
         Dlg^.Insert(Labl);
 
-      R.Assign(42,10,43,13);
+      R.Assign(41,10,42,13);
       Control := New(PScrollbar, Init(R));
       Dlg^.Insert(Control);
 
-      R.Assign(38,10,42,13);
+      R.Assign(37,10,41,13);
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-        R.Assign(29,10,37,11);
-        Labl := New(PLabel, Init(R, '~S~ectors', Control));
+        R.Assign(28,10,36,11);
+        Labl := New(PLabel, Init(R, GetString(dlSectors1), Control));
+        Dlg^.Insert(Labl);
+
+        R.Assign(28,11,36,12);
+        Labl := New(PLabel, Init(R, GetString(dlSectors2), Control));
         Dlg^.Insert(Labl);
 
       R.Assign(55,10,56,13);
@@ -1465,12 +1471,16 @@ function BuildAdvFormatDialog : PDialog;
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-        R.Assign(44,10,50,11);
-        Labl := New(PLabel, Init(R, 'Start', Control));
+        R.Assign(42,10,50,11);
+        Labl := New(PLabel, Init(R, GetString(dlStartTr1), Control));
         Dlg^.Insert(Labl);
 
-        R.Assign(44,11,50,12);
-        Labl := New(PLabel, Init(R, 'Tra~c~k', Control));
+        R.Assign(42,11,50,12);
+        Labl := New(PLabel, Init(R, GetString(dlStartTr2), Control));
+        Dlg^.Insert(Labl);
+
+        R.Assign(42,12,50,13);
+        Labl := New(PLabel, Init(R, GetString(dlStartTr3), Control));
         Dlg^.Insert(Labl);
 
       R.Assign(67,10,68,13);
@@ -1481,12 +1491,12 @@ function BuildAdvFormatDialog : PDialog;
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-      R.Assign(57,10,63,11);
-      Labl := New(PLabel, Init(R, 'Inter', Control));
+      R.Assign(56,10,63,11);
+      Labl := New(PLabel, Init(R, GetString(dlInterleave1), Control));
       Dlg^.Insert(Labl);
 
-      R.Assign(57,11,63,12);
-      Labl := New(PLabel, Init(R, 'lea~v~e', Control));
+      R.Assign(56,11,63,12);
+      Labl := New(PLabel, Init(R, GetString(dlInterleave2), Control));
       Dlg^.Insert(Labl);
 
       { Track options }
@@ -1496,61 +1506,61 @@ function BuildAdvFormatDialog : PDialog;
       Control^.Options := Control^.Options or ofFramed;
       Dlg^.Insert(Control);
 
-      R.Assign(20,15,21,18);
+      R.Assign(17,15,18,18);
       Control := New(PScrollbar, Init(R));
       Dlg^.Insert(Control);
 
-      R.Assign(16,15,20,18);
+      R.Assign(13,15,17,18);
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-        R.Assign(8,15,15,16);
-        Labl := New(PLabel, Init(R, 'Sector', Control));
+        R.Assign(4,15,12,16);
+        Labl := New(PLabel, Init(R, GetString(dlSectorSh1), Control));
         Dlg^.Insert(Labl);
-        R.Assign(8,16,15,17);
-        Labl := New(PLabel, Init(R, 'Sh~i~ft', Control));
+        R.Assign(4,16,12,17);
+        Labl := New(PLabel, Init(R, GetString(dlSectorSh2), Control));
         Dlg^.Insert(Labl);
-        R.Assign(8,17,15,18);
-        Labl := New(PLabel, Init(R, 'Factor', Control));
+        R.Assign(4,17,12,18);
+        Labl := New(PLabel, Init(R, GetString(dlSectorSh3), Control));
         Dlg^.Insert(Labl);
 
-      R.Assign(34,15,35,18);
+      R.Assign(32,15,33,18);
       Control := New(PScrollbar, Init(R));
       Dlg^.Insert(Control);
 
-      R.Assign(30,15,34,18);
+      R.Assign(28,15,32,18);
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-        R.Assign(22,15,27,16);
-        Labl := New(PLabel, Init(R, 'Head', Control));
+        R.Assign(19,15,27,16);
+        Labl := New(PLabel, Init(R, GetString(dlHeadSectSh1), Control));
         Dlg^.Insert(Labl);
-        R.Assign(22,16,29,17);
-        Labl := New(PLabel, Init(R, 'Sector', Control));
+        R.Assign(19,16,27,17);
+        Labl := New(PLabel, Init(R, GetString(dlHeadSectSh2), Control));
         Dlg^.Insert(Labl);
-        R.Assign(22,17,28,18);
-        Labl := New(PLabel, Init(R, 'Shi~f~t', Control));
+        R.Assign(19,17,27,18);
+        Labl := New(PLabel, Init(R, GetString(dlHeadSectSh3), Control));
         Dlg^.Insert(Labl);
 
 
-      R.Assign(48,15,49,18);
+      R.Assign(47,15,48,18);
       Control := New(PScrollbar, Init(R));
       Dlg^.Insert(Control);
 
-      R.Assign(44,15,48,18);
+      R.Assign(43,15,47,18);
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-        R.Assign(36,17,42,18);
-        Labl := New(PLabel, Init(R, 'Shift', Control));
+        R.Assign(34,15,42,16);
+        Labl := New(PLabel, Init(R, GetString(dlTrackSectSh1), Control));
         Dlg^.Insert(Labl);
 
-        R.Assign(36,16,43,17);
-        Labl := New(PLabel, Init(R, 'Sect~o~r', Control));
+        R.Assign(34,16,42,17);
+        Labl := New(PLabel, Init(R, GetString(dlTrackSectSh2), Control));
         Dlg^.Insert(Labl);
 
-        R.Assign(36,15,42,16);
-        Labl := New(PLabel, Init(R, 'Track', Control));
+        R.Assign(34,17,42,18);
+        Labl := New(PLabel, Init(R, GetString(dlTrackSectSh3), Control));
         Dlg^.Insert(Labl);
 
       R.Assign(64,15,65,18);
@@ -1561,28 +1571,28 @@ function BuildAdvFormatDialog : PDialog;
       Control := New(PListBox, Init(R, 1, PScrollbar(Control)));
       Dlg^.Insert(Control);
 
-        R.Assign(50,16,55,17);
-        Labl := New(PLabel, Init(R, 'Siz~e~', Control));
+        R.Assign(49,15,57,16);
+        Labl := New(PLabel, Init(R, GetString(dlSectorSize1), Control));
         Dlg^.Insert(Labl);
 
-        R.Assign(50,15,57,16);
-        Labl := New(PLabel, Init(R, 'Sector', Control));
+        R.Assign(49,16,57,17);
+        Labl := New(PLabel, Init(R, GetString(dlSectorSize2), Control));
         Dlg^.Insert(Labl);
 
       R.Assign(4,1,15,2);
-      Control := New(PStaticText, Init(R, 'Drives type'));
+      Control := New(PStaticText, Init(R, GetString(dlDrivesType)));
       Dlg^.Insert(Control);
 
       R.Assign(4,9,8,10);
-      Control := New(PStaticText, Init(R, 'Disk'));
+      Control := New(PStaticText, Init(R, GetString(dlDisk)));
       Dlg^.Insert(Control);
 
       R.Assign(35,1,38,2);
-      Control := New(PStaticText, Init(R, 'DOS'));
+      Control := New(PStaticText, Init(R, GetString(dlDOS)));
       Dlg^.Insert(Control);
 
-      R.Assign(4,14,9,15);
-      Control := New(PStaticText, Init(R, 'Track'));
+      R.Assign(4,14,11,15);
+      Control := New(PStaticText, Init(R, GetString(dlTrack)));
       Dlg^.Insert(Control);
 
       R.Assign(18,19,32,21);
@@ -1640,8 +1650,6 @@ begin
   Desktop^.Insert(StatusBox);
 
 end;
-
-
 
 procedure ShowFormatBox(Lim : longint);
 var

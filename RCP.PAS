@@ -108,51 +108,45 @@ end;
 const BreakChars = [ #9, #10, #13, #12, ' ', #0 ];
 
 function wSkipBlank( const S: String; I: Integer ): Integer; near;
-var
-  L: Byte absolute S;
 begin
-  While ( I <= L ) and ( S[ I ] in BreakChars ) do Inc( I );
+  While ( I <= Length(S)) and ( S[ I ] in BreakChars ) do Inc( I );
   wSkipBlank := I;
 end;
 
 function wSkipText( const S: String; I: Integer ): Integer; near;
-var
-  L: Byte absolute S;
 begin
-  While ( I <= L ) and not ( S[ I ] in BreakChars ) do Inc( I );
+  While ( I <= Length(S)) and not ( S[ I ] in BreakChars ) do Inc( I );
   wSkipText := I;
 end;
 
 FUNCTION  SeekWord( const S: String; No: Integer): Integer; { Pos of word #No in S }
 var
   I: Integer;
-  L: Byte absolute S;
 begin
   I := 1; SeekWord := 0;
   If No >= 1 then
     repeat
-      I := wSkipBlank( S, I ); If I > L then Break;
+      I := wSkipBlank( S, I ); If I > Length(S) then Break;
       Dec( No );
       If No <= 0 then begin
         SeekWord := I;
         Break;
       end;
-      I := wSkipText( S, I ); If I > L then Break;
+      I := wSkipText( S, I ); If I > Length(S) then Break;
     until False;
 end;
 
 FUNCTION  GetWord( S: String; No: Integer): String;   { Word #No of S }
 var
   I: Integer;
-  L: Byte absolute S;
 begin
   I := SeekWord( S, No );
   If I > 0 then begin
     If I > 1 then begin
-      Dec( L, I - 1 );
-      Move( S[ I ], S[ 1 ], L );
+      SetLength(S, Length(S) - (I-1));
+      Move( S[ I ], S[ 1 ], Length(S));
     end;
-    L := wSkipText( S, 1 ) - 1;
+    SetLength(S, wSkipText(S, 1) - 1);
     GetWord := S;
   end else
     GetWord := '';
@@ -405,12 +399,12 @@ end;
 
 function GetId(const S: String): LongInt;
   var T: TLngWord;
-      I: LongInt;
+      I: CondInt;   {???}
       L: LongInt;
       k: Integer;
 begin
   FreeStr := S; DelRight(FreeStr);
-  if S[Length(S)] = ',' then Dec(FreeStr[0]);
+  if S[Length(S)] = ',' then SetLength(FreeStr, Length(FreeStr)-1);
   DelRight(FreeStr);
   T.Init(0, FreeStr);
   if IDs^.Search(@T, I) then
@@ -581,10 +575,10 @@ var
   function GetId(const S: String): LongInt;
     var T: TLngWord;
         I: Integer;
-        L: LongInt;
+        L: CondInt;
   begin
     FreeStr := S; DelRight(FreeStr);
-    if S[Length(S)] = ',' then Dec(FreeStr[0]);
+    if S[Length(S)] = ',' then SetLength(FreeStr, Length(FreeStr)-1);
     DelRight(FreeStr);
     T.Init(0, FreeStr);
     if IDs^.Search(@T, L) then
@@ -734,7 +728,7 @@ var
         R: TRect;
         D: PMenuBar;
         I: LongInt;
-        J: LongInt;
+        J: CondInt; {???}
   begin
     I := Length(idMenu);
     FreeStr := Token(S, I);
@@ -751,7 +745,7 @@ var
     var D: PDialog;
         R: TRect;
         I: LongInt;
-        J: LongInt;
+        J: CondInt;
         PV: PView;
         LastSB: PScrollBar;
 
@@ -1140,7 +1134,6 @@ VAR
 FUNCTION  CutWord( const S: String; No: Integer): String;   { S without word #No }
 var
   I, K: Integer;
-  L: Byte absolute S;
 label
   Same;
 begin
@@ -1156,12 +1149,30 @@ BEGIN
   WriteLn(    'Copyright(C) 1994,95 RIT Research Labs');
   WriteLn(    'Copyright(C) 1995 AxoN(R)Soft');
 
+{$IFNDEF VIRTUALPASCAL}
+ {$IFNDEF DPMI}
   INI.Init( 'RCP.INI', INIs );
   If INIs <> stOK then begin
     INI.Done;
     INI.Init( FSetExt( ParamStr( 0 ), '.INI' ), INIs );
     If INIs <> stOK then Error( 'File RCP.INI not found.' );
   end;
+  {$ELSE}
+  INI.Init( 'RCPD.INI', INIs );
+  If INIs <> stOK then begin
+    INI.Done;
+    INI.Init( FSetExt( ParamStr( 0 ), '.INI' ), INIs );
+    If INIs <> stOK then Error( 'File RCPD.INI not found.' );
+  end;
+  {$ENDIF}
+{$ELSE}
+  INI.Init( 'RCPVP.INI', INIs );
+  If INIs <> stOK then begin
+    INI.Done;
+    INI.Init( FSetExt( ParamStr( 0 ), '.INI' ), INIs );
+    If INIs <> stOK then Error( 'File RCPVP.INI not found.' );
+  end;
+{$ENDIF}
 
   RegisterType( RStrListMaker );
   RegisterALL;

@@ -73,7 +73,7 @@ Begin
 
       Case (c) Of
        '?': If (n>Length(Str)) Then Begin FnMatchFunc:=False; Exit; End;
-       {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+       {-------------------------------------------------------}
        '*': Begin
              c := Pattern[p]; Inc(p);
              While ((c='?') Or (c='*')) and (p<=Length(Pattern)) Do
@@ -97,7 +97,7 @@ Begin
              FnMatchFunc:=False;
              Exit;
             End;
-       {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+       {-------------------------------------------------------}
        '[': Begin
              if AllLiters then Goto Litera;
              If n>Length(Str) Then Begin FnMatchFunc:=False; Exit; End;
@@ -135,7 +135,7 @@ Begin
                If nt Then Begin FnMatchFunc:=False; Exit; End;
               End;
             End;
-       {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}
+       {-------------------------------------------------------}
        Else
 Litera:  If c<>Str[n] Then Begin FnMatchFunc:=False; Exit; End;
       End;

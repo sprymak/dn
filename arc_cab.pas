@@ -48,7 +48,7 @@
 unit Arc_CAB; {CAB}
 
 interface
- uses Advance1, Archiver, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Advance1, Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
   PCABArchive = ^TCABArchive;
@@ -71,11 +71,11 @@ type
     reserved3:  LongInt;
     versionMinor: Byte;
     versionMajor: Byte;
-    cFolders:   Word;
-    cFiles:     Word;
-    flags:      Word;
-    setID:      Word;
-    iCabinet:   Word;
+    cFolders:   AWord;
+    cFiles:     AWord;
+    flags:      AWord;
+    setID:      AWord;
+    iCabinet:   AWord;
   end;
 
 
@@ -86,7 +86,7 @@ constructor TCABArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             ''));
@@ -111,12 +111,25 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   ''));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
-  if q='0' then UseLFN := False else UseLFN := True;
+  UseLFN := q <> '0';
+{$ENDIF}
+
   FilesNumber := -1;
 end;
 
@@ -137,11 +150,11 @@ var
   FH: record
       cbFile:   LongInt;
       uoffFolderStart:  LongInt;
-      iFolder:  Word;
-{     date:     Word;
-      time:     Word; }
+      iFolder:  AWord;
+{     date:     AWord;
+      time:     AWord; }
       DateTime: LongInt;
-      attribs:  Word;
+      attribs:  AWord;
 {     u1  szName[]; }
     end;
   CFHEADER: TCFHEADER;
@@ -158,14 +171,16 @@ begin
   ArcFile^.Read(FH, SizeOf(FH));
   if (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
 
-  S[0] := #0;
+  SetLength(S, 0);
   repeat
     ArcFile^.Read(C, 1);
     if C <> #0 then S := S + C;
   until (C = #0) or (Length(S) > 100);
   if (Length(S) > 100) or (S = '') then begin FileInfo.Last := 2; Exit; end;
 
+{$IFNDEF OS2}
   FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
+{$ENDIF}
   FileInfo.FName := S; {DataCompBoy}
   FileInfo.Attr := FH.attribs and not Hidden;
   FileInfo.USize := FH.cbFile;

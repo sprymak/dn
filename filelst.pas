@@ -56,7 +56,9 @@ function  ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boole
 implementation
 uses Startup, Lfn, Messages, objects, filescol, advance2, advance1, usermenu,
      advance, histlist, commands, dnapp, dnutil, tree, views, drivers, drives
-     {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF};
+     {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}
+     , ErrMess
+     ;
 
 function ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;
   var I,J: Integer;
@@ -107,7 +109,8 @@ procedure MakeListFile;
      BB: Boolean;
      FLD, Dr_: String;
      CurPos: integer;
-     UPr: PUserParams;
+     UPr: TUserParams;
+     RC: longint;
 
   function GetNextName(var TheString,TheName:string):boolean;
   var j: boolean;
@@ -121,7 +124,7 @@ procedure MakeListFile;
           TheName:=TheName+TheString[CurPos];
           Inc(CurPos)
       end;
-      while TheName[Length(TheName)]=' ' do Dec(TheName[0]);
+      while TheName[Length(TheName)]=' ' do SetLength(TheName, Length(TheName)-1);
       GetNextName:=TheName<>''
   end;
 
@@ -149,7 +152,11 @@ procedure MakeListFile;
       then D:=D+ '!.!'
       else D:=D+' !.!';
     If ( S.Options and 2 = 2 ) and
+{$IFNDEF OS2}
        ( lfGetShortFileName(Sr) <> lfGetShortFileName(Dr) ) and
+{$ELSE}
+       (Sr <> Dr) and
+{$ENDIF}
        ( Pos( '!\', D ) = 0 ) and
        ( Pos( '!/', D ) = 0 ) and
        ( Pos( '!:', D ) = 0 ) and
@@ -178,19 +185,25 @@ procedure MakeListFile;
   Fail: { Cannot find place to insert !\ }
     Replace(#1, '!!', D);Replace(#2, '##', D);
     Replace(#3, '$$', D);Replace(#4, '&&', D);
-    D:=MakeString(D, UPr, off, nil);
+    D:=MakeString(D, @UPr, off, nil);
     WriteLn(T.T, D);
   end;
 
 begin
  if Files^.Count = 0 then Exit;
- Message(APP, evBroadcast, cmGetUserParams, UPr);
+ Message(APP, evBroadcast, cmGetUserParams, @UPr);
  FillChar(S, SizeOf(S), 0);
  S.FileName := HistoryStr(hsMakeList, 0);
+{$IFNDEF OS2}
  if S.FileName = '' then S.FileName := 'DNLIST.BAT';
+{$ELSE}
+ if S.FileName = '' then S.FileName := 'DNLIST.CMD';
+{$ENDIF}
  S.Action := HistoryStr(hsExecDOSCmd, 0);
- S.Header := ''; S.HeaderMode:=hfmAuto;
- S.Footer := ''; S.FooterMode:=hfmAuto;
+ S.Header := HistoryStr(hsMakeListHeader, 0); {JO}
+{S.Header := '';} S.HeaderMode:=hfmAuto;
+ S.Footer := HistoryStr(hsMakeListFooter, 0); {JO}
+{S.Footer := '';} S.FooterMode:=hfmAuto;
  S.Options := MakeListFileOptions;
  if S.Options and cmlPathNames <> 0 then
  begin
@@ -206,9 +219,9 @@ begin
  end;
  if (ExecResource(dlgMakeList, S) <> cmOK) then Exit;
  MakeListFileOptions := S.Options;
- while S.Action[Length(S.Action)] = ' ' do Dec(S.Action[0]);
- while S.Header[Length(S.Header)] = ' ' do Dec(S.Header[0]);
- while S.Footer[Length(S.Footer)] = ' ' do Dec(S.Footer[0]);
+ while S.Action[Length(S.Action)] = ' ' do SetLength(S.Action, Length(S.Action)-1);
+ while S.Header[Length(S.Header)] = ' ' do SetLength(S.Header, Length(S.Header)-1);
+ while S.Footer[Length(S.Footer)] = ' ' do SetLength(S.Footer, Length(S.Footer)-1);
  if S.Action <> '' then S.Action := S.Action + ' '; FileMode := 2;
  Abort := Off;
  if S.FileName[1] in ['+', '%', '/'] then
@@ -235,11 +248,11 @@ AddrError:
           Goto Retry;
        end;
      Delete(SS, 1, I+5);
-     I := PosChar(';', SS); if I = 0 then I := Length(SS)+1; SS[0] := Char(I-1);
+     I := PosChar(';', SS); if I = 0 then I := Length(SS)+1; SetLength(SS, I-1);
      I := PosChar(',', SS); if I = 0 then Goto AddrError;
      ParseAddress(Copy(SS, 1, I-1), ZZ, NN, ND, PT); K := ZZ;
      ParseAddress(Copy(S.FileName, 2, 255), ZZ, NN, ND, PT);
-     Delete(SS, 1, I); if SS[Length(SS)] = '\' then Dec(SS[0]);
+     Delete(SS, 1, I); if SS[Length(SS)] = '\' then SetLength(SS, Length(SS)-1);
      lFSplit(SS, Dr, Nm, Xt);
      if K <> ZZ then Xt := '.'+Copy(Hex4(ZZ), 2, 3);
      SS := Dr+Nm+Xt;
@@ -276,10 +289,11 @@ AddrError:
          else Exit;
      end;
    end else lRewriteText(T);
- if Abort then Exit;
- if IOResult<>0 then
+ if Abort then begin Close(T.T); Exit; end;
+ RC := IOResult;
+ if RC<>0 then
   begin
-   MessageBox(GetString(dlFBBNoOpen)+Cut(S.FileName, 40), nil, mfError + mfOKButton);
+   MessFileNotOpen(Cut(S.FileName, 40), RC);
    Exit;
   end;
  if (S.Header<>'') and not FidoMode then begin
@@ -290,9 +304,9 @@ AddrError:
          while GetNextName(S.Header,SS) do begin
              lAssignText(HF,SS); ClrIO;
              lResetText(HF);
-             if (IOResult<>0) and (S.HeaderMode=hfmInsertFiles) then begin
-                 MessageBox(GetString(dlFBBNoOpen)+Cut(SS,40),
-                 nil, mfError + mfOKButton);
+             RC := IOResult;
+             if (RC<>0) and (S.HeaderMode=hfmInsertFiles) then begin
+                 MessFileNotOpen(Cut(SS,40), RC);
              end;
              while (IOResult=0) and not EOF(HF.T) do begin
                  ReadLn(HF.T,SS);
@@ -307,12 +321,12 @@ AddrError:
  for I := 1 to Files^.Count do
   begin
     P := Files^.At(I-1);
-    UPr^.Active:=P;
+    UPr.Active:=P;
     Message(APP, evCommand, cmCopyUnselect, P);
     BB := False;
     SR := P^.Owner^;
     Replace('!', #0, SR);
-    if SR[Byte(Sr[0])] <> '\' then SR := SR +'\';
+    if SR[Length(Sr)] <> '\' then SR := SR +'\';
     SS := S.Action;
     if SS <> '' then
       begin
@@ -337,9 +351,9 @@ AddrError:
          while GetNextName(S.Footer,SS) do begin
              lAssignText(HF,SS); ClrIO;
              lResetText(HF);
-             if (IOResult<>0) and (S.FooterMode=hfmInsertFiles) then begin
-                 MessageBox(GetString(dlFBBNoOpen)+cut(SS,40),
-                 nil, mfError + mfOKButton);
+             RC := IOResult;
+             if (RC<>0) and (S.FooterMode=hfmInsertFiles) then begin
+                 MessFileNotOpen(cut(SS,40), RC);
              end;
              while (IOResult=0) and not EOF(HF.T) do begin
                  ReadLn(HF.T,SS);

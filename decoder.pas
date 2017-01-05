@@ -649,7 +649,7 @@ var M1,M2: byte;
 begin
   M1:=A div 16;
   M2:=A-(M1*16);
-  S[0]:=#2;
+  SetLength(S, 2);
   if M1<10 then S[1]:=chr(M1+$30)
            else S[1]:=chr(M1+55);
   if M2<10 then S[2]:=chr(M2+$30)

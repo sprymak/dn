@@ -49,7 +49,7 @@ unit ArchRead;
 
 interface
 uses Archiver, fstorage, Advance, dos, arcview, advance1, advance2, messages,
-     dnapp, commands, drivers, lfncol, objects, views;
+     dnapp, commands, drivers, {$IFNDEF OS2}LFNCol,{$ENDIF} objects, views;
 
 Procedure ReadArcList;
 
@@ -70,7 +70,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
  begin
   S := TempFile; ID := Copy(S,1,4); Delete(S, 1, 4);
   I := PosChar(']', S); ArcFileName := Copy(S, I+1, 255);
-  S[0] := Char(I-1); ClrIO;
+  SetLength(S, I-1); ClrIO;
   TempFile := '';
   if (Pos(ID, 'UC2:AIN:')+3) mod 4 = 0 then
    begin
@@ -98,7 +98,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
                I := PosChar('[', S); if I = 0 then Continue;
                Delete(S, 1, I); I := PosChar(']',S);
                if I < 2 then Continue;
-               S[0] := Char(I-1);
+               SetLength(S, I-1);
                CurDir := S;
              end else
               if (ID = 'FILE') or (ID = 'DIR') then
@@ -106,8 +106,13 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
                  if P <> nil then
                    begin
                      PackTime(DT, P^.Date);
+{$IFNDEF OS2}
                      PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-                     DelLFN(P^.LFN); DisposeStr(P^.FName); Dispose(P);
+                     DelLFN(P^.LFN);
+{$ELSE}
+                     PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
+{$ENDIF}
+                     DisposeStr(P^.FName); Dispose(P);
                    end;
                  New(P);
                  P^.FName := nil;
@@ -124,8 +129,13 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
                     if P <> nil then
                       begin
                         PackTime(DT, P^.Date);
+{$IFNDEF OS2}
                         PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-                        DelLFN(P^.LFN); DisposeStr(P^.FName); Dispose(P);
+                        DelLFN(P^.LFN);
+{$ELSE}
+                        PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
+{$ENDIF}
+                        DisposeStr(P^.FName); Dispose(P);
                       end;
                     Break
                    end else
@@ -138,11 +148,13 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
                      I := PosChar('[', S); if I = 0 then Continue;
                      Delete(S, 1, I); I := PosChar(']',S);
                      if I < 2 then Continue;
-                     S[0] := Char(I-1);
+                     SetLength(S, I-1);
                      if P^.Attr = Directory then S := S + '\';
                      P^.Attr := 0;
                      P^.FName := NewStr(CurDir + S);
+{$IFNDEF OS2}
                      P^.LFN := AddLFN(P^.FName^);
+{$ENDIF}
                    end else
                   if Id = 'DATE' then
                    begin
@@ -198,14 +210,18 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
            if I=0 then
              begin
               P^.FName := NewStr('\'+S);
+{$IFNDEF OS2}
               P^.LFN   := AddLFN(P^.FName^);
+{$ENDIF}
               S := F^.GetStr;
               DelLeft(S);DelRight(S);
              end
            else
              begin
               P^.FName := NewStr('\'+Copy(S, 1, I-1));
+{$IFNDEF OS2}
               P^.LFN   := AddLFN(P^.FName^);
+{$ENDIF}
               Delete (S, 1, I);
               DelLeft(S);
              end;
@@ -226,8 +242,13 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
            DT.Min := StoI(Copy(S,4,2));
            DT.Sec := StoI(Copy(S,7,2));
            PackTime(DT, P^.Date);
+{$IFNDEF OS2}
            PC^.AddFile(GetLFN(P^.LFN), P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-           DelLFN(P^.LFN); DisposeStr(P^.FName); Dispose(P); P:=nil;
+           DelLFN(P^.LFN);
+{$ELSE}
+           PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
+{$ENDIF}
+           DisposeStr(P^.FName); Dispose(P); P:=nil;
            J:=J-1;
          end;
       2:
@@ -241,7 +262,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
     GlobalMessage(evCommand, cmRereadDir, @TempDir);
     if PC^.Files = 0 then Dispose(PC, Done) else
      begin
-       New(Drv, InitCol(PC, ArcFileName));
+       New(Drv, InitCol(PC, ArcFileName, VArcFileName));
        if Message(Application, evBroadcast, cmFindForced, Drv) = nil then
        if Message(Application, evCommand, cmInsertDrive, Drv) = nil then
           begin

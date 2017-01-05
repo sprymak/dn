@@ -44,6 +44,8 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
+
 {$I STDEFINE.INC}
 
 unit Views;
@@ -522,7 +524,7 @@ function GetNum: aint;
 
 implementation
 uses Startup, DNapp, advance, advance1, advance2, advance3, DNIni,
-     LFN, TitleSet, {DataCompBoy} CallSpcb, VideoMan
+     LFN, TitleSet, {DataCompBoy} {AK155 -} CallSpcb, VideoMan
      {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
      ;
 
@@ -669,13 +671,13 @@ end;
 
 function TView.MenuEnabled(Command: Word): Boolean; {-$VOL}
 begin
-  if ((Command=cmGame){$IFDEF GAME} and not EnableGame) {$ELSE})      {$ENDIF}
+{$IFNDEF GAME}     if (Command=cmGame){$ELSE} if ((Command=cmGame) and (not EnableGame)) {$ENDIF}
 {$IFNDEF TrashCan} or (Command=cmHideShowTools)                       {$ENDIF}
 {$IFNDEF UUENCODE} or (Command=cmUUEncodeFile)                        {$ENDIF}
 {$IFNDEF UUDECODE} or (Command=cmUUDecodeFile)                        {$ENDIF}
 {$IFNDEF CALENDAR} or (Command=cmCalendar)                            {$ENDIF}
 {$IFNDEF CDPlayer} or (Command=cmPlayCD)                              {$ENDIF}
-{$IFNDEF PHONES}   or (Command in PhonesCommands)
+{$IFNDEF PHONES}   {or (Command in PhonesCommands)}
                    or (Command=cmPhoneBook)
                    or (Command=cmDialPhone)
                    or (Command=cmUndial)                              {$ENDIF}
@@ -701,20 +703,25 @@ begin
 {$IFNDEF SS}       or (Command=cmSaversSetup)
                    or (Command=cmScreenRest)                          {$ENDIF}
 {$IFNDEF CHCOL}    or (Command=cmChangeColors)                        {$ENDIF}
-{$IFNDEF PrintManager}
+{$IFNDEF Printer}
                    or (Command=cmSinglePrint)
                    or (Command=cmPrintFile)
-                   or (Command=cmSetupPrinter)
                    or (Command=cmFilePrint)
                    or (Command=cmBlockPrint)
-                   or (Command=cmPanelPrint)
+                   or (Command=cmPanelPrint)                          {$ENDIF}
+{$IFNDEF PrintFromEditor}
+                   or (Command=cmPrintFileEd)
                    or (Command=cmPrintBlock)                          {$ENDIF}
+{$IFNDEF PrintManager}
+                   or (Command=cmSetupPrinter)                        {$ENDIF}
 {$IFNDEF NETINFO}  or (Command=cmGetNetInfo)
                    or (Command=cmNetInfo)                             {$ENDIF}
 {$IFNDEF SYSINFO}  or (Command=cmSystemInfo)                          {$ENDIF}
 {$IFNDEF MEMINFO}  or (Command=cmMemoryInfo)                          {$ENDIF}
+
    then MenuEnabled:=False else
-  MenuEnabled:=(Command > 255) or (Command in CurCommandSet);
+  {MenuEnabled:=(Command > 255) or (Command in CurCommandSet);}
+   MenuEnabled:=(Command > 255) or (Lo(Command) in CurCommandSet);
 end; {-$VOL}
 
 function TView.CommandEnabled(Command: Word): Boolean;
@@ -838,7 +845,8 @@ end;
 
 procedure TView.DrawCursor;
 begin
-  if State and sfFocused <> 0 then ResetCursor;
+  if State and sfFocused <> 0 then
+  ResetCursor;
 end;
 
 procedure TView.DrawHide(LastView: PView);
@@ -2012,6 +2020,7 @@ begin
   repeat
     EndState := 0;
     repeat
+      TinySlice; {AK155}
       GetEvent(E);
       if E.What <> evNothing then HandleEvent(E);
       if E.What <> evNothing then EventError(E);
@@ -2076,6 +2085,7 @@ begin
   FirstMatch := FirstThat(@Matches);
 end;
 
+{AK155}(*
 function TGroup.FirstThat(P: Pointer): PView;
 var
   Tp : PView;
@@ -2096,6 +2106,71 @@ begin
   else
     FirstThat := nil;
 end;
+*)
+
+{$IFDEF BIT_32}
+function TGroup.FirstThat(P: Pointer): PView; assembler; {&USES None} {&FRAME-} {AK155}
+var
+  ALast: Pointer;
+asm
+                mov     eax,Self
+                mov     eax,[eax].TGroup.Last
+                test    eax,eax
+                jz      @@2
+                mov     ALast,eax
+              @@1:
+                mov     ecx,P
+                mov     eax,[eax].TView.Next
+                push    eax
+                push    eax                     {[1]:Pointer = PView }
+                Call    ecx
+                test    al,al
+                pop     eax
+                jnz     @@2
+                cmp     eax,ALast
+                jne     @@1
+                xor     eax,eax
+              @@2:
+end;{/AK155}
+{$ELSE}
+function TGroup.FirstThat(P: Pointer): PView; assembler;
+var
+  ALast: Pointer;
+asm
+        LES     DI,Self
+        LES     DI,ES:[DI].TGroup.Last
+        MOV     AX,ES
+        OR      AX,DI
+        JE      @@3
+        MOV     WORD PTR ALast[2],ES
+        MOV     WORD PTR ALast[0],DI
+@@1:    LES     DI,ES:[DI].TView.Next
+        PUSH    ES
+        PUSH    DI
+        PUSH    ES
+        PUSH    DI
+        PUSH    WORD PTR [BP]
+        CALL    P
+        POP     DI
+        POP     ES
+        OR      AL,AL
+        JNE     @@2
+        CMP     DI,WORD PTR ALast[0]
+        JNE     @@1
+        MOV     AX,ES
+        CMP     AX,WORD PTR ALast[2]
+        JNE     @@1
+        XOR     DI,DI
+        MOV     ES,DI
+@@2:    MOV     SP,BP
+@@3:    MOV     AX,DI
+        MOV     DX,ES
+end;
+{$ENDIF}
+
+{JO - я вернул старую TGroup.LastThat , так как она в отличие от TCollection.LastThat}
+{работает нормально, а вот введённая AK155 ассемблерная - нет, из-за неё}
+{"File => Split/combine..." падает на загрузке диалога}
 
 function TGroup.LastThat(P: Pointer): PView;
 var
@@ -2112,8 +2187,36 @@ begin
     until (Tp=Last);
   end;
 end;
-
-
+(*
+{AK155 }
+function TGroup.LastThat(P: Pointer): PView; assembler; {&USES None} {&FRAME-}
+var
+  ALast: Pointer;
+  R: Pointer;
+asm
+                mov     eax,Self
+                mov     eax,[eax].TGroup.Last
+                test    eax,eax
+                jz      @@2
+                mov     ALast,eax
+                mov     R,0
+              @@1:
+                mov     ecx,P
+                mov     eax,[eax].TView.Next
+                push    eax
+                push    eax                     {[1]:Pointer = PView }
+                Call    ecx
+                test    al,al
+                pop     eax
+                jz      @@3
+                mov     R,eax
+@@3:
+                cmp     eax,ALast
+                jne     @@1
+                xor     eax,R
+              @@2:
+end;  {/AK155 }
+*)
 function TGroup.FindNext(Forwards: Boolean): PView;
 var
   P: PView;
@@ -2139,6 +2242,7 @@ begin
   if P <> nil then FocusNext := P^.Focus;
 end;
 
+{AK155 }(*
 procedure TGroup.ForEach(P: Pointer);
 var
   Tp,Hp,L0 : PView;
@@ -2159,6 +2263,64 @@ begin
      until (Tp=L0);
   end;
 end;
+*)
+
+{$IFDEF BIT_32}
+procedure TGroup.ForEach(P: Pointer); assembler; {&USES ebx} {&FRAME-} {AK155 }
+var
+  ALast: Pointer;
+asm
+                mov     ecx,Self
+                mov     ecx,[ecx].TGroup.Last
+                jecxz   @@RET
+                mov     ebx,P
+                mov     ALast,ecx
+                mov     ecx,[ecx].TView.Next
+              @@1:
+                cmp     ecx,ALast
+                je      @@2
+                push    [ecx].TView.Next
+                push    ecx
+                Call    ebx
+                pop     ecx
+                jmp     @@1
+              @@2:
+                push    ecx
+                Call    ebx
+              @@RET:
+end; {/AK155}
+{$ELSE}
+procedure TGroup.ForEach(P: Pointer); assembler;
+var
+  ALast: Pointer;
+asm
+        LES     DI,Self
+        LES     DI,ES:[DI].TGroup.Last
+        MOV     AX,ES
+        OR      AX,DI
+        JE      @@4
+        MOV     WORD PTR ALast[2],ES
+        MOV     WORD PTR ALast[0],DI
+        LES     DI,ES:[DI].TView.Next
+@@1:    CMP     DI,WORD PTR ALast[0]
+        JNE     @@2
+        MOV     AX,ES
+        CMP     AX,WORD PTR ALast[2]
+        JE      @@3
+@@2:    PUSH    WORD PTR ES:[DI].TView.Next[2]
+        PUSH    WORD PTR ES:[DI].TView.Next[0]
+        PUSH    ES
+        PUSH    DI
+        PUSH    WORD PTR [BP]
+        CALL    P
+        POP     DI
+        POP     ES
+        JMP     @@1
+@@3:    PUSH    WORD PTR [BP]
+        CALL    P
+@@4:
+end;
+{$ENDIF}
 
 procedure TGroup.FreeBuffer;
 begin
@@ -2631,7 +2793,7 @@ begin
         if Flags and (wfMove + wfGrow) <> 0 then
         begin
           Owner^.GetExtent(Limits);
-          Dec(Limits.A.Y, Limits.B.Y);
+         {Dec(Limits.A.Y, Limits.B.Y);} { X-Man }
           SizeLimits(Min, Max);
           DragView(Event, DragMode or (Flags and (wfMove + wfGrow)),
             Limits, Min, Max);

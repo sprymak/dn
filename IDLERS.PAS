@@ -116,6 +116,11 @@ const
 implementation
 
 uses
+{Cat}
+{$IFDEF VIRTUALPASCAL}
+  VPSysLow,
+{$ENDIF}
+{/Cat}
   DOS, DNApp, advance, advance1, Memory, Startup, Commands, VideoMan;
 
 const
@@ -374,7 +379,9 @@ begin
       else begin
         Move( BB, B, Size.X * 2 );
         MoveStr( B[ X ], SStr( dH, 2, '0' ) + ':' + SStr( dM, 2, '0' ), Clr ); {JO}
+{$IFNDEF Win32}
         WordRec( B[ X + 2 ] ).Hi := Clr + $80; {JO}
+{$ENDIF}
         WriteLine( 0, I, Size.X, 1, B );
       end
 end;
@@ -408,7 +415,9 @@ begin
         if Clr <  $0E then Clr := Clr + 1 else Clr := $09;   {JO}
       end;
     MoveStr( B[ 0 ], SStr( dH, 2, '0' ) + ':' + SStr( dM, 2, '0' ), Clr ); {JO}
+{$IFNDEF Win32}
     WordRec( B[ 2 ] ).Hi := Clr + $80; {JO}
+{$ENDIF}
     WriteLine( X, Y, 5, 1, B );
   end;
   if not MouseVisible then HideMouse;
@@ -430,17 +439,31 @@ begin
   if (MX div 8 = ScreenWidth - 1) and (MY < 8) then Dec(MX,8);
   HideMouse;
   DoneEvents;
+{JO}
+  SM := ScreenMode;
+  DoneVideo;
+  FreeMem(UserScreen, UserScreenSize);
+  UserScreen := nil;
+  ScreenSaved := Off;
+{/JO}
   DoneDOSMem;
   SwapVectors;
   DoneMemory;
 {  DoneSysError;} {X-Man}
   Exec(SourceDir + 'SSAVERS\' + FN, '');
+{Cat: боремся с интерпретацией Ctrl-C как Ctrl-Break}
+{$IFDEF VIRTUALPASCAL}
+  SysTVKbdInit;
+{$ENDIF}
+{/Cat}
 {  InitSysError;} {X-Man}
-  SetVideoMode(ScreenMode); SM := ScreenMode;
   SwapVectors;
   InitDOSMem;
   InitMemory;
   InitVideo; ScreenMode := SM;
+  SetVideoMode(ScreenMode);
+  SetBlink(CurrentBlink);
+  if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
   InitEvents;
   HideMouse;
   if ButtonCount > 0 then

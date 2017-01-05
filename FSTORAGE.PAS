@@ -49,7 +49,7 @@
 unit FStorage;
 
 interface
-uses LFN, LFNCol, {DataCompBoy}
+uses LFN, {$IFNDEF OS2}LFNCol, {$ENDIF} {DataCompBoy}
      Objects, advance, advance1, advance2, advance3, DOS, FilesCol;
 
 type
@@ -63,12 +63,18 @@ type
         {-DataCompBoy-}
    TStoredFile = record
      T: TStored;
+{$IFNDEF OS2}
      Name: String[12];
+{$ELSE}
+     Name: String;
+{$ENDIF}
      Size: TSize;
      CSize:TSize;
      Date: LongInt;
      Attr: Byte;
+{.$IFNDEF OS2} {если сделать - падает на просмотре архивов}
      LFN:  String;
+{.$ENDIF}
    end;
         {-DataCompBoy-}
 
@@ -78,9 +84,13 @@ type
    end;
 
    TSwapLevel = (slNone,
+ {$IFDEF OS_DOS}
   {$IFNDEF DPMI} slXMS, slEMS, slDsk, slCnv, {$ELSE}
                  slCnv, slDsk,
   {$ENDIF} {DataCompBoy: For DPMI no EMS/XMS needed}
+ {$ELSE}
+                 slCnv,
+ {$ENDIF}
                  slFail);
 
    PDirStorage = ^TDirStorage;
@@ -101,7 +111,11 @@ type
      constructor Load(var S: TStream);
      procedure Store(var S: TStream);
      destructor Done; virtual;
+{$IFNDEF OS2}
      procedure AddFile(const LFN, FName: String; Size, CSize:TSize; Date: LongInt; Attr: Byte);
+{$ELSE}
+     procedure AddFile(FName: String; Size, CSize:TSize; Date: LongInt; Attr: Byte);
+{$ENDIF}
      procedure ResetPointer(const Dir: String);
      function GetNextFile: Boolean;
      procedure UpdateRecord;
@@ -120,7 +134,7 @@ type
 
 
 implementation
-uses ExtraMem, DNApp, StartUp;
+uses ExtraMem, DNApp, StartUp{, Messages};
 
 procedure __Error;
 begin
@@ -204,10 +218,12 @@ begin
              Stream := New(PMemoryStream, Init(M, 2048));
              if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
            end;
-    slDsk: begin
+{$IFDEF OS_DOS}   {JO: невозможно представить ситуацию под OS/2 или Win32, когда бы это понадобилось}
+    slDsk: begin  {    да и де факто это в VP-версиях не работало, что впрочем ни разу не привело к ошибке}
              Stream := New(PTempFile, Init('SWD', 4096));
              if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
            end;
+{$ENDIF}
   end;
 end;
 
@@ -233,7 +249,11 @@ begin
   L := 0;
   if (FName <> #0) and (FName<>'') then
   begin
+{$IFNDEF OS2}
     lFSplit(LFN, Dr, Nm, Xt);
+{$ELSE}
+    lFSplit(FName, Dr, Nm, Xt);
+{$ENDIF}
     if Dr[Length(Dr)] <> '\' then AddStr(Dr, '\');
     if (UpStrg(CurDir) <> UpStrg(Dr)) then
       begin
@@ -248,9 +268,14 @@ begin
     if Attr and Directory <> 0
      then SF.T.ID := siFileDir
      else SF.T.ID := siFile;
-    SF.LFN  := Nm+Xt;
     SF.Name := GetName(FName);
+{$IFNDEF OS2}
+    SF.LFN  := Nm+Xt;
     SF.T.Len:= SizeOf(SF)-254+Length(SF.LFN);
+{$ELSE}
+    SF.LFN  := SF.Name; {!!! временно}
+    SF.T.Len:= SizeOf(SF)-254+Length(SF.Name);
+{$ENDIF}
     SF.Size := Size;
     TotalLength:=TotalLength+Size;
     TotalCLength:=TotalCLength+CSize;
@@ -309,7 +334,11 @@ begin
                       Last := vSize - vSavePos <= SizeOf(TStored);
                       LastDir := Dr;
                       GetNextFile := True;
+                      {$IFNDEF OS2}
                       If CurFile.LFN<>'' then Break;
+                      {$ELSE}
+                      If CurFile.Name<>'' then Break;
+                      {$ENDIF}
                     end;
                 end;
       end;
@@ -356,7 +385,11 @@ end;
 procedure TDirStorage.Store;
   var L: LongInt;
 begin
+{$IFNDEF OS2}
   AddFile(#0,#0,0,0,0,0);
+{$ELSE}
+  AddFile(#0,0,0,0,0);
+{$ENDIF}
   S.Write(Dirs, SizeOf(Dirs));
   S.Write(Files, SizeOf(Files));
   S.Write(TotalLength, SizeOf(TotalLength));
@@ -390,7 +423,11 @@ begin
         siFile, siFileDir:
                  begin
                   Abort := Off; DosError := 0;
-                  lFindFirst(Dr+SF.LFN, $3F xor VolumeID, SR);
+{$IFNDEF OS2}
+                  lFindFirst(Dr+SF.LFN, Anyfile XOR VolumeID, SR);
+{$ELSE}
+                  lFindFirst(Dr+SF.Name, Anyfile, SR); {JO}
+{$ENDIF}
                   lFindClose(SR);
                   TotalLength:=TotalLength-SF.Size;
                   if (DosError <> 0) or Abort then
@@ -423,9 +460,16 @@ procedure TDirStorage.DeleteFile;
       Nm: String;
 begin
    Dr := P^.Owner^; if Dr[Length(Dr)] <> '\' then AddStr(Dr, '\');
-   ResetPointer(''); Nm := UpStrg(GetLFN(P^.LFN));
+   ResetPointer('');
+{$IFNDEF OS2}
+   Nm := UpStrg(GetLFN(P^.LFN));
    While not Last and GetNextFile do
       if (UpStrg(CurFile.LFN) = Nm) and (LastDir = Dr) then WipeCur;
+{$ELSE}
+   Nm := UpStrg(P^.Name);
+   While not Last and GetNextFile do
+      if (UpStrg(CurFile.Name) = Nm) and (LastDir = Dr) then WipeCur;
+{$ENDIF}
 end;
         {-DataCompBoy-}
 

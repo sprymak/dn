@@ -49,7 +49,7 @@ UNIT ArvidAvt;
 
 INTERFACE
 uses Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
-     Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, LfnCol, Dos, Tree,
+     Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Tree,
      FilesCol, Advance2, Drives, FlPanel, Memory;
 
 function  AvtCMP(S1, S2: String): Integer;
@@ -83,7 +83,7 @@ procedure AvtMakeDir(AvtDr: PArvidDrive);
 procedure AvtEditDescription(AvtDr: PArvidDrive; var S, Nam: String);
 procedure AvtCalcTotal(AvtDr: PArvidDrive; const Offset: LongInt; var LL: TSize);
 function  AvtInit(AvtDr: PArvidDrive): boolean;
-function  AvtLoad(AvtDr: PArvidDrive; var S: TStream): boolean;
+{function  AvtLoad(AvtDr: PArvidDrive; var S: TStream): boolean;}
 
 IMPLEMENTATION
 
@@ -124,7 +124,7 @@ begin
     avtCell2: S:=Copy(C.Name2, 1, 12);
     avtCell3: S:=AvtCellText(C.NamePtr, AStream);
   end;
-  while (Length(S) <> 0) and (S[Length(S)] = #0) do Dec(S[0]);
+  while (Length(S) <> 0) and (S[Length(S)] = #0) do SetLength(S, Length(S)-1);
   AvtCellName:=S;
 end;
 
@@ -138,7 +138,7 @@ begin
     avtCell2: S:=AvtCellText(C.DescPtr2, AStream);
     avtCell3: S:=AvtCellText(C.DescPtr3, AStream);
   end;
-  while (Length(S) <> 0) and (S[Length(S)] = #0) do Dec(S[0]);
+  while (Length(S) <> 0) and (S[Length(S)] = #0) do SetLength(S, Length(S)-1);
   AvtCellDesc:=S;
 end;
 
@@ -849,9 +849,9 @@ var
       while (AName[1] <> '\') and (AName <> '') do begin
         AddStr(SS, AName[1]);
         DelFC(AName);
-        if SS[0] = #12 then Break;
+        if Length(SS) = 12 then Break;
       end;
-      if SS[0] = #12 then while (AName[1] <> '\') and (AName <> '') do
+      if Length(SS) = 12 then while (AName[1] <> '\') and (AName <> '') do
         DelFC(AName);
       SN:=Ansi_Ascii(CurDir2+SS);
       if (SS = '.') or (SS = '..') or (Pos('?',SS)>0) or (Pos('*',SS)>0)
@@ -977,9 +977,9 @@ begin with AvtDr^ do begin
         begin
           AddStr(SS, S[1]);
           DelFC(S);
-          if SS[0] = #12 then Break;
+          if Length(SS) = 12 then Break;
         end;
-      if SS[0] = #12 then while (S[1] <> '\') and (S <> '') do DelFC(S);
+      if Length(SS) = 12 then while (S[1] <> '\') and (S <> '') do DelFC(S);
       DelFC(S);
       while True do begin
         if CurDirPos = 0 then begin SeekFailed:=True; break; end;
@@ -1103,8 +1103,13 @@ procedure AvtGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;
     and (AllFiles or IsDir or InFilter(Str, FileMask)) then
     begin
       if Cell.Flags and avtIsDir <> 0 then
-        F:=NewFileRec(Str, Str, 0,                Cell.Time, TAttr, @CurDir) else
-        F:=NewFileRec(Str, Str, Cell.ChildOrSize, Cell.Time, TAttr, @CurDir);
+{$IFNDEF OS2}
+        F:=NewFileRec(Str, Str, 0,                Cell.Time, 0, 0, TAttr, @CurDir) else
+        F:=NewFileRec(Str, Str, Cell.ChildOrSize, Cell.Time, 0, 0, TAttr, @CurDir);
+{$ELSE}
+        F:=NewFileRec(Str, 0,                Cell.Time, 0, 0, TAttr, @CurDir) else
+        F:=NewFileRec(Str, Cell.ChildOrSize, Cell.Time, 0, 0, TAttr, @CurDir);
+{$ENDIF}
       if ShowD then
       begin
         New(F^.DIZ);
@@ -1205,22 +1210,32 @@ var
    PC:=PD^.GetDirectory(141, 0, x_x, FreeStr, FreeStr);
    for I:=0 to PC^.Count - 1 do begin
      PF:=PC^.at(i);
+{$IFNDEF OS2}
      S3:=MakeNormName(S1, GetLFN(PF^.LFN));
      S4:=MakeNormName(S2, GetLFN(PF^.LFN));
+{$ELSE}
+     S3:=MakeNormName(S1, PF^.Name);
+     S4:=MakeNormName(S2, PF^.Name);
+{$ENDIF}
+
      Desc:='';
      if (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then Desc:=PF^.DIZ^.DIZ^;
      if (PF^.Attr and Directory) = 0 then
        AvtNewFile(AvtDr, S3, Desc, False, Round(PF^.Size), PackedDate(PF), 0, PF^.Attr)
      else begin
+{$IFNDEF OS2}
        Nm:=GetLFN(PF^.LFN);
+{$ELSE}
+       Nm:=PF^.Name;
+{$ENDIF}
        if (Nm <> '.') and (Nm <> '..') then begin
          if AvtNewFile(AvtDr, S3, Desc, True, 0, PackedDate(PF), 0, PF^.Attr) <> 0 then begin
            S1:=S3+'\';
            S2:=S4+'\';
            AvtWalkTree;
-           Dec(S1[0]); Dec(S2[0]);
+           SetLength(S1, Length(S1)-1); SetLength(S2, Length(S2)-1);
            while (S1<>'') and (S1[Length(S1)] <> '\') do begin
-              Dec(S1[0]); Dec(S2[0]);
+              SetLength(S1, Length(S1)-1); SetLength(S2, Length(S2)-1);
            end;
          end;
        end;
@@ -1264,8 +1279,13 @@ begin with AvtDr^ do begin
      P:=WriteMsg(GetString(dlPleaseStandBy));
      for I:=0 to AFiles^.Count - 1 do begin
         PF:=AFiles^.at(i);
+{$IFNDEF OS2}
         S1:=MakeNormName('\'+CurDir, GetLFN(PF^.LFN));
         S2:=MakeNormName(From, GetLFN(PF^.LFN));
+{$ELSE}
+        S1:=MakeNormName('\'+CurDir, PF^.Name);
+        S2:=MakeNormName(From, PF^.Name);
+{$ENDIF}
         if (PF^.Attr and Directory) = 0 then
           WriteLn(T.T, 'COPY '+SquashesName(S2)+' TP:'+SquashesName(S1)+' /O/R/C/H')
         else begin
@@ -1289,8 +1309,13 @@ begin with AvtDr^ do begin
      P:=WriteMsg(GetString(dlPleaseStandBy));
      for I:=0 to AFiles^.Count - 1 do begin
         PF:=AFiles^.at(i);
+{$IFNDEF OS2}
         S1:=MakeNormName('\'+CurDir, GetLFN(PF^.LFN));
         S2:=MakeNormName(From, GetLFN(PF^.LFN));
+{$ELSE}
+        S1:=MakeNormName('\'+CurDir, PF^.Name);
+        S2:=MakeNormName(From, PF^.Name);
+{$ENDIF}
         Desc:='';
         if (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then Desc:=PF^.DIZ^.DIZ^;
         if (PF^.Attr and Directory) = 0 then
@@ -1329,8 +1354,13 @@ begin with AvtDr^ do begin
   begin
     PF:=AFiles^.At(0);
     if (PF^.Attr and Directory) <> 0
+{$IFNDEF OS2}
      then S:=GetString(dlEraseConfirmDir)+Cut(GetLFN(PF^.LFN),40) + ' ?'
      else S:=GetString(dlEraseConfirm1) + Cut(GetLFN(PF^.LFN),40) + ' ?';
+{$ELSE}
+     then S:=GetString(dlEraseConfirmDir)+Cut(PF^.Name,40) + ' ?'
+     else S:=GetString(dlEraseConfirm1) + Cut(PF^.Name,40) + ' ?';
+{$ENDIF}
   end
   else  S:=GetString(dlEraseConfirms1);
   I:=MessageBox(S,nil,mfConfirmation+mfYesButton+mfNoButton{+mfFastButton});
@@ -1345,7 +1375,11 @@ begin with AvtDr^ do begin
   P:=WriteMsg(GetString(dlPleaseStandBy));
   for I:=0 to AFiles^.Count-1 do begin
     PF:=AFiles^.At(I);
+{$IFNDEF OS2}
     S:=GetLFN(PF^.LFN);
+{$ELSE}
+    S:=PF^.Name;
+{$ENDIF}
     R:=AvtDelFile(AvtDr, S);
     if R = False then
       MessageBox(GetString(dlErasingNoFile) + S, nil, mfError + mfOKButton);
@@ -1528,6 +1562,7 @@ begin with AvtDr^ do begin
   end;
 end end;
 
+{
 Function AvtLoad;
 var A: TAvtMediaCell;
     I: LongInt;
@@ -1558,6 +1593,6 @@ begin with AvtDr^ do begin
   end;
   AvtLoad:=True;
 end end;
-
+}
 
 END.

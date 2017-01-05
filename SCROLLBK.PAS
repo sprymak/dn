@@ -550,7 +550,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
               L := ScreenWidth;
             end;
      FillChar(S[1], L, 32);
-     S[0] := Char(L);
+     SetLength(S, L);
      asm
        lea  bx, S
        les  di, P
@@ -567,7 +567,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
        inc  di
        loop @@1
      end;
-    While (S[Length(S)] = ' ') do Dec(S[0]);
+    While (S[Length(S)] = ' ') do SetLength(S, Length(S)-1);
     GetString := S;
   end;
 {DataCompBoy
@@ -723,7 +723,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
                  S := Copy(GetString(W), CutRect.A.X+1, L);
                  Replace(#0, '', S);
                  DelRight(S);
-                 while S[Length(S)] in [#0,' '] do Dec(S[0]);
+                 while S[Length(S)] in [#0,' '] do SetLength(S, Length(S)-1);
                  if S <> '' then
                    begin
                      if CommandsHistory = nil then

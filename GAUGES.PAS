@@ -52,7 +52,7 @@ unit Gauges;
 interface
 
 uses Dos, Objects, Views, Drivers, FileCopy, Eraser, Collect,
-     Commands, xTime, LFNCol
+     Commands, xTime {$IFNDEF OS2}, LFNCol {$ENDIF}
 {$IFDEF Calendar} ,calendar {$ENDIF}
      ;
 
@@ -117,7 +117,7 @@ type
     procedure Update; virtual;
   end;
 
-{$IFDEF PRINTMANAGER}
+{$IFDEF Printer}
 procedure PrintFiles(Files: PCollection; Own: PView);
 {$ENDIF}
 
@@ -463,7 +463,7 @@ end;
 {$ENDIF}
 
         {-DataCompBoy-}
-{$IFDEF PRINTMANAGER}
+{$IFDEF Printer}
 procedure PrintFiles;
   var PF: PFileRec;
       I,J: Integer;
@@ -479,7 +479,11 @@ begin
   if J = 0 then Exit;
   if Files^.Count = 1 then
     begin
+{$IFNDEF OS2}
       S := GetString(dlDIFile) + ' ' + Cut(GetLFN(PFileRec(Files^.At(0))^.LFN), 40)
+{$ELSE}
+      S := GetString(dlDIFile) + ' ' + Cut(PFileRec(Files^.At(0))^.Name, 40)
+{$ENDIF}
     end else S := ItoS(Files^.Count)+' '+GetString(dlDIFiles);
   if MessageBox(GetString(dlPM_Print)+S+'?', nil, mfYesNoConfirm) <> cmYes then Exit;
   for I := 0 to Files^.Count - 1 do
@@ -487,7 +491,11 @@ begin
        PF := Files^.At(I);
        if PF^.Attr and Directory = 0 then
          begin
+{$IFNDEF OS2}
            S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
+{$ELSE}
+           S := MakeNormName(PF^.Owner^, PF^.Name);
+{$ENDIF}
            Message(Own, evCommand, cmCopyUnselect, PF);
            Message(Application, evCommand, cmFilePrint, @S);
          end;

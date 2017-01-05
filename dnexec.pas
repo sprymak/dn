@@ -52,32 +52,77 @@ uses UserMenu, Startup, Objects, FilesCol, Commands
      {$IFDEF DPMI}, DPMI {$ENDIF}
      ;
 
+{$IFNDEF VIRTUALPASCAL}
 procedure SaveDsk;
-procedure ExecString(S: PString);
+{$ENDIF}
+procedure ExecString(S: PString; WS: String);
 function  SearchExt(FileRec: PFileRec; var HS: String): Boolean; {DataCompBoy}
 function  ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean; {DataCompBoy}
 procedure ExecFile(const FileName: string); {DataCompBoy}
 
-implementation
-uses DnUtil, Advance, DnApp, Advance1, Lfn, LfnCol, Dos, Advance3, FlPanelX,
-     CmdLine, Views, Advance2, Drivers, Advance4;
+procedure AnsiExec(const Path: String; const ComLine: AnsiString); {JO}
 
+implementation
+uses DnUtil, Advance, DnApp, Advance1, Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Advance3, FlPanelX,
+     CmdLine, Views, Advance2, Drivers, Advance4
+{$IFDEF VIRTUALPASCAL}
+     ,Videoman, Memory
+{$ENDIF}
+{$IFDEF UserSaver}
+     , UserSavr
+{$ENDIF}
+{AK155}
+     , Crt
+{/AK155}
+{Cat}
+{$IFDEF VIRTUALPASCAL}
+     , VPSysLow
+{$ENDIF}
+{/Cat}
+     ,Messages, Strings;
+
+{$IFDEF OS_DOS}
 procedure SaveDsk;
 begin
  ClrIO;
- if (OpSys <> opDos) and not (TottalExit) then
+ if ((OpSys <> opDos) or (StartupData.Unload and osuAutosave = 0))
+    and not (TottalExit) then
   PDNApplication(Application)^.SaveDesktop(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
 end;
+{$ENDIF}
 
+{JO}
+{$IFDEF VIRTUALPASCAL}
+{ AnsiExec - аналог DOS.Exec , который в качестве }
+{ коммандлайна использует строку типа Ansistring }
+{ и соответственно не имеет ограничения в 255 символов}
+procedure AnsiExec(const Path: String; const ComLine: AnsiString);
+var
+  PathBuf:    array [0..255] of Char;
+  Ans1: AnsiString;
+begin
+  Ans1 := ComLine + #0;
+  DosError := SysExecute(StrPCopy(PathBuf, Path), PChar(Ans1), nil, ExecFlags = efAsync, nil, -1, -1, -1);
+end;
+{$ENDIF}
+{/JO}
 
         {-DataCompBoy-}
-procedure ExecString(S: PString);
- var F1: lText;
-     I: Integer;
+procedure ExecString(S: PString; WS: String);
+ var I: Integer;
+{$IFNDEF VIRTUALPASCAL}
+     F1: lText;
      M: String;
-     DT: DateTime;
+{$ELSE}
+     SM: Word;
+     EV: TEvent;
+{$ENDIF}
+{$IFNDEF VIRTUALPASCAL}
  label 1;
+{$ENDIF}
+
 begin
+{$IFNDEF VIRTUALPASCAL}
  M:=S^;
  DelRight(M);
  if {$IFDEF OS_DOS}not Chk4Dos and {$ENDIF}(Pos('||', M) <> 0) then
@@ -97,8 +142,12 @@ begin
     M := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ';
   end else M := MakeCMDParams(M, CnvString(CurFileActive), CnvString(CurFilePassive));
 1:
- M := ' '+M+#13; Dec(M[0]);
-{$IFNDEF VIRTUALPASCAL}
+ M := ' '+M+#13; SetLength(M, Length(M)-1);
+{ ----- }
+ SaveDsk;
+ Exiting:=True;
+ Application^.Done;
+ if WS<>'' then Writeln(WS);
  if (LoaderSeg <> 0) then Move(M, mem[LoaderSeg:CommandOfs], Length(M)+2);
  if (SystemData.Options and ossFastExec <> 0) or RunFrom2E
  then asm
@@ -119,7 +168,52 @@ begin
  end;
  Halt(1);
 {$ELSE}
- Exec(GetEnv('COMSPEC'),'/c '+S^);
+  SM := ScreenMode;
+  DoneSysError;
+  DoneEvents;
+  DoneVideo;
+  FreeMem(UserScreen, UserScreenSize);
+  UserScreen := nil;
+  ScreenSaved := Off;
+  DoneDOSMem;
+  DoneMemory;
+  {$IFDEF OS_DOS}asm cld; mov eax,3; int $10; end;{$ENDIF}
+  SwapVectors;
+  if TimerMark then DDTimer := Get100s
+               else DDTimer := 0;
+  if WS<>'' then Writeln(WS);
+  DOS.Exec(GetEnv('COMSPEC'),'/c '+S^);
+{Cat: боремся с интерпретацией Ctrl-C как Ctrl-Break}
+  SysTVKbdInit;
+{/Cat}
+{AK155: чтобы комстрока и меню не налазили на вывод }
+  if WhereX <> 1 then
+    writeln;
+  if WhereY > Hi(WindMax) then
+    writeln;
+{/AK155}
+  if TimerMark then begin
+   DDTimer := Get100s-DDTimer;
+   ev.what:=evCommand;
+   ev.command:=cmShowTimeInfo;
+   ev.infoptr:=nil;
+   Application^.PutEvent(ev);
+  end;
+  I := DosError; ClrIO;
+  SwapVectors;
+  EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {DataCompBoy}
+  InitDOSMem;
+  InitMemory;
+  InitVideo;
+  if StartupData.Load and osuRestoreScrMode <> 0 then ScreenMode := SM; 
+  SetVideoMode(ScreenMode);
+  SetBlink(CurrentBlink);
+  if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
+  InitEvents;
+  InitSysError;
+  Application^.Redraw;
+  GlobalMessage(evCommand, cmPanelReread, nil);
+  GlobalMessage(evCommand, cmRereadInfo, nil);
 {$ENDIF}
 end;
         {-DataCompBoy-}
@@ -146,7 +240,12 @@ begin
   Message(Desktop, evBroadcast, cmGetUserParams, @UserParam);
   UserParam.Active:=FileRec;
   FName:=FileRec^.Name;
-  LFN  :=GetLFN      (FileRec^.LFN);
+{$IFNDEF OS2}
+  LFN  := GetLFN(FileRec^.LFN);
+{$ELSE}
+  LFN  := FileRec^.Name;
+{$ENDIF}
+
   if CharCount('.', LFN)=0 then LFN:=LFN+'.';
   lGetDir(0, ActiveDir);
   SearchExt:=False;
@@ -169,11 +268,16 @@ begin
       I := PosChar(BgCh, S); if (I = 0) or (S[I+1]=BgCh) then Continue;
       S1 := Copy(S, 1, I-1);
       DelLeft(S1);
+      DelRight(S1);
       if S1[1]<>';' then begin
        D.Filter := S1;
        MakeTMaskData(D);
        if InExtFilter(FName, D) or InExtFilter(LFN, D) then begin
+{$IFNDEF OS2}
         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
+{$ELSE}
+        lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD'); ClrIO;
+{$ENDIF}
         lRewriteText(F1); if IOResult <> 0 then begin Dispose(F,Done); exit; end;
         Writeln(F1.T, '@echo off');
         System.Delete(S, 1, PosChar(BgCh, S));
@@ -183,7 +287,7 @@ begin
          Replace('}}', #2, S);
          DelLeft(S); DelRight(S);
          if S[Length(S)] = EnCh then
-          begin Dec(S[0]); EF := On; if S <> '' then
+          begin SetLength(S, Length(S)-1); EF := On; if S <> '' then
            begin
              Replace(#0, ']', S);
              Replace(#1, ')', S);
@@ -231,7 +335,9 @@ function ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStr
      FName, LFN: String;
      Event: TEvent;
      I,J: Integer;
+{$IFNDEF VIRTUALPASCAL}
      PP: PView;
+{$ENDIF}
      Success, CD: Boolean;
      Local: Boolean;
      D: TMaskData;
@@ -242,9 +348,13 @@ begin
  ExecExtFile := Off;
  FileMode := $40;
  Local := On;
- LFN:=GetLFN(UserParams^.Active^.LFN);
+{$IFNDEF OS2}
+ LFN := GetLFN(UserParams^.Active^.LFN);
+{$ELSE}
+ LFN := UserParams^.Active^.Name;
+{$ENDIF}
  if CharCount('.', LFN)=0 then LFN:=LFN+'.';
- FName:=UserParams^.Active^.Name;
+ FName := UserParams^.Active^.Name;
 
  F := New(PTextReader, Init(ExtFName));
 
@@ -280,23 +390,42 @@ RepeatLocal:
     then TempFile:='!'+S1+'|'+MakeNormName(UserParams^.Active^.Owner^, LFN)
     else if TempFile<>''
           then TempFile:=MakeNormName(UserParams^.Active^.Owner^, LFN);
+{$IFDEF VIRTUALPASCAL}
+  {if TempFile <> '' then SaveDsk;}
+   TempFileSWP := TempFile;
+   TempFile := '';
+{$ENDIF}
    if Abort then Exit;
    if S[1] = '*' then DelFC(S);
+{$IFNDEF VIRTUALPASCAL}
    PP := _WriteMsg(' '+GetString(SIdx));
    if not CheckExit then Begin ExecExtFile:=false; Exit; end;
+{$ENDIF}
    lGetDir(0, S1);
+{$IFDEF OS_DOS}
    if UpStrg(MakeNormName(lfGetLongFileName(UserParams^.Active^.Owner^),'.'))<>
       UpStrg(MakeNormName(S1,'.'))
     then begin
           DirToChange:=S1;
           lChDir(lfGetLongFileName(UserParams^.Active^.Owner^));
          end;
+{$ELSE}
+   if UpStrg(MakeNormName(UserParams^.Active^.Owner^,'.'))<>
+      UpStrg(MakeNormName(S1,'.'))
+    then begin
+          DirToChange:=S1;
+          lChDir(UserParams^.Active^.Owner^);
+         end;
+{$ENDIF}
    ExecExtFile := On;
    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
-   SaveDsk;
-   Exiting:=true;
-   Application^.Done;
-   ExecString(@S);
+{$IFDEF UserSaver}
+   InsertUserSaver(Off); {JO}
+{$ENDIF}
+   ExecString(@S, '');
+{$IFDEF VIRTUALPASCAL}
+   if TempFileSwp <> '' then Message(Application, evCommand, cmRetrieveSwp, nil);
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -317,28 +446,41 @@ procedure ExecFile(const FileName: string);
 
  procedure RunCommand(B: Boolean);
    var ST: SessionType;
+    S: string; {//AK155}
  begin
     if (PCommandLine(CommandLine)^.LineType in [ltOS2Window,ltOS2FullScreen]) then
      begin
-       if PCommandLine(CommandLine)^.LineType = ltOS2FullScreen then ST := stOS2FullScreen
-         else ST := stOS2Windowed;
+       if PCommandLine(CommandLine)^.LineType = ltOS2FullScreen then
+         ST := stOS2FullScreen
+       else ST := stOS2Windowed;
        RunOS2Command(M, Off, ST);
        CmdLine.StrModified := On;
        Message(CommandLine, evKeyDown, kbDown, nil);
        Exit;
      end;
-    SaveDsk;
-    Exiting:=True;
-    Application^.Done;
-    if B then begin WriteLn(#13#10, ActiveDir+'>', M); M := M + #13 end;
-    ExecString(@M);
+{AK155, см. dnutil.ExecCommandLine}
+    S:='';CommandLine^.SetData(S);
+{/AK155}
+{    if B then begin WriteLn(#13#10, ActiveDir+'>', M); M := M + #13 end;
+    ExecString(@M, #13#10 + ActiveDir + '>' + M);}
+    if B then ExecString(@M, #13#10 + ActiveDir + '>' + M)
+     else ExecString(@M, '');
  end;
 
 label ex;
 begin
  fr:= CreateFileRec(FileName);
- S := MakeFileName(fr^.Name);
+{$IFNDEF OS2}
  L := GetLFN(fr^.LFN);
+ {.$IFDEF OS_DOS}
+ S := MakeFileName(fr^.Name);
+ {.$ELSE}
+{S := L;} {???} {или может S := lfGetShortFileName(L) - подумать}
+ {.$ENDIF}
+{$ELSE}
+ S := fr^.Name;
+ L := S;
+{$ENDIF}
  if CharCount('.', L)=0 then L:=L+'.';
  FreeStr := '';
  M := '';
@@ -349,9 +491,17 @@ begin
    if SearchExt(fr, M) then
    begin
     PutHistory(On);
+{$IFNDEF OS2}
     M := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + FreeStr;
+{$ELSE}
+    M := SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD ' + FreeStr;
+{$ENDIF}
     RunCommand(Off);
-   end else goto ex;
+    M := S;
+    PutHistory(Off);
+    GlobalMessage(evCommand, cmClearCommandLine, nil);
+   end;
+   goto ex;
   end;
  M := S;
  PutHistory(Off);

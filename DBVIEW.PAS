@@ -51,6 +51,7 @@ unit DBView;
 
 interface
 uses LFN,   DBWatch, Objects, Views, Drivers, Dos, Memory, Dialogs,
+     U_KeyMap,
      RStrings, FViewer, Commands;
 {$else}
 
@@ -80,6 +81,8 @@ type
      SearchString: PString;
      StartRec: LongInt;
      NumRec: Word;
+     KeyMap: TKeyMap;
+     XLAT: TXLAT;
      Indicator: PDBIndicator;
      Delta, Pos: TDBPoint;
      constructor Init(R: TRect; FName: String); {DataCompBoy}
@@ -93,6 +96,7 @@ type
      Constructor Load(var S : Tstream);
      Procedure Store(var S : TStream);
      function Failed: Boolean;
+     Procedure SetKeyMap; {AK155}
     end;
 
     PMemoStream = ^TMemoStream;
@@ -244,6 +248,7 @@ constructor TDBViewer.Init;
      F: lFile;
 begin
   inherited Init(R);
+  NullXLAT(XLat); KeyMap:=kmNone;
   KillAfterUse := TempFile <> '';
   Options := Options or ofSelectable;
   GrowMode := gfGrowHiX + gfGrowHiY;
@@ -261,6 +266,7 @@ Procedure TDBViewer.Store ;
     S.Write( KillAfterUse, SizeOf ( KillAfterUse ) );
     S.WriteStr( SearchString );
     S.WriteStr( FileName );
+    S.Write(KeyMap, SizeOf(KeyMap)); {AK155}
     S.Write( Delta , SizeOf(Delta));
     S.Write( Pos , SizeOf( Pos ));
     {S.Write( NumRec , SizeOf ( NumRec ) );}
@@ -287,6 +293,7 @@ end;
 
 function TDBViewer.Failed: Boolean;
 var I : LongInt ;
+ var Dir, Name, Ext: String; {JO}
 begin
   Failed := False;
   New(DBFile, Init(CnvString(FileName)));
@@ -300,7 +307,11 @@ begin
 {     DisposeStr(SearchString);
       Dispose(DBFile,Done); DBFile:=nil;
 }     TempFile := '';
-      if KillAfterUse then EraseFile(CnvString(FileName));
+      if KillAfterUse then
+                        begin
+                          lFSplit(CnvString(FileName), Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+                          if Dir = Tempdir then EraseFile(CnvString(FileName)); {во временном каталоге не помешает}
+                        end;
 {     DisposeStr(FileName);}
       Failed := True;
       Exit;
@@ -330,16 +341,23 @@ begin
 
   if Failed then Fail;
 
+  S.Read(KeyMap, SizeOf(KeyMap)); SetKeyMap; {AK155}
+
   S.Read( Delta , SizeOf(Delta));
   S.Read( Pos , SizeOf( Pos ));
 end;
 
 destructor TDBViewer.Done;
+ var Dir, Name, Ext: String; {JO}
 begin
  DisposeStr(SearchString);
  if Buf <> nil then FreeMem(Buf, NumRec*DBFile^.RecLen);
  if DBFile <> nil then Dispose(DBFile,Done); DBFile:=nil;
- if KillAfterUse then EraseFile(CnvString(FileName));
+ if KillAfterUse then
+                   begin
+                     lFSplit(CnvString(FileName), Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+                     if Dir = Tempdir then EraseFile(CnvString(FileName)); {во временном каталоге не помешает}
+                   end;
  DisposeStr(FileName);
  inherited Done;
 end;
@@ -414,6 +432,13 @@ begin
  Dispose(D,Done);
 end;
 
+  const SearchRec : record
+     S: String[250]; {Inputline}
+     Opt: Word; {Checkbox}
+     Scope: Word;  {Radiobuttons}
+     Direction: Integer;  {Radiobuttons}
+    end = (S:'';Opt:0;Scope:0;Direction:0);
+
 procedure TDBViewer.HandleEvent;
 
         {-DataCompBoy-}
@@ -433,11 +458,11 @@ procedure TDBViewer.HandleEvent;
  begin
   P := GetRecord(Delta.Y); if P = nil then Exit;
   PFR := DBFile^.GetFieldRec(Delta.X); if PFR = nil then Exit;
-  Move(P^[PFR^.Pos], S[1], PFR^.Len); S[0] := Char(PFR^.Len);
+  GetFrField(PFR, P^, S);
   Val(DelSpaces(S), L, I);
   if (PFR^.Who <> 'M') or (L = 0) then Exit;
   lFSplit(FileName^, Dr, Nm, Xt);
-  if (XT[0] = #4) and (UpStrg(XT) <> '.DBF') then XT[4] := 'T' else XT := '.FPT';
+  if (Length(XT) = 4) and (UpStrg(XT) <> '.DBF') then XT[4] := 'T' else XT := '.FPT';
   MemoStream := New(PDosStream, Init(Dr+Nm+XT, stOpenRead));
   if (MemoStream = nil) or (MemoStream^.Status <> stOK) then
    begin
@@ -516,77 +541,100 @@ procedure TDBViewer.HandleEvent;
  end;
         {-DataCompBoy-}
 
-  const SearchRec : record
-     S: String[250]; {Inputline}
-     Opt: Word; {Checkbox}
-     Scope: Word;  {Radiobuttons}
-     Direction: Integer;  {Radiobuttons}
-    end = (S:'';Opt:0;Scope:0;Direction:0);
-
- procedure ContSearch(MY: LongInt);
-  var I,J,U,D: LongInt;
+{AK155
+Все поля таблицы нумеруются насквозь от 0. Поиск по всем полям
+и по текущему полю отличаются только шагом просмотра:
+1 или dbFile^.NumFields. Поиск начинается с со следующего
+(с учетом шага) поля.  }
+ procedure ContSearch;
+  var I: LongInt; { сквозной номер текущего поля }
       PFR: PFieldRec;
       S, SS: String;
       P: PByteArray;
       V: PWhileView;
       R: TRect;
+      Step: integer; {шаг поиска в сквозной нумерации полей}
+      CurRec, PrevRec: longint;
+      CurField: longint;
+      maxField: longint;
+      CurFill: longint; { число заполненных клеток прогрессбара }
+      PrevFill: longint;
+      nFields: longint; {dbFile^.NumFields}
+      sNumRec: string;
+      c1,c2,c3,c4: longint;
       T: TEventTimer;
  begin
   SS := SearchRec.S;
   if SearchRec.Opt and 1 = 0 then UpStr(SS);
-  I := Delta.Y+MY; PFR := DBFile^.GetFieldRec(Delta.X);
-  if SearchRec.Scope = 0 then begin U := Delta.X; D := Delta.X end
-                         else begin U := 0; D := dbFile^.NumFields - 1 end;
+  I := Delta.Y*dbFile^.NumFields + Delta.X;
+  case SearchRec.Direction of
+    0: {Forward}
+      Step := 1;
+    1: {Backward}
+      Step := -1;
+    2: {Entire scope}
+      begin
+      Step := 1;
+      I := 0;
+      end;
+  end {case};
+  nFields := dbFile^.NumFields;
+  if SearchRec.Scope = 0 then
+    Step := Step * nFields;
+  maxField := dbFile^.NumRec * nFields;
+  PrevRec := -10000; { чтобы точно не совпало }
+
   R.Assign(1,1,30,10);
   New(V, Init(R));
   V^.Top := GetString(dlSearching) + '"' + Cut(SearchRec.S, 40) + '"' ;
   V^.Write(1, GetString(dlPercentComplete));
   Desktop^.Insert(V);
   Abort:=False;
+  I := I + Step;
+  sNumRec := '/'+ItoS(DBFile^.NumRec);
+  PrevFill := 0;
+  Abort:=False;
   NewTimer(T, 9);
-  while (I < DBFile^.NumRec) and (SearchRec.Direction <> 1) or
-        (SearchRec.Direction = 1) and (I >= 0) do
-   begin
-    DispatchEvents(V, Abort);
-    if Abort then break;
-    V^.Write(2, Copy(Strg(#219, (I*25) div DBFile^.NumRec)+Strg(#177, 25), 1, 25));
-    V^.Write(3, ItoS(I)+'/'+ItoS(DBFile^.NumRec));
-    P := GetRecord(I);
-    if I = Delta.Y + MY then J := Delta.X - Byte(SearchRec.Direction = 1)
-                        else if SearchRec.Direction = 1 then J := U else J := D;
-    while (J <= D) and (SearchRec.Direction <> 1) or
-          (SearchRec.Direction = 1) and (J >= U) do
+  while (I > 0) and (I < maxField) do
+    begin
+    CurRec := I div nFields;
+    CurField := I mod nFields;
+    if CurRec <> PrevRec then
       begin
-        If Abort then Break;
-        PFR := DBFile^.GetFieldRec(J);
-        Move(P^[PFR^.Pos], S[1], PFR^.Len);
-        S[0] := Char(PFR^.Len);
-        if SearchRec.Opt and 1 = 0 then UpStr(S);
-        if System.Pos(SS, S) > 0 then
-         begin
-          Delta.Y := I;
-          Delta.X := J;
-          DrawView;
-          V^.Free;
-          Exit;
-         end;
-       if SearchRec.Direction = 1 then Dec(J) else Inc(J);
+      PrevRec := CurRec;
+      if Abort then break;
+      CurFill := (CurRec*25) div DBFile^.NumRec;
+      if CurFill <> PrevFill then
+        begin
+        if TimerExpired(T) then
+          begin
+          DispatchEvents(V, Abort);
+          V^.Write(2, Copy(Strg(#219, CurFill)+Strg(#177, 25), 1, 25));
+          V^.Write(3, ItoS(CurRec+1)+sNumRec);
+          if Abort then break;
+          NewTimer(T, 9);
+          end;
+        PrevFill := CurFill;
+        end;
+      P := GetRecord(CurRec);
       end;
-    if SearchRec.Direction = 1 then Dec(I) else Inc(I);
-   end;
+    PFR := DBFile^.GetFieldRec(CurField);
+    GetFrField(PFR, P^, S);
+    if SearchRec.Opt and 1 = 0 then UpStr(S);
+    if System.Pos(SS, S) > 0 then
+      begin
+      Delta.Y := CurRec;
+      Delta.X := CurField;
+      DrawView;
+      V^.Free;
+      Exit;
+      end;
+    I := I + Step;
+    end;
   V^.Free;
   ErrMsg(dlDBViewSearchNot);
  end;
-
- procedure StartSearch;
- begin
-  if ExecResource(dlgDbFind, SearchRec) <> cmOK then Exit;
-  case SearchRec.Direction of
-   0: ContSearch(1);
-   1: ContSearch(-1);
-    else begin ContSearch(-Delta.Y) end;
-  end
- end;
+{/AK155}
 
  procedure EditField;
    var P: PChar;
@@ -633,7 +681,7 @@ procedure TDBViewer.HandleEvent;
    PFR := DBFile^.GetFieldRec(Delta.X);
    if PFR^.Who = 'M' then Exit;
    P := GetRecord(Delta.Y);
-   Move(P[pfr^.pos], S[1], pfr^.Len); S[0] := Char(Pfr^.Len);
+   GetFrField(PFR, P^, S);
    if PFR^.Who <> 'C' then DelLeft(S);
    case PFR^.Who of
      'C','N': if InputBox(GetString(dlDBEditField), GetString(dlDBValue), S, PFR^.Len, hsEditDBF) = cmOK then
@@ -678,6 +726,7 @@ procedure TDBViewer.HandleEvent;
  var F: lFile; {DataCompBoy}
      P: TPoint;
      RD: Word;
+     Dir, Name, Ext: String; {JO}
 
 begin
  inherited HandleEvent(Event);
@@ -701,29 +750,40 @@ begin
                                           Buf := nil;
                                           dbFile := nil;
                                         end;
-                                      EraseFile( FileName^ );
+                                      lFSplit(FileName^, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+                                      if Dir = Tempdir then EraseFile( FileName^ ); {во временном каталоге не помешает}
                                       KillAfterUse := False;
                                       if Event.Command = cmClose then GlobalMessage(evCommand, cmPanelReread, nil);
                                     end;
               cmGetName: PString(Event.InfoPtr)^ := GetString(dlDBViewName) + FileName^;
               cmShowFields: begin GetInfo(dlDBViewInfo); CE end;
               cmShowMemo: begin ViewMemo; CE end;
-              cmSearchFor: begin StartSearch; CE; end;
-              cmContinueSearch: begin ContSearch(1-2*Integer(SearchRec.Direction = 1)); CE; end;
+              cmSearchFor:
+                 begin
+                 if ExecResource(dlgDbFind, SearchRec) <> cmOK then Exit;
+                 ContSearch;
+                 CE;
+                 end;
+              cmContinueSearch: begin ContSearch; CE; end;
               cmBackSearch: begin
                              if SearchRec.Direction = 1 then begin
                               SearchRec.Direction := 0;
-                              ContSearch(1);
+                              ContSearch;
                               SearchRec.Direction := 1;
                              end else begin
                               RD := SearchRec.Direction;
                               SearchRec.Direction := 1;
-                              ContSearch(-1);
+                              ContSearch;
                               SearchRec.Direction := RD;
                              end;
                              CE;
                             end;
               cmEditDBField: begin EditField; CED end;
+              cmSwitchKeyMapping:
+                begin
+                  KeyMap := RollKeyMap[KeyMap]; SetKeyMap;
+                  CED;
+                end;
              end;
   evKeyDown: case Event.KeyCode of
               kbEnter: begin if Delta.X < DBFile^.NumFields - 1 then Inc(Delta.X)
@@ -763,7 +823,8 @@ procedure TDBViewer.Draw;
      FN: Array [0..132] of PFieldRec;
      C1, C2 ,C3: Word;
      C: Byte;
-     I, J, K, NFN: Integer;
+     I: longint;
+     J, K, NFN: Integer;
      Idx: LongInt;
      PFR: PFieldRec;
      P: PByteArray;
@@ -809,44 +870,33 @@ begin
       PFR := FN[J];
       if (Delta.Y = Idx) and (Pos.X + J = Delta.X) then C := C3 else C := C2;
       if PFR <> nil then
-      if PFR^.Who = 'M' then
-      begin
-       Move(P^[PFR^.Pos], S[1], PFR^.Len);
-       S[0] := Char(PFR^.Len);
-       if StoI(S) > 0 then S := '  Memo  ' else S := '  memo  ';
-       MoveStr(B[I], S, C);
-       Inc(I, PFR^.Ln + 1);
-      end else
-      if PFR^.Who = 'D' then
-      begin
-        Move(P^[PFR^.Pos], S[1], PFR^.Len); S[0] := Char(PFR^.Len);
-        MoveStr(B[I], DateToHuman(S), C);
+        begin
+        GetFrField(PFR, P^, S);
+        case PFR^.Who of
+         'M':
+            begin
+            if StoI(S) > 0 then S := '  Memo  ' else S := '  memo  ';
+            end;
+         'D':
+            S := DateToHuman(S);
+        end {case};
+        {AK155: тут надо бы вставить перекодировку}
+        XlatBuf(S[1], Length(S), XLat);
+        MoveStr(B[I], S, C);
         Inc(I, PFR^.Ln + 1);
-      end else
-      asm
-       les di, PFR
-       mov cx, es:[di].FieldRec.Len
-       mov dx, es:[di].FieldRec.Ln
-       mov bx, es:[di].FieldRec.Pos
-       lea si, B
-       add si, I
-       add si, I
-       les di, P
-       mov ah, byte ptr C
- @@1:  mov al, es:[bx][di]
-       mov ss:[si], ax
-       inc si
-       inc si
-       inc di
-       loop @@1
-       inc dx
-       add I, dx
-      end;
+        end;
      end;
     end;
    WriteLine(0,K,Size.X,1,B);
   end;
 end;
+
+Procedure TDBViewer.SetKeyMap;
+  begin
+  if not GetToAsciiRecodeTable (KeyMap, XLat) then
+    NullXLAT(XLat);
+  end;
+
 
 procedure TDBIndicator.Draw;
  var B: TDrawBuffer;
@@ -856,6 +906,7 @@ begin
  if DBViewer^.Delta.Y < 0 then DBViewer^.Delta.Y := 0;
  if Origin.Y <> Owner^.Size.Y - 1 then MoveTo(Origin.X, Owner^.Size.Y - 1);
  S := ItoS(DBViewer^.Delta.Y+1)+'/'+Itos(DBViewer^.DBFile^.NumRec);
+ S := S + '═' + KeyMapDescriptor[DBViewer^.KeyMap];
  if Byte(S[0]) <> Size.X then begin GrowTo(Byte(S[0]), 1); Exit; end;
  C := Byte(Owner^.GetState(sfActive));
  C := Owner^.GetColor(C+1);
@@ -878,7 +929,7 @@ begin
   Done;
   Fail;
  end;
- R.A.X := 10; R.B.X := 20; R.A.Y := Size.Y - 1; R.B.Y := Size.Y;
+ R.A.X := 10; R.B.X := 25; R.A.Y := Size.Y - 1; R.B.Y := Size.Y;
  P1 := New(PDBIndicator, Init(R));
  P1^.DBViewer := P;
  P1^.GrowMode := gfGrowHiY;
@@ -913,7 +964,6 @@ end;
 const
      cmOpenDBF = 1000;
 
-
 procedure TMyApp.InitStatusLine;
  var R: TRect;
 begin
@@ -938,7 +988,9 @@ begin
    if Desktop^.ExecView(D) <> cmCancel then D^.GetFileName(S);
    Dispose(D,Done);
    if S = '' then Exit;
+{$IFDEF OS_DOS}
    S:=lfGetLongFileName(S);
+{$ENDIF}
    InsertWindow(New(PDBWindow, Init(S)));
   end;
 end;

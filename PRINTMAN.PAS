@@ -46,10 +46,10 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit PrintManager;
+unit PrintMan;
 
 interface
-
+{$IFDEF PrintManager}
 uses LFN, {DataCompBoy}
      Objects, Views, Drivers, DNApp, advance, advance1, advance2, advance3,
      Dialogs, DOS, Messages, Commands, collect;
@@ -107,10 +107,12 @@ const Printer: PPrintManager = nil;
       MaxBufCount = 128;
 
 procedure SetupPrinter;
+{$ENDIF}
 procedure PrintFile(const S: String);
 
 implementation
 
+{$IFDEF PrintManager}
 uses
   RStrings, Startup, DNHelp;
 
@@ -346,7 +348,11 @@ end;
 procedure TPrintManager.PrintFile;
 begin
   if List = nil then List := New(PStringCol, Init(10,10));
+{$IFDEF OS_DOS}
   List^.Insert(NewStr(lfGetLongFileName(FileName)));
+{$ELSE}
+  List^.Insert(NewStr(FileName));
+{$ENDIF}
   SetRange(List^.Count);
   DrawView;
   if Status <> nil then Status^.DrawView;
@@ -510,5 +516,13 @@ end;
     end;
    if Printer <> nil then Printer^.PrintFile(S);
  end;
+{$ELSE}
+uses Messages;
+
+ procedure PrintFile(const S: String);
+ begin
+  messagebox('Simulating: '+S, nil, mfOKButton);
+ end;
+{$ENDIF}
 
 end.

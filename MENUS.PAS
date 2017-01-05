@@ -352,8 +352,8 @@ end;
 
 constructor TMenuView.Init(var Bounds: TRect);
 begin
-  Bounds.B.X := Bounds.A.X;
-  Bounds.B.Y := Bounds.A.Y;
+  Bounds.B.X := Bounds.A.X; {new}
+  Bounds.B.Y := Bounds.A.Y; {new}
   TView.Init(Bounds);
   EventMask := EventMask or evBroadcast;
 end;
@@ -410,7 +410,7 @@ var
   E: TEvent;
   MouseActive: Boolean;
   MouseWalk: Boolean;
-  Going: Boolean;
+  Going: Boolean; {new}
 
 procedure TrackKey(FindNext: Boolean); forward;
 
@@ -421,7 +421,7 @@ var
 label q;
 begin
   MakeLocal(E.Where, Mouse);
-  if Size.Y>1 then begin
+  if Size.Y>1 then begin            {new begin}
    if Mouse.Y=0 then begin
     if not Going then begin
      Going := true;
@@ -438,7 +438,7 @@ begin
      TrackKey(True);
      if Current = Menu^.Items then TrackKey(False);
     end
-   end else goto q;
+   end else goto q;             {new end}
    AutoSelect := false;
    Action := DoNothing;
    MouseWalk:=true;
@@ -537,7 +537,7 @@ begin
     end;
   end;
   GetBounds(R);
-  Owner^.GetExtent(R2);
+  Owner^.GetExtent(R2);                      {new begin}
   if Options and ofCenterX <> 0 then begin
    R.A.X := (R2.B.X - R2.A.X - W) div 2;
   end;
@@ -561,7 +561,6 @@ begin
   SetBounds(R);
   Owner^.Redraw;
  end;
-  MenuActive:=True;
   if TypeOf(Self) = TypeOf(TMenuBar) then Message(Owner, evCommand, cmMenuOn, @Self);
   AutoSelect := False;
   Result := 0;
@@ -570,6 +569,7 @@ begin
   MouseActive := False;
   Frst := False;
   repeat
+    MenuActive:=True;           {new end}
     Action := DoNothing;
     GetEvent(E);
     case E.What of
@@ -595,7 +595,7 @@ begin
                               if Current = nil then Current := Menu^.Items;
                               Action := DoNothing;
                              end;
-         end else Going := false;
+         end else Going := false;     {new}
       evMouseMove:
         if (E.Buttons <> 0) then
         begin
@@ -611,7 +611,7 @@ begin
             MouseInMenus then Action := DoReturn;
         end;
       evKeyDown:
-        case E.KeyCode of
+        case E.KeyCode of                                    {new begin}
          kbDownUp, kbUpUp: if Going then Going:=false;
          else
         case CtrlToArrow(E.KeyCode) of
@@ -623,7 +623,7 @@ begin
                 TrackKey(True);
                end else begin
                 TrackKey(True);
-                if Current = Menu^.Items then TrackKey(False);
+               {if Current = Menu^.Items then TrackKey(False);} {JO - зачем здесь это???}
                end
               else
                if not Going then begin
@@ -631,9 +631,9 @@ begin
                 TrackKey(False);
                end else begin
                 TrackKey(False);
-                if Current^.Next = nil then TrackKey(true);
+               {if Current^.Next = nil then TrackKey(true);} {JO - зачем здесь это???}
                end;
-            end else if E.KeyCode = kbDown then AutoSelect := True;
+            end else if E.KeyCode = kbDown then AutoSelect := True;    {new end}
           kbLeft, kbRight:
             if ParentMenu = nil then
               TrackKey(CtrlToArrow(E.KeyCode) = kbRight) else
@@ -644,7 +644,7 @@ begin
               Current := Menu^.Items;
               if E.KeyCode = kbEnd then TrackKey(False);
             end;
-          kbPgUp:
+          kbPgUp:                                  {new begin}
             if Size.Y <> 1 then
             begin
              For W := 1 to Size.Y-2 do
@@ -666,7 +666,7 @@ begin
             if Size.Y <> 1 then
             begin
              For W := 1 to Size.Y-2 do
-              if (Current = Menu^.Items) and (W>1)
+              if (Current = Menu^.Items) {and (W>1)} {JO - зачем здесь это???}
                then begin TrackKey(False); break end
                else begin
                      Current := Current^.Next;
@@ -677,7 +677,7 @@ begin
               Current := Current^.Next;
               if Current = nil then Current := Menu^.Items;
              end;
-            end;
+            end;                                  {new end}
           kbEnter:
             begin
               if Size.Y = 1 then AutoSelect := True;
@@ -722,7 +722,7 @@ begin
             end else
               if (ParentMenu <> Target) or (ParentMenu^.Current <> P) then
                 Action := DoReturn;
-        end end;
+        end end;                                  {new}
       evCommand:
         if (E.Command = cmMenu) or (E.Command = cmMainMenu) then
         begin
@@ -1318,7 +1318,7 @@ begin
   MoveChar(B, ' ', Byte(CNormal), Size.X);
   T := Items;
   I := 0;
-  if OldKbdState and 12 =12 then FirstChar := '^' else
+  if OldKbdState and 12 =12 then FirstChar := '^' else        {new}
    if OldKbdState and 8 <> 0 then FirstChar := '-' else
     if OldKbdState and 4 <> 0 then FirstChar := '+' else
      if OldKbdState and 3 <> 0 then FirstChar := ':' else
@@ -1353,7 +1353,7 @@ begin
     begin
       MoveChar(B[I], #179, Byte(CNormal), 1);
       Inc(I, 2);
-      if I + Length(HintBuf) > Size.X then HintBuf[0] := Char(Size.X - I);
+      if I + Length(HintBuf) > Size.X then SetLength(HintBuf, Size.X - I);
       MoveStr(B[I], HintBuf, Byte(CNormal));
     end;
   end;
@@ -1393,7 +1393,7 @@ begin
   if Mouse.Y <> 0 then Exit;
   I := 0;
   T := Items;
-  if OldKbdState and 12 =12 then FirstChar := '^' else
+  if OldKbdState and 12 =12 then FirstChar := '^' else       {new}
    if OldKbdState and 8 <> 0 then FirstChar := '-' else
      if OldKbdState and 4 <> 0 then FirstChar := '+' else
       if OldKbdState and 3 <> 0 then FirstChar := ':' else
@@ -1602,7 +1602,7 @@ begin
   end
 end;
 
-function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): AWord;
+function MenuIndexOf(Menu: PMenu; idCheckItem: PMenuItem): AWord; {new}
 var
   Item: PMenuItem;
   i: word;
@@ -1620,7 +1620,7 @@ begin
   end
 end;
 
-procedure StoreMenuDefaults(Menu: PMenu; var S: TStream);
+procedure StoreMenuDefaults(Menu: PMenu; var S: TStream);         {new}
 var
   Item: PMenuItem;
   i: AWord;
@@ -1639,7 +1639,7 @@ begin
   end
 end;
 
-procedure LoadMenuDefaults(Menu: PMenu; var S: TStream);
+procedure LoadMenuDefaults(Menu: PMenu; var S: TStream);          {new}
 var
   Item: PMenuItem;
   i: AWord;

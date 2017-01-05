@@ -211,12 +211,14 @@ function ColorItem(const Name: String; Index: Byte;
 function ColorGroup(const Name: String; Items: PColorItem;
   Next: PColorGroup): PColorGroup;
 
+(*
 { Standard color items functions }
 
 function DesktopColorItems(const Next: PColorItem): PColorItem;
 function MenuColorItems(const Next: PColorItem): PColorItem;
 function DialogColorItems(const Next: PColorItem): PColorItem;
 function WindowColorItems(const Next: PColorItem): PColorItem;
+*)
 
 implementation
 uses Startup, DNApp, RStrings, Commands, DNUTIL, VideoMan;
@@ -583,10 +585,10 @@ function ReadItems: PColorItem;
 var
   Itms:  PColorItem;
   CurItm: ^PColorItem;
-  Count: AInt;
+  Count: Integer;
   I: Integer;
 begin
-  S.Read(Count, SizeOf(AInt));
+  S.Read(Count, SizeOf(Integer));
   Itms := nil;
   CurItm := @Itms;
   for I := 1 to Count do
@@ -607,9 +609,9 @@ function ReadGroups: PColorGroup;
 var
   Grps:  PColorGroup;
   CurGrp: ^PColorGroup;
-  Count, I: AInt;
+  Count, I: Integer;
 begin
-  S.Read(Count, SizeOf(AInt));
+  S.Read(Count, SizeOf(Integer));
   Grps := nil;
   CurGrp := @Grps;
   for I := 1 to Count do
@@ -699,7 +701,7 @@ procedure TColorGroupList.Store(var S: TStream);
 procedure WriteItems(Items: PColorItem);
 var
   CurItm: PColorItem;
-  Count: AInt;
+  Count: Integer;
 begin
   Count := 0;
   CurItm := Items;
@@ -708,7 +710,7 @@ begin
     CurItm := CurItm^.Next;
     Inc(Count);
   end;
-  S.Write(Count, SizeOf(AInt));
+  S.Write(Count, SizeOf(Integer));
   CurItm := Items;
   while CurItm <> nil do
   begin
@@ -1085,8 +1087,8 @@ begin
   GetSubViewPtr(S, DefaultColors);
   S.Read(Len, SizeOf(Byte));
   S.Read(Pal[1], Len);
-  Pal[0] := Char(Len);
-  if VGASystem then EnableCommands([cmPalVGA])
+  SetLength(Pal, Len);
+  if VGASystem {$IFDEF OS2} and not PMWindowed {$ENDIF} then EnableCommands([cmPalVGA])
                else DisableCommands([cmPalVGA]);
   {!! IB}
   for len := apColor to apMonochrome do OldColors[len] := NewStr(SystemColors[len]);
@@ -1103,7 +1105,7 @@ begin
    apBlackWhite : SystemColors[apBlackWhite]:= CBlackWhite;
    apMonochrome : SystemColors[apMonochrome]:= CMonochrome;
   end else SystemColors[appPalette]:= OldColors[appPalette]^;
- SetSysColors(SystemColors[appPalette]);
+  SetSysColors(SystemColors[appPalette]);
 end;
 
 procedure TColorDialog.GetEvent(var Event: TEvent);
@@ -1364,6 +1366,7 @@ begin
   ColorGroup := Group;
 end;
 
+(*
 { Standard color items functions }
 
 function DesktopColorItems(const Next: PColorItem): PColorItem;
@@ -1384,6 +1387,7 @@ begin
     ColorItem('Shortcut selected', 7,
     Next))))));
 end;
+
 
 function DialogColorItems(const Next: PColorItem): PColorItem;
   var
@@ -1433,7 +1437,7 @@ end;
 
 function WindowColorItems;
 var
-  Offset: Word;
+   Offset: Word;
 begin
   Offset := 1;
   WindowColorItems :=
@@ -1445,5 +1449,6 @@ begin
     ColorItem('Normal text',       Offset + 5,
     Next))))));
 end;
+*)
 
 end.

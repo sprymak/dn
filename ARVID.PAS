@@ -51,7 +51,7 @@ UNIT Arvid;
 INTERFACE
 uses
   Collect, Objects, DOS, Drives, FilesCol, Views, DiskInfo, Tree, Histries,
-  Lfn, LfnCol, FindObj;
+  Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} FindObj;
 
 type
    TTdrHeader = record
@@ -195,8 +195,8 @@ type
       function GetDir: String; virtual;
       function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
                             var FreeSpace, TotalInfo: String ): PCollection; virtual;
-      constructor Load(var S: TStream);
-      procedure Store(var S: TStream); virtual;
+{      constructor Load(var S: TStream);
+      procedure Store(var S: TStream); virtual;}
       procedure RereadDirectory(S: String); virtual;
       procedure KillUse; virtual;
       procedure UseFile(P: PFileRec; Command: Word); virtual;
@@ -242,7 +242,9 @@ begin
   begin
    Flags := Params[n].Param;
    LFNLen:=StoI(Params[n].LFNLen);
+   if (LFNLen = 0) or (LFNLen > 253) then LFNLen := 253;
    EXTLen:=StoI(Params[n].EXTLen);
+   if EXTLen > 253 then EXTLen := 253;
    case FileCase of
     0: FilFLP := 0;
     1: FilFLP := flnLowCase;
@@ -281,7 +283,7 @@ begin
   i:=PosChar(':', Copy(AName, 3, 255))+2;
   if i>2 then begin
    q:=Copy(AName,I+1,255);
-   if Q[Length(Q)] in ['\','/'] then Dec(Q[0]);
+   if Q[Length(Q)] in ['\','/'] then SetLength(Q, Length(Q)-1);
    Stream:=New(PBufStream, Init(Copy(AName, 1, I-1), stOpen, 2048));
   end else
    Stream:=New(PBufStream, Init(AName, stOpen, 2048));
@@ -301,8 +303,8 @@ begin
   Stream^.Read(AVT, SizeOf(AVT));
   if Stream^.Status <> stOK then begin Dispose(Stream,Done); Fail end;
   if AVT.Signature <> 'AVTP'
-   then if not TdrInit(@Self) then fail else
-   else if not AvtInit(@Self) then fail;
+   then if not TdrInit(@Self) then begin Dispose(Stream,Done); Fail end else
+   else if not AvtInit(@Self) then begin Dispose(Stream,Done); Fail end;
   Name:=NewStr(lFExpand(AName));
   DriveType:=dtArvid;
   KillAfterUse:=TempFile <> '';
@@ -323,10 +325,12 @@ begin
 end;
 
 procedure TArvidDrive.Kill;
+ var Dir, Name1, Ext: String; {JO}
 begin
   if not KillAfterUse then Exit;
   if Stream <> nil then Dispose(Stream, Done); Stream := nil;
-  EraseFile(Name^);
+  lFSplit(Name^, Dir, Name1, Ext);        {JO: проверочка файла на нахождение}
+  if Dir = Tempdir then EraseFile(Name^); {во временном каталоге не помешает}
 end;
 
 function TArvidDrive.GetDirectory;
@@ -339,7 +343,9 @@ var
 begin
   New(FC, Init($80, $40));
   FC^.SortMode := SortMode;
-
+{$IFDEF Win32}
+  FC^.LFNActive := False;
+{$ENDIF}
   if ArvidWithDN then GetFreeSpace(FreeSpace);
   TotalInfo := ''; TotFiles := 0; TotLen := 0;
 
@@ -355,8 +361,11 @@ begin
   if CurDir = '' then P := Name else P := @CurDir;
 
   if ArvidWithDN then TotalInfo:=CalcTotalInfo(FC^.Count, TotFiles, TotLen);
-
-  FC^.AtInsert(0, NewFileRec('..', '..', 0, CurDate, Directory, P));
+{$IFNDEF OS2}
+  FC^.AtInsert(0, NewFileRec('..', '..', 0, CurDate, 0, 0, Directory, P));
+{$ELSE}
+  FC^.AtInsert(0, NewFileRec('..', 0, CurDate, 0, 0, Directory, P));
+{$ENDIF}
 end;
 
 destructor TArvidDrive.Done;
@@ -381,11 +390,11 @@ begin
  if (Nm = '.') and (Xt = '.') then begin
    if Dr <> '' then CurDir := Dr;
    if CurDir[1] <> '\' then Insert('\', CurDir, 1);
-   repeat Dec(CurDir[0]) until (CurDir = '') or (CurDir[Length(CurDir)] = '\');
-   if CurDir <> '' then Dec(CurDir[0]);
+   repeat SetLength(CurDir, Length(CurDir)-1) until (CurDir = '') or (CurDir[Length(CurDir)] = '\');
+   if CurDir <> '' then SetLength(CurDir, Length(CurDir)-1);
  end else CurDir := ADir;
  SeekDirectory;
- While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do Dec(CurDir[0]);
+ While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do SetLength(CurDir, Length(CurDir)-1);
  AddToDirectoryHistory(Name^+':'+CurDir,Integer(DriveType));
 end;
 
@@ -400,6 +409,7 @@ begin
   else GetDir:= 'AVT:'+Nm+'\'+CurDir;
 end;
 
+{
 constructor TArvidDrive.Load;
   label 1;
 begin
@@ -435,7 +445,7 @@ begin
   S.Write(KillAfterUse, 1);
   S.WriteStr(Name);
 end;
-
+}
 procedure TArvidDrive.RereadDirectory;
 begin
   if Prev <> nil then Prev^.RereadDirectory(S);
@@ -500,9 +510,9 @@ var
          S1:=S1+Nam+'\';
          S2:=S2+Nam+'\';
          CopyTree(FC2.ChildOrSize);
-         Dec(S1[0]); Dec(S2[0]);
+         SetLength(S1, Length(S1)-1); SetLength(S2, Length(S2)-1);
          while (S1<>'') and (S1[Length(S1)] <> '\') do begin
-           Dec(S1[0]); Dec(S2[0]);
+           SetLength(S1, Length(S1)-1); SetLength(S2, Length(S2)-1);
          end;
          Stream^.Seek(Pos); Stream^.Read(FC, SizeOf(FC));
        end;
@@ -541,8 +551,13 @@ begin
        Stream^.Seek(Round(PF^.PSize));
        Stream^.Read(FC, SizeOf(FC));
        Desc:=AvtCellDesc(FC, Stream^);
+{$IFNDEF OS2}
        S1:=MakeNormName('\'+CurDir, GetLFN(PF^.LFN));
        S2:=MakeNormName(CopyDir, MkName(GetLFN(PF^.LFN), Mask));
+{$ELSE}
+       S1:=MakeNormName('\'+CurDir, PF^.Name);
+       S2:=MakeNormName(CopyDir, MkName(PF^.Name, Mask));
+{$ENDIF}
        if Pos(S1,S2)=1 then begin
          MessageBox(GetString(erIntoItself), nil, mfError + mfOKButton);
        end
@@ -613,7 +628,11 @@ begin
      P:=WriteMsg(GetString(dlPleaseStandBy));
      for I:=0 to AFiles^.Count - 1 do begin
        PF:=AFiles^.at(i);
+{$IFNDEF OS2}
        S1:=MakeNormName('\'+CurDir, GetLFN(PF^.LFN));
+{$ELSE}
+       S1:=MakeNormName('\'+CurDir, PF^.Name);
+{$ENDIF}
        S2:=MakeNormName(CopyDir, MkName(Mask, PF^.Name));
        if (PF^.Attr and Directory) = 0 then
          WriteLn(T.T, 'COPY TP:'+SquashesName(S1)+' '+SquashesName(S2)+' /O/R/C/H')
@@ -718,7 +737,7 @@ procedure TArvidDrive.GetDirInfo;
       A: TAvtMediaCell;
 begin
   B.Title := NewStr( GetString( dlArvid_Title ));
-  FreeStr := GetName(Name^); FreeStr[0] := Char(PosChar('.', FreeStr)-1);
+  FreeStr := GetName(Name^); SetLength(FreeStr, PosChar('.', FreeStr)-1);
   B.Dir := NewStr(FreeStr);
 
   case TapeFmt of
@@ -861,7 +880,11 @@ procedure TArvidDrive.HandleCommand;
         I, J: LongInt;
         Lv0: Boolean;
         LastLv: Integer;
+        {$IFNDEF OS2}
         SS: String[12];
+        {$ELSE}
+        SS: String;
+        {$ENDIF}
   begin
     Lv0:=Off; LastLv:=0;
     LP:=D.DirTableOfs;
@@ -872,16 +895,24 @@ procedure TArvidDrive.HandleCommand;
          if Lv0 then Break
                 else Lv0:=On;
       SS:=DD.Name; Insert('.', SS, 9);
+      {$IFNDEF OS2}
       if DD.Level > LastLv then Dr:=MakeNormName(Dr, MakeFileName(SS))
+      {$ELSE}
+      if DD.Level > LastLv then Dr:=MakeNormName(Dr, SS)
+      {$ENDIF}
          else if DD.Level <= LastLv then
                 begin
                   repeat
-                    while (Dr[Length(Dr)] <> '\') and (Dr <> '') do Dec(Dr[0]);
-                    if Dr <> '' then Dec(Dr[0]);
+                    while (Dr[Length(Dr)] <> '\') and (Dr <> '') do SetLength(Dr, Length(Dr)-1);
+                    if Dr <> '' then SetLength(Dr, Length(Dr)-1);
                     Dec(LastLv);
                   until DD.Level > LastLv;
                   if Dr = '' then Dr:='\';
+                  {$IFNDEF OS2}
                   Dr:=MakeNormName(Dr, MakeFileName(SS))
+                  {$ELSE}
+                  Dr:=MakeNormName(Dr, SS)
+                  {$ENDIF}
                 end;
       LastLv:=DD.Level;
       WasDir:=Off;
@@ -929,7 +960,11 @@ procedure TArvidDrive.HandleCommand;
                     ((Attr = 0) or (FF.Attr and Attr <> 0)))
                  then
                     begin
+                      {$IFNDEF OS2}
                       Add(New(PFindFile, Init(MakeFileName(SS), FF.Size, FF.Time)),Name);
+                      {$ELSE}
+                      Add(New(PFindFile, Init(SS, FF.Size, FF.Time)),Name);
+                      {$ENDIF}
                     end;
               end;
           end;
@@ -958,7 +993,7 @@ procedure TArvidDrive.HandleCommand;
       Dr:=Dr + AvtCellName(AA0, St0^) + '\';
       AvtSearchInStream(AA0.ChildOrSize);
       WasDir:=SaveWasDir; LP:=SaveLP;
-      Dec(Dr[0]); while (Dr[Length(Dr)] <> '\') and (Dr <> '') do Dec(Dr[0]);
+      SetLength(Dr, Length(Dr)-1); while (Dr[Length(Dr)] <> '\') and (Dr <> '') do SetLength(Dr, Length(Dr)-1);
     end else
     begin
       S0:=AvtCellName(AA0, St0^);
@@ -1181,7 +1216,11 @@ begin
   if (PF^.Attr and $80 <> 0) or (PF^.Attr and Directory = 0) then Exit;
   SaveDir:=CurDir;
   LL:=0;
+{$IFNDEF OS2}
   CurDir:=MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
+{$ELSE}
+  CurDir:=MakeNormName(PF^.Owner^, PF^.Name);
+{$ENDIF}
   SeekDirectory;
   P:=WriteMsg(GetString(dlPleaseStandBy));
   case FileType of

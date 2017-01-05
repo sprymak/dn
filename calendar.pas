@@ -169,7 +169,7 @@ end;
 
 constructor TCalendarView.Load(var S: TStream);
 var
-  H: AWord;
+  {H: AWord;}H: Word;
 begin
   inherited Load(S);
   GetDate(CurYear, CurMonth, CurDay, H);
@@ -192,7 +192,7 @@ begin
   yr := year mod 100;
   dw := (((26 * month - 2) div 10) + day + yr + (yr div 4) +
     (century div 4) - (2 * century)) mod 7;
-  if dw < 0 then DayOfWeek := dw + 7
+  if dw <= 0 then DayOfWeek := dw + 7
   else DayOfWeek := dw;
 end;
 
@@ -337,7 +337,7 @@ begin
     else if Event.What = evKeyDown then
     begin
       if (Lo(Event.KeyCode) = byte('+')) or
-         (Event.KeyCode = kbUp) then
+         (Event.KeyCode = kbRight) then
       begin
         Inc(Month);
         if Month > 12 then
@@ -348,7 +348,7 @@ begin
        ClearEvent(Event);
       end;
       if (Lo(Event.KeyCode) = Byte('-')) or
-         (Event.KeyCode = kbDown) then
+         (Event.KeyCode = kbLeft) then
       begin
         Dec(Month);
         if Month < 1 then

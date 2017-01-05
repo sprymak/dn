@@ -49,7 +49,7 @@ UNIT ArvidTdr;
 
 INTERFACE
 uses Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
-     Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, LfnCol, Dos, Tree,
+     Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Tree,
      FilesCol, Advance2, Drives, FlPanel, Memory;
 
 procedure TdrSeekDirectory(AvtDr: PArvidDrive);
@@ -59,7 +59,7 @@ procedure TdrGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;
 procedure TdrEditDescription(AvtDr: PArvidDrive; var S, Nam: String; var PF: PFileRec);
 procedure TdrCalcTotal(AvtDr: PArvidDrive; const Offset: LongInt; var LL: TSize);
 Function  TdrInit(AvtDr: PArvidDrive): boolean;
-Function  TdrLoad(AvtDr: PArvidDrive; var S: TStream): boolean;
+{Function  TdrLoad(AvtDr: PArvidDrive; var S: TStream): boolean;}
 
 IMPLEMENTATION
 
@@ -84,10 +84,11 @@ begin with AvtDr^ do begin
         begin
           AddStr(SS, S[1]);
           DelFC(S);
-          if SS[0] = #12 then Break;
+          if Length(SS) = 12 then Break;
         end;
       DelFC(S);
-      SS := Norm12(SS); UpStr(SS);
+      SS := Norm12(SS); UpStr(SS); {JO ??? for OS/2}
+         {AK155: нельзя убирать! При чем тут OS/2 к Арвиду? }
       Delete(SS, 9, 1);
       repeat
         Stream^.Read(DD, SizeOf(DD));
@@ -119,11 +120,12 @@ var
 
   procedure AddFile;
   var
-    S: Str12;
+    S: String;
+    b: byte;
   begin with AvtDr^ do begin
     S := FF.Name;
     Insert('.', S, 9);
-    if (s[01] in [#0..#31]) or
+{    if (s[01] in [#0..#31]) or
        (s[02] in [#0..#31]) or
        (s[03] in [#0..#31]) or
        (s[04] in [#0..#31]) or
@@ -134,12 +136,18 @@ var
        (s[09] in [#0..#31]) or
        (s[10] in [#0..#31]) or
        (s[11] in [#0..#31]) or
-       (s[12] in [#0..#31]) then exit;
+       (s[12] in [#0..#31]) then exit; }
+         {AK155: в ритлабовском этого не было }
+
     if
     not (ArvidWithDN and Security and (FF.Attr and (Hidden+SysFile) <> 0))
     and (AllFiles or (FF.Attr and Directory <> 0) or InFilter(S, FileMask)) then
         begin
-          F := NewFileRec(MakeFileName(S), S, FF.Size, FF.Time, FF.Attr, @CurDir);
+          {$IFNDEF OS2}
+          F := NewFileRec(MakeFileName(S), S, FF.Size, FF.Time, 0, 0, FF.Attr, @CurDir);
+          {$ELSE}
+          F := NewFileRec(MakeFileName(S), FF.Size, FF.Time, 0, 0, FF.Attr, @CurDir);
+          {$ENDIF}
           if ShowD then
           begin
             New(F^.DIZ);
@@ -293,11 +301,12 @@ begin with AvtDr^ do begin
   PosTableOfs:=D.PosTableOfs;
   Stream^.Seek(D.PosTableOfs);
   Stream^.Read(J, SizeOf(J));
-  if Stream^.Status <> stOK then exit;
+{  if Stream^.Status <> stOK then exit;}{commented by piwamoto}
   TapeRecordedTime:=J*8;
   TdrInit:=True;
 end end;
 
+{
 Function TdrLoad;
 var J: Word;
 begin with AvtDr^ do begin
@@ -315,5 +324,5 @@ begin with AvtDr^ do begin
   TapeFmt:=D.TapeFmt;
   TdrLoad:=True;
 end end;
-
+}
 END.

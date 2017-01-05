@@ -57,66 +57,10 @@ type  PHideView = ^THideView;
        procedure HideView; virtual;
        procedure ShowView; virtual;
       end;
-{
-      PStdWindow = ^TStdWindow;
-      TStdWindow = object(TWindow)
-       constructor Init(var R: TRect; ATitle: TTitleStr; ANumber: Integer);
-       procedure HandleEvent(var Event: TEvent); virtual;
-       procedure ExecWindowMenu; virtual;
-       function  GetWindowMenu(var N, W: Word): PMenu; virtual;
-      end;
-}
+
 implementation
 uses DNApp, Dialogs, advance, advance1, advance2, advance3, Commands;
-(*
-constructor TStdWindow.Init;
-begin
- inherited Init(R, ATitle, ANumber);
- {Flags := Flags or wfMenu;}
-end;
 
-procedure TStdWindow.HandleEvent;
-begin
- inherited HandleEvent(Event);
-{ if (Event.What = evCommand) and (Event.Command = cmWindowMenu) then
-  begin ExecWindowMenu; ClearEvent(Event) end;
- if (Event.What = evKeyDown) and (Event.KeyCode = kbAltSpace)
-     then begin Message(@Self, evCommand, cmWindowMenu, nil); ClearEvent(Event) end;
- }
-end;
-
-{DataCompBoy
-function TStdWindow.GetWindowMenu;
-begin
- GetWindowMenu := NewMenu(
-                    NewItem('~S~ize/move'     ,'',kbNoKey,cmResize,hcResize,
-                    NewItem('~Z~oom'          ,'',kbNoKey,cmZoom,hcZoom,
-                    NewItem('~N~ext'          ,'',kbNoKey,cmNext,hcNext,
-                    NewItem('~P~revious'      ,'',kbNoKey,cmPrev,hcPrev,
-                    NewItem('~C~lose'         ,'',kbNoKey,cmClose,hcClose,
-                     nil))))));
- N := 5; W := 15;
-end;
-procedure TStdWindow.ExecWindowMenu;
- var Menu: PMenu;
-     N, W: Word;
-     R: TRect;
-     P: PView;
-begin
- Menu := GetWindowMenu(N, W);
- DeskTop^.GetExtent(R);
- R.A := Origin;
- if R.A.X < 0 then R.A.X := 0 else if R.A.X + W > R.B.X then R.A.X := R.B.X - W;
- if R.A.Y < 0 then R.A.Y := 0 else if R.A.Y + N + 2 > R.B.Y then R.A.Y := R.B.Y - N - 2;
- R.B.X := R.A.X + W; R.B.Y := R.A.Y + N + 2;
- P := New(PMenuBox, Init(R, Menu, nil));
- N := DeskTop^.ExecView(P);
- Dispose(P,Done);
- DisposeMenu(Menu);
- if N <> cmCancel then Message(@Self, evCommand, N, nil);
-end;
-}
-*)
 procedure THideView.HideView;
 begin
  OldSizeX := Size.X; GrowTo(0, Size.Y);

@@ -1,12 +1,13 @@
-RESOURCE     Resource source for DN OSP
-adler.pas    Part of the 'zlib' compression library
-advance.pas  Advanced procedures: startup
-advance1.pas Advanced procedures: String functions
-advance2.pas Advanced procedures: File related functions
+RESOURCE Resource source for DN OSP
 advance3.pas Advanced procedures: Misc stuff
 advance4.pas Advanced procedures: OS/2 support
-advance6.pas Advanced procedures
+advance6.pa7 Advanced procedures
 advance7.pas Advanced procedures: Help oriented
+archdet.pas Archiver detectors
+archiver.pas Archivators access
+archread.pas Archivers output list reader
+archset.pas  Archivers setups manager
+arcview.pas  View archives as drives
 arc_ace.pas  Support for ACE
 arc_ain.pas  Support for AIN
 arc_arc.pas  Support for ARC
@@ -31,69 +32,43 @@ arc_ufa.pas  Support for UFA
 arc_zip.pas  Support for ZIP
 arc_zoo.pas  Support for ZOO
 arc_zxz.pas  Support for ZXZ
-archdet.pas  Archiver detectors
-archiver.pas Archivators access
-archread.pas Archivers output list reader
-archset.pas  Archivers setups manager
-arcview.pas  View archives as drives
-arvid.pas    Access to ARVID tapes
+arvid.pas Access to ARVID tapes
 arvidavt.pas Support for AVT format
 arvidtdr.pas Support for TDR format
 asciitab.pas ASCII table
-bigarr.pas   Big Array
-bld_dpmi.bat Run this to build for DPMI mode
-bpc.cfg      BPC Config
-bstrings.pas Strings access
-build.bat    Run this to standard build
-builddn.bat  Batch to build DN OSP
-cachetst.asl part of CPU/FPU detection library by B-coolWare
 calc.pas     Spreadsheet's cells
 calculat.pas Main calculator module
 calendar.pas Calendar
 callspcb.pas Compiler-independent mechanisms to call special functions
-ccalc.pas    Calculator
+ccalc.pas Calculator
 cdplayer.pas CD Player
-cdutil.pas   CD Player utilites
+cdutil.pas CD Player utilites
 cellscol.pas Cells collection for spreadsheet
-clean.bat    Batch to clean source tree
-cmdline.pas  Command line
-collect.pas  Collections
+cmdline.pas Command line
 colors.pas   Colors
 colorsel.pas Color selector
 colorvga.pas VGA Color
-comlnk.pas   COM Link
-comlnkio.pas COM Link
 commands.pas Constants
-cpuspeed.asl part of CPU/FPU detection library by B-coolWare
-cputype.pas  part of CPU/FPU detection library by B-coolWare
-crc.pas      Part of the 'zlib' compression library
+cputype.pas part of CPU/FPU detection library by B-coolWare
 dblwnd.pas   Double Window
-dbview.pas   .DBF Viewer
-dbwatch.pas  .DBF access
-decoder.pas  Part of DisAsm
-defcoll.pas  Defines collection
-descript.ion File Descriptions
-dialogs.pas  Basic dialogs
+dbview.pas .DBF Viewer
+dbwatch.pas .DBF access
+defcoll.pas Defines collection
+dialogs.pas Basic dialogs
 diskimg.pas  Disk image unpacker
-diskinfo.pas Disk info
+DISKINFO.PA8 Disk info
 disktool.pas Disk editor
-dn.asm       resident part of DN
 dn.pas       Main program module
 dn1.pas      Main program module, Part 2
-dnapp.pas    DN Application unit
-dnerror.pas  DN.ERR parser
-dnexec.pas   Execution functions
+DNEXEC.PA1   Execution functions
 dnformat.pas Format Disk
-dnhelp.pas   Help constants
-dnini.pas    Ini Configuration
+dnhelp.pas Help constants
+DNINI1.PAS    Ini Configuration
 dnstddlg.pas DN Standard dialogs
 dnutil.pas   DN Utilites: About & other
-dosmem.pas   Real-Mode memory allocation
-dpmi.ash     part of CPU/FPU detection library by B-coolWare
-dpmi.pas     Primitive routines for DPMI management
-dpmicode.adp part of CPU/FPU detection library by B-coolWare
-drivers.pas  Low-level device drivers
-drives.pas   Drive access
+DRIVERS.PAS Low-level device drivers
+drivers2.pas Fail information
+DRIVES.PA8   Drive access
 drvtypes.pas Drive type identification
 ed2.pas      Part of editor
 editor.pas   Part of editor
@@ -101,124 +76,139 @@ edwin.pas    Part of editor
 eraser.pas   File eraser
 extkbd.pas   Access to extended keyboard (temporary unit)
 extramem.pas Access to extra memory
-fbb.pas      LongCopy
-file_id.diz  Logo
-filecopy.pas Files copyer
+fbb.pas LongCopy
 filediz.pas  Files descriptions support
-filefind.pas Files finder
 filelist.pas Files lister
 filelst.pas  Files list creating
-filescol.pas Files collection
-findobj.pas  Find objects (for ARVID support)
-fixer.pas    Files fixer
+FILESCOL.PA1 Files collection
+file_id.diz Logo
+findobj.pas Find objects (for ARVID support)
 flpanel.pas  Files panel
 flpanelx.pas Files panel
 fltools.pas  Files tools
-fmtunit.pas  format disk utils
-format.asm   function FormatStr
-format.pas   formatter kernel
+fmtunit.pas format disk utils
+format.pas formatter kernel
 fstorage.pas Files storage
-fviewer.pas  File viewer
-gauge.pas    Gauges: Bar, Percent.
-gauges.pas   Gauges: Clock, Heap, TrashCan, Macros
+gauge.pas Gauges: Bar, Percent.
+gauges.pas Gauges: Clock, Heap, TrashCan, Macros
 getconst.pas Getting constants
-gzio.pas     Part of the 'zlib' compression library
-hash.pas     Hash string
-header.ash   part of CPU/FPU detection library by B-coolWare
 helpfile.pas Access to help file
 helpkern.pas Help kernel
 hideview.pas Hide view
 highlite.pas Syntax highliter
 histlist.pas History list
-histries.pas Histories
 idlers.pas   Idle (screen savers)
-infblock.pas Part of the 'zlib' compression library
-infcodes.pas Part of the 'zlib' compression library
-inffast.pas  Part of the 'zlib' compression library
-inftrees.pas Part of the 'zlib' compression library
-infutil.pas  Part of the 'zlib' compression library
 inifiles.pas Access to .INI files
-keyboard.pas Part of packmap routine
-lfn.pas      LFN Support
-lfncol.pas   EMS & Memory LFN collection
-linktyp.pas  DN Link
-linkutil.pas DN Link
+LFNCOL.PA1 EMS & Memory LFN collection
 listmakr.pas Part of Resource Compiler
-lzwc2.asm    Lempel-Ziv Welch Compression routine
-lzwd2.asm    Lempel-Ziv Welch Decompression routine
-macro.pas    Macro editor & environment editor
-meminfo.pas  Memory information
-meminfo.pas  Memory information
-memory.pas   Memory access
-menus.pas    Menus
+MACRO.PA1    Macro editor & environment editor
+meminfo.pas Memory information
+memory.pas Memory access
+menus.pas Menus
 messages.pas Message boxes
 microed.pas  Editor
-modemio.pas  Modem IO
-navylink.pas DN Link
-netinfo.pas  Net information
-novell.pas   Novell information
+microed2.pas Microed: Read/Write/Store/Load methods
 objects.pas  Main objects: TObject, Streams, other.
-objtype.pas  Object types
-overlays.pas Overlay's support
-p5speed.asl  part of CPU/FPU detection library by B-coolWare
-packmap.pas  MAP file packer
-pci.inc      part of CPU/FPU detection library by B-coolWare
-pcip.inc     part of CPU/FPU detection library by B-coolWare
-phones.pas   Phones book
+objtype.pas Object types
+packmap.pas MAP file packer
+phones.pas Phones book
+PKTVIEW.PAS Fido PKT viewer
 printman.pas Print manager
 profile.pas  .INI file parser
-rcp.ini      Resource compiler options
-rcp.pas      DN Resource Compiler
-realcode.arl part of CPU/FPU detection library by B-coolWare
-reanimat.pas Reanimator
-regall.pas   Registration of all objects
-rspfile.pas  Access to packed files
-rsr.bat      Run this to rebuild resource
+rcp.pas DN Resource Compiler
+rcpvp.ini Resource compiler options
+regall.pas Registration of all objects
+rspfile.pas Access to packed files
 rstrings.pas Strings cashe
 sblocks.pas  Collectors
 scrollbk.pas Scrollback
 scroller.pas Scrollers
-se.ash       Part of Long File Names Support
 search.pas   Part of packmap & dnerror - binary search
-setups.pas   Setups DN
+setups.pas Setups DN
 stakdump.pas A unit for dumping the stack chain
-starsky.pas  StarSky screen saver
+starsky.pas StarSky screen saver
 startup.pas  Startup configuration
 stdefine.inc defines for project
-strview.pas  TDStringView
-swe.pas      Inputs
-sysinfo.pas  System information
-sysint.asm   System interrupt vectors
-tdr2avt.pas  TDR -> AVT converter
-terminal.pas Terminal
-tetris.pas   Tetris
+strview.pas TDStringView
+swe.pas Inputs
+sysinfo.pas System information
 titleset.pas Application title changing support
-tmi0sdgl.inc part of CPU/FPU detection library by B-coolWare
 tree.pas     View of disk tree
-trees.pas    Part of the 'zlib' compression library
-tvhc.pas     TV Help Compiler
-u_keymap.pas Keyboard map
-u_myapp.pas  Main aplication object
-u_srchf.pas  Search File Names
-udialer.pas  Dialer
+tvhc.pas TV Help Compiler
 ufnmatch.pas Filename matches the UNIX style mask
-uniwin.pas   Uni Window
+uniwin.pas Uni Window
 usermenu.pas User menu routines
-uucode.pas   UU Encode/Decode
-uue2inc.asm  UU encode/decode
+uucode.pas UU Encode/Decode
+u_keymap.pa7 Keyboard map
+u_myapp.pas Main aplication object
+u_srchf.pas Search File Names
 validate.pas Validators
-version.pas  Version.Inc generator
-views.pas    Standard views
-w95expn.asm  Win95 file Expand routine
-w95tctl.asm  Win95 file access routines
-w95tfio.asm  Win95 file access routines
-winclp.pas   Windows clipboard connection
-xdblwnd.pas  Double Window
-xtime.pas    Extended time support
-zconf.inc    Part of the 'zlib' compression library
-zdeflate.pas Part of the 'zlib' compression library
-zinflate.pas Part of the 'zlib' compression library
-zlib.pas     Part of the 'zlib' compression library
-zutil.pas    Part of the 'zlib' compression library
-drivers2.pas Fail information
-microed2.pas Microed: Read/Write/Store/Load methods
+version.pas Version.Inc generator
+views.pas Standard views
+xdblwnd.pas Double Window
+xtime.pas Extended time support
+usermenu.pas User menu routines
+filelst.pas  Files list creating
+FILESCOL.PA1 Files collection
+filescol.pas Files collection
+lfncol.pas   EMS & Memory LFN collection
+vpsysw32.dif патч к системному модулю vpsysw32.pas, позволяющий избежать проблем с кириллическими именами файлов в Win32 версии
+advance6.pa5 Advanced procedures
+dn2pmapi.pas OS/2 Presentation Manager API interface
+DNPMAPIL.PAS OS/2 Presentation Manager API interface
+openobj.pas  WPS file object opening utility for DN/2
+dnini.pas    Ini Configuration
+diskinfo.pas Disk info
+drives.pas   Drive access
+dnini.pa9    Ini Configuration
+drives.pa9   Drive access
+eraser.pa9   File eraser
+filediz.pa9  Files descriptions support
+flpanel.pa9  Files panel
+flpanelx.pa9 Files panel
+fltools.pa9  Files tools
+dnexec.pas   Execution functions
+_dnc.bat     Batch to build Win32 wersion
+_dnc.cmd     Batch to build OS/2 wersion
+drivers._vp  Drivers for VP
+views._vp    Views for VP
+fio._vp      File Input/Output for VP
+vpc.cfg      VPC Configutation file
+vpc.cfo      VPC Configutation file for OS/2 wersion
+vpc.cfw      VPC Configutation file for Win32 wersion
+sort_dos.inc Sorting types for DOS versions
+sort_os2.inc Sorting types for OS/2 versions
+advance.pas  Advanced procedures: startup
+advance1.pas Advanced procedures: String functions
+advance2.pas Advanced procedures: File related functions
+advance6.pas Advanced procedures
+collect.pas  Collections
+decoder.pas  Part of DisAsm
+dnapp.pas    DN Application unit
+eaoper.pas   Enhanced Attributes handling (OS/2 only)
+errmess.pas  Error messages
+filecopy.pas Files copyer
+filefind.pas Files finder
+flos2tl.pas  OS/2 specific files tools
+flw32tl.pas  Win32 specific files tools
+fviewer.pas  File viewer
+histries.pas Histories
+lfnvp.pas    LFN Support for VP
+macro.pas    Macro editor & environment editor
+pack_lzw.pas LZW compression
+packf_rs.pas Pack file read/seek
+tetris.pas   Tetris
+u_keymap.pas Keyboard map
+usersavr.pas User saver
+videoman.pas Video mode manager
+vpsyslo2.pas VPSysLow extension unit for VP
+winclpvp.pas Windows clipboard connection for VP
+uue2inc.pas  UU encode/decode
+DOC Documentation for DN/2
+EXEO Destination directory for OS/2 binaries
+EXEW Destination directory for Win32 binaries
+LIBO OS/2 libraries directory
+LIBW Win32 libraries directory
+rcpvp.in2    Resource compiler options for OS/2
+rcpvp.inw    Resource compiler options for Win32
+sort_w32.inc Sorting types for Win32 versions

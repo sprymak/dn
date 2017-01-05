@@ -449,6 +449,7 @@ asm
         XCHG    AX,CX
 end;
 {$ELSE} {$USES esi,edi,ecx} {&FRAME-}
+
 asm
         cld
         xor     eax,eax
@@ -518,7 +519,7 @@ begin
     Dec(I, Offset);
   end;
   TextToLine(Text, Offset, I, Line);
-  if Line[Length(Line)] = #13 then Dec(Line[0]);
+  if Line[Length(Line)] = #13 then SetLength(Line, Length(Line)-1);
   Inc(Offset, I);
   WrapText := Line;
 end;

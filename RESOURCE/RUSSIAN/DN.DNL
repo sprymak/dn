@@ -245,7 +245,7 @@ dlEnvRenVar                'Переименование Переменной "%s"'
 dlEnvVarLabel              '~П~еременные'
 dlEnvVariable              '~П~еременная'
 dlErase,                    'Удаление'
-dlEraseCantDelDir,          ^C'Невозможно удалить каталог '
+dlEraseCantDelDir,          ^C'Невозможно удалить каталог %s'
 dlEraseConfirm1,            ^C'Хотите удалить'^M^C'файл '
 dlEraseConfirm2,            ^C'OK для удаления'^M^C
 dlEraseConfirmDir,          ^C'Вы действительно хотите'^M^C'удалить каталог '
@@ -420,8 +420,8 @@ dlNoButton,                '~Н~ет'
 dlNoFilesFound,            'Файлы не найдены'
 dlNoFilesSelected,         ' Файлы не отмечены '
 dlBranch                   'Ветвь: '
-dlUpDir                    'Каталог'
-dlSubDir                   'Каталог'
+dlUpDir                    '>Каталог<'
+dlSubDir                   '<Каталог>'
 dlNoModemPort              ^C'Не могу найти COM порт'
 dlNoPossibleName           ^C'Невозможно найти имя'
 dlNotRenameDir             ^C'Невозможно переименовать каталог'^M^C
@@ -555,6 +555,9 @@ dlSortExt,                 '~Р~асширению'
 dlSortLongExt,             'Д~л~инномy pасширению'
 dlSortSize,                'Р~а~змеру'
 dlSortDate,                '~В~ремени'
+dlSortCrDate,              'Времени ~с~оздания'
+dlSortLADate,              'Времени ~п~осл. доступа'
+dlSortDIZ                  '~О~писанию'
 dlSortType,                '~Г~руппе'
 dlSortUnsorted,            '~Н~е сортировать'
 dlStartingCluster,         '~Н~ачальный кластер'
@@ -590,6 +593,8 @@ dlTetrisNext               ' ~След. фигура~ '
 dlTop10,                   ' Лучшая 10-ка'
 dlTop10Button,             '~Т~аблица'
 dlTopDate,                 '  Дата  ~│~'
+dlTopCrDate,               'Дата Сзд~│~'
+dlTopLADate,               'Дата ПДс~│~'
 dlTopName,                 'Коpоткое имя~│~'
 dlTopLFN,                  'Имя'
 dlTopSplit,                '~│~'
@@ -599,6 +604,8 @@ dlTopPath,                 '  Путь'
 dlTopRatio,                ' % ~│~'
 dlTopSize,                 '  Размер  ~│~'
 dlTopTime,                 'Время~│~'
+dlTopCrTime,               'ВрСзд~│~'
+dlTopLATime,               'ВрПДс~│~'
 dlTotal,                    'Всего: ~'
 dlTotalWrite,               'Всего: '
 dlTotalWrited,              'Копир.: '
@@ -855,20 +862,38 @@ dlCE_SectorNotFound   'Сектор не найден устройством %c'
 dlCE_OutOfPaper       'Заправьте бумагу в принтер'
 dlCE_WriteFault       'Ошибка записи устройством %c'
 dlCE_ReadFault        'Ошибка чтения устройством %c'
-dlCE_GeneralFailure   'Аппаратный сбой устройства %c'
+dlCE_GeneralFailure   'Ошибка на устройстве %c'
 dlCE_BadImageOfFAT    'Нарушен образ FAT в памяти'
 dlCE_DeviceError      'Ошибка при обращении к %c'
-dlCE_InsertDisk       'Вставте диск в устройство %c'
+dlCE_InsertDisk       'Вставьте диск в устройство %c'
 dlCE_SharingViolation 'Ресурс заблокирован'
+;JO+
+dlCE_WrongDisk        'Неправильный диск %c'
+dlCE_DiskFull         'На диске %c нет места'
+dlCE_DeviceInUse      'Устройство занято'
+;JO-
 dlCE_ErrWndTitle      'Системная Ошибка'
+;AK155
+dlCE_Filename_Exced_Range 'Диск %c не поддерживает длинные имена'
+dlCE_Dirty_Flag       'Система не была закрыта, запись на диск %c заблокирована'
+;/AK155
+;JO+
+dlCE_Filename_Illegal 'Имя файла невозможно для диска %c'
+;JO-
 
-dlCE_ButAbort            '[ ~О~тмена ]'
-dlCE_ButRetry            '[ ~П~овтор ]'
-dlCE_ButIgnore           '[ ~И~гнор. ]'
+dlCE_ButAbort            '~О~тмена'
+dlCE_ButRetry            '~П~овтор'
+dlCE_ButIgnore           '~И~гнор.'
 
 
 dlTeamHint 'Используйте стрелки вверх и вниз для прокрутки списка авторов'
 
+dlTeamAll   ^Z'~Команда DN (C):
+dlTeam2_000 ^Z'~Команда DN/2 (C) Open Source:~'
+dlTeam2_001 ^Z'~Программирование~'
+dlTeam2_002 ^Z'Алексей Козлов'
+dlTeam2_003 ^Z'Алексей Короп'
+dlTeam2_004 ^Z'Яpослав Осадчий'
 dlTeam000  ^Z'~Команда DN (C) Open Source:~'
 dlTeam001  ^Z'~Программирование~'
 dlTeam002  ^Z'Сеpгей Абметко'
@@ -1203,3 +1228,89 @@ dlDelMsg                'Delete message '
 dlNotPkt                'is not FIDO PKT file!'
 dlReadingPkt            'Reading PKT-file'
 dlLine                  '───────────────────────────────────────────────────────────────────────────────'
+dlNameLong              'Д'
+dlNameShort             'К'
+dlFullInfo              'Детально '
+dlDescr                 'Описание '
+dlPath                  'Путь '
+
+;JO+
+dlAdvancedFormat        'Расширенные параметры форматирования для диска '
+dlBootSector1           'Загруз.секто~р~'
+dlEntries               'Вхождения'
+dlDirEntries            'В~х~ождения Каталогов'
+dlSize                  'Размер'
+dlClusterSize           'Р~а~змер Кластера'
+dlTracks                '~Д~орож.'
+dlHeads                 '~Г~олов.'
+dlSectors1              ' ~С~екто-'
+dlSectors2              ' ров'
+dlStartTr1              'Началь-'
+dlStartTr2              'ная'
+dlStartTr3              'д~о~рожка'
+dlInterleave1           'Интер-'
+dlInterleave2           'ли~в~'
+dlSectorSh1             'Фак~т~ор'
+dlSectorSh2             'сдвига'
+dlSectorSh3             'сектора'
+dlHeadSectSh1           'Сдвиг'
+dlHeadSectSh2           'сектора'
+dlHeadSectSh3           'го~л~овки'
+dlTrackSectSh1          'Сдвиг'
+dlTrackSectSh2          'сектора'
+dlTrackSectSh3          'доро~ж~ки'
+dlTrack                 'Дорожка'
+dlSectorSize1           'Ра~з~мер'
+dlSectorSize2           'Сектора'
+dlDrivesType            'Тип дисков '
+dlDisk                  'Диск'
+dlDOS                   'ДОС'
+dlAutodetect            'Автоопред.'
+;JO-
+;JO+ Extended Attributes
+dl_Failed_to_enumerate_EA    'Не могу считать список Расширенных Атрибутов'
+dl_Failed_to_retrieve_EA     'Не могу восстановить EA'
+dl_Failed_to_store_EA        'Не могу сохранить EA'
+dlEditEALongname             'Изменить логическое имя (Расширенный атрибут .LONGNAME )'
+dl_EALongname                'Логическое имя:'
+dlChangeLngWarning           ^C'Язык интерфейса будет изменён после перезапуска'^M+
+                             ^C'Дос Навигатора'^M+
+                             ^C' '^M+
+                             ^C'Interface language will be changed after restart' ^M+
+                             ^C'Dos Navigator'
+dl_Failed_to_set_volume_label  'Извините, не могу задать метку тома'
+;JO-
+
+;X-Man >>>
+sdtError      = 'Неизвестен';
+sdtFixed      = 'Жёсткий';
+sdtRemovable  = 'Сменный   ';
+sdtRemote     = 'Сетевой   ';
+sdtCDROM      = 'CD-ROM    ';
+sdtDblSpace   = 'DblSpace  ';
+sdtSUBST      = 'SUBST     ';
+sdtStacker    = 'Stacker   ';
+sdtRAMDrive   = 'RAM       ';
+sdtDublDisk   = 'DoubleDisk';
+sdtBernoully  = 'Bernoully ';
+sdtDiskreet   = 'Diskreet  ';
+sdtSuperStor  = 'SuperStor ';
+;X-Man <<<
+;JO+
+sdtFixed1     = '';
+dlDoes_Not_Exist = 'не существует'
+dlCmdLineTooLong = 'Командная строка слишком длинная'
+dlCantLoad = 'Не могу загрузить '
+;JO-
+;PZ+
+dlIniDataReadError      'Синтаксическая ошибка в DN.INI, секция [%s], параметр %s'
+dlIniDataTooLong        'Длина строки превышена на %d символ(ов) в DN.INI, секция [%s], параметр %s'
+;PZ-
+;JO+
+dlNotValidForFullscreen 'Этот видеорежим невозможен для полноэкранной сессии'
+dlCreateObject 'Создать объект на рабочем столе для: '
+dlObjectTitle  'Заголовок объекта:'
+dl_CodePage_FS_Error 'Ошибка файловой системы, связанная с кодовой страницей'
+dlCre 'Сзд '
+dlLac 'ПДс '
+;JO-

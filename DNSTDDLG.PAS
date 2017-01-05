@@ -45,13 +45,14 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
 
 unit DNStdDlg;
 
 interface
 
-uses LFN, LFNCol, Collect, Objects, Drivers, Views, Dialogs, Dos, Memory,
-     Messages, DNApp;
+uses LFN, {$IFNDEF OS2}LFNCol, {$ENDIF} Collect, Objects, Drivers, Views,
+     Dialogs, Dos, Memory, Messages, DNApp;
 
 const
 
@@ -81,8 +82,12 @@ type
     Attr: Byte;
     Time: Longint;
     Size: TSize;
+{$IFNDEF OS2}
     Name: string[12];
     LFN:  TLFNIndex;
+{$ELSE}
+    Name: string;
+{$ENDIF}
   end;
        {DataCompBoy}
 
@@ -110,7 +115,7 @@ type
   end;
 
   { TSortedListBox is a TListBox that assumes it has a          }
-  { TStoredCollection instead of just a TCollection.  It will   }
+  { TSortedCollection instead of just a TCollection.  It will   }
   { perform an incremental search on the contents.              }
 
   PSortedListBox = ^TSortedListBox;
@@ -244,7 +249,7 @@ begin
   if Length(ExpPath) <= 3 then PathValid := ValidDrive(ExpPath[1])
   else
   begin
-    if ExpPath[Length(ExpPath)] = '\' then Dec(ExpPath[0]);
+    if ExpPath[Length(ExpPath)] = '\' then SetLength(ExpPath, Length(ExpPath)-1);
     lFindFirst(ExpPath, Directory+Hidden+SysFile+ReadOnly+Archive, SR);
     PathValid := (DosError = 0) and (SR.SR.Attr and Directory <> 0);
     lFindClose(SR);
@@ -377,12 +382,21 @@ begin
   if (Event.What = evBroadcast) and (Event.Command = cmFileFocused) and
     (State and sfSelected = 0) then
   begin
+{$IFNDEF OS2}
      Dir := GetLFN(PSearchRec(Event.InfoPtr)^.LFN) + '\';
+{$ELSE}
+     Dir := PSearchRec(Event.InfoPtr)^.Name + '\';
+{$ENDIF}
      if PSearchRec(Event.InfoPtr)^.Name[1] = '[' then Dir := Dir[3] + ':';
      if PSearchRec(Event.InfoPtr)^.Attr and Directory <> 0 then
         Data^ := Dir +
           PFileDialog(Owner)^.WildCard^
-     else Data^ := GetLFN(PSearchRec(Event.InfoPtr)^.LFN);
+     else
+{$IFNDEF OS2}
+         Data^ := GetLFN(PSearchRec(Event.InfoPtr)^.LFN);
+{$ELSE}
+         Data^ := PSearchRec(Event.InfoPtr)^.Name;
+{$ENDIF}
      DrawView;
   end;
 end;
@@ -393,7 +407,7 @@ end;
         {-DataCompBoy-}
 function TFileCollection.Compare(Key1, Key2: Pointer): Integer;
 begin
-  if PSearchRec(Key1)^.Name = PSearchRec(Key2)^.Name then Compare := 0
+  if UpLowStrg(PSearchRec(Key1)^.Name) = UpLowStrg(PSearchRec(Key2)^.Name) then Compare := 0
   else if (PSearchRec(Key1)^.Name[1] = '[') then Compare := 1
   else if (PSearchRec(Key2)^.Name[1] = '[') then Compare := -1
   else if PSearchRec(Key1)^.Name = '..' then Compare := -1
@@ -402,7 +416,7 @@ begin
      (PSearchRec(Key2)^.Attr and Directory = 0) then Compare := 1
   else if (PSearchRec(Key2)^.Attr and Directory <> 0) and
      (PSearchRec(Key1)^.Attr and Directory = 0) then Compare := -1
-  else if PSearchRec(Key1)^.Name > PSearchRec(Key2)^.Name then
+  else if UpLowStrg(PSearchRec(Key1)^.Name) > UpLowStrg(PSearchRec(Key2)^.Name) then
     Compare := 1
   else Compare := -1;
 end;
@@ -411,7 +425,9 @@ end;
         {-DataCompBoy-}
 procedure TFileCollection.FreeItem(Item: Pointer);
 begin
+{$IFNDEF OS2}
   DelLFN(PSearchRec(Item)^.LFN);
+{$ENDIF}
   Dispose(PSearchRec(Item));
 end;
         {-DataCompBoy-}
@@ -424,7 +440,9 @@ var
 begin
   New(Item);
   S.Read(Item^, SizeOf(TSearchRec));
+{$IFNDEF OS2}
   Item^.LFN:=LoadLFN(S);
+{$ENDIF}
   GetItem := Item;
 end;
         {-DataCompBoy-}
@@ -433,7 +451,9 @@ end;
 procedure TFileCollection.PutItem(var S: TStream; Item: Pointer);
 begin
   S.Write(Item^, SizeOf(TSearchRec));
+{$IFNDEF OS2}
   StoreLFN(S, PSearchRec(Item)^.LFN);
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -454,7 +474,7 @@ procedure TSortedListBox.HandleEvent(var Event: TEvent);
 var
   CurString, NewString: String;
   K: Pointer;
-  Value, OldPos, OldValue: LongInt;
+  Value, OldPos, OldValue: CondInt;
   T: Boolean;
 
 function Equal(var S1: String; var S2: String; Count: Word): Boolean;
@@ -484,13 +504,13 @@ begin
       begin
         if SearchPos = 0 then Exit;
         Dec(SearchPos);
-        CurString[0] := Char(SearchPos);
+        SetLength(CurString, SearchPos);
       end
       else if (Event.CharCode = '.') then SearchPos := Pos('.',CurString)
       else
       begin
         Inc(SearchPos);
-        CurString[0] := Char(SearchPos);
+        SetLength(CurString, SearchPos);
         CurString[SearchPos] := Event.CharCode;
       end;
       K := GetKey(CurString);
@@ -577,12 +597,22 @@ end;
 function TFileList.GetKey(var S: String): Pointer;
 const
   SR: TSearchRec = ();
-  ST: TLFNIndex = nil;
+{$IFNDEF OS2}
+  {$IFNDEF STRINGLFN}
+   ST: TLFNIndex = nil;
+  {$ELSE}
+   ST: TLFNIndex = '';
+  {$ENDIF}
+{$ENDIF}
 begin
+{$IFNDEF OS2}
   DelLFN(ST); ST:=AddLFN(s);
-  SR.Attr := 0;
   SR.LFN := ST;
   SR.Name := lfGetShortFileName(S);
+{$ELSE}
+  SR.Name := S;
+{$ENDIF}
+  SR.Attr := 0;
   UpStr(SR.Name);
   GetKey := @SR;
 end;
@@ -592,9 +622,16 @@ end;
 function TFileList.GetText(Item: LongInt; MaxLen: Integer): String;
 var
   SR: PSearchRec;
+  S: string;
 begin
   SR := PSearchRec(List^.At(Item));
-  GetText := SR^.Name;
+{$IFDEF OS2}
+  if IsMixedCase(SR^.Name) then S := SR^.Name else S := LowStrg(SR^.Name);
+{$ELSE}
+  if IsMixedCase(GetLFN(SR^.LFN)) then S := GetLFN(SR^.LFN) else S := LowStrg(GetLFN(SR^.LFN));
+{$ENDIF}
+  if Length(S) > 13 then begin SetLength(S, 13); S[13] := FMSetup.RestChar[1]; end;
+  GetText := S;
 end;
         {-DataCompBoy-}
 
@@ -641,7 +678,9 @@ begin
           Time:= S.SR.Time;
           Size:= S.FullSize;
           Name:= S.SR.Name;
+{$IFNDEF OS2}
           LFN := AddLFN(GetName(S.FullName));
+{$ENDIF}
          End;
         FileList^.Insert(P);
       end;
@@ -678,12 +717,22 @@ end;
 function TDirectoryList.GetKey(var S: String): Pointer;
 const
   SR: TSearchRec = ();
+{$IFNDEF OS2}
+  {$IFNDEF STRINGLFN}
   ST: TLFNIndex = nil;
+  {$ELSE}
+  ST: TLFNIndex = '';
+  {$ENDIF}
+{$ENDIF}
 begin
+{$IFNDEF OS2}
   DelLFN(ST); ST:=AddLFN(S);
-  SR.Attr := Directory;
-  SR.Name := lfGetShortFileName(S);
   SR.LFN  := ST;
+  SR.Name := lfGetShortFileName(S);
+{$ELSE}
+  SR.Name := S;
+{$ENDIF}
+  SR.Attr := Directory;
   UpStr(SR.Name);
   GetKey := @SR;
 end;
@@ -693,9 +742,16 @@ end;
 function TDirectoryList.GetText(Item: LongInt; MaxLen: Integer): String;
 var
   SR: PSearchRec;
+  S: String;
 begin
   SR := PSearchRec(List^.At(Item));
-  if SR^.Name[1] <> '[' then GetText := SR^.Name+'\'
+{$IFDEF OS2}
+  if IsMixedCase(SR^.Name) then S := SR^.Name else S := UpStrg(SR^.Name);
+{$ELSE}
+  if IsMixedCase(GetLFN(SR^.LFN)) then S := GetLFN(SR^.LFN) else S := UpStrg(GetLFN(SR^.LFN));
+{$ENDIF}
+  if Length(S) > 12 then begin SetLength(S, 12); S[12] := FMSetup.RestChar[1]; end;
+  if SR^.Name[1] <> '[' then GetText := S+'\'
                         else GetText := SR^.Name;
 end;
         {-DataCompBoy-}
@@ -725,7 +781,7 @@ begin
   lFindFirst(Tmp, Directory+Byte(SystemData.Options and ossShowHidden <> 0)*Hidden, S);
   while (P <> nil) and (DosError = 0) do
   begin
-    if (S.SR.Attr and Directory <> 0) and (S.SR.Name[1] <> '.') then
+   if (S.SR.Attr and Directory <> 0) and not IsDummyDir({$IFDEF OS_DOS}S.SR.Name{$ELSE}S.Fullname{$ENDIF}) then
     begin
       P := MemAlloc(SizeOf(P^));
       if P <> nil then
@@ -735,8 +791,12 @@ begin
           Attr:= S.SR.Attr;
           Time:= S.SR.Time;
           Size:= S.FullSize;
+{$IFNDEF OS2}
           Name:= S.SR.Name;
           LFN := AddLFN(GetName(S.FullName));
+{$ELSE}
+          Name:= S.FullName;
+{$ENDIF}
          End;
         FileList^.Insert(PObject(P));
       end;
@@ -758,13 +818,19 @@ begin
          Attr:= S.SR.Attr;
          Time:= S.SR.Time;
          Size:= S.FullSize;
+{$IFNDEF OS2}
          Name:= S.SR.Name;
          LFN := AddLFN(GetName(S.FullName));
+{$ELSE}
+         Name:= S.FullName;
+{$ENDIF}
         End
       else
       begin
         P^.Name := PrevDir;
+{$IFNDEF OS2}
         P^.LFN  := AddLFN(PrevDir);
+{$ENDIF}
         P^.Size := 0;
         P^.Time := $210000;
         P^.Attr := Directory;
@@ -777,7 +843,9 @@ begin
      begin
        P := MemAlloc(SizeOf(P^));
        P^.Name := '[-'+C+'-]';
+{$IFNDEF OS2}
        P^.LFN  := AddLFN('[-'+C+'-]');
+{$ENDIF}
        P^.Size := 0;
        P^.Time := $210000;
        P^.Attr := Directory;
@@ -817,37 +885,49 @@ var
   Params: array[0..7] of LongInt;
   Str: String;
 const
+{$IFNDEF OS2}
   sDirectoryLine = ' %-12s %-10s  %sm';
   sFileLine      = ' %-12s %-10s  %sm';
+{$ELSE}
+  sDirectoryLine = '          %-10s  %sm         ';
+  sFileLine      = '          %-10s  %sm         ';
+{$ENDIF}
 begin
   { Display path }
+{$IFDEF OS_DOS}
   Path := #0+Cut(lFGetLongFileName(lFExpand(PFileDialog(Owner)^.Directory^))+PFileDialog(Owner)^.WildCard^,Size.X-1)+#0;
+{$ELSE}
+  Path := #0+Cut(lFExpand(PFileDialog(Owner)^.Directory^)+PFileDialog(Owner)^.WildCard^,Size.X-1)+#0;
+{$ENDIF}
   Color := GetColor($01);
   MoveChar(B, ' ', Color, Size.X);
   MoveCStr(B[1], Path, Color);
   WriteLine(0, 0, Size.X, 1, B);
 
   { Display file }
+{$IFNDEF OS2}
   Params[0] := LongInt(@S.Name);
   MoveChar(B, ' ', Color, Size.X);
   Params[0] := LongInt(@S.Name);
+{$ENDIF}
   if S.Attr and Directory <> 0 then
   begin
     FmtId := sDirectoryLine;
     if S.Name[1] <> '[' then D := GetString(dlDirectory)
                          else D := GetString(dlDrive);
-    Params[1] := LongInt(@D);
+    Params{$IFNDEF OS2}[1]{$ELSE}[0]{$ENDIF} := LongInt(@D);
+
   end else
   begin
     FmtId := sFileLine;
     D:=FileSizeStr(S.Size);
-    Params[1] :=LongInt(@D);
+    Params{$IFNDEF OS2}[1]{$ELSE}[0]{$ENDIF} :=LongInt(@D);
   end;
   UnpackTime(S.Time, Time);
   with Time do
     MakeDate(0, Day, Month, Year mod 100, Hour, Min, M);
 {  M := GetString( TStrIdx( Integer( dlJanuary ) + Time.Month - 1 ));}
-  Params[2] := LongInt(@M);
+  Params{$IFNDEF OS2}[2]{$ELSE}[1]{$ENDIF} := LongInt(@M);
 {  Params[3] := Time.Day;
   Params[4] := Time.Year;}
 {  PM := Time.Hour >= 12;
@@ -858,15 +938,18 @@ begin
   if PM then Params[7] := Byte('p')
   else Params[7] := Byte('a');}
   FormatStr(Str, FmtId, Params);
-  if CountryInfo.TimeFmt = 1 then Dec(Str[0]);
+  if CountryInfo.TimeFmt = 1 then SetLength(Str, Length(Str)-1);
   MoveStr(B, Str, Color);
-  WriteLine(0, 1, Size.X, 1, B);
-
+  WriteLine(0, 2, Size.X, 1, B);
+{$IFNDEF OS2}
   Path := Cut(GetName(GetLFN(S.LFN)), Size.X-1);
+{$ELSE}
+  Path := Cut(GetName(S.Name), Size.X-1);
+{$ENDIF}
   Color := GetColor($01);
   MoveChar(B, ' ', Color, Size.X);
   MoveStr(B[1], Path, Color);
-  WriteLine(0, 2, Size.X, 1, B);
+  WriteLine(0, 1, Size.X, 1, B);
 
   { Fill in rest of rectangle }
   MoveChar(B, ' ', Color, Size.X);
@@ -1049,7 +1132,7 @@ function RTrim(S: String): String;
 var
   I: Integer;
 begin
-  while S[Length(S)] = ' ' do Dec(S[0]);
+  while S[Length(S)] = ' ' do SetLength(S, Length(S)-1);
   RTrim := S;
 end;
 
@@ -1063,7 +1146,7 @@ begin
   else RelativePath := True;
 end;
 
-function NoWildChars(S: String): String; assembler;
+(* function NoWildChars(S: String): String; assembler;
 {$IFNDEF BIT_32}
  asm
         PUSH    DS
@@ -1109,6 +1192,30 @@ function NoWildChars(S: String): String; assembler;
         STOSB
  end;
 {$ENDIF}
+*)
+{AK155: тут было нечто ассемблерное с условной трансляцией,
+глючившее под VP. Эта функция вызывается в единственном месте
+в связи с диалогом, так что ассемблер здесь совершенно не нужен.
+Поэтому переписал на Паскале: и понятно, и платформонезависимо.}
+function NoWildChars(S: String): String;
+  var
+    i, j: integer;
+    c: char;
+    Result: string;
+  begin
+  j := 0;
+  for i := 1 to length(S) do
+    begin
+    c := S[i];
+    if (c <> '*') and (c <> '?') then
+      begin
+      inc(j); Result[j] := c;
+      end;
+    end;
+  SetLength(Result, j);
+  NoWildChars := Result;
+  end;
+{/AK155}
 
 begin
   S := FileName^.Data^; ClrIO;
@@ -1127,7 +1234,11 @@ begin
     end;
   end;
   S:=DelSquashes(S);
+{$IFDEF OS_DOS}
   S:=lfGetLongFileName(lfGetLongFileName(GetPath(S))+GetName(S));
+{$ELSE}
+  S:=GetPath(S)+GetName(S);
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -1374,7 +1485,9 @@ begin
   if B then D^.SetData(S);
   if Desktop^.ExecView(D) <> cmCancel then D^.GetFileName(S);
   Dispose(D,Done);
+{$IFDEF OS_DOS}
   S:=lfGetLongFileName(S);
+{$ENDIF}
   if S <> '' then
     begin
        S := lFExpand(S);
@@ -1412,7 +1525,7 @@ function GetFileNameMenu (Path, Mask, Default: String; PutNumbers: Boolean; var 
             if ((SR.SR.Attr and Directory)=0) and (SR.FullSize>0) and
                 (InFilter(SR.FullName,Mask) or InFilter(SR.SR.Name,Mask))
              then begin
-                S[0]:=#0;
+                SetLength(S, 0);
                 S:=SR.FullName;
                 S:=LngMixCase(S);
                 L.Insert(NewStr(S))

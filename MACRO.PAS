@@ -117,7 +117,7 @@ type
       end;
 
 
-function Token(const S: String; var Pos: LongInt): String;
+function Token(const S: String; var Pos: CondInt): String;
   var A: String;
       B, Cmd: Boolean;
       M: String;
@@ -176,18 +176,18 @@ end;
 
 constructor TEditMacros.Init;
   var
-      I,J: LongInt;
+      I,J: CondInt;
       IDs: PIDCollection;
       Error: Boolean;
 
    function GetId(const S: String): LongInt;
      var T: TLngWord;
-         I: LongInt;
+         I: CondInt;
          L: LongInt;
          qq: integer;
    begin
      FreeStr := S; DelRight(FreeStr);
-     if S[Length(S)] = ',' then Dec(FreeStr[0]);
+     if S[Length(S)] = ',' then SetLength(FreeStr, Length(FreeStr)-1);
      DelRight(FreeStr);
      T.Init(0, FreeStr);
      if IDs^.Search(@T, I) then
@@ -211,12 +211,10 @@ constructor TEditMacros.Init;
        end else Found := Off;
    end;
 
-   {$IFDEF PRINTMANAGER}
    procedure MakePrint;
    begin
      Commands^.Insert(New(PMacroString, Init(Token(S, I), GetID(Token(S, I)))));
    end;
-   {$ENDIF}
 
    procedure MakeGotoXY(X,Y: Integer);
    begin
@@ -255,14 +253,14 @@ constructor TEditMacros.Init;
     Add(cmMoveUp              ,'MoveUp');
     Add(cmMoveLeft            ,'MoveLeft');
     Add(cmMoveRight           ,'MoveRight');
-    Add(cmMoveDown            ,'MoveDown ');
+    Add(cmMoveDown            ,'MoveDown');
     Add(cmBlockStart          ,'BlockStart');
     Add(cmBlockEnd            ,'BlockEnd');
     Add(cmMarkWord            ,'MarkWord');
     Add(cmMarkLine            ,'MarkLine');
     Add(cmBlockRead           ,'BlockRead');
     Add(cmBlockWrite          ,'BlockWrite');
-    {$IFDEF PRINTMANAGER}
+    {$IFDEF Printer}
     Add(cmBlockPrint          ,'BlockPrint');
     {$ENDIF}
     Add(cmIndentBlock         ,'IndentBlock');
@@ -347,9 +345,7 @@ begin
         begin
           I := 1;
           if Found('ENDMACRO') then Break;
-            {$IFDEF PRINTMANAGER}
             if Found('PRINT ') then MakePrint else
-            {$ENDIF}
             if Found('GOTOXY ') then MakeGotoXY(GetID(Token(S,I)), GetID(Token(S,I))) else
             if Found('GOTOX ') then MakeGotoXY(GetID(Token(S,I)), -1) else
             if Found('GOTOY ') then MakeGotoXY(-1, GetID(Token(S,I))) else
@@ -474,7 +470,7 @@ end;
 procedure TDOSVar.SetValue;
 begin
    if (S = '') and (Value = nil) then Exit;
-   if (Value = nil) or (Value^[0] <> S[0]) then
+   if (Value = nil) or (Length(Value^) <> Length(S)) then
      begin
        DisposeStr(Value);
        Value := NewStr(S);
@@ -824,8 +820,8 @@ var
       if EdOptions <> nil then begin
         if Found('H_LINE ') or Found('H_ROW ') then EdOptions^.HiliteLine:=IsOn else
         if Found('H_COLUMN ') then EdOptions^.HiliteColumn:=IsOn else
-        if Found('AUTOWRAP ') then EdOptions^.AutoJustify:=IsOn else
-        if Found('WRAPJUSTIFY ') then EdOptions^.AutoWrap:=IsOn else
+        if Found('WRAPJUSTIFY ') then EdOptions^.AutoJustify:=IsOn else
+        if Found('AUTOWRAP ') then EdOptions^.AutoWrap:=IsOn else
         if Found('LEFTMARGIN ') then MakeValue(EdOptions^.LeftSide) else
         if Found('RIGHTMARGIN ') then MakeValue(EdOptions^.RightSide) else
         if Found('PARAGRAPH ') then MakeValue(EdOptions^.InSide) else

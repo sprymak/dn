@@ -62,6 +62,8 @@ const
   mfConfirmation = $0003;       { Display a Confirmation Box }
   mfQuery        = $0004;
   mfAbout        = $0005;
+  mfSysError     = $0006;
+
 { Message box button flags }
 
   mfYesButton    = $0100;       { Put a Yes button into the dialog }
@@ -87,6 +89,7 @@ const
 
 function MessageBox( Msg: String; Params: Pointer; AOptions: Word ): Word;
 
+(* function SysErrorMessageBox( Msg: String; {Params: Pointer;} AOptions: Word ): Word; *)
 
 { MessageBoxRec allows the specification of a TRect for the     }
 { message box to occupy.                                        }
@@ -166,29 +169,6 @@ begin
                        Params2,
                        AOptions );
 end;
-
-function MessageBox;
-var
-  R: TRect;
-  i,j,k,l : Byte;
-begin
-  i:=0;l:=0;k:=0;
-  for j:=1 to Length(Msg) do
-      begin
-       if Msg[j]=#13 then begin Inc(i);if k>l then l:=k;k:=0;end;
-       if Msg[j]>#31 then Inc(k);
-       if k > 70 then k := 70;
-      end;
-  if k>l then l:=k;if l<36 then l:=36;
-  K := 0;
-  for J := 0 to 7 do if AOptions and ($0100 shl J) <> 0 then Inc(K);
-  if K*13 > l+6 then L := K*13 - 6;
-  R.Assign(0, 0, l+6, i+7);
-  R.Move((Desktop^.Size.X - R.B.X) div 2, (Desktop^.Size.Y - R.B.Y) div 2);
-
-  MessageBox := MessageBoxRect(R, Msg, Params, AOptions);
-end;
-
 
 function MessageBox2;
 var
@@ -373,6 +353,89 @@ begin
   MsgActive:=False;
 end;
 
+function SysErrorMessageBoxRect( var R: TRect; Msg: String; {Params: Pointer;}
+  AOptions: Word ): Word;
+const
+  Cmds: array [0..2] of word =
+    (cmYes, cmOK, cmNo {, cmOk, cmOK, cmYes, cmOK, cmCancel});
+var
+  I, X, ButtonCount: Integer;
+  Dialog: PDialog;
+  Control: PView;
+  T: TRect;
+  ButtonList: array[0..4] of PView;
+  PP: TPoint;
+  Event: TEvent;
+
+procedure AddButton;
+var
+  s: string;
+begin
+  case I of
+0: s := GetString(dlCE_ButRetry);
+1: s := GetString(dlCE_ButAbort);
+2: s := GetString(dlCE_ButIgnore);
+  end;
+  R.Assign(0, 0, Max(10, CStrLen(s)+4), 2);
+  Control := New(PButton, Init(R, s, Cmds[i], bfNormal));
+  Inc(X, Control^.Size.X + 2);
+  ButtonList[ButtonCount] := Control;
+  Inc(ButtonCount);
+end;
+
+begin
+  Dialog := New(PDialog, Init(R, GetString(dlCE_ErrWndTitle)));
+  Dialog^.HelpCtx := hcNoContext;
+  with Dialog^ do
+  begin
+    R.Assign(3, 2, Size.X - 2, Size.Y - 3);
+    Control := New(PStaticText, Init(R, Msg));
+    Insert(Control);
+    X := -2;
+    ButtonCount := 0;
+    for I := 0 to 2 do
+      if AOptions and ($0100 shl I) <> 0 then AddButton;
+    X := (Size.X - X) shr 1;
+    for I := 0 to ButtonCount - 1 do
+    begin
+      Control := ButtonList[I];
+      Insert(Control);
+      Control^.MoveTo(X, Size.Y - 3);
+      Inc(X, Control^.Size.X + 2);
+    end;
+    SelectNext(False);
+    SelectNext(True);
+    SelectNext(False);
+  end;
+  MsgActive:=True;
+  SysErrorMessageBoxRect := DeskTop^.ExecView(Dialog);
+  Dispose(Dialog,Done);
+  MsgActive:=False;
+end;
+
+function MessageBox;
+var
+  R: TRect;
+  i,j,k,l : Byte;
+begin
+  i:=0;l:=0;k:=0;
+  for j:=1 to Length(Msg) do
+      begin
+       if Msg[j]=#13 then begin Inc(i);if k>l then l:=k;k:=0;end;
+       if Msg[j]>#31 then Inc(k);
+       if k > 70 then k := 70;
+      end;
+  if k>l then l:=k;if l<36 then l:=36;
+  K := 0;
+  for J := 0 to 7 do if AOptions and ($0100 shl J) <> 0 then Inc(K);
+  if K*13 > l+6 then L := K*13 - 6;
+  R.Assign(0, 0, l+6, i+7);
+  R.Move((Desktop^.Size.X - R.B.X) div 2, (Desktop^.Size.Y - R.B.Y) div 2);
+  if (AOptions and $7) = mfSysError then
+    MessageBox := SysErrorMessageBoxRect(R, Msg, AOptions)
+  else
+    MessageBox := MessageBoxRect(R, Msg, Params, AOptions);
+end;
 
 function InputBox;
 var

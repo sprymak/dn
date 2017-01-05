@@ -49,7 +49,7 @@
 UNIT ERASER;
 
 interface
-uses Objects, LFNCol, filediz, Collect;
+uses Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} filediz, Collect;
 
  procedure EraseFiles(Files: PCollection);
  procedure SetVLabel;
@@ -59,7 +59,10 @@ implementation
 uses Dos, LFN{DataCompBoy}, FilesCol, Commands, advance, advance1, advance2,
      advance3, Startup, Messages, xTime, Drivers, Tree, Memory,
      DNApp, Gauge, Views, RStrings, Dialogs, Drives, FileCopy
-     {$IFNDEF NONBP},DiskTool{$ENDIF};
+     {$IFNDEF NONBP},DiskTool{$ENDIF}
+{JO} {$IFDEF OS2}, VPUtils, FlOS2Tl{$ENDIF}
+
+     ;
 
         {-DataCompBoy-}
 function ValidErase;
@@ -75,7 +78,12 @@ begin
    begin PF := Files^.At(0);
          if PF^.Attr and Directory <> 0 then S := GetString(dlEraseConfirmDir)
                                         else S := GetString(dlEraseConfirm1);
+{$IFNDEF OS2}
          S := S + '"' + Cut(GetLFN(PF^.LFN), 40)  + '"' + ' ?';
+{$ELSE}
+         S := S + '"' + Cut(PF^.Name, 40)  + '"' + ' ?';
+{$ENDIF}
+
    end
   else S := GetString(dlEraseConfirms1);
   if (Files^.Count = 1) and (Confirms and cfSingleErase = 0) then I := cmYes else
@@ -109,6 +117,10 @@ procedure EraseFiles;
       {$ENDIF}
       DrivesSet: Set of Char;
       DeleteAllFiles: Boolean;
+      Params: record {AK155}
+        FName: PString;
+        RC: longint;
+        end;
 
   procedure InfoWrite(N: Integer; const S: Str40);
   begin
@@ -151,6 +163,10 @@ procedure EraseFiles;
   end;
   {$ENDIF}
 
+{AK155 При отказе (DOSDelDir=false) Params.RC возвращает код
+завершения неудачной операции, если причина отказа - ошибка
+операции с файлом или каталогом. При посторонних причинах отказа
+(например, Abort) будет Params.RC=0}
   function DOSDelDir: Boolean;
    var
     DC: PDirCol;
@@ -159,6 +175,7 @@ procedure EraseFiles;
   begin
    DOSDelDir := false;
    Abort:=false;
+   Params.RC := 0;
    new(DC, Init($10, $10));
    new(TD, Init($10, $10));
    DC^.Insert(NewStr(FreeStr));
@@ -172,7 +189,7 @@ procedure EraseFiles;
      if Word(Length(FreeStr))+Word(Length(x_x)) > MaxPathLen-1 then
       begin Abort:=true; Break end;
 
-     lFindFirst(MakeNormName(FreeStr, x_x), $FF xor VolumeID, SR);
+    lFindFirst(MakeNormName(FreeStr, x_x),{$IFDEF OS2}Anyfile{$ELSE}$FF XOR VolumeID{$ENDIF}, SR); {JO}
      while DosError=0 do
       begin
        If Abort then break;
@@ -194,7 +211,8 @@ procedure EraseFiles;
          lAssignFile(F, MakeNormName(FreeStr, SR.FullName));
          lSetFAttr(F, 0);
          lEraseFile(F);
-         if IOResult<>0 then begin Abort:=true; break; end;
+         Params.RC := IOResult;
+         if Params.RC<>0 then begin Abort:=true; break; end;
         end;
        lFindNext(SR);
       end;
@@ -215,7 +233,8 @@ procedure EraseFiles;
      begin
       ClrIO;
       lRmDir(PString(tD^.At(0))^);
-      if IOResult<>0 then
+      Params.RC := IOResult;
+      if Params.RC<>0 then
        begin DOSDelDir:=False; FreeStr:=PString(tD^.At(0))^; break; end;
       TD^.AtFree(0);
      end;
@@ -274,15 +293,16 @@ procedure EraseFiles;
   begin
     DeleteDirectory := Off;
     Dir:=lFExpand(Dir);
-    if Dir[Length(Dir)]='.' then Dec(Dir[0]);
+    if Dir[Length(Dir)]='.' then SetLength(Dir, Length(Dir)-1);
     if not DeleteAllFiles then
     begin
        S := MakeNormName(Dir, x_x);
        DosError:=0;
-       lFindFirst(S ,$FF xor VolumeID, SR);
-       if (SR.SR.Name[1] = '.') then lFindNext(SR);
-       if (SR.SR.Name[1] = '.') then lFindNext(SR);
-       if Abort then begin lFindClose(SR); Exit; end;
+       lFindFirst(S ,{$IFDEF OS2}Anyfile{$ELSE}$FF XOR VolumeID{$ENDIF}, SR);  {JO}
+       if IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF}) then lFindNext(SR);
+       if IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF}) then lFindNext(SR);
+       lFindClose(SR);
+       if Abort then Exit;
        dr := cmOK;
        if (DOSError = 0) and (not DeleteAllFiles) then
         begin
@@ -305,7 +325,12 @@ procedure EraseFiles;
          j123qwe:=not DOSDelDir;
          if j123qwe then
            begin
-              MessageBox(GetString(dlEraseCantDelDir)+Cut(FreeStr,40), nil, mfError+mfOKButton);
+              FreeStr := Cut(FreeStr,40);
+              Params.FName := @FreeStr;
+              S := GetString(dlEraseCantDelDir);
+              if Params.RC <> 0 then
+                S := S + ^M^C'RC=%d';
+              MessageBox(S, @Params, mfError+mfOKButton);
               Abort := On;
            end;
          PInfo^.DrawView;
@@ -328,12 +353,15 @@ procedure EraseFiles;
 
   var Fls: PCollection;
       Flush: Boolean;
+    {$IFDEF VIRTUALPASCAL}
+      Ask: Integer;
+    {$ENDIF}
   label LLL;
 
 begin
   if not ValidErase(Files) then Exit;
   DeleteAllFiles := Off; Abort := Off; ClrIO;
-
+  CtrlBreakHit := Off; {JO}
   R.Assign(1,1,26,9);
   New(PInfo, Init(R));
   PInfo^.Top := GetString(dlErase);
@@ -359,7 +387,7 @@ begin
   {$IFDEF DiskEdit}
   if not DOSMode then
    begin
-    if (S[0] > #3) and (S[Length(S)] = '\') then Dec(S[0]);
+    if (Length(S) > 3) and (S[Length(S)] = '\') then SetLength(S, Length(S)-1);
     New(Drv, Init(Byte(S[1])-64, On));
     if Drv = nil then begin Abort := Off; DOSMode := On; end
      else
@@ -394,7 +422,11 @@ begin
     for I := 1 to Files^.Count do
      begin
       PF := Files^.At(I-1);
+{$IFNDEF OS2}
       S := GetLFN(PF^.LFN);
+{$ELSE}
+      S := PF^.Name;
+{$ENDIF}
       CalcCancel;
       if (PF <> nil) and not EraseCancel and not Abort then
        if (PF^.Attr and Directory = 0) then
@@ -421,23 +453,51 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
                    GlobalMessage(evBroadcast, cmReleaseFile, @S);
                    ClrIO; lEraseFile(F);
                  end;
-               if IOResult = 0 then
+               Ask := IOResult;
+              {if IOResult = 0 then}
+               if Ask = 0 then
                begin
                  if (PF^.DIZ <> nil) and
                     (FMSetup.Options and fmoPreserveDesc = 0) then
                  begin
                    InfoWrite(1,GetString(dlDeletingDIZ));
+                   {$IFNDEF OS2}
                    DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name));
                    DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), GetLFN(PF^.LFN));
+                   {$ELSE}
+                   DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), PF^.Name);
+                   {$ENDIF}
                  end;
-               end else MessageBox(GetString(dlErasingNoFile)+S, nil, mfError+mfOKButton);
+               end else
+                   {$IFDEF VIRTUALPASCAL}
+                    begin
+                     if Ask in [2,3,110] then
+                   {$ENDIF}
+                       MessageBox(GetString(dlErasingNoFile)+S {+ '; RC = %d'}, nil{@Ask}, mfError+mfOKButton)
+                   {$IFDEF VIRTUALPASCAL}
+                     else
+                       begin
+                         Ask := SysErrorFunc(Ask, GetDrive);
+                         if (Ask = 1) then goto LLL;
+                       end;
+                    end
+                   {$ENDIF}
+                    ;
          end;
         end else begin
                        InfoWrite(1,GetString(dlErasingDir));
                        InfoWrite(2,Cut(S,40));
+                       {$IFNDEF OS2}
                        DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), MakeFileName(PF^.Name));
                        DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), GetLFN(PF^.LFN));
+                       {$ELSE}
+                       DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), PF^.Name);
+                       {$ENDIF}
+                       {$IFDEF OS_DOS}
                        S := lfGetLongFileName(MakeNormName(PF^.Owner^, S));
+                       {$ELSE}
+                       S := MakeNormName(PF^.Owner^, S);
+                       {$ENDIF}
                        DeleteDirectory(S,0);
                  end
        else Break;
@@ -461,7 +521,11 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
          if StrEq(S[1], Dir^[I].Name, 11) then
           begin
            {Files^.AtDelete(J-1);}
+          {$IFNDEF OS2} {на самом деле под многозадачками не актуально}
            S := MakeFileName(PF^.Name);
+          {$ELSE}
+           S := PF^.Name;
+          {$ENDIF}
            if Dir^[I].Attr and Directory = 0 then
             begin
              J := cmYes;
@@ -508,7 +572,7 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
   {$ENDIF}
   DrivesSet := [];
 
-  Flush := (SystemData.Options and ossFlushDsk <> 0);
+  Flush := ((SystemData.Options{$IFDEF VIRTUALPASCAL}shl 3{$ENDIF}) and ossFlushDsk <> 0);
 
   if Flush then
   begin
@@ -542,7 +606,8 @@ end;
         {-DataCompBoy-}
 
 procedure SetVLabel;
-{$IFDEF DiskEdit}
+{$IFNDEF OS2}
+  {$IFDEF DiskEdit}
  var Drv: PDiskDriver;
      S, S1: String;
      SR: SearchRec;
@@ -565,9 +630,22 @@ begin
     Dispose(Drv,Done);
     GlobalMessage(evCommand, cmRereadInfo, nil);
   end
-{$ELSE}
+  {$ELSE}
 begin
-{$ENDIF}
+  {$ENDIF}
 end;
+{$ELSE}
+ Var
+    S: String;
+    rc: Longint;
+begin
+  S := GetVolumeLabel(GetCurDrive);
+  if ExecResource(dlgVolumeLabel, S ) = cmOK then
+  begin
+    rc :=  SetVolume(GetDrive+1, S);
+    if rc <> 0 then messagebox(GetString(dl_Failed_to_set_volume_label)+', rc = %d', @rc, mfOKButton);
+  end;
+end;
+{$ENDIF}
 
 END.

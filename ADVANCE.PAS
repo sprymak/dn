@@ -45,6 +45,8 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 {$IFNDEF NONBP}
 {$A-,B-}
@@ -58,7 +60,7 @@ USES Dos,{DnIni}
      {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
      Objects, LFN{DataCompBoy}
      {$IFDEF DPMI},Dpmi,DosMem{$ENDIF}
-
+     {Cat} ,U_KeyMap {/Cat}
      ;
 
 {$IFDEF DNPRG}
@@ -215,6 +217,9 @@ Procedure Delay(MS: longint); {DataCompBoy}
 {$ENDIF}
 
 function  MemOK: Boolean;
+{$IFDEF VIRTUALPASCAL}
+inline; begin MemOK := True end; {JO}
+{$ENDIF}
 function  GetMeMemoStream: PStream; {-$VOL}
 Function  MemAdjust(L: LongInt): LongInt;
 procedure FillWord(var B;Count, W: Word);
@@ -246,7 +251,7 @@ const
      'ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~' +
      '€‚ƒ„…†‡ˆ‰Š‹Œ‘’“”•–—˜™š›œŸ' +
      '€‚ƒ„…†‡ˆ‰Š‹Œ°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖ×ØÙÚÛÜİŞß'+
-     '‘’“”•–—˜™š›œŸğğòóôõö÷øùúûüış'#255; {-$VIV}
+     '‘’“”•–—˜™š›œŸğğòòôôööøùúûüış'#255; {-$VIV}
      LowerString: string =
      (#1#2#3#4#5#6#7#8#9#10#11#12#13#14#15#16 +
      #17#18#19#20#21#22#23#24#25#26#27#28#29#30#31#32 +
@@ -255,7 +260,7 @@ const
      'abcdefghijklmnopqrstuvwxyz{|}~' +
      ' ¡¢£¤¥¦§¨©ª«¬­®¯àáâãäåæçèéêëìíîï' +
      ' ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖ×ØÙÚÛÜİŞß'+
-     'àáâãäåæçèéêëìíîïññòóôõö÷øùúûüış'#255); {-$VIV}
+     'àáâãäåæçèéêëìíîïññóóõõ÷÷øùúûüış'#255); {-$VIV}
        {-DataCompBoy-}
 
       BreakChars  : Set of Char = [',',' ','[',']','{','}','(',')',':',';','.','^',
@@ -267,7 +272,11 @@ const
       N_O_E_M_S  : array[1..5] of char = 'NOEMS';
          cTEMP_  : string[5] = 'TEMP:';
          cLINK_  : string[5] = 'LINK:';
+ {.$IFNDEF OS2}
          x_x     : string[3] = '*.*';
+ {.$ELSE}
+        {x_x     : string[3] = '*';}
+ {.$ENDIF}
 
 var
     DOS40 : Boolean;
@@ -276,11 +285,23 @@ var
                           { use opsys and opOS2 <> 0 to determine if OS/2 }
                           { is running                                    }
     FreeStr  : string;
+{$IFDEF USEANSISTRING}
+    FreeAnsiStr : AnsiString;
+{$ENDIF}
     FreeByte : byte; {DataCompBoy 8)}
     ActiveDir: String; {DataCompBoy}
     DNNumber: Byte;
-    UpCaseArray: array[Char] of Char Absolute UpperString ;
-    LowCaseArray: array[Char] of Char Absolute LowerString ;
+    UpCaseArray: array[Char] of Char Absolute UpperString;
+    LowCaseArray: array[Char] of Char Absolute LowerString;
+{Cat}
+    UpCaseArray_Ascii_Ascii: TXlat Absolute UpperString;
+    UpCaseArray_Ascii_Koi8r: TXlat;
+    UpCaseArray_Ascii_Ansi: TXlat;
+    UpCaseArray_Koi8r_Ascii: TXlat;
+    UpCaseArray_Ansi_Ascii: TXlat;
+    UpCaseArray_Ascii_Ansi_Koi8r_Ascii: TXlat;
+    UpCaseArray_Ascii_Koi8r_Ansi_Ascii: TXlat;
+{/Cat}
     Tran: array[Char] of Char;
 
        {-DataCompBoy-}
@@ -288,6 +309,9 @@ var
   SourceDir:  String;
   TempDir:    String;
   TempFile:   String;
+{$IFDEF VIRTUALPASCAL}
+  TempFileSWP: String; {JO}
+{$ENDIF}
   LngFile:    String;
   SwpDir:     String;
        {-DataCompBoy-}
@@ -315,7 +339,7 @@ const
       UpperTable:'€‚ƒ„…†‡ˆ‰Š‹Œ‘’“”•–—˜™š›œŸ' +
                  '€‚ƒ„…†‡ˆ‰Š‹Œ°±²³´µ¶·¸¹º»¼½¾¿' +
                  'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖ×ØÙÚÛÜİŞß' +
-                 '‘’“”•–—˜™š›œŸğñòóôõö÷øùúûüış'#255
+                 '‘’“”•–—˜™š›œŸğğòòôôööøùúûüış'#255
     );
 
 Type TCrc_Table = array[0..255] of LongInt;
@@ -338,7 +362,6 @@ type TPosArray = Array [1..9] of TPoint;
 IMPLEMENTATION
 
 uses xTime,
-     u_keymap,
      Startup,
      advance3, advance1,
      {$IFDEF VIRTUALPASCAL}
@@ -399,7 +422,6 @@ end;
 function TTextReader.GetStr: string;
 var
   CurStr: string;
-  CurLen: byte absolute CurStr;
   BufBeg: Integer;
   Was: Boolean;
 
@@ -407,11 +429,11 @@ procedure aStr(D: Integer);
 var
   Grow: Integer;
 begin
-  Grow := Min((BufPos - BufBeg) - D - Byte(Was), 255-CurLen);
+  Grow := Min((BufPos - BufBeg) - D - Byte(Was), 255-Length(CurStr));
   if Grow > 0 then
   begin
-    Move(Buf[BufBeg], CurStr[CurLen+1], Grow);
-    Inc(CurLen, Grow);
+    Move(Buf[BufBeg], CurStr[Length(CurStr)+1], Grow);
+    SetLength(CurStr, Length(CurStr)+Grow);
   end;
 end;
 
@@ -423,7 +445,7 @@ begin
  CurStr := ''; if not Eof then
  begin
   PrevC := -1;
-  CurLen := 0; BufBeg := BufPos; Was := False;
+  SetLength(CurStr, 0); BufBeg := BufPos; Was := False;
   repeat
     if BufPos = BufSz then
     begin
@@ -498,9 +520,9 @@ var
     function MakeResult:string;
     var i:byte; Res:^String;
     begin
-        New(Res); Res^[0]:=#0;
+        New(Res); SetLength(Res^, 0);
         if (Options and flnPadRight)=0
-        then while R^[Byte(R^[0])]=#32 do Dec(R^[0]);
+        then while R^[Length(R^)] = #32 do SetLength(R^, Length(R^)-1);
         if ((Options and flnSelected)<>0) and
         ((Options and flnHighlight)<>0) then AddStr(Res^,'~');
         for i:=1 to Length(R^) do begin
@@ -509,8 +531,14 @@ var
             if (R^[i]='~') and ((Options and flnHandleTildes)<>0)
             then AddStr(Res^,#0);
             AddStr(Res^,R^[i]);
+{AK155: § ç¥¬ íâ®â ¢â®à®© #0 - ¯à¨¤ã¬ âì ­¥ á¬®£, ¯®íâ®¬ã ã¡à « ¥£®.
+ € ®â­®á¨â¥«ì­® ¯¥à¢®£® #0 ¤®£ ¤ «áï, çâ® ®­ ¤®«¦¥­ ®¡¥á¯¥ç¨¢ âì
+ ®âà¨á®¢ªã â¨«ì¤ë. ˆ ¢­¥á á®®â¢¥âáâ¢ãîéãî ª®àà¥ªæ¨î ¢
+ drivers._vp.MoveCStr. 06.01.2001}{
             if (R^[i]='~') and ((Options and flnHandleTildes)<>0)
-            then AddStr(Res^,#0);
+            then AddStr(Res^,#0);}
+
+{/AK155}
             if ((i=Hi1) or (i=Hi2) or (i=Hi3)) and
             ((Options and flnHighlight)<>0) then AddStr(Res^,'~');
         end;
@@ -535,7 +563,7 @@ begin
           end;
     if (Length(E^)>0) and (E^[1]='.') then begin
         for i:=1 to Length(E^)-1 do E^[i]:=E^[i+1];
-        Dec(E^[0])
+        SetLength(E^, Length(E^)-1)
     end;
         {-DataCompBoy-}
     if (Options and flnUpCase)<>0 then begin
@@ -548,7 +576,7 @@ begin
         LowStr(E^);
         if (Options and flnCapitalCase)<>0 then N^[1]:=UpCase(N^[1])
     end;
-    R^[0]:=Char(Size);
+    SetLength(R^, Size);
     if Size<5+ExtSize then begin
         FillR(1,Size,NameFormatChar[nfmCut]);
         if Delim<>nil then Delim^:=NameFormatChar[nfmCut]
@@ -874,12 +902,14 @@ end;
 {PZ - end}
 {$ENDIF}
 
+{$IFNDEF VIRTUALPASCAL}
 function MemOK: Boolean;
 begin
-  MemOK := (MemAdjust(System.MemAvail) > $10000) and
-           (System.MaxAvail > $6000)
+  {MemOK := (MemAdjust(System.MemAvail) > $10000) and}
+   MemOK := (MemAdjust(System.MemAvail) > $C000) and
+           (System.MaxAvail > $6000);
 end;
-
+{$ENDIF}
 
 function GetMeMemoStream: PStream; {-$VOL begin}
   var S: PStream; Pos: longint;
@@ -988,12 +1018,15 @@ FUNCTION Max; begin if x<y then Max:=Y else Max:=X end;
 FUNCTION Sgn; begin if x>0 then Sgn:=1 else if x<0 then Sgn:=-1 else Sgn:=0 end;
 
 procedure TinySlice;
+ {$IFDEF OS_DOS}
 var Released: boolean;
+ {$ENDIF}
 begin
- Released:=false;
  {$IFNDEF OS_DOS}
- Delay(50);
+ if (StartupData.Slice2 and osuOnceRelease <> 0) then Delay(1) {Delay(32)}
+   else Delay(0);
  {$ELSE}
+ Released:=false;
  if (StartupData.Slice  and osuInt15 <> 0) and
    ((StartupData.Slice2 and osuOnceRelease = 0) or not Released) and
     (OpSys and opDV <>0)
@@ -1017,7 +1050,6 @@ begin
    mov Released, al
 @@e:
   end;
-
  if (StartupData.Slice and osuInt28 <> 0) and
    ((StartupData.Slice2 and osuOnceRelease = 0) or not Released)
   then asm int 28h end;

@@ -50,7 +50,7 @@ unit ArchDet;
 interface
 uses archiver, Arc_Zip, Arc_LHA, arc_RAR, arc_ACE, arc_HA, arc_CAB,
 {$IFNDEF MINARCH}
-       arc_arc, arc_bsa, arc_bs2, arc_hyp, arc_lim, arc_hpk, arc_TAR, arc_TGZ,
+       arc_arc, arc_bsa, arc_bs2, arc_hyp, arc_lim, arc_hpk, arc_TAR, {$IFDEF TGZ} arc_TGZ, {$ENDIF}
        arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
        arc_UC2, arc_AIN,
 {$ENDIF}
@@ -63,13 +63,14 @@ function GetArchiveByTag (ID: Byte): PARJArchive;
 
 implementation
 
+uses messages;
+
 function ZIPDetect: Boolean;
   var i: LongInt;
 begin
   ArcFile^.Read(i,4);
-  if i=$30304b50 then ArcFile^.Read(i,4);
   ZIPDetect:=(i=$04034b50);
-  ArcFile^.Seek(ArcFile^.GetPos-SizeOf(i));
+  ArcFile^.Seek(ArcPos);
 end;
 
 function LHADetect: Boolean;
@@ -142,7 +143,7 @@ begin
  if (ArcFile^.Status = stOK) and
     (S[0] = 'H') and
     (S[1] = 'A') and
-    (SizeOf(S) + SizeOf(P) + P.PackedSize <= ArcFile^.GetSize)
+    (VCardinal(SizeOf(S) + SizeOf(P) + P.PackedSize) < ArcFile^.GetSize)
     then begin
           HADetect:=True;
           ArcFile^.Seek(ArcPos+4);
@@ -150,29 +151,23 @@ begin
     else ArcFile^.Seek(ArcPos);
 end;
 
-function ARJDetect: Boolean;
-var I,J: Word;
-    L: LongInt;
-    S: String;
+function ARJDetect: Boolean; {fixed by piwamoto}
+ var ID, CommentLen: AWord;
 begin
- ArcFile^.Read(I, 2);
-{piwamoto.change.begin}
- if not ((I = $0ea60) or (I = $0abc0)) and (ArcPos > 0) then ArcFile^.Read(I, 2);
- L := ArcFile^.GetPos;
- if i=$0abc0 then
- begin
-  ArcFile^.Seek(L + 4);
-  ArcFile^.Read(I, 2);
-  L := L + 6;
- end;
- ARJDetect:=(I=$0ea60);
- if I=$0ea60
-    then begin
-          ArcFile^.Read(I,2);
-          ArcFile^.Seek(L + I + 8);     {skip archive comment}
-         end
-    else ArcFile^.Seek(ArcPos);
-{piwamoto.change.end}
+ ARJDetect := False;
+ ArcFile^.Read(ID, 2);
+ if ID = $0ea60 then
+  begin
+   ArcFile^.Read(CommentLen, 2);
+   ArcFile^.Seek(ArcPos + CommentLen + 10); {skip archive comment}
+   ArcFile^.Read(ID, 2);
+   if (ID = $0ea60) and (ArcFile^.Status = stOK) then
+    begin
+     ArcPos := ArcPos + CommentLen + 10;
+     ARJDetect := True;
+    end;
+  end;
+ ArcFile^.Seek(ArcPos);
 end;
 
 function CABDetect: Boolean;
@@ -228,59 +223,28 @@ end;
 Function BSADetect: Boolean;
 var
     M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
 begin
- BSADetect:=False;
  ArcFile^.Read(M, 4);
- if (ArcFile^.Status = stOK) and (M[4] in [#0,#7]) and (Copy(M,2,2) = #0#$AE)
-    then
-     begin
-      BSADetect := True;
-      ArcFile^.Seek(ArcPos);
-      Exit;
-     end;
-  ArcFile^.Seek(ArcPos);
+ BSADetect:=((ArcFile^.Status = stOK) and (M[4] in [#0,#7]) and (Copy(M,2,2) = #0#$AE));
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function BS2Detect: Boolean;
 var
     M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
 begin
- BS2Detect:=False;
  ArcFile^.Read(M, 4);
- if (ArcFile^.Status = stOK) and (M = #$D4#$03'SB')
-    then
-     begin
-      BS2Detect := True;
-      ArcFile^.Seek(ArcPos);
-      Exit;
-     end;
-  ArcFile^.Seek(ArcPos);
+ BS2Detect:=((ArcFile^.Status = stOK) and (M = #$D4#$03'SB'));
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function HYPDetect: boolean;
 var
     M: Array[1..4] of Char;
-    C: Char;
-    L: LongInt;
-    S: String;
 begin
- HYPDetect:=False;
  ArcFile^.Read(M, 4);
- if (ArcFile^.Status = stOK) and
-    ((M = ^Z'HP%') OR (M = ^Z'ST%'))
-    then
-     begin
-      HYPDetect := True;
-      ArcFile^.Seek(ArcPos);
-      Exit;
-     end;
-  ArcFile^.Seek(ArcPos);
+ HYPDetect:=((ArcFile^.Status = stOK) and ((M = ^Z'HP%') OR (M = ^Z'ST%')));
+ ArcFile^.Seek(ArcPos);
 end;
 
 Function LIMDetect: Boolean;
@@ -367,6 +331,8 @@ begin
 end;
 
 Function TARDetect: Boolean;
+
+{$IFDEF TARDETECT}
  {piwamoto.change.begin}
   var P: TARHdr;
       SumTar, SumCalc: LongInt;
@@ -380,8 +346,11 @@ Function TARDetect: Boolean;
          Inc(L, (Byte(S[Length(S)-I])-48) shl (I * 3));
      FromOct := L;
    end;
-
+{$ELSE}
+  var i : integer;
+{$ENDIF}
  begin
+{$IFDEF TARDETECT}
   TARDetect:=False;
   if ArcFile^.GetSize < SizeOf(P) then Exit;
   ArcFile^.Read(P, SizeOf(P));
@@ -392,20 +361,29 @@ Function TARDetect: Boolean;
   for i:=0 to BLKSIZE-1 do SumCalc := SumCalc + mem[Seg(P.FName):Ofs(P.FName)+i];
   TARDetect := (SumTar = SumCalc);
  {piwamoto.change.end}
+{$ELSE}
+ ArcFile^.Read(i, 4);
+ TARDetect := (ArcFile^.Status = stOK) and
+              (InFilter(VArcFileName, '*.TAR;*.TAZ;*.TGZ;*.TAR.GZ') and (i<>$00088b1f));
+{$ENDIF}
   ArcFile^.Seek(ArcPos);
  end;
+
+{$IFDEF TGZ}
 
 function TGZDetect: boolean;
 {changed by piwamoto}
 var
-    W: Word;
+    W: AWord;
 begin
  ArcFile^.Read(W, SizeOf(W));
  TGZDetect := (ArcFile^.Status = stOK) and
               (W = $8b1f) and
-              (InFilter(ArcFileName, '*.TAZ;*.TGZ;*.GZ;*.Z;*.RPM'));
+              (InFilter(VArcFileName, '*.TAZ;*.TGZ;*.GZ;*.Z;*.RPM'));
  ArcFile^.Seek(ArcPos);
 end;
+
+{$ENDIF}
 
 function ZXZDetect: boolean;
 var
@@ -423,38 +401,35 @@ end;
 
 function QuArkDetect: boolean;
 var
-  CFHEADER: TQuarkHEADER;
+  ID : LongInt;
 begin
-  QuArkDetect := false;
-  ArcFile^.Read(CFHEADER,SizeOf(TQuarkHEADER));
-  ArcFile^.Seek(ArcPos);
-  if (ArcFile^.Status = stOK) and (CFHEADER.Sign=1049655) then
+  ArcFile^.Read(ID, SizeOf(ID));
+  if (ArcFile^.Status = stOK) and (ID=$100437) then
     begin
-      ArcFile^.Seek(ArcPos+Sizeof(TQuarkHEADER));
+      ArcFile^.Seek(ArcPos + 8);
       QuArkDetect := true;
+    end
+  else
+    begin
+      ArcFile^.Seek(ArcPos);
+      QuArkDetect := false;
     end;
 end;
 
 function UFADetect: boolean;
 var
-  CFHEADER: TUFACFHEADER;
+  ID : Array[1..3]of Char;
 begin
-  UFADetect := false;
-  ArcFile^.Read(CFHEADER,SizeOf(TUFACFHEADER));
-  ArcFile^.Seek(ArcPos);
-  if (ArcFile^.Status = stOK) and (CFHEADER.sign[1] = 'U')
-                             and (CFHEADER.sign[2] = 'F')
-                             and (CFHEADER.sign[3] = 'A') then
-{    if (CFHeader.cbCabinet > sizeof(TCFHeader)) and
-       (CFHeader.coffFiles > sizeof(TCFHeader)) and
-       (CFHeader.coffFiles < LongInt($ffff)) and
-       (CFHeader.versionMajor > 0) and
-       (CFHeader.versionMajor < $20 ) and
-       (CFHeader.cFolders > 0) then }
+  ArcFile^.Read(ID, SizeOf(ID));
+  if (ArcFile^.Status = stOK) and (ID = 'UFA') then
     begin
-{      ArcFile^.Seek(ArcPos+CFHeader.HeadSize+4);}
-      ArcFile^.Seek(SizeOf(TUFACFHEADER));
+      ArcFile^.Seek(ArcPos + 8);
       UFADetect := true;
+    end
+  else
+    begin
+      ArcFile^.Seek(ArcPos);
+      UFADetect := false;
     end;
 end;
 
@@ -531,7 +506,7 @@ begin
  CHZDetect:=False;
  if ArcPos > 0 then
    begin
-    S[0] := #128;
+    SetLength(S, 128);
     ArcFile^.Read(S[1],128);
     L := Pos('SChF', S);
     if L = 0 then L := Pos('SChD', S);
@@ -568,14 +543,14 @@ end;
 Function AINDetect: Boolean;
 var
     AinHdr : Array[0..21] of Byte;
-    AinSum, ChkSum : Word;
+    AinSum, ChkSum : AWord;
     I : Integer;
 begin
  AINdetect:=False;
  ArcFile^.Read(AinHdr, SizeOf(AinHdr));
  ArcFile^.Read(AinSum, SizeOf(AinSum));
  if (ArcFile^.Status = stOK) and
-    ((AinHdr[14] + 256*AinHdr[15] + 65536*AinHdr[16] + 16777216*AinHdr[17]) < ArcFile^.GetSize)
+    (VCardinal(AinHdr[14] + 256*AinHdr[15] + 65536*AinHdr[16] + 16777216*AinHdr[17]) < ArcFile^.GetSize)
    then begin
      ChkSum := 0;
      for I:=0 to 21 do ChkSum := ChkSum + AinHdr[I];
@@ -608,7 +583,9 @@ begin
  if QuarkDetect then DetectArchive:=New(PQuarkArchive,Init) else
  if SQZDetect   then DetectArchive:=New(PSQZArchive,  Init) else
  if TARDetect   then DetectArchive:=New(PTARArchive,  Init) else
+{$IFDEF TGZ}
  if TGZDetect   then DetectArchive:=New(PTGZArchive,  Init) else
+{$ENDIF}
  if UC2Detect   then DetectArchive:=New(PUC2Archive,  Init) else
  if UFADetect   then DetectArchive:=New(PUFAArchive,  Init) else
  if ZOODetect   then DetectArchive:=New(PZOOArchive,  Init) else
@@ -641,7 +618,9 @@ begin
   if sign=sigQUARK then GetArchiveTagBySign := arcQUARK else
   if sign=sigSQZ   then GetArchiveTagBySign := arcSQZ   else
   if sign=sigTAR   then GetArchiveTagBySign := arcTAR   else
+{$IFDEF TGZ}
   if sign=sigTGZ   then GetArchiveTagBySign := arcTGZ   else
+{$ENDIF}
   if sign=sigUC2   then GetArchiveTagBySign := arcUC2   else
   if sign=sigUFA   then GetArchiveTagBySign := arcUFA   else
   if sign=sigZOO   then GetArchiveTagBySign := arcZOO   else
@@ -673,7 +652,9 @@ begin
  if ID=arcQUARK then GetArchiveByTag:=New(PQuarkArchive,Init) else
  if ID=arcSQZ   then GetArchiveByTag:=New(PSQZArchive,  Init) else
  if ID=arcTAR   then GetArchiveByTag:=New(PTARArchive,  Init) else
+{$IFDEF TGZ}
  if ID=arcTGZ   then GetArchiveByTag:=New(PTGZArchive,  Init) else
+{$ENDIF}
  if ID=arcUC2   then GetArchiveByTag:=New(PUC2Archive,  Init) else
  if ID=arcUFA   then GetArchiveByTag:=New(PUFAArchive,  Init) else
  if ID=arcZOO   then GetArchiveByTag:=New(PZOOArchive,  Init) else

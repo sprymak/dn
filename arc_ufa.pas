@@ -48,24 +48,16 @@
 unit Arc_UFA; {UFA}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
    PUFAArchive = ^TUFAArchive;
    TUFAArchive = object(TARJArchive)
-     FilesNumber:  LongInt;
      constructor Init;
      procedure GetFile; virtual;
      function GetID: Byte; virtual;
      function GetSign: TStr4; virtual;
    end;
-
-type
-  PUFACFHEADER = ^TUFACFHEADER;
-  TUFACFHEADER = record
-             Sign:Array[1..3]of Char;
-             tmp:array[1..5]of char;
-end;
 
 implementation
 { ---------------------- UFA (by Luzin Aleksey)---------------------------}
@@ -73,7 +65,7 @@ constructor TUFAArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'UFA.EXE'));
@@ -83,28 +75,39 @@ begin
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a'));
   Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'm'));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd'));
-  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-p'));
+  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-g'));
   Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               't'));
   IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
-  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       '-ep'));
-  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
+  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
+  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-y'));
   RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
   SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
-  Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              '-s'));
   RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
-  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
+  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '-m0'));
   FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
-  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-m3'));
-  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-m1'));
+  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    '-mq'));
+  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
-  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-m5'));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, 'l');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-mx'));
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  if q='0' then UseLFN := False else UseLFN := True;
-  FilesNumber := 1;
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function TUFAArchive.GetID;
@@ -121,22 +124,16 @@ Procedure TUFAArchive.GetFile;
 var
   C:   Char;
   S:   string;
-  Tmp  :Word;
+  Tmp  :AWord;
   FH: record
       tmp:array[1..$2A]of char;
       DateTime:LongInt;
       PackSize:LongInt;
       OriginalSize:LongInt;
-      FileNameSize:Word;
+      FileNameSize:AWord;
  End;
 var TTmp:longint;
 begin
-{  if (FilesNumber = 0) then
-    begin
-      FileInfo.Last := 1;
-      Exit;
-    end;}
-  Dec(FilesNumber);
   TTmp:=ArcFile^.GetPos;
   if (TTmp = ArcFile^.GetSize) or (TTmp = 0) then
      begin FileInfo.Last := 1; Exit end;
@@ -144,21 +141,22 @@ begin
   ArcFile^.Read(FH, SizeOf(FH));
   if (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
 {  ArcFile^.Seek(TTmp+FH.HeadSize+4-FH.FileNameSize);}
-  S[0] := #0;
+  SetLength(S, 0);
   Tmp:=0;
          if FH.FileNameSize > 512 then begin FileInfo.Last := 2;Exit;end;
          if FH.FileNameSize > 250 then FH.FileNameSize := 250;
 
-         ArcFile^.Read(S[1], FH.FileNameSize); S[0] :=Char(FH.FileNameSize);
+         ArcFile^.Read(S[1], FH.FileNameSize); SetLength(S, FH.FileNameSize);
        if S = ''  then
        begin FileInfo.Last := 2; Exit; end;
-       inc(FilesNumber);
        FileInfo.Attr := 0;
        FileInfo.USize := FH.OriginalSize;
        FileInfo.PSize := FH.PackSize;
        FileInfo.Date := FH.DateTime;
        FileInfo.FName := S;
+{$IFNDEF OS2}
        FileInfo.LFN  := AddLFN(S);
+{$ENDIF}
        TTmp:=ArcFile^.GetPos;
        ArcFile^.Seek(TTmp+FH.PackSize);
        FileInfo.Last := 0;

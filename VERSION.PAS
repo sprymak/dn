@@ -48,11 +48,11 @@
 
 Uses LFN, {DataCompBoy}
      Dos,
-     advance1, advance;
+     advance1, advance, objects;
 
 
 CONST
-  VersionName:string = '1.51.08/'+
+  VersionName:string = '1.51.10b1/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}
                        {$ELSE}        {$IFDEF WIN32}+'W32'
@@ -63,7 +63,7 @@ CONST
                        {$ENDIF}
                        ;
   VersionDate:string = '';
-  VersionWord:word   = 15107;
+  VersionWord:Aword   = 15195;
 
 var F : lText ;
     Day, Month, Year, DOW: word;
@@ -136,7 +136,7 @@ CONST
   Writeln(F.T,'  Const');
   Writeln(F.T,'     VersionName =''',VersionName,''';');
   Writeln(F.T,'     VersionDate =''',VersionDate,''';');
-  Writeln(F.T,'     VersionWord:Word = $', Hex4(VersionWord), ';');
+  Writeln(F.T,'     VersionWord:AWord = $', Hex4(VersionWord), ';');
 
   Close(F.T);
  end.

@@ -245,7 +245,7 @@ dlDTDiskFull1,        ^C'Root directory on drive '
 dlDTDiskFull2,        ^M^C'is full,'^M^C'sorry, but can''t set'^M^C'Volume Label'
 
 dlEraseRO,            ^M^C'marked as Read-Only.'^M^C'OK to delete it?'
-dlEraseCantDelDir,    ^C'Could not delete the directory '
+dlEraseCantDelDir,    ^C'Could not delete the directory %s'
 dlEraseDirNotEmpty,   ^M^C'is not empty.'^M^C'Do you wish delete it?'
 dlEraseConfirm1,      ^C'Do you wish to delete'^M^C'file '
 dlEraseConfirms1,     ^C'Do you wish to delete'^M^C'these files?'
@@ -312,6 +312,9 @@ dlSortExt,            '~E~xtension'
 dlSortLongExt,        'Long e~x~tension'
 dlSortType,           '~G~roup'
 dlSortDate,           '~T~ime'
+dlSortCrDate,         '~C~reation time'
+dlSortLADate,         'Last ~a~ccess time'
+dlSortDIZ,            '~D~escription'
 dlSortSize,           '~S~ize'
 dlSortUnsorted,       '~U~nsorted'
 
@@ -355,6 +358,10 @@ dlTopSplit,            '~³~'
 dlTopSize,             '   Size   ~³~'
 dlTopTime,             ' Time~³~'
 dlTopDate,             '  Date  ~³~'
+dlTopCrTime,           'CTime~³~'
+dlTopCrDate,           ' CDate  ~³~'
+dlTopLATime,           'ATime~³~'
+dlTopLADate,           ' ADate  ~³~'
 dlTopPath,             '  Path'
 dlTopOriginal,         ' Original ~³~'
 dlTopPacked,           '  Packed  ~³~'
@@ -941,23 +948,40 @@ dlCE_SectorNotFound   'Sector not found on drive %c'
 dlCE_OutOfPaper       'Printer out of paper'
 dlCE_WriteFault       'Write fault on drive %c'
 dlCE_ReadFault        'Read fault on drive %c'
-dlCE_GeneralFailure   'Hardware failure on drive %c'
+dlCE_GeneralFailure   'General failure on drive %c'
 dlCE_BadImageOfFAT    'Bad memory image of FAT detected'
 dlCE_DeviceError      'Device access error'
 dlCE_InsertDisk       'Insert diskette in drive %c'
 dlCE_SharingViolation 'Sharing violation'
+;JO+
+dlCE_WrongDisk        'Vrong disk %c'
+dlCE_DiskFull         'Disk %c is full'
+dlCE_DeviceInUse      'Device in use'
+;JO-
 dlCE_ErrWndTitle      'System Error'
-
-dlCE_ButAbort            '[ ~A~bort ]'
-dlCE_ButRetry            '[ ~R~etry ]'
-dlCE_ButIgnore           '[ ~I~gnore ]'
+;AK155
+dlCE_Filename_Exced_Range 'Long names are not implemented on drive %c'
+dlCE_Dirty_Flag       'System was improperly stopped, drive %c is write protected'
+;/AK155
+;JO+
+dlCE_Filename_Illegal 'File name is illegal for drive %c'
+;JO-
+dlCE_ButAbort            '~A~bort'
+dlCE_ButRetry            '~R~etry'
+dlCE_ButIgnore           '~I~gnore'
 
 
 
 
 dlTeamHint 'Use up and down arrows to scroll the authors list'
 
-dlTeam000  ^Z'~Dos Navigator (C) Team:~'
+dlTeamAll  ^Z'~Dos Navigator (C) Team:~'
+dlTeam2_000  ^Z'~Dos Navigator/2 (C) Open Source Team:~'
+dlTeam2_001  ^Z'~Programming:~'
+dlTeam2_002  ^Z'Alexey Korop'
+dlTeam2_003  ^Z'Aleksej Kozlov'
+dlTeam2_004  ^Z'Jaroslaw Osadtchiy'
+dlTeam000  ^Z'~Dos Navigator (C) Open Source Team:~'
 dlTeam001  ^Z'~Programming:~'
 dlTeam002  ^Z'Sergey Abmetko'
 dlTeam003  ^Z'Mark Adler'
@@ -1294,3 +1318,89 @@ dlDelMsg                'Delete message '
 dlNotPkt                'is not FIDO PKT file!'
 dlReadingPkt            'Reading PKT-file'
 dlLine                  'ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ'
+dlNameLong              'L'
+dlNameShort             'S'
+dlFullInfo              'FullInfo '
+dlDescr                 'Description '
+dlPath                  'Path '
+
+;JO+
+dlAdvancedFormat        'Advanced Format Parameters for drive '
+dlBootSector1           'Boot Secto~r~'
+dlEntries               'Entries'
+dlDirEntries            '~D~irectory Entries'
+dlSize                  'Size'
+dlClusterSize           '   Cluster Si~z~e'
+dlTracks                '~T~racks'
+dlHeads                 ' ~H~eads'
+dlSectors1              '~S~ectors'
+dlSectors2              ''
+dlStartTr1              ' Start'
+dlStartTr2              ' Tra~c~k'
+dlStartTr3              ''
+dlInterleave1           ' Inter'
+dlInterleave2           ' lea~v~e'
+dlSectorSh1             'Sector'
+dlSectorSh2             'Sh~i~ft'
+dlSectorSh3             'Factor'
+dlHeadSectSh1           'Head'
+dlHeadSectSh2           'Sector'
+dlHeadSectSh3           'Shi~f~t'
+dlTrackSectSh1          'Track'
+dlTrackSectSh2          'Sect~o~r'
+dlTrackSectSh3          'Shift'
+dlTrack                 'Track'
+dlSectorSize1           'Sector'
+dlSectorSize2           'Siz~e~'
+dlDrivesType            'Drives type'
+dlDisk                  'Disk'
+dlDOS                   'DOS'
+dlAutodetect            'Autodetect'
+;JO-
+;JO+ Extended Attributes
+dl_Failed_to_enumerate_EA    'Failed to enumerate Extended Attributes'
+dl_Failed_to_retrieve_EA     'Failed to retrieve EA'
+dl_Failed_to_store_EA        'Failed to store EA'
+dlEditEALongname             'Edit file logical name (.LONGNAME Extended attribute)'
+dl_EALongname                'Logical name:'
+dlChangeLngWarning           ^C'Interface language will be changed after restart' ^M+
+                             ^C'Dos Navigator'^M+
+                             ^C' '^M+
+                             ^C'Ÿ§ëª ¨­â¥àä¥©á  ¡ã¤¥â ¨§¬¥­ñ­ ¯®á«¥ ¯¥à¥§ ¯ãáª '^M+
+                             ^C'„®á  ¢¨£ â®à '
+dl_Failed_to_set_volume_label  'Sorry, can''t set volume label'
+;JO-
+
+;X-Man >>>
+sdtError      = 'Unknown   ';
+sdtFixed      = 'Fixed';
+sdtRemovable  = 'Removable ';
+sdtRemote     = 'Remote    ';
+sdtCDROM      = 'CD-ROM    ';
+sdtDblSpace   = 'DblSpace  ';
+sdtSUBST      = 'SUBST     ';
+sdtStacker    = 'Stacker   ';
+sdtRAMDrive   = 'RAM       ';
+sdtDublDisk   = 'DoubleDisk';
+sdtBernoully  = 'Bernoully ';
+sdtDiskreet   = 'Diskreet  ';
+sdtSuperStor  = 'SuperStor ';
+;X-Man <<<
+;JO+
+sdtFixed1     = '  ';
+dlDoes_Not_Exist = 'does not exist'
+dlCmdLineTooLong = 'Command line too long'
+dlCantLoad = 'Can''t load '
+;JO-
+;PZ+
+dlIniDataReadError 'Syntax error in DN.INI, section [%s], parameter %s'
+dlIniDataTooLong   'String contains %d excess characters in DN.INI, section [%s], parameter %s'
+;PZ-
+;JO+
+dlNotValidForFullscreen 'This videomode is not valid for fullscreen session'
+dlCreateObject 'Create object on desktop for: '
+dlObjectTitle  'Object title:'
+dl_CodePage_FS_Error 'Codepage-related file system error'
+dlCre 'Cre '
+dlLac 'Lac '
+;JO-

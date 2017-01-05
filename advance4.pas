@@ -52,16 +52,24 @@ interface
 type SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed, stPMSession,
                     stVDMFullScreen, stWinFullScreen, stWinWindow, stVDMWindow);
 
+{$IFNDEF VIRTUALPASCAL}
+
 procedure StartOS2Session(DataLen: Word; Session: Sessiontype; Background: Boolean;
                           Title, Name, Args, IcoName: string);
+{$ENDIF}
+
 procedure RunOS2Command(Command: string; Bckg: Boolean; Session: SessionType);
 
 
 implementation
+
 uses advance, lfn, advance1, advance3, drivers
-     {$IFDEF VIRTUALPASCAL}, dos{$ENDIF}
+     {$IFDEF VIRTUALPASCAL} , dos, dnexec{$ENDIF}
+     {$IFDEF DPMI}, DPMI, DosMem {$ENDIF}
      ;
 { ------------------------------------ OS/2 API --------------------------- }
+
+{$IFNDEF VIRTUALPASCAL}
 
 procedure StartOS2Session(DataLen: Word; Session: Sessiontype; Background: Boolean;
                           Title, Name, Args, IcoName: string);
@@ -77,6 +85,11 @@ procedure StartOS2Session(DataLen: Word; Session: Sessiontype; Background: Boole
          IcoN: Pointer;
     end;
 
+{$IFDEF DPMI}
+    DR: DPMIRegisters;
+    PtrT, PtrN, PtrA, PtrI: Pointer;
+{$ENDIF}
+
     P: Pointer;
 begin
    if not OS2exec then Exit;
@@ -88,16 +101,20 @@ begin
    Name := Name + #0;
    Args := Args + #0;
    IcoName := IcoName + #0;
+{   R.Title := @Title[1];
+   R.Name := @Name[1];
+   R.Args := @Args[1];}
+   R.Inheritance := 0;
+   R.Session := Word(Session);
+{   R.IcoN := @IcoName[1];}
+   R.TermQ := 0;
+   LongInt(R.Env) := 0;
+{$IFNDEF DPMI}
    R.Title := @Title[1];
    R.Name := @Name[1];
    R.Args := @Args[1];
-   R.Inheritance := 0;
-   R.Session := Word(Session);
    R.IcoN := @IcoName[1];
-   R.TermQ := 0;
-   LongInt(R.Env) := 0;
    P := @R;
-
    asm
      push ds
      mov ax, $6400
@@ -107,6 +124,38 @@ begin
      int 21h
      pop ds
    end;
+{$ELSE}
+   PtrT := GetDosMem(SizeOf(Title), DR.DS);
+   Move(Title[1], PtrT^, SizeOf(Title));
+   R.Title := Ptr(DR.DS, 0);
+
+   PtrN := GetDosMem(SizeOf(Name), DR.DS);
+   Move(Name[1], PtrN^, SizeOf(Name));
+   R.Name := Ptr(DR.DS, 0);
+
+   PtrA := GetDosMem(SizeOf(Args), DR.DS);
+   Move(Args[1], PtrA^, SizeOf(Args));
+   R.Args := Ptr(DR.DS, 0);
+
+   PtrI := GetDosMem(SizeOf(IcoName), DR.DS);
+   Move(IcoName[1], PtrI^, SizeOf(IcoName));
+   R.IcoN := Ptr(DR.DS, 0);
+
+   P := GetDosMem(SizeOf(R), DR.DS);
+   Move(R, P^, SizeOf(R));
+   DR.AX := $6400;
+   DR.CX := $636c;
+   DR.BX := $0025;
+   DR.SI := 0;
+   SimulateRealModeInt($21, DR);
+   FreeDosMem(P);
+
+   FreeDosMem(PtrI);
+   FreeDosMem(PtrA);
+   FreeDosMem(PtrN);
+   FreeDosMem(PtrT);
+{$ENDIF}
+
 
 end;
 
@@ -119,11 +168,13 @@ asm
     mov al, dl
 end;
 
+{$ENDIF}
+
         {-DataCompBoy-}
 procedure RunOS2Command;
  var T: lText;
      I: Integer;
-     S, M, EX, OS2comspec: string;
+     S, M, EX {$IFNDEF VIRTUALPASCAL}, OS2comspec{$ENDIF}: string;
 begin
   if not OS2exec then Exit;
   I := 1;
@@ -160,12 +211,19 @@ begin
   if not Bckg and (ShiftState and $20 = 0) then WriteLn(T.T, '@pause');
   Write(T.T, '@del "'+EX+'" & exit'^Z);
   Close(T.T);
+{$IFNDEF VIRTUALPASCAL}
   OS2comspec := GetEnv('OS2COMSPEC');
   if OS2comspec = ''
       then OS2comspec := Chr(96+GetBootDrive) + ':\os2\cmd.exe';
   StartOS2Session($20, Session, Bckg, Command, OS2comspec,
                      '/c '+EX, '');
+{$ELSE}
+  if Session = stOS2FullScreen then
+    M:= 'START "'+Command+'" /FS '+ EX
+ else
+    M:= 'START "'+Command+'" /WIN '+ EX;
+  ExecString (@M,'');
+{$ENDIF}
 end;
         {DataCompBoy}
-
 end.

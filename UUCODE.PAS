@@ -45,16 +45,31 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
+{AK155
+   Переписал все ассемблерные и inline подпрограммы под
+32-разрядный VP. При этом никаких условных компиляций не делал.
+   Мутную и неэффективную процедуру MoveSection переписал короче и проще.
 
+   По состоянию на 08/03/2001 компилируется только декодирование.
+
+   04/96/2001 - подключил кодирование с новым модулем uue2inc.pas (см.).
+   По-прежнему все ассемблерные вставки чисто 32-разрядные.
+   }
+{$IFNDEF VirtualPascal} VP only! {$ENDIF}
 unit UUCode;
 
 interface
 uses Objects, tree
 {$IFDEF UUDECODE}
-   , collect;
-   procedure UuDecode(AFileCollection: PCollection);
-{$ELSE}
+   , collect
+{$ENDIF}
+{$IFDEF UUENCODE}
+   , uue2inc
+{$ENDIF}
    ;
+{$IFDEF UUDECODE}
+   procedure UuDecode(AFileCollection: PCollection);
 {$ENDIF}
 
 {$IFDEF UUENCODE}
@@ -63,12 +78,19 @@ uses Objects, tree
 
 implementation
 
-uses Dos, LFN {DataCompBoy}
+uses
+  VPUtils
+  , Dos, LFN {DataCompBoy}
      ,advance, advance1, advance2, advance3, Views, StartUp, Dialogs,
      xTime, FilesCol, DNApp, Drivers, Gauge, Messages, Commands, RStrings,
-     FileCopy, HistList, DNStdDlg, DNUtil;
+     FileCopy, HistList, DNStdDlg, DNUtil
+   , Use16
+     ;
 
-function longmul(X, Y: Word): Longint; inline($5A/$58/$f7/$E2);
+function longmul(X, Y: Word): Longint; inline;
+  begin
+  longmul := longint(X)*longint(Y);
+  end;
 
 
 const
@@ -105,10 +127,7 @@ end;
 
 {$IFDEF UUDECODE}
 
-        {-DataCompBoy-}
-function UU_Decode(
-         AFileCollection: PCollection;
-         const OutputDir:String;ChkOvr,DispErr,RecoverBrokenUUE:Boolean):Boolean;
+{!  описания !}
 
 var
         PI: PWhileView;
@@ -158,9 +177,6 @@ type
         TFileArr = array[1..1500] of TFile;
         PFileArr = ^TFileArr;
 
-function  Min(a1,a2:integer):integer;inline($58/$5B/$3B/$C3/$7C/$01/$93);
-function  Max(a1,a2:integer):integer;inline($58/$5B/$3B/$C3/$7F/$01/$93);
-
 const
         GrowStep=16;
 
@@ -205,7 +221,7 @@ var
         MaxSectKnown    : Boolean;
         MaxSectNum,
         CurSectNo       : word;
-        NumErr          : word;
+        NumErr          : longint;
         SubPos          : byte;
         WholeSectCRC    : word;
         OutBufPos       : word;
@@ -214,7 +230,13 @@ var
         CurFileTime,
         HeapBegin,
         HeapEnd         : LongInt;
+{!  описания !}
 
+        {-DataCompBoy-}
+function UU_Decode(
+         AFileCollection: PCollection;
+         const OutputDir:String;ChkOvr,DispErr,RecoverBrokenUUE:Boolean):Boolean;
+{! тут были описания !}
 
  procedure FReadLn;
  begin
@@ -232,7 +254,7 @@ begin
 end;
 
 procedure BWrite(var Buf;Sz:word);
-var a:word;
+var a:longint;
 begin
  BlockWrite(OutFile.F,Buf,Sz,a);
  if a<>Sz then ErrorFCode:=101 else ErrorFCode:=IOResult;
@@ -303,31 +325,33 @@ begin
  Inc(Index);
 end;
 
-procedure CalcBufCRC(var Buf;Size:word;var PrevSum:word);assembler;
+procedure CalcBufCRC(var Buf;Size:longint;var PrevSum:word);assembler;
+{&USES esi} {&FRAME-}
 asm
-        mov     cx,Size
-        jcxz    @@Ext
-        push    ds
-        lds     si,Buf
-        les     di,PrevSum
-        mov     dx,word ptr [es:di]
+        mov     ecx,Size
+        jecxz   @@Ext
+        mov     esi,Buf
+        mov     edi,PrevSum
+        mov     dx,word ptr [edi]
         xor     ax,ax
  @@1:   lodsb
         ror     dx,1
         add     dx,ax
         loop    @@1
-        pop     ds
-        mov     word ptr es:[di],dx
+        mov     word ptr [edi],dx
  @@Ext:
 end;
 
-function SmartDIV(L:LongInt;W:Word):Word;assembler;
-asm      mov     ax,word ptr [L+0]
-         mov     dx,word ptr [L+2]
+function SmartDIV(L:LongInt;W:longint):Word;assembler;
+{&USES None} {&FRAME-}
+asm
+         mov     eax,L
+         xor     edx,edx
          div     W
-         or      dx,dx
+         mov     edx,eax
+         and     edx,$FFFF0000
          jz      @@Exit
-         inc     ax
+         inc     eax
 @@Exit:
 end;
 
@@ -355,25 +379,25 @@ begin
 end;
 
 function UUString(var s:string;var CRC:word):Boolean;assembler;
+{&USES esi} {&FRAME+}
 asm
         cld
-        push    ds
-        lds     si,CRC
-        mov     dx,ds:[si]
-        lds     si,s
+        mov     esi,CRC
+        mov     dx,word ptr[esi]
+        mov     esi,s
         mov     ah,0
-        mov     ch,0
+        xor     ecx,ecx
         lodsb
         mov     cl,al
 
-        push    cx
-        les     di,s
-        add     di,cx
-        inc     di
+        push    ecx
+        mov     edi,s
+        add     edi,ecx
+        inc     edi
         mov     al,0
-        mov     cx,70
+        mov     ecx,70
         rep     stosb
-        pop     cx
+        pop     ecx
 
         lodsb
         ror     dx,1
@@ -384,7 +408,7 @@ asm
         ja      @@NonUU
         sub     al,' '
         and     al,3Fh
-        mov     ds:[si-1],al
+        mov     byte ptr[esi-1],al
         dec     cl
  @@L:   lodsb
         cmp     al,0
@@ -397,30 +421,33 @@ asm
         ja      @@NonUU
         sub     al,' '
         and     al,3Fh
-        mov     ds:[si-1],al
+        mov     byte ptr[esi-1],al
         loop    @@L
         jmp     @@UU
 @@NonUU:mov     al,0
         jmp     @@End
-@@UU:   lds     si,CRC
+@@UU:   mov     esi,CRC
         ror     dx,1
         add     dx,0Ah
-        mov     ds:[si],dx
+        mov     word ptr[esi],dx
         mov     al,1
-@@End:  pop     ds
+@@End:
+
 end;
 
-function MemEqu(var A,B; Size : Word) : Boolean; assembler;
-asm      push  ds
+function MemEqu(var A,B; Size : longint) : Boolean; assembler;
+{&USES esi} {&FRAME-}
+asm
          cld
-         mov   cx,Size
-         lds   si,A
-         les   di,B
+         mov   ecx,Size
+         mov   esi,A
+         mov   edi,B
          repe  cmpsb
-         mov   al,1
+         mov   eax,1
          je    @@EQ
          dec   al
-@@EQ:    pop   ds
+@@EQ:
+
 end;
 
 procedure DelTBeg(b:byte);begin Delete(StrT,1,b) end;
@@ -545,26 +572,25 @@ const
 var
   Buf: array[1..BufSize] of byte;
   c  : word;
-  i  : word;
-  l  : longint;
-  s  : string;
-
-  procedure Mve(Sz:word);
-  begin
-   BlockRead(TmpInFile.F,Buf,Sz);
-   CalcBufCRC(Buf,Sz,CurPFile^.CRC);
-   PutBlock(Buf,Sz);
-  end;
+  i  : TSize;
+  l  : word;
 
 begin
   InFName:=CalcTmpFName(a.TmpFileId,TmpExt,False);
   lAssignFile(TmpInFile,InFName);
   FileMode:=$40; lResetFile(TmpInFile,1);
   if IOResult<>0 then LocalError(GetString(dlleErrorOpenTMP));
-  i:=round(a.Size) div BufSize;
-  for c:=1 to round(i) do Mve(BufSize);
-  i:=Round(a.Size) mod BufSize;
-  if i>0 then Mve(i);
+  i := a.Size;
+  while i <> 0 do
+    begin
+    l := BufSize;
+    if i < BufSize then
+      l := round(i);
+    BlockRead(TmpInFile.F, Buf, l);
+    CalcBufCRC(Buf, l, CurPFile^.CRC);
+    PutBlock(Buf, l);
+    i := i - l;
+    end;
   Close(TmpInFile.F);
   EraseFile(InFName);
   CurPFile^.Size:=CurPFile^.Size+a.Size;
@@ -693,7 +719,7 @@ end;
 procedure SetFN;
 var D:String;N:String;E:String;nl:byte absolute n;el:byte absolute E;
 begin
- UpStr(AuxT);lFSplit(AuxT,D,N,E); nl:=Min(nl,8);el:=Min(el,4);
+{UpStr(AuxT);} lFSplit(AuxT,D,N,E); {nl:=Min(nl,8);el:=Min(el,4);} {JO: для OS/2 это как-то странно}
  AuxT:=N+E;
 end;
 
@@ -758,16 +784,16 @@ begin
 end;
 
 procedure CalcLnCRC(var Strng:string;var CRC:word);assembler;
+{&USES esi} {&FRAME-}
 asm
         cld
-        xor     cx,cx
-        push    ds
-        lds     si,Strng
+        xor     ecx,ecx
+        mov     esi,Strng
         lodsb
         mov     cl,al
-        jcxz    @@End
-        les     di,CRC
-        mov     dx,word ptr [es:di]
+        jecxz    @@End
+        mov     edi,CRC
+        mov     dx,word ptr [edi]
         xor     ax,ax
  @@1:   lodsb
         ror     dx,1
@@ -775,8 +801,8 @@ asm
         loop    @@1
         ror     dx,1
         add     dx,0Ah
-        mov     word ptr es:[di],dx
- @@End: pop     ds
+        mov     word ptr [edi],dx
+ @@End:
 end;
 
 
@@ -922,7 +948,8 @@ begin
     end else
     begin
      if WholeSectCRC=0 then WholeSectCRC:=SectCRC;
-     if CurPFile<>NIL then CheckSum;
+     if CurPFile<>NIL then
+        CheckSum;
      if SectionGo then begin TerminateSection;ClearEX end;
      ClearCRC;Continue;
     end
@@ -989,12 +1016,12 @@ begin
 end;
 
 procedure DecodeStr(var Src,Dst);assembler;
+{&USES esi,ebx}
 var     Cnt:byte;
 asm
         cld
-        push    ds
-        lds     si,Src
-        les     di,Dst
+        mov     esi,Src
+        mov     edi,Dst
         mov     Cnt,15
 @@L:    lodsw
         mov     ch,ah
@@ -1018,7 +1045,6 @@ asm
         stosb
         dec     Cnt
         jnz     @@L
-        pop     ds
 end;
 
 procedure OutString;
@@ -1080,7 +1106,8 @@ function CalcUnknownName:string;
 var     Num:word;
         u:string;
  procedure CalcMaxUnk(var s:string);
- var v,c:word;
+ var v:word;
+   c: longint;
  begin
   if s[1]='.' then DelFC(s);
   Val(s,v,c);
@@ -1273,7 +1300,11 @@ var
  IdleTimer: TEventTimer;
 begin
  if (PF^.Attr and Directory <> 0) then Exit;
- InputFileName:=MakeNormName(PF^.Owner^, MakeFileName(PF^.Name));
+{$IFDEF Win32}
+ InputFileName:=MakeNormName(PF^.Owner^, PF^.LFN);
+{$ELSE}
+ InputFileName:=MakeNormName(PF^.Owner^, PF^.Name);
+{$ENDIF}
  if not ExistFile(InputFileName) then Exit;
  InputStream := New(PTextReader, Init(InputFileName));
  if (InputStream = nil) then Exit;
@@ -1364,6 +1395,9 @@ end;
 
 {$IFDEF UUENCODE}
 
+(* {Это все не нужно, итак как используется не ассемблерный obj,
+а паскальный unit}
+
 type
         T64             = record
                           case Byte of
@@ -1377,19 +1411,23 @@ function  GetLnCrc(var Buf;Size:word):Char;near;external;
 procedure cCrc(var Buf;Size:word;var PrevSum:word);near;external;
 procedure Crc64(var Buf;Size:word;var PrevSum;var Cnt:word);near;external;
 procedure Clear64(n:T64);near;external;
+
 {$IFDEF DPMI}
 {$L UUE2INC.OBP}
 {$ELSE}
 {$L UUE2INC.OBJ}
 {$ENDIF}
+*)
 
-function SmartDIV(L:LongInt;W:Word):Word;assembler;
-asm             mov     ax,word ptr [L+0]
-                mov     dx,word ptr [L+2]
-                div     W
-                or      dx,dx
-                jz      @@Exit
-                inc     ax
+function SmartDIV(L:LongInt;W:longint):Word;assembler;
+{&USES None} {&FRAME-}
+asm
+         mov     eax,L
+         xor     edx,edx
+         div     W
+         or      edx,edx
+         jz      @@Exit
+         inc     eax
 @@Exit:
 end;
 
@@ -1402,9 +1440,9 @@ type
   const
                 SectNZ   = 2000;
  {$IFDEF DNPRG}
-                UUETitle = '< UUE by DN OSP '+VersionName+' >';
+                UUETitle = '< UUE by DN/2 '+VersionName+' >';
  {$ELSE}
-                UUETitle = '< UUE by DN OSP  >';
+                UUETitle = '< UUE by DN/2 >';
  {$ENDIF}
   var ST: lfile;
       GetLnEnd: string[2];
@@ -1480,7 +1518,7 @@ var sl:byte;
 begin
  if CalcSectCrc then
  begin
-  sl:=Byte(s[0]);
+  sl:=Length(s);
   Inc(sl);Inc(SecCRCs,sl);s[sl]:=#10;
   cCrc(s[1],sl,SecCRC);
  end;
@@ -1569,7 +1607,8 @@ function GetDecimal(Number:word):string;assembler; {Set 2-b}
         mov     edi,@Result
         mov     al,2
         stosb
-        mov     eax,Number
+//        mov     eax,Number
+        mov     ax,Number
         mov     cl,10
         div     cl
         add     ax,3030h
@@ -1592,7 +1631,7 @@ begin
 end;
 
 function CurStdDateTime:string;
-var Dummy, Year, Month, Day, Hour, Minute, Second:word;
+var Dummy, Year, Month, Day, Hour, Minute, Second:longint;
 begin
  GetDate(Year, Month, Day, Dummy);
  GetTime(Hour, Minute, Second, Dummy);
@@ -1686,7 +1725,7 @@ end;
 function SS64(n:T64):string;
 var s:string;
 begin
- s[0]:=#16;
+ SetLength(s, 16);
  Hex8Lo(n.l1,s[1]);
  Hex8Lo(n.l0,s[9]);
  SS64:=s;
@@ -1828,8 +1867,8 @@ end;
 
 FUNCTION MakeNormName(S, S1: string): string;
 begin
- While S[Length(S)] = ' ' do Dec(S1[0]);
- While S1[Length(S1)] = ' ' do Dec(S1[0]);
+ While S[Length(S)] = ' ' do SetLength(S1, Length(S1)-1);
+ While S1[Length(S1)] = ' ' do SetLength(S1, Length(S1)-1);
  if S <> '' then
  begin
    if S[Length(S)]='\' then MakeNormName := S + S1
@@ -1841,6 +1880,7 @@ procedure DoIt;
 var sss,Ma:LongInt;
     II : Integer;
     LocalFreeStr, UUEncodeDataName: string;
+    Err: longint;
 Label beg;
 begin
 
@@ -1879,8 +1919,8 @@ beg:
 
  NLines := 900;
 
- Val(UUEData.NLines, L, I);
- if I = 0 then NLines := Max(10, L);
+ Val(UUEData.NLines, L, Err);
+ if Err = 0 then NLines := Max(10, L);
 
  lFSplit(lFExpand(UUEData.Name), S, Nm, Xt);
  if (Xt='') or (Xt='.') then Xt:='.uue';
@@ -2001,5 +2041,5 @@ end;
         {-DataCompBoy-}
 
 {$ENDIF}
-
 end.
+

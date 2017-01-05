@@ -153,7 +153,7 @@ FUNCTION MakeSaversDialog: PDialog;
 {$ENDIF}
 IMPLEMENTATION
 uses Tree, Drives, advance, advance1, advance2, advance3, Messages, DNHelp,
-     Advance6;
+     Advance6, DNIni;
 
 procedure ConfirmSetup;
 var D: Word;
@@ -167,6 +167,10 @@ begin
              (Confirms and cfExitConfirm)   shl 1;
   If D <> cmOK then Exit;
   ConfigModified := On;
+
+  ConfirmsOpt        := Confirms;
+  SaveDnIniSettings(nil);
+  DoneIniEngine;
 end;
 
 function TerminalSetup;
@@ -194,6 +198,10 @@ begin
    Message(Application, evCommand, cmUpdateConfig, nil);
  end;
  Dispose(D,Done);
+ HandleChDirCommand := ((SystemData.Options{$IFDEF VIRTUALPASCAL}shl 3{$ENDIF}) and ossHandleChDirCommand) <> 0;
+ SystemDataOpt      := SystemData.Options;
+ SaveDnIniSettings(nil);
+ DoneIniEngine;
 end;
 
 procedure InterfaceSetup;
@@ -233,39 +241,61 @@ begin
     if InterfaceData.Options and ouiClock = 0 then
       if Clock^.GetState(sfVisible) then Clock^.Hide;
   end;
+  DriveInfoType := InterfaceData.DrvInfType;
+  InterfaceDataOpt := InterfaceData.Options;
+  SaveDnIniSettings(nil);
+  DoneIniEngine;
 end;
 
 procedure StartupSetup;
 var
+{$IFNDEF VIRTUALPASCAL}
   Data: Record
     Load, Unload,
-    Slice,Slice2: Word;
+    Slice, Slice2: Word;
     OvrBuf: String[ 3 ];
   end;
   W: Word;
   R: Integer;
 label
   Retry;
+{$ELSE}
+  Data: Record
+    Load, Unload, Slice2: Word;
+  end;
+{$ENDIF}
 begin
   Data.Load := StartupData.Load;
   Data.Unload := StartupData.Unload;
-  Data.Slice := StartupData.Slice;
   Data.Slice2:= StartupData.Slice2;
+{$IFNDEF VIRTUALPASCAL}
+  Data.Slice := StartupData.Slice;
 Retry:
   Data.OvrBuf := ItoS( StartupData.OvrSize );
+{$ENDIF}
   If ExecResource( dlgStartupSetup, Data ) <> cmCancel then begin
+{$IFNDEF VIRTUALPASCAL}
     Val( Data.OvrBuf, W, R );
     If ( W < 64 ) or ( W > 200 ) or ( R > 0 ) then begin
       Msg( erInvalidOvrSize, NIL, mfError + mfOKButton );
       goto Retry;
     end;
+{$ENDIF}
     StartupData.Load := Data.Load;
     StartupData.Unload := Data.Unload;
-    StartupData.Slice := Data.Slice;
     StartupData.Slice2:= Data.Slice2;
+{$IFNDEF VIRTUALPASCAL}
+    StartupData.Slice := Data.Slice;
     StartupData.OvrSize := W;
+{$ENDIF}
     LSliceCnt := -3;
     Message(Application, evCommand, cmUpdateConfig, nil);
+
+    StartupDataLoad    := StartupData.Load;
+    StartupDataUnload  := StartupData.Unload;
+    StartupDataSlice2  := StartupData.Slice2;
+    SaveDnIniSettings(nil);
+    DoneIniEngine;
   end;
 end;
 
@@ -319,6 +349,10 @@ begin
   if ExecResource(dlgFMSetup, Startup.FMSetup) <> cmOK then Exit;
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmReboundPanel, nil);
+
+  FMSetupOpt := Startup.FMSetup.Options;
+  SaveDnIniSettings(nil);
+  DoneIniEngine;
 end;
 
 procedure DriveInfoSetup;
@@ -341,6 +375,11 @@ begin
   if ExecResource(dlgEditorDefaults, EditorDefaults) = cmOK then begin
     if StoI(EditorDefaults.TabSize)<2 then EditorDefaults.TabSize:='2'; {-$VOL}
     Message(Application, evCommand, cmUpdateConfig, nil);
+    EditorDefaultsOpt  := EditorDefaults.EdOpt;
+    EditorDefaultsOpt2 := EditorDefaults.EdOpt2;
+    ViewerOpt          := EditorDefaults.ViOpt;
+    SaveDnIniSettings(nil);
+    DoneIniEngine;
   end;
 end;
 
@@ -451,7 +490,11 @@ const
   HSenseY = 3;
 
 FUNCTION TMouseBar.DataSize; assembler;
+{$IFNDEF BIT_32}
 asm mov ax,2 end;
+{$ELSE}
+asm mov eax,2 end;
+{$ENDIF}
 
 PROCEDURE TMouseBar.SetData;
 begin SetValue( Integer( Rec )) end;
@@ -556,7 +599,7 @@ begin
 
   R.Assign(2,15,18,16);
   Control := New(PInputLine, Init(R, 3));
-  PInputLine(Control)^.SetValidator(New(PRangeValidator, Init(0, 254)));
+  PInputLine(Control)^.SetValidator(New(PRangeValidator, Init(1, 254))); { X-Man }
   Control^.Options := Control^.Options or ofValidate;
   Insert(Control);
 

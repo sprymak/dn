@@ -45,9 +45,11 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-{Written by Anton Fedorov aka DataCompBoy 18.07.2000}
+{DataCompBoy = Anton Fedorov, 2:5000/111.33@fidonet}
+{JO = Jaroslaw Osadtchiy, 2:5030/1082.53@fidonet}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
 {Interface part from LFN.PAS}
-
+{$AlignRec-}
 unit LFNVP;
 
 interface
@@ -55,22 +57,48 @@ interface
 uses Dos, DnINI;
 
 type
-  lAPIType = (lDOS, lWIN95);  {API currently used}
 
   TSize = Comp; {64 bit integer type for file sizes}
 
+  SearchRecNew = record        {JO: расширенный аналог SearchRec из Dos с }
+    Handle: Longint;           {    некоторыми дополнительными полями, }
+    Filler1: Longint;          {    в настоящий момент ShortName в Win32 версии,}
+    Attr: Byte;                {    время создания и последнего доступа}
+    Time: Longint;
+    Size: Longint;
+    Name: ShortString;
+    CreationTime: Longint;
+    LastAccessTime: Longint;
+    Filler2: array[0..3] of Char;
+{$IFDEF WIN32}
+    ShortName:   ShortString;
+    Filler3: array[0..321] of Char;
+{$ENDIF}
+{$IFDEF DPMI32}
+    Private_data: array[1..sizeof(TOSSearchRec)-4-4-1-4-4-256-4] of Byte;
+{$ENDIF}
+{$IFDEF LINUX}
+    Pattern: ShortString;
+    FileMode: LongInt;
+    Directory: ShortString;
+{$ENDIF}
+  end;
+
    {Extended search structure to be used instead of SearchRec}
   lSearchRec = record
-    SR: SearchRec;     {Basic field set (SR.Name - short name)}
-    FileHandle: Word;  {Search handle, undefined in lDOS mode}
+    SR: SearchRecNew;   {Basic field set}
+   {FileHandle: Word;}  {Search handle, undefined in lDOS mode}
     FullSize: TSize; {True file size}
-    LoCreationTime: Longint; {Time created (low-order byte)}
+(*  LoCreationTime: Longint; {Time created (low-order byte)}
     HiCreationTime: Longint; {Time created (high-order byte)}
     LoLastAccessTime: Longint; {Time accessed (low-order byte)}
     HiLastAccessTime: Longint; {Time accessed (high-order byte)}
     LoLastModificationTime: Longint; {Time modified (low-order byte)}
-    HiLastModificationTime: Longint; {Time modified (high-order byte)}
+    HiLastModificationTime: Longint; {Time modified (high-order byte)} *)
     FullName: string;  {True file name or short name if LFNs not available}
+   {$IFDEF OS2}
+    PrevName: string;
+   {$ENDIF}
     { Other fields will be added later }
   end;
 
@@ -89,13 +117,13 @@ type
 
         {   Basic parameters   }
 const
-  lAPI = lWIN95;  {  Current API  }
 
+(*
   ltMod = 0;    {Store time modified}
   ltAcc = 1;    {Store time accessed}
   ltCre = 2;    {Store time created}
   LFNTimes: Byte = ltMod; { What time info to store in lSearchRec.SR.Time? }
-
+*)
   MaxPathLen: Byte = 255;  { Maximum name length for the present moment }
 
   LFNPresent: Boolean = true; { Are LFNs available }
@@ -106,19 +134,18 @@ const
   Const IllegalCharsDos:String[15] = ';,=+<>|"[]'; { Characters invalid for DOS names }
       IllegalCharSetDos:Set Of Char = [';',',','=','+','<','>','|','"','[',']']; { Characters invalid for DOS names }
 
-           { Returns true if LFNs are unavailable near the given path }
-function LFNDisabled(const Path: String): Boolean; inline; begin LFNDisabled := false {?} end;
-
        { File searching routines. lFindClose must be called /in all cases/ }
 procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 procedure lFindNext(var R: lSearchRec);
 procedure lFindClose(var R: lSearchRec);
 
+{$IFNDEF OS2}
         { Name retrieval functions }
-procedure lGetShortFileName(const Name: String; var ShortName: String);
 function lfGetShortFileName(const Name: String): String;
-procedure lGetLongFileName(const Name: String; var LongName: String);
-function lfGetLongFileName(const Name: String): String;
+{$ENDIF}
+{$IFDEF OS_DOS}
+function lfGetLongFileName(const Name: String): String; }
+{$ENDIF}
 
         { Name correction routine }
 procedure lTrueName(const Name: String; var S: String);
@@ -143,7 +170,7 @@ procedure lRenameText(var T: lText; const NewName: String);
 function  lFileNameOf(var lF: lFile): string;
 function  lTextNameOf(var lT: lText): string;
 
-                 { Extended file attributes manipulation }
+                 { File attributes manipulation }
 procedure lGetFAttr(var F: lFile; var Attr: Word);
 procedure lSetFAttr(var F: lFile; Attr: Word);
 procedure lGetTAttr(var T: lText; var Attr: Word);
@@ -161,9 +188,9 @@ procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 
 implementation
 
-uses Windows;
+uses {$IFDEF WIN32} Windows, {$ENDIF} VpSysLo2, Strings;
 
- Function StrPas(S: Array Of Char): String;
+ Function StrPas_(S: Array Of Char): String;
   var ss: string;
       i: word;
   Begin
@@ -172,7 +199,7 @@ uses Windows;
     If (i<255) and (s[i]<>#0)
      then ss:=ss+s[i]
      else break;
-   StrPas:=ss;
+   StrPas_:=ss;
   End;
 
 procedure NameToNameZ(const Name: String; var NameZ: TNameZ);
@@ -193,11 +220,11 @@ begin
   end;
 
   if Name[Length(Name)] <> '\' then
-    while S[Length(S)] = '\' do Dec(S[0])
+    while S[Length(S)] = '\' do SetLength(S, Length(S)-1)
   else if (Name[Length(Name)] = '\') and
     (S[Length(S)] <> '\') and (Length(S) < 255) then
   begin
-    Inc(S[0]);
+    SetLength(S, Length(S)+1);
     S[Length(S)] := '\';
   end;
 end;
@@ -218,78 +245,98 @@ end;
  130h 14 BYTEs   ASCIZ short filename (for backward compatibility)
 *)
 
+function SetDosError(ErrCode: Integer): Integer;
+begin
+  DosError := ErrCode;
+  SetDosError := ErrCode;
+end;
+
+{JO: функции, аналогичные FindFirst, FindNext и FindClose из модуля DOS, }
+{    но предназначенные для работы с SearchRecNew}
+
+procedure FindFirstNew(const Path: PathStr; Attr: Word; var F: SearchRecNew);
+var
+  PathBuf: array [0..SizeOf(PathStr)-1] of Char;
+begin
+  SetDosError(SysFindFirstNew(StrPCopy(PathBuf, Path), Attr, TOSSearchRecNew(F), False));
+end;
+
+procedure FindNextNew(var F: SearchRecNew);
+begin
+  SetDosError(SysFindNextNew(TOSSearchRecNew(F), False));
+end;
+
+procedure FindCloseNew(var F: SearchRecNew);
+begin
+  SetDosError(SysFindCloseNew(TOSSearchRecNew(F)));
+end;
+
 procedure CorrectSearchRec(var R: lSearchRec);
-var NZ,NZ2: TNameZ;
 begin
   R.FullName := R.SR.Name;
-  NameToNameZ(R.SR.Name, NZ2);
-  GetShortPathName(NZ2, NZ, SizeOf(NZ));
-  R.SR.Name := StrPas(NZ);
-  R.LoCreationTime:= R.SR.Time;
+{$IFDEF Win32}
+  if (R.SR.Name <> '.') and (R.SR.Name <> '..') and (R.SR.ShortName <> '') then
+     R.SR.Name := R.SR.ShortName;
+{$ENDIF}
+(*R.LoCreationTime:= R.SR.Time;
   R.HiCreationTime:= 0;
   R.LoLastAccessTime:= R.SR.Time;
   R.HiLastAccessTime:= 0;
   R.LoLastModificationTime:= R.SR.Time;
-  R.HiLastModificationTime:= 0;
+  R.HiLastModificationTime:= 0; *)
   R.FullSize:=R.SR.Size;
 end;
 
 procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 begin
   R.FullName := '';
-  FindFirst(Path, Attr, R.SR);
+  FindFirstNew(Path, Attr, R.SR);
   CorrectSearchRec(R);
+{$IFDEF OS2}
+  R.PrevName := R.FullName;
+{$ENDIF}
 end;
 
 procedure lFindNext(var R: lSearchRec);
 begin
   R.FullName := '';
-  FindNext(R.SR);
-  CorrectSearchRec(R);
+  FindNextNew(R.SR);                    {JO: ошибка 49 в оси зарезервирована}
+  CorrectSearchRec(R);                  {    мы её будем использовать для}
+{$IFDEF OS2}                            {    отлова дупов на HPFS}
+  if (DOSError = 0) and (R.FullName <> '') and (R.FullName <> '.') and (R.FullName <> '..') then
+    begin
+      if R.PrevName = R.FullName then DOSError := 49;
+      R.PrevName := R.FullName;
+    end;
+{$ENDIF}
 end;
 
 procedure lFindClose(var R: lSearchRec);
+ var DEr: Longint;
 begin
- DOS.FindClose(R.SR);
+ DEr := DOSError; {JO}
+ FindCloseNew(R.SR);
+ DOSError := DEr; {JO}
 end;
 
-procedure lGetShortFileName(const Name: String; var ShortName: String);
+
+{$IFNDEF OS2}
+function lfGetShortFileName(const Name: String): String;
 var NZ, NZ2: TNameZ;
 begin
- if LFNDisabled(Name)
-  then ShortName := Name
-  else begin
-        NameToNameZ(Name, NZ);
-        GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
-        ShortName := StrPas(NZ);
-       end;
+  if (Name = '.') or (Name = '..') then begin lfGetShortFileName := Name; Exit; end;
+  NameToNameZ(Name, NZ2);
+  GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
+  lfGetShortFileName := StrPas_(NZ);
 end;
-
-function lfGetShortFileName(const Name: String): String;
- var s: String;
-begin
-  lGetShortFileName(Name, s);
- lfGetShortFileName:=s;
-end;
-
-procedure lGetLongFileName(const Name: String; var LongName: String);
-var NZ, NZ2: TNameZ; P: PChar;
-begin
-{ if LFNDisabled(Name)
-  then }LongName := Name
-{  else begin
-        NameToNameZ(Name, NZ);
-        GetFullPathName(@NZ2, SizeOf(NZ), NZ, P);
-        LongName := StrPas(NZ);
-       end;} {?}
-end;
-
+{$ENDIF}
+{$IFDEF OS_DOS}
 function lfGetLongFileName(const Name: String): String;
- var s: String;
 begin
-  lGetLongFileName(Name, s);
- lfGetLongFileName:=s;
+ lfGetLongFileName:=Name;
 end;
+{$ENDIF}
+
 
 procedure lTrueName(const Name: String; var S: String);
  begin S:=FExpand(Name); end;
@@ -312,7 +359,7 @@ begin
 
         for B := Length(Path) downto 1 do
         begin
-          if (Path[B] = '.') and (DotPos = 0) and (B>1) then DotPos := B;
+          if (Path[B] = '.') and (DotPos = 0) {and (B>1)} then DotPos := B; {JO: имена могут состоять только из расширения}
           if ((Path[B] = ':') or (Path[B] = '\')) and (SlashPos = 0) and
              ((B > 2) or not HasColon) then SlashPos := B;
           if (DotPos <> 0) and (SlashPos <> 0) then Break;
@@ -335,12 +382,12 @@ end;
 
 function lFileNameOf(var lF: lFile): string;
 begin
-  lFileNameOf := StrPas(FileRec(lF.F).Name);
+  lFileNameOf := StrPas_(FileRec(lF.F).Name);
 end;
 
 function lTextNameOf(var lT: lText): string;
 begin
-  lTextNameOf := StrPas(TextRec(lT.T).Name);
+  lTextNameOf := StrPas_(TextRec(lT.T).Name);
 end;
 
 procedure lResetFileReadOnly(var F: lFile; RecSize: Word);
@@ -391,7 +438,23 @@ procedure lSetFAttr(var F: lFile; Attr: Word);     begin DOS.SetFAttr(F.F, Attr)
 procedure lGetTAttr(var T: lText; var Attr: Word); begin DOS.GetFAttr(T.T, Attr); end;
 procedure lSetTAttr(var T: lText; Attr: Word);     begin DOS.SetFAttr(T.T, Attr); end;
 procedure lMkDir(const Path: String); begin MkDir(Path); end;
-procedure lRmDir(const Path: String); begin RmDir(Path); end;
+
+{AK155: В DN/2, если каталог имеет атрибут ReadOnly, то на FAT или HPFS
+он удаляется нормально, а на FAT32 - не удаляется. Так что на всякий
+случай надо ReadOnly снять. }
+procedure lRmDir(const Path: String);
+  var
+    f: file;
+    Attr: word;
+  begin
+  assign(f, Path); Dos.GetFAttr(f, Attr);
+  if Attr and ReadOnly <> 0 then
+    Dos.SetFAttr(f, Attr and not ReadOnly);
+  if DosError <> 0 then
+    begin InOutRes := DosError; exit; end;
+  RmDir(Path);
+  end;
+{/AK155}
 procedure lChDir(const Path: String); begin ChDir(Path); end;
 procedure lGetDir(D: Byte; var Path: String); begin GetDir(D, Path); end;
 

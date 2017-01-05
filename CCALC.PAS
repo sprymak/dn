@@ -140,8 +140,8 @@ begin
                   case D.N of
                     0: begin
                          Str(Value:0:20, D.S);
-                         While D.S[Length(D.S)] = '0' do Dec(D.S[0]);
-                         if D.S[Length(D.S)] = '.' then Dec(D.S[0]);
+                         While D.S[Length(D.S)] = '0' do SetLength(D.S, Length(D.S)-1);
+                         if D.S[Length(D.S)] = '.' then SetLength(D.S, Length(D.S)-1);
                        end;
                     1: if Abs(Value) < $7FFFFFFF then GetNValue(Trunc(Value), 4, D.S) else Exit;
                     2: if Abs(Value) < $7FFFFFFF then GetNValue(Trunc(Value), 1, D.S) else Exit;
@@ -180,13 +180,13 @@ begin
         WriteLine(0,0,Size.X,2,B);
         WriteLine(0,3,Size.X,2,B);
         S:=GetString(dlMsgError);
-        MoveStr(B[(Size.X - Byte(S[0])) div 2], S, C);
+        MoveStr(B[(Size.X - Length(S)) div 2], S, C);
         WriteLine(0,2,Size.X,1,B);
      end else
      begin
        Str(Value:0:20, S);
-       if PosChar('E', S)=0 then While S[Length(S)] = '0' do Dec(S[0]);
-       if S[Length(S)] = '.' then Dec(S[0]);
+       if PosChar('E', S)=0 then While S[Length(S)] = '0' do SetLength(S, Length(S)-1);
+       if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
        Wrt(0);
        if Abs(Value) > $7FFFFFFF then
          begin
@@ -270,8 +270,8 @@ begin
     GetData(S);
     HistoryAdd(hsCalcLine, S);
     Str(R:0:20, S);
-    While S[Length(S)] = '0' do Dec(S[0]);
-    if S[Length(S)] = '.' then Dec(S[0]);
+    While S[Length(S)] = '0' do SetLength(S, Length(S)-1);
+    if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
     SetData(S);
     Message(@Self, evKeyDown, kbEnd, nil);
     SelStart:=0;

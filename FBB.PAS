@@ -58,7 +58,9 @@ uses LFN, {DataCompBoy}
      advance, advance1, advance2, advance3, FileCopy, DNApp, Messages, Views,
      Objects, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
      HistList, Gauge, StartUp, DNutil, xTime, DiskInfo
-     {$IFNDEF NONBP},DiskTool{$ENDIF};
+     {$IFNDEF NONBP},DiskTool{$ENDIF}
+     , ErrMess
+     ;
 
  type Ar65000 = Array [1..65000] of Byte;
       ArPtr = ^Ar65000;
@@ -205,7 +207,7 @@ uses LFN, {DataCompBoy}
   begin
    FreeSpc:=Disk_Free(Byte(d[1])-64);
    DosError:=0; OverWr:=On; Abort := Off;
-   lFindFirst(d+n+'.d??',$3F xor VolumeID,SR);
+   lFindFirst(d+n+'.d??',Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF},SR);             {JO}
    while (DOSError=0) and not (SR.FullName[Length(SR.FullName)] in ['0'..'9'])
    and not (SR.FullName[Length(SR.FullName)-1] in ['0'..'9']) do lFindNext(SR);
    if (DOSError=0) and ((PartSize=0) or (FreeSpc<PartSize)) then
@@ -436,7 +438,7 @@ uses LFN, {DataCompBoy}
 
   function CopyDialog: Boolean;
    var D: PDialog;
-       P, P1: PView;
+       P: PView;
        R: TRect;
        S,Mask: String;
        SR: lSearchRec;
@@ -445,6 +447,7 @@ uses LFN, {DataCompBoy}
        F: lFile;
        DTA: record S: String; W: Word; SPLSiz, NumSect: String[10] end;
        a,aa,aaa:string;
+
    const x_x = '*.';
     function IsLabel( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
     begin
@@ -457,7 +460,7 @@ uses LFN, {DataCompBoy}
       then D := PDialog( LoadResource( dlgCombineFile ))
       else D := PDialog( LoadResource( dlgSplitFile ));
     P := D^.LastThat( @IsLabel );
-    R.Assign( P^.Origin.X + P^.Size.X-1, P^.Origin.Y, D^.Size.X - 1, P^.Origin.Y + 1 );
+    R.Assign(P^.Origin.X + P^.Size.X-1, P^.Origin.Y, (D^.Size.X - 1), P^.Origin.Y + 1);
     D^.Insert( New( PLabel, Init( R, '~'+LowStrg(aa+aaa)+'~'+
                GetString(dlSplit_To), PLabel(P)^.Link)));
     S := '';
@@ -525,7 +528,7 @@ uses LFN, {DataCompBoy}
     if (pos('*',S)=0) and (pos('?',S)=0) then
      begin
       DosError := 0;
-      lFindFirst(S+'\*.*', $3E xor VolumeID, SR);
+      lFindFirst(S+'\*.*', $3E {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
       lFindClose(SR);
       if Abort or CopyCancelled then Exit;
       if (DOSError = 0)
@@ -562,6 +565,7 @@ uses LFN, {DataCompBoy}
 
   var R: TRect;
       PP: Pointer;
+      RC: longint;
       csv: byte;
   begin
     NewTimer(Timer, 0);
@@ -579,12 +583,13 @@ uses LFN, {DataCompBoy}
     FileMode := $40;
     lAssignFile(F1,Fn1); ClrIO;
     lResetFile(F1,1);
-    if IOResult<>0 then
-     begin MessageBox(GetString(dlFBBNoOpen)+Fn1, nil, mfError + mfOKButton); LongCopy := Off; Exit; end;
+    RC := IOResult;
+    if RC<>0 then
+     begin MessFileNotOpen(Fn1, RC); LongCopy := Off; Exit; end;
     GetFTime(F1.F, OldDate);
     lFSplit(Fn1,d,n,x);
 
-    Tuda := (X[0]=#4) and (UpStrg(x[2])='D') and (StoI(Copy(x,3,2)) > 0);
+    Tuda := (Length(X) = 4) and (UpStrg(x[2])='D') and (StoI(Copy(x,3,2)) > 0);
     csv:=CheckSvoi;
     if Tuda and (csv=0) then
            begin

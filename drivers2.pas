@@ -103,7 +103,7 @@ var
 begin
     { Create Report File. DRIVERS.PAS contains full dupe of this routine }
 
-    I := Byte(SourceDir[0]);
+    I := Length(SourceDir);
     SourceDir := SourceDir + 'DN.ERR'{$IFNDEF VIRTUALPASCAL}+#0{$ENDIF};
 
     {$IFDEF VIRTUALPASCAL}
@@ -217,7 +217,7 @@ begin
      {$ENDIF}
    end; { file write ok }
 
-  SourceDir[0] := Char(I);
+  SetLength(SourceDir, I);
 {$ENDIF DNPRG}
 end;
 {$S+}

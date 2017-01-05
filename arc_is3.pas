@@ -48,12 +48,13 @@
 unit Arc_IS3; {IS3}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
   PIS3Archive = ^TIS3Archive;
   TIS3Archive = object(TARJArchive)
     FoldersOffs : LongInt;
+    FilesNumber : LongInt;
     constructor Init;
     procedure GetFile; virtual;
     function GetID: Byte; virtual;
@@ -62,21 +63,21 @@ type
 
 type IS3FileHdr = record
       HZ1        : Byte;
-      FolderNum  : Word;
+      FolderNum  : AWord;
       OriginSize : LongInt;
       PackedSize : LongInt;
       HZ2        : LongInt;
       DateTime   : LongInt;
       Attr       : LongInt;
       HZ3        : LongInt;
-      HZ4        : Word;
+      HZ4        : AWord;
       NameLen    : Byte;
      end;
 
 type IS3FolderHdr = record
-      FileNumber : Word;
-      SizeOfHdr  : Word;
-      SizeOfName : Word;
+      FileNumber : AWord;
+      SizeOfHdr  : AWord;
+      SizeOfName : AWord;
      end;
 
 implementation
@@ -86,7 +87,7 @@ constructor TIS3Archive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ICOMP.EXE'));
@@ -111,13 +112,27 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-sh'));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-sh'));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-sh'));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
-  if q='0' then UseLFN := False else UseLFN := True;
+  UseLFN := q <> '0';
+{$ENDIF}
+
   FoldersOffs:=-1;
+  FilesNumber:=-1;
 end;
 
 function TIS3Archive.GetID;
@@ -140,16 +155,20 @@ var
     I     : Integer;
 begin
  if FoldersOffs<0 then begin
+   ArcFile^.Seek(ArcPos+$c);
+   ArcFile^.Read(FP, SizeOf(FP));
+   FilesNumber := FP and $ffff;
    ArcFile^.Seek(ArcPos+$29);
    ArcFile^.Read(FP, SizeOf(FP));
-   FoldersOffs:=FP;
+   FoldersOffs:=FP + ArcPos;
    ArcFile^.Seek(ArcPos+$33);
    ArcFile^.Read(FP, SizeOf(FP));
    FP:=FP + ArcPos;
    ArcFile^.Seek(FP);
  end;
  FP := ArcFile^.GetPos;
- if (FP >= ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;
+{if (FP >= ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;}
+ if (FilesNumber = 0) then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P, SizeOf(P));
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
  FO := FoldersOffs; S1 := ''; S := '';
@@ -167,8 +186,8 @@ begin
    FO := FO + P1.SizeOfHdr;
   end;
  FO := FO - P1.SizeOfHdr + SizeOf(P1);
- S[0] := Char(P1.SizeOfName and $ff);
- if S[0] = #0 then S := S1
+ SetLength(S, (P1.SizeOfName and $ff));
+ if Length(S) = 0 then S := S1
    else
     begin
      ArcFile^.Seek(FO);
@@ -177,12 +196,15 @@ begin
     end;
 
  FileInfo.FName := S;
+{$IFNDEF OS2}
  FileInfo.LFN   := AddLFN(S); {DataCompBoy}
+{$ENDIF}
  FileInfo.Last  := 0;
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Attr  := 0;
  FileInfo.Date  := (P.DateTime shr 16) or (P.DateTime shl 16);
+ Dec (FilesNumber);
  ArcFile^.Seek(FP + SizeOf(P) + P.NameLen + 13);
 end;
 

@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.51.08-JO/DPMI
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -60,7 +60,6 @@ const
  hcAppendPhoneDirectory = 16572;
  hcAppendPhoneNumber    = 16570;
  hcArchiveFiles         = 48031;
- hcArchiveOfPanels      = 65508;
  hcArchives             = 11014;
  hcArcSetup             = 11019;
  hcArvidFindResults     = 48076;
@@ -68,10 +67,9 @@ const
  hcBlockCommands        = 10002;
  hcCalculator           = 11016;
  hcCalendar             = 48084;
- hcCdPlayer             = 16555;
- hcCdPlayerOptions      = 16556;
- hcCdPlayerTitle        = 16557;
- hcCdTartalom           = 65515;
+ hcCDplayer             = 16555;
+ hcCDplayerOptions      = 16556;
+ hcCDplayerTitle        = 16557;
  hcChangeNameCase       = 48093;
  hcChLngId              = 48077;
  hcClipboard            = 11023;
@@ -119,7 +117,6 @@ const
  hcEditHistory          = 48074;
  hcEditMiscMenu         = 48079;
  hcEditor               =  1102;
- hcEditorChoice         = 65510;
  hcEditorCommands       = 10001;
  hcEditorDefaults       = 48040;
  hcEditorFeature        =     8;
@@ -132,7 +129,6 @@ const
  hcedOptions            = 48024;
  hcedParagraph          = 48023;
  hcedSearch             = 48022;
- hcEgyebBillentyu       = 65506;
  hcEnvEditor            = 16559;
  hcErrorDialog          = 48004;
  hcExtEditors           = 48033;
@@ -142,7 +138,7 @@ const
  hcExtMacros            = 16552;
  hcExtract              = 48030;
  hcExtViewers           = 48032;
- hcFeaturesOverView     =     5;
+ hcFeaturesOverview     =     5;
  hcFileAttr             = 16583;
  hcFileFind             = 21003;
  hcFileManager          =    20;
@@ -154,8 +150,6 @@ const
  hcFilesAttr            = 16584;
  hcFilesBBS             = 48061;
  hcFindCell             = 48067;
- hcFindDialogAdvance    = 65527;
- hcFindDialogBox        = 65528;
  hcFloppyFormat         = 48041;
  hcFormat               = 11009;
  hcFormatMargins        = 48070;
@@ -168,35 +162,23 @@ const
  hcGUserMenu            = 16547;
  hcHelp                 = 48049;
  hcHelpOnHelp           =     3;
- hcHglExample           = 65518;
- hcHiba                 = 65507;
  hcHighlight            = 11022;
- hcHighMacros           = 65517;
  hcHotOverview          =     7;
  hcIndex                =     2;
  hcInformationDialog    = 48005;
+ hcIniFile              = 48092;
  hcInputBox             = 48008;
  hcInsDelCommands       = 10004;
  hcInterface            = 11006;
  hcInterfaceSetup       = 16568;
- hcJegyzet              = 65520;
- hcJelolCsoport         = 65531;
- hcJelolExt             = 65534;
- hcJelolExt1            = 65533;
- hcJelolInvert          = 65532;
- hcKulcsGombok          = 65530;
- hcKulsoParancs         = 65514;
  hcLineViewer           = 48097;
  hcLinkPanel            =  1101;
  hcLinkStatusWnd        = 48062;
  hcLUserMenu            = 16546;
  hcMainMenu             =     9;
  hcMakeListFile         = 48028;
- hcMakeListModsz1       = 65522;
- hcMakeListModsz2       = 65523;
  hcManagerCommands      =    21;
  hcManualDial           = 48014;
- hcMeglepi              = 65519;
  hcMemoryInfo           = 16591;
  hcMenuBox              =    10;
  hcMenuEdit             = 16550;
@@ -219,7 +201,6 @@ const
  hcOptionsMenu          =    18;
  hcOptionsStartup       = 48038;
  hcOS2Support           = 48060;
- hcOutputWindow         = 65513;
  hcOverwriteQuery       = 48046;
  hcPanelDefaults        = 11002;
  hcPanelHotKeys         = 11003;
@@ -232,7 +213,6 @@ const
  hcPktListDialog        = 48096;
  hcPktMsgViewer         = 48099;
  hcPrinterSetup         = 16574;
- hcPrintKulcsGombok     = 65524;
  hcPrintManager         = 16562;
  hcQueryDialog          = 48007;
  hcQuickDirs            = 48019;
@@ -244,7 +224,6 @@ const
  hcReplaceCell          = 48066;
  hcSavers               = 48039;
  hcScreenGrabber        = 11024;
- hcScreenSaversSetup    = 65521;
  hcScrollBack           = 48043;
  hcSelect               = 16589;
  hcSelectDrive          = 21000;
@@ -258,11 +237,9 @@ const
  hcSetupFindColumns     = 16582;
  hcSetupTerminal        = 16569;
  hcSortBy               = 48018;
- hcSpecBillentyu        = 65505;
  hcSplitDialog          =    28;
  hcSplitFiles           =    26;
  hcSpreadEditMenu       = 48088;
- hcSpreadEditWindow     = 65529;
  hcSpreadFileMenu       = 48086;
  hcSpreadSearchMenu     = 48089;
  hcSpreadSheet          = 11015;
@@ -275,12 +252,9 @@ const
  hcTeam                 = 16554;
  hcTempList             = 11017;
  hcTerminal             = 11018;
- hcTerminalWorks        = 65526;
  hcTetris               = 16543;
  hcTetrisScore          = 48015;
  hcTetrisWinner         = 48016;
- hcTheComments          = 65516;
- hcTrashcan             = 65512;
  hcTreeDialog           = 16558;
  hcUnpackDiskImg        = 48065;
  hcUnselect             = 16590;
@@ -289,7 +263,6 @@ const
  hcUUDecode             = 48026;
  hcUUEncode             = 48025;
  hcView                 = 11021;
- hcViewChoice           = 65511;
  hcViewerFind           = 48047;
  hcViewFile             = 48057;
  hcViewHistory          = 48075;
@@ -300,8 +273,6 @@ const
  hcWindowsFeature       =     6;
  hcWindowsType          =    23;
  hcWinMan               = 21004;
- hcWorkingWindow        = 65525;
- hcXlatTables           = 65509;
  hcYesNoCancelDialog    = 48002;
  hcYesNoDialog          = 48001;
  hc_                    = 65535;

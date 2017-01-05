@@ -220,7 +220,7 @@ var
   TempStr: string;
 begin
   If ASCIIChar>0 then
-   FormatStr(TempStr, ' Char: ~'#0'%c'#0'~ Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ', ASCIIChar)
+   FormatStr(TempStr, ' Char: ~%c~ Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ', ASCIIChar)
   else
    FormatStr(TempStr, ' Char:   Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ', ASCIIChar);
   MoveCStr(Buf, TempStr, GetColor(07) shl 8 + GetColor(06));

@@ -45,6 +45,8 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
+
 unit advance6;
 
 interface
@@ -58,10 +60,15 @@ procedure ResourceAccessError;
 function  HotKey(const S: String): Char;
 
 implementation
-Uses Advance, LFN;
+Uses {Cat} U_KeyMap, {/Cat} Advance, LFN;
 
 procedure InitUpcase;
- var C: Char;
+var
+  C: Char;
+{Cat}
+  Koi8rDecodeChars: array[Char] of Char;
+  AnsiDecodeChars: array[Char] of Char;
+{/Cat}
 begin
   Move(CountryInfo.UpperTable, UpcaseArray[#128], 128);
   Move(CountryInfo.UpperTable, LowcaseArray[#128], 128);
@@ -73,6 +80,22 @@ begin
          LowCaseArray[C] := C;
        end;
     end;
+{Cat}
+  for C := #0 to #255 do
+    begin
+      Koi8rDecodeChars[Koi8rAllChars[byte(C)]] := C;
+      AnsiDecodeChars[AnsiAllChars[byte(C)]] := C;
+    end;
+  for C := #0 to #255 do
+    begin
+      UpCaseArray_Ascii_Koi8r[Koi8rAllChars[byte(C)]] := Koi8rAllChars[byte(UpCaseArray[C])];
+      UpCaseArray_Ascii_Ansi[AnsiAllChars[byte(C)]] := AnsiAllChars[byte(UpCaseArray[C])];
+      UpCaseArray_Koi8r_Ascii[Koi8rDecodeChars[C]] := Koi8rDecodeChars[UpCaseArray[C]];
+      UpCaseArray_Ansi_Ascii[AnsiDecodeChars[C]] := AnsiDecodeChars[UpCaseArray[C]];
+      UpCaseArray_Ascii_Koi8r_Ansi_Ascii[AnsiDecodeChars[Koi8rAllChars[byte(C)]]] := AnsiDecodeChars[Koi8rAllChars[byte(UpCaseArray[C])]];
+      UpCaseArray_Ascii_Ansi_Koi8r_Ascii[Koi8rDecodeChars[AnsiAllChars[byte(C)]]] := Koi8rDecodeChars[AnsiAllChars[byte(UpCaseArray[C])]];
+    end;
+{/Cat}
 end;
 
 function GetLineNumberForOffset(const FName: String; Offset: LongInt): LongInt;

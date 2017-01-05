@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
 {$I STDEFINE.INC}
 
 unit CmdLine;
@@ -83,7 +84,7 @@ Type
 *)
 
 
-const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' '];
+const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' ', '"'];
       StrModified: Boolean = False;
       DDTimer: LongInt = 0;
       TimerMark: Boolean = False;
@@ -154,7 +155,7 @@ begin
  until not Abort;
  Dec(SkyEnabled);
  NeedAbort := Off;
- if (Dir[0] > #3) and (Dir[Length(Dir)] = '\') then Dec(Dir[0]);
+ if (Length(Dir) > 3) and (Dir[Length(Dir)] = '\') then SetLength(Dir, Length(Dir)-1);
  ActiveDir := Dir;
  SetDirShape;
 end;
@@ -163,7 +164,7 @@ procedure TCommandLine.SetDirShape;
 begin
   TimerMark := LineType = ltTimer;
   if Dir[1] in ['[','(','{'] then Dir := Copy(Dir,2,Length(Dir)-2)
-                             else If Dir[Length(Dir)]='>' then Dec(Dir[0]);
+                             else If Dir[Length(Dir)]='>' then SetLength(Dir, Length(Dir)-1);
   Case LineType of
     ltOS2FullScreen: Dir := '[' + Dir + ']';
     ltOS2Window: Dir := '(' + Dir + ')';
@@ -277,8 +278,12 @@ procedure TCommandLine.HandleEvent;
 
  var R: TRect;
      P: TPoint;
+     i, l, c, ls: integer;
+     s1: string;
      S: String;
      Changed: Boolean;
+ label
+   EndLFN;
 begin
  inherited HandleEvent(Event);
  if (CCalc.Calc<>nil) and (Desktop^.Current<>nil) and
@@ -304,25 +309,107 @@ begin
                      CE2
                    end;
                end;
-  evCommand: case Event.Command of
-              cmRereadInfo: begin GetDir; DrawView; UpDate end;
-              cmInsertName: if InterfaceData.Options and ouiHideCmdline = 0 then
-                            begin
-                             S := String(Event.InfoPtr^)+' ';
-                             if S[Length(S)-1] = '\' then Dec(S[0]);
-                             if (CurX > 0) and not (Str[CurX] in Separators) then
-                                begin Insert(' ', Str, CurX+1); Inc(CurX) end;
-                             Insert(S, Str, CurX+1); Inc(CurX, Length(S));
-                             CE2; CheckSize;
-                            end;
-              cmExecCommandLine: if InterfaceData.Options and ouiHideCmdline = 0 then
-                                 begin
-                                  if DelSpaces(Str) = '' then Exit;
-                                  StrModified := True;
-                                  Message(@Self, evKeyDown, kbDown, nil);
-                                  Message(@Self, evKeyDown, kbUp, nil);
-                                 end;
+  evCommand:
+    case Event.Command of
+     cmRereadInfo: begin GetDir; DrawView; UpDate end;
+     cmInsertName:
+       if InterfaceData.Options and ouiHideCmdline = 0 then
+       begin
+         S := String(Event.InfoPtr^);
+{AK155: обработка длинных имен с пробелами.}
+         if (CurX > 0) and not (Str[CurX] in Separators)
+           and not (S[1] = '"')
+         then
+            begin Insert(' ', Str, CurX+1); Inc(CurX) end;
+         ls := Length(s);
+         c := CurX; l := length(Str);
+         if (S[Length(S)] <> '\') and (Copy(S, Length(S)-1, 2) <> '\"')
+         then
+           S := S + ' ';
+         Insert(S, Str, CurX+1);
+         Inc(CurX, Length(S));
+         if c > 0 then
+         begin
+           S1 := Copy(Str, c, 2);
+           if s1 = '""' then
+             begin
+             i := c+Length(S)+1;
+             while (i <= length(Str)) and (Str[i] <> '"') do
+                inc(i);
+             if i > length(Str) then
+               begin
+               delete(Str, c, 2); dec(c, 1); dec(l, 1);
+               dec(ls, 1); dec(CurX, 2);
+               end
+             else {(Str[i] = '"')}
+               begin
+               delete(Str, c+ls, 1); delete(Str, c, 1); dec(c, 1); dec(l, 1);
+               dec(ls, 1); dec(CurX, 2);
+               goto EndLFN; { чтобы не обрабатывать конец S}
+               end;
+             end
+           else if s1 = '\"' then
+             begin
+             i := c-1;
+             while (i >= 1) and (Str[i] <> ' ') do
+               dec(i);
+             delete(Str, c+1, 1); Insert('"', Str, i+1);
+             inc(c); inc(l); dec(ls);
+             end
+           else if (c>1) and (copy(Str, c-1, 2) = '\"') then
+             begin
+             delete(Str, c, 1); dec(c); dec(l);
+             insert('"', Str, c+length(s)); inc(ls);
              end;
+         end;
+         if c <> l then
+           begin
+           S1 := Copy(Str, c+Length(S), 2);
+           if s1 = '""' then
+             begin
+             delete(Str, c+Length(S), 2); dec(CurX);
+             end
+           else if s1 = '\"' then
+             begin
+             i := c+Length(S)-1;
+             while (i > c) and (Str[i] <> ' ') do
+               dec(i);
+             delete(Str, c+Length(S)+1, 1); Insert('"', Str, i+1);
+             inc(c); inc(l); dec(ls);
+             end
+           else if s1[1] = '"' then
+             begin
+             i := c+Length(S);
+             while (i <= length(Str)) and (Str[i] <> ' ') do
+               inc(i);
+             Insert('"', Str, i);
+             delete(Str, c+Length(S), 1);
+             dec(CurX);
+             end;
+           end;
+EndLFN:
+{/AK155}
+         CE2; CheckSize;
+       end;
+     cmClearCommandLine: begin Str := ''; CurX := 0; DeltaX := 0; CE2 end;
+     cmExecCommandLine: if InterfaceData.Options and ouiHideCmdline = 0 then
+                        begin
+                         if DelSpaces(Str) = '' then Exit;
+{AK155: Шатания, которые здесь были (Up-Down), приводили
+у тому, что после выполнения команды по Ctrl-E вызывалась из
+истории не эта команда, а предыдущая. В чем смысл,
+я не понял, поэтому сделал по-простому. В ритлабовском DN
+шатания тоже были, но вызывалось, вроде, правильно.
+                         StrModified := True;
+                         Message(@Self, evKeyDown, kbDown, nil);
+                         Message(@Self, evKeyDown, kbUp, nil);
+}
+                         AddCommand(Str);
+                         CurString := CmdStrings^.Count;
+                         StrModified := Off;
+{/AK155}
+                        end;
+    end;
   evKeyDown: if (DeskTop^.Current=nil)
                 or (TypeOf((DeskTop^.Current^))=TypeOf(TXDoubleWindow))
                 or (TypeOf((DeskTop^.Current^))=TypeOf(TUserWindow))
@@ -353,12 +440,27 @@ begin
                    kbAltSlash: begin
                                  if ShiftState and 3 <> 0 then Dec(LineType)
                                                           else Inc(LineType);
-                                 if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
+                                if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
                                    if ShiftState and 3 <> 0 then Dec(LineType)
                                                             else Inc(LineType);
                                  if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
                                    if ShiftState and 3 <> 0 then Dec(LineType)
                                                               else Inc(LineType);
+
+(*                              if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
+                                   if ShiftState and 3 <> 0 then Dec(LineType)
+                                                            else Inc(LineType);
+                                 if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
+                                   if ShiftState and 3 <> 0 then Dec(LineType)
+                                                              else Inc(LineType);
+
+                                if not (OS2exec or (CmdLineWINPrefix = '')) and (LineType = ltOS2Window) then
+                                   if ShiftState and 3 <> 0 then Dec(LineType)
+                                                            else Inc(LineType);
+                                 if not (OS2exec or (CmdLineWINPrefix = '')) and (LineType = ltOS2Window) then
+                                   if ShiftState and 3 <> 0 then Dec(LineType)
+                                                              else Inc(LineType); *)
+
                                  if LineType > ltTimer then LineType := ltNormal;
                                  if LineType < ltNormal then LineType := ltTimer;
                                  SetDirShape;

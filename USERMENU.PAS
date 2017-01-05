@@ -44,11 +44,15 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
 {$I STDEFINE.INC}
+{$IFDEF VIRTUALPASCAL}
+ {$DEFINE NOASM}
+{$ENDIF}
 unit UserMenu;
 
 interface
-uses Objects, Views, Scroller, Drivers, FilesCol, LFNCol, Collect,
+uses Objects, Views, Scroller, Drivers, FilesCol, {$IFNDEF OS2}LFNCol,{$ENDIF} Collect,
        SBlocks;
 
 var QuickExecExternalStr: string;
@@ -141,6 +145,7 @@ begin
  Options := Options or ofSelectable;
  Grabbing := Off;
  ScrollTo( 0,
+   Byte(CommandLine^.GetState(sfVisible)) +
    Byte(InterfaceData.Options and ouiHideMenu = 0){ +
    Byte(InterfaceData.Options and ouiHideStatus = 0)});
  Delta.Y := VScrollBar^.Value;
@@ -198,12 +203,17 @@ begin
 end;
 
         {-DataCompBoy-}
+{AK155 Тут была куча обкладываний строк символом #0,
+непонятно зачем нужными. В ритлабовском DN этого не было,
+так что я убрал, а вставил замену в именах файлов '~' на #0'~'
+(см. MoveCStr в drivers._vp)}
+
 function MakeString(S: String; UserParams: PUserParams; HandleTildes: boolean; TM: PString): String;
 var ts: string;
     tz: string;
-    zs: string[1];
+
 begin
-  if HandleTildes then zs:=#0 else zs:='';
+{  if HandleTildes then zs:=#0 else zs:='';}
   Replace('!!',#1, S);
   Replace('&&',#2, S);
   Replace('##',#3, S);
@@ -213,56 +223,108 @@ begin
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
+{$IFNDEF OS2}
     if UserParams^.Active^.Name[1]='.'
     then ts:=MakeNormName(lfGetShortFileName(UserParams^.Active^.Owner^),'')
     else ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
+ {$IFDEF OS_DOS}
       UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
+ {$ELSE}
+      UserParams^.Active^.Owner^, GetLFN(UserParams^.Active^.LFN)))),'');
+ {$ENDIF}
+{$ELSE}
+    if UserParams^.Active^.Name='..'
+    then ts:=MakeNormName(UserParams^.Active^.Owner^,'')
+    else ts:=MakeNormName(GetPath(MakeNormName(
+      UserParams^.Active^.Owner^, UserParams^.Active^.Name)),'');
+{$ENDIF}
+    if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('!:', Copy(ts,1,2), S);
-    Replace('!\', zs+Copy(ts,3,255)+zs, S);
-    Replace('!/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+    Replace('!\', Copy(ts,3,255), S);
+    Replace('!/', Copy(ts,3,Length(ts)-3), S);
    end;
 
   if (Pos('#\',S)>0) or (Pos('#:',S)>0) or (Pos('#/',S)>0) then
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
+{$IFNDEF OS2}
     if UserParams^.Active^.Name[1]='.'
+  {$IFDEF OS_DOS}
     then ts:=MakeNormName(lfGetLongFileName(UserParams^.Active^.Owner^),'')
     else ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
      UserParams^.Active^.Owner^, MakeFileName(UserParams^.Active^.Name)))),'');
+  {$ELSE}
+    then ts:=MakeNormName(UserParams^.Active^.Owner^,'')
+    else ts:=MakeNormName(GetPath(MakeNormName(
+     UserParams^.Active^.Owner^, GetLFN(UserParams^.Active^.LFN))),'');
+  {$ENDIF}
+{$ELSE}
+    if UserParams^.Active^.Name='..'
+    then ts:=MakeNormName(UserParams^.Active^.Owner^,'')
+    else ts:=MakeNormName(GetPath(MakeNormName(
+     UserParams^.Active^.Owner^, UserParams^.Active^.Name)),'');
+{$ENDIF}
+    if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('#:', Copy(ts,1,2), S);
-    Replace('#\', zs+Copy(ts,3,255)+zs, S);
-    Replace('#/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+    Replace('#\', Copy(ts,3,255), S);
+    Replace('#/', Copy(ts,3,Length(ts)-3), S);
    end;
 
   if (Pos('$\',S)>0) or (Pos('$:',S)>0) or (Pos('$/',S)>0) then
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
+{$IFNDEF OS2}
     if UserParams^.Passive^.Name[1]='.'
     then ts:=MakeNormName(lfGetShortFileName(UserParams^.Passive^.Owner^),'')
     else ts:=MakeNormName(GetPath(lfGetShortFileName(MakeNormName(
+  {$IFDEF OS_DOS}
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
+  {$ELSE}
+     UserParams^.Passive^.Owner^, GetLFN(UserParams^.Passive^.LFN)))),'');
+  {$ENDIF}
+{$ELSE}
+    if UserParams^.Passive^.Name='..'
+    then ts:=MakeNormName(UserParams^.Passive^.Owner^,'')
+    else ts:=MakeNormName(GetPath(MakeNormName(
+     UserParams^.Passive^.Owner^, UserParams^.Passive^.Name)),'');
+{$ENDIF}
+    if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('$:', Copy(ts,1,2), S);
-    Replace('$\', zs+Copy(ts,3,255)+zs, S);
-    Replace('$/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+    Replace('$\', Copy(ts,3,255), S);
+    Replace('$/', Copy(ts,3,Length(ts)-3), S);
    end;
 
   if (Pos('&\',S)>0) or (Pos('&:',S)>0) or (Pos('&/',S)>0) then
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
+{$IFNDEF OS2}
     if UserParams^.Passive^.Name[1]='.'
+  {$IFDEF OS_DOS}
     then ts:=MakeNormName(lfGetLongFileName(UserParams^.Passive^.Owner^),'')
     else ts:=MakeNormName(GetPath(lfGetLongFileName(MakeNormName(
      UserParams^.Passive^.Owner^, MakeFileName(UserParams^.Passive^.Name)))),'');
+  {$ELSE}
+    then ts:=MakeNormName(UserParams^.Passive^.Owner^,'')
+    else ts:=MakeNormName(GetPath(MakeNormName(
+     UserParams^.Passive^.Owner^, GetLFN(UserParams^.Passive^.LFN))),'');
+  {$ENDIF}
+{$ELSE}
+    if UserParams^.Passive^.Name='..'
+    then ts:=MakeNormName(UserParams^.Passive^.Owner^,'')
+    else ts:=MakeNormName(GetPath(MakeNormName(
+     UserParams^.Passive^.Owner^, UserParams^.Passive^.Name)),'');
+{$ENDIF}
+    if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('&:', Copy(ts,1,2), S);
-    Replace('&\', zs+Copy(ts,3,255)+zs, S);
-    Replace('&/', zs+Copy(ts,3,Length(ts)-3)+zs, S);
+    Replace('&\', Copy(ts,3,255), S);
+    Replace('&/', Copy(ts,3,Length(ts)-3), S);
    end;
 
   if Replace('!%', #5, S) or Replace('#%', #5, S) then
@@ -293,7 +355,7 @@ begin
       else
       with UserParams^.Active^ do
        MakeDateFull(CountryInfo.DateFmt,Day,Month,Yr,Hour,Minute,ts,True);
-      ts[0] := #10;
+      SetLength(ts, 10);
       Replace(#5'D', ts, S);
       Replace(#5'd', ts, S);
      end;
@@ -334,6 +396,7 @@ begin
       else
       if (UserParams^.Active^.DIZ<>nil) and (UserParams^.Active^.DIZ^.DIZ<>nil)
        then ts:=UserParams^.Active^.DIZ^.DIZ^ else ts:='';
+      if HandleTildes then Replace('~', #0'~', ts);
       Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
       Replace(#5'Z', ts, S);
       Replace(#5'z', ts, S);
@@ -341,9 +404,14 @@ begin
 
     if (Pos(#5'F', S)>0) or (Pos(#5'f', S)>0) then
      begin
+{$IFNDEF OS2}
       ts := MakeNormName(lfGetShortFileName(SwpDir),
                          GetName(CalcTmpFName(CalcTmpId, 'flt', True)));
+{$ELSE}
+      ts := MakeNormName(SwpDir, GetName(CalcTmpFName(CalcTmpId, 'flt', True)));
+{$ENDIF}
       if TM<>nil then TM^:=ts;
+      if HandleTildes then Replace('~', #0'~', ts);
       Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
       Replace(#5'F', ts, S);
       Replace(#5'f', ts, S);
@@ -368,6 +436,7 @@ begin
       if UserParams^.Passive^.Attr and Directory<>0
        then ts:=''
        else ts:=ZtoS(UserParams^.Passive^.PSize);
+      if HandleTildes then Replace('~', #0'~', ts);
       Replace(#6'C', ts, S);
       Replace(#6'c', ts, S);
      end;
@@ -378,7 +447,7 @@ begin
       else
       with UserParams^.Passive^ do
        MakeDateFull(CountryInfo.DateFmt,Day,Month,Yr,Hour,Minute,ts,True);
-      ts[0] := #10;
+      SetLength(ts, 10);
       Replace(#6'D', ts, S);
       Replace(#6'd', ts, S);
      end;
@@ -430,11 +499,29 @@ begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
     ts:=UserParams^.Active^.Name;
+{$IFNDEF OS2}
     ts[9]:='.';
+{$ENDIF}
+    if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    tz:=fDelRight(Copy(ts, 9, 4)); if tz='.' then tz:='';
-    Replace('.!',zs+tz+zs, S);
-    Replace('!', zs+fDelRight(Copy(ts, 1, 8))+zs, S);
+{$IFNDEF OS2}
+    tz:=fDelRight(Copy(ts, 9, 4));
+{$ELSE}
+    tz:=fDelRight(Copy(ts, PosLastDot(ts), (Length(ts)-PosLastDot(ts)+1)));
+{$ENDIF}
+    if tz='.' then tz:='';
+{AK155}
+{$IFDEF OS2}
+    if Pos(' ', ts) <> 0 then
+      ts := '"' + ts + '"';
+{$ENDIF}
+    Replace('.!',tz, S); {JO: причём здесь OS/2 ?! под виндами без этого ничего не работает}
+{/AK155}
+{$IFNDEF OS2}
+    Replace('!', fDelRight(Copy(ts, 1, 8)), S);
+{$ELSE}
+    Replace('!', fDelRight(Copy(ts, 1,(PosLastDot(ts)-1))), S);
+{$ENDIF}
    end;
 
   if (PosChar('$', S)>0) then
@@ -442,33 +529,55 @@ begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
     ts:=UserParams^.Passive^.Name;
+{$IFNDEF OS2}
     ts[9]:='.';
+{$ENDIF}
+    if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    tz:=fDelRight(Copy(ts, 9, 4)); if tz='.' then tz:='';
-    Replace('.$',zs+tz+zs, S);
-    Replace('$', zs+fDelRight(Copy(ts, 1, 8))+zs, S);
+{$IFNDEF OS2}
+    tz:=fDelRight(Copy(ts, 9, 4));
+{$ELSE}
+    tz:=fDelRight(Copy(ts, PosLastDot(ts), (Length(ts)-PosLastDot(ts)+1)));
+{$ENDIF}
+    if tz='.' then tz:='';
+    Replace('.$',tz, S);
+{$IFNDEF OS2}
+    Replace('$', fDelRight(Copy(ts, 1, 8)), S);
+{$ELSE}
+    Replace('$', fDelRight(Copy(ts, 1,(PosLastDot(ts)-1))), S);
+{$ENDIF}
    end;
 
   if (PosChar('#', S)>0) then
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
+{$IFNDEF OS2}
     ts:=GetLFN(UserParams^.Active^.LFN);
+{$ELSE}
+    ts:=UserParams^.Active^.Name;
+{$ENDIF}
+    if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     tz:=GetExt(ts); if tz='.' then tz:='';
-    Replace('.#',zs+tz+zs, S);
-    Replace('#', zs+GetSName(ts)+zs, S);
+    Replace('.#',tz, S);
+    Replace('#', GetSName(ts), S);
    end;
 
   if (PosChar('&', S)>0) then
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
+{$IFNDEF OS2}
     ts:=GetLFN(UserParams^.Passive^.LFN);
+{$ELSE}
+    ts:=UserParams^.Passive^.Name;
+{$ENDIF}
+    if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     tz:=GetExt(ts); if tz='.' then tz:='';
-    Replace('.&',zs+tz+zs, S);
-    Replace('&', zs+GetSName(ts)+zs, S);
+    Replace('.&',tz, S);
+    Replace('&', GetSName(ts), S);
    end;
 
   Replace(#1,'!', S);
@@ -478,6 +587,7 @@ begin
 
   MakeString := S;
 end;
+{/AK155}
         {-DataCompBoy-}
 
 function ExecUserMenu;
@@ -555,7 +665,7 @@ function ExecUserMenu;
 
 begin
  FillChar(UserParams, SizeOf(UserParams), 0);
- Message(Desktop, evBroadcast, cmGetUserParams, @UserParams);
+ Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams); {.11}
  RunFrom2E := Off;
  ExecUserMenu := False;
  TitleStr := '';
@@ -587,7 +697,7 @@ begin
    Exit;
   end;
 1:
- Message(Desktop, evBroadcast, cmGetUserParams, @UserParams); ClrIO;
+ Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams); ClrIO;
  New(P, Init(10, 10)); I := 0; NW := 30;
  while (not F^.EOF) and (IOResult = 0) do
   begin
@@ -654,7 +764,11 @@ begin
          UI := P^.At(I); LL := UI^.Line;
          if I >= P^.Count - 1 then LL := 65535 else LL := PUserMenuItem(P^.At(I+1))^.Line - 1;
          F := New(PTextReader, Init(S));
+         {$IFNDEF OS2}
          lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT');
+         {$ELSE}
+         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD');
+         {$ENDIF}
          lRewriteText(F1);
          Writeln(F1.T, '@Echo off');
          I := I - 1001;
@@ -778,6 +892,7 @@ procedure TGrabber.Draw;
  var B: TDrawBuffer;
      I: Integer;
 
+ {$IFNDEF NOASM}
       procedure Invert(var B; K: integer);
        assembler;
        {$IFNDEF BIT_32}
@@ -811,6 +926,16 @@ procedure TGrabber.Draw;
          loop @@1
        end;
        {$ENDIF}
+ {$ELSE}
+      procedure Invert(K1, K2: integer);
+        Var I: integer;
+      begin
+         for I := K1 to K1+K2-1 do
+           begin
+             B[I] := ((B[I] xor $7F00) and $7F00) or Lo(B[I]);
+           end
+      end;
+ {$ENDIF}
 begin
   with R do
    begin
@@ -826,7 +951,11 @@ begin
    begin
      Move(Screen^[Size.X*I], B, Size.X*2);
      if (I >= R.A.Y) and (I < R.B.Y) and (R.A.X < R.B.X) then
+ {$IFNDEF NOASM}
           Invert(B[R.A.X], R.B.X - R.A.X);
+ {$ELSE}
+          Invert(R.A.X, R.B.X - R.A.X);
+ {$ENDIF}
      WriteLine(0,I,Size.X,1,B);
    end;
 end;
@@ -951,7 +1080,7 @@ begin
       TitleStr := F^.GetStr;
 
       I := PosChar(';', TitleStr);
-      if I > 0 then TitleStr[0] := Char(I-1);
+      if I > 0 then SetLength(TitleStr, I-1);
       if TitleStr[1] = '>' then
         begin
           if PosChar(TitleStr[2],'[]><')>0 then OS2 := TitleStr[2] ;
@@ -971,7 +1100,7 @@ begin
        repeat
          ClrIO;
          Inc(I);
-         lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', $3F xor VolumeID, SR);
+         lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
          lFindClose(SR);
        until (DOSError <> 0) or (I = 99) or Abort;
        ClrIO;

@@ -48,7 +48,7 @@
 unit Arc_hpk; {HPK}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos, xTime,
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime,
       collect;
 
 type
@@ -82,7 +82,7 @@ constructor THPKArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'HPACK.EXE'));
@@ -107,12 +107,24 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   ''));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
-  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  if q='0' then UseLFN := False else UseLFN := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function THPKArchive.GetID;
@@ -132,7 +144,7 @@ begin
 end;
 
 Procedure THPKArchive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     DT: DateTime;
     R: PHPKRec;
 begin
@@ -144,7 +156,9 @@ begin
  if PHPKRec(HPKCol^.At(0))^.Name <> nil                 {DataCompBoy}
   then FileInfo.FName := PHPKRec(HPKCol^.At(0))^.Name^  {DataCompBoy}
   else FileInfo.FName := '';                            {DataCompBoy}
+{$IFNDEF OS2}
  FileInfo.LFN  := AddLFN(FileInfo.FName);          {DataCompBoy}
+{$ENDIF}
  FileInfo.Last := 0;
  FileInfo.Attr := 0;
  HPKCol^.AtFree(0);

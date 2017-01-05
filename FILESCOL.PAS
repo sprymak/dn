@@ -50,7 +50,9 @@
 unit FilesCol;
 
 interface
- uses LFN, LFNCol, {DataCompBoy} drvtypes, Objects, Memory, DOS, Startup,
+ uses LFN,
+ {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy}
+ Objects, Memory, Startup,
  DNHelp, advance, advance1, advance2, advance3, Collect, Drivers;
 
 type
@@ -69,16 +71,27 @@ type
      Owner: PString;
      OwnerDisposible: Boolean;
      Diz: PDIZ;
+{$IFNDEF OS2}
      Name: Str12;
      LFN: TLFNIndex; {DataCompBoy}
+{$ELSE}
+     Name: String;
+{$ENDIF}
      Yr: Word;
+     YrCreat: Word;
+     YrLAcc: Word;
      TType: Byte;
      Attr: Word;
      Second: Byte;
+     SecondCreat: Byte;
+     SecondLAcc: Byte;
      Selected: Boolean;
+     UsageCount: byte;{DataCompBoy}
      case Boolean of
-       True : (FDate: LongInt);
-       False: (Minute, Hour, Day, Month: Byte);
+       True : (FDate, FDateCreat, FDateLAcc: LongInt);
+       False: (Minute, Hour, Day, Month,
+               MinuteCreat, HourCreat, DayCreat, MonthCreat,
+               MinuteLAcc, HourLAcc, DayLAcc, MonthLAcc: Byte);
     end;
 
     TMakeListRec = record
@@ -107,6 +120,9 @@ type
      SortMode: Byte;
      Selected: LongInt;
      Owner: Pointer;
+{$IFDEF Win32}
+     LFNActive: Boolean;
+{$ENDIF}
 {$IFDEF SORTDEBUG}
      PanelState: PChar;
      InSort: boolean;
@@ -130,17 +146,23 @@ const
 function  SelectDrive(X, Y: Integer; Default: Char; IncludeTemp: Boolean): String;
 function  CopyFileRec(FR: PFileRec): PFileRec; {DataCompBoy}
 function  CreateFileRec(Name: string): PFileRec;
-function  NewFileRec(const LFN, Name: String; Size:TSize; Date: LongInt; Attr: Word; AOwner: PString): PFileRec; {DataCompBoy}
+{$IFNDEF OS2}
+function  NewFileRec(const LFN, Name: String; Size:TSize; Date, CreationDate, LastAccDate: LongInt; Attr: Word; AOwner: PString): PFileRec; {DataCompBoy}
+{$ELSE}
+function  NewFileRec(const Name: String; Size:TSize; Date, CreationDate, LastAccDate: LongInt; Attr: Word; AOwner: PString): PFileRec; {DataCompBoy}
+{$ENDIF}
 procedure DelFileRec(var FR: PFileRec); {DataCompBoy}
 function  LoadFileRec(var s: TStream): PFileRec; {DataCompBoy}
 procedure StoreFileRec(var s: TStream; fr: PFileRec); {DataCompBoy}
 function  LoadFileRecOwn(var s: TStream; Dirs: PCollection): PFileRec; {DataCompBoy}
 procedure StoreFileRecOwn(var s: TStream; fr: PFileRec; Dirs: PCollection); {DataCompBoy}
 function  PackedDate(P: PFileRec): LongInt; {DataCompBoy}
+function PackedCreationDate(P: PFileRec): LongInt; {JO}
+function PackedLastAccDate(P: PFileRec): LongInt;  {JO}
 function  GetFileType(const S: String; Attr: Byte): Integer;
 procedure DosReread(Files: PFilesCollection);
 
- const Executables: TMaskData = (Filter: 'exe;bat;com');
+ const Executables: TMaskData = (Filter: 'exe;bat;com;cmd');
 
 implementation
 uses DNApp, Menus, Views, FlPanel, Drives,
@@ -149,7 +171,8 @@ uses DNApp, Menus, Views, FlPanel, Drives,
      {$IFDEF MODEM}{$IFDEF LINK},NavyLink{$ENDIF}{$ENDIF}
      {$IFDEF NETINFO}, Novell{$ENDIF}
      {$IFNDEF NONBP}, DiskTool{$ENDIF}
-     , DnIni
+     {$IFDEF VIRTUALPASCAL}, VpSysLow, VPUtils{$ELSE},DrvTypes{$ENDIF} {$IFDEF OS2},FlOS2Tl{$ENDIF}
+     , DnIni, DOS
 
 ;
 
@@ -173,8 +196,18 @@ function  CreateFileRec(Name: string): PFileRec;
  begin
   new(fr);
   CreateFileRec:=fr;
-  fillword(fr^, sizeof(fr^) shr 1, 0);
+  fillchar(fr^, sizeof(fr^), 0);  {AK155}
+{AK155  fillword(fr^, sizeof(fr^) shr 1, 0);
+     Это хороший пример того, как не надо делать.
+ Экономим микросекунды, а закладываем на будущее глюки,
+ если размер word станет не 2 (а, скажем, 4) или если
+ размер fr^ станет нечетным (что вполне может произойти) }
+
+{$IFDEF OS_DOS}
   Name:=lfGetLongFileName(lFExpand(Name));
+{$ELSE}
+  Name:=lFExpand(Name);
+{$ENDIF}
   lFindFirst(Name+'*', AnyFile, lsr);
   Path:=GetPath(Name);
   Name:=GetName(Name);
@@ -182,8 +215,13 @@ function  CreateFileRec(Name: string): PFileRec;
   lFindClose(lsr);
   if DosError=0 then
    begin
+{$IFNDEF OS2}
     fr^.name:=Norm12(lsr.sr.name);
     fr^.LFN:=AddLFN(lsr.FullName);
+{$ELSE}
+   {fr^.name:=lsr.sr.name;}{???}
+    fr^.name:=lsr.FullName;
+{$ENDIF}
     fr^.Size:=lsr.FullSize;
     fr^.PSize:=lsr.FullSize;
     fr^.Owner:=NewStr(Path);
@@ -196,35 +234,53 @@ function  CreateFileRec(Name: string): PFileRec;
     fr^.Hour := D.Hour;
     fr^.Minute := D.Min;
     fr^.Second := D.Sec;
+    UnpackTime(lsr.sr.CreationTime, D);         {JO}
+    fr^.YrCreat := D.Year;
+    fr^.MonthCreat := D.Month;
+    fr^.DayCreat := D.Day;
+    fr^.HourCreat := D.Hour;
+    fr^.MinuteCreat := D.Min;
+    fr^.SecondCreat := D.Sec;
+    UnpackTime(lsr.sr.LastAccessTime, D);
+    fr^.YrLAcc := D.Year;
+    fr^.MonthLAcc := D.Month;
+    fr^.DayLAcc := D.Day;
+    fr^.HourLAcc := D.Hour;
+    fr^.MinuteLAcc := D.Min;
+    fr^.SecondLAcc := D.Sec;                    {/JO}
     fr^.Attr:=lsr.sr.attr;
     if CharCount('.', lsr.FullName)=0 then begin
-     inc(lsr.FullName[0]);
+     SetLength(lsr.FullName, Length(lsr.FullName)+1);
      lsr.FullName[length(lsr.FullName)]:='.';
      fr^.TType := GetFileType(lsr.FullName, fr^.Attr);
-     dec(lsr.FullName[0]);
+     SetLength(lsr.FullName, Length(lsr.FullName)-1);
     end else fr^.TType := GetFileType(lsr.FullName, fr^.Attr);
-    if fr^.Attr and Directory <> 0 then UpStr(fr^.Name) else LowStr(fr^.Name);
+{Cat: это явно лишнее - для масок !\!.! для просмотрщиков и запуска по
+      расширению должны передаваться неискажённые имена файлов
+  PS  и следует ещё раз посмотреть и проверить - нужна ли вообще эта функция
+     if fr^.Attr and Directory <> 0 then UpStr(fr^.Name) else LowStr(fr^.Name);}
+{/Cat}
    end
   else
    begin
     fr^.Owner:=NewStr(Path);
     fr^.OwnerDisposible:=true;
+{$IFNDEF OS2}
     fr^.Name:=Norm12(GetURZ(GetName(lfGetShortFileName(Name))));
     fr^.LFN:=AddLFN(GetName(Name));
+{$ELSE}
+    fr^.Name:=GetName(Name);
+{$ENDIF}
    end;
+ fr^.UsageCount:=1;
  end;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
 function CopyFileRec;
- var P: PFileRec;
 begin
- New(P);
- P^ := FR^;
- P^.LFN := UseLFN(FR^.LFN);
- P^.OwnerDisposible := False;
- if P^.DIZ <> nil then P^.DIZ^.isDisposable := Off;
- CopyFileRec := P;
+ CopyFileRec := FR;
+ Inc(FR^.UsageCount);
 end;
         {-DataCompBoy-}
 
@@ -232,15 +288,19 @@ end;
 procedure DelFileRec(var FR: PFileRec);
 begin
  if FR <> nil then begin
+ Dec(FR^.UsageCount);
+ IF FR^.UsageCount=0 then begin
   if (FR^.DIZ <> nil) and FR^.DIZ^.isDisposable then begin
    DisposeStr(FR^.DIZ^.DIZ);
    Dispose(FR^.DIZ);
   end;
   if FR^.OwnerDisposible then DisposeStr(FR^.Owner);
+  {$IFNDEF OS2}
   DelLFN(FR^.LFN);
+  {$ENDIF}
   Dispose(FR);
   FR:=Nil;
- end;
+ end end;
 end;
         {-DataCompBoy-}
 
@@ -253,15 +313,24 @@ begin
   s.Read(Size, Sizeof(Size));
   s.Read(PSize, Sizeof(PSize));
   S.Read(Name, SizeOf(Name));
+  {$IFNDEF OS2}
   LFN:=LoadLFN(S);
+  {$ENDIF}
   S.Read(Yr, SizeOf(Yr));
+  S.Read(YrCreat, SizeOf(YrCreat));
+  S.Read(YrLAcc, SizeOf(YrLAcc));
   S.Read(TType, SizeOf(TType));
   S.Read(Attr, SizeOf(Attr));
   S.Read(Second, SizeOf(Second));
+  S.Read(SecondCreat, SizeOf(SecondCreat));
+  S.Read(SecondLAcc, SizeOf(SecondLAcc));
   S.Read(Selected, SizeOf(Selected));
   S.Read(FDate, SizeOf(FDate));
+  S.Read(FDateCreat, SizeOf(FDateCreat));
+  S.Read(FDateLAcc, SizeOf(FDateLAcc));
   S.Read(OwnerDisposible, SizeOf(OwnerDisposible));
   if OwnerDisposible then Owner:=S.ReadStr;
+  UsageCount:=1;
  end;
  LoadFileRec:=P;
 end;
@@ -271,13 +340,21 @@ begin with fr^ do begin
   s.Write(Size, Sizeof(Size));
   s.Write(PSize, Sizeof(PSize));
   S.Write(Name, SizeOf(Name));
+  {$IFNDEF OS2}
   StoreLFN(S, LFN);
+  {$ENDIF}
   S.Write(Yr, SizeOf(Yr));
+  S.Write(YrCreat, SizeOf(YrCreat));
+  S.Write(YrLAcc, SizeOf(YrLAcc));
   S.Write(TType, SizeOf(TType));
   S.Write(Attr, SizeOf(Attr));
   S.Write(Second, SizeOf(Second));
+  S.Write(SecondCreat, SizeOf(SecondCreat));
+  S.Write(SecondLAcc, SizeOf(SecondLAcc));
   S.Write(Selected, SizeOf(Selected));
   S.Write(FDate, SizeOf(FDate));
+  S.Write(FDateCreat, SizeOf(FDateCreat));
+  S.Write(FDateLAcc, SizeOf(FDateLAcc));
   S.Write(OwnerDisposible, SizeOf(OwnerDisposible));
   if OwnerDisposible then S.WriteStr(Owner);
 end end;
@@ -288,10 +365,11 @@ var FR: PFileRec;
     w: longint;
 begin
  FR := LoadFileRec(S);
- if FR <> nil then begin
-  S.Read(W, SizeOf(W));
-  if not FR^.OwnerDisposible then FR^.Owner := Dirs^.At(W);
- end;
+ if FR <> nil then
+  if not FR^.OwnerDisposible then begin
+   S.Read(W, SizeOf(W));
+   FR^.Owner := Dirs^.At(W);
+  end;
  LoadFileRecOwn := FR;
 end;
 
@@ -312,6 +390,9 @@ begin
  Inherited Init(ALimit, ADelta);
  PanelState:=Ptr(segB800, 0);
  InSort:=false;
+ {$IFNDEF OS2}
+ LFNActive := True;
+ {$ENDIF}
 end;
         {-DataCompBoy-}
 {$ENDIF}
@@ -386,73 +467,246 @@ function TFilesCollection.Compare;
      P1P, P2P: Boolean;
      PanelFlags: Word;
      OneIsFile: Boolean;
-{$IFDEF SORTDEBUG}
- const NumCal: word = 0;
-       States:Array[0..3] of char = '|/-\';
-begin
- inc(NumCal);
- if InSort then
-  if NumCal=1 then PanelState^:=States[0]
-  else if NumCal=2 then PanelState^:=States[1]
-  else if NumCal=3 then PanelState^:=States[2]
-  else if NumCal=4 then begin PanelState^:=States[3]; NumCal:=0 end;
+     ST1, ST2: String;
+
+{$IFNDEF OS_DOS}
+    function    CmpName (S1, S2: String): Integer;
+    begin
+  {$IFDEF Win32}
+    UpLowStr(S1); UpLowStr(S2);
+  {$ENDIF}
+      if S1>S2 then CmpName := +1 else
+      if S1<S2 then CmpName := -1 else
+                    CmpName := 0;
+    end;
+
+    function    CmpEXT(S1, S2: String): Integer;
+    var E1, E2: String;
+        B, K: Byte;
+    begin
+  {$IFDEF Win32}
+    S1 := UpLowStrg(S1);
+  {$ENDIF}
+     For B := Length(S1) downto 1 do if S1[B]='.' then break;
+     if (B > 1) or (S1[1]='.') then begin
+      K := Length(S1)-B+1;
+      Move(S1[B], E1[1], K);
+      SetLength(E1, K);
+      SetLength(S1, B-1);
+     end else Word(((@E1)^)) := $2E01; {E1 := '.'}
+  {$IFDEF Win32}
+     S2 := UpLowStrg(S2);
+  {$ENDIF}
+     For B := Length(S2) downto 1 do if S2[B]='.' then break;
+     if (B > 1) or (S2[1]='.') then begin
+      K := Length(S2)-B+1;
+      Move(S2[B], E2[1], K);
+      SetLength(E2, K);
+      SetLength(S2, B-1);
+     end else Word(((@E2)^)) := $2E01; {E2 := '.'}
+     if E1>E2 then CmpEXT := +1 else
+     if E1<E2 then CmpEXT := -1 else
+     if S1>S2 then CmpEXT := +1 else
+     if S1<S2 then CmpEXT := -1 else
+                   CmpEXT := 0;
+    end;
+
 {$ELSE}
-begin
+
+    function    CmpLFN(LFN1, LFN2: TLFNIndex): integer;
+    var S1, S2: string;
+    begin
+     begin
+      S1 := GetLFN(LFN1); S2 := GetLFN(LFN2);
+      UpLowStr(S1); UpLowStr(S2); {JO}
+      if S1>S2 then CmpLFN := +1 else
+      if S1<S2 then CmpLFN := -1 else
+                    CmpLFN := 0;
+     end;
+    end;
+
+    function    CmpLEX(LFN1, LFN2: TLFNIndex): integer;
+    var S1, S2: string;
+        E1, E2: string;
+        B, K: Byte;
+    begin
+     S1 := UpLowStrg(GetLFN(LFN1)); {JO}
+     For B := Length(S1) downto 1 do if S1[B]='.' then break;
+     if (B > 1) or (S1[1]='.') then begin
+      K := Length(S1)-B+1;
+      Move(S1[B], E1[1], K);
+      SetLength(E1, K);
+      SetLength(S1, B-1);
+     end else Word(((@E1)^)) := $2E01; {E1 := '.'}
+     S2 := UpLowStrg(GetLFN(LFN2)); {JO}
+     For B := Length(S2) downto 1 do if S2[B]='.' then break;
+     if (B > 1) or (S2[1]='.') then begin
+      K := Length(S2)-B+1;
+      Move(S2[B], E2[1], K);
+      SetLength(E2, K);
+      SetLength(S2, B-1);
+     end else Word(((@E2)^)) := $2E01; {E2 := '.'}
+     if E1>E2 then CmpLEX := +1 else
+     if E1<E2 then CmpLEX := -1 else
+     if S1>S2 then CmpLEX := +1 else
+     if S1<S2 then CmpLEX := -1 else
+                   CmpLEX := 0;
+    end;
+
 {$ENDIF}
+
+    var
+      C1: integer; { результат сравнения имён   // AK155}
+      Name2: string; {UpStrg(P2^.Name)  // AK155}
+begin
  if Owner<>nil then PanelFlags := PFilePanel(Owner)^.PanelFlags
                else PanelFlags := PanelDefaults.Show;
  Move(Key1^,T1,SizeOf(T1));
  with P2^ do
    begin
+{$IFNDEF OS2}
+  {$IFNDEF WIN32}
      P1P := T1.Name[1] = '.';
      P2P := Name[1] = '.';
-
+  {$ELSE}
+     P1P := T1.LFN = '..';
+     P2P := LFN = '..';
+  {$ENDIF}
+{$ELSE}
+     P1P := T1.Name = '..';
+     P2P := Name = '..';
+{$ENDIF}
      if P1P and not P2P then begin Compare := -1; Exit; end;
      if P2P and not P1P then begin Compare := +1; Exit; end;
+
+     Name2 := UpLowStrg(Name); {JO}
 
      OneIsFile:=True;
 {    if (T1.Attr and Directory <> 0) and (Attr and Directory <> 0) then
        OneIsFile:=False;}
      SM := SortMode;
-     if (SM >= 7) and (SM <= 20) then begin
-       if (T1.Name = Name) and ((T1.Attr or Attr) and Directory = 0) and
-          (((SM-7) and 1 = 0) or (T1.Size = Size)) and
-          (((SM-7) and 2 = 0) or (T1.Yr < Yr) or
+
+     if (SM >= NumSortModes) and (SM <= NumSortModes + 31) then begin { условие используется для сравнения }
+                                                                      {  каталогов по Ctrl-C }
+  {$IFDEF Win32}     {здесь C1 используется для сравнения каталогов по Ctrl-C}
+     if LFNActive then
+       begin
+         if ((SM-NumSortModes) and 16 = 0) then C1 := CmpName(T1.LFN, LFN)
+          else
+             if T1.LFN < LFN then
+               C1 := -1
+             else if T1.LFN = LFN then
+               C1 := 0
+             else
+               C1 := 1;
+       end
+      else
+  {$ENDIF}
+  {$IFNDEF Win32} {JO: регистрочувствительное сравнение по коротким именам лишено смысла}
+       begin
+         if ((SM-NumSortModes) and 16 = 0) then
+  {$ENDIF}
+           begin
+             UpLowStr(T1.Name);
+             if T1.Name < Name2 then
+               C1 := -1
+             else if T1.Name = Name2 then
+               C1 := 0
+             else
+               C1 := 1;
+           end
+  {$IFNDEF Win32}
+          else
+           begin
+             if T1.Name < Name then
+               C1 := -1
+             else if T1.Name = Name then
+               C1 := 0
+             else
+               C1 := 1;
+           end;
+       end
+  {$ENDIF}
+       ;
+
+       if (C1=0) and ((T1.Attr or Attr) and Directory = 0) and
+          (((SM-NumSortModes) and 1 = 0) or (T1.Size = Size)) and
+          (((SM-NumSortModes) and 2 = 0) or (T1.Yr < Yr) or
            ((T1.Yr = Yr) and (T1.FDate <= FDate)) or
            ((T1.Yr = Yr) and (T1.FDate = FDate) and (T1.Second < Second))) and
-          (((SM-7) and 4 = 0) or (T1.Attr = Attr)) and
-          (((SM-7) and 8 = 0) or
+          (((SM-NumSortModes) and 4 = 0) or (T1.Attr = Attr)) and
+          (((SM-NumSortModes) and 8 = 0) or
+{$IFNDEF OS2}
                   CompareFiles(MakeNormName(T1.Owner^, MakeFileName(T1.Name)),
-                               MakeNormName(Owner^, MakeFileName(Name))) )
-           then C := 0 else if (T1.Name < Name) then C := -1
+                               MakeNormName(Owner^, MakeFileName(Name2))) )
+{$ELSE}
+                  CompareFiles(MakeNormName(T1.Owner^, T1.Name),
+                               MakeNormName(Owner^, Name2)) )
+{$ENDIF}
+           then C := 0 else if (C1=-1) then C := -1
                                                  else C := 1;
        Compare := C;
        Exit;
+     end; { конец куска для сравнения каталогов по Ctrl-C }
+          { дальше идёт кусок для сортировки файлов в панелях }
+
+     UpLowStr(T1.Name); {JO}
+
+{$IFDEF Win32}       {далее C1 используется для сортировки файлов в панелях}
+     if LFNActive then C1 := CmpName(T1.LFN, LFN) else
+{$ENDIF}
+     begin
+       if T1.Name < Name2 then
+         C1 := -1
+       else if T1.Name = Name2 then
+         C1 := 0
+       else
+         C1 := 1;
      end;
 
-     if (Owner <> nil) and (SM <> 5) and (SM <> 6) then
+     if (Owner <> nil) and not (SM in [psmSize, psmTime, psmCrTime, psmLATime]) then
+     if PanelFlags and fmiExeBeforeArc <> 0 then
      begin
        if PanelFlags and fmiExeFirst <> 0 then
-       begin
-         if ((T1.Attr xor Attr) and Directory = 0) then
          begin
-           if (T1.TType = ttExec) and (TType <> ttExec) then begin Compare := -1; Exit; end;
-           if (T1.TType <> ttExec) and (TType = ttExec) then begin Compare := 1; Exit; end;
+           if ((T1.Attr xor Attr) and Directory = 0) then
+           begin
+             if (T1.TType = ttExec) and (TType <> ttExec) then begin Compare := -1; Exit; end;
+             if (T1.TType <> ttExec) and (TType = ttExec) then begin Compare := 1; Exit; end;
+           end;
          end;
-       end;
        if PanelFlags and fmiArchivesFirst <> 0 then
-       begin
-         if ((T1.Attr xor Attr) and Directory = 0) then
          begin
-           if (T1.TType = ttArc) and (TType <> ttArc) then begin Compare := -1; Exit; end;
-           if (T1.TType <> ttArc) and (TType = ttArc) then begin Compare := 1; Exit; end;
+           if ((T1.Attr xor Attr) and Directory = 0) then
+           begin
+             if (T1.TType = ttArc) and (TType <> ttArc) then begin Compare := -1; Exit; end;
+             if (T1.TType <> ttArc) and (TType = ttArc) then begin Compare := 1; Exit; end;
+           end;
          end;
+       end
+     else
+       begin
+         if PanelFlags and fmiArchivesFirst <> 0 then
+         begin
+           if ((T1.Attr xor Attr) and Directory = 0) then
+           begin
+             if (T1.TType = ttArc) and (TType <> ttArc) then begin Compare := -1; Exit; end;
+             if (T1.TType <> ttArc) and (TType = ttArc) then begin Compare := 1; Exit; end;
+           end;
+         end;
+         if PanelFlags and fmiExeFirst <> 0 then
+         begin
+           if ((T1.Attr xor Attr) and Directory = 0) then
+           begin
+             if (T1.TType = ttExec) and (TType <> ttExec) then begin Compare := -1; Exit; end;
+             if (T1.TType <> ttExec) and (TType = ttExec) then begin Compare := 1; Exit; end;
+           end;
        end;
      end;
 
      case SM of
-      0: if T1.Owner^ = Owner^
-          then C := CmpLFN(T1.LFN,LFN)
+     psmUnsorted: if T1.Owner^ = Owner^
+        then if C1 = 0 then C := 0 else C := -1
           else if T1.Owner^ < Owner^ then C := -1 else C := 1;
       psmOrdered: begin
            I1 := T1.TType; I2 := TType;
@@ -460,33 +714,55 @@ begin
            if I2 = 0 then I2 := 100;
            if I1 < I2 then C := -1 else
            if I1 > I2 then C := 1 else
-              if T1.Name < Name then C := -1
-                else if T1.Name > Name then C := 1
+              if C1=-1 then C := -1
+                else if C1=1 then C := 1
                   else begin
-                    C := CmpLFN(T1.LFN,LFN);
+{$IFNDEF OS2}
+     {$IFDEF STRINGLFN}
+                    C := CmpName(T1.LFN, LFN);
+     {$ELSE}
+                    C := CmpLFN(T1.LFN, LFN);
+     {$ENDIF}
+{$ELSE}
+                    C := CmpName(T1.Name, Name2);
+{$ENDIF}
                     If C = 0 then if T1.Owner^ < Owner^ then C := -1
                                     else if T1.Owner^ > Owner^ then C := 1;
                   end;
           end;
-{NAME}1: if (T1.Attr xor Attr) and Directory <> 0 then
+{$IFNDEF OS2}
+{NAME}psmName:
+         if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
-           if T1.Name < Name then C := -1
-            else if T1.Name > Name then C := 1
+           if T1.Name < Name2 then C := -1
+            else if T1.Name > Name2 then C := 1
              else if T1.Owner^ < Owner^ then C := -1
                else if T1.Owner^ > Owner^ then C := 1;
-{LFN} 2: if (T1.Attr xor Attr) and Directory <> 0 then
+{$ENDIF}
+{LFN}psmLongName:
+          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else begin
+{$IFNDEF OS2}
+  {$IFDEF STRINGLFN}
+           C := CmpName(T1.LFN, LFN);
+  {$ELSE}
            C := CmpLFN(T1.LFN, LFN);
+  {$ENDIF}
+{$ELSE}
+           C := CmpName(T1.Name, Name2);
+{$ENDIF}
            If C = 0 then if T1.Owner^ < Owner^ then C := -1
                            else if T1.Owner^ > Owner^ then C := 1;
          end;
      141: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
-           if T1.Name < Name then C := -1
-            else if (T1.Name > Name) or (GetLFN(T1.LFN)<>GetLFN(LFN))
+           if T1.Name < Name2 then C := -1
+            else if (T1.Name > Name2) {$IFNDEF OS2} or (GetLFN(T1.LFN)<>GetLFN(LFN)) {$ENDIF}
                   then C := 1
                   else C := 0;
-{EXT} 3: if (T1.Attr xor Attr) and Directory <> 0 then
+{$IFNDEF OS2}
+{EXT}psmExtension:
+         if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C:=-1
           else                               C:=1
          else
@@ -496,28 +772,42 @@ begin
          if OneIsFile and (Copy(Name, 10, 3) < Copy(T1.Name, 10, 3)) then
            C:=1
          else
-         if T1.Name   < Name   then C:=-1 else
-         if T1.Name   > Name   then C:= 1 else
+         if T1.Name   < Name2  then C:=-1 else
+         if T1.Name   > Name2  then C:= 1 else
          if T1.Owner^ < Owner^ then C:=-1 else
          if T1.Owner^ > Owner^ then C:= 1;
-{LEXT}4: if (T1.Attr xor Attr) and Directory <> 0 then
+{$ENDIF}
+{LEXT}psmLongExt:
+          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C:=-1
           else                               C:=1
          else begin
+{$IFNDEF OS2}
+   {$IFDEF STRINGLFN}
+          If OneIsFile then C := CmpEXT(T1.LFN, LFN) else C := 0;
+          If           C = 0 then C := CmpName(T1.LFN, LFN);
+   {$ELSE}
           If OneIsFile then C := CmpLEX(T1.LFN, LFN) else C := 0;
           If C = 0 then C := CmpLFN(T1.LFN, LFN);
+   {$ENDIF}
+{$ELSE}
+          If OneIsFile then C := CmpEXT(T1.Name, Name2) else C := 0;
+          If C = 0 then C := CmpName(T1.Name, Name2);
+{$ENDIF}
           If C = 0 then if T1.Owner^ < Owner^ then C:=-1 else
                         if T1.Owner^ > Owner^ then C:= 1;
          end;
-{SIZE}5: if (T1.Attr xor Attr) and Directory <> 0 then
+{SIZE}psmSize:
+          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if T1.Size > Size then C := -1 else
            if T1.Size < Size then C := 1 else
-           if T1.Name < Name then C := -1
-            else if T1.Name > Name then C := 1
+           if C1=-1 then C := -1
+            else if C1=1 then C := 1
              else if T1.Owner^ < Owner^ then C := -1
                else if T1.Owner^ > Owner^ then C := 1;
-{DATE}6: begin
+{DATE}psmTime:
+         begin
          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
            if (T1.Yr < Yr) then C := 1 else
@@ -526,18 +816,67 @@ begin
            if (T1.FDate > FDate) then C := -1 else
            if (T1.Second < Second) then C := 1 else
            if (T1.Second > Second) then C := -1 else
-           if T1.Name < Name then C := -1
-            else if T1.Name > Name then C := 1
+           if C1=-1 then C := -1
+            else if C1=1 then C := 1
              else if T1.Owner^ < Owner^ then C := -1
                else if T1.Owner^ > Owner^ then C := 1;
          end;
+{JO}
+{$IFNDEF OS_DOS}
+{Creat.DATE}psmCrTime:
+         begin
+         if (T1.Attr xor Attr) and Directory <> 0 then
+          if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
+           if (T1.YrCreat < YrCreat) then C := 1 else
+           if (T1.YrCreat > YrCreat) then C := -1 else
+           if (T1.FDateCreat < FDateCreat) then C := 1 else
+           if (T1.FDateCreat > FDateCreat) then C := -1 else
+           if (T1.SecondCreat < SecondCreat) then C := 1 else
+           if (T1.SecondCreat > SecondCreat) then C := -1 else
+           if C1=-1 then C := -1
+            else if C1=1 then C := 1
+             else if T1.Owner^ < Owner^ then C := -1
+               else if T1.Owner^ > Owner^ then C := 1;
+         end;
+{L.Acc.DATE}psmLATime:
+         begin
+         if (T1.Attr xor Attr) and Directory <> 0 then
+          if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
+           if (T1.YrLAcc < YrLAcc) then C := 1 else
+           if (T1.YrLAcc > YrLAcc) then C := -1 else
+           if (T1.FDateLAcc < FDateLAcc) then C := 1 else
+           if (T1.FDateLAcc > FDateLAcc) then C := -1 else
+           if (T1.SecondLAcc < SecondLAcc) then C := 1 else
+           if (T1.SecondLAcc > SecondLAcc) then C := -1 else
+           if C1=-1 then C := -1
+            else if C1=1 then C := 1
+             else if T1.Owner^ < Owner^ then C := -1
+               else if T1.Owner^ > Owner^ then C := 1;
+         end;
+{$ENDIF OS_DOS}
+
+{DIZ}psmDIZ:
+         if (T1.Attr xor Attr) and Directory <> 0 then
+          if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
+          begin
+           if (T1.DIZ <> nil) and (T1.DIZ^.DIZ <> nil) then ST1 := UpLowStrg(CnvString(T1.DIZ^.DIZ)) else ST1 := '';
+           if (P2^.DIZ <> nil) and (P2^.DIZ^.DIZ <> nil) then ST2 := UpLowStrg(CnvString(DIZ^.DIZ)) else ST2 := '';
+           if (ST1 <> '') and (ST2 = '') then C := -1 else
+             if (ST1 = '') and (ST2 <> '') then C := 1 else
+               C := CmpName(ST1, ST2);
+           if C = 0 then C := C1;
+           if C = 0 then if T1.Owner^ < Owner^ then C := -1
+                           else if T1.Owner^ > Owner^ then C := 1;
+          end;
+{/JO}
       else if (T1.Attr and $3F = Attr and $3F) and (T1.Yr=Yr) and (T1.FDate = FDate) and (T1.Second = Second)
-              and (T1.Name=Name) and (T1.Owner^ = Owner^) and (GetLFN(T1.LFN)=GetLFN(LFN))
+              and (C1=0) and (T1.Owner^ = Owner^) {$IFNDEF OS2} and (GetLFN(T1.LFN)=GetLFN(LFN)) {$ENDIF}
                then C := 0 else C := -1;
      end;
   end;
  Compare := C;
 end;
+
         {-DataCompBoy-}
 
 function SelectDrive;
@@ -551,6 +890,9 @@ function SelectDrive;
      Server_Num, Handle_Num, RetCode, DriveNum, MaxL: integer; {-$VIV start}
      FullS, Server, PathName, TmpS: String;       {-$VIV end}
      pSaveNeedAbort,ShowDir: Boolean;
+{$IFDEF VIRTUALPASCAL}
+     DrInvalid: Boolean;
+{$ENDIF}
 
   function CutLongString(S: String): String;
   var P, L: Integer;
@@ -573,6 +915,8 @@ var IDDQD: record fl, dr: longint; end;
     else inc(IDDQD.dr)
  end;
 
+var
+  DT: TDriveType;
 begin
  Items := nil; N := 0; Lnk := nil;
  MaxL := 8; {-$VIV}
@@ -581,7 +925,7 @@ begin
   C := ' ';
   for DriveNum := 8 downto 0 do
     if DirsToChange[DriveNum] <> nil then begin
-      FreeStr:='  ~'+Itos(DriveNum+1)+':~ '+ CutH(DirsToChange[DriveNum]^,24);
+      FreeStr:=' ~'+Itos(DriveNum+1)+':~ '+ CutH(DirsToChange[DriveNum]^,24);
       Items := NewItem(FreeStr, 'Alt-'+Itos(DriveNum+1), kbAlt1,
                        cmQuickChange1 + DriveNum, hcNoContext, Items);
       MaxL:=Max(CStrLen(FreeStr), MaxL);
@@ -600,9 +944,9 @@ begin
        begin
          for C := 'Z' downto 'A' do
            if C in SC then
-             Items := NewItem('  ~'+C+':~ ', '', kbNoKey, 2000 + Byte(C),
+             Items := NewItem(' ~'+C+':~ ', '', kbNoKey, 2000 + Byte(C),
                                hcNoContext, Items);
-         Items := NewSubMenu('  ~+:~ LINK', hcNoContext, NewMenu(Items), nil);
+         Items := NewSubMenu(' ~+:~ LINK', hcNoContext, NewMenu(Items), nil);
          Lnk := Items;
          Inc(N)
        end;
@@ -622,7 +966,7 @@ begin
       end else FreeStr := GetString(dlEmpty)
      else FreeStr := '';
 
-     Items := NewItem('  ~*:~ TEMP: '+FreeStr, '', kbSpace, 1200, hcTempList, Items);
+     Items := NewItem(' ~*:~ TEMP: '+FreeStr, '', kbSpace, 1200, hcTempList, Items);
      Items := NewLine(Items);
      Inc(N)
  end;
@@ -630,28 +974,57 @@ begin
  for C := 'Z' downto 'A' do
   if ValidDrive(C) then
    begin
-    FullS := '  ~'+C+':~ ';                          {-$VIV start}
-    if InterfaceData.Options and ouiHideDriveInfo = 0 then
+    FullS := '~'+C+':~ ';                          {-$VIV start}
+    if (InterfaceData.Options and ouiHideDriveInfo = 0) then
     begin
+      DrInvalid := False;
       DriveNum := Byte(C)-64;
-      if DriveInfoType and ditMediaType <> 0 then
+      if (DriveInfoType and ditMediaType <> 0) then
+       if not ((DriveInfoType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
        begin
-        case getDriveType(DriveNum) of
-         dtError     : FullS := FullS + sdtError     ;
-         dtFixed     : FullS := FullS + sdtFixed     ;
-         dtRemovable : FullS := FullS + sdtRemovable ;
-         dtRemote    : FullS := FullS + sdtRemote    ;
-         dtCDROM     : FullS := FullS + sdtCDROM     ;
-         dtDblSpace  : FullS := FullS + sdtDblSpace  ;
-         dtSUBST     : FullS := FullS + sdtSUBST     ;
-         dtStacker   : FullS := FullS + sdtStacker   ;
-         dtRAMDrive  : FullS := FullS + sdtRAMDrive  ;
-         dtDublDisk  : FullS := FullS + sdtDublDisk  ;
-         dtBernoully : FullS := FullS + sdtBernoully ;
-         dtDiskreet  : FullS := FullS + sdtDiskreet  ;
-         dtSuperStor : FullS := FullS + sdtSuperStor ;
+{$IFNDEF OS2}
+        {$IFDEF VIRTUALPASCAL}
+        DT := SysGetDriveType(C);
+        case SysGetDriveType(C) of
+         dtFloppy    : FullS := FullS + GetString(sdtRemovable) + '    ';
+         dtHDFAT     : FullS := FullS + GetString(sdtFixed) + ' FAT  ' + GetString(sdtFixed1);
+         dtHDHPFS    : FullS := FullS + GetString(sdtFixed) + ' HPFS ' + GetString(sdtFixed1);
+         dtInvalid   : begin FullS := FullS + GetString(sdtError) + '    '; DrInvalid := True; end;
+         dtNovellNet : FullS := FullS + ' Novell     ';
+         dtCDROM     : FullS := FullS + ' CD-ROM     ';
+         dtLAN       : FullS := FullS + ' Lan Server ';
+         dtHDNTFS    : FullS := FullS + GetString(sdtFixed) + ' NTFS ' + GetString(sdtFixed1);
+         dtTVFS      : FullS := FullS + 'TVFS       ';
+         dtHDExt2    : FullS := FullS + GetString(sdtFixed) + ' ext2 ' + GetString(sdtFixed1);
+         dtJFS       : FullS := FullS + GetString(sdtFixed) + ' JFS  ' + GetString(sdtFixed1);
         end;
-       end;
+        {$ELSE}
+{X-Man >>>}
+         dtError     : FullS := FullS + GetString(sdtError);
+         dtFixed     : FullS := FullS + GetString(sdtFixed) + GetString(sdtFixed1) + '   ';
+         dtRemovable : FullS := FullS + GetString(sdtRemovable);
+         dtRemote    : FullS := FullS + GetString(sdtRemote);
+         dtCDROM     : FullS := FullS + GetString(sdtCDROM);
+         dtDblSpace  : FullS := FullS + GetString(sdtDblSpace);
+         dtSUBST     : FullS := FullS + GetString(sdtSUBST);
+         dtStacker   : FullS := FullS + GetString(sdtStacker);
+         dtRAMDrive  : FullS := FullS + GetString(sdtRAMDrive);
+         dtDublDisk  : FullS := FullS + GetString(sdtDublDisk);
+         dtBernoully : FullS := FullS + GetString(sdtBernoully);
+         dtDiskreet  : FullS := FullS + GetString(sdtDiskreet);
+         dtSuperStor : FullS := FullS + GetString(sdtSuperStor);
+        {$ENDIF}
+{X-Man <<<}
+{$ELSE}
+FullS := FullS + GetDriveTypeString(C) + ' ';
+{$ENDIF}
+       end
+       else if DriveNum <= 2 then FullS := FullS + GetString(sdtRemovable) + '    ';
+      {$IFDEF VIRTUALPASCAL}
+       if (DriveInfoType and ditShowVolume <> 0) and not DrInvalid and
+         not ((DriveInfoType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
+         FullS := FullS + GetVolumeLabel(C);
+      {$ENDIF}
       {$IFDEF NETINFO}
       Get_drive_connection_id(DriveNum, Server_num);
       if (Server_num > 0) and (DriveInfoType and ditNetDir <> 0) then
@@ -697,7 +1070,8 @@ begin
         NeedAbort := pSaveNeedAbort;
       end
       end;
-      if Length(FullS) > MaxL then MaxL := Length(FullS);
+      if Length(FullS) > MaxL then
+        MaxL := Length(FullS);
     end;                                                {-$VIV end}
 
     Items := NewItem(FullS, '', kbNoKey, 1000 + Byte(C),
@@ -763,40 +1137,105 @@ function NewFileRec;
   var PR: PFileRec;
       T:  TFileRec;
       D: DateTime;
+  {$IFDEF Win32}
+      Name12: Str12;
+  {$ENDIF}
 begin
+{$IFNDEF OS2}
+  {$IFDEF OS_DOS}
   if Name[1] <> '.'
-   then T.Name:=Norm12(GetUrz(Name))
+  {$ELSE}
+  if LFN <> '..'
+  {$ENDIF}
+   then
+  {$IFDEF OS_DOS}
+      T.Name := Norm12(GetUrz(Name))
+  {$ELSE}
+      begin
+       Name12 := Norm12(GetUrz(Name));
+       if Norm12(Name) = Name12 then T.Name := Name12
+         else T.Name := #22#22#22#22#22#22#22#22' '#22#22#22;
+      end
+  {$ENDIF}
    else T.Name := '..          ';
   T.Name[9] := ' ';
   if Attr and Directory <> 0 then UpStr(T.Name) else LowStr(T.Name);
   if Attr and Hidden <> 0 then T.Name[9] := #177;
   if Attr and SysFile <> 0 then begin T.Name[9] := #178; T.Name[1] := Upcase(T.Name[1]); end;
+  {$IFDEF OS_DOS}
   T.LFN := AddLFN(GetName(LFN));
+  {$ELSE}
+  T.LFN := LFN;
+  {$ENDIF}
+{$ELSE}
+  T.Name := Name;
+{$ENDIF}
   T.Size := Size; T.PSize := Size;
   if Date = 0 then
-  begin
-    T.Yr     := 1980;
-    T.Month  := 1;
-    T.Day    := 1;
-    T.Hour   := 1;
-    T.Minute := 1;
-    T.Second := 1;
-  end else
-  begin
-    UnpackTime(Date, D);
-    T.Yr := D.Year;
-    T.Month := D.Month;
-    T.Day := D.Day;
-    T.Hour := D.Hour;
-    T.Minute := D.Min;
-    T.Second := D.Sec;
-  end;
+    begin
+      T.Yr     := 1980;
+      T.Month  := 1;
+      T.Day    := 1;
+      T.Hour   := 1;
+      T.Minute := 1;
+      T.Second := 1;
+    end else
+    begin
+      UnpackTime(Date, D);
+      T.Yr := D.Year;
+      T.Month := D.Month;
+      T.Day := D.Day;
+      T.Hour := D.Hour;
+      T.Minute := D.Min;
+      T.Second := D.Sec;
+    end;
+  if CreationDate = 0 then
+    begin
+      T.YrCreat     := 0;
+      T.MonthCreat  := 0;
+      T.DayCreat    := 0;
+      T.HourCreat   := 0;
+      T.MinuteCreat := 0;
+      T.SecondCreat := 0;
+    end else
+    begin
+      UnpackTime(CreationDate, D);
+      T.YrCreat := D.Year;
+      T.MonthCreat := D.Month;
+      T.DayCreat := D.Day;
+      T.HourCreat := D.Hour;
+      T.MinuteCreat := D.Min;
+      T.SecondCreat := D.Sec;
+    end;
+  if LastAccDate = 0 then
+    begin
+      T.YrLAcc     := 0;
+      T.MonthLAcc  := 0;
+      T.DayLAcc    := 0;
+      T.HourLAcc   := 0;
+      T.MinuteLAcc := 0;
+      T.SecondLAcc := 0;
+    end else
+    begin
+      UnpackTime(LastAccDate, D);
+      T.YrLAcc := D.Year;
+      T.MonthLAcc := D.Month;
+      T.DayLAcc := D.Day;
+      T.HourLAcc := D.Hour;
+      T.MinuteLAcc := D.Min;
+      T.SecondLAcc := D.Sec;
+    end;
   T.Attr := Attr and $7FFF;
   T.Selected := Off;
   T.DIZ := nil;
+{$IFNDEF OS2}
   T.TType := GetFileType(LFN, T.Attr);
+{$ELSE}
+  T.TType := GetFileType(Name, T.Attr);
+{$ENDIF}
   T.Owner := AOwner;
   T.OwnerDisposible := false;
+  T.UsageCount:=1;
   New(PR);
   PR^ := T;
   NewFileRec := PR;
@@ -819,6 +1258,42 @@ begin
   end;
   PackTime(DT, L);
   PackedDate := L;
+end;
+
+function PackedCreationDate(P: PFileRec): LongInt;
+var
+  DT: DateTime;
+  L: LongInt;
+begin
+  with P^ do
+  begin
+    DT.Year   := YrCreat;
+    DT.Month  := MonthCreat;
+    DT.Day    := DayCreat;
+    DT.Hour   := HourCreat;
+    DT.Min    := MinuteCreat;
+    DT.Sec    := SecondCreat;
+  end;
+  PackTime(DT, L);
+  PackedCreationDate := L;
+end;
+
+function PackedLastAccDate(P: PFileRec): LongInt;
+var
+  DT: DateTime;
+  L: LongInt;
+begin
+  with P^ do
+  begin
+    DT.Year   := YrLAcc;
+    DT.Month  := MonthLAcc;
+    DT.Day    := DayLAcc;
+    DT.Hour   := HourLAcc;
+    DT.Min    := MinuteLAcc;
+    DT.Sec    := SecondLAcc;
+  end;
+  PackTime(DT, L);
+  PackedLastAccDate := L;
 end;
 
 procedure DosReread(Files: PFilesCollection);
@@ -851,8 +1326,12 @@ begin
 {$ENDIF}
   ClrIO;
   p:=Files^.At(I);
+{$IFNDEF OS2}
   with P^ do lFindFirst(MakeNormName(Owner^, GetLFN(LFN)),
-                        $3F xor VolumeID, SR);
+                                    Anyfile XOR VolumeID, SR);
+{$ELSE}
+  with P^ do lFindFirst(MakeNormName(Owner^, Name), Anyfile , SR); {JO}
+{$ENDIF}
   lFindClose(SR);
   if (DosError <> 0) or Abort then Files^.AtFree(i)
   else begin

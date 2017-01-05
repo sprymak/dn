@@ -822,7 +822,7 @@ begin
       RestoreState
     else
     begin
-      if Length(NewData) > MaxLen then NewData[0] := Char(MaxLen);
+      if Length(NewData) > MaxLen then SetLength(NewData, MaxLen);
       Data^ := NewData;
       if (CurPos >= OldLen) and (Length(Data^) > OldLen) then
         CurPos := Length(Data^);
@@ -977,7 +977,7 @@ begin
                            Repeat
                             Data^[I]:=UpCase(Data^[I]);
                             inc(i);
-                           until (Data^[I] in BreakChars);
+                           until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
        kbAltCtrlSqBracketR,
        kbCtrlSqBracketR: if ShiftState and (kbLeftShift+kbRightShift)<>0
@@ -988,7 +988,7 @@ begin
                            Repeat
                             Data^[I]:=LowCase(Data^[I]);
                             inc(i);
-                           until (Data^[I] in BreakChars);
+                           until (Data^[I] in BreakChars) or (I>Length(Data^));
                           end;
             kbCtrlSlash,
             kbCtrlBSlash:if ShiftState and (kbLeftShift+kbRightShift)<>0
@@ -1062,7 +1062,7 @@ begin
                     ClearEvent(Event);
                     S := ''; DeleteSelect;
                     pS:=DirsToChange[Event.ScanCode-(kbAlt1 shr 8)];
-                    if (pS=nil) or (pS^[0]=#0) then Exit else S:=pS^;
+                    if (pS=nil) or (Length(pS^) = 0) then Exit else S:=pS^;
                     if S = '' then Exit;
                     SelStart := CurPos; SelEnd := CurPos + Length(S);
                     OldData := Data^;
@@ -1558,7 +1558,7 @@ var
 begin
   CNorm := GetColor($0301);
   CSel := GetColor($0402);
-  CDis := GetColor($0505);
+  CDis := GetColor($0404); {JO: было $0505}
   for I := 0 to Size.Y do
   begin
     MoveChar(B, ' ', Byte(CNorm), Size.X);
@@ -2387,14 +2387,14 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
       else CurStr := '';
       if Event.KeyCode = kbBack then
       begin
-        CurStr[0] := Char(SearchPos);
+        SetLength(CurStr, SearchPos);
         T:=False
       end else if Event.KeyCode = kbCtrlEnter then begin
         Inc(Value); if Value>=Range then Value:=0;
         T := Search(CurStr, SearchPos, Value);
       end else begin
         Inc(SearchPos);
-        CurStr[0] := Char(SearchPos);
+        SetLength(CurStr, SearchPos);
         CurStr[SearchPos] := Event.CharCode;
         T := Search(CurStr, SearchPos, Value);
        end;
@@ -2402,7 +2402,7 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
       ShowCursor;
       if T then FocusItem(Value) else if SearchPos>0 then begin
           Dec(SearchPos);
-          CurStr[0] := Char(SearchPos);
+          SetLength(CurStr, SearchPos);
       end;
       SetCursor(SearchPos+2, Cursor.Y);
   end else TListViewer.HandleEvent(Event);
@@ -2520,7 +2520,7 @@ begin
       if C = cmOk then
       begin
         Rslt := HistoryWindow^.GetSelection;
-        if Length(Rslt) > Link^.MaxLen then Rslt[0] := Char(Link^.MaxLen);
+        if Length(Rslt) > Link^.MaxLen then SetLength(Rslt, Link^.MaxLen);
         Link^.SetData(Rslt);
         Link^.SelectAll(True);
         Link^.DrawView;
@@ -2654,7 +2654,7 @@ begin
                      begin
                       if (CurX = InputLine^.MaxLen - 1) and Sec then begin CE; Exit end;
                       S := InputLine^.Data^;
-                      if CurX + 1 > Byte(S[0]) then S := S + #0;
+                      if CurX + 1 > Length(S) then S := S + #0;
                       if Sec then S[CurX+1] := Char((Byte(S[CurX+1]) and $F0) or (Pos(UpCase(Event.CharCode),
                                                                               '0123456789ABCDEF')-1))
                              else S[CurX+1] := Char((Byte(S[CurX+1]) and $F) or (Pos(UpCase(Event.CharCode),
@@ -2675,12 +2675,12 @@ procedure THexLine.Draw;
      S: String;
      C: Word;
 begin
- if CurX > Byte(InputLine^.Data^[0]) then CurX := Byte(InputLine^.Data^[0]);
+ if CurX > Length(InputLine^.Data^) then CurX := Length(InputLine^.Data^);
  if CurX < 0 then CurX := 0;
  if CurX <> InputLine^.CurPos then
    if InputLine^.GetState(sfSelected) then
       begin CurX := InputLine^.CurPos; Sec := False end;
- if DeltaX >= Byte(InputLine^.Data^[0]) then DeltaX := Integer(Byte(InputLine^.Data^[0])) - 1;
+ if DeltaX >= Length(InputLine^.Data^) then DeltaX := Integer(Length(InputLine^.Data^)) - 1;
  if DeltaX < 0 then DeltaX := 0;
  if CurX < DeltaX then DeltaX := CurX;
  if 3*(CurX - DeltaX) > Size.X - 2 then DeltaX := CurX - (Size.X-2) div 3;

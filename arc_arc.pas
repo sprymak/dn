@@ -47,7 +47,7 @@
 {$I STDEFINE.INC}
 unit Arc_ARC;{ARC}
 interface
-uses Archiver, Advance, Advance1, Objects, lfncol;
+uses Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, lfncol{$ENDIF};
 
 Type
     PARCArchive = ^TARCArchive;
@@ -65,7 +65,7 @@ type
       Name: Array[1..13] of Char;
       PackedSize: LongInt;
       Date: LongInt;
-      CRC: Word;
+      CRC: AWord;
       OriginSize: LongInt;
      end;
 
@@ -76,7 +76,7 @@ constructor TARCArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'PAK.EXE'));
@@ -101,12 +101,24 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '/ZS /BUGS'));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '/CR'));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '/O'));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      '@'));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       '@'));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  if q='0' then UseLFN := False else UseLFN := True;
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function TARCArchive.GetID;
@@ -120,7 +132,7 @@ begin
 end;
 
 Procedure TARCArchive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     P    : ARCHdr;
     s    : String;
@@ -133,7 +145,9 @@ begin
  While (I < 14) and (P.Name[I] <> #0) do
   begin S := S + P.Name[I]; Inc(I); end;
  Replace('/','\',S);
+{$IFNDEF OS2}
  FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
+{$ENDIF}
  FileInfo.FName := S; {DataCompBoy}
  FileInfo.Last := 0;
  FileInfo.Attr := 0;

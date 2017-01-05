@@ -82,6 +82,8 @@ const
 
   ShiftState:  Byte = 0;
   ShiftState2: Byte = 0;
+  OldShiftState: Byte = 0;
+  DoubleAltUnlock: Boolean = True;
 
 type
 
@@ -247,6 +249,13 @@ procedure MoveCStr(var Dest; const Str: String; Attrs: Word);
 procedure MoveStr(var Dest; const Str: String; Attr: Byte);
 function  CStrLen(const S: String): Integer;
 
+var
+  ErrAdd  : Longint ; {???}
+{$IFDEF DNPRG}
+Procedure EndFatalError;
+{$ENDIF}
+{function TVCtrlBreak: Boolean;} {JO}
+
 implementation
 uses
   Drivers2,
@@ -263,7 +272,7 @@ uses
   Startup,
   DnApp,
   DnUtil,
-  {$IFDEF VIRTUALPASCAL} VpSysLow, Crt, {$ENDIF}
+  {$IFDEF VIRTUALPASCAL}VPUtils, VpSysLow, VPSysLo2, Crt,{}Messages,{}{$ENDIF}
   FlPanelX
   ;
 
@@ -318,8 +327,8 @@ Var
 
 {const}
 {  AltFlag : Boolean = False;}
-var
-  ErrAdd  : Longint ;
+{var
+  ErrAdd  : Longint ;}
 { Old09   : Pointer;}
 { Vect09  : Pointer absolute $0000:$0024;}
 
@@ -343,83 +352,62 @@ const
 
 { System error messages }
 
- (*
-  SCriticalError:    string[31] = 'Critical disk error on drive %c';
-  SWriteProtected:   string[35] = 'Disk is write-protected in drive %c';
-  SDiskNotReady:     string[29] = 'Disk is not ready in drive %c';
-  SDataIntegrity:    string[32] = 'Data integrity error on drive %c';
-  SSeekError:        string[22] = 'Seek error on drive %c';
-  SUnknownMedia:     string[30] = 'Unknown media type in drive %c';
-  SSectorNotFound:   string[28] = 'Sector not found on drive %c';
-  SOutOfPaper:       string[20] = 'Printer out of paper';
-  SWriteFault:       string[23] = 'Write fault on drive %c';
-  SReadFault:        string[22] = 'Read fault on drive %c';
-  SGeneralFailure:   string[28] = 'Hardware failure on drive %c';
-  SBadImageOfFAT:    string[32] = 'Bad memory image of FAT detected';
-  SDeviceError:      string[19] = 'Device access error';
-  SInsertDisk:       string[27] = 'Insert diskette in drive %c';
-  SSharingViolation: string[17] = 'Sharing violation';
-  ButAbort:          string[11] = '[ ~A~bort ]';
-  ButRetry:          string[11] = '[ ~R~etry ]';
-  ButIgnore:         string[12] = '[ ~I~gnore ]';
-*)
-
+{$IFNDEF VIRTUALPASCAL}
+  CE_LastMsg = 16;
   NumButtons: array[0..16] of Byte =
   (2,2,2,2,3,2,3,2,3,2,3,3,2,2,2,2,2);
+{$ELSE}
+{AK155}
+{$IFDEF OS2}
+  CE_LastMsg = 22;
+  NumButtons: array[0..22] of Byte =
+  (2,2,2,2,3,2,3,2,3,2,3,3,2,2,2,2,2,2,2,2,2,2,2);
+{$ELSE}
+  CE_LastMsg = 19;
+  NumButtons: array[0..19] of Byte =
+  (2,2,2,2,3,2,3,2,3,2,3,3,2,2,2,2,2,2,2,2);
+{$ENDIF}
+{$ENDIF}
+
   ButtonX: array[2..3] of array [1..3] of Byte =
   ((8,23,0),(3,15,27));
   XErrTable: Array [1..3] of Byte = (3,1,0);
 
-  (*
-  ButtonOffset: array[1..3] of Word =
-  (Ofs(ButAbort), Ofs(ButRetry), Ofs(ButIgnore));
-  *)
-
 
 { Critical error message translation table }
 
-  (*
-  ErrorString: array[0..16] of Word = (
-    Ofs(SWriteProtected),
-    Ofs(SCriticalError),
-    Ofs(SDiskNotReady),
-    Ofs(SCriticalError),
-    Ofs(SDataIntegrity),
-    Ofs(SCriticalError),
-    Ofs(SSeekError),
-    Ofs(SUnknownMedia),
-    Ofs(SSectorNotFound),
-    Ofs(SOutOfPaper),
-    Ofs(SWriteFault),
-    Ofs(SReadFault),
-    Ofs(SGeneralFailure),
-    Ofs(SBadImageOfFAT),
-    Ofs(SDeviceError),
-    Ofs(SInsertDisk),
-    Ofs(SSharingViolation)
-    );
-   *)
-
-  CE_LastMsg = 16;
   CE_Idx: array[0..CE_LastMsg] of TStrIdx = (
-    dlCE_WriteProtected,
-    dlCE_CriticalError,
-    dlCE_DiskNotReady,
-    dlCE_CriticalError,
-    dlCE_DataIntegrity,
-    dlCE_CriticalError,
-    dlCE_SeekError,
-    dlCE_UnknownMedia,
-    dlCE_SectorNotFound,
-    dlCE_OutOfPaper,
-    dlCE_WriteFault,
-    dlCE_ReadFault,
-    dlCE_GeneralFailure,
-    dlCE_BadImageOfFAT,
-    dlCE_DeviceError,
-    dlCE_InsertDisk,
-    dlCE_SharingViolation);
-
+    {00}dlCE_WriteProtected,   {13  Attempt to write on a write-protected diskette}
+    {01}dlCE_CriticalError,    {14  Unknown unit}
+    {02}dlCE_DiskNotReady,     {15  Drive not ready}
+    {03}dlCE_CriticalError,    {16  Unknown command}
+    {04}dlCE_DataIntegrity,    {17  CRC error}
+    {05}dlCE_CriticalError,    {18  Bad request structure length}
+    {06}dlCE_SeekError,        {19  Seek error}
+    {07}dlCE_UnknownMedia,     {1A  Unknown media type}
+    {08}dlCE_SectorNotFound,   {1B  Sector not found}
+    {09}dlCE_OutOfPaper,       {1C  Printer out of paper}
+    {10}dlCE_WriteFault,       {1D  Write fault}
+    {11}dlCE_ReadFault,        {1E  Read fault}
+    {12}dlCE_GeneralFailure,   {1F  General failure}
+    {13}dlCE_BadImageOfFAT,    {?}
+    {14}dlCE_DeviceError,      {?}
+    {15}dlCE_InsertDisk,       {?}
+    {16}dlCE_SharingViolation  {20  Sharing violation}
+  {$IFDEF VIRTUALPASCAL}
+        ,
+    {17}dlCE_WrongDisk,
+    {18}dlCE_DiskFull,
+    {19}dlCE_DeviceInUse
+{AK155}
+{$IFDEF OS2}
+    {20}, dlCE_Filename_Exced_Range
+    {21}, dlCE_Dirty_Flag
+    {22}, dlCE_Filename_Illegal {JO}
+{$ENDIF}
+{$ENDIF}
+{/AK155}
+        );
 
 var
   CE_Buttons:  array[1..3] of PString;
@@ -556,7 +544,7 @@ end;
 function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
 {$IFNDEF NONBP}
 var
-  C,AC,WW,K : Word;
+  C,AC,WW,K : AWord;
   P : Pointer;
   S : string[63];
   B,SW : PWordArray;
@@ -564,13 +552,13 @@ var
   Event: TEvent;
   PExit, ActiveButton: Byte;
 
-function GetCoord(X, Y: LongInt): Word;
+function GetCoord(X, Y: LongInt): AWord;
 begin
  GetCoord := ((ScreenHeight-6) div 2+Y)*(ScreenWidth*2)+((ScreenWidth-40) div 2+X)*2;
 end;
 
 Procedure DrawButton(No : Byte; State : Boolean);
-var X,I : Word;
+var X,I : AWord;
     P   : PString;
 begin
  I:=NumButtons[ErrorCode];
@@ -619,6 +607,7 @@ if Abort then
    Exit ;
  end;
 
+(*
  asm    MOV     AH,3
         MOV     BH,0
         PUSH    BP
@@ -640,7 +629,7 @@ if Abort then
         INT     21h
         mov     WW, AX
  end;
- if (WW = 32) or (WW = 33) then ErrorCode := 16;
+ if (WW = 32) or (WW = 33) then ErrorCode := 16; *)
   if Lo(ScreenMode) = smMono then
     begin C := SysMonoAttr; AC := $0F07 end else
     begin C := SysColorAttr; AC := SysColorButtonAttr end;
@@ -671,13 +660,13 @@ if Abort then
   ActiveButton := 2;
   ShowMouse;
   repeat
-   PExit := 0;
+   PExit := 0; {!!!}
    GetMouseEvent(Event);
    case Event.What of
      evMouseMove: ControlMousePos(Event.Where);
      evMouseDown: LM := Event.Where;
      evMouseUp: if (MPos(LM) = ActiveButton) and (MPos(Event.Where) = ActiveButton)
-                  then begin PExit := ActiveButton; Break; end;
+                  then begin PExit := ActiveButton; Break; end; {!!!}
        else GetKeyEvent(Event);
    end;
    if Event.What = evKeyDown then
@@ -688,14 +677,14 @@ if Abort then
       kbLeft : if ActiveButton > 1 then Dec(ActiveButton) else ActiveButton :=  NumButtons[ErrorCode];
       kbRight : if ActiveButton < NumButtons[ErrorCode] then Inc(ActiveButton) else ActiveButton := 1;
       kbSpace,
-      kbEnter : PExit := ActiveButton;
-      kbESC   : PExit := 1;
+      kbEnter : PExit := ActiveButton; {!!!}
+      kbESC   : PExit := 1; {!!!}
        else
        begin
          K := K shr 8;
-         if K = CE_K[1] then PExit := 1 else
-         if K = CE_K[2] then PExit := 2 else
-         if K = CE_K[3] then if NumButtons[ErrorCode] > 2 then PExit := 3;
+         if K = CE_K[1] then PExit := 1 else {!!!}
+         if K = CE_K[2] then PExit := 2 else {!!!}
+         if K = CE_K[3] then if NumButtons[ErrorCode] > 2 then PExit := 3; {!!!}
        end;
      end;
      HideMouse;
@@ -709,7 +698,7 @@ if Abort then
   ShowMouse;
   FreeMem(B, 42*7*2);
   FreeMem(SW, 42*7*2);
-  asm   POP     CX
+{ asm   POP     CX
         PUSH    DX
         MOV     AH,1
         PUSH    BP
@@ -718,18 +707,76 @@ if Abort then
         POP     ES
         POP     BP
         POP     AX
-  end;
- I := XErrTable[PExit];
+  end; }
+  I := XErrTable[PExit]; {!!!}
  Abort := I = 3;
- SystemError := I;
+ SystemError := I;       {!!!}
 end;
 {$ELSE}
+Var Res: Longint;
+    S: String[63];
+    I: Byte;
+    AOptions: Word;
+    MsgCode: word;
 begin
+ if NeedAbort then
+  begin
+    SystemError := 3;
+    Abort := On;
+    NeedAbort := Off;
+    Exit;
+  end;
 
-  {?}
+ if Abort then
+  begin
+    SystemError := 3;
+    Exit ;
+  end;
 
- Abort := True;
- SystemError := 3;
+{AK155}
+ S := '';
+ if (ErrorCode in [19..31]) then MsgCode := ErrorCode - 19 else
+ if (ErrorCode in [5, 32, 33, 108]) then MsgCode := 16 else
+ if (ErrorCode = 73) then MsgCode := 0 else
+ if (ErrorCode in [34, 107]) then MsgCode := 17 else
+ if (ErrorCode in [39, 112]) then MsgCode := 18 else
+ if (ErrorCode = 99) then MsgCode := 19 else
+{$IFDEF OS2}
+ if (ErrorCode = 123) then MsgCode := 22 else
+ if (ErrorCode = 206) then MsgCode := 20 else
+ if (ErrorCode = 627) then MsgCode := 21 else
+{$ENDIF}
+   begin
+   MsgCode := 12;
+   end;
+// S := CE_Messages[MsgCode]^ + ' (' + S + ')';
+ Str(ErrorCode, S);
+ S := 'RC=' + S + ' ' + CE_Messages[MsgCode]^;
+{/AK155}
+
+ I := Pos('%', S);
+ if I > 0 then begin S[I] := Char(Drive+65); S[I+1] := ':' end;
+ if (NumButtons[ErrorCode] = 3) then AOptions := mfYesButton + mfOKButton + mfNoButton + mfSysError
+   else AOptions := mfYesButton + mfOKButton + mfSysError;
+ Res := MessageBox(#03+S, nil, AOptions);
+ Case Res of
+ cmYes: begin
+          Abort := False;
+          SystemError := 1;
+        end;
+  cmOK: begin
+          Abort := True;
+          SystemError := 3;
+        end;
+  cmNo: begin
+          Abort := True;
+          SystemError := 0;
+        end
+  else  begin
+          Abort := True;
+          SystemError := 3;
+        end;
+ end;
 end;
 {$ENDIF}
 

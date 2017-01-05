@@ -247,8 +247,8 @@ begin
   end else
    begin
     FillChar(S1[1], Size.X - 2, 0);
-    S1[0] := Char(Size.X - 2);
-    Move(S[1], S1[(Size.X - Byte(S[0])) div 2], Byte(S[0]));
+    SetLength(S1, Size.X - 2);
+    Move(S[1], S1[(Size.X - Length(S)) div 2], Length(S));
     WriteStr(1, N+1, S1, 7);
    end;
 end;

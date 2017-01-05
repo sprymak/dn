@@ -53,11 +53,13 @@ interface uses FilesCol, tree;
 procedure UnpackDiskImages(AOwner: Pointer; Files: PFilesCollection);
 
 implementation
-{$IFDEF NONBP}
-procedure UnpackDiskImages(AOwner: Pointer; Files: PFilesCollection);begin end;
-{$ELSE}
+
 uses Dos, LFN, Messages, Views, Commands, Objects, DnApp, Drivers,
-     advance, advance1, advance2, advance3, FileCopy, DiskTool, Gauge, xTime;
+     advance, advance1, advance2, advance3, FileCopy, DiskTool, Gauge, xTime
+   {$IFDEF Win32}
+     , lfncol
+   {$ENDIF}
+     ;
 
         {-DataCompBoy-}
 function UnpackImage(const FName, DestDir: String; PInfo: PWhileView): Boolean;
@@ -98,6 +100,7 @@ var
 
   VolumeLabel : string[13];
   fPos        : LongInt;
+  SearchVolume: boolean; {piwamoto}
 
 procedure fSeek(Pos: LongInt);
 begin
@@ -149,6 +152,7 @@ var
   LocErr: Boolean;
 begin
   if Error or Cancel then Exit;
+  CtrlBreakHit := Off;
   LocErr := True;
   repeat
     CheckCancel;
@@ -204,9 +208,10 @@ var
   DR   : DirRec;
   I    : Integer;
   Nm   : Str12;
-
+  J: Integer;
 
 begin
+  CtrlBreakHit := Off;
   fSeek(LongInt(Ofst)*SectLen);
   if (F^.Status <> stOK) then Exit;
   GetMem(_Dir,RootEntries*32);
@@ -224,16 +229,31 @@ begin
     Nm[9] := '.';
     Move(DR.Name[0], Nm[1], 8);
     Move(DR.Name[8], Nm[10], 3);
-    Nm := MakeFileName(Nm);
-    if DR.Attr and VolumeID <> 0 then
+    J := 8;
+    While (J > 0) and (Nm[J] = ' ') do begin Delete(Nm, J, 1); Dec(J); end;
+    While Nm[Length(Nm)] = ' ' do Dec(Nm[0]);
+    if Nm[Length(Nm)] = '.' then Dec(Nm[0]);
+
+{   if DR.Attr and VolumeID <> 0 then
     begin
       Replace(' ','_',Nm);
       VolumeLabel := Nm+'\';
       Continue;
-    end;
+    end;}
+    if DR.Attr and (VolumeID+SysFile+Hidden+ReadOnly) = VolumeID then {LFN bugfix by piwamoto}
+     if SearchVolume then
+      begin
+       Replace(' ','_',Nm);
+      {Replace('.','_',Nm);} {JO - непонятно, зачем piwamoto это сделал}
+       VolumeLabel := Nm+'\';
+       Break;
+      end
+      else Continue;
+    if SearchVolume then Continue;
+    if DR.Attr and VolumeID <> 0 then Continue; {i'll skip VFAT names}
     if DR.Attr and Directory <> 0 then
     begin
-      if Nm[1]<>'.' then ProcessDir(Dir+Nm+'\', Fat2Sec(DR.Clus));
+      if not IsDummyDir(Nm) then ProcessDir(Dir+Nm+'\', Fat2Sec(DR.Clus)); {JO}
       Continue;
     end;
     WriteFile(Dir, Nm, DR.Clus, DR.Len, DR.Date, DR.Attr);
@@ -253,7 +273,7 @@ end;
 
 
 begin
-  VolumeLabel := ''; fPos := 0;
+  VolumeLabel := ''; fPos := 0; SearchVolume := True;
   if F^.Status <> stOK then Exit;
   GetMem(BRec, 4096);
   fRead(BRec^, 4096);
@@ -284,7 +304,13 @@ begin
 
   GetMem(FAT, FatSize);
   fRead(FAT^, FatSize);
-  if F^.Status = stOK then ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);
+{ if F^.Status = stOK then ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);}
+  if F^.Status = stOK then
+    begin {piwamoto}
+      ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);
+      SearchVolume := False;
+      ProcessDir(DestDir+'%s',SectPerFAT * FatCopies + Reserved);
+    end;
   FreeMem(FAT, FatSize);
 
 end;
@@ -329,7 +355,15 @@ begin
   for I := 0 to AFiles^.Count-1 do
   begin
     PF := AFiles^.At(I);
+{$IFNDEF OS2}
+  {$IFDEF OS_DOS}
     if not UnpackImage(MakeNormName(CnvString(PF^.Owner), MakeFileName(PF^.Name)), ADestPath, PInfo) then Break;
+  {$ELSE}
+    if not UnpackImage(MakeNormName(CnvString(PF^.Owner), GetLFN(PF^.LFN)), ADestPath, PInfo) then Break;
+  {$ENDIF}
+{$ELSE}
+    if not UnpackImage(MakeNormName(CnvString(PF^.Owner), PF^.Name), ADestPath, PInfo) then Break;
+{$ENDIF}
     if AOwner <> nil then Message(AOwner, evCommand, cmCopyUnselect, PF);
   end;
 
@@ -350,5 +384,4 @@ begin
   Files^.DeleteAll; Dispose(Files,Done); Files:=nil;
 end;
 
-{$ENDIF}
 end.

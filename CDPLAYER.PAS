@@ -1417,7 +1417,8 @@ begin
     end; { with }
 
     { calcDiskID }
-     DiskID := GetCrc( Tracks[ LowTrack ] ,
+     DiskID := GetCrc( 0,
+                       Tracks[ LowTrack ] ,
                        SizeOF(_TrackInfo ) * Succ(HighTrack-LowTrack)) ;
      GetDescription;
      _SetOrder;

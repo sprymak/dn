@@ -253,7 +253,7 @@ FUNCTION TruncSpace(S:String): String;
 var I: Byte;
 begin
   I:=Length(S); While S[I]=' ' do DEC(I);
-  S[0]:=Char(I);
+  SetLength(S, I);
   TruncSpace:=S
 end;
 

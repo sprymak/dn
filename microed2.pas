@@ -68,7 +68,9 @@ procedure MIAwaken    (AED: PFileEditor);
 IMPLEMENTATION
 uses DnStdDlg, Advance, DnApp, Commands, Lfn, Advance2, Ed2, Advance1, Views,
      Collect, WinClp, Dos, Messages, Startup, DnIni, SBlocks, u_keymap, Macro,
-     XTime, Memory, Drivers;
+     XTime, Memory, Drivers {$IFDEF EAOP}, FlOS2Tl {$ENDIF}
+     , ErrMess
+     ;
 
 type  ByteArray = Array[1..MaxBytes] of Byte;
 const FBufSize = 4096;
@@ -95,7 +97,7 @@ begin with AED^ do begin
       S := CheckForOver(FileName);
       if S = nil then Exit;
       EditName := lFExpand(FileName);
-      if EditName[Byte(EditName[0])]='.' then Dec(EditName[0]);
+      if EditName[Length(EditName)]='.' then SetLength(EditName, Length(EditName)-1);
       WriteBlock(EditName, S, FileLines, EdOpt.ForcedCrLf, OptimalFill); Dispose(S,Done);
       FileChanged(EditName);
       DisposeStr(PWindow(Owner)^.Title);
@@ -144,6 +146,12 @@ procedure MISaveFile(AED: PFileEditor);
      OldAttr: Word;
      L: array[0..0] of LongInt;
      PC: PLineCollection;
+     FileExist: Boolean;
+{$IFDEF EAOP}
+     TempEAContainerName: String;
+     TempEAContainer: lFile;
+{$ENDIF}
+
 begin with AED^ do begin
  MIUnlockFile(AED);
  if ClipBrd then begin {-$VOL begin}
@@ -156,15 +164,28 @@ begin with AED^ do begin
    Dispose(PC,Done);
  end else begin                  {-$VOL end}
    if EditName = '' then begin MISaveFileAs(AED); Exit end;
-   lAssignFile(F, EditName); ClrIO;
+   FileExist := False;
+   lAssignFile(F, EditName);
+   ClrIO;
    OldAttr:=0;
    lGetFAttr(F, OldAttr);
-   if (DosError = 0) and (OldAttr and ReadOnly <> 0) then
+   if (DosError = 0) then FileExist := True;
+   if FileExist and (OldAttr and ReadOnly <> 0) then
    begin
      Pointer(L[0]) := @EditName;
      if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then Exit;
    end;
    ClrIO; lSetFAttr(F, Archive); if Abort then Exit;
+{$IFDEF EAOP}
+   if FileExist then
+     begin
+       TempEAContainerName := SwpDir+'DN'+ItoS(DNNumber)+'.EA_';
+       lAssignFile(TempEAContainer, TempEAContainerName);
+       lRewriteFile(TempEAContainer, 0);
+       Close(TempEAContainer.F);
+       CopyEAs(EditName, TempEAContainerName);
+     end;
+{$ENDIF}
    if EditorDefaults.EdOpt and ebfCBF <> 0 then
     begin
      lFSplit(EditName, Dr, Nm, Xt); ClrIO;
@@ -185,15 +206,38 @@ begin with AED^ do begin
    lAssignFile(F, EditName); ClrIO;
    if (OldAttr <> Archive) and (OldAttr <> $FFFF) then
     lSetFAttr(F, OldAttr or Archive); ClrIO;
+{$IFDEF EAOP}
+   if FileExist then
+     begin
+       CopyEAs(TempEAContainerName, EditName);
+       EraseFile(TempEAContainerName);
+     end;
+{$ENDIF}
  end;
  MILockFile(AED);
  Modified := Off;
+ JustSaved := On; LastSaveUndoTimes := UndoTimes; {piwamoto}
  Owner^.Redraw;
  if not(SmartPad or ClipBrd) then FileChanged(EditName);
  if UpStrg(EditName)=UpStrg(MakeNormName(SourceDir, 'DN.INI')) then begin
    LoadDnIniSettings;
    DoneIniEngine;
    ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
+   InterfaceData.DrvInfType := DriveInfoType;
+
+   SystemData.Options        := SystemDataOpt;
+   InterfaceData.Options     := InterfaceDataOpt;
+   Startup.FMSetup.Options   := FMSetupOpt;
+   EditorDefaults.EdOpt      := EditorDefaultsOpt;
+   EditorDefaults.EdOpt2     := EditorDefaultsOpt2;
+   EditorDefaults.ViOpt      := ViewerOpt;
+   StartupData.Load          := StartupDataLoad;
+   StartupData.Unload        := StartupDataUnload;
+   StartupData.Slice2        := StartupDataSlice2;
+   Confirms                  := ConfirmsOpt;
+
+   if HandleChDirCommand then SystemData.Options := SystemData.Options or (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF})
+     else SystemData.Options := SystemData.Options xor (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF});
    ConfigModified:=True;
  end;
 end end;
@@ -211,6 +255,7 @@ begin with AED^ do begin
   If UndoInfo <>nil then Dispose(UndoInfo,Done);  UndoInfo :=nil;
   If RedoInfo <>nil then Dispose(RedoInfo,Done);  RedoInfo :=nil;
   UndoTimes := 0; LastDir := -1; DrawMode := 0;
+  LastSaveUndoTimes := 0; JustSaved := Off; {piwamoto}
   SearchOnDisplay := Off; EdOpt.ForcedCrLf := cfNone;
 1:
   if Name = '' then begin
@@ -218,18 +263,19 @@ begin with AED^ do begin
     if ClipBrd then begin {-$VOL begin}
       PC := nil;
       CopyStream2Lines(ClipboardStream, PC);
-      if PC <> nil then with PC^ do
+      if PC <> nil then with PC^ do begin
         while Count > 0 do begin
           FileLines^.Insert( At(Count - 1) );
           AtDelete(Count - 1);
         end;
-      Dispose( PC ,Done);
+        Dispose( PC ,Done);
+      end;
     end;                  {-$VOL end}
     if FileLines^.Count = 0 then FileLines^.Insert(NewStr(''))
   end else begin
-    if StartupData.Slice2 and osuReleaseOpen = 0 then Application^.BFSpeed;
+    if (StartupData.Slice2 and osuReleaseOpen) = 0 then Application^.BFSpeed;
     FileLines := MIReadBlock(AED, Name, On);
-    if StartupData.Slice2 and osuReleaseOpen = 0 then Application^.EFSpeed;
+    if (StartupData.Slice2 and osuReleaseOpen) = 0 then Application^.EFSpeed;
     if not IsValid then Exit;
     if FileLines = nil then
      begin
@@ -310,14 +356,13 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
   var P, P2: Pointer;
       K, L, M: Word;
       QQQ: LongInt;
-      WL: Byte absolute ST;
       MMM: String;
       C: Char;
       TS: word;
       {$IFDEF BIT_32}LLL: boolean;{$ENDIF}
   label 1, L2;
  begin with AED^ do begin
-  if (EditorDefaults.EdOpt and ebfTRp)=0 then TabStep:=0
+  if ((EditorDefaults.EdOpt{$IFNDEF OS_DOS} shl 2{$ENDIF}) and ebfTRp)=0 then TabStep:=0
   else begin
     TabStep:=StoI(EditorDefaults.TabSize);
     if TabStep=0 then TabStep:=8;
@@ -453,8 +498,8 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    @@4_l:
     mov [ebx+esi], al
     inc byte ptr [ebx]
-    inc esi
     mov eax, esi
+    inc esi
     mov ecx, ts
     div cl
     or  ah, ah
@@ -497,7 +542,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    ST := MMM;
    Exit;
 L2:ST := MMM;
-   while (ST[WL]=' ') do Dec(WL);
+   while (ST[Length(ST)]=' ') do SetLength(ST, Length(ST)-1);
    if KeyMapDetecting then CodePageDetector.CheckString(ST);
    Lines^.AddStr(ST);
    ST := '';
@@ -526,15 +571,17 @@ begin with AED^ do begin
          mov K, ax
       end;
       {$ELSE}
-      K := DosError;
+     {K := DosError;}
+      K := -(S^.Handle);
       {$ENDIF}
-      isValid := (K = 2) or (K = 3);
-      if (K <> 2) and (K <> 3) then MessageBox(GetString(dlFBBNoOpen)+FileName, nil, mfError + mfOKButton);
+      isValid := (K = 2) or (K = 3) or (K = 110);
+      if (K <> 2) and (K <> 3) and (K <> 110) then
+          MessFileNotOpen(FileName, K); {JO, AK155}
       Dispose(S,Done); CodePageDetector.Done;
       Exit
     end;
- if (S^.GetSize > MemAvail - $4000) and
-    (EditorDefaults.EdOpt and (ebfEMS+ebfXMS) = 0) then
+ if (S^.GetSize > MemAvail - $4000)
+{$IFDEF OS_DOS}and (EditorDefaults.EdOpt and (ebfEMS+ebfXMS) = 0) {$ENDIF}then
  begin
    Application^.OutOfMemory; Dispose(S,Done); FileName := ''; isValid := Off;
    Exit
@@ -572,8 +619,8 @@ begin with AED^ do begin
    if FFSize - I > FBufSize-1 then J := FBufSize-1 else J := FFSize - I;
   end;
  if (LCount > MaxCollectionSize) or
-    ((MemAvail-$4000 < 4*(LCount+50)+FFSize) and
-     (EditorDefaults.EdOpt and (ebfXMS+ebfEMS) = 0)) then
+    ((MemAvail-$4000 < 4*(LCount+50)+FFSize)
+{$IFDEF OS_DOS}and (EditorDefaults.EdOpt and (ebfXMS+ebfEMS) = 0){$ENDIF}) then
   begin
     Application^.OutOfMemory;
     FreeMem(B, FBufSize);
@@ -587,7 +634,7 @@ begin with AED^ do begin
  if RetCollector then Lines := GetCollector(LCount*11, LCount+50)
                  else Lines := New(PStdCollector, Init(LCount+50));
  {-$VOL begin}
- if EditorDefaults.EdOpt and ebfTRp = 0 then TabStep:=0
+ if (EditorDefaults.EdOpt{$IFNDEF OS_DOS} shl 2{$ENDIF}) and ebfTRp = 0 then TabStep:=0
  else begin
    TabStep:=StoI(EditorDefaults.TabSize);
    if TabStep = 0 then TabStep := 8;
@@ -630,7 +677,7 @@ begin with AED^ do begin
                               else J := FFSize - I;
    end;
   if ST[1] = #10 then DelFC(ST);
-  while (ST[Byte(ST[0])]=' ') do Dec(ST[0]);
+  while (ST[Length(ST)]=' ') do SetLength(ST, Length(ST)-1);
   Lines^.Insert(NewStr(ST));
   {KOI KeyMap:=kmKoi8r}{WIN KeyMap:=kmAnsi}{DOS KeyMap:=kmAscii}
   if UpStrg(DefCodePage) = 'DOS' then KeyMap:=kmAscii else

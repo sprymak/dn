@@ -298,12 +298,12 @@ begin
     end;
     Dec(I);
     S.Read(C, 1); { Skip #10 }
-    Line[0] := Char(I);
+    SetLength(Line, I);
   end;
   Inc(Count);
 
   { Return a blank line if the line is a comment }
-  if Line[1] = ';' then begin Line[0] := #0; Goto 1; end;
+  if Line[1] = ';' then begin SetLength(Line, 0); Goto 1; end;
 
   GetLine := Line;
   LineInBuffer := False;
@@ -404,7 +404,7 @@ var
   Hi, Lo, Mid, Cmp: AInt;
 begin
   { Convert Text into a #0 terminted PChar }
-  Inc(Text[0]);
+  SetLength(Text, Length(Text)+1);
   Text[Length(Text)] := #0;
 
   Hi := High(BuiltInContextTable);
@@ -499,7 +499,7 @@ end;
 function TRefTable.GetReference(var Topic: String): PReference;
 var
   Ref: PReference;
-  I: LongInt;
+  I: CondInt;
 begin
   if Search(@Topic, I) then
     Ref := At(I)

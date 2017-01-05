@@ -54,7 +54,7 @@
 {modified for DN by Max Piwamoto}
 
 {$A+,B-,D+,E-,F-,G-,I-,L+,N-,P+,Q+,R+,S-,T-,V-,X+}
-{$IFDEF Win32}
+{$IFDEF VIRTUALPASCAL}
 {$H-}
 {$ENDIF}
 
@@ -74,7 +74,7 @@ type
                         eax,
                         ebx,
                         ecx,
-                        edx   : {$IFDEF WIN32} Integer {$ELSE} LongInt {$ENDIF};
+                        edx   : {$IFDEF VIRTUALPASCAL} Integer {$ELSE} LongInt {$ENDIF};
                       end;
 
 const
@@ -83,8 +83,8 @@ const
         fpu         : Byte = $FF;
         extFlags    : Word = 0;
         cpuid0      : array[0..11] of Char = #0#0#0#0#0#0#0#0#0#0#0#0;
-        cpuid1      : {$IFDEF WIN32} Integer {$ELSE} LongInt {$ENDIF}= 0;
-        cpuFeatures : {$IFDEF WIN32} Integer {$ELSE} LongInt {$ENDIF}= 0;
+        cpuid1      : {$IFDEF VIRTUALPASCAL} Integer {$ELSE} LongInt {$ENDIF}= 0;
+        cpuFeatures : {$IFDEF VIRTUALPASCAL} Integer {$ELSE} LongInt {$ENDIF}= 0;
 
 { CPU type constants }
 
@@ -184,9 +184,9 @@ const
 function getVersion : Word; {$IFDEF _DLL}export;{$ENDIF}
 {$ENDIF}
 
-function cpu_Type : {$IFDEF Win32} ShortString;{$ELSE} String; {$ENDIF} { returns CPU name }
+function cpu_Type : {$IFDEF VIRTUALPASCAL} ShortString;{$ELSE} String; {$ENDIF} { returns CPU name }
 
-function fpu_Type : {$IFDEF Win32} ShortString;{$ELSE} String; {$ENDIF} { returns FPU name }
+function fpu_Type : {$IFDEF VIRTUALPASCAL} ShortString;{$ELSE} String; {$ENDIF} { returns FPU name }
 
 function cpu_Speed : Word;  { returns raw CPU clock in MHz }
 
@@ -199,7 +199,7 @@ function getCacheSize : Word; {$IFNDEF VER60}far;{$ENDIF} { returns L1 cache siz
 {$ENDIF}
 
 procedure CxCPUIDEnable; {$IFDEF Windows} export; {$ELSE}
-                          {$IFDEF Win32} export; {$ELSE}
+                          {$IFDEF VIRTUALPASCAL} export; {$ELSE}
                            {$IFNDEF VER60} far; {$ENDIF}
                           {$ENDIF}
                          {$ENDIF}
@@ -209,14 +209,14 @@ procedure getCPUID( Level : LongInt;
                                          {$IFNDEF VER60}far;{$ENDIF}
                                         {$ENDIF}
 
-function getCPUSerialNumber : {$IFDEF Win32} ShortString;{$ELSE} String; {$ENDIF}
+function getCPUSerialNumber : {$IFDEF VIRTUALPASCAL} ShortString;{$ELSE} String; {$ENDIF}
                               {$IFDEF Windows} export; {$ELSE}
                                {$IFNDEF Win32}
                                 {$IFNDEF VER60} far; {$ENDIF}
                                {$ENDIF}
                               {$ENDIF}
 
-{$IFDEF Win32}
+{$IFDEF VIRTUALPASCAL}
 function UnderNT : Boolean;
 {$ENDIF}
 
@@ -235,8 +235,8 @@ function isV86 : Boolean; {$IFNDEF VER60}far;{$ENDIF}
 {$ENDIF} { Win32 }
 implementation
 
-{$IFDEF Win32}
-uses Windows, SysUtils;
+{$IFDEF VIRTUALPASCAL}
+uses Windows, SysUtils, Advance, Commands, DNApp;
 {$ELSE}
  {$IFDEF Windows}
  uses WinDos, Strings;
@@ -251,7 +251,7 @@ const
         fpuOp1        : array [0..9] of Byte = ($F0,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$3F);
         fpu_53bit_Prec: word = $02F7;
         speedShift    : word = 0;
-        speedTable    : array[i8088..MaxCPU] of {$IFDEF Win32} Integer {$ELSE} LongInt {$ENDIF} =
+        speedTable    : array[i8088..MaxCPU] of {$IFDEF VIRTUALPASCAL} Integer {$ELSE} LongInt {$ENDIF} =
                         (
                          $0002AD26, { i8088 }
                          $0002AD26, { i8086 }
@@ -349,7 +349,7 @@ function isV86; external;
 {$ENDIF} { Ver80 }
 {$ENDIF} { Win32 }
 
-{$IFDEF Win32}
+{$IFDEF VIRTUALPASCAL}
  {$L DPMICODE.O32}
 {$ELSE}
 {$IFDEF Ver80}
@@ -372,7 +372,7 @@ function isV86; external;
 {$ENDIF} { Win32 }
 
 
-{$IFDEF Win32}
+{$IFDEF VIRTUALPASCAL}
  {$L CPUSPEED.O32}
  {$L P5SPEED.O32}
 {$ELSE}
@@ -383,7 +383,7 @@ function isV86; external;
  {$L CACHETST.OBJ}
 {$ENDIF}
 
-function CyrixModel : {$IFDEF Win32} ShortString;{$ELSE}String;{$ENDIF}
+function CyrixModel : {$IFDEF VIRTUALPASCAL} ShortString;{$ELSE}String;{$ENDIF}
  var
     isTI : Boolean;
     DIR0,
@@ -561,7 +561,8 @@ function Compare12( S : String ): Boolean; assembler;
 {$ELSE}
 function Compare12( S : PChar ): Boolean; assembler;
 {$ENDIF}
-{$IFNDEF Win32}
+{.$IFNDEF Win32}
+{$IFNDEF VIRTUALPASCAL}
 asm
     push  es
     mov   si, offset cpuid0
@@ -602,7 +603,7 @@ end;
 
 function getL2CacheDesc : Byte; {$IFNDEF Win32}{$IFNDEF VER60}far;{$ENDIF}{$ENDIF} external;
 
-function cpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
+function cpu_Type : {$IFDEF VIRTUALPASCAL} ShortString; {$ELSE} String; {$ENDIF}
  var
     cpuid1_ : cpuid1Layout;
  begin
@@ -995,7 +996,7 @@ function cpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
 
  end;
 
-function fpu_Type : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
+function fpu_Type : {$IFDEF VIRTUALPASCAL} ShortString; {$ELSE} String; {$ENDIF}
  begin
   if fpu = $FF then
    begin
@@ -1095,7 +1096,7 @@ function NormFreq(freq : Word; fTable : fArray; Count : Byte) : Word;
  end;
 
 function UnderNT : Boolean;
-{$IFDEF Win32}
+{$IFDEF VIRTUALPASCAL}
  begin
   UnderNT := (Win32Platform = VER_PLATFORM_WIN32_NT);
  end;
@@ -1183,9 +1184,9 @@ function cpu_Speed : Word;
       sps := speedShift;
      end;
    end;
-  cpu_Speed := ((speedTable[cpu]*{$IFDEF Win32}Integer{$ELSE}LongInt{$ENDIF}(sps)) div ms + 5) div 10;
+  cpu_Speed := ((speedTable[cpu]*{$IFDEF VIRTUALPASCAL}Integer{$ELSE}LongInt{$ENDIF}(sps)) div ms + 5) div 10;
 {$ELSE}
-  cpu_Speed := ((speedTable[cpu]*{$IFDEF Win32}Integer{$ELSE}LongInt{$ENDIF}(speedShift)) div Speed + 5) div 10;
+  cpu_Speed := ((speedTable[cpu]*{$IFDEF VIRTUALPASCAL}Integer{$ELSE}LongInt{$ENDIF}(speedShift)) div Speed + 5) div 10;
 {$ENDIF}
  end;
 
@@ -1212,9 +1213,9 @@ function fcpu_Speed : Real;
       sps := speedShift;
      end;
    end;
-  fcpu_Speed := ( ( speedTable[cpu] * {$IFDEF Win32}Integer{$ELSE}LongInt{$ENDIF}(sps) ) / ms + 5 ) / 10;
+  fcpu_Speed := ( ( speedTable[cpu] * {$IFDEF VIRTUALPASCAL}Integer{$ELSE}LongInt{$ENDIF}(sps) ) / ms + 5 ) / 10;
 {$ELSE}
-  fcpu_Speed := ( ( speedTable[cpu] * {$IFDEF Win32}Integer{$ELSE}LongInt{$ENDIF}(speedShift) ) / Speed + 5 ) / 10;
+  fcpu_Speed := ( ( speedTable[cpu] * {$IFDEF VIRTUALPASCAL}Integer{$ELSE}LongInt{$ENDIF}(speedShift) ) / Speed + 5 ) / 10;
 {$ENDIF}
  end;
 
@@ -1231,7 +1232,7 @@ function HexW(W : Word) : String;
   HexW := HexB(Hi(W))+HexB(Lo(W));
  end;
 
-function getCPUSerialNumber : {$IFDEF Win32} ShortString; {$ELSE} String; {$ENDIF}
+function getCPUSerialNumber : {$IFDEF VIRTUALPASCAL} ShortString; {$ELSE} String; {$ENDIF}
  var
     A : customCpuid;
     S : String;

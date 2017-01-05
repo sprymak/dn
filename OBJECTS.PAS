@@ -49,7 +49,7 @@
 { This module is based on Turbo Vision Objects Unit   }
 { Copyright (c) 1990 by Borland International         }
 {-----------------------------------------------------}
-
+{$DEFINE PACKFILE}
 unit Objects;
 
 interface
@@ -60,6 +60,15 @@ uses {$IFDEF VIRTUALPASCAL}SysUtils,{$ENDIF}
 
 type
   PString  = ^String;
+{$IFDEF USEANSISTRING}
+  PAnsiString = ^AnsiString;
+{$ENDIF}
+
+{$IFDEF OldCollection}
+  CondInt = Integer;
+{$ELSE}
+  CondInt = LongInt;
+{$ENDIF}
 
   Str2 = string[2];   PStr2  = ^Str2;
   Str3 = string[3];   PStr3  = ^Str3;
@@ -96,6 +105,9 @@ const
   MaxWords = MaxBytes DIV SizeOf(Word);
   MaxPtrs  = MaxBytes DIV SizeOf(Pointer);
 
+  MaxEditStringLength = 254;
+ {MaxEditStringLength = 510;}
+
 type
 
   {$IFDEF BIT_16}
@@ -111,6 +123,7 @@ type
     {$ENDIF}
   {$ENDIF}
    AInt = {$IFNDEF BIT_32}Integer{$ELSE BIT_32}SmallInt{$ENDIF};
+
    AWord= {$IFNDEF BIT_32}Word{$ELSE BIT_32}SmallWord{$ENDIF};
 
   PByteArray = ^TByteArray;
@@ -151,7 +164,7 @@ const
   fmDenyChild = $0080;           { Don't give right's to child }
 
  {$ELSE VP}
-  stCreate    = $DCB0;           { Create new file }
+  stCreate    = $DC0B;           { Create new file }
   stOpenRead  = fmOpenRead;      { Read access only }
   stOpenWrite = fmOpenWrite;     { Write access only }
   stOpen      = fmOpenReadWrite; { Read and write access }
@@ -160,13 +173,13 @@ const
 { File share mode constants }
   fmClean     = $FF00;           { Mask to clean low byte of file mode constatns }
 
-  fmOpenMode  = $FFFF;           { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
+  fmOpenMode  = $FFF0;           { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
   fmReadOnly  = fmOpenRead;      { Open read-only file }
   fmWriteOnly = fmOpenWrite;     { Open file for write only }
   fmReadWrite = fmOpenReadWrite; { Open file as for read, as for write }
   fmPacked    = fmOpenReadWrite+1;{Open a packed file, if can }
 
-  fmDeny      = $FFFF;           { Mask to apply fmDenyXXX }
+  fmDeny      = $FF0F;           { Mask to apply fmDenyXXX }
   fmDenyAll   = fmShareExclusive;{ Exclusive file use }
   fmDenyWrite = fmShareDenyWrite;{ Deny write access }
   fmDenyRead  = fmShareDenyRead; { Deny read access }
@@ -187,13 +200,27 @@ const
   stSeekError  = -7;              { Stream seek error }
   stOpenError  = -8;              { Stream open error }
 
+{$IFDEF OldCollection}
+{ VMT header size }
+ {$IFDEF BIT_32}
+  vmtHeaderSize = 12;
+ {$ELSE}
+  vmtHeaderSize = 8;
+ {$ENDIF}
+
+{$ENDIF}
+
 type
 
 { TStreamRec }
 
   PStreamRec = ^TStreamRec;
   TStreamRec = record
-    ObjType: AWord;
+  {$IFNDEF NoCallspcb}
+    ObjType: Word; {было AWord}
+  {$ELSE}
+    ObjType: Word;
+  {$ENDIF}
   {$IFDEF VER70}{$IFNDEF DPMI}
     VmtLink: Word;
   {$ELSE} VmtLink: Pointer;{$ENDIF}
@@ -367,7 +394,7 @@ uses
   {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
   {$IFDEF  FPC}CallSpec{$ELSE}Callspcb{$ENDIF},
   {$IFDEF WIN32}Windows,{$ENDIF}
-  PackF_RS, ExtraMem;
+  {$IFDEF PACKFILE}PackF_RS,{$ENDIF} ExtraMem;
 
 procedure Abstract;
 begin
@@ -457,6 +484,37 @@ begin
    StreamTypes:=@S;
 end;
 
+{$IFDEF NoCallspcb}
+{ TStream support routines } {JO - from VP TV objects}
+
+const
+ {$IFNDEF OldCollection}
+  vmtHeaderSize = 12;
+ {$ENDIF}
+  TStream_Error = vmtHeaderSize + $04;
+  TStream_Flush = vmtHeaderSize + $08;
+  TStream_Read  = vmtHeaderSize + $14;
+  TStream_Write = vmtHeaderSize + $20;
+
+{ Stream error handler                                  }
+{ In    eax   = Error info                              }
+{       dl    = Error code                              }
+{       ecx   = Stream object pointer                   }
+{ Uses  eax,edx                                         }
+
+procedure DoStreamError; assembler; {$USES ecx} {$FRAME-}
+asm
+                movsx   edx,dl
+                push    edx             { [1]:Integer = Code    }
+                push    eax             { [2]:Integer = Info    }
+                push    ecx             { [3]:Pointer = Self    }
+                mov     eax,[ecx]
+                Call    DWord Ptr [eax].TStream_Error
+end;
+
+{/JO}
+{$ENDIF}
+
 procedure TStream.CopyFrom(var S: TStream; Count: Longint);
 var
   N: Word;
@@ -497,10 +555,11 @@ procedure TStream.Flush;
 begin
 end;
 
+{$IFNDEF NoCallspcb}
 function TStream.Get: PObject;
 var
-  Magic: AWord;
-  ObjType: AWord;
+  Magic: Word;   {было AWord}
+  ObjType: Word; {было AWord}
   P: PStreamRec;
   O: PObject;
 begin
@@ -535,6 +594,42 @@ begin
   end else
     Get:=nil;
 END;
+{$ELSE}
+function TStream.Get: PObject; assembler; {$USES None} {$FRAME+}
+  asm
+                push    eax
+                mov     eax,esp
+                push    eax                     { [1]:Pointer = Buf   }
+                push    4                       { [2]:DWord   = Count }
+                mov     eax,Self
+                push    eax                     { [3]:Pointer = Self  }
+                mov     eax,[eax]
+                Call    DWord Ptr [eax].TStream_Read
+                pop     eax
+                test    eax,eax                 { Return nil }
+                jz      @@4
+                mov     edx,StreamTypes
+        JMP     @@2
+              @@1:
+                cmp     eax,[edx].TStreamRec.ObjType
+                je      @@3
+                mov     edx,[edx].TStreamRec.Next
+              @@2:
+                test    edx,edx
+                jnz     @@1
+                mov     ecx,Self
+                mov     dl,stGetError
+        CALL    DoStreamError
+                xor     eax,eax                 { Return nil }
+                jmp     @@4
+              @@3:
+                push    Self                    { [1]:Pointer = TStream }
+                push    [edx].TStreamRec.VmtLink{ [2]:DWord   = VMT     }
+                push    0                       { [3]:Pointer = Self = nil: allocate in dynamic memory }
+                Call    [edx].TStreamRec.Load
+              @@4:                              { Return Self or nil }
+  end;
+{$ENDIF}
 
 function TStream.GetPos: Longint;
 begin
@@ -546,11 +641,12 @@ begin
   if (Status = stOk) then GetSize:=StreamSize else GetSize:=-1;
 end;
 
+{$IFNDEF NoCallspcb}
 procedure TStream.Put(P: PObject);
 var
   Q: PStreamRec;
-  Magic: AWord;
-  ObjType: AWord;
+  Magic: Word;   {было AWord}
+  ObjType: Word; {было AWord}
   {$IFDEF BIT_16}
   VmtPtr: ^Word;     Link: Word;    {$ELSE}
   VmtPtr: ^LongInt;  Link: LongInt; {$ENDIF}
@@ -583,7 +679,46 @@ begin
     {$IFNDEF CNPRG} Magic:=$005D; Write(Magic, SizeOf(Magic)); {$ENDIF}
   end;
 END;
-
+{$ELSE}
+procedure TStream.Put(P: PObject); assembler; {$USES None} {$FRAME+}
+  asm
+                mov     ecx,P
+                jecxz   @@4
+                mov     eax,[ecx]               { VMT pointer }
+                mov     edx,StreamTypes
+        JMP     @@2
+              @@1:
+                cmp     eax,[edx].TStreamRec.VmtLink
+        JE      @@3
+                mov     edx,[edx].TStreamRec.Next
+              @@2:
+                test    edx,edx
+        JNE     @@1
+                mov     ecx,Self
+                mov     dl,stPutError
+        CALL    DoStreamError
+        JMP     @@5
+              @@3:
+                mov     ecx,[edx].TStreamRec.ObjType
+              @@4:
+                push    edx
+                push    ecx                     { Write object type  }
+                mov     eax,esp
+                push    eax                     { [1]:Pointer = Buf  }
+                push    4                       { [2]:DWord   = Size }
+                mov     eax,Self                { [3]:Pointer = Self }
+                push    eax
+                mov     eax,[eax]
+                Call    DWord Ptr [eax].TStream_Write
+                pop     ecx
+                pop     edx
+                jecxz   @@5
+                push    Self                    { [1]:Pointer = TStream }
+                push    P                       { [2]:Pointer = Self    }
+                Call    [edx].TStreamRec.Store
+              @@5:
+  end;
+{$ENDIF}
 procedure TStream.Read(var Buf; Count: Sw_Word);
 begin
   Abstract;
@@ -597,11 +732,7 @@ begin
   Read(L, 1);
   if L > 0 then begin
     GetMem(P, L + 1);
-    {$IFDEF PPC_DELPHI3}
     SetLength(P^, L);
-    {$ELSE}
-    P^[0]:=Chr(L);
-    {$ENDIF}
     Read(P^[1], L);
     ReadStr:=P;
   end else
@@ -691,7 +822,9 @@ end;
 constructor TDosStream.Init(FileName: FNameStr; Mode: Word);
 var
   Success: Integer;
+  {$IFDEF PACKFILE}
 label 1;
+  {$ENDIF}
 begin
   inherited Init;
   {$IFDEF OS_WINDOWS}
@@ -701,6 +834,7 @@ begin
   Move(FileName[1], FName, Length(FileName));
   {$ENDIF}
   FMode:=Mode;
+  {$IFDEF PACKFILE}
   if (FMode and $000F)=fmPacked then begin
     Handle:=pOpen(@FName, FMode and $FFF0);
     Success:=0;
@@ -711,8 +845,12 @@ begin
            goto 1;
           end
   end else
+  {$ENDIF}
   begin
-1:  Handle:=AFileOpen(FName, FMode);
+  {$IFDEF PACKFILE}
+1:
+  {$ENDIF}
+    Handle:=AFileOpen(FName, FMode);
     If Handle <> 0 then begin
       Success:=ASetFilePos(Handle, 0, 2, StreamSize);
       If Success = 0 then Success:=ASetFilePos(Handle, 0, 0, Position);
@@ -730,9 +868,12 @@ var
 label 1;
 begin
   if (Handle <> -1) then begin
+  {$IFDEF PACKFILE}
     if (FMode and $000F)=fmPacked
      then pClose(Handle)
-     else AFileClose(Handle);
+     else
+  {$ENDIF}
+     AFileClose(Handle);
   end;
   {$IFDEF OS_WINDOWS}
   AnsiToOEM(FileName, FName);
@@ -741,6 +882,7 @@ begin
   Move(FileName[1], FName, Length(FileName));
   {$ENDIF}
   FMode:=Mode;
+  {$IFDEF PACKFILE}
   if (FMode and $000F)=fmPacked then begin
     Handle:=pOpen(@FName, FMode and $FFF0);
     Success:=0;
@@ -751,6 +893,7 @@ begin
            goto 1;
           end
   end else
+  {$ENDIF}
   begin
 1:  Handle:=AFileOpen(FName, FMode);
     If Handle <> 0 then begin
@@ -767,9 +910,12 @@ end;
 destructor TDosStream.Done;
 begin
   if (Handle <> -1) then begin
+  {$IFDEF PACKFILE}
     if (FMode and $000F)=fmPacked
      then pClose(Handle)
-     else AFileClose(Handle);
+     else
+  {$ENDIF}
+          AFileClose(Handle);
   end;
   Handle:=-1;
   inherited Done;
@@ -787,13 +933,15 @@ begin
   else begin
     while (Count > 0) and (Status = stOk) do begin
       W:=Count;
-      {$IFDEF OS_OS2}
+      {$IFDEF OS2}
       If (Count > $FFFE) Then W := $FFFE; { Cant read >64K bytes }
       {$ENDIF}
+      {$IFDEF PACKFILE}
       if (FMode and $000F)=fmPacked then begin
         BytesMoved:=pRead(Handle, W, P);
         Success:=IOResult;
       end else
+      {$ENDIF}
         Success:=AFileRead(Handle, P^, W, BytesMoved);
       if Success = 0 then begin
         Inc(Position, BytesMoved);
@@ -822,13 +970,15 @@ begin
   else begin
     while (Count > 0) and (Status = stOk) do begin
       W:=Count;
-      {$IFDEF OS_OS2}
+      {$IFDEF OS2}
       If (Count > $FFFE) Then W := $FFFE; { Cant read >64K bytes }
       {$ENDIF}
+      {$IFDEF PACKFILE}
       if (FMode and $000F)=fmPacked then begin
         BytesMoved:=pRead(Handle, W, P);
         Success:=IOResult;
       end else
+      {$ENDIF}
         Success:=AFileRead(Handle, P^, W, BytesMoved);
       if Success = 0 then begin
         Inc(Position, BytesMoved);
@@ -852,11 +1002,15 @@ begin
     if Pos < 0 then Pos:=0;
     if Handle = -1
      then Success:= 03
-     else if (FMode and $000F)=fmPacked then begin
+     else
+  {$IFDEF PACKFILE}
+         if (FMode and $000F)=fmPacked then begin
            Li:=pSeek(Handle, Pos);
            Success:=0;
            if IOResult<>0 then Success:=-1;
-          end else Success:=ASetFilePos(Handle, Pos, 0, Li);
+          end else
+  {$ENDIF}
+                  Success:=ASetFilePos(Handle, Pos, 0, Li);
     if (Success = -1) or (Li <> Pos) then begin
       if (Success = -1)
        then Error(stSeekError, 0)
@@ -870,7 +1024,7 @@ var
   Success: Integer;
 begin
   if Status = stOk then begin
-    if ((FMode and $000F)=fmPacked) or
+    if   {$IFDEF PACKFILE} ((FMode and $000F)=fmPacked) or {$ENDIF}
        ((FMode and $000F)=fmReadOnly)
      then Success:=103
      else Success:=ASetFileSize(Handle, Position);
@@ -889,14 +1043,14 @@ begin
   if Handle = -1
    then Error(stWriteError, 103)
    else begin
-    if ((FMode and $000F)=fmPacked) or
+    if   {$IFDEF PACKFILE}((FMode and $000F)=fmPacked) or {$ENDIF}
        ((FMode and $000F)=fmReadOnly)
      then Error(stError, 103)
      else begin
       P:=@Buf;
       while (Count > 0) and (Status = stOk) do begin
         W:=Count;
-        {$IFNDEF OS_OS2}
+        {$IFNDEF OS2}
         if Count > $FFFF then W:=$FFFF; { Cant read >64K bytes }
         {$ENDIF}
         Success:=AFileWrite(Handle, P^, W, BytesMoved);
@@ -916,11 +1070,17 @@ begin
 end;
 
 procedure TDosStream.DoOpen (OpenMode: Word);
+  {$IFDEF PACKFILE}
 label 1;
+  {$ENDIF}
 begin
   if Status = stOk then begin
     if Handle = -1 then begin
-1:    FMode:=OpenMode;
+  {$IFDEF PACKFILE}
+1:
+  {$ENDIF}
+    FMode:=OpenMode;
+  {$IFDEF PACKFILE}
       if (FMode and $000F)=fmPacked
        then begin
              Handle:=pOpen(@FName, FMode and $FFF0);
@@ -929,7 +1089,9 @@ begin
               goto 1;
              end;
             end
-       else Handle:=AFileOpen(FName, FMode);
+       else
+  {$ENDIF}
+            Handle:=AFileOpen(FName, FMode);
       Position:=0;
       if Handle=0 then begin
         Handle:=-1;
@@ -942,8 +1104,10 @@ end;
 procedure TDosStream.Close;
 begin
   if Handle <> -1 then begin
+  {$IFDEF PACKFILE}
     if (FMode and $000F)=fmPacked then
       pClose(Handle) else
+  {$ENDIF}
       AFileClose(Handle);
   end;
   Position:=0;
@@ -980,8 +1144,10 @@ begin
   if (LastMode = 2) and (BufPtr <> 0) then begin
     if Handle = -1 then
       Error(stError, 103) else
+  {$IFDEF PACKFILE}
     if (FMode and $000F)=fmPacked then
       Error(stError, 103) else
+  {$ENDIF}
     begin
       (* inherited Write(Buffer^, BufPtr); *)
       Success:=AFileWrite(Handle, Buffer^, BufPtr, W);
@@ -1008,10 +1174,12 @@ begin
       if BufPtr = BufEnd then begin  { Buffer is empty }
         if Position + BufSize > StreamSize then Bw:=StreamSize - Position
         else Bw:=BufSize;
+  {$IFDEF PACKFILE}
         if (FMode and $000F)=fmPacked then begin
           W:=pRead(Handle, Bw, Buffer);
           Success:=IOResult;
         end else
+  {$ENDIF}
           Success:=AFileRead(Handle, Buffer^, Bw, W);
         if (Success <> 0) or (Bw <> W) then Error(stReadError, Success)
         else begin

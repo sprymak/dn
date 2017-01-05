@@ -1,0 +1,11 @@
+
+ Some changes in hotkeys of DN/2 OSP as compared with DN OSP:
+
+ <Alt-_> - call menu for switching of file panel modes;
+ <Shift-F5> - copy single file/directory when some are selected;
+ <Shift-F6> - rename/move single file/directory when some are selected;
+ <Ctrl-F11> - edit logical file name (extended attribute .LONGNAME);
+ <Alt-Shift-F3> - view file in text mode;
+ <Alt-F7> - back search in text viewer;
+ <F8> - switch character mapping in dbf viewer;
+ <Ctrl-Enter> - in command history - copy command to the command line;

@@ -113,7 +113,10 @@ begin
        begin
 {          if (Event.KeyCode = kbAltQ) and Desktop^.GetState(sfFocused) then begin OpenSmartpad; ClearEvent(Event) end;}
            if Event.KeyCode = kbNoKey then begin Event.What := evNothing; Exit end else
-             if (not MacroPlaying) and (Event.KeyCode = kbShiftIns) and (ShiftState and kbAltShift <> 0)
+             if (not MacroPlaying)
+                and (Event.KeyCode = {$IFNDEF VIRTUALPASCAL} kbShiftIns) and (ShiftState and kbAltShift <> 0)
+                                     {$ELSE}                 kbAltShiftIns)
+                                     {$ENDIF}
                 and (ShiftState and kbCtrlShift = 0) then
                  begin Event.What := evNothing; ScreenGrabber(Off); Exit end;
            if (Event.ScanCode >= Hi(kbCtrlF1)) and (Event.ScanCode <= Hi(kbCtrlF10))
@@ -153,6 +156,16 @@ begin
                 end;
                ClearEvent(Event);
              end;
+
+{AK155: Alt-Shift-F3 -> cmFileTextView}
+           if (Event.KeyCode = kbAltF3) and
+              (ShiftState and kbAltShift <> 0) and
+              (ShiftState and (kbRightShift or kbLeftShift) <> 0) then
+             begin
+             Event.What := evCommand; Event.Command := cmFileTextView;
+             Exit;
+             end;
+{/AK155}
            if (Event.KeyCode = kbAlt0) and (ShiftState and 3 <> 0) then
               begin Event.What := evCommand; Event.Command := cmListOfDirs; Exit; end;
            if MsgActive then
@@ -198,6 +211,7 @@ begin
 
   if not FullSpeed then TinySlice;
 
+{$IFNDEF VIRTUALPASCAL}
   if StartupData.Slice and osuSleep <> 0 then
   case LSliceCnt of
 
@@ -231,6 +245,7 @@ begin
            NLS;
          end else Inc(LSliceCnt);
   end;
+{$ENDIF}
 
   {  Put IdleEvt after IdleClick Expired  }
     with IdleEvt do

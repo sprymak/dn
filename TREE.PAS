@@ -49,7 +49,7 @@
 unit Tree;
 
 interface
-uses LFN, LFNCol, {DataCompBoy} Collect,
+uses LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} Collect,
      Drivers, Objects, Memory, Startup, DOS, DNIni,
      Dialogs, Views, advance, advance1, advance2, advance3,
      FilesCol, HideView, DNHelp
@@ -82,8 +82,12 @@ type
 
     PDirRec = ^TDirRec;
     TDirRec = record
+{$IFNDEF OS2}
      Name: String[12];
      LFN: TLFNIndex; {DataCompBoy}
+{$ELSE}
+     Name: String;
+{$ENDIF}
      Level: Byte;
      Cluster: Word;
      Size: TSize;
@@ -176,6 +180,7 @@ type
 
 function  ChangeDir(ATitle: TTitleStr; Drv: Byte): String; {DataCompBoy}
 procedure CreateDirectory(S: String; Del: Boolean);
+procedure CheckMkDir(const Path: String); { MkDir and check result }{AK155}
 procedure MakeDirectory;
 procedure FreeTree(C: Char);
 function  GetDirLen(Dir: String): TSize; {DataCompBoy}
@@ -270,7 +275,9 @@ var {$IFDEF DiskEdit}
           Insert('.', P^.Name, 9); P^.Name := DelSpaces(P^.Name);
           if P^.Name[Length(P^.Name)] = '.' then Dec(P^.Name[0]);
           P^.Cluster := Dir^[I].Clus; P^.Level := PD^.Level + 1;
+          {$IFNDEF OS2}
           P^.LFN := AddLFN(P^.Name);
+          {$ENDIF}
           PP := P; DC^.AtInsert(Idx, P); Inc(Idx);
          end else begin
                     PD^.Size:=PD^.Size+Dir^[I].Len;
@@ -306,29 +313,38 @@ var {$IFDEF DiskEdit}
   I := DC^.IndexOf(PD);
   Lv := PD^.Level;
   PD^.Size := 0; P := PD;
+{$IFNDEF OS2}
   if LFNPresent then S := MakeNormName(GetLFN(PD^.LFN),'')
-                else S := MakeNormName(PD^.Name,'');
+                else
+{$ENDIF}
+                     S := MakeNormName(PD^.Name,'');
   repeat
    while (I > 0) and (P^.Level <= PDirRec(DC^.At(I))^.Level) do Dec(I);
    if DC^.IndexOf(PD) <> I then
     begin
      P := DC^.At(I);
+{$IFNDEF OS2}
      If LFNPresent then S := MakeNormName(GetLFN(P^.LFN),S)
-                   else S := MakeNormName(P^.Name,S);
+                   else
+{$ENDIF}
+                        S := MakeNormName(P^.Name,S);
     end;
   until I = 0;
   ClrIO;
   if Abort then exit;
   I := DC^.IndexOf(PD);
-  lFindFirst(S+x_x, $3F xor VolumeID, SR);
+  lFindFirst(S+x_x, Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
   while (DOSError = 0) and not Abort do
    begin
-    if (SR.SR.Name[1] <> '.') and (SR.SR.Attr and VolumeID = 0) then
+    if {$IFNDEF OS2}(SR.SR.Name[1] <> '.')
+                 and (SR.SR.Attr and VolumeID = 0){$ELSE}(SR.SR.Name <> '..') and (SR.SR.Name <> '.'){$ENDIF}then
      begin
       if SR.SR.Attr and Directory <> 0 then
        begin
         New(P);
+        {$IFNDEF OS2}
         P^.LFN := AddLFN(SR.FullName);
+        {$ENDIF}
         P^.Name := SR.SR.Name; P^.Cluster := 0; P^.NumFiles := 0;
         P^.Size := -1; P^.Level := PD^.Level + 1;
         Inc(I);
@@ -356,7 +372,7 @@ begin
  C := UpCase(C); if not (C in ['A'..'Z']) then Exit;
  if DrvTrees[C].C<>nil then Dispose(DrvTrees[C].C,Done); DrvTrees[C].C:=nil;
  TreeError := On;
- if (not CountLen) and (SystemData.Drives[C] and ossTree <> 0) then
+ if (not CountLen) and ((SystemData.Drives[C]{$IFNDEF OS_DOS}shl 1{$ENDIF}) and ossTree <> 0) then
   begin
    St.Init(SourceDir+'Drive'+C+'.dir', stOpenRead, 1024);
    if St.Status = stOK then
@@ -379,7 +395,9 @@ begin
  New(P);
  FillChar(P^, SizeOf(P^), 0);
  P^.Name := C + ':\'; P^.Cluster := 0; P^.Level := 0; P^.Size := -1;
+ {$IFNDEF OS2}
  P^.LFN := AddLFN(P^.Name);
+ {$ENDIF}
  P^.Attr := 0;
  DC^.Insert(P);
  Abort := Off; RemoteDrive := Off;
@@ -474,7 +492,7 @@ begin
    if (I < DC^.Count) and (PDirRec(DC^.At(I))^.Level > P^.Level) then
       P^.Attr := P^.Attr or trHasBranch;
   end;
- if (SystemData.Drives[C] and ossTree <> 0) then
+ if ((SystemData.Drives[C]{$IFNDEF OS_DOS}shl 1{$ENDIF}) and ossTree <> 0) then
   begin
    St.Init(SourceDir+'Drive'+C+'.dir', stCreate, 1024);
    St.Put(DC);
@@ -514,9 +532,17 @@ begin
      if I < DC^.Count then P := DC^.At(I);
      while (I < DC^.Count) and (P^.Level > Lv) do
       begin Inc(I); if I < DC^.Count then P := DC^.At(I); end;
-      while (I < DC^.Count) and (P^.Level = Lv) and (UpStrg(GetLFN(P^.LFN)) <> S) do
+      while (I < DC^.Count) and (P^.Level = Lv)
+  {$IFNDEF OS2}
+                   and (UpStrg(GetLFN(P^.LFN)) <> S)
+  {$ELSE}
+                   and (UpStrg(P^.Name) <> S)
+  {$ENDIF}
+                                                        do
        begin Inc(I); if I < DC^.Count then P := DC^.At(I); end
-    until (I>=DC^.Count) or ((UpStrg(GetLFN(P^.LFN)) = S) and (P^.Level = Lv)) or (P^.Level < Lv)
+    until (I>=DC^.Count) or
+{$IFNDEF OS2}((UpStrg(GetLFN(P^.LFN)) = S){$ELSE}((UpStrg(P^.Name) = S){$ENDIF}
+                                     and (P^.Level = Lv)) or (P^.Level < Lv)
    else
     repeat
      if I < DC^.Count then P := DC^.At(I);
@@ -529,7 +555,9 @@ begin
   if D <> '' then Inc(I); Inc(Lv);
  until (D = '') or (I >= DC^.Count) or (Lv > 128) { :) };
  if LFNPresent then
-  if (I >= DC^.Count) or (UpStrg(GetLFN(P^.LFN)) <> S) then FindDir := -1 else FindDir := I
+  if (I >= DC^.Count) or
+{$IFNDEF OS2}(UpStrg(GetLFN(P^.LFN)) <> S){$ELSE}(UpStrg(P^.Name) <> S){$ENDIF}
+                                          then FindDir := -1 else FindDir := I
  else
   if (I >= DC^.Count) or (P^.Name <> S) then FindDir := -1 else FindDir := I;
 end;
@@ -559,7 +587,7 @@ begin
    DC := PDirCollection(ST^.Get);
    if DC <> nil then
     begin
-     if Dr[0] > #3 then Dec(Dr[0]);
+     if Length(Dr) > 3 then SetLength(Dr, Length(Dr)-1);
      I := FindDir(DC, S);
      if not Del and (I >= 0) then Goto 1;
      if not Del then I := FindDir(DC, Dr);
@@ -574,8 +602,12 @@ begin
         begin
          New(P);
          FillChar(P^, Sizeof(P^), 0);
+         {$IFNDEF OS2}
          P^.LFN := AddLFN(Nm+XT);
          P^.Name := GetName(lfGetShortFileName(lFExpand(Nm+XT)));
+         {$ELSE}
+         P^.Name := GetName(lFExpand(Nm+XT));
+         {$ENDIF}
          P^.NumFiles := 0;
          P^.Size := 0;
          P^.Level := PDirRec(DC^.At(I))^.Level+1;
@@ -665,6 +697,20 @@ begin
 
 end;
 
+procedure CheckMkDir(const Path: String);
+  var
+    rc: longint;
+  begin
+  lMkDir(Path);
+  rc := IOResult;
+  if (rc <> 0) and (rc <> 5 {каталог уже существует}) {$IFDEF Win32} and (rc <> 183) {$ENDIF} then
+   begin
+     SysErrorFunc(rc, byte(Path[1]) - byte('A'));
+     MessageBox(GetString(dlFCNoCreateDir) + Path, nil, mfError + mfOKButton);
+     Abort := true;
+   end;
+  end;
+
         {-DataCompBoy-}
 procedure MakeDirectory;
  var S,S1: String;
@@ -705,8 +751,8 @@ begin
     if Abort or (IOResult <> 0) then Exit;
     if CreatedDir = '' then CreatedDir := S1;
     lFSplit(S1, Dr, Nm, XT);
-    if B > 0 then Dr[0] := Char(B) else
-     if (Dr[0] > #3) and (Dr[Length(Dr)]='\') then Dec(Dr[0]);
+    if B > 0 then SetLength(Dr, B) else
+     if (Length(Dr) > 3) and (Dr[Length(Dr)]='\') then SetLength(Dr, Length(Dr)-1);
     RereadDirectory(Dr);
     GlobalMessage(evCommand, cmRereadTree, @Dr);
     GlobalMessage(evCommand, cmRereadInfo, nil);
@@ -991,15 +1037,17 @@ function TTreeView.GetDirName;
 begin
  I := N;
  P := DC^.At(I); if I = 0 then S := '' else
-                                        if LFNPresent then S := GetLFN(P^.LFN)
-                                                     else S := P^.Name;
+       {$IFNDEF OS2}if LFNPresent then S := GetLFN(P^.LFN) else {$ENDIF}
+                                                      S := P^.Name;
  repeat
   if I > 0 then
    repeat Dec(I) until (I < 0) or (PDirRec(DC^.At(I))^.Level < P^.Level);
    if I >= 0 then P := DC^.At(I);
+{$IFNDEF OS2}
   if LFNPresent then
    S := MakeNormName(GetLFN(P^.LFN), S) {DataCompBoy}
   else
+{$ENDIF}
    S := MakeNormName(P^.Name, S); {DataCompBoy}
  until I <= 0;
  GetDirName := S;
@@ -1073,19 +1121,23 @@ procedure TTreeView.HandleCommand;
     Exit;
    end;
   I := ScrollBar^.Value + Delta; if I = 0 then Inc(I);
+{$IFNDEF OS2}
   if LFNPresent then
    While (I < DC^.Count) and
         not InFilter(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
   else
+{$ENDIF}
    While (I < DC^.Count) and
         not InFilter(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
   if I >= DC^.Count then
    begin
     I := 0;
+{$IFNDEF OS2}
     if LFNPresent then
      While (I < ScrollBar^.Value) and
           not InFilter(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
     else
+{$ENDIF}
      While (I < ScrollBar^.Value) and
           not InFilter(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
     if I >= ScrollBar^.Value then I := 0;
@@ -1174,11 +1226,13 @@ procedure TTreeView.HandleCommand;
   CE; if ScrollBar^.Value < 1 then Exit; GetData(S);
   ClrIO; lGetDir(0, OldDir); if Abort then Exit;
   lChDir(GetPath(S));
-  While S[Length(S)] <> '\' do Dec(S[0]);
+  While S[Length(S)] <> '\' do SetLength(S, Length(S)-1);
   New(FC, Init(1,1));
   New(lP); D := DC^.At(ScrollBar^.Value);
   lP^.Name := D^.Name;
+{$IFNDEF OS2}
   lP^.LFN := UseLFN(D^.LFN);
+{$ENDIF}
   lP^.Attr := Directory;
   lP^.Owner := @S;
   lP^.Diz := nil;
@@ -1259,6 +1313,7 @@ begin
                                 LocateEnabled := Off;
                                 WasChanged := Off;
                                 CurPath := LastPath; Reread(Off);
+                                if DC = nil then begin CE; Exit; end; {JO}
                                 if Valid(0) then
                                 begin
                                   if Dirs = nil then Exit;
@@ -1470,7 +1525,7 @@ begin
     if P^.Attr and 1 = 1 then C := #195 else C := #192;
     if P^.Level = 0 then S := '' else
      begin
-      {if Parital then S := C + #196'[ ] ' else} S := C + #196#196#196;
+      {if Parital then S := C + #196'[ ] ' else} S := C + #196#196#196#196' ';
       if (P^.Attr and trHasBranch <> 0) and
        (PDirRec(Dirs^.At(P^.Number+1))^.Level > P^.Level) then
         if Parital then if Expanded(P, Idx+1) then S := C + #196'[-] '
@@ -1488,17 +1543,20 @@ begin
     if Idx = CurPos then CC := C3 else
      if (P^.Number = CurNum) and not Parital then CC := C4 else CC := C2;
         {-DataCompBoy-}
-    if LFNPresent then q:=GetLFN(P^.LFN) else q:=P^.Name;
+{$IFNDEF OS2}
+    if LFNPresent then q:=GetLFN(P^.LFN) else
+{$ENDIF}
+       q:=P^.Name;
     if CurPos = Idx then
      begin
-      MoveStr(B[K+Length(S)-1],' '#0+q+#0' ', CC);
-      if QuickSearch then
-       begin
+      MoveStr(B[K+Length(S)],{' '#0+}q{+#0' '}, CC); {JO: зачем нужна была эта оторочка имён нулями - тайна,}
+      if QuickSearch then                            {    покрытая мраком, но из-за неё каталоги в панели}
+       begin                                         {    оторочены мерзкими точечками или чем ещё похуже}
         ShowCursor;
         NormalCursor;
         SetCursor(K + Length(S) + GetCursorPos(SearchParam, q, Size.X, 0, 0), I-1)
        end else HideCursor;
-     end else begin q:=#0+q+#0; MoveStr(B[K+Length(S)], q, CC) end;
+     end else begin {q:=#0+q+#0;} MoveStr(B[K+Length(S)], q, CC) end;
         {-DataCompBoy-}
    end;
    WriteLine(0, I-1, Size.X, 1, B[Delta.X]);
@@ -1508,7 +1566,9 @@ end;
         {-DataCompBoy-}
 procedure TDirCollection.FreeItem;
 begin
+ {$IFNDEF OS2}
  DelLFN(PDirRec(P)^.LFN);
+ {$ENDIF}
  Dispose(PDirRec(P));
 end;
         {-DataCompBoy-}
@@ -1517,7 +1577,9 @@ end;
 procedure TDirCollection.PutItem;
 begin
  S.Write(Item^, SizeOf(TDirRec));
+ {$IFNDEF OS2}
  StoreLFN(S, PDirRec(Item)^.LFN);
+ {$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -1527,7 +1589,9 @@ function TDirCollection.GetItem;
 begin
  New(Item);
  S.Read(Item^, SizeOf(TDirRec));
+ {$IFNDEF OS2}
  Item^.LFN:=LoadLFN(S);
+ {$ENDIF}
  if (Item^.NumFiles < 0) or (Item^.Size < 0) then
   begin Item^.NumFiles := 0; Item^.NumFiles := 0; end;
  GetItem := Item;
@@ -1556,7 +1620,10 @@ begin
  if (DC = nil) then begin Abort := On; IsValid := False; Exit end;
  if DC^.Count = 0 then begin
   New(PD); PD^.Cluster := 0; PD^.Level := 0; PD^.Size := -1;
-  PD^.Attr := 0; PD^.Name := Copy(CurPath, 1, 3); PD^.LFN:= AddLFN(PD^.Name); {DataCompBoy}
+  PD^.Attr := 0; PD^.Name := Copy(CurPath, 1, 3);
+  {$IFNDEF OS2}
+  PD^.LFN:= AddLFN(PD^.Name); {DataCompBoy}
+  {$ENDIF}
   DC^.Insert(PD);
  end;
  if LowMemory then begin Abort := On; Exit end;
@@ -1678,10 +1745,14 @@ procedure TTreePanel.HandleEvent;
    GetData(NewDir);
    lChDir(MakeNormName(NewDir,'..'));
    CE; if ScrollBar^.Value < 1 then Exit; GetData(S);
-   While S[Length(S)] <> '\' do Dec(S[0]);
+   While S[Length(S)] <> '\' do SetLength(S, Length(S)-1);
    New(FC, Init(1,1));
    New(P); D := DC^.At(ScrollBar^.Value);
-   P^.Name := D^.Name; P^.LFN:=UseLFN(D^.LFN); P^.Attr := Directory;
+   P^.Name := D^.Name;
+{$IFNDEF OS2}
+   P^.LFN:=UseLFN(D^.LFN);
+{$ENDIF}
+   P^.Attr := Directory;
    P^.Owner := @S; FC^.Insert(P); P^.Diz := nil;
    if ReflectCopyDirection
     then RevertBar:=(Message(DeskTop, evBroadCast, cmIsRightPanel, @Self) <> Nil)
@@ -1750,44 +1821,41 @@ end;
 function CreateDirInheritance;
  var I, J: Integer;
      SR: lSearchRec;
-     LS: Byte absolute S;
      M: String;
-     BB: Boolean;
+     BB {, DEr}: Boolean;
 begin
-  CreateDirInheritance := 0; BB := On;
+  CreateDirInheritance := 0; BB := On; {DEr := Off;}
   ClrIO;
   S := lFExpand(S);
   if Abort then Exit;
   I := PosChar(':',S);
   if I = 0 then Exit;
   Inc(I);
-  while I < LS do
+  while I < Length(S) do
    begin
      J := I;
-     repeat Inc(I); if I > LS then Exit until (S[I] = '\') or (I = LS);
+     repeat Inc(I); if I > Length(S) then Exit until (S[I] = '\') or (I = Length(S));
      M := Copy(S, 1, I-Byte(S[I] = '\'));
-     if M[length(M)]='.' then Dec(M[0]);
-     ClrIO; lFindFirst(M, $3F xor VolumeID, SR);
+     if M[length(M)]='.' then SetLength(M, Length(M)-1);
+     ClrIO; lFindFirst(M, Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
+     {if DOSError <> 0 then DEr := On;}
      lFindClose(SR);
      if Abort then Exit;
-     if DOSError <> 0 then
+     if {DEr} DOSError <> 0 then
       begin
         if BB and (S[I] = '\') then
           begin CreateDirInheritance := J-1; BB := Off end;
         if Confirm and ( Confirms and cfCreateSubDir <> 0) then
            begin
-             if (S[0] > #3) and (S[Length(S)] = '\') then Dec(S[0]);
-             if S[length(S)]='.' then Dec(S[0]);
+             if (Length(S) > 3) and (S[Length(S)] = '\') then SetLength(S, Length(S)-1);
+             if S[Length(S)]='.' then SetLength(S, Length(S)-1);
              if (MessageBox(GetString(dlQueryCreateDir)+Cut(S, 40)+' ?', nil, mfYesNoConfirm) <> cmYes)
                  then Exit;
             end;
         ClrIO;
-        lMkDir(M);
-        if Abort or (IOResult <> 0) then
-         begin
-           MessageBox(GetString(dlFCNoCreateDir) + S, nil, mfError + mfOKButton);
+        CheckMkDir(M);
+        if Abort then
            Exit;
-         end;
         CreateDirectory(M, Off);
       end;
    end;

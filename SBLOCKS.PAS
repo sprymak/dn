@@ -71,13 +71,13 @@ type
       procedure AtDelete(N: LongInt); virtual;
       procedure AtFree(N: LongInt); virtual;
       procedure AddStr(S: String); virtual;
-      procedure SwapItems(Idx1, Idx2: LongInt); virtual;
+      procedure SwapItems(Idx1, Idx2: CondInt); virtual;
     end;
 
     PStdCollector = ^TStdCollector;
     TStdCollector = object(TCollector)
       Collection: PCollection;
-      constructor Init(MaxLines: LongInt);
+      constructor Init(MaxLines: CondInt);
       destructor Done; virtual;
       procedure Insert(P: PString); virtual;
       function  At(N: LongInt): PString; virtual;
@@ -87,10 +87,10 @@ type
       procedure AtDelete(N: LongInt); virtual;
       procedure AtFree(N: LongInt); virtual;
       procedure AddStr(S: String); virtual;
-      procedure SwapItems(Idx1, Idx2: LongInt); virtual;
+      procedure SwapItems(Idx1, Idx2: CondInt); virtual;
     end;
 
-    PMemBlock = ^TMemBlock;
+(*  PMemBlock = ^TMemBlock;
     TMemBlock = record
       Pos: LongInt;
       Len: Byte;
@@ -116,14 +116,18 @@ type
 
        UseCache: Boolean;
        CachePos: LongInt;
+{$IFDEF OldCollection}
+       CacheSize: Word;
+{$ELSE}
        CacheSize: LongInt;
+{$ENDIF}
        CacheModified: Boolean;
        Cache: Array [0..MaxCacheSize] of
                record S: PString; Modified: Boolean; end;
 
-       constructor Init(Index: LongInt);
-       procedure InsertIndex(N: LongInt; L: LongInt; Len: Byte);
-       procedure DeleteIndex(N: LongInt);
+       constructor Init(Index: CondInt);
+       procedure InsertIndex(N: CondInt; L: LongInt; Len: Byte);
+       procedure DeleteIndex(N: CondInt);
 
        procedure Insert(P: PString); virtual;
        function  At(N: LongInt): PString; virtual;
@@ -133,7 +137,7 @@ type
        procedure AtDelete(N: LongInt); virtual;
        procedure AtFree(N: LongInt); virtual;
        procedure AddStr(S: String); virtual;
-       procedure SwapItems(Idx1, Idx2: LongInt); virtual;
+       procedure SwapItems(Idx1, Idx2: CondInt); virtual;
 
        procedure ReadBlock(var B: TMemBlock; var S: String);
        procedure WriteBlock(var B: TMemBlock; var S: String);
@@ -143,7 +147,7 @@ type
        procedure SeekCache(N: LongInt);
        procedure FlushCache(Release: Boolean);
     end;
-
+*)
 
 function GetCollector(MaxSize, MaxLines: LongInt): PCollector;
 
@@ -259,7 +263,7 @@ begin
   Collection^.AtPut(Idx2, P1);
 end;
 
-
+(*
 { TDeletedCollection }
 
 type
@@ -283,7 +287,7 @@ end;
 
 { TBlocker }
 
-constructor TBlocker.Init(Index: LongInt);
+constructor TBlocker.Init(Index: CondInt);
 begin
   TObject.Init;
   UseCache := True;
@@ -298,7 +302,7 @@ begin
 end;
 
 procedure TBlocker.InsertIndex;
-  var K, I, K1, K2, KK: LongInt;
+  var K, I, K1, K2, KK: CondInt;
 begin
   K := N div MaxBlockSize;
   KK := N mod MaxBlockSize;
@@ -325,7 +329,7 @@ begin
 end;
 
 procedure TBlocker.DeleteIndex;
-  var K, I, K1, K2, KK: LongInt;
+  var K, I, K1, K2, KK: CondInt;
 begin
   if Count = 0 then Exit;
   K := N div MaxBlockSize;
@@ -369,7 +373,7 @@ end;
 
 procedure TBlocker.PlaceDeleted;
   var P: PMemBlock;
-      I: LongInt;
+      I: CondInt;
 begin
   if B.Pos < 0 then Exit;
   if Deleted = nil then
@@ -390,7 +394,7 @@ begin
 end;
 
 procedure TBlocker.SeekCache;
-  var K, I, KK: LongInt;
+  var K, I, KK: CondInt;
       S: String;
 begin
   for I := 0 to CacheSize-1 do
@@ -443,7 +447,7 @@ end;
 
 procedure TBlocker.WriteBlock;
   label {$IFNDEF NOEXTRA}0, 1, 2, {$ENDIF}3, 4;
-  var I: LongInt;
+  var I: CondInt;
       BB: Boolean;
       L: LongInt;
 begin
@@ -572,7 +576,7 @@ begin
 end;
 
 procedure TBlocker.AtPut(N: LongInt; P: PString);
-  var K, I, K1, K2, KK: LongInt;
+  var K, I, K1, K2, KK: CondInt;
 begin
   if CacheSize > 0 then FlushCache(On);
   K := N div MaxBlockSize;
@@ -625,7 +629,7 @@ begin
 end;
 
 procedure TBlocker.FlushCache;
-  var K, I, K1, K2, KK: LongInt;
+  var K, I, K1, K2, KK: CondInt;
 begin
   K := CachePos div MaxBlockSize;
   KK := CachePos mod MaxBlockSize;
@@ -641,7 +645,7 @@ end;
 
 procedure TBlocker.SwapItems;
   var B1, B2: TMemBlock;
-      K,KK,A,AA: LongInt;
+      K,KK,A,AA: CondInt;
 begin
   if CacheSize > 0 then FlushCache(On);
   K := Idx1 div MaxBlockSize;
@@ -654,7 +658,7 @@ begin
 end;
 
 destructor TBlocker.Done;
-  var I: LongInt;
+  var I: CondInt;
 begin
   FlushCache(On);
   for I := 0 to 29 do
@@ -667,7 +671,7 @@ begin
 {$ENDIF}
   if MemStream <> nil then Dispose(MemStream,Done); MemStream := nil;
 end;
-
+*)
 
 function GetCollector(MaxSize, MaxLines: LongInt): PCollector;
 begin

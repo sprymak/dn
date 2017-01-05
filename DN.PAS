@@ -45,7 +45,7 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-{$I ZCONF.INC}
+{.$I ZCONF.INC}
 
 program DN;
 
@@ -53,8 +53,9 @@ program DN;
 {$M 40000,0,655350}
 {$ENDIF}
 
-{.$DEFINE GRABPalette}
-uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
+uses {$IFNDEF VIRTUALPASCAL}ExtKBD, {$ENDIF}
+     Drivers,  LFN,      {$IFNDEF OS2}LFNCol,{$ENDIF}   DN1,
+     Dos,      DnApp,
 {$IFNDEF NO_OVERLAY}
      Overlay1, Overlays,
 {$ENDIF NO_OVERLAY}
@@ -76,7 +77,7 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
                    {$IFDEF LINK}  ,NavyLink  {$ENDIF}
                    {$IFDEF PHONES},uDialer {$ENDIF}    {$ENDIF}
 {$IFDEF Game}           ,Tetris                        {$ENDIF}
-{$IFDEF PrintManager}   ,PrintManager                  {$ENDIF}
+{$IFDEF Printer}        ,PrintMan                      {$ENDIF}
 {$IFDEF Calendar}      ,Calendar                       {$ENDIF}{JO}
 {$IFDEF PHONES}        ,Phones                         {$ENDIF}
 {$IFDEF SS}            ,Idlers                         {$ENDIF}
@@ -84,6 +85,9 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
 {$IFDEF NETINFO}       ,Novell                         {$ENDIF}
 {$IFDEF DiskEdit}      ,Fixer                          {$ENDIF}
 {$IFDEF REANIMATOR}    ,Reanimat                       {$ENDIF}
+{$IFDEF LINEPOSIT} , SysUtils, VPUtils, CRT            {$ENDIF}
+{$IFDEF EAOP} , EAOper                                 {$ENDIF}
+{$IFDEF VIRTUALPASCAL}, VPSysLow                       {$ENDIF}
       ;
 
 {$IFNDEF NO_OVERLAY}
@@ -111,27 +115,27 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
   {$O Arc_arc}  {$O Arc_bsa}  {$O Arc_bs2}  {$O Arc_hyp}  {$O Arc_lim}
   {$O Arc_hpk}  {$O Arc_TAR}  {$O Arc_ZXZ}  {$O Arc_QRK}  {$O Arc_UFA}
   {$O Arc_IS3}  {$O Arc_SQZ}  {$O Arc_HAP}  {$O Arc_ZOO}  {$O Arc_CHZ}
-  {$O Arc_UC2}  {$O Arc_AIN}  {$O Arc_TGZ}  {$O Archread}
+  {$O Arc_UC2}  {$O Arc_AIN}  {$O Archread} {$IFDEF TGZ} {$O Arc_TGZ}
   {$O GZIO}     {$O ZUtil}    {$O ZInflate} {$O ZLib}
-  {$O ADler}    {$O InfBlock} {$O InfCodes} {$O InfFast}
-  {$O InfTrees} {$O InfUtil}  {$IFNDEF NO_DEFLATE}{$O Trees}{$ENDIF}
+   {$O ADler}    {$O InfBlock} {$O InfCodes} {$O InfFast}
+  {$O InfTrees} {$O InfUtil}  {$IFNDEF NO_DEFLATE}{$O Trees}{$ENDIF} {$ENDIF}
 {$ENDIF !MINARCH}
   {$O ASCIITab} {$O DNStdDlg} {$O SBlocks}  {$O FBB}      {$O Tree}
   {$O Messages} {$O Colors}   {$O UserMenu} {$O HelpFile} {$O Validate}
   {$O Arvid}    {$O ArvidAvt} {$O ArvidTdr} {$O Advance6} {$O WinClp}
   {$O DiskImg}  {$O DRVTYPES} {$O DNIni}    {$O FindObj}  {$O DNEXEC}
   {$O advance4} {$O RegAll}   {$O advance7}
-  {$O calculat} {$O HelpKern}
+  {$O calculat} {$O HelpKern} {$O UserSavr}
 
 {$IFDEF DiskFormat}           {$O DNFormat} {$O Format}   {$ENDIF}
 {$IFDEF MicroedOvr}{$O Editor}   {$O MicroEd}  {!$O U_KeyMap}
                    {$O Ed2}      {$O EdWin}    {$O MicroEd2}  {$ENDIF}
-{$IFDEF ADVANCEOVR}{$O advance1} {$O advance2} {$O advance3}
-                   {$O highlite}                              {$ENDIF}
+{$IFDEF ADVANCEOVR}{.$O advance1} {.$O advance2} {.$O advance3}
+                   {$O highlite} {$O FilesCol} {$O LFNCol}    {$ENDIF}
 {$IFDEF SYSINFO}   {$O SysInfo}  {$O CpuType}                 {$ENDIF}
 {$IFDEF MEMINFO}   {$O MemInfo}                               {$ENDIF}
 {$IFDEF Game}      {$O Tetris}                                {$ENDIF}
-{$IFDEF PrintManager}            {$O PrintManager}            {$ENDIF}
+{$IFDEF Printer}                 {$O PrintMan}                {$ENDIF}
 {$IFDEF DiskEdit}  {$O Fixer}    {$O SWE}                     {$ENDIF}
 {$IFDEF CDPLAYER}  {$O CdPlayer} {$O CdUtil}                  {$ENDIF}
 {$IFDEF DBView}    {$O DBView}   {$O DBWatch}                 {$ENDIF}
@@ -163,7 +167,103 @@ uses ExtKBD,   Drivers,  LFN,      LFNCol,   DN1,      Dos,      DnApp,
 
 {$ENDIF NO_OVERLAY}
 
+{$IFDEF LINEPOSIT}
+
+{&Delphi+}
+var
+  SaveExitProc: pointer;
+  FileName: String;
+  LineNo: Longint;
+  E: exception;
+{$IFDEF VPBETA}
+  DNErrFile: Text;
+{$ENDIF}
+(*
+procedure DebugInfoExitProc;
+  begin
+  ExitProc := SaveExitProc;
+  Writeln;
+  ClrEol;
+  if exitCode <> 0 then
+    begin
+    if GetLocationInfo(ErrorAddr, FileName, LineNo ) <> nil then
+      begin
+     {SysTVClrScr;}
+      ClrEol;
+      Writeln( 'Error in ', FileName,' line ', LineNo );
+      end;
+    end;
+  end;
+*)
+
+(*
+{$IFDEF EAOP}
+function malloc(cb: Integer): Pointer; cdecl;
+begin
+  GetMem(Result, cb);
+end;
+{$ENDIF}
+*)
+
+{$ENDIF}
+
 BEGIN
+{$IFDEF VIRTUALPASCAL}
+SysDisableHardErrors;
+
+{CtrlBreakHandler := TVCtrlBreak;
+SysCtrlSetCBreakHandler;}
+{$ENDIF}
+{$IFDEF LINEPOSIT}
+{SaveExitProc := ExitProc;
+ ExitProc := @DebugInfoExitProc;}
+ try
+  {Init09Handler;}
+   RUN_IT;
+ except
+   on E: EControlC do
+     begin
+     SysTvClrScr;
+     end;
+   on E: exception do
+     begin
+ {$IFDEF VPBETA}
+       ErrAdd := Longint(ExceptAddr);
+       EndFatalError;
+       SourceDir := SourceDir + 'DN.ERR';
+       Assign(DNErrFile, SourceDir);
+       Append(DNErrFile);
+       Writeln(DNErrFile,'');
+      {ClrEol;}
+       Writeln(DNErrFile, 'Exception at addr ' + Ptr2Hex(ExceptAddr));
+      {ClrEol;}
+       Writeln(DNErrFile, E.Message);
+       if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
+         begin
+          {ClrEol;}
+           Writeln(DNErrFile, 'Source location: ' + FileName + ' line ', LineNo );
+         end;
+       Close(DNErrFile);
+ {$ELSE}
+       SysTVClrScr;
+       ClrEol;
+       Writeln('Exception at addr ' + Ptr2Hex(ExceptAddr));
+       ClrEol;
+       Writeln(E.Message);
+       if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
+         begin
+           ClrEol;
+           Writeln('Source location: ' + FileName + ' line ', LineNo );
+         end;
+       repeat
+       until keypressed;
+ {$ENDIF}
+     end;
+ end;
+{$ELSE}
+{$IFNDEF VIRTUALPASCAL}
  Init09Handler;
+{$ENDIF}
  RUN_IT;
+{$ENDIF}
 END.

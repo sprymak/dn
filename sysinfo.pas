@@ -383,7 +383,10 @@ var
 begin
  Reg.AX := $3306;
  Intr ($21, Reg);
- str(Reg.DL, Build);
+{str(Reg.DL, Build);}
+ if (Reg.BX = $1e14{Warp 3.0}) and (Reg.DL < $c0)
+    then Reg.DH := 1 else Reg.DH := 0;
+ str(Reg.DX, Build);
  while length(Build) < 3 do Build := '0' + Build;
  OS2Build := Build;
 end; {OS2Build}

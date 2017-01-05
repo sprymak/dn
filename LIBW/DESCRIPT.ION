@@ -1,0 +1,3 @@
+vpsysw32.pas исправленная Win32 часть VPSysLow 
+vpkbdw32.pas исправленный VpKbdW32 для Win32 - решает проблему русских букв под w9x, проблему "р" и проблему с правым Alt (любезно предоставленный Peter S. Voronov)
+vpsyslow.pas основная часть VPSysLow

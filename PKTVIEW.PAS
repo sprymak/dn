@@ -1,6 +1,6 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
+//  Dos Navigator Open Source 1.6.RC1
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
 //
 //  This programs is free for commercial and non-commercial use as long as
@@ -51,9 +51,13 @@ Unit PktView;
 {$F+,O+,V-}
 Interface
 
-Uses Objects, Strings, FViewer, Dialogs, Views, Drivers, dnApp,
-     Messages, Dos, collect, Commands, Advance1, Advance, Lfn,
-     HideView, Scroller;
+Uses Objects, Strings, FViewer, Dialogs, Views, Drivers,
+     Messages, Dos, collect, Advance1, Advance, Lfn,
+     HideView, Scroller
+{$IFDEF VirtualPAscal}
+     , Use16
+{$ENDIF}
+;
 
 type
     TNetAddr=record
@@ -71,7 +75,7 @@ type
               Constructor Init(O:Longint; Afu,Atu,Asu,Adt:String;
                                FAddr,TAddr:TNetAddr);
               Procedure GetMsgInfo(var FromUser,ToUser,Subj,Date:string);
-              Procedure GetMsgTxt(var Buffer:PCharArray; var MsgLen:word);
+{!}              Procedure GetMsgTxt(var Buffer:PCharArray; var MsgLen:smallword);
               Destructor Done; virtual;
             end;
 
@@ -85,7 +89,7 @@ type
 
      PPktList=^TPktList;
      TPktList=object(TListBox)
-                function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
+                function GetText(Item: LongInt; MaxLen: LongInt): String; virtual;
               end;
 
     PPktListDialog=^TPktListDialog;
@@ -105,8 +109,8 @@ type
     destructor Done; virtual;
     procedure Draw; virtual;
     Procedure InitCol(Buffer:PCharArray);
-    procedure SetState(AState: Word; Enable: Boolean); virtual;
-    function Valid(Command: Word): Boolean; virtual;
+    procedure SetState(AState: LongInt; Enable: Boolean); virtual;
+    function Valid(Command: LongInt): Boolean; virtual;
   end;
 
   PMsgViewer=^TMsgViewer;
@@ -158,7 +162,9 @@ const COrigin: word=11;
 
 Implementation
 
-Uses DnHelp, Advance2, U_KeyMap;
+Uses DnHelp, Advance2, U_KeyMap, XTime, Commands, DnApp
+
+;
 
 var PktFileName:String;
     PktFromAddr:String;
@@ -174,7 +180,7 @@ Type
           minute       : word;
           second       : word;
           baud         : word;
-          PacketType   : word;  {В основном 0200H}
+          PacketType   : word;  {generally 0200H}
           origNet      : word;
           destNet      : word;
           ProductCode  : char;
@@ -236,7 +242,7 @@ end;
 
 Function DLS(S:string):string;
 begin
- if (s[length(s)]='\') then system.dec(byte(s[0]));
+ if (s[length(s)]='\') then SetLength(s, Length(s)-1);
  DLS:=S;
 end;
 
@@ -253,13 +259,13 @@ function lpad(ch : string; num : integer) : string;
 Function just(S:String;Len,LRC:longint):string;
 begin
  if Len>255 then Len:=255;
- if length(s)>Len then s[0]:=Char(Lo(Len));
+ if length(s)>Len then SetLength(s, Lo(Len));
  case LRC of
   1: just:=lpad(s,Len);         {'       '+s}
   2: just:=rpad(s,Len);         {s+'       '}
   3: begin                      {'  '+s+'  '}
       while length(s)<Len do s:=' '+s+' ';
-      if length(s)>Len then dec(byte(s[0]));
+      if length(s)>Len then SetLength(s, Length(s)-1);
       just:=s;
      end
   else just:=s; {11-01-99,BDS}
@@ -448,13 +454,15 @@ begin
 end;
 
 Destructor TPktObj.Done;
+ var Dir, Name, Ext: String; {JO}
 begin
  DisposeStr(tu);
  DisposeStr(fu);
  DisposeStr(su);
  DisposeStr(dt);
  if KillAfterUse then begin
-   EraseFile(FileName);
+   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
    KillAfterUse:=False;
    TempFile:='';
  end;
@@ -572,7 +580,7 @@ begin
  until ch=#0;
 end;
 
-Function TPktList.GetText(Item: LongInt; MaxLen: Integer): String;
+Function TPktList.GetText(Item: LongInt; MaxLen: LongInt): String;
 var FromUser,ToUser,Subj,Date:String;
     Pc:PPktObj;
     s1,s2,s3:string;
@@ -764,14 +772,14 @@ begin
   Limit.Y := FileLines^.Count;
 end;
 
-procedure TLineViewer.SetState(AState: Word; Enable: Boolean);
+procedure TLineViewer.SetState(AState: LongInt; Enable: Boolean);
 begin
   TScroller.SetState(AState, Enable);
   if Enable and (AState and sfExposed <> 0) then
      SetLimit(Limit.X, Limit.Y);
 end;
 
-function TLineViewer.Valid(Command: Word): Boolean;
+function TLineViewer.Valid(Command: LongInt): Boolean;
 begin
   Valid := IsValid;
 end;
@@ -802,7 +810,8 @@ begin
  DisposeStr(Date);
  DisposeStr(Subj);
  if KillAfterUse then begin
-   EraseFile(FileName);
+   lFSplit(FileName, Dir, Name, Ext);         {JO: проверочка файла на нахождение}
+   if Dir = Tempdir then EraseFile(FileName); {во временном каталоге не помешает}
    KillAfterUse:=False;
    TempFile:='';
  end;
@@ -971,57 +980,70 @@ end;
 
 Function GetPrevMsg(FName:String):String;
 var D,N,E:String;
-    Er:integer;
-    Num:Word;
-    Sr:SearchRec;
+    Er:LongInt;
+    Num:Word; Tm: TEventTimer;
+    Sr:lSearchRec;
+    VM: PView;
 begin
  lFSplit(FName,D,N,E);
  while (N[1]='0') and (N<>'') do system.delete(N,1,1);
  if N='' then N:='0';
- Val(N,Num,Er);
+ Val(N,Num,Er); NewTimer(Tm, 4); VM:=nil;
  if (Er<>0) or (Num=0) then GetPrevMsg:=''
  else begin
        while Num>0 do
         begin
+         If (VM=nil) and TimerExpired(Tm) then
+          vm:=WriteMsg(GetString(dlPleaseStandBy));
          dec(Num);
-         FindFirst(ItoS(Num)+'.msg',AnyFile-VolumeID-Directory,Sr);
+         lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'),AnyFile-Directory,Sr);
          if DosError=0 then
           begin
-           GetPrevMsg:=Sr.Name;
+           GetPrevMsg:=MakeNormName(D, Sr.FullName);
+           If vm<>nil then Dispose(vm, Done);
+           lFindClose(Sr);
            exit;
           end;
+         lFindClose(Sr);
         end;
        if (Num=0) then GetPrevMsg:='';
+       If vm<>nil then Dispose(vm, Done);
       end;
 end;
 
 Function GetNextMsg(FName:String):String;
 var D,N,E:String;
-    Er:integer;
-    Num:Word;
-    Sr:SearchRec;
+    Er:LongInt;
+    Num, St:Word; Tm: TEventTimer;
+    Sr:lSearchRec;
+    VM: PView;
 begin
  lFSplit(FName,D,N,E);
  while (N[1]='0') and (N<>'') do system.delete(N,1,1);
  if N='' then N:='0';
- Val(N,Num,Er);
+ Val(N,Num,Er); St:=Num; NewTimer(Tm, 4); VM:=nil;
  if (Er<>0) then GetNextMsg:=''
  else begin
-       while Num<1000 do
+       while Num<St+1000 do
         begin
+         If (VM=nil) and TimerExpired(Tm) then
+          vm:=WriteMsg(GetString(dlPleaseStandBy));
          Inc(Num);
-         FindFirst(ItoS(Num)+'.msg',AnyFile-VolumeID-Directory,Sr);
+         lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'),AnyFile-Directory,Sr);
          if DosError=0 then
           begin
-           GetNextMsg:=Sr.Name;
+           GetNextMsg:=MakeNormName(D, Sr.FullName);
+           If vm<>nil then Dispose(vm, Done);
+           lFindClose(Sr);
            exit;
           end else
            begin
             GetNextMsg:='';
-            exit;
+            lFindClose(Sr);
+            continue;
            end;
         end;
-       if (Num>=1000) then GetNextMsg:='';
+       If vm<>nil then Dispose(vm, Done);
      end;
 end;
 
@@ -1083,8 +1105,10 @@ begin
                       exit;
                      end;
  InitSysError;
- writeln(f,'─────────['+CenterStr(GetName(CurMsg^),17)
-           +']───────────────────────────────────────────────');
+ writeln(f,#196#196#196#196#196#196#196#196#196'['+CenterStr(GetName(CurMsg^),17)
+           +']'#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196
+           +#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196
+           +#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196);
  writeln(f,'Msg  : Private '+spaces(30)+'Date : '+fv^.date^);
  writeln(f,'From : '+fv^.fromuser^);
  writeln(f,'To   : '+fv^.touser^);
@@ -1185,8 +1209,9 @@ begin
  if S.Status<>stOk then goto l_e;
  with Head do
   begin
-   flag:=TestDiap(Month,0,12);
-   flag:=Flag and TestDiap(day,0,31);
+   flag:=TestDiap(Month,1,12);
+   flag:=Flag and TestDiap(day,1,31);
+   flag:=flag and (OrigNet > 0);
    flag:=Flag and TestDiap(Minute,0,60);
    flag:=Flag and TestDiap(Second,0,60);
    flag:=Flag and TestDiap(Hour,0,60);
@@ -1219,15 +1244,27 @@ begin
  if Assigned(C) then Dispose(C,Done);
 end;
 
+type PLimitStream = ^TLimitStream;
+     TLimitStream = object(TDosStream)
+                     constructor Init(FileName: FNameStr; Mode: Word; Limit: Longint);
+                    end;
+
+constructor TLimitStream.Init(FileName: FNameStr; Mode: Word; Limit: Longint);
+begin
+ inherited Init(FileName, Mode);
+ if Status=stOk then
+  if Limit<StreamSize then StreamSize:=Limit
+end;
+
 Function IsMsgFile(FName:String):boolean;
 label l_e;
-var F:PDosStream;
+var F:PLimitStream;
     L:array[1..5] of Longint;
     i,N:shortint;
     XL: TXlat;
 begin
  NullXLAT(XL);
- F:=New(PDosStream,Init(FName,stOpenRead));
+ New(F,Init(FName,stOpenRead,16384));
  L[1]:=-1;
  L[1]:=SearchFileStr(F,XL,#1'MSGID: ',0,false,false,false,false,True);
  L[2]:=-1;

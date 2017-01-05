@@ -56,6 +56,8 @@ Procedure UpdateARH(Arch: PARJArchive);
 
 implementation
 
+uses dnini;
+
 procedure UpdateARH(Arch: PARJArchive);
 var J: word;
     A: PARJArchive;
@@ -106,9 +108,18 @@ procedure SetupArchive;
           NormC    : String[20]; {Inputline}
           GoodC    : String[20]; {Inputline}
           MaxC     : String[20]; {Inputline}
-          List     : String[1];  {Inputline}
-          Swap     : WordBool;   {Checkbox}
-          UseLFN   : WordBool;   {Checkbox}
+          CList    : String[6];  {Inputline}
+          EList    : String[6];  {Inputline}
+          AllVersion: Word;  {Checkbox}{AK155}
+          PutDirs: Word;     {Checkbox}{JO}
+{$IFDEF OS_DOS}
+          Swap     : Word;   {Checkbox}
+{$ELSE}
+          ShortCmdLine   : Word;   {Checkbox}{JO}
+{$ENDIF}
+{$IFNDEF OS2}
+          UseLFN   : Word;   {Checkbox} {нужен в DOS и W32-версиях}
+{$ENDIF}
         end;
 
   function ArcName(ArcT: Word): string;
@@ -156,9 +167,18 @@ begin
     DT.NormC    := CnvString(NormalCompression);
     DT.GoodC    := CnvString(GoodCompression);
     DT.MaxC     := CnvString(UltraCompression);
-    DT.List     := ListChar;
-    DT.Swap     := Swap;
-    DT.UseLFN   := UseLFN;
+    DT.CList    := CnvString(ComprListChar);
+    DT.EList    := CnvString(ExtrListChar);
+    DT.AllVersion  := Word(AllVersion);
+    DT.PutDirs  := Word(PutDirs);
+{$IFDEF OS_DOS}
+    DT.Swap     := Word(Swap);
+{$ELSE}
+    DT.ShortCmdLine   := Word(ShortCmdLine);
+{$ENDIF}
+{$IFNDEF OS2}
+    DT.UseLFN   := Word(UseLFN);
+{$ENDIF}
   end;
  D := PDialog(Application^.ValidView(PDialog(LoadResource(dlgSetupArc))));
  if D = nil then goto Ex;
@@ -168,7 +188,7 @@ begin
  if W = cmOK then D^.GetData(DT);
  Dispose(D, Done);
  if W <> cmOK then goto Ex;
- DefaultArchiver := ArchCommand;
+ if ForceDefaultArchiver = '' then DefaultArchiver := ArchCommand;
  with Arch^ do
   begin
      Done;
@@ -194,9 +214,19 @@ begin
      NormalCompression  := NewStr(DT.NormC);
      GoodCompression    := NewStr(DT.GoodC);
      UltraCompression   := NewStr(DT.MaxC);
-     if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';
-     Swap := DT.Swap;
-     UseLFN := DT.UseLFN;
+     ComprListChar      := NewStr(DT.CList);
+     ExtrListChar       := NewStr(DT.EList);
+    {if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';}
+     AllVersion := (DT.AllVersion and 1) <> 0;
+     PutDirs := (DT.PutDirs and 1) <> 0;
+{$IFDEF OS_DOS}
+     Swap := (DT.Swap and 1) <> 0;
+{$ELSE}
+     ShortCmdLine := (DT.ShortCmdLine and 1) <> 0;
+{$ENDIF}
+{$IFNDEF OS2}
+     UseLFN := (DT.UseLFN and 1) <> 0;
+{$ENDIF}
   end;
   UpdateARH(Arch);
   Message(Application, evCommand, cmUpdateConfig, nil);

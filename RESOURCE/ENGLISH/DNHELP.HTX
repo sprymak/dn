@@ -1677,14 +1677,28 @@ The window of installations of achiever contains the following fields:
  {Packer:_} - full name with extension of file of archiver
  {Unpacker:_} - full name with extension of file of unpacker
  {Extract:_} - parameters for unpacker
- {Move:_} - archiving with moving of files
- {Delete:_} - erasing of files from archives
  {Extract with pathnames:_} - unpacking with pathnames
- {List char:_} - symbol of list of files
- {Extract path:_} - unpacking method
- {Swap on execute:_} - to give all memory
- {Test:_} - parameters of testing of archive
+ {Add files:_} - parameters for archiving files
+ {Move files:_} - archiving with moving of files
+ {Delete files:_} - erasing of files from archives
+ {Test files:_} - test files in archive
+ {Force mode:_} - don't ask confirmations
+ {Include paths:_} - packing with pathnames
+ {Exclude paths:_} - packing without pathnames
  {Password:_} - parameters for definitions of password
+ {Recovery record:_} - add recovery record to archive
+ {Self-extracting:_} - create self-extracting archive (executable)
+ {Solid:_} - create solid archive (valid for RAR, ACE)
+ {Recurse SubDirs:_} - recurse tree of subdirectories
+
+ {Compress list char:_} - symbol of list of files for packer
+ {Extract list char:_}  - symbol of list of files for unpacker
+ {[ ] Show all versions:_} - show all file versions in archive (valid for UC2)
+ {[ ] List files in subdirs:_} - put all file names in subdirs into list file
+ {[ ] Short command line:_} - command line not longer than 125 chars
+                              (recommended for DOS executables of archivers,
+                               not vorking with list files;
+                               not recommended for native executables)
 
 .topic Phone=11020
 .title Telephone book

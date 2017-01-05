@@ -58,7 +58,7 @@ Uses
      Arc_ZIP,  Arc_LHA,  Arc_RAR,  Arc_ACE,  Arc_HA,   Arc_CAB,
 {$IFNDEF MINARCH}
      Arc_ARC,  Arc_BSA,  Arc_BS2,  Arc_HYP,  Arc_LIM,  Arc_HPK,  Arc_TAR,
-     Arc_TGZ,  Arc_ZXZ,  Arc_QRK,  Arc_AIN,  Arc_CHZ,  Arc_HAP,  Arc_IS3,
+     {$IFDEF TGZ} Arc_TGZ, {$ENDIF} Arc_ZXZ,  Arc_QRK,  Arc_AIN,  Arc_CHZ,  Arc_HAP,  Arc_IS3,
      Arc_SQZ,  Arc_UC2,  Arc_UFA,  Arc_ZOO,
 {$ENDIF}
      Archiver, Arcview,  Arvid,    Asciitab, Ccalc,
@@ -72,18 +72,18 @@ Uses
 {$IFDEF DBView}          Dbview,                       {$ENDIF}
 {$IFDEF MODEM}           Scrollbk, Terminal, uDialer,
            {$IFDEF LINK} Navylink, {$ENDIF}            {$ENDIF}
-{$IFDEF PrintManager}    Printmanager,                 {$ENDIF}
+{$IFDEF PrintManager}    Printman,                 {$ENDIF}
 {$IFDEF Game}            Tetris,                       {$ENDIF}
 {$IFDEF NetInfo}         Netinfo,                      {$ENDIF}
 {$IFDEF PHONES}          Phones,                       {$ENDIF}
 {$ENDIF !RCP}
 {$IFDEF CHCOL}           Colorsel,                     {$ENDIF}
      Dialogs,  Menus,    Objects,  ObjType,  Scroller, Setups,
-     Validate, Views,    SWE;
+     Validate, Views,    SWE {$IFDEF UserSaver}, UserSavr{$ENDIF};
 
 const
   NumRElms =
-{$IFDEF RCP}31{$ELSE} 122
+{$IFDEF RCP}31{$ELSE} 120
   {$IFDEF MODEM}       +7 {$IFDEF LINK} +2 {$ENDIF} {$ENDIF}
   {$IFDEF SpreadSheet} +5 {$ENDIF}
   {$IFDEF Game}        +3 {$ENDIF}
@@ -93,8 +93,10 @@ const
   {$IFDEF Calendar}    +2 {$ENDIF}   {JO}
   {$IFDEF TrashCan}    +1 {$ENDIF}
   {$IFDEF NETINFO}     +1 {$ENDIF}
+  {$IFDEF TGZ}         +1 {$ENDIF}
   {$IFDEF MINARCH}    -18 {$ENDIF}
   {$IFDEF PHONES}      +4 {$ENDIF}
+  {$IFDEF UserSaver}   +1 {$ENDIF}
 {$ENDIF}
   {$IFDEF SS}          +2 {$ENDIF}
   {$IFDEF CHCOL}       +7 {$ENDIF}
@@ -167,11 +169,13 @@ const
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_TAR.TTARArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_TAR.TTARArchive.Load;
        Store  : @Arc_TAR.TTARArchive.Store)
+{$IFDEF TGZ}
       { Arc_TGZ }
      ,(ObjType: otTGZArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_TGZ.TTGZArchive){$IFDEF OFFS}^{$ENDIF});
        Load   : @Arc_TGZ.TTGZArchive.Load;
        Store  : @Arc_TGZ.TTGZArchive.Store)
+{$ENDIF}
       { Arc_ZXZ }
      ,(ObjType: otZXZArchiver;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arc_ZXZ.TZXZArchive){$IFDEF OFFS}^{$ENDIF});
@@ -232,10 +236,12 @@ const
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Archiver.TFileInfo){$IFDEF OFFS}^{$ENDIF});
        Load   : @Archiver.TFileInfo.Load;
        Store  : @Archiver.TFileInfo.Store)
+{$IFDEF UserSaver}
      ,(ObjType: otUserSaver;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Archiver.TUserSaver){$IFDEF OFFS}^{$ENDIF});
-       Load   : @Archiver.TUserSaver.Load;
-       Store  : @Archiver.TUserSaver.Store)
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(UserSavr.TUserSaver){$IFDEF OFFS}^{$ENDIF});
+       Load   : @UserSavr.TUserSaver.Load;
+       Store  : @UserSavr.TUserSaver.Store)
+{$ENDIF UserSaver}
       { ArcView }
      ,(ObjType: otArcDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(ArcView.TArcDrive){$IFDEF OFFS}^{$ENDIF});
@@ -690,21 +696,21 @@ const
 {$IFDEF PrintManager}
       { PrintManager }
      ,(ObjType: otStringCol;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintManager.TStringCol){$IFDEF OFFS}^{$ENDIF});
-       Load   : @PrintManager.TStringCol.Load;
-       Store  : @PrintManager.TStringCol.Store)
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintMan.TStringCol){$IFDEF OFFS}^{$ENDIF});
+       Load   : @PrintMan.TStringCol.Load;
+       Store  : @PrintMan.TStringCol.Store)
      ,(ObjType: otPrintManager;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintManager.TPrintManager){$IFDEF OFFS}^{$ENDIF});
-       Load   : @PrintManager.TPrintManager.Load;
-       Store  : @PrintManager.TPrintManager.Store)
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintMan.TPrintManager){$IFDEF OFFS}^{$ENDIF});
+       Load   : @PrintMan.TPrintManager.Load;
+       Store  : @PrintMan.TPrintManager.Store)
      ,(ObjType: otPrintStatus;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintManager.TPrintStatus){$IFDEF OFFS}^{$ENDIF});
-       Load   : @PrintManager.TPrintStatus.Load;
-       Store  : @PrintManager.TPrintStatus.Store)
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintMan.TPrintStatus){$IFDEF OFFS}^{$ENDIF});
+       Load   : @PrintMan.TPrintStatus.Load;
+       Store  : @PrintMan.TPrintStatus.Store)
      ,(ObjType: otPMWindow;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintManager.TPMWindow){$IFDEF OFFS}^{$ENDIF});
-       Load   : @PrintManager.TPMWindow.Load;
-       Store  : @PrintManager.TPMWindow.Store)
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(PrintMan.TPMWindow){$IFDEF OFFS}^{$ENDIF});
+       Load   : @PrintMan.TPMWindow.Load;
+       Store  : @PrintMan.TPMWindow.Store)
 {$ENDIF PrintManager}
 {$ENDIF !RCP}
       { Scroller }

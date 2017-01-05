@@ -91,6 +91,7 @@ type
     procedure GotoContext(Context: AWord);
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
+    procedure SetState(aState: word; Enable: boolean); virtual;
     destructor Done; virtual;
   end;
 
@@ -125,7 +126,7 @@ destructor THelpViewer.Done;
 begin
   inherited Done;
   Dispose(HFile,Done); HFile:=nil;
-  Dispose(Topic,Done); HFile:=nil;
+  Dispose(Topic,Done); Topic := nil; {HFile:=nil;}
 end;
 
 procedure THelpViewer.GotoContext(Context: AWord);
@@ -173,6 +174,7 @@ var
   KeyPoint: TPoint;
   KeyLength: Byte;
   KeyRef: AWord;
+  Q: Byte;
 begin
   Normal := GetColor(1);
   KeyAWord := GetColor(2);
@@ -226,6 +228,8 @@ begin
         Topic^.GetCrossRef(KeyCount, KeyPoint, KeyLength, KeyRef)
       else KeyPoint.Y := 0;
     end;
+    for Q := 0 to (MaxViewWidth - 1) do          {JO}
+      if Lo(B[Q]) = $FF then B[Q] := B[Q]-$DF;   {JO}
     WriteLine(0, I-1, Size.X, 1, B);
   end;
 end;
@@ -440,7 +444,8 @@ begin
     (Event.Command=cmClose) then
   begin
    ClearEvent(Event);
-   EndModal(cmClose);
+  {EndModal(cmClose);} {JO - здесь вылетает когда DN запущен в окне и закрываешь хелп}
+   if (Owner^.State and sfModal <> 0) then EndModal(cmClose); {JO} {???}
    Free;
   end;
  if (Event.What=evCommand) and
@@ -448,6 +453,14 @@ begin
   PString(Event.InfoPtr)^ := Title^;
   ClearEvent(Event);
  end;
+end;
+
+procedure THelpWindow.SetState(aState: word; Enable: boolean);
+begin
+ inherited SetState(aState, Enable);
+ if aState=sfDragging then
+  if Enable then DisableCommands([cmHelp])
+            else EnableCommands([cmHelp])
 end;
 
 destructor THelpWindow.Done;

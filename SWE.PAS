@@ -396,7 +396,7 @@ begin
 
       If (Event.CharCode in [#8,^Y,#0,'0','1'..'9'])
          then begin
-               if (Length(Data^) = MaxLen) and (CurPos < MaxLen) then Dec(Data^[0]);
+               if (Length(Data^) = MaxLen) and (CurPos < MaxLen) then SetLength(Data^, Length(Data^)-1);
                TInputLine.HandleEvent(Event);
               end;
       end;
@@ -556,7 +556,7 @@ begin
 
       If (Event.CharCode in [#8,^Y,#0,'0','1'..'9'])
          then begin
-               if (Length(Data^) = MaxLen) and (CurPos < MaxLen) then Dec(Data^[0]);
+               if (Length(Data^) = MaxLen) and (CurPos < MaxLen) then SetLength(Data^, Length(Data^)-1);
                TInputLine.HandleEvent(Event);
               end;
       end;
@@ -790,7 +790,7 @@ begin
 
           then EndView:=Event.KeyCode{ else
           if Event.CharCode >= ' ' then
-           if (Length(Data^) = MaxLen) and (CurPos < MaxLen) then Dec(Data^[0]);}
+           if (Length(Data^) = MaxLen) and (CurPos < MaxLen) then SetLength(Data^, Length(Data^)-1);}
      end;
   end;
  TInputLine.HandleEvent(Event);
@@ -847,6 +847,13 @@ begin
     if R > Size.X - 2 * DrawShift then R := Size.X - 2 * DrawShift;
     if L < R then MoveChar(B[L + 1], #0, C3, R - L);
   end;
+{$IFDEF OS2}
+  if PMWindowed and (WordRec(B[CurPos - FirstPos + DrawShift]).Hi and $F0 = $80) then {JO: чтобы решить пробему курсора на сером фоне в окне}
+    begin
+      WordRec(B[CurPos - FirstPos + DrawShift]).Hi := WordRec(B[CurPos - FirstPos + DrawShift]).Hi and $0F;
+      if WordRec(B[CurPos - FirstPos + DrawShift]).Hi and $FF = 0 then WordRec(B[CurPos - FirstPos + DrawShift]).Hi := $07;
+    end;
+{$ENDIF}
   WriteLine(0, 0, Size.X, Size.Y, B);
   SetCursor(CurPos - FirstPos + DrawShift, 0);
 end;

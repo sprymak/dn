@@ -130,10 +130,10 @@ const Game : PGameView = nil;
 
 {$ifdef dn}
 implementation
-uses xTime,StartUp, DNHelp;
+uses xTime,StartUp, DNHelp{$IFDEF VIRTUALPASCAL},VPUtils{$ENDIF};
 {$endif}
 const
-  MaxFig   = 27;
+  MaxFig   = 28;
   Figures  : array[1..5*MaxFig,1..2] of byte=
       ((1,3),(2,3),(3,3),(3,2),(0,0),
        (1,2),(2,2),(3,2),(3,3),(0,0),
@@ -161,13 +161,14 @@ const
        (1,1),(1,2),(1,3),(2,2),(3,2),
        (1,2),(2,2),(2,3),(3,2),(4,2),
        (1,3),(2,2),(2,3),(3,3),(4,3),
-       (1,1),(2,1),(3,1),(3,2),(3,3)
+       (1,1),(2,1),(3,1),(3,2),(3,3),
+       (1,3),(1,2),(2,3),(3,3),(4,3) {AK155}
        );
   ColPo    : array[0..MaxFig-1] of byte=
-      (4,4,4,4,4,4,4,1,2,3, 3,5,5,5,5, 5,5,5,5,5, 5,5,5,5,5,5,5);
+      (4,4,4,4,4,4,4,1,2,3, 3,5,5,5,5, 5,5,5,5,5, 5,5,5,5,5,5,5,5);
       {0         5         10         15         20}
   CRot     : array[0..MaxFig-1] of byte=
-      (4,4,4,4,3,4,4,1,2,3, 2,5,3,4,4, 3,3,4,4,3, 3,3,3,3,4,4,3);
+      (4,4,4,4,3,4,4,1,2,3, 2,5,3,4,4, 3,3,4,4,3, 3,3,3,3,4,4,3,4);
 
 function LevelDelay(Level: Byte): Word;
  var Delay: Word;
@@ -184,7 +185,11 @@ begin
   9: Delay := 5;
  10: Delay := 4;
  end;
+{$IFNDEF VIRTUALPASCAL}
  LevelDelay := Delay
+{$ELSE}
+ LevelDelay := Delay*200
+{$ENDIF}
 end;
 
 constructor TGameWindow.Init;
@@ -654,7 +659,7 @@ begin
  end;
  if LongInt(LongInt(C)*60 + Word(A))*100 + B > LastT + Delay then
  {$ELSE}
- if GetTimemSec*10 > LastT + Delay
+ if GetTimemSec*10 > LastT + Delay then
  {$ENDIF}
   begin MoveDown; MakeTime end;
 end;

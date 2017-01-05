@@ -88,8 +88,8 @@ type
     HiLite:       Boolean;
     HiliteLine:   Boolean;
     HiliteColumn: Boolean;
-    AutoJustify:  Boolean; {AUTOWRAP}
-    AutoWrap:     Boolean; {WRAPJUSTIFY}
+    AutoJustify:  Boolean; {WRAPJUSTIFY}
+    AutoWrap:     Boolean; {AUTOWRAP}
     LeftSide:     Word;    {LEFTMARGIN}
     RightSide:    Word;    {RIGHTMARGIN}
     InSide:       Word;    {PARAGRAPH}
@@ -112,19 +112,20 @@ type
     ClipBrd: Boolean; {-$VOL}
     OptMenu: PMenu;
     Mark,Sel: TRect;
-    Pos, LastPos,BlockPos: TPoint;
+    Pos, LastPos{,BlockPos}: TPoint;
     MarkPos: TPosArray;
     LastLine: LongInt;
     DrawMode: Integer;
     WorkString,LastShape: String;
     OldBlockValid, SearchOnDisplay,
     InsertMode,VertBlock,Modified,WorkModified,
+    JustSaved, {piwamoto}
     BlockVisible,SpecChar,WasDelete,MouseMark, UnMark,
     LineMarking,OptimalFill,RulerVisible,EnableMarking,
     TabReplace, SearchActive: Boolean;
     UndoInfo: PCollection;
     RedoInfo: PCollection; {-$VOL}
-    UndoTimes: LongInt;
+    UndoTimes, LastSaveUndoTimes: LongInt;
     ChPosition: Boolean;
     Macros: PCollection;
     Locker: PStream;
@@ -260,7 +261,7 @@ begin
              end;
           udInsChar:
              begin
-               P^.Count:=byte(Str^[0]);
+               P^.Count:=Length(Str^);
                Inc(P^.Where.X,P^.Count);
                UndoInfo^.Insert(P);
              end;
@@ -280,7 +281,7 @@ begin
              begin
                P^.Lines := New(PLineCollection, Init(10, 10));
                if Lines^.Count>0 then S:=CnvString(Lines^.At(0))else S:='';
-               J:=byte(S[0]);
+               J:=Length(S);
                if Vertical then
                  begin
                    for I:=0 to Lines^.Count-1 do
@@ -297,7 +298,7 @@ begin
                        if I=0 then
                          S:=copy(S,Where.X+1,255)
                        else if I=Lines^.Count-1 then
-                         S:=copy(S,1,byte(S[0])-(J-Where.X));
+                         S:=copy(S,1,Length(S)-(J-Where.X));
                        P^.Lines^.Insert(NewStr(S));
                      end;
                  end;
@@ -336,7 +337,7 @@ begin
              begin
                P^.Count:=Lines^.Count;
                if P^.Count>0 then S:=CnvString(Lines^.At(0)) else S:='';
-               P^.Width:=byte(S[0]);
+               P^.Width:=Length(S);
                for i:=1 to P^.Count do begin
                 j:=Length(CnvString(Lines^.At(i-1)));
                 if j>P^.Width then P^.Width:=J;
@@ -346,14 +347,14 @@ begin
           udReplace,udReplaceAll:
              begin
                S:=GetLine(Where.Y);
-               P^.Str:=NewStr(Char(byte(Str^[0])-1)+copy(S,Where.X+1,byte(Str^[1])));
+               P^.Str:=NewStr(Char(Length(Str^)-1)+copy(S,Where.X+1,byte(Str^[1])));
                UndoInfo^.Insert(P);
              end;
           udReplaceChar:
              begin
                S:=GetLine(Where.Y);
-               Inc(P^.Where.X,byte(Str^[0]));
-               P^.Str:=NewStr(copy(S,Where.X+1,byte(Str^[0])));
+               Inc(P^.Where.X,Length(Str^));
+               P^.Str:=NewStr(copy(S,Where.X+1,Length(Str^)));
                UndoInfo^.Insert(P);
              end;
           udReplaceBlock,udClearBlock:
@@ -385,7 +386,7 @@ begin
         case What of
           udDelChar:
              begin
-               P^.Count:=byte(Str^[0]);
+               P^.Count:=Length(Str^);
                Inc(P^.Where.X,P^.Count);
                RedoInfo^.Insert(P);
              end;
@@ -411,7 +412,7 @@ begin
              begin
                P^.Lines := New(PLineCollection, Init(10, 10));
                if Lines^.Count>0 then S:=CnvString(Lines^.At(0))else S:='';
-               J:=byte(S[0]);
+               J := Length(S);
                if Vertical then
                  if InsM then
                    begin
@@ -443,7 +444,7 @@ begin
              end;
           udBackDel:
              begin
-               P^.Count:=byte(Str^[0]);
+               P^.Count:=Length(Str^);
                RedoInfo^.Insert(P);
              end;
           udSubDel:
@@ -479,14 +480,14 @@ begin
           udReplace,udReplaceAll:
              begin
                S:=GetLine(Where.Y);
-               P^.Str:=NewStr(Char(byte(Str^[0])-1)+copy(S,Where.X+1,byte(Str^[1])));
+               P^.Str:=NewStr(Char(Length(Str^)-1)+copy(S,Where.X+1,byte(Str^[1])));
                RedoInfo^.Insert(P);
              end;
           udReplaceChar:
              begin
                S:=GetLine(Where.Y);
-               Dec(P^.Where.X,byte(Str^[0]));
-               P^.Str:=NewStr(copy(S,P^.Where.X+1,byte(Str^[0])));
+               Dec(P^.Where.X,Length(Str^));
+               P^.Str:=NewStr(copy(S,P^.Where.X+1,Length(Str^)));
                RedoInfo^.Insert(P);
              end;
           udReplaceBlock,udClearBlock:
@@ -570,7 +571,7 @@ begin
   EdOpt.AutoJustify  := EditorDefaults.EdOpt  and ebfJwr <> 0;
   EdOpt.AutoBrackets := EditorDefaults.EdOpt  and ebfAbr <> 0;
   EdOpt.AutoWrap     := EditorDefaults.EdOpt  and ebfAwr <> 0;
-  TabReplace         := EditorDefaults.EdOpt  and ebfTRp <> 0;
+  TabReplace         := (EditorDefaults.EdOpt{$IFNDEF OS_DOS} shl 2{$ENDIF}) and ebfTRp <> 0;
   EdOpt.SmartTab     := EditorDefaults.EdOpt2 and ebfSmt <> 0;
 
   Val(EditorDefaults.RM, EdOpt.RightSide, I); if I <> 0 then EdOpt.RightSide := 76;
@@ -824,8 +825,10 @@ begin
   if (RedoInfo <> nil) and (RedoInfo^.Count > 0)
      then EnableCommands([cmRedo]) else DisableCommands([cmRedo]);
 {-$VOL end}
-  if (Clipboard <> nil) and (Clipboard^.Count > 0) or (GetWinClipSize)
-     then EnableCommands([cmPaste]) else DisableCommands([cmPaste]);
+  if (Clipboard <> nil) and (Clipboard^.Count > 0) or
+     ((SystemData.Options and ossUseSysClip <> 0) and GetWinClipSize)
+  then EnableCommands([cmPaste])
+  else DisableCommands([cmPaste]);
   if OptMenu <> Nil then
   begin
    MI := OptMenu^.Items;
@@ -901,7 +904,11 @@ begin
       HistoryAdd(HistoryID, S);
     end;
   Dispose(D,Done);
+{$IFDEF OS_DOS}
   GetFileNameDialog := lfGetLongFileName(S);
+{$ELSE}
+  GetFileNameDialog := S;
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -947,13 +954,21 @@ begin
    if VertBlock or (Mark.A.Y = Mark.B.Y) then
      begin
       S := Copy(S, Mark.A.X + 1, Mark.B.X - Mark.A.X);
-      if VertBlock and (Mark.B.X - Mark.A.X > Byte(S[0])) then
-         S := S + Strg(' ', Mark.B.X - Mark.A.X - Byte(S[0]));
+      if VertBlock and (Mark.B.X - Mark.A.X > Length(S)) then
+         S := S + Strg(' ', Mark.B.X - Mark.A.X - Length(S));
      end
     else if I = Mark.A.Y then S := Copy(S, Mark.A.X + 1, 255)
          else if I = Mark.B.Y then S := Copy(S, 1, Mark.B.X);
-   P^.Insert(NewStr(S));
-   if LowMemory or not MemOK then
+{ P^.Insert(NewStr(S)); }
+  with P^ do AtInsert(Count, NewStr(S)); {AK155}
+
+{AK155: MemOK - это нечто странное. Там, в конечном итоге,
+проверяется на nil некий Linker, которому нигде ничего не
+присваивается, так что он заведомо nil. А исключение этой
+бессмысленной проверки ускоряет работу во _много_ раз (более
+20, точно мерять не хватило терпения ). }
+
+   if LowMemory { or not MemOK} then
     begin
      Dispose(P,Done);
      MemEnough := Off ;
@@ -1193,7 +1208,7 @@ begin
   begin
    P := ABlock^.At(0);
    if P <> nil then S := P^ else S := '';
-   I := Byte(S[0]);
+   I := Length(S);
    for J:=1 to ABlock^.Count do begin
     Q:=Length(CnvString(ABlock^.At(J-1)));
     if Q>I then I:=Q;
@@ -1223,8 +1238,8 @@ begin
      if I + Delta.Y - 1 = FileLines^.Count then
       FileLines^.Insert(NewStr(AddSpace('',Q)));
      S2 := GetLine(I+Delta.Y-1);
-     if not InsertMode then Delete(S2, Delta.X + 1, Byte(S1[0]));
-     if Byte(S2[0]) < Delta.X then S2 := S2 + Strg(' ', Delta.X - Byte(S2[0]));
+     if not InsertMode then Delete(S2, Delta.X + 1, Length(S1));
+     if Length(S2) < Delta.X then S2 := S2 + Strg(' ', Delta.X - Length(S2));
      Insert(S1, S2, Delta.X + 1);
      ModifyLine(I+Delta.Y-1, S2, On);
     end
@@ -1235,7 +1250,7 @@ begin
    S := Char(Lo(I)) + Char(Hi(I)) + GetLine(Delta.Y);
    if SaveUndo then StoreUndoInfo(udInsBlock, Delta, S);
    Delete(S, 1, 2);
-   if Delta.X > Byte(S[0]) then S := S + Strg(' ', Delta.X - Byte(S[0]));
+   if Delta.X > Length(S) then S := S + Strg(' ', Delta.X - Length(S));
    S1 := Copy(S, 1, Delta.X); S2 := Copy(S, Delta.X+1, 255);
    FileLines^.AtFree(Delta.Y);
    for I := 1 to ABlock^.Count do
@@ -1266,7 +1281,7 @@ var
   X1, X2: LongInt;
   LPos: Integer;
   Ch: Char;
-var B: Array[0..500] of Word;
+var B: TDrawBuffer;
 
 
   procedure DrawBlock;
@@ -1297,7 +1312,7 @@ begin
   if Pos.X < 0 then Pos.X := 0;
   if Pos.Y < 0 then Pos.Y := 0;
   if Delta.X < 0 then Delta.X := 0;
-  if Delta.X > 254 then Delta.X := 254;
+  if Delta.X > MaxEditStringLength then Delta.X := MaxEditStringLength;
   if Delta.Y >= FileLines^.Count then Delta.Y := FileLines^.Count - 1;
   if Delta.Y < 0 then Delta.Y := 0;
   if Pos.X > Delta.X then Pos.X := Delta.X;
@@ -1337,20 +1352,20 @@ begin
         if (A = Mark.A.Y) then
           begin
             if WorkModified and (Mark.A.Y = Delta.Y) then
-             if Mark.A.X > Byte(WorkString[0]) then Mark.A.X := Byte(WorkString[0])
+             if Mark.A.X > Length(WorkString) then Mark.A.X := Length(WorkString)
                else else
              if Mark.A.X > Length(GetLine(Mark.A.Y)) then Mark.A.X := Length(GetLine(Mark.A.Y));
           end;
         if (A = Mark.B.Y) then
          begin
            if WorkModified and (Mark.B.Y = Delta.Y) then
-            if Mark.B.X > Byte(WorkString[0]) then Mark.B.X := Byte(WorkString[0])
+            if Mark.B.X > Length(WorkString) then Mark.B.X := Length(WorkString)
             else else
             if Mark.B.X > Length(GetLine(Mark.B.Y)) then Mark.B.X := Length(GetLine(Mark.B.Y));
          end;
      end;
     if ChPosition and not ((A = Delta.Y) or (A = LastPos.Y)) then Continue;
-    if EdOpt.HiliteLine then
+    if EdOpt.HiliteLine or ((Length(WorkString) >= MaxEditStringLength) and RecombineLongLines) then  {JO}{!!!}
      if A = Delta.Y then
      begin
        C:=CC[4];
@@ -1368,7 +1383,7 @@ begin
       if EdOpt.HiLite then begin
         Highlites ( Length(S), @S[1], HiLitePar ); {PZ 2000.04.28}
         C1                  := C and $F0;                  { Background }
-        HP[0]               := #6;                         { Attr. size }
+        SetLength(HP, 6);                                  { Attr. size }
         if (A = Delta.Y) and (EdOpt.HiliteLine)
          then HP[Ord(hhComment)]  := Chr(CC[6])            { Comments for current line}
          else HP[Ord(hhComment)]  := Chr(Comments);        { Comments   }
@@ -1402,6 +1417,13 @@ begin
       SearchOnDisplay := On;
      end;
     if EdOpt.HiliteColumn then WordRec(B[Delta.X - Pos.X]).Hi := CC[7];
+{$IFDEF OS2}
+    if PMWindowed and (A = Delta.Y) then  {JO: чтобы решить пробему курсора}
+      begin                               {    на сером фоне в окне}
+        if (WordRec(B[Delta.X - Pos.X]).Hi and $F0 = $80) then WordRec(B[Delta.X - Pos.X]).Hi := WordRec(B[Delta.X - Pos.X]).Hi and $0F;
+        if (WordRec(B[Delta.X - Pos.X]).Hi and $FF = 0) then WordRec(B[Delta.X - Pos.X]).Hi := $07;
+      end;
+{$ENDIF}
     WriteLine(0, I, Size.X, 1, B);
   end;
  SetCursor(Delta.X - Pos.X, Delta.Y - Pos.Y);
@@ -1444,7 +1466,6 @@ procedure TFileEditor.HandleEvent;
      PL: PCollection;
      S: String;
      LastY,LastX,i: LongInt;
-     WL: Byte absolute WorkString;
      OldDelta,
      T: TPoint;
      L: longint;
@@ -1462,13 +1483,13 @@ procedure TFileEditor.HandleEvent;
   P.X := LastX; P.Y := LastY;
   if InsertMode then
     begin
-     if LastX < WL then Insert(' ', WorkString, LastX + 1)
-                   else WorkString := WorkString + Strg(' ', LastX - WL + 1);
+     if LastX < Length(WorkString) then Insert(' ', WorkString, LastX + 1)
+                   else WorkString := WorkString + Strg(' ', LastX - Length(WorkString) + 1);
      StoreUndoInfo(udInsChar, P, P);
     end
      else
       begin
-       if LastX< WL then
+       if LastX< Length(WorkString) then
         begin
          P.X := LastX;
          StoreUndoInfo(udReplaceChar, P, WorkString[LastX + 1]);
@@ -1490,7 +1511,7 @@ procedure TFileEditor.HandleEvent;
   label Ex;
  begin
    if not WorkModified then goto Ex;
-   While WorkString[WL] = ' ' do Dec(WL);
+   While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
    if WorkModified then ModifyLine(LastLine, WorkString,On);
    Modified := Modified or WorkModified;
    WorkModified := Off;
@@ -1525,9 +1546,9 @@ procedure TFileEditor.HandleEvent;
         WAY := Bl and (Delta.Y = Mark.A.Y) and (Delta.X <= Mark.A.X);
         WBY := Bl and (Delta.Y = Mark.B.Y) and (Delta.X <= Mark.B.X);
         StoreUndoInfo(udInsLine, Delta, WorkString);
-        While WorkString[WL] = ' ' do Dec(WL);
+        While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
         S1 := WorkString; S2 := Copy(S1, 1, LastX);
-        While S2[Byte(S2[0])] = ' ' do Dec(S2[0]);
+        While S2[Length(S2)] = ' ' do SetLength(S2, Length(S2)-1);
         WorkString := S2; Delete(S1, 1, LastX);
         ModifyLine(LastY,S2,On);
         WorkString := S1;
@@ -1545,7 +1566,7 @@ procedure TFileEditor.HandleEvent;
           if I >= 0 then
            begin S2 := GetLine(I); Dec(I) end;}
           LastX := 0;
-          While (S2[LastX + 1] = ' ') and (LastX < Byte(S2[0]))
+          While (S2[LastX + 1] = ' ') and (LastX < Length(S2))
            do begin
                  Inc(LastX);
                  WorkString := ' ' + WorkString;
@@ -1576,7 +1597,7 @@ procedure TFileEditor.HandleEvent;
     StoreUndoInfo(udSubDelLine, P, WorkString);
     WorkString := S + WorkString; ModifyLine(LastY - 1, WorkString, On);
     WorkModified := Off; WorkModify; WorkModified := Off;
-    Delta.X := Byte(S[0]);
+    Delta.X := Length(S);
     ScrollTo(Delta.X, Delta.Y - 1);
     SetLimits;
     ChangeLine;
@@ -1586,7 +1607,7 @@ procedure TFileEditor.HandleEvent;
     Exit;
    end;
   EnableMarking := Off;
-  if WL < LastX then WorkString := AddSpace(WorkString, LastX + 1);
+  if Length(WorkString) < LastX then WorkString := AddSpace(WorkString, LastX + 1);
   if EdOpt.BackIndent and ((WorkString[LastX + 1] <> ' ') or (DelSpaces(WorkString) = ''))
    and (Copy(WorkString, 1, LastX) = Strg(' ', LastX))
    and (LastY > 0) then
@@ -1594,7 +1615,7 @@ procedure TFileEditor.HandleEvent;
      for i := LastY-1 downto 0 do
       begin
        s := GetLine(i);
-       J := 0; while (S[J+1] = ' ') and (J < Byte(S[0])) do Inc(J);
+       J := 0; while (S[J+1] = ' ') and (J < Length(S)) do Inc(J);
        if J < LastX then
        if Copy(s, 1, LastX) > Strg(' ', LastX) then
          begin
@@ -1611,7 +1632,7 @@ procedure TFileEditor.HandleEvent;
       end;
     end;
   T.X := LastX; T.Y := LastY;
-  if LastX <= WL then
+  if LastX <= Length(WorkString) then
     if InsertMode then
       begin
         StoreUndoInfo(udBackDel, T, WorkString[LastX]);
@@ -1727,7 +1748,7 @@ L1:
 
  procedure BMarking;
  begin
-  if not EnableMarking then Exit;
+  if not EnableMarking or (DrawMode>0) then Exit;
   if (ShiftState and 3 <> 0) and not MouseMark then
   begin
    if not Marking then begin Sel.A := LastPos; Sel.B := Delta end
@@ -1747,7 +1768,7 @@ L1:
   ChangeLine;
   BlockOff;
   Modified := On;
-  if LastX < WL then
+  if LastX < Length(WorkString) then
    begin WorkModify; P.X := LastX; P.Y := LastY;
          StoreUndoInfo(udDelChar, P, WorkString[LastX+1]);
          Delete(WorkString, LastX + 1, 1); Exit end;
@@ -1756,7 +1777,7 @@ L1:
   P.X := LastX; P.Y := LastY;
   S := GetLine(LastY + 1);
   if LastY < FileLines^.Count then StoreUndoInfo(udSubDelLine, P, S);
-  WorkString := WorkString + Strg(' ', LastX - WL) + S;
+  WorkString := WorkString + Strg(' ', LastX - Length(WorkString)) + S;
   ChangeLine;
   FileLines^.AtFree(LastY + 1);
   for L:=1 to 9 do if MarkPos[L].Y >= LastY then Dec(MarkPos[L].Y);
@@ -1786,8 +1807,17 @@ L1:
   if (Clipboard <> nil) then Dispose(Clipboard,Done);
   Clipboard := GetSelection;
   if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
-  if ClipBoardStream<>nil then
-   ClipboardStream^.Seek(Max(ClipboardStream^.GetPos-1, 0));
+
+{AK155: не понял, зачем вообще нужен ClipBoardStream. Используется
+он в команде просмотра Clipbioard, но зачем его из коллекции нужно
+гонять в Stream, а потом обратно - непонятно. А тормозит он чудовищно.
+Поэтому пока что ограничиваю размер, в результате чего просмотр Clipboard
+при отключенном Use system clipboard для очень больших фрагментов
+работать временно не будет }
+  if (ClipBoardStream<>nil)
+    {AK155} and (Clipboard^.Count < 1000) {/AK155}
+  then
+     ClipboardStream^.Seek(Max(ClipboardStream^.GetPos-1, 0));
   CopyLines2Stream(Clipboard, ClipboardStream);
  end;
 
@@ -1806,7 +1836,7 @@ L1:
   if Delta.Y + 1 = FileLines^.Count then
    begin
     StoreUndoInfo(udSubDel, T, WorkString);
-    ModifyLine(Delta.Y, '', On); WL := 0;
+    ModifyLine(Delta.Y, '', On); SetLength(WorkString, 0);
    end else
    begin
     StoreUndoInfo(udDelLine, T, WorkString);
@@ -1820,25 +1850,25 @@ L1:
  begin
   if LastX > 0 then
    begin
-    if LastX > WL then LastX := WL;
+    if LastX > Length(WorkString) then LastX := Length(WorkString);
     while (LastX >= 0) and (WorkString[LastX] in BreakChars) do Dec(LastX);
     while (LastX > 0) and not (WorkString[LastX] in BreakChars) do Dec(LastX);
     if (LastX >= 0) and not (WorkString[LastX+1] in BreakChars) then Exit;
    end;
   if LastY <= 0 then begin LastX := 0; Exit end;
-  Dec(Delta.Y); Dec(LastY); ChangeLine; LastX := WL; Delta.X := WL; WordLeft;
+  Dec(Delta.Y); Dec(LastY); ChangeLine; LastX := Length(WorkString); Delta.X := Length(WorkString); WordLeft;
  end;
 
  procedure WordRight;
   var B: Boolean;
  begin
-  B := LastX < WL;
-  while (LastX < WL) and not (WorkString[LastX+1] in BreakChars) do Inc(LastX);
-  while (LastX < WL) and (WorkString[LastX+1] in BreakChars) do Inc(LastX);
-  if (LastX < WL) or B and (LastX = WL) then Exit;
-  if LastY + 1 >= FileLines^.Count then begin LastX := WL; Exit end;
+  B := LastX < Length(WorkString);
+  while (LastX < Length(WorkString)) and not (WorkString[LastX+1] in BreakChars) do Inc(LastX);
+  while (LastX < Length(WorkString)) and (WorkString[LastX+1] in BreakChars) do Inc(LastX);
+  if (LastX < Length(WorkString)) or B and (LastX = Length(WorkString)) then Exit;
+  if LastY + 1 >= FileLines^.Count then begin LastX := Length(WorkString); Exit end;
   Inc(Delta.Y); Inc(LastY); LastX := 0; Delta.X := 0; ChangeLine;
-  if (WL > 0) and not (WorkString[1] in BreakChars) then Exit;
+  if (Length(WorkString) > 0) and not (WorkString[1] in BreakChars) then Exit;
   WordRight;
  end;
 
@@ -1866,12 +1896,12 @@ L1:
                  else s := '';
     if (LastY = 0) then MakeTab
      else
-     if (LastY > 0) and (LastX < Byte(S[0])) then
+     if (LastY > 0) and (LastX < Length(S)) then
      begin
       WorkModify;
-      repeat InsertSpace until (s[LastX + 1] = ' ') or (LastX >= Byte(S[0]));
-      {WM := (s[LastX + 2] = ' ') and (LastX < Byte(s[0]));}
-      While (s[LastX + 2] = ' ') and (LastX < Byte(s[0])) do InsertSpace;
+      repeat InsertSpace until (s[LastX + 1] = ' ') or (LastX >= Length(S));
+      {WM := (s[LastX + 2] = ' ') and (LastX < Length(s));}
+      While (s[LastX + 2] = ' ') and (LastX < Length(s)) do InsertSpace;
       {if WM then }InsertSpace;
       ScrollTo(LastX, Delta.Y); DrawView;
      end else MakeTab;
@@ -1909,7 +1939,8 @@ L1:
       A: Word;
 
   procedure CompressString;
-   var PP: Pointer;
+   var
+       PP: Pointer;
        TSt: Integer;
   begin
    PP := @SST;
@@ -2050,7 +2081,7 @@ var qwe: byte;
                      else SST := GetLine(I);
       if OptimalFill then CompressString;
       R^.Write(SST[1], Length(SST));
-      if I <> Mark.B.Y then R^.Write(CrLf[1], Length(CrLf));
+      if (I <> Mark.B.Y) and ((Length(SST) < MaxEditStringLength) or not RecombineLongLines) then R^.Write(CrLf[1], Length(CrLf)); {JO}{!!!}
     end;
 
   if PI<>nil then PI^.Free;
@@ -2078,39 +2109,39 @@ var qwe: byte;
  begin
   ChangeLine;
   S := '';
-  While WorkString[WL] = ' ' do
-   begin Dec(WL); if WL < LastX + 1 then LastX := WL - 1; end;
+  While WorkString[Length(WorkString)] = ' ' do
+   begin SetLength(WorkString, Length(WorkString)-1); if Length(WorkString) < LastX + 1 then LastX := Length(WorkString) - 1; end;
   OldX := 0;
-  if WL - 1 = LastX then OldX := 1
-     else if WL - 1 < LastX then OldX := 0
+  if Length(WorkString) - 1 = LastX then OldX := 1
+     else if Length(WorkString) - 1 < LastX then OldX := 0
        else OldX := 1;
-  if WL > EdOpt.RightSide then
+  if Length(WorkString) > EdOpt.RightSide then
    begin
     New(P, Init(1,1)); P^.Insert(NewStr(WorkString));
     TP.Y := Delta.Y; TP.X := 0;
     StoreUndoInfo(udDelBlock, TP, P);
-    while (WL > 1) and (WL > EdOpt.RightSide) do
-     begin S := WorkString[WL] + S; Dec(WL); end;
-    while (WL > 1) and not (WorkString[WL] in [' ',',',':','.','?','!','+',';']) do
-     begin S := WorkString[WL] + S; Dec(WL); end;
+    while (Length(WorkString) > 1) and (Length(WorkString) > EdOpt.RightSide) do
+     begin S := WorkString[Length(WorkString)] + S; SetLength(WorkString, Length(WorkString)-1); end;
+    while (Length(WorkString) > 1) and not (WorkString[Length(WorkString)] in [' ',',',':','.','?','!','+',';']) do
+     begin S := WorkString[Length(WorkString)] + S; SetLength(WorkString, Length(WorkString)-1); end;
     if DelSpaces(WorkString) = '' then begin WorkString := WorkString + S; S := ''; end else
-    OldX := Delta.X - WL + OldX;
-    if Delta.X > WL then Delta.X := 255;
+    OldX := Delta.X - Length(WorkString) + OldX;
+    if Delta.X > Length(WorkString) then Delta.X := 255;
     if System.Pos(DelSpaces(WorkString), WorkString) = 0 then
     begin
-     While WorkString[WL] = ' ' do Dec(WL);
+     While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
      I := 1;
      if EdOpt.AutoJustify then
-     while WL < EdOpt.RightSide do
+     while Length(WorkString) < EdOpt.RightSide do
       begin
        while (WorkString[I] = ' ') do Inc(I);
-       while (WorkString[I] <> ' ') and (I < WL) do Inc(I);
-       if (I < WL) then
+       while (WorkString[I] <> ' ') and (I < Length(WorkString)) do Inc(I);
+       if (I < Length(WorkString)) then
         begin
          Insert(' ', WorkString, I);
          if I <= Delta.X then Inc(Delta.X);
         end;
-        Inc(I); if I > WL then I := 1;
+        Inc(I); if I > Length(WorkString) then I := 1;
       end;
      end;
     DelLeft(S);
@@ -2120,7 +2151,7 @@ var qwe: byte;
    KeyMapAtInsert(LastY+1, NewStr(S)); {-$VIV}
    S := #2#0;
    StoreUndoInfo(udFormatBlock, TP, S);
-   if Delta.X >= WL then
+   if Delta.X >= Length(WorkString) then
     begin
      VScroll^.SetParams(LastY+1, 0, FileLines^.Count-1, Size.Y, 1);
      if OldX>0 then HScroll^.SetValue(EdOpt.LeftSide);
@@ -2140,7 +2171,7 @@ var qwe: byte;
  begin
    Ch := Event.CharCode;
     S1 := Ch;
-   if EdOpt.AutoBrackets and ((LastX >= WL) or (WorkString[LastX+1] = ' ')) then
+   if EdOpt.AutoBrackets and ((LastX >= Length(WorkString)) or (WorkString[LastX+1] = ' ')) then
     begin
         for i:=1 to Length(AutoBracketPairs) shr 1
         do if Ch=AutoBracketPairs[i*2-1] then begin
@@ -2162,19 +2193,19 @@ var qwe: byte;
      WorkModify;
      if InsertMode then
       begin
-       if LastX <= WL then Insert(S1, WorkString, LastX + 1)
-                      else WorkString := WorkString + Strg(' ', LastX - WL) + S1;
+       if LastX <= Length(WorkString) then Insert(S1, WorkString, LastX + 1)
+                      else WorkString := WorkString + Strg(' ', LastX - Length(WorkString)) + S1;
        StoreUndoInfo(udInsChar, Delta, Delta);
-       if S1[0] = #2 then
+       if Length(S1) = 2 then
          StoreUndoInfo(udInsChar, T, T);
       end else
       begin
-       if LastX >= WL then WorkString := WorkString + Strg(' ', LastX - WL + 1);
+       if LastX >= Length(WorkString) then WorkString := WorkString + Strg(' ', LastX - Length(WorkString) + 1);
        StoreUndoInfo(udReplaceChar, Delta, WorkString[LastX+1]);
        WorkString[LastX+1] := Ch
       end;
-     if (not EdOpt.AutoWrap or (LastX < EdOpt.RightSide)) and (LastX < 254) then HScroll^.SetValue(LastX + 1)
-      else if LastX < 254 then SplitString else
+     if (not EdOpt.AutoWrap or (LastX < EdOpt.RightSide)) and (LastX < MaxEditStringLength) then HScroll^.SetValue(LastX + 1)
+      else if LastX < MaxEditStringLength then SplitString else
              begin
               ChangeLine;
               FileLines^.AtInsert(LastY+1, nil); SetLimits;
@@ -2229,7 +2260,7 @@ var qwe: byte;
       RightContact2 = '═╣╬╗╝╦╩╡╪╕╛╤╧';
 
    var  _Up, _In, _Down: String;
-        L_Up, L_In, L_Down: Char;
+        L_Up, L_In, L_Down: Byte;
         VL: String[32];
         A,B: Word;
         I,J,K: LongInt;
@@ -2274,9 +2305,9 @@ var qwe: byte;
    ChangeLine;
    if ShiftState and 3 <> 0 then DMode := 1
      else if ShiftState and 4 <> 0 then DMode := 2 else DMode := 0;
-   _In := AddSpace(WorkString, LastX+2);         L_In := _In[0]; _In[0] := ' ';
-   _Up := AddSpace(GetLine(LastY-1), LastX+2);   L_Up := _Up[0]; _Up[0] := ' ';
-   _Down := AddSpace(GetLine(LastY+1), LastX+2); L_Down := _Down[0]; _Down[0] := ' ';
+   _In := AddSpace(WorkString, LastX+2);         L_In := Length(_In); SetLength(_In, 32);
+   _Up := AddSpace(GetLine(LastY-1), LastX+2);   L_Up := Length(_Up); SetLength(_Up, 32);
+   _Down := AddSpace(GetLine(LastY+1), LastX+2); L_Down := Length(_Down); SetLength(_Down, 32);
    if DrawMode > 1 then VL := Line00 else VL := Line11;
    if Odd(Dir) then
      begin
@@ -2308,7 +2339,7 @@ var qwe: byte;
          A := A or B or (1 shl Dir);
          C := VL[A];
          WorkModify;
-         if LastX >= WL then WorkString := AddSpace(WorkString, LastX + 1);
+         if LastX >= Length(WorkString) then WorkString := AddSpace(WorkString, LastX + 1);
          StoreUndoInfo(udReplaceChar, Delta, WorkString[LastX+1]);
          WorkString[LastX+1] := C;
        end;
@@ -2316,17 +2347,17 @@ var qwe: byte;
          if LastDir < 0 then LastDir := (Dir + 2) mod 4;
          A := A or B or (1 shl LastDir) or (1 shl Dir);
          WorkModify;
-         if LastX >= WL then WorkString := AddSpace(WorkString, LastX + 1);
+         if LastX >= Length(WorkString) then WorkString := AddSpace(WorkString, LastX + 1);
          if Modify(_Up[LastX+1], 4) then
            begin
-             Dec(Delta.Y); _Up[0] := L_Up;
+             Dec(Delta.Y); SetLength(_Up, L_Up);
              StoreUndoInfo(udReplaceChar, Delta, _Up[LastX+1]);
              _Up[LastX+1] := ResChar; ModifyLine(Delta.Y, _Up, On);
              Inc(Delta.Y);
            end;
          if Modify(_Down[LastX+1], 1) then
            begin
-             Inc(Delta.Y); _Down[0] := L_Down;
+             Inc(Delta.Y); SetLength(_Down, L_Down);
              StoreUndoInfo(udReplaceChar, Delta, _Down[LastX+1]);
              _Down[LastX+1] := ResChar; ModifyLine(Delta.Y, _Down, On);
              Dec(Delta.Y);
@@ -2340,7 +2371,7 @@ var qwe: byte;
            end;
          StoreUndoInfo(udReplaceChar, Delta, WorkString[LastX+1]);
          WorkString[LastX+1] := ' ';
-         if (WL > LastX+1) and (Modify(WorkString[LastX+2], 8)) then
+         if (Length(WorkString) > LastX+1) and (Modify(WorkString[LastX+2], 8)) then
            begin
              Inc(Delta.X);
              StoreUndoInfo(udReplaceChar, Delta, WorkString[LastX+2]);
@@ -2628,7 +2659,7 @@ begin
                  if DelSpaces (WorkString) <> '' then
                   begin
                      WorkModify;
-                     While WorkString[WL] = ' ' do Dec(WL);
+                     While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
                      StoreUndoInfo(udStrModified, Delta, WorkString);
                      if (ShiftState and 3 <> 0)
                        or (Event.Command = cmUpString)
@@ -2642,7 +2673,7 @@ begin
                      begin
                        While (LastX > 0) and not (WorkString[LastX] in BreakChars) do Dec(LastX);
                        S := '';
-                       While (WL > LastX) and not (WorkString[LastX+1] in BreakChars) do
+                       While (Length(WorkString) > LastX) and not (WorkString[LastX+1] in BreakChars) do
                           begin S := S + WorkString[LastX+1]; Delete(WorkString, LastX+1, 1); end;
                        if S <> '' then
                        case Event.Command of
@@ -2658,17 +2689,17 @@ begin
                 end;
               cmMarkWord: begin
                             ChangeLine;
-                            if (LastX < WL) and not (WorkString[LastX+1] in BreakChars) and
+                            if (LastX < Length(WorkString)) and not (WorkString[LastX+1] in BreakChars) and
                               ((LastX=0) or (WorkString[LastX] in BreakChars)) then else
                              Message(@Self, evCommand, cmWordLeft, nil);
-                            if (LastY <> Delta.Y) or (Delta.X < WL) and (WorkString[Delta.X+1] in BreakChars)
-                              or (Delta.X >= WL) then
+                            if (LastY <> Delta.Y) or (Delta.X < Length(WorkString)) and (WorkString[Delta.X+1] in BreakChars)
+                              or (Delta.X >= Length(WorkString)) then
                               begin
                                 Message(@Self, evCommand, cmWordRight, nil);
                               end;
                             Mark.A := Delta; Mark.B := Delta;
                             ChangeLine;
-                            While (Mark.B.X < WL) and not (WorkString[Mark.B.X+1] in BreakChars) do Inc(Mark.B.X);
+                            While (Mark.B.X < Length(WorkString)) and not (WorkString[Mark.B.X+1] in BreakChars) do Inc(Mark.B.X);
                             R := Mark;
                             ScrollTo(LastX, LastY);
                             BlockVisible := On;
@@ -2678,7 +2709,7 @@ begin
               cmMarkLine: begin
                             Mark.A.X := 0; Mark.A.Y := Delta.Y;
                             if Delta.Y >= FileLines^.Count-1 then
-                              begin Mark.B.Y := Delta.Y; Mark.B.X := WL end
+                              begin Mark.B.Y := Delta.Y; Mark.B.X := Length(WorkString) end
                               else begin Mark.B.Y := Delta.Y+1; Mark.B.X := 0 end;
                             BlockVisible := On; CED
                            end;
@@ -2687,7 +2718,7 @@ begin
               cmSwitchHiLine: begin EdOpt.HiliteLine := not EdOpt.HiliteLine; CED end;
               cmSwitchHiColumn: begin EdOpt.HiliteColumn := not EdOpt.HiliteColumn; CED end;
               cmSwitchWrap: begin EdOpt.AutoJustify := not EdOpt.AutoJustify; CE end;
-              cmSwitchFill: begin OptimalFill := not OptimalFill; CE end;
+              cmSwitchFill: begin OptimalFill := not OptimalFill; DrawView; CE end;
               cmSwitchTabReplace: begin TabReplace := not TabReplace; CE end;
               cmSwitchBack: begin EdOpt.BackIndent := not EdOpt.BackIndent; CE end;
               cmIndentOn,cmIndentOff: begin EdOpt.AutoIndent := Event.Command = cmIndentOn; CE end;
@@ -2717,7 +2748,7 @@ begin
               cmCtrlHome: begin ScrollTo(Delta.X, Pos.Y); CED end;
               cmCtrlEnd: begin ScrollTo(Delta.X, Pos.Y+Size.Y-1); CED end;
               cmDeltoEOLN: begin WorkModify; StoreUndoInfo(udSubDel, Delta, WorkString);
-                                 WL := LastX; CED; end;
+                                 SetLength(WorkString, LastX); CED; end;
               cmCopyBlock: begin
                              CE; if not ValidBlock then Exit;
                              ChangeLine;
@@ -2777,6 +2808,7 @@ begin
               cmPrintBlock,
               cmViewFile,
               cmPrintFile,
+              cmPrintFileEd,
               cmFRight, cmFLeft, cmFJustify, cmFCenter,
               cmLRight, cmLLeft, cmLJustify, cmLCenter,
               cmIndentBlock,
@@ -2832,8 +2864,8 @@ begin
                         ScrollTo(Delta.X, Delta.Y);
                         CED
                        end;
-              cmEnd: begin UnMark := On; while WorkString[WL] = ' ' do Dec(WL);
-                           ScrollTo(WL, Delta.Y); CED end;
+              cmEnd: begin UnMark := On; while WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
+                           ScrollTo(Length(WorkString), Delta.Y); CED end;
               cmInsLine: begin
                           BlockOff;
                           PP := Delta; MakeEnter; Delta := PP;
@@ -2900,28 +2932,28 @@ begin
               cmDelBackChar: begin BlockOff; MakeBack; CE end;
               cmDelWordRight: begin
                                BlockOff;
-                               if (LastX >= WL) then
+                               if (LastX >= Length(WorkString)) then
                                 begin
-                                 MakeDel; While (LastX >= WL) and (LastY + 1 < FileLines^.Count)
-                                                or (LastX < WL) and (WorkString[LastX+1] = ' ') do MakeDel;
+                                 MakeDel; While (LastX >= Length(WorkString)) and (LastY + 1 < FileLines^.Count)
+                                                or (LastX < Length(WorkString)) and (WorkString[LastX+1] = ' ') do MakeDel;
                                  CED; Exit;
                                 end;
                                WorkModify;
                                if (WorkString[LastX+1] in BreakChars-[' ']) then begin MakeDel; CED; Exit; end;
                                if (WorkString[LastX+1] = ' ') then
-                                 while (LastX < WL) and (WorkString[LastX+1] = ' ') do MakeDel
+                                 while (LastX < Length(WorkString)) and (WorkString[LastX+1] = ' ') do MakeDel
                                 else begin
-                                      While (LastX < WL) and not (WorkString[LastX+1] in BreakChars) do MakeDel;
-                                      while (LastX < WL) and (WorkString[LastX+1] = ' ') do MakeDel
+                                      While (LastX < Length(WorkString)) and not (WorkString[LastX+1] in BreakChars) do MakeDel;
+                                      while (LastX < Length(WorkString)) and (WorkString[LastX+1] = ' ') do MakeDel
                                      end;
                                CED;
                               end;
               cmDelWordLeft: begin
                               BlockOff;
                               if LastX = 0 then begin MakeBack; CED; Exit end;
-                              if LastX >= WL
-                               then if WL > 0
-                                     then LastX := WL
+                              if LastX >= Length(WorkString)
+                               then if Length(WorkString) > 0
+                                     then LastX := Length(WorkString)
                                      else begin MakeBack; CED; Exit end;
                               if (WorkString[LastX] in BreakChars-[' '])
                                then begin MakeBack; CED; Exit; end;
@@ -2942,6 +2974,22 @@ begin
               cmOpenFileAtCursor: OpenFileAtCursor; {-$VIV 18.05.99--}
              end;
   evKeyDown:
+  {$IFDEF OS2}
+        if  ShiftState in [13,14] then  {JO: поскольку хоткеи Ctr-цифра в OS/2 не работают}
+          begin                        {    по непонятной причине, введены временные хоткеи}
+            case Event.KeyCode of      {    Ctrl-Alt-Shift-цифра для перехода к закладкам}
+           kbAlt1: Message(@Self, evCommand, cmGotoMarker1, nil);
+           kbAlt2: Message(@Self, evCommand, cmGotoMarker2, nil);
+           kbAlt3: Message(@Self, evCommand, cmGotoMarker3, nil);
+           kbAlt4: Message(@Self, evCommand, cmGotoMarker4, nil);
+           kbAlt5: Message(@Self, evCommand, cmGotoMarker5, nil);
+           kbAlt6: Message(@Self, evCommand, cmGotoMarker6, nil);
+           kbAlt7: Message(@Self, evCommand, cmGotoMarker7, nil);
+           kbAlt8: Message(@Self, evCommand, cmGotoMarker8, nil);
+           kbAlt9: Message(@Self, evCommand, cmGotoMarker9, nil);
+            end;
+          end else
+  {$ENDIF}
         if (Event.KeyCode <> kbCtrlAltX) then
         if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
         begin

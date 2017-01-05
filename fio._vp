@@ -44,6 +44,7 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
 
 FUNCTION AFileClose (Handle: Word): Boolean;
 BEGIN
@@ -88,13 +89,16 @@ BEGIN
  end else ASetFilePos := 0;
 END;
 
+{AK155}
 FUNCTION ASetFileSize (Handle: Word; FileSize: LongInt): Word;
 BEGIN
- if ASetFilePos(Handle, FileSize, 0, FileSize)<>0
-  then ASetFileSize := 1
-  else begin
-   SetEndOfFile(Handle);
+ ASetFileSize := 0;
+ if (ASetFilePos(Handle, FileSize, 0, FileSize)<>0) or
+    (SysFileSetSize(Handle, FileSize) <> 0)
+ then
+   ASetFileSize := 1
+ else
    ASetFileSize := 0;
-  end;
 END;
+{/AK155}
 

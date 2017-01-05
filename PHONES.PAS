@@ -243,7 +243,7 @@ procedure TPhoneBox.SetList;
 
     procedure InsertPhone(P: PPhone); {$IFDEF BIT_16}far;{$ENDIF}
       var PP: PPhoneDir;
-          I: LongInt;
+          I: CondInt;
     begin
       if P <> nil then
        begin
@@ -803,10 +803,11 @@ begin
  Sort;
 end;
 
-const VObjType:word=otPhone;
-     VObjType2:word=otPhoneDir;
-     VObjType3:word=otPhoneCollection;
+const VObjType:AWord=otPhone;
+     VObjType2:AWord=otPhoneDir;
+     VObjType3:AWord=otPhoneCollection;
 procedure TPhoneCollection.ShortStore(var S: TStream);
+Var TCount, TLimit, TDelta: AInt;
   procedure DoPutItem(P: Pointer); {$IFDEF BIT_16} far; {$ENDIF}
   begin
    if TypeOf( (PObject(P)^) )=TypeOf(TPhone) then begin
@@ -819,6 +820,9 @@ procedure TPhoneCollection.ShortStore(var S: TStream);
    end;
   end;
 begin
+  TCount := Count;
+  TLimit := Limit;
+  TDelta := Delta;
   S.Write(VObjType3, 2);
   S.Write(Count, 2);
   S.Write(Limit, 2);
@@ -828,15 +832,15 @@ begin
 end;
 
 constructor TPhoneCollection.ShortLoad(var S: TStream);
-var q: word;
+var q: AWord;
   C, I: Integer;
-  ACount, ALimit, ADelta: integer;
+  ACount, ALimit, ADelta: AInt;
 begin
   S.Read(q, 2);
   if q<>otPhoneCollection then fail;
-  S.Read(ACount, SizeOf(Integer));
-  S.Read(ALimit, SizeOf(Integer));
-  S.Read(ADelta, SizeOf(Integer));
+  S.Read(ACount, SizeOf(AInt));
+  S.Read(ALimit, SizeOf(AInt));
+  S.Read(ADelta, SizeOf(AInt));
   Inherited Init(ALimit, ADelta);
   SetLimit(ACount);
   for I := 0 to ACount - 1 do begin

@@ -48,7 +48,7 @@
 unit Arc_RAR; {RAR}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
     PRARArchive = ^TRARArchive;
@@ -62,35 +62,41 @@ type
 type
      MainRARHdr = record
       ID: Array [1..4] of Char;
-      HeadLen: Word;
+      HeadLen: AWord;
       HeadFlags: Byte;
      end;
 
      MainRAR2Hdr = record
-       HeadCRC: Word;
+       HeadCRC: AWord;
        HeadType: Byte;
-       HeadFlags: Word;
-       HeadLen: Word;
-       Reserved1: Word;
+       HeadFlags: AWord;
+       HeadLen: AWord;
+       Reserved1: AWord;
        Reserved2: LongInt;
      end;
 
 var RAR2: Boolean;
 
 implementation
+
 { ----------------------------- RAR ------------------------------------}
 
 constructor TRARArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
+{$IFNDEF OS2}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR.EXE'));
-  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e'));
-  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x'));
+{$ELSE}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'RAR.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'RAR.EXE'));
+{$ENDIF}
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e -c-'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x -c-'));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a'));
   Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'm'));
   Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd'));
@@ -109,12 +115,24 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '-m3'));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '-m4'));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-m5'));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, '@');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      '@'));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       '@'));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
-  if q='0' then UseLFN := False else UseLFN := True;
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function TRARArchive.GetID;
@@ -131,22 +149,22 @@ type
      LocRarHdr = record
        PSize: LongInt;
        USize: LongInt;
-       CRC: Word;
-       HdrLen: Word;
+       CRC: AWord;
+       HdrLen: AWord;
        Date: LongInt;
        Attr: Byte;
        Flags: Byte;
        Ver: Byte;
        NameLen: Byte;
        Method: Byte;
-       CommLen: Word;
+       CommLen: AWord;
      end;
 
      LocRar2Hdr = record
-       HeadCRC: Word;
+       HeadCRC: AWord;
        HeadType: Byte;
-       HeadFlags: Word;
-       HeadSize: Word;
+       HeadFlags: AWord;
+       HeadSize: AWord;
        PSize: LongInt;
        USize: LongInt;
        OSVer: Byte;
@@ -154,12 +172,12 @@ type
        Date: LongInt;
        Ver: Byte;
        Method: Byte;
-       NameLen: Word;
+       NameLen: AWord;
        Attr: LongInt;
      end;
 
 Procedure TRARArchive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     P    : LocRARHdr;
     P2   : LocRAR2Hdr;
@@ -187,7 +205,9 @@ begin
          FileInfo.USize := P2.USize;
          FileInfo.Attr := Byte(P2.HeadFlags and $04 <> 0) * Hidden;
          if P2.NameLen > 255 then P2.NameLen := 255;
-         ArcFile^.Read(S[1], P2.NameLen); S[0] :=Char(P2.NameLen);
+         ArcFile^.Read(S[1], P2.NameLen); SetLength(S, P2.NameLen);
+         if P2.HeadFlags and $200 <> 0 then SetLength(S, (PosChar(#0, S) - 1));
+            {piwamoto: skip unicode names from winrar2.80beta1+ archives}
          repeat
            Ps := System.Pos('.\', S);
            if Ps = 0 then Break;
@@ -196,7 +216,9 @@ begin
          if P2.OSVer=3 then (* Unix *) IsDir:=(P2.Attr and $4000 <> 0)
          else                          IsDir:=(P2.Attr and Directory <> 0);
          if IsDir then S:=S + '\';
+{$IFNDEF OS2}
          FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
+{$ENDIF}
          FileInfo.FName := S; {DataCompBoy}
          if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
          ArcFile^.Seek(FP+P2.HeadSize+P2.PSize);
@@ -223,8 +245,10 @@ begin
        end;
       Arcfile^.Read(S[1], P.NameLen);
       if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit; end;
-      S[0] := Char(P.NameLen);
+      SetLength(S, P.NameLen);
+{$IFNDEF OS2}
       FileInfo.LFN  := AddLFN(S);     {DataCompBoy}
+{$ENDIF}
       if P.Attr and Directory <> 0         {DataCompBoy}
        then FileInfo.FName := S+'\'        {DataCompBoy}
        else FileInfo.FName := S;           {DataCompBoy}

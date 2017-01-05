@@ -1,0 +1,20 @@
+dn.edt External editors configuration file
+dn.ext Extention file configuration file
+dn.mnu Global Menu file
+dn.vwr External viewers configuration file
+dnalt.vwr External viewers configuration file
+dn.xrn Quick run configuration file
+dn.phn Phone book
+dnhgl.grp Highlight groups configuration file
+dn.hgl Syntax highlite configuration file
+dn.ini Main configuration file
+DOC          Documentation for DN/2
+english.dlg  English resource file
+russian.dlg  Russian resource file
+dnpmapil.dll Dos Navigator/2 OS/2 PM API interface
+english.hlp  English help file
+russian.hlp  Russian help file
+english.lng  English language resource file
+russian.lng  Russian language resource file
+dn.exe       DN/2 executable file for OS/2
+openobj.exe  Utility to open WPS objects for files

@@ -45,6 +45,7 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+
 UNIT Commands;
 
 INTERFACE
@@ -126,6 +127,8 @@ CONST
   kbAltMore=$3400;              kbAltLess=$3300;
   kbAltShiftBack=$9700;
   kbShiftGrayPlus=$CE00;        kbShiftGrayMinus=$CA00;
+  kbAltShiftIns=$A20A; {for VP-version}
+
         {-DataCompBoy-}
 
   kbAltQuote = $2800;
@@ -194,6 +197,14 @@ const
   ebfHlt = 1 shl  0; {Highlight}
   ebfSmt = 1 shl  1; {SmartTab}
 
+  vbfHex               = 1 shl 0;
+  vbfWrap              = 1 shl 1;
+  vbfWordWrap          = 1 shl 2;
+  vbfHlt               = 1 shl 3;
+  vbfScrollAfterEOF    = 1 shl 4;
+  vbfAutoscroll        = 1 shl 5;
+  vbfDisAsm            = 1 shl 6;
+
   ouiClock               = $0001;
   ouiHideMenu            = $0002;
   ouiHideStatus          = $0004;
@@ -215,9 +226,9 @@ const
   osuAutoMenu       = $01;
   osuRestoreScrMode = $02;
   osuKillHistory    = $04;
-  osuOverlayXMS     = $08;
-  osuOverlayEMS     = $10;
-  osuResetPalette   = $20;
+{ osuOverlayXMS     = $08;}
+{ osuOverlayEMS     = $10;}
+  osuResetPalette   = $08;
 
   osuInactivityExit = $01;
   osuAutosave       = $02;
@@ -235,23 +246,24 @@ const
   osuReleaseCopy    = $04;
   osuReleaseArch    = $08;
   osuReleaseFind    = $10;
+ {osuReleaseDrag    = $20;}
 
   ossEditor      =  $01;
-  ossViewer      =  $02;
-  ossUseSysClip  =  $04;
-  ossShowHidden  =  $08;
-  ossFastExec    =  $10;
-  ossDisableXMS  =  $20;
-  ossCheckDDA    =  $40;
-  ossRemoveCD_RO =  $80;
-  ossAdvCopy     = $100;
-  ossFlushDsk    = $200;
+  ossUseSysClip  =  $02;
+  ossShowHidden  =  $04;
+  ossFastExec    =  $08;
+  ossDisableXMS  =  $10;
+  ossCheckDDA    =  $20;
+  ossRemoveCD_RO =  $40;
+  ossAdvCopy     =  $80;
+  ossFlushDsk    = $100;
+  ossHandleChDirCommand = $200;
 
   ossDirectAccess   =$01;
   ossTree           =$02;
   ossVerify         =$04;
-  ossNoLFN          =$08; {DataCompBoy}
-  ossCheckFreeSpace =$10; {DataCompBoy}
+  ossCheckFreeSpace =$08; {DataCompBoy}
+  ossNoLFN          =$10; {DataCompBoy}
 
   cdnHideCmdLine    = $0001;  { DN Misc Information }
 
@@ -262,6 +274,8 @@ const
   ditNetDir         = $08;
   ditIncludeQick    = $10;
   ditIncludeTempInfo= $20;
+  ditShowVolume     = $40;
+  ditSkipFloppy     = $80;
 
   dfMDY             = 00;
   dfDMY             = 01;
@@ -319,6 +333,8 @@ const
   hsRenameFil       = 154;
   hsFBBCopySize     = 155;
   hsFBBCopyNum      = 156;
+  hsEditEALongname  = 157;
+  hsCreateWPSObject = 158;
 
 {UU Encode options}
 
@@ -331,17 +347,6 @@ const
   ckFileTime      = 1;
   ckMapTable      = 2;
   ckStatistic     = 4;
-
-{ Panel sort mode }
-  psmName      = 0;
-  psmLongName  = 1;
-  psmExtension = 2;
-  psmLongExt   = 3;
-  psmSize      = 4;
-  psmTime      = 5;
-  psmType      = 6;
-  psmUnsorted  = 7;
-  psmOrdered   = 30;
 
 { QuickSearch key }
   pqsAlt  = 0;
@@ -357,6 +362,7 @@ const
   fmiHiliteFiles     = $0020;
   fmiExeFirst        = $0040;
   fmiArchivesFirst   = $0080;
+  fmiExeBeforeArc    = $0100;
 
 { Common panel interior, same for all instances }
   fmsColumnTitles    = $0001;
@@ -411,17 +417,23 @@ const
   cfMouseConfirm     = $0040;
   cfExitConfirm      = $0080;
   cfFmtOs2Warning    = $0100;
+  cfChaneLngWarning  = $0100;
 
 { Column data items }
   psShowLongName = $0001;
   psShowSize     = $0002;
   psShowDate     = $0004;
   psShowTime     = $0008;
-  psShowDir      = $0010;
-  psShowDescript = $0010;
   psShowPacked   = $0010;
   psShowRatio    = $0020;
-  psShowLongDesc = $0020;
+  psShowCrDate   = $0010;
+  psShowCrTime   = $0020;
+  psShowLADate   = $0040;
+  psShowLATime   = $0080;
+  psShowDir      = $0100;
+  psShowDescript = $0100;
+  psShowLongDesc = $0200;
+
 
 { Terminal emulation }
   emTTY     = 0;
@@ -647,6 +659,7 @@ const
   cmMenuOff            = 10023;
   cmExecGrabber        = 10024;
   cmCloseDialer        = 10025;
+  cmFileTextView       = 10026; {AK155}
 
   cmFindEdit           = 10101;
   cmFindView           = 10102;
@@ -684,6 +697,7 @@ const
   cmFindTempDrive      = 10505;
   cmTempDrive          = 10506;
   cmCopyToTemp         = 10508;
+  cmClearCommandLine   = 10509;
 
   cmSystemSetup        = 10600;
   cmChangeColors       = 10601;
@@ -727,6 +741,9 @@ const
   cmSaveSheetAs        = 10919;
   cmToggleDescriptions = 10920;
   cmToggleShowMode     = 10921;
+  cmToggleLongNames    = 10922;
+  cmOpenWPSWindow      = 10923;
+  cmCreateWPSObject    = 10924;
 
   cmExtract            = 11000;
   cmSetPassword        = 11001;
@@ -803,7 +820,7 @@ const
   cmAddFilter          = 19012;
   cmGetDirInfo         = 19014;
   cmSinglePrint        = 19015;
-  cmSingleAttr         = 19016;
+{ cmSingleAttr         = 19016;} {JO}
   cmSingleTag          = 19017;
   cmSingleUntag        = 19018;
   cmGetCurrentPosFiles = 19019;
@@ -868,6 +885,7 @@ const
   cmMemoryInfo        = 3016;
   cmLoadDesk          = 5434;
   cmSaveDesk          = 5435;
+  cmRetrieveSwp       = 5436; {JO}
  {cmDiskCopy          = 3017;}
   cmSystemDisk        = 3018;
   cmReanimator        = 3019;
@@ -897,6 +915,7 @@ const
   cmSetupArchive      = 3047;
   cmUpdateConfig      = 3048;
   cmPrintFile         = 3049;
+  cmPrintFileEd       = 30491; {JO} {temporarily}
   cmHighlightGroups   = 3050;
   cmSetupMouse        = 3054;
   cmSetupPrinter      = 3055;
@@ -920,7 +939,6 @@ const
   cmConfigLHA         = 3114;
   cmConfigRAR         = 3117;
   cmConfigZIP         = 3123;
-{$IFNDEF MINARCH}
   cmConfigAIN         = 3102;
   cmConfigARC         = 3103;
   cmConfigBS2         = 3105;
@@ -940,7 +958,6 @@ const
   cmConfigUFA         = 3122;
   cmConfigZOO         = 3124;
   cmConfigZXZ         = 3125;
-{$ENDIF}
   cmHiConfigArchiver  = 3125;
   cmUpdateArcFile     = 3200;
 
@@ -959,8 +976,8 @@ const
   cmPlayCD            = 3239;
   cmEnvEdit           = 3240;
   cmEditHGL           = 3241;
-  cmSingleCopy        = 3242;
-  cmSingleRename      = 3243;
+{ cmSingleCopy        = 3242;} {JO}
+{ cmSingleRename      = 3243;} {JO}
   cmExecuteDOScmd     = 3244;
   cmFMSetup           = 3246;
   cmDriveInfoSetup    = 3247;
@@ -1071,8 +1088,10 @@ const
   cmUnpDiskImg        = 182;
   cmSingleDel         = 183;
   cmAdvFilter         = 184;
+  cmSingleAttr        = 185; {JO}
   cmDirBranch         = 186;
   cmChangeNameCase    = 187;
+  cmSetEALongname     = 188;
 
 { ??? Commands }
 
@@ -1085,18 +1104,20 @@ const
   cmWindowManager     = 195;
   cmClearDeskTop      = 196;
   cmUnWrap            = 197;
+  cmSingleCopy        = 198; {JO}
+  cmSingleRename      = 199; {JO}
   cmGotoCell          = 508;
 
-{ Sort commands }
-  cmSortName          = 13001;
-  cmSortLongName      = 13002;
-  cmSortExt           = 13003;
-  cmSortLongExt       = 13004;
-  cmSortSize          = 13005;
-  cmSortDate          = 13006;
-  cmSortType          = 13030;
-  cmSortUnsorted      = 13000;
 
+{$IFDEF OS_DOS}
+ {$I SORT_DOS.INC}
+{$ENDIF}
+{$IFDEF Win32}
+ {$I SORT_W32.INC}
+{$ENDIF}
+{$IFDEF OS2}
+ {$I SORT_OS2.INC}
+{$ENDIF}
 
 { DblWnd Commands }
 
@@ -1412,6 +1433,9 @@ TYPE
     dlSortLongExt,
     dlSortType,
     dlSortDate,
+    dlSortCrDate,
+    dlSortLADate,
+    dlSortDIZ,
     dlSortSize,
     dlSortUnsorted,
     dlViewQuery,
@@ -1451,6 +1475,10 @@ TYPE
     dlTopSize,
     dlTopTime,
     dlTopDate,
+    dlTopCrTime,
+    dlTopCrDate,
+    dlTopLATime,
+    dlTopLADate,
     dlTopPath,
     dlTopOriginal,
     dlTopPacked,
@@ -1780,6 +1808,12 @@ TYPE
 
     dlTeamHint,
 
+    dlTeamAll,
+    dlTeam2_000,
+    dlTeam2_001,
+    dlTeam2_002,
+    dlTeam2_003,
+    dlTeam2_004,
     dlTeam000,
     dlTeam001,
     dlTeam002,
@@ -2122,6 +2156,12 @@ TYPE
     dlCE_DeviceError,
     dlCE_InsertDisk,
     dlCE_SharingViolation,
+    dlCE_WrongDisk,        {JO}
+    dlCE_DiskFull,
+    dlCE_DeviceInUse,      {/JO}
+    dlCE_Filename_Exced_Range, {AK155}
+    dlCE_Dirty_Flag,           {/AK155}
+    dlCE_Filename_Illegal,     {JO}
     dlCE_ErrWndTitle,
 
     dlCE_ButAbort,
@@ -2287,12 +2327,83 @@ TYPE
     dlDelMsg,
     dlNotPkt,
     dlReadingPkt,
-    dlLine
-  );
+    dlLine,
+    dlNameLong,
+    dlNameShort,
+    dlFullInfo,
+    dlDescr,
+    dlPath,
+    dlAdvancedFormat,   {JO}
+    dlBootSector1,
+    dlEntries,
+    dlDirEntries,
+    dlSize,
+    dlClusterSize,
+    dlTracks,
+    dlHeads,
+    dlSectors1,
+    dlSectors2,
+    dlStartTr1,
+    dlStartTr2,
+    dlStartTr3,
+    dlInterleave1,
+    dlInterleave2,
+    dlSectorSh1,
+    dlSectorSh2,
+    dlSectorSh3,
+    dlHeadSectSh1,
+    dlHeadSectSh2,
+    dlHeadSectSh3,
+    dlTrackSectSh1,
+    dlTrackSectSh2,
+    dlTrackSectSh3,
+    dlTrack,
+    dlSectorSize1,
+    dlSectorSize2,
+    dlDrivesType,
+    dlDisk,
+    dlDOS,
+    dlAutodetect,       {/JO}
 
-  TDlgIdx = (
-    dlgSelect,
-    dlgUnselect,
+    dl_Failed_to_enumerate_EA, {JO - Extended Attributes}
+    dl_Failed_to_retrieve_EA,
+    dl_Failed_to_store_EA,
+    dlEditEALongname,
+    dl_EALongname, {/JO}
+    dlChangeLngWarning, {JO}
+    dl_Failed_to_set_volume_label, {JO}
+
+    sdtError,         {X-Man >>>}
+    sdtFixed,
+    sdtRemovable,
+    sdtRemote,
+    sdtCDROM,
+    sdtDblSpace,
+    sdtSUBST,
+    sdtStacker,
+    sdtRAMDrive,
+    sdtDublDisk,
+    sdtBernoully,
+    sdtDiskreet,
+    sdtSuperStor,     {X-Man <<<}
+    sdtFixed1,        {JO}
+
+    dlDoes_Not_Exist, {JO}
+    dlCmdLineTooLong, {JO}
+    dlCantLoad,       {JO}
+    dlIniDataReadError, {PZ}
+    dlIniDataTooLong,   {PZ}
+    dlNotValidForFullscreen, {JO}
+    dlCreateObject,   {JO}
+    dlObjectTitle,
+    dl_CodePage_FS_Error, {JO}
+    dlCre,            {JO}
+    dlLac             {JO}
+      );
+
+      TDlgIdx = (
+        dlgSelect,
+        dlgUnselect,
     dlgSetupArc,
     dlgCommandsHistory,
     dlgExtract,
@@ -2368,6 +2479,7 @@ TYPE
     dlgUUDecode, {UUDECODE}
     dlgUUEncode, {UUECNODE}
     dlgOverwriteQuery,
+    dlgAppendQuery, {AK155}
     dlgViewerFind,
     dlgArvidFileFind,
     dlgArvidFindResults,
@@ -2385,7 +2497,8 @@ TYPE
     dlgSetupColumnsArch,
     dlgSetupColumnsArvd,
     dlgNextSection,
-    dlgNameCase
+    dlgNameCase,
+    dlgChScreenMode {JO}
   );
 
 IMPLEMENTATION END.

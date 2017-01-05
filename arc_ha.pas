@@ -48,7 +48,7 @@
 unit Arc_HA; {HA}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos, xTime;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime;
 
 type
     PHAArchive = ^THAArchive;
@@ -76,7 +76,7 @@ constructor THAArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'HA.EXE'));
@@ -101,12 +101,28 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  '+1'));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    '+2'));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '+2'));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+ {$IFDEF OS2}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
+ {$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+ {$ENDIF}
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  if q='0' then UseLFN := False else UseLFN := True;
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function THAArchive.GetID;
@@ -135,18 +151,21 @@ begin
  FileInfo.PSize := P.PackedSize;
  GetUNIXDate(P.Date - 14400, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
  PackTime(DT, FileInfo.Date);
- S[0] := #0;
+ SetLength(S, 0);
  repeat ArcFile^.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 77);
  repeat ArcFile^.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 78);
  if Length(S) > 79 then begin FileInfo.Last := 2; Exit; end;
  While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
  if P.Method and $0f = $0e then S:=S+'\';
+{$IFNDEF OS2}
  FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
+{$ENDIF}
  FileInfo.FName := S; {DataCompBoy}
- S[0] := #2;
- ArcFile^.Read(S[0], 1); ArcFile^.Read(S[1], byte(S[0]));
- FP := ArcFile^.GetPos + P.PackedSize;
- if (FP > ArcFile^.GetSize) or (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2; Exit; end;
+ SetLength(S, 2);
+ ArcFile^.Read(S[0], 1); ArcFile^.Read(S[1], Length(S));
+ if P.PackedSize >= 0 then FP := ArcFile^.GetPos + P.PackedSize else begin FileInfo.Last := 2; Exit end; {JO багфикс зацикливания в ложных архивах}
+ if (VCardinal(FP) > ArcFile^.GetSize) {piwamoto}
+    or (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2; Exit; end;
  ArcFile^.Seek(FP);
 end;
 

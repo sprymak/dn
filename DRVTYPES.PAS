@@ -96,14 +96,6 @@ function getDriveType(Drive : Byte) : Byte;
 function countValidDrives : Byte;
 
 implementation
-{$IFDEF NONBP}
-function getDriveType(Drive : Byte) : Byte;
-begin getDriveType:=dtError end;
-
-function countValidDrives : Byte;
-begin countValidDrives:=0 end;
-
-{$ELSE NONBP}
 
 function checkStacker( Drive : Byte ) : Boolean; assembler;
 
@@ -420,7 +412,5 @@ function countValidDrives;
     Inc(C);
   countValidDrives := C;
  end;
-
-{$ENDIF}
 
 end.

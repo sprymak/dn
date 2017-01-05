@@ -46,6 +46,7 @@
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
+{.$DEFINE NOASM}
 UNIT Ed2;
 INTERFACE
 Uses Commands, Advance1, U_Keymap, Collect, Views, Drivers, Objects, LFN,
@@ -207,9 +208,11 @@ begin
                 else    Event.Command := cmEditCrLfMode;
                end
        else if (T.X > 28) and (T.X < 32) then Event.Command := cmSwitchKeyMapping
-       else if FastBookmark and ((T.X > 34) and (T.X < 44)) then
+       else if (T.X = 35) then
+         PFileEditor(owner^.Current)^.ScrollTo(0, 0) {AK155}
+       else if FastBookmark and ((T.X > 35) and (T.X < 45)) then
              begin
-              BookMark := T.X-35;
+              BookMark := T.X-36;
               if (Event.Buttons and mbRightButton <> 0) or
                  (not P^.MarkPos[Event.InfoByte].EqualsXY(-1, -1)) then
                with Event do begin
@@ -220,6 +223,8 @@ begin
                end
               else Event.What := evNothing;
              end
+       else if (T.X = 45) then with PFileEditor(owner^.Current) do
+         ScrollTo(0, FileLines^.Count) {AK155}
        else Event.What := evNothing;
        if Event.What <> evNothing then PutEvent(Event);
        ClearEvent(Event);
@@ -248,21 +253,26 @@ begin
   Color:=PWindow(Owner)^.Frame^.GetColor(3);
   Ch2:=#205;
  end;
- if not Owner^.GetState(sfActive) then S[0] := #0
+ if not Owner^.GetState(sfActive) then SetLength(S, 0)
  else begin
   With P^ do
    begin
     X := Delta.X + 1;
     Y := Delta.Y + 1;
-    if X <= Byte(WorkString[0]) then C := WorkString[X] else C := #0;
+    if X <= Length(WorkString) then C := WorkString[X] else C := #0;
    end;
   C := P^.KeyMapConvertStr(C, false); {-$VIV start}
   CharNum := Byte(C[1]); {-$VIV e.nd}
   if P^.Modified then S := #15+Ch2 else S := Ch2+Ch2;
   S := S + SStr(Y, 7, Ch2) + ':' + SSt2(X, 3, Ch2) + Ch2+'['+SStr(CharNum,3,'0')+']'+Ch2; {-$VIV}
-  if P^.DrawMode = 1 then S := S + '{'#197'}' else
-    if P^.DrawMode = 2 then S := S + '{'#206'}' else
-      if P^.VertBlock then S := S + '('#18')' else S := S + '('#29')';
+  if P^.DrawMode = 1 then S := S + '{┼' else
+    if P^.DrawMode = 2 then S := S + '{╬' else
+      if P^.VertBlock then S := S + '('#18 else S := S + '('#29;
+ if P^.DrawMode = 0 then
+      if P^.OptimalFill then S := S + 'F)' else S:= S + ')═'
+  else
+      if P^.OptimalFill then S := S + 'F}' else S:= S + '}═';
+
 
   if P^.EdOpt.ForcedCrLf = cfNone then
    begin
@@ -448,13 +458,15 @@ procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF;
      SST: String;
      P: PString;
 
-  procedure CompressString;
+  procedure CompressString; {та, кот. при сохранении файла}
+
    var PP: Pointer;
        TSt: Integer;
   begin
    PP := @SST;
    TSt := StoI(EditorDefaults.TabSize);
    if TSt = 0 then TSt := 8;
+ {$IFNDEF BIT_32}
    asm
       les bx, PP
       mov cl, es:[bx]
@@ -496,6 +508,57 @@ procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF;
       jmp @@1
     @@Ex:
    end;
+ {$ELSE}
+   asm
+      push ebx
+      push edx
+      push edi
+      push esi
+      mov ebx, PP
+      xor ecx, ecx
+      mov cl, [ebx]
+      inc ebx
+      jcxz @@Ex
+      xor edi, edi
+      xor esi, esi
+      mov byte ptr [ebx-1], ch
+    @@1:
+      mov ah, byte ptr TSt
+      xor edx, edx
+    @@2:
+      mov al, [ebx+esi]
+      mov [ebx+edi], al
+      inc esi
+      cmp esi, ecx
+      ja  @@Ex
+      inc edi
+      inc byte ptr [ebx-1]
+      cmp al, ' '
+      jne @@3
+      inc dl
+      jmp @@4
+     @@3:
+      xor dl, dl
+     @@4:
+      dec ah
+      jnz @@2
+      or  dl, dl
+      jz @@5
+      dec dl
+      jz @@5
+      sub edi, edx
+      sub byte ptr [ebx-1], dl
+      mov al, 9
+      mov [ebx+edi-1], al
+     @@5:
+      jmp @@1
+    @@Ex:
+      pop esi
+      pop edi
+      pop edx
+      pop ebx
+   end;
+ {$ENDIF}
   end;
 
   var PP: PView;
@@ -519,14 +582,18 @@ begin
  while not Abort and (S^.Status = stOK) and (I < C^.Count) do
   begin
    UpdateWriteView(PP);
-   P := C^.At(I-1); if P <> nil then SST := P^ + CrLf else SST := CrLf;
+   P := C^.At(I-1); if P <> nil then                    {JO}{!!!}
+                       if (Length(P^) < MaxEditStringLength) or not RecombineLongLines then
+                          SST := P^ + CrLf
+                       else SST := P^
+                    else SST := CrLf;                   {JO}
    if AOptimalFill then CompressString;
    S^.Write(SST[1], Length(SST));
    Inc(I);
   end;
   {HintString := '';} Application^.Idle;
   P := C^.At(I-1); if P <> nil then SST := P^ else SST := '';
-  S^.Write(SST[1], Byte(SST[0]));
+  S^.Write(SST[1], Length(SST));
   if PP <> nil then PP^.Free;
 end;
 

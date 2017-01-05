@@ -62,15 +62,15 @@ begin
     ValidLngId:=False;
     S1:=GetEnv('DNDLG');
     if S1='' then S1:=SourceDir;
-    if not (S1[Byte(S1[0])] in ['\','/']) then S1:=S1+'\';
+    if not (S1[Length(S1)] in ['\','/']) then S1:=S1+'\';
     S2:=StartupDir;
-    if not (S2[Byte(S2[0])] in ['\','/']) then S2:=S2+'\';
+    if not (S2[Length(S2)] in ['\','/']) then S2:=S2+'\';
     if (not CheckForHelp) and (not ExistFile(S1+LI+'.DLG')) and
     (not ExistFile(S2+LI+'.DLG')) then Exit;
     if (not CheckForHelp) and (not ExistFile(S1+LI+'.LNG')) and
     (not ExistFile(S2+LI+'.LNG')) then Exit;
     if CheckForHelp then begin
-        S1:=SourceDir; if not (S1[Byte(S1[0])] in ['\','/']) then S1:=S1+'\';
+        S1:=SourceDir; if not (S1[Length(S1)] in ['\','/']) then S1:=S1+'\';
         if (not ExistFile(S1+LI+'.HLP')) and (not ExistFile(S2+LI+'.HLP'))
         then Exit
     end;

@@ -76,6 +76,23 @@ const
   { Turbo Vision 1.0 Color Palettes }
 
   CColor =
+      #$0A#$70#$79#$75#$30#$39#$35#$8C#$8B#$8A#$31#$31#$78#$7F#$1F +
+    #$31#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E +
+    #$70#$70#$73#$13#$13#$70#$70#$7F#$75#$5B#$6F#$CF#$78#$5D#$78#$70 +
+    #$7F#$76#$0F#$9F#$0B#$9F#$79#$87#$78#$30#$0F#$3F#$31#$70#$30#$3E +
+    #$30#$38#$3E#$0F#$07#$0E#$87#$8F#$87#$87#$8B#$B0#$87#$7F#$1C#$00 +
+    #$87#$8B#$87#$8B#$B0#$8B#$8B#$0F#$30#$7F#$30#$8B#$87#$70#$87#$8F +
+    #$3F#$8F#$3F#$8E#$8E#$70#$8B#$87#$30#$3F#$0F#$3E#$0E#$31#$31#$00 +
+    #$87#$8F#$87#$8B#$B0#$87#$70#$8B#$30#$3F#$87#$8F#$87#$8F#$70#$7F +
+    #$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70#$37#$3F#$3A#$13#$13 +
+    #$30#$3E#$1E#$30#$38#$3E#$0F#$07#$0E#$87#$8B#$87#$87#$8B#$B0#$87 +
+    #$70#$8E#$30#$3F#$83#$8E#$38#$3F#$3A#$31#$3F#$70#$87#$8F#$8D#$89 +
+    #$84#$82#$C8#$6D#$80#$8C#$0C#$7C#$0B#$0F#$8B#$8B#$8E#$8F#$8D#$8B +
+    #$83#$86#$81#$8E#$8A#$8F#$8E#$83#$8F#$8D#$8B#$8F#$8E#$3F#$3F#$3F +
+    #$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F +
+    #$08#$CF#$CE#$0F#$0E;
+
+(*
 { 01}#$71#$70#$78#$74#$20#$28#$24#$17#$1F#$1A#$31#$31#$78#$7F#$1F#$31 +
 { 17}#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E#$70 +
 { 33}#$7F#$7A#$13#$13#$70#$70#$7F#$7E#$8F#$8B#$9F#$78#$8E#$70#$78#$7F +
@@ -91,44 +108,45 @@ const
 {193}#$86#$84#$85#$80#$8E#$8A#$83#$8F#$8D#$8B#$8E#$8A#$81#$3F#$3F#$3F + {JO}
 {209}#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$08 +
 {225}#$CF#$CE#$0F#$0E;
+*)
 
   CBlackWhite =
-        #$70#$70#$78#$7F#$07#$07#$0F#$07#$0F#$07#$70#$70#$07#$70#$0F +
+        #$0F#$70#$78#$7F#$07#$07#$0F#$07#$0F#$07#$70#$70#$07#$70#$0F +
     #$07#$0F#$07#$70#$70#$07#$70#$0F#$70#$7F#$7F#$70#$07#$70#$07#$0F +
     #$70#$7F#$7F#$70#$07#$70#$70#$7F#$7F#$07#$0F#$0F#$78#$0F#$78#$07 +
     #$0F#$0F#$0F#$70#$0F#$07#$70#$70#$70#$07#$70#$0F#$07#$07#$78#$00 +
     #$70#$78#$7F#$07#$07#$0F#$07#$0F#$0F#$0F#$70#$70#$07#$70#$07#$00 +  { 64 - 79 Editor}
-    #$07#$0F#$0F#$70#$70#$07#$07#$0F#$70#$7F#$7F#$0F#$70#$70#$70#$7F +
-    #$0F#$70#$07#$7F#$7F#$07#$70#$7F#$30#$3F#$1F#$30#$17#$3E#$3E#$00 +
-    #$17#$1F#$1A#$31#$31#$17#$71 +
-    #$1B#$1E#$1E#$1F#$17#$1F#$17 + {119 - 125 - File Info}
+    #$07#$0F#$0F#$70#$70#$07#$07#$F0#$70#$7F#$7F#$0F#$70#$70#$07#$07 +
+    #$70#$0F#$7F#$0F#$0F#$07#$70#$7F#$0F#$0F#$0F#$70#$7F#$0F#$0F#$00 +
+    #$07#$0F#$0F#$78#$78#$07#$78 +
+    #$07#$70#$7F#$07#$0F#$07#$0F + {119 - 125 - File Info}
     #$70#$7F#$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70 + {126 - 138 - File Find}
     #$07#$0F#$07#$70#$70#$07#$0F#$70 +
     #$70#$78#$7F#$07#$07#$0F#$07#$0F#$0F#$0F#$70#$70#$07#$70#$0F#$70 +
-    #$0F#$07#$1F#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F +
-    #$3F#$1F#$1A#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F +
-    #$3F#$1F#$1A#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F +
-    #$7F#$1F#$1A#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F;
+    #$0F#$08#$0F#$07#$0F#$0F#$0F#$07#$70#$07#$0F#$08#$07#$07#$07#$7F +
+    #$7F#$07#$07#$0F#$78#$08#$0F#$0F#$0F#$78#$0F#$0F#$0F#$07#$07#$07 +
+    #$07#$07#$0F#$0F#$08#$0F#$0F#$0F#$0F#$0F#$3F#$1F#$17#$71#$30#$3F +
+    #$7F#$1F#$1A#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F#$3F#$3F;
 
   CMonochrome =
-        #$70#$07#$07#$0F#$70#$70#$70#$07#$0F#$07#$70#$70#$07#$70#$00 +
-    #$07#$0F#$07#$70#$70#$07#$70#$00#$70#$70#$70#$07#$07#$70#$07#$00 +
-    #$70#$70#$70#$07#$07#$70#$70#$70#$0F#$07#$07#$0F#$70#$0F#$70#$07 +
-    #$0F#$0F#$07#$70#$07#$07#$70#$07#$07#$07#$70#$0F#$07#$07#$70#$00 +
-    #$70#$78#$7F#$07#$07#$0F#$07#$0F#$0F#$0F#$70#$70#$07#$70#$1C#$00 +  { 64 - 79 Editor}
-    #$07#$0F#$0F#$70#$70#$07#$07#$0F#$70#$7F#$7F#$0F#$70#$70#$70#$7F +
-    #$0F#$70#$07#$7F#$7F#$07#$70#$7F#$30#$3F#$1F#$30#$17#$3E#$3E#$00 +
-    #$17#$1F#$1A#$31#$31#$17#$71 +
-    #$1B#$1E#$1E#$1F#$17#$1F#$17 + {119 - 125 - File Info}
-    #$70#$7F#$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70 +
-    #$07#$0F#$07#$70#$70#$07#$0F#$70 +
-    #$70#$78#$7F#$07#$07#$0F#$07#$0F#$0F#$0F#$70#$70#$07#$70#$0F#$70 +
-    #$0F#$07#$1F#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F +
-    #$3F#$1F#$1A#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F +
-    #$3F#$1F#$1A#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F +
-    #$7F#$1F#$1A#$31#$31#$1B#$1F#$1E#$30#$3E#$3F#$1F#$17#$71#$30#$3F;
+        #$70#$07#$07#$01#$70#$70#$0F#$07#$0F#$0F#$0F#$0F#$70#$0F#$1F +
+    #$31#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E +
+    #$70#$70#$70#$0F#$0F#$70#$70#$70#$0F#$07#$07#$07#$07#$01#$70#$70 +
+    #$07#$0F#$07#$70#$0F#$0F#$70#$0F#$0F#$07#$70#$01#$07#$70#$70#$0F +
+    #$70#$70#$01#$0F#$07#$01#$07#$0F#$0F#$0F#$0F#$0F#$07#$70#$1C#$00 +  { 64 - 79 Editor}
+    #$07#$0F#$0F#$0F#$0F#$07#$0F#$01#$70#$70#$70#$0F#$07#$0F#$07#$07 +
+    #$70#$0F#$70#$01#$01#$70#$0F#$07#$07#$07#$70#$0F#$70#$01#$01#$00 +
+    #$07#$0F#$0F#$0F#$0F#$07#$70 +
+    #$0F#$07#$0F#$07#$0F#$07#$0F + {119 - 125 - File Info}
+    #$70#$7F#$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70 + {126 - 138 - File Find}
+    #$07#$07#$0F#$0F#$0F#$07#$0F#$70 +
+    #$70#$70#$01#$0F#$07#$01#$07#$0F#$0F#$0F#$0F#$0F#$07#$70#$70#$70 +
+    #$01#$0F#$0F#$07#$0F#$0F#$0F#$07#$0F#$07#$07#$07#$07#$07#$07#$0F +
+    #$01#$07#$07#$01#$01#$0F#$01#$07#$0F#$70#$0F#$07#$0F#$07#$07#$07 +
+    #$07#$07#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F +
+    #$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$01#$70#$70#$07#$0F;
 
-  { Turbo Vision 2.0 Color Palettes }
+(*{ Turbo Vision 2.0 Color Palettes }
 
   CAppColor =
         #$71#$70#$78#$74#$20#$28#$24#$17#$1F#$1A#$31#$31#$1E#$71#$1F +
@@ -159,7 +177,7 @@ const
     #$0F#$0F#$07#$70#$07#$07#$70#$07#$07#$07#$70#$0F#$07#$07#$70#$00 +
     #$70#$70#$70#$07#$07#$70#$70#$70#$0F#$07#$07#$0F#$70#$0F#$70#$07 +
     #$0F#$0F#$07#$70#$07#$07#$70#$07#$07#$07#$70#$0F#$07#$07#$70#$00;
-
+*)
 { TBackground palette }
 
   CBackground = #1;
@@ -312,12 +330,18 @@ type
      IState: Byte;
    end;
 
+{$IFDEF OS2}
+const
+  PMWindowed: Boolean = False;
+{$ENDIF}
+
 implementation
 
 uses Dos, DNHelp, advance, advance1, advance2, VideoMan,
      ExtraMem, UserMenu, MicroEd, FViewer, DblWnd, CmdLine
+     , xdblwnd, flTools {AK155: для восстановления курсора комстроки }
 {$IFDEF SS},Idlers{$ENDIF}
-{$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
+{$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}, DNExec
      ;
 
 var
@@ -730,7 +754,7 @@ begin
   if ValidView(P) <> nil then
   begin
     if Data <> nil then P^.SetData(Data^);
-    C := Desktop^.ExecView(P);
+    C := {Desktop^.}ExecView(P); { X-Man }
     if (C <> cmCancel) and (Data <> nil) then P^.GetData(Data^);
     Dispose(P,Done);
     ExecuteDialog := C;
@@ -749,7 +773,7 @@ end;
 {$IFDEF SS}
 procedure TProgram.InsertIdler;
 begin
-  if (SkyEnabled > 0) or SaversData.Mouse and
+  if {$IFDEF OS2} PMWindowed or {$ENDIF} (SkyEnabled > 0) or SaversData.Mouse and
   (MouseWhere.Y= Size.Y-1) and (MouseWhere.X = Size.X-1)
    or (SaversData.Selected.List = nil) or
       (SaversData.Selected.List^.Count = 0) or
@@ -835,7 +859,10 @@ end;
 var
     P: Procedure;
     R: TRect;
-    A1, A2: {$IFNDEF VIRTUALPASCAL}Word{$ELSE}SmallWord{$ENDIF};
+    A1, A2, CursorY: {$IFNDEF VIRTUALPASCAL}Word{$ELSE}SmallWord{$ENDIF};
+    CursorStartScanLine, CursorEndScanLine: integer; //ak155
+    y1, y2: integer;
+    CursorVisible: boolean;
 label 11;
 begin
 11:
@@ -906,7 +933,8 @@ begin
   begin
     IdleWas := False;
     {$IFDEF VIRTUALPASCAL}
-    SysGetCurPos(A1, A2);
+     SysGetCurPos(A2, CursorY); {AK155}
+     SysTVGetCurType(CursorStartScanLine, CursorEndScanLine, CursorVisible);
     {$ELSE}
     asm
      mov ah,3
@@ -915,9 +943,25 @@ begin
      mov A1, dx
      mov A2, cx
     end;
+    CursorVisible := Hi(A2) <> $20;
+    CursorY := Hi(A1);
     {$ENDIF}
-    if ((Hi(A2) = $20) or (Hi(A1) = Size.Y - 1 - Byte( InterfaceData.Options and ouiHideStatus = 0 )))
-       then CommandLine^.Update;
+    if (not CursorVisible or (CursorY = Size.Y - 1 - Byte( InterfaceData.Options and ouiHideStatus = 0 )))
+       then
+         begin
+         if not CursorVisible then
+           begin
+           SysTVSetCurType(0, -100, true);
+           SysTVGetCurType(y1, y2, CursorVisible);
+           SysTVSetCurType(y2-CursorEndScanLine, y2-CursorStartScanLine, true);
+//           SysTVSetCurType(-99, -100, true);
+           end;
+        {CommandLine^.DrawView;} {JO: вот из-за этого DrawView мы и имеем     }
+                                 {    такие жутчайшие тормоза во время        }
+                                 {    drag&drop при включённой отдаче слайсов }
+{   пока сделаем так:         }
+         CommandLine^.Update;
+         end;
   end;
 end;
 
@@ -1077,6 +1121,9 @@ var
 begin
    HideMouse;
    DoneEvents;
+{$IFDEF VIRTUALPASCAL}
+   FillChar(ScreenMirror, SizeOf(ScreenMirror), 0); // Added by SANDSoft
+{$ENDIF}
    DoneMemory;
    SetVideoMode(Mode);
    InitMemory;
@@ -1111,6 +1158,7 @@ end;
 
 Procedure TProgram.BFSpeed; {DataCompBoy}
 begin
+(*  {$IFNDEF OS2}
  {$IFDEF WIN32}
  {EnterCriticalSection(CS);}
  {$ELSE}
@@ -1119,11 +1167,13 @@ begin
   int 21h
  end;
  {$ENDIF}
+{$ENDIF} *)
  FullSpeed:=True;
 end;
 
 Procedure TProgram.EFSpeed; {DataCompBoy}
 begin
+(*  {$IFNDEF OS2}
  {$IFDEF WIN32}
  {LeaveCriticalSection(CS);}
  {$ELSE}
@@ -1132,6 +1182,7 @@ begin
   int 21h
  end;
  {$ENDIF}
+{$ENDIF} *)
  FullSpeed:=False;
 end;
 
@@ -1191,10 +1242,10 @@ begin
  HideMouse;
  Inc(SkyEnabled); SkyVisible := On;
  DoneVideo;
-{ if B <> StartupMode then SetVideoMode(StartupMode);}
+
  WhenShow;
  InitVideo; SetBlink(Off); Dec(SkyEnabled); SkyVisible := Off;
-{ if B <> StartupMode then SetScreenMode(B);}
+
  InitVideo; CursorLines := BB;
  Redraw; ShowCursor; ShowMouse;
  *)
@@ -1263,7 +1314,7 @@ procedure OpenResource;
 begin
  if Resource <> nil then Exit;
  S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
- if S[Byte(S[0])] <> '\' then S := S + '\';
+ if S[Length(S)] <> '\' then S := S + '\';
  ResourceStream := New(PBufStream,
                        Init(S + LngId + '.DLG', stOpenPacked, 1024)
                       );
@@ -1449,7 +1500,7 @@ var PS,XS: PStream;
 
 begin
    S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
-   if S[Byte(S[0])] <> '\' then S := S + '\';
+   if S[Length(S)] <> '\' then S := S + '\';
 
    PS := New(PBufStream,
              Init(S + LngId + '.LNG', stOpenPacked, 4096)
@@ -1526,11 +1577,10 @@ type
 
 function NewCacheRec(const S: string; Id: TStrIdx): PCacheRec;
 var
-  SL: Byte absolute S;
   P: PCacheRec;
 begin
-  GetMem(P, SL + 1 + SizeOf(TStrIdx));
-  P^.Id := Id; Move(S, P^.Str, SL+1);
+  GetMem(P, Length(S) + 1 + SizeOf(TStrIdx));
+  P^.Id := Id; Move(S, P^.Str, Length(S)+1);
   NewCacheRec := P;
 end;
 
@@ -1556,7 +1606,7 @@ var
   P: PCacheRec;
   CRL: Byte;
 begin
-  S.Read(R, 1 + SizeOf(TStrIdx)); CRL := Byte(R.Str[0]);
+  S.Read(R, 1 + SizeOf(TStrIdx)); CRL := Length(R.Str);
   S.Read(R.Str[1], CRL);
   GetMem(P, CRL + 1 + SizeOf(TStrIdx));
   Move(R, P^, CRL + 1 + SizeOf(TStrIdx));
@@ -1612,4 +1662,8 @@ begin
   GetString := S;
 end;
 
+begin
+{$IFDEF OS2}
+ PMWindowed := (SysCtrlSelfAppType = 2);
+{$ENDIF}
 end.

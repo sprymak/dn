@@ -45,6 +45,8 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{AK155 = Alexey Korop, 2:461/155@fidonet}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 unit Advance1; {String functions}
 interface
@@ -54,7 +56,12 @@ function  NewStr(const S: String): PString;
 procedure DisposeStr(var P: PString);
 procedure ReplaceP(var P: PString; S: String);
 function  CnvString(P: PString): String; {conversion: PString to String}
-
+{$IFDEF USEANSISTRING}
+function  NewAnsiStr(const S: AnsiString): PAnsiString;
+procedure DisposeAnsiStr(var P: PAnsiString);
+procedure AnsiReplaceP(var P: PAnsiString; S: AnsiString);
+function  CnvAnsiString(P: PAnsiString): AnsiString; {conversion: PString to String}
+{$ENDIF}
 function  StrGrd(AMax, ACur: TSize; Wide: Byte; Rev: boolean): string;
 function  Percent(AMax, ACur: TSize): TSize;
 procedure Hex8Lo(L:longInt;var HexLo);
@@ -68,6 +75,9 @@ FUNCTION  PredSpace(s:string; N:byte):string;
 Function  DelSpaces(s : string) : string;
 procedure DelSpace(var s : string);
 Procedure DelRight(var S: string);
+{$IFDEF USEANSISTRING}
+Procedure AnsiDelRight(var S: AnsiString); {JO}
+{$ENDIF}
 Function fDelRight(s : string) : string;
 procedure DelLeft (var S: string);
 Function fDelLeft (s : string) : string;
@@ -76,17 +86,27 @@ Function fDelLeft (s : string) : string;
 Function  Strg(c:char; Num: Byte) : string;
 
 Function  UpCase(c : Char) : Char;
+{$IFDEF VirtualPascal} {AK155}
+inline;  begin  UpCase:=UpCaseArray[c]  end;
+{$ENDIF}
+
 Procedure UpStr(var s : string);
 Function  UpStrg(s : string) : string;
 
 Function  LowCase(c : Char) : Char;
+{$IFDEF VirtualPascal} {AK155}
+inline;  begin  LowCase:=LowCaseArray[c]  end;
+{$ENDIF}
 Procedure LowStr(var s : string);
 Function  LowStrg(s : string) : string;
+
+Procedure UpLowStr(var s : string);       {JO}
+Function  UpLowStrg(s : string) : string; {JO}
 
 procedure CapStr(var S: String);
 function  CapStrg(S: String): String;
 
-procedure MakeCase(CaseSensitive: Boolean);
+{procedure MakeCase(CaseSensitive: Boolean);}
 
 Function  ItoS(a:longint):string;
 Function  ZtoS(a:TSize):string;
@@ -111,8 +131,11 @@ FUNCTION  Real2Str(X: Real; N: Byte): string;
 FUNCTION  Long2Str(X: Longint; L: Byte): string;
 FUNCTION  Long0Str(X: Longint; L: Byte): string;
 FUNCTION  ToHex(I: Word): string;
+{$IFNDEF VIRTUALPASCAL}
 function  MakeCMDParams(const S, Fl1, Fl2: string): string; {DataCompBoy}
+{$ENDIF}
 Procedure DelDoubles(const St : string;var Source : string);
+Procedure AnsiDelDoubles(const St : string; var Source : Ansistring);
 procedure MakeDate(const Mode,Day,Month,Year,Hour,Min: Word; var S: string);
 procedure MakeDateFull(const Mode,Day,Month: Word; {-$VOL moidfied}
                        Year,Hour: Word;
@@ -127,9 +150,13 @@ Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boole
 Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV ::}
 
 procedure CompressString(var S: String);
+{AK155}
+function PosLastDot(StrToMake: String): Byte;
+function IsDummyDir(const DirName: string): boolean;
+{/AK155}
 
 implementation
-uses advance2, advance3;
+uses advance2, advance3, dnini;
 
  function LeadingZero(w: Word): string;
    var s: string;
@@ -195,7 +222,7 @@ procedure Hex8Lo(L:longInt;var HexLo);
  asm
         cld
         xor     dx,dx
-        lea     edi,[HexLo]
+        mov     edi,[HexLo]
         lea     ebx,[LoHexChar]
         mov     dx,[word ptr L+2]
         call    @@OutWord
@@ -269,10 +296,8 @@ end;
 {$ENDIF}
 
 procedure DelFC(var s:string);
-var
-  sl: byte absolute s;
 begin
-  if sl>0 then begin Dec(sl); Move(s[2], s[1], sl) end;
+  if Length(s) > 0 then begin SetLength(s, Length(s)-1); Move(s[2], s[1], Length(s)) end;
 end;
 
 FUNCTION CenterStr(const s:string; N:byte):string;
@@ -356,7 +381,7 @@ begin
   If Length(S)>=N then PredSpace:=S else begin
     FillChar(FreeStr[1],255,' ');
     Move(S[1], FreeStr[succ(N-Length(S))], Length(S));
-    FreeStr[0]:=char(N); PredSpace:=FreeStr
+    SetLength(FreeStr, N); PredSpace:=FreeStr
   end
 end;
 
@@ -488,6 +513,68 @@ begin
 end;
 {$ENDIF}
 
+{$IFDEF USEANSISTRING}
+Procedure AnsiDelRight(var S: AnsiString);
+(* {$IFNDEF NOASM}
+ assembler ;
+ {$IFNDEF BIT_32}
+ asm
+     mov  dx, ds
+     lds  si, S
+     mov  di, si
+     xor  ax, ax
+     mov  al, byte ptr ds:si
+     inc  al
+     add  si, ax
+ @@SearchNoSpace:
+     dec  si
+     cmp  si, di
+     je   @@Exit
+     mov  al, DS:[SI]
+     cmp  al, ' '
+     je   @@SearchNoSpace
+     cmp  al, 9
+     je   @@SearchNoSpace
+ @@Exit:
+     mov ax, si
+     sub ax, di
+     mov byte ptr ds:di, al
+ @@Exit2:
+     mov ds, dx
+ end;
+ {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI}
+ asm
+     mov  esi, S
+     mov  edi, S
+     xor  eax, eax
+     mov  al, byte ptr [esi]
+     inc  al
+     add  esi, eax
+ @@SearchNoSpace:
+     dec  esi
+     cmp  esi, edi
+     je   @@Exit
+     mov  al, [ESI]
+     cmp  al, ' '
+     je   @@SearchNoSpace
+     cmp  al, 9
+     je   @@SearchNoSpace
+ @@Exit:
+     mov eax, esi
+     sub eax, edi
+     mov byte ptr [edi], al
+ @@Exit2:
+ end;
+ {$ENDIF}
+{$ELSE} *)
+var q: Word;
+begin
+ for q := Length(S) downto 1 do if S[q]<>' ' then break;
+ SetLength(S, q);
+end;
+{.$ENDIF}
+{$ENDIF} {USEANSISTRING}
+
 Function fDelRight(s : string) : string;
 begin DelRight(S); fDelRight:=s end;
 
@@ -609,25 +696,47 @@ end;
 {$ENDIF}
 
 
+{$IFNDEF VirtualPascal}  {AK155}
 Function LowCase(c : Char) : Char;
-begin if c=#0 then LowCase:=#0 else LowCase:=LowCaseArray[c] end;
+begin {if c=#0 then LowCase:=#0  else }{ AK155 - см. инициализацию }
+LowCase:=LowCaseArray[c]
+end;
+
+Function UpCase(c : Char) : Char;
+begin
+ { AK155 if c=#0 then UpCase :=#0 else }{ AK155 - см. инициализацию }
+UpCase:=UpCaseArray[c]
+end;
+{$ENDIF}
 
 Procedure LowStr(var s : string);
 var i:integer;
-begin for i:=1 to Length(s) do if s[i]<>#0 then s[i]:=LowCaseArray[s[i]]; end;
+begin for i:=1 to Length(s) do
+{if s[i]<>#0 then} s[i]:=LowCaseArray[s[i]]; {AK155}
+end;
+
 
 Function LowStrg(s : string) : string;
 begin LowStr(s); LowStrg:=s; end;
 
-
-Function UpCase(c : Char) : Char;
-begin if c=#0 then UpCase:=#0 else UpCase:=UpCaseArray[c] end;
-
 Procedure UpStr(var s : string); var i:integer;
-begin for i:=1 to Length(s) do if s[i]<>#0 then s[i]:=UpCaseArray[s[i]]; end;
+begin for i:=1 to Length(s) do
+{if s[i]<>#0 then}  {AK155}
+s[i]:=UpCaseArray[s[i]];
+end;
 
 Function UpStrg(s : string) : string;
 begin UpStr(s); UpStrg:=s; end;
+
+Procedure UpLowStr(var s : string); {JO}
+begin
+ if UpperCaseSorting then UpStr(s) else LowStr(s);
+end;
+
+Function UpLowStrg(s : string) : string; {JO}
+begin
+ if UpperCaseSorting then UpLowStrg := UpStrg(s) else UpLowStrg := LowStrg(s);
+end;
 
 Procedure CapStr(var S: String);
 var
@@ -888,7 +997,7 @@ begin
   I := Pos(Pattern, Copy(S, J, 255));
   if I > 0 then
    begin
-    Delete(S, J+I-1, Byte(Pattern[0]));
+    Delete(S, J+I-1, Length(Pattern));
     Insert(ReplaceString, S, J+I-1);
     Replace := True;
    end;
@@ -1075,6 +1184,7 @@ begin s:=''; for c:=1 to 4 do begin
   ToHex:=s;
 end;
 
+{$IFNDEF VIRTUALPASCAL}
 function MakeCMDParams(const S, Fl1, Fl2: string): string;
 var
       Dr1, Dr2: String;
@@ -1100,9 +1210,24 @@ begin
   Replace(#0, '%', FreeStr);
   MakeCMDParams := FreeStr
 end;
+{$ENDIF}
 
 procedure DelDoubles;
 var t, ls, p :byte;
+    j:boolean;
+begin
+ t:=1; ls:=length(ST); j:=True;
+ while t+ls<=length(Source) do
+  begin
+   if Source[t]='"' then j:=not j;
+   if J then p := Pos(ST,Source);
+   if J and (p<>0) then Delete(Source,p,1) else inc(t);
+  end;
+end;
+
+procedure AnsiDelDoubles;
+var t,  p :Word;
+    ls: Byte;
     j:boolean;
 begin
  t:=1; ls:=length(ST); j:=True;
@@ -1165,7 +1290,7 @@ begin
   if YFull then GetDig(Year div 100, S[16]);
   Year := Year mod 100;
   FillChar(S, 16, 32);
-  S[0] := #15;
+  SetLength(S, 15);
   Move(CountryInfo.DateSep[1], S[3], Length(CountryInfo.DateSep));
   Move(CountryInfo.DateSep[1], S[6], Length(CountryInfo.DateSep));
   Move(CountryInfo.TimeSep[1], S[12], Length(CountryInfo.TimeSep));
@@ -1192,7 +1317,7 @@ begin
     begin
       if Hour <= 12 then if Hour = 12 then S[15] := 'p' else S[15] := 'a'
                     else begin Dec(Hour, 12); S[15] := 'p' end;
-    end else Dec(S[0]);
+    end else SetLength(S, Length(S)-1);
   GetDig(Hour, S[10]);
   if S[10] = '0' then S[10] := ' ';
   if YFull then
@@ -1204,6 +1329,8 @@ end;
 
 const LastCase: Byte = 2;
 
+{Cat: эта процедура больше не используется}
+(*
 procedure MakeCase(CaseSensitive: Boolean);
 begin
  if Byte(CaseSensitive) <> LastCase then
@@ -1220,7 +1347,7 @@ begin
    dec bx
    loop @@1
   end
-  {$ELSE}(*{&Frame-}{$USES EBX}*)
+  {$ELSE}
   asm
    push ebx
    push ecx
@@ -1240,6 +1367,7 @@ begin
  else Move(UpCaseArray, Tran, 256);
  LastCase := Byte(CaseSensitive);
 end;
+*)
 
 function DumpStr;
 {$IFNDEF NOASM}
@@ -1247,7 +1375,7 @@ function DumpStr;
 begin
  DumpStr := '';
  if Count <= 0 then Exit;
- S[0] := Char(Count*4+12);
+ SetLength(S, Count*4+12);
  {$IFNDEF BIT_32}
  asm
   les   di, B
@@ -1466,7 +1594,7 @@ begin
   jc    @@32
   add   ah,7
 @@32:
-  mov   [ebx+6], eax
+  mov   [ebx+6], ax
   mov   ax,' :'
   mov   [ebx+8], ax
   add   bx, 10
@@ -1517,7 +1645,7 @@ begin
   jc    @@42
   add   ah,7
 @@42:
-  mov   [ebx], eax
+  mov   [ebx], ax
   mov   al, ' '
   mov   [ebx+2], al
   add   ebx, 3
@@ -1541,7 +1669,7 @@ var
 begin
   DumpStr := '';
   if Count <= 0 then Exit;
-  j := 1; S[0] := Char(Count*4 + 12);
+  j := 1; SetLength(S, Count*4 + 12);
   for i := 0 to 3 do begin
     l := Addr shr ((3-i)*8); { call }
     l0 := (l shr 4) + $30;
@@ -1577,7 +1705,7 @@ begin
 end;
 {$ENDIF}
 
-function SearchFor;
+(* function SearchFor;
  var D: array[Char] of Word;
      ChBuf: array [0..0] of Char absolute B;
      I: Integer;
@@ -1677,122 +1805,283 @@ begin
  {$ENDIF BIT_32}
  M := Length(S) - 1;
  for I := 1 to Length(S) do S[I] := Tran[S[I]];
- while M < L do
-  begin
-   C := Tran[ChBuf[M]];
-   if C = S[Byte(S[0])] then
-    begin
-     for I := 0 to Byte(S[0]) - 1 do
-      begin
-       if Tran[ChBuf[M-I]] <> S[Byte(S[0])-I] then Break;
-       if I = Byte(S[0]) - 1 then begin SearchFor := M - I + 1; Exit; end;
-      end;
-     Inc(M);
-    end else Inc(M, D[C]);
-  end;
+ while M < L do *)
+
+{AK155: Выкинул ту муть, что здесь была, и заменил на
+нормальнй BM-поиск, сделанный на основе программы
+demobmse.pas из SWAG }
+(* Public-domain demo of Boyer-Moore search algorithm.  *)
+(* Guy McLoughlin - May 2, 1993.                        *)
+
+(* Boyer-Moore index-table data definition.             *)
+type
+  BMTable  = array[0..255] of byte;
+
+
+(***** Create a Boyer-Moore index-table to search with.  *)
+procedure Create_BMTable
+  ({output}       var BMT : BMTable;
+   {input/output} var Pattern : string;
+    var UpCaseArray:TXlat; {Cat: UpCase -> UpCaseArray}
+    ExactCase : boolean);
+var
+  Index : byte;
+begin
+  fillchar(BMT, sizeof(BMT), length(Pattern));
+  if NOT ExactCase then
+    for Index := 1 to length(Pattern) do
+      Pattern[Index] := UpCaseArray[Pattern[Index]];
+  for Index := 1 to length(Pattern) do
+    BMT[ord(Pattern[Index])] := (length(Pattern) - Index)
 end;
 
-function BackSearchFor;
+
+  (***** Boyer-Moore Search function. Returns 0 if string is not      *)
+  (*     found. Returns 65,535 if BufferSize is too large.            *)
+  (*     ie: Greater than 65,520 bytes.                               *)
+  (*                                                                  *)
+  function BMsearch({input } var BMT       : BMTable;
+                             var Buffer;
+                                 BuffSize  : word;
+                                 Pattern   : string;
+                             var UpCaseArray : TXlat; {Cat: UpCase -> UpCaseArray}
+                                 ExactCase : boolean) : {output} word;
+  var
+    Buffer2 : array[1..65520] of char absolute Buffer;
+    Index1,
+    Index2,
+    PatSize : word;
+    c: char;
+    d: word;
+
+  begin
+    if (BuffSize > 65520)  then
+      begin
+        BMsearch := $FFFF;
+        exit
+      end;
+    PatSize := length(Pattern);
+    Index1 := PatSize;
+    Index2 := PatSize;
+    repeat
+      if ExactCase then
+        c := Buffer2[Index1]
+      else
+        c := UpCaseArray[Buffer2[Index1]];
+      if (c = Pattern[Index2]) then
+        begin
+          dec(Index1);
+          dec(Index2)
+        end
+      else
+        begin
+          d := BMT[ord(c)];
+          if succ(PatSize - Index2) > d then
+            inc(Index1, succ(PatSize - Index2))
+          else
+            inc(Index1, d);
+          Index2 := PatSize
+        end;
+    until (Index2 < 1) or (Index1 > BuffSize);
+    if (Index1 > BuffSize) then
+      BMsearch := 0
+    else
+      BMsearch := succ(Index1)
+  end;        (* BMsearch.                                            *)
+
+
+{Cat: обратный Boyer-Moore-поиск, переделал из прямого}
+procedure Create_BackBMTable
+  ({output}       var BMT : BMTable;
+   {input/output} var Pattern : string;
+    var UpCaseArray:TXlat;
+    ExactCase : boolean);
+var
+  Index : byte;
+begin
+  fillchar(BMT, sizeof(BMT), length(Pattern));
+  if NOT ExactCase then
+    for Index := 1 to length(Pattern) do
+      Pattern[Index] := UpCaseArray[Pattern[Index]];
+  for Index := length(Pattern) downto 1 do
+    BMT[ord(Pattern[Index])] := (Index - 1)
+end;
+
+  function BackBMsearch({input } var BMT       : BMTable;
+                                 var Buffer;
+                                     BuffSize  : word;
+                                     Pattern   : string;
+                                 var UpCaseArray : TXlat;
+                                     ExactCase : boolean) : {output} word;
+  var
+    Buffer2 : array[1..65520] of char absolute Buffer;
+    Index1,
+    Index2,
+    PatSize : word;
+    c: char;
+    d: word;
+
+  begin
+    if (BuffSize > 65520)  then
+      begin
+        BackBMsearch := $FFFF;
+        exit
+      end;
+    PatSize := length(Pattern);
+    Index1 := BuffSize - PatSize + 1;
+    Index2 := 1;
+    repeat
+      if ExactCase then
+        c := Buffer2[Index1]
+      else
+        c := UpCaseArray[Buffer2[Index1]];
+      if (c = Pattern[Index2]) then
+        begin
+          inc(Index1);
+          inc(Index2)
+        end
+      else
+        begin
+          d := BMT[ord(c)];
+          if Index2 > d then
+            dec(Index1, Index2)
+          else
+            dec(Index1, d);
+          Index2 := 1
+        end;
+    until (Index2 > PatSize) or (Index1 < 1);
+    if (Index1 < 1) then
+      BackBMsearch := 0
+    else
+      BackBMsearch := (Index1 - PatSize)
+  end;
+{/Cat}
+
+
+{Cat: переписал эту процедуру с использованием обратного Boyer-Moore-поиска}
+(*
+{AK155 Убрал ненужное и неправильное обращение к FillWord
+и слегка оптимизировал код}
+function BackSearchForCP(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
  var D: array[Char] of Word;
      ChBuf: array [0..0] of Char absolute B;
      I: Integer;
      BB: Byte;
-     M: LongInt;
+     ls, M: LongInt;
      C: Char;
 begin
  BackSearchFor := 0;
  if S = '' then Exit;
  MakeCase(CaseSensitive);
- FillWord(D, 255, Length(S));
- for I := 1 to Length(S) do S[I] := Tran[S[I]];
- for I := Length(S) downto 1 do
+ ls := Length(S);
+ for I := 1 to ls do S[I] := Tran[S[I]];
+ for C := low(D) to high(D) do D[C] := ls;
+ for I := ls downto 1 do
    D[S[I]] := I - 1;
- M := L;
- M := M - Length(S);
+ M := L - ls;
  while M >= 0 do
   begin
    C := Tran[ChBuf[M]];
    if C = S[1] then
     begin
-     for I := 0 to Byte(S[0]) - 1 do
+     for I := 0 to ls - 1 do
       begin
        if Tran[ChBuf[M+I]] <> S[I+1] then Break;
-       if I = Byte(S[0]) - 1 then begin BackSearchFor := M + 1; Exit; end;
+       if I = ls - 1 then begin BackSearchFor := M + 1; Exit; end;
       end;
      Dec(M);
     end else Dec(M, D[C]);
   end;
 end;
+{/AK155}
+*)
 
-{-$VIV 14.05.99}
 
-Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-var Res: array[0..6] of Word;
-    I, Res2: Word;
-    S2: String;
+{Cat: раньше регистронезависимый поиск по всем кодовым страницам был на
+      самом деле регистронезависимым только для 866 страницы, т.к. для
+      других страниц тоже использовался стандартный UpCaseArray, теперь я
+      сделал собственный UpCaseArray для каждой кодовой страницы и заменил
+      функции SearchFor и BackSearchFor на SearchForCP и BackSearchForCP}
+function SearchForCP(S: string;var B;L: Word; var UpCaseArray:TXlat;
+                     CaseSensitive: Boolean): Word;
+var
+  BMT: BMTable;
 begin
-  {CURRENT}
-  S2 := S;
-  Res[0] := BackSearchFor(S2, B, L, CaseSensitive);
-  {ASCII-ANSI}
-  S2 := ascii_ansi(S);
-  Res[1] := BackSearchFor(S2, B, L, CaseSensitive);
-  {ASCII-KOI8R}
-  S2 := ascii_koi8r(S);
-  Res[2] := BackSearchFor(S2, B, L, CaseSensitive);
-  {ANSI-ASCII}
-  S2 := ansi_ascii(S);
-  Res[3] := BackSearchFor(S2, B, L, CaseSensitive);
-  {ANSI-ASCII-KOI8R}
-  S2 := ascii_koi8r( ansi_ascii(S) );
-  Res[4] := BackSearchFor(S2, B, L, CaseSensitive);
-  {KOI8R-ASCII}
-  S2 := koi8r_ascii(S);
-  Res[5] := BackSearchFor(S2, B, L, CaseSensitive);
-  {KOI8R-ASCII-ANSI}
-  S2 := ascii_ansi( koi8r_ascii(S) );
-  Res[6] := BackSearchFor(S2, B, L, CaseSensitive);
-  {::}
-  Res2 := Res[0];
-  for I := 1 to 6 do
-   if (Res[I] > Res2) then Res2:= Res[I];
-  BackSearchForAllCP := Res2;
+  {MakeCase(UpCaseArray, CaseSensitive);}
+  Create_BMTable(BMT, S, UpCaseArray, CaseSensitive);
+  SearchForCP := BMsearch(BMT, B, L, S, UpCaseArray, CaseSensitive);
 end;
 
-Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+function BackSearchForCP(S: string;var B;L: Word; var UpCaseArray:TXlat;
+                         CaseSensitive: Boolean): Word;
+var
+  BMT: BMTable;
+begin
+  {MakeCase(UpCaseArray, CaseSensitive);}
+  Create_BackBMTable(BMT, S, UpCaseArray, CaseSensitive);
+  BackSearchForCP := BackBMsearch(BMT, B, L, S, UpCaseArray, CaseSensitive);
+end;
+
+function SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+begin
+  SearchFor := SearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
+end;
+
+function BackSearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+begin
+  BackSearchFor := BackSearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
+end;
+
+Function SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word;
 var Res: array[0..6] of Word;
     I, Res2: Word;
-    S2: String;
 begin
   {CURRENT}
-  S2 := S;
-  Res[0] := SearchFor(S2, B, L, CaseSensitive);
+  Res[0] := SearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
   {ASCII-ANSI}
-  S2 := ascii_ansi(S);
-  Res[1] := SearchFor(S2, B, L, CaseSensitive);
+  Res[1] := SearchForCP(ascii_ansi(S), B, L, UpCaseArray_Ascii_Ansi, CaseSensitive);
   {ASCII-KOI8R}
-  S2 := ascii_koi8r(S);
-  Res[2] := SearchFor(S2, B, L, CaseSensitive);
+  Res[2] := SearchForCP(ascii_koi8r(S), B, L, UpCaseArray_Ascii_Koi8r, CaseSensitive);
   {ANSI-ASCII}
-  S2 := ansi_ascii(S);
-  Res[3] := SearchFor(S2, B, L, CaseSensitive);
-  {ANSI-ASCII-KOI8R}
-  S2 := ascii_koi8r( ansi_ascii(S) );
-  Res[4] := SearchFor(S2, B, L, CaseSensitive);
+  Res[3] := SearchForCP(ansi_ascii(S), B, L, UpCaseArray_Ansi_Ascii, CaseSensitive);
   {KOI8R-ASCII}
-  S2 := koi8r_ascii(S);
-  Res[5] := SearchFor(S2, B, L, CaseSensitive);
-  {KOI8R-ASCII-ANSI}
-  S2 := ascii_ansi( koi8r_ascii(S) );
-  Res[6] := SearchFor(S2, B, L, CaseSensitive);
-  {::}
+  Res[4] := SearchForCP(koi8r_ascii(S), B, L, UpCaseArray_Koi8r_Ascii, CaseSensitive);
+  {ASCII-ANSI , KOI8R-ASCII}
+  Res[5] := SearchForCP(koi8r_ascii(ascii_ansi(S)), B, L, UpCaseArray_Ascii_Ansi_Koi8r_Ascii, CaseSensitive);
+  {ASCII-KOI8 , ANSI-ASCII}
+  Res[6] := SearchForCP(ansi_ascii(ascii_koi8r(S)), B, L, UpCaseArray_Ascii_Koi8r_Ansi_Ascii, CaseSensitive);
+
   Res2 := Res[0];
   for I := 1 to 6 do
    if (Res2 = 0) or ((Res[I] < Res2) and (Res[I] > 0)) then Res2:= Res[I];
   SearchForAllCP := Res2;
 end;
 
-{-$VIV::}
+Function BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+var Res: array[0..6] of Word;
+    I, Res2: Word;
+begin
+  {CURRENT}
+  Res[0] := BackSearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
+  {ASCII-ANSI}
+  Res[1] := BackSearchForCP(ascii_ansi(S), B, L, UpCaseArray_Ascii_Ansi, CaseSensitive);
+  {ASCII-KOI8R}
+  Res[2] := BackSearchForCP(ascii_koi8r(S), B, L, UpCaseArray_Ascii_Koi8r, CaseSensitive);
+  {ANSI-ASCII}
+  Res[3] := BackSearchForCP(ansi_ascii(S), B, L, UpCaseArray_Ansi_Ascii, CaseSensitive);
+  {KOI8R-ASCII}
+  Res[4] := BackSearchForCP(koi8r_ascii(S), B, L, UpCaseArray_Koi8r_Ascii, CaseSensitive);
+  {ASCII-ANSI , KOI8R-ASCII}
+  Res[5] := BackSearchForCP(koi8r_ascii(ascii_ansi(S)), B, L, UpCaseArray_Ascii_Ansi_Koi8r_Ascii, CaseSensitive);
+  {ASCII-KOI8 , ANSI-ASCII}
+  Res[6] := BackSearchForCP(ansi_ascii(ascii_koi8r(S)), B, L, UpCaseArray_Ascii_Koi8r_Ansi_Ascii, CaseSensitive);
+
+  Res2 := Res[0];
+  for I := 1 to 6 do
+   if (Res[I] > Res2) then Res2:= Res[I];
+  BackSearchForAllCP := Res2;
+end;
+{/Cat}
 
 function NewStr(const S: String): PString;
 var
@@ -1837,6 +2126,47 @@ function CnvString(P: PString): String;
 begin
   if P = nil then CnvString:='' else CnvString:=P^;
 end;
+
+{$IFDEF USEANSISTRING}
+{JO}
+function NewAnsiStr(const S: AnsiString): PAnsiString;
+var
+  P: PAnsiString;
+begin
+  if S = '' then P := nil else
+  begin
+    GetMem(P, Length(S) + 1);
+    P^ := S;
+  end;
+  NewAnsiStr := P;
+end;
+
+procedure DisposeAnsiStr(var P: PAnsiString);
+begin
+  if P <> nil then FreeMem(P, Length(P^)+1);
+  P:=Nil;
+end;
+
+procedure AnsiReplaceP(var P: PAnsiString; S: AnsiString);
+begin
+  AnsiDelRight(S);
+  if P = nil then begin
+    if S <> '' then P:=NewAnsiStr(S);
+  end else
+  if Length(S) = Length(P^) then
+    P^:=S
+  else begin
+    DisposeAnsiStr(P);
+    P:=NewAnsiStr(S);
+  end;
+end;
+
+function CnvAnsiString(P: PAnsiString): AnsiString;
+begin
+  if P = nil then CnvAnsiString:='' else CnvAnsiString:=P^;
+end;
+{/JO}
+{$ENDIF}
 
 procedure CompressString(var S: String);
 begin
@@ -1935,5 +2265,30 @@ begin
   end;
   {$ENDIF}
 end;
+
+{AK155}
+
+function PosLastDot(StrToMake: String): Byte;
+  var I: byte;
+  begin
+  for I := Length(StrToMake) downto 1 do
+    if StrToMake[I] = '.' then
+      begin
+      PosLastDot := I;
+      exit;
+      end;
+  PosLastDot := Length(StrToMake)+1;
+  end;
+
+function IsDummyDir(const DirName: string): boolean;
+  begin
+{$IFNDEF OS_DOS}
+  IsDummyDir := (DirName = '.') or (DirName = '..');
+{$ELSE}
+  IsDummyDir := (DirName[1] = '.');
+{$ENDIF}
+  end;
+
+{/AK155}
 
 end.

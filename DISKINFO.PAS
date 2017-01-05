@@ -49,7 +49,8 @@
 unit DiskInfo;
 interface
 uses LFN, Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings,
-     advance, advance1, advance2, advance3, Collect;
+     advance, advance1, advance2, advance3, Collect
+{JO} {$IFDEF VIRTUALPASCAL}, VPUtils {$ENDIF};
 
 type
      PDiskInfoRec = ^TDiskInfoRec;
@@ -94,7 +95,7 @@ type
                       var ClusterLen: TSize; var NumFiles: Integer): TSize;
  procedure GetDrInfo(Drv: Byte);
  procedure ReadDiskInfo(const Dr: String; var B: TDiskInfoRec; ShowFlags: Integer);
- function  GetVolumeLabel: Str12;
+ {$IFNDEF VIRTUALPASCAL} function  GetVolumeLabel: Str12; {$ENDIF}   {JO}
  function Disk_Free(Drive: Byte): TSize;
 
 const
@@ -117,11 +118,6 @@ type
      TTeamView = object(TView)
        LastTick: LongInt;
        Strings: Array [1..20] of Integer;
-       Str:  Array[1..10] of String[32];
-       Logo: Array[1..10] of String[32];
-       OSP:  Array[1..10] of String[32];
-       CState: (_Logo, _OSP, _Team);
-       Q: Word;
        constructor Init(var R: TRect);
        procedure Draw; virtual;
        procedure Update; virtual;
@@ -156,31 +152,10 @@ implementation
 uses Startup, ExtraMem, DNApp, Commands, DNHelp, Tree, xTime
      {$IFDEF DPMI}, Dpmi, Dosmem {$ENDIF}
      {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
+     {$IFDEF OS2}, FlOS2Tl{$ENDIF} {$IFDEF WIN32} , FlW32Tl{$ENDIF}
      ;
 
-const MaxTeam = 152;
-
-const
-      Logo1 = '          ,     sSSs     s$$s   ' ;
-      Logo2 = '       ,s$$$Ss.  $$s.     $$    ' ;
-      Logo3 = '     sS$$''  `SSb.$$$$.    $$    ';
-      Logo4 = '    $$''$$     `$S.``$$.   $$    ';
-      Logo5 = '       $$      `$$. `$$.  $$    ' ;
-      Logo6 = '       $$       `$$  `$$. $$    ' ;
-      Logo7 = '       $$       ,$$   `$$b$$    ' ;
-      Logo8 = '    .s.$$.     ,$S''    `$$$$    ';
-      Logo9 = '     `S$$$$$$$$$''s$     `$$$    ';
-      Logo0 = '   0xeL`~~~~~~~ s$$s     s$$s   ' ;
-      OSP1  = '                  $$.           ';
-      OSP2  = '            ,Òy%@S$$.          ';
-      OSP3  = '  .Öy%@%y·.j$$ß"^~``$$ $$$$$$b, ';
-      OSP4  = '.dSS"^~^"$;7$l         $$''  `?$;';
-      OSP5  = 'A$$''     `b`$S@%sÒ.   $$    l$$';
-      OSP6  = '$$$       $bA`~^"ßÐ$$b,`$    j$$';
-      OSP7  = '$$$       $$U       `$$ $s%@S$$P';
-      OSP8  = 'U$$.     ,$;SS,     ,$$ $Ðßü^"` ';
-      OSP9  = '`?$$bsssd$$P`$$$$$$$$P'',$       ';
-      OSP0  = '  `''øÐÐÐø''`  `$$''      $$ [0xeL]';
+const MaxTeam = 158;
 
 function ESC_Pressed: Boolean; var E: TEvent;
 begin
@@ -188,6 +163,7 @@ begin
   GetKeyEvent(E); ESC_Pressed := (E.What = evKeyDown) and (E.KeyCode = kbEsc)
 end;
 
+{$IFNDEF VIRTUALPASCAL}            {JO}
 function GetVolumeLabel;
 var
   sr: SearchRec;
@@ -201,6 +177,7 @@ begin
   while PosChar('.',VolumeLabel) > 0 do Delete(VolumeLabel,PosChar('.',VolumeLabel),1);
   GetVolumeLabel := VolumeLabel;
 end;
+{$ENDIF}
 
 { Rainbow BEGIN }
 procedure GetSerFileSys(var SerialNo,FileSys:String);
@@ -269,37 +246,67 @@ begin
   {$ENDIF}
 end;
 { Rainbow END }
-{$ELSE VIRTUALPASCAL}
+{$ELSE VIRTUALPASCAL}  {JO}
+  {$IFDEF OS2}
+ Var Ser1: Longint;
+     DWord:Array[1..2] of AWord absolute Ser1;
+     Vol1: String;
+     rc:   Longint;
+
+  function Word2Hex(I:AWord):String;
+  const Values:Array[0..15] of Char='0123456789ABCDEF';
+  var S,S1:String;
+      A:Byte;
+  begin
+    S:='';
+    S1:='';
+    repeat
+      S:=S+Values[I mod 16];
+      I:=I div 16;
+    until I=0;
+    for A:=3 downto Length(S) do S1:=S1+'0';
+    for A:=Length(S) downto 1 do S1:=S1+S[A];
+    Word2Hex:=S1;
+  end;
+  {$ENDIF}
 begin
- SerFileSys:=False;
-end;
+{$IFDEF OS2}
+  rc := GetVolSer((GetDrive+1), Ser1, Vol1);
+  if (rc=0) then SerialNo := Word2Hex(DWord[2])+'-'+Word2Hex(DWord[1])
+    else SerialNo := '';
+  FileSys := GetDriveTypeString(GetCurDrive);
+  SerFileSys := rc = 0;
+{$ELSE}
+  case SysGetDriveType(GetCurDrive) of
+    dtFloppy    : FileSys := 'FAT12';
+    dtHDFAT     : FileSys := 'FAT';
+    dtHDHPFS    : FileSys := 'HPFS';
+    dtInvalid   : FileSys := '';
+    dtNovellNet : FileSys := 'Novell';
+    dtCDROM     : FileSys := 'CDFS';
+    dtLAN       : FileSys := 'Remote';
+    dtHDNTFS    : FileSys := 'NTFS';
+    dtTVFS      : FileSys := 'TVFS';
+    dtHDExt2    : FileSys := 'ext2fs';
+    dtJFS       : FileSys := 'JFS';
+  else FileSys := '';
+  end;
+  SerFileSys := FileSys <> '';
 {$ENDIF}
+end;
+{$ENDIF}               {/JO}
 
 function GetRndBytes(B, Rnd: LongInt): LongInt;
 begin
   GetRndBytes := (B div Rnd) * Rnd + Rnd * LongInt(B mod Rnd <> 0);
 end;
 
-
 constructor TTeamView.Init;
 begin
   inherited Init(R);
-  CState   := _Logo; Q := 0;
-  UpdTicks := 1;
-  Options  := Options or ofPreProcess;
+  UpdTicks := 9;
+  Options := Options or ofPreProcess;
   RegisterToBackground(@Self);
-  FillChar(Str, SizeOf(Str), #32);
-  Strings[ 1] := 00; Strings[ 2] := 00; Strings[ 3] := 00; Strings[ 4] := 00;
-  Strings[ 5] := 00; Strings[ 6] := 00; Strings[ 7] := 00; Strings[ 8] := 00;
-  Strings[ 9] := 00; Strings[10] := 00; Strings[11] := 00; Strings[12] := 00;
-  Strings[13] := 00; Strings[14] := 00; Strings[15] := 00; Strings[16] := 00;
-  Strings[17] := 00; Strings[18] := 00; Strings[19] := 00; Strings[20] := 00;
-  Logo[ 1] := Logo1; Logo[ 2] := Logo2; Logo[ 3] := Logo3; Logo[ 4] := Logo4;
-  Logo[ 5] := Logo5; Logo[ 6] := Logo6; Logo[ 7] := Logo7; Logo[ 8] := Logo8;
-  Logo[ 9] := Logo9; Logo[10] := Logo0;
-  OSP[ 1] := OSP1; OSP[ 2] := OSP2; OSP[ 3] := OSP3; OSP[ 4] := OSP4;
-  OSP[ 5] := OSP5; OSP[ 6] := OSP6; OSP[ 7] := OSP7; OSP[ 8] := OSP8;
-  OSP[ 9] := OSP9; OSP[10] := OSP0;
 end;
 
 procedure TTeamView.Draw;
@@ -309,98 +316,48 @@ procedure TTeamView.Draw;
       C: Word;
 begin
   C := Owner^.GetColor($0807);
-  Case CState of
-   _Logo, _OSP: For I:=1 to 10 do begin
-                 MoveChar(B, ' ', C, Size.X);
-                 MoveStr(B[(Size.X-Length(Str[I])) div 2], Str[I], C);
-                 WriteLine(0,I,Size.X,1,B);
-                end;
-   _Team: Begin
-           S := GetString(dlTeam000);
-           MoveChar(B, ' ', C, Size.X);
-           MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
-           WriteLine(0,0,Size.X,1,B);
-           for I := 1 to Size.Y-1 do begin
-            MoveChar(B, ' ', C, Size.X);
-            if (Strings[I] > 0) and (Strings[I] < MaxTeam) then begin
-             S := GetString(TStrIdx(Integer(dlTeam000)+Strings[I]));
-             MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
-            end;
-            WriteLine(0,I,Size.X,1,B);
-           end;
-          end;
-  end;
+  MoveChar(B, ' ', C, Size.X);
+  S := GetString(dlTeamAll);
+  MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
+  WriteLine(0,0,Size.X,1,B);
+  for I := 1 to Size.Y-1 do
+    begin
+      MoveChar(B, ' ', C, Size.X);
+      if (Strings[I] > 0) and (Strings[I] < MaxTeam) then
+        begin
+          S := GetString(TStrIdx(Integer(dlTeamAll)+Strings[I]));
+          MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
+        end;
+      WriteLine(0,I,Size.X,1,B);
+    end;
 end;
 
 procedure TTeamView.Update;
- var L, I, J: LongInt;
+ var
+     L, I: LongInt;
 begin
- case CState of
-  _Logo: Begin
-          For I := 1 to 10 do If Logo[I] <> Str[I] then break;
-          if Logo[I] = Str[I] then begin
-           UpdTicks := 36;
-           CState := _OSP;
-          end else begin
-           Repeat I := Random(10) + 1 until Str[I] <> Logo[I];
-           L := Length(Logo[I]);
-           Repeat J := Random(L) + 1 until Str[I][J] <> Logo[I][J];
-           Str[I][J] := Logo[I][J];
-           DrawView;
-           If Q = 0 Then begin
-            Inc(Q);
-            Update;
-           end else Q := 0;
-          end;
-         end;
-  _OSP: Begin
-          UpdTicks := 1;
-          For I := 1 to 10 do If OSP[I] <> Str[I] then break;
-          if OSP[I] = Str[I] then begin
-           UpdTicks := 36;
-           CState := _Team;
-          end else begin
-           Repeat I := Random(10) + 1 until Str[I] <> OSP[I];
-           L := Length(OSP[I]);
-           Repeat J := Random(L) + 1 until Str[I][J] <> OSP[I][J];
-           Str[I][J] := OSP[I][J];
-           DrawView;
-           If Q = 0 Then begin
-            Inc(Q);
-            Update;
-           end else Q := 0;
-          end;
-         end;
-  _Team: begin
-   UpdTicks := 9;
    Move(Strings[2], Strings[1], (Size.Y-2) * SizeOf(Integer));
    if (Strings[Size.Y-1] > 0) and (Strings[Size.Y-1] < MaxTeam)
    then Inc(Strings[Size.Y-1]);
    if Strings[Size.Y-1] = MaxTeam then Strings[Size.Y-1]:=0;
    if (Strings[Size.Y-1] = 0) and (Strings[1]=0) then Strings[Size.Y-1]:=1;
    DrawView;
-  end;
- end;
 end;
 
 procedure TTeamView.HandleEvent(var Event: TEvent);
-var t:integer;
 begin
-  t:=9;
-  if (Event.What=evKeyDown) and (Event.KeyCode=kbDown) then begin
-   ClearEvent(Event);
-   if CState<>_Team then CState:=_Team else t:=36;
-   Update;
-   NewTimer(UpTmr,t)
-  end else if (Event.What=evKeyDown) and (Event.KeyCode=kbUp) then begin
-   ClearEvent(Event);
-   Move(Strings[1], Strings[2], (Size.Y-2) * SizeOf(Integer));
-   if Strings[1]>0 then Dec(Strings[1]);
-   if (Strings[1]=0) and (Strings[Size.Y-1]=0) then Strings[1]:=MaxTeam;
-   if CState<>_Team then CState:=_Team else t:=36;
-   DrawView;
-   NewTimer(UpTmr,t)
-  end
+    if (Event.What=evKeyDown) and (Event.KeyCode=kbDown) then begin
+        ClearEvent(Event);
+        Update;
+        NewTimer(UpTmr,36)
+    end else if (Event.What=evKeyDown) and (Event.KeyCode=kbUp) then begin
+        ClearEvent(Event);
+        Move(Strings[1], Strings[2], (Size.Y-2) * SizeOf(Integer));
+        if Strings[1]>0 then Dec(Strings[1]);
+        if (Strings[1]=0) and (Strings[Size.Y-1]=0) then Strings[1]:=MaxTeam;
+        DrawView;
+        NewTimer(UpTmr,36)
+    end
 end;
 
 destructor TTeamView.Done;
@@ -515,7 +472,11 @@ var S: String; {DataCompBoy}
      F := New(PTextReader, Init(GetPath(S)+FreeStr));
    end;
    if F = nil then Exit;
+{$IFNDEF OS2}
    Nm := GetName(lfGetShortFileName(S));
+{$ELSE}
+   Nm := GetName(S);
+{$ENDIF}
    while (IOResult = 0) and not F^.EOF do
      begin
        FreeStr := F^.GetStr;
@@ -623,6 +584,22 @@ begin
  Inc(Y);
 end;
 
+{$IFDEF VIRTUALPASCAL}
+procedure Wrt_(S: String); {¢à¥¬¥­­®!!!}
+ var I: Integer;
+begin
+ MoveChar(B, ' ', C, Size.X);
+ I := (Size.X-CStrLen(S)) div 2;
+ if (I < 0) or CC then I := 0;
+ Replace('~', #0'~', S);
+ S:= '~'#0 + S;
+{MoveStr(B[I], S, Lo(C));}
+ MoveCStr(B[I], S, C);
+ WriteLine(0,Y,Size.X, 1, B);
+ Inc(Y);
+end;
+{$ENDIF}
+
   procedure XWrt(P: PString; Flag: Word);
   begin
     if (P <> nil) and (DriveInfoData and Flag <> 0) then Wrt(P^);
@@ -634,7 +611,11 @@ begin
     (DriveInfoData and (fdiTitle+fdiTotals) <> 0) then
    begin
      XWrt(Info.Title, fdiTitle);
+{$IFDEF VIRTUALPASCAL} {¢à¥¬¥­­®!!!}
+     if (Info.Dir <> nil) and (DriveInfoData and fdiTitle <> 0) then Wrt_(Cut(Info.Dir^,Size.X));
+{$ELSE}
      if (Info.Dir <> nil) and (DriveInfoData and fdiTitle <> 0) then Wrt('~'#0+Cut(Info.Dir^,Size.X)+#0'~');
+{$ENDIF}
      XWrt(Info.Files, fdiTotals);
      Wrt('');
    end;
@@ -648,17 +629,22 @@ begin
  { Rainbow BEGIN }
  if SerFileSys then
   begin
+    {$IFNDEF WIN32} {¢à¥¬¥­­®!!!}
     XWrt(Info.SerialNo, fdiSerialNo);
+    {$ENDIF}
     XWrt(Info.FileSys, fdiFileSys);
   end;
  Wrt('');
  { Rainbow END }
  if DriveInfoData and fdiLowMemory <> 0 then
    Wrt('~'+FStr(TotalMemory shr 10)+GetString(dlDIMemoryTotal));
+{$IFNDEF NONBP}
  if DriveInfoData and fdiAvailLowMemory <> 0 then
    Wrt('~'+FStr(FreeMemory)+GetString(dlDIMemoryForUser));
+{$ENDIF}
  if DriveInfoData and fdiMemAvail <> 0 then
    Wrt('~'+FStr(MemAvail)+GetString(dlDIMemoryForDN));
+{$IFDEF OS_DOS}
  if (EMSFound or XMSFound) and (Y > 0)
    and (DriveInfoData and (fdiEMSFree+fdiXMSFree) <> 0) then
   Wrt(#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196#196);
@@ -667,11 +653,12 @@ begin
     Wrt('EMS: ~'+ItoS(EMSSize)+GetString(dlDIEMS1)+ItoS(EMSFreePages * 16)+GetString(dlDIEMS2));
   end;
  if (DriveInfoData and fdiXMSFree <> 0) and XMSFound then Wrt('~'+ItoS(XMSFree)+GetString(dlDIXMSFree));
- if (Y > 0) and (DriveInfoData and fdiDIZ <> 0) and
+{$ENDIF}
+ if (Y > 0) and ((DriveInfoData{$IFNDEF OS_DOS}shl 2{$ENDIF}) and fdiDIZ <> 0) and
    (Info.DirInfo <> nil) and (Info.DirInfo^.Count > 0) then
    begin
      if Owner <> nil then C := Owner^.GetColor(1+Byte(Owner^.GetState(sfActive)));
-     FillChar(FreeStr[1], Size.X, 196); FreeStr[0] := Char(Size.X);
+     FillChar(FreeStr[1], Size.X, 196); SetLength(FreeStr, Size.X);
      case Info.InfoFile of
        ifDirInfo: S1 := ' '+ sDirInfo   +' ';
         ifFileID: S1 := ' '+ sFileID    +' ';
@@ -726,10 +713,10 @@ begin
 
     DosError := 0; Abort := Off;
 
-    lFindFirst(MakeNormName(FreeStr, x_x), $3F xor VolumeID, SR);
+    lFindFirst(MakeNormName(FreeStr, x_x), Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
     While (DOSError = 0) and not Abort do
     begin
-     if (SR.SR.Name[1] <> '.') then
+     if not IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF}) then
       begin
        Inc(NumFiles);
        if SR.SR.Attr and Directory <> 0 then
@@ -747,8 +734,9 @@ begin
          L:=L+SR.FullSize;
          if BytesPerCluster > 0 then
           begin
-           ClusterLen:=ClusterLen+(SR.FullSize / BytesPerCluster)*BytesPerCluster;
-           if Round(SR.FullSize/BytesPerCluster)-(SR.FullSize/BytesPerCluster)<>0 then ClusterLen:=ClusterLen+BytesPerCluster;
+           if Round(SR.FullSize/BytesPerCluster)-(SR.FullSize/BytesPerCluster) >= 0 then
+               ClusterLen := ClusterLen+Round(SR.FullSize/BytesPerCluster)*BytesPerCluster
+             else ClusterLen := ClusterLen+Round(SR.FullSize/BytesPerCluster)*BytesPerCluster + BytesPerCluster;
           end;
         end;
       end;
@@ -835,9 +823,9 @@ begin
  TotalSpc:=BytesPerCluster;
  TotalSpc:=TotalSpc*DriveData.TotalClusters;
  {$ELSE}
- BytesPerCluster:=0;
  FreeSpc :=SysDiskFreeLong(Drv);
  TotalSpc:=SysDiskSizeLong(Drv);
+ BytesPerCluster:=GetBytesPerCluster(Drv);
  {$ENDIF}
 end;
         {-DataCompBoy-}
@@ -873,8 +861,12 @@ begin
   Drv := Byte(S[1])-64;
 
   GetDrInfo(Drv);if Abort then Exit;
+{$IFNDEF VIRTUALPASCAL}
   BytesPerCluster:=DriveData.BytesPerSector;
   BytesPerCluster:=BytesPerCluster*DriveData.SectorsPerCluster;
+{$ELSE}
+  BytesPerCluster:=GetBytesPerCluster(Drv);
+{$ENDIF}
 
   DirLen := 0; NumFiles := 0;
   CountDirLen(S, False, DirLen, NumFiles);
@@ -918,6 +910,7 @@ begin
       B.InfoFile := ifReadMeTxt;
       F := New(PTextReader, Init(MakeNormName(S, sReadMeTxt)));
     end;
+    if F = nil then B.InfoFile := ifFileID; {JO}
     B.Limit.X:=0; B.Limit.Y:=0;
     if F <> nil then
     begin
@@ -931,7 +924,10 @@ begin
       Dispose(F,Done); F:=nil;
     end;
   end;
-  VolumeLabel := GetVolumeLabel;
+  VolumeLabel := GetVolumeLabel{$IFDEF VIRTUALPASCAL}(GetCurDrive){$ENDIF};  {JO}
+  {$IFDEF VIRTUALPASCAL}
+  if VolumeLabel = '' then VolumeLabel:=GetString(dlDINone);       {JO}
+  {$ENDIF}
   B.VolumeID := NewStr(GetString(dlDIVolumeID) + Char(Drv+64) + ': ' + VolumeLabel + '~');
   { Rainbow BEGIN }
   GetSerFileSys(SerialNo,FileSys);

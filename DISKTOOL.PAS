@@ -50,31 +50,39 @@ UNIT DISKTOOL;
 
 interface
 
-uses LFN, {DataCompBoy}   advance, advance1, advance2, advance3, Dos,
+uses
+{$IFNDEF NONBP}
+     LFN, {DataCompBoy}   advance, advance1, advance2, advance3, Dos,
      Objects, Drivers;
+{$ELSE}
+     Objects;
+{$ENDIF}
 
 type
+
+{$IFNDEF NONBP}
       FATRec = Array [0..64000] of Byte;
 
       ArBte  = Array[0..64000] of Byte;
+{$ENDIF}
 
     PBootRec = ^TBootRec;
     TBootRec = Record
       Jmp      : Array [0..2] of Byte;
       OEM      : Array [0..7] of Char;
-      ByteSec  : Word;
+      ByteSec  : AWord;
       SecClu   : Byte;
-      ResSect  : Word;
+      ResSect  : AWord;
       FATCps   : Byte;
-      RootEnt  : Word;
-      TotalSc  : Word;
+      RootEnt  : AWord;
+      TotalSc  : AWord;
       BPB      : Byte;
-      SecFAT   : Word;
-      SecTrack : Word;
-      Sides    : Word;
+      SecFAT   : AWord;
+      SecTrack : AWord;
+      Sides    : AWord;
       HiddenSc : LongInt;
       NumSec   : LongInt;
-      PhysNum  : Word;
+      PhysNum  : AWord;
       ExtBootS : Byte;
       VolumeN  : Array [0..4] of Byte;
       VolumeL  : Array [0..10] of Char;
@@ -86,10 +94,11 @@ type
      Attr : Byte;
      Data : Array[0..9] of Byte;
      Date : LongInt;
-     Clus : Word;
+     Clus : AWord;
      Len  : LongInt;
     end;
 
+{$IFNDEF NONBP}
     DirPtr = Array [0..2000] of DirRec;
 
     ShDirRec = record
@@ -160,8 +169,10 @@ type
 }
     function  StrEq(Var a,b;Count : Word) : Boolean;
     function  CheckDisk(C : Char) : Boolean;
+{$ENDIF}
 
 implementation
+{$IFNDEF NONBP}
 uses
      {$IFDEF DPMI} Dpmi, DosMem, {$ENDIF}
      Startup, Messages, Memory, DNApp, RStrings, Commands;
@@ -874,5 +885,5 @@ end;
      end;
     CheckDisk := On;
  end;
-
+{$ENDIF NONBP}
 end.

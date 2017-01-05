@@ -65,6 +65,27 @@ IMPLEMENTATION
 uses Dos, Advance1;
 (*{$IFDEF DPMI}{$L Int10.obp}procedure Exc10Handler; external;{$ENDIF}*)
 
+function Sin (x:CReal):CReal;
+begin
+ if (not EvalueError)
+  then Sin := System.Sin(x)
+  else Sin := 1;
+end;
+
+function Cos (x:CReal):CReal;
+begin
+ if (not EvalueError)
+  then Cos := System.Cos(x)
+  else Cos := 1;
+end;
+
+function ArcTan (x:CReal):CReal;
+begin
+ if (not EvalueError)
+  then ArcTan := System.ArcTan(x)
+  else ArcTan := 1;
+end;
+
 function Sh  (x:CReal):CReal;
 begin
  if (not EvalueError)
@@ -270,7 +291,6 @@ function GetValue(S: String; var Value: CReal): boolean;
 
  function GetHex(var S: String; var Value: CReal): boolean;
  var RR, RRR: CReal;
-     l: byte absolute S;
      j: byte;
      Invert: boolean;
  begin
@@ -281,7 +301,7 @@ function GetValue(S: String; var Value: CReal): boolean;
   end else Invert:=False;
 
   RR:=0;
-  for j:=1 to l do
+  for j:=1 to Length(S) do
    Case S[j] of
     '0'..'9': RR:=RR*$10 + Ord(S[j])-48;
     'A'..'F': RR:=RR*$10 + Ord(S[j])-55;
@@ -289,27 +309,26 @@ function GetValue(S: String; var Value: CReal): boolean;
     else exit;
    end;
   Delete(S, 1, j);
-  if (L<1) then begin
+  if (Length(S) < 1) then begin
    GetHex:=true;
    If Invert then Value:=-RR else Value:=RR;
    exit
   end;
   RRR:=RR; RR:=0;
-  for j:=1 to l do
+  for j:=1 to Length(S) do
    Case S[j] of
     '0'..'9': RR:=RR*$10 + Ord(S[j])-48;
     'A'..'F': RR:=RR*$10 + Ord(S[j])-55;
     else exit;
    end;
   If Invert
-   then Value:=-(RRR + RR/Step($10,l))
-   else Value:=RRR + RR/Step($10,l);
+   then Value:=-(RRR + RR/Step($10, Length(S)))
+   else Value:=RRR + RR/Step($10, Length(S));
   GetHex:=True;
  end;
 
  function GetOct(var S: String; var Value: CReal): boolean;
  var RR, RRR: CReal;
-     l: byte absolute S;
      j: byte;
      Invert: boolean;
  begin
@@ -320,33 +339,32 @@ function GetValue(S: String; var Value: CReal): boolean;
   end else Invert:=False;
 
   RR:=0;
-  for j:=1 to l do
+  for j:=1 to Length(S) do
    Case S[j] of
     '0'..'7': RR:=RR*8 + Ord(S[j])-48;
     '.': break;
     else exit;
    end;
   Delete(S, 1, j);
-  if (L<1) then begin
+  if (Length(S) < 1) then begin
    GetOct:=true;
    If Invert then Value:=-RR else Value:=RR;
    exit
   end;
   RRR:=RR; RR:=0;
-  for j:=1 to l do
+  for j:=1 to Length(S) do
    Case S[j] of
     '0'..'7': RR:=RR*8 + Ord(S[j])-48;
     else exit;
    end;
   If Invert
-   then Value:=-(RRR + RR/Step(8,l))
-   else Value:=RRR + RR/Step(8,l);
+   then Value:=-(RRR + RR/Step(8, Length(S)))
+   else Value:=RRR + RR/Step(8, Length(S));
   GetOct:=True;
  end;
 
  function GetBin(var S: String; var Value: CReal): boolean;
  var RR, RRR: CReal;
-     l: byte absolute S;
      j: byte;
      Invert: boolean;
  begin
@@ -357,7 +375,7 @@ function GetValue(S: String; var Value: CReal): boolean;
   end else Invert:=False;
 
   RR:=0;
-  for j:=1 to l do
+  for j:=1 to Length(S) do
    Case S[j] of
     '0': RR:=RR*2;
     '1': RR:=RR*2 + 1;
@@ -365,21 +383,21 @@ function GetValue(S: String; var Value: CReal): boolean;
     else exit;
    end;
   Delete(S, 1, j);
-  if (L<1) then begin
+  if (Length(S) < 1) then begin
    GetBin:=true;
    If Invert then Value:=-RR else Value:=RR;
    exit
   end;
   RRR:=RR; RR:=0;
-  for j:=1 to l do
+  for j:=1 to Length(S) do
    Case S[j] of
     '0': RR:=RR*2;
     '1': RR:=RR*2 + 1;
     else exit;
    end;
   If Invert
-   then Value:=-(RRR + RR/Step(2,l))
-   else Value:=RRR + RR/Step(2,l);
+   then Value:=-(RRR + RR/Step(2, Length(S)))
+   else Value:=RRR + RR/Step(2, Length(S));
   GetBin:=True;
  end;
 
@@ -393,24 +411,24 @@ function GetValue(S: String; var Value: CReal): boolean;
 begin
  GetValue:=false;
  if (S[Length(S)] = 'H') and (S[1] in ['0'..'9']) then begin
-  Dec(S[0]);
+  SetLength(S, Length(S)-1);
   GetValue:=GetHex(S, Value);
  end else
  if S[1] = '$' then begin
   DelFC(S);
   GetValue:=GetHex(S, Value)
  end else
- if (S[0]>#2) and (S[1] = '0') and (S[2] = 'X') then begin
+ if (Length(S) > 2) and (S[1] = '0') and (S[2] = 'X') then begin
   DelFC(S);
   DelFC(S);
   GetValue:=GetHex(S, Value)
  end else
  if (S[Length(S)] in ['O','Q']) then begin
-  Dec(S[0]);
+  SetLength(S, Length(S)-1);
   GetValue:=GetOct(S, Value)
  end else
  if (S[Length(S)] = 'B') then begin
-  Dec(S[0]);
+  SetLength(S, Length(S)-1);
   GetValue:=GetBin(S, Value)
  end else
  GetValue:=GetDec(S, Value);
@@ -448,7 +466,7 @@ Procedure RestoreInt75Handler;
 Begin
   SetIntVec($75,Int75Old);
 End;
- {Sergey Abmetko - Unhanled exception bug fix start}
+ {Sergey Abmetko - Unhanled exception bug fix stop}
 {$ENDIF}
 
 function DoEval(start, stop: byte): CReal; forward;
@@ -459,6 +477,7 @@ begin
  New(S);
  S^:=UpStrg(DelSpaces(as));
  VGF:=aVGF;
+ EvalueError:=false;
 {$IFNDEF BIT_32} SetInt75Handler; {$ENDIF}
  Evalue:=DoEval(1, Length(S^));
 {$IFNDEF BIT_32} RestoreInt75Handler; {$ENDIF}
@@ -468,6 +487,20 @@ end;
 const cmd: string[10] = 'CALCULATOR';
       CmdSign: Set of char = ['>', '<', '=', '!', '#', '+', '-', '|',
                               '\', '/', '*', '&', '~', '%', '^'];
+
+{Pavel Anufrikov --> }
+
+function TestSignE(start,i : byte) : boolean;
+begin
+ TestSignE:=false;
+ if (s^[i-1]<>'E') then exit;
+ dec(i,2);
+ while (i>start) and (s^[i] in ['0'..'9','A'..'F']) do dec(i);
+ TestSignE := (s^[i-1]<>'0') or (s^[i]<>'X');
+end;
+
+{ <-- Pavel Anufrikov}
+
 function DoEval(start, stop: byte): CReal;
  var i: byte;
      value: CReal;
@@ -492,11 +525,13 @@ function DoEval(start, stop: byte): CReal;
     if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;
     continue;
    end;
-   if (s^[i]='>') and (i>start) then
+   if (s^[i]='>') and (i>start) and
+      (((i<stop) and (s^[i+1]<>'>')) or ((i>start+1) and (s^[i-1]<>'>'))) then
     begin DoEval:=Byte(DoEval(start, i-1) >  DoEval(i+1, stop)); exit end;
    if (s^[i]='>') and (i<stop) and (s^[i+1]='=') and (i>1) then
     begin DoEval:=Byte(DoEval(start, i-1) >= DoEval(i+2, stop)); exit end;
-   if (s^[i]='<') and (i>start) then
+   if (s^[i]='<') and (i>start) and
+      (((i<stop) and (s^[i+1]<>'<')) or ((i>start+1) and (s^[i-1]<>'<'))) then
     begin DoEval:=Byte(DoEval(start, i-1) <  DoEval(i+1, stop)); exit end;
    if (s^[i]='<') and (i<stop) and (s^[i+1]='=') and (i>1) then
     begin DoEval:=Byte(DoEval(start, i-1) <= DoEval(i+2, stop)); exit end;
@@ -524,9 +559,9 @@ function DoEval(start, stop: byte): CReal;
     if FreeByte>0 then begin DoEval:=1; EvalueError:=True; exit end;
     continue;
    end;
-   if (s^[i]='+') and (i>start) and not (s^[i-1] in CmdSign) then
+   if (s^[i]='+') and (i>start) and not (s^[i-1] in CmdSign) and not TestSignE(start,i) then
     begin DoEval:=DoEval(start, i-1) + DoEval(i+1, stop); exit end;
-   if (s^[i]='-') and (i>start) and not (s^[i-1] in CmdSign) then
+   if (s^[i]='-') and (i>start) and not (s^[i-1] in CmdSign) and not TestSignE(start,i) then
     begin DoEval:=DoEval(start, i-1) - DoEval(i+1, stop); exit end;
    if (s^[i]='-') and (i=start) and not (s^[i-1] in CmdSign) then
     begin DoEval:= - DoEval(i+1, stop); exit end;
@@ -575,7 +610,7 @@ function DoEval(start, stop: byte): CReal;
                 else begin EvalueError:=True; DoEval:=1; end;
     exit
    end;
-   if s^[0]>#3 then begin
+   if Length(s^) > 3 then begin
     cmd:=copy(s^, i, 3);
     if Cmd = 'DIV' then begin
      value:=DoEval(i+1, stop);
@@ -647,7 +682,9 @@ function DoEval(start, stop: byte): CReal;
     if cmd = 'CTG'      then begin DoEval:=CoTan(DoEval(start+3,stop));    exit end else
     if cmd = 'SEC'      then begin DoEval:=Sec(DoEval(start+3,stop));      exit end else
     if cmd = 'ABS'      then begin DoEval:=Abs(DoEval(start+3,stop));      exit end else
-    if cmd = 'SQR'      then begin DoEval:=Sqr(DoEval(start+3,stop));      exit end else
+    if (cmd = 'SQR')       { Mercury }
+       and (copy(s^,start,4)<>'SQRT')
+                        then begin DoEval:=Sqr(DoEval(start+3,stop));      exit end else
     if cmd = 'RAD'      then begin DoEval:=Rad(DoEval(start+3,stop));      exit end else
     if cmd = 'EXP'      then begin DoEval:=Exp(DoEval(start+3,stop));      exit end else
     if cmd = 'CTH'      then begin DoEval:=Cth(DoEval(start+3,stop));      exit end else
@@ -692,6 +729,7 @@ function DoEval(start, stop: byte): CReal;
        if cmd = 'ARCCOS'   then begin DoEval:=ArcCos(DoEval(start+6,stop));   exit end else
        if cmd = 'ARCSEC'   then begin DoEval:=ArcSec(DoEval(start+6,stop));   exit end else
        if cmd = 'ARCTAN'   then begin DoEval:=ArcTan(DoEval(start+6,stop));   exit end else
+       if cmd = 'ARCCTG' then begin DoEval:=ArcCoTan(DoEval(start+6,stop));   exit end else  {Mercury}
        if stop-start>6 then begin
         cmd:=copy(s^,start,7);
         if cmd = 'ARCCOTAN' then begin DoEval:=ArcCoTan(DoEval(start+7,stop)); exit end else
@@ -711,16 +749,16 @@ function DoEval(start, stop: byte): CReal;
   {Proceed level 0... simple value or variable}
   if copy(s^,start,2) = 'PI' then begin DoEval:=Pi; exit end;
 
+  if EvalueError then begin DoEval:=1; exit; end;
+
   if @VGF<>nil then
    If VGF(Copy(s^,start,stop-start+1), value) then
-    begin EvalueError:=False; DoEval:=value; exit end;
+    begin DoEval:=value; exit end;
 
   if s^[Start]='~' then begin LL := 1; inc(Start); end else LL := 0;
-  if GetValue(Copy(s^, Start, stop-start+1), Value)
-   then begin
-         EvalueError:=False;
-         if LL<>0 then DoEval:=not Round(value) else DoEval:=Value;
-        end
-   else begin EvalueError:=True; DoEval:=1 end;
+  if GetValue(Copy(s^, Start, stop-start+1), Value) then
+   if LL<>0 then DoEval:=not Round(value) else DoEval:=Value
+  else begin EvalueError:=True; DoEval:=1 end;
  end;
+
 END.

@@ -48,7 +48,7 @@
 unit Arc_tar; {TAR}
 
 interface
- uses Archiver, Objects, FViewer, Advance, LFNCol, Dos, advance1, xtime;
+ uses Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, advance1, xtime;
 
 type
     PTARArchive = ^TTARArchive;
@@ -109,7 +109,7 @@ constructor TTARArchive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'TAR.EXE'));
@@ -134,12 +134,24 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   ''));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
-  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  if q='0' then UseLFN := False else UseLFN := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function TTARArchive.GetID;
@@ -177,11 +189,13 @@ begin
   if ArcFile^.Status <> stOK then
      begin FileInfo.Last := 2; Exit end;
   FileInfo.Last := 0;
-  S := Hdr.FName + #0; Byte(S[0]) := PosChar(#0, S)-1;
+  S := Hdr.FName + #0; SetLength(S, PosChar(#0, S)-1);
   if S = '' then begin FileInfo.Last := 1; Exit end;
   Replace('/', '\', S);
   if Copy(S,1,2) = '.\' then System.Delete(S,1,2);
+{$IFNDEF OS2}
   FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
+{$ENDIF}
   FileInfo.FName := S; {DataCompBoy}
   S := Hdr.Size;
   FileInfo.USize := FromOct(DelSpaces(S));
@@ -191,7 +205,7 @@ begin
   PackTime(DT, FileInfo.Date);
   L := (FileInfo.PSize div LongInt(BlkSize)) + Byte(FileInfo.PSize mod LongInt(BlkSize) <> 0);
   L := L * BlkSize;
-  ArcFile^.Seek(ArcFile^.GetPos + L);
+  if L >= 0 then ArcFile^.Seek(ArcFile^.GetPos + L) else begin FileInfo.Last := 2; Exit end; {JO багфикс зацикливания в ложных архивах}
 end;
 
 end.

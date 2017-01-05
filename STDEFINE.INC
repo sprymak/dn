@@ -1,78 +1,45 @@
-{/////////////////////////////////////////////////////////////////////////
-//
-//  Dos Navigator Open Source 1.51.08
-//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
-//
-//  This programs is free for commercial and non-commercial use as long as
-//  the following conditions are aheared to.
-//
-//  Copyright remains RIT Research Labs, and as such any Copyright notices
-//  in the code are not to be removed. If this package is used in a
-//  product, RIT Research Labs should be given attribution as the RIT Research
-//  Labs of the parts of the library used. This can be in the form of a textual
-//  message at program startup or in documentation (online or textual)
-//  provided with the package.
-//
-//  Redistribution and use in source and binary forms, with or without
-//  modification, are permitted provided that the following conditions are
-//  met:
-//
-//  1. Redistributions of source code must retain the copyright
-//     notice, this list of conditions and the following disclaimer.
-//  2. Redistributions in binary form must reproduce the above copyright
-//     notice, this list of conditions and the following disclaimer in the
-//     documentation and/or other materials provided with the distribution.
-//  3. All advertising materials mentioning features or use of this software
-//     must display the following acknowledgement:
-//     "Based on Dos Navigator by RIT Research Labs."
-//
-//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
-//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
-//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-//  The licence and distribution terms for any publically available
-//  version or derivative of this code cannot be changed. i.e. this code
-//  cannot simply be copied and put under another distribution licence
-//  (including the GNU Public Licence).
-//
-//////////////////////////////////////////////////////////////////////////}
-
 {/$DEFINE LFNCache}
-  {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$ENDIF}
+  {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$DEFINE LINEPOSIT}{$ENDIF}
   {$IFDEF FPC}{$DEFINE NONBP}{$ENDIF}
 
+ {$IFNDEF VIRTUALPASCAL} {$IFNDEF DPMI} {$DEFINE REALMODE} {$ENDIF} {$ENDIF}
+ {$IFNDEF REALMODE} {.$DEFINE TGZ} {$ENDIF}
 
+{$DEFINE Calendar}
+{$DEFINE Game}
+{$DEFINE TrashCan}
+{$DEFINE CHCOL}
+{$DEFINE SS}
+
+{.$DEFINE DN}
+{.$DEFINE DNPRG}
+
+{$IFDEF REALMODE}
+ {$DEFINE LITE}
+{$ENDIF}
+
+{$DEFINE UUENCODE}
+{$DEFINE UUDECODE}
+{$DEFINE DBView}
   {$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
 {$DEFINE UUENCODE}
 {$DEFINE UUDECODE}
-{$DEFINE Modem}
-{$DEFINE Link}
-{$DEFINE SpreadSheet}
+{$DEFINE TARDETECT}
+{.$DEFINE Modem}
+{.$DEFINE Link}
 {$DEFINE DiskEdit}
 {$DEFINE DiskFormat}
 {$DEFINE Reanimator}
 {$DEFINE DBView}
 {$DEFINE PrintManager}
-{$DEFINE Game}
+{$DEFINE SpreadSheet}
 {$DEFINE CdPlayer}
-{$DEFINE Calendar}
-{$DEFINE SYSINFO}
 {$DEFINE MEMINFO}
-{$DEFINE TrashCan}
+{$DEFINE SYSINFO}
 {$DEFINE NETINFO}
-{$DEFINE PHONES}
-{$DEFINE SS}
-{$DEFINE CHCOL}
+{.$DEFINE PHONES}
+
 {.$DEFINE DisAsm}
-{.$DEFINE PKTVIEW}
 {.$DEFINE UPLOWSTRSINDLG}
 
 {$IFDEF DPMI}
@@ -80,31 +47,55 @@
  {.$DEFINE QSort}{$DEFINE POGLSORT}
  {$DEFINE NO_OVERLAY}
  {$DEFINE NOEXTRA}
+ {$DEFINE PKTVIEW}
+ {.$DEFINE OldCollection}
 {$ELSE}
  {.$DEFINE BIGCOLLECTION}
  {.$DEFINE QSort}{$DEFINE POGLSORT}
  {$UNDEF NO_OVERLAY}
  {$UNDEF NOEXTRA}
  {$DEFINE OFFS}
+ {$DEFINE OldCollection} {старые ассемблерные методы *Collection}
 {$ENDIF}
 
 {$DEFINE BIT_16}
 {$DEFINE OS_DOS}
 
 {.$DEFINE StreamDebug}
-{$DEFINE SORTDEBUG}
-{$DEFINE CHDIRDEBUG}
+{.$DEFINE SORTDEBUG}
+{.$DEFINE CHDIRDEBUG}
 {.$DEFINE CHDIRTIMER}
+{$DEFINE UserSaver}
 
-  {$ELSE !VIRTUALPASCAL}
+  {$ELSE VIRTUALPASCAL}
 {$DEFINE NO_OVERLAY}
 {$DEFINE NOEXTRA}
 {$DEFINE BIT_32}
 {$DEFINE FILE_32}
-{$DEFINE Win32}
-{$DEFINE MINARCH}
+{.$DEFINE Win32}     {не требуется, так как включено в _dnc.bat}
+{$IFDEF Win32}
+ {$DEFINE STRINGLFN} {включает более быстрый, но жрущий много памяти алгоритм работы с виндовыми LFN}
+{$ENDIF}
+{.$DEFINE OS2}       {не требуется, так как включено в _dnc.cmd}
+{$DEFINE VPBETA}    {отключает те фишки, которые пока не работают в VP-версии}
+                     {и включает создание DN.ERR при критических ошибках}
+{.$DEFINE OldCollection} {старые ассемблерные методы *Collection}
+{$DEFINE NoCallspcb} {внимание! конфиги версий, скомпилённых с и без NoCallspcb несовместимы!}
+{$IFDEF OS2}
+ {$DEFINE EAOP}      {операции с расширенными атрибутами}
+ {$DEFINE USEWPS}    {открытие фолдеров WPS}
+{$ENDIF}
 {$Use32+}
+{.$DEFINE QSORT}
 {$DEFINE POGLSORT}
+{$DEFINE SpreadSheet}
+{.$DEFINE PrintManager}
+{.$DEFINE Printer}
+{$DEFINE PrintFromEditor}
+{.$DEFINE PKTVIEW} {нормально компилится и работает, но надо ли}
+{$DEFINE DisAsm}  {нормально компилится и работает, но надо ли}
+{$DEFINE PHONES}
+{.$DEFINE NETINFO}
   {$ENDIF VIRTUALPASCAL}
 
 {$IFDEF BPIDE}
@@ -118,25 +109,25 @@
 {$UNDEF DisAsm}
 {$ENDIF}
 
-{.$DEFINE LITE}
-
 {$IFDEF LITE}
- {$UNDEF TrashCan}
+ {.$UNDEF TrashCan}
  {$UNDEF Game}
- {$UNDEF UUENCODE}
- {$UNDEF UUDECODE}
- {$UNDEF Calendar}
- {$UNDEF CdPlayer}
+ {.$UNDEF UUENCODE}
+ {.$UNDEF UUDECODE}
+ {.$UNDEF Calendar}
+ {.$UNDEF CdPlayer}
  {$UNDEF NETINFO}
- {$UNDEF PHONES}
- {$UNDEF SS}
- {$UNDEF PrintManager}
- {$UNDEF CHCOL}
+ {.$UNDEF PHONES}
+ {.$UNDEF SS}
+ {.$UNDEF PrintManager}
+ {.$UNDEF CHCOL}
  {$UNDEF SpreadSheet}
- {$UNDEF DBView}
- {$UNDEF Link}
+ {.$UNDEF DBView}
+ {.$UNDEF Link}
  {$UNDEF DisAsm}
- {$DEFINE MINARCH}
+ {.$DEFINE MINARCH}
+ {$UNDEF DiskEdit}
+ {$UNDEF Reanimator}
 {$ENDIF}
 
 {.$DEFINE BANK}
@@ -148,12 +139,12 @@
   {$UNDEF DisAsm}
 {$ENDIF}
 
-{.$DEFINE COMBINE_MIXED}
+{$DEFINE COMBINE_MIXED} {это чтобы case filter работал по-человечески}
 
 {$DEFINE FULLOVR}
 {$DEFINE FULLOVR2}
 {$DEFINE VIEWSOVR}
-{.$DEFINE ADVANCEOVR}
+{$DEFINE ADVANCEOVR}
 {$DEFINE CollectOVR}
 {$DEFINE MicroedOvr}
 {$DEFINE VIDEOOVR}

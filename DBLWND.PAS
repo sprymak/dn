@@ -538,7 +538,13 @@ procedure TDoubleWindow.HandleCommand;
                              else LeftView^.GetBounds(R1);
   case dtType of
     dtTree: begin
-              if LTree = nil then InsertTree; if LTree = nil then Exit;
+              if LTree = nil then
+                               begin
+                               {if StartupData.Slice2 and osuReleaseTree = 0 then Application^.BFSpeed;}
+                                InsertTree;
+                               {if StartupData.Slice2 and osuReleaseTree = 0 then Application^.EFSpeed;}
+                               end;
+              if LTree = nil then Exit;
               V := LTree;
             end;
     dtView: begin
@@ -605,7 +611,12 @@ procedure TDoubleWindow.HandleCommand;
     end;
  end;
 
-procedure CE; begin ClearEvent(Event) end;
+ procedure CE; begin ClearEvent(Event) end;
+
+ function isPanel: boolean;
+   begin
+   isPanel := (Current = LPanel) or (Current = RPanel);
+   end;
 
 var AP, PP: PFilePanel;
     D: Word;
@@ -629,18 +640,18 @@ begin
                       if (LVisible and RVisible) then
                        if FMSetup.Options and fmoAlternCtrlDiff <> 0 then begin
                         if LSelected then
-                         if (ShiftState2 and 1 <> 0)
-                          then RightView^.HandleEvent(Event)
+                          if (ShiftState2 and 1 <> 0)
+                           then RightView^.HandleEvent(Event)
                           else LeftView^.HandleEvent(Event)
-                         else
-                         if (ShiftState2 and 1 <> 0)
-                          then LeftView^.HandleEvent(Event)
+                        else
+                          if (ShiftState2 and 1 <> 0)
+                           then LeftView^.HandleEvent(Event)
                           else RightView^.HandleEvent(Event);
-                         Exit;
+                          Exit;
                         end
                        else begin
-                        if LVisible and (ShiftState2 and 1 <> 0)
-                         then LeftView^.HandleEvent(Event)
+                         if LVisible and (ShiftState2 and 1 <> 0)
+                           then LeftView^.HandleEvent(Event)
                          else RightView^.HandleEvent(Event);
                         Exit;
                        end;
@@ -718,9 +729,11 @@ begin
          kbCtrlSqBracketL: begin
                             S := '';
                             Message(LeftView, evCommand, cmGetName, @S);
+                            {$IFNDEF OS2}
                             if (ShiftState and kbAltShift<>0)
-                             then S:=lfGetLongFileName(S)
+                             then {$IFDEF OS_DOS} S:=lfGetLongFileName(S) {$ENDIF}
                              else S:=lfGetShortFileName(S);
+                            {$ENDIF}
                             if not (S[Length(S)] in ['\','/']) then AddStr(S, '\');
                             S:=SquashesName(S);
                             Message(CommandLine, evCommand, cmInsertName, @S);
@@ -730,9 +743,11 @@ begin
          kbCtrlSqBracketR: begin
                             S := '';
                             Message(RightView, evCommand, cmGetName, @S);
+                            {$IFNDEF OS2}
                             if (ShiftState and kbAltShift<>0)
-                             then S:=lfGetLongFileName(S)
+                             then {$IFDEF OS_DOS} S:=lfGetLongFileName(S) {$ENDIF}
                              else S:=lfGetShortFileName(S);
+                            {$ENDIF}
                             if not (S[Length(S)] in ['\','/']) then AddStr(S, '\');
                             S:=SquashesName(S);
                             Message(CommandLine, evCommand, cmInsertName, @S);
@@ -838,7 +853,9 @@ begin
                                             else LPanel^.HandleEvent(Event);
                               end;
               cmDiskInfo: begin
-                            SwitchView(dtInfo); CE;
+                            if isPanel then {AK155}
+                              SwitchView(dtInfo);
+                            CE;
                             if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
                                          else Message(RightView, evCommand, cmLViewFile, nil);
                            end;
@@ -884,11 +901,20 @@ begin
                                else SwitchRight; CE end;
               cmChangeLeft: begin ChangeDrvLeft; CE end;
               cmChangeRight: begin ChangeDrvRight; CE end;
-              cmDirTree: begin SwitchView(dtTree); CE end;
-              cmQuickView: begin SwitchView(dtView);
-                               if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
-                                            else Message(RightView, evCommand, cmLViewFile, nil);
-                               CE end;
+              cmDirTree:
+                begin
+                  if isPanel then {AK155}
+                    SwitchView(dtTree);
+                    CE
+                end;
+              cmQuickView:
+                begin
+                  if isPanel then {AK155}
+                    SwitchView(dtView);
+                  if LSelected then Message(LeftView, evCommand, cmLViewFile, nil)
+                  else Message(RightView, evCommand, cmLViewFile, nil);
+                  CE
+                end;
               cmSwapPanels: begin
                              Lock;
                              if not RVisible then

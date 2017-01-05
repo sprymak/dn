@@ -50,7 +50,9 @@ unit DBWatch;
 
 interface
 
-uses LFN, collect, Objects, Dos, advance, advance1, advance2, advance3;
+uses LFN, collect, Objects, Dos, advance, advance1, advance2, advance3
+  , use16
+;
 
 type
      PFieldRec = ^Fieldrec;
@@ -82,13 +84,51 @@ type
       destructor Done; virtual;
       procedure Read(var Buf; Num: Word);
       procedure Seek(NewLoc: LongInt);
-      function GetField(Name: String;var Buf) : String;
+{      function GetField(Name: String;var Buf) : String;
       function GetNField(N: Word;var Buf) : String;
-      function GetFieldRec(N : Integer) : PFieldRec;
+}      function GetFieldRec(N : Integer) : PFieldRec;
       procedure OpenMode(Mode: Word);
      end;
 
+{AK155 извлечь текст поля из буфера записи }
+procedure GetFrField(PFR: PFieldRec; var Buf; var S: string);
+
 implementation
+
+{AK155}
+procedure GetFrField(PFR: PFieldRec; var Buf; var S: string);
+assembler; {&uses esi,edi } {&FRAME-}
+  asm
+  mov   esi, PFR
+  movzx ecx, word ptr[esi].FieldRec.Len
+  movzx esi, word ptr[esi].FieldRec.Pos
+  add   esi,Buf
+  mov   edi,S
+  cld
+  mov   byte ptr[edi],cl {длина}
+  inc   edi
+  jecxz @@1
+  rep movsb
+@@1:
+
+(* Я зумаю, 16-разядный код такой:
+  push  ds
+  les   si,PFR
+  mov   cx, word ptr [si].FieldRec.Len
+  mov   ax, word ptr [si].FieldRec.Pos
+  lds   si,Buf
+  add   di,ax
+  lds   di,S
+  cld
+  mov   byte ptr DS:[di],cl {длина}
+  inc   di
+  jecx  @@1
+  rep movsb
+@@1:
+  pop   ds
+*)
+  end;
+{/AK155}
 
 procedure TFieldCollection.FreeItem;
 begin
@@ -100,7 +140,7 @@ function NewField(Name: String; Who: Char; Len, Dec: Byte;Pos: Word) : PFieldRec
 begin
  New(P);
  P^.Name := Name;
- while Name[Length(Name)] = ' ' do System.Dec(Name[0]);
+ while Name[Length(Name)] = ' ' do SetLength(Name, Length(Name)-1);
  P^.Who := Who;
  if Len=0
   then P^.Len := 1
@@ -140,8 +180,21 @@ begin
  if BaseFile.Status <> stOk then begin BaseFile.Done;Fail;end;
  BaseFile.Read(Date, 32);
  if BaseFile.Status <> stOk then begin BaseFile.Done;Fail;end;
- NumFields := (HeaderLen div 32) - 1;
- if NumFields = 0 then begin BaseFile.Done;Fail;end;
+{piwamoto.src.begin}{bugfixed .DBF detection}
+ NumFields := -1;
+ repeat
+   BaseFile.Read(FBuf, 32);
+   Inc (NumFields);
+ until (FBuf.Name[0] < #32) or
+       (BaseFile.Status <> stOk) or
+       (HeaderLen + 32 < BaseFile.GetPos);
+ if (NumFields < 1) or
+    (FBuf.Name[0] <> #13) or
+    (BaseFile.Status <> stOk) or
+    (HeaderLen + 32 < BaseFile.GetPos)
+   then begin BaseFile.Done;Fail;end;
+ BaseFile.Seek(32);
+{piwamoto.src.end}
  Fields := New(PFieldCollection, Init(NumFields, NumFields));
  RL := 1;
  for I := 1 to NumFields do
@@ -154,7 +207,7 @@ begin
      S := S + FBuf.Name[J];
      Inc(J);
     end;
-   S[0] := Char(J);
+   SetLength(S, J);
    if (J = 0) or (BaseFile.Status <> stOk) then
       begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
    with FBuf do Fields^.Insert(NewField(S, Who, Len, Dec, RL - Len));
@@ -185,7 +238,7 @@ function TDBFile.GetFieldRec;
 begin
  GetFieldRec := Fields^.At(N);
 end;
-
+(*
 function TDBFile.GetField;
  var I, K, N: Integer;
      B: Array [0..65000] of Char Absolute Buf;
@@ -197,7 +250,7 @@ begin
  K := GetFieldRec(I)^.Pos;
  S := ''; N := I;
  for I := K to K + GetFieldRec(N)^.Len - 1 do S[I - K] := B[I];
- S[0] := Char(GetFieldRec(N)^.Len);
+ SetLength(S, GetFieldRec(N)^.Len);
  GetField := S;
 end;
 
@@ -213,7 +266,7 @@ begin
  S[0] := Char(GetFieldRec(N)^.Len);
  GetNField := S;
 end;
-
+*)
 destructor TDBFile.Done;
 begin
  Dispose(Fields,Done); Fields:=nil;

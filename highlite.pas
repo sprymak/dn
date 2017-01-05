@@ -45,6 +45,10 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+
+{$IFDEF VIRTUALPASCAL}
+ {$DEFINE NOASM}
+{$ENDIF}
 (*****************************************************************
  *
  * SOURCE FILE: highlite.pas
@@ -130,7 +134,7 @@ type
     OctFlagsO      : Word;
     BinFlags       : Word;
     StrFlags       : Word;
-    RulesBuffer    : array [1..$400] of Char;
+    RulesBuffer    : array [1..$800] of Char;
   end;
 
   THighliteRule = (

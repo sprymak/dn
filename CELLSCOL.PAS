@@ -56,8 +56,8 @@ type
      PCellRec =^TCellRec;
      TCellRec = record
       Col: Byte;
-      Row: Integer;
-      Options: Word;
+      Row: AInt;
+      Options: AWord;
       Decimals: Byte;
       Value: Real;
       S: String;
@@ -83,7 +83,7 @@ const
     MaxCellY = 4096;
 
 
-    LenDataRec = Sizeof(Byte) + SizeOf(Integer) + SizeOf(Word) +
+    LenDataRec = Sizeof(Byte) + SizeOf(AInt) + SizeOf(AWord) +
                  SizeOf(Byte) + sizeof(Real) + SizeOf(Char);
 
 {      Options :
@@ -121,31 +121,35 @@ implementation
 
 uses Memory, advance, advance1, advance2, advance3, ObjType;
 
-const VObjType:word=otCellCollection;
+const VObjType:AWord=otCellCollection;
 procedure TCellCollection.ShortStore(var S: TStream);
+var TCount, TLimit, TDelta: AInt;
   procedure DoPutItem(P: Pointer); {$IFDEF BIT_16} far; {$ENDIF}
   begin
    PutItem(S, P);
   end;
 begin
-  S.Write(VObjType, 2);
-  S.Write(Count, 2);
-  S.Write(Limit, 2);
-  S.Write(Delta, 2);
+  TCount := Count;
+  TLimit := Limit;
+  TDelta := Delta;
+  S.Write(VObjType, SizeOf(AWord));
+  S.Write(TCount, SizeOf(AInt));
+  S.Write(TLimit, SizeOf(AInt));
+  S.Write(TDelta, SizeOf(AInt));
   ForEach(@DoPutItem);
   S.Write(Duplicates, SizeOf(Duplicates));
 end;
 
 constructor TCellCollection.ShortLoad(var S: TStream);
-var q: word;
+var q: AWord;
   C, I: Integer;
-  ACount, ALimit, ADelta: integer;
+  ACount, ALimit, ADelta: AInt;
 begin
-  S.Read(q, 2);
+  S.Read(q, SizeOf(AWord));
   if q<>VObjType then fail;
-  S.Read(ACount, SizeOf(Integer));
-  S.Read(ALimit, SizeOf(Integer));
-  S.Read(ADelta, SizeOf(Integer));
+  S.Read(ACount, SizeOf(AInt));
+  S.Read(ALimit, SizeOf(AInt));
+  S.Read(ADelta, SizeOf(AInt));
   Inherited Init(ALimit, ADelta);
   SetLimit(ACount);
   for I := 0 to ACount - 1 do AtInsert(I, GetItem(S));
@@ -241,9 +245,9 @@ function TCellCollection.GetItem;
      P: PCellRec;
 begin
  S.Read(R, LenDataRec);
- S.Read(R.S[1], Byte(R.S[0]));
- P := MemAlloc(LenDataRec + Byte(R.S[0]));
- Move(R, P^, LenDataRec + Byte(R.S[0]));
+ S.Read(R.S[1], Length(R.S));
+ P := MemAlloc(LenDataRec + Length(R.S));
+ Move(R, P^, LenDataRec + Length(R.S));
  GetItem := P;
 end;
 
@@ -284,11 +288,11 @@ begin
  S1:=''; I := 1;
  if S[I] = '@' then Inc(I);
  While (I <= Length(S)) and (S[I]>='A') and (S[I]<='Z') do Inc(I);
- S1 := Copy(S, I+Byte(S[I]='@'), 100); S[0] := Char(I-1);
+ S1 := Copy(S, I+Byte(S[I]='@'), 100); SetLength(S, I-1);
  Val(S1, Y, I); Dec(Y);
- GetCellCoord := not ((S[0]>#2) or (S='') or (S[0]=#2) and
+ GetCellCoord := not ((Length(S) > 2) or (S='') or (Length(S) = 2) and
                  (S[1]>'IV') or (Y<0) or (Y>MaxCellY));
- if S[0] = #1 then X := Byte(S[1]) - 65 else X := (Byte(S[1]) - 64) * 26 + Byte(S[2]) - 65;
+ if Length(S) = 1 then X := Byte(S[1]) - 65 else X := (Byte(S[1]) - 64) * 26 + Byte(S[2]) - 65;
 end;
 
 function GetCellName(X, Y: Integer): String;
@@ -302,8 +306,9 @@ begin
 end;
 
 function MakeComma(S: String): String;
- var S1: String;
-     I: Integer;
+ var I: Integer;
+{$IFNDEF BIT_32}
+     S1: String;
  label Quit;
 begin
  S1 := S;
@@ -367,5 +372,19 @@ begin
  end;
 Quit: MakeComma := S1;
 end;
+{$ELSE}
+  K: Integer;
+begin
+ I := PosChar('.', S);
+ if I = 0 then I := Length(S)+1;
+ K := 3;
+ while (I - K) > 1 do
+ begin
+   insert(CommaChar, S, I - K);
+   Inc(K, 3);
+ end;
+ MakeComma := S;
+end;
+{$ENDIF}
 
 end.

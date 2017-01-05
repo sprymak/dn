@@ -48,7 +48,7 @@
 unit Arc_bs2; {BS2}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, LFNCol, Dos;
+ uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
     PBS2Archive = ^TBS2Archive;
@@ -77,7 +77,7 @@ constructor TBS2Archive.Init;
 var Sign: TStr5;
     q: String;
 begin
-  Sign := GetSign; Dec(Sign[0]); Sign := Sign+#0;
+  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'BS2.EXE'));
@@ -102,12 +102,24 @@ begin
   NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
   GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   ''));
-  q := GetVal(@Sign[1], @FreeStr[1], PListChar, ' ');
-  if q<>'' then ListChar := q[1] else ListChar:=' ';
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '1');
+  PutDirs := q <> '0';
+{$IFDEF OS_DOS}
   q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  if q='0' then Swap := False else Swap := True;
+  Swap := q <> '0';
+{$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  ShortCmdLine := q <> '0';
+{$ENDIF}
+{$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  if q='0' then UseLFN := False else UseLFN := True;
+  UseLFN := q <> '0';
+{$ENDIF}
 end;
 
 function TBS2Archive.GetID;
@@ -121,7 +133,7 @@ begin
 end;
 
 Procedure TBS2Archive.GetFile;
-var HS,i : Word;
+var HS,i : AWord;
     FP   : Longint;
     P    : BSA2Hdr;
     Q    : Array [1..40] of Char absolute P;
@@ -146,11 +158,13 @@ begin
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
  i := 1;
- S[0] := Char(P.NameLen);
+ SetLength(S, P.NameLen);
  ArcFile^.Read(S[1], P.NameLen and 255);
  While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
  While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
+{$IFNDEF OS2}
  FileInfo.LFN  := AddLFN(CDir+S);    {DataCompBoy}
+{$ENDIF}
  FileInfo.FName := CDir + S; {DataCompBoy}
  FP := ArcFile^.GetPos;
  ArcFile^.Seek(FP + P.PackedSize);
