@@ -1334,7 +1334,7 @@ dlResFollowsNothing        ^C'Операторы ''*'', ''?'', ''+'' и ''{n,m}'' не могут
 dlResTrailingBackSlash     ^C'Обратная косая черта не может быть последним символом в строке'
 ;PZ end - regular expressions
 ;JO+
-dlNotValidForFullscreen 'Этот видеорежим невозможен для полноэкранной сессии'
+dlNotValidForCurSession 'Этот видеорежим невозможен для текущей сессии'
 dlCreateObject 'Создать объект на рабочем столе для: '
 dlObjectTitle  'Заголовок объекта:'
 dl_CodePage_FS_Error 'Ошибка файловой системы, связанная с кодовой страницей'

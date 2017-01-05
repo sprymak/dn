@@ -870,11 +870,7 @@ Dos.Exec?}
 {$ENDIF}
   InitDOSMem;
   InitMemory;
-  SetVideoMode(ScreenMode); SM := ScreenMode;
-  SetBlink(true);
-  InitVideo; ScreenMode := SM;
-  {$IFDEF Win32}SysTVInitCursor; {$ENDIF} {AK155, см.комментарий к SysTVInitCursor}
-  if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
+  InitVideo;
   InitEvents;
   InitSysError;
   case DE of
@@ -1008,7 +1004,7 @@ end;
 procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
                                   Own: PView; Options: Byte);
  var SS, ArchiveName: Ansistring;
-     S: String;
+     S, SCr: String;
      DT: Record S: String; W: Word; Psw: String[30]; end;
      ExtrChar: String;
      Nm: String;
@@ -1024,6 +1020,8 @@ procedure TArcDrive.ExtractFiles (AFiles: PCollection; ExtrDir: String;
      FRT: PFileRec;
      OldConfirms: Word;
      PV: PView;
+     Inhr: Byte;
+     SR: lSearchRec;
 
 {$IFNDEF OS2}
 label TryAgain;
@@ -1049,10 +1047,31 @@ begin
 
   if not (ExtrDir[Length(ExtrDir)] in ['\','/']) then ExtrDir := ExtrDir + '\';
 
+  SCurDir := CurDir;
+  SCr := '';
+  if (SCurDir <> '') then
+    begin
+      While (SCurDir[Length(SCurDir)] = '.') do SetLength(SCurDir, Length(SCurDir)-1);
+      While (SCurDir <> '') and (SCurDir[1] = '\') do Delete(SCurdir, 1, 1);
+      if (SCurDir[Length(SCurDir)] <> '\') then SCurdir := SCurdir + '\';
+      if (CnvString(AType^.SetPathInside) <> '') then
+        begin
+          SCr := ' ' + CnvString(AType^.SetPathInside) + SCurDir + ' ';
+          SCurDir := '';
+        end;
+    end;
+
 {JO}
+ // проверяем, содержит ли каталог назначения файлы
+  DosError := 0;
+  lFindFirst(MakeNormName(ExtrDir, x_x), Anyfile, SR);  {JO}
+  if IsDummyDir(SR.Fullname) then lFindNext(SR);
+  if IsDummyDir(SR.Fullname) then lFindNext(SR);
+  lFindClose(SR);
  // для разархивирования на дискеты и тестирования не используем
  // временный подкаталог
-  if (UpCase(ExtrDir[1]) in ['A','B']) or (Options and 2 <> 0) then
+  if ((Options and 8) = 0) or ((Options and 2) <> 0) or
+      ((DosError <> 0) and (SCurDir = '')) then
     begin
       TempExtrDir := ExtrDir;
       TempDirUsed := False;
@@ -1116,18 +1135,7 @@ TryAgain:
   if ((Options and 4 <> 0) or TempDirUsed) and
       (CnvString(AType^.ForceMode) <> '') then
     S := S + CnvString(AType^.ForceMode) + ' ';
-  SCurDir := CurDir;
-  if (SCurDir <> '') then
-    begin
-      While (SCurDir[Length(SCurDir)] = '.') do SetLength(SCurDir, Length(SCurDir)-1);
-      While (SCurDir <> '') and (SCurDir[1] = '\') do Delete(SCurdir, 1, 1);
-      if (SCurDir[Length(SCurDir)] <> '\') then SCurdir := SCurdir + '\';
-      if (CnvString(AType^.SetPathInside) <> '') then
-        begin
-          S := S + ' ' + CnvString(AType^.SetPathInside) + SCurDir + ' ';
-          SCurDir := '';
-        end;
-    end;
+  S := S + SCr; {установка пути внутpи аpхива}
   S := ExtrChar + ' ' + S + ArchiveName;
   Unp := CnvString(AType^.unPacker);
   if (AType^.GetID = arcRAR) and (PosChar(';', Unp) > 0) then
@@ -1137,7 +1145,8 @@ TryAgain:
       else Unp := Copy(Unp, 1, PosChar(';', Unp)-1);
     end;
   lGetDir(0, DirToChange);
-  CreateDirInheritance(TempExtrDir, true);
+  Inhr := CreateDirInheritance(ExtrDir, True);
+  CreateDirInheritance(TempExtrDir, False);
   Advance2.lChDir(TempExtrDir);
   Exec(Unp ,{$IFDEF RecodeWhenDraw}OemToCharStr{$ENDIF}(s), SS, B);
 {JO}
@@ -1174,6 +1183,11 @@ TryAgain:
       Confirms := OldConfirms;
       FCT^.DeleteAll;
       Dispose(FCT, Done);
+      if Inhr > 0 then
+        begin
+          GlobalMessage(evCommand, cmPanelReread, nil);
+          GlobalMessage(evCommand, cmRereadInfo, nil);
+        end;
     end;
 {/JO}
 end;
@@ -1183,6 +1197,7 @@ end;
 procedure TArcDrive.CopyFiles;
  var DT: Record S: String; W: Word; Psw: String[30]; end;
      ExtrDir: String;
+     DDr: Char;
 begin
   ExtrDir := '';
   DT.S := '';
@@ -1200,12 +1215,32 @@ begin
      CopyToTempDrive(AFiles, Own, ArcName);
      Exit;
     end;
+{JO}
+// пpовеpяем, находится ли диск в списке дисков, на котоpые надо
+// pазаpхивиpовать не чеpез вpеменный подкаталог (по умолчанию A: и B:)
+  if (DT.S <> '') and (Length(DT.S) >= 2) then
+   begin
+    if DT.S[2] = ':' then DDr := UpCase(DT.S[1])
+      else DDr := #1; {любой символ не входящий в 'A'..'Z'}
+   end
+  else
+   begin
+    lGetDir(0, ExtrDir);
+    DDr := UpCase(ExtrDir[1]);
+    ExtrDir := '';
+   end;
+  if (DDr in ['A'..'Z']) and
+     ((SystemData.Drives[DDr]{$IFNDEF OS_DOS}shl 1{$ENDIF}) and
+       ossUnarcToDirectly <> 0) then
+       DT.W := DT.W and not 8
+  else DT.W := DT.W or 8;
+{/JO}
   if not SkipCopyDialog then
      if ExecResource( dlgExtract, DT) <> cmOK then Exit;
 {JO}
   if ((DT.W and 1) <> (UnarchiveOpt and 1)) or
      ((DT.W and 4) <> (UnarchiveOpt and 4)) then ConfigModified := True;
-  UnarchiveOpt := DT.W and not 2;
+  UnarchiveOpt := (DT.W and not 2) or 8;
 {/JO}
   SkipCopyDialog := false;
   ExtrDir := DT.S;
@@ -1496,8 +1531,17 @@ procedure TArcDrive.HandleCommand;
  end;
 
  procedure Extract;
+  Var CDir: String;
+      Opts: Byte;
  begin
-  ExtractFiles(C, '', Owner, 1);
+// JO: пpовеpяем, находится ли диск в списке дисков, на котоpые надо
+//     pазаpхивиpовать не чеpез вpеменный подкаталог (по умолчанию A: и B:)
+  lGetDir(0, CDir);
+  if (UpCase(CDir[1]) in ['A'..'Z']) and
+     ((SystemData.Drives[UpCase(CDir[1])]{$IFNDEF OS_DOS}shl 1{$ENDIF}) and
+       ossUnarcToDirectly <> 0) then Opts := 1
+  else Opts := 9;
+  ExtractFiles(C, '', Owner, Opts);
  end;
 
  var PDr: PDrive;

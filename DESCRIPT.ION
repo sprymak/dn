@@ -1,20 +1,13 @@
-_dncw.bat Batch for compilation under Windows 9x
+doc Documentation for DN/2
+resource Resource source for DN/2
 _dnco.cmd Batch for compilation under OS/2
 _dncod.cmd Batch for compilation DPMI32 version under OS/2
 _dncow.cmd Batch for compilation Win32 version under OS/2
+_dncw.bat Batch for compilation under Windows 9x
 _dncw.cmd Batch for compilation under Windows NT
 _dncwd.cmd Batch for compilation DPMI32 version under Win32
 _dncwo.cmd Batch for compilation OS/2 version under Win32
 _rcpo.cmd Batch for compilation Resources
-drivers._vp Drivers for VP
-fio._vp File Input/Output for VP
-views._vp Views for VP
-vpc.cfg VPC Configutation file
-file_id.diz Logo
-stdefine.inc Defines for project
-rcpvpd.ini Resource compiler options for DPMI
-rcpvpo.ini Resource compiler options for OS/2
-rcpvpw.ini Resource compiler options for Win32
 _apps.pas DN/2 Plugin Interface - object model
 _collect.pas DN/2 Plugin Interface - object model
 _defines.pas DN/2 Plugin Interface - object model
@@ -22,8 +15,11 @@ _dialogs.pas DN/2 Plugin Interface - object model
 _dnfuncs.pas DN/2 Plugin Interface - object model
 _drives.pas DN/2 Plugin Interface - object model
 _editors.pas DN/2 Plugin Interface - object model
+_fviewer.pas DN/2 Plugin Interface - object model
+_gauge.pas DN/2 Plugin Interface - object model
 _menus.pas DN/2 Plugin Interface - object model
 _model1.pas DN/2 Plugin Interface - object model
+_model2.pas DN/2 Plugin Interface - object model
 _objects.pas DN/2 Plugin Interface - object model
 _regexp.pas DN/2 Plugin Interface - object model
 _streams.pas DN/2 Plugin Interface - object model
@@ -100,6 +96,7 @@ dnini.pas Ini Configuration
 dnpmapil.pas OS/2 Presentation Manager API interface
 dnstddlg.pas DN Standard dialogs
 dnutil.pas DN Utilites: About & other
+drivers._vp Drivers for VP
 drivers.pas Low-level device drivers
 drivers2.pas Fail information
 drives.pas Drive access
@@ -110,12 +107,14 @@ edwin.pas Part of editor
 eraser.pas File eraser
 errmess.pas Error messages
 fbb.pas LongCopy
+file_id.diz Logo
 filecopy.pas Files copyer
 filediz.pas Files descriptions support
 filefind.pas Files finder
 filelst.pas Files list creating
 filescol.pas Files collection
 findobj.pas Find objects (for ARVID support)
+fio._vp File Input/Output for VP
 flpanel.pas Files panel
 flpanelx.pas Files panel
 fltools.pas Files tools
@@ -151,14 +150,19 @@ plugrez.pas Access to plugin's resources
 printman.pas Print manager
 profile.pas .INI file parser
 rcp.pas DN Resource Compiler
+rcpvpd.ini Resource compiler options for DPMI
+rcpvpo.ini Resource compiler options for OS/2
+rcpvpw.ini Resource compiler options for Win32
 regall.pas Registration of all objects
 regexp.pas Regular Expression Engine
 rstrings.pas Strings cashe
 scroller.pas Scrollers
 setups.pas Setups DN
 startup.pas Startup configuration
+stdefine.inc Defines for project
 strview.pas TDStringView
 swe.pas Inputs
+tasklst.pas Task list
 tetris.pas Tetris
 titleset.pas Application title changing support
 tree.pas View of disk tree
@@ -176,15 +180,11 @@ validate.pas Validators
 vars.pas Access to global variables from Win32 plugins
 version.pas Version.Inc generator
 videoman.pas Video mode manager
+views._vp Views for VP
 views.pas Standard views
+vpc.cfg VPC Configutation file
 vpsyslo2.pas VPSysLow extension unit for VP
 vpsyslow.pas основная часть VPSysLow
 winclpvp.pas Windows clipboard connection for VP
 xdblwnd.pas Double Window
 xtime.pas Extended time support
-DOC Documentation for DN/2
-RESOURCE Resource source for DN/2
-_fviewer.pas DN/2 Plugin Interface - object model
-_gauge.pas DN/2 Plugin Interface - object model
-_model2.pas DN/2 Plugin Interface - object model
-tasklst.pas Task list

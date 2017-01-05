@@ -60,6 +60,7 @@ uses
   collect, macro, Advance6;
 
 const
+  MaxILines = 200; { максимальный индекс масива Lines }
   MaxWrapW = 1023; { максимальная ширина для заворачивания
     строк в режиме unwrap }
 
@@ -97,7 +98,7 @@ type
     SearchX: LongInt;
     SB: PView;
     Wrap: Byte; {DataCompBoy}
-    Lines: Array[0..200] of record Pos: LongInt; Len: word; end;
+    Lines: Array[0..MaxILines] of record Pos: LongInt; Len: word; end;
     FilePos, FileSize, NumLines: LongInt;
     ExposedPos, ExposedLine: longint; {AK155}
     Cur: TPoint;
@@ -226,7 +227,7 @@ begin
 end;
 
 const
-  ViewerBufSize = $8000;
+  ViewerBufSize = (1+MaxILines) * (MaxWrapW+2);
 
 function SearchFileStr;
  label 1, LExit;
@@ -389,39 +390,54 @@ begin
       Color:=PWindow(Owner)^.Frame^.GetColor(5);
       Ch2:=#196;
     end;
-    if ViewMode <> vmHex then
-      case Wrap of
-       wmNone:  S:=Ch2+'<=>';
-       wmWidth: S:=Ch2+'>=<';
-       wmWords: S:=Ch2+'>W<';
+    if ViewMode = vmHex then
+      begin
+        S := Hex8(Cur.X div (1+Byte(HexEdit))+
+                  Cur.Y*HexPos+BufPos+FilePos)+' ';
+        J := (FilePos+BufPos) mod max(1,HexPos);
+        for I := 0 to HexPos - 1 do S := S+Hex2(I+J)+#196;
+        SetLength(S, Length(S)-1);
+        Insert('[', S, 1);
+        Insert(']', S, Length(S)+1);
       end
-    else begin
-      S:=Hex8(Cur.X div (1+Byte(HexEdit))+Cur.Y*HexPos+BufPos+FilePos)+' ';
-      J:=(FilePos+BufPos) mod max(1,HexPos);
-      for I:=0 to HexPos - 1 do S:=S+Hex2(I+J)+#196;
-      SetLength(S, Length(S)-1);
-      Insert('[', S, 1);
-      Insert(']', S, Length(S)+1);
-    end;
+    else
+      if ViewMode = vmAsm then
+        begin
+          J := 0;
+          for I := 0 to (Cur.Y-1) do
+            Inc(J, Lines[I].Len);
+          S := '['+Hex8(((Cur.X-10) div 2) + J +BufPos+FilePos)+']';
+        end
+      else
+        case Wrap of
+          wmNone:  S:=Ch2+'<=>';
+          wmWidth: S:=Ch2+'>=<';
+          wmWords: S:=Ch2+'>W<';
+        end;
     if ViewMode <> vmHex then
-    begin
+     begin
       S:=S + Ch2+Ch2+ '<';
       for I := 1 to 9 do
         if not MarkPos[I].EqualsXY(-1,-1) then
           S:=S + Char(I+48) else
           S:=S + #250;
       S:=S + '>';
-    end;
+     end;
     Insert(Ch2+Ch2, S, Length(S)+1);
-    if UseXlat then begin
-      Insert(AddSpace(Cut(XLatFile^,8),8), S, Length(S)+1);
-    end else
-      S := S + KeyMapDescriptor[KeyMap] + '..   ';
-    case Filter of
-      0:   Insert('{00-255}'+Ch2, S, Length(S)+1);
-      1:   Insert('{32-127}'+Ch2, S, Length(S)+1);
-      else Insert('{32-255}'+Ch2, S, Length(S)+1);
-    end;
+    if ViewMode <> vmAsm then
+     begin
+      if UseXlat then
+       begin
+        Insert(AddSpace(Cut(XLatFile^,8),8), S, Length(S)+1);
+       end
+      else
+        S := S + KeyMapDescriptor[KeyMap] + '..   ';
+      case Filter of
+        0:   Insert('{00-255}'+Ch2, S, Length(S)+1);
+        1:   Insert('{32-127}'+Ch2, S, Length(S)+1);
+        else Insert('{32-255}'+Ch2, S, Length(S)+1);
+      end;
+     end;
     if ViewMode <> vmHex then
     begin
       S:=S+Ch2;
@@ -446,39 +462,61 @@ begin
   if (Event.What = evMouseDown) then with Viewer^ do
   begin
     Self.MakeLocal(Event.Where, P);
-    if (ViewMode <> vmHex) then
-    begin
-      if P.X <  1 then {} else
-      if P.X <  4 then Message(Viewer, evCommand, cmUnwrap, nil) else
-      if P.X <  6 then {} else
-      if P.X =  6 then SeekBOF else
-      if P.X < 16 then begin
-        BookMark:=P.X-7;
-        if (Event.Buttons and mbRightButton <> 0) or
-          (MarkPos[BookMark+1].Y<>-1) then
-        with Ev do
-        begin
-          What:=evCommand;
-          if (Event.Buttons and mbRightButton <> 0) then
-            Command:=cmPlaceMarker1+BookMark else
-            Command:=cmGotoMarker1+BookMark;
-          PutEvent(Ev);
-        end;
-      end else
-      if P.X = 16 then SeekEOF else
-      if P.X < 19 then {} else
-      if P.X < 28 then Message(Viewer, evCommand, cmSwitchKeyMapping, nil)
-      else
-      if P.X < 36 then Message(Viewer, evCommand, cmAddFilter, nil);
-    end else
-    begin
+    if (ViewMode = vmHex) then
+     begin
       if P.X < 3*HexPos+9+3 then {} else
       if P.X < 3*HexPos+9+12 then
         Message(Viewer, evCommand, cmSwitchKeyMapping, nil)
       else
       if P.X < 3*HexPos+9+20 then
         Message(Viewer, evCommand, cmAddFilter, nil);
-    end;
+     end
+    else
+      if (ViewMode = vmAsm) then
+       begin
+        if P.X < 12 then {} else
+        if P.X = 12 then SeekBOF else
+        if P.X < 22 then
+         begin
+          BookMark:=P.X-13;
+          if (Event.Buttons and mbRightButton <> 0) or
+            (MarkPos[BookMark+1].Y<>-1) then
+          with Ev do
+          begin
+            What:=evCommand;
+            if (Event.Buttons and mbRightButton <> 0) then
+              Command:=cmPlaceMarker1+BookMark else
+              Command:=cmGotoMarker1+BookMark;
+            PutEvent(Ev);
+          end;
+         end
+        else if P.X = 22 then SeekEOF;
+       end
+      else
+       begin
+        if P.X <  1 then {} else
+        if P.X <  4 then Message(Viewer, evCommand, cmUnwrap, nil) else
+        if P.X <  6 then {} else
+        if P.X =  6 then SeekBOF else
+        if P.X < 16 then begin
+          BookMark:=P.X-7;
+          if (Event.Buttons and mbRightButton <> 0) or
+            (MarkPos[BookMark+1].Y<>-1) then
+          with Ev do
+          begin
+            What:=evCommand;
+            if (Event.Buttons and mbRightButton <> 0) then
+              Command:=cmPlaceMarker1+BookMark else
+              Command:=cmGotoMarker1+BookMark;
+            PutEvent(Ev);
+          end;
+        end else
+        if P.X = 16 then SeekEOF else
+        if P.X < 19 then {} else
+        if P.X < 28 then Message(Viewer, evCommand, cmSwitchKeyMapping, nil)
+        else
+        if P.X < 36 then Message(Viewer, evCommand, cmAddFilter, nil);
+       end;
     ClearEvent(Event);
   end;
 end;
@@ -1027,7 +1065,8 @@ var
   I, K, M, Src: Integer;
   J: longint;
   L: LongInt;
-  S: String;
+  S, SZ: String;
+  IZ: Byte;
   TS: word;
   C1: Byte;
   C2: char;
@@ -1056,13 +1095,19 @@ begin
     ReadFile(FileName, VFileName, true);
     BufPos:=0;
     MakeLines;
-  end else
+  end
+(* {AK155 11-01-2003 эти бредовые проверки, вероятно, когда-то
+        служили для компенсации  последствий каких-то багов.
+        Но после того, как BufSize стал не $8000, а поболее, они
+        стали в прежнем виде вредны, а обновлять их не хочется,
+        так как самих багов, наверно, уже давно нет}
+  else
   if (BufPos < 0) or (BufPos > BufSize + 20000) or
      (BufPos > 65000) then
   begin
     BufPos:=0;
     MakeLines;
-  end;
+  end *) ;
   C:=CC[1];
 {AK155  if Info <> nil then Info^.DrawView;}
   if {(FileName = '') or }(Buf = nil) then begin
@@ -1111,6 +1156,14 @@ begin
             if J > 0 then begin
              S:=DumpStr(Buf^[W], L, J, Filter);
              W2:=Pos(#179,S);
+             SetLength(SZ, Length(S)-W2);
+             for IZ := 1 to Length(S)-W2 do
+               if S[W2+IZ] = #0 then
+                 begin
+                   SZ[IZ] := #1;
+                   S[W2+IZ] := '.';
+                 end
+                else SZ[IZ] := #0;
              XLatBuf(S[W2+1], Length(S)-W2, XLat);
              {-DataCompBoy & Axel: apply filter-}
              case Filter of
@@ -1126,6 +1179,9 @@ begin
               Drivers.MoveStr(B, Copy(S, 1, J*3+10), C);
               Drivers.MoveStr(B[10+HexPos*3], Copy(S, J*3+11, MaxStringLength), C);
              end;
+             for IZ := 1 to Length(SZ) do
+               if SZ[IZ] = #1 then
+                 MoveColor(B[W2+IZ-1], 1, (CC[1] and $F0) + (CC[3] and $0F));
              if SearchActive then begin
               if (L <= SearchX) and (L+J > SearchX) then begin
                Cur.Y:=I; Cur.X:=(SearchX-L)*2;
@@ -1528,7 +1584,7 @@ begin
  LineStart := BufPos; LineLen := BufSize - LineStart;
  FillChar(Lines, SizeOf(Lines), $FF); {AK155}
  TabSize := GetTabSize;
- MaxLines := 200;
+ MaxLines := MaxILines;
  case ViewMode of
   vmHex, vmDump:
     begin
@@ -2800,8 +2856,14 @@ end;
 
 begin
   if Buf = nil then Exit;
+(* {AK155 11-01-2003 эти бредовые проверки, вероятно, когда-то
+        служили для компенсации  последствий каких-то багов.
+        Но после того, как BufSize стал не $8000, а поболее, они
+        стали в прежнем виде вредны, а обновлять их не хочется,
+        так как самих багов, наверно, уже давно нет}
   if BufPos > 65000 then
     begin BufPos := 0; MakeLines; end; {AK155: IMHO так не бывает}
+*)
   NextLineStart := BufPos;
  {$IFDEF DisAsm}
   D.MemBuff:=Buf; {GRM!}
@@ -2885,7 +2947,7 @@ begin
       end;
 
       System.Move(Lines[0], Lines[1], (MaxLines - 1) * sizeof(Lines[0]));
-      if MaxLines < 200 then Inc(MaxLines);
+      if MaxLines < MaxILines then Inc(MaxLines);
       Lines[0].Pos := LineStart;
       Lines[0].Len := LineEnd-LineStart;
     end;

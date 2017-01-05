@@ -1751,6 +1751,7 @@ procedure TFindDrive.CopyFromArc;
      Drv: PDrive;
      ExtrDir: String;
      DT: Record S: String; W: Word; Psw: String[30]; end;
+     DDr: Char;
 
   function GetArcOwn(S: String): String;
   begin
@@ -1775,6 +1776,26 @@ begin
       CopyToTempDrive(AFiles, Own, '');
       Exit;
      end;
+{JO}
+// пpовеpяем, находится ли диск в списке дисков, на котоpые надо
+// pазаpхивиpовать не чеpез вpеменный подкаталог (по умолчанию A: и B:)
+   if (DT.S <> '') and (Length(DT.S) >= 2) then
+    begin
+     if DT.S[2] = ':' then DDr := UpCase(DT.S[1])
+       else DDr := #1; {любой символ не входящий в 'A'..'Z'}
+    end
+   else
+    begin
+     lGetDir(0, ExtrDir);
+     DDr := UpCase(ExtrDir[1]);
+     ExtrDir := '';
+    end;
+   if (DDr in ['A'..'Z']) and
+      ((SystemData.Drives[DDr]{$IFNDEF OS_DOS}shl 1{$ENDIF}) and
+        ossUnarcToDirectly <> 0) then
+        DT.W := DT.W and not 8
+   else DT.W := DT.W or 8;
+{/JO}
    if not SkipCopyDialog then
       if ExecResource( dlgExtract, DT) <> cmOK then Exit;
    if ((DT.W and 1) <> (UnarchiveOpt and 1)) or

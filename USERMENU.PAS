@@ -207,9 +207,9 @@ begin
  Dispose(PUserMenuItem(P));
 end;
 
-{$IFNDEF OS2}
 {AK155 17-12-2002}
-procedure ShorNameAndExt(HandleTildes: boolean; ts: string; var S: string);
+procedure NameAndExt(HandleTildes: boolean;
+    ts: string; macro: char; var S: string);
 var
   l: integer;
 begin
@@ -217,10 +217,9 @@ begin
   Replace('$', #4, ts); Replace('!', #1, ts);
   Replace('&', #2, ts); Replace('#', #3, ts);
   l := PosLastDot(ts);
-  Replace('.!', Copy(ts, l, 255), S);
-  Replace('!', Copy(ts, 1, l-1), S);
+  Replace('.' + macro, Copy(ts, l, 255), S);
+  Replace(macro, Copy(ts, 1, l-1), S);
 end;
-{$ENDIF}
 
         {-DataCompBoy-}
 {AK155 Тут была куча обкладываний строк символом #0,
@@ -485,7 +484,7 @@ begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
        ts := UserParams^.Active^.FlName[False];
-    ShorNameAndExt(HandleTildes, ts, S);
+    NameAndExt(HandleTildes, ts, '!', S);
    end;
 
   if (PosChar('$', S)>0) then
@@ -493,7 +492,7 @@ begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
       ts:=UserParams^.Passive^.FlName[False];
-    ShorNameAndExt(HandleTildes, ts, S);
+    NameAndExt(HandleTildes, ts, '$', S);
    end;
 {$ENDIF}
 
@@ -503,10 +502,7 @@ begin
     else
     ts:=UserParams^.Active^.FlName[true];
     if HandleTildes then Replace('~', #0'~', ts);
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    tz:=GetExt(ts); if tz='.' then tz:='';
-    Replace('.#',tz, S);
-    Replace('#', GetSName(ts), S);
+    NameAndExt(HandleTildes, ts, '#', S);
    end;
 
   if (PosChar('&', S)>0) then
@@ -514,11 +510,7 @@ begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
     ts:=UserParams^.Passive^.FlName[true];
-    if HandleTildes then Replace('~', #0'~', ts);
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    tz:=GetExt(ts); if tz='.' then tz:='';
-    Replace('.&',tz, S);
-    Replace('&', GetSName(ts), S);
+    NameAndExt(HandleTildes, ts, '&', S);
    end;
 
   Replace(#1,'!', S);
@@ -646,7 +638,7 @@ begin
   begin
    S := F^.GetStr; Inc(I);
    DelLeft(S); DelRight(S);
-   if (S <> '') and (S[1]<>';') and (S[1] = '>') then
+   if (S <> '') and (S[1] = '>') then
     begin
      RF2E := false;
      Delete(S, 1, 1); {DelFC(S);}
@@ -724,6 +716,7 @@ begin
              DelLeft(S); DelRight(S);
              if (S <> '') then
                if (S[1] = '>') then Break else
+                 if (S[1] = ';') then Continue else
                   if (S[1] = '<') then
                     begin
                      EnterParms := true;

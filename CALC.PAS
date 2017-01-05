@@ -431,6 +431,7 @@ procedure TCalcInput.HandleEvent;
       R: CReal;
       I: Integer;
       P: PCellRec;
+      TypeChanged: boolean;
  begin
   GetData(NewS);
   EndEdit := true;
@@ -456,7 +457,8 @@ procedure TCalcInput.HandleEvent;
      begin
      if (Options and coTypeMask) = coTypeMask then
        Options := (Options and not coTypeMask) or coFormula;
-     if (Options xor O) and coTypeMask <> 0 then
+     TypeChanged := (Options xor O) and coTypeMask <> 0;
+     if TypeChanged then
        begin {Изменен тип ячейки}
        if MessageBox(GetString(dlWkzWarningCellTypeChange),
            nil, mfOKCancel) <> cmOK
@@ -464,7 +466,11 @@ procedure TCalcInput.HandleEvent;
        end;
      end;
    with Cells^.ReplaceItem(Delta.X + Cur.X, Delta.Y + Cur.Y, NewS)^ do
-     begin Options := O; Decimals := D; Value := R; end;
+     begin
+     if TypeChanged then
+       begin Options := O; Decimals := D; end;
+     Value := R;
+     end;
 2:
    Recalc(false);
    end {with CalcView^};
@@ -1442,7 +1448,7 @@ begin {TCalcView.HandleEvent}
     end;
   evKeyDown:
     case Event.KeyCode of
-     kbDoubleAlt: CE;
+     kbDoubleAlt, kbDoubleCtrl: CE;
      kbDel: begin Clear; EndMarking end;
      kbShiftLeft,
      kbLeft: if Cur.X > 0 then
@@ -1827,6 +1833,7 @@ function ReformFormula(const S: string; LX,LY, DX,DY: integer): String;
       X, X1: Byte;
       I, l: Integer;
       Y, Y1: AInt;
+  label EndRowName;
   begin
   result := '='; I := 2;
   While (I <= Length(S)) do
@@ -1845,17 +1852,21 @@ function ReformFormula(const S: string; LX,LY, DX,DY: integer): String;
           S2 := '?'
         else
           S2 := GetColName(X+DX);
+        { сейчас S2 - имя колонки}
+
         for l := 2 to length(S1)-1 do
           if S1[l] = '@' then
             begin
-            result := result + S2 + '@' + GetRowName(Y); exit;
+            S1 := '@' + GetRowName(Y); goto EndRowName;
             end;
         if (Y+DY < 0) or (Y+DY > MaxCellY)  then
-          S1 :=  S2 + '?'
+          S1 := '?'
         else
-          S1 :=  S2 + GetRowName(Y+DY);
+          S1 := GetRowName(Y+DY);
         end;
-    result := result + S1;
+EndRowName: {сейчас S2 - имя строки }
+
+    result := result + S2 + S1;
     end;
   end;
 
@@ -2041,10 +2052,7 @@ procedure TCalcView.ReCalc(Full: boolean);
           exit;
         end
       else if Full and ((Options and coValue) <> 0) then
-        if S[1] = '=' then
-          Value := Evalue(system.Copy(S, 2, 255), @self)
-        else
-          begin Val(S, Value, ierr); if ierr <> 0 then exit; end;
+        begin Val(S, Value, ierr); if ierr <> 0 then exit; end;
       StartRecalc := NextC;
       end;
     end;

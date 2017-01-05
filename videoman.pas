@@ -161,7 +161,7 @@ const
 
 procedure InitVideo;
 procedure DoneVideo;
-procedure SetVideoMode(Mode: Word);
+function  SetVideoMode(Mode: Word): Boolean;
 procedure ClearScreen;
 
 Procedure ResetVGApalette( Update : Boolean );  { reset palette to default}
@@ -1364,7 +1364,7 @@ end;
 
 {$ELSE VIRTUALPASCAL}
 Uses {$IFDEF WIN32}Windows,{$ENDIF} Dos, VpSysLow, Drivers, Objects, DnApp, DnIni, Startup,
-     Commands, VPUtils {$IFDEF OS2}, os2base, messages{$ENDIF};
+     Commands, VPUtils {$IFDEF OS2}, os2base {$ENDIF}, messages;
 
 var
   StrtCurY1: Integer;
@@ -1425,8 +1425,7 @@ var
   Visible: Boolean;
   SrcSize: TSysPoint;
 begin
-  DetectVideoType;
-  ScreenMode := SysTVGetScrMode(@SrcSize);
+  SysTVGetScrMode(@SrcSize);
 {AK155 при SrcSize.Y=300 (w2k, wXP) DN падает}
   if (SrcSize.Y > 100) or (SrcSize.X * SrcSize.Y * 2 > 32768) then
     begin
@@ -1436,6 +1435,19 @@ begin
 {/AK155}
   ScreenHeight := SrcSize.Y;
   ScreenWidth := SrcSize.X;
+{JO}
+  if SrcSize.X = 80 then
+    case SrcSize.Y of
+      25: ScreenMode := sm80x25;
+      43: ScreenMode := sm80x43;
+      50: ScreenMode := sm80x50;
+      30: ScreenMode := sm80x30;
+      34: ScreenMode := sm80x34;
+      60: ScreenMode := sm80x60;
+     else ScreenMode := SrcSize.X*256+SrcSize.Y;
+    end
+   else ScreenMode := SrcSize.X*256+SrcSize.Y;
+{/JO}
   ShowMouse;
   HiResScreen := True;
   ScreenBuffer := SysTVGetSrcBuf;
@@ -1457,37 +1469,32 @@ end;
 // VGA. SetVideoMode initializes the same variables as InitVideo (except for
 // the StartupMode variable, which isn't affected).
 
-procedure SetVideoMode(Mode: Word);
+function SetVideoMode(Mode: Word): Boolean;
 var Cols, Rows: Word;
   CursorSize: word;
 begin
+ Result := False;
 {$IFDEF OS2}
  if VideoType < vtEGA then Exit;
 {$ENDIF}
- {GetVideoModeInfo(Cols1,Rows1,Rows);} {вводить отдельную переменную для цветов впадлу}
  Cols := 80;
  Rows := 0;
  case Mode of
   sm80x25: Rows := 25;
   sm80x43: Rows := 43;
   sm80x50: Rows := 50;
-{$IFDEF OS2}
   sm80x30: Rows := 30;
   sm80x34: Rows := 34;
   sm80x60: Rows := 60;
  $140A..$FFFE: begin {минимальный размер окна 20x10, меньше просто нет смысла}
                  Rows := Lo(Mode); Cols := Hi(Mode);
                  if Rows < 10 then Rows := 10;
-                 if not PMWindowed then
-                   begin
-                     if not ((Cols in [40,80]) and (Rows in [25,30,34,43,50,60])) then Rows := 0;
-                   end;
                end;
-{$ENDIF}
  end;
  if Rows <> 0 then
    if SysSetVideoMode(Cols,Rows) then
     begin
+     Result := True;
      ScreenHeight := Rows;
      ScreenWidth := Cols;
      ScreenMode := Mode;
@@ -1530,8 +1537,23 @@ var
   SysGetCurPos(X,Y); {KV}
   WordRec(OldCursorPos).Lo:=X; {KV}
   WordRec(OldCursorPos).Hi:=Y; {KV}
-  if StartupMode <> ScreenMode then
-    SetVideoMode({ScreenMode}StartupMode);
+{JO}
+  DetectVideoType;
+  if (StartupData.Load and osuRestoreScrMode <> 0) then
+    begin
+    {$IFDEF OS2}
+      if not PMWindowed then
+          begin
+    {$ENDIF}
+            ScreenMode := NonVIOScreenMode;
+    {$IFDEF OS2}
+          end
+        else
+          ScreenMode := VIOScreenMode;
+    {$ENDIF}
+      SetVideoMode(ScreenMode);
+    end;
+{/JO}
   SetCrtData;
   if not ScreenSaved then begin
      if UserScreen <> nil then
@@ -1554,6 +1576,8 @@ var
      {$ENDIF}
      ScreenSaved := True;
   end;
+  if (StartupData.Load and osuResetPalette <> 0) and VGASystem
+   then SetPalette(vga_palette);
   SetBlink(CurrentBlink);
 end;
 
@@ -1563,13 +1587,17 @@ end;
 
 procedure DoneVideo;
 begin
-  if (StartupMode <> $FFFF) and (StartupMode <> ScreenMode) then
-    SetVideoMode(StartupMode);
   FillChar(ScreenBuffer^, ScreenWidth * ScreenHeight * 2, 0); {JO: нужно, чтобы куски панелей не "линяли" в UserScreen}
   Move(UserScreen^, ScreenBuffer^, UserScreenSize);
   FreeMem(UserScreen, UserScreenSize); {Cat}
   UserScreen := nil; {Cat}
   ScreenSaved := False; {Cat}
+{$IFDEF Win32}
+  Sleep(1); {AK155}
+    { Без этого под Win9x что-то куда-то не успевает переписаться и при
+     уменьшении высоты окна в пользовательский экран попадают клочья
+     от нижней части старого (бОльшего) окна}
+{$ENDIF}
   SysTVShowBuf(0, UserScreenSize);
   SysTVSetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
   if WordRec(OldCursorPos).Hi > ScreenHeight - 1 then WordRec(OldCursorPos).Hi := ScreenHeight - 1; {KV}
@@ -1723,20 +1751,21 @@ Procedure SetBlink(Mode : boolean);                  begin end;
 
  procedure SetScrMode(Mode: Word);
    var R, R1, A: TRect;
+ label Ex;
  begin with PApplication(Application)^ do begin
    if Mode = ScreenMode then
-     Exit;
-{$IFDEF OS2}
-  if (Mode > $140A) and (Mode < $FFFE) and (not PMWindowed)
-       and not ((Hi(Mode) in [40,80]) and (Lo(Mode) in [25,30,34,43,50,60])) then
-        begin
-          messagebox(GetString(dlNotValidForFullscreen), nil, mfError+mfOKButton);
-          Exit;
-        end;
-{$ENDIF}
+     Goto Ex;
   GetExtent(R1);
   Clock^.GetBounds(A);
-  SetScreenMode(Mode);
+  if not SetScreenMode(Mode) then
+    begin
+      SetBlink(CurrentBlink);
+      if (StartupData.Load and osuResetPalette <> 0) and VGASystem
+        then SetPalette(vga_palette);
+      ReDraw;
+      messagebox(GetString(dlNotValidForCurSession), nil, mfError+mfOKButton);
+      Exit;
+    end;
   GetExtent(R);
   A.A.X := Round(A.A.X*R.B.X/R1.B.X);
   if A.B.Y = R1.B.Y then A.A.Y := R.B.Y-1
@@ -1749,6 +1778,7 @@ Procedure SetBlink(Mode : boolean);                  begin end;
    then SetPalette(vga_palette);
   ReDraw;
  end;
+Ex:
 {$IFDEF OS2}
  if not PMWindowed then
    begin

@@ -2671,22 +2671,23 @@ DIALOG dlgSetPassword, 39, 7, 'Enter Password'
     Button 27, 4, 37, 6, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgExtract, 49, 13, 'Extract files'
+DIALOG dlgExtract, 49, 14, 'Extract files'
     HELPCTX hcExtract
     InputLine 14, 2, 45, 3, 255, 0
     History 45, 2, hsFileCopyName, ofPostProcess
     Label 2, 2, 'E~x~tract to', ofPostProcess, ofPreProcess
-    CheckBoxes 3, 4, 47, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 4, 47, 8, ofPostProcess, ofPreProcess
       ITEM 'Extract with ~p~ath names'
       ITEM 'T~e~st only'
       ITEM '~F~orce mode'
+      ITEM 'Through temporary ~d~irectory'
     END
-    InputLine 12, 8, 45, 9, 30, 0, ofSecurity
-    Label 2, 8, 'P~a~ssword', ofPostProcess, ofPreProcess
-    Button 8, 10, 18, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 18, 10, 28, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 28, 10, 38, 12, '~T~ree', cmTree, ofPostProcess, ofPreProcess
-    Button 38, 10, 48, 12, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 12, 9, 45, 10, 30, 0, ofSecurity
+    Label 2, 9, 'P~a~ssword', ofPostProcess, ofPreProcess
+    Button 8, 11, 18, 13, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 11, 28, 13, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 11, 38, 13, '~T~ree', cmTree, ofPostProcess, ofPreProcess
+    Button 38, 11, 48, 13, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgCommandsHistory, 59, 17, 'Commands history'
@@ -3404,9 +3405,7 @@ DIALOG dlgSystemSetup, 72, 21, 'System Setup'
       ITEM 'Store t~r~ee information'
       ITEM 'Verify disk ~w~rites'
       ITEM 'Check free s~p~ace'
-;$IFNDEF VIRTUALPASCAL
-      ITEM 'Don''t use ~l~ong file names'
-;$ENDIF
+      ITEM 'Unpack to dri~v~e directly'
     END
     Label 8, 13, 'Current drive options', ofPostProcess, ofPreProcess
 
@@ -4491,7 +4490,6 @@ END
 ;JO
 DIALOG dlgChScreenMode, 34, 12, 'Change Screen Mode'
     HELPCTX hcNoContext
-;$IFDEF OS2
     RadioButtons 1, 2, 32, 8, ofPostProcess, ofPreProcess
       ITEM '~1~ 80 x 25 '
       ITEM '~2~ 80 x 30 '
@@ -4512,7 +4510,6 @@ DIALOG dlgChScreenMode, 34, 12, 'Change Screen Mode'
     StaticText 24, 4, 25, 5, 'x'
     Button 7, 9, 17, 11, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 17, 9, 27, 11, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-;$ENDIF
 END
 ;JO
 

@@ -270,7 +270,6 @@ procedure ExecStringRR(S: PString; WS: String; RR: Boolean);
      F1: lText;
      M: String;
 {$ELSE}
-     SM: Word;
      EV: TEvent;
      X, Y: SmallWord; {Cat}
      ScreenSize: TSysPoint; {Cat}
@@ -326,7 +325,6 @@ begin
  end;
  Halt(1);
 {$ELSE}
-  SM := ScreenMode;
   DoneSysError;
   DoneEvents;
   DoneVideo;
@@ -376,10 +374,6 @@ begin
   InitDOSMem;
   InitMemory;
   InitVideo;
-  if StartupData.Load and osuRestoreScrMode <> 0 then ScreenMode := SM;
-  SetVideoMode(ScreenMode);
-  SetBlink(CurrentBlink);
-  if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
   InitEvents;
   InitSysError;
   Application^.Redraw;

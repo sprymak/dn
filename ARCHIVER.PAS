@@ -851,11 +851,7 @@ procedure MakeArchive;
   {$ENDIF}
     InitDOSMem;
     InitMemory;
-    SetVideoMode(ScreenMode); SM := ScreenMode;
-    SetBlink(true);
-    InitVideo; ScreenMode := SM;
-    {$IFDEF Win32}SysTVInitCursor; {$ENDIF} {AK155, см.комментарий к SysTVInitCursor}
-    if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
+    InitVideo;
     InitEvents;
     InitSysError;
     case DE of
@@ -984,6 +980,9 @@ procedure UnarchiveFiles;
       FRT: PFileRec;
       OldConfirms: Word;
       PV: PView;
+      Inhr: Byte;
+      DDr: Char;
+      SR: lSearchRec;
 
 label ex {$IFNDEF OS2},TryAgain {$ENDIF};
 begin
@@ -1012,6 +1011,26 @@ begin
    if DT.S = '' then DT.S := HistoryStr(hsExtract, 0);
    if DT.S = cTEMP_ then DT.S := '';
    if (Length(DT.S) > 3) and (DT.S[Length(DT.S)] <> '\') then DT.S := DT.S + '\';
+{JO}
+// пpовеpяем, находится ли диск в списке дисков, на котоpые надо
+// pазаpхивиpовать не чеpез вpеменный подкаталог (по умолчанию A: и B:)
+   if (DT.S <> '') and (Length(DT.S) >= 2) then
+    begin
+     if DT.S[2] = ':' then DDr := UpCase(DT.S[1])
+       else DDr := #1; {любой символ не входящий в 'A'..'Z'}
+    end
+   else
+    begin
+     lGetDir(0, ExtrDir);
+     DDr := UpCase(ExtrDir[1]);
+     ExtrDir := '';
+    end;
+   if (DDr in ['A'..'Z']) and
+      ((SystemData.Drives[DDr]{$IFNDEF OS_DOS}shl 1{$ENDIF}) and
+        ossUnarcToDirectly <> 0) then
+        DT.W := DT.W and not 8
+   else DT.W := DT.W or 8;
+{/JO}
    CopyDirName := '';
 {$IFNDEF OS2}
 TryAgain:
@@ -1022,35 +1041,42 @@ TryAgain:
 }
 {JO}
    if (DT.W and 4) <> (UnarchiveOpt and 4) then ConfigModified := True;
-   UnarchiveOpt := DT.W and not 2;
+   UnarchiveOpt := (DT.W and not 2) or 8;
 {/JO}
    if (DT.S = '') or (DT.S = '.') then DT.S := GetPath(FName);
    ExtrDir := DT.S;
    if ExtrDir[Length(ExtrDir)] <> '\' then ExtrDir := ExtrDir + '\';
 
 {JO}
+ // проверяем, содержит ли каталог назначения файлы
+  DosError := 0;
+  lFindFirst(MakeNormName(ExtrDir, x_x), Anyfile, SR);  {JO}
+  if IsDummyDir(SR.Fullname) then lFindNext(SR);
+  if IsDummyDir(SR.Fullname) then lFindNext(SR);
+  lFindClose(SR);
  // для разархивирования на дискеты и тестирования не используем
  // временный подкаталог
-   if (UpCase(ExtrDir[1]) in ['A','B']) or (DT.W and 2 <> 0) then
-     begin
-       TempExtrDir := ExtrDir;
-       TempDirUsed := False;
-     end
+  if ((DT.W and 8) = 0) or ((DT.W and 2) <> 0) or (DosError <> 0) then
+    begin
+      TempExtrDir := ExtrDir;
+      TempDirUsed := False;
+    end
    else
-     begin
-     { даём имя временному подкаталогу в каталоге назначения}
-       DNN := DNNumber;
-       while true do
-         begin
-           TempExtrDir := ExtrDir + '$DN'+ItoS(DNN)+'$.EDR';
-           ClrIO;
-           if PathExist(TempExtrDir) then Inc(DNN) else Break;
-         end;
-       ClrIO;
-       TempExtrDir := TempExtrDir + '\';
-       TempDirUsed := True;
-     end;
-   CreateDirInheritance(TempExtrDir, True);
+    begin
+    { даём имя временному подкаталогу в каталоге назначения}
+      DNN := DNNumber;
+      while true do
+        begin
+          TempExtrDir := ExtrDir + '$DN'+ItoS(DNN)+'$.EDR';
+          ClrIO;
+          if PathExist(TempExtrDir) then Inc(DNN) else Break;
+        end;
+      ClrIO;
+      TempExtrDir := TempExtrDir + '\';
+      TempDirUsed := True;
+    end;
+   Inhr := CreateDirInheritance(ExtrDir, True);
+   CreateDirInheritance(TempExtrDir, False);
 {/JO}
 
    ExtrChar := CnvString(AType^.ExtractWP);
@@ -1134,6 +1160,11 @@ TryAgain:
 Ex:
    Advance2.lChDir(DirToChange); DirToChange := '';
    FreeObject(AType);
+   if (not TempDirUsed) or (Inhr > 0) then
+     begin
+       GlobalMessage(evCommand, cmPanelReread, nil);
+       GlobalMessage(evCommand, cmRereadInfo, nil);
+     end;
 end;
         {-DataCompBoy-}
 
@@ -1300,10 +1331,14 @@ begin
    {ZIP} (ArcId = $04034b50 {'PK'#3#4}) or
    {RAR} (ArcId = $21726152 {'Rar!'}) or
    {ARJ} (((ArcId and $ffff) = $ea60) and (Byte(ArcId shr 24) < $b)) or
+
+{$IFNDEF MINARCH}
    {IS3} (ArcId = $8c655d13 {#$13#$5D#$65#$8C}) or
    {ZOO} (ArcId = $fdc4a7dc {#$DC#$A7#$C4#$FD}) or
    {CHZ} (ArcId = $46684353 {'SChF'}) or
    {CHZ} (ArcId = $44684353 {'SChD'}) or
+{$ENDIF}
+
   {COFF} (ArcId = $0003014c {#$4c#$01#$03#$00}) or {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
    {ACE} (ArcID = $4543412a {'*ACE'}) or
    {ACE} (ArcID = $78667321 {'!sfx'}) or {!sfx - ACE-SFX script}
@@ -1344,6 +1379,19 @@ begin
       ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of **SFX** script}
       ArcPos := ArcPos + ArcPosID;
       Exit;
+     end;
+   if (ArcPosID - ArcPos) = $1fd then
+     begin {check for PackageForTheWeb script}
+      ArcFile^.Seek(ArcPos);
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of script}
+      if _Cardinal(ArcPosID) < $4000 then
+        begin {script?}
+         ArcPosID := ArcPosID + ArcPos + 4;
+         ArcFile^.Seek(ArcPosID);
+         ArcFile^.Read(ArcId, SizeOf(ArcId));
+         if ArcID = $4643534d {'MSCF'} then ArcPos := ArcPosID;
+         Exit;
+        end;
      end;
 end; {Check4ArcId}
 

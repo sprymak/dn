@@ -99,7 +99,7 @@ const
 {$ENDIF}
 
   SysPlatform: Longint = -1; {Cat: теперь это значение хранится в переменной, вместо того, чтобы каждый раз
-                             {     вызывать функцию; сама функция вызывается только один раз при инициализации}
+                                  вызывать функцию; сама функция вызывается только один раз при инициализации}
 
 type
   PStandardCell = ^TStandardCell;
@@ -2234,16 +2234,35 @@ function SysSetVideoMode( Cols, Rows: Word ): Boolean;
 var
   Size: TCoord;
   R: TSmallRect;
+  Res1: boolean;
+  SrcSize: TSysPoint;
 begin
+  SysTVGetScrMode(@SrcSize);
   SysTVInitCursor;
   Size.X := Cols;
   Size.Y := Rows;
-  Result := SetConsoleScreenBufferSize(SysConOut, Size);
+  Res1 := SetConsoleScreenBufferSize(SysConOut, Size);
+    {Этот вызов может быть неудачным, если текущий экран не
+     помещается в новый буфер (при уменьшении размера экрана).
+     В этом случае надо будет еще раз сделать установку размера
+     буфера после установки размера экрана.}
   R.Left   := 0;
   R.Top    := 0;
   R.Right  := Size.X - 1;
   R.Bottom := Size.Y - 1;
   Result := SetConsoleWindowInfo(SysConOut, True, R);
+  if Result and not Res1 then
+   begin
+    Result := SetConsoleScreenBufferSize(SysConOut, Size);
+    if not Result then
+      begin
+        R.Left   := 0;
+        R.Top    := 0;
+        R.Right  := SrcSize.X - 1;
+        R.Bottom := SrcSize.Y - 1;
+        SetConsoleWindowInfo(SysConOut, True, R);
+      end;
+   end;
 end;
 
 function SemCreateEvent(_Name: pChar; _Shared, _State: Boolean): TSemHandle;

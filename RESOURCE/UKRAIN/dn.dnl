@@ -1334,7 +1334,7 @@ dlResFollowsNothing        ^C'Оператори ''*'', ''?'', ''+'' та ''{n,m}'' не можу
 dlResTrailingBackSlash     ^C'Зворотня коса риска не може бути останнiм символом в рядку'
 ;PZ end - regular expressions
 ;JO+
-dlNotValidForFullscreen 'Цей вiдеорежим неможоивий для повноекранної сесiї'
+dlNotValidForCurSession 'Цей вiдеорежим неможоивий для поточної сесiї'
 dlCreateObject 'Створити об''єкт на робочому столi для: '
 dlObjectTitle  'Заголовок об''єкта:'
 dl_CodePage_FS_Error 'Помилка файлової системи, пов''язана з кодовою сторiнкою'

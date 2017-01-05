@@ -268,7 +268,7 @@ type
     procedure OutOfMemory; virtual;
     procedure PutEvent(var Event: TEvent); virtual;
     procedure Run; virtual;
-    procedure SetScreenMode(Mode: Word);
+    function SetScreenMode(Mode: Word): Boolean;
     function ValidView(P: PView): PView;
     procedure Redraw; virtual;
     Procedure BFSpeed; {DataCompBoy}
@@ -351,6 +351,7 @@ uses
   {$IFDEF DNPRG} {$IFDEF OS2} Dn2PmApi, {$ENDIF} {$ENDIF} {AK155}
   {$IFDEF SS} Idlers, {$ENDIF}
   {$IFDEF VIRTUALPASCAL} VpSysLow, {$ELSE} ExtraMem, {$ENDIF}
+  dnini,
   DNExec;
 
 var
@@ -1131,7 +1132,7 @@ begin
   Execute;
 end;
 
-procedure TProgram.SetScreenMode;
+function TProgram.SetScreenMode(Mode: Word): Boolean;
 var
   R: TRect;
 begin
@@ -1141,7 +1142,25 @@ begin
    FillChar(ScreenMirror, SizeOf(ScreenMirror), 0); // Added by SANDSoft
 {$ENDIF}
    DoneMemory;
-   SetVideoMode(Mode);
+   DoneVideo;
+   Result := SetVideoMode(Mode);
+   if Result then
+    begin
+      if (StartupData.Load and osuRestoreScrMode <> 0) then
+       begin
+    {$IFDEF OS2}
+        if not PMWindowed then
+          begin
+    {$ENDIF}
+          NonVIOScreenMode := ScreenMode;
+    {$IFDEF OS2}
+          end
+        else
+          VIOScreenMode := ScreenMode;
+    {$ENDIF}
+       end;
+    end;
+   InitVideo;
    InitMemory;
    InitEvents;
    InitScreen;

@@ -22,7 +22,7 @@ interface
 {$Endif}
 
 uses
-  VpSysLow, Windows;
+  Windows;
 
 {$Ifndef KeyDll}
 procedure KbdInit(var _pSysKeyCount, _pSysKeyQue, _pSysShiftState, _pSysMouCount, _pSysMouQue);
@@ -501,7 +501,7 @@ begin
      Exit;
     {$IFDEF WIN95_HIGHPRIORITY}
     if SysPlatform = 1 then {Cat: если сидим в Win9x, значит для нормализации работы с консолью у нас увеличен приоритет}
-     SysCtrlSleep(1);       {     и тогда здесь нужно отдать ConAgent-у время, чтобы не "глотались" нажатия клавиш}
+      Sleep(1);       {     и тогда здесь нужно отдать ConAgent-у время, чтобы не "глотались" нажатия клавиш}
     {$ENDIF}
     with InRec do
       case EventType of

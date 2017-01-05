@@ -1424,7 +1424,7 @@ dlResFollowsNothing        ^C'Operator ''*'', ''?'', ''+'' or ''{n,m}'' follows 
 dlResTrailingBackSlash     ^C'Trailing backslash is not allowed'
 ;PZ end - regular expressions
 ;JO+
-dlNotValidForFullscreen 'This videomode is not valid for fullscreen session'
+dlNotValidForCurSession 'This videomode is not valid for current session'
 dlCreateObject 'Create object on desktop for: '
 dlObjectTitle  'Object title:'
 dl_CodePage_FS_Error 'Codepage-related file system error'

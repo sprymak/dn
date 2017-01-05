@@ -173,7 +173,7 @@ const
       ViewHistory: PCollection = nil;
 
 implementation
- uses Dos, Commands, DNApp, DNStdDlg, Dialogs, HistList,
+ uses Dos, Commands, DNApp, Dialogs, HistList,
       Startup, RStrings, xTime, Messages, DNUtil, DnIni,
 {$IFDEF VIRTUALPASCAL}
       VpSysLow,

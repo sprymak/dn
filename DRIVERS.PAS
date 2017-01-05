@@ -86,6 +86,7 @@ const
   ShiftState2: Byte = 0;
   OldShiftState: Byte = 0;
   DoubleAltUnlock: Boolean = True;
+  DoubleCtrlUnlock: Boolean = True;
 
 type
 
@@ -186,13 +187,14 @@ const
 
   MouseVisible   : Boolean = True;
 
+  ScreenMode: Word = $92; { sm80x25 }
+  ScreenWidth: Word = 80;
+  ScreenHeight: Word = 25;
+
 var
 
 { Uninitialized variables }
 
-  ScreenMode: Word;
-  ScreenWidth: Word;
-  ScreenHeight: Word;
   HiResScreen: Boolean;
   CheckSnow: Boolean;
   ScreenBuffer: Pointer;

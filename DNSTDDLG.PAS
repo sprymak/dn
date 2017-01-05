@@ -708,7 +708,6 @@ end;
 procedure TDirectoryList.ReadDirectory(AWildCard: String);
 const
   FindAttr = ReadOnly + Archive + SysFile;
-  PrevDir  = '..';
 var
   S: lSearchRec;
   P: PSearchRec;
@@ -723,56 +722,8 @@ begin
   AWildCard := lFExpand(AWildCard);
   lFSplit(AWildCard, Dir, Name, Ext);
   FileList := New(PFileCollection, Init(5, 5));
-{  FindFirst(AWildCard, FindAttr, S);}
-  P := @P;
-  Tmp := Dir + x_x;
-  lFindFirst(Tmp, Directory+Byte(SystemData.Options and ossShowHidden <> 0)*Hidden, S);
-  while (P <> nil) and (DosError = 0) do
-  begin
-   if (S.SR.Attr and Directory <> 0) and not IsDummyDir({$IFDEF OS_DOS}S.SR.Name{$ELSE}S.Fullname{$ENDIF}) then
-    begin
-      P := MemAlloc(SizeOf(P^));
-      if P <> nil then
-      begin
-        With P^ do
-         Begin
-          Attr:= S.SR.Attr;
-          Time:= S.SR.Time;
-          Size:= S.FullSize;
-          Name:= S.FullName;
-         End;
-        FileList^.Insert(PObject(P));
-      end;
-    end;
-    lFindNext(S);
-  end;
-  lFindClose(S);
-  if Length(Dir) > 4 then
-  begin
-    P := MemAlloc(SizeOf(P^));
-    if P <> nil then
-    begin
-      lFindFirst(Tmp, Directory+Byte(SystemData.Options and ossShowHidden <> 0)*Hidden, S);
-      lFindNext(S);
-      lFindClose(S);
-      if (DosError = 0) and (S.SR.Name = PrevDir) then
-       With P^ do
-        Begin
-         Attr:= S.SR.Attr;
-         Time:= S.SR.Time;
-         Size:= S.FullSize;
-         Name:= S.FullName;
-        End
-      else
-      begin
-        P^.Name := PrevDir;
-        P^.Size := 0;
-        P^.Time := $210000;
-        P^.Attr := Directory;
-      end;
-      FileList^.Insert(PObject(P));
-    end;
-  end;
+
+  { Диски помещаем в список заранее на случай проблем с памятью }
   for C := 'Z' downto 'A' do
    if ValidDrive(C) then
      begin
@@ -783,17 +734,41 @@ begin
        P^.Size := 0;
        P^.Time := $210000;
        P^.Attr := Directory;
-       FileList^.Insert(PObject(P));
+       FileList^.Insert(P);
      end;
-  if P = nil then Msg(dlStdDlgManyFiles, nil, mfOkButton + mfWarning);
+
+  Tmp := Dir + x_x;
+  lFindFirst(Tmp, Directory+Byte(SystemData.Options and ossShowHidden <> 0)*Hidden, S);
+    {AK155 Тут надо учитывать, что под WinNT каталога '.'
+     может не быть вообще, и что FindNextFile приводит к падению,
+     если FindFirstFile не был успешным из-за несуществующего
+     каталога. Такое бывает, например, в диалоге загрузки палитры,
+     если каталога COLORS вообще нет. }
+  while DosError = 0 do
+    begin
+    if (S.SR.Attr and Directory <> 0) and not (S.SR.Name = '.') and
+       ((Length(Dir) > 4) or (S.SR.Name <> '..'))
+    then
+      begin
+      P := MemAlloc(SizeOf(P^));
+      if P = nil then
+        begin
+        Msg(dlStdDlgManyFiles, nil, mfOkButton + mfWarning);
+        break;
+        end;
+      With P^ do
+        Begin
+        Attr:= S.SR.Attr;
+        Time:= S.SR.Time;
+        Size:= S.FullSize;
+        Name:= S.FullName;
+        End;
+      FileList^.Insert(P);
+      end;
+    lFindNext(S);
+    end;
+  lFindClose(S);
   NewList(FileList);
-{  if List^.Count > 0 then
-  begin
-    Event.What := evBroadcast;
-    Event.Command := cmFileFocused;
-    Event.InfoPtr := List^.At(0);
-    Owner^.HandleEvent(Event);
-  end;                               }
 end;
         {-DataCompBoy-}
 

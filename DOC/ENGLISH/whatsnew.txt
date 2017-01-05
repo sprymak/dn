@@ -7,6 +7,151 @@
 
 
 
+   Version 1.51.10b11
+  ---------------------------------------------------------------------
+        Alexey Korop
+
+ak21224a
+[-] Macroses $ and .$ didt't work in Win32 version
+
+ak21229a
+[-] In spreadsheet moving of the cell with absolute links (with '@')
+    didn't work
+[-] The format settings of edited cell in spreadsheet were reset to
+    default values after editing
+
+ak21231a
+[-] OS/2 version of RCP will disable mouse in current session
+
+ak30101a
+[*] Unneeded dependence vpkbdw32.pas with VpSysLow.pas is removed. Now
+    vpkbdw32.pas may be compiled to vpkbdw32.dll, what is recommended for
+    Win32 VP IDE users.
+
+ak30102a
+[-] Copying to disk root didn't work. Bug is intoduced in beta 10 by
+    ak21222a.dif patch.
+
+ak30103a
+[-] DN crashed after vertical panel separator was moved yo left until left
+    manager bound and then separator was moved to right.
+
+ak30105a
+[-] DN crashed under Windows NT if in the 'Load palette' dialog the
+    'More...' item was selected and the COLORS directory did not exist in
+    the DN directory.
+
+ak30106a
+[-] DN crashed under OS/2 due to the 'Close' action did selected from the
+    system menu or from the system tasklist if SmartWindowsBoxClose=0. Bug
+    was introdused in beta 9.
+
+ak30111a
+[-] Text Viewer in >=34 lines window didn't scroll down by page (PgDn)
+    large (>32k) files without line delimiters.
+
+ak30118a.dif
+[-] DN crashed in editor on try to justify the block if this block contain
+    a word which length is equal to target line length.
+
+        Jaroslaw Osadtchiy
+
+jo21229a
+[-] If confirmation for new directory creation was switched on, then after
+    attempt to unarchive files through temporary subdirectory the
+    confirmation to create this subdirectory was proposed, and after
+    unarchoving was completed the temporary subdirectory was nit removed
+    with error message
+
+jo21230a
+[*] In some units some references to unused units in "uses" statement had
+    been removed
+[*] In VpSysLo2 unit now variable RecodeAnsiNames will be used instead
+    RecodeCyrillicNames, that makes this unit low-level as it was
+    initially
+
+jo21230b
+[*] Now in file viewer in hex editor mode the #0 symbols will be highlited
+    with comment color, that makes possible to distinguish them visually
+    from #$2E symbol (dot)
+
+jo21230c
+[*] The information on the bottom line of file viewer window in
+    disassembler mode now corresponds to this mode
+
+jo30104c
+[-] Now incremental search in panel works with single Ctrl
+
+jo30104d
+[-] Under OS/2 with HPFS386 installed after copying files with EA and EA
+    .LONGNAME editing if destination files were situated in HFPS partition
+    then their time was set to current time
+
+jo30106a
+[-] When attenpt to unarchive files into non-existing directory was done,
+    this directory was created withous confirmation even if confirmation
+    for directory creation was switched on
+[-] After files unarchiving into non-existing directory and after
+    unarchiving of complete archive by Shift-F2 to diskette (not through
+    temporary directory) the file panels was not reread after operation
+    completion
+
+jo30109b
+[*] The "Through temporary directory" option is added to files unarchiving
+    ("Extract files") dialog. When this option set, the files will be
+    unarchived into temporary subdirectory in destination directory and
+    moved afterward to destination directory by DN/2. When this option is
+    not set, the files will be unarchived directly into destination
+    directory
+[*] The "Unpack to drive directly" option is added to current drive
+    options in System Setup. When this option set, the "Through temporary
+    directory" option will be cleared in "Extract files" dialog when
+    unarchiving to this drive performed, when not set - the "Through
+    temporary directory" option will be preset in "Extract files" dialog
+[*] Unarchiving files through temporary subdirectory now will be used only
+    in those cases if destination directory exists and contains files or
+    subdirectories, and also in cases if unarchiving performed from
+    subdirectory in archive and option "Set path inside" in archiver
+    settings is blank
+
+jo30110a
+[-] Comments in file dn.mnu and in context user menus inside file dn.ext
+    treated as a commands
+
+        Jaroslaw Osadtchiy, Alexey Korop
+
+b11vidcm
+[*] Now video mode will be set independently of presence saved desktop
+[*] After switching videomodes the parts of file panels appeared on the
+    output screen
+[-] When DN/2 was started in console with nonstandard videomode the screen
+    could be drawn in wrong way
+[-] The videomode was restored after external programms launching despite
+    "Restore screen mode" option switched off, that caused impossibility
+    to use "mode" command for videomode changing
+[-] In Win32 version the attempt to change videomode always caused
+    changing the size of the console window, even if videomode changing
+    failed
+[*] In Win32 version the same videomode changing dialog will be proposed
+    as in OS/2 version, but under Win9x only videomodes with line numbers
+    25, 43 and 50 will be available
+[-] In Win32 version in windowed session the lines number changing occured
+    only to bigger values
+[-] In Win32 version in windowed session the user screen was garbled after
+    columns number changing
+[*] In OS/2 version the artificial checking for "wrong" videomodes for
+    fullscreen session is removed
+[*] Now after failed attempt to change videomode the message that this
+    videomode is impossible for current session will be shown
+
+        Maxim Vasilyev
+
+dn_pat.rar
+[+] dn21225-PackageForTheWeb_(CAB-sfx)_detection.patch Package for the WEB
+    (CAB-sfx) archive detection.
+[+] ddi_unpack.patch .DDI diskimage unpacking
+
+
    Version 1.51.10b10
   ---------------------------------------------------------------------
 DN OSP team

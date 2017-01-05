@@ -160,12 +160,11 @@ SysCtrlSetCBreakHandler;}
 {/Cat}
 {$IFDEF USESYSUTILS}
  except
-{Cat: закомментировал - всё равно не работает
    on E: EControlC do
-     begin
-     ClearScreen;
+     begin {Фактически это никакой не Ctrl-C, а Close через кнопку,
+       или системное меню, или системный список задач. А Ctrl-Crek, Ctrl-C
+       обрабатываются в killer и сюда не попадают.}
      end;
-}
    on E: exception do
      begin
      ClearScreen;

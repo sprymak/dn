@@ -1015,6 +1015,8 @@ const
     (TotalY:255; SelectedY:255; CurrentY1:255; CurrentY2:255);
 begin
  if Panel^.DrawDisableLvl > 0 then Exit;
+ if Size.X <= 0 then Exit; {без этого бывает плохо, если разделитель
+   панелей сдвинуть до упора влево, а потом двигать назад }
  DnD := NoDnD;
  ShowSelected := (Panel^.PanelFlags and fmiSelected)  <> 0;
  ShowFullName := (Panel^.PanelFlags and fmiFullNameInBottom)  <> 0;

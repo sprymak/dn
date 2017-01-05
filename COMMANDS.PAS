@@ -482,7 +482,7 @@ const
   ossTree           =$02;
   ossVerify         =$04;
   ossCheckFreeSpace =$08; {DataCompBoy}
-  ossNoLFN          =$10; {DataCompBoy}
+  ossUnarcToDirectly=$10; {JO}
 
   cdnHideCmdLine    = $0001;  { DN Misc Information }
 
@@ -2669,7 +2669,7 @@ TYPE
     dlCantLoad,       {JO}
     dlIniDataReadError, {PZ}
     dlIniDataTooLong,   {PZ}
-    dlNotValidForFullscreen, {JO}
+    dlNotValidForCurSession, {JO}
     dlCreateObject,   {JO}
     dlObjectTitle,
     dl_CodePage_FS_Error, {JO}

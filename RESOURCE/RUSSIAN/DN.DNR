@@ -1399,22 +1399,23 @@ DIALOG dlgSetPassword, 39, 7, 'Введи пароль'
     Button 27, 4, 37, 6, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgExtract, 49, 13, 'Извлечь файлы'
+DIALOG dlgExtract, 49, 14, 'Извлечь файлы'
     HELPCTX hcExtract
     InputLine 13, 2, 44, 3, 255, 0
     History 44, 2, hsFileCopyName, ofPostProcess
     Label 2, 2, '~И~звлечь в', ofPostProcess, ofPreProcess
-    CheckBoxes 3, 4, 47, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 4, 47, 8, ofPostProcess, ofPreProcess
       ITEM 'Извлечь с именем ~п~ути'
       ITEM 'Только ~т~естирование'
       ITEM '~У~скоренно'
+      ITEM 'Чеpез ~в~pеменный каталог'
     END
-    InputLine 10, 8, 44, 9, 30, 0, ofSecurity
-    Label 2, 8, '~П~ароль', ofPostProcess, ofPreProcess
-    Button  7, 10, 17, 12, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 17, 10, 27, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 27, 10, 37, 12, '~Д~ерево', cmTree, ofPostProcess, ofPreProcess
-    Button 37, 10, 47, 12, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 10, 9, 44, 10, 30, 0, ofSecurity
+    Label 2, 9, '~П~ароль', ofPostProcess, ofPreProcess
+    Button  7, 11, 17, 13, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 17, 11, 27, 13, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 27, 11, 37, 13, '~Д~ерево', cmTree, ofPostProcess, ofPreProcess
+    Button 37, 11, 47, 13, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgCommandsHistory, 69, 17, 'Истоpия команд'
@@ -3211,9 +3212,7 @@ DIALOG dlgSystemSetup, 72, 21, 'Системные установки'
       ITEM '~З~апомнить дерево'
       ITEM 'Проверять после з~а~писи'
       ITEM 'Пpовеpять свободное ~м~есто'
-;$IFNDEF VIRTUALPASCAL
-      ITEM 'Запpетить ~д~линные имена'
-;$ENDIF
+      ITEM 'Пр~я~мая распаковка на диск'
     END
     Label 8, 13, 'Установки ~т~екущего диска', ofPostProcess, ofPreProcess
 
@@ -4298,7 +4297,6 @@ END
 ;JO
 DIALOG dlgChScreenMode, 36, 12, 'Сменить видеорежим'
     HELPCTX hcNoContext
-;$IFDEF OS2
     RadioButtons 1, 2, 35, 8, ofPostProcess, ofPreProcess
       ITEM '~1~ 80 x 25 '
       ITEM '~2~ 80 x 30 '
@@ -4319,7 +4317,6 @@ DIALOG dlgChScreenMode, 36, 12, 'Сменить видеорежим'
     StaticText 26, 4, 27, 5, 'x'
     Button 7, 9, 17, 11, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 18, 9, 29, 11, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-;$ENDIF
 END
 ;JO
 

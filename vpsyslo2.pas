@@ -72,7 +72,7 @@ implementation
 {&OrgName-}
 
 uses
-  Strings{$IFDEF Win32}, DnIni{$ENDIF};
+  Strings;
 
 {$IFDEF OS2}
 function SysTVGetShiftState2: Byte;
@@ -136,7 +136,7 @@ begin
     CompRec(Size).Hi := FindData.nFileSizeHigh;
     Attr := FindData.dwFileAttributes;
 {$IFNDEF RecodeWhenDraw}
-    if RecodeCyrillicNames = 1 then
+    if RecodeAnsiNames then
       begin    // Convert filename to OEM character set
         CharToOem(FindData.cFileName, FindData.cFileName);
         CharToOem(FindData.cAlternateFileName, FindData.cAlternateFileName); {AK155}
@@ -162,7 +162,7 @@ var
 begin
   F.ExcludeAttr := Attr;
 {$IFNDEF RecodeWhenDraw}
-  if RecodeCyrillicNames = 1 then
+  if RecodeAnsiNames then
     begin
       OemToChar(Path, AnsiPath);  {AK155}
       F.Handle := FindFirstFile(AnsiPath, F.FindData); {AK155}

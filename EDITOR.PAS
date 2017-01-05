@@ -696,7 +696,8 @@ var  LastX, LastY: LongInt;
     if Length(Left)+ Length(W) + J < LS then
       if J = 0 then Left := Left+' '+W else Left := Left+W
       else WriteLeft;
-    if Left[1] = ' ' then Delete(Left, 1, 1); {DelFC(Left);}
+    if (Left <> '') and (Left[1] = ' ') then
+      Delete(Left, 1, 1); {DelFC(Left);}
   1:
    if Abort then begin Dispose(P,Done); Exit end;
    until I > LG+1;

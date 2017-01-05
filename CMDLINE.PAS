@@ -101,7 +101,7 @@ const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' ','@','"']
 
 
 implementation
- uses Dos, Commands, DNApp, DNStdDlg, Dialogs, advance, advance1, advance2,
+ uses Dos, Commands, DNApp, Dialogs, advance, advance1, advance2,
       advance3, Startup, RStrings, xTime, Messages
       , MicroEd, Histries, FViewer, flpanelx
 {$IFDEF SS} ,Idlers{$ENDIF}

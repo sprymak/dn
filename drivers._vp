@@ -375,6 +375,13 @@ begin
             What := evKeyDown;
             KeyCode := kbDoubleAlt;
           end
+        else
+        if ((ShiftState and kbCtrlShift) = 0) and ((OldShiftState and kbCtrlShift) <> 0)
+        and DoubleCtrlUnlock then
+          begin
+            What := evKeyDown;
+            KeyCode := kbDoubleCtrl;
+          end
         else {AK155}
           if (PrevKey = kbBack) and (GetTimemSec-PrevKeyTime > 500) then
             begin
@@ -387,6 +394,8 @@ begin
               What := evNothing;
               if ((ShiftState and kbAltShift) = 0) then
                 DoubleAltUnlock := True;
+              if ((ShiftState and kbCtrlShift) = 0) then
+                DoubleCtrlUnlock := True;
             end;
 {/JO}   OldShiftState := ShiftState
       end
@@ -412,6 +421,7 @@ WriteKey:
           KeyCode := KeyCode or $030000;
         {/Cat}
         if ((ShiftState and kbAltShift) <> 0) then DoubleAltUnlock := False; {JO}
+        if ((ShiftState and kbCtrlShift) <> 0) then DoubleCtrlUnlock := False; {JO}
         if (CharCode = #$E0) and (ScanCode in
           [Hi(kbLeft), Hi(kbRight), Hi(kbUp), Hi(kbDown),
            Hi(kbIns), Hi(kbDel), Hi(kbHome), Hi(kbEnd), Hi(kbPgUp), Hi(kbPgDn),
@@ -930,7 +940,8 @@ begin
     EndFatalError;
   {$ENDIF}
   DoneSysError;
-  DoneEvents;
+//AK155  DoneEvents;
+  { Это в DN бесполезно, а в RCP вредно: под OS/2 отбивается мышь }
   SysTVDoneMouse(True);
 end;
 

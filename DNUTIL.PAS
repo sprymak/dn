@@ -1087,29 +1087,9 @@ begin
     S^.Read(SM, Sizeof(SM));
     S^.Read( OldAppSize, SizeOf( Size ));
     S^.Read( OldDskSize, SizeOf( Size ));
-    BB := not (OldAppSize.Equals(Size));
     LoadIndexes(S^);
     GetExtent( SaveBounds );
     Desktop^.Clear;
-{$IFDEF OS2}
-    if not PMWindowed then
-        begin
-{$ENDIF}
-          if NonVIOScreenMode <> $FFFF then SM := NonVIOScreenMode;
-{$IFDEF OS2}
-        end
-      else
-        if VIOScreenMode <> $FFFF then SM := VIOScreenMode;
-{$ENDIF}
-    if BB and ((SM <> ScreenMode) and
-       (StartupData.Load and osuRestoreScrMode <> 0))
-      then begin
-      SetScrMode(SM);
-      {$IFDEF DPMI}
-      SetScrMode(SM);
-      {$ENDIF}
-      SetBlink(CurrentBlink);
-    end;
     BB := not (OldDskSize.Equals(Desktop^.Size));
     If BB then begin
       Desktop^.Hide;
@@ -1738,111 +1718,13 @@ PROCEDURE TDNApplication.HandleCommand;
 
  procedure SelectVideoModeDialog;
  var
-{$IFNDEF OS2}
-   P: PMenuBox;
-   M: PMenu;
-   R: TRect;
-   I: PMenuItem;
-{$ELSE}
    R: record
         VM: Integer;
         Cols, Rows: String[3];
       end;
-{$ENDIF}
    W: Word;
+   D: PDialog;
  begin
-{$IFNDEF VIRTUALPASCAL}
-  I := nil;
-  if VideoType < vtVGA then begin
-     if VideoType = vtEGA then begin
-       I := NewItem ( '~1~ 80 x 43', '', kbNoKey, sm80x43+cmSwitch, hcNoContext,
-            nil);
-     end;
-     M := NewVideoMenu (
-            NewItem ( '~1~ 40 x 25', '', kbNoKey, sm40x25+cmSwitch, hcNoContext,
-            NewItem ( '~1~ 80 x 25', '', kbNoKey, sm40x25+cmSwitch, hcNoContext,
-            I))
-          );
-   end else begin { VideoType >= vtVGA }
-     if VideoType >= vtSVGA then begin
-       I := NewSubMenu ( '~4~ 132 x ??', hcNoContext,
-              NewVideoMenu (
-              NewItem ( '~1~ 132 x 25', '', kbNoKey, $109+cmSwitch, hcNoContext,
-              NewItem ( '~2~ 132 x 43', '', kbNoKey, $10A+cmSwitch, hcNoContext,
-              NewItem ( '~3~ 132 x 50', '', kbNoKey, $10B+cmSwitch, hcNoContext,
-              NewItem ( '~4~ 132 x 60', '', kbNoKey, $10C+cmSwitch, hcNoContext,
-              nil))))),
-            nil);
-     end;
-     M := NewMenu (
-            NewSubMenu ( '~1~  40 x ??', hcNoContext,
-              NewVideoMenu (
-              NewItem ( '~1~ 40 x 12','', kbNoKey, sm40x12+cmSwitch, hcNoContext,
-              NewItem ( '~2~ 40 x 14','', kbNoKey, sm40x14+cmSwitch, hcNoContext,
-              NewItem ( '~3~ 40 x 25','', kbNoKey, sm40x25+cmSwitch, hcNoContext,
-              NewItem ( '~4~ 40 x 30','', kbNoKey, sm40x30+cmSwitch, hcNoContext,
-              NewItem ( '~5~ 40 x 34','', kbNoKey, sm40x34+cmSwitch, hcNoContext,
-              NewItem ( '~6~ 40 x 43','', kbNoKey, sm40x43+cmSwitch, hcNoContext,
-              NewItem ( '~7~ 40 x 50','', kbNoKey, sm40x50+cmSwitch, hcNoContext,
-              NewItem ( '~8~ 40 x 60','', kbNoKey, sm40x60+cmSwitch, hcNoContext,
-              nil))))))))),
-            NewSubMenu ( '~2~  80 x ??', hcNoContext,
-              NewVideoMenu (
-              NewItem ( '~1~ 80 x 12','', kbNoKey, sm80x12+cmSwitch, hcNoContext,
-              NewItem ( '~2~ 80 x 14','', kbNoKey, sm80x14+cmSwitch, hcNoContext,
-              NewItem ( '~3~ 80 x 25','', kbNoKey, sm80x25+cmSwitch, hcNoContext,
-              NewItem ( '~4~ 80 x 30','', kbNoKey, sm80x30+cmSwitch, hcNoContext,
-              NewItem ( '~5~ 80 x 34','', kbNoKey, sm80x34+cmSwitch, hcNoContext,
-              NewItem ( '~6~ 80 x 43','', kbNoKey, sm80x43+cmSwitch, hcNoContext,
-              NewItem ( '~7~ 80 x 50','', kbNoKey, sm80x50+cmSwitch, hcNoContext,
-              NewItem ( '~8~ 80 x 60','', kbNoKey, sm80x60+cmSwitch, hcNoContext,
-              nil))))))))),
-            NewSubMenu ( '~3~  94 x ??', hcNoContext,
-              NewVideoMenu (
-              NewItem ( '~1~ 94 x 12','', kbNoKey, sm94x12+cmSwitch, hcNoContext,
-              NewItem ( '~2~ 94 x 14','', kbNoKey, sm94x14+cmSwitch, hcNoContext,
-              NewItem ( '~3~ 94 x 25','', kbNoKey, sm94x25+cmSwitch, hcNoContext,
-              NewItem ( '~4~ 94 x 30','', kbNoKey, sm94x30+cmSwitch, hcNoContext,
-              NewItem ( '~5~ 94 x 34','', kbNoKey, sm94x34+cmSwitch, hcNoContext,
-              NewItem ( '~6~ 94 x 43','', kbNoKey, sm94x43+cmSwitch, hcNoContext,
-              NewItem ( '~7~ 94 x 50','', kbNoKey, sm94x50+cmSwitch, hcNoContext,
-              NewItem ( '~8~ 94 x 60','', kbNoKey, sm94x60+cmSwitch, hcNoContext,
-              nil))))))))),
-            I)))
-          );
-   end;
-   M^.Default:=LookUpMenu(M, (ScreenMode shr 4) - $7, dfByPosition);
-   R.Assign(1,1,20,4);
-   P:=New(PMenuBox, Init(R, M, nil));
-   P^.Options:=P^.Options or ofCentered;
-   P^.HelpCtx:=hcCustomVideo;
-   W:=Application^.ExecView(P);
-   Dispose(P);
-   DisposeMenu(M);
-   if (W=0) or (W=cmCancel) then exit;
-   Dec(W, cmSwitch);
-{$ELSE}
- {$IFNDEF OS2}
-   I := nil;
-   M := NewVideoMenu (
-          NewItem ( '~1~ 80 x 25', '', kbNoKey, sm80x25+cmSwitch, hcNoContext,
-          NewItem ( '~2~ 80 x 30', '', kbNoKey, sm80x30+cmSwitch, hcNoContext,
-          NewItem ( '~3~ 80 x 34', '', kbNoKey, sm80x34+cmSwitch, hcNoContext,
-          NewItem ( '~4~ 80 x 43', '', kbNoKey, sm80x43+cmSwitch, hcNoContext,
-          NewItem ( '~5~ 80 x 50', '', kbNoKey, sm80x50+cmSwitch, hcNoContext,
-          NewItem ( '~6~ 80 x 60', '', kbNoKey, sm80x60+cmSwitch, hcNoContext,
-          I))))))
-        );
-   R.Assign(1,1,20,4);
-   P:=New(PMenuBox, Init(R, M, nil));
-   P^.Options:=P^.Options or ofCentered;
-   P^.HelpCtx:=hcCustomVideo;
-   W:=Application^.ExecView(P);
-   Dispose(P);
-   DisposeMenu(M);
-   if (W=0) or (W=cmCancel) then exit;
-   Dec(W, cmSwitch);
- {$ELSE}
    case ScreenMode of
  sm80x30: R.VM := 1;
  sm80x34: R.VM := 2;
@@ -1854,7 +1736,18 @@ $140A..$FFFE: R.VM := 6;
    end;
    R.Cols := ItoS(ScreenWidth);
    R.Rows := ItoS(ScreenHeight);
-   if ExecResource(dlgChScreenMode, R) <> cmOK then Exit;
+
+   D := PDialog(LoadResource(dlgChScreenMode));
+   D := PDialog(Application^.ValidView(D));
+   if D = nil then Exit;
+   D^.SetData(R);
+   if opSys = opWin then
+     PRadioButtons(D^.Last^.Prev)^.EnableMask := $19;
+   W := Desktop^.ExecView(D);
+   if W <> cmCancel then D^.GetData(R);
+   Dispose(D,Done);
+   if W <> cmOK then Exit;
+
    case R.VM of
  0: W := sm80x25;
  1: W := sm80x30;
@@ -1864,8 +1757,6 @@ $140A..$FFFE: R.VM := 6;
  5: W := sm80x60;
  6: W := StoI(R.Cols) * 256 + StoI(R.Rows);
    end;
- {$ENDIF}
-{$ENDIF}
    {PZ begin 2000.06.29}
    SetScrMode (W);
    if StoreVideoMode <> 0 then begin
@@ -2616,13 +2507,8 @@ begin
      {$IFDEF CHCOL}
      cmChangeColors: ChgColors;
      {$ENDIF}
-{$IFNDEF VIRTUALPASCAL}
-     cmChangeUserMode1: if ScreenMode <> smSVGALo then SetScrMode(smSVGALo) else SetScrMode(StartupMode);
-     cmChangeUserMode2: if ScreenMode <> smSVGAHi then SetScrMode(smSVGAHi) else SetScrMode(StartupMode);
-{$ELSE}
      cmChangeUserMode1: if ScreenMode <> smSVGALo then SetScrMode(smSVGALo) else SetScrMode(sm80x25);
      cmChangeUserMode2: if ScreenMode <> smSVGAHi then SetScrMode(smSVGAHi) else SetScrMode(sm80x25);
-{$ENDIF}
      cmChangeMode: begin
                      case ScreenMode of
                        3,sm80x25: if VideoType = vtEGA then

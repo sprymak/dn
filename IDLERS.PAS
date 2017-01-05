@@ -448,10 +448,7 @@ begin
   SwapVectors;
   InitDOSMem;
   InitMemory;
-  InitVideo; ScreenMode := SM;
-  SetVideoMode(ScreenMode);
-  SetBlink(CurrentBlink);
-  if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
+  InitVideo;
   InitEvents;
   HideMouse;
   if ButtonCount > 0 then

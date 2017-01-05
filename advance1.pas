@@ -1658,7 +1658,7 @@ begin
 
   or    al, al
   jnz   @@3
-  mov   dl, '.'
+  mov   dl, 0
 @@3:
   mov   ss:[si], dl
   mov   dx, cx
@@ -1799,7 +1799,7 @@ begin
 
   or    al, al
   jnz   @@3
-  mov   dl, '.'
+  mov   dl, 0
 @@3:
   mov   [esi], dl
   mov   edx, ecx

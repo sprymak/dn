@@ -78,8 +78,7 @@ uses
   {$IFNDEF DPMI32} Killer, {$ENDIF}
   {$IFDEF CDPLAYER} CDPlayer, {$ENDIF}
   {$IFDEF DPMI} DPMI, {$ENDIF}
-  {$IFDEF VIRTUALPASCAL} {$IFDEF Win32} VpSysLow, {AK155 for RecodeAnsiNames} {$ENDIF}
-  {$ELSE} ExtraMem, {$ENDIF}
+  {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
   Tree;
 
 {AK155 Мало проверить, что имя временного каталога непусто, надо
@@ -146,8 +145,8 @@ begin
   OldSecurity := Security;
   smSVGALo := StoI(SystemData.Mode1);
   smSVGAHi := StoI(SystemData.Mode2);
-  if smSVGALo = 0 then smSVGALo := StartupMode;
-  if smSVGAHi = 0 then smSVGAHi := StartupMode;
+  if smSVGALo = 0 then smSVGALo := sm80x25;
+  if smSVGAHi = 0 then smSVGAHi := sm80x25;
   SystemData.Mode1 := ItoS(smSVGALo);
   SystemData.Mode2 := ItoS(smSVGAHi);
 {$IFDEF SS}Val(SaversData.Time, SkyDelay, TempInteger);{$ENDIF}
@@ -777,7 +776,7 @@ begin
 ;
 
 {$IFDEF WIN95_HIGHPRIORITY}
- if SysPlatformId = 1 then {Win9x}
+ if opSys = opWin then {Win9x}
   SetPriorityClass(GetCurrentProcess, High_Priority_Class); {Cat: чтоб не тормозило}
 {$ENDIF}
 

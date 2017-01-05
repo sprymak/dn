@@ -40,7 +40,7 @@ implementation
 
 uses
 
- Strings, Os2Base, Messages, Advance2;
+ Strings, Os2Base, Messages, Advance2, FlTl;
 
 function EnumEAs(FName: String; Var coll: PStringCollection): Integer;
 var
@@ -167,9 +167,11 @@ var
   PSArr: array[0..255] of Char;
   Result: Longint;
   FAttr: Word;
+  LWr, Cr, LAc: Longint;
 begin
 
   FAttr:=GetFileAttr(FName);
+  GetFileAges(FName, LWr, Cr, LAc);
   SetFileAttr(FName, FAttr and not Dos.ReadOnly);
 
   PS := PSArr;
@@ -199,6 +201,7 @@ begin
   FreeMem(eaop.fpFEA2List);
 
 SetFileAttr(FName, FAttr);
+SetFileAges(FName, LWr, Cr, LAc);
 StoreEA := Result;
 end;
 

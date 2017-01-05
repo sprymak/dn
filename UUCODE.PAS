@@ -94,7 +94,7 @@ uses
   , Dos, LFN {DataCompBoy}
      ,advance, advance1, advance2, advance3, Views, StartUp, Dialogs,
      xTime, FilesCol, DNApp, Drivers, Gauge, Messages, Commands, RStrings,
-     FileCopy, HistList, DNStdDlg, DNUtil
+     FileCopy, HistList, DNUtil
    , Use16
      ;
 
