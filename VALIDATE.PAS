@@ -53,7 +53,6 @@ unit Validate;
 { Copyright (c) 1990 by Borland International         }
 {-----------------------------------------------------}
 
-
 interface
 
 uses
@@ -61,133 +60,132 @@ uses
 
 const
 
-{ TValidator Status constants }
+  { TValidator Status constants }
 
-  vsOk     =  0;
-  vsSyntax =  1;      { Error in the syntax of either a TPXPictureValidator
+  vsOk = 0;
+  vsSyntax = 1;
+    { Error in the syntax of either a TPXPictureValidator
                         or a TDBPictureValidator }
 
   { Validator option flags }
-  voFill     =  $0001;
-  voTransfer =  $0002;
-  voReserved =  $00FC;
+  voFill = $0001;
+  voTransfer = $0002;
+  voReserved = $00FC;
 
-{ TVTransfer constants }
+  { TVTransfer constants }
 
 type
   TVTransfer = (vtDataSize, vtSetData, vtGetData);
 
-{ Abstract TValidator object }
+  { Abstract TValidator object }
 
   PValidator = ^TValidator;
   TValidator = object(TObject)
-    Status: Word;
+    Status: word;
     Options: AWord;
-    constructor Init;
-    constructor Load(var S: TStream);
+    Constructor Init;
+    Constructor Load(var s: TStream);
     procedure Error; virtual;
-    function IsValidInput(var S: string;
-      SuppressFill: Boolean): Boolean; virtual;
-    function IsValid(const S: string): Boolean; virtual;
-    procedure Store(var S: TStream);
-    function Transfer(var S: String; Buffer: Pointer;
-      Flag: TVTransfer): Word; virtual;
-    function Valid(const S: string): Boolean;
-  end;
+    function IsValidInput(var s: String;
+    SuppressFill: boolean): boolean; virtual;
+    function isValid(const s: String): boolean; virtual;
+    procedure Store(var s: TStream);
+    function Transfer(var s: String; Buffer: Pointer;
+    Flag: TVTransfer): word; virtual;
+    function Valid(const s: String): boolean;
+    end;
 
-{ TPXPictureValidator result type }
+  { TPXPictureValidator result type }
 
   TPicResult = (prComplete, prIncomplete, prEmpty, prError, prSyntax,
-    prAmbiguous, prIncompNoFill);
+  prAmbiguous, prIncompNoFill);
 
-{ TFilterValidator }
+  { TFilterValidator }
 
   PFilterValidator = ^TFilterValidator;
   TFilterValidator = object(TValidator)
     ValidChars: TCharSet;
-    constructor Init(AValidChars: TCharSet);
-    constructor Load(var S: TStream);
+    Constructor Init(AValidChars: TCharSet);
+    Constructor Load(var s: TStream);
     procedure Error; virtual;
-    function IsValid(const S: string): Boolean; virtual;
-    function IsValidInput(var S: string;
-      SuppressFill: Boolean): Boolean; virtual;
-    procedure Store(var S: TStream);
-  end;
+    function isValid(const s: String): boolean; virtual;
+    function IsValidInput(var s: String;
+    SuppressFill: boolean): boolean; virtual;
+    procedure Store(var s: TStream);
+    end;
 
-{ TRangeValidator }
+  { TRangeValidator }
 
   PRangeValidator = ^TRangeValidator;
   TRangeValidator = object(TFilterValidator)
-    Min, Max: LongInt;
-    constructor Init(AMin, AMax: LongInt);
-    constructor Load(var S: TStream);
+    Min, Max: longInt;
+    Constructor Init(AMin, AMax: longInt);
+    Constructor Load(var s: TStream);
     procedure Error; virtual;
-    function IsValid(const S: string): Boolean; virtual;
-    procedure Store(var S: TStream);
-    function Transfer(var S: String; Buffer: Pointer;
-      Flag: TVTransfer): Word; virtual;
-  end;
+    function isValid(const s: String): boolean; virtual;
+    procedure Store(var s: TStream);
+    function Transfer(var s: String; Buffer: Pointer;
+    Flag: TVTransfer): word; virtual;
+    end;
 
 implementation
 
-{$IFDEF Windows}
-uses WinTypes, WinProcs, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
-{$ELSE}
-uses RStrings, Commands, DNApp, Messages;
-{$ENDIF}
+uses
+  RStrings, Commands, DNApp, Messages;
 
 { TValidator }
 
-constructor TValidator.Init;
-begin
-  inherited Init;
-  Status := 0;
-  Options := 0;
-end;
+Constructor TValidator.Init;
+  begin
+    inherited Init;
+    Status := 0;
+    Options := 0;
+  end;
 
-constructor TValidator.Load(var S:TStream);
-begin
-  Init;
-  Status := 0;
-  S.Read(Options, SizeOf(Options));
-end;
+Constructor TValidator.Load(var s: TStream);
+  begin
+    Init;
+    Status := 0;
+    s.Read(Options, SizeOf(Options));
+  end;
 
 procedure TValidator.Error;
-begin
-end;
-
-function TValidator.IsValidInput(var S: string; SuppressFill: Boolean):
-  Boolean;
-begin
-  IsValidInput := True;
-end;
-
-function TValidator.IsValid(const S: string): Boolean;
-begin
-  IsValid := True;
-end;
-
-procedure TValidator.Store(var S: TStream);
-begin
-  S.Write(Options, SizeOf(Options));
-end;
-
-function TValidator.Transfer(var S: String; Buffer: Pointer;
-  Flag: TVTransfer): Word;
-begin
-  Transfer := 0;
-end;
-
-function TValidator.Valid(const S: string): Boolean;
-begin
-  Valid := False;
-  if not IsValid(S) then
   begin
-    Error;
-    Exit;
   end;
-  Valid := True;
-end;
+
+function TValidator.IsValidInput(var s: String; SuppressFill:
+    boolean):
+  boolean;
+  begin
+    IsValidInput := True;
+  end;
+
+function TValidator.isValid(const s: String): boolean;
+  begin
+    isValid := True;
+  end;
+
+procedure TValidator.Store(var s: TStream);
+  begin
+    s.Write(Options, SizeOf(Options));
+  end;
+
+function TValidator.Transfer(var s: String; Buffer: Pointer;
+  Flag: TVTransfer): word;
+  begin
+    Transfer := 0;
+  end;
+
+function TValidator.Valid(const s: String): boolean;
+  begin
+    Valid := False;
+    if not isValid(s) then
+      begin
+        Error;
+        exit;
+      end;
+    Valid := True;
+  end;
 
 (*
 
@@ -699,143 +697,119 @@ end;
 
 { TFilterValidator }
 
-constructor TFilterValidator.Init(AValidChars: TCharSet);
-begin
-  inherited Init;
-  ValidChars := AValidChars;
-end;
+Constructor TFilterValidator.Init(AValidChars: TCharSet);
+  begin
+    inherited Init;
+    ValidChars := AValidChars;
+  end;
 
-constructor TFilterValidator.Load(var S: TStream);
-begin
-  inherited Load(S);
-  S.Read(ValidChars, SizeOf(TCharSet));
-end;
+Constructor TFilterValidator.Load(var s: TStream);
+  begin
+    inherited Load(s);
+    s.Read(ValidChars, SizeOf(TCharSet));
+  end;
 
-function TFilterValidator.IsValid(const S: string): Boolean;
-var
-  I: Integer;
-begin
-  I := 1;
-  while S[I] in ValidChars do Inc(I);
-  IsValid := I > Length(S);
-end;
+function TFilterValidator.isValid(const s: String): boolean;
+  var
+    i: integer;
+  begin
+    i := 1;
+    while s[i] in ValidChars do
+      Inc(i);
+    isValid := i > Length(s);
+  end;
 
-function TFilterValidator.IsValidInput(var S: string; SuppressFill: Boolean): Boolean;
-var
-  I: Integer;
-begin
-  I := 1;
-  while S[I] in ValidChars do Inc(I);
-  IsValidInput := I > Length(S);
-end;
+function TFilterValidator.IsValidInput(var s: String; SuppressFill:
+    boolean): boolean;
+  var
+    i: integer;
+  begin
+    i := 1;
+    while s[i] in ValidChars do
+      Inc(i);
+    IsValidInput := i > Length(s);
+  end;
 
-procedure TFilterValidator.Store(var S: TStream);
-begin
-  inherited Store(S);
-  S.Write(ValidChars, SizeOf(TCharSet));
-end;
-
-{$IFDEF Windows}
-
-procedure TFilterValidator.Error;
-begin
-  MessageBox(0, 'Invalid character in input', 'Validator', mb_IconExclamation or mb_Ok);
-end;
-
-{$ELSE}
+procedure TFilterValidator.Store(var s: TStream);
+  begin
+    inherited Store(s);
+    s.Write(ValidChars, SizeOf(TCharSet));
+  end;
 
 procedure TFilterValidator.Error;
-begin
-  MessageBox('Invalid character in input', nil, mfError + mfOKButton);
-end;
-
-{$ENDIF Windows}
+  begin
+    MessageBox('Invalid character in input', nil, mfError+mfOKButton);
+  end;
 
 { TRangeValidator }
 
-constructor TRangeValidator.Init(AMin, AMax: LongInt);
-begin
-  inherited Init(['0'..'9','+','-']);
-  if AMin >= 0 then ValidChars := ValidChars - ['-'];
-  Min := AMin;
-  Max := AMax;
-end;
-
-constructor TRangeValidator.Load(var S: TStream);
-begin
-  inherited Load(S);
-  S.Read(Min, SizeOf(Max) + SizeOf(Min));
-end;
-
-{$IFDEF Windows}
-
-procedure TRangeValidator.Error;
-var
-  Params: array[0..1] of Longint;
-  MsgStr: array[0..80] of Char;
-begin
-  Params[0] := Min;
-  Params[1] := Max;
-  wvsprintf(MsgStr, 'Value is not in the range %ld to %ld.', Params);
-  MessageBox(0, MsgStr, 'Validator', mb_IconExclamation or mb_Ok);
-end;
-
-{$ELSE}
-
-procedure TRangeValidator.Error;
-var
-  Params: array[0..1] of Longint;
-begin
-  Params[0] := Min;
-  Params[1] := Max;
-  MessageBox(GetString(dlValueNotInRange), @Params,
-    mfError + mfOKButton);
-end;
-
-{$ENDIF Windows}
-
-function TRangeValidator.IsValid(const S: string): Boolean;
-var
-  Value: LongInt;
-  Code: Integer;
-begin
-  IsValid := False;
-  if inherited IsValid(S) then
+Constructor TRangeValidator.Init(AMin, AMax: longInt);
   begin
-    Val(S, Value, Code);
-    if (Code = 0) and (Value >= Min) and (Value <= Max) then
-      IsValid := True;
+    inherited Init(['0'..'9', '+', '-']);
+    if AMin >= 0 then
+      ValidChars := ValidChars-['-'];
+    Min := AMin;
+    Max := AMax;
   end;
-end;
 
-procedure TRangeValidator.Store(var S: TStream);
-begin
-  inherited Store(S);
-  S.Write(Min, SizeOf(Max) + SizeOf(Min));
-end;
-
-function TRangeValidator.Transfer(var S: String; Buffer: Pointer;
-  Flag: TVTransfer): Word;
-var
-  Value: LongInt;
-  Code: Integer;
-begin
-  if Options and voTransfer <> 0 then
+Constructor TRangeValidator.Load(var s: TStream);
   begin
-    Transfer := SizeOf(Value);
-    case Flag of
-     vtGetData:
-       begin
-         Val(S, Value, Code);
-         LongInt(Buffer^) := Value;
-       end;
-     vtSetData:
-       Str(LongInt(Buffer^), S);
-    end;
-  end
-  else
-    Transfer := 0;
-end;
+    inherited Load(s);
+    s.Read(Min, SizeOf(Max)+SizeOf(Min));
+  end;
+
+procedure TRangeValidator.Error;
+  var
+    Params: array[0..1] of longInt;
+  begin
+    Params[0] := Min;
+    Params[1] := Max;
+    MessageBox(GetString(dlValueNotInRange), @Params,
+    mfError+mfOKButton);
+  end;
+
+function TRangeValidator.isValid(const s: String): boolean;
+  var
+    Value: longInt;
+    Code: integer;
+  begin
+    isValid := False;
+    if inherited isValid(s) then
+      begin
+        Val(s, Value, Code);
+        if (Code = 0) and (Value >= Min) and (Value <= Max) then
+          isValid := True;
+      end;
+  end;
+
+procedure TRangeValidator.Store(var s: TStream);
+  begin
+    inherited Store(s);
+    s.Write(Min, SizeOf(Max)+SizeOf(Min));
+  end;
+
+function TRangeValidator.Transfer(var s: String; Buffer: Pointer;
+  Flag: TVTransfer): word;
+  var
+    Value: longInt;
+    Code: integer;
+  begin
+    if Options and voTransfer <> 0 then
+      begin
+        Transfer := SizeOf(Value);
+        case Flag of
+          vtGetData:
+            begin
+              Val(s, Value, Code);
+              longInt(Buffer^) := Value;
+            end;
+          vtSetData:
+            Str(longInt(Buffer^), s);
+        end {case};
+      end
+    else
+      Transfer := 0;
+  end { TRangeValidator.Transfer };
 
 (*
 { TLookupValidator }

@@ -1815,36 +1815,46 @@ STATUSLINE
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
   StatusDef hcDBView, hcDBView,
+;{BASE}
      StatusItem '~F1~ ?', kbF1, cmHelp,
      StatusItem '~F2~ Поля', kbF2, cmShowFields,
-     StatusItem '~F3~ Просмотр Memo', kbF3, cmShowMemo,
-     StatusItem '~F4~ Редактирование', kbF4, cmEditDBField,
+     StatusItem '~F3~ Мемо', kbF3, cmShowMemo,
+     StatusItem '~F4~ Изменить', kbF4, cmEditDBField,
+     StatusItem '~F6~ Переход', kbF6, cmDBFGoto,
      StatusItem '~F7~ Поиск', kbF7, cmSearchFor,
      StatusItem '~F8~ Кодировка', kbF8, cmSwitchKeyMapping,
      StatusItem '~F10~ Меню', kbF10, cmMenu,
-     StatusItem '-~F7~ Обpатный поиск', kbAltF7, cmBackSearch,
-     StatusItem '+~F3~ Нов.панель', kbCtrlF3, cmCreatePanel,
+;{ALT}
+     StatusItem '-~Z~ Распахнуть', kbAltZ, cmZoom,
+     StatusItem '-~F7~ Обратный поиск', kbAltF7, cmBackSearch,
+     StatusItem '-~F10~ Видео/1', kbAltF10, cmChangeUserMode1,
+;{CTRL}
+     StatusItem '+~D~ Удалить/Восстановить', kbCtrlD, cmDeleteDBRec,
+     StatusItem '+~F3~ Новая панель', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Закрыть', kbCtrlF4, cmClose,
      StatusItem '+~F6~ Калькулятор', kbCtrlF6, cmCalculator,
+     StatusItem '+~F10~ Видео/2', kbCtrlF10, cmChangeUserMode2,
+;{SHIFT}
      StatusItem ':~F3~ Телефон', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Редактор', kbShiftF4, cmXEditFile,
-;    StatusItem ':~F6~ Оживить', kbShiftF6, cmReanimator,
+     StatusItem ':~F6~ Перевод', kbShiftF6, cmLoadXlatTable,
      StatusItem ':~F7~ Продолжить поиск', kbShiftF7, cmContinueSearch,
-     StatusItem '', kbCtrlL, cmContinueSearch,
      StatusItem ':~F10~ Видео', kbShiftF10, cmChangeMode,
-     StatusItem '-~F10~ Видео/1', kbAltF10, cmChangeUserMode1,
-     StatusItem '+~F10~ Видео/2', kbCtrlF10, cmChangeUserMode2,
-     StatusItem '-~Z~ Распахнуть', kbAltZ, cmZoom,
-     StatusItem '', kbAltX, cmQuit,
-     StatusItem '', kbF9, cmNext,
-     StatusItem '', kbShiftF9, cmPrev,
-     StatusItem '', kbCtrlJ, cmTerminal,
-     StatusItem '', kbCtrlF5, cmResize,
-;{Alt+Ctrl}
+;{ALT-CTRL}
 ;$IFDEF OS_DOS
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
-     StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~Z~ Максимизировать', kbCtrlAltZ, cmMaxi,
+;     StatusItem '^~F8~ Реаниматор', kbCtrlAltF8, cmReanimator,
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbCtrlL, cmContinueSearch,
+;     StatusItem '', kbCtrlJ, cmTerminal,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlM, cmMaxi,
+     StatusItem '', kbAltX, cmQuit,
+     StatusItem '', kbShiftF9, cmPrev,
+
   StatusDef hcEditor, hcEditor,
      StatusItem '~F1~ Помощь', kbF1, cmHelp2,
      StatusItem '~F2~ Запись', kbF2, cmSaveText,
@@ -4342,3 +4352,18 @@ DIALOG dlgSetExportCsvFormat, 46, 16, 'Формат экспорта в CSV'
     Button 25, 13, 35, 15, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
 END
 ;KV
+
+;{--- start -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
+DIALOG dlgDBFGoto, 41, 9, 'Переход к строке/столбцу'
+    HELPCTX hcDBFGoto
+    InputLine 17, 2, 35, 3, 10, 0
+    History 35, 2, hsDBFGotoRow, ofPostProcess
+    Label 3, 2, '~Н~омер строки', ofPostProcess, ofPreProcess
+    InputLine 17, 4, 35, 5, 10, 0
+    History 35, 4, hsDBFGotoCol, ofPostProcess
+    Label 3, 4, '~И~мя столбца', ofPostProcess, ofPreProcess
+    Button  9, 6, 19, 8, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 19, 6, 29, 8, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 29, 6, 39, 8, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+END
+;{--- finish -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}

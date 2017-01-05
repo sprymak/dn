@@ -7,35 +7,35 @@ Written by Cat 2:5030/1326.13
 
 ******)
 
-
 {$I STDEFINE.INC}
 {$D-,E+,I-,L-,N+,Q-,R-,S-,Y-}
 
 interface
 
 uses
-  Use16;
+  use16;
 
 type
-  T64=record
+  T64 = record
     case byte of
-      0: (l0,l1:longint);
-      1: (w0,w1,w2,w3:word);
-      2: (c0:comp);
-    end;
+      0: (l0, l1: longInt);
+      1: (w0, w1, W2, W3: word);
+      2: (c0: Comp);
+  end;
 
-procedure Prepare1Str(var Sou,Dst);
-function  GetUUxlt(b:byte):char;
-function  GetLnCrc(var Buf;Size:longint):Char;
-procedure cCrc(var Buf;Size:longint;var PrevSum:word);
-procedure Crc64(var Buf;Size:longint;var PrevSum:T64;var PrevCnt:word);
-procedure Clear64(var n:T64);
+procedure Prepare1Str(var Sou, Dst);
+function GetUUxlt(B: byte): Char;
+function GetLnCrc(var Buf; Size: longInt): Char;
+procedure cCRC(var Buf; Size: longInt; var PrevSum: word);
+procedure Crc64(var Buf; Size: longInt; var PrevSum: T64; var
+    PrevCnt: word);
+procedure Clear64(var n: T64);
 
 implementation
 
 const
-  UUxlt:array[0..63] of char=
-    '`!"#$%&''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_';
+  UUxlt: array[0..63] of Char =
+  '`!"#$%&''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_';
   {
 const
   Poly64:array[0..255] of byte=
@@ -60,108 +60,110 @@ Cat:  this array is not used in my version
 
   }
 
-procedure Prepare1Str(var Sou,Dst);
-var
-  i,j:byte;
-  sou_:array[0..44] of byte absolute Sou;
-  dst_:array[0..59] of char absolute Dst;
-begin
-  i:=0;
-  j:=0;
-  while i<45 do
-    begin
-      dst_[j+0]:=UUxlt[sou_[i] shr 2];
-      dst_[j+1]:=UUxlt[((sou_[i] and 3) shl 4)+(sou_[i+1] shr 4)];
-      dst_[j+2]:=UUxlt[((sou_[i+1] and 15) shl 2)+(sou_[i+2] shr 6)];
-      dst_[j+3]:=UUxlt[sou_[i+2] and 63];
-
-      inc(i,3);
-      inc(j,4);
-    end
-end;
-
-function  GetUUxlt(b:byte):char;
-begin
-  GetUUxlt:=UUxlt[b]
-end;
-
-procedure cCrc(var Buf;Size:longint;var PrevSum:word);
-var
-  buf_:array[1..65520] of byte absolute Buf;
-  i:longint;
-begin
-  for i:=1 to Size do
-    if (PrevSum and 1)=0 then {suxx! no "ror" operation...}
-      PrevSum:=(PrevSum shr 1)+buf_[i]
-    else
-      PrevSum:=(PrevSum shr 1)+buf_[i]+$8000
-end;
-
-procedure Crc64(var Buf;Size:longint;var PrevSum:T64;var PrevCnt:word);
-var
-  buf_:array[1..65520] of byte absolute Buf;
-  i:longint;
-
-  procedure AddByte(b:byte);
-  near;
+procedure Prepare1Str(var Sou, Dst);
+  var
+    i, j: byte;
+    sou_: array[0..44] of byte absolute Sou;
+    dst_: array[0..59] of Char absolute Dst;
   begin
-    with PrevSum do
+    i := 0;
+    j := 0;
+    while i < 45 do
       begin
-        c0:=c0+b;
-        if (l1 and $80000000)=0 then {"shl" can't be used with comp...}
-          if (l0 and $80000000)=0 then
-            begin
-              l0:=l0 shl 1;
-              l1:=l1 shl 1
-            end
-          else
-            begin
-              l0:=l0 shl 1;
-              l1:=(l1 shl 1)+1
-            end
-        else
-          if (l0 and $80000000)=0 then
-            begin
-              l0:=(l0 shl 1)+1;
-              l1:=l1 shl 1
-            end
-          else
-            begin
-              l0:=(l0 shl 1)+1;
-              l1:=(l1 shl 1)+1
-            end
+        dst_[j+0] := UUxlt[sou_[i] shr 2];
+        dst_[j+1] := UUxlt[((sou_[i] and 3) shl 4)+(sou_[i+1] shr 4)];
+        dst_[j+2] := UUxlt[((sou_[i+1] and 15) shl 2)+(sou_[i+2] shr 6)]
+          ;
+        dst_[j+3] := UUxlt[sou_[i+2] and 63];
+
+        Inc(i, 3);
+        Inc(j, 4);
       end
   end;
 
-begin
-  for i:=1 to Size do
-    begin
-      AddByte(buf_[i]);
-      AddByte(byte(PrevCnt));
-      inc(PrevCnt)
-    end
-end;
+function GetUUxlt(B: byte): Char;
+  begin
+    GetUUxlt := UUxlt[B]
+  end;
 
-procedure Clear64(var n:T64);
-begin
-  with n do
-    begin
-      l0:=2055944585;
-      l1:=2086759929;
-    end
-end;
+procedure cCRC(var Buf; Size: longInt; var PrevSum: word);
+  var
+    buf_: array[1..65520] of byte absolute Buf;
+    i: longInt;
+  begin
+    for i := 1 to Size do
+      if (PrevSum and 1) = 0 then{suxx! no "ror" operation...}
+        PrevSum := (PrevSum shr 1)+buf_[i]
+      else
+        PrevSum := (PrevSum shr 1)+buf_[i]+$8000
+  end;
 
-function  GetLnCrc(var Buf;Size:longint):Char;
-var
-  buf_:array[1..65520] of byte absolute Buf;
-  i:longint;
-  dx:word;
-begin
-  dx:=0;
-  for i:=1 to Size do
-    inc(dx,(buf_[i]-$20) and $3F);
-  GetLnCrc:=UUxlt[dx and $3F]
-end;
+procedure Crc64(var Buf; Size: longInt; var PrevSum: T64; var
+    PrevCnt: word);
+  var
+    buf_: array[1..65520] of byte absolute Buf;
+    i: longInt;
+
+  procedure AddByte(B: byte);
+    near;
+    begin
+      with PrevSum do
+        begin
+          c0 := c0+B;
+          if (l1 and $80000000) = 0 then
+              {"shl" can't be used with comp...}
+            if (l0 and $80000000) = 0 then
+              begin
+                l0 := l0 shl 1;
+                l1 := l1 shl 1
+              end
+            else
+              begin
+                l0 := l0 shl 1;
+                l1 := (l1 shl 1)+1
+              end
+          else if (l0 and $80000000) = 0 then
+            begin
+              l0 := (l0 shl 1)+1;
+              l1 := l1 shl 1
+            end
+          else
+            begin
+              l0 := (l0 shl 1)+1;
+              l1 := (l1 shl 1)+1
+            end
+        end
+    end { AddByte };
+
+  begin { Crc64 }
+    for i := 1 to Size do
+      begin
+        AddByte(buf_[i]);
+        AddByte(byte(PrevCnt));
+        Inc(PrevCnt)
+      end
+  end { Crc64 };
+
+procedure Clear64(var n: T64);
+  begin
+    with n do
+      begin
+        l0 := 2055944585;
+        l1 := 2086759929;
+      end
+  end;
+
+function GetLnCrc(var Buf; Size: longInt): Char;
+  var
+    buf_: array[1..65520] of byte absolute Buf;
+    i: longInt;
+    DX: word;
+  begin
+    DX := 0;
+    for i := 1 to Size do
+      Inc(DX, (buf_[i]-$20) and $3F);
+    GetLnCrc := UUxlt[DX and $3F]
+  end;
 
 begin
 end.

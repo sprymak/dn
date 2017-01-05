@@ -46,50 +46,46 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit Advance3; {Misc stuff}
+unit advance3; {Misc stuff}
 
 interface
 
 uses
-  Advance, DnIni, Dos, xTime, Objects
-  {$IFNDEF VIRTUALPASCAL}, ExtraMem {$ENDIF}
+  advance, DnIni, Dos, xTime, Objects
   ;
 
- function  Get100s: LongInt;
+function Get100s: longInt;
 
-{$IFNDEF VIRTUALPASCAL}
- Procedure Sound ( Hz : word );
- Procedure Nosound;
-{$ENDIF}
+function GetSTime: longInt;
 
- function  GetSTime: LongInt;
-
- Function  XRandom(N: Integer): Integer; { Rnd -N..N }
- Procedure DosWrite( S: string );
+function XRandom(n: integer): integer; { Rnd -N..N }
+procedure DosWrite(s: String);
 {DataCompBoy Function  KeyPressed: Boolean;}
- Function  FindParam(const S: string): Integer;
+function FindParam(const s: String): integer;
 {$IFDEF OS_DOS}
- Function  Chk4Dos: Boolean;
- procedure AppendCheck;
- procedure DisableAppend;
+function Chk4Dos: boolean;
+procedure AppendCheck;
+procedure DisableAppend;
 {$ENDIF}
- function  GetEnv(S: string): string;
- Function  GetCrc(StartCrc: longint; var Buf; BufSize: word): Longint ;
+function GetEnv(s: String): String;
+function GetCrc(StartCrc: longInt; var Buf; BufSize: word): longInt;
 
 {$IFDEF OS_DOS}
-var AppendInstalled: Boolean;
-    AppendState: Word;
-{$ENDIF}
+var
+  AppendInstalled: boolean;
+  AppendState: word;
+  {$ENDIF}
 
 implementation
-uses Advance1, Advance2, Advance6, Commands{Cat};
+uses
+  advance1, advance2, advance6, Commands {Cat};
 
 {$IFDEF OS_DOS}
 procedure AppendCheck;
- begin
-  AppendInstalled := false;
-  if Dos40 then
-    asm
+  begin
+    AppendInstalled := False;
+    if DOS40 then
+      asm
       mov  ax, $B700
       push bp
       int  $2F
@@ -103,13 +99,14 @@ procedure AppendCheck;
       pop  bp
       mov  AppendState, BX
 @@1:
-    end;
- end;
+    end
+        ;
+  end;
 
 procedure DisableAppend;
-begin
- if AppendInstalled then
-   asm
+  begin
+    if AppendInstalled then
+      asm
      mov ax, $B707
      mov bx, AppendState
      and bx, $FFFE
@@ -117,101 +114,36 @@ begin
      int  $2F
      pop  bp
    end
-end;
+  end;
 {$ENDIF}
 
-function Get100s: LongInt;
-  var DD,MM,YY, HH, Mn, Sc, Sc100: Word;
-begin
-  GetDate(YY,MM,DD,Sc100);
-  GetTime(HH,Mn,Sc,Sc100);
-  Get100s := Sc100+LongInt(Sc)*100+LongInt(Mn)*6000+
-             LongInt(HH)*360000+LongInt(DD)*8640000;
-end;
+function Get100s: longInt;
+  var
+    DD, MM, YY, HH, Mn, Sc, Sc100: word;
+  begin
+    GetDate(YY, MM, DD, Sc100);
+    GetTime(HH, Mn, Sc, Sc100);
+    Get100s := Sc100+longInt(Sc)*100+longInt(Mn)*6000+
+    longInt(HH)*360000+longInt(DD)*8640000;
+  end;
 
-{$IFNDEF VIRTUALPASCAL}
-Procedure Sound ( Hz : word );assembler;
-     asm
-        mov     ax,Hz
-        cmp     ax,21
-        jbe     @@2
-        mov     bx,ax
-        in      al,061h
-        test    al,03
-        jnz     @@1
-        or      al,03
-        out     061h,al
-        mov     al,0B6h
-        out     043h,al
-@@1:    mov     ax,04F38h  {  divider = 144f38h / Hz  }
-        mov     dx,014h
-        div     bx
-        out     042h,al
-        mov     al,ah
-        out     042h,al
-@@2:
-    end;
+function GetSTime: longInt;
+  var
+    H, M, s, SS: word;
+  begin
+    GetTime(H, M, s, SS);
+    GetSTime := SS+longInt(s)*100+longInt(M)*6000+longInt(H)*360000;
+  end;
 
- Procedure Nosound ;assembler;
-     asm
-        in      al,061h
-        and     al,11111100b
-        out     061h,al
-     end;
-{$ENDIF}
+function XRandom;
+  begin
+    XRandom := n div 2-Random(n)
+  end;
 
-function GetSTime: LongInt;
-  var H, M, S, SS: Word;
-begin
-  GetTime(H, M, S, SS);
-  GetSTime := SS + LongInt(S)*100 + LongInt(M)*6000 + LongInt(H)*360000;
-end;
-
-FUNCTION XRandom;
-begin
-  XRandom:=N div 2 - Random(N)
-end;
-
-PROCEDURE DosWrite;
-{$IFNDEF VIRTUALPASCAL}
-{$IFDEF NOASM}
-var r: registers;
-    i: byte;
-begin
- if s='' then exit;
- r.ah:=2;
- for i:=1 to length(s) do begin
-  r.dl:=byte(s[i]);
-  intr($21, r);
- end;
-end;
-{$ELSE}
-assembler;
-asm
-  les  di,S
-  xor  cx,cx
-  mov  cl,byte ptr es:[di]
-  jcxz @empty
-@loop:
-  inc  di
-  mov  ah,2
-  mov  dl,byte ptr es:[di]
-  push es
-  push di
-  push cx
-  int  21h
-  pop  cx
-  pop  di
-  pop  es
-  loop @loop
-@empty:
-end;
-{$ENDIF}
-{$ELSE}
-begin
- Writeln(S);
-end;
-{$ENDIF}
+procedure DosWrite;
+  begin
+    Writeln(s);
+  end;
 
 {DataCompBoy
 function KeyPressed: Boolean; assembler;
@@ -225,22 +157,24 @@ asm
 end;
 }
 
-  function FindParam(const S: string): Integer;
-    var I: Integer;
+function FindParam(const s: String): integer;
+  var
+    i: integer;
   begin
-     FindParam := 0;
-     for I := 1 to ParamCount do
-       if S = Copy(UpStrg(ParamStr(I)),1,Length(S)) then
-         begin
-           FindParam := I;
-           Exit
-         end;
-     if S[1] = '/' then FindParam := FindParam('-'+Copy(S, 2, MaxStringLength));
+    FindParam := 0;
+    for i := 1 to ParamCount do
+      if s = Copy(UpStrg(ParamStr(i)), 1, Length(s)) then
+        begin
+          FindParam := i;
+          exit
+        end;
+    if s[1] = '/' then
+      FindParam := FindParam('-'+Copy(s, 2, MaxStringLength));
   end;
 
 {$IFDEF OS_DOS}
-function Chk4Dos: Boolean; assembler;
-  asm
+function Chk4Dos: boolean; assembler;
+asm
     xor bh, bh
     mov ax, $D44D
     push bp
@@ -252,80 +186,48 @@ function Chk4Dos: Boolean; assembler;
     inc bl
  @1:
     mov ax, bx
-  end;
+  end
+  ;
 {$ENDIF}
 
-function GetEnv(S: string): string;
-begin
-  S := DOS.GetEnv(S); DelSpace(S);
-  GetEnv := S;
-end;
+function GetEnv(s: String): String;
+  begin
+    s := Dos.GetEnv(s);
+    DelSpace(s);
+    GetEnv := s;
+  end;
 
-        {-DataCompBoy-}
-function UpdateCrc32(CurByte : Byte;
-                     CurCrc : LongInt) : LongInt;
+{-DataCompBoy-}
+function UpdateCrc32(CurByte: byte;
+  CurCrc: longInt): longInt;
   {-Returns an updated crc32}
 
   (* Model for inline code below
   UpdateCrc32 := Crc_Table^[Byte(CurCrc xor LongInt(CurByte))] xor
                  ((CurCrc shr 8) and $00FFFFFF);
   *)
-{$IFNDEF VIRTUALPASCAL}
-Inline(
-  $8C/$DE/               {        MOV     SI, DS }
-  $C5/$3E/>Crc_Table/    {        LDS     DI, Crc_Table }
-                         {;Get args -- DX:BX = CurCrc, CX = CurByte;}
-  $5B/                   {        POP     BX}
-  $5A/                   {        POP     DX}
-  $59/                   {        POP     CX}
-  $52/                   {        PUSH    DX}
-  $53/                   {        PUSH    BX      ;Save original CurCrc}
-                         {;CX:AX := Get Crc_Table[CurCrc xor CurByte];}
-  $31/$CB/               {        XOR     BX, CX  ;DX:BX = CurCrc xor CurByte}
-  $30/$FF/               {        XOR     BH, BH  ;Byte(DX:BX)}
-  $D1/$E3/               {        SHL     BX, 1   ;LongInt index}
-  $D1/$E3/               {        SHL     BX, 1}
-  $03/$DF/               {        ADD     BX, DI}
-  $8B/$07/               {        MOV     AX, [BX]}
-  $8B/$4F/$02/           {        MOV     CX, [BX+2]}
-                         {;DX:BX := (CurCrc shr 8) and $00FFFFFF;}
-  $5B/                   {        POP     BX      ;Get original CurCrc}
-  $5A/                   {        POP     DX}
-  $51/                   {        PUSH    CX      ;Save CX}
-  $B9/$08/$00/           {        MOV     CX, 8   ;Shift 8 bits}
-  $D1/$EA/               {C1:     SHR     DX, 1   ;Hi reg into carry}
-  $D1/$DB/               {        RCR     BX, 1   ;Carry into lo reg}
-  $E2/$FA/               {        LOOP    C1      ; for 8 bits}
-  $81/$E2/$FF/$00/       {        AND     DX,$00FF}
-                         {;DX:AX := ES:AX xor DX:BX (sets function result)}
-  $59/                   {        POP     CX}
-  $31/$D8/               {        XOR     AX, BX}
-  $89/$CB/               {        MOV     BX, CX}
-  $31/$DA/               {        XOR     DX, BX}
-  $8E/$DE);              {        MOV     DS, SI}
-        {-DataCompBoy-}
-{$ELSE}
-Inline;
-begin
-  UpdateCrc32 := Crc_Table^[Byte(CurCrc xor LongInt(CurByte))] xor
-                 ((CurCrc shr 8) and $00FFFFFF);
-end;
-{$ENDIF}
+  inline;
+  begin
+    UpdateCrc32 := Crc_Table^[byte(CurCrc xor longInt(CurByte))] xor
+    ((CurCrc shr 8) and $00FFFFFF);
+  end;
 
-Function GetCrc(StartCrc: longint; var Buf; BufSize: word): Longint ;
-type
-  AA = array[1..$F000] of byte ;
-var CNT : word;
-    CRC : Longint;
- begin
-    if crc_table_empty then MakeCRCTable;
+function GetCrc(StartCrc: longInt; var Buf; BufSize: word): longInt;
+  type
+    aa = array[1..$F000] of byte;
+  var
+    CNT: word;
+    CRC: longInt;
+  begin
+    if crc_table_empty then
+      MakeCRCTable;
     CRC := StartCrc;
     GetCrc := StartCrc;
-     if BufSize = 0 then Exit;
-       for CNT :=1 to BufSize do
-       CRC := UpdateCrc32(AA(Buf)[CNT] , Crc);
+    if BufSize = 0 then
+      exit;
+    for CNT := 1 to BufSize do
+      CRC := UpdateCrc32(aa(Buf)[CNT], CRC);
     GetCrc := CRC;
- end;
-
+  end;
 
 end.

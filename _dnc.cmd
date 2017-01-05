@@ -97,6 +97,7 @@ del EXE.D32\dn.exe
 goto end_dn
 
 :OS2W32
+if [%Target%]==[W32] vpc LIB.W32\vpkbdw32.pas /m /dDN /dDNPRG /q %plugin% /c%T%
 vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
 if not errorlevel 1 goto end_dn
 @echo Это что-то переполняется в VP, со второго раза получится.
@@ -124,7 +125,7 @@ del EXE.%Target%\*.map
 del EXE.%Target%\*.bak
 del EXE.%Target%\*.lnk
 del EXE.%Target%\*.obj
-exit
+goto ret
 
 :Help
 @echo Переменная Host должна указывать текущую платформу (OS2, W32);
@@ -132,3 +133,5 @@ exit
 @echo если она отлична от текущей.
 @echo Параметр должен отсутствовать или иметь значение P
 @echo (для компиляции плагинной версии).
+
+:ret

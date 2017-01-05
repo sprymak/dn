@@ -51,374 +51,337 @@ interface
 
 const
 
-{ --- Archiver }
+  { --- Archiver }
+
+  otACEArchiver = 9201;
+  otAINArchiver = 9202;
+  otARCArchiver = 9203;
+  otARJArchiver = 9204;
+  otBS2Archiver = 9205;
+  otBSAArchiver = 9206;
+  otCABArchiver = 9207;
+  otCHZArchiver = 9208;
+  otHAArchiver = 9209;
+  otHAPArchiver = 9210;
+  otHPKArchiver = 9211;
+  otHYPArchiver = 9212;
+  otLHAArchiver = 9213;
+  otLIMArchiver = 9214;
+  otQUARKArchiver = 9215;
+  otRARArchiver = 9216;
+  otSQZArchiver = 9217;
+  otTARArchiver = 9218;
+  otUC2Archiver = 9219;
+  otUFAArchiver = 9220;
+  otZIPArchiver = 9221;
+  otZOOArchiver = 9222;
+  otZXZArchiver = 9223;
+  otIS3Archiver = 9224;
+  otTGZArchiver = 9225;
 
-   otACEArchiver   =      9201;
-   otAINArchiver   =      9202;
-   otARCArchiver   =      9203;
-   otARJArchiver   =      9204;
-   otBS2Archiver   =      9205;
-   otBSAArchiver   =      9206;
-   otCABArchiver   =      9207;
-   otCHZArchiver   =      9208;
-   otHAArchiver    =      9209;
-   otHAPArchiver   =      9210;
-   otHPKArchiver   =      9211;
-   otHYPArchiver   =      9212;
-   otLHAArchiver   =      9213;
-   otLIMArchiver   =      9214;
-   otQUARKArchiver =      9215;
-   otRARArchiver   =      9216;
-   otSQZArchiver   =      9217;
-   otTARArchiver   =      9218;
-   otUC2Archiver   =      9219;
-   otUFAArchiver   =      9220;
-   otZIPArchiver   =      9221;
-   otZOOArchiver   =      9222;
-   otZXZArchiver   =      9223;
-   otIS3Archiver   =      9224;
-   otTGZArchiver   =      9225;
+  { --- ArcView }
 
-{ --- ArcView }
+  otArcDrive = 4356;
+  otFileInfo = 7339;
+  otUserSaver = 7356;
 
-   otArcDrive      =      4356;
-   otFileInfo      =      7339;
-   otUserSaver     =      7356;
+  { --- Network }
 
-{ --- Network }
+  otNetDrive = 4359;
 
-   otNetDrive      =      4359;
+  { --- Arvid }
 
-{ --- Arvid }
+  otArvidDrive = 4358;
 
-   otArvidDrive    =      4358;
+  { --- ASCIITab }
 
+  otTable = 910;
+  otReport = 911;
+  otASCIIChart = 912;
 
-{ --- ASCIITab }
+  { --- Calc }
 
-   otTable         =       910;
-   otReport        =       911;
-   otASCIIChart    =       912;
+  otCalcWindow = 6333;
+  otCalcView = 6334;
+  otCalcInfo = 6335;
+  otInfoView = 16336;
 
+  { --- CCalc }
 
-{ --- Calc }
+  otCalcLine = 9301;
+  otIndicator = 9302;
 
-   otCalcWindow    =      6333;
-   otCalcView      =      6334;
-   otCalcInfo      =      6335;
-   otInfoView      =     16336;
+  { --- CDPlayer }
 
+  otCdplayer = 15547;
+  otCDCounter = 15548;
 
-{ --- CCalc }
+  { --- CellsCol }
 
-   otCalcLine      =      9301;
-   otIndicator     =      9302;
+  otCellCollection = 1060;
 
+  { --- ColorSel }
 
-{ --- CDPlayer }
+  otColorSelector = 21;
+  otMonoSelector = 22;
+  otColorDisplay = 23;
+  otColorGroupList = 24;
+  otColorItemList = 25;
+  otColorDialog = 26;
+  otR_BWSelector = 28;
 
-   otCdplayer      =     15547;
-   otCDCounter     =     15548;
+  { --- SWE }
+  otColorPoint = 9;
 
+  { --- DBView }
 
-{ --- CellsCol }
+  otDBWindow = 15549;
+  otDBViewer = 15550;
+  otDBIndicator = 15551;
+  otFieldListBox = 15553;
 
-  otCellCollection =      1060;
+  { --- Dialogs }
 
+  otDialog = 10;
+  otInputLine = 11;
+  otButton = 12;
+  otCluster = 13;
+  otRadioButtons = 14;
+  otCheckBoxes = 15;
+  otListBox = 16;
+  otStaticText = 17;
+  otLabel = 18;
+  otHistory = 19;
+  otParamText = 20;
+  otMultiCheckBoxes = 27;
+  otHexLine = 29;
 
-{ --- ColorSel }
+  { --- DiskInfo }
 
-  otColorSelector  =        21;
-  otMonoSelector   =        22;
-  otColorDisplay   =        23;
-  otColorGroupList =        24;
-  otColorItemList  =        25;
-  otColorDialog    =        26;
-  otR_BWSelector   =        28;
+  otDiskInfo = 3361;
 
-{ --- SWE }
-  otColorPoint     =         9;
+  { --- NetInfo }
 
-{ --- DBView }
+  otNetInfo = 3362; {-$VIV}
 
-  otDBWindow       =     15549;
-  otDBViewer       =     15550;
-  otDBIndicator    =     15551;
-  otFieldListBox   =     15553;
+  { --- DnApp }
 
+  otBackground = 30;
+  otDesktop = 31;
+  otStringCache = 32;
 
-{ --- Dialogs }
+  { --- DnStdDlg }
 
-  otDialog          =       10;
-  otInputLine       =       11;
-  otButton          =       12;
-  otCluster         =       13;
-  otRadioButtons    =       14;
-  otCheckBoxes      =       15;
-  otListBox         =       16;
-  otStaticText      =       17;
-  otLabel           =       18;
-  otHistory         =       19;
-  otParamText       =       20;
-  otMultiCheckBoxes =       27;
-  otHexLine         =       29;
+  otFileInputLine = 60;
+  otFileCollection = 61;
+  otFileList = 62;
+  otFileInfoPane = 63;
+  otFileDialog = 64;
+  otSortedListBox = 68;
 
 
-{ --- DiskInfo }
+  { --- DnUtil }
 
-  otDiskInfo        =     3361;
+  otDataSaver = 20300;
 
+  { --- Drives }
 
-{ --- NetInfo }
+  otDrive = 4354;
 
-  otNetInfo         =     3362; {-$VIV}
+  { --- FileFind }
 
+  otFindDrive = 4355;
+  otTempDrive = 4357;
 
-{ --- DnApp }
+  { --- FilesCol }
 
-  otBackground      =       30;
-  otDesktop         =       31;
-  otStringCache     =       32;
+  otFilesCollection = 3360;
 
+  { --- FlPanel }
 
-{ --- DnStdDlg }
+  otFilePanel = 3350;
+  otFlPInfoView = 3351;
+  otTopView = 3352;
+  otSeparator = 3353;
+  otSpecScroll = 3354;
+  otDriveLine = 14354;
 
-  otFileInputLine   =       60;
-  otFileCollection  =       61;
-  otFileList        =       62;
-  otFileInfoPane    =       63;
-  otFileDialog      =       64;
-  otSortedListBox   =       68;
+  { --- FStorage }
 
+  otDirStorage = 20303;
 
+  { --- FViewer }
 
-{ --- DnUtil }
+  otFileViewer = 3370;
+  otFileWindow = 3371;
+  otViewScroll = 3372;
+  otHFileViewer = 3373;
+  otViewInfo = 3570;
 
-  otDataSaver       =    20300;
+  { --- Gauges }
 
+  otTrashCan = 4090;
+  otKeyMacros = 4091;
 
-{ --- Drives }
+  { --- HelpKern }
 
-  otDrive           =     4354;
+  otHelpTopic = 10000;
+  otHelpIndex = 10001;
 
+  { --- Histries }
 
-{ --- FileFind }
+  otEditHistoryCol = 17570;
+  otViewHistoryCol = 17571;
 
-  otFindDrive       =     4355;
-  otTempDrive       =     4357;
+  { --- Menus }
 
+  otMenuBar = 40;
+  otMenuBox = 41;
+  otStatusLine = 42;
+  otMenuPopup = 43;
 
-{ --- FilesCol }
+  { --- MicroEd }
 
-  otFilesCollection =     3360;
+  otFileEditor = 6340;
+  otInfoLine = 6341;
+  otEditWindow = 6342;
+  otEditScrollBar = 6343;
+  otEditFrame = 6344;
+  otBookLine = 6345;
+  otXFileEditor = 6346;
 
+  otLineCollection = 16344;
 
-{ --- FlPanel }
+  { --- NavyLink }
 
-  otFilePanel       =     3350;
-  otFlPInfoView     =     3351;
-  otTopView         =     3352;
-  otSeparator       =     3353;
-  otSpecScroll      =     3354;
-  otDriveLine       =    14354;
+  otLinker = 20301;
+  otLinkDrive = 20302;
 
+  { --- Objects }
 
-{ --- FStorage }
+  otCollection = 50;
+  otStringCollection = 51;
+  otStringList = 52;
+  otStrListMaker = 52;
+  otStrCollection = 69;
 
-  otDirStorage      =    20303;
+  { --- Phones }
 
+  otAutoDialer = 7331;
+  otDialBox = 8331;
+  otDStringView = 8332;
+  otPhone = 7330;
+  otPhoneDir = 8330;
+  otPhoneCollection = 5331;
 
-{ --- FViewer }
+  { --- PrintMan }
 
-  otFileViewer      =     3370;
-  otFileWindow      =     3371;
-  otViewScroll      =     3372;
-  otHFileViewer     =     3373;
-  otViewInfo        =     3570;
+  otStringCol = 5356;
+  otPrintManager = 5357;
+  otPrintStatus = 5358;
+  otPMWindow = 5359;
 
+  { --- ScrollBk }
 
-{ --- Gauges }
+  otScrollBackWindow = 6353;
+  otScrollBack = 6354;
 
-  otTrashCan        =     4090;
-  otKeyMacros       =     4091;
+  { --- Scroller }
 
+  otScroller = 4;
+  otListViewer = 5;
 
-{ --- HelpKern }
+  { --- Setups }
 
-  otHelpTopic       =    10000;
-  otHelpIndex       =    10001;
+  otSysDialog = 15001;
+  otCurrDriveInfo = 15002;
+  otMouseDialog = 15003;
+  otMouseBar = 15004;
+  otSaversDialog = 15005;
+  otSaversListBox = 15006;
+  otUpperTable = 15007;
 
+  { --- Startup }
 
-{ --- Histries }
+  otTextCollection = 17455;
 
-  otEditHistoryCol  =    17570;
-  otViewHistoryCol  =    17571;
+  { --- Terminal }
 
+  otTerminalWindow = 6351;
+  otTerminal = 6352;
+  otPortInfo = 6652;
 
-{ --- Menus }
+  { --- Tetris }
 
-  otMenuBar         =       40;
-  otMenuBox         =       41;
-  otStatusLine      =       42;
-  otMenuPopup       =       43;
+  otGameWindow = 6371;
+  otGameView = 6372;
+  otGameInfo = 6373;
 
+  { --- Tree }
 
-{ --- MicroEd }
+  otTreeView = 3330;
+  otTreeReader = 3331;
+  otTreeWindow = 3332;
+  otTreePanel = 3333;
+  otTreeDialog = 3334;
+  otTreeInfoView = 3335;
+  otHTreeView = 3336;
+  otDirCollection = 16337;
 
-  otFileEditor      =     6340;
-  otInfoLine        =     6341;
-  otEditWindow      =     6342;
-  otEditScrollBar   =     6343;
-  otEditFrame       =     6344;
-  otBookLine        =     6345;
-  otXFileEditor     =     6346;
+  { --- UserKey }
 
-  otLineCollection  =    16344;
+  otCover = 23323;
+  otDCoder = 21831;
+  otGCoder = 21830;
+  otXCoder = 21832;
+  otInfo = 21961;
+  otInfo1 = 22005;
+  otInfo2 = 29297;
+  otInfo3 = 21922;
+  otInfo4 = 21927;
+  otInfo5 = 26034;
+  otInfo6 = 54017;
+  otInfo7 = 47029;
+  otInfo8 = 47030;
+  otInfo9 = 21769;
+  otInfo10 = 21770;
 
+  { --- UserMenu }
 
-{ --- NavyLink }
+  otUserWindow = 6361;
+  otUserView = 6362;
 
-  otLinker          =    20301;
-  otLinkDrive       =    20302;
+  { --- Validate }
 
+  otFilterValidator = 81;
+  otRangeValidator = 82;
 
-{ --- Objects }
+  { --- Views }
 
-  otCollection      =       50;
-  otStringCollection=       51;
-  otStringList      =       52;
-  otStrListMaker    =       52;
-  otStrCollection   =       69;
+  otView = 1;
+  otFrame = 2;
+  otScrollBar = 3;
+  otMyScrollBar = 8;
+  otGroup = 6;
+  otWindow = 7;
 
+  { --- XDblWnd }
 
-{ --- Phones }
+  otDoubleWindow = 3340;
 
-  otAutoDialer      =     7331;
-  otDialBox         =     8331;
-  otDStringView     =     8332;
-  otPhone           =     7330;
-  otPhoneDir        =     8330;
-  otPhoneCollection =     5331;
+  { 12335 used internally in MicroEd2 }
 
+  otEditStorer = 12335;
 
-{ --- PrintMan }
+  { --- Calendar } {JO}
 
-  otStringCol       =     5356;
-  otPrintManager    =     5357;
-  otPrintStatus     =     5358;
-  otPMWindow        =     5359;
+  otCalendarView = 27000;
+  otCalendarWindow = 27001; {JO}
 
-
-{ --- ScrollBk }
-
-  otScrollBackWindow=     6353;
-  otScrollBack      =     6354;
-
-
-{ --- Scroller }
-
-  otScroller        =        4;
-  otListViewer      =        5;
-
-
-{ --- Setups }
-
-  otSysDialog       =    15001;
-  otCurrDriveInfo   =    15002;
-  otMouseDialog     =    15003;
-  otMouseBar        =    15004;
-  otSaversDialog    =    15005;
-  otSaversListBox   =    15006;
-  otUpperTable      =    15007;
-
-
-{ --- Startup }
-
-  otTextCollection  =    17455;
-
-
-{ --- Terminal }
-
-  otTerminalWindow  =     6351;
-  otTerminal        =     6352;
-  otPortInfo        =     6652;
-
-
-{ --- Tetris }
-
-  otGameWindow      =     6371;
-  otGameView        =     6372;
-  otGameInfo        =     6373;
-
-{ --- Tree }
-
-  otTreeView        =     3330;
-  otTreeReader      =     3331;
-  otTreeWindow      =     3332;
-  otTreePanel       =     3333;
-  otTreeDialog      =     3334;
-  otTreeInfoView    =     3335;
-  otHTreeView       =     3336;
-  otDirCollection   =    16337;
-
-
-{ --- UserKey }
-
-  otCover           =    23323;
-  otDCoder          =    21831;
-  otGCoder          =    21830;
-  otXCoder          =    21832;
-  otInfo            =    21961;
-  otInfo1           =    22005;
-  otInfo2           =    29297;
-  otInfo3           =    21922;
-  otInfo4           =    21927;
-  otInfo5           =    26034;
-  otInfo6           =    54017;
-  otInfo7           =    47029;
-  otInfo8           =    47030;
-  otInfo9           =    21769;
-  otInfo10          =    21770;
-
-
-{ --- UserMenu }
-
-  otUserWindow      =     6361;
-  otUserView        =     6362;
-
-
-{ --- Validate }
-
-  otFilterValidator =       81;
-  otRangeValidator  =       82;
-
-
-{ --- Views }
-
-  otView            =        1;
-  otFrame           =        2;
-  otScrollBar       =        3;
-  otMyScrollBar     =        8;
-  otGroup           =        6;
-  otWindow          =        7;
-
-{ --- XDblWnd }
-
-  otDoubleWindow    =     3340;
-
-{ 12335 used internally in MicroEd2 }
-
-  otEditStorer      =    12335;
-
-{ --- Calendar }                 {JO}
-
-  otCalendarView    =    27000;
-  otCalendarWindow  =    27001; {JO}
-
-{ --- Plugins }
-  otPlugins         =    30000; {Cat}
+  { --- Plugins }
+  otPlugins = 30000; {Cat}
   {..........занято...........} {Cat}
-  otPluginsEnd      =    60000; {Cat}
+  otPluginsEnd = 60000; {Cat}
 
 implementation
 

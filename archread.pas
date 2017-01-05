@@ -45,209 +45,249 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit ArchRead;
+unit Archread;
 
 interface
 
 uses
-  Archiver, FStorage, Dos, ArcView, Advance, Advance1, Advance2, Messages,
-  DnApp, Commands, Drivers, LFN, Objects, Views;
+  Archiver, FStorage, Dos, ArcView, advance, advance1, advance2,
+    Messages,
+  DNApp, Commands, Drivers, Lfn, Objects, Views;
 
-Procedure ReadArcList;
+procedure ReadArcList;
 
 implementation
 
-        {-DataCompBoy-}
+{-DataCompBoy-}
 procedure ReadArcList; {changed & AIN added by piwamoto}
   const
     FuckName = 'U$~RESLT.OK';
-  var S,CurDir,ID: String;
-      P:   PArcFile;
-      PC:  PDirStorage;
-      F:   PTextReader;
-      DT:  DateTime;
-      I,J: Integer;
-      Drv: PArcDrive;
-  label 1,2;
- begin
-  S := TempFile; ID := Copy(S,1,4); Delete(S, 1, 4);
-  I := PosChar(']', S); ArcFileName := Copy(S, I+1, MaxStringLength);
-  SetLength(S, I-1); ClrIO;
-  TempFile := '';
-  if (Pos(ID, 'UC2:AIN:')+3) mod 4 = 0 then
-   begin
-    if ID = 'UC2:' then
+  var
+    s, CurDir, Id: String;
+    P: PArcFile;
+    PC: PDirStorage;
+    F: PTextReader;
+    DT: DateTime;
+    i, j: integer;
+    Drv: PArcDrive;
+  label 1, 2;
+  begin
+    s := TempFile;
+    Id := Copy(s, 1, 4);
+    Delete(s, 1, 4);
+    i := PosChar(']', s);
+    ArcFileName := Copy(s, i+1, MaxStringLength);
+    SetLength(s, i-1);
+    ClrIO;
+    TempFile := '';
+    if (Pos(Id, 'UC2:AIN:')+3) mod 4 = 0 then
       begin
-         if not ExistFile(FuckName) then
-         begin
-           MessageBox(GetString(dlArcMsg6),NIL,mfOkButton or mfError);
-           Exit;
-         end;
-        EraseFile(FuckName);
-        lGetDir(0, CurDir); {GetDir(0, CurDir);} {Cat}
-        GlobalMessage(evCommand, cmRereadDir, @CurDir);
-        F := New(PTextReader, Init(S));
-        if F = nil then Exit;
-        P := nil;
-        New(PC, Init);
-        While not F^.EOF do
-         begin
-           S := F^.GetStr;
-           DelLeft(S); DelRight(S);
-           ID := Copy(S, 1, 4);
-           if ID = 'LIST' then
-             begin
-               I := PosChar('[', S); if I = 0 then Continue;
-               Delete(S, 1, I); I := PosChar(']',S);
-               if I < 2 then Continue;
-               SetLength(S, I-1);
-               CurDir := S;
-             end else
-              if (ID = 'FILE') or (ID = 'DIR') then
-               begin
-                 if P <> nil then
-                   begin
-                     PackTime(DT, P^.Date);
-                     PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-                     DisposeStr(P^.FName); Dispose(P);
-                   end;
-                 New(P);
-                 P^.FName := nil;
-                 if ID = 'DIR' then
+        if Id = 'UC2:' then
+          begin
+            if not ExistFile(FuckName) then
+              begin
+                MessageBox(GetString(dlArcMsg6), nil, mfOKButton or
+                  mfError);
+                exit;
+              end;
+            EraseFile(FuckName);
+            lGetDir(0, CurDir); {GetDir(0, CurDir);} {Cat}
+            GlobalMessage(evCommand, cmRereadDir, @CurDir);
+            F := New(PTextReader, Init(s));
+            if F = nil then
+              exit;
+            P := nil;
+            New(PC, Init);
+            while not F^.Eof do
+              begin
+                s := F^.GetStr;
+                DelLeft(s);
+                DelRight(s);
+                Id := Copy(s, 1, 4);
+                if Id = 'LIST' then
                   begin
-                   P^.Attr := Directory;
-                   P^.PSize := 0;
-                   P^.USize := 0
+                    i := PosChar('[', s);
+                    if i = 0 then
+                      continue;
+                    Delete(s, 1, i);
+                    i := PosChar(']', s);
+                    if i < 2 then
+                      continue;
+                    SetLength(s, i-1);
+                    CurDir := s;
                   end
-                 else P^.Attr := 0;
-               end else
-                if ID = 'END' then
-                   begin
+                else if (Id = 'FILE') or (Id = 'DIR') then
+                  begin
                     if P <> nil then
                       begin
                         PackTime(DT, P^.Date);
-                        PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-                        DisposeStr(P^.FName); Dispose(P);
+                        PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.
+                          Date, P^.Attr);
+                        DisposeStr(P^.FName);
+                        Dispose(P);
                       end;
-                    Break
-                   end else
-                begin
-                  I := PosChar('=', S);
-                  if I = 0 then Goto 1;
-                  Delete(S, 1, I);
-                  if Id = 'NAME' then
-                   begin
-                     I := PosChar('[', S); if I = 0 then Continue;
-                     Delete(S, 1, I); I := PosChar(']',S);
-                     if I < 2 then Continue;
-                     SetLength(S, I-1);
-                     if P^.Attr = Directory then S := S + '\';
-                     P^.Attr := 0;
-                     P^.FName := NewStr(CurDir + S);
-                   end else
-                  if Id = 'DATE' then
-                   begin
-                     DT.Month := StoI(Copy(S,1,2));
-                     DT.Day := StoI(Copy(S,4,2));
-                     DT.Year := StoI(Copy(S,7,4));
-                   end else
-                  if Id = 'TIME' then
-                   begin
-                     DT.Hour := StoI(Copy(S,1,2));
-                     DT.Min := StoI(Copy(S,4,2));
-                     DT.Sec := StoI(Copy(S,7,4));
-                   end else
-                  if Id = 'ATTR' then
-                   begin
-                   end else
-                  if Id = 'SIZE' then
-                   begin
-                     P^.USize := StoI(S);
-                     P^.PSize := StoI(S);
-                   end else
-                  if Id = 'VERS' then
-                     begin
-                     end;
-                end;
-         end;
-      1:
-      ID:='UC2:';
-      end;
-    if ID = 'AIN:' then
-      begin
-        F := New(PTextReader, Init(S));
-        if F = nil then Exit;
-        P := nil;
-        New(PC, Init);
-        Repeat
-         S := F^.GetStr;
-         ID := Copy(S, 9, 2);
-         I := PosChar('%', S);
-        Until ((ID = ': ') and (I > 50)) or (F^.EOF);
-        I := PosChar(',', S);
-        if (I < 12) or (F^.EOF) then Goto 2;
-        ID := Copy(S, 11, I-11);
-        Val(ID,J,I);
-        for I:=1 to 4 do S := F^.GetStr;
-        While (J<>0) and (not F^.EOF) do
-         begin
-           S := F^.GetStr;
-           DelLeft(S);DelRight(S);
-           New(P);
-           P^.Attr := 0;
-           I := PosChar(' ', S);
-           if I=0 then
-             begin
-              P^.FName := NewStr('\'+S);
-              S := F^.GetStr;
-              DelLeft(S);DelRight(S);
-             end
-           else
-             begin
-              P^.FName := NewStr('\'+Copy(S, 1, I-1));
-              Delete (S, 1, I);
-              DelLeft(S);
-             end;
-           I := PosChar(' ', S);
-           P^.USize := StoI(Copy(S,1,I-1));
-           P^.PSize := StoI(Copy(S,1,I-1));
-           Delete (S, 1, I);
-           DelLeft(S);
-           DT.Month := StoI(Copy(S,1,2));
-           DT.Day := StoI(Copy(S,4,2));
-           I := StoI('19'+fDelRight(Copy(S,7,3)));
-           if I < 1980 then I := I + 100;
-           DT.Year := I;
-           I := PosChar(' ', S);
-           Delete (S, 1, I);
-           DelLeft(S);
-           DT.Hour := StoI(Copy(S,1,2));
-           DT.Min := StoI(Copy(S,4,2));
-           DT.Sec := StoI(Copy(S,7,2));
-           PackTime(DT, P^.Date);
-           PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
-           DisposeStr(P^.FName); Dispose(P); P:=nil;
-           J:=J-1;
-         end;
-      2:
-      ID:='AIN:';
-      end;
-   {next archive}
-
-    S := F^.FileName;
-    Dispose(F, Done);
-    EraseFile(S);
-    GlobalMessage(evCommand, cmRereadDir, @TempDir);
-    if PC^.Files = 0 then Dispose(PC, Done) else
-     begin
-       New(Drv, InitCol(PC, ArcFileName, VArcFileName));
-       if Message(Application, evBroadcast, cmFindForced, Drv) = nil then
-       if Message(Application, evCommand, cmInsertDrive, Drv) = nil then
-          begin
+                    New(P);
+                    P^.FName := nil;
+                    if Id = 'DIR' then
+                      begin
+                        P^.Attr := Directory;
+                        P^.PSize := 0;
+                        P^.USize := 0
+                      end
+                    else
+                      P^.Attr := 0;
+                  end
+                else if Id = 'END' then
+                  begin
+                    if P <> nil then
+                      begin
+                        PackTime(DT, P^.Date);
+                        PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.
+                          Date, P^.Attr);
+                        DisposeStr(P^.FName);
+                        Dispose(P);
+                      end;
+                    break
+                  end
+                else
+                  begin
+                    i := PosChar('=', s);
+                    if i = 0 then
+                      goto 1;
+                    Delete(s, 1, i);
+                    if Id = 'NAME' then
+                      begin
+                        i := PosChar('[', s);
+                        if i = 0 then
+                          continue;
+                        Delete(s, 1, i);
+                        i := PosChar(']', s);
+                        if i < 2 then
+                          continue;
+                        SetLength(s, i-1);
+                        if P^.Attr = Directory then
+                          s := s+'\';
+                        P^.Attr := 0;
+                        P^.FName := NewStr(CurDir+s);
+                      end
+                    else if Id = 'DATE' then
+                      begin
+                        DT.Month := StoI(Copy(s, 1, 2));
+                        DT.Day := StoI(Copy(s, 4, 2));
+                        DT.Year := StoI(Copy(s, 7, 4));
+                      end
+                    else if Id = 'TIME' then
+                      begin
+                        DT.Hour := StoI(Copy(s, 1, 2));
+                        DT.Min := StoI(Copy(s, 4, 2));
+                        DT.Sec := StoI(Copy(s, 7, 4));
+                      end
+                    else if Id = 'ATTR' then
+                      begin
+                      end
+                    else if Id = 'SIZE' then
+                      begin
+                        P^.USize := StoI(s);
+                        P^.PSize := StoI(s);
+                      end
+                    else if Id = 'VERS' then
+                      begin
+                      end;
+                  end;
+              end;
+1:
+            Id := 'UC2:';
           end;
-     end;
-   end;
-end;
-        {-DataCompBoy-}
+        if Id = 'AIN:' then
+          begin
+            F := New(PTextReader, Init(s));
+            if F = nil then
+              exit;
+            P := nil;
+            New(PC, Init);
+            repeat
+              s := F^.GetStr;
+              Id := Copy(s, 9, 2);
+              i := PosChar('%', s);
+            until ((Id = ': ') and (i > 50)) or (F^.Eof);
+            i := PosChar(',', s);
+            if (i < 12) or (F^.Eof) then
+              goto 2;
+            Id := Copy(s, 11, i-11);
+            Val(Id, j, i);
+            for i := 1 to 4 do
+              s := F^.GetStr;
+            while (j <> 0) and (not F^.Eof) do
+              begin
+                s := F^.GetStr;
+                DelLeft(s);
+                DelRight(s);
+                New(P);
+                P^.Attr := 0;
+                i := PosChar(' ', s);
+                if i = 0 then
+                  begin
+                    P^.FName := NewStr('\'+s);
+                    s := F^.GetStr;
+                    DelLeft(s);
+                    DelRight(s);
+                  end
+                else
+                  begin
+                    P^.FName := NewStr('\'+Copy(s, 1, i-1));
+                    Delete(s, 1, i);
+                    DelLeft(s);
+                  end;
+                i := PosChar(' ', s);
+                P^.USize := StoI(Copy(s, 1, i-1));
+                P^.PSize := StoI(Copy(s, 1, i-1));
+                Delete(s, 1, i);
+                DelLeft(s);
+                DT.Month := StoI(Copy(s, 1, 2));
+                DT.Day := StoI(Copy(s, 4, 2));
+                i := StoI('19'+fDelRight(Copy(s, 7, 3)));
+                if i < 1980 then
+                  i := i+100;
+                DT.Year := i;
+                i := PosChar(' ', s);
+                Delete(s, 1, i);
+                DelLeft(s);
+                DT.Hour := StoI(Copy(s, 1, 2));
+                DT.Min := StoI(Copy(s, 4, 2));
+                DT.Sec := StoI(Copy(s, 7, 2));
+                PackTime(DT, P^.Date);
+                PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.
+                  Attr);
+                DisposeStr(P^.FName);
+                Dispose(P);
+                P := nil;
+                j := j-1;
+              end;
+2:
+            Id := 'AIN:';
+          end;
+        {next archive}
+
+        s := F^.FileName;
+        Dispose(F, Done);
+        EraseFile(s);
+        GlobalMessage(evCommand, cmRereadDir, @TempDir);
+        if PC^.Files = 0 then
+          Dispose(PC, Done)
+        else
+          begin
+            New(Drv, InitCol(PC, ArcFileName, VArcFileName));
+            if Message(Application, evBroadcast, cmFindForced, Drv) =
+                nil
+            then
+              if Message(Application, evCommand, cmInsertDrive, Drv) =
+                  nil
+              then
+                begin
+                end;
+          end;
+      end;
+  end { ReadArcList };
+{-DataCompBoy-}
 
 end.

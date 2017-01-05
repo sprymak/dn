@@ -1354,6 +1354,15 @@ dlPlugins7 ''
 dlPlugins8 '~П~одключить'
 dlPlugins9 '~О~тключить '
 ;Cat-
+
+;JOHN_SW begin
+dlInvalidDBFHeader,  ^C'Заголовок поврежден!'^M
+dlInvalidRecNumber,  ^M^C'Количество записей в заголовке: '
+dlInvalidRecNumber1, ^M^C'Реальное количество записей   : '
+dlInvalidRecSize,    ^M^C'Размер записи в заголовке: %d'^M^C'Реальный размер записи   : %d'
+dlUseCalcRecNumber,  ^M^M^C'Использовать значение из заголовка?'
+;JOHN_SW end
+
 ;KV+
 dlWkzQuerySeparatorTitle 'Разделитель колонок'
 dlWkzQuerySeparatorLabel '~Р~азделитель'

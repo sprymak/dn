@@ -46,74 +46,79 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-UNIT FBB;
+unit FBB;
 
 interface
 
 uses
-  Dos, tree;
+  Dos, Tree;
 
- Function LongCopy(Fn1: String): Boolean; {DataCompBoy}
+function LongCopy(Fn1: String): boolean; {DataCompBoy}
 
 implementation
-uses LFN, {DataCompBoy}
-     advance, advance1, advance2, advance3, FileCopy, DNApp, Messages, Views,
-     Objects, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
-     HistList, Gauge, StartUp, DNutil, xTime, DiskInfo
-     {$IFNDEF NONBP},DiskTool{$ENDIF}
-     , ErrMess
-     ;
+uses
+  Lfn, {DataCompBoy}
+  advance, advance1, advance2, advance3, FileCopy, DNApp, Messages,
+    Views,
+  Objects, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
+  HistList, Gauge, Startup, DNUtil, xTime, DiskInfo
+  , ErrMess
+  ;
 
- type Ar65000 = Array [1..65000] of Byte;
-      ArPtr = ^Ar65000;
+type
+  Ar65000 = array[1..65000] of byte;
+  ArPtr = ^Ar65000;
 
-      HRec = record
-       Num : Word;
-       NR  : Word;
-       NW  : Word;
-       Buf : ArPtr;
-      end;
-
- {$IFDEF DPMI}
- Const MaxBF=50;
- {$ELSE}
- Const MaxBF=20;
- {$ENDIF}
- var Bf      : Array [1..MaxBF] of HRec;
-     dr1,dr2 : Byte;
-     FreeSpc : TSize;
-     Timer: TEventTimer;
- const NBf   : Byte = 0;
-
-function IsLabel( P: PView ): boolean; {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  IsLabel := TypeOf( P^ ) = TypeOf( TLabel );
-end;
-
- procedure GetMaxMem;
-  var l : LongInt;
- begin
-  NBf:=0;
-  repeat
-   l:=MaxAvail-15000;
-   if l>0 then
-    begin
-     Inc(NBf);
-     if l>65000 then l:=65000;
-     Bf[NBF].Buf := MemAlloc(l);
-     Bf[NBf].Num:=l;
-     if Bf[NBF].Buf = nil then Dec(NBF);
+  HRec = record
+    Num: word;
+    NR: word;
+    NW: word;
+    Buf: ArPtr;
     end;
-  until (MaxAvail<16000) or LowMemory or (NBf>=MaxBf);
- end;
 
- procedure ClearMem;
-  var i : Byte;
- begin
-  for i:=1 to NBf do
-   FreeMem(Bf[i].Buf,Bf[i].Num);
-  NBf:=0;
- end;
+const
+  MaxBF = 20;
+var
+  Bf: array[1..MaxBF] of HRec;
+  dr1, dr2: byte;
+  FreeSpc: TSize;
+  Timer: TEventTimer;
+const
+  NBf: byte = 0;
+
+function IsLabel(P: PView): boolean;
+  begin
+    IsLabel := TypeOf(P^) = TypeOf(TLabel);
+  end;
+
+procedure GetMaxMem;
+  var
+    l: longInt;
+  begin
+    NBf := 0;
+    repeat
+      l := MaxAvail-15000;
+      if l > 0 then
+        begin
+          Inc(NBf);
+          if l > 65000 then
+            l := 65000;
+          Bf[NBf].Buf := MemAlloc(l);
+          Bf[NBf].Num := l;
+          if Bf[NBf].Buf = nil then
+            Dec(NBf);
+        end;
+    until (MaxAvail < 16000) or LowMemory or (NBf >= MaxBF);
+  end;
+
+procedure ClearMem;
+  var
+    i: byte;
+  begin
+    for i := 1 to NBf do
+      FreeMem(Bf[i].Buf, Bf[i].Num);
+    NBf := 0;
+  end;
 {DataCompBoy
  procedure DskOn;
  begin
@@ -121,595 +126,776 @@ end;
   if dr2<=NumFloppy then DiskOn(dr2);
  end;
 }
-        {-DataCompBoy-}
- Function LongCopy(Fn1: String): Boolean;
-  label Ex, _Abort_;
-  type OHdr=record
-        nm : array[1..23] of Char;
-        xt : array[1..3] of Char;
-        ln : LongInt;
-       end;
-       NHdr=record
-        nm : array[1..23] of Char;
-        ln : LongInt;
-        xt : String;
-       end;
+{-DataCompBoy-}
+function LongCopy(Fn1: String): boolean;
+  label ex, _Abort_;
+  type
+    OHdr = record
+      Nm: array[1..23] of Char;
+      XT: array[1..3] of Char;
+      ln: longInt;
+      end;
+    NHdr = record
+      Nm: array[1..23] of Char;
+      ln: longInt;
+      XT: String;
+      end;
 
-  const OldStdHdr : OHdr=(nm:'Navigator Long Copy '#13#10#26;xt:'   ';ln:0);
-        NewStdHdr : NHdr=(nm:'Navigator NLong Copy'#13#10#26;ln:0    ;xt:'');
-        NStr : String[40]='123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const
+    OldStdHdr: OHdr = (Nm: 'Navigator Long Copy '#13#10#26; XT:
+      '   '; ln: 0);
+    NewStdHdr: NHdr = (Nm: 'Navigator NLong Copy'#13#10#26; ln: 0; XT:
+      '');
+    NStr: String[40] = '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-  var F1,F2 : lFile;
-      Cs,Cd : LongInt;
-      Ls    : LongInt;
-      Tuda  : Boolean;
-      i     : Byte;
-      NumW  : Word;
-      Count : Byte;
-      wx,wy : Integer;
-      wl    : Byte;
-      d,Fn2 : String;
-      n,x    : String;
-      nhd    : nHdr;
-      ohd    : oHdr absolute nhd;
-      PInfo : PWhileView;
-      CopyCancelled: Boolean;
-      BinarySplit: Boolean;
-      NewMode  : Boolean;
-      DiskVerify: Boolean;
-      LastPos: LongInt;
-      Olddate: LongInt;
-      AlarmTimer: TEventTimer;
-      PartSize: LongInt;
-      PartWrt:  LongInt;
+  var
+    F1, F2: lFile;
+    Cs, CD: longInt;
+    LS: longInt;
+    Tuda: boolean;
+    i: byte;
+    NumW: word;
+    Count: byte;
+    wx, wy: integer;
+    wl: byte;
+    D, Fn2: String;
+    n, X: String;
+    nhd: NHdr;
+    ohd: OHdr absolute nhd;
+    PInfo: PWhileView;
+    CopyCancelled: boolean;
+    BinarySplit: boolean;
+    NewMode: boolean;
+    DiskVerify: boolean;
+    LastPos: longInt;
+    Olddate: longInt;
+    AlarmTimer: TEventTimer;
+    PartSize: longInt;
+    PartWrt: longInt;
 
   procedure DsplInfo;
-  begin
-    PInfo^.Write(5, GetString(dlRead)+
-                 Copy(Strg(#219,(LongInt(wl)*Cs) div Ls)+Strg(#177, wl),1,wl));
-    PInfo^.Write(6, GetString(dlWrite)+
-                 Copy(Strg(#219,(LongInt(wl)*Cd) div Ls)+Strg(#177, wl),1,wl));
-  end;
+    begin
+      PInfo^.Write(5, GetString(dlRead)+
+      Copy(Strg(#219, (longInt(wl)*Cs) div LS)+Strg(#177, wl), 1, wl));
+      PInfo^.Write(6, GetString(dlWrite)+
+      Copy(Strg(#219, (longInt(wl)*CD) div LS)+Strg(#177, wl), 1, wl));
+    end;
 
   procedure MaxRead;
-   var  i : Byte;
-        b : Boolean;
-  begin
-    b:=true;
-    DsplInfo;
-    for i:=1 to NBf do
-     begin
-{DataCompBoy      DskOn;}
-      if b then BlockRead(F1.f,Bf[i].Buf^,Bf[i].Num,Bf[i].NR)
-           else Bf[i].Nr:=0;
-      if IOResult <> 0 then
-       begin
-        MessageBox(GetString(dlFBBNotReadSource)+Fn1, nil, mfError+mfOKButton);
-        Abort := true;
-        NewTimer(Timer, 0);
-        NewTimerSecs(AlarmTimer, 20);
-       end;
-{DataCompBoy      DskOn;}
-      DispatchEvents(PInfo, CopyCancelled);
-      if Abort or CopyCancelled then begin
-       Close(F2.f);
-       lEraseFile(F2);
-       Exit;
-      end;
-      Bf[i].NW:=0;
-      Inc(Cs,Bf[i].NR);
-      DsplInfo;
-      b:=Bf[i].NR<>0;
-     end;
-  end;
-
-  function OverWr : Boolean;
-   var SR : lSearchRec;
-       lF  : lFile;
-  begin
-   FreeSpc:=Disk_Free(Byte(d[1])-64);
-   DosError:=0; OverWr:=true; Abort := false;
-   lFindFirst(d+n+'.d??',AnyFile,SR);             {JO}
-   while (DOSError=0) and not (SR.FullName[Length(SR.FullName)] in ['0'..'9'])
-   and not (SR.FullName[Length(SR.FullName)-1] in ['0'..'9']) do lFindNext(SR);
-   if (DOSError=0) and ((PartSize=0) or (FreeSpc<PartSize)) then
+    var
+      i: byte;
+      B: boolean;
     begin
-     i:=MessageBox(GetString(dlFBBOver1) + SR.FullName + GetString(dlFBBOver2), nil,
-                   mfQuery+mfYesButton+mfNextDButton+mfCancelButton);
-     NewTimer(Timer, 0);
-     NewTimerSecs(AlarmTimer, 20);
-     Abort:=i=cmCancel;
-     if i=cmYes
-       then EraseFile( d+SR.fullname )
-       else OverWr:= I <> cmCancel;
-    end;
-   lFindClose(SR);
-  end;
+      B := True;
+      DsplInfo;
+      for i := 1 to NBf do
+        begin
+          {DataCompBoy      DskOn;}
+          if B then
+            BlockRead(F1.F, Bf[i].Buf^, Bf[i].Num, Bf[i].NR)
+          else
+            Bf[i].NR := 0;
+          if IOResult <> 0 then
+            begin
+              MessageBox(GetString(dlFBBNotReadSource)+Fn1, nil,
+                mfError+mfOKButton);
+              Abort := True;
+              NewTimer(Timer, 0);
+              NewTimerSecs(AlarmTimer, 20);
+            end;
+          {DataCompBoy      DskOn;}
+          DispatchEvents(PInfo, CopyCancelled);
+          if Abort or CopyCancelled then
+            begin
+              Close(F2.F);
+              lEraseFile(F2);
+              exit;
+            end;
+          Bf[i].NW := 0;
+          Inc(Cs, Bf[i].NR);
+          DsplInfo;
+          B := Bf[i].NR <> 0;
+        end;
+    end { MaxRead };
+
+  function OverWr: boolean;
+    var
+      SR: lSearchRec;
+      lF: lFile;
+    begin
+      FreeSpc := Disk_Free(byte(D[1])-64);
+      DOSError := 0;
+      OverWr := True;
+      Abort := False;
+      lFindFirst(D+n+'.d??', AnyFile, SR); {JO}
+      while (DOSError = 0) and not (SR.FullName[Length(SR.FullName)] in
+          ['0'..'9'])
+        and not (SR.FullName[Length(SR.FullName)-1] in ['0'..'9'])
+      do
+        lFindNext(SR);
+      if (DOSError = 0) and ((PartSize = 0) or (FreeSpc < PartSize))
+      then
+        begin
+          i := MessageBox(GetString(dlFBBOver1)+SR.FullName+
+            GetString(dlFBBOver2), nil,
+          mfQuery+mfYesButton+mfNextDButton+mfCancelButton);
+          NewTimer(Timer, 0);
+          NewTimerSecs(AlarmTimer, 20);
+          Abort := i = cmCancel;
+          if i = cmYes
+          then
+            EraseFile(D+SR.FullName)
+          else
+            OverWr := i <> cmCancel;
+        end;
+      lFindClose(SR);
+    end { OverWr: };
 
   procedure RequireDisk;
-  begin
-   Abort:=MessageBox(GetString(dlFBBInsertDisk)+SStr(Count,2,'0'), nil,
-                     mfConfirmation + mfOKButton + mfCancelButton)<>cmOK;
-   NewTimer(Timer, 0);
-   NewTimerSecs(AlarmTimer, 20);
-  end;
+    begin
+      Abort := MessageBox(GetString(dlFBBInsertDisk)+SStr(Count, 2,
+        '0'), nil,
+      mfConfirmation+mfOKButton+mfCancelButton) <> cmOK;
+      NewTimer(Timer, 0);
+      NewTimerSecs(AlarmTimer, 20);
+    end;
 
   procedure RequireNew;
-   label 1;
-  begin
-   PartWrt := 0;
-   Inc(Count);{DataCompBoy DskOn;}
-1: repeat
-    if Count>1 then
+    label 1;
     begin
-     SetFTime(F2.F, OldDate);
-     Close(F2.F);ClrIO;
-     FreeSpc:=Disk_Free(Byte(d[1])-64);
-     If (PartSize=0) or (FreeSpc<PartSize) then RequireDisk;
-    end;
-    lFSplit(Fn2,d,n,x);
-    Fn2:=d+n+'.d'+SStr(Count,2,'0');
-   Until OverWr or Abort or CopyCancelled;
-   if Abort or CopyCancelled then Exit;
-   FreeSpc:=Disk_Free(Byte(d[1])-64);
-   While (FreeSpc<512) do
-    begin
-     i:=MessageBox(GetString(dlFBBDiskFull1),nil,mfWarning + mfOKButton + mfCancelButton);
-     NewTimer(Timer, 0);
-     FreeSpc:=Disk_Free(Byte(d[1])-64);
-     if i<>cmOK then
-       begin
-        Abort:=true;
-        Exit;
-       end;
-{DataCompBoy     DskOn;}
-    end;
-{DataCompBoy   DskOn;}
-   CreateDirInheritance(d, false);
-   lAssignFile(F2,Fn2); PInfo^.Write(3,  {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn2));
-   ClrIO; lReWriteFile(F2,1);
-   if not BinarySplit then
-    if Not NewMode then BlockWrite(F2.f,ohd,SizeOf(OHdr))
-                   else BlockWrite(F2.f,nhd,SizeOf(NHdr)-254+length(nhd.xt));
-{DataCompBoy   DskOn;}
-   if IOResult<>0 then
-    begin
-    i:=MessageBox(GetString(dlFBBNoCreate)+SStr(Count,2,'0'), nil,
-                  mfError + mfOKButton + mfCancelButton);
-    NewTimer(Timer, 0);
-    NewTimerSecs(AlarmTimer, 20);
-    if i<>cmOK then
-       begin
-        Abort:=true;
-        Exit;
-       end;
-     GoTo 1;
-    end;
-  end;
+      PartWrt := 0;
+      Inc(Count); {DataCompBoy DskOn;}
+1:
+      repeat
+        if Count > 1 then
+          begin
+            SetFTime(F2.F, Olddate);
+            Close(F2.F);
+            ClrIO;
+            FreeSpc := Disk_Free(byte(D[1])-64);
+            if (PartSize = 0) or (FreeSpc < PartSize) then
+                RequireDisk;
+          end;
+        lFSplit(Fn2, D, n, X);
+        Fn2 := D+n+'.d'+SStr(Count, 2, '0');
+      until OverWr or Abort or CopyCancelled;
+      if Abort or CopyCancelled then
+        exit;
+      FreeSpc := Disk_Free(byte(D[1])-64);
+      while (FreeSpc < 512) do
+        begin
+          i := MessageBox(GetString(dlFBBDiskFull1), nil, mfWarning+
+            mfOKButton+mfCancelButton);
+          NewTimer(Timer, 0);
+          FreeSpc := Disk_Free(byte(D[1])-64);
+          if i <> cmOK then
+            begin
+              Abort := True;
+              exit;
+            end;
+          {DataCompBoy     DskOn;}
+        end;
+      {DataCompBoy   DskOn;}
+      CreateDirInheritance(D, False);
+      lAssignFile(F2, Fn2);
+      PInfo^.Write(3, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(
+        Fn2));
+      ClrIO;
+      lReWriteFile(F2, 1);
+      if not BinarySplit then
+        if not NewMode then
+          BlockWrite(F2.F, ohd, SizeOf(OHdr))
+        else
+          BlockWrite(F2.F, nhd, SizeOf(NHdr)-254+Length(nhd.XT));
+      {DataCompBoy   DskOn;}
+      if IOResult <> 0 then
+        begin
+          i := MessageBox(GetString(dlFBBNoCreate)+SStr(Count, 2,
+            '0'), nil,
+          mfError+mfOKButton+mfCancelButton);
+          NewTimer(Timer, 0);
+          NewTimerSecs(AlarmTimer, 20);
+          if i <> cmOK then
+            begin
+              Abort := True;
+              exit;
+            end;
+          goto 1;
+        end;
+    end { RequireNew };
 
   procedure MaxWrite;
-   label Rep,1,2, 33;
-   var i  : Byte;
-       wr : LongInt;
-  begin
-   Rep:
-    if Abort or CopyCancelled then Exit;
-    for i:=1 to NBf do
-     if BF[i].NW<BF[i].NR then
-     begin
-{DataCompBoy      DskOn;}
-      wr:=LongInt(Bf[i].NR)-LongInt(Bf[i].NW);
-2:    LastPos := FilePos(F2.f);
-      if PartSize<>0
-       then BlockWrite(F2.f,Bf[i].Buf^[Bf[i].NW+1], Min(wr, PartSize-PartWrt), NumW)
-       else BlockWrite(F2.f,Bf[i].Buf^[Bf[i].NW+1], Word(wr), NumW);
-      if DiskVerify then
-        begin
-           {$IFDEF OS_DOS}
-           asm
+    label Rep, 1, 2, 33;
+    var
+      i: byte;
+      wr: longInt;
+    begin
+Rep:
+      if Abort or CopyCancelled then
+        exit;
+      for i := 1 to NBf do
+        if Bf[i].NW < Bf[i].NR then
+          begin
+            {DataCompBoy      DskOn;}
+            wr := longInt(Bf[i].NR)-longInt(Bf[i].NW);
+2:
+            LastPos := FilePos(F2.F);
+            if PartSize <> 0
+            then
+              BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], Min(wr,
+                PartSize-PartWrt), NumW)
+            else
+              BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], word(wr),
+                NumW);
+            if DiskVerify then
+              begin
+                {$IFDEF OS_DOS}
+                asm
              mov ah,0dh
              int 21h
            end;
-           {$ENDIF}
-           Seek(F2.f, LastPos);
-           if PartSize<>0
-            then BlockRead(F2.f,Bf[i].Buf^[Bf[i].NW+1],Min(wr, PartSize-PartWrt),NumW)
-            else BlockRead(F2.f,Bf[i].Buf^[Bf[i].NW+1],Word(wr),NumW);
-        end;
-      if (IOResult <> 0) then
-       begin
-        MessageBox(GetString(dlFBBNoWrite)+Fn2, nil, mfError+mfOKButton);
-        Abort := true;
-        NewTimer(Timer, 0);
-       end;
-      if Abort then Goto 33;
-{DataCompBoy      DskOn;}
-      if (NumW=0) or ((PartSize<>0) and (PartWrt=PartSize)) then
-       begin
-{Cat:warn}
-        wr:=DiskFree(dr2);
-        if (wr=0) or (PartWrt=PartSize) then GoTo 1 else GoTo 2;
-       end;
-      Inc(Bf[i].NW, NumW);
-      Inc(Cd, NumW);
-      Inc(PartWrt, NumW);
-      DsplInfo;
-      DispatchEvents(PInfo, CopyCancelled);
-      if Abort or CopyCancelled then
-         begin
-33:       CopyCancelled := true;
-          Close(F2.f);
-          lEraseFile(F2);
-          Exit;
-         end;
-1:    if (NumW=0) or ((PartWrt=PartSize) and (PartSize<>0)) then
-       if Tuda then begin
-        MessageBox(GetString(dlFBBDiskFull2), nil, mfError+mfOKButton);
-        NewTimer(Timer, 0);
-        Abort:=true;
-        Exit;
-       end else begin
-        if TimerExpired(AlarmTimer) and
-           (FMSetup.Options and fmoBeep <> 0) then
-         BeepAftercopy;
-        ReQuireNew;
-        GoTo Rep;
-       end;
-      if Bf[i].NR>Bf[i].NW then Dec(i);
-     end;
-  end;
+                {$ENDIF}
+                Seek(F2.F, LastPos);
+                if PartSize <> 0
+                then
+                  BlockRead(F2.F, Bf[i].Buf^[Bf[i].NW+1], Min(wr,
+                    PartSize-PartWrt), NumW)
+                else
+                  BlockRead(F2.F, Bf[i].Buf^[Bf[i].NW+1], word(wr),
+                    NumW);
+              end;
+            if (IOResult <> 0) then
+              begin
+                MessageBox(GetString(dlFBBNoWrite)+Fn2, nil, mfError+
+                  mfOKButton);
+                Abort := True;
+                NewTimer(Timer, 0);
+              end;
+            if Abort then
+              goto 33;
+            {DataCompBoy      DskOn;}
+            if (NumW = 0) or ((PartSize <> 0) and (PartWrt =
+                PartSize))
+            then
+              begin
+                {Cat:warn}
+                wr := DiskFree(dr2);
+                if (wr = 0) or (PartWrt = PartSize) then
+                  goto 1
+                else
+                  goto 2;
+              end;
+            Inc(Bf[i].NW, NumW);
+            Inc(CD, NumW);
+            Inc(PartWrt, NumW);
+            DsplInfo;
+            DispatchEvents(PInfo, CopyCancelled);
+            if Abort or CopyCancelled then
+              begin
+33:
+                CopyCancelled := True;
+                Close(F2.F);
+                lEraseFile(F2);
+                exit;
+              end;
+1:
+            if (NumW = 0) or ((PartWrt = PartSize) and (PartSize <> 0))
+            then
+              if Tuda then
+                begin
+                  MessageBox(GetString(dlFBBDiskFull2), nil, mfError+
+                    mfOKButton);
+                  NewTimer(Timer, 0);
+                  Abort := True;
+                  exit;
+                end
+              else
+                begin
+                  if TimerExpired(AlarmTimer) and
+                    (FMSetup.Options and fmoBeep <> 0)
+                  then
+                    BeepAftercopy;
+                  RequireNew;
+                  goto Rep;
+                end;
+            if Bf[i].NR > Bf[i].NW then
+              Dec(i);
+          end;
+    end { MaxWrite };
 
-  function CheckSvoi : Byte;
-  var b: byte;
-  begin
-   b:=0;
-   FillChar(nhd,SizeOf(nHdr),0);
-   Seek(F1.f, 0);
-   BlockRead(F1.f,nhd,SizeOf(NHdr));
-   if IOResult=0 then
+  function CheckSvoi: byte;
+    var
+      B: byte;
     begin
-     if ohd.nm=OldStdHdr.nm then b:=1
-      else if nhd.nm=NewStdHdr.nm then b:=2
-       else b:=0;
-    end
-   else b:=0;
-   Case b of
-    1: Seek(F1.f,SizeOf(OHdr));
-    2: Seek(F1.f,SizeOf(NHdr)-254+Length(nhd.xt));
-   end;
-   CheckSvoi:=b;
-  end;
+      B := 0;
+      FillChar(nhd, SizeOf(NHdr), 0);
+      Seek(F1.F, 0);
+      BlockRead(F1.F, nhd, SizeOf(NHdr));
+      if IOResult = 0 then
+        begin
+          if ohd.Nm = OldStdHdr.Nm then
+            B := 1
+          else if nhd.Nm = NewStdHdr.Nm then
+            B := 2
+          else
+            B := 0;
+        end
+      else
+        B := 0;
+      case B of
+        1:
+          Seek(F1.F, SizeOf(OHdr));
+        2:
+          Seek(F1.F, SizeOf(NHdr)-254+Length(nhd.XT));
+      end {case};
+      CheckSvoi := B;
+    end { CheckSvoi: };
 
   procedure RequirePath;
-   var D: PDialog;
-       V: PLabel;
-       S, K, L: String;
-  begin
-   D := PDialog( LoadResource( dlgNextSection ));
-   V := PLabel(D^.FirstThat(@IsLabel));
-   S := V^.Text^; DisposeStr(V^.Text);
-   Replace('%D', ItoS(Count), S);
-   V^.Text := NewStr(S);
-   lFSplit(Fn1, S, K, L);
-   D^.SetData(S);
-   if Desktop^.ExecView(D) = cmCancel then
-    begin Dispose(D,Done); Abort := True; Exit end;
-   Abort := False;
-   D^.GetData(S);
-   Dispose(D,Done);
-   Fn1:=MakeNormName(S, K+L);
-   NewTimer(Timer, 0);
-   NewTimerSecs(AlarmTimer, 20);
-  end;
+    var
+      D: PDialog;
+      V: PLabel;
+      s, k, l: String;
+    begin
+      D := PDialog(LoadResource(dlgNextSection));
+      V := PLabel(D^.FirstThat(@IsLabel));
+      s := V^.text^;
+      DisposeStr(V^.text);
+      Replace('%D', ItoS(Count), s);
+      V^.text := NewStr(s);
+      lFSplit(Fn1, s, k, l);
+      D^.SetData(s);
+      if Desktop^.ExecView(D) = cmCancel then
+        begin
+          Dispose(D, Done);
+          Abort := True;
+          exit
+        end;
+      Abort := False;
+      D^.GetData(s);
+      Dispose(D, Done);
+      Fn1 := MakeNormName(s, k+l);
+      NewTimer(Timer, 0);
+      NewTimerSecs(AlarmTimer, 20);
+    end { RequirePath };
 
   procedure InsCor;
-  var s,j: Byte;
-  begin
-   Inc(Count);
-   j:=0;
-   repeat
-    Close(F1.f);
-    if (Count>1) and (j>0) then begin
-     ClrIO;
-     RequirePath;
-     if Abort then Exit;
-    end;
-    inc(j);
-    ClrIO;
-    lFSplit(Fn1,d,n,x);
-    Fn1:=d+n+'.d'+SStr(Count, 2, '0');
-    FileMode := 0;
-    lAssignFile(F1,Fn1); lResetFile(F1,1); PInfo^.Write(1,  {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn1));
-    s:=CheckSvoi;
-   until ((IOResult=0) and ((s=1) or (s=2))) or Abort or CopyCancelled;
-  end;
+    var
+      s, j: byte;
+    begin
+      Inc(Count);
+      j := 0;
+      repeat
+        Close(F1.F);
+        if (Count > 1) and (j > 0) then
+          begin
+            ClrIO;
+            RequirePath;
+            if Abort then
+              exit;
+          end;
+        Inc(j);
+        ClrIO;
+        lFSplit(Fn1, D, n, X);
+        Fn1 := D+n+'.d'+SStr(Count, 2, '0');
+        FileMode := 0;
+        lAssignFile(F1, Fn1);
+        lResetFile(F1, 1);
+        PInfo^.Write(1, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(
+          Fn1));
+        s := CheckSvoi;
+      until ((IOResult = 0) and ((s = 1) or (s = 2))) or Abort or
+        CopyCancelled;
+    end { InsCor };
 
   procedure Nedochit;
-   var i : Byte;
-       b : Boolean;
-  begin
-   b:=false;
-   for i:=1 to NBF do b:=b or (BF[i].NR=0);
-   if b and (cd<ls) then InsCor;
-  end;
-
-  var CopyDir: String;
-
-  function CopyDialog: Boolean;
-   var D: PDialog;
-       P: PView;
-       R: TRect;
-       S,Mask: String;
-       SR: lSearchRec;
-       I: Integer;
-       L: Longint;
-       F: lFile;
-       DTA: record S: String; W: Word; SPLSiz, NumSect: String[10] end;
-       a,aa,aaa:string;
-
-   const x_x = '*.';
-  begin
-    lFSplit(Fn1, a, aa, aaa);
-    CopyDialog := false;
-    If Tuda
-      then D := PDialog( LoadResource( dlgCombineFile ))
-      else D := PDialog( LoadResource( dlgSplitFile ));
-    P := D^.LastThat( @IsLabel );
-    R.Assign(P^.Origin.X + P^.Size.X-1, P^.Origin.Y, (D^.Size.X - 1), P^.Origin.Y + 1);
-    D^.Insert( New( PLabel, Init( R, '~'+LowStrg({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(aa+aaa))+'~'+
-               GetString(dlSplit_To), PLabel(P)^.Link)));
-    S := '';
-    HistoryAdd(hsFBBCopy, lFExpand(a));
-    GlobalMessage(evCommand, cmPushFirstName, @S);
-    GlobalMessageL(evCommand, cmPushName, hsFBBCopy);
-    if S[2] <> ':' then S := '';
-    if S = '' then S := HistoryStr(hsFBBCopy, 0);
-    DTA.S := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S);
-{    DTA.W := 0; }
-    DTA.SPLSiz  := '';
-    DTA.NumSect := '';
-
-        i := Byte(UpCase(s[1]));
-        if i in [65..90] then
-         begin
-           if (SystemData.Drives[Char(i)] and 16) > 0 then
-              DTA.W := 2 or 4  else DTA.W := 0 or 4 ;
-         end;
-
-
-    D^.SetData(DTA);
-    if Desktop^.ExecView(D) = cmCancel then begin Dispose(D,Done); Exit end;
-    D^.GetData(DTA);
-    BinarySplit := DTA.W and 1 <> 0;
-    DiskVerify := DTA.W and 2 <> 0;
-    If not Tuda then begin
-     NewMode := DTA.W and 4<>0;
-     Val(DTA.SPLSiz, PartSize, I);
-     if I<>0 then begin
-      PartSize:=0;
-      Val(DTA.NumSect, PartSize, I);
-      if (I=0) and (PartSize>0) then begin
-       ClrIO;
-       lAssignFile(F, Fn1);
-       lResetFile(F, 1);
-       L:=FileSize(F.F);
-       PartSize := (L div PartSize) + Byte((L mod PartSize)<>0);
-       Close(F.F);
-      end;
-     end else begin
-      if BinarySplit
-       then
-        if PartSize<0
-         then PartSize:=0
-         else
-       else
-        if NewMode
-         then if PartSize<=SizeOf(NHdr)-253+length(aaa)
-               then PartSize:=0
-               else Dec(PartSize, SizeOf(NHdr)-253+length(aaa))
-         else if PartSize<=SizeOf(OHdr)
-               then PartSize:=0
-               else Dec(PartSize, SizeOf(OHdr));
-     end;
-    end else PartSize:=0;
-    S := {$IFDEF RecodeWhenDraw}OemToCharStr{$ENDIF}(DTA.S);
-    Dispose(D,Done);
-    if S = '' then S:='.';
-    S := lFExpand(S);
-    If IsDir(S) then if S[Length(S)]<>'\' then S:=S+'\';
-    if S[Length(S)] = '\' then begin
-      CopyDir := S; Mask := x_x
-    end else
-    if (pos('*',S)=0) and (pos('?',S)=0) then
-     begin
-      DosError := 0;
-      lFindFirst(S+'\*.*', $3E {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
-      lFindClose(SR);
-      if Abort or CopyCancelled then Exit;
-      if (DOSError = 0)
-        then begin CopyDir := S+'\'; Mask := x_x end
-        else begin lFSplit(S,CopyDir,N,X); Mask:=N+X end
-      end
-    else begin
-      lFSplit(S,CopyDir,N,X); Mask := N+X
+    var
+      i: byte;
+      B: boolean;
+    begin
+      B := False;
+      for i := 1 to NBf do
+        B := B or (Bf[i].NR = 0);
+      if B and (CD < LS) then
+        InsCor;
     end;
-    Fn1 := lFExpand(Fn1);
-    lFSplit(Fn1, S, N, X);
-    S := N + X;
-    Fn2 := MakeNormName(CopyDir, MkName(S, Mask));
-    CopyDialog := True;
-    S :=Copy(GetExt(Fn1), 2, MaxStringLength);
-    If Tuda then
-     begin
-      If GetExt(Fn2)='.' then
-       If NewMode then if Fn2[Length(Fn2)]='.' then Fn2:=Fn2+nhd.xt else Fn2:=Fn2+'.'+nhd.xt
-                  else if Fn2[Length(Fn2)]='.' then Fn2:=Fn2+ohd.xt else Fn2:=Fn2+'.'+ohd.xt;
-     end
-    else
-     If NewMode then
-      begin
-       nhd.xt:=S;
-       nhd.nm:=NewStdHdr.nm;
-      end
-     else
-      begin
-       move(s[1], ohd.xt, 3);
-       ohd.nm:=OldStdHdr.nm;
-      end;
-  end;
 
-  var R: TRect;
-      PP: Pointer;
-      RC: longint;
-      csv: byte;
-  begin
+  var
+    CopyDir: String;
+
+  function CopyDialog: boolean;
+    var
+      D: PDialog;
+      P: PView;
+      R: TRect;
+      s, Mask: String;
+      SR: lSearchRec;
+      i: integer;
+      l: longInt;
+      F: lFile;
+      DTA: record
+        s: String;
+        W: word;
+        SPLSiz, NumSect: String[10]
+        end;
+      A, aa, aaa: String;
+
+    const
+      x_x = '*.';
+    begin
+      lFSplit(Fn1, A, aa, aaa);
+      CopyDialog := False;
+      if Tuda
+      then
+        D := PDialog(LoadResource(dlgCombineFile))
+      else
+        D := PDialog(LoadResource(dlgSplitFile));
+      P := D^.LastThat(@IsLabel);
+      R.Assign(P^.Origin.X+P^.Size.X-1, P^.Origin.Y, (D^.Size.X-1), P^.
+        Origin.Y+1);
+      D^.Insert(New(PLabel, Init(R, '~'+LowStrg(
+        {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(aa+aaa))+'~'+
+      GetString(dlSplit_to), PLabel(P)^.Link)));
+      s := '';
+      HistoryAdd(hsFBBCopy, lFExpand(A));
+      GlobalMessage(evCommand, cmPushFirstName, @S);
+      GlobalMessageL(evCommand, cmPushName, hsFBBCopy);
+      if s[2] <> ':' then
+        s := '';
+      if s = '' then
+        s := HistoryStr(hsFBBCopy, 0);
+      DTA.s := {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(s);
+      {    DTA.W := 0; }
+      DTA.SPLSiz := '';
+      DTA.NumSect := '';
+
+      i := byte(UpCase(s[1]));
+      if i in [65..90] then
+        begin
+          if (SystemData.Drives[Char(i)] and 16) > 0 then
+            DTA.W := 2 or 4
+          else
+            DTA.W := 0 or 4;
+        end;
+
+      D^.SetData(DTA);
+      if Desktop^.ExecView(D) = cmCancel then
+        begin
+          Dispose(D, Done);
+          exit
+        end;
+      D^.GetData(DTA);
+      BinarySplit := DTA.W and 1 <> 0;
+      DiskVerify := DTA.W and 2 <> 0;
+      if not Tuda then
+        begin
+          NewMode := DTA.W and 4 <> 0;
+          Val(DTA.SPLSiz, PartSize, i);
+          if i <> 0 then
+            begin
+              PartSize := 0;
+              Val(DTA.NumSect, PartSize, i);
+              if (i = 0) and (PartSize > 0) then
+                begin
+                  ClrIO;
+                  lAssignFile(F, Fn1);
+                  lResetFile(F, 1);
+                  l := FileSize(F.F);
+                  PartSize := (l div PartSize)+byte((l mod PartSize) <>
+                    0);
+                  Close(F.F);
+                end;
+            end
+          else
+            begin
+              if BinarySplit
+              then
+                if PartSize < 0
+                then
+                  PartSize := 0
+                else
+              else if NewMode
+              then
+                if PartSize <= SizeOf(NHdr)-253+Length(aaa)
+                then
+                  PartSize := 0
+                else
+                  Dec(PartSize, SizeOf(NHdr)-253+Length(aaa))
+              else if PartSize <= SizeOf(OHdr)
+              then
+                PartSize := 0
+              else
+                Dec(PartSize, SizeOf(OHdr));
+            end;
+        end
+      else
+        PartSize := 0;
+      s := {$IFDEF RecodeWhenDraw}OemToCharStr {$ENDIF}(DTA.s);
+      Dispose(D, Done);
+      if s = '' then
+        s := '.';
+      s := lFExpand(s);
+      if IsDir(s) then
+        if s[Length(s)] <> '\' then
+          s := s+'\';
+      if s[Length(s)] = '\' then
+        begin
+          CopyDir := s;
+          Mask := x_x
+        end
+      else if (Pos('*', s) = 0) and (Pos('?', s) = 0) then
+        begin
+          DOSError := 0;
+          lFindFirst(s+'\*.*', $3E {$IFNDEF OS2} xor VolumeID
+            {$ENDIF}, SR); {JO}
+          lFindClose(SR);
+          if Abort or CopyCancelled then
+            exit;
+          if (DOSError = 0)
+          then
+            begin
+              CopyDir := s+'\';
+              Mask := x_x
+            end
+          else
+            begin
+              lFSplit(s, CopyDir, n, X);
+              Mask := n+X
+            end
+        end
+      else
+        begin
+          lFSplit(s, CopyDir, n, X);
+          Mask := n+X
+        end;
+      Fn1 := lFExpand(Fn1);
+      lFSplit(Fn1, s, n, X);
+      s := n+X;
+      Fn2 := MakeNormName(CopyDir, MkName(s, Mask));
+      CopyDialog := True;
+      s := Copy(GetExt(Fn1), 2, MaxStringLength);
+      if Tuda then
+        begin
+          if GetExt(Fn2) = '.' then
+            if NewMode then
+              if Fn2[Length(Fn2)] = '.' then
+                Fn2 := Fn2+nhd.XT
+              else
+                Fn2 := Fn2+'.'+nhd.XT
+            else if Fn2[Length(Fn2)] = '.' then
+              Fn2 := Fn2+ohd.XT
+            else
+              Fn2 := Fn2+'.'+ohd.XT;
+        end
+      else if NewMode then
+        begin
+          nhd.XT := s;
+          nhd.Nm := NewStdHdr.Nm;
+        end
+      else
+        begin
+          Move(s[1], ohd.XT, 3);
+          ohd.Nm := OldStdHdr.Nm;
+        end;
+    end { CopyDialog: };
+
+  var
+    R: TRect;
+    PP: Pointer;
+    rc: longInt;
+    csv: byte;
+  begin { LongCopy }
     NewTimer(Timer, 0);
-    LongCopy := true;
-    Count:=0;
-    Tuda:=false;
-    Abort:=false;
+    LongCopy := True;
+    Count := 0;
+    Tuda := False;
+    Abort := False;
     CopyCancelled := False;
-    BinarySplit := false;
-    NewMode := true;
-    Fn1:=lFExpand(Fn1);
-    lFSplit(Fn1,d,n,x);
-    dr1:=Byte(Fn1[1])-64;
-    Cs:=0; Cd:=0; {DataCompBoy DskOn;}
+    BinarySplit := False;
+    NewMode := True;
+    Fn1 := lFExpand(Fn1);
+    lFSplit(Fn1, D, n, X);
+    dr1 := byte(Fn1[1])-64;
+    Cs := 0;
+    CD := 0; {DataCompBoy DskOn;}
     FileMode := $40;
-    lAssignFile(F1,Fn1); ClrIO;
-    lResetFile(F1,1);
-    RC := IOResult;
-    if RC<>0 then
-     begin MessFileNotOpen(Fn1, RC); LongCopy := false; Exit; end;
-    GetFTime(F1.F, OldDate);
-    lFSplit(Fn1,d,n,x);
+    lAssignFile(F1, Fn1);
+    ClrIO;
+    lResetFile(F1, 1);
+    rc := IOResult;
+    if rc <> 0 then
+      begin
+        MessFileNotOpen(Fn1, rc);
+        LongCopy := False;
+        exit;
+      end;
+    GetFtime(F1.F, Olddate);
+    lFSplit(Fn1, D, n, X);
 
-    Tuda := (Length(X) = 4) and (UpStrg(x[2])='D') and (StoI(Copy(x,3,2)) > 0);
-    csv:=CheckSvoi;
-    if Tuda and (csv=0) then
-           begin
-            Close(F1.f);
-            Message(Desktop, evCommand, cmSingleCopy, nil);
-            LongCopy := false;
-            Exit;
-           end;
+    Tuda := (Length(X) = 4) and (UpStrg(X[2]) = 'D') and (StoI(Copy(X, 3
+      , 2)) > 0);
+    csv := CheckSvoi;
+    if Tuda and (csv = 0) then
+      begin
+        Close(F1.F);
+        Message(Desktop, evCommand, cmSingleCopy, nil);
+        LongCopy := False;
+        exit;
+      end;
 
-    if Tuda then Count:=1;
-    if Tuda and ((x[4]<>'1') or (x[3]<>'0')) then
-     begin
-      x[3] := '0'; x[4] := '1'; Fn1 := d+n+x;
-      repeat
-       close(F1.f); ClrIO;
-       Count := 1;
-       RequirePath;
-       lAssignFile(F1, Fn1);
-       if Abort then begin LongCopy := false; Exit; end;
-       FileMode := 0;
-       lResetFile(F1,1);
-       csv := CheckSvoi;
-      until (IOresult = 0) and (csv<>0);
-     end;
-    If csv=1 then NewMode:=false else NewMode:=True;
+    if Tuda then
+      Count := 1;
+    if Tuda and ((X[4] <> '1') or (X[3] <> '0')) then
+      begin
+        X[3] := '0';
+        X[4] := '1';
+        Fn1 := D+n+X;
+        repeat
+          Close(F1.F);
+          ClrIO;
+          Count := 1;
+          RequirePath;
+          lAssignFile(F1, Fn1);
+          if Abort then
+            begin
+              LongCopy := False;
+              exit;
+            end;
+          FileMode := 0;
+          lResetFile(F1, 1);
+          csv := CheckSvoi;
+        until (IOResult = 0) and (csv <> 0);
+      end;
+    if csv = 1 then
+      NewMode := False
+    else
+      NewMode := True;
     if not Tuda then
       begin
-       Ls:=FileSize(F1.F);
-       Seek(F1.F, 0);
+        LS := FileSize(F1.F);
+        Seek(F1.F, 0);
       end
+    else if NewMode then
+      LS := nhd.ln
     else
-     if NewMode then Ls:=nhd.Ln
-                else Ls:=ohd.Ln;
+      LS := ohd.ln;
 
     if (not CopyDialog) or Abort then
-_Abort_:    begin Close(F1.F); LongCopy := false; Exit; end;
+_Abort_:
+      begin
+        Close(F1.F);
+        LongCopy := False;
+        exit;
+      end;
 
-    if NewMode then nhd.Ln:=Ls
-               else ohd.Ln:=Ls;
+    if NewMode then
+      nhd.ln := LS
+    else
+      ohd.ln := LS;
 
-    Fn2:=lFExpand(Fn2);
-    if Abort then Goto _Abort_;
-    dr2:=Byte(Fn2[1])-64;
-    if Fn1=Fn2 then Goto _Abort_;
+    Fn2 := lFExpand(Fn2);
+    if Abort then
+      goto _Abort_;
+    dr2 := byte(Fn2[1])-64;
+    if Fn1 = Fn2 then
+      goto _Abort_;
 
-    R.Assign(1,1,36,13);
+    R.Assign(1, 1, 36, 13);
     New(PInfo, Init(R));
-    if PInfo = nil then Goto _Abort_;
-    if Tuda then PInfo^.Top := GetString(dlFBBDeFragment)
-            else PInfo^.Top := GetString(dlFBBFragment);
+    if PInfo = nil then
+      goto _Abort_;
+    if Tuda then
+      PInfo^.Top := GetString(dlFBBDEFragment)
+    else
+      PInfo^.Top := GetString(dlFBBFragment);
     PInfo^.Bottom := '';
-    PInfo^.SetState(sfShadow, true);
+    PInfo^.SetState(sfShadow, True);
     Desktop^.Insert(PInfo);
-    PInfo^.Write(1, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn1));
-    lFSplit(Fn2,d,n,x);
-    if Tuda and (UpCase(x[2])='D') and (StoI(Copy(x,3,2)) > 0)  then
-     case csv of
-      1: Fn2 := d+n+'.'+ohd.xt;
-      2: Fn2 := d+n+'.'+nhd.xt;
-     end;
-    lAssignFile(F2,Fn2);ClrIO;
+    PInfo^.Write(1, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(Fn1));
+    lFSplit(Fn2, D, n, X);
+    if Tuda and (UpCase(X[2]) = 'D') and (StoI(Copy(X, 3, 2)) > 0)
+    then
+      case csv of
+        1:
+          Fn2 := D+n+'.'+ohd.XT;
+        2:
+          Fn2 := D+n+'.'+nhd.XT;
+      end {case};
+    lAssignFile(F2, Fn2);
+    ClrIO;
     PInfo^.Write(2, GetString(dlFBBFragmentTo));
-    PInfo^.Write(3, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn2));
-    wl := PInfo^.Size.X - 8;
-    if not Tuda then RequireNew
-                else
-                 begin
-                  CreateDirInheritance(d, false);
-                  lResetFile(F2,1);
-                  if IOResult=0 then
-                   begin
-                   PP:=@Fn2;
-                   if MessageBox(GetString(dlFileExist)+^M, @PP, mfQuery+mfYesButton+mfNoButton+mfCancelButton)
-                    <> cmYes then
-                       begin
-                        Desktop^.Delete(PInfo);
-                        Dispose(PInfo,Done);
-                        Close(F2.F);
-                        Goto _Abort_;
-                       end;
-                   end;
-                  ClrIO;
-                  lRewriteFile(F2,1);
-                  if (IOResult<>0) or Abort then
-                   begin
-                    MessageBox(GetString(erCantCreateFile)+Fn2, nil, mfError + mfOKButton);
-                    Desktop^.Delete(PInfo);
-                    Dispose(PInfo,Done);
-                    Goto _Abort_;
-                   end;
-                 end;
+    PInfo^.Write(3, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(Fn2));
+    wl := PInfo^.Size.X-8;
+    if not Tuda then
+      RequireNew
+    else
+      begin
+        CreateDirInheritance(D, False);
+        lResetFile(F2, 1);
+        if IOResult = 0 then
+          begin
+            PP := @Fn2;
+            if MessageBox(GetString(dlFileExist)+^M, @PP, mfQuery+
+                mfYesButton+mfNoButton+mfCancelButton)
+              <> cmYes
+            then
+              begin
+                Desktop^.Delete(PInfo);
+                Dispose(PInfo, Done);
+                Close(F2.F);
+                goto _Abort_;
+              end;
+          end;
+        ClrIO;
+        lReWriteFile(F2, 1);
+        if (IOResult <> 0) or Abort then
+          begin
+            MessageBox(GetString(erCantCreateFile)+Fn2, nil, mfError+
+              mfOKButton);
+            Desktop^.Delete(PInfo);
+            Dispose(PInfo, Done);
+            goto _Abort_;
+          end;
+      end;
     GetMaxMem;
-    if NBf=0 then begin Close(F2.F); lEraseFile(F2); Goto _Abort_; end;
+    if NBf = 0 then
+      begin
+        Close(F2.F);
+        lEraseFile(F2);
+        goto _Abort_;
+      end;
     Inc(SkyEnabled);
     PartWrt := 0;
-    Repeat
-     MaxRead;
-     MaxWrite;
-     if Tuda then NedoChit;
-    until (Cd>=Ls) or Abort or CopyCancelled;
+    repeat
+      MaxRead;
+      MaxWrite;
+      if Tuda then
+        Nedochit;
+    until (CD >= LS) or Abort or CopyCancelled;
     Dec(SkyEnabled);
-  Ex:
+ex:
     Desktop^.Delete(PInfo);
-    Dispose(PInfo,Done);
+    Dispose(PInfo, Done);
     Close(F1.F);
-    SetFTime(F2.F, OldDate);
+    SetFTime(F2.F, Olddate);
     Close(F2.F);
-    if (Abort or CopyCancelled) and Tuda then lEraseFile(F2);
+    if (Abort or CopyCancelled) and Tuda then
+      lEraseFile(F2);
     ClearMem;
-    Abort := false;
-{$IFDEF FileNotify}
-    if not DNIni.AutoRefreshPanels then
+    Abort := False;
+    if not DnIni.AutoRefreshPanels then
       begin
-{$ENDIF}
         GlobalMessage(evCommand, cmPanelReread, @CopyDir);
-       {GlobalMessage(evCommand, cmRereadInfo, nil);}
+        {GlobalMessage(evCommand, cmRereadInfo, nil);}
         GlobalMessage(evCommand, cmRereadTree, @CopyDir);
-{$IFDEF FileNotify}
       end;
-{$ENDIF}
     if not (Abort or CopyCancelled) then
 
-    if (FMSetup.Options and fmoBeep <> 0) and
-       (ElapsedTimeInSecs(Timer) > 20) then BeepAfterCopy;
-  end;
-        {-DataCompBoy-}
+      if (FMSetup.Options and fmoBeep <> 0) and
+        (ElapsedTimeInSecs(Timer) > 20)
+      then
+        BeepAftercopy;
+  end { LongCopy };
+{-DataCompBoy-}
 
 end.

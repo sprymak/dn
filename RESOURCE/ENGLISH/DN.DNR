@@ -1087,37 +1087,41 @@ STATUSLINE
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
      StatusItem '~F2~ Fields', kbF2, cmShowFields,
-     StatusItem '~F3~ View Memo', kbF3, cmShowMemo,
-     StatusItem '~F4~ Edit Field', kbF4, cmEditDBField,
+     StatusItem '~F3~ View memo', kbF3, cmShowMemo,
+     StatusItem '~F4~ Edit field', kbF4, cmEditDBField,
+     StatusItem '~F6~ Goto', kbF6, cmDBFGoto,
      StatusItem '~F7~ Search', kbF7, cmSearchFor,
      StatusItem '~F8~ KeyMap', kbF8, cmSwitchKeyMapping,
      StatusItem '~F10~ Menu', kbF10, cmMenu,
 ;{ALT}
-;NEW+
-     StatusItem '-~F7~ Back Search', kbAltF7, cmBackSearch,
-;NEW-
-     StatusItem '-~Y~ Memory Info', kbAltY, cmMemoryInfo,
-     StatusItem '-~Z~ Zoom', kbAltZ, cmZoom,
+     StatusItem '-~F7~ Back search', kbAltF7, cmBackSearch,
+     StatusItem '-Memor~y~ info', kbAltY, cmMemoryInfo,
+     StatusItem '-~Z~oom', kbAltZ, cmZoom,
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
 ;{CTRL}
-     StatusItem '+~F3~ New Manager', kbCtrlF3, cmCreatePanel,
+     StatusItem '+~D~ Delete/Restore', kbCtrlD, cmDeleteDBRec,
+     StatusItem '+~F3~ New manager', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Close', kbCtrlF4, cmClose,
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
 ;{SHIFT}
+;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
-;    StatusItem ':~F6~ Reanimate', kbShiftF6, cmReanimator,
-     StatusItem ':~F7~ Continue Search', kbShiftF7, cmContinueSearch,
+     StatusItem ':~F6~ XLat', kbShiftF6, cmLoadXlatTable,
+     StatusItem ':~F7~ Continue search', kbShiftF7, cmContinueSearch,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
 ;{Alt+Ctrl}
 ;$IFDEF OS_DOS
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
+     StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
+;     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
 ;$ENDIF
 ;{NO SHOW}
      StatusItem '', kbCtrlL, cmContinueSearch,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlM, cmMaxi,
 
   StatusDef hcEditor, hcEditor,
 ;{BASE}
@@ -4535,3 +4539,18 @@ DIALOG dlgSetExportCsvFormat, 46, 16, 'CSV Export Format'
     Button 25, 13, 35, 15, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
 END
 ;KV
+
+;{--- start -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
+DIALOG dlgDBFGoto, 41, 9, 'Go to row/column'
+    HELPCTX hcDBFGoto
+    InputLine 17, 2, 35, 3, 10, 0
+    History 35, 2, hsDBFGotoRow, ofPostProcess
+    Label 3, 2, '~R~ow number', ofPostProcess, ofPreProcess
+    InputLine 17, 4, 35, 5, 10, 0
+    History 35, 4, hsDBFGotoCol, ofPostProcess
+    Label 3, 4, '~C~olumn name', ofPostProcess, ofPreProcess
+    Button  9, 6, 19, 8, 'Ž~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 19, 6, 29, 8, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 29, 6, 39, 8, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+END
+;{--- finish -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}

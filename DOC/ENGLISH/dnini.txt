@@ -222,11 +222,14 @@
                               chosen in archiving dialog as default archiver
                               (default: empty)
 
- RecodeCyrillicNames = bool - Defines how to work with Win32 file API -
-                              in ASCII (0) or ANSI (1) code page.
-                              Note: in OS/2 version has no effect and kept
-                              only for compatibility with Win32 version.
-                              (default: 0)
+AltGrAsAlt = bool           - Allows to use Right Alt key for national symbols
+                              input (0) or as usual Alt (1). In some national
+                              keyboard layouts Right Alt key is used for natio
+                              symbols input. If you need to use Right Alt in
+                              such way then set this parameter to 0, but it
+                              makes impossible to use Right Alt in a lot of
+                              hotkeys.
+                              (default: 1)
 
 ==============================================================================
 

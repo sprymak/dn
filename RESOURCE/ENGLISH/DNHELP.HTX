@@ -123,7 +123,7 @@ Sorry, no help available for this context.
   ≥ About Navigator and €
   ≥    its authors      €
   ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
-; /portions by Deleter/ 07.02.2003
+; /portions by Deleter/ Jan 2004
 
 Navigator is a DOS shell that combines a wide set of useful features.
 They include {copying:CopyFiles}, {moving:CopyFiles}, {editing:Editor}
@@ -143,10 +143,12 @@ Dos Navigator is an Open Source Project. For details refer to the file
 dnosp.txt, which can be found in the standard shipping package.
 
 Feel free to send your comments and suggestions to the RU.SHELL.DN Fidonet
-echo area or to these addresses:
-
- Fidonet   2:5000/111.27 Alexey Feldgendler
-           2:5057/44     Mike Lykov
+echo area.
+;commented out due to coordinator's non-answering to the normal changes
+;or to these addresses:
+;
+; Fidonet   2:5000/111.27 Alexey Feldgendler
+;           2:5057/44     Mike Lykov
 
  The Basic Dos Navigator is copyrighted by {RITLABS srl:_}.
 (Moldova. Kishinev. Shtefan chel Mare st 180, office 101)
@@ -1715,34 +1717,37 @@ possible:
 
 .topic Highlight=11022
 .title Highlight groups
+; /portions by Deleter/  Jan 2004
 
-The definition of 5 user groups of files is proceeded on extensions divided
-by semicolon. For each the is possible the definition of colors.
-The following breakdown on groups is offered:
+Definition of the 11 user groups of files is performed using extensions
+divided by semicolon. For each group definition of colors is possible.
+You can use such breaking to groups:
 
-The files on which is practical not paid attention or which are usual
+The files those are not to think of or which are usually
 erased (black color):
 
    BAK;$$$;SWP
 
 The working files of programs, texts, documentation, i.e. the most frequently
-edited files (pleasant for eye by green color):
+edited files (green color pleasant for eyes):
 
    TXT;DOC;BAS;FOR;C;CPP;ASM;INC
 
-Graphics, musical files (blue color):
+Multimedia (graphics, music) - blue color:
 
    PIC;GIF;PCX;TIF;IMG;STM;CDM;MOD;SND
 
-The files with which directly work very little, which should not attract
+The files those are generally not to work directly with, which should not attract
 attention (pleasant for eye dark-green color):
 
    PRJ;OBJ;LST;DBF;WKS;123
 
-The files of which should attract the attention of user, which should be
+The files of which should attract user's attention, which should be
 processed at once (very appreciable, but not irritant magenta color):
 
    !!!;1ST;ME;CUT
+
+To specify files without extension use "{.:_}", i.e., "{.;TXT;DOC:_}".
 
 .topic Clipboard=11023
 .title Clipboard
@@ -1764,9 +1769,11 @@ choose Paste.
 
 .topic SelectDriveExtended=21001
 .title Drive Selection
+; /portions by Deleter/  Jan 2004
 
-  Select one of valid drives.
-  Also You may select a {TempList:TempList} by pressing a [{SpaceBar:_}] key.
+Select one of valid drives.
+The {TEMP:TempList}: drive can also be selected by pressing [{SpaceBar:_}].
+View of the drives list can be configured in {Options:OptionsMenu}|{Configuration:SubMenuConfig}|Interface.
 
 .topic AdvanceSearch=21002
 .title Advanced Search
@@ -2965,40 +2972,53 @@ Enter a search mask.
 .title Message Window
 
 .topic ViewFile=48057
+; /portions by Deleter/ Jan 2004
  ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
  ≥ Viewing and editing €
- ≥ files on extensions €
+ ≥ files by extensions €
  ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
 
-When the user is in file panel, at his occasionally the need in
-
-viewing/editing of any external viewer or editor arises. In Navigator
-the opportunity of viewing/editing of particular file is realized.
-Is realized through file of extensions (for viewer - dn.vwr, for editor -
+When the user is in file panel, he may occasionally need to view/edit
+a file by an external editor or a viewer. The possiblity to do it is
+well-realized in Navigator.
+For it, the files of extensions are used (for viewer - dn.vwr, for editor -
 dn.edt).
 
-This file has described work with particular file type, determined
-on DOS extension.
-For viewing/editing of file is necessary to be moved the cursor on
-file panel to name of this file and for viewing to press F3 and for
+This file describes work with particular file type, determined by extension.
+To view/edit a file, you need to set the cursor on the file panel to the name
+of the file, then for viewing press F3 and for editing press F4 (or Alt-F3
+and Alt-F4 correspondingly, if Options|Defaults|{Configuration...:Configuration}
+Internal editor is set to on).
+If the above option is not set, to use the internal viewer/editor on such
+file, press Alt-F3 or Alt-F4, correspondingly.
+However, it is possible to specify an alternative viewer in the dnalt.vwr
+file. Then the internal viewer can be called by Shift-Alt-F3 combination.
 
-editing - Alt-F4 (if is installed in Options|Defaults|{Configuration...:Configuration}
-Internal editor).
+For the viewers description, call Options|Viewers.
 
-For description of viewing of files it is necessary to cause command
-Options|Viewers.
+For the editors description, call Options|Editors.
 
-For description of editing of files it is necessary to cause command
-Options|Editors.
-
-The format of record in this file is such:
+The format of a record in this file is such:
 
  ???:command_name
 
-Here ??? - particular extension
-     Command_name - name of program for viewing or editing
+Here {???:_} is the extension
+     {Command_name:_} is name of the program for viewing or editing
 
-See Also: {Internal text-viewer:View}
+When viewing, it is possible to use filter programs - for example, to view
+files which are by default not viewable with the internal viewer.
+To perform it, !%F macro is used, that means the file into which the
+filter program should write the file processing result.
+
+Example:
+
+doc:c:\programs\AntiWord\antiword.cmd !.! !%F
+
+In this case, when trying to view a file with .doc extension, the antiword.cmd
+file will be run, and it will have to read the file substituting "!.!"
+(arranged by the Navigator), process it, and write into the file
+substituting "!%F". After viewing, the !%F file will be deleted.
+
 
 .topic Wildcards=48058
 .title DOS Wildcards and Filters

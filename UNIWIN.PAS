@@ -58,83 +58,99 @@ type
 
   PUniWindow = ^TUniWindow;
   TUniWindow = object(TWindow)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    function GetPalette : PPalette;virtual;
-    function MakeScrollBar(AOptions: Word): PScrollBar;
-    procedure InitFrame;virtual;
-    function  ReactOnCmd: Boolean; virtual;
-  end;
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    function GetPalette: PPalette; virtual;
+    function MakeScrollBar(AOptions: word): PScrollBar;
+    procedure InitFrame; virtual;
+    function ReactOnCmd: boolean; virtual;
+    end;
 
   { TEditScrollBar }
 
   PEditScrollBar = ^TEditScrollBar;
   TEditScrollBar = object(TScrollBar)
-   function GetPalette : PPalette;virtual;
-  end;
+    function GetPalette: PPalette; virtual;
+    end;
 
   { TEditFrame }
 
   PEditFrame = ^TEditFrame;
   TEditFrame = object(TFrame)
-   function GetPalette : PPalette;virtual;
-  end;
+    function GetPalette: PPalette; virtual;
+    end;
 
 const
-  CUniWindow = #70#64#65#66#67#68#69#71#72#73#74#75#76#77#78#164#182#183+
-               #184#185#189#190#191#197#198;
+  CUniWindow =
+    #70#64#65#66#67#68#69#71#72#73#74#75#76#77#78#164#182#183+
+  #184#185#189#190#191#197#198;
 
 implementation
 
 function TUniWindow.GetPalette;
- const  p : String[Length(CUniWindow)] = CUniWindow;
-begin
- GetPalette:=@P;
-end;
+  const
+    P: String[Length(CUniWindow)] = CUniWindow;
+  begin
+    GetPalette := @P;
+  end;
 
 function TEditFrame.GetPalette;
- const  p : String[9] = #1#1#8#9#10#10#10#9#15;
-begin
- GetPalette:=@P;
-end;
+  const
+    P: String[9] = #1#1#8#9#10#10#10#9#15;
+  begin
+    GetPalette := @P;
+  end;
 
 function TEditScrollBar.GetPalette;
- const  p : String[3] = #11#12#12;
-begin
- GetPalette:=@P;
-end;
+  const
+    P: String[3] = #11#12#12;
+  begin
+    GetPalette := @P;
+  end;
 
 procedure TUniWindow.InitFrame;
- var R : TRect;
-begin
- R.Assign(0,0,Size.X,Size.Y);
- Frame:=New(PEditFrame,Init(R));
-end;
+  var
+    R: TRect;
+  begin
+    R.Assign(0, 0, Size.X, Size.Y);
+    Frame := New(PEditFrame, Init(R));
+  end;
 
 function TUniWindow.MakeScrollBar;
- var P: PEditScrollBar;
-     R: TRect;
-begin
- GetExtent(R);
- if AOptions and sbVertical<>0
-  then begin
-    Inc(R.A.Y);
-    Dec(R.B.Y);
-    R.A.X:=R.B.X-1;
-  end else begin
-   if FastBookmark
-    then Inc(R.A.X,52)
-    else Inc(R.A.X,39);
-   Dec(R.B.X,2);
-   R.A.Y:=R.B.Y-1;
-  end;
- New(p,Init(R));
- if AOptions and sbVertical=0 then p^.GrowMode:=gfGrowLoY+gfGrowHiY+gfGrowHiX
-                              else {p^.GrowMode:=gfGrowHiY+gfGrowHiX};
- p^.Options:=p^.Options or ofPostProcess;
- Insert(P);
- MakeScrollBar:=p;
-end;
+  var
+    P: PEditScrollBar;
+    R: TRect;
+  begin
+    GetExtent(R);
+    if AOptions and sbVertical <> 0
+    then
+      begin
+        Inc(R.A.Y);
+        Dec(R.B.Y);
+        R.A.X := R.B.X-1;
+      end
+    else
+      begin
+        if FastBookmark
+        then
+          Inc(R.A.X, 52)
+        else
+          Inc(R.A.X, 39);
+        Dec(R.B.X, 2);
+        R.A.Y := R.B.Y-1;
+      end;
+    New(P, Init(R));
+    if AOptions and sbVertical = 0 then
+      P^.GrowMode := gfGrowLoY+gfGrowHiY+gfGrowHiX
+    else{p^.GrowMode:=gfGrowHiY+gfGrowHiX}
+      ;
+    P^.Options := P^.Options or ofPostProcess;
+    Insert(P);
+    MakeScrollBar := P;
+  end { TUniWindow.MakeScrollBar };
 
-function TUniWindow.ReactOnCmd; begin ReactOnCmd := True end;
+function TUniWindow.ReactOnCmd;
+  begin
+    ReactOnCmd := True
+  end;
 
 end.

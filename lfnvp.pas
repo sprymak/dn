@@ -64,68 +64,78 @@ unit LFNVP;
 interface
 
 uses
-  {$IFDEF VIRTUALPASCAL} VpSysLow, VpSysLo2, {$ENDIF}
-  Dos, DnINI;
+  VpSysLow, VPSysLo2,
+  Dos, DnIni;
 
 type
 
   TSize = Comp; {64 bit integer type for file sizes}
 
-   {Extended search structure to be used instead of SearchRec}
+  {Extended search structure to be used instead of SearchRec}
   lSearchRec = record
-    SR: TOSSearchRecNew;   {Basic field set}
-   {FileHandle: Word;}  {Search handle, undefined in lDOS mode}
+    SR: TOSSearchRecNew; {Basic field set}
+    {FileHandle: Word;} {Search handle, undefined in lDOS mode}
     FullSize: TSize; {True file size}
-(*  LoCreationTime: Longint; {Time created (low-order byte)}
+    (*  LoCreationTime: Longint; {Time created (low-order byte)}
     HiCreationTime: Longint; {Time created (high-order byte)}
     LoLastAccessTime: Longint; {Time accessed (low-order byte)}
     HiLastAccessTime: Longint; {Time accessed (high-order byte)}
     LoLastModificationTime: Longint; {Time modified (low-order byte)}
     HiLastModificationTime: Longint; {Time modified (high-order byte)} *)
-    FullName: string;  {True file name or short name if LFNs not available}
-   {$IFDEF OS2}
-    PrevName: string;
-   {$ENDIF}
+    FullName: String;
+      {True file name or short name if LFNs not available}
+    {$IFDEF OS2}
+    PrevName: String;
+    {$ENDIF}
     { Other fields will be added later }
-  end;
+    end;
 
-  TNameZ = Array[0..259] of Char;
+  TNameZ = array[0..259] of Char;
   {The type for file names. (String is suitable for most purpuses)}
 
-  lFile = record {Extended file record to be used instead of File}
-    F: File;
+  lFile = record{Extended file record to be used instead of File}
+    F: file;
     { Other fields will be added later }
-  end;
+    end;
 
-  lText = record {Extended text file record to be used instead of Text}
-    T: Text;
+  lText = record
+      {Extended text file record to be used instead of Text}
+    t: text;
     { Other fields will be added later }
-  end;
+    end;
 
-        {   Basic parameters   }
+  {   Basic parameters   }
 const
 
-(*
+  (*
   ltMod = 0;    {Store time modified}
   ltAcc = 1;    {Store time accessed}
   ltCre = 2;    {Store time created}
   LFNTimes: Byte = ltMod; { What time info to store in lSearchRec.SR.Time? }
 *)
-  MaxPathLen: Byte = 255;  { Maximum name length for the present moment }
+  MaxPathLen: byte = 255;
+    { Maximum name length for the present moment }
 
-  Const IllegalChars:String[15] = '<>|:'; { Characters invalid for short names }
-      IllegalCharSet:Set Of Char = ['<','>','|',':']; { Characters invalid for short names }
+const
+  IllegalChars: String[15] = '<>|:';
+    { Characters invalid for short names }
+  IllegalCharSet: Set of Char = ['<', '>', '|', ':'];
+    { Characters invalid for short names }
 
-  Const IllegalCharsDos:String[15] = ';,=+<>|"[]'; { Characters invalid for DOS names }
-      IllegalCharSetDos:Set Of Char = [';',',','=','+','<','>','|','"','[',']']; { Characters invalid for DOS names }
+const
+  IllegalCharsDos: String[15] = ';,=+<>|"[]';
+    { Characters invalid for DOS names }
+  IllegalCharSetDos: Set of Char = [';', ',', '=', '+', '<', '>',
+    '|', '"', '[', ']']; { Characters invalid for DOS names }
 
-       { File searching routines. lFindClose must be called /in all cases/ }
-procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
+  { File searching routines. lFindClose must be called /in all cases/ }
+procedure lFindFirst(const Path: String; Attr: word; var R:
+    lSearchRec);
 procedure lFindNext(var R: lSearchRec);
 procedure lFindClose(var R: lSearchRec);
 
 {$IFDEF WIN32}
-        { Name retrieval functions }
+{ Name retrieval functions }
 function lfGetShortFileName(const Name: String): String;
 {$ENDIF}
 {$IFDEF DPMI32}
@@ -135,48 +145,63 @@ function lfGetShortFileName(const Name: String): String;
 function lfGetLongFileName(const Name: String): String;
 {$ENDIF}
 
-        { Name correction routine }
-procedure lTrueName(const Name: String; var S: String);
+{ Name correction routine }
+procedure lTrueName(const Name: String; var s: String);
 
 {AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь}
-function GetShareEnd(const S: String): integer;
+function GetShareEnd(const s: String): integer;
 
-
-   { Basic file operation routines. To use IO functions from standard units,
+{ Basic file operation routines. To use IO functions from standard units,
               specify lFile.F or lText.T }
 
 procedure lAssignFile(var F: lFile; const Name: String);
-procedure lAssignText(var T: lText; const Name: String);
-procedure lResetFile(var F: lFile; RecSize: Word);
-procedure lResetFileReadOnly(var F: lFile; RecSize: Word);
-procedure lRewriteFile(var F: lFile; RecSize: Word);
-procedure lResetText(var F: lText); inline; begin Reset(F.T) end;
+procedure lAssignText(var t: lText; const Name: String);
+procedure lResetFile(var F: lFile; RecSize: word);
+procedure lResetFileReadOnly(var F: lFile; RecSize: word);
+procedure lReWriteFile(var F: lFile; RecSize: word);
+procedure lResetText(var F: lText);
+  inline;
+  begin
+    Reset(F.t)
+  end;
 procedure lResetTextReadOnly(var F: lText);
 procedure lRewriteText(var F: lText);
-procedure lAppendText(var T: lText); inline; begin Append(T.T); end;
-procedure lEraseFile(var F: lFile); inline; begin Erase(F.F); end;
-procedure lEraseText(var T: lText); inline; begin Erase(T.T); end;
+procedure lAppendText(var t: lText);
+  inline;
+  begin
+    Append(t.t);
+  end;
+procedure lEraseFile(var F: lFile);
+  inline;
+  begin
+    Erase(F.F);
+  end;
+procedure lEraseText(var t: lText);
+  inline;
+  begin
+    Erase(t.t);
+  end;
 procedure lRenameFile(var F: lFile; const NewName: String);
-procedure lRenameText(var T: lText; const NewName: String);
+procedure lRenameText(var t: lText; const NewName: String);
 procedure lChangeFileName(const Name, NewName: String);
-function  lFileNameOf(var lF: lFile): string;
-function  lTextNameOf(var lT: lText): string;
+function lFileNameOf(var lF: lFile): String;
+function lTextNameOf(var lT: lText): String;
 
-                 { File attributes manipulation }
-procedure lGetFAttr(var F: lFile; var Attr: Word);
-procedure lSetFAttr(var F: lFile; Attr: Word);
-procedure lGetTAttr(var T: lText; var Attr: Word);
-procedure lSetTAttr(var T: lText; Attr: Word);
+{ File attributes manipulation }
+procedure lGetFAttr(var F: lFile; var Attr: word);
+procedure lSetFAttr(var F: lFile; Attr: word);
+procedure lGetTAttr(var t: lText; var Attr: word);
+procedure lSetTAttr(var t: lText; Attr: word);
 
-                           { Directory manipulation }
+{ Directory manipulation }
 procedure lMkDir(const Path: String);
 procedure lRmDir(const Path: String);
 procedure lChDir(const Path: String);
-procedure lGetDir(D: Byte; var Path: String);
+procedure lGetDir(D: byte; var Path: String);
 
-         { Name expansion and splitting }
+{ Name expansion and splitting }
 function lFExpand(const Path: String): String;
-procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
+procedure lFSplit(const Path: String; var Dir, Name, ext: String);
 
 {$IFDEF WIN32}
 var
@@ -184,15 +209,15 @@ var
   CharToOemArray: array[Char] of Char;
 
 procedure OemToCharSt(var OemS: String); {JO}
-procedure CharToOemSt(var CharS: String);{JO}
+procedure CharToOemSt(var Chars: String); {JO}
 function OemToCharStr(OemS: String): String;
-function CharToOemStr(CharS: String): String;
+function CharToOemStr(Chars: String): String;
 {$ENDIF}
 
 {$IFDEF WIN32}
 const
-  NoShortName: string[12] = #22#22#22#22#22#22#22#22'.'#22#22#22;
-{JO, AK155: зачем нужны эти #22:
+  NoShortName: String[12] = #22#22#22#22#22#22#22#22'.'#22#22#22;
+  {JO, AK155: зачем нужны эти #22:
   В виндах функции API FindFileFirst и FindFileNext отдают два имени
 файла: основное и альтернативное (короткое).
   Под НТ возможна ненормальная (с моей точки зрения,
@@ -208,61 +233,66 @@ const
 режиме коротких имён файлы, для которых доступно только длинное имя, -
 честнее, чем с обрезанным именем, под которым файл недоступен.
 }
-{$ENDIF}
+  {$ENDIF}
 
 implementation
 
 uses
-  {$IFDEF WIN32} Windows, {$ENDIF}
-  Strings, Commands{Cat};
+  {$IFDEF WIN32}Windows, {$ENDIF}
+  Strings, Commands {Cat};
 
- Function StrPas_(S: Array Of Char): String;
-  var ss: string;
-      i: word;
-  Begin
-   ss:='';
-   For i:=Low(S) to High(S) do
-    If (i<255) and (s[i]<>#0)
-     then ss:=ss+s[i]
-     else break;
-   StrPas_:=ss;
-  End;
+function StrPas_(s: array of Char): String;
+  var
+    SS: String;
+    i: word;
+  begin
+    SS := '';
+    for i := Low(s) to High(s) do
+      if (i < 255) and (s[i] <> #0)
+      then
+        SS := SS+s[i]
+      else
+        break;
+    StrPas_ := SS;
+  end;
 
 {$IFNDEF OS2}
 procedure NameToNameZ(const Name: String; var NameZ: TNameZ);
-begin
-  Move(Name[1], NameZ, Length(Name));
-  NameZ[Length(Name)] := #0;
-end;
+  begin
+    Move(Name[1], NameZ, Length(Name));
+    NameZ[Length(Name)] := #0;
+  end;
 {$ENDIF}
 
 {$IFDEF Win32}
 {JO}
 procedure OemToCharSt(var OemS: String);
- var I: Byte;
-begin
-  for I := 1 to Length(OemS) do
-    OemS[I] := OemToCharArray[OemS[I]];
-end;
+  var
+    i: byte;
+  begin
+    for i := 1 to Length(OemS) do
+      OemS[i] := OemToCharArray[OemS[i]];
+  end;
 
-procedure CharToOemSt(var CharS: String);
- var I: Byte;
-begin
-  for I := 1 to Length(CharS) do
-    CharS[I] := CharToOemArray[CharS[I]];
-end;
+procedure CharToOemSt(var Chars: String);
+  var
+    i: byte;
+  begin
+    for i := 1 to Length(Chars) do
+      Chars[i] := CharToOemArray[Chars[i]];
+  end;
 
 function OemToCharStr(OemS: String): String;
-begin
- OemToCharSt(OemS);
- OemToCharStr := OemS;
-end;
+  begin
+    OemToCharSt(OemS);
+    OemToCharStr := OemS;
+  end;
 
-function CharToOemStr(CharS: String): String;
-begin
- CharToOemSt(CharS);
- CharToOemStr := CharS;
-end;
+function CharToOemStr(Chars: String): String;
+  begin
+    CharToOemSt(Chars);
+    CharToOemStr := Chars;
+  end;
 {/JO}
 {$ENDIF}
 
@@ -282,312 +312,362 @@ end;
  130h 14 BYTEs   ASCIZ short filename (for backward compatibility)
 *)
 
-function SetDosError(ErrCode: Integer): Integer;
-begin
-  DosError := ErrCode;
-  SetDosError := ErrCode;
-end;
+function SetDosError(ErrCode: integer): integer;
+  begin
+    DOSError := ErrCode;
+    SetDosError := ErrCode;
+  end;
 
 {AK155}
 {$IFNDEF OS2}
-function NotShortName(const S: string): boolean;
+function NotShortName(const s: String): boolean;
   var
     i, l: integer;
     iPoint: integer;
   begin
-  NotShortName := true;
-  if S[1] = '.' then exit;
-  l := length(S);
-  if l > 12 then exit;
-  iPoint := 0;
-  for I := 1 to l do
-   begin
-    if S[i] = '.' then
-     begin
-      if (iPoint <> 0) or (I>9) then exit;
-      iPoint := i;
-     end
-    else if S[I] in IllegalCharSet then Exit; {DataCompBoy}
-   end;
-  if (iPoint = 0) and (l > 8) then exit;
-  if (iPoint <> 0) and (l-iPoint > 3) then exit;
-  NotShortName := false;
-  end;
+    NotShortName := True;
+    if s[1] = '.' then
+      exit;
+    l := Length(s);
+    if l > 12 then
+      exit;
+    iPoint := 0;
+    for i := 1 to l do
+      begin
+        if s[i] = '.' then
+          begin
+            if (iPoint <> 0) or (i > 9) then
+              exit;
+            iPoint := i;
+          end
+        else if s[i] in IllegalCharSet then
+          exit; {DataCompBoy}
+      end;
+    if (iPoint = 0) and (l > 8) then
+      exit;
+    if (iPoint <> 0) and (l-iPoint > 3) then
+      exit;
+    NotShortName := False;
+  end { NotShortName };
 {$ENDIF}
 
 procedure CorrectSearchRec(var R: lSearchRec);
-begin
-  R.FullName := R.SR.Name;
-{$IFDEF Win32}
-  if (R.SR.Name <> '.') and (R.SR.Name <> '..') then
-    begin
-    if (R.SR.ShortName <> '') then
-      R.SR.Name := R.SR.ShortName
-    else if NotShortName(R.FullName) then
-      R.SR.Name := NoShortName;
-    end;
-{$ENDIF}
-(*R.LoCreationTime:= R.SR.Time;
+  begin
+    R.FullName := R.SR.Name;
+    {$IFDEF Win32}
+    if (R.SR.Name <> '.') and (R.SR.Name <> '..') then
+      begin
+        if (R.SR.ShortName <> '') then
+          R.SR.Name := R.SR.ShortName
+        else if NotShortName(R.FullName) then
+          R.SR.Name := NoShortName;
+      end;
+    {$ENDIF}
+    (*R.LoCreationTime:= R.SR.Time;
   R.HiCreationTime:= 0;
   R.LoLastAccessTime:= R.SR.Time;
   R.HiLastAccessTime:= 0;
   R.LoLastModificationTime:= R.SR.Time;
   R.HiLastModificationTime:= 0; *)
-  R.FullSize:=R.SR.Size;
-end;
+    R.FullSize := R.SR.Size;
+  end;
 
-procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
-var
-  PathBuf: array [0..SizeOf(PathStr)-1] of Char;
-begin
-  R.FullName := '';
-  SetDosError(SysFindFirstNew(StrPCopy(PathBuf, Path), Attr, R.SR, False));
-  CorrectSearchRec(R);
-{$IFDEF OS2}
-  R.PrevName := R.FullName;
-{$ENDIF}
-end;
+procedure lFindFirst(const Path: String; Attr: word; var R:
+    lSearchRec);
+  var
+    PathBuf: array[0..SizeOf(PathStr)-1] of Char;
+  begin
+    R.FullName := '';
+    SetDosError(SysFindFirstNew(StrPCopy(PathBuf, Path), Attr, R.SR,
+      False));
+    CorrectSearchRec(R);
+    {$IFDEF OS2}
+    R.PrevName := R.FullName;
+    {$ENDIF}
+  end;
 
 procedure lFindNext(var R: lSearchRec);
-begin
-  R.FullName := '';
-  SetDosError(SysFindNextNew(R.SR, False));
-  CorrectSearchRec(R);
- {JO: ошибка 49 в оси зарезервирована; мы её будем использовать для}
- {    отлова дупов на HPFS}
-{$IFDEF OS2}
-  if (DOSError = 0) and (R.FullName <> '') and (R.FullName <> '.') and (R.FullName <> '..') then
-    begin
-      if R.PrevName = R.FullName then DOSError := 49;
-      R.PrevName := R.FullName;
-    end;
-{$ENDIF}
-end;
+  begin
+    R.FullName := '';
+    SetDosError(SysFindNextNew(R.SR, False));
+    CorrectSearchRec(R);
+    {JO: ошибка 49 в оси зарезервирована; мы её будем использовать для}
+    {    отлова дупов на HPFS}
+    {$IFDEF OS2}
+    if (DOSError = 0) and (R.FullName <> '') and (R.FullName <> '.')
+        and (R.FullName <> '..')
+    then
+      begin
+        if R.PrevName = R.FullName then
+          DOSError := 49;
+        R.PrevName := R.FullName;
+      end;
+    {$ENDIF}
+  end;
 
 procedure lFindClose(var R: lSearchRec);
- var DEr: Longint;
-begin
- DEr := DOSError; {JO}
- SysFindCloseNew(R.SR);
- DOSError := DEr; {JO}
-end;
-
+  var
+    DEr: longInt;
+  begin
+    DEr := DOSError; {JO}
+    SysFindCloseNew(R.SR);
+    DOSError := DEr; {JO}
+  end;
 
 {$IFDEF WIN32}
 function lfGetShortFileName(const Name: String): String;
-var NZ, NZ2: TNameZ;
-  l: longint;
-begin
-  if (Name = '.') or (Name = '..') then begin lfGetShortFileName := Name; Exit; end;
-  NameToNameZ(Name, NZ2);
-  if SysPlatformID = 1 then
-    OemToChar(@NZ2, @NZ2);
+  var
+    NZ, NZ2: TNameZ;
+    l: longInt;
+  begin
+    if (Name = '.') or (Name = '..') then
+      begin
+        lfGetShortFileName := Name;
+        exit;
+      end;
+    NameToNameZ(Name, NZ2);
+    if SysPlatformId = 1 then
+      OemToChar(@NZ2, @NZ2);
     {AK155 18.07.2003 Тут и ниже приходится испралять баг Win9x,
       в которых GetShortPathName работает в кодировке ANSI несмотря на
       SetFileApisToOEM
     }
-  l := GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
-  if l = 0 then
-    lfGetShortFileName := NoShortName
-  else
-    begin
-    if SysPlatformID = 1 then
-      CharToOEM(@NZ, @NZ);
-    lfGetShortFileName := StrPas_(NZ);
-    end;
-end;
+    l := GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
+    if l = 0 then
+      lfGetShortFileName := NoShortName
+    else
+      begin
+        if SysPlatformId = 1 then
+          CharToOEM(@NZ, @NZ);
+        lfGetShortFileName := StrPas_(NZ);
+      end;
+  end { lfGetShortFileName };
 {$ENDIF}
 {$IFDEF DPMI32}
 function lfGetShortFileName(const Name: String): String;
-begin
-  lfGetShortFileName:=Name; {Cat:todo DPMI32}
-end;
+  begin
+    lfGetShortFileName := Name; {Cat:todo DPMI32}
+  end;
 {$ENDIF}
 {$IFDEF OS_DOS}
 function lfGetLongFileName(const Name: String): String;
-begin
- lfGetLongFileName:=Name;
-end;
+  begin
+    lfGetLongFileName := Name;
+  end;
 {$ENDIF}
 
-
-procedure lTrueName(const Name: String; var S: String);
- begin S:=FExpand(Name); end;
+procedure lTrueName(const Name: String; var s: String);
+  begin
+    s := FExpand(Name);
+  end;
 
 {AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь
 }
-function GetShareEnd(const S: String): integer;
+function GetShareEnd(const s: String): integer;
   var
-    SlashFound: Boolean;
+    SlashFound: boolean;
   begin
-  result := 0;
-  if Copy(S, 1, 2) <> '\\' then
-    Exit;
-  { ищем '\' после '\\', и далее до конца или до второго '\' }
-  result := 3;
-  SlashFound := false;
-  while result < Length(S) do
-    begin
-    if S[result+1] = '\' then
+    Result := 0;
+    if Copy(s, 1, 2) <> '\\' then
+      exit;
+    { ищем '\' после '\\', и далее до конца или до второго '\' }
+    Result := 3;
+    SlashFound := False;
+    while Result < Length(s) do
       begin
-      if SlashFound then
-        exit; // Успех. Сейчас Copy(S, 1, i) - это '\\server\share'
-      SlashFound := true;
+        if s[Result+1] = '\' then
+          begin
+            if SlashFound then
+              exit;
+              // Успех. Сейчас Copy(S, 1, i) - это '\\server\share'
+            SlashFound := True;
+          end;
+        Inc(Result);
       end;
-    inc(result);
-    end;
-  if not SlashFound then
-    result := 0;
-      { Неправильный это путь: '\\' в начале есть,
+    if not SlashFound then
+      Result := 0;
+    { Неправильный это путь: '\\' в начале есть,
       а '\' потом - нет. Надо бы как-то признак ошибки выставить,
       но непонятно как и для кого. }
-  end;
+  end { GetShareEnd };
 {/AK155 22-11-2003}
 
-
 {AK155 22-11-2003 Доработано с учётом UNC-путей }
-procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
-var
-  DriveEnd: integer;
-  DotPos, SlashPos, B: Byte;
-  D:String;
-  N:String;
-  E:String;
-begin
-      begin
-        Dir := '';
-        Name := '';
-        Ext := '';
-        DotPos := 0;
-        SlashPos := 0;
-        if (Length(Path) > 1) and (Path[2] = ':') then
-          DriveEnd := 2
-        else
-          DriveEnd := GetShareEnd(Path);
+procedure lFSplit(const Path: String; var Dir, Name, ext: String);
+  var
+    DriveEnd: integer;
+    DotPos, SlashPos, B: byte;
+    D: String;
+    n: String;
+    E: String;
+  begin
+    begin
+      Dir := '';
+      Name := '';
+      ext := '';
+      DotPos := 0;
+      SlashPos := 0;
+      if (Length(Path) > 1) and (Path[2] = ':') then
+        DriveEnd := 2
+      else
+        DriveEnd := GetShareEnd(Path);
 
-        for B := Length(Path) downto DriveEnd+1 do
+      for B := Length(Path) downto DriveEnd+1 do
         begin
           if (Path[B] = '.') and (DotPos = 0) then
-          begin
-            DotPos := B; {JO: имена могут состоять только из расширения}
-            if SlashPos <> 0 then Break;
-          end;
+            begin
+              DotPos := B;
+                {JO: имена могут состоять только из расширения}
+              if SlashPos <> 0 then
+                break;
+            end;
           if (Path[B] = '\') and (SlashPos = 0) then
-          begin
-            SlashPos := B;
-            if DotPos <> 0 then Break;
-          end;
+            begin
+              SlashPos := B;
+              if DotPos <> 0 then
+                break;
+            end;
         end;
 
-        if DotPos + SlashPos = 0 then
-          if DriveEnd <> 0 then Dir := Path
-          else Name := Path
+      if DotPos+SlashPos = 0 then
+        if DriveEnd <> 0 then
+          Dir := Path
         else
+          Name := Path
+      else
         begin
-          if DotPos > SlashPos then Ext := Copy(Path, DotPos, MaxStringLength)
-          else DotPos := 255;
+          if DotPos > SlashPos then
+            ext := Copy(Path, DotPos, MaxStringLength)
+          else
+            DotPos := 255;
 
-          if SlashPos <> 0 then Dir := Copy(Path, 1, SlashPos);
+          if SlashPos <> 0 then
+            Dir := Copy(Path, 1, SlashPos);
 
-          Name := Copy(Path, SlashPos + 1, DotPos - SlashPos - 1);
+          Name := Copy(Path, SlashPos+1, DotPos-SlashPos-1);
         end;
-      end;
-end;
+    end;
+  end { lFSplit };
 
-function lFileNameOf(var lF: lFile): string;
-begin
-  lFileNameOf := StrPas_(FileRec(lF.F).Name);
-end;
+function lFileNameOf(var lF: lFile): String;
+  begin
+    lFileNameOf := StrPas_(FileRec(lF.F).Name);
+  end;
 
-function lTextNameOf(var lT: lText): string;
-begin
-  lTextNameOf := StrPas_(TextRec(lT.T).Name);
-end;
+function lTextNameOf(var lT: lText): String;
+  begin
+    lTextNameOf := StrPas_(TextRec(lT.t).Name);
+  end;
 
-procedure lResetFileReadOnly(var F: lFile; RecSize: Word);
-var SaveMode: Byte;
-begin SaveMode := FileMode;
-      FileMode := 64;
-      lResetFile(F, RecSize);
-      FileMode := SaveMode;
-end;
+procedure lResetFileReadOnly(var F: lFile; RecSize: word);
+  var
+    SaveMode: byte;
+  begin
+    SaveMode := FileMode;
+    FileMode := 64;
+    lResetFile(F, RecSize);
+    FileMode := SaveMode;
+  end;
 
-procedure lRewriteFile(var F: lFile; RecSize: Word);
-var OldMode: byte;
-begin OldMode:= FileMode;
-      FileMode:=FileMode and $FC or 2;
-      Rewrite(F.F, RecSize);
-      FileMode:=OldMode;
-end;
+procedure lReWriteFile(var F: lFile; RecSize: word);
+  var
+    OldMode: byte;
+  begin
+    OldMode := FileMode;
+    FileMode := FileMode and $FC or 2;
+    rewrite(F.F, RecSize);
+    FileMode := OldMode;
+  end;
 
 procedure lResetTextReadOnly(var F: lText);
-var
-  SaveMode: Byte;
-begin
- SaveMode := FileMode;
- FileMode := 64;
- lResetText(F);
- FileMode := SaveMode;
-end;
+  var
+    SaveMode: byte;
+  begin
+    SaveMode := FileMode;
+    FileMode := 64;
+    lResetText(F);
+    FileMode := SaveMode;
+  end;
 
 procedure lRewriteText(var F: lText);
-var OldMode: byte;
-begin OldMode:= FileMode;
-      FileMode:=FileMode and $FC or 2;
-      Rewrite(F.T);
-      FileMode:=OldMode;
-end;
+  var
+    OldMode: byte;
+  begin
+    OldMode := FileMode;
+    FileMode := FileMode and $FC or 2;
+    rewrite(F.t);
+    FileMode := OldMode;
+  end;
 
 { Inline functions, which temporary compiled as not inline, because VP are   }
 { crased on compiling 8(                                                     }
 
-procedure lAssignFile(var F: lFile; const Name: String); begin Assign(F.F, Name); end;
-procedure lAssignText(var T: lText; const Name: String); begin Assign(T.T, Name); end;
-procedure lResetFile(var F: lFile; RecSize: Word); begin Reset(F.F, RecSize); end;
-procedure lRenameFile(var F: lFile; const NewName: String); begin Rename(F.F, NewName); end;
-procedure lRenameText(var T: lText; const NewName: String); begin Rename(T.T, NewName); end;
+procedure lAssignFile(var F: lFile; const Name: String);
+  begin
+    Assign(F.F, Name);
+  end;
+procedure lAssignText(var t: lText; const Name: String);
+  begin
+    Assign(t.t, Name);
+  end;
+procedure lResetFile(var F: lFile; RecSize: word);
+  begin
+    Reset(F.F, RecSize);
+  end;
+procedure lRenameFile(var F: lFile; const NewName: String);
+  begin
+    Rename(F.F, NewName);
+  end;
+procedure lRenameText(var t: lText; const NewName: String);
+  begin
+    Rename(t.t, NewName);
+  end;
 procedure lChangeFileName(const Name, NewName: String);
-  var F: File;
- begin
-  {$IFDEF Win32}
-   {$IFNDEF RecodeWhenDraw}
-  if RecodeCyrillicNames = 1 then
-    begin
-      Assign(F, OemToCharStr(Name));
-      Rename(F, OemToCharStr(NewName));
-    end
-   else
-    begin
-   {$ENDIF}
-  {$ENDIF}
-     Assign(F, Name);
-     Rename(F, NewName);
-  {$IFDEF Win32}
-   {$IFNDEF RecodeWhenDraw}
-    end;
-   {$ENDIF}
-  {$ENDIF}
- end;
-procedure lGetFAttr(var F: lFile; var Attr: Word); begin DOS.GetFAttr(F.F, Attr); end;
-procedure lSetFAttr(var F: lFile; Attr: Word);     begin DOS.SetFAttr(F.F, Attr); end;
-procedure lGetTAttr(var T: lText; var Attr: Word); begin DOS.GetFAttr(T.T, Attr); end;
-procedure lSetTAttr(var T: lText; Attr: Word);     begin DOS.SetFAttr(T.T, Attr); end;
-procedure lMkDir(const Path: String); begin MkDir(Path); end;
+  var
+    F: file;
+  begin
+    Assign(F, Name);
+    Rename(F, NewName);
+  end;
+procedure lGetFAttr(var F: lFile; var Attr: word);
+  begin
+    Dos.GetFAttr(F.F, Attr);
+  end;
+procedure lSetFAttr(var F: lFile; Attr: word);
+  begin
+    Dos.SetFAttr(F.F, Attr);
+  end;
+procedure lGetTAttr(var t: lText; var Attr: word);
+  begin
+    Dos.GetFAttr(t.t, Attr);
+  end;
+procedure lSetTAttr(var t: lText; Attr: word);
+  begin
+    Dos.SetFAttr(t.t, Attr);
+  end;
+procedure lMkDir(const Path: String);
+  begin
+    MkDir(Path);
+  end;
 
 {AK155: В DN/2, если каталог имеет атрибут ReadOnly, то на FAT или HPFS
 он удаляется нормально, а на FAT32 - не удаляется. Так что на всякий
 случай надо ReadOnly снять. }
 procedure lRmDir(const Path: String);
   var
-    f: file;
+    F: file;
     Attr: word;
   begin
-  assign(f, Path); Dos.GetFAttr(f, Attr);
-  if Attr and ReadOnly <> 0 then
-    Dos.SetFAttr(f, Attr and not ReadOnly);
-  if DosError <> 0 then
-    begin InOutRes := DosError; exit; end;
-  RmDir(Path);
+    Assign(F, Path);
+    Dos.GetFAttr(F, Attr);
+    if Attr and ReadOnly <> 0 then
+      Dos.SetFAttr(F, Attr and not ReadOnly);
+    if DOSError <> 0 then
+      begin
+        InOutRes := DOSError;
+        exit;
+      end;
+    RmDir(Path);
   end;
 {/AK155}
 
@@ -595,72 +675,74 @@ procedure lRmDir(const Path: String);
 запоминание остальных текущих каталогов приходится брать на себя}
 {$IFDEF WIN32}
 var
-  CurrentPaths: array[1..1+Byte('Z')-Byte('A')] of PathStr;
-{$ENDIF}
+  CurrentPaths: array[1..1+byte('Z')-byte('A')] of PathStr;
+  {$ENDIF}
 
 function lFExpand(const Path: String): String;
-var
-  D: Byte;
-begin
-{$IFDEF WIN32}
-  if (Length(Path) = 2) and (Path[2] = ':') then
-    begin
-      D := Byte(UpCase(Path[1]))-Byte('A')+1;
-      if CurrentPaths[D] = '' then
-        lFExpand := Path[1]+':\' {GetDir(D, Path)}
-      else
-        lFExpand := CurrentPaths[D]
-    end
-  else
-{$ENDIF}
-    lFExpand := FExpand(Path);
-end;
+  var
+    D: byte;
+  begin
+    {$IFDEF WIN32}
+    if (Length(Path) = 2) and (Path[2] = ':') then
+      begin
+        D := byte(UpCase(Path[1]))-byte('A')+1;
+        if CurrentPaths[D] = '' then
+          lFExpand := Path[1]+':\' {GetDir(D, Path)}
+        else
+          lFExpand := CurrentPaths[D]
+      end
+    else
+      {$ENDIF}
+      lFExpand := FExpand(Path);
+  end;
 
 procedure lChDir(const Path: String);
-begin
-  ChDir(Path);
-{$IFDEF WIN32}
-  if (InOutRes = 0) and (Length(Path) > 2) and (Path[2] = ':') then
-    CurrentPaths[Byte(UpCase(Path[1]))-Byte('A')+1] := Path;
-{$ENDIF}
-end;
+  begin
+    ChDir(Path);
+    {$IFDEF WIN32}
+    if (InOutRes = 0) and (Length(Path) > 2) and (Path[2] = ':')
+    then
+      CurrentPaths[byte(UpCase(Path[1]))-byte('A')+1] := Path;
+    {$ENDIF}
+  end;
 
-procedure lGetDir(D: Byte; var Path: String);
-begin
-{$IFDEF WIN32}
-  if D = 0 then
-    begin
-      GetDir(0, Path);
-      if Path[1] = '\' then
-        Exit;
-      D := Byte(Upcase(Path[1]))-Byte('A')+1;
-    end;
-  if CurrentPaths[D] = '' then
-    Path := Char(D+Byte('A')-1)+':\' {GetDir(D, Path)}
-  else
-    Path := CurrentPaths[D];
-{$ELSE}
-  GetDir(D, Path);
-{$ENDIF}
-end;
+procedure lGetDir(D: byte; var Path: String);
+  begin
+    {$IFDEF WIN32}
+    if D = 0 then
+      begin
+        GetDir(0, Path);
+        if Path[1] = '\' then
+          exit;
+        D := byte(UpCase(Path[1]))-byte('A')+1;
+      end;
+    if CurrentPaths[D] = '' then
+      Path := Char(D+byte('A')-1)+':\' {GetDir(D, Path)}
+    else
+      Path := CurrentPaths[D];
+    {$ELSE}
+    GetDir(D, Path);
+    {$ENDIF}
+  end;
 {/Cat}
 
 {JO}
 {$IFDEF Win32}
 procedure PrepareArrays;
- var I: Char;
- begin
-  for I := #0 to #255 do
-   begin
-    OemToCharArray[I] := I;
-    CharToOemArray[I] := I;
-   end;
-  OemToCharBuff(@OemToCharArray, @OemToCharArray, 256);
-  CharToOemBuff(@CharToOemArray, @CharToOemArray, 256);
- end;
+  var
+    i: Char;
+  begin
+    for i := #0 to#255 do
+      begin
+        OemToCharArray[i] := i;
+        CharToOemArray[i] := i;
+      end;
+    OemToCharBuff(@OemToCharArray, @OemToCharArray, 256);
+    CharToOemBuff(@CharToOemArray, @CharToOemArray, 256);
+  end;
 
-Begin {инициализация модуля}
- PrepareArrays;
-{$ENDIF}
-{/JO}
-End.
+begin{инициализация модуля}
+  PrepareArrays;
+  {$ENDIF}
+  {/JO}
+end.

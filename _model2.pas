@@ -22,65 +22,65 @@ type
   PFilePanel = ^TFilePanel;
   TFilePanel = packed record
     VMT: PViewVMT;
-    ObjectIsInited: Boolean;
+    ObjectIsInited: boolean;
     Owner: PGroup;
     Next: PView;
     Origin: TPoint;
     Size: TPoint;
     Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
+    GrowMode: byte;
+    DragMode: byte;
     HelpCtx: AWord;
     State: AWord;
     Options: AWord;
     EventMask: AWord;
     UpTmr: TEventTimer;
-    UpdTicks: LongInt;
-    OldSizeX: Integer;
-    IsValid, MSelect, SelectFlag, Loaded, ChangeLocked: Boolean;
+    UpdTicks: longInt;
+    OldSizeX: integer;
+    isValid, MSelect, SelectFlag, Loaded, ChangeLocked: boolean;
     InfoView, DirView, DriveLine: PView;
-    Delta, OldDelta, OldPos, DeltaX: LongInt;
+    Delta, OldDelta, OldPos, DeltaX: longInt;
     Files: PFilesCollection;
-    SortMode: Byte;
+    SortMode: byte;
     DirectoryName, OldDirectory: String;
     FileMask: String;
     SearchParam: TQuickSearchData;
     ScrollBar: PScrollBar;
-    DrawDisableLvl, SelNum, LineLength: LongInt;
+    DrawDisableLvl, SelNum, LineLength: longInt;
     SelectedLen, PackedLen: TSize;
     WasActive, PosChanged, CommandEnabling,
-    ViewEnabled: Boolean;
+    ViewEnabled: boolean;
     TotalInfo, FreeSpace: TSize;
-    PanelFlags: Word;
-    LastDriveFlags: Word;
+    PanelFlags: word;
+    LastDriveFlags: word;
     Drive: PDrive;
-    ForceReading: Boolean;
-    DriveState: Word;
+    ForceReading: boolean;
+    DriveState: word;
     LastCurPos: TPoint;
-  end;
+    end;
 
   PCommandLine = ^TCommandLine;
   TCommandLine = packed record
     VMT: PViewVMT;
-    ObjectIsInited: Boolean;
+    ObjectIsInited: boolean;
     Owner: PGroup;
     Next: PView;
     Origin: TPoint;
     Size: TPoint;
     Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
+    GrowMode: byte;
+    DragMode: byte;
     HelpCtx: AWord;
     State: AWord;
     Options: AWord;
     EventMask: AWord;
     UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    UpdTicks: longInt;
     Dir: String;
-    DeltaX, CurX: LongInt;
-    Overwrite: Boolean;
+    DeltaX, CurX: longInt;
+    Overwrite: boolean;
     LineType: TLineType;
-  end;
+    end;
 
 implementation
 

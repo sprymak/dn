@@ -47,17 +47,17 @@
 {AK155 = Alexey Korop, 2:461/155@fidonet}
 
 {$IFDEF DNPRG}
-Procedure EndFatalError ;
+procedure EndFatalError;
 
-var
-  C,AC : SmallWord;
-  B : array[0..44] of SmallWord;
-  SysBuf: PByteArray;
-  I : Byte;
-  t : text;
+  var
+    C, AC: SmallWord;
+    B: array[0..44] of SmallWord;
+    SysBuf: PByteArray;
+    i: byte;
+    t: text;
 
-{Cat: закомментировал, объяснения см. ниже}
-(*
+    {Cat: закомментировал, объяснения см. ниже}
+    (*
 function GetCoord(X, Y: LongInt): SmallWord;
 begin
  GetCoord := ((ScreenHeight-8) div 2+Y)*(ScreenWidth*2)+
@@ -108,22 +108,22 @@ var CO : SmallWord ;
   end;
 *)
 
-begin
-  SysTvClrScr;
-  SysTvShowBuf(0, ScreenWidth*ScreenHeight);
-  SysBuf := SysTVGetSrcBuf;
+  begin
+    SysTVClrScr;
+    SysTvShowBuf(0, ScreenWidth*ScreenHeight);
+    SysBuf := SysTVGetSrcBuf;
 
-  { Create Report File }
-  DoDump;
+    { Create Report File }
+    DoDump;
 
-{Cat: закомментировал эту процедуру рисования красивого окошка, т.к. если
+    {Cat: закомментировал эту процедуру рисования красивого окошка, т.к. если
       выходим через Exception, то в некоторых случаях оно не рисуется
       (рисуется или нет - зависит от местоположения исключения), а если
       выходим через ExitProc, то оно не рисуется никогда. Вероятно, это
       происходит из-за неинициализированности Turbo Vision-а. Поскольку
       вывод сообщения об ошибке - это весьма странное место для наведения
       красивости, на мой взгляд, сойдёт и вывод через обычный Writeln}
-(*
+    (*
   { Display Error Box }
   if Lo(ScreenMode) = smMono then
     begin C := SysMonoAttr; AC := $0F07 end else
@@ -147,73 +147,74 @@ begin
       NewLine;
     end;
 *)
-  Writeln('Fatal Error'^M^J'───────────'^M^J^M^J+
-          'Exception 0',Hex2(ExitCode),'h at address ',Hex8(LongInt(ErrorAddr)),^M^J+
-          'Report to RU.SHELL.DN'^M^J+
-          '( file DN.ERR )'^M^J^M^J+
-          'Press any key...');
-{/Cat}
+    Writeln('Fatal Error'^M^J'───────────'^M^J^M^J+
+    'Exception 0', Hex2(ExitCode), 'h at address ', Hex8(longInt(
+      ErrorAddr)), ^M^J+
+    'Report to RU.SHELL.DN'^M^J+
+    '( file DN.ERR )'^M^J^M^J+
+    'Press any key...');
+    {/Cat}
 
-{Cat: ошибка - это, конечно, страшно, но не настолько, чтобы загружать
+    {Cat: ошибка - это, конечно, страшно, но не настолько, чтобы загружать
       систему на 100% и нарушать нормальную работу других программ}
-  ErrorAddr := nil;
-  repeat
-    TinySlice;
-  until SysKeyPressed;
-  while SysKeyPressed do
-    SysReadKey;
-  SysTVInitCursor;
-{/Cat}
-end;
+    ErrorAddr := nil;
+    repeat
+      TinySlice;
+    until SysKeyPressed;
+    while SysKeyPressed do
+      SysReadKey;
+    SysTVInitCursor;
+    {/Cat}
+  end { EndFatalError };
 {$ENDIF}
 
 // Detects mouse driver, moves mouse pointer to the top left corner
 
 procedure DetectMouse;
-begin
-  ButtonCount := SysTVDetectMouse;
-end;
+  begin
+    ButtonCount := SysTVDetectMouse;
+  end;
 
 // Shows mouse pointer
 
 procedure ShowMouse;
-begin
-  SysTVShowMouse;
-end;
+  begin
+    SysTVShowMouse;
+  end;
 
 // Hides mouse pointer
 
 procedure HideMouse;
-begin
-  SysTVHideMouse;
-end;
+  begin
+    SysTVHideMouse;
+  end;
 
 // Initializes Turbo Vision's event manager by setting event mask and
 // showing the mouse. Called automatically by TApplication.Init.
 
 procedure InitEvents;
-begin
-  if ButtonCount <> 0 then
   begin
-    DownButtons := 0;
-    LastDouble := False;
-    LastButtons := 0;       // Assume that no button is pressed
-    SysTVInitMouse(MouseWhere.X, MouseWhere.Y);
-    MouseEvents := True;
+    if ButtonCount <> 0 then
+      begin
+        DownButtons := 0;
+        LastDouble := False;
+        LastButtons := 0; // Assume that no button is pressed
+        SysTVInitMouse(MouseWhere.X, MouseWhere.Y);
+        MouseEvents := True;
+      end;
   end;
-end;
 
 // Terminates Turbo Vision's event manager and hides the mouse. Called
 // automatically by TApplication.Done.
 
 procedure DoneEvents;
-begin
-  if ButtonCount <> 0 then
   begin
-    SysTVDoneMouse(False);
-    MouseEvents := False;
+    if ButtonCount <> 0 then
+      begin
+        SysTVDoneMouse(False);
+        MouseEvents := False;
+      end;
   end;
-end;
 
 // Checks whether a mouse event is available by polling the mouse event
 // queue maintained by OS/2. If a mouse event has occurred, Event.What
@@ -225,99 +226,104 @@ end;
 // GetMouseEvent is called by TProgram.GetEvent.
 
 procedure GetMouseEvent(var Event: TEvent);
-var
-  SysMouseEvent: TSysMouseEvent;
-  CurTicks: Word;
-  B: Byte;
+  var
+    SysMouseEvent: TSysMouseEvent;
+    CurTicks: word;
+    B: byte;
 
-procedure StoreEvent(MouWhat: Word);
-begin
-  LastButtons := MouseButtons;
-  MouseWhere.X := SysMouseEvent.smePos.X;
-  MouseWhere.Y := SysMouseEvent.smePos.Y;
-  with Event do
-  begin
-    What := MouWhat;
-    Buttons := MouseButtons;
-    Double  := LastDouble;
-    Where.X := SysMouseEvent.smePos.X;
-    Where.Y := SysMouseEvent.smePos.Y;
-  end;
-end;
-
-// GetMouseEvent body
-
-begin
-  if not MouseEvents then
-    Event.What := evNothing
-  else
+  procedure StoreEvent(MouWhat: word);
     begin
-      if not SysTVGetMouseEvent(SysMouseEvent) then
+      LastButtons := MouseButtons;
+      MouseWhere.X := SysMouseEvent.smePos.X;
+      MouseWhere.Y := SysMouseEvent.smePos.Y;
+      with Event do
         begin
-          MouseButtons := LastButtons;
-          SysMouseEvent.smeTime := SysSysMsCount;
-          SysMouseEvent.smePos.X := MouseWhere.X;
-          SysMouseEvent.smePos.Y := MouseWhere.Y;
-        end
-      else
-        begin
-          if MouseReverse then
-          begin
-            B := 0;
-            if (SysMouseEvent.smeButtons and $0001) <> 0 then
-              Inc(B, $0002);
-            if (SysMouseEvent.smeButtons and $0002) <> 0 then
-              Inc(B, $0001);
-            SysMouseEvent.smeButtons := B;
-          end;
-          MouseButtons := SysMouseEvent.smeButtons;
+          What := MouWhat;
+          Buttons := MouseButtons;
+          Double := LastDouble;
+          Where.X := SysMouseEvent.smePos.X;
+          Where.Y := SysMouseEvent.smePos.Y;
         end;
-      // ms -> ticks: 1 DOS timer tick = 55ms
-      CurTicks  := SysMouseEvent.smeTime div 55;
-      // Process mouse event
-      if (LastButtons <> 0) and (MouseButtons = 0) then
-        StoreEvent(evMouseUp) // button is released
-      else
-        if LastButtons = MouseButtons then
+    end;
+
+  // GetMouseEvent body
+
+  begin { GetMouseEvent }
+    if not MouseEvents then
+      Event.What := evNothing
+    else
+      begin
+        if not SysTVGetMouseEvent(SysMouseEvent) then
           begin
-            if (SysMouseEvent.smePos.Y <> MouseWhere.Y) or (SysMouseEvent.smePos.X <> MouseWhere.X) then
-              StoreEvent(evMouseMove)
-            else
-              if (MouseButtons <> 0) and ((CurTicks - AutoTicks) >= AutoDelay) then
-                begin
-                  AutoTicks := CurTicks;
-                  AutoDelay := 1;
-                  StoreEvent(evMouseAuto);
-                end
-              else
-                StoreEvent(evNothing);
+            MouseButtons := LastButtons;
+            SysMouseEvent.smeTime := SysSysMsCount;
+            SysMouseEvent.smePos.X := MouseWhere.X;
+            SysMouseEvent.smePos.Y := MouseWhere.Y;
           end
-        else // CurButton <> 0, LastButton = 0
+        else
+          begin
+            if MouseReverse then
+              begin
+                B := 0;
+                if (SysMouseEvent.smeButtons and $0001) <> 0 then
+                  Inc(B, $0002);
+                if (SysMouseEvent.smeButtons and $0002) <> 0 then
+                  Inc(B, $0001);
+                SysMouseEvent.smeButtons := B;
+              end;
+            MouseButtons := SysMouseEvent.smeButtons;
+          end;
+        // ms -> ticks: 1 DOS timer tick = 55ms
+        CurTicks := SysMouseEvent.smeTime div 55;
+        // Process mouse event
+        if (LastButtons <> 0) and (MouseButtons = 0) then
+          StoreEvent(evMouseUp) // button is released
+        else if LastButtons = MouseButtons then
+          begin
+            if (SysMouseEvent.smePos.Y <> MouseWhere.Y) or (
+                SysMouseEvent.smePos.X <> MouseWhere.X)
+            then
+              StoreEvent(evMouseMove)
+            else if (MouseButtons <> 0) and ((CurTicks-AutoTicks) >=
+                AutoDelay)
+            then
+              begin
+                AutoTicks := CurTicks;
+                AutoDelay := 1;
+                StoreEvent(evMouseAuto);
+              end
+            else
+              StoreEvent(evNothing);
+          end
+        else// CurButton <> 0, LastButton = 0
           begin
             LastDouble := False;
-            if (MouseButtons = DownButtons) and (SysMouseEvent.smePos.Y = DownWhere.Y) and (SysMouseEvent.smePos.X = DownWhere.X)
-              and ((CurTicks - DownTicks) < DoubleDelay) then
-                LastDouble := True;
+            if (MouseButtons = DownButtons) and (SysMouseEvent.
+                smePos.Y = DownWhere.Y) and (SysMouseEvent.smePos.X =
+                DownWhere.X)
+              and ((CurTicks-DownTicks) < DoubleDelay)
+            then
+              LastDouble := True;
             DownButtons := MouseButtons;
             DownWhere.Y := SysMouseEvent.smePos.Y;
             DownWhere.X := SysMouseEvent.smePos.X;
-            DownTicks   := CurTicks;
-            AutoTicks   := CurTicks;
-            AutoDelay   := RepeatDelay;
+            DownTicks := CurTicks;
+            AutoTicks := CurTicks;
+            AutoDelay := RepeatDelay;
             StoreEvent(evMouseDown);
           end;
-    end;
-end;
+      end;
+  end { GetMouseEvent };
 
 procedure InitKeyboard;
-begin
-  SysTVKbdInit;
-end;
+  begin
+    SysTVKbdInit;
+  end;
 
 procedure UpdateMouseWhere;
-begin
-  SysTVUpdateMouseWhere(MouseWhere.X, MouseWhere.Y);
-end;
+  begin
+    SysTVUpdateMouseWhere(MouseWhere.X, MouseWhere.Y);
+  end;
 
 // Checks whether a keyboard event is available. If a key has been
 // pressed, Event.What is set to evKeyDown and Event.KeyCode is set to
@@ -325,65 +331,52 @@ end;
 // GetKeyEvent is called by TProgram.GetEvent.
 
 procedure GetKeyEvent(var Event: TEvent);
-var
-  I: Integer;
-  SysKeyEvent: TSysKeyEvent;
-
-  {Cat}
-  {$IFDEF KEYLOG}
-  F: Text;
-
-  function Hex(L: LongInt): String;
-  const
-    H: array[0..15] of Char = '0123456789ABCDEF';
   var
-    I: Integer;
-  begin
-    SetLength(Result, 6);
-    for I := 6 downto 1 do
-      begin
-        Result[I] := H[L and 15];
-        L := L shr 4;
-      end;
-  end;
-  {$ENDIF}
-  {/Cat}
+    i: integer;
+    SysKeyEvent: TSysKeyEvent;
 
-{AK155 Поскольку под OS/2 я не умею ловить событие отпускания
+    {Cat}
+    {/Cat}
+
+    {AK155 Поскольку под OS/2 я не умею ловить событие отпускания
 клавиши, то проходится распознавать это через контроль времени
 отсутствия нажатой клавиши. По-хорошему, надо было бы контролировать,
 что время превышает время автоповтора клавиатуры, но я по-простому
 сделал контроль на превышение 500 мс. Нужно это для генерации
 'клавиши' kbBackUp (отпускание BackSpace), которая переключает
 обработку kbBack с редактирования комстроки на выход из каталога}
-const
-  PrevKeyTime: longint = 0;
-  PrevKey: SmallWord = 0;
-{/AK155}
+  const
+    PrevKeyTime: longInt = 0;
+    PrevKey: SmallWord = 0;
+    {/AK155}
 
-label
-  WriteKey; {AK155}
-begin
-  with Event do
-    if not SysTVGetKeyEvent(SysKeyEvent) then
-      begin
-        ShiftState := SysTVGetShiftState;
-        ShiftState2 := SysTVGetShiftState2; {JO}
-{JO}    if ((ShiftState and kbAltShift) = 0) and ((OldShiftState and kbAltShift) <> 0)
-        and DoubleAltUnlock then
-          begin
-            What := evKeyDown;
-            KeyCode := kbDoubleAlt;
-          end
-        else
-        if ((ShiftState and kbCtrlShift) = 0) and ((OldShiftState and kbCtrlShift) <> 0)
-        and DoubleCtrlUnlock then
-          begin
-            What := evKeyDown;
-            KeyCode := kbDoubleCtrl;
-          end
-        else {AK155}
-          if (PrevKey = kbBack) and (GetTimemSec-PrevKeyTime > 500) then
+  label
+    WriteKey; {AK155}
+  begin
+    with Event do
+      if not SysTVGetKeyEvent(SysKeyEvent) then
+        begin
+          ShiftState := SysTVGetShiftState;
+          ShiftState2 := SysTVGetShiftState2; {JO}
+          {JO} if ((ShiftState and kbAltShift) = 0) and ((
+              OldShiftState and kbAltShift) <> 0)
+            and DoubleAltUnlock
+          then
+            begin
+              What := evKeyDown;
+              KeyCode := kbDoubleAlt;
+            end
+          else if ((ShiftState and kbCtrlShift) = 0) and ((
+              OldShiftState and kbCtrlShift) <> 0)
+            and DoubleCtrlUnlock
+          then
+            begin
+              What := evKeyDown;
+              KeyCode := kbDoubleCtrl;
+            end
+          else{AK155} if (PrevKey = kbBack) and (GetTimemSec-
+              PrevKeyTime > 500)
+          then
             begin
               PrevKey := 0;
               SysKeyEvent.skeKeyCode := kbBackUp;
@@ -397,90 +390,89 @@ begin
               if ((ShiftState and kbCtrlShift) = 0) then
                 DoubleCtrlUnlock := True;
             end;
-{/JO}   OldShiftState := ShiftState
-      end
-    else
-      begin
+          {/JO}OldShiftState := ShiftState
+        end
+      else
+        begin
 WriteKey:
-        OldShiftState := 0; {JO}
-        What       := evKeyDown;
-        KeyCode    := SysKeyEvent.skeKeyCode or ((SysKeyEvent.skeShiftState and $0F) shl 16); {Cat}
-        ShiftState := SysKeyEvent.skeShiftState;
-        {Cat}
-        {$IFDEF KEYLOG}
-        Assign(F, 'c:\dnkeys.log');
-        Append(F);
-        if IOResult <> 0 then
-          Rewrite(F);
-        Writeln(F, CharCode, Hex(KeyCode):8);
-        Close(F);
-        if IOResult <> 0 then
-          ;
-        {$ENDIF}
-        if (KeyCode and $030000) <> 0 then
-          KeyCode := KeyCode or $030000;
-        {/Cat}
-        if ((ShiftState and kbAltShift) <> 0) then DoubleAltUnlock := False; {JO}
-        if ((ShiftState and kbCtrlShift) <> 0) then DoubleCtrlUnlock := False; {JO}
-        if (CharCode = #$E0) and (ScanCode in
-          [Hi(kbLeft), Hi(kbRight), Hi(kbUp), Hi(kbDown),
-           Hi(kbIns), Hi(kbDel), Hi(kbHome), Hi(kbEnd), Hi(kbPgUp), Hi(kbPgDn),
-           Hi(kbCtrlLeft), Hi(kbCtrlRight), Hi(kbCtrlUp), Hi(kbCtrlDown),
-           Hi(kbCtrlIns), Hi(kbCtrlDel), Hi(kbCtrlHome), Hi(kbCtrlEnd), Hi(kbCtrlPgUp), Hi(kbCtrlPgDn)]) then
-             CharCode := #0;      // Gray Keys
-        if KeyCode = $E00D then   // Gray Enter
-          KeyCode := kbEnter;
-       {$IFDEF Win32}
-        if KeyCode = $b2a00 then // LAlt+LShift under Win32
-          begin
-            What := evNothing;
-            KeyCode := 0;
-          end;
-        if KeyCode = $41b1b then     // Ctrl-]  в виндах с русской раскладкой
-          KeyCode := kbCtrlSqBracketR; //       по дефолту
-        if KeyCode = $71b1b then    // Shift-Ctrl-] в виндах с русской
-          KeyCode := kbCtrlShiftSqBracketR; //  раскладкой по дефолту
-       {$ENDIF}
-       {$IFDEF OS2}
-       // ниже идут возможные варианты клавиш Ctrl-[ и Ctrl-] под OS/2
-       // при штатной русской раскладке
-        if KeyCode = $041A85 then
-           KeyCode := kbCtrlSqBracketL;
-        if (KeyCode = $041B8A) or (KeyCode = $041B91) then
-           KeyCode := kbCtrlSqBracketR;
-        if KeyCode = $071A85 then
-           KeyCode := kbCtrlShiftSqBracketL;
-        if (KeyCode = $071B8A) or (KeyCode = $071B91) then
-           KeyCode := kbCtrlShiftSqBracketR;
-       {$ENDIF}
-        PrevKey := KeyCode;
-        PrevKeyTime := GetTimemSec;
-      end;
-end;
+          OldShiftState := 0; {JO}
+          What := evKeyDown;
+          KeyCode := SysKeyEvent.skeKeyCode or ((SysKeyEvent.
+            skeShiftState and $0F) shl 16); {Cat}
+          ShiftState := SysKeyEvent.skeShiftState;
+          {Cat}
+          if (KeyCode and $030000) <> 0 then
+            KeyCode := KeyCode or $030000;
+          {/Cat}
+          if ((ShiftState and kbAltShift) <> 0) then
+            DoubleAltUnlock := False; {JO}
+          if ((ShiftState and kbCtrlShift) <> 0) then
+              DoubleCtrlUnlock := False; {JO}
+          if (CharCode = #$E0) and (ScanCode in
+            [Hi(kbLeft), Hi(kbRight), Hi(kbUp), Hi(kbDown),
+            Hi(kbIns), Hi(kbDel), Hi(kbHome), Hi(kbEnd), Hi(kbPgUp), Hi(
+              kbPgDn),
+            Hi(kbCtrlLeft), Hi(kbCtrlRight), Hi(kbCtrlUp), Hi(
+              kbCtrlDown),
+            Hi(kbCtrlIns), Hi(kbCtrlDel), Hi(kbCtrlHome), Hi(
+              kbCtrlEnd), Hi(kbCtrlPgUp), Hi(kbCtrlPgDn)])
+          then
+            CharCode := #0; // Gray Keys
+          if KeyCode = $E00D then// Gray Enter
+            KeyCode := kbEnter;
+          {$IFDEF Win32}
+          if KeyCode = $b2a00 then// LAlt+LShift under Win32
+            begin
+              What := evNothing;
+              KeyCode := 0;
+            end;
+          if KeyCode = $41b1b then
+              // Ctrl-]  в виндах с русской раскладкой
+            KeyCode := kbCtrlSqBracketR; //       по дефолту
+          if KeyCode = $71b1b then// Shift-Ctrl-] в виндах с русской
+            KeyCode := kbCtrlShiftSqBracketR;
+            //  раскладкой по дефолту
+          {$ENDIF}
+          {$IFDEF OS2}
+          // ниже идут возможные варианты клавиш Ctrl-[ и Ctrl-] под OS/2
+          // при штатной русской раскладке
+          if KeyCode = $041A85 then
+            KeyCode := kbCtrlSqBracketL;
+          if (KeyCode = $041B8A) or (KeyCode = $041B91) then
+            KeyCode := kbCtrlSqBracketR;
+          if KeyCode = $071A85 then
+            KeyCode := kbCtrlShiftSqBracketL;
+          if (KeyCode = $071B8A) or (KeyCode = $071B91) then
+            KeyCode := kbCtrlShiftSqBracketR;
+          {$ENDIF}
+          PrevKey := KeyCode;
+          PrevKeyTime := GetTimemSec;
+        end;
+  end { GetKeyEvent };
 
 // Returns a byte containing the current Shift key state, as reported by
 // the system. The return value contains a combination of the kbXXXX constants
 // for shift states.
 
-function GetShiftState: Byte;
-var
-  Handled: Boolean;
-begin
-  Handled := False;
-{  if @GetShiftStateHandler <> nil then
+function GetShiftState: byte;
+  var
+    Handled: boolean;
+  begin
+    Handled := False;
+    {  if @GetShiftStateHandler <> nil then
     Handled := GetShiftStateHandler(Result);
   if not Handled then}
     Result := SysTVGetShiftState;
-end;
+  end;
 
 {--------------------------------------------------}
 
 // Ctrl-Break handler
 
-function TVCtrlBreak: Boolean; {JO}
-{Var Res: Longint;}
-begin
- {Res := messagebox('Do you wish to terminate DN/2 ?',nil, mfYesButton+mfNoButton);
+function TVCtrlBreak: boolean; {JO}
+  {Var Res: Longint;}
+  begin
+    {Res := messagebox('Do you wish to terminate DN/2 ?',nil, mfYesButton+mfNoButton);
   if Res = cmYes then
     begin
       CtrlBreakHit := True;
@@ -489,11 +481,11 @@ begin
     end
   else
     begin}
-      CtrlBreakHit := True;
-     {Abort := True;}
-      TVCtrlBreak := True;
-   {end;}
-end;
+    CtrlBreakHit := True;
+    {Abort := True;}
+    TVCtrlBreak := True;
+    {end;}
+  end;
 
 {--------------------------------------------------}
 
@@ -516,22 +508,23 @@ end;
 //   'p' means the parameter is a Pointer to be displayed in hexadecimal.
 //   '#' sets the parameter index to nnn.
 
-procedure FormatStr(var Result: String; const Format: String; var Params);
-//AK155  assembler; {&USES ebx,esi,edi} {&FRAME+}
-var
-  ParOfs: Longint;
-  Filler,Justify: Byte;
-  Buffer: array [1..12] of Byte;
-const
-  HexDigits: array [0..15] of Char = '0123456789ABCDEF';
+procedure FormatStr(var Result: String; const Format: String; var
+    Params);
+  //AK155  assembler; {&USES ebx,esi,edi} {&FRAME+}
+  var
+    ParOfs: longInt;
+    Filler, Justify: byte;
+    Buffer: array[1..12] of byte;
+  const
+    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
 
-// Convert next parameter to string
-// EXPECTS:     al    = Conversion character
-// RETURNS:     esi   = Pointer to string
-//              ecx   = String length
+    // Convert next parameter to string
+    // EXPECTS:     al    = Conversion character
+    // RETURNS:     esi   = Pointer to string
+    //              ecx   = String length
 
-procedure Convert; {&USES None} {&FRAME-}
-asm
+  procedure Convert; {&USES None} {&FRAME-}
+  asm
                 mov     edx,eax
                 mov     esi,Params
                 lodsd
@@ -622,17 +615,19 @@ asm
                 lodsb
                 mov     cl,al
               @@Done:
-end;
+end
+    ;
 
-// FormatStr body
+  // FormatStr body
 
-begin  {AK155: без анализа @Params = nil FormatStr падает, например,
+  begin
+      {AK155: без анализа @Params = nil FormatStr падает, например,
  на подтверждении удаления каталога с именем %F. В классическорм DN
  эта проверка была, в DN OSP RC1 Dos - тоже есть, а тут куда-то делась. }
-if @Params = nil then
-  Result := Format
-else
- asm
+    if @Params = nil then
+      Result := Format
+    else
+      asm
  push ebx
  push esi
  push edi
@@ -755,17 +750,18 @@ else
  pop edi
  pop esi
  pop ebx
- end;
-end;
+ end
+        ;
+  end { FormatStr };
 
 // Prints the string on the screen
 
-procedure PrintStr(const S: String);
-var
-  Count: Longint;
-begin
-  SysFileWrite(SysFileStdOut, S[1], Length(S), Count);
-end;
+procedure PrintStr(const s: String);
+  var
+    Count: longInt;
+  begin
+    SysFileWrite(SysFileStdOut, s[1], Length(s), Count);
+  end;
 
 // Buffer move routines
 
@@ -774,7 +770,8 @@ end;
 // high bytes of the words in Dest are set to Attr, or remain unchanged
 // if Attr is zero.
 
-procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: Word); {&USES esi,edi} {&FRAME-}
+procedure MoveBuf(var Dest; var Source; Attr: byte; Count: word);
+    {&USES esi,edi} {&FRAME-}
 asm
                 mov     ecx,Count
                 jecxz   @@4
@@ -795,9 +792,11 @@ asm
                 movsb
                 loop    @@2
               @@4:
-end;
+end
+  ;
 
-procedure MoveColor(var Buf; Num: Word; Attr: Byte);assembler; {$USES EBX, ECX}
+procedure MoveColor(var Buf; Num: word; Attr: byte); assembler;
+    {$USES EBX, ECX}
 asm
    mov    EBX,Buf
    mov    ECX,Num
@@ -809,14 +808,16 @@ asm
    add    bx,2
    loop   @Rep
 @End:
-end;
+end
+  ;
 
 // Moves characters into a buffer. The low bytes of the first Count
 // words of Dest are set to C, or remain unchanged if C = #0. The high
 // bytes of the words are set to Attr, or remain unchanged if Attr is
 // zero.
 
-procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: Word); {&USES edi} {&FRAME-}
+procedure MoveChar(var Dest; C: Char; Attr: byte; Count: word);
+    {&USES edi} {&FRAME-}
 asm
                 mov     ecx,Count
                 jecxz   @@4
@@ -844,7 +845,8 @@ asm
                 stosb
                 loop    @@2
               @@4:
-end;
+end
+  ;
 
 // Moves a two-colored string into a buffer. The characters in Str are
 // moved into the low bytes of corresponding words in Dest. The high
@@ -857,7 +859,8 @@ end;
 Это согласовано с advance.FormatLongName.MakeResult
 06.01.2001}
 
-procedure MoveCStr(var Dest; const Str: String; Attrs: Word); {&USES esi,edi} {&FRAME-}
+procedure MoveCStr(var Dest; const Str: String; Attrs: word);
+    {&USES esi,edi} {&FRAME-}
 asm
                 xor     ecx,ecx
                 mov     esi,Str
@@ -888,13 +891,15 @@ asm
                 xchg    ah,dh
                 loop    @@1
               @@3:
-end;
+end
+  ;
 
 // Moves a string into a buffer. The characters in Str are moved into
 // the low bytes of corresponding words in Dest. The high bytes of the
 // words are set to Attr, or remain unchanged if Attr is zero.
 
-procedure MoveStr(var Dest; const Str: String; Attr: Byte); {&USES esi,edi} {&FRAME-}
+procedure MoveStr(var Dest; const Str: String; Attr: byte);
+    {&USES esi,edi} {&FRAME-}
 asm
                 xor     ecx,ecx
                 mov     esi,Str
@@ -917,14 +922,15 @@ asm
                 movsb
                 loop    @@2
               @@4:
-end;
+end
+  ;
 
 // Returns the length of string S, where S is a control string using
 // tilde characters ('~') to designate shortcut characters. The tildes
 // are excluded from the length of the string, as they will not appear
 // on the screen.
 
-function CStrLen(const S: String): Integer; {&USES edi} {&FRAME-}
+function CStrLen(const s: String): integer; {&USES edi} {&FRAME-}
 asm
                 xor     ecx,ecx
                 mov     edi,S
@@ -942,8 +948,8 @@ asm
                 jmp     @@1
               @@2:
                 mov     eax,edx
-end;
-
+end
+  ;
 
 // Drivers unit initialization and shutdown
 
@@ -951,19 +957,27 @@ var
   SaveExit: Pointer;
 
 procedure ExitDrivers;
-begin
-  ExitProc := SaveExit;
-  {$IFDEF DNPRG}
-  if ErrorAddr <> nil then
-    EndFatalError;
-  {$ENDIF}
-  DoneSysError;
-//AK155  DoneEvents;
-  { Это в DN бесполезно, а в RCP вредно: под OS/2 отбивается мышь }
-  SysTVDoneMouse(True);
-end;
+  begin
+    ExitProc := SaveExit;
+    {$IFDEF DNPRG}
+    if ErrorAddr <> nil then
+      EndFatalError;
+    {$ENDIF}
+    DoneSysError;
+    //AK155  DoneEvents;
+    { Это в DN бесполезно, а в RCP вредно: под OS/2 отбивается мышь }
+    SysTVDoneMouse(True);
+  end;
 
-procedure SetMouseSpeed(XS, YS: Byte);begin end; {?}
-procedure InitSysError; begin SysErrActive := True end; {?}
-procedure DoneSysError; begin SysErrActive := False end; {?}
+procedure SetMouseSpeed(XS, YS: byte);
+  begin
+  end; {?}
+procedure InitSysError;
+  begin
+    SysErrActive := True
+  end; {?}
+procedure DoneSysError;
+  begin
+    SysErrActive := False
+  end; {?}
 

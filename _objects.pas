@@ -18,41 +18,41 @@ uses
 type
   PEmptyObject = ^TEmptyObject;
   TEmptyObject = object
-    constructor Init;
+    Constructor Init;
     procedure Free;
     destructor Done; virtual;
-  end;
+    end;
 
   PObject = ^TObject;
   TObject = object(TEmptyObject)
-    ObjectIsInited: Boolean;
-    constructor Init;
+    ObjectIsInited: boolean;
+    Constructor Init;
     {destructor Done; virtual;}
-  end;
+    end;
 
 implementation
 
 uses
   _DNFuncs;
 
-constructor TEmptyObject.Init;
-begin
-  _TEmptyObject^.Init(nil, @Self);
-end;
+Constructor TEmptyObject.Init;
+  begin
+    _TEmptyObject^.Init(nil, @Self);
+  end;
 
 procedure TEmptyObject.Free;
-begin
-  _TEmptyObject^.Free(@Self);
-end;
+  begin
+    _TEmptyObject^.Free(@Self);
+  end;
 
 destructor TEmptyObject.Done;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
-constructor TObject.Init;
-begin
-  _TObject^.Init(nil, @Self);
-end;
+Constructor TObject.Init;
+  begin
+    _TObject^.Init(nil, @Self);
+  end;
 
 end.

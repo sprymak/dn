@@ -52,153 +52,81 @@
    special functions, there is no Pascal way to call them directly.
 *)
 
-unit CallSpcB;
+unit CallSpcb;
 
 interface
 
 type
-{$IFNDEF BIT_32}
-   FramePointer = Word;
-{$ELSE BIT_32}
-   FramePointer = Pointer;
-{$ENDIF}
+  FramePointer = Pointer;
 
 function CurrentFramePointer: FramePointer;
 function PreviousFramePointer: FramePointer;
 
-function CallVoidConstructor(Ctor: Pointer; Obj: Pointer; VMT: Pointer):
-  Pointer;
-function CallPointerConstructor(Ctor: Pointer; Obj: pointer; VMT: Pointer;
+function CallVoidConstructor(Ctor: Pointer; Obj: Pointer; VMT:
+    Pointer):
+Pointer;
+function CallPointerConstructor(Ctor: Pointer; Obj: Pointer; VMT:
+    Pointer;
   Param1: Pointer): Pointer;
 
-function CallVoidMethod(Method: pointer; Obj: pointer): Pointer;
-function CallPointerMethod(Method: pointer; Obj: pointer; Param1: pointer):
-  Pointer;
+function CallVoidMethod(Method: Pointer; Obj: Pointer): Pointer;
+function CallPointerMethod(Method: Pointer; Obj: Pointer; Param1:
+    Pointer):
+Pointer;
 
-function CallVoidLocal(Func: Pointer; Frame: FramePointer): Pointer;
-function CallPointerLocal(Func: Pointer; Frame: FramePointer;
+function CallVoidLocal(func: Pointer; Frame: FramePointer): Pointer;
+function CallPointerLocal(func: Pointer; Frame: FramePointer;
   Param1: Pointer): Pointer;
 
-function CallVoidMethodLocal(Func: Pointer; Frame: FramePointer;
+function CallVoidMethodLocal(func: Pointer; Frame: FramePointer;
   Obj: Pointer): Pointer;
-function CallPointerMethodLocal(Func: Pointer; Frame: FramePointer;
+function CallPointerMethodLocal(func: Pointer; Frame: FramePointer;
   Obj: Pointer; Param1: Pointer): Pointer;
-
 
 implementation
 
 type
-  VoidConstructor = function(VmtOfs: Word; Obj: Pointer): Pointer;
-  PointerConstructor = function(Param1: Pointer; VmtOfs: Word;
-    Obj: Pointer): Pointer;
-  VoidMethod = function(Obj: Pointer): pointer;
-  PointerMethod = function(Param1: Pointer; Obj: Pointer): pointer;
+  VoidConstructor = function (VmtOfs: word; Obj: Pointer): Pointer;
+  PointerConstructor = function (Param1: Pointer; VmtOfs: word;
+  Obj: Pointer): Pointer;
+  VoidMethod = function (Obj: Pointer): Pointer;
+  PointerMethod = function (Param1: Pointer; Obj: Pointer): Pointer;
 
-function CallVoidConstructor(Ctor: pointer; Obj: Pointer;
+function CallVoidConstructor(Ctor: Pointer; Obj: Pointer;
   VMT: Pointer): Pointer;
-begin
-  CallVoidConstructor := VoidConstructor(Ctor)(Ofs(VMT^), Obj)
-end;
-
+  begin
+    CallVoidConstructor := VoidConstructor(Ctor)(Ofs(VMT^), Obj)
+  end;
 
 function CallPointerConstructor(Ctor: Pointer; Obj: Pointer;
   VMT: Pointer; Param1: Pointer): Pointer;
-begin
-  CallPointerConstructor := PointerConstructor(Ctor)(Param1, Ofs(VMT^), Obj)
-end;
-
+  begin
+    CallPointerConstructor := PointerConstructor(Ctor)(Param1, Ofs(
+      VMT^), Obj)
+  end;
 
 function CallVoidMethod(Method: Pointer; Obj: Pointer): Pointer;
-begin
-  CallVoidMethod := VoidMethod(Method)(Obj)
-end;
-
+  begin
+    CallVoidMethod := VoidMethod(Method)(Obj)
+  end;
 
 function CallPointerMethod(Method: Pointer; Obj: Pointer;
   Param1: Pointer): Pointer;
-begin
-  CallPointerMethod := PointerMethod(Method)(Param1, Obj)
-end;
+  begin
+    CallPointerMethod := PointerMethod(Method)(Param1, Obj)
+  end;
 
-                              {$IFNDEF BIT_32}
-
-function CallVoidLocal(Func: Pointer; Frame: FramePointer): Pointer;
-assembler;
-asm
-{$IFDEF Windows}
- MOV     AX,[Frame]
- AND     AL,0FEH
- PUSH    AX
-{$ELSE}
- push    [Frame]
-{$ENDIF}
- call    dword ptr Func
-end;
-
-function CallPointerLocal(Func: Pointer; Frame: FramePointer;
-  Param1: Pointer): Pointer; assembler;
-asm
- mov     ax, word ptr Param1
- mov     dx, word ptr Param1+2
- push    dx
- push    ax
-{$IFDEF Windows}
- MOV     AX,[Frame]
- AND     AL,0FEH
- PUSH    AX
-{$ELSE}
- push    [Frame]
-{$ENDIF}
- call    dword ptr Func
-end;
-
-function CallVoidMethodLocal(Func: Pointer; Frame: FramePointer;
-  Obj: Pointer): Pointer; assembler;
-asm
-{$IFDEF Windows}
- MOV     AX,[Frame]
- AND     AL,0FEH
- PUSH    AX
-{$ELSE}
- push    [Frame]
-{$ENDIF}
- call    dword ptr Func
-end;
-
-function CallPointerMethodLocal(Func: Pointer; Frame: FramePointer;
-  Obj: Pointer; Param1: Pointer): Pointer; assembler;
-asm
- mov     ax, word ptr Param1
- mov     dx, word ptr Param1+2
- push    dx
- push    ax
-{$IFDEF Windows}
- MOV     AX,[Frame]
- AND     AL,0FEH
- PUSH    AX
-{$ELSE}
- push    [Frame]
-{$ENDIF}
- call    dword ptr Func
-end;
-
-function CurrentFramePointer: FramePointer; assembler; asm mov  ax, bp  end;
-
-function PreviousFramePointer: FramePointer; assembler; asm mov  ax, ss:[bp] end;
-
-                                {$ELSE BIT_32}
-
-function CallVoidLocal(Func: pointer; Frame: FramePointer): pointer;
-assembler;{$USES NONE}
+function CallVoidLocal(func: Pointer; Frame: FramePointer): Pointer;
+  assembler; {$USES NONE}
 asm
   push Frame
   call Func
   pop  ebp
 end;
 
-
-function CallPointerLocal(Func: pointer; Frame: FramePointer; Param1: pointer): pointer;
-assembler;{$USES NONE}
+function CallPointerLocal(func: Pointer; Frame: FramePointer; Param1:
+    Pointer): Pointer;
+  assembler; {$USES NONE}
 asm
   push Frame
   push Param1
@@ -206,9 +134,9 @@ asm
   pop  ebp
 end;
 
-
-function CallVoidMethodLocal(Func: pointer; Frame: FramePointer; Obj: pointer): pointer;
-assembler;{$USES NONE}
+function CallVoidMethodLocal(func: Pointer; Frame: FramePointer; Obj:
+    Pointer): Pointer;
+  assembler; {$USES NONE}
 asm
   push Frame       ;{Set frame of func           }
   mov  Frame, esi  ;{Save value of ESI           }
@@ -216,11 +144,12 @@ asm
   call Func        ;{Call method                 }
   mov  esi, Frame  ;{Restore ESI                 }
   pop  ebp         ;{remove frame from stack     }
-end;
+end
+  ;
 
-
-function CallPointerMethodLocal(Func: pointer; Frame: FramePointer; Obj: pointer; Param1: pointer): pointer;
-assembler;{$USES NONE}
+function CallPointerMethodLocal(func: Pointer; Frame: FramePointer;
+    Obj: Pointer; Param1: Pointer): Pointer;
+  assembler; {$USES NONE}
 asm
   push Frame       ;{Set frame of func           }
   mov  Frame, esi  ;{Save value of ESI           }
@@ -229,19 +158,19 @@ asm
   call Func        ;{Call method                 }
   mov  esi, Frame  ;{Restore ESI                 }
   pop  ebp         ;{remove frame from stack     }
-end;
+end
+  ;
 
-
-function CurrentFramePointer: FramePointer;assembler;{&Frame-}{$Uses none}
+function CurrentFramePointer: FramePointer; assembler; {&Frame-}
+    {$Uses none}
 asm
     mov eax, ebp
 end;
 
-
-function PreviousFramePointer: FramePointer;assembler;{&Frame-}{$Uses none}
+function PreviousFramePointer: FramePointer; assembler; {&Frame-}
+    {$Uses none}
 asm
     mov eax, [EBP]
 end;
-                                {$ENDIF BITS}
 
 end.

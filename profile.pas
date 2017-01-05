@@ -45,7 +45,7 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit Profile;
+unit profile;
 
 { unit Profile, Version 1.01.001, Copyright 1994,1997 by Matthias K"oppe
 
@@ -71,18 +71,18 @@ unit Profile;
 interface
 
 function GetPrivateProfileInt(ApplicationName, KeyName: PChar;
-  Default: Integer; FileName: PChar): Word;
+  Default: integer; FileName: PChar): word;
 function GetPrivateProfileString(ApplicationName, KeyName: PChar;
-  Default: PChar; ReturnedString: PChar; Size: Integer;
-  FileName: PChar): Integer;
+  Default: PChar; ReturnedString: PChar; Size: integer;
+  FileName: PChar): integer;
 function WritePrivateProfileString(ApplicationName, KeyName, Str,
-  FileName: PChar): Boolean;
+  FileName: PChar): boolean;
 procedure CloseProfile;
 
 implementation
 
 uses
-  {$IFNDEF NONBP} BStrings {$ELSE} Strings {$ENDIF}, Objects;
+  Strings, Objects;
 
 { The most expensive operation with buffered streams is seeking --
   especially seeking relatively since both GetPos and Seek call the
@@ -93,352 +93,412 @@ uses
 type
   PModBufStream = ^TModBufStream;
   TModBufStream = object(TBufStream)
-    procedure SeekRel(Delta: Integer);
-  End;
+    procedure SeekRel(Delta: integer);
+    end;
 
-procedure TModBufStream.SeekRel; begin Seek(GetPos+Delta); end; {DataCompBoy}
+procedure TModBufStream.SeekRel;
+  begin
+    Seek(GetPos+Delta);
+  end; {DataCompBoy}
 
 { Current parameters
 }
 const
   CurFile: PModBufStream = nil;
   CurFileName: PChar = nil;
-  CurApp: LongInt = 0;
+  CurApp: longInt = 0;
   CurAppName: PChar = nil;
 
 procedure CloseFile;
-Begin
-  If CurFile <> nil then Begin
-    Dispose(CurFile, Done);
-    CurFile := nil
-  End;
-  StrDispose(CurFileName);
-  CurFileName := nil;
-  CurApp := 0;
-  StrDispose(CurAppName);
-  CurAppName := nil
-End;
+  begin
+    if CurFile <> nil then
+      begin
+        Dispose(CurFile, Done);
+        CurFile := nil
+      end;
+    StrDispose(CurFileName);
+    CurFileName := nil;
+    CurApp := 0;
+    StrDispose(CurAppName);
+    CurAppName := nil
+  end;
 
-function OpenFile(FileName: PChar): Boolean;
-var
-  Res: Boolean;
-Begin
-  OpenFile := false;
-  If (CurFileName = nil) or (FileName = nil) or
-     (StrIComp(CurFileName, FileName) <> 0) then Begin
-    CloseFile;
-    If FileName = nil then Exit;
+function OpenFile(FileName: PChar): boolean;
+  var
+    Res: boolean;
+  begin
+    OpenFile := False;
+    if (CurFileName = nil) or (FileName = nil) or
+      (StrIComp(CurFileName, FileName) <> 0)
+    then
+      begin
+        CloseFile;
+        if FileName = nil then
+          exit;
+        CurFileName := StrNew(FileName);
+        CurFile := New(PModBufStream, Init(StrPas(FileName), stOpen,
+          4096));
+        Res := (CurFile <> nil) and (CurFile^.Status = 0);
+        if not Res then
+          CloseFile;
+        OpenFile := Res
+      end
+    else
+      OpenFile := True
+  end { OpenFile };
+
+function CreateFile(FileName: PChar): boolean;
+  var
+    Res: boolean;
+  begin
+    CreateFile := False;
+    if FileName = nil then
+      exit;
     CurFileName := StrNew(FileName);
-    CurFile := New(PModBufStream, Init(StrPas(FileName), stOpen, 4096));
+    CurFile := New(PModBufStream, Init(StrPas(FileName), stCreate,
+      4096));
     Res := (CurFile <> nil) and (CurFile^.Status = 0);
-    If not Res then CloseFile;
-    OpenFile := Res
-  End
-  else OpenFile := true
-End;
-
-function CreateFile(FileName: PChar): Boolean;
-var
-  Res: Boolean;
-Begin
-  Createfile := false;
-  If FileName = nil then Exit;
-  CurFileName := StrNew(FileName);
-  CurFile := New(PModBufStream, Init(StrPas(FileName), stCreate, 4096));
-  Res := (CurFile <> nil) and (CurFile^.Status = 0);
-  If not Res then CloseFile;
-  CreateFile := Res
-End;
+    if not Res then
+      CloseFile;
+    CreateFile := Res
+  end;
 
 procedure ReadLine(Buf: PChar);
-var
-  c: Char;
-  c2: Char; {DataCompBoy}
-  Count: Word;
-Begin
-  Count := 0;
-  with CurFile^ do Begin
-    Repeat
-      Read(Buf[0], 1);
-      c := Buf[0];
-      Inc(Buf);
-      If Count < 256 then
-        Inc(Count);
-    Until (c in [#13,#10]) or (Status <> 0);
-    {-DataCompBoy-}
-    If Status = 0 then begin
-      If (c in [#13,#10]) and (Status = 0) then Read(c2, 1);
-      If not (c2 in [#13,#10]) or (c2=c) then SeekRel(-1)
-    end;
-    {-DataCompBoy-}
-    (Buf-1)[0] := #0;
-  End
-End;
+  var
+    C: Char;
+    C2: Char; {DataCompBoy}
+    Count: word;
+  begin
+    Count := 0;
+    with CurFile^ do
+      begin
+        repeat
+          Read(Buf[0], 1);
+          C := Buf[0];
+          Inc(Buf);
+          if Count < 256 then
+            Inc(Count);
+        until (C in [#13, #10]) or (Status <> 0);
+        {-DataCompBoy-}
+        if Status = 0 then
+          begin
+            if (C in [#13, #10]) and (Status = 0) then
+              Read(C2, 1);
+            if not (C2 in [#13, #10]) or (C2 = C) then
+              SeekRel(-1)
+          end;
+        {-DataCompBoy-}
+        (Buf-1)[0] := #0;
+      end
+  end { ReadLine };
 
-function IsAppLine(Buf: PChar): Boolean;
-Begin
-  IsAppLine := (Buf[0] = '[') and ((StrEnd(Buf)-1)[0] = ']')
-End;
+function IsAppLine(Buf: PChar): boolean;
+  begin
+    IsAppLine := (Buf[0] = '[') and ((StrEnd(Buf)-1)[0] = ']')
+  end;
 
-function FindApplication(AppName: PChar): Boolean;
-var
-  Buf: array[0..255] of Char;
-Begin
-  FindApplication := false;
-  If AppName = nil then Exit;
-  If (CurAppName <> nil) and (StrIComp(CurAppName, AppName) = 0)
-  then Begin
-    CurFile^.Seek(CurApp);
-    FindApplication := true;
-  End
-  else Begin
-    CurFile^.Seek(0);
-    Repeat
-      ReadLine(Buf);
-      If IsAppLine(Buf) then Begin
-        (StrEnd(Buf)-1)[0] := #0;
-        StrDispose(CurAppName);
-        CurAppName := StrNew(Buf+1);
-        CurApp := CurFile^.GetPos;
-        If (CurAppName <> nil) and (StrIComp(CurAppName, AppName) = 0)
-        then Begin
-          FindApplication := true;
-          CurFile^.Reset;
-          CurApp := CurFile^.GetPos;
-          Exit
-        End
-      End
-    Until CurFile^.Status <> 0;
-    CurFile^.Reset;
-  End
-End;
+function FindApplication(AppName: PChar): boolean;
+  var
+    Buf: array[0..255] of Char;
+  begin
+    FindApplication := False;
+    if AppName = nil then
+      exit;
+    if (CurAppName <> nil) and (StrIComp(CurAppName, AppName) = 0)
+    then
+      begin
+        CurFile^.Seek(CurApp);
+        FindApplication := True;
+      end
+    else
+      begin
+        CurFile^.Seek(0);
+        repeat
+          ReadLine(Buf);
+          if IsAppLine(Buf) then
+            begin
+              (StrEnd(Buf)-1)[0] := #0;
+              StrDispose(CurAppName);
+              CurAppName := StrNew(Buf+1);
+              CurApp := CurFile^.GetPos;
+              if (CurAppName <> nil) and (StrIComp(CurAppName,
+                  AppName) = 0)
+              then
+                begin
+                  FindApplication := True;
+                  CurFile^.Reset;
+                  CurApp := CurFile^.GetPos;
+                  exit
+                end
+            end
+        until CurFile^.Status <> 0;
+        CurFile^.Reset;
+      end
+  end { FindApplication };
 
 procedure AddApplication(AppName: PChar);
-const
-  _L: array[0..2] of Char = #13#10'[';
-  _R: array[0..2] of Char = ']'#13#10;
-Begin
-  with CurFile^ do Begin
-    Seek(GetSize);
-    Write(_L, 3);
-    Write(AppName[0], StrLen(AppName));
-    Write(_R, 3);
-    StrDispose(CurAppName);
-    CurAppName := StrNew(AppName);
-    CurApp := CurFile^.GetPos
-  end
-End;
+  const
+    _L: array[0..2] of Char = #13#10'[';
+    _R: array[0..2] of Char = ']'#13#10;
+  begin
+    with CurFile^ do
+      begin
+        Seek(GetSize);
+        Write(_L, 3);
+        Write(AppName[0], StrLen(AppName));
+        Write(_R, 3);
+        StrDispose(CurAppName);
+        CurAppName := StrNew(AppName);
+        CurApp := CurFile^.GetPos
+      end
+  end;
 
 function FirstInsignificant(Str: PChar): PChar;
-var
-  P: PChar;
-Begin
-  P := StrEnd(Str);
-  If P = Str
-  then FirstInsignificant := Str
-  else Begin
+  var
+    P: PChar;
+  begin
+    P := StrEnd(Str);
+    if P = Str
+    then
+      FirstInsignificant := Str
+    else
+      begin
+        repeat
+          Dec(P);
+        until P[0] > ' ';
+        FirstInsignificant := P+1
+      end
+  end;
+
+function FindKey(KeyName: PChar; Dest: PChar): boolean;
+  var
+    Buf: array[0..255] of Char;
+    P: PChar;
+    Pos: longInt;
+  begin
+    FindKey := False;
+    if KeyName = nil then
+      exit;
     repeat
-      Dec(P);
-    until P[0] > ' ';
-    FirstInsignificant := P+1
-  End
-End;
+      Pos := CurFile^.GetPos;
+      ReadLine(Buf);
+      P := StrScan(Buf, '=');
+      if P <> nil then
+        begin
+          P[0] := #0;
+          FirstInsignificant(Buf)[0] := #0;
+          if StrIComp(Buf, KeyName) = 0 then
+            begin
+              CurFile^.Reset;
+              if Dest = nil
+              then
+                CurFile^.Seek(Pos)
+              else
+                StrCopy(Dest, P+1);
+              FindKey := True;
+              exit
+            end;
+        end;
+    until IsAppLine(Buf) or (CurFile^.Status <> 0);
+    if CurFile^.Status <> 0 then
+      CurFile^.Reset;
+  end { FindKey };
 
-function FindKey(KeyName: PChar; Dest: PChar): Boolean;
-var
-  Buf: array[0..255] of Char;
-  P: PChar;
-  pos: LongInt;
-Begin
-  FindKey := false;
-  If KeyName = nil then Exit;
-  Repeat
-    pos := CurFile^.GetPos;
-    ReadLine(Buf);
-    P := StrScan(Buf, '=');
-    If P <> nil then Begin
-      P[0] := #0;
-      FirstInsignificant(Buf)[0] := #0;
-      If StrIComp(Buf, KeyName) = 0 then Begin
-        CurFile^.Reset;
-        If Dest = nil
-          then CurFile^.Seek(pos)
-          else StrCopy(Dest, P+1);
-        FindKey := true;
-        Exit
-      End;
-    End;
-  Until IsAppLine(Buf) or (CurFile^.Status <> 0);
-  If CurFile^.Status <> 0 then CurFile^.Reset;
-end;
-
-procedure DeleteBuf(Dest, Source: LongInt);
-var
-  p, Count: LongInt;
-  Buf: array[0..255] of Char;
-Begin
-  p := Dest;
-  repeat
-    If CurFile^.GetSize - Source >= 256
-      then Count := 256
-      else Count := CurFile^.GetSize - Source;
-    CurFile^.Seek(Source);
-    CurFile^.Read(Buf, Count);
-    CurFile^.Seek(Dest);
-    CurFile^.Write(Buf, Count);
-    Inc(Source, Count);
-    Inc(Dest, Count);
-  until Source = Curfile^.GetSize;
-  CurFile^.Truncate;
-  CurFile^.Seek(p)
-End;
+procedure DeleteBuf(Dest, Source: longInt);
+  var
+    P, Count: longInt;
+    Buf: array[0..255] of Char;
+  begin
+    P := Dest;
+    repeat
+      if CurFile^.GetSize-Source >= 256
+      then
+        Count := 256
+      else
+        Count := CurFile^.GetSize-Source;
+      CurFile^.Seek(Source);
+      CurFile^.Read(Buf, Count);
+      CurFile^.Seek(Dest);
+      CurFile^.Write(Buf, Count);
+      Inc(Source, Count);
+      Inc(Dest, Count);
+    until Source = CurFile^.GetSize;
+    CurFile^.Truncate;
+    CurFile^.Seek(P)
+  end { DeleteBuf };
 
 procedure DeleteLine;
-var
-  pos: LongInt;
-  Buf: array[0..255] of Char;
-Begin
-  pos := CurFile^.GetPos;
-  ReadLine(Buf);
-  If CurFile^.Status <> 0 then CurFile^.reset;
-  DeleteBuf(pos, CurFile^.GetPos);
-End;
+  var
+    Pos: longInt;
+    Buf: array[0..255] of Char;
+  begin
+    Pos := CurFile^.GetPos;
+    ReadLine(Buf);
+    if CurFile^.Status <> 0 then
+      CurFile^.Reset;
+    DeleteBuf(Pos, CurFile^.GetPos);
+  end;
 
-procedure InsertLine(Size: Word);
-var
-  pos, Count, Source, Dest: LongInt;
-  Buf: array[0..255] of Char;
-Begin
-  pos := CurFile^.GetPos;
-  Source := CurFile^.GetSize;
-  Dest := Source + Size;
-  repeat
-    If Source - pos >= 256
-      then Count := 256
-      else Count := Source - pos;
-    Dec(Source, Count);
-    Dec(Dest, Count);
-    CurFile^.Seek(Source);
-    CurFile^.Read(Buf, Count);
-    CurFile^.Seek(Dest);
-    CurFile^.Write(Buf, Count);
-  until Source = pos;
-  CurFile^.Seek(pos)
-End;
+procedure InsertLine(Size: word);
+  var
+    Pos, Count, Source, Dest: longInt;
+    Buf: array[0..255] of Char;
+  begin
+    Pos := CurFile^.GetPos;
+    Source := CurFile^.GetSize;
+    Dest := Source+Size;
+    repeat
+      if Source-Pos >= 256
+      then
+        Count := 256
+      else
+        Count := Source-Pos;
+      Dec(Source, Count);
+      Dec(Dest, Count);
+      CurFile^.Seek(Source);
+      CurFile^.Read(Buf, Count);
+      CurFile^.Seek(Dest);
+      CurFile^.Write(Buf, Count);
+    until Source = Pos;
+    CurFile^.Seek(Pos)
+  end { InsertLine };
 
-function InQuotes(Str: PChar): Boolean;
-var
-  P: PChar;
-Begin
-  P := StrEnd(Str) - 1;
-  InQuotes :=
+function InQuotes(Str: PChar): boolean;
+  var
+    P: PChar;
+  begin
+    P := StrEnd(Str)-1;
+    InQuotes :=
     ((Str[0] = '"') and (P[0] = '"')) or
     ((Str[0] = '''') and (P[0] = ''''))
-End;
+  end;
 
 function GetPrivateProfileString;
-var
-  Buf: array[0..255] of Char;
-  P, Copy: PChar;
-  Res: Boolean;
-Begin
-  Copy := Default;
-  If OpenFile(FileName) and
-     FindApplication(ApplicationName) then
-    If KeyName = nil
-    then Begin
-      { list all keys in section }
-      Copy := ReturnedString;
-      Repeat
-        ReadLine(Buf);
-        Res := IsAppLine(Buf);
-        If not Res and (Buf[0] <> ';') then Begin
-          P := StrScan(Buf, '=');
-          If P <> nil then Begin
-            P[0] := #0;
-            FirstInsignificant(Buf)[0] := #0;
-            Copy := StrEnd(StrLCopy(Copy, Buf, Size-(Copy-ReturnedString)-1)) + 1
-          End
-        End
-      Until Res or (CurFile^.Status <> 0);
-      If CurFile^.Status <> 0 then CurFile^.Reset;
-      Copy[0] := #0;
-      GetPrivateProfileString := Copy-ReturnedString-1;
-      Exit
-    End else
-      if FindKey(KeyName, Buf) then
-      If InQuotes(Buf)
-      then Begin
-        (StrEnd(Buf)-1)[0] := #0;
-        Copy := Buf + 1
-      End else
-        Copy := @Buf;
-  StrLCopy(ReturnedString, Copy, Size);
-  GetPrivateProfileString := StrLen(ReturnedString)
-End;
+  var
+    Buf: array[0..255] of Char;
+    P, Copy: PChar;
+    Res: boolean;
+  begin
+    Copy := Default;
+    if OpenFile(FileName) and
+      FindApplication(ApplicationName)
+    then
+      if KeyName = nil
+      then
+        begin
+          { list all keys in section }
+          Copy := ReturnedString;
+          repeat
+            ReadLine(Buf);
+            Res := IsAppLine(Buf);
+            if not Res and (Buf[0] <> ';') then
+              begin
+                P := StrScan(Buf, '=');
+                if P <> nil then
+                  begin
+                    P[0] := #0;
+                    FirstInsignificant(Buf)[0] := #0;
+                    Copy := StrEnd(StrLCopy(Copy, Buf, Size-(Copy-
+                      ReturnedString)-1))+1
+                  end
+              end
+          until Res or (CurFile^.Status <> 0);
+          if CurFile^.Status <> 0 then
+            CurFile^.Reset;
+          Copy[0] := #0;
+          GetPrivateProfileString := Copy-ReturnedString-1;
+          exit
+        end
+      else if FindKey(KeyName, Buf) then
+        if InQuotes(Buf)
+        then
+          begin
+            (StrEnd(Buf)-1)[0] := #0;
+            Copy := Buf+1
+          end
+        else
+          Copy := @Buf;
+    StrLCopy(ReturnedString, Copy, Size);
+    GetPrivateProfileString := StrLen(ReturnedString)
+  end { GetPrivateProfileString };
 
-function GetInt(Str: PChar): Word;
-var
-  Res: Word;
-  E: Integer;
-Begin
-  { auch Hex erkennen (C-Format) }
-  Val(Str, Res, E);
-  If E = 1 then Res := 0 else
-  If E <> 0 then Begin
-    Str[E-1] := #0;
-    Val(Str, Res, E)
-  End;
-  GetInt := Res
-End;
+function GetInt(Str: PChar): word;
+  var
+    Res: word;
+    E: integer;
+  begin
+    { auch Hex erkennen (C-Format) }
+    Val(Str, Res, E);
+    if E = 1 then
+      Res := 0
+    else if E <> 0 then
+      begin
+        Str[E-1] := #0;
+        Val(Str, Res, E)
+      end;
+    GetInt := Res
+  end;
 
 function GetPrivateProfileInt;
-var
-  Buf: array[0..255] of Char;
-Begin
-  GetPrivateProfileInt := Default;
-  If OpenFile(FileName) and
-     FindApplication(ApplicationName) and FindKey(KeyName, Buf)
-  then GetPrivateProfileInt := GetInt(Buf);
-End;
+  var
+    Buf: array[0..255] of Char;
+  begin
+    GetPrivateProfileInt := Default;
+    if OpenFile(FileName) and
+      FindApplication(ApplicationName) and FindKey(KeyName, Buf)
+    then
+      GetPrivateProfileInt := GetInt(Buf);
+  end;
 
 function WritePrivateProfileString;
-var
-  Buf: array[0..255] of Char;
-  Res: Boolean;
-  p: LongInt;
-begin
-  If (OpenFile(FileName) or CreateFile(FileName)) and (ApplicationName <> nil)
-  then Begin
-    If not FindApplication(ApplicationName)
-    then AddApplication(ApplicationName);
-    If KeyName = nil
-    then Begin
-      CurFile^.Seek(CurApp);
-      repeat
-        p := CurFile^.GetPos;
-        ReadLine(Buf);
-        Res := IsAppLine(Buf) or (CurFile^.Status <> 0);
-        If not Res and (Buf[0] <> ';') then
-          DeleteBuf(p, CurFile^.GetPos);
-      until Res;
-      If CurFile^.Status <> 0 then CurFile^.Reset;
-    End
-    else Begin
-      If FindKey(KeyName, nil) then DeleteLine else CurFile^.Seek(CurApp);
-      If Str <> nil then Begin
-        StrLCopy(Buf, KeyName, 256);
-        StrLCat(Buf, '=', 256);
-        StrLCat(Buf, Str, 256);
-        StrLCat(Buf, #13#10, 256);
-        InsertLine(StrLen(Buf));
-        CurFile^.Write(Buf, StrLen(Buf))
-      End
-    End
-  End
-end;
+  var
+    Buf: array[0..255] of Char;
+    Res: boolean;
+    P: longInt;
+  begin
+    if (OpenFile(FileName) or CreateFile(FileName)) and (
+        ApplicationName <> nil)
+    then
+      begin
+        if not FindApplication(ApplicationName)
+        then
+          AddApplication(ApplicationName);
+        if KeyName = nil
+        then
+          begin
+            CurFile^.Seek(CurApp);
+            repeat
+              P := CurFile^.GetPos;
+              ReadLine(Buf);
+              Res := IsAppLine(Buf) or (CurFile^.Status <> 0);
+              if not Res and (Buf[0] <> ';') then
+                DeleteBuf(P, CurFile^.GetPos);
+            until Res;
+            if CurFile^.Status <> 0 then
+              CurFile^.Reset;
+          end
+        else
+          begin
+            if FindKey(KeyName, nil) then
+              DeleteLine
+            else
+              CurFile^.Seek(CurApp);
+            if Str <> nil then
+              begin
+                StrLCopy(Buf, KeyName, 256);
+                StrLCat(Buf, '=', 256);
+                StrLCat(Buf, Str, 256);
+                StrLCat(Buf, #13#10, 256);
+                InsertLine(StrLen(Buf));
+                CurFile^.Write(Buf, StrLen(Buf))
+              end
+          end
+      end
+  end { WritePrivateProfileString };
 
 procedure CloseProfile;
-begin CloseFile end;
+  begin
+    CloseFile
+  end;
 
 end.

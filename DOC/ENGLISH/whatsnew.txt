@@ -6,6 +6,91 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 1.51.10b15
+  ---------------------------------------------------------------------
+
+ak40115a.dif ak40201a.dif jo40126a.dif
+[*] The ini-variable RecodeCyrillicNames is removed. Now DN always
+    works as in case of RecodeCyrillicNames=0
+[!] In VpSysLow unit the new define {$DEFINE B243} is introduced,
+    allowing to compile DN/2 with the old VP 2.1 b243 build.
+    When undefined, then DN/2 should be compiled with VP 2.1 b274
+
+jo30922b.dif
+[*] Now the panel redrawing after files unselecting during the
+    operations with group of files will be timer-controlled, that
+    will significantly speed up the operations with group of files
+
+ak40105b.dif
+[*] Now the file sorting method is QSort
+
+as40115a.dif
+[*] Changes in English help: Highlight groups, Drive
+    selection, External editors and viewers.
+    Changes in Russian help: External editors and
+    viewers.
+
+ak40118b.dif
+    Small reformatting
+
+as40119a.dif
+[*] Changes in English help: About Navigator,
+    Changes in Russian help: Archives, Highlight.
+
+
+ak40201b.dif
+[*] The dbf-viewer is imported from DN OSP 3.12.14.
+[*] The functionality of structure dialog in dbf-viewer is improved. Now
+    at dialog opening the current field description is selected, and at
+    dialog closing by "OK" button the selecting in viewer is going to
+    the corresponding field of the current record.
+
+=======
+[!] After these changes the sorces did cleaned up for 'dead' {$ifdef}
+and fully reformatted for improve patches compatibility with DN/2 2.xx.
+The subsequent patches are applicable to reformatted sources.
+=======
+
+sb40121.dif
+[*] A current directory on a disk containing temporary directory was not
+    restored after viewing any file from an archive on another disk.
+
+sb40125b.dif
+[-] With automatic refresh of file panels turned on, a quick search mask
+    could appear on two panels simultaneously.
+
+ak40125c.dif
+[-] When the automatic refresh of file panels was turned on,
+    a quick rename (Alt-F6) result had been displayed after some delay
+
+ak40201c.dif (based on jo40103a.dif)
+[*] New DN.INI parameter AltGrAsAlt (Boolean) is added, allowing
+    to use Right Alt key for national symbols input (0) or as
+    normal Alt key (1)
+
+ak40204a.dif
+[-] The "div" calculator operation was working as real divide instead the
+    integer divide; this opetation was not refered from the help.
+
+
+sb40205c.dif
+[-] Nothing could be deleted from an archive with a space in name if option
+    "Use long file names" was set in archiver's setup (Win32).
+
+sb40205d.dif
+[-] After maximizing file manager window it was impossible to restore its
+    previous size.
+
+ak40209a.dif
+[*] The editor hotkeys Ctrl-Up/Down, Ctrl-Shift-Up/Down are analogous
+    to Up/Down, Shift-Up/Down, but produce the text scrolling instead
+    of the cursor movement.
+    Now this behaviour may be changed to the opposite by turning on the
+    Scroll Lock keyboard mode. F.e. when Scroll Lock is turned On then
+    the Up key produce text scrolling and the Ctrl-Up key produce
+    the cursor movement.
+
+
    Version 1.51.10b14
   ---------------------------------------------------------------------
 

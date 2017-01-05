@@ -97,6 +97,7 @@ del EXE.D32\dn.exe
 goto end_dn
 
 :OS2W32
+if [%Target%]==[W32] vpc LIB.W32\vpkbdw32.pas /m /dDN /dDNPRG /q %plugin% /c%T%
 vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
 if not errorlevel 1 goto end_dn
 @echo Это что-то переполняется в VP, со второго раза получится.

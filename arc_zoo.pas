@@ -45,152 +45,174 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit Arc_ZOO; {ZOO}
+unit arc_ZOO; {ZOO}
 
-{.$DEFINE DeadCode}{piwamoto}
+{.$DEFINE DeadCode} {piwamoto}
 
 interface
 
 uses
-  Archiver, Advance, Advance1, Objects;
+  Archiver, advance, advance1, Objects;
 
 type
-    PZOOArchive = ^TZOOArchive;
-    TZOOArchive = object(TARJArchive)
-        constructor Init;
-        procedure GetFile; virtual;
-        function GetID: Byte; virtual;
-        function GetSign: TStr4; virtual;
+  PZOOArchive = ^TZOOArchive;
+  TZOOArchive = object(TARJArchive)
+    Constructor Init;
+    procedure GetFile; virtual;
+    function GetID: byte; virtual;
+    function GetSign: TStr4; virtual;
     end;
 
 type
-     ZOOHdr = record
-      ID: LongInt;
-      Info: AWord;
-      NextHDR: LongInt;
-      CurStart: LongInt;
-      Date: LongInt;
-      W: AWord;
-      OriginSize: LongInt;
-      PackedSize: LongInt;
-      C: Char;
-      Reserved: Array[1..9] of Byte;
-     end;
-
-{$IFDEF DeadCode}
-     ZOOPHdr = record
-      Date: LongInt;
-      Reserved: Array[1..16] of Byte;
-      ID: Array[1..5] of Char;
-     end;
-{$ENDIF}
+  ZOOHdr = record
+    Id: longInt;
+    Info: AWord;
+    NextHDR: longInt;
+    CurStart: longInt;
+    Date: longInt;
+    W: AWord;
+    OriginSize: longInt;
+    PackedSize: longInt;
+    C: Char;
+    Reserved: array[1..9] of byte;
+    end;
 
 implementation
 
 { ----------------------------- ZOO ------------------------------------}
 
-constructor TZOOArchive.Init;
-var Sign: TStr5;
-    q: String;
-begin
-  Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
-  FreeStr := SourceDir + DNARC;
-  TObject.Init;
-  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZOO.EXE'));
-  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ZOO.EXE'));
-  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'eo'));
-  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'xo'));
-  Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a'));
-  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               'aM'));
-  Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'D'));
-  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             ''));
-  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               'eN'));
-  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
-  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
-  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          ''));
-  RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
-  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
-  Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
-  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     ''));
-  SetPathInside         := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,      ''));
-  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   '+f'));
-  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
-  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
-  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
-  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
-  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '+h'));
-  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
-  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+Constructor TZOOArchive.Init;
+  var
+    Sign: TStr5;
+    Q: String;
+  begin
+    Sign := GetSign;
+    SetLength(Sign, Length(Sign)-1);
+    Sign := Sign+#0;
+    FreeStr := SourceDir+DNARC;
+    TObject.Init;
+    Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,
+      'ZOO.EXE'));
+    UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
+      'ZOO.EXE'));
+    Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'eo'));
+    ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
+      'xo'));
+    Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a'));
+    Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'aM'));
+    Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'D'));
+    Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, ''));
+    Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 'eN'));
+    IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PIncludePaths, ''));
+    ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PExcludePaths, ''));
+    ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, ''));
+    RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''
+      ));
+    SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract, ''
+      ));
+    Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
+    RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PRecurseSubDirs, ''));
+    SetPathInside := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PSetPathInside, ''));
+    StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PStoreCompression, '+f'));
+    FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PFastestCompression, ''));
+    FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PFastCompression, ''));
+    NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PNormalCompression, ''));
+    GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PGoodCompression, ''));
+    UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PUltraCompression, '+h'));
+    ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PComprListChar, ' '));
+    ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
+      PExtrListChar, ' '));
 
-  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
-  AllVersion := q <> '0';
-  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
-  PutDirs := q <> '0';
-{$IFDEF OS_DOS}
-  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  Swap := q <> '0';
-{$ELSE}
- {$IFDEF OS2}
-  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
- {$ELSE}
-  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
- {$ENDIF}
-  ShortCmdLine := q <> '0';
-{$ENDIF}
-{$IFNDEF OS2}
-  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-  UseLFN := q <> '0';
-{$ENDIF}
-end;
+    Q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+    AllVersion := Q <> '0';
+    Q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+    PutDirs := Q <> '0';
+    {$IFDEF OS_DOS}
+    Q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
+    Swap := Q <> '0';
+    {$ELSE}
+    {$IFDEF OS2}
+    Q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
+    {$ELSE}
+    Q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+    {$ENDIF}
+    ShortCmdLine := Q <> '0';
+    {$ENDIF}
+    {$IFNDEF OS2}
+    Q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+    UseLFN := Q <> '0';
+    {$ENDIF}
+  end { TZOOArchive.Init };
 
 function TZOOArchive.GetID;
-begin
-  GetID := arcZOO;
-end;
+  begin
+    GetID := arcZOO;
+  end;
 
 function TZOOArchive.GetSign;
-begin
-  GetSign := sigZOO;
-end;
+  begin
+    GetSign := sigZOO;
+  end;
 
-Procedure TZOOArchive.GetFile;
-var
-    P    : ZOOHdr;
-{$IFDEF DeadCode}
-    P1   : ZOOPHdr;
-{$ENDIF}
-    FP   : LongInt;
-    C    : Char;
-    S    : String;
-begin
- ArcFile^.Read(P, 4);
- if (ArcFile^.Status <> stOK) or (P.ID <> $FDC4A7DC) then begin FileInfo.Last:=2;Exit;end;
- ArcFile^.Read(P.Info, 2);
- if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
- {if (P.Info = $0002) then begin FileInfo.Last := 1;Exit;end;}
- ArcFile^.Read(P.NextHDR, SizeOf(P)-6);
- {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
- FileInfo.Last := 0;
- FileInfo.Attr := 0;
- FileInfo.USize := P.OriginSize;
- FileInfo.PSize := P.PackedSize;
- FileInfo.Date  := (P.Date shl 16) or (P.Date shr 16);
- FileInfo.FName := '';
- FP := ArcFile^.GetPos;
- repeat
-   ArcFile^.Read(C, 1);
-   if C <> #0 then FileInfo.FName := FileInfo.FName + C;
- until (C = #0) or (Length(FileInfo.FName) > 77);
- ArcFile^.Seek(FP + 19);
- ArcFile^.Read(S[0], 1);
- if S <> '' then
-   begin
-    ArcFile^.Read(S[1], Byte(S[0]));
-    S[Length(S)] := '\';
-   end;
- FileInfo.FName := S + FileInfo.FName;
- if FileInfo.FName = '' then begin FileInfo.Last := 1;Exit;end;
- ArcFile^.Seek(P.NextHdr);
-end;
+procedure TZOOArchive.GetFile;
+  var
+    P: ZOOHdr;
+    fp: longInt;
+    C: Char;
+    s: String;
+  begin
+    ArcFile^.Read(P, 4);
+    if (ArcFile^.Status <> stOK) or (P.Id <> $FDC4A7DC) then
+      begin
+        FileInfo.Last := 2;
+        exit;
+      end;
+    ArcFile^.Read(P.Info, 2);
+    if (ArcFile^.Status <> stOK) then
+      begin
+        FileInfo.Last := 2;
+        exit;
+      end;
+    {if (P.Info = $0002) then begin FileInfo.Last := 1;Exit;end;}
+    ArcFile^.Read(P.NextHDR, SizeOf(P)-6);
+    {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
+    FileInfo.Last := 0;
+    FileInfo.Attr := 0;
+    FileInfo.USize := P.OriginSize;
+    FileInfo.PSize := P.PackedSize;
+    FileInfo.Date := (P.Date shl 16) or (P.Date shr 16);
+    FileInfo.FName := '';
+    fp := ArcFile^.GetPos;
+    repeat
+      ArcFile^.Read(C, 1);
+      if C <> #0 then
+        FileInfo.FName := FileInfo.FName+C;
+    until (C = #0) or (Length(FileInfo.FName) > 77);
+    ArcFile^.Seek(fp+19);
+    ArcFile^.Read(s[0], 1);
+    if s <> '' then
+      begin
+        ArcFile^.Read(s[1], byte(s[0]));
+        s[Length(s)] := '\';
+      end;
+    FileInfo.FName := s+FileInfo.FName;
+    if FileInfo.FName = '' then
+      begin
+        FileInfo.Last := 1;
+        exit;
+      end;
+    ArcFile^.Seek(P.NextHDR);
+  end { TZOOArchive.GetFile };
 
 end.

@@ -45,14 +45,13 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-Unit TitleSet;
-Interface
+unit TitleSet;
+interface
 
- Procedure SetTitle(Text: String);
+procedure SetTitle(text: String);
 
-Implementation
+implementation
 
-{$IFDEF VIRTUALPASCAL}
 {$IFDEF OS2}
 uses
   Dn2PmApi;
@@ -60,202 +59,49 @@ uses
 var
   CurrentTitle: String;
 
-Procedure SetTitle(Text: String);
+procedure SetTitle(text: String);
+  begin
+    text := 'DN/2: '+text;
+    if text = CurrentTitle then
+      exit;
+    CurrentTitle := text;
+
+    DN_XSetTitle(text);
+  end;
+
 begin
-  Text := 'DN/2: '+Text;
-  if Text = CurrentTitle then
-    exit;
-  CurrentTitle := Text;
+  {$ENDIF}
+  {$IFDEF WIN32}
+  uses
+    Windows,
+    VpSysLow, U_KeyMap;
 
-  DN_XSetTitle(Text);
-end;
+  var
+    CurrentTitle: String;
 
-begin
-{$ENDIF}
-{$IFDEF WIN32}
-uses
-  Windows,
-  vpsyslow, U_KeyMap;
+  procedure SetTitle(text: String);
+    begin
+      text := 'DN/2: '+text;
+      if text = CurrentTitle then
+        exit;
+      CurrentTitle := text;
 
-var
-  CurrentTitle: String;
-
-Procedure SetTitle(Text: String);
-begin
-  Text := 'DN/2: '+Text;
-  if Text = CurrentTitle then
-    exit;
-  CurrentTitle := Text;
-
-{AK155 Под Win NT заголовок окна отображается в кодировке OEM,
+      {AK155 Под Win NT заголовок окна отображается в кодировке OEM,
 а  в  Win 9x - в кодировке ANSI. Поэтому флаг перекодировки
 устанавливается в зависимости от типа операционной системы
 }
-  if (SysPlatformID = 1{Win 9x}) then
-    Text := Ascii_Ansi(Text)+#0
-  else
-    Text := Text+#0;
-  SetConsoleTitle(@Text[1]);
-end;
-{$ENDIF}
-{$IFDEF DPMI32}
-Procedure SetTitle(Text: String);
-begin
-{Cat:todo DPMI32}
-end;
-{$ENDIF}
-{$ELSE}
-{$IFDEF NONBP}
-Procedure SetTitle(Text: String);
-begin
-end;
-{$ELSE}
-uses
-  Advance {$IFDEF DPMI}, DPMI, DosMem{$ENDIF}, Dos;
-
-const DNTITL: String[3] = 'DN'#0;
-{$IFDEF DPMI}
-var r: DPMIRegisters;
-    DosB: pointer;
-{$ELSE}
-var r: registers;
-{$ENDIF}
-
-var
-  CurrentTitle: String;
-
- Procedure SetTitle(Text: String);
-  begin
-   if Text = CurrentTitle then
-     exit;
-   CurrentTitle := Text;
-
-      {Setting Win9x application title}
-   Text:=Advance.FormatLongName(Text,79,0,flnUseCutChar,nfmNull,nil)+#0;
-   r.ax:=$168E;
-   r.dx:=$0000;
-{$IFDEF DPMI}
-   DosB:=GetDosMem(Length(Text), r.es);
-   if r.es=0 then exit;
-   r.di:=0;
-   move(Text[1], DosB^, length(Text));
-   SimulateRealModeInt($2F,r);
-   FreeDosMem(DosB);
-{$ELSE}
-   r.es:=Seg(Text[1]);
-   r.di:=Ofs(Text[1]);
-   intr($2F,r);
-{$ENDIF}
-  end;
-
-var OldOS2Title: array[0..12] of byte;
-    OldMDTitle: array[0..30] of byte;
-    oep: pointer;
-procedure exp; {$IFDEF BIT_16}far;{$ENDIF}
-begin
- ExitProc:=oep;
-{$IFDEF DPMI}
- DosB:=GetDosMem(30, r.es);
- if r.es=0 then exit;
- r.di:=0;
-{$ENDIF}
-      {Restoring old OS/2 session title}
- r.ax:=$6400;
- r.DX:=$0001;
- r.CX:=$636C;
- r.BX:=$0000;
-{$IFNDEF DPMI}
- r.ES:=Seg(OldOS2Title);
- r.DI:=Ofs(OldOS2Title);
- intr($21, r);
-{$ELSE}
- move(OldOS2Title, DosB^, 12);
- SimulateRealModeInt($21,r);
-{$ENDIF}
-      {Restoring old Win9x virtual machine title}
- r.ax:=$168E;
- r.dx:=$0001;
-{$IFNDEF DPMI}
- r.es:=Seg(OldMDTitle);
- r.di:=Ofs(OldMDTitle);
- intr($2F,r);
-{$ELSE}
- move(OldMDTitle, DosB^, 30);
- SimulateRealModeInt($2F,r);
-{$ENDIF}
-
-{$IFDEF DPMI}
- FreeDosMem(DosB);
-{$ENDIF}
-end;
-
-begin
-{$IFDEF DPMI}
- DosB:=GetDosMem(30, r.es);
- if r.es=0 then exit;
- r.di:=0;
-{$ENDIF}
-
-      {Getting old OS/2 session title}
- r.ax:=$6400;
- r.DX:=$0002;
- r.CX:=$636C;
- r.BX:=$0000;
-{$IFNDEF DPMI}
- r.ES:=Seg(OldOS2Title);
- r.DI:=Ofs(OldOS2Title);
- intr($21, r);
-{$ELSE}
- SimulateRealModeInt($21,r);
- move(DosB^, OldOS2Title, 12);
-{$ENDIF}
-
-      {Setting new OS/2 session title}
- r.ax:=$6400;
- r.DX:=$0001;
- r.CX:=$636C;
- r.BX:=$0000;
-{$IFDEF DPMI}
- move(DNTITL[1], DosB^, Length(DNTITL));
- SimulateRealModeInt($21,r);
-{$ELSE}
- r.ES:=Seg(DNTITL[1]);
- r.DI:=Ofs(DNTITL[1]);
- intr($21, r);
-{$ENDIF}
-
-      {Getting old Win9x virtual machine title}
- r.ax:=$168E;
- r.dx:=$0003;
- r.cx:=SizeOf(OldMDTitle);
-{$IFNDEF DPMI}
- r.es:=Seg(OldMDTitle);
- r.di:=Ofs(OldMDTitle);
- intr($2F,r);
-{$ELSE}
- SimulateRealModeInt($2F,r);
- move(DosB^, OldMDTitle, 30);
-{$ENDIF}
-
-      {Setting new Win9x virtual machine title}
- r.ax:=$168E;
- r.dx:=$0001;
-{$IFDEF DPMI}
- move(DNTITL[1], DosB^, Length(DNTITL));
- SimulateRealModeInt($2F,r);
-{$ELSE}
- r.es:=Seg(DNTITL[1]);
- r.di:=Ofs(DNTITL[1]);
- intr($2F,r);
-{$ENDIF}
-
-{$IFDEF DPMI}
- FreeDosMem(DosB);
-{$ENDIF}
-
- oep:=ExitProc;
- ExitProc:=@exp;
-{$ENDIF NONBP}
-{$ENDIF VIRTUALPASCAL}
+      if (SysPlatformId = 1 {Win 9x}) then
+        text := ascii_ansi(text)+#0
+      else
+        text := text+#0;
+      SetConsoleTitle(@Text[1]);
+    end;
+  {$ENDIF}
+  {$IFDEF DPMI32}
+  procedure SetTitle(text: String);
+    begin
+      {Cat:todo DPMI32}
+    end;
+  {$ENDIF}
 
 end.

@@ -1,4 +1,4 @@
-unit files;
+unit Files;
 
 interface
 
@@ -6,10 +6,10 @@ type
   TUseLFN = boolean;
 
 const
-  uLFN:TUseLFN = true;
+  uLfn: TUseLFN = True;
 
 const
-  InvLFN = true;
+  InvLFN = True;
 
 implementation
 

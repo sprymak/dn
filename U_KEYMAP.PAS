@@ -57,81 +57,84 @@
 {---------------------------------------------------------------------------}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
-unit u_keymap;
+unit U_KeyMap;
 interface
 
 uses
-  Objects{Cat};
+  Objects {Cat};
 
 type
- TKeyMap = (kmNone, kmAscii, kmAnsi, kmKoi8r); {-$VIV}
- string3 = string[3];
+  TKeyMap = (kmNone, kmAscii, kmAnsi, kmKoi8r); {-$VIV}
+  string3 = String[3];
 
- {AK155 Код следующий по кругу встроенной таблицы }
- const
-   RollKeyMap: array[TKeyMap] of TKeyMap =
-{index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
-       (kmAnsi, kmAnsi,  kmKoi8r, kmAscii);
+  {AK155 Код следующий по кругу встроенной таблицы }
+const
+  RollKeyMap: array[TKeyMap] of TKeyMap =
+  {index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
+  (kmAnsi, kmAnsi, kmKoi8r, kmAscii);
 
-   KeyMapDescriptor: array[TKeyMap] of string3 =
-{index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
-       ('XXX',  'DOS',   'WIN',   'KOI');
+  KeyMapDescriptor: array[TKeyMap] of string3 =
+  {index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
+  ('XXX', 'DOS', 'WIN', 'KOI');
 type
-{(c) SeYKo}
- TCodePageDetector = object
-   constructor Init;
-   destructor  Done; virtual;
-   procedure   CheckString(const S: String);
-   function    DetectedCodePage: TKeyMap;
- private
-   Koi, KoiA, Win, WinA, Win2: LongInt;
- end;
-{(c) SeYKo}
+  {(c) SeYKo}
+  TCodePageDetector = object
+    Constructor Init;
+    destructor Done; virtual;
+    procedure CheckString(const s: String);
+    function DetectedCodePage: TKeyMap;
+    private
+    Koi, KoiA, Win, WinA, Win2: longInt;
+    end;
+  {(c) SeYKo}
 
- TXlat = Array[Char] of Char;
+  TXlat = array[Char] of Char;
 
- procedure NullXLAT(var X: TXlat);
+procedure NullXLAT(var X: TXlat);
 
- function  Ascii_Ansi ( const S : longstring ) : longstring;
- function  Ansi_Ascii ( const S : longstring ) : longstring;
- procedure Ascii_Ansi_Buf ( var Buf; L: Word );
- procedure Ansi_Ascii_Buf ( var Buf; L: Word );
+function ascii_ansi(const s: LongString): LongString;
+function ansi_ascii(const s: LongString): LongString;
+procedure Ascii_Ansi_Buf(var Buf; l: word);
+procedure Ansi_Ascii_Buf(var Buf; l: word);
 
- function  Ascii_Koi8r ( const S : longstring ) : longstring;
- function  Koi8r_Ascii ( const S : longstring ) : longstring;
- procedure Ascii_Koi8r_Buf ( var Buf; L: Word );
- procedure Koi8r_Ascii_Buf ( var Buf; L: Word );
+function ascii_koi8r(const s: LongString): LongString;
+function koi8r_ascii(const s: LongString): LongString;
+procedure Ascii_Koi8r_Buf(var Buf; l: word);
+procedure Koi8r_Ascii_Buf(var Buf; l: word);
 
- function  RusEngConv ( const S : longstring ) : longstring;
- function  GetToAsciiRecodeTable ( K : TKeyMap; var Buf ) : Boolean;
+function RusEngConv(const s: LongString): LongString;
+function GetToAsciiRecodeTable(k: TKeyMap; var Buf): boolean;
 
- procedure XlatBuf(var B; Len: Integer; var XTable);
+procedure CharsConvertBuf(var Buf; len: word; const AllChars: String);
+procedure CharsConvertBufBack(var Buf; len: word; const AllChars:
+    String);
+procedure XLatBuf(var B; len: integer; var XTable);
 
 {Cat: раньше: function ***AllChars:string в implementation
       теперь: const ***AllChars:string в interface}
 
- {ASCII-ANSI}
+{ASCII-ANSI}
 
 const
-  AnsiAllChars:string=
-        #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-  + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-  + #$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
-  + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
-  + #$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
-  + #$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
-  + #$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
-  + #$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
+  AnsiAllChars: String =
+  #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
+  +#$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
+  +#$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
+  +#$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
+  +#$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
+  +#$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
+  +#$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
+  +#$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
 
-  + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
-  + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
-  + #$E0#$E1#$E2#$E3#$E4#$E5#$E6#$E7#$E8#$E9#$EA#$EB#$EC#$ED#$EE#$EF
-  + #$80#$81#$82#$83#$84#$85#$86#$87#$88#$89#$8A#$8B#$8C#$8D#$8E#$8F
-  + #$90#$91#$92#$93#$94#$95#$96#$97#$98#$99#$9A#$9B#$9C#$9D#$9E#$9F
-  + #$A0#$B5#$B6#$A3#$A4#$A5#$A6#$A7#$A9#$B1#$AB#$AC#$AD#$AE#$B3#$B0
-  + #$F0#$F1#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF
-  + #$A8#$B8#$AA#$BA#$AF#$BF#$A1#$A2#$B7#$B9#$B2#$BB#$BC#$BD#$BE#$B4;
-{Cat: переделал таблицу, чтобы буквы ЄєЇїЎў были на своих местах
+  +#$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
+  +#$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
+  +#$E0#$E1#$E2#$E3#$E4#$E5#$E6#$E7#$E8#$E9#$EA#$EB#$EC#$ED#$EE#$EF
+  +#$80#$81#$82#$83#$84#$85#$86#$87#$88#$89#$8A#$8B#$8C#$8D#$8E#$8F
+  +#$90#$91#$92#$93#$94#$95#$96#$97#$98#$99#$9A#$9B#$9C#$9D#$9E#$9F
+  +#$A0#$B5#$B6#$A3#$A4#$A5#$A6#$A7#$A9#$B1#$AB#$AC#$AD#$AE#$B3#$B0
+  +#$F0#$F1#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF
+  +#$A8#$B8#$AA#$BA#$AF#$BF#$A1#$A2#$B7#$B9#$B2#$BB#$BC#$BD#$BE#$B4;
+  {Cat: переделал таблицу, чтобы буквы ЄєЇїЎў были на своих местах
   + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
   + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
   + #$E0#$E1#$E2#$E3#$E4#$E5#$E6#$E7#$E8#$E9#$EA#$EB#$EC#$ED#$EE#$EF
@@ -142,75 +145,56 @@ const
   + #$A8#$B8#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B9#$BA#$BB#$BC#$BD#$BE#$BF;
 }
 
- {ASCII-KOI8R}
+  {ASCII-KOI8R}
 
 const
-  Koi8rAllChars:string=
-        #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-  + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-  + #$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
-  + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
-  + #$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
-  + #$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
-  + #$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
-  + #$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
+  Koi8rAllChars: String =
+  #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
+  +#$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
+  +#$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
+  +#$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
+  +#$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
+  +#$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
+  +#$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
+  +#$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
 
-  + #$E1#$E2#$F7#$E7#$E4#$E5#$F6#$FA#$E9#$EA#$EB#$EC#$ED#$EE#$EF#$F0
-  + #$F2#$F3#$F4#$F5#$E6#$E8#$E3#$FE#$FB#$FD#$FF#$F9#$F8#$FC#$E0#$F1
-  + #$C1#$C2#$D7#$C7#$C4#$C5#$D6#$DA#$C9#$CA#$CB#$CC#$CD#$CE#$CF#$D0
-  + #$90#$91#$92#$81#$87#$B2#$B4#$A7#$A6#$B5#$A1#$A8#$AE#$AD#$AC#$83
-  + #$84#$89#$88#$86#$80#$8A#$AF#$B0#$AB#$A5#$BB#$B8#$B1#$A0#$BE#$B9
-  + #$BA#$B6#$B7#$AA#$A9#$A2#$A4#$BD#$BC#$85#$82#$8D#$8C#$8E#$8F#$8B
-  + #$D2#$D3#$D4#$D5#$C6#$C8#$C3#$DE#$DB#$DD#$DF#$D9#$D8#$DC#$C0#$D1
-  + #$B3#$A3#$99#$98#$93#$9B#$9F#$97#$9C#$95#$9E#$96#$BF#$9D#$94#$9A;
+  +#$E1#$E2#$F7#$E7#$E4#$E5#$F6#$FA#$E9#$EA#$EB#$EC#$ED#$EE#$EF#$F0
+  +#$F2#$F3#$F4#$F5#$E6#$E8#$E3#$FE#$FB#$FD#$FF#$F9#$F8#$FC#$E0#$F1
+  +#$C1#$C2#$D7#$C7#$C4#$C5#$D6#$DA#$C9#$CA#$CB#$CC#$CD#$CE#$CF#$D0
+  +#$90#$91#$92#$81#$87#$B2#$B4#$A7#$A6#$B5#$A1#$A8#$AE#$AD#$AC#$83
+  +#$84#$89#$88#$86#$80#$8A#$AF#$B0#$AB#$A5#$BB#$B8#$B1#$A0#$BE#$B9
+  +#$BA#$B6#$B7#$AA#$A9#$A2#$A4#$BD#$BC#$85#$82#$8D#$8C#$8E#$8F#$8B
+  +#$D2#$D3#$D4#$D5#$C6#$C8#$C3#$DE#$DB#$DD#$DF#$D9#$D8#$DC#$C0#$D1
+  +#$B3#$A3#$99#$98#$93#$9B#$9F#$97#$9C#$95#$9E#$96#$BF#$9D#$94#$9A;
 
- {RUS-ENG}
+  {RUS-ENG}
 
 const
-  RusEngAllChars:string=
-        #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-  + #$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-  + #$20#$21#$9D#$23#$24#$25#$26#$ED#$28#$29#$2A#$2B#$A1#$2D#$EE#$2F
-  + #$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$86#$A6#$81#$3D#$9E#$3F
-  + #$40#$94#$88#$91#$82#$93#$80#$8F#$90#$98#$8E#$8B#$84#$9C#$92#$99
-  + #$87#$89#$8A#$9B#$85#$83#$8C#$96#$97#$8D#$9F#$E5#$5C#$EA#$5E#$5F
-  + #$F1#$E4#$A8#$E1#$A2#$E3#$A0#$AF#$E0#$E8#$AE#$AB#$A4#$EC#$E2#$E9
-  + #$A7#$A9#$AA#$EB#$A5#$A3#$AC#$E6#$E7#$AD#$EF#$95#$7C#$9A#$F0#$7F
+  RusEngAllChars: String =
+  #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
+  +#$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
+  +#$20#$21#$9D#$23#$24#$25#$26#$ED#$28#$29#$2A#$2B#$A1#$2D#$EE#$2F
+  +#$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$86#$A6#$81#$3D#$9E#$3F
+  +#$40#$94#$88#$91#$82#$93#$80#$8F#$90#$98#$8E#$8B#$84#$9C#$92#$99
+  +#$87#$89#$8A#$9B#$85#$83#$8C#$96#$97#$8D#$9F#$E5#$5C#$EA#$5E#$5F
+  +#$F1#$E4#$A8#$E1#$A2#$E3#$A0#$AF#$E0#$E8#$AE#$AB#$A4#$EC#$E2#$E9
+  +#$A7#$A9#$AA#$EB#$A5#$A3#$AC#$E6#$E7#$AD#$EF#$95#$7C#$9A#$F0#$7F
 
-  + #$46#$3C#$44#$55#$4C#$54#$3A#$50#$42#$51#$52#$4B#$56#$59#$4A#$47
-  + #$48#$43#$4E#$45#$41#$7B#$57#$58#$49#$4F#$7D#$53#$4D#$22#$3E#$5A
-  + #$66#$2C#$64#$75#$6C#$74#$3B#$70#$62#$71#$72#$6B#$76#$79#$6A#$67
-  + #$B0#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B8#$B9#$BA#$BB#$BC#$BD#$BE#$BF
-  + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
-  + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
-  + #$68#$63#$6E#$65#$61#$5B#$77#$78#$69#$6F#$5D#$73#$6D#$27#$2E#$7A
-  + #$7E#$60#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF;
+  +#$46#$3C#$44#$55#$4C#$54#$3A#$50#$42#$51#$52#$4B#$56#$59#$4A#$47
+  +#$48#$43#$4E#$45#$41#$7B#$57#$58#$49#$4F#$7D#$53#$4D#$22#$3E#$5A
+  +#$66#$2C#$64#$75#$6C#$74#$3B#$70#$62#$71#$72#$6B#$76#$79#$6A#$67
+  +#$B0#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B8#$B9#$BA#$BB#$BC#$BD#$BE#$BF
+  +#$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
+  +#$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
+  +#$68#$63#$6E#$65#$61#$5B#$77#$78#$69#$6F#$5D#$73#$6D#$27#$2E#$7A
+  +#$7E#$60#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF;
 
 implementation
 
-  procedure XlatBuf(var B; Len: Integer; var XTable);
+procedure XLatBuf(var B; len: integer; var XTable);
   assembler;
-  {$IFNDEF BIT_32}
-  asm
-    cmp Len, 0
-    jle @@1
-    push ds
-    mov cx, Len
-    lds si, B
-    les bx, XTable
-    xor ah, ah
-    cld
- @@Loop:
-    lodsb
-    mov di, ax
-    mov al, es:[bx+di]
-    mov ds:[si-1], al
-    loop @@Loop
-    pop  ds
- @@1:
-  end;
-  {$ELSE BIT_32}{&Frame-}{$USES ESI, EBX, ECX, EDI}
-  asm
+  {&Frame-} {$USES ESI, EBX, ECX, EDI}
+asm
     cmp  Len, 0
     jle  @@1
     mov  ECX, Len
@@ -225,108 +209,116 @@ implementation
     mov  [ESI-1], AL
     loop @@Loop
  @@1:
-  end;
-  {$ENDIF}
+  end
+  ;
 
 {(c) SeYKo}
-constructor TCodePageDetector.Init;
-begin
-  (* inherited Init; *)
-  Koi:=0; KoiA:=0; Win:=0; WinA:=0; Win2:=0;
-end;
+Constructor TCodePageDetector.Init;
+  begin
+    (* inherited Init; *)
+    Koi := 0;
+    KoiA := 0;
+    Win := 0;
+    WinA := 0;
+    Win2 := 0;
+  end;
 
 destructor TCodePageDetector.Done;
-begin
-  (* inherited Done; *)
-end;
+  begin
+    (* inherited Done; *)
+  end;
 
 const
-  WinSetA = [#224,#229,#232,#238,#243];
-  KoiSetA = [#193,#197,#201,#207,#213];
+  WinSetA = [#224, #229, #232, #238, #243];
+  KoiSetA = [#193, #197, #201, #207, #213];
 
-procedure TCodePageDetector.CheckString(const S: String);
-var
-  C: Char;
-  P1, P2: PChar;
-begin
-  P1:=@S[1]; P2:=P1+Length(S);
-  while P1<P2 do
+procedure TCodePageDetector.CheckString(const s: String);
+  var
+    C: Char;
+    P1, P2: PChar;
   begin
-    C:=P1^; Inc(P1);
-    if C >= #$C0 then
-      if C <= #$DF then
+    P1 := @S[1];
+    P2 := P1+Length(s);
+    while P1 < P2 do
       begin
-        Inc(Koi); if C in KoiSetA then Inc(KoiA);
-      end
-      else begin
-        Inc(Win); if C in WinSetA then Inc(WinA);
-        if C >= #$F0 then Inc(Win2);
+        C := P1^;
+        Inc(P1);
+        if C >= #$C0 then
+          if C <= #$DF then
+            begin
+              Inc(Koi);
+              if C in KoiSetA then
+                Inc(KoiA);
+            end
+          else
+            begin
+              Inc(Win);
+              if C in WinSetA then
+                Inc(WinA);
+              if C >= #$F0 then
+                Inc(Win2);
+            end;
       end;
-  end;
-end;
+  end { TCodePageDetector.CheckString };
 
 function TCodePageDetector.DetectedCodePage: TKeyMap;
-begin
-  DetectedCodePage:=kmAscii;
-  if (Koi<>0) and (KoiA<>0) and (Win<>0) and
-     (Win >= Koi div 500) and (Win <= Koi div 5) and
-     (KoiA >= Koi div 5)
-  then DetectedCodePage:=kmKoi8r else
-  if (Win<>0) and (WinA<>0) and (Koi<>0) and
-     (Koi >= Win div 500) and (Koi <= Win div 5) and
-     (WinA >= Win div 5) and (Win2 >= Win div 5)
-  then DetectedCodePage:=kmAnsi;
-end;
+  begin
+    DetectedCodePage := kmAscii;
+    if (Koi <> 0) and (KoiA <> 0) and (Win <> 0) and
+      (Win >= Koi div 500) and (Win <= Koi div 5) and
+      (KoiA >= Koi div 5)
+    then
+      DetectedCodePage := kmKoi8r
+    else if (Win <> 0) and (WinA <> 0) and (Koi <> 0) and
+      (Koi >= Win div 500) and (Koi <= Win div 5) and
+      (WinA >= Win div 5) and (Win2 >= Win div 5)
+    then
+      DetectedCodePage := kmAnsi;
+  end;
 {(c) SeYKo}
 
- procedure NullXLAT; var C: Char; begin for c:=#0 to #255 do X[c]:=c; end;
+procedure NullXLAT;
+  var
+    C: Char;
+  begin
+    for C := #0 to#255 do
+      X[C] := C;
+  end;
 
 type
-  TConvertTable = array[0..255] of Byte;
+  TConvertTable = array[0..255] of byte;
 
- procedure CharsToTable ( var ConvertTable : TConvertTable; const AllChars : string );
- begin
-   FillChar ( ConvertTable, SizeOf(ConvertTable), #$00 );
-   Move ( AllChars[1], ConvertTable[1], Length(AllChars) );
- end;
+procedure CharsToTable(var ConvertTable: TConvertTable; const
+    AllChars: String);
+  begin
+    FillChar(ConvertTable, SizeOf(ConvertTable), #$00);
+    Move(AllChars[1], ConvertTable[1], Length(AllChars));
+  end;
 
- procedure CharsToBackTable ( var ConvertTable : TConvertTable; const AllChars : string );
- var
-   i : Integer;
- begin
-   FillChar ( ConvertTable, SizeOf(ConvertTable), #$00 );
-   for i := Low(ConvertTable)+1 to High(ConvertTable) do
-     ConvertTable[Ord(AllChars[i-Low(ConvertTable)])] := i;
- end;
+procedure CharsToBackTable(var ConvertTable: TConvertTable; const
+    AllChars: String);
+  var
+    i: integer;
+  begin
+    FillChar(ConvertTable, SizeOf(ConvertTable), #$00);
+    for i := Low(ConvertTable)+1 to High(ConvertTable) do
+      ConvertTable[Ord(AllChars[i-Low(ConvertTable)])] := i;
+  end;
 
- procedure ConvertBuf ( var Buf; Len : Word; const ConvertTable : TConvertTable );
- {$IFDEF  NOASM}
- var
-   i : Integer;
-   p : array [0..0] of Byte absolute Buf;
- begin
-   for i := 0 to Len-1 do
-     p[i] := ConvertTable[p[i]];
- end;
- {$ELSE  !NOASM}
- assembler;
- {$IFNDEF BIT_32}
- asm
-         MOV     CX,Len
-         JCXZ    @@2
-         MOV     DX,DS
-         LES     DI,Buf
-         LDS     BX,ConvertTable
- @@1:
-         MOV     AL,ES:[DI]
-         XLAT
-         STOSB
-         LOOP    @@1
-         MOV     DS,DX
- @@2:
- end;
- {$ELSE BIT_32}{&Frame-}{$USES EDI, EBX}
- asm
+procedure ConvertBuf(var Buf; len: word; const ConvertTable:
+    TConvertTable);
+  {$IFDEF  NOASM}
+  var
+    i: integer;
+    P: array[0..0] of byte absolute Buf;
+  begin
+    for i := 0 to len-1 do
+      P[i] := ConvertTable[P[i]];
+  end;
+  {$ELSE  !NOASM}
+  assembler;
+  {&Frame-} {$USES EDI, EBX}
+asm
          MOV     ECX,Len
          JCXZ    @@2
          LEA     EDI,Buf
@@ -337,85 +329,89 @@ type
          STOSB
          LOOP    @@1
  @@2:
- end;
- {$ENDIF BIT}
- {$ENDIF !NOASM}
+ end
+  ;
+{$ENDIF !NOASM}
 
- procedure CharsConvertBuf ( var Buf; Len : Word; const AllChars : string );
- var
-   ConvertTable : TConvertTable;
- begin
-   CharsToTable ( ConvertTable, AllChars );
-   ConvertBuf ( Buf, Len, ConvertTable );
- end;
+procedure CharsConvertBuf(var Buf; len: word; const AllChars: String);
+  var
+    ConvertTable: TConvertTable;
+  begin
+    CharsToTable(ConvertTable, AllChars);
+    ConvertBuf(Buf, len, ConvertTable);
+  end;
 
- procedure CharsConvertBufBack ( var Buf; Len : Word; const AllChars : string );
- var
-   ConvertTable : TConvertTable;
- begin
-   CharsToBackTable ( ConvertTable, AllChars );
-   ConvertBuf ( Buf, Len, ConvertTable );
- end;
+procedure CharsConvertBufBack(var Buf; len: word; const AllChars:
+    String);
+  var
+    ConvertTable: TConvertTable;
+  begin
+    CharsToBackTable(ConvertTable, AllChars);
+    ConvertBuf(Buf, len, ConvertTable);
+  end;
 
- function Ascii_Ansi ( const S : longstring ) : longstring;
- begin
-   result := S;
-   CharsConvertBuf ( result[1], Length(result), AnsiAllChars );
- end;
+function ascii_ansi(const s: LongString): LongString;
+  begin
+    Result := s;
+    CharsConvertBuf(Result[1], Length(Result), AnsiAllChars);
+  end;
 
- function Ansi_Ascii ( const S : longstring ) : longstring;
- begin
-   result := S;
-   CharsConvertBufBack ( result[1], Length(result), AnsiAllChars );
- end;
+function ansi_ascii(const s: LongString): LongString;
+  begin
+    Result := s;
+    CharsConvertBufBack(Result[1], Length(Result), AnsiAllChars);
+  end;
 
- procedure Ascii_Ansi_Buf ( var Buf; L : Word );
- begin
-   CharsConvertBuf ( Buf, L, AnsiAllChars );
- end;
+procedure Ascii_Ansi_Buf(var Buf; l: word);
+  begin
+    CharsConvertBuf(Buf, l, AnsiAllChars);
+  end;
 
- procedure Ansi_Ascii_Buf ( var Buf; L: Word );
- begin
-   CharsConvertBufBack ( Buf, L, AnsiAllChars );
- end;
+procedure Ansi_Ascii_Buf(var Buf; l: word);
+  begin
+    CharsConvertBufBack(Buf, l, AnsiAllChars);
+  end;
 
- function Ascii_Koi8r ( const S : longstring ): longstring;
- begin
-   result := S;
-   CharsConvertBuf ( result[1], Length(result), Koi8rAllChars );
- end;
+function ascii_koi8r(const s: LongString): LongString;
+  begin
+    Result := s;
+    CharsConvertBuf(Result[1], Length(Result), Koi8rAllChars);
+  end;
 
- function Koi8r_Ascii ( const S : longstring ) : longstring;
- begin
-   result := S;
-   CharsConvertBufBack ( result[1], Length(result), Koi8rAllChars );
- end;
+function koi8r_ascii(const s: LongString): LongString;
+  begin
+    Result := s;
+    CharsConvertBufBack(Result[1], Length(Result), Koi8rAllChars);
+  end;
 
- procedure Ascii_Koi8r_Buf ( var Buf; L : Word );
- begin
-   CharsConvertBuf ( Buf, L, Koi8rAllChars );
- end;
+procedure Ascii_Koi8r_Buf(var Buf; l: word);
+  begin
+    CharsConvertBuf(Buf, l, Koi8rAllChars);
+  end;
 
- procedure Koi8r_Ascii_Buf ( var Buf; L: Word );
- begin
-   CharsConvertBufBack ( Buf, L, Koi8rAllChars );
- end;
+procedure Koi8r_Ascii_Buf(var Buf; l: word);
+  begin
+    CharsConvertBufBack(Buf, l, Koi8rAllChars);
+  end;
 
- function RusEngConv ( const S : longstring ): longstring;
- begin
-   result := S;
-   CharsConvertBuf ( result[1], Length(result), RusEngAllChars );
- end;
+function RusEngConv(const s: LongString): LongString;
+  begin
+    Result := s;
+    CharsConvertBuf(Result[1], Length(Result), RusEngAllChars);
+  end;
 
- function GetToAsciiRecodeTable ( K : TKeyMap; var Buf ) : Boolean;
- begin
-   GetToAsciiRecodeTable := False;
-   case K of
-     kmAnsi  : CharsToBackTable ( TConvertTable(Buf), AnsiAllChars );
-     kmKoi8r : CharsToBackTable ( TConvertTable(Buf), Koi8rAllChars );
-   else Exit;
-   end;
-   GetToAsciiRecodeTable := True;
- end;
+function GetToAsciiRecodeTable(k: TKeyMap; var Buf): boolean;
+  begin
+    GetToAsciiRecodeTable := False;
+    case k of
+      kmAnsi:
+        CharsToBackTable(TConvertTable(Buf), AnsiAllChars);
+      kmKoi8r:
+        CharsToBackTable(TConvertTable(Buf), Koi8rAllChars);
+      else
+        exit;
+    end {case};
+    GetToAsciiRecodeTable := True;
+  end;
 
- end.
+end.

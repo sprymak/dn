@@ -58,400 +58,465 @@ uses
 const
   cmUpdateGauge = 12000;
   cmResetGauge = 12001;
-  cmAddGauge   = 12002;
+  cmAddGauge = 12002;
 
 type
   PPercentGauge = ^TPercentGauge;
   TPercentGauge = object(TView)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    MaxValue: Longint;
-    CurValue: Longint;
-    constructor Init(var Bounds: TRect; AMaxValue: Longint );
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    MaxValue: longInt;
+    CurValue: longInt;
+    Constructor Init(var Bounds: TRect; AMaxValue: longInt);
     procedure Draw; virtual;
-    procedure UpdateView(Progress: Longint); virtual;
-    procedure AddProgress(Progress: Longint);
+    procedure UpdateView(Progress: longInt); virtual;
+    procedure AddProgress(Progress: longInt);
     procedure HandleEvent(var Event: TEvent); virtual;
-    function SolveForX(Y, Z: Longint): Integer;
-    function SolveForY(X, Z: Longint): Integer;
-  end;
+    function SolveForX(Y, Z: longInt): integer;
+    function SolveForY(X, Z: longInt): integer;
+    end;
 
   PBarGauge = ^TBarGauge;
   TBarGauge = object(TPercentGauge)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     procedure Draw; virtual;
-  end;
+    end;
 
   PWhileView = ^TWhileView;
   TWhileView = object(TGroup)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-   Lines: PCollection;
-   But: PButton;
-   QuitNormal: Boolean;
-   Top, Bottom: String[ SizeOf( String ) - 1 ];
-   constructor Init(Bounds: TRect);
-   procedure Write(N: Integer;S: String);
-   function GetPalette: PPalette; virtual;
-   function Valid(C: Word): Boolean; virtual;
-   procedure SetState(AState: Word; Enable: Boolean); virtual;
-   procedure Draw; virtual;
-   procedure HandleEvent(var Event: TEvent); virtual;
-   destructor Done; virtual;
-   procedure ClearInterior;
-  private
-   Side: ( sdLeft, sdRight );
-   procedure InsBut;
-  end;
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    Lines: PCollection;
+    But: PButton;
+    QuitNormal: boolean;
+    Top, Bottom: String[SizeOf(String)-1];
+    Constructor Init(Bounds: TRect);
+    procedure Write(n: integer; s: String);
+    function GetPalette: PPalette; virtual;
+    function Valid(C: word): boolean; virtual;
+    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure Draw; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    destructor Done; virtual;
+    procedure ClearInterior;
+    private
+    Side: (sdLeft, sdRight);
+    procedure InsBut;
+    end;
 
-procedure DispatchEvents(InfoView: PWhileView; var CancelParam: Boolean);
+procedure DispatchEvents(InfoView: PWhileView; var CancelParam:
+    boolean);
 
 implementation
-uses DNApp, RStrings, Commands, advance, advance1, advance2, advance3;
+uses
+  DNApp, RStrings, Commands, advance, advance1, advance2, advance3;
 
-constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: Longint );
-begin
-  inherited Init(Bounds);
-  EventMask := EventMask or evBroadcast;
-  MaxValue := AMaxValue;
-  CurValue := 0;
-end;
+Constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: longInt);
+  begin
+    inherited Init(Bounds);
+    EventMask := EventMask or evBroadcast;
+    MaxValue := AMaxValue;
+    CurValue := 0;
+  end;
 
 procedure TPercentGauge.Draw;
-var
-  B: TDrawBuffer;
-  C: Word;
-{$IFDEF USEANSISTRING}
-  S: String;
-{$ELSE}
-  S: String[10];
-{$ENDIF}
-  PercentDone: Longint;
-begin
-  C := GetColor(1);
-  MoveChar(B, ' ', C, Size.X);
-  PercentDone := SolveForY(CurValue, MaxValue);
-  FormatStr(S, '%-3d%%', PercentDone);
-  MoveStr(B, S, C);
-  WriteLine(0,0,Size.X,Size.Y,B);
-end;
+  var
+    B: TDrawBuffer;
+    C: word;
+    s: String[10];
+    PercentDone: longInt;
+  begin
+    C := GetColor(1);
+    MoveChar(B, ' ', C, Size.X);
+    PercentDone := SolveForY(CurValue, MaxValue);
+    FormatStr(s, '%-3d%%', PercentDone);
+    MoveStr(B, s, C);
+    WriteLine(0, 0, Size.X, Size.Y, B);
+  end;
 
-procedure TPercentGauge.UpdateView(Progress: Longint);
-begin
-  CurValue := Progress;
-  DrawView;
-end;
+procedure TPercentGauge.UpdateView(Progress: longInt);
+  begin
+    CurValue := Progress;
+    DrawView;
+  end;
 
-procedure TPercentGauge.AddProgress(Progress: Longint);
-begin
-  UpdateView(Progress + CurValue);
-end;
+procedure TPercentGauge.AddProgress(Progress: longInt);
+  begin
+    UpdateView(Progress+CurValue);
+  end;
 
 procedure TPercentGauge.HandleEvent(var Event: TEvent);
-begin
-  inherited HandleEvent(Event);
-  if Event.What = evBroadcast then
   begin
-    case Event.Command of
-      cmUpdateGauge :
-        begin
-          UpdateView(Event.InfoLong);
-        end;
-      cmResetGauge:
-        begin
-          MaxValue := Event.InfoLong;
-          UpdateView(0);
-        end;
-      cmAddGauge:
-        begin
-          AddProgress(Event.InfoLong);
-        end;
-    end;
-  end;
-end;
+    inherited HandleEvent(Event);
+    if Event.What = evBroadcast then
+      begin
+        case Event.Command of
+          cmUpdateGauge:
+            begin
+              UpdateView(Event.InfoLong);
+            end;
+          cmResetGauge:
+            begin
+              MaxValue := Event.InfoLong;
+              UpdateView(0);
+            end;
+          cmAddGauge:
+            begin
+              AddProgress(Event.InfoLong);
+            end;
+        end {case};
+      end;
+  end { TPercentGauge.HandleEvent };
 
 { This function solves for x in the equation "x is y% of z". }
-function TPercentGauge.SolveForX(Y, Z: Longint): Integer;
-begin
-  SolveForX := Trunc( Z * (Y * 0.01) );
-end;
+function TPercentGauge.SolveForX(Y, Z: longInt): integer;
+  begin
+    SolveForX := Trunc(Z*(Y*0.01));
+  end;
 
 { This function solves for y in the equation "x is y% of z". }
-function TPercentGauge.SolveForY(X, Z: Longint): Integer;
-begin
-  if Z = 0 then SolveForY := 0
-  else SolveForY := Trunc( (X * 100) / Z );
-end;
-
+function TPercentGauge.SolveForY(X, Z: longInt): integer;
+  begin
+    if Z = 0 then
+      SolveForY := 0
+    else
+      SolveForY := Trunc((X*100)/Z);
+  end;
 
 { TBarGauge }
 procedure TBarGauge.Draw;
-var
-  B: TDrawBuffer;
-  C: Word;
-  PercentDone: Longint;
-  FillSize: Integer;
-begin
-  C := GetColor(1);
-  MoveChar(B, #176, C, Size.X);
-  PercentDone := SolveForY(CurValue, MaxValue);
-  FillSize := SolveForX(PercentDone, Size.X);
-  if FillSize > Size.X then FillSize := Size.X;
-  MoveChar(B, #178, C, FillSize);
-  WriteLine(0,0,Size.X,Size.Y,B);
-end;
+  var
+    B: TDrawBuffer;
+    C: word;
+    PercentDone: longInt;
+    FillSize: integer;
+  begin
+    C := GetColor(1);
+    MoveChar(B, #176, C, Size.X);
+    PercentDone := SolveForY(CurValue, MaxValue);
+    FillSize := SolveForX(PercentDone, Size.X);
+    if FillSize > Size.X then
+      FillSize := Size.X;
+    MoveChar(B, #178, C, FillSize);
+    WriteLine(0, 0, Size.X, Size.Y, B);
+  end;
 
 procedure TWhileView.InsBut;
-var
- R: TRect;
-begin
- R.Assign(1, Size.Y - 3, 13, Size.Y - 1);
- New(But, Init(R, GetString(dlStop), cmCancel, bfDefault));
- But^.Options := But^.Options or ofCenterX;
- Insert(But);
-end;
+  var
+    R: TRect;
+  begin
+    R.Assign(1, Size.Y-3, 13, Size.Y-1);
+    New(But, Init(R, GetString(dlStop), cmCancel, bfDefault));
+    But^.Options := But^.Options or ofCenterX;
+    Insert(But);
+  end;
 
-constructor TWhileView.Init;
- var I: Integer;
-begin
- TGroup.Init( Bounds );
- QuitNormal := False;
- Options := (Options or ofCentered or ofTopSelect) and not ofSelectable;
- Lines := New(PLineCollection, Init(Bounds.B.Y - Bounds.A.Y, 10, False));
- for I := 0 to Bounds.B.Y - Bounds.A.Y - 2 do Lines^.Insert(NewStr(''));
- SetState(sfShadow, True);
- InsBut;
- Top := ''; Bottom := '';
-end;
+Constructor TWhileView.Init;
+  var
+    i: integer;
+  begin
+    TGroup.Init(Bounds);
+    QuitNormal := False;
+    Options := (Options or ofCentered or ofTopSelect) and not
+      ofSelectable;
+    Lines := New(PLineCollection, Init(Bounds.B.Y-Bounds.A.Y, 10,
+      False));
+    for i := 0 to Bounds.B.Y-Bounds.A.Y-2 do
+      Lines^.Insert(NewStr(''));
+    SetState(sfShadow, True);
+    InsBut;
+    Top := '';
+    Bottom := '';
+  end;
 
 procedure TWhileView.Write;
- var R: TRect;
-     B: TDrawBuffer;
-     I: Integer;
-     S1: String;
-begin
- if N < Lines^.Count then
- begin
-   if CnvString(Lines^.At(N)) = S then Exit;
-   Lines^.AtFree(N);
- end else Exit;
- Lines^.AtInsert(N, NewStr(S));
- if Length(S) > Size.X - 4 then
+  var
+    R: TRect;
+    B: TDrawBuffer;
+    i: integer;
+    s1: String;
   begin
-   Lock;
-   R.A.Y := Origin.Y;
-   R.B.Y := R.A.Y + Size.Y;
-   If Side = sdLeft then begin
-     R.B.X := Origin.X + Size.X + ( Length( S ) - Size.X + 4 ) div 2;
-     R.A.X := R.B.X - Length( S ) - 4;
-   end else begin
-     R.A.X := Origin.X - ( Length( S ) - Size.X + 4 ) div 2;
-     R.B.X := R.A.X + Length( S ) + 4;
-   end;
-   Boolean( Side ) := not Boolean( Side );
-   Locate(R);
-   Dispose(But,Done); But:=nil;
-   InsBut;
-   UnLock;
-   DrawView;
-  end else
-   begin
-    FillChar(S1[1], Size.X - 2, ' '); {JO}
-    SetLength(S1, Size.X - 2);
-    Move(S[1], S1[(Size.X - Length(S)) div 2], Length(S));
-    WriteStr(1, N+1, S1, 7);
-   end;
-end;
+    if n < Lines^.Count then
+      begin
+        if CnvString(Lines^.At(n)) = s then
+          exit;
+        Lines^.AtFree(n);
+      end
+    else
+      exit;
+    Lines^.AtInsert(n, NewStr(s));
+    if Length(s) > Size.X-4 then
+      begin
+        Lock;
+        R.A.Y := Origin.Y;
+        R.B.Y := R.A.Y+Size.Y;
+        if Side = sdLeft then
+          begin
+            R.B.X := Origin.X+Size.X+(Length(s)-Size.X+4) div 2;
+            R.A.X := R.B.X-Length(s)-4;
+          end
+        else
+          begin
+            R.A.X := Origin.X-(Length(s)-Size.X+4) div 2;
+            R.B.X := R.A.X+Length(s)+4;
+          end;
+        boolean(Side) := not boolean(Side);
+        Locate(R);
+        Dispose(But, Done);
+        But := nil;
+        InsBut;
+        UnLock;
+        DrawView;
+      end
+    else
+      begin
+        FillChar(s1[1], Size.X-2, ' '); {JO}
+        SetLength(s1, Size.X-2);
+        Move(s[1], s1[(Size.X-Length(s)) div 2], Length(s));
+        WriteStr(1, n+1, s1, 7);
+      end;
+  end { TWhileView.Write };
 
 procedure TWhileView.ClearInterior;
-var
-  I, C: Integer;
-begin
-  C := Lines^.Count-1; Lines^.FreeAll;
-  for I := 0 to C do Lines^.Insert(NewStr(''));
-  DrawView;
-end;
-
+  var
+    i, C: integer;
+  begin
+    C := Lines^.Count-1;
+    Lines^.FreeAll;
+    for i := 0 to C do
+      Lines^.Insert(NewStr(''));
+    DrawView;
+  end;
 
 procedure TWhileView.SetState;
-var
-  WindowCommands: TCommandSet;
-begin
-  inherited SetState(AState, Enable);
-  if AState = sfSelected then
+  var
+    WindowCommands: TCommandSet;
   begin
-    SetState(sfActive, Enable);
-    if Top<>'' then SetTitle(Top);
-    WindowCommands := [cmNext, cmPrev];
-    if Enable then EnableCommands(WindowCommands)
-    else DisableCommands(WindowCommands);
+    inherited SetState(AState, Enable);
+    if AState = sfSelected then
+      begin
+        SetState(sfActive, Enable);
+        if Top <> '' then
+          SetTitle(Top);
+        WindowCommands := [cmNext, cmPrev];
+        if Enable then
+          EnableCommands(WindowCommands)
+        else
+          DisableCommands(WindowCommands);
+      end;
   end;
-end;
 
 function TWhileView.GetPalette;
- const P: String[Length(CDialog)] = CDialog;
-begin
- GetPalette := @P;
-end;
+  const
+    P: String[Length(CDialog)] = CDialog;
+  begin
+    GetPalette := @P;
+  end;
 
 procedure TWhileView.HandleEvent;
- var P: TPoint;
-     R: TRect;
+  var
+    P: TPoint;
+    R: TRect;
 
- procedure MoveView;
- begin
-  DeskTop^.GetExtent(R);
-  Inc(R.A.Y, Size.Y - 1);
-  SetState(sfDragging, true);
-  DrawView;
-  DragView(Event, dmDragMove, R, Size, Size);
-  ClearEvent(Event);
- end;
+  procedure MoveView;
+    begin
+      Desktop^.GetExtent(R);
+      Inc(R.A.Y, Size.Y-1);
+      SetState(sfDragging, True);
+      DrawView;
+      DragView(Event, dmDragMove, R, Size, Size);
+      ClearEvent(Event);
+    end;
 
-begin
- Owner^.GetExtent(R);
- case Event.What of
-  evKeyDown: case Event.KeyCode of
-              kbESC, kbEnter: begin
-                      Event.What := evCommand;
-                      Event.Command := cmCancel;
-                      Event.InfoPtr := But;
-                      Application^.PutEvent(Event);
-                      ClearEvent(Event);
-                     end;
-              kbLeft: begin
-                        if Origin.X + Size.X > 1 then MoveTo(Origin.X - 1, Origin.Y);
-                        ClearEvent(Event);
-                      end;
-              kbRight: begin
-                         if Origin.X < R.B.X - 1 then MoveTo(Origin.X + 1, Origin.Y);
-                         ClearEvent(Event);
-                       end;
-              kbUp: begin
-                      if Origin.Y > 0 then MoveTo(Origin.X, Origin.Y - 1);
-                      ClearEvent(Event);
-                    end;
-              kbDown: begin
-                        if Origin.Y < R.B.Y - 1 then MoveTo(Origin.X, Origin.Y + 1);
-                        ClearEvent(Event);
-                      end;
-             end;
- evMouseDown: begin
-               MakeLocal(Event.Where, P);
-               if P.Y = 0 then MoveView;
-              end;
- evCommand: case Event.Command of
-             cmGetName: PString(Event.InfoPtr)^ := Top;
-             cmResize: MoveView;
-             cmClose, cmQuit: if not QuitNormal then ClearEvent(Event);
+  begin
+    Owner^.GetExtent(R);
+    case Event.What of
+      evKeyDown:
+        case Event.KeyCode of
+          kbESC, kbEnter:
+            begin
+              Event.What := evCommand;
+              Event.Command := cmCancel;
+              Event.InfoPtr := But;
+              Application^.PutEvent(Event);
+              ClearEvent(Event);
             end;
- end;
- TGroup.HandleEvent(Event);
-end;
+          kbLeft:
+            begin
+              if Origin.X+Size.X > 1 then
+                MoveTo(Origin.X-1, Origin.Y);
+              ClearEvent(Event);
+            end;
+          kbRight:
+            begin
+              if Origin.X < R.B.X-1 then
+                MoveTo(Origin.X+1, Origin.Y);
+              ClearEvent(Event);
+            end;
+          kbUp:
+            begin
+              if Origin.Y > 0 then
+                MoveTo(Origin.X, Origin.Y-1);
+              ClearEvent(Event);
+            end;
+          kbDown:
+            begin
+              if Origin.Y < R.B.Y-1 then
+                MoveTo(Origin.X, Origin.Y+1);
+              ClearEvent(Event);
+            end;
+        end {case};
+      evMouseDown:
+        begin
+          MakeLocal(Event.Where, P);
+          if P.Y = 0 then
+            MoveView;
+        end;
+      evCommand:
+        case Event.Command of
+          cmGetName:
+            PString(Event.InfoPtr)^:= Top;
+          cmResize:
+            MoveView;
+          cmClose, cmQuit:
+            if not QuitNormal then
+              ClearEvent(Event);
+        end {case};
+    end {case};
+    TGroup.HandleEvent(Event);
+  end { TWhileView.HandleEvent };
 
 procedure TWhileView.Draw;
- var B: TDrawBuffer;
-     B1: Array [0..127] of record c: Char; a: Byte; end Absolute B;
-     C1, C2: Byte;
-     I: Integer;
-     S: String;
-     R: TRect;
-begin
- if Length(Top) > Size.X - 4 then
+  var
+    B: TDrawBuffer;
+    B1: array[0..127] of record
+      C: Char;
+      A: byte;
+      end absolute B;
+    C1, C2: byte;
+    i: integer;
+    s: String;
+    R: TRect;
   begin
-   Lock;
-   R.A.Y := Origin.Y;
-   R.B.Y := R.A.Y + Size.Y;
-   If Side = sdLeft then begin
-     R.B.X := Origin.X + Size.X + ( Length( Top ) - Size.X + 4 ) div 2;
-     R.A.X := R.B.X - Length( Top ) - 4;
-   end else begin
-     R.A.X := Origin.X - ( Length( Top ) - Size.X + 4 ) div 2;
-     R.B.X := R.A.X + Length( Top ) + 4;
-   end;
-   Boolean( Side ) := not Boolean( Side );
-   Locate(R);
-   Dispose(But,Done); But:=nil;
-   InsBut;
-   UnLock;
-  end;
- if Length(Bottom) > Size.X - 4 then
-  begin
-   Lock;
-   R.A.Y := Origin.Y;
-   R.B.Y := R.A.Y + Size.Y;
-   If Side = sdLeft then begin
-     R.B.X := Origin.X + Size.X + ( Length( Bottom ) - Size.X + 4 ) div 2;
-     R.A.X := R.B.X - Length( Bottom ) - 4;
-   end else begin
-     R.A.X := Origin.X - ( Length( Bottom ) - Size.X + 4 ) div 2;
-     R.B.X := R.A.X + Length( Bottom ) + 4;
-   end;
-   Boolean( Side ) := not Boolean( Side );
-   Locate(R);
-   Dispose(But,Done); But:=nil;
-   InsBut;
-   UnLock;
-  end;
- C1 := GetColor(2 + Byte(GetState(sfDragging)));
- C2 := GetColor(7);
- MoveChar(B, #205, C1, Size.X);
- if Top <> '' then
-  MoveStr(B[(Size.X - Length(Top)) div 2 - 1], ' ' + Top + ' ', C1);
- B1[0].C := #201; B1[Size.X - 1].C := #187;
- WriteLine(0, 0, Size.X, 1, B);
- MoveChar(B, #205, C1, Size.X);
- if Bottom <> '' then
-  MoveStr(B[(Size.X - Length(Bottom)) div 2 - 1], ' ' + Bottom + ' ', C1);
- B1[0].C := #200; B1[Size.X - 1].C := #188;
- WriteLine(0, Size.Y - 1, Size.X, 1, B);
- for I := 0 to Size.Y - 5 do
-  begin
-   MoveChar(B, ' ', C2, Size.X);
-   if I < Lines^.Count then
-    begin
-     if Lines^.At(I) <> nil then S := PString(Lines^.At(I))^ else S := '';
-     MoveStr(B[(Size.X - Length(S)) div 2], S, C2);
-    end;
-   B1[0].C := #186; B1[Size.X - 1].C := #186;
-   B1[0].A := C1; B1[Size.X - 1].A := C1;
-   WriteLine(0, I + 1, Size.X, 1, B);
-  end;
-  MoveChar(B, ' ', C1, Size.X);
-  B1[0].C := #186; B1[Size.X - 1].C := #186;
-  WriteLine(0, But^.Origin.Y, But^.Origin.X, 2, B);
-  WriteLine(But^.Origin.X + But^.Size.X , But^.Origin.Y, Size.X, 2, B[But^.Origin.X + But^.Size.X]);
-  But^.Draw;
-end;
+    if Length(Top) > Size.X-4 then
+      begin
+        Lock;
+        R.A.Y := Origin.Y;
+        R.B.Y := R.A.Y+Size.Y;
+        if Side = sdLeft then
+          begin
+            R.B.X := Origin.X+Size.X+(Length(Top)-Size.X+4) div 2;
+            R.A.X := R.B.X-Length(Top)-4;
+          end
+        else
+          begin
+            R.A.X := Origin.X-(Length(Top)-Size.X+4) div 2;
+            R.B.X := R.A.X+Length(Top)+4;
+          end;
+        boolean(Side) := not boolean(Side);
+        Locate(R);
+        Dispose(But, Done);
+        But := nil;
+        InsBut;
+        UnLock;
+      end;
+    if Length(Bottom) > Size.X-4 then
+      begin
+        Lock;
+        R.A.Y := Origin.Y;
+        R.B.Y := R.A.Y+Size.Y;
+        if Side = sdLeft then
+          begin
+            R.B.X := Origin.X+Size.X+(Length(Bottom)-Size.X+4) div 2;
+            R.A.X := R.B.X-Length(Bottom)-4;
+          end
+        else
+          begin
+            R.A.X := Origin.X-(Length(Bottom)-Size.X+4) div 2;
+            R.B.X := R.A.X+Length(Bottom)+4;
+          end;
+        boolean(Side) := not boolean(Side);
+        Locate(R);
+        Dispose(But, Done);
+        But := nil;
+        InsBut;
+        UnLock;
+      end;
+    C1 := GetColor(2+byte(GetState(sfDragging)));
+    C2 := GetColor(7);
+    MoveChar(B, #205, C1, Size.X);
+    if Top <> '' then
+      MoveStr(B[(Size.X-Length(Top)) div 2-1], ' '+Top+' ', C1);
+    B1[0].C := #201;
+    B1[Size.X-1].C := #187;
+    WriteLine(0, 0, Size.X, 1, B);
+    MoveChar(B, #205, C1, Size.X);
+    if Bottom <> '' then
+      MoveStr(B[(Size.X-Length(Bottom)) div 2-1], ' '+Bottom+' ', C1);
+    B1[0].C := #200;
+    B1[Size.X-1].C := #188;
+    WriteLine(0, Size.Y-1, Size.X, 1, B);
+    for i := 0 to Size.Y-5 do
+      begin
+        MoveChar(B, ' ', C2, Size.X);
+        if i < Lines^.Count then
+          begin
+            if Lines^.At(i) <> nil then
+              s := PString(Lines^.At(i))^
+            else
+              s := '';
+            MoveStr(B[(Size.X-Length(s)) div 2], s, C2);
+          end;
+        B1[0].C := #186;
+        B1[Size.X-1].C := #186;
+        B1[0].A := C1;
+        B1[Size.X-1].A := C1;
+        WriteLine(0, i+1, Size.X, 1, B);
+      end;
+    MoveChar(B, ' ', C1, Size.X);
+    B1[0].C := #186;
+    B1[Size.X-1].C := #186;
+    WriteLine(0, But^.Origin.Y, But^.Origin.X, 2, B);
+    WriteLine(But^.Origin.X+But^.Size.X, But^.Origin.Y, Size.X, 2, B[
+      But^.Origin.X+But^.Size.X]);
+    But^.Draw;
+  end { TWhileView.Draw };
 
 function TWhileView.Valid;
-begin
-  if (C <> cmQuit) then Valid := inherited Valid(C)
-                   else Valid := false;
-end;
+  begin
+    if (C <> cmQuit) then
+      Valid := inherited Valid(C)
+    else
+      Valid := False;
+  end;
 
 destructor TWhileView.Done;
-begin
- Dispose(Lines,Done); Lines:=nil;
- TGroup.Done;
-end;
+  begin
+    Dispose(Lines, Done);
+    Lines := nil;
+    TGroup.Done;
+  end;
 
-
-procedure DispatchEvents(InfoView: PWhileView; var CancelParam: Boolean);
- var Event: TEvent;
-begin
- Application^.GetEvent(Event);
- if (Event.What = evCommand) and (Event.Command = cmCancel) and
-    (Event.InfoPtr = InfoView^.But) or
-    (Event.What=evKeyDown) and (Event.KeyCode = kbESC)
+procedure DispatchEvents(InfoView: PWhileView; var CancelParam:
+    boolean);
+  var
+    Event: TEvent;
+  begin
+    Application^.GetEvent(Event);
+    if (Event.What = evCommand) and (Event.Command = cmCancel) and
+      (Event.InfoPtr = InfoView^.But) or
+      (Event.What = evKeyDown) and (Event.KeyCode = kbESC)
     then
-     begin
-      InfoView^.ClearEvent(Event);
-      CancelParam := true;
-     end;
- if (Event.What <> evNothing){ and not ((Event.What = evKeyDown) and
+      begin
+        InfoView^.ClearEvent(Event);
+        CancelParam := True;
+      end;
+    if (Event.What <> evNothing)
+        { and not ((Event.What = evKeyDown) and
     (Event.KeyCode = kbEnter))}
-   then {and InfoView^.MouseInView(Event.Where)
+    then
+        {and InfoView^.MouseInView(Event.Where)
     or (Event.What = evKeyDown) and ((Event.ScanCode=kbAltS) or (Event.))
-    then Application} InfoView^.HandleEvent(Event);
-end;
+    then Application}
+        InfoView^.HandleEvent(Event);
+  end;
 
 end.

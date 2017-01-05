@@ -7,23 +7,22 @@ Written by Cat 2:5030/1326.13
 
 ******)
 
-
 {$I STDEFINE.INC}
 
 interface
 
 uses
-  Dos, Objects, Collect, FilesCol, RStrings, Advance, Views, Dialogs, Menus,
-  DnApp, Archiver, XDblWnd, DnIni, Startup, Calculat, Plugin;
+  Dos, Objects, Collect, FilesCol, RStrings, advance, Views, Dialogs,
+    Menus,
+  DNApp, Archiver, XDblWnd, DnIni, Startup, Calculat, Plugin;
 
 type
   PBoolean = ^Boolean;
 
-
-{Global variables}
+  {Global variables}
 
 function FileMode: PLongInt;
-function DosError: Integer;
+function DOSError: integer;
 function Application: PProgram;
 function Desktop: PDesktop;
 function CommandLine: PView;
@@ -47,33 +46,43 @@ function ArcFileName: String;
 function VArcFileName: String;
 function EvalueError: PBoolean;
 
-
 {Create some objects}
 
-function NewCollection(A1, A2: LongInt): PCollection;
-function NewStringCollection(A1, A2: LongInt; LS: Boolean): PStringCollection;
-function NewLineCollection(A1, A2: LongInt; LS: Boolean): PLineCollection;
-function NewFilesCollection(A1, A2: LongInt): PFilesCollection;
-function NewDosStream(FileName: FNameStr; Mode: Word): PDosStream;
-function NewBufStream(FileName: FNameStr; Mode: Word; Size: Word): PBufStream;
+function NewCollection(A1, A2: longInt): PCollection;
+function NewStringCollection(A1, A2: longInt; LS: boolean):
+  PStringCollection;
+function NewLineCollection(A1, A2: longInt; LS: boolean):
+  PLineCollection;
+function NewFilesCollection(A1, A2: longInt): PFilesCollection;
+function NewDosStream(FileName: FNameStr; Mode: word): PDosStream;
+function NewBufStream(FileName: FNameStr; Mode: word; Size: word):
+  PBufStream;
 function NewView(X1, Y1, X2, Y2: SmallWord): PView;
-function NewWindow(X1, Y1, X2, Y2: SmallWord; Title: String; Number: SmallWord): PWindow;
-function NewDialog(X1, Y1, X2, Y2: SmallWord; Title: String): PDialog;
-function NewButton(X1, Y1, X2, Y2: SmallWord; Title: String; cm_, bf_: SmallWord): PButton;
-function NewLabel(X1, Y1, X2, Y2: SmallWord; S: String; P:PView): PLabel;
-function NewStaticText(X1, Y1, X2, Y2: SmallWord; S: String): PStaticText;
-function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: Word): PInputLine;
-function NewCheckBoxes(X1, Y1, X2, Y2: SmallWord; Items: PSItem): PCheckBoxes;
-function NewRadioButtons(X1, Y1, X2, Y2: SmallWord; Items: PSItem): PRadioButtons;
-function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: Word; ScrollBar: PScrollBar): PListBox;
+function NewWindow(X1, Y1, X2, Y2: SmallWord; Title: String; Number:
+    SmallWord): PWindow;
+function NewDialog(X1, Y1, X2, Y2: SmallWord; Title: String):
+  PDialog;
+function NewButton(X1, Y1, X2, Y2: SmallWord; Title: String; cm_,
+    bf_: SmallWord): PButton;
+function NewLabel(X1, Y1, X2, Y2: SmallWord; s: String; P: PView):
+  PLabel;
+function NewStaticText(X1, Y1, X2, Y2: SmallWord; s: String):
+  PStaticText;
+function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: word):
+  PInputline;
+function NewCheckBoxes(X1, Y1, X2, Y2: SmallWord; Items: PSItem):
+  PCheckBoxes;
+function NewRadioButtons(X1, Y1, X2, Y2: SmallWord; Items: PSItem):
+  PRadioButtons;
+function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: word;
+    ScrollBar: PScrollBar): PListBox;
 function NewScrollBar(X1, Y1, X2, Y2: SmallWord): PScrollBar;
-function NewMenuBox(X1, Y1, X2, Y2: SmallWord; Menu: PMenu; ParentMenu: PMenuView): PMenuBox;
-
+function NewMenuBox(X1, Y1, X2, Y2: SmallWord; Menu: PMenu;
+    ParentMenu: PMenuView): PMenuBox;
 
 {TypeOf}
 
-function TypeOf_TXDoubleWindow(P: PObject): Boolean;
-
+function TypeOf_TXDoubleWindow(P: PObject): boolean;
 
 {INI variables}
 
@@ -81,122 +90,115 @@ type
   PIniVars = ^TIniVars;
   TIniVars = record
     {Interface}
-    CutDriveInfo             : Boolean;
-    WinManagerSelectNext     : Boolean;
-    DriveSelectVCenter       : Boolean;
-    SystemMenuChar           : Byte;
-    HorizScrollBarChars      : String[6];
-    VertScrollBarChars       : String[6];
-    ReflectCopyDirection     : Boolean;
-    ReuseViewers             : Byte;
-    ReuseEditors             : Byte;
-    HistoryErrorBeep         : Boolean;
-    PreserveMenuPositions    : Boolean;
-    LFNinBottom              : Boolean;
-    PanelDescrArvid          : String[255];
-    PanelDescrArc            : String[255];
-    PanelDescrTemp           : String[255];
-    PanelDescrFind           : String[255];
-    PanelDescrDrive          : String[255];
-    UseEnterInViewer         : Byte;
-    SkipXLatMenu             : Boolean;
-    EscForOutputWindow       : Boolean;
+    CutDriveInfo: boolean;
+    WinManagerSelectNext: boolean;
+    DriveSelectVCenter: boolean;
+    SystemMenuChar: byte;
+    HorizScrollBarChars: String[6];
+    VertScrollBarChars: String[6];
+    ReflectCopyDirection: boolean;
+    ReuseViewers: byte;
+    ReuseEditors: byte;
+    HistoryErrorBeep: boolean;
+    PreserveMenuPositions: boolean;
+    LFNinBottom: boolean;
+    PanelDescrArvid: String[255];
+    PanelDescrArc: String[255];
+    PanelDescrTemp: String[255];
+    PanelDescrFind: String[255];
+    PanelDescrDrive: String[255];
+    UseEnterInViewer: byte;
+    SkipXLatMenu: boolean;
+    EscForOutputWindow: boolean;
     {Clock}
-    ShowSeconds              : Boolean;
-    BlinkSeparator           : Boolean;
-    ShowCentury              : Boolean;
-    ShowDayOfWeek            : Boolean;
-    DaysOfWeek               : String[23];
-    RightAlignClock          : Boolean;
+    ShowSeconds: boolean;
+    BlinkSeparator: boolean;
+    ShowCentury: boolean;
+    ShowDayOfWeek: boolean;
+    DaysOfWeek: String[23];
+    RightAlignClock: boolean;
     {SmartPad}
-    SPInsertDate             : Boolean;
-    SPLineChar               : Byte;
+    SPInsertDate: boolean;
+    SPLineChar: byte;
     {Game}
-    EnableGame               : Boolean;
+    EnableGame: boolean;
     {Clipboard}
-    CBSize                   : LongInt;
-    CBAutoSave               : Boolean;
+    CBSize: longInt;
+    CBAutoSave: boolean;
     {Kernel}
-//  CanUseLFN                : Boolean;
-    AutoSave                 : Boolean;
-    ShowKeyCode              : Byte;
-    CopyLimit                : LongInt;
-    HandleChDirCommand       : Boolean;
-    StoreVideoMode           : Byte;
-    SmartWindowsBoxClose     : LongInt;
-//  DoVESATest               : Boolean;
-    ForceDefaultArchiver     : String[3];
-   {$IFDEF CHDIRTIMER}
-    ChDirTimer               : Boolean;
-   {$ENDIF}
+    //  CanUseLFN                : Boolean;
+    AutoSave: boolean;
+    ShowKeyCode: byte;
+    CopyLimit: longInt;
+    HandleChDirCommand: boolean;
+    StoreVideoMode: byte;
+    SmartWindowsBoxClose: longInt;
+    //  DoVESATest               : Boolean;
+    ForceDefaultArchiver: String[3];
     {Editor}
-    UnlimitUnindent          : Boolean;
-    Koi8rKeyMap              : Boolean;
-    DrawRShift               : Boolean;
-    AutoScopeDetect          : Boolean;
-    ShowBookmarks            : Boolean;
-    FastBookmark             : Boolean;
-    DefCodePage              : String[9];
-    CapitalCodePageName      : Boolean;
-    FastSearchDeep           : LongInt;
-    WinManagerPosToEdit      : Boolean;
-    AutoBracketPairs         : String[255];
-{$IFNDEF USELONGSTRING}
-    RecombineLongLines       : Boolean;
-{$ENDIF}
-    F6_DuplicatesLine        : Boolean;
+    UnlimitUnindent: boolean;
+    Koi8rKeyMap: boolean;
+    DrawRShift: boolean;
+    AutoScopeDetect: boolean;
+    ShowBookmarks: boolean;
+    FastBookmark: boolean;
+    DefCodePage: String[9];
+    CapitalCodePageName: boolean;
+    FastSearchDeep: longInt;
+    WinManagerPosToEdit: boolean;
+    AutoBracketPairs: String[255];
+    F6_DuplicatesLine: boolean;
     {FilePanels}
-    ShowFileMask             : Boolean;
-    ShowLongName             : Boolean;
-    QuickRenameInDialog      : Boolean;
-    UpperCaseSorting         : Boolean;
-    AutoRefreshDriveLine     : Boolean;
-    AutoRefreshPanels        : Boolean;
-    QuickSearchType          : Byte;
+    ShowFileMask: boolean;
+    ShowLongName: boolean;
+    QuickRenameInDialog: boolean;
+    UpperCaseSorting: boolean;
+    AutoRefreshDriveLine: boolean;
+    AutoRefreshPanels: boolean;
+    QuickSearchType: byte;
     {NetInfo}
-    NoLevelsInfo             : Boolean;
+    NoLevelsInfo: boolean;
     {Language}
-    ActiveLanguage           : String[9];
-    HelpLanguageOverride     : String[9];
-    ShowLanguageMenu         : Boolean;
+    ActiveLanguage: String[9];
+    HelpLanguageOverride: String[9];
+    ShowLanguageMenu: boolean;
     {RegExp}
-    RegExpStr0               : String[255];
-    RegExpStr1               : String[255];
-    RegExpStr2               : String[255];
-    RegExpStr3               : String[255];
-    RegExpStr4               : String[255];
-    RegExpStr5               : String[255];
-    RegExpStr6               : String[255];
-    RegExpStr7               : String[255];
-    RegExpStr8               : String[255];
-    RegExpStr9               : String[255];
+    RegExpStr0: String[255];
+    RegExpStr1: String[255];
+    RegExpStr2: String[255];
+    RegExpStr3: String[255];
+    RegExpStr4: String[255];
+    RegExpStr5: String[255];
+    RegExpStr6: String[255];
+    RegExpStr7: String[255];
+    RegExpStr8: String[255];
+    RegExpStr9: String[255];
     {SetupStorage}
-    SystemDataOpt            : LongInt;
-    InterfaceDataOpt         : LongInt;
-    DriveInfoType            : LongInt;
-    FMSetupOpt               : LongInt;
-    EditorDefaultsOpt        : LongInt;
-    EditorDefaultsOpt2       : LongInt;
-    ViewerOpt                : LongInt;
-    StartupDataLoad          : LongInt;
-    StartupDataUnload        : LongInt;
-    StartupDataSlice2        : LongInt;
-    ConfirmsOpt              : LongInt;
-    NonVIOScreenMode         : LongInt;
-    VIOScreenMode            : LongInt;
-    QDirs1                   : String[255];
-    QDirs2                   : String[255];
-    QDirs3                   : String[255];
-    QDirs4                   : String[255];
-    QDirs5                   : String[255];
-    QDirs6                   : String[255];
-    QDirs7                   : String[255];
-    QDirs8                   : String[255];
-    QDirs9                   : String[255];
-  end;
+    SystemDataOpt: longInt;
+    InterfaceDataOpt: longInt;
+    DriveInfoType: longInt;
+    FMSetupOpt: longInt;
+    EditorDefaultsOpt: longInt;
+    EditorDefaultsOpt2: longInt;
+    ViewerOpt: longInt;
+    StartupDataLoad: longInt;
+    StartupDataUnload: longInt;
+    StartupDataSlice2: longInt;
+    ConfirmsOpt: longInt;
+    NonVIOScreenMode: longInt;
+    VIOScreenMode: longInt;
+    QDirs1: String[255];
+    QDirs2: String[255];
+    QDirs3: String[255];
+    QDirs4: String[255];
+    QDirs5: String[255];
+    QDirs6: String[255];
+    QDirs7: String[255];
+    QDirs8: String[255];
+    QDirs9: String[255];
+    end;
 
 function IniVars: PIniVars;
-
 
 {CFG variables}
 
@@ -227,9 +229,9 @@ type
   {function FMSetup: PFMSetup;}
   {function EditorDefaults: PEditorDefaultsData;}
   {function MouseData: PMouseData;}
-{$IFDEF SS}
+  {$IFDEF SS}
   {function SaversData: PSaversData;}
-{$ENDIF}
+  {$ENDIF}
   {function SystemData: PSystemData;}
   {function ColumnsDefaultsDisk: ???;}
   {function ColumnsDefaultsFind: ???;}
@@ -239,287 +241,300 @@ type
   {function ColumnsDefaultsArch: ???;}
   {function ColumnsDefaultsArvd: ???;}
   {function OldColumnsDefaults: ???;}
-{$IFDEF PRINTMANAGER}
+  {$IFDEF PRINTMANAGER}
   {function RPrinterSetup: ???;}
-{$ENDIF}
-  function TetrisRec: PTetrisRec;
+  {$ENDIF}
+function TetrisRec: PTetrisRec;
 
 implementation
 
 (*** Global variables ***)
 
 function FileMode: PLongInt;
-begin
-  FileMode := @System.FileMode;
-end;
+  begin
+    FileMode := @System.FileMode;
+  end;
 
-function DosError: Integer;
-begin
-  DosError := Dos.DosError;
-end;
+function DOSError: integer;
+  begin
+    DOSError := Dos.DOSError;
+  end;
 
 function Application: PProgram;
-begin
-  Application := DnApp.Application;
-end;
+  begin
+    Application := DNApp.Application;
+  end;
 
 function Desktop: PDesktop;
-begin
-  Desktop := DnApp.Desktop;
-end;
+  begin
+    Desktop := DNApp.Desktop;
+  end;
 
 function CommandLine: PView;
-begin
-  CommandLine := DnApp.CommandLine;
-end;
+  begin
+    CommandLine := DNApp.CommandLine;
+  end;
 
 function StatusLine: PStatusLine;
-begin
-  StatusLine := DnApp.StatusLine;
-end;
+  begin
+    StatusLine := DNApp.StatusLine;
+  end;
 
 function MenuBar: PMenuView;
-begin
-  MenuBar := DnApp.MenuBar;
-end;
+  begin
+    MenuBar := DNApp.MenuBar;
+  end;
 
 function LngStream: PStream;
-begin
-  LngStream := DnApp.LngStream;
-end;
+  begin
+    LngStream := DNApp.LngStream;
+  end;
 
 function ResourceStream: PStream;
-begin
-  ResourceStream := DnApp.ResourceStream;
-end;
+  begin
+    ResourceStream := DNApp.ResourceStream;
+  end;
 
 function LStringList: PStringList;
-begin
-  LStringList := DnApp.LStringList;
-end;
+  begin
+    LStringList := DNApp.LStringList;
+  end;
 
 function Resource: PIdxResource;
-begin
-  Resource := DnApp.Resource;
-end;
+  begin
+    Resource := DNApp.Resource;
+  end;
 
 function EventCatchers: PEventCatcherArray;
-begin
-  EventCatchers := Plugin.EventCatchers;
-end;
+  begin
+    EventCatchers := Plugin.EventCatchers;
+  end;
 
 procedure AddEventCatchers;
-begin
-  Inc(Plugin.EventCatchersCount);
-  ReAllocMem(Plugin.EventCatchers, Plugin.EventCatchersCount*SizeOf(TEventCatcherInfo));
-end;
+  begin
+    Inc(Plugin.EventCatchersCount);
+    ReallocMem(Plugin.EventCatchers, Plugin.EventCatchersCount*
+      SizeOf(TEventCatcherInfo));
+  end;
 
 function EventCatchersCount: SmallWord;
-begin
-  EventCatchersCount := Plugin.EventCatchersCount;
-end;
+  begin
+    EventCatchersCount := Plugin.EventCatchersCount;
+  end;
 
 procedure SetEventCatchersCount(EventCatchersCount_: SmallWord);
-begin
-  Plugin.EventCatchersCount := EventCatchersCount_;
-end;
+  begin
+    Plugin.EventCatchersCount := EventCatchersCount_;
+  end;
 
 function ArchiveViewers: PArchiveViewerArray;
-begin
-  ArchiveViewers := @Plugin.ArchiveViewers;
-end;
+  begin
+    ArchiveViewers := @Plugin.ArchiveViewers;
+  end;
 
 function StartupDir: String;
-begin
-  StartupDir := Advance.StartupDir;
-end;
+  begin
+    StartupDir := advance.StartupDir;
+  end;
 
 function SourceDir: String;
-begin
-  SourceDir := Advance.SourceDir;
-end;
+  begin
+    SourceDir := advance.SourceDir;
+  end;
 
 function TempDir: String;
-begin
-  TempDir := Advance.TempDir;
-end;
+  begin
+    TempDir := advance.TempDir;
+  end;
 
 function ArcFile: PStream;
-begin
-  ArcFile := Archiver.ArcFile;
-end;
+  begin
+    ArcFile := Archiver.ArcFile;
+  end;
 
 function FileInfo: PFInfo;
-begin
-  FileInfo := @Archiver.FileInfo;
-end;
+  begin
+    FileInfo := @Archiver.FileInfo;
+  end;
 
 function ArcFileName: String;
-begin
-  ArcFileName := Archiver.ArcFileName;
-end;
+  begin
+    ArcFileName := Archiver.ArcFileName;
+  end;
 
 function VArcFileName: String;
-begin
-  VArcFileName := Archiver.VArcFileName;
-end;
+  begin
+    VArcFileName := Archiver.VArcFileName;
+  end;
 
 function EvalueError: PBoolean;
-begin
-  EvalueError := @Calculat.EvalueError;
-end;
+  begin
+    EvalueError := @Calculat.EvalueError;
+  end;
 
 (*** Create some objects ***)
 
-function NewCollection(A1, A2: LongInt): PCollection;
-begin
-  NewCollection := New(PCollection, Init(A1, A2));
-end;
+function NewCollection(A1, A2: longInt): PCollection;
+  begin
+    NewCollection := New(PCollection, Init(A1, A2));
+  end;
 
-function NewStringCollection(A1, A2: LongInt; LS: Boolean): PStringCollection;
-begin
-  NewStringCollection := New(PStringCollection, Init(A1, A2, LS));
-end;
+function NewStringCollection(A1, A2: longInt; LS: boolean):
+    PStringCollection;
+  begin
+    NewStringCollection := New(PStringCollection, Init(A1, A2, LS));
+  end;
 
-function NewLineCollection(A1, A2: LongInt; LS: Boolean): PLineCollection;
-begin
-  NewLineCollection := New(PLineCollection, Init(A1, A2, LS));
-end;
+function NewLineCollection(A1, A2: longInt; LS: boolean):
+    PLineCollection;
+  begin
+    NewLineCollection := New(PLineCollection, Init(A1, A2, LS));
+  end;
 
-function NewFilesCollection(A1, A2: LongInt): PFilesCollection;
-begin
-  NewFilesCollection := New(PFilesCollection, Init(A1, A2));
-end;
+function NewFilesCollection(A1, A2: longInt): PFilesCollection;
+  begin
+    NewFilesCollection := New(PFilesCollection, Init(A1, A2));
+  end;
 
-function NewDosStream(FileName: FNameStr; Mode: Word): PDosStream;
-begin
-  NewDosStream := New(PDosStream, Init(FileName, Mode));
-end;
+function NewDosStream(FileName: FNameStr; Mode: word): PDosStream;
+  begin
+    NewDosStream := New(PDosStream, Init(FileName, Mode));
+  end;
 
-function NewBufStream(FileName: FNameStr; Mode: Word; Size: Word): PBufStream;
-begin
-  NewBufStream := New(PBufStream, Init(FileName, Mode, Size));
-end;
+function NewBufStream(FileName: FNameStr; Mode: word; Size: word):
+    PBufStream;
+  begin
+    NewBufStream := New(PBufStream, Init(FileName, Mode, Size));
+  end;
 
 function NewView(X1, Y1, X2, Y2: SmallWord): PView;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewView := New(PView, Init(R));
-end;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewView := New(PView, Init(R));
+  end;
 
-function NewWindow(X1, Y1, X2, Y2: SmallWord; Title: String; Number: SmallWord): PWindow;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewWindow := New(PWindow, Init(R, Title, Number));
-end;
+function NewWindow(X1, Y1, X2, Y2: SmallWord; Title: String; Number:
+    SmallWord): PWindow;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewWindow := New(PWindow, Init(R, Title, Number));
+  end;
 
-function NewDialog(X1, Y1, X2, Y2: SmallWord; Title: String): PDialog;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewDialog := New(PDialog, Init(R, Title));
-end;
+function NewDialog(X1, Y1, X2, Y2: SmallWord; Title: String):
+    PDialog;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewDialog := New(PDialog, Init(R, Title));
+  end;
 
-function NewButton(X1, Y1, X2, Y2: SmallWord; Title: String; cm_, bf_: SmallWord): PButton;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewButton := New(PButton, Init(R, Title, cm_, bf_));
-end;
+function NewButton(X1, Y1, X2, Y2: SmallWord; Title: String; cm_,
+    bf_: SmallWord): PButton;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewButton := New(PButton, Init(R, Title, cm_, bf_));
+  end;
 
-function NewLabel(X1, Y1, X2, Y2: SmallWord; S: String; P:PView): PLabel;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewLabel := New(PLabel, Init(R, S, P));
-end;
+function NewLabel(X1, Y1, X2, Y2: SmallWord; s: String; P: PView):
+    PLabel;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewLabel := New(PLabel, Init(R, s, P));
+  end;
 
-function NewStaticText(X1, Y1, X2, Y2: SmallWord; S: String): PStaticText;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewStaticText := New(PStaticText, Init(R, S));
-end;
+function NewStaticText(X1, Y1, X2, Y2: SmallWord; s: String):
+    PStaticText;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewStaticText := New(PStaticText, Init(R, s));
+  end;
 
-function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: Word): PInputLine;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewInputLine := New(PInputLine, Init(R, MaxLen));
-end;
+function NewInputLine(X1, Y1, X2, Y2: SmallWord; MaxLen: word):
+    PInputline;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewInputLine := New(PInputline, Init(R, MaxLen));
+  end;
 
-function NewCheckBoxes(X1, Y1, X2, Y2: SmallWord; Items: PSItem): PCheckBoxes;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewCheckBoxes := New(PCheckBoxes, Init(R, Items));
-end;
+function NewCheckBoxes(X1, Y1, X2, Y2: SmallWord; Items: PSItem):
+    PCheckBoxes;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewCheckBoxes := New(PCheckBoxes, Init(R, Items));
+  end;
 
-function NewRadioButtons(X1, Y1, X2, Y2: SmallWord; Items: PSItem): PRadioButtons;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewRadioButtons := New(PRadioButtons, Init(R, Items));
-end;
+function NewRadioButtons(X1, Y1, X2, Y2: SmallWord; Items: PSItem):
+    PRadioButtons;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewRadioButtons := New(PRadioButtons, Init(R, Items));
+  end;
 
-function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: Word; ScrollBar: PScrollBar): PListBox;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewListBox := New(PListBox, Init(R, NumCols, ScrollBar));
-end;
+function NewListBox(X1, Y1, X2, Y2: SmallWord; NumCols: word;
+    ScrollBar: PScrollBar): PListBox;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewListBox := New(PListBox, Init(R, NumCols, ScrollBar));
+  end;
 
 function NewScrollBar(X1, Y1, X2, Y2: SmallWord): PScrollBar;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewScrollBar := New(PScrollBar, Init(R));
-end;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewScrollBar := New(PScrollBar, Init(R));
+  end;
 
-function NewMenuBox(X1, Y1, X2, Y2: SmallWord; Menu: PMenu; ParentMenu: PMenuView): PMenuBox;
-var
-  R: TRect;
-begin
-  R.Assign(X1, Y1, X2, Y2);
-  NewMenuBox := New(PMenuBox, Init(R, Menu, ParentMenu));
-end;
+function NewMenuBox(X1, Y1, X2, Y2: SmallWord; Menu: PMenu;
+    ParentMenu: PMenuView): PMenuBox;
+  var
+    R: TRect;
+  begin
+    R.Assign(X1, Y1, X2, Y2);
+    NewMenuBox := New(PMenuBox, Init(R, Menu, ParentMenu));
+  end;
 
 (*** TypeOf ***)
 
-function TypeOf_TXDoubleWindow(P: PObject): Boolean;
-begin
-  TypeOf_TXDoubleWindow := (TypeOf(P^) = TypeOf(TXDoubleWindow));
-end;
+function TypeOf_TXDoubleWindow(P: PObject): boolean;
+  begin
+    TypeOf_TXDoubleWindow := (TypeOf(P^) = TypeOf(TXDoubleWindow));
+  end;
 
 (*** INI variables ***)
 
 function IniVars: PIniVars;
-begin
-  IniVars := PIniVars(@DnIni.iniparamblock_START);
-end;
+  begin
+    IniVars := PIniVars(@DnIni.iniparamblock_START);
+  end;
 
 (*** CFG variables ***)
 
 function TetrisRec: PTetrisRec;
-begin
-  TetrisRec := @Startup.TetrisRec;
-end;
+  begin
+    TetrisRec := @Startup.TetrisRec;
+  end;
 
 end.
-
 
 (** Cat:todo
 dnapp

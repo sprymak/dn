@@ -45,197 +45,219 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit ArchSet;
+unit Archset;
 
 interface
 uses
-  Archiver, objects, advance, startup, archdet, dialogs, views, menus,
-  dnapp, advance1, commands, drivers, profile;
+  Archiver, Objects, advance, Startup, ArchDet, Dialogs, Views,
+    Menus,
+  DNApp, advance1, Commands, Drivers, profile;
 
-Procedure SetupArchive(ArchCommand: Word);
-Procedure UpdateARH(Arch: PARJArchive);
+procedure SetupArchive(ArchCommand: word);
+procedure UpdateARH(Arch: PARJArchive);
 
 implementation
 
-uses dnini;
+uses
+  DnIni;
 
 procedure UpdateARH(Arch: PARJArchive);
-var J: word;
+  var
+    j: word;
     A: PARJArchive;
     P: PView;
-begin
-  If Arch<>nil then Arch^.Save else begin
-   P := WriteMsg(GetString(dlPleaseStandBy));
-   for j:=0 to NumSupportedArchs-1 do begin
-    A:=GetArchiveByTag(j);
-    if A<>nil then begin
-     A^.Save;
-     Dispose(A, Done);
-     A:=nil;
-    end;
-   end;
-   P^.Free;
-  end;
-  CloseProfile;
-end;
+  begin
+    if Arch <> nil then
+      Arch^.Save
+    else
+      begin
+        P := WriteMsg(GetString(dlPleaseStandBy));
+        for j := 0 to NumSupportedArchs-1 do
+          begin
+            A := GetArchiveByTag(j);
+            if A <> nil then
+              begin
+                A^.Save;
+                Dispose(A, Done);
+                A := nil;
+              end;
+          end;
+        P^.Free;
+      end;
+    CloseProfile;
+  end { UpdateARH };
 
 procedure SetupArchive;
- var D: PDialog;
-     P: PView;
-     R: TRect;
-     Arch: PARJArchive;
-     W: Word;
+  var
+    D: PDialog;
+    P: PView;
+    R: TRect;
+    Arch: PARJArchive;
+    W: word;
 
     DT: record
-          Pack     : String;     {Inputline}
-          Unpack   : String;     {Inputline}
-          Extract  : String[20]; {Inputline}
-          ExWP     : String[20]; {Inputline}
-          Add      : String[20]; {Inputline}
-          Move     : String[20]; {Inputline}
-          Delete   : String[20]; {Inputline}
-          Test     : String[20]; {Inputline}
-          Force    : String[20]; {Inputline}
-          IncludeP : String[20]; {Inputline}
-          ExcludeP : String[20]; {Inputline}
-          Password : String[20]; {Inputline}
-          RecovRec : String[20]; {Inputline}
-          SelfExtr : String[20]; {Inputline}
-          Solid    : String[20]; {Inputline}
-          Recurse  : String[20]; {Inputline}
-          PthInside: String[20]; {Inputline}
-          StoreC   : String[20]; {Inputline}
-          FastestC : String[20]; {Inputline}
-          FastC    : String[20]; {Inputline}
-          NormC    : String[20]; {Inputline}
-          GoodC    : String[20]; {Inputline}
-          MaxC     : String[20]; {Inputline}
-          CList    : String[6];  {Inputline}
-          EList    : String[6];  {Inputline}
-          AllVersion: Word;  {Checkbox}{AK155}
-          PutDirs: Word;     {Checkbox}{JO}
-{$IFDEF OS_DOS}
-          Swap     : Word;   {Checkbox}
-{$ELSE}
-          ShortCmdLine   : Word;   {Checkbox}{JO}
-{$ENDIF}
-{$IFNDEF OS2}
-          UseLFN   : Word;   {Checkbox} {нужен в DOS и W32-версиях}
-{$ENDIF}
-        end;
+      Pack: String; {Inputline}
+      Unpack: String; {Inputline}
+      Extract: String[20]; {Inputline}
+      ExWP: String[20]; {Inputline}
+      Add: String[20]; {Inputline}
+      Move: String[20]; {Inputline}
+      Delete: String[20]; {Inputline}
+      Test: String[20]; {Inputline}
+      Force: String[20]; {Inputline}
+      IncludeP: String[20]; {Inputline}
+      ExcludeP: String[20]; {Inputline}
+      Password: String[20]; {Inputline}
+      RecovRec: String[20]; {Inputline}
+      SelfExtr: String[20]; {Inputline}
+      Solid: String[20]; {Inputline}
+      Recurse: String[20]; {Inputline}
+      PthInside: String[20]; {Inputline}
+      StoreC: String[20]; {Inputline}
+      FastestC: String[20]; {Inputline}
+      FastC: String[20]; {Inputline}
+      NormC: String[20]; {Inputline}
+      GoodC: String[20]; {Inputline}
+      MaxC: String[20]; {Inputline}
+      CList: String[6]; {Inputline}
+      EList: String[6]; {Inputline}
+      AllVersion: word; {Checkbox} {AK155}
+      PutDirs: word; {Checkbox} {JO}
+      {$IFDEF OS_DOS}
+      Swap: word; {Checkbox}
+      {$ELSE}
+      ShortCmdLine: word; {Checkbox} {JO}
+      {$ENDIF}
+      {$IFNDEF OS2}
+      UseLFN: word; {Checkbox} {нужен в DOS и W32-версиях}
+      {$ENDIF}
+      end;
 
-  function ArcName(ArcT: Word): string;
-  var S: String;
-  begin
-    S:=fReplace('~','',CnvString(LookUpMenu(MenuBar^.Menu, ArcT, dfByCommand)^.Name));
-    FreeByte := PosChar('-', s); if FreeByte>0 then Delete(s, 1, FreeByte+1);
-    ArcName := s;
-  end;
+  function ArcName(ArcT: word): String;
+    var
+      s: String;
+    begin
+      s := fReplace('~', '', CnvString(LookUpMenu(MenuBar^.Menu,
+        ArcT, dfByCommand)^.Name));
+      FreeByte := PosChar('-', s);
+      if FreeByte > 0 then
+        Delete(s, 1, FreeByte+1);
+      ArcName := s;
+    end;
 
   procedure CndRpl;
-  var s: string;
-  begin
-   s := ArcName(ArchCommand+cmLoConfigArchiver);
-   if Length(s)+Length(D^.Title^)+10 < D^.Size.X then s := D^.Title^+' - '+s;
-   ReplaceP(D^.Title, s);
-  end;
+    var
+      s: String;
+    begin
+      s := ArcName(ArchCommand+cmLoConfigArchiver);
+      if Length(s)+Length(D^.Title^)+10 < D^.Size.X then
+        s := D^.Title^+' - '+s;
+      ReplaceP(D^.Title, s);
+    end;
 
-label Ex;
-begin
- If ArchCommand >= cmLoConfigArchiver then Dec(ArchCommand, cmLoConfigArchiver);
- Arch := GetArchiveByTag(ArchCommand);
- if Arch = nil then Exit;
- with Arch^ do
-  begin
-    DT.Pack     := CnvString(Packer);
-    DT.Unpack   := CnvString(Unpacker);
-    DT.Extract  := CnvString(Extract);
-    DT.ExWP     := CnvString(ExtractWP);
-    DT.Add      := CnvString(Add);
-    DT.Move     := CnvString(Move);
-    DT.Test     := CnvString(Test);
-    DT.Delete   := CnvString(Delete);
-    DT.Password := CnvString(Garble);
-    DT.Force    := CnvString(ForceMode);
-    DT.IncludeP := CnvString(IncludePaths);
-    DT.ExcludeP := CnvString(ExcludePaths);
-    DT.RecovRec := CnvString(RecoveryRec);
-    DT.SelfExtr := CnvString(SelfExtract);
-    DT.Solid    := CnvString(Solid);
-    DT.Recurse  := CnvString(RecurseSubDirs);
-    DT.PthInside := CnvString(SetPathInside);
-    DT.StoreC   := CnvString(StoreCompression);
-    DT.FastestC := CnvString(FastestCompression);
-    DT.FastC    := CnvString(FastCompression);
-    DT.NormC    := CnvString(NormalCompression);
-    DT.GoodC    := CnvString(GoodCompression);
-    DT.MaxC     := CnvString(UltraCompression);
-    DT.CList    := CnvString(ComprListChar);
-    DT.EList    := CnvString(ExtrListChar);
-    DT.AllVersion  := Word(AllVersion);
-    DT.PutDirs  := Word(PutDirs);
-{$IFDEF OS_DOS}
-    DT.Swap     := Word(Swap);
-{$ELSE}
-    DT.ShortCmdLine   := Word(ShortCmdLine);
-{$ENDIF}
-{$IFNDEF OS2}
-    DT.UseLFN   := Word(UseLFN);
-{$ENDIF}
-  end;
- D := PDialog(Application^.ValidView(PDialog(LoadResource(dlgSetupArc))));
- if D = nil then goto Ex;
- D^.SetData(DT);
- CndRpl;
- W := Desktop^.ExecView(D);
- if W = cmOK then D^.GetData(DT);
- Dispose(D, Done);
- if W <> cmOK then goto Ex;
- if SystemData.ForceDefArch = '' then DefaultArchiver := ArchCommand;
- with Arch^ do
-  begin
-     Done;
-     Packer             := NewStr(DT.Pack);
-     Unpacker           := NewStr(DT.Unpack);
-     Extract            := NewStr(DT.Extract);
-     ExtractWP          := NewStr(DT.ExWP);
-     Add                := NewStr(DT.Add);
-     Move               := NewStr(DT.Move);
-     Test               := NewStr(DT.Test);
-     Delete             := NewStr(DT.Delete);
-     Garble             := NewStr(DT.Password);
-     ForceMode          := NewStr(DT.Force);
-     IncludePaths       := NewStr(DT.IncludeP);
-     ExcludePaths       := NewStr(DT.ExcludeP);
-     RecoveryRec        := NewStr(DT.RecovRec);
-     SelfExtract        := NewStr(DT.SelfExtr);
-     Solid              := NewStr(DT.Solid);
-     RecurseSubDirs     := NewStr(DT.Recurse);
-     SetPathInside      := NewStr(DT.PthInside);
-     StoreCompression   := NewStr(DT.StoreC);
-     FastestCompression := NewStr(DT.FastestC);
-     FastCompression    := NewStr(DT.FastC);
-     NormalCompression  := NewStr(DT.NormC);
-     GoodCompression    := NewStr(DT.GoodC);
-     UltraCompression   := NewStr(DT.MaxC);
-     ComprListChar      := NewStr(DT.CList);
-     ExtrListChar       := NewStr(DT.EList);
-    {if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';}
-     AllVersion := (DT.AllVersion and 1) <> 0;
-     PutDirs := (DT.PutDirs and 1) <> 0;
-{$IFDEF OS_DOS}
-     Swap := (DT.Swap and 1) <> 0;
-{$ELSE}
-     ShortCmdLine := (DT.ShortCmdLine and 1) <> 0;
-{$ENDIF}
-{$IFNDEF OS2}
-     UseLFN := (DT.UseLFN and 1) <> 0;
-{$ENDIF}
-  end;
-  UpdateARH(Arch);
-  Message(Application, evCommand, cmUpdateConfig, nil);
-Ex:
-  Dispose(Arch, Done);
-end;
+  label ex;
+  begin { SetupArchive }
+    if ArchCommand >= cmLoConfigArchiver then
+      Dec(ArchCommand, cmLoConfigArchiver);
+    Arch := GetArchiveByTag(ArchCommand);
+    if Arch = nil then
+      exit;
+    with Arch^ do
+      begin
+        DT.Pack := CnvString(Packer);
+        DT.Unpack := CnvString(UnPacker);
+        DT.Extract := CnvString(Extract);
+        DT.ExWP := CnvString(ExtractWP);
+        DT.Add := CnvString(Add);
+        DT.Move := CnvString(Move);
+        DT.Test := CnvString(Test);
+        DT.Delete := CnvString(Delete);
+        DT.Password := CnvString(Garble);
+        DT.Force := CnvString(ForceMode);
+        DT.IncludeP := CnvString(IncludePaths);
+        DT.ExcludeP := CnvString(ExcludePaths);
+        DT.RecovRec := CnvString(RecoveryRec);
+        DT.SelfExtr := CnvString(SelfExtract);
+        DT.Solid := CnvString(Solid);
+        DT.Recurse := CnvString(RecurseSubDirs);
+        DT.PthInside := CnvString(SetPathInside);
+        DT.StoreC := CnvString(StoreCompression);
+        DT.FastestC := CnvString(FastestCompression);
+        DT.FastC := CnvString(FastCompression);
+        DT.NormC := CnvString(NormalCompression);
+        DT.GoodC := CnvString(GoodCompression);
+        DT.MaxC := CnvString(UltraCompression);
+        DT.CList := CnvString(ComprListChar);
+        DT.EList := CnvString(ExtrListChar);
+        DT.AllVersion := word(AllVersion);
+        DT.PutDirs := word(PutDirs);
+        {$IFDEF OS_DOS}
+        DT.Swap := word(Swap);
+        {$ELSE}
+        DT.ShortCmdLine := word(ShortCmdLine);
+        {$ENDIF}
+        {$IFNDEF OS2}
+        DT.UseLFN := word(UseLFN);
+        {$ENDIF}
+      end;
+    D := PDialog(Application^.ValidView(PDialog(LoadResource(
+      dlgSetupArc))));
+    if D = nil then
+      goto ex;
+    D^.SetData(DT);
+    CndRpl;
+    W := Desktop^.ExecView(D);
+    if W = cmOK then
+      D^.GetData(DT);
+    Dispose(D, Done);
+    if W <> cmOK then
+      goto ex;
+    if SystemData.ForceDefArch = '' then
+      DefaultArchiver := ArchCommand;
+    with Arch^ do
+      begin
+        Done;
+        Packer := NewStr(DT.Pack);
+        UnPacker := NewStr(DT.Unpack);
+        Extract := NewStr(DT.Extract);
+        ExtractWP := NewStr(DT.ExWP);
+        Add := NewStr(DT.Add);
+        Move := NewStr(DT.Move);
+        Test := NewStr(DT.Test);
+        Delete := NewStr(DT.Delete);
+        Garble := NewStr(DT.Password);
+        ForceMode := NewStr(DT.Force);
+        IncludePaths := NewStr(DT.IncludeP);
+        ExcludePaths := NewStr(DT.ExcludeP);
+        RecoveryRec := NewStr(DT.RecovRec);
+        SelfExtract := NewStr(DT.SelfExtr);
+        Solid := NewStr(DT.Solid);
+        RecurseSubDirs := NewStr(DT.Recurse);
+        SetPathInside := NewStr(DT.PthInside);
+        StoreCompression := NewStr(DT.StoreC);
+        FastestCompression := NewStr(DT.FastestC);
+        FastCompression := NewStr(DT.FastC);
+        NormalCompression := NewStr(DT.NormC);
+        GoodCompression := NewStr(DT.GoodC);
+        UltraCompression := NewStr(DT.MaxC);
+        ComprListChar := NewStr(DT.CList);
+        ExtrListChar := NewStr(DT.EList);
+        {if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';}
+        AllVersion := (DT.AllVersion and 1) <> 0;
+        PutDirs := (DT.PutDirs and 1) <> 0;
+        {$IFDEF OS_DOS}
+        Swap := (DT.Swap and 1) <> 0;
+        {$ELSE}
+        ShortCmdLine := (DT.ShortCmdLine and 1) <> 0;
+        {$ENDIF}
+        {$IFNDEF OS2}
+        UseLFN := (DT.UseLFN and 1) <> 0;
+        {$ENDIF}
+      end;
+    UpdateARH(Arch);
+    Message(Application, evCommand, cmUpdateConfig, nil);
+ex:
+    Dispose(Arch, Done);
+  end { SetupArchive };
 
 end.

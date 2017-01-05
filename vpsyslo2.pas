@@ -9,73 +9,93 @@ unit VPSysLo2;
 interface
 
 uses
-  VPSysLow
+  VpSysLow
   {$IFDEF OS2}, Os2Def, Os2Base {$Undef KeyDll} {$ENDIF}
-  {$IFDEF WIN32}, Windows , VpKbdW32            {$ENDIF};
+  {$IFDEF WIN32}, Windows, VpKbdW32 {$ENDIF};
 
-function SysTVGetShiftState2: Byte;
+function SysTVGetShiftState2: byte;
 {$IFDEF Win32}
-inline; begin Result := VpKbdW32.GetWinShiftState2; end;
+  inline;
+  begin
+    Result := VpKbdW32.GetWinShiftState2;
+  end;
 {$ENDIF}
 {$IFDEF DPMI32}
-inline; begin Result := 0; end;
+  inline;
+  begin
+    Result := 0;
+  end;
 {$ENDIF}
 
 type
   POSSearchRec = ^TOSSearchRec;
 
   TOSSearchRecNew = packed record
-    Handle: Longint;
+    Handle: longInt;
     NameLStr: Pointer;
-    Attr: Byte;
-    Time: Longint;
+    Attr: byte;
+    Time: longInt;
     Size: Comp; {AK155 то есть TSize}
     Name: ShortString;
-    CreationTime: Longint;
-    LastAccessTime: Longint;
+    CreationTime: longInt;
+    LastAccessTime: longInt;
     Filler: array[0..3] of Char;
-{$IFDEF OS2}
- {AK155 Читаем по DosFindNext по много файлов за раз.
+    {$IFDEF OS2}
+    {AK155 Читаем по DosFindNext по много файлов за раз.
    Буфер на 2k при именах средней длины позволяет прочитать
    штук по 40 записей каталога}
-//JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
-//    переменной в _Defines.lSearchRec
+    //JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
+    //    переменной в _Defines.lSearchRec
     FindBuf: array[0..2*1024-1] of byte;
     FindCount: integer; {число необработанных записей}
     FindPtr: ^FileFindBuf3; {первая необработанная запись}
-{$ENDIF}
-{$IFDEF WIN32}
+    {$ENDIF}
+    {$IFDEF WIN32}
     ShortName: ShortString;
-    ExcludeAttr: Longint;
+    ExcludeAttr: longInt;
     FindData: TWin32FindData;
-{$ENDIF}
-{$IFDEF DPMI32}
-    attr_must:byte;
+    {$ENDIF}
+    {$IFDEF DPMI32}
+    attr_must: byte;
     dos_dta:
-      record
-        Fill: array[1..21] of Byte;
-        Attr: Byte;
-        Time: Longint;
-        Size: Longint;
-        Name: array[0..12] of Char;
+    record
+      fill: array[1..21] of byte;
+      Attr: byte;
+      Time: longInt;
+      Size: longInt;
+      Name: array[0..12] of Char;
       end;
-{$ENDIF}
-{$IFDEF LINUX}
-    FindDir:  array[0..255] of Char;
+    {$ENDIF}
+    {$IFDEF LINUX}
+    FindDir: array[0..255] of Char;
     FindName: ShortString;
-    FindAttr: LongInt;
-{$ENDIF}
-  end;
+    FindAttr: longInt;
+    {$ENDIF}
+    end;
 
-function SysFindFirstNew(Path: PChar; Attr: Longint; var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
-{$IFDEF DPMI32} inline; begin SysFindFirstNew := SysFindFirst(Path, Attr, POSSearchRec(@F)^, IsPChar); end; {$ENDIF}
-function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
-{$IFDEF DPMI32} inline; begin SysFindNextNew := SysFindNext(POSSearchRec(@F)^, IsPChar); end; {$ENDIF}
-function SysFindCloseNew(var F: TOSSearchRecNew): Longint;
-{$IFDEF DPMI32} inline; begin SysFindCloseNew := SysFindClose(POSSearchRec(@F)^); end; {$ENDIF}
+function SysFindFirstNew(Path: PChar; Attr: longInt; var F:
+    TOSSearchRecNew; IsPChar: boolean): longInt;
+{$IFDEF DPMI32} inline;
+  begin
+    SysFindFirstNew := SysFindFirst(Path, Attr, POSSearchRec(@F)^,
+      IsPChar);
+  end; {$ENDIF}
+function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: boolean):
+  longInt;
+{$IFDEF DPMI32} inline;
+  begin
+    SysFindNextNew := SysFindNext(POSSearchRec(@F)^, IsPChar);
+  end; {$ENDIF}
+function SysFindCloseNew(var F: TOSSearchRecNew): longInt;
+{$IFDEF DPMI32} inline;
+  begin
+    SysFindCloseNew := SysFindClose(POSSearchRec(@F)^);
+  end; {$ENDIF}
 
 procedure SysTVKbdDone;
-{$IFNDEF OS2} inline; begin end; {$ENDIF}
+{$IFNDEF OS2} inline;
+  begin
+  end; {$ENDIF}
 
 implementation
 
@@ -85,234 +105,239 @@ uses
   Strings;
 
 {$IFDEF OS2}
-function SysTVGetShiftState2: Byte;
-var
-  Key  : ^KbdInfo;
-  LKey : Array[1..2] of KbdInfo;
+function SysTVGetShiftState2: byte;
+  var
+    Key: ^KbdInfo;
+    LKey: array[1..2] of KbdInfo;
 
-begin
-  Key := Fix_64k(@LKey, SizeOf(Key^));
-  Key^.cb := SizeOf(KbdInfo);
-  KbdGetStatus(Key^, 0);
-  Result := Hi(Key^.fsState);
-end;
+  begin
+    Key := Fix_64k(@LKey, SizeOf(Key^));
+    Key^.cb := SizeOf(KbdInfo);
+    KbdGetStatus(Key^, 0);
+    Result := Hi(Key^.fsState);
+  end;
 {$ENDIF}
 
 type
   TDateTimeRec = record
-    FTime,FDate: SmallWord;
+    FTime, FDate: SmallWord;
+    end;
+
+  {$IFDEF Win32}
+function SetResult(Success: boolean): longInt;
+  begin
+    Result := 0;
+    if not Success then
+      Result := GetLastError;
   end;
 
-{$IFDEF Win32}
-function SetResult(Success: Boolean): Longint;
-begin
-  Result := 0;
-  if not Success then
-    Result := GetLastError;
-end;
-
-function DoFindFileNew(var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
-var
-  LocalFileTime: TFileTime;
-  ExclAttr: Longint;
-  InclAttr: Longint;
-type
-  CompRec = record Lo, Hi: longint end;
-begin
-  // Extract Include/Exclude attributes from F.ExcludeAttr field
-  ExclAttr := not F.ExcludeAttr and (file_Attribute_Hidden or file_Attribute_System or $8 or file_Attribute_Directory or file_Attribute_Archive);
-  InclAttr := (F.ExcludeAttr and $FF00) shr 8;
-  // Make sure attributes are not both excluded and included
-  ExclAttr := ExclAttr and not InclAttr;
-  with F do
+function DoFindFileNew(var F: TOSSearchRecNew; IsPChar: boolean):
+    longInt;
+  var
+    LocalFileTime: TFileTime;
+    ExclAttr: longInt;
+    InclAttr: longInt;
+  type
+    CompRec = record
+      Lo, Hi: longInt
+      end;
   begin
-    // Reject entries where
-    // - Attributes that are excluded are present.
-    // - Attributes that must be present are not all there
-    while (FindData.dwFileAttributes and ExclAttr <> 0) or
-      (FindData.dwFileAttributes and InclAttr <> InclAttr) do
-      if not FindNextFile(Handle, FindData) then
+    // Extract Include/Exclude attributes from F.ExcludeAttr field
+    ExclAttr := not F.ExcludeAttr and (file_Attribute_Hidden or
+      file_Attribute_System or $8 or file_Attribute_Directory or
+      file_Attribute_Archive);
+    InclAttr := (F.ExcludeAttr and $FF00) shr 8;
+    // Make sure attributes are not both excluded and included
+    ExclAttr := ExclAttr and not InclAttr;
+    with F do
       begin
-        Result := GetLastError;
-        Exit;
+        // Reject entries where
+        // - Attributes that are excluded are present.
+        // - Attributes that must be present are not all there
+        while (FindData.dwFileAttributes and ExclAttr <> 0) or
+          (FindData.dwFileAttributes and InclAttr <> InclAttr)
+        do
+          if not FindNextFile(Handle, FindData) then
+            begin
+              Result := GetLastError;
+              exit;
+            end;
+        FileTimeToLocalFileTime(FindData.ftLastWriteTime,
+          LocalFileTime);
+        FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(Time).
+          FDate, TDateTimeRec(Time).FTime);
+        FileTimeToLocalFileTime(FindData.ftCreationTime,
+          LocalFileTime);
+        FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(
+          CreationTime).FDate, TDateTimeRec(CreationTime).FTime);
+        FileTimeToLocalFileTime(FindData.ftLastAccessTime,
+          LocalFileTime);
+        FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(
+          LastAccessTime).FDate, TDateTimeRec(LastAccessTime).FTime);
+        CompRec(Size).Lo := FindData.nFileSizeLow;
+        CompRec(Size).Hi := FindData.nFileSizeHigh;
+        Attr := FindData.dwFileAttributes;
+        if IsPChar then
+          begin
+            StrCopy(PChar(@Name), FindData.cFileName);
+            StrCopy(PChar(@ShortName), FindData.cAlternateFileName);
+          end
+        else
+          begin
+            Name := StrPas(FindData.cFileName);
+            ShortName := StrPas(FindData.cAlternateFileName);
+          end;
       end;
-    FileTimeToLocalFileTime(FindData.ftLastWriteTime, LocalFileTime);
-    FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(Time).FDate, TDateTimeRec(Time).FTime);
-    FileTimeToLocalFileTime(FindData.ftCreationTime, LocalFileTime);
-    FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(CreationTime).FDate, TDateTimeRec(CreationTime).FTime);
-    FileTimeToLocalFileTime(FindData.ftLastAccessTime, LocalFileTime);
-    FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(LastAccessTime).FDate, TDateTimeRec(LastAccessTime).FTime);
-    CompRec(Size).Lo := FindData.nFileSizeLow;
-    CompRec(Size).Hi := FindData.nFileSizeHigh;
-    Attr := FindData.dwFileAttributes;
-{$IFNDEF RecodeWhenDraw}
-    if RecodeAnsiNames then
-      begin    // Convert filename to OEM character set
-        CharToOem(FindData.cFileName, FindData.cFileName);
-        CharToOem(FindData.cAlternateFileName, FindData.cAlternateFileName); {AK155}
-      end;
-{$ENDIF}
-    if IsPChar then
+    Result := 0;
+  end { DoFindFileNew };
+
+function SysFindFirstNew(Path: PChar; Attr: longInt; var F:
+    TOSSearchRecNew; IsPChar: boolean): longInt;
+  var
+    AnsiPath: array[0..260] of Char; {AK155}
+  begin
+    F.ExcludeAttr := Attr;
+    F.Handle := FindFirstFile(Path, F.FindData);
+    if F.Handle <> invalid_Handle_Value then
       begin
-        StrCopy(PChar(@Name), FindData.cFileName);
-        StrCopy(PChar(@ShortName), FindData.cAlternateFileName);
+        Result := DoFindFileNew(F, IsPChar);
+        if Result <> 0 then
+          begin
+            FindClose(F.Handle);
+            F.Handle := invalid_Handle_Value;
+          end;
       end
     else
-      begin
-        Name := StrPas(FindData.cFileName);
-        ShortName := StrPas(FindData.cAlternateFileName);
-      end;
+      Result := GetLastError;
   end;
-  Result := 0;
-end;
 
-function SysFindFirstNew(Path: PChar; Attr: Longint; var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
-var
-  AnsiPath: array[0..260] of char;  {AK155}
-begin
-  F.ExcludeAttr := Attr;
-{$IFNDEF RecodeWhenDraw}
-  if RecodeAnsiNames then
-    begin
-      OemToChar(Path, AnsiPath);  {AK155}
-      F.Handle := FindFirstFile(AnsiPath, F.FindData); {AK155}
-    end
-   else
-{$ENDIF}
-      F.Handle := FindFirstFile(Path, F.FindData);
-  if F.Handle <> invalid_Handle_Value then
-    begin
-      Result := DoFindFileNew(F, IsPChar);
-      if Result <> 0 then
-        begin
-          FindClose(F.Handle);
-          F.Handle := invalid_Handle_Value;
-        end;
-    end
-  else
-    Result := GetLastError;
-end;
+function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: boolean):
+    longInt;
+  begin
+    if FindNextFile(F.Handle, F.FindData) then
+      Result := DoFindFileNew(F, IsPChar)
+    else
+      Result := GetLastError;
+  end;
 
-function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
-begin
-  if FindNextFile(F.Handle, F.FindData) then
-    Result := DoFindFileNew(F, IsPChar)
-  else
-    Result := GetLastError;
-end;
-
-function SysFindCloseNew(var F: TOSSearchRecNew): Longint;
-begin
-  if F.Handle = invalid_Handle_Value then
-    Result := 0
-  else
-    Result := SetResult(Windows.FindClose(F.Handle));
-  F.Handle := invalid_Handle_Value;
-end;
+function SysFindCloseNew(var F: TOSSearchRecNew): longInt;
+  begin
+    if F.Handle = invalid_Handle_Value then
+      Result := 0
+    else
+      Result := SetResult(Windows.FindClose(F.Handle));
+    F.Handle := invalid_Handle_Value;
+  end;
 {$ENDIF}
 
 {$IFDEF OS2}
 
-function SysFindFirstNew(Path: PChar; Attr: Longint; var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
-var
-  Count: Longint;
-  Path2: array[0..259] of char;
-begin
-  Attr := Attr and not $8; // No VolumeID under OS/2
-  Count := 1;
-  F.Handle := hdir_Create;
-  F.FindPtr := @F.FindBuf;
-  Result := DosFindFirst(Path, F.Handle, Attr,
+function SysFindFirstNew(Path: PChar; Attr: longInt; var F:
+    TOSSearchRecNew; IsPChar: boolean): longInt;
+  var
+    Count: longInt;
+    Path2: array[0..259] of Char;
+  begin
+    Attr := Attr and not $8; // No VolumeID under OS/2
+    Count := 1;
+    F.Handle := hdir_Create;
+    F.FindPtr := @F.FindBuf;
+    Result := DosFindFirst(Path, F.Handle, Attr,
     F.FindBuf, SizeOf(F.FindBuf), Count, fil_Standard);
 
-  // If a specific error occurs, and the call is to look for directories, and
-  // the path is a UNC name, then retry
-  if (Result = msg_Net_Dev_Type_Invalid) and
-     (Hi(Attr) = $10) and
-     (StrLen(Path) > Length('\\')) and
-     (StrLComp(Path, '\\', Length('\\')) = 0) then
-    begin
-      DosFindClose(F.Handle);
-      StrCat(StrCopy(Path2,Path), '\*.*');
-      Result := DosFindFirst(Path2, F.Handle, Attr,
+    // If a specific error occurs, and the call is to look for directories, and
+    // the path is a UNC name, then retry
+    if (Result = msg_Net_Dev_Type_Invalid) and
+      (Hi(Attr) = $10) and
+      (StrLen(Path) > Length('\\')) and
+      (StrLComp(Path, '\\', Length('\\')) = 0)
+    then
+      begin
+        DosFindClose(F.Handle);
+        StrCat(StrCopy(Path2, Path), '\*.*');
+        Result := DosFindFirst(Path2, F.Handle, Attr,
         F.FindBuf, SizeOf(F.FindBuf), Count, fil_Standard);
-      F.FindPtr := @F.FindBuf;
-    end;
+        F.FindPtr := @F.FindBuf;
+      end;
 
-  if Result = 0 then
+    if Result = 0 then
+      with F, F.FindPtr^ do
+        begin
+          Attr := attrFile;
+          TDateTimeRec(Time).FTime := ftimeLastWrite;
+          TDateTimeRec(Time).FDate := fdateLastWrite;
+          TDateTimeRec(CreationTime).FTime := ftimeCreation;
+          TDateTimeRec(CreationTime).FDate := fdateCreation;
+          TDateTimeRec(LastAccessTime).FTime := ftimeLastAccess;
+          TDateTimeRec(LastAccessTime).FDate := fdateLastAccess;
+          Size := 0;
+          Move(cbFile, Size, 4);
+          if IsPChar then
+            StrPCopy(PChar(@Name), achName)
+          else
+            Name := achName;
+          FindCount := 0;
+        end
+      else
+      F.Handle := hdir_Create;
+  end { SysFindFirstNew };
+
+function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: boolean):
+    longInt;
+  begin
+    if F.FindCount = 0 then
+      begin
+        F.FindCount := 100;
+        Result := DosFindNext(F.Handle, F.FindBuf,
+        SizeOf(F.FindBuf), F.FindCount);
+        if Result <> 0 then
+          exit;
+        F.FindPtr := @F.FindBuf;
+      end;
     with F, F.FindPtr^ do
-    begin
-      Attr := attrFile;
-      TDateTimeRec(Time).FTime := ftimeLastWrite;
-      TDateTimeRec(Time).FDate := fdateLastWrite;
-      TDateTimeRec(CreationTime).FTime := ftimeCreation;
-      TDateTimeRec(CreationTime).FDate := fdateCreation;
-      TDateTimeRec(LastAccessTime).FTime := ftimeLastAccess;
-      TDateTimeRec(LastAccessTime).FDate := fdateLastAccess;
-      Size := 0; move(cbFile, Size, 4);
-      if IsPChar then
-        StrPCopy(PChar(@Name), achName)
-      else
-        Name := achName;
-      FindCount := 0;
-    end
-  else
-    F.Handle := hdir_Create;
-end;
+      begin
+        Attr := attrFile;
+        TDateTimeRec(Time).FTime := ftimeLastWrite;
+        TDateTimeRec(Time).FDate := fdateLastWrite;
+        TDateTimeRec(CreationTime).FTime := ftimeCreation;
+        TDateTimeRec(CreationTime).FDate := fdateCreation;
+        TDateTimeRec(LastAccessTime).FTime := ftimeLastAccess;
+        TDateTimeRec(LastAccessTime).FDate := fdateLastAccess;
+        Size := cbFile;
+        if IsPChar then
+          StrPCopy(PChar(@Name), achName)
+        else
+          Name := achName;
+        Dec(FindCount);
+        Inc(PChar(FindPtr), oNextEntryOffset);
+        Result := 0;
+      end;
+  end { SysFindNextNew };
 
-function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
-begin
-  if F.FindCount = 0 then
-    begin
-    F.FindCount := 100;
-    Result := DosFindNext(F.Handle, F.FindBuf,
-      SizeOf(F.FindBuf), F.FindCount);
-    if result <> 0 then
-      exit;
-    F.FindPtr := @F.FindBuf;
-    end;
-  with F, F.FindPtr^ do
-    begin
-      Attr := attrFile;
-      TDateTimeRec(Time).FTime := ftimeLastWrite;
-      TDateTimeRec(Time).FDate := fdateLastWrite;
-      TDateTimeRec(CreationTime).FTime := ftimeCreation;
-      TDateTimeRec(CreationTime).FDate := fdateCreation;
-      TDateTimeRec(LastAccessTime).FTime := ftimeLastAccess;
-      TDateTimeRec(LastAccessTime).FDate := fdateLastAccess;
-      Size := cbFile;
-      if IsPChar then
-        StrPCopy(PChar(@Name), achName)
-      else
-        Name := achName;
-      dec(FindCount);
-      inc(PChar(FindPtr), oNextEntryOffset);
-      result := 0;
-    end;
-end;
-
-function SysFindCloseNew(var F: TOSSearchRecNew): Longint;
-begin
-  if F.Handle = hdir_Create then
-    Result := 0
-  else
-    Result := DosFindClose(F.Handle);
-end;
+function SysFindCloseNew(var F: TOSSearchRecNew): longInt;
+  begin
+    if F.Handle = hdir_Create then
+      Result := 0
+    else
+      Result := DosFindClose(F.Handle);
+  end;
 {$ENDIF}
 
 {$IFDEF OS2}
 procedure SysTVKbdDone;
-var
-  Key  : ^KbdInfo;
-  LKey : Array[1..2] of KbdInfo;
+  var
+    Key: ^KbdInfo;
+    LKey: array[1..2] of KbdInfo;
 
-begin
-  Key := Fix_64k(@LKey, SizeOf(Key^));
-  Key^.cb := SizeOf(KbdInfo);
-  KbdGetStatus(Key^, 0);        { Disable ASCII & Enable raw (binary) mode}
-  Key^.fsMask := (Key^.fsMask and (not keyboard_Binary_Mode)) or keyboard_Ascii_Mode;
-  KbdSetStatus(Key^, 0);
-end;
+  begin
+    Key := Fix_64k(@LKey, SizeOf(Key^));
+    Key^.cb := SizeOf(KbdInfo);
+    KbdGetStatus(Key^, 0);
+      { Disable ASCII & Enable raw (binary) mode}
+    Key^.fsMask := (Key^.fsMask and (not keyboard_Binary_Mode)) or
+      keyboard_Ascii_Mode;
+    KbdSetStatus(Key^, 0);
+  end;
 {$ENDIF}
 
 end.

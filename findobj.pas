@@ -50,114 +50,120 @@ unit FindObj;
 interface
 
 uses
-  Objects, Advance1, Dialogs, Collect, DnApp, Commands, Dos, Startup;
+  Objects, advance1, Dialogs, Collect, DNApp, Commands, Dos, Startup;
 
 type
-     PFindObject = ^TFindObject;
-     TFindObject = Object(TObject)
-        Text: PString;
-        TT: (ttTape, ttDir, ttFile);
-        constructor Init(const S: String);
-        function GetText: String; virtual;
-        destructor Done; virtual;
-     end;
+  PFindObject = ^TFindObject;
+  TFindObject = object(TObject)
+    text: PString;
+    TT: (ttTape, ttDir, ttFile);
+    Constructor Init(const s: String);
+    function GetText: String; virtual;
+    destructor Done; virtual;
+    end;
 
-     PFindDir = ^TFindDir;
-     TFindDir = object(TFindObject)
-        Pos: LongInt;
-        constructor Init(const S: String; APos: LongInt);
-        function GetText: String; virtual;
-     end;
+  PFindDir = ^TFindDir;
+  TFindDir = object(TFindObject)
+    Pos: longInt;
+    Constructor Init(const s: String; APos: longInt);
+    function GetText: String; virtual;
+    end;
 
-     PFindFile = ^TFindFile;
-     TFindFile = object(TFindObject)
-        Name: PString;
-        Size: LongInt;
-        Time: LongInt;
-        constructor Init(const S: String; ASize, ATime: LongInt);
-        destructor  Done; virtual;
-        function GetText: String; virtual;
-     end;
+  PFindFile = ^TFindFile;
+  TFindFile = object(TFindObject)
+    Name: PString;
+    Size: longInt;
+    Time: longInt;
+    Constructor Init(const s: String; ASize, ATime: longInt);
+    destructor Done; virtual;
+    function GetText: String; virtual;
+    end;
 
-     PFindBox = ^TFindBox;
-     TFindBox = object(TListBox)
-        function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
-        function IsSelected(Item: LongInt): Boolean; virtual;
-     end;
+  PFindBox = ^TFindBox;
+  TFindBox = object(TListBox)
+    function GetText(Item: longInt; MaxLen: integer): String;
+      virtual;
+    function IsSelected(Item: longInt): boolean; virtual;
+    end;
 
 const
-      FindList: PCollection = nil;
+  FindList: PCollection = nil;
 
 implementation
 
-constructor TFindObject.Init;
-begin
-  inherited Init;
-  Text:=NewStr(S);
-  TT:=ttTape;
-end;
+Constructor TFindObject.Init;
+  begin
+    inherited Init;
+    text := NewStr(s);
+    TT := ttTape;
+  end;
 
 function TFindObject.GetText;
-begin
-  GetText:=GetString(dlArvid_TapeDir)+CnvString(Text);
-end;
+  begin
+    GetText := GetString(dlArvid_TapeDir)+CnvString(text);
+  end;
 
 destructor TFindObject.Done;
-begin
-  DisposeStr(Text);
-end;
+  begin
+    DisposeStr(text);
+  end;
 
-constructor TFindDir.Init;
-begin
-   inherited Init(S);
-   Pos:=APos;
-   TT:=ttDir;
-end;
+Constructor TFindDir.Init;
+  begin
+    inherited Init(s);
+    Pos := APos;
+    TT := ttDir;
+  end;
 
 function TFindDir.GetText;
-begin
-  GetText:=GetString(dlDirectory)+' '+CnvString(Text);
-end;
+  begin
+    GetText := GetString(dlDirectory)+' '+CnvString(text);
+  end;
 
-constructor TFindFile.Init;
-begin
-   inherited Init('');
-   Name:=NewStr(S);
-   Size:=ASize;
-   Time:=ATime;
-   TT:=ttFile;
-end;
+Constructor TFindFile.Init;
+  begin
+    inherited Init('');
+    Name := NewStr(s);
+    Size := ASize;
+    Time := ATime;
+    TT := ttFile;
+  end;
 
 destructor TFindFile.Done;
-begin
-   DisposeStr(Name);
-   inherited Done;
-end;
+  begin
+    DisposeStr(Name);
+    inherited Done;
+  end;
 
 function TFindFile.GetText;
-  var DT: DateTime;
-      S: String;
-begin
-  UnPackTime(Time, DT);
-  MakeDate(DateMode, DT.Day, DT.Month, DT.Year mod 100, DT.Hour, DT.Min, S);
-  GetText:='  '+AddSpace(CnvString(Name), 13)+PredSpace(FStr(Size), 13)+' '+S;
-end;
-
+  var
+    DT: DateTime;
+    s: String;
+  begin
+    UnpackTime(Time, DT);
+    MakeDate(DateMode, DT.Day, DT.Month, DT.Year mod 100, DT.Hour, DT.
+      Min, s);
+    GetText := '  '+AddSpace(CnvString(Name), 13)+PredSpace(FStr(
+      Size), 13)+' '+s;
+  end;
 
 function TFindBox.GetText;
-  var P: PFindObject;
-begin
-  P:=List^.At(Item);
-  if P <> nil then GetText:=P^.GetText
-              else GetText:='';
-end;
+  var
+    P: PFindObject;
+  begin
+    P := List^.At(Item);
+    if P <> nil then
+      GetText := P^.GetText
+    else
+      GetText := '';
+  end;
 
 function TFindBox.IsSelected;
-  var P: PFindObject;
-begin
-  P:=List^.At(Item);
-  IsSelected:=(P <> nil) and (P^.TT = ttTape);
-end;
-
+  var
+    P: PFindObject;
+  begin
+    P := List^.At(Item);
+    IsSelected := (P <> nil) and (P^.TT = ttTape);
+  end;
 
 end.

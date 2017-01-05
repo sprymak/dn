@@ -86,9 +86,9 @@
 
 {$I STDEFINE.INC}
 {$UNDEF DEBUG}
-{$DEFINE ComplexBraces} { define for beta-version of braces                  }
-                        { (in stable version it works only for simple cases) }
-
+{$DEFINE ComplexBraces}
+  { define for beta-version of braces                  }
+{ (in stable version it works only for simple cases) }
 
 unit RegExp;
 
@@ -100,38 +100,38 @@ uses
 type
 
   TRegExpStatus = (
-    resOK,
-    resCanceled,
-    resNilArgument,
-    resInvalidArgument,
-    resRegExpTooBig,
-    resOutOfSpace,
-    resCorruptedProgram,
-    resUnmatchedParenthesis,
-    resJunkOnEnd,
-    resStarPlusOperandCouldBeEmpty,
-    resNestedStarQuotePlus,
-    resInvalidEscape,
-    resInvalidPredefinedExp,
-    resUndefinedPredefinedExp,
-    resStackOverflow,
-    resInvalidSetRange,
-    resUnmatchedSquareBracket,
-    resInternalUrp,
-    resOperatorFollowsNothing,
-    resTrailingBackSlash,
-    resInternalDisaster,
-    resNoExpression,
-    resMemoryCorruption,
-    resCorruptedPointers,
-    resInternalFoulup,
+  resOK,
+  resCanceled,
+  resNilArgument,
+  resInvalidArgument,
+  resRegExpTooBig,
+  resOutOfSpace,
+  resCorruptedProgram,
+  resUnmatchedParenthesis,
+  resJunkOnEnd,
+  resStarPlusOperandCouldBeEmpty,
+  resNestedStarQuotePlus,
+  resInvalidEscape,
+  resInvalidPredefinedExp,
+  resUndefinedPredefinedExp,
+  resStackOverflow,
+  resInvalidSetRange,
+  resUnmatchedSquareBracket,
+  resInternalUrp,
+  resOperatorFollowsNothing,
+  resTrailingBackSlash,
+  resInternalDisaster,
+  resNoExpression,
+  resMemoryCorruption,
+  resCorruptedPointers,
+  resInternalFoulup,
 
-    resDuplicatedTaggedExp,
-    resInvalidTaggedExp,
-    resComplexBracesNotImplemented,
-    resInvalidBraces,
-    resLoopStackExceeded,
-    resLoopWithoutEntry
+  resDuplicatedTaggedExp,
+  resInvalidTaggedExp,
+  resComplexBracesNotImplemented,
+  resInvalidBraces,
+  resLoopStackExceeded,
+  resLoopWithoutEntry
   );
 
 type
@@ -140,46 +140,48 @@ type
    * Flags to be passed up and down.
    *)
   TRegExpFlag = (
-    refHasWidth,  (* Known never to match null string.      *)
-    refSimple,    (* Simple enough to be STAR/PLUS operand. *)
-    refSpStart    (* Starts with * or +.                    *)
+  refHasWidth, (* Known never to match null string.      *)
+  refSimple, (* Simple enough to be STAR/PLUS operand. *)
+  refSpStart (* Starts with * or +.                    *)
   );
-  TRegExpFlags = set of TRegExpFlag;
+  TRegExpFlags = Set of TRegExpFlag;
 
-{$IFDEF ComplexBraces}
 const
   LoopStackMax = 10; { max depth of loops stack }
-{$ENDIF ComplexBraces}
 
 type
 
   PRegExp = ^TRegExp;
-  TRegExp = object (TObject)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-  {$IFDEF DEBUG}
-    Narrate : Boolean;
-  {$ENDIF DEBUG}
-    FStatus : TRegExpStatus;
-    FStart  : Integer;
-    FLength : Integer;
-    constructor Init;
-    destructor  Done; virtual;
-    procedure   Reset;
-    function    CompileString ( const AExpression : string ) : Boolean;
-    function    CompileStr ( AExpression : PChar ) : Boolean;
-    function    Compile ( AExpression : PChar; ALength : Integer ) : Boolean;
-    function    Execute ( AString : PChar; ALength : Integer ) : Boolean;
-    function    SubstituteString ( ASrc : PChar; const AReplace : string; var ADest : string ) : Boolean;
-    function    SubstituteStr ( ASrc, AReplace : PChar; ADest : PChar; var ALength : Integer ) : Boolean;
-    function    Substitute ( ASrc, AReplace : PChar; ARLen : Integer; ADest : PChar; var ADLen : Integer ) : Boolean;
-    procedure   Error ( AStatus : TRegExpStatus ); virtual;
-    function    CheckBreak : Boolean; virtual;
-    procedure   Escape ( AChar : Char; var ASubExp : PChar; var ALen : Integer ); virtual;
-  {$IFDEF DEBUG}
-    procedure   Dump;
-  {$ENDIF DEBUG}
-  private
-  (*
+  TRegExp = object(TObject)
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    {$IFDEF DEBUG}
+    Narrate: boolean;
+    {$ENDIF DEBUG}
+    FStatus: TRegExpStatus;
+    FStart: integer;
+    FLength: integer;
+    Constructor Init;
+    destructor Done; virtual;
+    procedure Reset;
+    function CompileString(const AExpression: String): boolean;
+    function CompileStr(AExpression: PChar): boolean;
+    function Compile(AExpression: PChar; ALength: integer): boolean;
+    function Execute(AString: PChar; ALength: integer): boolean;
+    function SubstituteString(ASrc: PChar; const AReplace: String;
+      var ADest: String): boolean;
+    function SubstituteStr(ASrc, AReplace: PChar; ADest: PChar; var
+      ALength: integer): boolean;
+    function Substitute(ASrc, AReplace: PChar; ARLen: integer; ADest:
+      PChar; var ADLen: integer): boolean;
+    procedure Error(AStatus: TRegExpStatus); virtual;
+    function CheckBreak: boolean; virtual;
+    procedure Escape(AChar: Char; var ASubExp: PChar; var ALen:
+      integer); virtual;
+    {$IFDEF DEBUG}
+    procedure Dump;
+    {$ENDIF DEBUG}
+    private
+    (*
    * The "internal use only" fields in regexp.h are present to pass info
    * from compile to execute that permits the execute phase to run lots
    * faster on simple cases.  They are:
@@ -198,29 +200,29 @@ type
    * Regmlen is supplied because the test in regexec() needs it and regcomp()
    * is computing it anyway.
    *)
-    FFlags    : set of (
-                  ffCompiled,   { expression is compiled }
-                  ffAnchored,   { expression is anchored }
-                  ffStart,      { expression starts with FStartCh }
-                  ffParsing,    { calculating code size }
-                  ffMatchNext,
-                  ffBreak,      { 'Execute' is cancelled }
-                  ffAutoTag     { automatic tagged expressions }
-                );
-    FCodeSize : Word;    { *1* }
-    FCodeData : PChar;   { *2* }
-    FStartP   : array [1..9] of Integer; { founded expr starting points }
-    FEndP     : array [1..9] of Integer; { founded expr end points      }
-    FStartCh  : Char;
-    FMust     : PString; { *3* }
-    FInput    : PChar;   { *4* }
-    FInputBol : PChar;   { *5* }
-    FInputEol : PChar;   { *6* }
-  {$IFDEF ComplexBraces}
-    FLStack   : array [1..LoopStackMax] of Integer; { state before entering loop }
-    FLStackId : Integer;                            { 0 - out of all loops       }
-  {$ENDIF ComplexBraces}
-  {
+    FFlags: Set of (
+    ffCompiled, { expression is compiled }
+    ffAnchored, { expression is anchored }
+    ffStart, { expression starts with FStartCh }
+    ffParsing, { calculating code size }
+    ffMatchNext,
+    ffBreak, { 'Execute' is cancelled }
+    ffAutoTag { automatic tagged expressions }
+    );
+    FCodeSize: word; { *1* }
+    FCodeData: PChar; { *2* }
+    FStartP: array[1..9] of integer;
+      { founded expr starting points }
+    FEndP: array[1..9] of integer; { founded expr end points      }
+    FStartCh: Char;
+    FMust: PString; { *3* }
+    FInput: PChar; { *4* }
+    FInputBol: PChar; { *5* }
+    FInputEol: PChar; { *6* }
+    FLStack: array[1..LoopStackMax] of integer;
+      { state before entering loop }
+    FLStackId: integer; { 0 - out of all loops       }
+    {
     // The following variables have different meaning while parsing or
     // compiling the regular expression:
     //
@@ -233,40 +235,43 @@ type
     // *5* - Points to the being parsed or compiled (sub)expression.
     // *6* - Points just beyond the being parsed/compiled expression.
   }
-  { Compilation routines }
-    function    RegCompile ( AExpression : PChar; ALength : Integer ) : Boolean;
-    procedure   IncRegSize ( I : Integer );
-    function    Reg ( Paren : Integer; var FlagP : TRegExpFlags ) : PChar;
-    function    RegBranch ( var FlagP : TRegExpFlags ) : PChar;
-    function    RegPiece ( var FlagP : TRegExpFlags ) : PChar;
-    function    RegAtom ( var FlagP : TRegExpFlags ) : PChar;
-    function    RegEnter ( Op : Char; Tagged : Boolean ) : Boolean;
-    procedure   RegLeave;
-    function    RegLoadNumber ( Base : Integer; Digits : Integer; var AResult ) : Boolean;
-    function    RegEscape ( var AResult : Char ) : Boolean;
-    function    RegSet : PChar;
-    function    RegExactly ( var FlagP : TRegExpFlags ) : PChar;
-    function    RegNode ( Op : Char ) : PChar;
-    procedure   RegC ( B : Char );
-    function    RegInsert ( Op : Char; Opnd : PChar; ASize : Integer ) : PChar;
-    procedure   RegTail ( P : PChar; Val : PChar );
-    procedure   RegOpTail ( P : PChar; Val : PChar );
-  { Execute routines }
-    function    RegExecute ( AString : PChar; ALength : Integer ) : Boolean;
-    function    RegTry ( AString : PChar ) : Boolean;
-    function    RegMatch ( Prog : PChar ) : Boolean;
-    function    RegRepeat ( P : PChar; AMax : Integer ) : Integer;
-  { Common routines }
-    function    RegNext ( P : PChar ) : PChar;
-    procedure   RegClearTags;
-  { Replace support }
-    function    RegSub ( ASrc, AReplace : PChar; ARLen : Integer; ADest : PChar; var ADLen : Integer ) : Boolean;
-  end;
+    { Compilation routines }
+    function RegCompile(AExpression: PChar; ALength: integer):
+      boolean;
+    procedure IncRegSize(i: integer);
+    function Reg(Paren: integer; var FlagP: TRegExpFlags): PChar;
+    function RegBranch(var FlagP: TRegExpFlags): PChar;
+    function RegPiece(var FlagP: TRegExpFlags): PChar;
+    function RegAtom(var FlagP: TRegExpFlags): PChar;
+    function RegEnter(Op: Char; Tagged: boolean): boolean;
+    procedure RegLeave;
+    function RegLoadNumber(Base: integer; Digits: integer; var
+      AResult): boolean;
+    function RegEscape(var AResult: Char): boolean;
+    function RegSet: PChar;
+    function RegExactly(var FlagP: TRegExpFlags): PChar;
+    function RegNode(Op: Char): PChar;
+    procedure RegC(B: Char);
+    function RegInsert(Op: Char; Opnd: PChar; ASize: integer): PChar;
+    procedure RegTail(P: PChar; Val: PChar);
+    procedure RegOpTail(P: PChar; Val: PChar);
+    { Execute routines }
+    function RegExecute(AString: PChar; ALength: integer): boolean;
+    function RegTry(AString: PChar): boolean;
+    function RegMatch(Prog: PChar): boolean;
+    function RegRepeat(P: PChar; AMax: integer): integer;
+    { Common routines }
+    function RegNext(P: PChar): PChar;
+    procedure RegClearTags;
+    { Replace support }
+    function RegSub(ASrc, AReplace: PChar; ARLen: integer; ADest:
+      PChar; var ADLen: integer): boolean;
+    end;
 
 implementation
 
 uses
-  {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
+  Strings,
   Memory;
 
 (*****************************************************************
@@ -291,39 +296,23 @@ uses
  *
  *****************************************************************)
 
-function StrScan2 ( P : PChar; C : Char; P2 : PChar ) : PChar;
-{$IFDEF NOASM}
-begin
-  StrScan2 := nil;
-  while P < P2 do begin
-    if P[0] = C then begin
-      StrScan2 := P;
-      Exit;
-    end;
-    Inc ( P );
+function StrScan2(P: PChar; C: Char; P2: PChar): PChar;
+  {$IFDEF NOASM}
+  begin
+    StrScan2 := nil;
+    while P < P2 do
+      begin
+        if P[0] = C then
+          begin
+            StrScan2 := P;
+            exit;
+          end;
+        Inc(P);
+      end;
   end;
-end;
-{$ELSE ASM}
-assembler;
-{$IFNDEF BIT_32}
-asm
-        LES     DI,P
-        MOV     CX,WORD PTR P2  { assume segment is the same as P }
-        XOR     AX,AX           { default nil result }
-        CWD
-        SUB     CX,DI           { length of buffer is given }
-        JBE     @@1             { P2 must be greater than P }
-        MOV     AL,C
-        CLD
-        REPNE   SCASB
-        MOV     AL,0            { restore the nil }
-        JNE     @@1
-        MOV     AX,DI           { get the address }
-        MOV     DX,ES
-        DEC     AX
-@@1:
-end;
-{$ELSE BIT_32}{&Frame-}{&USES EDI, ECX}
+  {$ELSE ASM}
+  assembler;
+  {&Frame-} {&USES EDI, ECX}
 asm
         MOV     EDI,P
         MOV     ECX,P2
@@ -337,8 +326,8 @@ asm
         JNE     @@1
         LEA     EAX,[EDI-1]     { get the address }
 @@1:
-end;
-{$ENDIF BIT_32}
+end
+  ;
 {$ENDIF ASM}
 
 (*****************************************************************
@@ -367,36 +356,42 @@ end;
  *)
 
 const
-(* definition    number   opnd? meaning *)
-  ropEND       = #00;  (* no    End of program. *)
-  ropBOL       = #01;  (* no    Match "" at beginning of line. *)
-  ropEOL       = #02;  (* no    Match "" at end of line. *)
-  ropANY       = #03;  (* no    Match any one character. *)
-  ropANYOF     = #04;  (* str   Match any character in this string. *)
-  ropANYBUT    = #05;  (* str   Match any character not in this string. *)
-  ropBRANCH    = #06;  (* node  Match this alternative, or the next... *)
-  ropBACK      = #07;  (* no    Match "", "next" ptr points backward. *)
-  ropEXACTLY   = #08;  (* str   Match this string. *)
-  ropNOTHING   = #09;  (* no    Match empty string. *)
-  ropSTAR      = #10;  (* node  Match this (simple) thing 0 or more times. *)
-  ropPLUS      = #11;  (* node  Match this (simple) thing 1 or more times. *)
-  ropOPEN      = #12;  (* no    Mark this point in input as start of #. *)
-  ropCLOSE     = #13;  (* no    Analogous to OPEN. *)
-  ropBRACES    = #14;  {  n,m   Match this (simple) thing from n to m times. }
-  ropSTARNG    = #15;  {        Same as START but in non-greedy mode  }
-  ropPLUSNG    = #16;  {        Same as PLUS but in non-greedy mode }
-  ropBRACESNG  = #17;  {        Same as BRACES but in non-greedy mode }
-{$IFDEF ComplexBraces}
-  ropLOOPENTRY = #18;  {  node  Start of loop (LOOP - Node for this loop) }
-  ropLOOP      = #19;  {  n,m   Back jump for LOOPENTRY. }
-  ropLOOPNG    = #20;  {        Same as LOOP but in non-greedy mode }
-{$ENDIF ComplexBraces}
-  ropOPEN0     = #30;  (* no    Mark this point in input as start of #n. *)
-  ropOPEN9     = #39;
-  ropCLOSE0    = #40;  (* no    Analogous to OPEN0. *)
-  ropCLOSE9    = #49;
+  (* definition    number   opnd? meaning *)
+  ropEND = #00; (* no    End of program. *)
+  ropBOL = #01; (* no    Match "" at beginning of line. *)
+  ropEOL = #02; (* no    Match "" at end of line. *)
+  ropANY = #03; (* no    Match any one character. *)
+  ropANYOF = #04; (* str   Match any character in this string. *)
+  ropANYBUT = #05;
+    (* str   Match any character not in this string. *)
+  ropBRANCH = #06;
+    (* node  Match this alternative, or the next... *)
+  ropBACK = #07; (* no    Match "", "next" ptr points backward. *)
+  ropEXACTLY = #08; (* str   Match this string. *)
+  ropNOTHING = #09; (* no    Match empty string. *)
+  ropSTAR = #10;
+    (* node  Match this (simple) thing 0 or more times. *)
+  ropPLUS = #11;
+    (* node  Match this (simple) thing 1 or more times. *)
+  ropOPEN = #12; (* no    Mark this point in input as start of #. *)
+  ropCLOSE = #13; (* no    Analogous to OPEN. *)
+  ropBRACES = #14;
+    {  n,m   Match this (simple) thing from n to m times. }
+  ropSTARNG = #15; {        Same as START but in non-greedy mode  }
+  ropPLUSNG = #16; {        Same as PLUS but in non-greedy mode }
+  ropBRACESNG = #17;
+    {        Same as BRACES but in non-greedy mode }
+  ropLOOPENTRY = #18;
+    {  node  Start of loop (LOOP - Node for this loop) }
+  ropLOOP = #19; {  n,m   Back jump for LOOPENTRY. }
+  ropLOOPNG = #20; {        Same as LOOP but in non-greedy mode }
+  ropOPEN0 = #30;
+    (* no    Mark this point in input as start of #n. *)
+  ropOPEN9 = #39;
+  ropCLOSE0 = #40; (* no    Analogous to OPEN0. *)
+  ropCLOSE9 = #49;
 
-(*
+  (*
  * Opcode notes:
  *
  * BRANCH   The set of branches constituting a single choice are hooked
@@ -419,7 +414,7 @@ const
  *
  *****************************************************************)
 
-(*****************************************************************
+  (*****************************************************************
  *
  * The first byte of the regexp internal "program" is actually
  * this magic number; the start node begins in the second byte.
@@ -427,9 +422,9 @@ const
  *****************************************************************)
 
 const
-  MAGIC = #$9C; { 0234 }
+  magic = #$9C; { 0234 }
 
-(*****************************************************************
+  (*****************************************************************
  *
  * This is the maximum size of an compiled regexp program.
  * The limit is caused by size of "Next" pointer in the regexp
@@ -440,7 +435,7 @@ const
 const
   MaxRegSize = 32768;
 
-(*****************************************************************
+  (*****************************************************************
  *
  * The internal stack is introduced to allow compile '\:#' escape
  * sequences. The predefined sequence can be called recursively
@@ -461,33 +456,33 @@ const
 
 const
   ParseNumBaseMask = $00FF;
-  ParseNumInteger  = $0100;
+  ParseNumInteger = $0100;
 
 const
   MaxBracesArg = Ord(High(Char));
 
 type
   TRegExpStackItem = record
-    entry : Integer;
-    bol   : PChar;
-    cur   : PChar;
-    eol   : PChar;
-  end;
+    Entry: integer;
+    bol: PChar;
+    Cur: PChar;
+    eol: PChar;
+    end;
 
   PRegExpStack = ^TRegExpStack;
   TRegExpStack = record
-    Entries   : Integer;
-    Entry     : Integer;
-    FNPar     : Integer;
-    Level     : Integer;
-    Stack     : array [0..MaxRegExpStack-1] of TRegExpStackItem;
-    TagStarts : array [1..9] of PChar;
-    TagEnds   : array [1..9] of PChar;
-  end;
+    Entries: integer;
+    Entry: integer;
+    FNPar: integer;
+    Level: integer;
+    Stack: array[0..MaxRegExpStack-1] of TRegExpStackItem;
+    TagStarts: array[1..9] of PChar;
+    TagEnds: array[1..9] of PChar;
+    end;
 
-{$IFDEF DEBUG}
+  {$IFDEF DEBUG}
 
-(*****************************************************************
+  (*****************************************************************
  *
  * FUNCTION:    RegProp
  *
@@ -506,48 +501,72 @@ type
  *
  *****************************************************************)
 
-function RegProp ( Op : PChar ) : string;
-var
-  s : string;
-begin
-  case Op[0] of
-    ropBOL:       s := 'BOL';
-    ropEOL:       s := 'EOL';
-    ropANY:       s := 'ANY';
-    ropANYOF:     s := 'ANYOF';
-    ropANYBUT:    s := 'ANYBUT';
-    ropBRANCH:    s := 'BRANCH';
-    ropEXACTLY:   s := 'EXACTLY';
-    ropNOTHING:   s := 'NOTHING';
-    ropBACK:      s := 'BACK';
-    ropEND:       s := 'END';
-    ropOPEN:      s := 'OPEN';
-    ropCLOSE:     s := 'CLOSE';
-    ropSTAR:      s := 'STAR';
-    ropPLUS:      s := 'PLUS';
-    ropBRACES:    s := 'BRACES';
-    ropSTARNG:    s := 'STARNG';
-    ropPLUSNG:    s := 'PLUSNG';
-    ropBRACESNG:  s := 'BRACESNG';
-  {$IFDEF ComplexBraces}
-    ropLOOPENTRY: s := 'LOOPENTRY';
-    ropLOOP:      s := 'LOOP';
-    ropLOOPNG:    s := 'LOOPNG';
-  {$ENDIF ComplexBraces}
-  else
-    if Op[0] in [ropOPEN0..ropOPEN9] then begin
-      Str ( Ord(Op[0])-Ord(ropOPEN0), s );
-      s := 'OPEN'+s;
-    end else if Op[0] in [ropCLOSE0..ropCLOSE9] then begin
-      Str ( Ord(Op[0])-Ord(ropCLOSE0), s );
-      s := 'CLOSE'+s;
-    end else begin
-      Str ( Ord(Op[0]), s );
-      s := '#'+s;
-    end;
-  end;
-  RegProp := ':' + s;
-end;
+function RegProp(Op: PChar): String;
+  var
+    s: String;
+  begin
+    case Op[0] of
+      ropBOL:
+        s := 'BOL';
+      ropEOL:
+        s := 'EOL';
+      ropANY:
+        s := 'ANY';
+      ropANYOF:
+        s := 'ANYOF';
+      ropANYBUT:
+        s := 'ANYBUT';
+      ropBRANCH:
+        s := 'BRANCH';
+      ropEXACTLY:
+        s := 'EXACTLY';
+      ropNOTHING:
+        s := 'NOTHING';
+      ropBACK:
+        s := 'BACK';
+      ropEND:
+        s := 'END';
+      ropOPEN:
+        s := 'OPEN';
+      ropCLOSE:
+        s := 'CLOSE';
+      ropSTAR:
+        s := 'STAR';
+      ropPLUS:
+        s := 'PLUS';
+      ropBRACES:
+        s := 'BRACES';
+      ropSTARNG:
+        s := 'STARNG';
+      ropPLUSNG:
+        s := 'PLUSNG';
+      ropBRACESNG:
+        s := 'BRACESNG';
+      ropLOOPENTRY:
+        s := 'LOOPENTRY';
+      ropLOOP:
+        s := 'LOOP';
+      ropLOOPNG:
+        s := 'LOOPNG';
+      else
+        if Op[0] in [ropOPEN0..ropOPEN9] then
+          begin
+            Str(Ord(Op[0])-Ord(ropOPEN0), s);
+            s := 'OPEN'+s;
+          end
+        else if Op[0] in [ropCLOSE0..ropCLOSE9] then
+          begin
+            Str(Ord(Op[0])-Ord(ropCLOSE0), s);
+            s := 'CLOSE'+s;
+          end
+        else
+          begin
+            Str(Ord(Op[0]), s);
+            s := '#'+s;
+          end;
+    end {case};
+    RegProp := ':'+s;
+  end { RegProp };
 
 {$ENDIF DEBUG}
 
@@ -557,42 +576,43 @@ end;
  *
  *****************************************************************)
 
-constructor TRegExp.Init;
-begin
-  inherited Init;
-  FCodeSize := 0;
-  FCodeData := nil;
-  FFlags    := [];
-  FStatus   := resOK;
-end;
-
-destructor  TRegExp.Done;
-begin
-  Reset;
-  inherited Done;
-end;
-
-procedure   TRegExp.Reset;
-begin
-  if FCodeSize > 0 then begin
-    if FCodeData <> nil then
-      FreeMem ( FCodeData, FCodeSize );
+Constructor TRegExp.Init;
+  begin
+    inherited Init;
     FCodeSize := 0;
     FCodeData := nil;
-    Exclude ( FFlags, ffCompiled );
+    FFlags := [];
+    FStatus := resOK;
   end;
-  FStatus := resOK;
-end;
 
-function    TRegExp.CompileString ( const AExpression : string ) : Boolean;
-begin
-  CompileString := Compile ( @AExpression[1], Length(AExpression) );
-end;
+destructor TRegExp.Done;
+  begin
+    Reset;
+    inherited Done;
+  end;
 
-function    TRegExp.CompileStr ( AExpression : PChar ) : Boolean;
-begin
-  CompileStr := Compile ( AExpression, StrLen ( AExpression ) );
-end;
+procedure TRegExp.Reset;
+  begin
+    if FCodeSize > 0 then
+      begin
+        if FCodeData <> nil then
+          FreeMem(FCodeData, FCodeSize);
+        FCodeSize := 0;
+        FCodeData := nil;
+        Exclude(FFlags, ffCompiled);
+      end;
+    FStatus := resOK;
+  end;
+
+function TRegExp.CompileString(const AExpression: String): boolean;
+  begin
+    CompileString := Compile(@AExpression[1], Length(AExpression));
+  end;
+
+function TRegExp.CompileStr(AExpression: PChar): boolean;
+  begin
+    CompileStr := Compile(AExpression, StrLen(AExpression));
+  end;
 
 (*****************************************************************
  *
@@ -615,12 +635,13 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.Compile ( AExpression : PChar; ALength : Integer ) : Boolean;
-begin
-  Compile := RegCompile ( AExpression, ALength );
-  if FStatus <> resOK then
-    Error ( FStatus );
-end;
+function TRegExp.Compile(AExpression: PChar; ALength: integer):
+    boolean;
+  begin
+    Compile := RegCompile(AExpression, ALength);
+    if FStatus <> resOK then
+      Error(FStatus);
+  end;
 
 (*****************************************************************
  *
@@ -643,12 +664,12 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.Execute ( AString : PChar; ALength : Integer ) : Boolean;
-begin
-  Execute := RegExecute ( AString, ALength );
-  if FStatus <> resOK then
-    Error ( FStatus );
-end;
+function TRegExp.Execute(AString: PChar; ALength: integer): boolean;
+  begin
+    Execute := RegExecute(AString, ALength);
+    if FStatus <> resOK then
+      Error(FStatus);
+  end;
 
 (*****************************************************************
  *
@@ -669,9 +690,9 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.Error ( AStatus : TRegExpStatus );
-begin
-end;
+procedure TRegExp.Error(AStatus: TRegExpStatus);
+  begin
+  end;
 
 (*****************************************************************
  *
@@ -693,10 +714,10 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.CheckBreak : Boolean;
-begin
-  CheckBreak := False;
-end;
+function TRegExp.CheckBreak: boolean;
+  begin
+    CheckBreak := False;
+  end;
 
 (*****************************************************************
  *
@@ -722,12 +743,12 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.Escape ( AChar : Char; var ASubExp : PChar; var ALen : Integer );
-begin
-  ASubExp := nil;
-  ALen    := 0;
-end;
-
+procedure TRegExp.Escape(AChar: Char; var ASubExp: PChar; var ALen:
+    integer);
+  begin
+    ASubExp := nil;
+    ALen := 0;
+  end;
 
 (*****************************************************************
  *
@@ -765,92 +786,102 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegCompile ( AExpression : PChar; ALength : Integer ) : Boolean;
-var
-  scan     : PChar;
-  len      : Integer;
-  flags    : TRegExpFlags;
-  p        : Pointer;
-  dummy    : Char;
-  stack    : TRegExpStack;
-begin
-{$IFDEF DEBUG}
-  FillChar ( stack, SizeOf(stack), 0 );
-{$ENDIF DEBUG}
-  RegCompile := False;
-  Reset;
-  if AExpression = nil then begin
-    FStatus := resNilArgument;
-    Exit;
-  end;
-  if ALength <= 0 then begin
-    FStatus := resInvalidArgument;
-    Exit;
-  end;
-  FMust         := @stack;
-  FInputBol     := AExpression;
-  FInputEol     := AExpression + ALength;
-  (* First pass: determine size, legality. *)
-  FInput        := AExpression;
-  FCodeSize     := 0;
-  FCodeData     := @dummy; { must be non-nil }
-  stack.Entries := 0;
-  stack.Entry   := 0;
-  stack.Level   := 0;
-  stack.FNPar   := 1;
-  RegC ( MAGIC );
-  FFlags := FFlags + [ffParsing,ffAutoTag];
-  RegClearTags;
-  p := Reg ( 0, flags );
-  Exclude ( FFlags, ffParsing );
-  if p = nil then begin
+function TRegExp.RegCompile(AExpression: PChar; ALength: integer):
+    boolean;
+  var
+    Scan: PChar;
+    len: integer;
+    Flags: TRegExpFlags;
+    P: Pointer;
+    Dummy: Char;
+    Stack: TRegExpStack;
+  begin
+    {$IFDEF DEBUG}
+    FillChar(Stack, SizeOf(Stack), 0);
+    {$ENDIF DEBUG}
+    RegCompile := False;
+    Reset;
+    if AExpression = nil then
+      begin
+        FStatus := resNilArgument;
+        exit;
+      end;
+    if ALength <= 0 then
+      begin
+        FStatus := resInvalidArgument;
+        exit;
+      end;
+    FMust := @stack;
+    FInputBol := AExpression;
+    FInputEol := AExpression+ALength;
+    (* First pass: determine size, legality. *)
+    FInput := AExpression;
     FCodeSize := 0;
-    FCodeData := nil;
-    Exit;
-  end;
-  (* Small enough for pointer-storage convention? *)
-  if FCodeSize >= MaxRegSize then begin    (* Probably could be 65535. *)
-    FStatus := resRegExpTooBig;
-    Exit;
-  end;
-  (* Allocate space. *)
-  p := MemAlloc ( FCodeSize );
-  if p = nil then begin
-    FStatus := resOutOfSpace;
-    Exit;
-  end;
-{$IFDEF DEBUG}
-  FillChar ( p^, FCodeSize, $FF );
-{$ENDIF DEBUG}
-  (* Second pass: emit code. *)
-  FInput        := AExpression;
-  FCodeData     := PChar(p);
-  stack.Entries := 0;
-  stack.Entry   := 0;
-  stack.Level   := 0;
-  stack.FNPar   := 1;
-  RegC ( MAGIC );
-  RegClearTags;
-  Reg ( 0, flags ); { this should return with non-nil result }
-  FCodeData := p;
+    FCodeData := @dummy; { must be non-nil }
+    Stack.Entries := 0;
+    Stack.Entry := 0;
+    Stack.Level := 0;
+    Stack.FNPar := 1;
+    RegC(magic);
+    FFlags := FFlags+[ffParsing, ffAutoTag];
+    RegClearTags;
+    P := Reg(0, Flags);
+    Exclude(FFlags, ffParsing);
+    if P = nil then
+      begin
+        FCodeSize := 0;
+        FCodeData := nil;
+        exit;
+      end;
+    (* Small enough for pointer-storage convention? *)
+    if FCodeSize >= MaxRegSize then
+      begin(* Probably could be 65535. *)
+        FStatus := resRegExpTooBig;
+        exit;
+      end;
+    (* Allocate space. *)
+    P := MemAlloc(FCodeSize);
+    if P = nil then
+      begin
+        FStatus := resOutOfSpace;
+        exit;
+      end;
+    {$IFDEF DEBUG}
+    FillChar(P^, FCodeSize, $FF);
+    {$ENDIF DEBUG}
+    (* Second pass: emit code. *)
+    FInput := AExpression;
+    FCodeData := PChar(P);
+    Stack.Entries := 0;
+    Stack.Entry := 0;
+    Stack.Level := 0;
+    Stack.FNPar := 1;
+    RegC(magic);
+    RegClearTags;
+    Reg(0, Flags); { this should return with non-nil result }
+    FCodeData := P;
 
-  (* Dig out information for optimizations. *)
-  FFlags := [];
-  FMust  := nil;
-  scan   := @FCodeData[1];       (* First BRANCH. *)
-  if RegNext(scan)[0] = ropEND then begin
-    (* Only one top-level choice. *)
-    scan := @scan[3];
+    (* Dig out information for optimizations. *)
+    FFlags := [];
+    FMust := nil;
+    Scan := @FCodeData[1]; (* First BRANCH. *)
+    if RegNext(Scan)[0] = ropEND then
+      begin
+        (* Only one top-level choice. *)
+        Scan := @scan[3];
 
-    (* Starting-point info. *)
-    if scan[0] = ropEXACTLY then begin
-      FStartCh := scan[4];
-      Include ( FFlags, ffStart );
-    end else if scan[0] = ropBOL then begin
-      Include ( FFlags, ffAnchored );
-    end;
+        (* Starting-point info. *)
+        if Scan[0] = ropEXACTLY then
+          begin
+            FStartCh := Scan[4];
+            Include(FFlags, ffStart);
+          end
+        else if Scan[0] = ropBOL then
+          begin
+            Include(FFlags, ffAnchored);
+          end;
 
-    (*
+        (*
      * If there's something expensive in the r.e., find the
      * longest literal string that must appear and make it the
      * regmust.  Resolve ties in favor of later strings, since
@@ -858,22 +889,26 @@ begin
      * and avoiding duplication strengthens checking.  Not a
      * strong reason, but sufficient in the absence of others.
      *)
-    if refSpStart in flags then begin
-      p   := nil;
-      len := 0;
-      while scan <> nil do begin
-        if (scan[0] = ropEXACTLY) and (Ord(scan[3]) >= len) then begin
-          p   := @scan[3];
-          len := Ord(scan[3]);
-        end;
-        scan := RegNext ( scan );
+        if refSpStart in Flags then
+          begin
+            P := nil;
+            len := 0;
+            while Scan <> nil do
+              begin
+                if (Scan[0] = ropEXACTLY) and (Ord(Scan[3]) >= len)
+                then
+                  begin
+                    P := @scan[3];
+                    len := Ord(Scan[3]);
+                  end;
+                Scan := RegNext(Scan);
+              end;
+            FMust := PString(P);
+          end;
       end;
-      FMust := PString(p);
-    end;
-  end;
-  Include ( FFlags, ffCompiled );
-  RegCompile := True;
-end;
+    Include(FFlags, ffCompiled);
+    RegCompile := True;
+  end { TRegExp.RegCompile };
 
 (*****************************************************************
  *
@@ -894,11 +929,11 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.IncRegSize ( I : Integer );
-begin
-  if FCodeSize <= MaxRegSize then
-    Inc ( FCodeSize, I );
-end;
+procedure TRegExp.IncRegSize(i: integer);
+  begin
+    if FCodeSize <= MaxRegSize then
+      Inc(FCodeSize, i);
+  end;
 
 (*****************************************************************
  *
@@ -928,113 +963,138 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.Reg ( Paren : Integer; var FlagP : TRegExpFlags ) : PChar;
-var
-  ret   : PChar;
-  br    : PChar;
-  ender : PChar;
-  flags : TRegExpFlags;
-  parno : Integer;
-  stack : PRegExpStack absolute FMust;
-begin
-  Reg   := nil;
-  FlagP := [refHasWidth];   (* Tentatively. *)
+function TRegExp.Reg(Paren: integer; var FlagP: TRegExpFlags): PChar;
+  var
+    ret: PChar;
+    br: PChar;
+    ender: PChar;
+    Flags: TRegExpFlags;
+    parno: integer;
+    Stack: PRegExpStack absolute FMust;
+  begin
+    Reg := nil;
+    FlagP := [refHasWidth]; (* Tentatively. *)
 
-  (* Make an OPEN node, if parenthesized. *)
-  if Paren <> 0 then begin
-    parno := Paren;             { use selected tagged expression }
-    if ffAutoTag in FFlags then begin
-      if parno = -1 then begin
-        parno := stack^.FNPar;
-        Inc ( stack^.FNPar );
-      end else begin
-        RegClearTags;           { clear currently defined tags }
-        Exclude ( FFlags, ffAutoTag );
+    (* Make an OPEN node, if parenthesized. *)
+    if Paren <> 0 then
+      begin
+        parno := Paren; { use selected tagged expression }
+        if ffAutoTag in FFlags then
+          begin
+            if parno = -1 then
+              begin
+                parno := Stack^.FNPar;
+                Inc(Stack^.FNPar);
+              end
+            else
+              begin
+                RegClearTags; { clear currently defined tags }
+                Exclude(FFlags, ffAutoTag);
+              end;
+          end;
+        if not (parno in [1..9]) then
+          begin
+            ret := RegNode(ropOPEN);
+          end
+        else
+          begin
+            ret := RegNode(Char(Ord(ropOPEN0)+parno));
+            if Stack^.TagStarts[parno] <> nil then
+              begin
+                FStatus := resDuplicatedTaggedExp;
+                exit;
+              end;
+            Stack^.TagStarts[parno] := FInput;
+            FStartP[parno] := Stack^.Entry;
+          end;
+      end
+    else
+      begin
+        ret := nil;
       end;
-    end;
-    if not (parno in [1..9]) then begin
-      ret := RegNode ( ropOPEN );
-    end else begin
-      ret := RegNode ( Char(Ord(ropOPEN0)+parno) );
-      if stack^.TagStarts[parno] <> nil then begin
-        FStatus := resDuplicatedTaggedExp;
-        Exit;
-      end;
-      stack^.TagStarts[parno] := FInput;
-      FStartP[parno]          := stack^.Entry;
-    end;
-  end else begin
-    ret := nil;
-  end;
 
-  (* Pick up the branches, linking them together. *)
-  br := RegBranch ( flags );
-  if br = nil then
-    Exit;
-  if ret <> nil then
-     RegTail ( ret, br ) (* OPEN -> first. *)
-  else
-     ret := br;
-  if not (refHasWidth in flags) then
-    Exclude ( FlagP, refHasWidth );
-  FlagP := FlagP + (flags * [refSpStart]);
-  while (FInput < FInputEol) and (FInput[0] = '|') do begin
-    Inc ( FInput );
-    RegLeave;
-    br := RegBranch ( flags );
+    (* Pick up the branches, linking them together. *)
+    br := RegBranch(Flags);
     if br = nil then
-      Exit;
-    RegTail ( ret, br ); (* BRANCH -> BRANCH. *)
-    if not (refHasWidth in flags) then
-      Exclude ( FlagP, refHasWidth );
-    FlagP := FlagP + (flags * [refSpStart]);
-  end;
-
-  (* Make a closing node, and hook it on the end. *)
-  if Paren <> 0 then begin
-    if not (parno in [1..9]) then begin
-      ender := RegNode ( ropCLOSE )
-    end else begin
-      ender := RegNode ( Char(Ord(ropCLOSE0)+parno) );
-      if stack^.TagEnds[parno] <> nil then begin
-        FStatus := resDuplicatedTaggedExp;
-        Exit;
+      exit;
+    if ret <> nil then
+      RegTail(ret, br) (* OPEN -> first. *)
+    else
+      ret := br;
+    if not (refHasWidth in Flags) then
+      Exclude(FlagP, refHasWidth);
+    FlagP := FlagP+(Flags*[refSpStart]);
+    while (FInput < FInputEol) and (FInput[0] = '|') do
+      begin
+        Inc(FInput);
+        RegLeave;
+        br := RegBranch(Flags);
+        if br = nil then
+          exit;
+        RegTail(ret, br); (* BRANCH -> BRANCH. *)
+        if not (refHasWidth in Flags) then
+          Exclude(FlagP, refHasWidth);
+        FlagP := FlagP+(Flags*[refSpStart]);
       end;
-      stack^.TagEnds[parno] := FInput;
-      FEndP[parno]          := stack^.Entry;
-    end;
-  end else begin
-    ender := RegNode ( ropEND );
-  end;
-  RegTail ( ret, ender );
 
-  (* Hook the tails of the branches to the closing node. *)
-  br := ret;
-  while br <> nil do begin
-    RegOpTail ( br, ender );
-    br := RegNext ( br );
-  end;
+    (* Make a closing node, and hook it on the end. *)
+    if Paren <> 0 then
+      begin
+        if not (parno in [1..9]) then
+          begin
+            ender := RegNode(ropCLOSE)
+          end
+        else
+          begin
+            ender := RegNode(Char(Ord(ropCLOSE0)+parno));
+            if Stack^.TagEnds[parno] <> nil then
+              begin
+                FStatus := resDuplicatedTaggedExp;
+                exit;
+              end;
+            Stack^.TagEnds[parno] := FInput;
+            FEndP[parno] := Stack^.Entry;
+          end;
+      end
+    else
+      begin
+        ender := RegNode(ropEND);
+      end;
+    RegTail(ret, ender);
 
-  (* Check for proper termination. *)
-  if Paren <> 0 then begin
-    if (FInput >= FInputEol) or (FInput[0] <> ')') then begin
-      FStatus := resUnmatchedParenthesis;
-      Exit;
-    end;
-    Inc ( FInput );
-    RegLeave;
-  end else begin
-    if FInput < FInputEol then begin
-      if FInput[0] = ')' then
-        FStatus := resUnmatchedParenthesis
-      else                       (* "Can't happen". *)
-        FStatus := resJunkOnEnd; (* NOTREACHED *)
-      Exit;
-    end;
-  end;
+    (* Hook the tails of the branches to the closing node. *)
+    br := ret;
+    while br <> nil do
+      begin
+        RegOpTail(br, ender);
+        br := RegNext(br);
+      end;
 
-  Reg := ret;
-end;
+    (* Check for proper termination. *)
+    if Paren <> 0 then
+      begin
+        if (FInput >= FInputEol) or (FInput[0] <> ')') then
+          begin
+            FStatus := resUnmatchedParenthesis;
+            exit;
+          end;
+        Inc(FInput);
+        RegLeave;
+      end
+    else
+      begin
+        if FInput < FInputEol then
+          begin
+            if FInput[0] = ')' then
+              FStatus := resUnmatchedParenthesis
+            else(* "Can't happen". *)
+              FStatus := resJunkOnEnd; (* NOTREACHED *)
+            exit;
+          end;
+      end;
+
+    Reg := ret;
+  end { TRegExp.Reg };
 
 (*****************************************************************
  *
@@ -1057,34 +1117,37 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegBranch ( var FlagP : TRegExpFlags ) : PChar;
-var
-  ret      : PChar;
-  chain    : PChar;
-  latest   : PChar;
-  flags    : TRegExpFlags;
-begin
-  RegBranch := nil;
-  FlagP     := [];      (* Tentatively. *)
+function TRegExp.RegBranch(var FlagP: TRegExpFlags): PChar;
+  var
+    ret: PChar;
+    chain: PChar;
+    latest: PChar;
+    Flags: TRegExpFlags;
+  begin
+    RegBranch := nil;
+    FlagP := []; (* Tentatively. *)
 
-  ret   := RegNode ( ropBRANCH );
-  chain := nil;
-  while (FInput < FInputEol) and (FInput[0] <> '|') and (FInput[0] <> ')') do begin
-    latest := RegPiece ( flags );
-    if latest = nil then
-      Exit;
-    FlagP := FlagP + (flags * [refHasWidth]);
-    if chain = nil then (* First piece. *)
-      FlagP := FlagP + (flags * [refSpStart])
-    else
-      RegTail ( chain, latest );
-    chain := latest;
-  end;
-  if chain = nil then   (* Loop ran zero times. *)
-    RegNode ( ropNOTHING );
+    ret := RegNode(ropBRANCH);
+    chain := nil;
+    while (FInput < FInputEol) and (FInput[0] <> '|') and (FInput[0] <>
+        ')')
+    do
+      begin
+        latest := RegPiece(Flags);
+        if latest = nil then
+          exit;
+        FlagP := FlagP+(Flags*[refHasWidth]);
+        if chain = nil then(* First piece. *)
+          FlagP := FlagP+(Flags*[refSpStart])
+        else
+          RegTail(chain, latest);
+        chain := latest;
+      end;
+    if chain = nil then(* Loop ran zero times. *)
+      RegNode(ropNOTHING);
 
-  RegBranch := ret;
-end;
+    RegBranch := ret;
+  end { TRegExp.RegBranch };
 
 (*****************************************************************
  *
@@ -1116,232 +1179,265 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegPiece ( var FlagP : TRegExpFlags ) : PChar;
-label
-  braces_error;
-var
-  ret      : PChar;
-  op       : Char;
-  ngop     : Boolean; { non-greedy operand }
-  next     : PChar;
-  flags    : TRegExpFlags;
-  n        : Integer;
-  m        : Integer;
-  sinput   : PChar;
-
-  procedure EmitComplexBraces ( AMin, AMax : Integer; ANonGreedy : Boolean );
-  {$IFDEF ComplexBraces}
+function TRegExp.RegPiece(var FlagP: TRegExpFlags): PChar;
+  label
+    braces_error;
   var
-    rop  : Char;
-    r    : PChar;
-    off  : Integer;
-    next : PChar;
-  {$ENDIF ComplexBraces}
-  begin
-  {$IFDEF ComplexBraces}
-    rop := ropLOOP;
-    if ANonGreedy then
-      rop := ropLOOPNG;
-    r    := RegInsert ( ropLOOPENTRY, ret, 0 );
-    next := RegNode ( rop );
-    off  := next-r;           { back to atom after LOOPENTRY }
-    RegC ( Chr((off shr 8) and 255) );
-    RegC ( Chr(off and 255) );
-    RegC ( Chr(AMin) );
-    RegC ( Chr(AMax) );
-    RegTail ( ret, next );    { LOOPENTRY -> LOOP }
-    if r <> nil then
-      RegTail ( r, next );    { Atom -> LOOP }
-  {$ELSE !ComplexBraces}
-    FStatus := resComplexBracesNotImplemented;
-    ret     := nil;
-  {$ENDIF ComplexBraces}
-  end;
+    ret: PChar;
+    Op: Char;
+    ngop: boolean; { non-greedy operand }
+    Next: PChar;
+    Flags: TRegExpFlags;
+    n: integer;
+    M: integer;
+    sinput: PChar;
 
-  procedure EmitSimpleBraces ( AMin, AMax : Integer; ANonGreedy : Boolean );
-  var
-    rop  : Char;
-    args : PChar;
-  begin
-    rop := ropBRACES;
-    if ANonGreedy then
-      rop := ropBRACESNG;
-    args := RegInsert ( rop, ret, 2 );
-    if args <> nil then begin
-      ret[3] := Chr(AMin);
-      ret[4] := Chr(AMax);
+  procedure EmitComplexBraces(AMin, AMax: integer; ANonGreedy:
+      boolean);
+    var
+      rop: Char;
+      R: PChar;
+      off: integer;
+      Next: PChar;
+    begin
+      rop := ropLOOP;
+      if ANonGreedy then
+        rop := ropLOOPNG;
+      R := RegInsert(ropLOOPENTRY, ret, 0);
+      Next := RegNode(rop);
+      off := Next-R; { back to atom after LOOPENTRY }
+      RegC(Chr((off shr 8) and 255));
+      RegC(Chr(off and 255));
+      RegC(Chr(AMin));
+      RegC(Chr(AMax));
+      RegTail(ret, Next); { LOOPENTRY -> LOOP }
+      if R <> nil then
+        RegTail(R, Next); { Atom -> LOOP }
+    end { EmitComplexBraces };
+
+  procedure EmitSimpleBraces(AMin, AMax: integer; ANonGreedy:
+      boolean);
+    var
+      rop: Char;
+      args: PChar;
+    begin
+      rop := ropBRACES;
+      if ANonGreedy then
+        rop := ropBRACESNG;
+      args := RegInsert(rop, ret, 2);
+      if args <> nil then
+        begin
+          ret[3] := Chr(AMin);
+          ret[4] := Chr(AMax);
+        end;
     end;
-  end;
 
-begin
-  RegPiece := nil;
-  ret      := RegAtom ( flags );
-  if ret = nil then
-    Exit;
+  begin { TRegExp.RegPiece }
+    RegPiece := nil;
+    ret := RegAtom(Flags);
+    if ret = nil then
+      exit;
 
-  { remember the source               }
-  { it will be restored on error exit }
-  sinput := FInput;
+    { remember the source               }
+    { it will be restored on error exit }
+    sinput := FInput;
 
-  op := #0;
-  if FInput < FInputEol then begin
-    op := FInput[0];
-    Inc ( FInput );
-  end;
-  if not ((op = '*') or (op = '+') or (op = '?') or (op = '{')) then begin
-    FInput   := sinput;
-    FlagP    := flags;
+    Op := #0;
+    if FInput < FInputEol then
+      begin
+        Op := FInput[0];
+        Inc(FInput);
+      end;
+    if not ((Op = '*') or (Op = '+') or (Op = '?') or (Op = '{'))
+    then
+      begin
+        FInput := sinput;
+        FlagP := Flags;
+        RegPiece := ret;
+        exit;
+      end;
+
+    if not (refHasWidth in Flags) and (Op <> '?') then
+      begin
+        FInput := sinput;
+        FStatus := resStarPlusOperandCouldBeEmpty;
+        exit;
+      end;
+
+    (* parse {n,m} statement for further use          *)
+    {  'while' is used instead of 'if' - do not change }
+    {  the pseudo-if statement ends with 'Break'       }
+    {  after that is error handling code               }
+    while Op = '{' do
+      begin
+        (* case {,m} *)
+        if not RegLoadNumber(ParseNumInteger or 10, 5, n) then
+          begin
+            { assume the lowest limit }
+            n := 0;
+            { a comma must follow }
+            if (FInput >= FInputEol) or (FInput[0] <> ',') then
+              goto braces_error;
+            Inc(FInput);
+            if not RegLoadNumber(ParseNumInteger or 10, 5, M) then
+              goto braces_error;
+            (* case {n} or {n,} or {n,m} *)
+          end
+        else
+          begin
+            (* assume simple case {n} *)
+            M := n;
+            { eat a followed comma }
+            if (FInput < FInputEol) and (FInput[0] = ',') then
+              begin
+                Inc(FInput);
+                { assign maximum }
+                if RegLoadNumber(ParseNumInteger or 10, 5, M) then
+                    begin
+                    if n > M then
+                      goto braces_error;
+                  end
+                else
+                  begin
+                    M := -1; { temporary use for infinity }
+                  end;
+              end;
+          end;
+        (* at this stage '}' must follow *)
+        if (FInput >= FInputEol) or (FInput[0] <> '}') or (M = 0) or (M
+            > MaxBracesArg)
+        then
+          goto braces_error;
+        Inc(FInput);
+        { some optimisations }
+        if M = -1 then
+          begin
+            if n = 0 then
+              Op := '*'
+            else if n = 1 then
+              Op := '+'
+            else
+              M := MaxBracesArg;
+              { convert infinity to a proper value }
+          end;
+        break; { skip error - exit loop }
+braces_error:
+        FInput := sinput;
+        FStatus := resInvalidBraces;
+        exit;
+      end;
+
+    ngop := False;
+    if (FInput < FInputEol) and (FInput[0] = '?') then
+      begin
+        ngop := True;
+        Inc(FInput);
+      end;
+
+    case Op of
+
+      '*':
+        begin
+          FlagP := [refSpStart];
+          if refSimple in Flags then
+            begin
+              if ngop then
+                RegInsert(ropSTARNG, ret, 0)
+              else
+                RegInsert(ropSTAR, ret, 0);
+            end
+          else
+            begin
+              if ngop then
+                begin
+                  EmitComplexBraces(0, MaxBracesArg, True)
+                end
+              else
+                begin
+                  (* Emit x* as (x&|), where & means "self". *)
+                  RegInsert(ropBRANCH, ret, 0); (* Either x *)
+                  RegOpTail(ret, RegNode(ropBACK)); (* and loop *)
+                  RegOpTail(ret, ret); (* back *)
+                  RegTail(ret, RegNode(ropBRANCH)); (* or *)
+                  RegTail(ret, RegNode(ropNOTHING)); (* null. *)
+                end;
+            end;
+        end;
+
+      '+':
+        begin
+          FlagP := [refSpStart, refHasWidth];
+          if refSimple in Flags then
+            begin
+              if ngop then
+                RegInsert(ropPLUSNG, ret, 0)
+              else
+                RegInsert(ropPLUS, ret, 0);
+            end
+          else
+            begin
+              if ngop then
+                begin
+                  EmitComplexBraces(1, MaxBracesArg, True)
+                end
+              else
+                begin
+                  (* Emit x+ as x(&|), where & means "self". *)
+                  Next := RegNode(ropBRANCH); (* Either *)
+                  RegTail(ret, Next);
+                  RegTail(RegNode(ropBACK), ret); (* loop back *)
+                  RegTail(Next, RegNode(ropBRANCH)); (* or *)
+                  RegTail(ret, RegNode(ropNOTHING)); (* null. *)
+                end;
+            end;
+        end;
+
+      '?':
+        begin
+          if ngop then
+            begin
+              if refSimple in Flags then
+                EmitSimpleBraces(0, 1, True)
+              else
+                EmitComplexBraces(0, 1, True);
+            end
+          else
+            begin
+              (* Emit x? as (x|) *)
+              RegInsert(ropBRANCH, ret, 0); (* Either x *)
+              RegTail(ret, RegNode(ropBRANCH)); (* or *)
+              Next := RegNode(ropNOTHING); (* null. *)
+              RegTail(ret, Next);
+              RegOpTail(ret, Next);
+            end;
+        end;
+
+      '{':
+        begin
+          if n > 0 then
+            FlagP := [];
+          if M > 0 then
+            FlagP := FlagP+[refSpStart, refHasWidth];
+          if refSimple in Flags then
+            EmitSimpleBraces(n, M, ngop)
+          else
+            EmitComplexBraces(n, M, ngop);
+        end;
+
+    end {case};
+    RegLeave;
+
+    Op := #0;
+    if FInput < FInputEol then
+      Op := FInput[0];
+    if (Op = '*') or (Op = '+') or (Op = '?') or (Op = '{') then
+        begin
+        FStatus := resNestedStarQuotePlus;
+        exit;
+      end;
+
     RegPiece := ret;
-    Exit;
-  end;
-
-  if not (refHasWidth in flags) and (op <> '?') then begin
-    FInput  := sinput;
-    FStatus := resStarPlusOperandCouldBeEmpty;
-    Exit;
-  end;
-
-  (* parse {n,m} statement for further use          *)
-  {  'while' is used instead of 'if' - do not change }
-  {  the pseudo-if statement ends with 'Break'       }
-  {  after that is error handling code               }
-  while op = '{' do begin
-    (* case {,m} *)
-    if not RegLoadNumber ( ParseNumInteger or 10, 5, n ) then begin
-      { assume the lowest limit }
-      n := 0;
-      { a comma must follow }
-      if (FInput >= FInputEol) or (FInput[0] <> ',') then
-        goto braces_error;
-      Inc ( FInput );
-      if not RegLoadNumber ( ParseNumInteger or 10, 5, m ) then
-        goto braces_error;
-    (* case {n} or {n,} or {n,m} *)
-    end else begin
-    (* assume simple case {n} *)
-      m := n;
-      { eat a followed comma }
-      if (FInput < FInputEol) and (FInput[0] = ',') then begin
-        Inc ( FInput );
-        { assign maximum }
-        if RegLoadNumber ( ParseNumInteger or 10, 5, m ) then begin
-          if n > m then
-            goto braces_error;
-        end else begin
-          m := -1; { temporary use for infinity }
-        end;
-      end;
-    end;
-    (* at this stage '}' must follow *)
-    if (FInput >= FInputEol) or (FInput[0] <> '}') or (m = 0) or (m > MaxBracesArg) then
-      goto braces_error;
-    Inc ( FInput );
-    { some optimisations }
-    if m = -1 then begin
-      if n = 0 then
-        op := '*'
-      else if n = 1 then
-        op := '+'
-      else
-        m := MaxBracesArg; { convert infinity to a proper value }
-    end;
-    Break;                 { skip error - exit loop }
-  braces_error:
-    FInput  := sinput;
-    FStatus := resInvalidBraces;
-    Exit;
-  end;
-
-  ngop := False;
-  if (FInput < FInputEol) and (FInput[0] = '?') then begin
-    ngop := True;
-    Inc ( FInput );
-  end;
-
-  case op of
-
-    '*' : begin
-      FlagP := [refSpStart];
-      if refSimple in flags then begin
-        if ngop then
-          RegInsert ( ropSTARNG, ret, 0 )
-        else
-          RegInsert ( ropSTAR, ret, 0 );
-      end else begin
-        if ngop then begin
-          EmitComplexBraces ( 0, MaxBracesArg, True )
-        end else begin
-          (* Emit x* as (x&|), where & means "self". *)
-          RegInsert ( ropBRANCH, ret, 0 );             (* Either x *)
-          RegOpTail ( ret, RegNode ( ropBACK ) );      (* and loop *)
-          RegOpTail ( ret, ret );                      (* back *)
-          RegTail   ( ret, RegNode ( ropBRANCH ) );    (* or *)
-          RegTail   ( ret, RegNode ( ropNOTHING ) );   (* null. *)
-        end;
-      end;
-    end;
-
-    '+' : begin
-      FlagP := [refSpStart,refHasWidth];
-      if refSimple in flags then begin
-        if ngop then
-          RegInsert ( ropPLUSNG, ret, 0 )
-        else
-          RegInsert ( ropPLUS, ret, 0 );
-      end else begin
-        if ngop then begin
-          EmitComplexBraces ( 1, MaxBracesArg, True )
-        end else begin
-          (* Emit x+ as x(&|), where & means "self". *)
-          next := RegNode ( ropBRANCH );               (* Either *)
-          RegTail ( ret, next);
-          RegTail ( RegNode ( ropBACK ), ret);         (* loop back *)
-          RegTail ( next, RegNode ( ropBRANCH ) );     (* or *)
-          RegTail ( ret, RegNode ( ropNOTHING ) );     (* null. *)
-        end;
-      end;
-    end;
-
-    '?' : begin
-      if ngop then begin
-        if refSimple in flags then
-          EmitSimpleBraces ( 0, 1, True )
-        else
-          EmitComplexBraces ( 0, 1, True );
-      end else begin
-        (* Emit x? as (x|) *)
-        RegInsert ( ropBRANCH, ret, 0 );             (* Either x *)
-        RegTail ( ret, RegNode ( ropBRANCH ) );      (* or *)
-        next := RegNode ( ropNOTHING );              (* null. *)
-        RegTail ( ret, next );
-        RegOpTail ( ret, next );
-      end;
-    end;
-
-    '{' : begin
-      if n > 0 then
-        FlagP := [];
-      if m > 0 then
-        FlagP := FlagP + [refSpStart,refHasWidth];
-      if refSimple in flags then
-        EmitSimpleBraces ( n, m, ngop )
-      else
-        EmitComplexBraces ( n, m, ngop );
-    end;
-
-  end;
-  RegLeave;
-
-  op := #0;
-  if FInput < FInputEol then
-    op := FInput[0];
-  if (op = '*') or (op = '+') or (op = '?') or (op = '{') then begin
-    FStatus := resNestedStarQuotePlus;
-    Exit;
-  end;
-
-  RegPiece := ret;
-end;
+  end { TRegExp.RegPiece };
 
 (*****************************************************************
  *
@@ -1368,111 +1464,132 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegAtom ( var FlagP : TRegExpFlags ) : PChar;
-label
-  1, exactly;
-var
-  ret   : PChar;
-  flags : TRegExpFlags;
-  op    : Char;
-begin
-  RegAtom := nil;       { initialize result }
-  FlagP   := [];        (* Tentatively. *)
-1:                      { restart '\:#' subexpresion }
-  op := FInput[0];
-  Inc ( FInput );
-  case op of
+function TRegExp.RegAtom(var FlagP: TRegExpFlags): PChar;
+  label
+    1, exactly;
+  var
+    ret: PChar;
+    Flags: TRegExpFlags;
+    Op: Char;
+  begin
+    RegAtom := nil; { initialize result }
+    FlagP := []; (* Tentatively. *)
+1: { restart '\:#' subexpresion }
+    Op := FInput[0];
+    Inc(FInput);
+    case Op of
 
-    '^': begin
-      ret := RegNode ( ropBOL );
-    end;
+      '^':
+        begin
+          ret := RegNode(ropBOL);
+        end;
 
-    '$': begin
-      ret := RegNode ( ropEOL );
-    end;
+      '$':
+        begin
+          ret := RegNode(ropEOL);
+        end;
 
-    '.': begin
-      ret   := RegNode ( ropANY );
-      FlagP := FlagP + [refHasWidth, refSimple];
-    end;
+      '.':
+        begin
+          ret := RegNode(ropANY);
+          FlagP := FlagP+[refHasWidth, refSimple];
+        end;
 
-    '[': begin
-      ret   := RegSet;
+      '[':
+        begin
+          ret := RegSet;
+          if ret = nil then
+            exit;
+          FlagP := FlagP+[refHasWidth, refSimple];
+        end;
+
+      '(':
+        begin
+          if (FInput < FInputEol) and (FInput[0] = '?') then
+            begin
+              Inc(FInput);
+              if FInput > FInputEol then
+                begin
+                  FStatus := resInvalidTaggedExp;
+                  exit;
+                end;
+              Op := FInput[0];
+              Inc(FInput);
+              if Op = ':' then
+                begin
+                  ret := Reg(-2, Flags)
+                end
+              else if Op in ['1'..'9'] then
+                begin
+                  ret := Reg(Ord(Op)-Ord('0'), Flags)
+                end
+              else
+                begin
+                  FStatus := resInvalidTaggedExp;
+                  exit;
+                end;
+            end
+          else
+            begin
+              ret := Reg(-1, Flags);
+            end;
+          if ret = nil then
+            exit;
+          FlagP := FlagP+(Flags*[refHasWidth, refSpStart]);
+        end;
+
+      '|', ')':
+        begin
+          FStatus := resInternalUrp;
+            (* Supposed to be caught earlier. *)
+          exit;
+        end;
+
+      '?', '+', '*', '{':
+        begin
+          FStatus := resOperatorFollowsNothing;
+          exit;
+        end;
+
+        else{ EXACTLY or PREDEFINED or TAGGED }
+exactly:
+          if (Op = '\') and (FInput < FInputEol) then
+            begin
+              Op := FInput[0];
+              Inc(FInput);
+              { predefined }
+              if Op = ':' then
+                begin
+                  if FInput >= FInputEol then
+                    begin
+                      FStatus := resInvalidPredefinedExp;
+                      exit;
+                    end;
+                  Op := FInput[0];
+                  Inc(FInput);
+                  if not RegEnter(Op, False) then
+                    exit;
+                  goto 1;
+                end;
+              { tagged }
+              if Op in ['1'..'9'] then
+                begin
+                  if not RegEnter(Op, True) then
+                    exit;
+                  goto 1;
+                end;
+              { exactly }
+              Dec(FInput);
+            end;
+      Dec(FInput);
+      ret := RegExactly(FlagP);
       if ret = nil then
-        Exit;
-      FlagP := FlagP + [refHasWidth, refSimple];
-    end;
+        exit;
+    end {case};
+    RegLeave;
 
-    '(': begin
-      if (FInput < FInputEol) and (FInput[0] = '?') then begin
-        Inc ( FInput );
-        if FInput > FInputEol then begin
-          FStatus := resInvalidTaggedExp;
-          Exit;
-        end;
-        op := FInput[0];
-        Inc ( FInput );
-        if op = ':' then begin
-          ret := Reg ( -2, flags )
-        end else if op in ['1'..'9'] then begin
-          ret := Reg ( Ord(op)-Ord('0'), flags )
-        end else begin
-          FStatus := resInvalidTaggedExp;
-          Exit;
-        end;
-      end else begin
-        ret := Reg ( -1, flags );
-      end;
-      if ret = nil then
-        Exit;
-      FlagP := FlagP + (flags * [refHasWidth, refSpStart]);
-    end;
-
-    '|',')': begin
-      FStatus := resInternalUrp; (* Supposed to be caught earlier. *)
-      Exit;
-    end;
-
-    '?','+','*','{': begin
-      FStatus := resOperatorFollowsNothing;
-      Exit;
-    end;
-
-  else { EXACTLY or PREDEFINED or TAGGED }
-  exactly:
-    if (op = '\') and (FInput < FInputEol) then begin
-      op := FInput[0];
-      Inc ( FInput );
-      { predefined }
-      if op = ':' then begin
-        if FInput >= FInputEol then begin
-          FStatus := resInvalidPredefinedExp;
-          Exit;
-        end;
-        op := FInput[0];
-        Inc ( FInput );
-        if not RegEnter ( op, False ) then
-          Exit;
-        goto 1;
-      end;
-      { tagged }
-      if op in ['1'..'9'] then begin
-        if not RegEnter ( op, True ) then
-          Exit;
-        goto 1;
-      end;
-      { exactly }
-      Dec ( FInput );
-    end;
-    Dec ( FInput );
-    ret := RegExactly ( FlagP );
-    if ret = nil then
-      Exit;
-  end;
-  RegLeave;
-
-  RegAtom := ret;
-end;
+    RegAtom := ret;
+  end { TRegExp.RegAtom };
 
 (*****************************************************************
  *
@@ -1496,41 +1613,37 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegEnter ( Op : Char; Tagged : Boolean ) : Boolean;
-{$IFDEF VER70}
-  {$IFNDEF NOASM}
-  {$DEFINE REGENTER_ASM}
-  {$ENDIF  NOASM}
-{$ENDIF VER70}
-{$IFNDEF REGENTER_ASM}
-const
-  eAlpha      = '[A-Za-z0-9]';
-  eBlanks     = '([ \t]+)';
-  eAlphabetic = '[A-Za-z]';
-  eDigit      = '[0-9]';
-  eFilename   = '([^\[\]\:\\/<>|=+;, \t]+)';
-  eHex        = '([0-9A-Fa-f]+)';
-  eInteger    = '([0-9]+)';
-  eFloat      = '(([0-9]+(\.[0-9]+|)|\.[0-9]+)([Ee](\+|-|)[0-9]+|))';
-  ePath       = '(([A-Za-z]:|)(\\|/|)(\:f(\\|/|))*\:f)';
-  eQuotedStr  = '(\"[^\"]*\")|''[^'']*'')';
-  eCVariable  = '([A-Za-z_$][A-Za-z0-9_$]*)';
-  eWord       = '([A-Za-z]+)';
-{$ENDIF !REGENTER_ASM}
-var
-  stack : PRegExpStack absolute FMust;
-  p     : PChar;
-  l     : Integer;
-begin
-  RegEnter := False;
-  p        := nil;
-  l        := 0;
-  if not Tagged then begin
-  {$IFDEF REGENTER_ASM}
-  { This peace of code is provided only to move constant strings from DATA }
-  { segment (there is a limit to 64KB for that) to CODE segment (there is  }
-  { also limit to 64KB but there can be more than one such a segment).     }
-    asm
+function TRegExp.RegEnter(Op: Char; Tagged: boolean): boolean;
+  {$IFNDEF REGENTER_ASM}
+  const
+    eAlpha = '[A-Za-z0-9]';
+    eBlanks = '([ \t]+)';
+    eAlphabetic = '[A-Za-z]';
+    eDigit = '[0-9]';
+    eFilename = '([^\[\]\:\\/<>|=+;, \t]+)';
+    eHex = '([0-9A-Fa-f]+)';
+    eInteger = '([0-9]+)';
+    eFloat = '(([0-9]+(\.[0-9]+|)|\.[0-9]+)([Ee](\+|-|)[0-9]+|))';
+    ePath = '(([A-Za-z]:|)(\\|/|)(\:f(\\|/|))*\:f)';
+    eQuotedStr = '(\"[^\"]*\")|''[^'']*'')';
+    eCVariable = '([A-Za-z_$][A-Za-z0-9_$]*)';
+    eWord = '([A-Za-z]+)';
+    {$ENDIF !REGENTER_ASM}
+  var
+    Stack: PRegExpStack absolute FMust;
+    P: PChar;
+    l: integer;
+  begin { TRegExp.RegEnter }
+    RegEnter := False;
+    P := nil;
+    l := 0;
+    if not Tagged then
+      begin
+        {$IFDEF REGENTER_ASM}
+        { This peace of code is provided only to move constant strings from DATA }
+        { segment (there is a limit to 64KB for that) to CODE segment (there is  }
+        { also limit to 64KB but there can be more than one such a segment).     }
+        asm
                 MOV     AL,Op
                 MOV     DX,OFFSET @@A
                 CMP     AL,'a'
@@ -1623,30 +1736,35 @@ begin
       Exit;
     end;
     if (stack^.TagStarts[l] = nil)          { check if the start  }
-    or (stack^.TagEnds[l] = nil)            { and the end         }
-    or (FStartP[l] <> FEndP[l]) then begin  { have the same entry }
-      FStatus := resInvalidTaggedExp;
-      Exit;
-    end;
-    p := stack^.TagStarts[l];
-    l := stack^.TagEnds[l] - p;
+    or (stack^.TagEnds[l] = nil)            { and the end
+          }
+        or (FStartP[l] <> FEndP[l])
+      then
+        begin{ have the same entry }
+          FStatus := resInvalidTaggedExp;
+          exit;
+        end;
+    P := Stack^.TagStarts[l];
+    l := Stack^.TagEnds[l]-P;
+  end { TRegExp.RegEnter };
+with Stack^ do
+  begin
+    if Level >= MaxRegExpStack then
+      begin
+        FStatus := resStackOverflow;
+        exit;
+      end;
+    Stack[Level].Entry := Entry;
+    Stack[Level].Cur := FInput;
+    Stack[Level].bol := FInputBol;
+    Stack[Level].eol := FInputEol;
+    Inc(Level);
+    Inc(Entries);
   end;
-  with stack^ do begin
-    if Level >= MaxRegExpStack then begin
-      FStatus := resStackOverflow;
-      Exit;
-    end;
-    Stack[Level].entry := Entry;
-    Stack[Level].cur   := FInput;
-    Stack[Level].bol   := FInputBol;
-    Stack[Level].eol   := FInputEol;
-    Inc ( Level );
-    Inc ( Entries );
-  end;
-  FInput    := p;
-  FInputBol := p;
-  FInputEol := p + l;
-  RegEnter  := True;
+FInput := P;
+FInputBol := P;
+FInputEol := P+l;
+RegEnter := True;
 end;
 
 (*****************************************************************
@@ -1666,20 +1784,22 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.RegLeave;
-var
-  stack : PRegExpStack absolute FMust;
-begin
-  with stack^ do begin
-    while (Level > 0) and (FInput = FInputEol) do begin
-      Dec ( Level );
-      Entry     := Stack[Level].entry;
-      FInput    := Stack[Level].cur;
-      FInputBol := Stack[Level].bol;
-      FInputEol := Stack[Level].eol;
-    end;
+procedure TRegExp.RegLeave;
+  var
+    Stack: PRegExpStack absolute FMust;
+  begin
+    with Stack^ do
+      begin
+        while (Level > 0) and (FInput = FInputEol) do
+          begin
+            Dec(Level);
+            Entry := Stack[Level].Entry;
+            FInput := Stack[Level].Cur;
+            FInputBol := Stack[Level].bol;
+            FInputEol := Stack[Level].eol;
+          end;
+      end;
   end;
-end;
 
 (*****************************************************************
  *
@@ -1705,39 +1825,41 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegLoadNumber ( Base : Integer; Digits : Integer; var AResult ) : Boolean;
-var
-  v : Integer;
-  i : Integer;
-  j : Integer;
-  h : Integer;
-begin
-  RegLoadNumber := False;
-  v             := 0;
-  i             := 0;
-  h             := Ord(High(Char));
-  if (Base and ParseNumInteger) <> 0 then
-    h := High(Integer);
-  repeat
-    if FInput >= FInputEol then
-      Exit;
-    j := Pos ( UpCase ( FInput[0] ), '0123456789ABCDEF' );
-    if (j = 0) or (j > (Base and $FF)) then
-      Break;
-    v := v * (Base and ParseNumBaseMask) + j - 1;
-    Inc ( FInput );
-    Inc ( i );
-  until i >= Digits;
-  if (i = 0) or (v > h) or (v < 0) then begin
-    FStatus := resInvalidEscape;
-    Exit;
-  end;
-  if (Base and ParseNumInteger) = 0 then
-    Char(AResult)    := Chr ( v )
-  else
-    Integer(AResult) := v;
-  RegLoadNumber := True;
-end;
+function TRegExp.RegLoadNumber(Base: integer; Digits: integer; var
+    AResult): boolean;
+  var
+    V: integer;
+    i: integer;
+    j: integer;
+    H: integer;
+  begin
+    RegLoadNumber := False;
+    V := 0;
+    i := 0;
+    H := Ord(High(Char));
+    if (Base and ParseNumInteger) <> 0 then
+      H := High(integer);
+    repeat
+      if FInput >= FInputEol then
+        exit;
+      j := Pos(UpCase(FInput[0]), '0123456789ABCDEF');
+      if (j = 0) or (j > (Base and $FF)) then
+        break;
+      V := V*(Base and ParseNumBaseMask)+j-1;
+      Inc(FInput);
+      Inc(i);
+    until i >= Digits;
+    if (i = 0) or (V > H) or (V < 0) then
+      begin
+        FStatus := resInvalidEscape;
+        exit;
+      end;
+    if (Base and ParseNumInteger) = 0 then
+      Char(AResult) := Chr(V)
+    else
+      integer(AResult) := V;
+    RegLoadNumber := True;
+  end { TRegExp.RegLoadNumber };
 
 (*****************************************************************
  *
@@ -1758,31 +1880,44 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegEscape ( var AResult : Char ) : Boolean;
-var
-  c : Char;
-begin
-  RegEscape := False;
-  if FInput >= FInputEol then begin
-    FStatus := resTrailingBackSlash;
-    Exit;
-  end;
-  c := FInput[0];
-  Inc ( FInput );
-  case c of
-    'a': AResult := #7;  { alarm/bell      }
-    'b': AResult := #8;  { backspace       }
-    't': AResult := #9;  { tabulator       }
-    'n': AResult := #10; { line feed       }
-    'v': AResult := #11; { vertical tab    }
-    'f': AResult := #12; { form feed       }
-    'r': AResult := #13; { carriage return }
-    'x': if not RegLoadNumber ( 16, 2, AResult ) then Exit;
-    'd': if not RegLoadNumber ( 10, 3, AResult ) then Exit;
-  else   AResult := c;
-  end;
-  RegEscape := True;
-end;
+function TRegExp.RegEscape(var AResult: Char): boolean;
+  var
+    C: Char;
+  begin
+    RegEscape := False;
+    if FInput >= FInputEol then
+      begin
+        FStatus := resTrailingBackSlash;
+        exit;
+      end;
+    C := FInput[0];
+    Inc(FInput);
+    case C of
+      'a':
+        AResult := #7; { alarm/bell      }
+      'b':
+        AResult := #8; { backspace       }
+      't':
+        AResult := #9; { tabulator       }
+      'n':
+        AResult := #10; { line feed       }
+      'v':
+        AResult := #11; { vertical tab    }
+      'f':
+        AResult := #12; { form feed       }
+      'r':
+        AResult := #13; { carriage return }
+      'x':
+        if not RegLoadNumber(16, 2, AResult) then
+          exit;
+      'd':
+        if not RegLoadNumber(10, 3, AResult) then
+          exit;
+      else
+        AResult := C;
+    end {case};
+    RegEscape := True;
+  end { TRegExp.RegEscape };
 
 (*****************************************************************
  *
@@ -1803,101 +1938,123 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegSet : PChar;
-var
-  ret     : PChar;
-  len     : Integer;
-  op      : Char;
-  opset   : Char;
-  charset : set of Char;
-
-  function    ParseSet : Boolean;
+function TRegExp.RegSet: PChar;
   var
-    char1 : Char;
-    char2 : Char;
-    c     : Char;
-  begin
-    ParseSet := False;
-    if (FInput < FInputEol) and (FInput[0] = '^') then begin (* Complement of range. *)
-      opset := ropANYBUT;
-      Inc ( FInput );
-    end else begin
-      opset := ropANYOF;
-    end;
-    charset := [];
-    { Exception for '[]]' }
-    if (FInput+1 < FInputEol) and (FInput[0] = ']') and (FInput[1] = ']') then begin
-      ParseSet := True;
-      Inc ( FInput, 2 );
-      Include ( charset, ']' );
-      Exit;
-    end;
-    { standard parsing }
-    while (FInput < FInputEol) and (FInput[0] <> ']') do begin
-      char1 := FInput[0];
-      Inc ( FInput );
-      if (char1 = '\') and not RegEscape ( char1 ) then
-        Exit;
-      if (FInput < FInputEol) and (FInput[0] = '-') then begin
-        Inc ( FInput );
-        if (FInput >= FInputEol) or (FInput[0] = ']') then begin
-          FStatus := resInvalidSetRange;
-          Exit;
-        end;
-        char2 := FInput[0];
-        Inc ( FInput );
-        if (char2 = '\') and not RegEscape ( char2 ) then
-          Exit;
-      end else begin
-        char2 := char1;
-      end;
-      if char1 > char2 then begin
-        FStatus := resInvalidSetRange;
-        Exit;
-      end;
-      for c := char1 to char2 do
-        Include ( charset, c );
-    end;
-    if (FInput >= FInputEol) or (FInput[0] <> ']') then begin
-      FStatus := resUnmatchedSquareBracket;
-      Exit;
-    end;
-    Inc ( FInput );
-    { Exception for '[^]' }
-    if (charset = []) and (opset = ropANYBUT) then begin
-      opset := ropANYOF;
-      Include ( charset, '^' );
-    end;
-    ParseSet := True;
-  end;
+    ret: PChar;
+    len: integer;
+    Op: Char;
+    opset: Char;
+    charset: Set of Char;
 
-begin
-  RegSet := nil;
-  if not ParseSet then
-    Exit;
-  len := 0;
-  for op := Low(Char) to High(Char) do begin
-    if op in charset then
-      Inc ( len );
-  end;
-  if ((len = 0) and (opset = ropANYOF))
-  or ((len = 256) and (opset = ropANYBUT)) then begin
-    FStatus := resInvalidSetRange;
-    Exit;
-  end;
-  if ((len = 256) and (opset = ropANYOF))
-  or ((len = 0) and (opset = ropANYBUT)) then begin
-    ret   := RegNode ( ropANY );
-  end else begin
-    ret := RegNode ( opset );
-    RegC ( Chr(len) );
-    for op := Low(Char) to High(Char) do begin
-      if op in charset then
-        RegC ( op );
-    end;
-  end;
-  RegSet := ret;
-end;
+  function ParseSet: boolean;
+    var
+      char1: Char;
+      char2: Char;
+      C: Char;
+    begin
+      ParseSet := False;
+      if (FInput < FInputEol) and (FInput[0] = '^') then
+        begin(* Complement of range. *)
+          opset := ropANYBUT;
+          Inc(FInput);
+        end
+      else
+        begin
+          opset := ropANYOF;
+        end;
+      charset := [];
+      { Exception for '[]]' }
+      if (FInput+1 < FInputEol) and (FInput[0] = ']') and (FInput[1] =
+          ']')
+      then
+        begin
+          ParseSet := True;
+          Inc(FInput, 2);
+          Include(charset, ']');
+          exit;
+        end;
+      { standard parsing }
+      while (FInput < FInputEol) and (FInput[0] <> ']') do
+        begin
+          char1 := FInput[0];
+          Inc(FInput);
+          if (char1 = '\') and not RegEscape(char1) then
+            exit;
+          if (FInput < FInputEol) and (FInput[0] = '-') then
+            begin
+              Inc(FInput);
+              if (FInput >= FInputEol) or (FInput[0] = ']') then
+                  begin
+                  FStatus := resInvalidSetRange;
+                  exit;
+                end;
+              char2 := FInput[0];
+              Inc(FInput);
+              if (char2 = '\') and not RegEscape(char2) then
+                exit;
+            end
+          else
+            begin
+              char2 := char1;
+            end;
+          if char1 > char2 then
+            begin
+              FStatus := resInvalidSetRange;
+              exit;
+            end;
+          for C := char1 to char2 do
+            Include(charset, C);
+        end;
+      if (FInput >= FInputEol) or (FInput[0] <> ']') then
+        begin
+          FStatus := resUnmatchedSquareBracket;
+          exit;
+        end;
+      Inc(FInput);
+      { Exception for '[^]' }
+      if (charset = []) and (opset = ropANYBUT) then
+        begin
+          opset := ropANYOF;
+          Include(charset, '^');
+        end;
+      ParseSet := True;
+    end { ParseSet: };
+
+  begin { TRegExp.RegSet: }
+    RegSet := nil;
+    if not ParseSet then
+      exit;
+    len := 0;
+    for Op := Low(Char) to High(Char) do
+      begin
+        if Op in charset then
+          Inc(len);
+      end;
+    if ((len = 0) and (opset = ropANYOF))
+      or ((len = 256) and (opset = ropANYBUT))
+    then
+      begin
+        FStatus := resInvalidSetRange;
+        exit;
+      end;
+    if ((len = 256) and (opset = ropANYOF))
+      or ((len = 0) and (opset = ropANYBUT))
+    then
+      begin
+        ret := RegNode(ropANY);
+      end
+    else
+      begin
+        ret := RegNode(opset);
+        RegC(Chr(len));
+        for Op := Low(Char) to High(Char) do
+          begin
+            if Op in charset then
+              RegC(Op);
+          end;
+      end;
+    RegSet := ret;
+  end { TRegExp.RegSet: };
 
 (*****************************************************************
  *
@@ -1918,63 +2075,72 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegExactly ( var FlagP : TRegExpFlags ) : PChar;
-var
-  ret     : PChar;
-  len     : Integer;
-  exactly : string;
-
-  function    ParseExactly : Boolean;
+function TRegExp.RegExactly(var FlagP: TRegExpFlags): PChar;
   var
-    c  : Char;
-    b0 : PChar;
-    b1 : PChar;
-  begin
-    ParseExactly := False;
-    exactly      := '';
-    b1           := nil;
-    repeat
-      b0 := b1;
-      b1 := FInput;
-      if b1 >= FInputEol then
-        Break;
-      c  := b1[0];
-      if (c = '\') then begin
-        if (b1+1 < FInputEol) and (b1[1] = ':') then
-          Break;
-        Inc ( FInput );
-        if not RegEscape ( c ) then
-          Exit;
-      end else begin
-        { METACHARS }
-        if c in ['^','$','.','[','(',')','|','?','+','*','{'] then begin
-          if (Length(exactly) > 1) and (c in ['*','+','?','{']) then begin
-            (* Back off clear of ?+* operand. *)
-            Delete ( exactly, Length(exactly), 1 );
-            if b0 <> nil then
-              FInput := b0;
-          end;
-          Break;
-        end;
-        Inc ( FInput );
-      end;
-      exactly := exactly + c;
-    until Length(exactly) = Ord(High(Char));
-    ParseExactly := True;
-  end;
+    ret: PChar;
+    len: integer;
+    exactly: String;
 
-begin
-  RegExactly := nil;
-  if not ParseExactly then
-    Exit;
-  Include ( FlagP, refHasWidth );
-  if Length(exactly) = 1 then
-    Include ( FlagP, refSimple );
-  ret := RegNode ( ropEXACTLY );
-  for len := 0 to Length (exactly) do
-    RegC ( exactly[len] );
-  RegExactly := ret;
-end;
+  function ParseExactly: boolean;
+    var
+      C: Char;
+      b0: PChar;
+      B1: PChar;
+    begin
+      ParseExactly := False;
+      exactly := '';
+      B1 := nil;
+      repeat
+        b0 := B1;
+        B1 := FInput;
+        if B1 >= FInputEol then
+          break;
+        C := B1[0];
+        if (C = '\') then
+          begin
+            if (B1+1 < FInputEol) and (B1[1] = ':') then
+              break;
+            Inc(FInput);
+            if not RegEscape(C) then
+              exit;
+          end
+        else
+          begin
+            { METACHARS }
+            if C in ['^', '$', '.', '[', '(', ')', '|', '?', '+',
+                '*', '{']
+            then
+              begin
+                if (Length(exactly) > 1) and (C in ['*', '+', '?',
+                    '{'])
+                then
+                  begin
+                    (* Back off clear of ?+* operand. *)
+                    Delete(exactly, Length(exactly), 1);
+                    if b0 <> nil then
+                      FInput := b0;
+                  end;
+                break;
+              end;
+            Inc(FInput);
+          end;
+        exactly := exactly+C;
+      until Length(exactly) = Ord(High(Char));
+      ParseExactly := True;
+    end { ParseExactly: };
+
+  begin { TRegExp.RegExactly }
+    RegExactly := nil;
+    if not ParseExactly then
+      exit;
+    Include(FlagP, refHasWidth);
+    if Length(exactly) = 1 then
+      Include(FlagP, refSimple);
+    ret := RegNode(ropEXACTLY);
+    for len := 0 to Length(exactly) do
+      RegC(exactly[len]);
+    RegExactly := ret;
+  end { TRegExp.RegExactly };
 
 (*****************************************************************
  *
@@ -1994,18 +2160,19 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegNode ( Op : Char ) : PChar;
-begin
-  RegNode := FCodeData;
-  if ffParsing in FFlags then begin
-    IncRegSize ( 3 );
-    Exit;
+function TRegExp.RegNode(Op: Char): PChar;
+  begin
+    RegNode := FCodeData;
+    if ffParsing in FFlags then
+      begin
+        IncRegSize(3);
+        exit;
+      end;
+    FCodeData[0] := Op;
+    FCodeData[1] := #0; (* Null "next" pointer. *)
+    FCodeData[2] := #0;
+    Inc(FCodeData, 3);
   end;
-  FCodeData[0] := Op;
-  FCodeData[1] := #0;     (* Null "next" pointer. *)
-  FCodeData[2] := #0;
-  Inc ( FCodeData, 3 );
-end;
 
 (*****************************************************************
  *
@@ -2024,15 +2191,18 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.RegC ( B : Char );
-begin
-  if not (ffParsing in FFlags) then begin
-    FCodeData[0] := B;
-    Inc ( FCodeData );
-  end else begin
-    IncRegSize ( 1 );
+procedure TRegExp.RegC(B: Char);
+  begin
+    if not (ffParsing in FFlags) then
+      begin
+        FCodeData[0] := B;
+        Inc(FCodeData);
+      end
+    else
+      begin
+        IncRegSize(1);
+      end;
   end;
-end;
 
 (*****************************************************************
  *
@@ -2057,22 +2227,24 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegInsert ( Op : Char; Opnd : PChar; ASize : Integer ) : PChar;
-begin
-  RegInsert := nil;
+function TRegExp.RegInsert(Op: Char; Opnd: PChar; ASize: integer):
+    PChar;
+  begin
+    RegInsert := nil;
 
-  if ffParsing in FFlags then begin
-    IncRegSize ( 3+ASize );
-    Exit;
+    if ffParsing in FFlags then
+      begin
+        IncRegSize(3+ASize);
+        exit;
+      end;
+
+    Move(Opnd[0], Opnd[3+ASize], FCodeData-Opnd);
+    Inc(FCodeData, 3+ASize);
+
+    FillChar(Opnd[0], 3+ASize, 0);
+    Opnd[0] := Op; (* Op node, where operand used to be. *)
+    RegInsert := Opnd+3; { Reserved data or next operand }
   end;
-
-  Move ( Opnd[0], Opnd[3+ASize], FCodeData-Opnd );
-  Inc ( FCodeData, 3+ASize );
-
-  FillChar ( Opnd[0], 3+ASize, 0 );
-  Opnd[0]   := Op;       (* Op node, where operand used to be. *)
-  RegInsert := Opnd+3;   { Reserved data or next operand }
-end;
 
 (*****************************************************************
  *
@@ -2092,31 +2264,32 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.RegTail ( P : PChar; Val : PChar );
-var
-  scan     : PChar;
-  temp     : PChar;
-  offset   : Integer;
-begin
-  if ffParsing in FFlags then
-    Exit;
+procedure TRegExp.RegTail(P: PChar; Val: PChar);
+  var
+    Scan: PChar;
+    Temp: PChar;
+    Offset: integer;
+  begin
+    if ffParsing in FFlags then
+      exit;
 
-  (* Find last node. *)
-  scan := P;
-  while True do begin
-    temp := RegNext ( scan );
-    if temp = nil then
-      Break;
-    scan := temp;
-  end;
+    (* Find last node. *)
+    Scan := P;
+    while True do
+      begin
+        Temp := RegNext(Scan);
+        if Temp = nil then
+          break;
+        Scan := Temp;
+      end;
 
-  if scan[0] = ropBACK then
-    offset := scan - val
-  else
-    offset := val - scan;
-  scan[1] := Chr((offset shr 8) and 255);
-  scan[2] := Chr(offset and 255);
-end;
+    if Scan[0] = ropBACK then
+      Offset := Scan-Val
+    else
+      Offset := Val-Scan;
+    Scan[1] := Chr((Offset shr 8) and 255);
+    Scan[2] := Chr(Offset and 255);
+  end { TRegExp.RegTail };
 
 (*****************************************************************
  *
@@ -2136,13 +2309,14 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.RegOpTail ( P : PChar; Val : PChar );
-begin
-  (* "Operandless" and "op != BRANCH" are synonymous in practice. *)
-  if (ffParsing in FFlags) or (P = nil) or (P[0] <> ropBRANCH) then
-    Exit;
-  RegTail ( @P[3], Val );
-end;
+procedure TRegExp.RegOpTail(P: PChar; Val: PChar);
+  begin
+    (* "Operandless" and "op != BRANCH" are synonymous in practice. *)
+    if (ffParsing in FFlags) or (P = nil) or (P[0] <> ropBRANCH)
+    then
+      exit;
+    RegTail(@P[3], Val);
+  end;
 
 (*****************************************************************
  *
@@ -2164,89 +2338,100 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegExecute ( AString : PChar; ALength : Integer ) : Boolean;
-var
-  s : PChar;
-  t : PChar;
-begin
-  RegExecute := False;
-  FStatus    := resOK;
-  Exclude ( FFlags, ffBreak );
+function TRegExp.RegExecute(AString: PChar; ALength: integer):
+    boolean;
+  var
+    s: PChar;
+    t: PChar;
+  begin
+    RegExecute := False;
+    FStatus := resOK;
+    Exclude(FFlags, ffBreak);
 
-  { cannot execute if there was an error }
-  if not (ffCompiled in FFlags) then begin
-    FStatus := resNoExpression;
-    Exit;
-  end;
+    { cannot execute if there was an error }
+    if not (ffCompiled in FFlags) then
+      begin
+        FStatus := resNoExpression;
+        exit;
+      end;
 
-  (* Be paranoid... *)
-  if AString = nil then begin
-    FStatus := resNilArgument;
-    Exit;
-  end;
-  if ALength = -1 then
-    ALength := StrLen ( AString );
+    (* Be paranoid... *)
+    if AString = nil then
+      begin
+        FStatus := resNilArgument;
+        exit;
+      end;
+    if ALength = -1 then
+      ALength := StrLen(AString);
 
-  (* Check validity of program. *)
-  if (FCodeData[0] <> MAGIC) then begin
-    FStatus := resCorruptedProgram;
-    Exit;
-  end;
+    (* Check validity of program. *)
+    if (FCodeData[0] <> magic) then
+      begin
+        FStatus := resCorruptedProgram;
+        exit;
+      end;
 
-  (* If there is a "must appear" string, look for it. *)
-  if (FMust <> nil) and (ALength >= Length(FMust^)) then begin
+    (* If there is a "must appear" string, look for it. *)
+    if (FMust <> nil) and (ALength >= Length(FMust^)) then
+      begin
+        s := AString;
+        t := AString+ALength-Length(FMust^);
+        repeat
+          s := StrScan2(s, FMust^[1], t);
+          if s = nil then
+            exit; (* Not present. *)
+          if StrLComp(s, @FMust^[1], Length(FMust^)) = 0 then
+            break; (* Found it. *)
+          Inc(s);
+        until False;
+      end;
+
+    (* Remember the source *)
+    FInputBol := AString;
+    FInputEol := AString+ALength;
+
+    (* Simplest case:  anchored match need be tried only once. *)
+    if ffAnchored in FFlags then
+      begin
+        RegExecute := RegTry(AString);
+        exit;
+      end;
+
+    (* Messy cases:  unanchored match. *)
     s := AString;
-    t := AString+ALength-Length(FMust^);
-    repeat
-      s := StrScan2 ( s, FMust^[1], t );
-      if s = nil then
-        Exit; (* Not present. *)
-      if StrLComp ( s, @FMust^[1], Length(FMust^) ) = 0 then
-        Break; (* Found it. *)
-      Inc ( s );
-    until False;
-  end;
-
-  (* Remember the source *)
-  FInputBol := AString;
-  FInputEol := AString+ALength;
-
-  (* Simplest case:  anchored match need be tried only once. *)
-  if ffAnchored in FFlags then begin
-    RegExecute := RegTry ( AString );
-    Exit;
-  end;
-
-  (* Messy cases:  unanchored match. *)
-  s := AString;
-  t := AString+ALength;
-  if (ffStart in FFlags) then begin
-    (* We know what char it must start with. *)
-    repeat
-      s := StrScan2 ( s, FStartCh, t );
-      if s = nil then
-        Exit; (* Not present. *)
-      if RegTry ( s ) then begin
-        RegExecute := True;
-        Exit;
+    t := AString+ALength;
+    if (ffStart in FFlags) then
+      begin
+        (* We know what char it must start with. *)
+        repeat
+          s := StrScan2(s, FStartCh, t);
+          if s = nil then
+            exit; (* Not present. *)
+          if RegTry(s) then
+            begin
+              RegExecute := True;
+              exit;
+            end;
+          Inc(s);
+        until False;
+      end
+    else
+      begin
+        (* We don't -- general case. *)
+        repeat
+          if RegTry(s) then
+            begin
+              RegExecute := True;
+              exit;
+            end;
+          { Check the limit }
+          if s >= t then
+            exit;
+          Inc(s);
+        until False;
       end;
-      Inc ( s );
-    until False;
-  end else begin
-    (* We don't -- general case. *)
-    repeat
-      if RegTry ( s ) then begin
-        RegExecute := True;
-        Exit;
-      end;
-      { Check the limit }
-      if s >= t then
-        Exit;
-      Inc ( s );
-    until False;
-  end;
-  (* Failure. *)
-end;
+    (* Failure. *)
+  end { TRegExp.RegExecute };
 
 (*****************************************************************
  *
@@ -2267,26 +2452,26 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegTry ( AString : PChar ) : Boolean;
-var
-  i : Integer;
-begin
-  for i := 1 to 9 do begin
-    FStartP[i] := -1;
-    FEndP[i]   := -1;
+function TRegExp.RegTry(AString: PChar): boolean;
+  var
+    i: integer;
+  begin
+    for i := 1 to 9 do
+      begin
+        FStartP[i] := -1;
+        FEndP[i] := -1;
+      end;
+    FInput := AString;
+    FLStackId := 0;
+    if RegMatch(@FCodeData[1]) then
+      begin
+        FStart := AString-FInputBol;
+        FLength := FInput-AString;
+        RegTry := True;
+        exit;
+      end;
+    RegTry := False;
   end;
-  FInput    := AString;
-{$IFDEF ComplexBraces}
-  FLStackId := 0;
-{$ENDIF ComplexBraces}
-  if RegMatch ( @FCodeData[1] ) then begin
-    FStart    := AString-FInputBol;
-    FLength   := FInput-AString;
-    RegTry    := True;
-    Exit;
-  end;
-  RegTry := False;
-end;
 
 (*****************************************************************
  *
@@ -2317,333 +2502,381 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegMatch ( Prog : PChar ) : Boolean;
-var
-  scan   : PChar; (* Current node. *)
-  next   : PChar; (* Next node. *)
-  no     : Integer; { EXACTLY, STAR, PLUS }
-  save   : PChar;   { EXACTLY, BRANCH, STAR, PLUS }
-  min    : Integer; { STAR, PLUS }
-  max    : Integer;
-  nextch : Char;    { STAR, PLUS }
-  opnd   : PChar;
-
-  function BracesMatch : Boolean;
-  {$IFDEF ComplexBraces}
+function TRegExp.RegMatch(Prog: PChar): boolean;
   var
-    sloops : array [1..LoopStackMax] of Integer; { :(( very bad for recursion }
-    sloopi : Integer;
-  {$ENDIF ComplexBraces}
-  begin
-    BracesMatch := False;
-    if (ffMatchNext in FFlags) or (FInput[0] = nextch) then begin
-    {$IFDEF ComplexBraces}
-      Move ( FLStack, sloops, SizeOf(FLStack) );
-      sloopi := FLStackId;
-    {$ENDIF ComplexBraces}
-      if RegMatch ( next ) then begin
-        RegMatch    := True;
-        BracesMatch := True;
-        Exit;
-      end;
-    {$IFDEF ComplexBraces}
-      Move ( sloops, FLStack, SizeOf(FLStack) );
-      FLStackId := sloopi;
-    {$ENDIF ComplexBraces}
-      if ffBreak in FFlags then
-        BracesMatch := True;
-    end;
-  end;
+    Scan: PChar; (* Current node. *)
+    Next: PChar; (* Next node. *)
+    No: integer; { EXACTLY, STAR, PLUS }
+    Save: PChar; { EXACTLY, BRANCH, STAR, PLUS }
+    Min: integer; { STAR, PLUS }
+    Max: integer;
+    nextch: Char; { STAR, PLUS }
+    Opnd: PChar;
 
-{$IFDEF ComplexBraces}
-  function LoopMatch : Boolean;
-  begin
-    Inc ( FLStack[FLStackId] );
-    LoopMatch := False;
-    no        := FLStackId;
-    if RegMatch ( opnd ) then begin
-      RegMatch  := True;
-      LoopMatch := True;
-    end;
-    FLStackId := no;
-  end;
-{$ENDIF ComplexBraces}
-
-begin
-  RegMatch := False;
-  scan     := Prog;
-{$IFDEF DEBUG}
-  if (scan <> nil) and Narrate then
-    Writeln ( RegProp ( scan ), '(' );
-{$ENDIF DEBUG}
-  while scan <> nil do begin
-{$IFDEF DEBUG}
-    if Narrate then
-      Writeln ( RegProp ( scan ), '...' );
-{$ENDIF DEBUG}
-    if ffBreak in FFlags then
-      Exit;
-    if CheckBreak then begin
-      FStatus := resCanceled;
-      Include ( FFlags, ffBreak );
-      Exit;
-    end;
-    next := RegNext ( scan );
-
-    case scan[0] of
-
-      ropBOL: begin
-        if FInput <> FInputBol then
-          Exit;
-      end;
-
-      ropEOL: begin { should be checked for new-line }
-        if FInput <> FInputEol then
-          Exit;
-      end;
-
-      ropANY: begin { should be any except new-line }
-        if FInput = FInputEol then
-          Exit;
-        Inc ( FInput );
-      end;
-
-      ropEXACTLY: begin
-        save := @scan[4];
-        (* Inline the first character, for speed. *)
-        if save[0] <> FInput[0] then
-          Exit;
-        no := Ord(scan[3]);
-        { input is too short }
-        if FInput+no > FInputEol then
-          Exit;
-        if (no > 1) and (StrLComp ( save, FInput, no ) <> 0) then
-          Exit;
-        Inc ( FInput, no );
-      end;
-
-      ropANYOF: begin
-        if FInput = FInputEol then
-          Exit;
-        no := Ord(scan[3]);
-        if StrScan2 ( @scan[4], FInput[0], @scan[4+no] ) = nil then
-          Exit;
-        Inc ( FInput );
-      end;
-
-      ropANYBUT: begin
-        if FInput = FInputEol then
-          Exit;
-        no := Ord(scan[3]);
-        if StrScan2 ( @scan[4], FInput[0], @scan[4+no] ) <> nil then
-          Exit;
-        Inc ( FInput );
-      end;
-
-      ropNOTHING: begin
-      end;
-
-      ropBACK: begin
-      end;
-
-      ropOPEN: begin
-        if RegMatch ( next ) then
-          RegMatch := True;
-        Exit;
-      end;
-
-      Succ(ropOPEN0)..ropOPEN9: begin
-        no   := Ord(scan[0]) - Ord(ropOPEN0);
-        save := FInput;
-        if RegMatch ( next ) then begin
-          RegMatch := True;
-          { Don't set startp if some later invocation of the same }
-          { parentheses already has.                              }
-          if FStartP[no] = -1 then
-            FStartP[no] := save-FInputBol;
-        end;
-        Exit;
-      end;
-
-      ropCLOSE: begin
-        if RegMatch ( next ) then
-          RegMatch := True;
-        Exit;
-      end;
-
-      Succ (ropCLOSE0)..ropCLOSE9: begin
-        no   := Ord(scan[0]) - Ord(ropCLOSE0);
-        save := FInput;
-        if RegMatch ( next ) then begin
-          RegMatch := True;
-          { Don't set startp if some later invocation of the same }
-          { parentheses already has.                              }
-          if FEndP[no] = -1 then
-            FEndP[no] := save-FInputBol;
-        end;
-        Exit;
-      end;
-
-      ropBRANCH: begin
-        if next[0] <> ropBRANCH then begin (* No choice. *)
-          next := @scan[3];                (* Avoid recursion. *)
-        end else begin
-          repeat
-            save := FInput;
-            if RegMatch ( @scan[3] ) then begin
+  function BracesMatch: boolean;
+    var
+      sloops: array[1..LoopStackMax] of integer;
+        { :(( very bad for recursion }
+      sloopi: integer;
+    begin
+      BracesMatch := False;
+      if (ffMatchNext in FFlags) or (FInput[0] = nextch) then
+        begin
+          Move(FLStack, sloops, SizeOf(FLStack));
+          sloopi := FLStackId;
+          if RegMatch(Next) then
+            begin
               RegMatch := True;
-              Exit;
+              BracesMatch := True;
+              exit;
             end;
-            FInput := save;
-            scan   := RegNext ( scan );
-          until (ffBreak in FFlags) or (scan = nil) or (scan[0] <> ropBRANCH);
-          Exit;
-          (* NOTREACHED *)
+          Move(sloops, FLStack, SizeOf(FLStack));
+          FLStackId := sloopi;
+          if ffBreak in FFlags then
+            BracesMatch := True;
         end;
-      end;
+    end { BracesMatch: };
 
-    {$IFDEF ComplexBraces}
-      ropLOOPENTRY: begin
-        no := FLStackId;
-        Inc ( FLStackId );
-        if FLStackId > LoopStackMax then begin
-          FStatus := resLoopStackExceeded;
-          Exit;
+  function LoopMatch: boolean;
+    begin
+      Inc(FLStack[FLStackId]);
+      LoopMatch := False;
+      No := FLStackId;
+      if RegMatch(Opnd) then
+        begin
+          RegMatch := True;
+          LoopMatch := True;
         end;
-        save               := FInput;
-        FLStack[FLStackId] := 0;       { init loop counter }
-        if not RegMatch ( next ) then  { execute loop      }
-          FInput := save;
-        FLStackId := no;               { cleanup           }
-        Exit;
-      end;
-    {$ENDIF ComplexBraces}
+      FLStackId := No;
+    end;
 
-    {$IFDEF ComplexBraces}
-      ropLOOP, ropLOOPNG: begin
-        if FLStackId <= 0 then begin
-          FStatus := resLoopWithoutEntry;
-          Exit;
-        end;
-        opnd := scan - (Ord(scan[3])*256 + Ord(scan[4])); { back atom }
-        min  := Ord(scan[5]);
-        max  := Ord(scan[6]);
-        save := FInput;
-        if FLStack[FLStackId] >= min then begin
-          { Min alredy matched - we can work }
-          if scan[0] = ropLOOP then begin
-            { greedy way - first try to max deep of greed ;) }
-            if FLStack[FLStackId] < max then begin
-              if LoopMatch then
-                Exit;
-              FInput := save;
-            end;
-            { Fail. May be we are too greedy? ;) }
-            Dec ( FLStackId );
-            if RegMatch ( next ) then begin
-              RegMatch := True;
-            end else begin
-              FInput   := save;
-            end;
-            Exit;
-          end else begin
-            { non-greedy - try just now }
-            if RegMatch ( next ) then
-              Exit;
-            { failed - move next and try again }
-            FInput := save;
-            if FLStack[FLStackId] < max then begin
-              if LoopMatch then
-                Exit;
-              FInput    := save;
-            end;
-            { Failed - back up }
-            Dec ( FLStackId );
-            Exit;
+  begin { TRegExp.RegMatch }
+    RegMatch := False;
+    Scan := Prog;
+    {$IFDEF DEBUG}
+    if (Scan <> nil) and Narrate then
+      Writeln(RegProp(Scan), '(');
+    {$ENDIF DEBUG}
+    while Scan <> nil do
+      begin
+        {$IFDEF DEBUG}
+        if Narrate then
+          Writeln(RegProp(Scan), '...');
+        {$ENDIF DEBUG}
+        if ffBreak in FFlags then
+          exit;
+        if CheckBreak then
+          begin
+            FStatus := resCanceled;
+            Include(FFlags, ffBreak);
+            exit;
           end;
-        end else begin
-          { first match a min_cnt times }
-          if LoopMatch then
-            Exit;
-          Dec ( FLStack[FLStackId] );
-          FInput := save;
-          Exit;
-        end;
-      end;
-    {$ENDIF ComplexBraces}
+        Next := RegNext(Scan);
 
-      ropSTAR, ropPLUS, ropBRACES, ropSTARNG, ropPLUSNG, ropBRACESNG: begin
-        (*
+        case Scan[0] of
+
+          ropBOL:
+            begin
+              if FInput <> FInputBol then
+                exit;
+            end;
+
+          ropEOL:
+            begin{ should be checked for new-line }
+              if FInput <> FInputEol then
+                exit;
+            end;
+
+          ropANY:
+            begin{ should be any except new-line }
+              if FInput = FInputEol then
+                exit;
+              Inc(FInput);
+            end;
+
+          ropEXACTLY:
+            begin
+              Save := @scan[4];
+              (* Inline the first character, for speed. *)
+              if Save[0] <> FInput[0] then
+                exit;
+              No := Ord(Scan[3]);
+              { input is too short }
+              if FInput+No > FInputEol then
+                exit;
+              if (No > 1) and (StrLComp(Save, FInput, No) <> 0) then
+                exit;
+              Inc(FInput, No);
+            end;
+
+          ropANYOF:
+            begin
+              if FInput = FInputEol then
+                exit;
+              No := Ord(Scan[3]);
+              if StrScan2(@scan[4], FInput[0], @scan[4+No]) = nil
+              then
+                exit;
+              Inc(FInput);
+            end;
+
+          ropANYBUT:
+            begin
+              if FInput = FInputEol then
+                exit;
+              No := Ord(Scan[3]);
+              if StrScan2(@scan[4], FInput[0], @scan[4+No]) <> nil
+              then
+                exit;
+              Inc(FInput);
+            end;
+
+          ropNOTHING:
+            begin
+            end;
+
+          ropBACK:
+            begin
+            end;
+
+          ropOPEN:
+            begin
+              if RegMatch(Next) then
+                RegMatch := True;
+              exit;
+            end;
+
+          succ(ropOPEN0)..ropOPEN9:
+            begin
+              No := Ord(Scan[0])-Ord(ropOPEN0);
+              Save := FInput;
+              if RegMatch(Next) then
+                begin
+                  RegMatch := True;
+                  { Don't set startp if some later invocation of the same }
+                  { parentheses already has.                              }
+                  if FStartP[No] = -1 then
+                    FStartP[No] := Save-FInputBol;
+                end;
+              exit;
+            end;
+
+          ropCLOSE:
+            begin
+              if RegMatch(Next) then
+                RegMatch := True;
+              exit;
+            end;
+
+          succ(ropCLOSE0)..ropCLOSE9:
+            begin
+              No := Ord(Scan[0])-Ord(ropCLOSE0);
+              Save := FInput;
+              if RegMatch(Next) then
+                begin
+                  RegMatch := True;
+                  { Don't set startp if some later invocation of the same }
+                  { parentheses already has.                              }
+                  if FEndP[No] = -1 then
+                    FEndP[No] := Save-FInputBol;
+                end;
+              exit;
+            end;
+
+          ropBRANCH:
+            begin
+              if Next[0] <> ropBRANCH then
+                begin(* No choice. *)
+                  Next := @scan[3]; (* Avoid recursion. *)
+                end
+              else
+                begin
+                  repeat
+                    Save := FInput;
+                    if RegMatch(@scan[3]) then
+                      begin
+                        RegMatch := True;
+                        exit;
+                      end;
+                    FInput := Save;
+                    Scan := RegNext(Scan);
+                  until (ffBreak in FFlags) or (Scan = nil) or (Scan[0]
+                    <> ropBRANCH);
+                  exit;
+                  (* NOTREACHED *)
+                end;
+            end;
+
+          ropLOOPENTRY:
+            begin
+              No := FLStackId;
+              Inc(FLStackId);
+              if FLStackId > LoopStackMax then
+                begin
+                  FStatus := resLoopStackExceeded;
+                  exit;
+                end;
+              Save := FInput;
+              FLStack[FLStackId] := 0; { init loop counter }
+              if not RegMatch(Next) then{ execute loop      }
+                FInput := Save;
+              FLStackId := No; { cleanup           }
+              exit;
+            end;
+
+          ropLOOP, ropLOOPNG:
+            begin
+              if FLStackId <= 0 then
+                begin
+                  FStatus := resLoopWithoutEntry;
+                  exit;
+                end;
+              Opnd := Scan-(Ord(Scan[3])*256+Ord(Scan[4]));
+                { back atom }
+              Min := Ord(Scan[5]);
+              Max := Ord(Scan[6]);
+              Save := FInput;
+              if FLStack[FLStackId] >= Min then
+                begin
+                  { Min alredy matched - we can work }
+                  if Scan[0] = ropLOOP then
+                    begin
+                      { greedy way - first try to max deep of greed ;) }
+                      if FLStack[FLStackId] < Max then
+                        begin
+                          if LoopMatch then
+                            exit;
+                          FInput := Save;
+                        end;
+                      { Fail. May be we are too greedy? ;) }
+                      Dec(FLStackId);
+                      if RegMatch(Next) then
+                        begin
+                          RegMatch := True;
+                        end
+                      else
+                        begin
+                          FInput := Save;
+                        end;
+                      exit;
+                    end
+                  else
+                    begin
+                      { non-greedy - try just now }
+                      if RegMatch(Next) then
+                        exit;
+                      { failed - move next and try again }
+                      FInput := Save;
+                      if FLStack[FLStackId] < Max then
+                        begin
+                          if LoopMatch then
+                            exit;
+                          FInput := Save;
+                        end;
+                      { Failed - back up }
+                      Dec(FLStackId);
+                      exit;
+                    end;
+                end
+              else
+                begin
+                  { first match a min_cnt times }
+                  if LoopMatch then
+                    exit;
+                  Dec(FLStack[FLStackId]);
+                  FInput := Save;
+                  exit;
+                end;
+            end;
+
+          ropSTAR, ropPLUS, ropBRACES, ropSTARNG, ropPLUSNG,
+            ropBRACESNG:
+            begin
+              (*
          * Lookahead to avoid useless match attempts
          * when we know what character comes next.
          *)
-        Include ( FFlags, ffMatchNext );
-        if next[0] = ropEXACTLY then begin
-          nextch := next[4];
-          Exclude ( FFlags, ffMatchNext );
-        end;
-        max  := MaxInt; { infinite loop for * and + }
-        if (scan[0] = ropSTAR) or (scan[0] = ropSTARNG) then
-          min := 0      { STAR }
-        else if (scan[0] = ropPLUS) or (scan[0] = ropPLUSNG) then
-          min := 1      { PLUS }
-        else begin      { BRACES }
-          min := Ord(Scan[3]);
-          max := Ord(Scan[4]);
-        end;
-        save := FInput;
-        opnd := @scan[3];
-        if (scan[0] = ropBRACES) or (scan[0] = ropBRACESNG) then
-          Inc ( opnd, 2 );
-        if (scan[0] = ropPLUSNG) or (scan[0] = ropSTARNG) or (scan[0] = ropBRACESNG) then begin
-          { non-greedy mode }
-          max := RegRepeat ( opnd, max ); { don't repeat more than Max }
-          { Now we know real Max limit to move forward (for recursion 'back up') }
-          { In some cases it can be faster to check only Min positions first,    }
-          { but after that we have to check every position separtely instead     }
-          { of fast scannig in loop.                                             }
-          no  := min;
-          while no <= min do begin
-            FInput := save + no;
-            { If it could work, try it. }
-            if BracesMatch then
-              Exit;
-            { Couldn't or didn't - move forward. }
-            Inc ( no );
-          end;
-        end else begin
-          no := RegRepeat ( opnd, max ); { don't repeat more than Max }
-          while no >= min do begin
-            { If it could work, try it. }
-            if BracesMatch then
-              Exit;
-            (* Couldn't or didn't -- back up. *)
-            Dec ( no );
-            FInput := save + no;
-          end;
-        end;
-        Exit;
+              Include(FFlags, ffMatchNext);
+              if Next[0] = ropEXACTLY then
+                begin
+                  nextch := Next[4];
+                  Exclude(FFlags, ffMatchNext);
+                end;
+              Max := MaxInt; { infinite loop for * and + }
+              if (Scan[0] = ropSTAR) or (Scan[0] = ropSTARNG) then
+                Min := 0 { STAR }
+              else if (Scan[0] = ropPLUS) or (Scan[0] = ropPLUSNG)
+              then
+                Min := 1 { PLUS }
+              else
+                begin{ BRACES }
+                  Min := Ord(Scan[3]);
+                  Max := Ord(Scan[4]);
+                end;
+              Save := FInput;
+              Opnd := @scan[3];
+              if (Scan[0] = ropBRACES) or (Scan[0] = ropBRACESNG)
+              then
+                Inc(Opnd, 2);
+              if (Scan[0] = ropPLUSNG) or (Scan[0] = ropSTARNG) or (
+                  Scan[0] = ropBRACESNG)
+              then
+                begin
+                  { non-greedy mode }
+                  Max := RegRepeat(Opnd, Max);
+                    { don't repeat more than Max }
+                  { Now we know real Max limit to move forward (for recursion 'back up') }
+                  { In some cases it can be faster to check only Min positions first,    }
+                  { but after that we have to check every position separtely instead     }
+                  { of fast scannig in loop.                                             }
+                  No := Min;
+                  while No <= Min do
+                    begin
+                      FInput := Save+No;
+                      { If it could work, try it. }
+                      if BracesMatch then
+                        exit;
+                      { Couldn't or didn't - move forward. }
+                      Inc(No);
+                    end;
+                end
+              else
+                begin
+                  No := RegRepeat(Opnd, Max);
+                    { don't repeat more than Max }
+                  while No >= Min do
+                    begin
+                      { If it could work, try it. }
+                      if BracesMatch then
+                        exit;
+                      (* Couldn't or didn't -- back up. *)
+                      Dec(No);
+                      FInput := Save+No;
+                    end;
+                end;
+              exit;
+            end;
+
+          ropEND:
+            begin
+              RegMatch := True; (* Success! *)
+              exit;
+            end;
+
+            else
+            FStatus := resMemoryCorruption;
+          exit;
+        end {case};
+
+        Scan := Next;
       end;
 
-      ropEND: begin
-        RegMatch := True; (* Success! *)
-        Exit;
-      end;
-
-    else
-      FStatus := resMemoryCorruption;
-      Exit;
-    end;
-
-    scan := next;
-  end;
-
-  (*
+    (*
    * We get here only if there's trouble -- normally "case END" is
    * the terminating point.
    *)
-  FStatus := resCorruptedPointers;
-end;
+    FStatus := resCorruptedPointers;
+  end { TRegExp.RegMatch };
 
 (*****************************************************************
  *
@@ -2665,59 +2898,71 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegRepeat ( P : PChar; AMax : Integer ) : Integer;
-var
-  count : Integer;
-  scan  : PChar;
-  opnd  : PChar;
-  opnde : PChar;
-  max   : Integer;
-begin
-  count := 0;
-  scan  := FInput;
-  if P[0] <> ropANY then begin
-    opnd  := @P[4];
-    opnde := opnd + Ord(P[3]);
-  end;
-  max := FInputEol - scan;
-  if max > AMax then
-    max := AMax;
-  case P[0] of
-
-    ropANY: begin
-      count := max;
-      Inc ( scan, max );
-    end;
-
-    ropEXACTLY: begin
-      while (count < max) and (opnd[0] = scan[0]) do begin
-        Inc ( count );
-        Inc ( scan );
+function TRegExp.RegRepeat(P: PChar; AMax: integer): integer;
+  var
+    Count: integer;
+    Scan: PChar;
+    Opnd: PChar;
+    opnde: PChar;
+    Max: integer;
+  begin
+    Count := 0;
+    Scan := FInput;
+    if P[0] <> ropANY then
+      begin
+        Opnd := @P[4];
+        opnde := Opnd+Ord(P[3]);
       end;
-    end;
+    Max := FInputEol-Scan;
+    if Max > AMax then
+      Max := AMax;
+    case P[0] of
 
-    ropANYOF: begin
-      while (count < max) and (StrScan2 ( opnd, scan[0], opnde ) <> nil) do begin
-        Inc ( count );
-        Inc ( scan );
-      end;
-    end;
+      ropANY:
+        begin
+          Count := Max;
+          Inc(Scan, Max);
+        end;
 
-    ropANYBUT: begin
-      while (count < max) and (StrScan2 ( opnd, scan[0], opnde ) = nil) do begin
-        Inc ( count );
-        Inc ( scan );
-      end;
-    end;
+      ropEXACTLY:
+        begin
+          while (Count < Max) and (Opnd[0] = Scan[0]) do
+            begin
+              Inc(Count);
+              Inc(Scan);
+            end;
+        end;
 
-  else  (* Oh dear.  Called inappropriately. *)
-    FStatus := resInternalFoulup;
-    count   := 0; (* Best compromise. *)
-  end;
-  FInput := scan;
+      ropANYOF:
+        begin
+          while (Count < Max) and (StrScan2(Opnd, Scan[0], opnde) <>
+              nil)
+          do
+            begin
+              Inc(Count);
+              Inc(Scan);
+            end;
+        end;
 
-  RegRepeat := count;
-end;
+      ropANYBUT:
+        begin
+          while (Count < Max) and (StrScan2(Opnd, Scan[0], opnde) =
+              nil)
+          do
+            begin
+              Inc(Count);
+              Inc(Scan);
+            end;
+        end;
+
+        else(* Oh dear.  Called inappropriately. *)
+        FStatus := resInternalFoulup;
+      Count := 0; (* Best compromise. *)
+    end {case};
+    FInput := Scan;
+
+    RegRepeat := Count;
+  end { TRegExp.RegRepeat };
 
 (*****************************************************************
  *
@@ -2738,24 +2983,24 @@ end;
  *
  *****************************************************************)
 
-function    TRegExp.RegNext ( P : PChar ) : PChar;
-var
-  offset   : Integer;
-begin
-  RegNext := nil; { initialize result }
+function TRegExp.RegNext(P: PChar): PChar;
+  var
+    Offset: integer;
+  begin
+    RegNext := nil; { initialize result }
 
-  if ffParsing in FFlags then
-    Exit;
+    if ffParsing in FFlags then
+      exit;
 
-  offset := (((Ord(P[1]) and 255) shl 8) + (Ord(P[2]) and 255));
-  if offset = 0 then
-    Exit;
+    Offset := (((Ord(P[1]) and 255) shl 8)+(Ord(P[2]) and 255));
+    if Offset = 0 then
+      exit;
 
-  if P[0] = ropBACK then
-    RegNext := P - offset
-  else
-    RegNext := P + offset;
-end;
+    if P[0] = ropBACK then
+      RegNext := P-Offset
+    else
+      RegNext := P+Offset;
+  end;
 
 (*****************************************************************
  *
@@ -2773,16 +3018,18 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.RegClearTags;
-var
-  i     : Integer;
-  stack : PRegExpStack absolute FMust;
-begin
-  for i := 1 to 9 do with stack^ do begin
-    TagStarts[i] := nil;
-    TagEnds[i]   := nil;
+procedure TRegExp.RegClearTags;
+  var
+    i: integer;
+    Stack: PRegExpStack absolute FMust;
+  begin
+    for i := 1 to 9 do
+      with Stack^ do
+        begin
+          TagStarts[i] := nil;
+          TagEnds[i] := nil;
+        end;
   end;
-end;
 
 {$IFDEF DEBUG}
 
@@ -2804,178 +3051,213 @@ end;
  *
  *****************************************************************)
 
-procedure   TRegExp.Dump;
-var
-  s    : PChar;
-  op   : Char;
-  next : PChar;
-  off  : Integer;
-begin
-  if FCodeSize = 0 then
-    Exit;
-  op := ropEXACTLY;   (* Arbitrary non-END op. *)
+procedure TRegExp.Dump;
+  var
+    s: PChar;
+    Op: Char;
+    Next: PChar;
+    off: integer;
+  begin
+    if FCodeSize = 0 then
+      exit;
+    Op := ropEXACTLY; (* Arbitrary non-END op. *)
 
-  s := @FCodeData[1];
-  while op <> ropEND do begin
-    (* While that wasn't END last time... *)
-    op  := s[0];
-    off := s-FCodeData;
-    Write ( s-FCodeData:4, RegProp ( s ) ); (* Where, what. *)
-    next := RegNext ( s );
-    if next = nil then    (* Next ptr. *)
-      Write ( '(0)' )
-    else
-      Write ( '(', (s-FCodeData)+(next-s), ')' );
-    Inc ( s, 3 );
-    if (op = ropANYOF) or (op = ropANYBUT) or (op = ropEXACTLY) then begin
-      (* Literal string, where present. *)
-      Write ( PString(s)^ );
-      Inc ( s, Length(PString(s)^)+1 );
-    {$IFDEF ComplexBraces}
-    end else if (op = ropLOOP) or (op = ropLOOPNG) then begin
-      Write ( '[',off-(Ord(s[0])*256+Ord(s[1])), ']{', Ord(s[2]), ',', Ord(s[3]),'}' );
-      Inc ( s, 4 );
-    {$ENDIF ComplexBraces}
-    end else if (op = ropBRACES) or (op = ropBRACESNG) then begin
-      Write ( '{', Ord(s[0]), ',', Ord(s[1]),'}' );
-      Inc ( s, 2 );
-    end;
+    s := @FCodeData[1];
+    while Op <> ropEND do
+      begin
+        (* While that wasn't END last time... *)
+        Op := s[0];
+        off := s-FCodeData;
+        Write(s-FCodeData: 4, RegProp(s)); (* Where, what. *)
+        Next := RegNext(s);
+        if Next = nil then(* Next ptr. *)
+          Write('(0)')
+        else
+          Write('(', (s-FCodeData)+(Next-s), ')');
+        Inc(s, 3);
+        if (Op = ropANYOF) or (Op = ropANYBUT) or (Op = ropEXACTLY)
+        then
+          begin
+            (* Literal string, where present. *)
+            Write(PString(s)^);
+            Inc(s, Length(PString(s)^)+1);
+          end
+        else if (Op = ropLOOP) or (Op = ropLOOPNG) then
+          begin
+            Write('[', off-(Ord(s[0])*256+Ord(s[1])), ']{', Ord(s[2]),
+              ',', Ord(s[3]), '}');
+            Inc(s, 4);
+          end
+        else if (Op = ropBRACES) or (Op = ropBRACESNG) then
+          begin
+            Write('{', Ord(s[0]), ',', Ord(s[1]), '}');
+            Inc(s, 2);
+          end;
+        Writeln;
+      end;
+
+    (* Header fields of interest. *)
+    if ffStart in FFlags then
+      Write('start `', FStartCh, ''' ');
+    if ffAnchored in FFlags then
+      Write('anchored ');
+    if FMust <> nil then
+      Write('must have "', FMust^, '"');
     Writeln;
-  end;
-
-  (* Header fields of interest. *)
-  if ffStart in FFlags then
-    Write ( 'start `', FStartCh, ''' ' );
-  if ffAnchored in FFlags then
-    Write ( 'anchored ' );
-  if FMust <> nil then
-    Write ( 'must have "', FMust^, '"' );
-  Writeln;
-end;
+  end { TRegExp.Dump };
 
 {$ENDIF DEBUG}
 
-function    TRegExp.SubstituteString ( ASrc : PChar; const AReplace : string; var ADest : string ) : Boolean;
-var
-  len : Integer;
-  ret : Boolean;
-begin
-  SubstituteString := False;
-  len              := High(ADest);
-  if Substitute ( ASrc, @AReplace[1], Length(AReplace), @ADest[1], len ) then begin
-    ADest[0]         := Chr(len);
-    SubstituteString := True;
-  end;
-end;
-
-function    TRegExp.SubstituteStr ( ASrc, AReplace : PChar; ADest : PChar; var ALength : Integer ) : Boolean;
-begin
-  SubstituteStr := Substitute ( ASrc, AReplace, -1, ADest, ALength );
-end;
-
-function    TRegExp.Substitute ( ASrc, AReplace : PChar; ARLen : Integer; ADest : PChar; var ADLen : Integer ) : Boolean;
-begin
-  Substitute := RegSub ( ASrc, AReplace, ARLen, ADest, ADLen );
-  if FStatus <> resOK then
-    Error ( FStatus );
-end;
-
-function    TRegExp.RegSub ( ASrc, AReplace : PChar; ARLen : Integer; ADest : PChar; var ADLen : Integer ) : Boolean;
-var
-  j     : Integer;
-  l     : Integer;
-  c     : Char;
-  no    : Integer;
-  len   : Integer;
-  start : Integer;
-begin
-  RegSub  := False;
-  FStatus := resOK;
-
-  { cannot execute if there was an error }
-  if not (ffCompiled in FFlags) then begin
-    FStatus := resNoExpression;
-    Exit;
-  end;
-
-  (* Be paranoid... *)
-  if AReplace = nil then begin
-    FStatus := resNilArgument;
-    Exit;
-  end;
-  if ARLen = -1 then
-    ARLen := StrLen ( AReplace );
-
-  { destination buffer must have valid size }
-  if (ADest <> nil) and (ADLen <= 0) then begin
-    FStatus := resInvalidArgument;
-    Exit;
-  end;
-
-  (* Check validity of program. *)
-  if (FCodeData[0] <> MAGIC) then begin
-    FStatus := resCorruptedProgram;
-    Exit;
-  end;
-
-  FInput    := AReplace;
-  FInputEol := AReplace+ARLen;
-
-  l := ADLen;
-  j := 0;
-  while FInput < fInputEol do begin
-    c := FInput[0];
-    Inc ( FInput );
-    no := -1;
-    if c = '&' then begin
-      no := 0;
-    end else if (c = '\') then begin
-      if (FInput < FInputEol) and (FInput[0] in ['0'..'9']) then begin
-        no := Ord(FInput[0]) - Ord('0');
-        Inc ( FInput );
-      end else begin
-        if not RegEscape ( c ) then
-          Exit;
+function TRegExp.SubstituteString(ASrc: PChar; const AReplace:
+    String; var ADest: String): boolean;
+  var
+    len: integer;
+    ret: boolean;
+  begin
+    SubstituteString := False;
+    len := High(ADest);
+    if Substitute(ASrc, @AReplace[1], Length(AReplace), @ADest[1],
+        len)
+    then
+      begin
+        ADest[0] := Chr(len);
+        SubstituteString := True;
       end;
-    end;
-    if no < 0 then begin
-      { ordinary character }
-      if ADest <> nil then begin
-        if j < l then
-          ADest[j] := c;
+  end;
+
+function TRegExp.SubstituteStr(ASrc, AReplace: PChar; ADest: PChar;
+    var ALength: integer): boolean;
+  begin
+    SubstituteStr := Substitute(ASrc, AReplace, -1, ADest, ALength);
+  end;
+
+function TRegExp.Substitute(ASrc, AReplace: PChar; ARLen: integer;
+    ADest: PChar; var ADLen: integer): boolean;
+  begin
+    Substitute := RegSub(ASrc, AReplace, ARLen, ADest, ADLen);
+    if FStatus <> resOK then
+      Error(FStatus);
+  end;
+
+function TRegExp.RegSub(ASrc, AReplace: PChar; ARLen: integer; ADest:
+    PChar; var ADLen: integer): boolean;
+  var
+    j: integer;
+    l: integer;
+    C: Char;
+    No: integer;
+    len: integer;
+    Start: integer;
+  begin
+    RegSub := False;
+    FStatus := resOK;
+
+    { cannot execute if there was an error }
+    if not (ffCompiled in FFlags) then
+      begin
+        FStatus := resNoExpression;
+        exit;
       end;
-      Inc ( j );
-    end else begin
-      { copy subexpression }
-      start := -1;
-      len   := 0;
-      if no = 0 then begin
-        { a whole expression }
-        start := FStart;
-        len   := FLength;
-      end else if (FStartP[no] <> -1) and (FEndP[no] <> -1) then begin
-        { a subexpression }
-        start := FStartP[no];
-        len   := FEndP[no] - start;
+
+    (* Be paranoid... *)
+    if AReplace = nil then
+      begin
+        FStatus := resNilArgument;
+        exit;
       end;
-      if (start >= 0) and (len > 0) then begin
-        if ADest <> nil then begin
-          if j < l then begin
-            no := len;
-            if j + len > l then
-              no := l-j;
-            Move ( ASrc[start], ADest[j], no );
+    if ARLen = -1 then
+      ARLen := StrLen(AReplace);
+
+    { destination buffer must have valid size }
+    if (ADest <> nil) and (ADLen <= 0) then
+      begin
+        FStatus := resInvalidArgument;
+        exit;
+      end;
+
+    (* Check validity of program. *)
+    if (FCodeData[0] <> magic) then
+      begin
+        FStatus := resCorruptedProgram;
+        exit;
+      end;
+
+    FInput := AReplace;
+    FInputEol := AReplace+ARLen;
+
+    l := ADLen;
+    j := 0;
+    while FInput < FInputEol do
+      begin
+        C := FInput[0];
+        Inc(FInput);
+        No := -1;
+        if C = '&' then
+          begin
+            No := 0;
+          end
+        else if (C = '\') then
+          begin
+            if (FInput < FInputEol) and (FInput[0] in ['0'..'9'])
+            then
+              begin
+                No := Ord(FInput[0])-Ord('0');
+                Inc(FInput);
+              end
+            else
+              begin
+                if not RegEscape(C) then
+                  exit;
+              end;
           end;
-        end;
-        Inc ( j, len );
+        if No < 0 then
+          begin
+            { ordinary character }
+            if ADest <> nil then
+              begin
+                if j < l then
+                  ADest[j] := C;
+              end;
+            Inc(j);
+          end
+        else
+          begin
+            { copy subexpression }
+            Start := -1;
+            len := 0;
+            if No = 0 then
+              begin
+                { a whole expression }
+                Start := FStart;
+                len := FLength;
+              end
+            else if (FStartP[No] <> -1) and (FEndP[No] <> -1) then
+                begin
+                { a subexpression }
+                Start := FStartP[No];
+                len := FEndP[No]-Start;
+              end;
+            if (Start >= 0) and (len > 0) then
+              begin
+                if ADest <> nil then
+                  begin
+                    if j < l then
+                      begin
+                        No := len;
+                        if j+len > l then
+                          No := l-j;
+                        Move(ASrc[Start], ADest[j], No);
+                      end;
+                  end;
+                Inc(j, len);
+              end;
+          end;
       end;
-    end;
-  end;
 
-  { return number of characters to replace }
-  ADLen  := j;
+    { return number of characters to replace }
+    ADLen := j;
 
-  RegSub := True;
-end;
+    RegSub := True;
+  end { TRegExp.RegSub };
 
 end.

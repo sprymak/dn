@@ -46,1180 +46,1532 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-UNIT Arvid;
+unit Arvid;
 
-INTERFACE
+interface
 
 uses
-  Collect, Objects, DOS, Drives, FilesCol, Views, DiskInfo, Tree, Histries,
+  Collect, Objects, Dos, Drives, FilesCol, Views, DiskInfo, Tree,
+    Histries,
   Lfn, Files, FindObj;
 
 type
-   TTdrHeader = record
-      FileTableOfs: LongInt;
-      DirTableOfs:  LongInt;
-      PosTableOfs:  LongInt;
+  TTdrHeader = record
+    FileTableOfs: longInt;
+    DirTableOfs: longInt;
+    PosTableOfs: longInt;
 
-      FileTableLen: LongInt;
-      DirTableLen:  LongInt;
-      PosTableLen:  LongInt;
+    FileTableLen: longInt;
+    DirTableLen: longInt;
+    PosTableLen: longInt;
 
-      TapeFmt:      AWord;
-      TapeID:       AWord;
-      TapeLen:      AWord;
-      RecordLen:    AWord;
-      NewRecordSector: LongInt;
+    TapeFmt: AWord;
+    TapeID: AWord;
+    TapeLen: AWord;
+    RecordLen: AWord;
+    NewRecordSector: longInt;
 
-      DescTableOfs: LongInt;
-      Res01: Array [1..16] of Byte;
-      DescTableLen: LongInt;
-      Res02: Array [1..16] of Byte;
-      LastNewRecordSector: LongInt;
-      Res03: Array [1..36] of Byte;
-   end;
+    DescTableOfs: longInt;
+    Res01: array[1..16] of byte;
+    DescTableLen: longInt;
+    Res02: array[1..16] of byte;
+    LastNewRecordSector: longInt;
+    Res03: array[1..36] of byte;
+    end;
 
-   PTdrFileCell = ^TTdrFileCell;
-   TTdrFileCell = record
-      Name: Array[1..11] of Char;
-      Attr: Byte;
-      StartSector: LongInt;
-      Description: LongInt;
-      Res: AWord;
-      Time: LongInt;
-      Cluster: AWord;
-      Size: LongInt;
-   end;
+  PTdrFileCell = ^TTdrFileCell;
+  TTdrFileCell = record
+    Name: array[1..11] of Char;
+    Attr: byte;
+    StartSector: longInt;
+    Description: longInt;
+    Res: AWord;
+    Time: longInt;
+    Cluster: AWord;
+    Size: longInt;
+    end;
 
-   TTdrDirCell = record
-      Level: AWord;
-      Name: Array[1..11] of Char;
-      Attr: Byte;
-      StartSector: LongInt;
-      Description: LongInt;
-      Res: AWord;
-      Time: LongInt;
-      Cluster: AWord;
-      Size: LongInt;
+  TTdrDirCell = record
+    Level: AWord;
+    Name: array[1..11] of Char;
+    Attr: byte;
+    StartSector: longInt;
+    Description: longInt;
+    Res: AWord;
+    Time: longInt;
+    Cluster: AWord;
+    Size: longInt;
 
-      Files: AWord;
-      LastFile: AWord;
-      NumFiles: AWord;
+    Files: AWord;
+    LastFile: AWord;
+    NumFiles: AWord;
 
-   end;
-
-Type
-   TAvtHeader = record
-      Signature:     LongInt;{'AVTP' = $50545641}
-      AvtFmt:        LongInt;
-      CheckSum:      LongInt;
-      AfterLastCell: LongInt;
-      FreeCell:      LongInt;
-      RootDirCell:   LongInt;
-      NewSector:     LongInt;
-      LastNewSector: LongInt;
-      AvtMediaCell:  LongInt;
-      Undefined1:    LongInt;
-   end;
-
-   TAvtMediaCell = record
-      NextMediaCell:           LongInt;
-      TapeFmt:                 AWord;            {16,32}
-      TapeLen:                 AWord;
-      TapeID:                  LongInt;
-      Undefined1:              LongInt;
-      Undefined2:              LongInt;
-      Undefined3:              LongInt;
-      FirstSectorNum:          LongInt;
-      Sectors:                 LongInt;
-      PositionTable:           LongInt;
-      PositionTableSize:       LongInt;
-   end;
-
-   TAvtFileCell = record
-      LeftFileCell:  LongInt;
-      RightFileCell: LongInt;
-      ChildOrSize:   LongInt;
-      Time:          LongInt;
-      StartSector:   LongInt;
-      Flags:         AWord;
-      Attr:          AWord;
-      case Char of
-        0: (Name0: Array[1..16] of Char);
-        1: (Name1: Array[1..12] of Char; Next1: LongInt);
-        2: (Name2: Array[1..12] of Char; DescPtr2: LongInt);
-        3: (NamePtr, NonUsed1, NonUsed2, DescPtr3: LongInt);
-   end;
-
-   TAvtTextCell = record
-      NextTextCell: LongInt;
-      Data: Array[1..36] of Char;
-   end;
-
-const
-      avtLogSectors = $00FF;  { Mask's for TAvtFileCell.Flags }
-      avtBalance    = $0300;
-      avtCellFormat = $0C00;
-      avtIsDir      = $1000;
-
-      avtCell0      = $0000;
-      avtCell1      = $0400;
-      avtCell2      = $0800;
-      avtCell3      = $0C00;
+  end;
 
 type
-   TAvdType = (avdTdr, avdAvt);
+  TAvtHeader = record
+    signature: longInt; {'AVTP' = $50545641}
+    AvtFmt: longInt;
+    CheckSum: longInt;
+    AfterLastCell: longInt;
+    FreeCell: longInt;
+    RootDirCell: longInt;
+    NewSector: longInt;
+    LastNewSector: longInt;
+    AvtMediaCell: longInt;
+    Undefined1: longInt;
+    end;
 
-   PArvidDrive = ^TArvidDrive;
-   TArvidDrive = object(TDrive)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-      Name: PString;
-      Stream: PStream;
-      CurFile: LongInt;
-      CurDirPos: LongInt;
-      PosTableOfs: LongInt;
-      CurFileNum: AWord;
-      CurLevel: AWord;
-      CurDate: LongInt;
-      KillAfterUse: Boolean;
-      FileType: TAvdType;
-      D: TTdrHeader;
-      AVT: TAvtHeader;
-      TapeFmt: AWord;
-      TapeTotalTime: AWord;
-      TapeRecordedTime: AWord;
-      TotFiles: LongInt;      {in directory}
-      TotLen: LongInt;
-      CurDirCellPos: LongInt; {this for AVT: location of directory cell.
+  TAvtMediaCell = record
+    NextMediaCell: longInt;
+    TapeFmt: AWord; {16,32}
+    TapeLen: AWord;
+    TapeID: longInt;
+    Undefined1: longInt;
+    Undefined2: longInt;
+    Undefined3: longInt;
+    FirstSectorNum: longInt;
+    Sectors: longInt;
+    PositionTable: longInt;
+    PositionTableSize: longInt;
+    end;
+
+  TAvtFileCell = record
+    LeftFileCell: longInt;
+    RightFileCell: longInt;
+    ChildOrSize: longInt;
+    Time: longInt;
+    StartSector: longInt;
+    Flags: AWord;
+    Attr: AWord;
+    case Char of
+      0: (Name0: array[1..16] of Char);
+      1: (Name1: array[1..12] of Char; Next1: longInt);
+      2: (Name2: array[1..12] of Char; DescPtr2: longInt);
+      3: (NamePtr, NonUsed1, NonUsed2, DescPtr3: longInt);
+  end;
+
+TAvtTextCell = record
+  NextTextCell: longInt;
+  Data: array[1..36] of Char;
+  end;
+
+const
+  avtLogSectors = $00FF; { Mask's for TAvtFileCell.Flags }
+  avtBalance = $0300;
+  avtCellFormat = $0C00;
+  avtIsDir = $1000;
+
+  avtCell0 = $0000;
+  avtCell1 = $0400;
+  avtCell2 = $0800;
+  avtCell3 = $0C00;
+
+type
+  TAvdType = (avdTdr, avdAvt);
+
+  PArvidDrive = ^TArvidDrive;
+  TArvidDrive = object(TDrive)
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    Name: PString;
+    Stream: PStream;
+    CurFile: longInt;
+    CurDirPos: longInt;
+    PosTableOfs: longInt;
+    CurFileNum: AWord;
+    CurLevel: AWord;
+    CurDate: longInt;
+    KillAfterUse: boolean;
+    filetype: TAvdType;
+    D: TTdrHeader;
+    AVT: TAvtHeader;
+    TapeFmt: AWord;
+    TapeTotalTime: AWord;
+    TapeRecordedTime: AWord;
+    TotFiles: longInt; {in directory}
+    TotLen: longInt;
+    CurDirCellPos: longInt;
+      {this for AVT: location of directory cell.
                                CurDirPos for AVT is position of a root node}
 
-      constructor Init(const AName: String; num: byte);
-      procedure lChDir(ADir: String); virtual;
-      function GetDir: String; virtual;
-      function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
-                  var FreeSpace: String; var TotalInfo: TSize): PCollection; virtual;
-      constructor Load(var S: TStream);
-      procedure Store(var S: TStream); virtual;
-      procedure RereadDirectory(S: String); virtual;
-      procedure KillUse; virtual;
-      procedure UseFile(P: PFileRec; Command: Word); virtual;
-      procedure CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
-      procedure CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
-      procedure EraseFiles(AFiles: PCollection); virtual;
-      function  GetRealName: String; virtual;
-      function  GetInternalName: String; virtual;
-      procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
-      procedure MakeDir; virtual;
-      function  isUp: Boolean; virtual;
-      procedure ChangeUp(var S: String); virtual;
-      procedure ChangeRoot; virtual;
-      procedure GetFreeSpace(var S: String); virtual;
-      procedure GetDirInfo(var B: TDiskInfoRec); virtual;
-      procedure EditDescription(PF: PFileRec); virtual;
-      procedure GetDirLength(PF: PFileRec); virtual;
-      procedure GetParam(n: byte); virtual; {DataCompBoy}
-      destructor Done; virtual;
-      procedure SeekDirectory;
-      function OpenDirectory(const Dir: String): PDrive; virtual;
+    Constructor Init(const AName: String; Num: byte);
+    procedure lChDir(ADir: String); virtual;
+    function GetDir: String; virtual;
+    function GetDirectory(SortMode, PanelFlags: integer; const
+      FileMask: String;
+    var FreeSpace: String; var TotalInfo: TSize): PCollection;
+      virtual;
+    Constructor Load(var s: TStream);
+    procedure Store(var s: TStream); virtual;
+    procedure RereadDirectory(s: String); virtual;
+    procedure KillUse; virtual;
+    procedure UseFile(P: PFileRec; Command: word); virtual;
+    procedure CopyFiles(AFiles: PCollection; Own: PView; MoveMode:
+      boolean); virtual;
+    procedure CopyFilesInto(AFiles: PCollection; Own: PView;
+      MoveMode: boolean); virtual;
+    procedure EraseFiles(AFiles: PCollection); virtual;
+    function GetRealName: String; virtual;
+    function GetInternalName: String; virtual;
+    procedure HandleCommand(Command: word; InfoPtr: Pointer);
+      virtual;
+    procedure MakeDir; virtual;
+    function isUp: boolean; virtual;
+    procedure ChangeUp(var s: String); virtual;
+    procedure ChangeRoot; virtual;
+    procedure GetFreeSpace(var s: String); virtual;
+    procedure GetDirInfo(var B: TDiskInfoRec); virtual;
+    procedure EditDescription(PF: PFileRec); virtual;
+    procedure GetDirLength(PF: PFileRec); virtual;
+    procedure GetParam(n: byte); virtual; {DataCompBoy}
+    destructor Done; virtual;
+    procedure SeekDirectory;
+    function OpenDirectory(const Dir: String): PDrive; virtual;
     private
-      procedure Kill;
-   end;
-
+    procedure Kill;
+    end;
 
 const
   ArvidDrives: PCollection = nil;
-  ArvidWithDN: Boolean     = True;
+  ArvidWithDN: boolean = True;
 
 var
-  AllFiles: Boolean;
+  AllFiles: boolean;
 
-IMPLEMENTATION
+implementation
 uses
-  Advance, Advance2, Advance1, Advance3, FlPanel, Commands, Startup, DnApp,
-  Drivers, Messages, Dialogs, Memory, FileFind, DnUtil, FileCopy, u_KeyMap,
-  ArvidAvt,ArvidTdr;
+  advance, advance2, advance1, advance3, FlPanel, Commands, Startup,
+    DNApp,
+  Drivers, Messages, Dialogs, Memory, FileFind, DNUtil, FileCopy,
+    U_KeyMap,
+  ArvidAvt, ArvidTdr;
 
-        {-DataCompBoy-}
+{-DataCompBoy-}
 procedure TArvidDrive.GetParam;
-begin
- Param:=n;
- with ColumnsDefaultsArvd do
   begin
-   Flags := Params[n].Param;
-   LFNLen:=StoI(Params[n].LFNLen);
-   if (LFNLen = 0) or (LFNLen > 252) then LFNLen := 252;
-   EXTLen:=StoI(Params[n].EXTLen);
-   if EXTLen > 252 then EXTLen := 252;
-   case FileCase of
-    0: FilFLP := 0;
-    1: FilFLP := flnLowCase;
-    2: FilFLP := flnCapitalCase;
-    3: FilFLP := flnUpCase;
-    4: FilFLP := 65535;
-   end;
-   case DirsCase of
-    0: DirFLP := 0;
-    1: DirFLP := flnLowCase;
-    2: DirFLP := flnCapitalCase;
-    3: DirFLP := flnUpCase;
-    4: DirFLP := 65535;
-   end;
-  end;
-end;
-        {-DataCompBoy-}
+    Param := n;
+    with ColumnsDefaultsArvd do
+      begin
+        Flags := Params[n].Param;
+        LFNLen := StoI(Params[n].LFNLen);
+        if (LFNLen = 0) or (LFNLen > 252) then
+          LFNLen := 252;
+        EXTLen := StoI(Params[n].EXTLen);
+        if EXTLen > 252 then
+          EXTLen := 252;
+        case FileCase of
+          0:
+            FilFLP := 0;
+          1:
+            FilFLP := flnLowCase;
+          2:
+            FilFLP := flnCapitalCase;
+          3:
+            FilFLP := flnUpCase;
+          4:
+            FilFLP := 65535;
+        end {case};
+        case DirsCase of
+          0:
+            DirFLP := 0;
+          1:
+            DirFLP := flnLowCase;
+          2:
+            DirFLP := flnCapitalCase;
+          3:
+            DirFLP := flnUpCase;
+          4:
+            DirFLP := 65535;
+        end {case};
+      end;
+  end { TArvidDrive.GetParam };
+{-DataCompBoy-}
 
-constructor TArvidDrive.Init;
-var Attrb: Word;
+Constructor TArvidDrive.Init;
+  var
+    Attrb: word;
     i: integer;
-    q: string;
+    Q: String;
 
   procedure GetAttr;
-  var F: lfile; begin lAssignFile(F, AName); lGetFAttr(F, Attrb) end;
-
-  procedure SetAttr(A: Word);
-  var F: lfile; begin lAssignFile(F, AName); lSetFAttr(F, A) end;
-
-label 1;
-
-begin
-  TObject.Init;
-  if num<1 then GetParam(1)
-           else GetParam(num);
-  innum:=num;
-
-  i:=PosChar(':', Copy(AName, 3, MaxStringLength))+2;
-  if i>2 then begin
-   q:=Copy(AName,I+1,MaxStringLength);
-   if Q[Length(Q)] in ['\','/'] then SetLength(Q, Length(Q)-1);
-   Stream:=New(PBufStream, Init(Copy(AName, 1, I-1), stOpen, 2048));
-  end else
-   Stream:=New(PBufStream, Init(AName, stOpen, 2048));
-
-  if Stream^.Status <> stOK then begin
-    GetAttr; if Attrb and ReadOnly <> 0 then
+    var
+      F: lFile;
     begin
-      SetAttr(Archive);
-      if (IOResult <> 0 ) then
-        begin
-1:
-          Dispose(Stream, Done);
-          Stream:=nil;
-          Fail;
-        end;
+      lAssignFile(F, AName);
+      lGetFAttr(F, Attrb)
     end;
-    if i>0
-     then Stream:=New(PBufStream, Init(Copy(AName, 1, I-1), stOpen, 2048))
-     else Stream:=New(PBufStream, Init(AName, stOpen, 2048));
-    if Stream^.Status <> stOK then goto 1;
-  end;
-  Stream^.Read(AVT, SizeOf(AVT));
-  if Stream^.Status <> stOK then goto 1;
-  if AVT.Signature <> $50545641{'AVTP'}
-   then if not TdrInit(@Self) then goto 1 else
-   else if not AvtInit(@Self) then goto 1;
-  Name:=NewStr(lFExpand(AName));
-  DriveType:=dtArvid;
-  KillAfterUse:=TempFile <> '';
-  TempFile:='';
-  if I>2 then CurDir:=Q else CurDir:='\';
-  SeekDirectory;
-  if ArvidDrives = nil then New(ArvidDrives, Init($100, $100));
-  ArvidDrives^.Insert(@Self);
-  AddToDirectoryHistory(Name^+':'+CurDir,Integer(DriveType));
-end;
+
+  procedure SetAttr(A: word);
+    var
+      F: lFile;
+    begin
+      lAssignFile(F, AName);
+      lSetFAttr(F, A)
+    end;
+
+  label 1;
+
+  begin { TArvidDrive.Init }
+    TObject.Init;
+    if Num < 1 then
+      GetParam(1)
+    else
+      GetParam(Num);
+    innum := Num;
+
+    i := PosChar(':', Copy(AName, 3, MaxStringLength))+2;
+    if i > 2 then
+      begin
+        Q := Copy(AName, i+1, MaxStringLength);
+        if Q[Length(Q)] in ['\', '/'] then
+          SetLength(Q, Length(Q)-1);
+        Stream := New(PBufStream, Init(Copy(AName, 1, i-1), stOpen,
+          2048));
+      end
+    else
+      Stream := New(PBufStream, Init(AName, stOpen, 2048));
+
+    if Stream^.Status <> stOK then
+      begin
+        GetAttr;
+        if Attrb and ReadOnly <> 0 then
+          begin
+            SetAttr(Archive);
+            if (IOResult <> 0) then
+              begin
+1:
+                Dispose(Stream, Done);
+                Stream := nil;
+                Fail;
+              end;
+          end;
+        if i > 0
+        then
+          Stream := New(PBufStream, Init(Copy(AName, 1, i-1), stOpen,
+            2048))
+        else
+          Stream := New(PBufStream, Init(AName, stOpen, 2048));
+        if Stream^.Status <> stOK then
+          goto 1;
+      end;
+    Stream^.Read(AVT, SizeOf(AVT));
+    if Stream^.Status <> stOK then
+      goto 1;
+    if AVT.signature <> $50545641 {'AVTP'}
+    then
+      if not TdrInit(@Self) then
+        goto 1
+      else
+    else if not AvtInit(@Self) then
+      goto 1;
+    Name := NewStr(lFExpand(AName));
+    DriveType := dtArvid;
+    KillAfterUse := TempFile <> '';
+    TempFile := '';
+    if i > 2 then
+      CurDir := Q
+    else
+      CurDir := '\';
+    SeekDirectory;
+    if ArvidDrives = nil then
+      New(ArvidDrives, Init($100, $100));
+    ArvidDrives^.Insert(@Self);
+    AddToDirectoryHistory(Name^+':'+CurDir, integer(DriveType));
+  end { TArvidDrive.Init };
 
 procedure TArvidDrive.SeekDirectory;
-begin
-  if FileType = avdTdr then TdrSeekDirectory(@Self)
-                       else AvtSeekDirectory(@Self);
-end;
+  begin
+    if filetype = avdTdr then
+      TdrSeekDirectory(@Self)
+    else
+      AvtSeekDirectory(@Self);
+  end;
 
 procedure TArvidDrive.Kill;
-begin
-  if not KillAfterUse then Exit;
-  if Stream <> nil then Dispose(Stream, Done); Stream := nil;
-  EraseTempFile(Name^);
-end;
+  begin
+    if not KillAfterUse then
+      exit;
+    if Stream <> nil then
+      Dispose(Stream, Done);
+    Stream := nil;
+    EraseTempFile(Name^);
+  end;
 
 function TArvidDrive.GetDirectory;
-var
-  FC: PFilesCollection;
-  P: PString;
-  DT: DateTime;
-  TAttr: Word;
-begin
-  New(FC, Init($80, $40));
-  FC^.SortMode := SortMode;
-{$IFDEF Win32}
-  FC^.LFNActive := False;
-{$ENDIF}
-  if ArvidWithDN then GetFreeSpace(FreeSpace);
-  TotFiles := 0; TotLen := 0;
+  var
+    FC: PFilesCollection;
+    P: PString;
+    DT: DateTime;
+    TAttr: word;
+  begin
+    New(FC, Init($80, $40));
+    FC^.SortMode := SortMode;
+    {$IFDEF Win32}
+    FC^.LFNActive := False;
+    {$ENDIF}
+    if ArvidWithDN then
+      GetFreeSpace(FreeSpace);
+    TotFiles := 0;
+    TotLen := 0;
 
-  GetDirectory := FC;
-  AllFiles := (FileMask = x_x) or (FileMask='*');
+    GetDirectory := FC;
+    AllFiles := (FileMask = x_x) or (FileMask = '*');
 
-  if FileType = avdTdr then TdrGetDirectory(@Self, CurDirPos, FC, FileMask)
-                       else AvtGetDirectory(@Self, CurDirPos, FC, FileMask);
+    if filetype = avdTdr then
+      TdrGetDirectory(@Self, CurDirPos, FC, FileMask)
+    else
+      AvtGetDirectory(@Self, CurDirPos, FC, FileMask);
 
-  if CurDir = '' then P := Name else P := @CurDir;
+    if CurDir = '' then
+      P := Name
+    else
+      P := @CurDir;
 
-  TotalInfo := TotLen;
-{$IFNDEF OS2}
-  FC^.AtInsert(0, NewFileRec('..', '..', 0, CurDate, 0, 0, Directory, P));
-{$ELSE}
-  FC^.AtInsert(0, NewFileRec('..', 0, CurDate, 0, 0, Directory, P));
-{$ENDIF}
-end;
+    TotalInfo := TotLen;
+    {$IFNDEF OS2}
+    FC^.AtInsert(0, NewFileRec('..', '..', 0, CurDate, 0, 0,
+      Directory, P));
+    {$ELSE}
+    FC^.AtInsert(0, NewFileRec('..', 0, CurDate, 0, 0, Directory, P));
+    {$ENDIF}
+  end { TArvidDrive.GetDirectory };
 
 destructor TArvidDrive.Done;
-begin
-  if ArvidDrives<>nil then begin
-    ArvidDrives^.Delete(@Self);
-    if ArvidDrives^.Count = 0 then Dispose(ArvidDrives, Done);
-    ArvidDrives:=nil;
+  begin
+    if ArvidDrives <> nil then
+      begin
+        ArvidDrives^.Delete(@Self);
+        if ArvidDrives^.Count = 0 then
+          Dispose(ArvidDrives, Done);
+        ArvidDrives := nil;
+      end;
+    if Stream <> nil then
+      Dispose(Stream, Done);
+    Stream := nil;
+    DisposeStr(Name);
+    inherited Done;
   end;
-  if Stream <> nil then Dispose(Stream, Done); Stream:=nil;
-  DisposeStr(Name);
-  inherited Done;
-end;
 
 procedure TArvidDrive.lChDir;
- var Dr: String;
-     Nm: String;
-     Xt: String;
-begin
- if ADir = #0 then Exit;
- lFSplit(ADir, Dr, Nm, Xt);
- if (Nm = '.') and (Xt = '.') then begin
-   if Dr <> '' then CurDir := Dr;
-   if CurDir[1] <> '\' then Insert('\', CurDir, 1);
-   repeat SetLength(CurDir, Length(CurDir)-1) until (CurDir = '') or (CurDir[Length(CurDir)] = '\');
-   if CurDir <> '' then SetLength(CurDir, Length(CurDir)-1);
- end else CurDir := ADir;
- SeekDirectory;
- While (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do SetLength(CurDir, Length(CurDir)-1);
- AddToDirectoryHistory(Name^+':'+CurDir,Integer(DriveType));
-end;
+  var
+    dr: String;
+    Nm: String;
+    XT: String;
+  begin
+    if ADir = #0 then
+      exit;
+    lFSplit(ADir, dr, Nm, XT);
+    if (Nm = '.') and (XT = '.') then
+      begin
+        if dr <> '' then
+          CurDir := dr;
+        if CurDir[1] <> '\' then
+          Insert('\', CurDir, 1);
+        repeat
+          SetLength(CurDir, Length(CurDir)-1)
+        until (CurDir = '') or (CurDir[Length(CurDir)] = '\');
+        if CurDir <> '' then
+          SetLength(CurDir, Length(CurDir)-1);
+      end
+    else
+      CurDir := ADir;
+    SeekDirectory;
+    while (PosChar(CurDir[Length(CurDir)], ' .\') > 0) do
+      SetLength(CurDir, Length(CurDir)-1);
+    AddToDirectoryHistory(Name^+':'+CurDir, integer(DriveType));
+  end { TArvidDrive.lChDir };
 
 function TArvidDrive.GetDir;
- var Dr: String;
-     Nm: String;
-     Xt: String;
-begin
- lFSplit(Name^, Dr, Nm, Xt);
- if FileType = avdTdr
-  then GetDir:= 'TDR:'+Nm+'\'+CurDir
-  else GetDir:= 'AVT:'+Nm+'\'+CurDir;
-end;
+  var
+    dr: String;
+    Nm: String;
+    XT: String;
+  begin
+    lFSplit(Name^, dr, Nm, XT);
+    if filetype = avdTdr
+    then
+      GetDir := 'TDR:'+Nm+'\'+CurDir
+    else
+      GetDir := 'AVT:'+Nm+'\'+CurDir;
+  end;
 
-constructor TArvidDrive.Load;
+Constructor TArvidDrive.Load;
   label 1;
-begin
-  TObject.Init;
-  inherited Load(S);
-  DriveType := dtArvid;
-  S.Read(KillAfterUse, 1);
-  Name := S.ReadStr;
-  Stream := New(PBufStream, Init(Name^, stOpen, 2048));
-  if Stream^.Status <> stOK then
-    begin
+  begin
+    TObject.Init;
+    inherited Load(s);
+    DriveType := dtArvid;
+    s.Read(KillAfterUse, 1);
+    Name := s.ReadStr;
+    Stream := New(PBufStream, Init(Name^, stOpen, 2048));
+    if Stream^.Status <> stOK then
+      begin
 1:
-      Done;
-{      Drives.DriveLoadingError:=True;}
-      Fail;
-    end;
-  Stream^.Read(AVT, SizeOf(AVT));
-  if Stream^.Status <> stOK then goto 1;
-  if AVT.Signature <> $50545641{'AVTP'}
-   then if not TdrInit(@Self) then goto 1 else
-   else if not AvtInit(@Self) then goto 1;
-  SeekDirectory;
-  if ArvidDrives = nil then New(ArvidDrives, Init($100, $100));
-  ArvidDrives^.Insert(@Self);
-end;
+        Done;
+        {      Drives.DriveLoadingError:=True;}
+        Fail;
+      end;
+    Stream^.Read(AVT, SizeOf(AVT));
+    if Stream^.Status <> stOK then
+      goto 1;
+    if AVT.signature <> $50545641 {'AVTP'}
+    then
+      if not TdrInit(@Self) then
+        goto 1
+      else
+    else if not AvtInit(@Self) then
+      goto 1;
+    SeekDirectory;
+    if ArvidDrives = nil then
+      New(ArvidDrives, Init($100, $100));
+    ArvidDrives^.Insert(@Self);
+  end { TArvidDrive.Load };
 
 procedure TArvidDrive.Store;
-begin
-  inherited Store(S);
-  S.Write(KillAfterUse, 1);
-  S.WriteStr(Name);
-end;
+  begin
+    inherited Store(s);
+    s.Write(KillAfterUse, 1);
+    s.WriteStr(Name);
+  end;
 
 procedure TArvidDrive.RereadDirectory;
-begin
-  if Prev <> nil then Prev^.RereadDirectory(S);
-  if FileType = avdAvt then begin
-   Dispose(Stream,Done);
-   Stream:=New(PBufStream, Init(Name^, stOpen, 2048));
-   Stream^.Seek(0);
-   Stream^.Read(AVT, SizeOf(AVT));
-   SeekDirectory;
+  begin
+    if Prev <> nil then
+      Prev^.RereadDirectory(s);
+    if filetype = avdAvt then
+      begin
+        Dispose(Stream, Done);
+        Stream := New(PBufStream, Init(Name^, stOpen, 2048));
+        Stream^.Seek(0);
+        Stream^.Read(AVT, SizeOf(AVT));
+        SeekDirectory;
+      end;
   end;
-end;
 
 procedure TArvidDrive.KillUse;
-begin
-  if Prev <> nil then Prev^.KillUse;
-  Kill;
-end;
+  begin
+    if Prev <> nil then
+      Prev^.KillUse;
+    Kill;
+  end;
 
 procedure TArvidDrive.UseFile;
-begin
-{  MessageBox('TArvidDrive.UseFile', nil, mfError + mfOKButton);}
-end;
+  begin
+    {  MessageBox('TArvidDrive.UseFile', nil, mfError + mfOKButton);}
+  end;
 
 { CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual; }
 procedure TArvidDrive.CopyFiles;
-var
-    I,J:  Integer;
-    CopyOpt: Word;
-    CopyMode: Word;
-    CopyPrn: Boolean;
-    CmdFileCreated: Boolean;
+  var
+    i, j: integer;
+    CopyOpt: word;
+    CopyMode: word;
+    CopyPrn: boolean;
+    CmdFileCreated: boolean;
     OwnerPtr: PView;
-    P:  PView;
-    T:  lText;
+    P: PView;
+    t: lText;
     PF: PFileRec;
     FC, FC2: TAvtFileCell;
     Nam, Desc: String;
     CopyDir: String;
     Mask: String;
-    S1, S2, S3:  String;
+    s1, s2, S3: String;
     CmdFileNam: String;
-    Dr: String;
+    dr: String;
     Nm: String;
-    Xt: String;
+    XT: String;
 
-   procedure CopyTree(Pos: LongInt);
-   begin
-     if Pos = 0 then Exit;
-     Stream^.Seek(Pos); Stream^.Read(FC, SizeOf(FC));
-     if (FC.Flags and avtIsDir) <> 0 then begin
-       FC2:=FC;
-       FC.ChildOrSize:=0;
-     end;
-     Nam:=AvtCellName(FC, Stream^);
-     Desc:=AvtCellDesc(FC, Stream^);
-     if AvtNewFile(@Self,S2+Nam, Desc, (FC.Flags and avtIsDir) <> 0, FC.ChildOrSize,
-       FC.Time, FC.StartSector, FC.Attr) = 0 then
-     begin
-       MessageBox(GetString(dlFBBOver1)+S2+Nam, nil, mfError + mfOKButton);
-     end else begin
-       if (FC.Flags and avtIsDir) <> 0 then begin
-         S1:=S1+Nam+'\';
-         S2:=S2+Nam+'\';
-         CopyTree(FC2.ChildOrSize);
-         SetLength(S1, Length(S1)-1); SetLength(S2, Length(S2)-1);
-         while (S1<>'') and (S1[Length(S1)] <> '\') do begin
-           SetLength(S1, Length(S1)-1); SetLength(S2, Length(S2)-1);
-         end;
-         Stream^.Seek(Pos); Stream^.Read(FC, SizeOf(FC));
-       end;
-       Stream^.Seek(Pos); Stream^.Read(FC, SizeOf(FC));
-       CopyTree(FC.LeftFileCell);
-       Stream^.Seek(Pos); Stream^.Read(FC, SizeOf(FC));
-       CopyTree(FC.RightFileCell);
-     end;
-   end;
+  procedure CopyTree(Pos: longInt);
+    begin
+      if Pos = 0 then
+        exit;
+      Stream^.Seek(Pos);
+      Stream^.Read(FC, SizeOf(FC));
+      if (FC.Flags and avtIsDir) <> 0 then
+        begin
+          FC2 := FC;
+          FC.ChildOrSize := 0;
+        end;
+      Nam := AvtCellName(FC, Stream^);
+      Desc := AvtCellDesc(FC, Stream^);
+      if AvtNewFile(@Self, s2+Nam, Desc, (FC.Flags and avtIsDir) <> 0,
+          FC.ChildOrSize,
+        FC.Time, FC.StartSector, FC.Attr) = 0
+      then
+        begin
+          MessageBox(GetString(dlFBBOver1)+s2+Nam, nil, mfError+
+            mfOKButton);
+        end
+      else
+        begin
+          if (FC.Flags and avtIsDir) <> 0 then
+            begin
+              s1 := s1+Nam+'\';
+              s2 := s2+Nam+'\';
+              CopyTree(FC2.ChildOrSize);
+              SetLength(s1, Length(s1)-1);
+              SetLength(s2, Length(s2)-1);
+              while (s1 <> '') and (s1[Length(s1)] <> '\') do
+                begin
+                  SetLength(s1, Length(s1)-1);
+                  SetLength(s2, Length(s2)-1);
+                end;
+              Stream^.Seek(Pos);
+              Stream^.Read(FC, SizeOf(FC));
+            end;
+          Stream^.Seek(Pos);
+          Stream^.Read(FC, SizeOf(FC));
+          CopyTree(FC.LeftFileCell);
+          Stream^.Seek(Pos);
+          Stream^.Read(FC, SizeOf(FC));
+          CopyTree(FC.RightFileCell);
+        end;
+    end { CopyTree };
 
+  { CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual; }
+  begin { TArvidDrive.CopyFiles }
+    CtrlBreakHit := False;
+    AFiles^.Pack;
+    if AFiles^.Count <= 0 then
+      exit;
+    lFSplit(Name^, dr, Nm, XT);
+    if filetype = avdTdr then
+      s1 := dr+'TDR:'+Nm+'\'
+    else
+      s1 := dr+'AVT:'+Nm+'\';
+    Message(Application, evCommand, cmPushFirstName, @CopyDirName);
+    if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
+      MoveMode, AFiles, 0, Owner, True)
+    then
+      exit;
 
-{ CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual; }
-begin
-   CtrlBreakHit:=false;
-   AFiles^.Pack; if AFiles^.Count <= 0 then Exit;
-   lFSplit(Name^, Dr, Nm, Xt);
-   if FileType = avdTdr then
-     S1:= Dr+'TDR:'+Nm+'\' else
-     S1:= Dr+'AVT:'+Nm+'\';
-   Message(Application, evCommand, cmPushFirstName, @CopyDirName);
-   if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
-                     MoveMode, AFiles, 0, Owner, true) then Exit;
-
-   if CopyDir[Length(CopyDir)] <> '\' then CopyDir:=CopyDir+'\';
-   if Pos(S1, CopyDir) = 1 then begin
-     if FileType = avdTdr then begin
-       MessageBox(GetString(dlArvidCanChangeOnlyAVT), nil, mfInformation + mfOKButton);
-       Exit;
-     end;
-     P:=WriteMsg(GetString(dlPleaseStandBy));
-     while Length(S1) <> 1 do begin Delete(S1, 1, 1); {DelFC(S1);} Delete(CopyDir, 1, 1); {DelFC(CopyDir);} end;
-     S2:=CurDir;
-     for I:=0 to AFiles^.Count - 1 do begin
-       PF:=AFiles^.at(i);
-       Stream^.Seek({Cat:warn} Round(PF^.PSize));
-       Stream^.Read(FC, SizeOf(FC));
-       Desc:=AvtCellDesc(FC, Stream^);
-       S1:=MakeNormName('\'+CurDir, PF^.FlName[true]);
-       S2:=MakeNormName(CopyDir, MkName(PF^.FlName[true], Mask));
-       if Pos(S1,S2)=1 then begin
-         MessageBox(GetString(erIntoItself), nil, mfError + mfOKButton);
-       end
-       else begin
-         if MoveMode then begin {move}
-           FC2:=FC; FC2.ChildOrSize:=0;
-           Stream^.Seek({Cat:warn} Round(PF^.PSize)); Stream^.Write(FC2, SizeOf(FC2));
-           AvtDelFile(@Self, S1);
-           if AvtNewFile(@Self,S2, Desc, (FC.Flags and avtIsDir) <> 0,
-             FC.ChildOrSize, FC.Time, FC.StartSector, FC.Attr) = 0 then
-           begin
-             AvtNewFile(@Self,S1, Desc, (FC.Flags and avtIsDir) <> 0,
-               FC.ChildOrSize, FC.Time, FC.StartSector, FC.Attr);
-             MessageBox(GetString(dlFBBOver1)+S2, nil, mfError + mfOKButton);
-           end;
-         end else begin {copy}
-           if (PF^.Attr and Directory <> 0) then begin
-             FC2:=FC;
-             FC.ChildOrSize:=0;
-           end;
-           if AvtNewFile(@Self,S2, Desc, (FC.Flags and avtIsDir) <> 0,
-             FC.ChildOrSize, FC.Time, FC.StartSector, FC.Attr) = 0 then
-           begin
-             MessageBox(GetString(dlFBBOver1)+S2, nil, mfError + mfOKButton);
-           end else if (PF^.Attr and Directory <> 0) then begin
-             S1:=S1+'\';
-             S2:=S2+'\';
-             CopyTree(FC2.ChildOrSize);
-           end;
-         end;
-       end;
-     end;
-     P^.Free;
-     Stream^.Seek(0); Stream^.Write(AVT, SizeOf(AVT));
-     Dispose(Stream,Done);
-     Stream:=New(PBufStream, Init(Name^, stOpen, 2048));
-     GlobalMessage(evCommand, cmPanelReread, nil);
-     Exit;
-   end else begin
-     S2:=CopyDir;
-     J:=0;
-     I:=Pos(':',S2);
-     while I>0 do begin Inc(J); S2[I]:=' '; I:=Pos(':',S2); end;
-     if (J>1) or MoveMode then begin
-       MessageBox(GetString(dlArvidNeedDisk), nil, mfError + mfOKButton);
-       Exit;
-     end;
-     if TapeFmt = 0 then begin
-       MessageBox(GetString(dlArvidVolumeIsNotTape), nil, mfError + mfOKButton);
-       Exit;
-     end;
-     S2:=UpStrg(CopyDir);
-     I:=Pos(':',S2);
-     if (I<>2) or (S2[1]<'A') or (S2[1]>'Z') then begin
-       MessageBox(GetString(dlArvidNeedDisk), nil, mfError + mfOKButton);
-       Exit;
-     end;
-     CmdFileNam:=MakeNormName(Dr, Nm+'.RD');
-     lAssignText(T, CmdFileNam);
-     lAppendText(T);
-     CmdFileCreated:=False;
-     if IOResult <> 0 then begin
-       lRewriteText(T);
-       WriteLn(T.T, 'IDENT');
-       CmdFileCreated:=True;
-     end;
-     WriteLn(T.T, '');
-     P:=WriteMsg(GetString(dlPleaseStandBy));
-     for I:=0 to AFiles^.Count - 1 do begin
-       PF:=AFiles^.at(i);
-       S1:=MakeNormName('\'+CurDir, PF^.FlName[true]);
-       S2:=MakeNormName(CopyDir, MkName(Mask, PF^.FlName[true]));
-       if (PF^.Attr and Directory) = 0 then
-         WriteLn(T.T, 'COPY TP:'+SquashesName(S1)+' '+SquashesName(S2)+' /O/R/C/H')
-       else begin
-         MkDir(S2);
-         WriteLn(T.T, 'COPYDIR TP:'+SquashesName(S1)+' '+SquashesName(S2)+' /I/O/R/C/H')
-       end;
-     end;
-     P^.Free;
-     if CmdFileCreated then
-       MessageBox(GetString(dlArvidCmdFileCreated)+CmdFileNam,
-       nil, mfInformation + mfOKButton)
-     else
-       MessageBox(GetString(dlArvidCmdFileAppended)+CmdFileNam,
-       nil, mfInformation + mfOKButton);
-     Close(T.T);
-     GlobalMessage(evCommand, cmPanelReread, nil);
-     Exit;
-   end;
-end;
+    if CopyDir[Length(CopyDir)] <> '\' then
+      CopyDir := CopyDir+'\';
+    if Pos(s1, CopyDir) = 1 then
+      begin
+        if filetype = avdTdr then
+          begin
+            MessageBox(GetString(dlArvidCanChangeOnlyAVT), nil,
+              mfInformation+mfOKButton);
+            exit;
+          end;
+        P := WriteMsg(GetString(dlPleaseStandBy));
+        while Length(s1) <> 1 do
+          begin
+            Delete(s1, 1, 1); {DelFC(S1);}Delete(CopyDir, 1, 1);
+              {DelFC(CopyDir);}
+          end;
+        s2 := CurDir;
+        for i := 0 to AFiles^.Count-1 do
+          begin
+            PF := AFiles^.At(i);
+            Stream^.Seek( {Cat:warn}Round(PF^.PSize));
+            Stream^.Read(FC, SizeOf(FC));
+            Desc := AvtCellDesc(FC, Stream^);
+            s1 := MakeNormName('\'+CurDir, PF^.FlName[True]);
+            s2 := MakeNormName(CopyDir, MkName(PF^.FlName[True],
+              Mask));
+            if Pos(s1, s2) = 1 then
+              begin
+                MessageBox(GetString(erIntoItself), nil, mfError+
+                  mfOKButton);
+              end
+            else
+              begin
+                if MoveMode then
+                  begin{move}
+                    FC2 := FC;
+                    FC2.ChildOrSize := 0;
+                    Stream^.Seek( {Cat:warn}Round(PF^.PSize));
+                    Stream^.Write(FC2, SizeOf(FC2));
+                    AvtDelFile(@Self, s1);
+                    if AvtNewFile(@Self, s2, Desc, (FC.Flags and
+                        avtIsDir) <> 0,
+                      FC.ChildOrSize, FC.Time, FC.StartSector, FC.
+                        Attr) = 0
+                    then
+                      begin
+                        AvtNewFile(@Self, s1, Desc, (FC.Flags and
+                          avtIsDir) <> 0,
+                        FC.ChildOrSize, FC.Time, FC.StartSector, FC.
+                          Attr);
+                        MessageBox(GetString(dlFBBOver1)+s2, nil,
+                          mfError+mfOKButton);
+                      end;
+                  end
+                else
+                  begin{copy}
+                    if (PF^.Attr and Directory <> 0) then
+                      begin
+                        FC2 := FC;
+                        FC.ChildOrSize := 0;
+                      end;
+                    if AvtNewFile(@Self, s2, Desc, (FC.Flags and
+                        avtIsDir) <> 0,
+                      FC.ChildOrSize, FC.Time, FC.StartSector, FC.
+                        Attr) = 0
+                    then
+                      begin
+                        MessageBox(GetString(dlFBBOver1)+s2, nil,
+                          mfError+mfOKButton);
+                      end
+                    else if (PF^.Attr and Directory <> 0) then
+                      begin
+                        s1 := s1+'\';
+                        s2 := s2+'\';
+                        CopyTree(FC2.ChildOrSize);
+                      end;
+                  end;
+              end;
+          end;
+        P^.Free;
+        Stream^.Seek(0);
+        Stream^.Write(AVT, SizeOf(AVT));
+        Dispose(Stream, Done);
+        Stream := New(PBufStream, Init(Name^, stOpen, 2048));
+        GlobalMessage(evCommand, cmPanelReread, nil);
+        exit;
+      end
+    else
+      begin
+        s2 := CopyDir;
+        j := 0;
+        i := Pos(':', s2);
+        while i > 0 do
+          begin
+            Inc(j);
+            s2[i] := ' ';
+            i := Pos(':', s2);
+          end;
+        if (j > 1) or MoveMode then
+          begin
+            MessageBox(GetString(dlArvidNeedDisk), nil, mfError+
+              mfOKButton);
+            exit;
+          end;
+        if TapeFmt = 0 then
+          begin
+            MessageBox(GetString(dlArvidVolumeIsNotTape), nil,
+              mfError+mfOKButton);
+            exit;
+          end;
+        s2 := UpStrg(CopyDir);
+        i := Pos(':', s2);
+        if (i <> 2) or (s2[1] < 'A') or (s2[1] > 'Z') then
+          begin
+            MessageBox(GetString(dlArvidNeedDisk), nil, mfError+
+              mfOKButton);
+            exit;
+          end;
+        CmdFileNam := MakeNormName(dr, Nm+'.RD');
+        lAssignText(t, CmdFileNam);
+        lAppendText(t);
+        CmdFileCreated := False;
+        if IOResult <> 0 then
+          begin
+            lRewriteText(t);
+            Writeln(t.t, 'IDENT');
+            CmdFileCreated := True;
+          end;
+        Writeln(t.t, '');
+        P := WriteMsg(GetString(dlPleaseStandBy));
+        for i := 0 to AFiles^.Count-1 do
+          begin
+            PF := AFiles^.At(i);
+            s1 := MakeNormName('\'+CurDir, PF^.FlName[True]);
+            s2 := MakeNormName(CopyDir, MkName(Mask, PF^.FlName[True]));
+            if (PF^.Attr and Directory) = 0 then
+              Writeln(t.t, 'COPY TP:'+SquashesName(s1)+' '+
+                SquashesName(s2)+' /O/R/C/H')
+            else
+              begin
+                MkDir(s2);
+                Writeln(t.t, 'COPYDIR TP:'+SquashesName(s1)+' '+
+                  SquashesName(s2)+' /I/O/R/C/H')
+              end;
+          end;
+        P^.Free;
+        if CmdFileCreated then
+          MessageBox(GetString(dlArvidCmdFileCreated)+CmdFileNam,
+          nil, mfInformation+mfOKButton)
+        else
+          MessageBox(GetString(dlArvidCmdFileAppended)+CmdFileNam,
+          nil, mfInformation+mfOKButton);
+        Close(t.t);
+        GlobalMessage(evCommand, cmPanelReread, nil);
+        exit;
+      end;
+  end { TArvidDrive.CopyFiles };
 
 { CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;}
 procedure TArvidDrive.CopyFilesInto;
-begin AvtCopyFilesInto(@Self, AFiles, Own, MoveMode); end;
+  begin
+    AvtCopyFilesInto(@Self, AFiles, Own, MoveMode);
+  end;
 
 procedure TArvidDrive.EraseFiles;
-begin AvtEraseFiles(@Self, AFiles); end;
+  begin
+    AvtEraseFiles(@Self, AFiles);
+  end;
 
 procedure TArvidDrive.MakeDir;
-begin AvtMakeDir(@Self) end;
+  begin
+    AvtMakeDir(@Self)
+  end;
 
 function TArvidDrive.isUp;
-begin
-  isUp:=True;
-end;
+  begin
+    isUp := True;
+  end;
 
 procedure TArvidDrive.ChangeUp;
-begin
-  if CurDir <> '' then begin
-   S := GetName(CurDir);
-   lChDir('..');
-   Exit
-  end;
-  if Owner = nil then Exit;
-  if Prev = nil then begin
-   New(Prev, Init(0, Owner, Flags));
-   if Prev = nil then Exit;
-  end;
-  PFilePanel(Owner)^.Drive := Prev;
-  Prev^.lChDir(Prev^.CurDir);
-  if (Prev^.DriveType = dtDisk) and
-     (PView(Owner)^.GetState(sfSelected+sfActive)) then
+  begin
+    if CurDir <> '' then
+      begin
+        s := GetName(CurDir);
+        lChDir('..');
+        exit
+      end;
+    if Owner = nil then
+      exit;
+    if Prev = nil then
+      begin
+        New(Prev, Init(0, Owner, Flags));
+        if Prev = nil then
+          exit;
+      end;
+    PFilePanel(Owner)^.Drive := Prev;
+    Prev^.lChDir(Prev^.CurDir);
+    if (Prev^.DriveType = dtDisk) and
+      (PView(Owner)^.GetState(sfSelected+sfActive))
+    then
       ActivePanel := Owner;
-  GlobalMessage(evCommand, cmRereadInfo, nil);
-  Prev := nil;
-  S := GetName(Name^);
-  Kill;
-  Dispose(PDrive(@Self), Done);
-end;
+    GlobalMessage(evCommand, cmRereadInfo, nil);
+    Prev := nil;
+    s := GetName(Name^);
+    Kill;
+    Dispose(PDrive(@Self), Done);
+  end { TArvidDrive.ChangeUp };
 
 procedure TArvidDrive.ChangeRoot;
-begin
-  CurDir := '';
-  SeekDirectory;
-end;
+  begin
+    CurDir := '';
+    SeekDirectory;
+  end;
 
 procedure TArvidDrive.GetFreeSpace;
-  var M, R: LongInt;
-      L: Array [1..2] of LongInt;
-      A: TAvtMediaCell;
-begin
-  case TapeFmt of
-      0:   M:=0;
-      2,4: M:=100;
-      8:   M:=200;
-      16:  M:=200;
-      32:  M:=325;
-      else M:=325;
-  end;
+  var
+    M, R: longInt;
+    l: array[1..2] of longInt;
+    A: TAvtMediaCell;
+  begin
+    case TapeFmt of
+      0:
+        M := 0;
+      2, 4:
+        M := 100;
+      8:
+        M := 200;
+      16:
+        M := 200;
+      32:
+        M := 325;
+      else
+        M := 325;
+    end {case};
 
-  if FileType = avdTdr
-   then L[1] := Max(0, (LongInt(D.TapeLen) - D.RecordLen) div 60)
-   else L[1] := Max(0, (LongInt(TapeTotalTime) - TapeRecordedTime) div 60);
-  L[2] := (L[1] * 60 * M) div 1024;
-  FormatStr(S, GetString(dlArvid_TimeLeft), L);
-end;
+    if filetype = avdTdr
+    then
+      l[1] := Max(0, (longInt(D.TapeLen)-D.RecordLen) div 60)
+    else
+      l[1] := Max(0, (longInt(TapeTotalTime)-TapeRecordedTime) div 60);
+    l[2] := (l[1]*60*M) div 1024;
+    FormatStr(s, GetString(dlArvid_TimeLeft), l);
+  end { TArvidDrive.GetFreeSpace };
 
 function TArvidDrive.GetRealName;
-var
- Dr: String;
- Nm: String;
- Xt: String;
-begin
- lFSplit(Name^, Dr, Nm, Xt);
- GetRealName:=Dr+GetDir;
-end;
+  var
+    dr: String;
+    Nm: String;
+    XT: String;
+  begin
+    lFSplit(Name^, dr, Nm, XT);
+    GetRealName := dr+GetDir;
+  end;
 
-function  TArvidDrive.GetInternalName;
-begin
- GetInternalName := '';
-end;
+function TArvidDrive.GetInternalName;
+  begin
+    GetInternalName := '';
+  end;
 
 procedure TArvidDrive.GetDirInfo;
-  var L: Array [1..2] of LongInt;
-      S,NF,Sz: LongInt;
-      S1, S2: String;
-      A: TAvtMediaCell;
-begin
-  B.Title := NewStr( GetString( dlArvid_Title ));
-  FreeStr := GetName(Name^); SetLength(FreeStr, PosChar('.', FreeStr)-1);
-  B.Dir := NewStr(FreeStr);
+  var
+    l: array[1..2] of longInt;
+    s, NF, Sz: longInt;
+    s1, s2: String;
+    A: TAvtMediaCell;
+  begin
+    B.Title := NewStr(GetString(dlArvid_Title));
+    FreeStr := GetName(Name^);
+    SetLength(FreeStr, PosChar('.', FreeStr)-1);
+    B.Dir := NewStr(FreeStr);
 
-  case TapeFmt of
-      0:   begin S:=000; B.VolumeID:=NewStr(GetString(dlArvid_Type)+GetString(dlArvidNoReal)) end;
-      2:   begin S:=100; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~100~ Kb/s, CRC-16') end;
-      4:   begin S:=100; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~100~ Kb/s, CRC-32') end;
-      8:   begin S:=200; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~200~ Kb/s, CRC-32') end;
-      16:  begin S:=200; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~200..300~ Kb/s') end;
-      32:  begin S:=325; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~325..500~ Kb/s') end;
-      else begin S:=325; B.VolumeID:=NewStr(GetString(dlArvid_Type)+'~325..500~ Kb/s') end;
-  end;
+    case TapeFmt of
+      0:
+        begin
+          s := 000;
+          B.VolumeID := NewStr(GetString(dlArvid_Type)+GetString(
+            dlArvidNoReal))
+        end;
+      2:
+        begin
+          s := 100;
+          B.VolumeID := NewStr(GetString(dlArvid_Type)+
+            '~100~ Kb/s, CRC-16')
+        end;
+      4:
+        begin
+          s := 100;
+          B.VolumeID := NewStr(GetString(dlArvid_Type)+
+            '~100~ Kb/s, CRC-32')
+        end;
+      8:
+        begin
+          s := 200;
+          B.VolumeID := NewStr(GetString(dlArvid_Type)+
+            '~200~ Kb/s, CRC-32')
+        end;
+      16:
+        begin
+          s := 200;
+          B.VolumeID := NewStr(GetString(dlArvid_Type)+
+            '~200..300~ Kb/s')
+        end;
+      32:
+        begin
+          s := 325;
+          B.VolumeID := NewStr(GetString(dlArvid_Type)+
+            '~325..500~ Kb/s')
+        end;
+      else
+        begin
+          s := 325;
+          B.VolumeID := NewStr(GetString(dlArvid_Type)+
+            '~325..500~ Kb/s')
+        end;
+    end {case};
 
-  if FileType = avdTDR then begin
-   Sz := D.RecordLen * S;
-   Nf := D.FileTableLen div SizeOf(TTdrFileCell);
-  end else begin
-   Sz:=TotLen div 1024;
-   Nf:=TotFiles;
-  end;
+    if filetype = avdTdr then
+      begin
+        Sz := D.RecordLen*s;
+        NF := D.FileTableLen div SizeOf(TTdrFileCell);
+      end
+    else
+      begin
+        Sz := TotLen div 1024;
+        NF := TotFiles;
+      end;
 
-  if NF = 0 then B.Files := NewStr(GetString(dlDINoFiles))
-   else
-    begin
-     if NF = 1 then S1 := GetString(dlDIFile) else S1 := GetString(dlDIFiles);
-     S2 := GetString(dlDIBytes);
-     B.Files := NewStr('~'+FStr(NF)+'~ '+S1+GetString(dlDIWith)+'~'+FStr(Sz)+'~K '+S2);
-    end;
+    if NF = 0 then
+      B.Files := NewStr(GetString(dlDINoFiles))
+    else
+      begin
+        if NF = 1 then
+          s1 := GetString(dlDIFile)
+        else
+          s1 := GetString(dlDIFiles);
+        s2 := GetString(dlDIBytes);
+        B.Files := NewStr('~'+FStr(NF)+'~ '+s1+GetString(dlDIWith)+
+          '~'+FStr(Sz)+'~K '+s2);
+      end;
 
-  if FileType = avdTDR then begin
-   L[1] := LongInt(TapeTotalTime) div 60; L[2] := (TapeTotalTime * S) div 1024;
-   FormatStr(FreeStr, GetString(dlArvid_TimeUsed), L);
-   B.Total := NewStr( FreeStr );
-   L[1] := Max(0, (LongInt(TapeTotalTime) - TapeRecordedTime) div 60); L[2] := (L[1] * 60 * S) div 1024;
-   FormatStr(FreeStr, GetString(dlArvid_TimeLeft), L);
-   B.Free  := NewStr( FreeStr );
-  end else begin
-   L[1] := LongInt(D.TapeLen) div 60; L[2] := (D.TapeLen * S) div 1024;
-   FormatStr(FreeStr, GetString(dlArvid_TimeUsed), L);
-   B.Total := NewStr( FreeStr );
-   L[1] := Max(0, (LongInt(D.TapeLen) - D.RecordLen) div 60); L[2] := (L[1] * 60 * S) div 1024;
-   FormatStr(FreeStr, GetString(dlArvid_TimeLeft), L);
-   B.Free  := NewStr( FreeStr );
-  end;
-end;
+    if filetype = avdTdr then
+      begin
+        l[1] := longInt(TapeTotalTime) div 60;
+        l[2] := (TapeTotalTime*s) div 1024;
+        FormatStr(FreeStr, GetString(dlArvid_TimeUsed), l);
+        B.Total := NewStr(FreeStr);
+        l[1] := Max(0, (longInt(TapeTotalTime)-TapeRecordedTime) div 60)
+          ;
+        l[2] := (l[1]*60*s) div 1024;
+        FormatStr(FreeStr, GetString(dlArvid_TimeLeft), l);
+        B.Free := NewStr(FreeStr);
+      end
+    else
+      begin
+        l[1] := longInt(D.TapeLen) div 60;
+        l[2] := (D.TapeLen*s) div 1024;
+        FormatStr(FreeStr, GetString(dlArvid_TimeUsed), l);
+        B.Total := NewStr(FreeStr);
+        l[1] := Max(0, (longInt(D.TapeLen)-D.RecordLen) div 60);
+        l[2] := (l[1]*60*s) div 1024;
+        FormatStr(FreeStr, GetString(dlArvid_TimeLeft), l);
+        B.Free := NewStr(FreeStr);
+      end;
+  end { TArvidDrive.GetDirInfo };
 
 procedure TArvidDrive.EditDescription;
-var S: String;
+  var
+    s: String;
     Nam: String;
 
-label 1;
+  label 1;
 
-var
-   RealAttr, Attrb: Word;
+  var
+    RealAttr, Attrb: word;
 
-   procedure GetAttr;
-   var F: lfile; begin lAssignFile(F, Name^); lGetFAttr(F, Attrb) end;
+  procedure GetAttr;
+    var
+      F: lFile;
+    begin
+      lAssignFile(F, Name^);
+      lGetFAttr(F, Attrb)
+    end;
 
-   procedure SetAttr(A: Word);
-   var F: lfile; begin lAssignFile(F, Name^); lSetFAttr(F, A) end;
+  procedure SetAttr(A: word);
+    var
+      F: lFile;
+    begin
+      lAssignFile(F, Name^);
+      lSetFAttr(F, A)
+    end;
 
-   procedure Err;
-   begin CantWrite(Name^) end;
+  procedure Err;
+    begin
+      CantWrite(Name^)
+    end;
 
-{ procedure TArvidDrive.EditDescription; }
-begin
-  if (PF^.DIZ = nil) then Exit;
-  S:=CnvString(PF^.Diz^.Diz);
-  if BigInputBox(GetString(dlEditDesc),GetString(dl_D_escription), S, 255, hsEditDesc) <> cmOK then Exit;
-  Dispose(Stream,Done); Stream:=nil; RealAttr:=$FFFF;
-  ClrIO; Abort:=false;
-  GetAttr; if Attrb and ReadOnly <> 0 then
-  begin
-    SetAttr(Archive);
-    if Abort or (IOResult <> 0 ) then begin Err; Goto 1 end;
-    RealAttr:=Attrb or Archive;
-  end;
-  Stream:=New(PBufStream, Init(Name^, stOpen, 2048));
-  if Abort or (Stream^.Status <> stOK) then begin Err; Goto 1 end;
-  Stream^.Seek(PF^.DIZ^.Line);
-  if FileType = avdTdr then TdrEditDescription(@Self, S, Nam, PF)
-                       else AvtEditDescription(@Self, S, Nam);
-1: ClrIO; Abort:=False;
-  Stream^.Seek(0);
-  if FileType = avdAvt then Stream^.Write(AVT, SizeOf(AVT))
-  else                      Stream^.Write(D, SizeOf(D));
-  Dispose(Stream,Done);
-  if RealAttr <> $FFFF then SetAttr(RealAttr);
-  Stream:=New(PBufStream, Init(Name^, stOpen, 2048));
-  GlobalMessage(evCommand, cmPanelReread, nil);
-end;
-
+  { procedure TArvidDrive.EditDescription; }
+  begin { TArvidDrive.EditDescription }
+    if (PF^.DIZ = nil) then
+      exit;
+    s := CnvString(PF^.DIZ^.DIZ);
+    if BigInputBox(GetString(dlEditDesc), GetString(dl_D_escription), s,
+        255, hsEditDesc) <> cmOK
+    then
+      exit;
+    Dispose(Stream, Done);
+    Stream := nil;
+    RealAttr := $FFFF;
+    ClrIO;
+    Abort := False;
+    GetAttr;
+    if Attrb and ReadOnly <> 0 then
+      begin
+        SetAttr(Archive);
+        if Abort or (IOResult <> 0) then
+          begin
+            Err;
+            goto 1
+          end;
+        RealAttr := Attrb or Archive;
+      end;
+    Stream := New(PBufStream, Init(Name^, stOpen, 2048));
+    if Abort or (Stream^.Status <> stOK) then
+      begin
+        Err;
+        goto 1
+      end;
+    Stream^.Seek(PF^.DIZ^.Line);
+    if filetype = avdTdr then
+      TdrEditDescription(@Self, s, Nam, PF)
+    else
+      AvtEditDescription(@Self, s, Nam);
+1:
+    ClrIO;
+    Abort := False;
+    Stream^.Seek(0);
+    if filetype = avdAvt then
+      Stream^.Write(AVT, SizeOf(AVT))
+    else
+      Stream^.Write(D, SizeOf(D));
+    Dispose(Stream, Done);
+    if RealAttr <> $FFFF then
+      SetAttr(RealAttr);
+    Stream := New(PBufStream, Init(Name^, stOpen, 2048));
+    GlobalMessage(evCommand, cmPanelReread, nil);
+  end { TArvidDrive.EditDescription };
 
 procedure TArvidDrive.HandleCommand;
-  var DT: record
-            Mask: String;
-            Text: String;
-            O: Word;
-          end;
-      SDesc: Boolean;
-      P: PView;
-      DateAfter,
-      DateBefore,
-      SizeGreat,
-      SizeLess: LongInt;
-      Attr: Byte;
-      OOM: Boolean;
-      WasTape: Boolean;
-      WasDir: Boolean;
-      Dr: String;
-      LP: LongInt;
-      St0: PStream;
-      NName: String;
-      AA0: TAvtFileCell;
-      S0: String;
-
+  var
+    DT: record
+      Mask: String;
+      text: String;
+      o: word;
+      end;
+    SDesc: boolean;
+    P: PView;
+    DateAfter,
+    DateBefore,
+    SizeGreat,
+    SizeLess: longInt;
+    Attr: byte;
+    OOM: boolean;
+    WasTape: boolean;
+    WasDir: boolean;
+    dr: String;
+    LP: longInt;
+    St0: PStream;
+    NName: String;
+    AA0: TAvtFileCell;
+    S0: String;
 
   label 1;
 
   procedure Add(P: Pointer; const Name: String);
-  begin
-    if FindList = nil then New(FindList, Init($100, $100));
-    if OOM or (not MemOK) or (MaxAvail < (FindList^.Count+$200)*4) then
     begin
-      Dispose(PObject(P),Done);
-      OOM:=True;
-      Exit;
-    end;
-    if not WasTape then FindList^.Insert(New(PFindObject, Init(Name)));
-    if not WasDir then FindList^.Insert(New(PFindDir, Init(Dr, LP)));
-    WasTape:=true; WasDir:=true;
-    FindList^.Insert(P);
-  end;
-
-  procedure TdrSearchInStream(St: PStream; var D: TTdrHeader; const Name: String);
-    var
-        DD: TTdrDirCell;
-        FF: TTdrFileCell;
-        I, J: LongInt;
-        Lv0: Boolean;
-        LastLv: Integer;
-        SS: String[12];
-  begin
-    Lv0:=false; LastLv:=0;
-    LP:=D.DirTableOfs;
-    repeat
-      St^.Seek(LP);
-      St^.Read(DD, SizeOf(DD));
-      if DD.Level = 0 then
-         if Lv0 then Break
-                else Lv0:=true;
-{$IFDEF USEANSISTRING}
-      SetLength(SS, SizeOf(DD.Name));
-      Move(DD.Name, SS[1], SizeOf(DD.Name));
-{$ELSE}
-      SS:=DD.Name;
-{$ENDIF}
-      Insert('.', SS, 9);
-      if DD.Level > LastLv then Dr:=MakeNormName(Dr, TdrMakeFileName(SS))
-         else if DD.Level <= LastLv then
-                begin
-                  repeat
-                    while (Dr[Length(Dr)] <> '\') and (Dr <> '') do SetLength(Dr, Length(Dr)-1);
-                    if Dr <> '' then SetLength(Dr, Length(Dr)-1);
-                    Dec(LastLv);
-                  until DD.Level > LastLv;
-                  if Dr = '' then Dr:='\';
-                  Dr:=MakeNormName(Dr, TdrMakeFileName(SS))
-                end;
-      LastLv:=DD.Level;
-      WasDir:=false;
-      if InSpaceFilter(SS, DT.Mask) then
+      if FindList = nil then
+        New(FindList, Init($100, $100));
+      if OOM or (not MemOK) or (MaxAvail < (FindList^.Count+$200)*4)
+      then
         begin
-          if SDesc and (DD.Description <> 0) then
-             begin
-               St^.Seek(D.DescTableOfs+DD.Description-1);
-{Cat:warn AnsiString}
-               St^.Read(FreeStr, 2);
-               St^.Read(FreeStr[1], Length(FreeStr));
-               UpStr(FreeStr);
-             end else FreeStr:='';
-          if (not SDesc or (Pos(DT.Text, FreeStr) > 0)) and
-                 ((DT.O and 1 =0) or
-                  (FF.Time <= DateBefore) and  (FF.Time >= DateAfter) and
-                  (FF.Size >= SizeGreat) and (FF.Size <=SizeLess) and
-                  ((Attr = 0) or (FF.Attr and Attr <> 0))) then
-              begin
-                WasDir:=true;
-                Add(New(PFindDir, Init(Dr, LP)), Name);
-              end;
+          Dispose(PObject(P), Done);
+          OOM := True;
+          exit;
         end;
-      if not OOM then
-      begin
-        St^.Seek(D.FileTableOfs + LongInt(DD.Files)*SizeOf(TTdrFileCell));
-        for I:=1 to DD.NumFiles do
-          begin
-            St^.Read(FF, SizeOf(FF));
-{$IFDEF USEANSISTRING}
-            SetLength(SS, SizeOf(FF.Name));
-            Move(FF.Name, SS[1], SizeOf(FF.Name));
-{$ELSE}
-            SS:=FF.Name;
-{$ENDIF}
-            Insert('.', SS, 9);
-            if InSpaceFilter(SS, DT.Mask) then
-              begin
-                if SDesc and (FF.Description <> 0) then
-                   begin
-                     J:=St^.GetPos;
-                     St^.Seek(D.DescTableOfs+FF.Description-1);
-{Cat:warn AnsiString}
-                     St^.Read(FreeStr, 2);
-                     St^.Read(FreeStr[1], Length(FreeStr));
-                     St^.Seek(J);
-                     UpStr(FreeStr);
-                   end else FreeStr:='';
-                if (not SDesc or (Pos(DT.Text, FreeStr) > 0)) and
-                   ((DT.O and 1 =0) or
-                    (FF.Time <= DateBefore) and  (FF.Time >= DateAfter) and
-                    (FF.Size >= SizeGreat) and (FF.Size <=SizeLess) and
-                    ((Attr = 0) or (FF.Attr and Attr <> 0)))
-                 then
-                    begin
-                      Add(New(PFindFile, Init(TdrMakeFileName(SS), FF.Size, FF.Time)),Name);
-                    end;
-              end;
-          end;
-      end;
-      Inc(LP, SizeOf(DD));
-    until (LP > D.DirTableOfs + D.DirTableLen) or OOM;
-    if OOM then Application^.OutOfMemory;
-  end;
-
-  procedure AvtSearchInStream(L: LongInt);
-  var
-    SaveWasDir: Boolean;
-    SaveLP: LongInt;
-  begin
-    if L = 0 then Exit;
-    St0^.Seek(L);
-    St0^.Read(AA0, SizeOf(AA0));
-    if St0^.Status <> stOK then Exit;
-    AvtSearchInStream(AA0.LeftFileCell);
-    St0^.Seek(L);
-    St0^.Read(AA0, SizeOf(AA0));
-    if St0^.Status <> stOK then Exit;
-    if AA0.Flags and avtIsDir <> 0 then begin
-      SaveWasDir:=WasDir; WasDir:=False;
-      SaveLP:=LP; LP:=L;
-      Dr:=Dr + AvtCellName(AA0, St0^) + '\';
-      AvtSearchInStream(AA0.ChildOrSize);
-      WasDir:=SaveWasDir; LP:=SaveLP;
-      SetLength(Dr, Length(Dr)-1); while (Dr[Length(Dr)] <> '\') and (Dr <> '') do SetLength(Dr, Length(Dr)-1);
-    end else
-    begin
-      S0:=AvtCellName(AA0, St0^);
-      if InSpaceFilter(S0, DT.Mask) then
-      begin
-        if SDesc then FreeStr:=UpStrg(AvtCellDesc(AA0, St0^));
-        if (not SDesc or (Pos(DT.Text, FreeStr) > 0)) and
-           ((DT.O and 1 =0) or
-            (AA0.Time <= DateBefore) and  (AA0.Time >= DateAfter) and
-            (AA0.ChildOrSize >= SizeGreat) and (AA0.ChildOrSize <=SizeLess))
-        then begin
-          if WasDir = False then begin
-            WasDir:=True;
-            Add(New(PFindDir, Init(Dr, LP)), NName);
-          end;
-          Add(New(PFindFile, Init(S0, AA0.ChildOrSize, AA0.Time)),NName);
-        end;
-      end;
+      if not WasTape then
+        FindList^.Insert(New(PFindObject, Init(Name)));
+      if not WasDir then
+        FindList^.Insert(New(PFindDir, Init(dr, LP)));
+      WasTape := True;
+      WasDir := True;
+      FindList^.Insert(P);
     end;
-    St0^.Seek(L);
-    St0^.Read(AA0, SizeOf(AA0));
-    if St0^.Status <> stOK then Exit;
-    AvtSearchInStream(AA0.RightFileCell);
-  end;
 
-  procedure SearchInStream(St: PStream; const Name: String);
+  procedure TdrSearchInStream(ST: PStream; var D: TTdrHeader; const
+      Name: String);
     var
-        DD: TTdrHeader;
-        AA: TAvtHeader;
-  begin
-    WasTape:=false; Dr:='\';
-    St^.Seek(0);
-    St^.Read(AA, SizeOf(AA));
-    if AA.Signature = $50545641{'AVTP'} then begin
-      St0:=St;
-      NName:=Name;
-      AvtSearchInStream(AA.RootDirCell);
-    end else
+      DD: TTdrDirCell;
+      FF: TTdrFileCell;
+      i, j: longInt;
+      Lv0: boolean;
+      LastLv: integer;
+      SS: String[12];
     begin
-      St^.Seek(0);
-      St^.Read(DD, SizeOf(DD));
-      if DD.PosTableLen <> 4656 then Exit;
-      if DD.FileTableOfs <> sizeof(TTdrHeader) then Exit;
-      if DD.DirTableOfs <> (DD.FileTableOfs+DD.FileTableLen) then Exit;
-      if DD.DescTableOfs < (DD.DirTableOfs+DD.DirTableLen) then Exit;
-      if DD.PosTableOfs <>
-        ((DD.DescTableOfs+DD.DescTableLen+511) div 512 * 512) then Exit;
-      if DD.TapeLen < DD.RecordLen then Exit;
-      if DD.FileTableLen <> (DD.FileTableLen div sizeof(TTdrFileCell)
-        * sizeof(TTdrFileCell)) then Exit;
-      TdrSearchInStream(St, DD, Name);
-    end;
-  end;
+      Lv0 := False;
+      LastLv := 0;
+      LP := D.DirTableOfs;
+      repeat
+        ST^.Seek(LP);
+        ST^.Read(DD, SizeOf(DD));
+        if DD.Level = 0 then
+          if Lv0 then
+            break
+          else
+            Lv0 := True;
+        SS := DD.Name;
+        Insert('.', SS, 9);
+        if DD.Level > LastLv then
+          dr := MakeNormName(dr, TdrMakeFileName(SS))
+        else if DD.Level <= LastLv then
+          begin
+            repeat
+              while (dr[Length(dr)] <> '\') and (dr <> '') do
+                  SetLength(dr, Length(dr)-1);
+              if dr <> '' then
+                SetLength(dr, Length(dr)-1);
+              Dec(LastLv);
+            until DD.Level > LastLv;
+            if dr = '' then
+              dr := '\';
+            dr := MakeNormName(dr, TdrMakeFileName(SS))
+          end;
+        LastLv := DD.Level;
+        WasDir := False;
+        if InSpaceFilter(SS, DT.Mask) then
+          begin
+            if SDesc and (DD.Description <> 0) then
+              begin
+                ST^.Seek(D.DescTableOfs+DD.Description-1);
+                {Cat:warn AnsiString}
+                ST^.Read(FreeStr, 2);
+                ST^.Read(FreeStr[1], Length(FreeStr));
+                UpStr(FreeStr);
+              end
+            else
+              FreeStr := '';
+            if (not SDesc or (Pos(DT.text, FreeStr) > 0)) and
+              ((DT.o and 1 = 0) or
+              (FF.Time <= DateBefore) and (FF.Time >= DateAfter) and
+              (FF.Size >= SizeGreat) and (FF.Size <= SizeLess) and
+              ((Attr = 0) or (FF.Attr and Attr <> 0)))
+            then
+              begin
+                WasDir := True;
+                Add(New(PFindDir, Init(dr, LP)), Name);
+              end;
+          end;
+        if not OOM then
+          begin
+            ST^.Seek(D.FileTableOfs+longInt(DD.Files)*SizeOf(
+              TTdrFileCell));
+            for i := 1 to DD.NumFiles do
+              begin
+                ST^.Read(FF, SizeOf(FF));
+                SS := FF.Name;
+                Insert('.', SS, 9);
+                if InSpaceFilter(SS, DT.Mask) then
+                  begin
+                    if SDesc and (FF.Description <> 0) then
+                      begin
+                        j := ST^.GetPos;
+                        ST^.Seek(D.DescTableOfs+FF.Description-1);
+                        {Cat:warn AnsiString}
+                        ST^.Read(FreeStr, 2);
+                        ST^.Read(FreeStr[1], Length(FreeStr));
+                        ST^.Seek(j);
+                        UpStr(FreeStr);
+                      end
+                    else
+                      FreeStr := '';
+                    if (not SDesc or (Pos(DT.text, FreeStr) > 0))
+                        and
+                      ((DT.o and 1 = 0) or
+                      (FF.Time <= DateBefore) and (FF.Time >=
+                        DateAfter) and
+                      (FF.Size >= SizeGreat) and (FF.Size <=
+                        SizeLess) and
+                      ((Attr = 0) or (FF.Attr and Attr <> 0)))
+                    then
+                      begin
+                        Add(New(PFindFile, Init(TdrMakeFileName(SS), FF.
+                          Size, FF.Time)), Name);
+                      end;
+                  end;
+              end;
+          end;
+        Inc(LP, SizeOf(DD));
+      until (LP > D.DirTableOfs+D.DirTableLen) or OOM;
+      if OOM then
+        Application^.OutOfMemory;
+    end { TdrSearchInStream };
+
+  procedure AvtSearchInStream(l: longInt);
+    var
+      SaveWasDir: boolean;
+      SaveLP: longInt;
+    begin
+      if l = 0 then
+        exit;
+      St0^.Seek(l);
+      St0^.Read(AA0, SizeOf(AA0));
+      if St0^.Status <> stOK then
+        exit;
+      AvtSearchInStream(AA0.LeftFileCell);
+      St0^.Seek(l);
+      St0^.Read(AA0, SizeOf(AA0));
+      if St0^.Status <> stOK then
+        exit;
+      if AA0.Flags and avtIsDir <> 0 then
+        begin
+          SaveWasDir := WasDir;
+          WasDir := False;
+          SaveLP := LP;
+          LP := l;
+          dr := dr+AvtCellName(AA0, St0^)+'\';
+          AvtSearchInStream(AA0.ChildOrSize);
+          WasDir := SaveWasDir;
+          LP := SaveLP;
+          SetLength(dr, Length(dr)-1);
+          while (dr[Length(dr)] <> '\') and (dr <> '') do
+            SetLength(dr, Length(dr)-1);
+        end
+      else
+        begin
+          S0 := AvtCellName(AA0, St0^);
+          if InSpaceFilter(S0, DT.Mask) then
+            begin
+              if SDesc then
+                FreeStr := UpStrg(AvtCellDesc(AA0, St0^));
+              if (not SDesc or (Pos(DT.text, FreeStr) > 0)) and
+                ((DT.o and 1 = 0) or
+                (AA0.Time <= DateBefore) and (AA0.Time >= DateAfter)
+                  and
+                (AA0.ChildOrSize >= SizeGreat) and (AA0.ChildOrSize <=
+                  SizeLess))
+              then
+                begin
+                  if WasDir = False then
+                    begin
+                      WasDir := True;
+                      Add(New(PFindDir, Init(dr, LP)), NName);
+                    end;
+                  Add(New(PFindFile, Init(S0, AA0.ChildOrSize, AA0.
+                    Time)), NName);
+                end;
+            end;
+        end;
+      St0^.Seek(l);
+      St0^.Read(AA0, SizeOf(AA0));
+      if St0^.Status <> stOK then
+        exit;
+      AvtSearchInStream(AA0.RightFileCell);
+    end { AvtSearchInStream };
+
+  procedure SearchInStream(ST: PStream; const Name: String);
+    var
+      DD: TTdrHeader;
+      aa: TAvtHeader;
+    begin
+      WasTape := False;
+      dr := '\';
+      ST^.Seek(0);
+      ST^.Read(aa, SizeOf(aa));
+      if aa.signature = $50545641 {'AVTP'} then
+        begin
+          St0 := ST;
+          NName := Name;
+          AvtSearchInStream(aa.RootDirCell);
+        end
+      else
+        begin
+          ST^.Seek(0);
+          ST^.Read(DD, SizeOf(DD));
+          if DD.PosTableLen <> 4656 then
+            exit;
+          if DD.FileTableOfs <> SizeOf(TTdrHeader) then
+            exit;
+          if DD.DirTableOfs <> (DD.FileTableOfs+DD.FileTableLen)
+          then
+            exit;
+          if DD.DescTableOfs < (DD.DirTableOfs+DD.DirTableLen) then
+              exit;
+          if DD.PosTableOfs <>
+            ((DD.DescTableOfs+DD.DescTableLen+511) div 512*512)
+          then
+            exit;
+          if DD.TapeLen < DD.RecordLen then
+            exit;
+          if DD.FileTableLen <> (DD.FileTableLen div SizeOf(
+              TTdrFileCell)
+            *SizeOf(TTdrFileCell))
+          then
+            exit;
+          TdrSearchInStream(ST, DD, Name);
+        end;
+    end { SearchInStream };
 
   procedure SearchInAllFiles;
-    var SR: SearchRec;
-        St: PBufStream;
-        D: TTdrHeader;
-  begin
-    ClrIO;
-    FindFirst(MakeNormName(GetPath(Name^), '*.TDR'), Archive+Byte(Security)*Hidden+ReadOnly+SysFile, SR);
-    while (DOSError = 0) and not Abort and not LowMemory do
-      begin
-        New(St, Init(MakeNormName(GetPath(Name^), SR.Name), stOpenRead, 2048));
-        if St^.Status = stOK then
-          begin
-            SearchInStream(St, SR.Name);
-          end;
-        Dispose(St,Done);
-        ClrIO;
-        FindNext(SR);
-      end;
-    FindFirst(MakeNormName(GetPath(Name^), '*.AVT'), Archive+Byte(Security)*Hidden+ReadOnly+SysFile, SR);
-    while (DOSError = 0) and not Abort and not LowMemory do
-      begin
-        New(St, Init(MakeNormName(GetPath(Name^), SR.Name), stOpenRead, 2048));
-        if St^.Status = stOK then
-          begin
-            SearchInStream(St, SR.Name);
-          end;
-        Dispose(St,Done);
-        ClrIO;
-        FindNext(SR);
-      end;
-  end;
+    var
+      SR: SearchRec;
+      ST: PBufStream;
+      D: TTdrHeader;
+    begin
+      ClrIO;
+      FindFirst(MakeNormName(GetPath(Name^), '*.TDR'), Archive+byte(
+        Security)*Hidden+ReadOnly+SysFile, SR);
+      while (DOSError = 0) and not Abort and not LowMemory do
+        begin
+          New(ST, Init(MakeNormName(GetPath(Name^), SR.Name),
+            stOpenRead, 2048));
+          if ST^.Status = stOK then
+            begin
+              SearchInStream(ST, SR.Name);
+            end;
+          Dispose(ST, Done);
+          ClrIO;
+          FindNext(SR);
+        end;
+      FindFirst(MakeNormName(GetPath(Name^), '*.AVT'), Archive+byte(
+        Security)*Hidden+ReadOnly+SysFile, SR);
+      while (DOSError = 0) and not Abort and not LowMemory do
+        begin
+          New(ST, Init(MakeNormName(GetPath(Name^), SR.Name),
+            stOpenRead, 2048));
+          if ST^.Status = stOK then
+            begin
+              SearchInStream(ST, SR.Name);
+            end;
+          Dispose(ST, Done);
+          ClrIO;
+          FindNext(SR);
+        end;
+    end { SearchInAllFiles };
 
   procedure ExecuteFindDialog;
     label 1;
-    var D: PDialog;
-        R: TRect;
-        PL: PFindBox;
-        P: PView;
-        F: PFindObject;
+    var
+      D: PDialog;
+      R: TRect;
+      PL: PFindBox;
+      P: PView;
+      F: PFindObject;
 
-      procedure DoCount(P: PFindObject); {$IFDEF BIT_16}far;{$ENDIF}
+    procedure DoCount(P: PFindObject);
       begin
-        Inc(R.A.X, Byte(P^.TT = ttFile));
+        Inc(R.A.X, byte(P^.TT = ttFile));
       end;
 
-  begin
+    begin
 
-     D:=PDialog(LoadResource(dlgArvidFindResults));
-     if D = nil then Exit;
+      D := PDialog(LoadResource(dlgArvidFindResults));
+      if D = nil then
+        exit;
 
-     R.Assign(58, 1, 59, 13);
-     P:=New(PScrollBar, Init(R));
-     D^.Insert(P);
+      R.Assign(58, 1, 59, 13);
+      P := New(PScrollBar, Init(R));
+      D^.Insert(P);
 
-     R.Assign(2,1,58,13);
-     New(PL, Init(R, 1, PScrollBar(P)));
-     PL^.NewLisT(FindList);
-     D^.Insert(PL);
+      R.Assign(2, 1, 58, 13);
+      New(PL, Init(R, 1, PScrollBar(P)));
+      PL^.NewLisT(FindList);
+      D^.Insert(PL);
 
-     R.A.X:=0;
-     if (FindList <> nil) then FindList^.ForEach(@DoCount);
+      R.A.X := 0;
+      if (FindList <> nil) then
+        FindList^.ForEach(@DoCount);
 
-     FreeStr:=FStr(R.A.X) + GetString(dlFilesFound);
-     R.Assign(1, 13, 1+Length(FreeStr), 14);
-     P:=New(PStaticText, Init(R, FreeStr));
-     P^.Options:=P^.Options or ofCenterX;
-     D^.Insert(P);
+      FreeStr := FStr(R.A.X)+GetString(dlFilesFound);
+      R.Assign(1, 13, 1+Length(FreeStr), 14);
+      P := New(PStaticText, Init(R, FreeStr));
+      P^.Options := P^.Options or ofCenterX;
+      D^.Insert(P);
 
-     PL^.Select;
-     R.A.X:=Desktop^.ExecView(D);
-     R.A.Y:=PL^.Focused;
+      PL^.Select;
+      R.A.X := Desktop^.ExecView(D);
+      R.A.Y := PL^.Focused;
 
-     PL^.List:=nil;
+      PL^.List := nil;
 
-     Dispose(D,Done);
+      Dispose(D, Done);
 
-     if R.A.X = cmNo then FreeObject(FindList);
+      if R.A.X = cmNo then
+        FreeObject(FindList);
 
-     if (R.A.X = cmOK) and (FindList <> nil) and (FindList^.Count > 0) then
-       begin
-         F:=FindList^.At(R.A.Y);
-         if F = nil then Exit;
-         FreeStr:='';
-         for R.B.X:=R.A.Y downto 0 do
-           begin
-             F:=FindList^.At(R.B.X);
-             if (F^.TT = ttDir) and (FreeStr = '') then
-                   FreeStr:=CnvString(F^.Text);
-             if (F^.TT = ttTape) then Break;
-           end;
-         if UpStrg(F^.Text^) <> UpStrg(GetName(Name^)) then
+      if (R.A.X = cmOK) and (FindList <> nil) and (FindList^.Count > 0)
+      then
+        begin
+          F := FindList^.At(R.A.Y);
+          if F = nil then
+            exit;
+          FreeStr := '';
+          for R.B.X := R.A.Y downto 0 do
+            begin
+              F := FindList^.At(R.B.X);
+              if (F^.TT = ttDir) and (FreeStr = '') then
+                FreeStr := CnvString(F^.text);
+              if (F^.TT = ttTape) then
+                break;
+            end;
+          if UpStrg(F^.text^) <> UpStrg(GetName(Name^)) then
             begin
               FreeObject(Stream);
-              CurDir:=FreeStr;
-              FreeStr:=MakeNormName(GetPath(Name^), F^.Text^);
+              CurDir := FreeStr;
+              FreeStr := MakeNormName(GetPath(Name^), F^.text^);
               DisposeStr(Name);
-              Name:=NewStr(FreeStr);
-              Stream:=New(PBufStream, Init(FreeStr, stOpenRead, 2048));
-              FreeStr:=CurDir;
-              CurDir:='';
+              Name := NewStr(FreeStr);
+              Stream := New(PBufStream, Init(FreeStr, stOpenRead,
+                2048));
+              FreeStr := CurDir;
+              CurDir := '';
               if Stream^.Status <> stOK then
                 begin
 1:
                   ChangeUp(FreeStr);
-                  Exit;
+                  exit;
                 end;
               Stream^.Read(Self.D, SizeOf(Self.D));
-              if Stream^.Status <> stOK then Goto 1;
+              if Stream^.Status <> stOK then
+                goto 1;
             end;
-         CurDir:=FreeStr;
-         if CurDir[1] = '\' then Delete(CurDir, 1, 1); {DelFC(CurDir);}
-         SeekDirectory;
-         F:=FindList^.At(R.A.Y);
-         if F^.TT = ttFile then FreeStr:=MakeNormName(FreeStr, CnvString(PFindFile(F)^.Name));
-         Message(Owner, evCommand, cmFindGotoFile, @FreeStr);
-       end;
+          CurDir := FreeStr;
+          if CurDir[1] = '\' then
+            Delete(CurDir, 1, 1); {DelFC(CurDir);}
+          SeekDirectory;
+          F := FindList^.At(R.A.Y);
+          if F^.TT = ttFile then
+            FreeStr := MakeNormName(FreeStr, CnvString(PFindFile(F)^.
+              Name));
+          Message(Owner, evCommand, cmFindGotoFile, @FreeStr);
+        end;
 
-  end;
+  end { ExecuteFindDialog };
 
-begin
-   OOM:=False;
-   if Command = cmFindFile then
-     begin
-       DT.Mask:='';
-       DT.Text:='';
-       DT.O:=0;
-       if ExecResource(dlgArvidFileFind, DT) <> cmOK then Goto 1;
-       if DT.O and 1 <> 0 then
-         begin
-           DateAfter:=ParseTime(AdvanceSearchData.After);
-           DateBefore:=ParseTime(AdvanceSearchData.Before);
-           if DateBefore = 0 then DateBefore:=$7FFFFFFF;
-           SizeGreat:=Stoi(AdvanceSearchData.Greater);
-           SizeLess:=Stoi(AdvanceSearchData.Less);
-           if SizeLess = 0 then SizeLess:=$7FFFFFFF;
-           Attr:=0;
-           if AdvanceSearchData.Attr and 1 <> 0 then Attr:=Archive;
-           if AdvanceSearchData.Attr and 2 <> 0 then Attr:=Attr or SysFile;
-           if AdvanceSearchData.Attr and 4 <> 0 then Attr:=Attr or Hidden;
-           if AdvanceSearchData.Attr and 8 <> 0 then Attr:=Attr or ReadOnly;
-         end;
-       if DT.Mask = '' then DT.Mask:=x_x;
-       SDesc:=DT.Text <> '';
-       UpStr(DT.Text);
-       if FindList<>nil then Dispose(FindList,Done); FindList:=nil;
-       P:=WriteMsg(GetString(dlPleaseStandBy));
-       if DT.O and 2 <> 0 then SearchInAllFiles
-                          else SearchInStream(Stream, GetName(Name^));
-       P^.Free;
-       if FindList = nil then
+  begin { TArvidDrive.HandleCommand }
+    OOM := False;
+    if Command = cmFindFile then
+      begin
+        DT.Mask := '';
+        DT.text := '';
+        DT.o := 0;
+        if ExecResource(dlgArvidFileFind, DT) <> cmOK then
+          goto 1;
+        if DT.o and 1 <> 0 then
+          begin
+            DateAfter := ParseTime(AdvanceSearchData.After);
+            DateBefore := ParseTime(AdvanceSearchData.Before);
+            if DateBefore = 0 then
+              DateBefore := $7FFFFFFF;
+            SizeGreat := StoI(AdvanceSearchData.Greater);
+            SizeLess := StoI(AdvanceSearchData.Less);
+            if SizeLess = 0 then
+              SizeLess := $7FFFFFFF;
+            Attr := 0;
+            if AdvanceSearchData.Attr and 1 <> 0 then
+              Attr := Archive;
+            if AdvanceSearchData.Attr and 2 <> 0 then
+              Attr := Attr or SysFile;
+            if AdvanceSearchData.Attr and 4 <> 0 then
+              Attr := Attr or Hidden;
+            if AdvanceSearchData.Attr and 8 <> 0 then
+              Attr := Attr or ReadOnly;
+          end;
+        if DT.Mask = '' then
+          DT.Mask := x_x;
+        SDesc := DT.text <> '';
+        UpStr(DT.text);
+        if FindList <> nil then
+          Dispose(FindList, Done);
+        FindList := nil;
+        P := WriteMsg(GetString(dlPleaseStandBy));
+        if DT.o and 2 <> 0 then
+          SearchInAllFiles
+        else
+          SearchInStream(Stream, GetName(Name^));
+        P^.Free;
+        if FindList = nil then
           begin
             MessageBox(^C+GetString(dlNoFilesFound), nil,
-                        mfInformation + mfOkButton);
-            Exit;
+            mfInformation+mfOKButton);
+            exit;
           end;
 1:
-       if FindList <> nil then ExecuteFindDialog;
-     end;
-  if FindList <> nil then Dispose(FindList,Done); FindList:=nil;
-end;
+        if FindList <> nil then
+          ExecuteFindDialog;
+      end;
+    if FindList <> nil then
+      Dispose(FindList, Done);
+    FindList := nil;
+  end { TArvidDrive.HandleCommand };
 
 procedure TArvidDrive.GetDirLength(PF: PFileRec);
-  var SaveDir: String;
-      LL: TSize;
-      P:  PView;
-begin
-  if (PF^.Attr and $80 <> 0) or (PF^.Attr and Directory = 0) then Exit;
-  SaveDir:=CurDir;
-  LL:=0;
-  CurDir:=MakeNormName(PF^.Owner^, PF^.FlName[true]);
-  SeekDirectory;
-  P:=WriteMsg(GetString(dlPleaseStandBy));
-  if FileType = avdTdr then TdrCalcTotal(@Self, CurDirPos, LL)
-                       else AvtCalcTotal(@Self, CurDirPos, LL);
-  P^.Free;
-  PF^.Size:=LL;
-  PF^.Attr:=PF^.Attr or $80;
-  CurDir:=SaveDir;
-  SeekDirectory;
-end;
+  var
+    SaveDir: String;
+    LL: TSize;
+    P: PView;
+  begin
+    if (PF^.Attr and $80 <> 0) or (PF^.Attr and Directory = 0) then
+        exit;
+    SaveDir := CurDir;
+    LL := 0;
+    CurDir := MakeNormName(PF^.Owner^, PF^.FlName[True]);
+    SeekDirectory;
+    P := WriteMsg(GetString(dlPleaseStandBy));
+    if filetype = avdTdr then
+      TdrCalcTotal(@Self, CurDirPos, LL)
+    else
+      AvtCalcTotal(@Self, CurDirPos, LL);
+    P^.Free;
+    PF^.Size := LL;
+    PF^.Attr := PF^.Attr or $80;
+    CurDir := SaveDir;
+    SeekDirectory;
+  end { TArvidDrive.GetDirLength };
 
 function TArvidDrive.OpenDirectory(const Dir: String): PDrive;
-  begin OpenDirectory := nil; end;
+  begin
+    OpenDirectory := nil;
+  end;
 
-END.
+end.

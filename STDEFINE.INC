@@ -1,3 +1,5 @@
+{.$DEFINE B243}
+
 {$DEFINE DEBUG}
 
  {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$DEFINE LINEPOSIT}{$ENDIF}
@@ -108,8 +110,8 @@
   {$DEFINE USEWPS}    {открытие фолдеров WPS}
  {$ENDIF}
  {$Use32+}
- {.$DEFINE QSORT}
- {$DEFINE POGLSORT}
+ {$DEFINE QSORT}
+ {.$DEFINE POGLSORT}
  {$DEFINE SpreadSheet}
  {.$DEFINE PrintManager}
  {.$DEFINE Printer}

@@ -46,186 +46,80 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit Advance4; {OS/2 support}
+unit advance4; {OS/2 support}
 
 interface
 
-type SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed, stPMSession,
-                    stVDMFullScreen, stWinFullScreen, stWinWindow, stVDMWindow);
+type
+  SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed,
+    stPMSession,
+  stVDMFullScreen, stWinFullScreen, stWinWindow, stVDMWindow);
 
-{$IFNDEF VIRTUALPASCAL}
-
-procedure StartOS2Session(DataLen: Word; Session: Sessiontype; Background: Boolean;
-                          Title, Name, Args, IcoName: string);
-{$ENDIF}
-
-procedure RunOS2Command(Command: string; Bckg: Boolean; Session: SessionType);
-
+procedure RunOS2Command(Command: String; Bckg: boolean; Session:
+    SessionType);
 
 implementation
 
 uses
-  Advance, Lfn, Advance1, Advance3, Drivers
-  {$IFDEF VIRTUALPASCAL}, Dos, DnExec {$ENDIF}
-  {$IFDEF DPMI}, DPMI, DosMem {$ENDIF}
+  advance, Lfn, advance1, advance3, Drivers
+  , Dos, DnExec
   ;
 { ------------------------------------ OS/2 API --------------------------- }
 
-{$IFNDEF VIRTUALPASCAL}
-
-procedure StartOS2Session(DataLen: Word; Session: Sessiontype; Background: Boolean;
-                          Title, Name, Args, IcoName: string);
- var R: Record
-         Size, Relation, FBground, Trace: Word;
-         Title: Pointer;
-         Name: Pointer;
-         Args: Pointer;
-         TERMQ: LongInt;
-         Env: Pointer;
-         Inheritance: Word;
-         Session: Word;
-         IcoN: Pointer;
-    end;
-
-{$IFDEF DPMI}
-    DR: DPMIRegisters;
-    PtrT, PtrN, PtrA, PtrI: Pointer;
-{$ENDIF}
-
-    P: Pointer;
-begin
-   if not OS2exec then Exit;
-   R.Size := DataLen;
-   R.Relation := 1;
-   R.FBground := Byte(Background);
-   R.Trace := 0;
-   Title := Title + #0;
-   Name := Name + #0;
-   Args := Args + #0;
-   IcoName := IcoName + #0;
-{   R.Title := @Title[1];
-   R.Name := @Name[1];
-   R.Args := @Args[1];}
-   R.Inheritance := 0;
-   R.Session := Word(Session);
-{   R.IcoN := @IcoName[1];}
-   R.TermQ := 0;
-   LongInt(R.Env) := 0;
-{$IFNDEF DPMI}
-   R.Title := @Title[1];
-   R.Name := @Name[1];
-   R.Args := @Args[1];
-   R.IcoN := @IcoName[1];
-   P := @R;
-   asm
-     push ds
-     mov ax, $6400
-     mov cx, $636C
-     mov bx, $0025
-     lds si, P
-     int 21h
-     pop ds
-   end;
-{$ELSE}
-   PtrT := GetDosMem(SizeOf(Title), DR.DS);
-   Move(Title[1], PtrT^, SizeOf(Title));
-   R.Title := Ptr(DR.DS, 0);
-
-   PtrN := GetDosMem(SizeOf(Name), DR.DS);
-   Move(Name[1], PtrN^, SizeOf(Name));
-   R.Name := Ptr(DR.DS, 0);
-
-   PtrA := GetDosMem(SizeOf(Args), DR.DS);
-   Move(Args[1], PtrA^, SizeOf(Args));
-   R.Args := Ptr(DR.DS, 0);
-
-   PtrI := GetDosMem(SizeOf(IcoName), DR.DS);
-   Move(IcoName[1], PtrI^, SizeOf(IcoName));
-   R.IcoN := Ptr(DR.DS, 0);
-
-   P := GetDosMem(SizeOf(R), DR.DS);
-   Move(R, P^, SizeOf(R));
-   DR.AX := $6400;
-   DR.CX := $636c;
-   DR.BX := $0025;
-   DR.SI := 0;
-   SimulateRealModeInt($21, DR);
-   FreeDosMem(P);
-
-   FreeDosMem(PtrI);
-   FreeDosMem(PtrA);
-   FreeDosMem(PtrN);
-   FreeDosMem(PtrT);
-{$ENDIF}
-
-
-end;
-
-function GetBootDrive: Byte; assembler;
-{ requires DOS 4.0+ or OS/2 Warp 3+ }
-{ return: 1=A:, 2=B:, ...           }
-asm
-    mov ax, 3305h
-    int 21h
-    mov al, dl
-end;
-
-{$ENDIF}
-
-        {-DataCompBoy-}
+{-DataCompBoy-}
 procedure RunOS2Command;
- var T: lText;
-     I: Integer;
-     S, M, EX {$IFNDEF VIRTUALPASCAL}, OS2comspec{$ENDIF}: string;
-begin
-  if not OS2exec then Exit;
-  I := 1;
-  repeat
+  var
+    t: lText;
+    i: integer;
+    s, M, ex: String;
+  begin
+    if not OS2exec then
+      exit;
+    i := 1;
+    repeat
+      ClrIO;
+      ex := SwpDir+'$DN'+ItoS(i)+'$.CMD';
+      lAssignText(t, ex);
+      FileMode := $40;
+      lResetText(t);
+      if IOResult <> 0 then
+        break;
+      Close(t.t);
+      if InOutRes = 0 then
+        Inc(i);
+    until IOResult <> 0;
     ClrIO;
-    EX := SwpDir+'$DN'+Itos(I)+'$.CMD';
-    lAssignText(T, EX);
-    Filemode := $40;
-    lResetText(T);
-    if IOResult <> 0 then Break;
-    Close(T.T);
-    if InOutRes = 0 then Inc(I);
-  until IOResult <> 0;
-  ClrIO;
-  lAssignText(T, EX);
-  lRewriteText(T);
-  lGetDir(0, S);
-  WriteLn(T.T, '@'+Copy(S,1,2));
-  WriteLn(T.T, '@cd "'+S+'"');
-  S := Command;
-  if PosChar(';', S) > 0 then
-   begin
-     Replace(';;', #0, S);
-     While (S <> '') and (PosChar(';', S) <> 0) do
+    lAssignText(t, ex);
+    lRewriteText(t);
+    lGetDir(0, s);
+    Writeln(t.t, '@'+Copy(s, 1, 2));
+    Writeln(t.t, '@cd "'+s+'"');
+    s := Command;
+    if PosChar(';', s) > 0 then
       begin
-        I := PosChar(';', S);
-        M := Copy(S, 1, I-1); Replace(#0, ';', M);
-        WriteLn(T.T, M);
-        Delete(S, 1, I);
-      end;
-     Replace(#0, ';', S);
-     WriteLn(T.T, S);
-   end else WriteLn(T.T, Command);
-  if not Bckg and (ShiftState and $20 = 0) then WriteLn(T.T, '@pause');
-  Write(T.T, '@del "'+EX+'" & exit'^Z);
-  Close(T.T);
-{$IFNDEF VIRTUALPASCAL}
-  OS2comspec := GetEnv('OS2COMSPEC');
-  if OS2comspec = ''
-      then OS2comspec := Chr(96+GetBootDrive) + ':\os2\cmd.exe';
-  StartOS2Session($20, Session, Bckg, Command, OS2comspec,
-                     '/c '+EX, '');
-{$ELSE}
-  if Session = stOS2FullScreen then
-    M:= 'START "'+Command+'" /FS '+ EX
- else
-    M:= 'START "'+Command+'" /WIN '+ EX;
-  ExecString (@M,'');
-{$ENDIF}
-end;
-        {DataCompBoy}
+        Replace(';;', #0, s);
+        while (s <> '') and (PosChar(';', s) <> 0) do
+          begin
+            i := PosChar(';', s);
+            M := Copy(s, 1, i-1);
+            Replace(#0, ';', M);
+            Writeln(t.t, M);
+            Delete(s, 1, i);
+          end;
+        Replace(#0, ';', s);
+        Writeln(t.t, s);
+      end
+    else
+      Writeln(t.t, Command);
+    if not Bckg and (ShiftState and $20 = 0) then
+      Writeln(t.t, '@pause');
+    Write(t.t, '@del "'+ex+'" & exit'^Z);
+    Close(t.t);
+    if Session = stOS2FullScreen then
+      M := 'START "'+Command+'" /FS '+ex
+    else
+      M := 'START "'+Command+'" /WIN '+ex;
+    ExecString(@M, '');
+  end { RunOS2Command };
+{DataCompBoy}
 end.

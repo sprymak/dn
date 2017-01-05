@@ -55,7 +55,6 @@ unit Views;
 { Copyright (c) 1990 by Borland International         }
 {-----------------------------------------------------}
 
-
 interface
 
 uses
@@ -63,41 +62,41 @@ uses
 
 const
 
-{ TView State masks }
+  { TView State masks }
 
-  sfVisible     = $0001;
-  sfCursorVis   = $0002;
-  sfCursorIns   = $0004;
-  sfShadow      = $0008;
-  sfActive      = $0010;
-  sfSelected    = $0020;
-  sfFocused     = $0040;
-  sfDragging    = $0080;
-  sfDisabled    = $0100;
-  sfModal       = $0200;
-  sfDefault     = $0400;
-  sfExposed     = $0800;
+  sfVisible = $0001;
+  sfCursorVis = $0002;
+  sfCursorIns = $0004;
+  sfShadow = $0008;
+  sfActive = $0010;
+  sfSelected = $0020;
+  sfFocused = $0040;
+  sfDragging = $0080;
+  sfDisabled = $0100;
+  sfModal = $0200;
+  sfDefault = $0400;
+  sfExposed = $0800;
 
-{ TView Option masks }
+  { TView Option masks }
 
-  ofSelectable  = $0001;
-  ofTopSelect   = $0002;
-  ofFirstClick  = $0004;
-  ofFramed      = $0008;
-  ofPreProcess  = $0010;
+  ofSelectable = $0001;
+  ofTopSelect = $0002;
+  ofFirstClick = $0004;
+  ofFramed = $0008;
+  ofPreProcess = $0010;
   ofPostProcess = $0020;
-  ofBuffered    = $0040;
-  ofTileable    = $0080;
-  ofCenterX     = $0100;
-  ofCenterY     = $0200;
-  ofCentered    = $0300;
-  ofValidate    = $0400;
-  ofSecurity    = $0800;
-  ofVersion     = $3000;
-  ofVersion10   = $0000;
-  ofVersion20   = $1000;
+  ofBuffered = $0040;
+  ofTileable = $0080;
+  ofCenterX = $0100;
+  ofCenterY = $0200;
+  ofCentered = $0300;
+  ofValidate = $0400;
+  ofSecurity = $0800;
+  ofVersion = $3000;
+  ofVersion10 = $0000;
+  ofVersion20 = $1000;
 
-{ TView GrowMode masks }
+  { TView GrowMode masks }
 
   gfGrowLoX = $01;
   gfGrowLoY = $02;
@@ -106,7 +105,7 @@ const
   gfGrowAll = $0F;
   gfGrowRel = $10;
 
-{ TView DragMode masks }
+  { TView DragMode masks }
 
   dmDragMove = $01;
   dmDragGrow = $02;
@@ -116,190 +115,191 @@ const
   dmLimitHiY = $80;
   dmLimitAll = $F0;
 
-{ TView Help context codes }
+  { TView Help context codes }
 
   hcNoContext = 0;
-  hcDragging  = 1;
+  hcDragging = 1;
 
-{ TScrollBar part codes }
+  { TScrollBar part codes }
 
-  sbLeftArrow  = 0;
+  sbLeftArrow = 0;
   sbRightArrow = 1;
-  sbPageLeft   = 2;
-  sbPageRight  = 3;
-  sbUpArrow    = 4;
-  sbDownArrow  = 5;
-  sbPageUp     = 6;
-  sbPageDown   = 7;
-  sbIndicator  = 8;
+  sbPageLeft = 2;
+  sbPageRight = 3;
+  sbUpArrow = 4;
+  sbDownArrow = 5;
+  sbPageUp = 6;
+  sbPageDown = 7;
+  sbIndicator = 8;
 
-{ TScrollBar options for TWindow.StandardScrollBar }
+  { TScrollBar options for TWindow.StandardScrollBar }
 
-  sbHorizontal     = $0000;
-  sbVertical       = $0001;
+  sbHorizontal = $0000;
+  sbVertical = $0001;
   sbHandleKeyboard = $0002;
 
-{ TWindow Flags masks }
+  { TWindow Flags masks }
 
-  wfMove  = $01;
-  wfGrow  = $02;
+  wfMove = $01;
+  wfGrow = $02;
   wfClose = $04;
-  wfZoom  = $08;
-  wfMaxi  = $10;
+  wfZoom = $08;
+  wfMaxi = $10;
 
-{ TWindow number constants }
+  { TWindow number constants }
 
   wnNoNumber = 255;
 
-{ TWindow palette entries }
+  { TWindow palette entries }
 
   wpBlueWindow = 0;
   wpCyanWindow = 1;
   wpGrayWindow = 2;
 
-{ Color palettes }
+  { Color palettes }
 
-  CFrame      = #1#1#2#2#3;
-  CScrollBar  = #4#5#5;
-  CScroller   = #6#7;
+  CFrame = #1#1#2#2#3;
+  CScrollBar = #4#5#5;
+  CScroller = #6#7;
   CListViewer = #26#26#27#28#29;
 
   CBlueWindow = #8#9#10#11#12#13#14#15;
   CCyanWindow = #16#17#18#19#20#21#22#23;
   CGrayWindow = #24#25#26#27#28#29#30#31;
 
-{ TDrawBuffer maximum view width }
+  { TDrawBuffer maximum view width }
 
   MaxViewWidth = 256;
 
 type
 
-{ Command sets }
+  { Command sets }
 
   PCommandSet = ^TCommandSet;
-  TCommandSet = set of Byte;
+  TCommandSet = Set of byte;
 
-{ Color palette type }
+  { Color palette type }
 
   PPalette = ^TPalette;
   TPalette = String;
 
-{ TDrawBuffer, buffer used by draw methods }
+  { TDrawBuffer, buffer used by draw methods }
 
-  TDrawBuffer = array[0..MaxViewWidth - 1] of AWord;
+  TDrawBuffer = array[0..MaxViewWidth-1] of AWord;
 
-{ TView object Pointer }
+  { TView object Pointer }
 
   PView = ^TView;
 
-{ TGroup object Pointer }
+  { TGroup object Pointer }
 
   PGroup = ^TGroup;
 
-{ TView object }
+  { TView object }
 
   TView = object(TObject)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Owner: PGroup;
     Next: PView;
     Origin: TPoint;
     Size: TPoint;
     Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
+    GrowMode: byte;
+    DragMode: byte;
     HelpCtx: AWord;
     State: AWord;
     Options: AWord;
     EventMask: AWord;
     UpTmr: TEventTimer;
-    UpdTicks: LongInt;
-    constructor Init(var Bounds: TRect);
-    constructor Load(var S: TStream);
-    destructor  Done; virtual;
-    procedure   Awaken; virtual;
-    procedure   BlockCursor;
-    procedure   CalcBounds(var Bounds: TRect; Delta: TPoint); virtual;
-    procedure   ChangeBounds(var Bounds: TRect); virtual;
-    procedure   ClearEvent(var Event: TEvent);
-    function    CommandEnabled(Command: Word): Boolean;
-    function    DataSize: Word; virtual;
-    procedure   DisableCommands(Commands: TCommandSet);
-    procedure   DragView(var Event: TEvent; Mode: Byte; var Limits: TRect;
-                         MinSize, MaxSize: TPoint);
-    procedure   Draw; virtual;
-    procedure   DrawView;
-    procedure   EnableCommands(Commands: TCommandSet);
-    procedure   EndModal(Command: Word); virtual;
-    function    EventAvail: Boolean;
-    function    Execute: Word; virtual;
-    function    Exposed: Boolean;
-    function    Focus: Boolean;
-    procedure   GetBounds(var Bounds: TRect);
-    procedure   GetClipRect(var Clip: TRect);
-    function    GetColor(Color: Word): Word;
-    procedure   GetCommands(var Commands: TCommandSet);
-    procedure   GetData(var Rec); virtual;
-    procedure   GetEvent(var Event: TEvent); virtual;
-    procedure   GetExtent(var Extent: TRect);
-    function    GetHelpCtx: Word; virtual;
-    function    GetPalette: PPalette; virtual;
-    procedure   GetPeerViewPtr(var S: TStream; var P);
-    function    GetState(AState: Word): Boolean;
-    procedure   GrowTo(X, Y: LongInt);
-    procedure   HandleEvent(var Event: TEvent); virtual;
-    procedure   Hide;
-    procedure   HideCursor;
-    procedure   KeyEvent(var Event: TEvent);
-    procedure   Locate(var Bounds: TRect);
-    procedure   MakeFirst;
-    procedure   MakeGlobal(Source: TPoint; var Dest: TPoint);
-    procedure   MakeLocal(Source: TPoint; var Dest: TPoint);
-    function    MouseEvent(var Event: TEvent; Mask: Word): Boolean;
-    function    MouseInView(Mouse: TPoint): Boolean;
-    procedure   MoveTo(X, Y: LongInt);
-    function    NextView: PView;
-    procedure   NormalCursor;
-    function    Prev: PView;
-    function    PrevView: PView;
-    procedure   PutEvent(var Event: TEvent); virtual;
-    procedure   PutInFrontOf(Target: PView);
-    procedure   PutPeerViewPtr(var S: TStream; P: PView);
-    procedure   Select;
-    procedure   SetBounds(var Bounds: TRect);
-    procedure   SetCommands(Commands: TCommandSet);
-{DataCompBoy
+    UpdTicks: longInt;
+    Constructor Init(var Bounds: TRect);
+    Constructor Load(var s: TStream);
+    destructor Done; virtual;
+    procedure Awaken; virtual;
+    procedure BlockCursor;
+    procedure CalcBounds(var Bounds: TRect; Delta: TPoint); virtual;
+    procedure ChangeBounds(var Bounds: TRect); virtual;
+    procedure ClearEvent(var Event: TEvent);
+    function CommandEnabled(Command: word): boolean;
+    function DataSize: word; virtual;
+    procedure DisableCommands(Commands: TCommandSet);
+    procedure DragView(var Event: TEvent; Mode: byte; var Limits:
+      TRect;
+    MinSize, MaxSize: TPoint);
+    procedure Draw; virtual;
+    procedure DrawView;
+    procedure EnableCommands(Commands: TCommandSet);
+    procedure EndModal(Command: word); virtual;
+    function EventAvail: boolean;
+    function Execute: word; virtual;
+    function Exposed: boolean;
+    function Focus: boolean;
+    procedure GetBounds(var Bounds: TRect);
+    procedure GetClipRect(var Clip: TRect);
+    function GetColor(Color: word): word;
+    procedure GetCommands(var Commands: TCommandSet);
+    procedure GetData(var Rec); virtual;
+    procedure GetEvent(var Event: TEvent); virtual;
+    procedure GetExtent(var extent: TRect);
+    function GetHelpCtx: word; virtual;
+    function GetPalette: PPalette; virtual;
+    procedure GetPeerViewPtr(var s: TStream; var P);
+    function GetState(AState: word): boolean;
+    procedure GrowTo(X, Y: longInt);
+    procedure HandleEvent(var Event: TEvent); virtual;
+    procedure Hide;
+    procedure HideCursor;
+    procedure KeyEvent(var Event: TEvent);
+    procedure Locate(var Bounds: TRect);
+    procedure MakeFirst;
+    procedure MakeGlobal(Source: TPoint; var Dest: TPoint);
+    procedure MakeLocal(Source: TPoint; var Dest: TPoint);
+    function MouseEvent(var Event: TEvent; Mask: word): boolean;
+    function MouseInView(Mouse: TPoint): boolean;
+    procedure MoveTo(X, Y: longInt);
+    function NextView: PView;
+    procedure NormalCursor;
+    function Prev: PView;
+    function PrevView: PView;
+    procedure PutEvent(var Event: TEvent); virtual;
+    procedure PutInFrontOf(Target: PView);
+    procedure PutPeerViewPtr(var s: TStream; P: PView);
+    procedure Select;
+    procedure SetBounds(var Bounds: TRect);
+    procedure SetCommands(Commands: TCommandSet);
+    {DataCompBoy
     procedure   SetCmdState(Commands: TCommandSet; Enable: Boolean);
 }
-    procedure   SetCursor(X, Y: LongInt);
-    procedure   SetData(var Rec); virtual;
-    procedure   SetState(AState: Word; Enable: Boolean); virtual;
-    procedure   Show;
-    procedure   ShowCursor;
-    procedure   SizeLimits(var Min, Max: TPoint); virtual;
-    procedure   Store(var S: TStream);
-    function    TopView: PView;
-    function    Valid(Command: Word): Boolean; virtual;
-    procedure   WriteBuf(X, Y, W, H: Integer; var Buf);
-    procedure   WriteChar(X, Y: Integer; C: Char; Color: Byte;
-                          Count: Integer);
-    procedure   WriteLine(X, Y, W, H: Integer; var Buf);
-    procedure   WriteStr(X, Y: Integer; Str: String; Color: Byte);
-    procedure   Update; virtual;
-    function    MenuEnabled(Command: Word): Boolean; {-$VOL}
-//  private
+    procedure SetCursor(X, Y: longInt);
+    procedure SetData(var Rec); virtual;
+    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure Show;
+    procedure ShowCursor;
+    procedure SizeLimits(var Min, Max: TPoint); virtual;
+    procedure Store(var s: TStream);
+    function TopView: PView;
+    function Valid(Command: word): boolean; virtual;
+    procedure WriteBuf(X, Y, W, H: integer; var Buf);
+    procedure WriteChar(X, Y: integer; C: Char; Color: byte;
+    Count: integer);
+    procedure WriteLine(X, Y, W, H: integer; var Buf);
+    procedure WriteStr(X, Y: integer; Str: String; Color: byte);
+    procedure UpDate; virtual;
+    function MenuEnabled(Command: word): boolean; {-$VOL}
+    //  private
     procedure DrawCursor;
     procedure DrawHide(LastView: PView);
     procedure DrawShow(LastView: PView);
     procedure DrawUnderRect(var R: TRect; LastView: PView);
-    procedure DrawUnderView(DoShadow: Boolean; LastView: PView);
+    procedure DrawUnderView(DoShadow: boolean; LastView: PView);
     procedure ResetCursor; virtual;
-  end;
+    end;
 
-{ TFrame types }
+  { TFrame types }
 
-  TTitleStr = string;
+  TTitleStr = String;
 
-{ TFrame object }
+  { TFrame object }
 
   { Palette layout }
   { 1 = Passive frame }
@@ -310,21 +310,21 @@ type
 
   PFrame = ^TFrame;
   TFrame = object(TView)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    constructor Init(var Bounds: TRect);
-    procedure   Draw; virtual;
-    function    GetPalette: PPalette; virtual;
-    procedure   HandleEvent(var Event: TEvent); virtual;
-    procedure   SetState(AState: Word; Enable: Boolean); virtual;
-  private
-    procedure   FrameLine(var FrameBuf; Y, N: Integer; Color: Byte);
-  end;
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    Constructor Init(var Bounds: TRect);
+    procedure Draw; virtual;
+    function GetPalette: PPalette; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    procedure SetState(AState: word; Enable: boolean); virtual;
+    private
+    procedure FrameLine(var FrameBuf; Y, n: integer; Color: byte);
+    end;
 
-{ ScrollBar characters }
+  { ScrollBar characters }
 
   TScrollChars = array[0..4] of Char;
 
-{ TScrollBar object }
+  { TScrollBar object }
 
   { Palette layout }
   { 1 = Page areas }
@@ -333,106 +333,107 @@ type
 
   PScrollBar = ^TScrollBar;
   TScrollBar = object(TView)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    Value:  LongInt;
-    Min:    LongInt;
-    Max:    LongInt;
-    PgStep: LongInt;
-    ArStep: LongInt;
-    constructor Init(var Bounds: TRect);
-    constructor Load(var S: TStream);
-    procedure   Draw; virtual;
-    function    GetPalette: PPalette; virtual;
-    procedure   HandleEvent(var Event: TEvent); virtual;
-    procedure   ScrollDraw; virtual;
-    function    ScrollStep(Part: LongInt): LongInt; virtual;
-    procedure   SetParams(AValue, AMin, AMax, APgStep, AArStep: LongInt);
-    procedure   SetRange(AMin, AMax: LongInt);
-    procedure   SetStep(APgStep, AArStep: LongInt);
-    procedure   SetValue(AValue: LongInt);
-    procedure   Store(var S: TStream);
-  private
-    Chars: TScrollChars;
-    procedure   DrawPos(Pos: LongInt);
-    function    GetPos: LongInt;
-    function    GetSize: LongInt;
-  end;
-
- PMyScrollBar=^TMyScrollBar;
- TMyScrollBar = object(TScrollBar)
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    Value: longInt;
+    Min: longInt;
+    Max: longInt;
+    PgStep: longInt;
+    ArStep: longInt;
+    Constructor Init(var Bounds: TRect);
+    Constructor Load(var s: TStream);
     procedure Draw; virtual;
- private
-    procedure DrawPos(Pos: LongInt);
- end;
+    function GetPalette: PPalette; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    procedure ScrollDraw; virtual;
+    function ScrollStep(Part: longInt): longInt; virtual;
+    procedure SetParams(AValue, AMin, AMax, APgStep, AArStep:
+      longInt);
+    procedure SetRange(AMin, AMax: longInt);
+    procedure SetStep(APgStep, AArStep: longInt);
+    procedure SetValue(AValue: longInt);
+    procedure Store(var s: TStream);
+    private
+    Chars: TScrollChars;
+    procedure DrawPos(Pos: longInt);
+    function GetPos: longInt;
+    function GetSize: longInt;
+    end;
 
-{ Video buffer }
+  PMyScrollBar = ^TMyScrollBar;
+  TMyScrollBar = object(TScrollBar)
+    procedure Draw; virtual;
+    private
+    procedure DrawPos(Pos: longInt);
+    end;
+
+  { Video buffer }
 
   PVideoBuf = ^TVideoBuf;
   TVideoBuf = array[0..3999] of AWord;
 
-{ Selection modes }
+  { Selection modes }
 
   SelectMode = (NormalSelect, EnterSelect, LeaveSelect);
 
-{ TGroup object }
+  { TGroup object }
 
   TGroup = object(TView)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Last: PView;
     Current: PView;
     Phase: (phFocused, phPreProcess, phPostProcess);
     Buffer: PVideoBuf;
     Clip: TRect;
-    constructor Init(var Bounds: TRect);
-    constructor Load(var S: TStream);
-    destructor  Done; virtual;
-    procedure   Awaken; virtual;
-    procedure   ChangeBounds(var Bounds: TRect); virtual;
-    function    DataSize: Word; virtual;
-    procedure   Delete(P: PView);
-    procedure   Draw; virtual;
-    procedure   EndModal(Command: Word); virtual;
-    procedure   EventError(var Event: TEvent); virtual;
-    function    ExecView(P: PView): Word;
-    function    Execute: Word; virtual;
-    function    First: PView;
-    function    FirstThat(P: Pointer): PView;
-    function    LastThat(P: Pointer): PView;
-    function    FocusNext(Forwards: Boolean): Boolean;
-    procedure   ForEach(P: Pointer);
-    procedure   GetData(var Rec); virtual;
-    function    GetHelpCtx: Word; virtual;
-    procedure   GetSubViewPtr(var S: TStream; var P);
-    procedure   HandleEvent(var Event: TEvent); virtual;
-    procedure   Insert(P: PView);
-    procedure   InsertBefore(P, Target: PView);
-    procedure   Lock;
-    procedure   PutSubViewPtr(var S: TStream; P: PView);
-    procedure   Redraw; virtual;
-    procedure   SelectNext(Forwards: Boolean);
-    procedure   SetData(var Rec); virtual;
-    procedure   SetState(AState: Word; Enable: Boolean); virtual;
-    procedure   Store(var S: TStream);
-    procedure   Unlock;
-    function    Valid(Command: Word): Boolean; virtual;
-    procedure   FreeBuffer;
-    procedure   GetBuffer;
-    procedure   InsertView(P, Target: PView);
-    procedure   SetCurrent(P: PView; Mode: SelectMode);
-  private
-    LockFlag: Byte;
-    EndState: Word;
-    function    At(Index: LongInt): PView;
-    procedure   DrawSubViews(P, Bottom: PView);
-    function    FirstMatch(AState: Word; AOptions: Word): PView;
-    function    FindNext(Forwards: Boolean): PView;
-    function    IndexOf(P: PView): LongInt;
-    procedure   RemoveView(P: PView);
-    procedure   ResetCurrent;
-    procedure   ResetCursor; virtual;
-  end;
+    Constructor Init(var Bounds: TRect);
+    Constructor Load(var s: TStream);
+    destructor Done; virtual;
+    procedure Awaken; virtual;
+    procedure ChangeBounds(var Bounds: TRect); virtual;
+    function DataSize: word; virtual;
+    procedure Delete(P: PView);
+    procedure Draw; virtual;
+    procedure EndModal(Command: word); virtual;
+    procedure EventError(var Event: TEvent); virtual;
+    function ExecView(P: PView): word;
+    function Execute: word; virtual;
+    function First: PView;
+    function FirstThat(P: Pointer): PView;
+    function LastThat(P: Pointer): PView;
+    function FocusNext(Forwards: boolean): boolean;
+    procedure ForEach(P: Pointer);
+    procedure GetData(var Rec); virtual;
+    function GetHelpCtx: word; virtual;
+    procedure GetSubViewPtr(var s: TStream; var P);
+    procedure HandleEvent(var Event: TEvent); virtual;
+    procedure Insert(P: PView);
+    procedure InsertBefore(P, Target: PView);
+    procedure Lock;
+    procedure PutSubViewPtr(var s: TStream; P: PView);
+    procedure Redraw; virtual;
+    procedure SelectNext(Forwards: boolean);
+    procedure SetData(var Rec); virtual;
+    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure Store(var s: TStream);
+    procedure UnLock;
+    function Valid(Command: word): boolean; virtual;
+    procedure FreeBuffer;
+    procedure GetBuffer;
+    procedure InsertView(P, Target: PView);
+    procedure SetCurrent(P: PView; Mode: SelectMode);
+    private
+    LockFlag: byte;
+    EndState: word;
+    function At(Index: longInt): PView;
+    procedure DrawSubViews(P, Bottom: PView);
+    function FirstMatch(AState: word; AOptions: word): PView;
+    function FindNext(Forwards: boolean): PView;
+    function IndexOf(P: PView): longInt;
+    procedure RemoveView(P: PView);
+    procedure ResetCurrent;
+    procedure ResetCursor; virtual;
+    end;
 
-{ TWindow object }
+  { TWindow object }
 
   { Palette layout }
   { 1 = Frame passive }
@@ -446,95 +447,100 @@ type
 
   PWindow = ^TWindow;
   TWindow = object(TGroup)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    Flags: Byte;
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    Flags: byte;
     ZoomRect: TRect;
     MaxiRect: TRect;
     Number: AInt;
     Palette: AInt;
     Frame: PFrame;
     Title: PString;
-    constructor Init(var Bounds: TRect; const ATitle: TTitleStr; ANumber: Integer);
-    constructor Load(var S: TStream);
-    destructor  Done; virtual;
-    procedure   Close; virtual;
-    function    GetPalette: PPalette; virtual;
-    function    GetTitle(MaxSize: Integer): TTitleStr; virtual;
-    procedure   HandleEvent(var Event: TEvent); virtual;
-    procedure   InitFrame; virtual;
-    procedure   SetState(AState: Word; Enable: Boolean); virtual;
-    procedure   SizeLimits(var Min, Max: TPoint); virtual;
-    function    StandardScrollBar(AOptions: Word): PScrollBar;
-    procedure   Store(var S: TStream);
-    procedure   Zoom; virtual;
-    procedure   Maxi; virtual;
-    function    ReactOnCmd: Boolean; virtual;
-    procedure   Draw; virtual; {DataCompBoy}
-  end;
+    Constructor Init(var Bounds: TRect; const ATitle: TTitleStr;
+      ANumber: integer);
+    Constructor Load(var s: TStream);
+    destructor Done; virtual;
+    procedure Close; virtual;
+    function GetPalette: PPalette; virtual;
+    function GetTitle(MaxSize: integer): TTitleStr; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    procedure InitFrame; virtual;
+    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure SizeLimits(var Min, Max: TPoint); virtual;
+    function StandardScrollBar(AOptions: word): PScrollBar;
+    procedure Store(var s: TStream);
+    procedure Zoom; virtual;
+    procedure Maxi; virtual;
+    function ReactOnCmd: boolean; virtual;
+    procedure Draw; virtual; {DataCompBoy}
+    end;
 
-{ Message dispatch function }
+  { Message dispatch function }
 
-function Message(Receiver: PView; What, Command: Word; InfoPtr: Pointer): Pointer;
-function MessageL(Receiver: PView; What, Command: Word; InfoLng: LongInt): Pointer;
+function Message(Receiver: PView; What, Command: word; InfoPtr:
+    Pointer): Pointer;
+function MessageL(Receiver: PView; What, Command: word; InfoLng:
+    longInt): Pointer;
 
 { Views registration procedure }
 
 const
 
-{ Event masks }
+  { Event masks }
 
   PositionalEvents = evMouse;
-  FocusedEvents = evKeyboard + evCommand;
+  FocusedEvents = evKeyboard+evCommand;
 
-{ Minimum window size }
+  { Minimum window size }
 
   MinWinSize: TPoint = (X: 16; Y: 6);
 
-{ Shadow definitions }
+  { Shadow definitions }
 
   ShadowSize: TPoint = (X: 2; Y: 1);
   ShadowAttr = $08;
 
-{ Markers control }
+  { Markers control }
 
-  ShowMarkers: Boolean = False;
+  ShowMarkers: boolean = False;
 
-{ MapColor error return value }
+  { MapColor error return value }
 
   ErrorAttr = $CF;
 
-{ Characters used for drawing selected and default items in  }
-{ monochrome color sets                                      }
+  { Characters used for drawing selected and default items in  }
+  { monochrome color sets                                      }
 
   SpecialChars: array[0..5] of Char = ('>', '<', ')', '(', ' ', ' ');
 
-{ True if the command set has changed since being set to false }
+  { True if the command set has changed since being set to false }
 
-  CommandSetChanged: Boolean = False;
+  CommandSetChanged: boolean = False;
   UpdateViews: PCollection = nil;
   UpdatePrior: PCollection = nil;
 
 const
 
-{ Current command set. All but window commands are active by default }
+  { Current command set. All but window commands are active by default }
 
   CurCommandSet: TCommandSet =
-    [0..255] - [cmZoom, cmClose, cmResize, cmNext, cmPrev, cmMaxi];
+  [0..255]-[cmZoom, cmClose, cmResize, cmNext, cmPrev, cmMaxi];
 
 procedure RegisterToPrior(P: PView);
 procedure RegisterToBackground(P: PView);
 procedure Deregister(P: PView);
-procedure UpdateAll(All: Boolean);
+procedure UpdateAll(All: boolean);
 
-function GetNum: aint;
+function GetNum: AInt;
 
 implementation
-uses Startup, DNapp, advance, advance1, advance2, advance3, DNIni,
-     {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
-     LFN, TitleSet, {DataCompBoy} {AK155 -} CallSpcb, VideoMan;
+uses
+  Startup, DNApp, advance, advance1, advance2, advance3, DnIni,
+  VpSysLow,
+  Lfn, TitleSet, {DataCompBoy} {AK155 -}CallSpcb, VideoMan;
 
-Const Numbers: AWord = 0;
-function GetNum: aint; assembler;
+const
+  Numbers: AWord = 0;
+function GetNum: AInt; assembler;
 asm
  push cx
  push bx
@@ -558,7 +564,8 @@ asm
  pop ax
  pop bx
  pop cx
-end;
+end
+  ;
 
 type
   PFixupList = ^TFixupList;
@@ -566,77 +573,74 @@ type
 
 const
   OwnerGroup: PGroup = nil;
-  FixupList: PFixupList = nil;
+  FixUpList: PFixupList = nil;
   TheTopView: PView = nil;
 
-{$IFDEF VIRTUALPASCAL}{$I Views._VP}
- {$ELSE}
-  {$IFDEF FPC}{$I Views._FP}
-   {$ELSE}
-    {$I Views._BP}
-  {$ENDIF}
-{$ENDIF}
-procedure TPointInc(var A:TPoint; B:TPoint);
-begin
-  inc(A.X,B.X);
-  inc(A.Y,B.Y);
-end;
+  {$I Views._VP}
+procedure TPointInc(var A: TPoint; B: TPoint);
+  begin
+    Inc(A.X, B.X);
+    Inc(A.Y, B.Y);
+  end;
 
-procedure TPointDec(var A:TPoint; B:TPoint);
-begin
-  dec(A.X,B.X);
-  dec(A.Y,B.Y);
-end;
+procedure TPointDec(var A: TPoint; B: TPoint);
+  begin
+    Dec(A.X, B.X);
+    Dec(A.Y, B.Y);
+  end;
 
 { TView }
 
-constructor TView.Init(var Bounds: TRect);
-begin
-  TObject.Init;
-  Owner := nil;
-  State := sfVisible;
-  SetBounds(Bounds);
-  DragMode := dmLimitLoY;
-  HelpCtx := hcNoContext;
-  EventMask := evMouseDown + evKeyDown + evCommand;
-end;
+Constructor TView.Init(var Bounds: TRect);
+  begin
+    TObject.Init;
+    Owner := nil;
+    State := sfVisible;
+    SetBounds(Bounds);
+    DragMode := dmLimitLoY;
+    HelpCtx := hcNoContext;
+    EventMask := evMouseDown+evKeyDown+evCommand;
+  end;
 
-constructor TView.Load(var S: TStream);
-begin
-  TObject.Init;
-  S.Read(Origin,
-    SizeOf(TPoint) * 3 +
-    SizeOf(Byte) * 2 +
-    SizeOf(AWord) * 4);
-end;
+Constructor TView.Load(var s: TStream);
+  begin
+    TObject.Init;
+    s.Read(Origin,
+    SizeOf(TPoint)*3+
+    SizeOf(byte)*2+
+    SizeOf(AWord)*4);
+  end;
 
 destructor TView.Done;
-begin
-  Deregister(@Self);
-  Hide;
-  if Owner <> nil then Owner^.Delete(@Self);
-end;
+  begin
+    Deregister(@Self);
+    Hide;
+    if Owner <> nil then
+      Owner^.Delete(@Self);
+  end;
 
 procedure TView.Awaken;
-begin
-end;
+  begin
+  end;
 
 procedure TView.BlockCursor;
-begin
-  SetState(sfCursorIns, True);
-end;
+  begin
+    SetState(sfCursorIns, True);
+  end;
 
 procedure TView.CalcBounds(var Bounds: TRect; Delta: TPoint);
-var
-  S, D: LongInt;
-{  Min, Max: TPoint;}
+  var
+    s, D: longInt;
+    {  Min, Max: TPoint;}
 
-procedure Grow(var I: LongInt);
-begin
-  if GrowMode and gfGrowRel = 0 then Inc(I, D) else
-    I := (I * S + (S - D) shr 1) div (S - D);
-end;
-{
+  procedure Grow(var i: longInt);
+    begin
+      if GrowMode and gfGrowRel = 0 then
+        Inc(i, D)
+      else
+        i := (i*s+(s-D) shr 1) div (s-D);
+    end;
+  {
 function Range(Val, Min, Max: LongInt): LongInt;
 begin
   if Val < Min then Range := Min else
@@ -644,510 +648,566 @@ begin
       Range := Val;
 end;
 }
-begin
-  GetBounds(Bounds);
-  S := Owner^.Size.X;
-  D := Delta.X;
-  if GrowMode and gfGrowLoX <> 0 then Grow(Bounds.A.X);
-  if GrowMode and gfGrowHiX <> 0 then Grow(Bounds.B.X);
-  if Bounds.B.X - Bounds.A.X > MaxViewWidth then
-    Bounds.B.X := Bounds.A.X + MaxViewWidth;
-  S := Owner^.Size.Y;
-  D := Delta.Y;
-  if GrowMode and gfGrowLoY <> 0 then Grow(Bounds.A.Y);
-  if GrowMode and gfGrowHiY <> 0 then Grow(Bounds.B.Y);
-{AK155 IMHO от коррекции по Min и Max может быть только вред.
+  begin
+    GetBounds(Bounds);
+    s := Owner^.Size.X;
+    D := Delta.X;
+    if GrowMode and gfGrowLoX <> 0 then
+      Grow(Bounds.A.X);
+    if GrowMode and gfGrowHiX <> 0 then
+      Grow(Bounds.B.X);
+    if Bounds.B.X-Bounds.A.X > MaxViewWidth then
+      Bounds.B.X := Bounds.A.X+MaxViewWidth;
+    s := Owner^.Size.Y;
+    D := Delta.Y;
+    if GrowMode and gfGrowLoY <> 0 then
+      Grow(Bounds.A.Y);
+    if GrowMode and gfGrowHiY <> 0 then
+      Grow(Bounds.B.Y);
+    {AK155 IMHO от коррекции по Min и Max может быть только вред.
 Из-за этого гориз. скроллбар, который свели на нет, потом при
 обратной растяжке накрывает угол окна.
   SizeLimits(Min, Max);
   Bounds.B.X := Bounds.A.X + Range(Bounds.B.X - Bounds.A.X, Min.X, Max.X);
   Bounds.B.Y := Bounds.A.Y + Range(Bounds.B.Y - Bounds.A.Y, Min.Y, Max.Y);
 }
-  if (Origin.X < 0) and (Origin.Y < 0) then Bounds.A := Origin;
-end;
+    if (Origin.X < 0) and (Origin.Y < 0) then
+      Bounds.A := Origin;
+  end { TView.CalcBounds };
 
 procedure TView.ChangeBounds(var Bounds: TRect);
-begin
-  SetBounds(Bounds);
-  DrawView;
-end;
+  begin
+    SetBounds(Bounds);
+    DrawView;
+  end;
 
 procedure TView.ClearEvent(var Event: TEvent);
-begin
-  Event.What := evNothing;
-  Event.InfoPtr := @Self;
-end;
-
-function TView.MenuEnabled(Command: Word): Boolean; {-$VOL}
-begin
-{$IFNDEF GAME}     if (Command=cmGame){$ELSE} if ((Command=cmGame) and (not EnableGame)) {$ENDIF}
-{$IFNDEF TrashCan} or (Command=cmHideShowTools)                       {$ENDIF}
-{$IFNDEF UUENCODE} or (Command=cmUUEncodeFile)                        {$ENDIF}
-{$IFNDEF UUDECODE} or (Command=cmUUDecodeFile)                        {$ENDIF}
-{$IFNDEF CALENDAR} or (Command=cmCalendar)                            {$ENDIF}
-{$IFNDEF CDPlayer} or (Command=cmPlayCD)                              {$ENDIF}
-{$IFNDEF PHONES}   {or (Command in PhonesCommands)}
-                   or (Command=cmPhoneBook)
-                   or (Command=cmDialPhone)
-                   or (Command=cmUndial)                              {$ENDIF}
-{$IFNDEF MODEM}    or (Command=cmSendInitModem)
-                   or (Command=cmSendModemBreak)
-                   or (Command=cmSetupModem)
-                   or (Command=cmHangUp)
-                   or (Command=cmAdvancePortSetup)
-                   or (Command=cmTerminal)
-     {$IFDEF LINK} or (Command=cmNavyLink)
-                   or (Command=cmNavyLinkSetup) {$ENDIF}
-                                                                      {$ENDIF}
-{$IFDEF MINARCH}   or (Command=cmReadArchive)
-                   or ((Command>=cmLoConfigArchiver) and
-                       (Command<=cmHiConfigArchiver) and
-                       (Command<>cmConfigACE) and
-                       (Command<>cmConfigARJ) and
-                       (Command<>cmConfigCAB) and
-                       (Command<>cmConfigHA ) and
-                       (Command<>cmConfigLHA) and
-                       (Command<>cmConfigRAR) and
-                       (Command<>cmConfigZIP))                        {$ENDIF}
-{$IFNDEF SS}       or (Command=cmSaversSetup)
-                   or (Command=cmScreenRest)                          {$ENDIF}
-{$IFNDEF CHCOL}    or (Command=cmChangeColors)                        {$ENDIF}
-{$IFNDEF Printer}
-                   or (Command=cmSinglePrint)
-                   or (Command=cmPrintFile)
-                   or (Command=cmFilePrint)
-                   or (Command=cmBlockPrint)
-                   or (Command=cmPanelPrint)                          {$ENDIF}
-{$IFNDEF PrintFromEditor}
-                   or (Command=cmPrintFileEd)
-                   or (Command=cmPrintBlock)                          {$ENDIF}
-{$IFNDEF PrintManager}
-                   or (Command=cmSetupPrinter)                        {$ENDIF}
-{$IFNDEF NETINFO}  or (Command=cmGetNetInfo)
-                   or (Command=cmNetInfo)                             {$ENDIF}
-{$IFNDEF SYSINFO}  or (Command=cmSystemInfo)                          {$ENDIF}
-{$IFNDEF MEMINFO}  or (Command=cmMemoryInfo)                          {$ENDIF}
-
-   then MenuEnabled:=False else
-  {MenuEnabled:=(Command > 255) or (Command in CurCommandSet);}
-   MenuEnabled:=(Command > 255) or (Lo(Command) in CurCommandSet);
-end; {-$VOL}
-
-function TView.CommandEnabled(Command: Word): Boolean;
-begin
-  CommandEnabled := MenuEnabled(Command) or (Command=cmRedo);
-end;
-
-function TView.DataSize: Word;
-begin
-  DataSize := 0;
-end;
-
-procedure TView.DisableCommands(Commands: TCommandSet);
-begin
-  CommandSetChanged := CommandSetChanged or (CurCommandSet * Commands <> []);
-  CurCommandSet := CurCommandSet - Commands;
-end;
-
-procedure TView.DragView(var Event: TEvent; Mode: Byte;
-  var Limits: TRect; MinSize, MaxSize: TPoint);
-var
-  P, S: TPoint;
-  SaveBounds: TRect;
-
-function Min(I, J: LongInt): LongInt;
-begin
-  if I < J then Min := I else Min := J;
-end;
-
-function Max(I, J: LongInt): LongInt;
-begin
-  if I > J then Max := I else Max := J;
-end;
-
-procedure MoveGrow(P, S: TPoint);
-var
-  R: TRect;
-begin
-  S.X := Min(Max(S.X, MinSize.X), MaxSize.X);
-  S.Y := Min(Max(S.Y, MinSize.Y), MaxSize.Y);
-  P.X := Min(Max(P.X, Limits.A.X - S.X + 1), Limits.B.X - 1);
-  P.Y := Min(Max(P.Y, Limits.A.Y - S.Y + 1), Limits.B.Y - 1);
-  if Mode and dmLimitLoX <> 0 then P.X := Max(P.X, Limits.A.X);
-  if Mode and dmLimitLoY <> 0 then P.Y := Max(P.Y, Limits.A.Y);
-  if Mode and dmLimitHiX <> 0 then P.X := Min(P.X, Limits.B.X - S.X);
-  if Mode and dmLimitHiY <> 0 then P.Y := Min(P.Y, Limits.B.Y - S.Y);
-  R.Assign(P.X, P.Y, P.X + S.X, P.Y + S.Y);
-  Locate(R);
-end;
-
-procedure Change(DX, DY: LongInt);
-begin
-  if (Mode and dmDragMove <> 0) and (ShiftState and $03 = 0) then
   begin
-    Inc(P.X, DX);
-    Inc(P.Y, DY);
-  end else
-  if (Mode and dmDragGrow <> 0) and (ShiftState and $03 <> 0) then
-  begin
-    Inc(S.X, DX);
-    Inc(S.Y, DY);
+    Event.What := evNothing;
+    Event.InfoPtr := @Self;
   end;
-end;
 
-{AK155 13-08-2003 Введено прекращение по Esc перетаскивания и изменения
+function TView.MenuEnabled(Command: word): boolean; {-$VOL}
+  begin
+    {$IFNDEF GAME} if (Command = cmGame) {$ELSE} if ((Command =
+          cmGame) and (not EnableGame)) {$ENDIF}
+        {$IFNDEF TrashCan} or (Command = cmHideShowTools) {$ENDIF}
+        {$IFNDEF UUENCODE} or (Command = cmUUEncodeFile) {$ENDIF}
+        {$IFNDEF UUDECODE} or (Command = cmUUDecodeFile) {$ENDIF}
+        {$IFNDEF CALENDAR} or (Command = cmCalendar) {$ENDIF}
+        or (Command = cmPlayCD)
+        {$IFNDEF PHONES} {or (Command in PhonesCommands)}
+        or (Command = cmPhoneBook)
+        or (Command = cmDialPhone)
+        or (Command = cmUndial) {$ENDIF}
+        {$IFNDEF MODEM} or (Command = cmSendInitModem)
+        or (Command = cmSendModemBreak)
+        or (Command = cmSetupModem)
+        or (Command = cmHangUp)
+        or (Command = cmAdvancePortSetup)
+        or (Command = cmTerminal)
+        {$IFDEF LINK} or (Command = cmNavyLink)
+        or (Command = cmNavyLinkSetup) {$ENDIF}
+        {$ENDIF}
+        {$IFDEF MINARCH} or (Command = cmReadArchive)
+        or ((Command >= cmLoConfigArchiver) and
+        (Command <= cmHiConfigArchiver) and
+        (Command <> cmConfigACE) and
+        (Command <> cmConfigARJ) and
+        (Command <> cmConfigCAB) and
+        (Command <> cmConfigHA) and
+        (Command <> cmConfigLHA) and
+        (Command <> cmConfigRAR) and
+        (Command <> cmConfigZIP)) {$ENDIF}
+        {$IFNDEF SS} or (Command = cmSaversSetup)
+        or (Command = cmScreenRest) {$ENDIF}
+        {$IFNDEF Printer}
+        or (Command = cmSinglePrint)
+        or (Command = cmPrintFile)
+        or (Command = cmFilePrint)
+        or (Command = cmBlockPrint)
+        or (Command = cmPanelPrint) {$ENDIF}
+        {$IFNDEF PrintManager}
+        or (Command = cmSetupPrinter) {$ENDIF}
+        {$IFNDEF NETINFO} or (Command = cmGetNetInfo)
+        or (Command = cmNetInfo) {$ENDIF}
+        or (Command = cmSystemInfo)
+        or (Command = cmMemoryInfo)
+
+      then
+        MenuEnabled := False
+      else
+        {MenuEnabled:=(Command > 255) or (Command in CurCommandSet);}
+        MenuEnabled := (Command > 255) or (Lo(Command) in
+          CurCommandSet);
+    end; {-$VOL}
+
+    function TView.CommandEnabled(Command: word): boolean;
+      begin
+        CommandEnabled := MenuEnabled(Command) or (Command = cmRedo);
+      end;
+
+    function TView.DataSize: word;
+      begin
+        DataSize := 0;
+      end;
+
+    procedure TView.DisableCommands(Commands: TCommandSet);
+      begin
+        CommandSetChanged := CommandSetChanged or (CurCommandSet*
+          Commands <> []);
+        CurCommandSet := CurCommandSet-Commands;
+      end;
+
+    procedure TView.DragView(var Event: TEvent; Mode: byte;
+      var Limits: TRect; MinSize, MaxSize: TPoint);
+      var
+        P, s: TPoint;
+        SaveBounds: TRect;
+
+      function Min(i, j: longInt): longInt;
+        begin
+          if i < j then
+            Min := i
+          else
+            Min := j;
+        end;
+
+      function Max(i, j: longInt): longInt;
+        begin
+          if i > j then
+            Max := i
+          else
+            Max := j;
+        end;
+
+      procedure MoveGrow(P, s: TPoint);
+        var
+          R: TRect;
+        begin
+          s.X := Min(Max(s.X, MinSize.X), MaxSize.X);
+          s.Y := Min(Max(s.Y, MinSize.Y), MaxSize.Y);
+          P.X := Min(Max(P.X, Limits.A.X-s.X+1), Limits.B.X-1);
+          P.Y := Min(Max(P.Y, Limits.A.Y-s.Y+1), Limits.B.Y-1);
+          if Mode and dmLimitLoX <> 0 then
+            P.X := Max(P.X, Limits.A.X);
+          if Mode and dmLimitLoY <> 0 then
+            P.Y := Max(P.Y, Limits.A.Y);
+          if Mode and dmLimitHiX <> 0 then
+            P.X := Min(P.X, Limits.B.X-s.X);
+          if Mode and dmLimitHiY <> 0 then
+            P.Y := Min(P.Y, Limits.B.Y-s.Y);
+          R.Assign(P.X, P.Y, P.X+s.X, P.Y+s.Y);
+          Locate(R);
+        end;
+
+      procedure Change(DX, DY: longInt);
+        begin
+          if (Mode and dmDragMove <> 0) and (ShiftState and $03 = 0)
+          then
+            begin
+              Inc(P.X, DX);
+              Inc(P.Y, DY);
+            end
+          else if (Mode and dmDragGrow <> 0) and (ShiftState and $03 <>
+              0)
+          then
+            begin
+              Inc(s.X, DX);
+              Inc(s.Y, DY);
+            end;
+        end;
+
+      {AK155 13-08-2003 Введено прекращение по Esc перетаскивания и изменения
 размера. По мотивам патча
 dn3421-views(i)-dragging_and_resizing_terminates_by_esc.patch
 by Eugeny Zvyagintzev, но реализация более экономичная.
 }
-begin
-  SetState(sfDragging, True);
-  if Event.What = evMouseDown then
-  begin
-    GetBounds(SaveBounds);
-    if Mode and dmDragMove <> 0 then
-    begin
-      P.X := Origin.X - Event.Where.X;
-      P.Y := Origin.Y - Event.Where.Y;
-      repeat
-        if (Event.What = evKeyDown) then
-        begin
-          if Event.KeyCode = kbEsc then
+      begin { TView.DragView }
+        SetState(sfDragging, True);
+        if Event.What = evMouseDown then
           begin
-            Locate(SaveBounds);
-            break;
-          end;
-        end
+            GetBounds(SaveBounds);
+            if Mode and dmDragMove <> 0 then
+              begin
+                P.X := Origin.X-Event.Where.X;
+                P.Y := Origin.Y-Event.Where.Y;
+                repeat
+                  if (Event.What = evKeyDown) then
+                    begin
+                      if Event.KeyCode = kbESC then
+                        begin
+                          Locate(SaveBounds);
+                          break;
+                        end;
+                    end
+                  else
+                    begin
+                      Inc(Event.Where.X, P.X);
+                      Inc(Event.Where.Y, P.Y);
+                      MoveGrow(Event.Where, Size);
+                    end;
+                until not MouseEvent(Event, evMouseMove or evKeyDown);
+              end
+            else
+              begin
+                P.X := Size.X-Event.Where.X;
+                P.Y := Size.Y-Event.Where.Y;
+                repeat
+                  if (Event.What = evKeyDown) then
+                    begin
+                      if Event.KeyCode = kbESC then
+                        begin
+                          Locate(SaveBounds);
+                          break;
+                        end;
+                    end
+                  else
+                    begin
+                      Inc(Event.Where.X, P.X);
+                      Inc(Event.Where.Y, P.Y);
+                      MoveGrow(Origin, Event.Where);
+                    end;
+                until not MouseEvent(Event, evMouseMove or evKeyDown);
+              end;
+          end
         else
-        begin
-          Inc(Event.Where.X, P.X);
-          Inc(Event.Where.Y, P.Y);
-          MoveGrow(Event.Where, Size);
-        end;
-      until not MouseEvent(Event, evMouseMove or evKeyDown);
-    end else
-    begin
-      P.X := Size.X - Event.Where.X;
-      P.Y := Size.Y - Event.Where.Y;
-      repeat
-        if (Event.What = evKeyDown) then
-        begin
-          if Event.KeyCode = kbEsc then
           begin
-            Locate(SaveBounds);
-            break;
+            GetBounds(SaveBounds);
+            repeat
+              P := Origin;
+              s := Size;
+              KeyEvent(Event);
+              case Event.KeyCode of
+                kbLeft, kbShiftLeft, kbShiftTab:
+                  Change(-1, 0);
+                kbRight, kbShiftRight, kbTab:
+                  Change(1, 0);
+                kbUp, kbShiftUp:
+                  Change(0, -1);
+                kbDown, kbShiftDown:
+                  Change(0, 1);
+                kbCtrlLeft:
+                  Change(-8, 0);
+                kbCtrlRight:
+                  Change(8, 0);
+                kbHome:
+                  P.X := Limits.A.X;
+                kbEnd:
+                  P.X := Limits.B.X-s.X;
+                kbPgUp:
+                  P.Y := Limits.A.Y;
+                kbPgDn:
+                  P.Y := Limits.B.Y-s.Y;
+              end {case};
+              MoveGrow(P, s);
+            until (Event.KeyCode = kbEnter) or (Event.KeyCode =
+              kbESC);
+            if Event.KeyCode = kbESC then
+              Locate(SaveBounds);
           end;
-        end
-        else
-        begin
-          Inc(Event.Where.X, P.X);
-          Inc(Event.Where.Y, P.Y);
-          MoveGrow(Origin, Event.Where);
-        end;
-      until not MouseEvent(Event, evMouseMove or evKeyDown);
-    end;
-  end else
-  begin
-    GetBounds(SaveBounds);
-    repeat
-      P := Origin;
-      S := Size;
-      KeyEvent(Event);
-      case Event.KeyCode of
-        kbLeft,KbShiftLeft,kbShiftTab: Change(-1, 0);
-        kbRight,kbShiftRight,kbTab: Change(1, 0);
-        kbUp,kbShiftUp: Change(0, -1);
-        kbDown,kbShiftDown: Change(0, 1);
-        kbCtrlLeft: Change(-8, 0);
-        kbCtrlRight: Change(8, 0);
-        kbHome: P.X := Limits.A.X;
-        kbEnd: P.X := Limits.B.X - S.X;
-        kbPgUp: P.Y := Limits.A.Y;
-        kbPgDn: P.Y := Limits.B.Y - S.Y;
-      end;
-      MoveGrow(P, S);
-    until (Event.KeyCode = kbEnter) or (Event.KeyCode = kbEsc);
-    if Event.KeyCode = kbEsc then Locate(SaveBounds);
-  end;
-  SetState(sfDragging, False);
-end;
+        SetState(sfDragging, False);
+      end { TView.DragView };
 
-procedure TView.Draw;
-var
-  B: TDrawBuffer;
-begin
-  MoveChar(B, ' ', GetColor(1), Size.X);
-  WriteLine(0, 0, Size.X, Size.Y, B);
-end;
-
-procedure TView.DrawCursor;
-begin
-  if State and sfFocused <> 0 then
-  ResetCursor;
-end;
-
-procedure TView.DrawHide(LastView: PView);
-begin
-  DrawCursor;
-  DrawUnderView(State and sfShadow <> 0, LastView);
-end;
-
-procedure TView.DrawShow(LastView: PView);
-begin
-  DrawView;
-  if State and sfShadow <> 0 then DrawUnderView(True, LastView);
-end;
-
-procedure TView.DrawUnderRect(var R: TRect; LastView: PView);
-begin
-  Owner^.Clip.Intersect(R);
-  Owner^.DrawSubViews(NextView, LastView);
-  Owner^.GetExtent(Owner^.Clip);
-end;
-
-procedure TView.DrawUnderView(DoShadow: Boolean; LastView: PView);
-var
-  R: TRect;
-begin
-  GetBounds(R);
-  if DoShadow then
-  begin
-    Inc(R.B.X, ShadowSize.X);
-    Inc(R.B.Y, ShadowSize.Y);
-  end;
-  DrawUnderRect(R, LastView);
-end;
-
-procedure TView.DrawView;
-begin
-  if Exposed then
-  begin
-    Draw;
-    DrawCursor;
-  end;
-end;
-
-procedure TView.EnableCommands(Commands: TCommandSet);
-begin
-  CommandSetChanged := CommandSetChanged or
-    (CurCommandSet * Commands <> Commands);
-  CurCommandSet := CurCommandSet + Commands;
-end;
-
-procedure TView.EndModal(Command: Word);
-var
-  P: PView;
-begin
-  P := TopView;
-  if TopView <> nil then TopView^.EndModal(Command);
-end;
-
-function TView.EventAvail: Boolean;
-var
-  Event: TEvent;
-begin
-  GetEvent(Event);
-  if Event.What <> evNothing then PutEvent(Event);
-  EventAvail := Event.What <> evNothing;
-end;
-
-procedure TView.GetBounds(var Bounds: TRect);
-begin
-  Bounds.A.X := Origin.X;
-  Bounds.A.Y := Origin.Y;
-  Bounds.B.X := Origin.X + Size.X;
-  Bounds.B.Y := Origin.Y + Size.Y;
-end;
-
-function TView.Execute: Word;
-begin
-  Execute := cmCancel;
-end;
-
-function TView.Focus: Boolean;
-begin
-  Result := True;
-  if State and (sfSelected + sfModal) = 0 then
-  begin
-    if Owner <> nil then
-    begin
-      Result := Owner^.Focus;
-      if Result then
-        if ((Owner^.Current = nil) or
-          (Owner^.Current^.Options and ofValidate = 0) or
-          (Owner^.Current^.Valid(cmReleasedFocus))) then
-          Select
-        else
-          Result := False;
-    end;
-  end;
-end;
-
-procedure TView.GetClipRect(var Clip: TRect);
-begin
-  GetBounds(Clip);
-  if Owner <> nil then Clip.Intersect(Owner^.Clip);
-  Clip.Move(-Origin.X, -Origin.Y);
-end;
-
-procedure TView.GetCommands(var Commands: TCommandSet);
-begin
-  Commands := CurCommandSet;
-end;
-
-procedure TView.GetData(var Rec);
-begin
-end;
-
-procedure TView.GetEvent(var Event: TEvent);
-begin
-  if Owner <> nil then Owner^.GetEvent(Event);
-end;
-
-procedure TView.GetExtent(var Extent: TRect);
-begin
-  Extent.A.X:=0;
-  Extent.A.Y:=0;
-  Extent.B.X:=Size.X;
-  Extent.B.Y:=Size.Y;
-end;
-
-function TView.GetHelpCtx: Word;
-begin
-  if State and sfDragging <> 0 then
-    GetHelpCtx := hcDragging else
-    GetHelpCtx := HelpCtx;
-end;
-
-function TView.GetPalette: PPalette;
-begin
-  GetPalette := nil;
-end;
-
-procedure TView.GetPeerViewPtr(var S: TStream; var P);
-var
-  Index: LongInt;
-begin
-  S.Read(Index, SizeOf(Index));
-  if (Index = 0) or (OwnerGroup = nil) then Pointer(P) := nil
-  else
-  begin
-    Pointer(P) := FixupList^[Index];
-    FixupList^[Index] := @P;
-  end;
-end;
-
-function TView.GetState(AState: Word): Boolean;
-begin
-  GetState := State and AState = AState;
-end;
-
-procedure TView.GrowTo(X, Y: LongInt);
-var
-  R: TRect;
-begin
-  R.Assign(Origin.X, Origin.Y, Origin.X + X, Origin.Y + Y);
-  Locate(R);
-end;
-
-procedure TView.HandleEvent(var Event: TEvent);
-begin
-  if Event.What = evMouseDown then
-    if (State and (sfSelected + sfDisabled) = 0) and
-       (Options and ofSelectable <> 0) then
-      if not Focus or (Options and ofFirstClick = 0) then
-        ClearEvent(Event);
-end;
-
-procedure TView.Hide;
-begin
-  if State and sfVisible <> 0 then SetState(sfVisible, False);
-end;
-
-procedure TView.HideCursor;
-begin
-  SetState(sfCursorVis, False);
-end;
-
-procedure TView.KeyEvent(var Event: TEvent);
-begin
-  repeat GetEvent(Event) until Event.What = evKeyDown;
-end;
-
-procedure TView.Locate(var Bounds: TRect);
-var
-  R: TRect;
-  Min, Max: TPoint;
-
-function Range(Val, Min, Max: LongInt): LongInt;
-begin
-  if Val < Min then Range := Min else
-    if Val > Max then Range := Max else
-      Range := Val;
-end;
-
-begin
-  SizeLimits(Min, Max);
-  If not ((Bounds.A.X=-1) and (Bounds.B.X=Max.X+1)) then
-   Bounds.B.X := Bounds.A.X + Range(Bounds.B.X - Bounds.A.X, Min.X, Max.X);
-
-  If not ((Bounds.A.Y=-1) and (Bounds.B.Y=Max.Y+1)) then
-   Bounds.B.Y := Bounds.A.Y + Range(Bounds.B.Y - Bounds.A.Y, Min.Y, Max.Y);
-
-  GetBounds(R);
-  if not Bounds.Equals(R) then
-  begin
-    ChangeBounds(Bounds);
-    if (Owner <> nil) and (State and sfVisible <> 0) then
-    begin
-      if State and sfShadow <> 0 then
+    procedure TView.Draw;
+      var
+        B: TDrawBuffer;
       begin
-        R.Union(Bounds);
-        Inc(R.B.X, ShadowSize.X);
-        Inc(R.B.Y, ShadowSize.Y);
+        MoveChar(B, ' ', GetColor(1), Size.X);
+        WriteLine(0, 0, Size.X, Size.Y, B);
       end;
-      DrawUnderRect(R, nil);
-    end;
-  end;
-end;
 
-procedure TView.MakeFirst;
-begin
-  If (@Self<>nil) and (Owner<>nil) and (Owner^.First<>nil) then PutInFrontOf(Owner^.First);
-end;
+    procedure TView.DrawCursor;
+      begin
+        if State and sfFocused <> 0 then
+          ResetCursor;
+      end;
 
-procedure TView.MakeGlobal(Source: TPoint; var Dest: TPoint);
-var
-  cur:PView;
-begin
-  cur:=@Self; Dest:=Source;
-  TPointInc(Dest,Origin);
-  while cur^.Owner<>Nil do
-   begin
-     cur:=cur^.Owner;
-     TPointInc(Dest,cur^.Origin);
-   end;
-end;
+    procedure TView.DrawHide(LastView: PView);
+      begin
+        DrawCursor;
+        DrawUnderView(State and sfShadow <> 0, LastView);
+      end;
 
+    procedure TView.DrawShow(LastView: PView);
+      begin
+        DrawView;
+        if State and sfShadow <> 0 then
+          DrawUnderView(True, LastView);
+      end;
 
-procedure TView.MakeLocal(Source: TPoint; var Dest: TPoint);
-var
-  cur:PView;
-begin
-  cur:=@Self; Dest:=Source;
-  TPointDec(Dest,Origin);
-  while cur^.Owner<>Nil do
-   begin
-     cur:=cur^.Owner;
-     TPointDec(Dest,cur^.Origin);
-   end;
-end;
+    procedure TView.DrawUnderRect(var R: TRect; LastView: PView);
+      begin
+        Owner^.Clip.Intersect(R);
+        Owner^.DrawSubViews(NextView, LastView);
+        Owner^.GetExtent(Owner^.Clip);
+      end;
 
-function TView.MouseEvent(var Event: TEvent; Mask: Word): Boolean;
- label Ex;
-begin
-  if ButtonCount = 0 then Exit;
-{  asm
+    procedure TView.DrawUnderView(DoShadow: boolean; LastView: PView);
+      var
+        R: TRect;
+      begin
+        GetBounds(R);
+        if DoShadow then
+          begin
+            Inc(R.B.X, ShadowSize.X);
+            Inc(R.B.Y, ShadowSize.Y);
+          end;
+        DrawUnderRect(R, LastView);
+      end;
+
+    procedure TView.DrawView;
+      begin
+        if Exposed then
+          begin
+            Draw;
+            DrawCursor;
+          end;
+      end;
+
+    procedure TView.EnableCommands(Commands: TCommandSet);
+      begin
+        CommandSetChanged := CommandSetChanged or
+        (CurCommandSet*Commands <> Commands);
+        CurCommandSet := CurCommandSet+Commands;
+      end;
+
+    procedure TView.EndModal(Command: word);
+      var
+        P: PView;
+      begin
+        P := TopView;
+        if TopView <> nil then
+          TopView^.EndModal(Command);
+      end;
+
+    function TView.EventAvail: boolean;
+      var
+        Event: TEvent;
+      begin
+        GetEvent(Event);
+        if Event.What <> evNothing then
+          PutEvent(Event);
+        EventAvail := Event.What <> evNothing;
+      end;
+
+    procedure TView.GetBounds(var Bounds: TRect);
+      begin
+        Bounds.A.X := Origin.X;
+        Bounds.A.Y := Origin.Y;
+        Bounds.B.X := Origin.X+Size.X;
+        Bounds.B.Y := Origin.Y+Size.Y;
+      end;
+
+    function TView.Execute: word;
+      begin
+        Execute := cmCancel;
+      end;
+
+    function TView.Focus: boolean;
+      begin
+        Result := True;
+        if State and (sfSelected+sfModal) = 0 then
+          begin
+            if Owner <> nil then
+              begin
+                Result := Owner^.Focus;
+                if Result then
+                  if ((Owner^.Current = nil) or
+                    (Owner^.Current^.Options and ofValidate = 0) or
+                    (Owner^.Current^.Valid(cmReleasedFocus)))
+                  then
+                    Select
+                  else
+                    Result := False;
+              end;
+          end;
+      end;
+
+    procedure TView.GetClipRect(var Clip: TRect);
+      begin
+        GetBounds(Clip);
+        if Owner <> nil then
+          Clip.Intersect(Owner^.Clip);
+        Clip.Move(-Origin.X, -Origin.Y);
+      end;
+
+    procedure TView.GetCommands(var Commands: TCommandSet);
+      begin
+        Commands := CurCommandSet;
+      end;
+
+    procedure TView.GetData(var Rec);
+      begin
+      end;
+
+    procedure TView.GetEvent(var Event: TEvent);
+      begin
+        if Owner <> nil then
+          Owner^.GetEvent(Event);
+      end;
+
+    procedure TView.GetExtent(var extent: TRect);
+      begin
+        extent.A.X := 0;
+        extent.A.Y := 0;
+        extent.B.X := Size.X;
+        extent.B.Y := Size.Y;
+      end;
+
+    function TView.GetHelpCtx: word;
+      begin
+        if State and sfDragging <> 0 then
+          GetHelpCtx := hcDragging
+        else
+          GetHelpCtx := HelpCtx;
+      end;
+
+    function TView.GetPalette: PPalette;
+      begin
+        GetPalette := nil;
+      end;
+
+    procedure TView.GetPeerViewPtr(var s: TStream; var P);
+      var
+        Index: longInt;
+      begin
+        s.Read(Index, SizeOf(Index));
+        if (Index = 0) or (OwnerGroup = nil) then
+          Pointer(P) := nil
+        else
+          begin
+            Pointer(P) := FixUpList^[Index];
+            FixUpList^[Index] := @P;
+          end;
+      end;
+
+    function TView.GetState(AState: word): boolean;
+      begin
+        GetState := State and AState = AState;
+      end;
+
+    procedure TView.GrowTo(X, Y: longInt);
+      var
+        R: TRect;
+      begin
+        R.Assign(Origin.X, Origin.Y, Origin.X+X, Origin.Y+Y);
+        Locate(R);
+      end;
+
+    procedure TView.HandleEvent(var Event: TEvent);
+      begin
+        if Event.What = evMouseDown then
+          if (State and (sfSelected+sfDisabled) = 0) and
+            (Options and ofSelectable <> 0)
+          then
+            if not Focus or (Options and ofFirstClick = 0) then
+              ClearEvent(Event);
+      end;
+
+    procedure TView.Hide;
+      begin
+        if State and sfVisible <> 0 then
+          SetState(sfVisible, False);
+      end;
+
+    procedure TView.HideCursor;
+      begin
+        SetState(sfCursorVis, False);
+      end;
+
+    procedure TView.KeyEvent(var Event: TEvent);
+      begin
+        repeat
+          GetEvent(Event)
+        until Event.What = evKeyDown;
+      end;
+
+    procedure TView.Locate(var Bounds: TRect);
+      var
+        R: TRect;
+        Min, Max: TPoint;
+
+      function Range(Val, Min, Max: longInt): longInt;
+        begin
+          if Val < Min then
+            Range := Min
+          else if Val > Max then
+            Range := Max
+          else
+            Range := Val;
+        end;
+
+      begin
+        SizeLimits(Min, Max);
+        if not ((Bounds.A.X = -1) and (Bounds.B.X = Max.X+1)) then
+          Bounds.B.X := Bounds.A.X+Range(Bounds.B.X-Bounds.A.X, Min.X,
+            Max.X);
+
+        if not ((Bounds.A.Y = -1) and (Bounds.B.Y = Max.Y+1)) then
+          Bounds.B.Y := Bounds.A.Y+Range(Bounds.B.Y-Bounds.A.Y, Min.Y,
+            Max.Y);
+
+        GetBounds(R);
+        if not Bounds.Equals(R) then
+          begin
+            ChangeBounds(Bounds);
+            if (Owner <> nil) and (State and sfVisible <> 0) then
+              begin
+                if State and sfShadow <> 0 then
+                  begin
+                    R.Union(Bounds);
+                    Inc(R.B.X, ShadowSize.X);
+                    Inc(R.B.Y, ShadowSize.Y);
+                  end;
+                DrawUnderRect(R, nil);
+              end;
+          end;
+      end { TView.Locate };
+
+    procedure TView.MakeFirst;
+      begin
+        if (@Self <> nil) and (Owner <> nil) and (Owner^.First <>
+            nil)
+        then
+          PutInFrontOf(Owner^.First);
+      end;
+
+    procedure TView.MakeGlobal(Source: TPoint; var Dest: TPoint);
+      var
+        Cur: PView;
+      begin
+        Cur := @Self;
+        Dest := Source;
+        TPointInc(Dest, Origin);
+        while Cur^.Owner <> nil do
+          begin
+            Cur := Cur^.Owner;
+            TPointInc(Dest, Cur^.Origin);
+          end;
+      end;
+
+    procedure TView.MakeLocal(Source: TPoint; var Dest: TPoint);
+      var
+        Cur: PView;
+      begin
+        Cur := @Self;
+        Dest := Source;
+        TPointDec(Dest, Origin);
+        while Cur^.Owner <> nil do
+          begin
+            Cur := Cur^.Owner;
+            TPointDec(Dest, Cur^.Origin);
+          end;
+      end;
+
+    function TView.MouseEvent(var Event: TEvent; Mask: word):
+        boolean;
+      label ex;
+      begin
+        if ButtonCount = 0 then
+          exit;
+        {  asm
     mov ax, 3
     push bp
     int 33h
@@ -1155,973 +1215,1118 @@ begin
     or  bx, bx
     jz  Ex
   end;}
-  repeat GetEvent(Event) until Event.What and (Mask or evMouseUp) <> 0;
-  MouseEvent := Event.What <> evMouseUp;
- Ex:
-end;
+        repeat
+          GetEvent(Event)
+        until Event.What and (Mask or evMouseUp) <> 0;
+        MouseEvent := Event.What <> evMouseUp;
+ex:
+      end;
 
-function TView.MouseInView(Mouse: TPoint): Boolean;
-var
-  Extent: TRect;
-begin
-  MakeLocal(Mouse, Mouse);
-  GetExtent(Extent);
-  MouseInView := Extent.Contains(Mouse);
-end;
+    function TView.MouseInView(Mouse: TPoint): boolean;
+      var
+        extent: TRect;
+      begin
+        MakeLocal(Mouse, Mouse);
+        GetExtent(extent);
+        MouseInView := extent.Contains(Mouse);
+      end;
 
-procedure TView.MoveTo(X, Y: LongInt);
-var
-  R: TRect;
-begin
-  R.Assign(X, Y, X + Size.X, Y + Size.Y);
-  Locate(R);
-end;
+    procedure TView.MoveTo(X, Y: longInt);
+      var
+        R: TRect;
+      begin
+        R.Assign(X, Y, X+Size.X, Y+Size.Y);
+        Locate(R);
+      end;
 
-function TView.NextView: PView;
-begin
-  if @Self = Owner^.Last then NextView := nil else NextView := Next;
-end;
+    function TView.NextView: PView;
+      begin
+        if @Self = Owner^.Last then
+          NextView := nil
+        else
+          NextView := Next;
+      end;
 
-procedure TView.NormalCursor;
-begin
-  SetState(sfCursorIns, False);
-end;
+    procedure TView.NormalCursor;
+      begin
+        SetState(sfCursorIns, False);
+      end;
 
-function TView.Prev: PView;
-var
-  P: PView;
-begin
-  P := @Self;
-  while (P <> nil) and (P^.Next <> @Self) do
-    P := P^.Next;
-  Prev := P;
-end;
+    function TView.Prev: PView;
+      var
+        P: PView;
+      begin
+        P := @Self;
+        while (P <> nil) and (P^.Next <> @Self) do
+          P := P^.Next;
+        Prev := P;
+      end;
 
-function TView.PrevView: PView;
-begin
-  if @Self = Owner^.First then PrevView := nil else PrevView := Prev;
-end;
+    function TView.PrevView: PView;
+      begin
+        if @Self = Owner^.First then
+          PrevView := nil
+        else
+          PrevView := Prev;
+      end;
 
-procedure TView.PutEvent(var Event: TEvent);
-begin
-  if Owner <> nil then Owner^.PutEvent(Event);
-end;
+    procedure TView.PutEvent(var Event: TEvent);
+      begin
+        if Owner <> nil then
+          Owner^.PutEvent(Event);
+      end;
 
-procedure TView.PutInFrontOf(Target: PView);
-var
-  P, LastView: PView;
-  R: TRect;
+    procedure TView.PutInFrontOf(Target: PView);
+      var
+        P, LastView: PView;
+        R: TRect;
 
-procedure MoveView;
-begin
-  Owner^.RemoveView(@Self);
-  Owner^.InsertView(@Self, Target);
-end;
+      procedure MoveView;
+        begin
+          Owner^.RemoveView(@Self);
+          Owner^.InsertView(@Self, Target);
+        end;
 
-begin
-  if (Owner <> nil) and (Target <> @Self) and (Target <> NextView) and
-    ((Target = nil) or (Target^.Owner = Owner)) then
-    if State and sfVisible = 0 then MoveView else
-    begin
-      LastView := NextView;
-      P := Target;
-      while (P <> nil) and (P <> LastView) do P := P^.NextView;
-      if P = nil then LastView := Target;
-      State := State and not sfVisible;
-      if LastView = Target then DrawHide(LastView);
-      MoveView;
-      State := State or sfVisible;
-      if LastView <> Target then DrawShow(LastView);
-      if Options and ofSelectable <> 0 then Owner^.ResetCurrent;
-    end;
-end;
+      begin
+        if (Owner <> nil) and (Target <> @Self) and (Target <>
+            NextView) and
+          ((Target = nil) or (Target^.Owner = Owner))
+        then
+          if State and sfVisible = 0 then
+            MoveView
+          else
+            begin
+              LastView := NextView;
+              P := Target;
+              while (P <> nil) and (P <> LastView) do
+                P := P^.NextView;
+              if P = nil then
+                LastView := Target;
+              State := State and not sfVisible;
+              if LastView = Target then
+                DrawHide(LastView);
+              MoveView;
+              State := State or sfVisible;
+              if LastView <> Target then
+                DrawShow(LastView);
+              if Options and ofSelectable <> 0 then
+                Owner^.ResetCurrent;
+            end;
+      end { TView.PutInFrontOf };
 
-procedure TView.PutPeerViewPtr(var S: TStream; P: PView);
-var
-  Index: LongInt;
-begin
-  if (P = nil) or (OwnerGroup = nil) then Index := 0
-  else Index := OwnerGroup^.IndexOf(P);
-  S.Write(Index, SizeOf(Index));
-end;
+    procedure TView.PutPeerViewPtr(var s: TStream; P: PView);
+      var
+        Index: longInt;
+      begin
+        if (P = nil) or (OwnerGroup = nil) then
+          Index := 0
+        else
+          Index := OwnerGroup^.IndexOf(P);
+        s.Write(Index, SizeOf(Index));
+      end;
 
-procedure TView.Select;
-begin
-  if Options and ofSelectable <> 0 then
-    if Options and ofTopSelect <> 0 then MakeFirst else
-      if Owner <> nil then Owner^.SetCurrent(@Self, NormalSelect);
-end;
+    procedure TView.Select;
+      begin
+        if Options and ofSelectable <> 0 then
+          if Options and ofTopSelect <> 0 then
+            MakeFirst
+          else if Owner <> nil then
+            Owner^.SetCurrent(@Self, NormalSelect);
+      end;
 
-procedure TView.SetBounds(var Bounds: TRect);
-begin
-  origin:=bounds.a;
-  size:=bounds.b;
-  TPointDec(size,origin);
-end;
+    procedure TView.SetBounds(var Bounds: TRect);
+      begin
+        Origin := Bounds.A;
+        Size := Bounds.B;
+        TPointDec(Size, Origin);
+      end;
 
-{DataCompBoy
+    {DataCompBoy
 procedure TView.SetCmdState(Commands: TCommandSet; Enable: Boolean);
 begin
   if Enable then EnableCommands(Commands)
   else DisableCommands(Commands);
 end;
 }
-procedure TView.SetCommands(Commands: TCommandSet);
-begin
-  CommandSetChanged := CommandSetChanged or (CurCommandSet <> Commands);
-  CurCommandSet := Commands;
-end;
-
-procedure TView.SetCursor(X, Y: LongInt);
-begin
-  Cursor.X := X;
-  Cursor.Y := Y;
-  DrawCursor;
-end;
-
-procedure TView.SetData(var Rec);
-begin
-end;
-
-procedure TView.SetState(AState: Word; Enable: Boolean);
-var
-  Command: Word;
-begin
-  if Enable then
-    State := State or AState else
-    State := State and not AState;
-  if Owner <> nil then
-    case AState of
-      sfVisible:
-        begin
-          if Owner^.State and sfExposed <> 0 then
-            SetState(sfExposed, Enable);
-          if Enable then DrawShow(nil) else DrawHide(nil);
-          if Options and ofSelectable <> 0 then Owner^.ResetCurrent;
-        end;
-      sfCursorVis, sfCursorIns:
-        DrawCursor;
-      sfShadow:
-        DrawUnderView(True, nil);
-      sfFocused:
-        begin
-          ResetCursor;
-          if Enable then
-            Command := cmReceivedFocus else
-            Command := cmReleasedFocus;
-          Message(Owner, evBroadcast, Command, @Self);
-        end;
-    end;
-end;
-
-procedure TView.Show;
-begin
-  if State and sfVisible = 0 then SetState(sfVisible, True);
-end;
-
-procedure TView.ShowCursor;
-begin
-  SetState(sfCursorVis, True);
-end;
-
-procedure TView.SizeLimits(var Min, Max: TPoint);
-begin
-  Min.X := 0; Min.Y:=0;
-  if Owner <> nil
-   then Max := Owner^.Size
-   else begin
-     Max.X := High(Max.X);
-     Max.Y := High(Max.Y);
-   end;
-end;
-
-procedure TView.Store(var S: TStream);
-var
-  SaveState: Word;
-begin
-  SaveState := State;
-  State := State and not (sfActive + sfSelected + sfFocused + sfExposed);
-  S.Write(Origin,
-    SizeOf(TPoint) * 3 +
-    SizeOf(Byte) * 2 +
-    SizeOf(AWord) * 4);
-  State := SaveState;
-end;
-
-function TView.TopView: PView;
-var
-  P: PView;
-begin
-  if TheTopView = nil then
-  begin
-    P := @Self;
-    while (P <> nil) and (P^.State and sfModal = 0) do P := P^.Owner;
-    TopView := P;
-  end
-  else TopView := TheTopView;
-end;
-
-function TView.Valid(Command: Word): Boolean;
-begin
-  Valid := True;
-end;
-
-{ TFrame }
-
-constructor TFrame.Init(var Bounds: TRect);
-begin
-  TView.Init(Bounds);
-  GrowMode := gfGrowHiX + gfGrowHiY;
-  EventMask := EventMask or evBroadcast;
-end;
-
-procedure TFrame.FrameLine(var FrameBuf; Y, N: Integer;
-  Color: Byte);
-const
-  InitFrame: array[0..17] of Byte =
-    ($06, $0A, $0C, $05, $00, $05, $03, $0A, $09,
-     $16, $1A, $1C, $15, $00, $15, $13, $1A, $19);
-  FrameChars: array[0..31] of Char =
-    #32#32#32#192#32#179#218#195#32#217#196#193#191#180#194#197#32#32#32#200#32#186#201#199#32#188#205#207#187#182#209#32;
-var
-  FrameMask: array[0..MaxViewWidth-1] of Byte;
-  ColorMask : word;
-  i,j,k     : LongInt;
-  CurrView  : PView;
-begin
-  FrameMask[0]:=InitFrame[n];
-  FillChar(FrameMask[1],Size.X-2,InitFrame[n+1]);
-  FrameMask[Size.X-1]:=InitFrame[n+2];
-  CurrView:=Owner^.Last^.Next;
-  while (CurrView<>@Self) do
-  begin
-     if ((CurrView^.Options and ofFramed)<>0) and
-        ((CurrView^.State and sfVisible)<>0)
-     then begin
-       i:=Y-CurrView^.Origin.Y;
-       if i>CurrView^.Size.Y then i:=0     else
-       if i=CurrView^.Size.Y then i:=$0a03 else
-       if i>=0               then i:=$0005 else
-       if i<-1               then i:=0     else
-                                  i:=$0a06;
-       if I<>0 then begin
-         k:=CurrView^.Origin.X; if k<1 then k:=1;
-         j:=k+CurrView^.Size.X; if j>Size.X then j:=Size.X;
-         if k<j then
-         begin
-           FrameMask[k-1]:=FrameMask[k-1] or lo(i);
-           FrameMask[j]:=FrameMask[j] or (lo(i) xor hi(i)) ;
-           if hi(i)<>0 then
-           begin
-             dec(j,k);
-             repeat
-               FrameMask[k]:=FrameMask[k] or hi(i);
-               inc(k);
-               dec(j);
-             until j=0;
-           end;
-         end;
-       end;
-     end;
-     CurrView:=CurrView^.Next;
-  end;
-  ColorMask:=Color shl 8;
-  for i:=0 to Size.X-1 do
-    TVideoBuf(FrameBuf)[i]:=ord(FrameChars[FrameMask[i]]) or ColorMask;
-end;
-
-procedure TFrame.Draw;
-var
-  CFrame, CTitle: Word;
-  F, I, L, Width: Integer;
-  B: TDrawBuffer;
-  Title: TTitleStr;
-  Min, Max: TPoint;
-begin
-  if State and sfDragging <> 0 then
-  begin
-    CFrame := $0505;
-    CTitle := $0005;
-    F := 0;
-  end else if State and sfActive = 0 then
-  begin
-    CFrame := $0101;
-    CTitle := $0002;
-    F := 0;
-  end else
-  begin
-    CFrame := $0503;
-    CTitle := $0004;
-    F := 9;
-  end;
-  CFrame := GetColor(CFrame);
-  CTitle := GetColor(CTitle);
-  Width := Size.X;
-  L := Width - 10;
-  if PWindow(Owner)^.Flags and (wfClose+wfZoom) <> 0 then Dec(L,6);
-  FrameLine(B, 0, F, Byte(CFrame));
-  if Owner <> nil then Title := PWindow(Owner)^.GetTitle(L)
-  else Title := '';
-  if Title <> '' then
-  begin
-    L := Length(Title);
-    if L > Width - 10 then L := Width - 10;
-    if L < 0 then L := 0;
-    I := (Width - L) shr 1;
-    MoveChar(B[I - 1], ' ', CTitle, 1);
-    MoveBuf(B[I], Title[1], CTitle, L);
-    MoveChar(B[I + L], ' ', CTitle, 1);
-  end;
-  if State and sfActive <> 0 then
-  begin
-    if PWindow(Owner)^.Flags and wfClose <> 0 then
-     MoveCStr(B[2], '[~'#254'~]', CFrame);
-    if PWindow(Owner)^.Flags and wfZoom <> 0 then
-    begin
-      MoveCStr(B[Width - 5], '[~'#24'~]', CFrame);
-      Owner^.SizeLimits(Min, Max);
-      if Owner^.Size.Equals(Max) then
-        WordRec(B[Width - 4]).Lo := 18;
-    end;
-  end;
-  if (PWindow(Owner)^.Number in [1..9])
-   then WordRec(B[3]).Lo := PWindow(Owner)^.Number + $30;
-  WriteLine(0, 0, Size.X, 1, B);
-  for I := 1 to Size.Y - 2 do
-  begin
-    FrameLine(B, I, F + 3, Byte(CFrame));
-    WriteLine(0, I, Size.X, 1, B);
-  end;
-  FrameLine(B, Size.Y - 1, F + 6, Byte(CFrame));
-  if State and sfActive <> 0 then
-    if PWindow(Owner)^.Flags and wfGrow <> 0 then
-      MoveCStr(B[Width - 2], '~'#196#217'~', CFrame);
-  WriteLine(0, Size.Y - 1, Size.X, 1, B);
-end;
-
-function TFrame.GetPalette: PPalette;
-const
-  P: String[Length(CFrame)] = CFrame;
-begin
-  GetPalette := @P;
-end;
-
-procedure TFrame.HandleEvent(var Event: TEvent);
-var
-  Mouse: TPoint;
-
-procedure DragWindow(Mode: Byte);
-var
-  Limits: TRect;
-  Min, Max: TPoint;
-begin
-  Owner^.Owner^.GetExtent(Limits);
-  Owner^.SizeLimits(Min, Max);
-  Owner^.DragView(Event, Owner^.DragMode or Mode, Limits, Min, Max);
-  ClearEvent(Event);
-end;
-
-begin
-  TView.HandleEvent(Event);
-  if Event.What = evMouseDown then
-  begin
-    MakeLocal(Event.Where, Mouse);
-    if Mouse.Y = 0 then
-    begin
-      if (PWindow(Owner)^.Flags and wfClose <> 0) and
-        (State and sfActive <> 0) and (Mouse.X >= 2) and (Mouse.X <= 4) then
+    procedure TView.SetCommands(Commands: TCommandSet);
       begin
-        Event.What := evCommand;
-        Event.Command := cmClose;
-        Event.InfoPtr := Owner;
-        PutEvent(Event);
-        ClearEvent(Event);
-      end else
-        if (PWindow(Owner)^.Flags and wfZoom <> 0) and
-          (State and sfActive <> 0) and (Event.Double or
-          (Mouse.X >= Size.X - 5) and
-          (Mouse.X <= Size.X - 3)) then
-        begin
-          Event.What := evCommand;
-          Event.Command := cmZoom;
-          Event.InfoPtr := Owner;
-          PutEvent(Event);
-          ClearEvent(Event);
-        end else
-          if PWindow(Owner)^.Flags and wfMove <> 0 then
-            DragWindow(dmDragMove);
-    end else
-      if (State and sfActive <> 0) and (Mouse.X >= Size.X - 2) and
-          (Mouse.Y >= Size.Y - 1) then
-        if PWindow(Owner)^.Flags and wfGrow <> 0 then
-          DragWindow(dmDragGrow);
-  end;
-end;
-
-procedure TFrame.SetState(AState: Word; Enable: Boolean);
-begin
-  TView.SetState(AState, Enable);
-  if AState and (sfActive + sfDragging) <> 0 then DrawView;
-end;
-
-{ TScrollBar }
-
-constructor TScrollBar.Init(var Bounds: TRect);
-const
-  VChars: TScrollChars = (#30, #31, #177, #254, #178);
-  HChars: TScrollChars = (#17, #16, #177, #254, #178);
-begin
-  TView.Init(Bounds);
-  Value := 0;
-  Min := 0;
-  Max := 0;
-  PgStep := 1;
-  ArStep := 1;
-  if Size.X = 1 then
-  begin
-    GrowMode := gfGrowLoX + gfGrowHiX + gfGrowHiY;
-    Chars := VChars;
-    if Length(VertScrollBarChars)=5 then move(VertScrollBarChars[1], Chars, 5);
-  end else
-  begin
-    GrowMode := gfGrowLoY + gfGrowHiX + gfGrowHiY;
-    Chars := HChars;
-    if Length(HorizScrollBarChars)=5 then move(HorizScrollBarChars[1], Chars, 5);
-  end;
-end;
-
-constructor TScrollBar.Load(var S: TStream);
-begin
-  TView.Load(S);
-  S.Read(Value, SizeOf(LongInt) * 5 + SizeOf(TScrollChars));
-end;
-
-procedure TScrollBar.Draw;
-begin
-  DrawPos(GetPos);
-end;
-
-procedure TMyScrollBar.Draw;
-var chrs:TScrollChars;
-begin
-  if ShowScrollBar then DrawPos(GetPos) else
-  begin
-  Chrs:=Chars;
-  Chars:=#186#186#186#186#186;
-  DrawPos(GetPos);
-  Chars:=Chrs;
-  end;
-end;
-
-procedure TMyScrollBar.DrawPos(Pos: LongInt);
-var
-  S: LongInt;
-  B: TDrawBuffer;
-  col1,col2,col3:byte;
-begin
-  S := GetSize - 1;
-  if ShowScrollBar then begin
-  col1:=GetColor(1);
-  col2:=GetColor(2);
-  col3:=GetColor(3);
-  end  else
-  begin
-  col1:=GetColor(1);
-  col2:=col1;
-  col3:=col2;
-  end;
-  MoveChar(B[0], Chars[0], Col2, 1);
-  if Max = Min then
-    MoveChar(B[1], Chars[4], Col1, S - 1)
-  else
-  begin
-    MoveChar(B[1], Chars[2], Col1, S - 1);
-    MoveChar(B[Pos], Chars[3], Col3, 1);
-  end;
-  MoveChar(B[S], Chars[1], Col2, 1);
-  WriteBuf(0, 0, Size.X, Size.Y, B);
- end;
-
-procedure TScrollBar.DrawPos(Pos: LongInt);
-var
-  S: LongInt;
-  B: TDrawBuffer;
-begin
-  S := GetSize - 1;
-  MoveChar(B[0], Chars[0], GetColor(2), 1);
-  if Max = Min then
-    MoveChar(B[1], Chars[4], GetColor(1), S - 1)
-  else
-  begin
-    MoveChar(B[1], Chars[2], GetColor(1), S - 1);
-    MoveChar(B[Pos], Chars[3], GetColor(3), 1);
-  end;
-  MoveChar(B[S], Chars[1], GetColor(2), 1);
-  WriteBuf(0, 0, Size.X, Size.Y, B);
-end;
-
-function TScrollBar.GetPalette: PPalette;
-const
-  P: String[Length(CScrollBar)] = CScrollBar;
-begin
-  GetPalette := @P;
-end;
-
-function TScrollBar.GetPos: LongInt;
-var
-  R: LongInt;
-begin
-  R := Max - Min;
-  if R = 0 then
-    GetPos := 1 else
-    GetPos := LongDiv(LongMul(Value - Min, GetSize - 3) + R shr 1, R) + 1;
-end;
-
-function TScrollBar.GetSize: LongInt;
-var
-  S: LongInt;
-begin
-  if Size.X = 1 then S := Size.Y else S := Size.X;
-  if S < 3 then GetSize := 3 else GetSize := S;
-end;
-
-procedure TScrollBar.HandleEvent(var Event: TEvent);
-var
-  Tracking: Boolean;
-  I, P, S, ClickPart: LongInt;
-  Mouse: TPoint;
-  Extent: TRect;
-
-function GetPartCode: LongInt;
-var
-  Mark, Part: LongInt;
-begin
-  Part := -1;
-  if Extent.Contains(Mouse) then
-  begin
-    if Size.X = 1 then Mark := Mouse.Y else Mark := Mouse.X;
-    if Mark = P then Part := sbIndicator else
-    begin
-      if Mark < 1 then Part := sbLeftArrow else
-        if Mark < P then Part := sbPageLeft else
-          if Mark < S then Part := sbPageRight else
-            Part := sbRightArrow;
-      if Size.X = 1 then Inc(Part, 4);
-    end;
-  end;
-  GetPartCode := Part;
-end;
-
-procedure Clicked;
-begin
-  Message(Owner, evBroadcast, cmScrollBarClicked, @Self);
-end;
-
-begin
-  TView.HandleEvent(Event);
-  case Event.What of
-    evMouseDown:
-      begin
-        Clicked;
-        MakeLocal(Event.Where, Mouse);
-        GetExtent(Extent);
-        Extent.Grow(1, 1);
-        P := GetPos;
-        S := GetSize - 1;
-        ClickPart := GetPartCode;
-        if ClickPart <> sbIndicator then
-        begin
-          repeat
-            MakeLocal(Event.Where, Mouse);
-            if GetPartCode = ClickPart then
-              SetValue(Value + ScrollStep(ClickPart));
-          until not MouseEvent(Event, evMouseAuto);
-        end else
-        begin
-          repeat
-            MakeLocal(Event.Where, Mouse);
-            Tracking := Extent.Contains(Mouse);
-            if Tracking then
-            begin
-              if Size.X = 1 then I := Mouse.Y else I := Mouse.X;
-              if I <= 0 then I := 1;
-              if I >= S then I := S - 1;
-            end else I := GetPos;
-            if I <> P then
-            begin
-              DrawPos(I);
-              P := I;
-            end;
-          until not MouseEvent(Event, evMouseMove);
-          if Tracking and (S > 2) then
-          begin
-            Dec(S, 2);
-            SetValue(LongDiv(LongMul(P - 1, Max - Min) + S shr 1, S) + Min);
-          end;
-        end;
-        ClearEvent(Event);
+        CommandSetChanged := CommandSetChanged or (CurCommandSet <>
+          Commands);
+        CurCommandSet := Commands;
       end;
-    evKeyDown:
-      if State and sfVisible <> 0 then
+
+    procedure TView.SetCursor(X, Y: longInt);
       begin
-        ClickPart := sbIndicator;
-        if Size.Y = 1 then
-          case {CtrlToArrow}(Event.KeyCode) of
-            kbLeft, kbShiftLeft: ClickPart := sbLeftArrow;
-            kbRight, kbShiftRight: ClickPart := sbRightArrow;
-            kbCtrlLeft, kbCtrlShiftLeft: ClickPart := sbPageLeft;
-            kbCtrlRight, kbCtrlShiftRight: ClickPart := sbPageRight;
-            kbHome, kbShiftHome: I := Min;
-            kbEnd, kbShiftEnd: I := Max;
-          else
-            Exit;
+        Cursor.X := X;
+        Cursor.Y := Y;
+        DrawCursor;
+      end;
+
+    procedure TView.SetData(var Rec);
+      begin
+      end;
+
+    procedure TView.SetState(AState: word; Enable: boolean);
+      var
+        Command: word;
+      begin
+        if Enable then
+          State := State or AState
+        else
+          State := State and not AState;
+        if Owner <> nil then
+          case AState of
+            sfVisible:
+              begin
+                if Owner^.State and sfExposed <> 0 then
+                  SetState(sfExposed, Enable);
+                if Enable then
+                  DrawShow(nil)
+                else
+                  DrawHide(nil);
+                if Options and ofSelectable <> 0 then
+                  Owner^.ResetCurrent;
+              end;
+            sfCursorVis, sfCursorIns:
+              DrawCursor;
+            sfShadow:
+              DrawUnderView(True, nil);
+            sfFocused:
+              begin
+                ResetCursor;
+                if Enable then
+                  Command := cmReceivedFocus
+                else
+                  Command := cmReleasedFocus;
+                Message(Owner, evBroadcast, Command, @Self);
+              end;
+          end {case};
+      end { TView.SetState };
+
+    procedure TView.Show;
+      begin
+        if State and sfVisible = 0 then
+          SetState(sfVisible, True);
+      end;
+
+    procedure TView.ShowCursor;
+      begin
+        SetState(sfCursorVis, True);
+      end;
+
+    procedure TView.SizeLimits(var Min, Max: TPoint);
+      begin
+        Min.X := 0;
+        Min.Y := 0;
+        if Owner <> nil
+        then
+          Max := Owner^.Size
+        else
+          begin
+            Max.X := High(Max.X);
+            Max.Y := High(Max.Y);
+          end;
+      end;
+
+    procedure TView.Store(var s: TStream);
+      var
+        SaveState: word;
+      begin
+        SaveState := State;
+        State := State and not (sfActive+sfSelected+sfFocused+
+          sfExposed);
+        s.Write(Origin,
+        SizeOf(TPoint)*3+
+        SizeOf(byte)*2+
+        SizeOf(AWord)*4);
+        State := SaveState;
+      end;
+
+    function TView.TopView: PView;
+      var
+        P: PView;
+      begin
+        if TheTopView = nil then
+          begin
+            P := @Self;
+            while (P <> nil) and (P^.State and sfModal = 0) do
+              P := P^.Owner;
+            TopView := P;
           end
         else
-          case {CtrlToArrow}(Event.KeyCode) of
-            kbUp, kbShiftUp: ClickPart := sbUpArrow;
-            kbDown, kbShiftDown: ClickPart := sbDownArrow;
-            kbPgUp, kbShiftPgUp: ClickPart := sbPageUp;
-            kbPgDn, kbShiftPgDn: ClickPart := sbPageDown;
-            kbCtrlPgUp, kbCtrlShiftPgUp: I := Min;
-            kbCtrlPgDn, kbCtrlShiftPgDn: I := Max;
-          else
-            Exit;
-          end;
-        Clicked;
-        if ClickPart <> sbIndicator then I := Value + ScrollStep(ClickPart);
-        SetValue(I);
-        ClearEvent(Event);
+          TopView := TheTopView;
       end;
-  end;
-end;
 
-procedure TScrollBar.ScrollDraw;
-begin
-  Message(Owner, evBroadcast, cmScrollBarChanged, @Self);
-end;
+    function TView.Valid(Command: word): boolean;
+      begin
+        Valid := True;
+      end;
 
-function TScrollBar.ScrollStep(Part: LongInt): LongInt;
-var Step: LongInt;
-begin
-  if Part and 2 = 0 then Step := ArStep else Step := PgStep;
-  if Part and 1 = 0 then ScrollStep := -Step  else ScrollStep := Step;
-end;
+    { TFrame }
 
-procedure TScrollBar.SetParams(AValue, AMin, AMax, APgStep,
-  AArStep: LongInt);
-var
-  SValue: LongInt;
-begin
-  if AMax < AMin then AMax := AMin;
-  if AValue < AMin then AValue := AMin;
-  if AValue > AMax then AValue := AMax;
-  SValue := Value;
-  if (SValue <> AValue) or (Min <> AMin) or (Max <> AMax) then
-  begin
-    Value := AValue;
-    Min := AMin;
-    Max := AMax;
-    DrawView;
-    if SValue <> AValue then ScrollDraw;
-  end;
-  PgStep := APgStep;
-  ArStep := AArStep;
-end;
+    Constructor TFrame.Init(var Bounds: TRect);
+      begin
+        TView.Init(Bounds);
+        GrowMode := gfGrowHiX+gfGrowHiY;
+        EventMask := EventMask or evBroadcast;
+      end;
 
-procedure TScrollBar.SetRange(AMin, AMax: LongInt);
-begin
-  SetParams(Value, AMin, AMax, PgStep, ArStep);
-end;
+    procedure TFrame.FrameLine(var FrameBuf; Y, n: integer;
+      Color: byte);
+      const
+        InitFrame: array[0..17] of byte =
+        ($06, $0A, $0C, $05, $00, $05, $03, $0A, $09,
+        $16, $1A, $1C, $15, $00, $15, $13, $1A, $19);
+        FrameChars: array[0..31] of Char =
+        #32#32#32#192#32#179#218#195#32#217#196#193#191#180#194#197#32#32#32#200#32#186#201#199#32#188#205#207#187#182#209#32
+          ;
+      var
+        FrameMask: array[0..MaxViewWidth-1] of byte;
+        ColorMask: word;
+        i, j, k: longInt;
+        CurrView: PView;
+      begin
+        FrameMask[0] := InitFrame[n];
+        FillChar(FrameMask[1], Size.X-2, InitFrame[n+1]);
+        FrameMask[Size.X-1] := InitFrame[n+2];
+        CurrView := Owner^.Last^.Next;
+        while (CurrView <> @Self) do
+          begin
+            if ((CurrView^.Options and ofFramed) <> 0) and
+              ((CurrView^.State and sfVisible) <> 0)
+            then
+              begin
+                i := Y-CurrView^.Origin.Y;
+                if i > CurrView^.Size.Y then
+                  i := 0
+                else if i = CurrView^.Size.Y then
+                  i := $0a03
+                else if i >= 0 then
+                  i := $0005
+                else if i < -1 then
+                  i := 0
+                else
+                  i := $0a06;
+                if i <> 0 then
+                  begin
+                    k := CurrView^.Origin.X;
+                    if k < 1 then
+                      k := 1;
+                    j := k+CurrView^.Size.X;
+                    if j > Size.X then
+                      j := Size.X;
+                    if k < j then
+                      begin
+                        FrameMask[k-1] := FrameMask[k-1] or Lo(i);
+                        FrameMask[j] := FrameMask[j] or (Lo(i) xor Hi(i)
+                          );
+                        if Hi(i) <> 0 then
+                          begin
+                            Dec(j, k);
+                            repeat
+                              FrameMask[k] := FrameMask[k] or Hi(i);
+                              Inc(k);
+                              Dec(j);
+                            until j = 0;
+                          end;
+                      end;
+                  end;
+              end;
+            CurrView := CurrView^.Next;
+          end;
+        ColorMask := Color shl 8;
+        for i := 0 to Size.X-1 do
+          TVideoBuf(FrameBuf)[i] := Ord(FrameChars[FrameMask[i]]) or
+            ColorMask;
+      end { TFrame.FrameLine };
 
-procedure TScrollBar.SetStep(APgStep, AArStep: LongInt);
-begin
-  SetParams(Value, Min, Max, APgStep, AArStep);
-end;
+    procedure TFrame.Draw;
+      var
+        CFrame, CTitle: word;
+        F, i, l, Width: integer;
+        B: TDrawBuffer;
+        Title: TTitleStr;
+        Min, Max: TPoint;
+      begin
+        if State and sfDragging <> 0 then
+          begin
+            CFrame := $0505;
+            CTitle := $0005;
+            F := 0;
+          end
+        else if State and sfActive = 0 then
+          begin
+            CFrame := $0101;
+            CTitle := $0002;
+            F := 0;
+          end
+        else
+          begin
+            CFrame := $0503;
+            CTitle := $0004;
+            F := 9;
+          end;
+        CFrame := GetColor(CFrame);
+        CTitle := GetColor(CTitle);
+        Width := Size.X;
+        l := Width-10;
+        if PWindow(Owner)^.Flags and (wfClose+wfZoom) <> 0 then
+          Dec(l, 6);
+        FrameLine(B, 0, F, byte(CFrame));
+        if Owner <> nil then
+          Title := PWindow(Owner)^.GetTitle(l)
+        else
+          Title := '';
+        if Title <> '' then
+          begin
+            l := Length(Title);
+            if l > Width-10 then
+              l := Width-10;
+            if l < 0 then
+              l := 0;
+            i := (Width-l) shr 1;
+            MoveChar(B[i-1], ' ', CTitle, 1);
+            MoveBuf(B[i], Title[1], CTitle, l);
+            MoveChar(B[i+l], ' ', CTitle, 1);
+          end;
+        if State and sfActive <> 0 then
+          begin
+            if PWindow(Owner)^.Flags and wfClose <> 0 then
+              MoveCStr(B[2], '[~'#254'~]', CFrame);
+            if PWindow(Owner)^.Flags and wfZoom <> 0 then
+              begin
+                MoveCStr(B[Width-5], '[~'#24'~]', CFrame);
+                Owner^.SizeLimits(Min, Max);
+                if Owner^.Size.Equals(Max) then
+                  WordRec(B[Width-4]).Lo := 18;
+              end;
+          end;
+        if (PWindow(Owner)^.Number in [1..9])
+        then
+          WordRec(B[3]).Lo := PWindow(Owner)^.Number+$30;
+        WriteLine(0, 0, Size.X, 1, B);
+        for i := 1 to Size.Y-2 do
+          begin
+            FrameLine(B, i, F+3, byte(CFrame));
+            WriteLine(0, i, Size.X, 1, B);
+          end;
+        FrameLine(B, Size.Y-1, F+6, byte(CFrame));
+        if State and sfActive <> 0 then
+          if PWindow(Owner)^.Flags and wfGrow <> 0 then
+            MoveCStr(B[Width-2], '~'#196#217'~', CFrame);
+        WriteLine(0, Size.Y-1, Size.X, 1, B);
+      end { TFrame.Draw };
 
-procedure TScrollBar.SetValue(AValue: LongInt);
-begin
-  SetParams(AValue, Min, Max, PgStep, ArStep);
-end;
+    function TFrame.GetPalette: PPalette;
+      const
+        P: String[Length(CFrame)] = CFrame;
+      begin
+        GetPalette := @P;
+      end;
 
-procedure TScrollBar.Store(var S: TStream);
-begin
-  TView.Store(S);
-  S.Write(Value, SizeOf(LongInt) * 5 + SizeOf(TScrollChars));
-end;
+    procedure TFrame.HandleEvent(var Event: TEvent);
+      var
+        Mouse: TPoint;
 
-{ TGroup }
+      procedure DragWindow(Mode: byte);
+        var
+          Limits: TRect;
+          Min, Max: TPoint;
+        begin
+          Owner^.Owner^.GetExtent(Limits);
+          Owner^.SizeLimits(Min, Max);
+          Owner^.DragView(Event, Owner^.DragMode or Mode, Limits,
+            Min, Max);
+          ClearEvent(Event);
+        end;
 
-constructor TGroup.Init(var Bounds: TRect);
-begin
-  TView.Init(Bounds);
-  Options := Options or (ofSelectable + ofBuffered);
-  GetExtent(Clip);
-  EventMask := $FFFF;
-end;
+      begin
+        TView.HandleEvent(Event);
+        if Event.What = evMouseDown then
+          begin
+            MakeLocal(Event.Where, Mouse);
+            if Mouse.Y = 0 then
+              begin
+                if (PWindow(Owner)^.Flags and wfClose <> 0) and
+                  (State and sfActive <> 0) and (Mouse.X >= 2) and (
+                    Mouse.X <= 4)
+                then
+                  begin
+                    Event.What := evCommand;
+                    Event.Command := cmClose;
+                    Event.InfoPtr := Owner;
+                    PutEvent(Event);
+                    ClearEvent(Event);
+                  end
+                else if (PWindow(Owner)^.Flags and wfZoom <> 0) and
+                  (State and sfActive <> 0) and (Event.Double or
+                  (Mouse.X >= Size.X-5) and
+                  (Mouse.X <= Size.X-3))
+                then
+                  begin
+                    Event.What := evCommand;
+                    Event.Command := cmZoom;
+                    Event.InfoPtr := Owner;
+                    PutEvent(Event);
+                    ClearEvent(Event);
+                  end
+                else if PWindow(Owner)^.Flags and wfMove <> 0 then
+                  DragWindow(dmDragMove);
+              end
+            else if (State and sfActive <> 0) and (Mouse.X >= Size.X-2)
+                and
+              (Mouse.Y >= Size.Y-1)
+            then
+              if PWindow(Owner)^.Flags and wfGrow <> 0 then
+                DragWindow(dmDragGrow);
+          end;
+      end { TFrame.HandleEvent };
 
-constructor TGroup.Load(var S: TStream);
-var
-  FixupSave: PFixupList;
-  Count,I: LongInt;
-  P, Q: ^Pointer;
-  V, Cur: PView;
-  OwnerSave: PGroup;
-begin
-  TView.Load(S);
-  GetExtent(Clip);
-  OwnerSave := OwnerGroup;
-  OwnerGroup := @Self;
-  FixupSave := FixupList;
-  S.Read(Count, SizeOf(Count));
-  GetMem(FixupList, Count * SizeOf(Pointer));
-  FillChar(FixupList^, Count*SizeOf(Pointer), 0);
-  for I := 1 to Count do
-  begin
-    V := PView(S.Get);
-    if V <> nil then InsertView(V, nil);
-  end;
-  GetSubViewPtr(S, Cur);
-  if Cur = nil then {Cat}
-    Fail;
-  V := Last;
-  for I := 1 to Count do
-  begin
-    V := V^.Next;
-    P := FixupList^[I];
-    while P <> nil do
-    begin
-      Q := P;
-      P := P^;
-      Q^ := V;
-    end;
-  end;
-  SetCurrent(Cur, NormalSelect);
-  FreeMem(FixupList, Count * SizeOf(Pointer));
-  OwnerGroup := OwnerSave;
-  FixupList := FixupSave;
-  if OwnerGroup = nil then Awaken;
-end;
+    procedure TFrame.SetState(AState: word; Enable: boolean);
+      begin
+        TView.SetState(AState, Enable);
+        if AState and (sfActive+sfDragging) <> 0 then
+          DrawView;
+      end;
 
-destructor TGroup.Done;
-var
-  P, T: PView;
-begin
-  Hide;
-  P := Last;
-  if P <> nil then
-  begin
-    repeat
-      P^.Hide;
-      P := P^.Prev;
-    until P = Last;
-    repeat
-      T := P^.Prev;
-      Dispose(P,Done);
-      P := T;
-    until Last = nil;
-  end;
-  FreeBuffer;
-  TView.Done;
-end;
+    { TScrollBar }
 
-function TGroup.At(Index: LongInt): PView;
-var
-  temp : PView;
-begin
-  temp := last;
-  while Index>0 do
-   begin
-     dec(Index);
-     temp:=temp^.Next;
-   end;
-  At:=temp;
-end;
+    Constructor TScrollBar.Init(var Bounds: TRect);
+      const
+        VChars: TScrollChars = (#30, #31, #177, #254, #178);
+        HChars: TScrollChars = (#17, #16, #177, #254, #178);
+      begin
+        TView.Init(Bounds);
+        Value := 0;
+        Min := 0;
+        Max := 0;
+        PgStep := 1;
+        ArStep := 1;
+        if Size.X = 1 then
+          begin
+            GrowMode := gfGrowLoX+gfGrowHiX+gfGrowHiY;
+            Chars := VChars;
+            if Length(VertScrollBarChars) = 5 then
+              Move(VertScrollBarChars[1], Chars, 5);
+          end
+        else
+          begin
+            GrowMode := gfGrowLoY+gfGrowHiX+gfGrowHiY;
+            Chars := HChars;
+            if Length(HorizScrollBarChars) = 5 then
+              Move(HorizScrollBarChars[1], Chars, 5);
+          end;
+      end { TScrollBar.Init };
 
+    Constructor TScrollBar.Load(var s: TStream);
+      begin
+        TView.Load(s);
+        s.Read(Value, SizeOf(longInt)*5+SizeOf(TScrollChars));
+      end;
 
-procedure TGroup.Awaken;
+    procedure TScrollBar.Draw;
+      begin
+        DrawPos(GetPos);
+      end;
 
-  procedure DoAwaken(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-  begin
-    P^.Awaken;
-  end;
+    procedure TMyScrollBar.Draw;
+      var
+        chrs: TScrollChars;
+      begin
+        if ShowScrollBar then
+          DrawPos(GetPos)
+        else
+          begin
+            chrs := Chars;
+            Chars := #186#186#186#186#186;
+            DrawPos(GetPos);
+            Chars := chrs;
+          end;
+      end;
 
-begin
-  ForEach(@DoAwaken);
-end;
+    procedure TMyScrollBar.DrawPos(Pos: longInt);
+      var
+        s: longInt;
+        B: TDrawBuffer;
+        Col1, Col2, col3: byte;
+      begin
+        s := GetSize-1;
+        if ShowScrollBar then
+          begin
+            Col1 := GetColor(1);
+            Col2 := GetColor(2);
+            col3 := GetColor(3);
+          end
+        else
+          begin
+            Col1 := GetColor(1);
+            Col2 := Col1;
+            col3 := Col2;
+          end;
+        MoveChar(B[0], Chars[0], Col2, 1);
+        if Max = Min then
+          MoveChar(B[1], Chars[4], Col1, s-1)
+        else
+          begin
+            MoveChar(B[1], Chars[2], Col1, s-1);
+            MoveChar(B[Pos], Chars[3], col3, 1);
+          end;
+        MoveChar(B[s], Chars[1], Col2, 1);
+        WriteBuf(0, 0, Size.X, Size.Y, B);
+      end { TMyScrollBar.DrawPos };
 
-procedure TGroup.ChangeBounds(var Bounds: TRect);
-var
-  D: TPoint;
+    procedure TScrollBar.DrawPos(Pos: longInt);
+      var
+        s: longInt;
+        B: TDrawBuffer;
+      begin
+        s := GetSize-1;
+        MoveChar(B[0], Chars[0], GetColor(2), 1);
+        if Max = Min then
+          MoveChar(B[1], Chars[4], GetColor(1), s-1)
+        else
+          begin
+            MoveChar(B[1], Chars[2], GetColor(1), s-1);
+            MoveChar(B[Pos], Chars[3], GetColor(3), 1);
+          end;
+        MoveChar(B[s], Chars[1], GetColor(2), 1);
+        WriteBuf(0, 0, Size.X, Size.Y, B);
+      end;
 
-procedure DoCalcChange(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-var
-  R: TRect;
-begin
-  P^.CalcBounds(R, D);
-  P^.ChangeBounds(R);
-end;
+    function TScrollBar.GetPalette: PPalette;
+      const
+        P: String[Length(CScrollBar)] = CScrollBar;
+      begin
+        GetPalette := @P;
+      end;
 
-begin
-  D.X := Bounds.B.X - Bounds.A.X - Size.X;
-  D.Y := Bounds.B.Y - Bounds.A.Y - Size.Y;
-  if D.EqualsXY(0,0) then
-  begin
-    SetBounds(Bounds);
-    DrawView;
-  end else
-  begin
-    FreeBuffer;
-    SetBounds(Bounds);
-    GetExtent(Clip);
-    GetBuffer;
-    Lock;
-    ForEach(@DoCalcChange);
-    Unlock;
-  end;
-end;
+    function TScrollBar.GetPos: longInt;
+      var
+        R: longInt;
+      begin
+        R := Max-Min;
+        if R = 0 then
+          GetPos := 1
+        else
+          GetPos := LongDiv(longmul(Value-Min, GetSize-3)+R shr 1, R)+1;
+      end;
 
-function TGroup.DataSize: Word;
-var
-  T: Word;
+    function TScrollBar.GetSize: longInt;
+      var
+        s: longInt;
+      begin
+        if Size.X = 1 then
+          s := Size.Y
+        else
+          s := Size.X;
+        if s < 3 then
+          GetSize := 3
+        else
+          GetSize := s;
+      end;
 
-procedure AddSubviewDataSize(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  Inc(T, P^.DataSize);
-end;
+    procedure TScrollBar.HandleEvent(var Event: TEvent);
+      var
+        Tracking: boolean;
+        i, P, s, ClickPart: longInt;
+        Mouse: TPoint;
+        extent: TRect;
 
-begin
-  T := 0;
-  ForEach(@AddSubviewDataSize);
-  DataSize := T;
-end;
+      function GetPartCode: longInt;
+        var
+          Mark, Part: longInt;
+        begin
+          Part := -1;
+          if extent.Contains(Mouse) then
+            begin
+              if Size.X = 1 then
+                Mark := Mouse.Y
+              else
+                Mark := Mouse.X;
+              if Mark = P then
+                Part := sbIndicator
+              else
+                begin
+                  if Mark < 1 then
+                    Part := sbLeftArrow
+                  else if Mark < P then
+                    Part := sbPageLeft
+                  else if Mark < s then
+                    Part := sbPageRight
+                  else
+                    Part := sbRightArrow;
+                  if Size.X = 1 then
+                    Inc(Part, 4);
+                end;
+            end;
+          GetPartCode := Part;
+        end { GetPartCode: };
 
-procedure TGroup.Delete(P: PView);
-var
-  SaveState: Word;
-begin
-  SaveState := P^.State;
-  P^.Hide;
-  RemoveView(P);
-  P^.Owner := nil;
-  P^.Next := nil;
-  if SaveState and sfVisible <> 0 then P^.Show;
-end;
+      procedure Clicked;
+        begin
+          Message(Owner, evBroadcast, cmScrollBarClicked, @Self);
+        end;
 
-procedure TGroup.Draw;
-var
-  R: TRect;
-begin
-  if Buffer = nil then
-  begin
-    GetBuffer;
-    if Buffer <> nil then
-    begin
-      Inc(LockFlag);
-      Redraw;
-      Dec(LockFlag);
-    end;
-  end;
-  if Buffer <> nil then WriteBuf(0, 0, Size.X, Size.Y, Buffer^) else
-  begin
-    GetClipRect(Clip);
-    Redraw;
-    GetExtent(Clip);
-  end;
-end;
+      begin { TScrollBar.HandleEvent }
+        TView.HandleEvent(Event);
+        case Event.What of
+          evMouseDown:
+            begin
+              Clicked;
+              MakeLocal(Event.Where, Mouse);
+              GetExtent(extent);
+              extent.Grow(1, 1);
+              P := GetPos;
+              s := GetSize-1;
+              ClickPart := GetPartCode;
+              if ClickPart <> sbIndicator then
+                begin
+                  repeat
+                    MakeLocal(Event.Where, Mouse);
+                    if GetPartCode = ClickPart then
+                      SetValue(Value+ScrollStep(ClickPart));
+                  until not MouseEvent(Event, evMouseAuto);
+                end
+              else
+                begin
+                  repeat
+                    MakeLocal(Event.Where, Mouse);
+                    Tracking := extent.Contains(Mouse);
+                    if Tracking then
+                      begin
+                        if Size.X = 1 then
+                          i := Mouse.Y
+                        else
+                          i := Mouse.X;
+                        if i <= 0 then
+                          i := 1;
+                        if i >= s then
+                          i := s-1;
+                      end
+                    else
+                      i := GetPos;
+                    if i <> P then
+                      begin
+                        DrawPos(i);
+                        P := i;
+                      end;
+                  until not MouseEvent(Event, evMouseMove);
+                  if Tracking and (s > 2) then
+                    begin
+                      Dec(s, 2);
+                      SetValue(LongDiv(longmul(P-1, Max-Min)+s shr 1, s)
+                        +Min);
+                    end;
+                end;
+              ClearEvent(Event);
+            end;
+          evKeyDown:
+            if State and sfVisible <> 0 then
+              begin
+                ClickPart := sbIndicator;
+                if Size.Y = 1 then
+                  case {CtrlToArrow}(Event.KeyCode) of
+                    kbLeft, kbShiftLeft:
+                      ClickPart := sbLeftArrow;
+                    kbRight, kbShiftRight:
+                      ClickPart := sbRightArrow;
+                    kbCtrlLeft, kbCtrlShiftLeft:
+                      ClickPart := sbPageLeft;
+                    kbCtrlRight, kbCtrlShiftRight:
+                      ClickPart := sbPageRight;
+                    kbHome, kbShiftHome:
+                      i := Min;
+                    kbEnd, kbShiftEnd:
+                      i := Max;
+                    else
+                      exit;
+                  end
+                else
+                  case {CtrlToArrow}(Event.KeyCode) of
+                    kbUp, kbShiftUp:
+                      ClickPart := sbUpArrow;
+                    kbDown, kbShiftDown:
+                      ClickPart := sbDownArrow;
+                    kbPgUp, kbShiftPgUp:
+                      ClickPart := sbPageUp;
+                    kbPgDn, kbShiftPgDn:
+                      ClickPart := sbPageDown;
+                    kbCtrlPgUp, kbCtrlShiftPgUp:
+                      i := Min;
+                    kbCtrlPgDn, kbCtrlShiftPgDn:
+                      i := Max;
+                    else
+                      exit;
+                  end {case};
+                Clicked;
+                if ClickPart <> sbIndicator then
+                  i := Value+ScrollStep(ClickPart);
+                SetValue(i);
+                ClearEvent(Event);
+              end;
+        end {case};
+      end { TScrollBar.HandleEvent };
 
-procedure TGroup.DrawSubViews(P, Bottom: PView);
-begin
-  while P <> Bottom do
-  begin
-    P^.DrawView;
-    P := P^.NextView;
-  end;
-end;
+    procedure TScrollBar.ScrollDraw;
+      begin
+        Message(Owner, evBroadcast, cmScrollBarChanged, @Self);
+      end;
 
-procedure TGroup.EndModal(Command: Word);
-begin
-  if State and sfModal <> 0 then EndState := Command
-  else TView.EndModal(Command);
-end;
+    function TScrollBar.ScrollStep(Part: longInt): longInt;
+      var
+        step: longInt;
+      begin
+        if Part and 2 = 0 then
+          step := ArStep
+        else
+          step := PgStep;
+        if Part and 1 = 0 then
+          ScrollStep := -step
+        else
+          ScrollStep := step;
+      end;
 
-procedure TGroup.EventError(var Event: TEvent);
-begin
-  if Owner <> nil then Owner^.EventError(Event);
-end;
+    procedure TScrollBar.SetParams(AValue, AMin, AMax, APgStep,
+      AArStep: longInt);
+      var
+        SValue: longInt;
+      begin
+        if AMax < AMin then
+          AMax := AMin;
+        if AValue < AMin then
+          AValue := AMin;
+        if AValue > AMax then
+          AValue := AMax;
+        SValue := Value;
+        if (SValue <> AValue) or (Min <> AMin) or (Max <> AMax) then
+          begin
+            Value := AValue;
+            Min := AMin;
+            Max := AMax;
+            DrawView;
+            if SValue <> AValue then
+              ScrollDraw;
+          end;
+        PgStep := APgStep;
+        ArStep := AArStep;
+      end { TScrollBar.SetParams };
 
-function TGroup.Execute: Word;
-var
-  E: TEvent;
-begin
-  repeat
-    EndState := 0;
-    repeat
-      TinySlice; {AK155}
-      GetEvent(E);
-      if E.What <> evNothing then HandleEvent(E);
-      if E.What <> evNothing then EventError(E);
-    until EndState <> 0;
-  until Valid(EndState);
-  Execute := EndState;
-end;
+    procedure TScrollBar.SetRange(AMin, AMax: longInt);
+      begin
+        SetParams(Value, AMin, AMax, PgStep, ArStep);
+      end;
 
-function TGroup.ExecView(P: PView): Word;
-var
-  SaveOptions: Word;
-  SaveOwner: PGroup;
-  SaveTopView: PView;
-  SaveCurrent: PView;
-  SaveCommands: TCommandSet;
-  PP: TPoint;
-  EV: TEvent;
-begin
-  if P <> nil then
-  begin
-    SaveOptions := P^.Options;
-    SaveOwner := P^.Owner;
-    SaveTopView := TheTopView;
-    SaveCurrent := Current;
-    GetCommands(SaveCommands);
-    TheTopView := P;
-    P^.Options := P^.Options and not ofSelectable;
-    P^.SetState(sfModal, True);
-    SetCurrent(P, EnterSelect);
-    if SaveOwner = nil then Insert(P);
-    ExecView := P^.Execute;
-    if SaveOwner = nil then Delete(P);
-    SetCurrent(SaveCurrent, LeaveSelect);
-    P^.SetState(sfModal, False);
-    P^.Options := SaveOptions;
-    P := Current;
-    if (P <> nil) and not P^.GetState(sfFocused) then
-     begin
-       EV.What := evMouseDown; PP.X := P^.Origin.X; PP.Y := P^.Size.Y - 1;
-       MakeGlobal(PP, PP); EV.Where := PP;
-       EV.Buttons := mbRightButton; PutEvent(EV);
-     end;
-    TheTopView := SaveTopView;
-    SetCommands(SaveCommands);
-  end else ExecView := cmCancel;
-end;
+    procedure TScrollBar.SetStep(APgStep, AArStep: longInt);
+      begin
+        SetParams(Value, Min, Max, APgStep, AArStep);
+      end;
 
-function TGroup.First: PView;
-begin
-  if Last = nil then First := nil else First := Last^.Next;
-end;
+    procedure TScrollBar.SetValue(AValue: longInt);
+      begin
+        SetParams(AValue, Min, Max, PgStep, ArStep);
+      end;
 
-function TGroup.FirstMatch(AState: Word; AOptions: Word): PView;
+    procedure TScrollBar.Store(var s: TStream);
+      begin
+        TView.Store(s);
+        s.Write(Value, SizeOf(longInt)*5+SizeOf(TScrollChars));
+      end;
 
-function Matches(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  Matches := (P^.State and AState = AState) and
-    (P^.Options and AOptions = AOptions);
-end;
+    { TGroup }
 
-begin
-  FirstMatch := FirstThat(@Matches);
-end;
+    Constructor TGroup.Init(var Bounds: TRect);
+      begin
+        TView.Init(Bounds);
+        Options := Options or (ofSelectable+ofBuffered);
+        GetExtent(Clip);
+        EventMask := $FFFF;
+      end;
 
-{AK155}(*
+    Constructor TGroup.Load(var s: TStream);
+      var
+        FixupSave: PFixupList;
+        Count, i: longInt;
+        P, Q: ^Pointer;
+        V, Cur: PView;
+        OwnerSave: PGroup;
+      begin
+        TView.Load(s);
+        GetExtent(Clip);
+        OwnerSave := OwnerGroup;
+        OwnerGroup := @Self;
+        FixupSave := FixUpList;
+        s.Read(Count, SizeOf(Count));
+        GetMem(FixUpList, Count*SizeOf(Pointer));
+        FillChar(FixUpList^, Count*SizeOf(Pointer), 0);
+        for i := 1 to Count do
+          begin
+            V := PView(s.Get);
+            if V <> nil then
+              InsertView(V, nil);
+          end;
+        GetSubViewPtr(s, Cur);
+        if Cur = nil then{Cat}
+          Fail;
+        V := Last;
+        for i := 1 to Count do
+          begin
+            V := V^.Next;
+            P := FixUpList^[i];
+            while P <> nil do
+              begin
+                Q := P;
+                P := P^;
+                Q^:= V;
+              end;
+          end;
+        SetCurrent(Cur, NormalSelect);
+        FreeMem(FixUpList, Count*SizeOf(Pointer));
+        OwnerGroup := OwnerSave;
+        FixUpList := FixupSave;
+        if OwnerGroup = nil then
+          Awaken;
+      end { TGroup.Load };
+
+    destructor TGroup.Done;
+      var
+        P, t: PView;
+      begin
+        Hide;
+        P := Last;
+        if P <> nil then
+          begin
+            repeat
+              P^.Hide;
+              P := P^.Prev;
+            until P = Last;
+            repeat
+              t := P^.Prev;
+              Dispose(P, Done);
+              P := t;
+            until Last = nil;
+          end;
+        FreeBuffer;
+        TView.Done;
+      end { TGroup.Done };
+
+    function TGroup.At(Index: longInt): PView;
+      var
+        Temp: PView;
+      begin
+        Temp := Last;
+        while Index > 0 do
+          begin
+            Dec(Index);
+            Temp := Temp^.Next;
+          end;
+        At := Temp;
+      end;
+
+    procedure TGroup.Awaken;
+
+      procedure DoAwaken(P: PView);
+        begin
+          P^.Awaken;
+        end;
+
+      begin
+        ForEach(@DoAwaken);
+      end;
+
+    procedure TGroup.ChangeBounds(var Bounds: TRect);
+      var
+        D: TPoint;
+
+      procedure DoCalcChange(P: PView);
+        var
+          R: TRect;
+        begin
+          P^.CalcBounds(R, D);
+          P^.ChangeBounds(R);
+        end;
+
+      begin
+        D.X := Bounds.B.X-Bounds.A.X-Size.X;
+        D.Y := Bounds.B.Y-Bounds.A.Y-Size.Y;
+        if D.EqualsXY(0, 0) then
+          begin
+            SetBounds(Bounds);
+            DrawView;
+          end
+        else
+          begin
+            FreeBuffer;
+            SetBounds(Bounds);
+            GetExtent(Clip);
+            GetBuffer;
+            Lock;
+            ForEach(@DoCalcChange);
+            UnLock;
+          end;
+      end { TGroup.ChangeBounds };
+
+    function TGroup.DataSize: word;
+      var
+        t: word;
+
+      procedure AddSubviewDataSize(P: PView);
+        begin
+          Inc(t, P^.DataSize);
+        end;
+
+      begin
+        t := 0;
+        ForEach(@AddSubviewDataSize);
+        DataSize := t;
+      end;
+
+    procedure TGroup.Delete(P: PView);
+      var
+        SaveState: word;
+      begin
+        SaveState := P^.State;
+        P^.Hide;
+        RemoveView(P);
+        P^.Owner := nil;
+        P^.Next := nil;
+        if SaveState and sfVisible <> 0 then
+          P^.Show;
+      end;
+
+    procedure TGroup.Draw;
+      var
+        R: TRect;
+      begin
+        if Buffer = nil then
+          begin
+            GetBuffer;
+            if Buffer <> nil then
+              begin
+                Inc(LockFlag);
+                Redraw;
+                Dec(LockFlag);
+              end;
+          end;
+        if Buffer <> nil then
+          WriteBuf(0, 0, Size.X, Size.Y, Buffer^)
+        else
+          begin
+            GetClipRect(Clip);
+            Redraw;
+            GetExtent(Clip);
+          end;
+      end { TGroup.Draw };
+
+    procedure TGroup.DrawSubViews(P, Bottom: PView);
+      begin
+        while P <> Bottom do
+          begin
+            P^.DrawView;
+            P := P^.NextView;
+          end;
+      end;
+
+    procedure TGroup.EndModal(Command: word);
+      begin
+        if State and sfModal <> 0 then
+          EndState := Command
+        else
+          TView.EndModal(Command);
+      end;
+
+    procedure TGroup.EventError(var Event: TEvent);
+      begin
+        if Owner <> nil then
+          Owner^.EventError(Event);
+      end;
+
+    function TGroup.Execute: word;
+      var
+        E: TEvent;
+      begin
+        repeat
+          EndState := 0;
+          repeat
+            TinySlice; {AK155}
+            GetEvent(E);
+            if E.What <> evNothing then
+              HandleEvent(E);
+            if E.What <> evNothing then
+              EventError(E);
+          until EndState <> 0;
+        until Valid(EndState);
+        Execute := EndState;
+      end;
+
+    function TGroup.ExecView(P: PView): word;
+      var
+        SaveOptions: word;
+        SaveOwner: PGroup;
+        SaveTopView: PView;
+        SaveCurrent: PView;
+        SaveCommands: TCommandSet;
+        PP: TPoint;
+        EV: TEvent;
+      begin
+        if P <> nil then
+          begin
+            SaveOptions := P^.Options;
+            SaveOwner := P^.Owner;
+            SaveTopView := TheTopView;
+            SaveCurrent := Current;
+            GetCommands(SaveCommands);
+            TheTopView := P;
+            P^.Options := P^.Options and not ofSelectable;
+            P^.SetState(sfModal, True);
+            SetCurrent(P, EnterSelect);
+            if SaveOwner = nil then
+              Insert(P);
+            ExecView := P^.Execute;
+            if SaveOwner = nil then
+              Delete(P);
+            SetCurrent(SaveCurrent, LeaveSelect);
+            P^.SetState(sfModal, False);
+            P^.Options := SaveOptions;
+            P := Current;
+            if (P <> nil) and not P^.GetState(sfFocused) then
+              begin
+                EV.What := evMouseDown;
+                PP.X := P^.Origin.X;
+                PP.Y := P^.Size.Y-1;
+                MakeGlobal(PP, PP);
+                EV.Where := PP;
+                EV.Buttons := mbRightButton;
+                PutEvent(EV);
+              end;
+            TheTopView := SaveTopView;
+            SetCommands(SaveCommands);
+          end
+        else
+          ExecView := cmCancel;
+      end { TGroup.ExecView };
+
+    function TGroup.First: PView;
+      begin
+        if Last = nil then
+          First := nil
+        else
+          First := Last^.Next;
+      end;
+
+    function TGroup.FirstMatch(AState: word; AOptions: word): PView;
+
+      function Matches(P: PView): boolean;
+        begin
+          Matches := (P^.State and AState = AState) and
+          (P^.Options and AOptions = AOptions);
+        end;
+
+      begin
+        FirstMatch := FirstThat(@Matches);
+      end;
+
+    {AK155}
+      (*
 function TGroup.FirstThat(P: Pointer): PView;
 var
   Tp : PView;
@@ -2144,11 +2349,11 @@ begin
 end;
 *)
 
-{$IFDEF BIT_32}
-function TGroup.FirstThat(P: Pointer): PView; assembler; {&USES None} {&FRAME-} {AK155}
-var
-  ALast: Pointer;
-asm
+    function TGroup.FirstThat(P: Pointer): PView; assembler;
+        {&USES None} {&FRAME-} {AK155}
+      var
+        ALast: Pointer;
+    asm
                 mov     eax,Self
                 mov     eax,[eax].TGroup.Last
                 test    eax,eax
@@ -2167,63 +2372,31 @@ asm
                 jne     @@1
                 xor     eax,eax
               @@2:
-end;{/AK155}
-{$ELSE}
-function TGroup.FirstThat(P: Pointer): PView; assembler;
-var
-  ALast: Pointer;
-asm
-        LES     DI,Self
-        LES     DI,ES:[DI].TGroup.Last
-        MOV     AX,ES
-        OR      AX,DI
-        JE      @@3
-        MOV     WORD PTR ALast[2],ES
-        MOV     WORD PTR ALast[0],DI
-@@1:    LES     DI,ES:[DI].TView.Next
-        PUSH    ES
-        PUSH    DI
-        PUSH    ES
-        PUSH    DI
-        PUSH    WORD PTR [BP]
-        CALL    P
-        POP     DI
-        POP     ES
-        OR      AL,AL
-        JNE     @@2
-        CMP     DI,WORD PTR ALast[0]
-        JNE     @@1
-        MOV     AX,ES
-        CMP     AX,WORD PTR ALast[2]
-        JNE     @@1
-        XOR     DI,DI
-        MOV     ES,DI
-@@2:    MOV     SP,BP
-@@3:    MOV     AX,DI
-        MOV     DX,ES
-end;
-{$ENDIF}
+end
+      ; {/AK155}
 
-{JO - я вернул старую TGroup.LastThat , так как она в отличие от TCollection.LastThat}
-{работает нормально, а вот введённая AK155 ассемблерная - нет, из-за неё}
-{"File => Split/combine..." падает на загрузке диалога}
+    {JO - я вернул старую TGroup.LastThat , так как она в отличие от TCollection.LastThat}
+    {работает нормально, а вот введённая AK155 ассемблерная - нет, из-за неё}
+    {"File => Split/combine..." падает на загрузке диалога}
 
-function TGroup.LastThat(P: Pointer): PView;
-var
-  Tp : PView;
-begin
-  LastThat := nil;
-  if (Last<>nil) then
-  begin
-    Tp := Last;
-    repeat
-      Tp := Tp^.Next;
-      if Byte(Longint(CallPointerMethodLocal(P,PreviousFramePointer,@self,Tp)))<>0 then
-        LastThat := Tp;
-    until (Tp=Last);
-  end;
-end;
-(*
+    function TGroup.LastThat(P: Pointer): PView;
+      var
+        TP: PView;
+      begin
+        LastThat := nil;
+        if (Last <> nil) then
+          begin
+            TP := Last;
+            repeat
+              TP := TP^.Next;
+              if byte(longInt(CallPointerMethodLocal(P,
+                  PreviousFramePointer, @self, TP))) <> 0
+              then
+                LastThat := TP;
+            until (TP = Last);
+          end;
+      end;
+    (*
 {AK155 }
 function TGroup.LastThat(P: Pointer): PView; assembler; {&USES None} {&FRAME-}
 var
@@ -2253,32 +2426,39 @@ asm
               @@2:
 end;  {/AK155 }
 *)
-function TGroup.FindNext(Forwards: Boolean): PView;
-var
-  P: PView;
-begin
-  FindNext := nil;
-  if Current <> nil then
-  begin
-    P := Current;
-    repeat
-      if Forwards then P := P^.Next else P := P^.Prev;
-    until ((P^.State and (sfVisible + sfDisabled) = sfVisible) and
-      (P^.Options and ofSelectable <> 0)) or (P = Current);
-    if P <> Current then FindNext := P;
-  end;
-end;
+    function TGroup.FindNext(Forwards: boolean): PView;
+      var
+        P: PView;
+      begin
+        FindNext := nil;
+        if Current <> nil then
+          begin
+            P := Current;
+            repeat
+              if Forwards then
+                P := P^.Next
+              else
+                P := P^.Prev;
+            until ((P^.State and (sfVisible+sfDisabled) = sfVisible)
+              and
+            (P^.Options and ofSelectable <> 0)) or (P = Current);
+            if P <> Current then
+              FindNext := P;
+          end;
+      end;
 
-function TGroup.FocusNext(Forwards: Boolean): Boolean;
-var
-  P: PView;
-begin
-  P := FindNext(Forwards);
-  FocusNext := True;
-  if P <> nil then FocusNext := P^.Focus;
-end;
+    function TGroup.FocusNext(Forwards: boolean): boolean;
+      var
+        P: PView;
+      begin
+        P := FindNext(Forwards);
+        FocusNext := True;
+        if P <> nil then
+          FocusNext := P^.Focus;
+      end;
 
-{AK155 }(*
+    {AK155 }
+      (*
 procedure TGroup.ForEach(P: Pointer);
 var
   Tp,Hp,L0 : PView;
@@ -2301,11 +2481,11 @@ begin
 end;
 *)
 
-{$IFDEF BIT_32}
-procedure TGroup.ForEach(P: Pointer); assembler; {&USES ebx} {&FRAME-} {AK155 }
-var
-  ALast: Pointer;
-asm
+    procedure TGroup.ForEach(P: Pointer); assembler; {&USES ebx}
+        {&FRAME-} {AK155 }
+      var
+        ALast: Pointer;
+    asm
                 mov     ecx,Self
                 mov     ecx,[ecx].TGroup.Last
                 jecxz   @@RET
@@ -2324,106 +2504,78 @@ asm
                 push    ecx
                 Call    ebx
               @@RET:
-end; {/AK155}
-{$ELSE}
-procedure TGroup.ForEach(P: Pointer); assembler;
-var
-  ALast: Pointer;
-asm
-        LES     DI,Self
-        LES     DI,ES:[DI].TGroup.Last
-        MOV     AX,ES
-        OR      AX,DI
-        JE      @@4
-        MOV     WORD PTR ALast[2],ES
-        MOV     WORD PTR ALast[0],DI
-        LES     DI,ES:[DI].TView.Next
-@@1:    CMP     DI,WORD PTR ALast[0]
-        JNE     @@2
-        MOV     AX,ES
-        CMP     AX,WORD PTR ALast[2]
-        JE      @@3
-@@2:    PUSH    WORD PTR ES:[DI].TView.Next[2]
-        PUSH    WORD PTR ES:[DI].TView.Next[0]
-        PUSH    ES
-        PUSH    DI
-        PUSH    WORD PTR [BP]
-        CALL    P
-        POP     DI
-        POP     ES
-        JMP     @@1
-@@3:    PUSH    WORD PTR [BP]
-        CALL    P
-@@4:
-end;
-{$ENDIF}
+end
+      ; {/AK155}
 
-procedure TGroup.FreeBuffer;
-begin
-  if (Options and ofBuffered <> 0) and (Buffer <> nil) then
-    DisposeCache(Pointer(Buffer));
-end;
+    procedure TGroup.FreeBuffer;
+      begin
+        if (Options and ofBuffered <> 0) and (Buffer <> nil) then
+          DisposeCache(Pointer(Buffer));
+      end;
 
-{ Allocate a group buffer if the group is exposed, buffered, and
+    { Allocate a group buffer if the group is exposed, buffered, and
   its area is less than 32768 bytes }
 
-procedure TGroup.GetBuffer;
-begin
-  if ((State and sfExposed)<>0) and
-     ((Options and ofBuffered)<>0) and
-     (Buffer=nil)
-  then begin
-    NewCache(Pointer(Buffer),(Size.X * Size.Y) shl 1);
-    if Buffer<>nil then
-    begin
-      Inc(LockFlag);
-      Redraw;
-      Dec(LockFlag);
-    end;
-  end;
-end;
+    procedure TGroup.GetBuffer;
+      begin
+        if ((State and sfExposed) <> 0) and
+          ((Options and ofBuffered) <> 0) and
+          (Buffer = nil)
+        then
+          begin
+            NewCache(Pointer(Buffer), (Size.X*Size.Y) shl 1);
+            if Buffer <> nil then
+              begin
+                Inc(LockFlag);
+                Redraw;
+                Dec(LockFlag);
+              end;
+          end;
+      end;
 
+    procedure TGroup.GetData(var Rec);
+      type
+        Bytes = array[0..65534] of byte;
+      var
+        i: word;
+        V: PView;
+      begin
+        i := 0;
+        if Last <> nil then
+          begin
+            V := Last;
+            repeat
+              V^.GetData(Bytes(Rec)[i]);
+              Inc(i, V^.DataSize);
+              V := V^.Prev;
+            until V = Last;
+          end;
+      end;
 
-procedure TGroup.GetData(var Rec);
-type
-  Bytes = array[0..65534] of Byte;
-var
-  I: Word;
-  V: PView;
-begin
-  I := 0;
-  if Last <> nil then
-  begin
-    V := Last;
-    repeat
-      V^.GetData(Bytes(Rec)[I]);
-      Inc(I, V^.DataSize);
-      V := V^.Prev;
-    until V = Last;
-  end;
-end;
+    function TGroup.GetHelpCtx: word;
+      var
+        H: word;
+      begin
+        H := hcNoContext;
+        if Current <> nil then
+          H := Current^.GetHelpCtx;
+        if H = hcNoContext then
+          H := TView.GetHelpCtx;
+        GetHelpCtx := H;
+      end;
 
-function TGroup.GetHelpCtx: Word;
-var
-  H: Word;
-begin
-  H:= hcNoContext;
-  if Current <> nil then H := Current^.GetHelpCtx;
-  if H = hcNoContext then H := TView.GetHelpCtx;
-  GetHelpCtx := H;
-end;
-
-procedure TGroup.GetSubViewPtr(var S: TStream; var P);
-var
-  Index: Word;
-begin
-  S.Read(Index, SizeOf(Word));
-  if (Index > 0) and (S.Status = stOk) then {Cat: добавил проверку статуса}
-    Pointer(P) := At(Index)
-  else
-    Pointer(P) := nil;
-end;
-(*
+    procedure TGroup.GetSubViewPtr(var s: TStream; var P);
+      var
+        Index: word;
+      begin
+        s.Read(Index, SizeOf(word));
+        if (Index > 0) and (s.Status = stOK) then
+            {Cat: добавил проверку статуса}
+          Pointer(P) := At(Index)
+        else
+          Pointer(P) := nil;
+      end;
+    (*
 procedure TGroup.HandleEvent(var Event: TEvent);
 
 procedure DoHandleEvent(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
@@ -2462,628 +2614,732 @@ begin
   end;
 end;
 *)
-procedure TGroup.HandleEvent(var Event: TEvent);
+    procedure TGroup.HandleEvent(var Event: TEvent);
 
-  { CN fix: we call FirstThat instead ForEach }
-  function DoHandleEvent(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
-  begin
-    DoHandleEvent := False;
-    if (P = nil) or ((P^.State and sfDisabled <> 0) and
-       (Event.What and (PositionalEvents or FocusedEvents) <> 0)) then Exit;
-    case Phase of
-      phPreProcess: if P^.Options and ofPreProcess = 0 then Exit;
-      phPostProcess: if P^.Options and ofPostProcess = 0 then Exit;
-    end;
-    if (Event.What <> evMouseMove) and
-       (Event.What and P^.EventMask = 0) then Exit;
-    P^.HandleEvent(Event);
-    DoHandleEvent := Event.What = evNothing;
-  end;
-
-  function ContainsMouse(P: PView): Boolean;{$IFDEF BIT_16}far;{$ENDIF}
-  begin
-    ContainsMouse:=(P^.State and sfVisible <> 0) and
-      P^.MouseInView(Event.Where);
-  end;
-
-var
-  NV: PView;
-begin
-  if Event.What and EventMask = 0 then Exit; { Fixed 05.22.95 }
-  TView.HandleEvent(Event);
-  if Event.What and FocusedEvents <> 0 then
-  begin
-    Phase := phPreProcess;
-    FirstThat(@DoHandleEvent);
-    if Event.What = evNothing then Exit;
-    Phase := phFocused;
-    DoHandleEvent(Current);
-    if Event.What = evNothing then Exit;
-    Phase := phPostProcess;
-    FirstThat(@DoHandleEvent);
-  end else
-  begin
-    Phase := phFocused;
-    if (Event.What and PositionalEvents <> 0) then
-      DoHandleEvent(FirstThat(@ContainsMouse)) else
-      FirstThat(@DoHandleEvent);
-  end;
-end;
-
-
-function TGroup.IndexOf(P: PView): longint;
-var
-  temp : PView;
-  index : longint;
-begin
-  index:=0;
-  if Last<>Nil then
-   begin
-     temp:=Last;
-     repeat
-       inc(index);
-       temp:=temp^.Next;
-     until (temp=P) or (temp=Last);
-     if temp<>p then
-      index:=0;
-   end;
-  IndexOf:=index;
-end;
-
-procedure TGroup.Insert(P: PView);
-begin
-  InsertBefore(P, First);
-end;
-
-procedure TGroup.InsertBefore(P, Target: PView);
-var
-  SaveState: Word;
-begin
-  if (P <> nil) and (P^.Owner = nil) and
-    ((Target = nil) or (Target^.Owner = @Self)) then
-  begin
-    if P^.Options and ofCenterX <> 0 then
-      P^.Origin.X := (Size.X - P^.Size.X) div 2;
-    if P^.Options and ofCenterY <> 0 then
-      P^.Origin.Y := (Size.Y - P^.Size.Y) div 2;
-    SaveState := P^.State;
-    P^.Hide;
-    InsertView(P, Target);
-    if SaveState and sfVisible <> 0 then P^.Show;
-    if State and sfActive <> 0 then
-      P^.SetState(sfActive, True);
-  end;
-end;
-
-procedure TGroup.InsertView(P, Target: PView);
-begin
-  P^.Owner := @Self;
-  if Target <> nil then
-  begin
-    Target := Target^.Prev;
-    P^.Next := Target^.Next;
-    Target^.Next := P;
-  end else
-  begin
-    if Last = nil then P^.Next := P else
-    begin
-      P^.Next := Last^.Next;
-      Last^.Next := P;
-    end;
-    Last := P;
-  end;
-end;
-
-procedure TGroup.Lock;
-begin
-  if (Buffer <> nil) or (LockFlag <> 0) then Inc(LockFlag);
-end;
-
-procedure TGroup.PutSubViewPtr(var S: TStream; P: PView);
-var
-  Index: Word;
-begin
-  if P = nil then Index := 0
-  else Index := IndexOf(P);
-  S.Write(Index, SizeOf(Word));
-end;
-
-procedure TGroup.Redraw;
-begin
-  DrawSubViews(First, nil);
-end;
-
-procedure TGroup.RemoveView(P: PView);
-var
-  cur:PView;
-begin
-  if Last<>Nil then begin
-    cur:=Last;
-    while true do begin
-      if p=cur^.Next then begin
-        cur^.Next:=P^.Next;
-        if Last=P then
-          begin if cur^.Next=P then Last:=Nil else Last:=cur; break end;
-      end;
-      if cur^.next=Last then break;
-      cur:=cur^.Next;
-    end;
-  end
-end;
-
-procedure TGroup.ResetCurrent;
-begin
-  SetCurrent(FirstMatch(sfVisible, ofSelectable), NormalSelect);
-end;
-
-procedure TGroup.ResetCursor;
-begin
-  if Current <> nil then Current^.ResetCursor;
-end;
-
-procedure TGroup.SelectNext(Forwards: Boolean);
-var
-  P: PView;
-begin
-  P := FindNext(Forwards);
-  if P <> nil then P^.Select;
-end;
-
-procedure TGroup.SetCurrent(P: PView; Mode: SelectMode);
-
-procedure SelectView(P: PView; Enable: Boolean);
-begin
-  if P <> nil then P^.SetState(sfSelected, Enable);
-end;
-
-procedure FocusView(P: PView; Enable: Boolean);
-begin
-  if (State and sfFocused <> 0) and (P <> nil) then
-    P^.SetState(sfFocused, Enable);
-end;
-
-begin
-  if Current <> P then
-  begin
-    Lock;
-    FocusView(Current, False);
-    if Mode <> EnterSelect then SelectView(Current, False);
-    if Mode <> LeaveSelect then SelectView(P, True);
-    FocusView(P, True);
-    Current := P;
-    Unlock;
-  end;
-end;
-
-procedure TGroup.SetData(var Rec);
-type
-  Bytes = array[0..65534] of Byte;
-var
-  I: Word;
-  V: PView;
-begin
-  I := 0;
-  if Last <> nil then
-  begin
-    V := Last;
-    repeat
-      V^.SetData(Bytes(Rec)[I]);
-      Inc(I, V^.DataSize);
-      V := V^.Prev;
-    until V = Last;
-  end;
-end;
-
-procedure TGroup.SetState(AState: Word; Enable: Boolean);
-
-procedure DoSetState(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  P^.SetState(AState, Enable);
-end;
-
-procedure DoExpose(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  if P^.State and sfVisible <> 0 then P^.SetState(sfExposed, Enable);
-end;
-
-begin
-  TView.SetState(AState, Enable);
-  case AState of
-    sfActive, sfDragging:
-      begin
-        Lock;
-        ForEach(@DoSetState);
-        Unlock;
-      end;
-    sfFocused:
-      if Current <> nil then Current^.SetState(sfFocused, Enable);
-    sfExposed:
-      begin
-        ForEach(@DoExpose);
-        if not Enable then FreeBuffer;
-      end;
-  end;
-end;
-
-procedure TGroup.Store(var S: TStream);
-var
-  Count: LongInt;
-  OwnerSave: PGroup;
-
-procedure DoPut(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  S.Put(P);
-end;
-
-begin
-  TView.Store(S);
-  OwnerSave := OwnerGroup;
-  OwnerGroup := @Self;
-  Count := IndexOf(Last);
-  S.Write(Count, SizeOf(Count));
-  ForEach(@DoPut);
-  PutSubViewPtr(S, Current);
-  OwnerGroup := OwnerSave;
-end;
-
-procedure TGroup.Unlock;
-begin
-  if LockFlag <> 0 then
-  begin
-    Dec(LockFlag);
-    if LockFlag = 0 then DrawView;
-  end;
-end;
-
-function TGroup.Valid(Command: Word): Boolean;
-
-function IsInvalid(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  IsInvalid := not P^.Valid(Command);
-end;
-
-begin
-  Valid := True;
-  if Command = cmReleasedFocus then
-  begin
-    if (Current <> nil) and (Current^.Options and ofValidate <> 0) then
-      Valid := Current^.Valid(Command);
-  end
-  else
-    Valid := FirstThat(@IsInvalid) = nil;
-end;
-
-{ TWindow }
-
-constructor TWindow.Init(var Bounds: TRect; const ATitle: TTitleStr;
-  ANumber: Integer);
-begin
-  TGroup.Init(Bounds);
-  State := State or sfShadow;
-  Options := Options or (ofSelectable + ofTopSelect);
-  GrowMode := gfGrowAll + gfGrowRel;
-  Flags := wfMove + wfGrow + wfClose + wfZoom;
-  Title := NewStr(ATitle);
-  if ANumber<>wnNoNumber then Number := GetNum else Number := 0;
-  Palette := wpBlueWindow;
-  InitFrame;
-  if Frame <> nil then Insert(Frame);
-  GetBounds(ZoomRect);
-  MaxiRect.A.X:=High(MaxiRect.A.X);
-end;
-
-constructor TWindow.Load(var S: TStream);
-var
-  FrameIdent: AWord;
-begin
-  TGroup.Load(S);
-  S.Read(Flags, SizeOf(Byte) + SizeOf(TRect)*2 + 2 * SizeOf(AInt));
-  if Number in [1..9] then Numbers := Numbers or (1 shl Number);
-  GetSubViewPtr(S, Frame);
-  if Frame = nil then {Cat}
-    Fail;
-  Title := S.ReadStr;
-end;
-
-destructor TWindow.Done;
-begin
-  if Number in [1..9] then Numbers := Numbers and not (1 shl Number);
-  inherited Done;
-  DisposeStr(Title);
-end;
-
-procedure TWindow.Close;
-begin
-  if Valid(cmClose) then Free;
-end;
-
-function TWindow.ReactOnCmd;
-begin
-  ReactOnCmd := False;
-end;
-
-function TWindow.GetPalette: PPalette;
-const
-  P: array[wpBlueWindow..wpGrayWindow] of string[Length(CBlueWindow)] =
-    (CBlueWindow, CCyanWindow, CGrayWindow);
-begin
-  GetPalette := @P[Palette];
-end;
-
-function TWindow.GetTitle(MaxSize: Integer): TTitleStr;
-begin
-  if Title <> nil
-  then if Length(Title^)>MaxSize
-        then GetTitle := Cut(Title^,MaxSize)
-        else GetTitle := Title^
-  else GetTitle := '';
-end;
-
-procedure TWindow.HandleEvent(var Event: TEvent);
-var
-  Limits: TRect;
-  Min, Max: TPoint;
-begin
-  TGroup.HandleEvent(Event);
-  if (Event.What = evCommand) then
-    case Event.Command of
-      cmResize:
-        if Flags and (wfMove + wfGrow) <> 0 then
+      { CN fix: we call FirstThat instead ForEach }
+      function DoHandleEvent(P: PView): boolean;
         begin
-          Owner^.GetExtent(Limits);
-         {Dec(Limits.A.Y, Limits.B.Y);} { X-Man }
-          SizeLimits(Min, Max);
-          DragView(Event, DragMode or (Flags and (wfMove + wfGrow)),
-            Limits, Min, Max);
-          ClearEvent(Event);
+          DoHandleEvent := False;
+          if (P = nil) or ((P^.State and sfDisabled <> 0) and
+            (Event.What and (PositionalEvents or FocusedEvents) <> 0))
+          then
+            exit;
+          case Phase of
+            phPreProcess:
+              if P^.Options and ofPreProcess = 0 then
+                exit;
+            phPostProcess:
+              if P^.Options and ofPostProcess = 0 then
+                exit;
+          end {case};
+          if (Event.What <> evMouseMove) and
+            (Event.What and P^.EventMask = 0)
+          then
+            exit;
+          P^.HandleEvent(Event);
+          DoHandleEvent := Event.What = evNothing;
+        end { DoHandleEvent };
+
+      function ContainsMouse(P: PView): boolean;
+        begin
+          ContainsMouse := (P^.State and sfVisible <> 0) and
+          P^.MouseInView(Event.Where);
         end;
-      cmClose:
-        if (Flags and wfClose <> 0) and
-          ((Event.InfoPtr = nil) or (Event.InfoPtr = @Self)) then
-        begin
-          ClearEvent(Event);
-          if State and sfModal = 0 then Close else
+
+      var
+        NV: PView;
+      begin { TGroup.HandleEvent }
+        if Event.What and EventMask = 0 then
+          exit; { Fixed 05.22.95 }
+        TView.HandleEvent(Event);
+        if Event.What and FocusedEvents <> 0 then
           begin
-            Event.What := evCommand;
-            Event.Command := cmCancel;
-            PutEvent(Event);
+            Phase := phPreProcess;
+            FirstThat(@DoHandleEvent);
+            if Event.What = evNothing then
+              exit;
+            Phase := phFocused;
+            DoHandleEvent(Current);
+            if Event.What = evNothing then
+              exit;
+            Phase := phPostProcess;
+            FirstThat(@DoHandleEvent);
+          end
+        else
+          begin
+            Phase := phFocused;
+            if (Event.What and PositionalEvents <> 0) then
+              DoHandleEvent(FirstThat(@ContainsMouse))
+            else
+              FirstThat(@DoHandleEvent);
+          end;
+      end { TGroup.HandleEvent };
+
+    function TGroup.IndexOf(P: PView): longInt;
+      var
+        Temp: PView;
+        Index: longInt;
+      begin
+        Index := 0;
+        if Last <> nil then
+          begin
+            Temp := Last;
+            repeat
+              Inc(Index);
+              Temp := Temp^.Next;
+            until (Temp = P) or (Temp = Last);
+            if Temp <> P then
+              Index := 0;
+          end;
+        IndexOf := Index;
+      end;
+
+    procedure TGroup.Insert(P: PView);
+      begin
+        InsertBefore(P, First);
+      end;
+
+    procedure TGroup.InsertBefore(P, Target: PView);
+      var
+        SaveState: word;
+      begin
+        if (P <> nil) and (P^.Owner = nil) and
+          ((Target = nil) or (Target^.Owner = @Self))
+        then
+          begin
+            if P^.Options and ofCenterX <> 0 then
+              P^.Origin.X := (Size.X-P^.Size.X) div 2;
+            if P^.Options and ofCenterY <> 0 then
+              P^.Origin.Y := (Size.Y-P^.Size.Y) div 2;
+            SaveState := P^.State;
+            P^.Hide;
+            InsertView(P, Target);
+            if SaveState and sfVisible <> 0 then
+              P^.Show;
+            if State and sfActive <> 0 then
+              P^.SetState(sfActive, True);
+          end;
+      end { TGroup.InsertBefore };
+
+    procedure TGroup.InsertView(P, Target: PView);
+      begin
+        P^.Owner := @Self;
+        if Target <> nil then
+          begin
+            Target := Target^.Prev;
+            P^.Next := Target^.Next;
+            Target^.Next := P;
+          end
+        else
+          begin
+            if Last = nil then
+              P^.Next := P
+            else
+              begin
+                P^.Next := Last^.Next;
+                Last^.Next := P;
+              end;
+            Last := P;
+          end;
+      end { TGroup.InsertView };
+
+    procedure TGroup.Lock;
+      begin
+        if (Buffer <> nil) or (LockFlag <> 0) then
+          Inc(LockFlag);
+      end;
+
+    procedure TGroup.PutSubViewPtr(var s: TStream; P: PView);
+      var
+        Index: word;
+      begin
+        if P = nil then
+          Index := 0
+        else
+          Index := IndexOf(P);
+        s.Write(Index, SizeOf(word));
+      end;
+
+    procedure TGroup.Redraw;
+      begin
+        DrawSubViews(First, nil);
+      end;
+
+    procedure TGroup.RemoveView(P: PView);
+      var
+        Cur: PView;
+      begin
+        if Last <> nil then
+          begin
+            Cur := Last;
+            while True do
+              begin
+                if P = Cur^.Next then
+                  begin
+                    Cur^.Next := P^.Next;
+                    if Last = P then
+                      begin
+                        if Cur^.Next = P then
+                          Last := nil
+                        else
+                          Last := Cur;
+                        break
+                      end;
+                  end;
+                if Cur^.Next = Last then
+                  break;
+                Cur := Cur^.Next;
+              end;
+          end
+      end { TGroup.RemoveView };
+
+    procedure TGroup.ResetCurrent;
+      begin
+        SetCurrent(FirstMatch(sfVisible, ofSelectable), NormalSelect);
+      end;
+
+    procedure TGroup.ResetCursor;
+      begin
+        if Current <> nil then
+          Current^.ResetCursor;
+      end;
+
+    procedure TGroup.SelectNext(Forwards: boolean);
+      var
+        P: PView;
+      begin
+        P := FindNext(Forwards);
+        if P <> nil then
+          P^.Select;
+      end;
+
+    procedure TGroup.SetCurrent(P: PView; Mode: SelectMode);
+
+      procedure SelectView(P: PView; Enable: boolean);
+        begin
+          if P <> nil then
+            P^.SetState(sfSelected, Enable);
+        end;
+
+      procedure FocusView(P: PView; Enable: boolean);
+        begin
+          if (State and sfFocused <> 0) and (P <> nil) then
+            P^.SetState(sfFocused, Enable);
+        end;
+
+      begin
+        if Current <> P then
+          begin
+            Lock;
+            FocusView(Current, False);
+            if Mode <> EnterSelect then
+              SelectView(Current, False);
+            if Mode <> LeaveSelect then
+              SelectView(P, True);
+            FocusView(P, True);
+            Current := P;
+            UnLock;
+          end;
+      end { TGroup.SetCurrent };
+
+    procedure TGroup.SetData(var Rec);
+      type
+        Bytes = array[0..65534] of byte;
+      var
+        i: word;
+        V: PView;
+      begin
+        i := 0;
+        if Last <> nil then
+          begin
+            V := Last;
+            repeat
+              V^.SetData(Bytes(Rec)[i]);
+              Inc(i, V^.DataSize);
+              V := V^.Prev;
+            until V = Last;
+          end;
+      end;
+
+    procedure TGroup.SetState(AState: word; Enable: boolean);
+
+      procedure DoSetState(P: PView);
+        begin
+          P^.SetState(AState, Enable);
+        end;
+
+      procedure DoExpose(P: PView);
+        begin
+          if P^.State and sfVisible <> 0 then
+            P^.SetState(sfExposed, Enable);
+        end;
+
+      begin
+        TView.SetState(AState, Enable);
+        case AState of
+          sfActive, sfDragging:
+            begin
+              Lock;
+              ForEach(@DoSetState);
+              UnLock;
+            end;
+          sfFocused:
+            if Current <> nil then
+              Current^.SetState(sfFocused, Enable);
+          sfExposed:
+            begin
+              ForEach(@DoExpose);
+              if not Enable then
+                FreeBuffer;
+            end;
+        end {case};
+      end { TGroup.SetState };
+
+    procedure TGroup.Store(var s: TStream);
+      var
+        Count: longInt;
+        OwnerSave: PGroup;
+
+      procedure DoPut(P: PView);
+        begin
+          s.Put(P);
+        end;
+
+      begin
+        TView.Store(s);
+        OwnerSave := OwnerGroup;
+        OwnerGroup := @Self;
+        Count := IndexOf(Last);
+        s.Write(Count, SizeOf(Count));
+        ForEach(@DoPut);
+        PutSubViewPtr(s, Current);
+        OwnerGroup := OwnerSave;
+      end;
+
+    procedure TGroup.UnLock;
+      begin
+        if LockFlag <> 0 then
+          begin
+            Dec(LockFlag);
+            if LockFlag = 0 then
+              DrawView;
+          end;
+      end;
+
+    function TGroup.Valid(Command: word): boolean;
+
+      function IsInvalid(P: PView): boolean;
+        begin
+          IsInvalid := not P^.Valid(Command);
+        end;
+
+      begin
+        Valid := True;
+        if Command = cmReleasedFocus then
+          begin
+            if (Current <> nil) and (Current^.Options and ofValidate <>
+                0)
+            then
+              Valid := Current^.Valid(Command);
+          end
+        else
+          Valid := FirstThat(@IsInvalid) = nil;
+      end;
+
+    { TWindow }
+
+    Constructor TWindow.Init(var Bounds: TRect; const ATitle:
+        TTitleStr;
+      ANumber: integer);
+      begin
+        TGroup.Init(Bounds);
+        State := State or sfShadow;
+        Options := Options or (ofSelectable+ofTopSelect);
+        GrowMode := gfGrowAll+gfGrowRel;
+        Flags := wfMove+wfGrow+wfClose+wfZoom;
+        Title := NewStr(ATitle);
+        if ANumber <> wnNoNumber then
+          Number := GetNum
+        else
+          Number := 0;
+        Palette := wpBlueWindow;
+        InitFrame;
+        if Frame <> nil then
+          Insert(Frame);
+        GetBounds(ZoomRect);
+        MaxiRect.A.X := High(MaxiRect.A.X);
+      end { TWindow.Init };
+
+    Constructor TWindow.Load(var s: TStream);
+      var
+        FrameIdent: AWord;
+      begin
+        TGroup.Load(s);
+        s.Read(Flags, SizeOf(byte)+SizeOf(TRect)*2+2*SizeOf(AInt));
+        if Number in [1..9] then
+          Numbers := Numbers or (1 shl Number);
+        GetSubViewPtr(s, Frame);
+        if Frame = nil then{Cat}
+          Fail;
+        Title := s.ReadStr;
+      end;
+
+    destructor TWindow.Done;
+      begin
+        if Number in [1..9] then
+          Numbers := Numbers and not (1 shl Number);
+        inherited Done;
+        DisposeStr(Title);
+      end;
+
+    procedure TWindow.Close;
+      begin
+        if Valid(cmClose) then
+          Free;
+      end;
+
+    function TWindow.ReactOnCmd;
+      begin
+        ReactOnCmd := False;
+      end;
+
+    function TWindow.GetPalette: PPalette;
+      const
+        P: array[wpBlueWindow..wpGrayWindow] of String[Length(
+          CBlueWindow)] =
+        (CBlueWindow, CCyanWindow, CGrayWindow);
+      begin
+        GetPalette := @P[Palette];
+      end;
+
+    function TWindow.GetTitle(MaxSize: integer): TTitleStr;
+      begin
+        if Title <> nil
+        then
+          if Length(Title^) > MaxSize
+          then
+            GetTitle := Cut(Title^, MaxSize)
+          else
+            GetTitle := Title^
+        else
+          GetTitle := '';
+      end;
+
+    procedure TWindow.HandleEvent(var Event: TEvent);
+      var
+        Limits: TRect;
+        Min, Max: TPoint;
+      begin
+        TGroup.HandleEvent(Event);
+        if (Event.What = evCommand) then
+          case Event.Command of
+            cmResize:
+              if Flags and (wfMove+wfGrow) <> 0 then
+                begin
+                  Owner^.GetExtent(Limits);
+                  {Dec(Limits.A.Y, Limits.B.Y);} { X-Man }
+                  SizeLimits(Min, Max);
+                  DragView(Event, DragMode or (Flags and (wfMove+
+                    wfGrow)),
+                  Limits, Min, Max);
+                  ClearEvent(Event);
+                end;
+            cmClose:
+              if (Flags and wfClose <> 0) and
+                ((Event.InfoPtr = nil) or (Event.InfoPtr = @Self))
+              then
+                begin
+                  ClearEvent(Event);
+                  if State and sfModal = 0 then
+                    Close
+                  else
+                    begin
+                      Event.What := evCommand;
+                      Event.Command := cmCancel;
+                      PutEvent(Event);
+                      ClearEvent(Event);
+                    end;
+                end;
+            cmZoom:
+              if (Flags and wfZoom <> 0) and
+                ((Event.InfoPtr = nil) or (Event.InfoPtr = @Self))
+              then
+                begin
+                  Zoom;
+                  ClearEvent(Event);
+                end;
+            cmMaxi:
+              if (Flags and wfMaxi <> 0) and
+                ((Event.InfoPtr = nil) or (Event.InfoPtr = @Self))
+              then
+                begin
+                  Maxi;
+                  ClearEvent(Event);
+                end;
+          end
+        else if Event.What = evKeyDown then
+          case Event.KeyCode of
+            kbTab:
+              begin
+                FocusNext(False);
+                ClearEvent(Event);
+              end;
+            kbShiftTab:
+              begin
+                FocusNext(True);
+                ClearEvent(Event);
+              end;
+          end
+        else if (Event.What = evBroadcast) and (Event.Command =
+            cmSelectWindowNum)
+          and (Event.InfoInt = Number) and (Options and ofSelectable <>
+            0)
+        then
+          begin
+            Select;
             ClearEvent(Event);
           end;
-        end;
-      cmZoom:
-        if (Flags and wfZoom <> 0) and
-          ((Event.InfoPtr = nil) or (Event.InfoPtr = @Self)) then
+      end { TWindow.HandleEvent };
+
+    procedure TWindow.InitFrame;
+      var
+        R: TRect;
+      begin
+        GetExtent(R);
+        Frame := New(PFrame, Init(R));
+      end;
+
+    procedure TWindow.SetState(AState: word; Enable: boolean);
+      var
+        WindowCommands: TCommandSet;
+      begin
+        if (AState and sfActive <> 0) and ReactOnCmd and
+          (InterfaceData.Options and (ouiAutoCmdLine+ouiHideCmdline) =
+            ouiAutoCmdLine)
+        then
+          ToggleCommandLine(not Enable);
+        TGroup.SetState(AState, Enable);
+        if AState = sfSelected then
+          begin
+            SetState(sfActive, Enable);
+            if GetState(sfActive) then
+              if Title <> nil then
+                SetTitle(GetTitle(255));
+            WindowCommands := [cmNext, cmPrev, cmNext2, cmPrev2,
+              cmNext3, cmPrev3,
+            cmTile, cmCascade, cmClearDesktop, cmWindowManager];
+            if Flags and wfGrow+wfMove <> 0 then
+              WindowCommands := WindowCommands+[cmResize];
+            if Flags and wfClose <> 0 then
+              WindowCommands := WindowCommands+[cmClose];
+            if Flags and wfZoom <> 0 then
+              WindowCommands := WindowCommands+[cmZoom];
+            if Flags and wfMaxi <> 0 then
+              WindowCommands := WindowCommands+[cmMaxi];
+            if Enable then
+              EnableCommands(WindowCommands)
+            else
+              DisableCommands(WindowCommands);
+          end;
+      end { TWindow.SetState };
+
+    function TWindow.StandardScrollBar(AOptions: word): PScrollBar;
+      var
+        R: TRect;
+        s: PScrollBar;
+      begin
+        GetExtent(R);
+        if AOptions and sbVertical = 0 then
+          R.Assign(R.A.X+2, R.B.Y-1, R.B.X-2, R.B.Y)
+        else
+          R.Assign(R.B.X-1, R.A.Y+1, R.B.X, R.B.Y-1);
+        s := New(PScrollBar, Init(R));
+        Insert(s);
+        if AOptions and sbHandleKeyboard <> 0 then
+          s^.Options := s^.Options or ofPostProcess;
+        StandardScrollBar := s;
+      end;
+
+    procedure TWindow.SizeLimits(var Min, Max: TPoint);
+      begin
+        TView.SizeLimits(Min, Max);
+        Min.X := MinWinSize.X;
+        Min.Y := MinWinSize.Y;
+      end;
+
+    procedure TWindow.Store(var s: TStream);
+      begin
+        TGroup.Store(s);
+        s.Write(Flags, SizeOf(byte)+SizeOf(TRect)*2+2*SizeOf(AInt));
+        PutSubViewPtr(s, Frame);
+        s.WriteStr(Title);
+      end;
+
+    procedure TWindow.Zoom;
+      var
+        R: TRect;
+        Max, Min: TPoint;
+      begin
+        SizeLimits(Min, Max);
+        if MaxiRect.A.X < High(MaxiRect.A.X) then
+          Locate(MaxiRect)
+        else if not Size.Equals(Max) then
+          begin
+            GetBounds(ZoomRect);
+            R.A.Assign(0, 0);
+            R.B := Max;
+            Locate(R);
+          end
+        else
+          Locate(ZoomRect);
+        MaxiRect.A.X := High(MaxiRect.A.X);
+      end;
+
+    procedure TWindow.Maxi;
+      var
+        R: TRect;
+        Max, Min: TPoint;
+      begin
+        if MaxiRect.A.X < High(MaxiRect.A.X) then
+          begin
+            Locate(MaxiRect);
+            MaxiRect.A.X := High(MaxiRect.A.X);
+          end
+        else
+          begin
+            GetBounds(MaxiRect);
+            SizeLimits(Min, Max);
+            R.A.Assign(0, 0);
+            R.B := Max;
+            Dec(R.A.X);
+            Inc(R.B.X);
+            Locate(R);
+          end;
+      end { TWindow.Maxi };
+
+    procedure TWindow.Draw;
+      begin
+        if GetState(sfActive) then
+          if Title <> nil then
+            SetTitle(GetTitle(255));
+        inherited Draw;
+      end;
+
+    { Message dispatch function }
+
+    function Message(Receiver: PView; What, Command: word; InfoPtr:
+        Pointer): Pointer;
+      var
+        Event: TEvent;
+      begin
+        Message := nil;
+        if Receiver <> nil then
+          begin
+            Event.What := What;
+            Event.Command := Command;
+            Event.InfoPtr := InfoPtr;
+            Receiver^.HandleEvent(Event);
+            if Event.What = evNothing then
+              Message := Event.InfoPtr;
+          end;
+      end;
+
+    function MessageL(Receiver: PView; What, Command: word; InfoLng:
+        longInt): Pointer;
+      var
+        Event: TEvent;
+      begin
+        MessageL := nil;
+        if Receiver <> nil then
+          begin
+            Event.What := What;
+            Event.Command := Command;
+            Event.InfoLong := InfoLng;
+            Receiver^.HandleEvent(Event);
+            if Event.What = evNothing then
+              MessageL := Event.InfoPtr;
+          end;
+      end;
+
+    { Background work }
+
+    procedure TView.UpDate;
+      begin
+      end;
+
+    procedure RegisterToPrior(P: PView);
+      begin
+        if P = nil then
+          exit;
+        if UpdatePrior = nil then
+          New(UpdatePrior, Init(10, 10));
+        UpdatePrior^.AtInsert(0, P);
+      end;
+
+    procedure RegisterToBackground(P: PView);
+      begin
+        if P = nil then
+          exit;
+        if UpdateViews = nil then
+          New(UpdateViews, Init(10, 10));
+        UpdateViews^.AtInsert(0, P);
+      end;
+
+    procedure Deregister(P: PView);
+      var
+        i: longInt;
+      begin
+        if UpdateViews <> nil then
+          with UpdateViews^ do
+            begin
+              i := 0;
+              while i < Count do
+                if P = At(i)
+                then
+                  AtDelete(i)
+                else
+                  Inc(i);
+              if Count = 0 then
+                begin
+                  Dispose(UpdateViews, Done);
+                  UpdateViews := nil;
+                end;
+            end;
+        if UpdatePrior <> nil then
+          with UpdatePrior^ do
+            begin
+              i := 0;
+              while i < Count do
+                if P = At(i)
+                then
+                  AtDelete(i)
+                else
+                  Inc(i);
+              if Count = 0 then
+                begin
+                  Dispose(UpdatePrior, Done);
+                  UpdatePrior := nil;
+                end;
+            end;
+      end { Deregister };
+
+    procedure UpdateAll;
+      procedure DoUpdate(P: PView);
         begin
-          Zoom;
-          ClearEvent(Event);
+          if (P <> nil) and ((P^.UpdTicks = 0) or TimerExpired(P^.
+              UpTmr))
+          then
+            begin
+              P^.UpDate;
+              NewTimer(P^.UpTmr, P^.UpdTicks);
+            end;
         end;
-      cmMaxi:
-        if (Flags and wfMaxi <> 0) and
-          ((Event.InfoPtr = nil) or (Event.InfoPtr = @Self)) then
-        begin
-          Maxi;
-          ClearEvent(Event);
-        end;
-    end
-  else if Event.What = evKeyDown then
-    case Event.KeyCode of
-      kbTab:
-        begin
-          FocusNext(False);
-          ClearEvent(Event);
-        end;
-      kbShiftTab:
-        begin
-          FocusNext(True);
-          ClearEvent(Event);
-        end;
-    end
-  else if (Event.What = evBroadcast) and (Event.Command = cmSelectWindowNum)
-         and (Event.InfoInt = Number) and (Options and ofSelectable <> 0) then
-  begin
-    Select;
-    ClearEvent(Event);
-  end;
-end;
-
-procedure TWindow.InitFrame;
-var
-  R: TRect;
-begin
-  GetExtent(R);
-  Frame := New(PFrame, Init(R));
-end;
-
-procedure TWindow.SetState(AState: Word; Enable: Boolean);
-var
-  WindowCommands: TCommandSet;
-begin
-  if (AState and sfActive <> 0) and ReactOnCmd and
-     (InterfaceData.Options and (ouiAutoCmdLine+ouiHideCmdLine) = ouiAutoCmdLine) then
-     ToggleCommandLine(not Enable);
-  TGroup.SetState(AState, Enable);
-  if AState = sfSelected then
-  begin
-    SetState(sfActive, Enable);
-    if GetState(sfActive) then if Title<>nil then SetTitle(GetTitle(255));
-    WindowCommands := [cmNext, cmPrev, cmNext2, cmPrev2, cmNext3, cmPrev3,
-                       cmTile, cmCascade, cmClearDesktop, cmWindowManager];
-    if Flags and wfGrow + wfMove <> 0 then
-      WindowCommands := WindowCommands + [cmResize];
-    if Flags and wfClose <> 0 then
-      WindowCommands := WindowCommands + [cmClose];
-    if Flags and wfZoom <> 0 then
-      WindowCommands := WindowCommands + [cmZoom];
-    if Flags and wfMaxi <> 0 then
-      WindowCommands := WindowCommands + [cmMaxi];
-    if Enable then EnableCommands(WindowCommands)
-    else DisableCommands(WindowCommands);
-  end;
-end;
-
-function TWindow.StandardScrollBar(AOptions: Word): PScrollBar;
-var
-  R: TRect;
-  S: PScrollBar;
-begin
-  GetExtent(R);
-  if AOptions and sbVertical = 0 then
-    R.Assign(R.A.X + 2, R.B.Y-1, R.B.X-2, R.B.Y) else
-    R.Assign(R.B.X-1,R.A.Y+1,R.B.X,R.B.Y-1);
-  S := New(PScrollBar, Init(R));
-  Insert(S);
-  if AOptions and sbHandleKeyboard <> 0 then
-    S^.Options := S^.Options or ofPostProcess;
-  StandardScrollBar := S;
-end;
-
-procedure TWindow.SizeLimits(var Min, Max: TPoint);
-begin
-  TView.SizeLimits(Min, Max);
-  Min.X := MinWinSize.X;
-  Min.Y := MinWinSize.Y;
-end;
-
-procedure TWindow.Store(var S: TStream);
-begin
-  TGroup.Store(S);
-  S.Write(Flags, SizeOf(Byte) + SizeOf(TRect)*2 + 2 * SizeOf(AInt));
-  PutSubViewPtr(S, Frame);
-  S.WriteStr(Title);
-end;
-
-procedure TWindow.Zoom;
-var
-  R: TRect;
-  Max, Min: TPoint;
-begin
-  SizeLimits(Min, Max);
-  if MaxiRect.A.X<High(MaxiRect.A.X) then Locate(MaxiRect)
-  else if not Size.Equals(Max) then begin
-        GetBounds(ZoomRect);
-        R.A.Assign(0,0);
-        R.B := Max;
-        Locate(R);
-       end else Locate(ZoomRect);
-  MaxiRect.A.X:=High(MaxiRect.A.X);
-end;
-
-procedure TWindow.Maxi;
-var
-  R: TRect;
-  Max, Min: TPoint;
-begin
-  if MaxiRect.A.X<High(MaxiRect.A.X) then begin
-   Locate(MaxiRect);
-   MaxiRect.A.X:=High(MaxiRect.A.X);
-  end else begin
-   GetBounds(MaxiRect);
-   SizeLimits(Min, Max);
-   R.A.Assign(0,0);
-   R.B := Max;
-   Dec(R.A.X); Inc(R.B.X);
-   Locate(R);
-  end;
-end;
-
-procedure TWindow.Draw;
-begin
- if GetState(sfActive) then if Title<>nil then SetTitle(GetTitle(255));
- inherited Draw;
-end;
-
-{ Message dispatch function }
-
-function Message(Receiver: PView; What, Command: Word; InfoPtr: Pointer): Pointer;
-var
-  Event: TEvent;
-begin
-  Message := nil;
-  if Receiver <> nil then
-  begin
-    Event.What := What;
-    Event.Command := Command;
-    Event.InfoPtr := InfoPtr;
-    Receiver^.HandleEvent(Event);
-    if Event.What = evNothing then Message := Event.InfoPtr;
-  end;
-end;
-
-function MessageL(Receiver: PView; What, Command: Word; InfoLng: LongInt): Pointer;
-var
-  Event: TEvent;
-begin
-  MessageL := nil;
-  if Receiver <> nil then
-  begin
-    Event.What := What;
-    Event.Command := Command;
-    Event.InfoLong := InfoLng;
-    Receiver^.HandleEvent(Event);
-    if Event.What = evNothing then MessageL := Event.InfoPtr;
-  end;
-end;
-
-{ Background work }
-
-procedure TView.Update;
-begin
-end;
-
-procedure RegisterToPrior(P: PView);
-begin
-  if P = nil then Exit;
-  if UpdatePrior = nil then New(UpdatePrior, Init(10,10));
-  UpdatePrior^.AtInsert(0, P);
-end;
-
-procedure RegisterToBackground(P: PView);
-begin
-  if P = nil then Exit;
-  if UpdateViews = nil then New(UpdateViews, Init(10,10));
-  UpdateViews^.AtInsert(0, P);
-end;
-
-procedure Deregister(P: PView);
-  var I: LongInt;
-begin
-  if UpdateViews <> nil then with UpdateViews^ do begin
-    I := 0;
-    while I < Count do
-     if P = At(I)
-      then AtDelete(I)
-      else Inc(I);
-    If Count = 0 then begin
-     Dispose(UpdateViews, Done);
-     UpdateViews := nil;
-    end;
-  end;
-  if UpdatePrior <> nil then with UpdatePrior^ do begin
-    I := 0;
-    while I < Count do
-     if P = At(I)
-      then AtDelete(I)
-      else Inc(I);
-    If Count = 0 then begin
-     Dispose(UpdatePrior, Done);
-     UpdatePrior := nil;
-    end;
-  end;
-end;
-
-procedure UpdateAll;
-  procedure DoUpdate(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-  begin
-   if (P <> nil) and ((P^.UpdTicks=0) or TimerExpired(P^.UpTmr))
-    then begin
-     P^.Update;
-     NewTimer(P^.UpTmr, P^.UpdTicks);
-    end;
-  end;
-begin
-  if UpdateViews <> nil then UpdateViews^.ForEach(@DoUpdate);
-  if All and (UpdatePrior <> nil) and (UpdatePrior^.Count > 0) then
-     DoUpdate(UpdatePrior^.At(0));
-end;
+      begin
+        if UpdateViews <> nil then
+          UpdateViews^.ForEach(@DoUpdate);
+        if All and (UpdatePrior <> nil) and (UpdatePrior^.Count > 0)
+        then
+          DoUpdate(UpdatePrior^.At(0));
+      end;
 
 end.

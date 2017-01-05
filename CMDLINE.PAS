@@ -53,29 +53,29 @@ interface
 
 uses
   Lfn, CCalc, XDblWnd, UserMenu, Menus,
-  {$IFDEF TrashCan} Gauges, {$ENDIF} Drivers, Objects, Views;
+  {$IFDEF TrashCan}Gauges, {$ENDIF}Drivers, Objects, Views;
 
-Type
-     PCommandLine = ^TCommandLine;
-     TCommandLine = object(TView)
-      Dir: String;
-      DeltaX, CurX: LongInt;
-      Overwrite: Boolean;
-      LineType: (ltNormal, ltOS2Fullscreen, ltOS2Window, ltTimer);
-      constructor Init(R: TRect);
-      procedure Draw; virtual;
-      procedure HandleEvent(var Event: TEvent); virtual;
-      procedure SetState(AState: Word; Enable: Boolean); virtual;
-      procedure Update; virtual;
-      procedure GetDir;
-      procedure GetData(var S); virtual;
-      procedure SetData(var S); virtual;
-      function DataSize: Word; virtual;
-      procedure SetDirShape;
-      procedure QueryCursorVisible; {AK155}
-     end;
+type
+  PCommandLine = ^TCommandLine;
+  TCommandLine = object(TView)
+    Dir: String;
+    DeltaX, CurX: longInt;
+    Overwrite: boolean;
+    LineType: (ltNormal, ltOS2FullScreen, ltOS2Window, ltTimer);
+    Constructor Init(R: TRect);
+    procedure Draw; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure UpDate; virtual;
+    procedure GetDir;
+    procedure GetData(var s); virtual;
+    procedure SetData(var s); virtual;
+    function DataSize: word; virtual;
+    procedure SetDirShape;
+    procedure QueryCursorVisible; {AK155}
+    end;
 
-(*
+  (*
      PCmdLine = ^TCmdLine;
      TCmdLine = object(TView)
       procedure Draw; virtual;
@@ -87,366 +87,448 @@ Type
      end;
 *)
 
-
-const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' ','@','"'];
-      StrModified: Boolean = False;
-      DDTimer: LongInt = 0;
-      TimerMark: Boolean = False;
-      CurString: LongInt = 0;
-      CmdDisabled: Boolean = False;
-{     CanProcess:  Boolean = True;}
-      HideCommandLine: Boolean = False;
-      Str: String = '';
-      StrCleared: boolean = False;
-
+const
+  Separators = [':', '.', ',', '/', '\', '[', ']', '+', '>', '<',
+    '|', ';', ' ', '@', '"'];
+  StrModified: boolean = False;
+  DDTimer: longInt = 0;
+  TimerMark: boolean = False;
+  CurString: longInt = 0;
+  CmdDisabled: boolean = False;
+  {     CanProcess:  Boolean = True;}
+  HideCommandLine: boolean = False;
+  Str: String = '';
+  StrCleared: boolean = False;
 
 implementation
- uses Dos, Commands, DNApp, Dialogs, advance, advance1, advance2,
-      advance3, Startup, RStrings, xTime, Messages
-      , MicroEd, Histries, FViewer, flpanelx
-{$IFDEF SS} ,Idlers{$ENDIF}
-{$IFDEF VIRTUALPASCAL}, VpSysLow{$ENDIF}
-      , DNIni
-      ;
+uses
+  Dos, Commands, DNApp, Dialogs, advance, advance1, advance2,
+  advance3, Startup, RStrings, xTime, Messages
+  , Microed, Histries, FViewer, FlPanelX
+  {$IFDEF SS}, Idlers {$ENDIF}
+  , VpSysLow
+  , DnIni
+  ;
 
 const
-      CursorMustBeVisible: boolean = false;
-      PrevCmdLineCursorVisible: boolean = false;
+  CursorMustBeVisible: boolean = False;
+  PrevCmdLineCursorVisible: boolean = False;
 
-constructor TCommandLine.Init;
-begin
- inherited Init(R);
- EventMask := $FFFF;
- Options := Options {or ofSelectable}  or ofPostProcess
-                    or ofFirstClick {or ofTopSelect};
- DragMode := dmDragMove;
- GetDir; Str := ''; DeltaX := 0; CurX := 0;
- GrowMode := gfGrowLoY + gfGrowHiX + gfGrowHiY;
- Overwrite := False;
- LineType := ltNormal;
-end;
+Constructor TCommandLine.Init;
+  begin
+    inherited Init(R);
+    EventMask := $FFFF;
+    Options := Options {or ofSelectable} or ofPostProcess
+    or ofFirstClick {or ofTopSelect};
+    DragMode := dmDragMove;
+    GetDir;
+    Str := '';
+    DeltaX := 0;
+    CurX := 0;
+    GrowMode := gfGrowLoY+gfGrowHiX+gfGrowHiY;
+    Overwrite := False;
+    LineType := ltNormal;
+  end;
 
-function TCommandLine.DataSize; begin DataSize := sizeof(String) end;
+function TCommandLine.DataSize;
+  begin
+    DataSize := SizeOf(String)
+  end;
 
-procedure TCommandLine.GetData; begin String(S) := Str; end;
-procedure TCommandLine.SetData; begin Str := String(S); DeltaX := 0; CurX := 0 end;
+procedure TCommandLine.GetData;
+  begin
+    String(s) := Str;
+  end;
+procedure TCommandLine.SetData;
+  begin
+    Str := String(s);
+    DeltaX := 0;
+    CurX := 0
+  end;
 
 procedure TCommandLine.GetDir;
-var MM: record
-         case byte of
-          1: (L: LongInt; S: String[1]);
-          2: (C: Char);
-        end;
-     D: PDialog;
-begin
- Inc(SkyEnabled);
- repeat
-  Abort := false; NeedAbort := true;
-  lGetDir(0, Dir); {DataCompBoy}
-  if Abort then
-   begin
+  var
+    MM: record
+      case byte of
+        1: (l: longInt; s: String[1]);
+        2: (C: Char);
+    end;
+  D: PDialog;
+  begin
+    Inc(SkyEnabled);
     repeat
-      MM.L := 0; MM.C := GetCurDrive; MM.S := MM.C;
-      D := PDialog(LoadResource(dlgDiskError));
-      if D <> nil then
-       begin
-        D^.SetData(MM);
-        Application^.ExecView(D);
-        D^.GetData(MM);
-        Dispose(D,Done);
-       end;
-      UpShortStr(MM.S);
-      if ValidDrive(MM.S[1]) then
-       begin SetCurDrive(MM.S[1]); Break; end;
-    until False;
-    Abort := true;
-   end;
- until not Abort;
- Dec(SkyEnabled);
- NeedAbort := false;
- if (Length(Dir) > 3) and (Dir[Length(Dir)] = '\') then SetLength(Dir, Length(Dir)-1);
- ActiveDir := Dir;
- SetDirShape;
-end;
+      Abort := False;
+      NeedAbort := True;
+      lGetDir(0, Dir); {DataCompBoy}
+      if Abort then
+        begin
+          repeat
+            MM.l := 0;
+            MM.C := GetCurDrive;
+            MM.s := MM.C;
+            D := PDialog(LoadResource(dlgDiskError));
+            if D <> nil then
+              begin
+                D^.SetData(MM);
+                Application^.ExecView(D);
+                D^.GetData(MM);
+                Dispose(D, Done);
+              end;
+            UpShortStr(MM.s);
+            if ValidDrive(MM.s[1]) then
+              begin
+                SetCurDrive(MM.s[1]);
+                break;
+              end;
+          until False;
+          Abort := True;
+        end;
+    until not Abort;
+    Dec(SkyEnabled);
+    NeedAbort := False;
+    if (Length(Dir) > 3) and (Dir[Length(Dir)] = '\') then
+      SetLength(Dir, Length(Dir)-1);
+    ActiveDir := Dir;
+    SetDirShape;
+  end { TCommandLine.GetDir };
 
 procedure TCommandLine.SetDirShape;
-begin
-  TimerMark := LineType = ltTimer;
-  if Dir[1] in ['[','(','{'] then Dir := Copy(Dir,2,Length(Dir)-2)
-                             else If Dir[Length(Dir)]='>' then SetLength(Dir, Length(Dir)-1);
-  Case LineType of
-    ltOS2FullScreen: Dir := '[' + Dir + ']';
-    ltOS2Window: Dir := '(' + Dir + ')';
-    ltTimer: Dir := '{' + Dir + '}';
-    else Dir := Dir + '>';
+  begin
+    TimerMark := LineType = ltTimer;
+    if Dir[1] in ['[', '(', '{'] then
+      Dir := Copy(Dir, 2, Length(Dir)-2)
+    else if Dir[Length(Dir)] = '>' then
+      SetLength(Dir, Length(Dir)-1);
+    case LineType of
+      ltOS2FullScreen:
+        Dir := '['+Dir+']';
+      ltOS2Window:
+        Dir := '('+Dir+')';
+      ltTimer:
+        Dir := '{'+Dir+'}';
+      else
+        Dir := Dir+'>';
+    end {case};
   end;
-end;
 
 procedure TCommandLine.QueryCursorVisible; {AK155}
-begin
-CursorMustBeVisible :=
-         (State and sfDisabled = 0) and not QuickSearch and
-         ((DeskTop^.Current=nil)
-          or (TypeOf((DeskTop^.Current^))=TypeOf(TXDoubleWindow))
-          or (TypeOf((DeskTop^.Current^))=TypeOf(TUserWindow))
-{$IFDEF TrashCan}or (TypeOf((DeskTop^.Current^))=TypeOf(TTrashCan)){$ENDIF}
-         );
-end;
+  begin
+    CursorMustBeVisible :=
+    (State and sfDisabled = 0) and not QuickSearch and
+    ((Desktop^.Current = nil)
+    or (TypeOf((Desktop^.Current^)) = TypeOf(TXDoubleWindow))
+    or (TypeOf((Desktop^.Current^)) = TypeOf(TUserWindow))
+    {$IFDEF TrashCan} or (TypeOf((Desktop^.Current^)) = TypeOf(
+      TTrashCan)) {$ENDIF}
+    );
+  end;
 
-procedure TCommandLine.Update;
- var P: TPoint;
-     A1,A2: {$IFNDEF VIRTUALPASCAL}Integer{$ELSE}SmallWord{$ENDIF};
-//     BB: Boolean;
+procedure TCommandLine.UpDate;
+  var
+    P: TPoint;
+    A1, A2: SmallWord;
+    //     BB: Boolean;
     CursorStartScanLine, CursorEndScanLine: integer; //ak155
-    CursorVisible: boolean;//ak155
+    CursorVisible: boolean; //ak155
     CursorMaxY, CursorMinY: integer;
- const
-   OldOverwrite: longint = 2;
-begin
- QueryCursorVisible;
- if (CursorMustBeVisible <> PrevCmdLineCursorVisible)
-     { есть повод для работы }
-   and (State and (sfDisabled or sfVisible) <> sfVisible)
-     { но не надо гасить чужой курсор }
- then
-   ResetCursor;
- PrevCmdLineCursorVisible := CursorMustBeVisible;
- if not CursorMustBeVisible then
-   exit;
+  const
+    OldOverwrite: longInt = 2;
+  begin
+    QueryCursorVisible;
+    if (CursorMustBeVisible <> PrevCmdLineCursorVisible)
+      { есть повод для работы }
+      and (State and (sfDisabled or sfVisible) <> sfVisible)
+      { но не надо гасить чужой курсор }
+    then
+      ResetCursor;
+    PrevCmdLineCursorVisible := CursorMustBeVisible;
+    if not CursorMustBeVisible then
+      exit;
 
-{ А теперь делаем, чтобы курсор действиельно имел нужный вид }
-  {$IFNDEF VIRTUALPASCAL}
-  asm
-   mov ah,3
-   xor bx,bx
-   int 10h
-   mov A1, dx
-   mov A2, cx
-  end;
-  {$ELSE}
-  SysGetCurPos(A1, A2);
-  SysTVGetCurType(CursorStartScanLine, CursorEndScanLine, CursorVisible);
-  {$ENDIF}
-  if
-{$IFDEF SS} (SSaver <> nil) or {$ENDIF}
-    (Size.X = 0) or (Size.Y = 0) or
-    (Desktop^.GetState(sfActive) and
-    (Desktop^.Current <> nil) and
-    (Desktop^.Current^.GetState(sfCursorVis) or
-     Desktop^.Current^.GetState(sfModal))) or
-    MenuActive
-      then Exit;
-  P.X := CurX + Min(Length(Dir), 50) - DeltaX;
-  P.Y := 0;
-  MakeGlobal(P, P);
-//AK155  BB := not Overwrite  xor (InterfaceData.Options and ouiBlockInsertCursor <> 0);
-  {$IFNDEF VIRTUALPASCAL}
-  asm
-        MOV     CX,CursorLines
-        LES     DI,Self
-        CMP     BB, 0
-        JNE     @@1
-        MOV     CH,0
-        OR      CL,CL
-        JNE     @@1
-        MOV     CL,7
-@@1:    MOV     AH,1
-        INT     10H
-        MOV     AH, 2
-        XOR     BX, BX
-        MOV     DL, BYTE PTR P.X
-        MOV     DH, BYTE PTR P.Y
-        INT     10H
-  end;
-  {$ELSE}
-{AK155 вызовы программ установки режимов курсора безобидны под OS/2,
+    { А теперь делаем, чтобы курсор действиельно имел нужный вид }
+    SysGetCurPos(A1, A2);
+    SysTVGetCurType(CursorStartScanLine, CursorEndScanLine,
+      CursorVisible);
+    if
+      {$IFDEF SS}(SSaver <> nil) or {$ENDIF}
+      (Size.X = 0) or (Size.Y = 0) or
+      (Desktop^.GetState(sfActive) and
+      (Desktop^.Current <> nil) and
+      (Desktop^.Current^.GetState(sfCursorVis) or
+      Desktop^.Current^.GetState(sfModal))) or
+      MenuActive
+    then
+      exit;
+    P.X := CurX+Min(Length(Dir), 50)-DeltaX;
+    P.Y := 0;
+    MakeGlobal(P, P);
+    //AK155  BB := not Overwrite  xor (InterfaceData.Options and ouiBlockInsertCursor <> 0);
+    {AK155 вызовы программ установки режимов курсора безобидны под OS/2,
 но под Win32 приводят к мерзкому миганию курсора. Поэтому я попытался
 не вызывать их без надобности. 18.10.2001 }
-if (OldOverwrite <> ord(Overwrite)) or  not CursorVisible
-then
-   begin
-   CursorMaxY := Lo(Drivers.CursorLines);
-   CursorMinY := 0;
-   if not Overwrite then
-     CursorMinY := CursorMaxY-1;
-   SysTVSetCurType(CursorMinY, CursorMaxY, true);
-   OldOverwrite := ord(Overwrite);
-   end;
-if (A1 <> P.X) or (A2 <> Origin.Y) then
-  SysTVSetCurPos(P.X, Origin.Y);
-{/AK155}
-  {$ENDIF}
-end;
+    if (OldOverwrite <> Ord(Overwrite)) or not CursorVisible
+    then
+      begin
+        CursorMaxY := Lo(Drivers.CursorLines);
+        CursorMinY := 0;
+        if not Overwrite then
+          CursorMinY := CursorMaxY-1;
+        SysTVSetCurType(CursorMinY, CursorMaxY, True);
+        OldOverwrite := Ord(Overwrite);
+      end;
+    if (A1 <> P.X) or (A2 <> Origin.Y) then
+      SysTVSetCurPos(P.X, Origin.Y);
+    {/AK155}
+  end { TCommandLine.UpDate };
 
 procedure TCommandLine.SetState;
-begin
- TView.SetState(AState, Enable);
- if AState and (sfActive or sfFocused) <> 0 then
   begin
-   DrawView;
-   if Enable then EnableCommands([cmNext, cmPrev]) else DisableCommands([cmNext, cmPrev])
-  end
-end;
+    TView.SetState(AState, Enable);
+    if AState and (sfActive or sfFocused) <> 0 then
+      begin
+        DrawView;
+        if Enable then
+          EnableCommands([cmNext, cmPrev])
+        else
+          DisableCommands([cmNext, cmPrev])
+      end
+  end;
 
 procedure TCommandLine.Draw;
- var B: Array[0..200] of record C: Char; A: Byte; end;
-     C1, C2, C3: Word; S:^Str50;
-begin
- if CmdDisabled then Exit;
- New(S); S^ := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Cut(Copy(Dir, 1, Length(Dir)-1),49)+Dir[Length(Dir)]);
- C3 := $0F;
- C1 := $07; if Overwrite then C2 := $4F else C2 := $70;
- if CurX < 0 then CurX := 0;
- if CurX > Length(Str) then CurX := Length(Str);
- DeltaX := Max(Length(Str)-(Size.X-Length(S^)-1), 0);
- If DeltaX > CurX then DeltaX := CurX;
- if CurX - DeltaX > Size.X - Min(Length(Dir), 50) - 1 then
-    DeltaX := CurX - Size.X + Min(Length(Dir), 50) + 1;
- MoveChar(B, ' ', C1, Size.X);
- MoveStr(B, S^, C3);
- MoveStr(B[Length(S^)], Copy(Str, DeltaX + 1, Size.X - Length(S^)), C1);
- if not MenuActive then ShowCursor else HideCursor;
- if Overwrite xor (InterfaceData.Options and ouiBlockInsertCursor <> 0) then BlockCursor
-                                                                        else NormalCursor;
- Update;
- WriteLine(0, 0, Size.X, Size.Y, B);
- Dispose(S)
-end;
+  var
+    B: array[0..200] of record
+      C: Char;
+      A: byte;
+      end;
+    C1, C2, C3: word;
+    s: ^Str50;
+  begin
+    if CmdDisabled then
+      exit;
+    New(s);
+    s^:= {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(Cut(Copy(Dir, 1,
+      Length(Dir)-1), 49)+Dir[Length(Dir)]);
+    C3 := $0F;
+    C1 := $07;
+    if Overwrite then
+      C2 := $4F
+    else
+      C2 := $70;
+    if CurX < 0 then
+      CurX := 0;
+    if CurX > Length(Str) then
+      CurX := Length(Str);
+    DeltaX := Max(Length(Str)-(Size.X-Length(s^)-1), 0);
+    if DeltaX > CurX then
+      DeltaX := CurX;
+    if CurX-DeltaX > Size.X-Min(Length(Dir), 50)-1 then
+      DeltaX := CurX-Size.X+Min(Length(Dir), 50)+1;
+    MoveChar(B, ' ', C1, Size.X);
+    MoveStr(B, s^, C3);
+    MoveStr(B[Length(s^)], Copy(Str, DeltaX+1, Size.X-Length(s^)), C1);
+    if not MenuActive then
+      ShowCursor
+    else
+      HideCursor;
+    if Overwrite xor (InterfaceData.Options and ouiBlockInsertCursor <>
+        0)
+    then
+      BlockCursor
+    else
+      NormalCursor;
+    UpDate;
+    WriteLine(0, 0, Size.X, Size.Y, B);
+    Dispose(s)
+  end { TCommandLine.Draw };
 
 procedure TCommandLine.HandleEvent;
- procedure CE; begin ClearEvent(Event) end;
- procedure CE2; begin DrawView; ClearEvent(Event) end;
+  procedure CE;
+    begin
+      ClearEvent(Event)
+    end;
+  procedure CE2;
+    begin
+      DrawView;
+      ClearEvent(Event)
+    end;
 
- procedure CheckSize;
- begin
-   if not GetState(sfVisible) and (Str <> '') then
-      begin
-        ToggleCommandLine(true);
-      end;
- end;
+  procedure CheckSize;
+    begin
+      if not GetState(sfVisible) and (Str <> '') then
+        begin
+          ToggleCommandLine(True);
+        end;
+    end;
 
- var R: TRect;
-     P: TPoint;
-     i, l, c, ls: integer;
-     s1: string;
-     S: String;
-     Changed: Boolean;
- label
-   EndLFN;
-begin
- inherited HandleEvent(Event);
- if Event.What = evNothing then exit;
- QueryCursorVisible;
- S := Str; Changed := False;
- if not CursorMustBeVisible then exit;
+  var
+    R: TRect;
+    P: TPoint;
+    i, l, C, LS: integer;
+    s1: String;
+    s: String;
+    Changed: boolean;
+  label
+    EndLFN;
+  begin { TCommandLine.HandleEvent }
+    inherited HandleEvent(Event);
+    if Event.What = evNothing then
+      exit;
+    QueryCursorVisible;
+    s := Str;
+    Changed := False;
+    if not CursorMustBeVisible then
+      exit;
 
- case Event.What of
-  evMouseDown, evMouseAuto: begin
-                if Event.Double then
-                 begin
-                   Message(Application, evCommand, cmHistoryList, nil); CE
-                 end;
-                MakeLocal(Event.Where, P);
-                if P.X >= Min(Length(Dir), 50) then
-                  if Event.Buttons and mbRightButton <> 0 then
-                   begin
-                     if P.X < (Size.X - Min(Length(Dir), 50)) div 2
-                      then Message(@Self, evKeyDown, kbLeft, nil)
-                      else Message(@Self, evKeyDown, kbRight, nil);
-                     CE2;
-                   end else
-                   begin
-                     CurX := DeltaX + P.X - Min(Length(Dir), 50);
-                     CE2
-                   end;
-               end;
-  evCommand:
-    case Event.Command of
-     cmRereadInfo: begin GetDir; DrawView; UpDate end;
-     cmInsertName:
-       if InterfaceData.Options and ouiHideCmdline = 0 then
-       begin
-         S := String(Event.InfoPtr^);
-{AK155: обработка длинных имен с пробелами.}
-         if (CurX > 0) and not (Str[CurX] in Separators)
-           {and not (S[1] = '"')}
-         then
-            begin Insert(' ', Str, CurX+1); Inc(CurX) end;
-         ls := Length(s);
-         c := CurX; l := length(Str);
-         if (S[Length(S)] <> '\') and (Copy(S, Length(S)-1, 2) <> '\"')
-         then
-           S := S + ' ';
-         Insert(S, Str, CurX+1);
-         Inc(CurX, Length(S));
-         if c > 0 then
-         begin
-           S1 := Copy(Str, c, 2);
-           if s1 = '""' then
-             begin
-             i := c+Length(S)+1;
-             while (i <= length(Str)) and (Str[i] <> '"') do
-                inc(i);
-             if i > length(Str) then
-               begin
-               delete(Str, c, 2); dec(c, 1); dec(l, 1);
-               dec(ls, 1); dec(CurX, 2);
-               end
-             else {(Str[i] = '"')}
-               begin
-               delete(Str, c+ls, 1); delete(Str, c, 1); dec(c, 1); dec(l, 1);
-               dec(ls, 1); dec(CurX, 2);
-               goto EndLFN; { чтобы не обрабатывать конец S}
-               end;
-             end
-           else if s1 = '\"' then
-             begin
-             i := c-1;
-             while (i >= 1) and (Str[i] <> ' ') do
-               dec(i);
-             delete(Str, c+1, 1); Insert('"', Str, i+1);
-             inc(c); inc(l); dec(ls);
-             end
-           else if (c>1) and (copy(Str, c-1, 2) = '\"') then
-             begin
-             delete(Str, c, 1); dec(c); dec(l);
-             insert('"', Str, c+length(s)); inc(ls);
-             end;
-         end;
-         if c <> l then
-           begin
-           S1 := Copy(Str, c+Length(S), 2);
-           if s1 = '""' then
-             begin
-             delete(Str, c+Length(S), 2); dec(CurX);
-             end
-           else if s1 = '\"' then
-             begin
-             i := c+Length(S)-1;
-             while (i > c) and (Str[i] <> ' ') do
-               dec(i);
-             delete(Str, c+Length(S)+1, 1); Insert('"', Str, i+1);
-             inc(c); inc(l); dec(ls);
-             end
-           else if s1[1] = '"' then
-             begin
-             i := c+Length(S);
-             while (i <= length(Str)) and (Str[i] <> ' ') do
-               inc(i);
-             Insert('"', Str, i);
-             delete(Str, c+Length(S), 1);
-             dec(CurX);
-             end;
-           end;
+    case Event.What of
+      evMouseDown, evMouseAuto:
+        begin
+          if Event.Double then
+            begin
+              Message(Application, evCommand, cmHistoryList, nil);
+              CE
+            end;
+          MakeLocal(Event.Where, P);
+          if P.X >= Min(Length(Dir), 50) then
+            if Event.Buttons and mbRightButton <> 0 then
+              begin
+                if P.X < (Size.X-Min(Length(Dir), 50)) div 2
+                then
+                  Message(@Self, evKeyDown, kbLeft, nil)
+                else
+                  Message(@Self, evKeyDown, kbRight, nil);
+                CE2;
+              end
+            else
+              begin
+                CurX := DeltaX+P.X-Min(Length(Dir), 50);
+                CE2
+              end;
+        end;
+      evCommand:
+        case Event.Command of
+          cmRereadInfo:
+            begin
+              GetDir;
+              DrawView;
+              UpDate
+            end;
+          cmInsertName:
+            if InterfaceData.Options and ouiHideCmdline = 0 then
+              begin
+                s := String(Event.InfoPtr^);
+                {AK155: обработка длинных имен с пробелами.}
+                if (CurX > 0) and not (Str[CurX] in Separators)
+                  {and not (S[1] = '"')}
+                then
+                  begin
+                    Insert(' ', Str, CurX+1);
+                    Inc(CurX)
+                  end;
+                LS := Length(s);
+                C := CurX;
+                l := Length(Str);
+                if (s[Length(s)] <> '\') and (Copy(s, Length(s)-1, 2) <>
+                    '\"')
+                then
+                  s := s+' ';
+                Insert(s, Str, CurX+1);
+                Inc(CurX, Length(s));
+                if C > 0 then
+                  begin
+                    s1 := Copy(Str, C, 2);
+                    if s1 = '""' then
+                      begin
+                        i := C+Length(s)+1;
+                        while (i <= Length(Str)) and (Str[i] <> '"') do
+                          Inc(i);
+                        if i > Length(Str) then
+                          begin
+                            Delete(Str, C, 2);
+                            Dec(C, 1);
+                            Dec(l, 1);
+                            Dec(LS, 1);
+                            Dec(CurX, 2);
+                          end
+                        else{(Str[i] = '"')}
+                          begin
+                            Delete(Str, C+LS, 1);
+                            Delete(Str, C, 1);
+                            Dec(C, 1);
+                            Dec(l, 1);
+                            Dec(LS, 1);
+                            Dec(CurX, 2);
+                            goto EndLFN;
+                              { чтобы не обрабатывать конец S}
+                          end;
+                      end
+                    else if s1 = '\"' then
+                      begin
+                        i := C-1;
+                        while (i >= 1) and (Str[i] <> ' ') do
+                          Dec(i);
+                        Delete(Str, C+1, 1);
+                        Insert('"', Str, i+1);
+                        Inc(C);
+                        Inc(l);
+                        Dec(LS);
+                      end
+                    else if (C > 1) and (Copy(Str, C-1, 2) = '\"')
+                    then
+                      begin
+                        Delete(Str, C, 1);
+                        Dec(C);
+                        Dec(l);
+                        Insert('"', Str, C+Length(s));
+                        Inc(LS);
+                      end;
+                  end;
+                if C <> l then
+                  begin
+                    s1 := Copy(Str, C+Length(s), 2);
+                    if s1 = '""' then
+                      begin
+                        Delete(Str, C+Length(s), 2);
+                        Dec(CurX);
+                      end
+                    else if s1 = '\"' then
+                      begin
+                        i := C+Length(s)-1;
+                        while (i > C) and (Str[i] <> ' ') do
+                          Dec(i);
+                        Delete(Str, C+Length(s)+1, 1);
+                        Insert('"', Str, i+1);
+                        Inc(C);
+                        Inc(l);
+                        Dec(LS);
+                      end
+                    else if s1[1] = '"' then
+                      begin
+                        i := C+Length(s);
+                        while (i <= Length(Str)) and (Str[i] <> ' ') do
+                          Inc(i);
+                        Insert('"', Str, i);
+                        Delete(Str, C+Length(s), 1);
+                        Dec(CurX);
+                      end;
+                  end;
 EndLFN:
-{/AK155}
-         CE2; CheckSize;
-       end;
-     cmClearCommandLine: begin Str := ''; CurX := 0; DeltaX := 0; CE2 end;
-     cmExecCommandLine: if InterfaceData.Options and ouiHideCmdline = 0 then
-                        begin
-                         if DelSpaces(Str) = '' then Exit;
-{AK155: Шатания, которые здесь были (Up-Down), приводили
+                {/AK155}
+                CE2;
+                CheckSize;
+              end;
+          cmClearCommandLine:
+            begin
+              Str := '';
+              CurX := 0;
+              DeltaX := 0;
+              CE2
+            end;
+          cmExecCommandLine:
+            if InterfaceData.Options and ouiHideCmdline = 0 then
+              begin
+                if DelSpaces(Str) = '' then
+                  exit;
+                {AK155: Шатания, которые здесь были (Up-Down), приводили
 у тому, что после выполнения команды по Ctrl-E вызывалась из
 истории не эта команда, а предыдущая. В чем смысл,
 я не понял, поэтому сделал по-простому. В ритлабовском DN
@@ -455,49 +537,88 @@ EndLFN:
                          Message(@Self, evKeyDown, kbDown, nil);
                          Message(@Self, evKeyDown, kbUp, nil);
 }
-                         AddCommand(Str);
-                         CurString := CmdStrings^.Count;
-                         StrModified := false;
-{/AK155}
-                        end;
-    end;
-  evKeyDown:
-               begin
-                if InterfaceData.Options and ouiHideCmdline = 0 then
-                case Event.CharCode of
-                 ^V: begin Overwrite := not Overwrite; CE2 end;
-                 ^J: begin Message(@Self, evKeyDown, kbENTER, nil); CE end;
-                 ^A: begin Message(@Self, evKeyDown, kbCtrlLeft, nil); CE end;
-                 ^F: begin Message(@Self, evKeyDown, kbCtrlRight, nil); CE end;
-                 #32..#126,#128..#255:
-                   begin
-                    if OverWrite then if CurX >= Length(Str) then Str := Str + Event.CharCode
-                                                             else Str[CurX+1] := Event.CharCode
-                                 else Insert(Event.CharCode, Str, CurX+1);
-                    Inc(CurX); StrModified := True; CE2;
-                   end;
-                 #127: begin
-                        While (CurX > 0) and not (Str[CurX] in Separators) do
-                         begin Delete(Str, CurX, 1); Dec(CurX) end;
-                        While (CurX > 0) and (Str[CurX] in Separators) do
-                         begin Delete(Str, CurX, 1); Dec(CurX) end;
-                        CE2;
-                       end;
-                 else
-                  case Event.KeyCode of
-                   kbAltSlash,
-                   kbAltShiftSlash:
-                               begin
-                                 if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
-                                                                    else Inc(LineType);
-                                 if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
-                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
-                                                                      else Inc(LineType);
-                                 if not OS2exec and (LineType in [ltOS2Window,ltOS2FullScreen]) then
-                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
-                                                                      else Inc(LineType);
+                AddCommand(Str);
+                CurString := CmdStrings^.Count;
+                StrModified := False;
+                {/AK155}
+              end;
+        end {case};
+      evKeyDown:
+        begin
+          if InterfaceData.Options and ouiHideCmdline = 0 then
+            case Event.CharCode of
+              ^V:
+                begin
+                  Overwrite := not Overwrite;
+                  CE2
+                end;
+              ^J:
+                begin
+                  Message(@Self, evKeyDown, kbEnter, nil);
+                  CE
+                end;
+              ^A:
+                begin
+                  Message(@Self, evKeyDown, kbCtrlLeft, nil);
+                  CE
+                end;
+              ^F:
+                begin
+                  Message(@Self, evKeyDown, kbCtrlRight, nil);
+                  CE
+                end;
+              #32..#126, #128..#255:
+                begin
+                  if Overwrite then
+                    if CurX >= Length(Str) then
+                      Str := Str+Event.CharCode
+                    else
+                      Str[CurX+1] := Event.CharCode
+                  else
+                    Insert(Event.CharCode, Str, CurX+1);
+                  Inc(CurX);
+                  StrModified := True;
+                  CE2;
+                end;
+              #127:
+                begin
+                  while (CurX > 0) and not (Str[CurX] in Separators) do
+                    begin
+                      Delete(Str, CurX, 1);
+                      Dec(CurX)
+                    end;
+                  while (CurX > 0) and (Str[CurX] in Separators) do
+                    begin
+                      Delete(Str, CurX, 1);
+                      Dec(CurX)
+                    end;
+                  CE2;
+                end;
+              else
+                case Event.KeyCode of
+                  kbAltSlash,
+                  kbAltShiftSlash:
+                    begin
+                      if Event.KeyCode = kbAltShiftSlash then
+                        Dec(LineType)
+                      else
+                        Inc(LineType);
+                      if not OS2exec and (LineType in [ltOS2Window,
+                          ltOS2FullScreen])
+                      then
+                        if Event.KeyCode = kbAltShiftSlash then
+                          Dec(LineType)
+                        else
+                          Inc(LineType);
+                      if not OS2exec and (LineType in [ltOS2Window,
+                          ltOS2FullScreen])
+                      then
+                        if Event.KeyCode = kbAltShiftSlash then
+                          Dec(LineType)
+                        else
+                          Inc(LineType);
 
-(*                              if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
+                      (*                              if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
                                    if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
                                                                       else Inc(LineType);
                                  if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
@@ -511,120 +632,201 @@ EndLFN:
                                    if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
                                                                       else Inc(LineType); *)
 
-                                 if LineType > ltTimer then LineType := ltNormal;
-                                 if LineType < ltNormal then LineType := ltTimer;
-                                 SetDirShape;
-                                 if (InterfaceData.Options and ouiHideCmdLine = 0) and
-                                    not GetState(sfVisible) and (Str = '')
-                                      then begin
-                                             Str := ' ';
-                                             ToggleCommandLine(true);
-                                             Str := '';
-                                           end;
-                                 CE2
-                               end;
-                   kbESC: begin if (Str = '') and ( InterfaceData.Options and ouiEsc <> 0 )
-                                            then
-                                              begin
-                                                if EscForOutputWindow then
-                                                    Message(Application, evCommand, cmShowOutput, nil)
-                                                  else
-                                                    Message(Application, evCommand, cmShowUserScreen, nil);
-                                              end
-                                            else Str := ''; CurX := 0; DeltaX := 0; CE2 end;
-                   kbBack: begin
-                            if CurX > 0 then begin
-                             Delete(Str, CurX, 1);
-                             Dec(CurX);
-                             if CurX=0 then StrCleared:=true;
-                             CE2
-                            end;
-                           end;
-                   kbBackUp: StrCleared:=false;
-        kbUp, kbShiftUp, kbCtrlE: begin
-                                  if (Event.KeyCode=kbUp) and (ShiftState and kbCtrlShift<>0) then exit;
-                                  if StrModified then
-                                   begin
-                                    AddCommand(Str);
-                                    CurString := CmdStrings^.Count-1;
-                                    StrModified := false;
-                                   end;
-                                  if CurString > 0 then Dec(CurString);
-                                  Str := GetCommand(CurString);
-                                  Changed := True; CurX := Length(Str);
-                                  CE2;
-                                end;
-      kbDown, kbShiftDown, kbCtrlX: begin
-                                   if (Event.KeyCode=kbDown) and (ShiftState and kbCtrlShift<>0) then exit;
-                                    if StrModified then
-                                     begin
-                                       AddCommand(Str);
-                                       CurString := CmdStrings^.Count;
-                                       StrModified := false;
-                                     end;
-                                     Str := GetCommand(CurString);
-                                     if Str <> '' then Inc(CurString);
-                                     Str := GetCommand(CurString);
-                                     Changed := True; CurX := Length(Str);
-                                     CE2;
-                                  end;
-                   kbLeft, kbCtrlS, kbShiftLeft:
-                     begin if CurX > 0 then Dec(CurX); CE2 end;
-                   kbRight, kbCtrlD, kbShiftRight:
-                     begin if CurX < Length(Str) then Inc(CurX); CE2 end;
-                   kbCtrlIns, kbCtrlShiftIns:
-                     if Str<>'' then
-                       begin
-                         Message(Application, evCommand, cmPutInClipboard, @Str);
-                         CE;
-                       end;
-                   kbShiftIns: {if ShiftState and 4 = 0 then} {Cat} begin
-                                 S := '';
-                                 Message(Application, evCommand, cmGetFromClipboard, @S);
-                                 if S <> '' then
-                                    Message(@Self, evCommand, cmInsertName, @S);
-                                 CE2;
-                               end {else
+                      if LineType > ltTimer then
+                        LineType := ltNormal;
+                      if LineType < ltNormal then
+                        LineType := ltTimer;
+                      SetDirShape;
+                      if (InterfaceData.Options and ouiHideCmdline = 0)
+                          and
+                        not GetState(sfVisible) and (Str = '')
+                      then
+                        begin
+                          Str := ' ';
+                          ToggleCommandLine(True);
+                          Str := '';
+                        end;
+                      CE2
+                    end;
+                  kbESC:
+                    begin
+                      if (Str = '') and (InterfaceData.Options and
+                          ouiEsc <> 0)
+                      then
+                        begin
+                          if EscForOutputWindow then
+                            Message(Application, evCommand,
+                              cmShowOutput, nil)
+                          else
+                            Message(Application, evCommand,
+                              cmShowUserScreen, nil);
+                        end
+                      else
+                        Str := '';
+                      CurX := 0;
+                      DeltaX := 0;
+                      CE2
+                    end;
+                  kbBack:
+                    begin
+                      if CurX > 0 then
+                        begin
+                          Delete(Str, CurX, 1);
+                          Dec(CurX);
+                          if CurX = 0 then
+                            StrCleared := True;
+                          CE2
+                        end;
+                    end;
+                  kbBackUp:
+                    StrCleared := False;
+                  kbUp, kbShiftUp, kbCtrlE:
+                    begin
+                      if (Event.KeyCode = kbUp) and (ShiftState and
+                          kbCtrlShift <> 0)
+                      then
+                        exit;
+                      if StrModified then
+                        begin
+                          AddCommand(Str);
+                          CurString := CmdStrings^.Count-1;
+                          StrModified := False;
+                        end;
+                      if CurString > 0 then
+                        Dec(CurString);
+                      Str := GetCommand(CurString);
+                      Changed := True;
+                      CurX := Length(Str);
+                      CE2;
+                    end;
+                  kbDown, kbShiftDown, kbCtrlX:
+                    begin
+                      if (Event.KeyCode = kbDown) and (ShiftState
+                          and kbCtrlShift <> 0)
+                      then
+                        exit;
+                      if StrModified then
+                        begin
+                          AddCommand(Str);
+                          CurString := CmdStrings^.Count;
+                          StrModified := False;
+                        end;
+                      Str := GetCommand(CurString);
+                      if Str <> '' then
+                        Inc(CurString);
+                      Str := GetCommand(CurString);
+                      Changed := True;
+                      CurX := Length(Str);
+                      CE2;
+                    end;
+                  kbLeft, kbCtrlS, kbShiftLeft:
+                    begin
+                      if CurX > 0 then
+                        Dec(CurX);
+                      CE2
+                    end;
+                  kbRight, kbCtrlD, kbShiftRight:
+                    begin
+                      if CurX < Length(Str) then
+                        Inc(CurX);
+                      CE2
+                    end;
+                  kbCtrlIns, kbCtrlShiftIns:
+                    if Str <> '' then
+                      begin
+                        Message(Application, evCommand,
+                          cmPutInClipboard, @Str);
+                        CE;
+                      end;
+                  kbShiftIns:{if ShiftState and 4 = 0 then}{Cat}
+                      begin
+                      s := '';
+                      Message(Application, evCommand,
+                        cmGetFromClipboard, @S);
+                      if s <> '' then
+                        Message(@Self, evCommand, cmInsertName, @S);
+                      CE2;
+                    end
+                      {else
                                begin
                                  Message(Application, evCommand, cmPutInClipboard, @Str);
                                  CE;
-                               end};
-                   kbIns: begin Overwrite := not Overwrite; CE2 end;
-                   kbDel: begin Delete(Str, CurX + 1, 1); CE2 end;
-                   kbEnd, kbShiftEnd, kbCtrlEnd:
-                     begin CurX := Length(Str); CE2 end;
-                   kbHome, kbShiftHome, kbCtrlHome:
-                     begin CurX := 0; CE2 end;
-                   kbCtrlLeft: begin
-                                if not (Str[CurX] in Separators) then
-                                   While (CurX > 0) and not (Str[CurX] in Separators) do Dec(CurX)
+                               end}
+                      ;
+                  kbIns:
+                    begin
+                      Overwrite := not Overwrite;
+                      CE2
+                    end;
+                  kbDel:
+                    begin
+                      Delete(Str, CurX+1, 1);
+                      CE2
+                    end;
+                  kbEnd, kbShiftEnd, kbCtrlEnd:
+                    begin
+                      CurX := Length(Str);
+                      CE2
+                    end;
+                  kbHome, kbShiftHome, kbCtrlHome:
+                    begin
+                      CurX := 0;
+                      CE2
+                    end;
+                  kbCtrlLeft:
+                    begin
+                      if not (Str[CurX] in Separators) then
+                        while (CurX > 0) and not (Str[CurX] in
+                            Separators)
+                        do
+                          Dec(CurX)
 
-                                  else
-                                  begin
-                                   While (CurX > 0) and (Str[CurX] in Separators) do Dec(CurX);
-                                   While (CurX > 0) and not (Str[CurX] in Separators) do Dec(CurX)
-                                  end;
-                                CE2;
-                               end;
-                   kbEnter: Message(Application, evCommand, cmExecCommandLine, nil);
-                   kbCtrlRight: begin
-                                if not (Str[CurX+1] in Separators) then
-                                  begin
-                                   While (CurX < Length(Str)) and not (Str[CurX+1] in Separators) do Inc(CurX);
-                                   While (CurX < Length(Str)) and (Str[CurX+1] in Separators) do Inc(CurX);
-                                  end
-                                  else
-                                   While (CurX < Length(Str)) and (Str[CurX+1] in Separators) do Inc(CurX);
-                                CE2;
-                               end;
-                  end;
-                end;
-               CheckSize;
-             end;
- end;
- if Changed then StrModified := False else StrModified := (S <> Str);
-end;
-
+                      else
+                        begin
+                          while (CurX > 0) and (Str[CurX] in
+                              Separators)
+                          do
+                            Dec(CurX);
+                          while (CurX > 0) and not (Str[CurX] in
+                              Separators)
+                          do
+                            Dec(CurX)
+                        end;
+                      CE2;
+                    end;
+                  kbEnter:
+                    Message(Application, evCommand,
+                      cmExecCommandLine, nil);
+                  kbCtrlRight:
+                    begin
+                      if not (Str[CurX+1] in Separators) then
+                        begin
+                          while (CurX < Length(Str)) and not (Str[
+                              CurX+1] in Separators)
+                          do
+                            Inc(CurX);
+                          while (CurX < Length(Str)) and (Str[CurX+1] in
+                              Separators)
+                          do
+                            Inc(CurX);
+                        end
+                      else
+                        while (CurX < Length(Str)) and (Str[CurX+1] in
+                            Separators)
+                        do
+                          Inc(CurX);
+                      CE2;
+                    end;
+                end {case};
+            end {case};
+          CheckSize;
+        end;
+    end {case};
+    if Changed then
+      StrModified := False
+    else
+      StrModified := (s <> Str);
+  end { TCommandLine.HandleEvent };
 
 (*
 constructor TCmdWindow.Init;
@@ -644,5 +846,4 @@ begin
 end;
 *)
 
-
-END.
+end.

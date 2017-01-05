@@ -1444,6 +1444,15 @@ dlPlugins7 ''
 dlPlugins8 '~I~nstall'
 dlPlugins9 '~R~emove '
 ;Cat-
+
+;JOHN_SW begin
+dlInvalidDBFHeader,  ^C'Header is corrupted!'^M
+dlInvalidRecNumber,  ^M^C'Records number in header: '
+dlInvalidRecNumber1, ^M^C'Actually records number : '
+dlInvalidRecSize,    ^M^C'Record''s size in header: %d'^M^C'Actually record''s size : %d'
+dlUseCalcRecNumber,  ^M^M^C'Use header value?'
+;JOHN_SW end
+
 ;KV+
 dlWkzQuerySeparatorTitle 'Column separator'
 dlWkzQuerySeparatorLabel '~S~eparator'

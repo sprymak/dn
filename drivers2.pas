@@ -47,158 +47,88 @@
 {$I STDEFINE.INC}
 
 {$S-}
-UNIT Drivers2;
+unit Drivers2;
 
 {-----------------------------------------------------}
 { This module is based on Turbo Vision Drivers Unit   }
 { Copyright (c) 1990 by Borland International         }
 {-----------------------------------------------------}
 
-INTERFACE
+interface
 
 procedure DoDump;
 
-IMPLEMENTATION
+implementation
 
-Uses
-  Dos, Advance, LFN, {$IFNDEF NONBP}StakDump, {$ENDIF}Advance1, Drivers
-  {$IFDEF VIRTUALPASCAL} {, SysUtils} , VpSysLow {$ENDIF}
+uses
+  Dos, advance, Lfn, advance1, Drivers
+  {, SysUtils}, VpSysLow
   ;
 
 {$S-}
 procedure DoDump;
-{$IFNDEF DNPRG}
-begin
-{$ELSE}
-type PByteArray = ^TByteArray;
-     TByteArray = array [0..65528] of byte;
-var
-  C,AC,PP,FH : Word;
-  PPP: TByteArray absolute FreeStr;
-  PhysAddr : pointer;
-  I : Byte;
-  PExit, ActiveButton: Byte;
-  Temp: LongInt;
-  {FileName: String;}
+  {$IFDEF DNPRG}
+  type
+    PByteArray = ^TByteArray;
+    TByteArray = array[0..65528] of byte;
+  var
+    C, AC, PP, FH: word;
+    PPP: TByteArray absolute FreeStr;
+    PhysAddr: Pointer;
+    i: byte;
+    PExit, ActiveButton: byte;
+    Temp: longInt;
+    {FileName: String;}
 
-  Function StoreBuffer(var Buf; Size:word ; FH : word ):word;
-    {$IFDEF VIRTUALPASCAL}
-  begin
-   StoreBuffer := SysFileWrite(FH, Buf, Size, Size);
-  end;
-    {$ELSE}
-    assembler;
-    asm
-       mov  bx,FH
-       push ds
-        mov cx,Size
-          mov  ah,40h
-          sub  al,al
-          lds  dx,Buf
-          int  21h
-          mov  ax,0
-          jnc  @@1
-          inc  ax
-         @@1:
-       pop  ds
+  function StoreBuffer(var Buf; Size: word; FH: word): word;
+    begin
+      StoreBuffer := SysFileWrite(FH, Buf, Size, Size);
     end;
-    {$ENDIF}
 
-begin
+  {$ENDIF DNPRG}
+  begin
+    {$IFDEF DNPRG}
     { Create Report File. DRIVERS.PAS contains full dupe of this routine }
 
-    I := Length(SourceDir);
-    SourceDir := SourceDir + 'DN.ERR'#0;
+    i := Length(SourceDir);
+    SourceDir := SourceDir+'DN.ERR'#0;
 
-    {$IFDEF VIRTUALPASCAL}
-    if SysFileOpen(@SourceDir[1], Open_Access_ReadWrite or Open_Share_DenyNone, FH) <> 0 then
-      if SysFileCreate(@SourceDir[1], Open_Access_ReadWrite or Open_Share_DenyNone, $20{Archive}, FH) <> 0 then
-        FH := Word(-1);
+    if SysFileOpen(@SourceDir[1], Open_Access_ReadWrite or
+        open_share_DenyNone, FH) <> 0
+    then
+      if SysFileCreate(@SourceDir[1], Open_Access_ReadWrite or
+          open_share_DenyNone, $20 {Archive}, FH) <> 0
+      then
+        FH := word(-1);
     SysFileSeek(FH, 0, 2, Temp);
-    {$ELSE}
-    FH := Word(-1) ;
- asm
-    push ds
-    push bp
 
-    mov ax,6C00h { extended dos 4+ open  }
-    mov si,offset SourceDir
-    inc si
-    mov cx,0
-    mov dx,11h   { if exist open, if not create and open }
-    mov bx,7042h { 42 file mode ; do not use int 24 , write
-                   w/o buffering }
-    int 21h
-    jnc @@1
-    jmp @@99     { other error - exit }
-@@1:
-    mov bx,ax
-    mov ax,4202H { lseek to e.nd of file }
-    sub dx,dx
-    sub cx,cx
-    int 21h
-    jnc @@2
-    jmp @@99      { other error - exit }
-@@2:
-    mov FH,bx    { save handle        }
-@@99:
-    pop bp
-    pop ds
- end;
-   {$ENDIF}
-
- if FH<>Word(-1) then
-   begin
-(*
+    if FH <> word(-1) then
+      begin
+        (*
      {$IFNDEF NONBP}
      AssignOutput(FH);
      {$ENDIF}
 *)
-     FreeStr :=
-          ^M^J +
-       '----<'+ GetDateTime(false) +' '+ GetDateTime(true)+'>'^M^J +
-       'VER :' + VersionName + ^M^J +
-       'DATE:' + VersionDate + ^M^J +
-       'ERR :' + Hex2(ExitCode) + ^M^J +
-       'ADDR:' + Hex8(LongInt(ErrorAddr)) + ^M^J ;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
+        FreeStr :=
+        ^M^J+
+        '----<'+GetDateTime(False)+' '+GetDateTime(True)+'>'^M^J+
+        'VER :'+versionName+^M^J+
+        'DATE:'+versionDate+^M^J+
+        'ERR :'+Hex2(ExitCode)+^M^J+
+        'ADDR:'+Hex8(longInt(ErrorAddr))+^M^J;
+        StoreBuffer(FreeStr[1], Length(FreeStr), FH);
 
-     FreeStr :=
-       {$IFNDEF NONBP}
-       'PSP :' + Hex4( PrefixSeg ) + ^M^J +
-       {$ENDIF}
-       'CS  :' + Hex4(CSeg) + ^M^J +
-       'DS  :' + Hex4(DSeg) + ^M^J +
-       'SS  :' + Hex4(SSeg) + ^M^J +
-       'SP  :' + Hex4(SPtr) + ^M^J +
-       'MEMm:' + Hex8(MaxAvail) + ^M^J +
-       'MEMa:' + Hex8(MemAvail) + ^M^J +
-{$IFNDEF DPMI}{$IFNDEF NONBP}
-       'hOrg:' + Hex8(Longint(HeapOrg)) + ^M^J +
-       'hEnd:' + Hex8(Longint(HeapEnd)) + ^M^J +
-       'hPtr:' + Hex8(Longint(HeapPtr)) + ^M^J +
-       'hLim:' + Hex4( StackLimit ) + ^M^J +
-{$ENDIF}{$ENDIF}
-       '';
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-{$IFNDEF NONBP}
-     FreeStr :=
-       'STCK:' + ^M^J;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-(*   if ErrorAddr<>nil
-      then begin
-            {$IFDEF DPMI}
-            PhysAddr := FindPhysAddr(ErrorAddr);
-            {$ELSE}
-            PhysAddr := Ptr(OS(ErrorAddr).S+PrefixSeg+$10, OS(ErrorAddr).O);
-            {$ENDIF}
-            if PhysAddr <> nil then
-             TraceStack(PhysAddr)
-           end
-      else *)DumpStack;
-{$ENDIF}
-{Cat}
-{
+        FreeStr :=
+        'CS  :'+Hex4(CSeg)+^M^J+
+        'DS  :'+Hex4(DSeg)+^M^J+
+        'SS  :'+Hex4(SSeg)+^M^J+
+        'SP  :'+Hex4(SPtr)+^M^J+
+        'MEMm:'+Hex8(MaxAvail)+^M^J+
+        'MEMa:'+Hex8(MemAvail)+^M^J+
+        '';
+        StoreBuffer(FreeStr[1], Length(FreeStr), FH);
+        {Cat}
+        {
      if GetLocationInfo(ErrorAddr, FileName, Temp) <> nil then
        begin
          Str(Temp, FreeStr);
@@ -206,20 +136,21 @@ begin
          StoreBuffer(FreeStr[1] , length(FreeStr), FH);
        end;
 }
-     {$IFDEF LINEPOSIT}
-     if (SourceLineNo <> 0) and (SourceFileName <> nil) then
-       begin
-         Str(SourceLineNo, FreeStr);
-         FreeStr := 'Source location: ' + SourceFileName^ + ' line ' + FreeStr +^M^J;
-         StoreBuffer(FreeStr[1] , length(FreeStr), FH);
-       end;
-     {$ENDIF}
-{/Cat}
-     FreeStr :=
-       'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;
-     StoreBuffer( FreeStr[1] , length(FreeStr), FH );
+        {$IFDEF LINEPOSIT}
+        if (SourceLineNo <> 0) and (SourceFileName <> nil) then
+          begin
+            Str(SourceLineNo, FreeStr);
+            FreeStr := 'Source location: '+SourceFileName^+' line '+
+              FreeStr+^M^J;
+            StoreBuffer(FreeStr[1], Length(FreeStr), FH);
+          end;
+        {$ENDIF}
+        {/Cat}
+        FreeStr :=
+        'SCR :'+Hex8(longInt(ScreenBuffer))+^M^J;
+        StoreBuffer(FreeStr[1], Length(FreeStr), FH);
 
-{    for C:=0 to Pred(ScreenHeight) do
+        {    for C:=0 to Pred(ScreenHeight) do
       begin
           TempFile:='';
           PP := (ScreenWidth*C) shl 1;
@@ -230,21 +161,14 @@ begin
           TempFile := TempFile+#13#10 ;
           if StoreBuffer(PPP,         ScreenWidth,      FH) <> 0 then Break;
           if StoreBuffer(TempFile[1], Length(TempFile), FH) <> 0 then Break;
-      end;} { for lines }
-     {$IFDEF VIRTUALPASCAL}
-     SysFileClose(FH);
-     {$ELSE}
-     asm
-       mov  ah,3Eh     { close file }
-       mov  bx,FH
-       int  21h
-     end
-     {$ENDIF}
-   end; { file write ok }
+      end;}
+          { for lines }
+        SysFileClose(FH);
+      end; { file write ok }
 
-  SetLength(SourceDir, I);
-{$ENDIF DNPRG}
-end;
+    SetLength(SourceDir, i);
+    {$ENDIF DNPRG}
+  end { DoDump };
 {$S+}
 
-END.
+end.

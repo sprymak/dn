@@ -12,203 +12,221 @@ unit EAOper;
 interface
 
 uses
-  Collect, Os2Def, Advance1;
+  Collect, Os2Def, advance1;
 
-type PEAItem = ^TEAItem;
-     TEAItem = record
-       C_ea: Pointer;
-       C_ulEASize: Cardinal;
-     end;
+type
+  PEAItem = ^TEAItem;
+  TEAItem = record
+    C_ea: Pointer;
+    C_ulEASize: Cardinal;
+    end;
 
-function EnumEAs(FName: String; Var coll: PStringCollection): Integer;
+function EnumEAs(FName: String; var coll: PStringCollection):
+  integer;
 
 function RetrieveEA(FName: String; pszName: PChar; var ea: Pointer;
-  var ulEASize: Cardinal; Silent: Boolean): Integer;
+  var ulEASize: Cardinal; Silent: boolean): integer;
 function StoreEA(FName: String; pszName: PChar; ea: Pointer;
-  ulEASize: ULONG): Integer;
+  ulEASize: ULong): integer;
 
 (*  {нужно для EABrowser'а}
 function GetEAType(ea: Pointer): SmallWord;
 *)
-    {нужно для EditLongName}
-function RetrieveStringSize(ea: Pointer): ULONG;
+{нужно для EditLongName}
+function RetrieveStringSize(ea: Pointer): ULong;
 function RetrieveString(ea: Pointer; pszValue: PChar): PChar;
-function BuildEAFromString(pszValue: PChar; var ulEASize: Cardinal): Pointer;
-
+function BuildEAFromString(pszValue: PChar; var ulEASize: Cardinal):
+  Pointer;
 
 implementation
 
 uses
 
- Strings, Os2Base, Messages, Advance2, FlTl;
+  Strings, Os2Base, Messages, advance2, FlTl;
 
-function EnumEAs(FName: String; Var coll: PStringCollection): Integer;
-var
-  fst4: FILESTATUS4;
-  ulEntry, ulCount, ulSize: ULONG;
-  pvBuf: PFEA2;
-  PS: PChar;
-  PSArr: array[0..255] of Char;
-  Result: Integer;
-begin
-  PS := PSArr;
-  PS := StrPCopy (PS, FName);
-  Result := DosQueryPathInfo(PS, FIL_QUERYEASIZE, fst4, SizeOf(fst4));
-  if (Result = NO_ERROR)
-     and (fst4.cbList > 0) then {JO: 30-07-2002 - добавил это условие, т.к.  }
-                                {    например при копировании с ISO-образов, }
-                                {    подмонтированных через NDFS шла         }
-                                {    бессмысленная ругань на невозможность   }
-                                {    прочитать список EA                     }
+function EnumEAs(FName: String; var coll: PStringCollection):
+    integer;
+  var
+    fst4: FILESTATUS4;
+    ulEntry, ulCount, ulSize: ULong;
+    pvBuf: PFEA2;
+    PS: PChar;
+    PSArr: array[0..255] of Char;
+    Result: integer;
   begin
-    ulSize := fst4.cbList * 2;
-    GetMem(pvBuf, ulSize);
-    ulEntry := 1;
-    while True do
-    begin
-      ulCount := 1;
-      Result := DosEnumAttribute(enumea_Reftype_Path, PS,
-        ulEntry, pvBuf^, ulSize, ulCount, ENUMEA_LEVEL_NO_VALUE);
-      if Result = NO_ERROR then
+    PS := PSArr;
+    PS := StrPCopy(PS, FName);
+    Result := DosQueryPathInfo(PS, FIL_QUERYEASIZE, fst4, SizeOf(
+      fst4));
+    if (Result = NO_ERROR)
+      and (fst4.cbList > 0)
+    then{JO: 30-07-2002 - добавил это условие, т.к.  }
+      {    например при копировании с ISO-образов, }
+      {    подмонтированных через NDFS шла         }
+      {    бессмысленная ругань на невозможность   }
+      {    прочитать список EA                     }
       begin
-        if ulCount = 0 then
-          Break;
-        coll^.AtInsert(coll^.Count, NewStr(StrPas(PChar(@pvBuf^.szName))+#0));
-        Inc(ulEntry, ulCount);
-      end
-      else
-        Break;
-    end;
-    FreeMem(pvBuf);
-  end;
-  EnumEAs := Result;
-end;
+        ulSize := fst4.cbList*2;
+        GetMem(pvBuf, ulSize);
+        ulEntry := 1;
+        while True do
+          begin
+            ulCount := 1;
+            Result := DosEnumAttribute(enumea_Reftype_Path, PS,
+            ulEntry, pvBuf^, ulSize, ulCount, ENUMEA_LEVEL_NO_VALUE);
+            if Result = NO_ERROR then
+              begin
+                if ulCount = 0 then
+                  break;
+                coll^.AtInsert(coll^.Count, NewStr(StrPas(PChar(
+                  @pvBuf^.szName))+#0));
+                Inc(ulEntry, ulCount);
+              end
+            else
+              break;
+          end;
+        FreeMem(pvBuf);
+      end;
+    EnumEAs := Result;
+  end { EnumEAs };
 
 function RetrieveEA(FName: String; pszName: PChar; var ea: Pointer;
-  var ulEASize: Cardinal; Silent: Boolean): Integer;
-var
-  ulFEASize, ulGEASize, ulOffset: ULONG;
-  eaop: EAOP2;
-  fst4: FILESTATUS4;
-  PS: PChar;
-  PSArr: array[0..255] of Char; {???}
-  Result: Longint;
-begin
-{( *}
-  PS := PSArr; {???}
-  PS := StrPCopy (PS, FName);
+  var ulEASize: Cardinal; Silent: boolean): integer;
+  var
+    ulFEASize, ulGEASize, ulOffset: ULong;
+    eaop: EAOP2;
+    fst4: FILESTATUS4;
+    PS: PChar;
+    PSArr: array[0..255] of Char; {???}
+    Result: longInt;
+  begin
+    {( *}
+    PS := PSArr; {???}
+    PS := StrPCopy(PS, FName);
 
-  Result := DosQueryPathInfo(PS, FIL_QUERYEASIZE, fst4, SizeOf(fst4));
+    Result := DosQueryPathInfo(PS, FIL_QUERYEASIZE, fst4, SizeOf(
+      fst4));
 
-  if (Result = NO_ERROR)
-     and (fst4.cbList > 0) then
+    if (Result = NO_ERROR)
+      and (fst4.cbList > 0)
+    then
+      begin
+
+        ulFEASize := 4+StrLen(pszName)+1+fst4.cbList*2;
+          // approx. :)
+        ulGEASize := 4+4+1+StrLen(pszName)+1;
+
+        {JO: 31-07-2002  нижележащая строка - багфикс падений при попытке           }
+        {    редактировать .LONGNAME на NDFS . Похоже, проблема в том что           }
+        {    DosQueryPathInfo на нетдрайвовских дисках для файлов без EA выдаёт     }
+        {    значение fst4.cbList не 4, как для нормальных дисков, а 2              }
+
+        if ulFEASize < ulGEASize then
+          ulFEASize := ulGEASize+4;
+
+        GetMem(eaop.fpFEA2List, ulFEASize);
+        GetMem(eaop.fpGEA2List, ulGEASize);
+
+        //JO: 25-08-2003 две нижележащие строки фиксят нерегулярные падения
+        //    при попытке включить показ логических имён по Ctrl-N на CD
+        FillChar(eaop.fpFEA2List^, ulFEASize, 0);
+        FillChar(eaop.fpGEA2List^, ulGEASize, 0);
+
+        eaop.fpGEA2List^.cbList := ulGEASize;
+        eaop.fpGEA2List^.List[0].oNextEntryOffset := 0;
+        eaop.fpGEA2List^.List[0].cbName := StrLen(pszName);
+        StrCopy(eaop.fpGEA2List^.List[0].szName, pszName);
+
+        eaop.fpFEA2List^.cbList := ulFEASize;
+
+        Result := DosQueryPathInfo(PS, FIL_QUERYEASFROMLIST, eaop,
+        SizeOf(eaop));
+
+        if Result = NO_ERROR then
+          begin
+
+            ulOffset := ULong(@eaop.fpFEA2List^.List[0])+
+            eaop.fpFEA2List^.List[0].cbName+SizeOf(FEA2);
+
+            ulEASize := eaop.fpFEA2List^.List[0].cbValue;
+
+            {ea :=}GetMem(ea, ulEASize);
+
+            Move(Pointer(ulOffset)^, ea^, ulEASize);
+
+          end
+        else
+          begin
+            if not Silent then
+              MessageBox(StrPas(pszName)+
+                #3'Failed to QUERY EAS FROM LIST , rc ::= %d.',
+                @result, mfError or mfOKButton);
+          end;
+
+        FreeMem(eaop.fpGEA2List);
+        FreeMem(eaop.fpFEA2List);
+
+      end
+    else
+      begin
+        if fst4.cbList = 0 then
+          Result := 48; {JO: ошибка 48 в оси зарезервирована}
+        if not Silent then
+          MessageBox(#3'Failed to QUERY EA SIZE for '+FName+
+            ' , rc ::= %d.', @result, mfError or mfOKButton);
+      end;
+
+    RetrieveEA := Result; {* ) RetrieveEA :=0;}
+  end { RetrieveEA };
+
+function StoreEA(FName: String; pszName: PChar; ea: Pointer;
+  ulEASize: ULong): integer;
+  var
+    eaop: EAOP2;
+    ulFEASize, ulOffset: ULong;
+    PS: PChar;
+    PSArr: array[0..255] of Char;
+    Result: longInt;
+    FAttr: word;
+    LWr, CR, LAc: longInt;
   begin
 
-    ulFEASize := 4 + StrLen(pszName) + 1 + fst4.cbList * 2; // approx. :)
-    ulGEASize := 4 + 4 + 1 + StrLen(pszName) + 1;
+    FAttr := GetFileAttr(FName);
+    GetFileAges(FName, LWr, CR, LAc);
+    SetFileAttr(FName, FAttr and not Dos.ReadOnly);
 
-{JO: 31-07-2002  нижележащая строка - багфикс падений при попытке           }
-{    редактировать .LONGNAME на NDFS . Похоже, проблема в том что           }
-{    DosQueryPathInfo на нетдрайвовских дисках для файлов без EA выдаёт     }
-{    значение fst4.cbList не 4, как для нормальных дисков, а 2              }
+    PS := PSArr;
+    PS := StrPCopy(PS, FName);
 
-    if ulFEASize < ulGEASize then ulFEASize := ulGEASize + 4;
+    ulFEASize := 4+4+1+1+2+StrLen(pszName)+1+ulEASize;
 
     GetMem(eaop.fpFEA2List, ulFEASize);
-    GetMem(eaop.fpGEA2List, ulGEASize);
-
-//JO: 25-08-2003 две нижележащие строки фиксят нерегулярные падения
-//    при попытке включить показ логических имён по Ctrl-N на CD
-    FillChar(eaop.fpFEA2List^, ulFEASize, 0);
-    FillChar(eaop.fpGEA2List^, ulGEASize, 0);
-
-    eaop.fpGEA2List^.cbList := ulGEASize;
-    eaop.fpGEA2List^.list[0].oNextEntryOffset := 0;
-    eaop.fpGEA2List^.list[0].cbName := StrLen(pszName);
-    StrCopy(eaop.fpGEA2List^.list[0].szName, pszName);
 
     eaop.fpFEA2List^.cbList := ulFEASize;
 
-    Result := DosQueryPathInfo(PS, FIL_QUERYEASFROMLIST, eaop,
-      SizeOf(eaop));
+    with eaop.fpFEA2List^.List[0] do
+      begin
 
-    if Result = NO_ERROR then
-    begin
+        oNextEntryOffset := 0;
+        fEA := 0;
+        cbName := StrLen(pszName);
+        cbValue := ulEASize;
+        StrCopy(PChar(@szName), pszName);
+        ulOffset := ULong(@eaop.fpFEA2List^.List[0])+cbName+SizeOf(
+          FEA2);
+        Move(ea^, Pointer(ulOffset)^, ulEASize);
 
-      ulOffset := ULONG(@eaop.fpFEA2List^.list[0]) +
-        eaop.fpFEA2List^.list[0].cbName + SizeOf(FEA2);
+      end;
 
-      ulEASize := eaop.fpFEA2List^.list[0].cbValue;
+    Result := DosSetPathInfo(PS, FIL_QUERYEASIZE, eaop, SizeOf(eaop),
+      dspi_WrtThru);
 
-      {ea :=} GetMem(ea, ulEASize);
-
-      Move(Pointer(ulOffset)^, ea^, ulEASize);
-
-    end
-    else
-    begin
-      if not Silent then MessageBox(StrPas(pszName)+#3'Failed to QUERY EAS FROM LIST , rc ::= %d.', @result, mfError or mfOkButton);
-    end;
-
-    FreeMem(eaop.fpGEA2List);
     FreeMem(eaop.fpFEA2List);
 
-  end
-  else
-  begin
-    if fst4.cbList = 0 then Result := 48; {JO: ошибка 48 в оси зарезервирована}
-    if not Silent then MessageBox(#3'Failed to QUERY EA SIZE for '+ FName+ ' , rc ::= %d.', @result, mfError or mfOkButton);
-  end;
-
-RetrieveEA := Result; {* ) RetrieveEA :=0;}
-end;
-
-function StoreEA(FName: String; pszName: PChar; ea: Pointer;
-  ulEASize: ULONG): Integer;
-var
-  eaop: EAOP2;
-  ulFEASize, ulOffset: ULONG;
-  PS: PChar;
-  PSArr: array[0..255] of Char;
-  Result: Longint;
-  FAttr: Word;
-  LWr, Cr, LAc: Longint;
-begin
-
-  FAttr:=GetFileAttr(FName);
-  GetFileAges(FName, LWr, Cr, LAc);
-  SetFileAttr(FName, FAttr and not Dos.ReadOnly);
-
-  PS := PSArr;
-  PS := StrPCopy (PS, FName);
-
-  ulFEASize := 4 + 4 + 1 + 1 + 2 + StrLen(pszName) + 1 + ulEASize;
-
-  GetMem(eaop.fpFEA2List, ulFEASize);
-
-  eaop.fpFEA2List^.cbList := ulFEASize;
-
-  with eaop.fpFEA2List^.list[0] do
-  begin
-
-    oNextEntryOffset := 0;
-    fEA := 0;
-    cbName := StrLen(pszName);
-    cbValue := ulEASize;
-    StrCopy(PChar(@szName), pszName);
-    ulOffset := ULONG(@eaop.fpFEA2List^.list[0]) + cbName + SizeOf(FEA2);
-    Move(ea^, Pointer(ulOffset)^, ulEASize);
-
-  end;
-
-  Result := DosSetPathInfo(PS, FIL_QUERYEASIZE, eaop, SizeOf(eaop),dspi_WrtThru);
-
-  FreeMem(eaop.fpFEA2List);
-
-SetFileAttr(FName, FAttr);
-SetFileAges(FName, LWr, Cr, LAc);
-StoreEA := Result;
-end;
+    SetFileAttr(FName, FAttr);
+    SetFileAges(FName, LWr, CR, LAc);
+    StoreEA := Result;
+  end { StoreEA };
 
 (*
 function GetEAType(ea: Pointer): SmallWord;
@@ -222,35 +240,40 @@ begin
 end;
 *)
 
-function RetrieveStringSize(ea: Pointer): ULONG;
-begin
- if ea = nil then RetrieveStringSize := 0
-   else RetrieveStringSize := PUSHORT(ULONG(ea) + 2)^;
-end;
+function RetrieveStringSize(ea: Pointer): ULong;
+  begin
+    if ea = nil then
+      RetrieveStringSize := 0
+    else
+      RetrieveStringSize := PUSHORT(ULong(ea)+2)^;
+  end;
 
 function RetrieveString(ea: Pointer; pszValue: PChar): PChar;
-var
-  ulLen: ULONG;
-begin
+  var
+    ulLen: ULong;
+  begin
 
-  ulLen := RetrieveStringSize(ea);
+    ulLen := RetrieveStringSize(ea);
 
-  if ulLen = 0 then pszValue[0] := #0
-    else StrLCopy(pszValue, PChar(ULONG(ea) + 4), ulLen);
+    if ulLen = 0 then
+      pszValue[0] := #0
+    else
+      StrLCopy(pszValue, PChar(ULong(ea)+4), ulLen);
 
-  RetrieveString := pszValue;
+    RetrieveString := pszValue;
 
 end;
 
 {$Delphi+}
-function BuildEAFromString(pszValue: PChar; var ulEASize: Cardinal): Pointer;
-{Var Result: Pointer;}
-begin
-  ulEASize := StrLen(pszValue) + 1 + 2 + 2;
-  GetMem(Result, ulEASize);
-  PUSHORT(Result)^ := EAT_ASCII;
-  PUSHORT(ULONG(Result) + 2)^ := StrLen(pszValue);
-  StrLCopy(PChar(ULONG(Result) + 4), pszValue, StrLen(pszValue));
-end;
+function BuildEAFromString(pszValue: PChar; var ulEASize: Cardinal):
+    Pointer;
+  {Var Result: Pointer;}
+  begin
+    ulEASize := StrLen(pszValue)+1+2+2;
+    GetMem(Result, ulEASize);
+    PUSHORT(Result)^:= EAT_ASCII;
+    PUSHORT(ULong(Result)+2)^:= StrLen(pszValue);
+    StrLCopy(PChar(ULong(Result)+4), pszValue, StrLen(pszValue));
+  end;
 
 end.

@@ -1,7 +1,0 @@
-vpsysw32.pas исправленная Win32 часть VPSysLow
-vpkbdw32.pas исправленный VpKbdW32 для Win32 - решает проблему русских букв под w9x, проблему "р" и проблему с правым Alt (любезно предоставленный Peter S. Voronov)
-killer.pas обработчик кнопки закрытия окна и Ctrl-Break
-files.pas System specific TFileRec definitions
-fltl.pas Win32-specific file tools unit by J.Osadtchiy (JO), A.Kozlov (Cat)
-fnotify.pas Directory Change Notifier - Win32 version
-proc_w32.pas Список процессов

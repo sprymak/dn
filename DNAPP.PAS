@@ -51,49 +51,48 @@ unit DNApp;
 interface
 
 uses
-  Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, LFN,
-  RStrings, Commands, xTime, Messages, Collect, Advance7, Startup
-  {$IFNDEF NONBP}, StakDump {$ENDIF}
+  Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, Lfn,
+  RStrings, Commands, xTime, Messages, Collect, advance7, Startup
   ;
 
 const
 
-  EventsLen: Byte = 0;
+  EventsLen: byte = 0;
   MaxEvents = 15;
 var
-  EventQueue: Array [1..MaxEvents] of TEvent;
+  EventQueue: array[1..MaxEvents] of TEvent;
 
 const
-  IdleWas : Boolean = false; { Used by GetEvent }
+  IdleWas: boolean = False; { Used by GetEvent }
 
-{ TApplication palette entries }
+  { TApplication palette entries }
 
-  apColor      = 0;
+  apColor = 0;
   apBlackWhite = 1;
   apMonochrome = 2;
 
-{ TApplication palettes }
+  { TApplication palettes }
 
   { Turbo Vision 1.0 Color Palettes }
 
   CColor =
-      #$0A#$70#$79#$75#$30#$39#$35#$8C#$8B#$8A#$31#$31#$78#$7F#$1F +
-    #$31#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E +
-    #$70#$70#$73#$13#$13#$70#$70#$7F#$75#$5B#$6F#$CF#$78#$5D#$78#$70 +
-    #$7F#$76#$0F#$9F#$0B#$9F#$79#$87#$78#$30#$0F#$3F#$31#$70#$79#$3E +
-    #$30#$38#$3F#$0F#$07#$0B#$87#$8F#$87#$87#$8B#$B0#$87#$7F#$1C#$00 +
-    #$87#$8B#$87#$8B#$B0#$8B#$8B#$0F#$30#$7F#$30#$8B#$87#$70#$87#$8F +
-    #$3F#$8F#$3F#$8E#$8E#$70#$8B#$87#$30#$3F#$0F#$3E#$0E#$31#$31#$00 +
-    #$87#$8F#$87#$8B#$B0#$87#$70#$8B#$30#$3F#$87#$8F#$87#$8F#$70#$7F +
-    #$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70#$37#$3F#$3F#$13#$13 +
-    #$30#$3F#$8F#$30#$38#$3E#$0F#$07#$0E#$87#$8B#$87#$87#$8B#$B0#$87 +
-    #$70#$8E#$30#$3B#$83#$8E#$38#$3F#$3A#$31#$3F#$70#$87#$8F#$8D#$89 +
-    #$84#$82#$C8#$6D#$80#$8C#$0C#$7C#$0B#$0F#$8B#$8B#$8E#$8F#$8D#$8B +
-    #$83#$86#$81#$8E#$8A#$8F#$8E#$83#$8F#$8D#$8B#$8F#$8E#$3F#$3F#$3F +
-    #$3F#$3F#$3F#$3F#$3F#$3F#$4F#$4F#$70#$0F#$78#$7E#$48#$0E#$3F#$3F +
-    #$08#$CF#$CE#$0F#$0E;
+  #$0A#$70#$79#$75#$30#$39#$35#$8C#$8B#$8A#$31#$31#$78#$7F#$1F+
+  #$31#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E+
+  #$70#$70#$73#$13#$13#$70#$70#$7F#$75#$5B#$6F#$CF#$78#$5D#$78#$70+
+  #$7F#$76#$0F#$9F#$0B#$9F#$79#$87#$78#$30#$0F#$3F#$31#$70#$79#$3E+
+  #$30#$38#$3F#$0F#$07#$0B#$87#$8F#$87#$87#$8B#$B0#$87#$7F#$1C#$00+
+  #$87#$8B#$87#$8B#$B0#$8B#$8B#$0F#$30#$7F#$30#$8B#$87#$70#$87#$8F+
+  #$3F#$8F#$3F#$8E#$8E#$70#$8B#$87#$30#$3F#$0F#$3E#$0E#$31#$31#$00+
+  #$87#$8F#$87#$8B#$B0#$87#$70#$8B#$30#$3F#$87#$8F#$87#$8F#$70#$7F+
+  #$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70#$37#$3F#$3F#$13#$13+
+  #$30#$3F#$8F#$30#$38#$3E#$0F#$07#$0E#$87#$8B#$87#$87#$8B#$B0#$87+
+  #$70#$8E#$30#$3B#$83#$8E#$38#$3F#$3A#$31#$3F#$70#$87#$8F#$8D#$89+
+  #$84#$82#$C8#$6D#$80#$8C#$0C#$7C#$0B#$0F#$8B#$8B#$8E#$8F#$8D#$8B+
+  #$83#$86#$81#$8E#$8A#$8F#$8E#$83#$8F#$8D#$8B#$8F#$8E#$3F#$3F#$3F+
+  #$3F#$3F#$3F#$3F#$3F#$3F#$4F#$4F#$70#$0F#$78#$7E#$48#$0E#$3F#$3F+
+  #$08#$CF#$CE#$0F#$0E;
 
-(*
+  (*
 { 01}#$71#$70#$78#$74#$20#$28#$24#$17#$1F#$1A#$31#$31#$78#$7F#$1F#$31 +
 { 17}#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E#$70 +
 { 33}#$7F#$7A#$13#$13#$70#$70#$7F#$7E#$8F#$8B#$9F#$78#$8E#$70#$78#$7F +
@@ -112,42 +111,48 @@ const
 *)
 
   CBlackWhite =
-        #$0F#$70#$78#$7F#$07#$07#$0F#$07#$0F#$07#$70#$70#$07#$70#$0F +
-    #$07#$0F#$07#$70#$70#$07#$70#$0F#$70#$7F#$7F#$70#$07#$70#$07#$0F +
-    #$70#$7F#$7F#$70#$07#$70#$70#$7F#$7F#$07#$0F#$0F#$78#$0F#$78#$07 +
-    #$0F#$0F#$0F#$70#$0F#$07#$70#$70#$70#$07#$70#$0F#$07#$07#$08#$00 +
-    #$70#$78#$7F#$07#$07#$0F#$07#$0F#$0F#$0F#$70#$70#$07#$70#$07#$00 +  { 64 - 79 Editor}
-    #$07#$0F#$0F#$70#$70#$07#$07#$F0#$70#$7F#$7F#$0F#$70#$70#$07#$07 +
-    #$70#$0F#$7F#$0F#$0F#$07#$70#$7F#$0F#$0F#$0F#$70#$7F#$0F#$0F#$00 +
-    #$07#$0F#$0F#$78#$78#$07#$78 +
-    #$07#$70#$7F#$07#$0F#$07#$0F + {119 - 125 - File Info}
-    #$70#$7F#$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70 + {126 - 138 - File Find}
-    #$07#$0F#$07#$70#$70#$07#$0F#$70 +
-    #$70#$78#$7F#$07#$07#$0F#$07#$0F#$0F#$0F#$70#$70#$07#$70#$0F#$70 +
-    #$0F#$08#$0F#$07#$0F#$0F#$0F#$07#$70#$07#$0F#$08#$07#$07#$07#$7F +
-    #$7F#$07#$07#$0F#$78#$08#$0F#$0F#$0F#$78#$0F#$0F#$0F#$07#$07#$07 +
-    #$07#$07#$0F#$0F#$08#$0F#$0F#$0F#$0F#$0F#$3F#$1F#$17#$71#$30#$3F +
-    #$7F#$1F#$1A#$70#$70#$07#$07#$08#$0F#$78#$7F#$1F#$17#$71#$30#$3F#$3F#$3F;
+  #$0F#$70#$78#$7F#$07#$07#$0F#$07#$0F#$07#$70#$70#$07#$70#$0F+
+  #$07#$0F#$07#$70#$70#$07#$70#$0F#$70#$7F#$7F#$70#$07#$70#$07#$0F+
+  #$70#$7F#$7F#$70#$07#$70#$70#$7F#$7F#$07#$0F#$0F#$78#$0F#$78#$07+
+  #$0F#$0F#$0F#$70#$0F#$07#$70#$70#$70#$07#$70#$0F#$07#$07#$08#$00+
+  #$70#$78#$7F#$07#$07#$0F#$07#$0F#$0F#$0F#$70#$70#$07#$70#$07#$00+
+    { 64 - 79 Editor}
+  #$07#$0F#$0F#$70#$70#$07#$07#$F0#$70#$7F#$7F#$0F#$70#$70#$07#$07+
+  #$70#$0F#$7F#$0F#$0F#$07#$70#$7F#$0F#$0F#$0F#$70#$7F#$0F#$0F#$00+
+  #$07#$0F#$0F#$78#$78#$07#$78+
+  #$07#$70#$7F#$07#$0F#$07#$0F+ {119 - 125 - File Info}
+  #$70#$7F#$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70+
+    {126 - 138 - File Find}
+  #$07#$0F#$07#$70#$70#$07#$0F#$70+
+  #$70#$78#$7F#$07#$07#$0F#$07#$0F#$0F#$0F#$70#$70#$07#$70#$0F#$70+
+  #$0F#$08#$0F#$07#$0F#$0F#$0F#$07#$70#$07#$0F#$08#$07#$07#$07#$7F+
+  #$7F#$07#$07#$0F#$78#$08#$0F#$0F#$0F#$78#$0F#$0F#$0F#$07#$07#$07+
+  #$07#$07#$0F#$0F#$08#$0F#$0F#$0F#$0F#$0F#$3F#$1F#$17#$71#$30#$3F+
+  #$7F#$1F#$1A#$70#$70#$07#$07#$08#$0F#$78#$7F#$1F#$17#$71#$30#$3F#$3F#$3F
+    ;
 
   CMonochrome =
-        #$70#$07#$07#$01#$70#$70#$0F#$07#$0F#$0F#$0F#$0F#$70#$0F#$1F +
-    #$31#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E +
-    #$70#$70#$70#$0F#$0F#$70#$70#$70#$0F#$07#$07#$07#$07#$01#$70#$70 +
-    #$07#$0F#$07#$70#$0F#$0F#$70#$0F#$0F#$07#$70#$01#$07#$70#$70#$0F +
-    #$70#$70#$01#$0F#$07#$01#$07#$0F#$0F#$0F#$0F#$0F#$07#$70#$1C#$00 +  { 64 - 79 Editor}
-    #$07#$0F#$0F#$0F#$0F#$07#$0F#$01#$70#$70#$70#$0F#$07#$0F#$07#$07 +
-    #$70#$0F#$70#$01#$01#$70#$0F#$07#$07#$07#$70#$0F#$70#$01#$01#$00 +
-    #$07#$0F#$0F#$0F#$0F#$07#$70 +
-    #$0F#$07#$0F#$07#$0F#$07#$0F + {119 - 125 - File Info}
-    #$70#$7F#$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70 + {126 - 138 - File Find}
-    #$07#$07#$0F#$0F#$0F#$07#$0F#$70 +
-    #$70#$70#$01#$0F#$07#$01#$07#$0F#$0F#$0F#$0F#$0F#$07#$70#$70#$70 +
-    #$01#$0F#$0F#$07#$0F#$0F#$0F#$07#$0F#$07#$07#$07#$07#$07#$07#$0F +
-    #$01#$07#$07#$01#$01#$0F#$01#$07#$0F#$70#$0F#$07#$0F#$07#$07#$07 +
-    #$07#$07#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F +
-    #$3F#$3F#$3F#$70#$70#$07#$07#$07#$01#$70#$0F#$3F#$3F#$01#$70#$70#$07#$0F;
+  #$70#$07#$07#$01#$70#$70#$0F#$07#$0F#$0F#$0F#$0F#$70#$0F#$1F+
+  #$31#$3F#$3A#$13#$13#$3E#$21#$3F#$70#$7F#$7A#$13#$13#$70#$7F#$7E+
+  #$70#$70#$70#$0F#$0F#$70#$70#$70#$0F#$07#$07#$07#$07#$01#$70#$70+
+  #$07#$0F#$07#$70#$0F#$0F#$70#$0F#$0F#$07#$70#$01#$07#$70#$70#$0F+
+  #$70#$70#$01#$0F#$07#$01#$07#$0F#$0F#$0F#$0F#$0F#$07#$70#$1C#$00+
+    { 64 - 79 Editor}
+  #$07#$0F#$0F#$0F#$0F#$07#$0F#$01#$70#$70#$70#$0F#$07#$0F#$07#$07+
+  #$70#$0F#$70#$01#$01#$70#$0F#$07#$07#$07#$70#$0F#$70#$01#$01#$00+
+  #$07#$0F#$0F#$0F#$0F#$07#$70+
+  #$0F#$07#$0F#$07#$0F#$07#$0F+ {119 - 125 - File Info}
+  #$70#$7F#$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70+
+    {126 - 138 - File Find}
+  #$07#$07#$0F#$0F#$0F#$07#$0F#$70+
+  #$70#$70#$01#$0F#$07#$01#$07#$0F#$0F#$0F#$0F#$0F#$07#$70#$70#$70+
+  #$01#$0F#$0F#$07#$0F#$0F#$0F#$07#$0F#$07#$07#$07#$07#$07#$07#$0F+
+  #$01#$07#$07#$01#$01#$0F#$01#$07#$0F#$70#$0F#$07#$0F#$07#$07#$07+
+  #$07#$07#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F#$3F+
+  #$3F#$3F#$3F#$70#$70#$07#$07#$07#$01#$70#$0F#$3F#$3F#$01#$70#$70#$07#$0F
+    ;
 
-(*{ Turbo Vision 2.0 Color Palettes }
+  (*{ Turbo Vision 2.0 Color Palettes }
 
   CAppColor =
         #$71#$70#$78#$74#$20#$28#$24#$17#$1F#$1A#$31#$31#$1E#$71#$1F +
@@ -179,55 +184,54 @@ const
     #$70#$70#$70#$07#$07#$70#$70#$70#$0F#$07#$07#$0F#$70#$0F#$70#$07 +
     #$0F#$0F#$07#$70#$07#$07#$70#$07#$07#$07#$70#$0F#$07#$07#$70#$00;
 *)
-{ TBackground palette }
+  { TBackground palette }
 
   CBackground = #1;
 
 const
   SystemColors: array[apColor..apMonochrome] of String =
-    (CColor, CBlackWhite, CMonochrome);
+  (CColor, CBlackWhite, CMonochrome);
 
 type
   PCacheCollection = ^TCacheCollection;
   TCacheCollection = object(TCollection)
     procedure FreeItem(Item: Pointer); virtual;
-    procedure PutItem(var S: TStream; Item: Pointer); virtual;
-    function GetItem(var S: TStream): Pointer; virtual;
-  end;
+    procedure PutItem(var s: TStream; Item: Pointer); virtual;
+    function GetItem(var s: TStream): Pointer; virtual;
+    end;
 
-
-{ TBackground object }
+  { TBackground object }
 
   PBackground = ^TBackground;
   TBackground = object(TView)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Pattern: Char;
-    constructor Init(var Bounds: TRect; APattern: Char);
-    constructor Load(var S: TStream);
+    Constructor Init(var Bounds: TRect; APattern: Char);
+    Constructor Load(var s: TStream);
     procedure Draw; virtual;
     function GetPalette: PPalette; virtual;
-    procedure Store(var S: TStream);
-  end;
+    procedure Store(var s: TStream);
+    end;
 
-{ TDesktop object }
+  { TDesktop object }
 
   PDesktop = ^TDesktop;
   TDesktop = object(TGroup)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Background: PBackground;
-    TileColumnsFirst: Boolean;
-    constructor Init(var Bounds: TRect);
-    constructor Load(var S: TStream);
+    TileColumnsFirst: boolean;
+    Constructor Init(var Bounds: TRect);
+    Constructor Load(var s: TStream);
     procedure Cascade(var R: TRect);
     procedure Clear;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure InitBackground; virtual;
-    procedure Store(var S: TStream);
+    procedure Store(var s: TStream);
     procedure Tile(var R: TRect);
     procedure TileError; virtual;
-  end;
+    end;
 
-{ TProgram object }
+  { TProgram object }
 
   { Palette layout }
   {     1 = TBackground }
@@ -239,21 +243,21 @@ type
 
   PProgram = ^TProgram;
   TProgram = object(TGroup)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     IdleSecs: TEventTimer;
     FullSpeed: boolean;
     {$IFDEF WIN32}
     {CS: CRITICAL_SECTION;}
     {$ENDIF}
-    constructor Init;
+    Constructor Init;
     destructor Done; virtual;
-    function CanMoveFocus: Boolean;
-    function ExecuteDialog(P: PDialog; Data: Pointer): Word;
-{$IFDEF SS}
+    function CanMoveFocus: boolean;
+    function ExecuteDialog(P: PDialog; Data: Pointer): word;
+    {$IFDEF SS}
     procedure InsertIdler;
-    procedure InsertIdlerN(N: integer);
-    procedure InsertAvIdlerN(Data: TSaversData; N: integer);
-{$ENDIF}
+    procedure InsertIdlerN(n: integer);
+    procedure InsertAvIdlerN(Data: TSaversData; n: integer);
+    {$ENDIF}
     procedure GetEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -268,20 +272,20 @@ type
     procedure OutOfMemory; virtual;
     procedure PutEvent(var Event: TEvent); virtual;
     procedure Run; virtual;
-    function SetScreenMode(Mode: Word): Boolean;
+    function SetScreenMode(Mode: word): boolean;
     function ValidView(P: PView): PView;
     procedure Redraw; virtual;
-    Procedure BFSpeed; {DataCompBoy}
-    Procedure EFSpeed; {DataCompBoy}
-   end;
+    procedure BFSpeed; {DataCompBoy}
+    procedure EFSpeed; {DataCompBoy}
+    end;
 
-{ TApplication object }
+  { TApplication object }
 
   PApplication = ^TApplication;
   TApplication = object(TProgram)
-  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Clock: PView;
-    constructor Init;
+    Constructor Init;
     destructor Done; virtual;
     procedure Cascade;
     procedure ShowUserScreen;
@@ -289,31 +293,33 @@ type
     procedure GetTileRect(var R: TRect); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Tile;
-  end;
+    end;
 
-{ Interface and resource procedures }
+  { Interface and resource procedures }
 
 procedure UpdateWriteView(P: Pointer);
 procedure InitStringCache;
 procedure OpenResource;
-function  ExecResource( Key: TDlgIdx; var Data): Word;
-function  LoadResource( Key: TDlgIdx ): PObject;
-function  GlobalMessage(What, Command: Word; InfoPtr: Pointer):pointer;
-function  GlobalMessageL(What, Command: Word; InfoLng: LongInt):pointer;
-procedure GlobalEvent(What, Command: Word; InfoPtr: Pointer);
-function  ViewPresent(Command: Word; InfoPtr: Pointer): PView;
-function  WriteMsg(Text: String): PView;
-function _WriteMsg(const Text: String): PView;
+function ExecResource(Key: TDlgIdx; var Data): word;
+function LoadResource(Key: TDlgIdx): PObject;
+function GlobalMessage(What, Command: word; InfoPtr: Pointer):
+  Pointer;
+function GlobalMessageL(What, Command: word; InfoLng: longInt):
+  Pointer;
+procedure GlobalEvent(What, Command: word; InfoPtr: Pointer);
+function ViewPresent(Command: word; InfoPtr: Pointer): PView;
+function WriteMsg(text: String): PView;
+function _WriteMsg(const text: String): PView;
 procedure ForceWriteShow(P: Pointer);
-function  GetString( Index: TStrIdx ): String;
-procedure ToggleCommandLine(OnOff: Boolean);
+function GetString(Index: TStrIdx): String;
+procedure ToggleCommandLine(OnOff: boolean);
 procedure AdjustToDesktopSize(var R: TRect; OldDeskSize: TPoint);
 
 const
 
-{ Public variables }
+  { Public variables }
 
-{Cat: порядок переменных не менять, иначе будут проблемы с плагинами}
+  {Cat: порядок переменных не менять, иначе будут проблемы с плагинами}
 
   Application: PProgram = nil;
   Desktop: PDesktop = nil;
@@ -322,286 +328,323 @@ const
   CommandLine: PView = nil;
   ResourceStream: PStream = nil;
   LngStream: PStream = nil;
-  LStringList : PStringList = nil;
-  Resource:  PIdxResource = nil;
+  LStringList: PStringList = nil;
+  Resource: PIdxResource = nil;
   StringCache: PCollection = nil;
-  AppPalette: Integer = apColor;
+  appPalette: integer = apColor;
 
 const
-  SkyVisible: Boolean = False;
+  SkyVisible: boolean = False;
 
 type
-   PWriteWin = ^TWriteWin;
-   TWriteWin = object(TWindow)
-     Tmr: TEventTimer;
-     IState: Byte;
-   end;
+  PWriteWin = ^TWriteWin;
+  TWriteWin = object(TWindow)
+    tmr: TEventTimer;
+    IState: byte;
+    end;
 
-{$IFDEF OS2}
+  {$IFDEF OS2}
 const
-  PMWindowed: Boolean = False;
-    {Устанавливается в dn2pmapi}
-{$ENDIF}
+  PMWindowed: boolean = False;
+  {Устанавливается в dn2pmapi}
+  {$ENDIF}
 
 implementation
 
 uses
   Dos, DNHelp, advance, advance1, advance2, VideoMan,
-  UserMenu, MicroEd, FViewer, DblWnd, CmdLine,
-  {$IFDEF DNPRG} {$IFDEF OS2} Dn2PmApi, {$ENDIF} {$ENDIF} {AK155}
-  {$IFDEF SS} Idlers, {$ENDIF}
-  {$IFDEF VIRTUALPASCAL} VpSysLow, {$ELSE} ExtraMem, {$ENDIF}
-  dnini,
-  DNExec;
+  UserMenu, Microed, FViewer, DblWnd, CmdLine,
+  {$IFDEF DNPRG} {$IFDEF OS2}Dn2PmApi, {$ENDIF} {$ENDIF} {AK155}
+  {$IFDEF SS}Idlers, {$ENDIF}
+  VpSysLow,
+  DnIni,
+  DnExec;
 
 var
 
-{ Private variables }
+  { Private variables }
 
   LastComTime: TEventTimer;
 
-procedure ToggleCommandLine(OnOff: Boolean);
-begin
-  if (CommandLine <> nil) and (CommandLine^.GetState(sfVisible) xor OnOff) then
-    Message(Application, evCommand, cmHideCmdLine, nil);
-end;
+procedure ToggleCommandLine(OnOff: boolean);
+  begin
+    if (CommandLine <> nil) and (CommandLine^.GetState(sfVisible)
+        xor OnOff)
+    then
+      Message(Application, evCommand, cmHideCmdLine, nil);
+  end;
 
 procedure AdjustToDesktopSize(var R: TRect; OldDeskSize: TPoint);
-  var KX, KY: Real;
-begin
-  if OldDeskSize.X = 0 then OldDeskSize.X := Desktop^.Size.X;
-  if OldDeskSize.Y = 0 then OldDeskSize.Y := Desktop^.Size.Y;
-  if Desktop^.Size.Equals(OldDeskSize) then Exit;
-  KX := Desktop^.Size.X/OldDeskSize.X;
-  R.A.X := Trunc(R.A.X*KX); R.B.X := Trunc(R.B.X*KX);
-  KY := Desktop^.Size.Y/OldDeskSize.Y;
-  R.A.Y := Trunc(R.A.Y*KY); R.B.Y := Trunc(R.B.Y*KY);
-  if R.Empty or (R.A.X >= Desktop^.Size.X) or (R.B.X < 0)
-             or (R.A.Y >= Desktop^.Size.Y) or (R.B.Y < 0)
-             or (R.B.X - R.A.X < MinWinSize.X)
-             or (R.B.Y - R.A.Y < MinWinSize.Y) then Desktop^.GetExtent(R);
-end;
+  var
+    KX, KY: real;
+  begin
+    if OldDeskSize.X = 0 then
+      OldDeskSize.X := Desktop^.Size.X;
+    if OldDeskSize.Y = 0 then
+      OldDeskSize.Y := Desktop^.Size.Y;
+    if Desktop^.Size.Equals(OldDeskSize) then
+      exit;
+    KX := Desktop^.Size.X/OldDeskSize.X;
+    R.A.X := Trunc(R.A.X*KX);
+    R.B.X := Trunc(R.B.X*KX);
+    KY := Desktop^.Size.Y/OldDeskSize.Y;
+    R.A.Y := Trunc(R.A.Y*KY);
+    R.B.Y := Trunc(R.B.Y*KY);
+    if R.Empty or (R.A.X >= Desktop^.Size.X) or (R.B.X < 0)
+      or (R.A.Y >= Desktop^.Size.Y) or (R.B.Y < 0)
+      or (R.B.X-R.A.X < MinWinSize.X)
+      or (R.B.Y-R.A.Y < MinWinSize.Y)
+    then
+      Desktop^.GetExtent(R);
+  end { AdjustToDesktopSize };
 
 { TBackground }
 
-constructor TBackground.Init(var Bounds: TRect; APattern: Char);
-begin
-  TView.Init(Bounds);
-  GrowMode := gfGrowHiX + gfGrowHiY;
-  Pattern := APattern;
-end;
+Constructor TBackground.Init(var Bounds: TRect; APattern: Char);
+  begin
+    TView.Init(Bounds);
+    GrowMode := gfGrowHiX+gfGrowHiY;
+    Pattern := APattern;
+  end;
 
-constructor TBackground.Load(var S: TStream);
-begin
-  TView.Load(S);
-  S.Read(Pattern, SizeOf(Pattern));
-end;
+Constructor TBackground.Load(var s: TStream);
+  begin
+    TView.Load(s);
+    s.Read(Pattern, SizeOf(Pattern));
+  end;
 
 procedure TBackground.Draw;
-var
-  B, B1: TDrawBuffer;
-  I, H, Src: Integer;
-begin
-  MoveChar(B, ' ', $07, Size.X);
+  var
+    B, B1: TDrawBuffer;
+    i, H, Src: integer;
+  begin
+    MoveChar(B, ' ', $07, Size.X);
 
-  if UserScreen = nil
-    then WriteLine(0, 0, Size.X, Size.Y, B)
-    else begin
-      H := (UserScreenSize div (UserScreenWidth*2));
-      Src := 0;
-      If (InterfaceData.Options and ouiHideMenu = 0) and (Size.Y <> Application^.Size.Y) then
+    if UserScreen = nil
+    then
+      WriteLine(0, 0, Size.X, Size.Y, B)
+    else
       begin
-        Inc( Src, UserScreenWidth );
-        Dec( H );
+        H := (UserScreenSize div (UserScreenWidth*2));
+        Src := 0;
+        if (InterfaceData.Options and ouiHideMenu = 0) and (Size.Y <>
+            Application^.Size.Y)
+        then
+          begin
+            Inc(Src, UserScreenWidth);
+            Dec(H);
+          end;
+        for i := 0 to H-1 do
+          begin
+            B1 := B;
+            Move(PWordArray(UserScreen)^[Src], B1, UserScreenWidth*2);
+            WriteLine(0, i, Size.X, 1, B1);
+            Inc(Src, UserScreenWidth);
+          end;
+        WriteLine(0, H, Size.X, Size.Y-H+1, B);
       end;
-      For I := 0 to H-1 do begin
-        B1 := B;
-        Move( PWordArray( UserScreen )^[ Src ], B1, UserScreenWidth * 2 );
-        WriteLine( 0, I, Size.X, 1, B1 );
-        Inc( Src, UserScreenWidth );
-      end;
-      WriteLine(0, H, Size.X, Size.Y - H + 1, B);
-    end;
-end;
+  end { TBackground.Draw };
 
 function TBackground.GetPalette: PPalette;
-const
-  P: string[Length(CBackground)] = CBackground;
-begin
-  GetPalette := @P;
-end;
+  const
+    P: String[Length(CBackground)] = CBackground;
+  begin
+    GetPalette := @P;
+  end;
 
-procedure TBackground.Store(var S: TStream);
-begin
-  TView.Store(S);
-  S.Write(Pattern, SizeOf(Pattern));
-end;
+procedure TBackground.Store(var s: TStream);
+  begin
+    TView.Store(s);
+    s.Write(Pattern, SizeOf(Pattern));
+  end;
 
 { TDesktop object }
 
-constructor TDesktop.Init(var Bounds: TRect);
-begin
-  inherited Init(Bounds);
-  GrowMode := gfGrowHiX + gfGrowHiY;
-  HelpCtx := hcDesktop;
-  InitBackground;
-  if Background <> nil then Insert(Background);
-end;
+Constructor TDesktop.Init(var Bounds: TRect);
+  begin
+    inherited Init(Bounds);
+    GrowMode := gfGrowHiX+gfGrowHiY;
+    HelpCtx := hcDesktop;
+    InitBackground;
+    if Background <> nil then
+      Insert(Background);
+  end;
 
-constructor TDesktop.Load(var S: TStream);
-begin
-  inherited Load(S);
-  GetSubViewPtr(S, Background);
-  if Background = nil then {Cat}
-    Fail;
-  S.Read(TileColumnsFirst, SizeOf(TileColumnsFirst));
-end;
+Constructor TDesktop.Load(var s: TStream);
+  begin
+    inherited Load(s);
+    GetSubViewPtr(s, Background);
+    if Background = nil then{Cat}
+      Fail;
+    s.Read(TileColumnsFirst, SizeOf(TileColumnsFirst));
+  end;
 
-function Tileable(P: PView): Boolean;
-begin
-  Tileable := (P^.Options and ofTileable <> 0) and
+function Tileable(P: PView): boolean;
+  begin
+    Tileable := (P^.Options and ofTileable <> 0) and
     (P^.State and sfVisible <> 0);
-end;
+  end;
 
 procedure TDesktop.Clear;
-  procedure CloseView(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-  begin Message(P, evCommand, cmClose, nil) end;
-begin
-  if Desktop^.Valid(cmClose) then Desktop^.ForEach(@CloseView);
-end;
+  procedure CloseView(P: PView);
+    begin
+      Message(P, evCommand, cmClose, nil)
+    end;
+  begin
+    if Desktop^.Valid(cmClose) then
+      Desktop^.ForEach(@CloseView);
+  end;
 
 procedure TDesktop.Cascade(var R: TRect);
-var
-  CascadeNum: Integer;
-  LastView: PView;
-  Min, Max: TPoint;
+  var
+    CascadeNum: integer;
+    LastView: PView;
+    Min, Max: TPoint;
 
-procedure DoCount(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  if Tileable(P) then
-  begin
-    Inc(CascadeNum);
-    LastView := P;
-  end;
-end;
-
-procedure DoCascade(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-var
-  NR: TRect;
-begin
-  if Tileable(P) and (CascadeNum >= 0) then
-  begin
-    NR.Copy(R);
-    Inc(NR.A.X, CascadeNum); Inc(NR.A.Y, CascadeNum);
-    P^.Locate(NR);
-    Dec(CascadeNum);
-  end;
-end;
-
-begin
-  CascadeNum := 0;
-  ForEach(@DoCount);
-  if CascadeNum > 0 then
-  begin
-    LastView^.SizeLimits(Min, Max);
-    if (Min.X > R.B.X - R.A.X - CascadeNum) or
-       (Min.Y > R.B.Y - R.A.Y - CascadeNum) then TileError
-    else
+  procedure DoCount(P: PView);
     begin
-      Dec(CascadeNum);
-      Lock;
-      ForEach(@DoCascade);
-      Unlock;
+      if Tileable(P) then
+        begin
+          Inc(CascadeNum);
+          LastView := P;
+        end;
     end;
-  end;
-end;
+
+  procedure DoCascade(P: PView);
+    var
+      NR: TRect;
+    begin
+      if Tileable(P) and (CascadeNum >= 0) then
+        begin
+          NR.Copy(R);
+          Inc(NR.A.X, CascadeNum);
+          Inc(NR.A.Y, CascadeNum);
+          P^.Locate(NR);
+          Dec(CascadeNum);
+        end;
+    end;
+
+  begin { TDesktop.Cascade }
+    CascadeNum := 0;
+    ForEach(@DoCount);
+    if CascadeNum > 0 then
+      begin
+        LastView^.SizeLimits(Min, Max);
+        if (Min.X > R.B.X-R.A.X-CascadeNum) or
+          (Min.Y > R.B.Y-R.A.Y-CascadeNum)
+        then
+          TileError
+        else
+          begin
+            Dec(CascadeNum);
+            Lock;
+            ForEach(@DoCascade);
+            UnLock;
+          end;
+      end;
+  end { TDesktop.Cascade };
 
 procedure TDesktop.HandleEvent(var Event: TEvent);
- var PCur, PNext: PView;
+  var
+    PCur, PNext: PView;
     E: TEvent;
 
-  procedure _Next; begin SelectNext(False); end;
-  procedure _Prev; begin if Valid(cmReleasedFocus) and (Current<>nil) then Current^.PutInFrontOf(Background); end;
+  procedure _Next;
+    begin
+      SelectNext(False);
+    end;
+  procedure _Prev;
+    begin
+      if Valid(cmReleasedFocus) and (Current <> nil) then
+        Current^.PutInFrontOf(Background);
+    end;
 
   procedure _NextSame;
-   var Old: PView;
-   begin
-    Old:=Desktop^.Current;
-    Lock;
-    Repeat _Next
-    until (Old=Desktop^.Current) or (TypeOf(Desktop^.Current^)=TypeOf(Old^));
-    UnLock;
-   end;
+    var
+      Old: PView;
+    begin
+      Old := Desktop^.Current;
+      Lock;
+      repeat
+        _Next
+      until (Old = Desktop^.Current) or (TypeOf(Desktop^.Current^) =
+        TypeOf(Old^));
+      UnLock;
+    end;
 
   procedure _PrevSame;
-   var Old: PView;
-   begin
-    Old:=Desktop^.Current;
-    Lock;
-    Repeat _Prev;
-    until (Old=Desktop^.Current) or (TypeOf(Desktop^.Current^)=TypeOf(Old^));
-    UnLock;
-  end;
+    var
+      Old: PView;
+    begin
+      Old := Desktop^.Current;
+      Lock;
+      repeat
+        _Prev;
+      until (Old = Desktop^.Current) or (TypeOf(Desktop^.Current^) =
+        TypeOf(Old^));
+      UnLock;
+    end;
 
   procedure _NextOther;
-   var Old: PView;
-   begin
-    Old:=Desktop^.Current;
-    Lock;
-    Repeat _Next
-    until (Old=Desktop^.Current) or (TypeOf(Desktop^.Current^)<>TypeOf(Old^));
-    UnLock;
-   end;
+    var
+      Old: PView;
+    begin
+      Old := Desktop^.Current;
+      Lock;
+      repeat
+        _Next
+      until (Old = Desktop^.Current) or (TypeOf(Desktop^.Current^) <>
+        TypeOf(Old^));
+      UnLock;
+    end;
 
   procedure _PrevOther;
-   var Old: PView;
-   begin
-    Old:=Desktop^.Current;
-    Lock;
-    Repeat _Prev;
-    until (Old=Desktop^.Current) or (TypeOf(Desktop^.Current^)<>TypeOf(Old^));
-    UnLock;
-  end;
-
-begin
-  TGroup.HandleEvent(Event);
-  if Event.What = evCommand then
-  begin
-    case Event.Command of
-     cmNext: _Next;
-     cmPrev: _Prev;
-     cmNext2:  _NextSame;
-     cmPrev2:  _PrevSame;
-     cmNext3:  _NextOther;
-     cmPrev3:  _PrevOther;
-     else      Exit;
+    var
+      Old: PView;
+    begin
+      Old := Desktop^.Current;
+      Lock;
+      repeat
+        _Prev;
+      until (Old = Desktop^.Current) or (TypeOf(Desktop^.Current^) <>
+        TypeOf(Old^));
+      UnLock;
     end;
-    ClearEvent(Event);
-  end;
-end;
+
+  begin { TDesktop.HandleEvent }
+    TGroup.HandleEvent(Event);
+    if Event.What = evCommand then
+      begin
+        case Event.Command of
+          cmNext:
+            _Next;
+          cmPrev:
+            _Prev;
+          cmNext2:
+            _NextSame;
+          cmPrev2:
+            _PrevSame;
+          cmNext3:
+            _NextOther;
+          cmPrev3:
+            _PrevOther;
+          else
+            exit;
+        end {case};
+        ClearEvent(Event);
+      end;
+  end { TDesktop.HandleEvent };
 
 procedure TDesktop.InitBackground;
-var
-  R: TRect;
-begin
-  GetExtent(R);
-  New(Background, Init(R, #176));
-end;
+  var
+    R: TRect;
+  begin
+    GetExtent(R);
+    New(Background, Init(R, #176));
+  end;
 
-function ISqr(X: Integer): Integer; assembler;
-{$IFNDEF BIT_32}
-asm
-        MOV     CX,X
-        XOR     BX,BX
-@@1:    INC     BX
-        MOV     AX,BX
-        IMUL    AX
-        CMP     AX,CX
-        JLE     @@1
-        MOV     AX,BX
-        DEC     AX
-end;
-{$ELSE BIT_32}{&Frame-}{$USES EBX, ECX}
+function ISqr(X: integer): integer; assembler;
+  {&Frame-} {$USES EBX, ECX}
 asm
         MOV     ECX,X
         XOR     EBX,EBX
@@ -612,349 +655,404 @@ asm
         JLE     @@1
         MOV     EAX,EBX
         DEC     EAX
-end;
-{$ENDIF}
+end
+  ;
 
-procedure MostEqualDivisors(N: Integer; var X, Y: Integer; FavorY: Boolean);
-var
-  I: Integer;
-begin
-  I := ISqr(N);
-  if ((N mod I) <> 0) then
-    if (N mod (I+1)) = 0 then Inc(I);
-  if I < (N div I) then I := N div I;
-  if FavorY then
+procedure MostEqualDivisors(n: integer; var X, Y: integer; FavorY:
+    boolean);
+  var
+    i: integer;
   begin
-    X := N div I;
-    Y := I;
-  end
-  else
+    i := ISqr(n);
+    if ((n mod i) <> 0) then
+      if (n mod (i+1)) = 0 then
+        Inc(i);
+    if i < (n div i) then
+      i := n div i;
+    if FavorY then
+      begin
+        X := n div i;
+        Y := i;
+      end
+    else
+      begin
+        Y := n div i;
+        X := i;
+      end;
+  end { MostEqualDivisors };
+
+procedure TDesktop.Store(var s: TStream);
   begin
-    Y := N div I;
-    X := I;
+    inherited Store(s);
+    PutSubViewPtr(s, Background);
+    s.Write(TileColumnsFirst, SizeOf(TileColumnsFirst));
   end;
-end;
-
-procedure TDesktop.Store(var S: TStream);
-begin
-  inherited Store(S);
-  PutSubViewPtr(S, Background);
-  S.Write(TileColumnsFirst, SizeOf(TileColumnsFirst));
-end;
 
 procedure TDesktop.Tile(var R: TRect);
-var
-  NumCols, NumRows, NumTileable, LeftOver, TileNum: Integer;
+  var
+    NumCols, NumRows, NumTileable, LeftOver, TileNum: integer;
 
-procedure DoCountTileable(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  if Tileable(P) then Inc(NumTileable);
-end;
-
-function DividerLoc(Lo, Hi, Num, Pos: Integer): Integer;
-begin
-  DividerLoc := LongDiv(LongMul(Hi - Lo, Pos), Num) + Lo;
-end;
-
-procedure CalcTileRect(Pos: Integer; var NR: TRect);
-var
-  X,Y,D: Integer;
-begin
-  D := (NumCols - LeftOver) * NumRows;
-  if Pos < D then
-  begin
-    X := Pos div NumRows;
-    Y := Pos mod NumRows;
-  end else
-  begin
-    X := (Pos - D) div (NumRows + 1) + (NumCols - LeftOver);
-    Y := (Pos - D) mod (NumRows + 1);
-  end;
-  NR.A.X := DividerLoc(R.A.X, R.B.X, NumCols, X);
-  NR.B.X := DividerLoc(R.A.X, R.B.X, NumCols, X+1);
-  if Pos >= D then
-  begin
-    NR.A.Y := DividerLoc(R.A.Y, R.B.Y, NumRows+1, Y);
-    NR.B.Y := DividerLoc(R.A.Y, R.B.Y, NumRows+1, Y+1);
-  end else
-  begin
-    NR.A.Y := DividerLoc(R.A.Y, R.B.Y, NumRows, Y);
-    NR.B.Y := DividerLoc(R.A.Y, R.B.Y, NumRows, Y+1);
-  end;
-end;
-
-procedure DoTile(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-var
-  R: TRect;
-begin
-  if Tileable(P) then
-  begin
-    CalcTileRect(TileNum, R);
-    P^.Locate(R);
-    Dec(TileNum);
-  end;
-end;
-
-begin
-  NumTileable := 0;
-  ForEach(@DoCountTileable);
-  if NumTileable > 0 then
-  begin
-    MostEqualDivisors(NumTileable, NumCols, NumRows, not TileColumnsFirst);
-    if ((R.B.X - R.A.X) div NumCols = 0) or
-       ((R.B.Y - R.A.Y) div NumRows = 0) then TileError
-    else
+  procedure DoCountTileable(P: PView);
     begin
-      LeftOver := NumTileable mod NumCols;
-      TileNum := NumTileable-1;
-      Lock;
-      ForEach(@DoTile);
-      Unlock;
+      if Tileable(P) then
+        Inc(NumTileable);
     end;
-  end;
-end;
+
+  function DividerLoc(Lo, Hi, Num, Pos: integer): integer;
+    begin
+      DividerLoc := LongDiv(longmul(Hi-Lo, Pos), Num)+Lo;
+    end;
+
+  procedure CalcTileRect(Pos: integer; var NR: TRect);
+    var
+      X, Y, D: integer;
+    begin
+      D := (NumCols-LeftOver)*NumRows;
+      if Pos < D then
+        begin
+          X := Pos div NumRows;
+          Y := Pos mod NumRows;
+        end
+      else
+        begin
+          X := (Pos-D) div (NumRows+1)+(NumCols-LeftOver);
+          Y := (Pos-D) mod (NumRows+1);
+        end;
+      NR.A.X := DividerLoc(R.A.X, R.B.X, NumCols, X);
+      NR.B.X := DividerLoc(R.A.X, R.B.X, NumCols, X+1);
+      if Pos >= D then
+        begin
+          NR.A.Y := DividerLoc(R.A.Y, R.B.Y, NumRows+1, Y);
+          NR.B.Y := DividerLoc(R.A.Y, R.B.Y, NumRows+1, Y+1);
+        end
+      else
+        begin
+          NR.A.Y := DividerLoc(R.A.Y, R.B.Y, NumRows, Y);
+          NR.B.Y := DividerLoc(R.A.Y, R.B.Y, NumRows, Y+1);
+        end;
+    end { CalcTileRect };
+
+  procedure DoTile(P: PView);
+    var
+      R: TRect;
+    begin
+      if Tileable(P) then
+        begin
+          CalcTileRect(TileNum, R);
+          P^.Locate(R);
+          Dec(TileNum);
+        end;
+    end;
+
+  begin { TDesktop.Tile }
+    NumTileable := 0;
+    ForEach(@DoCountTileable);
+    if NumTileable > 0 then
+      begin
+        MostEqualDivisors(NumTileable, NumCols, NumRows, not
+          TileColumnsFirst);
+        if ((R.B.X-R.A.X) div NumCols = 0) or
+          ((R.B.Y-R.A.Y) div NumRows = 0)
+        then
+          TileError
+        else
+          begin
+            LeftOver := NumTileable mod NumCols;
+            TileNum := NumTileable-1;
+            Lock;
+            ForEach(@DoTile);
+            UnLock;
+          end;
+      end;
+  end { TDesktop.Tile };
 
 procedure TDesktop.TileError;
-begin
-end;
+  begin
+  end;
 
 { TProgram }
 
-constructor TProgram.Init;
-var
-  R: TRect;
-begin
-  Application := @Self;
-  InitScreen;
-  R.Assign(0, 0, ScreenWidth, ScreenHeight);
-  TGroup.Init(R);
-  State := sfVisible + sfSelected + sfFocused + sfModal + sfExposed;
-  Options := 0;
-  Buffer := ScreenBuffer;
-  InitStatusLine;
-  InitMenuBar;
-  InitDesktop;
-  if StatusLine <> nil then Insert( StatusLine );
-  if MenuBar <> nil then Insert(MenuBar);
-  if Desktop <> nil then Insert(Desktop);
-  InitCommandLine;
-  if StatusLine <> nil then StatusLine^.GrowTo(StatusLine^.Size.X, 1);
-  if MenuBar <> nil then MenuBar^.GrowTo(MenuBar^.Size.X, 1);
-  NewTimer(LastComTime, 0);
-  NewTimer(IdleSecs, 0);
-end;
+Constructor TProgram.Init;
+  var
+    R: TRect;
+  begin
+    Application := @Self;
+    InitScreen;
+    R.Assign(0, 0, ScreenWidth, ScreenHeight);
+    TGroup.Init(R);
+    State := sfVisible+sfSelected+sfFocused+sfModal+sfExposed;
+    Options := 0;
+    Buffer := ScreenBuffer;
+    InitStatusLine;
+    InitMenuBar;
+    InitDesktop;
+    if StatusLine <> nil then
+      Insert(StatusLine);
+    if MenuBar <> nil then
+      Insert(MenuBar);
+    if Desktop <> nil then
+      Insert(Desktop);
+    InitCommandLine;
+    if StatusLine <> nil then
+      StatusLine^.GrowTo(StatusLine^.Size.X, 1);
+    if MenuBar <> nil then
+      MenuBar^.GrowTo(MenuBar^.Size.X, 1);
+    NewTimer(LastComTime, 0);
+    NewTimer(IdleSecs, 0);
+  end { TProgram.Init };
 
 destructor TProgram.Done;
-begin
-  if MenuBar    <> nil then Dispose(MenuBar,Done);    MenuBar:=nil;
-  if StatusLine <> nil then Dispose(StatusLine,Done); StatusLine:=nil;
-  if Desktop    <> nil then Dispose(Desktop,Done);    DeskTop:=nil;
-  Application := nil;
-  inherited Done;
-end;
-
-function TProgram.CanMoveFocus: Boolean;
-begin
-  CanMoveFocus := Desktop^.Valid(cmReleasedFocus);
-end;
-
-function TProgram.ExecuteDialog(P: PDialog; Data: Pointer): Word;
-var
-  C: Word;
-begin
-  ExecuteDialog := cmCancel;
-  if ValidView(P) <> nil then
   begin
-    if Data <> nil then P^.SetData(Data^);
-    C := {Desktop^.}ExecView(P); { X-Man }
-    if (C <> cmCancel) and (Data <> nil) then P^.GetData(Data^);
-    Dispose(P,Done);
-    ExecuteDialog := C;
+    if MenuBar <> nil then
+      Dispose(MenuBar, Done);
+    MenuBar := nil;
+    if StatusLine <> nil then
+      Dispose(StatusLine, Done);
+    StatusLine := nil;
+    if Desktop <> nil then
+      Dispose(Desktop, Done);
+    Desktop := nil;
+    Application := nil;
+    inherited Done;
   end;
-end;
+
+function TProgram.CanMoveFocus: boolean;
+  begin
+    CanMoveFocus := Desktop^.Valid(cmReleasedFocus);
+  end;
+
+function TProgram.ExecuteDialog(P: PDialog; Data: Pointer): word;
+  var
+    C: word;
+  begin
+    ExecuteDialog := cmCancel;
+    if ValidView(P) <> nil then
+      begin
+        if Data <> nil then
+          P^.SetData(Data^);
+        C := {Desktop^.}ExecView(P); { X-Man }
+        if (C <> cmCancel) and (Data <> nil) then
+          P^.GetData(Data^);
+        Dispose(P, Done);
+        ExecuteDialog := C;
+      end;
+  end;
 
 procedure ExecExit;
-   var S: String; {DataCompBoy}
-begin
-  {if SSaver <> nil then SSaver^.Free;}
-  S := GetEnv('DNIDLE');
-  if S = '' then
-    begin
-      TottalExit:=true;
-      Application^.Done;
-      SysTVInitCursor;
-      Halt(0);
-    end
-  else
-    Message(Application, evCommand, cmExecString, @S);
-end;
+  var
+    s: String; {DataCompBoy}
+  begin
+    {if SSaver <> nil then SSaver^.Free;}
+    s := GetEnv('DNIDLE');
+    if s = '' then
+      begin
+        TottalExit := True;
+        Application^.Done;
+        SysTVInitCursor;
+        Halt(0);
+      end
+    else
+      Message(Application, evCommand, cmExecString, @S);
+  end;
 
 {$IFDEF SS}
 procedure TProgram.InsertIdler;
-begin
-  if {$IFDEF OS2} PMWindowed or {$ENDIF} (SkyEnabled > 0) or SaversData.Mouse and
-  (MouseWhere.Y= Size.Y-1) and (MouseWhere.X = Size.X-1)
-   or (SaversData.Selected.List = nil) or
+  begin
+    if {$IFDEF OS2}PMWindowed or {$ENDIF}(SkyEnabled > 0) or
+        SaversData.Mouse and
+      (MouseWhere.Y = Size.Y-1) and (MouseWhere.X = Size.X-1)
+      or (SaversData.Selected.List = nil) or
       (SaversData.Selected.List^.Count = 0) or
-      (SSaver <> nil) then Exit;
-  InsertIdlerN(Random(SaversData.Selected.List^.Count));
-end;
+      (SSaver <> nil)
+    then
+      exit;
+    InsertIdlerN(Random(SaversData.Selected.List^.Count));
+  end;
 
 procedure TProgram.InsertIdlerN;
-var I: Integer;
-    S: String;
+  var
+    i: integer;
+    s: String;
     R: TRect;
     Event: TEvent;
-    MX, MY: Word;
-begin
-  if (SkyEnabled > 0) or SaversData.Mouse and
-  (MouseWhere.Y= Size.Y-1) and (MouseWhere.X = Size.X-1)
-   or (SaversData.Selected.List = nil) or
+    MX, MY: word;
+  begin
+    if (SkyEnabled > 0) or SaversData.Mouse and
+      (MouseWhere.Y = Size.Y-1) and (MouseWhere.X = Size.X-1)
+      or (SaversData.Selected.List = nil) or
       (SaversData.Selected.List^.Count = 0) or
-      (SSaver <> nil) then Exit;
+      (SSaver <> nil)
+    then
+      exit;
 
-  S := PString(SaversData.Selected.List^.At(N))^;
-  if S[1] = #249 then
-    begin
-      Application^.GetExtent(R);
-      case S[3] of
-         'F': SSaver := New(PProjector, Init);
-         'B': SSaver := New(PSSaver, Init(R));
-         'C': SSaver := New(PClockSaver, Init);
-         else SSaver := New(PStarSkySaver, Init);
+    s := PString(SaversData.Selected.List^.At(n))^;
+    if s[1] = #249 then
+      begin
+        Application^.GetExtent(R);
+        case s[3] of
+          'F':
+            SSaver := New(PProjector, Init);
+          'B':
+            SSaver := New(PSSaver, Init(R));
+          'C':
+            SSaver := New(PClockSaver, Init);
+          else
+            SSaver := New(PStarSkySaver, Init);
+        end {case};
+        if (SSaver <> nil) then
+          begin
+            if ExecView(SSaver) = cmCancel then
+              ExecExit;
+            Dispose(SSaver, Done);
+            SSaver := nil;
+          end;
+      end
+    else
+      begin
+        CallExternalSaver(s);
       end;
-      if (SSaver <> nil) then
-       begin
-         if ExecView(SSaver) = cmCancel then ExecExit;
-         Dispose(SSaver,Done);
-         SSaver:=nil;
-       end;
-    end else begin
-               CallExternalSaver(S);
-             end;
-end;
+  end { TProgram.InsertIdlerN };
 
 procedure TProgram.InsertAvIdlerN;
-var I: Integer;
-    S: String;
+  var
+    i: integer;
+    s: String;
     R: TRect;
     Event: TEvent;
-    MX, MY: Word;
-begin
-  if (SkyEnabled > 0) or SaversData.Mouse and
-  (MouseWhere.Y= Size.Y-1) and (MouseWhere.X = Size.X-1)
-   or (Data.Available.List = nil) or
+    MX, MY: word;
+  begin
+    if (SkyEnabled > 0) or SaversData.Mouse and
+      (MouseWhere.Y = Size.Y-1) and (MouseWhere.X = Size.X-1)
+      or (Data.Available.List = nil) or
       (Data.Available.List^.Count = 0) or
-      (SSaver <> nil) then Exit;
+      (SSaver <> nil)
+    then
+      exit;
 
-  S := PString(Data.Available.List^.At(N))^;
-  if S[1] = #249 then
-    begin
-      Application^.GetExtent(R);
-      case S[3] of
-         'F': SSaver := New(PProjector, Init);
-         'B': SSaver := New(PSSaver, Init(R));
-         'C': SSaver := New(PClockSaver, Init);
-         else SSaver := New(PStarSkySaver, Init);
-      end;
-      if (SSaver <> nil) then
-       begin
-         if ExecView(SSaver) = cmCancel then ExecExit;
-         Dispose(SSaver,Done);
-         SSaver:=nil;
-       end;
-    end else CallExternalSaver(S);
-end;
+    s := PString(Data.Available.List^.At(n))^;
+    if s[1] = #249 then
+      begin
+        Application^.GetExtent(R);
+        case s[3] of
+          'F':
+            SSaver := New(PProjector, Init);
+          'B':
+            SSaver := New(PSSaver, Init(R));
+          'C':
+            SSaver := New(PClockSaver, Init);
+          else
+            SSaver := New(PStarSkySaver, Init);
+        end {case};
+        if (SSaver <> nil) then
+          begin
+            if ExecView(SSaver) = cmCancel then
+              ExecExit;
+            Dispose(SSaver, Done);
+            SSaver := nil;
+          end;
+      end
+    else
+      CallExternalSaver(s);
+  end { TProgram.InsertAvIdlerN };
 {$ENDIF}
 
 procedure TProgram.GetEvent(var Event: TEvent);
 
-function ContainsMouse(P: PView): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
-begin
-  ContainsMouse := (P^.State and sfVisible <> 0) and
-    P^.MouseInView(Event.Where);
-end;
-
-var
-    P: Procedure;
-    R: TRect;
-    A1, A2, CursorY: {$IFNDEF VIRTUALPASCAL}Word{$ELSE}SmallWord{$ENDIF};
-    y1, y2: integer;
-label 11;
-begin
-11:
-  {$IFDEF VIRTUALPASCAL}
-  ShiftState:=SysTVGetShiftState;
-  {$ENDIF}
-  if EventsLen > 0 then
-  begin
-    Event := EventQueue[1];
-    Dec(EventsLen);
-    Move(EventQueue[2], EventQueue[1], SizeOf(Event)*EventsLen);
-    NewTimer(IdleSecs, 0);
-    SliceAwake;
-  end else
-  begin
-    EventsLen := 0;
-    GetMouseEvent(Event);
-    if Event.What = evNothing then
+  function ContainsMouse(P: PView): boolean;
     begin
-{$IFDEF DNPRG}{$IFDEF OS2}
-   {AK155 В неактивном оконном состоянии не надо реагировать на
-          Shift, Alt, Ctrl}
-    if (not DN_IsBGWindow) then
-{$ENDIF}{$ENDIF}
-      GetKeyEvent(Event);
-      if Event.What = evNothing then
-       begin
-         Idle;
-         if EventsLen > 0 then goto 11;
-         if (ElapsedTimeInSecs(IdleSecs) > 3600) and
-            (StartupData.Unload and osuInactivityExit <> 0) then
-           begin
-             ExecExit;
-           end;
-       end else
+      ContainsMouse := (P^.State and sfVisible <> 0) and
+      P^.MouseInView(Event.Where);
+    end;
+
+  var
+    P: procedure;
+    R: TRect;
+    A1, A2, CursorY: SmallWord;
+    Y1, Y2: integer;
+  label 11;
+  begin
+11:
+    ShiftState := SysTVGetShiftState;
+    if EventsLen > 0 then
       begin
+        Event := EventQueue[1];
+        Dec(EventsLen);
+        Move(EventQueue[2], EventQueue[1], SizeOf(Event)*EventsLen);
         NewTimer(IdleSecs, 0);
         SliceAwake;
+      end
+    else
+      begin
+        EventsLen := 0;
+        GetMouseEvent(Event);
+        if Event.What = evNothing then
+          begin
+            {$IFDEF DNPRG} {$IFDEF OS2}
+            {AK155 В неактивном оконном состоянии не надо реагировать на
+          Shift, Alt, Ctrl}
+            if (not DN_IsBGWindow) then
+              {$ENDIF} {$ENDIF}
+              GetKeyEvent(Event);
+            if Event.What = evNothing then
+              begin
+                Idle;
+                if EventsLen > 0 then
+                  goto 11;
+                if (ElapsedTimeInSecs(IdleSecs) > 3600) and
+                  (StartupData.Unload and osuInactivityExit <> 0)
+                then
+                  begin
+                    ExecExit;
+                  end;
+              end
+            else
+              begin
+                NewTimer(IdleSecs, 0);
+                SliceAwake;
+              end;
+          end
+        else
+          begin
+            NewTimer(IdleSecs, 0);
+            SliceAwake;
+          end;
       end;
-    end else
-    begin
-      NewTimer(IdleSecs, 0);
-      SliceAwake;
-    end;
-  end;
 
-  if (Event.What <> evNothing) or (SkyEnabled <> 0) then NewTimer(LastComTime, 0) else
-{$IFDEF SS}
-  if (SSaver = nil) and (SkyEnabled=0) and (SkyDelay <> 255) and
-     (ElapsedTimeInSecs(LastComTime) >= SkyDelay*60) then
-           begin
-            InsertIdler;
-            NewTimer(LastComTime, 0)
-           end;
-{$ENDIF}
-  if (StatusLine <> nil)
-{$IFDEF SS}
-     and (SSaver = nil)
-{$ENDIF}
-   then
-    if (Event.What and evMouseDown <> 0) and (Event.Buttons and mbLeftButton <> 0) and
-       (FirstThat(@ContainsMouse) = PView(StatusLine)) then
+    if (Event.What <> evNothing) or (SkyEnabled <> 0) then
+      NewTimer(LastComTime, 0)
+    else
+      {$IFDEF SS} if (SSaver = nil) and (SkyEnabled = 0) and (
+        SkyDelay <> 255) and
+      (ElapsedTimeInSecs(LastComTime) >= SkyDelay*60)
+    then
+      begin
+        InsertIdler;
+        NewTimer(LastComTime, 0)
+      end;
+    {$ENDIF}
+    if (StatusLine <> nil)
+      {$IFDEF SS}
+      and (SSaver = nil)
+      {$ENDIF}
+    then
+      if (Event.What and evMouseDown <> 0) and (Event.Buttons and
+          mbLeftButton <> 0) and
+        (FirstThat(@ContainsMouse) = PView(StatusLine))
+      then
         StatusLine^.HandleEvent(Event);
 
-  if (IdleWas) and
-     (SkyEnabled = 0) and
-{$IFDEF SS}
-     (SSaver = nil) and
-{$ENDIF}
-     (CommandLine <> nil) and
-     (CommandLine^.Size.Y <> 0) and
-     (CommandLine^.GetState(sfVisible)) then
-  begin
-    IdleWas := False;
-(*
+    if (IdleWas) and
+      (SkyEnabled = 0) and
+      {$IFDEF SS}
+      (SSaver = nil) and
+      {$ENDIF}
+      (CommandLine <> nil) and
+      (CommandLine^.Size.Y <> 0) and
+      (CommandLine^.GetState(sfVisible))
+    then
+      begin
+        IdleWas := False;
+        (*
  {AK155 12-12-2001 Это хитрое условие вызова CommandLine^.Update было нужно,
  чтобы комстрока не отнимала курсор у строк ввода, редактора и т.п. Но теперь
 весь анализ перенесен внутрь CommandLine^.Update }
@@ -973,227 +1071,243 @@ begin
     if CursorY = Size.Y - 1 - Byte( InterfaceData.Options and ouiHideStatus = 0 )
     then
 {/AK155}*)
-  CommandLine^.Update;
-  end;
-end;
+        CommandLine^.UpDate;
+      end;
+  end { TProgram.GetEvent };
 
 function TProgram.GetPalette: PPalette;
-begin
-  GetPalette := @SystemColors[AppPalette];
-end;
+  begin
+    GetPalette := @SystemColors[appPalette];
+  end;
 
 procedure TProgram.Redraw;
-begin
- if (Size.X <> ScreenWidth) or (Size.Y <> ScreenHeight) then
-  GrowTo(ScreenWidth, ScreenHeight) else inherited Redraw;
-end;
+  begin
+    if (Size.X <> ScreenWidth) or (Size.Y <> ScreenHeight) then
+      GrowTo(ScreenWidth, ScreenHeight)
+    else
+      inherited Redraw;
+  end;
 
 procedure TProgram.HandleEvent(var Event: TEvent);
-var
-  I: Word;
-  C: Char;
-begin
-  if (Event.What = evKeyDown) and
-     (Event.KeyCode>=kbCtrlShift1) and
-     (Event.KeyCode<=kbCtrlShift9)
-   then if MessageL(Desktop, evBroadCast,
-                    cmSelectWindowNum,
-                    (Event.KeyCode - kbCtrlShift1) shr 8 + 1) <> nil
-         then ClearEvent(Event);
-  TGroup.HandleEvent(Event);
-  if Event.What = evCommand then
-    if Event.Command = cmQuit then
-    begin
-      EndModal(cmQuit);
-      ClearEvent(Event);
-    end;
-end;
+  var
+    i: word;
+    C: Char;
+  begin
+    if (Event.What = evKeyDown) and
+      (Event.KeyCode >= kbCtrlShift1) and
+      (Event.KeyCode <= kbCtrlShift9)
+    then
+      if MessageL(Desktop, evBroadcast,
+        cmSelectWindowNum,
+        (Event.KeyCode-kbCtrlShift1) shr 8+1) <> nil
+      then
+        ClearEvent(Event);
+    TGroup.HandleEvent(Event);
+    if Event.What = evCommand then
+      if Event.Command = cmQuit then
+        begin
+          EndModal(cmQuit);
+          ClearEvent(Event);
+        end;
+  end { TProgram.HandleEvent };
 
 procedure TProgram.Idle;
- var P: PView;
-     E: TEvent;
-     A1, A2: Word;
-begin
-{$IFDEF DNPRG}{$IFDEF OS2}
-   {AK155 В неактивном оконном состоянии не надо реагировать на
-          Shift, Alt, Ctrl}
-  if not DN_IsBGWindow then
-{$ENDIF}{$ENDIF}
-  if StatusLine <> nil then StatusLine^.Update;
-  if CommandSetChanged then
+  var
+    P: PView;
+    E: TEvent;
+    A1, A2: word;
   begin
-    Message(@Self, evBroadcast, cmCommandSetChanged, nil);
-    CommandSetChanged := False;
+    {$IFDEF DNPRG} {$IFDEF OS2}
+    {AK155 В неактивном оконном состоянии не надо реагировать на
+          Shift, Alt, Ctrl}
+    if not DN_IsBGWindow then
+      {$ENDIF} {$ENDIF}
+      if StatusLine <> nil then
+        StatusLine^.UpDate;
+    if CommandSetChanged then
+      begin
+        Message(@Self, evBroadcast, cmCommandSetChanged, nil);
+        CommandSetChanged := False;
+      end;
   end;
-end;
 
 procedure TProgram.InitDesktop;
-var
-  R: TRect;
-begin
-  GetExtent(R);
-  if SystemData.Options and ouiHideMenu = 0 then Inc(R.A.Y);
-  if SystemData.Options and ouiHideStatus = 0 then Dec(R.B.Y);
-  New(Desktop, Init(R));
-end;
+  var
+    R: TRect;
+  begin
+    GetExtent(R);
+    if SystemData.Options and ouiHideMenu = 0 then
+      Inc(R.A.Y);
+    if SystemData.Options and ouiHideStatus = 0 then
+      Dec(R.B.Y);
+    New(Desktop, Init(R));
+  end;
 
 procedure TProgram.InitMenuBar;
-var
-  R: TRect;
-begin
-  GetExtent(R);
-  R.B.Y := R.A.Y + 1;
-  MenuBar := New(PMenuBar, Init(R, nil));
-end;
+  var
+    R: TRect;
+  begin
+    GetExtent(R);
+    R.B.Y := R.A.Y+1;
+    MenuBar := New(PMenuBar, Init(R, nil));
+  end;
 
 procedure TProgram.InitScreen;
-begin
-  if ScreenMode <> smMono then
   begin
-    if ScreenWidth div ScreenHeight < 2 then
-      ShadowSize.X := 1 else
-      ShadowSize.X := 2;
-    ShadowSize.Y := 1;
-    ShowMarkers := False;
-    if ScreenMode = smBW80 then
-      AppPalette := apBlackWhite{ else
+    if ScreenMode <> smMono then
+      begin
+        if ScreenWidth div ScreenHeight < 2 then
+          ShadowSize.X := 1
+        else
+          ShadowSize.X := 2;
+        ShadowSize.Y := 1;
+        ShowMarkers := False;
+        if ScreenMode = smBW80 then
+          appPalette := apBlackWhite
+            { else
       AppPalette := apColor};
-  end else
-  begin
-    ShadowSize.X := 0;
-    ShadowSize.Y := 0;
-    ShowMarkers := True;
-    AppPalette := apMonochrome;
-  end;
-end;
+      end
+    else
+      begin
+        ShadowSize.X := 0;
+        ShadowSize.Y := 0;
+        ShowMarkers := True;
+        appPalette := apMonochrome;
+      end;
+  end { TProgram.InitScreen };
 
 procedure TProgram.InitStatusLine;
-var
-  R: TRect;
-begin
-  GetExtent(R);
-  R.A.Y := R.B.Y - 1;
-  New(StatusLine, Init(R,
+  var
+    R: TRect;
+  begin
+    GetExtent(R);
+    R.A.Y := R.B.Y-1;
+    New(StatusLine, Init(R,
     NewStatusDef(0, $FFFF,
-      NewStatusKey('~Alt-X~ Exit', kbAltX, cmQuit,
-      nil), nil)));
-end;
+    NewStatusKey('~Alt-X~ Exit', kbAltX, cmQuit,
+    nil), nil)));
+  end;
 
 procedure TProgram.InitCommandLine;
-begin
-end;
+  begin
+  end;
 
 function TProgram.InsertWindow(P: PWindow): PWindow;
- var PP: TPoint;
-     EV: TEvent;
-     PV: PView;
-begin
-  InsertWindow := nil;
-  if ValidView(P) <> nil then
-    if CanMoveFocus then
-    begin
-      Desktop^.Insert(P);
-      InsertWindow := P;
-      {P^.Select;}
-      ActivateView(P);
-    end
-    else
-      Dispose(P,Done);
-  Idle;
-end;
+  var
+    PP: TPoint;
+    EV: TEvent;
+    PV: PView;
+  begin
+    InsertWindow := nil;
+    if ValidView(P) <> nil then
+      if CanMoveFocus then
+        begin
+          Desktop^.Insert(P);
+          InsertWindow := P;
+          {P^.Select;}
+          ActivateView(P);
+        end
+      else
+        Dispose(P, Done);
+    Idle;
+  end;
 
 procedure TProgram.ActivateView;
- var EV: TEvent;
-     PP: TPoint;
-begin
-  If P=nil then exit;
-  EV.What := evMouseDown;
-  PP.X := P^.Origin.X;
-  PP.Y := P^.Origin.Y + P^.Size.Y - 2;
-  Desktop^.MakeGlobal(PP, PP); EV.Where := PP;
-  EV.Buttons := mbRightButton; {PutEvent(EV);}
-end;
+  var
+    EV: TEvent;
+    PP: TPoint;
+  begin
+    if P = nil then
+      exit;
+    EV.What := evMouseDown;
+    PP.X := P^.Origin.X;
+    PP.Y := P^.Origin.Y+P^.Size.Y-2;
+    Desktop^.MakeGlobal(PP, PP);
+    EV.Where := PP;
+    EV.Buttons := mbRightButton; {PutEvent(EV);}
+  end;
 
 procedure TProgram.OutOfMemory;
-begin
-end;
+  begin
+  end;
 
 procedure TProgram.PutEvent(var Event: TEvent);
-begin
-  if (Event.What = evNothing) then Exit;
-  if (EventsLen = MaxEvents) then
-    Move(EventQueue[2],EventQueue[1],(MaxEvents-1)*SizeOf(Event))
-   else Inc(EventsLen);
-  EventQueue[EventsLen] := Event;
-end;
+  begin
+    if (Event.What = evNothing) then
+      exit;
+    if (EventsLen = MaxEvents) then
+      Move(EventQueue[2], EventQueue[1], (MaxEvents-1)*SizeOf(Event))
+    else
+      Inc(EventsLen);
+    EventQueue[EventsLen] := Event;
+  end;
 
 procedure TProgram.Run;
-begin
-  Execute;
-end;
+  begin
+    Execute;
+  end;
 
-function TProgram.SetScreenMode(Mode: Word): Boolean;
-var
-  R: TRect;
-begin
-   HideMouse;
-   DoneEvents;
-{$IFDEF VIRTUALPASCAL}
-   FillChar(ScreenMirror, SizeOf(ScreenMirror), 0); // Added by SANDSoft
-{$ENDIF}
-   DoneMemory;
-   DoneVideo;
-   Result := SetVideoMode(Mode);
-   if Result then
-    begin
-      if (StartupData.Load and osuRestoreScrMode <> 0) then
-       begin
-    {$IFDEF OS2}
-        if not PMWindowed then
+function TProgram.SetScreenMode(Mode: word): boolean;
+  var
+    R: TRect;
+  begin
+    HideMouse;
+    DoneEvents;
+    FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);
+      // Added by SANDSoft
+    DoneMemory;
+    DoneVideo;
+    Result := SetVideoMode(Mode);
+    if Result then
+      begin
+        if (StartupData.Load and osuRestoreScrMode <> 0) then
           begin
-    {$ENDIF}
-          NonVIOScreenMode := ScreenMode;
-    {$IFDEF OS2}
-          end
-        else
-          VIOScreenMode := ScreenMode;
-    {$ENDIF}
-       end;
-    end;
-   InitVideo;
-   InitMemory;
-   InitEvents;
-   InitScreen;
-   Buffer:=ScreenBuffer;
-   R.Assign(0, 0, ScreenWidth, ScreenHeight);
-   ChangeBounds(R);
-   ShowMouse;
-   SetBlink(CurrentBlink);
-end;
+            {$IFDEF OS2}
+            if not PMWindowed then
+              begin
+                {$ENDIF}
+                NonVIOScreenMode := ScreenMode;
+                {$IFDEF OS2}
+              end
+            else
+              VIOScreenMode := ScreenMode;
+            {$ENDIF}
+          end;
+      end;
+    InitVideo;
+    InitMemory;
+    InitEvents;
+    InitScreen;
+    Buffer := ScreenBuffer;
+    R.Assign(0, 0, ScreenWidth, ScreenHeight);
+    ChangeBounds(R);
+    ShowMouse;
+    SetBlink(CurrentBlink);
+  end { TProgram.SetScreenMode };
 
 function TProgram.ValidView(P: PView): PView;
-begin
-  ValidView := nil;
-  if P <> nil then
   begin
-    if LowMemory then
-    begin
-      Dispose(P,Done);
-      OutOfMemory;
-      Exit;
-    end;
-    if not P^.Valid(cmValid) then
-    begin
-      Dispose(P,Done);
-      Exit;
-    end;
-    ValidView := P;
+    ValidView := nil;
+    if P <> nil then
+      begin
+        if LowMemory then
+          begin
+            Dispose(P, Done);
+            OutOfMemory;
+            exit;
+          end;
+        if not P^.Valid(cmValid) then
+          begin
+            Dispose(P, Done);
+            exit;
+          end;
+        ValidView := P;
+      end;
   end;
-end;
 
-Procedure TProgram.BFSpeed; {DataCompBoy}
-begin
-(*  {$IFNDEF OS2}
+procedure TProgram.BFSpeed; {DataCompBoy}
+  begin
+    (*  {$IFNDEF OS2}
  {$IFDEF WIN32}
  {EnterCriticalSection(CS);}
  {$ELSE}
@@ -1203,12 +1317,12 @@ begin
  end;
  {$ENDIF}
 {$ENDIF} *)
- FullSpeed:=True;
-end;
+    FullSpeed := True;
+  end;
 
-Procedure TProgram.EFSpeed; {DataCompBoy}
-begin
-(*  {$IFNDEF OS2}
+procedure TProgram.EFSpeed; {DataCompBoy}
+  begin
+    (*  {$IFNDEF OS2}
  {$IFDEF WIN32}
  {LeaveCriticalSection(CS);}
  {$ELSE}
@@ -1218,61 +1332,72 @@ begin
  end;
  {$ENDIF}
 {$ENDIF} *)
- FullSpeed:=False;
-end;
+    FullSpeed := False;
+  end;
 
 { TApplication }
 
-constructor TApplication.Init;
-begin
-  InitMemory;
-  InitVideo;
-  InitEvents;
-  InitHistory;
-  TProgram.Init;
-end;
+Constructor TApplication.Init;
+  begin
+    InitMemory;
+    InitVideo;
+    InitEvents;
+    InitHistory;
+    TProgram.Init;
+  end;
 
 destructor TApplication.Done;
-begin
-  if LStringList <> nil then Dispose(LStringList,Done); LStringList:=nil;
-  if LngStream <> nil then Dispose(LngStream,Done); LngStream:=nil;
-  if Resource <> nil then Dispose(Resource,Done); Resource:=nil;
-  TProgram.Done;
-  DoneHistory;
-  DoneSysError;
-  DoneEvents;
-  DoneVideo;
-  DoneMemory;
-end;
+  begin
+    if LStringList <> nil then
+      Dispose(LStringList, Done);
+    LStringList := nil;
+    if LngStream <> nil then
+      Dispose(LngStream, Done);
+    LngStream := nil;
+    if Resource <> nil then
+      Dispose(Resource, Done);
+    Resource := nil;
+    TProgram.Done;
+    DoneHistory;
+    DoneSysError;
+    DoneEvents;
+    DoneVideo;
+    DoneMemory;
+  end;
 
 procedure TApplication.ShowUserScreen;
- var (* B, BB: Word; *)
-     PV: PView;
-     R: TRect;
-begin
- GetExtent(R);
- PV := New(PBackground, Init(R, ' '));
- if CommandLine <> nil then CommandLine^.SetState(sfDisabled, true);
- {$IFDEF OS_DOS}
- asm
+  var(* B, BB: Word; *)
+    PV: PView;
+    R: TRect;
+  begin
+    GetExtent(R);
+    PV := New(PBackground, Init(R, ' '));
+    if CommandLine <> nil then
+      CommandLine^.SetState(sfDisabled, True);
+    {$IFDEF OS_DOS}
+    asm
     mov cx, $2020
     xor bx, bx
     mov ah, 1
     push bp
     int 10h
     pop  bp
- end;
- {$ENDIF}
- Insert(PV);
- if (StartupData.Load and osuResetPalette <> 0) and VGASystem
-  then SetPalette(vga_default);
- WhenShow;
- if CommandLine <> nil then CommandLine^.SetState(sfDisabled, false);
- if (StartupData.Load and osuResetPalette <> 0) and VGASystem
-  then SetPalette(vga_palette);
- PV^.Free;
+ end
+      ;
+    {$ENDIF}
+    Insert(PV);
+    if (StartupData.Load and osuResetPalette <> 0) and VGASystem
+    then
+      SetPalette(vga_default);
+    WhenShow;
+    if CommandLine <> nil then
+      CommandLine^.SetState(sfDisabled, False);
+    if (StartupData.Load and osuResetPalette <> 0) and VGASystem
+    then
+      SetPalette(VGA_palette);
+    PV^.Free;
 
- (*
+    (*
  B := ScreenMode; BB := CursorLines;
  HideMouse;
  Inc(SkyEnabled); SkyVisible := true;
@@ -1284,318 +1409,345 @@ begin
  InitVideo; CursorLines := BB;
  Redraw; ShowCursor; ShowMouse;
  *)
-end;
+  end { TApplication.ShowUserScreen };
 
 procedure TApplication.WhenShow;
- var Event: TEvent;
-begin
- repeat
-   GetEvent(Event);
- until (Event.What and (evKeyDown + evMouseDown) <> 0);
- ClearEvent(Event);
-end;
+  var
+    Event: TEvent;
+  begin
+    repeat
+      GetEvent(Event);
+    until (Event.What and (evKeyDown+evMouseDown) <> 0);
+    ClearEvent(Event);
+  end;
 
 procedure TApplication.Cascade;
-var
-  R: TRect;
-begin
-  GetTileRect(R);
-  if Desktop <> nil then Desktop^.Cascade(R);
-end;
+  var
+    R: TRect;
+  begin
+    GetTileRect(R);
+    if Desktop <> nil then
+      Desktop^.Cascade(R);
+  end;
 
 procedure TApplication.GetTileRect(var R: TRect);
-begin
-  Desktop^.GetExtent(R);
-end;
+  begin
+    Desktop^.GetExtent(R);
+  end;
 
 procedure TApplication.HandleEvent(var Event: TEvent);
-begin
-  inherited HandleEvent(Event);
-  case Event.What of
-    evCommand:
-      begin
-        case Event.Command of
-          cmTile: Tile;
-          cmCascade: Cascade;
-        else
-          Exit;
+  begin
+    inherited HandleEvent(Event);
+    case Event.What of
+      evCommand:
+        begin
+          case Event.Command of
+            cmTile:
+              Tile;
+            cmCascade:
+              Cascade;
+            else
+              exit;
+          end {case};
+          ClearEvent(Event);
         end;
-        ClearEvent(Event);
-      end;
-{Cat: штука странная, к тому же kbCtrlShiftTilde в DN/2 не ловится}
-(*
+      {Cat: штука странная, к тому же kbCtrlShiftTilde в DN/2 не ловится}
+      (*
     evKeyDown: if Event.KeyCode=kbCtrlShiftTilde then begin
                 MessageBox('Status dumped to DN.ERR',nil,0);
                 ClearEvent(Event);
                end;
 *)
+    end {case};
   end;
-end;
 
 procedure TApplication.Tile;
-var
-  R: TRect;
-begin
-  GetTileRect(R);
-  if Desktop <> nil then Desktop^.Tile(R);
-end;
-
-procedure ResourceFail(const S: string);
-begin
-  WriteLn('Could not open resource file ('+S+')');
-  SysTVInitCursor;
-  Halt(219);
-end;
-
-function OpenResourceStream(Ext: ExtStr): PBufStream;
   var
-    S: String;
+    R: TRect;
+  begin
+    GetTileRect(R);
+    if Desktop <> nil then
+      Desktop^.Tile(R);
+  end;
+
+procedure ResourceFail(const s: String);
+  begin
+    Writeln('Could not open resource file ('+s+')');
+    SysTVInitCursor;
+    Halt(219);
+  end;
+
+function OpenResourceStream(ext: ExtStr): PBufStream;
+  var
+    s: String;
     PS: PBufStream;
   begin
-  S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
-  if S[Length(S)] <> '\' then S := S + '\';
-  PS := New(PBufStream,
-            Init(S + LngId + Ext, Open_Share_DenyWrite+Open_Access_ReadOnly, 1024));
-  if PS^.Status <> stOK then begin
-   Dispose(PS, Done);
-   PS := New(PBufStream,
-             Init(StartupDir + LngId + Ext, Open_Share_DenyWrite+Open_Access_ReadOnly, 1024));
-   if PS^.Status <> stOK then ResourceFail(LngId + Ext);
-  end;
-  OpenResourceStream := PS;
-  end;
+    s := GetEnv('DNDLG');
+    if s = '' then
+      s := SourceDir;
+    if s[Length(s)] <> '\' then
+      s := s+'\';
+    PS := New(PBufStream,
+    Init(s+LngId+ext, Open_Share_DenyWrite+Open_Access_ReadOnly,
+      1024));
+    if PS^.Status <> stOK then
+      begin
+        Dispose(PS, Done);
+        PS := New(PBufStream,
+        Init(StartupDir+LngId+ext, Open_Share_DenyWrite+
+          Open_Access_ReadOnly, 1024));
+        if PS^.Status <> stOK then
+          ResourceFail(LngId+ext);
+      end;
+    OpenResourceStream := PS;
+  end { OpenResourceStream };
 
 procedure OpenResource;
-begin
- if Resource <> nil then Exit;
- ResourceStream := OpenResourceStream('.DLG');
- New(Resource, Init(ResourceStream));
-end;
+  begin
+    if Resource <> nil then
+      exit;
+    ResourceStream := OpenResourceStream('.DLG');
+    New(Resource, Init(ResourceStream));
+  end;
 
 function ExecResource;
- var D: PDialog;
-     W: Word;
-begin
- ExecResource := cmCancel; OpenResource;
- if Resource = nil then Exit;
- D := PDialog(Resource^.Get( Key ));
- D := PDialog(Application^.ValidView(D));
- if D = nil then Exit;
- D^.SetData(Data);
- W := Desktop^.ExecView(D);
- if W <> cmCancel then D^.GetData(Data);
- ExecResource := W;
- Dispose(D,Done);
-end;
+  var
+    D: PDialog;
+    W: word;
+  begin
+    ExecResource := cmCancel;
+    OpenResource;
+    if Resource = nil then
+      exit;
+    D := PDialog(Resource^.Get(Key));
+    D := PDialog(Application^.ValidView(D));
+    if D = nil then
+      exit;
+    D^.SetData(Data);
+    W := Desktop^.ExecView(D);
+    if W <> cmCancel then
+      D^.GetData(Data);
+    ExecResource := W;
+    Dispose(D, Done);
+  end;
 
 function LoadResource;
-begin
- LoadResource := nil; OpenResource;
- if Resource = nil then Exit;
- LoadResource := Resource^.Get(Key);
-end;
+  begin
+    LoadResource := nil;
+    OpenResource;
+    if Resource = nil then
+      exit;
+    LoadResource := Resource^.Get(Key);
+  end;
 
 function GlobalMessage;
 
- var Event: TEvent;
-     Ptr : Pointer ;
+  var
+    Event: TEvent;
+    Ptr: Pointer;
 
- procedure Action(View: PView);{$IFDEF BIT_16}far;{$ENDIF}
- begin
-  Event.What := What;
-  Event.Command := Command;
-  Event.InfoPtr := InfoPtr;
-  View^.HandleEvent(Event);
-  if Event.What = evNothing then Ptr := Event.InfoPtr ;
+  procedure Action(View: PView);
+    begin
+      Event.What := What;
+      Event.Command := Command;
+      Event.InfoPtr := InfoPtr;
+      View^.HandleEvent(Event);
+      if Event.What = evNothing then
+        Ptr := Event.InfoPtr;
 
- end;
+  end;
 
-begin
- Ptr := Nil ;
- if Command = cmPanelReread then Command := cmTotalReread;
- Application^.ForEach(@Action);
- Desktop^.ForEach(@Action);
- GlobalMessage := Ptr ;
-end;
+  begin
+    Ptr := nil;
+    if Command = cmPanelReread then
+      Command := cmTotalReread;
+    Application^.ForEach(@Action);
+    Desktop^.ForEach(@Action);
+    GlobalMessage := Ptr;
+  end { GlobalMessage };
 
 function GlobalMessageL;
 
- var Event: TEvent;
-     Ptr : Pointer ;
+  var
+    Event: TEvent;
+    Ptr: Pointer;
 
- procedure Action(View: PView);{$IFDEF BIT_16}far;{$ENDIF}
- begin
-  Event.What := What;
-  Event.Command := Command;
-  Event.InfoLong := InfoLng;
-  View^.HandleEvent(Event);
-  if Event.What = evNothing then Ptr := Event.InfoPtr ;
+  procedure Action(View: PView);
+    begin
+      Event.What := What;
+      Event.Command := Command;
+      Event.InfoLong := InfoLng;
+      View^.HandleEvent(Event);
+      if Event.What = evNothing then
+        Ptr := Event.InfoPtr;
 
- end;
+  end;
 
-begin
- Ptr := Nil ;
- if Command = cmPanelReread then Command := cmTotalReread;
- Application^.ForEach(@Action);
- Desktop^.ForEach(@Action);
- GlobalMessageL := Ptr ;
-end;
+  begin
+    Ptr := nil;
+    if Command = cmPanelReread then
+      Command := cmTotalReread;
+    Application^.ForEach(@Action);
+    Desktop^.ForEach(@Action);
+    GlobalMessageL := Ptr;
+  end { GlobalMessageL };
 
 procedure GlobalEvent;
 
- var Event: TEvent;
-
- procedure Action(View: PView);{$IFDEF BIT_16}far;{$ENDIF}
- begin
-  if (Event.What <> evNothing) and (View <> nil) then
-   View^.HandleEvent(Event);
- end;
-
-begin
- Event.What := What;
- if Command = cmPanelReread then Event.Command := cmTotalReread
-                            else Event.Command := Command;
- Event.InfoPtr := InfoPtr;
- Application^.ForEach(@Action);
- Desktop^.ForEach(@Action);
-end;
-
-var ActInt: Boolean;
-    V: PView;
+  var
     Event: TEvent;
+
+  procedure Action(View: PView);
+    begin
+      if (Event.What <> evNothing) and (View <> nil) then
+        View^.HandleEvent(Event);
+    end;
+
+  begin
+    Event.What := What;
+    if Command = cmPanelReread then
+      Event.Command := cmTotalReread
+    else
+      Event.Command := Command;
+    Event.InfoPtr := InfoPtr;
+    Application^.ForEach(@Action);
+    Desktop^.ForEach(@Action);
+  end { GlobalEvent };
+
+var
+  ActInt: boolean;
+  V: PView;
+  Event: TEvent;
 
 function ViewPresent;
 
- procedure FAction(View: PView);{$IFDEF BIT_16}far;{$ENDIF}
- begin
-  if ActInt then Exit;
-  View^.HandleEvent(Event);
-  if Event.What = evNothing then V := Event.InfoPtr;
- end;
+  procedure FAction(View: PView);
+    begin
+      if ActInt then
+        exit;
+      View^.HandleEvent(Event);
+      if Event.What = evNothing then
+        V := Event.InfoPtr;
+    end;
 
-begin
- V := nil; ActInt := False;
- Event.What := evCommand;
- Event.Command := Command;
- Event.InfoPtr := InfoPtr;
- Application^.ForEach(@FAction);
- Desktop^.ForEach(@FAction);
- ViewPresent := V;
-end;
+  begin
+    V := nil;
+    ActInt := False;
+    Event.What := evCommand;
+    Event.Command := Command;
+    Event.InfoPtr := InfoPtr;
+    Application^.ForEach(@FAction);
+    Desktop^.ForEach(@FAction);
+    ViewPresent := V;
+  end { ViewPresent };
 
 procedure UpdateWriteView(P: Pointer);
-begin
-  if P = nil then Exit;
-  with PWriteWin(P)^ do
   begin
-    case IState of
-      0: if TimerExpired(Tmr) then Desktop^.Insert(P) else Exit;
-      1: if TimerExpired(Tmr) then Application^.Insert(P) else Exit;
-      2: Exit;
-    end;
-    IState := 2;
-  end;
-end;
-
+    if P = nil then
+      exit;
+    with PWriteWin(P)^ do
+      begin
+        case IState of
+          0:
+            if TimerExpired(tmr) then
+              Desktop^.Insert(P)
+            else
+              exit;
+          1:
+            if TimerExpired(tmr) then
+              Application^.Insert(P)
+            else
+              exit;
+          2:
+            exit;
+        end {case};
+        IState := 2;
+      end;
+  end { UpdateWriteView };
 
 function WriteMsg;
- var W: PWriteWin;
-     R: TRect;
-     P: PStaticText;
-begin
- R.Assign(1,1,30,8);
- New(W,Init(R, '', wnNoNumber));
- W^.Options := W^.Options or ofCentered;
- W^.Palette := wpGrayWindow;
- W^.Flags := 0;
- W^.Options := W^.Options and not (ofSelectable or ofTopSelect);
+  var
+    W: PWriteWin;
+    R: TRect;
+    P: PStaticText;
+  begin
+    R.Assign(1, 1, 30, 8);
+    New(W, Init(R, '', wnNoNumber));
+    W^.Options := W^.Options or ofCentered;
+    W^.Palette := wpGrayWindow;
+    W^.Flags := 0;
+    W^.Options := W^.Options and not (ofSelectable or ofTopSelect);
 
- W^.GetExtent(R);
- R.Grow(-1,-1);
- New(P,Init(R, Text));
- W^.Insert(P);
+    W^.GetExtent(R);
+    R.Grow(-1, -1);
+    New(P, Init(R, text));
+    W^.Insert(P);
 
- W^.SetState(sfShadow, True);
- W^.IState := Byte(Text[1] = ' ');
- NewTimer(W^.Tmr, 4);
- Desktop^.Insert(W);
- WriteMsg := W;
-end;
+    W^.SetState(sfShadow, True);
+    W^.IState := byte(text[1] = ' ');
+    NewTimer(W^.tmr, 4);
+    Desktop^.Insert(W);
+    WriteMsg := W;
+  end { WriteMsg };
 
 procedure ForceWriteShow;
-begin
-  if P = nil then Exit;
-  NewTimer(PWriteWin(P)^.Tmr, 0);
-  UpdateWriteView(P);
-end;
+  begin
+    if P = nil then
+      exit;
+    NewTimer(PWriteWin(P)^.tmr, 0);
+    UpdateWriteView(P);
+  end;
 
 function _WriteMsg;
-var
-  W: PWriteWin;
-begin
-  W := PWriteWin(WriteMsg(Text));
-  ForceWriteShow(W);
-  _WriteMsg := W;
-end;
+  var
+    W: PWriteWin;
+  begin
+    W := PWriteWin(WriteMsg(text));
+    ForceWriteShow(W);
+    _WriteMsg := W;
+  end;
 
 procedure InitLngStream;
-var PS,XS: PStream;
-    S: String;
+  var
+    PS, XS: PStream;
+    s: String;
 
-begin
-   PS := OpenResourceStream('.LNG');
-   XS := nil;
-   {$IFNDEF NOEXTRA} {DataCompBoy: In DPMI EMS and XMS no needed}
-   if XMSFound then
-     begin
-       XS := New(PXMSStream, Init(PS^.GetSize, PS^.GetSize));
-       if XS^.Status <> stOK then
-         begin
-           Dispose(XS,Done);
-           XS := nil;
-         end;
-     end;
+  begin
+    PS := OpenResourceStream('.LNG');
+    XS := nil;
+    if PS^.GetSize < MemAvail/100 then
+        {If Language file <1% of free memory,}
+      {then load it in memory              }
+      begin
+        XS := New(PMemoryStream, Init(PS^.GetSize, PS^.GetSize));
+        if XS^.Status <> stOK then
+          begin
+            Dispose(XS, Done);
+            XS := nil;
+          end;
+      end;
 
-   if (XS = nil) and EMSFound then
-     begin
-       XS := New(PEMSStream, Init(PS^.GetSize, PS^.GetSize));
-       if XS^.Status <> stOK then
-         begin
-           Dispose(XS,Done);
-           XS := nil;
-         end;
-     end;
-   {$ELSE}
-   If PS^.GetSize<MemAvail/100 then {If Language file <1% of free memory,}
-                                    {then load it in memory              }
-    begin
-     XS := New(PMemoryStream, Init(PS^.GetSize, PS^.GetSize));
-     if XS^.Status <> stOK then begin
-      Dispose(XS,Done);
-      XS := nil;
-     end;
-    end;
-   {$ENDIF}
+    if XS <> nil then
+      begin
+        XS^.CopyFrom(PS^, PS^.GetSize);
+        if XS^.Status = stOK then
+          begin
+            Dispose(PS, Done);
+            PS := XS;
+          end
+        else
+          Dispose(XS, Done);
 
-   if XS <> nil then
-     begin
-       XS^.CopyFrom(PS^, PS^.GetSize);
-       if XS^.Status = stOK then
-       begin
-         Dispose(PS,Done);
-         PS := XS;
-       end else Dispose(XS,Done);
+      end;
 
-     end;
+    LngStream := PS;
 
-   LngStream := PS;
+    PS^.Seek(0);
+    LStringList := PStringList(PS^.Get);
+    if (PS^.Status <> stOK) or (LStringList = nil) then
+      ResourceFail('reading '+LngId+'.LNG');
 
-   PS^.Seek(0);
-   LStringList := PStringList(PS^.Get);
-   if (PS^.Status <> stOK) or (LStringList = nil) then ResourceFail('reading '+LngId + '.LNG');
-
-end;
-
+end { InitLngStream };
 
 const
   CacheSize = 64;
@@ -1604,100 +1756,109 @@ type
   PCacheRec = ^TCacheRec;
   TCacheRec = record
     Id: TStrIdx;
-    Str: string;
-  end;
+    Str: String;
+    end;
 
-function NewCacheRec(const S: string; Id: TStrIdx): PCacheRec;
-var
-  P: PCacheRec;
-begin
-  GetMem(P, Length(S) + 1 + SizeOf(TStrIdx));
-  P^.Id := Id; Move(S, P^.Str, Length(S)+1);
-  NewCacheRec := P;
-end;
+function NewCacheRec(const s: String; Id: TStrIdx): PCacheRec;
+  var
+    P: PCacheRec;
+  begin
+    GetMem(P, Length(s)+1+SizeOf(TStrIdx));
+    P^.Id := Id;
+    Move(s, P^.Str, Length(s)+1);
+    NewCacheRec := P;
+  end;
 
 procedure DisposeCacheRec(P: PCacheRec);
-begin
-  FreeMem(P, Length(P^.Str)+1+SizeOf(TStrIdx));
-end;
+  begin
+    FreeMem(P, Length(P^.Str)+1+SizeOf(TStrIdx));
+  end;
 
 procedure TCacheCollection.FreeItem(Item: Pointer);
-begin
-  DisposeCacheRec(Item);
-end;
-
-procedure TCacheCollection.PutItem(var S: TStream; Item: Pointer);
-var R: PCacheRec absolute Item;
-begin
-  S.Write(R^, Length(R^.Str) + 1 + SizeOf(TStrIdx));
-end;
-
-function TCacheCollection.GetItem(var S: TStream): Pointer;
-var
-  R: TCacheRec;
-  P: PCacheRec;
-  CRL: Byte;
-begin
-  S.Read(R, 1 + SizeOf(TStrIdx)); CRL := Length(R.Str);
-  S.Read(R.Str[1], CRL);
-  GetMem(P, CRL + 1 + SizeOf(TStrIdx));
-  Move(R, P^, CRL + 1 + SizeOf(TStrIdx));
-  GetItem := P;
-end;
-
-
-function CacheIndexOf(Id: TStrIdx): Integer;
-var
-  A: Integer;
-begin
-  CacheIndexOf := -1;
-  StringCache^.Pack;
-  for A := 0 to StringCache^.Count-1 do
-   if PCacheRec(StringCache^.At(A))^.Id = Id then
   begin
-    CacheIndexOf := A; Exit;
+    DisposeCacheRec(Item);
   end;
-end;
+
+procedure TCacheCollection.PutItem(var s: TStream; Item: Pointer);
+  var
+    R: PCacheRec absolute Item;
+  begin
+    s.Write(R^, Length(R^.Str)+1+SizeOf(TStrIdx));
+  end;
+
+function TCacheCollection.GetItem(var s: TStream): Pointer;
+  var
+    R: TCacheRec;
+    P: PCacheRec;
+    CRL: byte;
+  begin
+    s.Read(R, 1+SizeOf(TStrIdx));
+    CRL := Length(R.Str);
+    s.Read(R.Str[1], CRL);
+    GetMem(P, CRL+1+SizeOf(TStrIdx));
+    Move(R, P^, CRL+1+SizeOf(TStrIdx));
+    GetItem := P;
+  end;
+
+function CacheIndexOf(Id: TStrIdx): integer;
+  var
+    A: integer;
+  begin
+    CacheIndexOf := -1;
+    StringCache^.Pack;
+    for A := 0 to StringCache^.Count-1 do
+      if PCacheRec(StringCache^.At(A))^.Id = Id then
+        begin
+          CacheIndexOf := A;
+          exit;
+        end;
+  end;
 
 procedure InitStringCache;
-begin
-  If StringCache<>nil then Dispose(StringCache,Done);
-  StringCache := New(PCacheCollection, Init(CacheSize, 0));
-end;
+  begin
+    if StringCache <> nil then
+      Dispose(StringCache, Done);
+    StringCache := New(PCacheCollection, Init(CacheSize, 0));
+  end;
 
 function GetString;
-var
-  S: string;
-  I: Integer;
-  P: PCacheRec;
-begin
-  if StringCache = nil then InitStringCache;
+  var
+    s: String;
+    i: integer;
+    P: PCacheRec;
+  begin
+    if StringCache = nil then
+      InitStringCache;
 
-  I := CacheIndexOf(Index);
-  if I = -1 then
-  begin
-    if LStringList = nil then InitLngStream;
-    S := LStringList^.Get( Word( Index ));
-    P := NewCacheRec(S, Index);
-    if StringCache^.Count = CacheSize then StringCache^.AtFree(CacheSize-1);
-    StringCache^.AtInsert(0, P);
-  end else
-  begin
-    P := StringCache^.At(I);
-    S := P^.Str;
-    if I <> 0 then
-    begin
-      StringCache^.AtDelete(I); StringCache^.Pack;
-      StringCache^.AtInsert(0, P);
-    end;
-  end;
-  {Cat: вообще говоря, здесь имело бы смысл проверять, не получили ли мы
+    i := CacheIndexOf(Index);
+    if i = -1 then
+      begin
+        if LStringList = nil then
+          InitLngStream;
+        s := LStringList^.Get(word(Index));
+        P := NewCacheRec(s, Index);
+        if StringCache^.Count = CacheSize then
+          StringCache^.AtFree(CacheSize-1);
+        StringCache^.AtInsert(0, P);
+      end
+    else
+      begin
+        P := StringCache^.At(i);
+        s := P^.Str;
+        if i <> 0 then
+          begin
+            StringCache^.AtDelete(i);
+            StringCache^.Pack;
+            StringCache^.AtInsert(0, P);
+          end;
+      end;
+    {Cat: вообще говоря, здесь имело бы смысл проверять, не получили ли мы
         пустую строку; если мы будем возвращать пустую строку, то может
         случиться беда вроде такой: NewStr(GetString(...)), т.е. в случае
         кривого файла ресурсов получим nil и при обращении к этой строке
         ДН упадёт. Однако, в языковом файле пустые строки всё же зачем-то
         присутствуют}
-  GetString := S;
-end;
+    GetString := s;
+  end { GetString };
 
 end.

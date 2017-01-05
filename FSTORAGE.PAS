@@ -51,477 +51,557 @@ unit FStorage;
 interface
 
 uses
-  LFN, files,
-  Objects, advance, advance1, advance2, advance3, DOS, FilesCol;
+  Lfn, Files,
+  Objects, advance, advance1, advance2, advance3, Dos, FilesCol;
 
 type
-   TStoredID = (siUndefined, siEmpty, siDirectory, siFile, siFileDir, siEnd);
+  TStoredID = (siUndefined, siEmpty, siDirectory, siFile, siFileDir,
+    siEnd);
 
-   TStored = record
-     ID: TStoredID;
-     Len: Word; {DataCompBoy} { 8((( }
-   end;
+  TStored = record
+    Id: TStoredID;
+    len: word; {DataCompBoy} { 8((( }
+    end;
 
-        {-DataCompBoy-}
-   TStoredFile = record
-     T: TStored;
-     Size: TSize;
-     CSize:TSize;
-     Date: LongInt;
-     Attr: Byte;
-     Name: String;
-   end;
-{JO: имя здесь должно обязательно быть в конце, т.к. мы сохраняем не всю }
-{    длину String, а только реальную длину имени                         }
-        {-DataCompBoy-}
+  {-DataCompBoy-}
+  TStoredFile = record
+    t: TStored;
+    Size: TSize;
+    CSize: TSize;
+    Date: longInt;
+    Attr: byte;
+    Name: String;
+    end;
+  {JO: имя здесь должно обязательно быть в конце, т.к. мы сохраняем не всю }
+  {    длину String, а только реальную длину имени                         }
+  {-DataCompBoy-}
 
-   TSwapLevel = (slNone,
- {$IFDEF OS_DOS}
-  {$IFNDEF DPMI} slXMS, slEMS, slDsk, slCnv, {$ELSE}
-                 slCnv, slDsk,
-  {$ENDIF} {DataCompBoy: For DPMI no EMS/XMS needed}
- {$ELSE}
-                 slCnv,
- {$ENDIF}
-                 slFail);
+  TSwapLevel = (slNone,
+  {$IFDEF OS_DOS}
+  slXMS, slEMS, slDsk, slCnv,
+    {DataCompBoy: For DPMI no EMS/XMS needed}
+  {$ELSE}
+  slCnv,
+  {$ENDIF}
+  slFail);
 
-   PDirStorage = ^TDirStorage;
-   TDirStorage = object(TObject)
-     SwapLevel: TSwapLevel;
-     Dirs: LongInt;
-     Files: LongInt;
-     Items: LongInt;
-     Stream: PStream;
-     FilePtr: LongInt;
-     CurFile: TStoredFile;
-     Last: Boolean;
-     CurDir, LastDir: String;
-     CurPos: LongInt;
-     TotalLength, TotalCLength: TSize;
-     vSavePos, vSize: LongInt;
-     constructor Init;
-     constructor Load(var S: TStream);
-     procedure Store(var S: TStream);
-     destructor Done; virtual;
-     procedure AddFile(FName: String; Size, CSize:TSize; Date: LongInt; Attr: Byte);
-     procedure ResetPointer(const Dir: String);
-     function GetNextFile: Boolean;
-     procedure UpdateRecord;
-     procedure DosReread;
-     procedure DeleteFile(P: PFileRec);
-     procedure InitStream(X,E,M: LongInt);
-     procedure Truncate(N: LongInt);
-     procedure WipeCur;
-     procedure vWrite(var Buf; Count: Word);
-     procedure vRead(var Buf; Count: Word);
-     procedure vSeek(Pos: LongInt);
-     procedure vTruncate;
-     procedure FixError;
-     procedure TryStream(Sz: LongInt);
-   end;
+  PDirStorage = ^TDirStorage;
+  TDirStorage = object(TObject)
+    SwapLevel: TSwapLevel;
+    Dirs: longInt;
+    Files: longInt;
+    Items: longInt;
+    Stream: PStream;
+    FilePtr: longInt;
+    CurFile: TStoredFile;
+    Last: boolean;
+    CurDir, LastDir: String;
+    CurPos: longInt;
+    TotalLength, TotalCLength: TSize;
+    vSavePos, vSize: longInt;
+    Constructor Init;
+    Constructor Load(var s: TStream);
+    procedure Store(var s: TStream);
+    destructor Done; virtual;
+    procedure AddFile(FName: String; Size, CSize: TSize; Date:
+      longInt; Attr: byte);
+    procedure ResetPointer(const Dir: String);
+    function GetNextFile: boolean;
+    procedure UpdateRecord;
+    procedure DosReread;
+    procedure DeleteFile(P: PFileRec);
+    procedure InitStream(X, E, M: longInt);
+    procedure Truncate(n: longInt);
+    procedure WipeCur;
+    procedure vWrite(var Buf; Count: word);
+    procedure vRead(var Buf; Count: word);
+    procedure vSeek(Pos: longInt);
+    procedure vTruncate;
+    procedure FixError;
+    procedure TryStream(Sz: longInt);
+    end;
 
-const TStoredFixLength = SizeOf(TStoredFile) - SizeOf(String);
+const
+  TStoredFixLength = SizeOf(TStoredFile)-SizeOf(String);
 
 implementation
 uses
-  {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
-  DNApp, StartUp;
+  DNApp, Startup;
 
 procedure __Error;
-begin
-  RunError(224);
-end;
+  begin
+    RunError(224);
+  end;
 
 procedure TDirStorage.TryStream;
-begin
-  repeat
-    SwapLevel := Succ(SwapLevel);
-    if SwapLevel = slFail then __Error;
-    if Sz = -1 then InitStream(4096, 16384, 2048) else InitStream(Sz, Sz, Sz);
-  until Stream <> nil;
-end;
+  begin
+    repeat
+      SwapLevel := succ(SwapLevel);
+      if SwapLevel = slFail then
+        __Error;
+      if Sz = -1 then
+        InitStream(4096, 16384, 2048)
+      else
+        InitStream(Sz, Sz, Sz);
+    until Stream <> nil;
+  end;
 
-constructor TDirStorage.Init;
-begin
-  inherited Init;
-  SwapLevel := slNone;
+Constructor TDirStorage.Init;
+  begin
+    inherited Init;
+    SwapLevel := slNone;
 
-  TryStream(-1);
+    TryStream(-1);
 
-  TotalLength := 0;
-  TotalCLength := 0;
-  vSize := 0;
-  vSavePos := 0;
-end;
+    TotalLength := 0;
+    TotalCLength := 0;
+    vSize := 0;
+    vSavePos := 0;
+  end;
 
 procedure TDirStorage.FixError;
-label
-  LLL;
-const
-  BufSize = 512;
-var
-  OldStream: PStream;
-  SavePos, Count: LongInt;
-  Buffer: array[0..BufSize-1] of Byte;
-  N: Word;
-begin
-  OldStream := Stream; OldStream^.Status := stOK;
+  label
+    LLL;
+  const
+    BufSize = 512;
+  var
+    OldStream: PStream;
+    SavePos, Count: longInt;
+    Buffer: array[0..BufSize-1] of byte;
+    n: word;
+  begin
+    OldStream := Stream;
+    OldStream^.Status := stOK;
 
 LLL:
 
-  TryStream(-1);
+    TryStream(-1);
 
-  Count := vSize;
-  OldStream^.Seek(0);
-  while Count > 0 do
-  begin
-    if Count > BufSize then N := BufSize else N := Count;
-    OldStream^.Read(Buffer, N);
-    if OldStream^.Status <> stOK then __Error;
-    Stream^.Write(Buffer, N);
-    if Stream^.Status <> stOK then
-     begin Dispose(Stream,Done); Stream:=nil; goto LLL end;
-    Dec(Count, N);
-  end;
-  Dispose(OldStream,Done);
-  Stream^.Seek(vSavePos);
-end;
-
+    Count := vSize;
+    OldStream^.Seek(0);
+    while Count > 0 do
+      begin
+        if Count > BufSize then
+          n := BufSize
+        else
+          n := Count;
+        OldStream^.Read(Buffer, n);
+        if OldStream^.Status <> stOK then
+          __Error;
+        Stream^.Write(Buffer, n);
+        if Stream^.Status <> stOK then
+          begin
+            Dispose(Stream, Done);
+            Stream := nil;
+            goto LLL
+          end;
+        Dec(Count, n);
+      end;
+    Dispose(OldStream, Done);
+    Stream^.Seek(vSavePos);
+  end { TDirStorage.FixError };
 
 procedure TDirStorage.InitStream;
-begin
-  Stream := nil;
-  Last := True; CurPos := -1;
-  case SwapLevel of
-{$IFNDEF NOEXTRA} {DataCompBoy: for DPMI no XMS and EMS needed}
-    slXMS: if XMSFound then
-           begin
-             Stream := New(PXMSStream, Init(X, X));
-             if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
-           end;
-    slEMS: if EMSFound then
-           begin
-             Stream := New(PEMSStream, Init(E, E));
-             if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
-           end;
-{$ENDIF NOEXTRA}
-    slCnv: begin
-             Stream := New(PMemoryStream, Init(M, 2048));
-             if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
-           end;
-{$IFDEF OS_DOS}   {JO: невозможно представить ситуацию под OS/2 или Win32, когда бы это понадобилось}
-    slDsk: begin  {    да и де факто это в VP-версиях не работало, что впрочем ни разу не привело к ошибке}
-             Stream := New(PTempFile, Init('SWD', 4096));
-             if Stream^.Status <> stOK then begin Dispose(Stream,Done); Stream:=nil end;
-           end;
-{$ENDIF}
-  end;
-end;
+  begin
+    Stream := nil;
+    Last := True;
+    CurPos := -1;
+    case SwapLevel of
+      slCnv:
+        begin
+          Stream := New(PMemoryStream, Init(M, 2048));
+          if Stream^.Status <> stOK then
+            begin
+              Dispose(Stream, Done);
+              Stream := nil
+            end;
+        end;
+      {$IFDEF OS_DOS}
+        {JO: невозможно представить ситуацию под OS/2 или Win32, когда бы это понадобилось}
+      slDsk:
+        begin
+            {    да и де факто это в VP-версиях не работало, что впрочем ни разу не привело к ошибке}
+          Stream := New(PTempFile, Init('SWD', 4096));
+          if Stream^.Status <> stOK then
+            begin
+              Dispose(Stream, Done);
+              Stream := nil
+            end;
+        end;
+      {$ENDIF}
+    end {case};
+  end { TDirStorage.InitStream };
 
 destructor TDirStorage.Done;
-begin
-  if Stream <> nil then Dispose(Stream,Done); Stream:=nil;
-end;
-
-        {-DataCompBoy-}
-procedure TDirStorage.AddFile;
-  var Dr: String;
-      Nm: String;
-      Xt: String;
-      SF: TStoredFile;
-      TS: TStored absolute SF;
-      B: Array[0..542] of Byte;
-      L: Word;
-begin
-  if Stream = nil then Exit;
-  Stream^.Status := stOk;
-  vSeek(Max(0, (vSize)-TStoredFixLength));
-  L := 0;
-  if (FName <> #0) and (FName<>'') then
   begin
-    lFSplit(FName, Dr, Nm, Xt);
-    if Dr[Length(Dr)] <> '\' then AddStr(Dr, '\');
-    if (UpStrg(CurDir) <> UpStrg(Dr)) then
-      begin
-        CurDir := Dr;
-        SF.T.ID := siDirectory;
-        L := TStoredFixLength + 1 + Length(Dr);
-        SF.Name := Dr;
-        SF.T.Len := L;
-        Move(SF, B, L);
-        Inc(Items);
-      end;
-    if Attr and Directory <> 0
-     then SF.T.ID := siFileDir
-     else SF.T.ID := siFile;
-    SF.Name := GetName(FName);
-    SF.T.Len:= TStoredFixLength + 1 + Length(SF.Name);
-    SF.Size := Size;
-    TotalLength:=TotalLength+Size;
-    TotalCLength:=TotalCLength+CSize;
-    SF.CSize:= CSize;
-    SF.Date := Date;
-    SF.Attr := Attr;
-    Move(SF, B[L], SF.T.Len); Inc(L, SF.T.Len);
-    Inc(Files); Inc(Items);
-    if Attr and Directory <> 0 then Inc(Dirs);
+    if Stream <> nil then
+      Dispose(Stream, Done);
+    Stream := nil;
   end;
 
-  TS.ID := siEnd;
-  TS.Len := TStoredFixLength;
-  Move(TS, B[L], TS.Len); Inc(L, TS.Len);
+{-DataCompBoy-}
+procedure TDirStorage.AddFile;
+  var
+    dr: String;
+    Nm: String;
+    XT: String;
+    SF: TStoredFile;
+    TS: TStored absolute SF;
+    B: array[0..542] of byte;
+    l: word;
+  begin
+    if Stream = nil then
+      exit;
+    Stream^.Status := stOK;
+    vSeek(Max(0, (vSize)-TStoredFixLength));
+    l := 0;
+    if (FName <> #0) and (FName <> '') then
+      begin
+        lFSplit(FName, dr, Nm, XT);
+        if dr[Length(dr)] <> '\' then
+          AddStr(dr, '\');
+        if (UpStrg(CurDir) <> UpStrg(dr)) then
+          begin
+            CurDir := dr;
+            SF.t.Id := siDirectory;
+            l := TStoredFixLength+1+Length(dr);
+            SF.Name := dr;
+            SF.t.len := l;
+            Move(SF, B, l);
+            Inc(Items);
+          end;
+        if Attr and Directory <> 0
+        then
+          SF.t.Id := siFileDir
+        else
+          SF.t.Id := siFile;
+        SF.Name := GetName(FName);
+        SF.t.len := TStoredFixLength+1+Length(SF.Name);
+        SF.Size := Size;
+        TotalLength := TotalLength+Size;
+        TotalCLength := TotalCLength+CSize;
+        SF.CSize := CSize;
+        SF.Date := Date;
+        SF.Attr := Attr;
+        Move(SF, B[l], SF.t.len);
+        Inc(l, SF.t.len);
+        Inc(Files);
+        Inc(Items);
+        if Attr and Directory <> 0 then
+          Inc(Dirs);
+      end;
 
-  vWrite(B, L);
-  Last := True;
-end;
-        {-DataCompBoy-}
+    TS.Id := siEnd;
+    TS.len := TStoredFixLength;
+    Move(TS, B[l], TS.len);
+    Inc(l, TS.len);
+
+    vWrite(B, l);
+    Last := True;
+  end { TDirStorage.AddFile };
+{-DataCompBoy-}
 
 procedure TDirStorage.ResetPointer;
-begin
-  if Stream = nil then Exit;
-  CurPos := 0;
-  FilePtr := -1; CurPos := -1;
-  Last := vSize = 0;
-  vSeek(0);
-  FillChar(CurFile, SizeOf(CurFile), 0);
-  CurDir := Dir; LastDir := '';
-  if (CurDir <> '') and (CurDir[Length(CurDir)] <> '\') then AddStr(CurDir, '\');
-end;
+  begin
+    if Stream = nil then
+      exit;
+    CurPos := 0;
+    FilePtr := -1;
+    CurPos := -1;
+    Last := vSize = 0;
+    vSeek(0);
+    FillChar(CurFile, SizeOf(CurFile), 0);
+    CurDir := Dir;
+    LastDir := '';
+    if (CurDir <> '') and (CurDir[Length(CurDir)] <> '\') then
+      AddStr(CurDir, '\');
+  end;
 
-        {-DataCompBoy-}
-function  TDirStorage.GetNextFile;
- var SF: TStoredFile;
-     Dr: String;
-begin
-  Dr := LastDir; GetNextFile := False;
-  FillChar(CurFile, SizeOf(CurFile), 0); Last := True; CurPos := -1;
-  if Stream = nil then Exit;
-  while Stream^.Status = stOK do
-    begin
-      FilePtr := vSavePos;
-      vRead(SF, TStoredFixLength);
-      if SF.T.Len > TStoredFixLength then vRead(SF.Name, SF.T.Len - TStoredFixLength);
-      case SF.T.ID of
-        siDirectory: begin Dr := SF.Name; LastDir := Dr end;
-        siEnd: Break;
-        siFile, siFileDir:
-                 begin
-                  CurPos := vSavePos - SF.T.Len;
-                  if (CurDir = '') or (UpStrg(Dr) = UpStrg(CurDir)) then
-                    begin
-                      CurFile := SF;
-                      Last := vSize - vSavePos <= TStoredFixLength;
-                      LastDir := Dr;
-                      GetNextFile := True;
-                      If CurFile.Name<>'' then Break;
-                    end;
+{-DataCompBoy-}
+function TDirStorage.GetNextFile;
+  var
+    SF: TStoredFile;
+    dr: String;
+  begin
+    dr := LastDir;
+    GetNextFile := False;
+    FillChar(CurFile, SizeOf(CurFile), 0);
+    Last := True;
+    CurPos := -1;
+    if Stream = nil then
+      exit;
+    while Stream^.Status = stOK do
+      begin
+        FilePtr := vSavePos;
+        vRead(SF, TStoredFixLength);
+        if SF.t.len > TStoredFixLength then
+          vRead(SF.Name, SF.t.len-TStoredFixLength);
+        case SF.t.Id of
+          siDirectory:
+            begin
+              dr := SF.Name;
+              LastDir := dr
+            end;
+          siEnd:
+            break;
+          siFile, siFileDir:
+            begin
+              CurPos := vSavePos-SF.t.len;
+              if (CurDir = '') or (UpStrg(dr) = UpStrg(CurDir)) then
+                begin
+                  CurFile := SF;
+                  Last := vSize-vSavePos <= TStoredFixLength;
+                  LastDir := dr;
+                  GetNextFile := True;
+                  if CurFile.Name <> '' then
+                    break;
                 end;
+            end;
+        end {case};
       end;
-    end;
-end;
-        {-DataCompBoy-}
+  end { TDirStorage.GetNextFile };
+{-DataCompBoy-}
 
 procedure TDirStorage.UpdateRecord;
- var s: TStored;
-begin
-  if Stream = nil then Exit;
-  if (CurPos > 0) and (CurFile.Name <> '') then
-    begin
-      Stream^.Status := stOK;
-      vSeek(CurPos);
-      vRead(s, SizeOf(s));
-      vSeek(CurPos);
-      vWrite(CurFile, S.Len);
-    end;
-end;
+  var
+    s: TStored;
+  begin
+    if Stream = nil then
+      exit;
+    if (CurPos > 0) and (CurFile.Name <> '') then
+      begin
+        Stream^.Status := stOK;
+        vSeek(CurPos);
+        vRead(s, SizeOf(s));
+        vSeek(CurPos);
+        vWrite(CurFile, s.len);
+      end;
+  end;
 
-constructor TDirStorage.Load;
-  var P, L: LongInt;
-begin
-  TObject.Init;
-  S.Read(Dirs, SizeOf(Dirs));
-  S.Read(Files, SizeOf(Files));
-  S.Read(TotalLength, SizeOf(TotalLength));
-  S.Read(TotalCLength, SizeOf(TotalCLength));
-  S.Read(L, SizeOf(L)); vSize := L;
-  TryStream(L);
-  P := S.GetPos;
-  repeat
-    Stream^.CopyFrom(S, L);
-    if Stream^.Status = stOK then Break else
-    begin
-      Dispose(Stream,Done);Stream:=nil;
-      TryStream(L);
-      S.Seek(P);
-    end;
-  until False;
-end;
+Constructor TDirStorage.Load;
+  var
+    P, l: longInt;
+  begin
+    TObject.Init;
+    s.Read(Dirs, SizeOf(Dirs));
+    s.Read(Files, SizeOf(Files));
+    s.Read(TotalLength, SizeOf(TotalLength));
+    s.Read(TotalCLength, SizeOf(TotalCLength));
+    s.Read(l, SizeOf(l));
+    vSize := l;
+    TryStream(l);
+    P := s.GetPos;
+    repeat
+      Stream^.CopyFrom(s, l);
+      if Stream^.Status = stOK then
+        break
+      else
+        begin
+          Dispose(Stream, Done);
+          Stream := nil;
+          TryStream(l);
+          s.Seek(P);
+        end;
+    until False;
+  end { TDirStorage.Load };
 
 procedure TDirStorage.Store;
-  var L: LongInt;
-begin
-  AddFile(#0,0,0,0,0);
-  S.Write(Dirs, SizeOf(Dirs));
-  S.Write(Files, SizeOf(Files));
-  S.Write(TotalLength, SizeOf(TotalLength));
-  S.Write(TotalCLength, SizeOf(TotalCLength));
-  L := vSize;
-  S.Write(L, SizeOf(L));
-  vSeek(0); Stream^.Status := stOK;
-  S.CopyFrom(Stream^, vSize);
-end;
+  var
+    l: longInt;
+  begin
+    AddFile(#0, 0, 0, 0, 0);
+    s.Write(Dirs, SizeOf(Dirs));
+    s.Write(Files, SizeOf(Files));
+    s.Write(TotalLength, SizeOf(TotalLength));
+    s.Write(TotalCLength, SizeOf(TotalCLength));
+    l := vSize;
+    s.Write(l, SizeOf(l));
+    vSeek(0);
+    Stream^.Status := stOK;
+    s.CopyFrom(Stream^, vSize);
+  end;
 
-        {-DataCompBoy-}
+{-DataCompBoy-}
 procedure TDirStorage.DosReread;
- var SF: TStoredFile;
-     ST: TStored absolute SF;
-     Dr: String;
-     L, B: LongInt;
-     SR: lSearchRec;
-begin
-  Last := false; Dr := '';
-  Stream^.Status := stOK;
-  vSeek(0);
-  while Stream^.Status = stOK do
-    begin
-      L := vSavePos;
-      vRead(SF, TStoredFixLength);
-      if ST.Len > TStoredFixLength then vRead(SF.Name, ST.Len - TStoredFixLength);
-      case ST.ID of
-        siDirectory: Dr := SF.Name;
-        siEnd: Break;
-        siFile, siFileDir:
-                 begin
-                  Abort := false; DosError := 0;
-                  lFindFirst(Dr+SF.Name, Anyfile, SR); {JO}
-                  lFindClose(SR);
-                  TotalLength:=TotalLength-SF.Size;
-                  if (DosError <> 0) or Abort then
-                    begin
-                      Dec(Files);
-                      if ST.ID = siFileDir then Dec(Dirs);
-                      ST.ID := siEmpty;
-                      vSeek(L);
-                      vWrite(SF, ST.Len);
-                    end else
-                    if (SR.FullSize <> SF.Size) or (SR.SR.Time <> SF.Date) or (SR.SR.Attr <> SF.Attr) then
-                    begin
-                      TotalLength:=TotalCLength-SR.FullSize;
-                      SF.Size := SR.FullSize;
-                      SF.CSize := SR.FullSize;
-                      SF.Date := SR.SR.Time;
-                      SF.Attr := SR.SR.Attr;
-                      vSeek(L);
-                      vWrite(SF, ST.Len);
-                    end;
+  var
+    SF: TStoredFile;
+    ST: TStored absolute SF;
+    dr: String;
+    l, B: longInt;
+    SR: lSearchRec;
+  begin
+    Last := False;
+    dr := '';
+    Stream^.Status := stOK;
+    vSeek(0);
+    while Stream^.Status = stOK do
+      begin
+        l := vSavePos;
+        vRead(SF, TStoredFixLength);
+        if ST.len > TStoredFixLength then
+          vRead(SF.Name, ST.len-TStoredFixLength);
+        case ST.Id of
+          siDirectory:
+            dr := SF.Name;
+          siEnd:
+            break;
+          siFile, siFileDir:
+            begin
+              Abort := False;
+              DOSError := 0;
+              lFindFirst(dr+SF.Name, AnyFile, SR); {JO}
+              lFindClose(SR);
+              TotalLength := TotalLength-SF.Size;
+              if (DOSError <> 0) or Abort then
+                begin
+                  Dec(Files);
+                  if ST.Id = siFileDir then
+                    Dec(Dirs);
+                  ST.Id := siEmpty;
+                  vSeek(l);
+                  vWrite(SF, ST.len);
+                end
+              else if (SR.FullSize <> SF.Size) or (SR.SR.Time <> SF.
+                  Date) or (SR.SR.Attr <> SF.Attr)
+              then
+                begin
+                  TotalLength := TotalCLength-SR.FullSize;
+                  SF.Size := SR.FullSize;
+                  SF.CSize := SR.FullSize;
+                  SF.Date := SR.SR.Time;
+                  SF.Attr := SR.SR.Attr;
+                  vSeek(l);
+                  vWrite(SF, ST.len);
                 end;
+            end;
+        end {case};
       end;
-    end;
-end;
-        {-DataCompBoy-}
+  end { TDirStorage.DosReread };
+{-DataCompBoy-}
 
-        {-DataCompBoy-}
+{-DataCompBoy-}
 procedure TDirStorage.DeleteFile;
-  var Dr: String;
-      Nm: String;
-begin
-   Dr := P^.Owner^; if Dr[Length(Dr)] <> '\' then AddStr(Dr, '\');
-   ResetPointer('');
-   Nm := UpStrg(P^.FlName[true]);
-   While not Last and GetNextFile do
-      if (UpStrg(CurFile.Name) = Nm) and (LastDir = Dr) then WipeCur;
-end;
-        {-DataCompBoy-}
+  var
+    dr: String;
+    Nm: String;
+  begin
+    dr := P^.Owner^;
+    if dr[Length(dr)] <> '\' then
+      AddStr(dr, '\');
+    ResetPointer('');
+    Nm := UpStrg(P^.FlName[True]);
+    while not Last and GetNextFile do
+      if (UpStrg(CurFile.Name) = Nm) and (LastDir = dr) then
+        WipeCur;
+  end;
+{-DataCompBoy-}
 
-procedure TDirStorage.Truncate(N: LongInt);
-var
-  ST: TStored;
-  L, NF, ND, NI: LongInt;
-begin
-  ResetPointer('');
-  NF := 0; ND := 0; NI := 0;
-  while Stream^.Status = stOK do
-    begin
-      Inc(NI);
-      L := vSavePos;
-      vRead(ST, TStoredFixLength);
-      if ST.Len > TStoredFixLength then vSeek(L + ST.Len);
-      case ST.ID of
-        siEnd  : Break;
-        siFile, siFileDir :
-          begin
-            Dec(N);
-            if N > 0 then
+procedure TDirStorage.Truncate(n: longInt);
+  var
+    ST: TStored;
+    l, NF, ND, NI: longInt;
+  begin
+    ResetPointer('');
+    NF := 0;
+    ND := 0;
+    NI := 0;
+    while Stream^.Status = stOK do
+      begin
+        Inc(NI);
+        l := vSavePos;
+        vRead(ST, TStoredFixLength);
+        if ST.len > TStoredFixLength then
+          vSeek(l+ST.len);
+        case ST.Id of
+          siEnd:
+            break;
+          siFile, siFileDir:
             begin
-              Inc(NF);
-              if ST.ID = siFileDir then Inc(ND);
-            end else
-            begin
-              ST.ID := siEnd;
-              ST.Len := TStoredFixLength;
-              vSeek(L);
-              vWrite(ST, ST.Len);
-              vTruncate;
-              Dirs  := ND;
-              Files := NF;
-              Items := NI;
-              Break;
-            end
-          end;
+              Dec(n);
+              if n > 0 then
+                begin
+                  Inc(NF);
+                  if ST.Id = siFileDir then
+                    Inc(ND);
+                end
+              else
+                begin
+                  ST.Id := siEnd;
+                  ST.len := TStoredFixLength;
+                  vSeek(l);
+                  vWrite(ST, ST.len);
+                  vTruncate;
+                  Dirs := ND;
+                  Files := NF;
+                  Items := NI;
+                  break;
+                end
+            end;
+        end {case};
       end;
-    end;
-end;
+  end { TDirStorage.Truncate };
 
 procedure TDirStorage.WipeCur;
-var
-  L: LongInt;
-  s: TStored;
-begin
-  L := vSavePos;
-  Stream^.Status := stOK;
-  vSeek(FilePtr);
-  vRead(s, SizeOf(s)); {DataCompBoy}
-  vSeek(FilePtr);      {DataCompBoy}
-  CurFile.T.Id := siEmpty;
-  vWrite(CurFile, s.Len);{DataCompBoy}
-  vSeek(L);
-  Dec(Files);
-  if S.ID = siFileDir then Dec(Dirs);
-end;
+  var
+    l: longInt;
+    s: TStored;
+  begin
+    l := vSavePos;
+    Stream^.Status := stOK;
+    vSeek(FilePtr);
+    vRead(s, SizeOf(s)); {DataCompBoy}
+    vSeek(FilePtr); {DataCompBoy}
+    CurFile.t.Id := siEmpty;
+    vWrite(CurFile, s.len); {DataCompBoy}
+    vSeek(l);
+    Dec(Files);
+    if s.Id = siFileDir then
+      Dec(Dirs);
+  end;
 
 procedure TDirStorage.vWrite;
-begin
-  repeat
-    Stream^.Write(Buf, Count);
-    if Stream^.Status = stOK
+  begin
+    repeat
+      Stream^.Write(Buf, Count);
+      if Stream^.Status = stOK
       then
         begin
-          vSize := Max(vSize, vSavePos+Count); Inc(vSavePos, Count);
-          Break;
+          vSize := Max(vSize, vSavePos+Count);
+          Inc(vSavePos, Count);
+          break;
         end
-      else FixError;
-  until False;
-end;
+      else
+        FixError;
+    until False;
+  end;
 
 procedure TDirStorage.vSeek;
-begin
-  Stream^.Seek(Pos); vSavePos := Pos;
-end;
+  begin
+    Stream^.Seek(Pos);
+    vSavePos := Pos;
+  end;
 
 procedure TDirStorage.vTruncate;
-begin
-  Stream^.Truncate;
-  if Stream^.Status = stOK
-    then begin vSize := Stream^.GetPos; vSavePos := vSize end
-    else FixError;
-end;
+  begin
+    Stream^.Truncate;
+    if Stream^.Status = stOK
+    then
+      begin
+        vSize := Stream^.GetPos;
+        vSavePos := vSize
+      end
+    else
+      FixError;
+  end;
 
 procedure TDirStorage.vRead;
-begin
-  Stream^.Read(Buf, Count);
-  if Stream^.Status = stOK
-    then Inc(vSavePos, Count)
-    else __Error;
-end;
+  begin
+    Stream^.Read(Buf, Count);
+    if Stream^.Status = stOK
+    then
+      Inc(vSavePos, Count)
+    else
+      __Error;
+  end;
 
 end.

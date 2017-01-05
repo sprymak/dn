@@ -53,163 +53,109 @@ program DN;
 {$R DN.res}
 {$ENDIF}
 
-{$IFNDEF NONBP}
-{$M 40000,0,655350}
-{$ENDIF}
-
 {Cat: методы поддержки плагинов поменялись, поэтому этот кусок
       закомментировал; прежний код убивать пока жалко}
 
 uses
-    {$IFNDEF VIRTUALPASCAL} ExtKBD, {$ENDIF}
-     Drivers,  LFN,      Files,
-     DN1,      Dos,      DnApp,
-    {$IFNDEF NO_OVERLAY} Overlay1, Overlays, {$ENDIF}
-     Menus,    FlPanelX, FlPanel,  FileCopy, Filediz,  Filelst,  Eraser,
-     DiskInfo, Advance,  Advance1, Advance2, Advance3, Advance4, highlite,
-     Startup,  Dialogs,  Gauges,   Memory,   DblWnd,   Messages, HistList,
-     FileFind, Commands, Tree,     FViewer,  CmdLine,  FBB,      DNStdDlg,
-     FilesCol, UserMenu, RStrings, Colors,   Microed,  Editor,   Macro,
-     ArcView,  HelpFile, Validate, ASCIITab, xTime,    Drives,   Archiver,
-     Archset,  Archdet,  Setups,   DNUtil,   XDblWnd,  Histries, CCalc,
-     DnIni,    Collect,  UFNMatch, Objects,  Views,    Scroller, Calculat,
-     HelpKern, VideoMan
-{$IFNDEF VIRTUALPASCAL} ,DrvTypes ,ExtraMem            {$ENDIF}
-{$IFDEF DiskFormat}     ,DNFormat ,Format              {$ENDIF}
-{$IFDEF CdPlayer}       ,CdPlayer ,CdUtil              {$ENDIF}
-{$IFDEF SpreadSheet}    ,Calc     ,CellsCol            {$ENDIF}
-{$IFDEF DBView}         ,DBView   ,DBWatch             {$ENDIF}
-{$IFDEF Modem}          ,ModemIO  ,Terminal
-                        ,apTimer  ,apUART    ,apPort
-                   {$IFDEF LINK}  ,NavyLink  {$ENDIF}
-                   {$IFDEF PHONES},uDialer {$ENDIF}    {$ENDIF}
-{$IFDEF Game}           ,Tetris                        {$ENDIF}
-{$IFDEF Printer}        ,PrintMan                      {$ENDIF}
-{$IFDEF Calendar}      ,Calendar                       {$ENDIF}{JO}
-{$IFDEF PHONES}        ,Phones                         {$ENDIF}
-{$IFDEF SS}            ,Idlers                         {$ENDIF}
-{$IFDEF CHCOL}         ,ColorSel, ColorVGA             {$ENDIF}
-{$IFDEF NETINFO}       ,Novell                         {$ENDIF}
-{$IFDEF DiskEdit}      ,Fixer                          {$ENDIF}
-{$IFDEF REANIMATOR}    ,Reanimat                       {$ENDIF}
-{$IFDEF LINEPOSIT} {$IFDEF USESYSUTILS} ,SysUtils {$ENDIF} ,VPUtils {$ENDIF}
-{$IFDEF EAOP}      {$IFDEF OS2} ,EAOper                    {$ENDIF} {$ENDIF}
-{$IFDEF VIRTUALPASCAL} ,VPSysLow                       {$ENDIF}
-     ;
-
+  Drivers, Lfn, Files,
+  DN1, Dos, DNApp,
+  Menus, FlPanelX, FlPanel, FileCopy, Filediz, Filelst, Eraser,
+  DiskInfo, advance, advance1, advance2, advance3, advance4,
+    highlite,
+  Startup, Dialogs, Gauges, Memory, DblWnd, Messages, HistList,
+  FileFind, Commands, Tree, FViewer, CmdLine, FBB, DNStdDlg,
+  FilesCol, UserMenu, RStrings, Colors, Microed, Editor, Macro,
+  ArcView, HelpFile, Validate, ASCIITab, xTime, Drives, Archiver,
+  Archset, ArchDet, Setups, DNUtil, XDblWnd, Histries, CCalc,
+  DnIni, Collect, UFNMatch, Objects, Views, Scroller, Calculat,
+  HelpKern, VideoMan
+  {$IFDEF SpreadSheet}, Calc, CellsCol {$ENDIF}
+  {$IFDEF DBView}, DBView, DBWatch {$ENDIF}
+  {$IFDEF Modem}, modemio, Terminal
+  , apTimer, apUART, apPort
+  {$IFDEF LINK}, NavyLink {$ENDIF}
+  {$IFDEF PHONES}, uDialer {$ENDIF} {$ENDIF}
+  {$IFDEF Game}, Tetris {$ENDIF}
+  {$IFDEF Printer}, PrintMan {$ENDIF}
+  {$IFDEF Calendar}, Calendar {$ENDIF} {JO}
+  {$IFDEF PHONES}, Phones {$ENDIF}
+  {$IFDEF SS}, Idlers {$ENDIF}
+  , ColorSel, ColorVGA
+  {$IFDEF NETINFO}, Novell {$ENDIF}
+  {$IFDEF LINEPOSIT}, sysutils, VPUtils {$ENDIF}
+  {$IFDEF OS2}, EAOper {$ENDIF}
+  , VpSysLow
+  ;
 
 {$IFDEF LINEPOSIT}
 
 {&Delphi+}
-{$IFDEF LOGOBJLOADSTORE}
-var
-  F: Text;
-{$ENDIF}
-{$IFDEF USESYSUTILS}
 var
   E: Exception;
   FileName: ShortString;
-  LineNo: LongInt;
-{$IFDEF VPBETA}
-  DNErrFile: Text;
-{$ENDIF}
-{$ELSE}
-procedure DebugInfoExitProc;
-var
-  S: String;
-begin
-  if ErrorAddr <> nil then
-    begin
-      SourceFileName := @S;
-      GetLocationInfo(ErrorAddr, S, SourceLineNo);
-      {EndFatalError;} {in Drivers.ExitDrivers}
-    end;
-end;
-{$ENDIF}
+  LineNo: longInt;
+  DNErrFile: text;
 
-{$ENDIF}
+  {$ENDIF}
 
 begin
-{$IFDEF VIRTUALPASCAL}
-SysDisableHardErrors;
+  SysDisableHardErrors;
 
-{CtrlBreakHandler := TVCtrlBreak;
+  {CtrlBreakHandler := TVCtrlBreak;
 SysCtrlSetCBreakHandler;}
-{$ENDIF}
-{$IFDEF LINEPOSIT}
-{$IFNDEF USESYSUTILS}
- AddExitProc(DebugInfoExitProc);
-{$ELSE}
- try
-{$ENDIF}
-  {Init09Handler;}
-{Cat: проверяем на выходе, сколько памяти скушалось
+  {$IFDEF LINEPOSIT}
+  try
+    {Init09Handler;}
+    {Cat: проверяем на выходе, сколько памяти скушалось
       создаём лог, куда будут записываться все вызовы методов Load и Store}
-   begin
-{$IFDEF LOGOBJLOADSTORE}
-  if IOResult <> 0 then
-    ;
-  System.Assign(F, 'stream.log');
-  System.Rewrite(F);
-  System.Close(F);
-  if IOResult <> 0 then
-    ;
-{$ENDIF}
-     RUN_IT;
-   end
-{/Cat}
-{$IFDEF USESYSUTILS}
- except
-   on E: EControlC do
-     begin {Фактически это никакой не Ctrl-C, а Close через кнопку,
+    begin
+      RUN_IT;
+    end
+    {/Cat}
+  except
+    on E: EControlC do
+      begin
+          {Фактически это никакой не Ctrl-C, а Close через кнопку,
        или системное меню, или системный список задач. А Ctrl-Crek, Ctrl-C
        обрабатываются в killer и сюда не попадают.}
-     end;
-   on E: exception do
-     begin
-     ClearScreen;
-     SysTvShowBuf(0, ScreenWidth*ScreenHeight);
- {$IFDEF VPBETA}
-      SourceDir := SourceDir + 'DN.ERR';
-      Writeln('Fatal Error'^M^J'-----------'^M^J^M^J+
-              'Exception 0',Hex2(ExitCode),'h at address ',Hex8(LongInt(ExceptAddr)));
-      Writeln(E.Message);
-      if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
-          Writeln('Source location: ' + FileName + ' line ', LineNo );
-      Writeln('Please report to RU.SHELL.DN'^M^J+
-              '( file ' + SourceDir + ' )'^M^J^M^J+
-              'Press any key...');
-  if IOResult <> 0 then
-    ;
-       Assign(DNErrFile, SourceDir);
-       rewrite(DNErrFile);
-       Writeln(DNErrFile,'');
-       Writeln(DNErrFile, 'Exception at addr ' + Ptr2Hex(ExceptAddr));
-       Writeln(DNErrFile, E.Message);
-       if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
-         Writeln(DNErrFile, 'Source location: ' + FileName + ' line ', LineNo );
-       Close(DNErrFile);
- {$ELSE}
-       Writeln('Exception at addr ' + Ptr2Hex(ExceptAddr));
-       Writeln(E.Message);
-       if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
-          Writeln('Source location: ' + FileName + ' line ', LineNo );
- {$ENDIF}
-     repeat
-      SysCtrlSleep(1); {JO}
-     until SysKeyPressed;
-     while SysKeyPressed do SysReadKey;
-     SysTVInitCursor;
-     end;
- end;
-{$ENDIF}
-{$ELSE}
-{$IFNDEF VIRTUALPASCAL}
- Init09Handler;
-{$ENDIF}
- RUN_IT;
-{$ENDIF}
+      end;
+    on E: Exception do
+      begin
+        ClearScreen;
+        SysTvShowBuf(0, ScreenWidth*ScreenHeight);
+        SourceDir := SourceDir+'DN.ERR';
+        Writeln('Fatal Error'^M^J'-----------'^M^J^M^J+
+        'Exception 0', Hex2(ExitCode), 'h at address ', Hex8(longInt(
+          ExceptAddr)));
+        Writeln(E.Message);
+        if GetLocationInfo(ExceptAddr, FileName, LineNo) <> nil then
+          Writeln('Source location: '+FileName+' line ', LineNo);
+        Writeln('Please report to RU.SHELL.DN'^M^J+
+        '( file '+SourceDir+' )'^M^J^M^J+
+        'Press any key...');
+        if IOResult <> 0 then
+          ;
+        Assign(DNErrFile, SourceDir);
+        rewrite(DNErrFile);
+        Writeln(DNErrFile, '');
+        Writeln(DNErrFile, 'Exception at addr '+Ptr2Hex(ExceptAddr));
+        Writeln(DNErrFile, E.Message);
+        if GetLocationInfo(ExceptAddr, FileName, LineNo) <> nil then
+          Writeln(DNErrFile, 'Source location: '+FileName+' line ',
+            LineNo);
+        Close(DNErrFile);
+        repeat
+          SysCtrlSleep(1); {JO}
+        until SysKeyPressed;
+        while SysKeyPressed do
+          SysReadKey;
+        SysTVInitCursor;
+      end;
+  end;
+  {$ELSE}
+  RUN_IT;
+  {$ENDIF}
 
-(*{$ENDIF PLUGIN}*)
+  (*{$ENDIF PLUGIN}*)
 
 end.

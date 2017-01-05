@@ -49,57 +49,59 @@
 
 {Cat: здесь раньше не анализировались коды возврата функций SysFileXXX;
             переделал так, чтобы всё было по-человечески }
-FUNCTION AFileClose (Handle: Word): Boolean;
-BEGIN
- AFileClose := (SysFileClose(Handle) = 0);
-END;
+function AFileClose(Handle: word): boolean;
+  begin
+    AFileClose := (SysFileClose(Handle) = 0);
+  end;
 
 {Cat: почему-то для DPMI32 SysFileOpen_Create у меня не заработал}
-FUNCTION AFileOpen (Var FileName: AsciiZ; Mode: Word; Var Handle: Word): Word;
-BEGIN
-  if Mode=stCreate then
- (* AFileOpen := SysFileOpen_Create(False, @FileName, stOpen, $20{Archive}, create_TruncateIfExists, Handle) *)
-    AFileOpen := SysFileCreate(@FileName, stOpen, $20{Archive}, Handle)
-  else
- (* AFileOpen := SysFileOpen_Create(True, @FileName, Mode, $20{Archive}, 0, Handle); *)
-    AFileOpen := SysFileOpen(@FileName, Mode, Handle);
-END;
+function AFileOpen(var FileName: AsciiZ; Mode: word; var Handle:
+    word): word;
+  begin
+    if Mode = stCreate then
+      (* AFileOpen := SysFileOpen_Create(False, @FileName, stOpen, $20{Archive}, create_TruncateIfExists, Handle) *)
+      AFileOpen := SysFileCreate(@FileName, stOpen, $20 {Archive},
+        Handle)
+    else
+      (* AFileOpen := SysFileOpen_Create(True, @FileName, Mode, $20{Archive}, 0, Handle); *)
+      AFileOpen := SysFileOpen(@FileName, Mode, Handle);
+  end;
 
-FUNCTION AFileRead(Handle: Word; Var Buf; Count: Sw_Word;
-                   Var Actual: Sw_Word): Word;
-BEGIN
-  AFileRead := SysFileRead(Handle, Buf, Count, Actual);
-  if Actual < 0 then
-    Actual := 0;
-END;
+function AFileRead(Handle: word; var Buf; Count: SW_Word;
+  var Actual: SW_Word): word;
+  begin
+    AFileRead := SysFileRead(Handle, Buf, Count, Actual);
+    if Actual < 0 then
+      Actual := 0;
+  end;
 
-FUNCTION AFileWrite (Handle: Word; Var Buf; Count: Sw_Word;
-                     Var Actual: Sw_Word): Word;
-BEGIN
-  AFileWrite := SysFileWrite(Handle, Buf, Count, Actual);
-  if Actual < 0 then
-    Actual := 0;
-END;
+function AFileWrite(Handle: word; var Buf; Count: SW_Word;
+  var Actual: SW_Word): word;
+  begin
+    AFileWrite := SysFileWrite(Handle, Buf, Count, Actual);
+    if Actual < 0 then
+      Actual := 0;
+  end;
 
-FUNCTION ASetFilePos (Handle: Word; Pos: LongInt; MoveType: Word;
-                      Var Actual: LongInt): Word;
-BEGIN
-  ASetFilePos := SysFileSeek(Handle, Pos, MoveType, Actual);
-  if Actual<0 then
-    Actual := 0;
-END;
+function ASetFilePos(Handle: word; Pos: longInt; MoveType: word;
+  var Actual: longInt): word;
+  begin
+    ASetFilePos := SysFileSeek(Handle, Pos, MoveType, Actual);
+    if Actual < 0 then
+      Actual := 0;
+  end;
 {/Cat}
 
 {AK155}
-FUNCTION ASetFileSize (Handle: Word; FileSize: LongInt): Word;
-BEGIN
- ASetFileSize := 0;
- if (ASetFilePos(Handle, FileSize, 0, FileSize)<>0) or
-    (SysFileSetSize(Handle, FileSize) <> 0)
- then
-   ASetFileSize := 1
- else
-   ASetFileSize := 0;
-END;
+function ASetFileSize(Handle: word; FileSize: longInt): word;
+  begin
+    ASetFileSize := 0;
+    if (ASetFilePos(Handle, FileSize, 0, FileSize) <> 0) or
+      (SysFileSetSize(Handle, FileSize) <> 0)
+    then
+      ASetFileSize := 1
+    else
+      ASetFileSize := 0;
+  end;
 {/AK155}
 

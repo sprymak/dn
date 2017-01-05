@@ -22,67 +22,73 @@ type
     Prev: PDrive;
     DriveType: TDriveType;
     CurDir: String;
-    DIZOwner: String;
-    NoMemory: Boolean;
+    DizOwner: String;
+    NoMemory: boolean;
     Flags: AWord;
-    LFNLen: Byte;
-    EXTLen: Byte;
+    LFNLen: byte;
+    EXTLen: byte;
     DirFLP, FilFLP: AWord;
-    Param, OldParam: Byte;
-    InNum: Byte;
-    SizeX: LongInt;
+    Param, OldParam: byte;
+    innum: byte;
+    SizeX: longInt;
     {$IFDEF OS2}
-    ShowLogNames: Boolean;
+    ShowLogNames: boolean;
     {$ENDIF}
-    constructor Init(ADrive: Byte; AOwner: Pointer; Num: Byte);
-    constructor Load(var S: TStream);
-    procedure Store(var S: TStream); virtual;
+    Constructor Init(ADrive: byte; AOwner: Pointer; Num: byte);
+    Constructor Load(var s: TStream);
+    procedure Store(var s: TStream); virtual;
     procedure KillUse; virtual;
     procedure lChDir(ADir: String); virtual;
     function GetDir: String; virtual;
-    function GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
-      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection; virtual;
-    procedure CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
-    procedure CopyFilesInto(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
+    function GetDirectory: function (SortMode, PanelFlags: integer;
+      const FileMask: String;
+    var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer):
+      PCollection; virtual;
+    procedure CopyFiles(Files: PCollection; Own: PView; MoveMode:
+      boolean); virtual;
+    procedure CopyFilesInto(Files: PCollection; Own: PView; MoveMode:
+      boolean); virtual;
     procedure EraseFiles(Files: PCollection); virtual;
-    procedure UseFile(P: PFileRec; Command: Word); virtual;
-    procedure GetFreeSpace(var S: String); virtual;
-    function Disposable: Boolean; virtual;
+    procedure UseFile(P: PFileRec; Command: word); virtual;
+    procedure GetFreeSpace(var s: String); virtual;
+    function Disposable: boolean; virtual;
     function GetRealName: String; virtual;
     function GetInternalName: String; virtual;
-    procedure GetFull(var B; P: PFileRec; C, SC: Word); virtual;
-    procedure GetEmpty(var B; SC: Word); virtual;
-    function CalcLengthWithoutName: Integer; virtual;
-    function CalcLength: Integer; virtual;
-    procedure RereadDirectory(S: String); virtual;
-    procedure MakeTop(var S: String); virtual;
-    procedure GetDown(var B; C: Word; P: PFileRec); virtual;
-    procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
+    procedure GetFull(var B; P: PFileRec; C, Sc: word); virtual;
+    procedure GetEmpty(var B; Sc: word); virtual;
+    function CalcLengthWithoutName: integer; virtual;
+    function CalcLength: integer; virtual;
+    procedure RereadDirectory(s: String); virtual;
+    procedure MakeTop(var s: String); virtual;
+    procedure GetDown(var B; C: word; P: PFileRec); virtual;
+    procedure HandleCommand(Command: word; InfoPtr: Pointer);
+      virtual;
     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
     function GetRealDir: String; virtual;
     procedure MakeDir; virtual;
-    function IsUp: Boolean; virtual;
-    procedure ChangeUp(var S: String); virtual;
+    function isUp: boolean; virtual;
+    procedure ChangeUp(var s: String); virtual;
     procedure ChangeRoot; virtual;
-    function GetFullFlags: Word; virtual;
+    function GetFullFlags: word; virtual;
     procedure EditDescription(PF: PFileRec); virtual;
     procedure GetDirLength(PF: PFileRec); virtual;
-    procedure GetParam(N: Byte); virtual;
+    procedure GetParam(n: byte); virtual;
     function OpenDirectory(const Dir: String): PDrive; virtual;
     {destructor Done; virtual;}
-  end;
+    end;
 
   PFindDrive = ^TFindDrive;
   TFindDrive = object(TDrive)
-    IsDisposable: Boolean;
+    isDisposable: boolean;
     Files: PFilesCollection;
     Dirs: PSortedCollection;
     ListFile: PString;
     UpFile: PFileRec;
     AMask, AWhat: PString;
-    constructor Init(const AName: String; ADirs: PCollection; AFiles: PFilesCollection; Num: Byte);
-    constructor InitList(const AName: String);
-    constructor Load(var S: TStream);
+    Constructor Init(const AName: String; ADirs: PCollection; AFiles:
+      PFilesCollection; Num: byte);
+    Constructor InitList(const AName: String);
+    Constructor Load(var s: TStream);
     {procedure Store(var S: TStream); virtual;}
     {destructor Done; virtual;}
     procedure NewUpFile;
@@ -108,12 +114,12 @@ type
     {function GetFullFlags: Word; virtual;}
     {procedure GetDirInfo(var B: TDiskInfoRec); virtual;}
     {procedure GetParam(N: Byte); virtual;}
-  end;
+    end;
 
   PTempDrive = ^TTempDrive;
   TTempDrive = object(TFindDrive)
-    constructor Init(Num: Byte);
-    constructor Load(var S: TStream);
+    Constructor Init(Num: byte);
+    Constructor Load(var s: TStream);
     {procedure Store(var S: TStream); virtual;}
     {destructor Done; virtual;}
     {procedure CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;}
@@ -123,34 +129,37 @@ type
     {procedure EraseFiles(AFiles: PCollection); virtual;}
     {procedure GetDirInfo(var B: TDiskInfoRec); virtual;}
     {procedure GetParam(N: Byte); virtual;}
-  end;
+    end;
 
   PArcDrive = ^TArcDrive;
   TArcDrive = object(TDrive)
     ArcName: String;
     VArcName: String;
-    AType: Pointer{PARJArchive};
-    Files: Pointer{PDirStorage};
-    KillAfterUse:Boolean;
-    FakeKillAfterUse: Boolean;
-    ArcDate: LongInt;
-    ArcSize:     Comp;
-    ForceRescan: Boolean;
+    AType: Pointer {PARJArchive};
+    Files: Pointer {PDirStorage};
+    KillAfterUse: boolean;
+    FakeKillAfterUse: boolean;
+    ArcDate: longInt;
+    ArcSize: Comp;
+    ForceRescan: boolean;
     Password: String;
-    constructor Init(const AName, VAName: String; ViewMode: Byte);
-    constructor InitCol(PC: Pointer{PDirStorage}; const AName, VAName: String);
-    constructor Load(var S: TStream);
+    Constructor Init(const AName, VAName: String; ViewMode: byte);
+    Constructor InitCol(PC: Pointer {PDirStorage}; const AName,
+      VAName: String);
+    Constructor Load(var s: TStream);
     {procedure Store(var S: TStream); virtual;}
     {destructor Done; virtual;}
     {procedure RereadDirectory(S: String); virtual;}
     {procedure KillUse; virtual;}
-    function ReadArchive: Boolean;
+    function ReadArchive: boolean;
     {procedure lChDir(ADir: String); virtual;}
     {function GetDir: String; virtual;}
     {function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String): PCollection; virtual;}
-    function Exec(Prg, Cmd: String; Lst: AnsiString; B: Boolean): Boolean;
+    function Exec(Prg, Cmd: String; Lst: AnsiString; B: boolean):
+      boolean;
     {procedure UseFile(P: PFileRec; Command: Word); virtual;}
-    function MakeListFile(PC: PCollection; UseUnp: Boolean; Var B: Boolean): AnsiString;
+    function MakeListFile(PC: PCollection; UseUnp: boolean; var B:
+      boolean): AnsiString;
     {procedure CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;}
     {procedure CopyFilesInto(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;}
     {procedure EraseFiles(AFiles: PCollection); virtual;}
@@ -166,36 +175,37 @@ type
     {function IsUp: Boolean; virtual;}
     {procedure ChangeUp(var S: String); virtual;}
     {procedure ChangeRoot; virtual;}
-    procedure ExtractFiles(AFiles: PCollection; ExtrDir: String; Own: PView; Options: Byte);
+    procedure ExtractFiles(AFiles: PCollection; ExtrDir: String; Own:
+      PView; Options: byte);
     {procedure GetFreeSpace(var S: String); virtual;}
     {procedure GetDirInfo(var B: TDiskInfoRec); virtual;}
     {function GetFullFlags: Word; virtual;}
     {procedure GetDirLength(PF: PFileRec); virtual;}
     {procedure GetParam(N: Byte); virtual;}
     procedure StdMsg4;
-  end;
+    end;
 
   PArvidDrive = ^TArvidDrive;
   TArvidDrive = object(TDrive)
     Name: PString;
     Stream: PStream;
-    CurFile: LongInt;
-    CurDirPos: LongInt;
-    PosTableOfs: LongInt;
+    CurFile: longInt;
+    CurDirPos: longInt;
+    PosTableOfs: longInt;
     CurFileNum: AWord;
     CurLevel: AWord;
-    CurDate: LongInt;
-    KillAfterUse: Boolean;
-    FileType: TAvdType;
+    CurDate: longInt;
+    KillAfterUse: boolean;
+    filetype: TAvdType;
     D: TTdrHeader;
     AVT: TAvtHeader;
     TapeFmt: AWord;
     TapeTotalTime: AWord;
     TapeRecordedTime: AWord;
-    TotFiles: LongInt;
-    TotLen: LongInt;
-    CurDirCellPos: LongInt;
-    constructor Init(const AName: String; Num: Byte);
+    TotFiles: longInt;
+    TotLen: longInt;
+    CurDirCellPos: longInt;
+    Constructor Init(const AName: String; Num: byte);
     {destructor Done; virtual;}
     {procedure lChDir(ADir: String); virtual;}
     {function GetDir: String; virtual;}
@@ -219,9 +229,9 @@ type
     {procedure GetDirLength(PF: PFileRec); virtual;}
     {procedure GetParam(n: byte); virtual;}
     procedure SeekDirectory;
-  end;
+    end;
 
-(*
+  (*
   PXDoubleWindow = ^TXDoubleWindow;
   TXDoubleWindow = object(TWindow)
     isValid: Boolean;
@@ -257,255 +267,268 @@ implementation
 uses
   _DNFuncs;
 
-constructor TDrive.Init(ADrive: Byte; AOwner: Pointer; Num: Byte);
-begin
-  _TDrive^.Init(ADrive, AOwner, Num, nil, @Self);
-end;
+Constructor TDrive.Init(ADrive: byte; AOwner: Pointer; Num: byte);
+  begin
+    _TDrive^.Init(ADrive, AOwner, Num, nil, @Self);
+  end;
 
-constructor TDrive.Load(var S: TStream);
-begin
-  _TDrive^.Load(_Model1.TStream(S), nil, @Self);
-end;
+Constructor TDrive.Load(var s: TStream);
+  begin
+    _TDrive^.Load(_Model1.TStream(s), nil, @Self);
+  end;
 
-procedure TDrive.Store(var S: TStream);
-assembler;{&Frame-}
+procedure TDrive.Store(var s: TStream);
+  assembler; {&Frame-}
 asm
 end;
 
 procedure TDrive.KillUse;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
 procedure TDrive.lChDir(ADir: String);
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
 function TDrive.GetDir: String;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
-function TDrive.GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
-      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection;
-assembler;{&Frame-}
+function TDrive.GetDirectory: function (SortMode, PanelFlags:
+    integer; const FileMask: String;
+  var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer):
+    PCollection;
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean);
-assembler;{&Frame-}
+procedure TDrive.CopyFiles(Files: PCollection; Own: PView; MoveMode:
+    boolean);
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.CopyFilesInto(Files: PCollection; Own: PView; MoveMode: Boolean);
-assembler;{&Frame-}
+procedure TDrive.CopyFilesInto(Files: PCollection; Own: PView;
+    MoveMode: boolean);
+  assembler; {&Frame-}
 asm
 end;
 
 procedure TDrive.EraseFiles(Files: PCollection);
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.UseFile(P: PFileRec; Command: Word);
-assembler;{&Frame-}
+procedure TDrive.UseFile(P: PFileRec; Command: word);
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.GetFreeSpace(var S: String);
-assembler;{&Frame-}
+procedure TDrive.GetFreeSpace(var s: String);
+  assembler; {&Frame-}
 asm
 end;
 
-function TDrive.Disposable: Boolean;
-assembler;{&Frame-}
+function TDrive.Disposable: boolean;
+  assembler; {&Frame-}
 asm
 end;
 
 function TDrive.GetRealName: String;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
 function TDrive.GetInternalName: String;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.GetFull(var B; P: PFileRec; C, SC: Word);
-assembler;{&Frame-}
+procedure TDrive.GetFull(var B; P: PFileRec; C, Sc: word);
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.GetEmpty(var B; SC: Word);
-assembler;{&Frame-}
+procedure TDrive.GetEmpty(var B; Sc: word);
+  assembler; {&Frame-}
 asm
 end;
 
-function TDrive.CalcLengthWithoutName: Integer;
-assembler;{&Frame-}
+function TDrive.CalcLengthWithoutName: integer;
+  assembler; {&Frame-}
 asm
 end;
 
-function TDrive.CalcLength: Integer;
-assembler;{&Frame-}
+function TDrive.CalcLength: integer;
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.RereadDirectory(S: String);
-assembler;{&Frame-}
+procedure TDrive.RereadDirectory(s: String);
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.MakeTop(var S: String);
-assembler;{&Frame-}
+procedure TDrive.MakeTop(var s: String);
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.GetDown(var B; C: Word; P: PFileRec);
-assembler;{&Frame-}
+procedure TDrive.GetDown(var B; C: word; P: PFileRec);
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.HandleCommand(Command: Word; InfoPtr: Pointer);
-assembler;{&Frame-}
+procedure TDrive.HandleCommand(Command: word; InfoPtr: Pointer);
+  assembler; {&Frame-}
 asm
 end;
 
 procedure TDrive.GetDirInfo(var B: TDiskInfoRec);
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
 function TDrive.GetRealDir: String;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
 procedure TDrive.MakeDir;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
-function TDrive.isUp: Boolean;
-assembler;{&Frame-}
+function TDrive.isUp: boolean;
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.ChangeUp(var S: String);
-assembler;{&Frame-}
+procedure TDrive.ChangeUp(var s: String);
+  assembler; {&Frame-}
 asm
 end;
 
 procedure TDrive.ChangeRoot;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
-function TDrive.GetFullFlags: Word;
-assembler;{&Frame-}
+function TDrive.GetFullFlags: word;
+  assembler; {&Frame-}
 asm
 end;
 
 procedure TDrive.EditDescription(PF: PFileRec);
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
 procedure TDrive.GetDirLength(PF: PFileRec);
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
-procedure TDrive.GetParam(N: Byte);
-assembler;{&Frame-}
+procedure TDrive.GetParam(n: byte);
+  assembler; {&Frame-}
 asm
 end;
 
 function TDrive.OpenDirectory(const Dir: String): PDrive; virtual;
-assembler;{&Frame-}
+  assembler; {&Frame-}
 asm
 end;
 
-constructor TFindDrive.Init(const AName: String; ADirs: PCollection; AFiles: PFilesCollection; Num: Byte);
-begin
-  _TFindDrive^.Init(AName, _Model1.PCollection(ADirs), _Model1.PFilesCollection(AFiles), Num, nil, @Self);
-end;
+Constructor TFindDrive.Init(const AName: String; ADirs: PCollection;
+    AFiles: PFilesCollection; Num: byte);
+  begin
+    _TFindDrive^.Init(AName, _Model1.PCollection(ADirs), _Model1.
+      PFilesCollection(AFiles), Num, nil, @Self);
+  end;
 
-constructor TFindDrive.InitList(const AName: String);
-begin
-  _TFindDrive^.InitList(AName, nil, @Self);
-end;
+Constructor TFindDrive.InitList(const AName: String);
+  begin
+    _TFindDrive^.InitList(AName, nil, @Self);
+  end;
 
-constructor TFindDrive.Load(var S: TStream);
-begin
-  _TFindDrive^.Load(_Model1.TStream(S), nil, @Self);
-end;
+Constructor TFindDrive.Load(var s: TStream);
+  begin
+    _TFindDrive^.Load(_Model1.TStream(s), nil, @Self);
+  end;
 
 procedure TFindDrive.NewUpFile;
-begin
-  _TFindDrive^.NewUpFile(@Self);
-end;
+  begin
+    _TFindDrive^.NewUpFile(@Self);
+  end;
 
-constructor TTempDrive.Init(Num: Byte);
-begin
-  _TTempDrive^.Init(Num, nil, @Self);
-end;
+Constructor TTempDrive.Init(Num: byte);
+  begin
+    _TTempDrive^.Init(Num, nil, @Self);
+  end;
 
-constructor TTempDrive.Load(var S: TStream);
-begin
-  _TTempDrive^.Load(_Model1.TStream(S), nil, @Self);
-end;
+Constructor TTempDrive.Load(var s: TStream);
+  begin
+    _TTempDrive^.Load(_Model1.TStream(s), nil, @Self);
+  end;
 
-constructor TArcDrive.Init(const AName, VAName: String; ViewMode: Byte);
-begin
-  _TArcDrive^.Init(AName, VAName, ViewMode, nil, @Self);
-end;
+Constructor TArcDrive.Init(const AName, VAName: String; ViewMode:
+    byte);
+  begin
+    _TArcDrive^.Init(AName, VAName, ViewMode, nil, @Self);
+  end;
 
-constructor TArcDrive.InitCol(PC: Pointer{PDirStorage}; const AName, VAName: String);
-begin
-  _TArcDrive^.InitCol(PC, AName, VAName, nil, @Self);
-end;
+Constructor TArcDrive.InitCol(PC: Pointer {PDirStorage}; const AName,
+    VAName: String);
+  begin
+    _TArcDrive^.InitCol(PC, AName, VAName, nil, @Self);
+  end;
 
-constructor TArcDrive.Load(var S: TStream);
-begin
-  _TArcDrive^.Load(_Model1.TStream(S), nil, @Self);
-end;
+Constructor TArcDrive.Load(var s: TStream);
+  begin
+    _TArcDrive^.Load(_Model1.TStream(s), nil, @Self);
+  end;
 
-function TArcDrive.ReadArchive: Boolean;
-begin
-  Result := _TArcDrive^.ReadArchive(@Self);
-end;
+function TArcDrive.ReadArchive: boolean;
+  begin
+    Result := _TArcDrive^.ReadArchive(@Self);
+  end;
 
-function TArcDrive.Exec(Prg, Cmd: String; Lst: AnsiString; B: Boolean): Boolean;
-begin
-  Result := _TArcDrive^.Exec(Prg, Cmd, Lst, B, @Self);
-end;
+function TArcDrive.Exec(Prg, Cmd: String; Lst: AnsiString; B:
+    boolean): boolean;
+  begin
+    Result := _TArcDrive^.Exec(Prg, Cmd, Lst, B, @Self);
+  end;
 
-function TArcDrive.MakeListFile(PC: PCollection; UseUnp: Boolean; Var B: Boolean): AnsiString;
-begin
-  Result := _TArcDrive^.MakeListFile(_Model1.PCollection(PC), UseUnp, B, @Self);
-end;
+function TArcDrive.MakeListFile(PC: PCollection; UseUnp: boolean;
+    var B: boolean): AnsiString;
+  begin
+    Result := _TArcDrive^.MakeListFile(_Model1.PCollection(PC),
+      UseUnp, B, @Self);
+  end;
 
-procedure TArcDrive.ExtractFiles(AFiles: PCollection; ExtrDir: String; Own: PView; Options: Byte);
-begin
-  _TArcDrive^.ExtractFiles(_Model1.PCollection(AFiles), ExtrDir, _Model1.PView(Own), Options, @Self);
-end;
+procedure TArcDrive.ExtractFiles(AFiles: PCollection; ExtrDir:
+    String; Own: PView; Options: byte);
+  begin
+    _TArcDrive^.ExtractFiles(_Model1.PCollection(AFiles), ExtrDir,
+      _Model1.PView(Own), Options, @Self);
+  end;
 
 procedure TArcDrive.StdMsg4;
-begin
-  _TArcDrive^.StdMsg4(@Self);
-end;
+  begin
+    _TArcDrive^.StdMsg4(@Self);
+  end;
 
-constructor TArvidDrive.Init(const AName: String; Num: Byte);
-begin
-  _TArvidDrive^.Init(AName, Num, nil, @Self);
-end;
+Constructor TArvidDrive.Init(const AName: String; Num: byte);
+  begin
+    _TArvidDrive^.Init(AName, Num, nil, @Self);
+  end;
 
 procedure TArvidDrive.SeekDirectory;
-begin
-  _TArvidDrive^.SeekDirectory(@Self);
-end;
+  begin
+    _TArvidDrive^.SeekDirectory(@Self);
+  end;
 
 end.

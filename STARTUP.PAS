@@ -46,58 +46,67 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-UNIT Startup;
+unit Startup;
 
-INTERFACE
+interface
 
-USES
-  Objects, Dos, Commands, Advance,
-  Advance1, Advance2, Advance3, Drivers, Collect;
+uses
+  Objects, Dos, Commands, advance,
+  advance1, advance2, advance3, Drivers, Collect;
 
-PROCEDURE FatalError( const S: String );
+procedure FatalError(const s: String);
 
-Const MaxSignLen = 30;
-Type TSignRec = Record
-                 Sign: String[MaxSignLen];
-                 SignLen: Byte;
-                 SignVer: AWord;
-                 HavVer: boolean; {Is DN version word written after sign}
-                End;
+const
+  MaxSignLen = 30;
+type
+  TSignRec = record
+    Sign: String[MaxSignLen];
+    SignLen: byte;
+    SignVer: AWord;
+    HavVer: boolean; {Is DN version word written after sign}
+    end;
 
-CONST
-  FBRPBSignature: Array[1..5] of Char = 'FBRPB';
+const
+  FBRPBSignature: array[1..5] of Char = 'FBRPB';
   NumSupportedConfigs = 9;
-  ConfigSigns: Array[1..NumSupportedConfigs] of TSignRec =
-   ((Sign:'DN2 Configuration'#26#001#36;SignLen:20;SignVer:00136),
-                                                    {Base configuration}
-    (Sign:'DN2 Configuration'#26#151#05;SignLen:20;SignVer:15104),
-                                                    {Configuration for 1.51.04-0}
-    (Sign:'DN2 Configuration'#26#151#42;SignLen:20;SignVer:15104),
-                                                    {Configuration for 1.51.04-1}
-    (Sign:'DN2 Configuration'#26#151#42;SignLen:20;SignVer:15104),
-                                                    {Configuration for 1.51.04-2}
-    (Sign:'DN OSP Configuration'#26#151#42;SignLen:23;SignVer:15104),
-    (Sign:'DN OSP Configuration'#26#151#43;SignLen:23;SignVer:15104),
-    (Sign:'DN OSP Configuration'#26#151#50;SignLen:23;SignVer:15105),
-                                                    {Configuration for 1.51.05}
-    (Sign:'DN OSP Configuration'#26#151#51;SignLen:23;SignVer:15105),
-                                                    {Configuration for 1.51.05-2}
-    (Sign:'DN OSP Configuration'#26;SignLen:21;SignVer:15106;HavVer:true));
-                                                    {Configuration for 1.51.06+}
-  DSKSign: TSignRec =
-{$IFDEF LITE}(Sign:'Lite DN OSP Desktop'#26#151#80;SignLen:22;SignVer:15180);
-{$ELSE}      (Sign:'DN OSP Desktop'#26#151#80;SignLen:17;SignVer:15180);{$ENDIF}
-                                                    {Desktop for 1.51.08}
-  Security: Boolean = True;
-  ConfigModified: Boolean = false;
-  DateMode: Byte = 0;
-  SkyDelay: Byte = 1;
-  CmdExt: string[4] = '.CMD'; {расширение командных файлов}
+  ConfigSigns: array[1..NumSupportedConfigs] of TSignRec =
+  ((Sign: 'DN2 Configuration'#26#001#36; SignLen: 20; SignVer: 00136),
+  {Base configuration}
+  (Sign: 'DN2 Configuration'#26#151#05; SignLen: 20; SignVer: 15104),
+  {Configuration for 1.51.04-0}
+  (Sign: 'DN2 Configuration'#26#151#42; SignLen: 20; SignVer: 15104),
+  {Configuration for 1.51.04-1}
+  (Sign: 'DN2 Configuration'#26#151#42; SignLen: 20; SignVer: 15104),
+  {Configuration for 1.51.04-2}
+  (Sign: 'DN OSP Configuration'#26#151#42; SignLen: 23; SignVer:
+    15104),
+  (Sign: 'DN OSP Configuration'#26#151#43; SignLen: 23; SignVer:
+    15104),
+  (Sign: 'DN OSP Configuration'#26#151#50; SignLen: 23; SignVer:
+    15105),
+  {Configuration for 1.51.05}
+  (Sign: 'DN OSP Configuration'#26#151#51; SignLen: 23; SignVer:
+    15105),
+  {Configuration for 1.51.05-2}
+  (Sign: 'DN OSP Configuration'#26; SignLen: 21; SignVer: 15106;
+    HavVer: True));
+  {Configuration for 1.51.06+}
+  DskSign: TSignRec =
+  {$IFDEF LITE}(Sign: 'Lite DN OSP Desktop'#26#151#80; SignLen: 22;
+    SignVer: 15180);
+  {$ELSE}(Sign: 'DN OSP Desktop'#26#151#80; SignLen: 17; SignVer:
+    15180); {$ENDIF}
+  {Desktop for 1.51.08}
+  Security: boolean = True;
+  ConfigModified: boolean = False;
+  DateMode: byte = 0;
+  SkyDelay: byte = 1;
+  CmdExt: String[4] = '.CMD'; {расширение командных файлов}
 
-TYPE
+type
 
-{Cat: выкинул, т.к. TTextCollection = TLineCollection}
-(*
+  {Cat: выкинул, т.к. TTextCollection = TLineCollection}
+  (*
   PTextCollection =^TTextCollection;
   TTextCollection = Object( TCollection )
     procedure FreeItem( Item: Pointer ); virtual;
@@ -107,20 +116,26 @@ TYPE
 *)
   PTextCollection = PLineCollection;
   TTextCollection = TLineCollection;
-{/Cat}
+  {/Cat}
 
-  TListBoxRec = record List: PCollection; Focus: Integer end;
-  TTextListBoxRec = record List: PTextCollection; Focus: Integer end;
+  TListBoxRec = record
+    List: PCollection;
+    Focus: integer
+    end;
+  TTextListboxRec = record
+    List: PTextCollection;
+    Focus: integer
+    end;
 
   TSystemData = record
-    Options      : Word;
-    Mode1        : String[5];
-    Mode2        : String[5];
-    Temp         : String;
-    CopyLimitBuf : Word;
-    ForceDefArch : String[3];
-    Drives: Array [ 'A'..'Z' ] of Byte;
-  end;
+    Options: word;
+    Mode1: String[5];
+    Mode2: String[5];
+    Temp: String;
+    CopyLimitBuf: word;
+    ForceDefArch: String[3];
+    Drives: array['A'..'Z'] of byte;
+    end;
 
   TOld2SystemData = record
     Options: AWord;
@@ -128,87 +143,87 @@ TYPE
     Mode1: String[5];
     Mode2: String[5];
     Temp: String; {DataCompBoy}
-    Drives: Array [ 'A'..'Z' ] of Byte;
-  end;
+    Drives: array['A'..'Z'] of byte;
+    end;
 
   TOldSystemData = record
     Options: AWord;
     Mode1: String[5];
     Mode2: String[5];
     Temp: String; {DataCompBoy}
-    Drives: Array [ 'A'..'Z' ] of Byte;
-  end;
+    Drives: array['A'..'Z'] of byte;
+    end;
 
   TOld1SystemData = record
     Options: AWord;
     Mode1: String[5];
     Mode2: String[5];
     Temp: PathStr;
-    Drives: Array [ 'A'..'Z' ] of Byte;
-  end;
+    Drives: array['A'..'Z'] of byte;
+    end;
 
   TMouseData = record
-    HSense: Word;
-    VSense: Word;
-    Options: Word;
-  end;
+    HSense: word;
+    VSense: word;
+    Options: word;
+    end;
 
-{$IFDEF SS}
+  {$IFDEF SS}
   TSaversData = record
-    Selected: TTextListBoxRec;
-    Available: TTextListBoxRec;
+    Selected: TTextListboxRec;
+    Available: TTextListboxRec;
     Time: String[3]; {DataCompBoy}
-    Mouse: Boolean;
-    _: Byte;
-  end;
+    Mouse: boolean;
+    _: byte;
+    end;
 
   TOldSaversData = record
-    Selected: TTextListBoxRec;
-    Available: TTextListBoxRec;
+    Selected: TTextListboxRec;
+    Available: TTextListboxRec;
     Time: AWord;
-    Mouse: Boolean;
-    _: Byte;
-  end;
-{$ENDIF}
+    Mouse: boolean;
+    _: byte;
+    end;
+  {$ENDIF}
 
   TInterfaceData = record
-    Options: Word;
-    DrvInfType: Word;
-  end;
+    Options: word;
+    DrvInfType: word;
+    end;
 
   TPanelDefaultsData = record
-    Sort: Word;
-    Show: Word;
-    LeftPanel: Word;
-  end;
+    Sort: word;
+    Show: word;
+    LeftPanel: word;
+    end;
 
   TFMSetup = record
-    Options: Word;
-    Show: Word;
-    Quick: Word;
-    TagChar:  String[1];
+    Options: word;
+    Show: word;
+    Quick: word;
+    TagChar: String[1];
     RestChar: String[1];
     DIZ: String;
-  end;
+    end;
 
   TOldFMSetup = record
     Options: AWord;
     Show: AWord;
     Quick: AWord;
-    TagChar:  String[1];
+    TagChar: String[1];
     DIZ: String;
-  end;
+    end;
 
   TEditorDefaultsData = record
-    EdOpt: Word;
-    EdOpt2:Word;
-    ViOpt: Word;
+    EdOpt: word;
+    EdOpt2: word;
+    ViOpt: word;
     LM,
     RM,
     PM: String[3];
-    NewLine: Word;
+    NewLine: word;
     TabSize: String[3];
-  end;
+    end;
 
   TOldEditorDefaultsData = record
     EdOpt: AWord;
@@ -218,309 +233,360 @@ TYPE
     PM: String[3];
     NewLine: AWord;
     TabSize: String[3];
-  end;
+    end;
 
   TTerminalDefaults = record
-    Emulation: Word;
-    Options: Word;
-  end;
+    Emulation: word;
+    Options: word;
+    end;
 
   TOldStartupData = record
     Load, Unload, Slice, OvrSize: AWord;
-  end;
+    end;
 
-{$IFNDEF VIRTUALPASCAL}
   TStartupData = record
-    Load, Unload, Slice, Slice2, OvrSize: Word;
-  end;
-{$ELSE}
-  TStartupData = record
-    Load, Unload, Slice2: Word;
-  end;
-{$ENDIF}
+    Load, Unload, Slice2: word;
+    end;
 
   TUUEncodeData = record
     Name: String;
-    Prefix, Checksum: Word;
+    Prefix, CheckSum: word;
     NLines: String[5];
-    Format : Word ;
-  end;
+    Format: word;
+    end;
 
   TNamesCaseOptions = record
-    Name: Word;
-     Ext: Word;
-  end;
+    Name: word;
+    ext: word;
+    end;
 
   TTetrisRec = record
-    L : Word; S : Word; P: Word;
-  end;
+    l: word;
+    s: word;
+    P: word;
+    end;
 
   TComareDirsOptions = record
-        O: Word;
-    FMask: string;
-        S: Word;
-  end;
+    o: word;
+    FMask: String;
+    s: word;
+    end;
 
-var TempBounds: TRect;
+var
+  TempBounds: TRect;
 
-
-CONST
-  ChangeNamesCaseOptions: TNamesCaseOptions = (Name: 0; Ext: 0); {JO} {было Longint и делилось на два Word,}
-                                                                 {но это не годится для 32-битной платформы}
-  ComareDirsOptions: TComareDirsOptions = (O: 3; FMask: '*.*'; S: 0);
+const
+  ChangeNamesCaseOptions: TNamesCaseOptions = (Name: 0; ext: 0);
+    {JO} {было Longint и делилось на два Word,}
+  {но это не годится для 32-битной платформы}
+  ComareDirsOptions: TComareDirsOptions = (o: 3; FMask: '*.*'; s: 0);
   UUDecodeOptions: AWord = 3;
   MakeListFileOptions: AWord = 0;
 
-  UUEncodeData : TUUEncodeData =
-    ( Name:'';
-    Prefix: ckFileTime+ckStatistic;
-    Checksum: ckStd;
-    NLines: '100';
-    Format: 0 );
+  UUEncodeData: TUUEncodeData =
+  (Name: '';
+  Prefix: ckFileTime+ckStatistic;
+  CheckSum: ckStd;
+  NLines: '100';
+  Format: 0);
 
   DriveInfoData: AWord = $FFFF;
 
-
-{$IFNDEF VIRTUALPASCAL}
   StartupData: TStartupData =
-    ( Load: osuRestoreScrMode + osuOverlayXMS + osuOverlayEMS;
-      Unload: 0;
-      Slice: osuInt28+osuInt2F+osuInt15;
-      Slice2: osuOnceRelease;
-      OvrSize: 95
-    );
-{$ELSE}
-  StartupData: TStartupData =
-    ( Load: osuRestoreScrMode;
-      Unload: 0;
-      Slice2: osuOnceRelease
-    );
-{$ENDIF}
+  (Load: osuRestoreScrMode;
+  Unload: 0;
+  Slice2: osuOnceRelease
+  );
 
-  Confirms: Word = cfSingleErase + cfMultiErase + cfEraseReadonly +
-                    cfEraseSubdir + cfMouseConfirm + cfExitConfirm + cfChaneLngWarning;
+  Confirms: word = cfSingleErase+cfMultiErase+cfEraseReadonly+
+  cfEraseSubDir+cfMouseConfirm+cfExitConfirm+cfChaneLngWarning;
 
-  TerminalDefaults: TTerminalDefaults = (Emulation:emANSIBBS;Options:toCtrlCLS+toAutoZModem);
+  TerminalDefaults: TTerminalDefaults = (Emulation: emANSIBBS;
+    Options: toCTRLCLS+toAutoZModem);
 
-{-DataCompBoy-}{piwamoto}{JO}
-{ note: BIN, DAT, RAW are NOT included in any group, }
-{ becouse there is TOO MUCH filetypes with these extensions }
+  {-DataCompBoy-} {piwamoto} {JO}
+  { note: BIN, DAT, RAW are NOT included in any group, }
+  { becouse there is TOO MUCH filetypes with these extensions }
 
-  Archives:    PMaskData = nil;
-{sources}
+  Archives: PMaskData = nil;
+  {sources}
   CustomMask1: PMaskData = nil;
-{raw text}
+  {raw text}
   CustomMask2: PMaskData = nil;
-{databases & speadsheets}
+  {databases & speadsheets}
   CustomMask3: PMaskData = nil;
-{kill'em!}
+  {kill'em!}
   CustomMask4: PMaskData = nil;
-{graphics}
+  {graphics}
   CustomMask5: PMaskData = nil;
-{config}
+  {config}
   CustomMask6: PMaskData = nil;
-{audio & video}
+  {audio & video}
   CustomMask7: PMaskData = nil;
-{fonts}
+  {fonts}
   CustomMask8: PMaskData = nil;
-{Office documents}
+  {Office documents}
   CustomMask9: PMaskData = nil;
-{system}
-  CustomMask10:PMaskData = nil;
-        {-DataCompBoy-}
+  {system}
+  CustomMask10: PMaskData = nil;
+  {-DataCompBoy-}
 procedure InitMaskData;
 
- const
+const
   InterfaceData: TInterfaceData = (
-    Options: ouiClock +
-             ouiEsc +
-             ouiStoreEditorPosition +
-             ouiStoreViewerPosition +
-             ouiTrackEditors +
-             ouiTrackViewers +
-             ouiTrackDirs;
-    DrvInfType: 0
+  Options: ouiClock+
+  ouiEsc+
+  ouiStoreEditorPosition+
+  ouiStoreViewerPosition+
+  ouiTrackEditors+
+  ouiTrackViewers+
+  ouiTrackDirs;
+  DrvInfType: 0
   );
 
   PanelDefaults: TPanelDefaultsData = (
-    Sort:  psmLongExt-1;
-    Show:  fmiCurrent +
-          {fmiSelected +}
-           fmiHiliteFiles +
-           fmiFree +
-           fmiExeFirst +
-           fmiArchivesFirst;
-    LeftPanel: fdoDriveDrive
+  Sort: psmLongExt-1;
+  Show: fmiCurrent+
+  {fmiSelected +}
+  fmiHiliteFiles+
+  fmiFree+
+  fmiExeFirst+
+  fmiArchivesFirst;
+  LeftPanel: fdoDriveDrive
   );
 
   FMSetup: TFMSetup =
-    ( Options: fmoDragAndDrop +
-               fmoBeep +
-               fmoEnterArchives +
-               fmoSpaceToggle +
-               fmoUseArrows +
-               fmoBackGoesBack +
-               fmoKillContainer +
-               fmoAlwaysCopyDesc;
-      Show: fmsColumnTitles +
-            fmsDriveLine +
-            fmsTagChar +
-            fmsDivider;
-      Quick: pqsAlt;
-      TagChar : #251;
-      RestChar: #16;
-      DIZ: 'descript.ion;files.bbs'
-    );
+  (Options: fmoDragAndDrop+
+  fmoBeep+
+  fmoEnterArchives+
+  fmoSpaceToggle+
+  fmoUseArrows+
+  fmoBackGoesBack+
+  fmoKillContainer+
+  fmoAlwaysCopyDesc;
+  Show: fmsColumnTitles+
+  fmsDriveLine+
+  fmsTagChar+
+  fmsDivider;
+  Quick: pqsAlt;
+  TagChar: #251;
+  RestChar: #16;
+  DIZ: 'descript.ion;files.bbs'
+  );
 
   EditorDefaults: TEditorDefaultsData = (
-    EdOpt: ebfBSU +
-          {$IFDEF OS_DOS}
-           ebfEMS +
-           ebfXMS +
-          {$ENDIF}
-           ebfTRp{$IFNDEF OS_DOS} shr 2 {$ENDIF}; {-$VOL}
-    EdOpt2:ebfHlt+ebfSmt;
-    ViOpt: vbfScrollAfterEOF;
-    LM: '0';
-    RM: '78';
-    PM: '5';
-    NewLine: 0;
-    TabSize: '8'
+  EdOpt: ebfBSU+
+  {$IFDEF OS_DOS}
+  ebfEMS+
+  ebfXMS+
+  {$ENDIF}
+  ebfTRp {$IFNDEF OS_DOS} shr 2 {$ENDIF}; {-$VOL}
+  EdOpt2: ebfHlt+ebfSmt;
+  ViOpt: vbfScrollAfterEOF;
+  LM: '0';
+  RM: '78';
+  PM: '5';
+  NewLine: 0;
+  TabSize: '8'
   );
 
   MouseData: TMouseData = (
-    HSense: 22;
-    VSense: 22;
-    Options: omsCursor
+  HSense: 22;
+  VSense: 22;
+  Options: omsCursor
   );
 
-{$IFDEF SS}
+  {$IFDEF SS}
   SaversData: TSaversData = (
-    Selected: ( List: NIL; Focus: 0 );
-    Available: ( List: NIL; Focus: 0 );
-    Time: '5';
-    Mouse: True
+  Selected: (List: nil; Focus: 0);
+  Available: (List: nil; Focus: 0);
+  Time: '5';
+  Mouse: True
   );
-{$ENDIF}
+  {$ENDIF}
 
   SystemData: TSystemData = (
-    Options: ossEditor +
-             ossUseSysClip +
-{$IFDEF OS_DOS}
-             ossCheckDDA +
-{$ENDIF}
-             ossRemoveCD_RO{$IFDEF VIRTUALPASCAL}shr 3{$ENDIF};
-    Mode1: '147';
-{$IFNDEF VIRTUALPASCAL}
-    Mode2: '265';
-{$ELSE}
-    Mode2: '148';
-{$ENDIF}
-    Temp: '';
-    CopyLimitBuf: 8192;
-    ForceDefArch: '';
-    Drives: (
-      {A}(ossCheckFreeSpace{$IFNDEF OS_DOS}shr 1{$ENDIF})+
-         (ossVerify{$IFNDEF OS_DOS}shr 1{$ENDIF})+
-         (ossUnarcToDirectly{$IFNDEF OS_DOS}shr 1{$ENDIF}),
-      {B}(ossCheckFreeSpace{$IFNDEF OS_DOS}shr 1{$ENDIF})+
-         (ossVerify{$IFNDEF OS_DOS}shr 1{$ENDIF})+
-         (ossUnarcToDirectly{$IFNDEF OS_DOS}shr 1{$ENDIF}),
-      {C}0, {D}0, {E}0, {F}0, {G}0, {H}0, {I}0, {J}0, {K}0, {L}0, {M}0, {N}0,
-      {O}0, {P}0, {Q}0, {R}0, {S}0, {T}0, {U}0, {V}0, {W}0, {X}0, {Y}0, {Z}0
-    )
+  Options: ossEditor+
+  ossUseSysClip+
+  {$IFDEF OS_DOS}
+  ossCheckDDA+
+  {$ENDIF}
+  ossRemoveCD_RO shr 3;
+  Mode1: '147';
+  Mode2: '148';
+  Temp: '';
+  CopyLimitBuf: 8192;
+  ForceDefArch: '';
+  Drives: (
+  {A}(ossCheckFreeSpace {$IFNDEF OS_DOS} shr 1 {$ENDIF})+
+  (ossVerify {$IFNDEF OS_DOS} shr 1 {$ENDIF})+
+  (ossUnarcToDirectly {$IFNDEF OS_DOS} shr 1 {$ENDIF}),
+  {B}(ossCheckFreeSpace {$IFNDEF OS_DOS} shr 1 {$ENDIF})+
+  (ossVerify {$IFNDEF OS_DOS} shr 1 {$ENDIF})+
+  (ossUnarcToDirectly {$IFNDEF OS_DOS} shr 1 {$ENDIF}),
+  {C}0, {D}0, {E}0, {F}0, {G}0, {H}0, {I}0, {J}0, {K}0, {L}0, {M}0,
+    {N}0,
+  {O}0, {P}0, {Q}0, {R}0, {S}0, {T}0, {U}0, {V}0, {W}0, {X}0, {Y}0,
+    {Z}0
+  )
   );
 
   ColumnsDefaultsDisk: record
-   Params: array [1..10] of
-            record Param: Word; LFNLen: string[3]; EXTLen: string[3]; end;
-   FileCase: Word;
-   DirsCase: Word;
-  end = (
-    Params: ( (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:1023; LFNLen: '12'; EXTLen: '3'),
-              (Param:  1; LFNLen: '18'; EXTLen: '4'),(Param:   1; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:   1; LFNLen:'252'; EXTLen: '0'),
-              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param: 257; LFNLen: '12'; EXTLen: '3'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),
-{$IFDEF OS2}
-              (Param:   1; LFNLen: '12'; EXTLen: '3'));
-{$ELSE}
-              (Param:   0; LFNLen: '12'; EXTLen: '3'));
-{$ENDIF}
-    FileCase:4;
-    DirsCase:4
+    Params: array[1..10] of
+    record
+      Param: word;
+      LFNLen: String[3];
+      EXTLen: String[3];
+      end;
+    FileCase: word;
+    DirsCase: word;
+    end = (
+  Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 1023;
+    LFNLen: '12'; EXTLen: '3'),
+  (Param: 1; LFNLen: '18'; EXTLen: '4'), (Param: 1; LFNLen: '18';
+    EXTLen: '0'),
+  (Param: 1; LFNLen: '38'; EXTLen: '4'), (Param: 1; LFNLen: '252';
+    EXTLen: '0'),
+  (Param: 3; LFNLen: '252'; EXTLen: '0'), (Param: 257; LFNLen: '12';
+    EXTLen: '3'),
+  (Param: 1; LFNLen: '12'; EXTLen: '3'),
+  {$IFDEF OS2}
+  (Param: 1; LFNLen: '12'; EXTLen: '3'));
+  {$ELSE}
+  (Param: 0; LFNLen: '12'; EXTLen: '3'));
+  {$ENDIF}
+  FileCase: 4;
+  DirsCase: 4
   );
 
   ColumnsDefaultsFind: record
-   Params: array [1..10] of
-            record Param: Word; LFNLen: string[3]; EXTLen: string[3]; end;
-   FileCase: Word;
-   DirsCase: Word;
-  end = (
-    Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
-              (Param:  1; LFNLen: '18'; EXTLen: '4'),(Param:  1; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:  1; LFNLen:'252'; EXTLen: '0'),
-              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:257; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),
-{$IFDEF OS2}
-              (Param:  1; LFNLen: '12'; EXTLen: '3'));
-{$ELSE}
-              (Param:  0; LFNLen: '12'; EXTLen: '3'));
-{$ENDIF}
-    FileCase:4;
-    DirsCase:4
+    Params: array[1..10] of
+    record
+      Param: word; LFNLen: String[3]; EXTLen: String[3];
+      end;
+    FileCase: word;
+    DirsCase: word;
+    end = (
+  Params: ((Param: 257; LFNLen: '12'; EXTLen: '3'), (Param: 511;
+    LFNLen: '12'; EXTLen: '3'),
+  (Param: 1; LFNLen: '18'; EXTLen: '4'), (Param: 1; LFNLen: '18';
+    EXTLen: '0'),
+  (Param: 1; LFNLen: '38'; EXTLen: '4'), (Param: 1; LFNLen: '252';
+    EXTLen: '0'),
+  (Param: 3; LFNLen: '252'; EXTLen: '0'), (Param: 257; LFNLen: '18';
+    EXTLen: '0'),
+  (Param: 1; LFNLen: '12'; EXTLen: '3'),
+  {$IFDEF OS2}
+  (Param: 1; LFNLen: '12'; EXTLen: '3'));
+  {$ELSE}
+  (Param: 0; LFNLen: '12'; EXTLen: '3'));
+  {$ENDIF}
+  FileCase: 4;
+  DirsCase: 4
   );
   ColumnsFindLast: byte = 1;
 
   ColumnsDefaultsTemp: record
-   Params: array [1..10] of
-            record Param: Word; LFNLen: string[3]; EXTLen: string[3]; end;
-   FileCase: Word;
-   DirsCase: Word;
-  end = (
-    Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
-              (Param:  1; LFNLen: '18'; EXTLen: '4'),(Param:  1; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:  1; LFNLen:'252'; EXTLen: '0'),
-              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:257; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),
-{$IFDEF OS2}
-              (Param:  1; LFNLen: '12'; EXTLen: '3'));
-{$ELSE}
-              (Param:  0; LFNLen: '12'; EXTLen: '3'));
-{$ENDIF}
-    FileCase:4;
-    DirsCase:4
+    Params: array[1..10] of
+    record
+      Param: word; LFNLen: String[3]; EXTLen: String[3];
+      end;
+    FileCase: word;
+    DirsCase: word;
+    end = (
+  Params: ((Param: 257; LFNLen: '12'; EXTLen: '3'), (Param: 511;
+    LFNLen: '12'; EXTLen: '3'),
+  (Param: 1; LFNLen: '18'; EXTLen: '4'), (Param: 1; LFNLen: '18';
+    EXTLen: '0'),
+  (Param: 1; LFNLen: '38'; EXTLen: '4'), (Param: 1; LFNLen: '252';
+    EXTLen: '0'),
+  (Param: 3; LFNLen: '252'; EXTLen: '0'), (Param: 257; LFNLen: '18';
+    EXTLen: '0'),
+  (Param: 1; LFNLen: '12'; EXTLen: '3'),
+  {$IFDEF OS2}
+  (Param: 1; LFNLen: '12'; EXTLen: '3'));
+  {$ELSE}
+  (Param: 0;
+  LFNLen: '12';
+  EXTLen: '3'));
+  {$ENDIF}
+  FileCase: 4;
+  DirsCase: 4
   );
   ColumnsTempLast: byte = 1;
 
   ColumnsDefaultsArch: record
-   Params: array [1..10] of
-            record Param: Word; LFNLen: string[3]; EXTLen: string[3]; end;
-   FileCase: Word;
-   DirsCase: Word;
-  end = (
-    Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '4'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param: 1; LFNLen: '38'; EXTLen: '4'),(Param: 1; LFNLen:'252'; EXTLen: '0'),
-              (Param:51; LFNLen:'252'; EXTLen: '0'),(Param:51; LFNLen: '12'; EXTLen: '3'),
-              (Param:33; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
-    FileCase:4;
-    DirsCase:4
+    Params: array[1..10] of
+    record
+      Param: word; LFNLen: String[3]; EXTLen: String[3];
+      end;
+    FileCase: word;
+    DirsCase: word;
+    end = (
+  Params: ((Param: 1;
+  LFNLen: '12';
+  EXTLen: '3'), (Param: 63;
+  LFNLen: '12';
+  EXTLen: '3'),
+  (Param: 1;
+  LFNLen: '18';
+  EXTLen: '4'), (Param: 1;
+  LFNLen: '18';
+  EXTLen: '0'),
+  (Param: 1;
+  LFNLen: '38';
+  EXTLen: '4'), (Param: 1;
+  LFNLen: '252';
+  EXTLen: '0'),
+  (Param: 51;
+  LFNLen: '252';
+  EXTLen: '0'), (Param: 51;
+  LFNLen: '12';
+  EXTLen: '3'),
+  (Param: 33;
+  LFNLen: '12';
+  EXTLen: '3'), (Param: 1;
+  LFNLen: '12';
+  EXTLen: '3'));
+  FileCase: 4;
+  DirsCase: 4
   );
 
   ColumnsDefaultsArvd: record
-   Params: array [1..10] of
-            record Param: Word; LFNLen: string[3]; EXTLen: string[3]; end;
-   FileCase: Word;
-   DirsCase: Word;
-  end = (
-    Params: ( (Param:   1; LFNLen: '12'; EXTLen: '3'),(Param: 271; LFNLen: '12'; EXTLen: '3'),
-              (Param:   1; LFNLen: '18'; EXTLen: '4'),(Param:   1; LFNLen: '18'; EXTLen: '0'),
-              (Param:   1; LFNLen: '38'; EXTLen: '4'),(Param:   1; LFNLen:'252'; EXTLen: '0'),
-              (Param:   3; LFNLen:'252'; EXTLen: '0'),(Param: 257; LFNLen: '12'; EXTLen: '3'),
-              (Param:   1; LFNLen: '12'; EXTLen: '3'),(Param:   1; LFNLen: '12'; EXTLen: '3'));
-    FileCase:4;
-    DirsCase:4
+    Params: array[1..10] of
+    record
+      Param: word; LFNLen: String[3]; EXTLen: String[3];
+      end;
+    FileCase: word;
+    DirsCase: word;
+    end = (
+  Params: ((Param: 1;
+  LFNLen: '12';
+  EXTLen: '3'), (Param: 271;
+  LFNLen: '12';
+  EXTLen: '3'),
+  (Param: 1;
+  LFNLen: '18';
+  EXTLen: '4'), (Param: 1;
+  LFNLen: '18';
+  EXTLen: '0'),
+  (Param: 1;
+  LFNLen: '38';
+  EXTLen: '4'), (Param: 1;
+  LFNLen: '252';
+  EXTLen: '0'),
+  (Param: 3;
+  LFNLen: '252';
+  EXTLen: '0'), (Param: 257;
+  LFNLen: '12';
+  EXTLen: '3'),
+  (Param: 1;
+  LFNLen: '12';
+  EXTLen: '3'), (Param: 1;
+  LFNLen: '12';
+  EXTLen: '3'));
+  FileCase: 4;
+  DirsCase: 4
   );
 
   OldColumnsDefaults: record
@@ -528,40 +594,41 @@ procedure InitMaskData;
     FindDrive,
     Temp,
     Arc,
-    Arvid: aword
-  end = (
-    DiskDrive:0;
-    FindDrive:0;
-    Temp:0;
-    Arc: 0;
-    Arvid: 0
+    Arvid: AWord
+    end = (
+  DiskDrive: 0;
+  FindDrive: 0;
+  Temp: 0;
+  Arc: 0;
+  Arvid: 0
   );
 
   {$IFDEF PRINTMANAGER}
-  RPrinterSetup: record Device: aword; InitPrinter, AfterFile: String; end =
-    (Device: 0; InitPrinter:''; AfterFile:#12);
+  RPrinterSetup: record
+    Device: AWord; InitPrinter, AfterFile: String;
+    end =
+  (Device: 0; InitPrinter: ''; AfterFile: #12);
   {$ENDIF}
 
   TetrisRec: TTetrisRec =
-    (L:4; S:0; P:0);
+  (l: 4; s: 0; P: 0);
 
   rfDescriptions = $0002;
-  rfPhoneBook    = $0004;
-  rfDiskCopy     = $0008;
-  rfFormat       = $0010;
-  rfArchives     = $0020;
-  rfAdvFind      = $0040;
+  rfPhoneBook = $0004;
+  rfDiskCopy = $0008;
+  rfFormat = $0010;
+  rfArchives = $0020;
+  rfAdvFind = $0040;
 
-IMPLEMENTATION
-Uses
-  {$IFDEF VIRTUALPASCAL} VpSysLow, {$ELSE} ExtraMem, {$ENDIF}
+implementation
+uses
+  VpSysLow,
   {$IFDEF DNPRG}
-    {$IFNDEF NO_OVERLAY} Overlay1, Overlays, {$ENDIF NO_OVERLAY}
   {$ENDIF}
-  LFN;
+  Lfn;
 
-{Cat: выкинул, т.к. TTextCollection = TLineCollection}
-(*
+  {Cat: выкинул, т.к. TTextCollection = TLineCollection}
+  (*
 PROCEDURE TTextCollection.FreeItem;
 begin
   DisposeStr( PString(Item) );
@@ -578,148 +645,136 @@ begin
 end;
 *)
 
-
-PROCEDURE FatalError;
-begin
-  InOutRes := 0;
-  WriteLn(S);
-  SysTVInitCursor;
-  Halt(1);
-end;
-
-{$IFNDEF NO_OVERLAY}
-{$IFDEF DNPRG }
-  procedure SetOverlay;
-  var S: String;
+  procedure FatalError;
   begin
-    InitExtraMem;
-    S := Dos.GetEnv('DNOVR');
-    if S = '' then S := StartupDir + 'DN.OVR'
-              else S := MakeNormName(S, 'DN.OVR');
-    OvrFileMode := $40;
-    InitOverlay(S);
+    InOutRes := 0;
+    Writeln(s);
+    SysTVInitCursor;
+    Halt(1);
   end;
-{$ENDIF}
-{$ENDIF NO_OVERLAY}
 
-{-DataCompBoy-}{piwamoto}{JO}
-{ note: BIN, DAT, RAW are NOT included in any group, }
-{ becouse there is TOO MUCH filetypes with these extensions }
+  {-DataCompBoy-} {piwamoto} {JO}
+  { note: BIN, DAT, RAW are NOT included in any group, }
+  { becouse there is TOO MUCH filetypes with these extensions }
 
-procedure InitMaskData;
-begin
- New(Archives); FillChar(Archives^, SizeOf(Archives^), 0);
- Archives^.Filter    :=
-{archive volumes for ace,ain,arj,rar,zxzip}
-                        'a[0-9][0-9];r[0-9][0-9];c[0-9][0-9];$z[0-9];'+
-{supported archives in order of appearance}
-                        'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
-                        'lha;ice;lzh;lim;ark;qrk;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
-                        'zip;zoo;$z;zxz;'+
-{arvid}
-                        'avt;tdr;'+
-{unsupported archives}
-                        'j;777;acb;boa;imp';
+  procedure InitMaskData;
+  begin
+    New(Archives); FillChar(Archives^, SizeOf(Archives^), 0);
+    Archives^.Filter :=
+    {archive volumes for ace,ain,arj,rar,zxzip}
+    'a[0-9][0-9];r[0-9][0-9];c[0-9][0-9];$z[0-9];'+
+    {supported archives in order of appearance}
+    'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
+    'lha;ice;lzh;lim;ark;qrk;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
+    'zip;zoo;$z;zxz;'+
+    {arvid}
+    'avt;tdr;'+
+    {unsupported archives}
+    'j;777;acb;boa;imp';
 
-{sources}
- New(CustomMask1);  FillChar(CustomMask1^, SizeOf(CustomMask1^), 0);
- CustomMask1^.Filter := 'pas;asm;inc;c;cpp;cc;cxx;hdr;def;pp;h;hpp;hxx;rc;idb;bas;js;jav;java';
+    {sources}
+    New(CustomMask1); FillChar(CustomMask1^, SizeOf(CustomMask1^), 0);
+    CustomMask1^.Filter :=
+      'pas;asm;inc;c;cpp;cc;cxx;hdr;def;pp;h;hpp;hxx;rc;idb;bas;js;jav;java'
+      ;
 
-{raw text}
- New(CustomMask2);  FillChar(CustomMask2^, SizeOf(CustomMask2^), 0);
- CustomMask2^.Filter := '.;asc;dok;txt;ans;me;1st;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][0-9]';
+    {raw text}
+    New(CustomMask2); FillChar(CustomMask2^, SizeOf(CustomMask2^), 0);
+    CustomMask2^.Filter :=
+      '.;asc;dok;txt;ans;me;1st;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][0-9]'
+      ;
 
-{databases & speadsheets}
- New(CustomMask3);  FillChar(CustomMask3^, SizeOf(CustomMask3^), 0);
- CustomMask3^.Filter := 'dbf;db;wkz;wks;123;wk1;xls;mdb;mde';
+    {databases & speadsheets}
+    New(CustomMask3); FillChar(CustomMask3^, SizeOf(CustomMask3^), 0);
+    CustomMask3^.Filter := 'dbf;db;wkz;wks;123;wk1;xls;mdb;mde';
 
-{kill'em!}
- New(CustomMask4);  FillChar(CustomMask4^, SizeOf(CustomMask4^), 0);
- CustomMask4^.Filter := 'tmp;$$$;bak;qab;swp;log;lut;c2t;err;old';
+    {kill'em!}
+    New(CustomMask4); FillChar(CustomMask4^, SizeOf(CustomMask4^), 0);
+    CustomMask4^.Filter := 'tmp;$$$;bak;qab;swp;log;lut;c2t;err;old';
 
-{graphics}
- New(CustomMask5);  FillChar(CustomMask5^, SizeOf(CustomMask5^), 0);
- CustomMask5^.Filter := 'pcx;bmp;gif;rle;ico;jpg;jpe;jpeg;png;tif;tga;wpg;psd;'+
-                       'pcd;cur;ani;dib';
+    {graphics}
+    New(CustomMask5); FillChar(CustomMask5^, SizeOf(CustomMask5^), 0);
+    CustomMask5^.Filter :=
+      'pcx;bmp;gif;rle;ico;jpg;jpe;jpeg;png;tif;tga;wpg;psd;'+
+    'pcd;cur;ani;dib';
 
-{config}
- New(CustomMask6);  FillChar(CustomMask6^, SizeOf(CustomMask6^), 0);
- CustomMask6^.Filter := 'ini;cfg;ctl;nif;lst;m3u;pls;reg;mak';
+    {config}
+    New(CustomMask6); FillChar(CustomMask6^, SizeOf(CustomMask6^), 0);
+    CustomMask6^.Filter := 'ini;cfg;ctl;nif;lst;m3u;pls;reg;mak';
 
-{audio & video}
- New(CustomMask7);  FillChar(CustomMask7^, SizeOf(CustomMask7^), 0);
- CustomMask7^.Filter :=
-  {audio streams}
-                        'wav;voc;ym;aud;snd;wma;'+
-  {compressed audio streams}
-                        'mp[1-3g];vqf;vtx;asf;as4;'+
-  {sampled music}
-                        'mod;stm;s3m;xm;it;mdl;mtm;mid;cmf;sid;'+
-  {video}
-                        'avi;mpeg;mpe;smk;bik;gl;mvy;mve;mov;fli;flc;tgv';
+    {audio & video}
+    New(CustomMask7); FillChar(CustomMask7^, SizeOf(CustomMask7^), 0);
+    CustomMask7^.Filter :=
+    {audio streams}
+    'wav;voc;ym;aud;snd;wma;'+
+    {compressed audio streams}
+    'mp[1-3g];vqf;vtx;asf;as4;'+
+    {sampled music}
+    'mod;stm;s3m;xm;it;mdl;mtm;mid;cmf;sid;'+
+    {video}
+    'avi;mpeg;mpe;smk;bik;gl;mvy;mve;mov;fli;flc;tgv';
 
-{fonts}
- New(CustomMask8);  FillChar(CustomMask8^, SizeOf(CustomMask8^), 0);
- CustomMask8^.Filter := 'fon;fot;fnt;ttf;ofm;pfm;afm;sft;eft;pft;xft;chr';
+    {fonts}
+    New(CustomMask8); FillChar(CustomMask8^, SizeOf(CustomMask8^), 0);
+    CustomMask8^.Filter :=
+      'fon;fot;fnt;ttf;ofm;pfm;afm;sft;eft;pft;xft;chr';
 
-{Office documents}
- New(CustomMask9);  FillChar(CustomMask9^, SizeOf(CustomMask9^), 0);
- CustomMask9^.Filter := 'doc;wp;rtf;sdw;lwp;sam;html;htm';
+    {Office documents}
+    New(CustomMask9); FillChar(CustomMask9^, SizeOf(CustomMask9^), 0);
+    CustomMask9^.Filter := 'doc;wp;rtf;sdw;lwp;sam;html;htm';
 
-{system}
- New(CustomMask10); FillChar(CustomMask10^,SizeOf(CustomMask10^),0);
- CustomMask10^.Filter:= 'dll;drv;ifs;flt;add;sys;vxd;386;rtl;ovr;ovl';
-end;
+    {system}
+    New(CustomMask10); FillChar(CustomMask10^, SizeOf(CustomMask10^), 0)
+      ;
+    CustomMask10^.Filter :=
+      'dll;drv;ifs;flt;add;sys;vxd;386;rtl;ovr;ovl';
+  end;
 
-begin
-  StartupDir:='';
-  SourceDir:='';
-  TempDir:='';
-  TempFile:='';
+  begin
+    StartupDir := '';
+    SourceDir := '';
+    TempDir := '';
+    TempFile := '';
 
-  SourceDir := lFExpand(ParamStr(0));
-  while SourceDir[Length(SourceDir)] <> '\' do SetLength(SourceDir, Length(SourceDir)-1);
-  StartupDir := SourceDir;
-  {SourceDir := Dos.GetEnv('DN')}
-{$IFNDEF VIRTUALPASCAL}
-{ VK/ }
-  if ExistDir(Dos.GetEnv('DN')) or (Dos.GetEnv('DN')='') then
-      SourceDir := Dos.GetEnv('DN')
-     else
-      Writeln('Warning! Path specified in DN environment variable does not exist!');
-{ /VK }
-{$ELSE}
-{Cat: заменил DNVP на DN2 - так намного логичнее}
-(*
+    SourceDir := lFExpand(ParamStr(0));
+    while SourceDir[Length(SourceDir)] <> '\' do
+      SetLength(SourceDir, Length(SourceDir)-1);
+      StartupDir := SourceDir;
+      {SourceDir := Dos.GetEnv('DN')}
+      {Cat: заменил DNVP на DN2 - так намного логичнее}
+      (*
   if ExistDir(Dos.GetEnv('DNVP')) or (Dos.GetEnv('DNVP')='') then
       SourceDir := Dos.GetEnv('DNVP')
      else
       Writeln('Warning! Path specified in DNVP environment variable does not exist!');
 *)
-  if PathExist(Dos.GetEnv('DN2')) or (Dos.GetEnv('DN2')='') then
-      SourceDir := Dos.GetEnv('DN2')
-     else
-      Writeln('Warning! Path specified in DN2 environment variable does not exist!');
-{$ENDIF}
+      if PathExist(Dos.GetEnv('DN2')) or (Dos.GetEnv('DN2') = '')
+      then
+        SourceDir := Dos.GetEnv('DN2')
+      else
+        Writeln(
+          'Warning! Path specified in DN2 environment variable does not exist!'
+          );
 
-  for FreeByte:=1 to length(SourceDir) do
-   if SourceDir[FreeByte]<>' ' then break;
-  if (SourceDir<>'') and (SourceDir[FreeByte]<>' ') then SourceDir:=Copy(SourceDir, FreeByte, MaxStringLength);
-  if SourceDir = '' then SourceDir := StartupDir;
-  if SourceDir[Length(SourceDir)] <> '\' then AddStr(SourceDir, '\');
+        for FreeByte := 1 to Length(SourceDir) do
+          if SourceDir[FreeByte] <> ' ' then
+            break;
+            if (SourceDir <> '') and (SourceDir[FreeByte] <> ' ')
+            then
+              SourceDir := Copy(SourceDir, FreeByte, MaxStringLength);
+              if SourceDir = '' then
+                SourceDir := StartupDir;
+                if SourceDir[Length(SourceDir)] <> '\' then
+                  AddStr(SourceDir, '\');
 
-{$IFDEF OS_DOS}
-  StartupDir:=lfGetLongFileName(StartupDir);
-  SourceDir:= lfGetLongFileName(SourceDir);
-  TempDir:=   lfGetLongFileName(TempDir);
-  TempFile:=  lfGetLongFileName(TempFile);
-{$ENDIF}
+                  {$IFDEF OS_DOS}
+                  StartupDir := lfGetLongFileName(StartupDir);
+                  SourceDir := lfGetLongFileName(SourceDir);
+                  TempDir := lfGetLongFileName(TempDir);
+                  TempFile := lfGetLongFileName(TempFile);
+                  {$ENDIF}
 
-{$IFNDEF NO_OVERLAY}
-{$IFDEF DNPRG}
- SetOverlay;
-{$ENDIF}
-{$ENDIF NO_OVERLAY}
-if (SysPlatformId <> -1) and (SysPlatformId <> 2) then
-  CmdExt := '.BAT'
-END.
+                  if (SysPlatformId <> -1) and (SysPlatformId <> 2)
+                  then
+                    CmdExt := '.BAT'
+  end.

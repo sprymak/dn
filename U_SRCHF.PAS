@@ -46,169 +46,213 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit u_srchf;
+unit U_SrchF;
 
 interface
 
 uses
-  Objects, collect, Gauge,
-  LFN,      {DataCompBoy}
+  Objects, Collect, Gauge,
+  Lfn, {DataCompBoy}
   Commands, {DataCompBoy}
-  DNApp;    {DataCompBoy}
+  DNApp; {DataCompBoy}
 
-function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
+function FindFileWithSPF(pFileName: String; Info: PWhileView):
+  String;
 
 implementation
 
-uses dos, advance, advance1, advance2, advance3, messages, dnini;
+uses
+  Dos, advance, advance1, advance2, advance3, Messages, DnIni;
 
-        {-DataCompBoy-}
-function RecursiveCheck(Name, pPath: String; DoMore: Boolean; Info: PWhileView): string;
-var SR: lSearchRec;
-    SC: TStringCollection;
-label q;
-begin
-  If Abort then exit;
-  DispatchEvents(Info, Abort);
-  If Abort then exit;
-  SC.Init($10, $10, False);
-  RecursiveCheck:='';
-  SC.AtInsert(0, NewStr(pPath));
+{-DataCompBoy-}
+function RecursiveCheck(Name, pPath: String; DoMore: boolean; Info:
+    PWhileView): String;
+  var
+    SR: lSearchRec;
+    Sc: TStringCollection;
+  label Q;
+  begin
+    if Abort then
+      exit;
+    DispatchEvents(Info, Abort);
+    if Abort then
+      exit;
+    Sc.Init($10, $10, False);
+    RecursiveCheck := '';
+    Sc.AtInsert(0, NewStr(pPath));
 
-  Repeat
-   DispatchEvents(Info, Abort);
-   if Abort then goto q;
-   pPath:=CnvString(SC.At(0));
-   SC.AtFree(0);
+    repeat
+      DispatchEvents(Info, Abort);
+      if Abort then
+        goto Q;
+      pPath := CnvString(Sc.At(0));
+      Sc.AtFree(0);
 
-   if ExistFile(MakeNormName(pPath, Name)) then begin
-    RecursiveCheck:=MakeNormName(pPath, Name);
-    lFindClose(SR);
-    goto q;
-   end;
+      if ExistFile(MakeNormName(pPath, Name)) then
+        begin
+          RecursiveCheck := MakeNormName(pPath, Name);
+          lFindClose(SR);
+          goto Q;
+        end;
 
-   lFindFirst(MakeNormName(pPath, x_x), AnyFile, SR);
-   while DOSError = 0 do
-   begin
-     DispatchEvents(Info, Abort);
-     If Abort then begin lFindClose(SR); goto q end;
-     if (SR.SR.Name <> '.') and (SR.SR.Name <> '..') and
-        (SR.SR.Attr and Directory <> 0) then
-     begin
-       if DoMore
-        then SC.Insert(NewStr(MakeNormName(pPath, SR.FullName)))
-        else if ExistFile(MakeNormName(MakeNormName(pPath, SR.FullName), Name)) then begin
-              RecursiveCheck:=MakeNormName(MakeNormName(pPath, SR.FullName), Name);
+      lFindFirst(MakeNormName(pPath, x_x), AnyFile, SR);
+      while DOSError = 0 do
+        begin
+          DispatchEvents(Info, Abort);
+          if Abort then
+            begin
               lFindClose(SR);
-              goto q;
-             end;
-     end;
-     lFindNext(SR);
-   end;
-   lFindClose(SR);
-  until SC.Count=0;
-q: SC.Done;
-end;
-        {-DataCompBoy-}
+              goto Q
+            end;
+          if (SR.SR.Name <> '.') and (SR.SR.Name <> '..') and
+            (SR.SR.Attr and Directory <> 0)
+          then
+            begin
+              if DoMore
+              then
+                Sc.Insert(NewStr(MakeNormName(pPath, SR.FullName)))
+              else if ExistFile(MakeNormName(MakeNormName(pPath, SR.
+                  FullName), Name))
+              then
+                begin
+                  RecursiveCheck := MakeNormName(MakeNormName(pPath, SR.
+                    FullName), Name);
+                  lFindClose(SR);
+                  goto Q;
+                end;
+            end;
+          lFindNext(SR);
+        end;
+      lFindClose(SR);
+    until Sc.Count = 0;
+Q:
+    Sc.Done;
+  end { RecursiveCheck };
+{-DataCompBoy-}
 
-        {-DataCompBoy-}
-function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
-var F: lText;
-    S, S2: String;
-    IsSec, Found, InSq: Boolean;
-    P, I: Integer;
+{-DataCompBoy-}
+function FindFileWithSPF(pFileName: String; Info: PWhileView):
+    String;
+  var
+    F: lText;
+    s, s2: String;
+    IsSec, Found, InSq: boolean;
+    P, i: integer;
     D: TMaskData;
-label ex;
-begin
-  fillchar(D, SizeOf(D), 0);
-  FindFileWithSPF := '';
-  if ExistFile(pFileName) then
+  label ex;
   begin
-    FindFileWithSPF := pFileName;
-    Exit;
-  end;
-  if CharCount('.', pFileName)=0 then pFileName:=pFileName+'.';
-  lAssignText(F, SourceDir + 'DN.SPF');
-  lResetText(F);
-  if IOResult <> 0 then
-  begin
-    lRewriteText(F);
-    if IOResult <> 0 then Exit;
-    Writeln(F.T, '; Dos Navigator Search Paths file');
-    Writeln(F.T);
-    Writeln(F.T, GetString(dlSPF01));
-    Writeln(F.T, GetString(dlSPF02));
-    Writeln(F.T, GetString(dlSPF03));
-    Writeln(F.T, GetString(dlSPF04));
-    Writeln(F.T, GetString(dlSPF05));
-    Writeln(F.T, GetString(dlSPF06));
-    Writeln(F.T, GetString(dlSPF07));
-    Writeln(F.T, GetString(dlSPF08));
-    Writeln(F.T, GetString(dlSPF09));
-    Writeln(F.T, GetString(dlSPF10));
-    Writeln(F.T, GetString(dlSPF11));
-    Writeln(F.T, GetString(dlSPF12));
-    Writeln(F.T, GetString(dlSPF13));
-    Writeln(F.T, GetString(dlSPF14));
-    Writeln(F.T, GetString(dlSPF15));
-    Writeln(F.T, GetString(dlSPF16));
-    Writeln(F.T, GetString(dlSPF17));
-    Writeln(F.T, GetString(dlSPF18));
-    Writeln(F.T, GetString(dlSPF19));
-    Writeln(F.T, GetString(dlSPF20));
-    Writeln(F.T, GetString(dlSPF21));
-    Writeln(F.T, GetString(dlSPF22));
-    Writeln(F.T, GetString(dlSPF23));
-    Writeln(F.T, GetString(dlSPF24));
-    Writeln(F.T, GetString(dlSPF25));
-    Close(F.T);
-    Info^.Hide; {Cat}
-    MessageBox(GetString(dlSPFht), nil, mfOkButton);
-    Exit;
-  end;
-  IsSec := False;
-  Found := False;
-  while (not EOF(F.T)) and (not Found) do
-  begin
-    If Abort then goto ex;
-    Readln(F.T, S); S := fDelLeft(fDelRight(S));
-    if (S = '') or (Copy(S, 1, 1) = ';') then Continue;
-    if (S[1] = '[') then
-    begin
-      IsSec := False;
-      P := Pos(']', S);
-      if P > 0 then S := Copy(S, 2, P - 2) else Delete(S, 1, 1);
-      D.Filter := S; MakeTMaskData(D);
-      IsSec:=InExtFilter(pFileName, D);
-    end else
-    if IsSec then begin
-      DelLeft(S);
-      InSq:=false;
-      P:=1;
-      For i:=1 to length(S)+1 do
-       if ((i>length(s)) and (P<length(s))) or
-          ((S[i] in [';',',']) and (not InSq)) then begin
-        S2:=Copy(S, P, I-P);
-        if S2[1]='*' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, MaxStringLength), True, Info) else
-         if S2[1]='+' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, MaxStringLength), False, Info) else
-          if ExistFile(MakeNormName(Copy(S2, 2, MaxStringLength), pFileName))
-           then S2:=MakeNormName(Copy(S2, 2, MaxStringLength), pFileName)
-           else S2:='';
-        if Abort then goto ex;
-        P:=I+1;
-        If S2<>'' then begin
-         FindFileWithSPF:=S2;
-         Found:=true;
-        end
-       end else
-        if S[i]='"' then InSq:=not InSq;
-    end;
-  end;
+    FillChar(D, SizeOf(D), 0);
+    FindFileWithSPF := '';
+    if ExistFile(pFileName) then
+      begin
+        FindFileWithSPF := pFileName;
+        exit;
+      end;
+    if CharCount('.', pFileName) = 0 then
+      pFileName := pFileName+'.';
+    lAssignText(F, SourceDir+'DN.SPF');
+    lResetText(F);
+    if IOResult <> 0 then
+      begin
+        lRewriteText(F);
+        if IOResult <> 0 then
+          exit;
+        Writeln(F.t, '; Dos Navigator Search Paths file');
+        Writeln(F.t);
+        Writeln(F.t, GetString(dlSPF01));
+        Writeln(F.t, GetString(dlSPF02));
+        Writeln(F.t, GetString(dlSPF03));
+        Writeln(F.t, GetString(dlSPF04));
+        Writeln(F.t, GetString(dlSPF05));
+        Writeln(F.t, GetString(dlSPF06));
+        Writeln(F.t, GetString(dlSPF07));
+        Writeln(F.t, GetString(dlSPF08));
+        Writeln(F.t, GetString(dlSPF09));
+        Writeln(F.t, GetString(dlSPF10));
+        Writeln(F.t, GetString(dlSPF11));
+        Writeln(F.t, GetString(dlSPF12));
+        Writeln(F.t, GetString(dlSPF13));
+        Writeln(F.t, GetString(dlSPF14));
+        Writeln(F.t, GetString(dlSPF15));
+        Writeln(F.t, GetString(dlSPF16));
+        Writeln(F.t, GetString(dlSPF17));
+        Writeln(F.t, GetString(dlSPF18));
+        Writeln(F.t, GetString(dlSPF19));
+        Writeln(F.t, GetString(dlSPF20));
+        Writeln(F.t, GetString(dlSPF21));
+        Writeln(F.t, GetString(dlSPF22));
+        Writeln(F.t, GetString(dlSPF23));
+        Writeln(F.t, GetString(dlSPF24));
+        Writeln(F.t, GetString(dlSPF25));
+        Close(F.t);
+        Info^.Hide; {Cat}
+        MessageBox(GetString(dlSPFht), nil, mfOKButton);
+        exit;
+      end;
+    IsSec := False;
+    Found := False;
+    while (not Eof(F.t)) and (not Found) do
+      begin
+        if Abort then
+          goto ex;
+        readln(F.t, s);
+        s := fDelLeft(fDelRight(s));
+        if (s = '') or (Copy(s, 1, 1) = ';') then
+          continue;
+        if (s[1] = '[') then
+          begin
+            IsSec := False;
+            P := Pos(']', s);
+            if P > 0 then
+              s := Copy(s, 2, P-2)
+            else
+              Delete(s, 1, 1);
+            D.Filter := s;
+            MakeTMaskData(D);
+            IsSec := InExtFilter(pFileName, D);
+          end
+        else if IsSec then
+          begin
+            DelLeft(s);
+            InSq := False;
+            P := 1;
+            for i := 1 to Length(s)+1 do
+              if ((i > Length(s)) and (P < Length(s))) or
+                ((s[i] in [';', ',']) and (not InSq))
+              then
+                begin
+                  s2 := Copy(s, P, i-P);
+                  if s2[1] = '*' then
+                    s2 := RecursiveCheck(pFileName, Copy(s2, 2,
+                      MaxStringLength), True, Info)
+                  else if s2[1] = '+' then
+                    s2 := RecursiveCheck(pFileName, Copy(s2, 2,
+                      MaxStringLength), False, Info)
+                  else if ExistFile(MakeNormName(Copy(s2, 2,
+                      MaxStringLength), pFileName))
+                  then
+                    s2 := MakeNormName(Copy(s2, 2, MaxStringLength),
+                      pFileName)
+                  else
+                    s2 := '';
+                  if Abort then
+                    goto ex;
+                  P := i+1;
+                  if s2 <> '' then
+                    begin
+                      FindFileWithSPF := s2;
+                      Found := True;
+                    end
+                end
+              else if s[i] = '"' then
+                InSq := not InSq;
+          end;
+      end;
 ex:
-  Close(F.T);
-  {D.Filter := ''; MakeTMaskData(D);}
-  FreeTMaskData(D); {Cat}
-end;
-        {-DataCompBoy-}
+    Close(F.t);
+    {D.Filter := ''; MakeTMaskData(D);}
+    FreeTMaskData(D); {Cat}
+  end { FindFileWithSPF };
+{-DataCompBoy-}
 
 end.

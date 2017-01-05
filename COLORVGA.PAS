@@ -46,402 +46,425 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-Unit  ColorVGA;
+unit ColorVGA;
 
 interface
 
- Procedure VGAColorRegister;    { dialog }
+procedure VGAColorRegister; { dialog }
 
- Const  LastTTFocus : Byte        = 0;   { Last focused Color }
+const
+  LastTTFocus: byte = 0; { Last focused Color }
 
 implementation
 
 uses
-  Objects, Drivers, Views, Dialogs, commands, Dos, DnApp, Startup,
-  advance, advance1, advance2, advance3, collect, Messages, VideoMan;
+  Objects, Drivers, Views, Dialogs, Commands, Dos, DNApp, Startup,
+  advance, advance1, advance2, advance3, Collect, Messages, VideoMan;
 
- Const  cmColorSet               = 73;
-        cmColorMouseSelection    = 74;
- type
+const
+  cmColorSet = 73;
+  cmColorMouseSelection = 74;
+type
 
   PRegLabel = ^TRegLabel;
-  TRegLabel = Object(TLabel)
-   Value : word ;
+  TRegLabel = object(TLabel)
+    Value: word;
     procedure Draw; virtual;
-   end;
+    end;
 
   PColorView = ^TColorView;
-  TColorView = Object( TView )
-    Color2Display : Byte ;
+  TColorView = object(TView)
+    Color2Display: byte;
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-   end;
+    end;
 
-  PColorVGADialog = ^TColorVGADialog ;
-  TColorVGADialog = object (TDialog)
-   ThisProcedureExecuteFirstTime : Boolean;
-   TL : array [1..3] of PRegLabel ;
-   TS : array [1..3] of PScrollBar ;
-   TV : PColorView  ;
-   TT : PListBox ;
-   Color: PRegLabel ;
+  PColorVGADialog = ^TColorVGADialog;
+  TColorVGADialog = object(TDialog)
+    ThisProcedureExecuteFirstTime: boolean;
+    TL: array[1..3] of PRegLabel;
+    TS: array[1..3] of PScrollBar;
+    TV: PColorView;
+    TT: PListBox;
+    Color: PRegLabel;
 
-    Constructor Init ;
+    Constructor Init;
     procedure HandleEvent(var Event: TEvent); virtual;
-   end;
-
+    end;
 
 procedure TColorView.HandleEvent;
-const
-  Width = 4;
-var
- { MaxCol: Byte;}
-  Mouse: TPoint;
-  R: TRect;
-  OldColor: Byte;
+  const
+    Width = 4;
+  var
+    { MaxCol: Byte;}
+    Mouse: TPoint;
+    R: TRect;
+    OldColor: byte;
 
-begin
-  TView.HandleEvent(Event);
-  if Event.What =  evMouseDown then
+  begin
+    TView.HandleEvent(Event);
+    if Event.What = evMouseDown then
       begin
         OldColor := Color2Display;
         repeat
           if MouseInView(Event.Where) then
-          begin
-            R.Assign(5,1,17,5);
-            MakeLocal(Event.Where, Mouse);
-            if R.Contains(Mouse) then
-             begin
-              Dec(Mouse.X,5); Dec(Mouse.Y);
-              Color2Display := Mouse.Y * 4 + Mouse.X div 3;
-             end
-          end
+            begin
+              R.Assign(5, 1, 17, 5);
+              MakeLocal(Event.Where, Mouse);
+              if R.Contains(Mouse) then
+                begin
+                  Dec(Mouse.X, 5);
+                  Dec(Mouse.Y);
+                  Color2Display := Mouse.Y*4+Mouse.X div 3;
+                end
+            end
           else
-           Color2Display := OldColor;
-          MessageL(Owner, evBroadcast, cmColorMouseSelection, Color2Display);
+            Color2Display := OldColor;
+          MessageL(Owner, evBroadcast, cmColorMouseSelection,
+            Color2Display);
           DrawView;
-  {        ClearEvent(Event);}
+          {        ClearEvent(Event);}
         until not MouseEvent(Event, evMouseMove);
       end;
-end;
+  end { TColorView.HandleEvent };
 
-  Procedure TColorView.Draw;
-    var    B : TDrawBuffer;
-           I,J,C : byte ;
-    begin
+procedure TColorView.Draw;
+  var
+    B: TDrawBuffer;
+    i, j, C: byte;
+  begin
     {  MoveChar(B,' ',  Color2Display shl 4, Size.X);
       WriteLine(0, 0, Size.X, Size.Y, B);
      }
-  MoveChar(B, ' ', $70, Size.X);
-  for I := 0 to Size.Y do
-  begin
-    MoveChar(B,' ',  Color2Display shl 4, Size.X);
-    if (I>0) and (I<5) then
-      for J := 0 to 3 do
+    MoveChar(B, ' ', $70, Size.X);
+    for i := 0 to Size.Y do
       begin
-        C := (I-1) * 4 + J;
-        MoveChar(B[ J*3 + 5 ], #219, C, 3);
-        if C = Byte(Color2display) then
-        begin
-          WordRec(B[ J*3+1 + 5 ]).Lo := 8;
-          if C = 0 then WordRec(B[ J*3+1 + 5 ]).Hi := $70;
-        end;
+        MoveChar(B, ' ', Color2Display shl 4, Size.X);
+        if (i > 0) and (i < 5) then
+          for j := 0 to 3 do
+            begin
+              C := (i-1)*4+j;
+              MoveChar(B[j*3+5], #219, C, 3);
+              if C = byte(Color2Display) then
+                begin
+                  WordRec(B[j*3+1+5]).Lo := 8;
+                  if C = 0 then
+                    WordRec(B[j*3+1+5]).Hi := $70;
+                end;
+            end;
+        WriteLine(0, i, Size.X, 1, B);
       end;
-    WriteLine(0, I, Size.X, 1, B);
+
+end { TColorView.Draw };
+
+procedure TRegLabel.Draw;
+  var
+    s: String[20];
+    P: Pointer;
+    i: byte;
+  begin
+    s := SStr(Value, 2, ' ');
+    if text <> nil then
+      begin
+        P := text;
+        if Pos('~', text^) = 0 then
+          s := AddSpace(text^, 9)+' '+s
+        else
+          s := AddSpace(text^, 11)+' '+s;
+        text := @S;
+        inherited Draw;
+        text := P;
+      end;
   end;
 
-    end;
-
- Procedure TRegLabel.Draw;
-   var    S : string[20];
-          P : Pointer ;
-          i : Byte;
-    begin
-      S := SStr(Value,2,' ');
-      if Text <> Nil then
-      begin
-        P := Text ;
-        if Pos('~',Text^) = 0 then S := AddSpace( Text^ , 9 )+' '+S
-                              else S := AddSpace( Text^ , 11 )+' '+S;
-        Text := @S ;
-        Inherited Draw ;
-        Text := P ;
-      end;
-    end;
-
-
- Constructor TColorVGADialog.Init ;
-   var
-     R : TRect;
-     Control, Labl, Histry : PView;
-     i : integer;
-     S: String;
+Constructor TColorVGADialog.Init;
+  var
+    R: TRect;
+    Control, Labl, Histry: PView;
+    i: integer;
+    s: String;
   begin
 
-   R.Assign(6,0,56,22);
-   Inherited Init(R, GetString(dlColors_VGA));
-   Options := Options or ofCentered ;
-   R.Assign(21,2,22,18);
-   Control := New(PScrollbar, Init(R));
-   Insert(Control);
+    R.Assign(6, 0, 56, 22);
+    inherited Init(R, GetString(dlColors_VGA));
+    Options := Options or ofCentered;
+    R.Assign(21, 2, 22, 18);
+    Control := New(PScrollBar, Init(R));
+    Insert(Control);
 
-   R.Assign(3,2,21,18);
-   TT  := New(PListBox, Init(R, 1, PScrollbar(Control)));
-{   TT^.HelpCtx := hcHelp;}
-   Insert( TT );
+    R.Assign(3, 2, 21, 18);
+    TT := New(PListBox, Init(R, 1, PScrollBar(Control)));
+    {   TT^.HelpCtx := hcHelp;}
+    Insert(TT);
 
+    R.Assign(2, 1, 17, 2);
+    Labl := New(PLabel, Init(R, GetString(dlColors_P_alette), TT));
+    Insert(Labl);
 
-     R.Assign(2,1,17,2);
-     Labl := New(PLabel, Init(R, GetString(dlColors_P_alette), TT));
-     Insert(Labl);
+    R.Assign(25, 12, 47, 18);
+    TV := New(PColorView, Init(R));
+    Insert(TV);
 
-   R.Assign(25,12,47,18);
-   TV  := New( PColorView , Init( R ));
-   Insert( TV );
-
-   R.Assign(24,11,38,12);
-   Color := New(PRegLabel, Init(R, GetString(dlColorsColor_),nil));
-   Insert(Color);
-
-
-
-   if {StartupData.Load and osuVGAmonoMix = 0}
-       appPalette=apColor then
-    begin
-     R.Assign(25,3,47,4);
-     TS[1] := New(PScrollBar , Init(R ));
-     Insert( TS[1] );
-
-     R.Assign(24,2,45,3);
-     TL[1] := New( PRegLabel, Init(R, GetString(dlColors_R_ed), TS[1] ));
-     Insert( TL[1] );
-
-     R.Assign(25,6,47,7);
-     TS[2] := New(PScrollBar , Init(R ));
-     Insert( TS[2] );
-
-      R.Assign(24,5,45,6);
-      TL[2] := New(PRegLabel, Init(R, GetString(dlColors_G_reen), TS[2] ));
-      Insert( TL[2] );
-
-
-     R.Assign(25, 9,47,10);
-     TS[3] := New(PScrollBar , Init(R ));
-     Insert( TS[3] );
-
-      R.Assign(24, 8,45, 9);
-      TL[3] := New(PRegLabel, Init(R, GetString(dlColors_B_lue), TS[3] ));
-      Insert( TL[3] );
-    end else
-    begin
-     R.Assign(25,6,47,7);
-     TS[1] := New(PScrollBar , Init(R ));
-     Insert( TS[1] );
-
-     R.Assign(24,5,45,6);
-     TL[1] := New( PRegLabel, Init(R, GetString(dlColors_G_ray), TS[1] ));
-     Insert( TL[1] );
-    end;
-
-   S := GetString(dlColors_D_efault);
-   R.Assign(2,19,4+Length(S),21);
-   Control := New(PButton, Init(R, S, cmYes, bfBroadcast+bfNormal));
-   Insert(Control);
-
-   R.Assign(18,19,28,21);
-   Control := New(PButton, Init(R, GetString(dlOKButton), cmOk, bfDefault));
-   Control^.HelpCtx := cmOk;
-   Insert(Control);
-
-   R.Assign(28,19,38,21);
-   Control := New(PButton, Init(R, GetString(dlCancelButton), cmCancel, bfNormal));
-   Control^.HelpCtx := cmCancel;
-   Insert(Control);
-
-   R.Assign(38,19,48,21);
-   Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp, bfNormal));
-   Insert(Control);
-
-   SelectNext(False);
-
-   for i:=1 to 1+2*Byte({StartupData.Load and osuVGAmonoMix = 0}
-                        appPalette=apColor) do
-       With TS[i]^ do
-        begin
-         SetRange(0,63);
-         Options := Options or (ofSelectable + ofFirstClick);
-        end;
-
-   ThisProcedureExecuteFirstTime:=True;
-  end;
-
- Procedure TColorVGADialog.HandleEvent ;
-
- Function UpdateRGB : boolean ;
-  var I : byte ;
-    L : PScrollBar ;
-
-   begin
-
-      UpdateRGB := False ;
-      L := Nil;
-
-      for i:=1 to 1+2*Byte({StartupData.Load and osuVGAmonoMix = 0}
-                           appPalette=apColor) do
-      {for I:=1 to 3 do}
-         if Event.InfoPtr = TS[I] then
-          begin
-           L := TS[I] ;
-           Break;
-          end;
-
-     if L=nil then Exit ;
-     UpdateRGB := True ;
-     TL[I]^.Value := TS[I]^.Value ;
-     TL[I]^.DrawView ;
+    R.Assign(24, 11, 38, 12);
+    Color := New(PRegLabel, Init(R, GetString(dlColorsColor_), nil));
+    Insert(Color);
 
 
     if {StartupData.Load and osuVGAmonoMix = 0}
-      appPalette=apColor then
-     Set_palette( sl[ TT^.Focused ] ,
-         TL[1]^.Value ,
-         TL[2]^.Value ,
-         TL[3]^.Value ) else
-     Set_palette( sl[ TT^.Focused ] ,
-         TL[1]^.Value ,
-         TL[1]^.Value ,
-         TL[1]^.Value );
-
-{     for i:=1 to 3 do  Pal[i, TT^.Focused]:=TL[i]^.Value;}
-
-   end;
-
-
-  Procedure UpdateColor ;
-   var i : Integer;
-     gc  : array [1..3] of byte ;
-
-   begin
-
-
-     with TT^ do
+      appPalette = apColor
+    then
       begin
-        {Focused}
-        TV^.Color2Display := Focused ;
-        TV^.DrawView ;
-        Color^.Value := Focused;
-        Color^.DrawView;
+        R.Assign(25, 3, 47, 4);
+        TS[1] := New(PScrollBar, Init(R));
+        Insert(TS[1]);
 
-       Get_palette( sl[Focused], gc[1], gc[2], gc[3]);
+        R.Assign(24, 2, 45, 3);
+        TL[1] := New(PRegLabel, Init(R, GetString(dlColors_R_ed), TS[1])
+          );
+        Insert(TL[1]);
 
-       if appPalette<>apColor then
-        begin
-         gc[1] := (gc[1] +  gc[2] + gc[3]) div 3;
-        end;
+        R.Assign(25, 6, 47, 7);
+        TS[2] := New(PScrollBar, Init(R));
+        Insert(TS[2]);
 
+        R.Assign(24, 5, 45, 6);
+        TL[2] := New(PRegLabel, Init(R, GetString(dlColors_G_reen), TS[2
+          ]));
+        Insert(TL[2]);
 
-       for i:=1 to 1+2*Byte({StartupData.Load and osuVGAmonoMix = 0}
-                            appPalette=apColor) do
-     {  for i:=1 to 3 do}
-        begin
-         With TL[i]^ do
-          begin
-           Value := gc[i];
-           DrawView;
-          end;
-         With TS[i]^ do
-          begin
-           Value := gc[i];
-           DrawView;
-          end;
-        end;
+        R.Assign(25, 9, 47, 10);
+        TS[3] := New(PScrollBar, Init(R));
+        Insert(TS[3]);
+
+        R.Assign(24, 8, 45, 9);
+        TL[3] := New(PRegLabel, Init(R, GetString(dlColors_B_lue), TS[3]
+          ));
+        Insert(TL[3]);
+      end
+    else
+      begin
+        R.Assign(25, 6, 47, 7);
+        TS[1] := New(PScrollBar, Init(R));
+        Insert(TS[1]);
+
+        R.Assign(24, 5, 45, 6);
+        TL[1] := New(PRegLabel, Init(R, GetString(dlColors_G_ray), TS[1]
+          ));
+        Insert(TL[1]);
       end;
-   End ;
 
+    s := GetString(dlColors_D_efault);
+    R.Assign(2, 19, 4+Length(s), 21);
+    Control := New(PButton, Init(R, s, cmYes, bfBroadcast+bfNormal));
+    Insert(Control);
 
-   begin
-    if ThisProcedureExecuteFirstTime then TT^.FocusItem(LastTTFocus);
+    R.Assign(18, 19, 28, 21);
+    Control := New(PButton, Init(R, GetString(dlOKButton), cmOK,
+      bfDefault));
+    Control^.HelpCtx := cmOK;
+    Insert(Control);
+
+    R.Assign(28, 19, 38, 21);
+    Control := New(PButton, Init(R, GetString(dlCancelButton),
+      cmCancel, bfNormal));
+    Control^.HelpCtx := cmCancel;
+    Insert(Control);
+
+    R.Assign(38, 19, 48, 21);
+    Control := New(PButton, Init(R, GetString(dlHelpButton), cmHelp,
+      bfNormal));
+    Insert(Control);
+
+    SelectNext(False);
+
+    for i := 1 to 1+2*byte( {StartupData.Load and osuVGAmonoMix = 0}
+      appPalette = apColor)
+    do
+      with TS[i]^ do
+        begin
+          SetRange(0, 63);
+          Options := Options or (ofSelectable+ofFirstClick);
+        end;
+
+    ThisProcedureExecuteFirstTime := True;
+  end { TColorVGADialog.Init };
+
+procedure TColorVGADialog.HandleEvent;
+
+  function UpdateRGB: boolean;
+    var
+      i: byte;
+      l: PScrollBar;
+
+    begin
+
+      UpdateRGB := False;
+      l := nil;
+
+      for i := 1 to 1+2*byte(
+          {StartupData.Load and osuVGAmonoMix = 0}
+        appPalette = apColor)
+      do
+        {for I:=1 to 3 do}
+        if Event.InfoPtr = TS[i] then
+          begin
+            l := TS[i];
+            break;
+          end;
+
+      if l = nil then
+        exit;
+      UpdateRGB := True;
+      TL[i]^.Value := TS[i]^.Value;
+      TL[i]^.DrawView;
+
+      if {StartupData.Load and osuVGAmonoMix = 0}
+        appPalette = apColor
+      then
+        Set_palette(SL[TT^.Focused],
+        TL[1]^.Value,
+        TL[2]^.Value,
+        TL[3]^.Value)
+      else
+        Set_palette(SL[TT^.Focused],
+        TL[1]^.Value,
+        TL[1]^.Value,
+        TL[1]^.Value);
+
+      {     for i:=1 to 3 do  Pal[i, TT^.Focused]:=TL[i]^.Value;}
+
+  end { UpdateRGB: };
+
+  procedure UpdateColor;
+    var
+      i: integer;
+      gc: array[1..3] of byte;
+
+    begin
+
+      with TT^ do
+        begin
+          {Focused}
+          TV^.Color2Display := Focused;
+          TV^.DrawView;
+          Color^.Value := Focused;
+          Color^.DrawView;
+
+          Get_palette(SL[Focused], gc[1], gc[2], gc[3]);
+
+          if appPalette <> apColor then
+            begin
+              gc[1] := (gc[1]+gc[2]+gc[3]) div 3;
+            end;
+
+          for i := 1 to 1+2*byte(
+              {StartupData.Load and osuVGAmonoMix = 0}
+            appPalette = apColor)
+          do
+            {  for i:=1 to 3 do}
+            begin
+              with TL[i]^ do
+                begin
+                  Value := gc[i];
+                  DrawView;
+                end;
+              with TS[i]^ do
+                begin
+                  Value := gc[i];
+                  DrawView;
+                end;
+            end;
+        end;
+    end { UpdateColor };
+
+  begin { TColorVGADialog.HandleEvent }
+    if ThisProcedureExecuteFirstTime then
+      TT^.FocusItem(LastTTFocus);
     ThisProcedureExecuteFirstTime := False;
 
-    if Event.What = evBroadCast then
-     case Event.Command of
-      cmYes :
-               begin
-                ResetVGAPalette( False ) ;
-                UpdateColor
-               end;
-      cmColorMouseSelection: begin
-                                TT^.FocusItem(Event.Infobyte);
-                                UpdateColor
-                             end;
-      cmListItemSelected : UpdateColor ;
-      cmScrollBarChanged : if not UpdateRGB then
-         begin
-          Inherited HandleEvent( Event ) ;
-          UpdateColor ;
-          LastTTFocus := TT^.Focused;
-          exit;
-         end
-     end;
+    if Event.What = evBroadcast then
+      case Event.Command of
+        cmYes:
+          begin
+            ResetVGApalette(False);
+            UpdateColor
+          end;
+        cmColorMouseSelection:
+          begin
+            TT^.FocusItem(Event.InfoByte);
+            UpdateColor
+          end;
+        cmListItemSelected:
+          UpdateColor;
+        cmScrollBarChanged:
+          if not UpdateRGB then
+            begin
+              inherited HandleEvent(Event);
+              UpdateColor;
+              LastTTFocus := TT^.Focused;
+              exit;
+            end
+      end {case};
 
-      Inherited HandleEvent( Event ) ;
+    inherited HandleEvent(Event);
 
-   end;
+end { TColorVGADialog.HandleEvent };
 
+procedure VGAColorRegister;
 
-Procedure VGAColorRegister;
+  var
+    DataRec: record
+      List: PStringCollection;
+      Selection: word;
+      end;
 
-var
-  DataRec : record
-        List: PStringCollection;
-   Selection: Word;
-   end;
+    {  oldPalette: VGA_pal;         }
 
-{  oldPalette: VGA_pal;         }
+  begin
 
- begin
+    with DataRec do
+      begin
+        New(List, Init(16, 0, False));
+        List^.AtInsert(0, NewStr(GetString(dlColors_C00)));
+        List^.AtInsert(1, NewStr(GetString(dlColors_C01)));
+        List^.AtInsert(2, NewStr(GetString(dlColors_C02)));
+        List^.AtInsert(3, NewStr(GetString(dlColors_C03)));
+        List^.AtInsert(4, NewStr(GetString(dlColors_C04)));
+        List^.AtInsert(5, NewStr(GetString(dlColors_C05)));
+        List^.AtInsert(6, NewStr(GetString(dlColors_C06)));
+        List^.AtInsert(7, NewStr(GetString(dlColors_C07)));
+        List^.AtInsert(8, NewStr(GetString(dlColors_C08)));
+        List^.AtInsert(9, NewStr(GetString(dlColors_C09)));
+        List^.AtInsert(10, NewStr(GetString(dlColors_C10)));
+        List^.AtInsert(11, NewStr(GetString(dlColors_C11)));
+        List^.AtInsert(12, NewStr(GetString(dlColors_C12)));
+        List^.AtInsert(13, NewStr(GetString(dlColors_C13)));
+        List^.AtInsert(14, NewStr(GetString(dlColors_C14)));
+        List^.AtInsert(15, NewStr(GetString(dlColors_C15)));
 
- With DataRec do begin
-   New( List,Init(16,0,False));
-   List^.ATInsert(0,  NewStr(GetString(dlColors_C00)));
-   List^.AtInsert(1,  NewStr(GetString(dlColors_C01)));
-   List^.AtInsert(2,  NewStr(GetString(dlColors_C02)));
-   List^.AtInsert(3,  NewStr(GetString(dlColors_C03)));
-   List^.AtInsert(4,  NewStr(GetString(dlColors_C04)));
-   List^.AtInsert(5,  NewStr(GetString(dlColors_C05)));
-   List^.AtInsert(6,  NewStr(GetString(dlColors_C06)));
-   List^.AtInsert(7,  NewStr(GetString(dlColors_C07)));
-   List^.AtInsert(8,  NewStr(GetString(dlColors_C08)));
-   List^.AtInsert(9,  NewStr(GetString(dlColors_C09)));
-   List^.AtInsert(10, NewStr(GetString(dlColors_C10)));
-   List^.AtInsert(11, NewStr(GetString(dlColors_C11)));
-   List^.AtInsert(12, NewStr(GetString(dlColors_C12)));
-   List^.AtInsert(13, NewStr(GetString(dlColors_C13)));
-   List^.AtInsert(14, NewStr(GetString(dlColors_C14)));
-   List^.AtInsert(15, NewStr(GetString(dlColors_C15)));
+        { oldPalette := VGA_palette;}
 
-  { oldPalette := VGA_palette;}
-
-   If Application^.ExecuteDialog(
-      New( PColorVGADialog, Init) ,
-      @DataRec       ) = cmCancel
-       then SetPalette( VGA_palette )
-       else
-        begin
-         GetPalette( VGA_Palette ) ;
-         ConfigModified := True  ;
-         {
+        if Application^.ExecuteDialog(
+          New(PColorVGADialog, Init),
+          @DataRec) = cmCancel
+        then
+          SetPalette(VGA_palette)
+        else
+          begin
+            GetPalette(VGA_palette);
+            ConfigModified := True;
+            {
          if not isVideo(osvEnableVgaPal) then
           begin
            SystemData.Video := SystemData.Video OR osvEnableVgaPal;
            Msg(dlVGAEnabled,nil,mfInformation+mfOKButton);
           end;
          }
-        end;
-    Dispose(List,Done);
+          end;
+        Dispose(List, Done);
 
-  end;
+      end;
 
- end;
+end { VGAColorRegister };
 
 end.

@@ -53,168 +53,267 @@ interface
 uses
   Dialogs, Collect;
 
- {$IFDEF CHCOL}procedure ChangeColors;{$ENDIF}
- procedure WindowManager;
- procedure SetHighlightGroups;
+procedure ChangeColors;
+procedure WindowManager;
+procedure SetHighlightGroups;
 
 type
 
-     PWindowList = ^TWindowList;
-     TWindowList = object(TListBox)
-      function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
-     end;
+  PWindowList = ^TWindowList;
+  TWindowList = object(TListBox)
+    function GetText(Item: longInt; MaxLen: integer): String;
+      virtual;
+    end;
 
-     PWindowCol = ^TWindowCol;
-     TWindowCol = object(TCollection)
-      procedure FreeItem(Item: Pointer); virtual;
-     end;
-
+  PWindowCol = ^TWindowCol;
+  TWindowCol = object(TCollection)
+    procedure FreeItem(Item: Pointer); virtual;
+    end;
 
 implementation
-uses Messages, RStrings, Drives, Startup, DnIni, VideoMan, Objects, DNApp,
-     Drivers, Views, Memory, Commands, DNStdDlg, advance, DNHelp, Advance2;
+uses
+  Messages, RStrings, Drives, Startup, DnIni, VideoMan, Objects,
+    DNApp,
+  Drivers, Views, Memory, Commands, DNStdDlg, advance, DNHelp,
+    advance2;
 
 procedure SetHighlightGroups;
- var D: Record S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11: String[250]; end;
-begin
- With D do
+  var
+    D: record
+      s1, s2, S3, S4, S5, S6, S7, S8, S9, S10, S11: String[250];
+      end;
   begin
-    with CustomMask1^  do begin S1  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask2^  do begin S2  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask3^  do begin S3  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask4^  do begin S4  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask5^  do begin S5  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask6^  do begin S6  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask7^  do begin S7  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask8^  do begin S8  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask9^  do begin S9  := Copy(Filter, 2, Length(Filter)-2) end;
-    with CustomMask10^ do begin S10 := Copy(Filter, 2, Length(Filter)-2) end;
-    with Archives^     do begin S11 := Copy(Filter, 2, Length(Filter)-2) end;
-    if ExecResource(dlgHighlightGroups, D) <> cmOK then Exit;
-    While S1[Length(S1)]   in [' ', ';'] do SetLength(S1,  Length(S1)-1);  CustomMask1^.Filter := S1;  MakeTMaskData(CustomMask1 ^);
-    While S2[Length(S2)]   in [' ', ';'] do SetLength(S2,  Length(S2)-1);  CustomMask2^.Filter := S2;  MakeTMaskData(CustomMask2 ^);
-    While S3[Length(S3)]   in [' ', ';'] do SetLength(S3,  Length(S3)-1);  CustomMask3^.Filter := S3;  MakeTMaskData(CustomMask3 ^);
-    While S4[Length(S4)]   in [' ', ';'] do SetLength(S4,  Length(S4)-1);  CustomMask4^.Filter := S4;  MakeTMaskData(CustomMask4 ^);
-    While S5[Length(S5)]   in [' ', ';'] do SetLength(S5,  Length(S5)-1);  CustomMask5^.Filter := S5;  MakeTMaskData(CustomMask5 ^);
-{JO}While S6[Length(S6)]   in [' ', ';'] do SetLength(S6,  Length(S6)-1);  CustomMask6^.Filter := S6;  MakeTMaskData(CustomMask6 ^);
-    While S7[Length(S7)]   in [' ', ';'] do SetLength(S7,  Length(S7)-1);  CustomMask7^.Filter := S7;  MakeTMaskData(CustomMask7 ^);
-    While S8[Length(S8)]   in [' ', ';'] do SetLength(S8,  Length(S8)-1);  CustomMask8^.Filter := S8;  MakeTMaskData(CustomMask8 ^);
-    While S9[Length(S9)]   in [' ', ';'] do SetLength(S9,  Length(S9)-1);  CustomMask9^.Filter := S9;  MakeTMaskData(CustomMask9 ^);
-{JO}While S10[Length(S10)] in [' ', ';'] do SetLength(S10, Length(S10)-1); CustomMask10^.Filter:= S10; MakeTMaskData(CustomMask10^);
-    While S11[Length(S11)] in [' ', ';'] do SetLength(S11, Length(S11)-1); Archives^.Filter    := S11; MakeTMaskData(Archives    ^);
-  end;
- Message(Application, evCommand, cmUpdateConfig, nil);
- GlobalMessage(evCommand, cmPanelReread, nil);
-end;
+    with D do
+      begin
+        with CustomMask1^ do
+          begin
+            s1 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask2^ do
+          begin
+            s2 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask3^ do
+          begin
+            S3 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask4^ do
+          begin
+            S4 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask5^ do
+          begin
+            S5 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask6^ do
+          begin
+            S6 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask7^ do
+          begin
+            S7 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask8^ do
+          begin
+            S8 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask9^ do
+          begin
+            S9 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with CustomMask10^ do
+          begin
+            S10 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        with Archives^ do
+          begin
+            S11 := Copy(Filter, 2, Length(Filter)-2)
+          end;
+        if ExecResource(dlgHighlightGroups, D) <> cmOK then
+          exit;
+        while s1[Length(s1)] in [' ', ';'] do
+          SetLength(s1, Length(s1)-1);
+        CustomMask1^.Filter := s1;
+        MakeTMaskData(CustomMask1^);
+        while s2[Length(s2)] in [' ', ';'] do
+          SetLength(s2, Length(s2)-1);
+        CustomMask2^.Filter := s2;
+        MakeTMaskData(CustomMask2^);
+        while S3[Length(S3)] in [' ', ';'] do
+          SetLength(S3, Length(S3)-1);
+        CustomMask3^.Filter := S3;
+        MakeTMaskData(CustomMask3^);
+        while S4[Length(S4)] in [' ', ';'] do
+          SetLength(S4, Length(S4)-1);
+        CustomMask4^.Filter := S4;
+        MakeTMaskData(CustomMask4^);
+        while S5[Length(S5)] in [' ', ';'] do
+          SetLength(S5, Length(S5)-1);
+        CustomMask5^.Filter := S5;
+        MakeTMaskData(CustomMask5^);
+        {JO} while S6[Length(S6)] in [' ', ';'] do
+          SetLength(S6, Length(S6)-1);
+        CustomMask6^.Filter := S6;
+        MakeTMaskData(CustomMask6^);
+        while S7[Length(S7)] in [' ', ';'] do
+          SetLength(S7, Length(S7)-1);
+        CustomMask7^.Filter := S7;
+        MakeTMaskData(CustomMask7^);
+        while S8[Length(S8)] in [' ', ';'] do
+          SetLength(S8, Length(S8)-1);
+        CustomMask8^.Filter := S8;
+        MakeTMaskData(CustomMask8^);
+        while S9[Length(S9)] in [' ', ';'] do
+          SetLength(S9, Length(S9)-1);
+        CustomMask9^.Filter := S9;
+        MakeTMaskData(CustomMask9^);
+        {JO} while S10[Length(S10)] in [' ', ';'] do
+          SetLength(S10, Length(S10)-1);
+        CustomMask10^.Filter := S10;
+        MakeTMaskData(CustomMask10^);
+        while S11[Length(S11)] in [' ', ';'] do
+          SetLength(S11, Length(S11)-1);
+        Archives^.Filter := S11;
+        MakeTMaskData(Archives^);
+      end;
+    Message(Application, evCommand, cmUpdateConfig, nil);
+    GlobalMessage(evCommand, cmPanelReread, nil);
+  end { SetHighlightGroups };
 
-{$IFDEF CHCOL}
 procedure ChangeColors;
-begin
-  if ExecResource(dlgColors, Application^.GetPalette^) <> cmCancel then
   begin
-    DoneMemory;                 { Dispose all group buffers }
-    Application^.ReDraw;        { Redraw application with new palette }
+    if ExecResource(dlgColors, Application^.GetPalette^) <> cmCancel
+    then
+      begin
+        DoneMemory; { Dispose all group buffers }
+        Application^.Redraw; { Redraw application with new palette }
+      end;
+    if VGASystem then
+      GetPalette(VGA_palette);
   end;
-  if VGASystem then GetPalette(VGA_Palette);
-end;
-{$ENDIF}
 
 procedure TWindowCol.FreeItem;
-begin
-end;
+  begin
+  end;
 
 function TWindowList.GetText;
- var S: String;
-     P: PView;
-begin
- P := List^.At(Item);
- S := GetString(dlUnknownWindowType);
- Message(P, evCommand, cmGetName, @S);
- if PWindow(P)^.Number in [1..9]
-  then GetText := Char($30+PWindow(P)^.Number) + ' ' + S
-  else GetText := '  ' + S;
-end;
+  var
+    s: String;
+    P: PView;
+  begin
+    P := List^.At(Item);
+    s := GetString(dlUnknownWindowType);
+    Message(P, evCommand, cmGetName, @S);
+    if PWindow(P)^.Number in [1..9]
+    then
+      GetText := Char($30+PWindow(P)^.Number)+' '+s
+    else
+      GetText := '  '+s;
+  end;
 
 procedure WindowManager;
- label 1;
- var D: PDialog;
-     R: TRect;
-     PC: PWindowCol;
-     PV: PView;
-     S: String;
-     DT: record P: PCollection; N: Word; end;
-     I, Num: Integer;
-
-  procedure InsView(P: PView); {$IFDEF BIT_16}far;{$ENDIF}
-  begin
-    if P = nil then Exit;
-    S := '';
-    if (P^.GetState(sfVisible)) then begin
-      Message(P, evCommand, cmGetName, @S);
-      if (S <> '') then PC^.Insert(P);
-    end;
-  end;
-
-begin
-  New(PC, Init(10,10));
-  Desktop^.ForEach(@InsView);
-  if PC^.Count = 0 then begin Dispose(PC,Done); Exit end;
-
-  D := PDialog( LoadResource( dlgWindowManager ));
-
-  R.Assign(D^.Size.X-13,3,D^.Size.X-12,D^.Size.Y-2);
-  PV := New(PScrollBar, Init(R));
-  PV^.Options := PV^.Options or ofPostProcess or ofSecurity;
-  D^.Insert(PV);
-
-  R.Assign(2,3,D^.Size.X-13,D^.Size.Y-2);
-  PV := New(PWindowList, Init(R,1,PScrollBar(PV)));
-  PV^.Options := PV^.Options or ofPostProcess or ofSecurity;
-  PListBox(PV)^.NewList(PC);
-  if PC^.Count > 1 then PListBox(PV)^.Focused:=1
-  else                  PListBox(PV)^.Focused:=0;
-  Num := 0; {-$VIV 28.05.99--}
-  if (WinManagerPosToEdit) and (PC^.Count > 0) and
-     (Pos(GetString(dlEditTitle)+' -', PWindowList(PV)^.GetText(0,255)) > 0)
-  then
-    for I := 1 to PC^.Count - 1 do
-      if (Pos(GetString(dlEditTitle)+' -', PWindowList(PV)^.GetText(I,255)) > 0) then
-      begin
-        Num := I;
-        Break;
+  label 1;
+  var
+    D: PDialog;
+    R: TRect;
+    PC: PWindowCol;
+    PV: PView;
+    s: String;
+    DT: record
+      P: PCollection;
+      n: word;
       end;
-  if (WinManagerSelectNext) and (Num = 0) and (PC^.Count > 1) then Num := 1;
-  PListBox(PV)^.Focused := Num; {-$VIV--}
-  D^.Insert(PV);
+    i, Num: integer;
 
-  R.Assign(2,2,45,3);
-  PV := New(PLabel, Init(R, GetString(dlWindowsLabel), PV));
-  D^.Insert(PV);
+  procedure InsView(P: PView);
+    begin
+      if P = nil then
+        exit;
+      s := '';
+      if (P^.GetState(sfVisible)) then
+        begin
+          Message(P, evCommand, cmGetName, @S);
+          if (s <> '') then
+            PC^.Insert(P);
+        end;
+    end;
+
+  begin { WindowManager }
+    New(PC, Init(10, 10));
+    Desktop^.ForEach(@InsView);
+    if PC^.Count = 0 then
+      begin
+        Dispose(PC, Done);
+        exit
+      end;
+
+    D := PDialog(LoadResource(dlgWindowManager));
+
+    R.Assign(D^.Size.X-13, 3, D^.Size.X-12, D^.Size.Y-2);
+    PV := New(PScrollBar, Init(R));
+    PV^.Options := PV^.Options or ofPostProcess or ofSecurity;
+    D^.Insert(PV);
+
+    R.Assign(2, 3, D^.Size.X-13, D^.Size.Y-2);
+    PV := New(PWindowList, Init(R, 1, PScrollBar(PV)));
+    PV^.Options := PV^.Options or ofPostProcess or ofSecurity;
+    PListBox(PV)^.NewLisT(PC);
+    if PC^.Count > 1 then
+      PListBox(PV)^.Focused := 1
+    else
+      PListBox(PV)^.Focused := 0;
+    Num := 0; {-$VIV 28.05.99--}
+    if (WinManagerPosToEdit) and (PC^.Count > 0) and
+      (Pos(GetString(dlEditTitle)+' -', PWindowList(PV)^.GetText(0,
+        255)) > 0)
+    then
+      for i := 1 to PC^.Count-1 do
+        if (Pos(GetString(dlEditTitle)+' -', PWindowList(PV)^.
+            GetText(i, 255)) > 0)
+        then
+          begin
+            Num := i;
+            break;
+          end;
+    if (WinManagerSelectNext) and (Num = 0) and (PC^.Count > 1) then
+        Num := 1;
+    PListBox(PV)^.Focused := Num; {-$VIV--}
+    D^.Insert(PV);
+
+    R.Assign(2, 2, 45, 3);
+    PV := New(PLabel, Init(R, GetString(dlWindowsLabel), PV));
+    D^.Insert(PV);
 
 1:
-  R.A.X := Desktop^.ExecView(D);
-  D^.GetData(DT);
-  if PC^.Count > 0 then begin
-    if R.A.X = cmNo then begin
-      if PView(DT.P^.At(DT.N))^.Valid( cmClose ) then begin
-        PView(DT.P^.At(DT.N))^.Free;
-        New(PC, Init(10,10));
-        Desktop^.ForEach(@InsView);
-        if PC^.Count > 0 then begin
-          DT.P^.AtDelete(DT.N);
-          DT.P := NIL;
-          D^.SetData( DT );
-          If ( DT.N > 0 ) and ( DT.N >= PC^.Count ) then Dec( DT.N );
-          DT.P := PC;
-          D^.SetData( DT );
-          goto 1
-        end
-      end
-    end;
-    if R.A.X = cmOK then PView(DT.P^.At(DT.N))^.Select;
-  end;
-  Dispose(D,Done);
-  Dispose(PC,Done);
-end;
+    R.A.X := Desktop^.ExecView(D);
+    D^.GetData(DT);
+    if PC^.Count > 0 then
+      begin
+        if R.A.X = cmNo then
+          begin
+            if PView(DT.P^.At(DT.n))^.Valid(cmClose) then
+              begin
+                PView(DT.P^.At(DT.n))^.Free;
+                New(PC, Init(10, 10));
+                Desktop^.ForEach(@InsView);
+                if PC^.Count > 0 then
+                  begin
+                    DT.P^.AtDelete(DT.n);
+                    DT.P := nil;
+                    D^.SetData(DT);
+                    if (DT.n > 0) and (DT.n >= PC^.Count) then
+                      Dec(DT.n);
+                    DT.P := PC;
+                    D^.SetData(DT);
+                    goto 1
+                  end
+              end
+          end;
+        if R.A.X = cmOK then
+          PView(DT.P^.At(DT.n))^.Select;
+      end;
+    Dispose(D, Done);
+    Dispose(PC, Done);
+  end { WindowManager };
 
 end.

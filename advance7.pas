@@ -45,57 +45,77 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit Advance7;
+unit advance7;
 
 interface
 
 uses
-  Advance3, Advance, Advance2, DnIni;
+  advance3, advance, advance2, DnIni;
 
- function  ValidLngId(LI:string; CheckForHelp:boolean):boolean;
- function  HelpLngId: string;
- function  LngId: string;
+function ValidLngId(LI: String; CheckForHelp: boolean): boolean;
+function HelpLngId: String;
+function LngId: String;
 
 implementation
 
-function ValidLngId(LI:string; CheckForHelp:boolean):boolean;
-var S1,S2:string;
-begin
-    ValidLngId:=False;
-    S1:=GetEnv('DNDLG');
-    if S1='' then S1:=SourceDir;
-    if not (S1[Length(S1)] in ['\','/']) then S1:=S1+'\';
-    S2:=StartupDir;
-    if not (S2[Length(S2)] in ['\','/']) then S2:=S2+'\';
-    if (not CheckForHelp) and (not ExistFile(S1+LI+'.DLG')) and
-    (not ExistFile(S2+LI+'.DLG')) then Exit;
-    if (not CheckForHelp) and (not ExistFile(S1+LI+'.LNG')) and
-    (not ExistFile(S2+LI+'.LNG')) then Exit;
-    if CheckForHelp then begin
-        S1:=SourceDir; if not (S1[Length(S1)] in ['\','/']) then S1:=S1+'\';
-        if (not ExistFile(S1+LI+'.HLP')) and (not ExistFile(S2+LI+'.HLP'))
-        then Exit
-    end;
-    ValidLngId:=True;
-end;
+function ValidLngId(LI: String; CheckForHelp: boolean): boolean;
+  var
+    s1, s2: String;
+  begin
+    ValidLngId := False;
+    s1 := GetEnv('DNDLG');
+    if s1 = '' then
+      s1 := SourceDir;
+    if not (s1[Length(s1)] in ['\', '/']) then
+      s1 := s1+'\';
+    s2 := StartupDir;
+    if not (s2[Length(s2)] in ['\', '/']) then
+      s2 := s2+'\';
+    if (not CheckForHelp) and (not ExistFile(s1+LI+'.DLG')) and
+      (not ExistFile(s2+LI+'.DLG'))
+    then
+      exit;
+    if (not CheckForHelp) and (not ExistFile(s1+LI+'.LNG')) and
+      (not ExistFile(s2+LI+'.LNG'))
+    then
+      exit;
+    if CheckForHelp then
+      begin
+        s1 := SourceDir;
+        if not (s1[Length(s1)] in ['\', '/']) then
+          s1 := s1+'\';
+        if (not ExistFile(s1+LI+'.HLP')) and (not ExistFile(s2+LI+
+            '.HLP'))
+        then
+          exit
+      end;
+    ValidLngId := True;
+  end { ValidLngId };
 
-function HelpLngId: string;
-var S:string;
-begin
-    S:=HelpLanguageOverride;
-    if not ValidLngId(S,True) then S:=ActiveLanguage;
-    if not ValidLngId(S,True) then S:=GetEnv('DNLNG');
-    if not ValidLngId(S,True) then S:='English';
-    HelpLngId:=S
-end;
+function HelpLngId: String;
+  var
+    s: String;
+  begin
+    s := HelpLanguageOverride;
+    if not ValidLngId(s, True) then
+      s := ActiveLanguage;
+    if not ValidLngId(s, True) then
+      s := GetEnv('DNLNG');
+    if not ValidLngId(s, True) then
+      s := 'English';
+    HelpLngId := s
+  end;
 
-function LngId: string;
-var S:string;
-begin
-    S:=ActiveLanguage;
-    if not ValidLngId(S,False) then S:=GetEnv('DNLNG');
-    if not ValidLngId(S,False) then S:='English';
-    LngId:=S
-end;
+function LngId: String;
+  var
+    s: String;
+  begin
+    s := ActiveLanguage;
+    if not ValidLngId(s, False) then
+      s := GetEnv('DNLNG');
+    if not ValidLngId(s, False) then
+      s := 'English';
+    LngId := s
+  end;
 
 end.
