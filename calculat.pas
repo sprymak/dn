@@ -53,7 +53,7 @@ INTERFACE
 Type CReal = Extended;
      PCReal = ^CReal;
 
- Type VarGetFunc = Function (VarName: string; var Value: CReal): boolean;
+Type VarGetFunc = Function (VarName: string; var Value: CReal): boolean;
 
 function GetValue(S: String; var Value: CReal): boolean;
 
@@ -63,7 +63,9 @@ Const EvalueError: Boolean = False;
 
 IMPLEMENTATION
 
-uses Dos, Advance1;
+uses
+  Dos, Advance1;
+
 (*{$IFDEF DPMI}{$L Int10.obp}procedure Exc10Handler; external;{$ENDIF}*)
 
 const
@@ -517,7 +519,9 @@ begin
  if (s^[i-1]<>'E') then exit;
  dec(i,2);
  while (i>start) and (s^[i] in ['0'..'9','A'..'F']) do dec(i);
- TestSignE := (s^[i-1]<>'0') or (s^[i]<>'X');
+ TestSignE := ((s^[i-1]<>'0') or (s^[i]<>'X'))
+           and (s^[i]<>'$'); {AK155}
+{AK155 Обращение к s^[i-1] при i=1 некорректно, но вроде, безобидно }
 end;
 
 { <-- Pavel Anufrikov}

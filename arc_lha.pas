@@ -48,7 +48,9 @@
 unit Arc_LHA; {LHA}
 
 interface
-uses Archiver, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Advance, xTime;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime;
 
 Type
     PLHAArchive = ^TLHAArchive;
@@ -188,9 +190,8 @@ begin
    ArcFile^.Seek(FP + Byte(P.Name[0]) + $1b - P.Size);
   end;
   ArcFile^.Read(HS, 2);
-  System.Move(P.Name, S, Byte(P.Name[0])+1);
-  Replace('/', '\', S);
-  FileInfo.FName := S; FileInfo.Last := 0;
+  System.Move(P.Name, FileInfo.FName, Byte(P.Name[0])+1);
+  FileInfo.Last := 0;
   FileInfo.Attr := P.Attr and not Hidden;
   FileInfo.USize := P.OriginSize;
   FileInfo.PSize := P.PackedSize;
@@ -204,15 +205,10 @@ begin
          while (I < Min(255,HS)) and (P.Name[I] > #31) do
            begin AddStr(S, P.Name[I]); Inc(I) end;
          Replace(#255, '\', S);
-         Replace('/', '\', S);
          System.Insert(S, FileInfo.FName, 1);
       end;
    end;
-{$IFNDEF OS2}
- FileInfo.LFN := AddLFN(FileInfo.FName);
-{$ENDIF}
- if P.PackedSize >= 0 then         {JO багфикс зацикливания в ложных архивах}
-    ArcFile^.Seek(FP + P.PackedSize) else begin FileInfo.Last := 2; Exit end;
+ ArcFile^.Seek(FP + P.PackedSize);
 end;
 
 end.

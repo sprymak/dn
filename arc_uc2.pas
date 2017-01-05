@@ -48,7 +48,9 @@
 unit Arc_UC2; {UC2}
 
 interface
-uses Archiver;
+
+uses
+  Archiver;
 
 type
     PUC2Archive = ^TUC2Archive;
@@ -68,10 +70,9 @@ implementation
 uses
   objects, advance2, advance, dnapp
   , commands, Advance1, messages
-  , Dos
-{$IFDEF VIRTUALPASCAL}
-  , VPSysLow
-{$ENDIF}
+  , Dos, dnexec
+  {$IFDEF MIRRORVARS} ,Vars {$ENDIF}
+  {$IFDEF VIRTUALPASCAL}, VPSysLow {$ENDIF}
 ;
 { ----------------------------- UC2 ------------------------------------}
 
@@ -142,12 +143,21 @@ Procedure TUC2Archive.GetFile;
     s1: string;
 
   procedure ReadName;
+    var
+      FName: string;
     begin
     system.readln(ListFile, s); {NAME=[*]}
-    FileInfo.FName := BaseDir + Copy(s, 13, length(s)-13);
+    FName := Copy(s, 13, length(s)-13);
     system.readln(ListFile, s);
     if s[7] = 'L' then
+      begin
+{$IFNDEF OS2}
+      if UseLFN then
+        FName := Copy(s, 17, length(s)-17);
+{$ENDIF}
       system.readln(ListFile, s);
+      end;
+    FileInfo.FName := BaseDir + FName;
     end;
 
   procedure ReadDTA;
@@ -174,11 +184,18 @@ Procedure TUC2Archive.GetFile;
   if TextRec(ListFile).Handle = 0 then
     begin { первый вызов: вызов архиватора для вывода оглавления }
     ListFileName := MakeNormName(TempDir,'!!!DN!!!.TMP');
-    S := '/C ' + SourceDir + 'dndosout.bat ' + ListFileName + ' '
-       + UNPACKER^ + ' ~D '+ArcFileName;
+    S := '/C '
+{$IFDEF OS2}
+       + SourceDir + 'dndosout.bat ' + ListFileName + ' '
+{$ENDIF}
+       + UNPACKER^ + ' ~D '+ArcFileName
+{$IFNDEF OS2}
+       + ' > ' + ListFileName
+{$ENDIF}
+       ;
     if Length(S) < 100 then
       begin
-        exec(GetEnv('Comspec'), S);
+        AnsiExec(GetEnv('COMSPEC'), S);
        {$IFDEF VIRTUALPASCAL}
         SysTVKbdInit;
        {$ENDIF}
@@ -244,6 +261,9 @@ NextRecord:
         S := '0'+S;
       FileInfo.FName := FileInfo.FName + ';' + s;
       end;
+{$IFNDEF OS2}
+    FileInfo.LFN := FileInfo.FName;
+{$ENDIF}
     {SIZE=}
     system.readln(ListFile, s);
     system.delete(s, 1, 11);

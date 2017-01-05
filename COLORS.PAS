@@ -47,8 +47,11 @@
 {$I STDEFINE.INC}
 
 unit Colors;
+
 interface
-uses Dialogs, Collect;
+
+uses
+  Dialogs, Collect;
 
  {$IFDEF CHCOL}procedure ChangeColors;{$ENDIF}
  procedure WindowManager;

@@ -48,9 +48,11 @@
 UNIT ArvidAvt;
 
 INTERFACE
-uses Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
-     Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Tree,
-     FilesCol, Advance2, Drives, FlPanel, Memory;
+
+uses
+  Arvid, Objects, Advance1, Messages, DnApp, Commands, Collect,
+  Views, Drivers, Startup, U_KeyMap, Advance, Lfn, {$IFNDEF OS2} LfnCol, {$ENDIF} Dos, Tree,
+  FilesCol, Advance2, Drives, FlPanel, Memory;
 
 function  AvtCMP(S1, S2: String): Integer;
 function  AvtCellText(Offset: LongInt; var S: TStream): String;
@@ -1221,7 +1223,7 @@ var
      Desc:='';
      if (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then Desc:=PF^.DIZ^.DIZ^;
      if (PF^.Attr and Directory) = 0 then
-       AvtNewFile(AvtDr, S3, Desc, False, Round(PF^.Size), PackedDate(PF), 0, PF^.Attr)
+       AvtNewFile(AvtDr, S3, Desc, False, {Cat:warn} Round(PF^.Size), PackedDate(PF), 0, PF^.Attr)
      else begin
 {$IFNDEF OS2}
        Nm:=GetLFN(PF^.LFN);
@@ -1319,7 +1321,7 @@ begin with AvtDr^ do begin
         Desc:='';
         if (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then Desc:=PF^.DIZ^.DIZ^;
         if (PF^.Attr and Directory) = 0 then
-          AvtNewFile(AvtDr, S1, Desc, False, Round(PF^.Size), PackedDate(PF), 0, PF^.Attr)
+          AvtNewFile(AvtDr, S1, Desc, False, {Cat:warn} Round(PF^.Size), PackedDate(PF), 0, PF^.Attr)
         else begin
           AvtNewFile(AvtDr, S1, Desc, True, 0, PackedDate(PF), 0, PF^.Attr);
           S1:=S1+'\';

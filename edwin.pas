@@ -49,7 +49,9 @@
 unit EdWin;
 
 interface
-uses Objects, MicroEd, Menus, Ed2, UniWin;
+
+uses
+  Objects, MicroEd, Menus, Ed2, UniWin;
 
 type
   { TEditWindow }

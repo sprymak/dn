@@ -1364,7 +1364,6 @@ end;
 
 {$ELSE VIRTUALPASCAL}
 Uses {$IFDEF WIN32}Windows,{$ENDIF} Dos, VpSysLow, Drivers, Objects, DnApp, DnIni, Startup,
-     crt, {AK155 - временно}
      Commands, VPUtils {$IFDEF OS2}, os2base, messages{$ENDIF};
 
 var
@@ -1465,7 +1464,7 @@ begin
   sm80x43: Rows := 43;
   sm80x50: Rows := 50;
   sm80x60: Rows := 60;
-{$IFNDEF Win32}
+{$IFDEF OS2}
  $140A..$FFFE: begin {минимальный размер окна 20x10, меньше просто нет смысла}
                  Rows := Lo(Mode); Cols := Hi(Mode);
                  if Rows < 10 then Rows := 10;
@@ -1487,8 +1486,6 @@ begin
 краю знакоместа, так что lo(Drivers.CursorLines) равно максимальному
 номеру видеостроки знака. Это используется при изменениях вида курсора.}
      Drivers.CursorLines := GetCursorSize;
-     Crt.GetLastMode;  {AK155 временно}
-     Crt.SetWindowPos; {AK155 временно}
 {/AK155}
    end;
 end;
@@ -1535,8 +1532,7 @@ procedure InitVideo;
      ReadConsoleOutput(SysFileStdOut, Bf, s, c, r);
      Rebuf(Bf);
      FreeMem(Bf, UserScreenSize shl 1);
-     {$ENDIF}
-     {$IFDEF OS2}
+     {$ELSE}
      Move ( ScreenBuffer^, UserScreen^, UserScreenSize );  {JO}
      {$ENDIF}
      ScreenSaved := True;
@@ -1554,6 +1550,9 @@ begin
     SetVideoMode(StartupMode);
   FillChar(ScreenBuffer^, ScreenWidth * ScreenHeight * 2, 0); {JO: нужно, чтобы куски панелей не "линяли" в UserScreen}
   Move(UserScreen^, ScreenBuffer^, UserScreenSize);
+  FreeMem(UserScreen, UserScreenSize); {Cat}
+  UserScreen := nil; {Cat}
+  ScreenSaved := False; {Cat}
   SysTVShowBuf(0, UserScreenSize);
   SysTVSetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
   FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);

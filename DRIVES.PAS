@@ -49,9 +49,11 @@
 unit Drives;
 
 interface
-uses LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} Dos, Objects, Memory, Views, Drivers, DnIni,
-     FilesCol, DiskInfo, {FStorage,} advance, advance1, advance2, advance3,
-     collect;
+
+uses
+  LFN, {$IFNDEF OS2} LFNCol, {$ELSE} {$IFDEF EAOP} FlOs2Tl, {$ENDIF} {$ENDIF}
+  Dos, Objects, Memory, Views, Drivers, DnIni, FilesCol, DiskInfo, {FStorage,}
+  Advance, Advance1, Advance2, Advance3, Collect;
 
 const
      dsActive      = 0 ;
@@ -62,7 +64,7 @@ type
   TDrive = object(TObject)
    Owner: Pointer;
    Prev: PDrive;
-   DriveType: ( dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArc, dtLink,  dtArvid );
+   DriveType: ( dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArc, dtLink, dtArvid );
    CurDir: String;          {DataCompBoy}
    DIZOwner: String;        {DataCompBoy}
    NoMemory: Boolean;
@@ -128,7 +130,7 @@ const
 
 implementation
 uses Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
-     Dialogs, FileFind, FlPanelX, filediz, CmdLine{!!}{, Crt, Messages}{$IFDEF EAOP}, FlOS2Tl{$ENDIF};
+     Dialogs, FileFind, FlPanelX, filediz, CmdLine{!!}{, Crt, Messages};
 
 type
         {-DataCompBoy-}
@@ -244,11 +246,11 @@ begin
  S.Read(FilFLP, 2);
  S.Read(Param,  1);
  S.Read(OldParam, 1);
+{$IFDEF OS2}
+ S.Read(ShowLogNames, 1);
+{$ENDIF}
  DriveType := dtDisk;
  NoMemory := False;
-{$IFDEF OS2}
- ShowLogNames := False;
-{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -264,6 +266,9 @@ begin
  S.Write(FilFLP, 2);
  S.Write(Param,  1);
  S.Write(OldParam, 1);
+{$IFDEF OS2}
+ S.Write(ShowLogNames, 1);
+{$ENDIF}
 end;
         {-DataCompBoy-}
 
@@ -291,11 +296,37 @@ end;
 
         {-DataCompBoy-}
 procedure TDrive.ChangeRoot;
+var
+  I: Word;
+  B: Boolean;
 begin
- lChDir(CurDir[1] + ':\');
- if Abort then Exit;
- lGetDir(0, CurDir);
- if Abort then Exit;
+{Cat: проверяем на сетевой путь}
+  if CurDir[1] = '\' then
+    begin
+      B := False;
+      for I := 3 to Length(CurDir) do
+        if CurDir[I] = '\' then
+          if B then
+            begin
+              CurDir := Copy(CurDir, 1, I-1);
+              lChDir(CurDir);
+              Break;
+            end
+          else
+            B := True;
+    end
+  else
+{/Cat}
+    begin
+      lChDir(CurDir[1] + ':\');
+      if Abort then
+        Exit;
+      lGetDir(0, CurDir);
+      (*
+      if Abort then
+        Exit;
+      *)
+    end;
 end;
         {-DataCompBoy-}
 
@@ -396,7 +427,7 @@ Longer250:
                                        else if (not IsMixedCase(S)) {JO}
                                              then OPT:=OPT or flnLowCase
                                              else ;
-{$IFDEF OS2}
+{$IFDEF OS2} {$IFDEF EAOP}
     if ShowLogNames then
       begin
         LogName := '';
@@ -405,7 +436,7 @@ Longer250:
           else S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
       end
      else
-{$ENDIF}
+{$ENDIF} {$ENDIF}
       S:=FormatLongName(S, LFNLen, EXTLen, OPT, NFM, nil);
 
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
@@ -611,6 +642,7 @@ var
     S: String;
     Drive: Char;
     OK: Boolean;
+    I: Word;
   begin
     OK:=False;
     ClrIO;
@@ -618,20 +650,41 @@ var
     ATestDir:=lFExpand(ATestDir);
     if (Length(ATestDir)<>3) and (ADir[Length(ATestDir)] = '\') then
       SetLength(ATestDir, Length(ATestDir)-1);
-    if (Length(ATestDir)>1) and (ATestDir[2]=':') then
-      Drive:=ATestDir[1] else
-      Drive:=Char(GetDrive+64);
-    S:=Drive+':\';
-    repeat
-     ClrIO; NeedAbort:=True;
-     LFN.lChDir(S);
-     I:=IOResult; Abort:=Abort or (I <> 0);
-     if Abort then begin
-       if Ask and AskRetry(Drive) then continue;
-     end else
-       OK:=True;
-     break;
-    until False;
+{Cat: проверяем на сетевой путь}
+    if (Length(ATestDir)>2) and (ATestDir[1]='\') and (ATestDir[2]='\') then
+      begin
+        OK:=False;
+        for I:=3 to Length(ATestDir) do
+          if ATestDir[I]='\' then
+            begin
+              OK:=True;
+              Break;
+            end;
+      end
+    else
+{/Cat}
+      begin
+        if (Length(ATestDir)>1) and (ATestDir[2]=':') then
+          Drive:=ATestDir[1]
+        else
+          Drive:=Char(GetDrive+Byte('A'));
+        S:=Drive+':\';
+        repeat
+          ClrIO;
+          NeedAbort:=True;
+          LFN.lChDir(S);
+          I:=IOResult;
+          Abort:=Abort or (I <> 0);
+          if Abort then
+            begin
+              if Ask and AskRetry(Drive) then
+                Continue;
+            end
+          else
+            OK:=True;
+          Break;
+        until False;
+      end;
     if OK then
     repeat
      ClrIO; NeedAbort:=True;

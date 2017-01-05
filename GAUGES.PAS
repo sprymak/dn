@@ -51,10 +51,11 @@ unit Gauges;
 { Useful gauges: clock and heap available viewer }
 interface
 
-uses Dos, Objects, Views, Drivers, FileCopy, Eraser, Collect,
-     Commands, xTime {$IFNDEF OS2}, LFNCol {$ENDIF}
-{$IFDEF Calendar} ,calendar {$ENDIF}
-     ;
+uses
+  Dos, Objects, Views, Drivers, FileCopy, Eraser, Collect,
+  Commands, xTime {$IFNDEF OS2}, LFNCol {$ENDIF}
+  {$IFDEF Calendar} ,calendar {$ENDIF}
+  ;
 
 
 type

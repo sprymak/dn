@@ -47,8 +47,14 @@
 {$I STDEFINE.INC}
 unit Arc_Zip; {ZIP}
 
+ {.$DEFINE DeadCode}{piwamoto}
+
 interface
-uses Archiver, Advance1, Objects, FViewer, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+ uses Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos
+ {$IFDEF DeadCode}
+       , FViewer
+ {$ENDIF}
+       ;
 
 type
  PZIPArchive = ^TZIPArchive;
@@ -169,37 +175,38 @@ begin
 end;
 
 Procedure TZIPArchive.GetFile;
-label 1;
-var HS, I: AWord;
-    FP,FPP: Longint;
-    P: TZIPLocalHdr;
-    s: String;
+var
+    P:   TZIPLocalHdr;
+{$IFDEF DeadCode}
+    FP, FPP: Longint;
     nxl: TXLat;
+label 1;
+{$ENDIF}
 begin
+{$IFDEF DeadCode}
    FP := ArcFile^.GetPos;
 1:
+{$ENDIF}
    ArcFile^.Read(P.ID,4);
+{$IFDEF DeadCode}
    if (P.ID and $FFFF <> $4B50) or (ArcFile^.Status <> stOK) then
     begin
       FPP := FP;
       NullXLAT ( NXL );
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FP, On, Off, Off, Off, Off);
+      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#03#04, FP, On, Off, Off, Off, Off, Off);
       if FP > 0 then begin ArcFile^.Seek(FP); Goto 1 end;
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off);
+      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#01#02, FPP, On, Off, Off, Off, Off, Off);
       if FP > 0 then begin ArcFile^.Seek(FP); Goto 1 end;
-      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#05#06, FPP, On, Off, Off, Off, Off);
+      FP := SearchFileStr(@ArcFile^, NXL, 'PK'#05#06, FPP, On, Off, Off, Off, Off, Off);
       FileInfo.Last:=2;Exit;
     end;
+{$ENDIF}
    if (P.ID = $06054B50) or (P.ID = $02014b50) then begin FileInfo.Last:=1;Exit;end;
    ArcFile^.Read(P.Extract,SizeOf(P)-4);
-   if (ArcFile^.Status <> stOK) or (P.FNameLength > 255) then
-    begin FileInfo.Last:=2;Exit;end;
-   ArcFile^.Read(S[1], P.FNameLength); SetLength(S, P.FNameLength);
-   While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
-{$IFNDEF OS2}
-   FileInfo.LFN := AddLFN(s);   {DataCompBoy}
-{$ENDIF}
-   FileInfo.FName := S; {DataCompBoy}
+   if (ArcFile^.Status <> stOK) or (P.ID and $FFFF <> $4B50) then begin FileInfo.Last:=2;Exit;end;
+   if P.FNameLength > 255 then P.FNameLength := 255;
+   ArcFile^.Read(FileInfo.FName[1], P.FNameLength);
+   SetLength(FileInfo.FName, P.FNameLength);
    FileInfo.Last := 0;
    FileInfo.Attr := (P.GeneralPurpose and 1) * Hidden;
    FileInfo.USize := P.OriginalSize;

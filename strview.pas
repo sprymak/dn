@@ -49,7 +49,9 @@
 unit StrView;
 
 interface
-uses Views, Drivers, xTime;
+
+uses
+  Views, Drivers, xTime;
 
 type
      PDStringView = ^TDStringView;

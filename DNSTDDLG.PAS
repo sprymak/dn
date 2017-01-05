@@ -51,8 +51,9 @@ unit DNStdDlg;
 
 interface
 
-uses LFN, {$IFNDEF OS2}LFNCol, {$ENDIF} Collect, Objects, Drivers, Views,
-     Dialogs, Dos, Memory, Messages, DNApp;
+uses
+  LFN, {$IFNDEF OS2}LFNCol, {$ENDIF} Collect, Objects, Drivers, Views,
+  Dialogs, Dos, Memory, Messages, DNApp;
 
 const
 
@@ -1201,11 +1202,12 @@ end;
 глючившее под VP. Эта функция вызывается в единственном месте
 в связи с диалогом, так что ассемблер здесь совершенно не нужен.
 Поэтому переписал на Паскале: и понятно, и платформонезависимо.}
+{&Delphi+}
 function NoWildChars(S: String): String;
   var
     i, j: integer;
     c: char;
-    Result: string;
+   {Result: string;}
   begin
   j := 0;
   for i := 1 to length(S) do
@@ -1217,8 +1219,11 @@ function NoWildChars(S: String): String;
       end;
     end;
   SetLength(Result, j);
-  NoWildChars := Result;
+  if Result = '.' then
+    Result := ''; {Cat: чтобы к именам без расширения не добавлялась точка}
+  {NoWildChars := Result;}
   end;
+{&Delphi-}
 {/AK155}
 
 begin
@@ -1489,13 +1494,12 @@ begin
   if B then D^.SetData(S);
   if Desktop^.ExecView(D) <> cmCancel then D^.GetFileName(S);
   Dispose(D,Done);
-{$IFDEF OS_DOS}
-  S:=lfGetLongFileName(S);
-{$ENDIF}
   if S <> '' then
     begin
-       S := lFExpand(S);
-       HistoryAdd(HistoryID, S);
+{$IFDEF OS_DOS}
+      S:=lfExpand(lfGetLongFileName(S));
+{$ENDIF}
+      HistoryAdd(HistoryID, S);
     end;
   GetFileNameDialog := S
 end;
@@ -1556,9 +1560,9 @@ function GetFileNameMenu (Path, Mask, Default: String; PutNumbers: Boolean; var 
               end;
         end;
         if More then Current:=NewItem('  '+GetString(dlMore), '', kbSpace,
-                                      MoreCommand, hcNoContext, Current);
+                                      cmMoreCommand, hcNoContext, Current);
         if None then Current:=NewItem('~'#27'~ '+GetString(dlNone), '', kbBack,
-                                      NoneCommand, hcNoContext, Current);
+                                      cmNoneCommand, hcNoContext, Current);
         Menu:=NewMenu(Current);
         if Def<>nil then Menu^.Default:=Def;
         Application^.GetExtent(R);
@@ -1579,8 +1583,8 @@ function GetFileNameMenu (Path, Mask, Default: String; PutNumbers: Boolean; var 
         case W of
          cmCancel: ;
          cmClose:  ;
-         NoneCommand: None := True;
-         MoreCommand: More := True;
+         cmNoneCommand: None := True;
+         cmMoreCommand: More := True;
          else begin
                CurIdx:=W-cmSelectMenuCommands;
                if (CurIdx>=0) and (CurIdx<L.Count) then

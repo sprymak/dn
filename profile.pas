@@ -81,7 +81,8 @@ procedure CloseProfile;
 
 implementation
 
-uses {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF}, Objects;
+uses
+  {$IFNDEF NONBP} BStrings {$ELSE} Strings {$ENDIF}, Objects;
 
 { The most expensive operation with buffered streams is seeking --
   especially seeking relatively since both GetPos and Seek call the

@@ -48,7 +48,9 @@
 unit FindObj;
 
 interface
-uses Objects, Advance1, Dialogs, Collect, DnApp, Commands, Dos, Startup;
+
+uses
+  Objects, Advance1, Dialogs, Collect, DnApp, Commands, Dos, Startup;
 
 type
      PFindObject = ^TFindObject;

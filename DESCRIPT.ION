@@ -169,11 +169,11 @@ flpanelx.pa9 Files panel
 fltools.pa9  Files tools
 dnexec.pas Execution functions
 _dnc.bat Batch to build Win32 wersion
-_dnc.cmd Batch to build OS/2 wersion
+_dnc.cmd Не запускайте этот файл!
 drivers._vp Drivers for VP
 views._vp Views for VP
 fio._vp File Input/Output for VP
-vpc.cfg VPC Configutation file
+vpc.cfg Настройки VPC
 vpc.cfo VPC Configutation file for OS/2 wersion
 vpc.cfw VPC Configutation file for Win32 wersion
 sort_dos.inc Sorting types for DOS versions
@@ -212,3 +212,19 @@ LIBW Win32 libraries directory
 rcpvp.in2 Resource compiler options for OS/2
 rcpvp.inw Resource compiler options for Win32
 sort_w32.inc Sorting types for Win32 versions
+_dnco.cmd Компиляция под OS/2 для OS/2
+_dncow.cmd Компиляция под OS/2 для Win32
+_dncw.cmd Компиляция под Win32 для Win32
+_dncwo.cmd Компиляция под Win32 для OS/2
+READ.ME Как скомпилировать DN2
+_dnc.cmd     Не запускайте этот файл!
+_dnco.cmd    Компиляция под OS/2 для OS/2
+_dncow.cmd   Компиляция под OS/2 для Win32
+_dncwo.cmd   Компиляция под Win32 для OS/2
+_dncw.cmd    Компиляция под Win32 для Win32
+vp.vpo настройки VP для OS/2
+vpw.vpo настройки VP для Win32
+vpc.cfg Настройки VPC
+rcpvpd.ini Настройки rcp для DPMI
+rcpvpo.ini Настройки rcp для OS/2
+rcpvpw.ini Настройки rcp для Win32

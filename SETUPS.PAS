@@ -47,21 +47,12 @@
 {$I STDEFINE.INC}
 
 UNIT Setups;
+
 INTERFACE
 
 USES
-  Dos,
-  LFN, {DataCompBoy}
-  Objects,
-  Drivers,
-  Views,
-  Dialogs,
-  collect,
-  DNApp,
-  Commands,
-  RStrings,
-  Startup,
-  Validate;
+  Dos, LFN, {DataCompBoy} Objects, Drivers, Views, Dialogs, collect, DNApp,
+  Commands, RStrings, Startup, Validate;
 
 {                                System Setup                                }
 {----------------------------------------------------------------------------}
@@ -498,7 +489,7 @@ end;
 
 
 {----------------------------------------------------------------------------}
-{                                 Mouse Setup
+{                                 Mouse Setup                                }
 {----------------------------------------------------------------------------}
 CONSTRUCTOR TMouseBar.Init;
 begin
@@ -529,7 +520,8 @@ begin
 end;
 
 {$IFDEF SS}
-{                                Savers Setup
+{----------------------------------------------------------------------------}
+{                                Savers Setup                                }
 {----------------------------------------------------------------------------}
 PROCEDURE TSaversListBox.HandleEvent;
 var

@@ -48,7 +48,9 @@
 unit Arc_CAB; {CAB}
 
 interface
-uses Advance1, Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
   PCABArchive = ^TCABArchive;
@@ -146,7 +148,6 @@ end;
 Procedure TCABArchive.GetFile;
 var
   C:    Char;
-  S:    string;
   FH: record
       cbFile:   LongInt;
       uoffFolderStart:  LongInt;
@@ -158,7 +159,6 @@ var
 {     u1  szName[]; }
     end;
   CFHEADER: TCFHEADER;
-
 begin
   if (FilesNumber < 0) then begin
    ArcFile^.Read(CFHEADER,SizeOf(CFHEADER.signature));
@@ -170,18 +170,13 @@ begin
   Dec(FilesNumber);
   ArcFile^.Read(FH, SizeOf(FH));
   if (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-
-  SetLength(S, 0);
+  FileInfo.FName := '';
   repeat
     ArcFile^.Read(C, 1);
-    if C <> #0 then S := S + C;
-  until (C = #0) or (Length(S) > 100);
-  if (Length(S) > 100) or (S = '') then begin FileInfo.Last := 2; Exit; end;
-
-{$IFNDEF OS2}
-  FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-{$ENDIF}
-  FileInfo.FName := S; {DataCompBoy}
+    if C <> #0 then FileInfo.FName := FileInfo.FName + C;
+  until (C = #0) or (Length(FileInfo.FName) > 100);
+  if (Length(FileInfo.FName) > 100) or (FileInfo.FName = '')
+    then begin FileInfo.Last := 2; Exit; end;
   FileInfo.Attr := FH.attribs and not Hidden;
   FileInfo.USize := FH.cbFile;
   FileInfo.PSize := FH.cbFile;

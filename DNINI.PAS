@@ -53,7 +53,8 @@ unit dnini;
 
 interface
 
-uses Commands;
+uses
+  Commands;
 
 type TBlockMarker=record end;
 
@@ -65,6 +66,14 @@ const
 
   { DO NOT CHANGE THIS LINE } iniparamblock_START:TBlockMarker=();
   { ------------------------------ PLACE ALL INI VARIABLES BELOW }
+
+
+{Cat: Внимание!!!
+      При добавлении новых переменных необходимо соответствующим
+      образом изменять структуру TIniVars в модуле Vars
+      Добавлять новые переменные обязательно в конец - для
+      совместимости со старыми версиями плагинов}
+
 
 { NOTE! }
 { To declare a short string that must have fixed length add at least }
@@ -88,7 +97,7 @@ const
 {}HistoryErrorBeep         : Boolean    = True;                       {DataCompBoy}
 {}PreserveMenuPositions    : Boolean    = False;                      {DataCompBoy}
 {}LFNinBottom              : Boolean = False;                         {JO}
-{}DescriptionInBottom      : Boolean = False;                         {JO}
+//{}DescriptionInBottom      : Boolean = False;                         {JO}
 {}PanelDescrArvid          : String     = '';                         {JO}
 {}PanelDescrArc            : String     = '';                         {JO}
 {}PanelDescrTemp           : String     = '';                         {JO}
@@ -132,11 +141,12 @@ const
 {}CopyLimit                : LongInt    = 8192;             {DataCompBoy}{piwamoto}
 {}HandleChDirCommand       : Boolean    = True;                       {DataCompBoy}
 {}StoreVideoMode           : Byte       = 0;                      {PZ}{DataCompBoy}
-{}SmartWindowsBoxClose     : Boolean    = False;                      {DataCompBoy}
+{}SmartWindowsBoxClose     : LongInt    = 0;                   {DataCompBoy, AK155}
+{}CtrlBreakKill            : Boolean    = False;                      {AK155}
 {}DoVESATest               : Boolean    = False;                      {DataCompBoy}
 {}ForceDefaultArchiver     : String[3]  = '';                         {JO}
 {$IFNDEF RecodeWhenDraw}
-{}RecodeCyrillicNames      : Boolean    = True;                       {JO}
+{}RecodeCyrillicNames      : Boolean    = False;  {JO} {Cat: эта переменная дублируется в VpSysLow}
 {$ELSE}
 {}Non866AsciiSorting       : Boolean    = False;                      {JO}
 {$ENDIF}
@@ -178,6 +188,20 @@ const
 {}ActiveLanguage           : String[9]  = '';
 {}HelpLanguageOverride     : String[9]  = '';
 {}ShowLanguageMenu         : Boolean    = False;
+{,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
+{;      Variable name      ;   Type     ; Default value      ;          Comments ;}
+{`.________________________;____________;____________________;___________________'}
+{}{RegExp}
+{}RegExpStr0               : String     = '';                                  {PZ}
+{}RegExpStr1               : String     = '';                                  {PZ}
+{}RegExpStr2               : String     = '';                                  {PZ}
+{}RegExpStr3               : String     = '';                                  {PZ}
+{}RegExpStr4               : String     = '';                                  {PZ}
+{}RegExpStr5               : String     = '';                                  {PZ}
+{}RegExpStr6               : String     = '';                                  {PZ}
+{}RegExpStr7               : String     = '';                                  {PZ}
+{}RegExpStr8               : String     = '';                                  {PZ}
+{}RegExpStr9               : String     = '';                                  {PZ}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type  ; Default value  ;          Comments ;}
 {`.________________________;_________;________________;___________________'}
@@ -225,8 +249,9 @@ procedure ShowIniErrors;
 procedure ClearIniErrors;
 
 implementation
-uses dos, LFN, profile, advance, advance1, Collect, Messages, DnApp,
-     {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
+uses Dos, Lfn, Profile, Advance, Advance1, Collect, Messages, DnApp,
+     {$IFDEF WIN32} VpSysLow, {$ENDIF}
+     {$IFNDEF NONBP} BStrings {$ELSE} Strings {$ENDIF};
 
 type
 
@@ -262,6 +287,7 @@ const
  CSFilePanels           :PChar = 'FilePanels';
  CSNetInfo              :PChar = 'NetInfo';
  CSLanguage             :PChar = 'Language';
+ CSRegExp               :PChar = 'RegExp';
  CSSetupStorage         :PChar = 'SetupStorage';
 
 type
@@ -375,7 +401,7 @@ begin
   RegisterVar(CSInterface, 'HistoryErrorBeep',     ikBool, SizeOf(HistoryErrorBeep),     @HistoryErrorBeep);
   RegisterVar(CSInterface, 'PreserveMenuPositions',ikBool, SizeOf(PreserveMenuPositions),@PreserveMenuPositions);
   RegisterVar(CSInterface, 'LFNinBottom',          ikBool, SizeOf(LFNinBottom),          @LFNinBottom);        {JO}
-  RegisterVar(CSInterface, 'DescriptionInBottom',  ikBool, SizeOf(DescriptionInBottom),  @DescriptionInBottom);{JO}
+//  RegisterVar(CSInterface, 'DescriptionInBottom',  ikBool, SizeOf(DescriptionInBottom),  @DescriptionInBottom);{JO}
   RegisterVar(CSInterface, 'PanelDescrArvid',      ikStr,  SizeOf(PanelDescrArvid),      @PanelDescrArvid);    {JO}
   RegisterVar(CSInterface, 'PanelDescrArc',        ikStr,  SizeOf(PanelDescrArc),        @PanelDescrArc);      {JO}
   RegisterVar(CSInterface, 'PanelDescrTemp',       ikStr,  SizeOf(PanelDescrTemp),       @PanelDescrTemp);     {JO}
@@ -404,13 +430,16 @@ begin
   RegisterVar(CSKernel,    'CopyLimit',            ikSInt, SizeOf(CopyLimit),            @CopyLimit);
   RegisterVar(CSKernel,    'HandleChDirCommand',   ikBool, SizeOf(HandleChDirCommand),   @HandleChDirCommand);   {DataCompBoy}
   RegisterVar(CSKernel,    'StoreVideoMode',       ikUInt, SizeOf(StoreVideoMode),       @StoreVideoMode);       {PZ}{DataCompBoy}
-  RegisterVar(CSKernel,    'SmartWindowsBoxClose', ikBool, SizeOf(SmartWindowsBoxClose), @SmartWindowsBoxClose); {DataCompBoy}
+  RegisterVar(CSKernel,    'SmartWindowsBoxClose', ikSInt, SizeOf(SmartWindowsBoxClose), @SmartWindowsBoxClose); {DataCompBoy}
+  RegisterVar(CSKernel,    'CtrlBreakKill',        ikBool, SizeOf(CtrlBreakKill),        @CtrlBreakKill);        {AK155}
   RegisterVar(CSKernel,    'DoVESATest',           ikBool, SizeOf(DoVESATest),           @DoVESATest);           {DataCompBoy}
   RegisterVar(CSKernel,    'ForceDefaultArchiver', ikStr,  SizeOf(ForceDefaultArchiver), @ForceDefaultArchiver); {JO}
+{$IFDEF WIN32}
 {$IFNDEF RecodeWhenDraw}
   RegisterVar(CSKernel,    'RecodeCyrillicNames',  ikBool, SizeOf(RecodeCyrillicNames),  @RecodeCyrillicNames);  {JO}
 {$ELSE}
   RegisterVar(CSKernel,    'Non866AsciiSorting',   ikBool, SizeOf(Non866AsciiSorting),   @Non866AsciiSorting);   {JO}
+{$ENDIF}
 {$ENDIF}
   {Editor}
   RegisterVar(CSEditor,    'UnlimitUnindent',      ikBool, SizeOf(UnlimitUnindent),      @UnlimitUnindent);
@@ -438,6 +467,19 @@ begin
   RegisterVar(CSLanguage,  'ActiveLanguage',       ikStr,  SizeOf(ActiveLanguage),       @ActiveLanguage);
   RegisterVar(CSLanguage,  'HelpLanguageOverride', ikStr,  SizeOf(HelpLanguageOverride), @HelpLanguageOverride);
   RegisterVar(CSLanguage,  'ShowLanguageMenu',     ikBool, SizeOf(ShowLanguageMenu),     @ShowLanguageMenu);
+{$IFDEF REGEXP}
+  {RegExp}
+  RegisterVar(CSRegExp,    'RegExpStr0',           ikStr,  SizeOf(RegExpStr0),           @RegExpStr0);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr1',           ikStr,  SizeOf(RegExpStr1),           @RegExpStr1);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr2',           ikStr,  SizeOf(RegExpStr2),           @RegExpStr2);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr3',           ikStr,  SizeOf(RegExpStr3),           @RegExpStr3);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr4',           ikStr,  SizeOf(RegExpStr4),           @RegExpStr4);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr5',           ikStr,  SizeOf(RegExpStr5),           @RegExpStr5);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr6',           ikStr,  SizeOf(RegExpStr6),           @RegExpStr6);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr7',           ikStr,  SizeOf(RegExpStr7),           @RegExpStr7);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr8',           ikStr,  SizeOf(RegExpStr8),           @RegExpStr8);        {PZ}
+  RegisterVar(CSRegExp,    'RegExpStr9',           ikStr,  SizeOf(RegExpStr9),           @RegExpStr9);        {PZ}
+{$ENDIF}
   {SetupStorage}
   RegisterVar(CSSetupStorage, 'SystemDataOpt',     ikSInt, SizeOf(SystemDataOpt),        @SystemDataOpt);
   RegisterVar(CSSetupStorage, 'InterfaceDataOpt',  ikSInt, SizeOf(InterfaceDataOpt),     @InterfaceDataOpt);
@@ -664,18 +706,19 @@ begin
     GetPrivateProfileString (
       Group,
       Parameter,
-      @s[1],
-      @b,
+      @b[255],   { default = empty string (null-terminated) }
+      @b[0],
       255,
       @FreeStr[1]
     );
     if StrLComp ( @b, @s[1], Length(s) ) = 0 then
       Exit;
   end;
+  StrPCopy ( b, s );
   WritePrivateProfileString (
     Group,
     Parameter,
-    @s[1],
+    @b[0],
     @FreeStr[1]
   );
 end;

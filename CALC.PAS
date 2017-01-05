@@ -50,8 +50,9 @@ unit Calc;
 
 interface
 
-uses Advance, LFN, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
-     HistList, UniWin, Commands, DNHelp, RStrings, Calculat;
+uses
+  Advance, LFN, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
+  HistList, UniWin, Commands, DNHelp, RStrings, Calculat;
 
 const
      CellClipboard : PCellCollection = nil;

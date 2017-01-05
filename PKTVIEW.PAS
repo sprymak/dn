@@ -51,13 +51,12 @@ Unit PktView;
 {$F+,O+,V-}
 Interface
 
-Uses Objects, Strings, FViewer, Dialogs, Views, Drivers,
-     Messages, Dos, collect, Advance1, Advance, Lfn,
-     HideView, Scroller
-{$IFDEF VirtualPAscal}
-     , Use16
-{$ENDIF}
-;
+Uses
+  Objects, Strings, FViewer, Dialogs, Views, Drivers,
+  Messages, Dos, collect, Advance1, Advance, Lfn,
+  HideView, Scroller
+  {$IFDEF VirtualPAscal}, Use16 {$ENDIF}
+  ;
 
 type
     TNetAddr=record
@@ -153,10 +152,10 @@ Procedure ViewMsgFile(FName:String);
 Function ViewPktFileE(FName:String; MsgVisible:Boolean) : Boolean;
 Function ViewMsgFileE(FName:String) : Boolean;
 
-const COrigin: word=11;
-      CArea  : word=10;
-      CCitate: word=14;
-      CCluges: word=4{7};
+const COrigin{: word}=11;
+      CArea  {: word}=10;
+      CCitate{: word}=14;
+      CCluges{: word}=4{7};
       KillAfterUse : Boolean = false;
       FileName     : String = '';
 
@@ -1266,15 +1265,15 @@ begin
  NullXLAT(XL);
  New(F,Init(FName,stOpenRead,16384));
  L[1]:=-1;
- L[1]:=SearchFileStr(F,XL,#1'MSGID: ',0,false,false,false,false,True);
+ L[1]:=SearchFileStr(F,XL,#1'MSGID: ',0,False,False,False,False,True,False);
  L[2]:=-1;
- L[2]:=SearchFileStr(F,XL,#1'FMPT ',0,false,false,false,false,True);
+ L[2]:=SearchFileStr(F,XL,#1'FMPT ',0,False,False,False,False,True,False);
  L[3]:=-1;
- L[3]:=SearchFileStr(F,XL,#1'INTL ',0,false,false,false,false,True);
+ L[3]:=SearchFileStr(F,XL,#1'INTL ',0,False,False,False,False,True,False);
  L[4]:=-1;
- L[4]:=SearchFileStr(F,XL,#1'TOPT ',0,false,false,false,false,True);
+ L[4]:=SearchFileStr(F,XL,#1'TOPT ',0,False,False,False,False,True,False);
  L[5]:=-1;
- L[5]:=SearchFileStr(F,XL,#1'PID: ',0,false,false,false,false,True);
+ L[5]:=SearchFileStr(F,XL,#1'PID: ',0,False,False,False,False,True,False);
  Dispose(F,Done);
  N:=0;
  for i:=1 to 5 do if L[i]>0 then inc(N);

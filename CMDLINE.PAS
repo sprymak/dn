@@ -48,9 +48,12 @@
 {$I STDEFINE.INC}
 
 unit CmdLine;
+
 interface
- uses LFN, ccalc, XDblWnd, UserMenu, Menus,
-      {$IFDEF TrashCan}Gauges,{$ENDIF} drivers, Objects, Views;
+
+uses
+  Lfn, CCalc, XDblWnd, UserMenu, Menus,
+  {$IFDEF TrashCan} Gauges, {$ENDIF} Drivers, Objects, Views;
 
 Type
      PCommandLine = ^TCommandLine;
@@ -69,6 +72,7 @@ Type
       procedure SetData(var S); virtual;
       function DataSize: Word; virtual;
       procedure SetDirShape;
+      procedure QueryCursorVisible; {AK155}
      end;
 
 (*
@@ -98,11 +102,15 @@ const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' ','@','"']
 
 implementation
  uses Dos, Commands, DNApp, DNStdDlg, Dialogs, advance, advance1, advance2,
-      advance3, Startup, RStrings, xTime, Messages, MicroEd, Histries, FViewer
+      advance3, Startup, RStrings, xTime, Messages
+      , MicroEd, Histries, FViewer, flpanelx
 {$IFDEF SS} ,Idlers{$ENDIF}
 {$IFDEF VIRTUALPASCAL}, VpSysLow{$ENDIF}
       ;
 
+const
+      CursorMustBeVisible: boolean = false;
+      PrevCmdLineCursorVisible: boolean = false;
 
 constructor TCommandLine.Init;
 begin
@@ -173,17 +181,39 @@ begin
   end;
 end;
 
+procedure TCommandLine.QueryCursorVisible; {AK155}
+begin
+CursorMustBeVisible :=
+         (State and sfDisabled = 0) and not QuickSearch and
+         ((DeskTop^.Current=nil)
+          or (TypeOf((DeskTop^.Current^))=TypeOf(TXDoubleWindow))
+          or (TypeOf((DeskTop^.Current^))=TypeOf(TUserWindow))
+{$IFDEF TrashCan}or (TypeOf((DeskTop^.Current^))=TypeOf(TTrashCan)){$ENDIF}
+         );
+end;
+
 procedure TCommandLine.Update;
  var P: TPoint;
      A1,A2: {$IFNDEF VIRTUALPASCAL}Integer{$ELSE}SmallWord{$ENDIF};
 //     BB: Boolean;
     CursorStartScanLine, CursorEndScanLine: integer; //ak155
     CursorVisible: boolean;//ak155
-    CursorMaxY: integer;
+    CursorMaxY, CursorMinY: integer;
  const
    OldOverwrite: longint = 2;
 begin
- if GetState(sfDisabled) then Exit;
+ QueryCursorVisible;
+ if (CursorMustBeVisible <> PrevCmdLineCursorVisible)
+     { есть повод для работы }
+   and (State and (sfDisabled or sfVisible) <> sfVisible)
+     { но не надо гасить чужой курсор }
+ then
+   ResetCursor;
+ PrevCmdLineCursorVisible := CursorMustBeVisible;
+ if not CursorMustBeVisible then
+   exit;
+
+{ А теперь делаем, чтобы курсор действиельно имел нужный вид }
   {$IFNDEF VIRTUALPASCAL}
   asm
    mov ah,3
@@ -231,14 +261,14 @@ begin
 {AK155 вызовы программ установки режимов курсора безобидны под OS/2,
 но под Win32 приводят к мерзкому миганию курсора. Поэтому я попытался
 не вызывать их без надобности. 18.10.2001 }
-if (OldOverwrite <> ord(Overwrite)) or
-   not CursorVisible
+if (OldOverwrite <> ord(Overwrite)) or  not CursorVisible
 then
    begin
    CursorMaxY := Lo(Drivers.CursorLines);
+   CursorMinY := 0;
    if not Overwrite then
-     SysTVSetCurType(CursorMaxY-1, CursorMaxY, true)
-   else SysTVSetCurType(0, CursorMaxY, true);
+     CursorMinY := CursorMaxY-1;
+   SysTVSetCurType(CursorMinY, CursorMaxY, true);
    OldOverwrite := ord(Overwrite);
    end;
 if (A1 <> P.X) or (A2 <> Origin.Y) then
@@ -254,7 +284,7 @@ begin
   begin
    DrawView;
    if Enable then EnableCommands([cmNext, cmPrev]) else DisableCommands([cmNext, cmPrev])
-  end;
+  end
 end;
 
 procedure TCommandLine.Draw;
@@ -304,9 +334,11 @@ procedure TCommandLine.HandleEvent;
    EndLFN;
 begin
  inherited HandleEvent(Event);
- if (CCalc.Calc<>nil) and (Desktop^.Current<>nil) and
-    (DeskTop^.Current=CCalc.Calc) then exit;
+ if Event.What = evNothing then exit;
+ QueryCursorVisible;
  S := Str; Changed := False;
+ if not CursorMustBeVisible then exit;
+
  case Event.What of
   evMouseDown, evMouseAuto: begin
                 if Event.Double then
@@ -336,7 +368,7 @@ begin
          S := String(Event.InfoPtr^);
 {AK155: обработка длинных имен с пробелами.}
          if (CurX > 0) and not (Str[CurX] in Separators)
-           and not (S[1] = '"')
+           {and not (S[1] = '"')}
          then
             begin Insert(' ', Str, CurX+1); Inc(CurX) end;
          ls := Length(s);
@@ -428,11 +460,8 @@ EndLFN:
 {/AK155}
                         end;
     end;
-  evKeyDown: if (DeskTop^.Current=nil)
-                or (TypeOf((DeskTop^.Current^))=TypeOf(TXDoubleWindow))
-                or (TypeOf((DeskTop^.Current^))=TypeOf(TUserWindow))
-{$IFDEF TrashCan}or (TypeOf((DeskTop^.Current^))=TypeOf(TTrashCan)){$ENDIF}
-             then begin
+  evKeyDown:
+               begin
                 if InterfaceData.Options and ouiHideCmdline = 0 then
                 case Event.CharCode of
                  ^V: begin Overwrite := not Overwrite; CE2 end;

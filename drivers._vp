@@ -56,13 +56,14 @@ var
   I : Byte;
   t : text;
 
+{Cat: закомментировал, объяснения см. ниже}
+(*
 function GetCoord(X, Y: LongInt): SmallWord;
 begin
  GetCoord := ((ScreenHeight-8) div 2+Y)*(ScreenWidth*2)+
              ((ScreenWidth-42) div 2+X)*2;
 end;
 
-{$IFNDEF DONTCATCHEXCEPTIONS}
 procedure NewLine;
 var CO : SmallWord ;
   begin
@@ -105,7 +106,7 @@ var CO : SmallWord ;
 
     SysTVShowBuf(CO, CO+ScreenWidth*2);
   end;
-{$ENDIF}
+*)
 
 begin
   SysTvClrScr;
@@ -113,24 +114,16 @@ begin
   SysBuf := SysTVGetSrcBuf;
 
   { Create Report File }
-  DoDump(ExitCode, Pointer(ErrAdd));
+  DoDump;
 
-{Cat: если выходим через Exception, то всё нормально, а если через
-      ExitProc, то красивое окошко почему-то не рисуется; разбираться
-      в причинах, на мой взгляд, незачем - сойдёт и вывод через Writeln}
-{$IFDEF DONTCATCHEXCEPTIONS}
-  Writeln('Fatal Error'^M^J'───────────'^M^J^M^J+
-          'Exception 0',Hex2(ExitCode),'h at address ',Hex8(ErrAdd),^M^J+
-{$IFDEF OS2}
-          'Report to 2:5030/1082.53 or to 2:461/155 or to 2:5030/1326.13'^M^J+
-          'or to RU.SHELL.DN'^M^J+
-{$ELSE}
-          'Report to RU.SHELL.DN'^M^J+
-{$ENDIF}
-          '( file DN.ERR )'^M^J^M^J+
-          'Press any key...');
-{$ELSE}
-{/Cat}
+{Cat: закомментировал эту процедуру рисования красивого окошка, т.к. если
+      выходим через Exception, то в некоторых случаях оно не рисуется
+      (рисуется или нет - зависит от местоположения исключения), а если
+      выходим через ExitProc, то оно не рисуется никогда. Вероятно, это
+      происходит из-за неинициализированности Turbo Vision-а. Поскольку
+      вывод сообщения об ошибке - это весьма странное место для наведения
+      красивости, на мой взгляд, сойдёт и вывод через обычный Writeln}
+(*
   { Display Error Box }
   if Lo(ScreenMode) = smMono then
     begin C := SysMonoAttr; AC := $0F07 end else
@@ -141,7 +134,7 @@ begin
       case I of
         0 : FreeStr := ' Fatal Error ';
         2 : FreeStr := 'Exception 0' + Hex2(ExitCode)
-                     + 'h at address '+Hex8(ErrAdd);
+                     + 'h at address '+Hex8(LongInt(ErrorAddr));
 {$IFDEF OS2}
         4 : FreeStr := 'Report to 2:5030/1082.53 or to 2:461/155';
         5 : FreeStr := 'or to RU.SHELL.DN';
@@ -153,9 +146,22 @@ begin
       end;
       NewLine;
     end;
+*)
+  Writeln('Fatal Error'^M^J'───────────'^M^J^M^J+
+          'Exception 0',Hex2(ExitCode),'h at address ',Hex8(LongInt(ErrorAddr)));
+{$IFDEF LINEPOSIT}
+  if (SourceLineNo <> 0) and (SourceFileName <> nil) then
+    Writeln('Source location: ' + SourceFileName^ + ' line ', SourceLineNo);
 {$ENDIF}
 
-{Cat}
+  Writeln('Report to RU.SHELL.DN'^M^J+
+          '( file DN.ERR )'^M^J^M^J+
+          'Press any key...');
+{/Cat}
+
+{Cat: ошибка - это, конечно, страшно, но не настолько, чтобы загружать
+      систему на 100% и нарушать нормальную работу других программ}
+  ErrorAddr := nil;
   repeat
     TinySlice;
   until SysKeyPressed;
@@ -918,16 +924,13 @@ var
 procedure ExitDrivers;
 begin
   ExitProc := SaveExit;
+  {$IFDEF DNPRG}
+  if ErrorAddr <> nil then
+    EndFatalError;
+  {$ENDIF}
   DoneSysError;
   DoneEvents;
   SysTVDoneMouse(True);
-  {$IFDEF DNPRG}
-  if ErrorAddr <> nil then begin
-   ErrAdd := Longint(ErrorAddr);
-   ErrorAddr := Nil;
-  {FatalError;}{?}
-  end;
-  {$ENDIF}
 end;
 
 procedure SetMouseSpeed(XS, YS: Byte);begin end; {?}

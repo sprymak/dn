@@ -3,7 +3,8 @@ unit LFNCol;
 
 interface
 
-uses Advance1, Advance2, Objects {$IFNDEF STRINGLFN}, Strings{$ENDIF};
+uses
+  Advance1, Advance2, Objects {$IFNDEF STRINGLFN}, Strings{$ENDIF};
 
 {$IFNDEF STRINGLFN}
 type
@@ -14,12 +15,12 @@ type
 {$ENDIF}
 
 
-function    AddLFN(const Name: string): TLFNIndex;   {Add name}
-procedure   DelLFN(var ind: TLFNIndex);              {Delere name}
-function    UseLFN(ind: TLFNIndex):TLFNIndex;        {Increase name usage}
-function    GetLFN(ind: TLFNIndex): string;          {Return name as String}
-procedure   StoreLFN(var S: TStream; LFN: TLFNIndex);{Store name}
-function    LoadLFN(var S: TStream): TLFNIndex;      {Load name}
+function    AddLFN(const Name: string): TLFNIndex;          {Add name}
+procedure   DelLFN(var ind: TLFNIndex);                     {Delete name}
+function    UseLFN(const ind: TLFNIndex):TLFNIndex;         {Increase name usage}
+function    GetLFN(const ind: TLFNIndex): string;           {Return name as String}
+procedure   StoreLFN(var S: TStream; const LFN: TLFNIndex); {Store name}
+function    LoadLFN(var S: TStream): TLFNIndex;             {Load name}
 
 
 implementation
@@ -36,14 +37,14 @@ end;
 procedure   DelLFN(var ind: TLFNIndex);
 begin DisposeStr(PString(ind)) end;
 
-function    GetLFN(ind: TLFNIndex): string;
+function    GetLFN(const ind: TLFNIndex): string;
 begin
  if ind<>nil
   then GetLFN := Copy(PString(ind)^, 1, Length(PString(ind)^)-1)
   else GetLFN := ''
 end;
 
-function    UseLFN(ind: TLFNIndex): TLFNIndex;
+function    UseLFN(const ind: TLFNIndex): TLFNIndex;
 begin UseLFN := AddLFN(GetLFN(ind)) end;
 
 procedure   StoreLFN(var S: TStream; LFN: TLFNIndex);
@@ -67,15 +68,15 @@ procedure   DelLFN(var ind: TLFNIndex);
 begin end;
 
 
-function    GetLFN(ind: TLFNIndex): string;
+function    GetLFN(const ind: TLFNIndex): string;
 begin
   GetLFN := ind;
 end;
 
-function    UseLFN(ind: TLFNIndex): TLFNIndex;
+function    UseLFN(const ind: TLFNIndex): TLFNIndex;
 begin UseLFN := ind; end;
 
-procedure   StoreLFN(var S: TStream; LFN: TLFNIndex);
+procedure   StoreLFN(var S: TStream; const LFN: TLFNIndex);
 begin
   S.WriteStr(@LFN);
 end;

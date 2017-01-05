@@ -54,37 +54,41 @@ procedure RegisterAll;
 IMPLEMENTATION
 
 Uses
-{$IFNDEF RCP}
-     Arc_ZIP,  Arc_LHA,  Arc_RAR,  Arc_ACE,  Arc_HA,   Arc_CAB,
-{$IFNDEF MINARCH}
-     Arc_ARC,  Arc_BSA,  Arc_BS2,  Arc_HYP,  Arc_LIM,  Arc_HPK,  Arc_TAR,
-     {$IFDEF TGZ} Arc_TGZ, {$ENDIF} Arc_ZXZ,  Arc_QRK,  Arc_AIN,  Arc_CHZ,  Arc_HAP,  Arc_IS3,
-     Arc_SQZ,  Arc_UC2,  Arc_UFA,  Arc_ZOO,
-{$ENDIF}
-     Archiver, Arcview,  Arvid,    Asciitab, Ccalc,
-     Collect,  Diskinfo, Dnapp,    Dnstddlg, Dnutil,   Drives,   Ed2,
-     Editor,   Filefind, Filescol, Flpanel,  Fstorage, Fviewer,  Gauges,
-     Histries, Microed,  Startup,  Tree,     Uniwin,   Usermenu, Xdblwnd,
-     Helpkern,
-{$IFDEF SpreadSheet}     Calc,     Cellscol,           {$ENDIF}
-{$IFDEF Calendar}        Calendar,                     {$ENDIF}
-{$IFDEF CDPlayer}        Cdplayer,                     {$ENDIF}
-{$IFDEF DBView}          Dbview,                       {$ENDIF}
-{$IFDEF MODEM}           Scrollbk, Terminal, uDialer,
-           {$IFDEF LINK} Navylink, {$ENDIF}            {$ENDIF}
-{$IFDEF PrintManager}    Printman,                 {$ENDIF}
-{$IFDEF Game}            Tetris,                       {$ENDIF}
-{$IFDEF NetInfo}         Netinfo,                      {$ENDIF}
-{$IFDEF PHONES}          Phones,                       {$ENDIF}
-{$ENDIF !RCP}
-{$IFDEF CHCOL}           Colorsel,                     {$ENDIF}
-     Dialogs,  Menus,    Objects,  ObjType,  Scroller, Setups,
-     Validate, Views,    SWE {$IFDEF UserSaver}, UserSavr{$ENDIF};
+  {$IFNDEF RCP}
+    Arc_ZIP,  Arc_LHA,  Arc_RAR,  Arc_ACE,  Arc_HA,   Arc_CAB,
+    {$IFNDEF MINARCH}
+    Arc_ARC,  Arc_BSA,  Arc_BS2,  Arc_HYP,  Arc_LIM,  Arc_HPK,  Arc_TAR,
+    Arc_ZXZ,  Arc_QRK,  Arc_AIN,  Arc_CHZ,  Arc_HAP,  Arc_IS3,  Arc_SQZ,
+    Arc_UC2,  Arc_UFA,  Arc_ZOO,  {$IFDEF TGZ} Arc_TGZ, {$ENDIF}
+    {$ENDIF}
+    {$IFDEF ARVID}
+    Arvid,
+    {$ENDIF}
+    Archiver, ArcView,  AsciiTab, Ccalc,    Collect,  DiskInfo, DnApp,
+    DnStdDlg, DnUtil,   Drives,   Ed2,      Editor,   FileFind, FilesCol,
+    FlPanel,  FStorage, FViewer,  Gauges,   Histries, MicroEd,  Startup,
+    Tree,     Uniwin,   Usermenu, XDblWnd,  HelpKern,
+    {$IFDEF NETWORK}         Network,                      {$ENDIF}
+    {$IFDEF SpreadSheet}     Calc,     Cellscol,           {$ENDIF}
+    {$IFDEF Calendar}        Calendar,                     {$ENDIF}
+    {$IFDEF CDPlayer}        Cdplayer,                     {$ENDIF}
+    {$IFDEF DBView}          Dbview,                       {$ENDIF}
+    {$IFDEF MODEM}           Scrollbk, Terminal, uDialer,
+               {$IFDEF LINK} Navylink, {$ENDIF}            {$ENDIF}
+    {$IFDEF PrintManager}    Printman,                 {$ENDIF}
+    {$IFDEF Game}            Tetris,                       {$ENDIF}
+    {$IFDEF NetInfo}         Netinfo,                      {$ENDIF}
+    {$IFDEF PHONES}          Phones,                       {$ENDIF}
+    {$ENDIF !RCP}
+    {$IFDEF CHCOL}           Colorsel,                     {$ENDIF}
+    Dialogs,  Menus,    Objects,  ObjType,  Scroller, Setups,
+    Validate, Views,    SWE {$IFDEF UserSaver}, UserSavr {$ENDIF};
 
 const
   NumRElms =
-{$IFDEF RCP}31{$ELSE} 120
+{$IFDEF RCP} 31 {$ELSE} 119
   {$IFDEF MODEM}       +7 {$IFDEF LINK} +2 {$ENDIF} {$ENDIF}
+  {$IFDEF NETWORK}     +1 {$ENDIF}
   {$IFDEF SpreadSheet} +5 {$ENDIF}
   {$IFDEF Game}        +3 {$ENDIF}
   {$IFDEF PrintManager}+4 {$ENDIF}
@@ -94,7 +98,8 @@ const
   {$IFDEF TrashCan}    +1 {$ENDIF}
   {$IFDEF NETINFO}     +1 {$ENDIF}
   {$IFDEF TGZ}         +1 {$ENDIF}
-  {$IFDEF MINARCH}    -18 {$ENDIF}
+  {$IFDEF MINARCH}    -17 {$ENDIF}
+  {$IFDEF ARVID}       +1 {$ENDIF}
   {$IFDEF PHONES}      +4 {$ENDIF}
   {$IFDEF UserSaver}   +1 {$ENDIF}
 {$ENDIF}
@@ -275,12 +280,22 @@ const
        {$IFDEF LOGOBJLOADSTORE} ObjName : 'otArcDrive'; {$ENDIF}
        Load   : @ArcView.TArcDrive.Load;
        Store  : @ArcView.TArcDrive.Store)
+{$IFDEF ARVID}
       { Arvid }
      ,(ObjType: otArvidDrive;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Arvid.TArvidDrive){$IFDEF OFFS}^{$ENDIF});
        {$IFDEF LOGOBJLOADSTORE} ObjName : 'otArvidDrive'; {$ENDIF}
        Load   : @Arvid.TArvidDrive.Load;
        Store  : @Arvid.TArvidDrive.Store)
+{$ENDIF}
+{$IFDEF NETWORK}
+      { Network }
+     ,(ObjType: otNetDrive;
+       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Network.TNetDrive){$IFDEF OFFS}^{$ENDIF});
+       {$IFDEF LOGOBJLOADSTORE} ObjName : 'otNetDrive'; {$ENDIF}
+       Load   : @Network.TNetDrive.Load;
+       Store  : @Network.TNetDrive.Store)
+{$ENDIF}
       { AsciiTab }
      ,(ObjType: otTable;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(AsciiTab.TTable){$IFDEF OFFS}^{$ENDIF});

@@ -48,7 +48,9 @@
 unit ListMakr;
 
 INTERFACE
-uses Objects, Collect, ObjType;
+
+uses
+  Objects, Collect, ObjType;
 
 Type
 { TStrListMaker object }

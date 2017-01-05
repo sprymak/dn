@@ -71,9 +71,10 @@ PROGRAM RCP;
 USES
   LFN, Collect, Drivers, Dos, Objects, advance, advance1, advance2, advance3,
   RStrings, GetConst, Menus, Commands, Setups, DNHelp, Views, DNApp, Startup,
-  Dialogs, Validate, IniFiles, Scroller, ExtraMem, ListMakr, ObjType,
-{$IFDEF CHCOL} ColorSel, {$ENDIF} RegAll, DefColl, swe;
-
+  Dialogs, Validate, IniFiles, Scroller, ListMakr, ObjType, RegAll, DefColl,
+  {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
+  {$IFDEF CHCOL} ColorSel, {$ENDIF}
+  Swe;
 
 CONST
   tidCommands = 'cm'#0'cd'#0;
@@ -1208,12 +1209,43 @@ BEGIN
   end;
   {$ENDIF}
 {$ELSE}
-  INI.Init( 'RCPVP.INI', INIs );
-  If INIs <> stOK then begin
-    INI.Done;
-    INI.Init( FSetExt( ParamStr( 0 ), '.INI' ), INIs );
-    If INIs <> stOK then Error( 'File RCPVP.INI not found.' );
-  end;
+
+{Cat: выбираем, какой конфигурационный файл использовать:
+      - если в командной строке O или OS2 - RCPVPO.INI
+      - если в командной строке W или W32 - RCPVPW.INI
+      - если в командной строке D или D32 - RCPVPD.INI
+      - если командная строка пуста - конфигурационный файл,
+      соответствующий системе, для которой скомпилирован RCP.EXE}
+
+  FreeStr := ParamStr(1);
+  UpStr(FreeStr);
+  if (FreeStr = 'O') or (FreeStr = 'OS2')
+  or (FreeStr = 'W') or (FreeStr = 'W32')
+  or (FreeStr = 'D') or (FreeStr = 'D32')
+  or (FreeStr = '') then
+    begin
+      if FreeStr = '' then
+        {$IFDEF OS2}
+        FreeStr := 'O';
+        {$ELSE}
+        {$IFDEF WIN32}
+        FreeStr := 'W';
+        {$ELSE}
+        {$IFDEF DPMI32}
+        FreeStr := 'D';
+        {$ELSE}
+        FreeStr := '?';
+        {$ENDIF}
+        {$ENDIF}
+        {$ENDIF}
+      Writeln( 'Using config file RCPVP' + FreeStr[1] + '.INI' );
+      INI.Init( 'RCPVP' + FreeStr[1] + '.INI', INIs );
+      if INIs <> stOK then
+        Error('File RCPVP' + FreeStr[1] + '.INI not found.');
+    end
+  else
+    Error( 'Invalid parameter "' + FreeStr + '".');
+{/Cat}
 {$ENDIF}
 
   RegisterType( RStrListMaker );

@@ -52,7 +52,8 @@ unit Gauge;
 
 interface
 
-uses Drivers, Objects, Views, Dialogs, Dos, TitleSet, Collect;
+uses
+  Drivers, Objects, Views, Dialogs, Dos, TitleSet, Collect;
 
 const
   cmUpdateGauge = 12000;

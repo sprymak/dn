@@ -53,7 +53,9 @@ interface
  procedure Sky;
 
 implementation
-uses Objects, Drivers, advance, advance1, advance2, advance3, DNApp, Memory;
+
+uses
+  Objects, Drivers, advance, advance1, advance2, advance3, DNApp, Memory;
 
 const
  maxviewwidth = 200;

@@ -50,7 +50,9 @@
 unit advance6;
 
 interface
-uses Objects;
+
+uses
+  Objects;
 
 procedure InitUpcase;
 procedure MakeCRCTable;
@@ -60,7 +62,10 @@ procedure ResourceAccessError;
 function  HotKey(const S: String): Char;
 
 implementation
-Uses {Cat} U_KeyMap, {/Cat} Advance, LFN;
+Uses
+  {Cat} U_KeyMap, {/Cat}
+  {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
+  Advance, LFN;
 
 procedure InitUpcase;
 var
@@ -158,6 +163,7 @@ begin
   if IOResult <> 0 then
     ;
   Writeln('Resource access error');
+  SysTVInitCursor;
   Halt(219);
 {/Cat}
  {RunError(219);}

@@ -48,7 +48,9 @@
 UNIT Microed2;
 
 INTERFACE
-uses Objects, MicroEd, EdWin;
+
+uses
+  Objects, MicroEd, EdWin;
 
 const TabStep     : Integer = 8;
 
@@ -73,10 +75,11 @@ const
 
 IMPLEMENTATION
 uses DnStdDlg, Advance, DnApp, Commands, Lfn, Advance2, Ed2, Advance1, Views,
-     Collect, WinClp, Dos, Messages, Startup, DnIni, SBlocks, u_keymap, Macro,
-     XTime, Memory, Drivers {$IFDEF EAOP}, FlOS2Tl {$ENDIF}
-     , ErrMess
-     ;
+     Collect, WinClp, Dos, Messages, Startup, DnIni, {SBlocks,} U_KeyMap, Macro,
+     XTime, Memory, Drivers,
+     {$IFDEF EAOP} {$IFDEF OS2} FlOS2Tl, {$ENDIF} {$IFDEF WIN32} FlW32Tl, {$ENDIF} {$ENDIF}
+     {$IFDEF COLORER} Colorer, {$ENDIF}
+     ErrMess;
 
 type  ByteArray = Array[1..MaxBytes] of Byte;
 const FBufSize = 8192;
@@ -101,7 +104,7 @@ begin with AED^ do begin
       MIUnlockFile(AED);
       FileName := lFExpand(GetPath(FileName))+GetName(lFExpand(FileName));
       S := CheckForOver(FileName);
-      if S = nil then Exit;
+      if S = nil then begin MILockFile(AED); Exit; end;
       EditName := lFExpand(FileName);
       if EditName[Length(EditName)]='.' then SetLength(EditName, Length(EditName)-1);
       WriteBlock(EditName, S, FileLines, EdOpt.ForcedCrLf, OptimalFill); Dispose(S,Done);
@@ -135,7 +138,7 @@ begin with AED^ do begin
         begin
           isValid := On;
           Message(Owner, evCommand, cmClose, nil);
-          Exit;
+          MILockFile(AED); Exit;
         end;
       ScrollTo(0,0);
       Owner^.ReDraw;
@@ -181,9 +184,11 @@ begin with AED^ do begin
    if FileExist and (OldAttr and ReadOnly <> 0) then
    begin
      Pointer(L[0]) := @EditName;
-     if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then Exit;
+     if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel)<>cmOK then
+       begin MILockFile(AED); Exit; end;
    end;
-   ClrIO; lSetFAttr(F, Archive); if Abort then Exit;
+   ClrIO; lSetFAttr(F, Archive); if Abort then
+     begin MILockFile(AED); Exit; end;
 {$IFDEF EAOP}
    if FileExist then
      begin
@@ -191,7 +196,12 @@ begin with AED^ do begin
        lAssignFile(TempEAContainer, TempEAContainerName);
        lRewriteFile(TempEAContainer, 0);
        Close(TempEAContainer.F);
+       {$IFNDEF DPMI32}
        CopyEAs(EditName, TempEAContainerName);
+       {$ENDIF}
+       {$IFDEF WIN32}
+       CopySAs(EditName, TempEAContainerName); {Cat}
+       {$ENDIF}
      end;
 {$ENDIF}
    if EditorDefaults.EdOpt and ebfCBF <> 0 then
@@ -201,7 +211,7 @@ begin with AED^ do begin
      lChangeFileName(EditName, Dr+Nm+'.BAK'); ClrIO;
     end;
    New(S, Init(EditName, stCreate, 4096));
-   if S = nil then Exit;
+   if S = nil then begin MILockFile(AED); Exit; end;
 {Cat: раньше почему-то проверка статуса происходила в этом месте,
       т.е. считалось, что если поток создан успешно, то и записан
       он также успешно, что неверно (например, когда место на диске
@@ -226,7 +236,12 @@ begin with AED^ do begin
 {$IFDEF EAOP}
    if FileExist then
      begin
+       {$IFNDEF DPMI32}
        CopyEAs(TempEAContainerName, EditName);
+       {$ENDIF}
+       {$IFDEF WIN32}
+       CopySAs(TempEAContainerName, EditName); {Cat}
+       {$ENDIF}
        EraseFile(TempEAContainerName);
      end;
 {$ENDIF}
@@ -279,7 +294,8 @@ begin with AED^ do begin
   SearchOnDisplay := Off; EdOpt.ForcedCrLf := cfNone;
 1:
   if Name = '' then begin
-    FileLines := GetCollector(1000, 100);
+   {FileLines := GetCollector(1000, 100);}
+    FileLines := New(PLineCollection, Init(300, 1000, True)); {-SBlocks}
     if ClipBrd then begin {-$VOL begin}
 {Cat:warn лишние переприсваивания}
       PC := nil;
@@ -296,11 +312,15 @@ begin with AED^ do begin
   end else begin
     if (StartupData.Slice2 and osuReleaseOpen) = 0 then Application^.BFSpeed;
     FileLines := MIReadBlock(AED, Name, On);
+    {$IFDEF COLORER} {Cat}
+    SwitchExternalColorer(EdOpt.HiLite);
+    {$ENDIF} {/Cat}
     if (StartupData.Slice2 and osuReleaseOpen) = 0 then Application^.EFSpeed;
     if not IsValid then Exit;
     if FileLines = nil then
      begin
-      FileLines := GetCollector(1000, 100);
+     {FileLines := GetCollector(1000, 100);}
+      FileLines := New(PLineCollection, Init(300, 1000, True)); {-SBlocks}
       FileLines^.Insert(NewLongStr(''));
       KeyMap:=kmAscii;
      end;
@@ -352,7 +372,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
      J: LongInt;
      K: LongInt;
      LCount: LongInt;
-     Lines: PCollector;
+     Lines: PLineCollection {PCollector}; {-SBlocks}
      S1, ST, S2: LongString;
      L: Longint;
      KeyMapDetecting: Boolean;
@@ -595,7 +615,7 @@ L2:{$IFDEF USELONGSTRING}
      begin
        while (ST<>'') and (ST[Length(ST)]=' ') do SetLength(ST, Length(ST)-1);
        if KeyMapDetecting then CodePageDetector.CheckString(ST);
-       Lines^.AddStr(ST);
+       Lines^.Insert(NewLongStr(ST)); {Lines^.AddStr(ST);} {-SBlocks}
        ST := '';
      end;
    Inc(K);
@@ -682,8 +702,9 @@ begin with AED^ do begin
     CodePageDetector.Done;
     Exit
   end;
- if RetCollector then Lines := GetCollector(LCount*11, LCount+50)
-                 else Lines := New(PStdCollector, Init(LCount+50));
+{if RetCollector then Lines := GetCollector(LCount*11, LCount+50)}
+                {else Lines := New(PStdCollector, Init(LCount+50));}
+ Lines := New(PLineCollection, Init(LCount+250, 1000, True)); {-SBlocks}
  {-$VOL begin}
  if (EditorDefaults.EdOpt{$IFNDEF OS_DOS} shl 2{$ENDIF}) and ebfTRp = 0 then TabStep:=0
  else begin
@@ -742,9 +763,11 @@ begin with AED^ do begin
   if (OA shl 1>=ODOA+OD) then EdOpt.ForcedCRLF:=cfLF;
   if RetCollector then MIReadBlock := Lines
                 else begin
-                       MIReadBlock := PStdCollector(Lines)^.Collection;
-                       PStdCollector(Lines)^.Collection := nil;
-                       Dispose(Lines,Done); Lines:=nil;
+                      {MIReadBlock := PStdCollector(Lines)^.Collection;}
+                      {PStdCollector(Lines)^.Collection := nil;}
+                      {Dispose(Lines,Done); Lines:=nil;}
+                       MIReadBlock := PLineCollection(Lines); {-SBlocks}
+                       Lines:=nil;                            {-SBlocks}
                      end;
   Dispose(S,Done); CodePageDetector.Done;
   FreeMem(B, FBufSize); Info^.Free;
@@ -761,6 +784,7 @@ end end;
 procedure MIUnLockFile(AED: PFileEditor);
 begin with AED^ do begin
    if EditorDefaults.EdOpt and ebfLck = 0 then Exit;
+   if Locker = nil then exit; { на всякий случай }
    Dispose(Locker,Done); Locker:=nil;
 end end;
 

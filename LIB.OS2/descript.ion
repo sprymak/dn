@@ -1,0 +1,2 @@
+vpsyslow.pas основная часть VPSysLow
+killer.pas обработчик кнопки закрытия окна и Ctrl-Break

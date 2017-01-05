@@ -50,10 +50,12 @@
 unit FilesCol;
 
 interface
- uses LFN,
- {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy}
- Objects, Memory, Startup,
- DNHelp, advance, advance1, advance2, advance3, Collect, Drivers;
+
+uses
+  LFN,
+  {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy}
+  Objects, Memory, Startup,
+  DNHelp, advance, advance1, advance2, advance3, Collect, Drivers;
 
 type
     PDIZ = ^TDIZ;
@@ -174,7 +176,9 @@ uses DNApp, Menus, Views, FlPanel, Drives,
      {$IFDEF MODEM}{$IFDEF LINK},NavyLink{$ENDIF}{$ENDIF}
      {$IFDEF NETINFO}, Novell{$ENDIF}
      {$IFNDEF NONBP}, DiskTool{$ENDIF}
-     {$IFDEF VIRTUALPASCAL}, VpSysLow, VPUtils{$ELSE},DrvTypes{$ENDIF} {$IFDEF OS2},FlOS2Tl{$ENDIF}
+     {$IFDEF VIRTUALPASCAL}, VpSysLow, VpUtils {$ELSE}, DrvTypes{$ENDIF}
+     {$IFDEF OS2}, FlOs2Tl {$ENDIF}
+     {$IFDEF NETWORK}, Network {$ENDIF}
      , DnIni, DOS
 
 ;
@@ -197,9 +201,9 @@ function  CreateFileRec(Name: string): PFileRec;
      D: DateTime;
      path: string;
  begin
-  new(fr);
+  New(fr);
   CreateFileRec:=fr;
-  fillchar(fr^, sizeof(fr^), 0);  {AK155}
+  FillChar(fr^, sizeof(fr^), 0);  {AK155}
 {AK155  fillword(fr^, sizeof(fr^) shr 1, 0);
      Это хороший пример того, как не надо делать.
  Экономим микросекунды, а закладываем на будущее глюки,
@@ -699,7 +703,7 @@ begin
          C1 := 1;
      end;
 
-     if (Owner <> nil) and not (SM in [psmSize, psmTime, psmCrTime, psmLATime]) then
+     if (Owner <> nil) and not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime, psmLATime {$ENDIF}]) then
      if PanelFlags and fmiExeBeforeArc <> 0 then
      begin
        if PanelFlags and fmiExeFirst <> 0 then
@@ -858,6 +862,7 @@ begin
          end;
 {JO}
 {$IFNDEF OS_DOS}
+{$IFNDEF DPMI32}
 {Creat.DATE}psmCrTime:
          begin
          if (T1.Attr xor Attr) and Directory <> 0 then
@@ -888,6 +893,7 @@ begin
              else if T1.Owner^ < Owner^ then C := -1
                else if T1.Owner^ > Owner^ then C := 1;
          end;
+{$ENDIF}
 {$ENDIF OS_DOS}
 
 {DIZ}psmDIZ:
@@ -955,6 +961,16 @@ var
 begin
  Items := nil; N := 0; Lnk := nil;
  MaxL := 8; {-$VIV}
+
+ {$IFDEF NETWORK}
+ if NetworkEnabled then
+   begin
+     FreeStr:='Network';
+     Items := NewLine(NewItem(FreeStr, '', kbNoKey, 1900, hcNoContext, Items));
+     MaxL:=Max(CStrLen(FreeStr), MaxL);
+     Inc(N);
+   end;
+ {$ENDIF}
 
  if IncludeTemp and (InterfaceData.DrvInfType and ditIncludeQick <> 0) then begin
   C := ' ';
@@ -1058,7 +1074,7 @@ FullS := FullS + GetDriveTypeString(C) + ' ';
       {$IFDEF VIRTUALPASCAL}
        if (InterfaceData.DrvInfType and ditShowVolume <> 0) and not DrInvalid and
          not ((InterfaceData.DrvInfType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
-         FullS := FullS + GetVolumeLabel(C);
+         FullS := FullS + {$IFDEF WIN32}CharToOemStr{$ENDIF}(GetVolumeLabel(C)); {Cat}
       {$ENDIF}
       {$IFDEF NETINFO}
       Get_drive_connection_id(DriveNum, Server_num);
@@ -1142,6 +1158,9 @@ FullS := FullS + GetDriveTypeString(C) + ' ';
  SelectDrive := '';
  if N > 1000 then SelectDrive := Char(N - 1000)+':';
  if N = 1200 then SelectDrive := cTEMP_;
+ {$IFDEF NETWORK}
+ if N = 1900 then SelectDrive := cNET_;
+ {$ENDIF}
  if N > 2000 then SelectDrive := '+' + Char(N - 2000);
  if (N >= cmQuickChange1) and (N <= cmQuickChange9)
              then SelectDrive := CnvString(DirsToChange[N-cmQuickChange1]);
@@ -1198,6 +1217,26 @@ begin
   if LFN <> '..'
   {$ENDIF}
    then
+{JO: зачем нужны эти #22:
+     В виндах функции API FindFileFirst и FindFileNext отдают два имени
+     файла: основное и альтернативное (короткое). Для файлов с короткими
+     именами, созданных под другими операционками альтернативное имя
+     недоступно (отдаётся пустая строка). Чтобы в режиме показа коротких имён
+     такие  файлы не показывались в панели как пустое место, в TFileRecord мы
+     приравниваем значение поля короткого имени к значению поля основного,
+     если альтернативное имя недоступно. Под Win9x это нормально проходит,
+     так как для любого файла с именем длиннее 8.3 альтернативное имя
+     заведомо доступно. Под НТ возможна ненормальная (с моей точки зрения,
+     по крайней мере) ситуация, когда для файла с длинным (не укладывающимся
+     в 8.3) имением файла альтернатвное имя недоступно. Тогда в режиме показа
+     коротких имён мы будем иметь для таких файлов обрезанные как попало
+     имена в панели, не соответствующие действительности. Для этого я и
+     придумал условный заменитель недоступного короткого имени -
+     #22#22#22#22#22#22#22#22' '#22#22#22, так как символ #22 заведомо не
+     может быть в принципе в реальном имени файла. Имхо, так показывать в
+     режиме коротких имён файлы, для которых доступно только длинное имя -
+     честнее, чем с обрезанным именем, под которым файл недоступен.
+}
   {$IFDEF OS_DOS}
       T.Name := Norm12(GetUrz(Name))
   {$ELSE}

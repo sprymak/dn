@@ -56,7 +56,8 @@ unit Menus;
 
 interface
 
-uses Objects, Drivers, Views;
+uses
+  Objects, Drivers, Views;
 
 const
 

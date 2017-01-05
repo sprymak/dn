@@ -56,7 +56,8 @@ unit Validate;
 
 interface
 
-uses Objects, advance, advance1, advance2, advance3;
+uses
+  Objects, advance, advance1, advance2, advance3;
 
 const
 

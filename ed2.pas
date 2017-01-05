@@ -47,9 +47,12 @@
 
 {$I STDEFINE.INC}
 UNIT Ed2;
+
 INTERFACE
-Uses Commands, Advance1, U_Keymap, Collect, Views, Drivers, Objects,
-     LFN, SBlocks;
+
+Uses
+  Commands, Advance1, U_Keymap, Collect, Views, Drivers, Objects,
+  LFN{, SBlocks};
 
   { TDoCollection }
 const
@@ -124,7 +127,7 @@ type
   end;
 
 function  CheckForOver(Name: String): PStream;
-procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF; AOptimalFill: Boolean);
+procedure WriteBlock(Hint: String; S: PStream; C: PLineCollection {PCollector}; ForcedCRLF: TCRLF; AOptimalFill: Boolean); {-SBlocks}
 
 
 IMPLEMENTATION
@@ -192,26 +195,26 @@ begin
          end;
        MakeLocal(Event.Where, T);
        Event.What := evCommand;
-      {==0000000:000=[000]=(-)=CrLf=DOS==<1........>}
-      {000000000011111111112222222222333333333344444}
-      {012345678901234567890123456789012345678901234}
+      {==0000000:000=[000 00]=(-)==CrLf=DOS==<1........>}
+      {00000000001111111111222222222233333333334444444444}
+      {01234567890123456789012345678901234567890123456789}
        P:=PFileEditor(PEditWindow(Owner)^.Intern);
-       if      (T.X >  1) and (T.X < 13) then Event.Command := cmGotoLineNumber
-       else if (T.X > 13) and (T.X < 19) then Event.Command := cmSpecChar
-       else if (T.X > 19) and (T.X < 23) then Event.Command := cmSwitchBlock
-       else if (T.X > 23) and (T.X < 28) then
+       if      (T.X >  1) and (T.X < 12) then Event.Command := cmGotoLineNumber
+       else if (T.X > 12) and (T.X < 21) then Event.Command := cmSpecChar
+       else if (T.X > 21) and (T.X < 25) then Event.Command := cmSwitchBlock
+       else if (T.X > 26) and (T.X < 31) then
                case P^.EdOpt.ForcedCrLf of
                 cfCRLF: Event.Command := cmEditLfMode;
                 cfLF  : Event.Command := cmEditCrMode;
                 cfCR  : Event.Command := cmEditCrLfMode;
                 else    Event.Command := cmEditCrLfMode;
                end
-       else if (T.X > 28) and (T.X < 32) then Event.Command := cmSwitchKeyMapping
-       else if (T.X = 35) then
+       else if (T.X > 31) and (T.X < 35) then Event.Command := cmSwitchKeyMapping
+       else if (T.X = 37) then
          PFileEditor(owner^.Current)^.ScrollTo(0, 0) {AK155}
-       else if FastBookmark and ((T.X > 35) and (T.X < 45)) then
+       else if FastBookmark and ((T.X > 37) and (T.X < 47)) then
              begin
-              BookMark := T.X-36;
+              BookMark := T.X-38;
               if (Event.Buttons and mbRightButton <> 0) or
                  (not P^.MarkPos[Event.InfoByte].EqualsXY(-1, -1)) then
                with Event do begin
@@ -222,7 +225,7 @@ begin
                end
               else Event.What := evNothing;
              end
-       else if (T.X = 45) then with PFileEditor(owner^.Current) do
+       else if (T.X = 47) then with PFileEditor(owner^.Current) do
          ScrollTo(0, FileLines^.Count) {AK155}
        else Event.What := evNothing;
        if Event.What <> evNothing then PutEvent(Event);
@@ -451,7 +454,7 @@ begin
 end;
         {-DataCompBoy-}
 
-procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF; AOptimalFill: Boolean);
+procedure WriteBlock(Hint: String; S: PStream; C: PLineCollection {PCollector}; ForcedCRLF: TCRLF; AOptimalFill: Boolean); {-SBlocks}
  var I: LongInt;
      M: LongInt;
      SST: LongString;

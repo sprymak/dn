@@ -48,7 +48,9 @@
 unit Arc_hyp; {HYP}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
     PHYPArchive = ^THYPArchive;
@@ -71,6 +73,12 @@ type
      end;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ----------------------------- HYP ------------------------------------}
 
 constructor THYPArchive.Init;
@@ -133,22 +141,14 @@ begin
 end;
 
 Procedure THYPArchive.GetFile;
-var HS,i : AWord;
-    FP   : Longint;
+var
     P    : HYPHdr;
-    Q    : Array [1..40] of Char absolute P;
-    S    : String;
-    C    : Char;
-    label 1;
 begin
-1:
- FP := ArcFile^.GetPos;
- if FP = ArcFile^.GetSize then begin FileInfo.Last := 1; Exit;end;
+ if ArcFile^.GetPos = ArcFile^.GetSize then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P, 4);
- if (Copy(P.ID,1,2) = #0#0)
-  then begin FileInfo.Last := 1;Exit;end;
+ if (Copy(P.ID,1,2) = #0#0) then begin FileInfo.Last := 1;Exit;end;
  if (ArcFile^.Status <> stOK) or ((P.ID <> ^Z'HP%') and (P.ID <> ^Z'ST%'))
-  then begin FileInfo.Last := 2;Exit;end;
+   then begin FileInfo.Last := 2;Exit;end;
  ArcFile^.Read(P.PackedSize, Sizeof(P)-4);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
  {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
@@ -157,17 +157,9 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1;
- SetLength(S, P.NameLen);
- ArcFile^.Read(S[1], P.NameLen and 255);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-{$ENDIF}
- FileInfo.FName := S; {DataCompBoy}
- FP := ArcFile^.GetPos;
- ArcFile^.Seek(FP + P.PackedSize);
+ FileInfo.FName[0] := Char(P.NameLen);
+ ArcFile^.Read(FileInfo.FName[1], P.NameLen);
+ ArcFile^.Seek(ArcFile^.GetPos + P.PackedSize);
 end;
 
 end.

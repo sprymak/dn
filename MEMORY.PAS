@@ -55,9 +55,9 @@ unit Memory;
 interface
 
 const
-  MaxHeapSize: Word = 655360 div 16;    { 640K }
-  LowMemSize: Word = 4096;              {   4K }
-  MaxBufMem: Word = 65536 div 16;       {  64K }
+  MaxHeapSize{: Word} = 655360 div 16;    { 640K }
+  LowMemSize{: Word} = 4096;              {   4K }
+  MaxBufMem{: Word} = 65536 div 16;       {  64K }
 
 procedure InitMemory;
 procedure DoneMemory;

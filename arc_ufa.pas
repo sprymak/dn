@@ -48,7 +48,9 @@
 unit Arc_UFA; {UFA}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
    PUFAArchive = ^TUFAArchive;
@@ -60,6 +62,12 @@ type
    end;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ---------------------- UFA (by Luzin Aleksey)---------------------------}
 constructor TUFAArchive.Init;
 var Sign: TStr5;
@@ -122,44 +130,27 @@ end;
 
 Procedure TUFAArchive.GetFile;
 var
-  C:   Char;
-  S:   string;
-  Tmp  :AWord;
-  FH: record
-      tmp:array[1..$2A]of char;
-      DateTime:LongInt;
-      PackSize:LongInt;
-      OriginalSize:LongInt;
-      FileNameSize:AWord;
- End;
-var TTmp:longint;
+  FH:  record
+       tmp: array[1..$2A]of char;
+       DateTime: LongInt;
+       PackSize: LongInt;
+       OriginalSize: LongInt;
+       FileNameSize: AWord;
+       end;
 begin
-  TTmp:=ArcFile^.GetPos;
-  if (TTmp = ArcFile^.GetSize) or (TTmp = 0) then
-     begin FileInfo.Last := 1; Exit end;
-   if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
+  if ArcFile^.GetPos = ArcFile^.GetSize then begin FileInfo.Last := 1;Exit;end;
   ArcFile^.Read(FH, SizeOf(FH));
-  if (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-{  ArcFile^.Seek(TTmp+FH.HeadSize+4-FH.FileNameSize);}
-  SetLength(S, 0);
-  Tmp:=0;
-         if FH.FileNameSize > 512 then begin FileInfo.Last := 2;Exit;end;
-         if FH.FileNameSize > 250 then FH.FileNameSize := 250;
-
-         ArcFile^.Read(S[1], FH.FileNameSize); SetLength(S, FH.FileNameSize);
-       if S = ''  then
-       begin FileInfo.Last := 2; Exit; end;
-       FileInfo.Attr := 0;
-       FileInfo.USize := FH.OriginalSize;
-       FileInfo.PSize := FH.PackSize;
-       FileInfo.Date := FH.DateTime;
-       FileInfo.FName := S;
-{$IFNDEF OS2}
-       FileInfo.LFN  := AddLFN(S);
-{$ENDIF}
-       TTmp:=ArcFile^.GetPos;
-       ArcFile^.Seek(TTmp+FH.PackSize);
-       FileInfo.Last := 0;
+  if (ArcFile^.Status<>0) or (FH.FileNameSize>512) then begin FileInfo.Last:=2;Exit;end;
+  if FH.FileNameSize > 250 then FH.FileNameSize := 250;
+  SetLength(FileInfo.FName, FH.FileNameSize);
+  ArcFile^.Read(FileInfo.FName[1], FH.FileNameSize);
+  if FileInfo.FName = '' then begin FileInfo.Last := 2; Exit; end;
+  FileInfo.Attr := 0;
+  FileInfo.Last := 0;
+  FileInfo.USize := FH.OriginalSize;
+  FileInfo.PSize := FH.PackSize;
+  FileInfo.Date := FH.DateTime;
+  ArcFile^.Seek(ArcFile^.GetPos+FH.PackSize);
 end;
 
 end.

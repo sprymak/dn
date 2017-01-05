@@ -48,22 +48,36 @@
 {DataCompBoy = Anton Fedorov, 2:5000/111.33@fidonet}
 {JO = Jaroslaw Osadtchiy, 2:5030/1082.53@fidonet}
 {AK155 = Alexey Korop, 2:461/155@fidonet}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 {Interface part from LFN.PAS}
 {$AlignRec-}
+
+{Cat
+   05/12/2001 - попытка бороться с виндозной глюкофичей: запоминается текущий
+   каталог не для всех дисков, а только для текущего диска, что приводит к
+   различным мелким неприятностям; чтобы это пофиксить, при lChDir сохраняем
+   устанавливаемый путь в массиве, а при lGetDir - извлекаем оттуда
+}
+
 unit LFNVP;
 
 interface
 
-uses Dos, DnINI;
+uses
+  {$IFDEF VIRTUALPASCAL} VpSysLow, VpSysLo2, {$ENDIF}
+  Dos, DnINI;
 
 type
 
   TSize = Comp; {64 bit integer type for file sizes}
 
-  SearchRecNew = record        {JO: расширенный аналог SearchRec из Dos с }
-    Handle: Longint;           {    некоторыми дополнительными полями, }
-    Filler1: Longint;          {    в настоящий момент ShortName в Win32 версии,}
-    Attr: Byte;                {    время создания и последнего доступа}
+  SearchRecNew = TOSSearchRecNew; {Cat: непонятно, зачем тут перечислять все поля ещё   }
+                                  {     раз, а глюки из этого могут возникнуть запросто }
+(*
+  SearchRecNew = record        {JO: расширенный аналог SearchRec из Dos с        }
+    Handle: Longint;           {    некоторыми дополнительными полями,           }
+    Filler1: Longint;          {    в настоящий момент ShortName в Win32 версии, }
+    Attr: Byte;                {    время создания и последнего доступа          }
     Time: Longint;
     Size: Longint;
     Name: ShortString;
@@ -71,7 +85,7 @@ type
     LastAccessTime: Longint;
     Filler2: array[0..3] of Char;
 {$IFDEF WIN32}
-    ShortName:   ShortString;
+    ShortName: ShortString;
     Filler3: array[0..321] of Char;
 {$ENDIF}
 {$IFDEF DPMI32}
@@ -83,6 +97,7 @@ type
     Directory: ShortString;
 {$ENDIF}
   end;
+*)
 
    {Extended search structure to be used instead of SearchRec}
   lSearchRec = record
@@ -139,12 +154,15 @@ procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 procedure lFindNext(var R: lSearchRec);
 procedure lFindClose(var R: lSearchRec);
 
-{$IFNDEF OS2}
+{$IFDEF WIN32}
         { Name retrieval functions }
 function lfGetShortFileName(const Name: String): String;
 {$ENDIF}
+{$IFDEF DPMI32}
+function lfGetShortFileName(const Name: String): String;
+{$ENDIF}
 {$IFDEF OS_DOS}
-function lfGetLongFileName(const Name: String): String; }
+function lfGetLongFileName(const Name: String): String;
 {$ENDIF}
 
         { Name correction routine }
@@ -187,14 +205,23 @@ procedure lGetDir(D: Byte; var Path: String);
 function lFExpand(const Path: String): String;
 procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 
-{$IFDEF RecodeWhenDraw}
+{$IFDEF WIN32}
 function OemToCharStr(const OemS: String): String;
 function CharToOemStr(const CharS: String): String;
 {$ENDIF}
 
 implementation
 
-uses {$IFDEF WIN32} Windows, {$ENDIF} VpSysLo2, Strings, Commands{Cat};
+uses
+  {$IFDEF WIN32} Windows, {$ENDIF}
+  Strings, Commands{Cat};
+
+{$IFDEF WIN32}
+const
+  NoShortName: string[12] = #22#22#22#22#22#22#22#22'.'#22#22#22;
+    {AK155: это выводится вместо коротокого имени для файлов,
+      у которых короткого имени нет }
+{$ENDIF}
 
  Function StrPas_(S: Array Of Char): String;
   var ss: string;
@@ -297,12 +324,44 @@ begin
   SetDosError(SysFindCloseNew(TOSSearchRecNew(F)));
 end;
 
+{AK155}
+{$IFNDEF OS2}
+function NotShortName(const S: string): boolean;
+  var
+    i, l: integer;
+    iPoint: integer;
+  begin
+  NotShortName := true;
+  if S[1] = '.' then exit;
+  l := length(S);
+  if l > 12 then exit;
+  iPoint := 0;
+  for I := 1 to l do
+   begin
+    if S[i] = '.' then
+     begin
+      if (iPoint <> 0) or (I>9) then exit;
+      iPoint := i;
+     end
+    else if S[I] in IllegalCharSet then Exit; {DataCompBoy}
+   end;
+  if (iPoint = 0) and (l > 8) then exit;
+  if (iPoint <> 0) and (l-iPoint > 3) then exit;
+  NotShortName := false;
+  end;
+{$ENDIF}
+
 procedure CorrectSearchRec(var R: lSearchRec);
 begin
   R.FullName := R.SR.Name;
 {$IFDEF Win32}
-  if (R.SR.Name <> '.') and (R.SR.Name <> '..') and (R.SR.ShortName <> '') then
-     R.SR.Name := R.SR.ShortName;
+  if (R.SR.Name <> '.') and (R.SR.Name <> '..') then
+    begin
+    if (R.SR.ShortName <> '') then
+      R.SR.Name := R.SR.ShortName
+    else if NotShortName(R.FullName) then
+      R.SR.Name := NoShortName;
+    end;
 {$ENDIF}
 (*R.LoCreationTime:= R.SR.Time;
   R.HiCreationTime:= 0;
@@ -346,14 +405,22 @@ begin
 end;
 
 
-{$IFNDEF OS2}
+{$IFDEF WIN32}
 function lfGetShortFileName(const Name: String): String;
 var NZ, NZ2: TNameZ;
+  l: longint;
 begin
   if (Name = '.') or (Name = '..') then begin lfGetShortFileName := Name; Exit; end;
   NameToNameZ(Name, NZ2);
-  GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
-  lfGetShortFileName := StrPas_(NZ);
+  l := GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
+  if l = 0 then lfGetShortFileName := NoShortName
+  else lfGetShortFileName := StrPas_(NZ);
+end;
+{$ENDIF}
+{$IFDEF DPMI32}
+function lfGetShortFileName(const Name: String): String;
+begin
+  lfGetShortFileName:=Name; {Cat:todo DPMI32}
 end;
 {$ENDIF}
 {$IFDEF OS_DOS}
@@ -453,7 +520,6 @@ end;
 { Inline functions, which temporary compiled as not inline, because VP are   }
 { crased on compiling 8(                                                     }
 
-function lFExpand(const Path: String): String; begin lFExpand := FExpand(Path); end;
 procedure lAssignFile(var F: lFile; const Name: String); begin Assign(F.F, Name); end;
 procedure lAssignText(var T: lText; const Name: String); begin Assign(T.T, Name); end;
 procedure lResetFile(var F: lFile; RecSize: Word); begin Reset(F.F, RecSize); end;
@@ -503,7 +569,59 @@ procedure lRmDir(const Path: String);
   RmDir(Path);
   end;
 {/AK155}
-procedure lChDir(const Path: String); begin ChDir(Path); end;
-procedure lGetDir(D: Byte; var Path: String); begin GetDir(D, Path); end;
+
+{Cat: Windows запоминает текущий каталог только для текущего диска;
+запоминание остальных текущих каталогов приходится брать на себя}
+{$IFDEF WIN32}
+var
+  CurrentPaths: array[1..1+Byte('Z')-Byte('A')] of PathStr;
+{$ENDIF}
+
+function lFExpand(const Path: String): String;
+var
+  D: Byte;
+begin
+{$IFDEF WIN32}
+  if (Length(Path) = 2) and (Path[2] = ':') then
+    begin
+      D := Byte(UpCase(Path[1]))-Byte('A')+1;
+      if CurrentPaths[D] = '' then
+        lFExpand := Path[1]+':\' {GetDir(D, Path)}
+      else
+        lFExpand := CurrentPaths[D]
+    end
+  else
+{$ENDIF}
+    lFExpand := FExpand(Path);
+end;
+
+procedure lChDir(const Path: String);
+begin
+  ChDir(Path);
+{$IFDEF WIN32}
+  if (InOutRes = 0) and (Length(Path) > 2) and (Path[2] = ':') then
+    CurrentPaths[Byte(UpCase(Path[1]))-Byte('A')+1] := Path;
+{$ENDIF}
+end;
+
+procedure lGetDir(D: Byte; var Path: String);
+begin
+{$IFDEF WIN32}
+  if D = 0 then
+    begin
+      GetDir(0, Path);
+      if Path[1] = '\' then
+        Exit;
+      D := Byte(Upcase(Path[1]))-Byte('A')+1;
+    end;
+  if CurrentPaths[D] = '' then
+    Path := Char(D+Byte('A')-1)+':\' {GetDir(D, Path)}
+  else
+    Path := CurrentPaths[D];
+{$ELSE}
+  GetDir(D, Path);
+{$ENDIF}
+end;
+{/Cat}
 
 end.

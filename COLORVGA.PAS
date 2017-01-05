@@ -55,8 +55,10 @@ interface
  Const  LastTTFocus : Byte        = 0;   { Last focused Color }
 
 implementation
-uses Objects, Drivers, Views, Dialogs, commands, Dos, DnApp, Startup,
-     advance, advance1, advance2, advance3, collect, Messages, VideoMan;
+
+uses
+  Objects, Drivers, Views, Dialogs, commands, Dos, DnApp, Startup,
+  advance, advance1, advance2, advance3, collect, Messages, VideoMan;
 
  Const  cmColorSet               = 73;
         cmColorMouseSelection    = 74;

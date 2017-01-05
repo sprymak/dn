@@ -57,6 +57,7 @@
               {$Q-,W-,E-,R-,T-,Y-,I-,A+,S-,F-,G+,X-,V-,B-,N-}
 
 unit Decoder;
+
 interface
 
 Type

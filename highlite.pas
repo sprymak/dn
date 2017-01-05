@@ -46,9 +46,6 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-{$IFDEF VIRTUALPASCAL}
- {$DEFINE NOASM}
-{$ENDIF}
 (*****************************************************************
  *
  * SOURCE FILE: highlite.pas
@@ -167,7 +164,7 @@ const
 implementation
 
 uses
- {Consts,}  {Cat: зачем? и без этого отлично компилится}
+  {Consts,} {Cat: зачем? и без этого отлично компилится}
   Objects,  { TCharSet }
   Advance,  { BreakChars }
   Advance1; { UpStr, UpCase }
@@ -217,6 +214,7 @@ function GetHighliteRules ( const Params : THighliteParams; var Rules : array of
   end;
   {$ELSE}
   assembler;
+  {$IFNDEF VIRTUALPASCAL}
   asm
         MOV     BX,DS
         LDS     SI,P
@@ -232,6 +230,22 @@ function GetHighliteRules ( const Params : THighliteParams; var Rules : array of
         MOV     AX,SI
         MOV     DS,BX
   end;
+  {$ELSE VIRTUALPASCAL}
+    {&Frame-}{$USES ESI, EDI}
+  asm              { Kirill }
+        CLD
+        MOV     ESI,P
+        MOV     EDI,PEnd
+  @@1:
+        CMP     ESI,EDI
+        JAE     @@2
+        LODSB
+        OR      AL,AL
+        JNE     @@1
+  @@2:
+        MOV     EAX,ESI
+  end;
+  {$ENDIF}
   {$ENDIF}
 
 var
@@ -318,7 +332,7 @@ const
         CLD
         XOR     EAX,EAX
         MOV     ECX,Len
-        LEA     ESI,S
+        MOV     ESI,S { Kirill: LEA->MOV }
         JCXZ    @@3
    @@1:
         LODSB
@@ -342,6 +356,11 @@ const
     j : Integer;
     c : Char;
   begin
+    CheckStartComment := False;
+    while S^ in [#32,#9] do begin
+       if S^ = #0 then Exit;
+       Inc( S )
+    end;
     CheckStartComment := True;
     i := 0;
     j := 0;
@@ -404,8 +423,8 @@ const
    {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EBX, ECX}
    asm
         CLD
-        LEA     ESI,T
-        LEA     EDI,S
+        MOV     ESI,T   { Kirill: LEA->MOV }
+        MOV     EDI,S   { Kirill: LEA->MOV }
         MOV     ECX,Len
    @@0:
         XOR     EBX,EBX
@@ -502,11 +521,11 @@ const
    asm
         CLD
         XOR     EAX,EAX
-        LEA     ESI,P
+        MOV     ESI,P  { Kirill: LEA->MOV }
         LODSB
         MOV     ECX,EAX
         JCXZ    @@3
-        LEA     EDI,S
+        MOV     EDI,S  { Kirill: LEA->MOV }
         MOV     EBX,Len
         ADD     EBX,EDI
         ADD     EDI,I
@@ -888,12 +907,12 @@ const
    @@4:
         POP     DS
    end;
-   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EDX, ECX}
+   {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI, EDX, ECX, EBX} { Kirill: add save ebx }
    asm
         CLD
         XOR     EAX,EAX
-        LEA     ESI,T
-        LEA     EDI,S
+        MOV     ESI,T  { Kirill: LEA->MOV }
+        MOV     EDI,S  { Kirill: LEA->MOV }
         MOV     EDX,Len
         ADD     EDX,EDI         { j }
         ADD     EDI,I           { k }
@@ -1046,8 +1065,8 @@ const
    asm
         CLD
         XOR     EAX,EAX
-        LEA     ESI,Keywords
-        LEA     EDI,S
+        MOV     ESI,Keywords    { Kirill: LEA->MOV }
+        MOV     EDI,S           { Kirill: LEA->MOV }
         MOV     EDX,Len
         ADD     EDX,EDI         { Length(S) }
         ADD     EDI,I           { k }

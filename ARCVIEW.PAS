@@ -48,13 +48,16 @@
 
 Unit ArcView;
 
-Interface uses LFN, {DataCompBoy} {$IFNDEF OS2}LFNCol,{$ENDIF} tree, Dos, Objects, Views, Drivers,
-               FViewer, FlPanel, FilesCol, DiskInfo, DblWnd, HistList, HideView,
-               RStrings, Drives, Commands, Archiver, FStorage, Histries,
-               advance, advance1, advance2, advance3, archdet, collect
-               {$IFNDEF MINARCH} {$IFDEF TGZ}, Arc_tgz, gzio {$ENDIF} {$ENDIF}
-               {Cat} {$IFDEF VIRTUALPASCAL}, VPSysLow {$ENDIF} {/Cat}
-               ;
+Interface
+
+uses
+  LFN, {DataCompBoy} {$IFNDEF OS2}LFNCol,{$ENDIF} tree, Dos, Objects, Views, Drivers,
+  FViewer, FlPanel, FilesCol, DiskInfo, DblWnd, HistList, HideView,
+  RStrings, Drives, Commands, Archiver, FStorage, Histries,
+  advance, advance1, advance2, advance3, archdet, collect
+  {$IFNDEF MINARCH} {$IFDEF TGZ}, Arc_tgz, gzio {$ENDIF} {$ENDIF}
+  ;
+
 type
     PArcDrive = ^TArcDrive;
     TArcDrive = object(TDrive)
@@ -115,9 +118,6 @@ const
 type
     PFInfo     = ^TFInfo;
     TFInfo     = Record
-                  {$IFNDEF OS2}
-                  LFN     : String; {DataCompBoy}
-                  {$ENDIF}
                   FName   : String;
                   USize   : LongInt;
                   PSize   : LongInt;
@@ -130,8 +130,11 @@ type
                  end;
 
 Implementation
- uses Menus, DnApp, Messages, Dialogs, Gauge, FileCopy, Memory, Startup,
-      Arvid, xTime, VideoMan, DNExec;
+
+uses
+  {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
+  Menus, DnApp, Messages, Dialogs, Gauge, FileCopy, Memory, Startup,
+  {$IFDEF ARVID} Arvid, {$ENDIF} xTime, VideoMan, DNExec;
 
 const
   LowMemSize = $4000;  {Local setting}
@@ -200,11 +203,8 @@ end;
         {-DataCompBoy-}
 constructor TArcDrive.Init;
  var SR: lSearchRec;
-{     Nm: String;
-     Xt: String;}
-     xt: string;
      I: Integer;
-     Q: String;
+     xt,Q: String;
 begin
  TObject.Init;
  if viewmode<1 then GetParam(1)
@@ -261,9 +261,6 @@ end;
         {-DataCompBoy-}
 constructor TArcDrive.InitCol;
  var SR: lSearchRec;
- var  Dr: String;
-      Nm: String;
-      Xt: String;
 begin
  TObject.Init;
  GetParam(1);
@@ -278,7 +275,6 @@ begin
  KillAfterUse := TempFile <> '';
  TempFile := '';
  Password := '';
- lFSplit(ArcName, Dr, Nm, Xt);
  if ExistFile(ArcName) then
   New(ArcFile,Init(ArcName, stOpenRead, 512))
  else ArcFile:=nil;
@@ -299,9 +295,7 @@ end;
 
         {-DataCompBoy-}
 constructor TArcDrive.Load;
- var  Dr: String;
-      Nm: String;
-      Xt: String;
+ var
       SR: lSearchRec;
 label
   Failure;
@@ -319,7 +313,6 @@ begin
  Files := PDirStorage(S.Get);
  ForceRescan := Off;
  DriveType := dtArc;
- lFSplit(ArcName, Dr, Nm, Xt);
  ArcFileName := ArcName;
  VArcFileName := VArcName;
  lFindFirst(ArcName, Anyfile {$IFNDEF OS2}XOR VolumeID{$ENDIF}, SR); {JO}
@@ -329,7 +322,7 @@ begin
  New(ArcFile,Init(ArcName, stOpenRead, 512));
  if (ArcFile=nil) or (ArcFile^.Status <> stOK) then begin
    Dispose(ArcFile, Done); ArcFile:=nil;
- Failure:
+Failure:
    StdMsg(4);
    if Files <> nil then Dispose(Files, Done); Files:=nil;
    S.Read(ForceRescan, 1);
@@ -376,14 +369,8 @@ end;
         {-DataCompBoy-}
 Function TArcDrive.ReadArchive;
 var PF : PArcFile;
-    i  : Integer;
-    ev : TEvent;
     P  : PWhileView;
     R  : TRect;
-    Dr : String;
-    Nm : String;
-    Xt : String;
-    tmp: String;
     Ln : LongInt;
     PLn: LongInt;
     Cancel: Boolean;
@@ -392,7 +379,6 @@ var PF : PArcFile;
 begin
  CtrlBreakHit := False;
  ReadArchive:=Off;
- lFSplit(ArcName, Dr, Nm, Xt);
  New(ArcFile,Init(ArcName, stOpenRead, 512));
  ArcFileName := ArcName;
  VArcFileName := VArcName;
@@ -438,12 +424,11 @@ begin
           Desktop^.Insert(P);
         end;
       If LN<>0 then
-       P^.Write(2, Copy(Strg(#219,((ArcFile^.GetPos+1)*25) div LN)+Strg(#177, 25), 1, 25))
+       P^.Write(2, Copy(Strg(#219,25 div (LN div (ArcFile^.GetPos+1)))+Strg(#177, 25), 1, 25))
       {$IFNDEF MINARCH}
       {$IFDEF TGZ}
       else if PLn<>0 then
-            P^.Write(2,Copy(Strg(#219,((FilePos(PTGZArchive(AType)^.gzf^.gzFile.F)+1)*25) div PLn )+Strg(#177, 25),
-                            1, 25))
+       P^.Write(2, Copy(Strg(#219,25 div (PLn div (FilePos(PTGZArchive(AType)^.gzf^.gzFile.F)+1)))+Strg(#177, 25), 1, 25))
       {$ENDIF}
       {$ENDIF}
       ;
@@ -453,18 +438,22 @@ begin
   AType^.GetFile;
   if FileInfo.Last=0 then
      begin
-      DelLeft(FileInfo.FName);
-      if not (FileInfo.FName[1] in ['\','/']) then FileInfo.FName := '\' + FileInfo.FName;
       Replace('/', '\', FileInfo.FName);
+{piwamoto: it willn't work due to bugs in FName processing in flpanelx
+      if (FileInfo.FName[1] = '.') and (FileInfo.FName[2] = '\') then
+        begin
+(*         System.Delete(FileInfo.FName,1,2); *)
+         Files^.AddFile('\.\..', '\.\..', 0, 0, FileInfo.Date, 0);
+        end;
+}
+      if FileInfo.FName[1] <> '\' then FileInfo.FName := '\' + FileInfo.FName;
+      if FileInfo.Attr and Directory <> 0 then FileInfo.FName := FileInfo.FName + '\';
+      olf := FileInfo.FName;
 {$IFNDEF OS2}
-      UpStr(FileInfo.FName);
-      olf:=GetLFN(FileInfo.LFN);
-      DelLFN(FileInfo.LFN);
-      if not (olf[1] in ['\','/']) then olf:='\'+olf; Replace('/', '\', olf);
       Replace('\.','\',FileInfo.FName);
-{$ELSE}
-      olf:=FileInfo.FName;
+      UpStr(FileInfo.FName);
 {$ENDIF}
+
 {attribute "Hidden" means "with password"}
       Files^.AddFile(olf, {$IFNDEF OS2}FileInfo.FName, {$ENDIF}FileInfo.USize,
                      FileInfo.PSize,FileInfo.Date,  FileInfo.Attr);
@@ -485,6 +474,7 @@ begin
  Dec(SkyEnabled);
  if P <> nil then P^.Free;
  FreeObject(ArcFile);
+ CDir := '';
  if FileInfo.Last=2 then StdMsg(6);
  ReadArchive:=On;
  if Files^.Files=0 then begin StdMsg(7);ReadArchive:=Off;end;
@@ -540,19 +530,14 @@ end;
 function TArcDrive.GetDirectory;
  var F: PFileRec;
      FA: PArcFile;
-     I: CondInt;
-     si:CondInt;
-     Dr: String;
-     Nm: String;
-     Xt: String;
-     DT: DateTime;
+     I,si: LongInt;
      AllFiles: Boolean;
      AFiles, FD: PFilesCollection;
      TTL, TPL: TSize;
      _USize, _PSize: TSize;
      FR: TFileRec;
      OW: Pointer;
-
+     Dr: String;
 begin
 {While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do SetLength(CurDir, Length(CurDir)-1);}
  AFiles := New(PFilesCollection, Init($10, $10));
@@ -649,9 +634,9 @@ begin
  end;
  if TPL < MaxLongInt then F^.PSize := Round(TPL); *)
 
- F := NewFileRec('..',{$IFNDEF OS2}'..',{$ENDIF}Round(TTL), ArcDate, 0, 0, Directory, OW);
+ F := NewFileRec('..',{$IFNDEF OS2}'..',{$ENDIF} {Round}(TTL), ArcDate, 0, 0, Directory, OW);
  F^.Attr := $8000 or F^.Attr;
- F^.PSize := Round(TPL);
+ F^.PSize := {Round}(TPL);
  AFiles^.AtInsert(0, F);
  FD^.DeleteAll; Dispose(FD, Done);
 end;
@@ -746,6 +731,12 @@ begin
   Msg(dlArcMsg8, @L, mfOkButton or mfError);
 end;
 
+{AK155 20/12/2001 Если под Win32 пытаться в отладчике прошагать
+эту функцию, то получается полная блокировка клавиатуры и мыши
+сразу на входе (даже с begin сойти не получается).
+Этот эффект исчезает, если параметр AnsiString заменить на String.
+Под OS/2 все шагается без проблем. Интересно, чей это глюк -
+виндового отладчика или виндовой RTL? Хорошо, если первое. }
 begin
   Exec := True;
   S := Prg+' '+Cmd;
@@ -759,13 +750,16 @@ begin
   DoneSysError;
   DoneEvents;
   DoneVideo;
-  FreeMem(UserScreen, UserScreenSize);
-  UserScreen := nil;
-  ScreenSaved := Off;
   DoneDOSMem;
   DoneMemory;
   {$IFDEF OS_DOS}asm cld; mov ax,3; int $10; end;{$ENDIF}
-{$IFNDEF OS2}
+(*{$IFNDEF OS2} *){$IFDEF OS_DOS} //AK155
+  {AK155, дописано позже, чем комментарий к OS/2.
+Под Win32 тоже не следует заниматься самодеятельностью.
+Во-первых, мы отдаем консоль в каком-то не таком состоянии,
+так что консольный rar не может вводить с клавиатуры.
+Во-вторых, стОило ли работать с ansistring, чтобы потом вызвать
+Dos.Exec?}
   S := GetEnv('PATH');
   S := FSearch(Prg,S);
   SwapVectors;
@@ -774,18 +768,13 @@ begin
    else DOS.Exec(GetEnv('COMSPEC'),'/c '+S+' '+Cmd);
 {$ELSE}
    {AK155 Под OS/2, во-первых, PATH обычно не умещается
-    в 255 символов, во-вротых, нет проблем с памятью,
+    в 255 символов, во-вторых, нет проблем с памятью,
     в третьих архиватор может оказаться ДОСовым.
     Так что пускай PATH просматривает cmd.exe, а мы не
     будем заниматься самодеятельностью }
     AnsiExec(GetEnv('COMSPEC'),'/c ' + S); {JO: AnsiExec - процедура из модуля DNExec , которая }
 {$ENDIF}                                   {    используется вместо DOS.Exec и в качестве }
                                            {    коммандлайна использует строку типа Ansistring }
-{Cat: боремся с интерпретацией Ctrl-C как Ctrl-Break}
-{$IFDEF VIRTUALPASCAL}
-  SysTVKbdInit;
-{$ENDIF}
-{/Cat}
   DE := DosError; ClrIO;
   SwapVectors;
   EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {DataCompBoy}
@@ -794,6 +783,7 @@ begin
   SetVideoMode(ScreenMode); SM := ScreenMode;
   SetBlink(On);
   InitVideo; ScreenMode := SM;
+  {$IFDEF Win32}SysTVInitCursor; {$ENDIF} {AK155, см.комментарий к SysTVInitCursor}
   if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
   InitEvents;
   InitSysError;
@@ -985,8 +975,6 @@ procedure TArcDrive.CopyFiles;
      DT: Record S: String; W: Word; Psw: String[30]; end;
      ExtrDir: String;
      ExtrChar: String;
-     Nm: String;
-     Xt: String;
 begin
   S := ' ';
   ExtrDir := '';
@@ -1300,7 +1288,7 @@ function TArcDrive.GetRealName;
  var S: String;
 begin
  S := GetDir;
-  GetRealName := Copy(S, 1, PosChar(':', S)) + ArcName;
+ GetRealName := Copy(S, 1, PosChar(':', S)) + ArcName;
 end;
 
 procedure TArcDrive.CopyFilesInto;
@@ -1369,8 +1357,6 @@ end;
 function ArcViewer;
  var P: PDrive;
      E: TEvent;
-     Dr: String;
-     Nm: String;
      Xt: String;
 begin
  ArcViewer := False;
@@ -1378,10 +1364,13 @@ begin
  if Abort then Exit;
  if P = nil then
    begin
-     lFSplit(AName, Dr, Nm, Xt);
-     if (UpStrg(XT) = '.TDR') or (UpStrg(XT) = '.AVT')
+     {$IFDEF ARVID}
+     Xt:=UpStrg(GetExt(AName));
+     if (Xt = '.TDR') or (Xt = '.AVT')
       then P := New(PArvidDrive, Init(AName, num));
-     if P = nil then Exit;
+     if P = nil then
+     {$ENDIF}
+     Exit;
    end;
  E.What := evCommand;
  E.Command := cmInsertDrive;

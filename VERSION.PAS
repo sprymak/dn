@@ -52,18 +52,9 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '1.51.10b3/'+
-                       {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
-                                      {$ELSE}       +'DOS'  {$ENDIF}
-                       {$ELSE}        {$IFDEF WIN32}+'W32'
-                                      {$ELSE}
-                                       {$IFDEF OS2} +'OS2'
-                                       {$ELSE}      +'32bit'{$ENDIF}
-                                      {$ENDIF}
-                       {$ENDIF}
-                       ;
+  VersionName:string = '1.51.10b5';
   VersionDate:string = '';
-  VersionWord:Aword   = 15196;
+  VersionWord:Aword   = 15198;
 
 var F : lText ;
     Day, Month, Year, DOW: word;
@@ -79,8 +70,42 @@ CONST
     '21','22','23','24','25','26','27','28','29','30','31');
 
  begin
-  if ParamCount<>1 then halt(1);
-  Writeln(' '#254' Creating ', ParamStr(1));
+  if (ParamCount=0) or (ParamCount>3) then halt(1);
+  if ParamStr(2) = '' then
+    VersionName := VersionName + '/' +
+                         {$IFNDEF NONBP}
+                           {$IFDEF DPMI}
+                             +'DPMI'
+                           {$ELSE}
+                             +'DOS'
+                           {$ENDIF}
+                         {$ELSE}
+                           {$IFDEF OS2}
+                             +'OS2'
+                           {$ELSE}
+                           {$IFDEF WIN32}
+                             +'Win32'
+                           {$ELSE}
+                           {$IFDEF DPMI32}
+                             +'DPMI32'
+                           {$ELSE}
+                             +'32bit'
+                           {$ENDIF}
+                           {$ENDIF}
+                           {$ENDIF}
+                         {$ENDIF}
+  else
+    VersionName := VersionName + ParamStr(2);
+  {Cat: компиляция плагинской версии:
+        - либо если задан параметр PLUGIN (компиляция посредством _DNC.CMD)
+        - либо если в STDEFINE.INC установлена директива PLUGIN (компиляция вручную)}
+  {$IFNDEF PLUGIN}
+  if ParamStr(ParamCount) = 'PLUGIN' then
+  {$ENDIF}
+    VersionName := VersionName + '/Plugin';
+
+  Writeln(' '#254' Creating ', ParamStr(1) + ' ' + VersionName);
+
   GetDate(Year, Month, Day, DOW);
   Str(Year, VersionDate);
   VersionDate:=DOWs[DOW]+', '+Days[Day]+' '+Months[Month]+' '+VersionDate+' at '+GetDateTime(true);

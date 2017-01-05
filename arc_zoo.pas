@@ -48,7 +48,9 @@
 unit Arc_ZOO; {ZOO}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
     PZOOArchive = ^TZOOArchive;
@@ -73,16 +75,24 @@ type
       Reserved: Array[1..9] of Byte;
      end;
 
+{$IFDEF DeadCode}
      ZOOPHdr = record
       Date: LongInt;
       Reserved: Array[1..16] of Byte;
       ID: Array[1..5] of Char;
      end;
+{$ENDIF}
 
 const ZOOID = $FDC4A7DC;
 
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ----------------------------- ZOO ------------------------------------}
 
 constructor TZOOArchive.Init;
@@ -149,19 +159,17 @@ begin
 end;
 
 Procedure TZOOArchive.GetFile;
-var HS,i : AWord;
-    FP   : Longint;
+var
     P    : ZOOHdr;
-    Q    : Array [1..40] of Char absolute P;
+{$IFDEF DeadCode}
     P1   : ZOOPHdr;
-    S    : String;
+{$ENDIF}
+    FP   : LongInt;
     C    : Char;
+    S    : String;
 begin
-{ if (ArcFile^.GetPos = ArcFile^.GetSize)
-   then begin FileInfo.Last := 1;Exit;end;}
  ArcFile^.Read(P, 4);
- if (ArcFile^.Status <> stOK) or (P.ID <> ZOOID)
-  then begin FileInfo.Last := 2;Exit;end;
+ if (ArcFile^.Status <> stOK) or (P.ID <> ZOOID) then begin FileInfo.Last:=2;Exit;end;
  ArcFile^.Read(P.Info, 2);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
  {if (P.Info = $0002) then begin FileInfo.Last := 1;Exit;end;}
@@ -172,16 +180,21 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date  := (P.Date shl 16) or (P.Date shr 16);
- i := 1;
- SetLength(S, 0);
- repeat ArcFile^.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 77);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-{$ENDIF}
- FileInfo.FName := S; {DataCompBoy}
- if S = '' then begin FileInfo.Last := 1;Exit;end;
+ FileInfo.FName := '';
+ FP := ArcFile^.GetPos;
+ repeat
+   ArcFile^.Read(C, 1);
+   if C <> #0 then FileInfo.FName := FileInfo.FName + C;
+ until (C = #0) or (Length(FileInfo.FName) > 77);
+ ArcFile^.Seek(FP + 19);
+ ArcFile^.Read(S[0], 1);
+ if S <> '' then
+   begin
+    ArcFile^.Read(S[1], Byte(S[0]));
+    S[Length(S)] := '\';
+   end;
+ FileInfo.FName := S + FileInfo.FName;
+ if FileInfo.FName = '' then begin FileInfo.Last := 1;Exit;end;
  ArcFile^.Seek(P.NextHdr);
 end;
 

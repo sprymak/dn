@@ -48,8 +48,9 @@
 unit Arc_tgz; {TGZ & TAZ & TAR.GZ}
 
 interface
-uses Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, advance1, xtime,
-     gzIO;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime, gzIO;
 
 type
     PTGZArchive = ^TTGZArchive;
@@ -117,6 +118,32 @@ begin
   gzf := gzOpen(ArcFileName, 'r');
   Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
+{$IFDEF WIN32}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             '7Z.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           '7Z.EXE'));
+  Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'e'));
+  ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          'x'));
+  Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                'a -tgzip'));
+  Move                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove,               ''));
+  Delete                := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete,             'd'));
+  Garble                := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble,             '-p'));
+  Test                  := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest,               't'));
+  IncludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,       ''));
+  ExcludePaths          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,       ''));
+  ForceMode             := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,          '-y'));
+  RecoveryRec           := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec,        ''));
+  SelfExtract           := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,        ''));
+  Solid                 := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid,              ''));
+  RecurseSubDirs        := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,     '-r0'));
+  StoreCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PStoreCompression,   ''));
+  FastestCompression    := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastestCompression, ''));
+  FastCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PFastCompression,    ''));
+  NormalCompression     := NewStr(GetVal(@Sign[1], @FreeStr[1], PNormalCompression,  ''));
+  GoodCompression       := NewStr(GetVal(@Sign[1], @FreeStr[1], PGoodCompression,    ''));
+  UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   '-mx'));
+  ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      '@'));
+  ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       '@'));
+{$ELSE}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'TAR.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'TAR.EXE'));
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            'xfz'));
@@ -141,6 +168,7 @@ begin
   UltraCompression      := NewStr(GetVal(@Sign[1], @FreeStr[1], PUltraCompression,   ''));
   ComprListchar         := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListchar,      ' '));
   ExtrListchar          := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListchar,       ' '));
+{$ENDIF}
 
   q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
   AllVersion := q <> '0';
@@ -175,47 +203,25 @@ begin
   GetSign := sigTGZ;
 end;
 
-function FromOct(S: String): LongInt;
- var I,L: LongInt;
-     A: Real;
-begin
-  L := 0;
-  for I := 0 to Length(S)-1 do
-      Inc(L, (Byte(S[Length(S)-I])-48) shl (I * 3));
-  FromOct := L;
-end;
-
 Procedure TTGZArchive.GetFile;
-  var S: String;
+  var
       Buffer: Array [0..BlkSize - 1] of Char;
       Hdr: TARHdr absolute Buffer;
       DT: DateTime;
-      I: Integer;
-      L: LongInt;
       qq: longint;
 begin
-  L := gzTell(gzf);
   if gzEOF(gzf) then begin FileInfo.Last := 1; Exit end;
   qq:=gzRead(gzf, @Buffer, BlkSize);
   if qq<>BlkSize then begin FileInfo.Last := 2; Exit end;
   FileInfo.Last := 0;
-  S := Hdr.FName + #0; SetLength(S, PosChar(#0, S)-1);
-  if S = '' then begin FileInfo.Last := 1; Exit end;
-  Replace('/', '\', S);
-  if Copy(S,1,2) = '.\' then System.Delete(S,1,2);
-{$IFNDEF OS2}
-  FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-{$ENDIF}
-  FileInfo.FName := S; {DataCompBoy}
-  S := Hdr.Size;
-  FileInfo.USize := FromOct(DelSpaces(S));
+  FileInfo.FName := Hdr.FName + #0;
+  SetLength(FileInfo.FName, PosChar(#0, FileInfo.FName)-1);
+  if FileInfo.FName = '' then begin FileInfo.Last := 1; Exit end;
+  FileInfo.USize := FromOct(Hdr.Size);
   FileInfo.PSize := FileInfo.USize;
-  S := Hdr.mTime;
-  GetUNIXDate(FromOct(DelSpaces(S)), DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
+  GetUNIXDate(FromOct(Hdr.mTime), DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
   PackTime(DT, FileInfo.Date);
-  L := (FileInfo.PSize div LongInt(BlkSize)) + Byte(FileInfo.PSize mod LongInt(BlkSize) <> 0);
-  L := L * BlkSize;
-  gzSeek(gzf, L, SEEK_CUR);
+  gzSeek(gzf, ((FileInfo.PSize + BlkSize - 1) div BlkSize) * BlkSize, SEEK_CUR);
 end;
 
 end.

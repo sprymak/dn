@@ -55,8 +55,9 @@ unit ColorSel;
 
 interface
 
-uses Objects, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
-     advance, advance1, advance2, advance3, drivers;
+uses
+  Objects, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
+  advance, advance1, advance2, advance3, drivers;
 
 const
   cmColorForegroundChanged = 71;

@@ -68,7 +68,8 @@ unit HistList;
 
 interface
 
-uses Objects;
+uses
+  Objects;
 
 const
   HistoryBlock: PByteArray = nil;
@@ -490,6 +491,7 @@ end;
 procedure DoneHistory;
 begin
   FreeMem(HistoryBlock, HistorySize);
+  HistoryBlock := nil;
 end;
 
 procedure DeleteHistoryStr(Id: Byte; Index: Integer);

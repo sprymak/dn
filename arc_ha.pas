@@ -48,7 +48,9 @@
 unit Arc_HA; {HA}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime;
 
 type
     PHAArchive = ^THAArchive;
@@ -139,12 +141,8 @@ Procedure THAArchive.GetFile;
 var
     FP   : Longint;
     P    : HAHdr;
-    S    : String;
     C    : Char;
     DT   : DateTime;
-{$IFDEF USEANSISTRING}
-    L    : Byte;
-{$ENDIF}
 begin
  ArcFile^.Read(P,SizeOf(P));
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=1;Exit;end;
@@ -154,25 +152,22 @@ begin
  FileInfo.PSize := P.PackedSize;
  GetUNIXDate(P.Date - 14400, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
  PackTime(DT, FileInfo.Date);
- SetLength(S, 0);
- repeat ArcFile^.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 77);
- repeat ArcFile^.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 78);
- if Length(S) > 79 then begin FileInfo.Last := 2; Exit; end;
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
- if P.Method and $0f = $0e then S:=S+'\';
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-{$ENDIF}
- FileInfo.FName := S; {DataCompBoy}
- SetLength(S, 2);
-{$IFDEF USEANSISTRING}
- ArcFile^.Read(L, 1); SetLength(S, L); ArcFile^.Read(S[1], L);
-{$ELSE}
- ArcFile^.Read(S[0], 1); ArcFile^.Read(S[1], Length(S));
-{$ENDIF}
- if P.PackedSize >= 0 then FP := ArcFile^.GetPos + P.PackedSize else begin FileInfo.Last := 2; Exit end; {JO багфикс зацикливания в ложных архивах}
- if (VCardinal(FP) > ArcFile^.GetSize) {piwamoto}
-    or (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2; Exit; end;
+ FileInfo.FName := '';
+ repeat
+   ArcFile^.Read(C, 1);
+   if C <> #0 then FileInfo.FName := FileInfo.FName + C;
+ until (C = #0) or (Length(FileInfo.FName) > 77);
+ repeat
+   ArcFile^.Read(C, 1);
+   if C <> #0 then FileInfo.FName := FileInfo.FName + C;
+ until (C = #0) or (Length(FileInfo.FName) > 78);
+ if Length(FileInfo.FName) > 79 then begin FileInfo.Last := 2; Exit; end;
+ Replace(#255, '\', FileInfo.FName);
+ if P.Method and $0f = $0e then FileInfo.Attr := Directory;
+ ArcFile^.Read(C, 1);
+ FP := ArcFile^.GetPos + P.PackedSize + Byte(C);
+ if (_Cardinal(FP) > ArcFile^.GetSize) or (ArcFile^.Status <> stOK)
+   then begin FileInfo.Last := 2; Exit; end;
  ArcFile^.Seek(FP);
 end;
 

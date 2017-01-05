@@ -57,7 +57,7 @@ var
   ErrorFCode: Byte;
 
 function  ExistFile(const FName : String) : Boolean; {DataCompBoy}
-function  ExistDir(const DName: string): Boolean; { VK }
+//function  ExistDir(const DName: string): Boolean; { VK }
 function  FileTime(FileA: String): LongInt;
 function  FileNewer(FileA, FileB : String) : Boolean;
 function  CalcTmpFName(Id: LongInt; const AExt: String; ANew: Boolean): String; {DataCompBoy}
@@ -88,25 +88,26 @@ FUNCTION  InMask(Name, Mask: string):Boolean;       {does Name match Mask? }
 FUNCTION  InFilter(Name, Filter: string):Boolean;   {does Name match Filter? }
 {FUNCTION  InExtMask(Name, Mask: string):Boolean;}  {does Ext match Mask? }
 
-type TMaskPos = record
+type TMaskPos = packed record
                  CurPos: Byte;
                  InSq: boolean;
                 end;
      PMasksPos = ^TMasksPos;
-     TMasksPos = array[0..255] of TMaskPos;
-     TMasksData = Record
+     TMasksPos = packed array[0..255] of TMaskPos;
+     TMasksData = packed record
                    Num: Byte;
                   case boolean of
                    true: (P: pointer;);
                    false:(A: Array[1..2] of TMaskPos;);
                   end;
-     TMasksDataArr = array[32..255] of TMasksData;
+     TMasksDataArr = packed array[32..255] of TMasksData;
      PMaskData = ^TMaskData;
-     TMaskData = record
+     TMaskData = packed record
                   Filter: String;
                   MP: TMasksDataArr;
                  end;
 
+PROCEDURE FreeTMaskData(var MD: TMaskData);         {Cat}
 PROCEDURE MakeTMaskData(var MD: TMaskData);         {Fills TMaskData members}
                                                     {for work of InExtFilter}
 FUNCTION  InExtFilter(Name: string; const F: TMaskData):Boolean;
@@ -173,6 +174,7 @@ function CompareFiles(const N1, N2: String): Boolean;
 
 implementation
 uses
+  drivers,
   Advance1, Advance3, {$IFNDEF NONBP} BStrings {$ELSE} Strings {$ENDIF},
   Commands, DnApp, DnIni, Memory
   {$IFDEF VIRTUALPASCAL}, VpSysLow, VPUtils{$ENDIF}
@@ -222,7 +224,9 @@ begin
  end;
 end;
         {-DataCompBoy-}
-
+{AK155 21-01-2002 Эта программа дублирует PathExist, все ее вызовы
+ (в dn1 и startup) заменил на вызовы PathExist}
+(*
 { VK/ }
 function  ExistDir(const DName: string): Boolean; {based on ExistFile}
 var
@@ -239,7 +243,7 @@ begin
  end;
 end;
 { /VK }
-
+*) {/AK155}
 function FileTime(FileA: String): LongInt;
 var
   FA : lfile;
@@ -344,12 +348,17 @@ end;
         {-DataCompBoy-}
 procedure EraseFile;
 var F: lFile;
+  rc: longint;
+Label TryDel;
 begin
   ClrIO;
   FileMode := $42;
   lAssignFile(F, N);
+TryDel:
   lEraseFile(F);
-  case IOResult of
+  rc := IOResult;
+  case rc of
+    0, 2: begin end;
     5 : begin
           lSetFAttr(F, Archive);
           lEraseFile(F);
@@ -360,6 +369,9 @@ begin
           int  21h
         end;
    {$ENDIF}
+   else
+     if SysErrorFunc(rc, byte(N[1]) - byte('A')) = 1 then
+       goto TryDel;
   end;
   ClrIO;
 end;
@@ -427,15 +439,24 @@ FUNCTION GetDrive : byte;
 assembler; asm mov ah,$19; int 21h; end;
 {$ELSE}
 var S: String;
-begin GetDir(0, S); GetDrive := Byte(S[1])-Byte('A'); end;
+begin
+  GetDir(0, S);
+  GetDrive := Byte(S[1])-Byte('A');
+end;
 {$ENDIF}
 
 PROCEDURE SetDrive(a : byte);
 {$IFNDEF VIRTUALPASCAL}
 assembler; asm mov ah,$0E; mov dl,a; int $21; end;
 {$ELSE}
-var S: String;
-begin GetDir(0, S); ChDir(S); end;
+{var S: String;}
+begin
+{Cat: здесь ничего, кроме глюков, не делается}
+(*
+  GetDir(0, S);
+  ChDir(S);
+*)
+end;
 {$ENDIF}
 
 procedure GetMask(var m : string);
@@ -443,6 +464,7 @@ procedure GetMask(var m : string);
      i : Byte;
      b : Boolean;
 begin
+{Cat:warn}
  q:='????????.???';
  i:=Pos('.',m);
  if i>0 then if i>9 then Delete(m,9,i-9) else Insert(Copy('        ',1,9-i),m,i)
@@ -674,6 +696,23 @@ R: dec(mp);
 end;
         {-DataCompBoy-}
 *)
+
+{Cat}
+procedure FreeTMaskData(var MD: TMaskData);
+var
+  I: Byte;
+begin
+  with MD do
+    begin
+      for I:=32 to 255 do
+        with MP[I] do
+          if Num>2 then
+            FreeMem(P, Num*SizeOf(TMaskPos));
+      FillChar(MP, SizeOf(MP), #0);
+    end;
+end;
+{/Cat}
+
 procedure MakeTMaskData(var MD: TMaskData);
 var i, j, l, e, k, o, NumMP: byte;
     Dina1: array[0..255] of record
@@ -685,20 +724,27 @@ var i, j, l, e, k, o, NumMP: byte;
     Pss: array[1..255] of TMaskPos;
 label Ok, Ne;
 begin with MD do begin
-  for I:=32 to 255 do with MP[I] do if Num>4 then FreeMem(P, Num);
-  FillChar(MP, SizeOf(MP), 0);
+  FreeTMaskData(MD);
 
   if Filter = '' then exit;
   if Filter[1] in [' ',#9] then DelLeft(Filter);
-  if not (Filter[1] in [';',',']) then begin
-   SetLength(Filter, Length(Filter)+1);
-   move(Filter[1], Filter[2], Length(Filter));
-   Filter[1] := ';';
-  end;
-  If not (Filter[Length(Filter)] in [';',',']) then begin
-   SetLength(Filter, Length(Filter)+1);
-   Filter[Length(Filter)]:=';';
-  end;
+  if not (Filter[1] in [';',',']) then
+    Filter := ';'+Filter;
+    (*
+    begin
+      SetLength(Filter, Length(Filter)+1);
+      move(Filter[1], Filter[2], Length(Filter));
+      Filter[1] := ';';
+    end;
+    *)
+  if not (Filter[Length(Filter)] in [';',',']) then
+    Filter := Filter+';';
+    (*
+    begin
+      SetLength(Filter, Length(Filter)+1);
+      Filter[Length(Filter)]:=';';
+    end;
+    *)
 
   InSq := false;
   Dina1[0].CurPos:=0;

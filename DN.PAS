@@ -49,39 +49,81 @@
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 program DN;
+{$IFNDEF DPMI32}
+{$R DN.res}
+{$ENDIF}
 
 {$IFNDEF NONBP}
 {$M 40000,0,655350}
 {$ENDIF}
 
 {Cat: версия с поддержкой плагинов:
-      весь ДН лежит в DLL-ке, которую и подключаем через $DYNAMIC.
-      стараемся использовать в Uses только то, что реально нужно,
-      тогда уменьшаются размер EXE-шника и количество глюков}
+      TRUE_DYNAMIC (для OS/2): весь ДН лежит в DLL-ке, которую и подключаем
+      через директиву $DYNAMIC. Стараемся использовать в Uses только то, что
+      реально нужно, тогда уменьшаются размер EXE-шника и количество глюков.
+      не TRUE_DYNAMIC (для Win32): весь ДН лежит в DLL-ке, которую подключаем
+      "по старинке", т.е. импортируем оттуда только функции DN1.Run_It и
+      DN1.Error. Таким образом, свои копии модуля System есть и у DN.EXE,
+      и у DN2CAT.DLL. В Win32 тоже можно использовать TRUE_DYNAMIC, но тогда
+      при возникновении исключений ДН подвисает, поэтому для Win32 способ с
+      TRUE_DYNAMIC используется только в случае выключенной VPBETA - надеюсь,
+      в релизе исключений возникать не должно.
+}
 {$IFDEF PLUGIN}
-uses
-  {$IFDEF LINEPOSIT} VPUtils, {$ENDIF}
-  VpSysLow, Drivers, DN1;
+  {$IFDEF TRUE_DYNAMIC}
+  uses
+    {$IFDEF DEBUGMEM} DebugMem, {$ENDIF}
+    DN1;
 
-{$DYNAMIC DN2CAT.LIB}
+  {$DYNAMIC DN2CAT.LIB}
 
-{$ELSE}
+  {$ELSE}
+  {$IFDEF DEBUGMEM}
+  uses
+    DebugMem;
+  {$ENDIF}
+
+  procedure Run_It;
+    external 'dn2cat' name 'DN1@RUN_IT';
+  procedure Error(const SourceFileName: String; SourceLineNo, Addr, Code: LongInt);
+    external 'dn2cat' name 'DN1@ERROR';
+  {$ENDIF}
+
+  {$IFDEF LINEPOSIT}
+  procedure DebugInfoExitProc;
+  var
+    S: String;
+    N: LongInt;
+  begin
+    GetLocationInfo(ErrorAddr, S, N);
+    Error(S, N, LongInt(ErrorAddr), ExitCode);
+  end;
+  {$ENDIF}
+
+  begin
+    {$IFDEF LINEPOSIT}
+    AddExitProc(DebugInfoExitProc);
+    {$ENDIF}
+    Run_It;
+  {end.}
+
+{$ELSE PLUGIN}
 uses
-     {$IFNDEF VIRTUALPASCAL}ExtKBD, {$ENDIF}
-     Drivers,  LFN,      {$IFNDEF OS2}LFNCol,{$ENDIF}   DN1,
-     Dos,      DnApp,
-{$IFNDEF NO_OVERLAY}
-     Overlay1, Overlays,
-{$ENDIF NO_OVERLAY}
+    {$IFDEF DEBUGMEM} DebugMem, {$ENDIF}
+    {$IFNDEF VIRTUALPASCAL} ExtKBD, {$ENDIF}
+     Drivers,  LFN,     {$IFNDEF OS2} LFNCol, {$ENDIF}
+     DN1,      Dos,      DnApp,
+    {$IFNDEF NO_OVERLAY} Overlay1, Overlays, {$ENDIF}
      Menus,    FlPanelX, FlPanel,  FileCopy, Filediz,  Filelst,  Eraser,
      DiskInfo, Advance,  Advance1, Advance2, Advance3, Advance4, highlite,
      Startup,  Dialogs,  Gauges,   Memory,   DblWnd,   Messages, HistList,
      FileFind, Commands, Tree,     FViewer,  CmdLine,  FBB,      DNStdDlg,
-     MemInfo,  FilesCol, UserMenu, RStrings, Colors,   Microed,  Editor,
-     Macro,    ArcView,  HelpFile, Validate, ASCIITab, xTime,    Drives,
-     Archiver, Archset,  Archdet,  Setups,   DNUtil,   XDblWnd,  Histries,
-     CCalc,    DnIni,    DrvTypes, Collect,  UFNMatch, Objects,  Views,
-     Scroller, Calculat, ExtraMem, HelpKern
+     FilesCol, UserMenu, RStrings, Colors,   Microed,  Editor,   Macro,
+     ArcView,  HelpFile, Validate, ASCIITab, xTime,    Drives,   Archiver,
+     Archset,  Archdet,  Setups,   DNUtil,   XDblWnd,  Histries, CCalc,
+     DnIni,    Collect,  UFNMatch, Objects,  Views,    Scroller, Calculat,
+     HelpKern
+{$IFNDEF VIRTUALPASCAL} ,DrvTypes ,ExtraMem            {$ENDIF}
 {$IFDEF DiskFormat}     ,DNFormat ,Format              {$ENDIF}
 {$IFDEF CdPlayer}       ,CdPlayer ,CdUtil              {$ENDIF}
 {$IFDEF SpreadSheet}    ,Calc     ,CellsCol            {$ENDIF}
@@ -99,8 +141,8 @@ uses
 {$IFDEF NETINFO}       ,Novell                         {$ENDIF}
 {$IFDEF DiskEdit}      ,Fixer                          {$ENDIF}
 {$IFDEF REANIMATOR}    ,Reanimat                       {$ENDIF}
-{$IFDEF LINEPOSIT} {$IFNDEF DONTCATCHEXCEPTIONS} ,SysUtils {$ENDIF} ,VPUtils {$ENDIF}
-{$IFDEF EAOP}          ,EAOper                         {$ENDIF}
+{$IFDEF LINEPOSIT} {$IFDEF USESYSUTILS} ,SysUtils {$ENDIF} ,VPUtils {$ENDIF}
+{$IFDEF EAOP}      {$IFDEF OS2} ,EAOper                    {$ENDIF} {$ENDIF}
 {$IFDEF VIRTUALPASCAL} ,VPSysLow                       {$ENDIF}
      ;
 
@@ -134,12 +176,16 @@ uses
    {$O ADler}    {$O InfBlock} {$O InfCodes} {$O InfFast}
   {$O InfTrees} {$O InfUtil}  {$IFNDEF NO_DEFLATE}{$O Trees}{$ENDIF} {$ENDIF}
 {$ENDIF !MINARCH}
-  {$O ASCIITab} {$O DNStdDlg} {$O SBlocks}  {$O FBB}      {$O Tree}
+  {$O ASCIITab} {$O DNStdDlg} (*{$O SBlocks}*)  {$O FBB}      {$O Tree}
   {$O Messages} {$O Colors}   {$O UserMenu} {$O HelpFile} {$O Validate}
-  {$O Arvid}    {$O ArvidAvt} {$O ArvidTdr} {$O Advance6} {$O WinClp}
-  {$O DiskImg}  {$O DRVTYPES} {$O DNIni}    {$O FindObj}  {$O DNEXEC}
-  {$O advance4} {$O RegAll}   {$O advance7}
-  {$O calculat} {$O HelpKern} {$O UserSavr}
+{$IFDEF ARVID}
+  {$O Arvid}    {$O ArvidAvt} {$O ArvidTdr}
+{$ENDIF}
+  {$O Advance6} {$O WinClp}   {$O DiskImg}  {$O DNIni}
+  {$O FindObj}  {$O DNExec}   {$O advance4} {$O RegAll}
+  {$O Advance7} {$O Calculat} {$O HelpKern} {$O UserSavr}
+
+{$IFNDEF VIRTUALPASCAL} {$O DRVTYPES} {$ENDIF}
 
 {$IFDEF DiskFormat}           {$O DNFormat} {$O Format}   {$ENDIF}
 {$IFDEF MicroedOvr}{$O Editor}   {$O MicroEd}  {!$O U_KeyMap}
@@ -181,18 +227,16 @@ uses
 
 {$ENDIF NO_OVERLAY}
 
-{$ENDIF PLUGIN}
-
 
 {$IFDEF LINEPOSIT}
 
 {&Delphi+}
-var
-  SaveExitProc: pointer;
 {$IFDEF LOGOBJLOADSTORE}
+var
   F: Text;
 {$ENDIF}
-{$IFNDEF DONTCATCHEXCEPTIONS}
+{$IFDEF USESYSUTILS}
+var
   E: Exception;
   FileName: ShortString;
   LineNo: LongInt;
@@ -201,28 +245,21 @@ var
 {$ENDIF}
 {$ELSE}
 procedure DebugInfoExitProc;
+var
+  S: String;
 begin
-  ExitProc := SaveExitProc;
   if ErrorAddr <> nil then
     begin
-      ErrAdd := Longint(ErrorAddr);
-      EndFatalError;
+      SourceFileName := @S;
+      GetLocationInfo(ErrorAddr, S, SourceLineNo);
+      {EndFatalError;} {in Drivers.ExitDrivers}
     end;
 end;
 {$ENDIF}
 
-(*
-{$IFDEF EAOP}
-function malloc(cb: Integer): Pointer; cdecl;
+{$ENDIF}
+
 begin
-  GetMem(Result, cb);
-end;
-{$ENDIF}
-*)
-
-{$ENDIF}
-
-BEGIN
 {$IFDEF VIRTUALPASCAL}
 SysDisableHardErrors;
 
@@ -230,9 +267,8 @@ SysDisableHardErrors;
 SysCtrlSetCBreakHandler;}
 {$ENDIF}
 {$IFDEF LINEPOSIT}
-{$IFDEF DONTCATCHEXCEPTIONS}
- SaveExitProc := ExitProc;
- ExitProc := @DebugInfoExitProc;
+{$IFNDEF USESYSUTILS}
+ AddExitProc(DebugInfoExitProc);
 {$ELSE}
  try
 {$ENDIF}
@@ -250,13 +286,9 @@ SysCtrlSetCBreakHandler;}
     ;
 {$ENDIF}
      RUN_IT;
-{$IFDEF MEMUSEDATEXIT}
-     if MemUsed <> 0 then
-       writeln(^M^J'Memory leak ',MemUsed,' bytes')
-{$ENDIF}
    end
 {/Cat}
-{$IFNDEF DONTCATCHEXCEPTIONS}
+{$IFDEF USESYSUTILS}
  except
    on E: EControlC do
      begin
@@ -265,7 +297,7 @@ SysCtrlSetCBreakHandler;}
    on E: exception do
      begin
  {$IFDEF VPBETA}
-       ErrAdd := Longint(ExceptAddr);
+       ErrorAddr := ExceptAddr;
        EndFatalError;
        SourceDir := SourceDir + 'DN.ERR';
        Assign(DNErrFile, SourceDir);
@@ -304,4 +336,6 @@ SysCtrlSetCBreakHandler;}
 {$ENDIF}
  RUN_IT;
 {$ENDIF}
-END.
+
+{$ENDIF PLUGIN}
+end.

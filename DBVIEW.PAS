@@ -50,9 +50,10 @@
 unit DBView;
 
 interface
-uses LFN,   DBWatch, Objects, Views, Drivers, Dos, Memory, Dialogs,
-     U_KeyMap,
-     RStrings, FViewer, Commands;
+
+uses
+  Lfn, DBWatch, Objects, Views, Drivers, Dos, Memory, Dialogs,
+  U_KeyMap, RStrings, FViewer, Commands;
 {$else}
 
 uses LFN, DBWatch, Objects, Views, Drivers, Dos, Memory, Menus, Messages,
@@ -648,14 +649,15 @@ procedure TDBViewer.HandleEvent;
        MM, DD, YY: Word;
        II, N1, N2, N3: Word;
        LL: Array [0..3] of LongInt;
+       FldLen : SmallWord; { Kirill }
 
    procedure StoreField;
    begin
-     S := AddSpace(S, PFR^.Len);
-     Move(S[1], P[PFR^.Pos], PFR^.Len);
+     S := AddSpace(S, FldLen); { Kirill } { PFR^.Len->FldLen }
+     Move(S[1], P[PFR^.Pos], FldLen);
      DBFile^.Seek(Delta.Y);
      DBFile^.BaseFile.Seek(DBFile^.BaseFile.GetPos + PFR^.Pos);
-     DBFile^.BaseFile.Write(S[1], PFR^.Len);
+     DBFile^.BaseFile.Write(S[1], FldLen);
    end;
 
    function GetDig: Word;
@@ -685,16 +687,23 @@ procedure TDBViewer.HandleEvent;
    if PFR^.Who = 'M' then Exit;
    P := GetRecord(Delta.Y);
    GetFrField(PFR, P^, S);
-   if PFR^.Who <> 'C' then DelLeft(S);
+   if PFR^.Who <> 'C' then DelLeft(S)
+   else DelRight(S); { Kirill }
+   FldLen:=PFR^.Len;
+   if FldLen > 252 then begin { Больше чем 252 нельзя, иначе будет вылетать  }
+     FldLen:=252;  { Kirill } { Здесь необходимо вывести предупреждение }
+                              { о том, что будут отредактированы только }
+                              { первые 252 символа длинного поля.       }
+   end;
    case PFR^.Who of
-     'C','N': if InputBox(GetString(dlDBEditField), GetString(dlDBValue), S, PFR^.Len, hsEditDBF) = cmOK then
+     'C','N': if InputBox(GetString(dlDBEditField), GetString(dlDBValue), S, FldLen, hsEditDBF) = cmOK then
                 begin
                   if PFR^.Who = 'N' then
                     begin
                       DelSpace(S);
                       Val(S, R, I);
-                      Str(R:PFR^.Len:PFR^.Dec, S);
-                      S := PredSpace(S, PFR^.Len);
+                      Str(R:FldLen:PFR^.Dec, S);
+                      S := PredSpace(S, FldLen);
                     end;
                   StoreField;
                 end;
@@ -850,7 +859,8 @@ begin
     FN[NFN] := PFR;
     if PFR <> nil then
      begin
-      MoveStr(B[I], CenterStr(PFR^.Name, PFR^.Ln), C1);
+      K:=PFR^.Ln; if K > Size.X then K:=Size.X; { Kirill }
+      MoveStr(B[I], CenterStr(PFR^.Name, {PFR^.Ln} K), C1);
       Inc(I, PFR^.Ln+1);
      end;
     if I < Size.X then Inc(NFN);

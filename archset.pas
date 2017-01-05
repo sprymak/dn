@@ -48,8 +48,9 @@
 unit ArchSet;
 
 interface
-uses Archiver, objects, advance, startup, archdet, dialogs, views, menus,
-     dnapp, advance1, commands, drivers, profile;
+uses
+  Archiver, objects, advance, startup, archdet, dialogs, views, menus,
+  dnapp, advance1, commands, drivers, profile;
 
 Procedure SetupArchive(ArchCommand: Word);
 Procedure UpdateARH(Arch: PARJArchive);

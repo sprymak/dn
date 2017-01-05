@@ -49,7 +49,9 @@
 unit XDblWnd;
 
 interface
-uses DblWnd, Drivers, Views, Objects;
+
+uses
+  DblWnd, Drivers, Views, Objects;
 
 type
 

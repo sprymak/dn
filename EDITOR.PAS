@@ -49,7 +49,9 @@
 unit Editor;
 
 interface
-uses LFN, Views, Objects, Drivers, MicroEd, U_KeyMap, collect, ed2;
+
+uses
+  LFN, Views, Objects, Drivers, MicroEd, U_KeyMap, collect, ed2;
 
 type
      PXFileEditor = ^TXFileEditor;
@@ -58,11 +60,13 @@ type
      end;
 
 implementation
-uses Advance, Advance1, Advance2, Advance3, DOS, Dialogs, DNApp, RStrings,
-     SBlocks, Memory, Gauge, Startup, WinClp, Messages, Commands, Macro,
-     EdWin, xTime, DnIni, DNUtil, Advance6, calculat
-     , FViewer {AK155}
-     ;
+
+uses
+  Advance, Advance1, Advance2, Advance3, DOS, Dialogs, DNApp, RStrings,
+  {SBlocks,} Memory, Gauge, Startup, WinClp, Messages, Commands, Macro,
+  EdWin, xTime, DnIni, DNUtil, Advance6, Calculat, FViewer{AK155}
+  {$IFDEF REGEXP} ,RegExp {$ENDIF}
+  ;
 
 type
      PSortCollection = ^TSortCollection;
@@ -100,7 +104,6 @@ function Bigger(const L,R:LongString):Boolean;
 function TXFileEditor.HandleCommand;
 
 var  LastX, LastY: LongInt;
-     OldDelta,
      T: TPoint;
 
   procedure ChangeLine;
@@ -119,13 +122,23 @@ var  LastX, LastY: LongInt;
   procedure StartSearch(Replace: Boolean);
    var Y: LongInt;
        S: LongString;
+
    procedure Mix2And3(var M: Word);
+   const
+     SwapBits = $14; { swap bits: (...X.Y..) -> (...Y.X..) }
+{Cat:  efoCaseSens       =  1;}
+{      efoWholeWords     =  2;}
+{ ┌─>  efoReplacePrompt  =  4;}
+{ │    efoRegExp         =  8;}
+{ └─>  efoAllCP          = 16;}
    begin
-     Case (M and $C) of
-       0,$C:
-       else M := M xor $C;
+     case (M and SwapBits) of
+       0, SwapBits:
+       else
+         M := M xor SwapBits;
      end;
    end;
+
   begin
    S := '';
    if (LastX < Length(WorkString)) and not (WorkString[LastX + 1] in BreakChars) then
@@ -154,11 +167,24 @@ var  LastX, LastY: LongInt;
 
    if Y = cmCancel then Exit;
    ReplaceAll := Replace and (Y = cmYes);
-   OldDelta := Delta;
-   if SearchData.Origin=0 then
-      if SearchData.Dir = 0 then Delta.Assign(0, 0)
-                            else begin Delta.X := MaxLongStringLength; Delta.Y := FileLines^.Count - 1; end;
-   if not Search then Delta := OldDelta;
+{$IFDEF REGEXP}
+   if SearchData.Options and {efoRegExp} 16 = 0 then {обычный поиск}
+{$ENDIF}
+     if SearchData.Origin = 0 then
+        if SearchData.Dir = 0 then
+          Search(0, 0)
+        else
+          Search(MaxLongStringLength, FileLines^.Count - 1)
+     else
+       Search(Delta.X, Delta.Y)
+{$IFDEF REGEXP}
+   else {поиск регэкспа}
+     begin
+       if not RegExp^.Compile(@SearchData.Line[1], Length(SearchData.Line)) then
+         Exit;
+       Search(0, 0);
+     end;
+{$ENDIF}
   end;
 
   procedure MakeUndo;
@@ -694,8 +720,8 @@ var  LastX, LastY: LongInt;
   {$IFDEF PrintFromEditor}
   procedure Print(Block: Boolean);
    var S: TDOSStream;
-       L: PCollector;
-       PC: PCollection;
+       L: PLineCollection {PCollector}; {-SBlocks}
+      {PC: PCollection;}
        M: String;
        P: PWhileView;
        I: LongInt;
@@ -711,12 +737,13 @@ var  LastX, LastY: LongInt;
    ChangeLine;
    if Block then
      begin
-       PC := GetSelection;
-       if PC = nil then Exit;
-       L := New(PStdCollector, Init(10));
-       Dispose(PStdCollector(L)^.Collection,Done);
-       PStdCollector(L)^.Collection := PC;
-       PStdCollector(L)^.Count := PC^.Count;
+      {PC := GetSelection;}
+      {if PC = nil then Exit;}
+      {L := New(PStdCollector, Init(10));}
+      {Dispose(PStdCollector(L)^.Collection, Done);}
+      {PStdCollector(L)^.Collection := PC;}
+      {PStdCollector(L)^.Count := PC^.Count;}
+       L := PLineCollection(GetSelection); {-SBlocks}
      end else L := FileLines;
    LL[1] := L^.Count;
    FormatStr(M, GetString(dlED_PrintQuery), LL);
@@ -816,9 +843,16 @@ var  LastX, LastY: LongInt;
 {$ENDIF}
         Cmpr:function(const L,R:LongString):Boolean;
 
+{AK155 QuickSort имеет существенный недостаток: при равных
+ключах он может переставлять строки. Поэтому я заменил его на
+метод Шелла, который этого недостака не имеет. По быстродействию
+разницы особой не будет: при числе элементов до 20000 Шелл если
+и проигрывает, то не сильно.}
+(*
    procedure QuickSort(L, R: LongInt);
    var
      I, J: LongInt;
+     P1, P2: Pointer; {-SBlocks}
 
      function Ln(AI: LongInt): LongString;
      begin
@@ -841,7 +875,14 @@ var  LastX, LastY: LongInt;
          while Cmpr(S,Ln(J)) do Dec(J);
          if I <= J then
          begin
-           if I <> J then FileLines^.SwapItems(I, J);
+          {if I <> J then FileLines^.SwapItems(I, J);}
+           if I <> J then               {-SBlocks}
+             begin                      {-SBlocks}
+               P1 := FileLines^.At(I);  {-SBlocks}
+               P2 := FileLines^.At(J);  {-SBlocks}
+               FileLines^.AtPut(I, P2); {-SBlocks}
+               FileLines^.AtPut(J, P1); {-SBlocks}
+             end;                       {-SBlocks}
            Inc(I);
            Dec(J);
          end;
@@ -850,7 +891,54 @@ var  LastX, LastY: LongInt;
        L := I;
      until I >= R;
    end;
+*)
 
+   procedure ShellSort(L, R: LongInt);
+   var
+     i, j, step, n: longint;
+     P1, P2: PLongString;
+     x: PLongString;
+   label
+     1;
+
+     function Ln(AI: LongInt): LongString;
+     begin
+       if TimerExpired(Tmr) then
+       begin
+         UpdateWriteView(Info);
+         Application^.Idle;
+         NewTimer(Tmr, 3);
+       end;
+       Ln := Copy(GetLine(AI), BoundStart, BoundEnd);
+     end;
+   begin
+   n := R-L+1;
+   j := 13; while j < n do j := j*3 + 1;
+   step := j div 3;
+   while step <> 1 do
+     begin
+     step := step div 3;
+     for i := L+step to R do
+       begin
+       s := ln(i);
+       if Cmpr(s, ln(i-step)) then
+         begin
+         x := FileLines^.At(i);
+         j := i-step;
+         repeat
+           P1 := FileLines^.At(j);  {-SBlocks}
+           FileLines^.AtPut(j+step, P1);
+           if j <= L+step-1 then goto 1;
+           j := j-step;
+         until Cmpr(ln(j), s);
+         j := j+step;
+   1:
+         FileLines^.AtPut(j, x);
+         end;
+       end;
+     end;
+   end;
+{/AK155}
 
   begin
     if not VertBlock then
@@ -867,7 +955,9 @@ var  LastX, LastY: LongInt;
     NewTimer(Tmr, 2);
     ChangeLine;
     BoundStart := Mark.A.X+1; BoundEnd := Mark.B.X - Mark.A.X;
-    QuickSort(Mark.A.Y, Mark.B.Y);
+{AK155}    ShellSort(Mark.A.Y, Mark.B.Y);
+{    QuickSort(Mark.A.Y, Mark.B.Y);}
+{/AK155}
     if UndoInfo <> nil then UndoInfo^.FreeAll; Inc(UndoTimes); Modified := On;
     Dispose(Info,Done);
     {$IFNDEF NOEXTRA}
@@ -1300,8 +1390,8 @@ begin
      cmSortBlock: begin if ValidBlock then SortBlock(False); HandleCommand := On; end;
      cmCalcBlock: begin if ValidBlock then CalcBlock; HandleCommand := On; end;
      cmInsertDate, cmInsertTime: InsertDateTime(Event.Command = cmInsertTime);
-     cmStartSearch: begin ChangeLine; StartSearch(Off); ChangeLine end;
-     cmReplace: begin ChangeLine; StartSearch(On); ChangeLine end;
+     cmStartSearch: begin ChangeLine; StartSearch(Off); ChangeLine; end;
+     cmReplace: begin ChangeLine; StartSearch(On); ChangeLine; end;
      cmUndo: begin MakeUndo; HandleCommand := On end;
      cmRedo: begin MakeRedo; HandleCommand := On end; {-$VOL}
      cmIndentBlock: begin UnMark := On; IndentBlock(On) end;

@@ -48,7 +48,9 @@
 unit Arc_HAP; {HAP}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_HA;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_HA;
 
 type
     PHAPArchive = ^THAPArchive;
@@ -71,6 +73,12 @@ type
      end;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ----------------------------- HAP ------------------------------------}
 
 constructor THAPArchive.Init;
@@ -133,15 +141,12 @@ begin
 end;
 
 Procedure THAPArchive.GetFile;
-var HS,i : AWord;
-    FP   : Longint;
+var
     P    : HAPHdr;
-    S    : String;
     C    : Char;
 begin
  ArcFile^.Read(P,1);
- if (ArcFile^.GetPos = ArcFile^.GetSize)
-   then begin FileInfo.Last := 1;Exit;end;
+ if (ArcFile^.GetPos = ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P.ID,SizeOf(P)-1);
  if (ArcFile^.Status <> stOK) or (P.ID <> #142#104#74#87)
    then begin FileInfo.Last := 2;Exit;end;
@@ -151,18 +156,14 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date := P.Date;
- i := 1;
- SetLength(S, 0);
- repeat ArcFile^.Read(C, 1); if C <> #0 then S := S + C; until (C = #0) or (Length(S) > 77);
+ FileInfo.FName := '';
+ repeat
+   ArcFile^.Read(C, 1);
+   if C <> #0 then FileInfo.FName := FileInfo.FName + C;
+ until (C = #0) or (Length(FileInfo.FName) > 77);
  repeat ArcFile^.Read(C, 1); until (C in [#$15,#$16]) or (ArcFile^.Status <> stOK);
- if (ArcFile^.Status <> stOK) or (Length(S) > 79) then
+ if (ArcFile^.Status <> stOK) or (Length(FileInfo.FName) > 79) then
   begin FileInfo.Last := 2; Exit; end;
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-{$ENDIF}
- FileInfo.FName := S; {DataCompBoy}
  ArcFile^.Seek(ArcFile^.GetPos + P.PackedSize-1);
 end;
 

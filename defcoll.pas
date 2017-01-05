@@ -48,7 +48,9 @@
 UNIT DefColl;
 
 INTERFACE
-uses Collect, LFN, Advance1, Advance, Objects;
+
+uses
+  Collect, LFN, Advance1, Advance, Objects;
 
 Type
  PDefCollection = ^TDefCollection;
@@ -80,6 +82,8 @@ Type
 IMPLEMENTATION
 
 Constructor TDefCollection.Init(ALimit, ADelta: LongInt);
+var
+  i: longint;
 begin
  Inherited Init(ALimit, ADelta, False);
  InComm:=0;
@@ -87,10 +91,22 @@ begin
  DefStack[SP]:=true;
 {$IFDEF VER70} Def('VER70'); {$ENDIF}
 {$IFDEF NONBP} Def('VER20'); {$ENDIF}
-{$IFDEF DPMI}  Def('DPMI');  {$ENDIF}
 {$IFDEF VIRTUALPASCAL}Def('VIRTUALPASCAL');  {$ENDIF}
-{$IFDEF WIN32} Def('WIN32');  {$ENDIF}
-{$IFDEF OS2}   Def('OS2');    {$ENDIF}
+
+{AK155  символы можно задавать в комстроке в параметрах, начиная
+со второго. При этом второй параметр - целевая платформа.}
+if ParamStr(2) = '' then
+  begin
+  {$IFDEF DPMI}   Def('DPMI');   {$ENDIF}
+  {$IFDEF OS2}    Def('OS2');    {$ENDIF}
+  {$IFDEF WIN32}  Def('WIN32');  {$ENDIF}
+  {$IFDEF DPMI32} Def('DPMI32'); {$ENDIF}
+  end
+else
+  begin
+  for i := 2 to ParamCount do
+    def(ParamStr(i));
+  end;
 end;
 
 procedure TDefCollection.ProceedFile;

@@ -52,8 +52,9 @@ unit Calendar;
 
 interface
 
-uses Commands, Drivers, Objects, dnApp, Views, Dos, Dialogs, Advance1,
-     DNHelp, DnIni;
+uses
+  Commands, Drivers, Objects, dnApp, Views, Dos, Dialogs, Advance1,
+  DNHelp, DnIni;
 
 const
    DaysInMonth: array[1..12] of Byte =

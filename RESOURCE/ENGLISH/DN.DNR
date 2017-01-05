@@ -451,8 +451,10 @@ MENU dlgMainMenu
     MenuItem 'Custom video mode ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
     MenuItem 'Custom video mode ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
     MenuItem 'C~h~ange Screen  Mode', 'Shift-F12 ', kbShiftF12, cmChScreenMode, hcMenuBox,
+;$IFNDEF PLUGIN
     MenuLine
     MenuItem '~G~ame', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
+;$ENDIF
   END
  SubMenu '~F~ile', hcFileMenu,
     SubMenu '~V~iew', hcFileMenu,
@@ -485,7 +487,9 @@ MENU dlgMainMenu
     MenuItem 'Move single file...','Shift-F6',kbNoKey, cmSingleRename, hcFileMenu,
     MenuItem 'Delete single file','Shift-F8',kbShiftF8, cmSingleDel, hcFileMenu,
 ;$IFDEF EAOP
+;$IFDEF OS2
     MenuItem 'Edit EA .LONGNAME',  'Ctrl-F11', kbCtrlF11, cmSetEALongname, hcFileMenu,
+;$ENDIF
 ;$ENDIF
     MenuLine
 ;$IFDEF OS_DOS
@@ -537,6 +541,10 @@ MENU dlgMainMenu
     MenuItem 'Commands ~H~istory', 'Alt-F8', kbAltF8, cmHistoryList, hcUtilMenu,
     MenuItem 'File ~E~dit History', 'Alt-PgUp', kbAltPgUp, cmEditHistory, hcUtilMenu,
     MenuItem 'File ~V~iew History', 'Alt-PgDn', kbAltPgDn, cmViewHistory, hcUtilMenu,
+;$IFDEF PLUGIN
+    MenuLine
+    MenuItem 'Plugin Manager', 'Alt-F11', kbAltF11, cmPlugins, hcPluginManager,
+;$ENDIF
    END
  SubMenu '~P~anel', hcPanelMenu,
     MenuItem '~M~ake list file...', 'Alt-L', kbAltL, cmMakeList, hcPanelMenu,
@@ -1101,7 +1109,7 @@ STATUSLINE
      StatusItem '+~F6~ Calc', kbCtrlF6, cmCalculator,
      StatusItem '+~F7~ Replace', kbCtrlF7, cmReplace,
      StatusItem '+~F8~ Print', kbCtrlF8, cmPrintFileEd,
-     StatusItem '+~Y~ Delelete line', kbCtrlY, cmDeleteLine,
+     StatusItem '+~Y~ Delete line', kbCtrlY, cmDeleteLine,
 ;{SHIFT}
      StatusItem ':~F2~ Save as', kbShiftF2, cmSaveTextAs,
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
@@ -1533,6 +1541,7 @@ DIALOG dlgConfirmations, 36, 15, 'Confirmations'
       ITEM '~F~ormat under OS/2'
 ;$ELSE
       ITEM 'Chan~g~e language warning'
+;     ITEM 'Mo~v~e files to device'
 ;$ENDIF
       ITEM 'E~x~it confirmation'
     END
@@ -2156,10 +2165,13 @@ END
 ;{-$VIV 14.05.99}
 DIALOG dlgEditorFind, 55, 16, 'Find'
     HELPCTX hcEditorFind
-    CheckBoxes 3, 5, 27, 8, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 5, 27, 9, ofPostProcess, ofPreProcess
       ITEM '~C~ase sensitive'
       ITEM '~W~hole words only'
       ITEM 'All c~o~de pages'
+;$IFDEF REGEXP
+      ITEM '~R~egular expression'
+;$ENDIF
     END
     Label 3, 4, 'Options', ofPostProcess, ofPreProcess
     RadioButtons 30, 5, 52, 7, ofPostProcess, ofPreProcess
@@ -2191,10 +2203,13 @@ END
 
 DIALOG dlgEditorReplace, 55, 18, 'Replace'
     HELPCTX hcEditorReplace
-    CheckBoxes 3, 7, 27, 10, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 7, 27, 11, ofPostProcess, ofPreProcess
       ITEM '~C~ase sensitive'
       ITEM '~W~hole words only'
       ITEM '~P~rompt on replace'
+;$IFDEF REGEXP
+      ITEM '~R~egular expression'
+;$ENDIF
     END
     Label 3, 6, 'Options', ofPostProcess, ofPreProcess
     RadioButtons 30, 7, 52, 9, ofPostProcess, ofPreProcess
@@ -2233,22 +2248,25 @@ DIALOG dlgEditorReplace, 55, 18, 'Replace'
 END
 
 ;{-$VIV 14.05.99}
-DIALOG dlgFileFind, 50, 18, 'Find File'
+DIALOG dlgFileFind, 52, 18, 'Find File'
     HELPCTX hcFileFind
-    InputLine 16, 2, 47, 3, 255, 0
+    InputLine 16, 2, 49, 3, 255, 0
     Label 2, 2, '   ~F~ile mask', ofPostProcess, ofPreProcess
-    History 45, 2, hsFindMask, ofPostProcess
-    InputLine 16, 4, 47, 5, 255, 0
+    History 47, 2, hsFindMask, ofPostProcess
+    InputLine 16, 4, 49, 5, 255, 0
     Label 2, 4, '~T~ext to find', ofPostProcess, ofPreProcess
-    History 45, 4, hsFindText, ofPostProcess
-    HexLine 16, 5, 45, 6
+    History 47, 4, hsFindText, ofPostProcess
+    HexLine 16, 5, 47, 6
     Label 2, 5, '  ~H~ex string', ofPostProcess, ofPreProcess
-    CheckBoxes 3, 7, 47, 10, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 7, 49, 10, ofPostProcess, ofPreProcess
       ITEM 'Adva~n~ced search'
       ITEM '~C~ase sensitive'
       ITEM '~R~ecursive search'
       ITEM '~W~hole words'
       ITEM 'All c~o~de pages'
+;$IFDEF REGEXP
+      ITEM '~R~egular expression'
+;$ENDIF
     END
     Label 3, 6, 'Options', ofPostProcess, ofPreProcess
     RadioButtons 3, 12, 47, 14, ofPostProcess, ofPreProcess
@@ -2307,10 +2325,15 @@ DIALOG dlgRenameDialog, 78, 13, 'Rename/move'
       ITEM 'Check ~f~ree disk space'
       ITEM '~V~erify disk writes'
       ITEM 'Copy ~d~escriptions'
-      ITEM 'Remove so~u~rce files'
 ;$IFDEF EAOP
+;$IFDEF OS2
       ITEM 'Re~n~ame to logical names'
 ;$ENDIF
+;$IFDEF WIN32
+      ITEM 'Copy access r~i~ghts'
+;$ENDIF
+;$ENDIF
+      ITEM 'Remove so~u~rce files'
     END
     Button 12, 10, 22, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 22, 10, 32, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -2333,10 +2356,15 @@ DIALOG dlgCopyDialog, 78, 13, 'Copy'
       ITEM 'Check ~f~ree disk space'
       ITEM '~V~erify disk writes'
       ITEM 'Copy ~d~escriptions'
-      ITEM 'Remove so~u~rce files'
 ;$IFDEF EAOP
+;$IFDEF OS2
       ITEM 'Re~n~ame to logical names'
 ;$ENDIF
+;$IFDEF WIN32
+      ITEM 'Copy access r~i~ghts'
+;$ENDIF
+;$ENDIF
+      ITEM 'Remove so~u~rce files'
     END
     Button 12, 10, 22, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 22, 10, 32, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -2937,17 +2965,20 @@ DIALOG dlgAdvancedFilter, 36, 15, 'Filter'
     Button 22, 12, 33, 14, 'Close', cmCancel, bfNormal, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgViewerFind, 50, 14, 'Find'
+DIALOG dlgViewerFind, 50, 15, 'Find'
     HELPCTX hcViewerFind
     InputLine 2, 3, 44, 4, 250, hsViewFind
     Label 2, 2, '~S~earch for', ofPostProcess, ofPreProcess
     HexLine 2, 5, 44, 6
     Label 2, 4, '~H~ex string', ofPostProcess, ofPreProcess
 
-    CheckBoxes 2,7,24,10, ofPostProcess
+    CheckBoxes 2,7,24,11, ofPostProcess
       ITEM '~C~ase sensitive'
       ITEM '~W~hole words'
       ITEM '~A~ll code pages'
+;$IFDEF REGEXP
+      ITEM '~R~egular expression'
+;$ENDIF
     END
     Label 2, 6, 'Options', ofPostProcess, ofPreProcess
 
@@ -2957,14 +2988,14 @@ DIALOG dlgViewerFind, 50, 14, 'Find'
     END
     Label 26, 7, 'Direction', ofPostProcess, ofPreProcess
 
-    Button 17,11,27,13, '~O~K', cmOK, bfDefault, ofPostProcess
-    Button 27,11,37,13, 'Cancel', cmCancel, bfNormal, ofPostProcess
-    Button 37,11,47,13, '~H~elp', cmHelp, bfNormal, ofPostProcess
+    Button 17,12,27,14, '~O~K', cmOK, bfDefault, ofPostProcess
+    Button 27,12,37,14, 'Cancel', cmCancel, bfNormal, ofPostProcess
+    Button 37,12,47,14, '~H~elp', cmHelp, bfNormal, ofPostProcess
 END
 
-DIALOG dlgPanelSetup, 62, 21, 'Panel Options'
+DIALOG dlgPanelSetup, 59, 21, 'Panel Options'
     HELPCTX hcPanelSetup
-    RadioButtons 2, 3, 60, 7, ofPostProcess, ofPreProcess
+    RadioButtons 2, 3, 26, 14, ofPostProcess, ofPreProcess
       ITEM '~N~ame'
 ;$IFNDEF OS2
       ITEM '~L~ong name'
@@ -2982,7 +3013,7 @@ DIALOG dlgPanelSetup, 62, 21, 'Panel Options'
       ITEM '~U~nsorted'
     END
     Label 2, 2, 'Sort by', ofPostProcess, ofPreProcess
-    CheckBoxes 2, 9, 48, 14, ofPostProcess, ofPreProcess
+    CheckBoxes 26, 3, 57, 14, ofPostProcess, ofPreProcess
       ITEM 'Director~y~ length'
       ITEM '~C~urrent file'
       ITEM 'Se~l~ected files'
@@ -2992,14 +3023,16 @@ DIALOG dlgPanelSetup, 62, 21, 'Panel Options'
       ITEM 'Executa~b~le first'
       ITEM '~A~rchives first'
       ITEM 'Exe before archi~v~es '
+      ITEM '~L~ong name in bottom'
+      ITEM '~D~escription in bottom'
     END
-    Label 2, 8, 'Display', ofPostProcess, ofPreProcess
+    Label 29, 2, 'Display', ofPostProcess, ofPreProcess
     InputLine 2, 16, 54, 17, 250, 0
     History 54, 16, hsFileMask, ofPostProcess
     Label 2, 15, 'File ~m~ask', ofPostProcess, ofPreProcess
-    Button 19, 18, 29, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 18, 39, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 39, 18, 49, 20, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+    Button 27, 18, 37, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 37, 18, 47, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 47, 18, 57, 20, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgFMDefaults, 60, 20, 'Panel Defaults'
@@ -3022,7 +3055,7 @@ DIALOG dlgFMDefaults, 60, 20, 'Panel Defaults'
       ITEM '~U~nsorted'
     END
     Label 2, 2, 'Sort by', ofPostProcess, ofPreProcess
-    CheckBoxes 2, 8, 48, 13, ofPostProcess, ofPreProcess
+    CheckBoxes 2, 8, 52, 14, ofPostProcess, ofPreProcess
       ITEM 'Director~y~ length'
       ITEM '~C~urrent file'
       ITEM 'Se~l~ected files'
@@ -3032,6 +3065,8 @@ DIALOG dlgFMDefaults, 60, 20, 'Panel Defaults'
       ITEM 'Executa~b~le first'
       ITEM '~A~rchives first'
       ITEM 'Exe before archi~v~es '
+      ITEM '~L~ong name in bottom'
+      ITEM '~D~escription in bottom'
     END
     Label 2, 7, 'Display', ofPostProcess, ofPreProcess
     RadioButtons 2, 15, 48, 16
@@ -3274,11 +3309,11 @@ DIALOG dlgSystemSetup, 72, 21, 'System Setup'
     END
     Label 8, 13, 'Current drive options', ofPostProcess, ofPreProcess
 
-    InputLine 62, 13, 69, 14, 5, 0
-    Label 42, 13, 'Copy buffer limit:', ofPostProcess, ofPreProcess
+    InputLine 63, 13, 70, 14, 5, 0
+    Label 43, 13, 'Copy buffer limit:', ofPostProcess, ofPreProcess
 
-    InputLine 62, 15, 69, 16, 3, 0
-    Label 37, 15, 'Force default archiver:', ofPostProcess, ofPreProcess
+    InputLine 63, 15, 70, 16, 3, 0
+    Label 38, 15, 'Force default archiver:', ofPostProcess, ofPreProcess
 
     Button 40, 18, 50, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 50, 18, 60, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -4377,3 +4412,7 @@ DIALOG dlgChScreenMode, 34, 12, 'Change Screen Mode'
 ;$ENDIF
 END
 ;JO
+;Cat
+DIALOG dlgPlugins0, 1, 1, ''
+END
+;Cat

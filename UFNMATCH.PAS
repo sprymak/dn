@@ -55,7 +55,8 @@ Function FnMatch (Pattern, Str: String): Boolean;
 
 IMPLEMENTATION
 
-Uses Commands{Cat};
+Uses
+  Commands{Cat};
 
 Function FnMatchFunc (Pattern, Str: String; AllLiters: boolean): Boolean;
 Var c, c1: Char;

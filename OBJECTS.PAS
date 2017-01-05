@@ -59,8 +59,10 @@
 unit Objects;
 
 interface
-uses {$IFDEF VIRTUALPASCAL} {SysUtils,} VpSysLow, {$ENDIF}
-     LFN;
+
+uses
+  {$IFDEF VIRTUALPASCAL} {SysUtils,} VpSysLow, {$ENDIF}
+  LFN;
 
 { Common defines }
 
@@ -411,15 +413,15 @@ const
 
 implementation
 uses
-  Commands{Cat},
-  Advance {OPSYS},
-{$IFDEF Windows} WinProcs,OMemory,
-{$ELSE}          Memory,            {$ENDIF}
-{$IFDEF StreamDebug} DnApp, {$ENDIF}
-  {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
-  {$IFDEF  FPC}CallSpec{$ELSE}Callspcb{$ENDIF},
-  {$IFDEF WIN32}Windows,{$ENDIF}
-  {$IFDEF PACKFILE}PackF_RS,{$ENDIF} ExtraMem;
+  {$IFDEF Windows} WinProcs,OMemory, {$ELSE} Memory, {$ENDIF}
+  {$IFDEF StreamDebug} DnApp, {$ENDIF}
+  {$IFNDEF NONBP} BStrings, {$ELSE} Strings, {$ENDIF}
+  {$IFDEF FPC} CallSpec, {$ELSE} {$IFNDEF NoCallspcb} Callspcb, {$ENDIF} {$ENDIF}
+  {$IFDEF WIN32} Windows, {$ENDIF}
+  {$IFDEF PACKFILE} PackF_RS, {$ENDIF}
+  {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
+  {$IFDEF PLUGIN} Plugin, {$ENDIF}
+  Commands{Cat}, Advance;
 
 procedure Abstract;
 begin
@@ -601,6 +603,12 @@ begin
   {$ENDIF}
   if (ObjType <> 0) then begin
     P:=StreamTypes;
+    {Cat: если пытаемся прочитать объект, регистрируемый плагином, то надо
+          сначала запустить этот плагин, чтобы он провёл регистрацию}
+    {$IFDEF PLUGIN}
+    CatchersRegisterObject(ObjType);
+    {$ENDIF}
+    {/Cat}
     while (P <> nil) and (P^.ObjType <> ObjType) do P := P^.Next;
 {Cat}
 {$IFDEF LOGOBJLOADSTORE}
@@ -656,6 +664,15 @@ function TStream.Get: PObject; assembler; {$USES None} {$FRAME+}
                 pop     eax
                 test    eax,eax                 { Return nil }
                 jz      @@4
+{Cat: если пытаемся прочитать объект, регистрируемый плагином, то надо
+      сначала запустить этот плагин, чтобы он провёл регистрацию}
+                {$IFDEF PLUGIN}
+                push    eax
+                push    eax
+                Call    CatchersRegisterObject
+                pop     eax
+                {$ENDIF}
+{/Cat}
                 mov     edx,StreamTypes
         JMP     @@2
               @@1:

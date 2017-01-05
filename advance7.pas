@@ -48,7 +48,9 @@
 unit Advance7;
 
 interface
-uses Advance3, Advance, Advance2, DnIni;
+
+uses
+  Advance3, Advance, Advance2, DnIni;
 
  function  ValidLngId(LI:string; CheckForHelp:boolean):boolean;
  function  HelpLngId: string;

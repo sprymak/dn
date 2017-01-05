@@ -88,7 +88,9 @@ Function PRead(F: word; Num: word; Buf: pointer): word;
 Procedure PClose(F: word);
 
 implementation
-uses Dos, GzIo;
+
+uses
+  Dos, GzIo;
 
 Const MinPFile = 4;
       MaxPFile = 4;

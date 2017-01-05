@@ -47,10 +47,13 @@
 {$I STDEFINE.INC}
 
 unit DiskInfo;
+
 interface
-uses LFN, Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings,
-     advance, advance1, advance2, advance3, Collect
-{JO} {$IFDEF VIRTUALPASCAL}, VPUtils {$ENDIF};
+
+uses
+  LFN, Objects, Drivers, Views, Dialogs, Dos, HideView, RStrings,
+  advance, advance1, advance2, advance3, Collect
+  {$IFDEF VIRTUALPASCAL}, VPUtils {$ENDIF}; {JO}
 
 type
      PDiskInfoRec = ^TDiskInfoRec;
@@ -71,8 +74,8 @@ type
      PDiskInfo = ^TDiskInfo;
      TDiskInfo = object(THideView)
       Dir: string;
-      FreeSpace, TotalSpace, DirLen: LongInt;
-      FreeMemory, TotalMemory: LongInt;
+      FreeSpace, TotalSpace, DirLen: TSize;
+      FreeMemory, TotalMemory: TSize;
       VolumeLabel: String[12];
       SerialNo: String[9]; { Rainbow }
       NumFiles: Integer;
@@ -149,10 +152,10 @@ var
         {-DataCompBoy-}
 
 implementation
-uses Startup, ExtraMem, DNApp, Commands, DNHelp, Tree, xTime
+uses Startup, DNApp, Commands, DNHelp, Tree, xTime
      {$IFDEF DPMI}, Dpmi, Dosmem {$ENDIF}
-     {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
-     {$IFDEF OS2}, FlOS2Tl{$ENDIF} {$IFDEF WIN32} , FlW32Tl{$ENDIF}
+     {$IFDEF VIRTUALPASCAL}, VpSysLow {$ELSE}, ExtraMem {$ENDIF}
+     {$IFDEF OS2}, FlOS2Tl {$ENDIF} {$IFDEF WIN32}, FlW32Tl {$ENDIF}
      ;
 
 const MaxTeam = 158;
@@ -637,7 +640,7 @@ begin
  Wrt('');
  { Rainbow END }
  if DriveInfoData and fdiLowMemory <> 0 then
-   Wrt('~'+FStr(TotalMemory shr 10)+GetString(dlDIMemoryTotal));
+   Wrt('~'+FStr(TotalMemory/1024)+GetString(dlDIMemoryTotal));
 {$IFNDEF NONBP}
  if DriveInfoData and fdiAvailLowMemory <> 0 then
    Wrt('~'+FStr(FreeMemory)+GetString(dlDIMemoryForUser));
@@ -823,9 +826,13 @@ begin
  TotalSpc:=BytesPerCluster;
  TotalSpc:=TotalSpc*DriveData.TotalClusters;
  {$ELSE}
- FreeSpc :=SysDiskFreeLong(Drv);
+ FreeSpc:=SysDiskFreeLong(Drv);
  TotalSpc:=SysDiskSizeLong(Drv);
+ {$IFDEF DPMI32}
+ BytesPerCluster:=0; {Cat:todo DPMI32}
+ {$ELSE}
  BytesPerCluster:=GetBytesPerCluster(Drv);
+ {$ENDIF}
  {$ENDIF}
 end;
         {-DataCompBoy-}
@@ -858,7 +865,7 @@ procedure ReadDiskInfo;
       NumFiles: Integer;
 begin
   ClrIO;
-  if Dr = '' then GetDir(0, S)
+  if Dr = '' then lGetDir(0, S) {GetDir(0, S)} {Cat}
               else S := Dr;
   if Abort then Exit;
 
@@ -873,7 +880,11 @@ begin
   BytesPerCluster:=DriveData.BytesPerSector;
   BytesPerCluster:=BytesPerCluster*DriveData.SectorsPerCluster;
 {$ELSE}
+  {$IFDEF DPMI32}
+  BytesPerCluster:=0; {Cat:todo DPMI32}
+  {$ELSE}
   BytesPerCluster:=GetBytesPerCluster(Drv);
+  {$ENDIF}
 {$ENDIF}
 
   DirLen := 0; NumFiles := 0;
@@ -932,7 +943,7 @@ begin
       Dispose(F,Done); F:=nil;
     end;
   end;
-  VolumeLabel := GetVolumeLabel{$IFDEF VIRTUALPASCAL}(GetCurDrive){$ENDIF};  {JO}
+  VolumeLabel := {$IFDEF WIN32}CharToOemStr{$ENDIF}(GetVolumeLabel{$IFDEF VIRTUALPASCAL}(GetCurDrive){$ENDIF});  {JO, Cat}
   {$IFDEF VIRTUALPASCAL}
   if VolumeLabel = '' then VolumeLabel:=GetString(dlDINone);       {JO}
   {$ENDIF}

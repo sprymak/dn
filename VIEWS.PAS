@@ -58,7 +58,8 @@ unit Views;
 
 interface
 
-uses Collect, Objects, Drivers, Memory, xTime, Commands;
+uses
+  Collect, Objects, Drivers, Memory, xTime, Commands;
 
 const
 
@@ -284,7 +285,7 @@ type
     procedure   WriteStr(X, Y: Integer; Str: String; Color: Byte);
     procedure   Update; virtual;
     function    MenuEnabled(Command: Word): Boolean; {-$VOL}
-  private
+//  private
     procedure DrawCursor;
     procedure DrawHide(LastView: PView);
     procedure DrawShow(LastView: PView);
@@ -524,9 +525,8 @@ function GetNum: aint;
 
 implementation
 uses Startup, DNapp, advance, advance1, advance2, advance3, DNIni,
-     LFN, TitleSet, {DataCompBoy} {AK155 -} CallSpcb, VideoMan
-     {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}
-     ;
+     {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
+     LFN, TitleSet, {DataCompBoy} {AK155 -} CallSpcb, VideoMan;
 
 Const Numbers: AWord = 0;
 function GetNum: aint; assembler;

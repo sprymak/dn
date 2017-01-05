@@ -49,8 +49,10 @@
 unit FStorage;
 
 interface
-uses LFN, {$IFNDEF OS2}LFNCol, {$ENDIF} {DataCompBoy}
-     Objects, advance, advance1, advance2, advance3, DOS, FilesCol;
+
+uses
+  LFN, {$IFNDEF OS2}LFNCol, {$ENDIF} {DataCompBoy}
+  Objects, advance, advance1, advance2, advance3, DOS, FilesCol;
 
 type
    TStoredID = (siUndefined, siEmpty, siDirectory, siFile, siFileDir, siEnd);
@@ -130,7 +132,9 @@ type
 
 
 implementation
-uses ExtraMem, DNApp, StartUp{, Messages};
+uses
+  {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
+  DNApp, StartUp;
 
 procedure __Error;
 begin

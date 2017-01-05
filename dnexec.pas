@@ -48,9 +48,11 @@
 unit DNExec;
 
 interface
-uses UserMenu, Startup, Objects, FilesCol, Commands
-     {$IFDEF DPMI}, DPMI {$ENDIF}
-     ;
+
+uses
+  UserMenu, Startup, Objects, FilesCol, Commands, TitleSet
+  {$IFDEF DPMI}, DPMI {$ENDIF}
+  ;
 
 {$IFNDEF VIRTUALPASCAL}
 procedure SaveDsk;
@@ -62,25 +64,27 @@ procedure ExecFile(const FileName: string); {DataCompBoy}
 
 procedure AnsiExec(const Path: String; const ComLine: AnsiString); {JO}
 
+const
+  fExec: boolean = false; {выполняется внешняя программа}
+
 implementation
-uses DnUtil, Advance, DnApp, Advance1, Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Advance3, FlPanelX,
-     CmdLine, Views, Advance2, Drivers, Advance4
+
+uses
+{$IFDEF OS2}
+  Os2Base,
+{$ENDIF}
+{$IFDEF WIN32}
+  Windows,
+{$ENDIF}
+  DnUtil, Advance, DnApp, Advance1, LFN, {$IFNDEF OS2} LFNCol, {$ENDIF}
+  Dos, Advance3, FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4,
 {$IFDEF VIRTUALPASCAL}
-     ,crt {AK155 временно }
-     ,Videoman, Memory
+  Videoman, Memory, VPSysLow,
 {$ENDIF}
 {$IFDEF UserSaver}
-     , UserSavr
+  UserSavr,
 {$ENDIF}
-{AK155}
-{     , Crt}
-{/AK155}
-{Cat}
-{$IFDEF VIRTUALPASCAL}
-     , VPSysLow
-{$ENDIF}
-{/Cat}
-     ,Messages, Strings;
+  Messages, Strings;
 
 {$IFDEF OS_DOS}
 procedure SaveDsk;
@@ -99,14 +103,148 @@ end;
 { и соответственно не имеет ограничения в 255 символов}
 procedure AnsiExec(const Path: String; const ComLine: AnsiString);
 var
-  PathBuf:    array [0..255] of Char;
+  PathBuf: array [0..255] of Char;
   Ans1: AnsiString;
 begin
   Ans1 := ComLine + #0;
-  DosError := SysExecute(StrPCopy(PathBuf, Path), PChar(Ans1), nil, ExecFlags = efAsync, nil, -1, -1, -1);
+  {Cat: чтобы ДН в Win9x не тормозил, повышаем ему приоритет. Однако, незачем
+        оставлять этот повышенный приоритет при запуске внешних программ}
+  {$IFDEF WIN95_HIGHPRIORITY}
+  if SysPlatformId = 1 then {Win9x}
+    begin
+      SetPriorityClass(GetCurrentProcess, Normal_Priority_Class);
+      DosError := SysExecute(StrPCopy(PathBuf, Path), PChar(Ans1), nil, ExecFlags = efAsync, nil, -1, -1, -1);
+      SetPriorityClass(GetCurrentProcess, High_Priority_Class);
+    end
+  else {WinNT}
+  {$ENDIF}
+  {/Cat}
+    DosError := SysExecute(StrPCopy(PathBuf, Path), PChar(Ans1), nil, ExecFlags = efAsync, nil, -1, -1, -1);
+
+  SysTVKbdInit; {Cat: в OS/2: боремся с интерпретацией Ctrl-C как Ctrl-Break
+                      в WinNT: боремся с пропаданием мышиного курсора}
 end;
 {$ENDIF}
 {/JO}
+
+{$IFDEF Win32}
+{AK155 30-12-2001
+Это попытка определить тип вызываемой программы, чтобы GUI-программу
+вызывать без ожидания завершения, а все прочие - с ожиданием.
+Если расширение не указано, то никаких попыток распознать GUI-программу
+не делается. В частности не производится, поиск по переменной окружения
+Path, так как это трудно сделать не криво. Например, если запускается
+некая prog, то неправильно искать в путях файл prog.exe. Может случиться,
+что найдем, а где-то раньше, например, в текущем каталоге, есть prog.com
+или prog.cmd, а мы его вызовем, будто он GUI. Кстати, Far глючит именно
+так. Запишите в текщий каталог notepad.cmd и введите в комстроке notepad.
+А потом нажмите Enter  на этом самом notepad.cmd.
+}
+function GUIProgram(S: PString): boolean;
+  const
+    PETag = $00004550; {'PE'#0#0}
+  var
+    f: file;
+    PathEnv: string;
+    Dir: DirStr;
+    Name: NameStr;
+    Ext: ExtStr;
+    RealName: string;
+    NewExeOffs: SmallWord;
+    NewHeader: record
+      Signature: longint;
+      dummy1: array[1..16] of byte;
+      SizeOfOptionalHeader: SmallWord;
+      Characteristics: SmallWord;
+   {OptionalHeader}
+      dummy2: array[1..68] of byte;
+      Subsystem: SmallWord;
+      end;
+    l: longint;
+  begin
+  GUIProgram := false;
+  FSplit(S^, Dir, Name, Ext);
+  UpStr(Ext);
+  if Ext <> '.EXE' then
+    exit;
+  RealName := S^;
+  assign(f, RealName); reset(f, 1);
+  if (IOResult <> 0) and (Dir = '') then
+    begin
+    PathEnv := GetEnv('PATH');
+    RealName := FSearch(S^, PathEnv);
+    if RealName = '' then
+      exit;
+    assign(f, RealName); reset(f, 1);
+    if IOResult <> 0 then
+      exit; {вообще-то, так быть не должно, раз мы ее нашли}
+    end;
+  Seek(f, $3C);
+  BlockRead(f, NewExeOffs, 2, l);
+  if (NewExeOffs=0) or (l <> 2) then
+    begin
+      close(f); {Cat}
+      exit;
+    end;
+  Seek(f, NewExeOffs);
+  BlockRead(f, NewHeader, SizeOf(NewHeader), l);
+  with NewHeader do
+    begin
+    if (l < 70) or (Signature <> PETag) or (SizeOfOptionalHeader < 70) then
+      begin
+        close(f); {Cat}
+        exit;
+      end;
+    if Subsystem = 2 {IMAGE_SUBSYSTEM_WINDOWS_GUI} then
+      GUIProgram := true;
+    end;
+  close(f);
+  end;
+{$ENDIF}
+
+{$IFDEF OS2}
+{Cat 12-01-2002
+Это попытка определить тип вызываемой программы, чтобы GUI-программу
+вызывать без ожидания завершения, а все прочие - с ожиданием.
+Для OS/2 запрашиваем DosQueryAppType, причём, как показывают эксперименты,
+оно успешно работает не только по имени файла, как сказано в документации,
+но ей удаётся скормить и целую командную строку (то есть, система сама
+отбрасывает из переданной строки параметры и осуществляет поиск по
+переменной окружения Path). Конечно, нет гарантии, что это будет всегда
+работать правильно, но вряд ли вручную это удастся сделать лучше.
+}
+function GUIProgram(S: PString): Boolean;
+var
+  SS: String;
+  Flags: LongInt;
+begin
+  SS := S^+#0;
+  if DosQueryAppType(@SS[1], Flags) <> 0 then
+  { Возможные особые случаи, приводящие к ошибке, и связанные с ними проблемы:
+    2    Error_File_Not_Found
+           Если не указано расширение, система предполагает EXE, поэтому эта
+           ошибка сообщается на COM, BAT, CMD-файлы, если EXE с таким же
+           именем не найден. Если же найдётся соответствующий EXE, то всё ещё
+           хуже, поскольку просмотрен будет EXE где-то далеко, а запущен COM,
+           BAT, CMD из текущего каталога.
+    191  Error_Invalid_Exe_Signature
+           Это сообщается на все файлы, которые не получится запустить "сами
+           по себе", то есть и на BAT и CMD тоже - они интерпретируются
+           командным процессором. Однако, для COM-файлов, хотя они и не
+           содержат этой самой Exe_Signature, ошибка не возникает.
+  }
+    GUIProgram := False
+  else
+  { Просматриваем интересующие нас флаги в битах 2-0:
+      000   fapptyp_NotSpec
+      001   fapptyp_NotWindowCompat
+      010   fapptyp_WindowCompat
+      011   fapptyp_WindowApi
+  }
+    GUIProgram := (Flags and 3 = 3);
+end;
+{/Cat}
+{$ENDIF}
 
         {-DataCompBoy-}
 procedure ExecString(S: PString; WS: String);
@@ -175,9 +313,6 @@ begin
   DoneSysError;
   DoneEvents;
   DoneVideo;
-  FreeMem(UserScreen, UserScreenSize);
-  UserScreen := nil;
-  ScreenSaved := Off;
   DoneDOSMem;
   DoneMemory;
   {$IFDEF OS_DOS}asm cld; mov eax,3; int $10; end;{$ENDIF}
@@ -185,10 +320,14 @@ begin
   if TimerMark then DDTimer := Get100s
                else DDTimer := 0;
   if WS<>'' then Writeln(WS);
-  DOS.Exec(GetEnv('COMSPEC'),'/c '+S^);
-{Cat: боремся с интерпретацией Ctrl-C как Ctrl-Break}
-  SysTVKbdInit;
-{/Cat}
+  SetTitle(S^);
+  fExec := True;
+{$IFNDEF DPMI32}
+  if GUIProgram(S) then
+    S^ := 'start ' + S^;
+{$ENDIF}
+  AnsiExec(GetEnv('COMSPEC'),'/c '+S^);
+  fExec := False;
 {AK155, Cat: чтобы комстрока и меню не налазили на вывод}
   SysGetCurPos(X, Y);
   if InterfaceData.Options and ouiHideStatus = 0 then
@@ -196,8 +335,6 @@ begin
   if X <> 0 then
     writeln;
   SysTvGetScrMode(@ScreenSize);
-  Crt.GetLastMode;  {AK155 временно}
-  Crt.SetWindowPos; {AK155 временно}
   if Y >= ScreenSize.Y then
     writeln;
 {/AK155, Cat}
@@ -224,6 +361,17 @@ begin
   GlobalMessage(evCommand, cmPanelReread, nil);
   GlobalMessage(evCommand, cmRereadInfo, nil);
 {$ENDIF}
+
+{AK155 без этого курсор комстроки не становится на место}
+{$IFDEF Win32}
+  if (CommandLine <> nil) then
+    begin
+    SysTVSetCurPos(-2, -2);
+    SysCtrlSleep(1); // это для нитки курсора
+    CommandLine^.Update;
+    end;
+{$ENDIF}
+{/AK155}
 end;
         {-DataCompBoy-}
 
@@ -253,7 +401,7 @@ begin
   LFN  := GetLFN(FileRec^.LFN);
   if CharCount('.', LFN)=0 then LFN:=LFN+'.';
 {$ENDIF}
-  lGetDir(0, ActiveDir);
+  {lGetDir(0, ActiveDir);} {Cat:warn закомментировал это в процессе отлова багов, но надо будет проверить, не добавил ли новых}
   SearchExt:=False;
   Local := On;
   f := New(PTextReader, Init('DN.EXT'));
@@ -284,7 +432,12 @@ begin
 {$ELSE}
         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD'); ClrIO;
 {$ENDIF}
-        lRewriteText(F1); if IOResult <> 0 then begin Dispose(F,Done); exit; end;
+        lRewriteText(F1); if IOResult <> 0 then
+          begin
+            Dispose(F,Done);
+            FreeTMaskData(D); {Cat}
+            Exit;
+          end;
         Writeln(F1.T, '@echo off');
         System.Delete(S, 1, PosChar(BgCh, S));
         repeat
@@ -321,7 +474,8 @@ begin
      end;
   end;
   Dispose(F,Done);
-  D.Filter:=''; MakeTMaskData(D);
+  {D.Filter:=''; MakeTMaskData(D);}
+  FreeTMaskData(D); {Cat}
   if not EF and not Abort and Local then Goto RL;
   if EF and (BgCh = '[') then
    begin
@@ -331,6 +485,7 @@ begin
     if not EF then lEraseText(F1);
    end;
   SearchExt:=not Abort and EF;
+  FreeTMaskData(D); {Cat}
 end;
         {-DataCompBoy-}
 
@@ -382,13 +537,19 @@ RepeatLocal:
    end;
    ExecExtFile := Off;
    Dispose(F, Done);
-   D.Filter := ''; MakeTMaskData(D);
+   {D.Filter := ''; MakeTMaskData(D);}
+   FreeTMaskData(D); {Cat}
    if Local then Goto RepeatLocal;
+   FreeTMaskData(D); {Cat}
    Exit;
 1111:
    Delete(S, 1, succ(Length(S1)));
    Dispose(F, Done);
-   if not Application^.Valid(cmQuit) then Exit;
+   if not Application^.Valid(cmQuit) then
+     begin
+       FreeTMaskData(D); {Cat}
+       Exit;
+     end;
    ClrIO;
    S1:='';
    S:=MakeString(S, UserParams, off, @S1);
@@ -401,11 +562,20 @@ RepeatLocal:
    TempFileSWP := TempFile;
    TempFile := '';
 {$ENDIF}
-   if Abort then Exit;
+   if Abort then
+     begin
+       FreeTMaskData(D); {Cat}
+       Exit;
+     end;
    if S[1] = '*' then Delete(S, 1, 1); {DelFC(S);}
 {$IFNDEF VIRTUALPASCAL}
    PP := _WriteMsg(' '+GetString(SIdx));
-   if not CheckExit then Begin ExecExtFile:=false; Exit; end;
+   if not CheckExit then
+     begin
+       ExecExtFile:=false;
+       FreeTMaskData(D); {Cat}
+       Exit;
+     end;
 {$ENDIF}
    lGetDir(0, S1);
 {$IFDEF OS_DOS}
@@ -519,6 +689,14 @@ begin
 {$ELSE}
  M := L;
 {$ENDIF}
+
+ if Pos(' ', M) <> 0 then {AK155}
+{$IFDEF OS2}
+   M := '""' + M + '""';
+{$ELSE}
+   M := '"' + M + '"';
+{$ENDIF}
+
  RunCommand(On);
 ex:
  DelFileRec(fr);

@@ -1397,6 +1397,22 @@ dlCantLoad = 'Can''t load '
 dlIniDataReadError 'Syntax error in DN.INI, section [%s], parameter %s'
 dlIniDataTooLong   'String contains %d excess characters in DN.INI, section [%s], parameter %s'
 ;PZ-
+;PZ begin - regular expressions
+dlResErrorTitle            ^C'Regular expression error.'
+dlResUnknown               ^C'Internal error code: %d'
+dlResCanceled              ^C'Searching aborted by user.'^M+
+                           ^C'Press Ctrl-L to continue'
+dlResTooComplex            ^C'The expression is too complex'
+dlResOutOfSpace            ^C'Out of memory to compile code'
+dlResExpectedParenthesis   ^C'Expected '')'''
+dlResOperandCouldBeEmpty   ^C'Operator ''*'' or ''+'' could be emtpty'
+dlResNested                ^C'Operator ''*'', ''?'', ''+'' or ''{n,m}'' cannot be nested'
+dlResInvalidEscape         ^C'Invalid escape sequence'
+dlResInvalidSetRange       ^C'Invalid char-set definition'
+dlResExpectedSquareBracket ^C'Expected '']'''
+dlResFollowsNothing        ^C'Operator ''*'', ''?'', ''+'' or ''{n,m}'' follows nothing'
+dlResTrailingBackSlash     ^C'Trailing backslash is not allowed'
+;PZ end - regular expressions
 ;JO+
 dlNotValidForFullscreen 'This videomode is not valid for fullscreen session'
 dlCreateObject 'Create object on desktop for: '
@@ -1405,3 +1421,15 @@ dl_CodePage_FS_Error 'Codepage-related file system error'
 dlCre 'Cre '
 dlLac 'Lac '
 ;JO-
+;Cat+
+dlPlugins0 'Plugin Manager'
+dlPlugins1 ^C'Too many plugins'
+dlPlugins2 ^C'Cannot install plugin %s'
+dlPlugins3 ^C'Cannot uninstall plugin %s'
+dlPlugins4 'Plugin~s~'
+dlPlugins5 ^C'Cannot write to resource file. Possibly, another copy of DN is active. Please close it'
+dlPlugins6 ^C'Cannot read resource file'^M^C'for plugin %s'
+dlPlugins7 ''
+dlPlugins8 '~I~nstall'
+dlPlugins9 '~R~emove '
+;Cat-

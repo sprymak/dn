@@ -49,10 +49,12 @@
 unit PrintMan;
 
 interface
+
 {$IFDEF PrintManager}
-uses LFN, {DataCompBoy}
-     Objects, Views, Drivers, DNApp, advance, advance1, advance2, advance3,
-     Dialogs, DOS, Messages, Commands, collect;
+uses
+  LFN, {DataCompBoy}
+  Objects, Views, Drivers, DNApp, advance, advance1, advance2, advance3,
+  Dialogs, DOS, Messages, Commands, collect;
 
  type
       PStringCol =  ^TStringCol;

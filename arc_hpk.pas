@@ -48,8 +48,10 @@
 unit Arc_hpk; {HPK}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime,
-     collect;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime,
+  Collect;
 
 type
     PHPKArchive = ^THPKArchive;
@@ -76,6 +78,12 @@ type
 var HPKCol : PHPKCollection;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ----------------------------- HPK ------------------------------------}
 
 constructor THPKArchive.Init;
@@ -144,7 +152,7 @@ begin
 end;
 
 Procedure THPKArchive.GetFile;
-var HS,i : AWord;
+var
     DT: DateTime;
     R: PHPKRec;
 begin
@@ -156,9 +164,6 @@ begin
  if PHPKRec(HPKCol^.At(0))^.Name <> nil                 {DataCompBoy}
   then FileInfo.FName := PHPKRec(HPKCol^.At(0))^.Name^  {DataCompBoy}
   else FileInfo.FName := '';                            {DataCompBoy}
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(FileInfo.FName);          {DataCompBoy}
-{$ENDIF}
  FileInfo.Last := 0;
  FileInfo.Attr := 0;
  HPKCol^.AtFree(0);

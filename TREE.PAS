@@ -49,11 +49,13 @@
 unit Tree;
 
 interface
-uses LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} Collect,
-     Drivers, Objects, Memory, Startup, DOS, DNIni,
-     Dialogs, Views, advance, advance1, advance2, advance3,
-     FilesCol, HideView, DNHelp
-     {$IFNDEF NONBP}, DiskTool {$ENDIF};
+
+uses
+  LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} Collect,
+  Drivers, Objects, Memory, Startup, DOS, DNIni,
+  Dialogs, Views, advance, advance1, advance2, advance3,
+  FilesCol, HideView, DNHelp
+  {$IFNDEF NONBP}, DiskTool {$ENDIF};
 
 type
     PTreeWindow = ^TTreeWindow;
@@ -101,7 +103,7 @@ type
     TTreeView = object(THideView)
      ScrollBar: PScrollBar;
      CurPtr: PDirRec;
-     isValid, QuickSearch: Boolean;
+     isValid{, QuickSearch}: Boolean;
      Drive, SearchPos: Byte;
      SearchParam: TQuickSearchData; {DataCompBoy}
      CurPath, LastPath: String; {DataCompBoy}
@@ -581,7 +583,11 @@ begin
  if  (Dr[1] <= 'B') then Exit;
  If ExistFile(SourceDir+'Drive'+Dr[1]+'.DIR') then
   ST := New(PBufStream, Init(SourceDir+'Drive'+Dr[1]+'.DIR', stOpen, 4096))
- else exit;
+ else
+  begin
+   DosError := 0; {Cat}
+   Exit;
+  end;
  if ST^.Status = stOK then
   begin
    DC := PDirCollection(ST^.Get);
@@ -700,13 +706,16 @@ end;
 procedure CheckMkDir(const Path: String);
   var
     rc: longint;
+  label Start;
   begin
+Start:
   lMkDir(Path);
   rc := IOResult;
   if (rc <> 0) and (rc <> 5 {каталог уже существует}) {$IFDEF Win32} and (rc <> 183) {$ENDIF} then
    begin
-     SysErrorFunc(rc, byte(Path[1]) - byte('A'));
-     MessageBox(GetString(dlFCNoCreateDir) + Path, nil, mfError + mfOKButton);
+     if SysErrorFunc(rc, byte(Path[1]) - byte('A')) = 1 then
+       goto Start;
+     rc := MessageBox(GetString(dlFCNoCreateDir) + Path, nil, mfError + mfOKButton);
      Abort := true;
    end;
   end;

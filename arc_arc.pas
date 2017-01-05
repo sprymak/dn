@@ -46,8 +46,11 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 unit Arc_ARC;{ARC}
+
 interface
-uses Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, lfncol{$ENDIF};
+
+uses
+  Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, LFNCol{$ENDIF};
 
 Type
     PARCArchive = ^TARCArchive;
@@ -70,6 +73,12 @@ type
      end;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ----------------------------- ARC ------------------------------------}
 
 constructor TARCArchive.Init;
@@ -132,23 +141,17 @@ begin
 end;
 
 Procedure TARCArchive.GetFile;
-var HS,i : AWord;
-    FP   : Longint;
+var i    : AWord;
     P    : ARCHdr;
-    s    : String;
 begin
  ArcFile^.Read(P,2);
  if (P.Mark = ^Z) and (P.Version <> 0) and (ArcFile^.Status = stOK) then ArcFile^.Read(P.Name,SizeOf(P)-2);
  if (P.Version = 0) then begin FileInfo.Last:=1;Exit;end;
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- i := 1; S := '';
+ i := 1;
+ FileInfo.FName := '';
  While (I < 14) and (P.Name[I] <> #0) do
-  begin S := S + P.Name[I]; Inc(I); end;
- Replace('/','\',S);
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-{$ENDIF}
- FileInfo.FName := S; {DataCompBoy}
+  begin FileInfo.FName := FileInfo.FName + P.Name[I]; Inc(I); end;
  FileInfo.Last := 0;
  FileInfo.Attr := 0;
  FileInfo.USize := P.OriginSize;

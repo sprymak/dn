@@ -50,8 +50,9 @@ UNIT CCalc;
 
 interface
 
-uses advance, advance1, advance2, advance3, calculat, RStrings, DNApp,
-     Dialogs, Views, Objects, Drivers, Commands, HistList, DNHelp;
+uses
+  advance, advance1, advance2, advance3, calculat, RStrings, DNApp,
+  Dialogs, Views, Objects, Drivers, Commands, HistList, DNHelp;
 
 type
      PCalcLine = ^TCalcLine;

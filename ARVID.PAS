@@ -49,6 +49,7 @@
 UNIT Arvid;
 
 INTERFACE
+
 uses
   Collect, Objects, DOS, Drives, FilesCol, Views, DiskInfo, Tree, Histries,
   Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} FindObj;
@@ -472,24 +473,24 @@ end;
 { CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual; }
 procedure TArvidDrive.CopyFiles;
 var
-    CopyDir: String;
-    Mask: String;
+    I,J:  Integer;
     CopyOpt: Word;
     CopyMode: Word;
     CopyPrn: Boolean;
+    CmdFileCreated: Boolean;
     OwnerPtr: PView;
-    I,J:  Integer;
+    P:  PView;
+    T:  lText;
     PF: PFileRec;
+    FC, FC2: TAvtFileCell;
+    Nam, Desc: String;
+    CopyDir: String;
+    Mask: String;
     S1, S2, S3:  String;
     CmdFileNam: String;
     Dr: String;
     Nm: String;
     Xt: String;
-    FC, FC2: TAvtFileCell;
-    Nam, Desc: String;
-    P:  PView;
-    T:  lText;
-    CmdFileCreated: Boolean;
 
    procedure CopyTree(Pos: LongInt);
    begin
@@ -548,7 +549,7 @@ begin
      S2:=CurDir;
      for I:=0 to AFiles^.Count - 1 do begin
        PF:=AFiles^.at(i);
-       Stream^.Seek(Round(PF^.PSize));
+       Stream^.Seek({Cat:warn} Round(PF^.PSize));
        Stream^.Read(FC, SizeOf(FC));
        Desc:=AvtCellDesc(FC, Stream^);
 {$IFNDEF OS2}
@@ -564,7 +565,7 @@ begin
        else begin
          if MoveMode then begin {move}
            FC2:=FC; FC2.ChildOrSize:=0;
-           Stream^.Seek(Round(PF^.PSize)); Stream^.Write(FC2, SizeOf(FC2));
+           Stream^.Seek({Cat:warn} Round(PF^.PSize)); Stream^.Write(FC2, SizeOf(FC2));
            AvtDelFile(@Self, S1);
            if AvtNewFile(@Self,S2, Desc, (FC.Flags and avtIsDir) <> 0,
              FC.ChildOrSize, FC.Time, FC.StartSector, FC.Attr) = 0 then

@@ -45,15 +45,18 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 unit Histries;
 
 interface
-uses LFN, Collect, Drivers, Objects, Views, EdWin, Drives, advance, advance1,
-     advance2, advance3, U_KeyMap, microed
-     {$IFDEF VIRTUALPASCAL}{, Crt}{$ENDIF}
-{$IFDEF DBView},DBView{$ENDIF} {$IFDEF SpreadSheet},Calc{$ENDIF}
-     ;
+
+uses
+  LFN, Collect, Drivers, Objects, Views, EdWin, Drives, advance, advance1,
+  advance2, advance3, U_KeyMap, microed
+  {$IFDEF VIRTUALPASCAL}{, Crt}{$ENDIF}
+  {$IFDEF DBView} ,DBView {$ENDIF} {$IFDEF SpreadSheet} ,Calc {$ENDIF}
+  ;
 
 type
      PViewRecord = ^TViewRecord;
@@ -151,7 +154,7 @@ function  GetCommand(Idx: Integer): String;
 procedure LoadHistories;
 procedure SaveHistories;
 procedure ClearHistories;
-
+procedure DoneHistories; {Cat}
 
 const
       MaxDirHistorySize = 40;
@@ -195,7 +198,7 @@ function  TEditHistoryCol.IndexOf;
       I: Integer;
 begin
   IndexOf := -1;
-{$IFNDEF OS2}
+{$IFNDEF VIRTUALPASCAL}
   {$IFDEF OS_DOS}
   S := ' ' + lfGetLongFileName(Copy(CnvString(PEditRecord(P)^.fName), 2, MaxStringLength)); {DataCompBoy}
   {$ELSE}
@@ -937,6 +940,8 @@ procedure ClearHistories;
 var
   A: AWord;
 begin
+  if HistoryBlock = nil then
+    Exit;
   B := PChar(HistoryBlock);
   I := 1;
   {$IFDEF BIT_32}
@@ -963,5 +968,15 @@ begin
   ClearCollection(EditHistory);
   ClearCollection(ViewHistory);
 end;
+
+{Cat}
+procedure DoneHistories;
+begin
+  if CmdStrings <> nil then Dispose(CmdStrings, Done);
+  if DirHistory <> nil then Dispose(DirHistory, Done);
+  if EditHistory <> nil then Dispose(EditHistory, Done);
+  if ViewHistory <> nil then Dispose(ViewHistory, Done);
+end;
+{/Cat}
 
 end.

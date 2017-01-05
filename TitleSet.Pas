@@ -98,6 +98,12 @@ begin
   SetConsoleTitle(@Text[1]);
 end;
 {$ENDIF}
+{$IFDEF DPMI32}
+Procedure SetTitle(Text: String);
+begin
+{Cat:todo DPMI32}
+end;
+{$ENDIF}
 {$ELSE}
 {$IFDEF NONBP}
 Procedure SetTitle(Text: String);

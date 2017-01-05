@@ -1,4 +1,5 @@
 {VPSysLow extension unit by Jaroslaw Osadtchiy (JO) <2:5030/1082.53>}
+{Modified for compatibility with DPMI32 by Aleksej Kozlov (Cat) <2:5030/1326.13>}
 {Contribution to Dos Navigator /2 OSP project}
 {&OrgName+,Speed+,AlignCode+,AlignRec-,CDecl-,Far16-,Frame+,Delphi+}
 {$X+,W-,I-,J+,H-,Delphi+,R-,S-,Q-,B-,T-,Use32+}
@@ -7,9 +8,10 @@ unit VPSysLo2;
 
 interface
 
-uses VPSysLow
-{$IFDEF OS2}, Os2Def, Os2Base  {$Undef KeyDll} {$ENDIF}
-{$IFDEF WIN32}  ,Windows                       {$ENDIF};
+uses
+  VPSysLow
+  {$IFDEF OS2}, Os2Def, Os2Base {$Undef KeyDll} {$ENDIF}
+  {$IFDEF WIN32}, Windows                       {$ENDIF};
 
 function SysTVGetShiftState2: Byte;
 {$IFNDEF OS2}
@@ -23,6 +25,7 @@ inline; begin SysTVSetShiftState := 0; end;
 *)
 
 type
+  POSSearchRec = ^TOSSearchRec;
 
   TOSSearchRecNew = packed record
     Handle: Longint;
@@ -35,9 +38,9 @@ type
     LastAccessTime: Longint;
     Filler: array[0..3] of Char;
 {$IFDEF WIN32}
-    ShortName:   ShortString;
+    ShortName: ShortString;
     ExcludeAttr: Longint;
-    FindData:    TWin32FindData;
+    FindData: TWin32FindData;
 {$ENDIF}
 {$IFDEF DPMI32}
     attr_must:byte;
@@ -58,8 +61,11 @@ type
   end;
 
 function SysFindFirstNew(Path: PChar; Attr: Longint; var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
+{$IFDEF DPMI32} inline; begin SysFindFirstNew := SysFindFirst(Path, Attr, POSSearchRec(@F)^, IsPChar); end; {$ENDIF}
 function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
+{$IFDEF DPMI32} inline; begin SysFindNextNew := SysFindNext(POSSearchRec(@F)^, IsPChar); end; {$ENDIF}
 function SysFindCloseNew(var F: TOSSearchRecNew): Longint;
+{$IFDEF DPMI32} inline; begin SysFindCloseNew := SysFindClose(POSSearchRec(@F)^); end; {$ENDIF}
 
 implementation
 
@@ -101,7 +107,6 @@ type
   end;
 
 {$IFDEF Win32}
-
 function SetResult(Success: Boolean): Longint;
 begin
   Result := 0;
@@ -284,7 +289,6 @@ begin
   else
     Result := DosFindClose(F.Handle);
 end;
-
 {$ENDIF}
 
 end.

@@ -50,8 +50,9 @@ unit ASCIITab;
 
 interface
 
-uses advance, advance1, advance2, advance3, Objects, DNApp, Views, Drivers,
-     RStrings;
+uses
+  advance, advance1, advance2, advance3, Objects, DNApp, Views, Drivers,
+  RStrings;
 
 const boundsASCII: TPoint = (X:0;Y:0);
       charASCII: Char = #04;

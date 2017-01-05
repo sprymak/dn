@@ -51,7 +51,8 @@ unit Messages;
 
 interface
 
-uses Objects, Commands, RStrings, Dos, drivers;
+uses
+  Objects, Commands, RStrings, Dos, drivers;
 
 const
 

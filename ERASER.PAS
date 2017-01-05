@@ -49,7 +49,9 @@
 UNIT ERASER;
 
 interface
-uses Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} filediz, Collect;
+
+uses
+  Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} filediz, Collect;
 
  procedure EraseFiles(Files: PCollection);
  procedure SetVLabel;
@@ -172,6 +174,8 @@ procedure EraseFiles;
     DC: PDirCol;
     TD: PDirCol;
     SR: lSearchRec;
+    s: string;
+  Label TryDel;
   begin
    DOSDelDir := false;
    Abort:=false;
@@ -232,8 +236,13 @@ procedure EraseFiles;
     while TD^.Count>0 do
      begin
       ClrIO;
-      lRmDir(PString(tD^.At(0))^);
+      s := PString(tD^.At(0))^;
+TryDel:
+      lRmDir(s);
       Params.RC := IOResult;
+      if Params.rc <> 0 then
+         if SysErrorFunc(Params.rc, byte(s[1]) - byte('A')) = 1 then
+           goto TryDel;
       if Params.RC<>0 then
        begin DOSDelDir:=False; FreeStr:=PString(tD^.At(0))^; break; end;
       TD^.AtFree(0);
@@ -328,8 +337,10 @@ procedure EraseFiles;
               FreeStr := Cut(FreeStr,40);
               Params.FName := @FreeStr;
               S := GetString(dlEraseCantDelDir);
+              {$IFDEF SHOWRC}
               if Params.RC <> 0 then
-                S := S + ^M^C'RC=%d';
+                S := S + ^M^C'(RC=%d)';
+              {$ENDIF}
               MessageBox(S, @Params, mfError+mfOKButton);
               Abort := On;
            end;
@@ -624,7 +635,7 @@ begin
   Abort := Off; DOSError := 0; ClrIO;
   FindFirst('\*.*', VolumeID, SR);
   if Abort then Exit;
-  GetDir(0, S1);
+  lGetDir(0, S1); {GetDir(0, S1);} {Cat}
   if Abort then Exit;
   if DOSError = 0 then S := SR.Name else S := '';
   If ExecResource( dlgVolumeLabel, S ) = cmOK then begin
@@ -643,11 +654,11 @@ end;
     S: String;
     rc: Longint;
 begin
-  S := GetVolumeLabel(GetCurDrive);
+  S := {$IFDEF WIN32}CharToOemStr{$ENDIF}(GetVolumeLabel(GetCurDrive)); {Cat}
   if ExecResource(dlgVolumeLabel, S ) = cmOK then
   begin
     rc :=  SetVolume(GetDrive+1, S);
-    if rc <> 0 then messagebox(GetString(dl_Failed_to_set_volume_label)+', rc = %d', @rc, mfOKButton);
+    if rc <> 0 then messagebox(GetString(dl_Failed_to_set_volume_label)+{$IFDEF SHOWRC}^M^C', (RC=%d)'{$ENDIF}, @rc, mfOKButton);
   end;
 end;
 {$ENDIF}

@@ -49,7 +49,9 @@
 unit FileList;
 
 interface
-  uses Drives, Drivers, Views, Objects, FilesCol, DOS, advance, advance1,
+
+uses
+  Drives, Drivers, Views, Objects, FilesCol, DOS, advance, advance1,
   advance2, advance3, RStrings {$IFNDEF OS2}, LFNCol {$ENDIF};
 
 type
@@ -170,7 +172,12 @@ begin
  FreeSpace := ''; TotalInfo := ''; TotalLen := 0;
  Files := New(PFilesCollection, Init(10, 20));
  PFilesCollection(Files)^.Owner := Owner;
- if PanelFlags and pfFreeSpace <> 0 then FreeSpc := DiskFree(Byte(CurDir[1])-64);
+ if PanelFlags and pfFreeSpace <> 0 then
+   {$IFDEF VIRTUALPASCAL}
+   FreeSpc := SysDiskFree(Byte(CurDir[1])-64);
+   {$ELSE}
+   FreeSpc := DiskFree(Byte(CurDir[1])-64);
+   {$ENDIF}
 
  PFilesCollection(Files)^.SortMode := SortMode;
 {$IFDEF Win32}

@@ -66,12 +66,16 @@
 }
 
 unit MicroEd;
+
 interface
+
 uses
   Dos, LFN{DataCompBoy}, Objects, Drivers, Memory, Views, Messages, DNApp,
-  advance, advance1, advance2, advance3, Startup, Menus, DNStdDlg, Dialogs,
-  Commands, UniWin, RStrings, DNHelp, SBlocks, ObjType, U_KeyMap, collect,
-  ed2, highlite;
+  Advance, Advance1, Advance2, Advance3, Startup, Menus, DNStdDlg, Dialogs,
+  Commands, UniWin, RStrings, DNHelp, {SBlocks,} ObjType, U_KeyMap, Collect,
+  {$IFDEF REGEXP} RegExp, {$ENDIF}
+  {$IFDEF COLORER} Colorer, {$ENDIF}
+  Ed2, HighLite;
 
 const
       Clipboard   : PCollection = nil;
@@ -105,7 +109,7 @@ type
     ReplaceAll: Boolean;
     Delta: TPoint;
     EditName: String; {DataCompBoy}
-    FileLines: PCollector;
+    FileLines: PLineCollection {PCollector}; {-SBlocks}
     IsValid,Marking: Boolean;
     SmartPad: Boolean;
     ClipBrd: Boolean; {-$VOL}
@@ -113,7 +117,7 @@ type
     Mark,Sel: TRect;
     Pos, LastPos{,BlockPos}: TPoint;
     MarkPos: TPosArray;
-    LastLine: LongInt;
+    LastLine: LongInt; {Cat: на первый взгляд кажется, что это номер последней строки файла, а на самом деле это номер текущей строки}
     DrawMode: Integer;
     WorkString,LastShape: LongString;
     OldBlockValid, SearchOnDisplay,
@@ -138,6 +142,14 @@ type
     InfoL,BMrk: PView;
 
     MenuItemStr: array [boolean] of PString;
+    {$IFDEF REGEXP}
+    RegExp: PRegExp;
+    {$ENDIF}
+    {$IFDEF COLORER}
+    UseExternalColorer: Boolean; {Cat}
+    ColorerCollection: PColorerCollection; {Cat}
+    procedure SwitchExternalColorer(Switch: Boolean); {Cat}
+    {$ENDIF}
     constructor Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar;
       var FileName: String); {DataCompBoy}
     constructor Load(var S: TStream);
@@ -154,7 +166,7 @@ type
     procedure SetState(AState: Word; Enable: Boolean); virtual;
     function  ValidBlock: Boolean;
     procedure CalcMenu;
-    function  Search: Boolean;
+    function  Search(StartX, StartY: Word): Boolean;
     procedure InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
     procedure ModifyLine(Index : LongInt; S : LongString; DelSpaces: Boolean);
     procedure SetLimits;
@@ -186,6 +198,16 @@ type
                  Line, What: String[250];
                 end;
 
+{Cat: параметры поиска (TSearchData.Options)}
+{необходимо согласовывать с константой SwapBits в модуле Editor}
+const
+  efoCaseSens       =  1;
+  efoWholeWords     =  2;
+  efoReplacePrompt  =  4;
+  efoRegExp         =  8;
+  efoAllCP          = 16;
+{/Cat}
+
 const
       SearchData: TSearchData = (Options:4; Dir: 0; Scope:0; Origin:0; Line:''; What:'');
 
@@ -199,8 +221,9 @@ var   EditCommands : Array [1..110] of TEditCommand;
 
 implementation
 
-uses Gauge, FViewer, Histlist, Macro, Editor, WinClp, DNUtil, Histries,
-     xTime, FileCopy, ASCIItab, DnIni, U_SrchF, EdWin, Microed2; {-$VIV}
+uses
+  Gauge, FViewer, Histlist, Macro, Editor, WinClp, DNUtil, Histries,
+  xTime, FileCopy, ASCIItab, DnIni, U_SrchF, EdWin, Microed2{-$VIV};
 
 const
     On          = True;
@@ -211,6 +234,41 @@ const
    {ClipboardWindow: PEditWindow = nil;}  {Cat: внимание! появились указатели SmartWindowPtr и ClipboardWindowPtr}
 
 function MemAvail: LongInt; begin MemAvail := MemAdjust(System.MemAvail) end;
+
+{Cat}
+{$IFDEF COLORER}
+procedure TFileEditor.SwitchExternalColorer(Switch: Boolean);
+var
+  Ed: LongInt;
+begin
+  if Switch<>UseExternalColorer then
+    if Switch then
+      begin
+        UseExternalColorer:=InitColorer;
+        if UseExternalColorer then
+          begin
+            Colorer.plgOpenPlugin(0, 0, 0); {???}
+            Colorer.plgProcessEditorEvent(LongInt(@Self), EE_READ, nil);
+            Colorer.plgProcessEditorEvent(LongInt(@Self), EE_REDRAW, nil); {а это здесь - чтобы colorer протормозился заранее}
+            ColorerCollection:=New(PColorerCollection, Init(30,10));
+          end;
+      end
+    else
+      begin
+        UseExternalColorer:=False;
+        Ed := LongInt(@Self);
+        Colorer.plgProcessEditorEvent(Ed, EE_CLOSE, @Ed);
+        Colorer.plgClosePlugin(0);
+        DoneColorer;
+        if ColorerCollection<> nil then
+          begin
+            Dispose(ColorerCollection, Done);
+            ColorerCollection:=nil;
+          end;
+      end;
+end;
+{$ENDIF}
+{/Cat}
 
 function TFileEditor.KeyMapConvertStr(S: LongString; toAscii: Boolean): LongString; {-$VIV}
 begin
@@ -516,8 +574,15 @@ end; {-$VOL}
 
 constructor TFileEditor.Load(var S: TStream);
 begin
- inherited Load(S);
- MILoad(@Self, S);
+  inherited Load(S);
+  {$IFDEF COLORER} {Cat}
+  UseExternalColorer:=False;
+  SwitchExternalColorer(EdOpt.HiLite);
+  {$ENDIF} {/Cat}
+  MILoad(@Self, S);
+  {$IFDEF REGEXP}
+  RegExp:=New(PRegExp, Init);
+  {$ENDIF}
 end;
 
 procedure TFileEditor.Store(var S: TStream);
@@ -591,27 +656,41 @@ begin
       FileName := Line+FileName+'.DN';
     end else if ClipBrd then FileName := ''
     else Line := FileName;
-  FileLines := GetCollector(3000, 100);
+ {FileLines := GetCollector(3000, 100);}
+  FileLines := New(PLineCollection, Init(300, 1000, True)); {-SBlocks}
   Macros := New(PCollection, Init(10,10));
 
 (*if UpperCase(DefCodePage) = 'WIN' then KeyMap := kmAnsi
    else if UpperCase(DefCodePage) = 'KOI' then KeyMap := kmKoi8r
     else KeyMap := kmAscii; {-$VIV}*)
   MenuItemStr[True]:=NewStr(GetString(dlMenuItemOn));
-  MenuItemStr[False]:=NewStr(GetString(dlMenuItemOff))
+  MenuItemStr[False]:=NewStr(GetString(dlMenuItemOff));
+  {$IFDEF REGEXP}
+  RegExp:=New(PRegExp, Init);
+  {$ENDIF}
+  {$IFDEF COLORER} {Cat}
+  UseExternalColorer:=False;
+  SwitchExternalColorer(EdOpt.HiLite);
+  {$ENDIF} {/Cat}
 end;
 
 destructor TFileEditor.Done;
 begin
   DisposeStr(MenuItemStr[False]);
   DisposeStr(MenuItemStr[True]);
-  if FileLines<>nil then Dispose(FileLines,Done); FileLines:=nil;
-  if UndoInfo <>nil then Dispose(UndoInfo,Done);  UndoInfo :=nil;
-  if RedoInfo <>nil then Dispose(RedoInfo,Done);  RedoInfo :=nil;
-  if Macros   <>nil then Dispose(Macros,Done);    Macros   :=nil;
-  if Locker   <>nil then Dispose(Locker,Done);    Locker   :=nil;
+  {$IFDEF REGEXP}
+  if RegExp   <>nil then begin Dispose(RegExp,Done);    RegExp   :=nil; end;
+  {$ENDIF}
+  if FileLines<>nil then begin Dispose(FileLines,Done); FileLines:=nil; end;
+  if UndoInfo <>nil then begin Dispose(UndoInfo,Done);  UndoInfo :=nil; end;
+  if RedoInfo <>nil then begin Dispose(RedoInfo,Done);  RedoInfo :=nil; end;
+  if Macros   <>nil then begin Dispose(Macros,Done);    Macros   :=nil; end;
+  if Locker   <>nil then begin Dispose(Locker,Done);    Locker   :=nil; end;
   if SmartPad then begin SmartWindowPtr     := @SmartWindow;     SmartWindow     := nil; end;
   if ClipBrd  then begin ClipboardWindowPtr := @ClipboardWindow; ClipboardWindow := nil; end;
+  {$IFDEF COLORER} {Cat}
+  SwitchExternalColorer(False);
+  {$ENDIF} {/Cat}
   inherited Done;
 end;
 
@@ -891,6 +970,8 @@ function  TFileEditor.LimitY;
         {-DataCompBoy-}
 
         {-DataCompBoy-}
+{Cat: эта функция идентична имеющейся в DnStdDlg}
+(*
 function GetFileNameDialog(Mask, Title, Name: String; Buttons, HistoryID: Word): String;
  var S: String;
      D: PFileDialog;
@@ -913,6 +994,7 @@ begin
   GetFileNameDialog := S;
 {$ENDIF}
 end;
+*)
         {-DataCompBoy-}
 
         {-DataCompBoy-}
@@ -1020,178 +1102,288 @@ begin
                                  ((Mark.A.Y = Mark.B.Y) and (Mark.A.X < Mark.B.X));
 end;
 
-
+{Cat: переделал для поиска с регэкспами}
 function TFileEditor.Search;
- label 1;
- var I, J, TrX, StX: LongInt;
-     D,DD: TPoint;
-     T: TRect;
-     W, S, S1: LongString;
-     F, Prompt: Boolean;
-     OldMark: TRect;
-     NumRep: LongInt;
-     Dir: Integer;
-     OldCache: Boolean;
-     Tmr: TEventTimer;
-     AllCP: Boolean; {-$VIV 14.05.99}
-
-procedure _DrawViews;
-begin
- DrawView;
- HScroll^.DrawView;
- VScroll^.DrawView;
-end;
-
 label
-  LExit, _LExit;
+  1, LExit, _LExit, EndReplace;
+var
+  I, J, TrX, StX: LongInt;
+  D, DD: TPoint;
+  T: TRect;
+  W, S, S1: LongString;
+  F, Prompt: Boolean;
+  OldMark: TRect;
+  NumRep: LongInt;
+  Dir: Integer;
+  OldCache: Boolean;
+  Tmr: TEventTimer;
+  AllCP: Boolean; {-$VIV 14.05.99}
+
+  procedure _DrawViews;
+  begin
+    DrawView;
+    HScroll^.DrawView;
+    VScroll^.DrawView;
+  end;
 
 begin
- SearchActive := On;
- NewTimer(Tmr, 0);
-{ OldCache := PBlocker(FileLines)^.UseCache;}
- Marking := Off;
- OldMark := Mark;
- if (SearchData.Scope = 1) and not (BlockVisible and ValidBlock) then goto LExit;
- Search := Off; F := On;
- Prompt := (SearchData.What <> #0) and (SearchData.Options and 4 <> 0);
- D := Delta; W := SearchData.Line; if W = '' then goto LExit;
- if SearchData.Options and 1 = 0 then UpLongStr(W);
- AllCP := (SearchData.What = #0) and (SearchData.Options and 8 <> 0);
- UnMark := Off;
- NumRep := 0;
- Dir := 1 - 2 * SearchData.Dir;
- while (Dir > 0) and (D.Y < FileLines^.Count) or
-       (Dir < 0) and (D.Y >= 0) do
+  SearchActive := On;
+  NewTimer(Tmr, 0);
+  Marking := Off; OldMark := Mark;
+  if (SearchData.Scope = 1 {отмеченный текст}) and not (BlockVisible and ValidBlock) then
+    goto LExit;
+  Search := Off; F := On;
+  Prompt := (SearchData.What <> #0) and (SearchData.Options and efoReplacePrompt <> 0); {запрос на замену}
+  D.Assign(StartX, StartY);
+  W := SearchData.Line;
+  if W = '' then
+    goto LExit;
+  if SearchData.Options and efoCaseSens = 0 then {не различать регистр}
+    UpLongStr(W);
+  AllCP := (SearchData.What = #0) and (SearchData.Options and efoAllCP <> 0 {во всех кодировках});
+  UnMark := Off;
+  NumRep := 0;
+  Dir := 1 - 2 * SearchData.Dir; {направление поиска: +1 вперёд, -1 назад}
+  while (Dir > 0) and (D.Y < FileLines^.Count) or
+        (Dir < 0) and (D.Y >= 0) do
     begin
-1:   S1 := GetLine(D.Y); TrX := Length(S1); S := S1;
-{     PBlocker(FileLines)^.UseCache := True;}
-     if (Dir < 0) then
-       begin
-        if (D.X > Length(S1)) then D.X := Length(S1);
-        StX := 1; TrX := D.X;
-        if SearchData.Scope = 1 then
-         begin
-            Mark := OldMark;
-            if D.Y < Mark.A.Y then Break;
-            if D.Y > Mark.B.Y then begin Dec(D.Y); D.X := MaxLongStringLength; Continue; end;
-            if (D.Y = Mark.B.Y) and (D.Y = Mark.A.Y) or VertBlock then
-                if StX < Mark.A.X then StX := Mark.A.X + 1;
-            if (D.Y = Mark.B.Y) or VertBlock then
-               if TrX > Mark.B.X then TrX := Mark.B.X;
-         end;
-        if TrX < StX then I := 0 {-$VIV 14.05.99}
-         else if AllCP then I := BackSearchForAllCP(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0)
-          else I := BackSearchFor(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0);
-       end else
-           begin
-             StX := D.X + 1;
-             if SearchData.Scope = 1 then
-              begin
-               Mark := OldMark;
-               if D.Y < Mark.A.Y then begin Inc(D.Y); D.X := 0; Continue; end;
-               if D.Y > Mark.B.Y then Break;
-               if (D.Y = Mark.B.Y) and (D.Y = Mark.A.Y) or VertBlock then
-                   if StX < Mark.A.X then StX := Mark.A.X + 1;
-               if (D.Y = Mark.B.Y) or VertBlock then TrX := Mark.B.X;
-              end;
-              if TrX < StX then I := 0 {-$VIV 14.05.99}
-               else if AllCP then I := SearchForAllCP(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0)
-                else I := SearchFor(W, S1[StX], TrX - StX + 1, SearchData.Options and 1 <> 0);
-           end;
-
-     if (I > 0) and (SearchData.Options and 2 <> 0) then
-         if not (((StX-1+I = 1) or (S1[StX-1+I-1] in BreakChars)) and
-            ((StX - 1 + I + Length(W) > Length(S1)) or (S1[StX-1 + I + Length(W)] in BreakChars))) then
-              begin
-                if Dir > 0 then D.X := StX+I
-                           else D.X := StX+I-1;
-                Goto 1;
-              end;
-
-     if I > 0 then
-      begin
-       Search := On; F := Off;
-       DD.Y := D.Y; DD.X := StX + I - 2; D := DD;
-       if Dir > 0 then Inc(D.X, Length(W));
-       Delta := D;
-       HScroll^.Value := D.X; {HScroll^.DrawView;}
-       VScroll^.Value := D.Y;
-       if TimerExpired(Tmr) then
-       begin
-         VScroll^.DrawView;
-         NewTimer(Tmr, 1);
-       end;
-       if (D.Y - Pos.Y > Size.Y) then Pos.Y := D.Y - Size.Y div 2
-         else if (D.Y < Pos.Y) then Pos.Y := Max(0, D.Y-5);
-       if (D.X - Pos.X > Size.X - 10) then Pos.X := D.X - Size.X div 2
-         else if (D.X < Pos.X) then Pos.X := Max(0, D.X-5);
-       if (SearchData.What = #0) or Prompt then _DrawViews;
-       if SearchData.What <> #0 then
+1:
+      S1 := GetLine(D.Y); TrX := Length(S1); {S := S1;}
+      if (Dir < 0) then {поиск назад}
         begin
-         J := cmYes;
-         if Prompt then
-          begin
-           I := 50;
-           T.A.Y := Delta.Y - Pos.Y; MakeGlobal(T.A, T.A);
-           Desktop^.MakeLocal(T.A, T.A);
-           T.A.X := (Desktop^.Size.X - I) div 2; T.B.X := T.A.X + I;
-           if {(T.A.Y >= (Desktop^.Size.Y-12) div 2) and}
-              (T.A.Y <= (Desktop^.Size.Y{+12}) div 2) then T.A.Y := (Desktop^.Size.Y+4) div 2
-                   else T.A.Y := (Desktop^.Size.Y-18) div 2;
-           T.B.Y := T.A.Y + 8;
-           J := MessageBoxRect(T, GetString(dlQueryReplace), nil,
-                    mfQuery+mfYesButton+mfAllButton+mfNoButton+mfCancelButton);
-           if J = cmOK then begin J := cmYes; ReplaceAll := On; Prompt := Off end;
-          end;
-         if J = cmCancel then begin Mark := OldMark; _DrawViews; goto LExit; end;
-         if J = cmYes then
-          begin
-           Modified := On;
-           Inc(NumRep);{piwamoto}
-           S := Copy(S1, DD.X + 1, Length(W));
-           Insert(Char(Length(SearchData.What)), S, 1);
-           if ReplaceAll then
-             StoreUndoInfo(udReplaceAll, DD, S) {-$VOL}
-           else StoreUndoInfo(udReplace, DD, S);
-           Delete(S1, DD.X+1, Length(W));
-           Insert(SearchData.What, S1, DD.X+1);
-{           PBlocker(FileLines)^.UseCache := False;}
-           ModifyLine(Delta.Y, S1, On); WorkModified := Off;
-           if Dir > 0 then Dec(Delta.X, Length(W) - Length(SearchData.What));
-           if (SearchData.What = #0) or Prompt then ScrollTo(Delta.X, Delta.Y);
-           D := Delta;
-           if (SearchData.What = #0) or Prompt then _DrawViews;
-          end;
-         if ReplaceAll then Goto 1
-                       else begin
-                              Mark := OldMark;
-                              _DrawViews; goto LExit;
-                            end;
+          if (D.X > Length(S1)) then
+            D.X := Length(S1);
+          StX := 1; TrX := D.X;
+          if SearchData.Scope = 1 then {отмеченный текст}
+            begin
+              Mark := OldMark;
+              if D.Y < Mark.A.Y then
+                Break;
+              if D.Y > Mark.B.Y then
+                begin
+                  Dec(D.Y);
+                  D.X := MaxLongStringLength;
+                  Continue;
+                end;
+              if (D.Y = Mark.B.Y) and (D.Y = Mark.A.Y) or VertBlock then
+                if StX < Mark.A.X then
+                  StX := Mark.A.X + 1;
+              if (D.Y = Mark.B.Y) or VertBlock then
+                if TrX > Mark.B.X then
+                  TrX := Mark.B.X;
+            end;
+          if TrX < StX then
+            I := 0 {-$VIV 14.05.99}
+          else
+            {$IFDEF REGEXP}
+            if SearchData.Options and efoRegExp <> 0 then {поиск регэкспа - пока работает только вперёд}
+              begin
+{Cat:todo}      MessageBox('RegExp BackSearch is not implemented yet', nil, mfError+mfOkButton);
+                goto LExit;
+              end
+            else
+            {$ENDIF}
+              if AllCP then
+                I := BackSearchForAllCP(W, S1[StX], TrX - StX + 1, SearchData.Options and efoCaseSens <> 0)
+              else
+                I := BackSearchFor(W, S1[StX], TrX - StX + 1, SearchData.Options and efoCaseSens <> 0);
         end
-          else begin Mark := OldMark; LastPos.X := -1; {DrawView; }goto _LExit; end;
-      end;
-     if Dir > 0 then begin D.X := 0; Inc(D.Y); end
-                else begin D.X := MaxLongStringLength; Dec(D.Y); end;
-  end;
-  if F then MessageBox(GetString(dlDBViewSearchNot), nil, mfError+mfOKButton)
-    else
-      begin
-        Mark := OldMark;
-        _DrawViews;
-      end;
+      else {поиск вперёд}
+        begin
+          StX := D.X + 1;
+          if SearchData.Scope = 1 then {отмеченный текст}
+            begin
+              Mark := OldMark;
+              if D.Y < Mark.A.Y then
+                begin
+                  Inc(D.Y);
+                  D.X := 0;
+                  Continue;
+                end;
+              if D.Y > Mark.B.Y then
+                Break;
+              if (D.Y = Mark.B.Y) and (D.Y = Mark.A.Y) or VertBlock then
+                if StX < Mark.A.X then
+                  StX := Mark.A.X + 1;
+              if (D.Y = Mark.B.Y) or VertBlock then
+                TrX := Mark.B.X;
+            end;
+          if TrX < StX then
+            I := 0 {-$VIV 14.05.99}
+          else
+            {$IFDEF REGEXP}
+            if SearchData.Options and efoRegExp <> 0 then {поиск регэкспа}
+              begin
+                I := 0;
+                if RegExp^.Execute({$IFDEF USELONGSTRING} PChar(S1) + StX - 1 {$ELSE} @S1[StX] {$ENDIF}, TrX - StX + 1) and (RegExp^.FLength <> 0) then
+                  I := RegExp^.FStart + 1
+                else
+                  if RegExp^.FStatus <> resOK then
+                    begin
+                      ScrollTo(D.X, D.Y); { go to aborted line                 }
+                      goto LExit;         { press Ctrl-L to continue searching }
+                    end;
+              end
+            else
+            {$ENDIF}
+              if AllCP then
+                I := SearchForAllCP(W, S1[StX], TrX - StX + 1, SearchData.Options and efoCaseSens <> 0)
+              else
+                I := SearchFor(W, S1[StX], TrX - StX + 1, SearchData.Options and efoCaseSens <> 0);
+        end;
+
+      if (I > 0) and (SearchData.Options and efoWholeWords <> 0) then {что-то нашли, надо проверить, отдельное ли это слово}
+        if not (((StX-1+I = 1) or (S1[StX-1+I-1] in BreakChars)) and
+           ((StX - 1 + I + Length(W) > Length(S1)) or (S1[StX-1 + I + Length(W)] in BreakChars))) then
+          begin
+            if Dir > 0 then
+              D.X := StX+I
+            else
+              D.X := StX+I-1;
+            goto 1;
+          end;
+
+      if I > 0 then {что-то нашли, надо нарисовать это на экране}
+        begin
+          Search := On; F := Off;
+          DD.Y := D.Y; DD.X := StX + I - 2; D := DD;
+          if Dir > 0 then
+            {$IFDEF REGEXP}
+            if SearchData.Options and efoRegExp <> 0 then
+              Inc(D.X, RegExp^.FLength)
+            else
+            {$ENDIF}
+              Inc(D.X, Length(W));
+          Delta := D;
+          HScroll^.Value := D.X;
+          VScroll^.Value := D.Y;
+          if TimerExpired(Tmr) then
+            begin
+              VScroll^.DrawView;
+              NewTimer(Tmr, 1);
+            end;
+          if (D.Y - Pos.Y > Size.Y) then
+            Pos.Y := D.Y - Size.Y div 2
+          else
+            if (D.Y < Pos.Y) then
+              Pos.Y := Max(0, D.Y-5);
+          if (D.X - Pos.X > Size.X - 10) then
+            Pos.X := D.X - Size.X div 2
+          else
+            if (D.X < Pos.X) then
+              Pos.X := Max(0, D.X-5);
+          if (SearchData.What = #0) or Prompt
+            then _DrawViews;
+          if SearchData.What <> #0 then
+            begin
+              J := cmYes;
+              if Prompt then
+                begin
+                  I := 50;
+                  T.A.Y := Delta.Y - Pos.Y;
+                  MakeGlobal(T.A, T.A);
+                  Desktop^.MakeLocal(T.A, T.A);
+                  T.A.X := (Desktop^.Size.X - I) div 2; T.B.X := T.A.X + I;
+                  if (T.A.Y <= (Desktop^.Size.Y) div 2) then
+                    T.A.Y := (Desktop^.Size.Y+4) div 2
+                  else
+                    T.A.Y := (Desktop^.Size.Y-18) div 2;
+                  T.B.Y := T.A.Y + 8;
+                  J := MessageBoxRect(T, GetString(dlQueryReplace), nil,
+                    mfQuery+mfYesButton+mfAllButton+mfNoButton+mfCancelButton);
+                  if J = cmOK then
+                    begin
+                      J := cmYes;
+                      ReplaceAll := On;
+                      Prompt := Off;
+                    end;
+                end;
+              if J = cmYes then
+                begin
+                  Modified := On;
+                  Inc(NumRep); {piwamoto}
+                  {$IFDEF REGEXP}
+                  if SearchData.Options and efoRegExp <> 0 then
+                    S := Copy(S1, DD.X+1, RegExp^.FLength)
+                  else
+                  {$ENDIF}
+                    S := Copy(S1, DD.X+1, Length(W));
+                  Insert(Char(Length(SearchData.What)), S, 1);
+                  if ReplaceAll then
+                    StoreUndoInfo(udReplaceAll, DD, S) {-$VOL}
+                  else
+                    StoreUndoInfo(udReplace, DD, S);
+                  {$IFDEF REGEXP}
+                  if SearchData.Options and efoRegExp <> 0 then
+                    Delete(S1, DD.X+1, RegExp^.FLength)
+                  else
+                  {$ENDIF}
+                    Delete(S1, DD.X+1, Length(W));
+                  Insert(SearchData.What, S1, DD.X+1);
+                  ModifyLine(Delta.Y, S1, On);
+                  WorkModified := Off;
+                  if Dir > 0 then
+                    {$IFDEF REGEXP}
+                    if SearchData.Options and efoRegExp <> 0 then
+                      Dec(Delta.X, RegExp^.FLength - Length(SearchData.What))
+                    else
+                    {$ENDIF}
+                      Dec(Delta.X, Length(W) - Length(SearchData.What));
+                  if (SearchData.What = #0) or Prompt then
+                    ScrollTo(Delta.X, Delta.Y);
+                  D := Delta;
+                  if (SearchData.What = #0) or Prompt then
+                    _DrawViews;
+                end;
+                if ReplaceAll then
+                  begin  {AK155}
+                    if J <> cmCancel then
+                      goto 1;
+                    Mark := OldMark;
+                    goto EndReplace;
+                  end;
+            end
+          else
+            begin
+              Mark := OldMark;
+              LastPos.X := -1;
+              goto _LExit;
+            end;
+        end;
+
+      if Dir > 0 then
+        begin
+          D.X := 0; Inc(D.Y);
+        end
+      else
+        begin
+          D.X := MaxLongStringLength; Dec(D.Y);
+        end;
+    end;
+
+  if F then
+    begin
+      SearchActive := Off;
+      MessageBox(GetString(dlDBViewSearchNot), nil, mfError+mfOKButton);
+    end
+  else
+    Mark := OldMark;
   UnMark := On;
+
+EndReplace:
   if NumRep > 0 then
     begin
       MessageBox(GetString(dlReplacesMade), @NumRep, mfOkButton+mfInformation);
       ScrollTo(Delta.X, Delta.Y);
-      _DrawViews;
     end;
+
 LExit:
- _DrawViews;
+  _DrawViews;
+
 _LExit:
-{ PBlocker(FileLines)^.UseCache := OldCache;}
- SearchActive := Off;
+  SearchActive := Off;
 end;
+{/Cat}
 
 procedure TFileEditor.InsertBlock;
  var I,Q: LongInt;
@@ -1284,8 +1476,8 @@ var
   X1, X2: LongInt;
   LPos: Integer;
   Ch: Char;
-var B: TDrawBuffer;
-
+  B: TDrawBuffer;
+  BB: TPoint;
 
   procedure DrawBlock;
   begin
@@ -1306,8 +1498,6 @@ var B: TDrawBuffer;
                         end else MoveColor(B, Size.X, BC);
         end;
   end;
-
-  var BB: TPoint;
 
 begin
   BB := Pos;
@@ -1347,6 +1537,14 @@ begin
   BC := GetColor(2);
   for I := 1 to 12 do CC[I] := GetColor(I);
   Comments := GetColor(3);
+  {$IFDEF COLORER} {Cat}
+  if UseExternalColorer then
+    begin
+      Dispose(ColorerCollection, Done);
+      ColorerCollection := New(PColorerCollection, Init(30,10));
+      Colorer.plgProcessEditorEvent(LongInt(@Self), EE_REDRAW, nil);
+    end;
+  {$ENDIF} {/Cat}
   for I := 0 to Size.Y - 1 do
   begin
     A := Pos.Y + I;
@@ -1384,21 +1582,28 @@ begin
       if WM or (A <> Delta.Y) then S := GetLine(A) else S := WorkString;
       MoveStr(B, Copy(S, Pos.X + 1, Size.X), C);
       if EdOpt.HiLite then begin
-{$IFDEF USELONGSTRING}
-        SetLength(S, Length(S)); {Cat: ...Kreks...Feks...Peks...Suxx...}
-{$ENDIF}
-        Highlites ( Length(S), {$IFDEF USELONGSTRING} PChar(S) {$ELSE} @S[1] {$ENDIF}, HiLitePar ); {PZ 2000.04.28}
-        C1                  := C and $F0;                  { Background }
-        SetLength(HP, 6);                                  { Attr. size }
-        if (A = Delta.Y) and (EdOpt.HiliteLine)
-         then HP[Ord(hhComment)]  := Chr(CC[6])            { Comments for current line}
-         else HP[Ord(hhComment)]  := Chr(Comments);        { Comments   }
-        HP[Ord(hhNumber)]   := Chr(C1 or (CC[10] and 15)); { Numbers    }
-        HP[Ord(hhString)]   := Chr(C1 or (CC[ 9] and 15)); { Strings    }
-        HP[Ord(hhSymbol)]   := Chr(C1 or (CC[ 8] and 15)); { Symbols    }
-        HP[Ord(hhKeyword1)] := Chr(C1 or (CC[11] and 15)); { Keywords 1 }
-        HP[Ord(hhKeyword2)] := Chr(C1 or (CC[12] and 15)); { Keywords 2 }
-        DoHighlite ( B, S, HP );
+        {$IFDEF COLORER} {Cat}
+        if UseExternalColorer then
+          ColorerCollection^.Highlites(B, A, Pos.X+1, Pos.X+Size.X+1)
+        else
+        {$ENDIF} {/Cat}
+          begin
+            {$IFDEF USELONGSTRING}
+            SetLength(S, Length(S)); {Cat: ...Kreks...Feks...Peks...Suxx...}
+            {$ENDIF}
+            HighLite.Highlites(Length(S), {$IFDEF USELONGSTRING} PChar(S) {$ELSE} @S[1] {$ENDIF}, HiLitePar); {PZ 2000.04.28}
+            C1                  := C and $F0;                  { Background }
+            SetLength(HP, 6);                                  { Attr. size }
+            if (A = Delta.Y) and (EdOpt.HiliteLine)
+             then HP[Ord(hhComment)]  := Chr(CC[6])            { Comments for current line}
+             else HP[Ord(hhComment)]  := Chr(Comments);        { Comments   }
+            HP[Ord(hhNumber)]   := Chr(C1 or (CC[10] and 15)); { Numbers    }
+            HP[Ord(hhString)]   := Chr(C1 or (CC[ 9] and 15)); { Strings    }
+            HP[Ord(hhSymbol)]   := Chr(C1 or (CC[ 8] and 15)); { Symbols    }
+            HP[Ord(hhKeyword1)] := Chr(C1 or (CC[11] and 15)); { Keywords 1 }
+            HP[Ord(hhKeyword2)] := Chr(C1 or (CC[12] and 15)); { Keywords 2 }
+            DoHighlite(B, S, HP);
+          end;
       end;
      if RulerVisible and (A = Delta.Y)
         then
@@ -1413,15 +1618,31 @@ begin
           end;
     end;
     if BV and (A >= Mark.A.Y) and (A <= Mark.B.Y) then DrawBlock;
+    { regular expression search }
     if SearchActive and (A = Delta.Y) then
-     begin
-      X2 := Length(SearchData.Line);
-      X1 := Delta.X - Pos.X;
-      if SearchData.Dir = 0 then Dec(X1, X2);
-      if X1 < 0 then begin Inc(X2, X1); X1 := 0; end;
+      begin
+        X1 := Delta.X - Pos.X;
+        {$IFDEF REGEXP}
+        if ((SearchData.Options and efoRegExp) <> 0) and (SearchData.What = #0) then
+          begin
+            X2 := RegExp^.FLength;
+            Dec(X1, X2);
+          end
+        else
+        {$ENDIF}
+          begin
+            X2 := Length(SearchData.Line);
+            if SearchData.Dir = 0 then
+              Dec(X1, X2);
+          end;
+      if X1 < 0 then
+        begin
+          Inc(X2, X1);
+          X1 := 0;
+        end;
       MoveColor(B[X1], X2, BC);
       SearchOnDisplay := On;
-     end;
+    end;
     if EdOpt.HiliteColumn then WordRec(B[Delta.X - Pos.X]).Hi := CC[7];
 {$IFDEF OS2}
     if PMWindowed and (A = Delta.Y) then  {JO: чтобы решить пробему курсора}
@@ -1457,7 +1678,7 @@ end;
 *)
 {Cat}
 begin
- if (Index < FileLines^.Count) and (Index >= 0) then
+ if (FileLines <> nil) and (Index < FileLines^.Count) and (Index >= 0) then
    GetLine := KeyMapConvertStr(CnvLongString(FileLines^.At(Index)), True)
  else
    GetLine := '';
@@ -1597,9 +1818,10 @@ procedure TFileEditor.HandleEvent;
  end;
 
  procedure MakeBack;
-  var I, J : Byte;
-      P: TPoint;
-      L: Longint;
+ var
+   I, J: LongInt;
+   P: TPoint;
+   L: Longint;
  begin
   WorkModify; BlockOff; Modified := On;
   ClearEvent(Event);
@@ -1629,9 +1851,9 @@ procedure TFileEditor.HandleEvent;
    and (Copy(WorkString, 1, LastX) = LongStrg(' ', LastX))
    and (LastY > 0) then
     begin
-     for i := LastY-1 downto 0 do
+     for I := LastY-1 downto 0 do
       begin
-       s := GetLine(i);
+       S := GetLine(I);
        J := 0;
        while (J < Length(S)) and (S[J+1] = ' ') do
          Inc(J);
@@ -1865,6 +2087,10 @@ L1:
   SetLimits; ScrollTo(0, Delta.Y); DrawView; ChangeLine;
  end;
 
+{Cat: переписал для устранения проблем со стеком при рекурсии,
+      ускорения работы и ликвидации некоторых глюков}
+
+(*
  procedure WordLeft;
  begin
   if LastX > 0 then
@@ -1890,6 +2116,83 @@ L1:
   if (Length(WorkString) > 0) and not (WorkString[1] in BreakChars) then Exit;
   WordRight;
  end;
+*)
+
+ procedure WordLeft;
+
+   procedure JumpUp;
+   begin
+     Dec(LastY);
+     Dec(Delta.Y);
+     ChangeLine;
+     LastX := Length(WorkString);
+     Delta.X := Length(WorkString);
+   end;
+
+ begin
+   if (LastX = 0) and (LastY = 0) then
+     Exit;
+   if LastX > Length(WorkString) then
+     LastX := Length(WorkString);
+
+   while LastY >= 0 do
+     if WorkString = '' then
+       JumpUp
+     else
+       begin
+         while (LastX > 0) and (WorkString[LastX] in BreakChars) do
+           Dec(LastX);
+         if LastX = 0 then
+           JumpUp
+         else
+           Break;
+       end;
+
+   if LastY >= 0 then
+     while (LastX > 0) and not (WorkString[LastX] in BreakChars) do
+       Dec(LastX)
+   else
+     LastY := 0;
+ end;
+
+ procedure WordRight;
+
+   procedure JumpDown;
+   begin
+     Inc(LastY);
+     Inc(Delta.Y);
+     ChangeLine;
+     LastX := 0;
+     Delta.X := 0;
+   end;
+
+ begin
+   if (LastY = FileLines^.Count-1) and (LastX >= Length(GetLine(LastY))) then
+     Exit;
+
+   while (LastX < Length(WorkString)) and not (WorkString[LastX+1] in BreakChars) do
+     Inc(LastX);
+
+   while LastY < FileLines^.Count do
+     if WorkString = '' then
+       JumpDown
+     else
+       begin
+         while (LastX < Length(WorkString)) and (WorkString[LastX+1] in BreakChars) do
+           Inc(LastX);
+         if LastX >= Length(WorkString) then
+           JumpDown
+         else
+           Break;
+       end;
+
+   if LastY >= FileLines^.Count then
+     begin
+       LastY := FileLines^.Count-1;
+       LastX := Length(GetLine(LastY));
+     end;
+ end;
+{/Cat}
 
  procedure InputChar; forward;
 
@@ -1948,7 +2251,7 @@ L1:
         {-DataCompBoy-}
  procedure BlockWrite;
   var P: PCollection;
-      PS: PStdCollector;
+      PS: PLineCollection {PStdCollector}; {-SBlocks}
       S, SST: LongString;
       R: PStream;
       I,J,K: LongInt;
@@ -2758,6 +3061,9 @@ begin
               cmSwitchSmartTab: begin EdOpt.SmartTab := not EdOpt.SmartTab; CE end;
               cmSwitchHighLight: begin
                                   EdOpt.HiLite:=not EdOpt.HiLite;
+                                  {$IFDEF COLORER} {Cat}
+                                  SwitchExternalColorer(EdOpt.HiLite);
+                                  {$ENDIF} {/Cat}
                                   DrawView;
                                  end;
               cmEditCrLfMode:    begin
@@ -2818,8 +3124,8 @@ begin
               cmReverseSearch: begin
                                  ChangeLine;
                                  SearchData.Dir := SearchData.Dir xor 1;
-                                 if SearchOnDisplay then Search;
-                                 Search;
+                                 if SearchOnDisplay then Search(Delta.X, Delta.Y);
+                                 Search(Delta.X, Delta.Y);
                                  SearchData.Dir := SearchData.Dir xor 1;
                                  ChangeLine; CE;
                                  SearchOnDisplay := Off;
@@ -2858,7 +3164,7 @@ begin
               cmSwitchKeyMapping,
               cmRusEngConv: {-$VIV}
                 begin if HandleCommand(Event) then DrawView; CE end;
-              cmContSearch: begin ChangeLine; Search; ChangeLine; CE end;
+              cmContSearch: begin ChangeLine; Search(Delta.X, Delta.Y); ChangeLine; CE end;
               cmSpecChar,cmAsciiTable: begin
                              ASCIITable;
                              CE
@@ -3023,9 +3329,31 @@ begin
             end;
           end else
   {$ENDIF}
-        if (Event.KeyCode <> kbCtrlAltX) then
-        if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
-        begin
+{Cat}
+        if (Event.KeyCode = kbAltLeft) then
+          begin
+            Event.What := evCommand;
+            Event.Command := cmUnIndentBlock;
+            if HandleCommand(Event) then
+              DrawView;
+            CE;
+            Exit;
+          end
+        else
+        if (Event.KeyCode = kbAltRight) then
+          begin
+            Event.What := evCommand;
+            Event.Command := cmIndentBlock;
+            if HandleCommand(Event) then
+              DrawView;
+            CE;
+            Exit;
+          end
+        else
+{/Cat}
+          if (Event.KeyCode <> kbCtrlAltX) then
+          if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
+            begin
              if DrawMode > 0 then
                begin
                  case Event.KeyCode of
@@ -3064,7 +3392,7 @@ begin
               begin CE; MessageL(Owner, evCommand, EditCommands[I].C,
                                 Byte(EvStr[2])); Exit end;
              if (Event.CharCode>#31) and (Event.CharCode<#255) then InputChar;
-        end;
+            end;
   evBroadcast: case Event.Command of
                 cmFindEdit:
                   if PString(Event.InfoPtr)^=EditName then begin

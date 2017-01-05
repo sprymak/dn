@@ -47,9 +47,12 @@
 {$I STDEFINE.INC}
 
 unit FileDiz;
+
 interface
-uses filescol, startup, advance1, advance2, advance, objects, lfn, dos,
-     messages, dnapp, commands, drives, advance3;
+
+uses
+  filescol, startup, advance1, advance2, advance, objects, lfn, dos,
+  messages, dnapp, commands, drives, advance3;
 
 function  GetPossibleDizOwner(N: Integer): String;
 function  GetDIZOwner(const Path, LastOwner: String; Add: Boolean): String;
@@ -240,9 +243,8 @@ begin
 {$ELSE}
      WriteLn(F2.T, NewName+' '+ANewDescription^);
 {$ENDIF}
-
+     Close(F2.T);
     end;
-    Close(F2.T);
     Exit;
   end;
   lAssignText(F2, GetPath(DPath) + '$DN'+ItoS(DNNumber)+'$.DIZ');

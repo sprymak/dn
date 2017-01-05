@@ -49,8 +49,10 @@
 unit Macro;
 
 interface
-uses advance, advance1, advance2, advance3, Objects, Views, collect,
-     microed, highlite, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
+
+uses
+  advance, advance1, advance2, advance3, Objects, Views, collect,
+  microed, highlite, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF};
 
 type
      PEditMacros = ^TEditMacros;

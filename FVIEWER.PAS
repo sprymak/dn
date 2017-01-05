@@ -51,11 +51,12 @@ unit FViewer;
 
 interface
 
-uses Objects, Views, Dos, Drivers, HideView, Commands, DNHelp,
-     {$IFDEF VIRTUALPASCAL} {SysUtils,} {$ENDIF} {AK155}
-     advance,
-     advance1, advance2, advance3, highlite, U_KeyMap, microed, xTime,
-     collect, macro, Advance6;
+uses
+  Objects, Views, Dos, Drivers, HideView, Commands, DNHelp,
+  {$IFDEF VIRTUALPASCAL} {SysUtils,} {$ENDIF} {AK155}
+  advance,
+  advance1, advance2, advance3, highlite, U_KeyMap, microed, xTime,
+  collect, macro, Advance6;
 
 const
   MaxWrapW = 1023; { максимальная ширина для заворачивания
@@ -197,13 +198,14 @@ const
 function SearchFileStr(F: PStream; var Xlat: TXLAT;
                        const What: String; Pos: LongInt;
                        CaseSensitive, Display, WholeWords, Back,
-                       AllCP: Boolean): LongInt;
+                       AllCP, IsRegExp: Boolean): LongInt;
 
 implementation
 
 uses LFN, {DataCompBoy}
      Memory, Messages, DNApp, Startup, Dialogs, RStrings,
      {$IFDEF DisAsm} Decoder, {$ENDIF} {piwamoto}
+     {$IFDEF RegExp} RegExp, {$ENDIF} {Cat}
      Gauge, DNStdDlg, Histries, Drives, DnUtil, DNIni;
 
 function MaxAvail: LongInt;
@@ -212,13 +214,13 @@ begin
 end;
 
 const
-  ViewerBufSize = $8000{8192};
+  ViewerBufSize = $8000;
 
 function SearchFileStr;
  label 1, LExit;
  var Buf: PByteArray;
      Count: LongInt;
-     BufLen, BufPos, BPos, T, StPos, StDelta: Word; {???}
+     BufLen, BufPos, BPos, T, StPos, StDelta: LongInt;
      I, L, J, OldPos, NextPos: LongInt;
      CancelSearch: Boolean;
      Info: PWhileView;
@@ -226,14 +228,27 @@ function SearchFileStr;
      Tmr: TEventTimer;
      Inserted: Boolean;
      W: String;
+     {$IFDEF REGEXP}
+     RegExp: PRegExp;
+     {$ENDIF}
 begin
+ if IsRegExp then
+   begin
+     MessageBox('RegExp Search is not implemented yet', nil, mfError+mfOkButton);
+     Exit;
+   end;
  Info := nil;
  SearchFileStr := -1; Count := 0; ClrIO;
  OldPos := F^.GetPos; L := F^.GetSize; if L = 0 then goto LExit;
  F^.Seek (Pos);
+ {$IFNDEF VIRTUALPASCAL}
  BufLen := $8000;
   {AK155: было $7000; более круглая длина уменьшает ненужные пересылки }
- if LongInt(BufLen) > L then  BufLen := L;
+ {$ELSE}
+ BufLen := $80000;
+  {Cat: тут лучше с памятью не мелочиться, иначе сильно проигрываем в скорости}
+ {$ENDIF}
+ if BufLen > L then  BufLen := L;
  if BufLen > MaxAvail then BufLen := MaxAvail;
  if BufLen < Length(What) then begin F^.Seek(OldPos); goto LExit; end;
  T := 0;
@@ -254,11 +269,12 @@ begin
        if NextPos < 0 then begin NextPos := 0; BPos := 0; end;
        J := I - NextPos;
        if J <= 0 then Break;
-     end else
-       begin
-         NextPos := F^.GetPos;
-         J := L - I + BPos; if J > BufLen then J := BufLen; ClrIO;
-       end;
+     end
+   else
+     begin
+       NextPos := F^.GetPos;
+       J := L - I + BPos; if J > BufLen then J := BufLen; ClrIO;
+     end;
    if Display then
     begin
      Info^.Write(1, StrGrd(L, I, 30, False));
@@ -309,8 +325,9 @@ begin
    StPos := 1;
    BPos := Length(What)+1;
    if I < L then Move(Buf^[J-BPos], Buf^[0], BPos);
- until  Back and (I < 0) or
-        not Back and ((I >= L) or (T <= 0) or CancelSearch or (F^.GetPos >= F^.GetSize));
+ until (Back and (I < 0)) or
+       (not Back and ((I >= L) or (T <= 0) or (F^.GetPos >= F^.GetSize))) or
+       CancelSearch;
  if CancelSearch then SearchFileStr := -2;
  FreeMem(Buf, BufLen); F^.Seek(OldPos);
 LExit: if Info<>nil then Dispose(Info,Done); Info:=nil;
@@ -1721,7 +1738,7 @@ procedure TFileViewer.HandleEvent;
  end;
 
  procedure ContinueSearch(Reverse: Boolean);
-  var I, J, JJ: Integer;
+  var I{, J, JJ}: Integer;
       BXL: TXLAT;
  begin
   if (SearchString.What = '') then Exit;
@@ -1734,12 +1751,13 @@ procedure TFileViewer.HandleEvent;
     BXL[XLat[Char(i)]]:=Char(i);
   SearchX := SearchFileStr(Fl, BXL,
                            SearchString.What, SearchX,
-                           SearchString.Opts and 1 <> 0, Off,
+                           SearchString.Opts and 1 <> 0, On,
                            SearchString.Opts and 2 <> 0, (SearchString.Dir = 1) xor Reverse,
-                           SearchString.Opts and 4 <> 0);
+                           SearchString.Opts and 4 <> 0,
+                           SearchString.Opts and 8 <> 0);
   if SearchX >= 0 then
    begin
-    if HexPos > 0 then JJ := (FilePos+BufPos) mod HexPos;
+    {if HexPos > 0 then JJ := (FilePos+BufPos) mod HexPos;}
     Seek(SearchX);
     CountUp(3);
     SearchActive := On;
@@ -2242,7 +2260,7 @@ KBCheck:       if Event.What<>evNothing then begin
                   kbAlt7: Event.Command:=cmPlaceMarker7;
                   kbAlt8: Event.Command:=cmPlaceMarker8;
                   kbAlt9: Event.Command:=cmPlaceMarker9;
-                {$IFDEF Win32}
+                {$IFNDEF OS2}
                   kbCtrl1:Event.Command:=cmGotoMarker1;
                   kbCtrl2:Event.Command:=cmGotoMarker2;
                   kbCtrl3:Event.Command:=cmGotoMarker3;

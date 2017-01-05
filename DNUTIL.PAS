@@ -50,140 +50,44 @@
 unit DNUtil;
 
 interface
-uses Dos,
 
-     LFN,    {DataCompBoy}
-     {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy}
-
-     SBlocks,
-     Drivers,
-     Objects,
-     UniWin,
-     Views,
-     Histries,
-     Scroller,
-     DNApp,
-     Menus,
-     FlPanel,
-     FileCopy,
-     Eraser,
-     DiskInfo,
-{$IFDEF NETINFO}
-     NetInfo,
-{$ENDIF}
-     advance,
-     advance1,
-     advance2,
-     advance3,
-     advance4,
-     advance7,
-     Startup,
-     Dialogs,
-     Gauges,
-     Memory,
-     DblWnd,
-     Messages,
-     HistList,
-     FileFind,
-     Commands,
-     Tree,
-     FViewer,
-     CmdLine,
-     FBB,
-     DNStdDlg,
-{$IFDEF MEMINFO}MemInfo,{$ENDIF}
-{$IFDEF SYSINFO}SysInfo,{$ENDIF}
-     FilesCol,
-     UserMenu,
-     RStrings,
-     Colors,
-     Microed,
-     ed2,
-     Editor,
-     EdWin,
-
-     {$IFDEF DiskFormat}
-     DNFormat,
-     Format,
-     {$ENDIF}
-{$IFDEF Calendar}
-     Calendar,    {JO}
-{$ENDIF}
-    {FStorage,}
-
-{$IFDEF SpreadSheet}
-     Calc,
-     CellsCol,
-{$ENDIF}
-
-{$IFDEF DBView}
-     DBView,
-     DBWatch,
-{$ENDIF}
-
-{$IFDEF CdPlayer}
-     CdPlayer ,
-     CdUtil ,
-{$ENDIF}
-
-     {$IFDEF Reanimator}
-     Reanimat,
-     {$ENDIF}
-     {$IFDEF DiskEdit}
-     Fixer,
-     {$ENDIF}
-     ArcView,
-     HelpFile,
-     Validate,
-
-
-     xTime ,
-
-
-{$IFDEF Modem}
-{$IFDEF LINK} NavyLink, {$ENDIF}
-     Terminal,
-     ScrollBk,
-{$IFDEF PHONES} uDialer,{$ENDIF}
-     apPort,
-     apUART,
-{$ENDIF}
-{$IFDEF PHONES}
-     Phones,
-{$ENDIF}
-
-     ASCIITab,
-{$IFDEF Game}
-     Tetris,
-{$ENDIF}
-     Drives,
-     Archiver,
-     Archset,
-{$IFNDEF MINARCH}
-{$IFNDEF OS2}
-     Archread,
-{$ENDIF}
-{$ENDIF}
-     Idlers,
-     Arvid,
-     FlPanelX,
-     WinClp,
-
-
-{$IFDEF Printer}
-     PrintMan,
-{$ENDIF}
-
-     Setups,
-     ExtraMem,
-     RegAll,
-     XDblWnd,
-     {$IFNDEF NONBP} DiskTool, {$ENDIF}
-     CCalc,
-     collect,
-     DnIni, {-$VIV}
-     DnExec
-     ;
+uses
+  Dos, Lfn, {$IFNDEF OS2} LfnCol, {$ENDIF} {SBlocks,} Drivers, Objects, UniWin,
+  Views, Histries, Scroller, DNApp, Menus, FlPanel, FileCopy, Eraser, DiskInfo,
+  {$IFDEF NETINFO} NetInfo, {$ENDIF}
+  advance, advance1, advance2, advance3, advance4, advance7,
+  Startup, Dialogs, Gauges, Memory, DblWnd, Messages, HistList, FileFind,
+  Commands, Tree, FViewer, CmdLine, FBB, DNStdDlg,
+  {$IFDEF MEMINFO} MemInfo, {$ENDIF}
+  {$IFDEF SYSINFO} SysInfo, {$ENDIF}
+  FilesCol, UserMenu, RStrings, Colors, Microed, ed2, Editor, EdWin,
+  {$IFDEF DiskFormat} DNFormat, Format, {$ENDIF}
+  {$IFDEF Calendar} Calendar, {$ENDIF} {JO}
+  {$IFDEF SpreadSheet} Calc, CellsCol, {$ENDIF}
+  {$IFDEF DBView} DBView, DBWatch, {$ENDIF}
+  {$IFDEF CdPlayer} CdPlayer, CdUtil, {$ENDIF}
+  {$IFDEF Reanimator} Reanimat, {$ENDIF}
+  {$IFDEF DiskEdit} Fixer, {$ENDIF}
+  ArcView, HelpFile, Validate, xTime,
+  {$IFDEF Modem}
+    {$IFDEF LINK} NavyLink, {$ENDIF}
+    Terminal, ScrollBk,
+    {$IFDEF PHONES} uDialer,{$ENDIF}
+    apPort, apUART,
+  {$ENDIF}
+  {$IFDEF PHONES} Phones, {$ENDIF}
+  ASCIITab,
+  {$IFDEF Game} Tetris, {$ENDIF}
+  Drives, Archiver, Archset,
+  {$IFNDEF MINARCH} {$IFNDEF OS2} Archread, {$ENDIF} {$ENDIF}
+  {$IFDEF ARVID} Arvid, {$ENDIF}
+  Idlers, FlPanelX, WinClp,
+  {$IFDEF Printer} PrintMan, {$ENDIF}
+  Setups, RegAll, XDblWnd,
+  {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
+  {$IFNDEF NONBP} DiskTool, {$ENDIF}
+  CCalc, Collect, DnIni, {-$VIV}
+  DnExec;
 
 const
 {$IFDEF TrashCan}TrashCan: PTrashCan = nil;{$ENDIF}
@@ -371,7 +275,7 @@ begin
   begin
     if ColorIndexes <> nil then
       FreeMem(ColorIndexes, 2 + ColorIndexes^.ColorSize);
-    getmem(ColorIndexes, ColorSize);
+    GetMem(ColorIndexes, ColorSize);
     S.Read(ColorIndexes^, ColorSize);
     ColorIndexes^.ColorSize := (ColorSize-2);
   end;
@@ -790,7 +694,8 @@ begin
  if (StartupData.Unload and osuAutosave <> 0)
   then SaveRealDsk
   {$IFNDEF VIRTUALPASCAL}else SaveDsk{$ENDIF};
- SaveHistories;
+ {AK155 SaveHistories;} {все запоминалось по ходу дела, притом с чтением,}
+                        {а теперь можно только напортить}
  HideCommandLine := (CommandLine <> nil) and not CommandLine^.GetState(sfVisible);
  B := $8000 or (Byte(HideCommandLine));
  {$IFNDEF NONBP}
@@ -818,6 +723,7 @@ begin
     SetFIFOBuffering(B, Off, 0);
   end;
 {$ENDIF}
+ DoneDrivers;
 end;
         {-DataCompBoy-}
 
@@ -1477,9 +1383,12 @@ begin
    If I>0 then begin
     RN:=Copy(FileName, I+1, MaxStringLength);
     SetLength(FileName, I-1);
-    J:=PosChar(';', FileName);
-    If J>0 then
-     SetLength(FileName, J-1); {AK155 удалить номер версии файла в uc2-архиве }
+    if (ActivePanel <> nil) and (Copy(PFilePanelRoot(ActivePanel)^.DirectoryName, 1, 4) = 'UC2:') then
+      begin
+        J:=PosChar(';', FileName);
+        if J>0 then
+          SetLength(FileName, J-1); {AK155 удалить номер версии файла в uc2-архиве }
+      end;
    end;
    FileName:=lFExpand(FileName);
    if I<=0 then RN:=FileName;
@@ -1507,7 +1416,7 @@ begin
    if not AltExt and SpecialIntView then
      exit;
    TextView;
-
+   DelFileRec(fr); {Cat}
 end;
         {-DataCompBoy-} {AK155}
 
@@ -1577,6 +1486,9 @@ begin
                     BlockVisible           := fBlockVisible;
                     VertBlock              := fVerticalBlock;
                     EdOpt.HiLite           := fHighlight;
+                    {$IFDEF COLORER}
+                    SwitchExternalColorer(EdOpt.HiLite); {Cat}
+                    {$ENDIF}
                     EdOpt.HiliteColumn     := fHiliteColumn;
                     EdOpt.HiliteLine       := fHiliteLine;
                     EdOpt.AutoIndent       := fAutoIndent;
@@ -1737,7 +1649,7 @@ PROCEDURE TDNApplication.HandleCommand;
 {$IFDEF TrashCan}
   if TrashCan^.ImVisible then Desktop^.Delete(TrashCan);
 {$ENDIF}
-  P := nil;
+  {P := nil;}
   P := New(PXDoubleWindow, Init(R, 0, Byte(S[1])));
   if Abort then Dispose(P,Done) else InsertWindow(PWindow(P));
 {$IFDEF TrashCan}
@@ -2060,7 +1972,10 @@ $140A..$FFFE: R.VM := 6;
      begin
       System.Delete(S, 1, 2); {DelFC(S); DelFC(S);} DelLeft(S); S:=DelSquashes(S);
       if PathExist(S) then
-       Message(Application, evBroadcast, cmChangeDirectory, @S);
+       begin
+        {Cat} if S[2]=':' then S[1]:=UpCase(S[1]); {/Cat}
+        Message(Application, evBroadcast, cmChangeDirectory, @S);
+       end;
       SD:=''; CommandLine^.SetData(SD); CommandLine^.DrawView; {JO}
       exit;
      end;

@@ -11,13 +11,19 @@
 *)
 
 {$X+,T-,Cdecl+,AlignRec-,OrgName+,V-,Use32-,Delphi+}
+{$I STDEFINE.INC}
 
 library DnPmApil;
 
 {$Linker
 DESCRIPTION 'Dos Navigator/2 OS/2 PM API interface'}
 
-uses Os2Def, Os2Base, OS2PMApi, Strings;
+uses
+  Os2Def, Os2Base, OS2PMApi, Strings;
+
+{$IFDEF PLUGIN}
+{$DYNAMIC DN2CAT.LIB}
+{$ENDIF}
 
 const
   PMStatus: Byte = 0; {Cat}

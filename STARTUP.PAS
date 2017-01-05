@@ -51,16 +51,8 @@ UNIT Startup;
 INTERFACE
 
 USES
-  Objects,
-  Dos,
-  LFN, {DataCompBoy}
-  Commands,
-  advance,
-  advance1,
-  advance2,
-  advance3,
-  Drivers,
-  Collect;
+  Objects, Dos, Commands, Advance,
+  Advance1, Advance2, Advance3, Drivers, Collect;
 
 PROCEDURE FatalError( const S: String );
 
@@ -257,6 +249,10 @@ TYPE
   TNamesCaseOptions = record
     Name: Word;
      Ext: Word;
+  end;
+
+  TTetrisRec = record
+    L : Word; S : Word; P: Word;
   end;
 
 var TempBounds: TRect;
@@ -548,15 +544,13 @@ procedure InitMaskData;
     Arvid: 0
   );
 
-
   {$IFDEF PRINTMANAGER}
   RPrinterSetup: record Device: aword; InitPrinter, AfterFile: String; end =
     (Device: 0; InitPrinter:''; AfterFile:#12);
   {$ENDIF}
 
-  TetrisRec : record
-    L : Word; S : Word; P: Word;
-  end = (L:4; S:0; P:0);
+  TetrisRec: TTetrisRec =
+    (L:4; S:0; P:0);
 
   rfDescriptions = $0002;
   rfPhoneBook    = $0004;
@@ -566,17 +560,12 @@ procedure InitMaskData;
   rfAdvFind      = $0040;
 
 IMPLEMENTATION
-{$IFDEF DNPRG}
-Uses ExtraMem
-
-{$IFNDEF NO_OVERLAY}
-     ,Overlay1
-     ,Overlays
-{$ENDIF NO_OVERLAY}
-     ;
-
-{$ENDIF}
-
+Uses
+  {$IFDEF VIRTUALPASCAL} VpSysLow, {$ELSE} ExtraMem, {$ENDIF}
+  {$IFDEF DNPRG}
+    {$IFNDEF NO_OVERLAY} Overlay1, Overlays, {$ENDIF NO_OVERLAY}
+  {$ENDIF}
+  LFN;
 
 {Cat: выкинул, т.к. TTextCollection = TLineCollection}
 (*
@@ -600,8 +589,9 @@ end;
 PROCEDURE FatalError;
 begin
   InOutRes := 0;
-  WriteLn( S );
-  Halt( 1 );
+  WriteLn(S);
+  SysTVInitCursor;
+  Halt(1);
 end;
 
 {$IFNDEF NO_OVERLAY}
@@ -702,10 +692,17 @@ begin
       Writeln('Warning! Path specified in DN environment variable does not exist!');
 { /VK }
 {$ELSE}
+{Cat: заменил DNVP на DN2 - так намного логичнее}
+(*
   if ExistDir(Dos.GetEnv('DNVP')) or (Dos.GetEnv('DNVP')='') then
       SourceDir := Dos.GetEnv('DNVP')
      else
       Writeln('Warning! Path specified in DNVP environment variable does not exist!');
+*)
+  if PathExist(Dos.GetEnv('DN2')) or (Dos.GetEnv('DN2')='') then
+      SourceDir := Dos.GetEnv('DN2')
+     else
+      Writeln('Warning! Path specified in DN2 environment variable does not exist!');
 {$ENDIF}
 
   for FreeByte:=1 to length(SourceDir) do

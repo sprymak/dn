@@ -48,7 +48,9 @@
 unit ScrollBk;
 
 interface
-uses Objects, Drivers, Views, Scroller, ObjType, Collect;
+
+uses
+  Objects, Drivers, Views, Scroller, ObjType, Collect;
 
 const
       ScrollBackBuffer: PCollection = nil;

@@ -111,8 +111,9 @@ function pFileSize(F: Word): LongInt;
 procedure CloseAllHandles;
 
 implementation
+
 uses
-  {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF}, Dos, LFN, Pack_LZW;
+  {$IFNDEF NONBP} BStrings {$ELSE} Strings {$ENDIF}, Dos, LFN, Pack_LZW;
 
 Type
   TBuf = Array[0..65520] of Byte;

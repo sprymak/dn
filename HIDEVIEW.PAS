@@ -49,7 +49,9 @@
 unit HideView;
 
 interface
-uses Menus, Objects, Views, Drivers;
+
+uses
+  Menus, Objects, Views, Drivers;
 
 type  PHideView = ^THideView;
       THideView = object(TView)
@@ -59,7 +61,9 @@ type  PHideView = ^THideView;
       end;
 
 implementation
-uses DNApp, Dialogs, advance, advance1, advance2, advance3, Commands;
+
+uses
+  DNApp, Dialogs, advance, advance1, advance2, advance3, Commands;
 
 procedure THideView.HideView;
 begin

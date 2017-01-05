@@ -49,7 +49,9 @@
 UNIT FBB;
 
 interface
-uses Dos, tree;
+
+uses
+  Dos, tree;
 
  Function LongCopy(Fn1: String): Boolean; {DataCompBoy}
 
@@ -324,6 +326,7 @@ uses LFN, {DataCompBoy}
 {DataCompBoy      DskOn;}
       if (NumW=0) or ((PartSize<>0) and (PartWrt=PartSize)) then
        begin
+{Cat:warn}
         wr:=DiskFree(dr2);
         if (wr=0) or (PartWrt=PartSize) then GoTo 1 else GoTo 2;
        end;

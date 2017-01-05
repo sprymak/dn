@@ -44,56 +44,121 @@
 ::  (including the GNU Public Licence).
 ::
 :://///////////////////////////////////////////////////////////////////////
+@set pause=rem
 @Echo off
-if not exist exeo md exeo
+@rem set pause=pause
+if [%1]==[P] goto plugin
+if [%1]==[p] goto plugin
+if not [%1]==[] goto help
+goto end_plugin
+:plugin
+set plugin=/dPLUGIN
+set rplugin=PLUGIN
+:end_plugin
 
-Echo        Compiling VERSION.EXE
-if exist exeo\version.exe goto dover
-vpc version /m /dOS2 /q
-if errorlevel 1 goto ex
-if exist exeo\tvhc.exe del exeo\thvc.exe
+set H=O
+if [%Host%]==[OS2] goto end_host
+set H=W
+if [%Host%]==[W32] goto end_host
+goto Help
+:end_host
+
+if [%target%]==[] set target=%Host%
+set T=O
+if [%Target%]==[OS2] goto end_Target
+set T=W
+if [%Target%]==[W32] goto end_Target
+goto Help
+:end_Target
+
+echo Host="%Host%" Target="%Target%" %rplugin%
+%pause%
+
+Echo        Compiling System.pas
+del exe.%Target%\system.lib
+vpc /b /q /c%T% -dDEBUGMEM lib.%Target%\vpsyslow
+vpc /b /q /c%T% -dDEBUGMEM -Usys sys\system
+if [%Target%]==[OS2] lib "exe.%Target%\system.lib" +sys\io +sys\thunk "+exe.%Target%\vpsyslow.lib" "+exe.%Target%\strings.lib"
+if [%Target%]==[W32] lib "exe.%Target%\system.lib" +sys\iodos "+exe.%Target%\vpsyslow.lib"
+if errorlevel 1 pause Error
+%pause%
+
+if not exist EXE.%Target% md EXE.%Target%
+
+Echo        Compiling VERSION.EXE for %Host%
+if exist EXE.%Host%\version.exe goto dover
+vpc version /b /q /c%T%
+if errorlevel 1 pause Error
+if exist EXE.%Host%\tvhc.exe del EXE.%Host%\thvc.exe
 :dover
-exeo\version.exe exeo\version.inc
+EXE.%Host%\version.exe EXE.%Target%\version.inc %Target%  %rplugin%
+%pause%
 
-if exist exeo\tvhc.exe goto comphelp
-Echo        Compiling TVHC.EXE
-vpc tvhc /m /dOS2 /q
-if errorlevel 1 goto ex
-del exeo\*.vpi
-del exeo\*.lib
+if exist EXE.%Host%\tvhc.exe goto comphelp
+Echo        Compiling TVHC.EXE for %Host%
+vpc tvhc /m  /q /c%T%
+if errorlevel 1 pause Error
+
 :comphelp
-if exist exeo\*.hlp goto endcomp
-exeo\tvhc resource\english\dnhelp.htx exeo\english.hlp exeo\dnhelp.pas /4DN_OSP
-exeo\tvhc resource\russian\dnhelp.htx exeo\russian.hlp exeo\dnhelp.pas /4DN_OSP
-rem exeo\tvhc resource\hungary\dnhelp.htx exeo\hungary.hlp exeo\dnhelp.pas /4DN_OSP
-:endcomp
+Echo   Compiling help files for %Target%
+EXE.%Host%\tvhc resource\english\dnhelp.htx EXE.%Target%\english.hlp EXE.%Target%\dnhelp.pas /4DN_OSP
+EXE.%Host%\tvhc resource\russian\dnhelp.htx EXE.%Target%\russian.hlp EXE.%Target%\dnhelp.pas /4DN_OSP
+rem EXE.%Target%\tvhc resource\hungary\dnhelp.htx EXE.%Target%\hungary.hlp EXE.%Target%\dnhelp.pas /4DN_OSP
+%pause%
 
-if exist exeo\rcp.exe goto dores
-Echo        Compiling RCP.EXE
-vpc rcp /m /dRCP /dOS2 /q
-if errorlevel 1 goto ex
-del exeo\*.vpi
-del exeo\*.lib
+if exist EXE.%Host%\rcp.exe goto dores
+Echo        Compiling RCP.EXE for %Host%
+vpc rcp /b /dRCP /q %plugin% /c%H%
+if errorlevel 1 pause Error
 :dores
-if exist exeo\*.dlg goto endres
-exeo\rcp
+
+Echo        Compiling resource files for %Target% %rplugin%
+set RCP_Target=%Target%
+if [%RCP_Target%]==[W32] set RCP_Target=Win32
+EXE.%Host%\rcp %T% %RCP_Target% %rplugin%
 :endres
+%pause%
 
+if [%plugin%]==[] goto end_dn2cat
+Echo        Compiling DNcat.EXE for %Target%
+vpc dn2CAT /b /dDN /dDNPRG /dPLUGIN /q /c%T%
+if not errorlevel 1 goto end_dn2cat
+@echo Это что-то переполняется в VP, со второго раза получится.
+vpc dn2CAT /m /dDN /dDNPRG /dPLUGIN /q /c%T%
+if errorlevel 1 pause Error
+:end_dn2cat
+%pause%
 
-Echo        Compiling DN.EXE
-vpc dn /m /dDN /dDNPRG /dOS2 /q
-vpc dnpmapil /m /dOS2 /q
-call resmgr -a exeo\dn.exe exeo\dn.res
-lxlite exeo\dn.exe
-if not %1.==debug. goto ex
-copy *.* exeo\*.*
-cd exe
-vp
+if not %Target%==OS2 goto end_dnpmapil
+Echo        Compiling dnpmapil.dll for %Target%
+vpc dnpmapil /q /b %plugin% /c%T%
+if errorlevel 1 pause Error
+%pause%
+:end_dnpmapil
 
-:ex
-del exeo\*.vpi
-del exeo\*.lib
-del exeo\*.map
-del exeo\*.bak
-del exeo\*.lnk
-del exeo\*.obj
+Echo        Compiling DN.EXE for %Target%  %rplugin%
+del exe.%Target%\advance.*
+del exe.%Target%\drivers.*
+vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
+if not errorlevel 1 goto end_dn
+@echo Это что-то переполняется в VP, со второго раза получится.
+vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
+if errorlevel 1 pause Error
+:end_dn
+if [%Target%]==[OS2] if [%Host%]==[OS2] rc -p -x2 exe.os2\dn.res exe.os2\dn.exe
+
+%pause% Финальное удаление vpi и.т.п.
+del EXE.%Target%\*.vpi
+del EXE.%Target%\*.lib
+del EXE.%Target%\*.map
+del EXE.%Target%\*.bak
+del EXE.%Target%\*.lnk
+del EXE.%Target%\*.obj
+exit
+
+:Help
+@echo Переменная Host должна указывать текущую платформу (OS2, W32);
+@echo Переменная Target должна указывать целевую платформу (OS2, W32),
+@echo если она отлична от текущей.
+@echo Параметр должен отсутствовать или иметь значение P
+@echo (для компиляции плагинной версии).

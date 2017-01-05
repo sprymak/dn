@@ -48,9 +48,11 @@
 UNIT ArvidTdr;
 
 INTERFACE
-uses Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
-     Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Tree,
-     FilesCol, Advance2, Drives, FlPanel, Memory;
+
+uses
+  Arvid, Objects, Advance1,   Messages, DnApp, Commands, Collect,
+  Views, Drivers, Startup,  U_KeyMap, Advance, Lfn, {$IFNDEF OS2} LfnCol, {$ENDIF} Dos, Tree,
+  FilesCol, Advance2, Drives, FlPanel, Memory;
 
 procedure TdrSeekDirectory(AvtDr: PArvidDrive);
 procedure TdrGetDirectory(AvtDr:PArvidDrive; var ALocation: LongInt;

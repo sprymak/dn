@@ -48,7 +48,9 @@
 unit Arc_QRK; {QuArk}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
    PQuArkArchive = ^TQuArkArchive;
@@ -60,7 +62,14 @@ type
    end;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { --------------------- Quark (by Luzin Aleksey) -------------------------}
+
 constructor TQuArkArchive.Init;
 var Sign: TStr5;
     q: String;
@@ -122,48 +131,32 @@ end;
 
 Procedure TQuArkArchive.GetFile;
 var
-  C:   Char;
-  S:   string;
-  Tmp  :AWord;
-  FH: record
-  Tmp:Array[1..3]of char;
-  LengthOfName:Byte;
-  End;
-  FH1:Record
-  Attr:AWord;
-  DateTime:LongInt;
-  RealSize:LongInt;
-  PackSize:LongInt;
-  Crc:AWord;
-  TPC:Byte;
-  end;
-var TTmp:longint;
+  FH:  record
+       Tmp: Array[1..3]of char;
+       LengthOfName: Byte;
+       end;
+  FH1: Record
+       Attr:     AWord;
+       DateTime: LongInt;
+       RealSize: LongInt;
+       PackSize: LongInt;
+       Crc:      AWord;
+       TPC:      Byte;
+       end;
 begin
-  TTmp:=ArcFile^.GetPos;
-  if (TTmp = ArcFile^.GetSize) or (TTmp = 0) then
-     begin FileInfo.Last := 1; Exit end;
-   if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2;Exit;end;
-   ArcFile^.Read(FH, SizeOf(FH));
-   if (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
-   SetLength(S, 0);
-   Tmp:=0;
-   if FH.LengthOfName > 250 then FH.LengthOfName := 250;
-   ArcFile^.Read(S[1], FH.LengthOfName); SetLength(S, FH.LengthOfName);
-   if S = ''  then
-       begin FileInfo.Last := 2; Exit; end;
-   ArcFile^.Read(FH1, SizeOf(FH1));
-   FileInfo.Attr := FH1.Attr and not Hidden;
-   FileInfo.USize := FH1.RealSize;
-   FileInfo.PSize := FH1.PackSize;
-   FileInfo.Date := FH1.DateTime;
-   if (FileInfo.Attr and Directory <> 0)and(S[Length(S)]<>'\') then S := S + '\';
-   FileInfo.FName := S;
-{$IFNDEF OS2}
-   FileInfo.LFN := AddLFN(S);
-{$ENDIF}
-   TTmp:=ArcFile^.GetPos;
-   ArcFile^.Seek(TTmp+FH1.PackSize);
-   FileInfo.Last := 0;
+  if ArcFile^.GetPos = ArcFile^.GetSize then begin FileInfo.Last:=1;Exit;end;
+  ArcFile^.Read(FH, SizeOf(FH));
+  if (ArcFile^.Status <> 0) then begin FileInfo.Last:=2;Exit;end;
+  SetLength(FileInfo.FName, FH.LengthOfName);
+  ArcFile^.Read(FileInfo.FName[1], FH.LengthOfName);
+  if FileInfo.FName = '' then begin FileInfo.Last:= 2;Exit;end;
+  ArcFile^.Read(FH1, SizeOf(FH1));
+  FileInfo.Last := 0;
+  FileInfo.Date := FH1.DateTime;
+  FileInfo.Attr := FH1.Attr and not Hidden;
+  FileInfo.USize := FH1.RealSize;
+  FileInfo.PSize := FH1.PackSize;
+  ArcFile^.Seek(ArcFile^.GetPos+FH1.PackSize);
 end;
 
 end.

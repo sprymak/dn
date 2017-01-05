@@ -56,12 +56,13 @@ UNIT Advance;
 
 INTERFACE
 
-USES Dos,{DnIni}
-     {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
-     Objects, LFN{DataCompBoy}
-     {$IFDEF DPMI},Dpmi,DosMem{$ENDIF}
-     {Cat} ,U_KeyMap {/Cat}
-     ;
+USES
+  Dos, {DnIni}
+  {$IFNDEF NONBP} BStrings {$ELSE} Strings {$ENDIF},
+  Objects, LFN {DataCompBoy}
+  {$IFDEF DPMI}, Dpmi, DosMem {$ENDIF}
+  {Cat}, U_KeyMap {/Cat}
+  ;
 
 {$IFDEF DNPRG}
 {$I Version.Inc} {DataCompBoy: DO NOT INCLUDE Version.inc IN OTHER UNITS!}
@@ -183,6 +184,7 @@ CONST
   opWin  = 4;  { Wind0ze  }
   opDV   = 8;  { DesqView }
   opWNT  = 16; { Win NT & Win y2k }
+  opDPMI32 = 32; { DPMI32 } {Cat: нечто среднее между DOS и Win32, поэтому отдельно от DOS}
 
   Abort : Boolean = false;
 
@@ -270,6 +272,9 @@ const
       HexStr     : array[1..$10] of char = '0123456789ABCDEF';
       LoHexChar  : array[0..$F] of char = '0123456789abcdef';
       N_O_E_M_S  : array[1..5] of char = 'NOEMS';
+         {$IFDEF NETWORK}
+         cNET_   : string[4] = 'NET:';
+         {$ENDIF}
          cTEMP_  : string[5] = 'TEMP:';
          cLINK_  : string[5] = 'LINK:';
  {.$IFNDEF OS2}
@@ -359,16 +364,10 @@ type TPosArray = Array [1..9] of TPoint;
 
 IMPLEMENTATION
 
-uses xTime,
-     Startup,
-     advance3, advance1,
-     {$IFDEF VIRTUALPASCAL}
-     advance2,
-     {crt,} VpSysLow,
-     {$ENDIF}
-     ExtraMem,
-     Commands
-     ;
+uses
+  xTime, Startup, Advance1, Advance3,
+  {$IFDEF VIRTUALPASCAL} VpSysLow, Advance2, {$ELSE} ExtraMem, {$ENDIF}
+  Commands;
 
 function Cut;
 begin
@@ -750,8 +749,9 @@ asm
 end; { checkos }
 {$ELSE}
 begin
-  {$IFDEF WIN32}opSys := opWin;{$ENDIF}
-  {$IFDEF OS2}  opSys := opOS2;{$ENDIF}
+  {$IFDEF OS2}    opSys := opOS2;    {$ENDIF}
+  {$IFDEF WIN32}  opSys := opWin;    {$ENDIF}
+  {$IFDEF DPMI32} opSys := opDPMI32; {$ENDIF}
 end;
 {$ENDIF}
 
@@ -1126,7 +1126,10 @@ BEGIN
 {$IFDEF OS2}
  OS2exec := True;
 {$ENDIF}
-{$IFDEF Win32}
+{$IFDEF WIN32}
+ OS2exec := False;
+{$ENDIF}
+{$IFDEF DPMI32}
  OS2exec := False;
 {$ENDIF}
 END.

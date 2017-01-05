@@ -47,6 +47,7 @@
 {$I STDEFINE.INC}
 
 unit Advance4; {OS/2 support}
+
 interface
 
 type SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed, stPMSession,
@@ -63,10 +64,11 @@ procedure RunOS2Command(Command: string; Bckg: Boolean; Session: SessionType);
 
 implementation
 
-uses advance, lfn, advance1, advance3, drivers
-     {$IFDEF VIRTUALPASCAL} , dos, dnexec{$ENDIF}
-     {$IFDEF DPMI}, DPMI, DosMem {$ENDIF}
-     ;
+uses
+  Advance, Lfn, Advance1, Advance3, Drivers
+  {$IFDEF VIRTUALPASCAL}, Dos, DnExec {$ENDIF}
+  {$IFDEF DPMI}, DPMI, DosMem {$ENDIF}
+  ;
 { ------------------------------------ OS/2 API --------------------------- }
 
 {$IFNDEF VIRTUALPASCAL}

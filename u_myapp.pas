@@ -49,6 +49,7 @@
 Unit U_MyApp;
 
 interface
+
 uses
   {$IFDEF PLUGIN} Plugin, {$ENDIF} {Cat}
   DnUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
@@ -65,7 +66,11 @@ var
   MyApplication: MyApp;
 
 implementation
-uses Dn1;
+
+uses
+  {$IFNDEF DPMI32} Killer, {$ENDIF}
+  {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
+  Dn1;
 
 (*{$I  runcmd.inc}*)
 
@@ -91,8 +96,14 @@ const
      MacroPlaying: Boolean = False;
      MacroKey: Integer = 0;
      CurrentMacro: PKeyMacros = nil;
-
+     QuitEvent: TEvent = (What: evKeyDown; KeyCode: kbAltX);
 begin
+ {$IFNDEF DPMI32}
+ if Killer.fQuit then
+   begin
+   PutEvent(QuitEvent); Killer.fQuit := false;
+   end;
+ {$ENDIF}
  {$IFDEF OS_DOS}
  if (not w95locked) and w95QuitCheck then PostQuitMessage; {Gimly}
  {$ENDIF}
@@ -193,15 +204,15 @@ begin
               cmAdvancePortSetup,
               cmNavyLinkSetup,
               cmQuit : HandleCommand(Event);
+{Cat: проверяем, не пора ли запускать плагины - EventCatcher-ы}
+{$IFDEF PLUGIN}
+       else
+         CatchersHandleCommand(Event.Command);
+{$ENDIF}
+{/Cat}
        end;
 end;
 
-{Cat: проверяем, не пора ли запускать плагины - EventCatcher-ы}
-{$IFDEF PLUGIN}
-  if Event.What <> evNothing then
-    CatchersHandleEvent(Event);
-{$ENDIF}
-{/Cat}
 end;
 
 var
@@ -316,7 +327,15 @@ begin
                 end;
      {$ENDIF}
      {$IFDEF VIRTUALPASCAL}
-     cmEnvEdit: EditDosEnvironment(Environment);
+       {$IFNDEF PLUGIN}
+       cmEnvEdit: EditDosEnvironment(Environment);
+       {$ELSE}
+         {$IFDEF TRUE_DYNAMIC}
+         cmEnvEdit: EditDosEnvironment(Environment);
+         {$ELSE}
+         cmEnvEdit: EditDosEnvironment(PByteArray(SysGetEnvironment));
+         {$ENDIF}
+       {$ENDIF}
      {$ENDIF}
      else
       HandleCommand(Event);

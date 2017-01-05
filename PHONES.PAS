@@ -51,9 +51,10 @@ unit Phones;
 
 interface
 
-uses xTime, Objects, DNApp, Drivers, Dialogs, Menus, Views, DNStdDlg, RStrings,
-     DNHelp, advance, advance1, advance2, advance3, Messages, ObjType, Collect,
-     StrView;
+uses
+  xTime, Objects, DNApp, Drivers, Dialogs, Menus, Views, DNStdDlg, RStrings,
+  DNHelp, advance, advance1, advance2, advance3, Messages, ObjType, Collect,
+  StrView;
 
 type
      PPhoneCollection = ^TPhoneCollection;

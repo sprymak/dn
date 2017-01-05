@@ -50,7 +50,8 @@ unit HelpFile;
 
 interface
 
-uses Objects, Drivers, Views, Scroller, HelpKern;
+uses
+  Objects, Drivers, Views, Scroller, HelpKern;
 
 const
   CHelpColor      = #$37#$3F#$3A#$13#$13#$30#$3E#$1E#$3F;

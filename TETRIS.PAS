@@ -45,11 +45,13 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 {Cat
    05/10/2001 - переписал этот модуль так, чтобы при задании директивы
    $DEFINE PLUGIN он компилировался в библиотеку, представляющую собой
    плагин типа EventCatcher
+   28/01/2002 - в плагинном случае добавил регистрацию объектов
 }
 
 {$IFDEF PLUGIN}
@@ -58,7 +60,9 @@ library Tetris;
 uses
   Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
   Commands, Advance, Advance1, Advance2, Advance3, RStrings,
-  xTime, StartUp, DNHelp, VPUtils;
+  xTime, StartUp, DNHelp,
+  {$IFDEF MIRRORVARS} Vars, {$ENDIF}
+  VPUtils;
 
 {$DYNAMIC DN2CAT.LIB}
 
@@ -214,7 +218,7 @@ begin
  R.Assign(1, 1, 30+shi*2, 4+Vis);
  Inherited Init(R, GetString(dlGameTitle));
  Number := GetNum;
- HelpCtx := hcTetris + Byte( TetrisRec.S = 1 );
+ HelpCtx := hcTetris + Byte(TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF}.S = 1);
  Options := Options or ofCentered;
  R.Assign(2,2,2+Shi*2,2+Vis);
  Gm := New(PGameView, Init(R));
@@ -223,6 +227,12 @@ begin
  Info := New(PGameInfo, Init(R));
  Insert(Info);
  Info^.Gm := Gm; Gm^.Info := Info;
+ {$IFDEF MIRRORVARS}
+ Insert(NewButton(4+Shi*2, 17, 15+Shi*2, 19, GetString(dlNewButton), cmNewGame, 0));
+ Insert(NewButton(15+Shi*2, 17, 26+Shi*2, 19, GetString(dlSetupButton), cmSetup, 0));
+ Insert(NewButton(4+Shi*2, 19, 15+Shi*2, 21, GetString(dlTop10Button), cmShowHi, 0));
+ Insert(NewButton(15+Shi*2, 19, 26+Shi*2, 21, GetString(dlPauseButton), cmStop, 0));
+ {$ELSE}
  R.Assign(4+Shi*2, 17, 15+Shi*2, 19);
  Insert(New(PButton, Init(R, GetString(dlNewButton), cmNewGame, 0)));
  R.Assign(15+Shi*2, 17, 26+Shi*2, 19);
@@ -231,23 +241,20 @@ begin
  Insert(New(PButton, Init(R, GetString(dlTop10Button), cmShowHi, 0)));
  R.Assign(15+Shi*2, 19, 26+Shi*2, 21);
  Insert(New(PButton, Init(R, GetString(dlPauseButton), cmStop, 0)));
+ {$ENDIF}
  SelectNext(False);
 end;
 
 constructor TGameInfo.Load(var S: TStream);
 begin
-{$IFNDEF PLUGIN}
  inherited Load(S);
  GetPeerViewPtr(S, Gm);
-{$ENDIF}
 end;
 
 procedure TGameInfo.Store(var S: TStream);
 begin
-{$IFNDEF PLUGIN}
  inherited Store(S);
  PutPeerViewPtr(S, Gm);
-{$ENDIF}
 end;
 
 function TGameInfo.GetPalette;
@@ -334,7 +341,7 @@ end;
 
 Constructor TGameView.Init;
  var I, J: Integer;
-     S: TDOSStream;
+     S: PDosStream;
      C: Word;
      B: Array[0..1024] of Byte;
 begin
@@ -343,10 +350,13 @@ begin
  Options := Options or ofFramed or ofSelectable or ofPreProcess;
  EventMask := $FFFF;
  Game := @Self; Delay := 30;
- StartLevel := TetrisRec.L + 1;
- Level := StartLevel;
- Pentix := TetrisRec.S = 1;
- Preview := TetrisRec.P and 1 <> 0;
+ with TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF} do
+  begin
+   StartLevel := L + 1;
+   Level := StartLevel;
+   Pentix := (S = 1);
+   Preview := (P and 1 <> 0);
+  end;
  for I := 1 to 20 do
   begin
    HiScores[I].Name := GetString(dlAnonymous);
@@ -354,9 +364,14 @@ begin
    HiScores[I].StLv := 1;
    HiScores[I].EndLv := 1;
   end;
- S.Init(SourceDir+'TETRIS.CFG', stOpenRead); {DataCompBoy}
- if S.Status = stOK then S.Read(B, sizeof(HiScores));
- S.Done;
+ {$IFDEF MIRRORVARS}
+ S := NewDosStream(SourceDir+'TETRIS.CFG', stOpenRead);
+ {$ELSE}
+ S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stOpenRead));
+ {$ENDIF}
+ if S^.Status = stOK then
+   S^.Read(B, SizeOf(HiScores));
+ Dispose(S, Done);
  I := SizeOf(HiScores);
  {$IFNDEF BIT_32}
  asm
@@ -392,15 +407,20 @@ begin
     HiScores[I].StLv := 1;
     HiScores[I].EndLv := 1;
    end;
-   S.Init(SourceDir+'TETRIS.CFG', stCreate); {DataCompBoy}
-   S.Write(HiScores, sizeof(HiScores));
-   S.Done;
+   {$IFDEF MIRRORVARS}
+   S := NewDosStream(SourceDir+'TETRIS.CFG', stCreate);
+   {$ELSE}
+   S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stCreate));
+   {$ENDIF}
+   S^.Write(HiScores, SizeOf(HiScores));
+   Dispose(S, Done);
    Break;
   end;
  NewGame;
  RegisterToBackground(@Self);
 end;
 
+(*
 FUNCTION CLen(s:string):byte;
 var i,l: byte;
 begin
@@ -408,6 +428,7 @@ begin
   for i:=1 to length(s) do if s[i]<>'~' then inc(l);
   CLen:=l
 end;
+*)
 
 procedure TGameView.ShowScores;
 var
@@ -418,23 +439,31 @@ var
   I: Byte;
   PP: Boolean;
 begin
-  D := PDialog( LoadResource( TDlgIdx( Byte( dlgTetrisTop10 ) + Byte( Pentix ))));
-  R.Assign( 2, 4, D^.Size.X - 2, 14 );
-  P := New( PView, Init( R ));
+  D := PDialog(LoadResource(TDlgIdx(Byte(dlgTetrisTop10) + Byte(Pentix))));
+  {$IFDEF MIRRORVARS}
+  P := NewView(2, 4, D^.Size.X - 2, 14);
+  {$ELSE}
+  R.Assign(2, 4, D^.Size.X - 2, 14);
+  P := New(PView, Init(R));
+  {$ENDIF}
   P^.Options := P^.Options or ofFramed;
-  D^.Insert( P );
+  D^.Insert(P);
   for I := 1 to 10 do with HiScores[ I + 10 * Byte( Pentix ) ] do begin
     If Score > 0 then begin
       S := Name;
       if I = HighLight then S := '~' + S + '~';
-      S := S + Strg('.', 30 - CLen( S ));
+      S := S + Strg('.', 30 - CStrLen( S ));
       S := S + ' ' + SStr( StLv, 5, '.' ) + ' ' +
                      SStr( EndLv, 5, '.' ) + ' ' +
                      SStr( Score, 10, '.' );
     end else
       S := '';
-    R.Assign( 2, 3 + I, D^.Size.X - 2, 4 + I );
-    D^.Insert( New( PLabel, Init( R, S, nil)));
+    {$IFDEF MIRRORVARS}
+    D^.Insert(NewLabel(2, 3 + I, D^.Size.X - 2, 4 + I, S, nil));
+    {$ELSE}
+    R.Assign(2, 3 + I, D^.Size.X - 2, 4 + I);
+    D^.Insert(New(PLabel, Init(R, S, nil)));
+    {$ENDIF}
   end;
   PP := Stop;
   Stop := On;
@@ -445,21 +474,18 @@ end;
 
 constructor TGameView.Load(var S: TStream);
 begin
-{$IFNDEF PLUGIN}
  inherited Load(S);
  GetPeerViewPtr(S, Info);
  S.Read(Glass, SizeOf(Self) - SizeOf(TView) - SizeOf(PView));
  Game := @Self;
-{$ENDIF}
+ RegisterToBackground(@Self);
 end;
 
 procedure TGameView.Store(var S: TStream);
 begin
-{$IFNDEF PLUGIN}
  inherited Store(S);
  PutPeerViewPtr(S, Info);
  S.Write(Glass, SizeOf(Self) - SizeOf(TView) - SizeOf(PView));
-{$ENDIF}
 end;
 
 destructor TGameView.Done;
@@ -526,7 +552,7 @@ function TGameView.MoveDown;
 
  procedure CheckHiScores;
   var I, J: Integer;
-      S: TDOSStream;
+      S: PDosStream;
       Nm: String;
       B: Array[0..1024] of Byte;
   label 1;
@@ -541,7 +567,11 @@ function TGameView.MoveDown;
   HiScores[I+10*Byte(Pentix)].StLv := StartLevel;
   HiScores[I+10*Byte(Pentix)].EndLv := Level;
   HiScores[I+10*Byte(Pentix)].Score := Score;
-  S.Init(SourceDir+'TETRIS.CFG',stCreate); {DataCompBoy}
+  {$IFDEF MIRRORVARS}
+  S := NewDosStream(SourceDir+'TETRIS.CFG',stCreate);
+  {$ELSE}
+  S := New(PDosStream, Init(SourceDir+'TETRIS.CFG',stCreate));
+  {$ENDIF}
   Move(HiScores, B, SizeOf(HiScores));
   J := SizeOf(HiScores);
   {$IFNDEF BIT_32}
@@ -567,8 +597,8 @@ function TGameView.MoveDown;
     loop @@1
   end;
   {$ENDIF}
-  S.Write(B, SizeOf(HiScores));
-  S.Done;
+  S^.Write(B, SizeOf(HiScores));
+  Dispose(S, Done);
   ShowScores(I);
  end;
 
@@ -692,18 +722,26 @@ procedure TGameView.HandleEvent;
  procedure Setup;
  begin
   Stop := On;
-  TetrisRec.L := Level - 1; TetrisRec.S := Byte(Pentix); TetrisRec.P := Byte(Preview);
-  if ExecResource(dlgGameSetup, TetrisRec) <> cmOK then Exit;
-  StartLevel := TetrisRec.L + 1;
-  Pentix := TetrisRec.S = 1;
-  Preview := TetrisRec.P and 1 <> 0;
-  HelpCtx := hcTetris + Byte( Pentix );
+  with TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF} do
+   begin
+    L := Level - 1;
+    S := Byte(Pentix);
+    P := Byte(Preview);
+   end;
+  if ExecResource(dlgGameSetup, TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF}) <> cmOK then
+   Exit;
+  with TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF} do
+   begin
+    StartLevel := L + 1;
+    Pentix := (S = 1);
+    Preview := (P and 1 <> 0);
+   end;
+  HelpCtx := hcTetris + Byte(Pentix);
   NewGame;
   Owner^.Redraw;
   Message(Application, evCommand, cmUpdateConfig, nil);
  end;
 
- var O: Integer;
 begin
  inherited HandleEvent(Event);
  case Event.What of
@@ -774,18 +812,49 @@ begin
 end;
 
 {$IFDEF PLUGIN}
+const
+  Reg1: TStreamRec =
+    (ObjType: $FFFF;
+     VmtLink: System.TypeOf(TGameWindow);
+     Load: @TGameWindow.Load;
+     Store: @TGameWindow.Store);
+  Reg2: TStreamRec =
+    (ObjType: $FFFF;
+     VmtLink: System.TypeOf(TGameView);
+     Load: @TGameView.Load;
+     Store: @TGameView.Store);
+  Reg3: TStreamRec =
+    (ObjType: $FFFF;
+     VmtLink: System.TypeOf(TGameInfo);
+     Load: @TGameInfo.Load;
+     Store: @TGameInfo.Store);
+  RegisterNeed: Boolean = True;
+
 {&Cdecl+}
-procedure CatchHandleEvent(var Event:TEvent);
+{procedure CatchCommand(Command, LngIndex, DlgIndex: SmallWord);} {1.0}
+procedure CatchCommand(Command, ObjType: SmallWord; const PluginName: ShortString);
 begin
-  if Game=nil then
-    Application^.InsertWindow(New(PGameWindow,Init))
-  else
-    Game^.Owner^.Select;
+  if RegisterNeed then
+    begin
+      Reg1.ObjType:=ObjType;
+      Reg2.ObjType:=ObjType+1;
+      Reg3.ObjType:=ObjType+2;
+      RegisterType(Reg1);
+      RegisterType(Reg2);
+      RegisterType(Reg3);
+      RegisterNeed:=False;
+    end;
+
+  if Command=0 then
+    if Game=nil then
+      Application^.InsertWindow(New(PGameWindow,Init))
+    else
+      Game^.Owner^.Select;
 end;
 {&Cdecl-}
 
 exports
-  CatchHandleEvent name 'CatchHandleEvent';
+  CatchCommand name 'CatchCommand';
 {$ENDIF}
 
 begin

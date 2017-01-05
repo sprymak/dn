@@ -47,13 +47,14 @@
 {$I STDEFINE.INC}
 
 unit u_srchf;
+
 interface
-uses Objects,
-     collect,
-     Gauge,
-     LFN,      {DataCompBoy}
-     Commands, {DataCompBoy}
-     DNApp;    {DataCompBoy}
+
+uses
+  Objects, collect, Gauge,
+  LFN,      {DataCompBoy}
+  Commands, {DataCompBoy}
+  DNApp;    {DataCompBoy}
 
 function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
 
@@ -161,6 +162,7 @@ begin
     Writeln(F.T, GetString(dlSPF24));
     Writeln(F.T, GetString(dlSPF25));
     Close(F.T);
+    Info^.Hide; {Cat}
     MessageBox(GetString(dlSPFht), nil, mfOkButton);
     Exit;
   end;
@@ -204,7 +206,8 @@ begin
   end;
 ex:
   Close(F.T);
-  D.Filter := ''; MakeTMaskData(D);
+  {D.Filter := ''; MakeTMaskData(D);}
+  FreeTMaskData(D); {Cat}
 end;
         {-DataCompBoy-}
 

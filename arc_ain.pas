@@ -48,7 +48,9 @@
 unit Arc_AIN; {AIN}
 
 interface
-uses Archiver, arc_uc2;
+
+uses
+  Archiver, arc_uc2;
 
 Type
      PAINArchive = ^TAINArchive;
@@ -62,13 +64,9 @@ Type
 implementation
 
 uses
-  objects, advance2, advance, dnapp
-  , commands, Advance1, messages
-  , Dos
-{$IFDEF VIRTUALPASCAL}
-  , VPSysLow
-{$ENDIF}
-;
+  Objects, Advance2, Advance, DNApp, DNExec, Commands, Advance1, Messages,
+  {$IFDEF MIRRORVARS} Vars, {$ENDIF}
+  Dos;
 
 { ------------------------------- AIN ------------------------------------- }
 
@@ -160,13 +158,9 @@ Procedure TAINArchive.GetFile;
     S := '/C ' + SourceDir + 'dndosout.bat ' + ListFileName + ' '
        + UNPACKER^ + ' v '+ArcFileName;
     if Length(S) < 100 then
-      begin
-        exec(GetEnv('COMSPEC'), S);
-   {$IFDEF VIRTUALPASCAL}
-        SysTVKbdInit;
-   {$ENDIF}
-      end
-        else messagebox(^C+GetString(dlCmdLineTooLong), nil, mfOKButton+mfError);
+      AnsiExec(GetEnv('COMSPEC'), S)
+    else
+      MessageBox(^C+GetString(dlCmdLineTooLong), nil, mfOKButton+mfError);
     system.Assign(ListFile, ListFileName);
     system.Reset(ListFile);
     if IOResult <> 0 then

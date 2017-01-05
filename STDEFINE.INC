@@ -1,6 +1,5 @@
 {$DEFINE DEBUG}
 
-{/$DEFINE LFNCache}
  {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$DEFINE LINEPOSIT}{$ENDIF}
  {$IFDEF FPC}{$DEFINE NONBP}{$ENDIF}
 
@@ -8,8 +7,9 @@
  {$IFNDEF REALMODE} {.$DEFINE TGZ} {$ENDIF}
 
  {$IFDEF VIRTUALPASCAL}
-  {$DEFINE DONTCATCHEXCEPTIONS} {Cat: чтобы не использовать SysUtils}
-  {.$DEFINE PLUGIN} {Cat: плагинская версия}
+  {.$DEFINE USESYSUTILS}   {Cat: если хочется подключать модуль SysUtils или использовать механизм исключений; в плагинной версии ни на что не влияет}
+  {.$DEFINE PLUGIN}        {Cat: плагинская версия}
+  {.$DEFINE COLORER}       {Cat: плагин Colorer - может использоваться и не в плагинской версии тоже}
   {$DEFINE USELONGSTRING}  {Cat: использование длинных строк кое-где (в частности, в редакторе)}
   {.$DEFINE USEANSISTRING} {Cat: использование длинных строк везде ($H+); уже компилируется,     }
                            {     но ещё не работает; доделаю, если будет нужно, что вряд ли  ;-) }
@@ -17,12 +17,15 @@
  {$ENDIF}
 
 {$IFDEF DEBUG}
-{$IFDEF VIRTUALPASCAL}
-{$DEFINE MEMUSEDATEXIT} {Cat: проверяем на выходе, сколько памяти скушалось}
-{.$DEFINE LOGOBJLOADSTORE} {Cat: пишем в лог все вызовы методов Load и Store}
-{$ENDIF}
+ {$IFDEF VIRTUALPASCAL}
+  {$IFDEF WIN32} {.$DEFINE NETWORK} {$ENDIF} {Cat: панелька "Network"}
+  {$IFDEF OS2} {.$DEFINE DEBUGMEM} {$ENDIF} {Cat: проверяем на выходе и пишем в лог, сколько памяти скушалось и в каком месте}
+  {.$DEFINE LOGOBJLOADSTORE} {Cat: пишем в лог все вызовы методов Load и Store}
+  {$DEFINE SHOWRC} {Cat: добавлять ли к сообщениям об ошибках числовые коды ошибок (RC)}
+ {$ENDIF}
 {$ENDIF}
 
+{.$DEFINE RegExp}
 {$DEFINE Calendar}
 {$DEFINE Game}
 {$DEFINE TrashCan}
@@ -36,94 +39,99 @@
 {$DEFINE UUENCODE}
 {$DEFINE UUDECODE}
 {$DEFINE DBView}
-  {$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
-{$DEFINE UUENCODE}
-{$DEFINE UUDECODE}
-{$DEFINE TARDETECT}
-{.$DEFINE Modem}
-{.$DEFINE Link}
-{$DEFINE DiskEdit}
-{$DEFINE DiskFormat}
-{$DEFINE Reanimator}
-{$DEFINE DBView}
-{$DEFINE PrintManager}
-{$DEFINE SpreadSheet}
-{$DEFINE CdPlayer}
-{$DEFINE MEMINFO}
-{$DEFINE SYSINFO}
-{$DEFINE NETINFO}
-{.$DEFINE PHONES}
+{$IFNDEF NONBP}{TEMPORARY COMPILE LITE VERSION FOR NON BP}
+ {.$DEFINE Modem}
+ {.$DEFINE Link}
+ {$DEFINE DiskEdit}
+ {$DEFINE DiskFormat}
+ {$DEFINE Reanimator}
+ {$DEFINE DBView}
+ {$DEFINE PrintManager}
+ {$DEFINE SpreadSheet}
+ {$DEFINE CdPlayer}
+ {$DEFINE MEMINFO}
+ {$DEFINE SYSINFO}
+ {$DEFINE NETINFO}
+ {.$DEFINE PHONES}
+ {$DEFINE ARVID}
 
-{.$DEFINE DisAsm}
-{.$DEFINE UPLOWSTRSINDLG}
+ {.$DEFINE DisAsm}
+ {.$DEFINE UPLOWSTRSINDLG}
 
-{$IFDEF DPMI}
- {$DEFINE BIGCOLLECTION}
- {.$DEFINE QSort}{$DEFINE POGLSORT}
+ {$IFDEF DPMI}
+  {$DEFINE BIGCOLLECTION}
+  {.$DEFINE QSort}{$DEFINE POGLSORT}
+  {$DEFINE NO_OVERLAY}
+  {$DEFINE NOEXTRA}
+  {$DEFINE PKTVIEW}
+  {.$DEFINE OldCollection}
+ {$ELSE}
+  {.$DEFINE BIGCOLLECTION}
+  {.$DEFINE QSort}{$DEFINE POGLSORT}
+  {$UNDEF NO_OVERLAY}
+  {$UNDEF NOEXTRA}
+  {$DEFINE OFFS}
+  {$DEFINE OldCollection} {старые ассемблерные методы *Collection}
+ {$ENDIF}
+
+ {$DEFINE BIT_16}
+ {$DEFINE OS_DOS}
+
+ {.$DEFINE StreamDebug}
+ {.$DEFINE SORTDEBUG}
+ {.$DEFINE CHDIRDEBUG}
+ {.$DEFINE CHDIRTIMER}
+ {$DEFINE UserSaver}
+
+{$ELSE VIRTUALPASCAL}
  {$DEFINE NO_OVERLAY}
  {$DEFINE NOEXTRA}
- {$DEFINE PKTVIEW}
- {.$DEFINE OldCollection}
-{$ELSE}
- {.$DEFINE BIGCOLLECTION}
- {.$DEFINE QSort}{$DEFINE POGLSORT}
- {$UNDEF NO_OVERLAY}
- {$UNDEF NOEXTRA}
- {$DEFINE OFFS}
- {$DEFINE OldCollection} {старые ассемблерные методы *Collection}
-{$ENDIF}
-
-{$DEFINE BIT_16}
-{$DEFINE OS_DOS}
-
-{.$DEFINE StreamDebug}
-{.$DEFINE SORTDEBUG}
-{.$DEFINE CHDIRDEBUG}
-{.$DEFINE CHDIRTIMER}
-{$DEFINE UserSaver}
-
-  {$ELSE VIRTUALPASCAL}
-{$DEFINE NO_OVERLAY}
-{$DEFINE NOEXTRA}
-{$DEFINE BIT_32}
-{$DEFINE FILE_32}
-{.$DEFINE Win32}     {не требуется, так как включено в _dnc.bat}
-{$IFDEF Win32}
- {$DEFINE STRINGLFN} {включает более быстрый, но жрущий много памяти алгоритм работы с виндовыми LFN}
- {.$DEFINE RecodeWhenDraw} {кириллические имена файлов хранятся в ANSI, }
-                           {а перекодируются тодлько при использовании  }
-{$ENDIF}
-{.$DEFINE OS2}       {не требуется, так как включено в _dnc.cmd}
-{$DEFINE VPBETA}    {отключает те фишки, которые пока не работают в VP-версии}
-                     {и включает создание DN.ERR при критических ошибках}
-{.$DEFINE OldCollection} {старые ассемблерные методы *Collection}
-{$DEFINE NoCallspcb} {внимание! конфиги версий, скомпилённых с и без NoCallspcb несовместимы!}
-{$IFDEF OS2}
- {$DEFINE EAOP}      {операции с расширенными атрибутами}
-{$ENDIF}
-{$DEFINE USEWPS}     {открытие фолдеров WPS}
-{$Use32+}
-{.$DEFINE QSORT}
-{$DEFINE POGLSORT}
-{$DEFINE SpreadSheet}
-{.$DEFINE PrintManager}
-{.$DEFINE Printer}
-{$DEFINE PrintFromEditor}
-{.$DEFINE PKTVIEW} {нормально компилится и работает, но надо ли}
-{$DEFINE DisAsm}  {нормально компилится и работает, но надо ли}
-{$DEFINE PHONES}
-{.$DEFINE NETINFO}
-  {$ENDIF VIRTUALPASCAL}
+ {$DEFINE BIT_32}
+ {$DEFINE FILE_32}
+ {$IFDEF WIN32}
+  {$DEFINE WIN95_HIGHPRIORITY} {Cat: для Win9x повышаем приоритет ДН-а, иначе дико тормозит из-за кривого ConAgent-а}
+  {$DEFINE USELFN}
+  {.$DEFINE RecodeWhenDraw} {кириллические имена файлов хранятся в ANSI,}
+                            {а перекодируются только при использовании}
+ {$ENDIF}
+ {$IFDEF DPMI32}
+  {$DEFINE NOASM} {Cat:todo DPMI32}
+  {$DEFINE USELFN}
+ {$ENDIF}
+ {$IFDEF USELFN}
+  {$DEFINE STRINGLFN} {включает более быстрый, но жрущий много памяти алгоритм работы с виндовыми LFN}
+ {$ENDIF}
+ {$DEFINE VPBETA}     {включает создание DN.ERR при критических ошибках}
+                      {влияет на вариант подключения dn2cat.dll в виндовой плагинной версии}
+ {.$DEFINE OldCollection} {старые ассемблерные методы *Collection}
+ {$DEFINE NoCallspcb} {внимание! конфиги версий, скомпилённых с и без NoCallspcb несовместимы!}
+ {$DEFINE EAOP}       {операции с Extended Attributes в OS/2}
+                      {операции с Security Attributes в WinNT}
+ {$IFNDEF DPMI32}
+  {$DEFINE USEWPS}    {открытие фолдеров WPS}
+ {$ENDIF}
+ {$Use32+}
+ {.$DEFINE QSORT}
+ {$DEFINE POGLSORT}
+ {$DEFINE SpreadSheet}
+ {.$DEFINE PrintManager}
+ {.$DEFINE Printer}
+ {$DEFINE PrintFromEditor}
+ {.$DEFINE PKTVIEW} {нормально компилится и работает, но надо ли}
+ {$DEFINE DisAsm}  {нормально компилится и работает, но надо ли}
+ {$DEFINE PHONES}
+ {.$DEFINE NETINFO}
+{$ENDIF VIRTUALPASCAL}
 
 {$IFDEF BPIDE}
-{$UNDEF CHCOL}
-{$UNDEF SYSINFO}
-{$UNDEF MEMINFO}
-{$UNDEF UUENCODE}
-{$UNDEF UUDECODE}
-{$UNDEF Modem}
-{$UNDEF Link}
-{$UNDEF DisAsm}
+ {$UNDEF CHCOL}
+ {$UNDEF SYSINFO}
+ {$UNDEF MEMINFO}
+ {$UNDEF UUENCODE}
+ {$UNDEF UUDECODE}
+ {$UNDEF Modem}
+ {$UNDEF Link}
+ {$UNDEF DisAsm}
 {$ENDIF}
 
 {$IFDEF LITE}
@@ -143,6 +151,7 @@
  {.$UNDEF Link}
  {$UNDEF DisAsm}
  {.$DEFINE MINARCH}
+ {$UNDEF ARVID}
  {$UNDEF DiskEdit}
  {$UNDEF Reanimator}
 {$ENDIF}
@@ -150,10 +159,10 @@
 {.$DEFINE BANK}
 
 {$IFDEF BANK}
-  {$UNDEF Modem}
-  {$UNDEF DiskEdit}
-  {$UNDEF DBView}
-  {$UNDEF DisAsm}
+ {$UNDEF Modem}
+ {$UNDEF DiskEdit}
+ {$UNDEF DBView}
+ {$UNDEF DisAsm}
 {$ENDIF}
 
 {$DEFINE COMBINE_MIXED} {это чтобы case filter работал по-человечески}
@@ -182,9 +191,13 @@
   {$ENDIF}
 {$ENDIF}
 
-{$DEFINE PACKFILE}
+{.$DEFINE PACKFILE}
+
+{$IFDEF PLUGIN} {$IFDEF OS2} {$DEFINE PLUGIN_OS2} {$DEFINE TRUE_DYNAMIC} {$ENDIF} {$IFDEF WIN32} {$DEFINE PLUGIN_WIN32} {$IFNDEF VPBETA} {$DEFINE TRUE_DYNAMIC} {$ENDIF} {$ENDIF} {$ENDIF} {Cat}
 
 {$IFDEF PLUGIN} {$UNDEF GAME} {$ENDIF} {Cat}
+{$IFDEF PLUGIN} {.$DEFINE MINARCH} {$ENDIF} {Cat}
+{$IFDEF PLUGIN_WIN32} {$DEFINE MIRRORVARS} {$ENDIF} {Cat}
 {$IFNDEF BIT_32} {$UNDEF USEANSISTRING} {$UNDEF USELONGSTRING} {$ENDIF} {Cat}
 {$IFDEF LOGOBJLOADSTORE} {$UNDEF NoCallspcb} {$ENDIF} {Cat}
-{$IFDEF USEANSISTRING} {$H+} {$DEFINE USELONGSTRING} {$ELSE} {$H-} {$ENDIF} {Cat}
+{$IFDEF VIRTUALPASCAL} {$IFDEF USEANSISTRING} {$H+} {$DEFINE USELONGSTRING} {$ELSE} {$H-} {$ENDIF} {$ENDIF} {Cat}

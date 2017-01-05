@@ -51,11 +51,16 @@
 {Cat
    28/08/2001 - многие имеющиеся функции переделал для совместимости с типом
    AnsiString; добавил аналогичные функции, работающие с типом LongString
+   16/01/2002 - функции поиска строки в буфере теперь получают параметры типа
+   LongInt вместо Word
 }
 
 unit Advance1; {String functions}
+
 interface
-uses Objects, Advance, Dos, LFN, U_KeyMap, Commands{Cat};
+
+uses
+  Objects, Advance, Dos, LFN, U_KeyMap, Commands{Cat};
 
 function  NewStr(const S: String): PString;
 function  NewLongStr(const S: LongString): PLongString;
@@ -159,10 +164,10 @@ procedure MakeDateFull(const Mode,Day,Month: Word; {-$VOL moidfied}
                        const YFull: boolean);
 Function  DumpStr(var B; Addr: LongInt; Count: Integer; Filter: Byte): string;
 
-Function  BackSearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-Function  SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV 14.05.99}
-Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV ::}
+Function  BackSearchFor(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+Function  SearchFor(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+Function  BackSearchForAllCP(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt; {-$VIV 14.05.99}
+Function  SearchForAllCP(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt; {-$VIV ::}
 
 procedure CompressString(var S: LongString);
 {AK155}
@@ -171,6 +176,7 @@ function IsDummyDir(const DirName: string): boolean;
 {/AK155}
 
 implementation
+
 uses Advance2, Advance3, DnIni, Startup{Cat};
 
  function LeadingZero(w: Word): string;
@@ -269,7 +275,7 @@ procedure Hex8Lo(L:longInt;var HexLo);
  end;
  {$ENDIF}
 {$ELSE}
-type ChArr: array[1..4] of char;
+type ChArr = array[1..4] of char;
 begin
  ChArr(HexLo)[1]:=LoHexChar[L shr 24];
  ChArr(HexLo)[2]:=LoHexChar[L and $00FF0000 shr 16];
@@ -549,9 +555,14 @@ Procedure DelRight;
  end;
  {$ENDIF}
 {$ELSE}
-var q: byte absolute S;
+var L: Byte absolute S;
 begin
- for q:=q downto 1 do if S[q]<>' ' then break;
+  while L > 0 do
+    begin
+      if S[L] <> ' ' then
+        Break;
+      Dec(L);
+    end;
 end;
 {$ENDIF}
 {$ELSE USEANSISTRING}
@@ -2027,24 +2038,27 @@ end;
   (*                                                                  *)
   function BMsearch({input } var BMT       : BMTable;
                              var Buffer;
-                                 BuffSize  : word;
-                                 Pattern   : string;
+                                 BuffSize  : LongInt;
+                           const Pattern   : String;
                              var UpCaseArray : TXlat; {Cat: UpCase -> UpCaseArray}
-                                 ExactCase : boolean) : {output} word;
+                                 ExactCase : Boolean) : {output} LongInt;
   var
-    Buffer2 : array[1..65520] of char absolute Buffer;
+    Buffer2 : array[1..65520] of Char absolute Buffer;
     Index1,
     Index2,
-    PatSize : word;
-    c: char;
-    d: word;
+    PatSize: LongInt;
+    c: Char;
+    d: LongInt;
 
   begin
+    {$IFDEF BIT_16} {Cat:эта проверка актуальна только для 16-битного случая,}
+                    {    в 32-битном буфер может оказаться достаточно большим}
     if (BuffSize > 65520)  then
       begin
         BMsearch := $FFFF;
         exit
       end;
+    {$ENDIF}
     PatSize := length(Pattern);
     Index1 := PatSize;
     Index2 := PatSize;
@@ -2094,24 +2108,27 @@ end;
 
   function BackBMsearch({input } var BMT       : BMTable;
                                  var Buffer;
-                                     BuffSize  : word;
-                                     Pattern   : string;
+                                     BuffSize  : LongInt;
+                               const Pattern   : String;
                                  var UpCaseArray : TXlat;
-                                     ExactCase : boolean) : {output} word;
+                                     ExactCase : Boolean) : {output} LongInt;
   var
     Buffer2 : array[1..65520] of char absolute Buffer;
     Index1,
     Index2,
-    PatSize : word;
-    c: char;
-    d: word;
+    PatSize : LongInt;
+    c: Char;
+    d: LongInt;
 
   begin
+    {$IFDEF BIT_16} {Cat:эта проверка актуальна только для 16-битного случая,}
+                    {    в 32-битном буфер может оказаться достаточно большим}
     if (BuffSize > 65520)  then
       begin
         BackBMsearch := $FFFF;
         exit
       end;
+    {$ENDIF}
     PatSize := length(Pattern);
     Index1 := BuffSize - PatSize + 1;
     Index2 := 1;
@@ -2147,10 +2164,10 @@ end;
 (*
 {AK155 Убрал ненужное и неправильное обращение к FillWord
 и слегка оптимизировал код}
-function BackSearchForCP(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+function BackSearchForCP(S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
  var D: array[Char] of Word;
      ChBuf: array [0..0] of Char absolute B;
-     I: Integer;
+     I: LongInt;
      BB: Byte;
      ls, M: LongInt;
      C: Char;
@@ -2187,8 +2204,8 @@ end;
       других страниц тоже использовался стандартный UpCaseArray, теперь я
       сделал собственный UpCaseArray для каждой кодовой страницы и заменил
       функции SearchFor и BackSearchFor на SearchForCP и BackSearchForCP}
-function SearchForCP(S: string;var B;L: Word; var UpCaseArray:TXlat;
-                     CaseSensitive: Boolean): Word;
+function SearchForCP(S: String; var B; L: LongInt; var UpCaseArray:TXlat;
+                     CaseSensitive: Boolean): LongInt;
 var
   BMT: BMTable;
 begin
@@ -2197,8 +2214,8 @@ begin
   SearchForCP := BMsearch(BMT, B, L, S, UpCaseArray, CaseSensitive);
 end;
 
-function BackSearchForCP(S: string;var B;L: Word; var UpCaseArray:TXlat;
-                         CaseSensitive: Boolean): Word;
+function BackSearchForCP(S: String; var B; L: LongInt; var UpCaseArray:TXlat;
+                         CaseSensitive: Boolean): LongInt;
 var
   BMT: BMTable;
 begin
@@ -2207,19 +2224,20 @@ begin
   BackSearchForCP := BackBMsearch(BMT, B, L, S, UpCaseArray, CaseSensitive);
 end;
 
-function SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+function SearchFor(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
 begin
   SearchFor := SearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
 end;
 
-function BackSearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
+function BackSearchFor(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
 begin
   BackSearchFor := BackSearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
 end;
 
-Function SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-var Res: array[0..6] of Word;
-    I, Res2: Word;
+Function SearchForAllCP(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+var
+  Res: array[0..6] of LongInt;
+  I, Res2: LongInt;
 begin
   {CURRENT}
   Res[0] := SearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
@@ -2238,13 +2256,14 @@ begin
 
   Res2 := Res[0];
   for I := 1 to 6 do
-   if (Res2 = 0) or ((Res[I] < Res2) and (Res[I] > 0)) then Res2:= Res[I];
+    if (Res2 = 0) or ((Res[I] < Res2) and (Res[I] > 0)) then Res2:= Res[I];
   SearchForAllCP := Res2;
 end;
 
-Function BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word;
-var Res: array[0..6] of Word;
-    I, Res2: Word;
+Function BackSearchForAllCP(const S: String; var B; L: LongInt; CaseSensitive: Boolean): LongInt;
+var
+  Res: array[0..6] of LongInt;
+  I, Res2: LongInt;
 begin
   {CURRENT}
   Res[0] := BackSearchForCP(S, B, L, UpCaseArray_Ascii_Ascii, CaseSensitive);
@@ -2263,7 +2282,7 @@ begin
 
   Res2 := Res[0];
   for I := 1 to 6 do
-   if (Res[I] > Res2) then Res2:= Res[I];
+    if (Res[I] > Res2) then Res2:= Res[I];
   BackSearchForAllCP := Res2;
 end;
 {/Cat}

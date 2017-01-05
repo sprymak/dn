@@ -49,9 +49,12 @@
 unit FileCopy;
 
 interface
-uses LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} TitleSet, UserMenu, {DataCompBoy} collect,
-     advance, advance1, advance2, advance3, Objects, Views, Dialogs, Drivers,
-     FilesCol, Dos, DnIni, filediz, ArvidAvt {$IFDEF EAOP}, FlOS2Tl {$ENDIF};
+
+uses
+  LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} TitleSet, UserMenu, {DataCompBoy} collect,
+  advance, advance1, advance2, advance3, Objects, Views, Dialogs, Drivers,
+  FilesCol, Dos, DnIni, filediz, {$IFDEF ARVID} ArvidAvt, {$ENDIF}
+  {$IFDEF EAOP} {$IFDEF OS2} FlOS2Tl {$ENDIF} {$IFDEF WIN32} FlW32Tl {$ENDIF} {$ENDIF};
 
 type
     PCopyRec = ^TCopyRec;
@@ -100,12 +103,22 @@ const
       cpoCheckFree = $01;
       cpoVerify    = $02;
       cpoDesc      = $04;
+      {$IFDEF EAOP}
+      {$IFDEF OS2}
+      cpoEAToName  = $08;
+      {$ENDIF}
+      {$IFDEF WIN32}
+      cpoAccRights = $08;
+      {$ENDIF}
+      cpoMove      = $10;
+      {$ELSE}
       cpoMove      = $08;
-      cpoEAToName  = $10;
-      cpoFromTemp  = $80;
-      cpoCopyDesc  = $40;
-      cpoDirEmpty  = $20;
-      cpoFitAll    = $10;
+      {$ENDIF}
+
+      cpoFromTemp  = $800;
+      cpoCopyDesc  = $400;
+      cpoDirEmpty  = $200;
+      cpoFitAll    = $100;
 
 {$IFDEF OS_DOS}
       NoCopyLFN: Boolean = True;
@@ -468,7 +481,7 @@ begin
 {piwamoto.change.end}
 {-DataCompBoy-}
       Pos := (Pos-1) * LongInt(16384);
-      if Pos > Round(ToDo+10240) then Pos := Round(ToDo+10240);
+      if Pos > {Round}(ToDo+10240) then Pos := {Round}(ToDo+10240);
       New(EMSStream, Init(Pos, Pos));
       if EMSStream^.Status <> stOK then
         begin
@@ -507,7 +520,7 @@ begin
 {piwamoto.change.end}
 {-DataCompBoy-}
       Pos := LongInt(Pos-1) shl 10;
-      if Pos > Round(ToDo+10240) then Pos := Round(ToDo+10240);
+      if Pos > {Round}(ToDo+10240) then Pos := {Round}(ToDo+10240);
       New(XMSStream, Init(Pos, Pos));
       if XMSStream^.Status <> stOK then
         begin
@@ -777,35 +790,40 @@ var  ReadStream:  lfile;
         {$IFDEF VIRTUALPASCAL}
          Ask: Integer;
         {$ENDIF}
-{$IFDEF EAOP}
+{$IFDEF EAOP} {$IFDEF OS2}
 {JO - для переименования файла в .LONGNAME исходного файла}
          LogName, NewDir, NewPrName, NewExt: String;
          I_LN: Byte;
-{$ENDIF}
+{$ENDIF} {$ENDIF}
          LongNameWarn: String[50];
          I_LW: Byte;
 
       procedure TryToReset;
+      var
+        OldAttr: Word;
       begin
-        if CopyMode = cpmOverwrite  then
+{AK155 2-02-2002
+Раньше наличие файла проверялось  при помощи lResetFile, что не
+вполне корректно. На CD RW под RSJ и, кажется, на некоторых сетевых дисках,
+эта операция приводит к созданию файла и ложному запросу о перезаписи
+файла. Более того, при отрицательном ответе созданный файл остается
+(с нулевой длиной). Проверка при помощи lGetFAttr более чистая.
+}
+        if CopyMode <> cpmOverwrite  then
          Begin
-          lRewriteFile(WriteStream,1);
-          Opened := IOResult;
-          if Opened=0 then Created:=True;
-         End
-        else
-         Begin
-          lResetFile(WriteStream,1);
-          Opened:=IOResult;
-          if Opened=0 then
+          ClrIO;
+          lGetFAttr(WriteStream, OldAttr);
+          if (DosError = 0) then
            Begin
+            lResetFile(WriteStream,1);
+            Opened:=IOResult;
             Created:=false;
             Exit;
            End;
-          lRewriteFile(WriteStream,1);
-          Opened:=IOResult;
-          Created:=true;
          End;
+        lRewriteFile(WriteStream,1);
+        Opened:=IOResult;
+        Created:=Opened=0;
       end;
 
       procedure DoSkip;
@@ -940,7 +958,7 @@ const
                     end;
                   Continue;
                 end
-{$IFDEF EAOP} {JO - для переименования файла в .LONGNAME исходного файла}
+{$IFDEF EAOP} {$IFDEF OS2} {JO - для переименования файла в .LONGNAME исходного файла}
               else
                 if (CopyOptions and cpoEAToName <> 0) then
                  begin
@@ -955,10 +973,9 @@ const
                          DisposeStr(P^.NewName);
                          P^.NewName := NewStr(NewDir + LogName);
                        end;
-                 end;
-{$ELSE}
- ;
-{$ENDIF}
+                 end
+{$ENDIF} {$ENDIF}
+              ;
               if P^.EOF and eoStart <> 0 then
                 begin
 2:
@@ -1275,10 +1292,19 @@ lbStartWrite:
                       end;
                     end;
 {$IFDEF EAOP}
-                 {MessageBox(CnvString(P^.OldName) + ' to '+ CnvString(P^.NewName), nil, mfOkButton);}
-{JO EAs - files}  CopyEAs(CnvString(P^.OldName), CnvString(P^.NewName));
+{JO EAs - files}
+                  {$IFNDEF DPMI32}
+                  if not CopyPrn then
+                    CopyEAs(CnvString(P^.OldName), CnvString(P^.NewName));
+                  {$ENDIF}
+{Cat SAs - files}
+                  {$IFDEF WIN32}
+                  if not CopyPrn and (CopyOptions and cpoAccRights <> 0) then
+                    CopySAs(CnvString(P^.OldName), CnvString(P^.NewName));
+                  {$ENDIF}
 {$ENDIF}
-                  if CopyOptions and cpoFromTemp <> 0 then RemoveFromTemp(P^.Owner);
+                  if CopyOptions and cpoFromTemp <> 0 then
+                    RemoveFromTemp(P^.Owner);
                   if CopyOptions and cpoMove <> 0 then
                     begin
                       Info^.Write(6, GetString(dlDeletingSource));
@@ -1323,6 +1349,7 @@ lbStartWrite:
          SR: lSearchRec;
          PS: Array [1..2] of Pointer;
          DEr: Boolean;
+         Drive: byte;
 
      procedure RenameFile;
       var
@@ -1431,11 +1458,19 @@ lbStartWrite:
    end;
 
    begin
-
       if CopyPrn then
       begin
         NName := CopyDir;
         while NName[Length(NName)]='\' do SetLength(NName, Length(NName)-1);
+        S1 := lFExpand(FName); {Cat}
+        S2 := lFExpand(NName); {Cat}
+        S2[1] := ''; {Cat: теперь имя начинается с ":\", поэтому
+        дальше процедуре будет казаться, что файл назначения (а на
+        самом деле устройство) располагается на другом диске, поэтому
+        вместо переименования будет использоваться копирование с
+        удалением источника. Однако, нет полной гарантии, что имя
+        устройства с полным путём, да ещё и с таким обозначением диска,
+        будет нормально воспринято системой}
       end else
       begin
         if SoftMode then
@@ -1562,7 +1597,7 @@ lbStartWrite:
       Ln:=FileSize(ReadStream.F); {-$VOL}
       repeat
         SkipRequested := Off;
-        WW := Round(Ln - Rd);
+        WW := {Cat:warn} Round(Ln - Rd);
         if WW > BSize then WW := BSize;
         P := nil;
 {$IFNDEF NOEXTRA}
@@ -1600,7 +1635,10 @@ FileRead:
         I := IOResult;
         if I <> 0 then
           begin
-          I := SystemError(I, 0);
+          Drive := byte('');
+          if FName[2] = ':' then
+            Drive := Byte(FName[1]);
+          I := SysErrorFunc(I, Drive-Byte('A'));
           if I = 1 then
             goto FileRead;
           CopyCancel := On;
@@ -1756,10 +1794,10 @@ FileRead:
         I: Integer;
         S: String;
         FrPos: Integer;
-{$IFDEF EAOP}
+{$IFDEF EAOP} {$IFDEF OS2}
         LogName, NewDir, NewPrName, NewExt: String;
         I_LN: Byte;
-{$ENDIF}
+{$ENDIF} {$ENDIF}
 
     procedure CopyI(Dest, Source: String;
                     Name: String;
@@ -1768,9 +1806,9 @@ FileRead:
       label 1, 2;
       var JJ: Integer;
       var q: string;
-      {$IFDEF EAOP}
+      {$IFDEF EAOP} {$IFDEF OS2}
       I_LN: Byte;
-      {$ENDIF}
+      {$ENDIF} {$ENDIF}
     begin
 
       Info^.Write(5, GetString(dlFCCheckingDirs));
@@ -1856,7 +1894,7 @@ FileRead:
      begin
        if Dest = '' then SSS := Name else SSS := Dest;
      end else SSS := q;
-{$IFDEF EAOP} {JO - для переименования подкаталогов в .LONGNAME исходных подкаталогов}
+{$IFDEF EAOP} {$IFDEF OS2} {JO - для переименования подкаталогов в .LONGNAME исходных подкаталогов}
       if (CopyOptions and cpoEAToName <> 0) then
         begin
           LogName := '';
@@ -1870,7 +1908,7 @@ FileRead:
                 SSS := NewDir + LogName;
               end;
         end;
-{$ENDIF}
+{$ENDIF} {$ENDIF}
     {MessageBox('Dirs^.AtInsert: ' + SSS + ' '+ Source, nil, mfOKButton);}
      Dirs^.AtInsert(FrPos, New(PDirName, Init(Source, SSS, CopyIt, O, Attr)));
      Inc(FrPos);
@@ -1879,6 +1917,7 @@ FileRead:
 
     procedure CopyF(Dest, Source: String; CopyIt: Boolean; Attr: Byte);
       var SR: lSearchRec;
+          Drive: byte;
     begin
       if Dest[Length(Dest)] = '\' then SetLength(Dest, Length(Dest)-1);
       if Dest[length(Dest)] = '.' then SetLength(Dest, Length(Dest)-1);
@@ -1920,8 +1959,8 @@ FileRead:
                          if SR.FullSize>0 then begin
                           ToDoClusCopyTemp:=SR.FullSize / BytesPerCluster;
                           ToDoClusCopy:=ToDoClusCopy +
-                            (Round(ToDoClusCopyTemp) +
-                             Byte(Round(ToDoClusCopyTemp)-ToDoClusCopyTemp<>0)
+                            ({Round}(ToDoClusCopyTemp) +
+                             Byte({Round}(ToDoClusCopyTemp)-ToDoClusCopyTemp<>0)
                             ) * BytesPerCluster;
                          end;
                    end;
@@ -1939,7 +1978,12 @@ FileRead:
       if (DosError = 18{ERROR_NO_MORE_FILES}) then
         DosError := 0;
       if DosError <> 0 then
-        SystemError(DosError, 0); {при этом будет установлен Abort}
+        begin
+        Drive := byte('');
+        if Source[2] = ':' then
+          Drive := Byte(Source[1]);
+        SysErrorFunc(DosError, Drive-Byte('A')); {при этом будет установлен Abort}
+        end;
 {/AK155}
       lFindClose(SR);
     end;
@@ -2010,15 +2054,15 @@ FileRead:
               and (CopyOptions and cpoDesc <> 0)
               then
 
-{$IFDEF EAOP} {JO - для импорта описаний при переименовании каталога в .LONGNAME исходного каталога}
+{$IFDEF EAOP} {$IFDEF OS2} {JO - для импорта описаний при переименовании каталога в .LONGNAME исходного каталога}
             if (CopyOptions and cpoEAToName = 0) or (LogName = '') then
-{$ENDIF}
+{$ENDIF} {$ENDIF}
 
 {каталоги!!!}   ImportDIZ(LowStrg(P^.Name), MkName(P^.Name), P^.DIZ, P^.Owner)
 
-{$IFDEF EAOP}
+{$IFDEF EAOP} {$IFDEF OS2}
             else ImportDIZ(LowStrg(P^.Name), LowStrg(LogName), P^.DIZ, P^.Owner);
-{$ENDIF}
+{$ENDIF} {$ENDIF}
     ;
          end else begin
              ToDo:=ToDo+P^.Size;
@@ -2028,8 +2072,8 @@ FileRead:
                         if P^.Size>0 then begin
                           ToDoClusCopyTemp:=P^.Size / BytesPerCluster;
                           ToDoClusCopy:=ToDoClusCopy +
-                            (Round(ToDoClusCopyTemp) +
-                             Byte(Round(ToDoClusCopyTemp)-ToDoClusCopyTemp<>0)
+                            ({Round}(ToDoClusCopyTemp) +
+                             Byte({Round}(ToDoClusCopyTemp)-ToDoClusCopyTemp<>0)
                             ) * BytesPerCluster;
                         end;
                   end;
@@ -2038,14 +2082,21 @@ FileRead:
       end;
 1:  repeat
       FrPos := -1;
-      if Abort then break; {AK155 Abort может установить SystemError}
+      if Abort then break; {AK155 Abort может установить SysErrorFunc}
       PD := Dirs^.FirstThat(@NoCheck);
       if PD = nil then Break;
       CopyF(PD^.DNew, PD^.DOld, PD^.CopyIt, PD^.Attr and $3FFF);
 {$IFDEF EAOP}
 {JO EAs - dirs }
-      CopyEAs(PD^.DOld, PD^.DNew);
-     {MessageBox(PD^.DOld + ' to ' + PD^.DNew, nil, mfOkButton);}
+      {$IFNDEF DPMI32}
+      if not CopyPrn then
+        CopyEAs(PD^.DOld, PD^.DNew);
+      {$ENDIF}
+{Cat SAs - dirs }
+      {$IFDEF WIN32}
+      if not CopyPrn and (CopyOptions and cpoAccRights <> 0) then
+        CopySAs(PD^.DOld, PD^.DNew);
+      {$ENDIF}
 {$ENDIF}
       PD^.Check := On;
     until False;
@@ -2213,7 +2264,7 @@ qqqq:
            CD_Drives := CD_Drives - [c];
     end else CD_Drives := [];
   MakeDirectories;
-  if (DosError <> 0){AK155} or CopyCancel then Goto 1;
+  if CopyCancel then Goto 1;
   MemStream := nil;
 {$IFNDEF NOEXTRA}
   EMSStream := nil; NoUseEMS := Off;
@@ -2306,6 +2357,8 @@ function CopyDialog;
     end;
     Nm: String;
     Xt: String;
+    DialogLabel: string;
+    hFile: longint;
     SR: lSearchRec;
     Idx: TDlgIdx;
     I: Integer;
@@ -2331,23 +2384,26 @@ begin
      then Idx := dlgRenameDialog
      else Idx := dlgCopyDialog;
    DT.WW := ccCopyMode; DT.WW1 := ccCopyOpt;
-   DT.WW1 := DT.WW1 and not cpoMove and not cpoEAToName;
+   DT.WW1 := DT.WW1 and not cpoMove;
    if MoveMode and (FromTemp <> 1) then DT.WW1 := DT.WW1 or cpoMove;
    if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) then DT.WW1 := DT.WW1 or cpoDesc; {JO}
    if LowMemory then Exit;
-   D := PDialog(Application^.ValidView(PView(LoadResource(Idx))));
-   if D = nil then Exit;
-   R.Assign(2,1,D^.Size.X-1,2);
    if MoveMode then S := GetString(dlFCMove1) else S := GetString(dlFCCopy1);
    DT.S3 := '';
    if Files^.Count = 1 then
     begin
      PF := Files^.At(0);
 {$IFNDEF OS2}
-     S1 := #0+{$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(GetLFN(PF^.LFN))+#0;
+     S1 := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(GetLFN(PF^.LFN));
 {$ELSE}
-     S1 := #0+PF^.Name+#0;
+     S1 := PF^.Name;
 {$ENDIF}
+     i := 1; while i <= length(S1) do
+       begin
+       if S1[i] = '~' then
+         begin system.insert(#0, S1, i); inc(i); end;
+       inc(i);
+       end;
      if MoveMode then DT.S3 := S1;
      if PF^.Attr and Directory = 0 then S1 := GetString(dlDIFile)+' '+S1
      else S1 := GetString(dlDIDirectory)+' '+S1;
@@ -2358,20 +2414,8 @@ begin
      if IDDQD.Fl = 0 then S1 := ItoS(IDDQD.Dr) + ' ' + #0 + GetString(dlDirectories) + #0 else
       FormatStr(S1, GetString(dlFilDir), IDDQD);
     end;
-   if MoveMode then S := S+S1+GetString(dlFCMove2)
-   else S := S+S1+GetString(dlFCCopy2);
-   P1 := New(PLabel, Init(R, S, D^.Current));
-   D^.Insert(P1);
-{JO}
-   if (FMSetup.Options and fmoAlwaysCopyDesc = 0) and (Owner <> nil) and
-      (PFilePanelRoot(Owner)^.Drive <> nil) and
-       (PFilePanelRoot(Owner)^.Drive^.DriveType = dtDisk) and
-        (PFilePanelRoot(Owner)^.Drive^.Flags and psShowDescript = 0)  then
-     begin
-       P2 := D^.FirstThat(@IsCheckboxes);
-       PCheckBoxes(P2)^.SetButtonState(cpoDesc, False);
-     end;
-{/JO}
+   if MoveMode then DialogLabel := S+S1+GetString(dlFCMove2)
+   else DialogLabel := S+S1+GetString(dlFCCopy2);
    if MoveMode and (Files^.Count = 1)
      then
 {$IFNDEF OS2}
@@ -2428,15 +2472,31 @@ begin
      then WW1 := WW1 or cpoCheckFree
      else WW1 := WW1 and not cpoCheckFree;
    end;
-   D^.SetData(DT);
 
    if not SkipCopyDialog then
-    if Desktop^.ExecView(D) = cmCancel then
-     begin Dispose(D,Done); Exit end;
+    begin {AK155 6-12-2001. Собрал до кучи всю работу с диаолгом }
+    D := PDialog(Application^.ValidView(PView(LoadResource(Idx))));
+    if D = nil then Exit;
+    R.Assign(2,1,D^.Size.X-1,2);
+    P1 := New(PLabel, Init(R, DialogLabel, D^.Current));
+    D^.Insert(P1);
+ {JO}
+    if (FMSetup.Options and fmoAlwaysCopyDesc = 0) and (Owner <> nil) and
+       (PFilePanelRoot(Owner)^.Drive <> nil) and
+        (PFilePanelRoot(Owner)^.Drive^.DriveType = dtDisk) and
+         (PFilePanelRoot(Owner)^.Drive^.Flags and psShowDescript = 0)  then
+      begin
+        P2 := D^.FirstThat(@IsCheckboxes);
+        PCheckBoxes(P2)^.SetButtonState(cpoDesc, False);
+      end;
+ {/JO}
+     D^.SetData(DT);
+     if Desktop^.ExecView(D) = cmCancel then
+      begin Dispose(D,Done); Exit end;
+     D^.GetData(DT); Dispose(D,Done);
+     SkipCopyDialog := Off;
+    end;
 
-   SkipCopyDialog := Off;
-
-   D^.GetData(DT);
    {$IFDEF RecodeWhenDraw}
    DT.S3 := OemToCharStr(DT.S3);
    {$ENDIF}
@@ -2450,13 +2510,14 @@ begin
         (PFilePanelRoot(Owner)^.Drive^.Flags and psShowDescript = 0) then
           CopyOpt := CopyOpt and not cpoDesc; {JO}
 
-   Dispose(D,Done);
    lFSplit(S, CopyDir, Nm, Xt);
    if S = '' then Exit;
    if not Link then
       begin
         if ArchiveFiles(S, Files, MoveMode, Owner) then Exit;
+        {$IFDEF ARVID}
         if CopyFilesToArvid(S, Files, MoveMode, Owner) then Exit;
+        {$ENDIF}
         if UpStrg(Copy(S, 1, PosChar(':', S))) = cTEMP_ then
          begin
            CopyToTempDrive(Files, Owner);
@@ -2530,21 +2591,15 @@ begin
    if Nm[Length(Nm)]=':'
      then S := UpStrg(Copy(Nm,1,Length(Nm)-1))+#0
      else S := UpStrg(Nm)+#0;
-   if SysFileOpen(@S[1], open_access_ReadOnly or open_share_DenyNone, I) = 0 then
+   I := 0;
+   if SysFileOpen(@S[1], open_access_ReadOnly or open_share_DenyNone, hFile) = 0 then
      begin
-       if SysFileIsDevice(I) <> 0 then
-         begin
-           SysFileClose(I);
+       if SysFileIsDevice(hFile) and $FF <> 0 then
+           {AK155: 'and $FF' необходимо, так как хелп к SysFileIsDevice
+            неправдивый; см. хелп к DosQueryHType}
            I := 1;
-         end
-       else
-         begin
-           SysFileClose(I);
-           I := 0;
-         end;
-     end
-   else
-     I := 0;
+       SysFileClose(hFile);
+     end;
 {$ELSE}
    S := #0'NUL'#0'PRN'#0'LPT1'#0'LPT2'#0'LPT3'#0'LPT4'#0'COM1'#0'COM2'#0'COM3'#0'COM4';
    if Nm[Length(Nm)]=':'

@@ -48,7 +48,9 @@
 unit Arc_ACE; {ACE}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
   PACEArchive = ^TACEArchive;
@@ -145,9 +147,7 @@ Procedure TACEArchive.GetFile;
 label 1;
 var FP  : Longint;
     P   : ACEFileHdr;
-    S   : String;
     C   : Char;
-    I   : Integer;
 begin
 1:
  FP := ArcFile^.GetPos;
@@ -156,18 +156,13 @@ begin
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
  if P.HeadType=1 then
   begin
-   I := P.NameLen;
-   S := '';
+   FileInfo.FName := '';
    repeat
     ArcFile^.Read(C,1);
-    I := I - 1;
-    S := S + C;
-   until I=0;
-   if P.Attr and Directory <> 0 then S := S + '\';
-   FileInfo.FName := S; FileInfo.Last := 0;
-{$IFNDEF OS2}
-   FileInfo.LFN   := AddLFN(S); {DataCompBoy}
-{$ENDIF}
+    Dec(P.NameLen);
+    FileInfo.FName := FileInfo.FName + C;
+   until P.NameLen=0;
+   FileInfo.Last := 0;
    FileInfo.USize := P.OriginSize;
    FileInfo.PSize := P.PackedSize;
    FileInfo.Date := P.DateTime;

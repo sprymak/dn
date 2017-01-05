@@ -85,6 +85,9 @@ const
    otFileInfo      =      7339;
    otUserSaver     =      7356;
 
+{ --- Network }
+
+   otNetDrive      =      4359;
 
 { --- Arvid }
 
@@ -411,6 +414,11 @@ const
 
   otCalendarView    =    27000;
   otCalendarWindow  =    27001; {JO}
+
+{ --- Plugins }
+  otPlugins         =    30000; {Cat}
+  {..........занято...........} {Cat}
+  otPluginsEnd      =    60000; {Cat}
 
 implementation
 

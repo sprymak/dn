@@ -49,7 +49,9 @@
 unit UniWin;
 
 interface
-uses Views, Drivers, Objects, DnIni;
+
+uses
+  Views, Drivers, Objects, DnIni;
 
 type
   { TUniWindow }

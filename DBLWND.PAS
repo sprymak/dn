@@ -49,8 +49,9 @@
 unit DblWnd;
 
 interface
- uses LFN,
-      Views, Objects, Drivers, FlPanel, HideView, Tree, FViewer;
+
+uses
+  Lfn, Views, Objects, Drivers, FlPanel, HideView, Tree, FViewer;
 
 type
 {

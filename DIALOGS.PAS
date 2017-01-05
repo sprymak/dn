@@ -56,8 +56,9 @@ unit Dialogs;
 
 interface
 
-uses LFN, {DataCompBoy} DnIni, Collect, Objects, Drivers, Views, advance6,
-     Scroller, Validate, U_keymap;
+uses
+  LFN, {DataCompBoy} DnIni, Collect, Objects, Drivers, Views, advance6,
+  Scroller, Validate, U_keymap;
 
 const
 

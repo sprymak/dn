@@ -50,7 +50,8 @@ Unit Swe;
 
 Interface
 
-uses Drivers, Objects, Views, Dialogs;
+uses
+  Drivers, Objects, Views, Dialogs;
 
 type
      TDate = record
@@ -59,14 +60,14 @@ type
       end;
 
 const
-      maxByte    : Byte    = $FF;
-      minByte    : Byte    = $00;
-      maxWord    : Word    = $FFFF;
-      minWord    : Word    = $0000;
-      minInteger : Integer = -1*maxInt;
-      minLongInt : LongInt = -1*maxLongInt;
-      maxReal              = 1.7e38;
-      minReal              = -1*maxReal;
+      maxByte    {: Byte}    = $FF;
+      minByte    {: Byte}    = $00;
+      maxWord    {: Word}    = $FFFF;
+      minWord    {: Word}    = $0000;
+      minInteger {: Integer} = -1*maxInt;
+      minLongInt {: LongInt} = -1*maxLongInt;
+      maxReal                = 1.7e38;
+      minReal                = -1*maxReal;
       maxDate : TDate = (Year : 9999;
                          Month: 12;
                          Day  : 31

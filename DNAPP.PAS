@@ -50,10 +50,11 @@ unit DNApp;
 
 interface
 
-uses Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, LFN,
-     RStrings, Commands, xTime, Messages, Collect, Advance7, Startup
-{$IFNDEF NONBP},StakDump{$ENDIF}
-     ;
+uses
+  Objects, Drivers, Memory, HistList, Views, Menus, Dialogs, LFN,
+  RStrings, Commands, xTime, Messages, Collect, Advance7, Startup
+  {$IFNDEF NONBP}, StakDump {$ENDIF}
+  ;
 
 const
 
@@ -338,12 +339,13 @@ const
 
 implementation
 
-uses Dos, DNHelp, advance, advance1, advance2, VideoMan,
-     ExtraMem, UserMenu, MicroEd, FViewer, DblWnd, CmdLine
-  {$IFDEF OS2} ,dn2pmapi {$ENDIF} {AK155}
-{$IFDEF SS},Idlers{$ENDIF}
-{$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}, DNExec
-     ;
+uses
+  Dos, DNHelp, advance, advance1, advance2, VideoMan,
+  UserMenu, MicroEd, FViewer, DblWnd, CmdLine,
+  {$IFDEF DNPRG} {$IFDEF OS2} Dn2PmApi, {$ENDIF} {$ENDIF} {AK155}
+  {$IFDEF SS} Idlers, {$ENDIF}
+  {$IFDEF VIRTUALPASCAL} VpSysLow, {$ELSE} ExtraMem, {$ENDIF}
+  DNExec;
 
 var
 
@@ -767,8 +769,15 @@ procedure ExecExit;
 begin
   {if SSaver <> nil then SSaver^.Free;}
   S := GetEnv('DNIDLE');
-  if S = '' then begin TottalExit:=true; Application^.Done; Halt(0); end
-            else Message(Application, evCommand, cmExecString, @S);
+  if S = '' then
+    begin
+      TottalExit:=true;
+      Application^.Done;
+      SysTVInitCursor;
+      Halt(0);
+    end
+  else
+    Message(Application, evCommand, cmExecString, @S);
 end;
 
 {$IFDEF SS}
@@ -881,11 +890,11 @@ begin
     GetMouseEvent(Event);
     if Event.What = evNothing then
     begin
-{$IFDEF OS2}
+{$IFDEF DNPRG}{$IFDEF OS2}
    {AK155 В неактивном оконном состоянии не надо реагировать на
           Shift, Alt, Ctrl}
     if (not DN_IsBGWindow) then
-{$ENDIF}
+{$ENDIF}{$ENDIF}
       GetKeyEvent(Event);
       if Event.What = evNothing then
        begin
@@ -936,6 +945,10 @@ begin
      (CommandLine^.GetState(sfVisible)) then
   begin
     IdleWas := False;
+(*
+ {AK155 12-12-2001 Это хитрое условие вызова CommandLine^.Update было нужно,
+ чтобы комстрока не отнимала курсор у строк ввода, редактора и т.п. Но теперь
+весь анализ перенесен внутрь CommandLine^.Update }
     {$IFDEF VIRTUALPASCAL}
      SysGetCurPos(A2, CursorY); {AK155}
     {$ELSE}
@@ -949,7 +962,9 @@ begin
     CursorY := Hi(A1);
     {$ENDIF}
     if CursorY = Size.Y - 1 - Byte( InterfaceData.Options and ouiHideStatus = 0 )
-    then CommandLine^.Update;
+    then
+{/AK155}*)
+  CommandLine^.Update;
   end;
 end;
 
@@ -990,11 +1005,11 @@ procedure TProgram.Idle;
      E: TEvent;
      A1, A2: Word;
 begin
-{$IFDEF OS2}
+{$IFDEF DNPRG}{$IFDEF OS2}
    {AK155 В неактивном оконном состоянии не надо реагировать на
           Shift, Alt, Ctrl}
   if not DN_IsBGWindow then
-{$ENDIF}
+{$ENDIF}{$ENDIF}
   if StatusLine <> nil then StatusLine^.Update;
   if CommandSetChanged then
   begin
@@ -1298,6 +1313,7 @@ end;
 procedure ResourceFail(const S: string);
 begin
   WriteLn('Could not open resource file ('+S+')');
+  SysTVInitCursor;
   Halt(219);
 end;
 
@@ -1309,13 +1325,11 @@ function OpenResourceStream(Ext: ExtStr): PBufStream;
   S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
   if S[Length(S)] <> '\' then S := S + '\';
   PS := New(PBufStream,
-        Init(S + LngId + Ext,
-          Open_Share_DenyWrite+Open_Access_ReadOnly, 1024));
+            Init(S + LngId + Ext, Open_Share_DenyWrite+Open_Access_ReadOnly, 1024));
   if PS^.Status <> stOK then begin
    Dispose(PS, Done);
    PS := New(PBufStream,
-        Init(StartupDir + LngId + Ext,
-          Open_Share_DenyWrite+Open_Access_ReadOnly, 1024));
+             Init(StartupDir + LngId + Ext, Open_Share_DenyWrite+Open_Access_ReadOnly, 1024));
    if PS^.Status <> stOK then ResourceFail(LngId + Ext);
   end;
   OpenResourceStream := PS;
@@ -1647,6 +1661,12 @@ begin
       StringCache^.AtInsert(0, P);
     end;
   end;
+  {Cat: вообще говоря, здесь имело бы смысл проверять, не получили ли мы
+        пустую строку; если мы будем возвращать пустую строку, то может
+        случиться беда вроде такой: NewStr(GetString(...)), т.е. в случае
+        кривого файла ресурсов получим nil и при обращении к этой строке
+        ДН упадёт. Однако, в языковом файле пустые строки всё же зачем-то
+        присутствуют}
   GetString := S;
 end;
 

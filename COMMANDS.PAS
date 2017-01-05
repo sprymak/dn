@@ -52,14 +52,13 @@ INTERFACE
 
 CONST
 {$IFDEF USEANSISTRING}
-  MaxStringLength = 32000;
-  MaxReasonableStringLength = 32000;
+  MaxStringLength = 1048575;
+  MaxReasonableStringLength = 1048575;
 {$ELSE}
   MaxStringLength = 255;
   MaxReasonableStringLength = 255;
 {$ENDIF}
 {$IFDEF USELONGSTRING}
- {MaxLongStringLength = 30000;}
   MaxLongStringLength = 1048575;
 {$ELSE}
   MaxLongStringLength = 254;
@@ -378,6 +377,8 @@ const
   fmiExeFirst        = $0040;
   fmiArchivesFirst   = $0080;
   fmiExeBeforeArc    = $0100;
+  fmiFullNameInBottom       = $0200;
+  fmiDescriptionInBottom    = $0400;
 
 { Common panel interior, same for all instances }
   fmsColumnTitles    = $0001;
@@ -1130,12 +1131,16 @@ const
 
 {$IFDEF OS_DOS}
  {$I SORT_DOS.INC}
-{$ENDIF}
-{$IFDEF Win32}
- {$I SORT_W32.INC}
-{$ENDIF}
-{$IFDEF OS2}
- {$I SORT_OS2.INC}
+{$ELSE}
+ {$IFDEF DPMI32}
+  {$I SORT_DOS.INC}
+ {$ENDIF}
+ {$IFDEF Win32}
+  {$I SORT_W32.INC}
+ {$ENDIF}
+ {$IFDEF OS2}
+  {$I SORT_OS2.INC}
+ {$ENDIF}
 {$ENDIF}
 
 { DblWnd Commands }
@@ -1170,11 +1175,18 @@ const
 
 
   cmSelectMenuCommands= 30000;
-  MoreCommand         = 30998;
-  NoneCommand         = 30999;
+  cmMoreCommand       = 30998;
+  cmNoneCommand       = 30999;
   cmSwitch            = 31000;
 
+
+  cmPlugins           = 32000; {Cat}
+  {..........занято..........} {Cat}
+  cmPluginsEnd        = 65000; {Cat}
+
 { Help Contexts }
+
+  hcPluginManager = 25000; {Cat}
 
   hcNew          = $FF01;
   hcOpen         = $FF02;
@@ -2418,7 +2430,34 @@ TYPE
     dlObjectTitle,
     dl_CodePage_FS_Error, {JO}
     dlCre,            {JO}
-    dlLac             {JO}
+    dlLac,            {JO}
+
+    {PZ begin - regular expressions }
+    dlResErrorTitle,
+    dlResUnknown,
+    dlResCanceled,
+    dlResTooComplex,
+    dlResOutOfSpace,
+    dlResExpectedParenthesis,
+    dlResOperandCouldBeEmpty,
+    dlResNested,
+    dlResInvalidEscape,
+    dlResInvalidSetRange,
+    dlResExpectedSquareBracket,
+    dlResFollowsNothing,
+    dlResTrailingBackSlash,
+    {PZ end - regular expressions }
+
+    dlPlugins0,       {Cat}
+    dlPlugins1,       {Cat}
+    dlPlugins2,       {Cat}
+    dlPlugins3,       {Cat}
+    dlPlugins4,       {Cat}
+    dlPlugins5,       {Cat}
+    dlPlugins6,       {Cat}
+    dlPlugins7,       {Cat}
+    dlPlugins8,       {Cat}
+    dlPlugins9        {Cat}
       );
 
       TDlgIdx = (
@@ -2518,7 +2557,8 @@ TYPE
     dlgSetupColumnsArvd,
     dlgNextSection,
     dlgNameCase,
-    dlgChScreenMode {JO}
+    dlgChScreenMode, {JO}
+    dlgPlugins0      {Cat}
   );
 
 IMPLEMENTATION END.

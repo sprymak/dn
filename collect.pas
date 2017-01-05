@@ -67,8 +67,9 @@ unit Collect;
 {$IFNDEF OldCollection}
 
 interface
+
 Uses
-  {$IFDEF BIGCOLLECTION}BigArray,{$ENDIF}
+  {$IFDEF BIGCOLLECTION} BigArray, {$ENDIF}
   Objects;
 
 const
@@ -272,11 +273,11 @@ type
 
 implementation
 uses
-  Advance1 {DisposeStr},
-  {$IFDEF Windows} WinProcs, OMemory,
-  {$ELSE}          Memory,            {$ENDIF}
-  {$IFNDEF NONBP}BStrings,{$ELSE}Strings,{$ENDIF}
-  {$IFNDEF NoCallspcb} CallSpcb, {$ENDIF} ExtraMem;
+  {$IFDEF Windows} WinProcs, OMemory, {$ELSE} Memory, {$ENDIF}
+  {$IFNDEF NONBP} BStrings, {$ELSE} Strings, {$ENDIF}
+  {$IFNDEF NoCallspcb} CallSpcb, {$ENDIF}
+  {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
+  Advance1;
 
 {$IFDEF Windows} {$DEFINE NewExeFormat} {$ENDIF}
 {$IFDEF DPMI}    {$DEFINE NewExeFormat} {$ENDIF}

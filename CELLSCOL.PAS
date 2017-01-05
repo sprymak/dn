@@ -50,7 +50,8 @@ unit CellsCol;
 
 interface
 
-uses Objects, collect;
+uses
+  Objects, Collect;
 
 type
      PCellRec =^TCellRec;

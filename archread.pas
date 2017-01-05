@@ -48,8 +48,10 @@
 unit ArchRead;
 
 interface
-uses Archiver, fstorage, Advance, dos, arcview, advance1, advance2, messages,
-     dnapp, commands, drivers, {$IFNDEF OS2}LFNCol,{$ENDIF} objects, views;
+
+uses
+  Archiver, FStorage, Dos, ArcView, Advance, Advance1, Advance2, Messages,
+  DnApp, Commands, Drivers, LFN, {$IFNDEF OS2} LFNCol, {$ENDIF} Objects, Views;
 
 Procedure ReadArcList;
 
@@ -82,7 +84,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
            Exit;
          end;
         EraseFile(FuckName);
-        GetDir(0, CurDir);
+        lGetDir(0, CurDir); {GetDir(0, CurDir);} {Cat}
         GlobalMessage(evCommand, cmRereadDir, @CurDir);
         F := New(PTextReader, Init(S));
         if F = nil then Exit;

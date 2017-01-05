@@ -56,15 +56,17 @@ UNIT Drivers2;
 
 INTERFACE
 
-procedure DoDump(Er: byte; ErrAdd: Pointer);
+procedure DoDump;
 
 IMPLEMENTATION
-Uses Dos, Advance, LFN, {$IFNDEF NONBP}StakDump, {$ENDIF}Advance1, Drivers
-     {$IFDEF VIRTUALPASCAL} {, SysUtils} , VpSysLow {$ENDIF}
-     ;
+
+Uses
+  Dos, Advance, LFN, {$IFNDEF NONBP}StakDump, {$ENDIF}Advance1, Drivers
+  {$IFDEF VIRTUALPASCAL} {, SysUtils} , VpSysLow {$ENDIF}
+  ;
 
 {$S-}
-procedure DoDump(Er: byte; ErrAdd: Pointer);
+procedure DoDump;
 {$IFNDEF DNPRG}
 begin
 {$ELSE}
@@ -77,7 +79,7 @@ var
   I : Byte;
   PExit, ActiveButton: Byte;
   Temp: LongInt;
-  FileName: String;
+  {FileName: String;}
 
   Function StoreBuffer(var Buf; Size:word ; FH : word ):word;
     {$IFDEF VIRTUALPASCAL}
@@ -155,10 +157,10 @@ begin
      FreeStr :=
           ^M^J +
        '----<'+ GetDateTime(false) +' '+ GetDateTime(true)+'>'^M^J +
-       'VER :' + VersionName  + ^M^J +
-       'DATE:' + VersionDate  + ^M^J +
-       'ERR :' + Hex2(Er)     + ^M^J +
-       'ADDR:' + Hex8(LongInt(ErrAdd)) + ^M^J ;
+       'VER :' + VersionName + ^M^J +
+       'DATE:' + VersionDate + ^M^J +
+       'ERR :' + Hex2(ExitCode) + ^M^J +
+       'ADDR:' + Hex8(LongInt(ErrorAddr)) + ^M^J ;
      StoreBuffer( FreeStr[1] , length(FreeStr), FH );
 
      FreeStr :=
@@ -183,12 +185,12 @@ begin
      FreeStr :=
        'STCK:' + ^M^J;
      StoreBuffer( FreeStr[1] , length(FreeStr), FH );
-(*   if ErrAdd<>nil
+(*   if ErrorAddr<>nil
       then begin
             {$IFDEF DPMI}
-            PhysAddr := FindPhysAddr(ErrAdd);
+            PhysAddr := FindPhysAddr(ErrorAddr);
             {$ELSE}
-            PhysAddr := Ptr(OS(ErrAdd).S+PrefixSeg+$10, OS(ErrAdd).O);
+            PhysAddr := Ptr(OS(ErrorAddr).S+PrefixSeg+$10, OS(ErrorAddr).O);
             {$ENDIF}
             if PhysAddr <> nil then
              TraceStack(PhysAddr)
@@ -196,12 +198,22 @@ begin
       else *)DumpStack;
 {$ENDIF}
 {Cat}
+{
      if GetLocationInfo(ErrorAddr, FileName, Temp) <> nil then
        begin
          Str(Temp, FreeStr);
          FreeStr := 'Source location: ' + FileName + ' line ' + FreeStr +^M^J;
          StoreBuffer(FreeStr[1] , length(FreeStr), FH);
        end;
+}
+     {$IFDEF LINEPOSIT}
+     if (SourceLineNo <> 0) and (SourceFileName <> nil) then
+       begin
+         Str(SourceLineNo, FreeStr);
+         FreeStr := 'Source location: ' + SourceFileName^ + ' line ' + FreeStr +^M^J;
+         StoreBuffer(FreeStr[1] , length(FreeStr), FH);
+       end;
+     {$ENDIF}
 {/Cat}
      FreeStr :=
        'SCR :' + Hex8(Longint(ScreenBuffer)) + ^M^J ;

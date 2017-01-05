@@ -50,7 +50,7 @@
 
 {AK155
    Переписал все ассемблерные и inline подпрограммы под
-32-разрядный VP. При этом никаких условных компиляций не делал.
+   32-разрядный VP. При этом никаких условных компиляций не делал.
    Мутную и неэффективную процедуру MoveSection переписал короче и проще.
 
    По состоянию на 08/03/2001 компилируется только декодирование.
@@ -68,7 +68,9 @@
 unit UUCode;
 
 interface
-uses Objects, tree
+
+uses
+  Objects, tree
 {$IFDEF UUDECODE}
    , collect
 {$ENDIF}
@@ -593,7 +595,7 @@ begin
     begin
     l := BufSize;
     if i < BufSize then
-      l := round(i);
+      l := {Cat:warn} Round(i);
     BlockRead(TmpInFile.F, Buf, l);
     CalcBufCRC(Buf, l, CurPFile^.CRC);
     PutBlock(Buf, l);

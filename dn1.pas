@@ -46,6 +46,8 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 {.$DEFINE GRABPalette}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
+
 UNIT DN1;
 
 INTERFACE
@@ -59,19 +61,46 @@ procedure GrabPalette;
 {$ENDIF}
 
 procedure RUN_IT;
+{$IFDEF LINEPOSIT}
+procedure ERROR(const FileName: String; LineNo, Addr, Code: LongInt);
+{$ENDIF}
 
 IMPLEMENTATION
-uses Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
-     Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
-     UserMenu, cmdline, filescol, views, {$IFNDEF OS2}LFNCol,{$ENDIF} arcview, dnini, archiver,
-     U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries,
-     ExtraMem, Menus, VideoMan
-{$IFDEF CDPLAYER},CDPlayer{$ENDIF}
-{$IFDEF DPMI}, DPMI {$ENDIF}
-{.$IFDEF VIRTUALPASCAL  ,Crt $ENDIF}
-     ,Tree
-     ;
+uses
+  {$IFDEF OS2} Os2Def, Os2Base,  {AK155 for killer} {$ENDIF}
+  {$IFDEF WIN95_HIGHPRIORITY} Windows,  {Cat for SetPriority} {$ENDIF}
+  Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
+  Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
+  UserMenu, cmdline, filescol, views, {$IFNDEF OS2}LFNCol,{$ENDIF} arcview, dnini, archiver,
+  U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries, Menus, VideoMan,
+  {$IFNDEF DPMI32} Killer, {$ENDIF}
+  {$IFDEF CDPLAYER} CDPlayer, {$ENDIF}
+  {$IFDEF DPMI} DPMI, {$ENDIF}
+  {$IFDEF VIRTUALPASCAL} {$IFDEF Win32} VpSysLow, {AK155 for RecodeAnsiNames} {$ENDIF}
+  {$ELSE} ExtraMem, {$ENDIF}
+  Tree;
 
+{AK155 Мало проверить, что имя временного каталога непусто, надо
+еще проверить, что он существует, и что в нем можно создавать и
+уничтожать файлы }
+function BadTemp(var s: string): boolean;
+  var
+    f: file;
+  begin
+  BadTemp := true;
+  if (s = '') then exit;
+  if not (s[Length(SwpDir)] in ['\','/']) then s := s+'\';
+  ClrIO;
+  if not PathExist(s) then exit;
+  Assign(f, s + '$DNTEST.SWP'); rewrite(f);
+  if IOResult = 0 then
+    begin
+    Close(f); Erase(f);
+     { Под Win NT бывает и так, что создать файл можно, а удалить - нет}
+    if IOResult = 0 then
+      BadTemp := false;
+    end;
+  end;
 
         {-DataCompBoy-}
 procedure InvalidateTempDir;
@@ -85,19 +114,23 @@ begin
      Delete(TempDir, 1, I);
      I := PosChar('%', TempDir);
      if I > 0 then Delete(TempDir, I, 255);
-     if TempDir <> '' then TempDir := GetEnv(TempDir);
+     TempDir := GetEnv(TempDir);
+     if not BadTemp(TempDir) then exit;
    end;
-  if TempDir = '' then TempDir := GetEnv('TEMP');
-  if TempDir = '' then TempDir := GetEnv('TMP');
-  if TempDir = '' then
+  TempDir := GetEnv('TEMP');
+  if not BadTemp(TempDir) then exit;
+  TempDir := GetEnv('TMP');
+  if not BadTemp(TempDir) then exit;
+  TempDir := SourceDir;
+  if not BadTemp(TempDir) then
     begin
-      TempDir := SourceDir;
-      if TempDir[Length(TempDir)] <> '\' then TempDir := TempDir + '\';
-      TempDir := TempDir + 'TEMP\';
+    if TempDir[Length(TempDir)] <> '\' then TempDir := TempDir + '\';
+    TempDir := TempDir + 'TEMP\';
+    mkdir(TempDir); ClrIO;
+    if not BadTemp(TempDir) then
+      exit;
     end;
-  if (TempDir <> '') and (not (TempDir[Length(TempDir)] in ['\','/'])) then TempDir := TempDir + '\';
-  if not ExistDir(TempDir) then NoTempDir := True;
-  SystemData.Temp := TempDir;
+  NoTempDir := True;
 end;
         {-DataCompBoy-}
 
@@ -600,13 +633,14 @@ var
       I: LongInt;
   begin
     SwpDir := GetEnv('DNSWP');
-    if SwpDir = '' then
+    if BadTemp(SwpDir) then
       begin
         I := FindParam('/S');
         if I > 0 then SwpDir := Copy(ParamStr(I), 3, MaxStringLength);
       end;
-    if SwpDir = '' then SwpDir := TempDir;
-    if not (SwpDir[Length(SwpDir)] in ['\','/']) then SwpDir := SwpDir+'\'; ClrIO;
+    if BadTemp(SwpDir) and NoTempDir then
+      SwpDir := ''
+    else SwpDir := TempDir;
     {$IFDEF OS_DOS}
     if RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
     {$ENDIF}
@@ -666,6 +700,20 @@ var
           S.Read(iniparamblock_START,Ofs(iniparamblock_END)-Ofs(iniparamblock_START));
           S.Done;
       end;
+{$IFDEF Win32}
+      RecodeAnsiNames := RecodeCyrillicNames; {AK155}
+
+    {$IFNDEF RecodeWhenDraw}
+      if not RecodeAnsiNames then
+        Windows.SetFileApisToOEM
+           {AK155 18-10-2001
+            Если не задано никаких фокусов, то с файлами работаем просто
+            в кодировке OEM, пусть система перекодирует, если ей надо.
+           }
+      else
+    {$ENDIF}
+        Windows.SetFileApisToANSI;
+{$ENDIF}
   end;
 
 begin
@@ -750,20 +798,27 @@ end;
 procedure RUN_IT;
 var
   ShiftRec: record ScrH, CurY: Byte end absolute FreeStr; { just to reduce DS }
-
+{$IFDEF OS2}var RegRec: ExceptionRegistrationRecord; {AK155 for killer}
+ {this data MUST be located in stack}
+{$ENDIF}
 var Ev: TEvent;
 {$IFDEF DPMI} R: DPMIRegisters; {$ENDIF}
 begin
- if memAvail < 100000 then begin
-    WriteLn(#10#13'Not enough memory for Navigator.');
-    WriteLn(      'Please check if 400K memory is available');
-    Halt(203);
- end
+ {if memAvail < 100000 then begin}
+   {WriteLn(#10#13'Not enough memory for Navigator.');}
+   {WriteLn(      'Please check if 400K memory is available');}
+   {Halt(203);}
+ {end}
 {$IFDEF VIRTUALPASCAL}
-  else
-     WriteLn('Dos Navigator /2 Open Source '+ VersionName + ' Based on DN (C) 1991-99 RIT Labs')
+ {else}
+    WriteLn('Dos Navigator /2 Open Source  '+ VersionName + '  Based on DN by RIT Labs')
 {$ENDIF}
 ;
+
+{$IFDEF WIN95_HIGHPRIORITY}
+ if SysPlatformId = 1 then {Win9x}
+  SetPriorityClass(GetCurrentProcess, High_Priority_Class); {Cat: чтоб не тормозило}
+{$ENDIF}
 
  Randomize;
 
@@ -828,7 +883,6 @@ begin
 
 {$IFDEF VIRTUALPASCAL} RunFirst:=true; {$ENDIF}
 
-
  if DDTimer > 0 then DDTimer := Get100s-DDTimer;
 
  TempBounds.Assign(0,0,0,0);
@@ -858,7 +912,9 @@ begin
  {$ENDIF}
  RegisterAll;
  DoStartUp;
-
+ {$IFNDEF DPMI32}
+ SetKillHandler{$IFDEF OS2}(RegRec){$ENDIF}; {AK155}
+ {$ENDIF}
  with ShiftRec do begin
    If ( CurY = ScrH ) and ( InterfaceData.Options and ouiHideStatus = 0 ) then begin
      CrLf;
@@ -929,10 +985,59 @@ GrabPalette;
  w95QuitInit; {Gimly}
  {$ENDIF}
  MyApplication.Run;
+ {$IFNDEF DPMI32}
+ UnsetKillHandler{$IFDEF OS2}(RegRec){$ENDIF}; {AK155}
+ {$ENDIF}
  ClearIniErrors;
  GlobalMessage(evCommand, cmKillUsed, nil);
  TottalExit := On;
  MyApplication.Done;
+{Cat}
+ FreeTMaskData(Executables);
+ FreeTMaskData(CustomMask1^);
+ FreeTMaskData(CustomMask2^);
+ FreeTMaskData(CustomMask3^);
+ FreeTMaskData(CustomMask4^);
+ FreeTMaskData(CustomMask5^);
+ FreeTMaskData(CustomMask6^);
+ FreeTMaskData(CustomMask7^);
+ FreeTMaskData(CustomMask8^);
+ FreeTMaskData(CustomMask9^);
+ FreeTMaskData(CustomMask10^);
+ FreeTMaskData(Startup.Archives^);
+ Dispose(CustomMask1);
+ Dispose(CustomMask2);
+ Dispose(CustomMask3);
+ Dispose(CustomMask4);
+ Dispose(CustomMask5);
+ Dispose(CustomMask6);
+ Dispose(CustomMask7);
+ Dispose(CustomMask8);
+ Dispose(CustomMask9);
+ Dispose(CustomMask10);
+ Dispose(Startup.Archives);
+ if StringCache <> nil then
+   Dispose(StringCache,Done);
+ DoneHistories;
+ if ColorIndexes <> nil then
+   FreeMem(ColorIndexes, 2 + ColorIndexes^.ColorSize);
+{/Cat}
 end;
+
+{Cat}
+{$IFDEF LINEPOSIT}
+procedure ERROR(const FileName: String; LineNo, Addr, Code: LongInt);
+begin
+  if Addr <> 0 then
+    begin
+      SourceFileName := @FileName;
+      SourceLineNo := LineNo;
+      ErrorAddr := Pointer(Addr);
+      ExitCode := Code;
+      EndFatalError;
+    end;
+end;
+{$ENDIF}
+{/Cat}
 
 END.

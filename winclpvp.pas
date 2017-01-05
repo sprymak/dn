@@ -52,25 +52,31 @@
 {Cat
    28/08/2001 - переделал функции для совместимости с типами AnsiString и
    LongString, а также для поддержки коллекций с длинными строками
+
    05/09/2001 - выкинул NeedStream из GetWinClip и SyncClipOut
 }
 
 Unit WinClpVp ;
+
 interface
 
- Uses Objects, Collect ;
+Uses
+  Objects, Collect ;
 
- Function SetWinClip( PC : PLineCollection ):boolean;
- Function GetWinClip( Var PCL : PLineCollection{; NeedStream: boolean} ):boolean;
- Function GetWinClipSize : boolean ;
- procedure SyncClipIn;
- procedure SyncClipOut{(NeedStream: boolean)};
+ Function SetWinClip( PC : PLineCollection ):boolean;                             {$IFDEF DPMI32} inline; begin {Cat:todo DPMI32} end; {$ENDIF}
+ Function GetWinClip( Var PCL : PLineCollection{; NeedStream: boolean} ):boolean; {$IFDEF DPMI32} inline; begin {Cat:todo DPMI32} end; {$ENDIF}
+ Function GetWinClipSize : boolean;                                               {$IFDEF DPMI32} inline; begin {Cat:todo DPMI32} end; {$ENDIF}
+ procedure SyncClipIn;                                                            {$IFDEF DPMI32} inline; begin {Cat:todo DPMI32} end; {$ENDIF}
+ procedure SyncClipOut{(NeedStream: boolean)};                                    {$IFDEF DPMI32} inline; begin {Cat:todo DPMI32} end; {$ENDIF}
 
- procedure CopyLines2Stream( PC: PCollection; var PCS: PStream);
- procedure CopyStream2Lines( PCS: PStream; var PC: PCollection);
+ procedure CopyLines2Stream( PC: PCollection; var PCS: PStream); {$IFDEF DPMI32} inline; begin {Cat:todo DPMI32} end; {$ENDIF}
+ procedure CopyStream2Lines( PCS: PStream; var PC: PCollection); {$IFDEF DPMI32} inline; begin {Cat:todo DPMI32} end; {$ENDIF}
 
 
-Implementation
+implementation
+
+{$IFNDEF DPMI32}
+
 uses
   {$IFDEF OS2} Os2Base, Dn2PmApi, {$ELSE} VpSysLow, {$ENDIF}
   Microed, Advance, Advance1, DnIni;
@@ -469,5 +475,7 @@ uses
    PC^.Pack;
  end; {-$VOL end}
 {/Cat}
+
+{$ENDIF}
 
 end.

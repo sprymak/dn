@@ -3,6 +3,7 @@
 
 {$I STDEFINE.INC}
 unit FlOS2Tl;
+
 interface
 
 const
@@ -32,8 +33,9 @@ function GetDriveTypeString(Drive: Char): string; {AK155}
 
 implementation
 
-uses {SysUtils,} os2base, Strings{, Crt, Messages}
-{для CopyEAs} {$IFDEF EAOP} , Collect, Messages, EAOper, Advance1, Commands, DNApp{$ENDIF};
+uses
+  {SysUtils,} os2base, Strings{, Crt, Messages}
+  {для CopyEAs} {$IFDEF EAOP} , Collect, Messages, EAOper, Advance1, Commands, DNApp{$ENDIF};
 
 (*
 function GetFileAge(S: String): longint;
@@ -194,7 +196,7 @@ begin
         begin
           params[0] := coll^.At(i);
           params[1] := Pointer(ulrc);
-          MessageBox(#3 + GetString(dl_Failed_to_store_EA) + ' "%s", rc ::= %d.', @params,
+          MessageBox(#3 + GetString(dl_Failed_to_store_EA) + ' "%s"' {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF}, @params,
             mfError or mfOkButton);
         end;
         FreeMem(ea);
@@ -203,13 +205,13 @@ begin
       begin
         params[0] := coll^.At(i);
         params[1] := Pointer(ulrc);
-        MessageBox(#3 + GetString(dl_Failed_to_retrieve_EA) + ' "%s", rc ::= %d.', @params,
+        MessageBox(#3 + GetString(dl_Failed_to_retrieve_EA) + ' "%s"' {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF}, @params,
           mfError or mfOkButton);
       end;
     end;
   end
   else
-    MessageBox(#3 + GetString(dl_Failed_to_enumerate_EA) + ', rc ::= %d.',
+    MessageBox(#3 + GetString(dl_Failed_to_enumerate_EA) {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF},
       @ulrc, mfError or mfOkButton);
   Dispose(coll, Done);
 end;
@@ -255,11 +257,11 @@ begin
       if BigInputBox(GetString(dlEditEALongname), GetString(dl_EALongname), LNValue, 255, hsEditEALongname) <> cmOK then Exit;
       Result := SetEAString(Filename, '.LONGNAME', LNValue);
       if Result <> 0 then
-        MessageBox(#3'Failed to write .LONGNAME extended attribute, RC ::= %d',
+        MessageBox(#3'Failed to write .LONGNAME extended attribute' {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF},
             @Result, mfError or mfOkButton);
     end
   else
-    MessageBox(#3'Failed to read .LONGNAME extended attribute, RC ::= %d', @Result, mfError or mfOkButton);
+    MessageBox(#3'Failed to read .LONGNAME extended attribute' {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF}, @Result, mfError or mfOkButton);
 end;
 
 {$ENDIF}

@@ -50,7 +50,8 @@ unit Idlers;
 
 interface
 
-uses Views, Drivers, Objects, xTime;
+uses
+  Views, Drivers, Objects, xTime;
 
 type
   PSSaver = ^TSSaver;
@@ -116,12 +117,7 @@ const
 implementation
 
 uses
-{Cat}
-{$IFDEF VIRTUALPASCAL}
-  VPSysLow,
-{$ENDIF}
-{/Cat}
-  DOS, DNApp, advance, advance1, Memory, Startup, Commands, VideoMan;
+  DOS, DNExec, DNApp, Advance, Advance1, Memory, Startup, Commands, VideoMan;
 
 const
   StarChars : Array [0..5] of Char = (#32,#250,#249,#7,#4,#15);
@@ -442,20 +438,12 @@ begin
 {JO}
   SM := ScreenMode;
   DoneVideo;
-  FreeMem(UserScreen, UserScreenSize);
-  UserScreen := nil;
-  ScreenSaved := Off;
 {/JO}
   DoneDOSMem;
   SwapVectors;
   DoneMemory;
 {  DoneSysError;} {X-Man}
-  Exec(SourceDir + 'SSAVERS\' + FN, '');
-{Cat: боремся с интерпретацией Ctrl-C как Ctrl-Break}
-{$IFDEF VIRTUALPASCAL}
-  SysTVKbdInit;
-{$ENDIF}
-{/Cat}
+  AnsiExec(SourceDir + 'SSAVERS\' + FN, '');
 {  InitSysError;} {X-Man}
   SwapVectors;
   InitDOSMem;

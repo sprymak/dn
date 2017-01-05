@@ -48,18 +48,54 @@
 
 unit DiskImg;
 
-interface uses FilesCol, tree;
+interface
+
+uses
+  FilesCol, Tree;
 
 procedure UnpackDiskImages(AOwner: Pointer; Files: PFilesCollection);
 
 implementation
 
-uses Dos, LFN, Messages, Views, Commands, Objects, DnApp, Drivers,
-     advance, advance1, advance2, advance3, FileCopy, DiskTool, Gauge, xTime
-   {$IFDEF Win32}
-     , lfncol
-   {$ENDIF}
+uses Dos, LFN, Messages, Views, Commands, Objects, DnApp, Drivers, Advance,
+     Advance1, Advance2, Advance3, FileCopy, {DiskTool,} Gauge, xTime
+     {$IFNDEF OS2}, LFNCol {$ENDIF}
      ;
+
+{Cat: добавил сюда эти типы, вместо того, чтобы подключать модуль DiskTool}
+type
+  PBootRec = ^TBootRec;
+  TBootRec = record
+    Jmp      : array [0..2] of Byte;
+    OEM      : array [0..7] of Char;
+    ByteSec  : AWord;
+    SecClu   : Byte;
+    ResSect  : AWord;
+    FATCps   : Byte;
+    RootEnt  : AWord;
+    TotalSc  : AWord;
+    BPB      : Byte;
+    SecFAT   : AWord;
+    SecTrack : AWord;
+    Sides    : AWord;
+    HiddenSc : LongInt;
+    NumSec   : LongInt;
+    PhysNum  : AWord;
+    ExtBootS : Byte;
+    VolumeN  : array [0..4] of Byte;
+    VolumeL  : array [0..10] of Char;
+    FilSysID : array [0..5] of Char;
+  end;
+
+  TDirRec = record
+    Name : array[0..10] of Char;
+    Attr : Byte;
+    Data : array[0..9] of Byte;
+    Date : LongInt;
+    Clus : AWord;
+    Len  : LongInt;
+  end;
+{/Cat}
 
         {-DataCompBoy-}
 function UnpackImage(const FName, DestDir: String; PInfo: PWhileView): Boolean;
@@ -205,7 +241,7 @@ end;
 procedure ProcessDir(const Dir: String; Ofst: Word);
 var
   _Dir : PByteArray;
-  DR   : DirRec;
+  DR   : TDirRec;
   I    : Integer;
 {$IFDEF USEANSISTRING}
   Nm   : String;

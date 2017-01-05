@@ -16,7 +16,8 @@ unit Dn2PmApi;
 
 interface
 
-uses Os2Def, Os2Base;
+uses
+  Os2Def, Os2Base;
 
 var
   DN_WinQueryObject : function(pszObjectID: PChar): lHandle;
@@ -31,7 +32,7 @@ var
 
 implementation
 
-uses Commands, Advance, DNApp, Strings, Messages;
+uses Commands, Advance, DNApp, Strings, Messages, VPSysLow;
 
 var
   hMod: hModule;
@@ -132,7 +133,7 @@ begin
   Initialized := True;
 
   SetFakeProcs; { на случай любых неурядиц }
-
+{$IFDEF DNPRG} {AK155}
   S := StartupDir+'DNPMAPIL.DLL'#0;
   if (DosLoadModule(
     nil,                        {failed module name}
@@ -165,6 +166,8 @@ begin
       Exit;
     end;
   PMWindowed := (DN_XCheckPM = 3);
+  if PMWindowed then
+    NoMouseMove := true;
 
   DN_proc('WinQueryObjectSh', @DN_WinQueryObject);
   DN_proc('WinOpenObjectSh', @DN_WinOpenObject);
@@ -181,6 +184,7 @@ begin
   {действует только если программа запускается командой "start dn.exe"
    или в VIO окне из программного объекта,
    если запускать в Full Screen из программного объекта - не действует}
+{$ENDIF}
 end;
 
 begin

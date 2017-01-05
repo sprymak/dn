@@ -45,6 +45,7 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 {$S-}
 unit Drivers;
@@ -56,9 +57,10 @@ unit Drivers;
 
 interface
 
-uses LFN, Objects, xTime, dnini, advance6, Commands
-{$IFNDEF NONBP}, StakDump{$ENDIF}
-     ;
+uses
+  LFN, Objects, xTime, dnini, advance6, Commands
+  {$IFNDEF NONBP}, StakDump{$ENDIF}
+  ;
 
 var
   LSliceTimer: TEventTimer;
@@ -159,6 +161,7 @@ var
 
 
 procedure InitDrivers;
+procedure DoneDrivers; {Cat}
 procedure InitEvents;
 procedure DoneEvents;
 procedure ShowMouse;
@@ -253,9 +256,13 @@ procedure MoveCStr(var Dest; const Str: String; Attrs: Word);
 procedure MoveStr(var Dest; const Str: String; Attr: Byte);
 function  CStrLen(const S: String): Integer;
 
-var
-  ErrAdd  : Longint ; {???}
 {$IFDEF DNPRG}
+{$IFDEF LINEPOSIT}
+var
+  SourceFileName: PString;
+  SourceLineNo: LongInt;
+{$ENDIF}
+
 Procedure EndFatalError;
 {$ENDIF}
 {function TVCtrlBreak: Boolean;} {JO}
@@ -328,13 +335,6 @@ Var
   EventQTail: Word;
   EventQueue: array[0..EventQSize - 1] of TEvent;
   EventQLast: record end;
-
-{const}
-{  AltFlag : Boolean = False;}
-{var
-  ErrAdd  : Longint ;}
-{ Old09   : Pointer;}
-{ Vect09  : Pointer absolute $0000:$0024;}
 
 {$IFDEF VIRTUALPASCAL}{$I DRIVERS._VP}
  {$ELSE}
@@ -891,20 +891,32 @@ begin
   InitSysError;
 end;
 
+{Cat}
+procedure DoneDrivers;
+var
+  I: Integer;
+begin
+  for I := 0 to CE_LastMsg do
+    DisposeStr(CE_Messages[I]);
+  for I := 1 to 3 do
+    DisposeStr(CE_Buttons[I]);
+  DisposeStr(ErrWndTitle);
+end;
+{/Cat}
+
 procedure SliceAwake;
 begin
   NewTimerSecs(LSliceTimer, 3);
   LSliceCnt := -2;
 end;
 
-{$IFNDEF VIRTUALPASCAL}
 begin
+{$IFNDEF VIRTUALPASCAL}
   DetectMouse;
   CharHeight := Mem[Seg0040:CrtCharOfs]; { PZ 2000.06.14 }
-  SaveExit   := ExitProc;
-  ExitProc   := @ExitDrivers;
+  SaveExit := ExitProc;
+  ExitProc := @ExitDrivers;
 {$ELSE}
-begin
   {?}{CodePage := SysGetCodePage;}
   SysTVInitCursor;
   InitKeyboard;

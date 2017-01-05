@@ -48,7 +48,9 @@
 unit Arc_IS3; {IS3}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
   PIS3Archive = ^TIS3Archive;
@@ -81,6 +83,12 @@ type IS3FolderHdr = record
      end;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { --- Z --- aka LIB --- aka InstallShield 3.00.xxx --- by piwamoto ------- }
 
 constructor TIS3Archive.Init;
@@ -147,12 +155,12 @@ end;
 
 Procedure TIS3Archive.GetFile;
 var
-    S,S1  : String;
     P     : IS3FileHdr;
     P1    : IS3FolderHdr;
     FP,FO : Longint;
     C     : Char;
     I     : Integer;
+    S     : String;
 begin
  if FoldersOffs<0 then begin
    ArcFile^.Seek(ArcPos+$c);
@@ -167,16 +175,15 @@ begin
    ArcFile^.Seek(FP);
  end;
  FP := ArcFile^.GetPos;
-{if (FP >= ArcFile^.GetSize) then begin FileInfo.Last:=1;Exit;end;}
  if (FilesNumber = 0) then begin FileInfo.Last:=1;Exit;end;
  ArcFile^.Read(P, SizeOf(P));
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- FO := FoldersOffs; S1 := ''; S := '';
+ FO := FoldersOffs; FileInfo.FName := ''; S := '';
 
  for I := 1 to P.NameLen do
   begin
    ArcFile^.Read(C,1);
-   S1 := S1 + C;
+   FileInfo.FName := FileInfo.FName + C;
   end;
 
  for I := 0 to P.FolderNum do
@@ -186,19 +193,15 @@ begin
    FO := FO + P1.SizeOfHdr;
   end;
  FO := FO - P1.SizeOfHdr + SizeOf(P1);
- SetLength(S, (P1.SizeOfName and $ff));
- if Length(S) = 0 then S := S1
-   else
+ if P1.SizeOfName >255 then P1.SizeOfName := 255;
+ SetLength(S, (P1.SizeOfName));
+ if S <> '' then
     begin
      ArcFile^.Seek(FO);
-     ArcFile^.Read(S[1],P1.SizeOfName and $ff);
-     S := S + '\' + S1;
+     ArcFile^.Read(S[1],P1.SizeOfName);
+     FileInfo.FName := S + '\' + FileInfo.FName;
     end;
 
- FileInfo.FName := S;
-{$IFNDEF OS2}
- FileInfo.LFN   := AddLFN(S); {DataCompBoy}
-{$ENDIF}
  FileInfo.Last  := 0;
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;

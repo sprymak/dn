@@ -1,5 +1,3 @@
-{$I STDEFINE.INC} {Cat}
-
 unit uue2inc;
 (******
 
@@ -8,11 +6,15 @@ Written by Cat 2:5030/1326.13
 (for use in DN/2)
 
 ******)
+
+
+{$I STDEFINE.INC}
 {$D-,E+,I-,L-,N+,Q-,R-,S-,Y-}
 
 interface
 
-uses use16;
+uses
+  Use16;
 
 type
   T64=record

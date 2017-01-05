@@ -48,7 +48,9 @@
 unit Arc_CHZ; {CHZ}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_ZOO;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_ZOO;
 
 type
     PCHZArchive = ^TCHZArchive;
@@ -72,6 +74,12 @@ type
 
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ----------------------------- CHZ ------------------------------------}
 
 constructor TCHZArchive.Init;
@@ -134,11 +142,9 @@ begin
 end;
 
 Procedure TCHZArchive.GetFile;
-var HS,i : AWord;
+var
     FP   : Longint;
     P    : CHZHdr;
-    Q    : Array [1..40] of Char absolute P;
-    P1   : ZOOPHdr;
     S    : String;
     C    : Char;
 {$IFDEF USEANSISTRING}
@@ -155,7 +161,7 @@ begin
   then begin FileInfo.Last := 2;Exit;end;
  if P.ID[4] = 'D' then
   begin
-   ArcFile^.Seek(FP+4+5);
+   ArcFile^.Seek(FP+9);
 {$IFDEF USEANSISTRING}
    ArcFile^.Read(L,1);
    SetLength(S,L);
@@ -183,15 +189,10 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date  := P.Date{P.Date shl 16) or (P.Date shr 16)};
- i := 1;
- SetLength(S, P.NameLen);
- ArcFile^.Read(S[1], P.NameLen and 255);
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
- While Pos(#255, S) > 0 do S[Pos(#255, S)] := '\';
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(CDir+S);    {DataCompBoy}
-{$ENDIF}
- FileInfo.FName := CDir + S; {DataCompBoy}
+ if P.NameLen > 255 then P.NameLen := 255;
+ FileInfo.FName[0] := Char(P.NameLen);
+ ArcFile^.Read(FileInfo.FName[1], P.NameLen);
+ FileInfo.FName := CDir + FileInfo.FName;
  ArcFile^.Seek(FP + P.PackedSize);
 end;
 

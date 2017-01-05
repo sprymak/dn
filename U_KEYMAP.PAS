@@ -60,7 +60,8 @@
 unit u_keymap;
 interface
 
-uses Objects{Cat};
+uses
+  Objects{Cat};
 
 type
  TKeyMap = (kmNone, kmAscii, kmAnsi, kmKoi8r); {-$VIV}

@@ -86,19 +86,19 @@ procedure CM_ChangeCase(AFP: Pointer);
 {$IFNDEF REALMODE}
 procedure CM_SelectColumn(AFP: Pointer); {JO}
 {$ENDIF}
-{$IFDEF EAOP}
+{$IFDEF EAOP} {$IFDEF OS2}
 procedure CM_SetEALongname(AFP: Pointer; CurPos: Integer); {JO}
-{$ENDIF}
-
+{$ENDIF} {$ENDIF}
 
 IMPLEMENTATION
-uses LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} collect, xtime, dnini,
-     advance, advance1, advance2, advance3, Dos, Objects, Dialogs, FilesCol,
-     Views, DnApp, Commands, Drivers, FlPanel, FlPanelX, Drives, FileCopy,
-     Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DnHelp,
-     FileFind, Tree, FBB, DnUtil, filediz, filelst {$IFDEF OS2}, FlOS2Tl {$ENDIF}
-     , ErrMess
-     ;
+uses
+  LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} collect, xtime, dnini,
+  advance, advance1, advance2, advance3, Dos, Objects, Dialogs, FilesCol,
+  Views, DnApp, Commands, Drivers, FlPanel, FlPanelX, Drives, FileCopy,
+  Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DnHelp,
+  FileFind, Tree, FBB, DnUtil, filediz, filelst, {$IFDEF OS2} FlOS2Tl, {$ENDIF}
+  ErrMess
+  ;
 
 type
     PSelectList = ^TSelectList;
@@ -1265,6 +1265,7 @@ procedure CM_RenameSingleL;
       P: PFilePanelRoot absolute AFP;
       Event: PEvent absolute PEV;
       ScrollBarValue: Integer;
+      ReEnableCmdLine: boolean;
 
 begin
   if (P^.Files = nil) then Exit;
@@ -1321,14 +1322,29 @@ begin
    else PIF^.C1:=P^.GetColor(6+PF^.TType);
   PIF^.C2:=PIF^.C1;
   PIF^.C3:=P^.GetColor(4);
-  P^.Owner^.Insert(PIF);
   {$IFDEF RecodeWhenDraw}
   S := CharToOemStr(S);
   {$ENDIF}
   PIF^.SetData(S);
   PIF^.SetValidator(New(PFilterValidator, Init([#32..#255]-IllegalCharSet-['\','/','*','?','"'])));
   PIF^.SelectAll(false);
+
+  {AK155 Чтобы комстрока не забирала курсор себе, отключаем
+         ее на время работы }
+  ReEnableCmdLine := (CommandLine <> nil) and
+                    not CommandLine.GetState(sfDisabled);
+  if ReEnableCmdLine then
+    begin
+    CommandLine^.SetState(sfDisabled, true);
+    CommandLine^.Update;
+    end;
+
+  P^.Owner^.Insert(PIF);
   R.A.X := P^.Owner^.ExecView(PIF); PIF^.GetData(S);
+
+  if ReEnableCmdLine then
+    CommandLine^.SetState(sfDisabled, false);
+
   if S[Length(S)]='.' then SetLength(S, Length(S)-1);
   {$IFDEF RecodeWhenDraw}
   if S = CharToOemStr(S2) then R.A.X := cmCancel;
@@ -1462,8 +1478,8 @@ begin
   S := MakeFileName(S);
   if R.A.X <> cmCancel then
     begin
-      GetDir(0, SSS);
-      ChDir(PF^.Owner^);
+      lGetDir(0, SSS); {GetDir(0, SSS);} {Cat}
+      lChDir(PF^.Owner^); {ChDir(PF^.Owner^);} {Cat}
       {$IFNDEF BIT_32}
       FillChar(N1, SizeOf(N1), 0);
       FillChar(N2, SizeOf(N2), 0);
@@ -1506,7 +1522,7 @@ begin
                PF^.Name[9] := ' ';
                if PF^.DIZ <> nil then UpdateDesc;
              end;
-      ChDir(SSS);
+      lChDir(SSS); {ChDir(SSS);} {Cat}
       P^.Owner^.Delete(PIF);
       Dispose(PIF,Done);
       GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
@@ -1640,12 +1656,14 @@ begin
 {$ENDIF}
     NewItem(GetString(dlSortSize),    '',kbNoKey,cmSortSize    ,0,
     NewItem(GetString(dlSortDate),    '',kbNoKey,cmSortDate    ,0,
+{$IFNDEF DPMI32}
     NewItem(GetString(dlSortCrDate),  '',kbNoKey,cmSortCrDate  ,0,
     NewItem(GetString(dlSortLADate),  '',kbNoKey,cmSortLADate  ,0,
+{$ENDIF}
     NewItem(GetString(dlSortDIZ),     '',kbNoKey,cmSortDIZ     ,0,
     NewItem(GetString(dlSortType),    '',kbNoKey,cmSortType    ,0,
     NewItem(GetString(dlSortUnsorted),'',kbNoKey,cmSortUnsorted,0,
-  nil)))))))))){$IFNDEF OS2})){$ENDIF};
+  nil)))))))){$IFNDEF DPMI32})){$ENDIF}{$IFNDEF OS2})){$ENDIF};
   N := NumSortModes; W := 15;
   DeskTop^.GetExtent(R);
   R.A := P^.Origin; P^.Owner^.MakeGlobal(R.A, R.A); Desktop^.MakeLocal(R.A, R.A);
@@ -1847,11 +1865,16 @@ procedure CM_ChangeCase(AFP: Pointer);
   S := OemToCharStr(S);
   end;
   {$ENDIF}
-  lGetDir(0, SSS);
-  lChDir(PF^.Owner^);
-  lChangeFileName(S, S);
-  I := IOResult;
-  lChDir(SSS);
+  if S = {$IFNDEF OS2} GetLFN(PF^.LFN) {$ELSE} PF^.Name {$ENDIF} then
+    I := 0
+  else
+    begin
+      lGetDir(0, SSS);
+      lChDir(PF^.Owner^);
+      lChangeFileName(S, S);
+      I := IOResult;
+      lChDir(SSS);
+    end;
   if I <> 0 then begin
    Info^.Hide;
 {$IFNDEF OS2}
@@ -2138,7 +2161,7 @@ Menu^.Default := LookUpMenu(PMenuBox(PV)^.Menu, P^.Drive^.Param+16000, dfByComma
                          end;
  end;  {JO}
 {$ENDIF}
-{$IFDEF EAOP}
+{$IFDEF EAOP} {$IFDEF OS2}
 procedure CM_SetEALongname(AFP: Pointer; CurPos: Integer); {JO}
 var  P: PFilePanelRoot absolute AFP;
      PF: PFileRec;
@@ -2151,6 +2174,6 @@ begin
  SetEALongname(S);
 end;
 
-{$ENDIF}
+{$ENDIF} {$ENDIF}
 
 END.

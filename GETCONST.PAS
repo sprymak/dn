@@ -97,10 +97,10 @@ USES
   advance3,
   Commands;
 
-PROCEDURE Error( S: String );
+PROCEDURE Error(const S: String);
 begin
-  WriteLn( S );
-  Halt( 2 );
+  WriteLn(S);
+  Halt(2);
 end;
 
 FUNCTION TValuesHolder.GetType;

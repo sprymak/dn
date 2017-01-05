@@ -48,7 +48,9 @@
 unit Arc_SQZ; {SQZ}
 
 interface
-uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+
+uses
+  Archiver, Advance, Advance1, Objects, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
     PSQZArchive = ^TSQZArchive;
@@ -73,6 +75,12 @@ type
      end;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ----------------------------- SQZ ------------------------------------}
 
 constructor TSQZArchive.Init;
@@ -137,17 +145,15 @@ end;
 Procedure TSQZArchive.GetFile;
 label 1;
 var
-    HS,i : AWord;
-    FP   : Longint;
+    i    : AWord;
     P    : SQZHdr;
-    S    : String;
-    C    : Char;
 begin
 1:
  ArcFile^.Read(P,1);
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2; Exit; end;
  if (P.Size = 0) then begin FileInfo.Last := 1; Exit;end;
- if P.Size < $19 then
+{ if P.Size < $19 then}{changed by piwamoto}
+ if P.Size < 18 then
   begin
    ArcFile^.Read(I, 2);
    ArcFile^.Seek(ArcFile^.GetPos + I);
@@ -160,14 +166,9 @@ begin
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date := P.Date;
- i := 1;
- SetLength(S, P.Size - 18); System.Move(P.Name, S[1], P.Size - 18);
- if Length(S) > 79 then begin FileInfo.Last := 2; Exit; end;
- While Pos('/', S) > 0 do S[Pos('/', S)] := '\';
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
-{$ENDIF}
- FileInfo.FName := S; {DataCompBoy}
+ SetLength(FileInfo.FName, P.Size - 18);
+ System.Move(P.Name, FileInfo.FName[1], P.Size - 18);
+ if Length(FileInfo.FName) > 79 then begin FileInfo.Last := 2; Exit; end;
  ArcFile^.Seek(ArcFile^.GetPos + P.PackedSize);
 end;
 

@@ -1072,10 +1072,6 @@ the /O switch!)
   Directory length - Show the total count of all files in a
    subdirectory, including all underlying directories.
 
-  Info divider - Show a divider (a line) between the list of files and
-   the information part (you can select a different color to divide
-   the files from the information part)
-
   Current file - Show the information about the currently selected file.
 
   Selected files - Show the information about the selected files.
@@ -1086,12 +1082,11 @@ the /O switch!)
   Free space - Show the amount of available free space on the current
    disk. This way you will not need the information screen (Ctrl-L).
 
-  Auto change directory - Automatically change subdirectories when
-   "walking" through a directory tree.
+  Files highlight - "Illumination" of files of various
+   types by different colors. It is possible to define
+   five groups of user files.
 
-  Standard drag-and-drop - Interface with mouse.
-
-  Put executable first - Show the executable files
+  Executable first - Show the executable files
    (BAT, COM, EXE, BTM) at the beginning of the filelist,
    independent from the selected sorting order.
 
@@ -1099,9 +1094,16 @@ the /O switch!)
    (ZIP, ARJ, ZOO, etc.) at the beginning of the filelist,
    independent from the selected sorting order.
 
-  Files highlight - "Illumination" of files of various
-   types by different colors. It is possible to define
-   five groups of user files.
+  Exe before archives
+
+  Long name in bottom - show full long name of the current file in
+the info pane in panel bottom if (part of) this long name don't
+show in 'Current file' info line. This flag and 'Selected files'
+flag share one info line.
+
+  Descrition in bottom - show description of the current file in the
+info pane in panel bottom. This flag and 'Free space' flag split
+one info line.
 
  {File mask:_} - Filter for filenames. Every single files mask,
    is separated from the next one with a semi-colon (";").
@@ -1110,6 +1112,14 @@ the /O switch!)
 
 .topic PanelDefaults=11002
 .title Panel Defaults
+  In this window You may set default settings for {new:_}
+{File Manager:FileManager}. These settings don't change the state of
+existing File Managers.
+  Button  blocks  {Sort by:_} and {Display:_} are the same with
+{Panel Options:PanelSetup}.
+
+  Right panel in new Manager alway is a disk panel, left panel is
+configurable.
 
 .topic PanelHotKeys=11003
 .title File panel Hot keys
@@ -2737,6 +2747,17 @@ These are global options for all drives
 
 .topic FileMgrSetup=48036
 .title File Manager Setup
+
+{Behavior:_}
+  Auto change directory - Automatically change subdirectories when
+   "walking" through a directory tree.
+
+  Drag-and-drop from columns - Interface with mouse.
+
+ {Display:_}
+  Info divider - Show a divider (a line) between the list of files and
+   the information part (you can select a different color to divide
+   the files from the information part)
 
 
 .topic SystemSetup=48037

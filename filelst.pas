@@ -48,7 +48,9 @@
 unit filelst;
 
 interface
-uses collect;
+
+uses
+  collect;
 
 procedure MakeListFile(APP: Pointer; Files: PCollection);
 function  ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;

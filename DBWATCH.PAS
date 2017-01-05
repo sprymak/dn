@@ -50,9 +50,8 @@ unit DBWatch;
 
 interface
 
-uses LFN, collect, Objects, Dos, advance, advance1, advance2, advance3
-   , use16
-;
+uses
+  Lfn, collect, Objects, Dos, advance, advance1, advance2, advance3, use16;
 
 type
      PFieldRec = ^Fieldrec;
@@ -101,6 +100,10 @@ assembler; {&uses esi,edi } {&FRAME-}
   asm
   mov   esi, PFR
   movzx ecx, word ptr[esi].FieldRec.Len
+  cmp   ecx, 254 { Kirill }
+  jbe   @@0      { 254, а не 255, так как в DelRight ошибка: "inc al" }
+  mov   ecx,254  { Kirill } { For Long Char Field Read First 255 Char }
+@@0:
   movzx esi, word ptr[esi].FieldRec.Pos
   add   esi,Buf
   mov   edi,S
@@ -135,7 +138,7 @@ begin
  Dispose(PFieldRec(P));
 end;
 
-function NewField(Name: String; Who: Char; Len, Dec: Byte;Pos: Word) : PFieldRec;
+function NewField(Name: String; Who: Char; Len : Word; Dec: Byte;Pos: Word) : PFieldRec;
  var P: PFieldRec;
 begin
  New(P);
@@ -151,6 +154,7 @@ begin
  If P^.Who='D'
   then If Length(Name) > 10  then P^.Ln := Length(Name) else P^.Ln := 10
   else If Length(Name) > Len then P^.Ln := Length(Name) else P^.Ln := Len;
+ if P^.Ln > 255 then P^.Ln:=255; { Kirill }
 end;
 
 procedure TDBFile.OpenMode(Mode: Word);
@@ -161,17 +165,24 @@ end;
 constructor TDBFile.Init;
 
 type
+    TFldLenRec = record { Kirill }
+      case integer of
+        0: (Len, Dec : byte);
+        1: (CharFieldLen : SmallWord);
+    end;
     frec = record
      Name: Array [0..10] of Char;
      Who: Char;
      Info1: Array [0..3] of Char;
-     Len,Dec: Byte;
+     FldLen : TFldLenRec; { Kirill }
      Info2: Array [0..13] of Char;
     end;
 
 var FBuf: FRec;
     I, J, RL: Integer;
     S: String;
+    FieldLen : SmallWord;
+    FieldDec : byte;
 
 begin
  inherited Init;
@@ -183,15 +194,16 @@ begin
 {piwamoto.src.begin}{bugfixed .DBF detection}
  NumFields := -1;
  repeat
-   BaseFile.Read(FBuf, 32);
-   Inc (NumFields);
- until (FBuf.Name[0] < #32) or
-       (BaseFile.Status <> stOk) or
-       (HeaderLen + 32 < BaseFile.GetPos);
+   BaseFile.Read(FBuf,1); { Kirill } { For last field only one byte }
+   if FBuf.Name[0] >= #32 then BaseFile.Seek(BaseFile.GetPos+31);
+   inc(NumFields);
+ until (BaseFile.Status <> stOk) or 
+       (FBuf.Name[0] < #32) or
+       (HeaderLen < BaseFile.GetPos);
  if (NumFields < 1) or
-    (FBuf.Name[0] <> #13) or
+    (FBuf.Name[0] <> #13)  or
     (BaseFile.Status <> stOk) or
-    (HeaderLen + 32 < BaseFile.GetPos)
+    (HeaderLen + 32 < BaseFile.GetPos) 
    then begin BaseFile.Done;Fail;end;
  BaseFile.Seek(32);
 {piwamoto.src.end}
@@ -200,7 +212,15 @@ begin
  for I := 1 to NumFields do
   begin
    BaseFile.Read(FBuf, 32);
-   Inc(RL, FBuf.Len);
+   if FBuf.Who = 'C' then begin { Kirill }
+     FieldLen:=FBuf.FldLen.CharFieldLen;
+     FieldDec:=0;
+   end
+   else begin
+     FieldLen:=FBuf.FldLen.Len; 
+     FieldDec:=FBuf.FldLen.Dec;
+   end;
+   Inc(RL, FieldLen); { Kirill }
    S := ''; J := 0;
    While FBuf.Name[J] >= #32 do
     begin
@@ -210,7 +230,7 @@ begin
    SetLength(S, J);
    if (J = 0) or (BaseFile.Status <> stOk) then
       begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;
-   with FBuf do Fields^.Insert(NewField(S, Who, Len, Dec, RL - Len));
+   with FBuf do Fields^.Insert(NewField(S, Who, FieldLen, FieldDec, RL - FieldLen));
   end;
  if RL <> RecLen then
    begin Dispose(Fields,Done);Fields:=nil;BaseFile.Done;Fail;end;

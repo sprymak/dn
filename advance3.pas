@@ -47,8 +47,13 @@
 {$I STDEFINE.INC}
 
 unit Advance3; {Misc stuff}
+
 interface
-uses advance, dnini, dos, xTime, objects, ExtraMem;
+
+uses
+  Advance, DnIni, Dos, xTime, Objects
+  {$IFNDEF VIRTUALPASCAL}, ExtraMem {$ENDIF}
+  ;
 
  procedure LowPrec(var A, B: TSize);
  function  Get100s: LongInt;
@@ -178,6 +183,7 @@ begin
 end;
 
 PROCEDURE DosWrite;
+{$IFNDEF VIRTUALPASCAL}
 {$IFDEF NOASM}
 var r: registers;
     i: byte;
@@ -190,7 +196,6 @@ begin
  end;
 end;
 {$ELSE}
-{$IFNDEF VIRTUALPASCAL}
 assembler;
 asm
   les  di,S
@@ -211,11 +216,11 @@ asm
   loop @loop
 @empty:
 end;
+{$ENDIF}
 {$ELSE}
 begin
  Writeln(S);
 end;
-{$ENDIF}
 {$ENDIF}
 
 {DataCompBoy

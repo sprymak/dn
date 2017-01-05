@@ -48,9 +48,11 @@
 unit FileFind;
 
 interface
-uses Objects, Views, Dialogs, Drivers, Menus, FileCopy, FilesCol, Eraser,
-     Drives, HideView, DOS, Gauge, DiskInfo, {FStorage,} {$IFNDEF OS2}LFNCol,{$ENDIF} DNIni,
-     collect;
+
+uses
+  Objects, Views, Dialogs, Drivers, Menus, FileCopy, FilesCol, Eraser,
+  Drives, HideView, DOS, Gauge, DiskInfo, {FStorage,} {$IFNDEF OS2}LFNCol,{$ENDIF} DNIni,
+  collect;
 
 type
     TFindRec = record
@@ -84,16 +86,17 @@ const
      ffSeD2Lng  = $02; {Search string overflow} {-$VOL}
      ffSeNotFnd = $FE; {No files found}         {-$VOL}
 
-     ffoAdvanced    = 1;
-     ffoCaseSens    = 2;
-     ffoRecursive   = 4;
-     ffoWholeWords  = 8; {-$VIV 14.05.99}
+     ffoAdvanced    =  1;
+     ffoCaseSens    =  2;
+     ffoRecursive   =  4;
+     ffoWholeWords  =  8; {-$VIV 14.05.99}
      ffoAllCP       = 16; {-$VIV 14.05.99}
+     ffoRegExp      = 32; {Cat 06.12.01}
 
      FindRec: TFindRec = ( Mask : '*.*';
                            What : '';
-                           Options : 4;
-                           Where : 0;
+                           Options : 4; {рекурсивный поиск}
+                           Where : 1;   {поиск в текущем каталоге}
                            AddChar : ''
                          );
 
@@ -359,11 +362,14 @@ function FindFiles;
    PInfo^.Write(3, GetString(dlLookedFiles) + ItoS(TotalNum)); {-$VIV}
    S.Init(Path+SR.FullName, stOpenRead);
    SearchF := (S.Status = stOK) and
-              ( FViewer.SearchFileStr(@S, XL, FindRec.What, 0,
-                                          FindRec.Options and ffoCaseSens <> 0, {-$VIV 14.05.99}
-                                          Off,
-                                          FindRec.Options and ffoWholeWords <> 0, Off,
-                                          FindRec.Options and ffoAllCP <> 0) >= 0 ); {-$VIV 14.05.99}
+              (FViewer.SearchFileStr(@S, XL, FindRec.What, 0,
+              { CaseSensitive }      FindRec.Options and ffoCaseSens <> 0, {-$VIV 14.05.99}
+              { Display       }      Off,
+              { WholeWords    }      FindRec.Options and ffoWholeWords <> 0,
+              { Back          }      Off,
+              { AllCP         }      FindRec.Options and ffoAllCP <> 0, {-$VIV 14.05.99}
+              { IsRegExp      }      FindRec.Options and ffoRegExp <> 0) {Cat 06.12.01}
+              >= 0); 
    S.Done;
  end;
 
@@ -1447,7 +1453,8 @@ begin
  CurDir := cTEMP_;
  DriveType := dtTemp;
  ListFile := nil;
- System.GetDir(0, FreeStr); ClrIO;
+ LFN.lGetDir(0, FreeStr); {System.GetDir(0, FreeStr);} {Cat}
+ ClrIO;
  S := NewStr(FreeStr);
 {I := Dirs^.IndexOf(S);
  if I >= 0 then begin DisposeStr(S); S := Dirs^.At(I); end

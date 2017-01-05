@@ -51,12 +51,12 @@
 UNIT
   FLPanelX;
 
-
 INTERFACE
 
 USES
   LFN, {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy} advance, advance1, advance2, advance3, Objects,
-  Views, Drivers, Dos, FilesCol, HideView, Drives, filediz, collect, Arvid
+  Views, Drivers, Dos, FilesCol, HideView, Drives, FileDiz, Collect
+  {$IFDEF ARVID}, Arvid {$ENDIF}
   ;
 
 TYPE
@@ -74,7 +74,7 @@ TYPE
    DrawDisableLvl, SelNum, LineLength: LongInt;
    SelectedLen, PackedLen: TSize;
    WasActive, PosChanged, CommandEnabling,
-   QuickSearch, ViewEnabled: Boolean;
+   {QuickSearch,} ViewEnabled: Boolean;
 {$IFDEF USEANSISTRING}
    TotalInfo, FreeSpace: String;
 {$ELSE}
@@ -119,6 +119,12 @@ CONST
   DirsToChange: Array [0..9] of PString = (nil,nil,nil,nil,nil,nil,nil,nil,nil,nil);
   CurFileActive: PString = nil;
   CurFilePassive: PString = nil;
+  QuickSearch: boolean = false; {AK155 5-01-2002. До этого было такое поле
+в TFilePanelRoot и в Tree.TTreeView. Поскольку по логике использования
+QuickSearch может быть только один, естественным решением является
+глобальная переменная, а от ее размазывания по объектам ничего, кроме
+глюков быть не может. Поводом для превращения этих поле в глобальную
+переменную послужило желание проанализировать ее в TCommandLine.Update }
 
 
 VAR
@@ -136,9 +142,10 @@ uses
   {$IFDEF UUENCODE} ,UUCode {$ELSE}
   {$IFDEF UUDECODE} ,UUCode {$ENDIF} {$ENDIF}
   {$IFDEF USEWPS} ,Strings
-  {$IFDEF OS2} ,Dn2PmApi {$ENDIF}
-  {$IFDEF WIN32} ,U_KeyMap {$ENDIF}
+   {$IFDEF OS2} ,Dn2PmApi {$ENDIF}
+   {$IFDEF WIN32} ,U_KeyMap {$ENDIF}
   {$ENDIF}
+  {$IFDEF NETWORK} ,Network {$ENDIF}
   ;
 
 procedure TFilePanelRoot.IncDrawDisabled;
@@ -312,9 +319,9 @@ begin
  I := Byte(( Drive^.DriveType = dtFind ) or ( Drive^.DriveType = dtTemp ) or ( Drive^.DriveType = dtArc ));
  I := Byte(FMSetup.Show and fmsDivider <> 0) +
       Byte(PanelFlags and fmiCurrent <> 0)*(1 + I) +
-      Byte(PanelFlags and fmiSelected <> 0) +
+      Byte(PanelFlags and (fmiSelected or fmiFullNameInBottom) <> 0) +
       Byte(PanelFlags and fmiTotals <> 0) +
-      Byte(PanelFlags and fmiFree <> 0)*Byte(I=0);
+      Byte(PanelFlags and (fmiFree or fmiDescriptionInBottom) <> 0)*Byte(I=0);
  Dec(Bounds.B.Y, I);
  SetBounds(Bounds);
  R := Bounds; R.B.Y := R.A.Y; Dec(R.A.Y);
@@ -944,7 +951,10 @@ var
     {$ELSE}
     FreeStr := PF^.Name;
     {$ENDIF}
+{Cat: в DN/2 не надо добавлять точку в конце имени}
+(*
    if PosChar('.', FreeStr) = 0 then AddStr(FreeStr, '.');
+*)
    If (ShiftState and (kbLeftShift+kbRightShift) <> 0) then
    {$IFNDEF OS2}
      if Drive^.Flags and psShowLongName <> 0 then
@@ -1082,6 +1092,7 @@ var
    CE;
    Abort := Off; OldDelta := -1;
    MPos.X := Origin.X + Size.X div 2;
+   DriveLine^.Update; {AK155}
    if DriveSelectVCenter then                {-$X-Man}
    MPos.Y := Origin.Y + Size.Y div 2 {-$VIV} {-$X-Man}
    else MPos.Y := Origin.Y+1;                {-$X-Man}
@@ -1095,6 +1106,14 @@ var
      Event.InfoPtr := New(PTempDrive, Init(Drive^.Param));
      InsertDrive; Exit;
    end else
+   {$IFDEF NETWORK}
+   if S = cNET_ then
+   begin
+     Event.InfoPtr := New(PNetDrive, Init(@self, Drive^.Param));
+     messages.messagebox('alpha state!',nil,messages.mfwarning+messages.mfokbutton);;;;
+     InsertDrive; Exit;
+   end else
+   {$ENDIF}
    {$IFDEF MODEM}
    {$IFDEF LINK}
    if S[1] = '+' then
@@ -1131,6 +1150,7 @@ var
    S: string;
  begin
    if ChangeLocked then Exit;
+   QuickSearch := false;
    S := CnvString(Event.InfoPtr); CE;
    if S = cTEMP_ then
    begin
@@ -1168,15 +1188,20 @@ var
       Q:=Copy(S, 1, FreeByte-1);
       if ((Drive^.DriveType = dtArc) and
          (UpStrg(PArcDrive(Drive)^.ArcName)=UpStrg(Q)))
+         {$IFDEF ARVID}
          or
          ((Drive^.DriveType = dtArvid) and
-         (UpStrg(PArvidDrive(Drive)^.Name^)=UpStrg(Q))) then begin
+         (UpStrg(PArvidDrive(Drive)^.Name^)=UpStrg(Q)))
+         {$ENDIF}
+         then begin
        Q:=Copy(S, FreeByte+1, MaxStringLength);
        Message(@Self, evCommand, cmChangeDirectory, @Q)
       end else begin
        Dr:=nil;
        Dr:=New(PArcDrive,Init(S, S, Drive^.innum));
+       {$IFDEF ARVID}
        if Dr=nil then Dr:=New(PArvidDrive,Init(S, Drive^.innum));
+       {$ENDIF}
        if Dr=nil then exit;
        Message(@Self, evCommand, cmInsertDrive, Dr);
       end
@@ -1249,7 +1274,7 @@ var
 
  procedure _CtrlIns;
  var
-   S: string;
+   S: LongString;
    I: LongInt;
    b: boolean;
  begin
@@ -1267,7 +1292,7 @@ var
    {$IFDEF RecodeWhenDraw}
    S := CharToOemStr(S);
    {$ENDIF}
-   Message(Application, evCommand, cmPutInClipboard, @S);
+   Message(Application, evCommand, cmPutInClipboardLong, @S);
  end;
 
  function _AltEnter: boolean; forward;
@@ -1296,8 +1321,11 @@ var
 {$ELSE}
     S:= PF^.Name;
 {$ENDIF}
+{Cat: в DN/2 не надо добавлять точку в конце имени}
+(*
     if (PF^.Attr and Directory = 0) and
        (PosChar('.', S) = 0) then AddStr(S, '.');
+*)
     if Copy(S, 1, 2) = '..'  then
 {$IFNDEF OS2}
       if Drive^.Flags and psShowLongName >0 then
@@ -1426,6 +1454,36 @@ var
      if Drive^.DriveType in [dtDisk, dtLink] then GotoFile(DirectoryName)
  end;
 
+ procedure _Enter;
+ var S: string;
+ begin
+   if not ( Drive^.DriveType in [ dtFind, dtTemp, dtList ] ) then
+     exit;
+   if Drive^.DriveType <= dtList then
+    begin
+{$IFNDEF OS2}
+      S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
+{$ELSE}
+      S := MakeNormName(PF^.Owner^, PF^.Name);
+{$ENDIF}
+      if ShiftState and 3 <> 0 then
+        begin
+          Message(Owner, evCommand, cmChangeInactive, @S);
+          Exit;
+        end;
+      Dispose(Drive,Done);
+{Cat:warn непонятно, почему это работает, поскольку в предыдущей строке
+          Drive уничтожается, а в следующей к нему идёт обращение}
+      New(Drive, Init(Byte(S[1])-64, @Self, Drive^.Param));
+      {Drive^.Owner := @Self;}
+      DeltaX := 0;
+      {if WasFull then Drive^.Flags := Drive^.GetFullFlags
+                 else Drive^.Flags := 0;}
+      GotoFile(S);
+      Rebound;
+    end;
+ end;
+
  procedure _CtrlPgDn;
  var
    S: string;
@@ -1446,37 +1504,18 @@ var
      _CtrlPgUp;
      Exit;
    end;
-   if not ( Drive^.DriveType in [ dtFind, dtTemp, dtList ] ) then
-    begin
-      if PF^.Attr and Directory = 0 then Exit;
 {$IFNDEF OS2}
-      S := MakeNormName(MakeNormName(PF^.Owner^,GetLFN(PF^.LFN)),'.');
+   S := MakeNormName(MakeNormName(PF^.Owner^,GetLFN(PF^.LFN)),'.');
 {$ELSE}
-      S := MakeNormName(MakeNormName(PF^.Owner^, PF^.Name),'.');
+   S := MakeNormName(MakeNormName(PF^.Owner^, PF^.Name),'.');
 {$ENDIF}
-      GotoFile(S);
-    end else
-   if Drive^.DriveType <= dtList then
-    begin
-{$IFNDEF OS2}
-      S := MakeNormName(PF^.Owner^, GetLFN(PF^.LFN));
-{$ELSE}
-      S := MakeNormName(PF^.Owner^, PF^.Name);
-{$ENDIF}
-      if ShiftState and 3 <> 0 then
-        begin
-          Message(Owner, evCommand, cmChangeInactive, @S);
-          Exit;
-        end;
-      Dispose(Drive,Done);
-      New(Drive, Init(Byte(S[1])-64, @Self, Drive^.Param));
-      {Drive^.Owner := @Self;}
-      DeltaX := 0;
-      {if WasFull then Drive^.Flags := Drive^.GetFullFlags
-                 else Drive^.Flags := 0;}
-      GotoFile(S);
-      Rebound;
-    end;
+   if (PF^.Attr and Directory = 0) then
+     begin
+       if not ArcViewer(S, S, FreeByte) {AK155: по CtrlPgDn входим в архив}
+       then _Enter;
+     end
+   else
+     GotoFile(S);
  end;
 
  procedure FindNextSelFile(pNext: Boolean); {-$VIV,VOL 19.05.99---}
@@ -1718,19 +1757,7 @@ kbCtrlEnter: _CtrlEnter;
                   (UpStrg(PF^.Name) = FreeStr) and
                   (Msg(dlAutoexecWarning,nil,mfYesNoConfirm) <> cmYes) then Exit;
                if (Drive^.DriveType in [dtFind, dtTemp, dtList]) then
-               begin
-                if {$IFNDEF OS2}
-                     {$IFDEF OS_DOS}
-                     PF^.Name[1] = '.'
-                     {$ELSE}
-                     PF^.LFN = '..'
-                     {$ENDIF}
-                   {$ELSE}
-                     PF^.Name = '..'
-                   {$ENDIF}
-                      then _CtrlPgUp else _CtrlPgDn;
-                Exit;
-               end;
+                  begin _Enter; Exit; end;
                if (FMSetup.Options and fmoEnterArchives <> 0) and
                   (Event.KeyCode = kbEnter) and (ShiftState and 3 = 0)
                   and (PF^.Attr and Directory = 0) and (Drive^.DriveType <> dtArc )
@@ -1943,7 +1970,7 @@ end;
  {$IFDEF WIN32}
  procedure _OpenWPSWindow(DirName: String);
  begin
-  DirName := 'start "'+Ascii_Ansi(DirName)+'"';
+  DirName := 'explorer.exe "'+Ascii_Ansi(DirName)+'"';
   Message(Application, evCommand, cmExecString, @DirName);
  end;
  {$ENDIF}
@@ -2164,9 +2191,9 @@ begin
               cmCloseLinked: _CloseLinked;
               cmGetDirName: begin PString(Event.InfoPtr)^ := DirectoryName end;
               cmSetFAttr,cmSingleAttr: begin CM_SetAttributes(@Self, Event.Command=cmSingleAttr,CurPos); CE end;
-{$IFDEF EAOP}
+{$IFDEF EAOP} {$IFDEF OS2}
               cmSetEALongname: begin CM_SetEALongname(@Self, CurPos); CE end;
-{$ENDIF}
+{$ENDIF} {$ENDIF}
               cmPanelLongCopy: begin CM_LongCopy(@Self); CE end;
               cmEnableView: begin ViewEnabled := On; SendLocated; end;
               cmDisableView: begin ViewEnabled := Off; end;

@@ -48,7 +48,9 @@
 unit Arc_ZXZ; {ZXZ}
 
 interface
-uses Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, advance1;
+
+uses
+  Archiver, Advance, Advance1, Objects {$IFNDEF OS2}, LFNCol{$ENDIF};
 
 type
   PZXZArchive = ^TZXZArchive;
@@ -71,6 +73,12 @@ type ZXZHdr = record
      end;
 
 implementation
+
+{$IFDEF MIRRORVARS}
+uses
+  Vars;
+{$ENDIF}
+
 { ------------------------------ ZXZip aka $Z ----------------------------- }
 
 constructor TZXZArchive.Init;
@@ -80,8 +88,13 @@ begin
   Sign := GetSign; SetLength(Sign, Length(Sign)-1); Sign := Sign+#0;
   FreeStr := SourceDir + DNARC;
   TObject.Init;
+{$IFNDEF OS2}
   Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZXZIP386.EXE'));
   UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ZXUNZIP.EXE'));
+{$ELSE}
+  Packer                := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,             'ZXZIP2.EXE'));
+  UnPacker              := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,           'ZXUNZIP2.EXE'));
+{$ENDIF}
   Extract               := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,            ''));
   ExtractWP             := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,          ''));
   Add                   := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd,                '-start8224'));
@@ -136,28 +149,24 @@ Procedure TZXZArchive.GetFile;
 var FP  : Longint;
     P   : ZXZHdr;
     Len : AWord;
-    S   : String;
 begin
  ArcFile^.Read(P, SizeOf(P));
  FP := ArcFile^.GetPos;
+ if (ArcFile^.Status <> stOK) or (FP > 65280) then begin FileInfo.Last:=2;Exit;end;
  if (P.Name[0]<#32) or
     (P.PackedSize>P.SectorSize*256) or
-    (VCardinal(P.PackedSize + FP) > ArcFile^.GetSize) or
+    ((P.PackedSize + FP - SizeOf(P) - 17 ) > ArcFile^.GetSize) or
     (P.MethodID>3) or
     (P.SectorSize=0)
    then begin FileInfo.Last:=1; Exit; end;
- if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=2;Exit;end;
- S := P.Name;
- DelRight(S);
+ FileInfo.FName := P.Name;
+ DelRight(FileInfo.FName);
  if (P.Extension[0]<>'B') and
     (P.Extension[1]>=#32) and (P.Extension[1]<=#127) and
     (P.Extension[2]>=#32) and (P.Extension[2]<=#127)
-  then S := S + '.' + P.Extension else S := S + '.' + P.Extension[0];
- DelRight(S);
- FileInfo.FName := S;
-{$IFNDEF OS2}
- FileInfo.LFN  := AddLFN(S); {DataCompBoy}
-{$ENDIF}
+  then FileInfo.FName := FileInfo.FName + '.' + P.Extension
+  else FileInfo.FName := FileInfo.FName + '.' + P.Extension[0];
+ DelRight(FileInfo.FName);
  FileInfo.Last := 0;
  FileInfo.Attr := 0;
  if (P.OriginSize and $ff) = 0 then Len:=0 else Len:=256;
